@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三国江湖</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #ffd700; overflow: hidden; }
+        
+        /* ===== 标题界面 ===== */
+        #title-screen {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        #title-screen h1 { font-size: 48px; margin-bottom: 10px; text-shadow: 0 0 20px #ffd700; }
+        #title-screen p { color: #888; margin-bottom: 40px; }
+        .btn {
+            background: #ffd700; color: #1a1a1a;
+            border: none; padding: 15px 50px;
+            font-size: 20px; cursor: pointer;
+            border-radius: 8px; margin: 10px;
+            font-family: inherit;
+        }
+        .btn:hover { background: #ffed4a; }
+        
+        /* ===== 游戏场景 ===== */
+        #game {
+            width: 100vw; height: 100vh;
+            position: relative; display: none;
+        }
+        
+        /* 地图 */
+        #map {
+            width: 100%; height: 100%;
+            position: relative;
+            background: linear-gradient(180deg, #0a0a15 0%, #1a1a2e 30%, #2d4a2d 100%);
+        }
+        
+        .map-border { position: absolute; background: #333; }
+        .border-top { top: 0; left: 0; right: 0; height: 50px; }
+        .border-bottom { bottom: 0; left: 0; right: 0; height: 50px; }
+        .border-left { top: 0; bottom: 0; left: 0; width: 50px; }
+        .border-right { top: 0; bottom: 0; right: 0; width: 50px; }
+        
+        .ground { position: absolute; top: 50px; bottom: 50px; left: 50px; right: 50px; background: #1a3a1a; }
+        .grass { position: absolute; width: 100%; height: 100%; background-image: radial-gradient(#2d5a2d 1px, transparent 1px); background-size: 20px 20px; }
+        
+        .building { position: absolute; background: #5a4a3a; border: 2px solid #3a2a1a; }
+        .house1 { left: 100px; top: 100px; width: 80px; height: 60px; }
+        .house2 { right: 150px; top: 80px; width: 100px; height: 70px; }
+        .house3 { left: 200px; bottom: 150px; width: 70px; height: 50px; }
+        .well { right: 200px; bottom: 120px; width: 40px; height: 40px; border-radius: 50%; background: #4a6a8a; }
+        
+        .tree { position: absolute; width: 30px; height: 40px; background: linear-gradient(180deg, #2d5a2d 0%, #1a3a1a 100%); border-radius: 50% 50% 0 0; }
+        .tree::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 8px; height: 15px; background: #5a4a3a; }
+        .tree1 { left: 50px; top: 150px; }
+        .tree2 { right: 80px; top: 200px; }
+        .tree3 { left: 350px; bottom: 100px; }
+        
+        /* 玩家 */
+        #player {
+            position: absolute; width: 30px; height: 30px;
+            background: #ffd700; border-radius: 50%;
+            border: 3px solid #ffed4a;
+            z-index: 50;
+            box-shadow: 0 0 10px rgba(255,215,0,0.5);
+            will-change: left, top;
+        }
+        #player::after { content: "我"; position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: #ffd700; font-size: 12px; }
+        
+        /* NPC */
+        .npc {
+            position: absolute; width: 30px; height: 30px;
+            border-radius: 50%; cursor: default;
+            z-index: 40; border: 2px solid #fff;
+            box-shadow: 0 0 8px rgba(255,255,255,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .npc::after { content: attr(data-name); position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 11px; white-space: nowrap; }
+        .npc.nearby { transform: scale(1.2); box-shadow: 0 0 20px rgba(255,215,0,0.8); border-color: #ffd700; cursor: pointer; }
+        .npc.clickable { cursor: pointer; }
+        #npc-soldier { left: 200px; top: 200px; background: #4488ff; }
+        #npc-merchant { left: 500px; top: 150px; background: #44ff88; }
+        #npc-general { left: 600px; top: 350px; background: #ff4444; }
+        
+        /* 敌人 */
+        .enemy {
+            position: absolute; width: 30px; height: 30px;
+            border-radius: 50%; cursor: default;
+            z-index: 40; border: 2px solid #ff0000;
+            background: #880000;
+            animation: enemyPulse 1s infinite;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .enemy::after { content: attr(data-name); position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: #ff6666; font-size: 11px; white-space: nowrap; }
+        .enemy.nearby { transform: scale(1.2); box-shadow: 0 0 20px #ff0000; border-color: #ffd700; cursor: pointer; }
+        .enemy.clickable { cursor: pointer; }
+        @keyframes enemyPulse { 0%, 100% { box-shadow: 0 0 5px #ff0000; } 50% { box-shadow: 0 0 15px #ff0000; } }
+        #enemy1 { left: 300px; top: 250px; }
+        #enemy2 { left: 450px; top: 280px; }
+        #enemy3 { left: 350px; top: 400px; }
+        
+        /* ===== 交互提示 ===== */
+        #interact-prompt {
+            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,215,0,0.9);
+            color: #1a1a1a;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 150;
+            display: none;
+            animation: promptBounce 0.5s ease;
+        }
+        @keyframes promptBounce {
+            0% { transform: translateX(-50%) translateY(10px); opacity: 0; }
+            100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        
+        /* 提示 */
+        .hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: #666; font-size: 12px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 3px; }
+        
+        /* ===== 状态栏 ===== */
+        #status {
+            position: absolute; top: 60px; right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px; border-radius: 8px;
+            font-size: 14px; z-index: 100;
+            border: 1px solid #ffd700;
+            min-width: 140px;
+        }
+        .status-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        .stat-label { color: #888; }
+        .stat-value { color: #ffd700; font-weight: bold; }
+        .hp-bar { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 3px; overflow: hidden; }
+        .hp-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ff6666); transition: width 0.3s; }
+        
+        /* 任务框 */
+        #quest-box {
+            position: absolute; top: 60px; left: 60px;
+            background: rgba(0,0,0,0.8);
+            padding: 12px 15px; border-radius: 8px;
+            font-size: 13px; z-index: 100;
+            border: 1px solid #4488ff;
+            max-width: 200px;
+            display: none;
+        }
+        .quest-title { color: #4488ff; font-weight: bold; margin-bottom: 5px; }
+        .quest-desc { color: #aaa; line-height: 1.4; }
+        .quest-reward { color: #ffd700; margin-top: 5px; font-size: 12px; }
+        
+        /* ===== 对话框 ===== */
+        #dialogue {
+            position: absolute; bottom: 0;
+            width: 100%; height: 28%;
+            background: rgba(15,15,25,0.98);
+            border-top: 3px solid #ffd700;
+            padding: 20px; display: none;
+            z-index: 200;
+        }
+        #speaker { color: #ff6b6b; font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        #text { font-size: 15px; line-height: 1.8; color: #ddd; margin-bottom: 15px; }
+        #choices { display: flex; flex-wrap: wrap; gap: 10px; }
+        .choice-btn {
+            background: #ffd700; color: #1a1a1a;
+            border: none; padding: 10px 20px;
+            cursor: pointer; font-size: 14px;
+            border-radius: 5px;
+        }
+        .choice-btn:hover { background: #ffed4a; }
+        #close-btn {
+            position: absolute; right: 20px; bottom: 20px;
+            background: #444; color: #fff;
+            border: none; padding: 8px 20px;
+            cursor: pointer; border-radius: 5px;
+        }
+        #close-btn:hover { background: #555; }
+        
+        /* 通知 */
+        #notification {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #ffd700;
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            z-index: 300;
+            display: none;
+            border: 2px solid #ffd700;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- 标题界面 -->
+    <div id="title-screen">
+        <h1>三国江湖</h1>
+        <p>乱世烽火 · 群雄逐鹿</p>
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">版本 1.3</p>
+        <button class="btn" onclick="startGame()">开始游戏</button>
+    </div>
+    
+    <!-- 游戏场景 -->
+    <div id="game">
+        <div id="map">
+            <div class="map-border border-top"></div>
+            <div class="map-border border-bottom"></div>
+            <div class="map-border border-left"></div>
+            <div class="map-border border-right"></div>
+            <div class="ground"><div class="grass"></div></div>
+            <div class="building house1"></div>
+            <div class="building house2"></div>
+            <div class="building house3"></div>
+            <div class="building well"></div>
+            <div class="tree tree1"></div>
+            <div class="tree tree2"></div>
+            <div class="tree tree3"></div>
+            <div id="player"></div>
+            
+            <div class="npc clickable" id="npc-soldier" data-name="士兵" onclick="clickInteract(this)"></div>
+            <div class="npc clickable" id="npc-merchant" data-name="商人" onclick="clickInteract(this)"></div>
+            <div class="npc clickable" id="npc-general" data-name="将军" onclick="clickInteract(this)"></div>
+            
+            <div class="enemy clickable" id="enemy1" data-name="黄巾兵" onclick="clickInteract(this)"></div>
+            <div class="enemy clickable" id="enemy2" data-name="黄巾兵" onclick="clickInteract(this)"></div>
+            <div class="enemy clickable" id="enemy3" data-name="黄巾兵" onclick="clickInteract(this)"></div>
+            
+            <!-- 交互提示 -->
+            <div id="interact-prompt"></div>
+            
+            <div class="hint">WASD移动 | 靠近后 空格/点击 交互</div>
+        </div>
+        
+        <!-- 状态栏 -->
+        <div id="status">
+            <div class="status-row"><span class="stat-label">等级</span><span class="stat-value" id="level">1</span></div>
+            <div class="status-row"><span class="stat-label">金币</span><span class="stat-value" id="gold">0</span></div>
+            <div class="status-row"><span class="stat-label">HP</span><span class="stat-value" id="hp-text">100/100</span></div>
+            <div class="hp-bar"><div class="hp-fill" id="hp-bar" style="width: 100%"></div></div>
+        </div>
+        
+        <!-- 任务框 -->
+        <div id="quest-box">
+            <div class="quest-title" id="quest-title">当前任务</div>
+            <div class="quest-desc" id="quest-desc"></div>
+            <div class="quest-reward" id="quest-reward"></div>
+        </div>
+        
+        <!-- 对话框 -->
+        <div id="dialogue">
+            <div id="speaker"></div>
+            <div id="text"></div>
+            <div id="choices"></div>
+            <button id="close-btn" onclick="closeDialogue()">关闭</button>
+        </div>
+        
+        <!-- 通知 -->
+        <div id="notification"></div>
+    </div>
+    
+    <script>
+        // ===== 游戏状态 =====
+        var player = { x: 400, y: 300, hp: 100, maxHp: 100, level: 1, gold: 0, attack: 10 };
+        var currentQuest = null;
+        var isTalking = false;
+        var nearbyTarget = null;  // 附近的目标
+        var interactRange = 60;    // 交互范围(像素)
+        var gameOver = false;      // 游戏结束标记
+        
+        // ===== 敌人血量（独立记录）=====
+        var enemyHpData = {
+            'enemy1': { hp: 30, maxHp: 30 },
+            'enemy2': { hp: 30, maxHp: 30 },
+            'enemy3': { hp: 30, maxHp: 30 }
+        };
+        
+        // ===== NPC/敌人位置 =====
+        var targets = {
+            'npc-soldier': { x: 200, y: 200, type: 'npc', id: 'soldier' },
+            'npc-merchant': { x: 500, y: 150, type: 'npc', id: 'merchant' },
+            'npc-general': { x: 600, y: 350, type: 'npc', id: 'general' },
+            'enemy1': { x: 300, y: 250, type: 'enemy', id: 'enemy1' },
+            'enemy2': { x: 450, y: 280, type: 'enemy', id: 'enemy2' },
+            'enemy3': { x: 350, y: 400, type: 'enemy', id: 'enemy3' }
+        };
+        
+        // ===== 开始游戏 =====
+        function startGame() {
+            document.getElementById('title-screen').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            initPlayer();
+            updateUI();
+            updatePlayer(); // 启动游戏循环
+        }
+        
+        // ===== 初始化 =====
+        function initPlayer() {
+            var playerEl = document.getElementById('player');
+            playerEl.style.left = player.x + 'px';
+            playerEl.style.top = player.y + 'px';
+        }
+        
+        function updateUI() {
+            document.getElementById('level').textContent = player.level;
+            document.getElementById('gold').textContent = player.gold;
+            document.getElementById('hp-text').textContent = player.hp + '/' + player.maxHp;
+            document.getElementById('hp-bar').style.width = (player.hp / player.maxHp * 100) + '%';
+        }
+        
+        // ===== 计算距离 =====
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+        
+        // ===== 检查附近目标 =====
+        function checkNearby() {
+            var playerCenterX = player.x + 15;
+            var playerCenterY = player.y + 15;
+            
+            var found = null;
+            var minDist = Infinity;
+            
+            for (var id in targets) {
+                var t = targets[id];
+                var targetEl = document.getElementById(id);
+                
+                // 跳过死亡或隐藏的目标
+                if (!targetEl || targetEl.style.display === 'none' || t.type === 'dead') continue;
+                
+                var dist = getDistance(playerCenterX, playerCenterY, t.x + 15, t.y + 15);
+                
+                // 重置高亮
+                targetEl.classList.remove('nearby');
+                
+                if (dist < interactRange) {
+                    if (dist < minDist) {
+                        minDist = dist;
+                        found = { id: id, data: t, dist: dist };
+                    }
+                }
+            }
+            
+            nearbyTarget = found;
+            
+            // 更新提示
+            var prompt = document.getElementById('interact-prompt');
+            if (found) {
+                var targetEl = document.getElementById(found.id);
+                targetEl.classList.add('nearby');
+                
+                if (found.data.type === 'enemy') {
+                    prompt.textContent = '按 空格 攻击 (敌人HP: ' + enemyHpData[found.id].hp + ')';
+                } else {
+                    prompt.textContent = '按 空格 对话';
+                }
+                prompt.style.display = 'block';
+            } else {
+                prompt.style.display = 'none';
+            }
+        }
+        
+        // ===== 通知 =====
+        function showNotification(text) {
+            var notif = document.getElementById('notification');
+            notif.textContent = text;
+            notif.style.display = 'block';
+            setTimeout(function() { notif.style.display = 'none'; }, 2000);
+        }
+        
+        // ===== 对话系统 =====
+        var dialogues = {
+            soldier: {
+                speaker: '士兵',
+                text: '站住！战时状态，非军籍人员不得入城！',
+                choices: [
+                    { text: '好的，我离开', action: 'close' }
+                ]
+            },
+            merchant: {
+                speaker: '商人',
+                text: '这位客官，要不要看看我的货物？兵器、药品应有尽有！',
+                choices: [
+                    { text: '有任务吗？', action: 'quest' },
+                    { text: '下次再说', action: 'close' }
+                ]
+            },
+            merchant_quest: {
+                speaker: '商人',
+                text: '城外有黄巾乱党作乱，你能帮我消灭3个贼兵吗？报酬50金币！',
+                choices: [
+                    { text: '接受任务', action: 'accept_quest' },
+                    { text: '算了', action: 'close' }
+                ]
+            },
+            merchant_complete: {
+                speaker: '商人',
+                text: '太感谢了！你帮我除掉了贼兵，这是你的报酬！',
+                choices: [
+                    { text: '领取奖励', action: 'get_reward' }
+                ]
+            },
+            general: {
+                speaker: '将军',
+                text: '黄巾余党作乱，正是用人之际！少侠若愿为国效力，我可委以重任！',
+                choices: [
+                    { text: '愿听差遣', action: 'close' },
+                    { text: '先告辞了', action: 'close' }
+                ]
+            }
+        };
+        
+        function talk(id) {
+            if (isTalking) return;
+            isTalking = true;
+            
+            var data = dialogues[id];
+            if (!data) return;
+            
+            document.getElementById('speaker').textContent = data.speaker;
+            document.getElementById('text').textContent = data.text;
+            
+            var choicesDiv = document.getElementById('choices');
+            choicesDiv.innerHTML = '';
+            
+            data.choices.forEach(function(c) {
+                var btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = c.text;
+                btn.onclick = function() { doAction(c.action); };
+                choicesDiv.appendChild(btn);
+            });
+            
+            document.getElementById('dialogue').style.display = 'block';
+            document.getElementById('interact-prompt').style.display = 'none';
+        }
+        
+        function doAction(action) {
+            switch(action) {
+                case 'close':
+                    closeDialogue();
+                    break;
+                case 'quest':
+                    talk('merchant_quest');
+                    break;
+                case 'accept_quest':
+                    currentQuest = { name: '消灭黄巾兵', target: 3, killed: 0, reward: 50, completed: false };
+                    document.getElementById('quest-box').style.display = 'block';
+                    updateQuestBox();
+                    showNotification('任务已接受！消灭3个黄巾兵！');
+                    closeDialogue();
+                    break;
+                case 'get_reward':
+                    if (currentQuest && !currentQuest.completed) {
+                        player.gold += currentQuest.reward;
+                        player.level += 1;
+                        player.attack += 5;
+                        player.maxHp += 20;
+                        player.hp = player.maxHp;
+                        currentQuest.completed = true;
+                        document.getElementById('quest-box').style.display = 'none';
+                        showNotification('获得 ' + currentQuest.reward + '金币 和 1级！');
+                        updateUI();
+                    }
+                    closeDialogue();
+                    break;
+            }
+        }
+        
+        function updateQuestBox() {
+            if (!currentQuest) return;
+            document.getElementById('quest-title').textContent = currentQuest.name;
+            document.getElementById('quest-desc').textContent = '进度: ' + currentQuest.killed + '/' + currentQuest.target;
+            document.getElementById('quest-reward').textContent = '奖励: ' + currentQuest.reward + '金币';
+        }
+        
+        function closeDialogue() {
+            isTalking = false;
+            document.getElementById('dialogue').style.display = 'none';
+        }
+        
+        // ===== 战斗 =====
+        function attackEnemy(id) {
+            if (isTalking) return;
+            if (gameOver) return;
+            if (!nearbyTarget || nearbyTarget.id !== id) return;
+            
+            var enemyData = enemyHpData[id];
+            if (!enemyData || enemyData.hp <= 0) return; // 敌人已死
+            
+            var enemyAttack = 5;
+            var goldReward = 10; // 击败获得金币
+            
+            // 玩家攻击敌人
+            enemyData.hp -= player.attack;
+            showNotification('你造成了 ' + player.attack + ' 点伤害！敌人剩余: ' + enemyData.hp + ' HP');
+            
+            if (enemyData.hp <= 0) {
+                // 敌人死亡
+                document.getElementById(id).style.display = 'none';
+                targets[id].type = 'dead'; // 标记为死亡
+                player.gold += goldReward;
+                updateUI();
+                showNotification('击败了黄巾兵！获得 ' + goldReward + ' 金币！');
+                
+                // 更新任务进度
+                if (currentQuest && !currentQuest.completed) {
+                    currentQuest.killed++;
+                    updateQuestBox();
+                    
+                    if (currentQuest.killed >= currentQuest.target) {
+                        showNotification('任务完成！回去找商人领取奖励！');
+                        // 更新商人对话
+                        dialogues.merchant = {
+                            speaker: '商人',
+                            text: '太感谢了！你帮我除掉了贼兵，这是你的报酬！',
+                            choices: [
+                                { text: '领取奖励', action: 'get_reward' }
+                            ]
+                        };
+                    }
+                }
+            } else {
+                // 敌人反击
+                player.hp -= enemyAttack;
+                if (player.hp < 0) player.hp = 0;
+                updateUI();
+                showNotification('黄巾兵造成 ' + enemyAttack + ' 点伤害！');
+                
+                if (player.hp <= 0) {
+                    gameOver = true;
+                    showNotification('你战败了！按F5重新开始。');
+                }
+            }
+        }
+        
+        // ===== 交互处理 =====
+        function handleInteract() {
+            if (!nearbyTarget) return;
+            
+            if (nearbyTarget.data.type === 'enemy') {
+                attackEnemy(nearbyTarget.id);
+            } else if (nearbyTarget.data.type === 'npc') {
+                // NPC对话
+                if (nearbyTarget.data.id === 'merchant') {
+                    // 根据任务状态显示不同对话
+                    if (currentQuest && currentQuest.killed >= currentQuest.target && !currentQuest.completed) {
+                        talk('merchant_complete');
+                    } else {
+                        talk('merchant');
+                    }
+                } else {
+                    talk(nearbyTarget.data.id);
+                }
+            }
+        }
+        
+        // ===== 鼠标点击交互 =====
+        function clickInteract(el) {
+            if (isTalking) return;
+            if (gameOver) return;
+            
+            var id = el.id;
+            var targetData = targets[id];
+            if (!targetData || targetData.type === 'dead') return;
+            
+            // 计算距离
+            var playerCenterX = player.x + 15;
+            var playerCenterY = player.y + 15;
+            var dist = getDistance(playerCenterX, playerCenterY, targetData.x + 15, targetData.y + 15);
+            
+            // 只有在交互范围内才能点击
+            if (dist > interactRange) {
+                showNotification('太远了，走近一点！');
+                return;
+            }
+            
+            // 执行交互
+            if (targetData.type === 'enemy') {
+                attackEnemy(id);
+            } else if (targetData.type === 'npc') {
+                if (targetData.id === 'merchant') {
+                    if (currentQuest && currentQuest.killed >= currentQuest.target && !currentQuest.completed) {
+                        talk('merchant_complete');
+                    } else {
+                        talk('merchant');
+                    }
+                } else {
+                    talk(targetData.id);
+                }
+            }
+        }
+        
+        // ===== 移动系统（流畅版）=====
+        var moveSpeed = 5;        // 每帧移动速度
+        var keys = { up: false, down: false, left: false, right: false };
+        var isMoving = false;
+        var lastTargetUpdate = 0;
+        
+        function updatePlayer() {
+            if (isTalking) {
+                requestAnimationFrame(updatePlayer);
+                return;
+            }
+            
+            var dx = 0, dy = 0;
+            if (keys.up) dy -= moveSpeed;
+            if (keys.down) dy += moveSpeed;
+            if (keys.left) dx -= moveSpeed;
+            if (keys.right) dx += moveSpeed;
+            
+            // 对角线移动时标准化速度
+            if (dx !== 0 && dy !== 0) {
+                dx *= 0.707;
+                dy *= 0.707;
+            }
+            
+            if (dx !== 0 || dy !== 0) {
+                var playerEl = document.getElementById('player');
+                var newX = player.x + dx;
+                var newY = player.y + dy;
+                
+                var minX = 70, maxX = window.innerWidth - 70;
+                var minY = 70, maxY = window.innerHeight - 70;
+                
+                if (newX < minX) newX = minX;
+                if (newX > maxX) newX = maxX;
+                if (newY < minY) newY = minY;
+                if (newY > maxY) newY = maxY;
+                
+                player.x = newX;
+                player.y = newY;
+                
+                playerEl.style.left = player.x + 'px';
+                playerEl.style.top = player.y + 'px';
+                
+                // 每帧都检查附近目标（但不要太频繁）
+                var now = Date.now();
+                if (now - lastTargetUpdate > 50) {
+                    checkNearby();
+                    lastTargetUpdate = now;
+                }
+            }
+            
+            requestAnimationFrame(updatePlayer);
+        }
+        
+        // ===== 键盘按下 =====
+        document.addEventListener('keydown', function(e) {
+            if (e.key === ' ' || e.key === 'Escape') {
+                if (isTalking) {
+                    closeDialogue();
+                } else if (nearbyTarget) {
+                    handleInteract();
+                }
+                e.preventDefault();
+                return;
+            }
+            
+            switch(e.key) {
+                case 'ArrowUp': case 'w': case 'W': keys.up = true; e.preventDefault(); break;
+                case 'ArrowDown': case 's': case 'S': keys.down = true; e.preventDefault(); break;
+                case 'ArrowLeft': case 'a': case 'A': keys.left = true; e.preventDefault(); break;
+                case 'ArrowRight': case 'd': case 'D': keys.right = true; e.preventDefault(); break;
+            }
+        });
+        
+        // ===== 键盘释放 =====
+        document.addEventListener('keyup', function(e) {
+            switch(e.key) {
+                case 'ArrowUp': case 'w': case 'W': keys.up = false; break;
+                case 'ArrowDown': case 's': case 'S': keys.down = false; break;
+                case 'ArrowLeft': case 'a': case 'A': keys.left = false; break;
+                case 'ArrowRight': case 'd': case 'D': keys.right = false; break;
+            }
+        });
+        
+        // ===== 窗口调整 =====
+        window.addEventListener('resize', function() {
+            if (player.x > window.innerWidth - 70) player.x = window.innerWidth - 70;
+            if (player.y > window.innerHeight - 70) player.y = window.innerHeight - 70;
+            initPlayer();
+            checkNearby();
+        });
+    </script>
+</body>
+</html>
