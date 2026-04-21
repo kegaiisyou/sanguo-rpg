@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>三国江湖</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -198,58 +198,59 @@
         
         /* ===== 手机触控系统 ===== */
         #touch-controls {
-            display: none; /* 默认隐藏，检测到触屏时显示 */
-            position: absolute;
+            display: none;
+            position: fixed; /* 改为fixed，适配所有屏幕 */
             bottom: 0;
             left: 0;
             right: 0;
-            height: 200px;
+            height: 180px;
+            padding-bottom: env(safe-area-inset-bottom, 10px); /* 适配苹果安全区域 */
             pointer-events: none;
-            z-index: 200;
+            z-index: 150; /* 降低层级，对话时会被挡住 */
         }
         
-        /* 虚拟摇杆 */
+        /* 虚拟摇杆 - 放在安全区域 */
         #joystick-zone {
             position: absolute;
-            left: 20px;
-            bottom: 20px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255,255,255,0.1);
+            left: max(20px, env(safe-area-inset-left, 20px));
+            bottom: max(20px, env(safe-area-inset-bottom, 20px));
+            width: 110px;
+            height: 110px;
+            background: rgba(0,0,0,0.4);
             border-radius: 50%;
-            border: 3px solid rgba(255,215,0,0.5);
+            border: 3px solid rgba(255,215,0,0.6);
             pointer-events: auto;
         }
         
         #joystick-thumb {
             position: absolute;
-            width: 50px;
-            height: 50px;
-            background: rgba(255,215,0,0.8);
+            width: 45px;
+            height: 45px;
+            background: rgba(255,215,0,0.9);
             border-radius: 50%;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 15px rgba(255,215,0,0.5);
+            box-shadow: 0 0 15px rgba(255,215,0,0.6);
         }
         
-        /* 功能按钮 */
+        /* 功能按钮 - 右侧安全区域 */
         #action-buttons {
             position: absolute;
-            right: 20px;
-            bottom: 20px;
+            right: max(15px, env(safe-area-inset-right, 15px));
+            bottom: max(20px, env(safe-area-inset-bottom, 20px));
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             pointer-events: auto;
         }
         
         .action-btn {
-            width: 70px;
-            height: 70px;
+            width: 65px;
+            height: 65px;
             border-radius: 50%;
             border: 3px solid;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             cursor: pointer;
             display: flex;
@@ -259,39 +260,46 @@
             user-select: none;
             -webkit-user-select: none;
             touch-action: manipulation;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
         }
         
         #btn-interact {
-            background: rgba(68,136,255,0.8);
-            border-color: #4488ff;
+            background: rgba(68,136,255,0.85);
+            border-color: #6aa3ff;
             color: #fff;
         }
         
         #btn-attack {
-            background: rgba(255,68,68,0.8);
-            border-color: #ff4444;
+            background: rgba(255,68,68,0.85);
+            border-color: #ff8888;
             color: #fff;
         }
         
         #btn-pause {
-            background: rgba(100,100,100,0.8);
-            border-color: #888;
+            background: rgba(80,80,80,0.85);
+            border-color: #aaa;
             color: #fff;
-            width: 50px;
-            height: 50px;
-            font-size: 12px;
+            width: 45px;
+            height: 45px;
+            font-size: 11px;
         }
         
         /* 触摸高亮效果 */
         .action-btn:active {
-            transform: scale(0.9);
-            opacity: 0.8;
+            transform: scale(0.92);
         }
         
         /* 检测触屏设备 */
         @media (hover: none) and (pointer: coarse) {
             #touch-controls { display: block; }
-            .hint { bottom: 220px; }
+            .hint { bottom: 200px; }
+        }
+        
+        /* 适配刘海屏 */
+        @supports (padding: env(safe-area-inset-top)) {
+            #touch-controls {
+                padding-top: env(safe-area-inset-top);
+            }
         }
     </style>
 </head>
@@ -301,7 +309,7 @@
     <div id="title-screen">
         <h1>三国江湖</h1>
         <p>乱世烽火 · 群雄逐鹿</p>
-        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">版本 1.4.0</p>
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">版本 1.4.1</p>
         <button class="btn" onclick="startGame()">开始游戏</button>
     </div>
     
