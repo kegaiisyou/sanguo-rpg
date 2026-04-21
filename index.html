@@ -38,72 +38,312 @@
         #map {
             width: 100%; height: 100%;
             position: relative;
-            background: linear-gradient(180deg, #0a0a15 0%, #1a1a2e 30%, #2d4a2d 100%);
+            background: linear-gradient(180deg, #0a0a15 0%, #1a1a2e 30%, #3d6b3d 100%);
         }
         
-        .map-border { position: absolute; background: #333; }
-        .border-top { top: 0; left: 0; right: 0; height: 50px; }
-        .border-bottom { bottom: 0; left: 0; right: 0; height: 50px; }
-        .border-left { top: 0; bottom: 0; left: 0; width: 50px; }
-        .border-right { top: 0; bottom: 0; right: 0; width: 50px; }
+        .map-border { 
+            position: absolute; 
+            background: linear-gradient(180deg, #4a3a2a, #3a2a1a); 
+        }
+        .border-top { top: 0; left: 0; right: 0; height: 40px; box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3); }
+        .border-bottom { bottom: 0; left: 0; right: 0; height: 40px; box-shadow: inset 0 5px 10px rgba(0,0,0,0.3); }
+        .border-left { top: 0; bottom: 0; left: 0; width: 40px; box-shadow: inset -5px 0 10px rgba(0,0,0,0.3); }
+        .border-right { top: 0; bottom: 0; right: 0; width: 40px; box-shadow: inset 5px 0 10px rgba(0,0,0,0.3); }
         
-        .ground { position: absolute; top: 50px; bottom: 50px; left: 50px; right: 50px; background: #1a3a1a; }
-        .grass { position: absolute; width: 100%; height: 100%; background-image: radial-gradient(#2d5a2d 1px, transparent 1px); background-size: 20px 20px; }
+        .ground { 
+            position: absolute; 
+            top: 40px; bottom: 40px; left: 40px; right: 40px; 
+            background: #4a7a4a; 
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.2);
+        }
+        .grass { 
+            position: absolute; 
+            width: 100%; height: 100%; 
+            background-image: 
+                radial-gradient(#5a8a5a 2px, transparent 2px),
+                radial-gradient(#3d6a3d 1px, transparent 1px);
+            background-size: 16px 16px, 8px 8px;
+            background-position: 0 0, 4px 4px;
+        }
         
-        .building { position: absolute; background: #5a4a3a; border: 2px solid #3a2a1a; }
-        .house1 { left: 100px; top: 100px; width: 80px; height: 60px; }
-        .house2 { right: 150px; top: 80px; width: 100px; height: 70px; }
-        .house3 { left: 200px; bottom: 150px; width: 70px; height: 50px; }
-        .well { right: 200px; bottom: 120px; width: 40px; height: 40px; border-radius: 50%; background: #4a6a8a; }
+        /* 建筑 - 古风瓦房 */
+        .building { 
+            position: absolute; 
+            background: #c4a882; 
+            border: 3px solid #8b7355;
+            box-shadow: 
+                inset 0 -15px 0 #8b4513,  /* 屋顶 */
+                inset 0 -20px 0 #654321,
+                3px 3px 5px rgba(0,0,0,0.4);
+        }
+        .house1 { left: 100px; top: 100px; width: 70px; height: 55px; }
+        .house2 { right: 120px; top: 80px; width: 90px; height: 65px; }
+        .house2::before {
+            content: '';
+            position: absolute;
+            top: -25px;
+            left: -5px;
+            right: -5px;
+            height: 25px;
+            background: linear-gradient(180deg, #654321, #8b4513);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+        .house3 { left: 180px; bottom: 130px; width: 65px; height: 50px; }
+        .well { 
+            right: 180px; bottom: 100px; 
+            width: 35px; height: 35px; 
+            border-radius: 50%; 
+            background: linear-gradient(180deg, #3a5a7a, #2a4a6a);
+            border: 3px solid #5a7a9a;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .well::after {
+            content: '⛏';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+        }
         
-        .tree { position: absolute; width: 30px; height: 40px; background: linear-gradient(180deg, #2d5a2d 0%, #1a3a1a 100%); border-radius: 50% 50% 0 0; }
-        .tree::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 8px; height: 15px; background: #5a4a3a; }
-        .tree1 { left: 50px; top: 150px; }
-        .tree2 { right: 80px; top: 200px; }
-        .tree3 { left: 350px; bottom: 100px; }
+        /* 树木 - 像素风格 */
+        .tree { 
+            position: absolute; 
+            width: 40px; 
+            background: linear-gradient(180deg, #2d6a2d 0%, #2d6a2d 60%, transparent 60%);
+            border-radius: 50% 50% 0 0;
+        }
+        .tree::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 30px;
+            background: radial-gradient(ellipse at center, #3d8a3d 0%, #2d6a2d 70%, transparent 100%);
+            border-radius: 50%;
+            z-index: 1;
+        }
+        .tree::after { 
+            content: ''; 
+            position: absolute; 
+            bottom: -12px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 10px; 
+            height: 20px; 
+            background: linear-gradient(180deg, #6b4423, #8b5a33);
+        }
+        .tree1 { left: 40px; top: 130px; }
+        .tree2 { right: 70px; top: 180px; }
+        .tree3 { left: 320px; bottom: 90px; transform: scale(0.8); }
+        .tree4 { right: 100px; bottom: 180px; transform: scale(1.1); }
         
-        /* 玩家 */
+        /* 石头 */
+        .rock {
+            position: absolute;
+            background: linear-gradient(135deg, #888 0%, #666 50%, #555 100%);
+            border-radius: 40% 50% 45% 55%;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+        .rock1 { left: 280px; top: 350px; width: 25px; height: 18px; }
+        .rock2 { left: 480px; top: 420px; width: 20px; height: 15px; }
+        
+        /* 玩家 - 像素风格剑客 */
         #player {
-            position: absolute; width: 30px; height: 30px;
-            background: #ffd700; border-radius: 50%;
-            border: 3px solid #ffed4a;
+            position: absolute; 
+            width: 32px; height: 32px;
             z-index: 50;
-            box-shadow: 0 0 10px rgba(255,215,0,0.5);
             will-change: left, top;
         }
-        #player::after { content: "我"; position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: #ffd700; font-size: 12px; }
+        #player::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 12px;
+            background: linear-gradient(180deg, #ffd700, #daa520);
+            border-radius: 50% 50% 30% 30%;
+            border: 2px solid #b8860b;
+        }
+        #player::after { 
+            content: ''; 
+            position: absolute; 
+            top: 10px; left: 50%;
+            transform: translateX(-50%);
+            width: 0; 
+            height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 18px solid #ffd700;
+            filter: drop-shadow(0 0 3px rgba(255,215,0,0.5));
+        }
+        .player-sword {
+            position: absolute;
+            top: 5px;
+            right: -8px;
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #c0c0c0, #808080);
+            transform: rotate(-30deg);
+            border-radius: 2px;
+        }
+        .player-shadow {
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50%;
+        }
         
-        /* NPC */
+        /* NPC - 像素风格 */
         .npc {
-            position: absolute; width: 30px; height: 30px;
-            border-radius: 50%; cursor: default;
-            z-index: 40; border: 2px solid #fff;
-            box-shadow: 0 0 8px rgba(255,255,255,0.3);
-            transition: transform 0.2s, box-shadow 0.2s;
+            position: absolute; 
+            width: 32px; height: 32px;
+            z-index: 40; 
+            cursor: default;
+            transition: transform 0.2s, filter 0.2s;
         }
-        .npc::after { content: attr(data-name); position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 11px; white-space: nowrap; }
-        .npc.nearby { transform: scale(1.2); box-shadow: 0 0 20px rgba(255,215,0,0.8); border-color: #ffd700; cursor: pointer; }
+        .npc::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 10px;
+            background: inherit;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.8);
+        }
+        .npc::after { 
+            content: attr(data-name); 
+            position: absolute; 
+            top: -20px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            color: #fff; 
+            font-size: 11px; 
+            white-space: nowrap;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            font-family: monospace;
+        }
+        .npc.nearby { 
+            transform: scale(1.15); 
+            filter: drop-shadow(0 0 10px rgba(255,215,0,0.8)); 
+        }
         .npc.clickable { cursor: pointer; }
-        #npc-soldier { left: 200px; top: 200px; background: #4488ff; }
-        #npc-merchant { left: 500px; top: 150px; background: #44ff88; }
-        #npc-general { left: 600px; top: 350px; background: #ff4444; }
         
-        /* 敌人 */
-        .enemy {
-            position: absolute; width: 30px; height: 30px;
-            border-radius: 50%; cursor: default;
-            z-index: 40; border: 2px solid #ff0000;
-            background: #880000;
-            animation: enemyPulse 1s infinite;
-            transition: transform 0.2s, box-shadow 0.2s;
+        /* 士兵 - 蓝色军装 */
+        #npc-soldier {
+            background: linear-gradient(180deg, #4488ff 0%, #2266dd 100%);
+            border: 3px solid #1155bb;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3);
         }
-        .enemy::after { content: attr(data-name); position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: #ff6666; font-size: 11px; white-space: nowrap; }
-        .enemy.nearby { transform: scale(1.2); box-shadow: 0 0 20px #ff0000; border-color: #ffd700; cursor: pointer; }
+        #npc-soldier::before {
+            background: linear-gradient(180deg, #4488ff, #2266dd);
+        }
+        
+        /* 商人 - 绿色布衣 */
+        #npc-merchant {
+            background: linear-gradient(180deg, #44cc66 0%, #228844 100%);
+            border: 3px solid #116633;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3);
+        }
+        #npc-merchant::before {
+            background: linear-gradient(180deg, #44cc66, #228844);
+        }
+        
+        /* 将军 - 红色铠甲 */
+        #npc-general {
+            background: linear-gradient(180deg, #ff4444 0%, #cc2222 100%);
+            border: 3px solid #991111;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3);
+        }
+        #npc-general::before {
+            background: linear-gradient(180deg, #ff4444, #cc2222);
+        }
+        
+        /* 敌人 - 黄巾乱兵 */
+        .enemy {
+            position: absolute; 
+            width: 32px; height: 32px;
+            z-index: 40; 
+            cursor: default;
+            transition: transform 0.2s, filter 0.2s;
+        }
+        .enemy::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 10px;
+            background: inherit;
+            border-radius: 50%;
+            border: 2px solid rgba(255,100,100,0.8);
+        }
+        .enemy::after { 
+            content: attr(data-name); 
+            position: absolute; 
+            top: -20px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            color: #ff6666; 
+            font-size: 11px; 
+            white-space: nowrap;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            font-family: monospace;
+        }
+        .enemy.nearby { 
+            transform: scale(1.15); 
+            filter: drop-shadow(0 0 10px rgba(255,50,50,0.8)); 
+        }
         .enemy.clickable { cursor: pointer; }
-        @keyframes enemyPulse { 0%, 100% { box-shadow: 0 0 5px #ff0000; } 50% { box-shadow: 0 0 15px #ff0000; } }
-        #enemy1 { left: 300px; top: 250px; }
-        #enemy2 { left: 450px; top: 280px; }
-        #enemy3 { left: 350px; top: 400px; }
+        
+        /* 黄巾兵 - 土黄色破衣 */
+        .enemy {
+            background: linear-gradient(180deg, #aa8833 0%, #886622 100%);
+            border: 3px solid #664411;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.4);
+            animation: enemyIdle 1.5s ease-in-out infinite;
+        }
+        .enemy::before {
+            background: linear-gradient(180deg, #aa8833, #886622);
+        }
+        @keyframes enemyIdle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
+        
+        /* 敌人血条 */
+        .enemy-hp {
+            position: absolute;
+            top: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 28px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .enemy-hp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff4444);
+            transition: width 0.3s;
+        }
+        
+        #enemy1 { left: 280px; top: 230px; }
+        #enemy2 { left: 420px; top: 260px; }
+        #enemy3 { left: 320px; top: 380px; }
         
         /* ===== 交互提示 ===== */
         #interact-prompt {
@@ -309,7 +549,7 @@
     <div id="title-screen">
         <h1>三国江湖</h1>
         <p>乱世烽火 · 群雄逐鹿</p>
-        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">版本 1.4.1</p>
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">版本 1.5.0</p>
         <button class="btn" onclick="startGame()">开始游戏</button>
     </div>
     
@@ -328,15 +568,24 @@
             <div class="tree tree1"></div>
             <div class="tree tree2"></div>
             <div class="tree tree3"></div>
-            <div id="player"></div>
+            <div class="tree tree4"></div>
+            <div class="rock rock1"></div>
+            <div class="rock rock2"></div>
+            <div id="player"><div class="player-shadow"></div><div class="player-sword"></div></div>
             
             <div class="npc clickable" id="npc-soldier" data-name="士兵" onclick="clickInteract(this)"></div>
             <div class="npc clickable" id="npc-merchant" data-name="商人" onclick="clickInteract(this)"></div>
             <div class="npc clickable" id="npc-general" data-name="将军" onclick="clickInteract(this)"></div>
             
-            <div class="enemy clickable" id="enemy1" data-name="黄巾兵" onclick="clickInteract(this)"></div>
-            <div class="enemy clickable" id="enemy2" data-name="黄巾兵" onclick="clickInteract(this)"></div>
-            <div class="enemy clickable" id="enemy3" data-name="黄巾兵" onclick="clickInteract(this)"></div>
+            <div class="enemy clickable" id="enemy1" data-name="黄巾兵" onclick="clickInteract(this)">
+                <div class="enemy-hp"><div class="enemy-hp-fill" id="enemy1-hp-bar" style="width: 100%"></div></div>
+            </div>
+            <div class="enemy clickable" id="enemy2" data-name="黄巾兵" onclick="clickInteract(this)">
+                <div class="enemy-hp"><div class="enemy-hp-fill" id="enemy2-hp-bar" style="width: 100%"></div></div>
+            </div>
+            <div class="enemy clickable" id="enemy3" data-name="黄巾兵" onclick="clickInteract(this)">
+                <div class="enemy-hp"><div class="enemy-hp-fill" id="enemy3-hp-bar" style="width: 100%"></div></div>
+            </div>
             
             <!-- 交互提示 -->
             <div id="interact-prompt"></div>
@@ -401,12 +650,12 @@
         
         // ===== NPC/敌人位置 =====
         var targets = {
-            'npc-soldier': { x: 200, y: 200, type: 'npc', id: 'soldier' },
-            'npc-merchant': { x: 500, y: 150, type: 'npc', id: 'merchant' },
-            'npc-general': { x: 600, y: 350, type: 'npc', id: 'general' },
-            'enemy1': { x: 300, y: 250, type: 'enemy', id: 'enemy1' },
-            'enemy2': { x: 450, y: 280, type: 'enemy', id: 'enemy2' },
-            'enemy3': { x: 350, y: 400, type: 'enemy', id: 'enemy3' }
+            'npc-soldier': { x: 180, y: 180, type: 'npc', id: 'soldier' },
+            'npc-merchant': { x: 480, y: 130, type: 'npc', id: 'merchant' },
+            'npc-general': { x: 580, y: 320, type: 'npc', id: 'general' },
+            'enemy1': { x: 280, y: 230, type: 'enemy', id: 'enemy1' },
+            'enemy2': { x: 420, y: 260, type: 'enemy', id: 'enemy2' },
+            'enemy3': { x: 320, y: 380, type: 'enemy', id: 'enemy3' }
         };
         
         // ===== 开始游戏 =====
@@ -744,8 +993,8 @@
                 var newX = player.x + dx;
                 var newY = player.y + dy;
                 
-                var minX = 70, maxX = window.innerWidth - 70;
-                var minY = 70, maxY = window.innerHeight - 70;
+                var minX = 60, maxX = window.innerWidth - 60;
+                var minY = 60, maxY = window.innerHeight - 60;
                 
                 if (newX < minX) newX = minX;
                 if (newX > maxX) newX = maxX;
@@ -966,8 +1215,8 @@
                 var newX = player.x + dx;
                 var newY = player.y + dy;
                 
-                var minX = 70, maxX = window.innerWidth - 70;
-                var minY = 70, maxY = window.innerHeight - 70;
+                var minX = 60, maxX = window.innerWidth - 60;
+                var minY = 60, maxY = window.innerHeight - 60;
                 
                 if (newX < minX) newX = minX;
                 if (newX > maxX) newX = maxX;
