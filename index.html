@@ -3,439 +3,296 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>三国江湖 v1.6.0</title>
+    <title>三国江湖 v1.7.0</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #ffd700; overflow: hidden; }
         
-        /* ===== 捏脸界面 ===== */
         #char-creation {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
-            display: flex; flex-direction: column;
-            align-items: center;
-            z-index: 100;
-            overflow-y: auto;
-            padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 100; overflow-y: auto; padding: 15px;
         }
-        #char-creation h1 { font-size: 32px; margin-bottom: 5px; text-shadow: 0 0 20px #ffd700; }
-        #char-creation .subtitle { color: #888; margin-bottom: 20px; }
-        
-        /* 角色预览 */
+        #char-creation h1 { font-size: 28px; margin-bottom: 3px; text-shadow: 0 0 20px #ffd700; }
+        .subtitle { color: #888; margin-bottom: 12px; font-size: 13px; }
         #char-preview {
-            width: 160px; height: 200px;
-            background: rgba(0,0,0,0.5);
-            border: 3px solid #ffd700;
-            border-radius: 15px;
-            margin-bottom: 20px;
+            width: 100px; height: 120px;
+            background: rgba(0,0,0,0.5); border: 2px solid #ffd700;
+            border-radius: 10px; margin-bottom: 12px;
             display: flex; justify-content: center; align-items: center;
-            position: relative;
-            overflow: hidden;
         }
         
-        /* 角色预设 */
-        #preset-list {
-            display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;
-        }
+        #preset-list { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; justify-content: center; }
         .preset-btn {
-            background: #333; color: #fff;
-            border: 2px solid #555;
-            padding: 8px 16px; cursor: pointer; border-radius: 20px;
-            font-size: 13px; transition: all 0.3s;
+            background: #333; color: #fff; border: 2px solid #555;
+            padding: 6px 12px; cursor: pointer; border-radius: 15px;
+            font-size: 12px; transition: all 0.3s;
         }
-        .preset-btn:hover, .preset-btn.active {
-            background: #ffd700; color: #1a1a1a; border-color: #ffd700;
-        }
+        .preset-btn:hover, .preset-btn.active { background: #ffd700; color: #1a1a1a; border-color: #ffd700; }
         
-        /* 选项面板 */
         #options-panel {
-            width: 100%; max-width: 400px;
-            background: rgba(0,0,0,0.6);
-            border: 2px solid #ffd700;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
+            width: 100%; max-width: 320px;
+            background: rgba(0,0,0,0.6); border: 2px solid #ffd700;
+            border-radius: 8px; padding: 10px; margin-bottom: 10px;
         }
-        .option-group {
-            margin-bottom: 15px;
-        }
-        .option-group:last-child { margin-bottom: 0; }
-        .option-label {
-            color: #ffd700; font-size: 14px; margin-bottom: 8px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .option-label::before {
-            content: ''; width: 4px; height: 16px;
-            background: #ffd700; border-radius: 2px;
-        }
-        
-        /* 选项按钮组 */
-        .option-btns {
-            display: flex; flex-wrap: wrap; gap: 8px;
-        }
+        .option-group { margin-bottom: 8px; }
+        .option-label { color: #ffd700; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+        .option-label::before { content: ''; width: 3px; height: 10px; background: #ffd700; border-radius: 2px; }
+        .option-btns { display: flex; flex-wrap: wrap; gap: 5px; }
         .opt-btn {
-            background: #2a2a3a; color: #ccc;
-            border: 2px solid #444;
-            padding: 6px 12px; cursor: pointer; border-radius: 5px;
-            font-size: 12px; transition: all 0.2s;
-            min-width: 70px; text-align: center;
+            background: #2a2a3a; color: #ccc; border: 2px solid #444;
+            padding: 4px 8px; cursor: pointer; border-radius: 4px;
+            font-size: 10px; transition: all 0.2s; min-width: 50px; text-align: center;
         }
         .opt-btn:hover { border-color: #ffd700; color: #fff; }
-        .opt-btn.selected { 
-            background: linear-gradient(135deg, #ffd700, #ffaa00);
-            color: #1a1a1a; border-color: #ffd700; font-weight: bold;
-        }
-        
-        /* 颜色选项 */
-        .color-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+        .opt-btn.selected { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #1a1a1a; border-color: #ffd700; }
+        .color-btns { display: flex; gap: 4px; flex-wrap: wrap; }
         .color-btn {
-            width: 32px; height: 32px; border-radius: 50%;
-            border: 3px solid #333; cursor: pointer;
-            transition: all 0.2s;
+            width: 22px; height: 22px; border-radius: 50%;
+            border: 2px solid #333; cursor: pointer; transition: all 0.2s;
         }
-        .color-btn:hover { transform: scale(1.1); }
-        .color-btn.selected { border-color: #fff; box-shadow: 0 0 10px rgba(255,215,0,0.8); }
+        .color-btn:hover { transform: scale(1.15); }
+        .color-btn.selected { border-color: #fff; box-shadow: 0 0 6px rgba(255,215,0,0.8); }
         
-        /* 确认按钮 */
         #confirm-btn {
-            background: linear-gradient(135deg, #ffd700, #ffaa00);
-            color: #1a1a1a;
-            border: none; padding: 15px 60px;
-            font-size: 20px; cursor: pointer;
-            border-radius: 30px; font-weight: bold;
-            margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(255,215,0,0.4);
-            transition: all 0.3s;
+            background: linear-gradient(135deg, #ffd700, #ffaa00); color: #1a1a1a;
+            border: none; padding: 10px 40px; font-size: 14px; cursor: pointer;
+            border-radius: 20px; font-weight: bold; margin-top: 5px;
         }
-        #confirm-btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255,215,0,0.6); }
         
-        /* ===== 标题界面 ===== */
         #title-screen {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
-            display: none; flex-direction: column;
-            justify-content: center; align-items: center;
-            z-index: 100;
+            display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
         }
-        #title-screen h1 { font-size: 48px; margin-bottom: 10px; text-shadow: 0 0 20px #ffd700; }
-        #title-screen p { color: #888; margin-bottom: 40px; }
+        #title-screen h1 { font-size: 40px; margin-bottom: 8px; text-shadow: 0 0 20px #ffd700; }
+        #title-screen p { color: #888; margin-bottom: 25px; }
         .btn {
-            background: #ffd700; color: #1a1a1a;
-            border: none; padding: 15px 50px;
-            font-size: 20px; cursor: pointer;
-            border-radius: 8px; margin: 10px;
-            font-family: inherit;
+            background: #ffd700; color: #1a1a1a; border: none; padding: 10px 35px;
+            font-size: 16px; cursor: pointer; border-radius: 6px; margin: 6px;
         }
-        .btn:hover { background: #ffed4a; }
         
-        /* ===== 游戏场景 ===== */
         #game { width: 100vw; height: 100vh; position: relative; display: none; }
+        #map { width: 100%; height: 100%; position: relative; background: linear-gradient(180deg, #87CEEB 0%, #87CEEB 55%, #5a9a5a 55%, #4a8a4a 100%); }
         
-        /* 地图 */
-        #map {
-            width: 100%; height: 100%;
-            position: relative;
-            background: 
-                linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.03) 50%),
-                linear-gradient(0deg, transparent 50%, rgba(0,0,0,0.03) 50%),
-                linear-gradient(135deg, #3d6b3d 0%, #4a7a4a 25%, #3d6b3d 50%, #4a7a4a 75%, #3d6b3d 100%);
-            background-size: 32px 32px, 32px 32px, 64px 64px;
-        }
+        .cloud { position: absolute; background: rgba(255,255,255,0.9); border-radius: 40px; animation: floatCloud 25s linear infinite; }
+        @keyframes floatCloud { 0% { transform: translateX(-100px); } 100% { transform: translateX(calc(100vw + 100px)); } }
+        .cloud::before { content: ''; position: absolute; background: inherit; border-radius: 50%; }
+        .cloud-1 { top: 6%; width: 70px; height: 25px; }
+        .cloud-1::before { width: 35px; height: 35px; top: -12px; left: 12px; }
+        .cloud-2 { top: 12%; width: 50px; height: 20px; animation-duration: 30s; animation-delay: -10s; }
+        .cloud-2::before { width: 25px; height: 25px; top: -10px; left: 8px; }
         
-        .map-border { position: absolute; background: repeating-linear-gradient(90deg, #8b7355 0px, #8b7355 8px, #654321 8px, #654321 10px, #8b7355 10px, #8b7355 18px); box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-        .border-top { top: 0; left: 0; right: 0; height: 32px; }
-        .border-bottom { bottom: 0; left: 0; right: 0; height: 32px; }
-        .border-left { top: 0; bottom: 0; left: 0; width: 32px; background: repeating-linear-gradient(0deg, #8b7355 0px, #8b7355 8px, #654321 8px, #654321 10px, #8b7355 10px, #8b7355 18px); }
-        .border-right { top: 0; bottom: 0; right: 0; width: 32px; background: repeating-linear-gradient(0deg, #8b7355 0px, #8b7355 8px, #654321 8px, #654321 10px, #8b7355 10px, #8b7355 18px); }
+        .dirt { position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: #8B7355; }
         
-        .ground { position: absolute; top: 32px; bottom: 32px; left: 32px; right: 32px; background: linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(0deg, rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(135deg, #4a7a4a 0%, #3d6b3d 100%); background-size: 16px 16px, 16px 16px, 100% 100%; }
-        .grass { position: absolute; width: 100%; height: 100%; background-image: radial-gradient(ellipse 4px 6px at 20% 30%, #5a9a5a 0%, transparent 100%), radial-gradient(ellipse 3px 5px at 60% 70%, #4a8a4a 0%, transparent 100%), radial-gradient(ellipse 4px 5px at 80% 20%, #5a9a5a 0%, transparent 100%), radial-gradient(ellipse 3px 4px at 40% 80%, #4a8a4a 0%, transparent 100%); }
+        .qchar { position: absolute; width: 36px; height: 36px; z-index: 50; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+        .qchar svg { width: 100%; height: 100%; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+        .qchar.idle { animation: bounce 1.2s ease-in-out infinite; }
+        .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 24px; height: 6px; background: rgba(0,0,0,0.25); border-radius: 50%; }
+        .char-name { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 8px; color: #fff; white-space: nowrap; text-shadow: 1px 1px 0 #000; }
+        .enemy-char .char-name { color: #ff6666; }
+        .npc-char .char-name { color: #66ccff; }
+        .enemy-hp { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); width: 28px; height: 4px; background: #333; border: 1px solid #555; border-radius: 2px; overflow: hidden; }
+        .enemy-hp-fill { height: 100%; background: linear-gradient(180deg, #ff4444, #cc0000); }
+        @keyframes shake { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-2px) rotate(-2deg); } 75% { transform: translateY(-2px) rotate(2deg); } }
+        .enemy-char { animation: shake 1s ease-in-out infinite; }
         
-        /* 建筑 */
-        .building { position: absolute; background: #deb887; border: 4px solid #654321; box-shadow: inset 0 -20px 0 #8b4513, inset 0 -35px 0 #a0522d, inset 0 -45px 0 #654321, 4px 4px 0 rgba(0,0,0,0.3); }
-        .building::before { content: ''; position: absolute; top: -30px; left: -6px; right: -6px; height: 30px; background: linear-gradient(180deg, #8b4513 0%, #654321 100%); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
-        .building::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 20px; background: #4a3728; border: 2px solid #3a2718; }
-        .house1 { left: 80px; top: 80px; width: 64px; height: 48px; }
-        .house2 { right: 100px; top: 60px; width: 80px; height: 56px; }
-        .house2::before { top: -35px; height: 35px; }
-        .house3 { left: 160px; bottom: 110px; width: 56px; height: 44px; }
-        .house3::before { top: -25px; height: 25px; }
+        .house { position: absolute; }
+        .roof { position: relative; background: linear-gradient(180deg, #696969, #808080); border-radius: 2px; }
+        .roof::before { content: ''; position: absolute; bottom: -6px; left: -3px; right: -3px; height: 6px; background: #505050; clip-path: polygon(0 0, 50% 100%, 100% 0); }
+        .wall { background: linear-gradient(180deg, #c0392b, #a93226); border: 2px solid #922b21; }
+        .door { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 12px; height: 15px; background: linear-gradient(180deg, #5d4037, #4e342e); border: 2px solid #3e2723; border-radius: 2px 2px 0 0; }
+        .window { position: absolute; width: 8px; height: 8px; background: linear-gradient(135deg, #87CEEB, #B0E0E6); border: 2px solid #5d4037; }
+        .house1 { left: 50px; top: 90px; }
+        .house1 .roof { width: 45px; height: 12px; }
+        .house1 .wall { width: 42px; height: 35px; margin-top: -1px; }
+        .house1 .window { top: 6px; left: 6px; }
+        .house2 { right: 70px; top: 65px; }
+        .house2 .roof { width: 60px; height: 16px; }
+        .house2 .wall { width: 56px; height: 42px; margin-top: -1px; }
+        .house2 .window { top: 8px; left: 8px; }
+        .house2 .window:last-of-type { right: 8px; left: auto; }
+        .house3 { left: 160px; bottom: 80px; }
+        .house3 .roof { width: 40px; height: 10px; }
+        .house3 .wall { width: 36px; height: 30px; margin-top: -1px; }
         
-        .well { position: absolute; right: 160px; bottom: 90px; width: 32px; height: 32px; background: #8b8b8b; border: 4px solid #5a5a5a; border-radius: 50%; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); }
-        .well::before { content: ''; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 4px; height: 25px; background: #8b7355; }
-        .well::after { content: ''; position: absolute; top: -24px; left: -8px; width: 48px; height: 6px; background: #8b7355; border-radius: 3px; }
+        .lantern { position: absolute; right: 130px; bottom: 65px; }
+        .lantern-top { width: 12px; height: 6px; background: #2c2c2c; border-radius: 2px; margin: 0 auto; }
+        .lantern-body { width: 10px; height: 12px; background: linear-gradient(180deg, #ff6b6b, #ee5a5a, #ff6b6b); margin: 0 auto; border-radius: 2px; box-shadow: 0 0 8px rgba(255,107,107,0.5); }
+        .lantern-bottom { width: 6px; height: 3px; background: #2c2c2c; margin: 0 auto; }
+        .lantern-pole { width: 3px; height: 15px; background: #4a4a4a; margin: 0 auto; }
         
-        .tree { position: absolute; width: 32px; }
-        .tree::before { content: ''; position: absolute; top: 0; left: 0; width: 32px; height: 28px; background: radial-gradient(ellipse at 30% 30%, #4a9a4a 0%, #2d6a2d 60%, #1a4a1a 100%); border-radius: 50% 50% 40% 40%; box-shadow: inset -4px -4px 8px rgba(0,0,0,0.3), inset 2px 2px 4px rgba(255,255,255,0.1); }
-        .tree::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 10px; height: 16px; background: linear-gradient(90deg, #5a4030 0%, #8b6b4a 50%, #5a4030 100%); border-radius: 2px; }
-        .tree1 { left: 30px; top: 100px; }
-        .tree2 { right: 60px; top: 150px; transform: scale(1.1); }
-        .tree3 { left: 280px; bottom: 80px; transform: scale(0.9); }
-        .tree4 { right: 90px; bottom: 160px; transform: scale(1.15); }
+        .ptree { position: absolute; }
+        .ptree-leaf { width: 32px; height: 28px; background: radial-gradient(ellipse at 30% 30%, #6b8e23 0%, #228b22 50%, #006400 100%); border-radius: 50% 50% 45% 45%; position: relative; }
+        .ptree-leaf::before { content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 18px; height: 18px; background: radial-gradient(ellipse, #228b22 0%, #006400 100%); border-radius: 50%; }
+        .ptree-trunk { width: 6px; height: 14px; background: linear-gradient(90deg, #5d4037 0%, #8d6e63 50%, #5d4037 100%); margin: 0 auto; margin-top: -3px; }
+        .ptree1 { left: 25px; top: 90px; transform: scale(1.1); }
+        .ptree2 { right: 50px; top: 130px; }
+        .ptree3 { left: 240px; bottom: 70px; transform: scale(0.9); }
+        .ptree4 { right: 80px; bottom: 120px; transform: scale(1.15); }
         
-        .rock { position: absolute; background: linear-gradient(135deg, #9a9a9a 0%, #7a7a7a 40%, #5a5a5a 100%); border-radius: 40% 45% 50% 40%; box-shadow: 2px 3px 4px rgba(0,0,0,0.4); }
-        .rock1 { left: 260px; top: 320px; width: 28px; height: 20px; }
-        .rock2 { left: 450px; top: 380px; width: 22px; height: 16px; }
-        .rock3 { left: 180px; top: 400px; width: 24px; height: 18px; }
+        .pstone { position: absolute; background: linear-gradient(135deg, #9e9e9e 0%, #757575 50%, #616161 100%); border-radius: 40% 50% 45% 55%; }
+        .pstone1 { left: 220px; top: 260px; width: 18px; height: 12px; }
+        .pstone2 { left: 380px; top: 300px; width: 15px; height: 10px; }
+        .pstone3 { left: 150px; top: 320px; width: 16px; height: 11px; }
         
-        /* ===== 精细角色系统 ===== */
-        .character {
-            position: absolute; width: 48px; height: 64px; z-index: 50;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-        }
-        .character svg { width: 100%; height: 100%; }
+        #interact-prompt { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); background: rgba(255,215,0,0.9); color: #1a1a1a; padding: 6px 16px; border-radius: 5px; font-size: 12px; font-weight: bold; z-index: 150; display: none; }
+        .hint { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); color: #666; font-size: 10px; background: rgba(0,0,0,0.5); padding: 3px 10px; border-radius: 3px; }
         
-        /* 待机动画 */
-        @keyframes idle {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
-        }
-        .character.idle { animation: idle 1.5s ease-in-out infinite; }
-        
-        /* 敌人抖动 */
-        @keyframes enemyIdle {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-2px) rotate(-1deg); }
-            75% { transform: translateY(-2px) rotate(1deg); }
-        }
-        .enemy-sprite { animation: enemyIdle 1.2s ease-in-out infinite; }
-        
-        /* 角色阴影 */
-        .char-shadow {
-            position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
-            width: 36px; height: 8px; background: rgba(0,0,0,0.35); border-radius: 50%;
-        }
-        
-        /* 角色名称标签 */
-        .char-label {
-            position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
-            color: #fff; font-size: 10px; white-space: nowrap;
-            text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
-            font-family: monospace; letter-spacing: 1px;
-        }
-        .enemy-sprite .char-label { color: #ff6666; }
-        .npc-sprite .char-label { color: #66ccff; }
-        
-        /* 敌人血条 */
-        .enemy-hp-bar {
-            position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
-            width: 40px; height: 6px; background: #222; border: 1px solid #444;
-            border-radius: 3px; overflow: hidden;
-        }
-        .enemy-hp-fill { height: 100%; background: linear-gradient(180deg, #ff4444, #cc0000); transition: width 0.3s; }
-        
-        /* ===== 交互提示 ===== */
-        #interact-prompt {
-            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,215,0,0.9); color: #1a1a1a;
-            padding: 10px 25px; border-radius: 8px; font-size: 16px; font-weight: bold;
-            z-index: 150; display: none; animation: promptBounce 0.5s ease;
-        }
-        @keyframes promptBounce {
-            0% { transform: translateX(-50%) translateY(10px); opacity: 0; }
-            100% { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-        .hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: #666; font-size: 12px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 3px; }
-        
-        /* ===== 状态栏 ===== */
-        #status { position: absolute; top: 60px; right: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-size: 14px; z-index: 100; border: 1px solid #ffd700; min-width: 140px; }
-        .status-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        #status { position: absolute; top: 45px; right: 6px; background: rgba(0,0,0,0.8); padding: 8px 10px; border-radius: 5px; font-size: 11px; z-index: 100; border: 1px solid #ffd700; min-width: 110px; }
+        .status-row { display: flex; justify-content: space-between; margin: 3px 0; }
         .stat-label { color: #888; }
         .stat-value { color: #ffd700; font-weight: bold; }
-        .hp-bar { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 3px; overflow: hidden; }
-        .hp-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ff6666); transition: width 0.3s; }
+        .hp-bar { width: 100%; height: 5px; background: #333; border-radius: 2px; margin-top: 2px; overflow: hidden; }
+        .hp-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ff6666); }
         
-        #quest-box { position: absolute; top: 60px; left: 60px; background: rgba(0,0,0,0.8); padding: 12px 15px; border-radius: 8px; font-size: 13px; z-index: 100; border: 1px solid #4488ff; max-width: 200px; display: none; }
-        .quest-title { color: #4488ff; font-weight: bold; margin-bottom: 5px; }
-        .quest-desc { color: #aaa; line-height: 1.4; }
-        .quest-reward { color: #ffd700; margin-top: 5px; font-size: 12px; }
+        #quest-box { position: absolute; top: 45px; left: 6px; background: rgba(0,0,0,0.8); padding: 8px 10px; border-radius: 5px; font-size: 11px; z-index: 100; border: 1px solid #4488ff; max-width: 160px; display: none; }
+        .quest-title { color: #4488ff; font-weight: bold; margin-bottom: 3px; }
+        .quest-desc { color: #aaa; line-height: 1.3; }
+        .quest-reward { color: #ffd700; margin-top: 3px; font-size: 10px; }
         
-        /* ===== 对话框 ===== */
-        #dialogue { position: absolute; bottom: 0; width: 100%; height: 28%; background: rgba(15,15,25,0.98); border-top: 3px solid #ffd700; padding: 20px; display: none; z-index: 200; }
-        #speaker { color: #ff6b6b; font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-        #text { font-size: 15px; line-height: 1.8; color: #ddd; margin-bottom: 15px; }
-        #choices { display: flex; flex-wrap: wrap; gap: 10px; }
-        .choice-btn { background: #ffd700; color: #1a1a1a; border: none; padding: 10px 20px; cursor: pointer; font-size: 14px; border-radius: 5px; }
-        .choice-btn:hover { background: #ffed4a; }
-        #close-btn { position: absolute; right: 20px; bottom: 20px; background: #444; color: #fff; border: none; padding: 8px 20px; cursor: pointer; border-radius: 5px; }
-        #close-btn:hover { background: #555; }
+        #dialogue { position: absolute; bottom: 0; width: 100%; height: 22%; background: rgba(15,15,25,0.95); border-top: 2px solid #ffd700; padding: 12px; display: none; z-index: 200; }
+        #speaker { color: #ff6b6b; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        #text { font-size: 13px; line-height: 1.5; color: #ddd; margin-bottom: 8px; }
+        #choices { display: flex; flex-wrap: wrap; gap: 6px; }
+        .choice-btn { background: #ffd700; color: #1a1a1a; border: none; padding: 6px 14px; cursor: pointer; font-size: 11px; border-radius: 4px; }
+        #close-btn { position: absolute; right: 12px; bottom: 12px; background: #444; color: #fff; border: none; padding: 5px 14px; cursor: pointer; border-radius: 4px; }
         
-        #notification { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); color: #ffd700; padding: 20px 40px; border-radius: 10px; font-size: 18px; z-index: 300; display: none; border: 2px solid #ffd700; }
+        #notification { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); color: #ffd700; padding: 12px 25px; border-radius: 8px; font-size: 14px; z-index: 300; display: none; border: 2px solid #ffd700; }
         
-        /* ===== 手机触控系统 ===== */
-        #touch-controls { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 180px; padding-bottom: env(safe-area-inset-bottom, 10px); pointer-events: none; z-index: 150; }
-        #joystick-zone { position: absolute; left: max(20px, env(safe-area-inset-left, 20px)); bottom: max(20px, env(safe-area-inset-bottom, 20px)); width: 110px; height: 110px; background: rgba(0,0,0,0.4); border-radius: 50%; border: 3px solid rgba(255,215,0,0.6); pointer-events: auto; }
-        #joystick-thumb { position: absolute; width: 45px; height: 45px; background: rgba(255,215,0,0.9); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%); box-shadow: 0 0 15px rgba(255,215,0,0.6); }
-        #action-buttons { position: absolute; right: max(15px, env(safe-area-inset-right, 15px)); bottom: max(20px, env(safe-area-inset-bottom, 20px)); display: flex; flex-direction: column; gap: 12px; pointer-events: auto; }
-        .action-btn { width: 65px; height: 65px; border-radius: 50%; border: 3px solid; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); user-select: none; -webkit-user-select: none; touch-action: manipulation; box-shadow: 0 3px 10px rgba(0,0,0,0.3); }
+        #touch-controls { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 150px; padding-bottom: env(safe-area-inset-bottom, 8px); z-index: 150; }
+        #joystick-zone { position: absolute; left: max(12px, env(safe-area-inset-left, 12px)); bottom: max(12px, env(safe-area-inset-bottom, 12px)); width: 90px; height: 90px; background: rgba(0,0,0,0.4); border-radius: 50%; border: 2px solid rgba(255,215,0,0.6); }
+        #joystick-thumb { position: absolute; width: 36px; height: 36px; background: rgba(255,215,0,0.9); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+        #action-buttons { position: absolute; right: max(10px, env(safe-area-inset-right, 10px)); bottom: max(12px, env(safe-area-inset-bottom, 12px)); display: flex; flex-direction: column; gap: 8px; }
+        .action-btn { width: 50px; height: 50px; border-radius: 50%; border: 2px solid; font-size: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #btn-interact { background: rgba(68,136,255,0.85); border-color: #6aa3ff; color: #fff; }
         #btn-attack { background: rgba(255,68,68,0.85); border-color: #ff8888; color: #fff; }
-        #btn-pause { background: rgba(80,80,80,0.85); border-color: #aaa; color: #fff; width: 45px; height: 45px; font-size: 11px; }
-        .action-btn:active { transform: scale(0.92); }
-        @media (hover: none) and (pointer: coarse) { #touch-controls { display: block; } .hint { bottom: 200px; } }
-        @supports (padding: env(safe-area-inset-top)) { #touch-controls { padding-top: env(safe-area-inset-top); } }
+        #btn-pause { background: rgba(80,80,80,0.85); border-color: #aaa; color: #fff; width: 36px; height: 36px; font-size: 9px; }
+        @media (hover: none) and (pointer: coarse) { #touch-controls { display: block; } .hint { bottom: 160px; } }
     </style>
 </head>
 <body>
-    
-    <!-- 角色创建界面 -->
     <div id="char-creation">
         <h1>创建角色</h1>
         <p class="subtitle">打造你的三国英雄</p>
+        <div id="char-preview"><div id="preview-char"></div></div>
         
-        <!-- 角色预览 -->
-        <div id="char-preview">
-            <div id="preview-character"></div>
-        </div>
-        
-        <!-- 角色预设 -->
         <div id="preset-list">
             <button class="preset-btn active" data-preset="warrior">武士</button>
             <button class="preset-btn" data-preset="general">将军</button>
-            <button class="preset-btn" data-preset="merchant">商贾</button>
             <button class="preset-btn" data-preset="scholar">谋士</button>
+            <button class="preset-btn" data-preset="lady">女子</button>
             <button class="preset-btn" data-preset="bandit">草寇</button>
         </div>
         
         <div id="options-panel">
-            <!-- 脸型 -->
-            <div class="option-group">
-                <div class="option-label">脸型</div>
-                <div class="option-btns" data-type="face">
-                    <button class="opt-btn selected" data-value="oval">椭圆</button>
-                    <button class="opt-btn" data-value="square">国字</button>
-                    <button class="opt-btn" data-value="round">圆脸</button>
-                    <button class="opt-btn" data-value="long">长脸</button>
-                </div>
-            </div>
-            
-            <!-- 发型 -->
             <div class="option-group">
                 <div class="option-label">发型</div>
                 <div class="option-btns" data-type="hair">
                     <button class="opt-btn selected" data-value="bun">发髻</button>
                     <button class="opt-btn" data-value="short">短发</button>
                     <button class="opt-btn" data-value="long">长发</button>
-                    <button class="opt-btn" data-value="turban">包巾</button>
+                    <button class="opt-btn" data-value="twin">双髻</button>
                 </div>
             </div>
-            
-            <!-- 发色 -->
             <div class="option-group">
                 <div class="option-label">发色</div>
                 <div class="color-btns" data-type="hairColor">
-                    <button class="color-btn selected" data-value="#1a1a1a" style="background:#1a1a1a"></button>
-                    <button class="color-btn" data-value="#4a3728" style="background:#4a3728"></button>
-                    <button class="color-btn" data-value="#8b2500" style="background:#8b2500"></button>
-                    <button class="color-btn" data-value="#c4a35a" style="background:#c4a35a"></button>
-                    <button class="color-btn" data-value="#d4d4d4" style="background:#d4d4d4"></button>
+                    <button class="color-btn selected" data-value="#2d2d2d" style="background:#2d2d2d"></button>
+                    <button class="color-btn" data-value="#5d4037" style="background:#5d4037"></button>
+                    <button class="color-btn" data-value="#b71c1c" style="background:#b71c1c"></button>
+                    <button class="color-btn" data-value="#ffd700" style="background:#ffd700"></button>
+                    <button class="color-btn" data-value="#e0e0e0" style="background:#e0e0e0"></button>
                 </div>
             </div>
-            
-            <!-- 肤色 -->
-            <div class="option-group">
-                <div class="option-label">肤色</div>
-                <div class="color-btns" data-type="skin">
-                    <button class="color-btn selected" data-value="#e8c4a0" style="background:#e8c4a0"></button>
-                    <button class="color-btn" data-value="#c9956c" style="background:#c9956c"></button>
-                    <button class="color-btn" data-value="#f5e6d3" style="background:#f5e6d3"></button>
-                    <button class="color-btn" data-value="#a67c52" style="background:#a67c52"></button>
-                </div>
-            </div>
-            
-            <!-- 服装 -->
             <div class="option-group">
                 <div class="option-label">服装</div>
                 <div class="option-btns" data-type="cloth">
                     <button class="opt-btn selected" data-value="warrior">战袍</button>
-                    <button class="opt-btn" data-value="general">铠甲</button>
                     <button class="opt-btn" data-value="robe">长袍</button>
-                    <button class="opt-btn" data-value="commoner">布衣</button>
+                    <button class="opt-btn" data-value="dress">襦裙</button>
+                    <button class="opt-btn" data-value="armor">铠甲</button>
                 </div>
             </div>
-            
-            <!-- 服装配色 -->
             <div class="option-group">
-                <div class="option-label">阵营色</div>
+                <div class="option-label">服装色</div>
                 <div class="color-btns" data-type="clothColor">
-                    <button class="color-btn selected" data-value="#2e8b57" style="background:#2e8b57" title="蜀汉"></button>
-                    <button class="color-btn" data-value="#1a1aff" style="background:#1a1aff" title="曹魏"></button>
-                    <button class="color-btn" data-value="#ff6600" style="background:#ff6600" title="东吴"></button>
-                    <button class="color-btn" data-value="#8b4513" style="background:#8b4513" title="黄巾"></button>
-                    <button class="color-btn" data-value="#6b8e23" style="background:#6b8e23" title="平民"></button>
+                    <button class="color-btn selected" data-value="#27ae60" style="background:#27ae60" title="蜀"></button>
+                    <button class="color-btn" data-value="#2980b9" style="background:#2980b9" title="魏"></button>
+                    <button class="color-btn" data-value="#e67e22" style="background:#e67e22" title="吴"></button>
+                    <button class="color-btn" data-value="#c0392b" style="background:#c0392b" title="红"></button>
+                    <button class="color-btn" data-value="#9b59b6" style="background:#9b59b6" title="紫"></button>
                 </div>
             </div>
         </div>
         
-        <button id="confirm-btn" onclick="confirmCharacter()">开始冒险</button>
+        <button id="confirm-btn" onclick="confirmChar()">开始冒险</button>
     </div>
     
-    <!-- 标题界面 -->
     <div id="title-screen">
         <h1>三国江湖</h1>
         <p>乱世烽火 · 群雄逐鹿</p>
-        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">版本 1.6.0</p>
-        <button class="btn" onclick="showCharCreation()">创建角色</button>
+        <p style="color:#666;font-size:12px;margin-bottom:15px">版本 1.7.0</p>
+        <button class="btn" onclick="showCreate()">创建角色</button>
         <button class="btn" onclick="startGame()">快速开始</button>
     </div>
     
-    <!-- 游戏场景 -->
     <div id="game">
         <div id="map">
-            <div class="map-border border-top"></div>
-            <div class="map-border border-bottom"></div>
-            <div class="map-border border-left"></div>
-            <div class="map-border border-right"></div>
-            <div class="ground"><div class="grass"></div></div>
-            <div class="building house1"></div>
-            <div class="building house2"></div>
-            <div class="building house3"></div>
-            <div class="well"></div>
-            <div class="tree tree1"></div>
-            <div class="tree tree2"></div>
-            <div class="tree tree3"></div>
-            <div class="tree tree4"></div>
-            <div class="rock rock1"></div>
-            <div class="rock rock2"></div>
-            <div class="rock rock3"></div>
+            <div class="cloud cloud-1"></div>
+            <div class="cloud cloud-2"></div>
+            <div class="dirt"></div>
             
-            <div id="player" class="character idle"></div>
-            
-            <div class="npc-sprite" id="npc-soldier">
-                <div class="char-label">士兵</div>
+            <div class="house house1">
+                <div class="roof"></div>
+                <div class="wall"><div class="door"></div><div class="window"></div></div>
             </div>
-            <div class="npc-sprite" id="npc-merchant">
-                <div class="char-label">商人</div>
+            <div class="house house2">
+                <div class="roof"></div>
+                <div class="wall"><div class="door"></div><div class="window"></div><div class="window"></div></div>
             </div>
-            <div class="npc-sprite" id="npc-general">
-                <div class="char-label">将军</div>
+            <div class="house house3">
+                <div class="roof"></div>
+                <div class="wall"><div class="door"></div></div>
             </div>
             
-            <div class="enemy-sprite" id="enemy1">
-                <div class="char-label">黄巾兵</div>
-                <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="enemy1-hp-fill" style="width:100%"></div></div>
+            <div class="lantern">
+                <div class="lantern-top"></div>
+                <div class="lantern-body"></div>
+                <div class="lantern-bottom"></div>
+                <div class="lantern-pole"></div>
             </div>
-            <div class="enemy-sprite" id="enemy2">
-                <div class="char-label">黄巾兵</div>
-                <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="enemy2-hp-fill" style="width:100%"></div></div>
-            </div>
-            <div class="enemy-sprite" id="enemy3">
-                <div class="char-label">黄巾兵</div>
-                <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="enemy3-hp-fill" style="width:100%"></div></div>
-            </div>
+            
+            <div class="ptree ptree1"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
+            <div class="ptree ptree2"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
+            <div class="ptree ptree3"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
+            <div class="ptree ptree4"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
+            
+            <div class="pstone pstone1"></div>
+            <div class="pstone pstone2"></div>
+            <div class="pstone pstone3"></div>
+            
+            <div id="player" class="qchar idle"><div class="qchar-shadow"></div></div>
+            
+            <div class="npc-char qchar" id="npc-soldier"><div class="char-name">士兵</div></div>
+            <div class="npc-char qchar" id="npc-merchant"><div class="char-name">商人</div></div>
+            <div class="npc-char qchar" id="npc-general"><div class="char-name">将军</div></div>
+            
+            <div class="enemy-char qchar" id="enemy1"><div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="enemy1-hp" style="width:100%"></div></div></div>
+            <div class="enemy-char qchar" id="enemy2"><div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="enemy2-hp" style="width:100%"></div></div></div>
+            <div class="enemy-char qchar" id="enemy3"><div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="enemy3-hp" style="width:100%"></div></div></div>
             
             <div id="interact-prompt"></div>
-            <div class="hint">WASD移动 | 靠近后 空格/点击 交互</div>
+            <div class="hint">WASD移动 | 空格交互</div>
         </div>
         
         <div id="status">
             <div class="status-row"><span class="stat-label">等级</span><span class="stat-value" id="level">1</span></div>
             <div class="status-row"><span class="stat-label">金币</span><span class="stat-value" id="gold">0</span></div>
             <div class="status-row"><span class="stat-label">HP</span><span class="stat-value" id="hp-text">100/100</span></div>
-            <div class="hp-bar"><div class="hp-fill" id="hp-bar" style="width: 100%"></div></div>
+            <div class="hp-bar"><div class="hp-fill" id="hp-bar" style="width:100%"></div></div>
         </div>
         
         <div id="quest-box">
@@ -464,267 +321,174 @@
     </div>
     
     <script>
-    // ===== 角色配置系统 =====
     var playerConfig = {
-        face: 'oval',
         hair: 'bun',
-        hairColor: '#1a1a1a',
-        skin: '#e8c4a0',
+        hairColor: '#2d2d2d',
         cloth: 'warrior',
-        clothColor: '#2e8b57'
+        clothColor: '#27ae60'
     };
     
     var presets = {
-        warrior: { face: 'oval', hair: 'bun', hairColor: '#1a1a1a', skin: '#e8c4a0', cloth: 'warrior', clothColor: '#2e8b57' },
-        general: { face: 'square', hair: 'bun', hairColor: '#1a1a1a', skin: '#e8c4a0', cloth: 'general', clothColor: '#1a1aff' },
-        merchant: { face: 'round', hair: 'short', hairColor: '#4a3728', skin: '#f5e6d3', cloth: 'commoner', clothColor: '#6b8e23' },
-        scholar: { face: 'oval', hair: 'long', hairColor: '#1a1a1a', skin: '#e8c4a0', cloth: 'robe', clothColor: '#6b8e23' },
-        bandit: { face: 'square', hair: 'turban', hairColor: '#4a3728', skin: '#a67c52', cloth: 'warrior', clothColor: '#c4a35a' }
+        warrior: { hair: 'bun', hairColor: '#2d2d2d', cloth: 'warrior', clothColor: '#27ae60' },
+        general: { hair: 'bun', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#2980b9' },
+        scholar: { hair: 'long', hairColor: '#2d2d2d', cloth: 'robe', clothColor: '#9b59b6' },
+        lady: { hair: 'twin', hairColor: '#5d4037', cloth: 'dress', clothColor: '#e91e63' },
+        bandit: { hair: 'short', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#795548' }
     };
     
-    // ===== 精细角色SVG生成器 =====
-    function generateCharacterSVG(config) {
-        const faceShape = {
-            oval: 'M12,16 Q8,16 8,22 Q8,28 12,28 Q16,28 16,22 Q16,16 12,16',
-            square: 'M8,16 L16,16 L17,26 Q17,28 16,28 L8,28 Q7,28 7,26 Z',
-            round: 'M8,14 Q8,10 12,10 Q16,10 16,14 Q17,22 16,28 Q15,30 12,30 Q9,30 8,28 Q7,22 8,14',
-            long: 'M9,12 Q9,8 12,8 Q15,8 15,12 Q16,20 15,30 Q14,32 12,32 Q10,32 9,30 Q8,20 9,12'
+    function genQCharSVG(cfg) {
+        var hairPaths = {
+            bun: '<ellipse cx="18" cy="7" rx="10" ry="5" fill="' + cfg.hairColor + '"/><circle cx="18" cy="4" r="5" fill="' + cfg.hairColor + '"/><rect x="15" y="0" width="6" height="4" fill="' + cfg.hairColor + '" rx="1"/>',
+            short: '<ellipse cx="18" cy="8" rx="9" ry="6" fill="' + cfg.hairColor + '"/>',
+            long: '<ellipse cx="18" cy="7" rx="9" ry="5" fill="' + cfg.hairColor + '"/><rect x="7" y="10" width="4" height="14" fill="' + cfg.hairColor + '" rx="2"/><rect x="23" y="10" width="4" height="14" fill="' + cfg.hairColor + '" rx="2"/>',
+            twin: '<ellipse cx="18" cy="7" rx="8" ry="5" fill="' + cfg.hairColor + '"/><circle cx="6" cy="11" r="4" fill="' + cfg.hairColor + '"/><circle cx="30" cy="11" r="4" fill="' + cfg.hairColor + '"/>'
         };
         
-        const hairPaths = {
-            bun: `<path d="M6,10 Q6,2 12,2 Q18,2 18,10 L18,14 Q16,14 16,16 L16,12 Q16,6 12,6 Q8,6 8,12 L8,16 Q8,14 6,14 Z" fill="${config.hairColor}"/>
-                  <circle cx="12" cy="4" r="4" fill="${config.hairColor}"/>
-                  <rect x="10" y="0" width="4" height="6" fill="${config.hairColor}" rx="1"/>`,
-            short: `<path d="M6,12 Q6,4 12,4 Q18,4 18,12 L18,16 Q16,16 16,18 L8,18 Q8,16 6,16 Z" fill="${config.hairColor}"/>`,
-            long: `<path d="M6,10 Q6,2 12,2 Q18,2 18,10 L18,28 Q18,32 16,32 L14,32 L14,28 L10,28 L10,32 L8,32 Q6,32 6,28 Z" fill="${config.hairColor}"/>`,
-            turban: `<path d="M5,14 Q5,6 12,6 Q19,6 19,14 Q20,18 19,20 L5,20 Q4,18 5,14 Z" fill="${config.hairColor}"/>
-                     <path d="M7,16 L17,16 L17,18 L7,18 Z" fill="${adjustColor(config.hairColor, -20)}"/>
-                     <rect x="10" y="8" width="4" height="3" fill="${adjustColor(config.hairColor, -30)}"/>`
+        var clothShapes = {
+            warrior: '<rect x="8" y="19" width="20" height="13" fill="' + cfg.clothColor + '" rx="2"/><rect x="11" y="19" width="14" height="3" fill="' + lighten(cfg.clothColor, 20) + '"/>',
+            robe: '<path d="M6,19 L30,19 L32,34 L4,34 Z" fill="' + cfg.clothColor + '"/><path d="M12,19 L24,19 L25,34 L11,34 Z" fill="' + lighten(cfg.clothColor, 15) + '"/>',
+            dress: '<ellipse cx="18" cy="28" rx="12" ry="8" fill="' + cfg.clothColor + '"/><rect x="12" y="19" width="12" height="7" fill="' + cfg.clothColor + '"/>',
+            armor: '<rect x="6" y="19" width="24" height="13" fill="' + cfg.clothColor + '" rx="2"/><rect x="4" y="21" width="5" height="10" fill="' + lighten(cfg.clothColor, 15) + '" rx="1"/><rect x="27" y="21" width="5" height="10" fill="' + lighten(cfg.clothColor, 15) + '" rx="1"/><circle cx="18" cy="24" r="3" fill="#ffd700"/>'
         };
         
-        const clothPaths = {
-            warrior: `<path d="M10,32 L10,48 L14,48 L14,32 Q12,30 10,32 M14,32 L14,48 L18,48 L18,32 Q12,30 14,32" fill="${config.clothColor}"/>
-                      <path d="M8,32 L20,32 L20,44 L8,44 Z" fill="${config.clothColor}"/>
-                      <path d="M8,32 L20,32 L20,36 L8,36 Z" fill="${adjustColor(config.clothColor, -30)}"/>
-                      <line x1="14" y1="32" x2="14" y2="44" stroke="${adjustColor(config.clothColor, -40)}" stroke-width="1"/>`,
-            general: `<path d="M8,30 L20,30 L22,48 L6,48 Z" fill="${config.clothColor}"/>
-                      <path d="M10,30 L18,30 L19,48 L9,48 Z" fill="${adjustColor(config.clothColor, -20)}"/>
-                      <path d="M6,32 L10,30 L10,48 L6,46 Z" fill="${adjustColor(config.clothColor, 20)}"/>
-                      <path d="M18,30 L22,32 L22,46 L18,48 Z" fill="${adjustColor(config.clothColor, 20)}"/>
-                      <rect x="12" y="30" width="4" height="6" fill="#ffd700" opacity="0.8"/>
-                      <circle cx="14" cy="33" r="2" fill="#ffd700"/>`,
-            robe: `<path d="M6,30 L22,30 L24,50 L4,50 Z" fill="${config.clothColor}"/>
-                   <path d="M10,30 L18,30 L19,50 L9,50 Z" fill="${adjustColor(config.clothColor, -15)}"/>
-                   <path d="M8,30 L8,50 L6,50 L4,50 Z" fill="${adjustColor(config.clothColor, 15)}"/>
-                   <path d="M16,30 L16,50 L18,50 L20,50 Z" fill="${adjustColor(config.clothColor, 15)}"/>`,
-            commoner: `<path d="M9,32 L19,32 L18,48 L10,48 Z" fill="${config.clothColor}"/>
-                       <path d="M11,32 L17,32 L17,36 L11,36 Z" fill="${adjustColor(config.clothColor, -20)}"/>`
-        };
-        
-        return `
-        <svg viewBox="0 0 24 64" xmlns="http://www.w3.org/2000/svg">
-            <!-- 阴影 -->
-            <ellipse cx="12" cy="62" rx="8" ry="2" fill="rgba(0,0,0,0.3)"/>
-            
-            <!-- 腿部 -->
-            <rect x="10" y="48" width="3" height="12" fill="#654321" rx="1"/>
-            <rect x="14" y="48" width="3" height="12" fill="#654321" rx="1"/>
-            <rect x="9" y="58" width="4" height="4" fill="#3d2817"/>
-            <rect x="14" y="58" width="4" height="4" fill="#3d2817"/>
-            
-            <!-- 服装下身 -->
-            ${clothPaths[config.cloth] || clothPaths.warrior}
-            
-            <!-- 身体 -->
-            <rect x="8" y="24" width="12" height="10" fill="${config.skin}" rx="2"/>
-            
-            <!-- 头部 -->
-            <g transform="translate(0, 2)">
-                <!-- 脸 -->
-                <path d="${faceShape[config.face] || faceShape.oval}" fill="${config.skin}" stroke="${adjustColor(config.skin, -30)}" stroke-width="0.5"/>
-                
-                <!-- 眼睛 -->
-                <ellipse cx="10" cy="19" rx="1.5" ry="1.8" fill="#1a1a1a"/>
-                <ellipse cx="14" cy="19" rx="1.5" ry="1.8" fill="#1a1a1a"/>
-                <circle cx="9.5" cy="18.5" r="0.5" fill="#fff"/>
-                <circle cx="13.5" cy="18.5" r="0.5" fill="#fff"/>
-                
-                <!-- 眉毛 -->
-                <path d="M8,16 Q10,15 11,16" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
-                <path d="M13,16 Q14,15 16,16" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
-                
-                <!-- 鼻子 -->
-                <path d="M12,20 L12,22 L11,23" stroke="${adjustColor(config.skin, -40)}" stroke-width="0.5" fill="none"/>
-                
-                <!-- 嘴巴 -->
-                <path d="M10,25 Q12,26 14,25" stroke="#aa6655" stroke-width="0.8" fill="none"/>
-                
-                <!-- 耳朵 -->
-                <ellipse cx="7" cy="21" rx="1" ry="1.5" fill="${config.skin}" stroke="${adjustColor(config.skin, -30)}" stroke-width="0.3"/>
-                <ellipse cx="17" cy="21" rx="1" ry="1.5" fill="${config.skin}" stroke="${adjustColor(config.skin, -30)}" stroke-width="0.3"/>
-                
-                <!-- 发型 -->
-                ${hairPaths[config.hair] || hairPaths.bun}
-            </g>
-        </svg>`;
+        return '<svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">' +
+            '<ellipse cx="18" cy="35" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>' +
+            '<rect x="12" y="32" width="4" height="3" fill="#5d4037" rx="1"/>' +
+            '<rect x="20" y="32" width="4" height="3" fill="#5d4037" rx="1"/>' +
+            clothShapes[cfg.cloth] +
+            '<ellipse cx="18" cy="15" rx="9" ry="9" fill="#f5d0c5"/>' +
+            '<ellipse cx="10" cy="17" rx="2.5" ry="1.5" fill="#ffb6c1" opacity="0.5"/>' +
+            '<ellipse cx="26" cy="17" rx="2.5" ry="1.5" fill="#ffb6c1" opacity="0.5"/>' +
+            '<ellipse cx="14" cy="14" rx="2.5" ry="3" fill="#2d2d2d"/><ellipse cx="22" cy="14" rx="2.5" ry="3" fill="#2d2d2d"/>' +
+            '<circle cx="13" cy="13" r="0.8" fill="#fff"/><circle cx="21" cy="13" r="0.8" fill="#fff"/>' +
+            '<ellipse cx="18" cy="19" rx="1.5" ry="0.8" fill="#e57373"/>' +
+            '<ellipse cx="9" cy="15" rx="1.5" ry="2" fill="#f5d0c5"/>' +
+            '<ellipse cx="27" cy="15" rx="1.5" ry="2" fill="#f5d0c5"/>' +
+            hairPaths[cfg.hair] +
+            '</svg>';
     }
     
-    // 颜色调整函数
-    function adjustColor(hex, amount) {
-        let r = parseInt(hex.slice(1,3), 16);
-        let g = parseInt(hex.slice(3,5), 16);
-        let b = parseInt(hex.slice(5,7), 16);
-        r = Math.max(0, Math.min(255, r + amount));
-        g = Math.max(0, Math.min(255, g + amount));
-        b = Math.max(0, Math.min(255, b + amount));
-        return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+    function lighten(hex, amt) {
+        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        r = Math.min(255, r + amt); g = Math.min(255, g + amt); b = Math.min(255, b + amt);
+        return '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0');
     }
     
-    // ===== 角色预设 =====
-    const npcConfigs = {
-        'npc-soldier': { face: 'square', hair: 'turban', hairColor: '#1a1a1a', skin: '#e8c4a0', cloth: 'warrior', clothColor: '#1a1aff' },
-        'npc-merchant': { face: 'round', hair: 'short', hairColor: '#4a3728', skin: '#f5e6d3', cloth: 'commoner', clothColor: '#6b8e23' },
-        'npc-general': { face: 'square', hair: 'bun', hairColor: '#1a1a1a', skin: '#e8c4a0', cloth: 'general', clothColor: '#ff6600' }
+    var npcConfigs = {
+        'npc-soldier': { hair: 'bun', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#2980b9' },
+        'npc-merchant': { hair: 'short', hairColor: '#5d4037', cloth: 'robe', clothColor: '#795548' },
+        'npc-general': { hair: 'bun', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#e67e22' }
     };
     
-    const enemyConfig = { face: 'square', hair: 'turban', hairColor: '#8b6914', skin: '#a67c52', cloth: 'warrior', clothColor: '#c4a000' };
+    var enemyConfig = { hair: 'short', hairColor: '#8d6e63', cloth: 'warrior', clothColor: '#d4a574' };
     
-    // ===== 初始化角色 =====
-    function initCharacters() {
-        // 玩家
-        const player = document.getElementById('player');
-        player.innerHTML = generateCharacterSVG(playerConfig);
+    function initChars() {
+        document.getElementById('player').innerHTML = '<div class="qchar-shadow"></div>' + genQCharSVG(playerConfig);
         
-        // NPC
-        Object.entries(npcConfigs).forEach(([id, config]) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = generateCharacterSVG(config);
+        Object.keys(npcConfigs).forEach(function(id) {
+            var names = { 'npc-soldier': '士兵', 'npc-merchant': '商人', 'npc-general': '将军' };
+            document.getElementById(id).innerHTML = '<div class="char-name">' + names[id] + '</div>' + genQCharSVG(npcConfigs[id]);
         });
         
-        // 敌人
-        ['enemy1', 'enemy2', 'enemy3'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = generateCharacterSVG(enemyConfig) + el.innerHTML;
+        ['enemy1','enemy2','enemy3'].forEach(function(id) {
+            document.getElementById(id).innerHTML = '<div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="' + id + '-hp" style="width:100%"></div></div>' + genQCharSVG(enemyConfig);
         });
     }
     
-    // ===== 捏脸界面 =====
     function updatePreview() {
-        const preview = document.getElementById('preview-character');
-        preview.innerHTML = generateCharacterSVG(playerConfig);
+        document.getElementById('preview-char').innerHTML = genQCharSVG(playerConfig);
     }
     
-    // 预设选择
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.preset-btn').forEach(function(btn) {
+        btn.onclick = function() {
+            document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
             btn.classList.add('active');
-            const preset = presets[btn.dataset.preset];
-            Object.assign(playerConfig, preset);
-            
-            // 更新选项UI
-            document.querySelectorAll('.option-btns').forEach(group => {
-                const type = group.dataset.type;
-                group.querySelectorAll('.opt-btn').forEach(opt => {
-                    opt.classList.toggle('selected', opt.dataset.value === playerConfig[type]);
-                });
+            Object.assign(playerConfig, presets[btn.dataset.preset]);
+            document.querySelectorAll('.option-btns').forEach(function(g) {
+                var type = g.dataset.type;
+                g.querySelectorAll('.opt-btn').forEach(function(o) { o.classList.toggle('selected', o.dataset.value === playerConfig[type]); });
             });
-            document.querySelectorAll('.color-btns').forEach(group => {
-                const type = group.dataset.type;
-                group.querySelectorAll('.color-btn').forEach(opt => {
-                    opt.classList.toggle('selected', opt.dataset.value === playerConfig[type]);
-                });
+            document.querySelectorAll('.color-btns').forEach(function(g) {
+                var type = g.dataset.type;
+                g.querySelectorAll('.color-btn').forEach(function(o) { o.classList.toggle('selected', o.dataset.value === playerConfig[type]); });
             });
-            
             updatePreview();
-        });
+        };
     });
     
-    // 选项按钮
-    document.querySelectorAll('.option-btns').forEach(group => {
-        group.querySelectorAll('.opt-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.option-btns').forEach(function(g) {
+        g.querySelectorAll('.opt-btn').forEach(function(btn) {
+            btn.onclick = function() {
+                g.querySelectorAll('.opt-btn').forEach(function(b) { b.classList.remove('selected'); });
                 btn.classList.add('selected');
-                playerConfig[group.dataset.type] = btn.dataset.value;
+                playerConfig[g.dataset.type] = btn.dataset.value;
                 updatePreview();
-            });
+            };
         });
     });
     
-    // 颜色按钮
-    document.querySelectorAll('.color-btns').forEach(group => {
-        group.querySelectorAll('.color-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                group.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.color-btns').forEach(function(g) {
+        g.querySelectorAll('.color-btn').forEach(function(btn) {
+            btn.onclick = function() {
+                g.querySelectorAll('.color-btn').forEach(function(b) { b.classList.remove('selected'); });
                 btn.classList.add('selected');
-                playerConfig[group.dataset.type] = btn.dataset.value;
+                playerConfig[g.dataset.type] = btn.dataset.value;
                 updatePreview();
-            });
+            };
         });
     });
     
-    function confirmCharacter() {
+    function confirmChar() {
         document.getElementById('char-creation').style.display = 'none';
         document.getElementById('title-screen').style.display = 'flex';
     }
     
-    function showCharCreation() {
+    function showCreate() {
         document.getElementById('title-screen').style.display = 'none';
         document.getElementById('char-creation').style.display = 'flex';
     }
     
-    // ===== 游戏核心 =====
-    var player = { x: 400, y: 300, hp: 100, maxHp: 100, level: 1, gold: 0, attack: 10 };
-    var currentQuest = null;
-    var isTalking = false;
-    var nearbyTarget = null;
-    var interactRange = 60;
-    var gameOver = false;
-    
-    var enemyHpData = {
-        'enemy1': { hp: 30, maxHp: 30 },
-        'enemy2': { hp: 30, maxHp: 30 },
-        'enemy3': { hp: 30, maxHp: 30 }
-    };
+    var player = { x: 350, y: 280, hp: 100, maxHp: 100, level: 1, gold: 0, attack: 15 };
+    var isTalking = false, nearbyTarget = null;
+    var enemyHp = { enemy1: {hp:30,maxHp:30}, enemy2: {hp:30,maxHp:30}, enemy3: {hp:30,maxHp:30} };
     
     var targets = {
-        'npc-soldier': { x: 180, y: 180, type: 'npc', id: 'soldier' },
-        'npc-merchant': { x: 480, y: 130, type: 'npc', id: 'merchant' },
-        'npc-general': { x: 580, y: 320, type: 'npc', id: 'general' },
-        'enemy1': { x: 280, y: 230, type: 'enemy', id: 'enemy1' },
-        'enemy2': { x: 420, y: 260, type: 'enemy', id: 'enemy2' },
-        'enemy3': { x: 300, y: 380, type: 'enemy', id: 'enemy3' }
+        'npc-soldier': {x:160,y:180,type:'npc',id:'soldier'},
+        'npc-merchant': {x:450,y:130,type:'npc',id:'merchant'},
+        'npc-general': {x:520,y:280,type:'npc',id:'general'},
+        'enemy1': {x:260,y:220,type:'enemy',id:'enemy1'},
+        'enemy2': {x:380,y:250,type:'enemy',id:'enemy2'},
+        'enemy3': {x:280,y:350,type:'enemy',id:'enemy3'}
     };
     
-    var npcDialogues = {
-        soldier: { speaker: '士兵', texts: ['报上名来！', '最近黄巾贼闹得凶啊...', '将军有令，严加防范！'], quest: { title: '剿灭黄巾', desc: '消灭3个黄巾兵', reward: '+50金币' } },
-        merchant: { speaker: '商人', texts: ['买卖公道，童叟无欺！', '兵荒马乱的，生意难做啊...'], quest: null },
-        general: { speaker: '将军', texts: ['壮士！黄巾贼在村外作乱，去剿灭他们！', '好！我军士气大振！'], quest: null }
+    var dialogues = {
+        soldier: {speaker:'士兵', texts:['黄巾贼在村外作乱！','将军有令，剿灭贼寇！']},
+        merchant: {speaker:'商人', texts:['买卖公道，童叟无欺！','兵荒马乱，生意难做...']},
+        general: {speaker:'将军', texts:['壮士，去消灭黄巾兵！','好！我军士气大振！']}
     };
     
-    var keys = { up: false, down: false, left: false, right: false };
-    var touchDir = null;
-    var moveSpeed = 4;
+    var quest = { title:'剿灭黄巾', desc:'消灭3个黄巾兵', reward:'+50金币' };
+    
+    var keys = {}, touchDir = null;
+    var speed = 4;
     
     function startGame() {
         document.getElementById('title-screen').style.display = 'none';
         document.getElementById('game').style.display = 'block';
-        initCharacters();
+        initChars();
         
-        document.addEventListener('keydown', key => {
+        document.addEventListener('keydown', function(e) {
             if (isTalking) return;
-            switch(key.key.toLowerCase()) {
+            switch(e.key.toLowerCase()) {
                 case 'w': case 'arrowup': keys.up = true; break;
                 case 's': case 'arrowdown': keys.down = true; break;
                 case 'a': case 'arrowleft': keys.left = true; break;
                 case 'd': case 'arrowright': keys.right = true; break;
-                case ' ': key.preventDefault(); interact(); break;
+                case ' ': e.preventDefault(); interact(); break;
             }
         });
-        
-        document.addEventListener('keyup', key => {
-            switch(key.key.toLowerCase()) {
+        document.addEventListener('keyup', function(e) {
+            switch(e.key.toLowerCase()) {
                 case 'w': case 'arrowup': keys.up = false; break;
                 case 's': case 'arrowdown': keys.down = false; break;
                 case 'a': case 'arrowleft': keys.left = false; break;
@@ -732,154 +496,106 @@
             }
         });
         
-        // 触屏控制
-        setupTouchControls();
-        
-        // 任务系统
-        currentQuest = npcDialogues.soldier.quest;
-        updateQuestBox();
-        
+        setupTouch();
+        updateQuest();
         gameLoop();
     }
     
-    function setupTouchControls() {
-        const zone = document.getElementById('joystick-zone');
-        const thumb = document.getElementById('joystick-thumb');
-        let centerX, centerY, maxDist = 40;
+    function setupTouch() {
+        var zone = document.getElementById('joystick-zone');
+        var thumb = document.getElementById('joystick-thumb');
+        var cx, cy, maxD = 30;
         
-        zone.addEventListener('touchstart', e => {
+        zone.addEventListener('touchstart', function(e) {
             e.preventDefault();
-            const rect = zone.getBoundingClientRect();
-            centerX = rect.left + rect.width / 2;
-            centerY = rect.top + rect.height / 2;
+            var r = zone.getBoundingClientRect();
+            cx = r.left + r.width/2; cy = r.top + r.height/2;
         });
         
-        zone.addEventListener('touchmove', e => {
+        zone.addEventListener('touchmove', function(e) {
             e.preventDefault();
-            const touch = e.touches[0];
-            let dx = touch.clientX - centerX;
-            let dy = touch.clientY - centerY;
-            let dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > maxDist) { dx = dx/dist*maxDist; dy = dy/dist*maxDist; dist = maxDist; }
-            thumb.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            touchDir = { x: dx/maxDist, y: dy/maxDist, dist: dist/maxDist };
+            var dx = e.touches[0].clientX - cx, dy = e.touches[0].clientY - cy;
+            var d = Math.sqrt(dx*dx + dy*dy);
+            if (d > maxD) { dx = dx/d*maxD; dy = dy/d*maxD; }
+            thumb.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
+            touchDir = {x: dx/maxD, y: dy/maxD, dist: d/maxD};
         });
         
-        zone.addEventListener('touchend', () => {
-            thumb.style.transform = 'translate(-50%, -50%)';
+        zone.addEventListener('touchend', function() {
+            thumb.style.transform = 'translate(-50%,-50%)';
             touchDir = null;
         });
         
-        document.getElementById('btn-interact').addEventListener('touchstart', e => { e.preventDefault(); interact(); });
-        document.getElementById('btn-attack').addEventListener('touchstart', e => { e.preventDefault(); attack(); });
+        document.getElementById('btn-interact').addEventListener('touchstart', function(e) { e.preventDefault(); interact(); });
+        document.getElementById('btn-attack').addEventListener('touchstart', function(e) { e.preventDefault(); attack(); });
     }
     
     function gameLoop() {
-        if (gameOver) return;
-        
-        // 移动
-        let dx = 0, dy = 0;
-        if (keys.up) dy -= 1;
-        if (keys.down) dy += 1;
-        if (keys.left) dx -= 1;
-        if (keys.right) dx += 1;
-        
-        if (touchDir && touchDir.dist > 0.3) {
-            dx = touchDir.x;
-            dy = touchDir.y;
-        }
+        var dx = 0, dy = 0;
+        if (keys.up) dy -= 1; if (keys.down) dy += 1;
+        if (keys.left) dx -= 1; if (keys.right) dx += 1;
+        if (touchDir && touchDir.dist > 0.3) { dx = touchDir.x; dy = touchDir.y; }
         
         if (dx || dy) {
-            const len = Math.sqrt(dx*dx + dy*dy);
+            var len = Math.sqrt(dx*dx + dy*dy);
             dx /= len; dy /= len;
-            player.x += dx * moveSpeed;
-            player.y += dy * moveSpeed;
+            player.x += dx * speed;
+            player.y += dy * speed;
+            player.x = Math.max(60, Math.min(window.innerWidth - 60, player.x));
+            player.y = Math.max(80, Math.min(window.innerHeight - 80, player.y));
             
-            // 边界
-            player.x = Math.max(50, Math.min(window.innerWidth - 50, player.x));
-            player.y = Math.max(50, Math.min(window.innerHeight - 80, player.y));
-            
-            document.getElementById('player').style.left = (player.x - 24) + 'px';
-            document.getElementById('player').style.top = (player.y - 32) + 'px';
+            var p = document.getElementById('player');
+            p.style.left = (player.x - 18) + 'px';
+            p.style.top = (player.y - 18) + 'px';
         }
         
-        // 检测附近目标
         checkNearby();
-        
         requestAnimationFrame(gameLoop);
     }
     
     function checkNearby() {
-        let found = null;
-        for (let id in targets) {
-            const t = targets[id];
-            const dist = Math.sqrt((player.x-t.x)**2 + (player.y-t.y)**2);
-            if (dist < interactRange) { found = t; break; }
+        var found = null;
+        for (var id in targets) {
+            var t = targets[id];
+            if (Math.sqrt((player.x-t.x)*(player.x-t.x) + (player.y-t.y)*(player.y-t.y)) < 50) { found = t; break; }
         }
-        
         if (found !== nearbyTarget) {
             nearbyTarget = found;
-            const prompt = document.getElementById('interact-prompt');
-            if (found) {
-                const label = found.type === 'enemy' ? '攻击' : '对话';
-                prompt.textContent = `按空格 ${label}`;
-                prompt.style.display = 'block';
-            } else {
-                prompt.style.display = 'none';
-            }
+            var prompt = document.getElementById('interact-prompt');
+            prompt.textContent = found ? (found.type === 'enemy' ? '空格 攻击' : '空格 对话') : '';
+            prompt.style.display = found ? 'block' : 'none';
         }
     }
     
     function interact() {
         if (!nearbyTarget) return;
         if (nearbyTarget.type === 'enemy') { attack(); return; }
-        
-        const dialogue = npcDialogues[nearbyTarget.id];
-        if (!dialogue) return;
-        
+        var d = dialogues[nearbyTarget.id];
+        if (!d) return;
         isTalking = true;
-        document.getElementById('speaker').textContent = dialogue.speaker;
-        document.getElementById('text').textContent = dialogue.texts[0];
-        document.getElementById('choices').innerHTML = '';
+        document.getElementById('speaker').textContent = d.speaker;
+        document.getElementById('text').textContent = d.texts[0];
         document.getElementById('dialogue').style.display = 'block';
     }
     
     function attack() {
         if (!nearbyTarget || nearbyTarget.type !== 'enemy') return;
+        var id = nearbyTarget.id;
+        enemyHp[id].hp -= player.attack;
+        document.getElementById(id + '-hp').style.width = Math.max(0, enemyHp[id].hp / enemyHp[id].maxHp * 100) + '%';
         
-        const id = nearbyTarget.id;
-        enemyHpData[id].hp -= player.attack;
-        
-        const fill = document.getElementById(id + '-hp-fill');
-        if (fill) fill.style.width = Math.max(0, enemyHpData[id].hp / enemyHpData[id].maxHp * 100) + '%';
-        
-        if (enemyHpData[id].hp <= 0) {
+        if (enemyHp[id].hp <= 0) {
             document.getElementById(id).style.display = 'none';
             player.gold += 20;
             document.getElementById('gold').textContent = player.gold;
-            showNotification('击败敌人！+20金币');
+            showNotif('击败敌人！+20金币');
             
-            // 检查任务完成
-            if (currentQuest && id.startsWith('enemy')) {
-                const remaining = ['enemy1', 'enemy2', 'enemy3'].filter(e => enemyHpData[e].hp > 0).length;
-                if (remaining === 0) {
-                    showNotification('任务完成！' + currentQuest.reward);
-                    player.gold += 50;
-                    document.getElementById('gold').textContent = player.gold;
-                    currentQuest = null;
-                    updateQuestBox();
-                }
-            }
-        }
-    }
-    
-    function clickInteract(el) {
-        const id = el.id;
-        if (targets[id]) {
-            const dist = Math.sqrt((player.x-targets[id].x)**2 + (player.y-targets[id].y)**2);
-            if (dist < interactRange + 30) {
-                nearbyTarget = targets[id];
-                interact();
+            if (['enemy1','enemy2','enemy3'].filter(function(e) { return enemyHp[e].hp > 0; }).length === 0) {
+                showNotif('任务完成！' + quest.reward);
+                player.gold += 50;
+                document.getElementById('gold').textContent = player.gold;
+                quest = null;
+                updateQuest();
             }
         }
     }
@@ -889,26 +605,25 @@
         document.getElementById('dialogue').style.display = 'none';
     }
     
-    function showNotification(text) {
-        const n = document.getElementById('notification');
+    function showNotif(text) {
+        var n = document.getElementById('notification');
         n.textContent = text;
         n.style.display = 'block';
-        setTimeout(() => n.style.display = 'none', 2000);
+        setTimeout(function() { n.style.display = 'none'; }, 2000);
     }
     
-    function updateQuestBox() {
-        const box = document.getElementById('quest-box');
-        if (currentQuest) {
-            document.getElementById('quest-title').textContent = currentQuest.title;
-            document.getElementById('quest-desc').textContent = currentQuest.desc;
-            document.getElementById('quest-reward').textContent = currentQuest.reward;
+    function updateQuest() {
+        var box = document.getElementById('quest-box');
+        if (quest) {
+            document.getElementById('quest-title').textContent = quest.title;
+            document.getElementById('quest-desc').textContent = quest.desc;
+            document.getElementById('quest-reward').textContent = quest.reward;
             box.style.display = 'block';
         } else {
             box.style.display = 'none';
         }
     }
     
-    // 初始化预览
     updatePreview();
     </script>
 </body>
