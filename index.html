@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>三国江湖 v1.7.0</title>
+    <title>三国江湖 v1.8.0</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #ffd700; overflow: hidden; }
@@ -17,7 +17,7 @@
         #char-creation h1 { font-size: 28px; margin-bottom: 3px; text-shadow: 0 0 20px #ffd700; }
         .subtitle { color: #888; margin-bottom: 12px; font-size: 13px; }
         #char-preview {
-            width: 100px; height: 120px;
+            width: 120px; height: 140px;
             background: rgba(0,0,0,0.5); border: 2px solid #ffd700;
             border-radius: 10px; margin-bottom: 12px;
             display: flex; justify-content: center; align-items: center;
@@ -86,18 +86,18 @@
         
         .dirt { position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: #8B7355; }
         
-        .qchar { position: absolute; width: 36px; height: 36px; z-index: 50; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+        .qchar { position: absolute; width: 44px; height: 52px; z-index: 50; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; }
         .qchar svg { width: 100%; height: 100%; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-        .qchar.idle { animation: bounce 1.2s ease-in-out infinite; }
-        .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 24px; height: 6px; background: rgba(0,0,0,0.25); border-radius: 50%; }
-        .char-name { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 8px; color: #fff; white-space: nowrap; text-shadow: 1px 1px 0 #000; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        .qchar.idle { animation: bounce 1s ease-in-out infinite; }
+        .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 30px; height: 8px; background: rgba(0,0,0,0.25); border-radius: 50%; }
+        .char-name { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #fff; white-space: nowrap; text-shadow: 1px 1px 0 #000; }
         .enemy-char .char-name { color: #ff6666; }
         .npc-char .char-name { color: #66ccff; }
-        .enemy-hp { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); width: 28px; height: 4px; background: #333; border: 1px solid #555; border-radius: 2px; overflow: hidden; }
+        .enemy-hp { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 32px; height: 5px; background: #333; border: 1px solid #555; border-radius: 2px; overflow: hidden; }
         .enemy-hp-fill { height: 100%; background: linear-gradient(180deg, #ff4444, #cc0000); }
         @keyframes shake { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-2px) rotate(-2deg); } 75% { transform: translateY(-2px) rotate(2deg); } }
-        .enemy-char { animation: shake 1s ease-in-out infinite; }
+        .enemy-char { animation: shake 0.8s ease-in-out infinite; }
         
         .house { position: absolute; }
         .roof { position: relative; background: linear-gradient(180deg, #696969, #808080); border-radius: 2px; }
@@ -195,75 +195,69 @@
                     <button class="opt-btn" data-value="short">短发</button>
                     <button class="opt-btn" data-value="long">长发</button>
                     <button class="opt-btn" data-value="twin">双髻</button>
+                    <button class="opt-btn" data-value="headband">头巾</button>
                 </div>
             </div>
             <div class="option-group">
                 <div class="option-label">发色</div>
                 <div class="color-btns" data-type="hairColor">
-                    <button class="color-btn selected" data-value="#2d2d2d" style="background:#2d2d2d"></button>
-                    <button class="color-btn" data-value="#5d4037" style="background:#5d4037"></button>
-                    <button class="color-btn" data-value="#b71c1c" style="background:#b71c1c"></button>
-                    <button class="color-btn" data-value="#ffd700" style="background:#ffd700"></button>
-                    <button class="color-btn" data-value="#e0e0e0" style="background:#e0e0e0"></button>
+                    <div class="color-btn selected" data-value="#2d2d2d" style="background:#2d2d2d"></div>
+                    <div class="color-btn" data-value="#5d4037" style="background:#5d4037"></div>
+                    <div class="color-btn" data-value="#8d6e63" style="background:#8d6e63"></div>
+                    <div class="color-btn" data-value="#f5d0c5" style="background:#f5d0c5"></div>
+                    <div class="color-btn" data-value="#e53935" style="background:#e53935"></div>
                 </div>
             </div>
             <div class="option-group">
                 <div class="option-label">服装</div>
                 <div class="option-btns" data-type="cloth">
                     <button class="opt-btn selected" data-value="warrior">战袍</button>
+                    <button class="opt-btn" data-value="armor">铠甲</button>
                     <button class="opt-btn" data-value="robe">长袍</button>
                     <button class="opt-btn" data-value="dress">襦裙</button>
-                    <button class="opt-btn" data-value="armor">铠甲</button>
                 </div>
             </div>
             <div class="option-group">
-                <div class="option-label">服装色</div>
+                <div class="option-label">阵营</div>
                 <div class="color-btns" data-type="clothColor">
-                    <button class="color-btn selected" data-value="#27ae60" style="background:#27ae60" title="蜀"></button>
-                    <button class="color-btn" data-value="#2980b9" style="background:#2980b9" title="魏"></button>
-                    <button class="color-btn" data-value="#e67e22" style="background:#e67e22" title="吴"></button>
-                    <button class="color-btn" data-value="#c0392b" style="background:#c0392b" title="红"></button>
-                    <button class="color-btn" data-value="#9b59b6" style="background:#9b59b6" title="紫"></button>
+                    <div class="color-btn selected" data-value="#27ae60" style="background:#27ae60" title="蜀"></div>
+                    <div class="color-btn" data-value="#2980b9" style="background:#2980b9" title="魏"></div>
+                    <div class="color-btn" data-value="#e67e22" style="background:#e67e22" title="吴"></div>
+                    <div class="color-btn" data-value="#e74c3c" style="background:#e74c3c" title="黄巾"></div>
+                    <div class="color-btn" data-value="#9b59b6" style="background:#9b59b6" title="群雄"></div>
+                </div>
+            </div>
+            <div class="option-group">
+                <div class="option-label">武器</div>
+                <div class="option-btns" data-type="weapon">
+                    <button class="opt-btn selected" data-value="none">无</button>
+                    <button class="opt-btn" data-value="sword">剑</button>
+                    <button class="opt-btn" data-value="spear">矛</button>
+                    <button class="opt-btn" data-value="axe">斧</button>
                 </div>
             </div>
         </div>
         
-        <button id="confirm-btn" onclick="confirmChar()">开始冒险</button>
+        <button id="confirm-btn" onclick="confirmChar()">开始游戏</button>
     </div>
     
     <div id="title-screen">
         <h1>三国江湖</h1>
-        <p>乱世烽火 · 群雄逐鹿</p>
-        <p style="color:#666;font-size:12px;margin-bottom:15px">版本 1.7.0</p>
+        <p>v1.8.0 - 精细角色系统</p>
+        <button class="btn" onclick="startGame()">开始游戏</button>
         <button class="btn" onclick="showCreate()">创建角色</button>
-        <button class="btn" onclick="startGame()">快速开始</button>
     </div>
     
     <div id="game">
         <div id="map">
             <div class="cloud cloud-1"></div>
             <div class="cloud cloud-2"></div>
-            <div class="dirt"></div>
             
-            <div class="house house1">
-                <div class="roof"></div>
-                <div class="wall"><div class="door"></div><div class="window"></div></div>
-            </div>
-            <div class="house house2">
-                <div class="roof"></div>
-                <div class="wall"><div class="door"></div><div class="window"></div><div class="window"></div></div>
-            </div>
-            <div class="house house3">
-                <div class="roof"></div>
-                <div class="wall"><div class="door"></div></div>
-            </div>
+            <div class="house house1"><div class="roof"></div><div class="wall"><div class="door"></div><div class="window"></div></div></div>
+            <div class="house house2"><div class="roof"></div><div class="wall"><div class="door"></div><div class="window"></div><div class="window"></div></div></div>
+            <div class="house house3"><div class="roof"></div><div class="wall"><div class="door"></div></div></div>
             
-            <div class="lantern">
-                <div class="lantern-top"></div>
-                <div class="lantern-body"></div>
-                <div class="lantern-bottom"></div>
-                <div class="lantern-pole"></div>
-            </div>
+            <div class="lantern"><div class="lantern-pole"></div><div class="lantern-top"></div><div class="lantern-body"></div><div class="lantern-bottom"></div></div>
             
             <div class="ptree ptree1"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
             <div class="ptree ptree2"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
@@ -274,29 +268,28 @@
             <div class="pstone pstone2"></div>
             <div class="pstone pstone3"></div>
             
-            <div id="player" class="qchar idle"><div class="qchar-shadow"></div></div>
+            <div class="dirt"></div>
             
-            <div class="npc-char qchar" id="npc-soldier"><div class="char-name">士兵</div></div>
-            <div class="npc-char qchar" id="npc-merchant"><div class="char-name">商人</div></div>
-            <div class="npc-char qchar" id="npc-general"><div class="char-name">将军</div></div>
-            
-            <div class="enemy-char qchar" id="enemy1"><div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="enemy1-hp" style="width:100%"></div></div></div>
-            <div class="enemy-char qchar" id="enemy2"><div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="enemy2-hp" style="width:100%"></div></div></div>
-            <div class="enemy-char qchar" id="enemy3"><div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="enemy3-hp" style="width:100%"></div></div></div>
-            
-            <div id="interact-prompt"></div>
-            <div class="hint">WASD移动 | 空格交互</div>
+            <div id="player" class="qchar idle" style="left:330px;top:280px"></div>
+            <div id="npc-soldier" class="qchar npc-char" style="left:160px;top:180px"></div>
+            <div id="npc-merchant" class="qchar npc-char" style="left:450px;top:130px"></div>
+            <div id="npc-general" class="qchar npc-char" style="left:520px;top:280px"></div>
+            <div id="enemy1" class="qchar enemy-char" style="left:260px;top:220px"></div>
+            <div id="enemy2" class="qchar enemy-char" style="left:380px;top:250px"></div>
+            <div id="enemy3" class="qchar enemy-char" style="left:280px;top:350px"></div>
         </div>
         
+        <div id="interact-prompt"></div>
+        <div class="hint">WASD移动 | 空格交互/攻击</div>
+        
         <div id="status">
-            <div class="status-row"><span class="stat-label">等级</span><span class="stat-value" id="level">1</span></div>
+            <div class="status-row"><span class="stat-label">生命</span><span class="stat-value" id="hp">100/100</span></div>
+            <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width:100%"></div></div>
             <div class="status-row"><span class="stat-label">金币</span><span class="stat-value" id="gold">0</span></div>
-            <div class="status-row"><span class="stat-label">HP</span><span class="stat-value" id="hp-text">100/100</span></div>
-            <div class="hp-bar"><div class="hp-fill" id="hp-bar" style="width:100%"></div></div>
         </div>
         
         <div id="quest-box">
-            <div class="quest-title" id="quest-title">当前任务</div>
+            <div class="quest-title" id="quest-title"></div>
             <div class="quest-desc" id="quest-desc"></div>
             <div class="quest-reward" id="quest-reward"></div>
         </div>
@@ -325,62 +318,168 @@
         hair: 'bun',
         hairColor: '#2d2d2d',
         cloth: 'warrior',
-        clothColor: '#27ae60'
+        clothColor: '#27ae60',
+        weapon: 'none'
     };
     
     var presets = {
-        warrior: { hair: 'bun', hairColor: '#2d2d2d', cloth: 'warrior', clothColor: '#27ae60' },
-        general: { hair: 'bun', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#2980b9' },
-        scholar: { hair: 'long', hairColor: '#2d2d2d', cloth: 'robe', clothColor: '#9b59b6' },
-        lady: { hair: 'twin', hairColor: '#5d4037', cloth: 'dress', clothColor: '#e91e63' },
-        bandit: { hair: 'short', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#795548' }
+        warrior: { hair: 'bun', hairColor: '#2d2d2d', cloth: 'warrior', clothColor: '#27ae60', weapon: 'sword' },
+        general: { hair: 'bun', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear' },
+        scholar: { hair: 'long', hairColor: '#2d2d2d', cloth: 'robe', clothColor: '#9b59b6', weapon: 'none' },
+        lady: { hair: 'twin', hairColor: '#5d4037', cloth: 'dress', clothColor: '#e91e63', weapon: 'none' },
+        bandit: { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#795548', weapon: 'axe' }
     };
     
+    // 精细角色SVG生成器 v1.8.0
     function genQCharSVG(cfg) {
+        var cx = 22, faceY = 18;
+        
+        // 发型路径
         var hairPaths = {
-            bun: '<ellipse cx="18" cy="7" rx="10" ry="5" fill="' + cfg.hairColor + '"/><circle cx="18" cy="4" r="5" fill="' + cfg.hairColor + '"/><rect x="15" y="0" width="6" height="4" fill="' + cfg.hairColor + '" rx="1"/>',
-            short: '<ellipse cx="18" cy="8" rx="9" ry="6" fill="' + cfg.hairColor + '"/>',
-            long: '<ellipse cx="18" cy="7" rx="9" ry="5" fill="' + cfg.hairColor + '"/><rect x="7" y="10" width="4" height="14" fill="' + cfg.hairColor + '" rx="2"/><rect x="23" y="10" width="4" height="14" fill="' + cfg.hairColor + '" rx="2"/>',
-            twin: '<ellipse cx="18" cy="7" rx="8" ry="5" fill="' + cfg.hairColor + '"/><circle cx="6" cy="11" r="4" fill="' + cfg.hairColor + '"/><circle cx="30" cy="11" r="4" fill="' + cfg.hairColor + '"/>'
+            bun: '<ellipse cx="' + cx + '" cy="8" rx="12" ry="7" fill="' + cfg.hairColor + '"/>' +
+                 '<circle cx="' + cx + '" cy="3" r="6" fill="' + cfg.hairColor + '"/>' +
+                 '<rect x="18" y="0" width="8" height="5" fill="' + cfg.hairColor + '" rx="2"/>',
+            short: '<ellipse cx="' + cx + '" cy="9" rx="11" ry="8" fill="' + cfg.hairColor + '"/>' +
+                   '<path d="M12,12 Q' + cx + ',8 ' + (cx+10) + ',12" fill="' + cfg.hairColor + '"/>',
+            long: '<ellipse cx="' + cx + '" cy="8" rx="11" ry="7" fill="' + cfg.hairColor + '"/>' +
+                  '<rect x="6" y="12" width="6" height="22" fill="' + cfg.hairColor + '" rx="3"/>' +
+                  '<rect x="28" y="12" width="6" height="22" fill="' + cfg.hairColor + '" rx="3"/>' +
+                  '<ellipse cx="' + cx + '" cy="8" rx="8" ry="4" fill="' + lighten(cfg.hairColor, 20) + '"/>',
+            twin: '<ellipse cx="' + cx + '" cy="8" rx="10" ry="6" fill="' + cfg.hairColor + '"/>' +
+                  '<circle cx="6" cy="14" r="5" fill="' + cfg.hairColor + '"/>' +
+                  '<circle cx="38" cy="14" r="5" fill="' + cfg.hairColor + '"/>' +
+                  '<circle cx="6" cy="10" r="3" fill="' + lighten(cfg.hairColor, 15) + '"/>' +
+                  '<circle cx="38" cy="10" r="3" fill="' + lighten(cfg.hairColor, 15) + '"/>',
+            headband: '<ellipse cx="' + cx + '" cy="9" rx="11" ry="7" fill="' + cfg.hairColor + '"/>' +
+                      '<rect x="10" y="6" width="24" height="4" fill="#c0392b" rx="1"/>' +
+                      '<path d="M10,8 L2,18" stroke="#c0392b" stroke-width="2"/>' +
+                      '<path d="M34,8 L42,18" stroke="#c0392b" stroke-width="2"/>'
         };
         
-        var clothShapes = {
-            warrior: '<rect x="8" y="19" width="20" height="13" fill="' + cfg.clothColor + '" rx="2"/><rect x="11" y="19" width="14" height="3" fill="' + lighten(cfg.clothColor, 20) + '"/>',
-            robe: '<path d="M6,19 L30,19 L32,34 L4,34 Z" fill="' + cfg.clothColor + '"/><path d="M12,19 L24,19 L25,34 L11,34 Z" fill="' + lighten(cfg.clothColor, 15) + '"/>',
-            dress: '<ellipse cx="18" cy="28" rx="12" ry="8" fill="' + cfg.clothColor + '"/><rect x="12" y="19" width="12" height="7" fill="' + cfg.clothColor + '"/>',
-            armor: '<rect x="6" y="19" width="24" height="13" fill="' + cfg.clothColor + '" rx="2"/><rect x="4" y="21" width="5" height="10" fill="' + lighten(cfg.clothColor, 15) + '" rx="1"/><rect x="27" y="21" width="5" height="10" fill="' + lighten(cfg.clothColor, 15) + '" rx="1"/><circle cx="18" cy="24" r="3" fill="#ffd700"/>'
+        // 服装路径
+        var clothPaths = {
+            warrior: '<path d="M8,34 L14,26 L' + (cx-4) + ',26 L' + (cx-4) + ',34 L' + (cx+4) + ',34 L' + (cx+4) + ',26 L30,26 L36,34 Z" fill="' + cfg.clothColor + '"/>' +
+                     '<path d="M14,26 L' + (cx-4) + ',26 L' + (cx-2) + ',30 L' + (cx-6) + ',30 Z" fill="' + lighten(cfg.clothColor, 15) + '"/>' +
+                     '<path d="M30,26 L' + (cx+4) + ',26 L' + (cx+6) + ',30 L' + (cx+2) + ',30 Z" fill="' + lighten(cfg.clothColor, 15) + '"/>' +
+                     '<rect x="18" y="26" width="8" height="10" fill="' + lighten(cfg.clothColor, 10) + '" rx="1"/>',
+            robe: '<path d="M4,34 L10,26 L' + (cx-3) + ',26 L' + (cx-3) + ',32 L' + (cx+3) + ',32 L' + (cx+3) + ',26 L34,26 L40,34 Z" fill="' + cfg.clothColor + '"/>' +
+                  '<path d="M12,26 L' + (cx-2) + ',26 L' + (cx-1) + ',32 L' + (cx-5) + ',32 Z" fill="' + lighten(cfg.clothColor, 20) + '"/>' +
+                  '<path d="M32,26 L' + (cx+2) + ',26 L' + (cx+5) + ',32 L' + (cx+1) + ',32 Z" fill="' + lighten(cfg.clothColor, 20) + '"/>' +
+                  '<rect x="18" y="26" width="8" height="6" fill="' + lighten(cfg.clothColor, 10) + '" rx="1"/>',
+            dress: '<ellipse cx="' + cx + '" cy="34" rx="16" ry="10" fill="' + cfg.clothColor + '"/>' +
+                   '<path d="M10,26 L14,26 L16,34 L' + (cx-2) + ',38 L' + (cx+2) + ',38 L' + (cx+2) + ',34 L30,26 L34,26 L40,50 L2,50 Z" fill="' + cfg.clothColor + '"/>' +
+                   '<path d="M14,26 L' + (cx-2) + ',26 L' + cx + ',30 L' + (cx-4) + ',30 Z" fill="' + lighten(cfg.clothColor, 15) + '"/>',
+            armor: '<rect x="8" y="26" width="28" height="14" fill="' + cfg.clothColor + '" rx="3"/>' +
+                   '<rect x="5" y="28" width="6" height="12" fill="' + lighten(cfg.clothColor, 15) + '" rx="2"/>' +
+                   '<rect x="33" y="28" width="6" height="12" fill="' + lighten(cfg.clothColor, 15) + '" rx="2"/>' +
+                   '<rect x="12" y="26" width="6" height="14" fill="' + lighten(cfg.clothColor, 10) + '" rx="1"/>' +
+                   '<rect x="26" y="26" width="6" height="14" fill="' + lighten(cfg.clothColor, 10) + '" rx="1"/>' +
+                   '<circle cx="' + cx + '" cy="31" r="4" fill="#ffd700"/>' +
+                   '<circle cx="' + cx + '" cy="31" r="2" fill="#e74c3c"/>'
         };
         
-        return '<svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">' +
-            '<ellipse cx="18" cy="35" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>' +
-            '<rect x="12" y="32" width="4" height="3" fill="#5d4037" rx="1"/>' +
-            '<rect x="20" y="32" width="4" height="3" fill="#5d4037" rx="1"/>' +
-            clothShapes[cfg.cloth] +
-            '<ellipse cx="18" cy="15" rx="9" ry="9" fill="#f5d0c5"/>' +
-            '<ellipse cx="10" cy="17" rx="2.5" ry="1.5" fill="#ffb6c1" opacity="0.5"/>' +
-            '<ellipse cx="26" cy="17" rx="2.5" ry="1.5" fill="#ffb6c1" opacity="0.5"/>' +
-            '<ellipse cx="14" cy="14" rx="2.5" ry="3" fill="#2d2d2d"/><ellipse cx="22" cy="14" rx="2.5" ry="3" fill="#2d2d2d"/>' +
-            '<circle cx="13" cy="13" r="0.8" fill="#fff"/><circle cx="21" cy="13" r="0.8" fill="#fff"/>' +
-            '<ellipse cx="18" cy="19" rx="1.5" ry="0.8" fill="#e57373"/>' +
-            '<ellipse cx="9" cy="15" rx="1.5" ry="2" fill="#f5d0c5"/>' +
-            '<ellipse cx="27" cy="15" rx="1.5" ry="2" fill="#f5d0c5"/>' +
-            hairPaths[cfg.hair] +
-            '</svg>';
+        // 武器路径
+        var weaponPaths = {
+            none: '',
+            sword: '<rect x="36" y="20" width="3" height="20" fill="#888"/>' +
+                    '<rect x="35" y="18" width="5" height="3" fill="#ffd700"/>' +
+                    '<rect x="36.5" y="40" width="1" height="4" fill="#888"/>',
+            spear: '<rect x="38" y="4" width="2" height="42" fill="#8B4513"/>' +
+                   '<path d="M39,4 L35,12 L39,10 L43,12 Z" fill="#888"/>',
+            axe: '<rect x="36" y="22" width="12" height="4" fill="#8B4513"/>' +
+                 '<path d="M46,14 L54,22 L46,26 Z" fill="#666"/>' +
+                 '<path d="M46,16 L52,22 L46,24 Z" fill="#888"/>'
+        };
+        
+        // 脸型阴影
+        var faceShadow = '<ellipse cx="' + cx + '" cy="' + (faceY+14) + '" rx="10" ry="3" fill="rgba(0,0,0,0.1)"/>';
+        
+        // 面部特征 - 精细豆豆眼
+        var face = '<ellipse cx="' + cx + '" cy="' + faceY + '" rx="11" ry="12" fill="#fce5d8"/>' +
+                   '<ellipse cx="' + cx + '" cy="' + (faceY+1) + '" rx="10" ry="10" fill="#fce5d8"/>';
+        
+        // 腮红 - 可爱红晕
+        var blush = '<ellipse cx="9" cy="' + (faceY+4) + '" rx="4" ry="2.5" fill="#ffb6c1" opacity="0.6"/>' +
+                    '<ellipse cx="35" cy="' + (faceY+4) + '" rx="4" ry="2.5" fill="#ffb6c1" opacity="0.6"/>';
+        
+        // 眼睛 - 亮晶晶的大眼睛
+        var eyes = '<ellipse cx="15" cy="' + (faceY-1) + '" rx="3.5" ry="4" fill="#2d2d2d"/>' +
+                   '<ellipse cx="29" cy="' + (faceY-1) + '" rx="3.5" ry="4" fill="#2d2d2d"/>' +
+                   '<ellipse cx="16" cy="' + (faceY-2) + '" rx="1.5" ry="1.5" fill="#fff"/>' +
+                   '<ellipse cx="30" cy="' + (faceY-2) + '" rx="1.5" ry="1.5" fill="#fff"/>' +
+                   '<circle cx="14" cy="' + (faceY-1) + '" r="0.6" fill="#fff"/>' +
+                   '<circle cx="28" cy="' + (faceY-1) + '" r="0.6" fill="#fff"/>';
+        
+        // 眉毛
+        var eyebrows = '<path d="M11,' + (faceY-6) + ' Q15,' + (faceY-8) + ' 19,' + (faceY-6) + '" stroke="' + darken(cfg.hairColor, 30) + '" stroke-width="1.5" fill="none"/>' +
+                       '<path d="M25,' + (faceY-6) + ' Q29,' + (faceY-8) + ' 33,' + (faceY-6) + '" stroke="' + darken(cfg.hairColor, 30) + '" stroke-width="1.5" fill="none"/>';
+        
+        // 鼻子
+        var nose = '<ellipse cx="' + cx + '" cy="' + (faceY+3) + '" rx="1" ry="0.8" fill="#e8c4b8"/>';
+        
+        // 嘴巴 - 微笑
+        var mouth = '<path d="M17,' + (faceY+7) + ' Q' + cx + ',' + (faceY+10) + ' 27,' + (faceY+7) + '" stroke="#d4766a" stroke-width="1.5" fill="none"/>';
+        
+        // 耳朵
+        var ears = '<ellipse cx="7" cy="' + faceY + '" rx="2" ry="3" fill="#fce5d8"/>' +
+                   '<ellipse cx="37" cy="' + faceY + '" rx="2" ry="3" fill="#fce5d8"/>';
+        
+        // 脖子
+        var neck = '<rect x="18" y="28" width="8" height="4" fill="#fce5d8"/>';
+        
+        // 身体（服装）
+        var body = clothPaths[cfg.cloth] || clothPaths.warrior;
+        
+        // 武器
+        var weapon = weaponPaths[cfg.weapon] || '';
+        
+        // 阴影
+        var shadow = '<ellipse cx="' + cx + '" cy="50" rx="14" ry="4" fill="rgba(0,0,0,0.2)"/>';
+        
+        // 脚/鞋子
+        var feet = '<ellipse cx="15" cy="49" rx="5" ry="2" fill="#5d4037"/>' +
+                   '<ellipse cx="29" cy="49" rx="5" ry="2" fill="#5d4037"/>';
+        
+        return '<svg viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg">' +
+               shadow +
+               feet +
+               neck +
+               body +
+               face +
+               blush +
+               eyes +
+               eyebrows +
+               nose +
+               mouth +
+               ears +
+               hairPaths[cfg.hair] +
+               weapon +
+               '</svg>';
     }
     
     function lighten(hex, amt) {
         var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-        r = Math.min(255, r + amt); g = Math.min(255, g + amt); b = Math.min(255, b + amt);
+        r = Math.min(255, Math.round(r + (255-r)*amt/100));
+        g = Math.min(255, Math.round(g + (255-g)*amt/100));
+        b = Math.min(255, Math.round(b + (255-b)*amt/100));
+        return '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0');
+    }
+    
+    function darken(hex, amt) {
+        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        r = Math.max(0, Math.round(r * (100-amt)/100));
+        g = Math.max(0, Math.round(g * (100-amt)/100));
+        b = Math.max(0, Math.round(b * (100-amt)/100));
         return '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0');
     }
     
     var npcConfigs = {
-        'npc-soldier': { hair: 'bun', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#2980b9' },
-        'npc-merchant': { hair: 'short', hairColor: '#5d4037', cloth: 'robe', clothColor: '#795548' },
-        'npc-general': { hair: 'bun', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#e67e22' }
+        'npc-soldier': { hair: 'headband', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear' },
+        'npc-merchant': { hair: 'short', hairColor: '#5d4037', cloth: 'robe', clothColor: '#e67e22', weapon: 'none' },
+        'npc-general': { hair: 'bun', hairColor: '#2d2d2d', cloth: 'armor', clothColor: '#c0392b', weapon: 'sword' }
     };
     
-    var enemyConfig = { hair: 'short', hairColor: '#8d6e63', cloth: 'warrior', clothColor: '#d4a574' };
+    var enemyConfig = { hair: 'headband', hairColor: '#8d6e63', cloth: 'warrior', clothColor: '#e74c3c', weapon: 'axe' };
     
     function initChars() {
         document.getElementById('player').innerHTML = '<div class="qchar-shadow"></div>' + genQCharSVG(playerConfig);
@@ -396,7 +495,7 @@
     }
     
     function updatePreview() {
-        document.getElementById('preview-char').innerHTML = genQCharSVG(playerConfig);
+        document.getElementById('preview-char').innerHTML = '<div style="width:44px;height:52px;transform:scale(2.5);transform-origin:center">' + genQCharSVG(playerConfig) + '</div>';
     }
     
     document.querySelectorAll('.preset-btn').forEach(function(btn) {
@@ -545,8 +644,8 @@
             player.y = Math.max(80, Math.min(window.innerHeight - 80, player.y));
             
             var p = document.getElementById('player');
-            p.style.left = (player.x - 18) + 'px';
-            p.style.top = (player.y - 18) + 'px';
+            p.style.left = (player.x - 22) + 'px';
+            p.style.top = (player.y - 26) + 'px';
         }
         
         checkNearby();
@@ -557,7 +656,7 @@
         var found = null;
         for (var id in targets) {
             var t = targets[id];
-            if (Math.sqrt((player.x-t.x)*(player.x-t.x) + (player.y-t.y)*(player.y-t.y)) < 50) { found = t; break; }
+            if (Math.sqrt((player.x-t.x)*(player.x-t.x) + (player.y-t.y)*(player.y-t.y)) < 55) { found = t; break; }
         }
         if (found !== nearbyTarget) {
             nearbyTarget = found;
@@ -605,13 +704,6 @@
         document.getElementById('dialogue').style.display = 'none';
     }
     
-    function showNotif(text) {
-        var n = document.getElementById('notification');
-        n.textContent = text;
-        n.style.display = 'block';
-        setTimeout(function() { n.style.display = 'none'; }, 2000);
-    }
-    
     function updateQuest() {
         var box = document.getElementById('quest-box');
         if (quest) {
@@ -622,6 +714,13 @@
         } else {
             box.style.display = 'none';
         }
+    }
+    
+    function showNotif(text) {
+        var n = document.getElementById('notification');
+        n.textContent = text;
+        n.style.display = 'block';
+        setTimeout(function() { n.style.display = 'none'; }, 2000);
     }
     
     updatePreview();
