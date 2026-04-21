@@ -34,316 +34,454 @@
             position: relative; display: none;
         }
         
-        /* 地图 */
+        /* 地图 - 经典像素RPG风格 */
         #map {
             width: 100%; height: 100%;
             position: relative;
-            background: linear-gradient(180deg, #0a0a15 0%, #1a1a2e 30%, #3d6b3d 100%);
+            /* 经典草地纹理 - 多个色块拼接 */
+            background: 
+                linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.03) 50%),
+                linear-gradient(0deg, transparent 50%, rgba(0,0,0,0.03) 50%),
+                linear-gradient(135deg, #3d6b3d 0%, #4a7a4a 25%, #3d6b3d 50%, #4a7a4a 75%, #3d6b3d 100%);
+            background-size: 32px 32px, 32px 32px, 64px 64px;
         }
         
         .map-border { 
             position: absolute; 
-            background: linear-gradient(180deg, #4a3a2a, #3a2a1a); 
+            /* 木栅栏风格 */
+            background: repeating-linear-gradient(
+                90deg,
+                #8b7355 0px, #8b7355 8px,
+                #654321 8px, #654321 10px,
+                #8b7355 10px, #8b7355 18px
+            );
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
-        .border-top { top: 0; left: 0; right: 0; height: 40px; box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3); }
-        .border-bottom { bottom: 0; left: 0; right: 0; height: 40px; box-shadow: inset 0 5px 10px rgba(0,0,0,0.3); }
-        .border-left { top: 0; bottom: 0; left: 0; width: 40px; box-shadow: inset -5px 0 10px rgba(0,0,0,0.3); }
-        .border-right { top: 0; bottom: 0; right: 0; width: 40px; box-shadow: inset 5px 0 10px rgba(0,0,0,0.3); }
+        .border-top { top: 0; left: 0; right: 0; height: 32px; }
+        .border-bottom { bottom: 0; left: 0; right: 0; height: 32px; }
+        .border-left { top: 0; bottom: 0; left: 0; width: 32px; background: repeating-linear-gradient(0deg, #8b7355 0px, #8b7355 8px, #654321 8px, #654321 10px, #8b7355 10px, #8b7355 18px); }
+        .border-right { top: 0; bottom: 0; right: 0; width: 32px; background: repeating-linear-gradient(0deg, #8b7355 0px, #8b7355 8px, #654321 8px, #654321 10px, #8b7355 10px, #8b7355 18px); }
         
         .ground { 
             position: absolute; 
-            top: 40px; bottom: 40px; left: 40px; right: 40px; 
-            background: #4a7a4a; 
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.2);
+            top: 32px; bottom: 32px; left: 32px; right: 32px; 
+            /* 草地方格 */
+            background: 
+                linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(0,0,0,0.08) 1px, transparent 1px),
+                linear-gradient(135deg, #4a7a4a 0%, #3d6b3d 100%);
+            background-size: 16px 16px, 16px 16px, 100% 100%;
         }
         .grass { 
             position: absolute; 
             width: 100%; height: 100%; 
+            /* 随机草地装饰 */
             background-image: 
-                radial-gradient(#5a8a5a 2px, transparent 2px),
-                radial-gradient(#3d6a3d 1px, transparent 1px);
-            background-size: 16px 16px, 8px 8px;
-            background-position: 0 0, 4px 4px;
+                radial-gradient(ellipse 4px 6px at 20% 30%, #5a9a5a 0%, transparent 100%),
+                radial-gradient(ellipse 3px 5px at 60% 70%, #4a8a4a 0%, transparent 100%),
+                radial-gradient(ellipse 4px 5px at 80% 20%, #5a9a5a 0%, transparent 100%),
+                radial-gradient(ellipse 3px 4px at 40% 80%, #4a8a4a 0%, transparent 100%),
+                radial-gradient(ellipse 4px 6px at 10% 60%, #5a9a5a 0%, transparent 100%);
         }
         
-        /* 建筑 - 古风瓦房 */
+        /* 建筑 - 经典RPG瓦房 */
         .building { 
             position: absolute; 
-            background: #c4a882; 
-            border: 3px solid #8b7355;
+            background: #deb887;
+            border: 4px solid #654321;
             box-shadow: 
-                inset 0 -15px 0 #8b4513,  /* 屋顶 */
-                inset 0 -20px 0 #654321,
-                3px 3px 5px rgba(0,0,0,0.4);
+                inset 0 -20px 0 #8b4513,  /* 屋顶底层 */
+                inset 0 -35px 0 #a0522d,  /* 屋顶 */
+                inset 0 -45px 0 #654321,   /* 屋檐 */
+                4px 4px 0 rgba(0,0,0,0.3);
         }
-        .house1 { left: 100px; top: 100px; width: 70px; height: 55px; }
-        .house2 { right: 120px; top: 80px; width: 90px; height: 65px; }
-        .house2::before {
+        /* 屋顶三角 */
+        .building::before {
             content: '';
             position: absolute;
-            top: -25px;
-            left: -5px;
-            right: -5px;
-            height: 25px;
-            background: linear-gradient(180deg, #654321, #8b4513);
+            top: -30px;
+            left: -6px;
+            right: -6px;
+            height: 30px;
+            background: linear-gradient(180deg, #8b4513 0%, #654321 100%);
             clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
         }
-        .house3 { left: 180px; bottom: 130px; width: 65px; height: 50px; }
-        .well { 
-            right: 180px; bottom: 100px; 
-            width: 35px; height: 35px; 
-            border-radius: 50%; 
-            background: linear-gradient(180deg, #3a5a7a, #2a4a6a);
-            border: 3px solid #5a7a9a;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        /* 门 */
+        .building::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 20px;
+            background: #4a3728;
+            border: 2px solid #3a2718;
         }
-        .well::after {
-            content: '⛏';
+        
+        .house1 { left: 80px; top: 80px; width: 64px; height: 48px; }
+        .house2 { right: 100px; top: 60px; width: 80px; height: 56px; }
+        .house2::before {
+            top: -35px;
+            height: 35px;
+        }
+        .house3 { left: 160px; bottom: 110px; width: 56px; height: 44px; }
+        .house3::before {
+            top: -25px;
+            height: 25px;
+        }
+        
+        /* 水井 */
+        .well { 
+            position: absolute;
+            right: 160px; bottom: 90px; 
+            width: 32px; height: 32px; 
+            background: #8b8b8b;
+            border: 4px solid #5a5a5a;
+            border-radius: 50%;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
+        }
+        /* 井架 */
+        .well::before {
+            content: '';
             position: absolute;
             top: -20px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 20px;
+            width: 4px;
+            height: 25px;
+            background: #8b7355;
+        }
+        /* 井梁 */
+        .well::after {
+            content: '';
+            position: absolute;
+            top: -24px;
+            left: -8px;
+            width: 48px;
+            height: 6px;
+            background: #8b7355;
+            border-radius: 3px;
         }
         
-        /* 树木 - 像素风格 */
+        /* 树木 - 经典像素树 */
         .tree { 
             position: absolute; 
-            width: 40px; 
-            background: linear-gradient(180deg, #2d6a2d 0%, #2d6a2d 60%, transparent 60%);
-            border-radius: 50% 50% 0 0;
+            width: 32px; 
         }
+        /* 树冠 - 深绿色圆形 */
         .tree::before {
             content: '';
             position: absolute;
-            top: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 35px;
-            height: 30px;
-            background: radial-gradient(ellipse at center, #3d8a3d 0%, #2d6a2d 70%, transparent 100%);
-            border-radius: 50%;
-            z-index: 1;
+            top: 0;
+            left: 0;
+            width: 32px;
+            height: 28px;
+            background: 
+                radial-gradient(ellipse at 30% 30%, #4a9a4a 0%, #2d6a2d 60%, #1a4a1a 100%);
+            border-radius: 50% 50% 40% 40%;
+            box-shadow: 
+                inset -4px -4px 8px rgba(0,0,0,0.3),
+                inset 2px 2px 4px rgba(255,255,255,0.1);
         }
+        /* 树干 */
         .tree::after { 
             content: ''; 
             position: absolute; 
-            bottom: -12px; 
-            left: 50%; 
-            transform: translateX(-50%); 
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
             width: 10px; 
-            height: 20px; 
-            background: linear-gradient(180deg, #6b4423, #8b5a33);
+            height: 16px; 
+            background: linear-gradient(90deg, #5a4030 0%, #8b6b4a 50%, #5a4030 100%);
+            border-radius: 2px;
         }
-        .tree1 { left: 40px; top: 130px; }
-        .tree2 { right: 70px; top: 180px; }
-        .tree3 { left: 320px; bottom: 90px; transform: scale(0.8); }
-        .tree4 { right: 100px; bottom: 180px; transform: scale(1.1); }
+        
+        .tree1 { left: 30px; top: 100px; }
+        .tree2 { right: 60px; top: 150px; transform: scale(1.1); }
+        .tree3 { left: 280px; bottom: 80px; transform: scale(0.9); }
+        .tree4 { right: 90px; bottom: 160px; transform: scale(1.15); }
         
         /* 石头 */
         .rock {
             position: absolute;
-            background: linear-gradient(135deg, #888 0%, #666 50%, #555 100%);
-            border-radius: 40% 50% 45% 55%;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, #9a9a9a 0%, #7a7a7a 40%, #5a5a5a 100%);
+            border-radius: 40% 45% 50% 40%;
+            box-shadow: 2px 3px 4px rgba(0,0,0,0.4);
         }
-        .rock1 { left: 280px; top: 350px; width: 25px; height: 18px; }
-        .rock2 { left: 480px; top: 420px; width: 20px; height: 15px; }
+        .rock1 { left: 260px; top: 320px; width: 28px; height: 20px; }
+        .rock2 { left: 450px; top: 380px; width: 22px; height: 16px; }
+        .rock3 { left: 180px; top: 400px; width: 24px; height: 18px; }
         
-        /* 玩家 - 像素风格剑客 */
+        /* 玩家 - 经典RPG像素角色（类似吞食天地） */
         #player {
             position: absolute; 
             width: 32px; height: 32px;
             z-index: 50;
             will-change: left, top;
+            image-rendering: pixelated;
         }
+        /* 玩家头发/头部 - 黑色 */
         #player::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 20px;
+            left: 4px;
+            width: 24px;
             height: 12px;
-            background: linear-gradient(180deg, #ffd700, #daa520);
-            border-radius: 50% 50% 30% 30%;
-            border: 2px solid #b8860b;
+            background: #2a2a2a;
+            border-radius: 4px 4px 0 0;
+            border: 2px solid #1a1a1a;
+            box-sizing: border-box;
         }
+        /* 玩家身体 - 黄色衣服（刘备风格） */
         #player::after { 
             content: ''; 
             position: absolute; 
-            top: 10px; left: 50%;
-            transform: translateX(-50%);
-            width: 0; 
-            height: 0; 
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-bottom: 18px solid #ffd700;
-            filter: drop-shadow(0 0 3px rgba(255,215,0,0.5));
+            top: 10px;
+            left: 2px;
+            width: 28px;
+            height: 22px;
+            background: 
+                linear-gradient(180deg, 
+                    #ffd700 0%, #ffd700 30%,
+                    #daa520 30%, #daa520 100%);
+            border: 2px solid #b8860b;
+            border-radius: 2px;
+            box-sizing: border-box;
+            box-shadow: 
+                inset -4px 0 0 #daa520,
+                inset -8px 0 0 #ffd700;
         }
+        /* 玩家腿部 */
+        .player-legs {
+            position: absolute;
+            bottom: 0;
+            left: 6px;
+            width: 20px;
+            height: 0;
+        }
+        .player-legs::before,
+        .player-legs::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            width: 8px;
+            height: 8px;
+            background: #654321;
+            border: 1px solid #3a2010;
+        }
+        .player-legs::before { left: 0; }
+        .player-legs::after { right: 0; }
+        /* 玩家武器 */
         .player-sword {
             position: absolute;
-            top: 5px;
-            right: -8px;
-            width: 4px;
-            height: 20px;
-            background: linear-gradient(180deg, #c0c0c0, #808080);
-            transform: rotate(-30deg);
-            border-radius: 2px;
+            top: 12px;
+            right: -10px;
+            width: 12px;
+            height: 3px;
+            background: linear-gradient(90deg, #c0c0c0, #e0e0e0, #c0c0c0);
+            border-radius: 1px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
+        .player-sword::before {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: -1px;
+            width: 4px;
+            height: 5px;
+            background: #8b7355;
+            border-radius: 1px;
+        }
+        /* 玩家阴影 */
         .player-shadow {
             position: absolute;
-            bottom: -4px;
+            bottom: -6px;
             left: 50%;
             transform: translateX(-50%);
-            width: 24px;
-            height: 8px;
+            width: 28px;
+            height: 6px;
             background: rgba(0,0,0,0.3);
             border-radius: 50%;
         }
         
-        /* NPC - 像素风格 */
+        /* NPC - 经典RPG像素角色 */
         .npc {
             position: absolute; 
             width: 32px; height: 32px;
             z-index: 40; 
             cursor: default;
-            transition: transform 0.2s, filter 0.2s;
+            transition: none;
         }
+        /* NPC头部 */
         .npc::before {
             content: '';
             position: absolute;
-            top: 2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 16px;
-            height: 10px;
+            top: 0;
+            left: 4px;
+            width: 24px;
+            height: 12px;
             background: inherit;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 4px 4px 0 0;
+            border: 2px solid;
+            border-color: inherit;
+            box-sizing: border-box;
         }
         .npc::after { 
             content: attr(data-name); 
             position: absolute; 
-            top: -20px; 
+            top: -22px; 
             left: 50%; 
             transform: translateX(-50%); 
             color: #fff; 
-            font-size: 11px; 
+            font-size: 10px; 
             white-space: nowrap;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 
+                1px 1px 0 #000,
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000;
             font-family: monospace;
+            letter-spacing: 1px;
         }
         .npc.nearby { 
-            transform: scale(1.15); 
-            filter: drop-shadow(0 0 10px rgba(255,215,0,0.8)); 
+            filter: brightness(1.2);
         }
         .npc.clickable { cursor: pointer; }
         
-        /* 士兵 - 蓝色军装 */
+        /* 士兵 - 蓝衣军装 */
         #npc-soldier {
-            background: linear-gradient(180deg, #4488ff 0%, #2266dd 100%);
-            border: 3px solid #1155bb;
-            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3);
+            background: linear-gradient(180deg, 
+                #3366cc 0%, #3366cc 35%,
+                #1a4a9a 35%, #1a4a9a 100%);
+            border: 3px solid #0a2a6a;
         }
         #npc-soldier::before {
-            background: linear-gradient(180deg, #4488ff, #2266dd);
+            background: #3366cc;
+            border-color: #0a2a6a;
+        }
+        #npc-soldier::after {
+            background: 
+                linear-gradient(180deg, #3366cc 0%, #3366cc 40%, #1a4a9a 40%, #1a4a9a 100%);
         }
         
-        /* 商人 - 绿色布衣 */
+        /* 商人 - 绿衣布衣 */
         #npc-merchant {
-            background: linear-gradient(180deg, #44cc66 0%, #228844 100%);
-            border: 3px solid #116633;
-            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3);
+            background: linear-gradient(180deg, 
+                #44aa55 0%, #44aa55 35%,
+                #228833 35%, #228833 100%);
+            border: 3px solid #116622;
         }
         #npc-merchant::before {
-            background: linear-gradient(180deg, #44cc66, #228844);
+            background: #44aa55;
+            border-color: #116622;
+        }
+        #npc-merchant::after {
+            background: 
+                linear-gradient(180deg, #44aa55 0%, #44aa55 40%, #228833 40%, #228833 100%);
         }
         
-        /* 将军 - 红色铠甲 */
+        /* 将军 - 红衣铠甲 */
         #npc-general {
-            background: linear-gradient(180deg, #ff4444 0%, #cc2222 100%);
-            border: 3px solid #991111;
-            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3);
+            background: linear-gradient(180deg, 
+                #cc3333 0%, #cc3333 35%,
+                #991111 35%, #991111 100%);
+            border: 3px solid #660000;
         }
         #npc-general::before {
-            background: linear-gradient(180deg, #ff4444, #cc2222);
+            background: #cc3333;
+            border-color: #660000;
+        }
+        #npc-general::after {
+            background: 
+                linear-gradient(180deg, #cc3333 0%, #cc3333 40%, #991111 40%, #991111 100%);
         }
         
-        /* 敌人 - 黄巾乱兵 */
+        /* 敌人 - 黄巾乱兵（经典像素风格） */
         .enemy {
             position: absolute; 
             width: 32px; height: 32px;
             z-index: 40; 
             cursor: default;
-            transition: transform 0.2s, filter 0.2s;
+            transition: none;
         }
+        /* 敌人头部 - 黄色头巾 */
         .enemy::before {
             content: '';
             position: absolute;
-            top: 2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 16px;
-            height: 10px;
-            background: inherit;
-            border-radius: 50%;
-            border: 2px solid rgba(255,100,100,0.8);
+            top: 0;
+            left: 4px;
+            width: 24px;
+            height: 12px;
+            background: #ccaa33;
+            border-radius: 4px 4px 0 0;
+            border: 2px solid #886622;
+            box-sizing: border-box;
         }
         .enemy::after { 
             content: attr(data-name); 
             position: absolute; 
-            top: -20px; 
+            top: -22px; 
             left: 50%; 
             transform: translateX(-50%); 
             color: #ff6666; 
-            font-size: 11px; 
+            font-size: 10px; 
             white-space: nowrap;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 
+                1px 1px 0 #000,
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000;
             font-family: monospace;
+            letter-spacing: 1px;
         }
         .enemy.nearby { 
-            transform: scale(1.15); 
-            filter: drop-shadow(0 0 10px rgba(255,50,50,0.8)); 
+            filter: brightness(1.2);
         }
         .enemy.clickable { cursor: pointer; }
         
         /* 黄巾兵 - 土黄色破衣 */
         .enemy {
-            background: linear-gradient(180deg, #aa8833 0%, #886622 100%);
-            border: 3px solid #664411;
-            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.4);
-            animation: enemyIdle 1.5s ease-in-out infinite;
+            background: linear-gradient(180deg, 
+                #aa8844 0%, #aa8844 35%,
+                #886633 35%, #886633 100%);
+            border: 3px solid #553311;
+            /* 抖动动画 - 经典敌人待机 */
+            animation: enemyIdle 1.2s ease-in-out infinite;
         }
         .enemy::before {
-            background: linear-gradient(180deg, #aa8833, #886622);
+            background: #ccaa33;
+            border-color: #886622;
         }
         @keyframes enemyIdle {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
+            25% { transform: translateY(-1px) rotate(-1deg); }
+            75% { transform: translateY(-1px) rotate(1deg); }
         }
         
         /* 敌人血条 */
         .enemy-hp {
             position: absolute;
-            top: -28px;
+            top: -26px;
             left: 50%;
             transform: translateX(-50%);
             width: 28px;
-            height: 4px;
-            background: #333;
+            height: 5px;
+            background: #222;
+            border: 1px solid #444;
             border-radius: 2px;
             overflow: hidden;
         }
         .enemy-hp-fill {
             height: 100%;
-            background: linear-gradient(90deg, #ff0000, #ff4444);
+            background: linear-gradient(180deg, #ff4444 0%, #cc0000 100%);
             transition: width 0.3s;
         }
         
-        #enemy1 { left: 280px; top: 230px; }
-        #enemy2 { left: 420px; top: 260px; }
-        #enemy3 { left: 320px; top: 380px; }
+        #enemy1 { left: 260px; top: 200px; }
+        #enemy2 { left: 400px; top: 240px; }
+        #enemy3 { left: 300px; bottom: 100px; }
         
         /* ===== 交互提示 ===== */
         #interact-prompt {
@@ -549,7 +687,7 @@
     <div id="title-screen">
         <h1>三国江湖</h1>
         <p>乱世烽火 · 群雄逐鹿</p>
-        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">版本 1.5.0</p>
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">版本 1.5.1</p>
         <button class="btn" onclick="startGame()">开始游戏</button>
     </div>
     
@@ -571,7 +709,11 @@
             <div class="tree tree4"></div>
             <div class="rock rock1"></div>
             <div class="rock rock2"></div>
-            <div id="player"><div class="player-shadow"></div><div class="player-sword"></div></div>
+            <div id="player">
+                <div class="player-shadow"></div>
+                <div class="player-sword"></div>
+                <div class="player-legs"></div>
+            </div>
             
             <div class="npc clickable" id="npc-soldier" data-name="士兵" onclick="clickInteract(this)"></div>
             <div class="npc clickable" id="npc-merchant" data-name="商人" onclick="clickInteract(this)"></div>
