@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>三国江湖 v2.1.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #ffd700; overflow: hidden; }
+        
+        #char-creation {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 100; overflow-y: auto; padding: 15px;
+        }
+        #char-creation h1 { font-size: 28px; margin-bottom: 3px; text-shadow: 0 0 20px #ffd700; }
+        .subtitle { color: #888; margin-bottom: 12px; font-size: 13px; }
+        #char-preview {
+            width: 120px; height: 140px;
+            background: rgba(0,0,0,0.5); border: 2px solid #ffd700;
+            border-radius: 10px; margin-bottom: 12px;
+            display: flex; justify-content: center; align-items: center;
+        }
+        
+        #preset-list { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; justify-content: center; }
+        .preset-btn {
+            background: #333; color: #fff; border: 2px solid #555;
+            padding: 6px 12px; cursor: pointer; border-radius: 15px;
+            font-size: 12px; transition: all 0.3s;
+        }
+        .preset-btn:hover, .preset-btn.active { background: #ffd700; color: #1a1a2a; border-color: #ffd700; }
+        
+        #options-panel {
+            width: 100%; max-width: 320px;
+            background: rgba(0,0,0,0.6); border: 2px solid #ffd700;
+            border-radius: 8px; padding: 10px; margin-bottom: 10px;
+        }
+        .option-group { margin-bottom: 8px; }
+        .option-label { color: #ffd700; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+        .option-label::before { content: ''; width: 3px; height: 10px; background: #ffd700; border-radius: 2px; }
+        .option-btns { display: flex; flex-wrap: wrap; gap: 5px; }
+        .opt-btn {
+            background: #2a2a3a; color: #ccc; border: 2px solid #444;
+            padding: 4px 8px; cursor: pointer; border-radius: 4px;
+            font-size: 10px; transition: all 0.2s; min-width: 50px; text-align: center;
+        }
+        .opt-btn:hover { border-color: #ffd700; color: #fff; }
+        .opt-btn.selected { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #1a1a2a; border-color: #ffd700; }
+        .color-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+        .color-btn {
+            width: 22px; height: 22px; border-radius: 50%;
+            border: 2px solid #333; cursor: pointer; transition: all 0.2s;
+        }
+        .color-btn:hover { transform: scale(1.15); }
+        .color-btn.selected { border-color: #fff; box-shadow: 0 0 6px rgba(255,215,0,0.8); }
+        
+        #confirm-btn {
+            background: linear-gradient(135deg, #ffd700, #ffaa00); color: #1a1a2a;
+            border: none; padding: 10px 40px; font-size: 14px; cursor: pointer;
+            border-radius: 20px; font-weight: bold; margin-top: 5px;
+        }
+        
+        #title-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
+            display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
+        }
+        #title-screen h1 { font-size: 40px; margin-bottom: 8px; text-shadow: 0 0 20px #ffd700; }
+        #title-screen p { color: #888; margin-bottom: 25px; }
+        .btn {
+            background: #ffd700; color: #1a1a2a; border: none; padding: 10px 35px;
+            font-size: 16px; cursor: pointer; border-radius: 6px; margin: 6px;
+        }
+        
+        #game { width: 100vw; height: 100vh; position: relative; display: none; }
+        #map { width: 100%; height: 100%; position: relative; background: linear-gradient(180deg, #87CEEB 0%, #87CEEB 55%, #5a9a5a 55%, #4a8a4a 100%); }
+        
+        .cloud { position: absolute; background: rgba(255,255,255,0.9); border-radius: 40px; animation: floatCloud 25s linear infinite; }
+        @keyframes floatCloud { 0% { transform: translateX(-100px); } 100% { transform: translateX(calc(100vw + 100px)); } }
+        .cloud::before { content: ''; position: absolute; background: inherit; border-radius: 50%; }
+        .cloud-1 { top: 6%; width: 70px; height: 25px; }
+        .cloud-1::before { width: 35px; height: 35px; top: -12px; left: 12px; }
+        .cloud-2 { top: 12%; width: 50px; height: 20px; animation-duration: 30s; animation-delay: -10s; }
+        .cloud-2::before { width: 25px; height: 25px; top: -10px; left: 8px; }
+        
+        .dirt { position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: #8B7355; }
+        
+        .qchar { position: absolute; width: 48px; height: 72px; z-index: 50; image-rendering: pixelated; }
+        .qchar svg, .qchar img { width: 100%; height: 100%; }
+        .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 32px; height: 8px; background: rgba(0,0,0,0.25); border-radius: 50%; }
+        
+        /* 像素风格待机动画 - 轻微上下弹跳 */
+        @keyframes pixelBounce { 
+            0%, 100% { transform: translateY(0); } 
+            50% { transform: translateY(-3px); } 
+        }
+        .qchar.idle { animation: pixelBounce 0.8s ease-in-out infinite; }
+        
+        /* 像素风格行走动画 - 左右摇摆 + 上下跳动 */
+        @keyframes pixelWalk { 
+            0% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-4px) translateX(1px); }
+            50% { transform: translateY(0) translateX(0); }
+            75% { transform: translateY(-4px) translateX(-1px); }
+            100% { transform: translateY(0) translateX(0); }
+        }
+        .qchar.walking { animation: pixelWalk 0.3s ease-in-out infinite; }
+        
+        /* 攻击动画 - 快速前冲 */
+        @keyframes pixelAttack { 
+            0% { transform: translateX(0); }
+            40% { transform: translateX(10px) scale(1.08); }
+            100% { transform: translateX(0); }
+        }
+        .qchar.attacking { animation: pixelAttack 0.25s ease-out; }
+        
+        /* 受伤动画 - 闪烁 */
+        @keyframes pixelHurt { 
+            0%, 100% { filter: brightness(1); }
+            25%, 75% { filter: brightness(2) hue-rotate(20deg); }
+        }
+        .qchar.hurt { animation: pixelHurt 0.2s ease-in-out 2; }
+        .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 32px; height: 8px; background: rgba(0,0,0,0.25); border-radius: 50%; }
+        .char-name { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #fff; white-space: nowrap; text-shadow: 1px 1px 0 #000; }
+        .enemy-char .char-name { color: #ff6666; }
+        .npc-char .char-name { color: #66ccff; }
+        .enemy-hp { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 32px; height: 5px; background: #333; border: 1px solid #555; border-radius: 2px; overflow: hidden; }
+        .enemy-hp-fill { height: 100%; background: linear-gradient(180deg, #ff4444, #cc0000); }
+        @keyframes shake { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-2px) rotate(-2deg); } 75% { transform: translateY(-2px) rotate(2deg); } }
+        .enemy-char { animation: shake 0.8s ease-in-out infinite; }
+        
+        /* NPC待机时轻微晃动 */
+        @keyframes npcIdle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+        .npc-char.idle { animation: npcIdle 2s ease-in-out infinite; }
+        .enemy-char.idle { animation: shake 0.8s ease-in-out infinite; }
+        
+        .house { position: absolute; }
+        .roof { position: relative; background: linear-gradient(180deg, #696969, #808080); border-radius: 2px; }
+        .roof::before { content: ''; position: absolute; bottom: -6px; left: -3px; right: -3px; height: 6px; background: #505050; clip-path: polygon(0 0, 50% 100%, 100% 0); }
+        .wall { background: linear-gradient(180deg, #c0392b, #a93226); border: 2px solid #922b21; }
+        .door { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 12px; height: 15px; background: linear-gradient(180deg, #5d4037, #4e342e); border: 2px solid #3e2723; border-radius: 2px 2px 0 0; }
+        .window { position: absolute; width: 8px; height: 8px; background: linear-gradient(135deg, #87CEEB, #B0E0E6); border: 2px solid #5d4037; }
+        .house1 { left: 50px; top: 90px; }
+        .house1 .roof { width: 45px; height: 12px; }
+        .house1 .wall { width: 42px; height: 35px; margin-top: -1px; }
+        .house1 .window { top: 6px; left: 6px; }
+        .house2 { right: 70px; top: 65px; }
+        .house2 .roof { width: 60px; height: 16px; }
+        .house2 .wall { width: 56px; height: 42px; margin-top: -1px; }
+        .house2 .window { top: 8px; left: 8px; }
+        .house2 .window:last-of-type { right: 8px; left: auto; }
+        .house3 { left: 160px; bottom: 80px; }
+        .house3 .roof { width: 40px; height: 10px; }
+        .house3 .wall { width: 36px; height: 30px; margin-top: -1px; }
+        
+        .lantern { position: absolute; right: 130px; bottom: 65px; }
+        .lantern-top { width: 12px; height: 6px; background: #2c2c2c; border-radius: 2px; margin: 0 auto; }
+        .lantern-body { width: 10px; height: 12px; background: linear-gradient(180deg, #ff6b6b, #ee5a5a, #ff6b6b); margin: 0 auto; border-radius: 2px; box-shadow: 0 0 8px rgba(255,107,107,0.5); }
+        .lantern-bottom { width: 6px; height: 3px; background: #2c2c2c; margin: 0 auto; }
+        .lantern-pole { width: 3px; height: 15px; background: #4a4a4a; margin: 0 auto; }
+        
+        .ptree { position: absolute; }
+        .ptree-leaf { width: 32px; height: 28px; background: radial-gradient(ellipse at 30% 30%, #6b8e23 0%, #228b22 50%, #006400 100%); border-radius: 50% 50% 45% 45%; position: relative; }
+        .ptree-leaf::before { content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 18px; height: 18px; background: radial-gradient(ellipse, #228b22 0%, #006400 100%); border-radius: 50%; }
+        .ptree-trunk { width: 6px; height: 14px; background: linear-gradient(90deg, #5d4037 0%, #8d6e63 50%, #5d4037 100%); margin: 0 auto; margin-top: -3px; }
+        .ptree1 { left: 25px; top: 90px; transform: scale(1.1); }
+        .ptree2 { right: 50px; top: 130px; }
+        .ptree3 { left: 240px; bottom: 70px; transform: scale(0.9); }
+        .ptree4 { right: 80px; bottom: 120px; transform: scale(1.15); }
+        
+        .pstone { position: absolute; background: linear-gradient(135deg, #9e9e9e 0%, #757575 50%, #616161 100%); border-radius: 40% 50% 45% 55%; }
+        .pstone1 { left: 220px; top: 260px; width: 18px; height: 12px; }
+        .pstone2 { left: 380px; top: 300px; width: 15px; height: 10px; }
+        .pstone3 { left: 150px; top: 320px; width: 16px; height: 11px; }
+        
+        #interact-prompt { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); background: rgba(255,215,0,0.9); color: #1a1a2a; padding: 6px 16px; border-radius: 5px; font-size: 12px; font-weight: bold; z-index: 150; display: none; }
+        .hint { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); color: #666; font-size: 10px; background: rgba(0,0,0,0.5); padding: 3px 10px; border-radius: 3px; }
+        
+        #status { position: absolute; top: 45px; right: 6px; background: rgba(0,0,0,0.8); padding: 8px 10px; border-radius: 5px; font-size: 11px; z-index: 100; border: 1px solid #ffd700; min-width: 110px; }
+        .status-row { display: flex; justify-content: space-between; margin: 3px 0; }
+        .stat-label { color: #888; }
+        .stat-value { color: #ffd700; font-weight: bold; }
+        .hp-bar { width: 100%; height: 5px; background: #333; border-radius: 2px; margin-top: 2px; overflow: hidden; }
+        .hp-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ff6666); }
+        
+        #quest-box { position: absolute; top: 45px; left: 6px; background: rgba(0,0,0,0.8); padding: 8px 10px; border-radius: 5px; font-size: 11px; z-index: 100; border: 1px solid #4488ff; max-width: 160px; display: none; }
+        .quest-title { color: #4488ff; font-weight: bold; margin-bottom: 3px; }
+        .quest-desc { color: #aaa; line-height: 1.3; }
+        .quest-reward { color: #ffd700; margin-top: 3px; font-size: 10px; }
+        
+        #dialogue { position: absolute; bottom: 0; width: 100%; height: 22%; background: rgba(15,15,25,0.95); border-top: 2px solid #ffd700; padding: 12px; display: none; z-index: 200; }
+        #speaker { color: #ff6b6b; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        #text { font-size: 13px; line-height: 1.5; color: #ddd; margin-bottom: 8px; }
+        #choices { display: flex; flex-wrap: wrap; gap: 6px; }
+        .choice-btn { background: #ffd700; color: #1a1a2a; border: none; padding: 6px 14px; cursor: pointer; font-size: 11px; border-radius: 4px; }
+        #close-btn { position: absolute; right: 12px; bottom: 12px; background: #444; color: #fff; border: none; padding: 5px 14px; cursor: pointer; border-radius: 4px; }
+        
+        #notification { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); color: #ffd700; padding: 12px 25px; border-radius: 8px; font-size: 14px; z-index: 300; display: none; border: 2px solid #ffd700; }
+        
+        #touch-controls { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 150px; padding-bottom: env(safe-area-inset-bottom, 8px); z-index: 150; }
+        #joystick-zone { position: absolute; left: max(12px, env(safe-area-inset-left, 12px)); bottom: max(12px, env(safe-area-inset-bottom, 12px)); width: 90px; height: 90px; background: rgba(0,0,0,0.4); border-radius: 50%; border: 2px solid rgba(255,215,0,0.6); }
+        #joystick-thumb { position: absolute; width: 36px; height: 36px; background: rgba(255,215,0,0.9); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+        #action-buttons { position: absolute; right: max(10px, env(safe-area-inset-right, 10px)); bottom: max(12px, env(safe-area-inset-bottom, 12px)); display: flex; flex-direction: column; gap: 8px; }
+        .action-btn { width: 50px; height: 50px; border-radius: 50%; border: 2px solid; font-size: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #btn-interact { background: rgba(68,136,255,0.85); border-color: #6aa3ff; color: #fff; }
+        #btn-attack { background: rgba(255,68,68,0.85); border-color: #ff8888; color: #fff; }
+        #btn-pause { background: rgba(80,80,80,0.85); border-color: #aaa; color: #fff; width: 36px; height: 36px; font-size: 9px; }
+        @media (hover: none) and (pointer: coarse) { #touch-controls { display: block; } .hint { bottom: 160px; } }
+    </style>
+</head>
+<body>
+    <div id="char-creation">
+        <h1>创建角色</h1>
+        <p class="subtitle">打造你的三国英雄</p>
+        <div id="char-preview"><div id="preview-char"></div></div>
+        
+        <div id="preset-list">
+            <button class="preset-btn active" data-preset="warrior">武士</button>
+            <button class="preset-btn" data-preset="general">将军</button>
+            <button class="preset-btn" data-preset="scholar">谋士</button>
+            <button class="preset-btn" data-preset="lady">女子</button>
+            <button class="preset-btn" data-preset="bandit">草寇</button>
+        </div>
+        
+        <div id="options-panel">
+            <div class="option-group">
+                <div class="option-label">发型</div>
+                <div class="option-btns" data-type="hair">
+                    <button class="opt-btn selected" data-value="bun">发髻</button>
+                    <button class="opt-btn" data-value="short">短发</button>
+                    <button class="opt-btn" data-value="long">长发</button>
+                    <button class="opt-btn" data-value="twin">双髻</button>
+                    <button class="opt-btn" data-value="headband">头巾</button>
+                </div>
+            </div>
+            <div class="option-group">
+                <div class="option-label">发色</div>
+                <div class="color-btns" data-type="hairColor">
+                    <div class="color-btn selected" data-value="#1a1a1a" style="background:#1a1a1a"></div>
+                    <div class="color-btn" data-value="#3d2817" style="background:#3d2817"></div>
+                    <div class="color-btn" data-value="#5d4037" style="background:#5d4037"></div>
+                    <div class="color-btn" data-value="#8d6e63" style="background:#8d6e63"></div>
+                    <div class="color-btn" data-value="#d4a574" style="background:#d4a574"></div>
+                </div>
+            </div>
+            <div class="option-group">
+                <div class="option-label">服装</div>
+                <div class="option-btns" data-type="cloth">
+                    <button class="opt-btn selected" data-value="warrior">战袍</button>
+                    <button class="opt-btn" data-value="armor">铠甲</button>
+                    <button class="opt-btn" data-value="robe">长袍</button>
+                    <button class="opt-btn" data-value="dress">襦裙</button>
+                </div>
+            </div>
+            <div class="option-group">
+                <div class="option-label">阵营</div>
+                <div class="color-btns" data-type="clothColor">
+                    <div class="color-btn selected" data-value="#27ae60" style="background:#27ae60" title="蜀"></div>
+                    <div class="color-btn" data-value="#2980b9" style="background:#2980b9" title="魏"></div>
+                    <div class="color-btn" data-value="#e67e22" style="background:#e67e22" title="吴"></div>
+                    <div class="color-btn" data-value="#e74c3c" style="background:#e74c3c" title="黄巾"></div>
+                    <div class="color-btn" data-value="#9b59b6" style="background:#9b59b6" title="群雄"></div>
+                </div>
+            </div>
+            <div class="option-group">
+                <div class="option-label">武器</div>
+                <div class="option-btns" data-type="weapon">
+                    <button class="opt-btn selected" data-value="none">无</button>
+                    <button class="opt-btn" data-value="sword">剑</button>
+                    <button class="opt-btn" data-value="spear">矛</button>
+                    <button class="opt-btn" data-value="axe">斧</button>
+                </div>
+            </div>
+        </div>
+        
+        <button id="confirm-btn" onclick="confirmChar()">开始游戏</button>
+    </div>
+    
+    <div id="title-screen">
+        <h1>三国江湖</h1>
+        <p>v2.1.0 - 角色比例重设计</p>
+        <button class="btn" onclick="startGame()">开始游戏</button>
+        <button class="btn" onclick="showCreate()">创建角色</button>
+    </div>
+    
+    <div id="game">
+        <div id="map">
+            <div class="cloud cloud-1"></div>
+            <div class="cloud cloud-2"></div>
+            
+            <div class="house house1"><div class="roof"></div><div class="wall"><div class="door"></div><div class="window"></div></div></div>
+            <div class="house house2"><div class="roof"></div><div class="wall"><div class="door"></div><div class="window"></div><div class="window"></div></div></div>
+            <div class="house house3"><div class="roof"></div><div class="wall"><div class="door"></div></div></div>
+            
+            <div class="lantern"><div class="lantern-pole"></div><div class="lantern-top"></div><div class="lantern-body"></div><div class="lantern-bottom"></div></div>
+            
+            <div class="ptree ptree1"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
+            <div class="ptree ptree2"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
+            <div class="ptree ptree3"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
+            <div class="ptree ptree4"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
+            
+            <div class="pstone pstone1"></div>
+            <div class="pstone pstone2"></div>
+            <div class="pstone pstone3"></div>
+            
+            <div class="dirt"></div>
+            
+            <div id="player" class="qchar idle" style="left:326px;top:228px"></div>
+            <div id="npc-soldier" class="qchar npc-char" style="left:136px;top:128px"></div>
+            <div id="npc-merchant" class="qchar npc-char" style="left:426px;top:78px"></div>
+            <div id="npc-general" class="qchar npc-char" style="left:496px;top:228px"></div>
+            <div id="enemy1" class="qchar enemy-char" style="left:236px;top:168px"></div>
+            <div id="enemy2" class="qchar enemy-char" style="left:356px;top:198px"></div>
+            <div id="enemy3" class="qchar enemy-char" style="left:256px;top:298px"></div>
+        </div>
+        
+        <div id="interact-prompt"></div>
+        <div class="hint">WASD移动 | 空格交互/攻击</div>
+        
+        <div id="status">
+            <div class="status-row"><span class="stat-label">生命</span><span class="stat-value" id="hp">100/100</span></div>
+            <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width:100%"></div></div>
+            <div class="status-row"><span class="stat-label">金币</span><span class="stat-value" id="gold">0</span></div>
+        </div>
+        
+        <div id="quest-box">
+            <div class="quest-title" id="quest-title"></div>
+            <div class="quest-desc" id="quest-desc"></div>
+            <div class="quest-reward" id="quest-reward"></div>
+        </div>
+        
+        <div id="dialogue">
+            <div id="speaker"></div>
+            <div id="text"></div>
+            <div id="choices"></div>
+            <button id="close-btn" onclick="closeDialogue()">关闭</button>
+        </div>
+        
+        <div id="notification"></div>
+        
+        <div id="touch-controls">
+            <div id="joystick-zone"><div id="joystick-thumb"></div></div>
+            <div id="action-buttons">
+                <button class="action-btn" id="btn-pause">暂停</button>
+                <button class="action-btn" id="btn-attack">攻击</button>
+                <button class="action-btn" id="btn-interact">交互</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    var playerConfig = {
+        hair: 'bun',
+        hairColor: '#1a1a1a',
+        cloth: 'warrior',
+        clothColor: '#27ae60',
+        weapon: 'none',
+        sprite: 'char_01',
+        usePixelArt: true
+    };
+    
+    var presets = {
+        warrior: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'warrior', clothColor: '#27ae60', weapon: 'sword', sprite: 'char_01' },
+        general: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear', sprite: 'char_02' },
+        scholar: { hair: 'long', hairColor: '#1a1a1a', cloth: 'robe', clothColor: '#9b59b6', weapon: 'none', sprite: 'char_04' },
+        lady: { hair: 'twin', hairColor: '#3d2817', cloth: 'dress', clothColor: '#e91e63', weapon: 'none', sprite: 'char_05' },
+        bandit: { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#795548', weapon: 'axe', sprite: 'char_07' }
+    };
+    
+    // 重新设计版角色SVG生成器 v2.1.0 - 修复比例和细节问题
+    function genQCharSVG(cfg) {
+        var cx = 24; // 中心X
+        var skinColor = '#fce5d8';
+        var skinShadow = '#e8c4b8';
+        
+        // ========== 整体比例重设计 ==========
+        // viewBox: 48x72，整体比例约 2:3，头:身:腿 = 1:1.5:1
+        var headTop = 6;      // 头顶
+        var headBottom = 26;   // 下巴/脖子
+        var shoulderY = 28;    // 肩膀
+        var waistY = 48;       // 腰部
+        var feetY = 70;        // 脚底
+        
+        // ========== 阴影 ==========
+        var shadow = '<ellipse cx="' + cx + '" cy="' + (feetY + 1) + '" rx="14" ry="3" fill="rgba(0,0,0,0.25)"/>';
+        
+        // ========== 腿部 (完整腿部) ==========
+        var legColor = darken(cfg.clothColor, 15);
+        var pantsColor = darken(cfg.clothColor, 20);
+        var legs = 
+            // 左腿
+            '<path d="M14,' + waistY + ' L12,' + (feetY-4) + ' L16,' + (feetY-4) L18,' + waistY + ' Z" fill="' + pantsColor + '"/>' +
+            // 右腿
+            '<path d="M30,' + waistY + ' L32,' + (feetY-4) + ' L36,' + (feetY-4) L34,' + waistY + ' Z" fill="' + pantsColor + '"/>' +
+            // 腰带
+            '<rect x="12" y="' + (waistY-2) + '" width="24" height="4" fill="' + darken(cfg.clothColor, 25) + '" rx="1"/>' +
+            // 腰带扣
+            '<rect x="21" y="' + (waistY-1) + '" width="6" height="3" fill="#ffd700" rx="0.5"/>';
+        
+        // ========== 鞋子 ==========
+        var shoes = 
+            '<path d="M11,' + (feetY-4) + ' L10,' + feetY + ' L18,' + feetY + ' L17,' + (feetY-4) Z" fill="#3d2817"/>' +
+            '<path d="M31,' + (feetY-4) + ' L30,' + feetY + ' L38,' + feetY + ' L37,' + (feetY-4) Z" fill="#3d2817"/>' +
+            // 鞋底
+            '<rect x="10" y="' + (feetY-1) + '" width="8" height="2" fill="#2a1810" rx="0.5"/>' +
+            '<rect x="30" y="' + (feetY-1) + '" width="8" height="2" fill="#2a1810" rx="0.5"/>';
+        
+        // ========== 身体/服装 (增大比例，添加细节) ==========
+        var clothMain = cfg.clothColor;
+        var clothLight = lighten(cfg.clothColor, 15);
+        var clothDark = darken(cfg.clothColor, 20);
+        var clothMid = lighten(cfg.clothColor, 8);
+        
+        var bodyParts = '';
+        if (cfg.cloth === 'warrior') {
+            // 战袍 - 武士服
+            bodyParts =
+                // 主体
+                '<path d="M10,' + shoulderY + ' L8,' + waistY + ' L40,' + waistY + ' L38,' + shoulderY + ' L30,' + shoulderY + ' L30,' + (shoulderY+4) + ' L18,' + (shoulderY+4) + ' L18,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
+                // 衣襟
+                '<path d="M18,' + shoulderY + ' L18,' + (shoulderY+8) L24,' + (shoulderY+12) L24,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
+                '<path d="M30,' + shoulderY + ' L30,' + (shoulderY+8) L24,' + (shoulderY+12) L24,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
+                // 前襟装饰线
+                '<line x1="24" y1="' + (shoulderY+4) + '" x2="24" y2="' + waistY + '" stroke="' + clothLight + '" stroke-width="1"/>' +
+                // 袖子
+                '<path d="M10,' + shoulderY + ' L2,' + (shoulderY+8) + ' L4,' + (shoulderY+18) + ' L10,' + (shoulderY+12) + ' Z" fill="' + clothMain + '"/>' +
+                '<path d="M38,' + shoulderY + ' L46,' + (shoulderY+8) + ' L44,' + (shoulderY+18) + ' L38,' + (shoulderY+12) + ' Z" fill="' + clothMain + '"/>' +
+                // 袖口
+                '<path d="M2,' + (shoulderY+16) + ' L4,' + (shoulderY+18) + ' L10,' + (shoulderY+12) + ' L8,' + (shoulderY+10) + ' Z" fill="' + clothDark + '"/>' +
+                '<path d="M46,' + (shoulderY+16) + ' L44,' + (shoulderY+18) + ' L38,' + (shoulderY+12) + ' L40,' + (shoulderY+10) + ' Z" fill="' + clothDark + '"/>' +
+                // 腰带
+                '<rect x="8" y="' + (waistY-6) + '" width="32" height="6" fill="' + clothDark + '" rx="1"/>' +
+                // 身体装饰
+                '<circle cx="24" cy="' + (shoulderY+16) + '" r="2" fill="#ffd700"/>';
+        } else if (cfg.cloth === 'armor') {
+            // 铠甲 - 武将甲
+            bodyParts =
+                // 胸甲
+                '<path d="M10,' + shoulderY + ' L8,' + waistY + ' L40,' + waistY + ' L38,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
+                // 肩甲
+                '<ellipse cx="8" cy="' + (shoulderY+2) + '" rx="6" ry="4" fill="' + lighten(cfg.clothColor, 20) + '"/>' +
+                '<ellipse cx="40" cy="' + (shoulderY+2) + '" rx="6" ry="4" fill="' + lighten(cfg.clothColor, 20) + '"/>' +
+                // 甲片纹理
+                '<path d="M14,' + (shoulderY+4) + ' L12,' + (shoulderY+10) + ' L18,' + (shoulderY+10) L20,' + (shoulderY+4) Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                '<path d="M28,' + (shoulderY+4) + ' L30,' + (shoulderY+10) + ' L36,' + (shoulderY+10) L34,' + (shoulderY+4) Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                '<path d="M18,' + (shoulderY+8) + ' L16,' + (shoulderY+14) + ' L24,' + (shoulderY+14) L24,' + (shoulderY+8) Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                '<path d="M24,' + (shoulderY+8) + ' L24,' + (shoulderY+14) + ' L32,' + (shoulderY+14) L30,' + (shoulderY+8) Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                // 护心镜
+                '<circle cx="24" cy="' + (shoulderY+18) + '" r="6" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>' +
+                '<circle cx="24" cy="' + (shoulderY+18) + '" r="4" fill="#e74c3c"/>' +
+                '<circle cx="24" cy="' + (shoulderY+18) + '" r="2" fill="#c0392b"/>' +
+                // 披风领
+                '<path d="M16,' + shoulderY + ' L24,' + (shoulderY+6) + ' L32,' + shoulderY + ' L30,' + shoulderY + ' L24,' + (shoulderY+4) + ' L18,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
+                // 护肩带
+                '<rect x="18" y="' + (shoulderY+2) + '" width="12" height="3" fill="#ffd700" rx="1"/>';
+        } else if (cfg.cloth === 'robe') {
+            // 长袍 - 谋士服
+            bodyParts =
+                // 主体
+                '<path d="M8,' + shoulderY + ' L6,' + waistY + ' L42,' + waistY + ' L40,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
+                // 衣襟
+                '<path d="M24,' + shoulderY + ' L24,' + waistY + '" stroke="' + clothLight + '" stroke-width="1"/>' +
+                '<path d="M18,' + shoulderY + ' L24,' + (shoulderY+4) + ' L24,' + waistY + ' L18,' + waistY + ' Z" fill="' + clothLight + '"/>' +
+                '<path d="M30,' + shoulderY + ' L24,' + (shoulderY+4) + ' L24,' + waistY + ' L30,' + waistY + ' Z" fill="' + clothDark + '"/>' +
+                // 宽袖
+                '<path d="M8,' + shoulderY + ' L0,' + (shoulderY+6) + ' L2,' + (shoulderY+22) + ' L10,' + (shoulderY+16) + ' Z" fill="' + clothMain + '"/>' +
+                '<path d="M40,' + shoulderY + ' L48,' + (shoulderY+6) + ' L46,' + (shoulderY+22) + ' L38,' + (shoulderY+16) + ' Z" fill="' + clothMain + '"/>' +
+                // 袖口装饰
+                '<path d="M0,' + (shoulderY+20) + ' L2,' + (shoulderY+22) + ' L10,' + (shoulderY+16) + ' L8,' + (shoulderY+14) + ' Z" fill="' + clothLight + '"/>' +
+                '<path d="M48,' + (shoulderY+20) + ' L46,' + (shoulderY+22) + ' L38,' + (shoulderY+16) + ' L40,' + (shoulderY+14) + ' Z" fill="' + clothLight + '"/>' +
+                // 云纹装饰
+                '<circle cx="14" cy="' + (shoulderY+10) + '" r="2" fill="' + clothLight + '" opacity="0.6"/>' +
+                '<circle cx="34" cy="' + (shoulderY+10) + '" r="2" fill="' + clothLight + '" opacity="0.6"/>' +
+                '<circle cx="14" cy="' + (shoulderY+14) + '" r="1.5" fill="' + clothLight + '" opacity="0.4"/>' +
+                '<circle cx="34" cy="' + (shoulderY+14) + '" r="1.5" fill="' + clothLight + '" opacity="0.4"/>';
+        } else if (cfg.cloth === 'dress') {
+            // 襦裙 - 女装
+            bodyParts =
+                // 上衣
+                '<path d="M12,' + shoulderY + ' L10,' + (shoulderY+12) + ' L38,' + (shoulderY+12) + ' L36,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
+                // 抹胸
+                '<path d="M16,' + shoulderY + ' L24,' + (shoulderY+4) + ' L32,' + shoulderY + ' L30,' + shoulderY + ' L24,' + (shoulderY+2) + ' L18,' + shoulderY + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                // 裙子(更宽更长)
+                '<path d="M10,' + (shoulderY+12) + ' L6,' + waistY + ' L4,' + (feetY-8) + ' L16,' + (feetY-8) L18,' + waistY + ' Z" fill="' + darken(cfg.clothColor, 10) + '"/>' +
+                '<path d="M38,' + (shoulderY+12) + ' L42,' + waistY + ' L44,' + (feetY-8) + ' L32,' + (feetY-8) L30,' + waistY + ' Z" fill="' + darken(cfg.clothColor, 10) + '"/>' +
+                // 裙摆波浪
+                '<path d="M4,' + (feetY-8) + ' Q8,' + (feetY-6) + ' 12,' + (feetY-8) + ' Q16,' + (feetY-6) + ' 20,' + (feetY-8) + ' L20,' + (feetY-10) + ' L4,' + (feetY-10) + ' Z" fill="' + clothDark + '"/>' +
+                '<path d="M28,' + (feetY-8) + ' Q32,' + (feetY-6) + ' 36,' + (feetY-8) + ' Q40,' + (feetY-6) + ' 44,' + (feetY-8) + ' L44,' + (feetY-10) + ' L28,' + (feetY-10) + ' Z" fill="' + clothDark + '"/>' +
+                // 腰带/丝带
+                '<rect x="14" y="' + (shoulderY+10) + '" width="20" height="4" fill="' + lighten(cfg.clothColor, 30) + '" rx="1"/>' +
+                '<path d="M18,' + (shoulderY+12) + ' L16,' + (shoulderY+20) + ' L20,' + (shoulderY+18) Z" fill="' + lighten(cfg.clothColor, 30) + '"/>' +
+                '<path d="M30,' + (shoulderY+12) + ' L32,' + (shoulderY+20) + ' L28,' + (shoulderY+18) Z" fill="' + lighten(cfg.clothColor, 30) + '"/>' +
+                // 袖子
+                '<path d="M12,' + shoulderY + ' L6,' + (shoulderY+6) + ' L4,' + (shoulderY+18) + ' L12,' + (shoulderY+14) + ' Z" fill="' + clothMain + '"/>' +
+                '<path d="M36,' + shoulderY + ' L42,' + (shoulderY+6) + ' L44,' + (shoulderY+18) + ' L36,' + (shoulderY+14) + ' Z" fill="' + clothMain + '"/>';
+        }
+        
+        // ========== 脖子 ==========
+        var neck = '<rect x="21" y="' + (headBottom-4) + '" width="6" height="6" fill="' + skinShadow + '"/>';
+        
+        // ========== 头部 (缩小比例) ==========
+        var faceTop = headTop + 4;   // 头顶留发
+        var faceCenter = headTop + 12;
+        
+        // 脸部 - 鹅蛋脸形
+        var face = '<ellipse cx="' + cx + '" cy="' + faceCenter + '" rx="10" ry="12" fill="' + skinColor + '"/>' +
+                   // 下巴阴影
+                   '<ellipse cx="' + cx + '" cy="' + (faceCenter+8) + '" rx="6" ry="3" fill="' + skinShadow + '" opacity="0.5"/>';
+        
+        // 腮红
+        var blush = '<ellipse cx="14" cy="' + (faceCenter+3) + '" rx="3" ry="2" fill="#ffb6c1" opacity="0.4"/>' +
+                    '<ellipse cx="34" cy="' + (faceCenter+3) + '" rx="3" ry="2" fill="#ffb6c1" opacity="0.4"/>';
+        
+        // 眼睛 - 位置调整到脸部中间
+        var eyesY = faceCenter - 1;
+        var eyes = '<ellipse cx="18" cy="' + eyesY + '" rx="2.5" ry="3" fill="#2d2d2d"/>' +
+                   '<ellipse cx="30" cy="' + eyesY + '" rx="2.5" ry="3" fill="#2d2d2d"/>' +
+                   '<ellipse cx="18.5" cy="' + (eyesY-1) + '" rx="1" ry="1" fill="#fff"/>' +
+                   '<ellipse cx="30.5" cy="' + (eyesY-1) + '" rx="1" ry="1" fill="#fff"/>';
+        
+        // 眉毛
+        var eyebrows = '<path d="M15,' + (eyesY-5) + ' Q18,' + (eyesY-6) + ' 21,' + (eyesY-4) + '" stroke="' + darken(cfg.hairColor, 15) + '" stroke-width="1.2" fill="none"/>' +
+                       '<path d="M27,' + (eyesY-4) + ' Q30,' + (eyesY-6) + ' 33,' + (eyesY-5) + '" stroke="' + darken(cfg.hairColor, 15) + '" stroke-width="1.2" fill="none"/>';
+        
+        // 鼻子
+        var nose = '<path d="M24,' + (eyesY+3) + ' L24,' + (eyesY+5) + ' L22,' + (eyesY+6) + '" stroke="' + skinShadow + '" stroke-width="0.8" fill="none"/>';
+        
+        // 嘴巴
+        var mouth = '<path d="M21,' + (faceCenter+7) + ' Q24,' + (faceCenter+9) + ' 27,' + (faceCenter+7) + '" stroke="#d4766a" stroke-width="1.2" fill="none" stroke-linecap="round"/>';
+        
+        // 耳朵 (藏在头发里)
+        var ears = '<ellipse cx="14" cy="' + faceCenter + '" rx="1.5" ry="2.5" fill="' + skinShadow + '"/>' +
+                   '<ellipse cx="34" cy="' + faceCenter + '" rx="1.5" ry="2.5" fill="' + skinShadow + '"/>';
+        
+        // ========== 发型 (重新设计，让头发完整包裹头部) ==========
+        var hairTop = headTop;
+        var hairColor = cfg.hairColor;
+        var hairLight = lighten(hairColor, 15);
+        var hairDark = darken(hairColor, 15);
+        
+        var hair = '';
+        if (cfg.hair === 'bun') {
+            // 发髻 - 完整包裹头部
+            hair = 
+                // 后脑勺头发
+                '<path d="M14,' + hairTop + ' Q24,' + (hairTop-2) + ' 34,' + hairTop + ' L34,' + (faceCenter+8) + ' Q24,' + (faceCenter+12) + ' 14,' + (faceCenter+8) + ' Z" fill="' + hairColor + '"/>' +
+                // 头顶
+                '<ellipse cx="' + cx + '" cy="' + (hairTop+4) + '" rx="12" ry="8" fill="' + hairColor + '"/>' +
+                // 发髻
+                '<ellipse cx="' + cx + '" cy="' + (hairTop-2) + '" rx="8" ry="6" fill="' + hairColor + '"/>' +
+                '<circle cx="' + cx + '" cy="' + (hairTop-4) + '" r="5" fill="' + hairDark + '"/>' +
+                // 发簪
+                '<rect x="23" y="' + (hairTop-6) + '" width="2" height="8" fill="#ffd700" rx="0.5"/>' +
+                '<circle cx="24" cy="' + (hairTop-5) + '" r="1.5" fill="#e74c3c"/>' +
+                // 刘海
+                '<path d="M16,' + (faceTop+2) + ' Q20,' + (faceTop+6) + ' 24,' + (faceTop+4) + ' Q28,' + (faceTop+6) + ' 32,' + (faceTop+2) + '" fill="' + hairColor + '"/>' +
+                // 高光
+                '<ellipse cx="20" cy="' + (hairTop+2) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.5"/>';
+        } else if (cfg.hair === 'short') {
+            // 短发 - 简洁利落
+            hair = 
+                '<path d="M14,' + hairTop + ' Q24,' + (hairTop-3) + ' 34,' + hairTop + ' L34,' + (faceCenter+6) + ' L14,' + (faceCenter+6) + ' Z" fill="' + hairColor + '"/>' +
+                '<ellipse cx="' + cx + '" cy="' + (hairTop+5) + '" rx="11" ry="9" fill="' + hairColor + '"/>' +
+                // 刘海
+                '<path d="M15,' + (faceTop+2) + ' Q18,' + (faceTop+5) + ' 24,' + (faceTop+4) + ' Q30,' + (faceTop+5) + ' 33,' + (faceTop+2) + '" fill="' + hairColor + '"/>' +
+                // 发尾纹理
+                '<path d="M14,' + (faceCenter+4) + ' L14,' + (faceCenter+8) + '" stroke="' + hairDark + '" stroke-width="1"/>' +
+                '<path d="M34,' + (faceCenter+4) + ' L34,' + (faceCenter+8) + '" stroke="' + hairDark + '" stroke-width="1"/>' +
+                '<ellipse cx="20" cy="' + (hairTop+3) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.4"/>';
+        } else if (cfg.hair === 'long') {
+            // 长发 - 飘逸但不像鬼
+            hair = 
+                // 头顶包裹
+                '<path d="M13,' + (hairTop+2) + ' Q24,' + (hairTop-2) + ' 35,' + (hairTop+2) + ' L35,' + (faceCenter+6) + ' Q24,' + (faceCenter+10) + ' 13,' + (faceCenter+6) + ' Z" fill="' + hairColor + '"/>' +
+                // 刘海
+                '<path d="M15,' + (faceTop+2) + ' Q18,' + (faceTop+5) + ' 24,' + (faceTop+3) + ' Q30,' + (faceTop+5) + ' 33,' + (faceTop+2) + '" fill="' + hairColor + '"/>' +
+                // 两侧长发(不要太长，到腰部)
+                '<path d="M13,' + (faceCenter+4) + ' L10,' + (shoulderY+4) + ' L8,' + (shoulderY+20) + ' L12,' + (shoulderY+20) + ' L14,' + (shoulderY+6) + ' L15,' + (faceCenter+8) + ' Z" fill="' + hairColor + '"/>' +
+                '<path d="M35,' + (faceCenter+4) + ' L38,' + (shoulderY+4) + ' L40,' + (shoulderY+20) + ' L36,' + (shoulderY+20) + ' L34,' + (shoulderY+6) + ' L33,' + (faceCenter+8) + ' Z" fill="' + hairColor + '"/>' +
+                // 发尾
+                '<path d="M8,' + (shoulderY+18) + ' Q10,' + (shoulderY+22) + ' 12,' + (shoulderY+20) + ' L12,' + (shoulderY+18) + ' Q10,' + (shoulderY+20) + ' 8,' + (shoulderY+18) + ' Z" fill="' + hairDark + '"/>' +
+                '<path d="M40,' + (shoulderY+18) + ' Q38,' + (shoulderY+22) + ' 36,' + (shoulderY+20) + ' L36,' + (shoulderY+18) + ' Q38,' + (shoulderY+20) + ' 40,' + (shoulderY+18) + ' Z" fill="' + hairDark + '"/>' +
+                // 高光
+                '<ellipse cx="20" cy="' + (hairTop+4) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.5"/>' +
+                '<path d="M14,' + (faceCenter+5) + ' L12,' + (shoulderY+10) + '" stroke="' + hairLight + '" stroke-width="1" opacity="0.4"/>' +
+                '<path d="M34,' + (faceCenter+5) + ' L36,' + (shoulderY+10) + '" stroke="' + hairLight + '" stroke-width="1" opacity="0.4"/>';
+        } else if (cfg.hair === 'twin') {
+            // 双髻 - 少女发型
+            hair = 
+                // 头顶
+                '<path d="M14,' + (hairTop+2) + ' Q24,' + (hairTop-2) + ' 34,' + (hairTop+2) + ' L34,' + (faceCenter+6) + ' Q24,' + (faceCenter+10) + ' 14,' + (faceCenter+6) + ' Z" fill="' + hairColor + '"/>' +
+                // 刘海
+                '<path d="M16,' + (faceTop+2) + ' Q20,' + (faceTop+5) + ' 24,' + (faceTop+3) + ' Q28,' + (faceTop+5) + ' 32,' + (faceTop+2) + '" fill="' + hairColor + '"/>' +
+                // 左髻
+                '<circle cx="10" cy="' + (faceCenter) + '" r="6" fill="' + hairColor + '"/>' +
+                '<circle cx="9" cy="' + (faceCenter-2) + '" r="3" fill="' + hairLight + '" opacity="0.5"/>' +
+                // 右髻
+                '<circle cx="38" cy="' + (faceCenter) + '" r="6" fill="' + hairColor + '"/>' +
+                '<circle cx="39" cy="' + (faceCenter-2) + '" r="3" fill="' + hairLight + '" opacity="0.5"/>' +
+                // 蝴蝶结装饰
+                '<path d="M8,' + (faceCenter-4) + ' L10,' + (faceCenter-6) + ' L12,' + (faceCenter-4) Z" fill="#ff69b4"/>' +
+                '<path d="M36,' + (faceCenter-4) + ' L38,' + (faceCenter-6) + ' L40,' + (faceCenter-4) Z" fill="#ff69b4"/>' +
+                '<ellipse cx="20" cy="' + (hairTop+3) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.4"/>';
+        } else if (cfg.hair === 'headband') {
+            // 头巾
+            hair = 
+                // 头发
+                '<path d="M14,' + (hairTop+2) + ' Q24,' + (hairTop-2) + ' 34,' + (hairTop+2) + ' L34,' + (faceCenter+6) + ' Q24,' + (faceCenter+10) + ' 14,' + (faceCenter+6) + ' Z" fill="' + hairColor + '"/>' +
+                // 头巾
+                '<path d="M12,' + (faceTop+2) + ' L12,' + (faceTop+8) + ' L36,' + (faceTop+8) + ' L36,' + (faceTop+2) + '" fill="#c0392b"/>' +
+                '<rect x="12" y="' + (faceTop+3) + '" width="24" height="4" fill="#e74c3c" rx="1"/>' +
+                // 头巾结
+                '<circle cx="12" cy="' + (faceTop+10) + '" r="3" fill="#c0392b"/>' +
+                '<circle cx="36" cy="' + (faceTop+10) + '" r="3" fill="#c0392b"/>' +
+                // 头巾飘带
+                '<path d="M12,' + (faceTop+12) + ' L6,' + (faceTop+24) + ' L10,' + (faceTop+24) + ' L14,' + (faceTop+14) + ' Z" fill="#c0392b"/>' +
+                '<path d="M36,' + (faceTop+12) + ' L42,' + (faceTop+24) + ' L38,' + (faceTop+24) + ' L34,' + (faceTop+14) + ' Z" fill="#c0392b"/>' +
+                // 高光
+                '<ellipse cx="20" cy="' + (hairTop+4) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.4"/>';
+        }
+        
+        // ========== 手臂 ==========
+        var arms = 
+            // 左手
+            '<path d="M10,' + (shoulderY+4) + ' L4,' + (shoulderY+14) + ' L6,' + (shoulderY+20) + ' L10,' + (shoulderY+14) + ' Z" fill="' + skinColor + '"/>' +
+            // 右手
+            '<path d="M38,' + (shoulderY+4) + ' L44,' + (shoulderY+14) + ' L42,' + (shoulderY+20) + ' L38,' + (shoulderY+14) + ' Z" fill="' + skinColor + '"/>';
+        
+        // ========== 武器 (手持) ==========
+        var weapon = '';
+        if (cfg.weapon === 'sword') {
+            // 剑 - 握在右手
+            weapon = 
+                '<rect x="42" y="' + (shoulderY+8) + '" width="2" height="24" fill="#a0a0a0" rx="0.5"/>' +
+                '<rect x="41" y="' + (shoulderY+6) + '" width="4" height="3" fill="#ffd700" rx="0.5"/>' +
+                '<rect x="42.5" y="' + (shoulderY+32) + '" width="1" height="4" fill="#8b4513"/>' +
+                // 剑鞘
+                '<rect x="43" y="' + (shoulderY+10) + '" width="1.5" height="20" fill="#654321" rx="0.5"/>';
+        } else if (cfg.weapon === 'spear') {
+            // 矛 - 扛在肩上
+            weapon = 
+                '<rect x="42" y="0" width="2" height="50" fill="#8b4513" rx="0.5"/>' +
+                '<path d="M43,0 L39,10 L43,8 L47,10 Z" fill="#c0c0c0"/>' +
+                '<path d="M43,1 L41,8 L43,7 L45,8 Z" fill="#e0e0e0"/>';
+        } else if (cfg.weapon === 'axe') {
+            // 斧 - 握在右手
+            weapon = 
+                '<rect x="42" y="' + (shoulderY+10) + '" width="2" height="18" fill="#8b4513" rx="0.5"/>' +
+                '<path d="M44,' + (shoulderY+6) + ' L52,' + (shoulderY+14) + ' L44,' + (shoulderY+20) + ' L44,' + (shoulderY+6) + ' Z" fill="#606060"/>' +
+                '<path d="M44,' + (shoulderY+8) + ' L50,' + (shoulderY+14) + ' L44,' + (shoulderY+18) + ' Z" fill="#808080"/>';
+        }
+        
+        return '<svg viewBox="0 0 48 72" xmlns="http://www.w3.org/2000/svg">' +
+               shadow + legs + shoes + bodyParts + neck + arms + face + blush + eyes + eyebrows + nose + mouth + ears + hair + weapon +
+               '</svg>';
+    }
+    
+    function lighten(hex, pct) {
+        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        r = Math.min(255, Math.round(r + (255-r)*pct/100));
+        g = Math.min(255, Math.round(g + (255-g)*pct/100));
+        b = Math.min(255, Math.round(b + (255-b)*pct/100));
+        return '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0');
+    }
+    
+    function darken(hex, pct) {
+        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        r = Math.max(0, Math.round(r * (100-pct)/100));
+        g = Math.max(0, Math.round(g * (100-pct)/100));
+        b = Math.max(0, Math.round(b * (100-pct)/100));
+        return '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0');
+    }
+    
+    var npcConfigs = {
+        'npc-soldier': { hair: 'headband', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear', sprite: 'char_01' },
+        'npc-merchant': { hair: 'short', hairColor: '#3d2817', cloth: 'robe', clothColor: '#e67e22', weapon: 'none', sprite: 'char_03' },
+        'npc-general': { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#c0392b', weapon: 'sword', sprite: 'char_02' }
+    };
+    
+    var enemyConfig = { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#e74c3c', weapon: 'axe', sprite: 'char_07' };
+    
+    // 像素风格角色精灵生成 (使用64x64像素艺术资源)
+    function genPixelChar(cfg, isPlayer) {
+        var spritePath = 'assets/sprites/clean/' + cfg.sprite + '_64.png';
+        var svgContent = genQCharSVG(cfg);
+        // 提取SVG内部内容
+        var match = svgContent.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+        var innerContent = match ? match[1] : svgContent;
+        var spriteImg = '<img src="' + spritePath + '" alt="character" style="image-rendering:pixelated;width:100%;height:100%" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';">';
+        var svgFallback = '<svg style="display:none;width:100%;height:100%" viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg">' + innerContent + '</svg>';
+        return spriteImg + svgFallback;
+    }
+    
+    function initChars() {
+        // 玩家角色 - 优先使用像素风格
+        var playerEl = document.getElementById('player');
+        playerEl.innerHTML = '<div class="qchar-shadow"></div>' + genPixelChar(playerConfig, true);
+        playerEl.className = 'qchar idle';
+        
+        // NPC角色
+        Object.keys(npcConfigs).forEach(function(id) {
+            var names = { 'npc-soldier': '士兵', 'npc-merchant': '商人', 'npc-general': '将军' };
+            var el = document.getElementById(id);
+            el.innerHTML = '<div class="char-name">' + names[id] + '</div>' + genPixelChar(npcConfigs[id], false);
+            el.className = 'qchar npc-char idle';
+        });
+        
+        // 敌人角色
+        ['enemy1','enemy2','enemy3'].forEach(function(id) {
+            var el = document.getElementById(id);
+            el.innerHTML = '<div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="' + id + '-hp" style="width:100%"></div></div>' + genPixelChar(enemyConfig, false);
+            el.className = 'qchar enemy-char idle';
+        });
+    }
+    
+    function updatePreview() {
+        // 角色预览使用SVG以保证清晰度
+        document.getElementById('preview-char').innerHTML = '<div style="width:48px;height:72px;transform:scale(2.2);transform-origin:center">' + genQCharSVG(playerConfig) + '</div>';
+    }
+    
+    document.querySelectorAll('.preset-btn').forEach(function(btn) {
+        btn.onclick = function() {
+            document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            Object.assign(playerConfig, presets[btn.dataset.preset]);
+            // 更新选项按钮状态
+            document.querySelectorAll('.option-btns').forEach(function(g) {
+                var type = g.dataset.type;
+                g.querySelectorAll('.opt-btn').forEach(function(o) { o.classList.toggle('selected', o.dataset.value === playerConfig[type]); });
+            });
+            document.querySelectorAll('.color-btns').forEach(function(g) {
+                var type = g.dataset.type;
+                g.querySelectorAll('.color-btn').forEach(function(o) { o.classList.toggle('selected', o.dataset.value === playerConfig[type]); });
+            });
+            updatePreview();
+        };
+    });
+    
+    document.querySelectorAll('.option-btns').forEach(function(g) {
+        g.querySelectorAll('.opt-btn').forEach(function(btn) {
+            btn.onclick = function() {
+                g.querySelectorAll('.opt-btn').forEach(function(b) { b.classList.remove('selected'); });
+                btn.classList.add('selected');
+                playerConfig[g.dataset.type] = btn.dataset.value;
+                updatePreview();
+            };
+        });
+    });
+    
+    document.querySelectorAll('.color-btns').forEach(function(g) {
+        g.querySelectorAll('.color-btn').forEach(function(btn) {
+            btn.onclick = function() {
+                g.querySelectorAll('.color-btn').forEach(function(b) { b.classList.remove('selected'); });
+                btn.classList.add('selected');
+                playerConfig[g.dataset.type] = btn.dataset.value;
+                updatePreview();
+            };
+        });
+    });
+    
+    function confirmChar() {
+        document.getElementById('char-creation').style.display = 'none';
+        document.getElementById('title-screen').style.display = 'flex';
+    }
+    
+    function showCreate() {
+        document.getElementById('title-screen').style.display = 'none';
+        document.getElementById('char-creation').style.display = 'flex';
+    }
+    
+    var player = { x: 350, y: 264, hp: 100, maxHp: 100, level: 1, gold: 0, attack: 15 };
+    var isTalking = false, nearbyTarget = null;
+    var enemyHp = { enemy1: {hp:30,maxHp:30}, enemy2: {hp:30,maxHp:30}, enemy3: {hp:30,maxHp:30} };
+    
+    var targets = {
+        'npc-soldier': {x:160,y:164,type:'npc',id:'soldier'},
+        'npc-merchant': {x:450,y:114,type:'npc',id:'merchant'},
+        'npc-general': {x:520,y:264,type:'npc',id:'general'},
+        'enemy1': {x:260,y:204,type:'enemy',id:'enemy1'},
+        'enemy2': {x:380,y:234,type:'enemy',id:'enemy2'},
+        'enemy3': {x:280,y:334,type:'enemy',id:'enemy3'}
+    };
+    
+    var dialogues = {
+        soldier: {speaker:'士兵', texts:['黄巾贼在村外作乱！','将军有令，剿灭贼寇！']},
+        merchant: {speaker:'商人', texts:['买卖公道，童叟无欺！','兵荒马乱，生意难做...']},
+        general: {speaker:'将军', texts:['壮士，去消灭黄巾兵！','好！我军士气大振！']}
+    };
+    
+    var quest = { title:'剿灭黄巾', desc:'消灭3个黄巾兵', reward:'+50金币' };
+    
+    var keys = {}, touchDir = null;
+    var speed = 4;
+    
+    function startGame() {
+        document.getElementById('title-screen').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+        initChars();
+        
+        document.addEventListener('keydown', function(e) {
+            if (isTalking) return;
+            switch(e.key.toLowerCase()) {
+                case 'w': case 'arrowup': keys.up = true; break;
+                case 's': case 'arrowdown': keys.down = true; break;
+                case 'a': case 'arrowleft': keys.left = true; break;
+                case 'd': case 'arrowright': keys.right = true; break;
+                case ' ': e.preventDefault(); interact(); break;
+            }
+        });
+        document.addEventListener('keyup', function(e) {
+            switch(e.key.toLowerCase()) {
+                case 'w': case 'arrowup': keys.up = false; break;
+                case 's': case 'arrowdown': keys.down = false; break;
+                case 'a': case 'arrowleft': keys.left = false; break;
+                case 'd': case 'arrowright': keys.right = false; break;
+            }
+        });
+        
+        setupTouch();
+        updateQuest();
+        gameLoop();
+    }
+    
+    function setupTouch() {
+        var zone = document.getElementById('joystick-zone');
+        var thumb = document.getElementById('joystick-thumb');
+        var cx, cy, maxD = 30;
+        
+        zone.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            var r = zone.getBoundingClientRect();
+            cx = r.left + r.width/2; cy = r.top + r.height/2;
+        });
+        
+        zone.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            var dx = e.touches[0].clientX - cx, dy = e.touches[0].clientY - cy;
+            var d = Math.sqrt(dx*dx + dy*dy);
+            if (d > maxD) { dx = dx/d*maxD; dy = dy/d*maxD; }
+            thumb.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
+            touchDir = {x: dx/maxD, y: dy/maxD, dist: d/maxD};
+        });
+        
+        zone.addEventListener('touchend', function() {
+            thumb.style.transform = 'translate(-50%,-50%)';
+            touchDir = null;
+        });
+        
+        document.getElementById('btn-interact').addEventListener('touchstart', function(e) { e.preventDefault(); interact(); });
+        document.getElementById('btn-attack').addEventListener('touchstart', function(e) { e.preventDefault(); attack(); });
+    }
+    
+    var isMoving = false;
+    
+    function gameLoop() {
+        var dx = 0, dy = 0;
+        if (keys.up) dy -= 1; if (keys.down) dy += 1;
+        if (keys.left) dx -= 1; if (keys.right) dx += 1;
+        if (touchDir && touchDir.dist > 0.3) { dx = touchDir.x; dy = touchDir.y; }
+        
+        var wasMoving = isMoving;
+        isMoving = (dx !== 0 || dy !== 0);
+        
+        if (isMoving) {
+            var len = Math.sqrt(dx*dx + dy*dy);
+            dx /= len; dy /= len;
+            player.x += dx * speed;
+            player.y += dy * speed;
+            player.x = Math.max(60, Math.min(window.innerWidth - 60, player.x));
+            player.y = Math.max(80, Math.min(window.innerHeight - 80, player.y));
+            
+            var p = document.getElementById('player');
+            p.style.left = (player.x - 24) + 'px';
+            p.style.top = (player.y - 36) + 'px';
+            
+            // 切换到行走动画
+            if (!wasMoving) {
+                p.className = 'qchar walking';
+            }
+        } else if (wasMoving) {
+            // 切换回待机动画
+            document.getElementById('player').className = 'qchar idle';
+        }
+        
+        checkNearby();
+        requestAnimationFrame(gameLoop);
+    }
+    
+    function checkNearby() {
+        var found = null;
+        for (var id in targets) {
+            var t = targets[id];
+            if (Math.sqrt((player.x-t.x)*(player.x-t.x) + (player.y-t.y)*(player.y-t.y)) < 55) { found = t; break; }
+        }
+        if (found !== nearbyTarget) {
+            nearbyTarget = found;
+            var prompt = document.getElementById('interact-prompt');
+            prompt.textContent = found ? (found.type === 'enemy' ? '空格 攻击' : '空格 对话') : '';
+            prompt.style.display = found ? 'block' : 'none';
+        }
+    }
+    
+    function interact() {
+        if (!nearbyTarget) return;
+        if (nearbyTarget.type === 'enemy') { attack(); return; }
+        var d = dialogues[nearbyTarget.id];
+        if (!d) return;
+        isTalking = true;
+        document.getElementById('speaker').textContent = d.speaker;
+        document.getElementById('text').textContent = d.texts[0];
+        document.getElementById('dialogue').style.display = 'block';
+    }
+    
+    function attack() {
+        if (!nearbyTarget || nearbyTarget.type !== 'enemy') return;
+        var id = nearbyTarget.id;
+        
+        // 玩家攻击动画
+        var playerEl = document.getElementById('player');
+        playerEl.className = 'qchar attacking';
+        setTimeout(function() { if (!isMoving) playerEl.className = 'qchar idle'; else playerEl.className = 'qchar walking'; }, 250);
+        
+        // 敌人受伤动画
+        var enemyEl = document.getElementById(id);
+        enemyEl.className = 'qchar enemy-char hurt';
+        
+        enemyHp[id].hp -= player.attack;
+        document.getElementById(id + '-hp').style.width = Math.max(0, enemyHp[id].hp / enemyHp[id].maxHp * 100) + '%';
+        
+        if (enemyHp[id].hp <= 0) {
+            enemyEl.style.display = 'none';
+            player.gold += 20;
+            document.getElementById('gold').textContent = player.gold;
+            showNotif('击败敌人！+20金币');
+            
+            if (['enemy1','enemy2','enemy3'].filter(function(e) { return enemyHp[e].hp > 0; }).length === 0) {
+                showNotif('任务完成！' + quest.reward);
+                player.gold += 50;
+                document.getElementById('gold').textContent = player.gold;
+                quest = null;
+                updateQuest();
+            }
+        } else {
+            // 受伤后恢复为普通状态
+            setTimeout(function() { 
+                if (enemyHp[id].hp > 0) enemyEl.className = 'qchar enemy-char idle'; 
+            }, 400);
+        }
+    }
+    
+    function closeDialogue() {
+        isTalking = false;
+        document.getElementById('dialogue').style.display = 'none';
+    }
+    
+    function updateQuest() {
+        var box = document.getElementById('quest-box');
+        if (quest) {
+            document.getElementById('quest-title').textContent = quest.title;
+            document.getElementById('quest-desc').textContent = quest.desc;
+            document.getElementById('quest-reward').textContent = quest.reward;
+            box.style.display = 'block';
+        } else {
+            box.style.display = 'none';
+        }
+    }
+    
+    function showNotif(text) {
+        var n = document.getElementById('notification');
+        n.textContent = text;
+        n.style.display = 'block';
+        setTimeout(function() { n.style.display = 'none'; }, 2000);
+    }
+    
+    updatePreview();
+    </script>
+</body>
+</html>
