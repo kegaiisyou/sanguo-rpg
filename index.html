@@ -768,13 +768,21 @@
         document.getElementById('char-creation').style.display = 'flex';
     }
     
-    // 使用 addEventListener 绑定按钮事件
-    document.addEventListener('DOMContentLoaded', function() {
-        var titleStartBtn = document.querySelector('#title-screen .btn');
-        if (titleStartBtn) {
-            titleStartBtn.addEventListener('click', showCreate);
-        }
-    });
+    // 页面加载完成后绑定按钮事件
+    var titleStartBtn = document.querySelector('#title-screen .btn');
+    if (titleStartBtn) {
+        titleStartBtn.onclick = showCreate;
+    }
+    
+    var confirmBtn = document.getElementById('confirm-btn');
+    if (confirmBtn) {
+        confirmBtn.onclick = confirmChar;
+    }
+    
+    var closeBtn = document.getElementById('close-btn');
+    if (closeBtn) {
+        closeBtn.onclick = closeDialogue;
+    }
     
     var player = { x: 350, y: 264, hp: 100, maxHp: 100, level: 1, gold: 0, attack: 15 };
     var isTalking = false, nearbyTarget = null;
