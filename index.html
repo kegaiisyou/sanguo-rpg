@@ -418,8 +418,8 @@
                 // 主体
                 '<path d="M10,' + shoulderY + ' L8,' + waistY + ' L40,' + waistY + ' L38,' + shoulderY + ' L30,' + shoulderY + ' L30,' + (shoulderY+4) + ' L18,' + (shoulderY+4) + ' L18,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
                 // 衣襟
-                '<path d="M18,' + shoulderY + ' L18,' + (shoulderY+8) L24,' + (shoulderY+12) L24,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
-                '<path d="M30,' + shoulderY + ' L30,' + (shoulderY+8) L24,' + (shoulderY+12) L24,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
+                '<path d="M18,' + shoulderY + ' L18,' + (shoulderY+8) + ' L24,' + (shoulderY+12) + ' L24,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
+                '<path d="M30,' + shoulderY + ' L30,' + (shoulderY+8) + ' L24,' + (shoulderY+12) + ' L24,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
                 // 前襟装饰线
                 '<line x1="24" y1="' + (shoulderY+4) + '" x2="24" y2="' + waistY + '" stroke="' + clothLight + '" stroke-width="1"/>' +
                 // 袖子
@@ -441,10 +441,10 @@
                 '<ellipse cx="8" cy="' + (shoulderY+2) + '" rx="6" ry="4" fill="' + lighten(cfg.clothColor, 20) + '"/>' +
                 '<ellipse cx="40" cy="' + (shoulderY+2) + '" rx="6" ry="4" fill="' + lighten(cfg.clothColor, 20) + '"/>' +
                 // 甲片纹理
-                '<path d="M14,' + (shoulderY+4) + ' L12,' + (shoulderY+10) + ' L18,' + (shoulderY+10) L20,' + (shoulderY+4) Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
-                '<path d="M28,' + (shoulderY+4) + ' L30,' + (shoulderY+10) + ' L36,' + (shoulderY+10) L34,' + (shoulderY+4) Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
-                '<path d="M18,' + (shoulderY+8) + ' L16,' + (shoulderY+14) + ' L24,' + (shoulderY+14) L24,' + (shoulderY+8) Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
-                '<path d="M24,' + (shoulderY+8) + ' L24,' + (shoulderY+14) + ' L32,' + (shoulderY+14) L30,' + (shoulderY+8) Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                '<path d="M14,' + (shoulderY+4) + ' L12,' + (shoulderY+10) + ' L18,' + (shoulderY+10) + ' L20,' + (shoulderY+4) + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                '<path d="M28,' + (shoulderY+4) + ' L30,' + (shoulderY+10) + ' L36,' + (shoulderY+10) + ' L34,' + (shoulderY+4) + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                '<path d="M18,' + (shoulderY+8) + ' L16,' + (shoulderY+14) + ' L24,' + (shoulderY+14) + ' L24,' + (shoulderY+8) + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
+                '<path d="M24,' + (shoulderY+8) + ' L24,' + (shoulderY+14) + ' L32,' + (shoulderY+14) + ' L30,' + (shoulderY+8) + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
                 // 护心镜
                 '<circle cx="24" cy="' + (shoulderY+18) + '" r="6" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>' +
                 '<circle cx="24" cy="' + (shoulderY+18) + '" r="4" fill="#e74c3c"/>' +
@@ -481,8 +481,8 @@
                 // 抹胸
                 '<path d="M16,' + shoulderY + ' L24,' + (shoulderY+4) + ' L32,' + shoulderY + ' L30,' + shoulderY + ' L24,' + (shoulderY+2) + ' L18,' + shoulderY + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
                 // 裙子(更宽更长)
-                '<path d="M10,' + (shoulderY+12) + ' L6,' + waistY + ' L4,' + (feetY-8) + ' L16,' + (feetY-8) L18,' + waistY + ' Z" fill="' + darken(cfg.clothColor, 10) + '"/>' +
-                '<path d="M38,' + (shoulderY+12) + ' L42,' + waistY + ' L44,' + (feetY-8) + ' L32,' + (feetY-8) L30,' + waistY + ' Z" fill="' + darken(cfg.clothColor, 10) + '"/>' +
+                '<path d="M10,' + (shoulderY+12) + ' L6,' + waistY + ' L4,' + (feetY-8) + ' L16,' + (feetY-8) + ' L18,' + waistY + ' Z" fill="' + darken(cfg.clothColor, 10) + '"/>' +
+                '<path d="M38,' + (shoulderY+12) + ' L42,' + waistY + ' L44,' + (feetY-8) + ' L32,' + (feetY-8) + ' L30,' + waistY + ' Z" fill="' + darken(cfg.clothColor, 10) + '"/>' +
                 // 裙摆波浪
                 '<path d="M4,' + (feetY-8) + ' Q8,' + (feetY-6) + ' 12,' + (feetY-8) + ' Q16,' + (feetY-6) + ' 20,' + (feetY-8) + ' L20,' + (feetY-10) + ' L4,' + (feetY-10) + ' Z" fill="' + clothDark + '"/>' +
                 '<path d="M28,' + (feetY-8) + ' Q32,' + (feetY-6) + ' 36,' + (feetY-8) + ' Q40,' + (feetY-6) + ' 44,' + (feetY-8) + ' L44,' + (feetY-10) + ' L28,' + (feetY-10) + ' Z" fill="' + clothDark + '"/>' +
