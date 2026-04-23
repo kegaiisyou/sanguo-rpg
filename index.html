@@ -768,6 +768,14 @@
         document.getElementById('char-creation').style.display = 'flex';
     }
     
+    // 使用 addEventListener 绑定按钮事件
+    document.addEventListener('DOMContentLoaded', function() {
+        var titleStartBtn = document.querySelector('#title-screen .btn');
+        if (titleStartBtn) {
+            titleStartBtn.addEventListener('click', showCreate);
+        }
+    });
+    
     var player = { x: 350, y: 264, hp: 100, maxHp: 100, level: 1, gold: 0, attack: 15 };
     var isTalking = false, nearbyTarget = null;
     var enemyHp = { enemy1: {hp:30,maxHp:30}, enemy2: {hp:30,maxHp:30}, enemy3: {hp:30,maxHp:30} };
