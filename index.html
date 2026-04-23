@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>三国江湖 v1.9.0</title>
+    <title>三国江湖 v2.0.0 - 像素风格版</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #ffd700; overflow: hidden; }
@@ -87,9 +87,40 @@
         .dirt { position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: #8B7355; }
         
         .qchar { position: absolute; width: 48px; height: 56px; z-index: 50; image-rendering: pixelated; }
-        .qchar svg { width: 100%; height: 100%; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-        .qchar.idle { animation: bounce 1.2s ease-in-out infinite; }
+        .qchar svg, .qchar img { width: 100%; height: 100%; }
+        .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 32px; height: 8px; background: rgba(0,0,0,0.25); border-radius: 50%; }
+        
+        /* 像素风格待机动画 - 轻微上下弹跳 */
+        @keyframes pixelBounce { 
+            0%, 100% { transform: translateY(0); } 
+            50% { transform: translateY(-2px); } 
+        }
+        .qchar.idle { animation: pixelBounce 0.8s ease-in-out infinite; }
+        
+        /* 像素风格行走动画 - 左右摇摆 + 上下跳动 */
+        @keyframes pixelWalk { 
+            0% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-3px) translateX(1px); }
+            50% { transform: translateY(0) translateX(0); }
+            75% { transform: translateY(-3px) translateX(-1px); }
+            100% { transform: translateY(0) translateX(0); }
+        }
+        .qchar.walking { animation: pixelWalk 0.3s ease-in-out infinite; }
+        
+        /* 攻击动画 - 快速前冲 */
+        @keyframes pixelAttack { 
+            0% { transform: translateX(0); }
+            40% { transform: translateX(8px) scale(1.1); }
+            100% { transform: translateX(0); }
+        }
+        .qchar.attacking { animation: pixelAttack 0.25s ease-out; }
+        
+        /* 受伤动画 - 闪烁 */
+        @keyframes pixelHurt { 
+            0%, 100% { filter: brightness(1); }
+            25%, 75% { filter: brightness(2) hue-rotate(20deg); }
+        }
+        .qchar.hurt { animation: pixelHurt 0.2s ease-in-out 2; }
         .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 32px; height: 8px; background: rgba(0,0,0,0.25); border-radius: 50%; }
         .char-name { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #fff; white-space: nowrap; text-shadow: 1px 1px 0 #000; }
         .enemy-char .char-name { color: #ff6666; }
@@ -98,6 +129,11 @@
         .enemy-hp-fill { height: 100%; background: linear-gradient(180deg, #ff4444, #cc0000); }
         @keyframes shake { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-2px) rotate(-2deg); } 75% { transform: translateY(-2px) rotate(2deg); } }
         .enemy-char { animation: shake 0.8s ease-in-out infinite; }
+        
+        /* NPC待机时轻微晃动 */
+        @keyframes npcIdle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+        .npc-char.idle { animation: npcIdle 2s ease-in-out infinite; }
+        .enemy-char.idle { animation: shake 0.8s ease-in-out infinite; }
         
         .house { position: absolute; }
         .roof { position: relative; background: linear-gradient(180deg, #696969, #808080); border-radius: 2px; }
@@ -243,7 +279,7 @@
     
     <div id="title-screen">
         <h1>三国江湖</h1>
-        <p>v1.9.0 - 优化角色系统</p>
+        <p>v2.0.0 - 像素风格行走动画</p>
         <button class="btn" onclick="startGame()">开始游戏</button>
         <button class="btn" onclick="showCreate()">创建角色</button>
     </div>
@@ -319,15 +355,17 @@
         hairColor: '#1a1a1a',
         cloth: 'warrior',
         clothColor: '#27ae60',
-        weapon: 'none'
+        weapon: 'none',
+        sprite: 'char_01',
+        usePixelArt: true
     };
     
     var presets = {
-        warrior: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'warrior', clothColor: '#27ae60', weapon: 'sword' },
-        general: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear' },
-        scholar: { hair: 'long', hairColor: '#1a1a1a', cloth: 'robe', clothColor: '#9b59b6', weapon: 'none' },
-        lady: { hair: 'twin', hairColor: '#3d2817', cloth: 'dress', clothColor: '#e91e63', weapon: 'none' },
-        bandit: { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#795548', weapon: 'axe' }
+        warrior: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'warrior', clothColor: '#27ae60', weapon: 'sword', sprite: 'char_01' },
+        general: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear', sprite: 'char_02' },
+        scholar: { hair: 'long', hairColor: '#1a1a1a', cloth: 'robe', clothColor: '#9b59b6', weapon: 'none', sprite: 'char_04' },
+        lady: { hair: 'twin', hairColor: '#3d2817', cloth: 'dress', clothColor: '#e91e63', weapon: 'none', sprite: 'char_05' },
+        bandit: { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#795548', weapon: 'axe', sprite: 'char_07' }
     };
     
     // 优化版角色SVG生成器 v1.9.0
@@ -469,27 +507,49 @@
     }
     
     var npcConfigs = {
-        'npc-soldier': { hair: 'headband', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear' },
-        'npc-merchant': { hair: 'short', hairColor: '#3d2817', cloth: 'robe', clothColor: '#e67e22', weapon: 'none' },
-        'npc-general': { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#c0392b', weapon: 'sword' }
+        'npc-soldier': { hair: 'headband', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear', sprite: 'char_01' },
+        'npc-merchant': { hair: 'short', hairColor: '#3d2817', cloth: 'robe', clothColor: '#e67e22', weapon: 'none', sprite: 'char_03' },
+        'npc-general': { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#c0392b', weapon: 'sword', sprite: 'char_02' }
     };
     
-    var enemyConfig = { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#e74c3c', weapon: 'axe' };
+    var enemyConfig = { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#e74c3c', weapon: 'axe', sprite: 'char_07' };
+    
+    // 像素风格角色精灵生成 (使用64x64像素艺术资源)
+    function genPixelChar(cfg, isPlayer) {
+        var spritePath = 'assets/sprites/clean/' + cfg.sprite + '_64.png';
+        var svgContent = genQCharSVG(cfg);
+        // 提取SVG内部内容
+        var match = svgContent.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+        var innerContent = match ? match[1] : svgContent;
+        var spriteImg = '<img src="' + spritePath + '" alt="character" style="image-rendering:pixelated;width:100%;height:100%" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';">';
+        var svgFallback = '<svg style="display:none;width:100%;height:100%" viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg">' + innerContent + '</svg>';
+        return spriteImg + svgFallback;
+    }
     
     function initChars() {
-        document.getElementById('player').innerHTML = '<div class="qchar-shadow"></div>' + genQCharSVG(playerConfig);
+        // 玩家角色 - 优先使用像素风格
+        var playerEl = document.getElementById('player');
+        playerEl.innerHTML = '<div class="qchar-shadow"></div>' + genPixelChar(playerConfig, true);
+        playerEl.className = 'qchar idle';
         
+        // NPC角色
         Object.keys(npcConfigs).forEach(function(id) {
             var names = { 'npc-soldier': '士兵', 'npc-merchant': '商人', 'npc-general': '将军' };
-            document.getElementById(id).innerHTML = '<div class="char-name">' + names[id] + '</div>' + genQCharSVG(npcConfigs[id]);
+            var el = document.getElementById(id);
+            el.innerHTML = '<div class="char-name">' + names[id] + '</div>' + genPixelChar(npcConfigs[id], false);
+            el.className = 'qchar npc-char idle';
         });
         
+        // 敌人角色
         ['enemy1','enemy2','enemy3'].forEach(function(id) {
-            document.getElementById(id).innerHTML = '<div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="' + id + '-hp" style="width:100%"></div></div>' + genQCharSVG(enemyConfig);
+            var el = document.getElementById(id);
+            el.innerHTML = '<div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="' + id + '-hp" style="width:100%"></div></div>' + genPixelChar(enemyConfig, false);
+            el.className = 'qchar enemy-char idle';
         });
     }
     
     function updatePreview() {
+        // 角色预览使用SVG以保证清晰度
         document.getElementById('preview-char').innerHTML = '<div style="width:48px;height:56px;transform:scale(2.2);transform-origin:center">' + genQCharSVG(playerConfig) + '</div>';
     }
     
@@ -498,6 +558,7 @@
             document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
             btn.classList.add('active');
             Object.assign(playerConfig, presets[btn.dataset.preset]);
+            // 更新选项按钮状态
             document.querySelectorAll('.option-btns').forEach(function(g) {
                 var type = g.dataset.type;
                 g.querySelectorAll('.opt-btn').forEach(function(o) { o.classList.toggle('selected', o.dataset.value === playerConfig[type]); });
@@ -624,13 +685,18 @@
         document.getElementById('btn-attack').addEventListener('touchstart', function(e) { e.preventDefault(); attack(); });
     }
     
+    var isMoving = false;
+    
     function gameLoop() {
         var dx = 0, dy = 0;
         if (keys.up) dy -= 1; if (keys.down) dy += 1;
         if (keys.left) dx -= 1; if (keys.right) dx += 1;
         if (touchDir && touchDir.dist > 0.3) { dx = touchDir.x; dy = touchDir.y; }
         
-        if (dx || dy) {
+        var wasMoving = isMoving;
+        isMoving = (dx !== 0 || dy !== 0);
+        
+        if (isMoving) {
             var len = Math.sqrt(dx*dx + dy*dy);
             dx /= len; dy /= len;
             player.x += dx * speed;
@@ -641,6 +707,14 @@
             var p = document.getElementById('player');
             p.style.left = (player.x - 24) + 'px';
             p.style.top = (player.y - 28) + 'px';
+            
+            // 切换到行走动画
+            if (!wasMoving) {
+                p.className = 'qchar walking';
+            }
+        } else if (wasMoving) {
+            // 切换回待机动画
+            document.getElementById('player').className = 'qchar idle';
         }
         
         checkNearby();
@@ -675,11 +749,21 @@
     function attack() {
         if (!nearbyTarget || nearbyTarget.type !== 'enemy') return;
         var id = nearbyTarget.id;
+        
+        // 玩家攻击动画
+        var playerEl = document.getElementById('player');
+        playerEl.className = 'qchar attacking';
+        setTimeout(function() { if (!isMoving) playerEl.className = 'qchar idle'; else playerEl.className = 'qchar walking'; }, 250);
+        
+        // 敌人受伤动画
+        var enemyEl = document.getElementById(id);
+        enemyEl.className = 'qchar enemy-char hurt';
+        
         enemyHp[id].hp -= player.attack;
         document.getElementById(id + '-hp').style.width = Math.max(0, enemyHp[id].hp / enemyHp[id].maxHp * 100) + '%';
         
         if (enemyHp[id].hp <= 0) {
-            document.getElementById(id).style.display = 'none';
+            enemyEl.style.display = 'none';
             player.gold += 20;
             document.getElementById('gold').textContent = player.gold;
             showNotif('击败敌人！+20金币');
@@ -691,6 +775,11 @@
                 quest = null;
                 updateQuest();
             }
+        } else {
+            // 受伤后恢复为普通状态
+            setTimeout(function() { 
+                if (enemyHp[id].hp > 0) enemyEl.className = 'qchar enemy-char idle'; 
+            }, 400);
         }
     }
     
