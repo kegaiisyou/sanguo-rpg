@@ -498,125 +498,111 @@
         // ========== 脖子 ==========
         var neck = '<rect x="21" y="' + (headBottom-4) + '" width="6" height="6" fill="' + skinShadow + '"/>';
         
-        // ========== 头部 (缩小比例) ==========
-        var faceTop = headTop + 4;   // 头顶留发
-        var faceCenter = headTop + 12;
+        // ========== 头部 (重新设计正常比例) ==========
+        var faceTop = headTop + 6;   // 头顶留发
+        var faceBottom = headTop + 22; // 下巴
+        var faceCenter = headTop + 14;  // 脸部中心
         
-        // 脸部 - 鹅蛋脸形
-        var face = '<ellipse cx="' + cx + '" cy="' + faceCenter + '" rx="10" ry="12" fill="' + skinColor + '"/>' +
-                   // 下巴阴影
-                   '<ellipse cx="' + cx + '" cy="' + (faceCenter+8) + '" rx="6" ry="3" fill="' + skinShadow + '" opacity="0.5"/>';
+        // 脸部 - 正常椭圆脸
+        var face = '<ellipse cx="' + cx + '" cy="' + faceCenter + '" rx="9" ry="10" fill="' + skinColor + '"/>';
         
-        // 腮红
-        var blush = '<ellipse cx="14" cy="' + (faceCenter+3) + '" rx="3" ry="2" fill="#ffb6c1" opacity="0.4"/>' +
-                    '<ellipse cx="34" cy="' + (faceCenter+3) + '" rx="3" ry="2" fill="#ffb6c1" opacity="0.4"/>';
+        // 耳朵
+        var ears = '<ellipse cx="15" cy="' + faceCenter + '" rx="1.5" ry="2" fill="' + skinShadow + '"/>' +
+                   '<ellipse cx="33" cy="' + faceCenter + '" rx="1.5" ry="2" fill="' + skinShadow + '"/>';
         
-        // 眼睛 - 位置调整到脸部中间
-        var eyesY = faceCenter - 1;
-        var eyes = '<ellipse cx="18" cy="' + eyesY + '" rx="2.5" ry="3" fill="#2d2d2d"/>' +
-                   '<ellipse cx="30" cy="' + eyesY + '" rx="2.5" ry="3" fill="#2d2d2d"/>' +
-                   '<ellipse cx="18.5" cy="' + (eyesY-1) + '" rx="1" ry="1" fill="#fff"/>' +
-                   '<ellipse cx="30.5" cy="' + (eyesY-1) + '" rx="1" ry="1" fill="#fff"/>';
+        // 眼睛 - 位置在脸部上半部分，不会被刘海挡住
+        var eyesY = faceCenter - 2;
+        var eyes = '<ellipse cx="19" cy="' + eyesY + '" rx="2" ry="2.5" fill="#1a1a1a"/>' +
+                   '<ellipse cx="29" cy="' + eyesY + '" rx="2" ry="2.5" fill="#1a1a1a"/>' +
+                   '<ellipse cx="19.5" cy="' + (eyesY-0.8) + '" rx="0.8" ry="0.8" fill="#fff"/>' +
+                   '<ellipse cx="29.5" cy="' + (eyesY-0.8) + '" rx="0.8" ry="0.8" fill="#fff"/>';
         
         // 眉毛
-        var eyebrows = '<path d="M15,' + (eyesY-5) + ' Q18,' + (eyesY-6) + ' 21,' + (eyesY-4) + '" stroke="' + darken(cfg.hairColor, 15) + '" stroke-width="1.2" fill="none"/>' +
-                       '<path d="M27,' + (eyesY-4) + ' Q30,' + (eyesY-6) + ' 33,' + (eyesY-5) + '" stroke="' + darken(cfg.hairColor, 15) + '" stroke-width="1.2" fill="none"/>';
+        var eyebrows = '<path d="M17,' + (eyesY-3.5) + ' Q19,' + (eyesY-4.5) + ' 21,' + (eyesY-3.5) + '" stroke="' + cfg.hairColor + '" stroke-width="1" fill="none"/>' +
+                       '<path d="M27,' + (eyesY-3.5) + ' Q29,' + (eyesY-4.5) + ' 31,' + (eyesY-3.5) + '" stroke="' + cfg.hairColor + '" stroke-width="1" fill="none"/>';
         
-        // 鼻子
-        var nose = '<path d="M24,' + (eyesY+3) + ' L24,' + (eyesY+5) + ' L22,' + (eyesY+6) + '" stroke="' + skinShadow + '" stroke-width="0.8" fill="none"/>';
+        // 鼻子 - 小巧
+        var nose = '<circle cx="24" cy="' + (eyesY+4) + '" r="1" fill="' + skinShadow + '"/>';
         
-        // 嘴巴
-        var mouth = '<path d="M21,' + (faceCenter+7) + ' Q24,' + (faceCenter+9) + ' 27,' + (faceCenter+7) + '" stroke="#d4766a" stroke-width="1.2" fill="none" stroke-linecap="round"/>';
+        // 嘴巴 - 自然微笑
+        var mouth = '<path d="M21,' + (faceCenter+5) + ' Q24,' + (faceCenter+7) + ' 27,' + (faceCenter+5) + '" stroke="#c9a090" stroke-width="1" fill="none" stroke-linecap="round"/>';
         
-        // 耳朵 (藏在头发里)
-        var ears = '<ellipse cx="14" cy="' + faceCenter + '" rx="1.5" ry="2.5" fill="' + skinShadow + '"/>' +
-                   '<ellipse cx="34" cy="' + faceCenter + '" rx="1.5" ry="2.5" fill="' + skinShadow + '"/>';
+        // 腮红 - 自然红晕
+        var blush = '<ellipse cx="16" cy="' + (eyesY+3) + '" rx="2" ry="1.5" fill="#ffb6c1" opacity="0.3"/>' +
+                    '<ellipse cx="32" cy="' + (eyesY+3) + '" rx="2" ry="1.5" fill="#ffb6c1" opacity="0.3"/>';
         
-        // ========== 发型 (重新设计，让头发完整包裹头部) ==========
+        // ========== 发型 (重新设计，简化为正常人类角色) ==========
         var hairTop = headTop;
         var hairColor = cfg.hairColor;
-        var hairLight = lighten(hairColor, 15);
+        var hairLight = lighten(hairColor, 20);
         var hairDark = darken(hairColor, 15);
         
         var hair = '';
         if (cfg.hair === 'bun') {
-            // 发髻 - 完整包裹头部
+            // 发髻 - 正常古代男子发型
             hair = 
-                // 后脑勺头发
-                '<path d="M14,' + hairTop + ' Q24,' + (hairTop-2) + ' 34,' + hairTop + ' L34,' + (faceCenter+8) + ' Q24,' + (faceCenter+12) + ' 14,' + (faceCenter+8) + ' Z" fill="' + hairColor + '"/>' +
-                // 头顶
-                '<ellipse cx="' + cx + '" cy="' + (hairTop+4) + '" rx="12" ry="8" fill="' + hairColor + '"/>' +
+                // 后脑勺和两侧头发
+                '<path d="M14,' + (hairTop+4) + ' Q24,' + (hairTop-2) + ' 34,' + (hairTop+4) + ' L34,' + (faceBottom-2) + ' L14,' + (faceBottom-2) + ' Z" fill="' + hairColor + '"/>' +
                 // 发髻
-                '<ellipse cx="' + cx + '" cy="' + (hairTop-2) + '" rx="8" ry="6" fill="' + hairColor + '"/>' +
-                '<circle cx="' + cx + '" cy="' + (hairTop-4) + '" r="5" fill="' + hairDark + '"/>' +
+                '<ellipse cx="24" cy="' + hairTop + '" rx="7" ry="5" fill="' + hairColor + '"/>' +
+                '<circle cx="24" cy="' + (hairTop-1) + '" r="4" fill="' + hairDark + '"/>' +
                 // 发簪
-                '<rect x="23" y="' + (hairTop-6) + '" width="2" height="8" fill="#ffd700" rx="0.5"/>' +
-                '<circle cx="24" cy="' + (hairTop-5) + '" r="1.5" fill="#e74c3c"/>' +
-                // 刘海
-                '<path d="M16,' + (faceTop+2) + ' Q20,' + (faceTop+6) + ' 24,' + (faceTop+4) + ' Q28,' + (faceTop+6) + ' 32,' + (faceTop+2) + '" fill="' + hairColor + '"/>' +
+                '<rect x="23" y="' + (hairTop-4) + '" width="2" height="7" fill="#ffd700" rx="0.5"/>' +
+                // 简洁刘海(不挡眼睛)
+                '<path d="M16,' + (faceTop) + ' Q20,' + (faceTop+2) + ' 24,' + (faceTop+1) + ' Q28,' + (faceTop+2) + ' 32,' + (faceTop) + '" fill="' + hairColor + '"/>' +
                 // 高光
-                '<ellipse cx="20" cy="' + (hairTop+2) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.5"/>';
+                '<ellipse cx="20" cy="' + (hairTop+2) + '" rx="3" ry="1.5" fill="' + hairLight + '" opacity="0.4"/>';
         } else if (cfg.hair === 'short') {
             // 短发 - 简洁利落
             hair = 
-                '<path d="M14,' + hairTop + ' Q24,' + (hairTop-3) + ' 34,' + hairTop + ' L34,' + (faceCenter+6) + ' L14,' + (faceCenter+6) + ' Z" fill="' + hairColor + '"/>' +
-                '<ellipse cx="' + cx + '" cy="' + (hairTop+5) + '" rx="11" ry="9" fill="' + hairColor + '"/>' +
-                // 刘海
-                '<path d="M15,' + (faceTop+2) + ' Q18,' + (faceTop+5) + ' 24,' + (faceTop+4) + ' Q30,' + (faceTop+5) + ' 33,' + (faceTop+2) + '" fill="' + hairColor + '"/>' +
+                '<path d="M14,' + (hairTop+4) + ' Q24,' + hairTop + ' 34,' + (hairTop+4) + ' L34,' + (faceBottom-2) + ' L14,' + (faceBottom-2) + ' Z" fill="' + hairColor + '"/>' +
+                // 简洁刘海
+                '<path d="M17,' + (faceTop) + ' Q20,' + (faceTop+1.5) + ' 24,' + (faceTop) + ' Q28,' + (faceTop+1.5) + ' 31,' + (faceTop) + '" fill="' + hairColor + '"/>' +
                 // 发尾纹理
-                '<path d="M14,' + (faceCenter+4) + ' L14,' + (faceCenter+8) + '" stroke="' + hairDark + '" stroke-width="1"/>' +
-                '<path d="M34,' + (faceCenter+4) + ' L34,' + (faceCenter+8) + '" stroke="' + hairDark + '" stroke-width="1"/>' +
-                '<ellipse cx="20" cy="' + (hairTop+3) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.4"/>';
+                '<path d="M14,' + (faceBottom-4) + ' L14,' + (faceBottom-2) + '" stroke="' + hairDark + '" stroke-width="1"/>' +
+                '<path d="M34,' + (faceBottom-4) + ' L34,' + (faceBottom-2) + '" stroke="' + hairDark + '" stroke-width="1"/>' +
+                '<ellipse cx="20" cy="' + (hairTop+3) + '" rx="3" ry="1.5" fill="' + hairLight + '" opacity="0.3"/>';
         } else if (cfg.hair === 'long') {
-            // 长发 - 飘逸但不像鬼
+            // 长发 - 正常古代文人/女子发型
             hair = 
-                // 头顶包裹
-                '<path d="M13,' + (hairTop+2) + ' Q24,' + (hairTop-2) + ' 35,' + (hairTop+2) + ' L35,' + (faceCenter+6) + ' Q24,' + (faceCenter+10) + ' 13,' + (faceCenter+6) + ' Z" fill="' + hairColor + '"/>' +
-                // 刘海
-                '<path d="M15,' + (faceTop+2) + ' Q18,' + (faceTop+5) + ' 24,' + (faceTop+3) + ' Q30,' + (faceTop+5) + ' 33,' + (faceTop+2) + '" fill="' + hairColor + '"/>' +
-                // 两侧长发(不要太长，到腰部)
-                '<path d="M13,' + (faceCenter+4) + ' L10,' + (shoulderY+4) + ' L8,' + (shoulderY+20) + ' L12,' + (shoulderY+20) + ' L14,' + (shoulderY+6) + ' L15,' + (faceCenter+8) + ' Z" fill="' + hairColor + '"/>' +
-                '<path d="M35,' + (faceCenter+4) + ' L38,' + (shoulderY+4) + ' L40,' + (shoulderY+20) + ' L36,' + (shoulderY+20) + ' L34,' + (shoulderY+6) + ' L33,' + (faceCenter+8) + ' Z" fill="' + hairColor + '"/>' +
-                // 发尾
-                '<path d="M8,' + (shoulderY+18) + ' Q10,' + (shoulderY+22) + ' 12,' + (shoulderY+20) + ' L12,' + (shoulderY+18) + ' Q10,' + (shoulderY+20) + ' 8,' + (shoulderY+18) + ' Z" fill="' + hairDark + '"/>' +
-                '<path d="M40,' + (shoulderY+18) + ' Q38,' + (shoulderY+22) + ' 36,' + (shoulderY+20) + ' L36,' + (shoulderY+18) + ' Q38,' + (shoulderY+20) + ' 40,' + (shoulderY+18) + ' Z" fill="' + hairDark + '"/>' +
+                // 头顶和后脑勺
+                '<path d="M13,' + (hairTop+4) + ' Q24,' + hairTop + ' 35,' + (hairTop+4) + ' L35,' + (faceBottom-2) + ' L13,' + (faceBottom-2) + ' Z" fill="' + hairColor + '"/>' +
+                // 简洁刘海
+                '<path d="M17,' + (faceTop) + ' Q20,' + (faceTop+1.5) + ' 24,' + (faceTop) + ' Q28,' + (faceTop+1.5) + ' 31,' + (faceTop) + '" fill="' + hairColor + '"/>' +
+                // 两侧垂发(到肩部)
+                '<path d="M13,' + (faceBottom-2) + ' L10,' + shoulderY + ' L12,' + shoulderY + ' L14,' + (faceBottom-2) + ' Z" fill="' + hairColor + '"/>' +
+                '<path d="M35,' + (faceBottom-2) + ' L38,' + shoulderY + ' L36,' + shoulderY + ' L34,' + (faceBottom-2) + ' Z" fill="' + hairColor + '"/>' +
                 // 高光
-                '<ellipse cx="20" cy="' + (hairTop+4) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.5"/>' +
-                '<path d="M14,' + (faceCenter+5) + ' L12,' + (shoulderY+10) + '" stroke="' + hairLight + '" stroke-width="1" opacity="0.4"/>' +
-                '<path d="M34,' + (faceCenter+5) + ' L36,' + (shoulderY+10) + '" stroke="' + hairLight + '" stroke-width="1" opacity="0.4"/>';
+                '<ellipse cx="20" cy="' + (hairTop+3) + '" rx="3" ry="1.5" fill="' + hairLight + '" opacity="0.4"/>';
         } else if (cfg.hair === 'twin') {
             // 双髻 - 少女发型
             hair = 
                 // 头顶
-                '<path d="M14,' + (hairTop+2) + ' Q24,' + (hairTop-2) + ' 34,' + (hairTop+2) + ' L34,' + (faceCenter+6) + ' Q24,' + (faceCenter+10) + ' 14,' + (faceCenter+6) + ' Z" fill="' + hairColor + '"/>' +
-                // 刘海
-                '<path d="M16,' + (faceTop+2) + ' Q20,' + (faceTop+5) + ' 24,' + (faceTop+3) + ' Q28,' + (faceTop+5) + ' 32,' + (faceTop+2) + '" fill="' + hairColor + '"/>' +
+                '<path d="M14,' + (hairTop+4) + ' Q24,' + hairTop + ' 34,' + (hairTop+4) + ' L34,' + (faceBottom-2) + ' L14,' + (faceBottom-2) + ' Z" fill="' + hairColor + '"/>' +
+                // 简洁刘海
+                '<path d="M17,' + (faceTop) + ' Q20,' + (faceTop+1.5) + ' 24,' + (faceTop) + ' Q28,' + (faceTop+1.5) + ' 31,' + (faceTop) + '" fill="' + hairColor + '"/>' +
                 // 左髻
-                '<circle cx="10" cy="' + (faceCenter) + '" r="6" fill="' + hairColor + '"/>' +
-                '<circle cx="9" cy="' + (faceCenter-2) + '" r="3" fill="' + hairLight + '" opacity="0.5"/>' +
+                '<circle cx="10" cy="' + (faceCenter-2) + '" r="5" fill="' + hairColor + '"/>' +
+                '<circle cx="9" cy="' + (faceCenter-4) + '" r="2" fill="' + hairLight + '" opacity="0.4"/>' +
                 // 右髻
-                '<circle cx="38" cy="' + (faceCenter) + '" r="6" fill="' + hairColor + '"/>' +
-                '<circle cx="39" cy="' + (faceCenter-2) + '" r="3" fill="' + hairLight + '" opacity="0.5"/>' +
-                // 蝴蝶结装饰
-                '<path d="M8,' + (faceCenter-4) + ' L10,' + (faceCenter-6) + ' L12,' + (faceCenter-4) + ' Z" fill="#ff69b4"/>' +
-                '<path d="M36,' + (faceCenter-4) + ' L38,' + (faceCenter-6) + ' L40,' + (faceCenter-4) + ' Z" fill="#ff69b4"/>' +
-                '<ellipse cx="20" cy="' + (hairTop+3) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.4"/>';
+                '<circle cx="38" cy="' + (faceCenter-2) + '" r="5" fill="' + hairColor + '"/>' +
+                '<circle cx="39" cy="' + (faceCenter-4) + '" r="2" fill="' + hairLight + '" opacity="0.4"/>' +
+                // 发髻高光
+                '<ellipse cx="20" cy="' + (hairTop+3) + '" rx="3" ry="1.5" fill="' + hairLight + '" opacity="0.3"/>';
         } else if (cfg.hair === 'headband') {
-            // 头巾
+            // 头巾 - 草莽英雄风格
             hair = 
                 // 头发
-                '<path d="M14,' + (hairTop+2) + ' Q24,' + (hairTop-2) + ' 34,' + (hairTop+2) + ' L34,' + (faceCenter+6) + ' Q24,' + (faceCenter+10) + ' 14,' + (faceCenter+6) + ' Z" fill="' + hairColor + '"/>' +
+                '<path d="M14,' + (hairTop+4) + ' Q24,' + hairTop + ' 34,' + (hairTop+4) + ' L34,' + (faceBottom-2) + ' L14,' + (faceBottom-2) + ' Z" fill="' + hairColor + '"/>' +
                 // 头巾
-                '<path d="M12,' + (faceTop+2) + ' L12,' + (faceTop+8) + ' L36,' + (faceTop+8) + ' L36,' + (faceTop+2) + '" fill="#c0392b"/>' +
-                '<rect x="12" y="' + (faceTop+3) + '" width="24" height="4" fill="#e74c3c" rx="1"/>' +
-                // 头巾结
-                '<circle cx="12" cy="' + (faceTop+10) + '" r="3" fill="#c0392b"/>' +
-                '<circle cx="36" cy="' + (faceTop+10) + '" r="3" fill="#c0392b"/>' +
-                // 头巾飘带
-                '<path d="M12,' + (faceTop+12) + ' L6,' + (faceTop+24) + ' L10,' + (faceTop+24) + ' L14,' + (faceTop+14) + ' Z" fill="#c0392b"/>' +
-                '<path d="M36,' + (faceTop+12) + ' L42,' + (faceTop+24) + ' L38,' + (faceTop+24) + ' L34,' + (faceTop+14) + ' Z" fill="#c0392b"/>' +
+                '<path d="M12,' + (faceTop+1) + ' L12,' + (faceTop+6) + ' L36,' + (faceTop+6) + ' L36,' + (faceTop+1) + '" fill="#8b0000"/>' +
+                '<rect x="13" y="' + (faceTop+2) + '" width="22" height="3" fill="#b22222" rx="1"/>' +
+                // 头巾结(侧面)
+                '<circle cx="11" cy="' + (faceTop+7) + '" r="2.5" fill="#8b0000"/>' +
+                // 飘带
+                '<path d="M11,' + (faceTop+9) + ' L7,' + (faceTop+16) + ' L9,' + (faceTop+16) + ' L12,' + (faceTop+10) + ' Z" fill="#8b0000"/>' +
                 // 高光
-                '<ellipse cx="20" cy="' + (hairTop+4) + '" rx="4" ry="2" fill="' + hairLight + '" opacity="0.4"/>';
+                '<ellipse cx="20" cy="' + (hairTop+3) + '" rx="3" ry="1.5" fill="' + hairLight + '" opacity="0.3"/>';
         }
         
         // ========== 手臂 ==========
@@ -651,7 +637,7 @@
         }
         
         return '<svg viewBox="0 0 48 72" xmlns="http://www.w3.org/2000/svg">' +
-               shadow + legs + shoes + bodyParts + neck + arms + face + blush + ears + hair + eyes + eyebrows + nose + mouth + weapon +
+               shadow + legs + shoes + bodyParts + neck + arms + face + blush + ears + eyes + eyebrows + nose + mouth + hair + weapon +
                '</svg>';
     }
     
