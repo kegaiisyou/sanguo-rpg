@@ -651,7 +651,7 @@
         }
         
         return '<svg viewBox="0 0 48 72" xmlns="http://www.w3.org/2000/svg">' +
-               shadow + legs + shoes + bodyParts + neck + arms + face + blush + eyes + eyebrows + nose + mouth + ears + hair + weapon +
+               shadow + legs + shoes + bodyParts + neck + arms + face + blush + ears + hair + eyes + eyebrows + nose + mouth + weapon +
                '</svg>';
     }
     
@@ -679,16 +679,23 @@
     
     var enemyConfig = { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#e74c3c', weapon: 'axe', sprite: 'char_07' };
     
-    // 像素风格角色精灵生成 (使用64x64像素艺术资源)
+    // 像素风格角色精灵生成 - 玩家使用捏脸SVG，NPC/敌人使用图片资源
     function genPixelChar(cfg, isPlayer) {
-        var spritePath = 'assets/sprites/clean/' + cfg.sprite + '_64.png';
         var svgContent = genQCharSVG(cfg);
         // 提取SVG内部内容
         var match = svgContent.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
         var innerContent = match ? match[1] : svgContent;
-        var spriteImg = '<img src="' + spritePath + '" alt="character" style="image-rendering:pixelated;width:100%;height:100%" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';">';
-        var svgFallback = '<svg style="display:none;width:100%;height:100%" viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg">' + innerContent + '</svg>';
-        return spriteImg + svgFallback;
+        
+        if (isPlayer) {
+            // 玩家角色始终使用捏脸生成的SVG
+            return '<svg style="width:100%;height:100%" viewBox="0 0 48 72" xmlns="http://www.w3.org/2000/svg">' + innerContent + '</svg>';
+        } else {
+            // NPC/敌人使用图片资源
+            var spritePath = 'assets/sprites/clean/' + cfg.sprite + '_64.png';
+            var spriteImg = '<img src="' + spritePath + '" alt="character" style="image-rendering:pixelated;width:100%;height:100%" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';">';
+            var svgFallback = '<svg style="display:none;width:100%;height:100%" viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg">' + innerContent + '</svg>';
+            return spriteImg + svgFallback;
+        }
     }
     
     function initChars() {
