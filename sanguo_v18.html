@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三国志 - 乱世逐鹿</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "SimSun", "宋体", serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #d4af37;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            font-size: 3em;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px #000, 0 0 10px #ff6600;
+            margin-bottom: 20px;
+            letter-spacing: 10px;
+        }
+        h2 {
+            color: #ffd700;
+            border-bottom: 2px solid #8b4513;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        /* 开始界面 */
+        #startScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #startScreen h1 {
+            font-size: 4em;
+            margin-bottom: 10px;
+        }
+        #startScreen .subtitle {
+            font-size: 1.5em;
+            color: #c0c0c0;
+            margin-bottom: 50px;
+        }
+        .start-btn {
+            padding: 20px 60px;
+            font-size: 1.5em;
+            background: linear-gradient(180deg, #8b4513 0%, #654321 100%);
+            border: 3px solid #ffd700;
+            color: #ffd700;
+            cursor: pointer;
+            border-radius: 10px;
+            text-shadow: 1px 1px 2px #000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .start-btn:hover {
+            background: linear-gradient(180deg, #a0522d 0%, #8b4513 100%);
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(255,215,0,0.3);
+        }
+        /* 游戏主界面 */
+        #gameScreen {
+            display: none;
+        }
+        .game-layout {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        /* 左侧面板 */
+        .left-panel {
+            width: 280px;
+            flex-shrink: 0;
+        }
+        /* 信息面板 */
+        .info-panel {
+            background: linear-gradient(180deg, rgba(30,30,50,0.95) 0%, rgba(20,20,35,0.95) 100%);
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #4a4a4a;
+            font-size: 0.95em;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #a0a0a0;
+        }
+        .info-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        /* 按钮样式 */
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .action-btn {
+            padding: 15px 20px;
+            font-size: 1.1em;
+            background: linear-gradient(180deg, #3a3a5a 0%, #2a2a4a 100%);
+            border: 2px solid #8b4513;
+            color: #ffd700;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .action-btn:hover {
+            background: linear-gradient(180deg, #4a4a6a 0%, #3a3a5a 100%);
+            border-color: #ffd700;
+            transform: translateX(5px);
+        }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* 中间主区域 */
+        .main-panel {
+            flex: 1;
+            min-width: 0;
+        }
+        .log-panel {
+            background: linear-gradient(180deg, rgba(30,30,50,0.95) 0%, rgba(20,20,35,0.95) 100%);
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .log-content {
+            line-height: 1.8;
+            font-size: 1em;
+        }
+        .log-content p {
+            margin-bottom: 10px;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .highlight {
+            color: #ff6600;
+            font-weight: bold;
+        }
+        .success {
+            color: #00ff00;
+        }
+        .warning {
+            color: #ff0000;
+        }
+        .system {
+            color: #87ceeb;
+            font-style: italic;
+        }
+        /* 命令输入 */
+        .command-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .command-input input {
+            flex: 1;
+            padding: 12px 15px;
+            font-size: 1em;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #8b4513;
+            border-radius: 8px;
+            color: #ffd700;
+            font-family: inherit;
+        }
+        .command-input input:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+        .command-input button {
+            padding: 12px 25px;
+            font-size: 1em;
+            background: linear-gradient(180deg, #8b4513 0%, #654321 100%);
+            border: 2px solid #ffd700;
+            color: #ffd700;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        .command-input button:hover {
+            background: linear-gradient(180deg, #a0522d 0%, #8b4513 100%);
+        }
+        /* 右侧地图 */
+        .right-panel {
+            width: 300px;
+            flex-shrink: 0;
+        }
+        .map-panel {
+            background: linear-gradient(180deg, rgba(30,30,50,0.95) 0%, rgba(20,20,35,0.95) 100%);
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .city-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .city-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(60,60,80,0.5);
+            border: 1px solid #4a4a4a;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95em;
+        }
+        .city-item:hover {
+            background: rgba(80,80,100,0.5);
+            border-color: #ffd700;
+        }
+        .city-item.current {
+            border-color: #00ff00;
+            background: rgba(0,100,0,0.3);
+        }
+        .city-name {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .city-type {
+            font-size: 0.85em;
+            color: #a0a0a0;
+            margin-top: 3px;
+        }
+        /* 移动面板 */
+        #movePanel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            background: linear-gradient(180deg, rgba(30,30,50,0.98) 0%, rgba(20,20,35,0.98) 100%);
+            border: 3px solid #8b4513;
+            border-radius: 15px;
+            padding: 25px;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+        #movePanel h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .location-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .location-btn {
+            padding: 15px;
+            background: linear-gradient(180deg, #3a3a5a 0%, #2a2a4a 100%);
+            border: 2px solid #6b6b8b;
+            border-radius: 10px;
+            color: #d4af37;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-family: inherit;
+        }
+        .location-btn:hover {
+            background: linear-gradient(180deg, #4a4a6a 0%, #3a3a5a 100%);
+            border-color: #ffd700;
+            transform: scale(1.05);
+        }
+        .location-btn .loc-icon {
+            font-size: 2em;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .location-btn .loc-name {
+            font-weight: bold;
+            font-size: 1em;
+        }
+        .exit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(180deg, #4a2020 0%, #3a1515 100%);
+            border: 2px solid #ff6b6b;
+            border-radius: 10px;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        .exit-btn:hover {
+            background: linear-gradient(180deg, #5a2525 0%, #4a2020 100%);
+            border-color: #ff8888;
+        }
+        .close-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: transparent;
+            border: 1px solid #666;
+            color: #999;
+            cursor: pointer;
+            border-radius: 5px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        .close-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        /* 地点交互面板 */
+        #placePanel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            background: linear-gradient(180deg, rgba(30,30,50,0.98) 0%, rgba(20,20,35,0.98) 100%);
+            border: 3px solid #8b4513;
+            border-radius: 15px;
+            padding: 25px;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+        .place-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .place-name {
+            font-size: 1.8em;
+            color: #ffd700;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .place-desc {
+            color: #b0b0b0;
+            line-height: 1.6;
+            font-style: italic;
+        }
+        .place-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .place-action-btn {
+            padding: 15px 20px;
+            background: linear-gradient(180deg, #2a4a2a 0%, #1a3a1a 100%);
+            border: 2px solid #4a8b4a;
+            border-radius: 8px;
+            color: #90ee90;
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+            transition: all 0.3s;
+            text-align: left;
+        }
+        .place-action-btn:hover {
+            background: linear-gradient(180deg, #3a5a3a 0%, #2a4a2a 100%);
+            border-color: #6bab6b;
+            transform: translateX(5px);
+        }
+        /* 目的地面板 */
+        #destinationPanel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            background: linear-gradient(180deg, rgba(30,30,50,0.98) 0%, rgba(20,20,35,0.98) 100%);
+            border: 3px solid #8b4513;
+            border-radius: 15px;
+            padding: 25px;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+        .destination-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .destination-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(60,60,80,0.5);
+            border: 1px solid #4a4a4a;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .destination-item:hover {
+            background: rgba(80,80,100,0.5);
+            border-color: #ffd700;
+        }
+        .destination-name {
+            font-weight: bold;
+            color: #ffd700;
+            font-size: 1.1em;
+        }
+        .destination-info {
+            font-size: 0.9em;
+            color: #a0a0a0;
+            margin-top: 5px;
+        }
+        /* 遮罩层 */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 50;
+        }
+        /* 移动动画 */
+        .moving {
+            animation: moveFlash 0.5s ease-in-out;
+        }
+        @keyframes moveFlash {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8b4513;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0522d;
+        }
+        /* 响应式 */
+        @media (max-width: 900px) {
+            .game-layout {
+                flex-direction: column;
+            }
+            .left-panel, .right-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 开始界面 -->
+    <div id="startScreen">
+        <h1>三国志</h1>
+        <div class="subtitle">乱世逐鹿</div>
+        <button class="start-btn" onclick="startGame()">踏入乱世</button>
+    </div>
+
+    <!-- 游戏主界面 -->
+    <div id="gameScreen" class="container">
+        <h1>三国志 · 乱世逐鹿</h1>
+        
+        <div class="game-layout">
+            <!-- 左侧面板 -->
+            <div class="left-panel">
+                <div class="info-panel">
+                    <h2>角色状态</h2>
+                    <div class="info-item">
+                        <span class="info-label">姓名:</span>
+                        <span class="info-value" id="playerName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">身份:</span>
+                        <span class="info-value" id="playerStatus">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">体力:</span>
+                        <span class="info-value" id="playerStamina">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">金钱:</span>
+                        <span class="info-value" id="playerGold">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">声望:</span>
+                        <span class="info-value" id="playerReputation">-</span>
+                    </div>
+                </div>
+                
+                <div class="info-panel">
+                    <h2>当前位置</h2>
+                    <div class="info-item">
+                        <span class="info-label">城市:</span>
+                        <span class="info-value" id="currentCity">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">地点:</span>
+                        <span class="info-value" id="currentPlace">-</span>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="openMove()">移动</button>
+                    <button class="action-btn" onclick="openInventory()">背包</button>
+                    <button class="action-btn" onclick="openStatus()">状态</button>
+                </div>
+            </div>
+            
+            <!-- 中间主区域 -->
+            <div class="main-panel">
+                <div class="log-panel">
+                    <div class="log-content" id="logContent">
+                        <!-- 游戏日志显示区域 -->
+                    </div>
+                </div>
+                <div class="command-input">
+                    <input type="text" id="commandInput" placeholder="输入命令..." onkeypress="handleKeyPress(event)">
+                    <button onclick="processCommand()">执行</button>
+                </div>
+            </div>
+            
+            <!-- 右侧地图 -->
+            <div class="right-panel">
+                <div class="map-panel">
+                    <h2>天下大势</h2>
+                    <div class="city-list" id="cityList">
+                        <!-- 城市列表 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动面板 -->
+    <div class="overlay" id="moveOverlay" onclick="closeMove()"></div>
+    <div id="movePanel">
+        <h2 id="movePanelTitle">城市设施</h2>
+        <div class="location-grid" id="locationGrid">
+            <!-- 地点按钮 -->
+        </div>
+        <button class="exit-btn" id="exitCityBtn" onclick="showDestinations()" style="display:none;">
+            出城 · 前往其他城市
+        </button>
+        <button class="close-btn" onclick="closeMove()">关闭</button>
+    </div>
+
+    <!-- 地点交互面板 -->
+    <div class="overlay" id="placeOverlay" onclick="closePlace()"></div>
+    <div id="placePanel">
+        <div class="place-header">
+            <div class="place-name" id="placeName">-</div>
+            <div class="place-desc" id="placeDesc">-</div>
+        </div>
+        <div class="place-actions" id="placeActions">
+            <!-- 交互按钮 -->
+        </div>
+        <button class="close-btn" onclick="closePlace()">返回</button>
+    </div>
+
+    <!-- 目的地面板 -->
+    <div class="overlay" id="destinationOverlay" onclick="closeDestinations()"></div>
+    <div id="destinationPanel">
+        <h2>选择目的地</h2>
+        <div class="destination-list" id="destinationList">
+            <!-- 可达城市列表 -->
+        </div>
+        <button class="close-btn" onclick="closeDestinations()">返回</button>
+    </div>
+
+    <script>
+        // ==================== 游戏数据 ====================
+        
+        // 城市数据
+        const LOCATIONS = {
+            luoyang: {
+                name: "洛阳",
+                type: "capital",
+                description: "东汉都城，天下中枢",
+                facilities: ["gate", "street", "market", "inn", "government", "barracks", "dock"],
+                owner: "汉室"
+            },
+            xuchang: {
+                name: "许昌",
+                type: "capital",
+                description: "曹操根据地，人才济济",
+                facilities: ["gate", "street", "market", "inn", "government", "barracks", "dock"],
+                owner: "曹操"
+            },
+            yecheng: {
+                name: "邺城",
+                type: "major",
+                description: "袁绍根据地，河北重镇",
+                facilities: ["gate", "street", "market", "inn", "government", "barracks"],
+                owner: "袁绍"
+            },
+            xianyang: {
+                name: "咸阳",
+                type: "town",
+                description: "关中重镇，战略要地",
+                facilities: ["gate", "street", "market", "inn", "government"],
+                owner: "无"
+            },
+            wujiang: {
+                name: "乌江",
+                type: "town",
+                description: "江东门户，水路发达",
+                facilities: ["gate", "street", "market", "inn", "dock"],
+                owner: "无"
+            },
+            jiangling: {
+                name: "江陵",
+                type: "major",
+                description: "荆州治所，鱼米之乡",
+                facilities: ["gate", "street", "market", "inn", "government", "barracks", "dock"],
+                owner: "刘表"
+            },
+            shouchun: {
+                name: "寿春",
+                type: "town",
+                description: "扬州重镇，江淮咽喉",
+                facilities: ["gate", "street", "market", "inn", "government", "barracks"],
+                owner: "袁术"
+            },
+            nanyang: {
+                name: "南阳",
+                type: "town",
+                description: "帝乡所在，卧虎藏龙",
+                facilities: ["gate", "street", "market", "inn", "government", "barracks"],
+                owner: "张绣"
+            },
+            xiapi: {
+                name: "下邳",
+                type: "town",
+                description: "徐州大城，水陆要冲",
+                facilities: ["gate", "street", "market", "inn", "government", "barracks", "dock"],
+                owner: "吕布"
+            },
+            chengdu: {
+                name: "成都",
+                type: "major",
+                description: "天府之国，易守难攻",
+                facilities: ["gate", "street", "market", "inn", "government", "barracks"],
+                owner: "刘璋"
+            },
+            anzhu: {
+                name: "安葬",
+                type: "ruins",
+                description: "董卓毁坏后的废墟",
+                facilities: ["gate"],
+                owner: "无"
+            }
+        };
+
+        // 地点类型定义
+        const FACILITY_TYPES = {
+            gate: {
+                name: "城门",
+                icon: "🚪",
+                description: "城门是城市的入口，守卫森严。从这里可以进出城市。"
+            },
+            street: {
+                name: "街道",
+                icon: "🏘️",
+                description: "繁华的街道，行人往来不绝。连接城市各处。"
+            },
+            market: {
+                name: "市场",
+                icon: "🏪",
+                description: "热闹的集市，商品琳琅满目。可以进行买卖交易。"
+            },
+            inn: {
+                name: "客栈",
+                icon: "🏨",
+                description: "疲惫旅途的绝佳休憩之所。可以打听消息、接取委托。"
+            },
+            government: {
+                name: "官府",
+                icon: "🏛️",
+                description: "官府衙门，处理政务之地。可能有任务可接。"
+            },
+            barracks: {
+                name: "军营",
+                icon: "⛺",
+                description: "军队驻扎之地。可以了解军事动态。"
+            },
+            dock: {
+                name: "码头",
+                icon: "⚓",
+                description: "水陆交通要道，可以乘船出行。"
+            }
+        };
+
+        // 城市类型对应的入口名称
+        function getCityEntryPlaceName(cityType) {
+            const entryNames = {
+                capital: "城门",
+                major: "城门",
+                town: "镇门",
+                village: "村口",
+                ruins: "废墟入口"
+            };
+            return entryNames[cityType] || "城门";
+        }
+
+        // 城市类型对应的入口设施
+        function getCityEntryFacility(cityType) {
+            const entryFacilities = {
+                capital: "gate",
+                major: "gate",
+                town: "gate",
+                village: "gate",
+                ruins: "gate"
+            };
+            return entryFacilities[cityType] || "gate";
+        }
+
+        // ==================== 游戏状态 ====================
+        
+        let player = {
+            name: "刘备",
+            status: "平民",
+            stamina: 100,
+            maxStamina: 100,
+            gold: 100,
+            reputation: 0,
+            currentCity: "luoyang",
+            currentPlace: "城门",
+            inventory: [],
+            skills: {}
+        };
+
+        // ==================== UI更新函数 ====================
+        
+        function updateUI() {
+            document.getElementById('playerName').textContent = player.name;
+            document.getElementById('playerStatus').textContent = player.status;
+            document.getElementById('playerStamina').textContent = player.stamina + '/' + player.maxStamina;
+            document.getElementById('playerGold').textContent = player.gold + ' 金';
+            document.getElementById('playerReputation').textContent = player.reputation;
+            document.getElementById('currentCity').textContent = LOCATIONS[player.currentCity].name;
+            document.getElementById('currentPlace').textContent = player.currentPlace;
+            updateCityList();
+        }
+
+        function updateCityList() {
+            const cityList = document.getElementById('cityList');
+            cityList.innerHTML = '';
+            
+            for (const [id, city] of Object.entries(LOCATIONS)) {
+                const div = document.createElement('div');
+                div.className = 'city-item' + (id === player.currentCity ? ' current' : '');
+                div.innerHTML = `
+                    <div class="city-name">${city.name}</div>
+                    <div class="city-type">${city.type === 'capital' ? '都城' : city.type === 'major' ? '重镇' : city.type === 'town' ? '城镇' : city.type === 'ruins' ? '废墟' : city.type}</div>
+                `;
+                if (id !== player.currentCity) {
+                    div.onclick = () => travel(id);
+                }
+                cityList.appendChild(div);
+            }
+        }
+
+        // ==================== 日志系统 ====================
+        
+        function log(message, type = '') {
+            const logContent = document.getElementById('logContent');
+            const p = document.createElement('p');
+            if (type) p.className = type;
+            p.innerHTML = message;
+            logContent.appendChild(p);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logContent').innerHTML = '';
+        }
+
+        // ==================== 移动系统 ====================
+        
+        function openMove() {
+            const city = LOCATIONS[player.currentCity];
+            const panel = document.getElementById('movePanel');
+            const grid = document.getElementById('locationGrid');
+            const exitBtn = document.getElementById('exitCityBtn');
+            
+            // 设置标题
+            document.getElementById('movePanelTitle').textContent = city.name + ' - 选择目的地';
+            
+            // 清空并填充地点按钮
+            grid.innerHTML = '';
+            city.facilities.forEach(facilityId => {
+                const facility = FACILITY_TYPES[facilityId];
+                const btn = document.createElement('button');
+                btn.className = 'location-btn';
+                btn.innerHTML = `
+                    <span class="loc-icon">${facility.icon}</span>
+                    <span class="loc-name">${facility.name}</span>
+                `;
+                btn.onclick = () => goToPlace(facility.name, facility.description);
+                grid.appendChild(btn);
+            });
+            
+            // 出城按钮 - 只有在城门才显示
+            const currentFacilityId = getCurrentFacilityId();
+            if (currentFacilityId === 'gate') {
+                exitBtn.style.display = 'block';
+            } else {
+                exitBtn.style.display = 'none';
+            }
+            
+            panel.style.display = 'block';
+            document.getElementById('moveOverlay').style.display = 'block';
+        }
+
+        function closeMove() {
+            document.getElementById('movePanel').style.display = 'none';
+            document.getElementById('moveOverlay').style.display = 'none';
+        }
+
+        // 获取当前位置对应的设施ID
+        function getCurrentFacilityId() {
+            const city = LOCATIONS[player.currentCity];
+            for (const facilityId of city.facilities) {
+                if (FACILITY_TYPES[facilityId].name === player.currentPlace) {
+                    return facilityId;
+                }
+            }
+            return 'street';
+        }
+
+        // 移动到指定地点 - 带动画效果
+        function goToPlace(placeName, description) {
+            // 关闭移动面板
+            closeMove();
+            
+            // 添加移动动画效果
+            const mainPanel = document.querySelector('.main-panel');
+            mainPanel.classList.add('moving');
+            
+            // 更新玩家位置
+            player.currentPlace = placeName;
+            
+            // 显示移动信息
+            log(`<span class="system">[ 移动 ]</span> 你来到了 <span class="highlight">${placeName}</span>`);
+            log(description);
+            
+            // 显示地点交互面板
+            setTimeout(() => {
+                mainPanel.classList.remove('moving');
+                showPlacePanel(placeName);
+            }, 500);
+            
+            updateUI();
+        }
+
+        // 显示地点交互面板
+        function showPlacePanel(placeName) {
+            const panel = document.getElementById('placePanel');
+            const actionsDiv = document.getElementById('placeActions');
+            
+            // 查找对应的设施信息
+            let facilityInfo = null;
+            let facilityId = null;
+            for (const [id, fac] of Object.entries(FACILITY_TYPES)) {
+                if (fac.name === placeName) {
+                    facilityInfo = fac;
+                    facilityId = id;
+                    break;
+                }
+            }
+            
+            if (!facilityInfo) return;
+            
+            document.getElementById('placeName').textContent = facilityInfo.name;
+            document.getElementById('placeDesc').textContent = facilityInfo.description;
+            
+            // 清空并填充交互按钮
+            actionsDiv.innerHTML = '';
+            
+            // 根据地点类型显示不同选项
+            switch (facilityId) {
+                case 'gate':
+                    // 城门: 只显示进入城市（如果在外面）或返回
+                    if (player.currentPlace !== getCityEntryPlaceName(LOCATIONS[player.currentCity].type)) {
+                        addActionButton(actionsDiv, '返回城门', 'backToGate', '⇦ 返回城门入口');
+                    }
+                    addActionButton(actionsDiv, '进入城市', 'enterCity', '→ 进入城市内部');
+                    break;
+                    
+                case 'market':
+                    addActionButton(actionsDiv, '交易', 'trade', '💰 买卖物品');
+                    addActionButton(actionsDiv, '打听物价', 'checkPrice', '📊 查看各地物价');
+                    break;
+                    
+                case 'inn':
+                    addActionButton(actionsDiv, '休息', 'rest', '🛏️ 休息恢复体力');
+                    addActionButton(actionsDiv, '打听消息', 'askNews', '📢 了解天下动态');
+                    addActionButton(actionsDiv, '接受委托', 'acceptQuest', '📜 查看可接任务');
+                    break;
+                    
+                case 'government':
+                    addActionButton(actionsDiv, '查看告示', 'viewNotice', '📋 官府告示');
+                    addActionButton(actionsDiv, '拜访官员', 'meetOfficial', '👤 与官员交谈');
+                    break;
+                    
+                case 'barracks':
+                    addActionButton(actionsDiv, '了解军情', 'checkMilitary', '⚔️ 军事动态');
+                    addActionButton(actionsDiv, '观摩训练', 'watchTraining', '🎖️ 观看士兵训练');
+                    break;
+                    
+                case 'dock':
+                    addActionButton(actionsDiv, '乘船出行', 'takeShip', '🚢 水路出行');
+                    addActionButton(actionsDiv, '打听航线', 'checkRoutes', '📍 航线信息');
+                    break;
+                    
+                case 'street':
+                    addActionButton(actionsDiv, '四处逛逛', 'wander', '🚶 在街上漫步');
+                    addActionButton(actionsDiv, '找人交谈', 'talkToPeople', '💬 与路人交谈');
+                    break;
+                    
+                default:
+                    addActionButton(actionsDiv, '仔细查看', 'lookAround', '👀 环顾四周');
+            }
+            
+            // 如果在城门，添加出城选项
+            if (facilityId === 'gate') {
+                addActionButton(actionsDiv, '出城远行', 'showDestinations', '🚶 前往其他城市');
+            }
+            
+            panel.style.display = 'block';
+            document.getElementById('placeOverlay').style.display = 'block';
+        }
+
+        function addActionButton(container, text, action, hint) {
+            const btn = document.createElement('button');
+            btn.className = 'place-action-btn';
+            btn.innerHTML = `<strong>${text}</strong><br><small>${hint}</small>`;
+            btn.onclick = () => handlePlaceAction(action);
+            container.appendChild(btn);
+        }
+
+        function closePlace() {
+            document.getElementById('placePanel').style.display = 'none';
+            document.getElementById('placeOverlay').style.display = 'none';
+        }
+
+        // 处理地点交互动作
+        function handlePlaceAction(action) {
+            closePlace();
+            
+            switch (action) {
+                case 'enterCity':
+                    log(`<span class="system">[ 进入城市 ]</span> 你穿过城门，正式进入了 <span class="highlight">${LOCATIONS[player.currentCity].name}</span>`);
+                    log(`<span class="system">提示:</span> 点击「移动」按钮，选择城市设施进行探索。`);
+                    break;
+                    
+                case 'backToGate':
+                    const entryPlace = getCityEntryPlaceName(LOCATIONS[player.currentCity].type);
+                    goToPlace(entryPlace, FACILITY_TYPES['gate'].description);
+                    break;
+                    
+                case 'trade':
+                    log(`<span class="system">[ 市场 ]</span> 你来到市场，这里商贾云集，热闹非凡。`);
+                    log(`「这位客官，想买些什么？」`);
+                    log(`<span class="system">交易功能开发中...</span>`);
+                    break;
+                    
+                case 'checkPrice':
+                    log(`<span class="system">[ 打听物价 ]</span> 你向商贩打听各地的物价行情...`);
+                    log(`「洛阳的丝绸贵，邺城的木材便宜，江陵的粮食充足...」`);
+                    break;
+                    
+                case 'rest':
+                    if (player.stamina >= player.maxStamina) {
+                        log(`<span class="system">[ 客栈 ]</span> 你精神饱满，无需休息。`);
+                    } else {
+                        const cost = 10;
+                        if (player.gold >= cost) {
+                            player.gold -= cost;
+                            player.stamina = player.maxStamina;
+                            log(`<span class="system">[ 客栈 ]</span> 你在客栈休息了一晚，恢复了体力。(-${cost}金)`);
+                            updateUI();
+                        } else {
+                            log(`<span class="warning">[ 客栈 ]</span> 你想休息，但囊中羞涩... (需要${cost}金)`);
+                        }
+                    }
+                    break;
+                    
+                case 'askNews':
+                    log(`<span class="system">[ 打听消息 ]</span> 你向掌柜打听天下动态...`);
+                    const news = [
+                        "「听说黄巾余党又在作乱了...」",
+                        "「曹操在许昌招兵买马，势力日盛啊。」",
+                        "「袁绍和公孙瓒在北方打得不可开交。」",
+                        "「董卓虽死，但西凉军还在肆虐。」",
+                        "「最近盗贼猖獗，出门要小心啊。」"
+                    ];
+                    log(`「${news[Math.floor(Math.random() * news.length)]}」`);
+                    break;
+                    
+                case 'acceptQuest':
+                    log(`<span class="system">[ 委托板 ]</span> 客栈墙上贴着各种委托...`);
+                    log(`「护送商人」「剿灭山贼」「寻找失物」...`);
+                    log(`<span class="system">任务系统开发中...</span>`);
+                    break;
+                    
+                case 'viewNotice':
+                    log(`<span class="system">[ 官府告示 ]</span> 告示栏上贴着几张公告...`);
+                    log(`「通缉：山贼头目，赏金五百两」`);
+                    log(`「征兵：凡年满十八男子，皆可应征」`);
+                    break;
+                    
+                case 'meetOfficial':
+                    log(`<span class="system">[ 拜访官员 ]</span> 你求见当地官员...`);
+                    log(`「我乃一方父母官，日理万机，有何贵干？」`);
+                    break;
+                    
+                case 'checkMilitary':
+                    log(`<span class="system">[ 军营 ]</span> 你来到军营，士兵们正在操练。`);
+                    log(`「随时准备为国效力！」`);
+                    break;
+                    
+                case 'watchTraining':
+                    log(`<span class="system">[ 观摩训练 ]</span> 你观看士兵们操练武艺...`);
+                    log(`<span class="system">军事系统开发中...</span>`);
+                    break;
+                    
+                case 'takeShip':
+                    log(`<span class="system">[ 码头 ]</span> 你来到码头，可以乘船前往沿江城市。`);
+                    log(`<span class="system">水路交通开发中...</span>`);
+                    break;
+                    
+                case 'checkRoutes':
+                    log(`<span class="system">[ 打听航线 ]</span> 你向船夫打听航线...`);
+                    log(`「沿江而下可达江陵，逆流而上可至乌江...」`);
+                    break;
+                    
+                case 'wander':
+                    log(`<span class="system">[ 漫步街头 ]</span> 你在街上闲逛，感受市井风情...`);
+                    const scenes = [
+                        "街边小贩的吆喝声此起彼伏",
+                        "几个孩童在巷口追逐嬉戏",
+                        "一辆马车从身旁驶过",
+                        "酒楼里传出觥筹交错的声音"
+                    ];
+                    log(`「${scenes[Math.floor(Math.random() * scenes.length)]}」`);
+                    break;
+                    
+                case 'talkToPeople':
+                    log(`<span class="system">[ 与人交谈 ]</span> 你与街上的行人攀谈...`);
+                    const dialogues = [
+                        "「唉，这年头兵荒马乱的...」",
+                        "「听说哪里又打仗了...」",
+                        "「要是能遇到一位明主就好了...」",
+                        "「先生仪表堂堂，不知是哪方人士？」"
+                    ];
+                    log(`「${dialogues[Math.floor(Math.random() * dialogues.length)]}」`);
+                    break;
+                    
+                case 'lookAround':
+                    log(`<span class="system">[ 环顾四周 ]</span> 你仔细观察周围环境...`);
+                    log(`目前没有发现特别的东西。`);
+                    break;
+                    
+                case 'showDestinations':
+                    showDestinations();
+                    break;
+            }
+        }
+
+        // ==================== 城际移动 ====================
+        
+        function showDestinations() {
+            closePlace();
+            closeMove();
+            
+            const panel = document.getElementById('destinationPanel');
+            const list = document.getElementById('destinationList');
+            
+            list.innerHTML = '';
+            
+            for (const [id, city] of Object.entries(LOCATIONS)) {
+                if (id === player.currentCity) continue;
+                
+                const div = document.createElement('div');
+                div.className = 'destination-item';
+                div.innerHTML = `
+                    <div class="destination-name">${city.name}</div>
+                    <div class="destination-info">${city.description} | 所属: ${city.owner}</div>
+                `;
+                div.onclick = () => travel(id);
+                list.appendChild(div);
+            }
+            
+            panel.style.display = 'block';
+            document.getElementById('destinationOverlay').style.display = 'block';
+        }
+
+        function closeDestinations() {
+            document.getElementById('destinationPanel').style.display = 'none';
+            document.getElementById('destinationOverlay').style.display = 'none';
+        }
+
+        function travel(destinationId) {
+            const destination = LOCATIONS[destinationId];
+            
+            // 必须从城门才能出城
+            const currentFacilityId = getCurrentFacilityId();
+            if (currentFacilityId !== 'gate') {
+                log(`<span class="warning">[ 错误 ]</span> 你必须先到达城门才能出城！`);
+                closeDestinations();
+                return;
+            }
+            
+            closeDestinations();
+            
+            // 添加移动动画
+            const mainPanel = document.querySelector('.main-panel');
+            mainPanel.classList.add('moving');
+            
+            // 消耗体力
+            player.stamina -= 10;
+            if (player.stamina < 0) player.stamina = 0;
+            
+            // 记录移动
+            const startCity = LOCATIONS[player.currentCity].name;
+            player.currentCity = destinationId;
+            
+            setTimeout(() => {
+                mainPanel.classList.remove('moving');
+                
+                log(`<span class="system">[ 城际移动 ]</span>`);
+                log(`你告别了 <span class="highlight">${startCity}</span>，踏上了前往 <span class="highlight">${destination.name}</span> 的道路...`);
+                log(`<span class="success">历经艰辛，你终于抵达了 ${destination.name}</span>`);
+                log(destination.description);
+                
+                // 设置新城市的入口
+                player.currentPlace = getCityEntryPlaceName(destination.type);
+                log(`<span class="system">[ 到达 ]</span> 你来到了 <span class="highlight">${destination.name}</span> 的 ${player.currentPlace}`);
+                
+                updateUI();
+            }, 500);
+        }
+
+        // ==================== 背包和状态 ====================
+        
+        function openInventory() {
+            log(`<span class="system">[ 背包 ]</span>`);
+            if (player.inventory.length === 0) {
+                log(`背包空空如也。`);
+            } else {
+                player.inventory.forEach(item => {
+                    log(`• ${item.name} x${item.count}`);
+                });
+            }
+        }
+
+        function openStatus() {
+            log(`<span class="system">[ 状态 ]</span>`);
+            log(`姓名: <span class="highlight">${player.name}</span>`);
+            log(`身份: ${player.status}`);
+            log(`体力: ${player.stamina}/${player.maxStamina}`);
+            log(`金钱: ${player.gold} 金`);
+            log(`声望: ${player.reputation}`);
+            log(`当前位置: ${LOCATIONS[player.currentCity].name} - ${player.currentPlace}`);
+        }
+
+        // ==================== 命令系统 ====================
+        
+        function processCommand() {
+            const input = document.getElementById('commandInput');
+            const cmd = input.value.trim().toLowerCase();
+            input.value = '';
+            
+            if (!cmd) return;
+            
+            log(`<span class="system">[ 命令 ]</span> ${cmd}`);
+            handleCommand(cmd);
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                processCommand();
+            }
+        }
+
+        function handleCommand(cmd) {
+            switch (cmd) {
+                case 'move':
+                case '移动':
+                    openMove();
+                    break;
+                case 'inventory':
+                case '背包':
+                    openInventory();
+                    break;
+                case 'status':
+                case '状态':
+                    openStatus();
+                    break;
+                case 'rest':
+                case '休息':
+                    handlePlaceAction('rest');
+                    break;
+                case 'look':
+                case '环顾':
+                    handlePlaceAction('lookAround');
+                    break;
+                case 'help':
+                case '帮助':
+                    showHelp();
+                    break;
+                case 'clear':
+                case 'cls':
+                    clearLog();
+                    break;
+                default:
+                    log(`<span class="warning">未知命令: ${cmd}</span>`);
+                    log(`<span class="system">输入 "帮助" 查看可用命令</span>`);
+            }
+        }
+
+        function showHelp() {
+            log(`<span class="system">[ 帮助 ]</span>`);
+            log(`<strong>基本命令:</strong>`);
+            log(`• 移动/move - 打开移动面板`);
+            log(`• 背包/inventory - 查看背包`);
+            log(`• 状态/status - 查看角色状态`);
+            log(`• 休息/rest - 在客栈休息`);
+            log(`• 环顾/look - 观察周围环境`);
+            log(`• 帮助/help - 显示帮助信息`);
+            log(`• 清除/clear - 清除屏幕`);
+        }
+
+        // ==================== 游戏初始化 ====================
+        
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            // 初始化玩家位置为洛阳城门
+            player.currentCity = 'luoyang';
+            player.currentPlace = getCityEntryPlaceName(LOCATIONS.luoyang.type);
+            
+            updateUI();
+            
+            // 游戏开始日志
+            clearLog();
+            log(`<span class="highlight">═══════════════════════════════════════</span>`);
+            log(`<span class="highlight">三国志 · 乱世逐鹿</span>`);
+            log(`<span class="highlight">═══════════════════════════════════════</span>`);
+            log(`<span class="system">[ 东汉末年 ]</span>`);
+            log(`黄巾起义虽然被镇压，但天下已然大乱。`);
+            log(`宦官专权、外戚干政、诸侯割据...`);
+            log(`汉室衰微，群雄并起，乱世已然来临。`);
+            log(``);
+            log(`你醒来，发现自己身处 <span class="highlight">${LOCATIONS.luoyang.name}</span> 城中。`);
+            log(`这里是东汉都城，天下中枢。`);
+            log(`<span class="system">[ 提示 ]</span> 点击「移动」按钮开始探索世界`);
+        }
+    </script>
+</body>
+</html>

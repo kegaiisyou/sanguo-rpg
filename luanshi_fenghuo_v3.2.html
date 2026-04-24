@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>乱世烽火 - 劳役营篇</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #1a1510;
+            color: #d4c4a8;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* ===== 顶部状态栏 ===== */
+        .top-bar {
+            background: linear-gradient(180deg, #2a2015 0%, #1a1510 100%);
+            padding: 10px 15px;
+            border-bottom: 1px solid #3a2a1a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .time-info {
+            font-size: 0.85rem;
+            color: #8a7a6a;
+        }
+        
+        .time-info .hour {
+            color: #d4c4a8;
+            font-weight: bold;
+        }
+        
+        .status-icons {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .status-item.low { color: #c97a7a; }
+        .status-item.good { color: #9ab87a; }
+        
+        /* ===== 主内容区 ===== */
+        .main-area {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        /* ===== 区域地图 ===== */
+        .map-container {
+            background: #0f0a08;
+            border: 1px solid #3a2a1a;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .map-title {
+            font-size: 0.8rem;
+            color: #8a7a6a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        
+        .map-cell {
+            background: #1a1510;
+            border: 1px solid #3a2a1a;
+            border-radius: 8px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .map-cell:hover {
+            background: #2a2015;
+            border-color: #6a5a4a;
+        }
+        
+        .map-cell.current {
+            background: #2a3520;
+            border-color: #9ab87a;
+            box-shadow: 0 0 10px rgba(154, 184, 122, 0.3);
+        }
+        
+        .map-cell.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .map-cell.locked:hover {
+            background: #1a1510;
+            border-color: #3a2a1a;
+        }
+        
+        .map-cell-icon {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+        
+        .map-cell-name {
+            font-size: 0.75rem;
+            color: #c4b49c;
+        }
+        
+        .map-cell-status {
+            font-size: 0.65rem;
+            color: #8a7a6a;
+            margin-top: 2px;
+        }
+        
+        .map-cell-status.forbidden {
+            color: #c97a7a;
+        }
+        
+        .map-cell-status.night-only {
+            color: #7a8ac9;
+        }
+        
+        /* ===== 当前位置详情 ===== */
+        .location-detail {
+            background: #1a1510;
+            border: 1px solid #3a2a1a;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .location-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .location-name {
+            font-size: 1rem;
+            color: #d4c4a8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .location-time {
+            font-size: 0.75rem;
+            color: #8a7a6a;
+        }
+        
+        .location-desc {
+            font-size: 0.85rem;
+            color: #8a7a6a;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        
+        /* ===== 遇到的人/物 ===== */
+        .encounter-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .encounter-item {
+            background: #252015;
+            border: 1px solid #3a2a1a;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .encounter-item:hover {
+            background: #2a2015;
+            border-color: #6a5a4a;
+        }
+        
+        .encounter-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .encounter-icon {
+            font-size: 1.3rem;
+        }
+        
+        .encounter-name {
+            font-size: 0.85rem;
+            color: #d4c4a8;
+        }
+        
+        .encounter-detail {
+            font-size: 0.7rem;
+            color: #8a7a6a;
+        }
+        
+        .encounter-action {
+            font-size: 0.75rem;
+            color: #9ab87a;
+            padding: 4px 10px;
+            background: #1a2510;
+            border-radius: 4px;
+        }
+        
+        /* ===== 日志区域 ===== */
+        .log-panel {
+            background: #0f0a08;
+            border-radius: 10px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            line-height: 1.8;
+        }
+        
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #2a1a10;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-time {
+            color: #6a5a4a;
+            font-size: 0.7rem;
+        }
+        
+        .log-text {}
+        
+        .log-text.narrative { color: #8a7a6a; font-style: italic; }
+        .log-text.action { color: #9ab87a; }
+        .log-text.danger { color: #c97a7a; }
+        .log-text.important { color: #d4af37; font-weight: bold; }
+        .log-text.dialog { color: #a8b8c8; }
+        
+        /* ===== 底部工具栏 ===== */
+        .bottom-bar {
+            background: linear-gradient(0deg, #2a2015 0%, #1a1510 100%);
+            padding: 10px 15px;
+            border-top: 1px solid #3a2a1a;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .tool-btn {
+            flex: 1;
+            max-width: 80px;
+            padding: 8px 4px;
+            background: #1a1510;
+            border: 1px solid #3a2a1a;
+            border-radius: 8px;
+            color: #c4b49c;
+            font-size: 0.7rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tool-btn:hover {
+            background: #2a2015;
+            border-color: #6a5a4a;
+        }
+        
+        .tool-btn-icon {
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+        
+        /* ===== 弹窗 ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: linear-gradient(135deg, #2a2015 0%, #1a1510 100%);
+            border: 2px solid #3a2a1a;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 350px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-title {
+            font-size: 1rem;
+            color: #d4af37;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .modal-content {
+            font-size: 0.85rem;
+            line-height: 1.8;
+            color: #c4b49c;
+            margin-bottom: 15px;
+        }
+        
+        .modal-content p {
+            margin-bottom: 10px;
+        }
+        
+        .modal-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .choice-btn {
+            background: #1a2510;
+            border: 1px solid #3a4a2a;
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: #9ab87a;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .choice-btn:hover {
+            background: #2a3520;
+            border-color: #9ab87a;
+        }
+        
+        .choice-btn.danger {
+            background: #251510;
+            border-color: #5a3a3a;
+            color: #c97a7a;
+        }
+        
+        .choice-btn.danger:hover {
+            background: #352520;
+            border-color: #c97a7a;
+        }
+        
+        .modal-close {
+            background: #3a2a1a;
+            border: 1px solid #5a4a3a;
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #8a7a6a;
+            font-size: 0.8rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .modal-close:hover {
+            background: #4a3a2a;
+            color: #c4b49c;
+        }
+        
+        /* ===== 作息时间提示 ===== */
+        .schedule-bar {
+            background: #0f0a08;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            font-size: 0.7rem;
+        }
+        
+        .schedule-item {
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #6a5a4a;
+        }
+        
+        .schedule-item.current {
+            background: #2a3520;
+            color: #9ab87a;
+        }
+        
+        .schedule-item.passed {
+            color: #4a3a2a;
+        }
+        
+        /* ===== 动画 ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* ===== 滚动条 ===== */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1510;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3a2a1a;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+        <div class="time-info">
+            <span id="currentDate">184年 冬月十五</span>
+            <span class="hour" id="currentHour">卯时</span>
+        </div>
+        <div class="status-icons">
+            <div class="status-item" id="staminaStatus">
+                <span>💪</span>
+                <span id="staminaValue">80</span>%
+            </div>
+            <div class="status-item" id="foodStatus">
+                <span>🍜</span>
+                <span id="foodValue">70</span>%
+            </div>
+        </div>
+    </div>
+    
+    <!-- 作息时间条 -->
+    <div class="schedule-bar" id="scheduleBar">
+        <div class="schedule-item" data-hour="5">卯时<br>起床</div>
+        <div class="schedule-item" data-hour="7">辰时<br>劳役</div>
+        <div class="schedule-item" data-hour="11">午时<br>午饭</div>
+        <div class="schedule-item" data-hour="13">未时<br>劳役</div>
+        <div class="schedule-item" data-hour="17">酉时<br>点名</div>
+        <div class="schedule-item" data-hour="19">戌时<br>自由</div>
+        <div class="schedule-item" data-hour="22">亥时<br>就寝</div>
+    </div>
+    
+    <!-- 主内容区 -->
+    <div class="main-area">
+        <!-- 区域地图 -->
+        <div class="map-container">
+            <div class="map-title">📍 广年屯劳役营</div>
+            <div class="map-grid" id="mapGrid">
+                <!-- 由JS生成 -->
+            </div>
+        </div>
+        
+        <!-- 当前位置详情 -->
+        <div class="location-detail" id="locationDetail">
+            <div class="location-header">
+                <div class="location-name" id="locationName">📍 牢房</div>
+                <div class="location-time" id="locationDesc">这是你睡觉的地方...</div>
+            </div>
+            <div class="location-desc" id="locationFullDesc">
+                昏暗潮湿的牢房，挤着十几个犯人。墙角堆着破旧的被褥，弥漫着霉味...
+            </div>
+            
+            <!-- 遇到的人/物 -->
+            <div class="encounter-list" id="encounterList">
+                <!-- 由JS生成 -->
+            </div>
+        </div>
+        
+        <!-- 日志 -->
+        <div class="log-panel" id="logPanel">
+            <div class="log-entry">
+                <span class="log-time">[卯时]</span>
+                <span class="log-text narrative">号角声响起，你被粗暴地推醒...</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 底部工具栏 -->
+    <div class="bottom-bar">
+        <div class="tool-btn" onclick="showStatus()">
+            <span class="tool-btn-icon">📊</span>
+            状态
+        </div>
+        <div class="tool-btn" onclick="showMap()">
+            <span class="tool-btn-icon">🗺️</span>
+            地图
+        </div>
+        <div class="tool-btn" onclick="showItems()">
+            <span class="tool-btn-icon">🎒</span>
+            物品
+        </div>
+        <div class="tool-btn" onclick="advanceTime()">
+            <span class="tool-btn-icon">⏰</span>
+            推进
+        </div>
+    </div>
+    
+    <!-- 弹窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modalContent">
+            <!-- 动态内容 -->
+        </div>
+    </div>
+    
+    <script>
+        // ==================== 游戏数据 ====================
+        const LOCATIONS = {
+            dorm: {
+                name: '牢房',
+                icon: '🏠',
+                desc: '睡觉休息的地方',
+                fullDesc: '昏暗潮湿的牢房，挤着十几个犯人。墙角堆着破旧的被褥，弥漫着霉味。每到夜晚，此起彼伏的鼾声和呻吟声让人难以入眠。',
+                allowedHours: [22, 23, 0, 1, 2, 3, 4],
+                encounters: [
+                    { id: 'old_zhang', name: '老张', icon: '👴', detail: '比你早来一年的老犯人', dialog: true },
+                    { id: 'zhao_4', name: '赵四', icon: '👤', detail: '话不多，总在角落里发呆', dialog: true },
+                    { id: 'bunk', name: '破旧木板床', icon: '🛏️', detail: '硬邦邦的，但能休息', rest: true }
+                ]
+            },
+            yard: {
+                name: '操场',
+                icon: '🌳',
+                desc: '放风休息的地方',
+                fullDesc: '营地中央的一片空地，四周是低矮的围墙。晴天时，犯人们被允许在这里短暂休息。几个士兵在角落里闲聊。',
+                allowedHours: [11, 12, 19, 20, 21],
+                encounters: [
+                    { id: 'soldier_casual', name: '闲聊的士兵', icon: '⚔️', detail: '两个百无聊赖的守卫', hostile: true },
+                    { id: 'li_wu', name: '李五', icon: '👤', detail: '老犯人，消息灵通', dialog: true },
+                    { id: 'water_trough', name: '水井', icon: '💧', detail: '可以解渴恢复体力', rest: true }
+                ]
+            },
+            kitchen: {
+                name: '厨房',
+                icon: '🍜',
+                desc: '做饭的地方，偷食物的好机会',
+                fullDesc: '炊烟袅袅的厨房，几个伙夫正在忙碌。每天的伙食就是稀粥和粗粮，难以下咽。但如果有机会...</div>',
+                allowedHours: [11, 12, 17, 18],
+                encounters: [
+                    { id: 'cook', name: '胖厨子', icon: '👨‍🍳', detail: '脾气不好，但不太管事', hostile: false },
+                    { id: 'food_bucket', name: '食物桶', icon: '🪣', detail: '可能有剩余的食物', stealable: true }
+                ]
+            },
+            mine: {
+                name: '矿区',
+                icon: '⛏️',
+                desc: '危险的开采作业',
+                fullDesc: '尘土飞扬的矿区，犯人们在士兵的监督下挖掘铁矿石。铁镐碰撞的声音回荡在山谷中，时不时传来监工的呵斥声。',
+                allowedHours: [7, 8, 9, 10, 13, 14, 15, 16],
+                encounters: [
+                    { id: 'guard_mine', name: '监工王二', icon: '👮', detail: '凶狠残忍，经常打人', hostile: true },
+                    { id: 'mine_cart', name: '矿车', icon: '🛒', detail: '装满铁矿石的手推车', labor: true, laborName: '推矿车', laborCost: 25 },
+                    { id: 'rock_pile', name: '碎石堆', icon: '🪨', detail: '敲碎大石头', labor: true, laborName: '砸碎石', laborCost: 20 }
+                ]
+            },
+            woodcutting: {
+                name: '伐木场',
+                icon: '🪓',
+                desc: '砍伐树木',
+                fullDesc: '营地边缘的一片树林，犯人们在这里砍伐树木。斧头沉重，木屑飞扬。虽然辛苦，但相对自由一些。',
+                allowedHours: [7, 8, 9, 10, 13, 14, 15, 16],
+                encounters: [
+                    { id: 'guard_wood', name: '监工刘三', icon: '👮', detail: '相对温和，睁一只眼闭一只眼', hostile: false },
+                    { id: 'tree_stump', name: '大树桩', icon: '🌲', detail: '砍伐树木', labor: true, laborName: '砍树', laborCost: 22 },
+                    { id: 'wood_pile', name: '木柴堆', icon: '🪵', detail: '搬运木柴', labor: true, laborName: '搬柴', laborCost: 18 }
+                ]
+            },
+            stable: {
+                name: '马厩',
+                icon: '🐴',
+                desc: '喂养马匹',
+                fullDesc: '几匹瘦骨嶙峋的马被拴在木桩上。一个老马夫负责照料它们，偶尔会指挥犯人帮忙。',
+                allowedHours: [7, 8, 9, 10, 13, 14, 15, 16, 19, 20, 21],
+                encounters: [
+                    { id: 'old_horsekeeper', name: '老马夫', icon: '👴', detail: '不爱说话，但心肠不坏', hostile: false },
+                    { id: 'horse', name: '马匹', icon: '🐴', detail: '可以帮忙喂马', labor: true, laborName: '喂马', laborCost: 15 }
+                ]
+            },
+            gate: {
+                name: '营门',
+                icon: '🚪',
+                desc: '卫兵把守，无法通行',
+                fullDesc: '高大的营门由两个全副武装的士兵把守。门内是营地，门外是自由——但显然，现在还不是出去的时候。',
+                allowedHours: [],
+                locked: true,
+                encounters: [
+                    { id: 'guard_gate', name: '守门士兵', icon: '⚔️', detail: '两个高大的守卫', hostile: true }
+                ]
+            },
+            wall: {
+                name: '围墙',
+                icon: '🧱',
+                desc: '营地边界',
+                fullDesc: '三米高的土墙，上面插满了碎瓦片。墙根处有些松动...也许是逃跑的突破口？需要仔细观察才能发现端倪。',
+                allowedHours: [19, 20, 21],
+                nightOnly: true,
+                encounters: [
+                    { id: 'wall_spot', name: '墙角', icon: '🔍', detail: '看起来有些松动', inspectable: true },
+                    { id: 'patrol', name: '巡逻队', icon: '👮', detail: '每隔一段时间经过', hostile: true }
+                ]
+            }
+        };
+        
+        const TIME_PERIODS = {
+            5: { name: '卯时', activity: '起床点名' },
+            6: { name: '卯时', activity: '被押往劳动场' },
+            7: { name: '辰时', activity: '开始劳役' },
+            8: { name: '辰时', activity: '劳役中' },
+            9: { name: '辰时', activity: '劳役中' },
+            10: { name: '巳时', activity: '劳役中' },
+            11: { name: '午时', activity: '午饭休息' },
+            12: { name: '午时', activity: '自由活动' },
+            13: { name: '未时', activity: '下午劳役' },
+            14: { name: '未时', activity: '劳役中' },
+            15: { name: '申时', activity: '劳役中' },
+            16: { name: '申时', activity: '收工' },
+            17: { name: '酉时', activity: '傍晚点名' },
+            18: { name: '酉时', activity: '晚饭' },
+            19: { name: '戌时', activity: '自由活动' },
+            20: { name: '戌时', activity: '自由活动' },
+            21: { name: '戌时', activity: '自由活动' },
+            22: { name: '亥时', activity: '就寝点名' },
+            23: { name: '亥时', activity: '熄灯' },
+            0: { name: '子时', activity: '深夜' },
+            1: { name: '子时', activity: '深夜' },
+            2: { name: '丑时', activity: '深夜' },
+            3: { name: '丑时', activity: '深夜' },
+            4: { name: '寅时', activity: '熟睡' }
+        };
+        
+        const NPC_DIALOGS = {
+            old_zhang: {
+                name: '老张',
+                icon: '👴',
+                firstMeet: '（压低声音）新来的？别惹事，王二那厮下手没轻没重的。',
+                options: [
+                    { text: '这里的情况，能跟我说说吗？', response: '能说的不多。记住，别和王二对视，别在戌时后乱跑，别吃太快噎着。' },
+                    { text: '有逃跑的可能吗？', response: '（眼神闪烁）...晚上，围墙东北角，巡逻间隔最长。但你得自己观察。' },
+                    { text: '我先走了', response: '去吧，低调点。' }
+                ],
+                trustThresholds: {
+                    0: '别和我说话，让人生疑。',
+                    1: '嗯。',
+                    2: '新来的，你还算识相。',
+                    3: '有事尽管问，能帮的我帮。',
+                    5: '（压低声音）你想逃？我有些想法...'
+                }
+            },
+            zhao_4: {
+                name: '赵四',
+                icon: '👤',
+                firstMeet: '（目光呆滞地看着墙角）...',
+                options: [
+                    { text: '你还好吗？', response: '（喃喃自语）三年了...三年了...' },
+                    { text: '你是怎么进来的？', response: '（突然抓住你的手）我什么都没做！我什么都没做！' },
+                    { text: '（离开）', response: '（继续发呆）' }
+                ],
+                trustThresholds: {
+                    0: '别来烦我。',
+                    1: '...'
+                }
+            },
+            li_wu: {
+                name: '李五',
+                icon: '👤',
+                firstMeet: '（神秘兮兮地凑过来）嘿，新来的，想知道点什么？',
+                options: [
+                    { text: '王监工有什么弱点？', response: '他好赌，每天戌时都会溜出去耍钱。但你可别乱说！' },
+                    { text: '这营里有什么秘密吗？', response: '多了去了。老马夫其实不是犯人，胖厨子偷偷藏粮食...你得慢慢发现。' },
+                    { text: '（离开）', response: '有需要再来找我。' }
+                ],
+                trustThresholds: {
+                    0: '你谁啊？不认识。',
+                    1: '新来的？有点意思。',
+                    2: '咱们是自己人了！',
+                    4: '（神秘一笑）我告诉你个大秘密...'
+                }
+            }
+        };
+        
+        // ==================== 游戏状态 ====================
+        let game = {
+            hour: 5,
+            day: 1,
+            stamina: 80,
+            food: 70,
+            currentLocation: 'dorm',
+            log: [],
+            
+            // 信任度
+            trust: {
+                old_zhang: 0,
+                zhao_4: 0,
+                li_wu: 0
+            },
+            
+            // 已观察的发现
+            discoveries: [],
+            
+            // 收集的物品
+            items: [],
+            
+            // 剧情进度
+            questStage: 0,
+            
+            // 被抓次数
+            caughtCount: 0
+        };
+        
+        // ==================== 核心函数 ====================
+        function init() {
+            updateTimeDisplay();
+            updateStatusDisplay();
+            renderMap();
+            updateLocationDetail();
+            renderLog();
+            showIntroModal();
+        }
+        
+        function showIntroModal() {
+            showModal('序章 · 乱世难民', `
+                <p>184年，黄巾之乱爆发。</p>
+                <p>你本是巨鹿郡的普通农户，战乱中家人离散，自己也被官府抓了壮丁，押往边塞劳役营。</p>
+                <p>每日做牛做马，不知何时是个尽头...</p>
+                <p class="narrative" style="color:#8a7a6a;text-align:center;margin-top:15px;">「想办法活下去...想办法逃出去...」</p>
+            `, [
+                { text: '我明白了', action: closeModal }
+            ]);
+        }
+        
+        function updateTimeDisplay() {
+            const period = TIME_PERIODS[game.hour];
+            document.getElementById('currentDate').textContent = `184年 冬月${game.day + 14}日`;
+            document.getElementById('currentHour').textContent = period.name;
+            
+            // 更新作息时间条
+            document.querySelectorAll('.schedule-item').forEach(item => {
+                const itemHour = parseInt(item.dataset.hour);
+                item.classList.remove('current', 'passed');
+                if (itemHour === game.hour) {
+                    item.classList.add('current');
+                } else if (itemHour > game.hour) {
+                    // 不标记
+                } else {
+                    item.classList.add('passed');
+                }
+            });
+        }
+        
+        function updateStatusDisplay() {
+            document.getElementById('staminaValue').textContent = game.stamina;
+            document.getElementById('foodValue').textContent = game.food;
+            
+            const staminaEl = document.getElementById('staminaStatus');
+            const foodEl = document.getElementById('foodStatus');
+            
+            staminaEl.className = 'status-item ' + (game.stamina < 30 ? 'low' : 'good');
+            foodEl.className = 'status-item ' + (game.food < 30 ? 'low' : 'good');
+        }
+        
+        function renderMap() {
+            const grid = document.getElementById('mapGrid');
+            const order = ['dorm', 'yard', 'kitchen', 'mine', 'woodcutting', 'stable', 'gate', 'wall'];
+            
+            let html = '';
+            order.forEach(locId => {
+                const loc = LOCATIONS[locId];
+                const isCurrent = game.currentLocation === locId;
+                const isLocked = loc.locked;
+                const isNightOnly = loc.nightOnly;
+                const canAccess = isLocationAccessible(locId);
+                
+                let statusText = '';
+                let statusClass = '';
+                
+                if (isLocked) {
+                    statusText = '禁止通行';
+                    statusClass = 'forbidden';
+                } else if (isNightOnly && !isNightTime()) {
+                    statusText = '仅夜间';
+                    statusClass = 'night-only';
+                } else if (!canAccess) {
+                    statusText = '时间不对';
+                    statusClass = 'forbidden';
+                }
+                
+                html += `
+                    <div class="map-cell ${isCurrent ? 'current' : ''} ${!canAccess && !isCurrent ? 'locked' : ''}" 
+                         onclick="${canAccess || isCurrent ? `moveTo('${locId}')` : ''}">
+                        <div class="map-cell-icon">${loc.icon}</div>
+                        <div class="map-cell-name">${loc.name}</div>
+                        ${statusText ? `<div class="map-cell-status ${statusClass}">${statusText}</div>` : ''}
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = html;
+        }
+        
+        function isNightTime() {
+            return game.hour >= 19 || game.hour <= 4;
+        }
+        
+        function isLocationAccessible(locId) {
+            const loc = LOCATIONS[locId];
+            
+            if (loc.locked) return false;
+            if (loc.nightOnly && !isNightTime()) return false;
+            
+            // 检查时间段
+            const hour = game.hour;
+            const inAllowedTime = loc.allowedHours.some(h => 
+                (h <= 5 && hour >= 19) ? true : // 跨夜的情况
+                (hour >= h && hour < h + 2)
+            );
+            
+            return inAllowedTime;
+        }
+        
+        function moveTo(locId) {
+            if (game.currentLocation === locId) return;
+            
+            const loc = LOCATIONS[locId];
+            game.currentLocation = locId;
+            
+            addLog(`${loc.icon} 你来到了「${loc.name}」`, 'action');
+            addLog(loc.fullDesc, 'narrative');
+            
+            renderMap();
+            updateLocationDetail();
+        }
+        
+        function updateLocationDetail() {
+            const loc = LOCATIONS[game.currentLocation];
+            document.getElementById('locationName').innerHTML = `${loc.icon} ${loc.name}`;
+            document.getElementById('locationDesc').textContent = loc.desc;
+            document.getElementById('locationFullDesc').textContent = loc.fullDesc;
+            
+            // 渲染遇到的NPC和物品
+            const encounterList = document.getElementById('encounterList');
+            let html = '';
+            
+            loc.encounters.forEach(enc => {
+                let actionText = '查看';
+                let onclick = `interact('${enc.id}')`;
+                
+                if (enc.labor) {
+                    actionText = `劳役 (-${enc.laborCost}体力)`;
+                } else if (enc.dialog) {
+                    actionText = '交谈';
+                } else if (enc.stealable) {
+                    actionText = '偷窃';
+                } else if (enc.inspectable) {
+                    actionText = '观察';
+                } else if (enc.rest) {
+                    actionText = '休息';
+                } else if (enc.hostile) {
+                    actionText = '小心';
+                    onclick = `approachHostile('${enc.id}')`;
+                }
+                
+                html += `
+                    <div class="encounter-item fade-in" onclick="${onclick}">
+                        <div class="encounter-info">
+                            <span class="encounter-icon">${enc.icon}</span>
+                            <div>
+                                <div class="encounter-name">${enc.name}</div>
+                                <div class="encounter-detail">${enc.detail}</div>
+                            </div>
+                        </div>
+                        <div class="encounter-action">${actionText}</div>
+                    </div>
+                `;
+            });
+            
+            encounterList.innerHTML = html;
+        }
+        
+        function interact(encId) {
+            const loc = LOCATIONS[game.currentLocation];
+            const enc = loc.encounters.find(e => e.id === encId);
+            
+            if (!enc) return;
+            
+            // 遇到NPC
+            if (enc.dialog && NPC_DIALOGS[encId]) {
+                showNPCDialog(encId);
+                return;
+            }
+            
+            // 劳役
+            if (enc.labor) {
+                doLabor(enc);
+                return;
+            }
+            
+            // 观察
+            if (enc.inspectable) {
+                inspectLocation(encId);
+                return;
+            }
+            
+            // 休息
+            if (enc.rest) {
+                doRest();
+                return;
+            }
+            
+            // 偷窃
+            if (enc.stealable) {
+                trySteal(enc);
+                return;
+            }
+            
+            // 友好NPC但无对话数据
+            if (enc.dialog) {
+                addLog(`${enc.icon} ${enc.name}不想和你说话。`, 'narrative');
+            }
+        }
+        
+        function showNPCDialog(npcId) {
+            const npc = NPC_DIALOGS[npcId];
+            const trust = game.trust[npcId] || 0;
+            
+            // 根据信任度调整对话
+            let greeting = npc.firstMeet;
+            if (trust >= 3 && npc.trustThresholds[5]) {
+                greeting = npc.trustThresholds[5];
+            } else if (trust >= 2 && npc.trustThresholds[3]) {
+                greeting = npc.trustThresholds[3];
+            } else if (trust >= 1 && npc.trustThresholds[1]) {
+                greeting = npc.trustThresholds[1];
+            }
+            
+            let choices = npc.options.map(opt => ({
+                text: opt.text,
+                action: () => {
+                    addLog(`${npc.icon} ${npc.name}：${opt.response}`, 'dialog');
+                    
+                    // 增加信任
+                    if (opt.text !== '（离开）' && opt.text !== '（不回答）') {
+                        game.trust[npcId] = Math.min(10, (game.trust[npcId] || 0) + 1);
+                        addLog(`${npc.icon} 与${npc.name}的关系改善了`, 'important');
+                    }
+                    
+                    closeModal();
+                }
+            }));
+            
+            showModal(`${npc.icon} ${npc.name}`, `<p style="color:#a8b8c8">${greeting}</p>`, choices);
+        }
+        
+        function doLabor(enc) {
+            if (game.stamina < enc.laborCost) {
+                showModal('体力不足', `
+                    <p>你太累了，没有力气进行${enc.laborName}。</p>
+                    <p style="color:#c97a7a">建议：休息恢复体力，或者吃些东西。</p>
+                `, [{ text: '知道了', action: closeModal }]);
+                return;
+            }
+            
+            game.stamina -= enc.laborCost;
+            game.food = Math.max(0, game.food - 3);
+            
+            addLog(`${enc.icon} 你进行了${enc.laborName}...`, 'action');
+            
+            // 随机事件
+            const roll = Math.random();
+            if (roll < 0.15) {
+                // 发现东西
+                const found = [
+                    { name: '一枚铜钱', effect: () => addLog(`${enc.icon} 地上发现了一枚铜钱，你悄悄藏了起来。`, 'important') },
+                    { name: '干硬的馒头', effect: () => { game.food = Math.min(100, game.food + 15); addLog(`${enc.icon} 碎石缝里有个干馒头！吃了它恢复了些体力。`, 'important'); }},
+                    { name: '奇怪的符号', effect: () => { if (!game.discoveries.includes('wall_mark')) { game.discoveries.push('wall_mark'); addLog(`${enc.icon} 你在墙上发现了一串模糊的符号，像是某种记号...`, 'important'); }}}
+                ];
+                const item = found[Math.floor(Math.random() * found.length)];
+                item.effect();
+            } else if (roll < 0.25) {
+                // 受伤
+                const damage = Math.floor(Math.random() * 15) + 5;
+                game.stamina -= damage;
+                addLog(`${enc.icon} 不小心受伤了...体力 -${damage}`, 'danger');
+            }
+            
+            advanceTime();
+            updateStatusDisplay();
+            closeModal();
+        }
+        
+        function doRest() {
+            if (game.currentLocation !== 'dorm') {
+                addLog('只有在牢房才能好好休息...', 'narrative');
+                return;
+            }
+            
+            const recovery = 20 + Math.floor(Math.random() * 10);
+            game.stamina = Math.min(100, game.stamina + recovery);
+            addLog(`🛏️ 你在牢房里休息了一会儿...体力 +${recovery}`, 'action');
+            
+            advanceTime();
+            updateStatusDisplay();
+        }
+        
+        function trySteal(enc) {
+            if (game.currentLocation !== 'kitchen') {
+                addLog('这里没什么可偷的。', 'narrative');
+                return;
+            }
+            
+            // 被抓风险
+            const risk = Math.random();
+            if (risk < 0.4) {
+                // 被抓
+                game.caughtCount++;
+                game.food = Math.max(0, game.food - 20);
+                addLog(`⚠️ 你试图偷食物时被发现了！`, 'danger');
+                
+                if (game.caughtCount >= 3) {
+                    showModal('被抓三次！', `
+                        <p>你因为多次偷窃被抓，被关进了黑牢...</p>
+                        <p style="color:#c97a7a">体力 -30，今晚无法休息</p>
+                    `, [{ text: '后悔莫及', action: () => {
+                        game.stamina -= 30;
+                        game.hour = 22;
+                        advanceDay();
+                        closeModal();
+                    }}]);
+                } else {
+                    showModal('被抓了！', `
+                        <p>胖厨子发现了你，大喊大叫。</p>
+                        <p style="color:#c97a7a">被罚今晚不许吃饭</p>
+                    `, [{ text: '低头认错', action: closeModal }]);
+                }
+                return;
+            }
+            
+            // 成功
+            const gain = 10 + Math.floor(Math.random() * 15);
+            game.food = Math.min(100, game.food + gain);
+            addLog(`🍜 趁人不注意，你偷偷抓了把食物...饱食度 +${gain}`, 'important');
+            
+            advanceTime();
+            updateStatusDisplay();
+        }
+        
+        function inspectLocation(encId) {
+            if (encId === 'wall_spot') {
+                if (!game.discoveries.includes('wall_weakness')) {
+                    game.discoveries.push('wall_weakness');
+                    addLog(`🔍 你仔细观察墙角...`, 'action');
+                    addLog(`🧱 东北角的墙根有些松动，上面的碎瓦片也松动了！也许可以挖开一条逃跑路线...`, 'important');
+                    addLog(`📝 记住了这个位置：围墙东北角`, 'important');
+                } else {
+                    addLog(`🧱 围墙东北角的弱点你已经发现了。`, 'narrative');
+                }
+                advanceTime();
+            }
+        }
+        
+        function approachHostile(encId) {
+            const loc = LOCATIONS[game.currentLocation];
+            const enc = loc.encounters.find(e => e.id === encId);
+            
+            addLog(`${enc.icon} ${enc.name}注意到了你...`, 'danger');
+            
+            // 被抓风险
+            if (Math.random() < 0.6) {
+                game.caughtCount++;
+                game.food = Math.max(0, game.food - 10);
+                addLog(`⚠️ 你被${enc.name}抓住了！被罚少吃一顿。`, 'danger');
+                
+                if (game.caughtCount >= 3) {
+                    showModal('惯犯被抓！', `
+                        <p>你三番五次违反规定，被严厉处罚...</p>
+                        <p style="color:#c97a7a">体力 -50，禁闭三天</p>
+                    `, [{ text: '万念俱灰', action: () => {
+                        game.stamina -= 50;
+                        closeModal();
+                    }}]);
+                }
+            } else {
+                addLog(`幸好你及时退开了，没有出事。`, 'narrative');
+            }
+            
+            updateStatusDisplay();
+        }
+        
+        function advanceTime() {
+            game.hour += 2;
+            if (game.hour >= 24) {
+                game.hour -= 24;
+                advanceDay();
+            }
+            
+            // 饱食度自然下降
+            if (game.hour % 4 === 0) {
+                game.food = Math.max(0, game.food - 5);
+            }
+            
+            // 体力过低警告
+            if (game.stamina < 20) {
+                addLog(`⚠️ 你太累了，头昏眼花...`, 'danger');
+            }
+            
+            updateTimeDisplay();
+            updateStatusDisplay();
+            renderMap();
+            updateLocationDetail();
+        }
+        
+        function advanceDay() {
+            game.day++;
+            
+            // 夜间消耗
+            game.food = Math.max(0, game.food - 10);
+            if (game.food < 30) {
+                game.stamina -= 15;
+                addLog(`🍜 你饿了好几天，身体日渐虚弱...体力 -15`, 'danger');
+            }
+            
+            // 睡眠恢复
+            const recovery = 15 + Math.floor(Math.random() * 10);
+            game.stamina = Math.min(100, game.stamina + recovery);
+            
+            addLog(`────────────────────`, 'important');
+            addLog(`🌅 第二天清晨，号角再次响起...`, 'important');
+            addLog(`饱食度恢复有限，体力 +${recovery}`, 'action');
+            
+            // 重置被抓次数（每天清零）
+            game.caughtCount = 0;
+        }
+        
+        function addLog(text, type = '') {
+            const hour = TIME_PERIODS[game.hour]?.name || '?时';
+            game.log.unshift({ text, type, hour });
+            
+            if (game.log.length > 50) game.log.pop();
+            
+            renderLog();
+        }
+        
+        function renderLog() {
+            const panel = document.getElementById('logPanel');
+            let html = '';
+            
+            game.log.forEach(entry => {
+                html += `
+                    <div class="log-entry fade-in">
+                        <span class="log-time">[${entry.hour}]</span>
+                        <span class="log-text ${entry.type}">${entry.text}</span>
+                    </div>
+                `;
+            });
+            
+            panel.innerHTML = html;
+        }
+        
+        // ==================== 工具函数 ====================
+        // 用于存储弹窗选项的回调函数
+        window.modalCallbacks = [];
+        
+        function showModal(title, content, choices) {
+            const overlay = document.getElementById('modalOverlay');
+            const modal = document.getElementById('modalContent');
+            
+            // 清理旧的回调
+            window.modalCallbacks = [];
+            
+            let html = `<div class="modal-title">${title}</div>`;
+            html += `<div class="modal-content">${content}</div>`;
+            
+            if (choices && choices.length > 0) {
+                html += '<div class="modal-choices">';
+                choices.forEach((choice, index) => {
+                    window.modalCallbacks.push(choice.action);
+                    html += `<button class="choice-btn" onclick="doModalChoice(${index})">${choice.text}</button>`;
+                });
+                html += '</div>';
+            }
+            
+            modal.innerHTML = html;
+            overlay.classList.add('active');
+        }
+        
+        function doModalChoice(index) {
+            const callback = window.modalCallbacks[index];
+            closeModal();
+            if (callback) {
+                setTimeout(callback, 150);
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+        
+        function showStatus() {
+            let content = `
+                <p>📅 第 ${game.day} 天</p>
+                <p>💪 体力: ${game.stamina}%</p>
+                <p>🍜 饱食: ${game.food}%</p>
+                <p>⚠️ 被抓: ${game.caughtCount}/3</p>
+                <hr style="border-color:#3a2a1a;margin:10px 0">
+                <p style="color:#8a7a6a">关系:</p>
+                <p>👴 老张: ${game.trust.old_zhang || 0}</p>
+                <p>👤 李五: ${game.trust.li_wu || 0}</p>
+                <hr style="border-color:#3a2a1a;margin:10px 0">
+                <p style="color:#8a7a6a">发现:</p>
+                <p>${game.discoveries.length > 0 ? game.discoveries.map(d => '• ' + d).join('<br>') : '暂无'}</p>
+            `;
+            
+            showModal('📊 状态', content, [{ text: '关闭', action: closeModal }]);
+        }
+        
+        function showMap() {
+            let content = '<p style="color:#8a7a6a">📍 广年屯劳役营地</p>';
+            
+            Object.entries(LOCATIONS).forEach(([id, loc]) => {
+                const isCurrent = game.currentLocation === id;
+                const marker = isCurrent ? ' [当前]' : '';
+                content += `<p>${loc.icon} ${loc.name}${marker}</p>`;
+            });
+            
+            showModal('🗺️ 营地地图', content, [{ text: '关闭', action: closeModal }]);
+        }
+        
+        function showItems() {
+            let content = '<p style="color:#8a7a6a">🎒 你身上的东西:</p>';
+            
+            if (game.items.length === 0) {
+                content += '<p>暂无物品</p>';
+            } else {
+                game.items.forEach(item => {
+                    content += `<p>• ${item}</p>`;
+                });
+            }
+            
+            showModal('🎒 物品', content, [{ text: '关闭', action: closeModal }]);
+        }
+        
+        // 初始化游戏
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三国江湖 v1.2</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #ffd700; overflow: hidden; }
+        #game-container { width: 100vw; height: 100vh; position: relative; }
+        
+        /* 标题界面 */
+        #title-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
+        #title-screen h1 { font-size: 56px; margin-bottom: 10px; }
+        #title-screen .subtitle { color: #888; margin-bottom: 40px; }
+        .title-btn { background: #ffd700; color: #1a1a1a; border: none; padding: 15px 60px; font-size: 22px; cursor: pointer; border-radius: 8px; margin: 10px; }
+        .title-btn:hover { background: #ffed4a; }
+        .title-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+        
+        /* 游戏场景 */
+        #scene { width: 100%; height: 65vh; background: linear-gradient(180deg, #0a0a15 0%, #1a1a2e 30%, #16213e 60%, #0f3460 100%); position: relative; overflow: hidden; display: none; }
+        .ground { position: absolute; bottom: 0; width: 100%; height: 30%; background: linear-gradient(180deg, #3d5a3d 0%, #2d4a2d 50%, #1d3a1d 100%); }
+        #player { position: absolute; width: 50px; height: 70px; left: 50%; bottom: 30%; transform: translateX(-50%); background: #ffd700; border-radius: 5px; transition: left 0.2s; z-index: 50; }
+        
+        /* NPC */
+        .npc { position: absolute; width: 50px; height: 70px; bottom: 30%; cursor: pointer; z-index: 40; }
+        .npc-soldier { left: 20%; background: #4488ff; border-radius: 5px; }
+        .npc-general { left: 80%; background: #ff4444; border-radius: 5px; }
+        .npc-name { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); color: #ffd700; font-size: 12px; white-space: nowrap; }
+        
+        /* HUD */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; display: none; }
+        #status-panel { position: absolute; top: 10px; left: 10px; background: rgba(20,20,30,0.95); border: 2px solid #ffd700; padding: 15px; border-radius: 10px; pointer-events: auto; min-width: 150px; }
+        .stat-row { display: flex; justify-content: space-between; margin: 5px 0; font-size: 14px; }
+        .stat-label { color: #888; }
+        .stat-value { color: #ffd700; }
+        
+        /* 对话框 */
+        #dialogue-area { width: 100%; height: 35vh; background: #1a1a1a; border-top: 3px solid #ffd700; position: relative; }
+        #dialogue-box { position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px; background: rgba(15,15,25,0.98); border: 2px solid #ffd700; border-radius: 10px; padding: 20px; display: none; }
+        #speaker-name { color: #ff6b6b; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        #dialogue-text { font-size: 16px; line-height: 1.8; color: #ddd; margin-bottom: 15px; }
+        #choices { display: flex; flex-wrap: wrap; gap: 10px; }
+        .choice-btn { background: #ffd700; color: #1a1a1a; border: none; padding: 10px 20px; cursor: pointer; font-size: 15px; border-radius: 5px; }
+        .choice-btn:hover { background: #ffed4a; }
+        
+        /* 控制提示 */
+        #controls-hint { position: absolute; bottom: 35%; left: 50%; transform: translateX(-50%); color: #666; font-size: 12px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 标题界面 -->
+        <div id="title-screen">
+            <h1>三国江湖</h1>
+            <p class="subtitle">乱世烽火 · 群雄逐鹿</p>
+            <p style="color: #666; margin-bottom: 20px;">v1.2 修复版</p>
+            <button class="title-btn" onclick="startNewGame()">开始游戏</button>
+            <button class="title-btn" id="continue-btn" onclick="loadGame()" disabled>继续游戏</button>
+        </div>
+        
+        <!-- 游戏场景 -->
+        <div id="scene">
+            <div id="status-panel">
+                <div class="stat-row"><span class="stat-label">等级</span><span class="stat-value" id="level">1</span></div>
+                <div class="stat-row"><span class="stat-label">金币</span><span class="stat-value" id="gold">0</span></div>
+                <div class="stat-row"><span class="stat-label">HP</span><span class="stat-value" id="hp">100/100</span></div>
+            </div>
+            <div class="ground"></div>
+            <div id="player"></div>
+            <div class="npc npc-soldier" id="npc-soldier"><div class="npc-name">士兵</div></div>
+            <div class="npc npc-general" id="npc-general"><div class="npc-name">将军</div></div>
+            <div id="controls-hint">← → 移动 | 空格 交互 | 点击NPC对话</div>
+        </div>
+        
+        <!-- 对话区 -->
+        <div id="dialogue-area">
+            <div id="dialogue-box">
+                <div id="speaker-name"></div>
+                <div id="dialogue-text"></div>
+                <div id="choices"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        var gameState = {
+            level: 1, gold: 0,
+            hp: 100, maxHp: 100,
+            position: 50,
+            quest: null
+        };
+        
+        // 对话数据
+        var dialogues = {
+            intro: { speaker: "说书人", text: "话说天下大势，分久必合，合久必分。东汉末年，朝纲不振，民不聊生...", choices: [{ text: "乱世之中，我当何去何从？", next: "start" }] },
+            start: { speaker: "你", text: "（你从昏迷中醒来，发现自己躺在一片荒郊野外）", choices: [{ text: "站起身来", next: "scene" }] },
+            scene: { speaker: "旁白", text: "你环顾四周，远处城郭隐约可见，城门上书"长沙"二字。", choices: [{ text: "向长沙城走去", next: null }] },
+            soldier: { speaker: "士兵", text: "站住！战时状态，非军籍人员不得入城！", choices: [{ text: "了解", next: null }] },
+            general: { speaker: "将军", text: "黄巾余党作乱，正是用人之际！少侠若愿为国效力，我可委以重任！", choices: [{ text: "遵命！", next: null }] }
+        };
+        
+        var currentDialogue = null;
+        
+        // 检查存档状态
+        var save = localStorage.getItem("sanguo_rpg_save");
+        if (save) {
+            var continueBtn = document.getElementById("continue-btn");
+            if (continueBtn) continueBtn.disabled = false;
+        }
+        
+        // 开始新游戏
+        function startNewGame() {
+            console.log("开始新游戏");
+            gameState = { level: 1, gold: 0, hp: 100, maxHp: 100, position: 50, quest: null };
+            initGame();
+        }
+        
+        // 加载游戏
+        function loadGame() {
+            console.log("加载游戏");
+            var save = localStorage.getItem("sanguo_rpg_save");
+            if (save) {
+                gameState = JSON.parse(save);
+                initGame();
+            }
+        }
+        
+        // 初始化游戏
+        function initGame() {
+            document.getElementById("title-screen").style.display = "none";
+            document.getElementById("scene").style.display = "block";
+            document.getElementById("dialogue-box").style.display = "block";
+            
+            updateHUD();
+            showDialogue("intro");
+            
+            // 绑定键盘事件
+            document.onkeydown = handleKey;
+            
+            // 绑定NPC点击
+            document.getElementById("npc-soldier").onclick = function() { showDialogue("soldier"); };
+            document.getElementById("npc-general").onclick = function() { showDialogue("general"); };
+        }
+        
+        // 显示对话
+        function showDialogue(key) {
+            var data = dialogues[key];
+            if (!data) return;
+            
+            currentDialogue = data;
+            document.getElementById("speaker-name").textContent = data.speaker;
+            document.getElementById("dialogue-text").textContent = data.text;
+            
+            var choicesDiv = document.getElementById("choices");
+            choicesDiv.innerHTML = "";
+            
+            if (data.choices) {
+                for (var i = 0; i < data.choices.length; i++) {
+                    var c = data.choices[i];
+                    var btn = document.createElement("button");
+                    btn.className = "choice-btn";
+                    btn.textContent = c.text;
+                    btn.onclick = (function(next) {
+                        return function() {
+                            if (next) showDialogue(next);
+                            else hideDialogue();
+                        };
+                    })(c.next);
+                    choicesDiv.appendChild(btn);
+                }
+            }
+        }
+        
+        // 隐藏对话
+        function hideDialogue() {
+            document.getElementById("dialogue-box").style.display = "none";
+            currentDialogue = null;
+        }
+        
+        // 键盘控制
+        function handleKey(e) {
+            if (currentDialogue) {
+                if (e.key === "Escape") hideDialogue();
+                return;
+            }
+            
+            var player = document.getElementById("player");
+            if (e.key === "ArrowLeft" && gameState.position > 5) {
+                gameState.position -= 5;
+                player.style.left = gameState.position + "%";
+            } else if (e.key === "ArrowRight" && gameState.position < 95) {
+                gameState.position += 5;
+                player.style.left = gameState.position + "%";
+            } else if (e.key === " ") {
+                checkNpcNearby();
+            }
+        }
+        
+        // 检查附近NPC
+        function checkNpcNearby() {
+            if (Math.abs(gameState.position - 20) < 10) {
+                showDialogue("soldier");
+            } else if (Math.abs(gameState.position - 80) < 10) {
+                showDialogue("general");
+            }
+        }
+        
+        // 更新HUD
+        function updateHUD() {
+            document.getElementById("level").textContent = gameState.level;
+            document.getElementById("gold").textContent = gameState.gold;
+            document.getElementById("hp").textContent = gameState.hp + "/" + gameState.maxHp;
+        }
+        
+        // 保存游戏
+        function saveGame() {
+            localStorage.setItem("sanguo_rpg_save", JSON.stringify(gameState));
+            alert("游戏已保存！");
+        }
+    </script>
+</body>
+</html>

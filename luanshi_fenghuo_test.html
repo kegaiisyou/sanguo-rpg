@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乱世烽火 - 简化测试版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "SimSun", "宋体", serif; background: #1a1a1a; color: #ffd700; overflow: hidden; }
+        #game-container { width: 100vw; height: 100vh; position: relative; }
+        #scene { width: 100%; height: 70vh; background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); position: relative; overflow: hidden; }
+        #map { width: 100%; height: 100%; position: absolute; }
+        .ground { position: absolute; bottom: 0; width: 100%; height: 30%; background: linear-gradient(180deg, #3d5a3d 0%, #2d4a2d 100%); }
+        .mountain { position: absolute; bottom: 25%; width: 0; height: 0; border-left: 60px solid transparent; border-right: 60px solid transparent; border-bottom: 120px solid #4a4a4a; opacity: 0.6; }
+        .tree { position: absolute; width: 30px; height: 50px; background: linear-gradient(180deg, #228b22 0%, #006400 100%); clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+        .cloud { position: absolute; width: 80px; height: 30px; background: #ffffff; opacity: 0.3; border-radius: 50px; }
+        #player { position: absolute; width: 40px; height: 60px; background: #ffd700; left: 50%; bottom: 30%; transform: translateX(-50%); transition: all 0.3s; display: flex; flex-direction: column; align-items: center; }
+        #player::before { content: ""; width: 30px; height: 30px; background: #ffd700; border-radius: 50%; margin-top: 5px; }
+        #player::after { content: ""; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 15px solid #ffd700; margin-top: -5px; }
+        #npc { position: absolute; width: 40px; height: 60px; background: #ff6b6b; cursor: pointer; transition: transform 0.3s; }
+        #npc::before { content: ""; width: 30px; height: 30px; background: #ff6b6b; border-radius: 50%; margin-top: 5px; }
+        #npc:hover { transform: scale(1.1); }
+        #dialogue { height: 30vh; background: #2d2d2d; border-top: 3px solid #ffd700; padding: 20px; position: relative; }
+        #dialogue-box { display: none; background: #1a1a1a; border: 2px solid #ffd700; padding: 15px; border-radius: 5px; min-height: 80px; }
+        #dialogue-text { font-size: 18px; line-height: 1.6; margin-bottom: 10px; }
+        #speaker-name { color: #ff6b6b; font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        #choices { display: flex; flex-direction: column; gap: 10px; }
+        .choice-btn { background: #ffd700; color: #1a1a1a; border: none; padding: 10px 20px; cursor: pointer; font-size: 16px; border-radius: 5px; transition: all 0.3s; }
+        .choice-btn:hover { background: #ffed4a; transform: scale(1.05); }
+        #controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 10px; z-index: 100; }
+        .ctrl-btn { background: rgba(0,0,0,0.7); color: #ffd700; border: 2px solid #ffd700; padding: 8px 15px; cursor: pointer; border-radius: 5px; }
+        .ctrl-btn:hover { background: #ffd700; color: #1a1a1a; }
+        #status-bar { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 10px 20px; border: 2px solid #ffd700; border-radius: 5px; z-index: 100; }
+        .stat { margin: 5px 0; font-size: 14px; }
+        #instructions { position: absolute; bottom: 35%; left: 10px; color: #888; font-size: 12px; z-index: 100; }
+        #title-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 200; }
+        #title-screen h1 { font-size: 48px; color: #ffd700; text-shadow: 2px 2px 4px #000; margin-bottom: 20px; }
+        #start-btn { background: #ffd700; color: #1a1a1a; border: none; padding: 15px 50px; font-size: 24px; cursor: pointer; border-radius: 10px; margin-top: 30px; }
+        #start-btn:hover { background: #ffed4a; transform: scale(1.1); }
+        .fade { animation: fadeIn 1s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="title-screen">
+            <h1>乱世烽火</h1>
+            <p style="color: #888; margin-bottom: 20px;">测试版本 v0.1</p>
+            <button id="start-btn" onclick="startGame()">开始游戏</button>
+        </div>
+        <div id="scene">
+            <div id="status-bar">
+                <div class="stat">等级: <span id="level">1</span></div>
+                <div class="stat">金币: <span id="gold">0</span></div>
+                <div class="stat">任务: <span id="quest-status">无</span></div>
+            </div>
+            <div id="controls">
+                <button class="ctrl-btn" onclick="toggleHelp()">帮助</button>
+                <button class="ctrl-btn" onclick="saveGame()">存档</button>
+            </div>
+            <div id="map">
+                <div class="cloud" style="top: 15%; left: 20%;"></div>
+                <div class="cloud" style="top: 10%; left: 60%;"></div>
+                <div class="cloud" style="top: 20%; left: 80%;"></div>
+                <div class="mountain" style="left: 10%;"></div>
+                <div class="mountain" style="left: 40%;"></div>
+                <div class="mountain" style="left: 70%;"></div>
+                <div class="tree" style="left: 5%; bottom: 25%;"></div>
+                <div class="tree" style="left: 25%; bottom: 25%;"></div>
+                <div class="tree" style="left: 75%; bottom: 25%;"></div>
+                <div class="tree" style="left: 90%; bottom: 25%;"></div>
+                <div class="ground"></div>
+                <div id="player"></div>
+                <div id="npc" style="left: 75%;" onclick="interactNPC()"></div>
+            </div>
+            <div id="instructions">← → 键移动 | 靠近NPC按空格或点击交互</div>
+        </div>
+        <div id="dialogue">
+            <div id="dialogue-box">
+                <div id="speaker-name"></div>
+                <div id="dialogue-text"></div>
+                <div id="choices"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let gameState = { level: 1, gold: 0, quest: null, position: 50, talked: false };
+        let dialogues = {
+            intro: { speaker: "系统", text: "天下大乱，群雄并起。你是一位年轻的武将后人，在这个乱世中踏上了寻找真相的道路...", choices: [{ text: "明白了，开始游戏", next: "explore" }] },
+            explore: { speaker: "路人", text: "少侠，前面就是长社县城了，听说最近有黄巾余党出没，你可要小心啊！", choices: [{ text: "谢谢提醒", next: null }] },
+            quest_given: { speaker: "将军", text: "我乃东汉将军，此刻正追踪黄巾残党。若你愿助我一臂之力，击退前方山贼，我必有重谢！", choices: [{ text: "愿意效劳！", next: "quest_accepted" }, { text: "我还有事，改日再说", next: null }] },
+            quest_accepted: { speaker: "将军", text: "很好！这些山贼就在前方不远处。击败他们，夺回被劫的粮草！", choices: [{ text: "领命！", next: null }] },
+            victory: { speaker: "将军", text: "干得漂亮！粮草已夺回，这些金币是你的酬劳。乱世之中，正需要你这样的勇士！", choices: [{ text: "多谢将军！", next: null }] }
+        };
+        let currentDialogue = null;
+        
+        function startGame() {
+            document.getElementById("title-screen").style.display = "none";
+            showDialogue("intro");
+            document.addEventListener("keydown", handleKey);
+        }
+        
+        function showDialogue(key) {
+            if (!key) { hideDialogue(); return; }
+            currentDialogue = dialogues[key];
+            document.getElementById("speaker-name").textContent = currentDialogue.speaker;
+            document.getElementById("dialogue-text").textContent = currentDialogue.text;
+            const choicesDiv = document.getElementById("choices");
+            choicesDiv.innerHTML = "";
+            if (currentDialogue.choices) {
+                currentDialogue.choices.forEach(c => {
+                    const btn = document.createElement("button");
+                    btn.className = "choice-btn";
+                    btn.textContent = c.text;
+                    btn.onclick = () => { if (c.next) showDialogue(c.next); else hideDialogue(); };
+                    choicesDiv.appendChild(btn);
+                });
+            }
+            document.getElementById("dialogue-box").style.display = "block";
+        }
+        
+        function hideDialogue() {
+            document.getElementById("dialogue-box").style.display = "none";
+            currentDialogue = null;
+        }
+        
+        function interactNPC() {
+            if (!currentDialogue) {
+                if (gameState.quest === null) showDialogue("quest_given");
+                else if (gameState.quest === "defeat_bandits") showDialogue("victory");
+                else showDialogue("explore");
+            }
+        }
+        
+        function handleKey(e) {
+            const player = document.getElementById("player");
+            if (e.key === "ArrowLeft" && gameState.position > 5) {
+                gameState.position -= 5;
+                player.style.left = gameState.position + "%";
+            } else if (e.key === "ArrowRight" && gameState.position < 90) {
+                gameState.position += 5;
+                player.style.left = gameState.position + "%";
+            } else if (e.key === " " && !currentDialogue) {
+                if (Math.abs(gameState.position - 75) < 15) interactNPC();
+            }
+        }
+        
+        function toggleHelp() {
+            alert("操作说明:\n\n← → 键移动角色\n空格键 与NPC对话\n点击NPC也可交互");
+        }
+        
+        function saveGame() {
+            localStorage.setItem("sanguo_save", JSON.stringify(gameState));
+            alert("游戏已保存！");
+        }
+        
+        document.getElementById("level").textContent = gameState.level;
+        document.getElementById("gold").textContent = gameState.gold;
+    </script>
+</body>
+</html>

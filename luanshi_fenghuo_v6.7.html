@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>乱世烽火 - 劳役营篇 v6.8</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#1a1a2e;--panel:#16213e;--card:#0f3460;--accent:#e94560;--text:#eaeaea;--dim:#8892a0;--green:#4ecca3;--gold:#d4af37;--danger:#c97a7a}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.hidden{display:none!important}
+.create-screen{padding:20px;overflow-y:auto;flex:1}
+.create-title{text-align:center;font-size:22px;color:var(--gold);margin-bottom:8px}
+.create-intro{text-align:center;color:var(--dim);font-size:12px;margin-bottom:20px;line-height:1.5}
+.create-section{margin-bottom:14px}
+.create-label{color:var(--green);font-size:12px;margin-bottom:8px}
+.name-input{width:100%;padding:12px;background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text);font-size:14px}
+.name-input:focus{outline:none;border-color:var(--gold)}
+.gender-select{display:flex;gap:10px}
+.gender-btn{flex:1;padding:12px;background:var(--card);border:2px solid rgba(255,255,255,0.1);border-radius:10px;color:var(--text);cursor:pointer;text-align:center;transition:all 0.2s}
+.gender-btn.selected{border-color:var(--gold);background:rgba(212,175,55,0.15);color:var(--gold)}
+.gender-btn .icon{font-size:22px;display:block;margin-bottom:4px}
+.start-btn{width:100%;padding:14px;background:linear-gradient(135deg,#8b4513,#a0522d);border:2px solid var(--gold);border-radius:10px;color:var(--gold);font-size:14px;font-weight:bold;cursor:pointer;margin-top:10px}
+.dialog-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.9);display:none;justify-content:center;align-items:center;z-index:750;padding:15px}
+.dialog-overlay.show{display:flex}
+.dialog-box{background:var(--panel);border:2px solid var(--gold);border-radius:12px;padding:16px;max-width:340px;width:100%;max-height:80vh;overflow-y:auto}
+.dialog-title{color:var(--gold);font-size:14px;text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.dialog-content{color:var(--text);font-size:12px;line-height:1.6;margin-bottom:12px;white-space:pre-line}
+.dialog-options{display:flex;flex-direction:column;gap:6px}
+.dialog-btn{background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;color:var(--text);cursor:pointer;text-align:left;font-size:12px;transition:all 0.15s}
+.dialog-btn:active{border-color:var(--gold);color:var(--gold)}
+.dialog-btn.primary{background:linear-gradient(135deg,#8b4513,#a0522d);border-color:var(--gold);color:var(--gold);text-align:center}
+.dialog-btn.danger{background:rgba(200,50,50,0.2);border-color:var(--danger);color:var(--danger)}
+.log-important{color:var(--gold)}.log-success{color:var(--green)}.log-danger{color:var(--danger)}.log-narrative{color:var(--dim);font-style:italic}.log-action{color:var(--green)}.log-dialog{color:#a8b8c8}
+.top{background:var(--panel);padding:10px 14px;display:flex;align-items:center;flex-shrink:0;gap:10px}
+.top .title{font-weight:bold;color:var(--accent);font-size:13px;flex-shrink:0}
+.top .time{flex:1;text-align:center;font-size:12px;color:var(--dim)}
+.top .stats{display:flex;gap:10px;font-size:12px;flex-shrink:0}
+.top .stats span{color:var(--green)}
+.main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px;gap:24px;position:relative}
+.interact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:320px}
+.card{background:var(--card);border-radius:14px;padding:20px 16px;text-align:center;cursor:pointer;transition:all 0.2s;border:2px solid transparent;min-width:80px}
+.card:active{transform:scale(0.92);background:var(--accent)}
+.card .icon{font-size:32px}.card .name{font-size:12px;margin-top:6px}.card .action{font-size:10px;color:var(--dim);margin-top:2px}
+/* 劳役卡片高亮样式 */
+.card.work-card{border:2px solid var(--accent);animation:workPulse 1.5s ease-in-out infinite}
+.card.work-card .action{color:var(--accent);font-weight:bold}
+/* 领饭卡片高亮样式 */
+.card.meal-card{border:2px solid var(--green);animation:mealPulse 1.5s ease-in-out infinite}
+.card.meal-card .action{color:var(--green);font-weight:bold}
+@keyframes workPulse{0%,100%{box-shadow:0 0 5px rgba(233,69,96,0.3)}50%{box-shadow:0 0 15px rgba(233,69,96,0.6)}}
+@keyframes mealPulse{0%,100%{box-shadow:0 0 5px rgba(78,204,163,0.3)}50%{box-shadow:0 0 15px rgba(78,204,163,0.6)}}
+.escape-section{background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:12px;width:100%;max-width:320px}
+.escape-btn{width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--dim);font-size:13px;cursor:not-allowed}
+.escape-btn.ready{border-color:var(--gold);color:var(--gold);cursor:pointer;animation:glow 2s infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 5px rgba(212,175,55,0.3)}50%{box-shadow:0 0 15px rgba(212,175,55,0.5)}}
+.escape-conds{display:flex;justify-content:center;gap:12px;margin-top:8px;font-size:11px}
+.cond{color:var(--dim)}.cond.done{color:var(--green)}
+.location-flash{position:fixed;inset:0;background:var(--accent);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:600;opacity:0;pointer-events:none;transition:opacity 0.15s}
+.location-flash.show{opacity:1;pointer-events:auto}
+.location-flash .name{font-size:28px;font-weight:bold;color:white;margin-bottom:12px}
+.location-flash .desc{font-size:14px;color:rgba(255,255,255,0.8);text-align:center;padding:0 30px;line-height:1.5}
+.log{background:var(--panel);padding:12px 14px;flex-shrink:0;max-height:100px;overflow-y:auto}
+.log-entry{font-size:12px;color:var(--dim);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);line-height:1.4}
+.log-entry:last-child{border:none}
+.log-entry .log-time{color:var(--accent);margin-right:8px}
+.log-entry .log-text{color:var(--dim)}.log-entry .log-text.log-important{color:var(--gold)}.log-entry .log-text.log-success{color:var(--green)}.log-entry .log-text.log-danger{color:var(--danger)}.log-entry .log-text.log-narrative{color:var(--dim);font-style:italic}.log-entry .log-text.log-action{color:var(--green)}.log-entry .log-text.log-dialog{color:#a8b8c8}
+.toolbar{background:var(--panel);padding:6px 8px;display:flex;justify-content:space-around;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:100}
+.toolbar button{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text);padding:6px 10px;border-radius:6px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:45px;transition:all 0.15s}
+.toolbar button:active,.toolbar button.active{background:var(--accent)}
+.toolbar button .icon{font-size:14px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;justify-content:center;align-items:flex-end;z-index:700}
+.modal.show{display:flex}
+.modal-content{background:var(--panel);width:100%;max-height:70vh;border-radius:18px 18px 0 0;padding:18px;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal.show .modal-content{animation:slideUp 0.25s ease}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.modal-header h3{font-size:15px;font-weight:bold}
+.modal-close{background:none;border:none;color:var(--dim);font-size:24px;cursor:pointer}
+.map-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.map-cell{background:var(--card);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;transition:all 0.15s;border:2px solid transparent}
+.map-cell:active{transform:scale(0.95)}
+.map-cell.current{border-color:var(--accent)}
+.map-cell .icon{font-size:20px}.map-cell .name{font-size:11px;margin-top:4px}.map-cell .info{font-size:9px;color:var(--dim);margin-top:2px}
+.state-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.state-cell{background:var(--card);border-radius:10px;padding:12px 6px;text-align:center}
+.state-cell .icon{font-size:18px}.state-cell .val{font-size:16px;font-weight:bold;margin-top:4px}.state-cell .label{font-size:9px;color:var(--dim)}
+.escape-progress{margin-bottom:16px}
+.escape-bar{height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;margin-bottom:8px}
+.escape-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:4px;transition:width 0.3s}
+.escape-items{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.escape-tag{font-size:11px;padding:5px 12px;background:rgba(255,255,255,0.05);border-radius:20px}
+.escape-tag.done{color:var(--green);background:rgba(78,204,163,0.15)}
+.locked-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:800;display:none;justify-content:center;align-items:center;flex-direction:column;color:var(--danger);text-align:center;padding:20px}
+.locked-overlay.active{display:flex}
+.locked-icon{font-size:4rem;margin-bottom:20px}
+.locked-title{font-size:1.5rem;margin-bottom:10px;color:var(--gold)}
+.locked-text{font-size:0.9rem;line-height:1.8;color:var(--dim);margin-bottom:20px}
+.locked-buttons{display:flex;flex-direction:column;gap:10px;margin-top:15px}
+.locked-btn{background:rgba(200,50,50,0.2);border:2px solid var(--danger);border-radius:8px;padding:12px 24px;color:var(--danger);font-size:0.9rem;cursor:pointer}
+.locked-btn-rest{background:rgba(78,204,163,0.2);border:2px solid var(--green);border-radius:8px;padding:12px 24px;color:var(--green);font-size:0.9rem;cursor:pointer}
+.game-over{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:300;display:none;justify-content:center;align-items:center;flex-direction:column;text-align:center;padding:20px}
+.game-over.active{display:flex}
+.game-over-icon{font-size:5rem;margin-bottom:20px}
+.game-over-title{font-size:1.8rem;color:var(--danger);margin-bottom:15px}
+.game-over-subtitle{font-size:1rem;color:var(--dim);margin-bottom:20px}
+.game-over-btn{background:var(--card);border:2px solid var(--gold);border-radius:8px;padding:12px 30px;color:var(--gold);font-size:1rem;cursor:pointer}
+.intro-overlay{position:fixed;inset:0;background:#0a0a12;z-index:900;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px;text-align:center}
+.intro-overlay.hidden{display:none}
+.intro-scene{max-width:320px;margin-bottom:30px}
+.intro-scene .scene-num{color:var(--gold);font-size:12px;margin-bottom:10px;letter-spacing:2px}
+.intro-scene .scene-title{font-size:20px;color:var(--text);margin-bottom:15px}
+.intro-scene .scene-text{color:var(--dim);font-size:13px;line-height:2}
+.intro-nav{display:flex;gap:12px;margin-top:20px}
+.intro-nav button{padding:12px 24px;border-radius:8px;font-size:13px;cursor:pointer;transition:all 0.2s}
+.intro-nav .skip-btn{background:transparent;border:1px solid var(--dim);color:var(--dim)}
+.intro-nav .next-btn{background:linear-gradient(135deg,#8b4513,#a0522d);border:1px solid var(--gold);color:var(--gold)}
+.tutorial-box{background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.05));border:1px solid var(--gold);border-radius:10px;padding:14px;margin:10px 0;text-align:center}
+.tutorial-box .tutorial-icon{font-size:28px;margin-bottom:8px}
+.tutorial-box .tutorial-title{color:var(--gold);font-size:13px;font-weight:bold;margin-bottom:6px}
+.tutorial-box .tutorial-desc{color:var(--dim);font-size:11px;line-height:1.5}
+.story-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:500;display:none;justify-content:center;align-items:center;padding:20px;flex-direction:column}
+.story-overlay.show{display:flex}
+.story-box{max-width:340px;background:var(--panel);border:2px solid var(--gold);border-radius:12px;padding:20px;text-align:center}
+.story-title{color:var(--gold);font-size:18px;margin-bottom:12px}
+.story-text{color:var(--dim);font-size:13px;line-height:2;white-space:pre-line;text-align:left;max-height:60vh;overflow-y:auto;margin-bottom:16px}
+.story-btn{padding:12px 30px;background:linear-gradient(135deg,#8b4513,#a0522d);border:2px solid var(--gold);border-radius:8px;color:var(--gold);font-size:14px;cursor:pointer}
+.clue-box{background:linear-gradient(135deg,rgba(78,204,163,0.2),rgba(78,204,163,0.05));border:1px solid var(--green);border-radius:10px;padding:14px;margin:10px 0}
+.clue-box .clue-icon{font-size:24px;margin-bottom:6px}
+.clue-box .clue-title{color:var(--green);font-size:13px;font-weight:bold;margin-bottom:4px}
+.clue-box .clue-desc{color:var(--dim);font-size:11px;line-height:1.5}
+:::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- 序章开场 -->
+<div class="intro-overlay" id="introOverlay">
+  <div class="intro-scene" id="introScene"></div>
+  <div class="intro-nav">
+    <button class="skip-btn" onclick="skipIntro()">跳过</button>
+    <button class="next-btn" onclick="nextIntro()" id="introNextBtn">继续 →</button>
+  </div>
+</div>
+
+<!-- 创建角色 -->
+<div id="createScreen" class="create-screen hidden">
+  <h1 class="create-title">⚔️ 乱世烽火 ⚔️</h1>
+  <p class="create-intro">公元180年，大汉幽州。<br>深秋，官道上的囚车缓缓前行...</p>
+  <div class="create-section">
+    <div class="create-label">📝 为自己取个名字</div>
+    <input type="text" class="name-input" id="playerName" placeholder="输入你的名字" maxlength="6">
+  </div>
+  <div class="create-section">
+    <div class="create-label">⚧ 选择性别</div>
+    <div class="gender-select">
+      <div class="gender-btn selected" onclick="selectGender('男')" id="genderMale"><span class="icon">👨</span>男</div>
+      <div class="gender-btn" onclick="selectGender('女')" id="genderFemale"><span class="icon">👩</span>女</div>
+    </div>
+  </div>
+  <button class="start-btn" onclick="startGame()">🚀 开始序章</button>
+</div>
+
+<!-- 剧情展示 -->
+<div class="story-overlay" id="storyOverlay">
+  <div class="story-box">
+    <div class="story-title" id="storyTitle">剧情</div>
+    <div class="story-text" id="storyText"></div>
+    <button class="story-btn" onclick="nextStory()" id="storyBtn">继续 →</button>
+  </div>
+</div>
+
+<!-- 游戏界面 -->
+<div id="gameScreen" class="hidden">
+<div class="top">
+  <div class="title">🔥 乱世烽火</div>
+  <div class="time" id="timeDisplay">06:00 清晨</div>
+  <div class="stats">💪 <span id="stVal">80</span>% · 🍜 <span id="fdVal">70</span>% · 📅 第<span id="dayVal">1</span>天</div>
+</div>
+<div class="toolbar">
+  <button onclick="showMap()" id="btnMap"><span class="icon">🗺️</span>地图</button>
+  <button onclick="showState()" id="btnState"><span class="icon">📊</span>状态</button>
+  <button onclick="showTutorialMenu()" id="btnTutorial"><span class="icon">📖</span>教程</button>
+  <button onclick="showItems()" id="btnItems"><span class="icon">🎒</span>背包</button>
+  <button onclick="showEscape()" id="btnEscape"><span class="icon">🚪</span>逃跑</button>
+</div>
+<div class="main">
+  <div class="interact-grid" id="interactGrid"></div>
+  <div class="escape-section" id="escapeSection">
+    <button class="escape-btn" id="escBtn" onclick="tryEscape()">🚫 条件不足</button>
+    <div class="escape-conds">
+      <span class="cond" id="condRoute">❌ 路线</span>
+      <span class="cond" id="condInfo">❌ 情报</span>
+      <span class="cond" id="condTool">❌ 工具</span>
+      <span class="cond" id="condStamina">❌ 体力</span>
+    </div>
+  </div>
+</div>
+<div class="log" id="logPanel"></div>
+<div class="location-flash" id="locationFlash">
+  <div class="name" id="flashName">牢房</div>
+  <div class="desc" id="flashDesc">休息睡觉的地方</div>
+</div>
+<div class="top">
+  <button onclick="showMap()" id="btnMap"><span class="icon">🗺️</span>地图</button>
+  <button onclick="showState()" id="btnState"><span class="icon">📊</span>状态</button>
+  <button onclick="showTutorialMenu()" id="btnTutorial"><span class="icon">📖</span>教程</button>
+  <button onclick="showItems()" id="btnItems"><span class="icon">🎒</span>背包</button>
+  <button onclick="showEscape()" id="btnEscape"><span class="icon">🚪</span>逃跑</button>
+</div>
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3 id="modal-title">标题</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div class="dialog-overlay" id="dialogOverlay">
+  <div class="dialog-box">
+    <div class="dialog-title" id="dialogTitle"></div>
+    <div class="dialog-content" id="dialogContent"></div>
+    <div class="dialog-options" id="dialogOptions"></div>
+  </div>
+</div>
+<div class="locked-overlay" id="lockedOverlay">
+  <div class="locked-icon">🔒</div>
+  <div class="locked-title">关禁闭</div>
+  <div class="locked-text" id="lockedText">你被关进了暗无天日的禁闭室...</div>
+  <div class="locked-buttons">
+    <button class="locked-btn" onclick="waitInCell()">⏰ 熬过这段时间 (推进4小时)</button>
+    <button class="locked-btn-rest" onclick="restInCell()">💤 好好休息 (推进8小时)</button>
+  </div>
+</div>
+<div class="game-over" id="gameOver">
+  <div class="game-over-icon" id="goIcon">💀</div>
+  <div class="game-over-title" id="goTitle">游戏结束</div>
+  <div class="game-over-subtitle" id="goSubtitle">...</div>
+  <button class="game-over-btn" onclick="location.reload()">重新开始</button>
+</div>
+</div>
+
+<script>
+// ==================== 序章数据 ====================
+// 序章：玩家还没设置角色，用固定的"你"作为通用视角
+const INTRO_SCENES=[
+{num:'序章',title:'囚车之困',text:`深秋，幽州官道。
+
+寒风卷着枯叶，
+一辆囚车在泥泞中颠簸。
+
+你睁开眼——
+头痛欲裂，嘴里有血腥味。
+手腕上的铁链已经磨破了皮。`},
+{num:'',title:'同囚之人',text:`囚车里还有三个人：
+
+👴 老王（五十多岁，老实巴交的农民）
+👤 二愣子（二十岁，一脸茫然）
+❓ 还有一个蜷缩在角落、用破布遮住脸的人...`},
+{num:'Day 1',title:'抵达劳役营',text:`官差头目踢开囚车门：
+
+「都给老子下来！
+　能走的走，不能走的拖着走！」
+
+破败的木栅栏围成的营地，
+约两百名劳役，衣衫褴褛，
+监工手持皮鞭来回巡视。`},
+{num:'',title:'老王的忠告',text:`老王压低声音：
+
+「你是哪里人？
+　这里是涿郡劳役营，
+　专门修官道的。
+
+　逃跑的都被打死了，
+　你可千万别乱来...」`}
+];
+let introIndex=0;
+
+// ==================== 剧情数据 ====================
+// 剧情按节奏分多个小段落，避免弹窗太长
+const STORY_SEQ=[
+{id:'clue1',title:'📜 线索收集',text:`【线索①】与老王深谈
+
+老王叹了口气，浑浊的眼睛看向远方：
+
+「我在这里三年了...每天子时换班的那一刻，守卫最少。」
+
+老王压低声音：
+「记住了吗？子时，一炷香。」`,btn:'继续'},
+{id:'clue2',title:'📜 线索收集',text:`【线索②】干活时观察
+
+你被分配去挖排水沟。
+
+汗水顺着脸颊流下，但你注意到一个细节——
+
+东墙根有一条旧排水道，宽度勉强能钻过一个人。
+
+你默默记住了这个位置。`,btn:'继续'},
+{id:'clue3',title:'📜 线索收集',text:`【线索③】捡到铁片
+
+干活时，你的目光扫过地面——
+
+一个劳役不小心掉落的铁片，在泥土中闪着微弱的光。
+
+你趁人不注意，悄悄捡起，藏在衣襟里。
+
+这铁片，足够撬开脚镣的锁。`,btn:'继续'},
+{id:'clue4',title:'❓ 蒙面人的秘密',text:`角落里蜷缩的神秘人，突然开口，声音沙哑：
+
+「少侠，你在找出路？」
+
+你心头一震。
+
+「东墙的排水道，我已经量过了，能过去。但你得等子时。」
+
+说完，又缩回角落。
+
+他是怎么知道的？他...又是什么人？`,btn:'继续'},
+{id:'day4night_1',title:'🌙 越狱之夜',text:`子时，换班的脚步声渐渐远去。
+
+你屏住呼吸，用铁片一点一点撬开脚镣...
+
+「咔哒」
+
+脚镣应声而开。
+
+你回头看了一眼老王——他假装熟睡，但嘴角有一丝微笑。`,btn:'▶ 继续'},
+{id:'day4night_2',title:'🌙 越狱之夜',text:`你钻入排水道，
+
+泥水浸透全身，
+
+黑暗中只能靠感觉爬行...
+
+终于——
+
+冷风扑面，你钻出了墙外！`,btn:'▶ 继续'},
+{id:'escape_1',title:'🚨 警报响起',text:`但警报声随即响起：
+
+「有人逃跑！」
+
+火把的光芒在身后蔓延，你拼命往山林里跑...`,btn:'▶ 继续'},
+{id:'escape_2',title:'🚨 跌落山坡',text:`脚下一滑——
+
+跌落山坡！
+
+滚落数丈，撞上一棵大树才停下来。
+
+你挣扎着想爬起来，却发现脚踝扭伤，根本站不起来。
+
+火把越来越近，人声越来越嘈杂。
+
+你绝望地闭上眼睛...`,btn:'▶ 继续'},
+{id:'diyun_1',title:'⚔️ 青衫侠客',text:`「嗖——嗖——嗖——」
+
+三声破空声。
+
+然后是三声惨叫。
+
+你睁开眼——
+
+三个官差倒在地上，各自中了一枚石子，打在手腕上，火把全部落地。`,btn:'▶ 继续'},
+{id:'diyun_2',title:'⚔️ 神秘高手',text:`黑暗中，一个声音：
+
+「别动。」
+
+一个青衫男子从树上跃下，落地无声，如同一片叶子。
+
+他蹲下来，不紧不慢地检查你的脚踝：
+
+「扭了，不严重。」`,btn:'▶ 继续'},
+{id:'diyun_3',title:'⚔️ 两个选择',text:`他站起来，看着远处越来越多的火把：
+
+「少侠，你有两个选择。」
+
+「第一，留在这里等他们来抓你。」
+
+「第二，闭嘴跟我走。」`,btn:'继续'},
+{id:'diyun_4',title:'🤝 初次相遇',text:`他没有等你回答，直接将你背起来，纵身跃上树梢——
+
+你这才意识到，这个人的轻功已经到了匪夷所思的境界。
+
+树冠之间，他如履平地，官差的火把在树下乱转，始终找不到他们的踪迹。`,btn:'▶ 继续'},
+{id:'diyun_5',title:'🤝 狄云舟',text:`等人群散去，他将你放下，靠着树干，用审视的眼神看着你：
+
+「第一次越狱？」
+
+你：「...你怎么知道？」
+
+「手腕上的勒痕，脚踝的伤是滚坡造成的，身上的泥是排水道的颜色。」
+
+他停顿了一下：
+
+「我叫狄云舟。少侠呢？」`,btn:'▶ 回答'},
+{id:'diyun_talk',title:'💬 对话选择',text:`狄云舟递给你一个水囊：
+
+「喝点水，说说你的事。」`,opts:[
+{text:'说实话',subtext:'「我...从很远的地方来，记不清了。」'},
+{text:'撒谎',subtext:'「我是外地逃荒来的，被官差抓了壮丁。」'},
+{text:'反问',subtext:'「你又是谁？凭什么帮我？」'}
+]},
+{id:'diyun_after',title:'🤝 同行',text:`无论你如何回答，狄云舟最后都说：
+
+「我要去巨鹿。你一个人在幽州活不了三天。跟不跟我走。」
+
+你：「如果我不去呢？」
+
+狄云舟指了指远处的火把：
+
+「那少侠就在这里等天亮吧。」
+
+他转身就走。
+
+你看了看黑暗中的山林，看了看越来越近的火把，叹了口气，跟上去。`,btn:'▶ 继续'},
+{id:'chapter1_end',title:'第一章 · 完',text:`你和狄云舟一起踏上了前往巨鹿的路。
+
+在这乱世之中，你终于遇到了一个愿意帮助你的人。
+
+但你不知道的是，这个人，以及他背后的世界，即将改变你的一生。
+
+【第一章 · 青衫侠客 · 完】`,btn:'开始第二章'}
+];
+let storyIndex=0;
+let storyCallback=null;
+
+// ==================== 序章控制 ====================
+function showIntro(){
+  document.getElementById('introOverlay').classList.remove('hidden');
+  updateIntroScene();
+}
+function updateIntroScene(){
+  let s=INTRO_SCENES[introIndex];
+  document.getElementById('introScene').innerHTML=`<div class="scene-num">${s.num}</div><div class="scene-title">${s.title}</div><div class="scene-text">${s.text.replace(/\n/g,'<br>')}</div>`;
+  document.getElementById('introNextBtn').textContent=introIndex>=INTRO_SCENES.length-1?'开始 →':'继续 →';
+}
+function nextIntro(){
+  introIndex++;
+  if(introIndex>=INTRO_SCENES.length)skipIntro();
+  else updateIntroScene();
+}
+function skipIntro(){
+  document.getElementById('introOverlay').classList.add('hidden');
+  document.getElementById('createScreen').classList.remove('hidden');
+}
+
+// ==================== 剧情系统 ====================
+function showStory(seqId,callback){
+  let idx=STORY_SEQ.findIndex(s=>s.id===seqId);
+  if(idx===-1){if(callback)callback();return;}
+  storyIndex=idx;
+  storyCallback=callback;
+  let s=STORY_SEQ[idx];
+  document.getElementById('storyTitle').textContent=s.title;
+  // 替换剧情文本中的占位符
+  let processedText=replacePlayerPlaceholders(s.text);
+  document.getElementById('storyText').innerHTML=processedText.replace(/\n/g,'<br>');
+  document.getElementById('storyBtn').textContent=s.btn;
+  if(s.opts){
+    let optsHtml=s.opts.map((o,i)=>`<button class="dialog-btn" onclick="chooseDialog(${i})">${o.text}<br><small style="color:var(--dim)">${replacePlayerPlaceholders(o.subtext)}</small></button>`).join('');
+    document.getElementById('storyText').innerHTML+=`<div style="margin-top:16px">${optsHtml}</div>`;
+    document.getElementById('storyBtn').style.display='none';
+    window.currentStoryOpts=s.opts;
+  }else{
+    document.getElementById('storyBtn').style.display='block';
+    window.currentStoryOpts=null;
+  }
+  document.getElementById('storyOverlay').classList.add('show');
+}
+function nextStory(){
+  storyIndex++;
+  if(storyIndex>=STORY_SEQ.length){
+    // 剧情结束，显示通关画面
+    document.getElementById('storyOverlay').classList.remove('show');
+    showChapterEnd();
+  }else{
+    let s=STORY_SEQ[storyIndex];
+    document.getElementById('storyTitle').textContent=s.title;
+    // 替换剧情文本中的占位符
+    let processedText=replacePlayerPlaceholders(s.text);
+    document.getElementById('storyText').innerHTML=processedText.replace(/\n/g,'<br>');
+    document.getElementById('storyBtn').textContent=s.btn;
+    if(s.opts){
+      let optsHtml=s.opts.map((o,i)=>`<button class="dialog-btn" onclick="chooseDialog(${i})">${o.text}<br><small style="color:var(--dim)">${replacePlayerPlaceholders(o.subtext)}</small></button>`).join('');
+      document.getElementById('storyText').innerHTML+=`<div style="margin-top:16px">${optsHtml}</div>`;
+      document.getElementById('storyBtn').style.display='none';
+      window.currentStoryOpts=s.opts;
+    }else{
+      document.getElementById('storyBtn').style.display='block';
+      window.currentStoryOpts=null;
+    }
+  }
+}
+function chooseDialog(i){
+  let s=STORY_SEQ[storyIndex];
+  if(s.opts&&s.opts[i]){
+    addLog(`💬 你选择了：「${s.opts[i].text}」`,'action');
+    document.getElementById('storyBtn').style.display='block';
+    window.currentStoryOpts=null;
+  }
+}
+// 显示章节结束画面
+function showChapterEnd(){
+  // 隐藏游戏界面
+  document.getElementById('gameScreen').classList.add('hidden');
+  // 显示通关弹窗
+  let overlay=document.getElementById('storyOverlay');
+  overlay.classList.add('show');
+  document.getElementById('storyTitle').textContent='🎉 第一章 · 通关';
+  document.getElementById('storyText').innerHTML=`
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:4rem;margin-bottom:20px">🏆</div>
+      <div style="color:var(--gold);font-size:18px;margin-bottom:10px">恭喜通关！</div>
+      <div style="color:var(--green);font-size:14px;margin-bottom:20px">成功逃离劳役营</div>
+      <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:16px;margin-top:16px">
+        <div style="color:var(--dim);font-size:12px;line-height:1.8">
+          <div>📅 存活天数：第${G.day}天</div>
+          <div>🔧 获得物品：${G.inventory.map(i=>ITEMS[i]?.i).join(' ')||'无'}</div>
+          <div>💚 最高信任：${Math.max(...Object.values(G.trust),0)}</div>
+        </div>
+      </div>
+      <div style="color:var(--dim);font-size:11px;margin-top:20px;line-height:1.6">
+        与狄云舟踏上前往巨鹿的路...<br>
+        第二章 · 义社初建 敬请期待
+      </div>
+    </div>
+  `;
+  document.getElementById('storyBtn').style.display='block';
+  document.getElementById('storyBtn').textContent='🔄 重新开始';
+  document.getElementById('storyBtn').onclick=function(){location.reload();};
+}
+
+// ==================== 测试模式 ====================
+// 玩家命名为 "test" 时自动开启测试模式，显示好感度、性格等信息
+const isTestMode = () => G.playerName && G.playerName.toLowerCase() === 'test';
+
+// ==================== 游戏数据 ====================
+const LOCS={
+  dorm:{n:'牢房',i:'🏠',d:'休息睡觉的地方',time:[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5],tags:['rest'],enc:[
+    {id:'lw',n:'老王',i:'👴',d:'五十多岁的老农',type:'npc',npcId:'lw'},
+    {id:'el',n:'二愣子',i:'👤',d:'二十岁，一脸茫然',type:'npc',npcId:'el'},
+    {id:'mk',n:'蒙面人',i:'❓',d:'蜷缩在角落的神秘人',type:'npc',npcId:'mk'},
+    {id:'bed',n:'草铺',i:'🛏️',d:'睡一觉恢复体力',type:'rest',stamina:20,name:'睡觉'}
+  ]},
+  yard:{n:'操场',i:'🌳',d:'放风、休息的地方',time:[11,12,13,19,20,21],tags:['rest'],enc:[
+    {id:'gsd',n:'官差',i:'⚔️',d:'两个守卫在门口',type:'guard'},
+    {id:'wl',n:'水井',i:'💧',d:'可以打水解渴',type:'rest'}
+  ]},
+  kitchen:{n:'厨房',i:'🍜',d:'偷食物的好地方',time:[11,12,17,18],tags:['meal','steal'],enc:[
+    {id:'ck',n:'胖厨子',i:'👨‍🍳',d:'脾气不好的伙夫',type:'npc',npcId:'ck'},
+    {id:'ml',n:'饭菜桶',i:'🍲',d:'排队领饭，稳定恢复',type:'meal'},
+    {id:'fb',n:'食物桶',i:'🪣',d:'可能有剩饭剩菜',type:'steal'}
+  ]},
+  mine:{n:'矿区',i:'⛏️',d:'采矿的苦差事',time:[8,9,10,11,14,15,16,17],tags:['work'],enc:[
+    {id:'wj',n:'王监工',i:'👮',d:'凶狠残忍的监工',type:'guard'},
+    {id:'ct',n:'矿车',i:'🛒',d:'推矿车，累但安全',type:'work',stamina:22,name:'推矿车'},
+    {id:'rk',n:'岩壁',i:'🪨',d:'凿石头，危险但快',type:'work',stamina:30,name:'凿石头',risk:0.15}
+  ]},
+  wood:{n:'伐木场',i:'🪓',d:'砍伐木材的地方',time:[8,9,10,11,14,15,16,17],tags:['work'],enc:[
+    {id:'ls',n:'刘监工',i:'👮',d:'相对温和的监工',type:'guard'},
+    {id:'tr',n:'大树',i:'🌲',d:'砍大树，体力活',type:'work',stamina:25,name:'砍大树'}
+  ]},
+  stable:{n:'马厩',i:'🐴',d:'喂养马匹的地方',time:[8,9,10,11,14,15,16,17,19,20,21],tags:['work'],enc:[
+    {id:'hm',n:'老马夫',i:'👴',d:'不爱说话的老头',type:'npc',npcId:'hm'},
+    {id:'hs',n:'马匹',i:'🐴',d:'喂马、遛马',type:'work',stamina:15,name:'喂马匹',bonus:5}
+  ]},
+  gate:{n:'营门',i:'🚪',d:'有士兵把守',time:[],tags:['forbidden'],locked:true,enc:[
+    {id:'gs',n:'守门士兵',i:'⚔️',d:'两人把守，严密监视',type:'guard'}
+  ]},
+  wall:{n:'东墙',i:'🧱',d:'寻找逃跑路线',time:[20,21,22,23],tags:['escape'],nightOnly:true,enc:[
+    {id:'pt',n:'巡逻队',i:'👮',d:'每隔一刻钟巡逻一次',type:'patrol'},
+    {id:'sp',n:'排水道',i:'🔍',d:'东墙根的旧排水道',type:'observe'},
+    {id:'drain',n:'排水口',i:'🌊',d:'钻出去逃跑！',type:'drain'}
+  ]},
+  drain:{n:'排水道',i:'🌊',d:'钻出去逃跑',time:[23,0,1],tags:['escape'],nightOnly:true,enc:[
+    {id:'entry',n:'入口',i:'⬇️',d:'排水道入口',type:'drain'}
+  ]}
+};
+
+// NPC对话 - 增强版（带随机对话和好感度优化）
+const NPCS={
+  // 老王 - 老实巴交的农民，待了三年，知道换班规律
+  lw:{n:'老王',i:'👴',personality:'友好',isIntro:true,farewell:'老王叹了口气：「去吧，低调点...」',leaveText:'感谢老伯',
+    // 基础对话池（随机抽取）
+    randomDialogs:[
+      {q:'老伯，这里是什么地方？',a:'这里是涿郡劳役营，专门给官府修路的。\n\n老王摇摇头：「我种了一辈子地，也不知道犯了什么王法，就被抓来了...」'},
+      {q:'老伯，你是怎么被抓来的？',a:'老王苦笑：「唉...说是我家那点地，收成不好，欠了租子...县里说我是流民，把我抓来了...」'},
+      {q:'这里有人逃出去过吗？',a:'老王脸色一变，压低声音：「有，但都被打死了...有个后生翻墙，刚翻到一半就被乱箭射下来...」'},
+      {q:'营里哪个监工最狠？',a:'老王皱眉：「王监工最狠，动不动就打人。李监工稍微好点，但也别惹他。」'},
+      {q:'营里的伙食怎么样？',a:'老王叹气：「每天两顿稀粥，饿不死而已。胖厨子偶尔藏点剩饭，但不敢给人太多。」'},
+      {q:'晚上大家都睡哪？',a:'老王指了指角落：「就那边草铺，一堆人挤在一起。冬天冷夏天热，没办法的事。」'},
+      {q:'每天都要干活吗？',a:'老王点头：「每天上午下午都要干活，不然晚上点名发现就惨了。干完活才能歇着。」'},
+      {q:'你看起来很憔悴...',a:'老王苦笑：「三年了，能不憔悴吗...只想哪天能回去看看我那几亩地。」'},
+    ],
+    // 高信任度专属对话（需要trust>=3）
+    highTrustDialogs:[
+      {q:'关于逃跑的事...',a:'老王四下张望，确认没人注意后压低声音：\n\n「我在这里三年了，每天就看他们换班。」\n\n「每天子时换班那一刻，守卫最少，但也就一炷香的时间...」\n\n「记住了吗？子时，一炷香。错过就没了。」',unlock:'info',clue:'clue1'},
+      {q:'逃跑需要什么工具吗？',a:'老王想了想：「铁片最好，能撬开脚镣。矿区干活时多留意，说不定能捡到。」\n\n「还有，干粮也要准备，跑出去可没地方找吃的。」'},
+      {q:'有没有逃跑成功的？',a:'老王沉默了一会儿：「...听说过一个。」\n\n「那个人提前准备了很久，最后从东墙那边跑的。」\n\n「我也不知道具体怎么跑的，但他确实再也没回来过。」',unlock:'route'},
+    ],
+    levels:{
+      0:{intro:'老王叹了口气，浑浊的眼睛看向远方：'},
+      1:{intro:'老王见你过来，微微点头：'},
+      2:{intro:'老王压低声音，对你招了招手：'},
+      3:{intro:'老王见你就露出信任的神色：'}
+    }
+  },
+  
+  // 二愣子 - 憨厚的年轻人，想念母亲
+  el:{n:'二愣子',i:'👤',personality:'友好',isIntro:true,farewell:'二愣子茫然地看了你一眼，又低下头去。',leaveText:'告辞',
+    randomDialogs:[
+      {q:'你叫什么名字？',a:'二愣子茫然地看了你一眼：「二愣子...他们都这么叫我...」'},
+      {q:'你娘在家等你？',a:'二愣子猛地抬头，眼眶泛红：「我娘...我娘眼睛不好...我不在，谁给她挑水...」'},
+      {q:'你家是哪的？',a:'二愣子愣了一下：「隔壁村的...我就说了一句收成不好...就被抓来了...」'},
+      {q:'你多大年纪了？',a:'二愣子掰着手指：「二...二十...二十了...吧？」'},
+      {q:'你家里还有什么人？',a:'二愣子眼眶湿润：「有娘...还有个小妹...小妹应该能照顾娘了...吧？」'},
+      {q:'你以前是做什么的？',a:'二愣子挠头：「种...种地的...跟我爹一样...」'},
+      {q:'你是怎么被抓来的？',a:'二愣子低下头：「村里收租，我爹交不上...我就说了句不公...就被拉来了...」'},
+      {q:'你想回家吗？',a:'二愣子眼泪流下来：「想...做梦都想...娘还等着我挑水呢...」'},
+    ],
+    highTrustDialogs:[
+      {q:'如果有机会逃出去...',a:'二愣子愣住：「逃？逃...能逃吗？被抓到会打死的...」\n\n但他眼神里闪过一丝光：「...但如果真能回去见娘...」'},
+      {q:'你有什么想对我说的吗？',a:'二愣子沉默很久，突然开口：「...小心王监工。他...他最狠。」'},
+    ],
+    levels:{
+      0:{intro:'二愣子目光呆滞，嘴里念念有词：'},
+      1:{intro:'二愣子看了你一眼，目光稍微有了点神：'},
+      2:{intro:'二愣子凑近你，小声说话：'},
+      3:{intro:'二愣子把你当成了朋友：'}
+    }
+  },
+  
+  // 蒙面人 - 神秘人物，有故事，轻功高手
+  mk:{n:'蒙面人',i:'❓',personality:'冷漠',isIntro:true,farewell:'蒙面人微微点头，又闭上了眼睛。',leaveText:'改日再来',
+    randomDialogs:[
+      {q:'你是谁？',a:'蒙面人没有回答，只是微微侧了侧头。透过破布的缝隙，你隐约看到一双锐利的眼睛。'},
+      {q:'为什么遮住脸？',a:'蒙面人沙哑地开口：「...别问。」说完就不再出声了。'},
+      {q:'你在这多久了？',a:'蒙面人沉默了一会儿：「...很久了。比你久。」声音里带着一丝说不清的情绪。'},
+      {q:'你是怎么被抓来的？',a:'蒙面人冷哼一声：「...技不如人罢了。」'},
+      {q:'你看起来不像普通人',a:'蒙面人的眼神闪了一下：「...你想多了。」'},
+      {q:'你能教我两招吗？',a:'蒙面人摇头：「...不是时候。」'},
+      {q:'你叫什么名字？',a:'蒙面人沉默了很久：「...就叫蒙面人吧。」'},
+      {q:'你每天都在这睡觉吗？',a:'蒙面人没有回答，只是换了个姿势蜷缩在角落。'},
+    ],
+    highTrustDialogs:[
+      {q:'关于逃跑的事...',a:'蒙面人压低声音：\n\n「东墙根有一条旧排水道，我观察很久了，宽度勉强能过一个人。」\n\n「但你得等子时，换班的那一刻，守卫最少。」\n\n「记住，子时。一炷香的时间。」',unlock:'route',clue:'clue4'},
+      {q:'排水道怎么走？',a:'蒙面人比划了一下：「从牢房出来，往东走，到了墙根就能看到。」\n\n「洞口有杂草遮掩，不容易被发现。」'},
+      {q:'你到底是什么人？',a:'蒙面人看着你：「...曾经是个江湖人。现在？只是个囚犯而已。」\n\n他顿了顿：「...你和我以前很像。」'},
+      {q:'你为什么帮我？',a:'蒙面人沉默：「...因为你让我想起了一些事。」\n\n「记住，子时。排水道。别被抓到。」'},
+    ],
+    levels:{
+      0:{intro:'蒙面人依然蜷缩在角落，没有任何动静...'},
+      1:{intro:'蒙面人看了你一眼，声音依然沙哑：'},
+      2:{intro:'蒙面人稍微坐直了身子，目光锐利：'},
+      3:{intro:'蒙面人站起身来，目光如炬：'}
+    }
+  },
+  
+  // 胖厨子 - 脾气不好但心软，想念儿子
+  ck:{n:'胖厨子',i:'👨‍🍳',personality:'冷漠',farewell:'（挥挥手）「走吧。」',leaveText:'多谢',
+    randomDialogs:[
+      {q:'给点吃的吧...',a:'（哼了一声）「就你们这帮懒骨头？做梦！」'},
+      {q:'营里就你一个厨子？',a:'（不耐烦）「就我一个！忙都忙死了，你们还添乱！」'},
+      {q:'这锅煮的是什么？',a:'（搅着锅）「稀粥。加点盐巴，不然你们吃得下去？」'},
+      {q:'你做饭多少年了？',a:'（叹气）「...三四年了。起早贪黑的。」'},
+      {q:'你看起来很累',a:'（擦汗）「能不累吗？两百多张嘴等着吃饭呢。」'},
+      {q:'能多盛点吗？',a:'（瞪眼）「定量！多一勺都不行！」'},
+      {q:'这营里谁最好说话？',a:'（压低声音）「...我呗。但别到处说。」'},
+    ],
+    giveFoodDialogs:[
+      {q:'我可以帮忙干活',a:'（斜眼）「...那边柴火还没劈完。劈完了...再说。」'},
+      {q:'看你每天很辛苦',a:'胖厨子愣了一下：「...哼，还算你有良心。」'},
+    ],
+    highTrustDialogs:[
+      {q:'帮忙劈柴能换吃的吗？',a:'（犹豫了一下）「...看你表现。干得好，给你点剩饭。」',giveFood:true},
+      {q:'能多给点吃的吗？',a:'（偷偷塞给你一个馒头）「拿着，别让人看见。」\n\n「我儿子...也不知道现在是死是活...」',giveFood:true,giveFood2:true},
+      {q:'你儿子怎么了？',a:'（眼眶泛红）「...被抓壮丁那年，和你差不多大...」\n\n「走的时候说会回来接我...但到现在都没消息...」'},
+      {q:'这营里有什么秘密？',a:'（压低声音）「别乱打听！...不过王监工每天晚上都溜出去赌钱，这事大家都知道。」'},
+      {q:'有没有逃跑成功的？',a:'（摇头）「听说过，没见过。这地方逃不出去的...」\n\n但他压低声音：「...不过听说东墙那边管得松点。」'},
+    ],
+    levels:{
+      0:{intro:'（一边搅着大锅一边瞪你）看什么看！滚远点！'},
+      1:{intro:'（瞥了你一眼）又来了？'},
+      2:{intro:'（脸色稍微缓和）...你这小子，还算勤快。'},
+      3:{intro:'（叹了口气）你这小子，跟我儿子差不多大...'}
+    }
+  },
+  
+  // 老马夫 - 不爱说话，但熟悉营地
+  hm:{n:'老马夫',i:'👴',personality:'友好',farewell:'（微微点头）「去吧。」',leaveText:'多谢',
+    randomDialogs:[
+      {q:'在这多久了？',a:'（叹气）「...记不清了。反正够久了。」'},
+      {q:'这些马是干什么用的？',a:'（瞥了你一眼）「...运货的，修路用的石料，都靠这些马。」'},
+      {q:'你每天就照顾这些马？',a:'老马夫点头：「...马通人性，你对它好，它就对你好。」'},
+      {q:'这些马都叫什么名字？',a:'（嘴角微扬）「...大青、二黑、小红...都是我跟它们相处久了取的。」'},
+      {q:'马厩晚上冷不冷？',a:'老马夫：「...冷。但马儿身上暖和，挤一挤就过去了。」'},
+      {q:'你能教我骑马吗？',a:'（摇头）「...这不是学骑马的地方。」'},
+    ],
+    highTrustDialogs:[
+      {q:'你知道逃跑的路吗？',a:'（四下看看，压低声音）「...围墙东北角，我见过有人往那边跑。」\n\n「那边树多，晚上看不清，巡逻也少。」',unlock:'route'},
+      {q:'逃跑的事，能帮我吗？',a:'（拉着你的手）「好孩子...你让我想起我儿子。」\n\n「东北角...戌时巡逻最少...我每天喂马经过那里，知道规律。」\n\n「子时换班的时候，守卫最少。」',unlock:'route',unlock2:'info'},
+      {q:'逃跑需要什么？',a:'老马夫想了想：「干粮、水、还有...一把趁手的工具。」\n\n「矿区那边，干活的时候多留意，说不定能捡到铁片什么的。」'},
+      {q:'你儿子叫啥？',a:'（望向远方）「...马驹子，我给他起的小名...」\n\n「希望他像马儿一样自由...」'},
+      {q:'为什么帮我？',a:'老马夫沉默很久：「...因为你让我想起了他。」\n\n「他还活着的话...应该和你一样大了...」'},
+    ],
+    levels:{
+      0:{intro:'（默默整理着马具，头也不抬）有事？'},
+      1:{intro:'（看了你一眼）...还算老实，不像那些偷懒的。'},
+      2:{intro:'（拍拍身边的位置）...坐吧。'},
+      3:{intro:'（拉着你的手）好孩子...你让我想起我儿子。'}
+    }
+  }
+};
+
+const ITEMS={
+  food:{n:'干粮',i:'🍞',d:'可以充饥',effect:{food:20}},
+  iron:{n:'铁片',i:'🔧',d:'可以用来撬开脚镣',effect:{tool:true}},
+  rope:{n:'麻绳',i:'🪢',d:'逃跑必备工具',effect:{tool:true}},
+  cloth:{n:'破布',i:'🧣',d:'撕下的布条',effect:{misc:true}}
+};
+
+// ==================== 游戏状态 ====================
+let G={
+  hour:8,day:1,stamina:80,food:70,loc:'dorm',
+  trust:{},progress:{route:false,info:false,tool:false},
+  inventory:[],caught:0,locked:false,lockHours:0,
+  // 任务状态
+  tasks:{morning:false,afternoon:false,evening:false},
+  // 每日NPC对话次数限制
+  npcDailyChats:{},
+  escaped:false,log:[],
+  introPhase:'playing', // playing=正常游戏, clue=收集线索, final_escape=最终逃亡
+  escapeAttempts:0,tutorialShown:{},cluesFound:{},
+  playerName:'',playerGender:'男' // 玩家角色信息
+};
+let createData={name:'',gender:'男'};
+window.cb=[];
+
+// ==================== 玩家称呼工具函数 ====================
+function getPlayerTitle(){
+  // 根据性别返回称呼（用于他人称呼玩家）
+  return G.playerGender==='女'?'姑娘':'少侠';
+}
+function getPlayerTitle2(){
+  // 根据性别返回第二人称称呼（用于对话中的"你"）
+  return G.playerGender==='女'?'你':'你';
+}
+function getPlayerCall(){
+  // 别人叫玩家名字时的称呼
+  return G.playerName||(G.playerGender==='女'?'姑娘':'少侠');
+}
+function getYou(){
+  // 第一人称替换（剧情中的"你"）
+  return G.playerGender==='女'?'我':'我';
+}
+function getYour(){
+  // 所有格替换（剧情中的"你的"）
+  return G.playerGender==='女'?'我的':'我的';
+}
+function getMe(){
+  // 自我介绍时的称呼
+  return G.playerGender==='女'?'姑娘':'我';
+}
+function replacePlayerPlaceholders(text){
+  // 替换文本中的占位符
+  if(!text)return text;
+  return text.replace(/\{playerName\}/g,G.playerName||'少侠')
+             .replace(/\{playerTitle\}/g,getPlayerTitle())
+             .replace(/\{you\}/g,getYou())
+             .replace(/\{your\}/g,getYour())
+             .replace(/\{me\}/g,getMe());
+}
+
+// ==================== 工具函数 ====================
+function getTimePeriod(h){
+  if(h>=6&&h<8)return{icon:'🌅',text:'清晨',period:'morning'};
+  if(h>=8&&h<12)return{icon:'🔥',text:'上午',period:'morning'};
+  if(h>=12&&h<14)return{icon:'🍜',text:'中午',period:'noon'};
+  if(h>=14&&h<18)return{icon:'🔥',text:'下午',period:'afternoon'};
+  if(h>=18&&h<20)return{icon:'🌆',text:'傍晚',period:'evening'};
+  if(h>=20&&h<23)return{icon:'🌙',text:'夜间',period:'night'};
+  return{icon:'🌙',text:'深夜',period:'night'};
+}
+function isNight(){return G.hour>=20||G.hour<6;}
+function canAccess(id){
+  let loc=LOCS[id];
+  if(G.locked&&id!=='dorm')return false;
+  if(loc.locked)return false;
+  if(loc.nightOnly&&!isNight())return false;
+  if(id==='dorm')return true;
+  if(isNight())return true;
+  return loc.time.includes(G.hour);
+}
+function getEscapeStatus(){
+  return{route:G.progress.route,info:G.progress.info,tool:G.inventory.includes('iron')||G.inventory.includes('rope'),stamina:G.stamina>=40};
+}
+function isEscapeReady(){
+  const s=getEscapeStatus();
+  return s.route&&s.info&&s.tool&&s.stamina;
+}
+function getNPCRelationLevel(t){
+  if(t>=3)return 3;
+  if(t>=2)return 2;
+  if(t>=1)return 1;
+  return 0;
+}
+const RELATION_NAMES=['陌生','熟悉','信任','挚友'];
+
+// ==================== 对话系统 ====================
+function showDialog(d){
+  document.getElementById('dialogTitle').textContent=d.title||'';
+  document.getElementById('dialogContent').innerHTML=d.content||'';
+  document.getElementById('dialogOptions').innerHTML=d.options.map((o,i)=>
+    `<button class="dialog-btn ${o.primary?'primary':''} ${o.danger?'danger':''}" onclick="doCb(${i})">${o.text}</button>`
+  ).join('');
+  window.dialogOpts=d.options;
+  document.getElementById('dialogOverlay').classList.add('show');
+}
+function doCb(i){if(window.dialogOpts[i]&&window.dialogOpts[i].action)window.dialogOpts[i].action();}
+function closeDialog(){
+  document.getElementById('dialogOverlay').classList.remove('show');
+  setTimeout(()=>{
+    if(!document.getElementById('dialogOverlay').classList.contains('show')){
+      document.getElementById('dialogTitle').textContent='';
+      document.getElementById('dialogContent').innerHTML='';
+      document.getElementById('dialogOptions').innerHTML='';
+      window.dialogOpts=[];
+    }
+  },300);
+}
+function showModal(t,c,ch){
+  document.getElementById('modal-title').textContent=t;
+  let b=document.getElementById('modal-body');
+  if(ch&&ch.length){
+    b.innerHTML=c+'<div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">'+ch.map((c,i)=>`<button class="dialog-btn ${c.primary?'primary':''} ${c.danger?'danger':''}" onclick="modalCb(${i})">${c.text}</button>`).join('')+'</div>';
+    window.modalCbs=ch;
+  }else b.innerHTML=c;
+  document.getElementById('modal').classList.add('show');
+}
+function modalCb(i){
+  closeModal();
+  setTimeout(()=>{if(window.modalCbs[i]&&window.modalCbs[i].action)window.modalCbs[i].action();},150);
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+function addLog(t,ty='narrative'){
+  G.log.unshift({t,ty});
+  if(G.log.length>50)G.log.pop();
+  renderLog();
+}
+function renderLog(){
+  let p=getTimePeriod(G.hour);
+  document.getElementById('logPanel').innerHTML=G.log.slice(0,10).map(e=>
+    `<div class="log-entry"><span class="log-time">[${p.text}]</span><span class="log-text log-${e.ty}">${e.t}</span></div>`
+  ).join('');
+}
+
+// ==================== UI更新 ====================
+function updateUI(){
+  let p=getTimePeriod(G.hour);
+  document.getElementById('timeDisplay').textContent=`${G.hour.toString().padStart(2,'0')}:00 ${p.text}`;
+  document.getElementById('dayVal').textContent=G.day;
+  document.getElementById('stVal').textContent=G.stamina;
+  document.getElementById('fdVal').textContent=G.food;
+  updateInteractGrid();
+  updateEscapeConditions();
+  updateLockedStatus();
+  checkClues();
+}
+function updateInteractGrid(){
+  let loc=LOCS[G.loc];
+  let html='';
+  if(loc.enc&&loc.enc.length>0){
+    loc.enc.forEach(e=>{
+      let tag='',action=e.d;
+      let isWork=e.type==='work';
+      let isMeal=e.type==='meal';
+      let cardClass=isWork?'card work-card':(isMeal?'card meal-card':'');
+      switch(e.type){
+        case'npc':tag='交谈';break;
+        case'guard':tag='⚠️ 小心';break;
+        case'work':tag='⛔ 劳役';break;
+        case'rest':tag='休息';break;
+        case'meal':tag='🍽️ 领饭';break;
+        case'steal':tag='🔪 偷窃';break;
+        case'observe':tag='观察';break;
+        case'patrol':tag='⚠️ 危险';break;
+        case'drain':tag='钻入';break;
+      }
+      html+=`<div class="card ${cardClass}" onclick="interact('${e.id}')"><div class="icon">${e.i}</div><div class="name">${e.n}</div><div class="action">${tag}</div></div>`;
+    });
+  }
+  let cnt=loc.enc?loc.enc.length:0;
+  for(let i=cnt;i<9;i++)html+=`<div class="card" style="opacity:0.3"><div class="icon">·</div><div class="name">·</div><div class="action">·</div></div>`;
+  document.getElementById('interactGrid').innerHTML=html;
+}
+function updateEscapeConditions(){
+  const s=getEscapeStatus();
+  document.getElementById('condRoute').className='cond '+(s.route?'done':'');
+  document.getElementById('condRoute').textContent=(s.route?'✓':'❌')+' 路线';
+  document.getElementById('condInfo').className='cond '+(s.info?'done':'');
+  document.getElementById('condInfo').textContent=(s.info?'✓':'❌')+' 情报';
+  document.getElementById('condTool').className='cond '+(s.tool?'done':'');
+  document.getElementById('condTool').textContent=(s.tool?'✓':'❌')+' 工具';
+  document.getElementById('condStamina').className='cond '+(s.stamina?'done':'');
+  document.getElementById('condStamina').textContent=(s.stamina?'✓':'❌')+' 体力';
+  let btn=document.getElementById('escBtn');
+  if(isEscapeReady()){
+    btn.className='escape-btn ready';
+    btn.textContent='🔓 尝试逃跑';
+  }else{
+    btn.className='escape-btn';
+    btn.textContent='🚫 条件不足';
+  }
+}
+function updateLockedStatus(){
+  let o=document.getElementById('lockedOverlay');
+  if(G.locked){
+    o.classList.add('active');
+    document.getElementById('lockedText').innerHTML=`你被关进了暗无天日的禁闭室...<br><br>🔒 处罚：${getLockReason()}<br>⏰ 禁闭剩余：${G.lockHours}小时<br><br><span style="color:#5a5a6a">只能在牢房里等待处罚结束...</span>`;
+  }else o.classList.remove('active');
+}
+function getLockReason(){
+  if(G.lockHours>=20)return'严重违规，关禁闭一天';
+  if(G.caught>=2)return'多次违规，关禁闭半天';
+  if(G.stamina<=0)return'体力耗尽昏迷';
+  return'违规被抓';
+}
+
+// ==================== 线索检查 ====================
+function checkClues(){
+  // 检查所有线索是否收集完毕
+  let allClues=['clue1','clue2','clue3','clue4'].filter(c=>G.cluesFound[c]);
+  if(allClues.length===4&&G.introPhase==='clue'){
+    G.introPhase='clue_complete';
+    setTimeout(()=>{
+      let s=getEscapeStatus();
+      let ready=s.route&&s.info&&s.tool&&s.stamina;
+      showDialog({title:'💡 线索收集完成',content:`<p style="color:#c9b896;line-height:1.8">你收集到了所有关键线索：</p>
+<div class="clue-box"><div class="clue-title">✓ 子时换班</div><div class="clue-desc">老王告诉你，每天子时守卫最少，只有一炷香的时间。</div></div>
+<div class="clue-box"><div class="clue-title">✓ 排水道</div><div class="clue-desc">东墙根有一条旧排水道，出口在墙外草丛。</div></div>
+<div class="clue-box"><div class="clue-title">✓ 铁片</div><div class="clue-desc">你捡到了一块铁片，可以撬开脚镣。</div></div>
+<div class="clue-box"><div class="clue-title">✓ 蒙面人的确认</div><div class="clue-desc">蒙面人验证了排水道可用，关键时刻还透露了情报。</div></div>
+${ready?`<p style="margin-top:16px;color:var(--green)">🎉 所有逃跑条件已满足！等到<strong>夜间（20:00后）</strong>，点击「逃跑」按钮即可开始逃亡！</p>`:`<p style="margin-top:16px;color:var(--dim)">⏰ 等待夜间（20:00后）再逃跑。夜间点击「逃跑」按钮即可！</p>`}`,options:[{text:'我明白了',primary:true,action:()=>{closeDialog();addLog('📝 所有线索收集完毕，准备最终逃亡！','important');}}]});
+    },500);
+  }
+}
+
+// ==================== 教程系统 ====================
+function showTutorialMenu(){
+  let html=`<p style="color:var(--dim);margin-bottom:16px;line-height:1.6">点击下方选项查看对应的教程内容：</p>
+  <div style="display:flex;flex-direction:column;gap:10px">`;
+  
+  html+=`<button class="dialog-btn" onclick="showTutorial(1)">🗺️ 教程一：地图与移动</button>`;
+  html+=`<button class="dialog-btn" onclick="showTutorial(2)">💬 教程二：与NPC对话</button>`;
+  html+=`<button class="dialog-btn" onclick="showTutorial(3)">🚪 教程三：逃跑条件</button>`;
+  html+=`<button class="dialog-btn" onclick="showTutorial(4)">⏰ 教程四：时间与劳役</button>`;
+  html+=`<button class="dialog-btn" onclick="showTutorial(5)">🎯 教程五：快速通关攻略</button>`;
+  
+  html+=`</div><button class="dialog-btn" style="margin-top:16px" onclick="closeModal()">关闭</button>`;
+  
+  showModal('📖 教程中心',html);
+}
+function showTutorial(num){
+  closeModal();
+  setTimeout(()=>{
+    let content='';
+    switch(num){
+      case 1:
+        content=`<div class="tutorial-box"><div class="tutorial-icon">🗺️</div><div class="tutorial-title">地图与移动</div><div class="tutorial-desc">点击顶部「地图」按钮可以查看劳役营各处。<br><br>• 不同地点在不同时间开放<br>• 夜间（20:00后）可以探索围墙<br>• 被关禁闭时只能待在牢房</div></div>`;
+        break;
+      case 2:
+        content=`<div class="tutorial-box"><div class="tutorial-icon">💬</div><div class="tutorial-title">与NPC对话</div><div class="tutorial-desc">点击牢房里的NPC与他交谈：<br><br>👴 老王 - 会告诉你逃跑的情报（子时换班）<br>❓ 蒙面人 - 知道逃跑的路线（排水道）<br>👤 二愣子 - 有自己的故事<br><br>💡 多交谈几次，提升好感度后能获得更多情报！</div></div>`;
+        break;
+      case 3:
+        content=`<div class="tutorial-box"><div class="tutorial-icon">🚪</div><div class="tutorial-title">逃跑条件</div><div class="tutorial-desc">当4个条件全部满足后，点击「逃跑」按钮：<br><br>✓ 发现路线（排水道位置）<br>✓ 掌握情报（子时换班时间）<br>✓ 收集工具（铁片）<br>✓ 体力≥40%<br><br>💡 夜间（20:00后）才是逃跑的最佳时机！</div></div>`;
+        break;
+      case 4:
+        content=`<div class="tutorial-box"><div class="tutorial-icon">⏰</div><div class="tutorial-title">时间与劳役</div><div class="tutorial-desc">• 每天上午和下午必须完成劳役<br>• 否则傍晚点名时会被抓<br>• 夜间可以休息或探索<br>• 30天内未逃出，游戏失败</div></div>`;
+        break;
+      case 5:
+        content=`<div class="tutorial-box"><div class="tutorial-icon">🎯</div><div class="tutorial-title">快速通关攻略</div><div class="tutorial-desc"><strong>第一天：</strong><br>1. 和老王交谈2次，获取子时情报<br>2. 和蒙面人交谈，获取排水道情报<br>3. 去矿区干活，有概率获得铁片<br><br><strong>夜间（20:00后）：</strong><br>点击「逃跑」按钮，触发剧情！</div></div>`;
+        break;
+    }
+    showDialog({title:'📖 教程',content:content,options:[{text:'返回教程菜单',action:()=>{closeDialog();showTutorialMenu();}}]});
+  },150);
+}
+
+// ==================== 游戏逻辑 ====================
+function selectGender(g){createData.gender=g;document.getElementById('genderMale').classList.toggle('selected',g==='男');document.getElementById('genderFemale').classList.toggle('selected',g==='女');}
+function startGame(){
+  let name=document.getElementById('playerName').value.trim();
+  if(!name){alert('请输入名字！');return;}
+  createData.name=name;
+  // 保存玩家角色信息到游戏状态
+  G.playerName=name;
+  G.playerGender=createData.gender;
+  document.getElementById('createScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  initGame();
+}
+function initGame(){
+  updateUI();
+  addLog('🔥 乱世烽火 - 劳役营篇','important');
+  addLog('你被押送到了涿郡劳役营...','narrative');
+  addLog('这里有老王、二愣子，还有一个神秘的蒙面人...','narrative');
+  addLog('——你必须想办法逃出去。','important');
+  setTimeout(()=>showDay1Intro(),500);
+}
+function showDay1Intro(){
+  showDialog({title:'📜 乱世烽火 · 劳役营篇',content:`<p style="color:#c9b896;line-height:1.8">📋 <strong>目标：在30天内找到逃跑路线并成功逃脱！</strong></p>
+<p style="margin-top:12px;color:#8892a0;line-height:1.6">💡 <strong>提示：</strong><br>• 每天必须完成上午和下午劳役，否则点名时会被抓<br>• 和NPC交谈可以获得逃跑情报，好感度越高信息越多<br>• 被抓会清空背包，严重时会关禁闭<br>• 夜间可以探索围墙，寻找逃跑路线</p>
+<p style="margin-top:16px;color:var(--green);line-height:1.6">🎯 <strong>剧情提示：</strong><br>尝试与「老王」和「蒙面人」深入交谈，<br>收集逃跑的关键线索！</p>`,options:[{text:'▶ 我明白了',primary:true,action:()=>{closeDialog();addLog('「都听明白了吗？干活去！」','dialog');G.introPhase='clue';}}]});
+}
+function showLocationFlash(loc){
+  let f=document.getElementById('locationFlash');
+  document.getElementById('flashName').textContent=loc.n;
+  document.getElementById('flashDesc').textContent=loc.d;
+  f.classList.add('show');
+  setTimeout(()=>f.classList.remove('show'),600);
+}
+function showMap(){
+  let locs=Object.entries(LOCS).map(([id,loc])=>{
+    let cur=G.loc===id,acc=canAccess(id),disabled=!acc&&!cur,info='';
+    if(loc.locked)info='禁止';
+    else if(loc.nightOnly&&!isNight())info='夜间';
+    else if(disabled)info='时间';
+    else if(G.locked&&id!=='dorm')info='禁闭';
+    return{id,...loc,cur,disabled,info};
+  });
+  showModal('🗺️ 地图',`<div class="map-grid">${locs.map(l=>`<div class="map-cell ${l.cur?'current':''}" onclick="${l.disabled?'':`closeModal();moveTo('${l.id}')`}" style="${l.disabled?'opacity:0.4;cursor:not-allowed':''}"><div class="icon">${l.i}</div><div class="name">${l.n}</div><div class="info">${l.info||l.d}</div></div>`).join('')}</div>`);
+}
+function showState(){
+  const s=getEscapeStatus();
+  const chk=v=>v?'✓':'✗';
+  showModal('📊 状态',`<div class="state-grid"><div class="state-cell"><div class="icon">💪</div><div class="val">${G.stamina}%</div><div class="label">体力</div></div><div class="state-cell"><div class="icon">🍜</div><div class="val">${G.food}%</div><div class="label">饱食</div></div><div class="state-cell"><div class="icon">📅</div><div class="val">第${G.day}天</div><div class="label">天数</div></div><div class="state-cell"><div class="icon">⚠️</div><div class="val">${G.caught}</div><div class="label">被捕</div></div></div>
+<div style="margin-bottom:12px">
+  <div style="color:var(--gold);font-size:12px;margin-bottom:8px">📜 剧情线索</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px">
+    <span style="font-size:11px;padding:4px 8px;background:var(--card);border-radius:4px;color:${G.cluesFound.clue1?'var(--green)':'var(--dim)'}">${G.cluesFound.clue1?'✓':'○'} 老王的忠告</span>
+    <span style="font-size:11px;padding:4px 8px;background:var(--card);border-radius:4px;color:${G.cluesFound.clue2?'var(--green)':'var(--dim)'}">${G.cluesFound.clue2?'✓':'○'} 发现排水道</span>
+    <span style="font-size:11px;padding:4px 8px;background:var(--card);border-radius:4px;color:${G.cluesFound.clue3?'var(--green)':'var(--dim)'}">${G.cluesFound.clue3?'✓':'○'} 捡到铁片</span>
+    <span style="font-size:11px;padding:4px 8px;background:var(--card);border-radius:4px;color:${G.cluesFound.clue4?'var(--green)':'var(--dim)'}">${G.cluesFound.clue4?'✓':'○'} 蒙面人确认</span>
+  </div>
+</div>
+<div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:12px;margin-top:12px"><div style="color:var(--dim);font-size:11px;margin-bottom:8px">逃跑准备</div><div style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-size:12px;padding:4px 10px;background:var(--card);border-radius:4px;color:${s.route?'var(--green)':'var(--dim)'}">${chk(s.route)} 发现路线</span><span style="font-size:12px;padding:4px 10px;background:var(--card);border-radius:4px;color:${s.info?'var(--green)':'var(--dim)'}">${chk(s.info)} 掌握情报</span><span style="font-size:12px;padding:4px 10px;background:var(--card);border-radius:4px;color:${s.tool?'var(--green)':'var(--dim)'}">${chk(s.tool)} 收集工具</span></div></div>`);
+}
+function showItems(){
+  let items=G.inventory.map(id=>ITEMS[id]).filter(Boolean);
+  let html=items.length?items.map(item=>`<div style="background:var(--card);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:24px">${item.i}</span><div><div style="font-size:13px">${item.n}</div><div style="font-size:11px;color:var(--dim)">${item.d}</div></div></div>`).join(''):'<div style="text-align:center;color:var(--dim);padding:20px">背包是空的</div>';
+  showModal('🎒 背包',html);
+}
+function showEscape(){
+  const s=getEscapeStatus();
+  const ready=isEscapeReady();
+  const chk=v=>v?'✓':'✗';
+  const cnt=[s.route,s.info,s.tool,s.stamina].filter(Boolean).length;
+  let clueInfo='';
+  if(G.cluesFound.clue1&&G.cluesFound.clue2&&G.cluesFound.clue3&&G.cluesFound.clue4){
+    clueInfo='<div class="clue-box" style="margin-top:12px"><div class="clue-title">✓ 剧情线索齐全</div><div class="clue-desc">老王告诉你的情报 + 你发现的排水道 + 捡到的铁片 + 蒙面人的确认 = 万事俱备！</div></div>';
+  }
+  showModal('🚪 逃跑',`<div class="escape-progress"><div class="escape-bar"><div class="escape-fill" style="width:${cnt*25}%"></div></div></div><div class="escape-items"><span class="escape-tag ${s.route?'done':''}">${chk(s.route)} 发现逃跑路线</span><span class="escape-tag ${s.info?'done':''}">${chk(s.info)} 掌握巡逻情报</span><span class="escape-tag ${s.tool?'done':''}">${chk(s.tool)} 收集逃跑工具</span><span class="escape-tag ${s.stamina?'done':''}">${chk(s.stamina)} 体力≥40%</span></div>${clueInfo}<button onclick="${ready?'closeModal();tryEscape()':'closeModal()'}" style="width:100%;padding:14px;margin-top:16px;background:${ready?'linear-gradient(135deg, #8b4513, #a0522d)':'var(--card)'};border:2px solid ${ready?'var(--gold)':'rgba(255,255,255,0.1)'};border-radius:8px;color:${ready?'var(--gold)':'var(--dim)'};font-size:14px;cursor:${ready?'pointer':'not-allowed'}">${ready?'🔓 尝试逃跑':'🚫 条件不足'}</button>`);
+}
+function moveTo(id){
+  if(G.locked&&id!=='dorm'){addLog('🔒 你被关禁闭中，只能待在牢房...','danger');return;}
+  if(G.loc===id)return;
+  let loc=LOCS[id];
+  if(loc.locked){addLog('🚫 那里无法通行...','narrative');return;}
+  if(!canAccess(id)){addLog('⏰ 现在不能去那里...','narrative');return;}
+  G.loc=id;
+  addLog(`📍 来到「${loc.n}」`,'action');
+  if(id==='wall'&&Math.random()<0.3)addLog('⚠️ 巡逻队正在附近！小心被抓住！','danger');
+  showLocationFlash(loc);
+  updateUI();
+}
+function interact(id){
+  let loc=LOCS[G.loc];
+  let enc=loc.enc.find(e=>e.id===id);
+  if(!enc)return;
+  switch(enc.type){
+    case'npc':showNPCDialog(enc.npcId||id);break;
+    case'guard':encounterGuard(enc);break;
+    case'work':doWork(enc);break;
+    case'rest':doRest(enc);break;
+    case'meal':doMeal(enc);break;
+    case'steal':doSteal(enc);break;
+    case'observe':doObserve(enc);break;
+    case'patrol':encounterPatrol(enc);break;
+    case'drain':useDrain();break;
+  }
+}
+// 获取NPC对话次数用完时的性格反应
+function getNPCExhaustedResponse(npc,npcId,personality){
+  // 根据性格返回不同的反应
+  let responses={
+    '友好':{
+      q:'（还想再聊）',
+      a:'老王摆摆手，慈祥地笑了笑：「今日话已说完，改日再聊。」',
+      icon:'😊'
+    },
+    '冷漠':{
+      q:'（还想再聊）',
+      a:'蒙面人转过身去，不再理会你。',
+      icon:'😐'
+    }
+  };
+  let r=responses[personality]||responses['冷漠'];
+  return {q:r.q,a:r.a,id:'limit',isEnd:true,icon:r.icon};
+}
+
+// 获取NPC的对话选项（随机抽取）
+function getNPCDialogOptions(npc,npcId,level,trust){
+  let options=[];
+  let askedList=window.askedNPCOpts&&window.askedNPCOpts[npcId]||[];
+  let personality=npc.personality||'冷漠';
+  
+  // 检查每日对话次数限制（每天最多3次）
+  let todayKey='day_'+G.day;
+  let dailyChats=G.npcDailyChats[npcId]||{};
+  let todayChats=dailyChats[todayKey]||0;
+  
+  // 如果今天已经聊够了3次，按性格显示不同反应
+  if(todayChats>=3){
+    return [getNPCExhaustedResponse(npc,npcId,personality)];
+  }
+  
+  // 计算今日剩余话题数
+  let totalAvailable=0;
+  // 统计可用的对话数量
+  if(npc.highTrustDialogs&&trust>=3){
+    totalAvailable+=npc.highTrustDialogs.filter((o,i)=>!askedList.includes('h'+i)).length;
+  }
+  if(npc.randomDialogs){
+    totalAvailable+=npc.randomDialogs.filter((o,i)=>!askedList.includes('r'+i)).length;
+  }
+  
+  // 限制显示数量（最多3个问题，但不超过剩余话题）
+  let maxShow=Math.min(3-todayChats,totalAvailable,3);
+  
+  // 1. 高信任度专属对话（需要trust>=3才能问）
+  if(npc.highTrustDialogs&&trust>=3&&options.length<maxShow){
+    let available=npc.highTrustDialogs.filter((o,i)=>!askedList.includes('h'+i));
+    if(available.length>0){
+      let idx=Math.floor(Math.random()*available.length);
+      options.push({...available[idx],id:'h'+idx,isHighTrust:true});
+    }
+  }
+  
+  // 2. 给食物相关对话（需要信任>=1且之前对话过）
+  if(npc.giveFoodDialogs&&trust>=1&&askedList.length>0&&options.length<maxShow){
+    let available=npc.giveFoodDialogs.filter((o,i)=>!askedList.includes('g'+i));
+    if(available.length>0&&Math.random()<0.5){
+      let idx=Math.floor(Math.random()*available.length);
+      options.push({...available[idx],id:'g'+idx});
+    }
+  }
+  
+  // 3. 基础随机对话池
+  if(npc.randomDialogs&&options.length<maxShow){
+    let available=npc.randomDialogs.filter((o,i)=>!askedList.includes('r'+i));
+    // 打乱顺序并取剩余需要的数量
+    available=available.sort(()=>Math.random()-0.5).slice(0,maxShow-options.length);
+    available.forEach((o,i)=>{
+      options.push({...o,id:'r'+npc.randomDialogs.indexOf(o)});
+    });
+  }
+  
+  // 如果没有可用对话（全部问过了），添加一个通用回复
+  if(options.length===0){
+    options.push({
+      q:'（随便聊聊）',
+      a:npc.farewell||'「该说的都说了，改天再聊吧。」',
+      id:'repeat'
+    });
+  }
+  
+  // 添加剩余对话次数提示
+  let remaining=3-todayChats;
+  window._npcRemainingChats=remaining;
+  window._npcTotalTopics=totalAvailable;
+  
+  return options;
+}
+
+function showNPCDialog(npcId){
+  let npc=NPCS[npcId];
+  if(!npc)return;
+  let trust=G.trust[npcId]||0;
+  let level=getNPCRelationLevel(trust);
+  let npcData=npc.levels[level];
+  if(!npcData){level=0;npcData=npc.levels[level];}
+  let leaveText=npc.leaveText||'离开';
+  let personality=npc.personality||'冷漠';
+  
+  // 初始化对话跟踪
+  window.askedNPCOpts=window.askedNPCOpts||{};
+  window.currentNPCId=npcId;
+  
+  // 获取对话选项
+  let dialogOptions=getNPCDialogOptions(npc,npcId,level,trust);
+  let remaining=window._npcRemainingChats||0;
+  
+  // 检查是否已达对话上限
+  let isLimited=dialogOptions.length===1&&dialogOptions[0].isEnd;
+  
+  // 构建选项HTML
+  let options=dialogOptions.map((o,idx)=>{
+    let tag='';
+    if(o.isHighTrust)tag='<span style="color:var(--gold);font-size:9px">★</span>';
+    if(o.isEnd)return {text:o.q,action:()=>{closeDialog();updateUI();}};
+    return {text:tag+o.q,action:()=>{showNPCReplyNew(npcId,o,level);}};
+  });
+  
+  if(!isLimited){
+    options.push({text:leaveText,primary:true,action:()=>{closeDialog();updateUI();}});
+  }
+  
+  let trustLabel=trust>=3?'★★ 信任':trust>=1?'★ 熟识':'○ 陌生';
+  
+  // 性格图标
+  let personalityIcon=personality==='友好'?'😊':personality==='冷漠'?'😐':personality==='敌对'?'😠':'😐';
+  
+  // 测试模式信息
+  let testInfo='';
+  if(isTestMode()){
+    let personalityColor=personality==='友好'?'var(--green)':personality==='冷漠'?'var(--dim)':personality==='敌对'?'var(--danger)':'var(--dim)';
+    testInfo=`<div style="background:rgba(233,69,96,0.15);border:1px solid var(--accent);border-radius:6px;padding:8px;margin-top:8px;font-size:10px;text-align:left">
+      <div style="color:var(--accent);margin-bottom:4px">🔧 测试模式</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <span>💚 好感度: <b style="color:var(--green)">${trust}</b></span>
+        <span>${personalityIcon} 性格: <b style="color:${personalityColor}">${personality}</b></span>
+        <span>💬 剩余: <b style="color:var(--gold)">${remaining}/3</b></span>
+      </div>
+    </div>`;
+  }
+  
+  // 测试模式显示剩余话题数
+  let chatInfo='';
+  if(isTestMode()){
+    if(isLimited){
+      chatInfo=`<div style="color:var(--dim);font-size:10px;margin-top:6px">${personalityIcon} 今日话题已尽</div>`;
+    }else if(remaining>0){
+      chatInfo=`<div style="color:var(--dim);font-size:10px;margin-top:6px">💬 还有${remaining}个话题可聊</div>`;
+    }
+  }
+  
+  showDialog({
+    title:`${npc.i} ${npc.n}`,
+    content:`<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;text-align:center;margin-bottom:12px">
+      <div style="font-size:2rem">${npc.i}</div>
+      <div style="color:#c9b896;font-size:0.9rem">${npc.n}</div>
+      <div style="color:${trust>=3?'var(--gold)':trust>=1?'var(--green)':'var(--dim)'};font-size:0.7rem;margin-top:4px">${trustLabel}</div>
+      ${chatInfo}
+    </div>
+    <p style="color:#a8b8c8;line-height:1.6;white-space:pre-line">${npcData.intro}</p>
+    ${testInfo}`,
+    options:options
+  });
+}
+
+function showNPCReplyNew(npcId,opt,level){
+  let npc=NPCS[npcId];
+  if(!npc)return;
+  let trust=G.trust[npcId]||0;
+  let npcData=npc.levels[level];
+  if(!npcData)npcData=npc.levels[0];
+  
+  // 如果是对话上限提示，直接关闭
+  if(opt.isEnd){
+    closeDialog();
+    return;
+  }
+  
+  // 记录已问的问题
+  window.askedNPCOpts[npcId]=window.askedNPCOpts[npcId]||[];
+  if(opt.id&&opt.id!=='repeat'){
+    window.askedNPCOpts[npcId].push(opt.id);
+  }
+  
+  // 记录每日对话次数
+  let todayKey='day_'+G.day;
+  G.npcDailyChats[npcId]=G.npcDailyChats[npcId]||{};
+  G.npcDailyChats[npcId][todayKey]=(G.npcDailyChats[npcId][todayKey]||0)+1;
+  
+  // 每次对话都会增加好感度（+1）
+  let oldTrust=trust;
+  G.trust[npcId]=Math.max(0,(G.trust[npcId]||0)+1);
+  let newTrust=G.trust[npcId];
+  if(newTrust>oldTrust){
+    addLog(`💚 和${npc.n}的关系改善了 (+1) 当前信任度：${newTrust}`,'important');
+  }
+  
+  // 时间推进
+  G.hour+=1;
+  if(G.hour>=24){G.hour-=24;newDay();}
+  checkStatus();
+  
+  // 显示对话
+  addLog(`💬 你：${opt.q}`,'action');
+  addLog(`${npc.i} ${npc.n}：${opt.a.replace(/\n/g,' ')}`,'dialog');
+  
+  // 处理特殊效果
+  if(opt.trust){
+    G.trust[npcId]=Math.max(0,(G.trust[npcId]||0)+opt.trust);
+    if(opt.trust>0)addLog(`💚 关系大幅改善 (+${opt.trust})`,'important');
+  }
+  if(opt.unlock){
+    if(opt.unlock==='route'&&!G.progress.route){
+      G.progress.route=true;
+      addLog('📝 发现逃跑路线：东墙排水道！','important');
+    }
+    if(opt.unlock==='info'&&!G.progress.info){
+      G.progress.info=true;
+      addLog('📝 掌握巡逻规律：子时换班，守卫最少！','important');
+    }
+  }
+  if(opt.unlock2){
+    if(opt.unlock2==='route'&&!G.progress.route){
+      G.progress.route=true;
+      addLog('📝 发现逃跑路线：东墙排水道！','important');
+    }
+    if(opt.unlock2==='info'&&!G.progress.info){
+      G.progress.info=true;
+      addLog('📝 掌握巡逻规律：子时换班！','important');
+    }
+  }
+  if(opt.giveFood&&G.food<100){
+    G.food=Math.min(100,G.food+15);
+    addLog('🍞 获得了一些食物！','important');
+  }
+  if(opt.giveFood2&&G.food<100){
+    G.food=Math.min(100,G.food+10);
+    addLog('🍞 额外获得了一些食物！','important');
+  }
+  if(opt.clue){
+    G.cluesFound[opt.clue]=true;
+    if(opt.clue==='clue1'){G.progress.info=true;addLog('📜 获得线索①：子时换班情报！','important');}
+    if(opt.clue==='clue4'){G.progress.route=true;G.cluesFound.clue2=true;addLog('📜 获得线索②+④：排水道确认可用！','important');}
+  }
+  
+  // 刷新UI
+  updateUI();
+  
+  // 检查是否升级
+  let newLevel=getNPCRelationLevel(newTrust);
+  if(newLevel>level){
+    let levelNames=['陌生','熟识','信任','挚友'];
+    addLog(`💚 和${npc.n}的关系升级为「${levelNames[newLevel]}」！`,'important');
+    addLog(`💡 ${npc.n}愿意和你分享更多信息了...`,'narrative');
+  }
+  
+  // 检查今日剩余对话次数
+  let remaining=3-(G.npcDailyChats[npcId][todayKey]||0);
+  
+  // 继续对话选项
+  setTimeout(()=>{
+    let currentTrust=G.trust[npcId]||0;
+    let currentLevel=getNPCRelationLevel(currentTrust);
+    let npcData2=npc.levels[currentLevel];
+    if(!npcData2)npcData2=npc.levels[0];
+    
+    let dialogOptions=getNPCDialogOptions(npc,npcId,currentLevel,currentTrust);
+    let isLimited=dialogOptions.length===1&&dialogOptions[0].isEnd;
+    
+    let options=dialogOptions.map((o,idx)=>{
+      let tag='';
+      if(o.isHighTrust)tag='<span style="color:var(--gold);font-size:9px">★</span>';
+      if(o.isEnd)return {text:o.q,action:()=>{closeDialog();updateUI();}};
+      return {text:tag+o.q,action:()=>{showNPCReplyNew(npcId,o,currentLevel);}};
+    });
+    
+    if(!isLimited){
+      options.push({text:npc.leaveText||'离开',primary:true,action:()=>{closeDialog();updateUI();}});
+    }
+    
+    // 测试模式显示对话次数
+    let chatLimitInfo='';
+    if(isLimited){
+      chatLimitInfo=`<div style="color:var(--accent);font-size:10px;margin-top:6px">💬 今日对话次数已用完，改天再来吧</div>`;
+    }else if(isTestMode()){
+      chatLimitInfo=`<div style="color:var(--dim);font-size:10px;margin-top:6px">💬 今日剩余：${remaining}/3</div>`;
+    }
+    
+    // 测试模式信息
+    let testInfo='';
+    if(isTestMode()){
+      testInfo=`<div style="background:rgba(233,69,96,0.15);border:1px solid var(--accent);border-radius:6px;padding:8px;margin-top:8px;font-size:10px;text-align:left">
+        <div style="color:var(--accent);margin-bottom:4px">🔧 测试模式</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <span>💚 好感度: <b style="color:var(--green)">${currentTrust}</b></span>
+          <span>💬 剩余: <b style="color:var(--gold)">${remaining}/3</b></span>
+        </div>
+      </div>`;
+    }
+    
+    showDialog({
+      title:`${npc.i} ${npc.n}`,
+      content:`<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;text-align:center;margin-bottom:12px">
+        <div style="font-size:2rem">${npc.i}</div>
+        <div style="color:#c9b896;font-size:0.9rem">${npc.n}</div>
+        <div style="color:${currentTrust>=3?'var(--gold)':currentTrust>=1?'var(--green)':'var(--dim)'};font-size:0.7rem;margin-top:4px">信任度：${currentTrust}</div>
+        ${chatLimitInfo}
+      </div>
+      <p style="color:#a8b8c8;line-height:1.6;white-space:pre-line">${opt.a}</p>
+      ${testInfo}`,
+      options:options
+    });
+  },100);
+}
+function showFarewell(farewell){
+  // 显示告别台词，然后关闭对话框
+  addLog('💬 你：先走了','action');
+  document.getElementById('dialogContent').innerHTML=`<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;text-align:center"><p style="color:#a8b8c8;line-height:1.6;white-space:pre-line">${farewell||'你点了点头，起身告辞。'}</p></div>`;
+  document.getElementById('dialogOptions').innerHTML=`<button class="dialog-btn primary" onclick="closeDialog();updateUI();">离开</button>`;
+}
+function leaveDialog(){
+  // 显示告别台词（从当前对话中获取NPC信息）
+  let title=document.getElementById('dialogTitle').textContent;
+  let npcId=Object.keys(NPCS).find(id=>`${NPCS[id].i} ${NPCS[id].n}`===title);
+  let npc=npcId?NPCS[npcId]:null;
+  let farewell=npc?.farewell||'你点了点头，起身告辞。';
+  addLog('💬 你：先走了','action');
+  document.getElementById('dialogContent').innerHTML=`<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;text-align:center"><p style="color:#a8b8c8;line-height:1.6;white-space:pre-line">${farewell}</p></div>`;
+  document.getElementById('dialogOptions').innerHTML=`<button class="dialog-btn primary" onclick="closeDialog();updateUI();">离开</button>`;
+}
+
+// ==================== 正常游戏逻辑 ====================
+function encounterGuard(enc){
+  let d=Math.random();
+  addLog(`${enc.i} ${enc.n}打量着你...`,'narrative');
+  if(d<0.3){
+    showDialog({title:`${enc.i} ${enc.n}`,content:`<div style="text-align:center;margin-bottom:15px"><div style="font-size:3rem">${enc.i}</div><div style="color:#c9b896">${enc.n}</div></div><p style="color:#c97a7a">监工瞪着你：「你鬼鬼祟祟的，在干什么！」</p>`,options:[{text:'挣扎辩解',danger:true,action:()=>{closeDialog();getCaught('被监工发现你鬼鬼祟祟');}}]});
+  }else if(d<0.6){
+    showDialog({title:`${enc.i} ${enc.n}`,content:`<div style="text-align:center;margin-bottom:15px"><div style="font-size:3rem">${enc.i}</div><div style="color:#c9b896">${enc.n}</div></div><p style="color:#c9a87a">监工呵斥道：「看什么看！滚去干活！」</p>`,options:[{text:'低头离开',action:()=>{closeDialog();addLog(`${enc.i} ${enc.n}呵斥道：看什么看！滚去干活！`,'action');updateUI();}}]});
+  }else{
+    showDialog({title:`${enc.i} ${enc.n}`,content:`<div style="text-align:center;margin-bottom:15px"><div style="font-size:3rem">${enc.i}</div><div style="color:#c9b896">${enc.n}</div></div><p>监工瞥了你一眼，没理会，继续盯着别处。</p>`,options:[{text:'悄悄离开',action:()=>{closeDialog();addLog(`${enc.i} ${enc.n}瞥了你一眼，没理会`,'narrative');updateUI();}}]});
+  }
+}
+function encounterPatrol(enc){
+  let d=Math.random();
+  addLog(`${enc.i} ${enc.n}正在巡逻...`,'narrative');
+  if(d<0.4){
+    showDialog({title:`${enc.i} ${enc.n}`,content:`<div style="text-align:center;margin-bottom:15px"><div style="font-size:3rem">${enc.i}</div><div style="color:#c9b896">${enc.n}</div></div><p style="color:#c97a7a">巡逻队发现你了！「站住！有人！」火把逼近，你无处可逃...</p>`,options:[{text:'被抓住',danger:true,action:()=>{closeDialog();getCaught('被巡逻队发现你在围墙附近');}}]});
+  }else{
+    showDialog({title:`${enc.i} ${enc.n}`,content:`<div style="text-align:center;margin-bottom:15px"><div style="font-size:3rem">${enc.i}</div><div style="color:#c9b896">${enc.n}</div></div><p>巡逻队从你藏身处走过，火光照亮四周...脚步声渐渐远去...</p>`,options:[{text:'松了口气',action:()=>{closeDialog();addLog(`${enc.i} ${enc.n}走远了，你松了口气`,'narrative');updateUI();}}]});
+  }
+}
+function doWork(enc){
+  if(G.locked){addLog('🔒 你被关禁闭中，无法外出劳役','danger');return;}
+  if(!canAccess(G.loc)){addLog('⏰ 现在不是劳役时间...','narrative');return;}
+  let cost=enc.stamina||20;
+  if(G.stamina<cost){addLog('⚠️ 体力不足，无法劳役！','danger');return;}
+  G.stamina-=cost;G.food=Math.max(0,G.food-5);
+  addLog(`${enc.i} ${enc.name||enc.n}... 体力 -${cost} 饱食 -5`,'action');
+  if(G.hour<12)G.tasks.morning=true;else if(G.hour<18)G.tasks.afternoon=true;
+  if(enc.risk&&Math.random()<enc.risk){let h=10+Math.floor(Math.random()*15);G.stamina=Math.max(0,G.stamina-h);addLog(`⚠️ 出了点意外！体力 -${h}`,'danger');}
+  
+  // 挖排水沟时发现线索
+  if(G.loc==='mine'&&!G.cluesFound.clue2&&Math.random()<0.4){
+    G.cluesFound.clue2=true;
+    addLog('📜 获得线索②：发现东墙排水道！','important');
+    addLog('你在矿区挖土时，注意到了东墙根的旧排水道...','narrative');
+  }
+  
+  // 物品获取结果
+  let itemFound=null;
+  let itemMsg='';
+  
+  // 1. 小概率获得铁片（稀有工具）- 重要物品，显示弹窗
+  if(Math.random()<0.12&&G.inventory.length<5&&!G.inventory.includes('iron')){
+    G.inventory.push('iron');
+    G.progress.tool=true;
+    G.cluesFound.clue3=true;
+    itemFound='iron';
+    itemMsg='🔧 铁片';
+    addLog('📦 发现物品：🔧 铁片！','important');
+  }
+  // 2. 小概率获得麻绳（稀有工具）
+  else if(Math.random()<0.08&&G.inventory.length<5&&!G.inventory.includes('rope')){
+    G.inventory.push('rope');
+    G.progress.tool=true;
+    itemFound='rope';
+    itemMsg='🪢 麻绳';
+    addLog('📦 发现物品：🪢 麻绳！','important');
+  }
+  // 3. 一定概率获得食物（普通奖励）
+  else if(Math.random()<0.5){
+    let foodAmount=3+Math.floor(Math.random()*5);
+    G.food=Math.min(100,G.food+foodAmount);
+    addLog(`🍞 劳役辛苦，获得食物补偿：+${foodAmount}饱食度`,'success');
+  }
+  // 4. 极小概率获得破布
+  else if(Math.random()<0.15&&G.inventory.length<5&&!G.inventory.includes('cloth')){
+    G.inventory.push('cloth');
+    itemFound='cloth';
+    itemMsg='🧣 破布';
+    addLog('📦 发现物品：🧣 破布！','important');
+  }
+  // 5. 如果以上都没有
+  else{
+    let workTips=['努力干活中...','挥汗如雨...','咬牙坚持中...','一锄一锄...'];
+    addLog(`💪 ${workTips[Math.floor(Math.random()*workTips.length)]}`,'action');
+  }
+  
+  // 马厩喂马有额外奖励
+  if(enc.bonus){
+    G.food=Math.min(100,G.food+enc.bonus);
+    addLog(`🐴 马匹喂得好！额外获得：+${enc.bonus}饱食度`,'success');
+  }
+  
+  checkStatus();advanceTime();updateUI();
+  
+  // 重要物品显示弹窗提示
+  if(itemFound&&(itemFound==='iron'||itemFound==='rope')){
+    setTimeout(()=>{
+      let title=itemFound==='iron'?'🔧 发现铁片':'🪢 发现麻绳';
+      let desc=itemFound==='iron'?'你悄悄捡起这块铁片，藏在衣襟里。<br><br>这铁片足够撬开脚镣的锁！':'这麻绳结实耐用，逃跑时可能用得上。';
+      showDialog({
+        title:title,
+        content:`<div style="text-align:center"><div style="font-size:3rem;margin-bottom:12px">${itemMsg}</div><p style="color:#a8b8c8;line-height:1.6">${desc}</p><p style="color:var(--green);margin-top:12px">已收入背包</p></div>`,
+        options:[{text:'收下',primary:true,action:()=>closeDialog()}]
+      });
+    },300);
+  }
+}
+function doRest(enc){
+  let gain=enc.id==='wl'?10:20;
+  G.stamina=Math.min(100,G.stamina+gain);
+  addLog(`${enc.i} 休息了一会儿... 体力 +${gain}`,'action');
+  advanceTime();checkStatus();updateUI();
+}
+function doMeal(enc){
+  if(G.locked){addLog('🔒 你被关禁闭中，无法去吃饭','danger');return;}
+  if(!canAccess(G.loc)){addLog('⏰ 现在不是吃饭时间...','narrative');return;}
+  
+  // 检查今日是否已领过饭
+  let todayKey='meal_'+G.day;
+  if(G[todayKey]){
+    showDialog({title:'🍲 饭菜桶',content:`<p style="color:#c97a7a;text-align:center">今天的饭已经领过了...</p><p style="color:var(--dim);font-size:11px;margin-top:10px;text-align:center">明天再来吧</p>`,options:[{text:'好吧',action:()=>closeDialog()}]});
+    return;
+  }
+  
+  // 稳定获得食物
+  let baseFood=12+Math.floor(Math.random()*8); // 12-20基础饱食
+  let bonus='';
+  
+  // 厨子心情影响食物质量
+  let luck=Math.random();
+  let totalFood=baseFood;
+  if(luck<0.2){ // 20%概率获得额外食物
+    let extra=5+Math.floor(Math.random()*5); // 5-10额外
+    totalFood=baseFood+extra;
+    bonus='（厨子今天心情不错，给多了点）';
+  }
+  
+  G.food=Math.min(100,G.food+totalFood);
+  G[todayKey]=true; // 标记今日已领饭
+  
+  addLog(`🍲 排队领了一碗稀粥... 饱食度 +${totalFood} ${bonus}`,'action');
+  
+  showDialog({title:'🍲 饭菜桶',content:`<div style="text-align:center;margin-bottom:15px"><div style="font-size:3rem">🍲</div></div><p style="color:#c9b896;text-align:center">你端着碗排队...</p><p style="color:#a8b8c8;line-height:1.6;margin-top:12px">胖厨子给你盛了一碗稀粥，虽然清汤寡水，但好歹能填肚子。</p><p style="color:var(--green);margin-top:12px">饱食度 +${totalFood} ${bonus}</p>`,options:[{text:'谢了',primary:true,action:()=>{closeDialog();advanceTime();checkStatus();updateUI();}}]});
+}
+function doSteal(enc){
+  if(G.locked){addLog('🔒 你被关禁闭中','danger');return;}
+  if(!canAccess(G.loc)){addLog('⏰ 现在不能偷...','narrative');return;}
+  addLog(`${enc.i} 你悄悄靠近${enc.n}...`,'action');
+  if(Math.random()<0.4){getCaught('偷食物时被当场抓住');}
+  else{let g=15+Math.floor(Math.random()*15);G.food=Math.min(100,G.food+g);addLog(`🍞 成功偷到食物！饱食度 +${g}`,'important');advanceTime();checkStatus();updateUI();}
+}
+function doObserve(enc){
+  if(G.loc!=='wall'){addLog('...这里没什么好观察的','narrative');return;}
+  if(!G.progress.route){
+    G.progress.route=true;
+    G.cluesFound.clue2=true;
+    addLog(`🔍 你仔细观察${enc.n}...`,'action');
+    addLog(`🌊 发现东墙排水道！宽度勉强能钻过一个人！`,'important');
+    addLog('📜 获得线索②：排水道位置确认','important');
+  }else{
+    addLog(`🔍 你再次确认排水道的位置...`,'action');
+    addLog(`🌊 逃跑路线：东墙根排水道，子时钻出去`,'important');
+  }
+  advanceTime();updateUI();
+}
+function useDrain(){
+  if(G.introPhase==='clue'||G.introPhase==='clue_complete'){
+    if(!isNight()){
+      showDialog({title:'⚠️ 时机不对',content:'现在是白天，守卫很多。\n\n等到夜间（20:00后）再来吧。',options:[{text:'好的',action:()=>closeDialog()}]});
+      return;
+    }
+    if(!G.inventory.includes('iron')){
+      showDialog({title:'⚠️ 没有工具',content:'排水道很窄，你需要铁片来撬开脚镣...',options:[{text:'退回',action:()=>closeDialog()}]});
+      return;
+    }
+    // 触发最终逃亡剧情 - 直接从逃跑剧情开始，不显示线索收集弹窗
+    G.introPhase='final_escape';
+    closeDialog();
+    setTimeout(()=>{
+      showStory('day4night_1',()=>{});
+    },300);
+  }
+}
+function getCaught(reason){
+  G.caught++;G.stamina=Math.max(0,G.stamina-20);
+  let items=[...G.inventory];G.inventory=[];
+  if(items.length>0)addLog(`📦 物品被没收：${items.map(i=>ITEMS[i]?.i).join(' ')}`,'danger');
+  addLog(`⚠️ ${reason}`,'danger');
+  let content=`<p style="color:#c97a7a">你被抓了！</p><p>${reason}</p>`;
+  if(G.caught===1){content+=`<p style="margin-top:10px">处罚：体力 -20，物品被没收，今晚不许吃饭</p>`;G.food=Math.max(0,G.food-20);}
+  else if(G.caught===2){content+=`<p style="margin-top:10px">处罚：体力 -20，物品被没收，关禁闭半天(12小时)</p>`;G.locked=true;G.lockHours=12;}
+  else if(G.caught>=3){content+=`<p style="margin-top:10px;color:#c97a7a">处罚极其严厉！关禁闭一天(24小时)！逃跑准备全部重置！</p>`;G.locked=true;G.lockHours=24;G.progress={route:false,info:false,tool:false};G.tasks={morning:false,afternoon:false,evening:false};}
+  content+=`<p style="margin-top:10px">累计被抓：${G.caught}/3</p>`;
+  showModal('⚠️ 被抓了！',content,[{text:'认错',action:()=>{checkStatus();updateUI();}}]);
+}
+function tryEscape(){
+  if(!isEscapeReady()){
+    addLog('🚫 逃跑条件不足...','narrative');
+    let missing=[];
+    if(!G.progress.route)missing.push('发现路线');
+    if(!G.progress.info)missing.push('掌握情报');
+    if(!G.inventory.includes('iron')&&!G.inventory.includes('rope'))missing.push('收集工具（铁片）');
+    if(G.stamina<40)missing.push('体力≥40%');
+    showDialog({title:'⚠️ 逃跑条件不足',content:`还需要：\n${missing.map(m=>'• '+m).join('\n')}`,options:[{text:'好的',action:()=>closeDialog()}]});
+    return;
+  }
+  if(!isNight()){
+    showDialog({title:'🌙 时机未到',content:'现在是白天，守卫很多。\n\n等到夜间（20:00后）再逃跑！',options:[{text:'好的',action:()=>closeDialog()}]});
+    return;
+  }
+  // 触发最终逃亡
+  G.introPhase='final_escape';
+  closeDialog();
+  setTimeout(()=>{startFinalEscape();},300);
+}
+function startFinalEscape(){
+  G.introPhase='final_escape';
+  // 直接从逃跑剧情开始，不显示线索收集弹窗
+  showStory('day4night_1',()=>{});
+}
+function advanceTime(){
+  G.hour+=2;
+  if(G.hour>=24){G.hour-=24;newDay();}
+  G.food=Math.max(0,G.food-3);
+  if(G.food<30){G.stamina=Math.max(0,G.stamina-8);addLog('🍜 太饿了，身体越来越虚弱...体力 -8','danger');}
+  if(G.hour===18&&!G.locked)checkEveningRollCall();
+  checkStatus();updateUI();
+}
+function checkEveningRollCall(){
+  addLog('🌆 傍晚点名时间到了...','narrative');
+  if(G.day===1){addLog(`✅ 第1天，点名通过`,'action');G.tasks.morning=true;G.tasks.afternoon=true;G.tasks.evening=true;return;}
+  let missed=false;let reasons=[];
+  if(!G.tasks.morning){missed=true;reasons.push('上午没干活');}
+  if(!G.tasks.afternoon){missed=true;reasons.push('下午没干活');}
+  G.tasks.evening=true;
+  if(missed){
+    showDialog({title:'🌆 傍晚点名',content:`<p>🌆 傍晚点名，监工开始逐个检查...</p><p style="color:#c97a7a;margin-top:10px">「${reasons.join('、')}」</p><p style="margin-top:15px">监工瞪着你：「你就是那个偷懒的！」监工大怒！</p>`,options:[{text:'低头认错',danger:true,action:()=>{closeDialog();addLog(`⚠️ 点名时被发现偷懒！监工大怒！`,'danger');getCaught(`点名时被发现${reasons.join('、')}，监工大怒`);}}]});
+  }else{
+    showDialog({title:'🌆 傍晚点名',content:`<p>🌆 傍晚点名，监工开始逐个检查...</p><p style="margin-top:15px">监工扫了你一眼，点了点头。</p><p style="color:#9ab87a;margin-top:10px">「算你识相，滚吧。」</p>`,options:[{text:'松了口气',action:()=>{closeDialog();addLog(`✅ 点名通过，一切正常`,'action');updateUI();}}]});
+  }
+}
+function newDay(){
+  G.day++;G.food=Math.max(0,G.food-10);
+  if(G.locked&&G.lockHours>0){addLog('🔒 禁闭还没结束，你仍被关在禁闭室里...','narrative');}
+  else if(G.locked&&G.lockHours<=0){G.locked=false;G.lockHours=0;G.caught=0;addLog('🔓 关禁闭结束，你被放出来了！','important');}
+  G.tasks={morning:false,afternoon:false,evening:false};
+  // NPC每日对话次数会在获取时自动按新日期统计，旧数据会自动过期
+  let recovery=G.locked?10:25;
+  G.stamina=Math.min(100,G.stamina+recovery);
+  addLog('────────────────────','important');
+  addLog(`🌅 第${G.day}天清晨，号角再次响起...`,'important');
+  addLog(`睡眠恢复：体力 +${recovery}`,'action');
+  addLog('💬 NPC对话次数已刷新，今日又可以和NPC聊天了！','action');
+  if(G.day>30)gameOver('timeout','被押往更远的地方服苦役...');
+}
+function checkStatus(){
+  if(G.stamina<=0&&!G.locked){G.stamina=10;G.locked=true;G.lockHours=8;addLog('⚠️ 体力耗尽，晕倒在地...','danger');addLog('🔒 你被抬进禁闭室休养...','danger');}
+  if(G.food<=0){G.food=5;G.stamina=Math.max(0,G.stamina-30);addLog('⚠️ 严重饥饿！体力大幅下降！','danger');if(G.stamina<=0){G.stamina=10;G.locked=true;addLog('🔒 你饿晕了，被抬进禁闭室...','danger');}}
+}
+function gameOver(type,msg){
+  let o=document.getElementById('gameOver');o.classList.add('active');
+  if(type==='timeout'){document.getElementById('goIcon').textContent='😢';document.getElementById('goTitle').textContent='任务失败';document.getElementById('goTitle').style.color='#c97a7a';document.getElementById('goSubtitle').textContent=`${msg}（存活 ${G.day-1} 天）`;}
+}
+function waitInCell(){
+  if(!G.locked)return;
+  G.hour+=4;if(G.hour>=24)G.hour-=24;G.lockHours-=4;G.food=Math.max(0,G.food-5);
+  let p=getTimePeriod(G.hour);
+  addLog(`⏰ 在禁闭室里煎熬地等待了4小时... (${p.icon} ${p.text})`,'narrative');
+  if(G.lockHours<=0){G.locked=false;G.lockHours=0;G.caught=0;addLog('🔓 禁闭结束，你被放出来了！','important');}
+  checkStatus();updateUI();
+}
+function restInCell(){
+  if(!G.locked)return;
+  G.hour+=8;if(G.hour>=24)G.hour-=24;G.lockHours-=8;G.food=Math.max(0,G.food-8);G.stamina=Math.min(100,G.stamina+15);
+  let p=getTimePeriod(G.hour);
+  addLog(`💤 在禁闭室里昏睡...过了8小时 (${p.icon} ${p.text})`,'action');
+  addLog('体力恢复 +15','action');
+  if(G.lockHours<=0){G.locked=false;G.lockHours=0;G.caught=0;addLog('🔓 禁闭结束，你被放出来了！','important');}
+  checkStatus();updateUI();
+}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('dialogOverlay').addEventListener('click',function(e){if(e.target===this)closeDialog();});
+
+// 剧情结束后回调
+window.storyCallback=function(){
+  if(storyCallback)storyCallback();
+};
+
+// ==================== 启动序章 ====================
+showIntro();
+</script>
+</body>
+</html>

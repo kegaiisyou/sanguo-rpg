@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试按钮</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a2e; color: #e8dcc4; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        #startBtn { padding: 20px 40px; background: #8b4513; color: #d4af37; border: 2px solid #d4af37; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
+        #startBtn:hover { background: #a0522d; }
+        #result { margin-top: 20px; padding: 15px; background: #0f0a08; border-radius: 8px; min-width: 300px; text-align: center; }
+        .success { color: #9ab87a; }
+        .error { color: #c97a7a; }
+    </style>
+</head>
+<body>
+    <h1>按钮测试</h1>
+    <button id="startBtn" onclick="testClick()">点击测试</button>
+    <div id="result">点击按钮查看结果</div>
+    
+    <script>
+        function testClick() {
+            document.getElementById('result').innerHTML = '<p class="success">✅ 按钮点击成功！</p><p>onclick 属性正常工作</p>';
+        }
+        
+        // 检查页面加载
+        window.onload = function() {
+            document.getElementById('result').innerHTML = '<p class="success">✅ 页面加载完成</p>';
+        };
+    </script>
+</body>
+</html>

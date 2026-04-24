@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三国江湖 v1.1 - 乱世烽火</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", "微软雅黑", sans-serif; background: #1a1a2e; color: #ffd700; overflow: hidden; }
+        
+        /* ===== 游戏容器 ===== */
+        #game-container { width: 100vw; height: 100vh; position: relative; }
+        
+        /* ===== 标题界面 ===== */
+        #title-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 300; pointer-events: auto; }
+        #title-screen h1, #title-screen .subtitle, #title-screen p, #title-screen button { pointer-events: auto; }
+        #title-screen h1 { font-size: 56px; color: #ffd700; text-shadow: 3px 3px 6px #000, 0 0 20px #ff6b00; margin-bottom: 10px; letter-spacing: 8px; }
+        #title-screen .subtitle { color: #888; font-size: 18px; margin-bottom: 40px; }
+        .title-btn { background: linear-gradient(180deg, #ffd700 0%, #cc9900 100%); color: #1a1a1a; border: none; padding: 15px 60px; font-size: 22px; cursor: pointer; border-radius: 8px; margin: 10px; font-weight: bold; transition: all 0.3s; }
+        .title-btn:hover { transform: scale(1.1); box-shadow: 0 0 20px #ffd700; }
+        
+        /* ===== 游戏场景 ===== */
+        #scene { width: 100%; height: 65vh; background: linear-gradient(180deg, #0a0a15 0%, #1a1a2e 30%, #16213e 60%, #0f3460 100%); position: relative; overflow: hidden; }
+        #map { width: 100%; height: 100%; position: absolute; }
+        
+        /* 装饰元素 */
+        .cloud { position: absolute; background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%); border-radius: 50px; }
+        .mountain { position: absolute; bottom: 28%; width: 0; height: 0; border-left: 80px solid transparent; border-right: 80px solid transparent; border-bottom: 150px solid #2a2a3a; }
+        .tree { position: absolute; width: 40px; height: 60px; }
+        .tree::before { content: ""; position: absolute; bottom: 0; left: 15px; width: 10px; height: 20px; background: #4a3728; }
+        .tree::after { content: ""; position: absolute; top: 0; left: 0; width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-bottom: 50px solid #228b22; }
+        .ground { position: absolute; bottom: 0; width: 100%; height: 30%; background: linear-gradient(180deg, #3d5a3d 0%, #2d4a2d 50%, #1d3a1d 100%); }
+        
+        /* ===== 玩家角色 ===== */
+        #player { position: absolute; width: 50px; height: 70px; left: 50%; bottom: 30%; transform: translateX(-50%); transition: left 0.2s; z-index: 50; }
+        .player-helmet { position: absolute; width: 40px; height: 15px; background: linear-gradient(180deg, #888 0%, #666 100%); left: 5px; top: -5px; border-radius: 10px 10px 0 0; }
+        .player-head { position: absolute; width: 35px; height: 35px; background: linear-gradient(180deg, #ffd700 0%, #cc9900 100%); left: 7px; top: 5px; border-radius: 50%; }
+        .player-body { position: absolute; width: 40px; height: 40px; background: linear-gradient(180deg, #ffd700 0%, #cc9900 100%); left: 5px; top: 35px; border-radius: 5px; }
+        .player-sword { position: absolute; width: 8px; height: 40px; background: linear-gradient(180deg, #c0c0c0 0%, #a0a0a0 100%); right: -5px; top: 35px; border-radius: 2px; transform: rotate(-30deg); }
+        
+        /* ===== NPC样式 ===== */
+        .npc { position: absolute; width: 50px; height: 70px; cursor: pointer; transition: transform 0.3s; z-index: 40; }
+        .npc:hover { transform: scale(1.1); }
+        .npc-head { position: absolute; width: 35px; height: 35px; left: 7px; top: 5px; border-radius: 50%; }
+        .npc-body { position: absolute; width: 40px; height: 40px; left: 5px; top: 35px; border-radius: 5px; }
+        .npc-name { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); white-space: nowrap; color: #ffd700; font-size: 12px; text-align: center; }
+        
+        /* ===== HUD ===== */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; display: none; }
+        #status-panel { position: absolute; top: 10px; left: 10px; background: rgba(20,20,30,0.95); border: 2px solid #ffd700; padding: 15px; border-radius: 10px; pointer-events: auto; }
+        .stat-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 14px; }
+        .stat-label { color: #888; }
+        .stat-value { color: #ffd700; font-weight: bold; }
+        .hp-bar, .mp-bar, .exp-bar { width: 100px; height: 10px; background: #222; border-radius: 5px; overflow: hidden; margin-top: 3px; }
+        .hp-fill { height: 100%; background: linear-gradient(180deg, #ff4444 0%, #cc0000 100%); }
+        .mp-fill { height: 100%; background: linear-gradient(180deg, #4488ff 0%, #0044cc 100%); }
+        .exp-fill { height: 100%; background: linear-gradient(180deg, #44ff44 0%, #00cc00 100%); }
+        
+        #menu-btns { position: absolute; top: 10px; right: 10px; display: flex; gap: 10px; pointer-events: auto; }
+        .menu-btn { background: rgba(40,40,50,0.9); color: #ffd700; border: 2px solid #ffd700; padding: 10px 20px; cursor: pointer; border-radius: 5px; font-size: 14px; transition: all 0.3s; }
+        .menu-btn:hover { background: #ffd700; color: #1a1a1a; }
+        
+        #controls-hint { position: absolute; bottom: 35%; left: 50%; transform: translateX(-50%); color: #666; font-size: 12px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 5px; }
+        
+        /* ===== 对话框 ===== */
+        #dialogue-area { width: 100%; height: 35vh; background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%); border-top: 3px solid #ffd700; position: relative; flex-shrink: 0; }
+        #dialogue-box { position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px; background: rgba(15,15,25,0.98); border: 2px solid #ffd700; border-radius: 10px; padding: 20px; display: none; }
+        #dialogue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        #speaker-name { color: #ff6b6b; font-size: 18px; font-weight: bold; }
+        #speaker-title { color: #888; font-size: 12px; margin-left: 10px; }
+        #close-dialogue { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
+        #close-dialogue:hover { color: #ffd700; }
+        #dialogue-text { font-size: 16px; line-height: 1.8; color: #ddd; min-height: 60px; }
+        #choices { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+        .choice-btn { background: linear-gradient(180deg, #ffd700 0%, #cc9900 100%); color: #1a1a1a; border: none; padding: 12px 25px; cursor: pointer; font-size: 15px; border-radius: 5px; transition: all 0.3s; flex: 1; min-width: 150px; }
+        .choice-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,215,0,0.5); }
+        
+        /* ===== 战斗界面 ===== */
+        #battle-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; z-index: 300; }
+        #battle-arena { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 700px; background: linear-gradient(180deg, #1a1a2e 0%, #0d0d0d 100%); border: 3px solid #ff4444; border-radius: 15px; padding: 30px; }
+        #battle-title { text-align: center; color: #ff4444; font-size: 28px; margin-bottom: 20px; }
+        #battle-enemies { display: flex; justify-content: center; gap: 30px; margin-bottom: 30px; flex-wrap: wrap; }
+        .enemy-card { background: rgba(30,30,40,0.9); border: 2px solid #ff4444; border-radius: 10px; padding: 15px; text-align: center; min-width: 140px; }
+        .enemy-name { color: #ff6b6b; font-size: 16px; margin-bottom: 10px; }
+        .enemy-hp-bar { width: 100%; height: 15px; background: #333; border-radius: 8px; overflow: hidden; }
+        .enemy-hp-fill { height: 100%; background: #ff4444; transition: width 0.3s; }
+        .enemy-hp-text { color: #aaa; font-size: 12px; margin-top: 5px; }
+        #battle-actions { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .battle-btn { background: linear-gradient(180deg, #ffd700 0%, #cc9900 100%); color: #1a1a1a; border: none; padding: 15px 30px; cursor: pointer; font-size: 18px; border-radius: 8px; min-width: 110px; transition: all 0.3s; }
+        .battle-btn:hover { transform: scale(1.1); box-shadow: 0 0 15px #ffd700; }
+        #battle-log { margin-top: 20px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; }
+        .log-entry { color: #aaa; font-size: 14px; margin: 5px 0; }
+        .log-entry.damage { color: #ff4444; }
+        .log-entry.heal { color: #44ff44; }
+        
+        /* ===== 通知 ===== */
+        #notification { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(20,20,30,0.95); border: 2px solid #ffd700; padding: 20px 40px; border-radius: 10px; font-size: 18px; display: none; z-index: 400; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 标题界面 -->
+        <div id="title-screen">
+            <h1>三国江湖</h1>
+            <p class="subtitle">乱世烽火 · 群雄逐鹿</p>
+            <p style="color: #666; margin-bottom: 20px;">v1.1 稳定版</p>
+            <button class="title-btn" onclick="startNewGame()">开始游戏</button>
+            <button class="title-btn" id="continue-btn" onclick="loadGame()">继续游戏</button>
+        </div>
+        
+        <!-- 游戏场景 -->
+        <div id="scene">
+            <div id="map">
+                <div class="cloud" style="left: 20%; top: 15%; width: 80px; height: 30px;"></div>
+                <div class="cloud" style="left: 60%; top: 10%; width: 60px; height: 25px;"></div>
+                <div class="cloud" style="left: 80%; top: 20%; width: 70px; height: 28px;"></div>
+                <div class="mountain" style="left: 10%;"></div>
+                <div class="mountain" style="left: 40%;"></div>
+                <div class="mountain" style="left: 70%;"></div>
+                <div class="tree" style="left: 5%; bottom: 25%;"></div>
+                <div class="tree" style="left: 25%; bottom: 25%;"></div>
+                <div class="tree" style="left: 75%; bottom: 25%;"></div>
+                <div class="tree" style="left: 90%; bottom: 25%;"></div>
+                <div class="ground"></div>
+                <div id="player">
+                    <div class="player-helmet"></div>
+                    <div class="player-head"></div>
+                    <div class="player-body"></div>
+                    <div class="player-sword"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HUD -->
+        <div id="hud">
+            <div id="status-panel">
+                <div class="stat-row"><span class="stat-label">等级</span><span class="stat-value" id="level">1</span></div>
+                <div class="stat-row"><span class="stat-label">金币</span><span class="stat-value" id="gold">0</span></div>
+                <div class="stat-row"><span class="stat-label">HP</span><span id="hp-text">100/100</span></div>
+                <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width: 100%"></div></div>
+                <div class="stat-row"><span class="stat-label">MP</span><span id="mp-text">50/50</span></div>
+                <div class="mp-bar"><div class="mp-fill" id="mp-fill" style="width: 100%"></div></div>
+                <div class="stat-row"><span class="stat-label">经验</span><span id="exp-text">0/100</span></div>
+                <div class="exp-bar"><div class="exp-fill" id="exp-fill" style="width: 0%"></div></div>
+            </div>
+            <div id="menu-btns">
+                <button class="menu-btn" onclick="openInventory()">背包</button>
+                <button class="menu-btn" onclick="openSkills()">技能</button>
+                <button class="menu-btn" onclick="openQuests()">任务</button>
+                <button class="menu-btn" onclick="saveGame()">存档</button>
+            </div>
+            <div id="controls-hint">← → 移动 | 空格 交互 | 点击NPC对话</div>
+        </div>
+        
+        <!-- 对话区 -->
+        <div id="dialogue-area">
+            <div id="dialogue-box">
+                <div id="dialogue-header">
+                    <div><span id="speaker-name">说书人</span><span id="speaker-title"></span></div>
+                    <button id="close-dialogue" onclick="hideDialogue()">×</button>
+                </div>
+                <div id="dialogue-text"></div>
+                <div id="choices"></div>
+            </div>
+        </div>
+        
+        <!-- 战斗界面 -->
+        <div id="battle-overlay">
+            <div id="battle-arena">
+                <div id="battle-title">⚔️ 战斗 ⚔️</div>
+                <div id="battle-enemies"></div>
+                <div id="battle-actions"></div>
+                <div id="battle-log"></div>
+            </div>
+        </div>
+        
+        <!-- 通知 -->
+        <div id="notification"></div>
+    </div>
+
+    <script>
+        // ==================== 游戏状态 ====================
+        let gameState = {
+            level: 1, exp: 0, gold: 100,
+            hp: 100, maxHp: 100, mp: 50, maxMp: 50,
+            attack: 10, defense: 5,
+            position: 50, 
+            quest: null,
+            inventory: ["herb", "potion"],
+            skills: ["strike", "power_hit", "heal"],
+            flags: {}
+        };
+        
+        // ==================== 游戏数据 ====================
+        const npcs = [
+            { id: "soldier", name: "士兵", color: "#4488ff", x: 20, title: "东汉军士", dialogues: ["站住！前方战事紧急。", "你是来投军的吗？"] },
+            { id: "merchant", name: "商人", color: "#ffaa00", x: 55, title: "行商", dialogues: ["这年头生意难做...", "要买点什么吗？"] },
+            { id: "general", name: "将军", color: "#ff4444", x: 85, title: "征南将军", dialogues: ["黄巾余党作乱，正是用人之际！", "少侠若愿为国效力，我可委以重任！"] }
+        ];
+        
+        const dialogues = {
+            intro: { speaker: "说书人", title: "开篇", text: "话说天下大势，分久必合，合久必分。\n\n东汉末年，朝纲不振，宦官当道，民不聊生。\n\n张角以"太平道"为号，发动黄巾之乱，天下震动...\n\n而你，是一位身世成谜的青年，在乱世的烽火中，踏上了寻找真相的道路。", choices: [{ text: "乱世之中，我当何去何从？", next: "awakening" }] },
+            awakening: { speaker: "你", title: "主角", text: "（你从昏迷中醒来，发现自己躺在一片荒郊野外）\n\n这是...哪里？", choices: [{ text: "站起身来，环顾四周", next: "stand_up" }] },
+            stand_up: { speaker: "旁白", title: "", text: "你环顾四周，远处城郭隐约可见，城门上书"长沙"二字。\n\n不远处有人影走动...", choices: [{ text: "向长沙城方向走去", next: "go_changsha" }] },
+            go_changsha: { speaker: "士兵", title: "东汉军士", text: "站住！战时状态，非军籍人员不得入城！\n\n...哦？你这身打扮，似乎有些来历。你是来投军的吗？", choices: [{ text: "在下愿为国效力", next: "join_army" }, { text: "我只是路过的旅人", next: "passerby" }] },
+            join_army: { speaker: "士兵", title: "东汉军士", text: "好！如今黄巾余党作乱，正是用人之际。\n\n你去找城门口的征兵官，他会给你安排。", choices: [{ text: "感谢指点！", next: "quest_main_1" }] },
+            passerby: { speaker: "士兵", title: "东汉军士", text: "哼，随你便。但如今四处战乱，你要小心山贼和溃兵。\n\n若遇危险，可往城中躲避。", choices: [{ text: "明白，多谢提醒", next: "quest_main_1" }] },
+            quest_main_1: { speaker: "将军", title: "征南将军", text: "（将军打量着你）\n\n嗯...你就是那个新来的？有几分气势。\n\n黄巾余党在城外作乱，我给你一个任务——前往城郊，消灭黄巾兵，证明你的实力！\n\n完成有赏。", choices: [{ text: "遵命！", next: "quest_accepted" }, { text: "容我考虑一二", next: "quest_decline" }] },
+            quest_accepted: { speaker: "将军", title: "征南将军", text: "好！这是你的第一战。\n\n记住，黄巾兵虽不如正规军，但也不可轻敌。\n\n去吧，凯旋归来！", choices: [{ text: "（接受任务）", next: null }] },
+            quest_decline: { speaker: "将军", title: "征南将军", text: "也好。想清楚再做决定也不迟。\n\n不过，战机稍纵即逝，若有需要，随时来找我。", choices: [{ text: "（离开）", next: null }] },
+            talk_soldier: { speaker: "士兵", title: "东汉军士", text: "将军正在招募新兵，为讨伐黄巾做准备。\n\n你若想建功立业，这是个机会。", choices: [{ text: "了解", next: null }] },
+            talk_merchant: { speaker: "商人", title: "行商", text: "哟，少侠！要不要看看我的货？\n\n乱世之中，有把好兵器傍身，总是好的。", choices: [{ text: "看看有什么", next: "shop_open" }, { text: "下次再说", next: null }] },
+            shop_open: { speaker: "商人", title: "行商", text: "【商店】\n\n· 铁剑 - 攻击力+5 (50金币)\n· 皮甲 - 防御力+3 (40金币)\n· 生命药水 - 恢复30HP (20金币)", choices: [{ text: "购买铁剑", next: "buy_sword" }, { text: "购买皮甲", next: "buy_armor" }, { text: "离开商店", next: null }] },
+            buy_sword: { speaker: "商人", title: "行商", text: "好剑！这把铁剑虽然普通，但胜在锋利。\n\n祝你在战场上旗开得胜！", choices: [{ text: "（获得铁剑）", next: null }] },
+            buy_armor: { speaker: "商人", title: "行商", text: "这皮甲虽薄，但聊胜于无。\n\n保重！", choices: [{ text: "（获得皮甲）", next: null }] },
+            random_encounter: { speaker: "系统", title: "遭遇", text: "突然，你遭遇了黄巾残党！\n\n他们发现了你，二话不说便发起了进攻！", choices: [{ text: "迎战！", next: "start_battle" }, { text: "逃跑", next: "try_flee" }] },
+            victory: { speaker: "系统", title: "胜利", text: "胜利！\n\n你获得了经验值和金币！", choices: [{ text: "继续探索", next: null }] },
+            defeat: { speaker: "旁白", title: "", text: "你倒在了敌人的刀下...\n\n被路过的士兵救起，送回了城中休养。", choices: [{ text: "重新振作", next: null }] }
+        };
+        
+        const items = {
+            herb: { name: "草药", type: "consumable", effect: "hp", value: 30, desc: "恢复30HP", icon: "🌿" },
+            potion: { name: "法力药水", type: "consumable", effect: "mp", value: 20, desc: "恢复20MP", icon: "💧" },
+            sword: { name: "铁剑", type: "weapon", attack: 5, desc: "攻击力+5", icon: "⚔️" },
+            armor: { name: "皮甲", type: "armor", defense: 3, desc: "防御力+3", icon: "🛡️" }
+        };
+        
+        const skills = [
+            { id: "strike", name: "普通攻击", desc: "基础攻击，造成100%伤害", mpCost: 0 },
+            { id: "power_hit", name: "重击", desc: "消耗10MP，造成150%伤害", mpCost: 10 },
+            { id: "heal", name: "治愈术", desc: "消耗15MP，恢复30%HP", mpCost: 15, heal: 0.3 }
+        ];
+        
+        const enemies = [
+            { name: "黄巾兵", hp: 30, attack: 8, exp: 20, gold: 15 },
+            { name: "黄巾勇士", hp: 50, attack: 12, exp: 40, gold: 30 }
+        ];
+        
+        // ==================== 战斗系统 ====================
+        let battleState = { enemies: [], log: [] };
+        
+        function startBattle() {
+            const enemy = enemies[Math.floor(Math.random() * enemies.length)];
+            battleState = {
+                enemies: [{ ...enemy, currentHp: enemy.hp }],
+                log: [`⚔️ 遭遇 ${enemy.name}！`]
+            };
+            renderBattle();
+            document.getElementById("battle-overlay").style.display = "block";
+        }
+        
+        function renderBattle() {
+            document.getElementById("battle-enemies").innerHTML = battleState.enemies.map(e => `
+                <div class="enemy-card">
+                    <div class="enemy-name">${e.name}</div>
+                    <div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${(e.currentHp/e.hp)*100}%"></div></div>
+                    <div class="enemy-hp-text">${e.currentHp}/${e.hp}</div>
+                </div>
+            `).join("");
+            
+            document.getElementById("battle-actions").innerHTML = `
+                <button class="battle-btn" onclick="playerAttack()">⚔️ 攻击</button>
+                <button class="battle-btn" onclick="playerSkill()">✨ 技能</button>
+                <button class="battle-btn" onclick="useItem()">🎒 物品</button>
+                <button class="battle-btn" onclick="tryFlee()">🏃 逃跑</button>
+            `;
+            
+            document.getElementById("battle-log").innerHTML = battleState.log.map(l => 
+                `<div class="log-entry">${l}</div>`
+            ).join("");
+        }
+        
+        function playerAttack() {
+            const damage = Math.max(1, gameState.attack + Math.random() * 5 - 3);
+            const enemy = battleState.enemies[0];
+            enemy.currentHp -= Math.floor(damage);
+            addLog(`你对 ${enemy.name} 造成了 ${Math.floor(damage)} 点伤害！`, "damage");
+            
+            if (enemy.currentHp <= 0) {
+                addLog(`${enemy.name} 倒下了！`, "damage");
+                battleState.enemies.shift();
+            }
+            checkBattleEnd();
+        }
+        
+        function playerSkill() {
+            const skillList = skills.filter(s => s.mpCost <= gameState.mp);
+            let html = "<div style='display:flex;flex-direction:column;gap:10px;'>";
+            skillList.forEach(s => {
+                html += `<button class="battle-btn" onclick="useSkill('${s.id}')" style="font-size:14px;padding:10px;">${s.name} (${s.mpCost}MP)</button>`;
+            });
+            html += `<button class="battle-btn" onclick="renderBattle()" style="font-size:14px;padding:10px;">返回</button></div>`;
+            document.getElementById("battle-actions").innerHTML = html;
+        }
+        
+        function useSkill(skillId) {
+            const skill = skills.find(s => s.id === skillId);
+            gameState.mp -= skill.mpCost;
+            
+            if (skill.heal) {
+                const heal = Math.floor(gameState.maxHp * skill.heal);
+                gameState.hp = Math.min(gameState.maxHp, gameState.hp + heal);
+                addLog(`治愈术恢复了 ${heal} 点HP！`, "heal");
+            } else {
+                const damage = Math.floor(gameState.attack * (skillId === "power_hit" ? 1.5 : 1));
+                battleState.enemies[0].currentHp -= damage;
+                addLog(`${skill.name}造成了 ${damage} 点伤害！`, "damage");
+            }
+            
+            if (battleState.enemies[0].currentHp <= 0) {
+                addLog(`${battleState.enemies[0].name} 倒下了！`, "damage");
+                battleState.enemies.shift();
+            }
+            
+            checkBattleEnd();
+        }
+        
+        function useItem() {
+            const consumables = gameState.inventory.filter(id => items[id]?.type === "consumable");
+            if (consumables.length === 0) {
+                addLog("没有可用的物品！");
+                return;
+            }
+            let html = "<div style='display:flex;flex-direction:column;gap:10px;'>";
+            consumables.forEach(itemId => {
+                const item = items[itemId];
+                html += `<button class="battle-btn" onclick="consumeItem('${itemId}')" style="font-size:14px;padding:10px;">${item.icon} ${item.name}</button>`;
+            });
+            html += `<button class="battle-btn" onclick="renderBattle()" style="font-size:14px;padding:10px;">返回</button></div>`;
+            document.getElementById("battle-actions").innerHTML = html;
+        }
+        
+        function consumeItem(itemId) {
+            const item = items[itemId];
+            const idx = gameState.inventory.indexOf(itemId);
+            if (idx > -1) gameState.inventory.splice(idx, 1);
+            
+            if (item.effect === "hp") {
+                gameState.hp = Math.min(gameState.maxHp, gameState.hp + item.value);
+                addLog(`使用了 ${item.name}，恢复了 ${item.value} HP！`, "heal");
+            } else if (item.effect === "mp") {
+                gameState.mp = Math.min(gameState.maxMp, gameState.mp + item.value);
+                addLog(`使用了 ${item.name}，恢复了 ${item.value} MP！`, "heal");
+            }
+            
+            checkBattleEnd();
+        }
+        
+        function tryFlee() {
+            if (Math.random() < 0.5) {
+                addLog("逃跑成功！");
+                setTimeout(() => {
+                    document.getElementById("battle-overlay").style.display = "none";
+                    showNotification("成功逃脱！");
+                }, 1000);
+            } else {
+                addLog("逃跑失败！");
+                enemyTurn();
+            }
+        }
+        
+        function checkBattleEnd() {
+            if (battleState.enemies.length === 0) {
+                addLog("🎉 战斗胜利！");
+                const expGain = 30;
+                const goldGain = 20;
+                gameState.exp += expGain;
+                gameState.gold += goldGain;
+                addLog(`获得 ${expGain} 经验，${goldGain} 金币`);
+                checkLevelUp();
+                setTimeout(() => {
+                    document.getElementById("battle-overlay").style.display = "none";
+                    showNotification("战斗胜利！");
+                }, 1500);
+            } else {
+                enemyTurn();
+            }
+        }
+        
+        function enemyTurn() {
+            battleState.enemies.forEach(e => {
+                const dmg = Math.max(1, e.attack - gameState.defense/2);
+                gameState.hp -= Math.floor(dmg);
+                addLog(`${e.name} 对你造成了 ${Math.floor(dmg)} 点伤害！`, "damage");
+            });
+            
+            if (gameState.hp <= 0) {
+                gameState.hp = Math.floor(gameState.maxHp * 0.5);
+                showDialogue("defeat");
+                document.getElementById("battle-overlay").style.display = "none";
+            } else {
+                renderBattle();
+            }
+        }
+        
+        function addLog(msg, type) {
+            battleState.log.push(msg);
+            if (battleState.log.length > 15) battleState.log.shift();
+            document.getElementById("battle-log").innerHTML = battleState.log.map(l => 
+                `<div class="log-entry">${l}</div>`
+            ).join("");
+        }
+        
+        // ==================== 核心函数 ====================
+        let currentDialogue = null;
+        
+        function startNewGame() {
+            localStorage.removeItem("sanguo_rpg_save");
+            gameState = {
+                level: 1, exp: 0, gold: 100,
+                hp: 100, maxHp: 100, mp: 50, maxMp: 50,
+                attack: 10, defense: 5,
+                position: 50, quest: null,
+                inventory: ["herb", "potion"],
+                skills: ["strike", "power_hit", "heal"],
+                flags: {}
+            };
+            initGame();
+        }
+        
+        function loadGame() {
+            const save = localStorage.getItem("sanguo_rpg_save");
+            if (save) {
+                gameState = JSON.parse(save);
+                initGame();
+            } else {
+                alert("没有找到存档！");
+            }
+        }
+        
+        function initGame() {
+            document.getElementById("title-screen").style.display = "none";
+            document.getElementById("hud").style.display = "block";
+            
+            generateNPCs();
+            updateHUD();
+            showDialogue("intro");
+            
+            document.addEventListener("keydown", handleKey);
+        }
+        
+        function generateNPCs() {
+            const map = document.getElementById("map");
+            let html = "";
+            npcs.forEach(npc => {
+                html += `<div class="npc" id="npc-${npc.id}" style="left:${npc.x}%;bottom:30%" onclick="interactNPC('${npc.id}')">
+                    <div class="npc-head" style="background:${npc.color}"></div>
+                    <div class="npc-body" style="background:${npc.color}"></div>
+                    <div class="npc-name">${npc.name}</div>
+                </div>`;
+            });
+            // 保留原有的player元素，在ground之前添加NPC
+            const ground = map.querySelector('.ground');
+            npcs.forEach((npc, i) => {
+                const div = document.createElement('div');
+                div.className = 'npc';
+                div.id = 'npc-' + npc.id;
+                div.style.cssText = `left:${npc.x}%;bottom:30%`;
+                div.onclick = () => interactNPC(npc.id);
+                div.innerHTML = `<div class="npc-head" style="background:${npc.color}"></div>
+                    <div class="npc-body" style="background:${npc.color}"></div>
+                    <div class="npc-name">${npc.name}</div>`;
+                map.insertBefore(div, ground);
+            });
+        }
+        
+        function handleKey(e) {
+            const player = document.getElementById("player");
+            if (currentDialogue) {
+                if (e.key === "Escape") hideDialogue();
+                return;
+            }
+            
+            if (e.key === "ArrowLeft" && gameState.position > 5) {
+                gameState.position -= 5;
+                player.style.left = gameState.position + "%";
+            } else if (e.key === "ArrowRight" && gameState.position < 95) {
+                gameState.position += 5;
+                player.style.left = gameState.position + "%";
+            } else if (e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+                checkNpcNearby();
+            }
+        }
+        
+        function checkNpcNearby() {
+            for (const npc of npcs) {
+                if (Math.abs(gameState.position - npc.x) < 10) {
+                    interactNPC(npc.id);
+                    return;
+                }
+            }
+            // 随机遭遇
+            if (Math.random() < 0.1) {
+                showDialogue("random_encounter");
+            }
+        }
+        
+        function interactNPC(npcId) {
+            const npc = npcs.find(n => n.id === npcId);
+            const dialogues = npc ? npc.dialogues : ["你好。"];
+            let text = dialogues[Math.floor(Math.random() * dialogues.length)];
+            
+            showDialogue("talk_" + npcId, { 
+                speaker: npc.name, 
+                title: npc.title, 
+                text: text 
+            });
+        }
+        
+        function showDialogue(key, customData) {
+            const data = customData || dialogues[key];
+            if (!data) return;
+            
+            currentDialogue = data;
+            document.getElementById("speaker-name").textContent = data.speaker;
+            document.getElementById("speaker-title").textContent = data.title || "";
+            document.getElementById("dialogue-text").textContent = data.text;
+            
+            const choicesDiv = document.getElementById("choices");
+            choicesDiv.innerHTML = "";
+            
+            if (data.choices) {
+                data.choices.forEach(c => {
+                    const btn = document.createElement("button");
+                    btn.className = "choice-btn";
+                    btn.textContent = c.text;
+                    btn.onclick = () => handleChoice(c);
+                    choicesDiv.appendChild(btn);
+                });
+            } else {
+                const btn = document.createElement("button");
+                btn.className = "choice-btn";
+                btn.textContent = "关闭";
+                btn.onclick = hideDialogue;
+                choicesDiv.appendChild(btn);
+            }
+            
+            document.getElementById("dialogue-box").style.display = "block";
+        }
+        
+        function handleChoice(choice) {
+            if (choice.next === "start_battle") {
+                hideDialogue();
+                startBattle();
+            } else if (choice.next === "try_flee") {
+                if (Math.random() < 0.6) {
+                    showNotification("成功逃脱！");
+                    hideDialogue();
+                } else {
+                    showNotification("逃跑失败！被迫应战！");
+                    setTimeout(() => {
+                        hideDialogue();
+                        startBattle();
+                    }, 1000);
+                }
+            } else if (choice.next === null) {
+                hideDialogue();
+            } else {
+                showDialogue(choice.next);
+            }
+        }
+        
+        function hideDialogue() {
+            document.getElementById("dialogue-box").style.display = "none";
+            currentDialogue = null;
+        }
+        
+        function updateHUD() {
+            document.getElementById("level").textContent = gameState.level;
+            document.getElementById("gold").textContent = gameState.gold;
+            document.getElementById("hp-text").textContent = `${gameState.hp}/${gameState.maxHp}`;
+            document.getElementById("mp-text").textContent = `${gameState.mp}/${gameState.maxMp}`;
+            document.getElementById("exp-text").textContent = `${gameState.exp}/${gameState.level * 100}`;
+            document.getElementById("hp-fill").style.width = (gameState.hp / gameState.maxHp * 100) + "%";
+            document.getElementById("mp-fill").style.width = (gameState.mp / gameState.maxMp * 100) + "%";
+            document.getElementById("exp-fill").style.width = (gameState.exp / (gameState.level * 100) * 100) + "%";
+        }
+        
+        function checkLevelUp() {
+            const expNeeded = gameState.level * 100;
+            while (gameState.exp >= expNeeded) {
+                gameState.exp -= expNeeded;
+                gameState.level++;
+                gameState.maxHp += 20;
+                gameState.maxMp += 10;
+                gameState.attack += 3;
+                gameState.defense += 2;
+                gameState.hp = gameState.maxHp;
+                gameState.mp = gameState.maxMp;
+                showNotification(`🎉 升级！现在是 LV.${gameState.level}！`);
+            }
+            updateHUD();
+        }
+        
+        // ==================== 面板 ====================
+        function openInventory() {
+            let html = "<div style='padding:20px'>";
+            if (gameState.inventory.length === 0) {
+                html += "<p style='color:#888'>背包空空如也</p>";
+            } else {
+                html += "<div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:15px'>";
+                gameState.inventory.forEach(itemId => {
+                    const item = items[itemId];
+                    if (item) {
+                        html += `<div style='background:rgba(30,30,40,0.8);border:2px solid #444;border-radius:10px;padding:15px;text-align:center;cursor:pointer' onclick="useItemPanel('${itemId}')">
+                            <div style="font-size:32px">${item.icon}</div>
+                            <div style="color:#ffd700;margin-top:10px">${item.name}</div>
+                            <div style="color:#888;font-size:12px">${item.desc}</div>
+                        </div>`;
+                    }
+                });
+                html += "</div>";
+            }
+            html += "</div>";
+            showPanel("背包", html);
+        }
+        
+        function openSkills() {
+            let html = "<div style='padding:20px;display:flex;flex-direction:column;gap:10px'>";
+            gameState.skills.forEach(skillId => {
+                const skill = skills.find(s => s.id === skillId);
+                if (skill) {
+                    html += `<div style='background:rgba(30,30,40,0.8);border:2px solid #444;border-radius:10px;padding:15px'>
+                        <div style="color:#ffd700;font-size:16px">${skill.name}</div>
+                        <div style="color:#888;font-size:14px;margin-top:5px">${skill.desc}</div>
+                        <div style="color:#4488ff;font-size:12px;margin-top:5px">消耗 ${skill.mpCost} MP</div>
+                    </div>`;
+                }
+            });
+            html += "</div>";
+            showPanel("技能", html);
+        }
+        
+        function openQuests() {
+            let html = "<div style='padding:20px'>";
+            if (gameState.quest) {
+                html += `<div style='background:rgba(30,30,40,0.8);border:2px solid #ffd700;border-radius:10px;padding:15px'>
+                    <div style="color:#ffd700;font-size:16px">${gameState.quest.name}</div>
+                    <div style="color:#888;font-size:14px;margin-top:10px">${gameState.quest.desc}</div>
+                </div>`;
+            } else {
+                html += "<p style='color:#888'>暂无进行中的任务</p>";
+                html += "<p style='color:#666;font-size:14px;margin-top:10px'>去和城中的将军交谈，或许能有收获...</p>";
+            }
+            html += "</div>";
+            showPanel("任务", html);
+        }
+        
+        function showPanel(title, content) {
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:350;display:flex;justify-content:center;align-items:center";
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            overlay.innerHTML = `<div style="width:90%;max-width:600px;max-height:80vh;background:linear-gradient(180deg,#1a1a2e,#0d0d0d);border:3px solid #ffd700;border-radius:15px;padding:25px;overflow-y:auto">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid #333;padding-bottom:15px">
+                    <h2 style="color:#ffd700;margin:0">${title}</h2>
+                    <button onclick="this.closest('div').parentElement.remove()" style="background:none;border:none;color:#888;font-size:28px;cursor:pointer">×</button>
+                </div>
+                ${content}
+            </div>`;
+            document.getElementById("game-container").appendChild(overlay);
+        }
+        
+        function useItemPanel(itemId) {
+            const item = items[itemId];
+            if (!item || item.type !== "consumable") return;
+            
+            const idx = gameState.inventory.indexOf(itemId);
+            if (idx > -1) gameState.inventory.splice(idx, 1);
+            
+            if (item.effect === "hp") {
+                gameState.hp = Math.min(gameState.maxHp, gameState.hp + item.value);
+                showNotification(`使用了 ${item.name}，恢复了 ${item.value} HP！`);
+            } else if (item.effect === "mp") {
+                gameState.mp = Math.min(gameState.maxMp, gameState.mp + item.value);
+                showNotification(`使用了 ${item.name}，恢复了 ${item.value} MP！`);
+            }
+            
+            updateHUD();
+            // 关闭面板
+            document.querySelectorAll("#game-container > div:last-child")[0]?.remove();
+            openInventory();
+        }
+        
+        function saveGame() {
+            localStorage.setItem("sanguo_rpg_save", JSON.stringify(gameState));
+            showNotification("游戏已保存！");
+        }
+        
+        function showNotification(text) {
+            const notif = document.getElementById("notification");
+            notif.textContent = text;
+            notif.style.display = "block";
+            setTimeout(() => notif.style.display = "none", 2000);
+        }
+        
+        // ==================== 初始化 ====================
+        window.onload = function() {
+            initGame();
+        };
+        
+        function initGame() {
+            // 检查存档
+            const save = localStorage.getItem("sanguo_rpg_save");
+            document.getElementById("continue-btn").disabled = !save;
+            
+            // 绑定开始按钮 - 使用 onclick 属性方式
+            document.querySelector('.title-btn').onclick = function() {
+                startNewGame();
+            };
+            
+            // 绑定继续按钮
+            document.getElementById('continue-btn').onclick = function() {
+                loadGame();
+            };
+        }
+    </script>
+</body>
+</html>

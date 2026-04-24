@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>乱世烽火 v3.8 - 精简版</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg-dark: #1a1a2e;
+  --bg-panel: #16213e;
+  --bg-card: #0f3460;
+  --accent: #e94560;
+  --text: #eaeaea;
+  --text-dim: #8892a0;
+  --success: #4ecca3;
+  --warning: #ffc107;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部状态栏 - 精简一行 */
+.top-bar {
+  background: var(--bg-panel);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.top-bar .title { font-weight: bold; color: var(--accent); }
+.top-bar .time { color: var(--warning); font-size: 14px; }
+.top-bar .stats {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+}
+.top-bar .stat { display: flex; align-items: center; gap: 4px; }
+.top-bar .stat-value { color: var(--success); }
+
+/* 主内容区 */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* 场景卡片 */
+.scene-card {
+  background: var(--bg-panel);
+  border-radius: 12px;
+  padding: 16px;
+}
+.scene-card .location {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scene-card .location::before {
+  content: '📍';
+}
+.scene-card .desc {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 任务进度条 */
+.progress-section {
+  background: var(--bg-panel);
+  border-radius: 12px;
+  padding: 16px;
+}
+.progress-section h3 {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.progress-bar {
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.progress-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.progress-item {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.progress-item.done { color: var(--success); }
+.progress-item.pending { color: var(--text-dim); }
+
+/* 交互网格 */
+.interaction-grid {
+  background: var(--bg-panel);
+  border-radius: 12px;
+  padding: 16px;
+}
+.interaction-grid h3 {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+}
+.card {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.card:active { transform: scale(0.95); }
+.card:hover { border-color: var(--accent); }
+.card .icon { font-size: 28px; margin-bottom: 6px; }
+.card .name { font-size: 13px; font-weight: 500; }
+.card .action { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+/* 操作按钮 */
+.action-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.2s;
+}
+.action-btn:active { opacity: 0.8; }
+
+/* 底部按钮 */
+.bottom-bar {
+  background: var(--bg-panel);
+  padding: 12px 16px;
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  position: sticky;
+  bottom: 0;
+}
+.bottom-bar button {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  padding: 12px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.bottom-bar button .icon { font-size: 20px; }
+.bottom-bar button:active, .bottom-bar button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* 弹窗 */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 1000;
+}
+.modal.show { display: flex; }
+.modal-content {
+  background: var(--bg-panel);
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.modal-header h3 { font-size: 16px; }
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* 消息提示 */
+.msg-bar {
+  background: var(--bg-panel);
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.msg-bar span { color: var(--accent); }
+
+/* 任务勾选 */
+.tasks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.task {
+  font-size: 12px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.task.done { color: var(--success); text-decoration: line-through; }
+.task-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.task.done .task-checkbox::after {
+  content: '✓';
+  font-size: 10px;
+}
+
+/* 区域网格 */
+.area-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.area-card {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.area-card.current { border-color: var(--accent); }
+.area-card .icon { font-size: 24px; }
+.area-card .name { font-size: 14px; margin-top: 6px; }
+.area-card .status { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- 顶部状态栏 -->
+<div class="top-bar">
+  <div class="title">🔥 乱世烽火</div>
+  <div class="time">🌅 06:00 清晨</div>
+  <div class="stats">
+    <div class="stat">💪 <span class="stat-value">80</span></div>
+    <div class="stat">🍜 <span class="stat-value">70</span></div>
+    <div class="stat">📅 <span class="stat-value">1</span>天</div>
+  </div>
+</div>
+
+<!-- 主内容 -->
+<div class="main">
+
+  <!-- 场景 -->
+  <div class="scene-card">
+    <div class="location">牢房</div>
+    <div class="desc">天色微亮，牢房里弥漫着潮湿的霉味。角落里躺着几个衣衫褴褛的狱友...</div>
+  </div>
+
+  <!-- 任务 -->
+  <div class="progress-section">
+    <h3>📋 今日任务</h3>
+    <div class="tasks">
+      <div class="task done">
+        <div class="task-checkbox"></div>
+        上午劳役
+      </div>
+      <div class="task">
+        <div class="task-checkbox"></div>
+        下午劳役
+      </div>
+      <div class="task">
+        <div class="task-checkbox"></div>
+        傍晚自由活动
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 33%"></div>
+    </div>
+    <div class="progress-items">
+      <div class="progress-item done">✓ 路线</div>
+      <div class="progress-item pending">○ 工具</div>
+      <div class="progress-item pending">○ 时机</div>
+    </div>
+  </div>
+
+  <!-- 交互 -->
+  <div class="interaction-grid">
+    <h3>⚡ 可交互</h3>
+    <div class="grid">
+      <div class="card" onclick="interact('老张')">
+        <div class="icon">👴</div>
+        <div class="name">老张</div>
+        <div class="action">交谈</div>
+      </div>
+      <div class="card" onclick="interact('赵四')">
+        <div class="icon">👤</div>
+        <div class="name">赵四</div>
+        <div class="action">交谈</div>
+      </div>
+      <div class="card" onclick="interact('木板床')">
+        <div class="icon">🛏️</div>
+        <div class="name">木板床</div>
+        <div class="action">休息</div>
+      </div>
+      <div class="card" onclick="interact('铁门')">
+        <div class="icon">🚪</div>
+        <div class="name">铁门</div>
+        <div class="action">观察</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 逃跑按钮 -->
+  <button class="action-btn" onclick="tryEscape()">🚪 尝试逃跑</button>
+
+</div>
+
+<!-- 消息栏 -->
+<div class="msg-bar">📜 你来到牢房 · 消耗 <span>5</span> 体力</div>
+
+<!-- 底部按钮 -->
+<div class="bottom-bar">
+  <button onclick="showModal('区域')">
+    <span class="icon">🗺️</span>
+    区域
+  </button>
+  <button onclick="showModal('状态')">
+    <span class="icon">📊</span>
+    状态
+  </button>
+  <button onclick="showModal('逃跑')">
+    <span class="icon">🔓</span>
+    逃跑
+  </button>
+  <button onclick="showModal('日志')">
+    <span class="icon">📜</span>
+    日志
+  </button>
+</div>
+
+<!-- 弹窗 -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">标题</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const data = {
+  '区域': {
+    content: `
+      <div class="area-grid">
+        <div class="area-card current">
+          <div class="icon">🏠</div>
+          <div class="name">牢房</div>
+          <div class="status">当前区域</div>
+        </div>
+        <div class="area-card">
+          <div class="icon">🌳</div>
+          <div class="name">操场</div>
+          <div class="status">公共区域</div>
+        </div>
+        <div class="area-card">
+          <div class="icon">⛏️</div>
+          <div class="name">矿区</div>
+          <div class="status">劳动地点</div>
+        </div>
+        <div class="area-card">
+          <div class="icon">🚰</div>
+          <div class="name">水井</div>
+          <div class="status">可恢复饱食</div>
+        </div>
+      </div>
+    `
+  },
+  '状态': {
+    content: `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:var(--bg-card);padding:14px;border-radius:10px;text-align:center;">
+          <div style="font-size:24px;">💪</div>
+          <div style="font-size:20px;font-weight:bold;margin-top:6px;">80</div>
+          <div style="font-size:12px;color:var(--text-dim);">体力</div>
+        </div>
+        <div style="background:var(--bg-card);padding:14px;border-radius:10px;text-align:center;">
+          <div style="font-size:24px;">🍜</div>
+          <div style="font-size:20px;font-weight:bold;margin-top:6px;">70</div>
+          <div style="font-size:12px;color:var(--text-dim);">饱食</div>
+        </div>
+        <div style="background:var(--bg-card);padding:14px;border-radius:10px;text-align:center;">
+          <div style="font-size:24px;">⚠️</div>
+          <div style="font-size:20px;font-weight:bold;margin-top:6px;">0</div>
+          <div style="font-size:12px;color:var(--text-dim);">被捕次数</div>
+        </div>
+        <div style="background:var(--bg-card);padding:14px;border-radius:10px;text-align:center;">
+          <div style="font-size:24px;">📅</div>
+          <div style="font-size:20px;font-weight:bold;margin-top:6px;">第1天</div>
+          <div style="font-size:12px;color:var(--text-dim);">存活天数</div>
+        </div>
+      </div>
+    `
+  },
+  '逃跑': {
+    content: `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:14px;color:var(--text-dim);margin-bottom:8px;">逃跑进度</div>
+        <div class="progress-bar" style="height:12px;">
+          <div class="progress-fill" style="width:25%"></div>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:6px;">25%</div>
+      </div>
+      <div class="progress-items" style="margin-bottom:16px;">
+        <div class="progress-item done">✓ 路线规划</div>
+        <div class="progress-item pending">○ 夜间掩护</div>
+        <div class="progress-item pending">○ 体力准备</div>
+        <div class="progress-item pending">○ 时机把握</div>
+      </div>
+      <button class="action-btn" onclick="closeModal()">📝 制定计划</button>
+    `
+  },
+  '日志': {
+    content: `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="padding:10px;background:var(--bg-card);border-radius:8px;font-size:13px;">
+          <span style="color:var(--accent);">刚才</span> 与老张交谈，获取逃跑路线情报
+        </div>
+        <div style="padding:10px;background:var(--bg-card);border-radius:8px;font-size:13px;">
+          <span style="color:var(--text-dim);">今日</span> 完成上午劳役，消耗15体力
+        </div>
+        <div style="padding:10px;background:var(--bg-card);border-radius:8px;font-size:13px;">
+          <span style="color:var(--text-dim);">今日</span> 在牢房休息，恢复20体力
+        </div>
+        <div style="padding:10px;background:var(--bg-card);border-radius:8px;font-size:13px;">
+          <span style="color:var(--text-dim);">昨日</span> 被捕0次，安全度过第一天
+        </div>
+      </div>
+    `
+  }
+};
+
+function showModal(type) {
+  document.getElementById('modal-title').textContent = type;
+  document.getElementById('modal-body').innerHTML = data[type].content;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+function interact(name) {
+  alert('与 ' + name + ' 交互');
+}
+
+function tryEscape() {
+  alert('尝试逃跑!');
+}
+
+// 点击弹窗背景关闭
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+
+</body>
+</html>

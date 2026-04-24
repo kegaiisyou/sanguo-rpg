@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>乱世烽火 - v2.4</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: #e8dcc4;
+            min-height: 100vh;
+            max-width: 480px;
+            margin: 0 auto;
+            overflow-x: hidden;
+        }
+        
+        /* ===== 顶部状态栏 ===== */
+        .status-bar {
+            background: linear-gradient(135deg, #1a1520 0%, #2a1a10 100%);
+            padding: 10px 12px;
+            border-bottom: 2px solid #3a2a1a;
+        }
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
+        .time-info .date { color: #d4af37; font-weight: bold; }
+        .time-info .location { color: #9ab87a; }
+        .time-bar {
+            background: #0f0a08;
+            border-radius: 8px;
+            height: 16px;
+            overflow: hidden;
+        }
+        .time-bar-fill {
+            background: linear-gradient(90deg, #d4af37, #f0d78c);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .time-text { 
+            font-size: 0.65rem; 
+            color: #8a7a6a; 
+            text-align: right;
+            margin-top: 4px;
+        }
+        
+        /* ===== 资源栏 ===== */
+        .resources-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 12px;
+            background: #0f0a08;
+            border-bottom: 1px solid #2a1a10;
+        }
+        .resource-item { 
+            text-align: center; 
+            font-size: 0.75rem;
+        }
+        .resource-icon { font-size: 1rem; }
+        .resource-value { color: #d4af37; font-weight: bold; }
+        
+        /* ===== 主内容区 ===== */
+        .main-content { 
+            padding: 10px; 
+            min-height: 80px;
+        }
+        
+        /* ===== 当前位置 ===== */
+        .location-info {
+            background: linear-gradient(135deg, #1a2510 0%, #0f1a0a 100%);
+            border-radius: 10px;
+            padding: 12px;
+            border: 2px solid #3a4a2a;
+            margin-bottom: 8px;
+        }
+        .location-title {
+            color: #9ab87a;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .location-desc {
+            color: #8a7a6a;
+            font-size: 0.75rem;
+        }
+        
+        /* ===== 日志 ===== */
+        .log-panel {
+            background: #0f0a08;
+            border-radius: 8px;
+            padding: 8px;
+            margin: 0 10px;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #2a1a10;
+            font-size: 0.8rem;
+        }
+        .log-entry {
+            line-height: 1.6;
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #1a1520;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-normal { color: #c4b49c; }
+        .log-important { color: #d4af37; }
+        .log-success { color: #9ab87a; }
+        .log-danger { color: #c97a7a; }
+        .log-narrative { color: #a0a0a0; font-style: italic; }
+        
+        /* ===== 行动按钮 ===== */
+        .action-panel {
+            background: linear-gradient(135deg, #1a1520 0%, #2a1a10 100%);
+            padding: 10px;
+            border-top: 2px solid #3a2a1a;
+        }
+        .action-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 6px; 
+        }
+        .action-btn {
+            background: #1a1520;
+            border: 2px solid #3a2a1a;
+            border-radius: 8px;
+            padding: 10px 6px;
+            color: #c4b49c;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .action-btn:hover { border-color: #d4af37; color: #d4af37; }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .action-btn .icon { font-size: 1.3rem; display: block; margin-bottom: 2px; }
+        .action-btn .time-cost { font-size: 0.6rem; color: #8a7a6a; }
+        .action-btn.important { border-color: #d4af37; background: linear-gradient(135deg, #2a1a10, #1a1520); }
+        
+        /* ===== 底部工具栏 ===== */
+        .tool-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 6px 12px;
+            background: #0f0a08;
+            border-top: 1px solid #2a1a10;
+        }
+        .tool-btn {
+            padding: 6px 12px;
+            background: #1a1520;
+            border: 1px solid #3a2a1a;
+            border-radius: 4px;
+            color: #8a7a6a;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .tool-btn:hover { border-color: #d4af37; color: #d4af37; }
+        
+        /* ===== 弹窗 ===== */
+        .dialog-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        .dialog-box {
+            background: linear-gradient(135deg, #1a1520, #2a1a10);
+            border: 2px solid #d4af37;
+            border-radius: 12px;
+            padding: 15px;
+            max-width: 350px;
+            width: 100%;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .dialog-title {
+            color: #d4af37;
+            font-size: 1rem;
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3a2a1a;
+        }
+        .dialog-content { 
+            color: #c4b49c; 
+            font-size: 0.85rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            min-height: 80px;
+        }
+        .dialog-options {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .dialog-btn {
+            background: #1a1520;
+            border: 1px solid #3a2a1a;
+            border-radius: 6px;
+            padding: 10px 15px;
+            color: #c4b49c;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dialog-btn:hover { border-color: #d4af37; color: #d4af37; }
+        .dialog-btn.primary { 
+            background: linear-gradient(135deg, #2a1a10, #1a1520);
+            border-color: #d4af37;
+            color: #d4af37;
+        }
+        .dialog-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* ===== 地图弹窗 ===== */
+        .map-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        .map-box {
+            background: linear-gradient(135deg, #1a1520, #2a1a10);
+            border: 2px solid #d4af37;
+            border-radius: 12px;
+            max-width: 380px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #3a2a1a;
+        }
+        .map-header-title { color: #d4af37; font-weight: bold; }
+        .map-close {
+            background: none;
+            border: none;
+            color: #8a7a6a;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .map-city-list { padding: 10px; }
+        .map-city-item {
+            background: #1a1520;
+            border: 1px solid #3a2a1a;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .map-city-item:hover { border-color: #d4af37; }
+        .map-city-name { color: #d4af37; font-weight: bold; }
+        .map-city-faction { color: #8a7a6a; font-size: 0.75rem; }
+        .map-city-desc { color: #6a5a4a; font-size: 0.7rem; margin-top: 4px; }
+        .map-city-item.disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* ===== 创建角色 ===== */
+        .create-panel { padding: 15px; }
+        .create-title { 
+            text-align: center; 
+            color: #d4af37; 
+            font-size: 1.3rem; 
+            margin-bottom: 15px; 
+        }
+        .create-intro {
+            text-align: center;
+            color: #8a7a6a;
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .create-section { margin-bottom: 15px; }
+        .create-label { 
+            color: #9ab87a; 
+            font-size: 0.85rem; 
+            margin-bottom: 8px; 
+        }
+        .gender-select { display: flex; gap: 8px; }
+        .gender-btn {
+            flex: 1;
+            padding: 12px;
+            background: #1a1520;
+            border: 2px solid #3a2a1a;
+            border-radius: 8px;
+            color: #c4b49c;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .gender-btn.selected { border-color: #d4af37; background: #2a2015; color: #d4af37; }
+        .gender-btn .icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+        .stat-assign { background: #0f0a08; border-radius: 8px; padding: 12px; }
+        .stat-row { display: flex; align-items: center; margin-bottom: 8px; }
+        .stat-name { width: 50px; color: #c4b49c; font-size: 0.8rem; }
+        .stat-controls { flex: 1; display: flex; align-items: center; gap: 8px; }
+        .stat-btn {
+            width: 28px; height: 28px;
+            background: #1a1520;
+            border: 1px solid #3a2a1a;
+            border-radius: 4px;
+            color: #d4af37;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .stat-value { width: 30px; text-align: center; color: #d4af37; font-weight: bold; }
+        .points-left { 
+            text-align: center; 
+            color: #d4af37; 
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        .start-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #d4af37, #b8962e);
+            border: none;
+            border-radius: 8px;
+            color: #1a1520;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .start-btn:hover { background: linear-gradient(135deg, #f0d78c, #d4af37); }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<!-- ====== 创建角色界面 ====== -->
+<div id="createScreen">
+    <div style="padding:20px; max-width:400px; margin:0 auto;">
+        <div class="create-title">🔥 乱世烽火</div>
+        <div class="create-intro">公元180年，大汉天下大乱。<br>你将如何在这乱世中生存？</div>
+        
+        <div class="create-section">
+            <div class="create-label">📝 你的名字</div>
+            <input type="text" id="playerName" placeholder="请输入名字" maxlength="8"
+                style="width:100%;padding:12px;background:#1a1520;border:1px solid #3a2a1a;border-radius:6px;color:#c4b49c;font-size:1rem;">
+        </div>
+        
+        <div class="create-section">
+            <div class="create-label">⚧ 性别</div>
+            <div class="gender-select">
+                <div class="gender-btn selected" id="genderMale" onclick="selectGender('男')">
+                    <span class="icon">👨</span>男
+                </div>
+                <div class="gender-btn" id="genderFemale" onclick="selectGender('女')">
+                    <span class="icon">👩</span>女
+                </div>
+            </div>
+        </div>
+        
+        <div class="create-section">
+            <div class="create-label">📊 分配属性点（剩余: <span id="pointsLeft">50</span>点）</div>
+            <div class="stat-assign">
+                <div class="stat-row">
+                    <span class="stat-name">武艺</span>
+                    <div class="stat-controls">
+                        <button class="stat-btn" onclick="adjustStat('wuyi', -1)">-</button>
+                        <span class="stat-value" id="statWuyi">15</span>
+                        <button class="stat-btn" onclick="adjustStat('wuyi', 1)">+</button>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-name">智慧</span>
+                    <div class="stat-controls">
+                        <button class="stat-btn" onclick="adjustStat('zhihui', -1)">-</button>
+                        <span class="stat-value" id="statZhihui">15</span>
+                        <button class="stat-btn" onclick="adjustStat('zhihui', 1)">+</button>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-name">口才</span>
+                    <div class="stat-controls">
+                        <button class="stat-btn" onclick="adjustStat('koucai', -1)">-</button>
+                        <span class="stat-value" id="statKoucai">15</span>
+                        <button class="stat-btn" onclick="adjustStat('koucai', 1)">+</button>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-name">魅力</span>
+                    <div class="stat-controls">
+                        <button class="stat-btn" onclick="adjustStat('meili', -1)">-</button>
+                        <span class="stat-value" id="statMeili">15</span>
+                        <button class="stat-btn" onclick="adjustStat('meili', 1)">+</button>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-name">敏捷</span>
+                    <div class="stat-controls">
+                        <button class="stat-btn" onclick="adjustStat('minjie', -1)">-</button>
+                        <span class="stat-value" id="statMinjie">15</span>
+                        <button class="stat-btn" onclick="adjustStat('minjie', 1)">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="start-btn" onclick="startGame()">开始旅程</button>
+    </div>
+</div>
+
+<!-- ====== 游戏界面 ====== -->
+<div id="gameScreen" class="hidden">
+    <!-- 顶部状态栏 -->
+    <div class="status-bar">
+        <div class="time-info">
+            <span class="date" id="gameDate">180年 春</span>
+            <span class="location" id="gameLocation">📍 劳役营</span>
+        </div>
+        <div class="time-bar">
+            <div class="time-bar-fill" id="timeBar" style="width:100%"></div>
+        </div>
+        <div class="time-text">体力: <span id="timeText">100/100</span></div>
+    </div>
+    
+    <!-- 资源栏 -->
+    <div class="resources-bar">
+        <div class="resource-item">
+            <span class="resource-icon">🍖</span><br>
+            <span class="resource-value" id="gameFood">3</span> 粮
+        </div>
+        <div class="resource-item">
+            <span class="resource-icon">💰</span><br>
+            <span class="resource-value" id="gameMoney">0</span> 钱
+        </div>
+        <div class="resource-item">
+            <span class="resource-icon">⭐</span><br>
+            <span class="resource-value" id="gameFame">0</span> 声望
+        </div>
+    </div>
+    
+    <!-- 主内容 -->
+    <div class="main-content" id="mainContent"></div>
+    
+    <!-- 日志 -->
+    <div class="log-panel" id="logPanel">
+        <div style="color:#8a7a6a;text-align:center;font-size:0.7rem;padding:4px;">— 日志记录 —</div>
+    </div>
+    
+    <!-- 行动按钮 -->
+    <div class="action-panel">
+        <div class="action-grid" id="actionGrid"></div>
+    </div>
+    
+    <!-- 底部工具栏（教程阶段隐藏） -->
+    <div class="tool-bar hidden" id="toolBar">
+        <button class="tool-btn" onclick="showStatus()">📊 状态</button>
+        <button class="tool-btn" onclick="showMap()">🗺️ 地图</button>
+        <button class="tool-btn" onclick="showNPCList()">👥 人物</button>
+    </div>
+</div>
+
+<!-- ====== 对话框 ====== -->
+<div class="dialog-overlay" id="dialogOverlay">
+    <div class="dialog-box">
+        <div class="dialog-title" id="dialogTitle"></div>
+        <div class="dialog-content" id="dialogContent"></div>
+        <div class="dialog-options" id="dialogOptions"></div>
+    </div>
+</div>
+
+<!-- ====== 地图弹窗 ====== -->
+<div class="map-overlay" id="mapOverlay">
+    <div class="map-box">
+        <div class="map-header">
+            <span class="map-header-title">🗺️ 天下形势</span>
+            <button class="map-close" onclick="closeMap()">✕</button>
+        </div>
+        <div class="map-city-list" id="mapCityList"></div>
+    </div>
+</div>
+
+<script>
+// ==================== 游戏数据 ====================
+const CITIES = {
+    "涿郡": { faction: "官府", desc: "幽州边陲小城，官道枢纽" },
+    "蓟县": { faction: "幽州牧", desc: "幽州治所，北方重镇" },
+    "巨鹿": { faction: "太平道", desc: "太平道圣地，信众云集" },
+    "洛阳": { faction: "朝廷", desc: "大汉帝都，天下中心" },
+    "许昌": { faction: "曹操", desc: "中原要地，曹操根基" },
+    "新野": { faction: "刘备", desc: "荆州门户，英雄暂居" },
+    "邺城": { faction: "袁绍", desc: "冀州重镇，袁氏根基" },
+    "建业": { faction: "孙权", desc: "江东都会，孙氏基业" }
+};
+
+// ==================== 游戏状态 ====================
+let game = {
+    phase: 1, // 1=教程中, 2=自由探索
+    player: null,
+    time: 12,
+    maxTime: 12,
+    day: 1,
+    month: 3,
+    year: 180,
+    location: "劳役营",
+    tutorialStep: 0,
+    logs: [],
+    flags: {},
+    quests: { active: null, tasks: {}, completed: [] }
+};
+
+let createData = {
+    name: '',
+    gender: '男',
+    points: 50,
+    stats: { wuyi: 15, zhihui: 15, koucai: 15, meili: 15, minjie: 15 }
+};
+
+// ==================== 角色创建 ====================
+function selectGender(g) {
+    createData.gender = g;
+    document.getElementById('genderMale').classList.toggle('selected', g === '男');
+    document.getElementById('genderFemale').classList.toggle('selected', g === '女');
+}
+
+function adjustStat(stat, delta) {
+    let newVal = createData.stats[stat] + delta;
+    let newPoints = createData.points - delta;
+    if (newVal < 5 || newVal > 30 || newPoints < 0) return;
+    createData.stats[stat] = newVal;
+    createData.points = newPoints;
+    document.getElementById('stat' + stat.charAt(0).toUpperCase() + stat.slice(1)).textContent = newVal;
+    document.getElementById('pointsLeft').textContent = newPoints;
+}
+
+function startGame() {
+    let name = document.getElementById('playerName').value.trim();
+    if (!name) {
+        alert('请输入你的名字！');
+        return;
+    }
+    createData.name = name;
+    
+    game.player = {
+        name: name,
+        gender: createData.gender,
+        wuyi: createData.stats.wuyi,
+        zhihui: createData.stats.zhihui,
+        koucai: createData.stats.koucai,
+        meili: createData.stats.meili,
+        minjie: createData.stats.minjie,
+        fame: 0,
+        money: 0,
+        food: 3,
+        hp: 100,
+        maxHp: 100
+    };
+    
+    document.getElementById('createScreen').classList.add('hidden');
+    document.getElementById('gameScreen').classList.remove('hidden');
+    
+    // 开始教程
+    showTutorial();
+}
+
+// ==================== 日志系统 ====================
+function addLog(text, type) {
+    type = type || 'normal';
+    let logDiv = document.createElement('div');
+    logDiv.className = 'log-entry log-' + type;
+    logDiv.textContent = text;
+    document.getElementById('logPanel').appendChild(logDiv);
+    document.getElementById('logPanel').scrollTop = 9999;
+    game.logs.push({ text, type });
+}
+
+// ==================== 教程系统 ====================
+function showTutorial() {
+    game.tutorialStep++;
+    
+    switch(game.tutorialStep) {
+        case 1:
+            // 开场
+            addLog('公元180年，大汉幽州。', 'narrative');
+            addLog('你睁开眼，头痛欲裂...', 'normal');
+            
+            showDialog({
+                title: '⛓️ 困境',
+                content: '你被扔进了一辆颠簸的囚车，手脚被粗麻绳捆绑。\n\n一个官差用长矛柄捅了你一下：\n\n「醒了？老实点，到了地方给老子好好干活！」\n\n这里是幽州，大汉末年。你，是一个囚犯。',
+                options: [
+                    { text: '▶ 继续', action: () => { closeDialog(); showTutorial(); } }
+                ]
+            });
+            addLog('官差：「醒了？老实点！」', 'normal');
+            break;
+            
+        case 2:
+            // 进入劳役营
+            addLog('你被扔进了劳役营，四周一片混乱...', 'narrative');
+            
+            showLocation({
+                title: '🏠 劳役营',
+                desc: '破败的营地，监工来回巡视。',
+                actions: [
+                    { icon: '👁️', name: '观察', time: 1, action: 'tut_observe' },
+                    { icon: '💬', name: '交谈', time: 1, action: 'tut_talk' }
+                ]
+            });
+            
+            addLog('【任务】先观察周围，再与神秘人交谈', 'important');
+            break;
+            
+        case 3:
+            // 任务完成后
+            addLog('✨ 两个任务都完成了！', 'success');
+            
+            showDialog({
+                title: '⏳ 日子一天天过去',
+                content: '几日后，你每日被强迫做苦役。\n\n你一直在暗中观察营地的地形和守卫换班的时间...\n\n老张也时常在角落里默默注视着你，似乎在等待什么。',
+                options: [
+                    { text: '▶ 继续', action: () => { closeDialog(); showTutorial(); } }
+                ]
+            });
+            addLog('日子一天天过去，你和老张达成了默契...', 'narrative');
+            break;
+            
+        case 4:
+            // 逃跑时机
+            addLog('🌙 子时到了...', 'important');
+            
+            showDialog({
+                title: '🌙 子时',
+                content: '换班的脚步声渐渐远去，四周一片寂静。\n\n老张悄悄来到你身边，压低声音：\n\n「时机到了，跟我走！」',
+                options: [
+                    { text: '跟随老张逃跑', action: () => { closeDialog(); showTutorial(); } }
+                ]
+            });
+            addLog('老张：「时机到了，跟我走！」', 'important');
+            break;
+            
+        case 5:
+            // 逃跑
+            addLog('「咔哒」——脚镣被撬开了！', 'important');
+            addLog('你趁夜色往营地东侧摸去...', 'normal');
+            addLog('但远处传来一声惊呼：「有人逃跑！」', 'danger');
+            
+            showDialog({
+                title: '⚠️ 警报',
+                content: '警报声骤然响起，火把四起！\n\n你拼命往山林里跑，身后是越来越近的追兵...\n\n脚下一滑——跌落山坡！\n\n火光越来越近，你绝望地闭上眼睛...',
+                options: [
+                    { text: '▶ 继续', action: () => { closeDialog(); showTutorial(); } }
+                ]
+            });
+            break;
+            
+        case 6:
+            // 神秘人
+            addLog('黑暗中，有人出手相救！', 'important');
+            
+            showDialog({
+                title: '🌟 神秘人',
+                content: '「嗖——嗖——嗖——」\n\n三声破空声，三声惨叫。\n\n黑暗中，一个低沉的声音响起：\n\n「别动。」\n\n你屏住呼吸，不敢动弹。',
+                options: [
+                    { text: '▶ 继续', action: () => { closeDialog(); showTutorial(); } }
+                ]
+            });
+            break;
+            
+        case 7:
+            // 狄云舟出现
+            addLog('一个青衫侠客从树上跃下...', 'narrative');
+            
+            showDialog({
+                title: '🌟 青衫侠客',
+                content: '月光下，你看清了他的面容——剑眉星目，气质清冷。\n\n他蹲下检查你的脚踝：「扭了，不严重。」\n\n他站起来，看着远处渐渐散去的火光：\n\n「你有两个选择。第一，留在这里等他们来抓你。第二，闭嘴跟我走。」',
+                options: [
+                    { text: '▶ 继续', action: () => { closeDialog(); showTutorial(); } }
+                ]
+            });
+            addLog('青衫侠客：「闭嘴跟我走。」', 'important');
+            break;
+            
+        case 8:
+            // 山洞
+            showDialog({
+                title: '🌙 山洞',
+                content: '他将你背起，纵身跃上树梢——\n\n树冠之间穿行，他如履平地。\n\n不知过了多久，他在一处隐蔽的山洞前停下。\n\n将你放下后，他打量着你：\n\n「我叫狄云舟。你呢？」',
+                options: [
+                    { text: '说实话', action: () => { closeDialog(); game.flags.truth = true; showTutorial(); } },
+                    { text: '编个身份', action: () => { closeDialog(); game.flags.lie = true; showTutorial(); } },
+                    { text: '反问：你又是谁？', action: () => { closeDialog(); game.flags.question = true; showTutorial(); } }
+                ]
+            });
+            addLog('狄云舟：「我叫狄云舟。你呢？」', 'normal');
+            break;
+            
+        case 9:
+            // 回应
+            let content = '';
+            if (game.flags.truth) {
+                content = '「我...从很远的地方来，记不清了。」\n\n狄云舟意味深长地看了你一眼：「记不清？穿越来的？」\n\n你心中一惊——他怎么知道？！\n\n「开玩笑的。」他淡淡道，「不管你从哪来，跟我走吧。」';
+                game.player.zhihui += 1;
+                addLog('你含糊其辞，狄云舟似乎看穿了什么...智慧+1', 'success');
+            } else if (game.flags.lie) {
+                content = '「我是外地逃荒来的，被官差抓了壮丁。」\n\n狄云舟沉默了一会儿：「是吗。」\n\n「不管了，跟我走吧。」';
+                game.player.koucai += 1;
+                addLog('你撒了谎，狄云舟没有追问...口才+1', 'success');
+            } else {
+                content = '「你又是谁？凭什么帮我？」\n\n狄云舟眉头微皱：「我叫狄云舟，义社的人。」\n\n「至于凭什么...」他看了你一眼：「凭我看你顺眼。」';
+                game.player.meili += 1;
+                addLog('你保持了自尊，狄云舟欣赏你的骨气...魅力+1', 'success');
+            }
+            
+            showDialog({
+                title: '💬 回应',
+                content: content + '\n\n他递给你一个水囊和一些干粮。',
+                options: [
+                    { text: '▶ 继续', action: () => { closeDialog(); showTutorial(); } }
+                ]
+            });
+            break;
+            
+        case 10:
+            // 邀请
+            showDialog({
+                title: '🌟 决定',
+                content: '狄云舟看着远方：\n\n「我要去巨鹿，那里是太平道的地盘。」\n\n「你在幽州，活不过三天。」\n\n「跟不跟我走，你自己决定。」',
+                options: [
+                    { text: '跟随狄云舟', action: () => { closeDialog(); endTutorial(); } }
+                ]
+            });
+            addLog('狄云舟邀请你一同前往巨鹿...', 'important');
+            break;
+            
+        default:
+            endTutorial();
+    }
+}
+
+// 教程动作处理
+function doTutorialAction(action) {
+    if (action === 'tut_observe') {
+        if (game.flags.tutObserve) {
+            addLog('你再次观察四周...神秘人仍在角落观察地形。', 'normal');
+            return;
+        }
+        game.flags.tutObserve = true;
+        game.quests.tasks.observe = { done: true };
+        
+        addLog('👁️ 你仔细观察四周...', 'normal');
+        addLog('角落里有个神秘人，眼神锐利，似乎在暗中观察地形。', 'important');
+        
+        checkTutorialTask();
+        return;
+    }
+    
+    if (action === 'tut_talk') {
+        if (!game.flags.tutObserve) {
+            addLog('你随意找人搭话，旁边老农说：「小声点...先观察下环境吧。」', 'narrative');
+            return;
+        }
+        
+        if (game.flags.tutTalk) {
+            addLog('老张摇头：「该说的我都说了，别声张。」', 'narrative');
+            return;
+        }
+        
+        game.flags.tutTalk = true;
+        game.quests.tasks.talk = { done: true };
+        
+        addLog('💬 你找到角落里的神秘人搭话...', 'normal');
+        
+        showDialog({
+            title: '💬 与老张交谈',
+            content: '神秘人抬起头，眼神锐利：\n\n「叫我老张就行。」\n\n他压低声音：「你也是被抓来的？我已经观察很久了...」\n\n「今晚子时换班时，我有个计划。」',
+            options: [
+                { text: '「什么计划？」', action: () => { closeDialog(); checkTutorialTask(); } },
+                { text: '「为什么要告诉我？」', action: () => { closeDialog(); addLog('老张：「因为你有双清醒的眼睛。」', 'important'); checkTutorialTask(); } }
+            ]
+        });
+        addLog('老张：「今晚子时，我有个计划。」', 'important');
+        return;
+    }
+}
+
+function checkTutorialTask() {
+    if (game.flags.tutObserve && game.flags.tutTalk) {
+        showTutorial();
+    }
+}
+
+// 教程结束，进入自由模式
+function endTutorial() {
+    game.phase = 2;
+    game.location = "巨鹿";
+    game.quests.active = null;
+    
+    addLog('═══════════════════════════════', 'important');
+    addLog('【第一章：巨鹿风云】', 'important');
+    addLog('═══════════════════════════════', 'important');
+    addLog('狄云舟带你来到巨鹿——太平道的圣地。', 'normal');
+    addLog('城中随处可见黄色头巾，百姓互称「苍天兄弟」。', 'normal');
+    
+    // 显示底部工具栏
+    document.getElementById('toolBar').classList.remove('hidden');
+    
+    showLocation({
+        title: '🏙️ 巨鹿城',
+        desc: '太平道重要据点，鱼龙混杂。这里是义社的据点。',
+        actions: [
+            { icon: '🔍', name: '探索', time: 2, action: 'explore' },
+            { icon: '💼', name: '打工', time: 3, action: 'work' },
+            { icon: '😴', name: '休息', time: 2, action: 'rest' }
+        ]
+    });
+}
+
+// ==================== 核心函数 ====================
+function showLocation(data) {
+    let html = '<div class="location-info">';
+    html += '<div class="location-title">' + data.title + '</div>';
+    html += '<div class="location-desc">' + data.desc + '</div>';
+    html += '</div>';
+    document.getElementById('mainContent').innerHTML = html;
+    
+    updateUI();
+    updateActions(data.actions);
+}
+
+function updateUI() {
+    let p = game.player;
+    let season = ['春', '夏', '秋', '冬'][Math.floor((game.month - 1) / 3)];
+    
+    document.getElementById('gameDate').textContent = game.year + '年 ' + season;
+    document.getElementById('gameLocation').textContent = '📍 ' + game.location;
+    document.getElementById('timeBar').style.width = (game.time / game.maxTime * 100) + '%';
+    document.getElementById('timeText').textContent = p.hp + '/' + p.maxHp;
+    
+    document.getElementById('gameFood').textContent = p.food;
+    document.getElementById('gameMoney').textContent = p.money;
+    document.getElementById('gameFame').textContent = p.fame;
+}
+
+function updateActions(actions) {
+    let html = '';
+    actions.forEach(a => {
+        let disabled = (a.time > 0 && game.time < a.time) ? ' disabled' : '';
+        html += '<button class="action-btn' + disabled + '" onclick="doAction(\'' + a.action + '\')">';
+        html += '<span class="icon">' + a.icon + '</span>';
+        html += a.name;
+        if (a.time > 0) {
+            html += '<span class="time-cost">-' + a.time + '</span>';
+        }
+        html += '</button>';
+    });
+    document.getElementById('actionGrid').innerHTML = html;
+}
+
+// ==================== 行动系统 ====================
+function doAction(action) {
+    if (game.phase === 1) {
+        doTutorialAction(action);
+        return;
+    }
+    
+    switch(action) {
+        case 'rest':
+            doRest();
+            break;
+        case 'explore':
+            doExplore();
+            break;
+        case 'work':
+            doWork();
+            break;
+        case 'map':
+            showMap();
+            break;
+        case 'npc':
+            showNPCList();
+            break;
+    }
+}
+
+function doRest() {
+    game.time -= 2;
+    let heal = Math.floor(Math.random() * 20) + 10;
+    game.player.hp = Math.min(game.player.maxHp, game.player.hp + heal);
+    addLog('你休息了一会儿，恢复了' + heal + '点体力。', 'success');
+    checkDayEnd();
+}
+
+function doExplore() {
+    game.time -= 2;
+    let roll = Math.random();
+    
+    if (roll < 0.3) {
+        addLog('你在城中闲逛，没遇到什么事。', 'normal');
+    } else if (roll < 0.6) {
+        let found = Math.floor(Math.random() * 10) + 5;
+        game.player.money += found;
+        addLog('你捡到了' + found + '文铜钱！', 'success');
+    } else if (roll < 0.85) {
+        let attr = ['wuyi', 'zhihui', 'koucai'][Math.floor(Math.random() * 3)];
+        game.player[attr] += 1;
+        let names = { wuyi: '武艺', zhihui: '智慧', koucai: '口才' };
+        addLog('你有所感悟，' + names[attr] + ' +1', 'success');
+    } else {
+        addLog('你遇到一个神秘人，给了你一个提示后消失了...', 'narrative');
+    }
+    
+    checkDayEnd();
+}
+
+function doWork() {
+    game.time -= 3;
+    let earned = Math.floor(Math.random() * 15) + 10;
+    game.player.money += earned;
+    addLog('你打工赚了' + earned + '文铜钱。', 'success');
+    checkDayEnd();
+}
+
+function showStatus() {
+    let p = game.player;
+    showDialog({
+        title: '📊 角色状态',
+        content: '【' + p.name + '】' + p.gender + '\n\n' +
+                 '武艺: ' + p.wuyi + '  智慧: ' + p.zhihui + '\n' +
+                 '口才: ' + p.koucai + '  魅力: ' + p.meili + '\n' +
+                 '敏捷: ' + p.minjie + '\n\n' +
+                 '体力: ' + p.hp + '/' + p.maxHp + '\n' +
+                 '粮食: ' + p.food + '  金钱: ' + p.money + '文\n' +
+                 '声望: ' + p.fame,
+        options: [
+            { text: '确定', action: closeDialog }
+        ]
+    });
+}
+
+function showNPCList() {
+    let npcs = [
+        { name: '狄云舟', role: '义社首领', desc: '青衫侠客，轻功绝世' },
+        { name: '沈长风', role: '谋士', desc: '文质彬彬，深不可测' },
+        { name: '赵铁牛', role: '护卫', desc: '虎背熊腰，重情重义' },
+        { name: '周文远', role: '商人', desc: '圆滑精明，八面玲珑' },
+        { name: '林小刀', role: '少年', desc: '瘦小机灵，崇拜狄云舟' }
+    ];
+    
+    let content = '你在巨鹿认识了几个人：\n\n';
+    npcs.forEach(npc => {
+        content += '【' + npc.name + '】' + npc.role + '\n' + npc.desc + '\n\n';
+    });
+    
+    showDialog({
+        title: '👥 人物',
+        content: content,
+        options: [
+            { text: '与狄云舟交谈', action: () => { closeDialog(); talkToNpc('狄云舟'); } },
+            { text: '与其他人物交谈', action: () => { closeDialog(); talkToOtherNpc(); } },
+            { text: '离开', action: closeDialog }
+        ]
+    });
+    
+    addLog('你查看了人物列表...', 'normal');
+}
+
+function talkToNpc(name) {
+    showDialog({
+        title: '👤 ' + name,
+        content: name + '看了你一眼：\n\n「有事？」',
+        options: [
+            { text: '闲聊几句', action: () => { closeDialog(); npcChat(name); } },
+            { text: '请教武艺', action: () => { closeDialog(); npcTeach(name); } },
+            { text: '离开', action: closeDialog }
+        ]
+    });
+}
+
+function talkToOtherNpc() {
+    let names = ['沈长风', '赵铁牛', '周文远', '林小刀'];
+    let name = names[Math.floor(Math.random() * names.length)];
+    talkToNpc(name);
+}
+
+function npcChat(name) {
+    let chats = {
+        '狄云舟': ['天下事，岂能坐视不理。', '太平道...已经不是当年的样子了。', '跟着我，小心点。'],
+        '沈长风': ['静观其变，方能明辨是非。', '有些事，看破不说破。'],
+        '赵铁牛': ['有我在，谁也别想动你！', '俺这条命是狄大哥救的。'],
+        '林小刀': ['大哥！有什么事尽管吩咐！', '狄大哥可厉害了！'],
+        '周文远': ['做生意嘛，诚信为本。', '这年头，能活着就不错了。']
+    };
+    let msgs = chats[name] || ['...'];
+    let msg = msgs[Math.floor(Math.random() * msgs.length)];
+    addLog('【' + name + '】' + msg, 'important');
+    
+    showDialog({
+        title: '👤 ' + name,
+        content: '【' + name + '】\n\n' + msg,
+        options: [
+            { text: '继续聊', action: () => { closeDialog(); npcChat(name); } },
+            { text: '离开', action: closeDialog }
+        ]
+    });
+}
+
+function npcTeach(name) {
+    let teach = {
+        '狄云舟': { attr: 'wuyi', gain: 2 },
+        '沈长风': { attr: 'zhihui', gain: 2 },
+        '赵铁牛': { attr: 'wuyi', gain: 1 }
+    };
+    
+    if (teach[name]) {
+        game.player[teach[name].attr] += teach[name].gain;
+        let attrNames = { wuyi: '武艺', zhihui: '智慧', koucai: '口才' };
+        addLog('你向' + name + '请教，' + attrNames[teach[name].attr] + ' +' + teach[name].gain, 'success');
+        game.player.fame += 1;
+    } else {
+        addLog(name + '在这方面不太擅长。', 'normal');
+    }
+    closeDialog();
+}
+
+// ==================== 地图系统 ====================
+function showMap() {
+    let html = '';
+    for (let city in CITIES) {
+        let disabled = (city !== '巨鹿' && game.player.fame < 10) ? ' disabled' : '';
+        html += '<div class="map-city-item' + disabled + '" onclick="travelTo(\'' + city + '\')">';
+        html += '<div class="map-city-name">' + city + '</div>';
+        html += '<div class="map-city-faction">' + CITIES[city].faction + '</div>';
+        html += '<div class="map-city-desc">' + CITIES[city].desc + '</div>';
+        if (disabled) html += '<div style="color:#c97a7a;font-size:0.7rem;margin-top:4px;">声望不足10点，无法前往</div>';
+        html += '</div>';
+    }
+    document.getElementById('mapCityList').innerHTML = html;
+    document.getElementById('mapOverlay').style.display = 'flex';
+    addLog('你查看了地图...', 'normal');
+}
+
+function closeMap() {
+    document.getElementById('mapOverlay').style.display = 'none';
+}
+
+function travelTo(city) {
+    if (city !== '巨鹿' && game.player.fame < 10) {
+        return;
+    }
+    
+    closeMap();
+    game.location = city;
+    game.time = 0;
+    
+    addLog('你来到了' + city + '...', 'important');
+    addLog(CITIES[city].desc, 'normal');
+    
+    showLocation({
+        title: '🏙️ ' + city,
+        desc: CITIES[city].desc,
+        actions: [
+            { icon: '🔍', name: '探索', time: 2, action: 'explore' },
+            { icon: '💼', name: '打工', time: 3, action: 'work' },
+            { icon: '😴', name: '休息', time: 2, action: 'rest' }
+        ]
+    });
+    
+    checkDayEnd();
+}
+
+// ==================== 时间系统 ====================
+function checkDayEnd() {
+    if (game.time <= 0) {
+        endDay();
+    }
+    updateUI();
+}
+
+function endDay() {
+    game.player.food -= 1;
+    if (game.player.food < 0) {
+        game.player.food = 0;
+        game.player.hp -= 20;
+        addLog('你饿了一天，头昏眼花...体力 -20', 'danger');
+    }
+    
+    game.day++;
+    game.time = game.maxTime;
+    
+    if (game.day > 30) {
+        game.day = 1;
+        game.month++;
+        if (game.month > 12) {
+            game.month = 1;
+            game.year++;
+        }
+        addLog('【' + game.year + '年' + game.month + '月】', 'important');
+    }
+    
+    let rest = 20;
+    game.player.hp = Math.min(game.player.maxHp, game.player.hp + rest);
+    
+    addLog('────── 天亮了 ──────', 'important');
+    
+    if (game.phase === 2) {
+        showLocation({
+            title: '🏙️ ' + game.location,
+            desc: CITIES[game.location].desc,
+            actions: [
+                { icon: '🔍', name: '探索', time: 2, action: 'explore' },
+                { icon: '💼', name: '打工', time: 3, action: 'work' },
+                { icon: '😴', name: '休息', time: 2, action: 'rest' }
+            ]
+        });
+    }
+}
+
+// ==================== 对话框系统 ====================
+let currentDialogOptions = [];
+
+function showDialog(data) {
+    document.getElementById('dialogTitle').textContent = data.title;
+    document.getElementById('dialogContent').textContent = data.content;
+    
+    currentDialogOptions = data.options || [];
+    
+    let optsHtml = '';
+    data.options.forEach((opt, index) => {
+        let disabled = opt.disabled ? ' disabled' : '';
+        optsHtml += '<button class="dialog-btn' + (opt.primary ? ' primary' : '') + '" data-index="' + index + '"' + disabled + '>' + opt.text + '</button>';
+    });
+    
+    document.getElementById('dialogOptions').innerHTML = optsHtml;
+    document.getElementById('dialogOverlay').style.display = 'flex';
+}
+
+function closeDialog() {
+    document.getElementById('dialogOverlay').style.display = 'none';
+    currentDialogOptions = [];
+}
+
+document.getElementById('dialogOptions').addEventListener('click', function(e) {
+    if (e.target.classList.contains('dialog-btn') && !e.target.disabled) {
+        let index = parseInt(e.target.dataset.index);
+        if (currentDialogOptions[index] && currentDialogOptions[index].action) {
+            currentDialogOptions[index].action();
+        }
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>乱世烽火 - 极简版</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #1a1a2e;
+  --panel: #16213e;
+  --card: #0f3460;
+  --accent: #e94560;
+  --text: #eaeaea;
+  --dim: #8892a0;
+  --green: #4ecca3;
+  --gold: #d4af37;
+}
+
+/* 创建角色 */
+.create-screen { padding: 20px; overflow-y: auto; flex: 1; }
+.create-title { text-align: center; font-size: 22px; color: var(--gold); margin-bottom: 8px; }
+.create-intro { text-align: center; color: var(--dim); font-size: 12px; margin-bottom: 20px; line-height: 1.5; }
+.create-section { margin-bottom: 14px; }
+.create-label { color: var(--green); font-size: 12px; margin-bottom: 8px; }
+.name-input { width: 100%; padding: 12px; background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text); font-size: 14px; }
+.name-input:focus { outline: none; border-color: var(--gold); }
+.gender-select { display: flex; gap: 10px; }
+.gender-btn { flex: 1; padding: 12px; background: var(--card); border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; color: var(--text); cursor: pointer; text-align: center; transition: all 0.2s; }
+.gender-btn.selected { border-color: var(--gold); background: rgba(212,175,55,0.15); color: var(--gold); }
+.gender-btn .icon { font-size: 22px; display: block; margin-bottom: 4px; }
+.stat-assign { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 12px; }
+.stat-row { display: flex; align-items: center; margin-bottom: 8px; }
+.stat-name { width: 40px; color: var(--text); font-size: 11px; }
+.stat-controls { flex: 1; display: flex; align-items: center; gap: 8px; }
+.stat-btn { width: 30px; height: 30px; background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--gold); cursor: pointer; font-size: 14px; }
+.stat-num { width: 30px; text-align: center; color: var(--gold); font-weight: bold; font-size: 13px; }
+.points-remaining { text-align: center; color: var(--gold); font-size: 12px; margin-top: 8px; padding: 8px; background: var(--card); border-radius: 8px; }
+.start-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #8b4513, #a0522d); border: 2px solid var(--gold); border-radius: 10px; color: var(--gold); font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+/* 教程 */
+.tutorial-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 800; padding: 15px; }
+.tutorial-overlay.show { display: flex; }
+.tutorial-box { background: var(--panel); border: 2px solid var(--gold); border-radius: 14px; padding: 18px; max-width: 340px; width: 100%; }
+.tutorial-title { color: var(--gold); font-size: 15px; text-align: center; margin-bottom: 12px; }
+.tutorial-content { color: var(--text); font-size: 13px; line-height: 1.7; margin-bottom: 14px; white-space: pre-line; }
+.tutorial-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #8b4513, #a0522d); border: 2px solid var(--gold); border-radius: 8px; color: var(--gold); font-size: 13px; font-weight: bold; cursor: pointer; }
+
+/* 对话 */
+.dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 750; padding: 15px; }
+.dialog-overlay.show { display: flex; }
+.dialog-box { background: var(--panel); border: 2px solid var(--gold); border-radius: 12px; padding: 16px; max-width: 340px; width: 100%; max-height: 80vh; overflow-y: auto; }
+.dialog-title { color: var(--gold); font-size: 14px; text-align: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.dialog-content { color: var(--text); font-size: 12px; line-height: 1.6; margin-bottom: 12px; white-space: pre-line; }
+.dialog-options { display: flex; flex-direction: column; gap: 6px; }
+.dialog-btn { background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 12px; color: var(--text); cursor: pointer; text-align: left; font-size: 12px; transition: all 0.15s; }
+.dialog-btn:active { border-color: var(--gold); color: var(--gold); }
+.dialog-btn.primary { background: linear-gradient(135deg, #8b4513, #a0522d); border-color: var(--gold); color: var(--gold); text-align: center; }
+
+/* 日志颜色 */
+.log-important { color: var(--gold); }
+.log-success { color: var(--green); }
+.log-danger { color: #c97a7a; }
+.log-narrative { color: var(--dim); font-style: italic; }
+
+/* 逃跑提示 */
+.escape-hint { font-size: 11px; color: var(--dim); text-align: center; margin-top: 8px; }
+.escape-hint span { color: var(--accent); }
+
+/* 隐藏类 */
+.hidden { display: none !important; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 顶部 */
+.top {
+  background: var(--panel);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.top .title { font-weight: bold; color: var(--accent); font-size: 13px; }
+.top .stats { display: flex; gap: 14px; font-size: 12px; }
+.top .stats span { color: var(--green); }
+
+/* 主体：交互区域 */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  gap: 24px;
+  position: relative;
+}
+
+/* 交互网格 */
+.interact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  max-width: 320px;
+}
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  min-width: 80px;
+}
+.card:active {
+  transform: scale(0.92);
+  background: var(--accent);
+}
+.card .icon { font-size: 32px; }
+.card .name { font-size: 12px; margin-top: 6px; }
+.card .action { font-size: 10px; color: var(--dim); margin-top: 2px; }
+.card:active .action { color: rgba(255,255,255,0.8); }
+
+/* 逃跑入口 */
+.escape-hint {
+  font-size: 11px;
+  color: var(--dim);
+  text-align: center;
+  margin-top: 8px;
+}
+.escape-hint span { color: var(--accent); }
+
+/* 地点切换特效 */
+.location-flash {
+  position: fixed;
+  inset: 0;
+  background: var(--accent);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.location-flash.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.location-flash .name {
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 12px;
+}
+.location-flash .desc {
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+  text-align: center;
+  padding: 0 30px;
+  line-height: 1.5;
+}
+
+/* 日志 */
+.log {
+  background: var(--panel);
+  padding: 12px 14px;
+  flex-shrink: 0;
+  max-height: 100px;
+  overflow-y: auto;
+}
+.log-item {
+  font-size: 12px;
+  color: var(--dim);
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  line-height: 1.4;
+}
+.log-item:last-child { border: none; }
+.log-item .time { color: var(--accent); margin-right: 8px; }
+.log-item .loc { color: var(--green); margin-right: 8px; }
+
+/* 底部按钮 */
+.bottom {
+  background: var(--panel);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-around;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.bottom button {
+  background: var(--card);
+  border: none;
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+  transition: all 0.15s;
+}
+.bottom button:active, .bottom button.active {
+  background: var(--accent);
+}
+.bottom button .icon { font-size: 18px; }
+
+/* 弹窗 */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 700;
+}
+.modal.show { display: flex; }
+.modal-content {
+  background: var(--panel);
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 18px 18px 0 0;
+  padding: 18px;
+  overflow-y: auto;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.modal.show .modal-content { animation: slideUp 0.25s ease; }
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.modal-header h3 { font-size: 15px; font-weight: bold; }
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* 地图 */
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.map-cell {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.map-cell:active { transform: scale(0.95); }
+.map-cell.current { border: 2px solid var(--accent); }
+.map-cell .icon { font-size: 24px; }
+.map-cell .name { font-size: 12px; margin-top: 4px; }
+.map-cell .info { font-size: 10px; color: var(--dim); margin-top: 2px; }
+
+/* 状态 */
+.state-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.state-cell {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.state-cell .icon { font-size: 20px; }
+.state-cell .val { font-size: 18px; font-weight: bold; margin-top: 4px; }
+.state-cell .label { font-size: 10px; color: var(--dim); }
+
+/* 任务 */
+.task-list { display: flex; flex-direction: column; gap: 8px; }
+.task-item {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.task-item.done { opacity: 0.5; text-decoration: line-through; }
+.task-check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--dim);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.task-item.done .task-check { border-color: var(--green); color: var(--green); }
+
+/* 背包 */
+.bag-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.bag-item {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+  font-size: 10px;
+}
+.bag-item .icon { font-size: 24px; }
+.bag-item .name { margin-top: 4px; }
+.bag-item .num { color: var(--dim); font-size: 10px; }
+
+/* 逃跑面板 */
+.escape-progress {
+  margin-bottom: 16px;
+}
+.escape-bar {
+  height: 10px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.escape-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--green));
+  border-radius: 5px;
+}
+.escape-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.escape-tag {
+  font-size: 11px;
+  padding: 5px 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
+}
+.escape-tag.done { color: var(--green); background: rgba(78,204,163,0.15); }
+.escape-btn {
+  width: 100%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- 创建角色 -->
+<div id="createScreen" class="create-screen">
+  <h1 class="create-title">⚔️ 乱世烽火 ⚔️</h1>
+  <p class="create-intro">公元180年，大汉幽州。<br>你从现代穿越而来，醒来时已在囚车之中...</p>
+  
+  <div class="create-section">
+    <div class="create-label">📝 为自己取个名字</div>
+    <input type="text" class="name-input" id="playerName" placeholder="输入你的名字" maxlength="6">
+  </div>
+  
+  <div class="create-section">
+    <div class="create-label">⚧ 选择性别</div>
+    <div class="gender-select">
+      <div class="gender-btn selected" onclick="selectGender('男')" id="genderMale">
+        <span class="icon">👨</span>男
+      </div>
+      <div class="gender-btn" onclick="selectGender('女')" id="genderFemale">
+        <span class="icon">👩</span>女
+      </div>
+    </div>
+  </div>
+  
+  <button class="start-btn" onclick="startGame()">🚀 开始游戏</button>
+</div>
+
+<!-- 游戏界面 -->
+<div id="gameScreen" class="hidden">
+
+<!-- 顶部状态 -->
+<div class="top">
+  <div class="title">🔥 乱世烽火</div>
+  <div class="stats" id="top-stats">
+    📅 第 <span id="day">1</span> 天
+  </div>
+</div>
+
+<!-- 主体：交互区 -->
+<div class="main" id="main-area">
+  <div class="interact-grid" id="interact-grid"></div>
+  <div class="escape-hint" id="escape-hint">逃跑进度 <span id="escape-rate">0%</span> · 点击 🔓 查看</div>
+</div>
+
+<!-- 日志 -->
+<div class="log" id="log-area"></div>
+
+<!-- 底部按钮 -->
+<div class="bottom">
+  <button onclick="openModal('地图')" id="map-btn"><span class="icon">🗺️</span>地图</button>
+  <button onclick="openModal('背包')"><span class="icon">🎒</span>背包</button>
+  <button onclick="openModal('任务')"><span class="icon">📋</span>任务</button>
+  <button onclick="openModal('状态')"><span class="icon">📊</span>状态</button>
+  <button onclick="openModal('逃跑')" id="escape-btn"><span class="icon">🔓</span>逃跑</button>
+</div>
+
+</div>
+
+<!-- 地点切换特效 -->
+<div class="location-flash" id="location-flash">
+  <div class="name" id="flash-name">牢房</div>
+  <div class="desc" id="flash-desc">阴暗潮湿的牢房里弥漫着霉味...</div>
+</div>
+
+<!-- 弹窗 -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">标题</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- 教程 -->
+<div class="tutorial-overlay" id="tutorialOverlay">
+  <div class="tutorial-box">
+    <div class="tutorial-title" id="tutorialTitle"></div>
+    <div class="tutorial-content" id="tutorialContent"></div>
+    <button class="tutorial-btn" id="tutorialBtn" onclick="nextTutorial()">继续 ▶</button>
+  </div>
+</div>
+
+<!-- 对话 -->
+<div class="dialog-overlay" id="dialogOverlay">
+  <div class="dialog-box">
+    <div class="dialog-title" id="dialogTitle"></div>
+    <div class="dialog-content" id="dialogContent"></div>
+    <div class="dialog-options" id="dialogOptions"></div>
+  </div>
+</div>
+
+<script>
+// ==================== 游戏数据 ====================
+const AREAS = {
+  '牢房': { desc: '阴暗潮湿的牢房里弥漫着霉味...', icon: '⛓️', items: [], faction: '劳役营' },
+  '操场': { desc: '开阔的操场，四周有高墙和巡逻的狱卒...', icon: '🌳', items: [], faction: '劳役营' },
+  '矿区': { desc: '尘土飞扬的矿区，需要搬运沉重的矿石...', icon: '⛏️', items: [], faction: '劳役营' },
+  '食堂': { desc: '嘈杂的食堂，难以下咽的饭菜...', icon: '🍜', items: [], faction: '劳役营' },
+  '巨鹿': { desc: '太平道重要据点，鱼龙混杂。', icon: '🏙️', items: [], faction: '太平道' },
+  '涿郡': { desc: '刘备起兵之地，民风淳朴。', icon: '🏘️', items: [], faction: '中立' },
+  '蓟县': { desc: '幽州治所，官兵盘查严密。', icon: '🏛️', items: [], faction: '官府' },
+  '洛阳': { desc: '东汉都城，天子脚下。', icon: '👑', items: [], faction: '官府' }
+};
+
+const CITIES = {
+  '牢房': { faction: '劳役营', desc: '阴暗潮湿的牢房' },
+  '操场': { faction: '劳役营', desc: '四周高墙围困' },
+  '矿区': { faction: '劳役营', desc: '沉重的矿石' },
+  '食堂': { faction: '劳役营', desc: '难以下咽的饭菜' },
+  '巨鹿': { faction: '太平道', desc: '太平道圣地，义士云集' },
+  '涿郡': { faction: '中立', desc: '刘备起兵之地' },
+  '蓟县': { faction: '官府', desc: '幽州治所' },
+  '洛阳': { faction: '朝廷', desc: '东汉都城' }
+};
+
+// 逃跑准备事项
+const ESCAPE_ITEMS = [
+  { id: '路线', name: '逃跑路线', desc: '摸清营地的巡逻规律' },
+  { id: '工具', name: '撬锁工具', desc: '找到可以撬开脚镣的东西' },
+  { id: '时机', name: '最佳时机', desc: '找到狱卒换班的空档' },
+  { id: '体力', name: '充沛体力', desc: '保持足够的体力应对逃跑' }
+];
+
+const NPCS = {
+  '牢房': [
+    { name: '老张', icon: '👴', desc: '狱中老卒', teach: null, chat: ['想逃？难啊...', '我年轻时也试过，没跑成。', '夜里子时换班，动静最大。'] },
+    { name: '赵四', icon: '👤', desc: '狱友', teach: null, chat: ['兄弟，你是哪来的？', '听说操场那边看守松一些...'] }
+  ],
+  '操场': [
+    { name: '狱卒', icon: '👮', desc: '看守', teach: null, chat: ['看什么看！干活去！'] },
+    { name: '王五', icon: '👤', desc: '狱友', teach: null, chat: ['我不想一辈子待在这里...', '我看到过那边有个缺口...'] }
+  ],
+  '矿区': [
+    { name: '老矿工', icon: '👴', desc: '经验丰富', teach: null, chat: ['挖了三十年矿，命硬。', '小心监工，他下手狠。'] },
+    { name: '监工', icon: '👮', desc: '凶神恶煞', teach: null, chat: ['别偷懒！'] }
+  ],
+  '食堂': [
+    { name: '厨子', icon: '👨‍🍳', desc: '沉默寡言', teach: null, chat: ['（沉默不语）'] }
+  ],
+  '巨鹿': [
+    { name: '狄云舟', icon: '🗡️', desc: '青衫侠客', teach: { attr: 'wuyi', gain: 2 } },
+    { name: '沈长风', icon: '📖', desc: '谋士', teach: { attr: 'zhihui', gain: 2 } },
+    { name: '赵铁牛', icon: '💪', desc: '护卫', teach: { attr: 'wuyi', gain: 1 } },
+    { name: '周文远', icon: '💰', desc: '商人', teach: null },
+    { name: '林小刀', icon: '🗡️', desc: '少年', teach: { attr: 'minjie', gain: 1 } }
+  ]
+};
+
+let G = {
+  phase: 1, player: null, day: 1, month: 3, year: 180, time: 12, maxTime: 12,
+  location: '牢房', 
+  escape: { 
+    progress: 0, 
+    items: ESCAPE_ITEMS.map(i => i.id),
+    done: []
+  },
+  inventory: [],
+  tasks: [],
+  npcRelation: {}
+};
+
+// 教程状态 - 等待玩家确认后才继续
+let tutorialWaiting = false;
+
+let createData = { name: '', gender: '男' };
+
+// ==================== 角色创建 ====================
+function selectGender(g) {
+  createData.gender = g;
+  document.getElementById('genderMale').classList.toggle('selected', g === '男');
+  document.getElementById('genderFemale').classList.toggle('selected', g === '女');
+}
+
+function startGame() {
+  let name = document.getElementById('playerName').value.trim();
+  if (!name) { alert('请输入名字！'); return; }
+  createData.name = name;
+  
+  G.player = {
+    name: name, gender: createData.gender,
+    wuyi: 8, zhihui: 8, koucai: 8, meili: 8, minjie: 8,
+    hp: 100, maxHp: 100, food: 3, money: 0, fame: 0
+  };
+  
+  document.getElementById('createScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  
+  // 显示简介弹窗，等待玩家确认
+  showIntroDialog();
+}
+
+// ==================== 简介弹窗 ====================
+function showIntroDialog() {
+  showDialog({
+    title: '📜 乱世烽火',
+    content: '公元180年，大汉幽州。\n\n你从现代穿越而来...\n醒来时，你已在囚车之中。\n\n手脚被粗麻绳捆绑，颠簸的囚车...\n远处是破败的村庄，衣衫褴褛的百姓。\n\n这里是幽州，大汉末年。\n天下即将大乱。\n\n你，是一个囚犯。',
+    options: [
+      { text: '▶ 我明白了', action: () => { closeDialog(); startPrisonPhase(); } }
+    ]
+  });
+}
+
+// ==================== 劳役营阶段（逃脱者2玩法）====================
+function startPrisonPhase() {
+  G.phase = 1; // 1 = 劳役营阶段
+  
+  // 初始化逃跑进度
+  G.escape = {
+    progress: 0,
+    items: ESCAPE_ITEMS.map(i => i.id),
+    done: []
+  };
+  
+  // 初始化任务
+  G.tasks = [
+    { name: '打探逃跑路线', done: false, hint: '与老张交谈' },
+    { name: '找到撬锁工具', done: false, hint: '在矿区搜索' },
+    { name: '观察换班规律', done: false, hint: '在操场劳作时留意' },
+    { name: '保持体力充沛', done: false, hint: '注意休息和进食' }
+  ];
+  
+  addLog('═══════════════════════════', 'important');
+  addLog('你被押送到劳役营', 'important');
+  addLog('═══════════════════════════', 'important');
+  
+  goToArea('牢房');
+  
+  // 显示提示
+  setTimeout(() => {
+    addLog('阴暗潮湿的牢房里弥漫着霉味...', 'narrative');
+    addLog('角落里蜷缩着一个用破布遮住脸的老卒。', 'normal');
+    addLog('——你需要想办法逃出去。', 'important');
+    addLog('点击底部 🔓 逃跑 查看逃跑准备进度', 'narrative');
+  }, 1300);
+  
+  renderInteract();
+}
+
+// ==================== 逃跑尝试系统 ====================
+// 当逃跑进度满了，玩家可以尝试逃跑
+function tryEscape() {
+  if (G.escape.progress < 100) {
+    let remaining = G.escape.items.filter(i => !G.escape.done.includes(i));
+    let items = remaining.map(id => {
+      let item = ESCAPE_ITEMS.find(e => e.id === id);
+      return item ? item.name : id;
+    });
+    
+    showDialog({
+      title: '🔓 逃跑准备不足',
+      content: '逃跑需要准备以下事项：\n\n' + items.map(i => '○ ' + i).join('\n') + '\n\n当前进度：' + G.escape.progress + '%',
+      options: [
+        { text: '继续准备', action: closeDialog }
+      ]
+    });
+    return;
+  }
+  
+  // 逃跑进度满了，可以尝试逃跑！
+  attemptEscape();
+}
+
+// 执行逃跑
+function attemptEscape() {
+  // 显示逃跑动画
+  showDialog({
+    title: '🌙 夜幕降临',
+    content: '子时，狱卒换班的脚步声渐渐远去...\n\n你屏住呼吸，悄悄起身...\n\n用藏好的铁片撬开脚镣——\n\n「咔哒」\n\n成功了！但就在这时——\n\n「哐啷！」\n\n脚镣撞到牢门，发出清脆的响声！\n\n「有人逃跑！」远处传来狱卒的喊声！',
+    options: [
+      { text: '▶ 立刻逃跑！', action: () => { closeDialog(); escapeSequence(); } }
+    ]
+  });
+}
+
+// 逃跑序列 - 遇到狄云舟
+function escapeSequence() {
+  addLog('═══════════════════', 'important');
+  addLog('【深夜·逃亡】', 'important');
+  addLog('═══════════════════', 'important');
+  addLog('你拼命往山林里跑，身后是越来越近的火把和喊声...', 'danger');
+  
+  setTimeout(() => {
+    addLog('黑暗中，你脚下一滑——跌落山坡！', 'danger');
+  }, 1500);
+  
+  setTimeout(() => {
+    addLog('你挣扎着想爬起来，却发现脚踝扭伤，疼痛难忍。', 'normal');
+    addLog('火把越来越近，人声越来越嘈杂...', 'narrative');
+  }, 3000);
+  
+  setTimeout(() => {
+    addLog('你绝望地闭上眼睛...', 'narrative');
+  }, 4500);
+  
+  setTimeout(() => {
+    addLog('「嗖——嗖——嗖——」', 'important');
+    addLog('三声破空声！三声惨叫！', 'important');
+    addLog('黑暗中，一个声音：「别动。」', 'important');
+  }, 6000);
+  
+  setTimeout(() => {
+    showDialog({
+      title: '🗡️ 相遇',
+      content: '一个青衫男子从树上跃下，落地无声。\n\n他蹲下来，检查你的脚踝：\n\n「扭了，不严重。」\n\n他站起来，看着远处的火把：\n\n「你有两个选择。\n第一，留在这里等他们来抓你。\n第二，闭嘴跟我走。」\n\n他没有等你回答，直接将你背起来，纵身跃上树梢——',
+      options: [
+        { text: '▶ 继续', action: () => { closeDialog(); meetDiYunZhou(); } }
+      ]
+    });
+  }, 7500);
+}
+
+function meetDiYunZhou() {
+  addLog('树冠之间，他如履平地，你甚至感觉不到颠簸。', 'narrative');
+  
+  setTimeout(() => {
+    addLog('等追兵散去，他将你放下，靠着树干，用审视的眼神看着你：', 'normal');
+  }, 1500);
+  
+  setTimeout(() => {
+    addLog('「我叫狄云舟。你呢？」', 'important');
+    
+    showDialog({
+      title: '💬 狄云舟',
+      content: '「我叫狄云舟。你呢？」',
+      options: [
+        { text: '说实话', action: () => { closeDialog(); diyunTruth(); } },
+        { text: '撒谎', action: () => { closeDialog(); diyunLie(); } },
+        { text: '反问', action: () => { closeDialog(); diyunQuestion(); } }
+      ]
+    });
+  }, 3000);
+}
+
+function diyunTruth() {
+  addLog('「我...从很远的地方来，记不清了。」', 'normal');
+  addLog('狄云舟意味深长地看了你一眼：「记不清？有意思。」', 'important');
+  
+  setTimeout(() => {
+    diyunDecision();
+  }, 1500);
+}
+
+function diyunLie() {
+  addLog('「我是外地逃荒来的，被官差抓了壮丁。」', 'normal');
+  addLog('狄云舟：「是吗。」（他显然不信，但没有追问）', 'important');
+  
+  setTimeout(() => {
+    diyunDecision();
+  }, 1500);
+}
+
+function diyunQuestion() {
+  addLog('「你又是谁？凭什么帮我？」', 'normal');
+  addLog('狄云舟沉默片刻：「因为我也讨厌那些官差。够了吗？」', 'important');
+  
+  setTimeout(() => {
+    diyunDecision();
+  }, 1500);
+}
+
+function diyunDecision() {
+  addLog('不管你如何回答，狄云舟最后都说：', 'normal');
+  addLog('「不管了，跟我走吧。」', 'important');
+  
+  setTimeout(() => {
+    showDialog({
+      title: '🌟 抉择',
+      content: '狄云舟递给你一个水囊：\n\n「我要去巨鹿。你在幽州活不了三天。\n跟不跟随你。」\n\n他指了指远处的火把：\n「如果你不去，就在这里等天亮吧。」\n\n你看了看黑暗中的山林，看了看越来越近的火把...',
+      options: [
+        { text: '跟随狄云舟', action: () => { closeDialog(); endPrisonPhase(); } }
+      ]
+    });
+  }, 1500);
+}
+
+// 结束劳役营阶段，进入巨鹿
+function endPrisonPhase() {
+  G.phase = 2;
+  G.location = '巨鹿';
+  G.day = 1;
+  G.month = 3;
+  G.year = 180;
+  
+  // 更新任务
+  G.tasks.forEach(t => t.done = true);
+  G.tasks.push({ name: '在巨鹿安顿下来', done: false, hint: '跟随狄云舟' });
+  
+  addLog('═══════════════════════════════', 'important');
+  addLog('【第一章：巨鹿风云】', 'important');
+  addLog('═══════════════════════════════', 'important');
+  addLog('狄云舟带你来到巨鹿——太平道的圣地。', 'normal');
+  addLog('城中随处可见黄色头巾，百姓互称「苍天兄弟」。', 'normal');
+  
+  goToArea('巨鹿');
+  
+  setTimeout(() => {
+    addLog('「到了。」狄云舟说，「先找个地方歇脚。」', 'important');
+    renderInteract();
+  }, 1500);
+}
+
+// ==================== 渲染 ====================
+function renderInteract() {
+  let npcs = NPCS[G.location] || [];
+  let items = [];
+  
+  if (G.phase === 1) {
+    // 劳役营阶段 - 类似逃脱者2的玩法
+    items.push({ icon: '🔍', name: '观察', action: '观察' });
+    items.push({ icon: '💬', name: '交谈', action: '交谈' });
+    items.push({ icon: '😴', name: '休息', action: '休息' });
+    
+    // 根据位置显示进食选项
+    if (G.location === '食堂' || G.player.food < 2) {
+      items.push({ icon: '🍜', name: '进食', action: '进食' });
+    }
+    
+    // 劳役营内部可以移动
+    if (G.location === '牢房') {
+      items.push({ icon: '🚶', name: '去操场', action: '去操场' });
+    } else if (G.location === '操场') {
+      items.push({ icon: '🚶', name: '去矿区', action: '去矿区' });
+    } else if (G.location === '矿区') {
+      items.push({ icon: '🚶', name: '去食堂', action: '去食堂' });
+    } else if (G.location === '食堂') {
+      items.push({ icon: '🚶', name: '回牢房', action: '回牢房' });
+    }
+  } else {
+    // 自由探索阶段（巨鹿及之后）
+    items.push({ icon: '🔍', name: '探索', action: '探索' });
+    items.push({ icon: '💼', name: '打工', action: '打工' });
+    items.push({ icon: '😴', name: '休息', action: '休息' });
+    
+    if (npcs.length > 0) {
+      items.push({ icon: npcs[0].icon, name: npcs[0].name, action: '交谈' });
+    }
+    
+    if (G.location === '食堂' || G.player.food < 2) {
+      items.push({ icon: '🍜', name: '进食', action: '进食' });
+    }
+  }
+  
+  let grid = document.getElementById('interact-grid');
+  grid.innerHTML = items.slice(0, 6).map(item => `
+    <div class="card" onclick="doAction('${item.action}')">
+      <div class="icon">${item.icon}</div>
+      <div class="name">${item.name}</div>
+      <div class="action">${item.action}</div>
+    </div>
+  `).join('');
+  
+  // 更新逃跑进度显示
+  document.getElementById('escape-rate').textContent = G.escape.progress + '%';
+}
+
+function addLog(text, type = '') {
+  let logArea = document.getElementById('log-area');
+  let time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  let cls = type ? `log-${type}` : '';
+  let html = `<div class="log-item ${cls}">${type ? '' : '<span class="time">' + time + '</span>'}${text}</div>`;
+  logArea.innerHTML = html + logArea.innerHTML;
+  if (logArea.children.length > 30) logArea.removeChild(logArea.lastChild);
+}
+
+function goToArea(name) {
+  if (name === G.location) { if (document.getElementById('modal').classList.contains('show')) closeModal(); return; }
+  
+  let flash = document.getElementById('location-flash');
+  document.getElementById('flash-name').textContent = name;
+  document.getElementById('flash-desc').textContent = AREAS[name]?.desc || '';
+  
+  flash.classList.add('show');
+  setTimeout(() => {
+    flash.classList.remove('show');
+    G.location = name;
+    G.time -= 2;
+    renderInteract();
+    if (G.phase === 2) {
+      addLog('你长途跋涉，来到了' + name + '...', 'narrative');
+      addLog('势力: ' + (CITIES[name]?.faction || '未知'), 'normal');
+    }
+    closeModal();
+  }, 1200);
+}
+
+// ==================== 行动 ====================
+function doAction(name) {
+  // 内部移动（劳役营）
+  if (name === '去操场') { goToArea('操场'); return; }
+  if (name === '去矿区') { goToArea('矿区'); return; }
+  if (name === '去食堂') { goToArea('食堂'); return; }
+  if (name === '回牢房') { goToArea('牢房'); return; }
+  
+  switch(name) {
+    case '交谈':
+      if (G.phase === 1) {
+        // 劳役营阶段 - 与NPC对话
+        doPrisonChat();
+      } else {
+        showNpcDialog();
+      }
+      break;
+    case '观察':
+      if (G.phase === 1) {
+        // 劳役营观察 - 可能有额外发现
+        doPrisonObserve();
+      } else {
+        G.time -= 1;
+        addLog('你环顾四周，观察环境...', 'narrative');
+      }
+      break;
+    case '休息':
+      G.time -= 2;
+      doRest();
+      if (G.phase === 1) {
+        // 劳役营休息可能被发现
+        if (Math.random() < 0.2 && G.player.hp > 50) {
+          addLog('狱卒发现你在偷懒，呵斥了几句。', 'danger');
+          G.player.hp -= 5;
+        }
+      }
+      break;
+    case '进食':
+      G.time -= 1;
+      doEat();
+      break;
+    case '探索':
+      G.time -= 2;
+      doExplore();
+      if (G.phase === 1) {
+        // 劳役营探索 - 可能找到工具或线索
+        if (Math.random() < 0.4 && !G.escape.done.includes('工具')) {
+          G.escape.done.push('工具');
+          updateEscapeProgress();
+          addLog('你在矿区发现了一块锋利的铁片，可以用来撬锁！', 'success');
+          addLog('✓ 完成：撬锁工具', 'success');
+        }
+      }
+      break;
+    case '打工':
+      G.time -= 3;
+      doWork();
+      if (G.phase === 1) {
+        addLog('你在劳役营干了一天活，累得筋疲力尽...', 'narrative');
+      }
+      break;
+    default:
+      addLog('与' + name + '交谈', 'normal');
+      npcChat(name);
+  }
+  
+  if (G.time <= 0) endDay();
+  renderInteract();
+}
+
+// ==================== 劳役营活动 ====================
+function doPrisonChat() {
+  let npcs = NPCS[G.location] || [];
+  if (npcs.length === 0) {
+    addLog('这里没有可以说话的人。', 'normal');
+    return;
+  }
+  
+  let options = npcs.map(npc => ({
+    text: `${npc.icon} ${npc.name} - ${npc.desc}`,
+    action: () => { closeDialog(); prisonNpcChat(npc); }
+  }));
+  options.push({ text: '算了', action: closeDialog });
+  
+  showDialog({
+    title: '💬 交谈',
+    content: '你在' + G.location + '看到几个人：',
+    options: options
+  });
+}
+
+function prisonNpcChat(npc) {
+  // 显示NPC说的话
+  if (npc.chat && npc.chat.length > 0) {
+    let msg = npc.chat[Math.floor(Math.random() * npc.chat.length)];
+    addLog('【' + npc.name + '】' + msg, 'important');
+    
+    // 根据对话更新逃跑进度
+    if (npc.name === '老张' && !G.escape.done.includes('路线')) {
+      G.escape.done.push('路线');
+      updateEscapeProgress();
+      addLog('✓ 完成：逃跑路线', 'success');
+    }
+    
+    if (npc.name === '王五' && !G.escape.done.includes('时机')) {
+      G.escape.done.push('时机');
+      updateEscapeProgress();
+      addLog('你了解到子时换班是最好的逃跑时机！', 'success');
+      addLog('✓ 完成：最佳时机', 'success');
+    }
+  } else {
+    addLog('【' + npc.name + '】...（沉默不语）', 'normal');
+  }
+  
+  G.time -= 1;
+  if (G.time <= 0) endDay();
+  renderInteract();
+}
+
+function doPrisonObserve() {
+  let loc = G.location;
+  let observations = {
+    '牢房': [
+      '昏暗的牢房里弥漫着霉味，角落里蜷缩着几个衣衫褴褛的狱友。',
+      '透过木栅栏的缝隙，你看到走廊里偶尔有狱卒巡逻走过。',
+      '牢房角落有一些破旧的稻草，可以用来藏东西。'
+    ],
+    '操场': [
+      '开阔的操场四周是高耸的木墙，有几个狱卒在来回巡逻。',
+      '你注意到西边的围墙有一段比较破旧，似乎可以攀爬。',
+      '操场上晾着一些破衣服，可以用来伪装。'
+    ],
+    '矿区': [
+      '尘土飞扬的矿区里，狱卒们手持皮鞭监工。',
+      '矿洞深处光线昏暗，是个躲避的好地方。',
+      '你看到监工的注意力主要集中在矿洞入口。'
+    ],
+    '食堂': [
+      '嘈杂的食堂里挤满了衣衫褴褛的劳役。',
+      '厨子面无表情地分发着难以下咽的饭菜。',
+      '食堂角落有个后门，通向厨房的仓库。'
+    ]
+  };
+  
+  let msgs = observations[loc] || ['你仔细观察四周...'];
+  let msg = msgs[Math.floor(Math.random() * msgs.length)];
+  addLog(msg, 'narrative');
+  
+  // 观察可能发现逃跑线索
+  if (Math.random() < 0.3) {
+    if (loc === '操场' && !G.escape.done.includes('体力')) {
+      addLog('你感觉自己的体力还不错，应该能支撑逃跑。', 'success');
+      G.escape.done.push('体力');
+      updateEscapeProgress();
+      addLog('✓ 完成：充沛体力', 'success');
+    }
+  }
+  
+  G.time -= 1;
+  if (G.time <= 0) endDay();
+  renderInteract();
+}
+
+// 更新逃跑进度
+function updateEscapeProgress() {
+  let total = G.escape.items.length;
+  let done = G.escape.done.length;
+  G.escape.progress = Math.floor((done / total) * 100);
+  
+  // 更新底部逃跑进度提示
+  let hintEl = document.querySelector('.escape-hint');
+  if (hintEl) {
+    hintEl.innerHTML = `逃跑进度 <span id="escape-rate">${G.escape.progress}%</span> · 点击 🔓 查看`;
+  }
+}
+
+// ==================== 探索系统 ====================
+function doExplore() {
+  let roll = Math.random();
+  
+  if (roll < 0.3) {
+    addLog('你在城中闲逛，没遇到什么事。', 'normal');
+  } else if (roll < 0.6) {
+    let found = Math.floor(Math.random() * 10) + 5;
+    G.player.money += found;
+    addLog('你捡到了' + found + '文铜钱！', 'success');
+  } else if (roll < 0.85) {
+    let attrs = ['wuyi', 'zhihui', 'koucai', 'minjie'];
+    let attr = attrs[Math.floor(Math.random() * attrs.length)];
+    G.player[attr] += 1;
+    let names = { wuyi: '武艺', zhihui: '智慧', koucai: '口才', minjie: '敏捷' };
+    addLog('你有所感悟，' + names[attr] + ' +1', 'success');
+  } else if (roll < 0.95) {
+    let item = { icon: '💊', name: '跌打药', num: 1 };
+    G.inventory.push(item);
+    addLog('你发现了一瓶跌打药！', 'success');
+  } else {
+    addLog('你遇到一个神秘人，给了你一个提示后消失了...', 'narrative');
+  }
+}
+
+// ==================== 打工系统 ====================
+function doWork() {
+  let earned = Math.floor(Math.random() * 15) + 10;
+  G.player.money += earned;
+  addLog('你打工赚了' + earned + '文铜钱。', 'success');
+}
+
+// ==================== NPC系统 ====================
+function showNpcDialog() {
+  let npcs = NPCS[G.location] || [];
+  if (npcs.length === 0) {
+    addLog('这里没有人可以交谈。', 'normal');
+    return;
+  }
+  
+  let options = npcs.map(npc => ({
+    text: `${npc.icon} ${npc.name} - ${npc.desc}`,
+    action: () => { closeDialog(); talkToNpc(npc); }
+  }));
+  
+  showDialog({
+    title: '👥 人物',
+    content: '你在' + G.location + '遇到了这些人：',
+    options: options
+  });
+}
+
+function talkToNpc(npc) {
+  let options = [
+    { text: '闲聊几句', action: () => { closeDialog(); npcChat(npc.name); } },
+    { text: '离开', action: closeDialog }
+  ];
+  
+  if (npc.teach) {
+    options.splice(1, 0, {
+      text: '请教' + (npc.teach.attr === 'wuyi' ? '武艺' : npc.teach.attr === 'zhihui' ? '智慧' : '身手'),
+      action: () => { closeDialog(); npcTeach(npc); }
+    });
+  }
+  
+  showDialog({
+    title: npc.icon + ' ' + npc.name,
+    content: npc.name + '看了你一眼：\n\n「有事？」',
+    options: options
+  });
+}
+
+function npcTeach(npc) {
+  if (npc.teach) {
+    G.player[npc.teach.attr] += npc.teach.gain;
+    let names = { wuyi: '武艺', zhihui: '智慧', minjie: '敏捷' };
+    addLog('你向' + npc.name + '请教，' + names[npc.teach.attr] + ' +' + npc.teach.gain, 'success');
+    G.player.fame += 1;
+  } else {
+    addLog(npc.name + '在这方面不太擅长。', 'normal');
+  }
+}
+
+function npcChat(name) {
+  let chats = {
+    '老张': ['天下要大乱了...', '想逃？难啊。', '我年轻时也想过...'],
+    '赵四': ['兄弟，你是哪来的？', '听说城外有山贼。'],
+    '王五': ['我不想一辈子待在这里...'],
+    '老矿工': ['挖了三十年矿，命硬。', '小心监工，他下手狠。'],
+    '厨子': ['（沉默不语）'],
+    '狄云舟': ['天下事，岂能坐视不理。', '太平道...已经不是当年的样子了。', '跟着我，小心点。'],
+    '沈长风': ['静观其变，方能明辨是非。', '有些事，看破不说破。'],
+    '赵铁牛': ['有我在，谁也别想动你！', '俺这条命是狄大哥救的。'],
+    '周文远': ['做生意嘛，诚信为本。', '这年头，能活着就不错了。'],
+    '林小刀': ['大哥/大姐！有什么事尽管吩咐！', '狄大哥可厉害了！']
+  };
+  let msgs = chats[name] || ['...'];
+  addLog('【' + name + '】' + msgs[Math.floor(Math.random() * msgs.length)], 'important');
+}
+
+function doRest() {
+  let heal = Math.floor(Math.random() * 15) + 10;
+  G.player.hp = Math.min(G.player.maxHp, G.player.hp + heal);
+  
+  if (G.phase === 1) {
+    addLog('你在角落里休息了一会儿，恢复了一些体力。', 'narrative');
+    // 劳役营恢复可能被发现
+    if (Math.random() < 0.15) {
+      addLog('狱卒呵斥你偷懒，但没有为难你。', 'normal');
+    }
+  } else {
+    addLog('休息后恢复' + heal + '体力', 'success');
+  }
+}
+
+function doEat() {
+  if (G.phase === 1) {
+    // 劳役营的进食
+    addLog('你排着队领了一份难以下咽的饭菜...', 'narrative');
+    G.player.hp = Math.min(G.player.maxHp, G.player.hp + 5);
+    addLog('勉强填饱肚子，体力小幅恢复', 'normal');
+  } else if (G.player.food > 0) {
+    G.player.food--;
+    G.player.hp = Math.min(G.player.maxHp, G.player.hp + 15);
+    addLog('吃了顿饭，恢复15体力', 'success');
+  } else {
+    addLog('没有食物了！', 'danger');
+  }
+}
+
+function npcChat(name) {
+  let chats = {
+    '老张': ['天下要大乱了...', '想逃？难啊。', '我年轻时也想过...'],
+    '赵四': ['兄弟，你是哪来的？', '听说城外有山贼。'],
+    '王五': ['我不想一辈子待在这里...'],
+    '老矿工': ['挖了三十年矿，命硬。', '小心监工，他下手狠。'],
+    '厨子': ['（沉默不语）'],
+    '狄云舟': ['天下事，岂能坐视不理。', '太平道...已经不是当年的样子了。'],
+    '沈长风': ['静观其变，方能明辨是非。'],
+    '赵铁牛': ['有我在，谁也别想动你！']
+  };
+  let msgs = chats[name] || ['...'];
+  addLog('【' + name + '】' + msgs[Math.floor(Math.random() * msgs.length)], 'important');
+}
+
+function endDay() {
+  G.player.food--;
+  if (G.player.food < 0) {
+    G.player.food = 0;
+    G.player.hp -= 20;
+    addLog('你饿了一天，头昏眼花...体力 -20', 'danger');
+  }
+  
+  G.day++;
+  G.time = G.maxTime;
+  
+  // 月份推进
+  if (G.day > 30) {
+    G.day = 1;
+    G.month++;
+    if (G.month > 12) {
+      G.month = 1;
+      G.year++;
+    }
+    addLog('【' + G.year + '年' + G.month + '月】', 'important');
+  }
+  
+  let heal = 20;
+  G.player.hp = Math.min(G.player.maxHp, G.player.hp + heal);
+  addLog('───── 天亮了 ─────', 'important');
+  addLog('第' + G.day + '天开始，体力恢复', 'success');
+  
+  renderInteract();
+}
+
+// ==================== 对话框 ====================
+function showDialog(data) {
+  document.getElementById('dialogTitle').textContent = data.title || '';
+  document.getElementById('dialogContent').textContent = data.content || '';
+  let opts = document.getElementById('dialogOptions');
+  opts.innerHTML = data.options.map((o, i) => 
+    `<button class="dialog-btn ${o.primary ? 'primary' : ''}" onclick="dialogOpt(${i})">${o.text}</button>`
+  ).join('');
+  window.dialogOpts = data.options;
+  document.getElementById('dialogOverlay').classList.add('show');
+}
+
+function dialogOpt(i) {
+  if (window.dialogOpts[i] && window.dialogOpts[i].action) window.dialogOpts[i].action();
+  closeDialog();
+}
+
+function closeDialog() {
+  document.getElementById('dialogOverlay').classList.remove('show');
+}
+
+// ==================== 弹窗 ====================
+const modalContent = {
+  '地图': () => {
+    if (G.phase === 1) {
+      // 劳役营阶段 - 显示营内地图
+      let locations = ['牢房', '操场', '矿区', '食堂'];
+      let locationsHtml = locations.map(loc => `
+        <div class="map-cell ${loc === G.location ? 'current' : ''}">
+          <div class="icon">${AREAS[loc]?.icon || '📍'}</div>
+          <div class="name">${loc}</div>
+          <div class="info">⛓️ 劳役营</div>
+        </div>
+      `).join('');
+      return `
+        <div style="text-align:center;color:var(--gold);font-size:13px;margin-bottom:12px;">⛓️ 劳役营地图</div>
+        <div class="map-grid">${locationsHtml}</div>
+        <div style="margin-top:12px;text-align:center;color:var(--dim);font-size:11px;">
+          当前：${G.location}<br>
+          <span style="color:var(--accent);">想办法逃出这里！</span>
+        </div>
+      `;
+    } else {
+      // 自由探索阶段 - 显示世界地图
+      let citiesHtml = Object.keys(CITIES).map(c => `
+        <div class="map-cell ${c === G.location ? 'current' : ''}" onclick="goToArea('${c}')">
+          <div class="icon">${AREAS[c]?.icon || '📍'}</div>
+          <div class="name">${c}</div>
+          <div class="info">${CITIES[c].faction}</div>
+        </div>
+      `).join('');
+      return `<div class="map-grid">${citiesHtml}</div>
+        <div style="margin-top:12px;text-align:center;color:var(--dim);font-size:11px;">当前：${G.location} · 点击城市前往</div>`;
+    }
+  },
+  '状态': () => {
+    let p = G.player || {};
+    return `
+    <div class="state-grid">
+      <div class="state-cell"><div class="icon">💪</div><div class="val">${p.hp || 100}</div><div class="label">体力</div></div>
+      <div class="state-cell"><div class="icon">🍜</div><div class="val">${p.food || 3}</div><div class="label">粮食</div></div>
+      <div class="state-cell"><div class="icon">💰</div><div class="val">${p.money || 0}</div><div class="label">铜钱</div></div>
+      <div class="state-cell"><div class="icon">⭐</div><div class="val">${p.fame || 0}</div><div class="label">声望</div></div>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--dim);text-align:center;">属性</div>
+    <div class="attr-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;">
+      <div style="text-align:center;background:var(--card);padding:8px;border-radius:8px;"><div style="color:var(--green);">武艺</div><div style="font-size:14px;font-weight:bold;color:var(--gold);">${p.wuyi || 8}</div></div>
+      <div style="text-align:center;background:var(--card);padding:8px;border-radius:8px;"><div style="color:var(--green);">智慧</div><div style="font-size:14px;font-weight:bold;color:var(--gold);">${p.zhihui || 8}</div></div>
+      <div style="text-align:center;background:var(--card);padding:8px;border-radius:8px;"><div style="color:var(--green);">口才</div><div style="font-size:14px;font-weight:bold;color:var(--gold);">${p.koucai || 8}</div></div>
+      <div style="text-align:center;background:var(--card);padding:8px;border-radius:8px;"><div style="color:var(--green);">魅力</div><div style="font-size:14px;font-weight:bold;color:var(--gold);">${p.meili || 8}</div></div>
+      <div style="text-align:center;background:var(--card);padding:8px;border-radius:8px;"><div style="color:var(--green);">敏捷</div><div style="font-size:14px;font-weight:bold;color:var(--gold);">${p.minjie || 8}</div></div>
+    </div>
+    <div style="margin-top:12px;text-align:center;font-size:12px;color:var(--dim);">📍 ${G.location} · ${CITIES[G.location]?.faction || ''}</div>
+  `;
+  },
+  '任务': () => {
+    let activeTasks = G.tasks.filter(t => !t.done);
+    let doneTasks = G.tasks.filter(t => t.done);
+    
+    let title = G.phase === 1 ? '⛓️ 逃跑准备' : '📋 当前任务';
+    let hintText = '';
+    if (G.phase === 1) {
+      let remaining = ESCAPE_ITEMS.filter(i => !G.escape.done.includes(i.id));
+      if (remaining.length > 0) {
+        hintText = '提示：' + remaining[0].desc;
+      }
+    }
+    
+    return `
+    <div style="color:var(--gold);font-size:14px;margin-bottom:12px;text-align:center;">${title}</div>
+    <div class="task-list">
+      ${activeTasks.map(t => `
+        <div class="task-item">
+          <div class="task-check"></div>
+          <div>
+            <div>${t.name}</div>
+            ${t.hint ? '<div style="font-size:10px;color:var(--dim);margin-top:2px;">→ ' + t.hint + '</div>' : ''}
+          </div>
+        </div>
+      `).join('')}
+      ${doneTasks.length > 0 ? '<div style="color:var(--dim);font-size:12px;margin:12px 0 8px;">已完成</div>' : ''}
+      ${doneTasks.map(t => `
+        <div class="task-item done">
+          <div class="task-check">✓</div>
+          ${t.name}
+        </div>
+      `).join('')}
+      ${G.tasks.length === 0 ? '<div style="text-align:center;color:var(--dim);padding:20px;">暂无任务</div>' : ''}
+    </div>
+    ${hintText ? '<div style="margin-top:12px;font-size:11px;color:var(--dim);text-align:center;font-style:italic;">' + hintText + '</div>' : ''}
+  `;
+  },
+  '背包': () => `
+    <div class="bag-grid">
+      ${G.inventory.length ? G.inventory.map(i => `
+        <div class="bag-item">
+          <div class="icon">${i.icon}</div>
+          <div class="name">${i.name}</div>
+          <div class="num">×${i.num}</div>
+        </div>
+      `).join('') : '<div style="grid-column:span 4;text-align:center;color:var(--dim);padding:20px;">背包空空如也</div>'}
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--dim);text-align:center;">容量：${G.inventory.length}/20</div>
+  `,
+  '逃跑': () => {
+    // 劳役营阶段显示逃跑准备
+    if (G.phase === 1) {
+      let itemsHtml = ESCAPE_ITEMS.map(item => {
+        let done = G.escape.done.includes(item.id);
+        return `<div class="escape-tag ${done ? 'done' : ''}">
+          ${done ? '✓' : '○'} ${item.name}
+        </div>`;
+      }).join('');
+      
+      return `
+        <div style="margin-bottom:12px;text-align:center;color:var(--gold);font-size:13px;">劳役营 · 逃跑准备</div>
+        <div class="escape-progress">
+          <div class="escape-bar"><div class="escape-fill" style="width:${G.escape.progress}%"></div></div>
+          <div style="text-align:center;font-size:12px;color:var(--dim);">准备度 ${G.escape.progress}%</div>
+        </div>
+        <div class="escape-items">
+          ${itemsHtml}
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--dim);text-align:center;">
+          ${G.escape.progress < 100 ? '与NPC交谈、在各处探索可获得逃跑线索' : '准备完成！可以尝试逃跑！'}
+        </div>
+        <button class="escape-btn" onclick="tryEscape()" style="margin-top:12px;">
+          ${G.escape.progress >= 100 ? '🚪 趁夜色逃跑！' : '🔒 准备不足'}
+        </button>
+      `;
+    } else {
+      // 自由探索阶段
+      return `
+        <div style="text-align:center;color:var(--dim);padding:20px;">
+          你已经逃出了劳役营。<br>
+          现在是自由之身。
+        </div>
+      `;
+    }
+  }
+};
+
+function openModal(name) {
+  document.getElementById('modal-title').textContent = name;
+  document.getElementById('modal-body').innerHTML = modalContent[name]();
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+// tryEscape 已经在逃跑系统部分定义了
+
+// 点击背景关闭
+document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.getElementById('dialogOverlay').addEventListener('click', function(e) { if (e.target === this) closeDialog(); });
+
+// 初始化
+renderInteract();
+</script>
+
+</body>
+</html>

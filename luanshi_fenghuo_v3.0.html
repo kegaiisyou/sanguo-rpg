@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>乱世烽火 - v3.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: #e8dcc4;
+            min-height: 100vh;
+            max-width: 480px;
+            margin: 0 auto;
+            overflow-x: hidden;
+        }
+        
+        /* ===== 顶部状态栏 ===== */
+        .top-bar {
+            background: linear-gradient(135deg, #1a1520 0%, #2a1a10 100%);
+            padding: 8px 12px;
+            border-bottom: 2px solid #3a2a1a;
+        }
+        .time-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .time-left { color: #d4af37; font-size: 0.9rem; }
+        .time-right { color: #9ab87a; font-size: 0.85rem; }
+        
+        .status-row {
+            display: flex;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: #8a7a6a;
+        }
+        .status-item { display: flex; align-items: center; gap: 4px; }
+        .status-item.danger { color: #c97a7a; }
+        
+        /* ===== 行动点 ===== */
+        .action-points {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #0f0a08;
+            border-bottom: 1px solid #2a1a10;
+        }
+        .point-label { color: #8a7a6a; font-size: 0.75rem; }
+        .points { display: flex; gap: 4px; }
+        .point {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: #3a2a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+        .point.active { background: #d4af37; color: #1a1520; }
+        
+        /* ===== 主内容区 ===== */
+        .main-content {
+            padding: 12px;
+            min-height: 300px;
+        }
+        
+        /* ===== 位置信息 ===== */
+        .location-card {
+            background: linear-gradient(135deg, #1a2510 0%, #0f1a0a 100%);
+            border: 2px solid #3a4a2a;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .location-name { color: #9ab87a; font-size: 1.1rem; margin-bottom: 4px; }
+        .location-desc { color: #8a7a6a; font-size: 0.8rem; line-height: 1.5; }
+        
+        /* ===== 天气卡片 ===== */
+        .weather-card {
+            background: #1a1520;
+            border: 1px solid #3a2a1a;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .weather-info { display: flex; align-items: center; gap: 8px; }
+        .weather-icon { font-size: 1.5rem; }
+        .weather-text { color: #8a7a6a; font-size: 0.8rem; }
+        .weather-effect { 
+            font-size: 0.7rem; 
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .weather-effect.bad { background: #3a1a1a; color: #c97a7a; }
+        .weather-effect.good { background: #1a3a1a; color: #9ab87a; }
+        
+        /* ===== 劳役按钮 ===== */
+        .labor-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .labor-btn {
+            background: linear-gradient(135deg, #1a1520 0%, #2a1a10 100%);
+            border: 2px solid #3a2a1a;
+            border-radius: 10px;
+            padding: 14px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .labor-btn:hover { border-color: #d4af37; transform: translateY(-2px); }
+        .labor-btn:active { transform: translateY(0); }
+        .labor-btn .icon { font-size: 1.8rem; display: block; margin-bottom: 4px; }
+        .labor-btn .name { color: #c4b49c; font-size: 0.9rem; margin-bottom: 2px; }
+        .labor-btn .cost { color: #8a7a6a; font-size: 0.7rem; }
+        .labor-btn .desc { color: #6a5a4a; font-size: 0.65rem; margin-top: 4px; }
+        
+        .labor-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+        .labor-btn.disabled:hover { border-color: #3a2a1a; transform: none; }
+        
+        /* ===== 快捷按钮 ===== */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+        .quick-btn {
+            background: #1a1520;
+            border: 1px solid #3a2a1a;
+            border-radius: 6px;
+            padding: 10px 6px;
+            color: #8a7a6a;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .quick-btn:hover { border-color: #d4af37; color: #d4af37; }
+        .quick-btn .icon { font-size: 1.2rem; display: block; margin-bottom: 2px; }
+        
+        /* ===== 日志 ===== */
+        .log-panel {
+            background: #0f0a08;
+            border-radius: 8px;
+            padding: 8px;
+            margin: 0 12px 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #2a1a10;
+            font-size: 0.75rem;
+        }
+        .log-entry {
+            line-height: 1.5;
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #1a1520;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-normal { color: #c4b49c; }
+        .log-important { color: #d4af37; }
+        .log-success { color: #9ab87a; }
+        .log-danger { color: #c97a7a; }
+        .log-event { color: #7a9ac9; }
+        
+        /* ===== 弹窗 ===== */
+        .dialog-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        .dialog-box {
+            background: linear-gradient(135deg, #1a1520, #2a1a10);
+            border: 2px solid #d4af37;
+            border-radius: 12px;
+            padding: 18px;
+            max-width: 360px;
+            width: 100%;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .dialog-title {
+            color: #d4af37;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3a2a1a;
+        }
+        .dialog-content { 
+            color: #c4b49c; 
+            font-size: 0.9rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        .dialog-options {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .dialog-btn {
+            background: #1a1520;
+            border: 1px solid #3a2a1a;
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: #c4b49c;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dialog-btn:hover { border-color: #d4af37; color: #d4af37; }
+        .dialog-btn.primary { 
+            background: linear-gradient(135deg, #2a1a10, #1a1520);
+            border-color: #d4af37;
+            color: #d4af37;
+        }
+        .dialog-btn.danger {
+            border-color: #c97a7a;
+            color: #c97a7a;
+        }
+        
+        /* ===== 状态详情 ===== */
+        .stat-panel {
+            background: #0f0a08;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #1a1520;
+        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: #8a7a6a; }
+        .stat-value { color: #d4af37; }
+        
+        /* ===== 创建角色 ===== */
+        .create-screen { padding: 20px; }
+        .create-title { 
+            text-align: center; 
+            color: #d4af37; 
+            font-size: 1.5rem; 
+            margin-bottom: 10px; 
+        }
+        .create-subtitle {
+            text-align: center;
+            color: #8a7a6a;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+        .create-section { margin-bottom: 15px; }
+        .create-label { color: #9ab87a; font-size: 0.85rem; margin-bottom: 8px; }
+        .input-name {
+            width: 100%;
+            padding: 12px;
+            background: #1a1520;
+            border: 1px solid #3a2a1a;
+            border-radius: 6px;
+            color: #c4b49c;
+            font-size: 1rem;
+        }
+        .gender-select { display: flex; gap: 8px; }
+        .gender-btn {
+            flex: 1;
+            padding: 12px;
+            background: #1a1520;
+            border: 2px solid #3a2a1a;
+            border-radius: 8px;
+            color: #c4b49c;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .gender-btn.selected { border-color: #d4af37; color: #d4af37; }
+        .gender-btn .icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+        .start-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #d4af37, #b8962e);
+            border: none;
+            border-radius: 8px;
+            color: #1a1520;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .start-btn:hover { background: linear-gradient(135deg, #f0d78c, #d4af37); }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<!-- ====== 创建角色界面 ====== -->
+<div id="createScreen" class="create-screen">
+    <div class="create-title">🔥 乱世烽火</div>
+    <div class="create-subtitle">公元180年，大汉幽州<br>你将如何在这乱世中生存？</div>
+    
+    <div class="create-section">
+        <div class="create-label">📝 你的名字</div>
+        <input type="text" id="playerName" class="input-name" placeholder="请输入名字" maxlength="8">
+    </div>
+    
+    <div class="create-section">
+        <div class="create-label">⚧ 性别</div>
+        <div class="gender-select">
+            <div class="gender-btn selected" id="genderMale" onclick="selectGender('男')">
+                <span class="icon">👨</span>男
+            </div>
+            <div class="gender-btn" id="genderFemale" onclick="selectGender('女')">
+                <span class="icon">👩</span>女
+            </div>
+        </div>
+    </div>
+    
+    <button class="start-btn" onclick="startGame()">开始旅程</button>
+</div>
+
+<!-- ====== 游戏界面 ====== -->
+<div id="gameScreen" class="hidden">
+    <!-- 顶部状态 -->
+    <div class="top-bar">
+        <div class="time-row">
+            <span class="time-left" id="gameDate">180年 春 第1天</span>
+            <span class="time-right" id="gameTime">卯时·清晨</span>
+        </div>
+        <div class="status-row">
+            <span class="status-item" id="healthStatus">❤️ 体力100</span>
+            <span class="status-item" id="hungerStatus">🍖 饱腹</span>
+            <span class="status-item" id="moralStatus">😟 情绪正常</span>
+        </div>
+    </div>
+    
+    <!-- 行动点 -->
+    <div class="action-points">
+        <span class="point-label">今日行动点：</span>
+        <div class="points" id="actionPoints">
+            <span class="point active">●</span>
+            <span class="point active">●</span>
+            <span class="point active">●</span>
+        </div>
+    </div>
+    
+    <!-- 主内容 -->
+    <div class="main-content" id="mainContent">
+        <!-- 动态内容 -->
+    </div>
+    
+    <!-- 日志 -->
+    <div class="log-panel" id="logPanel">
+        <div style="color:#8a7a6a;text-align:center;font-size:0.7rem;padding:4px;margin-bottom:6px;">— 日志 —</div>
+    </div>
+</div>
+
+<!-- ====== 对话框 ====== -->
+<div class="dialog-overlay" id="dialogOverlay">
+    <div class="dialog-box">
+        <div class="dialog-title" id="dialogTitle"></div>
+        <div class="dialog-content" id="dialogContent"></div>
+        <div class="dialog-options" id="dialogOptions"></div>
+    </div>
+</div>
+
+<script>
+// ==================== 游戏数据 ====================
+const WEATHER_TYPES = {
+    sunny: { name: '晴朗', icon: '☀️', effect: '劳役效率+20%', bonus: 1.2 },
+    cloudy: { name: '多云', icon: '⛅', effect: '正常', bonus: 1.0 },
+    rainy: { name: '下雨', icon: '🌧️', effect: '劳役效率-30%', malus: 0.7 },
+    windy: { name: '大风', icon: '💨', effect: '户外劳役-50%', malus: 0.5 },
+    snowy: { name: '大雪', icon: '❄️', effect: '禁止户外劳役', malus: 0 }
+};
+
+const TIME_PERIODS = [
+    { name: '寅时', time: '黎明前', start: 3, end: 5 },
+    { name: '卯时', time: '清晨', start: 5, end: 7 },
+    { name: '辰时', time: '上午', start: 7, end: 9 },
+    { name: '巳时', time: '上午', start: 9, end: 11 },
+    { name: '午时', time: '中午', start: 11, end: 13 },
+    { name: '未时', time: '下午', start: 13, end: 15 },
+    { name: '申时', time: '下午', start: 15, end: 17 },
+    { name: '酉时', time: '傍晚', start: 17, end: 19 },
+    { name: '戌时', time: '黄昏', start: 19, end: 21 },
+    { name: '亥时', time: '夜晚', start: 21, end: 23 },
+    { name: '子时', time: '深夜', start: 23, end: 1 },
+    { name: '丑时', time: '深夜', start: 1, end: 3 }
+];
+
+const LABOR_JOBS = {
+    feedHorse: {
+        name: '喂马',
+        icon: '🐴',
+        cost: 1,
+        staminaCost: 15,
+        desc: '给军马喂草饮水',
+        possibleEvents: [
+            { chance: 0.1, type: 'find', text: '在马厩角落发现一枚铜钱', reward: { money: 1 } },
+            { chance: 0.05, type: 'danger', text: '被马踢伤！', penalty: { health: -10 } },
+            { chance: 0.08, type: 'info', text: '马夫老刘悄悄告诉你：夜里巡逻会有空档...' }
+        ]
+    },
+    chopWood: {
+        name: '劈柴',
+        icon: '🪓',
+        cost: 1,
+        staminaCost: 20,
+        desc: '劈砍木柴供炊事用',
+        possibleEvents: [
+            { chance: 0.12, type: 'find', text: '在柴堆里藏了一块干粮', reward: { food: 1 } },
+            { chance: 0.08, type: 'skill', text: '劈柴技术有所长进', gain: { wuyi: 1 } },
+            { chance: 0.06, type: 'info', text: '听到士兵议论：最近伙食越来越差了...' }
+        ]
+    },
+    mining: {
+        name: '下矿',
+        icon: '⛏️',
+        cost: 2,
+        staminaCost: 30,
+        desc: '矿洞挖矿，极度劳累',
+        possibleEvents: [
+            { chance: 0.15, type: 'find', text: '发现一块成色不错的矿石', reward: { money: 3 } },
+            { chance: 0.1, type: 'danger', text: '矿洞坍塌！险些丧命！', penalty: { health: -25 } },
+            { chance: 0.08, type: 'secret', text: '矿洞深处似乎有条暗道通向外面...' }
+        ]
+    },
+    farm: {
+        name: '军屯',
+        icon: '🌾',
+        cost: 1,
+        staminaCost: 18,
+        desc: '搬运军粮，修整田地',
+        possibleEvents: [
+            { chance: 0.1, type: 'find', text: '偷偷藏了一把麦子', reward: { food: 1 } },
+            { chance: 0.05, type: 'danger', text: '监工发现你偷懒，狠狠抽了一鞭', penalty: { health: -15 } },
+            { chance: 0.07, type: 'info', text: '老张示意你有话要说...' }
+        ]
+    },
+    guard: {
+        name: '守夜',
+        icon: '🌙',
+        cost: 1,
+        staminaCost: 20,
+        desc: '夜间巡逻，需小心行事',
+        nightOnly: true,
+        possibleEvents: [
+            { chance: 0.15, type: 'secret', text: '发现营地东侧围墙有个缺口！' },
+            { chance: 0.1, type: 'danger', text: '被巡逻士兵发现！', penalty: { health: -20, punish: true } },
+            { chance: 0.08, type: 'friend', text: '遇到同样值夜的老张，你们交换了眼神...' }
+        ]
+    }
+};
+
+// ==================== 游戏状态 ====================
+let game = {
+    phase: 1, // 1=教程, 2=劳役期, 3=自由探索
+    player: null,
+    day: 1,
+    month: 3,
+    year: 180,
+    hour: 6, // 24小时制
+    actionPoints: 3,
+    maxActionPoints: 3,
+    weather: 'sunny',
+    location: 'camp',
+    stamina: 100,
+    maxStamina: 100,
+    hunger: 80, // 饱食度
+    moral: 50,  // 情绪
+    // 进度标志
+    progress: {
+        observe: false,    // 观察了营地
+        talkOldZhang: false, // 与老张交谈
+        nightEvent: false,   // 夜间事件
+        escapePlan: 0,       // 逃跑计划进度 0-3
+        knowGuards: false,    // 了解卫兵巡逻
+        findSecret: false,    // 发现秘密
+        trustOldZhang: false  // 信任老张
+    },
+    // NPC关系
+    relationships: {
+        oldZhang: 0,
+        fellow1: 0,
+        fellow2: 0
+    },
+    // 物资
+    items: {
+        hiddenFood: 0,
+        tools: 0
+    },
+    // 卫兵状态
+    guardDuty: {
+        hour: 0,
+        active: false
+    }
+};
+
+let createData = {
+    name: '',
+    gender: '男'
+};
+
+// ==================== 角色创建 ====================
+function selectGender(g) {
+    createData.gender = g;
+    document.getElementById('genderMale').classList.toggle('selected', g === '男');
+    document.getElementById('genderFemale').classList.toggle('selected', g === '女');
+}
+
+function startGame() {
+    let name = document.getElementById('playerName').value.trim();
+    if (!name) {
+        alert('请输入你的名字！');
+        return;
+    }
+    createData.name = name;
+    
+    game.player = {
+        name: name,
+        gender: createData.gender,
+        wuyi: 10,
+        zhihui: 10,
+        koucai: 10,
+        meili: 10
+    };
+    
+    document.getElementById('createScreen').classList.add('hidden');
+    document.getElementById('gameScreen').classList.remove('hidden');
+    
+    // 初始化游戏
+    initGame();
+}
+
+// ==================== 游戏初始化 ====================
+function initGame() {
+    // 随机天气
+    let weathers = ['sunny', 'cloudy', 'rainy', 'windy', 'snowy'];
+    game.weather = weathers[Math.floor(Math.random() * weathers.length)];
+    
+    // 开场
+    showIntro();
+}
+
+function showIntro() {
+    addLog('公元180年，大汉幽州。', 'important');
+    addLog('你睁开眼，头痛欲裂...', 'normal');
+    addLog('手脚被粗麻绳捆绑，身处一辆颠簸的囚车之中。', 'normal');
+    
+    setTimeout(() => {
+        showDialog({
+            title: '⛓️ 困境',
+            content: '「嘎吱——」\n\n囚车猛然停下。\n\n一个满脸横肉的官差用长矛柄狠狠捅了你一下：\n\n「给老子滚下车！到了！」\n\n你被粗暴地拖下车，摔在冰冷的泥地上。\n\n四周是一片破败的村落——低矮的土屋、衣衫褴褛的百姓、远处连绵的荒山。\n\n这里是幽州边陲，你即将被送入劳役营...',
+            options: [
+                { text: '▶ 继续', action: () => { closeDialog(); showTutorial1(); } }
+            ]
+        });
+    }, 1000);
+}
+
+// ==================== 教程阶段1：入营 ====================
+function showTutorial1() {
+    addLog('你被扔进了劳役营...', 'event');
+    
+    showDialog({
+        title: '🏠 劳役营',
+        content: '劳役营依山而建，四周是三丈高的木栅栏。\n\n栅栏外，隐约可见巡逻的士兵。\n\n营地里稀稀拉拉地蹲着几十个犯人，个个面黄肌瘦、衣衫褴褛。\n\n一个膀大腰圆的监工走过来，扫了你一眼：\n\n「又一个新来的？去那边蹲着！明天开始干活！」\n\n你被分配到营地东侧，和其他犯人挤在一起。\n\n角落里，一个头发花白的老者正在默默注视着你...',
+        options: [
+            { text: '▶ 观察周围环境', action: () => { closeDialog(); showTutorial2(); } }
+        ]
+    });
+}
+
+// ==================== 教程阶段2：观察 ====================
+function showTutorial2() {
+    game.progress.observe = true;
+    
+    addLog('你开始观察周围环境...', 'normal');
+    
+    let content = '【地形】\n';
+    content += '营地呈长方形，东侧是柴房和马厩，西侧是粮仓和矿洞入口。\n';
+    content += '北面是监工的营房，南面是营地大门，常年有人把守。\n\n';
+    content += '【人员】\n';
+    content += '约有50名劳役犯，分散在各处。\n';
+    content += '监工有5人，士兵约10人，轮班巡逻。\n\n';
+    content += '【角落的老者】\n';
+    content += '那人头发花白、面容憔悴，但眼神却异常锐利。\n';
+    content += '他似乎在等待什么...';
+    
+    showDialog({
+        title: '👁️ 观察',
+        content: content,
+        options: [
+            { text: '▶ 继续', action: () => { closeDialog(); showMainUI(); } }
+        ]
+    });
+}
+
+// ==================== 主界面 ====================
+function showMainUI() {
+    updateTimeDisplay();
+    updateStatusDisplay();
+    updateActionPoints();
+    
+    let weather = WEATHER_TYPES[game.weather];
+    
+    let content = '';
+    
+    // 位置信息
+    content += '<div class="location-card">';
+    content += '<div class="location-name">📍 劳役营 - ' + getLocationName() + '</div>';
+    content += '<div class="location-desc">' + getLocationDesc() + '</div>';
+    content += '</div>';
+    
+    // 天气
+    content += '<div class="weather-card">';
+    content += '<div class="weather-info">';
+    content += '<span class="weather-icon">' + weather.icon + '</span>';
+    content += '<div>';
+    content += '<div class="weather-text">天气：' + weather.name + '</div>';
+    content += '<div class="weather-text">时辰：' + getCurrentPeriod().name + '·' + getCurrentPeriod().time + '</div>';
+    content += '</div>';
+    content += '</div>';
+    content += '<span class="weather-effect ' + (weather.malus ? 'bad' : 'good') + '">' + (weather.effect || '正常') + '</span>';
+    content += '</div>';
+    
+    // 劳役选项
+    content += '<div class="labor-grid" id="laborGrid">';
+    content += getLaborButtons();
+    content += '</div>';
+    
+    // 快捷操作
+    content += '<div class="quick-actions">';
+    content += '<button class="quick-btn" onclick="doExplore()"><span class="icon">🔍</span>探索</button>';
+    content += '<button class="quick-btn" onclick="doTalk()"><span class="icon">💬</span>交谈</button>';
+    content += '<button class="quick-btn" onclick="doRest()"><span class="icon">😴</span>休息</button>';
+    content += '<button class="quick-btn" onclick="showStatus()"><span class="icon">📊</span>状态</button>';
+    content += '</div>';
+    
+    document.getElementById('mainContent').innerHTML = content;
+}
+
+function getLocationName() {
+    switch(game.location) {
+        case 'camp': return '营地中央';
+        case 'barn': return '马厩柴房';
+        case 'mine': return '矿洞';
+        case 'farm': return '田地';
+        case 'storage': return '粮仓';
+        case 'dorm': return '住所';
+        default: return '营地';
+    }
+}
+
+function getLocationDesc() {
+    let period = getCurrentPeriod();
+    let isNight = period.start >= 19 || period.start < 5;
+    
+    if (isNight) {
+        return '夜深人静，营地内只有微弱的火光。';
+    }
+    
+    switch(game.location) {
+        case 'camp': return '营地中央，几名犯人正在干活。';
+        case 'barn': return '马厩里传来马匹的响鼻声。';
+        case 'mine': return '矿洞阴暗潮湿，不时传来挖掘声。';
+        case 'farm': return '田地里，劳役犯正在搬运军粮。';
+        case 'storage': return '粮仓重地，禁止闲人靠近。';
+        case 'dorm': return '破旧的棚屋，是犯人们休息的地方。';
+        default: return '劳役营内，情况复杂。';
+    }
+}
+
+function getLaborButtons() {
+    let period = getCurrentPeriod();
+    let isNight = period.start >= 19 || period.start < 5;
+    let weather = WEATHER_TYPES[game.weather];
+    let buttons = '';
+    
+    // 根据时间和天气判断哪些劳役可用
+    for (let key in LABOR_JOBS) {
+        let job = LABOR_JOBS[key];
+        let disabled = '';
+        let extraInfo = '';
+        
+        // 夜间检查
+        if (!isNight && job.nightOnly) {
+            disabled = 'disabled';
+            extraInfo = '仅夜间可做';
+        } else if (isNight && !job.nightOnly) {
+            disabled = 'disabled';
+            extraInfo = '夜间休息';
+        }
+        
+        // 天气检查
+        if (weather.malus === 0 && !job.nightOnly) {
+            disabled = 'disabled';
+            extraInfo = '天气恶劣';
+        }
+        
+        // 行动点检查
+        if (game.actionPoints < job.cost) {
+            disabled = 'disabled';
+        }
+        
+        buttons += '<button class="labor-btn ' + disabled + '" onclick="doLabor(\'' + key + '\')" ' + (disabled ? 'disabled' : '') + '>';
+        buttons += '<span class="icon">' + job.icon + '</span>';
+        buttons += '<div class="name">' + job.name + '</div>';
+        buttons += '<div class="cost">消耗' + job.cost +'点 · 体力-' + job.staminaCost + '</div>';
+        if (extraInfo) {
+            buttons += '<div class="desc">' + extraInfo + '</div>';
+        } else {
+            buttons += '<div class="desc">' + job.desc + '</div>';
+        }
+        buttons += '</button>';
+    }
+    
+    return buttons;
+}
+
+function getCurrentPeriod() {
+    let current = TIME_PERIODS.find(p => {
+        if (p.start < p.end) {
+            return game.hour >= p.start && game.hour < p.end;
+        } else {
+            return game.hour >= p.start || game.hour < p.end;
+        }
+    });
+    return current || TIME_PERIODS[0];
+}
+
+// ==================== 时间与状态更新 ====================
+function updateTimeDisplay() {
+    let season = ['春', '夏', '秋', '冬'][Math.floor((game.month - 1) / 3)];
+    document.getElementById('gameDate').textContent = game.year + '年 ' + season + ' 第' + game.day + '天';
+    
+    let period = getCurrentPeriod();
+    document.getElementById('gameTime').textContent = period.name + '·' + period.time;
+}
+
+function updateStatusDisplay() {
+    // 体力
+    let healthEl = document.getElementById('healthStatus');
+    if (game.stamina < 30) {
+        healthEl.className = 'status-item danger';
+        healthEl.textContent = '❤️ 体力' + game.stamina + '(疲惫)';
+    } else {
+        healthEl.className = 'status-item';
+        healthEl.textContent = '❤️ 体力' + game.stamina;
+    }
+    
+    // 饱食度
+    let hungerEl = document.getElementById('hungerStatus');
+    if (game.hunger < 30) {
+        hungerEl.className = 'status-item danger';
+        hungerEl.textContent = '🍖 饥饿';
+    } else if (game.hunger > 70) {
+        hungerEl.textContent = '🍖 饱腹';
+    } else {
+        hungerEl.textContent = '🍖 正常';
+    }
+    
+    // 情绪
+    let moralEl = document.getElementById('moralStatus');
+    if (game.moral < 30) {
+        moralEl.className = 'status-item danger';
+        moralEl.textContent = '😢 绝望';
+    } else if (game.moral > 70) {
+        moralEl.textContent = '😤 坚定';
+    } else {
+        moralEl.textContent = '😟 正常';
+    }
+}
+
+function updateActionPoints() {
+    let html = '';
+    for (let i = 0; i < game.maxActionPoints; i++) {
+        if (i < game.actionPoints) {
+            html += '<span class="point active">●</span>';
+        } else {
+            html += '<span class="point">○</span>';
+        }
+    }
+    document.getElementById('actionPoints').innerHTML = html;
+}
+
+// ==================== 劳役系统 ====================
+function doLabor(jobKey) {
+    let job = LABOR_JOBS[jobKey];
+    if (!job || game.actionPoints < job.cost) return;
+    
+    game.actionPoints -= job.cost;
+    game.stamina -= job.staminaCost;
+    
+    addLog('你开始' + job.name + '...', 'normal');
+    
+    // 基础结果
+    let result = '完成了' + job.name + '工作。';
+    let logType = 'normal';
+    
+    // 检查随机事件
+    for (let event of job.possibleEvents) {
+        if (Math.random() < event.chance) {
+            result += '\n\n' + event.text;
+            logType = event.type === 'danger' ? 'danger' : event.type === 'find' ? 'success' : 'event';
+            
+            if (event.reward) {
+                if (event.reward.money) {
+                    game.player.money = (game.player.money || 0) + event.reward.money;
+                }
+                if (event.reward.food) {
+                    game.items.hiddenFood += event.reward.food;
+                }
+            }
+            
+            if (event.penalty) {
+                if (event.penalty.health) {
+                    game.stamina = Math.max(0, game.stamina + event.penalty.health);
+                }
+            }
+            
+            if (event.gain) {
+                if (event.gain.wuyi) {
+                    game.player.wuyi += event.gain.wuyi;
+                }
+            }
+            
+            // 特殊剧情触发
+            if (event.type === 'secret' && jobKey === 'mining') {
+                game.progress.findSecret = true;
+                result += '\n\n【发现】你把这个位置记在心里...';
+            }
+            
+            if (event.type === 'friend' && jobKey === 'guard') {
+                game.relationships.oldZhang += 1;
+                game.progress.trustOldZhang = true;
+            }
+            
+            break; // 只触发一个事件
+        }
+    }
+    
+    // 天气影响
+    let weather = WEATHER_TYPES[game.weather];
+    if (weather.malus && weather.malus < 1 && !job.nightOnly) {
+        game.stamina -= Math.floor(job.staminaCost * (1 - weather.malus));
+        result += '\n\n【天气】' + weather.name + '使你更加疲惫。';
+    }
+    
+    addLog(result, logType);
+    
+    // 消耗时间
+    advanceTime(job.cost * 2);
+    
+    // 检查状态
+    checkStatus();
+    
+    // 更新界面
+    updateActionPoints();
+    updateStatusDisplay();
+    refreshLaborButtons();
+}
+
+function refreshLaborButtons() {
+    document.getElementById('laborGrid').innerHTML = getLaborButtons();
+}
+
+function advanceTime(hours) {
+    game.hour += hours;
+    if (game.hour >= 24) {
+        game.hour -= 24;
+        newDay();
+    }
+    updateTimeDisplay();
+}
+
+function newDay() {
+    game.day++;
+    game.actionPoints = game.maxActionPoints;
+    game.hunger -= 15;
+    
+    if (game.hunger < 0) game.hunger = 0;
+    
+    // 饥饿惩罚
+    if (game.hunger < 30) {
+        game.stamina -= 20;
+        addLog('你饿了一夜，身体更加虚弱了...', 'danger');
+    }
+    
+    // 恢复少量体力
+    game.stamina = Math.min(game.maxStamina, game.stamina + 30);
+    
+    // 新天气
+    let weathers = ['sunny', 'cloudy', 'rainy', 'windy'];
+    if (game.month >= 11 || game.month <= 2) {
+        weathers.push('snowy');
+    }
+    game.weather = weathers[Math.floor(Math.random() * weathers.length)];
+    
+    addLog('────── 第' + game.day + '天来临 ──────', 'important');
+    
+    // 检查游戏进程
+    checkGameProgress();
+}
+
+function checkStatus() {
+    if (game.stamina <= 0) {
+        game.stamina = 10;
+        addLog('你体力耗尽，昏倒在地！', 'danger');
+        showDialog({
+            title: '⚠️ 体力耗尽',
+            content: '你再也支撑不住，眼前一黑...\n\n不知过了多久，你被冷水泼醒。\n\n监工恶狠狠地站在你面前：\n\n「装死？给老子起来干活！」\n\n你被抽了十鞭子，浑身剧痛...',
+            options: [
+                { text: '▶ 继续', action: () => { 
+                    closeDialog(); 
+                    game.stamina = 20;
+                    addLog('你被关了一天禁闭，伤势未愈。', 'danger');
+                    updateStatusDisplay();
+                }}
+            ]
+        });
+    }
+}
+
+function checkGameProgress() {
+    // 检查是否可以触发逃跑剧情
+    if (game.progress.talkOldZhang && game.progress.trustOldZhang && game.day >= 5) {
+        if (game.progress.escapePlan < 1) {
+            game.progress.escapePlan = 1;
+            triggerEscapeEvent();
+        }
+    }
+}
+
+// ==================== 逃跑剧情触发 ====================
+function triggerEscapeEvent() {
+    addLog('老张在夜里悄悄靠近你...', 'important');
+    
+    showDialog({
+        title: '🌙 密谋',
+        content: '夜深了，老张悄悄挪到你身边。\n\n他压低声音：「我观察你很久了...你不是普通人。」\n\n「这几天守卫换防的时间我已经摸清了。」\n\n「如果你愿意冒险，三天后的子时，我们有机会逃出去。」\n\n「但我需要你的答复。」',
+        options: [
+            { text: '「我愿意跟你走。」', action: () => { 
+                closeDialog();
+                game.progress.escapePlan = 2;
+                addLog('你决定与老张一起逃跑...', 'important');
+                showDialog({
+                    title: '🤝 约定',
+                    content: '老张眼中闪过一丝光芒。\n\n「好！这三天，你要做好三件事：」\n\n「一、继续正常工作，不要引起怀疑。」\n\n「二、找机会弄些干粮藏好。」\n\n「三、了解守卫换班的规律。」\n\n「到时候我会来找你。」',
+                    options: [
+                        { text: '▶ 我明白了。', action: () => { closeDialog(); showMainUI(); }}
+                    ]
+                });
+            }},
+            { text: '「我...需要再想想。」', action: () => { 
+                closeDialog();
+                game.progress.escapePlan = 1;
+                addLog('你表示需要考虑...', 'normal');
+                showMainUI();
+            }}
+        ]
+    });
+}
+
+// ==================== 快捷行动 ====================
+function doExplore() {
+    if (game.actionPoints < 1) {
+        addLog('今日行动点已用完。', 'danger');
+        return;
+    }
+    
+    game.actionPoints -= 1;
+    updateActionPoints();
+    
+    addLog('你在营地内悄悄探索...', 'normal');
+    
+    // 探索随机发现
+    let discoveries = [
+        { chance: 0.2, text: '发现营地东侧围墙有些腐朽...', secret: 'wallWeak' },
+        { chance: 0.15, text: '注意到一个监工每到午时会去打盹...', secret: 'guardNap' },
+        { chance: 0.1, text: '看到老张在和一个士兵说话，似乎认识...', secret: 'oldZhangSecret' },
+        { chance: 0.2, text: '没发现什么特别的。', secret: null }
+    ];
+    
+    let roll = Math.random();
+    let total = 0;
+    let found = null;
+    
+    for (let d of discoveries) {
+        total += d.chance;
+        if (roll < total) {
+            found = d;
+            break;
+        }
+    }
+    
+    addLog(found.text, found.secret ? 'important' : 'normal');
+    
+    if (found.secret === 'wallWeak') {
+        game.progress.knowGuards = true;
+    }
+    
+    advanceTime(1);
+    showMainUI();
+}
+
+function doTalk() {
+    if (game.actionPoints < 1) {
+        addLog('今日行动点已用完。', 'danger');
+        return;
+    }
+    
+    showTalkMenu();
+}
+
+function showTalkMenu() {
+    let options = [];
+    
+    // 老张
+    if (!game.progress.talkOldZhang) {
+        options.push({
+            text: '与角落的老者交谈',
+            action: () => { closeDialog(); talkToOldZhang(); }
+        });
+    } else {
+        options.push({
+            text: '再找老张聊聊',
+            action: () => { closeDialog(); talkToOldZhang(); }
+        });
+    }
+    
+    // 其他犯人
+    options.push({
+        text: '找其他犯人聊聊',
+        action: () => { closeDialog(); talkToFellow(); }
+    });
+    
+    options.push({
+        text: '找监工套近乎',
+        action: () => { closeDialog(); talkToGuard(); }
+    });
+    
+    options.push({
+        text: '算了，不聊了',
+        action: closeDialog
+    });
+    
+    showDialog({
+        title: '💬 与人交谈',
+        content: '你想和谁交谈？',
+        options: options
+    });
+}
+
+function talkToOldZhang() {
+    if (!game.progress.talkOldZhang) {
+        game.progress.talkOldZhang = true;
+        game.relationships.oldZhang += 2;
+        
+        showDialog({
+            title: '👤 神秘老者',
+            content: '老者抬起头，锐利的目光打量着你。\n\n「新来的？我观察你几天了...」\n\n「你和其他犯人不一样，眼神里还有股劲儿。」\n\n他压低声音：「叫我老张就行。你是怎么进来的？」\n\n你简单说了自己的遭遇。老张点点头：\n\n「我是被人陷害的...原本是边军的百夫长。」\n\n「你若是个聪明人，该知道这地方不能久留。」\n\n「日后有机会，我们再细谈。」',
+            options: [
+                { text: '▶ 记下了。', action: () => { 
+                    closeDialog();
+                    addLog('老张似乎是个可靠的人...', 'event');
+                    showMainUI();
+                }}
+            ]
+        });
+    } else {
+        // 再次交谈
+        let choices = [];
+        
+        if (game.progress.escapePlan >= 2) {
+            choices = [
+                '「逃跑的事准备得怎么样了？」',
+                '「再给我讲讲外面的情况。」',
+                '「我想一个人静静。」'
+            ];
+        } else {
+            choices = [
+                '「这个地方有什么逃跑的机会吗？」',
+                '「老张你是怎么进来的？」',
+                '「我想一个人静静。」'
+            ];
+        }
+        
+        showDialog({
+            title: '👤 老张',
+            content: '老张放下手中的活，看了你一眼。',
+            options: choices.map((text, i) => ({
+                text: text,
+                action: () => {
+                    closeDialog();
+                    if (i === 0 && game.progress.escapePlan >= 2) {
+                        addLog('老张：「基本准备好了，就差时机。」', 'important');
+                        game.relationships.oldZhang += 1;
+                    } else if (i === 0) {
+                        addLog('老张压低声音：「我在等一个机会...」', 'important');
+                        game.relationships.oldZhang += 1;
+                    } else if (i === 1) {
+                        addLog('老张苦笑：「都是命啊...」', 'normal');
+                    }
+                    showMainUI();
+                }
+            }))
+        });
+    }
+}
+
+function talkToFellow() {
+    let fellows = [
+        {
+            name: '王铁柱',
+            desc: '黝黑的汉子，原本是个铁匠',
+            lines: [
+                '「这劳役营的饭猪都不吃！」',
+                '「听说南边在打仗，也不知道家里怎么样了...」',
+                '「你可别惹监工，那些人下手没轻没重的。」'
+            ]
+        },
+        {
+            name: '李书生',
+            desc: '瘦弱的年轻人，衣衫破旧但洗得干净',
+            lines: [
+                '「我是被冤枉的...说我私通黄巾军。」',
+                '『子曰：君子固穷，小人穷斯滥矣。』',
+                '「有时候我在想，这天下还有王法吗？」'
+            ]
+        },
+        {
+            name: '孙大嘴',
+            desc: '话多的中年胖子，什么都知道一点',
+            lines: [
+                '「你可找对人了！这营地里的大小事没有我不知道的！」',
+                '「听说没？东边那矿洞里闹过鬼！」',
+                '「小心点，监工老王最爱欺负新人！」'
+            ]
+        }
+    ];
+    
+    let fellow = fellows[Math.floor(Math.random() * fellows.length)];
+    let line = fellow.lines[Math.floor(Math.random() * fellow.lines.length)];
+    
+    game.relationships.fellow1 += 1;
+    
+    showDialog({
+        title: '👤 ' + fellow.name,
+        content: fellow.desc + '\n\n' + fellow.name + '叹了口气：\n\n「' + line + '」',
+        options: [
+            { text: '▶ 继续聊聊', action: () => { 
+                closeDialog();
+                addLog('和' + fellow.name + '聊了一会儿。', 'normal');
+                showMainUI();
+            }},
+            { text: '走吧', action: () => { closeDialog(); showMainUI(); }}
+        ]
+    });
+}
+
+function talkToGuard() {
+    let roll = Math.random();
+    let koucai = game.player.koucai || 10;
+    
+    if (roll < 0.3 * (koucai / 20)) {
+        // 成功套近乎
+        game.player.koucai += 1;
+        addLog('监工哼了一声，但态度软化了一些。口才+1', 'success');
+        
+        showDialog({
+            title: '👮 监工',
+            content: '监工斜眼看了你一眼：\n\n「少套近乎！该干活干活！」\n\n但语气明显没有之前那么凶了。\n\n他临走时嘀咕了一句：「最近别乱跑，上面查得紧...」',
+            options: [
+                { text: '▶ 知道了。', action: () => { closeDialog(); showMainUI(); }}
+            ]
+        });
+    } else {
+        // 被训斥
+        game.stamina -= 5;
+        addLog('监工不耐烦地挥挥手：「滚去干活！」体力-5', 'danger');
+        updateStatusDisplay();
+        showMainUI();
+    }
+}
+
+function doRest() {
+    if (game.actionPoints < 1) {
+        addLog('今日行动点已用完。', 'danger');
+        return;
+    }
+    
+    game.actionPoints -= 1;
+    game.stamina = Math.min(game.maxStamina, game.stamina + 30);
+    game.hunger = Math.min(100, game.hunger + 10);
+    updateActionPoints();
+    updateStatusDisplay();
+    
+    addLog('你在角落里休息了一会儿。体力+30 饱食+10', 'success');
+    
+    // 夜间休息跳过时间
+    let period = getCurrentPeriod();
+    if (period.start >= 19) {
+        advanceTime(4);
+    }
+    
+    showMainUI();
+}
+
+function showStatus() {
+    let p = game.player;
+    let progress = game.progress;
+    
+    let content = '【' + p.name + '】' + p.gender + '\n\n';
+    content += '武艺: ' + p.wuyi + '  智慧: ' + p.zhihui + '\n';
+    content += '口才: ' + p.koucai + '  魅力: ' + p.meili + '\n\n';
+    
+    content += '──────────\n';
+    content += '【身体状态】\n';
+    content += '体力: ' + game.stamina + '/' + game.maxStamina + '\n';
+    content += '饱食: ' + game.hunger + '/100\n';
+    content += '情绪: ' + (game.moral > 70 ? '坚定' : game.moral > 30 ? '正常' : '绝望') + '\n\n';
+    
+    content += '──────────\n';
+    content += '【任务进度】\n';
+    content += (progress.observe ? '✓' : '○') + ' 观察营地环境\n';
+    content += (progress.talkOldZhang ? '✓' : '○') + ' 与老张建立联系\n';
+    content += (progress.knowGuards ? '✓' : '○') + ' 了解守卫规律\n';
+    content += (progress.findSecret ? '✓' : '○') + ' 发现逃跑路线\n';
+    content += (progress.trustOldZhang ? '✓' : '○') + ' 获得老张信任\n';
+    
+    if (progress.escapePlan >= 2) {
+        content += '\n【逃跑计划】进行中...';
+    }
+    
+    showDialog({
+        title: '📊 状态',
+        content: content,
+        options: [
+            { text: '关闭', action: closeDialog }
+        ]
+    });
+}
+
+// ==================== 日志系统 ====================
+function addLog(text, type) {
+    type = type || 'normal';
+    let logDiv = document.createElement('div');
+    logDiv.className = 'log-entry log-' + type;
+    logDiv.textContent = text;
+    document.getElementById('logPanel').appendChild(logDiv);
+    document.getElementById('logPanel').scrollTop = 9999;
+}
+
+// ==================== 对话框系统 ====================
+let currentDialogOptions = [];
+
+function showDialog(data) {
+    document.getElementById('dialogTitle').textContent = data.title;
+    document.getElementById('dialogContent').textContent = data.content;
+    
+    currentDialogOptions = data.options || [];
+    
+    let optsHtml = '';
+    data.options.forEach((opt, index) => {
+        optsHtml += '<button class="dialog-btn" data-index="' + index + '">' + opt.text + '</button>';
+    });
+    
+    document.getElementById('dialogOptions').innerHTML = optsHtml;
+    document.getElementById('dialogOverlay').style.display = 'flex';
+}
+
+function closeDialog() {
+    document.getElementById('dialogOverlay').style.display = 'none';
+    currentDialogOptions = [];
+}
+
+document.getElementById('dialogOptions').addEventListener('click', function(e) {
+    if (e.target.classList.contains('dialog-btn')) {
+        let index = parseInt(e.target.dataset.index);
+        if (currentDialogOptions[index] && currentDialogOptions[index].action) {
+            currentDialogOptions[index].action();
+        }
+    }
+});
+</script>
+
+</body>
+</html>

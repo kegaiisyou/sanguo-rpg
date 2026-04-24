@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试按钮</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a2e; color: #ffd700; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .btn { background: #ffd700; color: #1a1a1a; border: none; padding: 20px 60px; font-size: 24px; cursor: pointer; border-radius: 10px; margin: 10px; }
+        .btn:hover { background: #ffed4a; }
+    </style>
+</head>
+<body>
+    <div style="text-align: center;">
+        <h1>测试页面</h1>
+        <p>如果按钮能点击，说明原文件有问题</p>
+        <button class="btn" onclick="alert('按钮1点击成功!')">测试按钮1</button>
+        <button class="btn" id="btn2">测试按钮2</button>
+    </div>
+    <script>
+        document.getElementById('btn2').addEventListener('click', function() {
+            alert('按钮2点击成功!');
+        });
+    </script>
+</body>
+</html>
