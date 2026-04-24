@@ -216,22 +216,22 @@
         <div id="char-preview"><div id="preview-char"></div></div>
         
         <div id="preset-list">
-            <button class="preset-btn active" data-preset="warrior">武士</button>
-            <button class="preset-btn" data-preset="general">将军</button>
-            <button class="preset-btn" data-preset="scholar">谋士</button>
-            <button class="preset-btn" data-preset="lady">女子</button>
-            <button class="preset-btn" data-preset="bandit">草寇</button>
+            <button class="preset-btn active" data-preset="bandit">草寇</button>
         </div>
         
         <div id="options-panel">
             <div class="option-group">
-                <div class="option-label">发型</div>
-                <div class="option-btns" data-type="hair">
-                    <button class="opt-btn selected" data-value="bun">发髻</button>
-                    <button class="opt-btn" data-value="short">短发</button>
-                    <button class="opt-btn" data-value="long">长发</button>
-                    <button class="opt-btn" data-value="twin">双髻</button>
-                    <button class="opt-btn" data-value="headband">头巾</button>
+                <div class="option-label">服装颜色</div>
+                <div class="option-btns" data-type="clothColor">
+                    <div class="color-btn selected" data-value="#795548" style="background:#795548" title="默认"></div>
+                    <div class="color-btn" data-value="#27ae60" style="background:#27ae60" title="绿色"></div>
+                    <div class="color-btn" data-value="#2980b9" style="background:#2980b9" title="蓝色"></div>
+                    <div class="color-btn" data-value="#c0392b" style="background:#c0392b" title="红色"></div>
+                    <div class="color-btn" data-value="#8e44ad" style="background:#8e44ad" title="紫色"></div>
+                    <div class="color-btn" data-value="#f39c12" style="background:#f39c12" title="橙色"></div>
+                </div>
+            </div>
+        </div>
                 </div>
             </div>
             <div class="option-group">
@@ -350,20 +350,16 @@
     
     <script>
     var playerConfig = {
-        hair: 'bun',
-        hairColor: '#1a1a1a',
+        hair: 'headband',
+        hairColor: '#5d4037',
         cloth: 'warrior',
-        clothColor: '#27ae60',
-        weapon: 'none',
-        sprite: 'char_01',
-        usePixelArt: true
+        clothColor: '#795548',
+        weapon: 'axe',
+        sprite: 'char_07'
     };
     
+    // 只有 char_07 (草寇) 的素材是干净的
     var presets = {
-        warrior: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'warrior', clothColor: '#27ae60', weapon: 'sword', sprite: 'char_01' },
-        general: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear', sprite: 'char_02' },
-        scholar: { hair: 'long', hairColor: '#1a1a1a', cloth: 'robe', clothColor: '#9b59b6', weapon: 'none', sprite: 'char_04' },
-        lady: { hair: 'twin', hairColor: '#3d2817', cloth: 'dress', clothColor: '#e91e63', weapon: 'none', sprite: 'char_05' },
         bandit: { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#795548', weapon: 'axe', sprite: 'char_07' }
     };
     
