@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色精灵预览 - 智能抠图分解</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #1a1a2e; 
+            color: #eee; 
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+        }
+        h1 { 
+            text-align: center; 
+            margin-bottom: 30px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px #00d4ff55;
+        }
+        .section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #e94560;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e94560;
+        }
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px;
+        }
+        .char-item {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .char-item img {
+            width: 64px;
+            height: 64px;
+            image-rendering: pixelated;
+            background: #333;
+            border-radius: 4px;
+        }
+        .char-item .name {
+            font-size: 12px;
+            margin-top: 8px;
+            color: #aaa;
+        }
+        .parts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+        }
+        .part-item {
+            background: #0f3460;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+        }
+        .part-item img {
+            width: 48px;
+            height: 48px;
+            image-rendering: pixelated;
+            background: #333;
+            border-radius: 4px;
+        }
+        .part-item .label {
+            font-size: 10px;
+            margin-top: 5px;
+            color: #888;
+        }
+        .part-section {
+            margin-bottom: 20px;
+        }
+        .part-section h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .info-box {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .info-box p {
+            color: #aaa;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 角色精灵预览系统</h1>
+    
+    <div class="info-box">
+        <p><strong>处理说明：</strong></p>
+        <p>• 智能抠图：自动去除白色背景，保留角色主体</p>
+        <p>• 部位分解：头部、脸部、眼睛、头发、身体、服装、手臂、腿部</p>
+        <p>• 每个角色提供 64x64 和 128x128 两种尺寸</p>
+    </div>
+
+    <div class="section">
+        <h2>完整角色 (64x64)</h2>
+        <div class="char-grid" id="cleanChars"></div>
+    </div>
+
+    <div class="section">
+        <h2>部位分解</h2>
+        
+        <div class="part-section">
+            <h3>🧠 头部 (head)</h3>
+            <div class="parts-grid" id="headParts"></div>
+        </div>
+        
+        <div class="part-section">
+            <h3>👤 脸部 (face)</h3>
+            <div class="parts-grid" id="faceParts"></div>
+        </div>
+        
+        <div class="part-section">
+            <h3>👁️ 眼睛 (eyes)</h3>
+            <div class="parts-grid" id="eyesParts"></div>
+        </div>
+        
+        <div class="part-section">
+            <h3>💇 发型 (hair)</h3>
+            <div class="parts-grid" id="hairParts"></div>
+        </div>
+        
+        <div class="part-section">
+            <h3>👕 身体 (body)</h3>
+            <div class="parts-grid" id="bodyParts"></div>
+        </div>
+        
+        <div class="part-section">
+            <h3>👘 服装 (clothes)</h3>
+            <div class="parts-grid" id="clothesParts"></div>
+        </div>
+        
+        <div class="part-section">
+            <h3>💪 手臂 (arms)</h3>
+            <div class="parts-grid" id="armsParts"></div>
+        </div>
+        
+        <div class="part-section">
+            <h3>🦵 腿部 (legs)</h3>
+            <div class="parts-grid" id="legsParts"></div>
+        </div>
+    </div>
+
+    <script>
+        const basePath = './';
+        
+        function loadImages(containerId, folder, files) {
+            const container = document.getElementById(containerId);
+            files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'part-item';
+                item.innerHTML = `
+                    <img src="${basePath}${folder}/${file}" alt="${file}">
+                    <div class="label">${file.split('_')[1] || file.split('_')[2]}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        // Load clean characters
+        const cleanChars = ['char_01_64.png', 'char_02_64.png', 'char_03_64.png', 
+                           'char_04_64.png', 'char_05_64.png', 'char_06_64.png',
+                           'char_07_64.png', 'char_08_64.png', 'char_09_64.png'];
+        const cleanContainer = document.getElementById('cleanChars');
+        cleanChars.forEach((file, i) => {
+            const item = document.createElement('div');
+            item.className = 'char-item';
+            item.innerHTML = `
+                <img src="clean/${file}" alt="${file}">
+                <div class="name">角色 ${i + 1}</div>
+            `;
+            cleanContainer.appendChild(item);
+        });
+        
+        // Load all part categories
+        const parts = ['head', 'face', 'eyes', 'hair', 'body', 'clothes', 'arms', 'legs'];
+        const charNumbers = ['01', '02', '03', '04', '05', '06', '07', '08', '09'];
+        
+        parts.forEach(part => {
+            const files = charNumbers.map(n => `char_${n}_${part}_32.png`);
+            const container = document.getElementById(`${part}Parts`);
+            files.forEach((file, i) => {
+                const item = document.createElement('div');
+                item.className = 'part-item';
+                item.innerHTML = `
+                    <img src="parts/${part}/${file}" alt="${file}">
+                    <div class="label">角色 ${i + 1}</div>
+                `;
+                container.appendChild(item);
+            });
+        });
+    </script>
+</body>
+</html>

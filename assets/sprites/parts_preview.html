@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部位分解图预览</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #1a1a2e; 
+            color: #eee; 
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+        }
+        h1 { 
+            text-align: center; 
+            margin-bottom: 30px;
+            color: #00d4ff;
+        }
+        .part-section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .part-section h2 {
+            color: #e94560;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .char-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .char-row img {
+            width: 48px;
+            height: 48px;
+            image-rendering: pixelated;
+            background: #333;
+            border-radius: 4px;
+        }
+        .char-label {
+            width: 80px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>部位分解图预览</h1>
+    
+    <div class="part-section">
+        <h2>头部 (head) - 角色1</h2>
+        <img src="parts/head/char_01_head.png" style="image-rendering: pixelated; background: #333;">
+    </div>
+    
+    <div class="part-section">
+        <h2>脸部 (face) - 角色1</h2>
+        <img src="parts/face/char_01_face.png" style="image-rendering: pixelated; background: #333;">
+    </div>
+    
+    <div class="part-section">
+        <h2>眼睛 (eyes) - 角色1</h2>
+        <img src="parts/eyes/char_01_eyes.png" style="image-rendering: pixel-pixelated; background: #333;">
+    </div>
+    
+    <div class="part-section">
+        <h2>发型 (hair) - 角色1</h2>
+        <img src="parts/hair/char_01_hair.png" style="image-rendering: pixelated; background: #333;">
+    </div>
+    
+    <div class="part-section">
+        <h2>身体 (body) - 角色1</h2>
+        <img src="parts/body/char_01_body.png" style="image-rendering: pixelated; background: #333;">
+    </div>
+    
+    <div class="part-section">
+        <h2>服装 (clothes) - 角色1</h2>
+        <img src="parts/clothes/char_01_clothes.png" style="image-rendering: pixelated; background: #333;">
+    </div>
+    
+    <div class="part-section">
+        <h2>手臂 (arms) - 角色1</h2>
+        <img src="parts/arms/char_01_arms.png" style="image-rendering: pixelated; background: #333;">
+    </div>
+    
+    <div class="part-section">
+        <h2>腿部 (legs) - 角色1</h2>
+        <img src="parts/legs/char_01_legs.png" style="image-rendering: pixelated; background: #333;">
+    </div>
+    
+    <div class="part-section">
+        <h2>完整角色1 (64x64)</h2>
+        <img src="clean/char_01_64.png" style="image-rendering: pixelated; background: #333; width: 128px; height: 128px;">
+    </div>
+
+    <hr style="margin: 40px 0; border-color: #333;">
+    
+    <h1>所有角色对比</h1>
+    
+    <div class="part-section">
+        <h2>头部对比 (head)</h2>
+        <div class="char-row">
+            <span class="char-label">角色1</span>
+            <img src="parts/head/char_01_head.png">
+            <img src="parts/head/char_02_head.png">
+            <img src="parts/head/char_03_head.png">
+            <img src="parts/head/char_04_head.png">
+            <img src="parts/head/char_05_head.png">
+            <img src="parts/head/char_06_head.png">
+            <img src="parts/head/char_07_head.png">
+            <img src="parts/head/char_08_head.png">
+            <img src="parts/head/char_09_head.png">
+        </div>
+    </div>
+    
+    <div class="part-section">
+        <h2>脸部对比 (face)</h2>
+        <div class="char-row">
+            <span class="char-label">角色1-9</span>
+            <img src="parts/face/char_01_face.png">
+            <img src="parts/face/char_02_face.png">
+            <img src="parts/face/char_03_face.png">
+            <img src="parts/face/char_04_face.png">
+            <img src="parts/face/char_05_face.png">
+            <img src="parts/face/char_06_face.png">
+            <img src="parts/face/char_07_face.png">
+            <img src="parts/face/char_08_face.png">
+            <img src="parts/face/char_09_face.png">
+        </div>
+    </div>
+    
+    <div class="part-section">
+        <h2>眼睛对比 (eyes)</h2>
+        <div class="char-row">
+            <span class="char-label">角色1-9</span>
+            <img src="parts/eyes/char_01_eyes.png">
+            <img src="parts/eyes/char_02_eyes.png">
+            <img src="parts/eyes/char_03_eyes.png">
+            <img src="parts/eyes/char_04_eyes.png">
+            <img src="parts/eyes/char_05_eyes.png">
+            <img src="parts/eyes/char_06_eyes.png">
+            <img src="parts/eyes/char_07_eyes.png">
+            <img src="parts/eyes/char_08_eyes.png">
+            <img src="parts/eyes/char_09_eyes.png">
+        </div>
+    </div>
+    
+    <div class="part-section">
+        <h2>发型对比 (hair)</h2>
+        <div class="char-row">
+            <span class="char-label">角色1-9</span>
+            <img src="parts/hair/char_01_hair.png">
+            <img src="parts/hair/char_02_hair.png">
+            <img src="parts/hair/char_03_hair.png">
+            <img src="parts/hair/char_04_hair.png">
+            <img src="parts/hair/char_05_hair.png">
+            <img src="parts/hair/char_06_hair.png">
+            <img src="parts/hair/char_07_hair.png">
+            <img src="parts/hair/char_08_hair.png">
+            <img src="parts/hair/char_09_hair.png">
+        </div>
+    </div>
+    
+    <div class="part-section">
+        <h2>身体对比 (body)</h2>
+        <div class="char-row">
+            <span class="char-label">角色1-9</span>
+            <img src="parts/body/char_01_body.png">
+            <img src="parts/body/char_02_body.png">
+            <img src="parts/body/char_03_body.png">
+            <img src="parts/body/char_04_body.png">
+            <img src="parts/body/char_05_body.png">
+            <img src="parts/body/char_06_body.png">
+            <img src="parts/body/char_07_body.png">
+            <img src="parts/body/char_08_body.png">
+            <img src="parts/body/char_09_body.png">
+        </div>
+    </div>
+    
+    <div class="part-section">
+        <h2>服装对比 (clothes)</h2>
+        <div class="char-row">
+            <span class="char-label">角色1-9</span>
+            <img src="parts/clothes/char_01_clothes.png">
+            <img src="parts/clothes/char_02_clothes.png">
+            <img src="parts/clothes/char_03_clothes.png">
+            <img src="parts/clothes/char_04_clothes.png">
+            <img src="parts/clothes/char_05_clothes.png">
+            <img src="parts/clothes/char_06_clothes.png">
+            <img src="parts/clothes/char_07_clothes.png">
+            <img src="parts/clothes/char_08_clothes.png">
+            <img src="parts/clothes/char_09_clothes.png">
+        </div>
+    </div>
+    
+    <div class="part-section">
+        <h2>手臂对比 (arms)</h2>
+        <div class="char-row">
+            <span class="char-label">角色1-9</span>
+            <img src="parts/arms/char_01_arms.png">
+            <img src="parts/arms/char_02_arms.png">
+            <img src="parts/arms/char_03_arms.png">
+            <img src="parts/arms/char_04_arms.png">
+            <img src="parts/arms/char_05_arms.png">
+            <img src="parts/arms/char_06_arms.png">
+            <img src="parts/arms/char_07_arms.png">
+            <img src="parts/arms/char_08_arms.png">
+            <img src="parts/arms/char_09_arms.png">
+        </div>
+    </div>
+    
+    <div class="part-section">
+        <h2>腿部对比 (legs)</h2>
+        <div class="char-row">
+            <span class="char-label">角色1-9</span>
+            <img src="parts/legs/char_01_legs.png">
+            <img src="parts/legs/char_02_legs.png">
+            <img src="parts/legs/char_03_legs.png">
+            <img src="parts/legs/char_04_legs.png">
+            <img src="parts/legs/char_05_legs.png">
+            <img src="parts/legs/char_06_legs.png">
+            <img src="parts/legs/char_07_legs.png">
+            <img src="parts/legs/char_08_legs.png">
+            <img src="parts/legs/char_09_legs.png">
+        </div>
+    </div>
+
+</body>
+</html>
