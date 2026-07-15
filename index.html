@@ -1,966 +1,577 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>三国江湖 v2.1.0</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #ffd700; overflow: hidden; }
-        
-        #char-creation {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
-            display: none; flex-direction: column; align-items: center;
-            z-index: 100; overflow-y: auto; padding: 15px;
-        }
-        #char-creation h1 { font-size: 28px; margin-bottom: 3px; text-shadow: 0 0 20px #ffd700; }
-        .subtitle { color: #888; margin-bottom: 12px; font-size: 13px; }
-        #char-preview {
-            width: 120px; height: 140px;
-            background: rgba(0,0,0,0.5); border: 2px solid #ffd700;
-            border-radius: 10px; margin-bottom: 12px;
-            display: flex; justify-content: center; align-items: center;
-        }
-        
-        #preset-list { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; justify-content: center; }
-        .preset-btn {
-            background: #333; color: #fff; border: 2px solid #555;
-            padding: 6px 12px; cursor: pointer; border-radius: 15px;
-            font-size: 12px; transition: all 0.3s;
-        }
-        .preset-btn:hover, .preset-btn.active { background: #ffd700; color: #1a1a2a; border-color: #ffd700; }
-        
-        #options-panel {
-            width: 100%; max-width: 320px;
-            background: rgba(0,0,0,0.6); border: 2px solid #ffd700;
-            border-radius: 8px; padding: 10px; margin-bottom: 10px;
-        }
-        .option-group { margin-bottom: 8px; }
-        .option-label { color: #ffd700; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
-        .option-label::before { content: ''; width: 3px; height: 10px; background: #ffd700; border-radius: 2px; }
-        .option-btns { display: flex; flex-wrap: wrap; gap: 5px; }
-        .opt-btn {
-            background: #2a2a3a; color: #ccc; border: 2px solid #444;
-            padding: 4px 8px; cursor: pointer; border-radius: 4px;
-            font-size: 10px; transition: all 0.2s; min-width: 50px; text-align: center;
-        }
-        .opt-btn:hover { border-color: #ffd700; color: #fff; }
-        .opt-btn.selected { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #1a1a2a; border-color: #ffd700; }
-        .color-btns { display: flex; gap: 4px; flex-wrap: wrap; }
-        .color-btn {
-            width: 22px; height: 22px; border-radius: 50%;
-            border: 2px solid #333; cursor: pointer; transition: all 0.2s;
-        }
-        .color-btn:hover { transform: scale(1.15); }
-        .color-btn.selected { border-color: #fff; box-shadow: 0 0 6px rgba(255,215,0,0.8); }
-        
-        #confirm-btn {
-            background: linear-gradient(135deg, #ffd700, #ffaa00); color: #1a1a2a;
-            border: none; padding: 10px 40px; font-size: 14px; cursor: pointer;
-            border-radius: 20px; font-weight: bold; margin-top: 5px;
-        }
-        
-        #title-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
-        }
-        #title-screen h1 { font-size: 40px; margin-bottom: 8px; text-shadow: 0 0 20px #ffd700; }
-        #title-screen p { color: #888; margin-bottom: 25px; }
-        .btn {
-            background: #ffd700; color: #1a1a2a; border: none; padding: 10px 35px;
-            font-size: 16px; cursor: pointer; border-radius: 6px; margin: 6px;
-        }
-        
-        #game { width: 100vw; height: 100vh; position: relative; display: none; }
-        #map { width: 100%; height: 100%; position: relative; background: linear-gradient(180deg, #87CEEB 0%, #87CEEB 55%, #5a9a5a 55%, #4a8a4a 100%); }
-        
-        .cloud { position: absolute; background: rgba(255,255,255,0.9); border-radius: 40px; animation: floatCloud 25s linear infinite; }
-        @keyframes floatCloud { 0% { transform: translateX(-100px); } 100% { transform: translateX(calc(100vw + 100px)); } }
-        .cloud::before { content: ''; position: absolute; background: inherit; border-radius: 50%; }
-        .cloud-1 { top: 6%; width: 70px; height: 25px; }
-        .cloud-1::before { width: 35px; height: 35px; top: -12px; left: 12px; }
-        .cloud-2 { top: 12%; width: 50px; height: 20px; animation-duration: 30s; animation-delay: -10s; }
-        .cloud-2::before { width: 25px; height: 25px; top: -10px; left: 8px; }
-        
-        .dirt { position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: #8B7355; }
-        
-        .qchar { position: absolute; width: 48px; height: 72px; z-index: 50; image-rendering: pixelated; }
-        .qchar svg, .qchar img { width: 100%; height: 100%; }
-        .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 32px; height: 8px; background: rgba(0,0,0,0.25); border-radius: 50%; }
-        
-        /* 像素风格待机动画 - 轻微上下弹跳 */
-        @keyframes pixelBounce { 
-            0%, 100% { transform: translateY(0); } 
-            50% { transform: translateY(-3px); } 
-        }
-        .qchar.idle { animation: pixelBounce 0.8s ease-in-out infinite; }
-        
-        /* 像素风格行走动画 - 左右摇摆 + 上下跳动 */
-        @keyframes pixelWalk { 
-            0% { transform: translateY(0) translateX(0); }
-            25% { transform: translateY(-4px) translateX(1px); }
-            50% { transform: translateY(0) translateX(0); }
-            75% { transform: translateY(-4px) translateX(-1px); }
-            100% { transform: translateY(0) translateX(0); }
-        }
-        .qchar.walking { animation: pixelWalk 0.3s ease-in-out infinite; }
-        
-        /* 攻击动画 - 快速前冲 */
-        @keyframes pixelAttack { 
-            0% { transform: translateX(0); }
-            40% { transform: translateX(10px) scale(1.08); }
-            100% { transform: translateX(0); }
-        }
-        .qchar.attacking { animation: pixelAttack 0.25s ease-out; }
-        
-        /* 受伤动画 - 闪烁 */
-        @keyframes pixelHurt { 
-            0%, 100% { filter: brightness(1); }
-            25%, 75% { filter: brightness(2) hue-rotate(20deg); }
-        }
-        .qchar.hurt { animation: pixelHurt 0.2s ease-in-out 2; }
-        .qchar-shadow { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 32px; height: 8px; background: rgba(0,0,0,0.25); border-radius: 50%; }
-        .char-name { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #fff; white-space: nowrap; text-shadow: 1px 1px 0 #000; }
-        .enemy-char .char-name { color: #ff6666; }
-        .npc-char .char-name { color: #66ccff; }
-        .enemy-hp { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 32px; height: 5px; background: #333; border: 1px solid #555; border-radius: 2px; overflow: hidden; }
-        .enemy-hp-fill { height: 100%; background: linear-gradient(180deg, #ff4444, #cc0000); }
-        @keyframes shake { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-2px) rotate(-2deg); } 75% { transform: translateY(-2px) rotate(2deg); } }
-        .enemy-char { animation: shake 0.8s ease-in-out infinite; }
-        
-        /* NPC待机时轻微晃动 */
-        @keyframes npcIdle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
-        .npc-char.idle { animation: npcIdle 2s ease-in-out infinite; }
-        .enemy-char.idle { animation: shake 0.8s ease-in-out infinite; }
-        
-        .house { position: absolute; }
-        .roof { position: relative; background: linear-gradient(180deg, #696969, #808080); border-radius: 2px; }
-        .roof::before { content: ''; position: absolute; bottom: -6px; left: -3px; right: -3px; height: 6px; background: #505050; clip-path: polygon(0 0, 50% 100%, 100% 0); }
-        .wall { background: linear-gradient(180deg, #c0392b, #a93226); border: 2px solid #922b21; }
-        .door { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 12px; height: 15px; background: linear-gradient(180deg, #5d4037, #4e342e); border: 2px solid #3e2723; border-radius: 2px 2px 0 0; }
-        .window { position: absolute; width: 8px; height: 8px; background: linear-gradient(135deg, #87CEEB, #B0E0E6); border: 2px solid #5d4037; }
-        .house1 { left: 50px; top: 90px; }
-        .house1 .roof { width: 45px; height: 12px; }
-        .house1 .wall { width: 42px; height: 35px; margin-top: -1px; }
-        .house1 .window { top: 6px; left: 6px; }
-        .house2 { right: 70px; top: 65px; }
-        .house2 .roof { width: 60px; height: 16px; }
-        .house2 .wall { width: 56px; height: 42px; margin-top: -1px; }
-        .house2 .window { top: 8px; left: 8px; }
-        .house2 .window:last-of-type { right: 8px; left: auto; }
-        .house3 { left: 160px; bottom: 80px; }
-        .house3 .roof { width: 40px; height: 10px; }
-        .house3 .wall { width: 36px; height: 30px; margin-top: -1px; }
-        
-        .lantern { position: absolute; right: 130px; bottom: 65px; }
-        .lantern-top { width: 12px; height: 6px; background: #2c2c2c; border-radius: 2px; margin: 0 auto; }
-        .lantern-body { width: 10px; height: 12px; background: linear-gradient(180deg, #ff6b6b, #ee5a5a, #ff6b6b); margin: 0 auto; border-radius: 2px; box-shadow: 0 0 8px rgba(255,107,107,0.5); }
-        .lantern-bottom { width: 6px; height: 3px; background: #2c2c2c; margin: 0 auto; }
-        .lantern-pole { width: 3px; height: 15px; background: #4a4a4a; margin: 0 auto; }
-        
-        .ptree { position: absolute; }
-        .ptree-leaf { width: 32px; height: 28px; background: radial-gradient(ellipse at 30% 30%, #6b8e23 0%, #228b22 50%, #006400 100%); border-radius: 50% 50% 45% 45%; position: relative; }
-        .ptree-leaf::before { content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 18px; height: 18px; background: radial-gradient(ellipse, #228b22 0%, #006400 100%); border-radius: 50%; }
-        .ptree-trunk { width: 6px; height: 14px; background: linear-gradient(90deg, #5d4037 0%, #8d6e63 50%, #5d4037 100%); margin: 0 auto; margin-top: -3px; }
-        .ptree1 { left: 25px; top: 90px; transform: scale(1.1); }
-        .ptree2 { right: 50px; top: 130px; }
-        .ptree3 { left: 240px; bottom: 70px; transform: scale(0.9); }
-        .ptree4 { right: 80px; bottom: 120px; transform: scale(1.15); }
-        
-        .pstone { position: absolute; background: linear-gradient(135deg, #9e9e9e 0%, #757575 50%, #616161 100%); border-radius: 40% 50% 45% 55%; }
-        .pstone1 { left: 220px; top: 260px; width: 18px; height: 12px; }
-        .pstone2 { left: 380px; top: 300px; width: 15px; height: 10px; }
-        .pstone3 { left: 150px; top: 320px; width: 16px; height: 11px; }
-        
-        #interact-prompt { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); background: rgba(255,215,0,0.9); color: #1a1a2a; padding: 6px 16px; border-radius: 5px; font-size: 12px; font-weight: bold; z-index: 150; display: none; }
-        .hint { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); color: #666; font-size: 10px; background: rgba(0,0,0,0.5); padding: 3px 10px; border-radius: 3px; }
-        
-        #status { position: absolute; top: 45px; right: 6px; background: rgba(0,0,0,0.8); padding: 8px 10px; border-radius: 5px; font-size: 11px; z-index: 100; border: 1px solid #ffd700; min-width: 110px; }
-        .status-row { display: flex; justify-content: space-between; margin: 3px 0; }
-        .stat-label { color: #888; }
-        .stat-value { color: #ffd700; font-weight: bold; }
-        .hp-bar { width: 100%; height: 5px; background: #333; border-radius: 2px; margin-top: 2px; overflow: hidden; }
-        .hp-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ff6666); }
-        
-        #quest-box { position: absolute; top: 45px; left: 6px; background: rgba(0,0,0,0.8); padding: 8px 10px; border-radius: 5px; font-size: 11px; z-index: 100; border: 1px solid #4488ff; max-width: 160px; display: none; }
-        .quest-title { color: #4488ff; font-weight: bold; margin-bottom: 3px; }
-        .quest-desc { color: #aaa; line-height: 1.3; }
-        .quest-reward { color: #ffd700; margin-top: 3px; font-size: 10px; }
-        
-        #dialogue { position: absolute; bottom: 0; width: 100%; height: 22%; background: rgba(15,15,25,0.95); border-top: 2px solid #ffd700; padding: 12px; display: none; z-index: 200; }
-        #speaker { color: #ff6b6b; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
-        #text { font-size: 13px; line-height: 1.5; color: #ddd; margin-bottom: 8px; }
-        #choices { display: flex; flex-wrap: wrap; gap: 6px; }
-        .choice-btn { background: #ffd700; color: #1a1a2a; border: none; padding: 6px 14px; cursor: pointer; font-size: 11px; border-radius: 4px; }
-        #close-btn { position: absolute; right: 12px; bottom: 12px; background: #444; color: #fff; border: none; padding: 5px 14px; cursor: pointer; border-radius: 4px; }
-        
-        #notification { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); color: #ffd700; padding: 12px 25px; border-radius: 8px; font-size: 14px; z-index: 300; display: none; border: 2px solid #ffd700; }
-        
-        #touch-controls { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 150px; padding-bottom: env(safe-area-inset-bottom, 8px); z-index: 150; }
-        #joystick-zone { position: absolute; left: max(12px, env(safe-area-inset-left, 12px)); bottom: max(12px, env(safe-area-inset-bottom, 12px)); width: 90px; height: 90px; background: rgba(0,0,0,0.4); border-radius: 50%; border: 2px solid rgba(255,215,0,0.6); }
-        #joystick-thumb { position: absolute; width: 36px; height: 36px; background: rgba(255,215,0,0.9); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%); }
-        #action-buttons { position: absolute; right: max(10px, env(safe-area-inset-right, 10px)); bottom: max(12px, env(safe-area-inset-bottom, 12px)); display: flex; flex-direction: column; gap: 8px; }
-        .action-btn { width: 50px; height: 50px; border-radius: 50%; border: 2px solid; font-size: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        #btn-interact { background: rgba(68,136,255,0.85); border-color: #6aa3ff; color: #fff; }
-        #btn-attack { background: rgba(255,68,68,0.85); border-color: #ff8888; color: #fff; }
-        #btn-pause { background: rgba(80,80,80,0.85); border-color: #aaa; color: #fff; width: 36px; height: 36px; font-size: 9px; }
-        @media (hover: none) and (pointer: coarse) { #touch-controls { display: block; } .hint { bottom: 160px; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>种田日记</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { 
+    font-family:"Microsoft YaHei",sans-serif; 
+    background:linear-gradient(180deg,#2d5016 0%,#4a7c2e 40%,#87CEEB 40%,#87CEEB 100%);
+    min-height:100vh; display:flex; justify-content:center; align-items:center;
+    padding:20px;
+}
+#app {
+    width:100%; max-width:480px;
+    background:linear-gradient(180deg,#f5e6c8,#e8d5a8);
+    border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.3);
+    overflow:hidden;
+}
+
+/* 顶栏 */
+#header {
+    background:linear-gradient(135deg,#5d4037,#8d6e63);
+    color:#ffd54f; padding:16px 20px;
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom:3px solid #4e342e;
+}
+#header h1 { font-size:24px; text-shadow:1px 1px 2px rgba(0,0,0,0.3); }
+#season-info { text-align:right; }
+#year-display { font-size:14px; color:#ffcc80; }
+#season-display { font-size:22px; }
+
+/* 状态栏 */
+#status-bar {
+    display:flex; justify-content:space-around;
+    padding:12px; background:rgba(0,0,0,0.08);
+    border-bottom:2px dashed #bcaaa4;
+}
+.stat-item { text-align:center; }
+.stat-icon { font-size:24px; }
+.stat-label { font-size:11px; color:#795548; }
+.stat-value { font-size:18px; font-weight:bold; color:#4e342e; }
+
+/* 田地 */
+#fields-area {
+    padding:16px 20px; min-height:200px;
+}
+#fields-area h3 { color:#5d4037; margin-bottom:10px; font-size:15px; }
+#fields {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+.field {
+    background:linear-gradient(180deg,#8d6e63,#6d4c41);
+    border-radius:10px; padding:16px 10px;
+    text-align:center; min-height:90px;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    border:3px solid #5d4037;
+    transition:all 0.2s;
+    cursor:pointer; position:relative;
+}
+.field:hover { border-color:#ffd54f; transform:translateY(-2px); }
+.field.empty { background:linear-gradient(180deg,#a1887f,#8d6e63); border-style:dashed; }
+.field.ready { background:linear-gradient(180deg,#66bb6a,#43a047); border-color:#2e7d32; animation:pulse 1.5s infinite; }
+.field.growing { background:linear-gradient(180deg,#795548,#5d4037); }
+@keyframes pulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(255,215,0,0.4); }
+    50% { box-shadow:0 0 12px 4px rgba(255,215,0,0.6); }
+}
+.field-icon { font-size:32px; }
+.field-name { font-size:13px; color:#fff; font-weight:bold; margin-top:4px; }
+.field-status { font-size:10px; color:#e0e0e0; margin-top:2px; }
+.field.empty .field-icon { opacity:0.3; font-size:24px; }
+.field.empty .field-name,.field.empty .field-status { color:#d7ccc8; }
+
+/* 操作区 */
+#actions {
+    padding:0 20px 16px;
+}
+#actions h3 { color:#5d4037; margin-bottom:10px; font-size:15px; }
+.action-btns { display:flex; flex-wrap:wrap; gap:8px; }
+.action-btn {
+    flex:1; min-width:90px;
+    padding:12px 8px; border-radius:10px;
+    border:2px solid #8d6e63; cursor:pointer;
+    font-size:13px; font-weight:bold;
+    background:#fff; color:#5d4037;
+    transition:all 0.15s;
+    text-align:center;
+}
+.action-btn:hover { background:#ffd54f; border-color:#f9a825; transform:translateY(-1px); }
+.action-btn:active { transform:scale(0.96); }
+.action-btn.disabled { opacity:0.4; pointer-events:none; }
+.action-btn .btn-icon { font-size:20px; display:block; }
+.action-btn .btn-cost { font-size:10px; color:#888; margin-top:2px; }
+
+/* 日志 */
+#log-area {
+    padding:0 20px 16px;
+}
+#log-area h3 { color:#5d4037; margin-bottom:8px; font-size:15px; }
+#log {
+    background:rgba(255,255,255,0.7); border-radius:8px;
+    padding:10px 14px; max-height:100px; overflow-y:auto;
+    font-size:12px; color:#5d4037; line-height:1.8;
+    border:1px solid #d7ccc8;
+}
+#log::-webkit-scrollbar { width:4px; }
+#log::-webkit-scrollbar-thumb { background:#bcaaa4; border-radius:2px; }
+.log-entry { border-bottom:1px dotted #d7ccc8; padding:2px 0; }
+.log-good { color:#2e7d32; }
+.log-bad { color:#c62828; }
+.log-info { color:#1565c0; }
+
+/* 底部 */
+#footer {
+    display:flex; gap:10px; padding:0 20px 16px;
+}
+#footer button {
+    flex:1; padding:10px; border-radius:8px;
+    border:none; cursor:pointer; font-size:14px; font-weight:bold;
+    transition:all 0.15s;
+}
+#btn-next { background:linear-gradient(135deg,#66bb6a,#43a047); color:#fff; }
+#btn-next:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(67,160,71,0.4); }
+#btn-reset { background:#efebe9; color:#795548; }
+#btn-reset:hover { background:#d7ccc8; }
+
+/* 弹窗 */
+.modal {
+    display:none; position:fixed; top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.6); z-index:100;
+    justify-content:center; align-items:center;
+}
+.modal.show { display:flex; }
+.modal-box {
+    background:#fff; border-radius:16px; padding:24px;
+    max-width:360px; width:90%; text-align:center;
+    box-shadow:0 8px 32px rgba(0,0,0,0.3);
+}
+.modal-box h2 { color:#5d4037; margin-bottom:12px; }
+.modal-box p { color:#666; font-size:14px; line-height:1.8; margin-bottom:16px; }
+.modal-btn {
+    padding:10px 32px; border-radius:8px; border:none;
+    background:linear-gradient(135deg,#66bb6a,#43a047);
+    color:#fff; font-size:15px; font-weight:bold; cursor:pointer;
+}
+.modal-btn:hover { transform:translateY(-1px); }
+
+/* 季节性背景微调 */
+body.spring { background:linear-gradient(180deg,#7cb342 0%,#66bb6a 40%,#b3e5fc 40%,#b3e5fc 100%); }
+body.summer { background:linear-gradient(180deg,#f9a825 0%,#ffb300 30%,#4fc3f7 30%,#4fc3f7 100%); }
+body.autumn { background:linear-gradient(180deg,#e65100 0%,#ef6c00 30%,#ffcc80 30%,#ffcc80 100%); }
+body.winter { background:linear-gradient(180deg,#eceff1 0%,#cfd8dc 40%,#90caf9 40%,#90caf9 100%); }
+</style>
 </head>
-<body>
-    <div id="char-creation">
-        <h1>创建角色</h1>
-        <p class="subtitle">打造你的三国英雄</p>
-        <div id="char-preview"><div id="preview-char"></div></div>
-        
-        <div id="preset-list">
-            <button class="preset-btn active" data-preset="bandit">草寇</button>
-            <button class="preset-btn" data-preset="warrior">武士</button>
-            <button class="preset-btn" data-preset="general">将军</button>
-            <button class="preset-btn" data-preset="lady">女子</button>
-            <button class="preset-btn" data-preset="rogue">游侠</button>
-            <button class="preset-btn" data-preset="mage">法师</button>
-        </div>
-        
-        <div id="options-panel">
-            <div class="option-group">
-                <div class="option-label">服装颜色</div>
-                <div class="option-btns" data-type="clothColor">
-                    <div class="color-btn selected" data-value="#795548" style="background:#795548" title="默认"></div>
-                    <div class="color-btn" data-value="#27ae60" style="background:#27ae60" title="绿色"></div>
-                    <div class="color-btn" data-value="#2980b9" style="background:#2980b9" title="蓝色"></div>
-                    <div class="color-btn" data-value="#c0392b" style="background:#c0392b" title="红色"></div>
-                    <div class="color-btn" data-value="#8e44ad" style="background:#8e44ad" title="紫色"></div>
-                    <div class="color-btn" data-value="#f39c12" style="background:#f39c12" title="橙色"></div>
-                </div>
-            </div>
-        </div>
-                </div>
-            </div>
-            <div class="option-group">
-                <div class="option-label">发色</div>
-                <div class="color-btns" data-type="hairColor">
-                    <div class="color-btn selected" data-value="#1a1a1a" style="background:#1a1a1a"></div>
-                    <div class="color-btn" data-value="#3d2817" style="background:#3d2817"></div>
-                    <div class="color-btn" data-value="#5d4037" style="background:#5d4037"></div>
-                    <div class="color-btn" data-value="#8d6e63" style="background:#8d6e63"></div>
-                    <div class="color-btn" data-value="#d4a574" style="background:#d4a574"></div>
-                </div>
-            </div>
-            <div class="option-group">
-                <div class="option-label">服装</div>
-                <div class="option-btns" data-type="cloth">
-                    <button class="opt-btn selected" data-value="warrior">战袍</button>
-                    <button class="opt-btn" data-value="armor">铠甲</button>
-                    <button class="opt-btn" data-value="robe">长袍</button>
-                    <button class="opt-btn" data-value="dress">襦裙</button>
-                </div>
-            </div>
-            <div class="option-group">
-                <div class="option-label">阵营</div>
-                <div class="color-btns" data-type="clothColor">
-                    <div class="color-btn selected" data-value="#27ae60" style="background:#27ae60" title="蜀"></div>
-                    <div class="color-btn" data-value="#2980b9" style="background:#2980b9" title="魏"></div>
-                    <div class="color-btn" data-value="#e67e22" style="background:#e67e22" title="吴"></div>
-                    <div class="color-btn" data-value="#e74c3c" style="background:#e74c3c" title="黄巾"></div>
-                    <div class="color-btn" data-value="#9b59b6" style="background:#9b59b6" title="群雄"></div>
-                </div>
-            </div>
-            <div class="option-group">
-                <div class="option-label">武器</div>
-                <div class="option-btns" data-type="weapon">
-                    <button class="opt-btn selected" data-value="none">无</button>
-                    <button class="opt-btn" data-value="sword">剑</button>
-                    <button class="opt-btn" data-value="spear">矛</button>
-                    <button class="opt-btn" data-value="axe">斧</button>
-                </div>
-            </div>
-        </div>
-        
-        <button id="confirm-btn" onclick="confirmChar()">开始游戏</button>
+<body class="spring">
+<div id="app">
+
+<!-- 顶栏 -->
+<div id="header">
+    <h1>🌾 种田日记</h1>
+    <div id="season-info">
+        <div id="year-display"></div>
+        <div id="season-display"></div>
     </div>
-    
-    <div id="title-screen">
-        <h1>三国江湖</h1>
-        <p>v2.2.0 - 流程优化</p>
-        <button class="btn" onclick="showCreate()">开始游戏</button>
+</div>
+
+<!-- 状态栏 -->
+<div id="status-bar">
+    <div class="stat-item">
+        <div class="stat-icon">💰</div>
+        <div class="stat-label">金币</div>
+        <div class="stat-value" id="gold-val">200</div>
     </div>
-    
-    <div id="game">
-        <div id="map">
-            <div class="cloud cloud-1"></div>
-            <div class="cloud cloud-2"></div>
-            
-            <div class="house house1"><div class="roof"></div><div class="wall"><div class="door"></div><div class="window"></div></div></div>
-            <div class="house house2"><div class="roof"></div><div class="wall"><div class="door"></div><div class="window"></div><div class="window"></div></div></div>
-            <div class="house house3"><div class="roof"></div><div class="wall"><div class="door"></div></div></div>
-            
-            <div class="lantern"><div class="lantern-pole"></div><div class="lantern-top"></div><div class="lantern-body"></div><div class="lantern-bottom"></div></div>
-            
-            <div class="ptree ptree1"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
-            <div class="ptree ptree2"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
-            <div class="ptree ptree3"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
-            <div class="ptree ptree4"><div class="ptree-leaf"></div><div class="ptree-trunk"></div></div>
-            
-            <div class="pstone pstone1"></div>
-            <div class="pstone pstone2"></div>
-            <div class="pstone pstone3"></div>
-            
-            <div class="dirt"></div>
-            
-            <div id="player" class="qchar idle" style="left:326px;top:228px"></div>
-            <div id="npc-soldier" class="qchar npc-char" style="left:136px;top:128px"></div>
-            <div id="npc-merchant" class="qchar npc-char" style="left:426px;top:78px"></div>
-            <div id="npc-general" class="qchar npc-char" style="left:496px;top:228px"></div>
-            <div id="enemy1" class="qchar enemy-char" style="left:236px;top:168px"></div>
-            <div id="enemy2" class="qchar enemy-char" style="left:356px;top:198px"></div>
-            <div id="enemy3" class="qchar enemy-char" style="left:256px;top:298px"></div>
-        </div>
-        
-        <div id="interact-prompt"></div>
-        <div class="hint">WASD移动 | 空格交互/攻击</div>
-        
-        <div id="status">
-            <div class="status-row"><span class="stat-label">生命</span><span class="stat-value" id="hp">100/100</span></div>
-            <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width:100%"></div></div>
-            <div class="status-row"><span class="stat-label">金币</span><span class="stat-value" id="gold">0</span></div>
-        </div>
-        
-        <div id="quest-box">
-            <div class="quest-title" id="quest-title"></div>
-            <div class="quest-desc" id="quest-desc"></div>
-            <div class="quest-reward" id="quest-reward"></div>
-        </div>
-        
-        <div id="dialogue">
-            <div id="speaker"></div>
-            <div id="text"></div>
-            <div id="choices"></div>
-            <button id="close-btn" onclick="closeDialogue()">关闭</button>
-        </div>
-        
-        <div id="notification"></div>
-        
-        <div id="touch-controls">
-            <div id="joystick-zone"><div id="joystick-thumb"></div></div>
-            <div id="action-buttons">
-                <button class="action-btn" id="btn-pause">暂停</button>
-                <button class="action-btn" id="btn-attack">攻击</button>
-                <button class="action-btn" id="btn-interact">交互</button>
-            </div>
-        </div>
+    <div class="stat-item">
+        <div class="stat-icon">📦</div>
+        <div class="stat-label">粮仓</div>
+        <div class="stat-value" id="storage-val">0</div>
     </div>
-    
-    <script>
-    var playerConfig = {
-        hair: 'headband',
-        hairColor: '#5d4037',
-        cloth: 'warrior',
-        clothColor: '#795548',
-        weapon: 'axe',
-        sprite: 'char_07'
-    };
-    
-    // 所有角色素材都已抠图处理
-    var presets = {
-        warrior: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'warrior', clothColor: '#27ae60', weapon: 'sword', sprite: 'char_01' },
-        general: { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear', sprite: 'char_02' },
-        scholar: { hair: 'long', hairColor: '#1a1a1a', cloth: 'robe', clothColor: '#9b59b6', weapon: 'none', sprite: 'char_04' },
-        lady: { hair: 'twin', hairColor: '#3d2817', cloth: 'dress', clothColor: '#e91e63', weapon: 'none', sprite: 'char_05' },
-        bandit: { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#795548', weapon: 'axe', sprite: 'char_07' },
-        rogue: { hair: 'short', hairColor: '#3d2817', cloth: 'warrior', clothColor: '#8b4513', weapon: 'sword', sprite: 'char_08' },
-        mage: { hair: 'long', hairColor: '#1a1a1a', cloth: 'robe', clothColor: '#3498db', weapon: 'none', sprite: 'char_09' }
-    };
-    
-    // 重新设计版角色SVG生成器 v2.1.0 - 修复比例和细节问题
-    function genQCharSVG(cfg) {
-        var cx = 24; // 中心X
-        var skinColor = '#fce5d8';
-        var skinShadow = '#e8c4b8';
-        
-        // ========== 整体比例重设计 ==========
-        // viewBox: 48x72，整体比例约 2:3，头:身:腿 = 1:1.5:1
-        var headTop = 6;      // 头顶
-        var headBottom = 26;   // 下巴/脖子
-        var shoulderY = 28;    // 肩膀
-        var waistY = 48;       // 腰部
-        var feetY = 70;        // 脚底
-        
-        // ========== 阴影 ==========
-        var shadow = '<ellipse cx="' + cx + '" cy="' + (feetY + 1) + '" rx="14" ry="3" fill="rgba(0,0,0,0.25)"/>';
-        
-        // ========== 腿部 (完整腿部) ==========
-        var legColor = darken(cfg.clothColor, 15);
-        var pantsColor = darken(cfg.clothColor, 20);
-        var legs = 
-            // 左腿
-            '<path d="M14,' + waistY + ' L12,' + (feetY-4) + ' L16,' + (feetY-4) + ' L18,' + waistY + ' Z" fill="' + pantsColor + '"/>' +
-            // 右腿
-            '<path d="M30,' + waistY + ' L32,' + (feetY-4) + ' L36,' + (feetY-4) + ' L34,' + waistY + ' Z" fill="' + pantsColor + '"/>' +
-            // 腰带
-            '<rect x="12" y="' + (waistY-2) + '" width="24" height="4" fill="' + darken(cfg.clothColor, 25) + '" rx="1"/>' +
-            // 腰带扣
-            '<rect x="21" y="' + (waistY-1) + '" width="6" height="3" fill="#ffd700" rx="0.5"/>';
-        
-        // ========== 鞋子 ==========
-        var shoes = 
-            '<path d="M11,' + (feetY-4) + ' L10,' + feetY + ' L18,' + feetY + ' L17,' + (feetY-4) + ' Z" fill="#3d2817"/>' +
-            '<path d="M31,' + (feetY-4) + ' L30,' + feetY + ' L38,' + feetY + ' L37,' + (feetY-4) + ' Z" fill="#3d2817"/>' +
-            // 鞋底
-            '<rect x="10" y="' + (feetY-1) + '" width="8" height="2" fill="#2a1810" rx="0.5"/>' +
-            '<rect x="30" y="' + (feetY-1) + '" width="8" height="2" fill="#2a1810" rx="0.5"/>';
-        
-        // ========== 身体/服装 (增大比例，添加细节) ==========
-        var clothMain = cfg.clothColor;
-        var clothLight = lighten(cfg.clothColor, 15);
-        var clothDark = darken(cfg.clothColor, 20);
-        var clothMid = lighten(cfg.clothColor, 8);
-        
-        var bodyParts = '';
-        if (cfg.cloth === 'warrior') {
-            // 战袍 - 武士服
-            bodyParts =
-                // 主体
-                '<path d="M10,' + shoulderY + ' L8,' + waistY + ' L40,' + waistY + ' L38,' + shoulderY + ' L30,' + shoulderY + ' L30,' + (shoulderY+4) + ' L18,' + (shoulderY+4) + ' L18,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
-                // 衣襟
-                '<path d="M18,' + shoulderY + ' L18,' + (shoulderY+8) + ' L24,' + (shoulderY+12) + ' L24,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
-                '<path d="M30,' + shoulderY + ' L30,' + (shoulderY+8) + ' L24,' + (shoulderY+12) + ' L24,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
-                // 前襟装饰线
-                '<line x1="24" y1="' + (shoulderY+4) + '" x2="24" y2="' + waistY + '" stroke="' + clothLight + '" stroke-width="1"/>' +
-                // 袖子
-                '<path d="M10,' + shoulderY + ' L2,' + (shoulderY+8) + ' L4,' + (shoulderY+18) + ' L10,' + (shoulderY+12) + ' Z" fill="' + clothMain + '"/>' +
-                '<path d="M38,' + shoulderY + ' L46,' + (shoulderY+8) + ' L44,' + (shoulderY+18) + ' L38,' + (shoulderY+12) + ' Z" fill="' + clothMain + '"/>' +
-                // 袖口
-                '<path d="M2,' + (shoulderY+16) + ' L4,' + (shoulderY+18) + ' L10,' + (shoulderY+12) + ' L8,' + (shoulderY+10) + ' Z" fill="' + clothDark + '"/>' +
-                '<path d="M46,' + (shoulderY+16) + ' L44,' + (shoulderY+18) + ' L38,' + (shoulderY+12) + ' L40,' + (shoulderY+10) + ' Z" fill="' + clothDark + '"/>' +
-                // 腰带
-                '<rect x="8" y="' + (waistY-6) + '" width="32" height="6" fill="' + clothDark + '" rx="1"/>' +
-                // 身体装饰
-                '<circle cx="24" cy="' + (shoulderY+16) + '" r="2" fill="#ffd700"/>';
-        } else if (cfg.cloth === 'armor') {
-            // 铠甲 - 武将甲
-            bodyParts =
-                // 胸甲
-                '<path d="M10,' + shoulderY + ' L8,' + waistY + ' L40,' + waistY + ' L38,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
-                // 肩甲
-                '<ellipse cx="8" cy="' + (shoulderY+2) + '" rx="6" ry="4" fill="' + lighten(cfg.clothColor, 20) + '"/>' +
-                '<ellipse cx="40" cy="' + (shoulderY+2) + '" rx="6" ry="4" fill="' + lighten(cfg.clothColor, 20) + '"/>' +
-                // 甲片纹理
-                '<path d="M14,' + (shoulderY+4) + ' L12,' + (shoulderY+10) + ' L18,' + (shoulderY+10) + ' L20,' + (shoulderY+4) + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
-                '<path d="M28,' + (shoulderY+4) + ' L30,' + (shoulderY+10) + ' L36,' + (shoulderY+10) + ' L34,' + (shoulderY+4) + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
-                '<path d="M18,' + (shoulderY+8) + ' L16,' + (shoulderY+14) + ' L24,' + (shoulderY+14) + ' L24,' + (shoulderY+8) + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
-                '<path d="M24,' + (shoulderY+8) + ' L24,' + (shoulderY+14) + ' L32,' + (shoulderY+14) + ' L30,' + (shoulderY+8) + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
-                // 护心镜
-                '<circle cx="24" cy="' + (shoulderY+18) + '" r="6" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>' +
-                '<circle cx="24" cy="' + (shoulderY+18) + '" r="4" fill="#e74c3c"/>' +
-                '<circle cx="24" cy="' + (shoulderY+18) + '" r="2" fill="#c0392b"/>' +
-                // 披风领
-                '<path d="M16,' + shoulderY + ' L24,' + (shoulderY+6) + ' L32,' + shoulderY + ' L30,' + shoulderY + ' L24,' + (shoulderY+4) + ' L18,' + shoulderY + ' Z" fill="' + clothDark + '"/>' +
-                // 护肩带
-                '<rect x="18" y="' + (shoulderY+2) + '" width="12" height="3" fill="#ffd700" rx="1"/>';
-        } else if (cfg.cloth === 'robe') {
-            // 长袍 - 谋士服
-            bodyParts =
-                // 主体
-                '<path d="M8,' + shoulderY + ' L6,' + waistY + ' L42,' + waistY + ' L40,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
-                // 衣襟
-                '<path d="M24,' + shoulderY + ' L24,' + waistY + '" stroke="' + clothLight + '" stroke-width="1"/>' +
-                '<path d="M18,' + shoulderY + ' L24,' + (shoulderY+4) + ' L24,' + waistY + ' L18,' + waistY + ' Z" fill="' + clothLight + '"/>' +
-                '<path d="M30,' + shoulderY + ' L24,' + (shoulderY+4) + ' L24,' + waistY + ' L30,' + waistY + ' Z" fill="' + clothDark + '"/>' +
-                // 宽袖
-                '<path d="M8,' + shoulderY + ' L0,' + (shoulderY+6) + ' L2,' + (shoulderY+22) + ' L10,' + (shoulderY+16) + ' Z" fill="' + clothMain + '"/>' +
-                '<path d="M40,' + shoulderY + ' L48,' + (shoulderY+6) + ' L46,' + (shoulderY+22) + ' L38,' + (shoulderY+16) + ' Z" fill="' + clothMain + '"/>' +
-                // 袖口装饰
-                '<path d="M0,' + (shoulderY+20) + ' L2,' + (shoulderY+22) + ' L10,' + (shoulderY+16) + ' L8,' + (shoulderY+14) + ' Z" fill="' + clothLight + '"/>' +
-                '<path d="M48,' + (shoulderY+20) + ' L46,' + (shoulderY+22) + ' L38,' + (shoulderY+16) + ' L40,' + (shoulderY+14) + ' Z" fill="' + clothLight + '"/>' +
-                // 云纹装饰
-                '<circle cx="14" cy="' + (shoulderY+10) + '" r="2" fill="' + clothLight + '" opacity="0.6"/>' +
-                '<circle cx="34" cy="' + (shoulderY+10) + '" r="2" fill="' + clothLight + '" opacity="0.6"/>' +
-                '<circle cx="14" cy="' + (shoulderY+14) + '" r="1.5" fill="' + clothLight + '" opacity="0.4"/>' +
-                '<circle cx="34" cy="' + (shoulderY+14) + '" r="1.5" fill="' + clothLight + '" opacity="0.4"/>';
-        } else if (cfg.cloth === 'dress') {
-            // 襦裙 - 女装
-            bodyParts =
-                // 上衣
-                '<path d="M12,' + shoulderY + ' L10,' + (shoulderY+12) + ' L38,' + (shoulderY+12) + ' L36,' + shoulderY + ' Z" fill="' + clothMain + '"/>' +
-                // 抹胸
-                '<path d="M16,' + shoulderY + ' L24,' + (shoulderY+4) + ' L32,' + shoulderY + ' L30,' + shoulderY + ' L24,' + (shoulderY+2) + ' L18,' + shoulderY + ' Z" fill="' + lighten(cfg.clothColor, 25) + '"/>' +
-                // 裙子(更宽更长)
-                '<path d="M10,' + (shoulderY+12) + ' L6,' + waistY + ' L4,' + (feetY-8) + ' L16,' + (feetY-8) + ' L18,' + waistY + ' Z" fill="' + darken(cfg.clothColor, 10) + '"/>' +
-                '<path d="M38,' + (shoulderY+12) + ' L42,' + waistY + ' L44,' + (feetY-8) + ' L32,' + (feetY-8) + ' L30,' + waistY + ' Z" fill="' + darken(cfg.clothColor, 10) + '"/>' +
-                // 裙摆波浪
-                '<path d="M4,' + (feetY-8) + ' Q8,' + (feetY-6) + ' 12,' + (feetY-8) + ' Q16,' + (feetY-6) + ' 20,' + (feetY-8) + ' L20,' + (feetY-10) + ' L4,' + (feetY-10) + ' Z" fill="' + clothDark + '"/>' +
-                '<path d="M28,' + (feetY-8) + ' Q32,' + (feetY-6) + ' 36,' + (feetY-8) + ' Q40,' + (feetY-6) + ' 44,' + (feetY-8) + ' L44,' + (feetY-10) + ' L28,' + (feetY-10) + ' Z" fill="' + clothDark + '"/>' +
-                // 腰带/丝带
-                '<rect x="14" y="' + (shoulderY+10) + '" width="20" height="4" fill="' + lighten(cfg.clothColor, 30) + '" rx="1"/>' +
-                '<path d="M18,' + (shoulderY+12) + ' L16,' + (shoulderY+20) + ' L20,' + (shoulderY+18) + ' Z" fill="' + lighten(cfg.clothColor, 30) + '"/>' +
-                '<path d="M30,' + (shoulderY+12) + ' L32,' + (shoulderY+20) + ' L28,' + (shoulderY+18) + ' Z" fill="' + lighten(cfg.clothColor, 30) + '"/>' +
-                // 袖子
-                '<path d="M12,' + shoulderY + ' L6,' + (shoulderY+6) + ' L4,' + (shoulderY+18) + ' L12,' + (shoulderY+14) + ' Z" fill="' + clothMain + '"/>' +
-                '<path d="M36,' + shoulderY + ' L42,' + (shoulderY+6) + ' L44,' + (shoulderY+18) + ' L36,' + (shoulderY+14) + ' Z" fill="' + clothMain + '"/>';
-        }
-        
-        // ========== 脖子 ==========
-        var neck = '<rect x="21" y="' + (headBottom-4) + '" width="6" height="6" fill="' + skinShadow + '"/>';
-        
-        // ========== 头部 (简化像素风格) ==========
-        // 简化设计：只有脸部轮廓、眼睛和嘴巴，像素RPG风格
-        var faceTop = headTop + 8;   // 头顶留发
-        var faceBottom = headTop + 24; // 下巴
-        var faceCenter = headTop + 15;  // 脸部中心
-        
-        // 脸部 - 干净的皮肤色
-        var face = '<ellipse cx="' + cx + '" cy="' + faceCenter + '" rx="10" ry="11" fill="' + skinColor + '"/>';
-        
-        // 眼睛 - 像素风格方块眼睛
-        var eyesY = faceCenter - 2;
-        var eyes = '<rect x="17" y="' + (eyesY-2) + '" width="4" height="4" fill="#1a1a1a"/>' +
-                   '<rect x="27" y="' + (eyesY-2) + '" width="4" height="4" fill="#1a1a1a"/>';
-        
-        // 嘴巴 - 简单的横线或微笑
-        var mouth = '<rect x="21" y="' + (faceCenter+5) + '" width="6" height="2" fill="#8b6b5b" rx="0.5"/>';
-        
-        // 无腮红、无鼻子、无眉毛 - 像素风格不需要
-        var blush = '';
-        var nose = '';
-        var eyebrows = '';
-        var ears = '';
-        
-        // ========== 发型 (简化像素风) ==========
-        var hairTop = headTop;
-        var hairColor = cfg.hairColor;
-        
-        var hair = '';
-        if (cfg.hair === 'bun') {
-            // 发髻 - 像素风格
-            hair = 
-                // 头顶头发
-                '<rect x="14" y="' + (hairTop+4) + '" width="20" height="8" fill="' + hairColor + '" rx="2"/>' +
-                // 发髻球
-                '<circle cx="24" cy="' + (hairTop+2) + '" r="6" fill="' + hairColor + '"/>' +
-                // 刘海(短，不挡脸)
-                '<rect x="15" y="' + faceTop + '" width="18" height="3" fill="' + hairColor + '"/>';
-        } else if (cfg.hair === 'short') {
-            // 短发 - 像素风格
-            hair = 
-                '<rect x="14" y="' + (hairTop+4) + '" width="20" height="10" fill="' + hairColor + '" rx="2"/>' +
-                '<rect x="15" y="' + faceTop + '" width="18" height="3" fill="' + hairColor + '"/>';
-        } else if (cfg.hair === 'long') {
-            // 长发 - 像素风格
-            hair = 
-                '<rect x="14" y="' + (hairTop+4) + '" width="20" height="10" fill="' + hairColor + '" rx="2"/>' +
-                '<rect x="12" y="' + (faceCenter+4) + '" width="4" height="12" fill="' + hairColor + '"/>' +
-                '<rect x="32" y="' + (faceCenter+4) + '" width="4" height="12" fill="' + hairColor + '"/>' +
-                '<rect x="15" y="' + faceTop + '" width="18" height="3" fill="' + hairColor + '"/>';
-        } else if (cfg.hair === 'twin') {
-            // 双髻 - 像素风格
-            hair = 
-                '<rect x="14" y="' + (hairTop+4) + '" width="20" height="8" fill="' + hairColor + '" rx="2"/>' +
-                '<rect x="15" y="' + faceTop + '" width="18" height="3" fill="' + hairColor + '"/>' +
-                '<circle cx="10" cy="' + (faceCenter-4) + '" r="5" fill="' + hairColor + '"/>' +
-                '<circle cx="38" cy="' + (faceCenter-4) + '" r="5" fill="' + hairColor + '"/>';
-        } else if (cfg.hair === 'headband') {
-            // 头巾 - 像素风格
-            hair = 
-                '<rect x="14" y="' + (hairTop+4) + '" width="20" height="10" fill="' + hairColor + '" rx="2"/>' +
-                '<rect x="12" y="' + (faceTop-2) + '" width="24" height="5" fill="#8b0000"/>' +
-                '<rect x="15" y="' + faceTop + '" width="18" height="3" fill="' + hairColor + '"/>';
-        }
-        
-        // ========== 手臂 ==========
-        var arms = 
-            // 左手
-            '<path d="M10,' + (shoulderY+4) + ' L4,' + (shoulderY+14) + ' L6,' + (shoulderY+20) + ' L10,' + (shoulderY+14) + ' Z" fill="' + skinColor + '"/>' +
-            // 右手
-            '<path d="M38,' + (shoulderY+4) + ' L44,' + (shoulderY+14) + ' L42,' + (shoulderY+20) + ' L38,' + (shoulderY+14) + ' Z" fill="' + skinColor + '"/>';
-        
-        // ========== 武器 (手持) ==========
-        var weapon = '';
-        if (cfg.weapon === 'sword') {
-            // 剑 - 握在右手
-            weapon = 
-                '<rect x="42" y="' + (shoulderY+8) + '" width="2" height="24" fill="#a0a0a0" rx="0.5"/>' +
-                '<rect x="41" y="' + (shoulderY+6) + '" width="4" height="3" fill="#ffd700" rx="0.5"/>' +
-                '<rect x="42.5" y="' + (shoulderY+32) + '" width="1" height="4" fill="#8b4513"/>' +
-                // 剑鞘
-                '<rect x="43" y="' + (shoulderY+10) + '" width="1.5" height="20" fill="#654321" rx="0.5"/>';
-        } else if (cfg.weapon === 'spear') {
-            // 矛 - 扛在肩上
-            weapon = 
-                '<rect x="42" y="0" width="2" height="50" fill="#8b4513" rx="0.5"/>' +
-                '<path d="M43,0 L39,10 L43,8 L47,10 Z" fill="#c0c0c0"/>' +
-                '<path d="M43,1 L41,8 L43,7 L45,8 Z" fill="#e0e0e0"/>';
-        } else if (cfg.weapon === 'axe') {
-            // 斧 - 握在右手
-            weapon = 
-                '<rect x="42" y="' + (shoulderY+10) + '" width="2" height="18" fill="#8b4513" rx="0.5"/>' +
-                '<path d="M44,' + (shoulderY+6) + ' L52,' + (shoulderY+14) + ' L44,' + (shoulderY+20) + ' L44,' + (shoulderY+6) + ' Z" fill="#606060"/>' +
-                '<path d="M44,' + (shoulderY+8) + ' L50,' + (shoulderY+14) + ' L44,' + (shoulderY+18) + ' Z" fill="#808080"/>';
-        }
-        
-        return '<svg viewBox="0 0 48 72" xmlns="http://www.w3.org/2000/svg">' +
-               shadow + legs + shoes + bodyParts + neck + arms + face + blush + ears + eyes + eyebrows + nose + mouth + hair + weapon +
-               '</svg>';
-    }
-    
-    function lighten(hex, pct) {
-        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-        r = Math.min(255, Math.round(r + (255-r)*pct/100));
-        g = Math.min(255, Math.round(g + (255-g)*pct/100));
-        b = Math.min(255, Math.round(b + (255-b)*pct/100));
-        return '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0');
-    }
-    
-    function darken(hex, pct) {
-        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-        r = Math.max(0, Math.round(r * (100-pct)/100));
-        g = Math.max(0, Math.round(g * (100-pct)/100));
-        b = Math.max(0, Math.round(b * (100-pct)/100));
-        return '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0');
-    }
-    
-    var npcConfigs = {
-        'npc-soldier': { hair: 'headband', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#2980b9', weapon: 'spear', sprite: 'char_01' },
-        'npc-merchant': { hair: 'short', hairColor: '#3d2817', cloth: 'robe', clothColor: '#e67e22', weapon: 'none', sprite: 'char_03' },
-        'npc-general': { hair: 'bun', hairColor: '#1a1a1a', cloth: 'armor', clothColor: '#c0392b', weapon: 'sword', sprite: 'char_02' }
-    };
-    
-    var enemyConfig = { hair: 'headband', hairColor: '#5d4037', cloth: 'warrior', clothColor: '#e74c3c', weapon: 'axe', sprite: 'char_07' };
-    
-    // 像素风格角色精灵生成 - 使用像素图片 + CSS滤镜变色
-    function genPixelChar(cfg, isPlayer) {
-        // 使用像素图片资源
-        var spritePath = 'assets/sprites/clean/' + cfg.sprite + '_64.png';
-        // 通过CSS滤镜根据服装颜色调整色调
-        var filterStyle = 'hue-rotate(' + getHueRotation(cfg.clothColor) + 'deg) saturate(1.2)';
-        return '<img src="' + spritePath + '" alt="character" style="image-rendering:pixelated;width:100%;height:100%;filter:' + filterStyle + '">';
-    }
-    
-    // 根据服装颜色计算色相旋转角度
-    function getHueRotation(hexColor) {
-        // 将颜色转为HSL获取色相
-        var r = parseInt(hexColor.slice(1,3), 16) / 255;
-        var g = parseInt(hexColor.slice(3,5), 16) / 255;
-        var b = parseInt(hexColor.slice(5,7), 16) / 255;
-        var max = Math.max(r, g, b), min = Math.min(r, g, b);
-        var h, s, l = (max + min) / 2;
-        if (max === min) {
-            h = s = 0;
+    <div class="stat-item">
+        <div class="stat-icon">🏡</div>
+        <div class="stat-label">田地</div>
+        <div class="stat-value" id="land-val">2</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-label">声望</div>
+        <div class="stat-value" id="fame-val">0</div>
+    </div>
+</div>
+
+<!-- 田地 -->
+<div id="fields-area">
+    <h3>🪴 我的田地</h3>
+    <div id="fields"></div>
+</div>
+
+<!-- 操作 -->
+<div id="actions">
+    <h3>🔧 操作</h3>
+    <div class="action-btns" id="action-btns">
+        <button class="action-btn" onclick="plant('rice')">
+            <span class="btn-icon">🌾</span>播种水稻<span class="btn-cost">30金</span>
+        </button>
+        <button class="action-btn" onclick="plant('wheat')">
+            <span class="btn-icon">🌿</span>播种小麦<span class="btn-cost">20金</span>
+        </button>
+        <button class="action-btn" onclick="plant('herb')">
+            <span class="btn-icon">🌿</span>播种药材<span class="btn-cost">60金</span>
+        </button>
+        <button class="action-btn" onclick="plant('fruit')">
+            <span class="btn-icon">🍎</span>播种果树<span class="btn-cost">50金</span>
+        </button>
+        <button class="action-btn" onclick="harvestAll()">
+            <span class="btn-icon">🧺</span>全部收获
+        </button>
+        <button class="action-btn" onclick="upgradeLand()">
+            <span class="btn-icon">🔨</span>开垦田地<span class="btn-cost" id="upgrade-cost"></span>
+        </button>
+    </div>
+</div>
+
+<!-- 日志 -->
+<div id="log-area">
+    <h3>📜 日志</h3>
+    <div id="log"></div>
+</div>
+
+<!-- 底部 -->
+<div id="footer">
+    <button id="btn-reset" onclick="resetGame()">🔄 重新开始</button>
+    <button id="btn-next" onclick="nextSeason()">▶ 下个季节</button>
+</div>
+
+</div>
+
+<!-- 弹窗 -->
+<div class="modal" id="modal">
+    <div class="modal-box">
+        <h2 id="modal-title"></h2>
+        <p id="modal-text"></p>
+        <button class="modal-btn" onclick="closeModal()">知道了</button>
+    </div>
+</div>
+
+<script>
+// ========== 游戏数据 ==========
+var gold = 200;
+var landLevel = 2;       // 田地数量
+var storage = 0;          // 粮仓库存
+var fame = 0;             // 声望
+var year = 1;
+var season = 0;           // 0春1夏2秋3冬
+var seasonNames = ['春','夏','秋','冬'];
+var seasonEmoji = ['🌸','☀️','🍂','❄️'];
+var seasonBodyClass = ['spring','summer','autumn','winter'];
+
+// 田地状态: null=空闲, {crop:'rice'/'wheat'/'herb'/'fruit', turns:剩余生长回合}
+var fields = [null, null];
+
+// 作物定义
+var crops = {
+    rice:  { name:'水稻', icon:'🌾', cost:30, turns:2, yield:55, desc:'稳产粮食，不易受灾' },
+    wheat: { name:'小麦', icon:'🌿', cost:20, turns:2, yield:40, desc:'便宜稳妥，产量一般' },
+    herb:  { name:'药材', icon:'🌿', cost:60, turns:3, yield:150, desc:'高风险高回报' },
+    fruit: { name:'果树', icon:'🍎', cost:50, turns:3, yield:110, desc:'收益可观，较稳定' }
+};
+
+// 开垦费用
+function upgradeCost() {
+    return 150 + (landLevel - 2) * 100;
+}
+
+// ========== UI 渲染 ==========
+function render() {
+    document.getElementById('gold-val').textContent = gold;
+    document.getElementById('storage-val').textContent = storage;
+    document.getElementById('land-val').textContent = landLevel;
+    document.getElementById('fame-val').textContent = fame;
+    document.getElementById('year-display').textContent = '第' + year + '年';
+    document.getElementById('season-display').textContent = seasonEmoji[season] + ' ' + seasonNames[season];
+
+    // 更新body季节class
+    document.body.className = seasonBodyClass[season];
+
+    // 渲染田地
+    var html = '';
+    for (var i = 0; i < landLevel; i++) {
+        var f = fields[i];
+        if (!f) {
+            html += '<div class="field empty" onclick="clickField('+i+')">';
+            html += '<div class="field-icon">⛳</div>';
+            html += '<div class="field-name">空闲田地</div>';
+            html += '<div class="field-status">点击播种</div>';
+            html += '</div>';
+        } else if (f.turns <= 0) {
+            html += '<div class="field ready" onclick="harvestField('+i+')">';
+            html += '<div class="field-icon">' + crops[f.crop].icon + '</div>';
+            html += '<div class="field-name">' + crops[f.crop].name + '</div>';
+            html += '<div class="field-status">✨ 可收获!</div>';
+            html += '</div>';
         } else {
-            var d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) {
-                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-                case g: h = ((b - r) / d + 2) / 6; break;
-                case b: h = ((r - g) / d + 4) / 6; break;
-            }
-        }
-        return Math.round(h * 360);
-    }
-    
-    function initChars() {
-        // 玩家角色 - 优先使用像素风格
-        var playerEl = document.getElementById('player');
-        playerEl.innerHTML = '<div class="qchar-shadow"></div>' + genPixelChar(playerConfig, true);
-        playerEl.className = 'qchar idle';
-        
-        // NPC角色
-        Object.keys(npcConfigs).forEach(function(id) {
-            var names = { 'npc-soldier': '士兵', 'npc-merchant': '商人', 'npc-general': '将军' };
-            var el = document.getElementById(id);
-            el.innerHTML = '<div class="char-name">' + names[id] + '</div>' + genPixelChar(npcConfigs[id], false);
-            el.className = 'qchar npc-char idle';
-        });
-        
-        // 敌人角色
-        ['enemy1','enemy2','enemy3'].forEach(function(id) {
-            var el = document.getElementById(id);
-            el.innerHTML = '<div class="char-name">黄巾兵</div><div class="enemy-hp"><div class="enemy-hp-fill" id="' + id + '-hp" style="width:100%"></div></div>' + genPixelChar(enemyConfig, false);
-            el.className = 'qchar enemy-char idle';
-        });
-    }
-    
-    function updatePreview() {
-        // 角色预览 - 使用像素角色图 + 颜色滤镜
-        var spritePath = 'assets/sprites/clean/' + playerConfig.sprite + '_64.png';
-        var filterStyle = 'hue-rotate(' + getHueRotation(playerConfig.clothColor) + 'deg) saturate(1.2)';
-        document.getElementById('preview-char').innerHTML = 
-            '<img src="' + spritePath + '" style="width:100%;height:100%;image-rendering:pixelated;filter:' + filterStyle + '" onerror="this.parentElement.innerHTML=\'<div style=width:64px;height:64px;background:' + playerConfig.clothColor + ';border-radius:8px></div>\'">';
-    }
-    
-    document.querySelectorAll('.preset-btn').forEach(function(btn) {
-        btn.onclick = function() {
-            document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            Object.assign(playerConfig, presets[btn.dataset.preset]);
-            // 更新选项按钮状态
-            document.querySelectorAll('.option-btns').forEach(function(g) {
-                var type = g.dataset.type;
-                g.querySelectorAll('.opt-btn').forEach(function(o) { o.classList.toggle('selected', o.dataset.value === playerConfig[type]); });
-            });
-            document.querySelectorAll('.color-btns').forEach(function(g) {
-                var type = g.dataset.type;
-                g.querySelectorAll('.color-btn').forEach(function(o) { o.classList.toggle('selected', o.dataset.value === playerConfig[type]); });
-            });
-            updatePreview();
-        };
-    });
-    
-    document.querySelectorAll('.option-btns').forEach(function(g) {
-        g.querySelectorAll('.opt-btn').forEach(function(btn) {
-            btn.onclick = function() {
-                g.querySelectorAll('.opt-btn').forEach(function(b) { b.classList.remove('selected'); });
-                btn.classList.add('selected');
-                playerConfig[g.dataset.type] = btn.dataset.value;
-                updatePreview();
-            };
-        });
-    });
-    
-    document.querySelectorAll('.color-btns').forEach(function(g) {
-        g.querySelectorAll('.color-btn').forEach(function(btn) {
-            btn.onclick = function() {
-                g.querySelectorAll('.color-btn').forEach(function(b) { b.classList.remove('selected'); });
-                btn.classList.add('selected');
-                playerConfig[g.dataset.type] = btn.dataset.value;
-                updatePreview();
-            };
-        });
-    });
-    
-    function confirmChar() {
-        document.getElementById('char-creation').style.display = 'none';
-        startGame();
-    }
-    
-    function showCreate() {
-        document.getElementById('title-screen').style.display = 'none';
-        document.getElementById('char-creation').style.display = 'flex';
-    }
-    
-    // 页面加载完成后绑定按钮事件
-    var titleStartBtn = document.querySelector('#title-screen .btn');
-    if (titleStartBtn) {
-        titleStartBtn.onclick = showCreate;
-    }
-    
-    var confirmBtn = document.getElementById('confirm-btn');
-    if (confirmBtn) {
-        confirmBtn.onclick = confirmChar;
-    }
-    
-    var closeBtn = document.getElementById('close-btn');
-    if (closeBtn) {
-        closeBtn.onclick = closeDialogue;
-    }
-    
-    var player = { x: 350, y: 264, hp: 100, maxHp: 100, level: 1, gold: 0, attack: 15 };
-    var isTalking = false, nearbyTarget = null;
-    var enemyHp = { enemy1: {hp:30,maxHp:30}, enemy2: {hp:30,maxHp:30}, enemy3: {hp:30,maxHp:30} };
-    
-    var targets = {
-        'npc-soldier': {x:160,y:164,type:'npc',id:'soldier'},
-        'npc-merchant': {x:450,y:114,type:'npc',id:'merchant'},
-        'npc-general': {x:520,y:264,type:'npc',id:'general'},
-        'enemy1': {x:260,y:204,type:'enemy',id:'enemy1'},
-        'enemy2': {x:380,y:234,type:'enemy',id:'enemy2'},
-        'enemy3': {x:280,y:334,type:'enemy',id:'enemy3'}
-    };
-    
-    var dialogues = {
-        soldier: {speaker:'士兵', texts:['黄巾贼在村外作乱！','将军有令，剿灭贼寇！']},
-        merchant: {speaker:'商人', texts:['买卖公道，童叟无欺！','兵荒马乱，生意难做...']},
-        general: {speaker:'将军', texts:['壮士，去消灭黄巾兵！','好！我军士气大振！']}
-    };
-    
-    var quest = { title:'剿灭黄巾', desc:'消灭3个黄巾兵', reward:'+50金币' };
-    
-    var keys = {}, touchDir = null;
-    var speed = 4;
-    
-    function startGame() {
-        document.getElementById('title-screen').style.display = 'none';
-        document.getElementById('game').style.display = 'block';
-        initChars();
-        
-        document.addEventListener('keydown', function(e) {
-            if (isTalking) return;
-            switch(e.key.toLowerCase()) {
-                case 'w': case 'arrowup': keys.up = true; break;
-                case 's': case 'arrowdown': keys.down = true; break;
-                case 'a': case 'arrowleft': keys.left = true; break;
-                case 'd': case 'arrowright': keys.right = true; break;
-                case ' ': e.preventDefault(); interact(); break;
-            }
-        });
-        document.addEventListener('keyup', function(e) {
-            switch(e.key.toLowerCase()) {
-                case 'w': case 'arrowup': keys.up = false; break;
-                case 's': case 'arrowdown': keys.down = false; break;
-                case 'a': case 'arrowleft': keys.left = false; break;
-                case 'd': case 'arrowright': keys.right = false; break;
-            }
-        });
-        
-        setupTouch();
-        updateQuest();
-        gameLoop();
-    }
-    
-    function setupTouch() {
-        var zone = document.getElementById('joystick-zone');
-        var thumb = document.getElementById('joystick-thumb');
-        var cx, cy, maxD = 30;
-        
-        zone.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            var r = zone.getBoundingClientRect();
-            cx = r.left + r.width/2; cy = r.top + r.height/2;
-        });
-        
-        zone.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-            var dx = e.touches[0].clientX - cx, dy = e.touches[0].clientY - cy;
-            var d = Math.sqrt(dx*dx + dy*dy);
-            if (d > maxD) { dx = dx/d*maxD; dy = dy/d*maxD; }
-            thumb.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
-            touchDir = {x: dx/maxD, y: dy/maxD, dist: d/maxD};
-        });
-        
-        zone.addEventListener('touchend', function() {
-            thumb.style.transform = 'translate(-50%,-50%)';
-            touchDir = null;
-        });
-        
-        document.getElementById('btn-interact').addEventListener('touchstart', function(e) { e.preventDefault(); interact(); });
-        document.getElementById('btn-attack').addEventListener('touchstart', function(e) { e.preventDefault(); attack(); });
-    }
-    
-    var isMoving = false;
-    
-    function gameLoop() {
-        var dx = 0, dy = 0;
-        if (keys.up) dy -= 1; if (keys.down) dy += 1;
-        if (keys.left) dx -= 1; if (keys.right) dx += 1;
-        if (touchDir && touchDir.dist > 0.3) { dx = touchDir.x; dy = touchDir.y; }
-        
-        var wasMoving = isMoving;
-        isMoving = (dx !== 0 || dy !== 0);
-        
-        if (isMoving) {
-            var len = Math.sqrt(dx*dx + dy*dy);
-            dx /= len; dy /= len;
-            player.x += dx * speed;
-            player.y += dy * speed;
-            player.x = Math.max(60, Math.min(window.innerWidth - 60, player.x));
-            player.y = Math.max(80, Math.min(window.innerHeight - 80, player.y));
-            
-            var p = document.getElementById('player');
-            p.style.left = (player.x - 24) + 'px';
-            p.style.top = (player.y - 36) + 'px';
-            
-            // 切换到行走动画
-            if (!wasMoving) {
-                p.className = 'qchar walking';
-            }
-        } else if (wasMoving) {
-            // 切换回待机动画
-            document.getElementById('player').className = 'qchar idle';
-        }
-        
-        checkNearby();
-        requestAnimationFrame(gameLoop);
-    }
-    
-    function checkNearby() {
-        var found = null;
-        for (var id in targets) {
-            var t = targets[id];
-            if (Math.sqrt((player.x-t.x)*(player.x-t.x) + (player.y-t.y)*(player.y-t.y)) < 55) { found = t; break; }
-        }
-        if (found !== nearbyTarget) {
-            nearbyTarget = found;
-            var prompt = document.getElementById('interact-prompt');
-            prompt.textContent = found ? (found.type === 'enemy' ? '空格 攻击' : '空格 对话') : '';
-            prompt.style.display = found ? 'block' : 'none';
+            html += '<div class="field growing" onclick="clickField('+i+')">';
+            html += '<div class="field-icon">🌱</div>';
+            html += '<div class="field-name">' + crops[f.crop].name + '</div>';
+            html += '<div class="field-status">生长中 ' + f.turns + '/' + crops[f.crop].turns + ' 季</div>';
+            html += '</div>';
         }
     }
-    
-    function interact() {
-        if (!nearbyTarget) return;
-        if (nearbyTarget.type === 'enemy') { attack(); return; }
-        var d = dialogues[nearbyTarget.id];
-        if (!d) return;
-        isTalking = true;
-        document.getElementById('speaker').textContent = d.speaker;
-        document.getElementById('text').textContent = d.texts[0];
-        document.getElementById('dialogue').style.display = 'block';
+    document.getElementById('fields').innerHTML = html;
+    document.getElementById('upgrade-cost').textContent = upgradeCost() + '金';
+
+    // 更新按钮状态
+    updateButtons();
+}
+
+function updateButtons() {
+    var btns = document.querySelectorAll('#action-btns .action-btn');
+    btns.forEach(function(b) { b.classList.remove('disabled'); });
+
+    // 冬季不能播种
+    if (season === 3) {
+        btns[0].classList.add('disabled');
+        btns[1].classList.add('disabled');
+        btns[2].classList.add('disabled');
+        btns[3].classList.add('disabled');
     }
-    
-    function attack() {
-        if (!nearbyTarget || nearbyTarget.type !== 'enemy') return;
-        var id = nearbyTarget.id;
-        
-        // 玩家攻击动画
-        var playerEl = document.getElementById('player');
-        playerEl.className = 'qchar attacking';
-        setTimeout(function() { if (!isMoving) playerEl.className = 'qchar idle'; else playerEl.className = 'qchar walking'; }, 250);
-        
-        // 敌人受伤动画
-        var enemyEl = document.getElementById(id);
-        enemyEl.className = 'qchar enemy-char hurt';
-        
-        enemyHp[id].hp -= player.attack;
-        document.getElementById(id + '-hp').style.width = Math.max(0, enemyHp[id].hp / enemyHp[id].maxHp * 100) + '%';
-        
-        if (enemyHp[id].hp <= 0) {
-            enemyEl.style.display = 'none';
-            player.gold += 20;
-            document.getElementById('gold').textContent = player.gold;
-            showNotif('击败敌人！+20金币');
-            
-            if (['enemy1','enemy2','enemy3'].filter(function(e) { return enemyHp[e].hp > 0; }).length === 0) {
-                showNotif('任务完成！' + quest.reward);
-                player.gold += 50;
-                document.getElementById('gold').textContent = player.gold;
-                quest = null;
-                updateQuest();
+
+    // 钱不够
+    if (gold < 30) btns[0].classList.add('disabled');
+    if (gold < 20) btns[1].classList.add('disabled');
+    if (gold < 60) btns[2].classList.add('disabled');
+    if (gold < 50) btns[3].classList.add('disabled');
+    if (gold < upgradeCost()) btns[5].classList.add('disabled');
+
+    // 没有可收获的
+    var hasReady = fields.some(function(f) { return f && f.turns <= 0; });
+    if (!hasReady) btns[4].classList.add('disabled');
+}
+
+// ========== 操作 ==========
+function clickField(i) {
+    if (!fields[i]) {
+        // 空闲田地：弹出种植选择（冬季不能种）
+        if (season === 3) {
+            addLog('❄️ 冬天不适合播种','bad');
+            return;
+        }
+        // 简化为自动选择最合适的
+        showModal('选择作物','请使用下方操作按钮选择要播种的作物');
+    }
+}
+
+function plant(cropType) {
+    if (season === 3) { addLog('❄️ 冬天无法播种','bad'); render(); return; }
+    var c = crops[cropType];
+    if (gold < c.cost) { addLog('💰 金币不足!','bad'); return; }
+
+    // 找空闲田地
+    var emptyIdx = -1;
+    for (var i = 0; i < landLevel; i++) {
+        if (!fields[i]) { emptyIdx = i; break; }
+    }
+    if (emptyIdx === -1) { addLog('🌱 没有空闲田地了!','bad'); return; }
+
+    gold -= c.cost;
+    fields[emptyIdx] = { crop: cropType, turns: c.turns };
+    addLog('🌱 在田地'+(emptyIdx+1)+'播种了'+c.name+' (-'+c.cost+'金)','info');
+    render();
+}
+
+function harvestField(i) {
+    var f = fields[i];
+    if (!f || f.turns > 0) return;
+    var c = crops[f.crop];
+    var bonus = 1;
+
+    // 秋季收获加成
+    if (season === 2) { bonus = 1.3; addLog('🍂 秋季收获加成 x1.3!','good'); }
+
+    // 随机波动
+    var r = 0.8 + Math.random() * 0.4; // 0.8~1.2
+    var earned = Math.round(c.yield * bonus * r);
+
+    storage += earned;
+    fame += 1;
+    fields[i] = null;
+    addLog('🧺 收获' + c.name + ' +' + earned + ' (库存)','good');
+    render();
+}
+
+function harvestAll() {
+    var count = 0;
+    for (var i = 0; i < landLevel; i++) {
+        if (fields[i] && fields[i].turns <= 0) {
+            harvestField(i);
+            count++;
+        }
+    }
+    if (count === 0) addLog('⚠️ 没有可收获的作物','bad');
+    render();
+}
+
+function upgradeLand() {
+    var cost = upgradeCost();
+    if (gold < cost) { addLog('💰 金币不足!','bad'); return; }
+    if (landLevel >= 6) { addLog('🏡 田地已达最大数量!','bad'); return; }
+    gold -= cost;
+    landLevel++;
+    fields.push(null);
+    addLog('🔨 开垦了新田地! 现在有'+landLevel+'块田地 (-'+cost+'金)','good');
+    render();
+}
+
+// ========== 季节推进 ==========
+function nextSeason() {
+    // 生长进度
+    for (var i = 0; i < landLevel; i++) {
+        if (fields[i] && fields[i].turns > 0) {
+            var speedup = 1;
+            if (season === 1) speedup = 1.5; // 夏天生长加速
+            fields[i].turns = Math.max(0, fields[i].turns - speedup);
+            if (fields[i].turns <= 0) {
+                addLog('🌾 田地'+(i+1)+'的'+crops[fields[i].crop].name+'成熟了!','good');
             }
+        }
+    }
+
+    // 季节切换
+    season++;
+    if (season >= 4) { season = 0; year++; }
+
+    // 冬季消耗
+    if (season === 3) {
+        var winterCost = landLevel * 5;
+        if (gold >= winterCost) {
+            gold -= winterCost;
+            addLog('❄️ 入冬准备，消耗' + winterCost + '金','info');
         } else {
-            // 受伤后恢复为普通状态
-            setTimeout(function() { 
-                if (enemyHp[id].hp > 0) enemyEl.className = 'qchar enemy-char idle'; 
-            }, 400);
+            addLog('❄️ 入冬资金不足，声望下降','bad');
+            fame = Math.max(0, fame - 2);
         }
     }
-    
-    function closeDialogue() {
-        isTalking = false;
-        document.getElementById('dialogue').style.display = 'none';
+
+    // 随机事件
+    randomEvent();
+
+    // 春季获得税收
+    if (season === 0) {
+        var tax = landLevel * 20 + Math.floor(storage * 0.3);
+        gold += tax;
+        storage = Math.floor(storage * 0.7);
+        addLog('💰 春季税收 +' + tax + '金，粮仓卖出30%库存','good');
     }
-    
-    function updateQuest() {
-        var box = document.getElementById('quest-box');
-        if (quest) {
-            document.getElementById('quest-title').textContent = quest.title;
-            document.getElementById('quest-desc').textContent = quest.desc;
-            document.getElementById('quest-reward').textContent = quest.reward;
-            box.style.display = 'block';
-        } else {
-            box.style.display = 'none';
-        }
+
+    render();
+}
+
+// ========== 随机事件 ==========
+function randomEvent() {
+    var r = Math.random();
+    if (r < 0.25) {
+        // 25% 概率触发事件
+        var events = [
+            {
+                text: '🦗 蝗虫过境！毁坏了部分作物...',
+                effect: function() {
+                    for (var i = 0; i < landLevel; i++) {
+                        if (fields[i] && fields[i].turns > 0 && Math.random() < 0.3) {
+                            fields[i] = null;
+                        }
+                    }
+                },
+                type: 'bad'
+            },
+            {
+                text: '💧 天降甘霖！作物生长加速一季',
+                effect: function() {
+                    for (var i = 0; i < landLevel; i++) {
+                        if (fields[i] && fields[i].turns > 0) fields[i].turns = Math.max(0, fields[i].turns - 1);
+                    }
+                },
+                type: 'good'
+            },
+            {
+                text: '🏪 商队路过，高价收购粮食！金币+50',
+                effect: function() { gold += 50; },
+                type: 'good'
+            },
+            {
+                text: '🐛 田地发现害虫，损失10金币治理',
+                effect: function() { gold = Math.max(0, gold - 10); },
+                type: 'bad'
+            },
+            {
+                text: '🧑‍🌾 老农传授种植技巧，声望+3',
+                effect: function() { fame += 3; },
+                type: 'good'
+            },
+            {
+                text: '🌪️ 暴风雨来袭，损失20金币修葺田地',
+                effect: function() { gold = Math.max(0, gold - 20); },
+                type: 'bad'
+            },
+            {
+                text: '🎁 邻村送来谢礼！金币+80',
+                effect: function() { gold += 80; },
+                type: 'good'
+            },
+            {
+                text: '🏆 官府举办农事评比，声望+5、金币+30',
+                effect: function() { fame += 5; gold += 30; },
+                type: 'good'
+            }
+        ];
+        var evt = events[Math.floor(Math.random() * events.length)];
+        evt.effect();
+        addLog(evt.text, evt.type);
     }
-    
-    function showNotif(text) {
-        var n = document.getElementById('notification');
-        n.textContent = text;
-        n.style.display = 'block';
-        setTimeout(function() { n.style.display = 'none'; }, 2000);
+
+    // 食物存储过多损耗
+    if (storage > 100) {
+        var loss = Math.floor(storage * 0.1);
+        storage -= loss;
+        addLog('📦 粮仓存储过多，损耗' + loss + '库存','info');
     }
-    
-    updatePreview();
-    </script>
+}
+
+// ========== 日志 ==========
+function addLog(msg, type) {
+    var log = document.getElementById('log');
+    var cls = type === 'good' ? 'log-good' : type === 'bad' ? 'log-bad' : 'log-info';
+    var time = '[' + seasonNames[season] + '] ';
+    log.innerHTML = '<div class="log-entry ' + cls + '">' + time + msg + '</div>' + log.innerHTML;
+    // 保留最近30条
+    var entries = log.querySelectorAll('.log-entry');
+    for (var i = 30; i < entries.length; i++) {
+        entries[i].remove();
+    }
+}
+
+// ========== 弹窗 ==========
+function showModal(title, text) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-text').textContent = text;
+    document.getElementById('modal').classList.add('show');
+}
+function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+}
+
+// ========== 重置 ==========
+function resetGame() {
+    if (confirm('确定要重新开始吗？当前进度将丢失。')) {
+        gold = 200;
+        landLevel = 2;
+        storage = 0;
+        fame = 0;
+        year = 1;
+        season = 0;
+        fields = [null, null];
+        document.getElementById('log').innerHTML = '';
+        addLog('🌅 新的一天开始了，开始种田吧!','good');
+        render();
+    }
+}
+
+// ========== 初始化 ==========
+addLog('🌅 欢迎来到种田日记！从两块田地开始你的农耕之旅吧','good');
+addLog('💡 提示：春季播种，秋季收获有加成，冬季不能播种','info');
+render();
+</script>
 </body>
 </html>
