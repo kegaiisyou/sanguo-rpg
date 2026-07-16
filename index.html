@@ -1709,37 +1709,33 @@ function buildMap(){
 
     // NPC
     npcs.forEach(function(n){
-        layer.innerHTML += genActorHTML(n.id, n.x, n.y, n.color, n.name, 'npc', n.id);
+        layer.innerHTML += genActorHTML(n.id, n.x, n.y, n.color, n.name, 'npc');
     });
 
     // 敌人——只渲染活着的
     enemies.forEach(function(e){
         if(!deadEnemies[e.id]){
-            layer.innerHTML += genActorHTML(e.id, e.x, e.y, {skin:'#deb887',hair:'#333',cloth:e.color}, e.name, 'enemy', e.type);
+            layer.innerHTML += genActorHTML(e.id, e.x, e.y, {skin:'#deb887',hair:'#333',cloth:e.color}, e.name, 'enemy');
         }
     });
 
     renderPlayer();
 }
 
-function genActorHTML(id,x,y,color,name,type,charId){
+function genActorHTML(id,x,y,color,name,type){
     var cssX = x*TILE + (TILE-28)/2;
     var cssY = y*TILE + TILE-44;
     var h = '<div class="actor '+type+'" id="'+id+'" style="left:'+cssX+'px;top:'+cssY+'px;">';
     h += '<span class="actor-name">'+name+'</span>';
     h += '<div class="actor-shadow"></div>';
     h += '<div class="actor-body">';
-    if(charId && _aiImg[charId]){
-        h += '<img class="actor-img" src="'+_aiImg[charId]+'" alt="'+name+'">';
-    } else {
-        h += '<div class="actor-head" style="background:'+color.skin+'"></div>';
-        h += '<div class="actor-hair" style="background:'+color.hair+'"></div>';
-        h += '<div class="actor-torso" style="background:'+color.cloth+'"></div>';
-        h += '<div class="actor-left-leg" style="background:#333"></div>';
-        h += '<div class="actor-right-leg" style="background:#333"></div>';
-        if(type==='player'){
-            h += '<div class="actor-weapon" style="background:#b0bec5"></div>';
-        }
+    h += '<div class="actor-head" style="background:'+color.skin+'"></div>';
+    h += '<div class="actor-hair" style="background:'+color.hair+'"></div>';
+    h += '<div class="actor-torso" style="background:'+color.cloth+'"></div>';
+    h += '<div class="actor-left-leg" style="background:#333"></div>';
+    h += '<div class="actor-right-leg" style="background:#333"></div>';
+    if(type==='player'){
+        h += '<div class="actor-weapon" style="background:#b0bec5"></div>';
     }
     h += '</div></div>';
     return h;
@@ -1752,7 +1748,7 @@ function renderPlayer(){
     if(!pdiv){
         var layer = document.getElementById('map-layer');
         var color = {skin:'#ffe0bd',hair:'#3d2817',cloth:'#1a5276'};
-        var h = genActorHTML('player-actor',player.x,player.y,color,'少侠','player','hero');
+        var h = genActorHTML('player-actor',player.x,player.y,color,'少侠','player');
         layer.insertAdjacentHTML('beforeend',h);
         pdiv = document.getElementById('player-actor');
     }
