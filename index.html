@@ -178,15 +178,27 @@ body{
 
 /* ===== 状态面板 ===== */
 #status-panel{
-    background:rgba(0,0,0,0.88);padding:7px 14px;
-    display:flex;justify-content:space-around;gap:8px;
+    background:rgba(0,0,0,0.88);padding:8px 14px;
+    display:flex;justify-content:space-around;gap:6px;
     border-top:2px solid #3d2e1a;
-    flex-wrap:wrap;
+    flex-wrap:wrap;align-items:flex-end;
 }
-.stat{text-align:center;min-width:48px;}
-.stat-icon{font-size:15px;}
-.stat-val{font-size:13px;font-weight:bold;color:#d4a853;}
+.stat{text-align:center;min-width:52px;}
+.stat-icon{font-size:14px;}
+.stat-val{font-size:12px;font-weight:bold;color:#d4a853;margin-bottom:1px;}
 .stat-label{font-size:9px;color:#8b7355;}
+/* 血条/蓝条 */
+.stat-bar-wrap{
+    width:100%;height:5px;background:#222;
+    border-radius:3px;overflow:hidden;
+    border:1px solid #333;margin-top:2px;
+}
+.stat-bar-fill{height:100%;border-radius:2px;transition:width 0.3s ease;}
+.stat-bar-fill.hp-fill{background:linear-gradient(90deg,#c0392b,#e74c3c,#c0392b);}
+.stat-bar-fill.mp-fill{background:linear-gradient(90deg,#2471a3,#3498db,#2471a3);}
+.stat-bar-fill.exp-fill{background:linear-gradient(90deg,#b7950b,#f1c40f,#b7950b);}
+.stat-hp-val{color:#e74c3c;font-size:12px;font-weight:bold;}
+.stat-mp-val{color:#3498db;font-size:12px;font-weight:bold;}
 
 /* ===== 操作栏 ===== */
 #action-bar{
@@ -399,11 +411,34 @@ body{
 
 <!-- 状态 -->
 <div id="status-panel">
-    <div class="stat"><div class="stat-icon">❤️</div><div class="stat-val" id="s-hp">100</div><div class="stat-label">气血</div></div>
-    <div class="stat"><div class="stat-icon">💠</div><div class="stat-val" id="s-mp">30</div><div class="stat-label">内力</div></div>
-    <div class="stat"><div class="stat-icon">⚔️</div><div class="stat-val" id="s-atk">15</div><div class="stat-label">攻击</div></div>
-    <div class="stat"><div class="stat-icon">💰</div><div class="stat-val" id="s-gold">50</div><div class="stat-label">银两</div></div>
-    <div class="stat"><div class="stat-icon">⭐</div><div class="stat-val" id="s-lv">Lv.1</div><div class="stat-label" id="s-exp"></div></div>
+    <div class="stat">
+        <div class="stat-icon">❤️</div>
+        <div class="stat-val stat-hp-val" id="s-hp">100/100</div>
+        <div class="stat-bar-wrap"><div class="stat-bar-fill hp-fill" id="s-hpbar"></div></div>
+        <div class="stat-label">气血</div>
+    </div>
+    <div class="stat">
+        <div class="stat-icon">💠</div>
+        <div class="stat-val stat-mp-val" id="s-mp">30/30</div>
+        <div class="stat-bar-wrap"><div class="stat-bar-fill mp-fill" id="s-mpbar"></div></div>
+        <div class="stat-label">内力</div>
+    </div>
+    <div class="stat" style="min-width:40px;">
+        <div class="stat-icon">⚔️</div>
+        <div class="stat-val" id="s-atk">15</div>
+        <div class="stat-label">攻击</div>
+    </div>
+    <div class="stat" style="min-width:42px;">
+        <div class="stat-icon">💰</div>
+        <div class="stat-val" id="s-gold">50</div>
+        <div class="stat-label">银两</div>
+    </div>
+    <div class="stat">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-val" id="s-lv">Lv.1</div>
+        <div class="stat-bar-wrap"><div class="stat-bar-fill exp-fill" id="s-expbar"></div></div>
+        <div class="stat-label" id="s-exp">EXP</div>
+    </div>
 </div>
 
 <!-- 操作 -->
@@ -811,8 +846,14 @@ function updateCamera(){
 }
 
 function updateStats(){
-    document.getElementById('s-hp').textContent = player.hp;
-    document.getElementById('s-mp').textContent = player.mp;
+    var hpPct = (player.hp/player.maxHp*100).toFixed(1);
+    var mpPct = (player.mp/player.maxMp*100).toFixed(1);
+    var expPct = (player.exp/player.expNeed*100).toFixed(1);
+    document.getElementById('s-hp').textContent = player.hp+'/'+player.maxHp;
+    document.getElementById('s-mp').textContent = player.mp+'/'+player.maxMp;
+    document.getElementById('s-hpbar').style.width = hpPct+'%';
+    document.getElementById('s-mpbar').style.width = mpPct+'%';
+    document.getElementById('s-expbar').style.width = expPct+'%';
     document.getElementById('s-atk').textContent = player.atk;
     document.getElementById('s-gold').textContent = player.gold;
     document.getElementById('s-lv').textContent = 'Lv.'+player.level;
@@ -1114,8 +1155,11 @@ function updateBattleUI(){
     document.getElementById('be-hpbar').style.width=(Math.max(0,enemyHp)/enemyMaxHp*100)+'%';
     document.getElementById('bp-hp').textContent=Math.max(0,player.hp);
     document.getElementById('bp-hpbar').style.width=(Math.max(0,player.hp)/player.maxHp*100)+'%';
-    document.getElementById('s-hp').textContent=Math.max(0,player.hp);
-    document.getElementById('s-mp').textContent=player.mp;
+    // 同步更新底部状态栏血条
+    document.getElementById('s-hp').textContent=Math.max(0,player.hp)+'/'+player.maxHp;
+    document.getElementById('s-mp').textContent=player.mp+'/'+player.maxMp;
+    document.getElementById('s-hpbar').style.width=(Math.max(0,player.hp)/player.maxHp*100)+'%';
+    document.getElementById('s-mpbar').style.width=(player.mp/player.maxMp*100)+'%';
 }
 
 function endBattle(won){
