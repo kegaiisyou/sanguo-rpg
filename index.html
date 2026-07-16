@@ -460,7 +460,7 @@ body{
         <button class="title-btn" onclick="newGame()">初 入 江 湖</button>
         <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
     </div>
-    <div class="title-version">v4.3 · 武侠RPG</div>
+    <div class="title-version">v4.4 · 武侠RPG</div>
 </div>
 
 <!-- 顶栏 -->
@@ -562,7 +562,7 @@ body{
         <div id="battle-actions">
             <button class="bact-btn atk" onclick="battleAction('atk')">⚔️ 出剑</button>
             <button class="bact-btn skill" onclick="battleAction('skill')">🗡️ 独孤九剑</button>
-            <button class="bact-btn item" onclick="battleAction('item')">💊 金创药</button>
+            <button class="bact-btn item" onclick="battleAction('item')">🎒 行囊</button>
             <button class="bact-btn flee" onclick="battleAction('flee')">💨 轻功逃脱</button>
         </div>
     </div>
@@ -2004,18 +2004,19 @@ function closeBackpack(){
 function renderBackpackGrid(){
     var grid = document.getElementById('bp-grid');
     var html = '';
-    // 展示所有ITEM_DB中的道具
+    // 只显示已拥有的道具
     for(var k in ITEM_DB){
         var def = ITEM_DB[k];
         var count = getItemCount(def.id);
+        if(count <= 0) continue; // 跳过未拥有的
         var selCls = (bagSelectedId === def.id) ? ' selected' : '';
-        var emptyCls = count <= 0 ? ' empty' : '';
-        html += '<div class="bp-slot rarity-'+def.rarity+selCls+emptyCls+'" onclick="selectBagItem(\''+def.id+'\')">';
+        html += '<div class="bp-slot rarity-'+def.rarity+selCls+'" onclick="selectBagItem(\''+def.id+'\')">';
         html += '<span class="icon">'+def.icon+'</span>';
         html += '<span class="name">'+def.name+'</span>';
         html += '<span class="count">x'+count+'</span>';
         html += '</div>';
     }
+    if(!html) html = '<div style="grid-column:1/-1;text-align:center;color:#666;padding:20px;">行囊空空</div>';
     grid.innerHTML = html;
 }
 
@@ -2102,15 +2103,23 @@ function useBagItem(){
 }
 
 function discardBagItem(){
-    if(!bagSelectedId) return;
+    if(!bagSelectedId){
+        var dt = document.getElementById('bp-detail');
+        dt.innerHTML = '<span style="color:#e8a090;">请先选择一个道具</span>';
+        return;
+    }
     var def = getItemDef(bagSelectedId);
+    if(!def) return;
     var count = getItemCount(bagSelectedId);
     if(count <= 0) return;
-    if(!confirm('确定要丢弃 1 个 ' + def.name + ' 吗？')) return;
+    // 二次确认
+    var sure = confirm('确定要丢弃 1 个 ' + def.name + ' 吗？\n此操作不可撤销！');
+    if(!sure) return;
     removeItem(def.id, 1);
     updateStats();
     renderBackpackGrid();
-    if(getItemCount(bagSelectedId) > 0){
+    var remain = getItemCount(bagSelectedId);
+    if(remain > 0){
         selectBagItem(bagSelectedId);
     } else {
         bagSelectedId = null;
