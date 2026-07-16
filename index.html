@@ -3,219 +3,285 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>勇者传说 - CSS像素RPG</title>
+<title>江湖风云录 - 武侠RPG</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
-    font-family:"Microsoft YaHei",sans-serif;
-    background:#1a1a2e;
+    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
+    background:#0a0a0f;
     display:flex;justify-content:center;align-items:center;
     min-height:100vh;padding:10px;
+    background-image:radial-gradient(ellipse at center,#1a1a2e 0%,#0a0a0f 70%);
 }
 #game{
-    width:100%;max-width:500px;
+    width:100%;max-width:600px;
     background:#0d1117;
     border-radius:12px;overflow:hidden;
-    box-shadow:0 0 30px rgba(0,0,0,0.5);
-    position:relative;height:92vh;max-height:750px;
+    box-shadow:0 0 40px rgba(180,140,60,0.2),0 0 80px rgba(0,0,0,0.6);
+    position:relative;height:94vh;max-height:800px;
     display:flex;flex-direction:column;
+    border:2px solid #2a2015;
 }
 
-/* === 顶栏 === */
+/* ===== 开场界面 ===== */
+#title-screen{
+    position:absolute;top:0;left:0;right:0;bottom:0;
+    background:linear-gradient(180deg,#0d0d1a 0%,#1a1020 40%,#0d0d1a 100%);
+    z-index:500;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:20px;
+}
+#title-screen::before{
+    content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+    background:
+        radial-gradient(circle at 20% 30%,rgba(180,140,60,0.08) 0%,transparent 50%),
+        radial-gradient(circle at 80% 70%,rgba(180,140,60,0.06) 0%,transparent 50%);
+    pointer-events:none;
+}
+.title-deco{
+    font-size:60px;color:#b48c3c;
+    text-shadow:0 0 30px rgba(180,140,60,0.5);
+    animation:float 3s ease-in-out infinite;
+    position:relative;z-index:1;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.title-main{
+    font-size:42px;color:#e8d5a3;
+    text-shadow:0 0 20px rgba(200,160,60,0.6),0 2px 4px rgba(0,0,0,0.8);
+    letter-spacing:8px;position:relative;z-index:1;
+    font-weight:bold;
+}
+.title-sub{
+    font-size:16px;color:#8b7355;
+    letter-spacing:6px;position:relative;z-index:1;
+    margin-top:-5px;
+}
+.title-divider{
+    width:120px;height:2px;
+    background:linear-gradient(90deg,transparent,#b48c3c,transparent);
+    position:relative;z-index:1;
+}
+#title-btns{
+    display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;
+    margin-top:10px;
+}
+.title-btn{
+    padding:12px 50px;font-size:18px;
+    background:linear-gradient(180deg,rgba(180,140,60,0.15) 0%,rgba(100,70,20,0.2) 100%);
+    border:2px solid #6b4c2a;border-radius:8px;
+    color:#e8d5a3;cursor:pointer;letter-spacing:4px;
+    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
+    transition:all 0.3s;position:relative;overflow:hidden;
+}
+.title-btn:hover{
+    background:linear-gradient(180deg,rgba(200,160,80,0.3) 0%,rgba(140,100,40,0.3) 100%);
+    border-color:#b48c3c;box-shadow:0 0 20px rgba(180,140,60,0.3);
+    transform:scale(1.03);
+}
+.title-btn:active{transform:scale(0.96);}
+.title-btn.disabled{
+    opacity:0.35;cursor:not-allowed;pointer-events:none;
+}
+.title-version{
+    font-size:11px;color:#4a3520;position:relative;z-index:1;
+    margin-top:10px;
+}
+
+/* ===== 顶栏 ===== */
 #topbar{
-    background:#161b22;padding:8px 14px;
+    background:linear-gradient(180deg,#1a1520,#101018);
+    padding:8px 16px;
     display:flex;justify-content:space-between;align-items:center;
-    border-bottom:2px solid #30363d;
+    border-bottom:2px solid #3d2e1a;
 }
-#topbar h1{font-size:15px;color:#ffd54f;}
-#loc-name{font-size:12px;color:#8b949e;}
+#topbar h1{font-size:16px;color:#d4a853;letter-spacing:3px;}
+#loc-name{font-size:12px;color:#8b7355;}
 
-/* === 地图区 === */
+/* ===== 地图区 ===== */
 #map-container{
     flex:1;position:relative;overflow:hidden;
     background:#2d5016;
+    min-height:0;
 }
 #map-layer{
     position:absolute;top:0;left:0;
-    width:100%;height:100%;
 }
 .tile{
     position:absolute;image-rendering:pixelated;
-    border:1px solid rgba(0,0,0,0.05);
+    border:1px solid rgba(0,0,0,0.06);
 }
 .tile-grass{background:#4a7c2e;}
 .tile-path{background:#c4a46c;}
-.tile-wall{background:#4a4a4a;}
-.tile-house{background:#8d6e63;}
-.tile-house-roof{background:#c62828;}
-.tile-water{background:#2980b9;}
-.tile-cave{background:#5d4037;}
-.tile-dungeon{background:#311b92;}
-.tile-shop{background:#e65100;}
-.tile-altar{background:#ffd54f;}
+.tile-wall{background:#4a4a4a;border-color:rgba(255,255,255,0.05);}
+.tile-house{background:#8d6e63;border-color:rgba(0,0,0,0.15);}
+.tile-cave{background:#5d4037;border-color:rgba(0,0,0,0.2);}
+.tile-dungeon{background:#311b92;border-color:rgba(255,255,255,0.05);}
+.tile-shop{background:#c06014;border-color:rgba(0,0,0,0.1);}
+.tile-altar{background:#d4a853;border-color:rgba(0,0,0,0.1);}
+.tile-water{background:#2980b9;border-color:rgba(255,255,255,0.08);}
+.tile-forest{background:#2d6b1e;border-color:rgba(0,0,0,0.08);}
+.tile-bridge{background:#8d6e63;border-color:rgba(0,0,0,0.1);}
+.tile-temple{background:#6d4c41;border-color:rgba(0,0,0,0.1);}
 
-/* === CSS 角色 === */
-.actor{
-    position:absolute;z-index:10;
-    transition:left 0.15s,top 0.15s;
-}
-.actor-body{
-    position:relative;width:26px;height:38px;
-}
-/* 头 */
+/* ===== CSS像素角色 ===== */
+.actor{position:absolute;z-index:10;transition:left 0.15s,top 0.15s;}
+.actor-body{position:relative;width:28px;height:40px;}
 .actor-head{
-    width:14px;height:14px;border-radius:50%;
+    width:15px;height:15px;border-radius:50%;
     position:absolute;top:0;left:50%;transform:translateX(-50%);
     border:1px solid rgba(0,0,0,0.3);
 }
-/* 头盔 */
-.actor-helm{
-    width:16px;height:5px;border-radius:3px 3px 0 0;
+.actor-hair{
+    width:17px;height:6px;border-radius:3px 3px 0 0;
     position:absolute;top:-2px;left:50%;transform:translateX(-50%);
 }
-/* 身体 */
 .actor-torso{
-    width:18px;height:14px;border-radius:3px;
-    position:absolute;top:13px;left:50%;transform:translateX(-50%);
+    width:19px;height:15px;border-radius:3px;
+    position:absolute;top:14px;left:50%;transform:translateX(-50%);
     border:1px solid rgba(0,0,0,0.3);
 }
-/* 腿 */
 .actor-left-leg,.actor-right-leg{
     width:6px;height:10px;border-radius:0 0 2px 2px;
     position:absolute;bottom:0;
 }
 .actor-left-leg{left:6px;}.actor-right-leg{right:6px;}
-/* 武器 */
 .actor-weapon{
-    width:3px;height:20px;border-radius:1px;
-    position:absolute;top:8px;right:-3px;
+    width:3px;height:22px;border-radius:1px;
+    position:absolute;top:8px;right:-4px;
+    background:#b0bec5;
 }
-/* 阴影 */
 .actor-shadow{
-    width:20px;height:6px;background:rgba(0,0,0,0.3);
+    width:20px;height:6px;background:rgba(0,0,0,0.35);
     border-radius:50%;position:absolute;bottom:-4px;left:50%;
     transform:translateX(-50%);
 }
-/* 名字标签 */
 .actor-name{
-    position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+    position:absolute;top:-19px;left:50%;transform:translateX(-50%);
     font-size:9px;white-space:nowrap;color:#fff;
     text-shadow:1px 1px 0 #000;
+    font-family:"Microsoft YaHei",sans-serif;
 }
-/* 动画 */
-@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
-@keyframes walk{0%,100%{transform:translateY(0) translateX(0)}
+@keyframes idleBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes walkBob{0%,100%{transform:translateY(0) translateX(0)}
     25%{transform:translateY(-3px) translateX(1px)}
     75%{transform:translateY(-3px) translateX(-1px)}}
-.actor.idle .actor-body{animation:idle 1.2s ease-in-out infinite;}
-.actor.walk .actor-body{animation:walk 0.35s ease-in-out infinite;}
+.actor.idle .actor-body{animation:idleBounce 1.2s ease-in-out infinite;}
+.actor.walk .actor-body{animation:walkBob 0.35s ease-in-out infinite;}
 
-/* === 状态面板 === */
+/* ===== 状态面板 ===== */
 #status-panel{
-    background:rgba(0,0,0,0.85);padding:8px 14px;
-    display:flex;justify-content:space-around;gap:10px;
-    border-top:2px solid #30363d;
+    background:rgba(0,0,0,0.88);padding:7px 14px;
+    display:flex;justify-content:space-around;gap:8px;
+    border-top:2px solid #3d2e1a;
     flex-wrap:wrap;
 }
-.stat{text-align:center;min-width:50px;}
-.stat-icon{font-size:16px;}
-.stat-val{font-size:14px;font-weight:bold;color:#ffd54f;}
-.stat-label{font-size:9px;color:#8b949e;}
+.stat{text-align:center;min-width:48px;}
+.stat-icon{font-size:15px;}
+.stat-val{font-size:13px;font-weight:bold;color:#d4a853;}
+.stat-label{font-size:9px;color:#8b7355;}
 
-/* === 操作栏 === */
+/* ===== 操作栏 ===== */
 #action-bar{
-    background:rgba(0,0,0,0.85);padding:6px 14px;
+    background:rgba(0,0,0,0.88);padding:6px 14px;
     display:flex;gap:8px;justify-content:center;
-    border-top:1px solid #30363d;
+    border-top:1px solid #3d2e1a;
 }
 .act-btn{
-    padding:6px 14px;border-radius:6px;border:none;
-    font-size:11px;font-weight:bold;cursor:pointer;
-    background:#238636;color:#fff;
-    transition:all 0.15s;
+    padding:7px 16px;border-radius:6px;border:1px solid #4a3520;
+    font-size:12px;font-weight:bold;cursor:pointer;
+    background:linear-gradient(180deg,rgba(180,140,60,0.1),rgba(100,70,20,0.15));
+    color:#e8d5a3;transition:all 0.15s;
+    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
 }
-.act-btn:hover{background:#2ea043;transform:translateY(-1px);}
+.act-btn:hover{background:linear-gradient(180deg,rgba(200,160,80,0.2),rgba(140,100,40,0.2));border-color:#b48c3c;}
 .act-btn:active{transform:scale(0.95);}
-.act-btn.danger{background:#da3633;}
-.act-btn.danger:hover{background:#f85149;}
-.act-btn.info{background:#1f6feb;}
 
-/* === 对话框 === */
+/* ===== 对话框 ===== */
 #dialog-box{
     display:none;position:absolute;bottom:0;left:0;right:0;
-    background:rgba(13,17,23,0.97);padding:14px 18px;
-    border-top:3px solid #ffd54f;z-index:50;
+    background:rgba(10,8,14,0.97);padding:14px 18px;
+    border-top:3px solid #b48c3c;z-index:50;
 }
-#dialog-speaker{font-size:13px;color:#ff6b6b;margin-bottom:6px;font-weight:bold;}
-#dialog-text{font-size:13px;color:#ddd;line-height:1.6;margin-bottom:10px;}
-#dialog-choices{display:flex;flex-wrap:wrap;gap:6px;}
+#dialog-speaker{font-size:14px;color:#e8a850;margin-bottom:6px;font-weight:bold;letter-spacing:2px;}
+#dialog-text{font-size:13px;color:#ccc;line-height:1.7;margin-bottom:10px;}
+#dialog-choices{display:flex;flex-wrap:wrap;gap:8px;}
 .dchoice{
-    padding:6px 14px;border-radius:4px;border:1px solid #ffd54f;
-    background:transparent;color:#ffd54f;cursor:pointer;font-size:11px;
+    padding:7px 16px;border-radius:4px;border:1px solid #6b4c2a;
+    background:rgba(180,140,60,0.08);color:#d4a853;cursor:pointer;
+    font-size:12px;font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
+    transition:all 0.15s;
 }
-.dchoice:hover{background:#ffd54f;color:#0d1117;}
+.dchoice:hover{background:#b48c3c;color:#0d0d1a;border-color:#b48c3c;}
 
-/* === 战斗面板 === */
+/* ===== 战斗面板 ===== */
 #battle-panel{
     display:none;position:absolute;top:0;left:0;right:0;bottom:0;
-    background:rgba(0,0,0,0.92);z-index:100;
+    background:rgba(8,6,12,0.94);z-index:100;
     flex-direction:column;align-items:center;justify-content:center;
 }
-#battle-scene{padding:20px;}
-.battle-row{display:flex;align-items:center;gap:30px;margin:10px 0;}
-.battle-char{text-align:center;}
-.battle-char .actor{position:relative;}
+#battle-scene{padding:20px;text-align:center;}
+.battle-row{display:flex;align-items:center;gap:30px;margin:10px 0;justify-content:center;}
+.battle-char{text-align:center;min-width:80px;}
+.battle-char .actor{position:relative;display:inline-block;}
 .battle-hp-bar{
-    width:120px;height:8px;background:#333;border-radius:4px;
-    margin-top:6px;overflow:hidden;border:1px solid #555;
+    width:130px;height:8px;background:#222;border-radius:4px;
+    margin-top:6px;overflow:hidden;border:1px solid #444;
+    display:inline-block;
 }
 .battle-hp-fill{height:100%;transition:width 0.3s;}
-.hp-player{background:linear-gradient(90deg,#2ea043,#238636);}
-.hp-enemy{background:linear-gradient(90deg,#da3633,#b62324);}
-.battle-name{font-size:12px;color:#fff;margin-top:4px;}
-.battle-nums{font-size:10px;color:#8b949e;}
-#battle-vs{font-size:28px;color:#ffd54f;}
+.hp-player{background:linear-gradient(90deg,#2ea043,#1a7a2e);}
+.hp-enemy{background:linear-gradient(90deg,#c0392b,#7b241c);}
+.battle-name{font-size:13px;color:#e8d5a3;margin-top:4px;letter-spacing:2px;}
+.battle-nums{font-size:10px;color:#8b7355;}
+#battle-vs{font-size:30px;color:#b48c3c;}
 #battle-log{
-    color:#ffd54f;font-size:13px;min-height:24px;
-    text-align:center;margin:10px 0;
+    color:#d4a853;font-size:13px;min-height:24px;
+    text-align:center;margin:12px 0;line-height:1.6;
 }
-#battle-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
+#battle-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
 .bact-btn{
-    padding:10px 18px;border-radius:6px;border:none;
+    padding:10px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);
     font-size:12px;font-weight:bold;cursor:pointer;color:#fff;
+    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
+    letter-spacing:1px;transition:all 0.15s;
 }
-.bact-btn.atk{background:#da3633;}
-.bact-btn.skill{background:#1f6feb;}
-.bact-btn.item{background:#238636;}
-.bact-btn.flee{background:#555;}
-.bact-btn:hover{filter:brightness(1.2);}
+.bact-btn.atk{background:linear-gradient(180deg,#c0392b,#8b1a1a);}
+.bact-btn.skill{background:linear-gradient(180deg,#2471a3,#154360);}
+.bact-btn.item{background:linear-gradient(180deg,#1e8449,#145a32);}
+.bact-btn.flee{background:linear-gradient(180deg,#555,#333);}
+.bact-btn:hover{filter:brightness(1.2);transform:translateY(-1px);}
 
-/* === 弹窗 === */
+/* ===== 弹窗 ===== */
 .modal{
     display:none;position:absolute;top:0;left:0;right:0;bottom:0;
-    background:rgba(0,0,0,0.85);z-index:200;
+    background:rgba(0,0,0,0.88);z-index:200;
     flex-direction:column;align-items:center;justify-content:center;
 }
 .modal.show{display:flex;}
 .modal-box{
-    background:#161b22;border:2px solid #ffd54f;border-radius:12px;
-    padding:20px 24px;max-width:380px;width:90%;text-align:center;
+    background:linear-gradient(180deg,#1a1520,#101018);
+    border:2px solid #6b4c2a;border-radius:12px;
+    padding:22px 26px;max-width:400px;width:90%;text-align:center;
 }
-.modal-box h2{color:#ffd54f;margin-bottom:10px;font-size:18px;}
-.modal-box p{color:#ccc;font-size:13px;line-height:1.7;margin-bottom:14px;}
+.modal-box h2{color:#d4a853;margin-bottom:10px;font-size:18px;letter-spacing:3px;}
+.modal-box p{color:#b8a080;font-size:13px;line-height:1.8;margin-bottom:16px;white-space:pre-line;}
 .modal-btn{
-    padding:8px 28px;border-radius:6px;border:none;
-    background:#ffd54f;color:#0d1117;font-weight:bold;
-    cursor:pointer;font-size:14px;
+    padding:9px 32px;border-radius:6px;border:1px solid #6b4c2a;
+    background:linear-gradient(180deg,rgba(180,140,60,0.15),rgba(100,70,20,0.2));
+    color:#e8d5a3;cursor:pointer;font-size:14px;
+    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
+    letter-spacing:2px;transition:all 0.2s;
 }
+.modal-btn:hover{background:linear-gradient(180deg,rgba(200,160,80,0.3),rgba(140,100,40,0.3));border-color:#b48c3c;}
 
-/* === 提示 === */
+/* ===== 提示 ===== */
 #hint{
     position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.9);color:#ffd54f;padding:10px 22px;
-    border-radius:8px;font-size:12px;z-index:60;
+    background:rgba(0,0,0,0.92);color:#d4a853;padding:10px 24px;
+    border-radius:8px;font-size:13px;z-index:60;
     display:none;pointer-events:none;
-    border:1px solid #ffd54f;
+    border:1px solid #6b4c2a;letter-spacing:1px;
+    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
 }
 </style>
 </head>
@@ -223,10 +289,23 @@ body{
 
 <div id="game">
 
+<!-- ===== 开场界面 ===== -->
+<div id="title-screen">
+    <div class="title-deco">⚔️</div>
+    <div class="title-main">江 湖 风 云 录</div>
+    <div class="title-sub">仗 剑 天 涯 · 快 意 恩 仇</div>
+    <div class="title-divider"></div>
+    <div id="title-btns">
+        <button class="title-btn" onclick="newGame()">初 入 江 湖</button>
+        <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
+    </div>
+    <div class="title-version">v1.0 · 武侠RPG</div>
+</div>
+
 <!-- 顶栏 -->
 <div id="topbar">
-    <h1>⚔️ 勇者传说</h1>
-    <span id="loc-name">新手村</span>
+    <h1>⚔️ 江湖风云录</h1>
+    <span id="loc-name">清风镇</span>
 </div>
 
 <!-- 地图 -->
@@ -237,18 +316,19 @@ body{
 
 <!-- 状态 -->
 <div id="status-panel">
-    <div class="stat"><div class="stat-icon">❤️</div><div class="stat-val" id="s-hp">100</div><div class="stat-label">生命</div></div>
-    <div class="stat"><div class="stat-icon">💎</div><div class="stat-val" id="s-mp">30</div><div class="stat-label">法力</div></div>
+    <div class="stat"><div class="stat-icon">❤️</div><div class="stat-val" id="s-hp">100</div><div class="stat-label">气血</div></div>
+    <div class="stat"><div class="stat-icon">💠</div><div class="stat-val" id="s-mp">30</div><div class="stat-label">内力</div></div>
     <div class="stat"><div class="stat-icon">⚔️</div><div class="stat-val" id="s-atk">15</div><div class="stat-label">攻击</div></div>
-    <div class="stat"><div class="stat-icon">💰</div><div class="stat-val" id="s-gold">50</div><div class="stat-label">金币</div></div>
+    <div class="stat"><div class="stat-icon">💰</div><div class="stat-val" id="s-gold">50</div><div class="stat-label">银两</div></div>
     <div class="stat"><div class="stat-icon">⭐</div><div class="stat-val" id="s-lv">Lv.1</div><div class="stat-label" id="s-exp"></div></div>
 </div>
 
 <!-- 操作 -->
 <div id="action-bar">
-    <button class="act-btn" onclick="showInventory()">🎒 背包</button>
-    <button class="act-btn info" onclick="showQuest()">📋 任务</button>
-    <button class="act-btn" onclick="healInTown()">💊 休息</button>
+    <button class="act-btn" onclick="showInventory()">🎒 行囊</button>
+    <button class="act-btn" onclick="showQuest()">📜 任务</button>
+    <button class="act-btn" onclick="saveGame()">💾 存档</button>
+    <button class="act-btn" onclick="meditate()">🧘 调息</button>
 </div>
 
 <!-- 对话框 -->
@@ -264,24 +344,24 @@ body{
         <div class="battle-row">
             <div class="battle-char">
                 <div id="battle-player"></div>
-                <div class="battle-name">勇者</div>
-                <div class="battle-nums">HP: <span id="bp-hp">100</span>/<span id="bp-maxhp">100</span></div>
+                <div class="battle-name">少侠</div>
+                <div class="battle-nums">气血: <span id="bp-hp">100</span>/<span id="bp-maxhp">100</span></div>
                 <div class="battle-hp-bar"><div class="battle-hp-fill hp-player" id="bp-hpbar"></div></div>
             </div>
-            <div id="battle-vs">⚡</div>
+            <div id="battle-vs">⚔️</div>
             <div class="battle-char">
                 <div id="battle-enemy"></div>
-                <div class="battle-name" id="be-name">史莱姆</div>
-                <div class="battle-nums">HP: <span id="be-hp">30</span>/<span id="be-maxhp">30</span></div>
+                <div class="battle-name" id="be-name"></div>
+                <div class="battle-nums">气血: <span id="be-hp">0</span>/<span id="be-maxhp">0</span></div>
                 <div class="battle-hp-bar"><div class="battle-hp-fill hp-enemy" id="be-hpbar"></div></div>
             </div>
         </div>
-        <div id="battle-log">战斗开始！</div>
+        <div id="battle-log">狭路相逢！</div>
         <div id="battle-actions">
-            <button class="bact-btn atk" onclick="battleAction('atk')">⚔️ 攻击</button>
-            <button class="bact-btn skill" onclick="battleAction('skill')">🔥 技能</button>
-            <button class="bact-btn item" onclick="battleAction('item')">💊 物品</button>
-            <button class="bact-btn flee" onclick="battleAction('flee')">🏃 逃跑</button>
+            <button class="bact-btn atk" onclick="battleAction('atk')">⚔️ 出剑</button>
+            <button class="bact-btn skill" onclick="battleAction('skill')">🗡️ 独孤九剑</button>
+            <button class="bact-btn item" onclick="battleAction('item')">💊 金创药</button>
+            <button class="bact-btn flee" onclick="battleAction('flee')">💨 轻功逃脱</button>
         </div>
     </div>
 </div>
@@ -299,117 +379,231 @@ body{
 
 <script>
 // ==================== 游戏数据 ====================
-var TILE = 48; // 每格48px
-var MAP_W = 10, MAP_H = 8;
+var TILE = 40;
+var MAP_W = 14, MAP_H = 10;
 
-// 地图: G=grass P=path W=wall H=house V=cave D=dungeon S=shop A=altar C=water
+// 地图: G=草地 F=树林 P=路 W=山墙 H=房屋 V=山洞 D=魔教总坛 S=商铺 A=演武场 C=河流 B=桥 T=寺庙
 var mapData = [
-    ['G','W','W','W','W','W','W','W','G','G'],
-    ['G','G','G','G','H','H','G','G','G','G'],
-    ['G','P','P','G','G','G','G','S','G','G'],
-    ['G','P','P','P','G','G','G','S','G','G'],
-    ['G','G','G','P','P','P','G','G','V','V'],
-    ['G','G','G','G','G','P','G','G','V','V'],
-    ['G','G','G','D','D','P','P','G','G','G'],
-    ['C','C','G','D','D','G','G','A','A','G']
+    ['W','W','W','G','F','F','G','G','G','G','T','T','W','W'],
+    ['W','W','G','G','F','G','G','G','H','H','G','G','G','W'],
+    ['G','G','C','P','P','P','G','G','S','S','G','G','G','G'],
+    ['G','C','C','P','P','P','P','P','S','S','G','G','A','A'],
+    ['F','F','B','G','G','P','G','F','F','G','G','G','A','A'],
+    ['F','F','G','G','G','P','G','F','F','G','G','G','G','G'],
+    ['G','G','G','G','V','P','P','P','G','G','F','F','G','G'],
+    ['G','G','G','V','V','G','G','P','G','G','F','F','G','G'],
+    ['G','G','G','G','G','G','G','P','G','F','F','G','G','G'],
+    ['W','W','D','D','D','D','D','P','P','G','G','G','G','G']
 ];
 
 var tileStyle = {
     G:{cls:'tile-grass',name:'草地'},
-    P:{cls:'tile-path',name:'小路'},
-    W:{cls:'tile-wall',name:'城墙'},
+    F:{cls:'tile-forest',name:'树林'},
+    P:{cls:'tile-path',name:'官道'},
+    W:{cls:'tile-wall',name:'山壁'},
     H:{cls:'tile-house',name:'房屋'},
-    V:{cls:'tile-cave',name:'洞穴'},
-    D:{cls:'tile-dungeon',name:'地下城'},
-    S:{cls:'tile-shop',name:'商店'},
-    A:{cls:'tile-altar',name:'祭坛'},
-    C:{cls:'tile-water',name:'河流'}
+    V:{cls:'tile-cave',name:'山洞'},
+    D:{cls:'tile-dungeon',name:'魔教总坛'},
+    S:{cls:'tile-shop',name:'商铺'},
+    A:{cls:'tile-altar',name:'演武场'},
+    C:{cls:'tile-water',name:'河流'},
+    B:{cls:'tile-bridge',name:'石桥'},
+    T:{cls:'tile-temple',name:'寺庙'}
 };
 
-// 区域名
-function areaName(x,y) {
-    if(y<=1) return '北郊';
-    if(y>=6) return mapData[y][x]==='D'?'地下城':'南荒';
-    if(x>=7) return '幽暗洞穴';
-    if(x>=5 && y<=2) return '商店街';
-    if(x>=4 && x<=6 && y>=3 && y<=4) return '大道';
-    if(x<=1 || y<=1) return '北郊';
-    return '新手村';
+function areaName(x,y){
+    if(y<=1) return x<=4?'北山':'古寺';
+    if(x<=2&&y<=3) return '河畔';
+    if(y<=3&&x>=6) return '清风镇';
+    if(y<=3) return '官道';
+    if(x>=9&&y<=4) return '演武场';
+    if(x>=3&&x<=4&&y<=4) return '石桥';
+    if(x>=5&&x<=6&&y>=6&&y<=7) return '密林';
+    if(x>=3&&x<=5&&y>=6&&y<=7) return '山洞入口';
+    if(y>=8&&x>=2&&x<=6) return '魔教总坛';
+    if(x>=10&&y>=5) return '竹林';
+    if(y>=8) return '南荒';
+    return '山林';
 }
 
 // NPC
 var npcs = [
-    {id:'elder', x:3, y:1, name:'村长', color:{skin:'#fce5d8',hair:'#888',cloth:'#6d4c41'},
+    {id:'master',x:8,y:2,name:'武师',color:{skin:'#fce5d8',hair:'#999',cloth:'#5d4037'},
         dialogs:[
-            {s:'勇者啊，你终于来了！',t:'村子正遭受魔物侵袭，需要你的帮助。'},
-            {q:'quest_1',s:'森林里有三只史莱姆在捣乱',t:'击败它们，回来领赏！',t2:'你消灭了史莱姆！这是给你的奖励。'}
+            {s:'少侠，你终于来了！',t:'近来山贼猖獗，祸害乡里，还请少侠出手相助。'},
+            {q:'quest_1',s:'山贼盘踞山林，劫掠百姓',t:'若能剿灭三伙山贼，老夫必有重谢。',t2:'少侠果然武艺高强！这是你的赏金。'}
         ]},
-    {id:'shop', x:6, y:2, name:'商人', color:{skin:'#fce5d8',hair:'#444',cloth:'#e67e22'},
+    {id:'doctor',x:8,y:3,name:'药铺掌柜',color:{skin:'#fce5d8',hair:'#555',cloth:'#8d6e63'},
         dialogs:[
-            {s:'欢迎光临！',t:'需要购买药水吗？10金币一瓶。',buy:true}
+            {s:'客官请进！小店有上好的金创药',t:'出门在外，带上几瓶防身吧。10两银子一瓶。',buy:true}
         ]},
-    {id:'guard', x:2, y:5, name:'守卫', color:{skin:'#deb887',hair:'#333',cloth:'#1976d2'},
+    {id:'escort',x:6,y:8,name:'镖师',color:{skin:'#deb887',hair:'#333',cloth:'#1565c0'},
         dialogs:[
-            {s:'地下城就在前方！',t:'里面的魔物非常强大，建议等级5以上再进去。'}
+            {s:'前方就是魔教总坛！',t:'魔教高手众多，教主武功深不可测。少侠务必小心，建议功力达到五重天再去。'}
+        ]},
+    {id:'monk',x:10,y:0,name:'扫地僧',color:{skin:'#fce5d8',hair:'#fff',cloth:'#8d6e63'},
+        dialogs:[
+            {s:'阿弥陀佛...',t:'施主若是累了，可在寺中歇息。老衲为你诵经祈福，可恢复全部气血内力。',heal:true}
         ]}
 ];
 
-// 敌人
+// 敌人——击败后不会重生
 var enemies = [
-    {id:'slime1',x:6,y:4,name:'史莱姆',hp:30,atk:8,def:2,exp:15,gold:12,color:'#4caf50',type:'normal',respawn:true},
-    {id:'slime2',x:1,y:6,name:'史莱姆',hp:30,atk:8,def:2,exp:15,gold:12,color:'#4caf50',type:'normal',respawn:true},
-    {id:'slime3',x:8,y:1,name:'史莱姆',hp:30,atk:8,def:2,exp:15,gold:12,color:'#4caf50',type:'normal',respawn:true},
-    {id:'goblin1',x:8,y:4,name:'哥布林',hp:50,atk:13,def:4,exp:30,gold:25,color:'#ff9800',type:'normal',respawn:true},
-    {id:'goblin2',x:5,y:6,name:'哥布林',hp:50,atk:13,def:4,exp:30,gold:25,color:'#ff9800',type:'normal',respawn:true},
-    {id:'boss',x:4,y:7,name:'魔王',hp:200,atk:25,def:10,exp:200,gold:500,color:'#f44336',type:'boss',respawn:false}
+    {id:'bandit1',x:3,y:1,name:'山贼',hp:35,atk:9,def:2,exp:18,gold:15,color:'#6d4c41',type:'bandit'},
+    {id:'bandit2',x:5,y:5,name:'山贼头目',hp:45,atk:11,def:3,exp:25,gold:20,color:'#795548',type:'bandit'},
+    {id:'bandit3',x:10,y:6,name:'流寇',hp:35,atk:9,def:2,exp:18,gold:15,color:'#8d6e63',type:'bandit'},
+    {id:'bully1',x:3,y:7,name:'恶霸',hp:60,atk:15,def:5,exp:35,gold:30,color:'#e65100',type:'bully'},
+    {id:'bully2',x:10,y:8,name:'地痞',hp:55,atk:14,def:4,exp:30,gold:28,color:'#bf360c',type:'bully'},
+    {id:'guard',x:2,y:9,name:'魔教护法',hp:120,atk:22,def:8,exp:100,gold:80,color:'#6a1b9a',type:'guard'},
+    {id:'boss',x:4,y:9,name:'魔教教主',hp:250,atk:30,def:12,exp:300,gold:500,color:'#b71c1c',type:'boss'}
 ];
+
+// 击杀计数（持久化）
+var killCounts = {bandit:0, bully:0, boss:0};
+// 已死亡敌人ID
+var deadEnemies = {};
 
 // 任务
 var quests = {
-    quest_1:{name:'消灭史莱姆',desc:'击败3只史莱姆',target:3,progress:0,rewardGold:80,rewardExp:60,done:false},
-    quest_2:{name:'讨伐哥布林',desc:'击败2只哥布林',target:2,progress:0,rewardGold:150,rewardExp:100,done:false},
-    quest_3:{name:'击败魔王',desc:'深入地下城击败魔王',target:1,progress:0,rewardGold:1000,rewardExp:500,done:false}
+    quest_1:{name:'剿灭山贼',desc:'击败3名山贼',target:3,progress:0,rewardGold:100,rewardExp:80,done:false},
+    quest_2:{name:'惩治恶霸',desc:'击败2名恶霸',target:2,progress:0,rewardGold:200,rewardExp:120,done:false},
+    quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1000,rewardExp:500,done:false}
 };
 
-// ==================== 玩家 ====================
-var player = {
-    x:3, y:4,
-    hp:100, maxHp:100,
-    mp:30, maxMp:30,
-    atk:15, def:5,
-    level:1, exp:0, expNeed:50,
-    gold:50,
-    items:{potion:3, superPotion:1},
-    quests:{quest_1:false,quest_2:false,quest_3:false}
-};
+// ==================== 玩家默认数据 ====================
+function defaultPlayer(){
+    return {
+        x:6, y:2,
+        hp:100, maxHp:100,
+        mp:30, maxMp:30,
+        atk:15, def:5,
+        level:1, exp:0, expNeed:60,
+        gold:50,
+        items:{potion:3, superPotion:1},
+        quests:{quest_1:false,quest_2:false,quest_3:false}
+    };
+}
 
+var player = defaultPlayer();
 var curNpc = null, curNpcDi = 0;
 var inBattle = false, enemyIdx = null, enemyHp = 0, enemyMaxHp = 0;
-var respawnTimer = {};
 var walkTimer = null;
+var gameStarted = false;
+
+// ==================== 存档系统 ====================
+var SAVE_KEY = 'wuxia_rpg_save';
+
+function hasSave(){
+    return !!localStorage.getItem(SAVE_KEY);
+}
+
+function saveGameData(){
+    var data = {
+        player: player,
+        killCounts: killCounts,
+        deadEnemies: deadEnemies,
+        quests: quests
+    };
+    try{
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        showHint('💾 存档成功！');
+    }catch(e){
+        showHint('❌ 存档失败，请检查浏览器存储空间');
+    }
+}
+
+function loadGameData(){
+    try{
+        var raw = localStorage.getItem(SAVE_KEY);
+        if(!raw) return false;
+        var data = JSON.parse(raw);
+        // 恢复玩家数据
+        var p = data.player;
+        player.x = p.x; player.y = p.y;
+        player.hp = p.hp; player.maxHp = p.maxHp;
+        player.mp = p.mp; player.maxMp = p.maxMp;
+        player.atk = p.atk; player.def = p.def;
+        player.level = p.level; player.exp = p.exp;
+        player.expNeed = p.expNeed; player.gold = p.gold;
+        player.items = p.items || {potion:3, superPotion:1};
+        player.quests = p.quests || {quest_1:false,quest_2:false,quest_3:false};
+        // 恢复击杀数据
+        killCounts = data.killCounts || {bandit:0, bully:0, boss:0};
+        deadEnemies = data.deadEnemies || {};
+        quests = data.quests || {
+            quest_1:{name:'剿灭山贼',desc:'击败3名山贼',target:3,progress:0,rewardGold:100,rewardExp:80,done:false},
+            quest_2:{name:'惩治恶霸',desc:'击败2名恶霸',target:2,progress:0,rewardGold:200,rewardExp:120,done:false},
+            quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1000,rewardExp:500,done:false}
+        };
+        return true;
+    }catch(e){
+        console.error('读档失败:', e);
+        return false;
+    }
+}
+
+// ==================== 标题界面 ====================
+function newGame(){
+    player = defaultPlayer();
+    killCounts = {bandit:0, bully:0, boss:0};
+    deadEnemies = {};
+    quests = {
+        quest_1:{name:'剿灭山贼',desc:'击败3名山贼',target:3,progress:0,rewardGold:100,rewardExp:80,done:false},
+        quest_2:{name:'惩治恶霸',desc:'击败2名恶霸',target:2,progress:0,rewardGold:200,rewardExp:120,done:false},
+        quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1000,rewardExp:500,done:false}
+    };
+    startGame();
+}
+
+function loadGame(){
+    if(!hasSave()) return;
+    if(!loadGameData()){
+        showModal('读档失败','存档数据损坏，请重新开始游戏。');
+        return;
+    }
+    startGame();
+}
+
+function startGame(){
+    gameStarted = true;
+    document.getElementById('title-screen').style.display = 'none';
+    buildMap();
+    renderPlayer();
+    updateStats();
+    showHint('🎮 WASD移动 | 空格交互 | 击败的敌人不会重生');
+}
+
+function initTitleScreen(){
+    // 检查是否有存档
+    var btnLoad = document.getElementById('btn-load');
+    if(!hasSave()){
+        btnLoad.classList.add('disabled');
+        btnLoad.title = '暂无存档';
+    }
+}
 
 // ==================== 渲染 ====================
-function buildMap() {
+function buildMap(){
     var layer = document.getElementById('map-layer');
     var h = '';
     for(var y=0;y<MAP_H;y++){
         for(var x=0;x<MAP_W;x++){
             var t = mapData[y][x];
             var s = tileStyle[t];
-            h+='<div class="tile '+s.cls+'" style="left:'+(x*TILE)+'px;top:'+(y*TILE)+'px;width:'+TILE+'px;height:'+TILE+'px;"></div>';
+            h += '<div class="tile '+s.cls+'" style="left:'+(x*TILE)+'px;top:'+(y*TILE)+'px;width:'+TILE+'px;height:'+TILE+'px;"></div>';
         }
     }
     layer.innerHTML = h;
 
-    // 渲染NPC
+    // NPC
     npcs.forEach(function(n){
         layer.innerHTML += genActorHTML(n.id, n.x, n.y, n.color, n.name, 'npc');
     });
 
-    // 渲染敌人
+    // 敌人——只渲染活着的
     enemies.forEach(function(e){
-        if(e.hp>0 || e.respawn){
-            layer.innerHTML += genActorHTML(e.id, e.x, e.y, {skin:'#c62828',hair:'#222',cloth:e.color}, e.name, 'enemy');
+        if(!deadEnemies[e.id]){
+            layer.innerHTML += genActorHTML(e.id, e.x, e.y, {skin:'#deb887',hair:'#333',cloth:e.color}, e.name, 'enemy');
         }
     });
 
@@ -417,32 +611,32 @@ function buildMap() {
 }
 
 function genActorHTML(id,x,y,color,name,type){
-    var cssX = x*TILE + (TILE-26)/2;
-    var cssY = y*TILE + TILE-42;
+    var cssX = x*TILE + (TILE-28)/2;
+    var cssY = y*TILE + TILE-44;
     var h = '<div class="actor '+type+'" id="'+id+'" style="left:'+cssX+'px;top:'+cssY+'px;">';
     h += '<span class="actor-name">'+name+'</span>';
     h += '<div class="actor-shadow"></div>';
     h += '<div class="actor-body">';
     h += '<div class="actor-head" style="background:'+color.skin+'"></div>';
-    h += '<div class="actor-helm" style="background:'+color.hair+'"></div>';
+    h += '<div class="actor-hair" style="background:'+color.hair+'"></div>';
     h += '<div class="actor-torso" style="background:'+color.cloth+'"></div>';
     h += '<div class="actor-left-leg" style="background:#333"></div>';
     h += '<div class="actor-right-leg" style="background:#333"></div>';
     if(type==='player'){
-        h += '<div class="actor-weapon" style="background:#90a4ae"></div>';
+        h += '<div class="actor-weapon" style="background:#b0bec5"></div>';
     }
     h += '</div></div>';
     return h;
 }
 
-function renderPlayer() {
+function renderPlayer(){
     var pdiv = document.getElementById('player-actor');
-    var cssX = player.x*TILE + (TILE-26)/2;
-    var cssY = player.y*TILE + TILE-42;
+    var cssX = player.x*TILE + (TILE-28)/2;
+    var cssY = player.y*TILE + TILE-44;
     if(!pdiv){
         var layer = document.getElementById('map-layer');
-        var color = {skin:'#ffe0bd',hair:'#795548',cloth:'#1565c0'};
-        var h = genActorHTML('player-actor',player.x,player.y,color,'勇者','player');
+        var color = {skin:'#ffe0bd',hair:'#3d2817',cloth:'#1a5276'};
+        var h = genActorHTML('player-actor',player.x,player.y,color,'少侠','player');
         layer.insertAdjacentHTML('beforeend',h);
         pdiv = document.getElementById('player-actor');
     }
@@ -452,7 +646,6 @@ function renderPlayer() {
 
     var loc = areaName(player.x,player.y);
     document.getElementById('loc-name').textContent = loc;
-
     updateStats();
 }
 
@@ -467,9 +660,10 @@ function updateStats(){
 
 // ==================== 移动 ====================
 document.addEventListener('keydown',function(e){
+    if(!gameStarted) return;
     if(inBattle) return;
     if(document.getElementById('dialog-box').style.display==='block'){
-        if(e.key==='Escape' || e.key===' '){
+        if(e.key==='Escape' || e.key===' ' || e.key==='e'){
             closeDialog();
         }
         return;
@@ -493,14 +687,16 @@ document.addEventListener('keydown',function(e){
     if(t==='W'||t==='C') return;
 
     // 检查敌人
-    var en = enemies.find(function(v){return v.x===nx && v.y===ny && v.hp>0;});
+    var en = enemies.find(function(v){
+        return v.x===nx && v.y===ny && !deadEnemies[v.id];
+    });
     if(en){startBattle(enemies.indexOf(en));return;}
 
     player.x=nx;player.y=ny;
     var pdiv=document.getElementById('player-actor');
     pdiv.className='actor player walk';
     if(walkTimer) clearTimeout(walkTimer);
-    walkTimer=setTimeout(function(){pdiv.className='actor player idle';updateStats();},350);
+    walkTimer=setTimeout(function(){pdiv.className='actor player idle';},350);
 
     renderPlayer();
     checkNpcProximity();
@@ -519,6 +715,7 @@ function checkNpcProximity(){
 }
 
 function interact(){
+    if(!gameStarted) return;
     for(var i=0;i<npcs.length;i++){
         var n=npcs[i];
         if(Math.abs(player.x-n.x)<=1 && Math.abs(player.y-n.y)<=1){
@@ -527,14 +724,14 @@ function interact(){
             return;
         }
     }
-    // 检查祭坛治疗
+    // 检查演武场治疗
     if(mapData[player.y][player.x]==='A'){
-        showModal('祭坛','✨ 神圣的光芒治愈了你！\nHP和MP完全恢复。');
+        showHint('🧘 在演武场调息，气血内力完全恢复！');
         player.hp=player.maxHp;player.mp=player.maxMp;
         updateStats();
     }
-    // 检查敌人
-    var en=enemies.find(function(v){return v.x===player.x && v.y===player.y && v.hp>0;});
+    // 检查敌人(同格)
+    var en=enemies.find(function(v){return v.x===player.x && v.y===player.y && !deadEnemies[v.id];});
     if(en){startBattle(enemies.indexOf(en));}
 }
 
@@ -545,26 +742,33 @@ function showDialog(d){
     var choices=document.getElementById('dialog-choices');
     choices.innerHTML='';
 
-    if(d.q){
-        // 任务对话
+    if(d.heal){
+        choices.innerHTML='<button class="dchoice" onclick="doHeal()">有劳大师</button>'+
+            '<button class="dchoice" onclick="closeDialog()">不必了</button>';
+    }else if(d.q){
         if(!player.quests[d.q]){
-            // 首次接任务
-            choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">接受任务</button>'+
-                '<button class="dchoice" onclick="closeDialog()">下次再说</button>';
+            choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">义不容辞</button>'+
+                '<button class="dchoice" onclick="closeDialog()">容我再想想</button>';
         }else if(d.t2 && quests[d.q].done){
-            // 已完成
-            choices.innerHTML='<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取奖励</button>'+
+            choices.innerHTML='<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取报酬</button>'+
                 '<button class="dchoice" onclick="closeDialog()">告辞</button>';
         }
     }else if(d.buy){
-        choices.innerHTML='<button class="dchoice" onclick="buyItem()">买药水(10金)</button>'+
-            '<button class="dchoice" onclick="closeDialog()">不了谢谢</button>';
+        choices.innerHTML='<button class="dchoice" onclick="buyItem()">买金创药(10两)</button>'+
+            '<button class="dchoice" onclick="closeDialog()">不了，告辞</button>';
     }
 
     if(!choices.innerHTML){
         choices.innerHTML='<button class="dchoice" onclick="nextDialog()">继续</button>';
     }
     box.style.display='block';
+}
+
+function doHeal(){
+    player.hp=player.maxHp;player.mp=player.maxMp;
+    showHint('🧘 大师诵经祈福，你感到浑身舒畅！');
+    closeDialog();
+    updateStats();
 }
 
 function nextDialog(){
@@ -576,10 +780,10 @@ function nextDialog(){
             if(player.quests[d.q] && quests[d.q].done && d.t2){
                 choices.innerHTML='<button class="dchoice" onclick="nextDialog2()">继续</button>';
             }else if(!player.quests[d.q]){
-                choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">接受任务</button>'+
-                    '<button class="dchoice" onclick="closeDialog()">下次再说</button>';
+                choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">义不容辞</button>'+
+                    '<button class="dchoice" onclick="closeDialog()">容我再想想</button>';
             }else{
-                choices.innerHTML='<button class="dchoice" onclick="closeDialog()">好的</button>';
+                choices.innerHTML='<button class="dchoice" onclick="closeDialog()">好</button>';
             }
         }else{
             choices.innerHTML='<button class="dchoice" onclick="closeDialog()">告辞</button>';
@@ -592,13 +796,20 @@ function nextDialog(){
 function nextDialog2(){
     var d=npcs[curNpc].dialogs[curNpcDi];
     document.getElementById('dialog-text').textContent=d.t2;
-    document.getElementById('dialog-choices').innerHTML='<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取奖励</button>'+
+    document.getElementById('dialog-choices').innerHTML=
+        '<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取报酬</button>'+
         '<button class="dchoice" onclick="closeDialog()">告辞</button>';
 }
 
 function acceptQuest(q){
     player.quests[q]=true;
-    showHint('📋 接受任务: '+quests[q].name);
+    quests[q].progress = killCounts[q==='quest_1'?'bandit':q==='quest_2'?'bully':'boss'];
+    if(quests[q].progress >= quests[q].target){
+        quests[q].done = true;
+        showHint('✅ 你已完成此任务的要求，去领取报酬吧！');
+    }else{
+        showHint('📜 接受任务: '+quests[q].name);
+    }
     closeDialog();
 }
 
@@ -606,7 +817,7 @@ function claimReward(q){
     var qd=quests[q];
     player.gold+=qd.rewardGold;
     player.exp+=qd.rewardExp;
-    showHint('💰 获得 '+qd.rewardGold+' 金币, +'+qd.rewardExp+' 经验!');
+    showHint('💰 获得 '+qd.rewardGold+' 银两, +'+qd.rewardExp+' 修为!');
     checkLevelUp();
     closeDialog();
 }
@@ -617,10 +828,10 @@ function closeDialog(){
 }
 
 function buyItem(){
-    if(player.gold<10){showHint('金币不够!');closeDialog();return;}
+    if(player.gold<10){showHint('银两不够!');closeDialog();return;}
     player.gold-=10;
     player.items.potion=(player.items.potion||0)+1;
-    showHint('💊 购买了1瓶药水!');
+    showHint('💊 购得金创药一瓶!');
     updateStats();
 }
 
@@ -639,12 +850,11 @@ function startBattle(ei){
     document.getElementById('bp-hp').textContent=player.hp;
     document.getElementById('bp-maxhp').textContent=player.maxHp;
     document.getElementById('bp-hpbar').style.width=(player.hp/player.maxHp*100)+'%';
-    document.getElementById('battle-log').textContent='⚡ 遭遇了 '+e.name+'！';
+    document.getElementById('battle-log').textContent='⚔️ 狭路相逢！'+e.name+'挡在了你的面前！';
 
-    // 渲染战斗角色
-    var pColor={skin:'#ffe0bd',hair:'#795548',cloth:'#1565c0'};
-    document.getElementById('battle-player').innerHTML = genActorHTML('bp-actor',0,0,pColor,'勇者','player');
-    var eColor={skin:'#c62828',hair:'#222',cloth:e.color};
+    var pColor={skin:'#ffe0bd',hair:'#3d2817',cloth:'#1a5276'};
+    document.getElementById('battle-player').innerHTML = genActorHTML('bp-actor',0,0,pColor,'少侠','player');
+    var eColor={skin:'#deb887',hair:'#333',cloth:e.color};
     document.getElementById('battle-enemy').innerHTML = genActorHTML('be-actor',0,0,eColor,e.name,'enemy');
 }
 
@@ -654,37 +864,43 @@ function battleAction(act){
 
     if(act==='flee'){
         if(Math.random()<0.5){
-            log.textContent='🏃 逃跑成功！';
+            log.textContent='💨 轻功施展，脱离了战斗！';
             endBattle(false);
         }else{
-            log.textContent='❌ 逃跑失败！';
+            log.textContent='❌ 逃脱失败！';
             enemyTurn();
         }
         return;
     }
 
     if(act==='atk'){
-        var dmg=Math.max(1,player.atk-e.def+Math.floor(Math.random()*6));
+        var rng=Math.floor(Math.random()*7);
+        var crit=rng>=5?2:1;
+        var dmg=Math.max(1,(player.atk-e.def)*crit+Math.floor(Math.random()*5));
         enemyHp-=dmg;
-        log.textContent='⚔️ 造成 '+dmg+' 点伤害！';
+        log.textContent='⚔️ 一剑挥出，造成 '+dmg+' 点伤害！'+(crit>1?' 【会心一击！】':'');
     }
 
     if(act==='skill'){
-        if(player.mp<8){log.textContent='💎 法力不足！';return;}
-        player.mp-=8;
-        var dmg=Math.max(1,Math.floor(player.atk*1.8)-e.def+Math.floor(Math.random()*8));
+        if(player.mp<10){log.textContent='💠 内力不足！需要10点内力';return;}
+        player.mp-=10;
+        var dmg=Math.max(1,Math.floor(player.atk*2.2)-e.def+Math.floor(Math.random()*10));
         enemyHp-=dmg;
-        log.textContent='🔥 烈焰斩！造成 '+dmg+' 点伤害！(-8MP)';
+        log.textContent='🗡️ 独孤九剑！剑气纵横，造成 '+dmg+' 点伤害！(消耗10内力)';
     }
 
     if(act==='item'){
         if((player.items.potion||0)>0){
             player.items.potion--;
-            var heal=30;
+            var heal=35;
             player.hp=Math.min(player.maxHp,player.hp+heal);
-            log.textContent='💊 使用药水，恢复 '+heal+' HP！';
+            log.textContent='💊 服下金创药，恢复 '+heal+' 气血！';
+        }else if((player.items.superPotion||0)>0){
+            player.items.superPotion--;
+            player.hp=player.maxHp;
+            log.textContent='💊 服下大还丹，气血完全恢复！';
         }else{
-            log.textContent='❌ 没有药水了！';
+            log.textContent='❌ 没有丹药了！';
             return;
         }
     }
@@ -692,26 +908,28 @@ function battleAction(act){
     updateBattleUI();
 
     if(enemyHp<=0){
-        log.textContent='🎉 击败了 '+e.name+'！';
+        log.textContent='🎉 '+e.name+' 被击败了！';
         endBattle(true);
         return;
     }
-
     enemyTurn();
 }
 
 function enemyTurn(){
     var e=enemies[enemyIdx];
-    var dmg=Math.max(1,e.atk-player.def+Math.floor(Math.random()*4));
+    var dmg=Math.max(1,e.atk-player.def+Math.floor(Math.random()*5));
+    // 偶尔暴击
+    if(Math.random()<0.12) dmg=Math.floor(dmg*1.8);
     player.hp-=dmg;
-    document.getElementById('battle-log').textContent+=' | '+e.name+'反击造成 '+dmg+' 点伤害！';
+    document.getElementById('battle-log').textContent+='\n'+e.name+'反击，造成 '+dmg+' 点伤害！';
     updateBattleUI();
 
     if(player.hp<=0){
         player.hp=1;
-        document.getElementById('battle-log').textContent='💀 你倒下了...复活在新手村';
+        document.getElementById('battle-log').textContent='💀 你倒在了血泊中...被好心人救回了清风镇';
         endBattle(false);
-        player.x=3;player.y=4;
+        player.x=6;player.y=2;
+        buildMap();
         renderPlayer();
     }
 }
@@ -730,21 +948,28 @@ function endBattle(won){
     if(won){
         player.exp+=e.exp;
         player.gold+=e.gold;
+
+        // 标记敌人死亡，不再重生
+        deadEnemies[e.id]=true;
+
+        // 击杀计数
+        if(e.type==='bandit') killCounts.bandit++;
+        if(e.type==='bully') killCounts.bully++;
+        if(e.type==='boss') killCounts.boss++;
+
         // 任务进度
-        if(e.type==='normal'){
-            if(player.quests.quest_1 && !quests.quest_1.done){
-                quests.quest_1.progress++;
-                if(quests.quest_1.progress>=quests.quest_1.target){
-                    quests.quest_1.done=true;
-                    showHint('✅ 任务完成: 消灭史莱姆！去找村长领赏');
-                }
+        if(player.quests.quest_1 && !quests.quest_1.done && e.type==='bandit'){
+            quests.quest_1.progress++;
+            if(quests.quest_1.progress>=quests.quest_1.target){
+                quests.quest_1.done=true;
+                showHint('✅ 任务完成: 剿灭山贼！回去找武师领赏');
             }
-            if(player.quests.quest_2 && !quests.quest_2.done){
-                quests.quest_2.progress++;
-                if(quests.quest_2.progress>=quests.quest_2.target){
-                    quests.quest_2.done=true;
-                    showHint('✅ 任务完成: 讨伐哥布林！');
-                }
+        }
+        if(player.quests.quest_2 && !quests.quest_2.done && e.type==='bully'){
+            quests.quest_2.progress++;
+            if(quests.quest_2.progress>=quests.quest_2.target){
+                quests.quest_2.done=true;
+                showHint('✅ 任务完成: 惩治恶霸！');
             }
         }
         if(e.type==='boss'){
@@ -752,17 +977,9 @@ function endBattle(won){
                 quests.quest_3.progress++;
                 if(quests.quest_3.progress>=quests.quest_3.target){
                     quests.quest_3.done=true;
-                    showHint('🏆 任务完成: 击败魔王！你是英雄！');
+                    showHint('🏆 任务完成: 决战魔教！你是武林至尊！');
                 }
             }
-        }
-        e.hp=0;
-        // 普通敌人重生
-        if(e.respawn){
-            respawnTimer[enemyIdx]=setTimeout(function(){
-                enemies[enemyIdx].hp=enemies[enemyIdx].hp=30;
-                buildMap();
-            },15000);
         }
         checkLevelUp();
     }
@@ -779,47 +996,63 @@ function checkLevelUp(){
     while(player.exp>=player.expNeed){
         player.exp-=player.expNeed;
         player.level++;
-        player.expNeed=Math.floor(player.expNeed*1.5);
-        player.maxHp+=20;player.hp=player.maxHp;
-        player.maxMp+=10;player.mp=player.maxMp;
-        player.atk+=3;player.def+=2;
-        showHint('🎉 升级！Lv.'+player.level+' HP+20 MP+10 ATK+3 DEF+2');
+        player.expNeed=Math.floor(player.expNeed*1.6);
+        player.maxHp+=22;player.hp=player.maxHp;
+        player.maxMp+=12;player.mp=player.maxMp;
+        player.atk+=4;player.def+=2;
+        showHint('🎉 突破！功力达到第'+player.level+'重天！气血+22 内力+12 攻击+4 防御+2');
     }
 }
 
 // ==================== UI辅助 ====================
-function healInTown(){
-    if(player.gold<20){showHint('💊 需要20金币');return;}
-    player.gold-=20;
+function meditate(){
+    if(player.gold<15){showHint('💊 需要15两银子');return;}
+    player.gold-=15;
     player.hp=Math.min(player.maxHp,player.hp+50);
-    player.mp=Math.min(player.maxMp,player.mp+15);
-    showHint('💊 休息了一下，恢复50HP和15MP');
+    player.mp=Math.min(player.maxMp,player.mp+20);
+    showHint('🧘 打坐调息一番，恢复50气血和20内力');
     updateStats();
 }
 
+function saveGame(){
+    saveGameData();
+    // 更新开场界面加载按钮
+    initTitleScreen();
+}
+
 function showInventory(){
-    var txt='🎒 背包\n\n';
-    txt+='药水 x'+(player.items.potion||0)+' (恢复30HP)\n';
-    txt+='超级药水 x'+(player.items.superPotion||0)+' (恢复80HP)\n\n';
-    txt+='💰 金币: '+player.gold;
-    showModal('背包',txt);
+    var txt='🎒 行囊\n\n';
+    txt+='金创药 x'+(player.items.potion||0)+' (恢复35气血)\n';
+    txt+='大还丹 x'+(player.items.superPotion||0)+' (恢复全部气血)\n\n';
+    txt+='💰 银两: '+player.gold+'\n';
+    txt+='⚔️ 攻击: '+player.atk+' | 🛡️ 防御: '+player.def;
+    showModal('行囊',txt);
 }
 
 function showQuest(){
-    var txt='📋 任务列表\n\n';
+    var txt='📜 江湖任务\n\n';
     for(var k in quests){
         var q=quests[k];
-        var status=!player.quests[k]?'[未接]':q.done?'[✅完成]':'[进行中 '+q.progress+'/'+q.target+']';
-        txt+=status+' '+q.name+': '+q.desc+'\n';
-        txt+='   奖励: '+q.rewardGold+'金 +'+q.rewardExp+'经验\n\n';
+        var status;
+        if(!player.quests[k]){
+            status='[未接]';
+        }else if(q.done){
+            status='[✅ 已完成]';
+        }else{
+            status='[进行中 '+q.progress+'/'+q.target+']';
+        }
+        txt+=status+' '+q.name+'\n';
+        txt+='  '+q.desc+'\n';
+        txt+='  报酬: '+q.rewardGold+'银两 +'+q.rewardExp+'修为\n\n';
     }
+    txt+='击杀统计: 山贼×'+killCounts.bandit+' 恶霸×'+killCounts.bully;
     showModal('任务',txt);
 }
 
 function showHint(msg){
     var h=document.getElementById('hint');
     h.textContent=msg;h.style.display='block';
-    setTimeout(function(){h.style.display='none';},2000);
+    setTimeout(function(){h.style.display='none';},2200);
 }
 function hideHint(){document.getElementById('hint').style.display='none';}
 
@@ -835,7 +1068,10 @@ function closeModal(){
 // ==================== 初始化 ====================
 buildMap();
 renderPlayer();
-showHint('🎮 WASD移动 | 空格交互 | 点击按钮使用功能');
+initTitleScreen();
+// 标题界面默认显示，不自动开始
+document.getElementById('title-screen').style.display='flex';
+updateStats();
 </script>
 </body>
 </html>
