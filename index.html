@@ -378,7 +378,7 @@ body{
         <button class="title-btn" onclick="newGame()">初 入 江 湖</button>
         <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
     </div>
-    <div class="title-version">v3.7 · 武侠RPG</div>
+    <div class="title-version">v3.8 · 武侠RPG</div>
 </div>
 
 <!-- 顶栏 -->
@@ -447,6 +447,7 @@ body{
     <button class="act-btn" onclick="showQuest()">📜 任务</button>
     <button class="act-btn" onclick="saveGame()">💾 存档</button>
     <button class="act-btn" onclick="meditate()">🧘 调息</button>
+    <button class="act-btn" id="btn-mute" onclick="toggleMute()" title="音效开关" style="min-width:36px;padding:7px 8px;">🔊</button>
 </div>
 
 <!-- 对话框 -->
@@ -496,6 +497,53 @@ body{
 </div>
 
 <script>
+// ==================== 音效系统 (Web Audio API) ====================
+var SND = {ctx:null, muted:false};
+function sndInit(){if(!SND.ctx)try{SND.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+function sndTone(f,t,d,v,s){
+    if(!SND.ctx||SND.muted)return;var c=SND.ctx,tm=c.currentTime;
+    var o=c.createOscillator(),g=c.createGain();
+    o.type=t||'square';o.frequency.setValueAtTime(f,tm);
+    if(s)o.frequency.exponentialRampToValueAtTime(f*s,tm+d);
+    g.gain.setValueAtTime(v||0.12,tm);g.gain.exponentialRampToValueAtTime(0.001,tm+d);
+    o.connect(g);g.connect(c.destination);o.start(tm);o.stop(tm+d);
+}
+function sndNoise(d,v,ff){
+    if(!SND.ctx||SND.muted)return;var c=SND.ctx,tm=c.currentTime;
+    var sr=c.sampleRate,len=Math.floor(sr*d);
+    var b=c.createBuffer(1,len,sr),a=b.getChannelData(0);
+    for(var i=0;i<len;i++)a[i]=Math.random()*2-1;
+    var s=c.createBufferSource();s.buffer=b;
+    var g=c.createGain();
+    g.gain.setValueAtTime(v||0.06,tm);g.gain.exponentialRampToValueAtTime(0.001,tm+d);
+    var f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=ff||1500;f.Q.value=0.5;
+    s.connect(f);f.connect(g);g.connect(c.destination);s.start(tm);
+}
+function sfxSword(){sndNoise(0.1,0.07,1400);sndTone(500,'sawtooth',0.12,0.06);}
+function sfxCrit(){sndNoise(0.15,0.1,2000);sndTone(900,'sawtooth',0.18,0.08);sndTone(1300,'square',0.1,0.05);}
+function sfxSkill(){sndNoise(0.22,0.08,800);sndTone(180,'sawtooth',0.28,0.1,2.8);sndTone(300,'triangle',0.2,0.06,1.5);}
+function sfxHit(){sndTone(70,'sine',0.22,0.14);sndNoise(0.07,0.04,800);}
+function sfxVictory(){
+    var ns=[523,659,784,1047];
+    for(var i=0;i<ns.length;i++){setTimeout((function(ff){return function(){sndTone(ff,'square',0.18,0.1);};})(ns[i]),i*130);}
+}
+function sfxDefeat(){sndTone(300,'triangle',0.3,0.1);setTimeout(function(){sndTone(200,'triangle',0.4,0.09);},180);setTimeout(function(){sndTone(100,'triangle',0.5,0.07);},360);}
+function sfxCoin(){sndTone(1200,'sine',0.1,0.07);setTimeout(function(){sndTone(1600,'sine',0.08,0.05);},70);}
+function sfxLevelUp(){
+    var ns=[523,659,784,1047,1318];
+    for(var i=0;i<ns.length;i++){setTimeout((function(ff){return function(){sndTone(ff,'square',0.14,0.07);};})(ns[i]),i*100);}
+}
+function sfxHeal(){sndTone(440,'sine',0.4,0.05,1.3);setTimeout(function(){sndTone(554,'sine',0.25,0.04);},180);}
+function sfxFlee(){sndNoise(0.3,0.05,2000);sndTone(200,'triangle',0.28,0.03,3.5);}
+function sfxClick(){sndTone(800,'sine',0.03,0.02);}
+function sfxQuest(){sndTone(600,'square',0.1,0.06);setTimeout(function(){sndTone(800,'square',0.1,0.05);},90);setTimeout(function(){sndTone(1000,'square',0.14,0.06);},180);}
+function sfxStart(){sndTone(200,'triangle',0.3,0.08,4);sndNoise(0.2,0.04,1000);}
+function toggleMute(){
+    SND.muted=!SND.muted;
+    document.getElementById('btn-mute').textContent=SND.muted?'🔇':'🔊';
+    showHint(SND.muted?'🔇 音效已关闭':'🔊 音效已开启');
+}
+
 // ==================== 游戏数据 ====================
 var TILE = 40;
 var MAP_W = 20, MAP_H = 14;
@@ -728,6 +776,7 @@ function loadGame(){
 }
 
 function startGame(){
+    sndInit();
     gameStarted = true;
     checkMobile();
     document.getElementById('title-screen').style.display = 'none';
@@ -978,6 +1027,7 @@ function showDialog(d){
 
 function doHeal(){
     player.hp=player.maxHp;player.mp=player.maxMp;
+    sfxHeal();
     showHint('🧘 大师诵经祈福，你感到浑身舒畅！');
     closeDialog();
     updateStats();
@@ -1087,6 +1137,7 @@ function nextDialog2(){
 
 function acceptQuest(q){
     player.quests[q]=true;
+    sfxQuest();
     quests[q].progress = killCounts[q==='quest_1'?'bandit':q==='quest_2'?'bully':'boss'];
     if(quests[q].progress >= quests[q].target){
         quests[q].done = true;
@@ -1103,6 +1154,7 @@ function claimReward(q){
     var qd=quests[q];
     player.gold+=qd.rewardGold;
     player.exp+=qd.rewardExp;
+    sfxCoin();
     var lvUp=checkLevelUpSilent();
     var txt='【'+qd.name+'】完成！\n\n';
     txt+='💰 银两 +'+qd.rewardGold+'\n';
@@ -1121,6 +1173,7 @@ function buyItem(){
     if(player.gold<10){showHint('银两不够!');closeDialog();return;}
     player.gold-=10;
     player.items.potion=(player.items.potion||0)+1;
+    sfxCoin();
     showHint('💊 购得金创药一瓶!');
     updateStats();
 }
@@ -1141,6 +1194,7 @@ function startBattle(ei){
     document.getElementById('bp-maxhp').textContent=player.maxHp;
     document.getElementById('bp-hpbar').style.width=(player.hp/player.maxHp*100)+'%';
     document.getElementById('battle-log').textContent='⚔️ 狭路相逢！'+e.name+'挡在了你的面前！';
+    sfxStart();
 
     var pColor={skin:'#ffe0bd',hair:'#3d2817',cloth:'#1a5276'};
     document.getElementById('battle-player').innerHTML = genActorHTML('bp-actor',0,0,pColor,'少侠','player');
@@ -1155,9 +1209,11 @@ function battleAction(act){
     if(act==='flee'){
         if(Math.random()<0.5){
             log.textContent='💨 轻功施展，脱离了战斗！';
+            sfxFlee();
             endBattle(false);
         }else{
             log.textContent='❌ 逃脱失败！';
+            sfxHit();
             enemyTurn();
         }
         return;
@@ -1169,6 +1225,7 @@ function battleAction(act){
         var dmg=Math.max(1,(player.atk-e.def)*crit+Math.floor(Math.random()*5));
         enemyHp-=dmg;
         log.textContent='⚔️ 一剑挥出，造成 '+dmg+' 点伤害！'+(crit>1?' 【会心一击！】':'');
+        if(crit>1)sfxCrit();else sfxSword();
     }
 
     if(act==='skill'){
@@ -1177,6 +1234,7 @@ function battleAction(act){
         var dmg=Math.max(1,Math.floor(player.atk*2.2)-e.def+Math.floor(Math.random()*10));
         enemyHp-=dmg;
         log.textContent='🗡️ 独孤九剑！剑气纵横，造成 '+dmg+' 点伤害！(消耗10内力)';
+        sfxSkill();
     }
 
     if(act==='item'){
@@ -1212,10 +1270,12 @@ function enemyTurn(){
     if(Math.random()<0.12) dmg=Math.floor(dmg*1.8);
     player.hp-=dmg;
     document.getElementById('battle-log').textContent+='\n'+e.name+'反击，造成 '+dmg+' 点伤害！';
+    sfxHit();
     updateBattleUI();
 
     if(player.hp<=0){
         player.hp=1;
+        sfxDefeat();
         document.getElementById('battle-log').textContent='💀 你倒在了血泊中...被好心人救回了清风镇';
         endBattle(false);
         player.x=9;player.y=3;
@@ -1240,6 +1300,7 @@ function updateBattleUI(){
 function endBattle(won){
     var e=enemies[enemyIdx];
     if(won){
+        sfxVictory();
         player.exp+=e.exp;
         player.gold+=e.gold;
 
@@ -1306,6 +1367,7 @@ function checkLevelUpSilent(){
         player.maxMp+=12;player.mp=player.maxMp;
         player.atk+=4;player.def+=2;
         gained++;
+        sfxLevelUp();
     }
     return gained;
 }
@@ -1316,6 +1378,7 @@ function meditate(){
     player.gold-=15;
     player.hp=Math.min(player.maxHp,player.hp+50);
     player.mp=Math.min(player.maxMp,player.mp+20);
+    sfxHeal();
     showHint('🧘 打坐调息一番，恢复50气血和20内力');
     updateStats();
 }
