@@ -1022,9 +1022,9 @@ function acceptQuest(q){
     quests[q].progress = killCounts[q==='quest_1'?'bandit':q==='quest_2'?'bully':'boss'];
     if(quests[q].progress >= quests[q].target){
         quests[q].done = true;
-        showHint('✅ 你已完成此任务的要求，去领取报酬吧！');
+        showModal('📜 任务已接受','【'+quests[q].name+'】\n'+quests[q].desc+'\n\n✅ 你已完成此任务的要求！\n速去领取报酬吧！');
     }else{
-        showHint('📜 接受任务: '+quests[q].name);
+        showModal('📜 任务已接受','【'+quests[q].name+'】\n'+quests[q].desc+'\n\n目标: '+quests[q].progress+'/'+quests[q].target+'\n报酬: '+quests[q].rewardGold+'银两 +'+quests[q].rewardExp+'修为');
     }
     closeDialog();
 }
@@ -1033,8 +1033,12 @@ function claimReward(q){
     var qd=quests[q];
     player.gold+=qd.rewardGold;
     player.exp+=qd.rewardExp;
-    showHint('💰 获得 '+qd.rewardGold+' 银两, +'+qd.rewardExp+' 修为!');
-    checkLevelUp();
+    var lvUp=checkLevelUpSilent();
+    var txt='【'+qd.name+'】完成！\n\n';
+    txt+='💰 银两 +'+qd.rewardGold+'\n';
+    txt+='✨ 修为 +'+qd.rewardExp;
+    if(lvUp>0) txt+='\n\n🎉 功力突破至第'+player.level+'重天！';
+    showModal('🏆 任务完成',txt);
     closeDialog();
 }
 
@@ -1178,18 +1182,19 @@ function endBattle(won){
         if(e.type==='boss') killCounts.boss++;
 
         // 任务进度
+        var questDone=false;
         if(player.quests.quest_1 && !quests.quest_1.done && e.type==='bandit'){
             quests.quest_1.progress++;
             if(quests.quest_1.progress>=quests.quest_1.target){
                 quests.quest_1.done=true;
-                showHint('✅ 任务完成: 剿灭山贼！回去找武师领赏');
+                questDone=true;
             }
         }
         if(player.quests.quest_2 && !quests.quest_2.done && e.type==='bully'){
             quests.quest_2.progress++;
             if(quests.quest_2.progress>=quests.quest_2.target){
                 quests.quest_2.done=true;
-                showHint('✅ 任务完成: 惩治恶霸！');
+                questDone=true;
             }
         }
         if(e.type==='boss'){
@@ -1197,11 +1202,19 @@ function endBattle(won){
                 quests.quest_3.progress++;
                 if(quests.quest_3.progress>=quests.quest_3.target){
                     quests.quest_3.done=true;
-                    showHint('🏆 任务完成: 决战魔教！你是武林至尊！');
+                    questDone=true;
                 }
             }
         }
-        checkLevelUp();
+        var lvUp=checkLevelUpSilent();
+
+        // ===== 战斗结算弹窗 =====
+        var resultTxt='⚔️ '+e.name+' 已被击败！\n\n';
+        resultTxt+='💰 银两 +'+e.gold+'\n';
+        resultTxt+='✨ 修为 +'+e.exp;
+        if(lvUp>0) resultTxt+='\n\n🎉 功力突破至第'+player.level+'重天！';
+        if(questDone) resultTxt+='\n\n📜 有任务目标已达成！回去领赏吧。';
+        showModal('🎉 战斗胜利',resultTxt);
     }
 
     document.getElementById('battle-panel').style.display='none';
@@ -1213,6 +1226,11 @@ function endBattle(won){
 }
 
 function checkLevelUp(){
+    var lv=checkLevelUpSilent();
+    if(lv>0) showHint('🎉 突破！功力达到第'+player.level+'重天！气血+22 内力+12 攻击+4 防御+2');
+}
+function checkLevelUpSilent(){
+    var gained=0;
     while(player.exp>=player.expNeed){
         player.exp-=player.expNeed;
         player.level++;
@@ -1220,8 +1238,9 @@ function checkLevelUp(){
         player.maxHp+=22;player.hp=player.maxHp;
         player.maxMp+=12;player.mp=player.maxMp;
         player.atk+=4;player.def+=2;
-        showHint('🎉 突破！功力达到第'+player.level+'重天！气血+22 内力+12 攻击+4 防御+2');
+        gained++;
     }
+    return gained;
 }
 
 // ==================== UI辅助 ====================
@@ -1251,20 +1270,18 @@ function showInventory(){
 
 function showQuest(){
     var txt='📜 江湖任务\n\n';
+    var hasQuest=false;
     for(var k in quests){
         var q=quests[k];
-        var status;
-        if(!player.quests[k]){
-            status='[未接]';
-        }else if(q.done){
-            status='[✅ 已完成]';
-        }else{
-            status='[进行中 '+q.progress+'/'+q.target+']';
-        }
+        // 不显示未接的任务
+        if(!player.quests[k]) continue;
+        hasQuest=true;
+        var status=q.done ? '[✅ 已完成]' : '[进行中 '+q.progress+'/'+q.target+']';
         txt+=status+' '+q.name+'\n';
         txt+='  '+q.desc+'\n';
         txt+='  报酬: '+q.rewardGold+'银两 +'+q.rewardExp+'修为\n\n';
     }
+    if(!hasQuest) txt+='暂无进行中的任务。\n前往清风镇找武师接取任务吧！\n\n';
     txt+='击杀统计: 山贼×'+killCounts.bandit+' 恶霸×'+killCounts.bully+' 魔教×'+killCounts.guard;
     showModal('任务',txt);
 }
