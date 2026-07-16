@@ -336,170 +336,16 @@ body{
 }
 .battle-char.flash{animation:flash-hit 0.3s ease-out;}
 
-/* ===== CSS剪影立绘 ===== */
-.css-avatar{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:48px;height:56px;position:relative;
-    flex-shrink:0;
+/* ===== Canvas水墨立绘 ===== */
+.inkwash-canvas{
+    display:block;flex-shrink:0;
+    border:1px solid rgba(180,140,60,0.25);
+    border-radius:4px;
+    image-rendering:auto;
 }
-.css-avatar .body{
-    position:absolute;bottom:2px;left:4px;right:4px;height:26px;
-    border-radius:6px 6px 12px 12px;
-}
-.css-avatar .head{
-    position:absolute;width:18px;height:20px;border-radius:50%;
-    top:12px;left:50%;transform:translateX(-50%);
-}
-
-/* 说书人 - 斗笠+胡须 */
-.avt-storyteller .head{background:#2a1f15;}
-.avt-storyteller .body{background:#3d2b1a; border-radius:4px 4px 16px 16px;}
-.avt-storyteller::before{
-    content:'';position:absolute;
-    top:2px;left:2px;right:2px;height:16px;
-    background:linear-gradient(180deg,#4a3020,#3d2515);
-    clip-path:polygon(15% 0%,85% 0%,100% 100%,0% 100%);
-    border-radius:2px;
-}
-.avt-storyteller::after{
-    content:'';position:absolute;
-    bottom:0;left:10px;right:10px;height:8px;
-    background:linear-gradient(180deg,transparent,#2a1f15 40%);
-    border-radius:0 0 50% 50%;
-}
-
-/* 县尉韩伯 - 官帽 */
-.avt-master .head{background:#fce5d8;width:16px;height:18px;top:14px;}
-.avt-master .body{background:#4a3728; border-radius:4px 4px 14px 14px;}
-.avt-master::before{
-    content:'';position:absolute;top:5px;left:8px;right:8px;height:11px;
-    background:#3d2b1a;border-radius:2px 2px 0 0;
-}
-.avt-master::after{
-    content:'';position:absolute;top:6px;left:2px;right:2px;height:3px;
-    background:#5a4030;border-radius:1px;
-}
-
-/* 医馆华老 */
-.avt-doctor .head{background:#fce5d8;width:16px;height:18px;top:14px;}
-.avt-doctor .body{background:#7b6b5a;border-radius:4px 4px 14px 14px;}
-.avt-doctor::before{
-    content:'';position:absolute;top:6px;left:7px;width:16px;height:10px;
-    background:#5d5040;border-radius:50%;
-}
-
-/* 方士左慈 - 道髻 */
-.avt-monk .head{background:#fce5d8;width:15px;height:18px;top:14px;}
-.avt-monk .body{background:#5d6570;border-radius:4px 4px 18px 18px;}
-.avt-monk::before{
-    content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);
-    width:8px;height:13px;background:#e8d5c0;border-radius:50%;
-}
-
-/* 水镜先生 - 布帽隐士 */
-.avt-hermit .head{background:#c8a882;width:16px;height:18px;top:14px;}
-.avt-hermit .body{background:#2e5d32;border-radius:6px 6px 14px 14px;}
-.avt-hermit::before{
-    content:'';position:absolute;top:4px;left:4px;right:4px;height:12px;
-    background:linear-gradient(180deg,#4a6e46,#3a5a36);
-    border-radius:50% 50% 2px 2px;
-}
-
-/* 义军校尉 - 铁盔 */
-.avt-escort .head{background:#deb887;width:17px;height:18px;top:13px;}
-.avt-escort .body{background:#7b1f1f;border-radius:4px 4px 14px 14px;}
-.avt-escort::before{
-    content:'';position:absolute;top:3px;left:5px;right:5px;height:13px;
-    background:linear-gradient(180deg,#555,#3a3a3a);
-    clip-path:polygon(0% 30%,20% 10%,50% 0%,80% 10%,100% 30%,100% 100%,0% 100%);
-    border-radius:2px;
-}
-.avt-escort::after{
-    content:'';position:absolute;top:15px;left:2px;right:2px;height:2px;
-    background:rgba(255,200,100,0.5);border-radius:1px;
-}
-
-/* 少侠 - 束发武人 */
-.avt-hero .head{background:#ffe0bd;width:16px;height:19px;top:13px;}
-.avt-hero .body{background:#1a5276;border-radius:4px 4px 14px 14px;}
-.avt-hero::before{
-    content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);
-    width:6px;height:12px;background:#3d2817;border-radius:2px 2px 0 0;
-}
-
-/* 黄巾贼 */
-.avt-bandit .head{background:#deb887;width:16px;height:18px;top:14px;}
-.avt-bandit .body{background:#b8860b;border-radius:4px 4px 12px 12px;}
-.avt-bandit::before{
-    content:'';position:absolute;top:4px;left:3px;right:3px;height:12px;
-    background:#daa520;border-radius:50% 50% 1px 1px;
-}
-
-/* 西凉溃兵 */
-.avt-bully .head{background:#deb887;width:17px;height:18px;top:14px;}
-.avt-bully .body{background:#4a3728;border-radius:4px 4px 12px 12px;}
-.avt-bully::before{
-    content:'';position:absolute;top:3px;left:4px;right:4px;height:13px;
-    background:#3a2a1a;border-radius:3px 3px 0 0;
-}
-
-/* 西凉偏将 */
-.avt-guard .head{background:#deb887;width:17px;height:18px;top:13px;}
-.avt-guard .body{background:#6b1a1a;border-radius:3px 3px 12px 12px;}
-.avt-guard::before{
-    content:'';position:absolute;top:2px;left:4px;right:4px;height:14px;
-    background:#3a2020;clip-path:polygon(15% 25%,30% 5%,70% 5%,85% 25%,100% 100%,0% 100%);
-    border-radius:2px;
-}
-.avt-guard::after{
-    content:'';position:absolute;top:14px;left:2px;right:2px;height:2px;
-    background:rgba(200,150,50,0.4);border-radius:1px;
-}
-
-/* 华雄 - 大将 */
-.avt-boss .head{background:#deb887;width:20px;height:22px;top:10px;}
-.avt-boss .body{background:#8b0000;border-radius:4px 4px 14px 14px;}
-.avt-boss::before{
-    content:'';position:absolute;
-    top:2px;left:3px;right:3px;height:18px;
-    background:linear-gradient(180deg,#4a2525,#2a1010);
-    clip-path:polygon(0% 35%,15% 5%,35% 0%,65% 0%,85% 5%,100% 35%,95% 100%,5% 100%);
-    border-radius:2px;
-}
-.avt-boss::after{
-    content:'';position:absolute;top:18px;left:1px;right:1px;height:3px;
-    background:#daa520;border-radius:1px;
-}
-
-/* 大型立绘（序幕用，更大尺寸） */
-.css-portrait{
-    width:80px;height:96px;position:relative;
-    flex-shrink:0;
-}
-.css-portrait .body{
-    position:absolute;bottom:4px;left:8px;right:8px;height:44px;
-    border-radius:10px 10px 24px 24px;
-}
-.css-portrait .head{
-    position:absolute;width:30px;height:34px;border-radius:50%;
-    top:20px;left:50%;transform:translateX(-50%);
-}
-/* 说书人大立绘 */
-.port-storyteller .head{background:#3d2b1a;}
-.port-storyteller .body{background:#4a3020;border-radius:8px 8px 28px 28px;}
-.port-storyteller::before{
-    content:'';position:absolute;
-    top:4px;left:4px;right:4px;height:26px;
-    background:linear-gradient(180deg,#5a4030,#4a3020);
-    clip-path:polygon(15% 0%,85% 0%,100% 100%,0% 100%);
-    border-radius:3px;
-}
-.port-storyteller::after{
-    content:'';position:absolute;
-    bottom:2px;left:14px;right:14px;height:14px;
-    background:linear-gradient(180deg,transparent,#2a1f15 50%);
-    border-radius:0 0 50% 50%;
-}
+.inkwash-sm{width:64px;height:80px;}
+.inkwash-md{width:100px;height:120px;}
+.inkwash-lg{width:140px;height:170px;}
 
 /* ===== 弹窗 ===== */
 .modal{
@@ -628,17 +474,15 @@ body{
         <button class="title-btn" onclick="startPrologue()">初 入 乱 世</button>
         <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
     </div>
-    <div class="title-version">v5.1 · 三国RPG</div>
+    <div class="title-version">v5.2 · 三国RPG</div>
 </div>
 
 <!-- ===== 说书人序幕 ===== -->
 <div class="modal" id="prologue-modal">
     <div class="modal-box" style="max-width:480px;padding:18px 20px;">
         <div style="display:flex;align-items:flex-start;gap:16px;">
-            <!-- 说书人剪影立绘 -->
-            <div class="css-portrait port-storyteller">
-                <div class="head"></div><div class="body"></div>
-            </div>
+            <!-- 说书人水墨立绘 -->
+            <canvas class="inkwash-canvas inkwash-lg" id="prologue-canvas" width="140" height="170" style="border-radius:6px;"></canvas>
             <div style="flex:1;display:flex;flex-direction:column;">
                 <div style="font-size:13px;color:#e8a850;margin-bottom:6px;letter-spacing:2px;">📖 说书人</div>
                 <div id="prologue-content" style="color:#c8b080;font-size:13px;line-height:1.9;text-align:left;min-height:100px;"></div>
@@ -719,7 +563,7 @@ body{
 <!-- 对话框 -->
 <div id="dialog-box">
     <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div id="dialog-avatar"></div>
+        <canvas class="inkwash-canvas inkwash-sm" id="dialog-canvas" width="64" height="80"></canvas>
         <div style="flex:1;">
             <div id="dialog-speaker"></div>
             <div id="dialog-text"></div>
@@ -733,9 +577,7 @@ body{
     <div id="battle-scene">
         <div class="battle-row">
             <div class="battle-char">
-                <div class="css-portrait avt-hero" id="battle-player-portrait">
-                    <div class="head"></div><div class="body"></div>
-                </div>
+                <canvas class="inkwash-canvas inkwash-md" id="battle-player-canvas" width="100" height="120"></canvas>
                 <div class="battle-name">少侠</div>
                 <div class="battle-nums">气血: <span id="bp-hp">100</span>/<span id="bp-maxhp">100</span></div>
                 <div class="battle-nums" style="color:#5b9bd5;">内力: <span id="bp-mp">30</span>/<span id="bp-maxmp">30</span></div>
@@ -744,9 +586,7 @@ body{
             </div>
             <div id="battle-vs">⚔️</div>
             <div class="battle-char">
-                <div class="css-portrait" id="battle-enemy-portrait">
-                    <div class="head"></div><div class="body"></div>
-                </div>
+                <canvas class="inkwash-canvas inkwash-md" id="battle-enemy-canvas" width="100" height="120"></canvas>
                 <div class="battle-name" id="be-name"></div>
                 <div class="battle-nums">气血: <span id="be-hp">0</span>/<span id="be-maxhp">0</span></div>
                 <div class="battle-hp-bar"><div class="battle-hp-fill hp-enemy" id="be-hpbar"></div></div>
@@ -1458,6 +1298,679 @@ function loadGameData(){
     }
 }
 
+// ==================== Canvas水墨写意风绘制引擎 ====================
+// 宣纸背景 + 浓淡墨渲染 + 枯笔飞白 + 写意人物
+var _inkCache = {};
+
+function inkPaper(ctx, W, H){
+    // 宣纸底色
+    var bgGrad = ctx.createRadialGradient(W*0.45, H*0.35, 0, W*0.5, H*0.5, W*0.72);
+    bgGrad.addColorStop(0,'#faf5eb'); bgGrad.addColorStop(0.6,'#f2e8d5');
+    bgGrad.addColorStop(1,'#e6d8c0');
+    ctx.fillStyle=bgGrad; ctx.fillRect(0,0,W,H);
+    // 纸纤维纹理
+    ctx.globalAlpha=0.035;
+    for(var i=0;i<100;i++){
+        ctx.fillStyle=i%3===0?'#7a6b50':(i%3===1?'#b0a080':'#c8b898');
+        ctx.fillRect(Math.random()*W,Math.random()*H,Math.random()*2.5+0.3,Math.random()*2.5+0.3);
+    }
+    ctx.globalAlpha=1;
+}
+
+// 墨染（淡墨大面积渲染）
+function inkWash(ctx, pathFn, opacity, blur){
+    ctx.save();
+    ctx.filter='blur('+(blur||3)+'px)';
+    ctx.fillStyle='rgba(35,25,15,'+(opacity||0.22)+')';
+    ctx.beginPath(); pathFn(); ctx.fill();
+    ctx.restore();
+}
+
+// 墨线勾勒
+function inkLine(ctx, pathFn, width, opacity, capStyle){
+    ctx.save();
+    ctx.strokeStyle='rgba(18,10,5,'+(opacity||0.75)+')';
+    ctx.lineWidth=width||1.4;
+    ctx.lineCap=capStyle||'round';
+    ctx.lineJoin='round';
+    ctx.beginPath(); pathFn(); ctx.stroke();
+    ctx.restore();
+}
+
+// 枯笔飞白（断续效果）
+function dryBrush(ctx, pathFn, width, opacity){
+    ctx.save();
+    ctx.strokeStyle='rgba(15,8,3,'+(opacity||0.55)+')';
+    ctx.lineWidth=width||1.2;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.setLineDash([3,4,5,6,2,3]);
+    ctx.beginPath(); pathFn(); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+}
+
+// 点睛
+function inkDot(ctx, x, y, r, opacity){
+    ctx.fillStyle='rgba(8,3,0,'+(opacity||0.9)+')';
+    ctx.beginPath(); ctx.arc(x,y,r||1.3,0,Math.PI*2); ctx.fill();
+}
+
+// ===== 各角色绘制函数 =====
+// 说书人：大斗笠+长须+折扇
+function drawStoryteller(ctx, W, H){
+    var cx=W*0.5, cy=H;
+    // 长衫（淡墨染底）
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.16,H*0.42);
+        ctx.quadraticCurveTo(cx-W*0.24,H*0.68,cx-W*0.13,H*0.94);
+        ctx.lineTo(cx+W*0.13,H*0.94);
+        ctx.quadraticCurveTo(cx+W*0.24,H*0.68,cx+W*0.16,H*0.42);
+    },0.22,3);
+    // 长衫勾勒
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.16,H*0.42);
+        ctx.quadraticCurveTo(cx-W*0.22,H*0.66,cx-W*0.14,H*0.92);
+        ctx.moveTo(cx+W*0.16,H*0.42);
+        ctx.quadraticCurveTo(cx+W*0.22,H*0.66,cx+W*0.14,H*0.92);
+    },1.2,0.65);
+    // 衣纹
+    dryBrush(ctx,function(){
+        ctx.moveTo(cx-W*0.04,H*0.55); ctx.lineTo(cx-W*0.04,H*0.88);
+        ctx.moveTo(cx+W*0.02,H*0.50); ctx.lineTo(cx+W*0.01,H*0.85);
+    },1,0.3);
+    // 头部
+    ctx.fillStyle='rgba(60,45,30,0.45)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.33,W*0.11,H*0.09,0,0,Math.PI*2); ctx.fill();
+    inkLine(ctx,function(){
+        ctx.ellipse(cx,H*0.33,W*0.11,H*0.09,0,0,Math.PI*2);
+    },0.8,0.5);
+    // 斗笠（大檐帽）
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.40,H*0.12);
+        ctx.quadraticCurveTo(cx-W*0.36,H*0.04,cx,H*0.03);
+        ctx.quadraticCurveTo(cx+W*0.36,H*0.04,cx+W*0.40,H*0.12);
+        ctx.quadraticCurveTo(cx+W*0.28,H*0.24,cx+W*0.16,H*0.28);
+        ctx.quadraticCurveTo(cx,H*0.27,cx-W*0.16,H*0.28);
+        ctx.quadraticCurveTo(cx-W*0.28,H*0.24,cx-W*0.40,H*0.12);
+    },0.28,2);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.38,H*0.12);
+        ctx.quadraticCurveTo(cx-W*0.30,H*0.22,cx-W*0.16,H*0.27);
+        ctx.quadraticCurveTo(cx,H*0.26,cx+W*0.16,H*0.27);
+        ctx.quadraticCurveTo(cx+W*0.30,H*0.22,cx+W*0.38,H*0.12);
+    },1.2,0.7);
+    // 斗笠纹理
+    for(var i=0;i<5;i++){
+        var t=i/5;
+        inkLine(ctx,function(){
+            var lx=cx-W*0.36+t*W*0.18, rx=cx+W*0.36-t*W*0.18;
+            ctx.moveTo(lx,H*0.06); ctx.lineTo(lx-W*0.03,H*0.12+t*H*0.15);
+            ctx.moveTo(rx,H*0.06); ctx.lineTo(rx+W*0.03,H*0.12+t*H*0.15);
+        },0.6,0.35);
+    }
+    // 胡须（三绺长须）
+    dryBrush(ctx,function(){
+        ctx.moveTo(cx,H*0.39); ctx.quadraticCurveTo(cx-W*0.02,H*0.48,cx,H*0.58);
+        ctx.moveTo(cx-W*0.07,H*0.38); ctx.quadraticCurveTo(cx-W*0.16,H*0.47,cx-W*0.18,H*0.56);
+        ctx.moveTo(cx+W*0.07,H*0.38); ctx.quadraticCurveTo(cx+W*0.16,H*0.47,cx+W*0.18,H*0.56);
+    },1.5,0.5);
+    // 眼睛
+    inkDot(ctx,cx-W*0.04,H*0.31,1.2,0.85);
+    inkDot(ctx,cx+W*0.04,H*0.31,1.2,0.85);
+    // 折扇
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.14,H*0.56);
+        ctx.quadraticCurveTo(cx+W*0.22,H*0.52,cx+W*0.26,H*0.58);
+        ctx.quadraticCurveTo(cx+W*0.23,H*0.63,cx+W*0.14,H*0.62);
+    },1,0.5);
+}
+
+// 县尉韩伯：乌纱帽+宽袖官服
+function drawMaster(ctx, W, H){
+    var cx=W*0.5;
+    // 官袍
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.40);
+        ctx.quadraticCurveTo(cx-W*0.26,H*0.66,cx-W*0.12,H*0.92);
+        ctx.lineTo(cx+W*0.12,H*0.92);
+        ctx.quadraticCurveTo(cx+W*0.26,H*0.66,cx+W*0.14,H*0.40);
+    },0.25,3);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.40);
+        ctx.quadraticCurveTo(cx-W*0.24,H*0.64,cx-W*0.12,H*0.90);
+        ctx.moveTo(cx+W*0.14,H*0.40);
+        ctx.quadraticCurveTo(cx+W*0.24,H*0.64,cx+W*0.12,H*0.90);
+    },1.2,0.68);
+    // 腰带
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.16,H*0.58); ctx.lineTo(cx+W*0.16,H*0.58);
+    },2,0.6);
+    // 脸部
+    ctx.fillStyle='rgba(220,190,155,0.4)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.32,W*0.10,H*0.10,0,0,Math.PI*2); ctx.fill();
+    // 乌纱帽（方形+翅）
+    inkWash(ctx,function(){
+        ctx.rect(cx-W*0.15,H*0.06,W*0.30,H*0.16);
+    },0.32,2);
+    inkLine(ctx,function(){
+        ctx.rect(cx-W*0.15,H*0.06,W*0.30,H*0.16);
+    },1.3,0.8);
+    // 帽翅
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.15,H*0.14); ctx.lineTo(cx-W*0.28,H*0.12);
+        ctx.moveTo(cx+W*0.15,H*0.14); ctx.lineTo(cx+W*0.28,H*0.12);
+    },1.5,0.7);
+    // 帽顶
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.10,H*0.06); ctx.lineTo(cx-W*0.02,H*0);
+        ctx.quadraticCurveTo(cx,H*-0.01,cx+W*0.02,H*0);
+        ctx.lineTo(cx+W*0.10,H*0.06);
+    },1,0.6);
+    // 神情
+    inkDot(ctx,cx-W*0.035,H*0.30,1.1,0.85);
+    inkDot(ctx,cx+W*0.035,H*0.30,1.1,0.85);
+    // 小胡子
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.06,H*0.37); ctx.lineTo(cx+W*0.06,H*0.37);
+    },1.2,0.55);
+}
+
+// 医馆华老：圆帽+朴素长衫
+function drawDoctor(ctx, W, H){
+    var cx=W*0.5;
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.12,H*0.40);
+        ctx.quadraticCurveTo(cx-W*0.20,H*0.65,cx-W*0.11,H*0.92);
+        ctx.lineTo(cx+W*0.11,H*0.92);
+        ctx.quadraticCurveTo(cx+W*0.20,H*0.65,cx+W*0.12,H*0.40);
+    },0.20,3);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.12,H*0.40);
+        ctx.quadraticCurveTo(cx-W*0.18,H*0.64,cx-W*0.11,H*0.90);
+        ctx.moveTo(cx+W*0.12,H*0.40);
+        ctx.quadraticCurveTo(cx+W*0.18,H*0.64,cx+W*0.11,H*0.90);
+    },1.1,0.6);
+    // 脸
+    ctx.fillStyle='rgba(200,170,140,0.42)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.32,W*0.09,H*0.09,0,0,Math.PI*2); ctx.fill();
+    // 圆帽
+    inkWash(ctx,function(){
+        ctx.arc(cx,H*0.26,W*0.14,0,Math.PI,false);
+    },0.28,2);
+    inkLine(ctx,function(){
+        ctx.arc(cx,H*0.25,W*0.14,Math.PI*1.05,Math.PI*1.95);
+    },1.3,0.7);
+    inkLine(ctx,function(){
+        ctx.rect(cx-W*0.14,H*0.24,W*0.28,H*0.04);
+    },1,0.55);
+    // 温和眼神
+    inkDot(ctx,cx-W*0.03,H*0.30,1,0.7);
+    inkDot(ctx,cx+W*0.03,H*0.30,1,0.7);
+    // 白须
+    dryBrush(ctx,function(){
+        ctx.moveTo(cx,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.03,H*0.44,cx,H*0.50);
+        ctx.moveTo(cx-W*0.05,H*0.37);
+        ctx.quadraticCurveTo(cx-W*0.12,H*0.44,cx-W*0.13,H*0.50);
+        ctx.moveTo(cx+W*0.05,H*0.37);
+        ctx.quadraticCurveTo(cx+W*0.12,H*0.44,cx+W*0.13,H*0.50);
+    },1.3,0.4);
+}
+
+// 方士左慈：道髻+玄色长袍+拂尘
+function drawMonk(ctx, W, H){
+    var cx=W*0.5;
+    // 玄袍
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.11,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.20,H*0.64,cx-W*0.10,H*0.93);
+        ctx.lineTo(cx+W*0.10,H*0.93);
+        ctx.quadraticCurveTo(cx+W*0.20,H*0.64,cx+W*0.11,H*0.38);
+    },0.30,2.5);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.11,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.18,H*0.63,cx-W*0.10,H*0.91);
+        ctx.moveTo(cx+W*0.11,H*0.38);
+        ctx.quadraticCurveTo(cx+W*0.18,H*0.63,cx+W*0.10,H*0.91);
+    },1.3,0.72);
+    // 脸
+    ctx.fillStyle='rgba(210,180,150,0.38)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.30,W*0.09,H*0.09,0,0,Math.PI*2); ctx.fill();
+    // 道髻
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.04,H*0.12); ctx.quadraticCurveTo(cx-W*0.03,H*0.01,cx,H*0);
+        ctx.quadraticCurveTo(cx+W*0.03,H*0.01,cx+W*0.04,H*0.12);
+    },0.35,2);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.04,H*0.12);
+        ctx.quadraticCurveTo(cx-W*0.02,H*0.03,cx+W*0.01,H*0.02);
+        ctx.quadraticCurveTo(cx+W*0.04,H*0.03,cx+W*0.04,H*0.12);
+    },1.1,0.7);
+    // 发簪横穿
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.10,H*0.06); ctx.lineTo(cx+W*0.10,H*0.04);
+    },0.8,0.5);
+    // 眼神深邃
+    inkDot(ctx,cx-W*0.03,H*0.28,1,0.9);
+    inkDot(ctx,cx+W*0.03,H*0.28,1,0.9);
+    // 拂尘
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.12,H*0.52); ctx.lineTo(cx+W*0.18,H*0.44);
+    },1.2,0.55);
+    dryBrush(ctx,function(){
+        ctx.moveTo(cx+W*0.18,H*0.42);
+        ctx.quadraticCurveTo(cx+W*0.22,H*0.32,cx+W*0.16,H*0.22);
+        ctx.quadraticCurveTo(cx+W*0.14,H*0.28,cx+W*0.18,H*0.32);
+    },1.2,0.35);
+}
+
+// 水镜先生：布帽+青衫+长须+竹杖
+function drawHermit(ctx, W, H){
+    var cx=W*0.5;
+    // 青衫（淡墨带绿意）
+    ctx.save(); ctx.filter='blur(2.5px)';
+    ctx.fillStyle='rgba(40,60,40,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(cx-W*0.12,H*0.38);
+    ctx.quadraticCurveTo(cx-W*0.22,H*0.64,cx-W*0.10,H*0.92);
+    ctx.lineTo(cx+W*0.10,H*0.92);
+    ctx.quadraticCurveTo(cx+W*0.22,H*0.64,cx+W*0.12,H*0.38);
+    ctx.fill(); ctx.restore();
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.12,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.20,H*0.63,cx-W*0.10,H*0.90);
+        ctx.moveTo(cx+W*0.12,H*0.38);
+        ctx.quadraticCurveTo(cx+W*0.20,H*0.63,cx+W*0.10,H*0.90);
+    },1.1,0.58);
+    // 脸
+    ctx.fillStyle='rgba(200,170,140,0.4)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.31,W*0.09,H*0.09,0,0,Math.PI*2); ctx.fill();
+    // 布帽
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.15,H*0.2);
+        ctx.quadraticCurveTo(cx,H*0.04,cx+W*0.15,H*0.2);
+    },0.25,2);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.20);
+        ctx.quadraticCurveTo(cx-W*0.04,H*0.08,cx,H*0.07);
+        ctx.quadraticCurveTo(cx+W*0.04,H*0.08,cx+W*0.14,H*0.20);
+    },1.2,0.65);
+    // 长须
+    dryBrush(ctx,function(){
+        ctx.moveTo(cx,H*0.37); ctx.quadraticCurveTo(cx-W*0.02,H*0.50,cx,H*0.60);
+        ctx.moveTo(cx-W*0.06,H*0.36); ctx.quadraticCurveTo(cx-W*0.14,H*0.48,cx-W*0.16,H*0.57);
+        ctx.moveTo(cx+W*0.06,H*0.36); ctx.quadraticCurveTo(cx+W*0.14,H*0.48,cx+W*0.16,H*0.57);
+    },1.4,0.5);
+    // 慈目
+    inkDot(ctx,cx-W*0.035,H*0.29,1,0.65);
+    inkDot(ctx,cx+W*0.035,H*0.29,1,0.65);
+    // 竹杖
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.08,H*0.56); ctx.lineTo(cx+W*0.06,H*0.90);
+    },1.6,0.5);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.06,H*0.75); ctx.lineTo(cx+W*0.03,H*0.73);
+        ctx.moveTo(cx+W*0.06,H*0.82); ctx.lineTo(cx+W*0.09,H*0.80);
+    },0.7,0.35);
+}
+
+// 义军校尉：铁盔+红甲+披风
+function drawEscort(ctx, W, H){
+    var cx=W*0.5;
+    // 披风
+    ctx.save(); ctx.filter='blur(2px)';
+    ctx.fillStyle='rgba(100,20,15,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(cx-W*0.10,H*0.38);
+    ctx.quadraticCurveTo(cx-W*0.24,H*0.60,cx-W*0.14,H*0.88);
+    ctx.lineTo(cx+W*0.14,H*0.88);
+    ctx.quadraticCurveTo(cx+W*0.24,H*0.60,cx+W*0.10,H*0.38);
+    ctx.fill(); ctx.restore();
+    // 盔甲
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.13,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.18,H*0.60,cx-W*0.12,H*0.90);
+        ctx.lineTo(cx+W*0.12,H*0.90);
+        ctx.quadraticCurveTo(cx+W*0.18,H*0.60,cx+W*0.13,H*0.38);
+    },0.26,2.5);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.13,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.17,H*0.60,cx-W*0.12,H*0.88);
+        ctx.moveTo(cx+W*0.13,H*0.38);
+        ctx.quadraticCurveTo(cx+W*0.17,H*0.60,cx+W*0.12,H*0.88);
+    },1.4,0.7);
+    // 护心镜
+    inkLine(ctx,function(){
+        ctx.arc(cx,H*0.52,W*0.08,H*0.10,0,Math.PI*2);
+    },1,0.45);
+    // 脸
+    ctx.fillStyle='rgba(200,165,130,0.42)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.30,W*0.09,H*0.09,0,0,Math.PI*2); ctx.fill();
+    // 铁盔
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.16,H*0.19);
+        ctx.quadraticCurveTo(cx-W*0.10,H*0.02,cx,H*0.01);
+        ctx.quadraticCurveTo(cx+W*0.10,H*0.02,cx+W*0.16,H*0.19);
+        ctx.lineTo(cx+W*0.12,H*0.23);
+        ctx.quadraticCurveTo(cx,H*0.18,cx-W*0.12,H*0.23);
+    },0.32,2);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.19);
+        ctx.quadraticCurveTo(cx-W*0.08,H*0.04,cx,H*0.03);
+        ctx.quadraticCurveTo(cx+W*0.08,H*0.04,cx+W*0.14,H*0.19);
+    },1.5,0.75);
+    // 盔缨
+    ctx.save(); ctx.filter='blur(1px)';
+    ctx.fillStyle='rgba(180,40,20,0.35)';
+    ctx.beginPath();
+    ctx.moveTo(cx-W*0.04,H*0.02);
+    ctx.quadraticCurveTo(cx,H*-0.06,cx+W*0.04,H*0.02);
+    ctx.fill(); ctx.restore();
+    // 坚毅眼神
+    inkDot(ctx,cx-W*0.035,H*0.28,1.2,0.9);
+    inkDot(ctx,cx+W*0.035,H*0.28,1.2,0.9);
+    // 腰带
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.55); ctx.lineTo(cx+W*0.14,H*0.55);
+    },2,0.6);
+}
+
+// 少侠/主角：束发+武人装束+剑
+function drawHero(ctx, W, H){
+    var cx=W*0.5;
+    // 武袍（蓝灰色调）
+    ctx.save(); ctx.filter='blur(2.5px)';
+    ctx.fillStyle='rgba(30,50,70,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(cx-W*0.13,H*0.38);
+    ctx.quadraticCurveTo(cx-W*0.20,H*0.63,cx-W*0.11,H*0.92);
+    ctx.lineTo(cx+W*0.11,H*0.92);
+    ctx.quadraticCurveTo(cx+W*0.20,H*0.63,cx+W*0.13,H*0.38);
+    ctx.fill(); ctx.restore();
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.13,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.19,H*0.62,cx-W*0.11,H*0.90);
+        ctx.moveTo(cx+W*0.13,H*0.38);
+        ctx.quadraticCurveTo(cx+W*0.19,H*0.62,cx+W*0.11,H*0.90);
+    },1.2,0.65);
+    // 脸
+    ctx.fillStyle='rgba(240,200,165,0.45)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.30,W*0.10,H*0.10,0,0,Math.PI*2); ctx.fill();
+    inkDot(ctx,cx-W*0.035,H*0.28,1.2,0.9);
+    inkDot(ctx,cx+W*0.035,H*0.28,1.2,0.9);
+    // 束发
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.06,H*0.16);
+        ctx.quadraticCurveTo(cx,H*0.03,cx+W*0.06,H*0.16);
+    },0.38,1.5);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.05,H*0.16);
+        ctx.quadraticCurveTo(cx-W*0.01,H*0.06,cx,H*0.05);
+        ctx.quadraticCurveTo(cx+W*0.01,H*0.06,cx+W*0.05,H*0.16);
+    },1.2,0.75);
+    // 发簪
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.08,H*0.10); ctx.lineTo(cx+W*0.08,H*0.09);
+    },0.8,0.55);
+    // 腰带
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.15,H*0.54); ctx.lineTo(cx+W*0.15,H*0.54);
+    },1.8,0.6);
+    // 长剑
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.14,H*0.58); ctx.lineTo(cx+W*0.20,H*0.88);
+    },1.5,0.55);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.10,H*0.58); ctx.lineTo(cx+W*0.18,H*0.60);
+    },2,0.45);
+}
+
+// 黄巾贼：黄巾包头+粗犷面目
+function drawBandit(ctx, W, H){
+    var cx=W*0.5;
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.12,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.18,H*0.62,cx-W*0.10,H*0.90);
+        ctx.lineTo(cx+W*0.10,H*0.90);
+        ctx.quadraticCurveTo(cx+W*0.18,H*0.62,cx+W*0.12,H*0.38);
+    },0.22,2.5);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.12,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.17,H*0.61,cx-W*0.10,H*0.88);
+        ctx.moveTo(cx+W*0.12,H*0.38);
+        ctx.quadraticCurveTo(cx+W*0.17,H*0.61,cx+W*0.10,H*0.88);
+    },1.2,0.62);
+    // 脸
+    ctx.fillStyle='rgba(200,160,125,0.42)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.30,W*0.09,H*0.09,0,0,Math.PI*2); ctx.fill();
+    // 黄巾
+    ctx.save(); ctx.filter='blur(1.5px)';
+    ctx.fillStyle='rgba(160,120,20,0.30)';
+    ctx.beginPath();
+    ctx.rect(cx-W*0.15,H*0.12,W*0.30,H*0.10);
+    ctx.fill(); ctx.restore();
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.12,H*0.14);
+        ctx.quadraticCurveTo(cx-W*0.08,H*0.08,cx,H*0.09);
+        ctx.quadraticCurveTo(cx+W*0.08,H*0.08,cx+W*0.12,H*0.14);
+    },1.3,0.7);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.15,H*0.20); ctx.lineTo(cx+W*0.15,H*0.20);
+    },1.2,0.55);
+    // 凶眼
+    inkDot(ctx,cx-W*0.035,H*0.28,1.3,0.85);
+    inkDot(ctx,cx+W*0.035,H*0.28,1.3,0.85);
+    // 散乱短发
+    dryBrush(ctx,function(){
+        ctx.moveTo(cx-W*0.08,H*0.14); ctx.lineTo(cx-W*0.14,H*0.24);
+        ctx.moveTo(cx+W*0.08,H*0.14); ctx.lineTo(cx+W*0.14,H*0.24);
+        ctx.moveTo(cx-W*0.04,H*0.12); ctx.lineTo(cx-W*0.10,H*0.22);
+    },1,0.3);
+}
+
+// 西凉溃兵：皮盔+暗色甲
+function drawBully(ctx, W, H){
+    var cx=W*0.5;
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.12,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.19,H*0.63,cx-W*0.11,H*0.91);
+        ctx.lineTo(cx+W*0.11,H*0.91);
+        ctx.quadraticCurveTo(cx+W*0.19,H*0.63,cx+W*0.12,H*0.38);
+    },0.24,2.5);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.12,H*0.38);
+        ctx.quadraticCurveTo(cx-W*0.17,H*0.62,cx-W*0.11,H*0.89);
+        ctx.moveTo(cx+W*0.12,H*0.38);
+        ctx.quadraticCurveTo(cx+W*0.17,H*0.62,cx+W*0.11,H*0.89);
+    },1.3,0.65);
+    // 脸
+    ctx.fillStyle='rgba(195,155,125,0.40)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.31,W*0.09,H*0.09,0,0,Math.PI*2); ctx.fill();
+    // 皮盔
+    inkWash(ctx,function(){
+        ctx.rect(cx-W*0.15,H*0.12,W*0.30,H*0.12);
+    },0.30,1.8);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.14);
+        ctx.quadraticCurveTo(cx-W*0.07,H*0.06,cx,H*0.07);
+        ctx.quadraticCurveTo(cx+W*0.07,H*0.06,cx+W*0.14,H*0.14);
+        ctx.lineTo(cx+W*0.14,H*0.22);
+        ctx.lineTo(cx-W*0.14,H*0.22);
+    },1.3,0.72);
+    inkDot(ctx,cx-W*0.035,H*0.29,1.2,0.8);
+    inkDot(ctx,cx+W*0.035,H*0.29,1.2,0.8);
+    // 短刀
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.12,H*0.56); ctx.lineTo(cx+W*0.16,H*0.72);
+    },1.5,0.55);
+}
+
+// 西凉偏将：铁角盔+暗红甲+护额
+function drawGuard(ctx, W, H){
+    var cx=W*0.5;
+    ctx.save(); ctx.filter='blur(2px)';
+    ctx.fillStyle='rgba(100,18,14,0.2)';
+    ctx.beginPath();
+    ctx.moveTo(cx-W*0.13,H*0.36);
+    ctx.quadraticCurveTo(cx-W*0.20,H*0.62,cx-W*0.12,H*0.90);
+    ctx.lineTo(cx+W*0.12,H*0.90);
+    ctx.quadraticCurveTo(cx+W*0.20,H*0.62,cx+W*0.13,H*0.36);
+    ctx.fill(); ctx.restore();
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.13,H*0.36);
+        ctx.quadraticCurveTo(cx-W*0.18,H*0.61,cx-W*0.12,H*0.88);
+        ctx.moveTo(cx+W*0.13,H*0.36);
+        ctx.quadraticCurveTo(cx+W*0.18,H*0.61,cx+W*0.12,H*0.88);
+    },1.4,0.68);
+    // 脸
+    ctx.fillStyle='rgba(200,160,130,0.42)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.29,W*0.09,H*0.09,0,0,Math.PI*2); ctx.fill();
+    // 角盔
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.06,H*0.04);
+        ctx.quadraticCurveTo(cx-W*0.02,H*-0.04,cx,H*-0.03);
+        ctx.quadraticCurveTo(cx+W*0.02,H*-0.04,cx+W*0.06,H*0.04);
+        ctx.lineTo(cx+W*0.16,H*0.10);
+        ctx.quadraticCurveTo(cx+W*0.08,H*0.08,cx,H*0.09);
+        ctx.quadraticCurveTo(cx-W*0.08,H*0.08,cx-W*0.16,H*0.10);
+    },0.34,1.8);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.05,H*0.04);
+        ctx.quadraticCurveTo(cx-W*0.01,H*-0.01,cx,H*0);
+        ctx.quadraticCurveTo(cx+W*0.01,H*-0.01,cx+W*0.05,H*0.04);
+        ctx.lineTo(cx+W*0.14,H*0.10);
+        ctx.quadraticCurveTo(cx,H*0.06,cx-W*0.14,H*0.10);
+    },1.4,0.75);
+    // 护额
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.22); ctx.lineTo(cx+W*0.14,H*0.22);
+    },1.8,0.5);
+    inkDot(ctx,cx-W*0.035,H*0.27,1.2,0.9);
+    inkDot(ctx,cx+W*0.035,H*0.27,1.2,0.9);
+    // 长枪
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.56); ctx.lineTo(cx-W*0.12,H*0.90);
+    },1.6,0.55);
+}
+
+// 华雄：巨盔+重甲+红缨+披风
+function drawBoss(ctx, W, H){
+    var cx=W*0.5;
+    // 披风
+    ctx.save(); ctx.filter='blur(3px)';
+    ctx.fillStyle='rgba(80,12,8,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(cx-W*0.12,H*0.34);
+    ctx.quadraticCurveTo(cx-W*0.26,H*0.60,cx-W*0.15,H*0.92);
+    ctx.lineTo(cx+W*0.15,H*0.92);
+    ctx.quadraticCurveTo(cx+W*0.26,H*0.60,cx+W*0.12,H*0.34);
+    ctx.fill(); ctx.restore();
+    // 重甲
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.36);
+        ctx.quadraticCurveTo(cx-W*0.22,H*0.64,cx-W*0.14,H*0.92);
+        ctx.lineTo(cx+W*0.14,H*0.92);
+        ctx.quadraticCurveTo(cx+W*0.22,H*0.64,cx+W*0.14,H*0.36);
+    },0.32,2.5);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.36);
+        ctx.quadraticCurveTo(cx-W*0.20,H*0.63,cx-W*0.14,H*0.90);
+        ctx.moveTo(cx+W*0.14,H*0.36);
+        ctx.quadraticCurveTo(cx+W*0.20,H*0.63,cx+W*0.14,H*0.90);
+    },1.6,0.75);
+    // 胸甲纹路
+    dryBrush(ctx,function(){
+        ctx.moveTo(cx-W*0.08,H*0.48); ctx.quadraticCurveTo(cx,H*0.46,cx+W*0.08,H*0.48);
+        ctx.moveTo(cx-W*0.06,H*0.56); ctx.quadraticCurveTo(cx,H*0.54,cx+W*0.06,H*0.56);
+    },1.5,0.35);
+    // 脸（方正）
+    ctx.fillStyle='rgba(200,160,130,0.45)';
+    ctx.beginPath(); ctx.ellipse(cx,H*0.28,W*0.11,H*0.10,0,0,Math.PI*2); ctx.fill();
+    // 巨盔
+    inkWash(ctx,function(){
+        ctx.moveTo(cx-W*0.18,H*0.14);
+        ctx.quadraticCurveTo(cx-W*0.10,H*-0.06,cx,H*-0.05);
+        ctx.quadraticCurveTo(cx+W*0.10,H*-0.06,cx+W*0.18,H*0.14);
+        ctx.lineTo(cx+W*0.15,H*0.22);
+        ctx.quadraticCurveTo(cx,H*0.16,cx-W*0.15,H*0.22);
+    },0.36,2);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.16,H*0.14);
+        ctx.quadraticCurveTo(cx-W*0.08,H*0,cx,H*0.01);
+        ctx.quadraticCurveTo(cx+W*0.08,H*0,cx+W*0.16,H*0.14);
+    },1.8,0.8);
+    // 红缨
+    ctx.save(); ctx.filter='blur(2px)';
+    ctx.fillStyle='rgba(200,30,15,0.45)';
+    ctx.beginPath();
+    ctx.moveTo(cx-W*0.05,H*-0.02);
+    ctx.quadraticCurveTo(cx,H*-0.15,cx+W*0.05,H*-0.02);
+    ctx.fill(); ctx.restore();
+    // 护额金带
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.16,H*0.22); ctx.lineTo(cx+W*0.16,H*0.22);
+    },2.2,0.55);
+    // 凶悍眼神
+    inkDot(ctx,cx-W*0.04,H*0.26,1.4,0.95);
+    inkDot(ctx,cx+W*0.04,H*0.26,1.4,0.95);
+    // 肩甲尖刺
+    inkLine(ctx,function(){
+        ctx.moveTo(cx-W*0.14,H*0.42); ctx.lineTo(cx-W*0.20,H*0.50); ctx.lineTo(cx-W*0.16,H*0.44);
+        ctx.moveTo(cx+W*0.14,H*0.42); ctx.lineTo(cx+W*0.20,H*0.50); ctx.lineTo(cx+W*0.16,H*0.44);
+    },1.2,0.6);
+    // 大刀
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.16,H*0.54); ctx.lineTo(cx+W*0.24,H*0.90);
+    },2,0.6);
+    inkLine(ctx,function(){
+        ctx.moveTo(cx+W*0.12,H*0.54); ctx.lineTo(cx+W*0.20,H*0.56);
+    },2.5,0.5);
+}
+
+// ===== 绘图调度 =====
+var _drawMap = {
+    storyteller:drawStoryteller, master:drawMaster, doctor:drawDoctor,
+    monk:drawMonk, hermit:drawHermit, escort:drawEscort,
+    hero:drawHero, bandit:drawBandit, bully:drawBully,
+    guard:drawGuard, boss:drawBoss
+};
+
+function renderInkWash(canvas, charId){
+    var W=canvas.width, H=canvas.height;
+    var ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,W,H);
+    inkPaper(ctx,W,H);
+    var fn=_drawMap[charId];
+    if(fn) fn(ctx,W,H);
+    else{
+        // 默认绘制（未知角色）
+        var cx=W*0.5;
+        ctx.fillStyle='rgba(100,80,60,0.3)';
+        ctx.beginPath(); ctx.ellipse(cx,H*0.3,W*0.1,H*0.09,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(80,60,40,0.25)';
+        ctx.fillRect(cx-W*0.12,H*0.38,W*0.24,H*0.52);
+    }
+}
+
+// 初始化序幕/对话/战斗画布
+function initInkPortrait(canvasId, charId){
+    var c=document.getElementById(canvasId);
+    if(!c) return;
+    renderInkWash(c, charId);
+}
+
+function setDialogInk(charId){
+    var c=document.getElementById('dialog-canvas');
+    if(c) renderInkWash(c, charId||'hero');
+}
+
+function setBattleInk(charId){
+    var c=document.getElementById('battle-enemy-canvas');
+    if(c) renderInkWash(c, charId||'bandit');
+    var pc=document.getElementById('battle-player-canvas');
+    if(pc) renderInkWash(pc, 'hero');
+}
+
 // ==================== 说书人序幕 ====================
 var prologueLines = [
     '【汉灵帝中平年间·颍川郡】',
@@ -1479,6 +1992,7 @@ function startPrologue(){
     document.getElementById('title-screen').style.display = 'none';
     document.getElementById('prologue-modal').classList.add('show');
     document.getElementById('prologue-btn').style.display = 'none';
+    initInkPortrait('prologue-canvas', 'storyteller');
     showPrologueLine(0);
 }
 
@@ -1785,11 +2299,8 @@ function showDialog(d){
     var n = npcs[curNpc];
     document.getElementById('dialog-speaker').textContent=n.name;
     document.getElementById('dialog-text').textContent=d.s;
-    // 设置NPC剪影头像
-    var avatarEl = document.getElementById('dialog-avatar');
-    var avatarCls = 'avt-'+n.id;
-    avatarEl.className = 'css-avatar ' + avatarCls;
-    avatarEl.innerHTML = '<div class="head"></div><div class="body"></div>';
+    // 水墨头像
+    setDialogInk(n.id);
     var choices=document.getElementById('dialog-choices');
     choices.innerHTML='';
 
@@ -1989,11 +2500,8 @@ function startBattle(ei){
     document.getElementById('battle-log').textContent='⚔️ 狭路相逢！'+e.name+'挡在了你的面前！';
     sfxStart();
 
-    // CSS剪影立绘 - 根据敌人类型设置不同头像
-    var enemyPortrait = document.getElementById('battle-enemy-portrait');
-    var eCls = 'css-portrait avt-'+e.type;
-    enemyPortrait.className = eCls;
-    enemyPortrait.innerHTML = '<div class="head"></div><div class="body"></div>';
+    // 水墨战斗立绘
+    setBattleInk(e.type);
 }
 
 function disableBattleBtns(){
