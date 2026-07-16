@@ -1530,16 +1530,25 @@ function renderAIPortrait(canvas, charId){
     var ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
     var img = _aiCache[charId];
+    var cw = canvas.width, ch = canvas.height;
     // 暗色底色
     ctx.fillStyle = '#14100c';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, cw, ch);
     if(img && img.complete && img.naturalWidth){
-        var cw = canvas.width, ch = canvas.height;
         var iw = img.naturalWidth, ih = img.naturalHeight;
-        var scale = Math.min(cw/iw, ch/ih) * 0.92;
+        var scale = Math.min(cw/iw, ch/ih) * 0.94;
         var dw = iw * scale, dh = ih * scale;
         var dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+        // 先画图像
         ctx.drawImage(img, dx, dy, dw, dh);
+        // 柔边渐变遮罩：中心透明，边缘渐暗融入背景
+        var grd = ctx.createRadialGradient(cw/2, ch*0.45, Math.min(dw,dh)*0.28, cw/2, ch*0.45, Math.max(cw,ch)*0.58);
+        grd.addColorStop(0, 'rgba(20,16,12,0)');
+        grd.addColorStop(0.55, 'rgba(20,16,12,0)');
+        grd.addColorStop(0.82, 'rgba(20,16,12,0.45)');
+        grd.addColorStop(1, 'rgba(20,16,12,0.95)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, cw, ch);
     } else {
         // 降级：使用旧Canvas像素画
         renderPixelChar(canvas, charId);
