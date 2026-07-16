@@ -421,7 +421,7 @@ body{
         <button class="title-btn" onclick="newGame()">初 入 江 湖</button>
         <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
     </div>
-    <div class="title-version">v4.1 · 武侠RPG</div>
+    <div class="title-version">v4.2 · 武侠RPG</div>
 </div>
 
 <!-- 顶栏 -->
@@ -711,30 +711,17 @@ function sfxCrit(){
 }
 
 // 🗡️ 独孤九剑·单次斩击音效 (多次调用)
-function sfxSkillHit(idx){
-    var base=220+idx*280; // 每次打击延迟错开
-    setTimeout(function(){
-        // 快速扫掠剑风
-        sndSweep(600,4800,0.04,0.07,'sawtooth');
-        // 撞击
-        setTimeout(function(){
-            sndNoise(0.03,0.05,5000,0.22);
-            sndRing(3600+idx*200,3740+idx*200,0.09,0.06);
-        },10);
-        // 短余音
-        setTimeout(function(){
-            sndTone(2800+idx*150,'sine',0.25,0.04);
-        },18);
-    },base);
+// 独孤九剑·单次斩击（立即播放，无延迟，由doHit同步调用）
+function sfxSlash(){
+    sndSweep(600,4800,0.04,0.07,'sawtooth');
+    sndNoise(0.03,0.05,5000,0.22);
+    sndRing(3600,3740,0.09,0.06);
+    sndTone(2800,'sine',0.12,0.04);
 }
-// 独孤九剑·总起手剑气呼啸
+// 独孤九剑·起手剑气呼啸
 function sfxSkill(){
     sndSweep(120,800,0.3,0.07,'triangle');
     sndNoise(0.35,0.05,500,0.8);
-    // 三次打击按200ms间隔触发
-    sfxSkillHit(0);
-    setTimeout(function(){sfxSkillHit(1);},200);
-    setTimeout(function(){sfxSkillHit(2);},400);
 }
 
 function sfxHit(){
@@ -1724,6 +1711,7 @@ function doSkillMultiHit(e,log){
             return;
         }
         enemyHp-=hitDmgs[i];
+        sfxSlash(); // 斩击音效与伤害同步
         log.textContent='🗡️ 独孤九剑·'+names[i]+'！造成 '+hitDmgs[i]+' 点伤害！(消耗10内力)';
         shakeChar('#battle-panel .battle-char:last-child',i===2);
         updateBattleUI();
