@@ -100,11 +100,15 @@ body{
 /* ===== 地图区 ===== */
 #map-container{
     flex:1;position:relative;overflow:hidden;
-    background:#2d5016;
+    background:#0d0a10;
+    display:flex;align-items:center;justify-content:center;
     min-height:0;
 }
 #map-layer{
-    position:absolute;top:0;left:0;
+    position:relative;
+    width:560px;height:400px;
+    background:#2d5016;
+    box-shadow:0 0 0 3px #3d2e1a, 0 0 30px rgba(0,0,0,0.6);
 }
 .tile{
     position:absolute;image-rendering:pixelated;
