@@ -378,7 +378,7 @@ body{
         <button class="title-btn" onclick="newGame()">初 入 江 湖</button>
         <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
     </div>
-    <div class="title-version">v3.6 · 武侠RPG</div>
+    <div class="title-version">v3.7 · 武侠RPG</div>
 </div>
 
 <!-- 顶栏 -->
@@ -611,9 +611,9 @@ var deadEnemies = {};
 
 // 任务
 var quests = {
-    quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false},
-    quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false},
-    quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false}
+    quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false,rewardClaimed:false},
+    quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false,rewardClaimed:false},
+    quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false,rewardClaimed:false}
 };
 
 // ==================== 玩家默认数据 ====================
@@ -626,7 +626,8 @@ function defaultPlayer(){
         level:1, exp:0, expNeed:60,
         gold:50,
         items:{potion:3, superPotion:1},
-        quests:{quest_1:false,quest_2:false,quest_3:false}
+        quests:{quest_1:false,quest_2:false,quest_3:false},
+        hermitBuffed:false
     };
 }
 
@@ -662,7 +663,8 @@ function saveGameData(){
         player: player,
         killCounts: killCounts,
         deadEnemies: deadEnemies,
-        quests: quests
+        quests: quests,
+        hermitBuffed: player.hermitBuffed
     };
     try{
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -687,13 +689,14 @@ function loadGameData(){
         player.expNeed = p.expNeed; player.gold = p.gold;
         player.items = p.items || {potion:3, superPotion:1};
         player.quests = p.quests || {quest_1:false,quest_2:false,quest_3:false};
+        player.hermitBuffed = p.hermitBuffed || data.hermitBuffed || false;
         // 恢复击杀数据
         killCounts = data.killCounts || {bandit:0, bully:0, guard:0, boss:0};
         deadEnemies = data.deadEnemies || {};
         quests = data.quests || {
-            quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false},
-            quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false},
-            quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false}
+            quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false,rewardClaimed:false},
+            quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false,rewardClaimed:false},
+            quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false,rewardClaimed:false}
         };
         return true;
     }catch(e){
@@ -708,9 +711,9 @@ function newGame(){
     killCounts = {bandit:0, bully:0, guard:0, boss:0};
     deadEnemies = {};
     quests = {
-        quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false},
-        quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false},
-        quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false}
+        quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false,rewardClaimed:false},
+        quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false,rewardClaimed:false},
+        quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false,rewardClaimed:false}
     };
     startGame();
 }
@@ -958,7 +961,7 @@ function showDialog(d){
         if(!player.quests[d.q]){
             choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">义不容辞</button>'+
                 '<button class="dchoice" onclick="closeDialog()">容我再想想</button>';
-        }else if(d.t2 && quests[d.q].done){
+        }else if(d.t2 && quests[d.q].done && !quests[d.q].rewardClaimed){
             choices.innerHTML='<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取报酬</button>'+
                 '<button class="dchoice" onclick="closeDialog()">告辞</button>';
         }
@@ -986,15 +989,24 @@ function getNpcStartDialog(npcIdx){
     if(n.id==='master'){
         // quest_1已接正在进行中 → 询问进度
         if(player.quests.quest_1 && !quests.quest_1.done) return 2;
-        // quest_1完成，quest_2未接 → quest_2介绍
-        if(player.quests.quest_1 && quests.quest_1.done && !player.quests.quest_2) return 3;
+        // quest_1已完成未领报酬 → 领取报酬
+        if(player.quests.quest_1 && quests.quest_1.done && !quests.quest_1.rewardClaimed) return 1;
+        // quest_1报酬已领，quest_2未接 → quest_2介绍
+        if(player.quests.quest_1 && quests.quest_1.rewardClaimed && !player.quests.quest_2) return 3;
         // quest_2已接正在进行中 → 询问进度
         if(player.quests.quest_2 && !quests.quest_2.done) return 5;
+        // quest_2已完成未领报酬 → 领取报酬
+        if(player.quests.quest_2 && quests.quest_2.done && !quests.quest_2.rewardClaimed) return 4;
         // 全部完成 → 开头
         return 0;
     }
-    // 镖师：quest_2完成后可接quest_3
+    // 镖师：quest_2完成后可接quest_3，quest_3完成可领报酬
     if(n.id==='escort'){
+        // quest_3已接，已完成，未领报酬 → 领取报酬
+        if(player.quests.quest_3 && quests.quest_3.done && !quests.quest_3.rewardClaimed) return 1;
+        // quest_3报酬已领 → 闲聊
+        if(player.quests.quest_3 && quests.quest_3.rewardClaimed) return 0;
+        // quest_2完成，quest_3未接 → 接quest_3
         if(player.quests.quest_2 && quests.quest_2.done && !player.quests.quest_3) return 1;
         return 0;
     }
@@ -1023,7 +1035,7 @@ function nextDialog(){
         document.getElementById('dialog-text').textContent=d.t;
         var choices=document.getElementById('dialog-choices');
         if(d.q){
-            if(player.quests[d.q] && quests[d.q].done && d.t2){
+            if(player.quests[d.q] && quests[d.q].done && d.t2 && !quests[d.q].rewardClaimed){
                 choices.innerHTML='<button class="dchoice" onclick="nextDialog2()">继续</button>';
             }else if(!player.quests[d.q]){
                 choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">义不容辞</button>'+
@@ -1049,10 +1061,18 @@ function nextDialog(){
 function nextDialog2(){
     var d=npcs[curNpc].dialogs[curNpcDi];
     document.getElementById('dialog-text').textContent=d.t2;
-    // 处理buff
+    // 处理buff（隐士只能领一次）
     if(d.buff){
+        var n=npcs[curNpc];
+        if(n.id==='hermit' && player.hermitBuffed){
+            document.getElementById('dialog-text').textContent='这套吐纳之法你已融会贯通，无需再学了。';
+            document.getElementById('dialog-choices').innerHTML='<button class="dchoice" onclick="closeDialog()">多谢前辈</button>';
+            updateStats();
+            return;
+        }
         if(d.buff.mp){player.maxMp+=d.buff.mp;player.mp=Math.min(player.mp+d.buff.mp,player.maxMp);showHint('💠 内力上限+'+d.buff.mp+'！');}
         if(d.buff.hp){player.maxHp+=d.buff.hp;player.hp=Math.min(player.hp+d.buff.hp,player.maxHp);showHint('❤️ 气血上限+'+d.buff.hp+'！');}
+        if(n.id==='hermit') player.hermitBuffed=true;
         updateStats();
     }
     if(d.q){
@@ -1078,6 +1098,8 @@ function acceptQuest(q){
 }
 
 function claimReward(q){
+    if(quests[q].rewardClaimed){showHint('报酬已领取过了！');closeDialog();return;}
+    quests[q].rewardClaimed=true;
     var qd=quests[q];
     player.gold+=qd.rewardGold;
     player.exp+=qd.rewardExp;
@@ -1274,10 +1296,6 @@ function endBattle(won){
     renderPlayer();
 }
 
-function checkLevelUp(){
-    var lv=checkLevelUpSilent();
-    if(lv>0) showHint('🎉 突破！功力达到第'+player.level+'重天！气血+22 内力+12 攻击+4 防御+2');
-}
 function checkLevelUpSilent(){
     var gained=0;
     while(player.exp>=player.expNeed){
@@ -1294,7 +1312,7 @@ function checkLevelUpSilent(){
 
 // ==================== UI辅助 ====================
 function meditate(){
-    if(player.gold<15){showHint('💊 需要15两银子');return;}
+    if(player.gold<15){showHint('💰 需要15两银子');return;}
     player.gold-=15;
     player.hp=Math.min(player.maxHp,player.hp+50);
     player.mp=Math.min(player.maxMp,player.mp+20);
