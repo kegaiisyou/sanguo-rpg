@@ -336,6 +336,171 @@ body{
 }
 .battle-char.flash{animation:flash-hit 0.3s ease-out;}
 
+/* ===== CSS剪影立绘 ===== */
+.css-avatar{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:48px;height:56px;position:relative;
+    flex-shrink:0;
+}
+.css-avatar .body{
+    position:absolute;bottom:2px;left:4px;right:4px;height:26px;
+    border-radius:6px 6px 12px 12px;
+}
+.css-avatar .head{
+    position:absolute;width:18px;height:20px;border-radius:50%;
+    top:12px;left:50%;transform:translateX(-50%);
+}
+
+/* 说书人 - 斗笠+胡须 */
+.avt-storyteller .head{background:#2a1f15;}
+.avt-storyteller .body{background:#3d2b1a; border-radius:4px 4px 16px 16px;}
+.avt-storyteller::before{
+    content:'';position:absolute;
+    top:2px;left:2px;right:2px;height:16px;
+    background:linear-gradient(180deg,#4a3020,#3d2515);
+    clip-path:polygon(15% 0%,85% 0%,100% 100%,0% 100%);
+    border-radius:2px;
+}
+.avt-storyteller::after{
+    content:'';position:absolute;
+    bottom:0;left:10px;right:10px;height:8px;
+    background:linear-gradient(180deg,transparent,#2a1f15 40%);
+    border-radius:0 0 50% 50%;
+}
+
+/* 县尉韩伯 - 官帽 */
+.avt-master .head{background:#fce5d8;width:16px;height:18px;top:14px;}
+.avt-master .body{background:#4a3728; border-radius:4px 4px 14px 14px;}
+.avt-master::before{
+    content:'';position:absolute;top:5px;left:8px;right:8px;height:11px;
+    background:#3d2b1a;border-radius:2px 2px 0 0;
+}
+.avt-master::after{
+    content:'';position:absolute;top:6px;left:2px;right:2px;height:3px;
+    background:#5a4030;border-radius:1px;
+}
+
+/* 医馆华老 */
+.avt-doctor .head{background:#fce5d8;width:16px;height:18px;top:14px;}
+.avt-doctor .body{background:#7b6b5a;border-radius:4px 4px 14px 14px;}
+.avt-doctor::before{
+    content:'';position:absolute;top:6px;left:7px;width:16px;height:10px;
+    background:#5d5040;border-radius:50%;
+}
+
+/* 方士左慈 - 道髻 */
+.avt-monk .head{background:#fce5d8;width:15px;height:18px;top:14px;}
+.avt-monk .body{background:#5d6570;border-radius:4px 4px 18px 18px;}
+.avt-monk::before{
+    content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);
+    width:8px;height:13px;background:#e8d5c0;border-radius:50%;
+}
+
+/* 水镜先生 - 布帽隐士 */
+.avt-hermit .head{background:#c8a882;width:16px;height:18px;top:14px;}
+.avt-hermit .body{background:#2e5d32;border-radius:6px 6px 14px 14px;}
+.avt-hermit::before{
+    content:'';position:absolute;top:4px;left:4px;right:4px;height:12px;
+    background:linear-gradient(180deg,#4a6e46,#3a5a36);
+    border-radius:50% 50% 2px 2px;
+}
+
+/* 义军校尉 - 铁盔 */
+.avt-escort .head{background:#deb887;width:17px;height:18px;top:13px;}
+.avt-escort .body{background:#7b1f1f;border-radius:4px 4px 14px 14px;}
+.avt-escort::before{
+    content:'';position:absolute;top:3px;left:5px;right:5px;height:13px;
+    background:linear-gradient(180deg,#555,#3a3a3a);
+    clip-path:polygon(0% 30%,20% 10%,50% 0%,80% 10%,100% 30%,100% 100%,0% 100%);
+    border-radius:2px;
+}
+.avt-escort::after{
+    content:'';position:absolute;top:15px;left:2px;right:2px;height:2px;
+    background:rgba(255,200,100,0.5);border-radius:1px;
+}
+
+/* 少侠 - 束发武人 */
+.avt-hero .head{background:#ffe0bd;width:16px;height:19px;top:13px;}
+.avt-hero .body{background:#1a5276;border-radius:4px 4px 14px 14px;}
+.avt-hero::before{
+    content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);
+    width:6px;height:12px;background:#3d2817;border-radius:2px 2px 0 0;
+}
+
+/* 黄巾贼 */
+.avt-bandit .head{background:#deb887;width:16px;height:18px;top:14px;}
+.avt-bandit .body{background:#b8860b;border-radius:4px 4px 12px 12px;}
+.avt-bandit::before{
+    content:'';position:absolute;top:4px;left:3px;right:3px;height:12px;
+    background:#daa520;border-radius:50% 50% 1px 1px;
+}
+
+/* 西凉溃兵 */
+.avt-bully .head{background:#deb887;width:17px;height:18px;top:14px;}
+.avt-bully .body{background:#4a3728;border-radius:4px 4px 12px 12px;}
+.avt-bully::before{
+    content:'';position:absolute;top:3px;left:4px;right:4px;height:13px;
+    background:#3a2a1a;border-radius:3px 3px 0 0;
+}
+
+/* 西凉偏将 */
+.avt-guard .head{background:#deb887;width:17px;height:18px;top:13px;}
+.avt-guard .body{background:#6b1a1a;border-radius:3px 3px 12px 12px;}
+.avt-guard::before{
+    content:'';position:absolute;top:2px;left:4px;right:4px;height:14px;
+    background:#3a2020;clip-path:polygon(15% 25%,30% 5%,70% 5%,85% 25%,100% 100%,0% 100%);
+    border-radius:2px;
+}
+.avt-guard::after{
+    content:'';position:absolute;top:14px;left:2px;right:2px;height:2px;
+    background:rgba(200,150,50,0.4);border-radius:1px;
+}
+
+/* 华雄 - 大将 */
+.avt-boss .head{background:#deb887;width:20px;height:22px;top:10px;}
+.avt-boss .body{background:#8b0000;border-radius:4px 4px 14px 14px;}
+.avt-boss::before{
+    content:'';position:absolute;
+    top:2px;left:3px;right:3px;height:18px;
+    background:linear-gradient(180deg,#4a2525,#2a1010);
+    clip-path:polygon(0% 35%,15% 5%,35% 0%,65% 0%,85% 5%,100% 35%,95% 100%,5% 100%);
+    border-radius:2px;
+}
+.avt-boss::after{
+    content:'';position:absolute;top:18px;left:1px;right:1px;height:3px;
+    background:#daa520;border-radius:1px;
+}
+
+/* 大型立绘（序幕用，更大尺寸） */
+.css-portrait{
+    width:80px;height:96px;position:relative;
+    flex-shrink:0;
+}
+.css-portrait .body{
+    position:absolute;bottom:4px;left:8px;right:8px;height:44px;
+    border-radius:10px 10px 24px 24px;
+}
+.css-portrait .head{
+    position:absolute;width:30px;height:34px;border-radius:50%;
+    top:20px;left:50%;transform:translateX(-50%);
+}
+/* 说书人大立绘 */
+.port-storyteller .head{background:#3d2b1a;}
+.port-storyteller .body{background:#4a3020;border-radius:8px 8px 28px 28px;}
+.port-storyteller::before{
+    content:'';position:absolute;
+    top:4px;left:4px;right:4px;height:26px;
+    background:linear-gradient(180deg,#5a4030,#4a3020);
+    clip-path:polygon(15% 0%,85% 0%,100% 100%,0% 100%);
+    border-radius:3px;
+}
+.port-storyteller::after{
+    content:'';position:absolute;
+    bottom:2px;left:14px;right:14px;height:14px;
+    background:linear-gradient(180deg,transparent,#2a1f15 50%);
+    border-radius:0 0 50% 50%;
+}
+
 /* ===== 弹窗 ===== */
 .modal{
     display:none;position:absolute;top:0;left:0;right:0;bottom:0;
@@ -463,14 +628,23 @@ body{
         <button class="title-btn" onclick="startPrologue()">初 入 乱 世</button>
         <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
     </div>
-    <div class="title-version">v5.0 · 三国RPG</div>
+    <div class="title-version">v5.1 · 三国RPG</div>
 </div>
 
 <!-- ===== 说书人序幕 ===== -->
 <div class="modal" id="prologue-modal">
-    <div class="modal-box" style="max-width:420px;padding:20px 24px;">
-        <div id="prologue-content" style="color:#c8b080;font-size:14px;line-height:2;text-align:left;min-height:120px;"></div>
-        <button class="modal-btn" id="prologue-btn" onclick="nextPrologue()" style="margin-top:16px;">继续</button>
+    <div class="modal-box" style="max-width:480px;padding:18px 20px;">
+        <div style="display:flex;align-items:flex-start;gap:16px;">
+            <!-- 说书人剪影立绘 -->
+            <div class="css-portrait port-storyteller">
+                <div class="head"></div><div class="body"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;">
+                <div style="font-size:13px;color:#e8a850;margin-bottom:6px;letter-spacing:2px;">📖 说书人</div>
+                <div id="prologue-content" style="color:#c8b080;font-size:13px;line-height:1.9;text-align:left;min-height:100px;"></div>
+                <button class="modal-btn" id="prologue-btn" onclick="nextPrologue()" style="margin-top:10px;align-self:flex-end;">继续</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -544,9 +718,14 @@ body{
 
 <!-- 对话框 -->
 <div id="dialog-box">
-    <div id="dialog-speaker"></div>
-    <div id="dialog-text"></div>
-    <div id="dialog-choices"></div>
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div id="dialog-avatar"></div>
+        <div style="flex:1;">
+            <div id="dialog-speaker"></div>
+            <div id="dialog-text"></div>
+            <div id="dialog-choices"></div>
+        </div>
+    </div>
 </div>
 
 <!-- 战斗面板 -->
@@ -554,7 +733,9 @@ body{
     <div id="battle-scene">
         <div class="battle-row">
             <div class="battle-char">
-                <div id="battle-player"></div>
+                <div class="css-portrait avt-hero" id="battle-player-portrait">
+                    <div class="head"></div><div class="body"></div>
+                </div>
                 <div class="battle-name">少侠</div>
                 <div class="battle-nums">气血: <span id="bp-hp">100</span>/<span id="bp-maxhp">100</span></div>
                 <div class="battle-nums" style="color:#5b9bd5;">内力: <span id="bp-mp">30</span>/<span id="bp-maxmp">30</span></div>
@@ -563,7 +744,9 @@ body{
             </div>
             <div id="battle-vs">⚔️</div>
             <div class="battle-char">
-                <div id="battle-enemy"></div>
+                <div class="css-portrait" id="battle-enemy-portrait">
+                    <div class="head"></div><div class="body"></div>
+                </div>
                 <div class="battle-name" id="be-name"></div>
                 <div class="battle-nums">气血: <span id="be-hp">0</span>/<span id="be-maxhp">0</span></div>
                 <div class="battle-hp-bar"><div class="battle-hp-fill hp-enemy" id="be-hpbar"></div></div>
@@ -1278,27 +1461,15 @@ function loadGameData(){
 // ==================== 说书人序幕 ====================
 var prologueLines = [
     '【汉灵帝中平年间·颍川郡】',
-    '',
     '「话说天下大势，分久必合，合久必分……」',
-    '',
-    '一个蓬头垢面的说书人坐在茶棚里，',
-    '醉醺醺地拍着惊堂木。',
+    '一个蓬头垢面的说书人坐在茶棚里，醉醺醺地拍着惊堂木。',
     '他眼中却闪着异样的光——',
-    '',
-    '「黄巾虽平，董卓又起！」',
-    '「这大汉的天，怕是要塌了……」',
-    '',
-    '说书人忽然盯着你，咧嘴一笑：',
-    '「老夫看你面相，乃是命定之人。」',
-    '',
-    '他塞给你一把锈迹斑斑的长剑，',
-    '推着你出了茶棚——',
-    '',
+    '「黄巾虽平，董卓又起！这大汉的天，怕是要塌了……」',
+    '说书人忽然盯着你，咧嘴一笑：「老夫看你面相，乃是命定之人。」',
+    '他塞给你一把锈迹斑斑的长剑，推着你出了茶棚——',
     '「去吧！去这乱世中闯出一番名堂！」',
     '「记住，天下英雄，唯使君与操耳——」',
-    '',
-    '   ——但谁是使君，谁是操？',
-    '   你握紧剑柄，步入茫茫乱世……'
+    '   ——但谁是使君，谁是操？你握紧剑柄，步入茫茫乱世……'
 ];
 var prologueIdx = 0;
 var prologueTyping = false;
@@ -1611,8 +1782,14 @@ function interact(){
 
 function showDialog(d){
     var box=document.getElementById('dialog-box');
-    document.getElementById('dialog-speaker').textContent=npcs[curNpc].name;
+    var n = npcs[curNpc];
+    document.getElementById('dialog-speaker').textContent=n.name;
     document.getElementById('dialog-text').textContent=d.s;
+    // 设置NPC剪影头像
+    var avatarEl = document.getElementById('dialog-avatar');
+    var avatarCls = 'avt-'+n.id;
+    avatarEl.className = 'css-avatar ' + avatarCls;
+    avatarEl.innerHTML = '<div class="head"></div><div class="body"></div>';
     var choices=document.getElementById('dialog-choices');
     choices.innerHTML='';
 
@@ -1812,10 +1989,11 @@ function startBattle(ei){
     document.getElementById('battle-log').textContent='⚔️ 狭路相逢！'+e.name+'挡在了你的面前！';
     sfxStart();
 
-    var pColor={skin:'#ffe0bd',hair:'#3d2817',cloth:'#1a5276'};
-    document.getElementById('battle-player').innerHTML = genActorHTML('bp-actor',0,0,pColor,'少侠','player');
-    var eColor={skin:'#deb887',hair:'#333',cloth:e.color};
-    document.getElementById('battle-enemy').innerHTML = genActorHTML('be-actor',0,0,eColor,e.name,'enemy');
+    // CSS剪影立绘 - 根据敌人类型设置不同头像
+    var enemyPortrait = document.getElementById('battle-enemy-portrait');
+    var eCls = 'css-portrait avt-'+e.type;
+    enemyPortrait.className = eCls;
+    enemyPortrait.innerHTML = '<div class="head"></div><div class="body"></div>';
 }
 
 function disableBattleBtns(){
@@ -1967,7 +2145,7 @@ function enemyTurn(){
         player.x=9;player.y=3;
         buildMap();
         renderPlayer();
-        showModal('💀 力竭倒下','你被敌人击败了！\n\n被好心人救回清风镇，气血恢复至1。\n回去调息修养后再来报仇吧！');
+        showModal('💀 力竭倒下','你被敌人击败了！\n\n被过路商队救回了颍川，气血恢复至1。\n回去调息修养后再来报仇吧！');
     }
 }
 
@@ -2062,7 +2240,7 @@ function checkLevelUpSilent(){
 
 // ==================== UI辅助 ====================
 function meditate(){
-    if(player.gold<15){showHint('💰 需要15两银子');return;}
+    if(player.gold<15){showHint('💰 需要15枚五铢钱');return;}
     player.gold-=15;
     player.hp=Math.min(player.maxHp,player.hp+50);
     player.mp=Math.min(player.maxMp,player.mp+20);
@@ -2243,7 +2421,7 @@ function showQuest(){
         txt+='  '+q.desc+'\n';
         txt+='  报酬: '+q.rewardGold+'五铢钱 +'+q.rewardExp+'修为\n\n';
     }
-    if(!hasQuest) txt+='暂无进行中的任务。\n前往清风镇找武师接取任务吧！\n\n';
+    if(!hasQuest) txt+='暂无进行中的任务。\n前往颍川找县尉韩伯接取任务吧！\n\n';
     txt+='击杀: 黄巾×'+killCounts.bandit+' 溃兵×'+killCounts.bully+' 西凉×'+killCounts.guard;
     showModal('任务',txt);
 }
