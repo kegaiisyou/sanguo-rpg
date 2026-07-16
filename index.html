@@ -2,239 +2,288 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>种田日记</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>勇者传说 - CSS像素RPG</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { 
-    font-family:"Microsoft YaHei",sans-serif; 
-    background:linear-gradient(180deg,#2d5016 0%,#4a7c2e 40%,#87CEEB 40%,#87CEEB 100%);
-    min-height:100vh; display:flex; justify-content:center; align-items:center;
-    padding:20px;
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    font-family:"Microsoft YaHei",sans-serif;
+    background:#1a1a2e;
+    display:flex;justify-content:center;align-items:center;
+    min-height:100vh;padding:10px;
 }
-#app {
-    width:100%; max-width:480px;
-    background:linear-gradient(180deg,#f5e6c8,#e8d5a8);
-    border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.3);
-    overflow:hidden;
+#game{
+    width:100%;max-width:500px;
+    background:#0d1117;
+    border-radius:12px;overflow:hidden;
+    box-shadow:0 0 30px rgba(0,0,0,0.5);
+    position:relative;height:92vh;max-height:750px;
+    display:flex;flex-direction:column;
 }
 
-/* 顶栏 */
-#header {
-    background:linear-gradient(135deg,#5d4037,#8d6e63);
-    color:#ffd54f; padding:16px 20px;
-    display:flex; justify-content:space-between; align-items:center;
-    border-bottom:3px solid #4e342e;
+/* === 顶栏 === */
+#topbar{
+    background:#161b22;padding:8px 14px;
+    display:flex;justify-content:space-between;align-items:center;
+    border-bottom:2px solid #30363d;
 }
-#header h1 { font-size:24px; text-shadow:1px 1px 2px rgba(0,0,0,0.3); }
-#season-info { text-align:right; }
-#year-display { font-size:14px; color:#ffcc80; }
-#season-display { font-size:22px; }
+#topbar h1{font-size:15px;color:#ffd54f;}
+#loc-name{font-size:12px;color:#8b949e;}
 
-/* 状态栏 */
-#status-bar {
-    display:flex; justify-content:space-around;
-    padding:12px; background:rgba(0,0,0,0.08);
-    border-bottom:2px dashed #bcaaa4;
+/* === 地图区 === */
+#map-container{
+    flex:1;position:relative;overflow:hidden;
+    background:#2d5016;
 }
-.stat-item { text-align:center; }
-.stat-icon { font-size:24px; }
-.stat-label { font-size:11px; color:#795548; }
-.stat-value { font-size:18px; font-weight:bold; color:#4e342e; }
+#map-layer{
+    position:absolute;top:0;left:0;
+    width:100%;height:100%;
+}
+.tile{
+    position:absolute;image-rendering:pixelated;
+    border:1px solid rgba(0,0,0,0.05);
+}
+.tile-grass{background:#4a7c2e;}
+.tile-path{background:#c4a46c;}
+.tile-wall{background:#4a4a4a;}
+.tile-house{background:#8d6e63;}
+.tile-house-roof{background:#c62828;}
+.tile-water{background:#2980b9;}
+.tile-cave{background:#5d4037;}
+.tile-dungeon{background:#311b92;}
+.tile-shop{background:#e65100;}
+.tile-altar{background:#ffd54f;}
 
-/* 田地 */
-#fields-area {
-    padding:16px 20px; min-height:200px;
+/* === CSS 角色 === */
+.actor{
+    position:absolute;z-index:10;
+    transition:left 0.15s,top 0.15s;
 }
-#fields-area h3 { color:#5d4037; margin-bottom:10px; font-size:15px; }
-#fields {
-    display:grid; grid-template-columns:1fr 1fr;
-    gap:10px;
+.actor-body{
+    position:relative;width:26px;height:38px;
 }
-.field {
-    background:linear-gradient(180deg,#8d6e63,#6d4c41);
-    border-radius:10px; padding:16px 10px;
-    text-align:center; min-height:90px;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    border:3px solid #5d4037;
-    transition:all 0.2s;
-    cursor:pointer; position:relative;
+/* 头 */
+.actor-head{
+    width:14px;height:14px;border-radius:50%;
+    position:absolute;top:0;left:50%;transform:translateX(-50%);
+    border:1px solid rgba(0,0,0,0.3);
 }
-.field:hover { border-color:#ffd54f; transform:translateY(-2px); }
-.field.empty { background:linear-gradient(180deg,#a1887f,#8d6e63); border-style:dashed; }
-.field.ready { background:linear-gradient(180deg,#66bb6a,#43a047); border-color:#2e7d32; animation:pulse 1.5s infinite; }
-.field.growing { background:linear-gradient(180deg,#795548,#5d4037); }
-@keyframes pulse {
-    0%,100% { box-shadow:0 0 0 0 rgba(255,215,0,0.4); }
-    50% { box-shadow:0 0 12px 4px rgba(255,215,0,0.6); }
+/* 头盔 */
+.actor-helm{
+    width:16px;height:5px;border-radius:3px 3px 0 0;
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
 }
-.field-icon { font-size:32px; }
-.field-name { font-size:13px; color:#fff; font-weight:bold; margin-top:4px; }
-.field-status { font-size:10px; color:#e0e0e0; margin-top:2px; }
-.field.empty .field-icon { opacity:0.3; font-size:24px; }
-.field.empty .field-name,.field.empty .field-status { color:#d7ccc8; }
+/* 身体 */
+.actor-torso{
+    width:18px;height:14px;border-radius:3px;
+    position:absolute;top:13px;left:50%;transform:translateX(-50%);
+    border:1px solid rgba(0,0,0,0.3);
+}
+/* 腿 */
+.actor-left-leg,.actor-right-leg{
+    width:6px;height:10px;border-radius:0 0 2px 2px;
+    position:absolute;bottom:0;
+}
+.actor-left-leg{left:6px;}.actor-right-leg{right:6px;}
+/* 武器 */
+.actor-weapon{
+    width:3px;height:20px;border-radius:1px;
+    position:absolute;top:8px;right:-3px;
+}
+/* 阴影 */
+.actor-shadow{
+    width:20px;height:6px;background:rgba(0,0,0,0.3);
+    border-radius:50%;position:absolute;bottom:-4px;left:50%;
+    transform:translateX(-50%);
+}
+/* 名字标签 */
+.actor-name{
+    position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+    font-size:9px;white-space:nowrap;color:#fff;
+    text-shadow:1px 1px 0 #000;
+}
+/* 动画 */
+@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes walk{0%,100%{transform:translateY(0) translateX(0)}
+    25%{transform:translateY(-3px) translateX(1px)}
+    75%{transform:translateY(-3px) translateX(-1px)}}
+.actor.idle .actor-body{animation:idle 1.2s ease-in-out infinite;}
+.actor.walk .actor-body{animation:walk 0.35s ease-in-out infinite;}
 
-/* 操作区 */
-#actions {
-    padding:0 20px 16px;
+/* === 状态面板 === */
+#status-panel{
+    background:rgba(0,0,0,0.85);padding:8px 14px;
+    display:flex;justify-content:space-around;gap:10px;
+    border-top:2px solid #30363d;
+    flex-wrap:wrap;
 }
-#actions h3 { color:#5d4037; margin-bottom:10px; font-size:15px; }
-.action-btns { display:flex; flex-wrap:wrap; gap:8px; }
-.action-btn {
-    flex:1; min-width:90px;
-    padding:12px 8px; border-radius:10px;
-    border:2px solid #8d6e63; cursor:pointer;
-    font-size:13px; font-weight:bold;
-    background:#fff; color:#5d4037;
+.stat{text-align:center;min-width:50px;}
+.stat-icon{font-size:16px;}
+.stat-val{font-size:14px;font-weight:bold;color:#ffd54f;}
+.stat-label{font-size:9px;color:#8b949e;}
+
+/* === 操作栏 === */
+#action-bar{
+    background:rgba(0,0,0,0.85);padding:6px 14px;
+    display:flex;gap:8px;justify-content:center;
+    border-top:1px solid #30363d;
+}
+.act-btn{
+    padding:6px 14px;border-radius:6px;border:none;
+    font-size:11px;font-weight:bold;cursor:pointer;
+    background:#238636;color:#fff;
     transition:all 0.15s;
-    text-align:center;
 }
-.action-btn:hover { background:#ffd54f; border-color:#f9a825; transform:translateY(-1px); }
-.action-btn:active { transform:scale(0.96); }
-.action-btn.disabled { opacity:0.4; pointer-events:none; }
-.action-btn .btn-icon { font-size:20px; display:block; }
-.action-btn .btn-cost { font-size:10px; color:#888; margin-top:2px; }
+.act-btn:hover{background:#2ea043;transform:translateY(-1px);}
+.act-btn:active{transform:scale(0.95);}
+.act-btn.danger{background:#da3633;}
+.act-btn.danger:hover{background:#f85149;}
+.act-btn.info{background:#1f6feb;}
 
-/* 日志 */
-#log-area {
-    padding:0 20px 16px;
+/* === 对话框 === */
+#dialog-box{
+    display:none;position:absolute;bottom:0;left:0;right:0;
+    background:rgba(13,17,23,0.97);padding:14px 18px;
+    border-top:3px solid #ffd54f;z-index:50;
 }
-#log-area h3 { color:#5d4037; margin-bottom:8px; font-size:15px; }
-#log {
-    background:rgba(255,255,255,0.7); border-radius:8px;
-    padding:10px 14px; max-height:100px; overflow-y:auto;
-    font-size:12px; color:#5d4037; line-height:1.8;
-    border:1px solid #d7ccc8;
+#dialog-speaker{font-size:13px;color:#ff6b6b;margin-bottom:6px;font-weight:bold;}
+#dialog-text{font-size:13px;color:#ddd;line-height:1.6;margin-bottom:10px;}
+#dialog-choices{display:flex;flex-wrap:wrap;gap:6px;}
+.dchoice{
+    padding:6px 14px;border-radius:4px;border:1px solid #ffd54f;
+    background:transparent;color:#ffd54f;cursor:pointer;font-size:11px;
 }
-#log::-webkit-scrollbar { width:4px; }
-#log::-webkit-scrollbar-thumb { background:#bcaaa4; border-radius:2px; }
-.log-entry { border-bottom:1px dotted #d7ccc8; padding:2px 0; }
-.log-good { color:#2e7d32; }
-.log-bad { color:#c62828; }
-.log-info { color:#1565c0; }
+.dchoice:hover{background:#ffd54f;color:#0d1117;}
 
-/* 底部 */
-#footer {
-    display:flex; gap:10px; padding:0 20px 16px;
+/* === 战斗面板 === */
+#battle-panel{
+    display:none;position:absolute;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.92);z-index:100;
+    flex-direction:column;align-items:center;justify-content:center;
 }
-#footer button {
-    flex:1; padding:10px; border-radius:8px;
-    border:none; cursor:pointer; font-size:14px; font-weight:bold;
-    transition:all 0.15s;
+#battle-scene{padding:20px;}
+.battle-row{display:flex;align-items:center;gap:30px;margin:10px 0;}
+.battle-char{text-align:center;}
+.battle-char .actor{position:relative;}
+.battle-hp-bar{
+    width:120px;height:8px;background:#333;border-radius:4px;
+    margin-top:6px;overflow:hidden;border:1px solid #555;
 }
-#btn-next { background:linear-gradient(135deg,#66bb6a,#43a047); color:#fff; }
-#btn-next:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(67,160,71,0.4); }
-#btn-reset { background:#efebe9; color:#795548; }
-#btn-reset:hover { background:#d7ccc8; }
+.battle-hp-fill{height:100%;transition:width 0.3s;}
+.hp-player{background:linear-gradient(90deg,#2ea043,#238636);}
+.hp-enemy{background:linear-gradient(90deg,#da3633,#b62324);}
+.battle-name{font-size:12px;color:#fff;margin-top:4px;}
+.battle-nums{font-size:10px;color:#8b949e;}
+#battle-vs{font-size:28px;color:#ffd54f;}
+#battle-log{
+    color:#ffd54f;font-size:13px;min-height:24px;
+    text-align:center;margin:10px 0;
+}
+#battle-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
+.bact-btn{
+    padding:10px 18px;border-radius:6px;border:none;
+    font-size:12px;font-weight:bold;cursor:pointer;color:#fff;
+}
+.bact-btn.atk{background:#da3633;}
+.bact-btn.skill{background:#1f6feb;}
+.bact-btn.item{background:#238636;}
+.bact-btn.flee{background:#555;}
+.bact-btn:hover{filter:brightness(1.2);}
 
-/* 弹窗 */
-.modal {
-    display:none; position:fixed; top:0;left:0;right:0;bottom:0;
-    background:rgba(0,0,0,0.6); z-index:100;
-    justify-content:center; align-items:center;
+/* === 弹窗 === */
+.modal{
+    display:none;position:absolute;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.85);z-index:200;
+    flex-direction:column;align-items:center;justify-content:center;
 }
-.modal.show { display:flex; }
-.modal-box {
-    background:#fff; border-radius:16px; padding:24px;
-    max-width:360px; width:90%; text-align:center;
-    box-shadow:0 8px 32px rgba(0,0,0,0.3);
+.modal.show{display:flex;}
+.modal-box{
+    background:#161b22;border:2px solid #ffd54f;border-radius:12px;
+    padding:20px 24px;max-width:380px;width:90%;text-align:center;
 }
-.modal-box h2 { color:#5d4037; margin-bottom:12px; }
-.modal-box p { color:#666; font-size:14px; line-height:1.8; margin-bottom:16px; }
-.modal-btn {
-    padding:10px 32px; border-radius:8px; border:none;
-    background:linear-gradient(135deg,#66bb6a,#43a047);
-    color:#fff; font-size:15px; font-weight:bold; cursor:pointer;
+.modal-box h2{color:#ffd54f;margin-bottom:10px;font-size:18px;}
+.modal-box p{color:#ccc;font-size:13px;line-height:1.7;margin-bottom:14px;}
+.modal-btn{
+    padding:8px 28px;border-radius:6px;border:none;
+    background:#ffd54f;color:#0d1117;font-weight:bold;
+    cursor:pointer;font-size:14px;
 }
-.modal-btn:hover { transform:translateY(-1px); }
 
-/* 季节性背景微调 */
-body.spring { background:linear-gradient(180deg,#7cb342 0%,#66bb6a 40%,#b3e5fc 40%,#b3e5fc 100%); }
-body.summer { background:linear-gradient(180deg,#f9a825 0%,#ffb300 30%,#4fc3f7 30%,#4fc3f7 100%); }
-body.autumn { background:linear-gradient(180deg,#e65100 0%,#ef6c00 30%,#ffcc80 30%,#ffcc80 100%); }
-body.winter { background:linear-gradient(180deg,#eceff1 0%,#cfd8dc 40%,#90caf9 40%,#90caf9 100%); }
+/* === 提示 === */
+#hint{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.9);color:#ffd54f;padding:10px 22px;
+    border-radius:8px;font-size:12px;z-index:60;
+    display:none;pointer-events:none;
+    border:1px solid #ffd54f;
+}
 </style>
 </head>
-<body class="spring">
-<div id="app">
+<body>
+
+<div id="game">
 
 <!-- 顶栏 -->
-<div id="header">
-    <h1>🌾 种田日记</h1>
-    <div id="season-info">
-        <div id="year-display"></div>
-        <div id="season-display"></div>
-    </div>
+<div id="topbar">
+    <h1>⚔️ 勇者传说</h1>
+    <span id="loc-name">新手村</span>
 </div>
 
-<!-- 状态栏 -->
-<div id="status-bar">
-    <div class="stat-item">
-        <div class="stat-icon">💰</div>
-        <div class="stat-label">金币</div>
-        <div class="stat-value" id="gold-val">200</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-icon">📦</div>
-        <div class="stat-label">粮仓</div>
-        <div class="stat-value" id="storage-val">0</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-icon">🏡</div>
-        <div class="stat-label">田地</div>
-        <div class="stat-value" id="land-val">2</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-icon">⭐</div>
-        <div class="stat-label">声望</div>
-        <div class="stat-value" id="fame-val">0</div>
-    </div>
+<!-- 地图 -->
+<div id="map-container">
+    <div id="map-layer"></div>
+    <div id="hint"></div>
 </div>
 
-<!-- 田地 -->
-<div id="fields-area">
-    <h3>🪴 我的田地</h3>
-    <div id="fields"></div>
+<!-- 状态 -->
+<div id="status-panel">
+    <div class="stat"><div class="stat-icon">❤️</div><div class="stat-val" id="s-hp">100</div><div class="stat-label">生命</div></div>
+    <div class="stat"><div class="stat-icon">💎</div><div class="stat-val" id="s-mp">30</div><div class="stat-label">法力</div></div>
+    <div class="stat"><div class="stat-icon">⚔️</div><div class="stat-val" id="s-atk">15</div><div class="stat-label">攻击</div></div>
+    <div class="stat"><div class="stat-icon">💰</div><div class="stat-val" id="s-gold">50</div><div class="stat-label">金币</div></div>
+    <div class="stat"><div class="stat-icon">⭐</div><div class="stat-val" id="s-lv">Lv.1</div><div class="stat-label" id="s-exp"></div></div>
 </div>
 
 <!-- 操作 -->
-<div id="actions">
-    <h3>🔧 操作</h3>
-    <div class="action-btns" id="action-btns">
-        <button class="action-btn" onclick="plant('rice')">
-            <span class="btn-icon">🌾</span>播种水稻<span class="btn-cost">30金</span>
-        </button>
-        <button class="action-btn" onclick="plant('wheat')">
-            <span class="btn-icon">🌿</span>播种小麦<span class="btn-cost">20金</span>
-        </button>
-        <button class="action-btn" onclick="plant('herb')">
-            <span class="btn-icon">🌿</span>播种药材<span class="btn-cost">60金</span>
-        </button>
-        <button class="action-btn" onclick="plant('fruit')">
-            <span class="btn-icon">🍎</span>播种果树<span class="btn-cost">50金</span>
-        </button>
-        <button class="action-btn" onclick="harvestAll()">
-            <span class="btn-icon">🧺</span>全部收获
-        </button>
-        <button class="action-btn" onclick="upgradeLand()">
-            <span class="btn-icon">🔨</span>开垦田地<span class="btn-cost" id="upgrade-cost"></span>
-        </button>
+<div id="action-bar">
+    <button class="act-btn" onclick="showInventory()">🎒 背包</button>
+    <button class="act-btn info" onclick="showQuest()">📋 任务</button>
+    <button class="act-btn" onclick="healInTown()">💊 休息</button>
+</div>
+
+<!-- 对话框 -->
+<div id="dialog-box">
+    <div id="dialog-speaker"></div>
+    <div id="dialog-text"></div>
+    <div id="dialog-choices"></div>
+</div>
+
+<!-- 战斗面板 -->
+<div id="battle-panel">
+    <div id="battle-scene">
+        <div class="battle-row">
+            <div class="battle-char">
+                <div id="battle-player"></div>
+                <div class="battle-name">勇者</div>
+                <div class="battle-nums">HP: <span id="bp-hp">100</span>/<span id="bp-maxhp">100</span></div>
+                <div class="battle-hp-bar"><div class="battle-hp-fill hp-player" id="bp-hpbar"></div></div>
+            </div>
+            <div id="battle-vs">⚡</div>
+            <div class="battle-char">
+                <div id="battle-enemy"></div>
+                <div class="battle-name" id="be-name">史莱姆</div>
+                <div class="battle-nums">HP: <span id="be-hp">30</span>/<span id="be-maxhp">30</span></div>
+                <div class="battle-hp-bar"><div class="battle-hp-fill hp-enemy" id="be-hpbar"></div></div>
+            </div>
+        </div>
+        <div id="battle-log">战斗开始！</div>
+        <div id="battle-actions">
+            <button class="bact-btn atk" onclick="battleAction('atk')">⚔️ 攻击</button>
+            <button class="bact-btn skill" onclick="battleAction('skill')">🔥 技能</button>
+            <button class="bact-btn item" onclick="battleAction('item')">💊 物品</button>
+            <button class="bact-btn flee" onclick="battleAction('flee')">🏃 逃跑</button>
+        </div>
     </div>
-</div>
-
-<!-- 日志 -->
-<div id="log-area">
-    <h3>📜 日志</h3>
-    <div id="log"></div>
-</div>
-
-<!-- 底部 -->
-<div id="footer">
-    <button id="btn-reset" onclick="resetGame()">🔄 重新开始</button>
-    <button id="btn-next" onclick="nextSeason()">▶ 下个季节</button>
-</div>
-
 </div>
 
 <!-- 弹窗 -->
@@ -242,336 +291,551 @@ body.winter { background:linear-gradient(180deg,#eceff1 0%,#cfd8dc 40%,#90caf9 4
     <div class="modal-box">
         <h2 id="modal-title"></h2>
         <p id="modal-text"></p>
-        <button class="modal-btn" onclick="closeModal()">知道了</button>
+        <button class="modal-btn" onclick="closeModal()">确定</button>
     </div>
 </div>
 
+</div>
+
 <script>
-// ========== 游戏数据 ==========
-var gold = 200;
-var landLevel = 2;       // 田地数量
-var storage = 0;          // 粮仓库存
-var fame = 0;             // 声望
-var year = 1;
-var season = 0;           // 0春1夏2秋3冬
-var seasonNames = ['春','夏','秋','冬'];
-var seasonEmoji = ['🌸','☀️','🍂','❄️'];
-var seasonBodyClass = ['spring','summer','autumn','winter'];
+// ==================== 游戏数据 ====================
+var TILE = 48; // 每格48px
+var MAP_W = 10, MAP_H = 8;
 
-// 田地状态: null=空闲, {crop:'rice'/'wheat'/'herb'/'fruit', turns:剩余生长回合}
-var fields = [null, null];
+// 地图: G=grass P=path W=wall H=house V=cave D=dungeon S=shop A=altar C=water
+var mapData = [
+    ['G','W','W','W','W','W','W','W','G','G'],
+    ['G','G','G','G','H','H','G','G','G','G'],
+    ['G','P','P','G','G','G','G','S','G','G'],
+    ['G','P','P','P','G','G','G','S','G','G'],
+    ['G','G','G','P','P','P','G','G','V','V'],
+    ['G','G','G','G','G','P','G','G','V','V'],
+    ['G','G','G','D','D','P','P','G','G','G'],
+    ['C','C','G','D','D','G','G','A','A','G']
+];
 
-// 作物定义
-var crops = {
-    rice:  { name:'水稻', icon:'🌾', cost:30, turns:2, yield:55, desc:'稳产粮食，不易受灾' },
-    wheat: { name:'小麦', icon:'🌿', cost:20, turns:2, yield:40, desc:'便宜稳妥，产量一般' },
-    herb:  { name:'药材', icon:'🌿', cost:60, turns:3, yield:150, desc:'高风险高回报' },
-    fruit: { name:'果树', icon:'🍎', cost:50, turns:3, yield:110, desc:'收益可观，较稳定' }
+var tileStyle = {
+    G:{cls:'tile-grass',name:'草地'},
+    P:{cls:'tile-path',name:'小路'},
+    W:{cls:'tile-wall',name:'城墙'},
+    H:{cls:'tile-house',name:'房屋'},
+    V:{cls:'tile-cave',name:'洞穴'},
+    D:{cls:'tile-dungeon',name:'地下城'},
+    S:{cls:'tile-shop',name:'商店'},
+    A:{cls:'tile-altar',name:'祭坛'},
+    C:{cls:'tile-water',name:'河流'}
 };
 
-// 开垦费用
-function upgradeCost() {
-    return 150 + (landLevel - 2) * 100;
+// 区域名
+function areaName(x,y) {
+    if(y<=1) return '北郊';
+    if(y>=6) return mapData[y][x]==='D'?'地下城':'南荒';
+    if(x>=7) return '幽暗洞穴';
+    if(x>=5 && y<=2) return '商店街';
+    if(x>=4 && x<=6 && y>=3 && y<=4) return '大道';
+    if(x<=1 || y<=1) return '北郊';
+    return '新手村';
 }
 
-// ========== UI 渲染 ==========
-function render() {
-    document.getElementById('gold-val').textContent = gold;
-    document.getElementById('storage-val').textContent = storage;
-    document.getElementById('land-val').textContent = landLevel;
-    document.getElementById('fame-val').textContent = fame;
-    document.getElementById('year-display').textContent = '第' + year + '年';
-    document.getElementById('season-display').textContent = seasonEmoji[season] + ' ' + seasonNames[season];
+// NPC
+var npcs = [
+    {id:'elder', x:3, y:1, name:'村长', color:{skin:'#fce5d8',hair:'#888',cloth:'#6d4c41'},
+        dialogs:[
+            {s:'勇者啊，你终于来了！',t:'村子正遭受魔物侵袭，需要你的帮助。'},
+            {q:'quest_1',s:'森林里有三只史莱姆在捣乱',t:'击败它们，回来领赏！',t2:'你消灭了史莱姆！这是给你的奖励。'}
+        ]},
+    {id:'shop', x:6, y:2, name:'商人', color:{skin:'#fce5d8',hair:'#444',cloth:'#e67e22'},
+        dialogs:[
+            {s:'欢迎光临！',t:'需要购买药水吗？10金币一瓶。',buy:true}
+        ]},
+    {id:'guard', x:2, y:5, name:'守卫', color:{skin:'#deb887',hair:'#333',cloth:'#1976d2'},
+        dialogs:[
+            {s:'地下城就在前方！',t:'里面的魔物非常强大，建议等级5以上再进去。'}
+        ]}
+];
 
-    // 更新body季节class
-    document.body.className = seasonBodyClass[season];
+// 敌人
+var enemies = [
+    {id:'slime1',x:6,y:4,name:'史莱姆',hp:30,atk:8,def:2,exp:15,gold:12,color:'#4caf50',type:'normal',respawn:true},
+    {id:'slime2',x:1,y:6,name:'史莱姆',hp:30,atk:8,def:2,exp:15,gold:12,color:'#4caf50',type:'normal',respawn:true},
+    {id:'slime3',x:8,y:1,name:'史莱姆',hp:30,atk:8,def:2,exp:15,gold:12,color:'#4caf50',type:'normal',respawn:true},
+    {id:'goblin1',x:8,y:4,name:'哥布林',hp:50,atk:13,def:4,exp:30,gold:25,color:'#ff9800',type:'normal',respawn:true},
+    {id:'goblin2',x:5,y:6,name:'哥布林',hp:50,atk:13,def:4,exp:30,gold:25,color:'#ff9800',type:'normal',respawn:true},
+    {id:'boss',x:4,y:7,name:'魔王',hp:200,atk:25,def:10,exp:200,gold:500,color:'#f44336',type:'boss',respawn:false}
+];
 
-    // 渲染田地
-    var html = '';
-    for (var i = 0; i < landLevel; i++) {
-        var f = fields[i];
-        if (!f) {
-            html += '<div class="field empty" onclick="clickField('+i+')">';
-            html += '<div class="field-icon">⛳</div>';
-            html += '<div class="field-name">空闲田地</div>';
-            html += '<div class="field-status">点击播种</div>';
-            html += '</div>';
-        } else if (f.turns <= 0) {
-            html += '<div class="field ready" onclick="harvestField('+i+')">';
-            html += '<div class="field-icon">' + crops[f.crop].icon + '</div>';
-            html += '<div class="field-name">' + crops[f.crop].name + '</div>';
-            html += '<div class="field-status">✨ 可收获!</div>';
-            html += '</div>';
-        } else {
-            html += '<div class="field growing" onclick="clickField('+i+')">';
-            html += '<div class="field-icon">🌱</div>';
-            html += '<div class="field-name">' + crops[f.crop].name + '</div>';
-            html += '<div class="field-status">生长中 ' + f.turns + '/' + crops[f.crop].turns + ' 季</div>';
-            html += '</div>';
+// 任务
+var quests = {
+    quest_1:{name:'消灭史莱姆',desc:'击败3只史莱姆',target:3,progress:0,rewardGold:80,rewardExp:60,done:false},
+    quest_2:{name:'讨伐哥布林',desc:'击败2只哥布林',target:2,progress:0,rewardGold:150,rewardExp:100,done:false},
+    quest_3:{name:'击败魔王',desc:'深入地下城击败魔王',target:1,progress:0,rewardGold:1000,rewardExp:500,done:false}
+};
+
+// ==================== 玩家 ====================
+var player = {
+    x:3, y:4,
+    hp:100, maxHp:100,
+    mp:30, maxMp:30,
+    atk:15, def:5,
+    level:1, exp:0, expNeed:50,
+    gold:50,
+    items:{potion:3, superPotion:1},
+    quests:{quest_1:false,quest_2:false,quest_3:false}
+};
+
+var curNpc = null, curNpcDi = 0;
+var inBattle = false, enemyIdx = null, enemyHp = 0, enemyMaxHp = 0;
+var respawnTimer = {};
+var walkTimer = null;
+
+// ==================== 渲染 ====================
+function buildMap() {
+    var layer = document.getElementById('map-layer');
+    var h = '';
+    for(var y=0;y<MAP_H;y++){
+        for(var x=0;x<MAP_W;x++){
+            var t = mapData[y][x];
+            var s = tileStyle[t];
+            h+='<div class="tile '+s.cls+'" style="left:'+(x*TILE)+'px;top:'+(y*TILE)+'px;width:'+TILE+'px;height:'+TILE+'px;"></div>';
         }
     }
-    document.getElementById('fields').innerHTML = html;
-    document.getElementById('upgrade-cost').textContent = upgradeCost() + '金';
+    layer.innerHTML = h;
 
-    // 更新按钮状态
-    updateButtons();
+    // 渲染NPC
+    npcs.forEach(function(n){
+        layer.innerHTML += genActorHTML(n.id, n.x, n.y, n.color, n.name, 'npc');
+    });
+
+    // 渲染敌人
+    enemies.forEach(function(e){
+        if(e.hp>0 || e.respawn){
+            layer.innerHTML += genActorHTML(e.id, e.x, e.y, {skin:'#c62828',hair:'#222',cloth:e.color}, e.name, 'enemy');
+        }
+    });
+
+    renderPlayer();
 }
 
-function updateButtons() {
-    var btns = document.querySelectorAll('#action-btns .action-btn');
-    btns.forEach(function(b) { b.classList.remove('disabled'); });
+function genActorHTML(id,x,y,color,name,type){
+    var cssX = x*TILE + (TILE-26)/2;
+    var cssY = y*TILE + TILE-42;
+    var h = '<div class="actor '+type+'" id="'+id+'" style="left:'+cssX+'px;top:'+cssY+'px;">';
+    h += '<span class="actor-name">'+name+'</span>';
+    h += '<div class="actor-shadow"></div>';
+    h += '<div class="actor-body">';
+    h += '<div class="actor-head" style="background:'+color.skin+'"></div>';
+    h += '<div class="actor-helm" style="background:'+color.hair+'"></div>';
+    h += '<div class="actor-torso" style="background:'+color.cloth+'"></div>';
+    h += '<div class="actor-left-leg" style="background:#333"></div>';
+    h += '<div class="actor-right-leg" style="background:#333"></div>';
+    if(type==='player'){
+        h += '<div class="actor-weapon" style="background:#90a4ae"></div>';
+    }
+    h += '</div></div>';
+    return h;
+}
 
-    // 冬季不能播种
-    if (season === 3) {
-        btns[0].classList.add('disabled');
-        btns[1].classList.add('disabled');
-        btns[2].classList.add('disabled');
-        btns[3].classList.add('disabled');
+function renderPlayer() {
+    var pdiv = document.getElementById('player-actor');
+    var cssX = player.x*TILE + (TILE-26)/2;
+    var cssY = player.y*TILE + TILE-42;
+    if(!pdiv){
+        var layer = document.getElementById('map-layer');
+        var color = {skin:'#ffe0bd',hair:'#795548',cloth:'#1565c0'};
+        var h = genActorHTML('player-actor',player.x,player.y,color,'勇者','player');
+        layer.insertAdjacentHTML('beforeend',h);
+        pdiv = document.getElementById('player-actor');
+    }
+    pdiv.style.left = cssX+'px';
+    pdiv.style.top = cssY+'px';
+    pdiv.className = 'actor player idle';
+
+    var loc = areaName(player.x,player.y);
+    document.getElementById('loc-name').textContent = loc;
+
+    updateStats();
+}
+
+function updateStats(){
+    document.getElementById('s-hp').textContent = player.hp;
+    document.getElementById('s-mp').textContent = player.mp;
+    document.getElementById('s-atk').textContent = player.atk;
+    document.getElementById('s-gold').textContent = player.gold;
+    document.getElementById('s-lv').textContent = 'Lv.'+player.level;
+    document.getElementById('s-exp').textContent = 'EXP:'+player.exp+'/'+player.expNeed;
+}
+
+// ==================== 移动 ====================
+document.addEventListener('keydown',function(e){
+    if(inBattle) return;
+    if(document.getElementById('dialog-box').style.display==='block'){
+        if(e.key==='Escape' || e.key===' '){
+            closeDialog();
+        }
+        return;
     }
 
-    // 钱不够
-    if (gold < 30) btns[0].classList.add('disabled');
-    if (gold < 20) btns[1].classList.add('disabled');
-    if (gold < 60) btns[2].classList.add('disabled');
-    if (gold < 50) btns[3].classList.add('disabled');
-    if (gold < upgradeCost()) btns[5].classList.add('disabled');
+    var nx=player.x, ny=player.y;
+    switch(e.key.toLowerCase()){
+        case 'w':case 'arrowup':ny--;break;
+        case 's':case 'arrowdown':ny++;break;
+        case 'a':case 'arrowleft':nx--;break;
+        case 'd':case 'arrowright':nx++;break;
+        case ' ':case 'e':interact();return;
+        default:return;
+    }
+    e.preventDefault();
 
-    // 没有可收获的
-    var hasReady = fields.some(function(f) { return f && f.turns <= 0; });
-    if (!hasReady) btns[4].classList.add('disabled');
-}
+    // 边界
+    if(nx<0||nx>=MAP_W||ny<0||ny>=MAP_H) return;
+    // 不可通行
+    var t=mapData[ny][nx];
+    if(t==='W'||t==='C') return;
 
-// ========== 操作 ==========
-function clickField(i) {
-    if (!fields[i]) {
-        // 空闲田地：弹出种植选择（冬季不能种）
-        if (season === 3) {
-            addLog('❄️ 冬天不适合播种','bad');
+    // 检查敌人
+    var en = enemies.find(function(v){return v.x===nx && v.y===ny && v.hp>0;});
+    if(en){startBattle(enemies.indexOf(en));return;}
+
+    player.x=nx;player.y=ny;
+    var pdiv=document.getElementById('player-actor');
+    pdiv.className='actor player walk';
+    if(walkTimer) clearTimeout(walkTimer);
+    walkTimer=setTimeout(function(){pdiv.className='actor player idle';updateStats();},350);
+
+    renderPlayer();
+    checkNpcProximity();
+});
+
+// ==================== NPC交互 ====================
+function checkNpcProximity(){
+    for(var i=0;i<npcs.length;i++){
+        var n=npcs[i];
+        if(Math.abs(player.x-n.x)<=1 && Math.abs(player.y-n.y)<=1){
+            showHint('按空格与'+n.name+'对话');
             return;
         }
-        // 简化为自动选择最合适的
-        showModal('选择作物','请使用下方操作按钮选择要播种的作物');
     }
+    hideHint();
 }
 
-function plant(cropType) {
-    if (season === 3) { addLog('❄️ 冬天无法播种','bad'); render(); return; }
-    var c = crops[cropType];
-    if (gold < c.cost) { addLog('💰 金币不足!','bad'); return; }
-
-    // 找空闲田地
-    var emptyIdx = -1;
-    for (var i = 0; i < landLevel; i++) {
-        if (!fields[i]) { emptyIdx = i; break; }
-    }
-    if (emptyIdx === -1) { addLog('🌱 没有空闲田地了!','bad'); return; }
-
-    gold -= c.cost;
-    fields[emptyIdx] = { crop: cropType, turns: c.turns };
-    addLog('🌱 在田地'+(emptyIdx+1)+'播种了'+c.name+' (-'+c.cost+'金)','info');
-    render();
-}
-
-function harvestField(i) {
-    var f = fields[i];
-    if (!f || f.turns > 0) return;
-    var c = crops[f.crop];
-    var bonus = 1;
-
-    // 秋季收获加成
-    if (season === 2) { bonus = 1.3; addLog('🍂 秋季收获加成 x1.3!','good'); }
-
-    // 随机波动
-    var r = 0.8 + Math.random() * 0.4; // 0.8~1.2
-    var earned = Math.round(c.yield * bonus * r);
-
-    storage += earned;
-    fame += 1;
-    fields[i] = null;
-    addLog('🧺 收获' + c.name + ' +' + earned + ' (库存)','good');
-    render();
-}
-
-function harvestAll() {
-    var count = 0;
-    for (var i = 0; i < landLevel; i++) {
-        if (fields[i] && fields[i].turns <= 0) {
-            harvestField(i);
-            count++;
+function interact(){
+    for(var i=0;i<npcs.length;i++){
+        var n=npcs[i];
+        if(Math.abs(player.x-n.x)<=1 && Math.abs(player.y-n.y)<=1){
+            curNpc=i;curNpcDi=0;
+            showDialog(n.dialogs[0]);
+            return;
         }
     }
-    if (count === 0) addLog('⚠️ 没有可收获的作物','bad');
-    render();
+    // 检查祭坛治疗
+    if(mapData[player.y][player.x]==='A'){
+        showModal('祭坛','✨ 神圣的光芒治愈了你！\nHP和MP完全恢复。');
+        player.hp=player.maxHp;player.mp=player.maxMp;
+        updateStats();
+    }
+    // 检查敌人
+    var en=enemies.find(function(v){return v.x===player.x && v.y===player.y && v.hp>0;});
+    if(en){startBattle(enemies.indexOf(en));}
 }
 
-function upgradeLand() {
-    var cost = upgradeCost();
-    if (gold < cost) { addLog('💰 金币不足!','bad'); return; }
-    if (landLevel >= 6) { addLog('🏡 田地已达最大数量!','bad'); return; }
-    gold -= cost;
-    landLevel++;
-    fields.push(null);
-    addLog('🔨 开垦了新田地! 现在有'+landLevel+'块田地 (-'+cost+'金)','good');
-    render();
+function showDialog(d){
+    var box=document.getElementById('dialog-box');
+    document.getElementById('dialog-speaker').textContent=npcs[curNpc].name;
+    document.getElementById('dialog-text').textContent=d.s;
+    var choices=document.getElementById('dialog-choices');
+    choices.innerHTML='';
+
+    if(d.q){
+        // 任务对话
+        if(!player.quests[d.q]){
+            // 首次接任务
+            choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">接受任务</button>'+
+                '<button class="dchoice" onclick="closeDialog()">下次再说</button>';
+        }else if(d.t2 && quests[d.q].done){
+            // 已完成
+            choices.innerHTML='<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取奖励</button>'+
+                '<button class="dchoice" onclick="closeDialog()">告辞</button>';
+        }
+    }else if(d.buy){
+        choices.innerHTML='<button class="dchoice" onclick="buyItem()">买药水(10金)</button>'+
+            '<button class="dchoice" onclick="closeDialog()">不了谢谢</button>';
+    }
+
+    if(!choices.innerHTML){
+        choices.innerHTML='<button class="dchoice" onclick="nextDialog()">继续</button>';
+    }
+    box.style.display='block';
 }
 
-// ========== 季节推进 ==========
-function nextSeason() {
-    // 生长进度
-    for (var i = 0; i < landLevel; i++) {
-        if (fields[i] && fields[i].turns > 0) {
-            var speedup = 1;
-            if (season === 1) speedup = 1.5; // 夏天生长加速
-            fields[i].turns = Math.max(0, fields[i].turns - speedup);
-            if (fields[i].turns <= 0) {
-                addLog('🌾 田地'+(i+1)+'的'+crops[fields[i].crop].name+'成熟了!','good');
+function nextDialog(){
+    var d=npcs[curNpc].dialogs[curNpcDi];
+    if(d.t){
+        document.getElementById('dialog-text').textContent=d.t;
+        var choices=document.getElementById('dialog-choices');
+        if(d.q){
+            if(player.quests[d.q] && quests[d.q].done && d.t2){
+                choices.innerHTML='<button class="dchoice" onclick="nextDialog2()">继续</button>';
+            }else if(!player.quests[d.q]){
+                choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">接受任务</button>'+
+                    '<button class="dchoice" onclick="closeDialog()">下次再说</button>';
+            }else{
+                choices.innerHTML='<button class="dchoice" onclick="closeDialog()">好的</button>';
+            }
+        }else{
+            choices.innerHTML='<button class="dchoice" onclick="closeDialog()">告辞</button>';
+        }
+    }else{
+        closeDialog();
+    }
+}
+
+function nextDialog2(){
+    var d=npcs[curNpc].dialogs[curNpcDi];
+    document.getElementById('dialog-text').textContent=d.t2;
+    document.getElementById('dialog-choices').innerHTML='<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取奖励</button>'+
+        '<button class="dchoice" onclick="closeDialog()">告辞</button>';
+}
+
+function acceptQuest(q){
+    player.quests[q]=true;
+    showHint('📋 接受任务: '+quests[q].name);
+    closeDialog();
+}
+
+function claimReward(q){
+    var qd=quests[q];
+    player.gold+=qd.rewardGold;
+    player.exp+=qd.rewardExp;
+    showHint('💰 获得 '+qd.rewardGold+' 金币, +'+qd.rewardExp+' 经验!');
+    checkLevelUp();
+    closeDialog();
+}
+
+function closeDialog(){
+    document.getElementById('dialog-box').style.display='none';
+    updateStats();
+}
+
+function buyItem(){
+    if(player.gold<10){showHint('金币不够!');closeDialog();return;}
+    player.gold-=10;
+    player.items.potion=(player.items.potion||0)+1;
+    showHint('💊 购买了1瓶药水!');
+    updateStats();
+}
+
+// ==================== 战斗 ====================
+function startBattle(ei){
+    enemyIdx=ei;
+    var e=enemies[ei];
+    enemyHp=e.hp;enemyMaxHp=e.hp;
+    inBattle=true;
+
+    document.getElementById('battle-panel').style.display='flex';
+    document.getElementById('be-name').textContent=e.name;
+    document.getElementById('be-hp').textContent=enemyHp;
+    document.getElementById('be-maxhp').textContent=enemyMaxHp;
+    document.getElementById('be-hpbar').style.width='100%';
+    document.getElementById('bp-hp').textContent=player.hp;
+    document.getElementById('bp-maxhp').textContent=player.maxHp;
+    document.getElementById('bp-hpbar').style.width=(player.hp/player.maxHp*100)+'%';
+    document.getElementById('battle-log').textContent='⚡ 遭遇了 '+e.name+'！';
+
+    // 渲染战斗角色
+    var pColor={skin:'#ffe0bd',hair:'#795548',cloth:'#1565c0'};
+    document.getElementById('battle-player').innerHTML = genActorHTML('bp-actor',0,0,pColor,'勇者','player');
+    var eColor={skin:'#c62828',hair:'#222',cloth:e.color};
+    document.getElementById('battle-enemy').innerHTML = genActorHTML('be-actor',0,0,eColor,e.name,'enemy');
+}
+
+function battleAction(act){
+    var e=enemies[enemyIdx];
+    var log=document.getElementById('battle-log');
+
+    if(act==='flee'){
+        if(Math.random()<0.5){
+            log.textContent='🏃 逃跑成功！';
+            endBattle(false);
+        }else{
+            log.textContent='❌ 逃跑失败！';
+            enemyTurn();
+        }
+        return;
+    }
+
+    if(act==='atk'){
+        var dmg=Math.max(1,player.atk-e.def+Math.floor(Math.random()*6));
+        enemyHp-=dmg;
+        log.textContent='⚔️ 造成 '+dmg+' 点伤害！';
+    }
+
+    if(act==='skill'){
+        if(player.mp<8){log.textContent='💎 法力不足！';return;}
+        player.mp-=8;
+        var dmg=Math.max(1,Math.floor(player.atk*1.8)-e.def+Math.floor(Math.random()*8));
+        enemyHp-=dmg;
+        log.textContent='🔥 烈焰斩！造成 '+dmg+' 点伤害！(-8MP)';
+    }
+
+    if(act==='item'){
+        if((player.items.potion||0)>0){
+            player.items.potion--;
+            var heal=30;
+            player.hp=Math.min(player.maxHp,player.hp+heal);
+            log.textContent='💊 使用药水，恢复 '+heal+' HP！';
+        }else{
+            log.textContent='❌ 没有药水了！';
+            return;
+        }
+    }
+
+    updateBattleUI();
+
+    if(enemyHp<=0){
+        log.textContent='🎉 击败了 '+e.name+'！';
+        endBattle(true);
+        return;
+    }
+
+    enemyTurn();
+}
+
+function enemyTurn(){
+    var e=enemies[enemyIdx];
+    var dmg=Math.max(1,e.atk-player.def+Math.floor(Math.random()*4));
+    player.hp-=dmg;
+    document.getElementById('battle-log').textContent+=' | '+e.name+'反击造成 '+dmg+' 点伤害！';
+    updateBattleUI();
+
+    if(player.hp<=0){
+        player.hp=1;
+        document.getElementById('battle-log').textContent='💀 你倒下了...复活在新手村';
+        endBattle(false);
+        player.x=3;player.y=4;
+        renderPlayer();
+    }
+}
+
+function updateBattleUI(){
+    document.getElementById('be-hp').textContent=Math.max(0,enemyHp);
+    document.getElementById('be-hpbar').style.width=(Math.max(0,enemyHp)/enemyMaxHp*100)+'%';
+    document.getElementById('bp-hp').textContent=Math.max(0,player.hp);
+    document.getElementById('bp-hpbar').style.width=(Math.max(0,player.hp)/player.maxHp*100)+'%';
+    document.getElementById('s-hp').textContent=Math.max(0,player.hp);
+    document.getElementById('s-mp').textContent=player.mp;
+}
+
+function endBattle(won){
+    var e=enemies[enemyIdx];
+    if(won){
+        player.exp+=e.exp;
+        player.gold+=e.gold;
+        // 任务进度
+        if(e.type==='normal'){
+            if(player.quests.quest_1 && !quests.quest_1.done){
+                quests.quest_1.progress++;
+                if(quests.quest_1.progress>=quests.quest_1.target){
+                    quests.quest_1.done=true;
+                    showHint('✅ 任务完成: 消灭史莱姆！去找村长领赏');
+                }
+            }
+            if(player.quests.quest_2 && !quests.quest_2.done){
+                quests.quest_2.progress++;
+                if(quests.quest_2.progress>=quests.quest_2.target){
+                    quests.quest_2.done=true;
+                    showHint('✅ 任务完成: 讨伐哥布林！');
+                }
             }
         }
-    }
-
-    // 季节切换
-    season++;
-    if (season >= 4) { season = 0; year++; }
-
-    // 冬季消耗
-    if (season === 3) {
-        var winterCost = landLevel * 5;
-        if (gold >= winterCost) {
-            gold -= winterCost;
-            addLog('❄️ 入冬准备，消耗' + winterCost + '金','info');
-        } else {
-            addLog('❄️ 入冬资金不足，声望下降','bad');
-            fame = Math.max(0, fame - 2);
-        }
-    }
-
-    // 随机事件
-    randomEvent();
-
-    // 春季获得税收
-    if (season === 0) {
-        var tax = landLevel * 20 + Math.floor(storage * 0.3);
-        gold += tax;
-        storage = Math.floor(storage * 0.7);
-        addLog('💰 春季税收 +' + tax + '金，粮仓卖出30%库存','good');
-    }
-
-    render();
-}
-
-// ========== 随机事件 ==========
-function randomEvent() {
-    var r = Math.random();
-    if (r < 0.25) {
-        // 25% 概率触发事件
-        var events = [
-            {
-                text: '🦗 蝗虫过境！毁坏了部分作物...',
-                effect: function() {
-                    for (var i = 0; i < landLevel; i++) {
-                        if (fields[i] && fields[i].turns > 0 && Math.random() < 0.3) {
-                            fields[i] = null;
-                        }
-                    }
-                },
-                type: 'bad'
-            },
-            {
-                text: '💧 天降甘霖！作物生长加速一季',
-                effect: function() {
-                    for (var i = 0; i < landLevel; i++) {
-                        if (fields[i] && fields[i].turns > 0) fields[i].turns = Math.max(0, fields[i].turns - 1);
-                    }
-                },
-                type: 'good'
-            },
-            {
-                text: '🏪 商队路过，高价收购粮食！金币+50',
-                effect: function() { gold += 50; },
-                type: 'good'
-            },
-            {
-                text: '🐛 田地发现害虫，损失10金币治理',
-                effect: function() { gold = Math.max(0, gold - 10); },
-                type: 'bad'
-            },
-            {
-                text: '🧑‍🌾 老农传授种植技巧，声望+3',
-                effect: function() { fame += 3; },
-                type: 'good'
-            },
-            {
-                text: '🌪️ 暴风雨来袭，损失20金币修葺田地',
-                effect: function() { gold = Math.max(0, gold - 20); },
-                type: 'bad'
-            },
-            {
-                text: '🎁 邻村送来谢礼！金币+80',
-                effect: function() { gold += 80; },
-                type: 'good'
-            },
-            {
-                text: '🏆 官府举办农事评比，声望+5、金币+30',
-                effect: function() { fame += 5; gold += 30; },
-                type: 'good'
+        if(e.type==='boss'){
+            if(player.quests.quest_3 && !quests.quest_3.done){
+                quests.quest_3.progress++;
+                if(quests.quest_3.progress>=quests.quest_3.target){
+                    quests.quest_3.done=true;
+                    showHint('🏆 任务完成: 击败魔王！你是英雄！');
+                }
             }
-        ];
-        var evt = events[Math.floor(Math.random() * events.length)];
-        evt.effect();
-        addLog(evt.text, evt.type);
+        }
+        e.hp=0;
+        // 普通敌人重生
+        if(e.respawn){
+            respawnTimer[enemyIdx]=setTimeout(function(){
+                enemies[enemyIdx].hp=enemies[enemyIdx].hp=30;
+                buildMap();
+            },15000);
+        }
+        checkLevelUp();
     }
 
-    // 食物存储过多损耗
-    if (storage > 100) {
-        var loss = Math.floor(storage * 0.1);
-        storage -= loss;
-        addLog('📦 粮仓存储过多，损耗' + loss + '库存','info');
+    document.getElementById('battle-panel').style.display='none';
+    inBattle=false;
+    enemyIdx=null;
+    updateStats();
+    buildMap();
+    renderPlayer();
+}
+
+function checkLevelUp(){
+    while(player.exp>=player.expNeed){
+        player.exp-=player.expNeed;
+        player.level++;
+        player.expNeed=Math.floor(player.expNeed*1.5);
+        player.maxHp+=20;player.hp=player.maxHp;
+        player.maxMp+=10;player.mp=player.maxMp;
+        player.atk+=3;player.def+=2;
+        showHint('🎉 升级！Lv.'+player.level+' HP+20 MP+10 ATK+3 DEF+2');
     }
 }
 
-// ========== 日志 ==========
-function addLog(msg, type) {
-    var log = document.getElementById('log');
-    var cls = type === 'good' ? 'log-good' : type === 'bad' ? 'log-bad' : 'log-info';
-    var time = '[' + seasonNames[season] + '] ';
-    log.innerHTML = '<div class="log-entry ' + cls + '">' + time + msg + '</div>' + log.innerHTML;
-    // 保留最近30条
-    var entries = log.querySelectorAll('.log-entry');
-    for (var i = 30; i < entries.length; i++) {
-        entries[i].remove();
-    }
+// ==================== UI辅助 ====================
+function healInTown(){
+    if(player.gold<20){showHint('💊 需要20金币');return;}
+    player.gold-=20;
+    player.hp=Math.min(player.maxHp,player.hp+50);
+    player.mp=Math.min(player.maxMp,player.mp+15);
+    showHint('💊 休息了一下，恢复50HP和15MP');
+    updateStats();
 }
 
-// ========== 弹窗 ==========
-function showModal(title, text) {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-text').textContent = text;
+function showInventory(){
+    var txt='🎒 背包\n\n';
+    txt+='药水 x'+(player.items.potion||0)+' (恢复30HP)\n';
+    txt+='超级药水 x'+(player.items.superPotion||0)+' (恢复80HP)\n\n';
+    txt+='💰 金币: '+player.gold;
+    showModal('背包',txt);
+}
+
+function showQuest(){
+    var txt='📋 任务列表\n\n';
+    for(var k in quests){
+        var q=quests[k];
+        var status=!player.quests[k]?'[未接]':q.done?'[✅完成]':'[进行中 '+q.progress+'/'+q.target+']';
+        txt+=status+' '+q.name+': '+q.desc+'\n';
+        txt+='   奖励: '+q.rewardGold+'金 +'+q.rewardExp+'经验\n\n';
+    }
+    showModal('任务',txt);
+}
+
+function showHint(msg){
+    var h=document.getElementById('hint');
+    h.textContent=msg;h.style.display='block';
+    setTimeout(function(){h.style.display='none';},2000);
+}
+function hideHint(){document.getElementById('hint').style.display='none';}
+
+function showModal(title,text){
+    document.getElementById('modal-title').textContent=title;
+    document.getElementById('modal-text').textContent=text;
     document.getElementById('modal').classList.add('show');
 }
-function closeModal() {
+function closeModal(){
     document.getElementById('modal').classList.remove('show');
 }
 
-// ========== 重置 ==========
-function resetGame() {
-    if (confirm('确定要重新开始吗？当前进度将丢失。')) {
-        gold = 200;
-        landLevel = 2;
-        storage = 0;
-        fame = 0;
-        year = 1;
-        season = 0;
-        fields = [null, null];
-        document.getElementById('log').innerHTML = '';
-        addLog('🌅 新的一天开始了，开始种田吧!','good');
-        render();
-    }
-}
-
-// ========== 初始化 ==========
-addLog('🌅 欢迎来到种田日记！从两块田地开始你的农耕之旅吧','good');
-addLog('💡 提示：春季播种，秋季收获有加成，冬季不能播种','info');
-render();
+// ==================== 初始化 ====================
+buildMap();
+renderPlayer();
+showHint('🎮 WASD移动 | 空格交互 | 点击按钮使用功能');
 </script>
 </body>
 </html>
