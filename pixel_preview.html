@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>三国角色 AI 像素画预览</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 40px 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #ffd700;
+      font-size: 2rem;
+    }
+    p.subtitle {
+      text-align: center;
+      color: #aaa;
+      margin-bottom: 30px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #0f3460;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-5px); border-color: #e94560; }
+    .card img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      image-rendering: pixelated;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    .card .name {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #ffd700;
+    }
+    .card .file { font-size: 0.75rem; color: #888; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>三国角色 AI 像素画预览</h1>
+  <p class="subtitle">云端 AI 生成（Hunyuan Image v3） · 11 个角色 · 半身/头像风格</p>
+
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const chars = [
+      { name: "少侠", file: "hero_ai.png" },
+      { name: "说书人", file: "storyteller_ai.png" },
+      { name: "韩伯", file: "hanbo_ai.png" },
+      { name: "华老", file: "hualao_ai.png" },
+      { name: "左慈", file: "zuoci_ai.png" },
+      { name: "水镜", file: "shuijing_ai.png" },
+      { name: "校尉", file: "captain_ai.png" },
+      { name: "黄巾贼", file: "yellow_turban_ai.png" },
+      { name: "西凉兵", file: "xiliang_soldier_ai.png" },
+      { name: "偏将", file: "deputy_general_ai.png" },
+      { name: "华雄", file: "boss_ai.png" },
+    ];
+
+    const grid = document.getElementById("grid");
+    chars.forEach(c => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `<img src="assets/pixel_chars/${c.file}" alt="${c.name}"><div class="name">${c.name}</div><div class="file">${c.file}</div>`;
+      grid.appendChild(div);
+    });
+  </script>
+</body>
+</html>

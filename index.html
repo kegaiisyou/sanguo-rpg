@@ -178,6 +178,17 @@ body{
     75%{transform:translateY(-3px) translateX(-1px)}}
 .actor.idle .actor-body{animation:idleBounce 1.2s ease-in-out infinite;}
 .actor.walk .actor-body{animation:walkBob 0.35s ease-in-out infinite;}
+/* AI像素角色图 */
+.actor-img{
+    width:36px;height:48px;
+    image-rendering:pixelated;
+    object-fit:cover;
+    position:absolute;
+    top:-5px;left:50%;transform:translateX(-50%);
+    border-radius:3px;
+}
+.actor.npc .actor-img{width:38px;height:50px;top:-6px;}
+.actor.enemy .actor-img{width:34px;height:46px;top:-4px;}
 
 /* ===== 状态面板 ===== */
 #status-panel{
@@ -1235,6 +1246,29 @@ var isMobile = false;
 var mobileMoveInterval = null;
 var mobileMoveDir = null;
 
+// ==================== AI像素角色画像映射 ====================
+var _aiImg = {
+    hero:'assets/pixel_chars/hero_ai.png',
+    storyteller:'assets/pixel_chars/storyteller_ai.png',
+    master:'assets/pixel_chars/hanbo_ai.png',
+    doctor:'assets/pixel_chars/hualao_ai.png',
+    monk:'assets/pixel_chars/zuoci_ai.png',
+    hermit:'assets/pixel_chars/shuijing_ai.png',
+    escort:'assets/pixel_chars/captain_ai.png',
+    bandit:'assets/pixel_chars/yellow_turban_ai.png',
+    bully:'assets/pixel_chars/xiliang_soldier_ai.png',
+    guard:'assets/pixel_chars/deputy_general_ai.png',
+    boss:'assets/pixel_chars/boss_ai.png'
+};
+var _aiCache = {};
+(function preloadAI(){
+    for(var k in _aiImg){
+        var img = new Image();
+        img.src = _aiImg[k];
+        _aiCache[k] = img;
+    }
+})();
+
 // ==================== 手机检测 ====================
 function checkMobile(){
     isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || 
@@ -1491,23 +1525,43 @@ function drawBeard(B, P, d){
     }
 }
 
-// ===== 调度函数 =====
+// ===== AI画像渲染（优先AI画像，Canvas像素画为降级方案） =====
+function renderAIPortrait(canvas, charId){
+    var ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    var img = _aiCache[charId];
+    // 暗色底色
+    ctx.fillStyle = '#14100c';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if(img && img.complete && img.naturalWidth){
+        var cw = canvas.width, ch = canvas.height;
+        var iw = img.naturalWidth, ih = img.naturalHeight;
+        var scale = Math.min(cw/iw, ch/ih) * 0.92;
+        var dw = iw * scale, dh = ih * scale;
+        var dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+        ctx.drawImage(img, dx, dy, dw, dh);
+    } else {
+        // 降级：使用旧Canvas像素画
+        renderPixelChar(canvas, charId);
+    }
+}
+
 function initPixelPortrait(canvasId, charId){
-    var c=document.getElementById(canvasId);
+    var c = document.getElementById(canvasId);
     if(!c) return;
-    renderPixelChar(c, charId);
+    renderAIPortrait(c, charId);
 }
 
 function setDialogPixel(charId){
-    var c=document.getElementById('dialog-canvas');
-    if(c) renderPixelChar(c, charId||'hero');
+    var c = document.getElementById('dialog-canvas');
+    if(c) renderAIPortrait(c, charId||'hero');
 }
 
 function setBattlePixel(charId){
-    var c=document.getElementById('battle-enemy-canvas');
-    if(c) renderPixelChar(c, charId||'bandit');
-    var pc=document.getElementById('battle-player-canvas');
-    if(pc) renderPixelChar(pc, 'hero');
+    var c = document.getElementById('battle-enemy-canvas');
+    if(c) renderAIPortrait(c, charId||'bandit');
+    var pc = document.getElementById('battle-player-canvas');
+    if(pc) renderAIPortrait(pc, 'hero');
 }
 
 // ==================== 说书人序幕 ====================
@@ -1655,33 +1709,37 @@ function buildMap(){
 
     // NPC
     npcs.forEach(function(n){
-        layer.innerHTML += genActorHTML(n.id, n.x, n.y, n.color, n.name, 'npc');
+        layer.innerHTML += genActorHTML(n.id, n.x, n.y, n.color, n.name, 'npc', n.id);
     });
 
     // 敌人——只渲染活着的
     enemies.forEach(function(e){
         if(!deadEnemies[e.id]){
-            layer.innerHTML += genActorHTML(e.id, e.x, e.y, {skin:'#deb887',hair:'#333',cloth:e.color}, e.name, 'enemy');
+            layer.innerHTML += genActorHTML(e.id, e.x, e.y, {skin:'#deb887',hair:'#333',cloth:e.color}, e.name, 'enemy', e.type);
         }
     });
 
     renderPlayer();
 }
 
-function genActorHTML(id,x,y,color,name,type){
+function genActorHTML(id,x,y,color,name,type,charId){
     var cssX = x*TILE + (TILE-28)/2;
     var cssY = y*TILE + TILE-44;
     var h = '<div class="actor '+type+'" id="'+id+'" style="left:'+cssX+'px;top:'+cssY+'px;">';
     h += '<span class="actor-name">'+name+'</span>';
     h += '<div class="actor-shadow"></div>';
     h += '<div class="actor-body">';
-    h += '<div class="actor-head" style="background:'+color.skin+'"></div>';
-    h += '<div class="actor-hair" style="background:'+color.hair+'"></div>';
-    h += '<div class="actor-torso" style="background:'+color.cloth+'"></div>';
-    h += '<div class="actor-left-leg" style="background:#333"></div>';
-    h += '<div class="actor-right-leg" style="background:#333"></div>';
-    if(type==='player'){
-        h += '<div class="actor-weapon" style="background:#b0bec5"></div>';
+    if(charId && _aiImg[charId]){
+        h += '<img class="actor-img" src="'+_aiImg[charId]+'" alt="'+name+'">';
+    } else {
+        h += '<div class="actor-head" style="background:'+color.skin+'"></div>';
+        h += '<div class="actor-hair" style="background:'+color.hair+'"></div>';
+        h += '<div class="actor-torso" style="background:'+color.cloth+'"></div>';
+        h += '<div class="actor-left-leg" style="background:#333"></div>';
+        h += '<div class="actor-right-leg" style="background:#333"></div>';
+        if(type==='player'){
+            h += '<div class="actor-weapon" style="background:#b0bec5"></div>';
+        }
     }
     h += '</div></div>';
     return h;
@@ -1694,7 +1752,7 @@ function renderPlayer(){
     if(!pdiv){
         var layer = document.getElementById('map-layer');
         var color = {skin:'#ffe0bd',hair:'#3d2817',cloth:'#1a5276'};
-        var h = genActorHTML('player-actor',player.x,player.y,color,'少侠','player');
+        var h = genActorHTML('player-actor',player.x,player.y,color,'少侠','player','hero');
         layer.insertAdjacentHTML('beforeend',h);
         pdiv = document.getElementById('player-actor');
     }
