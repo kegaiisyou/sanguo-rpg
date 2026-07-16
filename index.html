@@ -109,7 +109,7 @@ body{
 }
 #map-layer{
     position:absolute;top:0;left:0;
-    width:560px;height:400px;
+    width:800px;height:560px;
     background:#2d5016;
     box-shadow:0 0 0 3px #3d2e1a, 0 0 30px rgba(0,0,0,0.6);
     transition:transform 0.2s ease-out;
@@ -463,20 +463,24 @@ body{
 <script>
 // ==================== 游戏数据 ====================
 var TILE = 40;
-var MAP_W = 14, MAP_H = 10;
+var MAP_W = 20, MAP_H = 14;
 
 // 地图: G=草地 F=树林 P=路 W=山墙 H=房屋 V=山洞 D=魔教总坛 S=商铺 A=演武场 C=河流 B=桥 T=寺庙
 var mapData = [
-    ['W','W','W','G','F','F','G','G','G','G','T','T','W','W'],
-    ['W','W','G','G','F','G','G','G','H','H','G','G','G','W'],
-    ['G','G','C','P','P','P','G','G','S','S','G','G','G','G'],
-    ['G','C','C','P','P','P','P','P','S','S','G','G','A','A'],
-    ['F','F','B','G','G','P','G','F','F','G','G','G','A','A'],
-    ['F','F','G','G','G','P','G','F','F','G','G','G','G','G'],
-    ['G','G','G','G','V','P','P','P','G','G','F','F','G','G'],
-    ['G','G','G','V','V','G','G','P','G','G','F','F','G','G'],
-    ['G','G','G','G','G','G','G','P','G','F','F','G','G','G'],
-    ['W','W','D','D','D','D','D','P','P','G','G','G','G','G']
+    ['W','W','W','W','G','F','T','T','G','G','F','F','F','W','W','W','G','G','G','W'],
+    ['W','W','G','G','G','F','G','G','G','G','F','F','G','G','W','G','G','G','F','G'],
+    ['G','G','C','C','P','B','P','P','P','G','G','G','G','G','G','G','F','F','G','G'],
+    ['G','C','C','P','P','G','P','P','G','H','H','S','S','G','G','G','G','F','G','G'],
+    ['F','F','B','G','G','G','P','G','G','H','H','S','S','G','G','G','G','G','V','G'],
+    ['F','F','G','G','G','G','P','P','P','G','G','G','G','A','A','G','G','V','V','G'],
+    ['G','G','G','G','V','G','G','G','P','P','G','G','F','A','A','G','G','G','G','G'],
+    ['G','G','G','V','V','G','G','G','P','G','G','G','F','F','G','G','G','G','G','G'],
+    ['G','G','G','G','G','G','G','G','P','P','G','G','F','F','G','G','G','V','G','G'],
+    ['G','G','F','F','G','G','G','G','G','P','P','G','G','G','G','G','V','V','G','G'],
+    ['G','G','F','F','G','G','G','G','G','G','P','P','G','G','G','G','G','G','G','G'],
+    ['G','G','G','G','G','G','G','V','G','G','G','P','P','G','G','F','F','G','G','W'],
+    ['G','G','G','G','G','G','G','V','V','G','G','G','P','P','G','F','F','G','W','W'],
+    ['G','G','D','D','D','D','D','D','D','G','G','G','P','G','G','G','G','W','W','W']
 ];
 
 var tileStyle = {
@@ -495,68 +499,87 @@ var tileStyle = {
 };
 
 function areaName(x,y){
-    if(y<=1) return x<=4?'北山':'古寺';
+    if(y<=1&&x<=5) return '北山';
+    if(y<=1&&x>=6&&x<=7) return '古寺';
+    if(y<=1) return '东山';
     if(x<=2&&y<=3) return '河畔';
-    if(y<=3&&x>=6) return '清风镇';
-    if(y<=3) return '官道';
-    if(x>=9&&y<=4) return '演武场';
-    if(x>=3&&x<=4&&y<=4) return '石桥';
-    if(x>=5&&x<=6&&y>=6&&y<=7) return '密林';
-    if(x>=3&&x<=5&&y>=6&&y<=7) return '山洞入口';
-    if(y>=8&&x>=2&&x<=6) return '魔教总坛';
-    if(x>=10&&y>=5) return '竹林';
-    if(y>=8) return '南荒';
+    if(x>=3&&x<=4&&y<=2) return '石桥';
+    if(x>=8&&x<=9&&y<=3) return '清风镇·民居';
+    if(x>=10&&x<=11&&y<=3) return '清风镇·商铺';
+    if(x>=13&&x<=14&&y>=4&&y<=6) return '演武场';
+    if(x>=17&&x<=18&&y>=4&&y<=5) return '山洞';
+    if(x>=3&&x<=5&&y>=6&&y<=7) return '幽暗洞穴';
+    if(y>=8&&y<=9&&x>=16&&x<=17) return '废弃矿洞';
+    if(x>=12&&x<=13&&y>=5&&y<=8) return '密林';
+    if(x>=1&&x<=2&&y>=8&&y<=10) return '竹林';
+    if(x>=15&&x<=16&&y>=10&&y<=12) return '枯木林';
+    if(x>=6&&x<=8&&y>=11&&y<=12) return '魔教外坛';
+    if(y>=13&&x>=2&&x<=8) return '魔教总坛';
+    if(y>=12&&x>=17) return '绝壁';
+    if(y>=11) return '南荒险地';
+    if(x>=8&&y<=2) return '官道';
     return '山林';
 }
 
 // NPC
 var npcs = [
-    {id:'master',x:8,y:2,name:'武师',color:{skin:'#fce5d8',hair:'#999',cloth:'#5d4037'},
+    {id:'master',x:10,y:3,name:'武师',color:{skin:'#fce5d8',hair:'#999',cloth:'#5d4037'},
         dialogs:[
             {s:'少侠，你终于来了！',t:'近来山贼猖獗，祸害乡里，还请少侠出手相助。'},
-            {q:'quest_1',s:'山贼盘踞山林，劫掠百姓',t:'若能剿灭三伙山贼，老夫必有重谢。',t2:'少侠果然武艺高强！这是你的赏金。'}
+            {q:'quest_1',s:'山贼盘踞山林，劫掠百姓',t:'若能剿灭五伙山贼，老夫必有重谢。',t2:'少侠果然武艺高强！这是你的赏金。'}
         ]},
-    {id:'doctor',x:8,y:3,name:'药铺掌柜',color:{skin:'#fce5d8',hair:'#555',cloth:'#8d6e63'},
+    {id:'doctor',x:11,y:3,name:'药铺掌柜',color:{skin:'#fce5d8',hair:'#555',cloth:'#8d6e63'},
         dialogs:[
             {s:'客官请进！小店有上好的金创药',t:'出门在外，带上几瓶防身吧。10两银子一瓶。',buy:true}
         ]},
-    {id:'escort',x:6,y:8,name:'镖师',color:{skin:'#deb887',hair:'#333',cloth:'#1565c0'},
+    {id:'escort',x:11,y:11,name:'镖师',color:{skin:'#deb887',hair:'#333',cloth:'#1565c0'},
         dialogs:[
-            {s:'前方就是魔教总坛！',t:'魔教高手众多，教主武功深不可测。少侠务必小心，建议功力达到五重天再去。'}
+            {s:'前方就是魔教总坛！',t:'魔教高手众多，教主武功深不可测。少侠务必小心！'}
         ]},
-    {id:'monk',x:10,y:0,name:'扫地僧',color:{skin:'#fce5d8',hair:'#fff',cloth:'#8d6e63'},
+    {id:'monk',x:6,y:0,name:'扫地僧',color:{skin:'#fce5d8',hair:'#fff',cloth:'#8d6e63'},
         dialogs:[
             {s:'阿弥陀佛...',t:'施主若是累了，可在寺中歇息。老衲为你诵经祈福，可恢复全部气血内力。',heal:true}
+        ]},
+    {id:'hermit',x:17,y:2,name:'隐士',color:{skin:'#c8a882',hair:'#ccc',cloth:'#2e7d32'},
+        dialogs:[
+            {s:'山外有山，人外有人...',t:'少侠根骨不错，老夫传你一套吐纳之法。',t2:'你感到内力涌动！(内力上限+20)',buff:{mp:20}}
         ]}
 ];
 
 // 敌人——击败后不会重生
 var enemies = [
-    {id:'bandit1',x:3,y:1,name:'山贼',hp:35,atk:9,def:2,exp:18,gold:15,color:'#6d4c41',type:'bandit'},
-    {id:'bandit2',x:5,y:5,name:'山贼头目',hp:45,atk:11,def:3,exp:25,gold:20,color:'#795548',type:'bandit'},
-    {id:'bandit3',x:10,y:6,name:'流寇',hp:35,atk:9,def:2,exp:18,gold:15,color:'#8d6e63',type:'bandit'},
-    {id:'bully1',x:3,y:7,name:'恶霸',hp:60,atk:15,def:5,exp:35,gold:30,color:'#e65100',type:'bully'},
-    {id:'bully2',x:10,y:8,name:'地痞',hp:55,atk:14,def:4,exp:30,gold:28,color:'#bf360c',type:'bully'},
-    {id:'guard',x:2,y:9,name:'魔教护法',hp:120,atk:22,def:8,exp:100,gold:80,color:'#6a1b9a',type:'guard'},
-    {id:'boss',x:4,y:9,name:'魔教教主',hp:250,atk:30,def:12,exp:300,gold:500,color:'#b71c1c',type:'boss'}
+    // 山贼类 (任务1: 需击败5个)
+    {id:'bandit1',x:4,y:1,name:'山贼喽啰',hp:30,atk:8,def:1,exp:15,gold:12,color:'#6d4c41',type:'bandit'},
+    {id:'bandit2',x:14,y:1,name:'山贼探子',hp:35,atk:9,def:2,exp:18,gold:15,color:'#795548',type:'bandit'},
+    {id:'bandit3',x:2,y:4,name:'流寇',hp:35,atk:9,def:2,exp:18,gold:15,color:'#8d6e63',type:'bandit'},
+    {id:'bandit4',x:6,y:5,name:'山贼头目',hp:50,atk:12,def:3,exp:25,gold:22,color:'#a0522d',type:'bandit'},
+    {id:'bandit5',x:8,y:8,name:'马贼',hp:40,atk:10,def:2,exp:20,gold:18,color:'#5d4037',type:'bandit'},
+    // 恶霸类 (任务2: 需击败3个)
+    {id:'bully1',x:16,y:5,name:'恶霸',hp:60,atk:15,def:5,exp:35,gold:30,color:'#e65100',type:'bully'},
+    {id:'bully2',x:3,y:9,name:'地痞',hp:55,atk:14,def:4,exp:30,gold:28,color:'#bf360c',type:'bully'},
+    {id:'bully3',x:15,y:9,name:'匪首',hp:70,atk:17,def:6,exp:40,gold:35,color:'#d84315',type:'bully'},
+    // 魔教 (任务3: 需击败教主)
+    {id:'guard1',x:7,y:11,name:'魔教左使',hp:100,atk:20,def:7,exp:80,gold:60,color:'#7b1fa2',type:'guard'},
+    {id:'guard2',x:3,y:12,name:'魔教右使',hp:110,atk:21,def:7,exp:90,gold:70,color:'#8e24aa',type:'guard'},
+    {id:'boss',x:5,y:13,name:'魔教教主',hp:300,atk:32,def:14,exp:350,gold:600,color:'#b71c1c',type:'boss'}
 ];
 
 // 击杀计数（持久化）
-var killCounts = {bandit:0, bully:0, boss:0};
+var killCounts = {bandit:0, bully:0, guard:0, boss:0};
 // 已死亡敌人ID
 var deadEnemies = {};
 
 // 任务
 var quests = {
-    quest_1:{name:'剿灭山贼',desc:'击败3名山贼',target:3,progress:0,rewardGold:100,rewardExp:80,done:false},
-    quest_2:{name:'惩治恶霸',desc:'击败2名恶霸',target:2,progress:0,rewardGold:200,rewardExp:120,done:false},
-    quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1000,rewardExp:500,done:false}
+    quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false},
+    quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false},
+    quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false}
 };
 
 // ==================== 玩家默认数据 ====================
 function defaultPlayer(){
     return {
-        x:6, y:2,
+        x:9, y:3,
         hp:100, maxHp:100,
         mp:30, maxMp:30,
         atk:15, def:5,
@@ -625,12 +648,12 @@ function loadGameData(){
         player.items = p.items || {potion:3, superPotion:1};
         player.quests = p.quests || {quest_1:false,quest_2:false,quest_3:false};
         // 恢复击杀数据
-        killCounts = data.killCounts || {bandit:0, bully:0, boss:0};
+        killCounts = data.killCounts || {bandit:0, bully:0, guard:0, boss:0};
         deadEnemies = data.deadEnemies || {};
         quests = data.quests || {
-            quest_1:{name:'剿灭山贼',desc:'击败3名山贼',target:3,progress:0,rewardGold:100,rewardExp:80,done:false},
-            quest_2:{name:'惩治恶霸',desc:'击败2名恶霸',target:2,progress:0,rewardGold:200,rewardExp:120,done:false},
-            quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1000,rewardExp:500,done:false}
+            quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false},
+            quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false},
+            quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false}
         };
         return true;
     }catch(e){
@@ -642,12 +665,12 @@ function loadGameData(){
 // ==================== 标题界面 ====================
 function newGame(){
     player = defaultPlayer();
-    killCounts = {bandit:0, bully:0, boss:0};
+    killCounts = {bandit:0, bully:0, guard:0, boss:0};
     deadEnemies = {};
     quests = {
-        quest_1:{name:'剿灭山贼',desc:'击败3名山贼',target:3,progress:0,rewardGold:100,rewardExp:80,done:false},
-        quest_2:{name:'惩治恶霸',desc:'击败2名恶霸',target:2,progress:0,rewardGold:200,rewardExp:120,done:false},
-        quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1000,rewardExp:500,done:false}
+        quest_1:{name:'剿灭山贼',desc:'击败5名山贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false},
+        quest_2:{name:'惩治恶霸',desc:'击败3名恶霸',target:3,progress:0,rewardGold:250,rewardExp:150,done:false},
+        quest_3:{name:'决战魔教',desc:'击败魔教教主',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false}
     };
     startGame();
 }
@@ -923,6 +946,9 @@ function nextDialog(){
             }else{
                 choices.innerHTML='<button class="dchoice" onclick="closeDialog()">好</button>';
             }
+        }else if(d.t2){
+            // 有多段对话或buff
+            choices.innerHTML='<button class="dchoice" onclick="nextDialog2()">继续</button>';
         }else{
             choices.innerHTML='<button class="dchoice" onclick="closeDialog()">告辞</button>';
         }
@@ -934,9 +960,20 @@ function nextDialog(){
 function nextDialog2(){
     var d=npcs[curNpc].dialogs[curNpcDi];
     document.getElementById('dialog-text').textContent=d.t2;
-    document.getElementById('dialog-choices').innerHTML=
-        '<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取报酬</button>'+
-        '<button class="dchoice" onclick="closeDialog()">告辞</button>';
+    // 处理buff
+    if(d.buff){
+        if(d.buff.mp){player.maxMp+=d.buff.mp;player.mp=Math.min(player.mp+d.buff.mp,player.maxMp);showHint('💠 内力上限+'+d.buff.mp+'！');}
+        if(d.buff.hp){player.maxHp+=d.buff.hp;player.hp=Math.min(player.hp+d.buff.hp,player.maxHp);showHint('❤️ 气血上限+'+d.buff.hp+'！');}
+        updateStats();
+    }
+    if(d.q){
+        document.getElementById('dialog-choices').innerHTML=
+            '<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取报酬</button>'+
+            '<button class="dchoice" onclick="closeDialog()">告辞</button>';
+    }else{
+        document.getElementById('dialog-choices').innerHTML=
+            '<button class="dchoice" onclick="closeDialog()">多谢前辈</button>';
+    }
 }
 
 function acceptQuest(q){
@@ -1066,7 +1103,7 @@ function enemyTurn(){
         player.hp=1;
         document.getElementById('battle-log').textContent='💀 你倒在了血泊中...被好心人救回了清风镇';
         endBattle(false);
-        player.x=6;player.y=2;
+        player.x=9;player.y=3;
         buildMap();
         renderPlayer();
     }
@@ -1093,6 +1130,7 @@ function endBattle(won){
         // 击杀计数
         if(e.type==='bandit') killCounts.bandit++;
         if(e.type==='bully') killCounts.bully++;
+        if(e.type==='guard') killCounts.guard++;
         if(e.type==='boss') killCounts.boss++;
 
         // 任务进度
@@ -1183,7 +1221,7 @@ function showQuest(){
         txt+='  '+q.desc+'\n';
         txt+='  报酬: '+q.rewardGold+'银两 +'+q.rewardExp+'修为\n\n';
     }
-    txt+='击杀统计: 山贼×'+killCounts.bandit+' 恶霸×'+killCounts.bully;
+    txt+='击杀统计: 山贼×'+killCounts.bandit+' 恶霸×'+killCounts.bully+' 魔教×'+killCounts.guard;
     showModal('任务',txt);
 }
 
