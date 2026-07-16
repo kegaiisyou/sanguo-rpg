@@ -378,7 +378,7 @@ body{
         <button class="title-btn" onclick="newGame()">初 入 江 湖</button>
         <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
     </div>
-    <div class="title-version">v3.5 · 武侠RPG</div>
+    <div class="title-version">v3.6 · 武侠RPG</div>
 </div>
 
 <!-- 顶栏 -->
@@ -561,7 +561,9 @@ var npcs = [
     {id:'master',x:10,y:3,name:'武师',color:{skin:'#fce5d8',hair:'#999',cloth:'#5d4037'},
         dialogs:[
             {s:'少侠，你终于来了！',t:'近来山贼猖獗，祸害乡里，还请少侠出手相助。'},
-            {q:'quest_1',s:'山贼盘踞山林，劫掠百姓',t:'若能剿灭五伙山贼，老夫必有重谢。',t2:'少侠果然武艺高强！这是你的赏金。'}
+            {q:'quest_1',s:'山贼盘踞山林，劫掠百姓',t:'若能剿灭五伙山贼，老夫必有重谢。',t2:'少侠果然武艺高强！这是你的赏金。'},
+            {s:'少侠为民除害，功德无量！',t:'不过近来又有恶霸横行乡里，欺压百姓。少侠可愿再助一臂之力？'},
+            {q:'quest_2',s:'恶霸欺压百姓，鱼肉乡里',t:'惩治三名恶霸，为民除害！',t2:'恶霸已除，百姓得以安居！这是你的赏金。'}
         ]},
     {id:'doctor',x:11,y:3,name:'药铺掌柜',color:{skin:'#fce5d8',hair:'#555',cloth:'#8d6e63'},
         dialogs:[
@@ -569,7 +571,8 @@ var npcs = [
         ]},
     {id:'escort',x:11,y:11,name:'镖师',color:{skin:'#deb887',hair:'#333',cloth:'#1565c0'},
         dialogs:[
-            {s:'前方就是魔教总坛！',t:'魔教高手众多，教主武功深不可测。少侠务必小心！'}
+            {s:'前方就是魔教总坛！',t:'魔教高手众多，教主武功深不可测。少侠务必小心！'},
+            {q:'quest_3',s:'魔教教主祸乱武林，人神共愤！',t:'若少侠能击败魔教教主，便是武林至尊，天下太平！',t2:'天呐！魔教教主被击败了！少侠真乃武林至尊！'}
         ]},
     {id:'monk',x:6,y:0,name:'扫地僧',color:{skin:'#fce5d8',hair:'#fff',cloth:'#8d6e63'},
         dialogs:[
@@ -921,8 +924,10 @@ function interact(){
     for(var i=0;i<npcs.length;i++){
         var n=npcs[i];
         if(Math.abs(player.x-n.x)<=1 && Math.abs(player.y-n.y)<=1){
-            curNpc=i;curNpcDi=0;
-            showDialog(n.dialogs[0]);
+            curNpc=i;
+            // 根据任务状态自动跳转到对应对话
+            curNpcDi=getNpcStartDialog(i);
+            showDialog(n.dialogs[curNpcDi]);
             return;
         }
     }
@@ -973,6 +978,34 @@ function doHeal(){
     updateStats();
 }
 
+function getNpcStartDialog(npcIdx){
+    var n=npcs[npcIdx];
+    // 武师：quest_1完成后自动跳到quest_2介绍
+    if(n.id==='master'){
+        if(player.quests.quest_1 && quests.quest_1.done && !player.quests.quest_2) return 2;
+        if(player.quests.quest_2 && quests.quest_2.done) return 0;
+        return 0;
+    }
+    // 镖师：quest_2完成后可接quest_3
+    if(n.id==='escort'){
+        if(player.quests.quest_2 && quests.quest_2.done && !player.quests.quest_3) return 1;
+        return 0;
+    }
+    return 0;
+}
+function findNextDialog(npcIdx, curDi){
+    var next=curDi+1;
+    if(next>=npcs[npcIdx].dialogs.length) return -1;
+    var nd=npcs[npcIdx].dialogs[next];
+    // 跳过已接取的任务对话
+    if(nd.q && player.quests[nd.q]) return -1;
+    return next;
+}
+function advanceToDialog(idx){
+    curNpcDi=idx;
+    var d=npcs[curNpc].dialogs[curNpcDi];
+    showDialog(d);
+}
 function nextDialog(){
     var d=npcs[curNpc].dialogs[curNpcDi];
     if(d.t){
@@ -987,11 +1020,15 @@ function nextDialog(){
             }else{
                 choices.innerHTML='<button class="dchoice" onclick="closeDialog()">好</button>';
             }
-        }else if(d.t2){
-            // 有多段对话或buff
+        }else if(d.buff || d.t2){
             choices.innerHTML='<button class="dchoice" onclick="nextDialog2()">继续</button>';
         }else{
-            choices.innerHTML='<button class="dchoice" onclick="closeDialog()">告辞</button>';
+            var nextDi=findNextDialog(curNpc,curNpcDi);
+            if(nextDi>=0){
+                choices.innerHTML='<button class="dchoice" onclick="advanceToDialog('+nextDi+')">继续</button>';
+            }else{
+                choices.innerHTML='<button class="dchoice" onclick="closeDialog()">告辞</button>';
+            }
         }
     }else{
         closeDialog();
@@ -1151,6 +1188,7 @@ function enemyTurn(){
         player.x=9;player.y=3;
         buildMap();
         renderPlayer();
+        showModal('💀 力竭倒下','你被敌人击败了！\n\n被好心人救回清风镇，气血恢复至1。\n回去调息修养后再来报仇吧！');
     }
 }
 
