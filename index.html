@@ -216,6 +216,45 @@ body{
 .act-btn:hover{background:linear-gradient(180deg,rgba(200,160,80,0.2),rgba(140,100,40,0.2));border-color:#b48c3c;}
 .act-btn:active{transform:scale(0.95);}
 
+/* ===== 背包弹窗 ===== */
+#backpack-modal .modal-box{max-width:380px;width:92%;padding:16px 14px;}
+.bp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.bp-header h2{font-size:16px;margin:0;}
+.bp-gold{color:#f1c40f;font-size:13px;letter-spacing:1px;}
+.bp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;max-height:260px;overflow-y:auto;}
+.bp-slot{
+    background:linear-gradient(180deg,rgba(40,30,20,0.7),rgba(20,15,10,0.7));
+    border:2px solid rgba(80,60,30,0.5);border-radius:8px;padding:8px 4px;
+    text-align:center;cursor:pointer;transition:all 0.15s;
+    position:relative;min-height:60px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.bp-slot:hover{border-color:#b48c3c;background:linear-gradient(180deg,rgba(60,45,25,0.7),rgba(30,20,10,0.7));}
+.bp-slot.selected{border-color:#d4a853;box-shadow:0 0 8px rgba(212,168,83,0.4);}
+.bp-slot.empty{opacity:0.35;pointer-events:none;cursor:default;}
+.bp-slot .icon{font-size:24px;display:block;margin-bottom:2px;}
+.bp-slot .name{color:#c8b080;font-size:10px;line-height:1.2;}
+.bp-slot .count{color:#f1c40f;font-size:11px;font-weight:bold;margin-top:1px;}
+.bp-slot .rarity-1{border-color:rgba(120,120,120,0.5);}
+.bp-slot .rarity-2{border-color:rgba(100,149,237,0.5);}
+.bp-slot .rarity-3{border-color:rgba(212,168,83,0.6);}
+.bp-detail{background:rgba(0,0,0,0.4);border-radius:8px;padding:8px 12px;margin-bottom:10px;min-height:22px;font-size:12px;color:#a89070;}
+.bp-detail .empty-hint{color:#666;font-style:italic;}
+.bp-actions{display:flex;gap:8px;justify-content:center;}
+.bp-btn{
+    padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;
+    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
+    letter-spacing:2px;border:1px solid #6b4c2a;transition:all 0.15s;
+}
+.bp-btn.use{background:linear-gradient(180deg,rgba(46,139,87,0.3),rgba(30,100,50,0.3));color:#90ee90;}
+.bp-btn.use:hover{background:linear-gradient(180deg,rgba(60,180,100,0.4),rgba(40,130,60,0.4));}
+.bp-btn.use:disabled{opacity:0.35;pointer-events:none;}
+.bp-btn.discard{background:linear-gradient(180deg,rgba(180,60,40,0.3),rgba(130,30,20,0.3));color:#e8a090;}
+.bp-btn.discard:hover{background:linear-gradient(180deg,rgba(200,70,50,0.4),rgba(160,40,30,0.4));}
+.bp-btn.discard:disabled{opacity:0.35;pointer-events:none;}
+.bp-btn.close{background:linear-gradient(180deg,rgba(100,100,100,0.3),rgba(60,60,60,0.3));color:#aaa;}
+.bp-btn.close:hover{background:linear-gradient(180deg,rgba(130,130,130,0.4),rgba(80,80,80,0.4));}
+
 /* ===== 对话框 ===== */
 #dialog-box{
     display:none;position:absolute;bottom:0;left:0;right:0;
@@ -421,7 +460,7 @@ body{
         <button class="title-btn" onclick="newGame()">初 入 江 湖</button>
         <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
     </div>
-    <div class="title-version">v4.2 · 武侠RPG</div>
+    <div class="title-version">v4.3 · 武侠RPG</div>
 </div>
 
 <!-- 顶栏 -->
@@ -554,6 +593,23 @@ body{
         </div>
         <button class="modal-btn" onclick="saveGame();closeSettings()" style="margin-bottom:8px;">💾 存档进度</button>
         <button class="modal-btn" onclick="closeSettings()">关闭</button>
+    </div>
+</div>
+
+<!-- 背包面板 -->
+<div class="modal" id="backpack-modal">
+    <div class="modal-box">
+        <div class="bp-header">
+            <h2>🎒 行囊</h2>
+            <span class="bp-gold">💰 <span id="bp-gold">50</span></span>
+        </div>
+        <div class="bp-grid" id="bp-grid"></div>
+        <div class="bp-detail" id="bp-detail"><span class="empty-hint">点击道具查看详情</span></div>
+        <div class="bp-actions">
+            <button class="bp-btn use" id="bp-btn-use" onclick="useBagItem()" disabled>使用</button>
+            <button class="bp-btn discard" id="bp-btn-discard" onclick="discardBagItem()" disabled>丢弃</button>
+            <button class="bp-btn close" onclick="closeBackpack()">关闭</button>
+        </div>
     </div>
 </div>
 
@@ -934,6 +990,71 @@ function loadSettings(){
     }catch(e){}
 }
 
+// ==================== 道具数据库 ====================
+var ITEM_DB = {
+    potion:      {id:'potion',     name:'金创药',  desc:'恢复35点气血',         type:'heal',  icon:'💊', price:10,  rarity:1, effect:{hp:35}},
+    superPotion: {id:'superPotion',name:'大还丹',  desc:'恢复全部气血',         type:'heal',  icon:'🧪', price:50,  rarity:2, effect:{hp:'full'}},
+    atkElixir:   {id:'atkElixir',  name:'金刚丸',  desc:'临时攻击+15（5回合）', type:'buff',  icon:'💪', price:30,  rarity:1, effect:{atk:15, dur:5}},
+    defElixir:   {id:'defElixir',  name:'铁壁散',  desc:'临时防御+10（5回合）', type:'buff',  icon:'🛡️', price:30,  rarity:1, effect:{def:10, dur:5}},
+    goldBag:     {id:'goldBag',    name:'银两袋',  desc:'获得50两银子',         type:'gold',  icon:'💰', price:0,   rarity:1, effect:{gold:50}},
+    mpElixir:    {id:'mpElixir',   name:'回气丹',  desc:'恢复20点内力',         type:'mp',    icon:'💠', price:25,  rarity:1, effect:{mp:20}}
+};
+
+// 将旧格式{potion:3,superPotion:2}迁移为新格式[{id,count}]
+function migrateItems(oldItems){
+    var list = [];
+    if(!oldItems) return list;
+    if(Array.isArray(oldItems)) return oldItems;
+    // 旧格式键值对 → 新格式
+    for(var k in ITEM_DB){
+        if(oldItems[k] && oldItems[k] > 0){
+            list.push({id:k, count:oldItems[k]});
+        }
+    }
+    // 保留未知道具
+    for(var k in oldItems){
+        if(!ITEM_DB[k]) list.push({id:k, count:oldItems[k]});
+    }
+    return list;
+}
+
+function getItemDef(id){ return ITEM_DB[id]; }
+function findItemIdx(id){
+    if(!player.items) return -1;
+    for(var i=0;i<player.items.length;i++){if(player.items[i].id===id) return i;}
+    return -1;
+}
+function getItemCount(id){
+    var idx = findItemIdx(id);
+    return idx>=0 ? player.items[idx].count : 0;
+}
+function addItem(id, count){
+    if(!player.items) player.items = [];
+    count = count || 1;
+    var idx = findItemIdx(id);
+    if(idx >= 0){
+        player.items[idx].count = Math.min(99, player.items[idx].count + count);
+    } else {
+        player.items.push({id:id, count:Math.min(99, count)});
+    }
+}
+function removeItem(id, count){
+    count = count || 1;
+    var idx = findItemIdx(id);
+    if(idx < 0) return false;
+    player.items[idx].count -= count;
+    if(player.items[idx].count <= 0){
+        player.items.splice(idx, 1);
+    }
+    return true;
+}
+function getTotalItems(){
+    var n = 0;
+    if(!player.items) return 0;
+    for(var i=0;i<player.items.length;i++) n += player.items[i].count;
+    return n;
+}
+
 // ==================== 游戏数据 ====================
 var TILE = 40;
 var MAP_W = 20, MAP_H = 14;
@@ -1063,7 +1184,7 @@ function defaultPlayer(){
         atk:15, def:5,
         level:1, exp:0, expNeed:60,
         gold:50,
-        items:{potion:3, superPotion:1},
+        items:[{id:'potion',count:3},{id:'superPotion',count:1}],
         quests:{quest_1:false,quest_2:false,quest_3:false},
         hermitBuffed:false
     };
@@ -1125,7 +1246,7 @@ function loadGameData(){
         player.atk = p.atk; player.def = p.def;
         player.level = p.level; player.exp = p.exp;
         player.expNeed = p.expNeed; player.gold = p.gold;
-        player.items = p.items || {potion:3, superPotion:1};
+        player.items = migrateItems(p.items);
         player.quests = p.quests || {quest_1:false,quest_2:false,quest_3:false};
         player.hermitBuffed = p.hermitBuffed || data.hermitBuffed || false;
         // 恢复击杀数据
@@ -1563,7 +1684,7 @@ function closeDialog(){
 function buyItem(){
     if(player.gold<10){showHint('银两不够!');closeDialog();return;}
     player.gold-=10;
-    player.items.potion=(player.items.potion||0)+1;
+    addItem('potion',1);
     sfxCoin();
     showHint('💊 购得金创药一瓶!');
     updateStats();
@@ -1660,21 +1781,12 @@ function battleAction(act){
     }
 
     if(act==='item'){
-        if((player.items.potion||0)>0){
-            player.items.potion--;
-            var heal=35;
-            player.hp=Math.min(player.maxHp,player.hp+heal);
-            sfxHeal();
-            log.textContent='💊 服下金创药，恢复 '+heal+' 气血！';
-        }else if((player.items.superPotion||0)>0){
-            player.items.superPotion--;
-            player.hp=player.maxHp;
-            sfxHeal();
-            log.textContent='💊 服下大还丹，气血完全恢复！';
-        }else{
-            log.textContent='❌ 没有丹药了！';
+        if(getTotalItems()<=0){
+            log.textContent='❌ 行囊空空，无物可用！';
             return;
         }
+        openBackpack(true);
+        return;
     }
 
     updateBattleUI();
@@ -1865,12 +1977,147 @@ function saveGame(){
 }
 
 function showInventory(){
-    var txt='🎒 行囊\n\n';
-    txt+='金创药 x'+(player.items.potion||0)+' (恢复35气血)\n';
-    txt+='大还丹 x'+(player.items.superPotion||0)+' (恢复全部气血)\n\n';
-    txt+='💰 银两: '+player.gold+'\n';
-    txt+='⚔️ 攻击: '+player.atk+' | 🛡️ 防御: '+player.def;
-    showModal('行囊',txt);
+    openBackpack(false);
+}
+
+// ==================== 背包系统 ====================
+var bagInBattle = false;
+var bagSelectedId = null;
+
+function openBackpack(inBattle){
+    bagInBattle = !!inBattle;
+    bagSelectedId = null;
+    document.getElementById('bp-gold').textContent = player.gold;
+    document.getElementById('bp-detail').innerHTML = '<span class="empty-hint">点击道具查看详情</span>';
+    document.getElementById('bp-btn-use').disabled = true;
+    document.getElementById('bp-btn-discard').disabled = true;
+    document.getElementById('backpack-modal').classList.add('show');
+    renderBackpackGrid();
+}
+
+function closeBackpack(){
+    document.getElementById('backpack-modal').classList.remove('show');
+    bagSelectedId = null;
+    bagInBattle = false;
+}
+
+function renderBackpackGrid(){
+    var grid = document.getElementById('bp-grid');
+    var html = '';
+    // 展示所有ITEM_DB中的道具
+    for(var k in ITEM_DB){
+        var def = ITEM_DB[k];
+        var count = getItemCount(def.id);
+        var selCls = (bagSelectedId === def.id) ? ' selected' : '';
+        var emptyCls = count <= 0 ? ' empty' : '';
+        html += '<div class="bp-slot rarity-'+def.rarity+selCls+emptyCls+'" onclick="selectBagItem(\''+def.id+'\')">';
+        html += '<span class="icon">'+def.icon+'</span>';
+        html += '<span class="name">'+def.name+'</span>';
+        html += '<span class="count">x'+count+'</span>';
+        html += '</div>';
+    }
+    grid.innerHTML = html;
+}
+
+function selectBagItem(id){
+    bagSelectedId = id;
+    renderBackpackGrid();
+    var def = getItemDef(id);
+    var count = getItemCount(id);
+    var detail = document.getElementById('bp-detail');
+    if(count > 0){
+        var rarityTxt = ['','普通','稀有','珍品'][def.rarity] || '普通';
+        detail.innerHTML = '<b style="color:#d4a853;">'+def.icon+' '+def.name+'</b> ['+rarityTxt+']<br>'+def.desc+'<br>拥有: <b>'+count+'</b> 个';
+        document.getElementById('bp-btn-use').disabled = false;
+        document.getElementById('bp-btn-discard').disabled = false;
+    } else {
+        detail.innerHTML = '<span class="empty-hint">尚未获得此道具</span>';
+        document.getElementById('bp-btn-use').disabled = true;
+        document.getElementById('bp-btn-discard').disabled = true;
+    }
+}
+
+function useBagItem(){
+    if(!bagSelectedId) return;
+    var def = getItemDef(bagSelectedId);
+    var count = getItemCount(bagSelectedId);
+    if(count <= 0) return;
+
+    var eff = def.effect;
+    var used = false;
+    var msg = '';
+
+    if(def.type === 'heal'){
+        if(player.hp >= player.maxHp){
+            msg = '💡 气血已满，无需恢复！';
+        } else if(eff.hp === 'full'){
+            removeItem(def.id, 1);
+            player.hp = player.maxHp;
+            msg = '🧪 服下'+def.name+'，气血完全恢复！';
+            sfxHeal(); used = true;
+        } else {
+            removeItem(def.id, 1);
+            player.hp = Math.min(player.maxHp, player.hp + eff.hp);
+            msg = '💊 服下'+def.name+'，恢复 '+eff.hp+' 气血！';
+            sfxHeal(); used = true;
+        }
+    } else if(def.type === 'mp'){
+        if(player.mp >= player.maxMp){
+            msg = '💡 内力已满，无需恢复！';
+        } else {
+            removeItem(def.id, 1);
+            player.mp = Math.min(player.maxMp, player.mp + (eff.mp||20));
+            msg = '💠 服下'+def.name+'，恢复 '+(eff.mp||20)+' 内力！';
+            sfxHeal(); used = true;
+        }
+    } else if(def.type === 'gold'){
+        removeItem(def.id, 1);
+        player.gold += (eff.gold||50);
+        document.getElementById('bp-gold').textContent = player.gold;
+        msg = '💰 打开'+def.name+'，获得 '+(eff.gold||50)+' 两银子！';
+        sfxCoin(); used = true;
+    } else if(def.type === 'buff'){
+        msg = '💡 战斗中才能使用此道具！';
+    }
+
+    // 战斗中自动关闭背包
+    if(bagInBattle && used){
+        var log = document.getElementById('battle-log');
+        log.textContent = msg;
+        updateBattleUI();
+        closeBackpack();
+        if(enemyHp <= 0){
+            log.textContent = '🎉 ' + enemies[enemyIdx].name + ' 被击败了！';
+            endBattle(true);
+        } else {
+            enemyTurn();
+        }
+        return;
+    }
+
+    updateStats();
+    renderBackpackGrid();
+    selectBagItem(bagSelectedId);
+    document.getElementById('bp-detail').innerHTML = (used ? '✅ ': '') + msg + '<br>' + document.getElementById('bp-detail').innerHTML;
+}
+
+function discardBagItem(){
+    if(!bagSelectedId) return;
+    var def = getItemDef(bagSelectedId);
+    var count = getItemCount(bagSelectedId);
+    if(count <= 0) return;
+    if(!confirm('确定要丢弃 1 个 ' + def.name + ' 吗？')) return;
+    removeItem(def.id, 1);
+    updateStats();
+    renderBackpackGrid();
+    if(getItemCount(bagSelectedId) > 0){
+        selectBagItem(bagSelectedId);
+    } else {
+        bagSelectedId = null;
+        document.getElementById('bp-detail').innerHTML = '<span class="empty-hint">已丢弃 '+def.name+'</span>';
+        document.getElementById('bp-btn-use').disabled = true;
+        document.getElementById('bp-btn-discard').disabled = true;
+    }
 }
 
 function showQuest(){
