@@ -97,18 +97,22 @@ body{
 #topbar h1{font-size:16px;color:#d4a853;letter-spacing:3px;}
 #loc-name{font-size:12px;color:#8b7355;}
 
-/* ===== 地图区 ===== */
+/* ===== 地图区（视口跟随主角） ===== */
 #map-container{
     flex:1;position:relative;overflow:hidden;
     background:#0d0a10;
-    display:flex;align-items:center;justify-content:center;
     min-height:0;
 }
+#map-viewport{
+    position:absolute;top:0;left:0;right:0;bottom:0;
+    overflow:hidden;
+}
 #map-layer{
-    position:relative;
+    position:absolute;top:0;left:0;
     width:560px;height:400px;
     background:#2d5016;
     box-shadow:0 0 0 3px #3d2e1a, 0 0 30px rgba(0,0,0,0.6);
+    transition:transform 0.2s ease-out;
 }
 .tile{
     position:absolute;image-rendering:pixelated;
@@ -287,6 +291,65 @@ body{
     border:1px solid #6b4c2a;letter-spacing:1px;
     font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
 }
+
+/* ===== 手机虚拟方向键 ===== */
+#mobile-controls{
+    display:none;
+    position:absolute;bottom:10px;left:0;right:0;
+    z-index:80;pointer-events:none;
+    justify-content:space-between;align-items:flex-end;
+    padding:0 10px;
+}
+#mobile-dpad{
+    display:grid;grid-template-columns:44px 44px 44px;
+    grid-template-rows:44px 44px 44px;
+    gap:2px;pointer-events:auto;
+}
+.mbtn{
+    width:44px;height:44px;border-radius:8px;
+    border:1px solid rgba(180,140,60,0.4);
+    background:rgba(20,15,10,0.75);
+    color:#d4a853;font-size:18px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;-webkit-user-select:none;
+    touch-action:manipulation;
+}
+.mbtn:active{background:rgba(180,140,60,0.35);transform:scale(0.9);}
+.mbtn-empty{background:transparent;border:none;pointer-events:none;}
+#mbtn-up{grid-column:2;grid-row:1;}
+#mbtn-left{grid-column:1;grid-row:2;}
+#mbtn-center{grid-column:2;grid-row:2;}
+#mbtn-right{grid-column:3;grid-row:2;}
+#mbtn-down{grid-column:2;grid-row:3;}
+
+#mobile-actions{
+    display:flex;flex-direction:column;gap:6px;pointer-events:auto;
+}
+.maction{
+    width:56px;height:56px;border-radius:50%;
+    border:2px solid rgba(180,140,60,0.5);
+    background:rgba(30,15,5,0.8);
+    color:#e8d5a3;font-size:13px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;-webkit-user-select:none;
+    touch-action:manipulation;
+    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
+    letter-spacing:1px;
+}
+.maction:active{background:rgba(180,140,60,0.4);transform:scale(0.9);}
+#mbtn-act{font-size:22px;}
+
+/* 长按方向键保持移动 */
+.mbtn.pressed{background:rgba(180,140,60,0.4);}
+
+/* 手机端适配 */
+@media(max-width:600px){
+    #mobile-controls{display:flex;}
+    #action-bar .act-btn{font-size:10px;padding:5px 8px;}
+    #topbar h1{font-size:13px;}
+}
 </style>
 </head>
 <body>
@@ -314,8 +377,24 @@ body{
 
 <!-- 地图 -->
 <div id="map-container">
-    <div id="map-layer"></div>
+    <div id="map-viewport">
+        <div id="map-layer"></div>
+    </div>
     <div id="hint"></div>
+    <!-- 手机虚拟控件 -->
+    <div id="mobile-controls">
+        <div id="mobile-dpad">
+            <button class="mbtn" id="mbtn-up"    ontouchstart="mobileDir('up',event)"    ontouchend="mobileStop(event)"    onmousedown="mobileDir('up',event)"    onmouseup="mobileStop(event)">▲</button>
+            <button class="mbtn" id="mbtn-left"  ontouchstart="mobileDir('left',event)"  ontouchend="mobileStop(event)"    onmousedown="mobileDir('left',event)"  onmouseup="mobileStop(event)">◄</button>
+            <button class="mbtn mbtn-empty" id="mbtn-center"></button>
+            <button class="mbtn" id="mbtn-right" ontouchstart="mobileDir('right',event)" ontouchend="mobileStop(event)"    onmousedown="mobileDir('right',event)" onmouseup="mobileStop(event)">►</button>
+            <button class="mbtn" id="mbtn-down"  ontouchstart="mobileDir('down',event)"  ontouchend="mobileStop(event)"    onmousedown="mobileDir('down',event)"  onmouseup="mobileStop(event)">▼</button>
+        </div>
+        <div id="mobile-actions">
+            <button class="maction" id="mbtn-act" ontouchstart="mobileInteract(event)" onmousedown="mobileInteract(event)">🗡️</button>
+            <button class="maction" id="mbtn-meditate" onclick="meditate()">🧘</button>
+        </div>
+    </div>
 </div>
 
 <!-- 状态 -->
@@ -493,6 +572,20 @@ var curNpc = null, curNpcDi = 0;
 var inBattle = false, enemyIdx = null, enemyHp = 0, enemyMaxHp = 0;
 var walkTimer = null;
 var gameStarted = false;
+var isMobile = false;
+var mobileMoveInterval = null;
+var mobileMoveDir = null;
+
+// ==================== 手机检测 ====================
+function checkMobile(){
+    isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || 
+               ('ontouchstart' in window && window.innerWidth < 800);
+    var mc = document.getElementById('mobile-controls');
+    if(isMobile){
+        mc.style.display = 'flex';
+        // 手机端调整地图viewport：给虚拟按键留空间
+    }
+}
 
 // ==================== 存档系统 ====================
 var SAVE_KEY = 'wuxia_rpg_save';
@@ -570,11 +663,20 @@ function loadGame(){
 
 function startGame(){
     gameStarted = true;
+    checkMobile();
     document.getElementById('title-screen').style.display = 'none';
     buildMap();
     renderPlayer();
     updateStats();
-    showHint('🎮 WASD移动 | 空格交互 | 击败的敌人不会重生');
+    // resize触发镜头重新计算
+    window.addEventListener('resize', function(){ updateCamera(); });
+    // 延迟确保 viewport 尺寸就绪
+    setTimeout(function(){ updateCamera(); }, 100);
+    if(isMobile){
+        showHint('👆 虚拟方向键移动 | 🗡️ 交互');
+    } else {
+        showHint('🎮 WASD移动 | 空格/方向键交互 | 击败的敌人不会重生');
+    }
 }
 
 function initTitleScreen(){
@@ -651,6 +753,38 @@ function renderPlayer(){
     var loc = areaName(player.x,player.y);
     document.getElementById('loc-name').textContent = loc;
     updateStats();
+    updateCamera();
+}
+
+// ==================== 镜头跟随 ====================
+function updateCamera(){
+    var viewport = document.getElementById('map-viewport');
+    var mlayer = document.getElementById('map-layer');
+    var vw = viewport.clientWidth;
+    var vh = viewport.clientHeight;
+    var mw = MAP_W * TILE;  // 560
+    var mh = MAP_H * TILE;  // 400
+
+    // 主角在地图上的像素中心
+    var px = player.x * TILE + TILE/2;
+    var py = player.y * TILE + TILE/2;
+
+    // 如果地图比视口小，居中显示
+    var tx, ty;
+    if(mw <= vw){
+        tx = (vw - mw) / 2;
+    } else {
+        tx = vw/2 - px;
+        tx = Math.max(vw - mw, Math.min(0, tx));
+    }
+    if(mh <= vh){
+        ty = (vh - mh) / 2;
+    } else {
+        ty = vh/2 - py;
+        ty = Math.max(vh - mh, Math.min(0, ty));
+    }
+
+    mlayer.style.transform = 'translate('+Math.round(tx)+'px,'+Math.round(ty)+'px)';
 }
 
 function updateStats(){
@@ -1060,6 +1194,74 @@ function showHint(msg){
 }
 function hideHint(){document.getElementById('hint').style.display='none';}
 
+// ==================== 手机虚拟方向键 ====================
+function mobileDir(dir, e){
+    if(!gameStarted || inBattle) return;
+    if(document.getElementById('dialog-box').style.display==='block') return;
+    e.preventDefault();
+    mobileMoveDir = dir;
+    // 立即执行一次
+    doMobileMove();
+    // 长按持续移动
+    if(mobileMoveInterval) clearInterval(mobileMoveInterval);
+    mobileMoveInterval = setInterval(doMobileMove, 130);
+    // 高亮按钮
+    var btn = document.getElementById('mbtn-'+dir);
+    if(btn) btn.classList.add('pressed');
+}
+
+function mobileStop(e){
+    if(e) e.preventDefault();
+    mobileMoveDir = null;
+    if(mobileMoveInterval){ clearInterval(mobileMoveInterval); mobileMoveInterval = null; }
+    // 取消所有按钮高亮
+    document.querySelectorAll('.mbtn').forEach(function(b){ b.classList.remove('pressed'); });
+    var pdiv = document.getElementById('player-actor');
+    if(pdiv) pdiv.className = 'actor player idle';
+}
+
+function doMobileMove(){
+    if(!mobileMoveDir || !gameStarted || inBattle) return;
+    if(document.getElementById('dialog-box').style.display==='block') return;
+
+    var nx = player.x, ny = player.y;
+    switch(mobileMoveDir){
+        case 'up': ny--; break;
+        case 'down': ny++; break;
+        case 'left': nx--; break;
+        case 'right': nx++; break;
+    }
+
+    if(nx<0||nx>=MAP_W||ny<0||ny>=MAP_H) return;
+    var t = mapData[ny][nx];
+    if(t==='W'||t==='C') return;
+
+    // 检查敌人
+    var en = enemies.find(function(v){
+        return v.x===nx && v.y===ny && !deadEnemies[v.id];
+    });
+    if(en){
+        mobileStop({preventDefault:function(){}});
+        startBattle(enemies.indexOf(en));
+        return;
+    }
+
+    player.x = nx; player.y = ny;
+    var pdiv = document.getElementById('player-actor');
+    if(pdiv) pdiv.className = 'actor player walk';
+    if(walkTimer) clearTimeout(walkTimer);
+    walkTimer = setTimeout(function(){ if(pdiv) pdiv.className = 'actor player idle'; }, 350);
+
+    renderPlayer();
+    checkNpcProximity();
+}
+
+function mobileInteract(e){
+    if(!gameStarted || inBattle) return;
+    e.preventDefault();
+    interact();
+}
+
 function showModal(title,text){
     document.getElementById('modal-title').textContent=title;
     document.getElementById('modal-text').textContent=text;
@@ -1070,6 +1272,15 @@ function closeModal(){
 }
 
 // ==================== 初始化 ====================
+// 移动端阻止默认手势
+document.getElementById('game').addEventListener('touchstart',function(e){
+    if(e.target.closest('#mobile-controls') || e.target.closest('#map-viewport')){
+        e.preventDefault();
+    }
+},{passive:false});
+document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
+document.addEventListener('gesturechange',function(e){ e.preventDefault(); });
+
 buildMap();
 renderPlayer();
 initTitleScreen();
