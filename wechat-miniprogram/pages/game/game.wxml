@@ -1,0 +1,336 @@
+<!-- 游戏主页面 - Canvas渲染 -->
+<view class="game-root">
+
+  <!-- ===== 开场标题界面 ===== -->
+  <view class="title-screen" wx:if="{{showTitle}}">
+    <view class="title-deco">🏯</view>
+    <view class="title-main">乱 世 烽 火</view>
+    <view class="title-sub">汉 末 苍 生 · 群 雄 逐 鹿</view>
+    <view class="title-divider"></view>
+    <view class="title-btns">
+      <view class="title-btn" bindtap="startPrologue">初 入 乱 世</view>
+      <view class="title-btn {{prologue.hasSave?'':'title-btn-disabled'}}" bindtap="{{prologue.hasSave?'onLoadGame':''}}">再 续 前 缘</view>
+    </view>
+    <view class="title-version">v2.0 · 同步 HTML v5.3 RPG</view>
+  </view>
+
+  <!-- ===== 说书人序幕 ===== -->
+  <view class="prologue-overlay" wx:if="{{prologue.show}}" catchtap="skipPrologueTyping">
+    <view class="prologue-box" catchtap="onPrologueBoxTap">
+      <view class="prologue-row">
+        <view class="prologue-portrait">
+          <canvas type="2d" id="prologue-canvas" style="width:140px;height:170px;"></canvas>
+        </view>
+        <view class="prologue-body">
+          <view class="prologue-speaker">⛓️ 疯囚犯</view>
+          <view class="prologue-text">{{prologue.text}}</view>
+          <view class="prologue-clickable">
+            <view class="prologue-btn" catchtap="skipPrologueTyping">{{prologue.btnText}}</view>
+            <text class="prologue-hint" wx:if="{{!prologue.isLast}}">点击继续</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 顶部状态栏 -->
+  <view class="topbar" style="padding-top: {{safeTop}}px; padding-right: {{menuRight}}px;">
+    <text class="topbar-title">🏯 乱世烽火</text>
+    <text class="topbar-loc" id="loc-text">{{locText}}</text>
+  </view>
+
+  <!-- Canvas 游戏区（始终渲染，由上层绝对定位覆盖；战斗时隐藏，避免原生 canvas 浮在战斗面板之上） -->
+  <view class="canvas-wrap">
+    <canvas
+      type="2d"
+      id="game-canvas"
+      class="game-canvas"
+      bindtap="onCanvasTap"
+      hidden="{{battle.show}}"
+    ></canvas>
+  </view>
+
+  <!-- 手机虚拟控件（与 HTML 版一致；PC 端用鼠标点击同样可触发） -->
+  <view class="mobile-controls" style="bottom: {{safeBottom + 136}}px;" wx:if="{{gameStarted && !battle.show && !dialog.show && !bag.show && !settings.show && !questPanel.show}}">
+    <view class="mobile-dpad">
+      <view class="mbtn mbtn-empty"></view>
+      <view class="mbtn" bindtouchstart="onDirDown" bindtouchend="onDirUp" bindtap="onDirTap" data-dir="up">▲</view>
+      <view class="mbtn mbtn-empty"></view>
+      <view class="mbtn" bindtouchstart="onDirDown" bindtouchend="onDirUp" bindtap="onDirTap" data-dir="left">◄</view>
+      <view class="mbtn mbtn-empty"></view>
+      <view class="mbtn" bindtouchstart="onDirDown" bindtouchend="onDirUp" bindtap="onDirTap" data-dir="right">►</view>
+      <view class="mbtn mbtn-empty"></view>
+      <view class="mbtn" bindtouchstart="onDirDown" bindtouchend="onDirUp" bindtap="onDirTap" data-dir="down">▼</view>
+      <view class="mbtn mbtn-empty"></view>
+    </view>
+    <view class="mobile-actions">
+      <view class="maction" bindtap="onInteractBtn">💬</view>
+    </view>
+  </view>
+
+  <!-- 底部状态面板 -->
+  <view class="status-panel" style="padding-bottom: {{safeBottom}}px;">
+    <view class="stat">
+      <text class="stat-icon">❤️</text>
+      <text class="stat-val" id="s-hp">{{player.hp}}/{{player.maxHp}}</text>
+      <view class="stat-bar">
+        <view class="stat-fill hp-fill" style="width: {{hpPercent}}%;"></view>
+      </view>
+      <text class="stat-label">气血</text>
+    </view>
+    <view class="stat">
+      <text class="stat-icon">💠</text>
+      <text class="stat-val" id="s-mp">{{player.mp}}/{{player.maxMp}}</text>
+      <view class="stat-bar">
+        <view class="stat-fill mp-fill" style="width: {{mpPercent}}%;"></view>
+      </view>
+      <text class="stat-label">内力</text>
+    </view>
+    <view class="stat stat-sm">
+      <text class="stat-icon">⚔️</text>
+      <text class="stat-val" id="s-atk">{{player.atk}}</text>
+      <text class="stat-label">攻击</text>
+    </view>
+    <view class="stat stat-sm">
+      <text class="stat-icon">💰</text>
+      <text class="stat-val" id="s-gold">{{player.gold}}</text>
+      <text class="stat-label">五铢钱</text>
+    </view>
+    <view class="stat">
+      <text class="stat-icon">⭐</text>
+      <text class="stat-val" id="s-lv">Lv.{{player.level}}</text>
+      <view class="stat-bar">
+        <view class="stat-fill exp-fill" style="width: {{expPercent}}%;"></view>
+      </view>
+      <text class="stat-label" id="s-exp">EXP {{player.exp}}/{{player.expNeed}}</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮栏 -->
+  <view class="action-bar" style="padding-bottom: {{safeBottom}}px;">
+    <view class="abtn" bindtap="onInventory">💼 行囊</view>
+    <view class="abtn" bindtap="onSave">💾 存档</view>
+    <view class="abtn" bindtap="onMeditate">🧘 打坐</view>
+    <view class="abtn" bindtap="onQuest">📜 任务</view>
+    <view class="abtn" bindtap="onSettings">⚙️ 设置</view>
+  </view>
+
+  <!-- 地图切换横幅 -->
+  <view class="map-banner {{mapBanner.show?'map-banner-show':''}}" wx:if="{{mapBanner.show}}">{{mapBanner.text}}</view>
+
+  <!-- 弹框层（战斗/对话/背包等） -->
+  <view class="overlay" id="overlay-mask" wx:if="{{showOverlay}}" catchtap="closeOverlay"></view>
+
+  <!-- 对话框 -->
+  <view class="dlg-box" wx:if="{{dialog.show}}">
+    <view class="dlg-row">
+      <view class="dlg-portrait">
+        <canvas type="2d" id="dlg-canvas" style="width:80px;height:96px;"></canvas>
+        <text class="dlg-speaker">{{dialog.speaker}}</text>
+      </view>
+      <view class="dlg-body">
+        <scroll-view class="dlg-text" scroll-y>{{dialog.text}}</scroll-view>
+        <view class="dlg-choices">
+          <view class="panel-btn" wx:for="{{dialog.choices}}" wx:key="index" bindtap="onDialogChoice" data-idx="{{index}}">
+            {{item}}
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 战斗面板（全屏） -->
+  <view class="battle-fullscreen {{battle.critShake?'crit-shake':''}}" wx:if="{{battle.show}}" catchtap="onNoop">
+    <view class="battle-bg"></view>
+
+    <!-- 暴击全屏闪烁 -->
+    <view class="crit-overlay" wx:if="{{battle.critOverlay}}"></view>
+    <!-- 斩击线 -->
+    <view class="slash-effect" wx:if="{{battle.slashShow}}"></view>
+    <!-- 火花粒子 -->
+    <block wx:for="{{battle.sparks}}" wx:key="id">
+      <view class="spark-particle" style="top:{{item.top}};left:{{item.left}};animation-delay:{{item.delay}};--sx:{{item.sx}};--sy:{{item.sy}};"></view>
+    </block>
+
+    <view class="battle-header">
+      <text class="battle-header-title">⚔️ 战 斗</text>
+      <view class="battle-enemy-count" wx:if="{{battle.enemies.length > 1}}">
+        <text>敌 ×{{battle.enemies.length}}</text>
+      </view>
+    </view>
+
+    <!-- 主战场区域 -->
+    <view class="battle-arena">
+      <!-- 我方阵营 -->
+      <view class="battle-ally-side">
+        <!-- 主角 -->
+        <view class="battle-char {{battle.playerHit?'hit':''}}">
+          <canvas type="2d" id="battle-player-canvas" style="width:72px;height:86px;"></canvas>
+          <text class="battle-name">{{playerName}}</text>
+          <!-- HP+MP双条 -->
+          <view class="battle-bar-wrap">
+            <view class="battle-bar">
+              <view class="battle-fill battle-fill-hp" style="width: {{battle.playerHpPercent}}%;"></view>
+            </view>
+            <view class="battle-bar battle-bar-mp">
+              <view class="battle-fill battle-fill-mp" style="width: {{battle.playerMpPercent}}%;"></view>
+            </view>
+          </view>
+          <text class="battle-cs">Lv.{{player.level}} ❤️{{player.hp}}/{{player.maxHp}} 💠{{player.mp}}/{{player.maxMp}}</text>
+        </view>
+        <!-- 同伴 -->
+        <view class="battle-char battle-companion" wx:if="{{battle.companion}}">
+          <canvas type="2d" id="battle-companion-canvas" style="width:52px;height:62px;"></canvas>
+          <text class="battle-name">{{battle.companion.name}}</text>
+          <view class="battle-bar">
+            <view class="battle-fill battle-fill-hp" style="width: {{battle.companionHpPercent}}%;"></view>
+          </view>
+          <text class="battle-cs">❤️{{battle.companion.hp}}/{{battle.companion.maxHp}}</text>
+        </view>
+      </view>
+
+      <!-- VS区 -->
+      <view class="battle-center">
+        <text class="battle-vs">⚔️</text>
+      </view>
+
+      <!-- 敌方阵营（多敌人） -->
+      <view class="battle-enemy-side">
+        <view class="battle-char {{item.hit?'hit':''}} {{battle.targetIdx===index?'battle-target':''}}"
+              wx:for="{{battle.enemies}}" wx:key="index"
+              bindtap="onSelectEnemyTarget" data-idx="{{index}}"
+              wx:if="{{!item.dead}}">
+          <canvas type="2d" id="battle-enemy-canvas-{{index}}" style="width:56px;height:66px;"></canvas>
+          <text class="battle-name">{{item.name}}</text>
+          <view class="battle-bar">
+            <view class="battle-fill battle-fill-enemy" style="width: {{item.hpPercent}}%;"></view>
+          </view>
+          <text class="battle-cs">❤️{{item.hp}}/{{item.maxHp}}</text>
+        </view>
+        <view wx:if="{{battle.enemies.length===0}}" class="battle-no-enemy">没有敌人</view>
+      </view>
+    </view>
+
+    <!-- 特效层 -->
+    <view class="battle-effects">
+      <view class="crit-flash {{battle.critShow?'crit-show':''}}" wx:if="{{battle.critShow}}">{{battle.critText}}</view>
+      <view class="dmg-num {{battle.dmgDir}} {{battle.dmgShow?'dmg-pop':''}}" wx:if="{{battle.dmgShow}}">{{battle.dmgNum}}</view>
+    </view>
+
+    <!-- 战斗日志 -->
+    <view class="battle-log-wrap">
+      <text class="battle-log battle-log2" wx:if="{{battle.log2}}">{{battle.log2}}</text>
+      <text class="battle-log">{{battle.log}}</text>
+    </view>
+
+    <!-- 操作按钮：两行布局 -->
+    <view class="battle-actions">
+      <view class="battle-actions-row">
+        <view class="bact-btn bact-main" bindtap="onBattleAction" data-act="atk">⚔️ 普攻</view>
+        <view class="bact-btn bact-main" bindtap="onBattleAction" data-act="skill">💥 霸王枪<text class="bact-mp">10内</text></view>
+        <view class="bact-btn bact-main" bindtap="onBattleAction" data-act="defend">🛡️ 防御<text class="bact-mp">+5内</text></view>
+      </view>
+      <view class="battle-actions-row battle-actions-sub">
+        <view class="bact-btn bact-sub" bindtap="onBattleAction" data-act="item">💊 道具</view>
+        <view class="bact-btn bact-sub" bindtap="onBattleAction" data-act="flee">💨 逃脱</view>
+      </view>
+    </view>
+    <!-- 快捷道具 -->
+    <view class="battle-quick-item" wx:if="{{battle.quickItem}}" bindtap="onBattleAction" data-act="quickItem">
+      <text>{{battle.quickItem.icon}} {{battle.quickItem.name}} x{{battle.quickItem.count}}</text>
+    </view>
+
+    <!-- 多敌人提示 -->
+    <view class="battle-target-hint" wx:if="{{battle.enemies.length > 1}}">👆 点击敌人切换攻击目标</view>
+  </view>
+
+  <!-- 背包 -->
+  <view class="center-panel-overlay" wx:if="{{bag.show}}" catchtap="onCloseBag">
+    <view class="center-panel" catchtap="onNoop" style="max-height:60vh;">
+      <view class="panel-header">
+        <text class="panel-title">💼 行囊</text>
+        <text class="bp-gold">💰 {{player.gold}} 五铢钱</text>
+        <text class="panel-close" bindtap="onCloseBag">✕</text>
+      </view>
+      <scroll-view class="center-panel-scroll" scroll-y>
+        <view class="bp-slot {{bpSelectedId===item.id?'selected':''}}" wx:for="{{bag.items}}" wx:key="id" bindtap="onSelectBagItem" data-id="{{item.id}}">
+          <text>{{item.icon}} {{item.name}} x{{item.count}}</text>
+        </view>
+        <view wx:if="{{bag.items.length===0}}" class="bp-empty">行囊空空</view>
+      </scroll-view>
+      <view class="bp-detail" wx:if="{{bpDetail}}">
+        <view class="bp-detail-name">{{bpDetail.icon}} {{bpDetail.name}}</view>
+        <view class="bp-detail-desc">{{bpDetail.desc}}</view>
+        <view class="bp-detail-type">{{bpDetail.typeText}}</view>
+      </view>
+      <view class="panel-btn-row" wx:if="{{bpSelectedId}}" style="margin-top:6px;">
+        <view class="panel-btn" bindtap="onUseBagItem">使用</view>
+        <view class="panel-btn" bindtap="onDiscardBagItem">丢弃</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 设置面板 -->
+  <view class="settings-box" wx:if="{{settings.show}}">
+    <view class="panel-header">
+      <text class="panel-title">⚙️ 设置</text>
+      <text class="panel-close" bindtap="onCloseSettings">✕</text>
+    </view>
+    <view class="setting-row">
+      <text class="set-label">🎵 音乐</text>
+      <slider class="set-slider" min="0" max="100" value="{{settings.musicVol}}" bindchange="onMusicVolChange" show-value/>
+      <view class="set-toggle {{settings.musicEnabled?'set-toggle-on':''}}" bindtap="onToggleMusic" data-key="musicEnabled">{{settings.musicEnabled?'开':'关'}}</view>
+    </view>
+    <view class="setting-row">
+      <text class="set-label">🔊 音效</text>
+      <slider class="set-slider" min="0" max="100" value="{{settings.sfxVol}}" bindchange="onSfxVolChange" show-value/>
+      <view class="set-toggle {{settings.sfxEnabled?'set-toggle-on':''}}" bindtap="onToggleSfx" data-key="sfxEnabled">{{settings.sfxEnabled?'开':'关'}}</view>
+    </view>
+    <view class="panel-btn-row" style="margin-top: 4px;">
+      <view class="panel-btn" bindtap="onManualSave">💾 手动存档</view>
+      <view class="panel-btn" bindtap="onCloseSettings">关闭</view>
+    </view>
+  </view>
+
+  <!-- 任务面板 -->
+  <view class="center-panel-overlay" wx:if="{{questPanel.show}}" catchtap="onCloseQuest">
+    <view class="center-panel" catchtap="onNoop">
+      <view class="panel-header">
+        <text class="panel-title">📜 任务日志</text>
+        <text class="panel-header-tip">仅显示已接受/已完成</text>
+        <text class="panel-close" bindtap="onCloseQuest">✕</text>
+      </view>
+      <scroll-view class="center-panel-scroll" scroll-y style="max-height:50vh;">
+        <block wx:for="{{questPanel.quests}}" wx:key="id">
+          <view class="quest-list-item">
+            <view class="quest-name">{{item.name}}</view>
+            <view class="quest-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
+            <!-- 进度条 -->
+            <view class="quest-progress-bar" wx:if="{{item.target > 0}}">
+              <view class="quest-progress-fill" style="width: {{item.progress / item.target * 100}}%; background: {{item.done ? '#6aaa50' : '#c8a040'}};"></view>
+            </view>
+            <view class="quest-status {{item.done&&item.rewardClaimed?'quest-done':item.done?'quest-avail':item.active?'quest-progress':'quest-locked'}}">
+              {{item.statusText}}
+            </view>
+          </view>
+        </block>
+        <view wx:if="{{questPanel.quests.length===0}}" style="color:#555;text-align:center;padding:24px 0;">暂无进行中的任务</view>
+      </scroll-view>
+      <view class="panel-btn-row" style="margin-top: 10px;">
+        <view class="panel-btn" bindtap="onCloseQuest">关闭</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 消息提示 -->
+  <view class="hint {{hint.show?'hint-show':''}}" wx:if="{{hint.text}}" style="top: {{safeTop + 44}}px;">{{hint.text}}</view>
+
+  <!-- 居中任务/重要通知 Toast -->
+  <view class="toast-overlay" wx:if="{{toast.show}}" catchtap="closeOverlay">
+    <view class="toast-box" catchtap="onToastBoxTap">
+      <view class="toast-title">{{toast.title}}</view>
+      <view class="toast-text">{{toast.text}}</view>
+      <view class="toast-hint">点击任意处继续</view>
+    </view>
+  </view>
+</view>

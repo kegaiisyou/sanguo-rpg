@@ -123,13 +123,13 @@ body{
 }
 .tile-grass{background:#4a7c2e;}
 .tile-path{background:#c4a46c;}
-.tile-wall{background:#4a4a4a;border-color:rgba(255,255,255,0.05);}
+.tile-wall{background:#4e2218;border-color:rgba(255,255,255,0.08);box-shadow:inset 0 0 0 2px rgba(220,90,40,0.45),inset 0 0 0 2.5px rgba(255,150,80,0.25);}
 .tile-house{background:#7b6b5a;border-color:rgba(0,0,0,0.15);}
 .tile-cave{background:#5d4037;border-color:rgba(0,0,0,0.2);}
 .tile-dungeon{background:#5c1515;border-color:rgba(200,100,50,0.15);}
 .tile-shop{background:#c06014;border-color:rgba(0,0,0,0.1);}
 .tile-altar{background:#b8860b;border-color:rgba(0,0,0,0.1);}
-.tile-water{background:#2980b9;border-color:rgba(255,255,255,0.08);}
+.tile-water{background:#3a4a58;border-color:rgba(255,255,255,0.08);box-shadow:inset 0 0 0 2px rgba(80,150,200,0.45),inset 0 0 0 2.5px rgba(140,200,230,0.25);}
 .tile-forest{background:#2d6b1e;border-color:rgba(0,0,0,0.08);}
 .tile-bridge{background:#6b5a4a;border-color:rgba(0,0,0,0.1);}
 .tile-temple{background:#5d5550;border-color:rgba(0,0,0,0.1);}
@@ -184,6 +184,24 @@ body{
     font-size:9px;white-space:nowrap;color:#fff;
     text-shadow:1px 1px 0 #000;
     font-family:"Microsoft YaHei",sans-serif;
+}
+/* 地图边缘出入口提示 */
+.edge-indicator{
+    position:absolute;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    pointer-events:none;z-index:3;
+    background:rgba(0,0,0,0.55);border:1px solid rgba(212,168,83,0.5);
+    box-sizing:border-box;
+}
+.edge-arrow{
+    font-size:12px;color:rgba(212,168,83,0.9);
+    text-shadow:0 0 4px rgba(212,168,83,0.3);
+    line-height:1;margin-bottom:1px;
+}
+.edge-label{
+    font-size:8px;color:rgba(200,180,130,0.75);
+    white-space:nowrap;
+    text-shadow:0 0 2px rgba(0,0,0,0.8);
 }
 @keyframes idleBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
 @keyframes walkBob{0%,100%{transform:translateY(0) translateX(0)}
@@ -1494,6 +1512,9 @@ var player = defaultPlayer();
 var curNpc = null, curNpcDi = 0;
 var inBattle = false, enemyIdx = null, enemyHp = 0, enemyMaxHp = 0;
 var walkTimer = null;
+var _keyMoveLast = 0, _keyMoveThrottle = 110; // 键盘移动节流(ms)
+var _keyHeld = {}; // 记录当前按下的移动键
+var _keyMoveInterval = null;
 var gameStarted = false;
 var isMobile = false;
 var mobileMoveInterval = null;
@@ -1982,6 +2003,25 @@ function buildMap(){
     }
     layer.innerHTML = h;
 
+    // 地图边缘出入口提示
+    var conns = allMaps[currentMap].connections;
+    if (conns) {
+      var edgeLabels = '';
+      function addEdgeLabel(x, y, arrow, label) {
+        var t = mapData[y][x];
+        if (t === 'W' || t === 'C') return;
+        edgeLabels += '<div class="edge-indicator" style="left:' + (x*TILE) + 'px;top:' + (y*TILE) + 'px;width:'+TILE+'px;height:'+TILE+'px;">';
+        edgeLabels += '<span class="edge-arrow">' + arrow + '</span>';
+        edgeLabels += '<span class="edge-label">' + label + '</span>';
+        edgeLabels += '</div>';
+      }
+      if (conns.north) { var nn = allMaps[conns.north].name; for (var i = 0; i < MAP_W; i++) addEdgeLabel(i, 0, '▲', nn); }
+      if (conns.south) { var sn = allMaps[conns.south].name; for (var i = 0; i < MAP_W; i++) addEdgeLabel(i, MAP_H - 1, '▼', sn); }
+      if (conns.west)  { var wn = allMaps[conns.west].name; for (var i = 0; i < MAP_H; i++) addEdgeLabel(0, i, '◄', wn); }
+      if (conns.east)  { var en = allMaps[conns.east].name; for (var i = 0; i < MAP_H; i++) addEdgeLabel(MAP_W - 1, i, '►', en); }
+      layer.innerHTML += edgeLabels;
+    }
+
     // NPC
     npcs.forEach(function(n){
         layer.innerHTML += genActorHTML(n.id, n.x, n.y, n.color, n.name, 'npc');
@@ -2084,26 +2124,9 @@ function updateStats(){
 }
 
 // ==================== 移动 ====================
-document.addEventListener('keydown',function(e){
-    if(!gameStarted) return;
-    if(inBattle) return;
-    if(document.getElementById('dialog-box').style.display==='block'){
-        if(e.key==='Escape' || e.key===' ' || e.key==='e'){
-            closeDialog();
-        }
-        return;
-    }
-
-    var nx=player.x, ny=player.y;
-    switch(e.key.toLowerCase()){
-        case 'w':case 'arrowup':ny--;break;
-        case 's':case 'arrowdown':ny++;break;
-        case 'a':case 'arrowleft':nx--;break;
-        case 'd':case 'arrowright':nx++;break;
-        case ' ':case 'e':interact();return;
-        default:return;
-    }
-    e.preventDefault();
+function execMove(dx, dy){
+    if(!gameStarted || inBattle) return;
+    var nx = player.x + dx, ny = player.y + dy;
 
     // 地图边界=切换地图
     if(nx<0||nx>=MAP_W||ny<0||ny>=MAP_H){
@@ -2131,7 +2154,60 @@ document.addEventListener('keydown',function(e){
     walkTimer=setTimeout(function(){pdiv.className='actor player idle';},350);
 
     renderPlayer();
+    updateCamera();
     checkNpcProximity();
+}
+
+function _startMoveLoop(){
+    if(_keyMoveInterval) return;
+    // 立刻执行第一步
+    _doMoveStep();
+    _keyMoveInterval = setInterval(_doMoveStep, _keyMoveThrottle);
+}
+
+function _stopMoveLoop(){
+    if(_keyMoveInterval){ clearInterval(_keyMoveInterval); _keyMoveInterval = null; }
+}
+
+function _doMoveStep(){
+    if(inBattle) return;
+    if(document.getElementById('dialog-box').style.display==='block') return;
+    if(_keyHeld['w']||_keyHeld['arrowup']) execMove(0,-1);
+    else if(_keyHeld['s']||_keyHeld['arrowdown']) execMove(0,1);
+    else if(_keyHeld['a']||_keyHeld['arrowleft']) execMove(-1,0);
+    else if(_keyHeld['d']||_keyHeld['arrowright']) execMove(1,0);
+    else _stopMoveLoop();
+}
+
+document.addEventListener('keydown',function(e){
+    if(!gameStarted) return;
+    if(inBattle) return;
+    if(document.getElementById('dialog-box').style.display==='block'){
+        if(e.key==='Escape' || e.key===' ' || e.key==='e'){
+            closeDialog();
+        }
+        return;
+    }
+
+    var k = e.key.toLowerCase();
+    if(k===' '||k==='e'){ interact(); return; }
+
+    // 只处理移动键
+    if(!_keyHeld[k] && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].indexOf(k)>=0){
+        _keyHeld[k] = true;
+        e.preventDefault();
+        _startMoveLoop();
+    }
+});
+
+document.addEventListener('keyup',function(e){
+    var k = e.key.toLowerCase();
+    if(_keyHeld[k]){
+        _keyHeld[k] = false;
+        // 检查是否还有其他移动键按下
+        var anyHeld = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(function(kk){return _keyHeld[kk];});
+        if(!anyHeld) _stopMoveLoop();
+    }
 });
 
 // ==================== NPC交互 ====================

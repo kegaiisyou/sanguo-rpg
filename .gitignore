@@ -1,0 +1,8 @@
+# CodeBuddy 内部工作数据，不纳入版本管理
+.codebuddy/
+
+# 操作系统 / 编辑器临时文件
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
