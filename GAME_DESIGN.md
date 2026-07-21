@@ -10,7 +10,7 @@
 |----|----|
 | 游戏名称 | 乱世烽火 |
 | 类型 | 东汉末年 · 文字放置 RPG（文字即美术） |
-| 主端 | 网页 H5（`web/`） |
+| 主端 | 网页 H5（根目录 `index.html`） |
 | 分发端 | 微信小程序 / 小游戏（后期，复用 `shared/`） |
 | 唯一数据源 | `shared/`（文字剧情 + 数值配置） |
 | 时代背景 | 中平年间：黄巾之乱 → 讨董卓 → 群雄割据 |
@@ -43,7 +43,7 @@
 | 升级所需修为 | `60 × 1.6^(level-1)` | `BALANCE.expNeed` |
 | 历练即时收益 | 随等级与攻防成长 | `BALANCE.trainYield` |
 | 离线收益 | 按分钟累计 × (1+等级系数)，封顶 8h | `BALANCE.offlineGain` |
-| 存档 | `localStorage` + `lastSeen` 时间戳 | `web/storage.js` |
+| 存档 | `localStorage` + `lastSeen` 时间戳（根 `index.html` 内联） |
 
 ---
 
@@ -97,7 +97,7 @@
 ## 九、技术说明
 
 - 纯 DOM/CSS 文字渲染，无游戏引擎，最契合大量文字与高频迭代。
-- `web/index.html` 已禁缩放/下拉（viewport + `overscroll-behavior:none` + 容器 `100dvh` + 拦截 `touchmove`），体验接近原生 App。
+- `index.html` 已禁缩放/下拉（viewport + `overscroll-behavior:none` + 容器 `100dvh` + 拦截 `touchmove`），体验接近原生 App。
 - 共享层为 UMD：浏览器挂 `window.LF`，Node/微信端走 `module.exports`，三端共用一份。
 - 微信端（小程序/小游戏）：H5 跑通后，用 WebView 套壳或重写文字 UI，引用同一份 `shared/`。
 

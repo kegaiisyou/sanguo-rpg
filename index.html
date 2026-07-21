@@ -2,2997 +2,587 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>乱世烽火 - 三国RPG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>乱世烽火 · 水墨</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{
-    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-    background:#0a0a0f;
-    display:flex;justify-content:center;align-items:center;
-    min-height:100vh;padding:10px;
-    background-image:radial-gradient(ellipse at center,#1a1a2e 0%,#0a0a0f 70%);
-}
-#game{
-    width:100%;max-width:600px;
-    background:#0d1117;
-    border-radius:12px;overflow:hidden;
-    box-shadow:0 0 40px rgba(180,140,60,0.2),0 0 80px rgba(0,0,0,0.6);
-    position:relative;height:94vh;max-height:800px;
-    display:flex;flex-direction:column;
-    border:2px solid #2a2015;
-}
-
-/* ===== 开场界面 ===== */
-#title-screen{
-    position:absolute;top:0;left:0;right:0;bottom:0;
-    background:linear-gradient(180deg,#1a0808 0%,#2d1010 30%,#0d0505 70%,#1a0808 100%);
-    z-index:500;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;
-    gap:16px;
-}
-#title-screen::before{
-    content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  :root{
+    --paper:#f4eee2;        /* 宣纸底 */
+    --paper2:#ece3d1;
+    --ink:#2c2620;          /* 墨色正文 */
+    --ink-soft:#6f6456;     /* 浅墨 */
+    --ink-faint:#a99e8c;    /* 极浅 */
+    --seal:#9e3b2e;         /* 朱印红 */
+    --jade:#3f7d5e;         /* 收获青 */
+    --gold:#b0832f;         /* 修为/银两 */
+    --panel:rgba(255,253,248,.74);
+    --panel-line:rgba(74,62,48,.22);
+    --btn:rgba(255,255,255,.5);
+    --btn-line:rgba(74,62,48,.30);
+    --shadow:0 2px 14px rgba(60,48,34,.10);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100dvh;overflow:hidden;overscroll-behavior:none;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
     background:
-        radial-gradient(circle at 25% 35%,rgba(200,60,30,0.06) 0%,transparent 50%),
-        radial-gradient(circle at 75% 65%,rgba(200,120,30,0.04) 0%,transparent 50%),
-        radial-gradient(circle at 50% 80%,rgba(255,100,20,0.03) 0%,transparent 40%);
-    pointer-events:none;
-    animation:fireFlicker 4s ease-in-out infinite;
-}
-@keyframes fireFlicker{0%,100%{opacity:0.8}50%{opacity:1}}
-.title-deco{
-    font-size:56px;color:#c04020;
-    text-shadow:0 0 40px rgba(200,80,30,0.6),0 0 80px rgba(255,100,20,0.2);
-    animation:float 3s ease-in-out infinite;
+      radial-gradient(120% 80% at 50% -10%, #fbf7ee 0%, var(--paper) 45%, var(--paper2) 100%);
+    position:relative;
+  }
+  /* 淡墨山水背景：远山剪影 */
+  #ink-bg{position:fixed;left:0;right:0;bottom:0;height:46dvh;pointer-events:none;z-index:0;opacity:.16;}
+  #ink-bg svg{width:100%;height:100%;display:block;}
+
+  #app{
     position:relative;z-index:1;
-}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.title-main{
-    font-size:42px;color:#e8c080;
-    text-shadow:0 0 30px rgba(200,120,40,0.6),0 3px 6px rgba(0,0,0,0.8);
-    letter-spacing:8px;position:relative;z-index:1;
-    font-weight:bold;
-}
-.title-sub{
-    font-size:16px;color:#a07050;
-    letter-spacing:6px;position:relative;z-index:1;
-    margin-top:-5px;
-}
-.title-divider{
-    width:140px;height:2px;
-    background:linear-gradient(90deg,transparent,#c05030,transparent);
-    position:relative;z-index:1;
-}
-#title-btns{
-    display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;
-    margin-top:10px;
-}
-.title-btn{
-    padding:12px 50px;font-size:18px;
-    background:linear-gradient(180deg,rgba(180,140,60,0.15) 0%,rgba(100,70,20,0.2) 100%);
-    border:2px solid #6b4c2a;border-radius:8px;
-    color:#e8d5a3;cursor:pointer;letter-spacing:4px;
-    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-    transition:all 0.3s;position:relative;overflow:hidden;
-}
-.title-btn:hover{
-    background:linear-gradient(180deg,rgba(200,100,40,0.3) 0%,rgba(140,60,20,0.3) 100%);
-    border-color:#c05030;box-shadow:0 0 20px rgba(200,80,30,0.3);
-    transform:scale(1.03);
-}
-.title-btn:active{transform:scale(0.96);}
-.title-btn.disabled{
-    opacity:0.35;cursor:not-allowed;pointer-events:none;
-}
-.title-version{
-    font-size:11px;color:#4a3520;position:relative;z-index:1;
-    margin-top:10px;
-}
+    display:flex;flex-direction:column;
+    height:100dvh;max-width:560px;margin:0 auto;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
 
-/* ===== 顶栏 ===== */
-#topbar{
-    background:linear-gradient(180deg,#1a1520,#101018);
-    padding:8px 16px;
-    display:flex;justify-content:space-between;align-items:center;
-    border-bottom:2px solid #3d2e1a;
-}
-#topbar h1{font-size:16px;color:#d4a853;letter-spacing:3px;}
-#loc-name{font-size:12px;color:#8b7355;}
+  /* ===== 顶部状态栏（两行：身份 + 数值条） ===== */
+  #status{
+    flex:0 0 auto;
+    padding:9px 16px 10px;
+    border-bottom:1px solid var(--panel-line);
+    background:linear-gradient(180deg,rgba(255,253,248,.9),rgba(255,253,248,.45));
+    backdrop-filter:blur(6px);
+  }
+  .st-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft);}
+  .st-top .who{font-size:14px;color:var(--ink);font-weight:700;font-family:"STKaiti","KaiTi","Songti SC",serif;letter-spacing:1px;}
+  .st-top .dot{color:var(--ink-faint);}
+  .st-top .sh{color:var(--seal);}
+  .st-top .ka{color:var(--jade);}
+  .st-bars{display:flex;align-items:center;gap:11px 14px;flex-wrap:wrap;padding-top:7px;}
+  .bar{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-soft);}
+  .bar>span{white-space:nowrap;font-family:"STKaiti","KaiTi",serif;}
+  .bar i{flex:1 1 56px;height:6px;border-radius:4px;background:rgba(74,62,48,.14);overflow:hidden;min-width:46px;}
+  .bar i b{display:block;height:100%;border-radius:4px;transition:width .4s;}
+  .bar i.s-hp b{background:var(--seal);}
+  .bar i.s-mp b{background:var(--jade);}
+  .bar i.s-en b{background:var(--gold);}
+  .bar em{font-style:normal;font-size:10.5px;color:var(--ink-faint);min-width:44px;text-align:right;}
+  .st-bars .txt{display:flex;gap:10px;font-size:11.5px;color:var(--ink-soft);}
+  .st-bars .txt .jade{color:var(--jade);}
+  .st-bars .txt .gold{color:var(--gold);}
 
-/* ===== 地图区（视口跟随主角） ===== */
-#map-container{
-    flex:1;position:relative;overflow:hidden;
-    background:#0d0a10;
-    min-height:0;
-}
-#map-viewport{
-    position:absolute;top:0;left:0;right:0;bottom:0;
-    overflow:hidden;
-}
-#map-layer{
-    position:absolute;top:0;left:0;
-    width:800px;height:560px;
-    background:#2d5016;
-    box-shadow:0 0 0 3px #3d2e1a, 0 0 30px rgba(0,0,0,0.6);
-    transition:transform 0.2s ease-out;
-}
-.tile{
-    position:absolute;image-rendering:pixelated;
-    border:1px solid rgba(0,0,0,0.06);
-}
-.tile-grass{background:#4a7c2e;}
-.tile-path{background:#c4a46c;}
-.tile-wall{background:#4e2218;border-color:rgba(255,255,255,0.08);box-shadow:inset 0 0 0 2px rgba(220,90,40,0.45),inset 0 0 0 2.5px rgba(255,150,80,0.25);}
-.tile-house{background:#7b6b5a;border-color:rgba(0,0,0,0.15);}
-.tile-cave{background:#5d4037;border-color:rgba(0,0,0,0.2);}
-.tile-dungeon{background:#5c1515;border-color:rgba(200,100,50,0.15);}
-.tile-shop{background:#c06014;border-color:rgba(0,0,0,0.1);}
-.tile-altar{background:#b8860b;border-color:rgba(0,0,0,0.1);}
-.tile-water{background:#3a4a58;border-color:rgba(255,255,255,0.08);box-shadow:inset 0 0 0 2px rgba(80,150,200,0.45),inset 0 0 0 2.5px rgba(140,200,230,0.25);}
-.tile-forest{background:#2d6b1e;border-color:rgba(0,0,0,0.08);}
-.tile-bridge{background:#6b5a4a;border-color:rgba(0,0,0,0.1);}
-.tile-temple{background:#5d5550;border-color:rgba(0,0,0,0.1);}
-.tile-sand{background:#c4a35a;border-color:rgba(0,0,0,0.06);}
-/* 地图切换横幅 */
-#map-banner{
-    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.85);color:#d4a853;font-size:24px;font-weight:bold;
-    padding:14px 36px;border-radius:6px;z-index:999;pointer-events:none;
-    opacity:0;transition:opacity 0.3s;
-    text-shadow:0 0 8px rgba(212,168,83,0.5);
-    border:1px solid rgba(212,168,83,0.3);
-    letter-spacing:3px;
-}
-#map-banner.show{opacity:1;}
-#map-banner.hide{opacity:0;}
+  /* ===== 中部文字叙事窗 ===== */
+  #scene{
+    flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:16px 16px 6px;
+  }
+  #scene::-webkit-scrollbar{width:0;}
+  .narr{margin:0 0 12px;line-height:1.85;font-size:15.5px;
+    font-family:"STKaiti","KaiTi","Songti SC",serif;
+    animation:rise .5s ease both;}
+  @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .narr.env{color:var(--ink);}                 /* 环境风貌 */
+  .narr.title{color:var(--seal);font-weight:700;font-size:17px;
+    letter-spacing:3px;text-align:center;margin:4px 0 13px;
+    text-shadow:0 1px 0 rgba(255,255,255,.5);}
+  .narr.npc{color:#543b6b;border-left:3px solid var(--seal);padding-left:11px;}  /* 人物对话 */
+  .narr.npc .nm{color:var(--seal);font-weight:600;margin-right:6px;}
+  .narr.combat{color:var(--seal);font-weight:600;} /* 打斗效果 */
+  .narr.good{color:var(--jade);}                /* 收获 */
+  .narr.sys{color:var(--ink-faint);font-size:13px;} /* 系统/提示 */
+  .narr.item{color:#7a5a2e;background:rgba(176,131,47,.10);padding:5px 10px;border-radius:8px;font-size:14px;display:inline-block;}
+  .narr.exit{color:var(--ink-soft);font-size:13.5px;border-left:3px solid var(--gold);padding-left:10px;}
 
-/* ===== CSS像素角色 ===== */
-.actor{position:absolute;z-index:10;transition:left 0.15s,top 0.15s;}
-.actor-body{position:relative;width:28px;height:40px;}
-.actor-head{
-    width:15px;height:15px;border-radius:50%;
-    position:absolute;top:0;left:50%;transform:translateX(-50%);
-    border:1px solid rgba(0,0,0,0.3);
-}
-.actor-hair{
-    width:17px;height:6px;border-radius:3px 3px 0 0;
-    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
-}
-.actor-torso{
-    width:19px;height:15px;border-radius:3px;
-    position:absolute;top:14px;left:50%;transform:translateX(-50%);
-    border:1px solid rgba(0,0,0,0.3);
-}
-.actor-left-leg,.actor-right-leg{
-    width:6px;height:10px;border-radius:0 0 2px 2px;
-    position:absolute;bottom:0;
-}
-.actor-left-leg{left:6px;}.actor-right-leg{right:6px;}
-.actor-weapon{
-    width:3px;height:22px;border-radius:1px;
-    position:absolute;top:8px;right:-4px;
-    background:#b0bec5;
-}
-.actor-shadow{
-    width:20px;height:6px;background:rgba(0,0,0,0.35);
-    border-radius:50%;position:absolute;bottom:-4px;left:50%;
-    transform:translateX(-50%);
-}
-.actor-name{
-    position:absolute;top:-19px;left:50%;transform:translateX(-50%);
-    font-size:9px;white-space:nowrap;color:#fff;
-    text-shadow:1px 1px 0 #000;
-    font-family:"Microsoft YaHei",sans-serif;
-}
-/* 地图边缘出入口提示 */
-.edge-indicator{
-    position:absolute;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;
-    pointer-events:none;z-index:3;
-    background:rgba(0,0,0,0.55);border:1px solid rgba(212,168,83,0.5);
-    box-sizing:border-box;
-}
-.edge-arrow{
-    font-size:12px;color:rgba(212,168,83,0.9);
-    text-shadow:0 0 4px rgba(212,168,83,0.3);
-    line-height:1;margin-bottom:1px;
-}
-.edge-label{
-    font-size:8px;color:rgba(200,180,130,0.75);
-    white-space:nowrap;
-    text-shadow:0 0 2px rgba(0,0,0,0.8);
-}
-@keyframes idleBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
-@keyframes walkBob{0%,100%{transform:translateY(0) translateX(0)}
-    25%{transform:translateY(-3px) translateX(1px)}
-    75%{transform:translateY(-3px) translateX(-1px)}}
-.actor.idle .actor-body{animation:idleBounce 1.2s ease-in-out infinite;}
-.actor.walk .actor-body{animation:walkBob 0.35s ease-in-out infinite;}
-/* AI像素角色图 */
-.actor-img{
-    width:36px;height:48px;
-    image-rendering:pixelated;
-    object-fit:cover;
-    position:absolute;
-    top:-5px;left:50%;transform:translateX(-50%);
-    border-radius:3px;
-}
-.actor.npc .actor-img{width:38px;height:50px;top:-6px;}
-.actor.enemy .actor-img{width:34px;height:46px;top:-4px;}
+  /* ===== 动态按钮区（分组菜单） ===== */
+  #actions{
+    flex:0 0 auto;
+    display:flex;flex-wrap:wrap;gap:9px;
+    padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--panel-line);
+    background:linear-gradient(0deg,rgba(255,253,248,.92),rgba(255,253,248,.4));
+    backdrop-filter:blur(6px);
+    max-height:46dvh;overflow-y:auto;
+  }
+  #actions::-webkit-scrollbar{width:0;}
+  .grp{width:100%;text-align:center;font-size:11px;letter-spacing:4px;color:var(--ink-faint);
+    margin:3px 0 1px;font-family:"STKaiti","KaiTi",serif;}
+  .grp:first-child{margin-top:0;}
+  .act{
+    flex:1 1 calc(50% - 9px);min-width:130px;
+    padding:12px 13px;font-size:15px;color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--btn);border:1px solid var(--btn-line);border-radius:12px;
+    cursor:pointer;transition:.18s;text-align:center;
+    box-shadow:var(--shadow);
+  }
+  .act:hover{background:rgba(158,59,46,.10);border-color:rgba(158,59,46,.4);
+    box-shadow:0 0 0 3px rgba(158,59,46,.08),0 2px 14px rgba(158,59,46,.12);}
+  .act:active{transform:scale(.97);}
+  .act:disabled{opacity:.4;cursor:default;filter:grayscale(.4);}
+  .act.wide{flex:1 1 100%;text-align:left;
+    font-family:"STKaiti","KaiTi","Songti SC",serif;font-size:15px;
+    display:flex;flex-direction:column;gap:2px;}
+  .act.wide .tip{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:11.5px;color:var(--ink-faint);}
+  .act.primary{background:rgba(158,59,46,.14);border-color:rgba(158,59,46,.45);color:var(--seal);font-weight:600;}
 
-/* ===== 状态面板 ===== */
-#status-panel{
-    background:rgba(0,0,0,0.88);padding:8px 14px;
-    display:flex;justify-content:space-around;gap:6px;
-    border-top:2px solid #3d2e1a;
-    flex-wrap:wrap;align-items:flex-end;
-}
-.stat{text-align:center;min-width:52px;}
-.stat-icon{font-size:14px;}
-.stat-val{font-size:12px;font-weight:bold;color:#d4a853;margin-bottom:1px;}
-.stat-label{font-size:9px;color:#8b7355;}
-/* 血条/蓝条 */
-.stat-bar-wrap{
-    width:100%;height:5px;background:#222;
-    border-radius:3px;overflow:hidden;
-    border:1px solid #333;margin-top:2px;
-}
-.stat-bar-fill{height:100%;border-radius:2px;transition:width 0.3s ease;}
-.stat-bar-fill.hp-fill{background:linear-gradient(90deg,#c0392b,#e74c3c,#c0392b);}
-.stat-bar-fill.mp-fill{background:linear-gradient(90deg,#2471a3,#3498db,#2471a3);}
-.stat-bar-fill.exp-fill{background:linear-gradient(90deg,#b7950b,#f1c40f,#b7950b);}
-.stat-hp-val{color:#e74c3c;font-size:12px;font-weight:bold;}
-.stat-mp-val{color:#3498db;font-size:12px;font-weight:bold;}
+  /* ===== 底部常驻功能栏 ===== */
+  #dock{
+    flex:0 0 auto;display:flex;
+    border-top:1px solid var(--panel-line);
+    background:linear-gradient(0deg,rgba(255,253,248,.95),rgba(255,253,248,.7));
+    backdrop-filter:blur(6px);
+  }
+  #dock button{
+    flex:1;padding:10px 4px 12px;background:none;border:none;cursor:pointer;
+    color:var(--ink-soft);font-size:11.5px;letter-spacing:1px;
+    display:flex;flex-direction:column;align-items:center;gap:4px;transition:.18s;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  #dock button .ic{font-size:19px;line-height:1;}
+  #dock button:hover{color:var(--seal);}
+  #dock button:active{transform:scale(.94);}
 
-/* ===== 操作栏 ===== */
-#action-bar{
-    background:rgba(0,0,0,0.88);padding:6px 14px;
-    display:flex;gap:8px;justify-content:center;
-    border-top:1px solid #3d2e1a;
-}
-.act-btn{
-    padding:7px 16px;border-radius:6px;border:1px solid #4a3520;
-    font-size:12px;font-weight:bold;cursor:pointer;
-    background:linear-gradient(180deg,rgba(180,140,60,0.1),rgba(100,70,20,0.15));
-    color:#e8d5a3;transition:all 0.15s;
-    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-}
-.act-btn:hover{background:linear-gradient(180deg,rgba(200,160,80,0.2),rgba(140,100,40,0.2));border-color:#b48c3c;}
-.act-btn:active{transform:scale(0.95);}
+  /* ===== 弹窗 ===== */
+  #modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:rgba(40,32,24,.34);backdrop-filter:blur(3px);padding:24px;
+    animation:fade .25s ease both;}
+  #modal.hidden{display:none;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .card{
+    width:100%;max-width:440px;max-height:82dvh;overflow-y:auto;
+    background:var(--panel);border:1px solid var(--panel-line);border-radius:16px;
+    box-shadow:0 12px 40px rgba(50,38,26,.28);padding:22px 20px;
+    animation:pop .28s cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+  .card h3{margin:0 0 14px;font-family:"STKaiti","KaiTi",serif;font-size:19px;color:var(--seal);
+    letter-spacing:2px;text-align:center;font-weight:700;}
+  .card .row{display:flex;justify-content:space-between;padding:7px 2px;
+    border-bottom:1px dashed var(--panel-line);font-size:14px;}
+  .card .row span:first-child{color:var(--ink-soft);}
+  .card .row span:last-child{color:var(--ink);font-weight:600;}
+  .card .skills{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+  .card .skills span{padding:5px 11px;border:1px solid var(--btn-line);border-radius:20px;
+    font-size:13px;background:var(--btn);color:var(--ink);}
+  .card p.tip{color:var(--ink-faint);font-size:12.5px;line-height:1.7;margin:12px 0 0;}
+  .card .map-node{display:flex;align-items:center;gap:10px;padding:9px 6px;font-size:14.5px;
+    border-bottom:1px dashed var(--panel-line);}
+  .card .map-node .dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--ink-faint);flex:0 0 auto;}
+  .card .map-node.cur .dot{background:var(--seal);border-color:var(--seal);box-shadow:0 0 0 4px rgba(158,59,46,.15);}
+  .card .map-node.cur{color:var(--seal);font-weight:700;}
+  .card .map-node .ex{color:var(--ink-faint);font-size:12px;margin-left:auto;}
+  .card .close{margin-top:18px;width:100%;padding:12px;border:none;border-radius:12px;
+    background:rgba(158,59,46,.14);color:var(--seal);font-size:15px;font-weight:600;cursor:pointer;}
+  .card .close:active{transform:scale(.97);}
 
-/* ===== 背包弹窗 ===== */
-#backpack-modal .modal-box{max-width:380px;width:92%;padding:16px 14px;}
-.bp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.bp-header h2{font-size:16px;margin:0;}
-.bp-gold{color:#f1c40f;font-size:13px;letter-spacing:1px;}
-.bp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;max-height:260px;overflow-y:auto;}
-.bp-slot{
-    background:linear-gradient(180deg,rgba(40,30,20,0.7),rgba(20,15,10,0.7));
-    border:2px solid rgba(80,60,30,0.5);border-radius:8px;padding:8px 4px;
-    text-align:center;cursor:pointer;transition:all 0.15s;
-    position:relative;min-height:60px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-}
-.bp-slot:hover{border-color:#b48c3c;background:linear-gradient(180deg,rgba(60,45,25,0.7),rgba(30,20,10,0.7));}
-.bp-slot.selected{border-color:#d4a853;box-shadow:0 0 8px rgba(212,168,83,0.4);}
-.bp-slot.empty{opacity:0.35;pointer-events:none;cursor:default;}
-.bp-slot .icon{font-size:24px;display:block;margin-bottom:2px;}
-.bp-slot .name{color:#c8b080;font-size:10px;line-height:1.2;}
-.bp-slot .count{color:#f1c40f;font-size:11px;font-weight:bold;margin-top:1px;}
-.bp-slot .rarity-1{border-color:rgba(120,120,120,0.5);}
-.bp-slot .rarity-2{border-color:rgba(100,149,237,0.5);}
-.bp-slot .rarity-3{border-color:rgba(212,168,83,0.6);}
-.bp-detail{background:rgba(0,0,0,0.4);border-radius:8px;padding:8px 12px;margin-bottom:10px;min-height:22px;font-size:12px;color:#a89070;}
-.bp-detail .empty-hint{color:#666;font-style:italic;}
-.bp-actions{display:flex;gap:8px;justify-content:center;}
-.bp-btn{
-    padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;
-    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-    letter-spacing:2px;border:1px solid #6b4c2a;transition:all 0.15s;
-}
-.bp-btn.use{background:linear-gradient(180deg,rgba(46,139,87,0.3),rgba(30,100,50,0.3));color:#90ee90;}
-.bp-btn.use:hover{background:linear-gradient(180deg,rgba(60,180,100,0.4),rgba(40,130,60,0.4));}
-.bp-btn.use:disabled{opacity:0.35;pointer-events:none;}
-.bp-btn.discard{background:linear-gradient(180deg,rgba(180,60,40,0.3),rgba(130,30,20,0.3));color:#e8a090;}
-.bp-btn.discard:hover{background:linear-gradient(180deg,rgba(200,70,50,0.4),rgba(160,40,30,0.4));}
-.bp-btn.discard:disabled{opacity:0.35;pointer-events:none;}
-.bp-btn.close{background:linear-gradient(180deg,rgba(100,100,100,0.3),rgba(60,60,60,0.3));color:#aaa;}
-.bp-btn.close:hover{background:linear-gradient(180deg,rgba(130,130,130,0.4),rgba(80,80,80,0.4));}
-
-/* ===== 对话框 ===== */
-#dialog-box{
-    display:none;position:absolute;bottom:0;left:0;right:0;
-    background:rgba(10,8,14,0.97);padding:14px 18px;
-    border-top:3px solid #b48c3c;z-index:50;
-}
-#dialog-speaker{font-size:14px;color:#e8a850;margin-bottom:6px;font-weight:bold;letter-spacing:2px;}
-#dialog-text{font-size:13px;color:#ccc;line-height:1.7;margin-bottom:10px;}
-#dialog-choices{display:flex;flex-wrap:wrap;gap:8px;}
-.dchoice{
-    padding:7px 16px;border-radius:4px;border:1px solid #6b4c2a;
-    background:rgba(180,140,60,0.08);color:#d4a853;cursor:pointer;
-    font-size:12px;font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-    transition:all 0.15s;
-}
-.dchoice:hover{background:#b48c3c;color:#0d0d1a;border-color:#b48c3c;}
-
-/* ===== 战斗面板 ===== */
-#battle-panel{
-    display:none;position:absolute;top:0;left:0;right:0;bottom:0;
-    background:rgba(8,6,12,0.94);z-index:100;
-    flex-direction:column;align-items:center;justify-content:center;
-}
-#battle-scene{padding:20px;text-align:center;}
-.battle-row{display:flex;align-items:center;gap:30px;margin:10px 0;justify-content:center;}
-.battle-char{text-align:center;min-width:80px;}
-.battle-char .actor{position:relative;display:inline-block;}
-.battle-hp-bar{
-    width:130px;height:8px;background:#222;border-radius:4px;
-    margin-top:6px;overflow:hidden;border:1px solid #444;
-    display:inline-block;
-}
-.battle-hp-fill{height:100%;transition:width 0.3s;}
-.hp-player{background:linear-gradient(90deg,#2ea043,#1a7a2e);}
-.hp-enemy{background:linear-gradient(90deg,#c0392b,#7b241c);}
-.battle-name{font-size:13px;color:#e8d5a3;margin-top:4px;letter-spacing:2px;}
-.battle-nums{font-size:10px;color:#8b7355;}
-#battle-vs{font-size:30px;color:#b48c3c;}
-#battle-log{
-    color:#d4a853;font-size:13px;min-height:24px;
-    text-align:center;margin:12px 0;line-height:1.6;
-}
-#battle-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
-.bact-btn{
-    padding:10px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);
-    font-size:12px;font-weight:bold;cursor:pointer;color:#fff;
-    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-    letter-spacing:1px;transition:all 0.15s;
-}
-.bact-btn.atk{background:linear-gradient(180deg,#c0392b,#8b1a1a);}
-.bact-btn.skill{background:linear-gradient(180deg,#2471a3,#154360);}
-.bact-btn.item{background:linear-gradient(180deg,#1e8449,#145a32);}
-.bact-btn.flee{background:linear-gradient(180deg,#555,#333);}
-.bact-btn:hover{filter:brightness(1.2);transform:translateY(-1px);}
-.bact-btn:disabled{opacity:0.4;pointer-events:none;filter:grayscale(0.5);}
-
-/* 受击震动 */
-@keyframes shake{
-    0%,100%{transform:translateX(0);}
-    10%,30%,50%,70%,90%{transform:translateX(-6px);}
-    20%,40%,60%,80%{transform:translateX(6px);}
-}
-.battle-char.shake{animation:shake 0.4s ease-in-out;}
-/* 暴击强震 */
-@keyframes shake-heavy{
-    0%,100%{transform:translateX(0) rotate(0);}
-    10%,30%,50%,70%,90%{transform:translateX(-8px) rotate(-1.5deg);}
-    20%,40%,60%,80%{transform:translateX(8px) rotate(1.5deg);}
-}
-.battle-char.shake-heavy{animation:shake-heavy 0.55s ease-in-out;}
-
-/* 闪白(暴击命中闪光) */
-@keyframes flash-hit{
-    0%{filter:brightness(2.5);}
-    100%{filter:brightness(1);}
-}
-.battle-char.flash{animation:flash-hit 0.3s ease-out;}
-
-/* ===== Canvas像素画立绘 ===== */
-.pixel-canvas{
-    display:block;flex-shrink:0;
-    image-rendering:pixelated;
-    image-rendering:crisp-edges;
-    border:2px solid #2a1a0a;
-    border-radius:2px;
-    box-shadow:inset 0 0 4px rgba(0,0,0,0.6), 0 0 6px rgba(180,120,40,0.2);
-}
-.pixel-sm{width:64px;height:80px;}
-.pixel-md{width:100px;height:120px;}
-.pixel-lg{width:140px;height:170px;}
-
-/* ===== 弹窗 ===== */
-.modal{
-    display:none;position:absolute;top:0;left:0;right:0;bottom:0;
-    background:rgba(0,0,0,0.88);z-index:200;
-    flex-direction:column;align-items:center;justify-content:center;
-}
-.modal.show{display:flex;}
-.modal-box{
-    background:linear-gradient(180deg,#1a1520,#101018);
-    border:2px solid #6b4c2a;border-radius:12px;
-    padding:22px 26px;max-width:400px;width:90%;text-align:center;
-}
-.modal-box h2{color:#d4a853;margin-bottom:10px;font-size:18px;letter-spacing:3px;}
-.modal-box p{color:#b8a080;font-size:13px;line-height:1.8;margin-bottom:16px;white-space:pre-line;}
-.modal-btn{
-    padding:9px 32px;border-radius:6px;border:1px solid #6b4c2a;
-    background:linear-gradient(180deg,rgba(180,140,60,0.15),rgba(100,70,20,0.2));
-    color:#e8d5a3;cursor:pointer;font-size:14px;
-    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-    letter-spacing:2px;transition:all 0.2s;
-}
-.modal-btn:hover{background:linear-gradient(180deg,rgba(200,160,80,0.3),rgba(140,100,40,0.3));border-color:#b48c3c;}
-
-/* ===== 提示 ===== */
-#hint{
-    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.92);color:#d4a853;padding:10px 24px;
-    border-radius:8px;font-size:13px;z-index:60;
-    display:none;pointer-events:none;
-    border:1px solid #6b4c2a;letter-spacing:1px;
-    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-}
-
-/* ===== 手机虚拟方向键 ===== */
-#mobile-controls{
-    display:none;
-    position:absolute;bottom:10px;left:0;right:0;
-    z-index:80;pointer-events:none;
-    justify-content:space-between;align-items:flex-end;
-    padding:0 10px;
-}
-#mobile-dpad{
-    display:grid;grid-template-columns:44px 44px 44px;
-    grid-template-rows:44px 44px 44px;
-    gap:2px;pointer-events:auto;
-}
-.mbtn{
-    width:44px;height:44px;border-radius:8px;
-    border:1px solid rgba(180,140,60,0.4);
-    background:rgba(20,15,10,0.75);
-    color:#d4a853;font-size:18px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    -webkit-tap-highlight-color:transparent;
-    user-select:none;-webkit-user-select:none;
-    touch-action:manipulation;
-}
-.mbtn:active{background:rgba(180,140,60,0.35);transform:scale(0.9);}
-.mbtn-empty{background:transparent;border:none;pointer-events:none;}
-#mbtn-up{grid-column:2;grid-row:1;}
-#mbtn-left{grid-column:1;grid-row:2;}
-#mbtn-center{grid-column:2;grid-row:2;}
-#mbtn-right{grid-column:3;grid-row:2;}
-#mbtn-down{grid-column:2;grid-row:3;}
-
-#mobile-actions{
-    display:flex;flex-direction:column;gap:6px;pointer-events:auto;
-}
-.maction{
-    width:56px;height:56px;border-radius:50%;
-    border:2px solid rgba(180,140,60,0.5);
-    background:rgba(30,15,5,0.8);
-    color:#e8d5a3;font-size:13px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    -webkit-tap-highlight-color:transparent;
-    user-select:none;-webkit-user-select:none;
-    touch-action:manipulation;
-    font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;
-    letter-spacing:1px;
-}
-.maction:active{background:rgba(180,140,60,0.4);transform:scale(0.9);}
-#mbtn-act{font-size:22px;}
-
-/* 长按方向键保持移动 */
-.mbtn.pressed{background:rgba(180,140,60,0.4);}
-
-/* 手机端适配 */
-@media(max-width:600px){
-    #mobile-controls{display:flex;}
-    #action-bar .act-btn{font-size:10px;padding:5px 8px;}
-    #topbar h1{font-size:13px;}
-}
-
-/* ===== 设置面板 ===== */
-.setting-row{
-    display:flex;align-items:center;justify-content:space-between;
-    margin:14px 0;gap:10px;
-}
-.setting-row span.set-label{color:#d4a853;font-size:14px;white-space:nowrap;min-width:48px;}
-.setting-row span.set-val{font-size:12px;color:#b48c3c;min-width:32px;text-align:right;}
-.setting-row input[type=range]{
-    flex:1;max-width:180px;height:6px;cursor:pointer;
-    -webkit-appearance:none;appearance:none;
-    background:#2a2015;border-radius:3px;outline:none;
-}
-.setting-row input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;appearance:none;
-    width:20px;height:20px;border-radius:50%;
-    background:linear-gradient(135deg,#b48c3c,#8b6914);
-    cursor:pointer;border:2px solid #e8d5a3;
-    box-shadow:0 0 8px rgba(180,140,60,0.4);
-}
+  #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
+    background:rgba(44,38,32,.9);color:#f4eee2;padding:9px 18px;border-radius:22px;font-size:13px;
+    opacity:0;pointer-events:none;transition:.3s;z-index:60;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
-
-<div id="game">
-
-<!-- ===== 开场界面 ===== -->
-<div id="title-screen">
-    <div class="title-deco">🏯</div>
-    <div class="title-main">乱 世 烽 火</div>
-    <div class="title-sub">汉 末 苍 生 · 群 雄 逐 鹿</div>
-    <div class="title-divider"></div>
-    <div id="title-btns">
-        <button class="title-btn" onclick="startPrologue()">初 入 乱 世</button>
-        <button class="title-btn" id="btn-load" onclick="loadGame()">再 续 前 缘</button>
-    </div>
-    <div class="title-version">v5.3 · 三国RPG</div>
-</div>
-
-<!-- ===== 说书人序幕 ===== -->
-<div class="modal" id="prologue-modal">
-    <div class="modal-box" style="max-width:480px;padding:18px 20px;">
-        <div style="display:flex;align-items:flex-start;gap:16px;">
-            <!-- 说书人水墨立绘 -->
-            <canvas class="pixel-canvas pixel-lg" id="prologue-canvas" width="140" height="170"></canvas>
-            <div style="flex:1;display:flex;flex-direction:column;">
-                <div style="font-size:13px;color:#e8a850;margin-bottom:6px;letter-spacing:2px;">📖 说书人</div>
-                <div id="prologue-content" style="color:#c8b080;font-size:13px;line-height:1.9;text-align:left;min-height:100px;"></div>
-                <button class="modal-btn" id="prologue-btn" onclick="nextPrologue()" style="margin-top:10px;align-self:flex-end;">继续</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 顶栏 -->
-<div id="topbar">
-    <h1>🏯 乱世烽火</h1>
-    <span id="loc-name">颍川·阳翟</span>
-</div>
-
-<!-- 地图 -->
-<div id="map-container">
-    <div id="map-viewport">
-        <div id="map-layer"></div>
-        <div id="map-banner"></div>
-    </div>
-    <div id="hint"></div>
-    <!-- 手机虚拟控件 -->
-    <div id="mobile-controls">
-        <div id="mobile-dpad">
-            <button class="mbtn" id="mbtn-up"    ontouchstart="mobileDir('up',event)"    ontouchend="mobileStop(event)"    onmousedown="mobileDir('up',event)"    onmouseup="mobileStop(event)">▲</button>
-            <button class="mbtn" id="mbtn-left"  ontouchstart="mobileDir('left',event)"  ontouchend="mobileStop(event)"    onmousedown="mobileDir('left',event)"  onmouseup="mobileStop(event)">◄</button>
-            <button class="mbtn mbtn-empty" id="mbtn-center"></button>
-            <button class="mbtn" id="mbtn-right" ontouchstart="mobileDir('right',event)" ontouchend="mobileStop(event)"    onmousedown="mobileDir('right',event)" onmouseup="mobileStop(event)">►</button>
-            <button class="mbtn" id="mbtn-down"  ontouchstart="mobileDir('down',event)"  ontouchend="mobileStop(event)"    onmousedown="mobileDir('down',event)"  onmouseup="mobileStop(event)">▼</button>
-        </div>
-        <div id="mobile-actions">
-            <button class="maction" id="mbtn-act" ontouchstart="mobileInteract(event)" onmousedown="mobileInteract(event)">🗡️</button>
-            <button class="maction" id="mbtn-meditate" onclick="meditate()">🧘</button>
-        </div>
-    </div>
-</div>
-
-<!-- 状态 -->
-<div id="status-panel">
-    <div class="stat">
-        <div class="stat-icon">❤️</div>
-        <div class="stat-val stat-hp-val" id="s-hp">100/100</div>
-        <div class="stat-bar-wrap"><div class="stat-bar-fill hp-fill" id="s-hpbar"></div></div>
-        <div class="stat-label">气血</div>
-    </div>
-    <div class="stat">
-        <div class="stat-icon">💠</div>
-        <div class="stat-val stat-mp-val" id="s-mp">30/30</div>
-        <div class="stat-bar-wrap"><div class="stat-bar-fill mp-fill" id="s-mpbar"></div></div>
-        <div class="stat-label">内力</div>
-    </div>
-    <div class="stat" style="min-width:40px;">
-        <div class="stat-icon">⚔️</div>
-        <div class="stat-val" id="s-atk">15</div>
-        <div class="stat-label">攻击</div>
-    </div>
-    <div class="stat" style="min-width:42px;">
-        <div class="stat-icon">💰</div>
-        <div class="stat-val" id="s-gold">50</div>
-        <div class="stat-label">五铢钱</div>
-    </div>
-    <div class="stat">
-        <div class="stat-icon">⭐</div>
-        <div class="stat-val" id="s-lv">Lv.1</div>
-        <div class="stat-bar-wrap"><div class="stat-bar-fill exp-fill" id="s-expbar"></div></div>
-        <div class="stat-label" id="s-exp">EXP</div>
-    </div>
-</div>
-
-<!-- 操作 -->
-<div id="action-bar">
-    <button class="act-btn" onclick="showInventory()">🎒 行囊</button>
-    <button class="act-btn" onclick="showQuest()">📜 任务</button>
-    <button class="act-btn" onclick="meditate()">🧘 调息</button>
-    <button class="act-btn" onclick="openSettings()" title="设置" style="min-width:36px;padding:7px 8px;">⚙️</button>
-</div>
-
-<!-- 对话框 -->
-<div id="dialog-box">
-    <div style="display:flex;align-items:flex-start;gap:12px;">
-        <canvas class="pixel-canvas pixel-sm" id="dialog-canvas" width="64" height="80"></canvas>
-        <div style="flex:1;">
-            <div id="dialog-speaker"></div>
-            <div id="dialog-text"></div>
-            <div id="dialog-choices"></div>
-        </div>
-    </div>
-</div>
-
-<!-- 战斗面板 -->
-<div id="battle-panel">
-    <div id="battle-scene">
-        <div class="battle-row">
-            <div class="battle-char">
-                <canvas class="pixel-canvas pixel-md" id="battle-player-canvas" width="100" height="120"></canvas>
-                <div class="battle-name">少侠</div>
-                <div class="battle-nums">气血: <span id="bp-hp">100</span>/<span id="bp-maxhp">100</span></div>
-                <div class="battle-nums" style="color:#5b9bd5;">内力: <span id="bp-mp">30</span>/<span id="bp-maxmp">30</span></div>
-                <div class="battle-hp-bar"><div class="battle-hp-fill hp-player" id="bp-hpbar"></div></div>
-                <div class="battle-hp-bar" style="margin-top:3px;"><div class="battle-hp-fill" style="background:linear-gradient(90deg,#5b9bd5,#2e75b6);" id="bp-mpbar"></div></div>
-            </div>
-            <div id="battle-vs">⚔️</div>
-            <div class="battle-char">
-                <canvas class="pixel-canvas pixel-md" id="battle-enemy-canvas" width="100" height="120"></canvas>
-                <div class="battle-name" id="be-name"></div>
-                <div class="battle-nums">气血: <span id="be-hp">0</span>/<span id="be-maxhp">0</span></div>
-                <div class="battle-hp-bar"><div class="battle-hp-fill hp-enemy" id="be-hpbar"></div></div>
-            </div>
-        </div>
-        <div id="battle-log">狭路相逢！</div>
-        <div id="battle-actions">
-            <button class="bact-btn atk" onclick="battleAction('atk')">⚔️ 出战</button>
-            <button class="bact-btn skill" onclick="battleAction('skill')">🗡️ 霸王枪</button>
-            <button class="bact-btn item" onclick="battleAction('item')">🎒 行囊</button>
-            <button class="bact-btn flee" onclick="battleAction('flee')">💨 策马撤离</button>
-        </div>
-    </div>
-</div>
-
-<!-- 弹窗 -->
-<div class="modal" id="modal">
-    <div class="modal-box">
-        <h2 id="modal-title"></h2>
-        <p id="modal-text"></p>
-        <button class="modal-btn" onclick="closeModal()">确定</button>
-    </div>
-</div>
-
-<!-- 设置面板 -->
-<div class="modal" id="settings-modal">
-    <div class="modal-box">
-        <h2>⚙️ 设置</h2>
-        <div class="setting-row">
-            <span class="set-label">🔊 音效</span>
-            <input type="range" id="sfx-vol-slider" min="0" max="100" value="70" oninput="setSfxVol(this.value/100)">
-            <span class="set-val" id="sfx-vol-label">70</span>
-        </div>
-        <div class="setting-row">
-            <span class="set-label">🎵 音乐</span>
-            <input type="range" id="music-vol-slider" min="0" max="100" value="30" oninput="setMusicVol(this.value/100)">
-            <span class="set-val" id="music-vol-label">30</span>
-        </div>
-        <button class="modal-btn" onclick="saveGame();closeSettings()" style="margin-bottom:8px;">💾 存档进度</button>
-        <button class="modal-btn" onclick="closeSettings()">关闭</button>
-    </div>
-</div>
-
-<!-- 背包面板 -->
-<div class="modal" id="backpack-modal">
-    <div class="modal-box">
-        <div class="bp-header">
-            <h2>🎒 行囊</h2>
-            <span class="bp-gold">💰 <span id="bp-gold">50</span></span>
-        </div>
-        <div class="bp-grid" id="bp-grid"></div>
-        <div class="bp-detail" id="bp-detail"><span class="empty-hint">点击道具查看详情</span></div>
-        <div class="bp-actions">
-            <button class="bp-btn use" id="bp-btn-use" onclick="useBagItem()" disabled>使用</button>
-            <button class="bp-btn discard" id="bp-btn-discard" onclick="discardBagItem()" disabled>丢弃</button>
-            <button class="bp-btn close" onclick="closeBackpack()">关闭</button>
-        </div>
-    </div>
-</div>
-
-</div>
-
 <script>
-// ==================== 外部背景音乐 ====================
-var BGM_AUDIO = null;
-var BGM_USE_EXTERNAL = false;
-var BGM_URL = 'assets/bgm.mp3'; // 可替换为任何mp3文件路径/URL
-
-function bgmInit(){
-    if(BGM_AUDIO) return;
-    BGM_AUDIO = document.createElement('audio');
-    BGM_AUDIO.loop = true;
-    BGM_AUDIO.volume = SND.musicVol;
-    BGM_AUDIO.preload = 'auto';
-    BGM_AUDIO.src = BGM_URL;
-    document.body.appendChild(BGM_AUDIO);
-    // 尝试加载，成功则用外部BGM
-    BGM_AUDIO.addEventListener('canplaythrough',function(){
-        BGM_USE_EXTERNAL = true;
-    },{once:true});
-    BGM_AUDIO.addEventListener('error',function(){
-        BGM_USE_EXTERNAL = false;
-    },{once:true});
-    BGM_AUDIO.load();
-}
-
-function bgmPlay(){
-    if(!BGM_AUDIO) bgmInit();
-    if(BGM_AUDIO && BGM_USE_EXTERNAL){
-        BGM_AUDIO.volume = SND.musicVol;
-        var p = BGM_AUDIO.play();
-        if(p && p.catch) p.catch(function(){BGM_USE_EXTERNAL=false;});
-    }
-}
-
-function bgmStop(){
-    if(BGM_AUDIO){
-        BGM_AUDIO.pause();
-        BGM_AUDIO.currentTime = 0;
-    }
-}
-
-function bgmSetVol(v){
-    if(BGM_AUDIO) BGM_AUDIO.volume = v;
-}
-
-// ==================== 音效系统 (Web Audio API) ====================
-var SND = {ctx:null, sfxGain:null, musicGain:null, sfxVol:0.7, musicVol:0.3};
-function sndInit(){
-    if(!SND.ctx)try{
-        SND.ctx=new(window.AudioContext||window.webkitAudioContext)();
-        SND.sfxGain=SND.ctx.createGain();
-        SND.sfxGain.gain.value=SND.sfxVol;
-        SND.sfxGain.connect(SND.ctx.destination);
-        SND.musicGain=SND.ctx.createGain();
-        SND.musicGain.gain.value=SND.musicVol;
-        SND.musicGain.connect(SND.ctx.destination);
-        loadSettings();
-    }catch(e){}
-}
-function sndTone(f,t,d,v,s){
-    if(!SND.ctx)return;var c=SND.ctx,tm=c.currentTime;
-    var o=c.createOscillator(),g=c.createGain();
-    o.type=t||'sine';o.frequency.setValueAtTime(f,tm);
-    if(s)o.frequency.exponentialRampToValueAtTime(f*s,tm+d);
-    g.gain.setValueAtTime(v||0.12,tm);g.gain.exponentialRampToValueAtTime(0.001,tm+d);
-    o.connect(g);g.connect(SND.sfxGain);o.start(tm);o.stop(tm+d);
-}
-function sndNoise(d,v,ff,q){
-    if(!SND.ctx)return;var c=SND.ctx,tm=c.currentTime;
-    var sr=c.sampleRate,len=Math.floor(sr*d);
-    var b=c.createBuffer(1,len,sr),a=b.getChannelData(0);
-    for(var i=0;i<len;i++)a[i]=Math.random()*2-1;
-    var s=c.createBufferSource();s.buffer=b;
-    var g=c.createGain();
-    g.gain.setValueAtTime(v||0.06,tm);g.gain.exponentialRampToValueAtTime(0.001,tm+d);
-    var f=c.createBiquadFilter();f.type=ff?'bandpass':'highpass';f.frequency.value=ff||2500;f.Q.value=q||0.8;
-    s.connect(f);f.connect(g);g.connect(SND.sfxGain);s.start(tm);
-}
-function sndRing(f1,f2,d,v){
-    if(!SND.ctx)return;var c=SND.ctx,tm=c.currentTime;
-    for(var i=0;i<2;i++){var o=c.createOscillator(),g=c.createGain();
-        o.type='sawtooth';o.frequency.setValueAtTime(i?f1:f2,tm);
-        g.gain.setValueAtTime(v,tm);g.gain.exponentialRampToValueAtTime(0.001,tm+d);
-        o.connect(g);g.connect(SND.sfxGain);o.start(tm);o.stop(tm+d);
-    }
-}
-// 频率扫掠 — 剑出鞘蜂鸣
-function sndSweep(ff,ft,d,v,tp){
-    if(!SND.ctx)return;var c=SND.ctx,tm=c.currentTime;
-    var o=c.createOscillator(),g=c.createGain();
-    o.type=tp||'sawtooth';
-    o.frequency.setValueAtTime(ff,tm);
-    o.frequency.exponentialRampToValueAtTime(ft,tm+d*0.75);
-    g.gain.setValueAtTime(v,tm);
-    g.gain.exponentialRampToValueAtTime(0.001,tm+d);
-    o.connect(g);g.connect(SND.sfxGain);
-    o.start(tm);o.stop(tm+d+0.02);
-}
-
-// ⚔️ 普攻 — 铁器碰撞 + 金属回响
-function sfxSword(){
-    var dt=0.04; // 微量延迟让各层不重叠
-    // 1. 剑出鞘蜂鸣 "铮——" (快速频率扫掠 400→6000Hz)
-    sndSweep(400,6000,0.055,0.09,'sawtooth');
-    // 2. 清脆金属撞击 — 高频双频嗡鸣 (模拟刀锋碰撞)
-    setTimeout(function(){
-        sndNoise(0.04,0.06,5500,0.2);
-        sndRing(4200,4360,0.1,0.07);
-    },15);
-    // 3. 余音震颤 — 长衰减正弦 + 微颤 (模拟剑身震动)
-    setTimeout(function(){
-        if(!SND.ctx)return;var c=SND.ctx,tm=c.currentTime;
-        var o=c.createOscillator(),g=c.createGain();
-        o.type='sine';o.frequency.setValueAtTime(3200,tm);
-        // 轻微频率颤音
-        o.frequency.setValueAtTime(3200,tm);
-        o.frequency.linearRampToValueAtTime(3180,tm+0.15);
-        o.frequency.linearRampToValueAtTime(3210,tm+0.30);
-        g.gain.setValueAtTime(0.05,tm);
-        g.gain.exponentialRampToValueAtTime(0.001,tm+0.35);
-        o.connect(g);g.connect(SND.sfxGain);
-        o.start(tm);o.stop(tm+0.4);
-    },30);
-    // 4. 空气振荡 — 低沉气流
-    setTimeout(function(){sndNoise(0.05,0.025,300,0.8);},25);
-}
-
-// 💥 会心一击 — 加强版：更响出鞘 + 更重撞击 + 双频余音 + 碎裂感
-function sfxCrit(){
-    sndSweep(300,7000,0.06,0.12,'sawtooth');
-    setTimeout(function(){
-        sndNoise(0.06,0.09,6000,0.18);
-        sndRing(4800,4980,0.22,0.1);
-    },10);
-    setTimeout(function(){
-        sndRing(8000,8260,0.16,0.06);
-        sndTone(1400,'sawtooth',0.05,0.05);
-    },25);
-    setTimeout(function(){
-        if(!SND.ctx)return;var c=SND.ctx,tm=c.currentTime;
-        var o=c.createOscillator(),g=c.createGain();
-        o.type='sine';o.frequency.setValueAtTime(3600,tm);
-        o.frequency.linearRampToValueAtTime(3570,tm+0.2);
-        o.frequency.linearRampToValueAtTime(3620,tm+0.4);
-        g.gain.setValueAtTime(0.07,tm);
-        g.gain.exponentialRampToValueAtTime(0.001,tm+0.5);
-        o.connect(g);g.connect(SND.sfxGain);
-        o.start(tm);o.stop(tm+0.55);
-    },35);
-    setTimeout(function(){sndNoise(0.07,0.03,200,1.0);sndTone(80,'triangle',0.18,0.04);},40);
-}
-
-// 🗡️ 霸王枪·单次突刺音效 (多次调用)
-// 霸王枪·单次突刺（立即播放，无延迟，由doHit同步调用）
-function sfxSlash(){
-    sndSweep(600,4800,0.04,0.07,'sawtooth');
-    sndNoise(0.03,0.05,5000,0.22);
-    sndRing(3600,3740,0.09,0.06);
-    sndTone(2800,'sine',0.12,0.04);
-}
-// 霸王枪·起手蓄力呼啸
-function sfxSkill(){
-    sndSweep(120,800,0.3,0.07,'triangle');
-    sndNoise(0.35,0.05,500,0.8);
-}
-
-function sfxHit(){
-    sndTone(50,'sine',0.28,0.08);
-    sndNoise(0.05,0.03,200,0.7);
-    sndTone(100,'triangle',0.12,0.03);
-}
-function sfxVictory(){
-    var ns=[523,659,784,1047];
-    for(var i=0;i<ns.length;i++){
-        setTimeout((function(ff,ii){return function(){
-            sndTone(ff,'triangle',0.22,0.08);
-            if(ii===3)setTimeout(function(){sndTone(ff*2,'sine',0.3,0.06);},50);
-        };})(ns[i],i),i*140);
-    }
-}
-function sfxDefeat(){
-    sndTone(300,'triangle',0.4,0.08);
-    setTimeout(function(){sndTone(220,'triangle',0.45,0.1);},200);
-    setTimeout(function(){sndTone(130,'triangle',0.55,0.12);},420);
-    setTimeout(function(){sndTone(80,'sine',0.6,0.1);},600);
-}
-function sfxCoin(){sndTone(1400,'sine',0.08,0.06);setTimeout(function(){sndTone(1800,'sine',0.06,0.04);},60);}
-function sfxLevelUp(){
-    var ns=[392,523,659,784,1047,1318];
-    for(var i=0;i<ns.length;i++){setTimeout((function(ff){return function(){sndTone(ff,'triangle',0.16,0.06);};})(ns[i]),i*110);}
-}
-function sfxHeal(){
-    sndTone(440,'sine',0.5,0.04,1.4);
-    setTimeout(function(){sndTone(554,'sine',0.35,0.03);},200);
-    sndNoise(0.15,0.015,600,0.5);
-}
-function sfxFlee(){
-    sndNoise(0.35,0.04,1800,0.5);
-    sndTone(260,'triangle',0.3,0.03,4.5);
-    sndTone(180,'sine',0.25,0.02,3.0);
-}
-function sfxClick(){sndTone(900,'sine',0.02,0.015);}
-function sfxQuest(){
-    sndTone(523,'triangle',0.12,0.05);
-    setTimeout(function(){sndTone(659,'triangle',0.12,0.05);},100);
-    setTimeout(function(){sndTone(784,'triangle',0.16,0.06);},200);
-}
-function sfxStart(){sndTone(150,'triangle',0.35,0.06,5);sndNoise(0.25,0.03,800,0.6);}
-
-// ==================== 背景音乐 — 箫声沧海 ====================
-var MUSIC = {playing:false, noteIdx:0, timer:null, drones:[], curFreq:0};
-// 五声音阶 宫商角徵羽 C D E G A (三层)
-var PENTA = [[131,147,165,196,220],[262,294,330,392,440],[523,587,659,784,880]];
-// 沧海一声笑风格旋律 [八度, 音位, 时值(拍)]
-var MELODY = [
-    [1,2,2],[1,1,2],[1,0,3],[0,4,3],[0,3,2],[1,2,2],[1,1,2],[1,0,4],[0,4,2],
-    [1,2,2],[1,1,2],[1,0,3],[0,4,2],[0,3,1],[0,4,2],[1,0,3],[1,1,4],
-    [1,0,2],[1,1,2],[1,2,2],[1,3,3],[1,4,3],[2,0,5],
-    [1,3,2],[1,2,2],[1,1,2],[1,0,3],[0,4,3],[0,3,4],
-    [0,3,2],[0,4,2],[1,0,2],[1,1,2],[1,2,3],[1,0,3],[1,1,4],
-    [1,2,3],[1,1,2],[1,0,2],[0,4,3],[0,3,2],[1,0,3],[1,0,6]
-];
-var BGM_BPM = 42, BGM_BEAT = 60000/BGM_BPM;
-
-function musicPlayNote(){
-    if(!SND.ctx||!MUSIC.playing) return;
-    var idx = MUSIC.noteIdx % MELODY.length;
-    var m = MELODY[idx];
-    var freq = PENTA[m[0]][m[1]];
-    var dur = m[2] * BGM_BEAT / 1000;
-    var c = SND.ctx, tm = c.currentTime;
-    var prevFreq = MUSIC.curFreq||freq;
-    MUSIC.curFreq = freq;
-
-    // 主箫声 — triangle波模拟竹管共鸣
-    var o1 = c.createOscillator(), g1 = c.createGain();
-    o1.type = 'triangle';
-    if(idx>0&&Math.abs(freq-prevFreq)<freq*0.35){
-        o1.frequency.setValueAtTime(prevFreq, tm);
-        o1.frequency.exponentialRampToValueAtTime(freq, tm+0.12);
-    } else { o1.frequency.setValueAtTime(freq, tm); }
-    g1.gain.setValueAtTime(0, tm);
-    g1.gain.linearRampToValueAtTime(0.09, tm+0.1);
-    g1.gain.setValueAtTime(0.09, tm+dur*0.55);
-    g1.gain.exponentialRampToValueAtTime(0.001, tm+dur*0.95);
-    o1.connect(g1); g1.connect(SND.musicGain);
-    o1.start(tm); o1.stop(tm+dur+0.15);
-
-    // 泛音 — sine高八度增加清澈感
-    var o2 = c.createOscillator(), g2 = c.createGain();
-    o2.type = 'sine';
-    o2.frequency.setValueAtTime(freq*2, tm);
-    g2.gain.setValueAtTime(0, tm);
-    g2.gain.linearRampToValueAtTime(0.03, tm+0.15);
-    g2.gain.exponentialRampToValueAtTime(0.001, tm+dur*0.7);
-    o2.connect(g2); g2.connect(SND.musicGain);
-    o2.start(tm); o2.stop(tm+dur*0.7+0.1);
-
-    // 气声 — 模拟吹奏的呼吸噪音
-    var sr = c.sampleRate;
-    var noiseLen = Math.floor(sr * dur * 0.45);
-    var nb = c.createBuffer(1, noiseLen, sr);
-    var nd = nb.getChannelData(0);
-    for(var i=0;i<noiseLen;i++) nd[i] = Math.random()*2-1;
-    var ns = c.createBufferSource(); ns.buffer = nb;
-    var ng = c.createGain();
-    ng.gain.setValueAtTime(0, tm);
-    ng.gain.linearRampToValueAtTime(0.012, tm+0.08);
-    ng.gain.exponentialRampToValueAtTime(0.001, tm+dur*0.45);
-    var nf = c.createBiquadFilter();
-    nf.type = 'bandpass';
-    nf.frequency.setValueAtTime(freq*5, tm);
-    nf.Q.value = 1.2;
-    ns.connect(nf); nf.connect(ng); ng.connect(SND.musicGain);
-    ns.start(tm);
-
-    // 余音混响 — 延迟淡出模拟山谷回响
-    if(dur > 1.2){
-        var o3 = c.createOscillator(), g3 = c.createGain();
-        o3.type = 'sine';
-        o3.frequency.setValueAtTime(freq*0.5, tm+dur*0.6);
-        g3.gain.setValueAtTime(0, tm+dur*0.6);
-        g3.gain.linearRampToValueAtTime(0.025, tm+dur*0.7);
-        g3.gain.exponentialRampToValueAtTime(0.001, tm+dur*1.1);
-        o3.connect(g3); g3.connect(SND.musicGain);
-        o3.start(tm+dur*0.6); o3.stop(tm+dur*1.2);
-    }
-
-    MUSIC.noteIdx++;
-    var nextDelay = m[2] * BGM_BEAT;
-    // 在长音末尾稍有停顿，增加苍凉感
-    if(m[2] >= 5) nextDelay += 150;
-    MUSIC.timer = setTimeout(musicPlayNote, nextDelay);
-}
-
-function startMusic(){
-    if(MUSIC.playing) return;
-    // 先尝试外部BGM
-    sndInit();
-    bgmInit();
-    // 给外部BGM一点时间判断是否可用
-    setTimeout(function(){
-        if(BGM_USE_EXTERNAL && BGM_AUDIO){
-            MUSIC.playing = true;
-            bgmPlay();
-        }else{
-            // 回落合成音乐
-            if(!SND.ctx){ sndInit(); if(!SND.ctx) return; }
-            MUSIC.playing = true; MUSIC.noteIdx = 0;
-            var c = SND.ctx;
-            MUSIC.drones=[];
-            var droneFreqs = [32.7, 65.4, 98];
-            for(var i=0;i<3;i++){
-                var o=c.createOscillator(), g=c.createGain();
-                o.type=i===0?'sine':'triangle';
-                o.frequency.setValueAtTime(droneFreqs[i],c.currentTime);
-                g.gain.setValueAtTime(i===0?0.016:i===1?0.012:0.008, c.currentTime);
-                o.connect(g); g.connect(SND.musicGain);
-                o.start(); MUSIC.drones.push({osc:o,gain:g});
-            }
-            musicPlayNote();
-        }
-    }, 800);
-}
-
-function stopMusic(){
-    MUSIC.playing = false; MUSIC.curFreq = 0;
-    if(MUSIC.timer){ clearTimeout(MUSIC.timer); MUSIC.timer = null; }
-    if(MUSIC.drones){
-        for(var i=0;i<MUSIC.drones.length;i++){
-            try{MUSIC.drones[i].osc.stop()}catch(e){}
-            MUSIC.drones[i].gain.disconnect();
-        }
-        MUSIC.drones=[];
-    }
-    bgmStop();
-}
-
-function setSfxVol(v){
-    SND.sfxVol = Math.max(0, Math.min(1, v));
-    if(SND.sfxGain) SND.sfxGain.gain.value = SND.sfxVol;
-    var lbl = document.getElementById('sfx-vol-label'); if(lbl) lbl.textContent = Math.round(SND.sfxVol*100);
-    saveSettings();
-}
-function setMusicVol(v){
-    SND.musicVol = Math.max(0, Math.min(1, v));
-    if(SND.musicGain) SND.musicGain.gain.value = SND.musicVol;
-    bgmSetVol(SND.musicVol);
-    var lbl = document.getElementById('music-vol-label'); if(lbl) lbl.textContent = Math.round(SND.musicVol*100);
-    saveSettings();
-}
-function openSettings(){
-    sndInit();
-    document.getElementById('sfx-vol-slider').value = Math.round(SND.sfxVol*100);
-    document.getElementById('music-vol-slider').value = Math.round(SND.musicVol*100);
-    var sl = document.getElementById('sfx-vol-label'); if(sl) sl.textContent = Math.round(SND.sfxVol*100);
-    var ml = document.getElementById('music-vol-label'); if(ml) ml.textContent = Math.round(SND.musicVol*100);
-    document.getElementById('settings-modal').classList.add('show');
-}
-function closeSettings(){
-    document.getElementById('settings-modal').classList.remove('show');
-}
-function saveSettings(){
-    try{ localStorage.setItem('wuxia_settings', JSON.stringify({sfxVol:SND.sfxVol, musicVol:SND.musicVol})); }catch(e){}
-}
-function loadSettings(){
-    try{
-        var raw = localStorage.getItem('wuxia_settings');
-        if(raw){
-            var s = JSON.parse(raw);
-            if(s.sfxVol != null) SND.sfxVol = s.sfxVol;
-            if(s.musicVol != null) SND.musicVol = s.musicVol;
-        }
-    }catch(e){}
-}
-
-// ==================== 道具数据库 ====================
-var ITEM_DB = {
-    potion:      {id:'potion',     name:'行军散',  desc:'恢复35点气血',         type:'heal',  icon:'💊', price:10,  rarity:1, effect:{hp:35}},
-    superPotion: {id:'superPotion',name:'五石散',  desc:'恢复全部气血',         type:'heal',  icon:'🧪', price:50,  rarity:2, effect:{hp:'full'}},
-    atkElixir:   {id:'atkElixir',  name:'温侯酒',  desc:'临时攻击+15（5回合）', type:'buff',  icon:'💪', price:30,  rarity:1, effect:{atk:15, dur:5}},
-    defElixir:   {id:'defElixir',  name:'藤甲符',  desc:'临时防御+10（5回合）', type:'buff',  icon:'🛡️', price:30,  rarity:1, effect:{def:10, dur:5}},
-    goldBag:     {id:'goldBag',    name:'五铢钱袋',desc:'获得50枚五铢钱',       type:'gold',  icon:'💰', price:0,   rarity:1, effect:{gold:50}},
-    mpElixir:    {id:'mpElixir',   name:'回气散',  desc:'恢复20点内力',         type:'mp',    icon:'💠', price:25,  rarity:1, effect:{mp:20}}
+window.onerror=function(msg,url,line,col,err){
+  var pre=document.createElement('pre');
+  pre.style.cssText='position:fixed;inset:0;z-index:9999;padding:24px;background:#fff;color:#c00;white-space:pre-wrap;font-size:13px;line-height:1.6;overflow:auto;';
+  pre.textContent='JS ERROR\n'+msg+'\n'+url+':'+line+':'+col+'\n'+(err&&err.stack?err.stack:'');
+  document.body.innerHTML=''; document.body.appendChild(pre);
 };
+</script>
+<div id="ink-bg">
+  <svg viewBox="0 0 560 260" preserveAspectRatio="none">
+    <path d="M0,260 L0,170 C70,120 120,150 180,110 C240,70 300,130 360,95 C430,55 500,120 560,90 L560,260 Z" fill="#3a3228"/>
+    <path d="M0,260 L0,205 C90,175 150,200 220,170 C300,135 360,185 430,160 C500,135 540,175 560,165 L560,260 Z" fill="#5a4f40"/>
+  </svg>
+</div>
 
-// 将旧格式{potion:3,superPotion:2}迁移为新格式[{id,count}]
-function migrateItems(oldItems){
-    var list = [];
-    if(!oldItems) return list;
-    if(Array.isArray(oldItems)) return oldItems;
-    // 旧格式键值对 → 新格式
-    for(var k in ITEM_DB){
-        if(oldItems[k] && oldItems[k] > 0){
-            list.push({id:k, count:oldItems[k]});
-        }
+<div id="app">
+  <header id="status"></header>
+  <main id="scene"><div id="narr"></div></main>
+  <section id="actions"></section>
+  <nav id="dock">
+    <button data-modal="pack"><span class="ic">🎒</span>行囊</button>
+    <button data-modal="quest"><span class="ic">📜</span>任务</button>
+    <button data-modal="map"><span class="ic">🗺️</span>山河</button>
+    <button data-modal="more"><span class="ic">☰</span>更多</button>
+  </nav>
+</div>
+
+<div id="modal" class="hidden"><div class="card" id="modal-card"></div></div>
+<div id="toast"></div>
+
+<script src="shared/config/constants.js"></script>
+<script src="shared/config/balance.js"></script>
+<script src="shared/story/sects.js"></script>
+<script src="shared/story/skills.js"></script>
+<script src="shared/story/events.js"></script>
+<script src="shared/story/dialogues.js"></script>
+<script src="shared/story/rooms.js"></script>
+<script src="shared/index.js"></script>
+<script>
+(function(){
+  try{
+  var G = window.LF.SharedGame;
+  var KEY='lf_save_v1';
+  var SHICHEN=['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'];
+
+  function load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
+  function save(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
+  function clearSave(){try{localStorage.removeItem(KEY);}catch(e){}}
+  // 旧存档缺字段则补默认，保证兼容
+  function normalize(s){
+    var def=G.defaultSave();
+    for(var k in def){ if(s[k]===undefined) s[k]=def[k]; }
+    if(s.time==null) s.time=0;
+    return s;
+  }
+
+  var state = normalize(load() || G.defaultSave());
+  if(!state.sect || !G.SECTS[state.sect]){ state=G.defaultSave(); }
+  G.applySect(state);
+
+  var $status=document.getElementById('status');
+  var $narr=document.getElementById('narr');
+  var $actions=document.getElementById('actions');
+  var $modal=document.getElementById('modal');
+  var $card=document.getElementById('modal-card');
+  var $toast=document.getElementById('toast');
+
+  function curRoom(){ return G.ROOMS[state.room] || G.ROOMS.camp; }
+
+  // ===== 文字叙事窗 =====
+  function log(text, cls, name){
+    var p=document.createElement('p');
+    p.className='narr '+(cls||'env');
+    if(cls==='npc' && name){
+      var s=document.createElement('span'); s.className='nm'; s.textContent=name+'：';
+      p.appendChild(s); p.appendChild(document.createTextNode(text));
+    } else { p.textContent=text; }
+    $narr.appendChild(p);
+    var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
+  }
+
+  // ===== 状态栏（两行：身份 + 数值条） =====
+  function karmaLabel(){
+    if(state.karma>0) return '侠义'+state.karma;
+    if(state.karma<0) return '凶名'+(-state.karma);
+    return '中立';
+  }
+  function bar(label,cur,max,cls){
+    var pct=Math.max(0,Math.min(100, max?cur/max*100:0));
+    return '<div class="bar"><span>'+label+'</span><i class="'+cls+'"><b style="width:'+pct+'%"></b></i><em>'+cur+'/'+max+'</em></div>';
+  }
+  function renderStatus(){
+    var sect=G.SECTS[state.sect]?G.SECTS[state.sect].name:state.sect;
+    var sh=SHICHEN[state.time%12];
+    var ka = karmaLabel();
+    $status.innerHTML=
+      '<div class="st-top">'+
+        '<span class="who">'+state.name+'</span>'+
+        '<span class="dot">·</span><span>'+sect+'</span>'+
+        '<span class="dot">·</span><span>LV.'+state.level+'</span>'+
+        '<span class="dot">·</span><span class="sh">'+sh+'</span>'+
+        '<span class="dot">·</span><span class="ka">'+ka+'</span>'+
+      '</div>'+
+      '<div class="st-bars">'+
+        bar('气血',state.hp,state.maxHp,'s-hp')+
+        bar('内力',state.mp,state.maxMp,'s-mp')+
+        bar('精力',state.energy,state.maxEnergy,'s-en')+
+        '<div class="txt"><span>食 '+state.food+'</span><span>水 '+state.drink+'</span>'+
+          '<span class="jade">潜 '+state.pot+'</span><span class="gold">银 '+state.gold+'</span></div>'+
+      '</div>';
+  }
+
+  // ===== 升级 / 效果结算 =====
+  function addXp(n){
+    state.exp+=n;
+    while(state.exp>=G.BALANCE.expNeed(state.level) && state.level<G.CONSTANTS.MAX_LEVEL){
+      state.exp-=G.BALANCE.expNeed(state.level); state.level++;
+      state.maxHp+=10;state.maxMp+=5;state.atk+=2;state.def+=1;
+      state.hp=state.maxHp;state.mp=state.maxMp;
+      log('【破境】你已至 LV.'+state.level+'！气血内力尽复，实力大涨。','good');
     }
-    // 保留未知道具
-    for(var k in oldItems){
-        if(!ITEM_DB[k]) list.push({id:k, count:oldItems[k]});
+  }
+  function applyEffect(e){
+    e=e||{}; var got=[];
+    if(e.xp){addXp(e.xp);got.push('修为+'+e.xp);}
+    if(e.gold){state.gold=Math.max(0,state.gold+e.gold);got.push('银两'+(e.gold>0?'+':'')+e.gold);}
+    if(e.atk){state.atk+=e.atk;got.push('攻+'+e.atk);}
+    if(e.def){state.def+=e.def;got.push('防+'+e.def);}
+    if(e.maxMp){state.maxMp+=e.maxMp;state.mp+=e.maxMp;got.push('内力上限+'+e.maxMp);}
+    if(e.mp==='full'){state.mp=state.maxMp;} else if(e.mp){state.mp=Math.min(state.maxMp,state.mp+e.mp);}
+    if(e.hp==='full'){state.hp=state.maxHp;got.push('气血尽复');} else if(e.hp){state.hp=Math.min(state.maxHp,state.hp+e.hp);got.push('气血+'+e.hp);}
+    if(e.flag)state.flags[e.flag]=true;
+    if(got.length) log('【收获】'+got.join('，')+'。','good');
+  }
+  function findEvent(id){ for(var i=0;i<G.EVENTS.length;i++) if(G.EVENTS[i].id===id) return G.EVENTS[i]; return null; }
+
+  // ===== 时间与生存消耗 =====
+  function advanceTime(n){
+    n=n||1; state.time=(state.time+n)%12;
+    state.food=Math.max(0,state.food-n);
+    state.drink=Math.max(0,state.drink-n);
+    state.energy=Math.max(0,state.energy-2*n);
+  }
+  function maybeStarve(){
+    if(state.food<=0){ log('〔饥肠辘辘〕腹中空虚，气血难以为继。','sys'); state.hp=Math.max(1,state.hp-2); }
+    if(state.drink<=0){ log('〔唇焦口渴〕喉间干涸，内力运转滞涩。','sys'); state.mp=Math.max(0,state.mp-2); }
+  }
+
+  // ===== 动态按钮区（分组菜单：对话 / 探查 / 行动 / 移动） =====
+  var lastGroup=null;
+  function clearActions(){$actions.innerHTML='';lastGroup=null;}
+  function addBtn(label, fn, cls){
+    var b=document.createElement('button');
+    b.className='act '+(cls||''); b.textContent=label;
+    b.onclick=fn; $actions.appendChild(b);
+  }
+  function addGrouped(group,label,fn,tip){
+    if(group!==lastGroup){
+      var t=document.createElement('div'); t.className='grp'; t.textContent='— '+group+' —';
+      $actions.appendChild(t); lastGroup=group;
     }
-    return list;
-}
+    var b=document.createElement('button'); b.className='act wide';
+    b.innerHTML='› '+label+(tip?'<span class="tip">'+tip+'</span>':'');
+    b.onclick=fn; $actions.appendChild(b);
+  }
 
-function getItemDef(id){ return ITEM_DB[id]; }
-function findItemIdx(id){
-    if(!player.items) return -1;
-    for(var i=0;i<player.items.length;i++){if(player.items[i].id===id) return i;}
-    return -1;
-}
-function getItemCount(id){
-    var idx = findItemIdx(id);
-    return idx>=0 ? player.items[idx].count : 0;
-}
-function addItem(id, count){
-    if(!player.items) player.items = [];
-    count = count || 1;
-    var idx = findItemIdx(id);
-    if(idx >= 0){
-        player.items[idx].count = Math.min(99, player.items[idx].count + count);
-    } else {
-        player.items.push({id:id, count:Math.min(99, count)});
+  // ===== 房间渲染 =====
+  function renderRoom(rid, silent){
+    var room=G.ROOMS[rid]; if(!room) return;
+    state.room=rid;
+    if(!silent){
+      log('〔'+room.name+'〕','title');
+      room.desc.forEach(function(d){ log(d,'env'); });
     }
-}
-function removeItem(id, count){
-    count = count || 1;
-    var idx = findItemIdx(id);
-    if(idx < 0) return false;
-    player.items[idx].count -= count;
-    if(player.items[idx].count <= 0){
-        player.items.splice(idx, 1);
+    if(room.npcs && room.npcs.length){
+      log('〔此处人物〕','sys');
+      room.npcs.forEach(function(k){
+        var n=G.DIALOGUES.npcs[k];
+        if(n) log(n.lines[0].slice(0,20)+'…','npc', n.name);
+      });
     }
-    return true;
-}
-function getTotalItems(){
-    var n = 0;
-    if(!player.items) return 0;
-    for(var i=0;i<player.items.length;i++) n += player.items[i].count;
-    return n;
-}
-
-// ==================== 游戏数据 ====================
-var TILE = 40;
-var MAP_W = 20, MAP_H = 14;
-
-var tileStyle = {
-    G:{cls:'tile-grass',name:'荒地'},
-    F:{cls:'tile-forest',name:'密林'},
-    P:{cls:'tile-path',name:'驿道'},
-    W:{cls:'tile-wall',name:'山崖'},
-    H:{cls:'tile-house',name:'民居'},
-    V:{cls:'tile-cave',name:'山洞'},
-    D:{cls:'tile-dungeon',name:'西凉大营'},
-    S:{cls:'tile-shop',name:'集市'},
-    A:{cls:'tile-altar',name:'练兵场'},
-    C:{cls:'tile-water',name:'河流'},
-    B:{cls:'tile-bridge',name:'木桥'},
-    T:{cls:'tile-temple',name:'道观'},
-    R:{cls:'tile-sand',name:'沙地'}
-};
-
-// 所有地图数据
-var allMaps = {
-    // ========== 主地图：颍川 ==========
-    main:{
-        name:'颍川',
-        data:[
-            ['W','W','W','W','G','F','T','T','G','G','F','F','F','W','W','W','G','G','G','W'],
-            ['W','W','G','G','G','F','G','G','G','G','F','F','G','G','W','G','G','G','F','G'],
-            ['G','G','C','C','P','B','P','P','P','G','G','G','G','G','G','G','F','F','G','G'],
-            ['G','C','C','P','P','G','P','P','G','H','H','S','S','G','G','G','G','F','G','G'],
-            ['F','F','B','G','G','G','P','G','G','H','H','S','S','G','G','G','G','G','V','G'],
-            ['F','F','G','G','G','G','P','P','P','G','G','G','G','A','A','G','G','V','V','G'],
-            ['G','G','G','G','V','G','G','G','P','P','G','G','F','A','A','G','G','G','G','G'],
-            ['G','G','G','V','V','G','G','G','P','G','G','G','F','F','G','G','G','G','G','G'],
-            ['G','G','G','G','G','G','G','G','P','P','G','G','F','F','G','G','G','V','G','G'],
-            ['G','G','F','F','G','G','G','G','G','P','P','G','G','G','G','G','V','V','G','G'],
-            ['G','G','F','F','G','G','G','G','G','G','P','P','G','G','G','G','G','G','G','G'],
-            ['G','G','G','G','G','G','G','V','G','G','G','P','P','G','G','F','F','G','G','W'],
-            ['G','G','G','G','G','G','G','V','V','G','G','G','P','P','G','F','F','G','W','W'],
-            ['G','G','D','D','D','D','D','D','D','G','G','G','P','G','G','G','G','W','W','W']
-        ],
-        connections:{north:'north',south:'south',east:'east',west:'west'},
-        npcs:[
-            {id:'master',x:10,y:3,name:'县尉韩伯',color:{skin:'#fce5d8',hair:'#555',cloth:'#4a3728'},
-                dialogs:[
-                    {s:'壮士留步！',t:'黄巾余孽肆虐乡里，颍川百姓苦不堪言……壮士可愿为民除害？'},
-                    {q:'quest_1',s:'黄巾贼盘踞山林，劫掠村庄',t:'若能剿灭五伙黄巾贼，县衙必有重赏。',t2:'壮士真乃当世豪杰！这是县衙备下的赏金。'},
-                    {s:'黄巾贼剿得如何了？',t:'五伙贼寇，一伙不可少！\n斩草除根，保境安民，老夫在此静候佳音。'},
-                    {s:'壮士为颍川除一大害，百姓无不感激！',t:'然而西凉溃兵流窜至此，四处烧杀。壮士可愿再助一臂之力？'},
-                    {q:'quest_2',s:'西凉溃兵，残暴不仁',t:'击溃三股溃兵，护我百姓！',t2:'溃兵已除，颍川重归安宁！这是赏金。'},
-                    {s:'溃兵可曾肃清？',t:'三股溃兵横行无忌。\n除恶务尽，一个都不可放过！'}
-                ]},
-            {id:'doctor',x:11,y:3,name:'医馆华老',color:{skin:'#fce5d8',hair:'#999',cloth:'#7b6b5a'},
-                dialogs:[
-                    {s:'壮士请进！老夫游方至此，略通医术',t:'行军打仗，伤药不可少。行军散10枚五铢钱一包，可要备上？',buy:true}
-                ]},
-            {id:'escort',x:11,y:11,name:'义军校尉',color:{skin:'#deb887',hair:'#333',cloth:'#7b1f1f'},
-                dialogs:[
-                    {s:'前方就是西凉军大营！',t:'董卓已死，然其部将华雄仍在作乱。壮士此去凶险万分！'},
-                    {q:'quest_3',s:'华雄盘踞于此，残害忠良！',t:'若壮士能斩杀华雄，便是天下义士，我关东联军必有重谢！',t2:'天呐！华雄被斩了！壮士真乃万人敌！请受我关东联军一拜！'}
-                ]},
-            {id:'monk',x:6,y:0,name:'方士左慈',color:{skin:'#fce5d8',hair:'#fff',cloth:'#5d6570'},
-                dialogs:[
-                    {s:'贫道夜观天象……天下将乱矣。',t:'壮士若是疲惫，可在此歇息。贫道为你行气导引，可恢复气血内力。',heal:true}
-                ]},
-            {id:'hermit',x:17,y:2,name:'水镜先生',color:{skin:'#c8a882',hair:'#ccc',cloth:'#2e5d32'},
-                dialogs:[
-                    {s:'卧龙、凤雏，得一可安天下……',t:'壮士器宇不凡，老夫赠你一言——顺势而为，可成大事。',t2:'你顿觉心神澄明！(内力上限+20)',buff:{mp:20}}
-                ]}
-        ],
-        enemies:[
-            {id:'bandit1',x:4,y:1,name:'黄巾喽啰',hp:30,atk:8,def:1,exp:15,gold:12,color:'#b8860b',type:'bandit'},
-            {id:'bandit2',x:13,y:1,name:'黄巾探子',hp:35,atk:9,def:2,exp:18,gold:15,color:'#c4a035',type:'bandit'},
-            {id:'bandit3',x:2,y:4,name:'流寇',hp:35,atk:9,def:2,exp:18,gold:15,color:'#9b870c',type:'bandit'},
-            {id:'bandit4',x:6,y:5,name:'黄巾头目',hp:50,atk:12,def:3,exp:25,gold:22,color:'#daa520',type:'bandit'},
-            {id:'bandit5',x:8,y:8,name:'黄巾马贼',hp:40,atk:10,def:2,exp:20,gold:18,color:'#8b7500',type:'bandit'},
-            {id:'bully1',x:16,y:5,name:'西凉溃兵',hp:60,atk:15,def:5,exp:35,gold:30,color:'#4a3728',type:'bully'},
-            {id:'bully2',x:3,y:9,name:'西凉散兵',hp:55,atk:14,def:4,exp:30,gold:28,color:'#5d4535',type:'bully'},
-            {id:'bully3',x:15,y:9,name:'溃兵头领',hp:70,atk:17,def:6,exp:40,gold:35,color:'#6b4c3b',type:'bully'},
-            {id:'guard1',x:7,y:11,name:'西凉偏将',hp:100,atk:20,def:7,exp:80,gold:60,color:'#6b1a1a',type:'guard'},
-            {id:'guard2',x:3,y:12,name:'西凉副将',hp:110,atk:21,def:7,exp:90,gold:70,color:'#8b2020',type:'guard'},
-            {id:'boss',x:5,y:13,name:'华雄',hp:300,atk:32,def:14,exp:350,gold:600,color:'#8b0000',type:'boss'}
-        ]
-    },
-    // ========== 北邙山林 ==========
-    north:{
-        name:'北邙山林',
-        data:[
-            ['W','W','W','W','G','F','T','G','G','F','F','F','W','W','G','G','G','G','G','W'],
-            ['W','W','G','G','G','F','G','G','G','F','G','F','W','G','G','G','G','G','G','G'],
-            ['G','G','G','F','F','G','G','F','F','C','C','F','F','G','G','G','G','G','G','G'],
-            ['G','G','F','F','F','G','G','G','C','C','F','F','F','G','G','G','G','G','G','G'],
-            ['F','F','F','F','G','G','P','P','P','G','G','G','F','F','G','G','G','G','G','G'],
-            ['F','F','G','G','G','P','P','P','G','G','G','G','F','F','G','G','G','G','G','G'],
-            ['F','G','G','G','P','P','G','G','G','G','F','F','F','G','G','F','F','F','F','G'],
-            ['G','G','G','G','G','G','G','G','G','F','F','F','G','V','V','F','F','F','G','G'],
-            ['G','G','G','G','F','F','F','G','G','G','G','V','V','V','F','F','F','G','G','G'],
-            ['G','G','G','F','F','F','G','G','P','P','G','G','G','G','G','G','G','G','G','G'],
-            ['G','G','G','F','F','F','G','G','P','P','G','G','G','G','G','G','G','G','G','G'],
-            ['G','G','G','F','F','G','G','G','G','G','G','G','G','G','F','F','G','G','G','G'],
-            ['G','G','G','G','G','G','G','G','G','G','G','G','G','F','F','G','G','G','G','G'],
-            ['G','G','G','G','G','P','G','G','G','G','G','G','F','F','G','G','G','G','G','G']
-        ],
-        connections:{south:'main'},
-        npcs:[
-            {id:'n_hermit',x:6,y:0,name:'山中隐士',color:{skin:'#fce5d8',hair:'#ccc',cloth:'#3d5a2e'},
-                dialogs:[
-                    {s:'山人不知岁月……',t:'老夫隐居此地三十载，北邙山深处有猛虎出没，壮士千万小心。',heal:true}
-                ]}
-        ],
-        enemies:[
-            {id:'n_b1',x:9,y:2,name:'山贼哨探',hp:40,atk:11,def:2,exp:20,gold:16,color:'#8b6914',type:'bandit'},
-            {id:'n_b2',x:1,y:4,name:'野狼',hp:45,atk:13,def:3,exp:22,gold:10,color:'#5d4a3c',type:'bandit'},
-            {id:'n_b3',x:14,y:7,name:'山贼头目',hp:60,atk:14,def:4,exp:35,gold:25,color:'#a0522d',type:'bandit'},
-            {id:'n_b4',x:4,y:10,name:'猛虎',hp:80,atk:20,def:5,exp:50,gold:15,color:'#c87d20',type:'bully'}
-        ]
-    },
-    // ========== 西凉荒原 ==========
-    south:{
-        name:'西凉荒原',
-        data:[
-            ['R','R','R','R','R','R','R','R','R','R','R','R','R','R','R','R','R','R','R','R'],
-            ['R','R','D','D','D','R','R','R','R','R','R','R','R','R','R','R','R','R','R','R'],
-            ['R','R','D','D','D','R','R','R','G','G','R','R','R','D','D','R','R','R','R','R'],
-            ['R','R','R','R','R','R','R','G','G','G','R','R','D','D','D','R','R','R','R','R'],
-            ['R','R','R','R','R','R','G','G','G','G','R','R','R','D','R','R','G','G','R','R'],
-            ['R','R','R','G','G','R','R','G','G','R','R','R','R','R','R','G','G','R','R','R'],
-            ['R','R','G','G','G','R','R','R','R','R','R','R','R','R','G','G','G','R','R','R'],
-            ['R','R','G','G','G','R','R','P','P','R','R','R','G','G','G','R','R','R','R','R'],
-            ['R','R','R','G','G','R','R','P','P','R','R','R','G','G','R','R','R','R','R','R'],
-            ['R','R','R','R','R','R','P','P','R','R','R','R','R','R','R','R','R','R','R','R'],
-            ['R','R','R','R','R','R','P','R','R','R','R','R','R','R','R','R','G','G','R','R'],
-            ['R','R','G','G','R','R','R','R','R','R','R','R','R','R','R','G','G','R','R','R'],
-            ['W','W','G','G','R','R','R','R','R','R','R','R','R','R','R','R','R','W','W','W'],
-            ['W','W','W','W','W','W','R','R','R','R','R','R','R','R','R','W','W','W','W','W']
-        ],
-        connections:{north:'main'},
-        npcs:[
-            {id:'s_merchant',x:8,y:7,name:'西域行商',color:{skin:'#deb887',hair:'#333',cloth:'#8b4513'},
-                dialogs:[
-                    {s:'大漠风沙，蜀道难行……',t:'老夫往来西域贩运药石，这里有上好的金疮药，壮士可要备上？',buy:true}
-                ]},
-            {id:'s_scout',x:3,y:2,name:'西凉斥候',color:{skin:'#c8a882',hair:'#222',cloth:'#5c1515'},
-                dialogs:[
-                    {s:'嘘……小声些！',t:'华雄虽死，其旧部仍在荒原流窜。前方沙暴中常有伏兵出没，切莫大意！'}
-                ]}
-        ],
-        enemies:[
-            {id:'s_b1',x:10,y:1,name:'流沙盗',hp:65,atk:16,def:6,exp:40,gold:35,color:'#8b6914',type:'bully'},
-            {id:'s_b2',x:17,y:3,name:'西凉残兵',hp:75,atk:18,def:7,exp:50,gold:40,color:'#6b1a1a',type:'bully'},
-            {id:'s_b3',x:15,y:6,name:'沙匪头领',hp:90,atk:20,def:8,exp:65,gold:50,color:'#a0522d',type:'guard'},
-            {id:'s_b4',x:3,y:11,name:'荒漠马贼',hp:85,atk:19,def:7,exp:55,gold:45,color:'#8b7355',type:'guard'},
-            {id:'s_b5',x:8,y:13,name:'西凉督将',hp:130,atk:24,def:10,exp:120,gold:100,color:'#7b1f1f',type:'guard'}
-        ]
-    },
-    // ========== 洛阳官道 ==========
-    east:{
-        name:'洛阳官道',
-        data:[
-            ['W','W','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','W','W'],
-            ['G','G','G','G','G','F','F','F','G','G','G','G','G','G','G','G','G','G','G','G'],
-            ['G','G','G','F','F','F','F','C','C','B','G','G','G','G','G','G','G','G','G','G'],
-            ['G','G','G','F','F','G','G','C','C','G','G','H','H','G','G','G','G','G','G','G'],
-            ['G','G','G','G','P','P','P','P','P','P','G','H','H','G','G','G','G','T','T','G'],
-            ['G','G','G','G','P','P','P','G','G','G','G','G','G','G','G','G','T','T','G','G'],
-            ['G','G','G','P','P','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G'],
-            ['F','F','G','G','G','G','G','S','S','G','G','G','G','G','G','G','G','G','G','G'],
-            ['F','F','G','G','G','G','G','S','S','G','G','G','G','G','G','F','F','G','G','G'],
-            ['G','G','G','G','G','G','G','G','G','G','G','G','G','G','F','F','G','G','G','G'],
-            ['G','G','G','G','G','G','G','G','G','P','P','P','G','G','G','G','G','G','G','G'],
-            ['G','G','W','W','G','G','G','G','P','P','P','G','G','G','G','G','G','G','G','G'],
-            ['G','W','W','W','G','G','G','G','P','P','G','G','F','F','G','G','G','G','G','G'],
-            ['W','W','W','G','G','G','G','G','G','G','G','G','F','F','G','W','W','W','W','W']
-        ],
-        connections:{west:'main'},
-        npcs:[
-            {id:'e_guard',x:4,y:4,name:'洛阳卫兵',color:{skin:'#deb887',hair:'#333',cloth:'#8b0000'},
-                dialogs:[
-                    {s:'前方洛阳！验明身份！',t:'洛阳乃天子脚下，壮士若有军功在身，可前往校尉处领赏。'}
-                ]},
-            {id:'e_shop',x:7,y:7,name:'铁匠铺主',color:{skin:'#fce5d8',hair:'#555',cloth:'#4a3728'},
-                dialogs:[
-                    {s:'好铁打好刀！',t:'老夫祖传冶铁手艺，行军散、金疮药都备着，壮士看看？',buy:true}
-                ]}
-        ],
-        enemies:[
-            {id:'e_b1',x:1,y:9,name:'官道劫匪',hp:55,atk:14,def:4,exp:30,gold:25,color:'#8b6914',type:'bandit'},
-            {id:'e_b2',x:14,y:5,name:'黄巾溃兵',hp:60,atk:15,def:5,exp:35,gold:30,color:'#b8860b',type:'bandit'},
-            {id:'e_b3',x:9,y:12,name:'西凉逃兵',hp:70,atk:17,def:6,exp:45,gold:38,color:'#6b1a1a',type:'bully'},
-            {id:'e_b4',x:17,y:2,name:'山道悍匪',hp:80,atk:19,def:7,exp:55,gold:45,color:'#a0522d',type:'bully'}
-        ]
-    },
-    // ========== 嵩山深处 ==========
-    west:{
-        name:'嵩山深处',
-        data:[
-            ['W','W','W','W','W','W','W','W','W','W','G','G','G','G','G','G','W','W','W','W'],
-            ['W','W','W','W','W','G','G','G','F','F','F','F','G','G','G','G','W','W','W','G'],
-            ['G','G','G','G','F','F','C','C','C','B','F','G','G','G','G','G','W','W','W','G'],
-            ['G','G','G','F','F','C','C','C','F','F','G','G','G','G','G','G','G','G','G','G'],
-            ['G','G','G','F','F','F','F','G','G','G','V','V','V','G','G','G','G','G','G','G'],
-            ['G','G','G','G','F','F','G','G','G','V','V','V','V','G','G','G','G','G','G','G'],
-            ['F','F','G','G','G','G','G','G','G','G','V','V','G','G','G','G','G','G','G','G'],
-            ['F','F','G','G','G','G','G','G','P','P','G','G','G','G','G','G','G','G','G','G'],
-            ['G','G','G','F','F','G','G','P','P','G','G','G','G','G','F','F','G','G','G','G'],
-            ['G','G','F','F','F','G','G','G','G','G','G','G','G','F','F','F','G','G','G','G'],
-            ['G','G','G','F','F','G','G','G','G','G','T','T','T','G','G','G','G','G','G','G'],
-            ['G','G','G','G','G','G','G','G','G','G','T','T','T','G','G','G','G','G','G','G'],
-            ['G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G'],
-            ['G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G','G']
-        ],
-        connections:{east:'main'},
-        npcs:[
-            {id:'w_taoist',x:10,y:10,name:'嵩山道人',color:{skin:'#fce5d8',hair:'#fff',cloth:'#4a5568'},
-                dialogs:[
-                    {s:'道可道，非常道……',t:'此乃嵩山太室，人迹罕至。前方山洞中有灵石，可助修行。壮士疲惫否？',heal:true}
-                ]},
-            {id:'w_hermit',x:17,y:1,name:'采药老人',color:{skin:'#c8a882',hair:'#ccc',cloth:'#2d5a1e'},
-                dialogs:[
-                    {s:'小心！前方有妖狼……',t:'老朽采药数十载，这山洞中藏有稀世药石，壮士若有缘或可得之。'}
-                ]}
-        ],
-        enemies:[
-            {id:'w_b1',x:2,y:4,name:'山魈',hp:50,atk:13,def:3,exp:28,gold:18,color:'#5d4a3c',type:'bandit'},
-            {id:'w_b2',x:15,y:7,name:'妖狼',hp:70,atk:18,def:5,exp:42,gold:20,color:'#4a3728',type:'bully'},
-            {id:'w_b3',x:4,y:10,name:'妖狼头领',hp:100,atk:22,def:7,exp:70,gold:50,color:'#6b4c3b',type:'guard'},
-            {id:'w_b4',x:14,y:3,name:'山中悍匪',hp:85,atk:19,def:8,exp:60,gold:48,color:'#a0522d',type:'guard'}
-        ]
+    if(room.items && room.items.length){
+      log('〔地上之物〕','sys');
+      room.items.forEach(function(it){ log('· '+it,'item'); });
     }
-};
-
-// 当前地图ID和多地图敌人状态持久化
-var currentMap = 'main';
-var mapDeadStates = {main:{},north:{},south:{},east:{},west:{}};
-
-// 全局引用（指向当前地图数据）
-var mapData, npcs, enemies, deadEnemies;
-
-function loadMapGlobals(mapId){
-    var m = allMaps[mapId];
-    mapData = m.data;
-    MAP_W = m.data[0].length;
-    MAP_H = m.data.length;
-    npcs = m.npcs;
-    enemies = m.enemies;
-    if(!mapDeadStates[mapId]) mapDeadStates[mapId] = {};
-    deadEnemies = mapDeadStates[mapId];
-}
-loadMapGlobals('main');
-
-// 击杀计数（持久化，跨地图）
-var killCounts = {bandit:0, bully:0, guard:0, boss:0};
-
-// 地图切换
-function switchMap(targetMapId, entryX, entryY){
-    currentMap = targetMapId;
-    loadMapGlobals(targetMapId);
-    // 放置玩家，确保不落在阻挡格上
-    player.x = Math.max(0, Math.min(MAP_W-1, entryX));
-    player.y = Math.max(0, Math.min(MAP_H-1, entryY));
-    var t = mapData[player.y] && mapData[player.y][player.x];
-    if(t==='W'||t==='C'){
-        var found=false;
-        for(var r=1;r<5&&!found;r++){
-            for(var dx=-r;dx<=r&&!found;dx++){
-                for(var dy=-r;dy<=r&&!found;dy++){
-                    var nx2=player.x+dx, ny2=player.y+dy;
-                    if(nx2>=0&&nx2<MAP_W&&ny2>=0&&ny2<MAP_H){
-                        var nt=mapData[ny2][nx2];
-                        if(nt!=='W'&&nt!=='C'){player.x=nx2;player.y=ny2;found=true;}
-                    }
-                }
-            }
-        }
+    if(room.exits){
+      var ex=Object.keys(room.exits).map(function(d){return d+'·'+G.ROOMS[room.exits[d]].name;}).join('　');
+      log('〔出口〕 '+ex,'exit');
     }
-    buildMap();
-    renderPlayer();
-    updateCamera();
-    showMapBanner(allMaps[targetMapId].name);
-}
+    buildActions(room);
+    save(state); renderStatus();
+  }
+  function buildActions(room){
+    clearActions();
+    // 对话
+    (room.npcs||[]).forEach(function(k){
+      var n=G.DIALOGUES.npcs[k]; if(!n) return;
+      addGrouped('对话', '与'+n.name+'交谈', function(){ talk(k); });
+    });
+    // 探查
+    addGrouped('探查', '环顾四周', function(){ renderRoom(state.room, true); });
+    // 行动
+    (room.actions||[]).forEach(function(a){
+      addGrouped('行动', a.label, function(){ handleAction(a.id, a); }, a.tip);
+    });
+    // 移动
+    Object.keys(room.exits||{}).forEach(function(dir){
+      var tid=room.exits[dir];
+      addGrouped('移动', dir+' · '+G.ROOMS[tid].name, function(){ move(dir, tid); });
+    });
+  }
 
-// 地图切换提示横幅
-var _bannerTimer = null;
-function showMapBanner(name){
-    var b = document.getElementById('map-banner');
-    if(!b) return;
-    b.textContent = '— '+name+' —';
-    b.className = 'show';
-    if(_bannerTimer) clearTimeout(_bannerTimer);
-    _bannerTimer = setTimeout(function(){ b.className = 'hide'; }, 2000);
-}
+  // ===== 行走探索 =====
+  function move(dir, tid){
+    state.energy=Math.max(0,state.energy-4);
+    state.food=Math.max(0,state.food-1);
+    state.drink=Math.max(0,state.drink-1);
+    advanceTime(1);
+    log('你朝'+dir+'方行去，沿途景物渐换……','sys');
+    maybeStarve();
+    renderRoom(tid);
+  }
 
-// 多地图区域名
-function areaName(x,y){
-    if(currentMap==='north'){
-        if(y<=1) return '北邙绝顶';
-        if(x<=1&&y<=5) return '西麓密林';
-        if(x>=17) return '东山崖';
-        if(x>=5&&x<=7&&y<=2) return '古观旧址';
-        if(x>=5&&x<=7&&y>=7&&y<=8) return '幽谷洞穴';
-        return '北邙山';
+  // ===== NPC 对话 =====
+  function talk(k){
+    var n=G.DIALOGUES.npcs[k];
+    var line=n.lines[Math.floor(Math.random()*n.lines.length)];
+    log(line,'npc', n.name);
+    if(k==='hanbo' && Math.random()<0.6){ var ev=findEvent('ev_hanbo'); if(ev) runEvent(ev); }
+  }
+
+  // ===== 行动分发 =====
+  function handleAction(id, a){
+    switch(id){
+      case 'train': actTrain(); break;
+      case 'learn': openLearn(); break;
+      case 'rest':  actRest(); break;
+      case 'market': runEvent(findEvent('ev_merchant')); break;
+      case 'city_patrol': runEvent(findEvent('ev_escapees')); break;
+      case 'patrol': runEvent(G.EVENTS[Math.floor(Math.random()*G.EVENTS.length)]); break;
     }
-    if(currentMap==='south'){
-        if(y<=1) return '荒原入口';
-        if(x<=2&&y>=1&&y<=3) return '西凉残营';
-        if(x<=2&&y>=12) return '西绝壁';
-        if(x>=17) return '东沙丘';
-        if(y>=12&&x>=7&&x<=12) return '南隘口';
-        if(y>=8) return '深漠';
-        return '西凉荒原';
-    }
-    if(currentMap==='east'){
-        if(y<=1) return '洛阳北郊';
-        if(y>=12) return '洛阳南门';
-        if(x<=1) return '官道入口';
-        if(x>=17) return '洛阳近郊';
-        if(x>=3&&x<=5&&y>=4&&y<=5) return '官道驿站';
-        if(x>=7&&x<=8&&y>=7&&y<=8) return '洛阳集市';
-        if(x>=15&&x<=16&&y>=4&&y<=5) return '道观';
-        return '洛阳官道';
-    }
-    if(currentMap==='west'){
-        if(y<=1&&x>=10) return '嵩阳峰';
-        if(y<=1) return '西山峭壁';
-        if(x>=8&&x<=10&&y>=10&&y<=11) return '嵩山道观';
-        if(x>=4&&x<=6&&y>=4&&y<=5) return '太室山洞';
-        if(x<=2&&y>=8) return '少室山';
-        return '嵩山深处';
-    }
-    // 主地图区域
-    if(y<=1&&x<=5) return '北邙山';
-    if(y<=1&&x>=6&&x<=7) return '古观';
-    if(y<=1) return '东山';
-    if(x<=2&&y<=3) return '河畔';
-    if(x>=3&&x<=4&&y<=2) return '木桥';
-    if(x>=8&&x<=9&&y<=3) return '颍川·民居';
-    if(x>=10&&x<=11&&y<=3) return '颍川·集市';
-    if(x>=13&&x<=14&&y>=4&&y<=6) return '练兵场';
-    if(x>=17&&x<=18&&y>=4&&y<=5) return '废弃军械库';
-    if(x>=3&&x<=5&&y>=6&&y<=7) return '幽暗洞穴';
-    if(y>=8&&y<=9&&x>=16&&x<=17) return '乱葬岗';
-    if(x>=12&&x<=13&&y>=5&&y<=8) return '密林深处';
-    if(x>=1&&x<=2&&y>=8&&y<=10) return '竹林';
-    if(x>=15&&x<=16&&y>=10&&y<=12) return '枯木林';
-    if(x>=6&&x<=8&&y>=11&&y<=12) return '西凉前哨';
-    if(y>=13&&x>=2&&x<=8) return '西凉军大营';
-    if(y>=12&&x>=17) return '绝壁';
-    if(y>=11) return '险地';
-    if(x>=8&&y<=2) return '驿道';
-    return '原野';
-}
+  }
+  function actTrain(){
+    clearActions();
+    var y=G.BALANCE.trainYield(state);
+    var potGain=Math.round(y.xp*0.8+state.level*2);
+    addXp(y.xp);
+    state.pot+=potGain;
+    state.gold+=y.gold;
+    state.mp=Math.min(state.maxMp,state.mp+(y.mp||0));
+    state.energy=Math.max(0,state.energy-6);
+    advanceTime(1);
+    log('部众操练一日，呼喝声震野。你于阵中印证所学，潜能渐增。','env');
+    log('【收获】潜能+'+potGain+'，修为+'+y.xp+'，银两+'+y.gold+'。','good');
+    maybeStarve();
+    buildActions(curRoom()); save(state); renderStatus();
+  }
+  function actRest(){
+    clearActions();
+    state.hp=state.maxHp; state.mp=state.maxMp; state.energy=state.maxEnergy;
+    state.food=state.maxFood; state.drink=state.maxDrink;
+    log('你于帐中盹了一觉，晨光熹微时醒来——气血、内力、精力皆复，饥渴亦消。','env');
+    buildActions(curRoom()); save(state); renderStatus();
+  }
 
-// 任务
-var quests = {
-    quest_1:{name:'剿灭黄巾',desc:'击败5名黄巾贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false,rewardClaimed:false},
-    quest_2:{name:'肃清溃兵',desc:'击败3股西凉溃兵',target:3,progress:0,rewardGold:250,rewardExp:150,done:false,rewardClaimed:false},
-    quest_3:{name:'斩杀华雄',desc:'击败华雄',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false,rewardClaimed:false}
-};
-
-// ==================== 玩家默认数据 ====================
-function defaultPlayer(){
-    return {
-        x:9, y:3,
-        hp:100, maxHp:100,
-        mp:30, maxMp:30,
-        atk:15, def:5,
-        level:1, exp:0, expNeed:60,
-        gold:50,
-        items:[{id:'potion',count:3},{id:'superPotion',count:1}],
-        quests:{quest_1:false,quest_2:false,quest_3:false},
-        hermitBuffed:false
-    };
-}
-
-var player = defaultPlayer();
-var curNpc = null, curNpcDi = 0;
-var inBattle = false, enemyIdx = null, enemyHp = 0, enemyMaxHp = 0;
-var walkTimer = null;
-var _keyMoveLast = 0, _keyMoveThrottle = 110; // 键盘移动节流(ms)
-var _keyHeld = {}; // 记录当前按下的移动键
-var _keyMoveInterval = null;
-var gameStarted = false;
-var isMobile = false;
-var mobileMoveInterval = null;
-var mobileMoveDir = null;
-
-// ==================== AI像素角色画像映射 ====================
-var _aiImg = {
-    hero:'assets/pixel_chars/hero_ai.png',
-    storyteller:'assets/pixel_chars/storyteller_ai.png',
-    master:'assets/pixel_chars/hanbo_ai.png',
-    doctor:'assets/pixel_chars/hualao_ai.png',
-    monk:'assets/pixel_chars/zuoci_ai.png',
-    hermit:'assets/pixel_chars/shuijing_ai.png',
-    escort:'assets/pixel_chars/captain_ai.png',
-    bandit:'assets/pixel_chars/yellow_turban_ai.png',
-    bully:'assets/pixel_chars/xiliang_soldier_ai.png',
-    guard:'assets/pixel_chars/deputy_general_ai.png',
-    boss:'assets/pixel_chars/boss_ai.png'
-};
-var _aiCache = {};
-(function preloadAI(){
-    for(var k in _aiImg){
-        var img = new Image();
-        img.src = _aiImg[k];
-        _aiCache[k] = img;
-    }
-})();
-
-// ==================== 手机检测 ====================
-function checkMobile(){
-    isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || 
-               ('ontouchstart' in window && window.innerWidth < 800);
-    var mc = document.getElementById('mobile-controls');
-    if(isMobile){
-        mc.style.display = 'flex';
-        // 手机端调整地图viewport：给虚拟按键留空间
-    }
-}
-
-// ==================== 存档系统 ====================
-var SAVE_KEY = 'wuxia_rpg_save';
-
-function hasSave(){
-    return !!localStorage.getItem(SAVE_KEY);
-}
-
-function saveGameData(){
-    // 先把当前地图的deadEnemies写回持久化对象
-    if(mapDeadStates[currentMap] !== deadEnemies) mapDeadStates[currentMap] = deadEnemies;
-    var data = {
-        player: player,
-        killCounts: killCounts,
-        mapDeadStates: mapDeadStates,
-        currentMap: currentMap,
-        quests: quests,
-        hermitBuffed: player.hermitBuffed
-    };
-    try{
-        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-        showHint('💾 存档成功！');
-    }catch(e){
-        showHint('❌ 存档失败，请检查浏览器存储空间');
-    }
-}
-
-function loadGameData(){
-    try{
-        var raw = localStorage.getItem(SAVE_KEY);
-        if(!raw) return false;
-        var data = JSON.parse(raw);
-        // 恢复玩家数据
-        var p = data.player;
-        player.x = p.x; player.y = p.y;
-        player.hp = p.hp; player.maxHp = p.maxHp;
-        player.mp = p.mp; player.maxMp = p.maxMp;
-        player.atk = p.atk; player.def = p.def;
-        player.level = p.level; player.exp = p.exp;
-        player.expNeed = p.expNeed; player.gold = p.gold;
-        player.items = migrateItems(p.items);
-        player.quests = p.quests || {quest_1:false,quest_2:false,quest_3:false};
-        player.hermitBuffed = p.hermitBuffed || data.hermitBuffed || false;
-        // 恢复击杀数据和当前地图
-        killCounts = data.killCounts || {bandit:0, bully:0, guard:0, boss:0};
-        mapDeadStates = data.mapDeadStates || {main:{},north:{},south:{},east:{},west:{}};
-        currentMap = data.currentMap || 'main';
-        loadMapGlobals(currentMap);
-        // deadEnemies is now set by loadMapGlobals, merge saved data
-        if(data.mapDeadStates && data.mapDeadStates[currentMap]){
-            deadEnemies = data.mapDeadStates[currentMap];
-            mapDeadStates[currentMap] = deadEnemies;
-        }
-        quests = data.quests || {
-            quest_1:{name:'剿灭黄巾',desc:'击败5名黄巾贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false,rewardClaimed:false},
-            quest_2:{name:'肃清溃兵',desc:'击败3股西凉溃兵',target:3,progress:0,rewardGold:250,rewardExp:150,done:false,rewardClaimed:false},
-            quest_3:{name:'斩杀华雄',desc:'击败华雄',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false,rewardClaimed:false}
+  // ===== 修炼（消耗潜能习武学） =====
+  function openLearn(){
+    clearActions();
+    log('【修炼】案上摊开武学谱录，你凝神参悟，耗「潜能」以窥门径：','title');
+    Object.keys(G.SKILLS).forEach(function(sid){
+      var s=G.SKILLS[sid];
+      var owned=state.skills.indexOf(sid)>=0;
+      var prereqOk=s.prereq.every(function(p){return state.skills.indexOf(p)>=0;});
+      var b=document.createElement('button'); b.className='act wide';
+      if(owned){ b.innerHTML='✓ '+s.name+'（已修）'; b.disabled=true; }
+      else if(!prereqOk){ b.innerHTML='🔒 '+s.name+'（需先修：'+s.prereq.map(function(p){return G.SKILLS[p].name;}).join('、')+'）'; b.disabled=true; }
+      else{
+        b.innerHTML='› '+s.name+'（耗潜能 '+s.cost+'）';
+        b.onclick=function(){
+          if(state.pot<s.cost){ log('潜能不足，难窥'+s.name+'门径。可多去「操演部众」积攒潜能。','sys'); return; }
+          state.pot-=s.cost; state.skills.push(sid); applyEffect(s.effect);
+          log('【习得】'+s.name+'！'+s.desc,'good');
+          clearActions(); buildActions(curRoom());
         };
-        return true;
-    }catch(e){
-        console.error('读档失败:', e);
-        return false;
-    }
-}
-
-// ==================== Canvas像素画绘制引擎 ====================
-// 20×24像素网格 · 逐块绘制 · 像素复古风
-
-// 角色参数定义 {skin,skinD,hat,hatC,hatA,robe,robeL,belt,eye,beltY,weapon,wC,wSide,wH,beard,bC,bH,shoulderW,chest,spike,faceW}
-var _pxDef={
-hero:{skin:'#e8c090',skinD:'#c89860',hat:'topknot',hatC:'#2a1810',robe:'#1e3a5c',robeL:'#285080',belt:'#8b6914',eye:'#000',beltY:14,weapon:'sword',wC:'#d0d0d8',wSide:'r',wH:4,beard:'none',shoulderW:5,chest:0,spike:0,faceW:3},
-storyteller:{skin:'#d4a574',skinD:'#b08060',hat:'wide',hatC:'#4a3020',hatA:'#5a3a25',robe:'#3d2b1a',robeL:'#503822',belt:'#2a1f15',eye:'#000',beltY:15,weapon:'fan',wC:'#e0d0b0',wSide:'r',wH:5,beard:'three',bC:'#9a9070',bH:7,shoulderW:4,chest:0,spike:0,faceW:2},
-master:{skin:'#e0c0a0',skinD:'#c0a080',hat:'official',hatC:'#1a1010',hatA:'#3a2a1a',robe:'#1a1a30',robeL:'#282848',belt:'#6b5930',eye:'#000',beltY:15,weapon:'none',beard:'goatee',bC:'#555',bH:6,shoulderW:4,chest:0,spike:0,faceW:3},
-doctor:{skin:'#d0b090',skinD:'#b09070',hat:'round',hatC:'#3a2a18',robe:'#5a5040',robeL:'#6b6050',belt:'#3a3028',eye:'#000',beltY:15,weapon:'none',beard:'long',bC:'#c0c0b0',bH:7,shoulderW:4,chest:0,spike:0,faceW:2},
-monk:{skin:'#d8c0a0',skinD:'#b89878',hat:'topknot',hatC:'#1a1010',hatA:'#c8a860',robe:'#1a1a1a',robeL:'#2a2a2a',belt:'#333',eye:'#000',beltY:15,weapon:'whisk',wC:'#888',wSide:'r',wH:6,beard:'goatee',bC:'#666',bH:5,shoulderW:4,chest:0,spike:0,faceW:2},
-hermit:{skin:'#d0b898',skinD:'#b09070',hat:'cloth',hatC:'#2e5a28',robe:'#2a4028',robeL:'#385838',belt:'#1a3018',eye:'#000',beltY:15,weapon:'staff',wC:'#8b6b3a',wSide:'r',wH:9,beard:'long',bC:'#888',bH:7,shoulderW:4,chest:0,spike:0,faceW:2},
-escort:{skin:'#d8b888',skinD:'#b89868',hat:'helm',hatC:'#3a3a3a',hatA:'#c02018',robe:'#6b1f18',robeL:'#8b2a20',belt:'#4a1010',eye:'#000',beltY:15,weapon:'spear',wC:'#888',wSide:'l',wH:5,beard:'none',shoulderW:5,chest:1,spike:0,faceW:3},
-bandit:{skin:'#d0a878',skinD:'#b08858',hat:'band',hatC:'#c8a020',robe:'#6b5010',robeL:'#8b6a18',belt:'#4a3008',eye:'#000',beltY:14,weapon:'knife',wC:'#777',wSide:'r',wH:3,beard:'none',shoulderW:4,chest:0,spike:0,faceW:3},
-bully:{skin:'#d0a878',skinD:'#b08858',hat:'leather',hatC:'#3a2818',robe:'#3a2818',robeL:'#4a3828',belt:'#2a1810',eye:'#000',beltY:14,weapon:'knife',wC:'#777',wSide:'r',wH:3,beard:'none',shoulderW:4,chest:0,spike:0,faceW:3},
-guard:{skin:'#d8b080',skinD:'#b89060',hat:'horn',hatC:'#3a3a3a',robe:'#5a1515',robeL:'#782020',belt:'#3a0a0a',eye:'#000',beltY:14,weapon:'spear',wC:'#aaa',wSide:'l',wH:5,beard:'none',shoulderW:5,chest:1,spike:0,faceW:3},
-boss:{skin:'#d0a870',skinD:'#b08850',hat:'giant',hatC:'#2a2a2a',hatA:'#d81810',robe:'#4a1010',robeL:'#6a1818',belt:'#c8a840',eye:'#000',beltY:14,weapon:'bigBlade',wC:'#ccc',wSide:'r',wH:8,beard:'none',shoulderW:6,chest:1,spike:1,faceW:3}
-};
-
-function renderPixelChar(canvas, charId){
-    var W=canvas.width, H=canvas.height;
-    var ctx=canvas.getContext('2d');
-    ctx.imageSmoothingEnabled=false;
-    var GW=20, GH=24;
-    var ps=Math.floor(Math.min(W/GW, H/GH));
-    var ox=Math.floor((W-GW*ps)/2);
-    var oy=Math.floor((H-GH*ps)/2);
-
-    // 暗色底色
-    ctx.fillStyle='#14100c';
-    ctx.fillRect(0,0,W,H);
-
-    var d=_pxDef[charId]||_pxDef.hero;
-    // 像素辅助函数
-    var P=function(x,y,c){if(x<0||x>=GW||y<0||y>=GH)return;ctx.fillStyle=c;ctx.fillRect(ox+x*ps,oy+y*ps,ps,ps);};
-    var B=function(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(ox+x*ps,oy+y*ps,w*ps,h*ps);};
-    // 椭圆（用于头部）
-    function oval(cx,cy,rw,rh,color){
-        for(var dy=-rh;dy<=rh;dy++){
-            for(var dx=-rw;dx<=rw;dx++){
-                if(dx*dx*1.0/(rw*rw)+dy*dy*1.0/(rh*rh)<=1) P(cx+dx,cy+dy,color);
-            }
-        }
-    }
-    // 带轮廓椭圆
-    function ovalOut(cx,cy,rw,rh,fill,outline,ot){
-        ot=ot||1;
-        for(var dy=-rh-ot;dy<=rh+ot;dy++){
-            for(var dx=-rw-ot;dx<=rw+ot;dx++){
-                var dist=dx*dx*1.0/(rw*rw)+dy*dy*1.0/(rh*rh);
-                if(dist<=1&&dist>0.65) P(cx+dx,cy+dy,outline);
-                else if(dist<=1) P(cx+dx,cy+dy,fill);
-            }
-        }
-    }
-
-    // 1. 身体（梯形：肩膀宽→腰部窄→直筒）
-    var sx=10-d.shoulderW, sw=d.shoulderW*2;
-    var wy=sx+1, ww=sw-2;
-    var bodyTop=9;
-    B(sx,bodyTop,sw,1,d.robeL); // 肩膀
-    B(sx-1,bodyTop+1,sw+2,1,d.robeL);
-    for(var r=bodyTop+2;r<=d.beltY-1;r++){ B(sx, r, sw, 1, d.robeL); }
-    // 腰带
-    var beltH=2;
-    B(sx-1, d.beltY, sw+2, beltH, d.belt);
-    // 下半身
-    for(var r=d.beltY+beltH;r<=GH-1;r++){
-        B(sx, r, sw, 1, d.robeL);
-    }
-    if(d.spike){ // 肩甲尖刺
-        B(sx-2,bodyTop-1,2,3,d.hatC);
-        B(sx+sw,bodyTop-1,2,3,d.hatC);
-        P(sx-3,bodyTop-1,d.hatC); P(sx+sw+2,bodyTop-1,d.hatC);
-    }
-    if(d.chest){ // 胸甲
-        B(10-2,bodyTop+2,4,3,d.hatC);
-        B(10-1,bodyTop+5,2,2,d.belt);
-    }
-
-    // 2. 头部
-    var hx=10, hy=6, hw=d.faceW+2, hh=3;
-    oval(10, 5, hw, hh, d.skin);
-    oval(10, 6, hw, hh, d.skin);
-    // 轮廓
-    ovalOut(10, 5, hw, hh, d.skin, d.skinD, 1);
-
-    // 眼睛
-    P(8, 4, d.eye); P(12, 4, d.eye);
-    // 嘴
-    P(10, 7, d.skinD);
-
-    // 3. 帽子/头发
-    drawHat(B,P,d);
-
-    // 4. 武器
-    drawWeapon(B,P,d);
-
-    // 5. 胡子
-    drawBeard(B,P,d);
-}
-
-function drawHat(B, P, d){
-    var t=d.hat, c=d.hatC, a=d.hatA||c;
-    switch(t){
-    case 'topknot': // 束发髻
-        B(7,2,6,1,c); B(8,1,4,1,c); B(9,0,2,1,c);
-        if(d.hatA) B(7,1,7,1,d.hatA); // 发簪
-        B(7,3,2,1,c); B(11,3,2,1,c); // 鬓角
-        break;
-    case 'wide': // 大斗笠
-        B(2,0,16,2,c); B(1,2,18,2,a); B(1,3,18,1,a); P(0,2,c); P(19,2,c);
-        break;
-    case 'official': // 乌纱帽
-        B(6,0,8,3,c); B(7,-1,6,1,c);
-        B(2,1,4,2,a); B(14,1,4,2,a); // 帽翅
-        break;
-    case 'round': // 圆帽
-        B(7,1,6,2,c); B(6,3,8,1,c); P(7,0,c); P(12,0,c);
-        break;
-    case 'cloth': // 布帽
-        B(6,1,8,2,c); B(5,3,10,1,c); P(6,0,c); P(13,0,c);
-        break;
-    case 'helm': // 铁盔+红缨
-        B(5,0,10,3,c); P(4,1,c); P(15,1,c);
-        B(9,-1,2,2,a); P(9,-2,a); P(10,-2,a); // 红缨
-        break;
-    case 'horn': // 角盔
-        B(5,0,10,3,c); P(4,1,c); P(15,1,c);
-        P(3,0,c); P(16,0,c); // 尖角
-        break;
-    case 'giant': // 巨盔+高缨
-        B(4,-1,12,4,c); B(3,3,14,1,c);
-        B(8,-2,4,3,a); P(9,-3,a); P(10,-3,a); // 高红缨
-        B(3,4,14,1,c);
-        break;
-    case 'band': // 黄巾
-        B(6,1,8,2,c); P(5,3,c); P(14,3,c);
-        B(7,0,3,1,'#2a1810'); B(11,0,3,1,'#2a1810'); // 乱发
-        break;
-    case 'leather': // 皮盔
-        B(6,1,8,2,c); B(7,0,6,1,c);
-        break;
-    }
-}
-
-function drawWeapon(B, P, d){
-    if(d.weapon==='none') return;
-    var c=d.wC, s=d.wSide, sh=10+d.beltY||14, h=d.wH;
-    var x=(s==='r')?16:4;
-    switch(d.weapon){
-    case 'sword':
-        B(x,sh,2,h,c); B(x-1,sh,4,2,'#c8b860'); // 剑格
-        break;
-    case 'spear':
-        B(x,sh-2,1,h+2,c); B(x-1,sh-4,3,2,c); // 枪头
-        break;
-    case 'knife':
-        B(x,sh,2,h,c); B(x+2,sh+h-2,3,2,c);
-        break;
-    case 'fan':
-        B(x,sh,3,2,c); B(x,sh+2,4,1,c); B(x,sh+3,3,1,c);
-        break;
-    case 'staff':
-        B(x,sh-3,1,h+3,c);
-        break;
-    case 'whisk':
-        B(x,sh,1,h,c);
-        B(x+1,sh-h+4,2,h-1,'#aaa'); // 拂尘尾
-        break;
-    case 'bigBlade':
-        B(x,sh-2,3,h+4,c); B(x-1,sh-3,5,2,'#c8b860'); // 护手
-        break;
-    }
-}
-
-function drawBeard(B, P, d){
-    if(d.beard==='none') return;
-    var c=d.bC, h=d.bH||6;
-    switch(d.beard){
-    case 'goatee':
-        for(var i=0;i<h;i++){ P(9, 8+i, c); P(11, 8+i, c); P(10, 8+i, c); }
-        break;
-    case 'long':
-        for(var i=0;i<h;i++){ B(9, 8+i, 2, 1, c); }
-        break;
-    case 'three':
-        for(var i=0;i<h;i++){ P(8, 8+i, c); P(10, 8+i, c); P(12, 8+i, c); }
-        break;
-    }
-}
-
-// ===== AI画像渲染（优先AI画像，Canvas像素画为降级方案） =====
-function renderAIPortrait(canvas, charId){
-    var ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    var img = _aiCache[charId];
-    var cw = canvas.width, ch = canvas.height;
-    // 暗色底色
-    ctx.fillStyle = '#14100c';
-    ctx.fillRect(0, 0, cw, ch);
-    if(img && img.complete && img.naturalWidth){
-        var iw = img.naturalWidth, ih = img.naturalHeight;
-        var scale = Math.min(cw/iw, ch/ih) * 0.94;
-        var dw = iw * scale, dh = ih * scale;
-        var dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-        // 先画图像
-        ctx.drawImage(img, dx, dy, dw, dh);
-        // 柔边渐变遮罩：中心透明，边缘渐暗融入背景
-        var grd = ctx.createRadialGradient(cw/2, ch*0.45, Math.min(dw,dh)*0.28, cw/2, ch*0.45, Math.max(cw,ch)*0.58);
-        grd.addColorStop(0, 'rgba(20,16,12,0)');
-        grd.addColorStop(0.55, 'rgba(20,16,12,0)');
-        grd.addColorStop(0.82, 'rgba(20,16,12,0.45)');
-        grd.addColorStop(1, 'rgba(20,16,12,0.95)');
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, cw, ch);
-    } else {
-        // 降级：使用旧Canvas像素画
-        renderPixelChar(canvas, charId);
-    }
-}
-
-function initPixelPortrait(canvasId, charId){
-    var c = document.getElementById(canvasId);
-    if(!c) return;
-    renderAIPortrait(c, charId);
-}
-
-function setDialogPixel(charId){
-    var c = document.getElementById('dialog-canvas');
-    if(c) renderAIPortrait(c, charId||'hero');
-}
-
-function setBattlePixel(charId){
-    var c = document.getElementById('battle-enemy-canvas');
-    if(c) renderAIPortrait(c, charId||'bandit');
-    var pc = document.getElementById('battle-player-canvas');
-    if(pc) renderAIPortrait(pc, 'hero');
-}
-
-// ==================== 说书人序幕 ====================
-var prologueLines = [
-    '【汉灵帝中平年间·颍川郡】',
-    '「话说天下大势，分久必合，合久必分……」',
-    '一个蓬头垢面的说书人坐在茶棚里，醉醺醺地拍着惊堂木。',
-    '他眼中却闪着异样的光——',
-    '「黄巾虽平，董卓又起！这大汉的天，怕是要塌了……」',
-    '说书人忽然盯着你，咧嘴一笑：「老夫看你面相，乃是命定之人。」',
-    '他塞给你一把锈迹斑斑的长剑，推着你出了茶棚——',
-    '「去吧！去这乱世中闯出一番名堂！」',
-    '「记住，天下英雄，唯使君与操耳——」',
-    '   ——但谁是使君，谁是操？你握紧剑柄，步入茫茫乱世……'
-];
-var prologueIdx = 0;
-var prologueTyping = false;
-
-function startPrologue(){
-    prologueIdx = 0;
-    document.getElementById('title-screen').style.display = 'none';
-    document.getElementById('prologue-modal').classList.add('show');
-    document.getElementById('prologue-btn').style.display = 'none';
-    initPixelPortrait('prologue-canvas', 'storyteller');
-    showPrologueLine(0);
-}
-
-function showPrologueLine(idx){
-    if(idx >= prologueLines.length){
-        finishPrologue();
-        return;
-    }
-    prologueIdx = idx;
-    prologueTyping = true;
-    var el = document.getElementById('prologue-content');
-    el.innerHTML = '';
-    var line = prologueLines[idx];
-    var i = 0;
-    function typeChar(){
-        if(i < line.length){
-            el.innerHTML += line.charAt(i) === ' ' ? '&nbsp;' : line.charAt(i);
-            i++;
-            setTimeout(typeChar, 30);
-        } else {
-            prologueTyping = false;
-            document.getElementById('prologue-btn').style.display = 'inline-block';
-            if(idx >= prologueLines.length - 1){
-                document.getElementById('prologue-btn').textContent = '踏入乱世';
-            } else {
-                document.getElementById('prologue-btn').textContent = '继续';
-            }
-        }
-    }
-    typeChar();
-}
-
-function nextPrologue(){
-    if(prologueTyping) return;
-    var next = prologueIdx + 1;
-    if(next >= prologueLines.length){
-        finishPrologue();
-        return;
-    }
-    document.getElementById('prologue-btn').style.display = 'none';
-    showPrologueLine(next);
-}
-
-function finishPrologue(){
-    document.getElementById('prologue-modal').classList.remove('show');
-    // 初始化新游戏数据
-    player = defaultPlayer();
-    killCounts = {bandit:0, bully:0, guard:0, boss:0};
-    deadEnemies = {};
-    quests = {
-        quest_1:{name:'剿灭黄巾',desc:'击败5名黄巾贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false,rewardClaimed:false},
-        quest_2:{name:'肃清溃兵',desc:'击败3股西凉溃兵',target:3,progress:0,rewardGold:250,rewardExp:150,done:false,rewardClaimed:false},
-        quest_3:{name:'斩杀华雄',desc:'击败华雄',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false,rewardClaimed:false}
-    };
-    startGame();
-}
-
-// ==================== 标题界面 ====================
-function newGame(){
-    player = defaultPlayer();
-    killCounts = {bandit:0, bully:0, guard:0, boss:0};
-    deadEnemies = {};
-    quests = {
-        quest_1:{name:'剿灭黄巾',desc:'击败5名黄巾贼',target:5,progress:0,rewardGold:150,rewardExp:100,done:false,rewardClaimed:false},
-        quest_2:{name:'肃清溃兵',desc:'击败3股西凉溃兵',target:3,progress:0,rewardGold:250,rewardExp:150,done:false,rewardClaimed:false},
-        quest_3:{name:'斩杀华雄',desc:'击败华雄',target:1,progress:0,rewardGold:1200,rewardExp:600,done:false,rewardClaimed:false}
-    };
-    startGame();
-}
-
-function loadGame(){
-    if(!hasSave()) return;
-    if(!loadGameData()){
-        showModal('读档失败','存档数据损坏，请重新开始游戏。');
-        return;
-    }
-    startGame();
-}
-
-function startGame(){
-    sndInit();
-    startMusic();
-    gameStarted = true;
-    checkMobile();
-    document.getElementById('title-screen').style.display = 'none';
-    buildMap();
-    renderPlayer();
-    updateStats();
-    // resize触发镜头重新计算
-    window.addEventListener('resize', function(){ updateCamera(); });
-    // 延迟确保 viewport 尺寸就绪
-    setTimeout(function(){ updateCamera(); }, 100);
-    if(isMobile){
-        showHint('👆 虚拟方向键移动 | 🗡️ 交互');
-    } else {
-        showHint('🎮 WASD移动 | 空格/方向键交互 | 击败的敌人不会重生');
-    }
-}
-
-function initTitleScreen(){
-    // 检查是否有存档
-    var btnLoad = document.getElementById('btn-load');
-    if(!hasSave()){
-        btnLoad.classList.add('disabled');
-        btnLoad.title = '暂无存档';
-    }
-}
-
-// ==================== 渲染 ====================
-function buildMap(){
-    var layer = document.getElementById('map-layer');
-    var mw = MAP_W * TILE, mh = MAP_H * TILE;
-    layer.style.width = mw + 'px';
-    layer.style.height = mh + 'px';
-    var h = '';
-    for(var y=0;y<MAP_H;y++){
-        for(var x=0;x<MAP_W;x++){
-            var t = mapData[y][x];
-            var s = tileStyle[t];
-            h += '<div class="tile '+s.cls+'" style="left:'+(x*TILE)+'px;top:'+(y*TILE)+'px;width:'+TILE+'px;height:'+TILE+'px;"></div>';
-        }
-    }
-    layer.innerHTML = h;
-
-    // 地图边缘出入口提示
-    var conns = allMaps[currentMap].connections;
-    if (conns) {
-      var edgeLabels = '';
-      function addEdgeLabel(x, y, arrow, label) {
-        var t = mapData[y][x];
-        if (t === 'W' || t === 'C') return;
-        edgeLabels += '<div class="edge-indicator" style="left:' + (x*TILE) + 'px;top:' + (y*TILE) + 'px;width:'+TILE+'px;height:'+TILE+'px;">';
-        edgeLabels += '<span class="edge-arrow">' + arrow + '</span>';
-        edgeLabels += '<span class="edge-label">' + label + '</span>';
-        edgeLabels += '</div>';
       }
-      if (conns.north) { var nn = allMaps[conns.north].name; for (var i = 0; i < MAP_W; i++) addEdgeLabel(i, 0, '▲', nn); }
-      if (conns.south) { var sn = allMaps[conns.south].name; for (var i = 0; i < MAP_W; i++) addEdgeLabel(i, MAP_H - 1, '▼', sn); }
-      if (conns.west)  { var wn = allMaps[conns.west].name; for (var i = 0; i < MAP_H; i++) addEdgeLabel(0, i, '◄', wn); }
-      if (conns.east)  { var en = allMaps[conns.east].name; for (var i = 0; i < MAP_H; i++) addEdgeLabel(MAP_W - 1, i, '►', en); }
-      layer.innerHTML += edgeLabels;
-    }
-
-    // NPC
-    npcs.forEach(function(n){
-        layer.innerHTML += genActorHTML(n.id, n.x, n.y, n.color, n.name, 'npc');
+      $actions.appendChild(b);
     });
+    addBtn('返回营中', function(){ buildActions(curRoom()); });
+  }
 
-    // 敌人——只渲染活着的
-    enemies.forEach(function(e){
-        if(!deadEnemies[e.id]){
-            layer.innerHTML += genActorHTML(e.id, e.x, e.y, {skin:'#deb887',hair:'#333',cloth:e.color}, e.name, 'enemy');
+  // ===== 随机事件（含打斗氛围） =====
+  function runEvent(ev){
+    if(!ev) return;
+    clearActions(); advanceTime(1);
+    log('— '+ev.title+' —','title');
+    log(ev.text,'env');
+    if(/劫掠|托付|剿匪|驱赶|受命|巡山|溃兵/.test(ev.title+ev.text))
+      log('刀光乍起，你与对方缠斗数合，招式凌厉，各展所能。','combat');
+    ev.choices.forEach(function(ch){
+      var b=document.createElement('button'); b.className='act wide';
+      b.innerHTML='› '+ch.text+(ch.cost?('<span class="tip">耗银'+(ch.cost.gold||0)+'</span>'):'');
+      b.onclick=function(){
+        if(ch.cost){
+          if(state.gold<(ch.cost.gold||0)){ log('银两不足，难以行事。','sys'); return; }
+          state.gold-=(ch.cost.gold||0);
         }
+        if(/驱赶|剿匪|受命|巡山|挺身/.test(ch.text)) log('你提气凝神，一招逼退对手！','combat');
+        applyEffect(ch.effect||{});
+        log(ch.result,'env');
+        // 善恶随抉择浮动
+        if(/为民除害|驱赶|剿匪|受命|挺身|护下/.test(ch.text)) state.karma+=1;
+        else if(/隐身|窥探|挥手|婉言|辞去|不必/.test(ch.text)) state.karma-=1;
+        maybeStarve();
+        buildActions(curRoom()); save(state); renderStatus();
+      };
+      $actions.appendChild(b);
     });
+    addBtn('返回营中', function(){ buildActions(curRoom()); });
+  }
 
-    renderPlayer();
-}
-
-function genActorHTML(id,x,y,color,name,type){
-    var cssX = x*TILE + (TILE-28)/2;
-    var cssY = y*TILE + TILE-44;
-    var h = '<div class="actor '+type+'" id="'+id+'" style="left:'+cssX+'px;top:'+cssY+'px;">';
-    h += '<span class="actor-name">'+name+'</span>';
-    h += '<div class="actor-shadow"></div>';
-    h += '<div class="actor-body">';
-    h += '<div class="actor-head" style="background:'+color.skin+'"></div>';
-    h += '<div class="actor-hair" style="background:'+color.hair+'"></div>';
-    h += '<div class="actor-torso" style="background:'+color.cloth+'"></div>';
-    h += '<div class="actor-left-leg" style="background:#333"></div>';
-    h += '<div class="actor-right-leg" style="background:#333"></div>';
-    if(type==='player'){
-        h += '<div class="actor-weapon" style="background:#b0bec5"></div>';
+  // ===== 底部弹窗 =====
+  function skillTags(){
+    if(!state.skills.length) return '<span style="color:var(--ink-faint)">尚无</span>';
+    return state.skills.map(function(id){return '<span>'+G.SKILLS[id].name+'</span>';}).join('');
+  }
+  function row(k,v){return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>';}
+  function openModal(kind){
+    var h='';
+    if(kind==='pack'){
+      h='<h3>行 囊</h3>'+
+        row('门派',G.SECTS[state.sect].name)+
+        row('等级','LV.'+state.level)+
+        row('气血',state.hp+' / '+state.maxHp)+
+        row('内力',state.mp+' / '+state.maxMp)+
+        row('精力',state.energy+' / '+state.maxEnergy)+
+        row('食物',state.food+' / '+state.maxFood)+
+        row('饮水',state.drink+' / '+state.maxDrink)+
+        row('潜能',state.pot)+
+        row('银两',state.gold)+
+        row('善恶',karmaLabel())+
+        '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
+        '<p class="tip">行止间消耗食物饮水与精力；「休整」可尽复。潜能由操演积攒，用于研习武学。</p>';
+    } else if(kind==='quest'){
+      h='<h3>任 务</h3>'+
+        row('当前所处',curRoom().name)+
+        row('主线','剿黄巾 · 平西凉 · 斩华雄')+
+        row('已习武学',state.skills.length+' 门')+
+        row('江湖声望',karmaLabel())+
+        '<p class="tip">「颍川城」寻胡商购药、助医馆华老；「山林」巡山剿匪可领县尉韩伯托付；「溪畔」访水镜先生与左慈。后续章节随主线推进开启。</p>';
+    } else if(kind==='map'){
+      h='<h3>山 河 志</h3>';
+      Object.keys(G.ROOMS).forEach(function(rid){
+        var r=G.ROOMS[rid];
+        var ex=Object.keys(r.exits||{}).map(function(d){return d+'→'+G.ROOMS[r.exits[d]].name;}).join('，');
+        h+='<div class="map-node'+(rid===state.room?' cur':'')+'"><span class="dot"></span>'+r.name+
+            (ex?'<span class="ex">'+ex+'</span>':'')+'</div>';
+      });
+      h+='<p class="tip">当前身处「'+curRoom().name+'」。以出口方向在江湖穿行；其余地域将随主线推进逐一解锁。</p>';
+    } else if(kind==='more'){
+      h='<h3>更 多</h3>'+
+        row('游戏','乱世烽火 · 水墨')+
+        row('版本',G.CONSTANTS.VERSION)+
+        row('存档','已自动保存至本地')+
+        '<button class="close" id="m-save">立即存档</button>'+
+        '<button class="close" id="m-reset" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清空存档 · 重头来过</button>'+
+        '<p class="tip">存档位于浏览器本地，清除浏览器数据会一并丢失。</p>';
     }
-    h += '</div></div>';
-    return h;
-}
+    $card.innerHTML=h+'<button class="close" id="m-close">收 起</button>';
+    $modal.classList.remove('hidden');
+    var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+    var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
+    var rs=document.getElementById('m-reset'); if(rs)rs.onclick=function(){clearSave();location.reload();};
+  }
+  function closeModal(){$modal.classList.add('hidden');}
+  $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
+  document.querySelectorAll('#dock button').forEach(function(b){
+    b.onclick=function(){openModal(b.getAttribute('data-modal'));};
+  });
+  function toast(msg){$toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400);}
 
-function renderPlayer(){
-    var pdiv = document.getElementById('player-actor');
-    var cssX = player.x*TILE + (TILE-28)/2;
-    var cssY = player.y*TILE + TILE-44;
-    if(!pdiv){
-        var layer = document.getElementById('map-layer');
-        var color = {skin:'#ffe0bd',hair:'#3d2817',cloth:'#1a5276'};
-        var h = genActorHTML('player-actor',player.x,player.y,color,'少侠','player');
-        layer.insertAdjacentHTML('beforeend',h);
-        pdiv = document.getElementById('player-actor');
+  // ===== 离线收益 =====
+  var now=Date.now();
+  if(state.lastSeen){
+    var off=G.BALANCE.offlineGain(state,now);
+    if(off.xp>0||off.gold>0){
+      var potOff=Math.round(off.xp*0.8);
+      addXp(off.xp); state.pot+=potOff; state.gold+=off.gold;
+      log('【离线】你离营 '+off.minutes+' 刻，部众替你操演，得修为 '+off.xp+'、潜能 '+potOff+'、银两 '+off.gold+'。','sys');
     }
-    pdiv.style.left = cssX+'px';
-    pdiv.style.top = cssY+'px';
-    pdiv.className = 'actor player idle';
-
-    var loc = areaName(player.x,player.y);
-    document.getElementById('loc-name').textContent = loc;
-    updateStats();
-    updateCamera();
-}
-
-// ==================== 镜头跟随 ====================
-function updateCamera(){
-    var viewport = document.getElementById('map-viewport');
-    var mlayer = document.getElementById('map-layer');
-    var vw = viewport.clientWidth;
-    var vh = viewport.clientHeight;
-    var mw = MAP_W * TILE;  // 560
-    var mh = MAP_H * TILE;  // 400
-
-    // 主角在地图上的像素中心
-    var px = player.x * TILE + TILE/2;
-    var py = player.y * TILE + TILE/2;
-
-    // 如果地图比视口小，居中显示
-    var tx, ty;
-    if(mw <= vw){
-        tx = (vw - mw) / 2;
-    } else {
-        tx = vw/2 - px;
-        tx = Math.max(vw - mw, Math.min(0, tx));
-    }
-    if(mh <= vh){
-        ty = (vh - mh) / 2;
-    } else {
-        ty = vh/2 - py;
-        ty = Math.max(vh - mh, Math.min(0, ty));
-    }
-
-    mlayer.style.transform = 'translate('+Math.round(tx)+'px,'+Math.round(ty)+'px)';
-}
-
-function updateStats(){
-    var hpPct = (player.hp/player.maxHp*100).toFixed(1);
-    var mpPct = (player.mp/player.maxMp*100).toFixed(1);
-    var expPct = (player.exp/player.expNeed*100).toFixed(1);
-    document.getElementById('s-hp').textContent = player.hp+'/'+player.maxHp;
-    document.getElementById('s-mp').textContent = player.mp+'/'+player.maxMp;
-    document.getElementById('s-hpbar').style.width = hpPct+'%';
-    document.getElementById('s-mpbar').style.width = mpPct+'%';
-    document.getElementById('s-expbar').style.width = expPct+'%';
-    document.getElementById('s-atk').textContent = player.atk;
-    document.getElementById('s-gold').textContent = player.gold;
-    document.getElementById('s-lv').textContent = 'Lv.'+player.level;
-    document.getElementById('s-exp').textContent = 'EXP:'+player.exp+'/'+player.expNeed;
-}
-
-// ==================== 移动 ====================
-function execMove(dx, dy){
-    if(!gameStarted || inBattle) return;
-    var nx = player.x + dx, ny = player.y + dy;
-
-    // 地图边界=切换地图
-    if(nx<0||nx>=MAP_W||ny<0||ny>=MAP_H){
-        var mc = allMaps[currentMap].connections;
-        if(ny<0 && mc.north) switchMap(mc.north, player.x, allMaps[mc.north].data.length-1);
-        else if(ny>=MAP_H && mc.south) switchMap(mc.south, player.x, 0);
-        else if(nx<0 && mc.west) switchMap(mc.west, allMaps[mc.west].data[0].length-1, player.y);
-        else if(nx>=MAP_W && mc.east) switchMap(mc.east, 0, player.y);
-        return;
-    }
-    // 不可通行
-    var t=mapData[ny][nx];
-    if(t==='W'||t==='C') return;
-
-    // 检查敌人
-    var en = enemies.find(function(v){
-        return v.x===nx && v.y===ny && !deadEnemies[v.id];
-    });
-    if(en){startBattle(enemies.indexOf(en));return;}
-
-    player.x=nx;player.y=ny;
-    var pdiv=document.getElementById('player-actor');
-    pdiv.className='actor player walk';
-    if(walkTimer) clearTimeout(walkTimer);
-    walkTimer=setTimeout(function(){pdiv.className='actor player idle';},350);
-
-    renderPlayer();
-    updateCamera();
-    checkNpcProximity();
-}
-
-function _startMoveLoop(){
-    if(_keyMoveInterval) return;
-    // 立刻执行第一步
-    _doMoveStep();
-    _keyMoveInterval = setInterval(_doMoveStep, _keyMoveThrottle);
-}
-
-function _stopMoveLoop(){
-    if(_keyMoveInterval){ clearInterval(_keyMoveInterval); _keyMoveInterval = null; }
-}
-
-function _doMoveStep(){
-    if(inBattle) return;
-    if(document.getElementById('dialog-box').style.display==='block') return;
-    if(_keyHeld['w']||_keyHeld['arrowup']) execMove(0,-1);
-    else if(_keyHeld['s']||_keyHeld['arrowdown']) execMove(0,1);
-    else if(_keyHeld['a']||_keyHeld['arrowleft']) execMove(-1,0);
-    else if(_keyHeld['d']||_keyHeld['arrowright']) execMove(1,0);
-    else _stopMoveLoop();
-}
-
-document.addEventListener('keydown',function(e){
-    if(!gameStarted) return;
-    if(inBattle) return;
-    if(document.getElementById('dialog-box').style.display==='block'){
-        if(e.key==='Escape' || e.key===' ' || e.key==='e'){
-            closeDialog();
-        }
-        return;
-    }
-
-    var k = e.key.toLowerCase();
-    if(k===' '||k==='e'){ interact(); return; }
-
-    // 只处理移动键
-    if(!_keyHeld[k] && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].indexOf(k)>=0){
-        _keyHeld[k] = true;
-        e.preventDefault();
-        _startMoveLoop();
-    }
-});
-
-document.addEventListener('keyup',function(e){
-    var k = e.key.toLowerCase();
-    if(_keyHeld[k]){
-        _keyHeld[k] = false;
-        // 检查是否还有其他移动键按下
-        var anyHeld = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(function(kk){return _keyHeld[kk];});
-        if(!anyHeld) _stopMoveLoop();
-    }
-});
-
-// ==================== NPC交互 ====================
-function checkNpcProximity(){
-    for(var i=0;i<npcs.length;i++){
-        var n=npcs[i];
-        if(Math.abs(player.x-n.x)<=1 && Math.abs(player.y-n.y)<=1){
-            showHint('按空格与'+n.name+'对话');
-            return;
-        }
-    }
-    hideHint();
-}
-
-function interact(){
-    if(!gameStarted) return;
-    for(var i=0;i<npcs.length;i++){
-        var n=npcs[i];
-        if(Math.abs(player.x-n.x)<=1 && Math.abs(player.y-n.y)<=1){
-            curNpc=i;
-            // 根据任务状态自动跳转到对应对话
-            curNpcDi=getNpcStartDialog(i);
-            showDialog(n.dialogs[curNpcDi]);
-            return;
-        }
-    }
-    // 检查演武场治疗
-    if(mapData[player.y][player.x]==='A'){
-        showHint('🧘 在演武场调息，气血内力完全恢复！');
-        player.hp=player.maxHp;player.mp=player.maxMp;
-        updateStats();
-    }
-    // 检查敌人(同格)
-    var en=enemies.find(function(v){return v.x===player.x && v.y===player.y && !deadEnemies[v.id];});
-    if(en){startBattle(enemies.indexOf(en));}
-}
-
-function showDialog(d){
-    var box=document.getElementById('dialog-box');
-    var n = npcs[curNpc];
-    document.getElementById('dialog-speaker').textContent=n.name;
-    document.getElementById('dialog-text').textContent=d.s;
-    // 像素头像
-    setDialogPixel(n.id);
-    var choices=document.getElementById('dialog-choices');
-    choices.innerHTML='';
-
-    if(d.heal){
-        choices.innerHTML='<button class="dchoice" onclick="doHeal()">有劳大师</button>'+
-            '<button class="dchoice" onclick="closeDialog()">不必了</button>';
-    }else if(d.q){
-        if(!player.quests[d.q]){
-            choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">义不容辞</button>'+
-                '<button class="dchoice" onclick="closeDialog()">容我再想想</button>';
-        }else if(d.t2 && quests[d.q].done && !quests[d.q].rewardClaimed){
-            choices.innerHTML='<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取报酬</button>'+
-                '<button class="dchoice" onclick="closeDialog()">告辞</button>';
-        }
-    }else if(d.buy){
-        choices.innerHTML='<button class="dchoice" onclick="buyItem()">买行军散(10钱)</button>'+
-            '<button class="dchoice" onclick="closeDialog()">不了，告辞</button>';
-    }
-
-    if(!choices.innerHTML){
-        choices.innerHTML='<button class="dchoice" onclick="nextDialog()">继续</button>';
-    }
-    box.style.display='block';
-}
-
-function doHeal(){
-    player.hp=player.maxHp;player.mp=player.maxMp;
-    sfxHeal();
-    showHint('🧘 大师诵经祈福，你感到浑身舒畅！');
-    closeDialog();
-    updateStats();
-}
-
-function getNpcStartDialog(npcIdx){
-    var n=npcs[npcIdx];
-    // 武师：根据任务进度自动跳转
-    if(n.id==='master'){
-        // quest_1已接正在进行中 → 询问进度
-        if(player.quests.quest_1 && !quests.quest_1.done) return 2;
-        // quest_1已完成未领报酬 → 领取报酬
-        if(player.quests.quest_1 && quests.quest_1.done && !quests.quest_1.rewardClaimed) return 1;
-        // quest_1报酬已领，quest_2未接 → quest_2介绍
-        if(player.quests.quest_1 && quests.quest_1.rewardClaimed && !player.quests.quest_2) return 3;
-        // quest_2已接正在进行中 → 询问进度
-        if(player.quests.quest_2 && !quests.quest_2.done) return 5;
-        // quest_2已完成未领报酬 → 领取报酬
-        if(player.quests.quest_2 && quests.quest_2.done && !quests.quest_2.rewardClaimed) return 4;
-        // 全部完成 → 开头
-        return 0;
-    }
-    // 镖师：quest_2完成后可接quest_3，quest_3完成可领报酬
-    if(n.id==='escort'){
-        // quest_3已接，已完成，未领报酬 → 领取报酬
-        if(player.quests.quest_3 && quests.quest_3.done && !quests.quest_3.rewardClaimed) return 1;
-        // quest_3报酬已领 → 闲聊
-        if(player.quests.quest_3 && quests.quest_3.rewardClaimed) return 0;
-        // quest_2完成，quest_3未接 → 接quest_3
-        if(player.quests.quest_2 && quests.quest_2.done && !player.quests.quest_3) return 1;
-        return 0;
-    }
-    return 0;
-}
-function findNextDialog(npcIdx, curDi){
-    var next=curDi+1;
-    if(next>=npcs[npcIdx].dialogs.length) return -1;
-    var nd=npcs[npcIdx].dialogs[next];
-    // 跳过已接取的任务对话
-    if(nd.q && player.quests[nd.q]) return -1;
-    // 武师：从进度询问跳下一段需对应任务已完成
-    var n=npcs[npcIdx];
-    if(n.id==='master' && curDi===2 && !quests.quest_1.done) return -1;
-    if(n.id==='master' && curDi===5 && !quests.quest_2.done) return -1;
-    return next;
-}
-function advanceToDialog(idx){
-    curNpcDi=idx;
-    var d=npcs[curNpc].dialogs[curNpcDi];
-    showDialog(d);
-}
-function nextDialog(){
-    var d=npcs[curNpc].dialogs[curNpcDi];
-    if(d.t){
-        document.getElementById('dialog-text').textContent=d.t;
-        var choices=document.getElementById('dialog-choices');
-        if(d.q){
-            if(player.quests[d.q] && quests[d.q].done && d.t2 && !quests[d.q].rewardClaimed){
-                choices.innerHTML='<button class="dchoice" onclick="nextDialog2()">继续</button>';
-            }else if(!player.quests[d.q]){
-                choices.innerHTML='<button class="dchoice" onclick="acceptQuest(\''+d.q+'\')">义不容辞</button>'+
-                    '<button class="dchoice" onclick="closeDialog()">容我再想想</button>';
-            }else{
-                choices.innerHTML='<button class="dchoice" onclick="closeDialog()">好</button>';
-            }
-        }else if(d.buff || d.t2){
-            choices.innerHTML='<button class="dchoice" onclick="nextDialog2()">继续</button>';
-        }else{
-            var nextDi=findNextDialog(curNpc,curNpcDi);
-            if(nextDi>=0){
-                choices.innerHTML='<button class="dchoice" onclick="advanceToDialog('+nextDi+')">继续</button>';
-            }else{
-                choices.innerHTML='<button class="dchoice" onclick="closeDialog()">告辞</button>';
-            }
-        }
-    }else{
-        closeDialog();
-    }
-}
-
-function nextDialog2(){
-    var d=npcs[curNpc].dialogs[curNpcDi];
-    document.getElementById('dialog-text').textContent=d.t2;
-    // 处理buff（隐士只能领一次）
-    if(d.buff){
-        var n=npcs[curNpc];
-        if(n.id==='hermit' && player.hermitBuffed){
-            document.getElementById('dialog-text').textContent='这套吐纳之法你已融会贯通，无需再学了。';
-            document.getElementById('dialog-choices').innerHTML='<button class="dchoice" onclick="closeDialog()">多谢前辈</button>';
-            updateStats();
-            return;
-        }
-        if(d.buff.mp){player.maxMp+=d.buff.mp;player.mp=Math.min(player.mp+d.buff.mp,player.maxMp);showHint('💠 内力上限+'+d.buff.mp+'！');}
-        if(d.buff.hp){player.maxHp+=d.buff.hp;player.hp=Math.min(player.hp+d.buff.hp,player.maxHp);showHint('❤️ 气血上限+'+d.buff.hp+'！');}
-        if(n.id==='hermit') player.hermitBuffed=true;
-        updateStats();
-    }
-    if(d.q){
-        document.getElementById('dialog-choices').innerHTML=
-            '<button class="dchoice" onclick="claimReward(\''+d.q+'\')">领取报酬</button>'+
-            '<button class="dchoice" onclick="closeDialog()">告辞</button>';
-    }else{
-        document.getElementById('dialog-choices').innerHTML=
-            '<button class="dchoice" onclick="closeDialog()">多谢前辈</button>';
-    }
-}
-
-function acceptQuest(q){
-    player.quests[q]=true;
-    sfxQuest();
-    quests[q].progress = killCounts[q==='quest_1'?'bandit':q==='quest_2'?'bully':'boss'];
-    if(quests[q].progress >= quests[q].target){
-        quests[q].done = true;
-        showModal('📜 任务已接受','【'+quests[q].name+'】\n'+quests[q].desc+'\n\n✅ 你已完成此任务的要求！\n速去领取报酬吧！');
-    }else{
-        showModal('📜 任务已接受','【'+quests[q].name+'】\n'+quests[q].desc+'\n\n目标: '+quests[q].progress+'/'+quests[q].target+'\n报酬: '+quests[q].rewardGold+'五铢钱 +'+quests[q].rewardExp+'修为');
-    }
-    closeDialog();
-}
-
-function claimReward(q){
-    if(quests[q].rewardClaimed){showHint('报酬已领取过了！');closeDialog();return;}
-    quests[q].rewardClaimed=true;
-    var qd=quests[q];
-    player.gold+=qd.rewardGold;
-    player.exp+=qd.rewardExp;
-    sfxCoin();
-    var lvUp=checkLevelUpSilent();
-    var txt='【'+qd.name+'】完成！\n\n';
-    txt+='💰 五铢钱 +'+qd.rewardGold+'\n';
-    txt+='✨ 修为 +'+qd.rewardExp;
-    if(lvUp>0) txt+='\n\n🎉 威名远扬！等级提升至'+player.level+'级！';
-    showModal('🏆 任务完成',txt);
-    closeDialog();
-}
-
-function closeDialog(){
-    document.getElementById('dialog-box').style.display='none';
-    updateStats();
-}
-
-function buyItem(){
-    if(player.gold<10){showHint('五铢钱不够!');closeDialog();return;}
-    player.gold-=10;
-    addItem('potion',1);
-    sfxCoin();
-    showHint('💊 购得行军散一包!');
-    updateStats();
-}
-
-// ==================== 战斗 ====================
-function startBattle(ei){
-    enemyIdx=ei;
-    var e=enemies[ei];
-    enemyHp=e.hp;enemyMaxHp=e.hp;
-    inBattle=true;
-
-    document.getElementById('battle-panel').style.display='flex';
-    document.getElementById('be-name').textContent=e.name;
-    document.getElementById('be-hp').textContent=enemyHp;
-    document.getElementById('be-maxhp').textContent=enemyMaxHp;
-    document.getElementById('be-hpbar').style.width='100%';
-    document.getElementById('bp-hp').textContent=player.hp;
-    document.getElementById('bp-maxhp').textContent=player.maxHp;
-    document.getElementById('bp-mp').textContent=player.mp;
-    document.getElementById('bp-maxmp').textContent=player.maxMp;
-    document.getElementById('bp-hpbar').style.width=(player.hp/player.maxHp*100)+'%';
-    document.getElementById('bp-mpbar').style.width=(player.mp/player.maxMp*100)+'%';
-    document.getElementById('battle-log').textContent='⚔️ 狭路相逢！'+e.name+'挡在了你的面前！';
-    sfxStart();
-
-    // 像素战斗立绘
-    setBattlePixel(e.type);
-}
-
-function disableBattleBtns(){
-    var btns=document.querySelectorAll('#battle-actions .bact-btn');
-    for(var i=0;i<btns.length;i++) btns[i].disabled=true;
-}
-function enableBattleBtns(){
-    var btns=document.querySelectorAll('#battle-actions .bact-btn');
-    for(var i=0;i<btns.length;i++) btns[i].disabled=false;
-}
-
-function shakeChar(sel,heavy){
-    var el=document.querySelector(sel);
-    if(!el)return;
-    el.classList.remove('shake','shake-heavy');
-    void el.offsetWidth;
-    el.classList.add(heavy?'shake-heavy':'shake');
-    setTimeout(function(){el.classList.remove('shake','shake-heavy');},heavy?550:400);
-}
-function flashChar(sel){
-    var el=document.querySelector(sel);
-    if(!el)return;
-    el.classList.remove('flash');
-    void el.offsetWidth;
-    el.classList.add('flash');
-    setTimeout(function(){el.classList.remove('flash');},300);
-}
-
-function battleAction(act){
-    var e=enemies[enemyIdx];
-    var log=document.getElementById('battle-log');
-
-    if(act==='flee'){
-        if(Math.random()<0.5){
-            log.textContent='💨 轻功施展，脱离了战斗！';
-            sfxFlee();
-            endBattle(false);
-        }else{
-            log.textContent='❌ 逃脱失败！';
-            sfxHit();
-            shakeChar('.battle-char:first-child');
-            enemyTurn();
-        }
-        return;
-    }
-
-    if(act==='atk'){
-        var rng=Math.floor(Math.random()*7);
-        var crit=rng>=5?2:1;
-        var dmg=Math.max(1,(player.atk-e.def)*crit+Math.floor(Math.random()*5));
-        enemyHp-=dmg;
-        log.textContent='⚔️ 一剑挥出，造成 '+dmg+' 点伤害！'+(crit>1?' 【会心一击！】':'');
-        if(crit>1){sfxCrit();shakeChar('#battle-panel .battle-char:last-child',true);flashChar('#battle-panel .battle-char:last-child');}
-        else{sfxSword();shakeChar('#battle-panel .battle-char:last-child');}
-    }
-
-    if(act==='skill'){
-        if(player.mp<10){log.textContent='💠 内力不足！需要10点内力';return;}
-        player.mp-=10;
-        sfxSkill();
-        disableBattleBtns();
-        doSkillMultiHit(e,log);
-        return;
-    }
-
-    if(act==='item'){
-        if(getTotalItems()<=0){
-            log.textContent='❌ 行囊空空，无物可用！';
-            return;
-        }
-        openBackpack(true);
-        return;
-    }
-
-    updateBattleUI();
-
-    if(enemyHp<=0){
-        log.textContent='🎉 '+e.name+' 被击败了！';
-        endBattle(true);
-        return;
-    }
-    enemyTurn();
-}
-
-function doSkillMultiHit(e,log){
-    // 三连斩：总伤害不变，分三次打出
-    var baseDmg=Math.max(3,Math.floor(player.atk*2.2)-e.def*3+Math.floor(Math.random()*10));
-    var hits=3;
-    var remaining=baseDmg;
-    var hitDmgs=[];
-    for(var i=0;i<hits;i++){
-        var hdmg=Math.max(1,Math.floor(remaining/(hits-i)));
-        remaining-=hdmg;
-        hitDmgs.push(hdmg);
-    }
-
-    var names=['横扫千军','穿心一枪','回马一枪'];
-    var delay=0;
-    function doHit(i){
-        if(i>=hits||enemyHp<=0||!inBattle){
-            enableBattleBtns();
-            if(enemyHp<=0&&inBattle){
-                log.textContent='🎉 '+e.name+' 被击败了！';
-                endBattle(true);
-            }
-            return;
-        }
-        enemyHp-=hitDmgs[i];
-        sfxSlash(); // 斩击音效与伤害同步
-        log.textContent='🗡️ 霸王枪·'+names[i]+'！造成 '+hitDmgs[i]+' 点伤害！(消耗10内力)';
-        shakeChar('#battle-panel .battle-char:last-child',i===2);
-        updateBattleUI();
-
-        if(enemyHp<=0){
-            log.textContent='🎉 '+e.name+' 被击败了！';
-            enableBattleBtns();
-            endBattle(true);
-            return;
-        }
-        if(i<hits-1){
-            setTimeout(function(){doHit(i+1);},200);
-        }else{
-            setTimeout(function(){
-                enableBattleBtns();
-                if(inBattle && enemyHp>0) enemyTurn();
-            },220);
-        }
-    }
-    setTimeout(function(){doHit(0);},80);
-}
-
-function enemyTurn(){
-    var e=enemies[enemyIdx];
-    var dmg=Math.max(1,e.atk-player.def+Math.floor(Math.random()*5));
-    var crit=false;
-    if(Math.random()<0.12){dmg=Math.floor(dmg*1.8);crit=true;}
-    player.hp-=dmg;
-    document.getElementById('battle-log').textContent+='\n'+e.name+'反击，造成 '+dmg+' 点伤害！'+(crit?' 【重击！】':'');
-    sfxHit();
-    if(crit){shakeChar('#battle-panel .battle-char:first-child',true);}
-    else{shakeChar('#battle-panel .battle-char:first-child');}
-    updateBattleUI();
-
-    if(player.hp<=0){
-        player.hp=1;
-        sfxDefeat();
-        document.getElementById('battle-log').textContent='💀 你倒在了血泊中...被过路商队救回了颍川';
-        endBattle(false);
-        player.x=9;player.y=3;
-        buildMap();
-        renderPlayer();
-        showModal('💀 力竭倒下','你被敌人击败了！\n\n被过路商队救回了颍川，气血恢复至1。\n回去调息修养后再来报仇吧！');
-    }
-}
-
-function updateBattleUI(){
-    document.getElementById('be-hp').textContent=Math.max(0,enemyHp);
-    document.getElementById('be-hpbar').style.width=(Math.max(0,enemyHp)/enemyMaxHp*100)+'%';
-    document.getElementById('bp-hp').textContent=Math.max(0,player.hp);
-    document.getElementById('bp-hpbar').style.width=(Math.max(0,player.hp)/player.maxHp*100)+'%';
-    document.getElementById('bp-mp').textContent=player.mp;
-    document.getElementById('bp-mpbar').style.width=(player.mp/player.maxMp*100)+'%';
-    // 同步底部状态栏
-    document.getElementById('s-hp').textContent=Math.max(0,player.hp)+'/'+player.maxHp;
-    document.getElementById('s-mp').textContent=player.mp+'/'+player.maxMp;
-    document.getElementById('s-hpbar').style.width=(Math.max(0,player.hp)/player.maxHp*100)+'%';
-    document.getElementById('s-mpbar').style.width=(player.mp/player.maxMp*100)+'%';
-}
-
-function endBattle(won){
-    var e=enemies[enemyIdx];
-    if(won){
-        sfxVictory();
-        player.exp+=e.exp;
-        player.gold+=e.gold;
-
-        // 标记敌人死亡，不再重生
-        deadEnemies[e.id]=true;
-
-        // 击杀计数
-        if(e.type==='bandit') killCounts.bandit++;
-        if(e.type==='bully') killCounts.bully++;
-        if(e.type==='guard') killCounts.guard++;
-        if(e.type==='boss') killCounts.boss++;
-
-        // 任务进度
-        var questDone=false;
-        if(player.quests.quest_1 && !quests.quest_1.done && e.type==='bandit'){
-            quests.quest_1.progress++;
-            if(quests.quest_1.progress>=quests.quest_1.target){
-                quests.quest_1.done=true;
-                questDone=true;
-            }
-        }
-        if(player.quests.quest_2 && !quests.quest_2.done && e.type==='bully'){
-            quests.quest_2.progress++;
-            if(quests.quest_2.progress>=quests.quest_2.target){
-                quests.quest_2.done=true;
-                questDone=true;
-            }
-        }
-        if(e.type==='boss'){
-            if(player.quests.quest_3 && !quests.quest_3.done){
-                quests.quest_3.progress++;
-                if(quests.quest_3.progress>=quests.quest_3.target){
-                    quests.quest_3.done=true;
-                    questDone=true;
-                }
-            }
-        }
-        var lvUp=checkLevelUpSilent();
-
-        // ===== 战斗结算弹窗 =====
-        var resultTxt='⚔️ '+e.name+' 已被击败！\n\n';
-        resultTxt+='💰 五铢钱 +'+e.gold+'\n';
-        resultTxt+='✨ 修为 +'+e.exp;
-        if(lvUp>0) resultTxt+='\n\n🎉 威名远扬！等级提升至'+player.level+'级！';
-        if(questDone) resultTxt+='\n\n📜 有任务目标已达成！回去领赏吧。';
-        showModal('🎉 战斗胜利',resultTxt);
-    }
-
-    document.getElementById('battle-panel').style.display='none';
-    inBattle=false;
-    enemyIdx=null;
-    updateStats();
-    buildMap();
-    renderPlayer();
-}
-
-function checkLevelUpSilent(){
-    var gained=0;
-    while(player.exp>=player.expNeed){
-        player.exp-=player.expNeed;
-        player.level++;
-        player.expNeed=Math.floor(player.expNeed*1.6);
-        player.maxHp+=22;player.hp=player.maxHp;
-        player.maxMp+=12;player.mp=player.maxMp;
-        player.atk+=4;player.def+=2;
-        gained++;
-        sfxLevelUp();
-    }
-    return gained;
-}
-
-// ==================== UI辅助 ====================
-function meditate(){
-    if(player.gold<15){showHint('💰 需要15枚五铢钱');return;}
-    player.gold-=15;
-    player.hp=Math.min(player.maxHp,player.hp+50);
-    player.mp=Math.min(player.maxMp,player.mp+20);
-    sfxHeal();
-    showHint('🧘 打坐调息一番，恢复50气血和20内力');
-    updateStats();
-}
-
-function saveGame(){
-    saveGameData();
-    // 更新开场界面加载按钮
-    initTitleScreen();
-}
-
-function showInventory(){
-    openBackpack(false);
-}
-
-// ==================== 背包系统 ====================
-var bagInBattle = false;
-var bagSelectedId = null;
-
-function openBackpack(inBattle){
-    bagInBattle = !!inBattle;
-    bagSelectedId = null;
-    document.getElementById('bp-gold').textContent = player.gold;
-    document.getElementById('bp-detail').innerHTML = '<span class="empty-hint">点击道具查看详情</span>';
-    document.getElementById('bp-btn-use').disabled = true;
-    document.getElementById('bp-btn-discard').disabled = true;
-    document.getElementById('backpack-modal').classList.add('show');
-    renderBackpackGrid();
-}
-
-function closeBackpack(){
-    document.getElementById('backpack-modal').classList.remove('show');
-    bagSelectedId = null;
-    bagInBattle = false;
-}
-
-function renderBackpackGrid(){
-    var grid = document.getElementById('bp-grid');
-    var html = '';
-    // 只显示已拥有的道具
-    for(var k in ITEM_DB){
-        var def = ITEM_DB[k];
-        var count = getItemCount(def.id);
-        if(count <= 0) continue; // 跳过未拥有的
-        var selCls = (bagSelectedId === def.id) ? ' selected' : '';
-        html += '<div class="bp-slot rarity-'+def.rarity+selCls+'" onclick="selectBagItem(\''+def.id+'\')">';
-        html += '<span class="icon">'+def.icon+'</span>';
-        html += '<span class="name">'+def.name+'</span>';
-        html += '<span class="count">x'+count+'</span>';
-        html += '</div>';
-    }
-    if(!html) html = '<div style="grid-column:1/-1;text-align:center;color:#666;padding:20px;">行囊空空</div>';
-    grid.innerHTML = html;
-}
-
-function selectBagItem(id){
-    bagSelectedId = id;
-    renderBackpackGrid();
-    var def = getItemDef(id);
-    var count = getItemCount(id);
-    var detail = document.getElementById('bp-detail');
-    if(count > 0){
-        var rarityTxt = ['','普通','稀有','珍品'][def.rarity] || '普通';
-        detail.innerHTML = '<b style="color:#d4a853;">'+def.icon+' '+def.name+'</b> ['+rarityTxt+']<br>'+def.desc+'<br>拥有: <b>'+count+'</b> 个';
-        document.getElementById('bp-btn-use').disabled = false;
-        document.getElementById('bp-btn-discard').disabled = false;
-    } else {
-        detail.innerHTML = '<span class="empty-hint">尚未获得此道具</span>';
-        document.getElementById('bp-btn-use').disabled = true;
-        document.getElementById('bp-btn-discard').disabled = true;
-    }
-}
-
-function useBagItem(){
-    if(!bagSelectedId) return;
-    var def = getItemDef(bagSelectedId);
-    var count = getItemCount(bagSelectedId);
-    if(count <= 0) return;
-
-    var eff = def.effect;
-    var used = false;
-    var msg = '';
-
-    if(def.type === 'heal'){
-        if(player.hp >= player.maxHp){
-            msg = '💡 气血已满，无需恢复！';
-        } else if(eff.hp === 'full'){
-            removeItem(def.id, 1);
-            player.hp = player.maxHp;
-            msg = '🧪 服下'+def.name+'，气血完全恢复！';
-            sfxHeal(); used = true;
-        } else {
-            removeItem(def.id, 1);
-            player.hp = Math.min(player.maxHp, player.hp + eff.hp);
-            msg = '💊 服下'+def.name+'，恢复 '+eff.hp+' 气血！';
-            sfxHeal(); used = true;
-        }
-    } else if(def.type === 'mp'){
-        if(player.mp >= player.maxMp){
-            msg = '💡 内力已满，无需恢复！';
-        } else {
-            removeItem(def.id, 1);
-            player.mp = Math.min(player.maxMp, player.mp + (eff.mp||20));
-            msg = '💠 服下'+def.name+'，恢复 '+(eff.mp||20)+' 内力！';
-            sfxHeal(); used = true;
-        }
-    } else if(def.type === 'gold'){
-        removeItem(def.id, 1);
-        player.gold += (eff.gold||50);
-        document.getElementById('bp-gold').textContent = player.gold;
-        msg = '💰 打开'+def.name+'，获得 '+(eff.gold||50)+' 两银子！';
-        sfxCoin(); used = true;
-    } else if(def.type === 'buff'){
-        msg = '💡 战斗中才能使用此道具！';
-    }
-
-    // 战斗中自动关闭背包
-    if(bagInBattle && used){
-        var log = document.getElementById('battle-log');
-        log.textContent = msg;
-        updateBattleUI();
-        closeBackpack();
-        if(enemyHp <= 0){
-            log.textContent = '🎉 ' + enemies[enemyIdx].name + ' 被击败了！';
-            endBattle(true);
-        } else {
-            enemyTurn();
-        }
-        return;
-    }
-
-    updateStats();
-    renderBackpackGrid();
-    selectBagItem(bagSelectedId);
-    document.getElementById('bp-detail').innerHTML = (used ? '✅ ': '') + msg + '<br>' + document.getElementById('bp-detail').innerHTML;
-}
-
-function discardBagItem(){
-    if(!bagSelectedId){
-        var dt = document.getElementById('bp-detail');
-        dt.innerHTML = '<span style="color:#e8a090;">请先选择一个道具</span>';
-        return;
-    }
-    var def = getItemDef(bagSelectedId);
-    if(!def) return;
-    var count = getItemCount(bagSelectedId);
-    if(count <= 0) return;
-    // 二次确认
-    var sure = confirm('确定要丢弃 1 个 ' + def.name + ' 吗？\n此操作不可撤销！');
-    if(!sure) return;
-    removeItem(def.id, 1);
-    updateStats();
-    renderBackpackGrid();
-    var remain = getItemCount(bagSelectedId);
-    if(remain > 0){
-        selectBagItem(bagSelectedId);
-    } else {
-        bagSelectedId = null;
-        document.getElementById('bp-detail').innerHTML = '<span class="empty-hint">已丢弃 '+def.name+'</span>';
-        document.getElementById('bp-btn-use').disabled = true;
-        document.getElementById('bp-btn-discard').disabled = true;
-    }
-}
-
-function showQuest(){
-    var txt='📜 乱世任务\n\n';
-    var hasQuest=false;
-    for(var k in quests){
-        var q=quests[k];
-        // 不显示未接的任务
-        if(!player.quests[k]) continue;
-        hasQuest=true;
-        var status=q.done ? '[✅ 已完成]' : '[进行中 '+q.progress+'/'+q.target+']';
-        txt+=status+' '+q.name+'\n';
-        txt+='  '+q.desc+'\n';
-        txt+='  报酬: '+q.rewardGold+'五铢钱 +'+q.rewardExp+'修为\n\n';
-    }
-    if(!hasQuest) txt+='暂无进行中的任务。\n前往颍川找县尉韩伯接取任务吧！\n\n';
-    txt+='击杀: 黄巾×'+killCounts.bandit+' 溃兵×'+killCounts.bully+' 西凉×'+killCounts.guard;
-    showModal('任务',txt);
-}
-
-function showHint(msg){
-    var h=document.getElementById('hint');
-    h.textContent=msg;h.style.display='block';
-    setTimeout(function(){h.style.display='none';},2200);
-}
-function hideHint(){document.getElementById('hint').style.display='none';}
-
-// ==================== 手机虚拟方向键 ====================
-function mobileDir(dir, e){
-    if(!gameStarted || inBattle) return;
-    if(document.getElementById('dialog-box').style.display==='block') return;
-    e.preventDefault();
-    mobileMoveDir = dir;
-    // 立即执行一次
-    doMobileMove();
-    // 长按持续移动
-    if(mobileMoveInterval) clearInterval(mobileMoveInterval);
-    mobileMoveInterval = setInterval(doMobileMove, 130);
-    // 高亮按钮
-    var btn = document.getElementById('mbtn-'+dir);
-    if(btn) btn.classList.add('pressed');
-}
-
-function mobileStop(e){
-    if(e) e.preventDefault();
-    mobileMoveDir = null;
-    if(mobileMoveInterval){ clearInterval(mobileMoveInterval); mobileMoveInterval = null; }
-    // 取消所有按钮高亮
-    document.querySelectorAll('.mbtn').forEach(function(b){ b.classList.remove('pressed'); });
-    var pdiv = document.getElementById('player-actor');
-    if(pdiv) pdiv.className = 'actor player idle';
-}
-
-function doMobileMove(){
-    if(!mobileMoveDir || !gameStarted || inBattle) return;
-    if(document.getElementById('dialog-box').style.display==='block') return;
-
-    var nx = player.x, ny = player.y;
-    switch(mobileMoveDir){
-        case 'up': ny--; break;
-        case 'down': ny++; break;
-        case 'left': nx--; break;
-        case 'right': nx++; break;
-    }
-
-    // 地图边界=切换地图
-    if(nx<0||nx>=MAP_W||ny<0||ny>=MAP_H){
-        var mc2 = allMaps[currentMap].connections;
-        if(ny<0 && mc2.north) switchMap(mc2.north, player.x, allMaps[mc2.north].data.length-1);
-        else if(ny>=MAP_H && mc2.south) switchMap(mc2.south, player.x, 0);
-        else if(nx<0 && mc2.west) switchMap(mc2.west, allMaps[mc2.west].data[0].length-1, player.y);
-        else if(nx>=MAP_W && mc2.east) switchMap(mc2.east, 0, player.y);
-        return;
-    }
-    var t = mapData[ny][nx];
-    if(t==='W'||t==='C') return;
-
-    // 检查敌人
-    var en = enemies.find(function(v){
-        return v.x===nx && v.y===ny && !deadEnemies[v.id];
-    });
-    if(en){
-        mobileStop({preventDefault:function(){}});
-        startBattle(enemies.indexOf(en));
-        return;
-    }
-
-    player.x = nx; player.y = ny;
-    var pdiv = document.getElementById('player-actor');
-    if(pdiv) pdiv.className = 'actor player walk';
-    if(walkTimer) clearTimeout(walkTimer);
-    walkTimer = setTimeout(function(){ if(pdiv) pdiv.className = 'actor player idle'; }, 350);
-
-    renderPlayer();
-    checkNpcProximity();
-}
-
-function mobileInteract(e){
-    if(!gameStarted || inBattle) return;
-    e.preventDefault();
-    interact();
-}
-
-function showModal(title,text){
-    document.getElementById('modal-title').textContent=title;
-    document.getElementById('modal-text').textContent=text;
-    document.getElementById('modal').classList.add('show');
-}
-function closeModal(){
-    document.getElementById('modal').classList.remove('show');
-}
-
-// ==================== 初始化 ====================
-// 移动端阻止默认手势
-document.getElementById('game').addEventListener('touchstart',function(e){
-    if(e.target.closest('#mobile-controls') || e.target.closest('#map-viewport')){
-        e.preventDefault();
-    }
-},{passive:false});
-document.addEventListener('gesturestart',function(e){ e.preventDefault(); });
-document.addEventListener('gesturechange',function(e){ e.preventDefault(); });
-
-buildMap();
-renderPlayer();
-initTitleScreen();
-// 标题界面默认显示，不自动开始
-document.getElementById('title-screen').style.display='flex';
-updateStats();
+  }
+
+  // ===== 序幕 =====
+  G.DIALOGUES.prologue.forEach(function(l){log(l,'env');});
+  log('— 颍川起兵 —','title');
+  renderStatus();
+  renderRoom(state.room || 'camp');
+
+  window.addEventListener('beforeunload',function(){state.lastSeen=Date.now();save(state);});
+  }catch(e){
+    var pre=document.createElement('pre');
+    pre.style.cssText='padding:24px;color:#c00;background:#fff;white-space:pre-wrap;font-size:13px;line-height:1.6';
+    pre.textContent=e.stack || e.message || String(e);
+    document.body.innerHTML='';
+    document.body.appendChild(pre);
+  }
+})();
 </script>
 </body>
 </html>
