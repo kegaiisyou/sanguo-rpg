@@ -15,7 +15,7 @@
       energy: 100, maxEnergy: 100,   // 精力：行动消耗，休整恢复
       food: 100, maxFood: 100,       // 食物：随行走/时间流失
       drink: 100, maxDrink: 100,     // 饮水：随行走/时间流失
-      pot: 0,                        // 潜能：操演/历练所得，修炼武学消耗
+      pot: 0,                        // 潜能：历练所得，修炼武学消耗
       karma: 0,                      // 善恶：正为侠义，负为凶名
       gold: 50,
       skills: ['basic_fist'],

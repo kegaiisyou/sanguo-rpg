@@ -9,7 +9,7 @@
     return Math.round(60 * Math.pow(1.6, level - 1));
   }
 
-  // 离线收益：按离场时长累计，封顶 OFFLINE_CAP_HOURS
+  // 离线收益（按设计文档 v2：操演部众放置内核暂未启用，仅保留函数定义备用，不再被调用）
   function offlineGain(save, now) {
     var last = save.lastSeen || now;
     var elapsedMin = Math.max(0, (now - last) / 60000);
@@ -19,16 +19,7 @@
     return { xp: xp, gold: gold, minutes: Math.round(elapsedMin) };
   }
 
-  // 每次「历练」即时收益（随等级成长）
-  function trainYield(save) {
-    return {
-      xp: Math.round(8 + save.level * 4 + (save.atk + save.def)),
-      gold: Math.round(3 + save.level * 2),
-      mp: Math.round(1 + save.level * 0.5)
-    };
-  }
-
   global.LF = global.LF || {};
-  global.LF.BALANCE = { expNeed: expNeed, offlineGain: offlineGain, trainYield: trainYield };
+  global.LF.BALANCE = { expNeed: expNeed, offlineGain: offlineGain };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.BALANCE;
 })(typeof window !== 'undefined' ? window : globalThis);

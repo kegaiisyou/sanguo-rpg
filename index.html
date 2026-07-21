@@ -411,28 +411,12 @@ window.onerror=function(msg,url,line,col,err){
   // ===== 行动分发 =====
   function handleAction(id, a){
     switch(id){
-      case 'train': actTrain(); break;
       case 'learn': openLearn(); break;
       case 'rest':  actRest(); break;
       case 'market': runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': runEvent(findEvent('ev_escapees')); break;
       case 'patrol': runEvent(G.EVENTS[Math.floor(Math.random()*G.EVENTS.length)]); break;
     }
-  }
-  function actTrain(){
-    clearActions();
-    var y=G.BALANCE.trainYield(state);
-    var potGain=Math.round(y.xp*0.8+state.level*2);
-    addXp(y.xp);
-    state.pot+=potGain;
-    state.gold+=y.gold;
-    state.mp=Math.min(state.maxMp,state.mp+(y.mp||0));
-    state.energy=Math.max(0,state.energy-6);
-    advanceTime(1);
-    log('部众操练一日，呼喝声震野。你于阵中印证所学，潜能渐增。','env');
-    log('【收获】潜能+'+potGain+'，修为+'+y.xp+'，银两+'+y.gold+'。','good');
-    maybeStarve();
-    buildActions(curRoom()); save(state); renderStatus();
   }
   function actRest(){
     clearActions();
@@ -456,7 +440,7 @@ window.onerror=function(msg,url,line,col,err){
       else{
         b.innerHTML='› '+s.name+'（耗潜能 '+s.cost+'）';
         b.onclick=function(){
-          if(state.pot<s.cost){ log('潜能不足，难窥'+s.name+'门径。可多去「操演部众」积攒潜能。','sys'); return; }
+          if(state.pot<s.cost){ log('潜能不足，难窥'+s.name+'门径。可多去历练积攒潜能。','sys'); return; }
           state.pot-=s.cost; state.skills.push(sid); applyEffect(s.effect);
           log('【习得】'+s.name+'！'+s.desc,'good');
           clearActions(); buildActions(curRoom());
@@ -518,7 +502,7 @@ window.onerror=function(msg,url,line,col,err){
         row('银两',state.gold)+
         row('善恶',karmaLabel())+
         '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
-        '<p class="tip">行止间消耗食物饮水与精力；「休整」可尽复。潜能由操演积攒，用于研习武学。</p>';
+        '<p class="tip">行止间消耗食物饮水与精力；「休整」可尽复。潜能由历练积攒，用于研习武学。</p>';
     } else if(kind==='quest'){
       h='<h3>任 务</h3>'+
         row('当前所处',curRoom().name)+
