@@ -557,16 +557,8 @@ window.onerror=function(msg,url,line,col,err){
   });
   function toast(msg){$toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400);}
 
-  // ===== 离线收益 =====
-  var now=Date.now();
-  if(state.lastSeen){
-    var off=G.BALANCE.offlineGain(state,now);
-    if(off.xp>0||off.gold>0){
-      var potOff=Math.round(off.xp*0.8);
-      addXp(off.xp); state.pot+=potOff; state.gold+=off.gold;
-      log('【离线】你离营 '+off.minutes+' 刻，部众替你操演，得修为 '+off.xp+'、潜能 '+potOff+'、银两 '+off.gold+'。','sys');
-    }
-  }
+  // ===== 离线收益（按设计文档 v2：操演部众放置内核暂未启用，仅记录时间戳，不做收益结算）=====
+  // 注：state.lastSeen 仍由 beforeunload 记录用于存档时间戳，但不再结算离线收益。
 
   // ===== 序幕 =====
   G.DIALOGUES.prologue.forEach(function(l){log(l,'env');});
