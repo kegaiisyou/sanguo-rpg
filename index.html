@@ -93,37 +93,59 @@
   .narr.item{color:#7a5a2e;background:rgba(176,131,47,.10);padding:5px 10px;border-radius:8px;font-size:14px;display:inline-block;}
   .narr.exit{color:var(--ink-soft);font-size:13.5px;border-left:3px solid var(--gold);padding-left:10px;}
 
-  /* ===== 动态按钮区（分组菜单） ===== */
+  /* ===== 动态按钮区（分组菜单 · 自适应网格） ===== */
+  /* 三层视觉分级：叙事区(浅) → 按钮区(略深+上沿分隔) → 系统dock(再深) */
   #actions{
     flex:0 0 auto;
-    display:flex;flex-wrap:wrap;gap:9px;
-    padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(100px,1fr));
+    align-items:stretch;gap:8px;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
     border-top:1px solid var(--panel-line);
-    background:linear-gradient(0deg,rgba(255,253,248,.92),rgba(255,253,248,.4));
-    backdrop-filter:blur(6px);
-    max-height:46dvh;overflow-y:auto;
+    background:linear-gradient(0deg,rgba(244,238,227,.96),rgba(250,246,237,.55));
+    box-shadow:0 -9px 18px -12px rgba(60,48,34,.24), inset 0 1px 0 rgba(255,255,255,.7);
+    max-height:50dvh;overflow-y:auto;
   }
   #actions::-webkit-scrollbar{width:0;}
-  .grp{width:100%;text-align:left;font-size:10.5px;letter-spacing:2px;color:var(--ink-faint);
-    margin:8px 0 3px 2px;font-family:"STKaiti","KaiTi",serif;opacity:.65;}
-  .grp:first-child{margin-top:0;}
+  .acts-label{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:5px;
+    color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.72;margin:1px 0 2px;}
+  .grp{grid-column:1/-1;text-align:left;font-size:10.5px;letter-spacing:2px;color:var(--ink-faint);
+    margin:7px 0 2px 2px;font-family:"STKaiti","KaiTi",serif;opacity:.65;}
+  .grp:first-child{margin-top:1px;}
   .act{
-    flex:1 1 calc(50% - 9px);min-width:130px;
-    padding:12px 13px;font-size:15px;color:var(--ink);
+    grid-column:span 1;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:9px 8px;font-size:13.5px;line-height:1.25;min-height:38px;color:var(--ink);
     font-family:"PingFang SC","Microsoft YaHei",sans-serif;
-    background:var(--btn);border:1px solid var(--btn-line);border-radius:12px;
-    cursor:pointer;transition:.18s;text-align:center;
+    background:var(--btn);border:1px solid var(--btn-line);border-radius:10px;
+    cursor:pointer;transition:.18s;
     box-shadow:var(--shadow);
   }
   .act:hover{background:rgba(158,59,46,.10);border-color:rgba(158,59,46,.4);
     box-shadow:0 0 0 3px rgba(158,59,46,.08),0 2px 14px rgba(158,59,46,.12);}
   .act:active{transform:scale(.97);}
   .act:disabled{opacity:.4;cursor:default;filter:grayscale(.4);}
-  .act.wide{flex:1 1 100%;text-align:left;
+  .act.wide{grid-column:1/-1;text-align:left;
     font-family:"STKaiti","KaiTi","Songti SC",serif;font-size:15px;
     display:flex;flex-direction:column;gap:2px;}
   .act.wide .tip{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:11.5px;color:var(--ink-faint);}
   .act.primary{background:rgba(158,59,46,.14);border-color:rgba(158,59,46,.45);color:var(--seal);font-weight:600;}
+  /* 点击展开的细节与执行选项（按钮保持紧凑，细节按需显示） */
+  .act.open{background:rgba(158,59,46,.10);border-color:rgba(158,59,46,.4);}
+  .act-detail{grid-column:1/-1;display:none;flex-direction:column;gap:8px;
+    padding:10px 11px;margin:1px 0 2px;border:1px dashed var(--btn-line);
+    border-radius:11px;background:rgba(255,253,248,.72);animation:rise .25s ease both;}
+  .act-detail .ad-tip{font-size:13px;line-height:1.65;color:var(--ink-soft);
+    font-family:"STKaiti","KaiTi","Songti SC",serif;}
+  .act-detail .ad-btns{display:flex;gap:8px;}
+  .act-detail .ad-go{flex:1;padding:9px;border:none;border-radius:9px;
+    background:rgba(158,59,46,.16);color:var(--seal);font-size:14px;font-weight:600;cursor:pointer;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
+  .act-detail .ad-go:active{transform:scale(.97);}
+  .act-detail .ad-cancel{flex:1;padding:9px;border:1px solid var(--btn-line);border-radius:9px;
+    background:var(--btn);color:var(--ink-soft);font-size:14px;cursor:pointer;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
+  .act-detail .ad-cancel:active{transform:scale(.97);}
   /* 研习武学：13 艺线分组标题 */
   .learn-line{display:flex;align-items:center;justify-content:space-between;
     margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--panel-line);}
@@ -132,11 +154,12 @@
   .learn-line .ll-lv{font-size:11.5px;color:var(--ink-faint);}
   .card .skills span.force{background:rgba(176,131,47,.16);border-color:rgba(176,131,47,.4);color:#8a6a2e;}
 
-  /* ===== 底部常驻功能栏 ===== */
+  /* ===== 底部常驻功能栏（全局面板入口，与上下文按钮再分级） ===== */
   #dock{
     flex:0 0 auto;display:flex;
-    border-top:1px solid var(--panel-line);
-    background:linear-gradient(0deg,rgba(255,253,248,.95),rgba(255,253,248,.7));
+    border-top:2px solid var(--panel-line);
+    box-shadow:0 -6px 14px -10px rgba(60,48,34,.20);
+    background:linear-gradient(0deg,rgba(240,233,220,.98),rgba(248,243,233,.85));
     backdrop-filter:blur(6px);
   }
   #dock button{
@@ -546,14 +569,37 @@ window.onerror=function(msg,url,line,col,err){
     b.className='act '+(cls||''); b.textContent=label;
     b.onclick=fn; $actions.appendChild(b);
   }
+  function prependActsLabel(){
+    var l=document.createElement('div'); l.className='acts-label';
+    l.textContent='· 可 行 之 事 ·'; $actions.appendChild(l);
+  }
+  function closeDetails(){
+    $actions.querySelectorAll('.act.open').forEach(function(o){
+      o.classList.remove('open');
+      var nx=o.nextElementSibling; if(nx&&nx.classList.contains('act-detail')) nx.style.display='none';
+    });
+  }
   function addGrouped(group,label,fn,tip){
     if(group!==lastGroup){
       var t=document.createElement('div'); t.className='grp'; t.textContent='— '+group+' —';
       $actions.appendChild(t); lastGroup=group;
     }
-    var b=document.createElement('button'); b.className='act wide';
-    b.innerHTML='› '+label+(tip?'<span class="tip">'+tip+'</span>':'');
-    b.onclick=fn; $actions.appendChild(b);
+    var b=document.createElement('button'); b.className='act'; b.textContent=label;
+    if(tip){
+      // 紧凑按钮：点击原地展开细节与「执行 / 取消」选项
+      var d=document.createElement('div'); d.className='act-detail';
+      d.innerHTML='<div class="ad-tip">'+tip+'</div>';
+      var bw=document.createElement('div'); bw.className='ad-btns';
+      var go=document.createElement('button'); go.className='ad-go'; go.textContent='执 行';
+      go.onclick=function(e){ e.stopPropagation(); closeDetails(); fn(); };
+      var cancel=document.createElement('button'); cancel.className='ad-cancel'; cancel.textContent='取 消';
+      cancel.onclick=function(e){ e.stopPropagation(); closeDetails(); };
+      bw.appendChild(go); bw.appendChild(cancel); d.appendChild(bw);
+      b.onclick=function(){ var open=!b.classList.contains('open'); closeDetails(); if(open){ b.classList.add('open'); d.style.display='flex'; } };
+      $actions.appendChild(b); $actions.appendChild(d);
+    } else {
+      b.onclick=fn; $actions.appendChild(b);
+    }
   }
 
   // ===== 房间渲染 =====
@@ -637,6 +683,7 @@ window.onerror=function(msg,url,line,col,err){
     // 优先使用场景对象卡片（如果该房间有配置）
     var objs=ROOM_OBJECTS[room.id];
     if(objs && objs.length){
+      prependActsLabel();
       objs.forEach(function(o, idx){
         var card=document.createElement('div');
         card.className='obj-card';
@@ -679,6 +726,7 @@ window.onerror=function(msg,url,line,col,err){
       return;
     }
     // fallback：旧版分组按钮（兼容无配置的房间）
+    prependActsLabel();
     (room.npcs||[]).forEach(function(k){
       var n=G.DIALOGUES.npcs[k]; if(!n) return;
       addGrouped('对话', '与'+n.name+'交谈', function(){ talk(k); });
