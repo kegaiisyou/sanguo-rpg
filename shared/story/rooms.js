@@ -14,7 +14,12 @@
       items: [],
       actions: [
         { id: 'learn', label: '研习武学', group: '行动', tip: '案上谱录，凝神参悟' },
-        { id: 'rest', label: '帐中休整', group: '行动', tip: '盹一觉，气血内力尽复' }
+        { id: 'rest', label: '帐中休整', group: '行动', tip: '盹一觉，气血内力尽复' },
+        { id: 'spar_bandit', label: '入林试炼（剿山贼）', group: '行动', tip: '实战磨砺武艺' },
+        { id: 'spar_chief', label: '讨伐流寇头目', group: '行动', tip: '战力验证（中等）' },
+        { id: 'spar_turban', label: '征讨黄巾力士', group: '行动', tip: '符箓之力（中等）' },
+        { id: 'battle_hua_xiong', label: '温酒斩华雄', group: '行动', tip: '需声望≥20·首场Boss战' },
+        { id: 'dummy_test', label: '木人桩练功', group: '行动', tip: '无损试招' }
       ]
     },
     city: {

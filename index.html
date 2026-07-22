@@ -174,6 +174,41 @@
     background:rgba(44,38,32,.9);color:#f4eee2;padding:9px 18px;border-radius:22px;font-size:13px;
     opacity:0;pointer-events:none;transition:.3s;z-index:60;}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ===== 战斗 UI ===== */
+  .c-enemy{background:rgba(158,59,46,.08);border:1px solid rgba(158,59,46,.25);
+    border-radius:12px;padding:14px 16px;margin:0 0 14px;}
+  .c-enemy .ec-top{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;}
+  .c-enemy .ec-name{font-size:17px;font-weight:700;color:var(--seal);
+    font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;}
+  .c-enemy .ec-title{font-size:12px;color:var(--ink-faint);font-weight:400;letter-spacing:0;}
+  .c-enemy .ec-hp{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);}
+  .c-enemy .ec-hp .c-bar{flex:1;height:8px;border-radius:4px;background:rgba(74,62,48,.14);overflow:hidden;}
+  .c-enemy .ec-hp .c-bar div{height:100%;border-radius:4px;transition:width .5s;}
+  .c-enemy .c-hp{background:var(--seal);}
+  .c-enemy .c-hp-warn{background:#c0762a;}
+  .c-enemy .c-hp-danger{background:#a03030;}
+  .c-enemy .ec-buffs,.c-enemy .ec-dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+  .c-enemy .ec-tag{padding:2px 8px;border-radius:10px;font-size:11px;color:var(--ink-soft);background:rgba(74,62,48,.08);}
+  .c-enemy .ec-tag.debuff{color:var(--seal);background:rgba(158,59,46,.12);}
+
+  .c-player{margin:0 0 12px;font-size:13px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px 14px;}
+  .c-player .cp-hp{color:var(--seal);font-weight:600;}
+  .c-player .cp-mp{color:var(--jade);font-weight:600;}
+  .c-player .cp-rage{color:#c0762a;font-weight:600;}
+
+  .c-round{text-align:center;font-size:12px;color:var(--ink-faint);letter-spacing:3px;
+    margin:8px 0 4px;font-family:"STKaiti","KaiTi",serif;}
+
+  .c-summary{background:rgba(63,125,94,.08);border:1px solid rgba(63,125,94,.3);border-radius:12px;
+    padding:14px 16px;margin:12px 0;text-align:center;}
+  .c-summary.win{color:var(--jade);}
+  .c-summary.lose{color:var(--seal);background:rgba(158,59,46,.08);border-color:rgba(158,59,46,.3);}
+  .c-summary .cs-title{font-size:18px;font-weight:700;letter-spacing:4px;font-family:"STKaiti","KaiTi",serif;}
+  .c-summary .cs-detail{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+
+  .act.danger{color:var(--seal);border-color:rgba(158,59,46,.45);background:rgba(158,59,46,.06);}
+  .act.danger:hover{background:rgba(158,59,46,.15);}
 </style>
 </head>
 <body>
@@ -214,6 +249,9 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/story/events.js"></script>
 <script src="shared/story/dialogues.js"></script>
 <script src="shared/story/rooms.js"></script>
+<script src="shared/data/martial.js"></script>
+<script src="shared/data/enemies.js"></script>
+<script src="shared/combat/engine.js"></script>
 <script src="shared/index.js"></script>
 <script>
 (function(){
@@ -225,11 +263,28 @@ window.onerror=function(msg,url,line,col,err){
   function load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
   function save(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
   function clearSave(){try{localStorage.removeItem(KEY);}catch(e){}}
-  // 旧存档缺字段则补默认，保证兼容
+  // 旧存档缺字段则补默认，保证兼容（v0.1 → v0.2 迁移）
   function normalize(s){
     var def=G.defaultSave();
-    for(var k in def){ if(s[k]===undefined) s[k]=def[k]; }
+    // 顶层字段补全
+    for(var k in def){
+      if(s[k]===undefined) s[k]=def[k];
+      // 深拷贝嵌套对象，防止引用污染
+      if(typeof def[k]==='object' && def[k] && !Array.isArray(def[k]) && k!=='flags'){
+        if(typeof s[k]!=='object' || !s[k] || Array.isArray(s[k])) s[k]={};
+        for(var nk in def[k]){ if(s[k][nk]===undefined) s[k][nk]=def[k][nk]; }
+      }
+    }
+    // 数组字段补默认
+    if(!Array.isArray(s.learnedMartial)) s.learnedMartial=def.learnedMartial.slice();
+    if(!Array.isArray(s.equippedForce)) s.equippedForce=[];
+    if(!Array.isArray(s.skills)) s.skills=def.skills.slice();
+    // 旧存档没有 spd 则给默认
+    if(!s.spd) s.spd=20;
+    // time 字段
     if(s.time==null) s.time=0;
+    // 确保武器艺线所有 key 存在
+    for(var l in def.lines){ if(s.lines[l]===undefined) s.lines[l]=0; }
     return s;
   }
 
@@ -416,6 +471,14 @@ window.onerror=function(msg,url,line,col,err){
       case 'market': runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': runEvent(findEvent('ev_escapees')); break;
       case 'patrol': runEvent(G.EVENTS[Math.floor(Math.random()*G.EVENTS.length)]); break;
+      // ─── 战斗试炼 ───
+      case 'spar_bandit': startCombat('bandit'); break;
+      case 'spar_chief':  startCombat('bandit_chief'); break;
+      case 'spar_turban': startCombat('yellow_turban'); break;
+      case 'battle_hua_xiong':
+        if(state.karma<20 && state.level<3){ log('时机未至——你尚无资格与华雄交锋。需声望≥20，先积攒实力。','sys'); return; }
+        startCombat('hua_xiong'); break;
+      case 'dummy_test':  startCombat('dummy'); break;
     }
   }
   function actRest(){
@@ -540,6 +603,197 @@ window.onerror=function(msg,url,line,col,err){
     b.onclick=function(){openModal(b.getAttribute('data-modal'));};
   });
   function toast(msg){$toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400);}
+
+  // HTML 注入辅助（战斗卡片用）
+  function logHTML(html, cls){
+    var p=document.createElement('p');
+    p.className='narr '+(cls||'env');
+    p.innerHTML=html;
+    $narr.appendChild(p);
+    var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
+  }
+
+  // 纯文本 log（不包裹 narr CSS 动画，用于战斗行间动态插入）
+  function logText(text, cls){
+    var p=document.createElement('p');
+    p.className='narr '+(cls||'sys');
+    p.textContent=text;
+    $narr.appendChild(p);
+    var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
+  }
+
+  // ═══════════════════════════════════════════
+  //  战 斗 系 统（v0.2 半手动回合制 + 节拍 + 战意）
+  // ═══════════════════════════════════════════
+  var combatMode=null;  // null | 'manual' | 'auto'
+  var combatAutoStrategy='optimal';
+
+  /** 开始战斗 */
+  function startCombat(enemyId){
+    var r=G.CombatEngine.init(state, enemyId);
+    if(r.error){ log(r.error,'sys'); return; }
+    combatMode='manual';
+    $narr.innerHTML='';
+    var enemy=G.CombatEngine.getEnemy();
+    log('════ 刀兵相见 ════','combat');
+    log(enemy.name+(enemy.title?' · '+enemy.title:''),'title');
+    renderCombatRound();
+  }
+
+  /** 渲染战斗卡 */
+  function renderCombatCard(){
+    var st=G.CombatEngine.getStatus();
+    var e=st.enemy, p=st.player;
+    var hpPct=Math.round(Math.max(0,e.hp)/Math.max(1,e.maxHp)*100);
+    var hpCls=hpPct>50?'c-hp':hpPct>25?'c-hp-warn':'c-hp-danger';
+
+    var bufHtml='';
+    if(e.buffs&&e.buffs.length){
+      e.buffs.forEach(function(b){ bufHtml+='<span class="ec-tag">'+(b.type==='atk'?'攻↑':'速↑')+' '+b.turns+'回合</span>'; });
+    }
+    if(e.dots&&e.dots.length){
+      e.dots.forEach(function(d){ bufHtml+='<span class="ec-tag debuff">'+d.name+' '+d.turns+'回合</span>'; });
+    }
+
+    logHTML(
+      '<div class="c-enemy">'+
+        '<div class="ec-top"><span class="ec-name">'+e.name+'</span><span class="ec-title">'+e.title+'</span></div>'+
+        '<div class="ec-hp"><span>气血</span><div class="c-bar"><div class="'+hpCls+'" style="width:'+hpPct+'%"></div></div><span>'+Math.max(0,e.hp)+'/'+e.maxHp+'</span></div>'+
+        (bufHtml?'<div class="ec-buffs">'+bufHtml+'</div>':'')+
+      '</div>'
+    ,'env');
+
+    logHTML(
+      '<div class="c-player">'+
+        '<span>▲ '+state.name+'</span>'+
+        '<span class="cp-hp">气血 '+p.hp+'/'+p.maxHp+'</span>'+
+        '<span class="cp-mp">内力 '+p.mp+'/'+p.maxMp+'</span>'+
+        '<span class="cp-rage">战意 '+p.rage+'/'+p.maxRage+'</span>'+
+      '</div>'+
+      '<div class="c-round">—— 第 '+st.round+' 回合 ——</div>'
+    ,'sys');
+  }
+
+  /** 渲染战斗回合（场景 + 按钮） */
+  function renderCombatRound(){
+    var st=G.CombatEngine.getStatus();
+    if(st.result){ endCombat(st.result); return; }
+    clearActions();
+    renderCombatCard();
+
+    // ── 战斗按钮 ──
+    var actions=G.CombatEngine.getPlayerActionList();
+    actions.forEach(function(a){
+      var tip=(a.cost&&a.cost.type==='mp'?'耗内'+a.cost.val:'')+
+              (a.cost&&a.cost.type==='rage'?'耗战意':'')+
+              (a.multiHit?' · '+a.multiHit+'段':'');
+      var cls=a.affordable?(a.type==='ultimate'?'danger':''):'disabled';
+      var prefix=a.affordable?((a.type==='ultimate'?'▸':'›')+' '):('🔒 ');
+      var label=prefix+a.name+' · '+a.beat+'拍';
+      // 统一用 '武技/招式' 分组防止重复标题
+      if(!a.affordable){ addGrouped('武技/招式',label,function(){ return; },tip); }
+      else {
+        addGrouped('武技/招式',label,
+          function(aid){ return function(){ handleCombatAction(aid); };}(a.id),
+          tip);
+      }
+    });
+
+    addGrouped('战术','⛊ 防御架势',function(){ handleCombatAction('defend'); },'减伤·回复少量内力');
+    addGrouped('战术','⇱ 撤退',function(){ handleCombatFlee(); },'速度差决定成功率');
+    addGrouped('战术','⚡ 自动战斗',function(){ startAutoBattle('optimal'); },'激进·AI代战');
+    addGrouped('战术','🛡 自动(保守)',function(){ startAutoBattle('conservative'); },'防守·稳扎稳打');
+  }
+
+  /** 处理手动战斗操作 */
+  function handleCombatAction(actionId){
+    var battleLog=G.CombatEngine.playTurn(actionId);
+    battleLog.forEach(function(entry){
+      logText(entry.text, entry.type||'env');
+    });
+    // 同步战意/内力回 state
+    var st=G.CombatEngine.getStatus();
+    state.mp=st.player.mp;
+    // 检查结束
+    if(st.result){ endCombat(st.result); return; }
+    renderCombatRound();
+  }
+
+  /** 处理逃跑 */
+  function handleCombatFlee(){
+    var r=G.CombatEngine.tryFlee();
+    log(r.text,'sys');
+    if(r.success){ endCombat('fled'); return; }
+    if(r.log) r.log.forEach(function(e){ log(e.text,e.type||'sys'); });
+    var st=G.CombatEngine.getStatus();
+    if(st.result){ endCombat(st.result); return; }
+    renderCombatRound();
+  }
+
+  /** 自动战斗 */
+  function startAutoBattle(strategy){
+    combatMode='auto';
+    combatAutoStrategy=strategy;
+    clearActions();
+    log('【自动战斗】放手一搏，交由天意——','sys');
+    var result=G.CombatEngine.autoResolve(strategy);
+    // 输出摘要（只显示攻击事件）
+    result.log.forEach(function(entry){
+      if(entry.type==='player_atk'||entry.type==='enemy_atk'||
+         entry.type==='debuff'||entry.type==='buff'||
+         entry.type==='dot'||entry.type==='counter'){
+        logText(entry.text, 'sys');
+      }
+    });
+    // 同步状态
+    var st=G.CombatEngine.getStatus();
+    state.mp=st.player.mp;
+    endCombat(result.result);
+  }
+
+  /** 战斗结束 */
+  function endCombat(result){
+    combatMode=null;
+    var st=G.CombatEngine.getStatus();
+    var enemy=G.CombatEngine.getEnemy();
+
+    // 更新玩家状态
+    state.hp=st.player.hp;
+    state.mp=st.player.mp;
+
+    if(result==='win'){
+      var drop=G.CombatEngine.getDrop();
+      state.gold+=drop.gold;
+      state.pot+=drop.pot;
+      var detail=drop.gold+'银两 · 潜能+'+drop.pot;
+      if(drop.items.length) detail+=' · '+drop.items.map(function(it){return it.name;}).join('、');
+
+      logHTML(
+        '<div class="c-summary win">'+
+          '<div class="cs-title">✦ 大胜 ✦</div>'+
+          '<div class="cs-detail">「'+enemy.name+'」败于你手！</div>'+
+          '<div class="cs-detail">'+detail+'</div>'+
+        '</div>'
+      ,'good');
+      toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
+    } else if(result==='lose'){
+      state.hp=1;
+      logHTML(
+        '<div class="c-summary lose">'+
+          '<div class="cs-title">✘ 战 败</div>'+
+          '<div class="cs-detail">眼前一黑……你重伤倒地，气若游丝。</div>'+
+        '</div>'
+      ,'combat');
+      toast('败北！气血仅余1点');
+    } else if(result==='fled'){
+      log('你已脱离战斗，回到原地。','sys');
+      toast('已脱离战斗');
+    }
+
+    // 返回房间
+    addBtn('返回',function(){ renderRoom(state.room,true); },'wide');
+    save(state); renderStatus();
+  }
 
   // ===== 离线收益（按设计文档 v2：操演部众放置内核暂未启用，仅记录时间戳，不做收益结算）=====
   // 注：state.lastSeen 仍由 beforeunload 记录用于存档时间戳，但不再结算离线收益。
