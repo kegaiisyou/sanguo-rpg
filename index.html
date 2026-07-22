@@ -279,6 +279,7 @@ window.onerror=function(msg,url,line,col,err){
   <main id="scene"><div id="narr"></div></main>
   <section id="actions"></section>
   <nav id="dock">
+    <button data-modal="char"><span class="ic">🧭</span>角色</button>
     <button data-modal="pack"><span class="ic">🎒</span>行囊</button>
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
@@ -309,7 +310,7 @@ window.onerror=function(msg,url,line,col,err){
   var SHICHEN=['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'];
 
   function load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
-  function save(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}}
+  function save(d){ if(!d||d.hp<=0||d.dead) return; try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){} }
   function clearSave(){try{localStorage.removeItem(KEY);}catch(e){}}
   // 旧存档缺字段则补默认，保证兼容（v0.1 → v0.2 迁移）
   function normalize(s){
@@ -354,6 +355,7 @@ window.onerror=function(msg,url,line,col,err){
   var state = normalize(load() || G.defaultSave());
   if(!state.sect || !G.SECTS[state.sect]){ state=G.defaultSave(); }
   G.applySect(state);
+  if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
 
   var $status=document.getElementById('status');
   var $narr=document.getElementById('narr');
@@ -504,15 +506,28 @@ window.onerror=function(msg,url,line,col,err){
     state.energy=Math.max(0,state.energy-2*n);
     maybeStarve();
   }
-  // 饥饿过高：食物/饮水耗尽则持续侵蚀气血（硬性限制）
+  // 饥饿过高：食物/饮水耗尽则持续侵蚀气血（硬性限制）；归零即殒落
   function maybeStarve(){
     var dmg=0, msgs=[];
     if(state.food<=0){ dmg+=6; msgs.push('腹中空虚'); }
     if(state.drink<=0){ dmg+=4; msgs.push('喉间干涸'); }
     if(dmg>0){
-      state.hp=Math.max(1,state.hp-dmg);
+      state.hp=Math.max(0,state.hp-dmg);
       log('〔饥馁〕'+msgs.join('，')+'，气血-'+dmg+'。','combat');
+      checkDeath();
     }
+  }
+  // 死亡：气血归零 → 回标题页（读档/重开）
+  function checkDeath(){ if(!state.dead && state.hp<=0){ die(); } }
+  function die(){
+    state.dead=true;   // 注意：不落盘（save 对 hp<=0 跳过），读档即回到死前存档
+    $modal.classList.remove('hidden');
+    $card.innerHTML='<h3 style="color:#8a3b2e">⚔ 殒 落</h3>'+
+      '<p class="tip">你气血耗尽，魂归尘土……乱世如炉，无人会记得你的姓名。</p>'+
+      '<button class="close" id="m-load">读档续命</button>'+
+      '<button class="close" id="m-new" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">重头来过</button>';
+    var ld=document.getElementById('m-load'); if(ld)ld.onclick=function(){location.reload();};
+    var nw=document.getElementById('m-new'); if(nw)nw.onclick=function(){clearSave();location.reload();};
   }
   // 体力亏空：精力耗尽则无法行动（硬性限制）
   function exert(label){
@@ -907,10 +922,12 @@ window.onerror=function(msg,url,line,col,err){
     return h;
   }
   function openModal(kind){
+    if(state.dead){ die(); return; }
     if(kind==='dev'){ renderDev(); return; }
+   try{
     var h='';
-    if(kind==='pack'){
-      h='<h3>行 囊</h3>'+
+    if(kind==='char'){
+      h='<h3>角 色</h3>'+
         row('门派',G.SECTS[state.sect].name)+
         row('等级','LV.'+state.level)+
         row('气血',state.hp+' / '+effectiveStats().maxHp)+
@@ -920,15 +937,20 @@ window.onerror=function(msg,url,line,col,err){
         row('饮水',state.drink+' / '+state.maxDrink)+
         row('潜能',state.pot)+
         row('银两',state.gold)+
-        (state.items.length
-          ? '<div class="row"><span>物品</span></div><div class="skills">'+state.items.map(function(it){return '<span>'+it.name+' ×'+(it.count||1)+'</span>';}).join('')+'</div>'
-          : row('物品','（空）'))+
         row('侠义',state.chivalry)+
         row('凶名',state.notoriety)+
         row('风评',moralTitle())+
+        row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
+        row('当前所处',curRoom().name)+
         '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
+        '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；潜能由历练积攒，用于研习武学。</p>';
+    } else if(kind==='pack'){
+      h='<h3>行 囊</h3>'+
+        (state.items.length
+          ? '<div class="row"><span>物品</span></div><div class="skills">'+state.items.map(function(it){return '<span>'+it.name+' ×'+(it.count||1)+'</span>';}).join('')+'</div>'
+          : row('物品','（空）'))+
         renderEquipPanel()+
-        '<p class="tip">行止间消耗食物饮水与精力；「休整」可尽复。潜能由历练积攒，用于研习武学。装备由战斗掉落，点击装备/卸下。</p>';
+        '<p class="tip">装备由战斗掉落，点击装备/卸下。已装备属性自动并入战斗（攻/防/气血/内力/身法）。</p>';
     } else if(kind==='quest'){
       h='<h3>任 务</h3>'+
         row('当前所处',curRoom().name)+
@@ -973,8 +995,13 @@ window.onerror=function(msg,url,line,col,err){
     $card.querySelectorAll('.eq-item[data-id]').forEach(function(el){
       el.onclick=function(){ equipItem(el.getAttribute('data-id')); };
     });
+   }catch(err){
+     $card.innerHTML='<h3>界面出错</h3><p class="tip">'+String((err&&err.message)||err)+'</p><button class="close" id="m-close">收 起</button>';
+     $modal.classList.remove('hidden');
+     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+   }
   }
-  function closeModal(){$modal.classList.add('hidden');}
+  function closeModal(){ if(state.dead){ die(); return; } $modal.classList.add('hidden'); }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   document.querySelectorAll('#dock button').forEach(function(b){
     b.onclick=function(){openModal(b.getAttribute('data-modal'));};
