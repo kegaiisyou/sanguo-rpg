@@ -53,6 +53,7 @@
   .st-top .dot{color:var(--ink-faint);}
   .st-top .sh{color:var(--seal);}
   .st-top .ka{color:var(--jade);}
+  .st-top .rp{color:var(--gold);}
   .st-bars{display:flex;align-items:center;gap:11px 14px;flex-wrap:wrap;padding-top:7px;}
   .bar{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-soft);}
   .bar>span{white-space:nowrap;font-family:"STKaiti","KaiTi",serif;}
@@ -65,6 +66,10 @@
   .st-bars .txt{display:flex;gap:10px;font-size:11.5px;color:var(--ink-soft);}
   .st-bars .txt .jade{color:var(--jade);}
   .st-bars .txt .gold{color:var(--gold);}
+  .st-bars .txt .danger{color:#c0392b;font-weight:700;}
+  .st-warn{margin-top:6px;padding:6px 9px;border-radius:8px;font-size:12px;line-height:1.5;
+    background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.35);color:#a83227;
+    font-family:"STKaiti","KaiTi","Songti SC",serif;}
 
   /* ===== 中部文字叙事窗 ===== */
   #scene{
@@ -99,8 +104,8 @@
     max-height:46dvh;overflow-y:auto;
   }
   #actions::-webkit-scrollbar{width:0;}
-  .grp{width:100%;text-align:center;font-size:11px;letter-spacing:4px;color:var(--ink-faint);
-    margin:3px 0 1px;font-family:"STKaiti","KaiTi",serif;}
+  .grp{width:100%;text-align:left;font-size:10.5px;letter-spacing:2px;color:var(--ink-faint);
+    margin:8px 0 3px 2px;font-family:"STKaiti","KaiTi",serif;opacity:.65;}
   .grp:first-child{margin-top:0;}
   .act{
     flex:1 1 calc(50% - 9px);min-width:130px;
@@ -119,6 +124,13 @@
     display:flex;flex-direction:column;gap:2px;}
   .act.wide .tip{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:11.5px;color:var(--ink-faint);}
   .act.primary{background:rgba(158,59,46,.14);border-color:rgba(158,59,46,.45);color:var(--seal);font-weight:600;}
+  /* 研习武学：13 艺线分组标题 */
+  .learn-line{display:flex;align-items:center;justify-content:space-between;
+    margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--panel-line);}
+  .learn-line:first-child{margin-top:4px;}
+  .learn-line .ll-name{font-family:"STKaiti","KaiTi",serif;font-size:14px;color:var(--seal);font-weight:600;}
+  .learn-line .ll-lv{font-size:11.5px;color:var(--ink-faint);}
+  .card .skills span.force{background:rgba(176,131,47,.16);border-color:rgba(176,131,47,.4);color:#8a6a2e;}
 
   /* ===== 底部常驻功能栏 ===== */
   #dock{
@@ -169,6 +181,13 @@
   .card .close{margin-top:18px;width:100%;padding:12px;border:none;border-radius:12px;
     background:rgba(158,59,46,.14);color:var(--seal);font-size:15px;font-weight:600;cursor:pointer;}
   .card .close:active{transform:scale(.97);}
+  .card .dev-sec{margin-top:14px;border-top:1px dashed var(--panel-line);padding-top:10px;}
+  .card .dev-h{font-size:12.5px;color:var(--ink-soft);letter-spacing:1px;margin-bottom:7px;}
+  .card .dev-btns{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+  .card .dev{padding:8px 12px;font-size:13px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);cursor:pointer;font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
+  .card .dev:hover{border-color:rgba(158,59,46,.4);}
+  .card .dev.on{background:rgba(63,125,94,.16);border-color:rgba(63,125,94,.5);color:var(--jade);}
+  .card .dev.wide{flex:1 1 100%;}
 
   #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
     background:rgba(44,38,32,.9);color:#f4eee2;padding:9px 18px;border-radius:22px;font-size:13px;
@@ -209,6 +228,34 @@
 
   .act.danger{color:var(--seal);border-color:rgba(158,59,46,.45);background:rgba(158,59,46,.06);}
   .act.danger:hover{background:rgba(158,59,46,.15);}
+
+  /* ===== 场景对象卡片 ===== */
+  .obj-card{width:100%;background:var(--btn);border:1px solid var(--btn-line);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);animation:rise .35s ease both;}
+  .obj-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:.18s;}
+  .obj-head:hover{background:rgba(158,59,46,.06);}
+  .obj-icon{font-size:22px;flex-shrink:0;line-height:1;}
+  .obj-info{flex:1;min-width:0;}
+  .obj-name{font-size:15px;font-weight:600;color:var(--ink);font-family:"STKaiti","KaiTi",serif;}
+  .obj-desc{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+  .obj-arrow{font-size:12px;color:var(--ink-faint);transition:.2s;}
+  .obj-card.open .obj-arrow{transform:rotate(180deg);}
+  .obj-actions{display:none;flex-wrap:wrap;gap:8px;padding:10px 14px 12px 48px;border-top:1px solid var(--panel-line);}
+  .obj-card.open .obj-actions{display:flex;}
+  .obj-actions .act{flex:1 1 calc(50% - 8px);min-width:100px;padding:10px 12px;font-size:14px;}
+  .obj-actions .act.full{flex:1 1 100%;}
+
+  /* ===== 装备面板 ===== */
+  .equip-slots{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+  .equip-slots .eq-slot,.equip-bag .eq-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);cursor:pointer;transition:.18s;font-size:13.5px;}
+  .equip-slots .eq-slot:hover,.equip-bag .eq-item:hover{background:rgba(158,59,46,.08);border-color:rgba(158,59,46,.35);}
+  .eq-slot.empty{color:var(--ink-faint);cursor:default;background:rgba(74,62,48,.04);}
+  .eq-slot.empty:hover{background:rgba(74,62,48,.04);border-color:var(--btn-line);}
+  .eq-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .eq-nm{flex:0 0 auto;font-weight:600;font-family:"STKaiti","KaiTi",serif;}
+  .eq-st{flex:1;color:var(--ink-soft);font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .eq-dur{font-size:11.5px;color:var(--ink-faint);flex:0 0 auto;}
+  .eq-x,.eq-w{flex:0 0 auto;font-size:12px;color:var(--seal);padding:2px 8px;border:1px solid rgba(158,59,46,.3);border-radius:8px;}
+  .equip-bag{display:flex;flex-direction:column;gap:6px;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -251,6 +298,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/story/rooms.js"></script>
 <script src="shared/data/martial.js"></script>
 <script src="shared/data/enemies.js"></script>
+<script src="shared/data/items.js"></script>
 <script src="shared/combat/engine.js"></script>
 <script src="shared/index.js"></script>
 <script>
@@ -279,12 +327,27 @@ window.onerror=function(msg,url,line,col,err){
     if(!Array.isArray(s.learnedMartial)) s.learnedMartial=def.learnedMartial.slice();
     if(!Array.isArray(s.equippedForce)) s.equippedForce=[];
     if(!Array.isArray(s.skills)) s.skills=def.skills.slice();
+    if(!Array.isArray(s.items)) s.items=[];
+    if(!Array.isArray(s.equips)) s.equips=[];
+    if(!s.equipment || typeof s.equipment!=='object') s.equipment={weapon:null,armor:null,trinket:null,mount:null};
+    ['weapon','armor','trinket','mount'].forEach(function(sl){ if(s.equipment[sl]===undefined) s.equipment[sl]=null; });
     // 旧存档没有 spd 则给默认
     if(!s.spd) s.spd=20;
     // time 字段
     if(s.time==null) s.time=0;
     // 确保武器艺线所有 key 存在
     for(var l in def.lines){ if(s.lines[l]===undefined) s.lines[l]=0; }
+    // 确保艺线经验 key 存在（P2）
+    if(!s.lineExp || typeof s.lineExp!=='object') s.lineExp={};
+    for(var l in def.lines){ if(s.lineExp[l]===undefined) s.lineExp[l]=0; }
+    // 确保善恶双轴存在（P3）：旧档 karma 单值迁移为 chivalry/notoriety
+    if(typeof s.chivalry!=='number'){
+      s.chivalry = (typeof s.karma==='number' && s.karma>0) ? s.karma : 0;
+    }
+    if(typeof s.notoriety!=='number'){
+      s.notoriety = (typeof s.karma==='number' && s.karma<0) ? (-s.karma) : 0;
+    }
+    delete s.karma;
     return s;
   }
 
@@ -314,10 +377,63 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // ===== 状态栏（两行：身份 + 数值条） =====
-  function karmaLabel(){
-    if(state.karma>0) return '侠义'+state.karma;
-    if(state.karma<0) return '凶名'+(-state.karma);
+  // P3 善恶双轨：侠义/凶名独立双轴，互不抵消
+  function moralLabel(){
+    var c=state.chivalry, n=state.notoriety;
+    if(c>0 && n>0) return '侠'+c+'·凶'+n;
+    if(c>0) return '侠'+c;
+    if(n>0) return '凶'+n;
     return '中立';
+  }
+  // 风评称号（基于双轴阈值，见 GAME_DESIGN 4.2）
+  function moralTitle(){
+    var c=state.chivalry, n=state.notoriety;
+    if(c>=40 && n>=40) return '亦正亦邪·枭雄';
+    if(c>=30 && n>=30) return '正邪莫测';
+    if(c>=30) return '清流义士';
+    if(n>=30) return '绿林枭雄';
+    if(c>=10 && n>=10) return '正邪交织';
+    if(c>=10) return '侠义新秀';
+    if(n>=10) return '初露凶名';
+    return '无名之辈';
+  }
+  // 双轴累积 + 阈值解锁提示（P3）
+  function addChivalry(v){
+    var b=state.chivalry; state.chivalry=Math.max(0,state.chivalry+(v||1));
+    afterMoral('chivalry', b, state.chivalry);
+  }
+  function addNotoriety(v){
+    var b=state.notoriety; state.notoriety=Math.max(0,state.notoriety+(v||1));
+    afterMoral('notoriety', b, state.notoriety);
+  }
+  function afterMoral(axis, before, after){
+    if(axis==='chivalry'){
+      if(before<30 && after>=30) log('【风评】侠义值达 30！清流名士敬重，可接「侠义委托」。','good');
+      if(before<40 && after>=40) log('【风评】侠义值达 40！','good');
+    } else {
+      if(before<30 && after>=30) log('【风评】凶名值达 30！影门与绿林亲近，可接「高阶悬赏」。','good');
+      if(before<40 && after>=40) log('【风评】凶名值达 40！','good');
+    }
+    if(state.chivalry>=40 && state.notoriety>=40 && !state.flags.usurper_seen){
+      state.flags.usurper_seen=true;
+      log('【风评】侠义凶名俱达 40——亦正亦邪·枭雄 之路为你敞开！','good');
+    }
+  }
+  // 声望框架：0-100，称号区间见 GAME_DESIGN 4.1（P4 起由胜战真实获取；调试台仅 ?dev=1 可直赋）
+  function repTitle(rep){
+    if(rep>=95) return '一代宗师';
+    if(rep>=85) return '名扬天下';
+    if(rep>=70) return '威震一方';
+    if(rep>=55) return '名动一方';
+    if(rep>=40) return '江湖新秀';
+    if(rep>=25) return '小有名气';
+    if(rep>=10) return '初入江湖';
+    return '无名小卒';
+  }
+  function addReputation(n){
+    var old=state.reputation;
+    state.reputation=Math.max(0,Math.min(100,state.reputation+n));
+    log('【声望】'+(state.reputation-old>=0?'+':'')+(state.reputation-old)+'（当前 '+state.reputation+' · '+repTitle(state.reputation)+'）','good');
   }
   function bar(label,cur,max,cls){
     var pct=Math.max(0,Math.min(100, max?cur/max*100:0));
@@ -326,7 +442,12 @@ window.onerror=function(msg,url,line,col,err){
   function renderStatus(){
     var sect=G.SECTS[state.sect]?G.SECTS[state.sect].name:state.sect;
     var sh=SHICHEN[state.time%12];
-    var ka = karmaLabel();
+    var ka = moralLabel();
+    var mt = moralTitle();
+    var es = effectiveStats();
+    var warn='';
+    if(state.energy<=0) warn='精力耗尽 · 无法行动（请「帐中休整」）';
+    else if(state.food<=0||state.drink<=0) warn='饥馁缠身 · 气血正被侵蚀（请「休整」补给）';
     $status.innerHTML=
       '<div class="st-top">'+
         '<span class="who">'+state.name+'</span>'+
@@ -334,14 +455,19 @@ window.onerror=function(msg,url,line,col,err){
         '<span class="dot">·</span><span>LV.'+state.level+'</span>'+
         '<span class="dot">·</span><span class="sh">'+sh+'</span>'+
         '<span class="dot">·</span><span class="ka">'+ka+'</span>'+
+        '<span class="dot">·</span><span class="rp">风评·'+mt+'</span>'+
+        '<span class="dot">·</span><span class="rp">声望'+state.reputation+'</span>'+
       '</div>'+
       '<div class="st-bars">'+
-        bar('气血',state.hp,state.maxHp,'s-hp')+
-        bar('内力',state.mp,state.maxMp,'s-mp')+
+        bar('气血',state.hp,es.maxHp,'s-hp')+
+        bar('内力',state.mp,es.maxMp,'s-mp')+
         bar('精力',state.energy,state.maxEnergy,'s-en')+
-        '<div class="txt"><span>食 '+state.food+'</span><span>水 '+state.drink+'</span>'+
-          '<span class="jade">潜 '+state.pot+'</span><span class="gold">银 '+state.gold+'</span></div>'+
-      '</div>';
+        '<div class="txt"><span'+(state.food<=0?' class="danger"':'')+'>食 '+state.food+'</span><span'+(state.drink<=0?' class="danger"':'')+'>水 '+state.drink+'</span>'+
+          '<span class="jade">潜 '+state.pot+'</span><span class="gold">银 '+state.gold+'</span>'+
+          '<span class="jade">攻 '+Math.round(es.atk)+'</span><span class="gold">防 '+Math.round(es.def)+'</span>'+
+          '<span>命 '+(es.hitRate*100).toFixed(0)+'%</span><span>暴 '+(es.critRate*100).toFixed(0)+'%</span></div>'+
+      '</div>'+
+      (warn?'<div class="st-warn">⚠ '+warn+'</div>':'');
   }
 
   // ===== 升级 / 效果结算 =====
@@ -364,6 +490,8 @@ window.onerror=function(msg,url,line,col,err){
     if(e.mp==='full'){state.mp=state.maxMp;} else if(e.mp){state.mp=Math.min(state.maxMp,state.mp+e.mp);}
     if(e.hp==='full'){state.hp=state.maxHp;got.push('气血尽复');} else if(e.hp){state.hp=Math.min(state.maxHp,state.hp+e.hp);got.push('气血+'+e.hp);}
     if(e.flag)state.flags[e.flag]=true;
+    if(e.reputation){addReputation(e.reputation);}
+    else if(e.rep){addReputation(e.rep);}
     if(got.length) log('【收获】'+got.join('，')+'。','good');
   }
   function findEvent(id){ for(var i=0;i<G.EVENTS.length;i++) if(G.EVENTS[i].id===id) return G.EVENTS[i]; return null; }
@@ -374,10 +502,25 @@ window.onerror=function(msg,url,line,col,err){
     state.food=Math.max(0,state.food-n);
     state.drink=Math.max(0,state.drink-n);
     state.energy=Math.max(0,state.energy-2*n);
+    maybeStarve();
   }
+  // 饥饿过高：食物/饮水耗尽则持续侵蚀气血（硬性限制）
   function maybeStarve(){
-    if(state.food<=0){ log('〔饥肠辘辘〕腹中空虚，气血难以为继。','sys'); state.hp=Math.max(1,state.hp-2); }
-    if(state.drink<=0){ log('〔唇焦口渴〕喉间干涸，内力运转滞涩。','sys'); state.mp=Math.max(0,state.mp-2); }
+    var dmg=0, msgs=[];
+    if(state.food<=0){ dmg+=6; msgs.push('腹中空虚'); }
+    if(state.drink<=0){ dmg+=4; msgs.push('喉间干涸'); }
+    if(dmg>0){
+      state.hp=Math.max(1,state.hp-dmg);
+      log('〔饥馁〕'+msgs.join('，')+'，气血-'+dmg+'。','combat');
+    }
+  }
+  // 体力亏空：精力耗尽则无法行动（硬性限制）
+  function exert(label){
+    if(state.energy<=0){
+      log('〔精力耗尽〕你四肢酸软，难以为继——须先「帐中休整」恢复精力，方可'+label+'。','sys');
+      return false;
+    }
+    return true;
   }
 
   // ===== 动态按钮区（分组菜单：对话 / 探查 / 行动 / 移动） =====
@@ -424,20 +567,111 @@ window.onerror=function(msg,url,line,col,err){
     buildActions(room);
     save(state); renderStatus();
   }
+  // ===== 场景对象配置：每个房间的可交互元素（人物/建筑/家具/出口） =====
+  var ROOM_OBJECTS={
+    camp:[
+      {type:'npc',   key:'hanbo',   icon:'👤', name:'县尉韩博',  desc:'按剑而立，目光如炬',                actions:[{label:'与他交谈', fn:function(){ talk('hanbo'); }}]},
+      {type:'building',key:'tent',  icon:'⛺', name:'中军大帐',  desc:'案上谱录，凝神参悟',                actions:[{label:'研习武学', fn:function(){ handleAction('learn'); }, tip:'案上谱录，凝神参悟'},
+                                                                            {label:'帐中休整', fn:function(){ actRest(); },         tip:'盹一觉，气血内力尽复'}]},
+      {type:'feature',key:'training',icon:'⚔️',name:'操练场',   desc:'乡勇操练，实战磨砺',                actions:[{label:'入林试炼（剿山贼）', fn:function(){ handleAction('spar_bandit'); }, tip:'实战磨砺武艺'},
+                                                                            {label:'讨伐流寇头目',     fn:function(){ handleAction('spar_chief'); },  tip:'战力验证（中等）'},
+                                                                            {label:'征讨黄巾力士',     fn:function(){ handleAction('spar_turban'); }, tip:'符箓之力（中等）'}]},
+      {type:'feature',key:'arena',  icon:'🏆', name:'挑战台',   desc:'温酒斩华雄，名震天下',              actions:[{label:'温酒斩华雄', fn:function(){ handleAction('battle_hua_xiong'); }, tip:'需声望≥20·首场Boss战'}]},
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川城', desc:'城门方向，市集熙攘',                actions:[{label:'前往颍川城', fn:function(){ move('北','city'); }}]},
+      {type:'exit',  dir:'东',     icon:'🌲', name:'东·北邙山林',desc:'山林幽深，黄巾余孽盘踞',           actions:[{label:'前往北邙山林', fn:function(){ move('东','forest'); }}]},
+      {type:'exit',  dir:'西',     icon:'🏞️',name:'西·溪畔草庐',desc:'溪水潺潺，水镜先生居此',           actions:[{label:'前往溪畔草庐', fn:function(){ move('西','stream'); }}]},
+      {type:'exit',  key:'luoyang_gate', icon:'🏛️', name:'南·洛阳方向', desc:'远赴洛阳，凯旋之门',        actions:[{label:'赴洛阳', fn:function(){ handleAction('visit_luoyang'); }, tip:'需先斩华雄·扬名'}]}
+    ],
+    city:[
+      {type:'npc',   key:'hualao',  icon:'👤', name:'华老',     desc:'城西医馆，正捣药',                    actions:[{label:'与他交谈', fn:function(){ talk('hualao'); }}]},
+      {type:'feature',key:'market', icon:'🏪', name:'市集',     desc:'行商云集，可交易伤药钱粮',            actions:[{label:'逛市集', fn:function(){ handleAction('market'); }, tip:'与行商交易伤药钱粮'},
+                                                                            {label:'维持治安', fn:function(){ handleAction('city_patrol'); }, tip:'驱赶城中溃兵'}]},
+      {type:'building',key:'inn',   icon:'🏨', name:'客栈',     desc:'酒楼歇脚，气血内力尽复',              actions:[{label:'客栈安歇', fn:function(){ actRest(); }, tip:'酒楼歇脚，气血内力尽复'}]},
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·颍川主营',desc:'主营方向，旌旗半卷',                actions:[{label:'返回颍川主营', fn:function(){ move('南','camp'); }}]}
+    ],
+    forest:[
+      {type:'feature',key:'deep',   icon:'🌲', name:'山林深处', desc:'深入山林，扫荡黄巾余孽',              actions:[{label:'巡山剿匪', fn:function(){ handleAction('patrol'); }, tip:'深入山林，扫荡黄巾余孽'}]},
+      {type:'feature',key:'tree',   icon:'🌳', name:'大树下',   desc:'倚树小憩，尽复状态',                  actions:[{label:'林间栖身', fn:function(){ actRest(); }, tip:'倚树小憩，尽复状态'}]},
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'西',     icon:'🚪', name:'西·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('西','camp'); }}]}
+    ],
+    stream:[
+      {type:'npc',   key:'shuijing',icon:'👤', name:'水镜先生', desc:'立于岸畔，长须随风',                  actions:[{label:'与他交谈', fn:function(){ talk('shuijing'); }}]},
+      {type:'npc',   key:'zuoci',   icon:'👤', name:'左慈',     desc:'斜倚石上，含笑不语',                  actions:[{label:'与他交谈', fn:function(){ talk('zuoci'); }}]},
+      {type:'building',key:'hut',   icon:'🏡', name:'草庐',     desc:'水镜先生邀你歇脚，尽复状态',          actions:[{label:'草庐借宿', fn:function(){ actRest(); }, tip:'水镜先生邀你歇脚，尽复状态'}]},
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'东',     icon:'🚪', name:'东·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('东','camp'); }}]}
+    ],
+    luoyang:[
+      {type:'building',key:'tavern',icon:'🍶', name:'酒肆',     desc:'太庙之前，老兵斟酒相敬',              actions:[{label:'城中休整', fn:function(){ actRest(); }, tip:'酒肆安歇，气血内力尽复'}]},
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('南','camp'); }}]}
+    ]
+  };
+
   function buildActions(room){
     clearActions();
-    // 对话
+    // 战败封锁：只许休整，其余全部隐藏
+    if(state.defeated){
+      log('〔力竭〕你重伤未愈，动弹不得——唯有「休整」方可恢复。','sys');
+      addGrouped('行动', '帐中休整', function(){ actRest(); });
+      return;
+    }
+    // 优先使用场景对象卡片（如果该房间有配置）
+    var objs=ROOM_OBJECTS[room.id];
+    if(objs && objs.length){
+      objs.forEach(function(o, idx){
+        var card=document.createElement('div');
+        card.className='obj-card';
+        card.dataset.idx=idx;
+
+        var head=document.createElement('div');
+        head.className='obj-head';
+        head.innerHTML='<span class="obj-icon">'+(o.icon||'·')+'</span>'+
+          '<div class="obj-info"><div class="obj-name">'+o.name+'</div>'+
+          '<div class="obj-desc">'+(o.desc||'')+'</div></div>'+
+          '<span class="obj-arrow">▼</span>';
+        card.appendChild(head);
+
+        var acts=document.createElement('div');
+        acts.className='obj-actions';
+        (o.actions||[]).forEach(function(ac){
+          var b=document.createElement('button');
+          b.className='act wide'+(ac.danger?' danger':'');
+          b.innerHTML='› '+ac.label+(ac.tip?'<span class="tip">'+ac.tip+'</span>':'');
+          b.onclick=function(){
+            // 点击动作后自动收起卡片，保持界面整洁
+            card.classList.remove('open');
+            ac.fn();
+          };
+          acts.appendChild(b);
+        });
+        card.appendChild(acts);
+
+        // 点击头部展开/收起
+        head.onclick=function(){
+          // 收起其他已展开的卡片（手风琴效果，可选）
+          objs.forEach(function(_, otherIdx){
+            var other=$actions.querySelector('.obj-card[data-idx="'+otherIdx+'"]');
+            if(other && other!==card) other.classList.remove('open');
+          });
+          card.classList.toggle('open');
+        };
+        $actions.appendChild(card);
+      });
+      return;
+    }
+    // fallback：旧版分组按钮（兼容无配置的房间）
     (room.npcs||[]).forEach(function(k){
       var n=G.DIALOGUES.npcs[k]; if(!n) return;
       addGrouped('对话', '与'+n.name+'交谈', function(){ talk(k); });
     });
-    // 探查
     addGrouped('探查', '环顾四周', function(){ renderRoom(state.room, true); });
-    // 行动
     (room.actions||[]).forEach(function(a){
       addGrouped('行动', a.label, function(){ handleAction(a.id, a); }, a.tip);
     });
-    // 移动
     Object.keys(room.exits||{}).forEach(function(dir){
       var tid=room.exits[dir];
       addGrouped('移动', dir+' · '+G.ROOMS[tid].name, function(){ move(dir, tid); });
@@ -446,20 +680,53 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 行走探索 =====
   function move(dir, tid){
+    if(!exert('远行')) return;
     state.energy=Math.max(0,state.energy-4);
     state.food=Math.max(0,state.food-1);
     state.drink=Math.max(0,state.drink-1);
     advanceTime(1);
     log('你朝'+dir+'方行去，沿途景物渐换……','sys');
-    maybeStarve();
     renderRoom(tid);
+  }
+
+  // ===== NPC 态度（由善恶双轴驱动，GAME_DESIGN 4.2） =====
+  function npcAttitude(k){
+    var n=G.DIALOGUES.npcs[k];
+    var align=(n&&n.align)||'neutral';
+    var c=state.chivalry, no=state.notoriety;
+    if(align==='order'){
+      if(no>=30) return '敌视';
+      if(no>=10) return '戒备';
+      if(c>=30) return '敬重';
+      if(c>=10) return '友善';
+      return '平常';
+    }
+    if(align==='shadow'){
+      if(c>=30) return '戒备';
+      if(no>=30) return '亲近';
+      if(no>=10) return '友善';
+      return '平常';
+    }
+    if(c>=30||no>=30) return '看重';
+    return '平常';
   }
 
   // ===== NPC 对话 =====
   function talk(k){
     var n=G.DIALOGUES.npcs[k];
+    if(!n) return;
+    var at=npcAttitude(k);
+    log('〔'+n.name+'·态度：'+at+'〕','npc');
+    if(at==='敌视'){
+      log(n.name+'面色不豫：「久闻壮士凶名……恕不奉陪。」说罢拂袖而去。','npc');
+      return;
+    }
     var line=n.lines[Math.floor(Math.random()*n.lines.length)];
     log(line,'npc', n.name);
+    // ── P3 双轴解锁事件 ──
+    if(k==='hanbo' && state.chivalry>=30){ var er=findEvent('ev_righteous'); if(er) runEvent(er); return; }
+    if(k==='yingmen' && state.notoriety>=30){ var es2=findEvent('ev_shadow'); if(es2) runEvent(es2); return; }
+    if(k==='shuijing' && state.chivalry>=40 && state.notoriety>=40){ var eu=findEvent('ev_usurper'); if(eu) runEvent(eu); return; }
     if(k==='hanbo' && Math.random()<0.6){ var ev=findEvent('ev_hanbo'); if(ev) runEvent(ev); }
   }
 
@@ -468,49 +735,99 @@ window.onerror=function(msg,url,line,col,err){
     switch(id){
       case 'learn': openLearn(); break;
       case 'rest':  actRest(); break;
-      case 'market': runEvent(findEvent('ev_merchant')); break;
-      case 'city_patrol': runEvent(findEvent('ev_escapees')); break;
-      case 'patrol': runEvent(G.EVENTS[Math.floor(Math.random()*G.EVENTS.length)]); break;
+      case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
+      case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
+      case 'patrol': if(!exert('深入山林')) return; 
+        var pool=['ev_escapees','ev_hermit','ev_leftci','ev_merchant','ev_hanbo'];
+        var ev2=findEvent(pool[Math.floor(Math.random()*pool.length)]);
+        if(ev2) runEvent(ev2); break;
       // ─── 战斗试炼 ───
-      case 'spar_bandit': startCombat('bandit'); break;
-      case 'spar_chief':  startCombat('bandit_chief'); break;
-      case 'spar_turban': startCombat('yellow_turban'); break;
+      case 'spar_bandit': if(!exert('应战')) return; startCombat('bandit'); break;
+      case 'spar_chief':  if(!exert('应战')) return; startCombat('bandit_chief'); break;
+      case 'spar_turban': if(!exert('应战')) return; startCombat('yellow_turban'); break;
       case 'battle_hua_xiong':
-        if(state.karma<20 && state.level<3){ log('时机未至——你尚无资格与华雄交锋。需声望≥20，先积攒实力。','sys'); return; }
+        if(!exert('应战')) return;
+        if(state.reputation < 20){ log('时机未至——声望未达 20（当前 '+state.reputation+' · '+repTitle(state.reputation)+'），先扬名立万。','sys'); return; }
         startCombat('hua_xiong'); break;
-      case 'dummy_test':  startCombat('dummy'); break;
+      case 'visit_luoyang':
+        if(!exert('远赴洛阳')) return;
+        if(!state.quest.luoyang){ log('洛阳城门紧闭——需先「温酒斩华雄」扬名立万，方得入城。','sys'); return; }
+        move('南','luoyang'); break;
     }
   }
   function actRest(){
     clearActions();
-    state.hp=state.maxHp; state.mp=state.maxMp; state.energy=state.maxEnergy;
+    var esR=effectiveStats();
+    state.hp=esR.maxHp; state.mp=esR.maxMp; state.energy=state.maxEnergy;
     state.food=state.maxFood; state.drink=state.maxDrink;
-    log('你于帐中盹了一觉，晨光熹微时醒来——气血、内力、精力皆复，饥渴亦消。','env');
+    if(state.defeated){ state.defeated=false; log('你缓缓起身，伤势渐愈，气力渐复……','good'); }
+    else { log('你于帐中盹了一觉，晨光熹微时醒来——气血、内力、精力皆复，饥渴亦消。','env'); }
     buildActions(curRoom()); save(state); renderStatus();
   }
 
-  // ===== 修炼（消耗潜能习武学） =====
+  // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){
     clearActions();
     log('【修炼】案上摊开武学谱录，你凝神参悟，耗「潜能」以窥门径：','title');
-    Object.keys(G.SKILLS).forEach(function(sid){
-      var s=G.SKILLS[sid];
-      var owned=state.skills.indexOf(sid)>=0;
-      var prereqOk=s.prereq.every(function(p){return state.skills.indexOf(p)>=0;});
-      var b=document.createElement('button'); b.className='act wide';
-      if(owned){ b.innerHTML='✓ '+s.name+'（已修）'; b.disabled=true; }
-      else if(!prereqOk){ b.innerHTML='🔒 '+s.name+'（需先修：'+s.prereq.map(function(p){return G.SKILLS[p].name;}).join('、')+'）'; b.disabled=true; }
-      else{
-        b.innerHTML='› '+s.name+'（耗潜能 '+s.cost+'）';
-        b.onclick=function(){
-          if(state.pot<s.cost){ log('潜能不足，难窥'+s.name+'门径。可多去历练积攒潜能。','sys'); return; }
-          state.pot-=s.cost; state.skills.push(sid); applyEffect(s.effect);
-          log('【习得】'+s.name+'！'+s.desc,'good');
-          clearActions(); buildActions(curRoom());
-        };
-      }
-      $actions.appendChild(b);
+    var MA=G.MARTIAL_ARTS, LINES=MA.LINES;
+    var order=Object.keys(LINES).sort(function(a,b){return LINES[a].order-LINES[b].order;});
+    order.forEach(function(lid){
+      var line=LINES[lid];
+      var list=[];
+      for(var k in MA){ var a=MA[k]; if(a&&a.id&&a.line===lid&&a.type!=='technique') list.push(a); }
+      if(!list.length) return;
+      var head=document.createElement('div'); head.className='learn-line';
+      head.innerHTML='<span class="ll-name">'+line.name+'</span><span class="ll-lv">艺线 Lv.'+(state.lines[lid]||0)+'</span>';
+      $actions.appendChild(head);
+      list.forEach(function(a){
+        var owned=state.learnedMartial.indexOf(a.id)>=0;
+        var rlm=(state.realm[a.id]||0);
+        var rname=G.MARTIAL_ARTS.REALMS[rlm];
+        var potCost=a.type==='ultimate'?50 : 20 + a.learn.lineMin*8 + Math.floor(a.beat/10);
+        var lockLine=(state.lines[lid]||0) < a.learn.lineMin;
+        var b=document.createElement('button'); b.className='act wide';
+        b.title=a.desc+'（当前境界：'+rname+'）';
+        if(owned){ b.innerHTML='✓ '+a.name+'（'+rname+'）'; b.disabled=true; }
+        else if(lockLine){ b.innerHTML='🔒 '+a.name+'（'+line.name+'艺线需 Lv.'+a.learn.lineMin+'）'; b.disabled=true; }
+        else{
+          b.innerHTML='› '+a.name+(a.type==='ultimate'?' · 绝技':'')+'（耗潜能 '+potCost+'）';
+          b.onclick=function(){
+            if(state.pot<potCost){ log('潜能不足，难窥'+a.name+'门径。可多去历练积攒潜能。','sys'); return; }
+            state.pot-=potCost; state.learnedMartial.push(a.id);
+            state.lines[lid]=Math.min(20,(state.lines[lid]||0)+1);
+            log('【习得】'+a.name+'！'+a.desc,'good');
+            clearActions(); buildActions(curRoom()); save(state); renderStatus();
+          };
+        }
+        $actions.appendChild(b);
+      });
     });
+    // 发力技巧（可嵌任意武学，单独成组）
+    var techs=MA.getTechniques();
+    if(techs.length){
+      var th=document.createElement('div'); th.className='learn-line';
+      th.innerHTML='<span class="ll-name">发力技巧</span><span class="ll-lv">装配增威</span>';
+      $actions.appendChild(th);
+      techs.forEach(function(a){
+        var equipped=state.equippedForce.indexOf(a.id)>=0;
+        var potCost=20 + a.learn.lineMin*8;
+        var lockLine=(state.lines[a.line]||0) < a.learn.lineMin;
+        var b=document.createElement('button'); b.className='act wide';
+        b.title=a.desc;
+        if(equipped){ b.innerHTML='✓ '+a.name+'（已装配）'; b.disabled=true; }
+        else if(lockLine){ b.innerHTML='🔒 '+a.name+'（'+LINES[a.line].name+'艺线需 Lv.'+a.learn.lineMin+'）'; b.disabled=true; }
+        else{
+          b.innerHTML='› '+a.name+'（耗潜能 '+potCost+'）';
+          b.onclick=function(){
+            if(state.pot<potCost){ log('潜能不足，难通'+a.name+'。','sys'); return; }
+            state.pot-=potCost; state.equippedForce.push(a.id);
+            log('【装配】'+a.name+'！'+a.desc,'good');
+            clearActions(); buildActions(curRoom()); save(state); renderStatus();
+          };
+        }
+        $actions.appendChild(b);
+      });
+    }
     addBtn('返回营中', function(){ buildActions(curRoom()); });
   }
 
@@ -520,7 +837,7 @@ window.onerror=function(msg,url,line,col,err){
     clearActions(); advanceTime(1);
     log('— '+ev.title+' —','title');
     log(ev.text,'env');
-    if(/劫掠|托付|剿匪|驱赶|受命|巡山|溃兵/.test(ev.title+ev.text))
+    if(/劫掠|剿匪|驱赶|受命|巡山|溃兵/.test(ev.title+ev.text))
       log('刀光乍起，你与对方缠斗数合，招式凌厉，各展所能。','combat');
     ev.choices.forEach(function(ch){
       var b=document.createElement('button'); b.className='act wide';
@@ -533,10 +850,9 @@ window.onerror=function(msg,url,line,col,err){
         if(/驱赶|剿匪|受命|巡山|挺身/.test(ch.text)) log('你提气凝神，一招逼退对手！','combat');
         applyEffect(ch.effect||{});
         log(ch.result,'env');
-        // 善恶随抉择浮动
-        if(/为民除害|驱赶|剿匪|受命|挺身|护下/.test(ch.text)) state.karma+=1;
-        else if(/隐身|窥探|挥手|婉言|辞去|不必/.test(ch.text)) state.karma-=1;
-        maybeStarve();
+        // P3 善恶双轴：按 choice.moral 累积（互不抵消）
+        if(ch.moral==='chivalry'){ addChivalry(1); log('〔侠义 +1〕','good'); }
+        else if(ch.moral==='notoriety'){ addNotoriety(1); log('〔凶名 +1〕','sys'); }
         buildActions(curRoom()); save(state); renderStatus();
       };
       $actions.appendChild(b);
@@ -546,32 +862,82 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 底部弹窗 =====
   function skillTags(){
-    if(!state.skills.length) return '<span style="color:var(--ink-faint)">尚无</span>';
-    return state.skills.map(function(id){return '<span>'+G.SKILLS[id].name+'</span>';}).join('');
+    var MA=G.MARTIAL_ARTS;
+    var all=state.learnedMartial.concat(state.equippedForce);
+    if(!all.length) return '<span style="color:var(--ink-faint)">尚无</span>';
+    return all.map(function(id){
+      var a=MA.get(id);
+      return '<span'+(a&&a.type==='technique'?' class="force"':'')+'>'+(a?a.name:id)+(a&&a.type==='technique'?'◆':'')+'</span>';
+    }).join('');
   }
   function row(k,v){return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>';}
+  // 行囊装备面板（P1 完整）
+  function renderEquipPanel(){
+    var slots=['weapon','armor','trinket','mount'];
+    var slotName={weapon:'兵刃',armor:'护甲',trinket:'饰品',mount:'坐骑'};
+    var h='<div class="row"><span>已装备</span></div><div class="equip-slots">';
+    slots.forEach(function(sl){
+      var eq=state.equipment[sl];
+      if(eq){
+        h+='<div class="eq-slot" data-slot="'+sl+'">'+
+           '<span class="eq-dot" style="background:'+eq.color+'"></span>'+
+           '<span class="eq-nm" style="color:'+eq.color+'">'+eq.name+'</span>'+
+           '<span class="eq-st">'+LF.ITEMS.statText(eq)+'</span>'+
+           '<span class="eq-dur">'+eq.dur+'/'+eq.maxDur+'</span>'+
+           '<span class="eq-x">卸下</span></div>';
+      } else {
+        h+='<div class="eq-slot empty">'+slotName[sl]+'：—</div>';
+      }
+    });
+    h+='</div>';
+    if(state.equips.length){
+      h+='<div class="row"><span>行囊·装备</span></div><div class="equip-bag">';
+      state.equips.forEach(function(eq){
+        h+='<div class="eq-item" data-id="'+eq.id+'">'+
+           '<span class="eq-dot" style="background:'+eq.color+'"></span>'+
+           '<span class="eq-nm" style="color:'+eq.color+'">'+eq.name+'</span>'+
+           '<span class="eq-st">'+LF.ITEMS.statText(eq)+'</span>'+
+           '<span class="eq-dur">'+eq.dur+'/'+eq.maxDur+'</span>'+
+           '<span class="eq-w">装备</span></div>';
+      });
+      h+='</div>';
+    } else {
+      h+='<div class="row"><span>行囊·装备</span><span>（空）</span></div>';
+    }
+    return h;
+  }
   function openModal(kind){
+    if(kind==='dev'){ renderDev(); return; }
     var h='';
     if(kind==='pack'){
       h='<h3>行 囊</h3>'+
         row('门派',G.SECTS[state.sect].name)+
         row('等级','LV.'+state.level)+
-        row('气血',state.hp+' / '+state.maxHp)+
+        row('气血',state.hp+' / '+effectiveStats().maxHp)+
         row('内力',state.mp+' / '+state.maxMp)+
         row('精力',state.energy+' / '+state.maxEnergy)+
         row('食物',state.food+' / '+state.maxFood)+
         row('饮水',state.drink+' / '+state.maxDrink)+
         row('潜能',state.pot)+
         row('银两',state.gold)+
-        row('善恶',karmaLabel())+
+        (state.items.length
+          ? '<div class="row"><span>物品</span></div><div class="skills">'+state.items.map(function(it){return '<span>'+it.name+' ×'+(it.count||1)+'</span>';}).join('')+'</div>'
+          : row('物品','（空）'))+
+        row('侠义',state.chivalry)+
+        row('凶名',state.notoriety)+
+        row('风评',moralTitle())+
         '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
-        '<p class="tip">行止间消耗食物饮水与精力；「休整」可尽复。潜能由历练积攒，用于研习武学。</p>';
+        renderEquipPanel()+
+        '<p class="tip">行止间消耗食物饮水与精力；「休整」可尽复。潜能由历练积攒，用于研习武学。装备由战斗掉落，点击装备/卸下。</p>';
     } else if(kind==='quest'){
       h='<h3>任 务</h3>'+
         row('当前所处',curRoom().name)+
-        row('主线','剿黄巾 · 平西凉 · 斩华雄')+
-        row('已习武学',state.skills.length+' 门')+
-        row('江湖声望',karmaLabel())+
+        row('主线·剿匪', '山贼/流寇 '+state.quest.bandit+' · 黄巾 '+state.quest.turban)+
+        row('主线·斩华雄', state.quest.hua_xiong?'✓ 已斩（声望达'+state.reputation+'）':'未斩（声望需≥20）')+
+        row('地域·洛阳', state.quest.luoyang?'✓ 已解锁':'未解锁')+
+        row('已习武学',state.learnedMartial.length+' 门')+
+        row('发力技巧',state.equippedForce.length+' 式')+
+        row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
         '<p class="tip">「颍川城」寻胡商购药、助医馆华老；「山林」巡山剿匪可领县尉韩伯托付；「溪畔」访水镜先生与左慈。后续章节随主线推进开启。</p>';
     } else if(kind==='map'){
       h='<h3>山 河 志</h3>';
@@ -589,6 +955,9 @@ window.onerror=function(msg,url,line,col,err){
         row('存档','已自动保存至本地')+
         '<button class="close" id="m-save">立即存档</button>'+
         '<button class="close" id="m-reset" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清空存档 · 重头来过</button>'+
+        (location.search.indexOf('dev=1')>=0
+          ? '<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台（测试用 · dev）</button>'
+          : '')+
         '<p class="tip">存档位于浏览器本地，清除浏览器数据会一并丢失。</p>';
     }
     $card.innerHTML=h+'<button class="close" id="m-close">收 起</button>';
@@ -596,12 +965,114 @@ window.onerror=function(msg,url,line,col,err){
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var rs=document.getElementById('m-reset'); if(rs)rs.onclick=function(){clearSave();location.reload();};
+    var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
+    // 装备面板交互
+    $card.querySelectorAll('.eq-slot[data-slot]').forEach(function(el){
+      el.onclick=function(){ unequip(el.getAttribute('data-slot')); };
+    });
+    $card.querySelectorAll('.eq-item[data-id]').forEach(function(el){
+      el.onclick=function(){ equipItem(el.getAttribute('data-id')); };
+    });
   }
   function closeModal(){$modal.classList.add('hidden');}
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   document.querySelectorAll('#dock button').forEach(function(b){
     b.onclick=function(){openModal(b.getAttribute('data-modal'));};
   });
+  // ===== 调试台（测试用：直赋声望/武学等，真正获取途径后续接入） =====
+  function handleDev(act){
+    var MA=G.MARTIAL_ARTS;
+    if(act==='rep+5'){ addReputation(5); }
+    else if(act==='rep20'){ state.reputation=20; log('【声望】已设为 20（'+repTitle(20)+'）','good'); }
+    else if(act==='rep100'){ state.reputation=100; log('【声望】已设为 100（'+repTitle(100)+'）','good'); }
+    else if(act==='rep0'){ state.reputation=0; log('【声望】已清零','sys'); }
+    else if(act.indexOf('skill:')===0){
+      var id=act.slice(6); var a=MA.get(id);
+      var i=state.learnedMartial.indexOf(id);
+      if(i>=0){ state.learnedMartial.splice(i,1); log('移除招式：'+(a?a.name:id),'sys'); }
+      else { state.learnedMartial.push(id); log('习得招式：'+(a?a.name:id),'good'); }
+    }
+    else if(act.indexOf('force:')===0){
+      var fid=act.slice(6); var fa=MA.get(fid);
+      var fi=state.equippedForce.indexOf(fid);
+      if(fi>=0){ state.equippedForce.splice(fi,1); log('卸下发力技巧：'+(fa?fa.name:fid),'sys'); }
+      else { state.equippedForce.push(fid); log('装配发力技巧：'+(fa?fa.name:fid),'good'); }
+    }
+    else if(act==='allmartial'){
+      var got=0;
+      for(var k in MA){ var a=MA[k]; if(!a||!a.id) continue;
+        if(a.type==='technique'){ if(state.equippedForce.indexOf(a.id)<0){ state.equippedForce.push(a.id); got++; } }
+        else { if(state.learnedMartial.indexOf(a.id)<0){ state.learnedMartial.push(a.id); got++; } }
+      }
+      log('【满配】已习得全部招式并装配全部发力技巧（新增 '+got+' 项）','good');
+    }
+    else if(act==='lines+5'){
+      for(var l in state.lines) state.lines[l]=Math.min(20, state.lines[l]+5);
+      log('【艺线】全部武器艺线 +5（上限20）','good');
+    }
+    else if(act==='realm+1'){
+      var n=0;
+      state.learnedMartial.forEach(function(id){
+        var a=MA.get(id); if(a&&a.type!=='technique'){ state.realm[id]=Math.min(6,(state.realm[id]||0)+1); n++; }
+      });
+      log('【境界】已学招式境界全部 +1（'+n+' 式）。突破效果现已生效：伤害/暴击/破甲/连击随境界提升。','good');
+    }
+    else if(act==='maxlv'){
+      state.level=G.CONSTANTS.MAX_LEVEL; state.hp=state.maxHp; state.mp=state.maxMp;
+      log('【速填】等级设为 '+state.level+'，状态回满','good');
+    }
+    else if(act==='pot+200'){ state.pot+=200; log('【速填】潜能 +200（当前 '+state.pot+'）','good'); }
+    else if(act==='gold+500'){ state.gold+=500; log('【速填】银两 +500（当前 '+state.gold+'）','good'); }
+    else if(act==='full'){ var esF=effectiveStats(); state.hp=esF.maxHp; state.mp=esF.maxMp; state.energy=state.maxEnergy; state.food=state.maxFood; state.drink=state.maxDrink; log('【速填】气血/内力/精力/饥渴 全满','good'); }
+    else if(act==='mkgear'){ var eq=LF.ITEMS.rollEquip(3); state.equips.push(eq); save(state); renderDev(); toast('夺得 '+eq.name); }
+    // ── P3 善恶双轴调试 ──
+    else if(act==='cha+10'){ state.chivalry+=10; log('【调试】侠义 +10（当前 '+state.chivalry+'）','good'); }
+    else if(act==='not+10'){ state.notoriety+=10; log('【调试】凶名 +10（当前 '+state.notoriety+'）','good'); }
+    else if(act==='moral0'){ state.chivalry=0; state.notoriety=0; state.flags.usurper_seen=false; log('【调试】善恶双轴清零','sys'); }
+  }
+  function renderDev(){
+    var MA=G.MARTIAL_ARTS;
+    var rep=state.reputation;
+    var h='<h3>🛠 调 试 台</h3>';
+    h+='<div class="dev-sec"><div class="dev-h">声望（当前 '+rep+' · '+repTitle(rep)+'）</div><div class="dev-btns">'+
+         '<button class="dev" data-act="rep+5">+5</button>'+
+         '<button class="dev" data-act="rep20">设=20</button>'+
+         '<button class="dev" data-act="rep100">设=100</button>'+
+         '<button class="dev" data-act="rep0">清零</button></div></div>';
+    h+='<div class="dev-sec"><div class="dev-h">善恶双轴（侠义 '+state.chivalry+' · 凶名 '+state.notoriety+' · '+moralTitle()+'）</div><div class="dev-btns">'+
+         '<button class="dev" data-act="cha+10">侠义+10</button>'+
+         '<button class="dev" data-act="not+10">凶名+10</button>'+
+         '<button class="dev" data-act="moral0">清零</button></div></div>';
+    h+='<div class="dev-sec"><div class="dev-h">武学招式（点击 学/弃）</div><div class="dev-btns">';
+    for(var k in MA){ var a=MA[k]; if(!a||!a.id||a.type==='technique') continue;
+      var owned=state.learnedMartial.indexOf(a.id)>=0;
+      h+='<button class="dev'+(owned?' on':'')+'" data-act="skill:'+a.id+'">'+(owned?'✓ ':'+ ')+a.name+'</button>';
+    }
+    h+='</div></div>';
+    h+='<div class="dev-sec"><div class="dev-h">发力技巧（点击 装配/卸下）</div><div class="dev-btns">';
+    for(var k2 in MA){ var a2=MA[k2]; if(!a2||!a2.id||a2.type!=='technique') continue;
+      var on=state.equippedForce.indexOf(a2.id)>=0;
+      h+='<button class="dev'+(on?' on':'')+'" data-act="force:'+a2.id+'">'+(on?'✓ ':'+ ')+a2.name+'</button>';
+    }
+    h+='</div><div class="dev-btns"><button class="dev wide" data-act="allmartial">⚡ 一键满配武学（全招式+全发力技巧）</button></div></div>';
+    h+='<div class="dev-sec"><div class="dev-h">艺线 / 境界（突破效果后续接入）</div><div class="dev-btns">'+
+         '<button class="dev" data-act="lines+5">全艺线+5</button>'+
+         '<button class="dev" data-act="realm+1">全境界+1</button></div></div>';
+    h+='<div class="dev-sec"><div class="dev-h">角色速填</div><div class="dev-btns">'+
+         '<button class="dev" data-act="maxlv">满级</button>'+
+         '<button class="dev" data-act="pot+200">潜能+200</button>'+
+         '<button class="dev" data-act="gold+500">银两+500</button>'+
+         '<button class="dev" data-act="full">回满状态</button>'+
+         '<button class="dev" data-act="mkgear">掉件装备</button></div></div>';
+    h+='<button class="close" id="m-close">收 起</button>';
+    $card.innerHTML=h;
+    $modal.classList.remove('hidden');
+    $card.querySelectorAll('[data-act]').forEach(function(btn){
+      btn.onclick=function(){ handleDev(btn.getAttribute('data-act')); save(state); renderStatus(); renderDev(); };
+    });
+    var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+  }
+
   function toast(msg){$toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400);}
 
   // HTML 注入辅助（战斗卡片用）
@@ -628,10 +1099,68 @@ window.onerror=function(msg,url,line,col,err){
   var combatMode=null;  // null | 'manual' | 'auto'
   var combatAutoStrategy='optimal';
 
+  /** 计算含装备+艺线加成的有效属性（P1 装备 / P2 艺线：攻/命中/暴击/内力/身法） */
+  function effectiveStats(){
+    var atk=state.atk, def=state.def, maxHp=state.maxHp, maxMp=state.maxMp, spd=state.spd;
+    ['weapon','armor','trinket','mount'].forEach(function(sl){
+      var eq=state.equipment[sl]; if(!eq) return;
+      atk+=(eq.atk||0); def+=(eq.def||0); maxHp+=(eq.hp||0); maxMp+=(eq.mp||0); spd+=(eq.spd||0);
+    });
+    // ── P2：艺线等级加成 ──
+    var lineAtk=0, lineCrit=0, lineHit=0, lineMp=0, lineSpd=0;
+    for(var l in state.lines){
+      var lv=state.lines[l]||0;
+      lineAtk += lv*0.6;
+      lineCrit += lv*0.003;
+      lineHit += lv*0.002;
+      if(l==='internal') lineMp += lv*1;   // 内功线 → 内力上限
+      if(l==='light')    lineSpd += lv*0.3; // 轻功线 → 身法
+    }
+    atk += lineAtk;
+    maxMp += lineMp;
+    spd += lineSpd;
+    var hitRate = Math.min(0.99, 0.92 + lineHit);
+    var critRate = Math.min(0.35, lineCrit);
+    return {atk:atk,def:def,maxHp:maxHp,maxMp:maxMp,spd:spd,hitRate:hitRate,critRate:critRate};
+  }
+  function clampHp(){ var mx=effectiveStats().maxHp; if(state.hp>mx) state.hp=mx; }
+  // 每场战斗结束（胜/败/逃）已装备耐久 -1，耗尽则损毁
+  function decayEquipment(){
+    var broken=[];
+    ['weapon','armor','trinket','mount'].forEach(function(sl){
+      var eq=state.equipment[sl]; if(!eq) return;
+      eq.dur-=1;
+      if(eq.dur<=0){ state.equipment[sl]=null; broken.push(eq.name); }
+    });
+    if(broken.length) log('【装备】'+broken.join('、')+' 耐久已尽，损毁弃之。','sys');
+    clampHp();
+  }
+  // 装备/卸下
+  function equipItem(id){
+    var idx=-1;
+    for(var i=0;i<state.equips.length;i++){ if(state.equips[i].id===id){ idx=i; break; } }
+    if(idx<0) return;
+    var eq=state.equips[idx], slot=eq.type;
+    if(state.equipment[slot]) state.equips.push(state.equipment[slot]); // 原装备退回背包
+    state.equipment[slot]=eq; state.equips.splice(idx,1);
+    clampHp(); save(state); renderStatus(); openModal('pack'); toast('已装备 '+eq.name);
+  }
+  function unequip(slot){
+    var eq=state.equipment[slot]; if(!eq) return;
+    state.equipment[slot]=null; state.equips.push(eq);
+    clampHp(); save(state); renderStatus(); openModal('pack'); toast('已卸下 '+eq.name);
+  }
+
   /** 开始战斗 */
   function startCombat(enemyId){
-    var r=G.CombatEngine.init(state, enemyId);
+    var es=effectiveStats();
+    var pstate=Object.assign({}, state, {
+      atk:es.atk, def:es.def, maxHp:es.maxHp, maxMp:es.maxMp, spd:es.spd,
+      hitRate:es.hitRate, critRate:es.critRate
+    });
+    var r=G.CombatEngine.init(pstate, enemyId);
     if(r.error){ log(r.error,'sys'); return; }
+    state.energy=Math.max(0,state.energy-5);   // 应战耗精力
     combatMode='manual';
     $narr.innerHTML='';
     var enemy=G.CombatEngine.getEnemy();
@@ -753,20 +1282,66 @@ window.onerror=function(msg,url,line,col,err){
 
   /** 战斗结束 */
   function endCombat(result){
+    if(combatMode===null) return;   // 防止重复调用（如快速连点）
     combatMode=null;
+    clearActions();                  // 清除战斗按钮，防止残留可点击
+    if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断 playTurn
     var st=G.CombatEngine.getStatus();
     var enemy=G.CombatEngine.getEnemy();
 
     // 更新玩家状态
     state.hp=st.player.hp;
     state.mp=st.player.mp;
+    maybeStarve();   // 战后结算饥馁（食物/饮水耗尽则扣血）
+    decayEquipment(); // 战后装备耐久衰减
 
     if(result==='win'){
       var drop=G.CombatEngine.getDrop();
       state.gold+=drop.gold;
       state.pot+=drop.pot;
+      // ── 掉落入库（P1 背包系统：按 id 堆叠 count）──
+      drop.items.forEach(function(it){
+        var ex=null;
+        for(var i=0;i<state.items.length;i++){ if(state.items[i].id===it.id){ ex=state.items[i]; break; } }
+        if(ex){ ex.count=(ex.count||1)+1; }
+        else { state.items.push({id:it.id, name:it.name, count:1}); }
+      });
       var detail=drop.gold+'银两 · 潜能+'+drop.pot;
       if(drop.items.length) detail+=' · '+drop.items.map(function(it){return it.name;}).join('、');
+      // ── 装备掉落（P1 完整）──
+      if(drop.equip){
+        state.equips.push(drop.equip);
+        detail+=' · 夺得'+drop.equip.qualityName+'「'+drop.equip.name+'」('+LF.ITEMS.statText(drop.equip)+')';
+      }
+
+      // ── 声望 / 主线进度（P4 真实获取途径，替代调试台直赋）──
+      var RREP={bandit:2,bandit_chief:4,yellow_turban:5,hua_xiong:20,dummy:0};
+      if(RREP[enemy.id]) addReputation(RREP[enemy.id]);
+      if(enemy.id==='bandit'||enemy.id==='bandit_chief') state.quest.bandit++;
+      else if(enemy.id==='yellow_turban') state.quest.turban++;
+      else if(enemy.id==='hua_xiong'){
+        state.quest.hua_xiong=true; state.quest.luoyang=true;
+        log('【主线】温酒斩华雄！洛阳之门已为你敞开，可自「颍川主营」赴洛阳。','good');
+      }
+
+      // ── P2：艺线经验由战斗出手累积，满则升级 ──
+      var gains=G.CombatEngine.getLineGains()||[];
+      if(gains.length){
+        var expMap={};
+        gains.forEach(function(g){ if(!g.line) return; expMap[g.line]=(expMap[g.line]||0)+(g.crit?8:5); });
+        var LINES=G.MARTIAL_ARTS.LINES, upMsgs=[];
+        for(var l in expMap){
+          state.lineExp[l]=(state.lineExp[l]||0)+expMap[l];
+          var lv=state.lines[l]||0, need=(lv+1)*40;
+          while(lv<20 && state.lineExp[l]>=need){
+            state.lineExp[l]-=need; lv++;
+            upMsgs.push(LINES[l].name+'艺线 Lv.'+lv);
+            need=(lv+1)*40;
+          }
+          state.lines[l]=lv;
+        }
+        if(upMsgs.length) log('【武学精进】'+upMsgs.join('、')+' 突破！攻防随之精进。','good');
+      }
 
       logHTML(
         '<div class="c-summary win">'+
@@ -778,10 +1353,11 @@ window.onerror=function(msg,url,line,col,err){
       toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
     } else if(result==='lose'){
       state.hp=1;
+      state.defeated=true;   // 战败标记：封锁一切行动直到休整恢复
       logHTML(
         '<div class="c-summary lose">'+
           '<div class="cs-title">✘ 战 败</div>'+
-          '<div class="cs-detail">眼前一黑……你重伤倒地，气若游丝。</div>'+
+          '<div class="cs-detail">眼前一黑……你重伤倒地，气若游丝。须先「休整」恢复，方可再动。</div>'+
         '</div>'
       ,'combat');
       toast('败北！气血仅余1点');
@@ -790,7 +1366,7 @@ window.onerror=function(msg,url,line,col,err){
       toast('已脱离战斗');
     }
 
-    // 返回房间
+    // 返回房间（战败时只留休整按钮，由 buildActions 的 defeated 锁控制）
     addBtn('返回',function(){ renderRoom(state.room,true); },'wide');
     save(state); renderStatus();
   }

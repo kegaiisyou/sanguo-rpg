@@ -19,7 +19,7 @@
         { id: 'spar_chief', label: '讨伐流寇头目', group: '行动', tip: '战力验证（中等）' },
         { id: 'spar_turban', label: '征讨黄巾力士', group: '行动', tip: '符箓之力（中等）' },
         { id: 'battle_hua_xiong', label: '温酒斩华雄', group: '行动', tip: '需声望≥20·首场Boss战' },
-        { id: 'dummy_test', label: '木人桩练功', group: '行动', tip: '无损试招' }
+        { id: 'visit_luoyang', label: '赴洛阳', group: '行动', tip: '需先斩华雄·扬名' }
       ]
     },
     city: {
@@ -29,11 +29,12 @@
         '城西医馆飘出药香，华老正捣药；街头偶有溃兵游荡，神色仓皇，似在寻机劫掠。'
       ],
       exits: { '南': 'camp' },
-      npcs: ['hualao'],
+      npcs: ['hualao', 'yingmen'],
       items: ['行商摊上的金疮药'],
       actions: [
         { id: 'market', label: '逛市集', group: '行动', tip: '与行商交易伤药钱粮' },
-        { id: 'city_patrol', label: '维持治安', group: '行动', tip: '驱赶城中溃兵' }
+        { id: 'city_patrol', label: '维持治安', group: '行动', tip: '驱赶城中溃兵' },
+        { id: 'rest', label: '客栈安歇', group: '行动', tip: '酒楼歇脚，气血内力尽复' }
       ]
     },
     forest: {
@@ -46,7 +47,8 @@
       npcs: [],
       items: ['林间散落的五铢钱'],
       actions: [
-        { id: 'patrol', label: '巡山剿匪', group: '行动', tip: '深入山林，扫荡黄巾余孽' }
+        { id: 'patrol', label: '巡山剿匪', group: '行动', tip: '深入山林，扫荡黄巾余孽' },
+        { id: 'rest', label: '林间栖身', group: '行动', tip: '倚树小憩，尽复状态' }
       ]
     },
     stream: {
@@ -58,7 +60,22 @@
       exits: { '东': 'camp' },
       npcs: ['shuijing', 'zuoci'],
       items: [],
-      actions: []
+      actions: [
+        { id: 'rest', label: '草庐借宿', group: '行动', tip: '水镜先生邀你歇脚，尽复状态' }
+      ]
+    },
+    luoyang: {
+      id: 'luoyang', name: '洛阳城',
+      desc: [
+        '洛阳城阙巍峨，朱雀大街车水马龙。你「温酒斩华雄」之名已传遍九州，百姓夹道相迎，孩童指你而呼「温酒斩将者」。',
+        '太庙之前，老兵斟酒相敬：「壮士此战，气吞山河！」中原未平，然你已立下不世奇功，青史当留一笔。'
+      ],
+      exits: { '南': 'camp' },
+      npcs: [],
+      items: [],
+      actions: [
+        { id: 'rest', label: '城中休整', group: '行动', tip: '酒肆安歇，气血内力尽复' }
+      ]
     }
   };
 

@@ -8,6 +8,7 @@
 
     // ─── 初始化 ───
     init: function(playerState, enemyId) {
+      var self = this;
       var ENEMIES = global.LF.ENEMIES;
       var MARTIAL_ARTS = global.LF.MARTIAL_ARTS;
 
@@ -29,6 +30,12 @@
       // 保证新手至少能用崩拳
       if (artIds.indexOf('beng_quan') === -1) artIds.push('beng_quan');
 
+      // ── P2：招式实际效果（含境界突破加成）映射 ──
+      var artMap = {};
+      artIds.forEach(function(aid) {
+        var built = self._buildArt(aid, (playerState.realm && playerState.realm[aid]) || 0);
+        if (built) artMap[aid] = built;
+      });
       this.state = {
         player: {
           name: playerState.name || '你',
@@ -37,9 +44,11 @@
           rage: 0, maxRage: 100,
           atk: playerState.atk || 15, def: playerState.def || 7, spd: playerState.spd || 20,
           artIds: artIds,
+          artMap: artMap,
+          hitRate: playerState.hitRate || 0.92,
           buffs: [], dots: [],
           defStance: false, stunNext: false,
-          forceEff: forceEff
+          forceEff: Object.assign({}, forceEff, { critRate: (forceEff.critRate || 0) + (playerState.critRate || 0) })
         },
         enemy: {
           id: enemyData.id, name: enemyData.name, title: enemyData.title || '',
@@ -48,11 +57,13 @@
           mp: 0, maxMp: 0, rage: 0, maxRage: 100,
           skills: enemyData.skills || [],
           ai: enemyData.ai || 'aggressive',
+          hitRate: 0.9,
           buffs: [], dots: [],
           defStance: false, stunNext: false,
           forceEff: {}
         },
         enemyData: enemyData,
+        lineGains: [],
         log: [],
         round: 0,
         result: null
@@ -61,21 +72,74 @@
       return { ok: true };
     },
 
+    // ── P2：解析境界突破描述文本 → 结构化数值加成 ──
+    _parseBonus: function(text) {
+      var b = { dmgMulAdd: 0, critRateAdd: 0, critDmgAdd: 0, armorPenAdd: 0,
+                ignoreDefAdd: 0, stunAdd: 0, extraHit: 0, forceCrit: false };
+      var m;
+      if ((m = text.match(/伤害\+(\d+)%/))) b.dmgMulAdd += parseInt(m[1], 10) / 100;
+      else if ((m = text.match(/伤害\+(\d+)/))) b.dmgMulAdd += parseInt(m[1], 10) / 100;
+      if ((m = text.match(/暴击率\+(\d+)%/))) b.critRateAdd += parseInt(m[1], 10) / 100;
+      if ((m = text.match(/暴击伤害\+(\d+)%/))) b.critDmgAdd += parseInt(m[1], 10) / 100;
+      if (/破甲/.test(text)) b.armorPenAdd += 0.3;
+      if ((m = text.match(/无视防御(\d+)%/))) b.ignoreDefAdd += parseInt(m[1], 10) / 100;
+      if ((m = text.match(/眩晕概率\+(\d+)%/))) b.stunAdd += parseInt(m[1], 10) / 100;
+      if (/连击一次|追加第三腿/.test(text)) b.extraHit += 1;
+      if (/必暴击/.test(text)) b.forceCrit = true;
+      return b;
+    },
+
+    // ── P2：构建含境界突破的招式实际效果 ──
+    _buildArt: function(id, realmLevel) {
+      var MA = global.LF.MARTIAL_ARTS;
+      var base = MA.get(id);
+      if (!base) return null;
+      var eff = {};
+      if (base.eff) { for (var k in base.eff) eff[k] = base.eff[k]; }
+      var art = {
+        id: base.id, name: base.name, type: base.type, line: base.line,
+        beat: base.beat, dmgMul: base.dmgMul, cost: base.cost,
+        multiHit: base.multiHit || 1, attr: base.attr,
+        desc: base.desc, eff: eff, forceCrit: false
+      };
+      if (base.breakthrough && realmLevel > 0) {
+        var self = this;
+        base.breakthrough.forEach(function(bt) {
+          if (bt.realm <= realmLevel) {
+            var b = self._parseBonus(bt.eff);
+            art.dmgMul *= (1 + b.dmgMulAdd);
+            art.eff.critRate = (art.eff.critRate || 0) + b.critRateAdd;
+            art.eff.critDmgAdd = (art.eff.critDmgAdd || 0) + b.critDmgAdd;
+            art.eff.armorPen = (art.eff.armorPen || 0) + b.armorPenAdd;
+            art.eff.ignoreDef = (art.eff.ignoreDef || 0) + b.ignoreDefAdd;
+            art.eff.stunChance = (art.eff.stunChance || 0) + b.stunAdd;
+            art.multiHit += b.extraHit;
+            if (b.forceCrit) art.forceCrit = true;
+          }
+        });
+      }
+      return art;
+    },
+
     // ─── 计算伤害 ───
-    // 伤害 = atk × dmgMul × 100 / (100 + def)
+    // 伤害 = atk × dmgMul × 100 / (100 + def)，支持破甲/破防/暴伤
     calcDamage: function(actor, action, crit) {
       var unit = this.state[actor];
       var mul = (action && action.dmgMul) || 1;
-      var armorPen = unit.forceEff.armorPen || 0;
-      if (action && action.eff && action.eff.breakDef) armorPen += action.eff.breakDef;
+      var eff = (action && action.eff) || {};
+      var armorPen = (unit.forceEff.armorPen || 0) + (eff.breakDef || 0) + (eff.armorPen || 0);
+      var ignoreDef = eff.ignoreDef || 0;
 
       var target = this.state[actor === 'player' ? 'enemy' : 'player'];
       var tDef = target.def;
       if (target.defStance) tDef = Math.round(tDef * 1.5);
 
-      var effDef = tDef * (1 - Math.min(armorPen, 0.8));
+      var effDef = tDef * (1 - Math.min(armorPen, 0.8)) * (1 - ignoreDef);
       var raw = Math.round(unit.atk * mul * 100 / (100 + Math.max(0, effDef)));
-      if (crit) raw = Math.round(raw * 1.5);
+      if (crit) {
+        var cd = 1.5 * (1 + (eff.critDmgAdd || 0));
+        raw = Math.round(raw * cd);
+      }
       return Math.max(1, raw);
     },
 
@@ -124,7 +188,19 @@
       if (action.passive) return 0;
 
       // ─── 正常攻击 ───
-      var hasCrit = Math.random() < (0.05 + (unit.forceEff.critRate || 0));
+      var eff = action.eff || {};
+      // 命中判定（攻击招才判定；防御/蓄力/自愈已在上方处理）
+      var hitRate = unit.hitRate || 0.92;
+      if (!action.guaranteed && Math.random() > hitRate) {
+        log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk',
+          text: aName + '的「' + (action.name || '普攻') + '」被对方闪过！（未命中）' });
+        if (action.cost && action.cost.type === 'mp') unit.mp -= (action.cost.val || 0);
+        if (action.cost && action.cost.type === 'rage') unit.rage -= (action.cost.val || 0);
+        return 0;
+      }
+
+      var hasCrit = action.forceCrit ||
+        Math.random() < (0.05 + (unit.forceEff.critRate || 0) + (eff.critRate || 0));
       var dmg = this.calcDamage(actor, action, hasCrit);
       var hitCount = action.multiHit || 1;
       var totalDmg = 0;
@@ -147,41 +223,46 @@
 
       target.hp = Math.max(0, target.hp);
 
+      // 记录玩家出招的艺线经验（P2：战斗出手累积）
+      if (isPlayer && action.line) {
+        this.state.lineGains.push({ line: action.line, crit: hasCrit });
+      }
+
+      var armorPen = (unit.forceEff.armorPen || 0) + (eff.breakDef || 0) + (eff.armorPen || 0);
       var desc = aName + '使出「' + (action.name || '普攻') + '」';
       if (hasCrit) desc += '【暴击！】';
       if (hitCount > 1) desc += ' ' + hitsDesc.join(' · ');
       desc += ' → 造成 ' + totalDmg + ' 伤害';
       if (armorPen > 0) desc += '（破甲）';
+      if (eff.ignoreDef) desc += '（破防）';
 
       log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg });
 
       // ─── 附加效果 ───
-      var e = action.eff || {};
-
       // 中毒
-      if (e.poisonChance && Math.random() < e.poisonChance) {
-        target.dots.push({ name:'中毒', dmg:e.poisonDmg||8, turns:e.poisonTurns||3 });
-        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '中毒！（每回合-' + (e.poisonDmg||8) + '，' + (e.poisonTurns||3) + '回合）' });
+      if (eff.poisonChance && Math.random() < eff.poisonChance) {
+        target.dots.push({ name:'中毒', dmg:eff.poisonDmg||8, turns:eff.poisonTurns||3 });
+        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '中毒！（每回合-' + (eff.poisonDmg||8) + '，' + (eff.poisonTurns||3) + '回合）' });
       }
 
       // 灼烧
-      if (e.burnChance && Math.random() < e.burnChance) {
-        target.dots.push({ name:'灼烧', dmg:e.burnDmg||6, turns:e.burnTurns||3 });
-        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '被灼烧！（每回合-' + (e.burnDmg||6) + '，' + (e.burnTurns||3) + '回合）' });
+      if (eff.burnChance && Math.random() < eff.burnChance) {
+        target.dots.push({ name:'灼烧', dmg:eff.burnDmg||6, turns:eff.burnTurns||3 });
+        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '被灼烧！（每回合-' + (eff.burnDmg||6) + '，' + (eff.burnTurns||3) + '回合）' });
       }
 
       // 眩晕
-      if (e.stunChance && Math.random() < e.stunChance) {
+      if (eff.stunChance && Math.random() < eff.stunChance) {
         target.stunNext = true;
         log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '陷入眩晕！' });
       }
 
       // 减速
-      if (e.slowChance && Math.random() < e.slowChance) {
+      if (eff.slowChance && Math.random() < eff.slowChance) {
         var slowVal = Math.round(target.spd * 0.3);
-        target.buffs.push({ type:'spd', value:-slowVal, turns: e.slowTurns||2 });
+        target.buffs.push({ type:'spd', value:-slowVal, turns: eff.slowTurns||2 });
         target.spd -= slowVal;
-        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '行动变缓！（' + (e.slowTurns||2) + '回合）' });
+        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '行动变缓！（' + (eff.slowTurns||2) + '回合）' });
       }
 
       // 反弹：当敌人攻击玩家时，玩家的震字诀反弹伤害
@@ -324,7 +405,7 @@
       var available = [];
 
       for (var i = 0; i < arts.length; i++) {
-        var art = global.LF.MARTIAL_ARTS.get(arts[i]);
+        var art = p.artMap[arts[i]] || global.LF.MARTIAL_ARTS.get(arts[i]);
         if (!art) continue;
         if (art.type === 'technique') continue; // 发力技巧非主动使用
         if (art.cost && art.cost.type === 'mp' && p.mp < art.cost.val) continue;
@@ -332,7 +413,7 @@
         available.push(art);
       }
 
-      // 无可用的——只能普防
+      // 无可用的——只能普防（返回字符串标识，由 _resolveAction 识别）
       if (available.length === 0) return 'defend';
 
       var hpR = p.hp / Math.max(1, p.maxHp);
@@ -343,7 +424,7 @@
         available.sort(function(a, b) {
           return (a.cost && a.cost.val || 0) - (b.cost && b.cost.val || 0);
         });
-        return available[0].id;
+        return available[0];
       }
 
       // ─── 最优策略 ───
@@ -354,10 +435,10 @@
         for (var u = 0; u < available.length; u++) {
           if (available[u].type === 'ultimate') { ult = available[u]; break; }
         }
-        if (ult) return ult.id;
+        if (ult) return ult;
 
         available.sort(function(a, b) { return (b.dmgMul || 0) - (a.dmgMul || 0); });
-        return available[0].id;
+        return available[0];
       }
 
       // 绝技就绪且能斩杀
@@ -365,7 +446,7 @@
       for (var j = 0; j < available.length; j++) {
         if (available[j].type === 'ultimate') {
           var estDmg = this.calcDamage('player', available[j], false);
-          if (estDmg >= this.state.enemy.hp) return available[j].id;
+          if (estDmg >= this.state.enemy.hp) return available[j];
         }
       }
 
@@ -375,7 +456,7 @@
         var dB = (b.dmgMul || 0) / Math.max(1, b.beat || 25);
         return dB - dA;
       });
-      return available[0].id;
+      return available[0];
     },
 
     // ─── 执行一回合（手动：传入 actionId；自动：AI 自选） ───
@@ -393,7 +474,7 @@
       if (actionId === 'defend') {
         playerAction = 'defend';
       } else if (actionId && actionId !== '__auto__') {
-        playerAction = global.LF.MARTIAL_ARTS.get(actionId);
+        playerAction = this.state.player.artMap[actionId] || global.LF.MARTIAL_ARTS.get(actionId);
         if (!playerAction) { log.push({ type:'system', text:'未知招式' }); this.state.log = log; return log; }
         // 校验消耗
         if (playerAction.cost && playerAction.cost.type === 'mp' && this.state.player.mp < playerAction.cost.val) {
@@ -405,8 +486,8 @@
           this.state.log = log; return log;
         }
       } else {
-        // 自动模式：AI 选择
-        var strat = (typeof actionId === 'string' && actionId !== '__auto__') ? actionId : 'optimal';
+        // 自动模式：AI 选择（策略由 autoResolve 暂存于 _autoStrat）
+        var strat = (actionId === '__auto__') ? (this._autoStrat || 'optimal') : 'optimal';
         playerAction = this._pickPlayerAction(strat);
       }
 
@@ -435,7 +516,7 @@
       if (spdGap > 20) {
         log.push({ type:'system', text:'你身法占优，抢出连击！' });
         // 快速追加一次轻攻击
-        var quickAtk = { name:'快速追击', beat:15, dmgMul:0.6, cost:{} };
+        var quickAtk = { name:'快速追击', beat:15, dmgMul:0.6, cost:{}, guaranteed:true };
         this._resolveAction('player', quickAtk, log);
         if (this._checkEnd()) { this.state.log = log; return log; }
       } else if (spdGap < -20) {
@@ -478,6 +559,7 @@
     autoResolve: function(strategy) {
       var fullLog = [];
       var maxRounds = 60;
+      this._autoStrat = strategy || 'optimal';
 
       while (maxRounds-- > 0) {
         var log = this.playTurn('__auto__');
@@ -538,7 +620,13 @@
           }
         });
       }
-      return { gold: gold, pot: pot, items: items };
+      // ── 装备掉落（P1 完整）：按敌人 equip 配置概率生成 ──
+      var equip = null;
+      var ITEMS = global.LF && global.LF.ITEMS;
+      if (ITEMS && d.equip && d.equip.tier && Math.random() * 100 < (d.equip.chance || 0)) {
+        equip = ITEMS.rollEquip(d.equip.tier);
+      }
+      return { gold: gold, pot: pot, items: items, equip: equip };
     },
 
     getEnemy: function() {
@@ -550,7 +638,7 @@
       var p = this.state.player;
       var list = [];
       for (var i = 0; i < p.artIds.length; i++) {
-        var art = global.LF.MARTIAL_ARTS.get(p.artIds[i]);
+        var art = p.artMap[p.artIds[i]] || global.LF.MARTIAL_ARTS.get(p.artIds[i]);
         if (!art) continue;
         if (art.type === 'technique') continue; // 不显示为行动选项
         var affordable = true;
@@ -563,6 +651,11 @@
         });
       }
       return list;
+    },
+
+    // ── P2：返回本场战斗玩家出招的艺线经验累积 ──
+    getLineGains: function() {
+      return this.state.lineGains || [];
     }
 
   };

@@ -17,7 +17,7 @@
           eff: { slowChance: 0.4, slowTurns: 2 } }
       ],
       ai: 'aggressive',
-      drop: { gold: [10, 30], pot: [5, 15], table: [] }
+      drop: { gold: [10, 30], pot: [5, 15], table: [], equip: { tier: 1, chance: 35 } }
     },
 
     // ─── 中等敌人 ───
@@ -33,7 +33,7 @@
       ],
       ai: 'aggressive',
       drop: { gold: [40, 100], pot: [15, 30],
-        table: [{ item: 'blade_manual_frag', name: '刀谱残页', weight: 3 }] }
+        table: [{ item: 'blade_manual_frag', name: '刀谱残页', weight: 3 }], equip: { tier: 2, chance: 50 } }
     },
 
     // ─── 黄巾系 ───
@@ -50,7 +50,7 @@
       ],
       ai: 'defensive',
       drop: { gold: [60, 120], pot: [20, 40],
-        table: [{ item: 'talisman_scrap', name: '残符', weight: 5 }] }
+        table: [{ item: 'talisman_scrap', name: '残符', weight: 5 }], equip: { tier: 3, chance: 65 } }
     },
 
     // ─── Boss：华雄 ───
@@ -72,7 +72,7 @@
         table: [
           { item: 'halberd_manual_page', name: '画戟谱残页', weight: 8 },
           { item: 'war_horse_token', name: '战马令', weight: 2 }
-        ]
+        ], equip: { tier: 4, chance: 100 }
       }
     },
 
@@ -82,7 +82,7 @@
       hp: 9999, atk: 0, def: 10, spd: 1,
       skills: [],
       ai: 'defensive',
-      drop: { gold: [0, 0], pot: [0, 0], table: [] }
+      drop: { gold: [0, 0], pot: [0, 0], table: [], equip: { tier: 0, chance: 0 } }
     }
   };
 
