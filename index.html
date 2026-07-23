@@ -142,6 +142,8 @@
   .act:hover{background:rgba(158,59,46,.10);border-color:rgba(158,59,46,.4);
     box-shadow:0 0 0 3px rgba(158,59,46,.08),0 2px 14px rgba(158,59,46,.12);}
   .act:active{transform:scale(.97);}
+  .act.open{background:rgba(176,131,47,.16);border-color:rgba(176,131,47,.55);
+    box-shadow:0 0 0 3px rgba(176,131,47,.12),var(--shadow);}
   .act:disabled{opacity:.4;cursor:default;filter:grayscale(.4);}
   .act.wide{grid-column:1/-1;text-align:left;
     font-family:"STKaiti","KaiTi","Songti SC",serif;font-size:15px;
@@ -155,6 +157,20 @@
   /* 分组标题（此前无样式，现统一样式） */
   .grp{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:4px;
     color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.7;margin:5px 0 3px;}
+  /* ===== NPC/物件：点开后在按钮下方内联铺出子操作（与罗盘一致的手势） ===== */
+  .obj-expand{grid-column:1/-1;margin:2px 0 4px;padding:9px 10px;border-radius:13px;
+    background:rgba(176,131,47,.07);border:1px solid rgba(176,131,47,.25);
+    animation:oeIn .3s cubic-bezier(.2,.9,.3,1.4) both;}
+  @keyframes oeIn{from{opacity:0;transform:scale(.94) translateY(-4px);}to{opacity:1;transform:none;}}
+  .obj-expand .oe-desc{text-align:center;font-size:12.5px;color:var(--ink-soft);
+    margin:0 0 8px;line-height:1.5;font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
+  .obj-expand .oe-row{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;}
+  .oe-btn{flex:1 1 calc(33% - 7px);min-width:88px;max-width:200px;padding:10px 8px;border-radius:10px;
+    background:var(--btn);border:1px solid var(--btn-line);box-shadow:var(--shadow);
+    font-size:13.5px;color:var(--ink);cursor:pointer;font-family:"PingFang SC","Microsoft YaHei",sans-serif;transition:.16s;}
+  .oe-btn:hover{background:rgba(158,39,46,.08);border-color:rgba(158,39,46,.4);}
+  .oe-btn:active{transform:scale(.97);}
+  .oe-btn.danger{color:#c0392b;border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.06);}
   /* ===== 罗盘枢纽：中心为「四周环境/返回」按钮，展开后方位按钮按真实方位落位 ===== */
   .exit-compass{grid-column:span 1;display:grid;grid-template-columns:repeat(3,1fr);
     grid-template-rows:repeat(3,auto);gap:6px;padding:8px 6px;margin:2px 0 4px;
@@ -649,7 +665,7 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 动态按钮区（分组菜单：对话 / 探查 / 行动 / 移动） =====
   var lastGroup=null;
-  function clearActions(){$actions.innerHTML='';lastGroup=null;document.removeEventListener('click', onDocCollapse, true);}
+  function clearActions(){$actions.innerHTML='';lastGroup=null;objPanelOpen=null;document.removeEventListener('click', onDocCollapse, true);document.removeEventListener('click', onDocCollapseObj, true);}
   function addBtn(label, fn, cls){
     var b=document.createElement('button');
     b.className='act '+(cls||''); b.textContent=label;
@@ -925,8 +941,9 @@ window.onerror=function(msg,url,line,col,err){
     // fallback：旧版分组按钮（兼容无配置的房间）
     (room.npcs||[]).forEach(function(k){
       var n=G.DIALOGUES.npcs[k]; if(!n) return;
-      mkAct('ren','👤','与'+n.name+'交谈',function(){
-        openSheet({title:'与'+n.name+'交谈',desc:n.name+'·当前态度：'+npcAttitude(k),actions:[{label:'执 行',fn:function(){ talk(k); }}]});
+      var acts=[{label:'交谈', fn:function(){ talk(k); }}];
+      var btn=mkAct('ren','👤','与'+n.name+'交谈',function(e){
+        toggleObjExpand(e, btn, {name:n.name, desc:n.name+' · 当前态度：'+npcAttitude(k)}, acts);
       });
     });
     if(explored){
@@ -935,9 +952,8 @@ window.onerror=function(msg,url,line,col,err){
       mkAct('explore','🔍','调查四周',function(){ investigateRoom(); });
     }
     (room.actions||[]).forEach(function(a){
-      mkAct('scene','·',a.label,function(){
-        openSheet({title:a.label,desc:a.tip,actions:[{label:'执 行',fn:function(){ handleAction(a.id,a); }}]});
-      });
+      var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
+      var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
     });
     if(room.exits && Object.keys(room.exits).length){
       // 有出口：罗盘枢纽（已调查直接弹 / 未调查走动画）
@@ -954,7 +970,7 @@ window.onerror=function(msg,url,line,col,err){
     var b=document.createElement('button');
     b.className='act obj-btn g-'+group+(extraCls?(' '+extraCls):'');
     b.innerHTML='<span class="ob-ic">'+(icon||'·')+'</span><span class="ob-nm">'+name+'</span>';
-    b.onclick=fn; $actions.appendChild(b);
+    b.onclick=function(e){ fn(e); }; $actions.appendChild(b);
     return b;
   }
   function renderObjs(list, group){
@@ -964,9 +980,45 @@ window.onerror=function(msg,url,line,col,err){
         mkAct('explore', o.icon, o.name, function(){ investigateRoom(); });
       } else {
         var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
-        mkAct(group, o.icon, o.name, function(){ openSheet({icon:o.icon,title:o.name,desc:o.desc,actions:acts}); });
+        var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); });
       }
     });
+  }
+  // ===== NPC/物件 内联展开：点击按钮在下方铺出子操作行，再点/点空白收起 =====
+  var objPanelOpen=null;
+  function toggleObjExpand(e, btn, o, acts){
+    e.stopPropagation();
+    if(objPanelOpen && objPanelOpen._owner===btn){ collapseObjPanel(); return; }
+    var compass=document.getElementById('exit-compass');
+    if(compass && compass.classList.contains('expanded')) collapseCompass();
+    if(objPanelOpen) collapseObjPanel();
+    var panel=document.createElement('div');
+    panel.className='obj-expand'; panel._owner=btn;
+    if(o.desc){ var d=document.createElement('div'); d.className='oe-desc'; d.textContent=o.desc; panel.appendChild(d); }
+    var row=document.createElement('div'); row.className='oe-row';
+    acts.forEach(function(a){
+      var b=document.createElement('button');
+      b.className='oe-btn'+(a.danger?' danger':'');
+      b.textContent=a.label||'';
+      b.onclick=function(ev){ ev.stopPropagation(); if(a.fn) a.fn(); collapseObjPanel(); };
+      row.appendChild(b);
+    });
+    panel.appendChild(row);
+    btn.after(panel);
+    btn.classList.add('open');
+    objPanelOpen=panel;
+    setTimeout(function(){ document.addEventListener('click', onDocCollapseObj, true); }, 0);
+  }
+  function collapseObjPanel(){
+    if(!objPanelOpen) return;
+    var owner=objPanelOpen._owner;
+    if(objPanelOpen.parentNode) objPanelOpen.remove();
+    document.removeEventListener('click', onDocCollapseObj, true);
+    if(owner) owner.classList.remove('open');
+    objPanelOpen=null;
+  }
+  function onDocCollapseObj(e){
+    if(objPanelOpen && !objPanelOpen.contains(e.target)) collapseObjPanel();
   }
   // ===== 罗盘枢纽：中心按钮兼「四周环境 / 返回」，展开后方位按钮按真实方位落位 =====
   var DIR_CELL={'北':'n','南':'s','东':'e','西':'w','东北':'ne','西北':'nw','东南':'se','西南':'sw'};
