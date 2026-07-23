@@ -156,10 +156,11 @@
   .grp{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:4px;
     color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.7;margin:5px 0 3px;}
   /* ===== 罗盘枢纽：中心为「四周环境/返回」按钮，展开后方位按钮按真实方位落位 ===== */
-  .exit-compass{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);
+  .exit-compass{grid-column:span 1;display:grid;grid-template-columns:repeat(3,1fr);
     grid-template-rows:repeat(3,auto);gap:6px;padding:8px 6px;margin:2px 0 4px;
     background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.25);border-radius:14px;
-    transition:border-color .25s, background .25s;}
+    transition:border-color .25s, background .25s, grid-column .2s;}
+  .exit-compass.expanded{grid-column:1/-1;}
   .exit-compass.expanded .ecc{min-height:42px;}
   .ecc{min-height:0;display:flex;align-items:center;justify-content:center;
     transition:transform .3s cubic-bezier(.2,.9,.3,1.4),opacity .3s;}
@@ -167,7 +168,8 @@
   .exit-compass.expanded .ecc:not(.ecc-hub){animation:eccPop .34s cubic-bezier(.2,.9,.3,1.45) both;}
   @keyframes eccPop{from{opacity:0;transform:scale(.4);}to{opacity:1;transform:scale(1);}}
   /* 收起态：仅显示中心枢纽按钮（类 FAB），其余方位格隐藏 */
-  .exit-compass:not(.expanded){display:flex;justify-content:center;padding:4px 6px;border-color:transparent;background:transparent;}
+  .exit-compass:not(.expanded){display:flex;justify-content:center;padding:0;margin:0;border-color:transparent;background:transparent;border-width:0;}
+  .exit-compass:not(.expanded) .ecc-hub{width:100%;min-width:0;}
   .exit-compass:not(.expanded) .ecc:not(.ecc-hub){display:none;}
   /* 中心枢纽按钮（兼作「你在此处」与调查/返回操作） */
   .ecc-hub{position:relative;cursor:pointer;border-radius:14px;min-width:108px;min-height:52px;padding:8px 16px;
@@ -1017,6 +1019,7 @@ window.onerror=function(msg,url,line,col,err){
     if(compass && !compass.contains(e.target)) collapseCompass();
   }
   function collapseCompass(){
+    abortTyping();   // 若调查中，中止逐行动画，避免按钮在收起后偷偷弹回
     var compass=getExitCompass();
     compass.querySelectorAll('.exit-btn').forEach(function(b){ b.remove(); });
     compass.classList.remove('expanded');
@@ -1069,7 +1072,7 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // ===== 调查四周：叙事框高亮逐字显出，并解锁去处（按钮带弹出动画） =====
-  var typeQueue=[], typing=false;
+  var typeQueue=[], typing=false, typeTimer=null;
   function typeNarr(text, cls, done){
     typeQueue.push({text:text, cls:cls, done:done});
     runTypeQueue();
@@ -1077,24 +1080,31 @@ window.onerror=function(msg,url,line,col,err){
   function runTypeQueue(){
     if(typing) return;
     var item=typeQueue.shift();
-    if(!item){ return; }
+    if(!item){ typing=false; return; }
     typing=true;
     var p=document.createElement('p');
     p.className='narr '+(item.cls||'env')+' typing';
     $narr.appendChild(p);
     var i=0, full=item.text;
-    var timer=setInterval(function(){
+    typeTimer=setInterval(function(){
       i++;
       p.textContent=full.slice(0,i);
       var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
       if(i>=full.length){
-        clearInterval(timer);
+        clearInterval(typeTimer); typeTimer=null;
         p.classList.remove('typing');
         typing=false;
         if(item.done) item.done();
         runTypeQueue();
       }
     }, 34);
+  }
+  // 中止所有正在进行的打字/逐行渐显（调查中点击「返回」收起时使用）
+  function abortTyping(){
+    if(typeTimer){ clearInterval(typeTimer); typeTimer=null; }
+    typeQueue=[];
+    typing=false;
+    $narr.querySelectorAll('p.typing').forEach(function(p){ p.remove(); });
   }
   function stripDir(nm){ return (nm||'').replace(/^[^·]*·/,''); }
   // 各方向通路描述：显眼者用「抬眼便见」，隐蔽者用「循迹探得」，并保留原 desc 的感官线索
