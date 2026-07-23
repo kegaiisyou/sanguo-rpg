@@ -22,7 +22,8 @@
       repExp: 0,                     // 声望经验累计（后续真实途径用，先留字段）
       gold: 50,
       skills: ['basic_fist'],
-      room: 'camp',                  // 当前所处房间
+      room: 'ji_guomen',             // 当前所处房间（默认出生点：蓟城·郭门）
+      spawnRoom: 'ji_guomen',        // 玩家出生点（调试台可改；新局/重置后落点）
       flags: {},
       lastSeen: Date.now(),
       // ─── v0.2 战斗系统新增 ───

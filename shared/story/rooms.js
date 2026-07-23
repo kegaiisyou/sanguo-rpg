@@ -87,7 +87,7 @@
         '城外远处可见流民棚的炊烟，马市那边传来阵阵马嘶声。南行可返中原洛阳，北行即入蓟城。'
       ],
       exits: { '北': 'ji_nanmen', '西': 'ji_liumin', '东': 'ji_mashi', '南': 'luoyang' },
-      npcs: [],
+      npcs: ['guanli'],
       items: [],
       actions: [
         { id: 'rest', label: '郭门歇脚', group: '行动', tip: '依墙小憩，气血内力尽复' }
@@ -100,7 +100,7 @@
         '守门士卒甲胄鲜明，持戟而立。门内通衢大街直贯城中，车马行人川流不息。'
       ],
       exits: { '南': 'ji_guomen', '北': 'ji_tongqu' },
-      npcs: [],
+      npcs: ['shoumen'],
       items: [],
       actions: [
         { id: 'rest', label: '门楼歇息', group: '行动', tip: '倚门楼小憩，气血内力尽复' }
@@ -113,7 +113,7 @@
         '此处为全城枢纽：北去州牧府邸，东往大市商区，西向军营驻地，南出阳门通外郭。'
       ],
       exits: { '南': 'ji_nanmen', '北': 'ji_zhoumu', '东': 'ji_dashi', '西': 'ji_junying' },
-      npcs: [],
+      npcs: ['shuoshu'],
       items: [],
       actions: []
     },
@@ -124,7 +124,7 @@
         '堂上悬「镇北安民」匾额，两侧刀枪架上兵刃森然。后堂隐隐有人语，似是州牧在与人议事。'
       ],
       exits: { '南': 'ji_tongqu', '北': 'ji_zhoumu_houtang' },
-      npcs: [],
+      npcs: ['liuyu'],
       items: [],
       actions: []
     },
@@ -135,7 +135,7 @@
         '此处是州牧私议机密之所，寻常人不得擅入。窗外隐约传来校场操练的呼喝声。'
       ],
       exits: { '南': 'ji_zhoumu' },
-      npcs: [],
+      npcs: ['gongsun'],
       items: [],
       actions: []
     },
@@ -146,7 +146,7 @@
         '东首是米行布庄，西首是铁器皮货；北面学宫隐隐传来诵读声，东行可至闾里民居。'
       ],
       exits: { '西': 'ji_tongqu', '北': 'ji_xuegong', '东': 'ji_minli' },
-      npcs: [],
+      npcs: ['shiling'],
       items: [],
       actions: [
         { id: 'market', label: '逛市集', group: '行动', tip: '与商贾交易钱粮药材' }
@@ -159,7 +159,7 @@
         '营帐间有兵器架与草料堆，空气中弥漫着皮革与铁锈的气味。北侧驿馆传舍隐约可见。'
       ],
       exits: { '东': 'ji_tongqu', '北': 'ji_yiguan' },
-      npcs: [],
+      npcs: ['duwei'],
       items: [],
       actions: []
     },
@@ -170,7 +170,7 @@
         '学宫藏有儒门心法与燕地古枪谱，壁上镌刻着历代名将的用兵心得。院中古槐下，偶有隐士论道。'
       ],
       exits: { '南': 'ji_dashi' },
-      npcs: [],
+      npcs: ['boshi'],
       items: [],
       actions: [
         { id: 'learn', label: '研习武学', group: '行动', tip: '参悟儒门心法与燕地枪术' }
@@ -183,7 +183,7 @@
         '后院马厩备有驿马，卧房虽简却整洁。窗外可闻街巷人声，附近便是军营驻地。'
       ],
       exits: { '南': 'ji_junying' },
-      npcs: [],
+      npcs: ['yicheng'],
       items: [],
       actions: [
         { id: 'rest', label: '驿馆歇宿', group: '行动', tip: '卧房安歇，气血内力尽复' }
@@ -196,7 +196,7 @@
         '此处多是幽州军户与平民杂居，邻里相熟，巷口老槐下常有老卒闲坐说古。西行即回大市。'
       ],
       exits: { '西': 'ji_dashi' },
-      npcs: [],
+      npcs: ['likui'],
       items: [],
       actions: []
     },
@@ -207,7 +207,7 @@
         '空气中混杂着马汗与干草的气味。地上散落着蹄铁与断缰绳——此处是北疆最好的马匹交易之地。'
       ],
       exits: { '西': 'ji_guomen' },
-      npcs: [],
+      npcs: ['wuhuan'],
       items: [],
       actions: [
         { id: 'rest', label: '马场歇息', group: '行动', tip: '倚草料堆小憩，气血内力尽复' }
@@ -220,7 +220,7 @@
         '几个乞儿蹲在路口，伸出脏兮兮的手。偶尔有溃兵在此劫掠，妇孺的哭声随风飘散。'
       ],
       exits: { '东': 'ji_guomen' },
-      npcs: [],
+      npcs: ['minlao'],
       items: [],
       actions: [
         { id: 'rest', label: '棚中歇脚', group: '行动', tip: '寻僻静处小憩，气血内力尽复' }

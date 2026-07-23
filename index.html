@@ -680,6 +680,7 @@ window.onerror=function(msg,url,line,col,err){
     ],
     // ═══ 幽州·蓟城（12 间核心） ═══
     ji_guomen:[
+      {type:'npc',   key:'guanli',  icon:'👤', name:'城门税吏', desc:'验籍过关防，记下姓名',                actions:[{label:'与他交谈', fn:function(){ talk('guanli'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾郭门内外',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'building',key:'rest',  icon:'🧱', name:'墙根歇处', desc:'依墙小憩，气血内力尽复',              actions:[{label:'郭门歇脚', fn:function(){ actRest(); }, tip:'依墙小憩，气血内力尽复'}]},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·蓟城南门',desc:'入城方向，门楼巍然',                actions:[{label:'入蓟城',     fn:function(){ move('北','ji_nanmen'); }}]},
@@ -688,12 +689,14 @@ window.onerror=function(msg,url,line,col,err){
       {type:'exit',  dir:'南',     icon:'🏛️', name:'南·洛阳',    desc:'南下中原，回洛阳城',                  actions:[{label:'返回洛阳',   fn:function(){ move('南','luoyang'); }}]}
     ],
     ji_nanmen:[
+      {type:'npc',   key:'shoumen', icon:'👤', name:'守门校尉', desc:'阳门城防，盘查往来',                  actions:[{label:'与他交谈', fn:function(){ talk('shoumen'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾阳门城楼',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'building',key:'rest',  icon:'🏯', name:'门楼歇处', desc:'倚门楼小憩，气血内力尽复',            actions:[{label:'门楼歇息', fn:function(){ actRest(); }, tip:'倚门楼小憩，气血内力尽复'}]},
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·郭门',   desc:'出城方向，通外郭',                    actions:[{label:'出郭门',     fn:function(){ move('南','ji_guomen'); }}]},
       {type:'exit',  dir:'北',     icon:'🏘️', name:'北·通衢大街',desc:'城中主轴，车水马龙',                actions:[{label:'入通衢大街', fn:function(){ move('北','ji_tongqu'); }}]}
     ],
     ji_tongqu:[
+      {type:'npc',   key:'shuoshu', icon:'👤', name:'说书老人', desc:'燕都旧事，易水悲歌',                  actions:[{label:'与他交谈', fn:function(){ talk('shuoshu'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾通衢大街',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·阳门',   desc:'南向出城，通郭门',                    actions:[{label:'往南门',     fn:function(){ move('南','ji_nanmen'); }}]},
       {type:'exit',  dir:'北',     icon:'🏛️', name:'北·州牧府', desc:'幽州刺史部治所，朱门铜钉',            actions:[{label:'往州牧府',   fn:function(){ move('北','ji_zhoumu'); }}]},
@@ -701,15 +704,18 @@ window.onerror=function(msg,url,line,col,err){
       {type:'exit',  dir:'西',     icon:'⚔️', name:'西·军营',   desc:'旌旗猎猎，突骑操练',                  actions:[{label:'往军营',     fn:function(){ move('西','ji_junying'); }}]}
     ],
     ji_zhoumu:[
+      {type:'npc',   key:'liuyu',   icon:'👤', name:'州牧刘虞', desc:'仁政安民，怀柔边夷',                  actions:[{label:'与他交谈', fn:function(){ talk('liuyu'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾州牧府正厅',                      actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('南','ji_tongqu'); }}]},
       {type:'exit',  dir:'北',     icon:'🏠', name:'北·后堂',   desc:'幽静内室，州牧私议之所',              actions:[{label:'入后堂',     fn:function(){ move('北','ji_zhoumu_houtang'); }}]}
     ],
     ji_zhoumu_houtang:[
+      {type:'npc',   key:'gongsun', icon:'👤', name:'公孙瓒',   desc:'铁甲映烛，唯力是视',                  actions:[{label:'与他交谈', fn:function(){ talk('gongsun'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾后堂',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·正厅',   desc:'回州牧府正厅',                        actions:[{label:'回正厅',     fn:function(){ move('南','ji_zhoumu'); }}]}
     ],
     ji_dashi:[
+      {type:'npc',   key:'shiling', icon:'👤', name:'市令',     desc:'旗鼓开市，平粜周济',                  actions:[{label:'与他交谈', fn:function(){ talk('shiling'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾大市',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'feature',key:'market', icon:'🏪', name:'市集交易', desc:'与商贾交易钱粮药材',                  actions:[{label:'逛市集',     fn:function(){ handleAction('market'); }, tip:'与商贾交易钱粮药材'}]},
       {type:'exit',  dir:'西',     icon:'🚪', name:'西·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('西','ji_tongqu'); }}]},
@@ -717,30 +723,36 @@ window.onerror=function(msg,url,line,col,err){
       {type:'exit',  dir:'东',     icon:'🏘️', name:'东·平民里', desc:'闾里巷道，军户民居',                  actions:[{label:'往平民里',   fn:function(){ move('东','ji_minli'); }}]}
     ],
     ji_junying:[
+      {type:'npc',   key:'duwei',   icon:'👤', name:'军营都尉', desc:'突骑精锐，可校可投',                  actions:[{label:'与他交谈', fn:function(){ talk('duwei'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾军营',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'东',     icon:'🚪', name:'东·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('东','ji_tongqu'); }}]},
       {type:'exit',  dir:'北',     icon:'🏨', name:'北·驿馆',   desc:'传舍驿馆，供官吏歇脚',                actions:[{label:'往驿馆',     fn:function(){ move('北','ji_yiguan'); }}]}
     ],
     ji_xuegong:[
+      {type:'npc',   key:'boshi',   icon:'👤', name:'郡学博士', desc:'六艺射御，古枪可参',                  actions:[{label:'与他交谈', fn:function(){ talk('boshi'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾郡学宫',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'feature',key:'learn',  icon:'📜', name:'研习武学', desc:'参悟儒门心法与燕地枪术',              actions:[{label:'研习武学',   fn:function(){ handleAction('learn'); }, tip:'参悟儒门心法与燕地枪术'}]},
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·大市',   desc:'回大市方向',                          actions:[{label:'回大市',     fn:function(){ move('南','ji_dashi'); }}]}
     ],
     ji_yiguan:[
+      {type:'npc',   key:'yicheng', icon:'👤', name:'驿馆驿丞', desc:'传舍歇脚，代递简书',                  actions:[{label:'与他交谈', fn:function(){ talk('yicheng'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾驿馆',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'building',key:'rest',  icon:'🛏️', name:'驿馆卧房', desc:'卧房虽简却整洁，可安歇',              actions:[{label:'驿馆歇宿', fn:function(){ actRest(); }, tip:'卧房安歇，气血内力尽复'}]},
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·军营',   desc:'回军营方向',                          actions:[{label:'回军营',     fn:function(){ move('南','ji_junying'); }}]}
     ],
     ji_minli:[
+      {type:'npc',   key:'likui',   icon:'👤', name:'里魁',     desc:'管着里坊，体察疾苦',                  actions:[{label:'与他交谈', fn:function(){ talk('likui'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾平民里巷',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'西',     icon:'🚪', name:'西·大市',   desc:'回大市方向',                          actions:[{label:'回大市',     fn:function(){ move('西','ji_dashi'); }}]}
     ],
     ji_mashi:[
+      {type:'npc',   key:'wuhuan',  icon:'👤', name:'乌桓马商', desc:'良马皮货，银钱交易',                  actions:[{label:'与他交谈', fn:function(){ talk('wuhuan'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾马市草场',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'building',key:'rest',  icon:'🌾', name:'草料堆',   desc:'倚草料堆小憩，气血内力尽复',          actions:[{label:'马场歇息', fn:function(){ actRest(); }, tip:'倚草料堆小憩，气血内力尽复'}]},
       {type:'exit',  dir:'西',     icon:'🚪', name:'西·郭门',   desc:'回郭门方向',                          actions:[{label:'回郭门',     fn:function(){ move('西','ji_guomen'); }}]}
     ],
     ji_liumin:[
+      {type:'npc',   key:'minlao',  icon:'👤', name:'流民老者', desc:'田庐尽毁，乞儿待济',                  actions:[{label:'与他交谈', fn:function(){ talk('minlao'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾流民棚',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'building',key:'rest',  icon:'🛖', name:'棚中歇脚', desc:'寻僻静处小憩，气血内力尽复',          actions:[{label:'棚中歇脚', fn:function(){ actRest(); }, tip:'寻僻静处小憩，气血内力尽复'}]},
       {type:'exit',  dir:'东',     icon:'🚪', name:'东·郭门',   desc:'回郭门方向',                          actions:[{label:'回郭门',     fn:function(){ move('东','ji_guomen'); }}]}
@@ -1183,15 +1195,48 @@ window.onerror=function(msg,url,line,col,err){
          '<button class="dev" data-act="gold+500">银两+500</button>'+
          '<button class="dev" data-act="full">回满状态</button>'+
          '<button class="dev" data-act="mkgear">掉件装备</button></div></div>';
+    h+='<div class="dev-sec"><div class="dev-h">出生点（当前：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)+'）</div><div class="dev-btns">'+
+         '<button class="dev wide" data-act="setspawn">🗺 设置出生点（弹大地图选点）</button></div></div>';
     h+='<button class="close" id="m-close">收 起</button>';
     $card.innerHTML=h;
     $modal.classList.remove('hidden');
     $card.querySelectorAll('[data-act]').forEach(function(btn){
-      btn.onclick=function(){ handleDev(btn.getAttribute('data-act')); save(state); renderStatus(); renderDev(); };
+      btn.onclick=function(){
+        var a=btn.getAttribute('data-act');
+        if(a==='setspawn'){ openSpawnMap(); return; }
+        handleDev(a); save(state); renderStatus(); renderDev();
+      };
     });
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
   }
 
+  // ===== 调试：大地图选出生点 =====
+  function openSpawnMap(){
+    if(state.dead){ die(); return; }
+    var h='<h3>🗺 设置出生点</h3>'+
+          '<p class="tip">点击一处地点，将其设为你的初始出生点，并立即传送至此（已自动存档）。</p>';
+    Object.keys(G.ROOMS).forEach(function(rid){
+      var r=G.ROOMS[rid];
+      var ex=Object.keys(r.exits||{}).map(function(d){return d+'→'+G.ROOMS[r.exits[d]].name;}).join('，');
+      h+='<div class="map-node'+(rid===state.room?' cur':'')+'" data-spawn="'+rid+'" style="cursor:pointer;">'+
+          '<span class="dot"></span>'+(rid===state.spawnRoom?'★ ':'')+r.name+
+          (ex?'<span class="ex">'+ex+'</span>':'')+'</div>';
+    });
+    h+='<button class="close" id="m-close">取 消</button>';
+    $card.innerHTML=h;
+    $modal.classList.remove('hidden');
+    $card.querySelectorAll('[data-spawn]').forEach(function(el){
+      el.onclick=function(){
+        var rid=el.getAttribute('data-spawn');
+        state.spawnRoom=rid;
+        log('【调试】出生点已设为：'+G.ROOMS[rid].name+'。','good');
+        closeModal();
+        renderRoom(rid);
+        save(state);
+      };
+    });
+    var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+  }
   function toast(msg){$toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400);}
 
   // HTML 注入辅助（战斗卡片用）
@@ -1497,7 +1542,7 @@ window.onerror=function(msg,url,line,col,err){
   G.DIALOGUES.prologue.forEach(function(l){log(l,'env');});
   log('— 颍川起兵 —','title');
   renderStatus();
-  renderRoom(state.room || 'camp');
+  renderRoom(state.room || state.spawnRoom || 'ji_guomen');
 
   window.addEventListener('beforeunload',function(){state.lastSeen=Date.now();save(state);});
   }catch(e){
