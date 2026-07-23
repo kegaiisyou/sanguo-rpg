@@ -675,7 +675,75 @@ window.onerror=function(msg,url,line,col,err){
     luoyang:[
       {type:'building',key:'tavern',icon:'🍶', name:'酒肆',     desc:'太庙之前，老兵斟酒相敬',              actions:[{label:'城中休整', fn:function(){ actRest(); }, tip:'酒肆安歇，气血内力尽复'}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'北',     icon:'🏛️', name:'北·蓟城幽州',desc:'北上幽州，奔赴北疆',                actions:[{label:'前往蓟城',   fn:function(){ move('北','ji_guomen'); }}]},
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('南','camp'); }}]}
+    ],
+    // ═══ 幽州·蓟城（12 间核心） ═══
+    ji_guomen:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾郭门内外',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest',  icon:'🧱', name:'墙根歇处', desc:'依墙小憩，气血内力尽复',              actions:[{label:'郭门歇脚', fn:function(){ actRest(); }, tip:'依墙小憩，气血内力尽复'}]},
+      {type:'exit',  dir:'北',     icon:'🚪', name:'北·蓟城南门',desc:'入城方向，门楼巍然',                actions:[{label:'入蓟城',     fn:function(){ move('北','ji_nanmen'); }}]},
+      {type:'exit',  dir:'西',     icon:'🏕️', name:'西·流民棚',  desc:'荒地上棚屋杂乱，流民聚集',          actions:[{label:'前往流民棚', fn:function(){ move('西','ji_liumin'); }}]},
+      {type:'exit',  dir:'东',     icon:'🐴', name:'东·城外马市',desc:'马嘶阵阵，乌桓马商吆喝',            actions:[{label:'前往马市',   fn:function(){ move('东','ji_mashi'); }}]},
+      {type:'exit',  dir:'南',     icon:'🏛️', name:'南·洛阳',    desc:'南下中原，回洛阳城',                  actions:[{label:'返回洛阳',   fn:function(){ move('南','luoyang'); }}]}
+    ],
+    ji_nanmen:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾阳门城楼',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest',  icon:'🏯', name:'门楼歇处', desc:'倚门楼小憩，气血内力尽复',            actions:[{label:'门楼歇息', fn:function(){ actRest(); }, tip:'倚门楼小憩，气血内力尽复'}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·郭门',   desc:'出城方向，通外郭',                    actions:[{label:'出郭门',     fn:function(){ move('南','ji_guomen'); }}]},
+      {type:'exit',  dir:'北',     icon:'🏘️', name:'北·通衢大街',desc:'城中主轴，车水马龙',                actions:[{label:'入通衢大街', fn:function(){ move('北','ji_tongqu'); }}]}
+    ],
+    ji_tongqu:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾通衢大街',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·阳门',   desc:'南向出城，通郭门',                    actions:[{label:'往南门',     fn:function(){ move('南','ji_nanmen'); }}]},
+      {type:'exit',  dir:'北',     icon:'🏛️', name:'北·州牧府', desc:'幽州刺史部治所，朱门铜钉',            actions:[{label:'往州牧府',   fn:function(){ move('北','ji_zhoumu'); }}]},
+      {type:'exit',  dir:'东',     icon:'🏪', name:'东·大市',   desc:'四方商贾辐辏，货物琳琅',              actions:[{label:'往大市',     fn:function(){ move('东','ji_dashi'); }}]},
+      {type:'exit',  dir:'西',     icon:'⚔️', name:'西·军营',   desc:'旌旗猎猎，突骑操练',                  actions:[{label:'往军营',     fn:function(){ move('西','ji_junying'); }}]}
+    ],
+    ji_zhoumu:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾州牧府正厅',                      actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('南','ji_tongqu'); }}]},
+      {type:'exit',  dir:'北',     icon:'🏠', name:'北·后堂',   desc:'幽静内室，州牧私议之所',              actions:[{label:'入后堂',     fn:function(){ move('北','ji_zhoumu_houtang'); }}]}
+    ],
+    ji_zhoumu_houtang:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾后堂',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·正厅',   desc:'回州牧府正厅',                        actions:[{label:'回正厅',     fn:function(){ move('南','ji_zhoumu'); }}]}
+    ],
+    ji_dashi:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾大市',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'feature',key:'market', icon:'🏪', name:'市集交易', desc:'与商贾交易钱粮药材',                  actions:[{label:'逛市集',     fn:function(){ handleAction('market'); }, tip:'与商贾交易钱粮药材'}]},
+      {type:'exit',  dir:'西',     icon:'🚪', name:'西·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('西','ji_tongqu'); }}]},
+      {type:'exit',  dir:'北',     icon:'📚', name:'北·郡学宫', desc:'青瓦白墙，松柏掩映',                  actions:[{label:'往学宫',     fn:function(){ move('北','ji_xuegong'); }}]},
+      {type:'exit',  dir:'东',     icon:'🏘️', name:'东·平民里', desc:'闾里巷道，军户民居',                  actions:[{label:'往平民里',   fn:function(){ move('东','ji_minli'); }}]}
+    ],
+    ji_junying:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾军营',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'东',     icon:'🚪', name:'东·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('东','ji_tongqu'); }}]},
+      {type:'exit',  dir:'北',     icon:'🏨', name:'北·驿馆',   desc:'传舍驿馆，供官吏歇脚',                actions:[{label:'往驿馆',     fn:function(){ move('北','ji_yiguan'); }}]}
+    ],
+    ji_xuegong:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾郡学宫',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'feature',key:'learn',  icon:'📜', name:'研习武学', desc:'参悟儒门心法与燕地枪术',              actions:[{label:'研习武学',   fn:function(){ handleAction('learn'); }, tip:'参悟儒门心法与燕地枪术'}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·大市',   desc:'回大市方向',                          actions:[{label:'回大市',     fn:function(){ move('南','ji_dashi'); }}]}
+    ],
+    ji_yiguan:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾驿馆',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest',  icon:'🛏️', name:'驿馆卧房', desc:'卧房虽简却整洁，可安歇',              actions:[{label:'驿馆歇宿', fn:function(){ actRest(); }, tip:'卧房安歇，气血内力尽复'}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·军营',   desc:'回军营方向',                          actions:[{label:'回军营',     fn:function(){ move('南','ji_junying'); }}]}
+    ],
+    ji_minli:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾平民里巷',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'西',     icon:'🚪', name:'西·大市',   desc:'回大市方向',                          actions:[{label:'回大市',     fn:function(){ move('西','ji_dashi'); }}]}
+    ],
+    ji_mashi:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾马市草场',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest',  icon:'🌾', name:'草料堆',   desc:'倚草料堆小憩，气血内力尽复',          actions:[{label:'马场歇息', fn:function(){ actRest(); }, tip:'倚草料堆小憩，气血内力尽复'}]},
+      {type:'exit',  dir:'西',     icon:'🚪', name:'西·郭门',   desc:'回郭门方向',                          actions:[{label:'回郭门',     fn:function(){ move('西','ji_guomen'); }}]}
+    ],
+    ji_liumin:[
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾流民棚',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest',  icon:'🛖', name:'棚中歇脚', desc:'寻僻静处小憩，气血内力尽复',          actions:[{label:'棚中歇脚', fn:function(){ actRest(); }, tip:'寻僻静处小憩，气血内力尽复'}]},
+      {type:'exit',  dir:'东',     icon:'🚪', name:'东·郭门',   desc:'回郭门方向',                          actions:[{label:'回郭门',     fn:function(){ move('东','ji_guomen'); }}]}
     ]
   };
 
