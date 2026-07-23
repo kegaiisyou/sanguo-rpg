@@ -1619,7 +1619,7 @@ window.onerror=function(msg,url,line,col,err){
     });
     // 同步战意/内力回 state
     var st=G.CombatEngine.getStatus();
-    state.mp=st.player.mp;
+    state.hp=st.player.hp; state.mp=st.player.mp;   // 同步战斗内血量/内力，状态栏实时准确
     // 检查结束
     if(st.result){ endCombat(st.result); return; }
     renderCombatRound();
@@ -1744,6 +1744,9 @@ window.onerror=function(msg,url,line,col,err){
     } else if(result==='fled'){
       log('你已脱离战斗，回到原地。','sys');
       toast('已脱离战斗');
+    } else {
+      log('两败俱伤，战斗未分胜负，各自收兵。','sys');
+      toast('战斗未分胜负');
     }
 
     // 返回房间（战败时只留休整按钮，由 buildActions 的 defeated 锁控制）
@@ -1751,8 +1754,8 @@ window.onerror=function(msg,url,line,col,err){
     save(state); renderStatus();
   }
 
-  // ===== 离线收益（按设计文档 v2：操演部众放置内核暂未启用，仅记录时间戳，不做收益结算）=====
-  // 注：state.lastSeen 仍由 beforeunload 记录用于存档时间戳，但不再结算离线收益。
+  // ===== 存档时间戳（仅用于读档续命，不再结算任何离线/放置收益）=====
+
 
   // ===== 序幕 =====
   G.DIALOGUES.prologue.forEach(function(l){log(l,'env');});

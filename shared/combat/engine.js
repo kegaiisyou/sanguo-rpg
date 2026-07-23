@@ -25,8 +25,8 @@
         }
       });
 
-      // 玩家的武学 ID 列表
-      var artIds = playerState.learnedMartial || [];
+      // 玩家的武学 ID 列表（用副本，避免战斗初始化意外修改全局存档数组）
+      var artIds = (playerState.learnedMartial || []).slice();
       // 保证新手至少能用崩拳
       if (artIds.indexOf('beng_quan') === -1) artIds.push('beng_quan');
 
@@ -343,7 +343,7 @@
         if (hpR < 0.4) {
           var buff = null;
           for (var i = 0; i < skills.length; i++) {
-            if (skills[i].passive && skills[i].eff && skills[i].eff.selfBuff) { buff = skills[i]; break; }
+            if (skills[i].eff && skills[i].eff.selfBuff) { buff = skills[i]; break; }
           }
           if (buff && Math.random() < 0.6) return buff;
         }
@@ -464,6 +464,7 @@
       var log = [];
       this.state.log = [];
       this.state.round++;
+      var stunnedThisTurn = !!this.state.player.stunNext;
 
       // 1) DoT 结算
       this._tickDots(log);
@@ -513,7 +514,7 @@
 
       // 5) 速度差额外行动
       var spdGap = this.state.player.spd - this.state.enemy.spd;
-      if (spdGap > 20) {
+      if (spdGap > 20 && !stunnedThisTurn) {
         log.push({ type:'system', text:'你身法占优，抢出连击！' });
         // 快速追加一次轻攻击
         var quickAtk = { name:'快速追击', beat:15, dmgMul:0.6, cost:{}, guaranteed:true };

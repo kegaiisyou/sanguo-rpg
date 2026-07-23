@@ -71,7 +71,7 @@
 | `shared/data/martial.js` | `MARTIAL_ARTS`：招式/绝技/发力技巧 + 13 艺线定义 |
 | `shared/data/enemies.js` | 敌人模板（含声望奖励隐含映射见 `index.html` `RREP`） |
 | `shared/data/rooms.js` → 实为 `shared/story/rooms.js` | 房间/出口/NPC/actions（营/城/林/溪/洛阳） |
-| `shared/config/constants.js` | `GAME_NAME`、`VERSION`、`OFFLINE_CAP_HOURS`（离线收益上限，当前预留未启用） |
+| `shared/config/constants.js` | `GAME_NAME`、`VERSION`、`MAX_LEVEL` |
 | `GAME_DESIGN.md` | 设计基线 v2.2 |
 | `PROJECT_GUIDE.md` | 三端统一规范（主端 H5） |
 
@@ -94,7 +94,7 @@
 | ✅ 已完成 | P2 完整版 | 艺线经验由战斗累积+学招、艺线等级→攻/命/暴/内/速、境界突破效果接入、命中判定系统（详见路线图表） | — |
 | ✅ 已完成 | P3 善恶双轨 | 侠义/凶名独立双轴 + 阈值解锁（侠义委托/影门悬赏/枭雄隐藏线）+ NPC 态度系统（详见路线图表） | — |
 | 🟢 | P5 影门 / P6 家族 | 仅骨架，规则待细化 | 阵营/声望系统 |
-| 🟢 | 离线收益 | `OFFLINE_CAP_HOURS`/`TICK_MS` 已预留，可启用「操演部众」放置内核 | 主循环 |
+| 🟢 | 放置内核 | 已移除（纯文字 RPG 路线，不再含离线/挂机收益） | — |
 
 ---
 
