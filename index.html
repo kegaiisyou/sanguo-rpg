@@ -307,6 +307,7 @@ window.onerror=function(msg,url,line,col,err){
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
     <button data-modal="more"><span class="ic">☰</span>更多</button>
+    <button data-modal="dev"><span class="ic">🛠</span>调试</button>
   </nav>
 </div>
 
@@ -444,7 +445,7 @@ window.onerror=function(msg,url,line,col,err){
       log('【风评】侠义凶名俱达 40——亦正亦邪·枭雄 之路为你敞开！','good');
     }
   }
-  // 声望框架：0-100，称号区间见 GAME_DESIGN 4.1（P4 起由胜战真实获取；调试台仅 ?dev=1 可直赋）
+  // 声望框架：0-100，称号区间见 GAME_DESIGN 4.1（P4 起由胜战真实获取；调试台内置常驻，可直赋测试）
   function repTitle(rep){
     if(rep>=95) return '一代宗师';
     if(rep>=85) return '名扬天下';
@@ -1081,9 +1082,7 @@ window.onerror=function(msg,url,line,col,err){
         row('存档','已自动保存至本地')+
         '<button class="close" id="m-save">立即存档</button>'+
         '<button class="close" id="m-reset" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清空存档 · 重头来过</button>'+
-        (location.search.indexOf('dev=1')>=0
-          ? '<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台（测试用 · dev）</button>'
-          : '')+
+        '<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台</button>'+
         '<p class="tip">存档位于浏览器本地，清除浏览器数据会一并丢失。</p>';
     }
     $card.innerHTML=h+'<button class="close" id="m-close">收 起</button>';
