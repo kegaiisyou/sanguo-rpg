@@ -161,18 +161,30 @@
     background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.25);border-radius:14px;
     transition:border-color .25s, background .25s;}
   .exit-compass.expanded .ecc{min-height:42px;}
-  .ecc{min-height:0;display:flex;align-items:center;justify-content:center;}
+  .ecc{min-height:0;display:flex;align-items:center;justify-content:center;
+    transition:transform .3s cubic-bezier(.2,.9,.3,1.4),opacity .3s;}
+  /* 展开时方位格缩放入场（收起态 display:none，故纯入场动画即可） */
+  .exit-compass.expanded .ecc:not(.ecc-hub){animation:eccPop .34s cubic-bezier(.2,.9,.3,1.45) both;}
+  @keyframes eccPop{from{opacity:0;transform:scale(.4);}to{opacity:1;transform:scale(1);}}
   /* 收起态：仅显示中心枢纽按钮（类 FAB），其余方位格隐藏 */
   .exit-compass:not(.expanded){display:flex;justify-content:center;padding:4px 6px;border-color:transparent;background:transparent;}
   .exit-compass:not(.expanded) .ecc:not(.ecc-hub){display:none;}
   /* 中心枢纽按钮（兼作「你在此处」与调查/返回操作） */
-  .ecc-hub{cursor:pointer;border-radius:14px;min-width:108px;min-height:52px;padding:8px 16px;
+  .ecc-hub{position:relative;cursor:pointer;border-radius:14px;min-width:108px;min-height:52px;padding:8px 16px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
     background:linear-gradient(180deg,rgba(176,131,47,.24),rgba(176,131,47,.12));
     border:1.5px solid rgba(176,131,47,.5);
-    box-shadow:0 0 0 3px rgba(176,131,47,.08),var(--shadow);transition:.18s;}
+    box-shadow:0 0 0 3px rgba(176,131,47,.08),var(--shadow);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s;}
   .ecc-hub:hover{background:rgba(176,131,47,.32);border-color:rgba(176,131,47,.72);}
-  .ecc-hub:active{transform:scale(.97);}
+  .ecc-hub:active{transform:scale(.94);}
+  /* 未调查：呼吸光晕提示「可探查」 */
+  .ecc-hub::before{content:'';position:absolute;inset:-3px;border-radius:16px;pointer-events:none;opacity:0;}
+  .ecc-hub.breathing::before{animation:hubBreath 1.9s ease-in-out infinite;}
+  @keyframes hubBreath{
+    0%{box-shadow:0 0 0 0 rgba(176,131,47,.55);opacity:.85;}
+    70%{box-shadow:0 0 0 13px rgba(176,131,47,0);opacity:0;}
+    100%{box-shadow:0 0 0 0 rgba(176,131,47,0);opacity:0;}
+  }
   .ecc-hub .hub-ic{font-size:20px;line-height:1;}
   .ecc-hub .hub-nm{font-size:13px;font-weight:600;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
   .ecc-hub.as-return{background:rgba(74,62,48,.08);border-color:rgba(74,62,48,.32);box-shadow:var(--shadow);}
@@ -980,6 +992,8 @@ window.onerror=function(msg,url,line,col,err){
   function setHubIdle(){
     var hub=document.getElementById('compass-hub'); if(!hub) return;
     hub.classList.remove('as-return');
+    if(explored){ hub.classList.remove('breathing'); }
+    else { hub.classList.add('breathing'); }
     hub.innerHTML = explored
       ? '<span class="hub-ic">🧭</span><span class="hub-nm">去处</span>'
       : '<span class="hub-ic">🔍</span><span class="hub-nm">四周环境</span>';
