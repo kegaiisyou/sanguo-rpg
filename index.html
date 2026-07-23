@@ -152,6 +152,45 @@
   .act.obj-btn{flex-direction:column;gap:3px;padding:8px 6px;font-size:12.5px;line-height:1.2;}
   .act.obj-btn .ob-ic{font-size:20px;line-height:1;}
   .act.obj-btn .ob-nm{font-size:12.5px;color:var(--ink);}
+  /* 分组标题（此前无样式，现统一样式） */
+  .grp{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:4px;
+    color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.7;margin:5px 0 3px;}
+  /* ===== 罗盘式去处（东南西北按真实方位落位） ===== */
+  .exit-compass{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,auto);gap:6px;padding:8px 6px;margin:2px 0 4px;
+    background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.25);border-radius:14px;}
+  .ecc{min-height:38px;display:flex;align-items:center;justify-content:center;}
+  .ecc-c{border:1px dashed rgba(74,62,48,.28);border-radius:50%;width:40px;height:40px;
+    font-family:"STKaiti","KaiTi",serif;font-size:13px;color:var(--ink-faint);
+    display:flex;align-items:center;justify-content:center;background:rgba(244,238,227,.5);}
+  .ecc-c::after{content:'你';}
+  .exit-btn{width:100%;display:flex;flex-direction:column;align-items:center;gap:0;
+    padding:7px 4px;border-radius:11px;cursor:pointer;text-align:center;
+    background:rgba(176,131,47,.15);border:1px solid rgba(176,131,47,.38);transition:.18s;}
+  .exit-btn:hover{background:rgba(176,131,47,.26);border-color:rgba(176,131,47,.6);
+    box-shadow:0 0 0 3px rgba(176,131,47,.1);}
+  .exit-btn:active{transform:scale(.97);}
+  .exit-btn .eb-ic{font-size:16px;line-height:1.1;}
+  .exit-btn .eb-dir{font-size:10px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
+  .exit-btn .eb-nm{font-size:11px;color:var(--ink);line-height:1.1;max-width:100%;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .exit-btn.pop{animation:popIn .7s cubic-bezier(.2,.9,.3,1.45) both;}
+  /* ===== 战斗武技：紧凑芯片行（满配也不眼花） ===== */
+  .c-arts{grid-column:1/-1;margin:1px 0 2px;}
+  .c-arts-label{text-align:center;font-size:11px;letter-spacing:4px;color:var(--ink-faint);
+    font-family:"STKaiti","KaiTi",serif;opacity:.7;margin:1px 0 5px;}
+  .c-arts-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+  .mart-chip{flex:1 1 calc(25% - 6px);min-width:82px;max-width:180px;
+    display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 6px;
+    border-radius:10px;cursor:pointer;text-align:center;
+    background:var(--btn);border:1px solid var(--btn-line);box-shadow:var(--shadow);transition:.16s;}
+  .mart-chip:hover{background:rgba(158,39,46,.08);border-color:rgba(158,39,46,.4);}
+  .mart-chip:active{transform:scale(.97);}
+  .mart-chip.disabled{opacity:.4;cursor:default;filter:grayscale(.4);}
+  .mart-chip.danger{background:rgba(158,39,46,.13);border-color:rgba(158,39,46,.45);}
+  .mart-chip .mc-nm{font-size:13px;font-weight:600;color:var(--ink);font-family:"STKaiti","KaiTi",serif;line-height:1.2;}
+  .mart-chip.danger .mc-nm{color:var(--seal);}
+  .mart-chip .mc-meta{font-size:10px;color:var(--ink-faint);}
   /* 点击弹出的操作面板（醒目窗口）：详情 + 选项 + 告辞 */
   .sheet-btns{display:flex;flex-direction:column;gap:9px;margin:14px 0 4px;}
   .sheet-btn{padding:13px 14px;border:1px solid var(--btn-line);border-radius:12px;
@@ -849,7 +888,8 @@ window.onerror=function(msg,url,line,col,err){
       if(explored && !suppressExits){
         renderExits(objs.filter(function(o){return o.type==='exit';}), popExits);
       } else if(suppressExits){
-        // 调查期间：去处按钮延后到对应文字渐显完成后再逐个弹出
+        // 调查期间：先建空罗盘，去处按钮延后到对应文字渐显完成后再逐格弹出
+        buildExitCompass(room);
       } else {
         var hint=document.createElement('div'); hint.className='obj-hint';
         hint.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
@@ -876,10 +916,11 @@ window.onerror=function(msg,url,line,col,err){
       });
     });
     if(explored && !suppressExits){
-      Object.keys(room.exits||{}).forEach(function(dir){
+      var exList=Object.keys(room.exits||{}).map(function(dir){
         var tid=room.exits[dir];
-        mkAct('exit','🚪',dir+' · '+G.ROOMS[tid].name,function(){ move(dir,tid); }, popExits?'pop':'');
+        return {dir:dir, name:dir+'·'+G.ROOMS[tid].name, icon:'🚪', tid:tid};
       });
+      renderExits(exList, popExits);
     } else {
       var hint2=document.createElement('div'); hint2.className='obj-hint';
       hint2.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
@@ -911,11 +952,42 @@ window.onerror=function(msg,url,line,col,err){
       }
     });
   }
-  function renderExits(list, pop){
-    list.forEach(function(o){
-      var tid=o.tid || (G.ROOMS[state.room] && G.ROOMS[state.room].exits && G.ROOMS[state.room].exits[o.dir]);
-      mkAct('exit', o.icon, o.name, function(){ move(o.dir, tid); }, pop?'pop':'');
+  // ===== 去处：罗盘式九宫格（北南东西按真实方位落位，中心为「你」） =====
+  var DIR_CELL={'北':'n','南':'s','东':'e','西':'w','东北':'ne','西北':'nw','东南':'se','西南':'sw'};
+  var COMPASS_ORDER=['nw','n','ne','w','c','e','sw','s','se'];
+  function buildExitCompass(room){
+    var wrap=document.createElement('div');
+    wrap.className='exit-compass'; wrap.id='exit-compass';
+    COMPASS_ORDER.forEach(function(k){
+      var cell=document.createElement('div');
+      cell.className='ecc ecc-'+k; cell.dataset.cell=k;
+      if(k==='c') cell.classList.add('ecc-c');
+      wrap.appendChild(cell);
     });
+    $actions.appendChild(wrap);
+    return wrap;
+  }
+  function getExitCompass(){
+    return document.getElementById('exit-compass') || buildExitCompass(G.ROOMS[state.room]);
+  }
+  // 把某个方向的通路按钮放入对应的罗盘格（调查期间逐格填充）
+  function placeExitBtn(o, pop){
+    var compass=getExitCompass();
+    var k=DIR_CELL[o.dir]||'c';
+    var cell=compass.querySelector('.ecc-'+k);
+    if(!cell) return;
+    var tid=o.tid || (G.ROOMS[state.room] && G.ROOMS[state.room].exits && G.ROOMS[state.room].exits[o.dir]);
+    var b=document.createElement('button');
+    b.className='exit-btn e-'+o.dir+(pop?' pop':'');
+    b.innerHTML='<span class="eb-ic">'+(o.icon||'➤')+'</span><span class="eb-dir">'+o.dir+'</span><span class="eb-nm">'+stripDir(o.name)+'</span>';
+    b.onclick=function(){ move(o.dir, tid); };
+    cell.appendChild(b);
+    cell.classList.add('filled');
+  }
+  function renderExits(list, pop){
+    if(!list.length) return;
+    buildExitCompass(G.ROOMS[state.room]);
+    list.forEach(function(o){ placeExitBtn(o, pop); });
   }
   function renderSelf(room){
     // 研习武学：仅特定房间出现；调息已移至底部 dock
@@ -994,8 +1066,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   // 对应某方向通路文字打完后，才把该「去处」按钮弹出（吸引注意）
   function addExitBtn(o){
-    var tid=o.tid || (G.ROOMS[state.room] && G.ROOMS[state.room].exits && G.ROOMS[state.room].exits[o.dir]);
-    mkAct('exit', o.icon, o.name, function(){ move(o.dir, tid); }, 'pop');
+    placeExitBtn(o, true);   // 调查期间逐格弹出到对应方位
   }
 
 
@@ -1587,23 +1658,30 @@ window.onerror=function(msg,url,line,col,err){
     clearActions();
     renderCombatCard();
 
-    // ── 战斗按钮 ──
+    // ── 武技/招式：紧凑芯片行（满配也不眼花）──
     var actions=G.CombatEngine.getPlayerActionList();
-    actions.forEach(function(a){
-      var tip=(a.cost&&a.cost.type==='mp'?'耗内'+a.cost.val:'')+
-              (a.cost&&a.cost.type==='rage'?'耗战意':'')+
-              (a.multiHit?' · '+a.multiHit+'段':'');
-      var cls=a.affordable?(a.type==='ultimate'?'danger':''):'disabled';
-      var prefix=a.affordable?((a.type==='ultimate'?'▸':'›')+' '):('🔒 ');
-      var label=prefix+a.name+' · '+a.beat+'拍';
-      // 统一用 '武技/招式' 分组防止重复标题
-      if(!a.affordable){ addGrouped('武技/招式',label,function(){ return; },tip); }
-      else {
-        addGrouped('武技/招式',label,
-          function(aid){ return function(){ handleCombatAction(aid); };}(a.id),
-          tip);
-      }
-    });
+    if(actions.length){
+      var aw=document.createElement('div'); aw.className='c-arts';
+      var al=document.createElement('div'); al.className='c-arts-label'; al.textContent='武技 / 招式';
+      aw.appendChild(al);
+      var ar=document.createElement('div'); ar.className='c-arts-row';
+      actions.forEach(function(a){
+        var cost=(a.cost&&a.cost.type==='mp'?'内'+a.cost.val:(a.cost&&a.cost.type==='rage'?'战意':''));
+        var tip=(a.cost&&a.cost.type==='mp'?'耗内'+a.cost.val:'')+
+                (a.cost&&a.cost.type==='rage'?'耗战意':'')+
+                (a.multiHit?' · '+a.multiHit+'段':'');
+        var chip=document.createElement('button');
+        chip.className='mart-chip '+(a.affordable?(a.type==='ultimate'?'danger':''):'disabled');
+        chip.innerHTML='<span class="mc-nm">'+a.name+(a.type==='ultimate'?' ✦':'')+'</span>'+
+          '<span class="mc-meta">'+a.beat+'拍'+(cost?' · '+cost:'')+(a.multiHit?' · '+a.multiHit+'段':'')+'</span>';
+        chip.title=tip;
+        if(a.affordable){ chip.onclick=function(){ handleCombatAction(a.id); }; }
+        else { chip.disabled=true; }
+        ar.appendChild(chip);
+      });
+      aw.appendChild(ar);
+      $actions.appendChild(aw);
+    }
 
     addGrouped('战术','⛊ 防御架势',function(){ handleCombatAction('defend'); },'减伤·回复少量内力');
     addGrouped('战术','⇱ 撤退',function(){ handleCombatFlee(); },'速度差决定成功率');
