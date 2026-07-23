@@ -88,6 +88,7 @@
       ],
       exits: { '北': 'ji_nanmen', '西': 'ji_liumin', '东': 'ji_mashi', '南': 'luoyang' },
       npcs: ['guanli'],
+      find: '细看：郭门两侧揭帖写满入城税则，墙根兵卒正煮着腥膻肉汤。西去土路连着流民棚，东边草场马群扬尘——乌桓马商的旗幡格外扎眼；北面城楼便是入城正门。',
       items: [],
       actions: [
         { id: 'rest', label: '郭门歇脚', group: '行动', tip: '依墙小憩，气血内力尽复' }
@@ -125,6 +126,7 @@
       ],
       exits: { '南': 'ji_tongqu', '北': 'ji_zhoumu_houtang' },
       npcs: ['liuyu'],
+      find: '细看：正厅「仁静」匾额下，刘州牧案上摊着抚恤流亡的簿册，堂下差役进进出出。北面一道月门通向后堂，传闻公孙瓒常在那议事。',
       items: [],
       actions: []
     },
@@ -221,6 +223,7 @@
       ],
       exits: { '东': 'ji_guomen' },
       npcs: ['minlao'],
+      find: '细看：棚户以破席败革搭成，老弱蜷缩其间，小儿哭声断续。东面就是回郭门的路；若肯周济，或能问出些北疆流言。',
       items: [],
       actions: [
         { id: 'rest', label: '棚中歇脚', group: '行动', tip: '寻僻静处小憩，气血内力尽复' }

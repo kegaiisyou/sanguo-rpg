@@ -112,6 +112,8 @@
   .grp{grid-column:1/-1;text-align:left;font-size:10.5px;letter-spacing:2px;color:var(--ink-faint);
     margin:7px 0 2px 2px;font-family:"STKaiti","KaiTi",serif;opacity:.65;}
   .grp:first-child{margin-top:1px;}
+  .obj-hint{grid-column:1/-1;text-align:center;font-size:12px;line-height:1.6;color:var(--ink-faint);
+    padding:7px 6px 11px;font-family:"PingFang SC","Microsoft YaHei",sans-serif;opacity:.8;}
   .act{
     grid-column:span 1;
     display:flex;align-items:center;justify-content:center;text-align:center;
@@ -307,7 +309,6 @@ window.onerror=function(msg,url,line,col,err){
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
     <button data-modal="more"><span class="ic">☰</span>更多</button>
-    <button data-modal="dev"><span class="ic">🛠</span>调试</button>
   </nav>
 </div>
 
@@ -611,9 +612,11 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // ===== 房间渲染 =====
+  var explored=false;        // 当前房间是否已探查（调查四周后解锁「去处」）
   function renderRoom(rid, silent){
     var room=G.ROOMS[rid]; if(!room) return;
     state.room=rid;
+    explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     if(!silent){
       log('〔'+room.name+'〕','title');
       room.desc.forEach(function(d){ log(d,'env'); });
@@ -762,39 +765,130 @@ window.onerror=function(msg,url,line,col,err){
 
   function buildActions(room){
     clearActions();
+    grpCursor=null;
     // 战败封锁：只许休整，其余全部隐藏
     if(state.defeated){
       log('〔力竭〕你重伤未愈，动弹不得——唯有「休整」方可恢复。','sys');
-      addGrouped('行动', '帐中休整', function(){ actRest(); });
+      ensureGrp('行动');
+      var rb=document.createElement('button'); rb.className='act'; rb.textContent='帐中休整';
+      rb.onclick=function(){ actRest(); };
+      $actions.appendChild(rb);
       return;
     }
-    // 优先使用场景对象卡片（如果该房间有配置）
     var objs=ROOM_OBJECTS[room.id];
     if(objs && objs.length){
-      prependActsLabel();
-      objs.forEach(function(o, idx){
-        // 紧凑小按钮：仅图标 + 标题，描述与选项移入点击弹窗
-        var b=document.createElement('button');
-        b.className='act obj-btn';
-        b.innerHTML='<span class="ob-ic">'+(o.icon||'·')+'</span><span class="ob-nm">'+o.name+'</span>';
-        b.onclick=function(){ openSheet({icon:o.icon, title:o.name, desc:o.desc, actions:o.actions}); };
-        $actions.appendChild(b);
-      });
+      renderObjs(objs.filter(function(o){return o.type==='npc';}), '人物');
+      renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), '场景');
+      renderObjs(objs.filter(function(o){return o.key==='env';}), '探查');
+      if(explored){
+        renderObjs(objs.filter(function(o){return o.type==='exit';}), '去处');
+      } else {
+        ensureGrp('去处');
+        var hint=document.createElement('div'); hint.className='obj-hint';
+        hint.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
+        $actions.appendChild(hint);
+      }
+      renderSelf(room);
       return;
     }
     // fallback：旧版分组按钮（兼容无配置的房间）
-    prependActsLabel();
     (room.npcs||[]).forEach(function(k){
       var n=G.DIALOGUES.npcs[k]; if(!n) return;
-      addGrouped('对话', '与'+n.name+'交谈', function(){ talk(k); }, n.name+'·当前态度：'+npcAttitude(k));
+      ensureGrp('人物');
+      var b=document.createElement('button'); b.className='act';
+      b.textContent='与'+n.name+'交谈';
+      b.onclick=function(){ openSheet({title:'与'+n.name+'交谈',desc:n.name+'·当前态度：'+npcAttitude(k),actions:[{label:'执 行',fn:function(){ talk(k); }}]}); };
+      $actions.appendChild(b);
     });
-    addGrouped('探查', '环顾四周', function(){ renderRoom(state.room, true); }, '细看周遭风物，或有所获。');
+    if(explored){
+      ensureGrp('探查');
+      var eb=document.createElement('button'); eb.className='act'; eb.textContent='环顾四周';
+      eb.onclick=function(){ renderRoom(state.room,true); };
+      $actions.appendChild(eb);
+    } else {
+      ensureGrp('探查');
+      var db=document.createElement('button'); db.className='act'; db.textContent='调查四周';
+      db.onclick=function(){ markExplored(); };
+      $actions.appendChild(db);
+    }
     (room.actions||[]).forEach(function(a){
-      addGrouped('行动', a.label, function(){ handleAction(a.id, a); }, a.tip);
+      ensureGrp('行动');
+      var ab=document.createElement('button'); ab.className='act'; ab.textContent=a.label;
+      ab.onclick=function(){ openSheet({title:a.label,desc:a.tip,actions:[{label:'执 行',fn:function(){ handleAction(a.id,a); }}]}); };
+      $actions.appendChild(ab);
     });
-    Object.keys(room.exits||{}).forEach(function(dir){
-      var tid=room.exits[dir];
-      addGrouped('移动', dir+' · '+G.ROOMS[tid].name, function(){ move(dir, tid); });
+    if(explored){
+      Object.keys(room.exits||{}).forEach(function(dir){
+        var tid=room.exits[dir];
+        ensureGrp('去处');
+        var mb=document.createElement('button'); mb.className='act'; mb.textContent=dir+' · '+G.ROOMS[tid].name;
+        mb.onclick=function(){ move(dir,tid); };
+        $actions.appendChild(mb);
+      });
+    } else {
+      ensureGrp('去处');
+      var hint2=document.createElement('div'); hint2.className='obj-hint';
+      hint2.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
+      $actions.appendChild(hint2);
+    }
+    renderSelf(room);
+  }
+  var grpCursor=null;
+  // 休整 / 研习统一收纳于「自身」组，场景与探查处不再重复呈现
+  function isSelfCare(a){
+    return (a.label==='研习武学') || /休整|歇|栖|借宿|调息/.test(a.label||'');
+  }
+  function ensureGrp(name){
+    if(grpCursor===name) return;
+    var t=document.createElement('div'); t.className='grp'; t.textContent='— '+name+' —';
+    $actions.appendChild(t); grpCursor=name;
+  }
+  function markExplored(){
+    explored=true;
+    if(!state.exploredRooms) state.exploredRooms={};
+    state.exploredRooms[state.room]=true;
+    save(state);
+    buildActions(G.ROOMS[state.room]);
+    toast('已探明周遭通路');
+  }
+  function renderObjs(list, group){
+    if(!list.length) return;
+    ensureGrp(group);
+    list.forEach(function(o){
+      // 休整/研习统一收纳于「自身」组，场景/探查处不再重复
+      var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
+      var b=document.createElement('button'); b.className='act obj-btn';
+      b.innerHTML='<span class="ob-ic">'+(o.icon||'·')+'</span><span class="ob-nm">'+o.name+'</span>';
+      if(o.key==='env'){
+        b.onclick=function(){
+          var extra=(G.ROOMS[state.room] && G.ROOMS[state.room].find) || '';
+          openSheet({icon:o.icon,title:o.name,
+            desc:o.desc + (extra ? ('<br><span style="opacity:.82">'+extra+'</span>') : '　〔细看〕此处四通八达，须先探明通路，方能前往他处。'),
+            actions:[{label:'仔细探索 · 寻得通路',fn:function(){ markExplored(); }}]});
+        };
+      } else {
+        b.onclick=function(){ openSheet({icon:o.icon,title:o.name,desc:o.desc,actions:acts}); };
+      }
+      $actions.appendChild(b);
+    });
+  }
+  function renderSelf(room){
+    ensureGrp('自身');
+    var mk=function(icon,name,fn){
+      var b=document.createElement('button'); b.className='act obj-btn';
+      b.innerHTML='<span class="ob-ic">'+icon+'</span><span class="ob-nm">'+name+'</span>';
+      b.onclick=fn; $actions.appendChild(b);
+    };
+    mk('🧘','就地调息', function(){ actRest(); });
+    mk('📖','研习武学', function(){ handleAction('learn'); });
+    // 建筑作为「自身」组的休憩点（去掉与常驻重复的休整/研习，仅留氛围与特殊交互）
+    (ROOM_OBJECTS[room.id]||[]).forEach(function(o){
+      if(o.type!=='building') return;
+      var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
+      var b=document.createElement('button'); b.className='act obj-btn';
+      b.innerHTML='<span class="ob-ic">'+(o.icon||'·')+'</span><span class="ob-nm">'+o.name+'</span>';
+      b.onclick=function(){ openSheet({icon:o.icon,title:o.name,desc:o.desc,actions:acts}); };
+      $actions.appendChild(b);
     });
   }
 
