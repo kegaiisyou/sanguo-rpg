@@ -155,15 +155,28 @@
   /* 分组标题（此前无样式，现统一样式） */
   .grp{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:4px;
     color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.7;margin:5px 0 3px;}
-  /* ===== 罗盘式去处（东南西北按真实方位落位） ===== */
+  /* ===== 罗盘枢纽：中心为「四周环境/返回」按钮，展开后方位按钮按真实方位落位 ===== */
   .exit-compass{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);
     grid-template-rows:repeat(3,auto);gap:6px;padding:8px 6px;margin:2px 0 4px;
-    background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.25);border-radius:14px;}
-  .ecc{min-height:38px;display:flex;align-items:center;justify-content:center;}
-  .ecc-c{border:1px dashed rgba(74,62,48,.28);border-radius:50%;width:40px;height:40px;
-    font-family:"STKaiti","KaiTi",serif;font-size:13px;color:var(--ink-faint);
-    display:flex;align-items:center;justify-content:center;background:rgba(244,238,227,.5);}
-  .ecc-c::after{content:'你';}
+    background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.25);border-radius:14px;
+    transition:border-color .25s, background .25s;}
+  .exit-compass.expanded .ecc{min-height:42px;}
+  .ecc{min-height:0;display:flex;align-items:center;justify-content:center;}
+  /* 收起态：仅显示中心枢纽按钮（类 FAB），其余方位格隐藏 */
+  .exit-compass:not(.expanded){display:flex;justify-content:center;padding:4px 6px;border-color:transparent;background:transparent;}
+  .exit-compass:not(.expanded) .ecc:not(.ecc-hub){display:none;}
+  /* 中心枢纽按钮（兼作「你在此处」与调查/返回操作） */
+  .ecc-hub{cursor:pointer;border-radius:14px;min-width:108px;min-height:52px;padding:8px 16px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    background:linear-gradient(180deg,rgba(176,131,47,.24),rgba(176,131,47,.12));
+    border:1.5px solid rgba(176,131,47,.5);
+    box-shadow:0 0 0 3px rgba(176,131,47,.08),var(--shadow);transition:.18s;}
+  .ecc-hub:hover{background:rgba(176,131,47,.32);border-color:rgba(176,131,47,.72);}
+  .ecc-hub:active{transform:scale(.97);}
+  .ecc-hub .hub-ic{font-size:20px;line-height:1;}
+  .ecc-hub .hub-nm{font-size:13px;font-weight:600;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
+  .ecc-hub.as-return{background:rgba(74,62,48,.08);border-color:rgba(74,62,48,.32);box-shadow:var(--shadow);}
+  .ecc-hub.as-return .hub-nm{color:var(--ink-soft);}
   .exit-btn{width:100%;display:flex;flex-direction:column;align-items:center;gap:0;
     padding:7px 4px;border-radius:11px;cursor:pointer;text-align:center;
     background:rgba(176,131,47,.15);border:1px solid rgba(176,131,47,.38);transition:.18s;}
@@ -622,7 +635,7 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 动态按钮区（分组菜单：对话 / 探查 / 行动 / 移动） =====
   var lastGroup=null;
-  function clearActions(){$actions.innerHTML='';lastGroup=null;}
+  function clearActions(){$actions.innerHTML='';lastGroup=null;document.removeEventListener('click', onDocCollapse, true);}
   function addBtn(label, fn, cls){
     var b=document.createElement('button');
     b.className='act '+(cls||''); b.textContent=label;
@@ -884,16 +897,13 @@ window.onerror=function(msg,url,line,col,err){
     if(objs && objs.length){
       renderObjs(objs.filter(function(o){return o.type==='npc';}), 'ren');
       renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
-      renderObjs(objs.filter(function(o){return o.key==='env';}), 'explore');
-      if(explored && !suppressExits){
-        renderExits(objs.filter(function(o){return o.type==='exit';}), popExits);
-      } else if(suppressExits){
-        // 调查期间：先建空罗盘，去处按钮延后到对应文字渐显完成后再逐格弹出
+      var exitsObjs=objs.filter(function(o){return o.type==='exit';});
+      if(exitsObjs.length){
+        // 有出口：渲染罗盘枢纽（中心兼「四周环境/返回」），不再单独放调查按钮
         buildExitCompass(room);
       } else {
-        var hint=document.createElement('div'); hint.className='obj-hint';
-        hint.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
-        $actions.appendChild(hint);
+        // 无出口的房间：保留普通「调查四周」按钮（纯叙事用）
+        renderObjs(objs.filter(function(o){return o.key==='env';}), 'explore');
       }
       renderSelf(room);
       return;
@@ -915,21 +925,13 @@ window.onerror=function(msg,url,line,col,err){
         openSheet({title:a.label,desc:a.tip,actions:[{label:'执 行',fn:function(){ handleAction(a.id,a); }}]});
       });
     });
-    if(explored && !suppressExits){
-      var exList=Object.keys(room.exits||{}).map(function(dir){
-        var tid=room.exits[dir];
-        return {dir:dir, name:dir+'·'+G.ROOMS[tid].name, icon:'🚪', tid:tid};
-      });
-      renderExits(exList, popExits);
-    } else {
-      var hint2=document.createElement('div'); hint2.className='obj-hint';
-      hint2.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
-      $actions.appendChild(hint2);
+    if(room.exits && Object.keys(room.exits).length){
+      // 有出口：罗盘枢纽（已调查直接弹 / 未调查走动画）
+      buildExitCompass(room);
     }
     renderSelf(room);
   }
   var grpCursor=null;
-  var suppressExits=false;
   function isSelfCare(a){
     return (a.label==='研习武学') || /休整|歇|栖|借宿|调息/.test(a.label||'');
   }
@@ -952,7 +954,7 @@ window.onerror=function(msg,url,line,col,err){
       }
     });
   }
-  // ===== 去处：罗盘式九宫格（北南东西按真实方位落位，中心为「你」） =====
+  // ===== 罗盘枢纽：中心按钮兼「四周环境 / 返回」，展开后方位按钮按真实方位落位 =====
   var DIR_CELL={'北':'n','南':'s','东':'e','西':'w','东北':'ne','西北':'nw','东南':'se','西南':'sw'};
   var COMPASS_ORDER=['nw','n','ne','w','c','e','sw','s','se'];
   function buildExitCompass(room){
@@ -961,21 +963,74 @@ window.onerror=function(msg,url,line,col,err){
     COMPASS_ORDER.forEach(function(k){
       var cell=document.createElement('div');
       cell.className='ecc ecc-'+k; cell.dataset.cell=k;
-      if(k==='c') cell.classList.add('ecc-c');
+      if(k==='c'){
+        cell.classList.add('ecc-hub');
+        cell.id='compass-hub';
+        cell.onclick=onHubClick;
+      }
       wrap.appendChild(cell);
     });
     $actions.appendChild(wrap);
+    setHubIdle();
     return wrap;
   }
   function getExitCompass(){
     return document.getElementById('exit-compass') || buildExitCompass(G.ROOMS[state.room]);
   }
-  // 把某个方向的通路按钮放入对应的罗盘格（调查期间逐格填充）
+  function setHubIdle(){
+    var hub=document.getElementById('compass-hub'); if(!hub) return;
+    hub.classList.remove('as-return');
+    hub.innerHTML = explored
+      ? '<span class="hub-ic">🧭</span><span class="hub-nm">去处</span>'
+      : '<span class="hub-ic">🔍</span><span class="hub-nm">四周环境</span>';
+  }
+  function setHubReturn(){
+    var hub=document.getElementById('compass-hub'); if(!hub) return;
+    hub.classList.add('as-return');
+    hub.innerHTML = '<span class="hub-ic">⤺</span><span class="hub-nm">返回</span>';
+  }
+  function setCompassExpanded(on){
+    var compass=getExitCompass();
+    if(on){
+      compass.classList.add('expanded');
+      setHubReturn();
+      // 稍后挂上「点空白处收起」（避开本次点击）
+      setTimeout(function(){ document.addEventListener('click', onDocCollapse, true); }, 0);
+    }
+  }
+  function onDocCollapse(e){
+    var compass=getExitCompass();
+    if(compass && !compass.contains(e.target)) collapseCompass();
+  }
+  function collapseCompass(){
+    var compass=getExitCompass();
+    compass.querySelectorAll('.exit-btn').forEach(function(b){ b.remove(); });
+    compass.classList.remove('expanded');
+    document.removeEventListener('click', onDocCollapse, true);
+    setHubIdle();
+  }
+  // 当前房间的方位通路（兼容 ROOM_OBJECTS 与旧版 room.exits）
+  function currentRoomExits(){
+    var room=G.ROOMS[state.room];
+    var objs=ROOM_OBJECTS[room.id]||[];
+    var ex=objs.filter(function(o){return o.type==='exit';});
+    if(ex.length) return ex;
+    return Object.keys(room.exits||{}).map(function(dir){
+      var tid=room.exits[dir];
+      return {dir:dir, name:dir+'·'+G.ROOMS[tid].name, icon:'🚪', tid:tid};
+    });
+  }
+  // 已调查：直接把方位按钮弹入对应格（不打文字）
+  function expandExitsOnly(){
+    setCompassExpanded(true);
+    currentRoomExits().forEach(function(o){ placeExitBtn(o, true); });
+  }
+  // 把某个方向的通路按钮放入对应的罗盘格（调查期间逐格填充；去重防止重复）
   function placeExitBtn(o, pop){
     var compass=getExitCompass();
     var k=DIR_CELL[o.dir]||'c';
     var cell=compass.querySelector('.ecc-'+k);
-    if(!cell) return;
+    if(!cell || cell.querySelector('.exit-btn')) return;
     var tid=o.tid || (G.ROOMS[state.room] && G.ROOMS[state.room].exits && G.ROOMS[state.room].exits[o.dir]);
     var b=document.createElement('button');
     b.className='exit-btn e-'+o.dir+(pop?' pop':'');
@@ -984,10 +1039,13 @@ window.onerror=function(msg,url,line,col,err){
     cell.appendChild(b);
     cell.classList.add('filled');
   }
-  function renderExits(list, pop){
-    if(!list.length) return;
-    buildExitCompass(G.ROOMS[state.room]);
-    list.forEach(function(o){ placeExitBtn(o, pop); });
+  // 中心枢纽点击：未展开则展开（未调查走动画 / 已调查直接弹），已展开则收起
+  function onHubClick(e){
+    e.stopPropagation();
+    var compass=getExitCompass();
+    if(compass.classList.contains('expanded')){ collapseCompass(); return; }
+    if(explored){ expandExitsOnly(); }
+    else { investigateRoom(); }
   }
   function renderSelf(room){
     // 研习武学：仅特定房间出现；调息已移至底部 dock
@@ -1043,30 +1101,21 @@ window.onerror=function(msg,url,line,col,err){
     state.exploredRooms[state.room]=true;
     save(state);
     var room=G.ROOMS[state.room];
-    // 先渲染人物/场景/自身；「去处」按钮延后到对应文字渐显完成后逐个弹出
-    clearActions();
-    suppressExits=true;
-    buildActions(room, false);
-    suppressExits=false;
-    // 叙事框高亮逐字显出
+    var exits=currentRoomExits();
+    // 有出口才展开罗盘（中心变「返回」），逐行渐显后再把对应方位按钮弹入格子
+    if(exits.length) setCompassExpanded(true);
     var find = room.find || '你凝神四望，周遭风物、通路尽收眼底。';
     typeNarr('〔调查 · '+room.name+'〕', 'title');
     typeNarr(find, 'investigate', function(){
-      var objs=ROOM_OBJECTS[room.id]||[];
-      var exits=objs.filter(function(o){return o.type==='exit';});
-      if(!exits.length){ toast('已探明周遭通路'); return; }
+      if(!exits.length){ toast('已探明周遭'); return; }
       // 逐条通路文字渐显，每条打完才弹出对应「去处」按钮（顺序出现）
       exits.forEach(function(o, idx){
         typeNarr(exitReveal(o), 'investigate', function(){
-          addExitBtn(o);
+          placeExitBtn(o, true);
           if(idx===exits.length-1) toast('已探明周遭通路');
         });
       });
     });
-  }
-  // 对应某方向通路文字打完后，才把该「去处」按钮弹出（吸引注意）
-  function addExitBtn(o){
-    placeExitBtn(o, true);   // 调查期间逐格弹出到对应方位
   }
 
 
