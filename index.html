@@ -130,22 +130,22 @@
     display:flex;flex-direction:column;gap:2px;}
   .act.wide .tip{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:11.5px;color:var(--ink-faint);}
   .act.primary{background:rgba(158,59,46,.14);border-color:rgba(158,59,46,.45);color:var(--seal);font-weight:600;}
-  /* 点击展开的细节与执行选项（按钮保持紧凑，细节按需显示） */
-  .act.open{background:rgba(158,59,46,.10);border-color:rgba(158,59,46,.4);}
-  .act-detail{grid-column:1/-1;display:none;flex-direction:column;gap:8px;
-    padding:10px 11px;margin:1px 0 2px;border:1px dashed var(--btn-line);
-    border-radius:11px;background:rgba(255,253,248,.72);animation:rise .25s ease both;}
-  .act-detail .ad-tip{font-size:13px;line-height:1.65;color:var(--ink-soft);
-    font-family:"STKaiti","KaiTi","Songti SC",serif;}
-  .act-detail .ad-btns{display:flex;gap:8px;}
-  .act-detail .ad-go{flex:1;padding:9px;border:none;border-radius:9px;
-    background:rgba(158,59,46,.16);color:var(--seal);font-size:14px;font-weight:600;cursor:pointer;
+  /* 场景对象：小按钮只显示图标 + 标题，描述移入弹窗 */
+  .act.obj-btn{flex-direction:column;gap:3px;padding:8px 6px;font-size:12.5px;line-height:1.2;}
+  .act.obj-btn .ob-ic{font-size:20px;line-height:1;}
+  .act.obj-btn .ob-nm{font-size:12.5px;color:var(--ink);}
+  /* 点击弹出的操作面板（醒目窗口）：详情 + 选项 + 告辞 */
+  .sheet-btns{display:flex;flex-direction:column;gap:9px;margin:14px 0 4px;}
+  .sheet-btn{padding:13px 14px;border:1px solid var(--btn-line);border-radius:12px;
+    background:var(--btn);color:var(--ink);font-size:15px;cursor:pointer;text-align:center;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;box-shadow:var(--shadow);transition:.18s;}
+  .sheet-btn:hover{border-color:rgba(158,59,46,.4);background:rgba(158,59,46,.08);}
+  .sheet-btn:active{transform:scale(.97);}
+  .sheet-btn.danger{color:#c0392b;border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.06);}
+  .sheet-leave{margin-top:14px;width:100%;padding:12px;border:none;border-radius:12px;
+    background:rgba(74,62,48,.10);color:var(--ink-soft);font-size:14px;cursor:pointer;
     font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
-  .act-detail .ad-go:active{transform:scale(.97);}
-  .act-detail .ad-cancel{flex:1;padding:9px;border:1px solid var(--btn-line);border-radius:9px;
-    background:var(--btn);color:var(--ink-soft);font-size:14px;cursor:pointer;
-    font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
-  .act-detail .ad-cancel:active{transform:scale(.97);}
+  .sheet-leave:active{transform:scale(.97);}
   /* 研习武学：13 艺线分组标题 */
   .learn-line{display:flex;align-items:center;justify-content:space-between;
     margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--panel-line);}
@@ -253,18 +253,18 @@
   .act.danger:hover{background:rgba(158,59,46,.15);}
 
   /* ===== 场景对象卡片 ===== */
-  .obj-card{width:100%;background:var(--btn);border:1px solid var(--btn-line);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);animation:rise .35s ease both;}
-  .obj-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:.18s;}
+  .obj-card{grid-column:1/-1;width:100%;background:var(--btn);border:1px solid var(--btn-line);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);animation:rise .35s ease both;}
+  .obj-head{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;transition:.18s;}
   .obj-head:hover{background:rgba(158,59,46,.06);}
-  .obj-icon{font-size:22px;flex-shrink:0;line-height:1;}
+  .obj-icon{font-size:19px;flex-shrink:0;line-height:1;}
   .obj-info{flex:1;min-width:0;}
-  .obj-name{font-size:15px;font-weight:600;color:var(--ink);font-family:"STKaiti","KaiTi",serif;}
-  .obj-desc{font-size:12px;color:var(--ink-faint);margin-top:2px;}
-  .obj-arrow{font-size:12px;color:var(--ink-faint);transition:.2s;}
+  .obj-name{font-size:14px;font-weight:600;color:var(--ink);font-family:"STKaiti","KaiTi",serif;}
+  .obj-desc{font-size:11.5px;color:var(--ink-faint);margin-top:1px;}
+  .obj-arrow{font-size:11px;color:var(--ink-faint);transition:.2s;}
   .obj-card.open .obj-arrow{transform:rotate(180deg);}
-  .obj-actions{display:none;flex-wrap:wrap;gap:8px;padding:10px 14px 12px 48px;border-top:1px solid var(--panel-line);}
+  .obj-actions{display:none;flex-wrap:wrap;gap:7px;padding:9px 12px 11px 12px;border-top:1px solid var(--panel-line);}
   .obj-card.open .obj-actions{display:flex;}
-  .obj-actions .act{flex:1 1 calc(50% - 8px);min-width:100px;padding:10px 12px;font-size:14px;}
+  .obj-actions .act{flex:1 1 calc(50% - 7px);min-width:0;padding:8px 10px;font-size:13px;}
   .obj-actions .act.full{flex:1 1 100%;}
 
   /* ===== 装备面板 ===== */
@@ -573,11 +573,27 @@ window.onerror=function(msg,url,line,col,err){
     var l=document.createElement('div'); l.className='acts-label';
     l.textContent='· 可 行 之 事 ·'; $actions.appendChild(l);
   }
-  function closeDetails(){
-    $actions.querySelectorAll('.act.open').forEach(function(o){
-      o.classList.remove('open');
-      var nx=o.nextElementSibling; if(nx&&nx.classList.contains('act-detail')) nx.style.display='none';
+  // 点击弹出的操作面板：详情 + 选项 + 告辞（始终可退回菜单）
+  function openSheet(o){
+    if(state.dead){ die(); return; }
+    o=o||{};
+    var acts=o.actions||[];
+    var h='<h3 style="display:flex;align-items:center;justify-content:center;gap:8px;">'+
+          (o.icon?'<span style="font-size:22px;line-height:1;">'+o.icon+'</span>':'')+
+          '<span>'+ (o.title||'') +'</span></h3>';
+    if(o.desc) h+='<p class="tip" style="text-align:center;font-size:14px;margin:2px 0 0;">'+o.desc+'</p>';
+    if(acts.length){
+      h+='<div class="sheet-btns">';
+      acts.forEach(function(a,i){ h+='<button class="sheet-btn'+(a.danger?' danger':'')+'" data-i="'+i+'">'+ (a.label||'') +'</button>'; });
+      h+='</div>';
+    }
+    h+='<button class="sheet-leave" id="m-leave">告 辞</button>';
+    $card.innerHTML=h;
+    $modal.classList.remove('hidden');
+    $card.querySelectorAll('.sheet-btn').forEach(function(btn){
+      btn.onclick=function(){ closeModal(); var a=acts[+btn.getAttribute('data-i')]; if(a&&a.fn) a.fn(); };
     });
+    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
   }
   function addGrouped(group,label,fn,tip){
     if(group!==lastGroup){
@@ -586,20 +602,11 @@ window.onerror=function(msg,url,line,col,err){
     }
     var b=document.createElement('button'); b.className='act'; b.textContent=label;
     if(tip){
-      // 紧凑按钮：点击原地展开细节与「执行 / 取消」选项
-      var d=document.createElement('div'); d.className='act-detail';
-      d.innerHTML='<div class="ad-tip">'+tip+'</div>';
-      var bw=document.createElement('div'); bw.className='ad-btns';
-      var go=document.createElement('button'); go.className='ad-go'; go.textContent='执 行';
-      go.onclick=function(e){ e.stopPropagation(); closeDetails(); fn(); };
-      var cancel=document.createElement('button'); cancel.className='ad-cancel'; cancel.textContent='取 消';
-      cancel.onclick=function(e){ e.stopPropagation(); closeDetails(); };
-      bw.appendChild(go); bw.appendChild(cancel); d.appendChild(bw);
-      b.onclick=function(){ var open=!b.classList.contains('open'); closeDetails(); if(open){ b.classList.add('open'); d.style.display='flex'; } };
-      $actions.appendChild(b); $actions.appendChild(d);
+      b.onclick=function(){ openSheet({title:label, desc:tip, actions:[{label:'执 行', fn:fn}]}); };
     } else {
-      b.onclick=fn; $actions.appendChild(b);
+      b.onclick=fn;
     }
+    $actions.appendChild(b);
   }
 
   // ===== 房间渲染 =====
@@ -685,43 +692,12 @@ window.onerror=function(msg,url,line,col,err){
     if(objs && objs.length){
       prependActsLabel();
       objs.forEach(function(o, idx){
-        var card=document.createElement('div');
-        card.className='obj-card';
-        card.dataset.idx=idx;
-
-        var head=document.createElement('div');
-        head.className='obj-head';
-        head.innerHTML='<span class="obj-icon">'+(o.icon||'·')+'</span>'+
-          '<div class="obj-info"><div class="obj-name">'+o.name+'</div>'+
-          '<div class="obj-desc">'+(o.desc||'')+'</div></div>'+
-          '<span class="obj-arrow">▼</span>';
-        card.appendChild(head);
-
-        var acts=document.createElement('div');
-        acts.className='obj-actions';
-        (o.actions||[]).forEach(function(ac){
-          var b=document.createElement('button');
-          b.className='act wide'+(ac.danger?' danger':'');
-          b.innerHTML='› '+ac.label+(ac.tip?'<span class="tip">'+ac.tip+'</span>':'');
-          b.onclick=function(){
-            // 点击动作后自动收起卡片，保持界面整洁
-            card.classList.remove('open');
-            ac.fn();
-          };
-          acts.appendChild(b);
-        });
-        card.appendChild(acts);
-
-        // 点击头部展开/收起
-        head.onclick=function(){
-          // 收起其他已展开的卡片（手风琴效果，可选）
-          objs.forEach(function(_, otherIdx){
-            var other=$actions.querySelector('.obj-card[data-idx="'+otherIdx+'"]');
-            if(other && other!==card) other.classList.remove('open');
-          });
-          card.classList.toggle('open');
-        };
-        $actions.appendChild(card);
+        // 紧凑小按钮：仅图标 + 标题，描述与选项移入点击弹窗
+        var b=document.createElement('button');
+        b.className='act obj-btn';
+        b.innerHTML='<span class="ob-ic">'+(o.icon||'·')+'</span><span class="ob-nm">'+o.name+'</span>';
+        b.onclick=function(){ openSheet({icon:o.icon, title:o.name, desc:o.desc, actions:o.actions}); };
+        $actions.appendChild(b);
       });
       return;
     }
@@ -729,9 +705,9 @@ window.onerror=function(msg,url,line,col,err){
     prependActsLabel();
     (room.npcs||[]).forEach(function(k){
       var n=G.DIALOGUES.npcs[k]; if(!n) return;
-      addGrouped('对话', '与'+n.name+'交谈', function(){ talk(k); });
+      addGrouped('对话', '与'+n.name+'交谈', function(){ talk(k); }, n.name+'·当前态度：'+npcAttitude(k));
     });
-    addGrouped('探查', '环顾四周', function(){ renderRoom(state.room, true); });
+    addGrouped('探查', '环顾四周', function(){ renderRoom(state.room, true); }, '细看周遭风物，或有所获。');
     (room.actions||[]).forEach(function(a){
       addGrouped('行动', a.label, function(){ handleAction(a.id, a); }, a.tip);
     });
