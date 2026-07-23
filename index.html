@@ -122,7 +122,7 @@
   .act.g-self{background:var(--btn);border:1.5px solid rgba(158,59,46,.42);box-shadow:0 0 0 1px rgba(158,59,46,.06),var(--shadow);}
   .act.g-self .ob-nm{color:var(--seal);}
   /* 新出现的「去处」按钮：弹出动画，吸引注意 */
-  .act.pop{animation:popIn .55s cubic-bezier(.2,.9,.3,1.45) both;}
+  .act.pop{animation:popIn .7s cubic-bezier(.2,.9,.3,1.45) both;}
   @keyframes popIn{0%{opacity:0;transform:scale(.7) translateY(6px);}60%{opacity:1;transform:scale(1.07);}100%{opacity:1;transform:none;}}
   /* 调查文字：高亮渐显 */
   .narr.investigate{background:linear-gradient(90deg,rgba(176,131,47,.18),rgba(176,131,47,.03));
@@ -846,8 +846,10 @@ window.onerror=function(msg,url,line,col,err){
       renderObjs(objs.filter(function(o){return o.type==='npc';}), 'ren');
       renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
       renderObjs(objs.filter(function(o){return o.key==='env';}), 'explore');
-      if(explored){
+      if(explored && !suppressExits){
         renderExits(objs.filter(function(o){return o.type==='exit';}), popExits);
+      } else if(suppressExits){
+        // 调查期间：去处按钮延后到对应文字渐显完成后再逐个弹出
       } else {
         var hint=document.createElement('div'); hint.className='obj-hint';
         hint.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
@@ -873,7 +875,7 @@ window.onerror=function(msg,url,line,col,err){
         openSheet({title:a.label,desc:a.tip,actions:[{label:'执 行',fn:function(){ handleAction(a.id,a); }}]});
       });
     });
-    if(explored){
+    if(explored && !suppressExits){
       Object.keys(room.exits||{}).forEach(function(dir){
         var tid=room.exits[dir];
         mkAct('exit','🚪',dir+' · '+G.ROOMS[tid].name,function(){ move(dir,tid); }, popExits?'pop':'');
@@ -886,6 +888,7 @@ window.onerror=function(msg,url,line,col,err){
     renderSelf(room);
   }
   var grpCursor=null;
+  var suppressExits=false;
   function isSelfCare(a){
     return (a.label==='研习武学') || /休整|歇|栖|借宿|调息/.test(a.label||'');
   }
@@ -947,7 +950,7 @@ window.onerror=function(msg,url,line,col,err){
         if(item.done) item.done();
         runTypeQueue();
       }
-    }, 26);
+    }, 34);
   }
   function stripDir(nm){ return (nm||'').replace(/^[^·]*·/,''); }
   // 各方向通路描述：显眼者用「抬眼便见」，隐蔽者用「循迹探得」，并保留原 desc 的感官线索
@@ -968,20 +971,31 @@ window.onerror=function(msg,url,line,col,err){
     state.exploredRooms[state.room]=true;
     save(state);
     var room=G.ROOMS[state.room];
-    // 立即重建按钮：去处随弹出动画冒出（与文字渐显同步）
+    // 先渲染人物/场景/自身；「去处」按钮延后到对应文字渐显完成后逐个弹出
     clearActions();
-    buildActions(room, true);
+    suppressExits=true;
+    buildActions(room, false);
+    suppressExits=false;
     // 叙事框高亮逐字显出
     var find = room.find || '你凝神四望，周遭风物、通路尽收眼底。';
     typeNarr('〔调查 · '+room.name+'〕', 'title');
     typeNarr(find, 'investigate', function(){
       var objs=ROOM_OBJECTS[room.id]||[];
       var exits=objs.filter(function(o){return o.type==='exit';});
-      if(!exits.length) return;
+      if(!exits.length){ toast('已探明周遭通路'); return; }
+      // 逐条通路文字渐显，每条打完才弹出对应「去处」按钮（顺序出现）
       exits.forEach(function(o, idx){
-        typeNarr(exitReveal(o), 'investigate', idx===exits.length-1 ? function(){ toast('已探明周遭通路'); } : null);
+        typeNarr(exitReveal(o), 'investigate', function(){
+          addExitBtn(o);
+          if(idx===exits.length-1) toast('已探明周遭通路');
+        });
       });
     });
+  }
+  // 对应某方向通路文字打完后，才把该「去处」按钮弹出（吸引注意）
+  function addExitBtn(o){
+    var tid=o.tid || (G.ROOMS[state.room] && G.ROOMS[state.room].exits && G.ROOMS[state.room].exits[o.dir]);
+    mkAct('exit', o.icon, o.name, function(){ move(o.dir, tid); }, 'pop');
   }
 
 
