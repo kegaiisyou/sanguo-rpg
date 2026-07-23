@@ -109,11 +109,27 @@
   #actions::-webkit-scrollbar{width:0;}
   .acts-label{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:5px;
     color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.72;margin:1px 0 2px;}
-  .grp{grid-column:1/-1;text-align:left;font-size:10.5px;letter-spacing:2px;color:var(--ink-faint);
-    margin:7px 0 2px 2px;font-family:"STKaiti","KaiTi",serif;opacity:.65;}
-  .grp:first-child{margin-top:1px;}
   .obj-hint{grid-column:1/-1;text-align:center;font-size:12px;line-height:1.6;color:var(--ink-faint);
     padding:7px 6px 11px;font-family:"PingFang SC","Microsoft YaHei",sans-serif;opacity:.8;}
+  /* 分组底色卡片：人物/场景/去处 各异；自身 加边框强化「关于我」 */
+  .act.g-ren{background:rgba(86,59,107,.13);border-color:rgba(86,59,107,.32);}
+  .act.g-ren .ob-nm{color:#4a3560;}
+  .act.g-scene{background:rgba(63,125,94,.13);border-color:rgba(63,125,94,.32);}
+  .act.g-scene .ob-nm{color:#2f5d45;}
+  .act.g-exit{background:rgba(176,131,47,.15);border-color:rgba(176,131,47,.38);}
+  .act.g-exit .ob-nm{color:#6e4f17;}
+  .act.g-explore{background:rgba(74,62,48,.07);border-color:rgba(74,62,48,.20);}
+  .act.g-self{background:var(--btn);border:1.5px solid rgba(158,59,46,.42);box-shadow:0 0 0 1px rgba(158,59,46,.06),var(--shadow);}
+  .act.g-self .ob-nm{color:var(--seal);}
+  /* 新出现的「去处」按钮：弹出动画，吸引注意 */
+  .act.pop{animation:popIn .55s cubic-bezier(.2,.9,.3,1.45) both;}
+  @keyframes popIn{0%{opacity:0;transform:scale(.7) translateY(6px);}60%{opacity:1;transform:scale(1.07);}100%{opacity:1;transform:none;}}
+  /* 调查文字：高亮渐显 */
+  .narr.investigate{background:linear-gradient(90deg,rgba(176,131,47,.18),rgba(176,131,47,.03));
+    border-left:3px solid var(--gold);padding:7px 11px;border-radius:8px;color:#5e4a22;font-size:15px;
+    box-shadow:0 1px 0 rgba(255,255,255,.45);}
+  .narr.typing::after{content:'▌';color:var(--gold);animation:blink 1s steps(1) infinite;margin-left:1px;font-weight:400;}
+  @keyframes blink{50%{opacity:0;}}
   .act{
     grid-column:span 1;
     display:flex;align-items:center;justify-content:center;text-align:center;
@@ -173,6 +189,7 @@
   #dock button .ic{font-size:19px;line-height:1;}
   #dock button:hover{color:var(--seal);}
   #dock button:active{transform:scale(.94);}
+  #dock button.rest{color:var(--seal);}
 
   /* ===== 弹窗 ===== */
   #modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
@@ -308,6 +325,7 @@ window.onerror=function(msg,url,line,col,err){
     <button data-modal="pack"><span class="ic">🎒</span>行囊</button>
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
+    <button data-modal="rest" class="rest"><span class="ic">🧘</span>调息</button>
     <button data-modal="more"><span class="ic">☰</span>更多</button>
   </nav>
 </div>
@@ -637,7 +655,19 @@ window.onerror=function(msg,url,line,col,err){
       log('〔出口〕 '+ex,'exit');
     }
     buildActions(room);
+    if(room.patrol && !silent){ maybeAmbush(room); }
     save(state); renderStatus();
+  }
+  // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 黄巾余孽）
+  function maybeAmbush(room){
+    if(state.defeated) return;
+    if(Math.random() < 0.5){
+      var enemy = Math.random()<0.6 ? 'bandit' : 'yellow_turban';
+      log('〔警觉〕林间树影倏动，一伙'+(enemy==='bandit'?'山贼':'黄巾余孽')+'自草莽中杀出，拦住去路！','combat');
+      startCombat(enemy);
+    } else {
+      log('这一程山道尚算平静，只闻松涛与远鸟。你按刀而行，未遇拦路之敌。','sys');
+    }
   }
   // ===== 场景对象配置：每个房间的可交互元素（人物/建筑/家具/出口） =====
   var ROOM_OBJECTS={
@@ -645,9 +675,7 @@ window.onerror=function(msg,url,line,col,err){
       {type:'npc',   key:'hanbo',   icon:'👤', name:'县尉韩博',  desc:'按剑而立，目光如炬',                actions:[{label:'与他交谈', fn:function(){ talk('hanbo'); }}]},
       {type:'building',key:'tent',  icon:'⛺', name:'中军大帐',  desc:'案上谱录，凝神参悟',                actions:[{label:'研习武学', fn:function(){ handleAction('learn'); }, tip:'案上谱录，凝神参悟'},
                                                                             {label:'帐中休整', fn:function(){ actRest(); },         tip:'盹一觉，气血内力尽复'}]},
-      {type:'feature',key:'training',icon:'⚔️',name:'操练场',   desc:'乡勇操练，实战磨砺',                actions:[{label:'入林试炼（剿山贼）', fn:function(){ handleAction('spar_bandit'); }, tip:'实战磨砺武艺'},
-                                                                            {label:'讨伐流寇头目',     fn:function(){ handleAction('spar_chief'); },  tip:'战力验证（中等）'},
-                                                                            {label:'征讨黄巾力士',     fn:function(){ handleAction('spar_turban'); }, tip:'符箓之力（中等）'}]},
+      {type:'feature',key:'training',icon:'⚔️',name:'操练场',   desc:'木人桩列于场中，供你试招练手',      actions:[{label:'与木人过招', fn:function(){ handleAction('spar_dummy'); }, tip:'木人桩不伤性命，正可演练新招'}]},
       {type:'feature',key:'arena',  icon:'🏆', name:'挑战台',   desc:'温酒斩华雄，名震天下',              actions:[{label:'温酒斩华雄', fn:function(){ handleAction('battle_hua_xiong'); }, tip:'需声望≥20·首场Boss战'}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川城', desc:'城门方向，市集熙攘',                actions:[{label:'前往颍川城', fn:function(){ move('北','city'); }}]},
@@ -657,6 +685,7 @@ window.onerror=function(msg,url,line,col,err){
     ],
     city:[
       {type:'npc',   key:'hualao',  icon:'👤', name:'华老',     desc:'城西医馆，正捣药',                    actions:[{label:'与他交谈', fn:function(){ talk('hualao'); }}]},
+      {type:'npc',   key:'yingmen', icon:'👤', name:'营门校尉', desc:'按刀守门，盘查进出',                  actions:[{label:'与他交谈', fn:function(){ talk('yingmen'); }}]},
       {type:'feature',key:'market', icon:'🏪', name:'市集',     desc:'行商云集，可交易伤药钱粮',            actions:[{label:'逛市集', fn:function(){ handleAction('market'); }, tip:'与行商交易伤药钱粮'},
                                                                             {label:'维持治安', fn:function(){ handleAction('city_patrol'); }, tip:'驱赶城中溃兵'}]},
       {type:'building',key:'inn',   icon:'🏨', name:'客栈',     desc:'酒楼歇脚，气血内力尽复',              actions:[{label:'客栈安歇', fn:function(){ actRest(); }, tip:'酒楼歇脚，气血内力尽复'}]},
@@ -664,8 +693,7 @@ window.onerror=function(msg,url,line,col,err){
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·颍川主营',desc:'主营方向，旌旗半卷',                actions:[{label:'返回颍川主营', fn:function(){ move('南','camp'); }}]}
     ],
     forest:[
-      {type:'feature',key:'deep',   icon:'🌲', name:'山林深处', desc:'深入山林，扫荡黄巾余孽',              actions:[{label:'巡山剿匪', fn:function(){ handleAction('patrol'); }, tip:'深入山林，扫荡黄巾余孽'}]},
-      {type:'feature',key:'tree',   icon:'🌳', name:'大树下',   desc:'倚树小憩，尽复状态',                  actions:[{label:'林间栖身', fn:function(){ actRest(); }, tip:'倚树小憩，尽复状态'}]},
+      {type:'feature',key:'deep',   icon:'🌲', name:'山林深处', desc:'深入山林，往来巡逻剿寇',              actions:[{label:'深入巡山', fn:function(){ if(!exert('深入山林')) return; move('北','forest_patrol_a'); }, tip:'拨草寻踪，山道间或遇敌'}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'西',     icon:'🚪', name:'西·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('西','camp'); }}]}
     ],
@@ -757,33 +785,70 @@ window.onerror=function(msg,url,line,col,err){
     ],
     ji_liumin:[
       {type:'npc',   key:'minlao',  icon:'👤', name:'流民老者', desc:'田庐尽毁，乞儿待济',                  actions:[{label:'与他交谈', fn:function(){ talk('minlao'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾流民棚',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest',  icon:'🛖', name:'棚中歇脚', desc:'寻僻静处小憩，气血内力尽复',          actions:[{label:'棚中歇脚', fn:function(){ actRest(); }, tip:'寻僻静处小憩，气血内力尽复'}]},
+      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾流民棚'},
       {type:'exit',  dir:'东',     icon:'🚪', name:'东·郭门',   desc:'回郭门方向',                          actions:[{label:'回郭门',     fn:function(){ move('东','ji_guomen'); }}]}
+    ],
+    // ═══ 北邙·巡山道（实走巡逻子地图，往来随机遇敌） ═══
+    forest_patrol_a:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾巡山道（东）'},
+      {type:'exit', dir:'南', icon:'🚪', name:'南·回北邙山林', desc:'退回路林主道', actions:[{label:'返回山林', fn:function(){ move('南','forest'); }}]},
+      {type:'exit', dir:'东', icon:'🌲', name:'东·巡山道（中）', desc:'林壑渐深，偶有黑影', actions:[{label:'前往中段', fn:function(){ move('东','forest_patrol_b'); }}]}
+    ],
+    forest_patrol_b:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾巡山道（中）'},
+      {type:'exit', dir:'西', icon:'🌲', name:'西·巡山道（东）', desc:'回路东段山道', actions:[{label:'返回东段', fn:function(){ move('西','forest_patrol_a'); }}]},
+      {type:'exit', dir:'北', icon:'🌲', name:'北·巡山道（西）', desc:'密林幽暗，最宜伏击', actions:[{label:'前往西段', fn:function(){ move('北','forest_patrol_c'); }}]}
+    ],
+    forest_patrol_c:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾巡山道（西）'},
+      {type:'exit', dir:'南', icon:'🌲', name:'南·巡山道（中）', desc:'回路中段山道', actions:[{label:'返回中段', fn:function(){ move('南','forest_patrol_b'); }}]},
+      {type:'exit', dir:'东', icon:'🚪', name:'东·回北邙山林', desc:'退回路林主道', actions:[{label:'返回山林', fn:function(){ move('东','forest'); }}]}
+    ],
+    // ═══ 剿匪据点：黑山寨（寨门 / 聚义厅 / 后寨） ═══
+    ji_heishan_zhai:[
+      {type:'npc', key:'heishan_zhai', icon:'🔪', name:'黑山寨卒', desc:'横刀拦路，面带凶相', actions:[
+        {label:'与他交谈', fn:function(){ talk('heishan_zhai'); }},
+        {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zei'); }, tip:'恶贼当前，不必多言'}
+      ]},
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾黑山寨门'},
+      {type:'exit', dir:'南', icon:'🚪', name:'南·城外马市', desc:'退回路马市方向', actions:[{label:'退回马市', fn:function(){ move('南','ji_mashi'); }}]},
+      {type:'exit', dir:'北', icon:'🔥', name:'北·聚义厅', desc:'灯火通明，人影幢幢', actions:[{label:'闯聚义厅', fn:function(){ move('北','ji_heishan_juyi'); }}]}
+    ],
+    ji_heishan_juyi:[
+      {type:'npc', key:'heishan_zhu', icon:'🔥', name:'黑山寨主·张燕', desc:'抚刀而笑，杀机毕露', actions:[
+        {label:'与他交谈', fn:function(){ talk('heishan_zhu'); }},
+        {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zhu'); }, tip:'夺寨先斩贼首'}
+      ]},
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾聚义厅'},
+      {type:'exit', dir:'南', icon:'🚪', name:'南·寨门', desc:'退回寨门', actions:[{label:'退回寨门', fn:function(){ move('南','ji_heishan_zhai'); }}]},
+      {type:'exit', dir:'北', icon:'📦', name:'北·后寨', desc:'囤积赃物的所在', actions:[{label:'入后寨', fn:function(){ move('北','ji_heishan_houzhai'); }}]}
+    ],
+    ji_heishan_houzhai:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾后寨'},
+      {type:'exit', dir:'南', icon:'🚪', name:'南·聚义厅', desc:'退回聚义厅', actions:[{label:'退回聚义厅', fn:function(){ move('南','ji_heishan_juyi'); }}]}
     ]
   };
 
-  function buildActions(room){
+  // 研习武学仅限特定房间（主营/郡学宫）
+  var LEARN_ROOMS={'camp':true,'ji_xuegong':true};
+  function roomCanLearn(rid){ return !!LEARN_ROOMS[rid]; }
+
+  function buildActions(room, popExits){
     clearActions();
     grpCursor=null;
-    // 战败封锁：只许休整，其余全部隐藏
+    // 战败封锁：仅底部 dock「🧘调息」可恢复，场景按钮全部隐藏
     if(state.defeated){
-      log('〔力竭〕你重伤未愈，动弹不得——唯有「休整」方可恢复。','sys');
-      ensureGrp('行动');
-      var rb=document.createElement('button'); rb.className='act'; rb.textContent='帐中休整';
-      rb.onclick=function(){ actRest(); };
-      $actions.appendChild(rb);
+      log('〔力竭〕你重伤未愈，动弹不得——点底部「🧘 调息」恢复后，方可再动。','sys');
       return;
     }
     var objs=ROOM_OBJECTS[room.id];
     if(objs && objs.length){
-      renderObjs(objs.filter(function(o){return o.type==='npc';}), '人物');
-      renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), '场景');
-      renderObjs(objs.filter(function(o){return o.key==='env';}), '探查');
+      renderObjs(objs.filter(function(o){return o.type==='npc';}), 'ren');
+      renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
+      renderObjs(objs.filter(function(o){return o.key==='env';}), 'explore');
       if(explored){
-        renderObjs(objs.filter(function(o){return o.type==='exit';}), '去处');
+        renderExits(objs.filter(function(o){return o.type==='exit';}), popExits);
       } else {
-        ensureGrp('去处');
         var hint=document.createElement('div'); hint.className='obj-hint';
         hint.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
         $actions.appendChild(hint);
@@ -794,39 +859,26 @@ window.onerror=function(msg,url,line,col,err){
     // fallback：旧版分组按钮（兼容无配置的房间）
     (room.npcs||[]).forEach(function(k){
       var n=G.DIALOGUES.npcs[k]; if(!n) return;
-      ensureGrp('人物');
-      var b=document.createElement('button'); b.className='act';
-      b.textContent='与'+n.name+'交谈';
-      b.onclick=function(){ openSheet({title:'与'+n.name+'交谈',desc:n.name+'·当前态度：'+npcAttitude(k),actions:[{label:'执 行',fn:function(){ talk(k); }}]}); };
-      $actions.appendChild(b);
+      mkAct('ren','👤','与'+n.name+'交谈',function(){
+        openSheet({title:'与'+n.name+'交谈',desc:n.name+'·当前态度：'+npcAttitude(k),actions:[{label:'执 行',fn:function(){ talk(k); }}]});
+      });
     });
     if(explored){
-      ensureGrp('探查');
-      var eb=document.createElement('button'); eb.className='act'; eb.textContent='环顾四周';
-      eb.onclick=function(){ renderRoom(state.room,true); };
-      $actions.appendChild(eb);
+      mkAct('explore','🔍','环顾四周',function(){ renderRoom(state.room,true); });
     } else {
-      ensureGrp('探查');
-      var db=document.createElement('button'); db.className='act'; db.textContent='调查四周';
-      db.onclick=function(){ markExplored(); };
-      $actions.appendChild(db);
+      mkAct('explore','🔍','调查四周',function(){ investigateRoom(); });
     }
     (room.actions||[]).forEach(function(a){
-      ensureGrp('行动');
-      var ab=document.createElement('button'); ab.className='act'; ab.textContent=a.label;
-      ab.onclick=function(){ openSheet({title:a.label,desc:a.tip,actions:[{label:'执 行',fn:function(){ handleAction(a.id,a); }}]}); };
-      $actions.appendChild(ab);
+      mkAct('scene','·',a.label,function(){
+        openSheet({title:a.label,desc:a.tip,actions:[{label:'执 行',fn:function(){ handleAction(a.id,a); }}]});
+      });
     });
     if(explored){
       Object.keys(room.exits||{}).forEach(function(dir){
         var tid=room.exits[dir];
-        ensureGrp('去处');
-        var mb=document.createElement('button'); mb.className='act'; mb.textContent=dir+' · '+G.ROOMS[tid].name;
-        mb.onclick=function(){ move(dir,tid); };
-        $actions.appendChild(mb);
+        mkAct('exit','🚪',dir+' · '+G.ROOMS[tid].name,function(){ move(dir,tid); }, popExits?'pop':'');
       });
     } else {
-      ensureGrp('去处');
       var hint2=document.createElement('div'); hint2.className='obj-hint';
       hint2.innerHTML='🔍 先「调查四周」，方能探明通往他处的通路';
       $actions.appendChild(hint2);
@@ -834,63 +886,104 @@ window.onerror=function(msg,url,line,col,err){
     renderSelf(room);
   }
   var grpCursor=null;
-  // 休整 / 研习统一收纳于「自身」组，场景与探查处不再重复呈现
   function isSelfCare(a){
     return (a.label==='研习武学') || /休整|歇|栖|借宿|调息/.test(a.label||'');
   }
-  function ensureGrp(name){
-    if(grpCursor===name) return;
-    var t=document.createElement('div'); t.className='grp'; t.textContent='— '+name+' —';
-    $actions.appendChild(t); grpCursor=name;
+  // 通用分组按钮（带分组底色；自身加边框由 .g-self 控制）
+  function mkAct(group, icon, name, fn, extraCls){
+    var b=document.createElement('button');
+    b.className='act obj-btn g-'+group+(extraCls?(' '+extraCls):'');
+    b.innerHTML='<span class="ob-ic">'+(icon||'·')+'</span><span class="ob-nm">'+name+'</span>';
+    b.onclick=fn; $actions.appendChild(b);
+    return b;
   }
-  function markExplored(){
+  function renderObjs(list, group){
+    if(!list.length) return;
+    list.forEach(function(o){
+      if(o.key==='env'){
+        mkAct('explore', o.icon, o.name, function(){ investigateRoom(); });
+      } else {
+        var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
+        mkAct(group, o.icon, o.name, function(){ openSheet({icon:o.icon,title:o.name,desc:o.desc,actions:acts}); });
+      }
+    });
+  }
+  function renderExits(list, pop){
+    list.forEach(function(o){
+      var tid=o.tid || (G.ROOMS[state.room] && G.ROOMS[state.room].exits && G.ROOMS[state.room].exits[o.dir]);
+      mkAct('exit', o.icon, o.name, function(){ move(o.dir, tid); }, pop?'pop':'');
+    });
+  }
+  function renderSelf(room){
+    // 研习武学：仅特定房间出现；调息已移至底部 dock
+    if(roomCanLearn(room.id)){
+      mkAct('self','📖','研习武学', function(){ openLearn(); });
+    }
+  }
+
+  // ===== 调查四周：叙事框高亮逐字显出，并解锁去处（按钮带弹出动画） =====
+  var typeQueue=[], typing=false;
+  function typeNarr(text, cls, done){
+    typeQueue.push({text:text, cls:cls, done:done});
+    runTypeQueue();
+  }
+  function runTypeQueue(){
+    if(typing) return;
+    var item=typeQueue.shift();
+    if(!item){ return; }
+    typing=true;
+    var p=document.createElement('p');
+    p.className='narr '+(item.cls||'env')+' typing';
+    $narr.appendChild(p);
+    var i=0, full=item.text;
+    var timer=setInterval(function(){
+      i++;
+      p.textContent=full.slice(0,i);
+      var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
+      if(i>=full.length){
+        clearInterval(timer);
+        p.classList.remove('typing');
+        typing=false;
+        if(item.done) item.done();
+        runTypeQueue();
+      }
+    }, 26);
+  }
+  function stripDir(nm){ return (nm||'').replace(/^[^·]*·/,''); }
+  // 各方向通路描述：显眼者用「抬眼便见」，隐蔽者用「循迹探得」，并保留原 desc 的感官线索
+  function exitReveal(o){
+    var tid=o.tid;
+    var tname = (tid && G.ROOMS[tid]) ? G.ROOMS[tid].name : stripDir(o.name);
+    var d=o.desc||'通路隐于其间';
+    var obvious=/正门|巍然|主轴|通衢|车水马龙|正对|大道|门楼|坦途|敞亮|灯火|通明/.test(d);
+    var lead = obvious
+      ? ('抬眼便见'+o.dir+'方便是「'+tname+'」')
+      : ('循着迹象探去，'+o.dir+'面隐约现出通往「'+tname+'」的去路');
+    return '〔'+o.dir+'〕'+lead+'——'+d+'。';
+  }
+  function investigateRoom(){
+    if(state.defeated){ dockRest(); return; }
     explored=true;
     if(!state.exploredRooms) state.exploredRooms={};
     state.exploredRooms[state.room]=true;
     save(state);
-    buildActions(G.ROOMS[state.room]);
-    toast('已探明周遭通路');
-  }
-  function renderObjs(list, group){
-    if(!list.length) return;
-    ensureGrp(group);
-    list.forEach(function(o){
-      // 休整/研习统一收纳于「自身」组，场景/探查处不再重复
-      var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
-      var b=document.createElement('button'); b.className='act obj-btn';
-      b.innerHTML='<span class="ob-ic">'+(o.icon||'·')+'</span><span class="ob-nm">'+o.name+'</span>';
-      if(o.key==='env'){
-        b.onclick=function(){
-          var extra=(G.ROOMS[state.room] && G.ROOMS[state.room].find) || '';
-          openSheet({icon:o.icon,title:o.name,
-            desc:o.desc + (extra ? ('<br><span style="opacity:.82">'+extra+'</span>') : '　〔细看〕此处四通八达，须先探明通路，方能前往他处。'),
-            actions:[{label:'仔细探索 · 寻得通路',fn:function(){ markExplored(); }}]});
-        };
-      } else {
-        b.onclick=function(){ openSheet({icon:o.icon,title:o.name,desc:o.desc,actions:acts}); };
-      }
-      $actions.appendChild(b);
+    var room=G.ROOMS[state.room];
+    // 立即重建按钮：去处随弹出动画冒出（与文字渐显同步）
+    clearActions();
+    buildActions(room, true);
+    // 叙事框高亮逐字显出
+    var find = room.find || '你凝神四望，周遭风物、通路尽收眼底。';
+    typeNarr('〔调查 · '+room.name+'〕', 'title');
+    typeNarr(find, 'investigate', function(){
+      var objs=ROOM_OBJECTS[room.id]||[];
+      var exits=objs.filter(function(o){return o.type==='exit';});
+      if(!exits.length) return;
+      exits.forEach(function(o, idx){
+        typeNarr(exitReveal(o), 'investigate', idx===exits.length-1 ? function(){ toast('已探明周遭通路'); } : null);
+      });
     });
   }
-  function renderSelf(room){
-    ensureGrp('自身');
-    var mk=function(icon,name,fn){
-      var b=document.createElement('button'); b.className='act obj-btn';
-      b.innerHTML='<span class="ob-ic">'+icon+'</span><span class="ob-nm">'+name+'</span>';
-      b.onclick=fn; $actions.appendChild(b);
-    };
-    mk('🧘','就地调息', function(){ actRest(); });
-    mk('📖','研习武学', function(){ handleAction('learn'); });
-    // 建筑作为「自身」组的休憩点（去掉与常驻重复的休整/研习，仅留氛围与特殊交互）
-    (ROOM_OBJECTS[room.id]||[]).forEach(function(o){
-      if(o.type!=='building') return;
-      var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
-      var b=document.createElement('button'); b.className='act obj-btn';
-      b.innerHTML='<span class="ob-ic">'+(o.icon||'·')+'</span><span class="ob-nm">'+o.name+'</span>';
-      b.onclick=function(){ openSheet({icon:o.icon,title:o.name,desc:o.desc,actions:acts}); };
-      $actions.appendChild(b);
-    });
-  }
+
 
   // ===== 行走探索 =====
   function move(dir, tid){
@@ -959,6 +1052,10 @@ window.onerror=function(msg,url,line,col,err){
       case 'spar_bandit': if(!exert('应战')) return; startCombat('bandit'); break;
       case 'spar_chief':  if(!exert('应战')) return; startCombat('bandit_chief'); break;
       case 'spar_turban': if(!exert('应战')) return; startCombat('yellow_turban'); break;
+      // ─── 新战斗：木人桩 / 黑山寨 ───
+      case 'spar_dummy': if(!exert('应战')) return; startCombat('dummy'); break;
+      case 'spar_heishan_zei': if(!exert('应战')) return; startCombat('heishan_zei'); break;
+      case 'spar_heishan_zhu': if(!exert('应战')) return; startCombat('heishan_zhu'); break;
       case 'battle_hua_xiong':
         if(!exert('应战')) return;
         if(state.reputation < 20){ log('时机未至——声望未达 20（当前 '+state.reputation+' · '+repTitle(state.reputation)+'），先扬名立万。','sys'); return; }
@@ -975,7 +1072,7 @@ window.onerror=function(msg,url,line,col,err){
     state.hp=esR.maxHp; state.mp=esR.maxMp; state.energy=state.maxEnergy;
     state.food=state.maxFood; state.drink=state.maxDrink;
     if(state.defeated){ state.defeated=false; log('你缓缓起身，伤势渐愈，气力渐复……','good'); }
-    else { log('你于帐中盹了一觉，晨光熹微时醒来——气血、内力、精力皆复，饥渴亦消。','env'); }
+    else { log('你就地调息，闭目养神片刻——气血、内力、精力皆复，饥渴亦消。','env'); }
     buildActions(curRoom()); save(state); renderStatus();
   }
 
@@ -1201,8 +1298,17 @@ window.onerror=function(msg,url,line,col,err){
   function closeModal(){ if(state.dead){ die(); return; } $modal.classList.add('hidden'); }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   document.querySelectorAll('#dock button').forEach(function(b){
-    b.onclick=function(){openModal(b.getAttribute('data-modal'));};
+    b.onclick=function(){
+      var m=b.getAttribute('data-modal');
+      if(m==='rest'){ dockRest(); return; }
+      openModal(m);
+    };
   });
+  function dockRest(){
+    if(combatMode){ toast('战斗中无法调息'); return; }
+    if(state.dead){ die(); return; }
+    actRest();
+  }
   // ===== 调试台（测试用：直赋声望/武学等，真正获取途径后续接入） =====
   function handleDev(act){
     var MA=G.MARTIAL_ARTS;
@@ -1572,13 +1678,16 @@ window.onerror=function(msg,url,line,col,err){
       }
 
       // ── 声望 / 主线进度（P4 真实获取途径，替代调试台直赋）──
-      var RREP={bandit:2,bandit_chief:4,yellow_turban:5,hua_xiong:20,dummy:0};
+      var RREP={bandit:2,bandit_chief:4,yellow_turban:5,hua_xiong:20,dummy:0,heishan_zei:2,heishan_zhu:12};
       if(RREP[enemy.id]) addReputation(RREP[enemy.id]);
-      if(enemy.id==='bandit'||enemy.id==='bandit_chief') state.quest.bandit++;
+      if(enemy.id==='bandit'||enemy.id==='bandit_chief'||enemy.id==='heishan_zei'||enemy.id==='heishan_zhu') state.quest.bandit++;
       else if(enemy.id==='yellow_turban') state.quest.turban++;
       else if(enemy.id==='hua_xiong'){
         state.quest.hua_xiong=true; state.quest.luoyang=true;
         log('【主线】温酒斩华雄！洛阳之门已为你敞开，可自「颍川主营」赴洛阳。','good');
+      }
+      else if(enemy.id==='heishan_zhu'){
+        log('【剿匪】黑山寨主张燕授首！聚义厅群龙无首，余众溃散——此寨已平。','good');
       }
 
       // ── P2：艺线经验由战斗出手累积，满则升级 ──

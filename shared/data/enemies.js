@@ -83,6 +83,34 @@
       skills: [],
       ai: 'defensive',
       drop: { gold: [0, 0], pot: [0, 0], table: [], equip: { tier: 0, chance: 0 } }
+    },
+
+    // ─── 黑山寨（剿匪据点） ───
+    heishan_zei: {
+      id: 'heishan_zei', name: '黑山寨卒', title: '黑山喽啰',
+      hp: 360, atk: 32, def: 18, spd: 22,
+      skills: [
+        { id: 'slash', name: '劈砍', beat: 30, dmgMul: 1.0, desc: '举刀劈下' },
+        { id: 'jab', name: '突刺', beat: 28, dmgMul: 0.9, desc: '短矛突刺' }
+      ],
+      ai: 'aggressive',
+      drop: { gold: [20, 50], pot: [8, 18], table: [], equip: { tier: 2, chance: 40 } }
+    },
+    heishan_zhu: {
+      id: 'heishan_zhu', name: '黑山寨主·张燕', title: '黑山一十七部之主',
+      hp: 1000, atk: 58, def: 40, spd: 28,
+      skills: [
+        { id: 'yan_slash', name: '雁翎刀法', beat: 35, dmgMul: 1.3, desc: '刀光如燕掠', attr: { wu: '金' } },
+        { id: 'charge', name: '飞燕突', beat: 30, dmgMul: 1.1, desc: '疾冲而来', eff: { stunChance: 0.3 } },
+        { id: 'roar', name: '聚义怒吼', beat: 20, dmgMul: 0, desc: '鼓舞喽啰', eff: { selfBuff: { atk: 6, turns: 3 } } }
+      ],
+      ai: 'boss',
+      drop: {
+        gold: [120, 240],
+        pot: [40, 70],
+        table: [{ item: 'heishan_token', name: '黑山令', weight: 6 }],
+        equip: { tier: 3, chance: 80 }
+      }
     }
   };
 
