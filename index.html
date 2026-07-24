@@ -422,6 +422,7 @@ window.onerror=function(msg,url,line,col,err){
     <button data-modal="pack"><span class="ic">🎒</span>行囊</button>
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
+    <button data-modal="survey"><span class="ic">🔍</span>探查</button>
     <button data-modal="rest" class="rest"><span class="ic">🧘</span>调息</button>
     <button data-modal="more"><span class="ic">☰</span>更多</button>
   </nav>
@@ -751,6 +752,15 @@ window.onerror=function(msg,url,line,col,err){
       var ex=Object.keys(room.exits).map(function(d){return d+'·'+G.ROOMS[room.exits[d]].name;}).join('　');
       log('〔出口〕 '+ex,'exit');
     }
+    // 新房间自动探查：标记已探索，记录 find 描述，出口立即可用
+    if(!explored && !silent){
+      explored=true;
+      if(!state.exploredRooms) state.exploredRooms={};
+      state.exploredRooms[rid]=true;
+      save(state);
+      var find=room.find||'你凝神四望，周遭风物、通路尽收眼底。';
+      log(find,'investigate');
+    }
     buildActions(room);
     if(room.patrol && !silent){ maybeAmbush(room); }
     save(state); renderStatus();
@@ -951,16 +961,13 @@ window.onerror=function(msg,url,line,col,err){
       renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
       var exitsObjs=objs.filter(function(o){return o.type==='exit';});
       if(exitsObjs.length){
-        // 有出口：渲染罗盘枢纽（中心兼「四周环境/返回」），不再单独放调查按钮
+        // 有出口：渲染罗盘枢纽（中心「去处」，探查已由 dock 常驻按钮接管）
         buildExitCompass(room);
-      } else {
-        // 无出口的房间：保留普通「调查四周」按钮（纯叙事用）
-        renderObjs(objs.filter(function(o){return o.key==='env';}), 'explore');
       }
       renderSelf(room);
       return;
     }
-    // fallback：旧版分组按钮（兼容无配置的房间）
+    // fallback：旧版分组按钮（兼容无配置的房间；探查已由 dock 接管）
     (room.npcs||[]).forEach(function(k){
       var n=G.DIALOGUES.npcs[k]; if(!n) return;
       var acts=[{label:'交谈', fn:function(){ talk(k); }}];
@@ -968,11 +975,6 @@ window.onerror=function(msg,url,line,col,err){
         toggleObjExpand(e, btn, {name:n.name, desc:n.name+' · 当前态度：'+npcAttitude(k)}, acts);
       });
     });
-    if(explored){
-      mkAct('explore','🔍','环顾四周',function(){ renderRoom(state.room,true); });
-    } else {
-      mkAct('explore','🔍','调查四周',function(){ investigateRoom(); });
-    }
     (room.actions||[]).forEach(function(a){
       var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
       var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
@@ -1085,12 +1087,8 @@ window.onerror=function(msg,url,line,col,err){
   }
   function setHubIdle(){
     var hub=document.getElementById('compass-hub'); if(!hub) return;
-    hub.classList.remove('as-return');
-    if(explored){ hub.classList.remove('breathing'); }
-    else { hub.classList.add('breathing'); }
-    hub.innerHTML = explored
-      ? '<span class="hub-ic">🧭</span><span class="hub-nm">去处</span>'
-      : '<span class="hub-ic">🔍</span><span class="hub-nm">四周环境</span>';
+    hub.classList.remove('as-return','breathing');
+    hub.innerHTML='<span class="hub-ic">🧭</span><span class="hub-nm">去处</span>';
   }
   function setHubReturn(){
     var hub=document.getElementById('compass-hub'); if(!hub) return;
@@ -1551,9 +1549,24 @@ window.onerror=function(msg,url,line,col,err){
     b.onclick=function(){
       var m=b.getAttribute('data-modal');
       if(m==='rest'){ dockRest(); return; }
+      if(m==='survey'){ dockSurvey(); return; }
       openModal(m);
     };
   });
+  function dockSurvey(){
+    if(state.defeated){ dockRest(); return; }
+    var compass=document.getElementById('exit-compass');
+    if(compass){
+      if(compass.classList.contains('expanded')){ collapseCompass(); }
+      else { expandExitsOnly(); }
+    } else {
+      // 无出口房间：重新记录环境描述
+      var room=G.ROOMS[state.room];
+      var find=room&&room.find||'你凝神四望，周遭风物尽收眼底。';
+      log(find,'investigate');
+      toast('已探明周遭');
+    }
+  }
   function dockRest(){
     if(combatMode){ toast('战斗中无法调息'); return; }
     if(state.dead){ die(); return; }
