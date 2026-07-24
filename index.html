@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>乱世烽火 · 水墨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#f4eee2;        /* 宣纸底 */
@@ -476,33 +479,27 @@
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     color:#2a2118;text-align:center;
     font-family:"STKaiti","KaiTi","Songti SC","STSong",serif;
-    background:radial-gradient(130% 115% at 50% -12%,#f3e9d0 0%,#e8d9b5 48%,#d4c193 100%);}
-  #title::after{content:'';position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(120% 95% at 50% 42%,rgba(255,255,255,0) 52%,rgba(86,66,36,.20) 100%);}
-  /* 远山墨色 */
-  .tt-mtn{position:absolute;left:-6%;right:-6%;bottom:0;height:48vh;pointer-events:none;}
-  .tt-mtn1{bottom:0;opacity:.5;background:#27331c;
-    clip-path:polygon(0 100%,0 58%,14% 34%,28% 56%,42% 26%,58% 52%,72% 24%,86% 48%,100% 32%,100% 100%);}
-  .tt-mtn2{bottom:0;opacity:.8;background:#1d2515;
-    clip-path:polygon(0 100%,0 70%,18% 52%,34% 68%,50% 44%,66% 64%,82% 46%,100% 60%,100% 100%);}
-  .tt-mist{position:absolute;left:0;right:0;bottom:30%;height:16%;pointer-events:none;
-    background:linear-gradient(180deg,rgba(245,235,210,0),rgba(240,228,200,.5));filter:blur(7px);}
-  .tt-river{position:absolute;left:0;right:0;bottom:0;height:26%;pointer-events:none;overflow:hidden;
-    background:linear-gradient(180deg,rgba(60,70,40,.05),#c9b482 36%,#a98f5e 100%);}
-  .tt-river::before{content:'';position:absolute;inset:0;opacity:.45;
-    background:repeating-linear-gradient(95deg,rgba(255,250,230,.32) 0 6px,transparent 6px 22px);
-    animation:ttflow 9s linear infinite;}
-  @keyframes ttflow{from{background-position:0 0}to{background-position:60px 0}}
-  .tt-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;padding:0 24px;max-width:640px;}
-  /* 题名：墨笔主视觉 */
-  .tt-head{position:relative;display:inline-block;margin-top:4px;}
-  .tt-name{font-size:74px;letter-spacing:9px;margin:0;font-weight:700;color:#1d1610;
-    text-shadow:0 1px 0 rgba(255,255,255,.4),0 3px 12px rgba(60,45,20,.18);}
-  .tt-seal{position:absolute;right:-46px;top:9px;width:34px;height:46px;border:2px solid #9c2b1e;color:#9c2b1e;
+    background:#100f0b url('assets/title_bg.jpg') center/cover no-repeat;}
+  /* 柔和宣纸罩层 + 暗角，保文字可读（非硬色块） */
+  #title::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+    background:
+      radial-gradient(125% 95% at 50% 44%,rgba(245,237,216,.30) 0%,rgba(245,237,216,0) 56%),
+      linear-gradient(180deg,rgba(18,16,11,.08),rgba(18,16,11,.30));}
+  #title::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(120% 95% at 50% 48%,rgba(0,0,0,0) 48%,rgba(16,12,8,.34) 100%);}
+  .tt-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;padding:18px 28px;border-radius:18px;
+    background:radial-gradient(120% 80% at 50% 46%,rgba(244,236,214,.30),rgba(244,236,214,0) 72%);}
+  /* 题名：毛笔竖排立轴 */
+  .tt-head{position:relative;display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:8px;margin-top:4px;}
+  .tt-name{writing-mode:vertical-rl;text-orientation:upright;font-family:"Ma Shan Zheng","STKaiti","KaiTi",serif;
+    font-size:74px;line-height:1.08;letter-spacing:8px;margin:0;font-weight:400;color:#1b140d;
+    text-shadow:0 2px 16px rgba(255,250,235,.6),0 1px 0 rgba(255,255,255,.25);}
+  .tt-seal{position:relative;align-self:flex-end;margin-bottom:8px;width:34px;height:46px;border:2px solid #9c2b1e;color:#9c2b1e;
     border-radius:3px;font-size:15px;line-height:19px;display:flex;align-items:center;justify-content:center;
     background:rgba(156,43,30,.06);writing-mode:vertical-rl;letter-spacing:1px;
-    box-shadow:0 0 0 2px rgba(156,43,30,.10) inset;transform:rotate(-3deg);}
-  .tt-poem{font-size:16px;letter-spacing:6px;color:#473826;opacity:.7;margin-top:16px;}
+    box-shadow:0 0 0 2px rgba(156,43,30,.10) inset;transform:rotate(-3deg);
+    font-family:"STKaiti","KaiTi",serif;}
+  .tt-poem{font-family:"Zhi Mang Xing","STKaiti","KaiTi",serif;font-size:24px;letter-spacing:4px;color:#3a2c1c;opacity:.82;margin-top:18px;text-shadow:0 1px 10px rgba(255,250,235,.5);}
   /* 分隔朱线 + 印记 */
   .tt-rule{display:flex;align-items:center;gap:11px;margin:24px 0 2px;color:#9c2b1e;font-size:11px;}
   .tt-rule::before,.tt-rule::after{content:'';height:1px;width:56px;}
@@ -510,8 +507,8 @@
   .tt-rule::after{background:linear-gradient(90deg,#9c2b1e,transparent);}
   /* 菜单：墨字，悬停朱染 */
   .tt-menu{display:flex;flex-direction:column;align-items:center;margin-top:10px;}
-  .t-btn{font-family:inherit;font-size:21px;letter-spacing:9px;padding:11px 28px 11px 37px;cursor:pointer;
-    color:#2c2218;background:none;border:none;position:relative;transition:.22s;}
+  .t-btn{font-family:"Ma Shan Zheng","STKaiti","KaiTi",serif;font-size:25px;letter-spacing:4px;padding:8px 24px;cursor:pointer;
+    color:#2c2218;background:none;border:none;position:relative;transition:.22s;text-shadow:0 1px 8px rgba(255,250,235,.45);}
   .t-btn::after{content:'';position:absolute;left:50%;right:50%;bottom:6px;height:1.5px;background:#9c2b1e;opacity:0;transition:.25s;}
   .t-btn:hover{color:#9c2b1e;letter-spacing:10px;}
   .t-btn:hover::after{left:23%;right:23%;opacity:1;}
@@ -554,10 +551,6 @@ window.onerror=function(msg,url,line,col,err){
 </div>
 
 <div id="title">
-  <div class="tt-mtn tt-mtn1"></div>
-  <div class="tt-mtn tt-mtn2"></div>
-  <div class="tt-mist"></div>
-  <div class="tt-river"></div>
   <div class="tt-inner">
     <div class="tt-head">
       <h1 class="tt-name">乱世烽火</h1>
