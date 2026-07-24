@@ -491,15 +491,16 @@
     background:radial-gradient(120% 80% at 50% 46%,rgba(244,236,214,.30),rgba(244,236,214,0) 72%);}
   /* 题名：毛笔竖排立轴 */
   .tt-head{position:relative;display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:8px;margin-top:4px;}
-  .tt-name{writing-mode:vertical-rl;text-orientation:upright;font-family:"Ma Shan Zheng","STKaiti","KaiTi",serif;
-    font-size:74px;line-height:1.08;letter-spacing:8px;margin:0;font-weight:400;color:#1b140d;
+  .tt-name{display:flex;flex-direction:column;align-items:center;font-family:"Ma Shan Zheng","STKaiti","KaiTi",serif;
+    font-size:62px;line-height:1.04;letter-spacing:2px;margin:0;font-weight:400;color:#1b140d;
     text-shadow:0 2px 16px rgba(255,250,235,.6),0 1px 0 rgba(255,255,255,.25);}
+  .tt-name span{display:block;}
   .tt-seal{position:relative;align-self:flex-end;margin-bottom:8px;width:34px;height:46px;border:2px solid #9c2b1e;color:#9c2b1e;
     border-radius:3px;font-size:15px;line-height:19px;display:flex;align-items:center;justify-content:center;
     background:rgba(156,43,30,.06);writing-mode:vertical-rl;letter-spacing:1px;
     box-shadow:0 0 0 2px rgba(156,43,30,.10) inset;transform:rotate(-3deg);
     font-family:"STKaiti","KaiTi",serif;}
-  .tt-poem{font-family:"Zhi Mang Xing","STKaiti","KaiTi",serif;font-size:24px;letter-spacing:4px;color:#3a2c1c;opacity:.82;margin-top:18px;text-shadow:0 1px 10px rgba(255,250,235,.5);}
+  .tt-poem{font-family:"Zhi Mang Xing","STKaiti","KaiTi",serif;font-size:21px;letter-spacing:2px;white-space:nowrap;color:#3a2c1c;opacity:.82;margin-top:16px;text-shadow:0 1px 10px rgba(255,250,235,.5);}
   /* 分隔朱线 + 印记 */
   .tt-rule{display:flex;align-items:center;gap:11px;margin:24px 0 2px;color:#9c2b1e;font-size:11px;}
   .tt-rule::before,.tt-rule::after{content:'';height:1px;width:56px;}
@@ -553,7 +554,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="title">
   <div class="tt-inner">
     <div class="tt-head">
-      <h1 class="tt-name">乱世烽火</h1>
+      <h1 class="tt-name"><span>乱</span><span>世</span><span>烽</span><span>火</span></h1>
       <span class="tt-seal">烽火</span>
     </div>
     <div class="tt-poem">滚滚长江东逝水　浪花淘尽英雄</div>
@@ -936,15 +937,32 @@ window.onerror=function(msg,url,line,col,err){
   function curRoom(){ return G.ROOMS[state.room] || G.ROOMS.camp; }
 
   // ===== 文字叙事窗 =====
+  function typeInto(node, text, delay, done, onstep){
+    var i=0;
+    (function step(){
+      node.textContent=text.slice(0,i);
+      if(onstep) onstep();
+      if(i<text.length){ i++; setTimeout(step, delay); }
+      else if(done) done();
+    })();
+  }
   function log(text, cls, name){
+    cls=cls||'env';
     var p=document.createElement('p');
-    p.className='narr '+(cls||'env');
+    p.className='narr '+cls;
+    var sc=document.getElementById('scene');
+    function scroll(){ if(sc) sc.scrollTop=sc.scrollHeight; }
+    var delay = settings.textSpeed===0?0:(settings.textSpeed===1?18:46);
     if(cls==='npc' && name){
-      var s=document.createElement('span'); s.className='nm'; s.textContent=name+'：';
-      p.appendChild(s); p.appendChild(document.createTextNode(text));
-    } else { p.textContent=text; }
-    $narr.appendChild(p);
-    var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
+      var s=document.createElement('span'); s.className='nm'; s.textContent=name+'：'; p.appendChild(s);
+      var tn=document.createTextNode(''); p.appendChild(tn); $narr.appendChild(p);
+      if(delay<=0){ tn.textContent=text; scroll(); }
+      else { p.classList.add('typing'); typeInto(tn, text, delay, function(){ p.classList.remove('typing'); scroll(); }, scroll); }
+    } else {
+      var tn2=document.createTextNode(''); p.appendChild(tn2); $narr.appendChild(p);
+      if(delay<=0){ tn2.textContent=text; scroll(); }
+      else { p.classList.add('typing'); typeInto(tn2, text, delay, function(){ p.classList.remove('typing'); scroll(); }, scroll); }
+    }
   }
 
   // ===== 状态栏（两行：身份 + 数值条） =====
@@ -2315,12 +2333,13 @@ window.onerror=function(msg,url,line,col,err){
     var r=G.CombatEngine.init(pstate, enemyId);
     if(r.error){ log(r.error,'sys'); return; }
     state.energy=Math.max(0,state.energy-5);   // 应战耗精力
-    combatMode='manual';
+    combatMode = settings.autoBattle ? 'auto' : 'manual';
     $narr.innerHTML='';
     var enemy=G.CombatEngine.getEnemy();
     log('════ 刀兵相见 ════','combat');
     log(enemy.name+(enemy.title?' · '+enemy.title:''),'title');
-    renderCombatRound();
+    if(settings.autoBattle){ startAutoBattle('optimal'); }
+    else { renderCombatRound(); }
   }
 
   /** 渲染战斗卡 */
