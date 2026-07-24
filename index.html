@@ -186,53 +186,50 @@
   .op-btn:hover{background:rgba(158,39,46,.08);border-color:rgba(158,39,46,.4);}
   .op-btn:active{transform:scale(.97);}
   .op-btn.danger{color:#c0392b;border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.06);}
-  /* ===== 罗盘枢纽：中心为「四周环境/返回」按钮，展开后方位按钮按真实方位落位 ===== */
-  .exit-compass{grid-column:span 1;display:grid;grid-template-columns:repeat(3,1fr);
-    grid-template-rows:repeat(3,auto);gap:6px;padding:8px 6px;margin:2px 0 4px;
-    background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.25);border-radius:14px;
-    transition:border-color .25s, background .25s, grid-column .2s;}
-  .exit-compass.expanded{grid-column:1/-1;}
-  .exit-compass.expanded .ecc{min-height:42px;}
-  .ecc{min-height:0;display:flex;align-items:center;justify-content:center;
-    transition:transform .3s cubic-bezier(.2,.9,.3,1.4),opacity .3s;}
-  /* 展开时方位格缩放入场（收起态 display:none，故纯入场动画即可） */
-  .exit-compass.expanded .ecc:not(.ecc-hub){animation:eccPop .34s cubic-bezier(.2,.9,.3,1.45) both;}
-  @keyframes eccPop{from{opacity:0;transform:scale(.4);}to{opacity:1;transform:scale(1);}}
-  /* 收起态：仅显示中心枢纽按钮（类 FAB），其余方位格隐藏 */
-  .exit-compass:not(.expanded){display:flex;justify-content:center;padding:0;margin:0;border-color:transparent;background:transparent;border-width:0;}
-  .exit-compass:not(.expanded) .ecc-hub{width:100%;min-width:0;}
-  .exit-compass:not(.expanded) .ecc:not(.ecc-hub){display:none;}
-  /* 中心枢纽按钮（兼作「你在此处」与调查/返回操作） */
-  .ecc-hub{position:relative;cursor:pointer;border-radius:14px;min-width:108px;min-height:52px;padding:8px 16px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-    background:linear-gradient(180deg,rgba(176,131,47,.24),rgba(176,131,47,.12));
-    border:1.5px solid rgba(176,131,47,.5);
-    box-shadow:0 0 0 3px rgba(176,131,47,.08),var(--shadow);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s;}
-  .ecc-hub:hover{background:rgba(176,131,47,.32);border-color:rgba(176,131,47,.72);}
-  .ecc-hub:active{transform:scale(.94);}
-  /* 未调查：呼吸光晕提示「可探查」 */
-  .ecc-hub::before{content:'';position:absolute;inset:-3px;border-radius:16px;pointer-events:none;opacity:0;}
-  .ecc-hub.breathing::before{animation:hubBreath 1.9s ease-in-out infinite;}
-  @keyframes hubBreath{
-    0%{box-shadow:0 0 0 0 rgba(176,131,47,.55);opacity:.85;}
-    70%{box-shadow:0 0 0 13px rgba(176,131,47,0);opacity:0;}
-    100%{box-shadow:0 0 0 0 rgba(176,131,47,0);opacity:0;}
-  }
-  .ecc-hub .hub-ic{font-size:20px;line-height:1;}
-  .ecc-hub .hub-nm{font-size:13px;font-weight:600;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
-  .ecc-hub.as-return{background:rgba(74,62,48,.08);border-color:rgba(74,62,48,.32);box-shadow:var(--shadow);}
-  .ecc-hub.as-return .hub-nm{color:var(--ink-soft);}
-  .exit-btn{width:100%;display:flex;flex-direction:column;align-items:center;gap:0;
-    padding:7px 4px;border-radius:11px;cursor:pointer;text-align:center;
-    background:rgba(176,131,47,.15);border:1px solid rgba(176,131,47,.38);transition:.18s;}
-  .exit-btn:hover{background:rgba(176,131,47,.26);border-color:rgba(176,131,47,.6);
-    box-shadow:0 0 0 3px rgba(176,131,47,.1);}
-  .exit-btn:active{transform:scale(.97);}
-  .exit-btn .eb-ic{font-size:16px;line-height:1.1;}
-  .exit-btn .eb-dir{font-size:10px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
-  .exit-btn .eb-nm{font-size:11px;color:var(--ink);line-height:1.1;max-width:100%;
+  /* ===== 方向环：中心「此处」，出口按真实方位径向辐射（上北下南左西右东） ===== */
+  .exit-ring{position:relative;grid-column:1/-1;width:100%;max-width:300px;aspect-ratio:1/1;margin:8px auto 4px;
+    background:radial-gradient(circle at 50% 50%, rgba(176,131,47,.10), rgba(176,131,47,.03) 62%, transparent 78%);
+    border-radius:50%;touch-action:none;-webkit-user-select:none;user-select:none;}
+  .ring-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:62px;height:62px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    background:linear-gradient(180deg,rgba(176,131,47,.28),rgba(176,131,47,.14));
+    border:1.5px solid rgba(176,131,47,.5);box-shadow:0 0 0 3px rgba(176,131,47,.08),var(--shadow);
+    cursor:pointer;z-index:2;font-family:"STKaiti","KaiTi",serif;transition:transform .18s,background .18s;
+    touch-action:none;}
+  .ring-hub:active{transform:translate(-50%,-50%) scale(.93);}
+  .ring-hub .hub-ic{font-size:19px;line-height:1;}
+  .ring-hub .hub-nm{font-size:11px;font-weight:600;color:#6e4f17;letter-spacing:1px;}
+  .ring-hub .hub-hint{display:none;font-size:9.5px;color:#9a7b3a;margin-top:1px;}
+  .ring-exit{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0;
+    padding:5px 8px;border-radius:11px;cursor:pointer;text-align:center;white-space:nowrap;z-index:1;
+    background:rgba(255,253,248,.95);border:1px solid rgba(176,131,47,.38);box-shadow:0 2px 8px rgba(60,48,34,.13);
+    transition:transform .18s,background .18s,border-color .18s,box-shadow .18s;-webkit-user-select:none;user-select:none;}
+  .ring-exit:hover{background:rgba(176,131,47,.18);border-color:rgba(176,131,47,.6);}
+  .ring-exit:active{transform:translate(-50%,-50%) scale(.94);}
+  .ring-exit .eb-ic{font-size:14px;line-height:1.1;}
+  .ring-exit .eb-dir{font-size:9.5px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
+  .ring-exit .eb-nm{font-size:10.5px;color:var(--ink);line-height:1.1;max-width:84px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .exit-btn.pop{animation:popIn .7s cubic-bezier(.2,.9,.3,1.45) both;}
+  /* 入场：径向弹出 */
+  .exit-ring .ring-exit{animation:ringPop .4s cubic-bezier(.2,.9,.3,1.4) both;}
+  @keyframes ringPop{from{opacity:0;transform:translate(-50%,-50%) scale(.3);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+  /* 轻功方向：青色虚线 */
+  .ring-exit.leap{background:rgba(74,144,160,.10);border-style:dashed;border-color:rgba(74,144,160,.55);}
+  .ring-exit.leap .eb-dir,.ring-exit.leap .eb-ic{color:#2f7d8c;}
+  /* 坐骑方向：金辉 */
+  .ring-exit.mount{background:rgba(176,131,47,.20);border-color:rgba(176,131,47,.72);}
+  /* 出行模式（长按中心）：方向高亮放大 */
+  .exit-ring.travel .ring-exit{box-shadow:0 0 0 3px rgba(176,131,47,.28),0 2px 8px rgba(60,48,34,.12);}
+  .exit-ring.travel .ring-exit.aim{transform:translate(-50%,-50%) scale(1.26);background:rgba(176,131,47,.30);
+    border-color:rgba(176,131,47,.85);z-index:3;}
+  .exit-ring.travel .ring-hub .hub-nm{display:none;}
+  .exit-ring.travel .ring-hub .hub-hint{display:block;}
+  /* 拖拽指示线 */
+  .ring-aim-line{position:absolute;left:50%;top:50%;height:3px;transform-origin:left center;pointer-events:none;z-index:1;
+    background:linear-gradient(90deg,rgba(176,131,47,.75),rgba(176,131,47,0));border-radius:2px;}
+  /* 中心脉冲提示（dock 探查触发） */
+  @keyframes ringPulse{0%{box-shadow:0 0 0 0 rgba(176,131,47,.5);}70%{box-shadow:0 0 0 15px rgba(176,131,47,0);}100%{box-shadow:0 0 0 0 rgba(176,131,47,0);}}
+  .exit-ring.pulse .ring-hub{animation:ringPulse 1.1s ease-out 2;}
   /* ===== 战斗武技：紧凑芯片行（满配也不眼花） ===== */
   .c-arts{grid-column:1/-1;margin:1px 0 2px;}
   .c-arts-label{text-align:center;font-size:11px;letter-spacing:4px;color:var(--ink-faint);
@@ -681,7 +678,7 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 动态按钮区（分组菜单：对话 / 探查 / 行动 / 移动） =====
   var lastGroup=null;
-  function clearActions(){$actions.innerHTML='';lastGroup=null;collapseObjPanel();document.removeEventListener('click', onDocCollapse, true);document.removeEventListener('click', onDocCollapseObj, true);}
+  function clearActions(){$actions.innerHTML='';lastGroup=null;collapseObjPanel();document.removeEventListener('click', onDocCollapseObj, true);}
   function addBtn(label, fn, cls){
     var b=document.createElement('button');
     b.className='act '+(cls||''); b.textContent=label;
@@ -961,8 +958,8 @@ window.onerror=function(msg,url,line,col,err){
       renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
       var exitsObjs=objs.filter(function(o){return o.type==='exit';});
       if(exitsObjs.length){
-        // 有出口：渲染罗盘枢纽（中心「去处」，探查已由 dock 常驻按钮接管）
-        buildExitCompass(room);
+        // 有出口：渲染方向环（中心「此处」，出口按方位径向辐射）
+        buildExitRing(room);
       }
       renderSelf(room);
       return;
@@ -980,8 +977,8 @@ window.onerror=function(msg,url,line,col,err){
       var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
     });
     if(room.exits && Object.keys(room.exits).length){
-      // 有出口：罗盘枢纽（已调查直接弹 / 未调查走动画）
-      buildExitCompass(room);
+      // 有出口：方向环（已调查直接弹 / 未调查走动画）
+      buildExitRing(room);
     }
     renderSelf(room);
   }
@@ -1000,12 +997,8 @@ window.onerror=function(msg,url,line,col,err){
   function renderObjs(list, group){
     if(!list.length) return;
     list.forEach(function(o){
-      if(o.key==='env'){
-        mkAct('explore', o.icon, o.name, function(){ investigateRoom(); });
-      } else {
-        var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
-        var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); });
-      }
+      var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
+      var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); });
     });
   }
   // ===== NPC/物件：点击弹出紧凑浮动小菜单（fixed 定位，不占网格空间） =====
@@ -1013,8 +1006,6 @@ window.onerror=function(msg,url,line,col,err){
   function toggleObjExpand(e, btn, o, acts){
     e.stopPropagation();
     if(objPanelOpen && objPanelOpen._owner===btn){ collapseObjPanel(); return; }
-    var compass=document.getElementById('exit-compass');
-    if(compass && compass.classList.contains('expanded')) collapseCompass();
     if(objPanelOpen) collapseObjPanel();
     var panel=document.createElement('div');
     panel.className='obj-popup'; panel._owner=btn;
@@ -1062,59 +1053,95 @@ window.onerror=function(msg,url,line,col,err){
   function onDocCollapseObj(e){
     if(objPanelOpen && !objPanelOpen.contains(e.target)) collapseObjPanel();
   }
-  // ===== 罗盘枢纽：中心按钮兼「四周环境 / 返回」，展开后方位按钮按真实方位落位 =====
-  var DIR_CELL={'北':'n','南':'s','东':'e','西':'w','东北':'ne','西北':'nw','东南':'se','西南':'sw'};
-  var COMPASS_ORDER=['nw','n','ne','w','c','e','sw','s','se'];
-  function buildExitCompass(room){
+  // ===== 方向环：中心「此处」，出口按真实方位径向辐射（上北下南左西右东） =====
+  var DIR_ANGLE={'北':0,'东北':45,'东':90,'东南':135,'南':180,'西南':225,'西':270,'西北':315};
+  var RING_R=38;          // 出口离中心半径（百分比）
+  var RING_LONGPRESS=320; // 长按进入「出行模式」的毫秒
+  var traveling=false;    // 是否处于拖拽出行模式
+  function buildExitRing(room){
     var wrap=document.createElement('div');
-    wrap.className='exit-compass'; wrap.id='exit-compass';
-    COMPASS_ORDER.forEach(function(k){
-      var cell=document.createElement('div');
-      cell.className='ecc ecc-'+k; cell.dataset.cell=k;
-      if(k==='c'){
-        cell.classList.add('ecc-hub');
-        cell.id='compass-hub';
-        cell.onclick=onHubClick;
-      }
-      wrap.appendChild(cell);
-    });
+    wrap.className='exit-ring'; wrap.id='exit-ring';
+    var hub=document.createElement('button');
+    hub.className='ring-hub'; hub.id='ring-hub';
+    hub.innerHTML='<span class="hub-ic">🧭</span><span class="hub-nm">此处</span><span class="hub-hint">拖拽出行</span>';
+    wrap.appendChild(hub);
     $actions.appendChild(wrap);
-    setHubIdle();
+    currentRoomExits().forEach(function(o){ placeRingExit(wrap, o, true); });
+    setupRingDrag(wrap, hub);
     return wrap;
   }
-  function getExitCompass(){
-    return document.getElementById('exit-compass') || buildExitCompass(G.ROOMS[state.room]);
+  function getExitRing(){
+    return document.getElementById('exit-ring') || buildExitRing(G.ROOMS[state.room]);
   }
-  function setHubIdle(){
-    var hub=document.getElementById('compass-hub'); if(!hub) return;
-    hub.classList.remove('as-return','breathing');
-    hub.innerHTML='<span class="hub-ic">🧭</span><span class="hub-nm">去处</span>';
-  }
-  function setHubReturn(){
-    var hub=document.getElementById('compass-hub'); if(!hub) return;
-    hub.classList.add('as-return');
-    hub.innerHTML = '<span class="hub-ic">⤺</span><span class="hub-nm">返回</span>';
-  }
-  function setCompassExpanded(on){
-    var compass=getExitCompass();
-    if(on){
-      compass.classList.add('expanded');
-      setHubReturn();
-      // 稍后挂上「点空白处收起」（避开本次点击）
-      setTimeout(function(){ document.addEventListener('click', onDocCollapse, true); }, 0);
+  // 把某方向出口放到环上对应角度（去重 + 同角度自动外扩防重叠）
+  function placeRingExit(wrap, o, pop){
+    if(wrap.querySelector('.ring-exit[data-dir="'+o.dir+'"]')) return;
+    var tid=o.tid || (G.ROOMS[state.room] && G.ROOMS[state.room].exits && G.ROOMS[state.room].exits[o.dir]);
+    var ang=(DIR_ANGLE[o.dir]!=null)?DIR_ANGLE[o.dir]:0;
+    var rad=ang*Math.PI/180, R=RING_R;
+    var x=50+R*Math.sin(rad), y=50-R*Math.cos(rad);
+    while(wrap.querySelector('.ring-exit[data-x="'+Math.round(x)+'"][data-y="'+Math.round(y)+'"]')){
+      R+=5; x=50+R*Math.sin(rad); y=50-R*Math.cos(rad); if(R>64) break;
     }
+    var b=document.createElement('button');
+    b.className='ring-exit e-'+o.dir+(pop?' pop':'')+(o.kind?(' '+o.kind):'');
+    b.dataset.dir=o.dir; b.dataset.tid=tid||''; b.dataset.x=Math.round(x); b.dataset.y=Math.round(y);
+    b.style.left=x+'%'; b.style.top=y+'%';
+    b.innerHTML='<span class="eb-ic">'+(o.icon||'➤')+'</span><span class="eb-dir">'+o.dir+'</span><span class="eb-nm">'+stripDir(o.name)+'</span>';
+    b.onclick=function(){ move(o.dir, tid); };
+    wrap.appendChild(b);
   }
-  function onDocCollapse(e){
-    var compass=getExitCompass();
-    if(compass && !compass.contains(e.target)) collapseCompass();
-  }
-  function collapseCompass(){
-    abortTyping();   // 若调查中，中止逐行动画，避免按钮在收起后偷偷弹回
-    var compass=getExitCompass();
-    compass.querySelectorAll('.exit-btn').forEach(function(b){ b.remove(); });
-    compass.classList.remove('expanded');
-    document.removeEventListener('click', onDocCollapse, true);
-    setHubIdle();
+  // 长按中心 → 出行模式；向某方向拖拽 → 瞄准 → 松手出发
+  function setupRingDrag(wrap, hub){
+    var lpTimer=null, aimLine=null, suppressClick=false;
+    function enterTravel(){
+      traveling=true; wrap.classList.add('travel');
+      hub.innerHTML='<span class="hub-ic">🧭</span><span class="hub-hint">拖向方向松手出发</span>';
+    }
+    function exitTravel(){
+      traveling=false; wrap.classList.remove('travel'); clearAim();
+      hub.innerHTML='<span class="hub-ic">🧭</span><span class="hub-nm">此处</span><span class="hub-hint">拖拽出行</span>';
+    }
+    function clearAim(){
+      wrap.querySelectorAll('.ring-exit.aim').forEach(function(b){ b.classList.remove('aim'); });
+      if(aimLine){ aimLine.remove(); aimLine=null; }
+    }
+    function aimAt(cx, cy, clientX, clientY){
+      var dx=clientX-cx, dy=clientY-cy, dist=Math.hypot(dx,dy);
+      if(dist<24){ clearAim(); return; }
+      var ang=(Math.atan2(dx,-dy)*180/Math.PI+360)%360; // 0=北,90=东
+      var best=null, bestDiff=999;
+      wrap.querySelectorAll('.ring-exit').forEach(function(b){
+        var a=DIR_ANGLE[b.dataset.dir]; if(a==null) return;
+        var diff=Math.abs(ang-a); if(diff>180) diff=360-diff;
+        if(diff<bestDiff){ bestDiff=diff; best=b; }
+      });
+      clearAim();
+      if(best && bestDiff<46){
+        best.classList.add('aim');
+        aimLine=document.createElement('div'); aimLine.className='ring-aim-line';
+        aimLine.style.width=dist+'px';
+        aimLine.style.transform='rotate('+Math.atan2(dy,dx)+'rad)';
+        wrap.appendChild(aimLine);
+      }
+    }
+    hub.addEventListener('pointerdown', function(e){
+      if(traveling) return;
+      e.preventDefault();
+      try{ hub.setPointerCapture(e.pointerId); }catch(_){}
+      lpTimer=setTimeout(enterTravel, RING_LONGPRESS);
+    });
+    hub.addEventListener('pointermove', function(e){ if(traveling) aimAt(wrap.getBoundingClientRect().left+wrap.offsetWidth/2, wrap.getBoundingClientRect().top+wrap.offsetHeight/2, e.clientX, e.clientY); });
+    hub.addEventListener('pointerup', function(e){
+      if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; }
+      if(!traveling) return;
+      var aimed=wrap.querySelector('.ring-exit.aim');
+      var dir=aimed?aimed.dataset.dir:null, tid=aimed?aimed.dataset.tid:null;
+      exitTravel();
+      if(dir){ suppressClick=true; move(dir, tid); }
+    });
+    hub.addEventListener('pointercancel', function(){ if(lpTimer){clearTimeout(lpTimer);lpTimer=null;} if(traveling) exitTravel(); });
+    hub.addEventListener('click', function(){ if(suppressClick){ suppressClick=false; return; } if(!traveling) toast('长按中心并向方向拖动，可快速出行'); });
   }
   // 当前房间的方位通路（兼容 ROOM_OBJECTS 与旧版 room.exits）
   function currentRoomExits(){
@@ -1127,33 +1154,6 @@ window.onerror=function(msg,url,line,col,err){
       return {dir:dir, name:dir+'·'+G.ROOMS[tid].name, icon:'🚪', tid:tid};
     });
   }
-  // 已调查：直接把方位按钮弹入对应格（不打文字）
-  function expandExitsOnly(){
-    setCompassExpanded(true);
-    currentRoomExits().forEach(function(o){ placeExitBtn(o, true); });
-  }
-  // 把某个方向的通路按钮放入对应的罗盘格（调查期间逐格填充；去重防止重复）
-  function placeExitBtn(o, pop){
-    var compass=getExitCompass();
-    var k=DIR_CELL[o.dir]||'c';
-    var cell=compass.querySelector('.ecc-'+k);
-    if(!cell || cell.querySelector('.exit-btn')) return;
-    var tid=o.tid || (G.ROOMS[state.room] && G.ROOMS[state.room].exits && G.ROOMS[state.room].exits[o.dir]);
-    var b=document.createElement('button');
-    b.className='exit-btn e-'+o.dir+(pop?' pop':'');
-    b.innerHTML='<span class="eb-ic">'+(o.icon||'➤')+'</span><span class="eb-dir">'+o.dir+'</span><span class="eb-nm">'+stripDir(o.name)+'</span>';
-    b.onclick=function(){ move(o.dir, tid); };
-    cell.appendChild(b);
-    cell.classList.add('filled');
-  }
-  // 中心枢纽点击：未展开则展开（未调查走动画 / 已调查直接弹），已展开则收起
-  function onHubClick(e){
-    e.stopPropagation();
-    var compass=getExitCompass();
-    if(compass.classList.contains('expanded')){ collapseCompass(); return; }
-    if(explored){ expandExitsOnly(); }
-    else { investigateRoom(); }
-  }
   function renderSelf(room){
     // 研习武学：仅特定房间出现；调息已移至底部 dock
     if(roomCanLearn(room.id)){
@@ -1161,77 +1161,7 @@ window.onerror=function(msg,url,line,col,err){
     }
   }
 
-  // ===== 调查四周：叙事框高亮逐字显出，并解锁去处（按钮带弹出动画） =====
-  var typeQueue=[], typing=false, typeTimer=null;
-  function typeNarr(text, cls, done){
-    typeQueue.push({text:text, cls:cls, done:done});
-    runTypeQueue();
-  }
-  function runTypeQueue(){
-    if(typing) return;
-    var item=typeQueue.shift();
-    if(!item){ typing=false; return; }
-    typing=true;
-    var p=document.createElement('p');
-    p.className='narr '+(item.cls||'env')+' typing';
-    $narr.appendChild(p);
-    var i=0, full=item.text;
-    typeTimer=setInterval(function(){
-      i++;
-      p.textContent=full.slice(0,i);
-      var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
-      if(i>=full.length){
-        clearInterval(typeTimer); typeTimer=null;
-        p.classList.remove('typing');
-        typing=false;
-        if(item.done) item.done();
-        runTypeQueue();
-      }
-    }, 34);
-  }
-  // 中止所有正在进行的打字/逐行渐显（调查中点击「返回」收起时使用）
-  function abortTyping(){
-    if(typeTimer){ clearInterval(typeTimer); typeTimer=null; }
-    typeQueue=[];
-    typing=false;
-    $narr.querySelectorAll('p.typing').forEach(function(p){ p.remove(); });
-  }
   function stripDir(nm){ return (nm||'').replace(/^[^·]*·/,''); }
-  // 各方向通路描述：显眼者用「抬眼便见」，隐蔽者用「循迹探得」，并保留原 desc 的感官线索
-  function exitReveal(o){
-    var tid=o.tid;
-    var tname = (tid && G.ROOMS[tid]) ? G.ROOMS[tid].name : stripDir(o.name);
-    var d=o.desc||'通路隐于其间';
-    var obvious=/正门|巍然|主轴|通衢|车水马龙|正对|大道|门楼|坦途|敞亮|灯火|通明/.test(d);
-    var lead = obvious
-      ? ('抬眼便见'+o.dir+'方便是「'+tname+'」')
-      : ('循着迹象探去，'+o.dir+'面隐约现出通往「'+tname+'」的去路');
-    return '〔'+o.dir+'〕'+lead+'——'+d+'。';
-  }
-  function investigateRoom(){
-    if(state.defeated){ dockRest(); return; }
-    explored=true;
-    if(!state.exploredRooms) state.exploredRooms={};
-    state.exploredRooms[state.room]=true;
-    save(state);
-    var room=G.ROOMS[state.room];
-    var exits=currentRoomExits();
-    // 有出口才展开罗盘（中心变「返回」），逐行渐显后再把对应方位按钮弹入格子
-    if(exits.length) setCompassExpanded(true);
-    var find = room.find || '你凝神四望，周遭风物、通路尽收眼底。';
-    typeNarr('〔调查 · '+room.name+'〕', 'title');
-    typeNarr(find, 'investigate', function(){
-      if(!exits.length){ toast('已探明周遭'); return; }
-      // 逐条通路文字渐显，每条打完才弹出对应「去处」按钮（顺序出现）
-      exits.forEach(function(o, idx){
-        typeNarr(exitReveal(o), 'investigate', function(){
-          placeExitBtn(o, true);
-          if(idx===exits.length-1) toast('已探明周遭通路');
-        });
-      });
-    });
-  }
-
 
   // ===== 行走探索 =====
   function move(dir, tid){
@@ -1555,10 +1485,12 @@ window.onerror=function(msg,url,line,col,err){
   });
   function dockSurvey(){
     if(state.defeated){ dockRest(); return; }
-    var compass=document.getElementById('exit-compass');
-    if(compass){
-      if(compass.classList.contains('expanded')){ collapseCompass(); }
-      else { expandExitsOnly(); }
+    var ring=document.getElementById('exit-ring');
+    if(ring){
+      // 有出口：脉冲高亮方向环，提示出口所在
+      ring.classList.add('pulse');
+      setTimeout(function(){ ring.classList.remove('pulse'); }, 2400);
+      ring.scrollIntoView({behavior:'smooth', block:'center'});
     } else {
       // 无出口房间：重新记录环境描述
       var room=G.ROOMS[state.room];
