@@ -469,6 +469,67 @@
   .eq-dur{font-size:11.5px;color:var(--ink-faint);flex:0 0 auto;}
   .eq-x,.eq-w{flex:0 0 auto;font-size:12px;color:var(--seal);padding:2px 8px;border:1px solid rgba(158,59,46,.3);border-radius:8px;}
   .equip-bag{display:flex;flex-direction:column;gap:6px;margin-top:2px;}
+
+  /* ===== 标题屏 · 滚滚长江东逝水 ===== */
+  .hidden{display:none !important;}
+  #title{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    overflow:hidden;color:#f4ecdd;text-align:center;
+    font-family:"STKaiti","KaiTi","Songti SC",serif;
+    background:linear-gradient(180deg,#1b2640 0%,#39344f 26%,#7c4a3e 56%,#c9772f 73%,#e8b15a 86%,#f0d9a6 100%);}
+  #title.hidden{display:none;}
+  .tt-sun{position:absolute;top:17%;left:50%;transform:translateX(-50%);width:150px;height:150px;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,#ffeec0 0%,#ffd089 36%,#f0a14c 64%,rgba(240,161,76,0) 72%);
+    box-shadow:0 0 110px 46px rgba(255,190,110,.32);}
+  .tt-mtn{position:absolute;left:-5%;right:-5%;bottom:30%;height:34vh;pointer-events:none;}
+  .tt-mtn1{bottom:33%;opacity:.5;background:#241b2e;
+    clip-path:polygon(0 100%,11% 52%,27% 80%,44% 38%,61% 72%,79% 33%,100% 66%,100% 100%);}
+  .tt-mtn2{bottom:30%;opacity:.62;background:#3a2c34;
+    clip-path:polygon(0 100%,17% 70%,37% 44%,54% 78%,71% 50%,89% 74%,100% 60%,100% 100%);}
+  .tt-mist{position:absolute;left:0;right:0;bottom:27%;height:9%;pointer-events:none;
+    background:linear-gradient(180deg,rgba(240,220,190,0),rgba(244,224,194,.55));filter:blur(4px);}
+  .tt-river{position:absolute;left:0;right:0;bottom:0;height:30%;pointer-events:none;overflow:hidden;
+    background:linear-gradient(180deg,rgba(60,40,30,.15),#caa15a 32%,#9c6b3a 100%);}
+  .tt-river::before{content:'';position:absolute;inset:0;opacity:.5;
+    background:repeating-linear-gradient(90deg,rgba(255,240,200,.20) 0 7px,transparent 7px 24px);
+    animation:ttflow 7s linear infinite;}
+  @keyframes ttflow{from{background-position:0 0}to{background-position:64px 0}}
+  .tt-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:9px;padding:0 24px;max-width:560px;}
+  .tt-poem{font-size:25px;letter-spacing:7px;line-height:1.55;color:#fbe6c4;
+    text-shadow:0 2px 12px rgba(20,10,5,.6);opacity:.94;}
+  .tt-poem2{font-size:12.5px;letter-spacing:3px;color:#e9cfa0;opacity:.82;}
+  .tt-head{position:relative;display:inline-block;margin-top:4px;}
+  .tt-name{font-size:58px;letter-spacing:15px;margin:0;color:#f6e3b0;font-weight:700;
+    text-shadow:0 2px 0 #8a2e22,0 4px 16px rgba(0,0,0,.5),0 0 28px rgba(255,200,120,.35);}
+  .tt-seal{position:absolute;right:-30px;top:6px;width:30px;height:42px;border:2px solid #b5392c;color:#b5392c;
+    border-radius:4px;font-size:14px;line-height:18px;display:flex;align-items:center;justify-content:center;
+    background:rgba(181,57,44,.08);writing-mode:vertical-rl;letter-spacing:1px;
+    box-shadow:0 0 0 2px rgba(181,57,44,.12) inset;}
+  .tt-sub{font-size:12.5px;letter-spacing:3px;color:#f2dcad;opacity:.92;margin-top:2px;}
+  .tt-menu{display:flex;flex-direction:column;gap:12px;margin-top:20px;width:min(78vw,300px);}
+  .t-btn{font-family:"STKaiti","KaiTi",serif;font-size:18px;letter-spacing:8px;padding:13px 0 13px 8px;cursor:pointer;
+    color:#3a2a18;background:linear-gradient(180deg,rgba(255,248,232,.93),rgba(244,230,205,.86));
+    border:1px solid rgba(120,80,40,.5);border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:.16s;}
+  .t-btn:active{transform:translateY(1px);background:rgba(255,236,202,.98);}
+  .t-btn:hover{box-shadow:0 6px 18px rgba(0,0,0,.32);}
+  .tt-foot{margin-top:22px;font-size:11.5px;letter-spacing:2px;color:#ecd6ad;opacity:.72;max-width:84vw;line-height:1.7;}
+  /* 读档 / 设置 / 图鉴 子面板（复用 modal 容器） */
+  .slot-row{display:flex;flex-direction:column;gap:10px;margin:6px 0 2px;}
+  .slot{border:1px solid var(--btn-line);border-radius:12px;padding:11px 13px;background:var(--btn);cursor:pointer;transition:.16s;text-align:left;}
+  .slot:hover{background:rgba(158,59,46,.07);border-color:rgba(158,59,46,.4);}
+  .slot .sl-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .slot .sl-name{font-family:"STKaiti","KaiTi",serif;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:1px;}
+  .slot .sl-empty{font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--ink-faint);letter-spacing:2px;}
+  .slot .sl-meta{font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6;}
+  .slot .sl-sect{font-size:11.5px;color:#9a7b3a;letter-spacing:1px;}
+  .codex-sec{margin:8px 0 4px;}
+  .codex-sec h4{margin:0 0 6px;font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--seal);letter-spacing:2px;border-bottom:1px solid var(--panel-line);padding-bottom:4px;}
+  .codex-grid{display:flex;flex-wrap:wrap;gap:6px;}
+  .codex-chip{font-size:12.5px;padding:5px 10px;border:1px solid var(--btn-line);border-radius:20px;background:var(--btn);color:var(--ink-soft);}
+  .codex-chip.on{border-color:rgba(158,59,46,.45);background:rgba(158,59,46,.08);color:var(--seal);font-weight:600;}
+  .set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 4px;border-bottom:1px solid var(--panel-line);font-size:14px;}
+  .set-row .seg{display:flex;gap:6px;}
+  .set-row .seg button{font-family:"STKaiti","KaiTi",serif;font-size:13px;padding:6px 12px;border:1px solid var(--btn-line);border-radius:9px;background:var(--btn);color:var(--ink-soft);cursor:pointer;}
+  .set-row .seg button.on{border-color:rgba(158,59,46,.5);background:rgba(158,59,46,.1);color:var(--seal);font-weight:700;}
 </style>
 </head>
 <body>
@@ -485,6 +546,30 @@ window.onerror=function(msg,url,line,col,err){
     <path d="M0,260 L0,170 C70,120 120,150 180,110 C240,70 300,130 360,95 C430,55 500,120 560,90 L560,260 Z" fill="#3a3228"/>
     <path d="M0,260 L0,205 C90,175 150,200 220,170 C300,135 360,185 430,160 C500,135 540,175 560,165 L560,260 Z" fill="#5a4f40"/>
   </svg>
+</div>
+
+<div id="title">
+  <div class="tt-sun"></div>
+  <div class="tt-mtn tt-mtn1"></div>
+  <div class="tt-mtn tt-mtn2"></div>
+  <div class="tt-mist"></div>
+  <div class="tt-river"></div>
+  <div class="tt-inner">
+    <div class="tt-poem">滚滚长江东逝水<br>浪花淘尽英雄</div>
+    <div class="tt-poem2">是非成败转头空 · 青山依旧在 · 几度夕阳红</div>
+    <div class="tt-head">
+      <h1 class="tt-name">乱世烽火</h1>
+      <span class="tt-seal">烽火</span>
+    </div>
+    <div class="tt-sub">汉灵帝 · 光和年间 — 黄巾未起 · 群雄将乱</div>
+    <div class="tt-menu">
+      <button class="t-btn" id="t-start">⚔ 仗 剑 入 世</button>
+      <button class="t-btn" id="t-load">📜 拾 卷 续 缘</button>
+      <button class="t-btn" id="t-codex">📖 览 物 志</button>
+      <button class="t-btn" id="t-set">⚙ 整 肃 行 装</button>
+    </div>
+    <div class="tt-foot">凭栏远眺，江声浩荡；乱世如炉，且看你如何立身。</div>
+  </div>
 </div>
 
 <div id="app">
@@ -531,7 +616,14 @@ window.onerror=function(msg,url,line,col,err){
 (function(){
   try{
   var G = window.LF.SharedGame;
-  var KEY='lf_save_v1';
+  var SLOTS=['lf_save_1','lf_save_2','lf_save_3'];   // 三档存档
+  var curSlot=0;                                     // 当前游戏所在档位（0=未入局）
+  var SETTINGS_KEY='lf_settings_v1';
+  // 设置：文字演出速度(0疾/1常/2缓) / 自动战斗默认
+  var settings=(function(){ try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return {};} })();
+  if(typeof settings.textSpeed!=='number') settings.textSpeed=1;
+  if(typeof settings.autoBattle!=='boolean') settings.autoBattle=false;
+  function saveSettings(){ try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){} }
   var SHICHEN=['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'];
 
   // ===== 历法（农历为主 · 公历为对照锚点）与天候 =====
@@ -742,9 +834,36 @@ window.onerror=function(msg,url,line,col,err){
     };
   }
 
-  function load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
-  function save(d){ if(!d||d.hp<=0||d.dead) return; try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){} }
-  function clearSave(){try{localStorage.removeItem(KEY);}catch(e){}}
+  function rawSlot(slot){ try{return JSON.parse(localStorage.getItem(SLOTS[slot-1]));}catch(e){return null;} }
+  function saveToSlot(slot,d){ if(!slot||!d||d.hp<=0||d.dead) return; try{localStorage.setItem(SLOTS[slot-1],JSON.stringify(d));}catch(e){} }
+  function clearSlot(slot){try{localStorage.removeItem(SLOTS[slot-1]);}catch(e){} }
+  function slotExists(slot){ return !!rawSlot(slot); }
+  // 旧档迁移：v0.2.0 单键 lf_save_v1 → 第一档
+  (function migrateOld(){
+    try{
+      var old=localStorage.getItem('lf_save_v1');
+      if(old && !slotExists(1)){ localStorage.setItem(SLOTS[0], old); }
+      localStorage.removeItem('lf_save_v1');
+    }catch(e){}
+  })();
+  // 游戏中落盘：存至当前档
+  function save(d){ saveToSlot(curSlot,d); }
+  function load(){ return rawSlot(curSlot); }
+  function clearSave(){ if(curSlot) clearSlot(curSlot); }
+  // 读档元信息（供标题屏展示，无需全量 normalize）
+  function slotMeta(slot){
+    var d=rawSlot(slot); if(!d) return {slot:slot, empty:true};
+    var s=normalize(d);
+    return {
+      slot:slot, empty:false,
+      name: s.name||'无名客',
+      sect: (G.SECTS[s.sect]&&G.SECTS[s.sect].name)||'游侠',
+      rep: s.reputation||0,
+      time: SHICHEN[(s.time||0)%12],
+      room: (G.ROOMS[s.room]&&G.ROOMS[s.room].name)||'未知之地',
+      day: s.day||0
+    };
+  }
   // 旧存档缺字段则补默认，保证兼容（v0.1 → v0.2 迁移）
   function normalize(s){
     var def=G.defaultSave();
@@ -796,10 +915,19 @@ window.onerror=function(msg,url,line,col,err){
     return s;
   }
 
-  var state = normalize(load() || G.defaultSave());
-  if(!state.sect || !G.SECTS[state.sect]){ state=G.defaultSave(); }
-  G.applySect(state);
-  if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
+  var state = null;   // 启动不进局，待标题屏择档后载入
+  // 将一份存档数据载入为当前游戏状态并展卷
+  function enterGame(data, slot){
+    curSlot=slot||0;
+    state = normalize(data || G.defaultSave());
+    G.applySect(state);
+    if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
+    $narr.innerHTML='';
+    renderStatus();
+    renderRoom(state.room || state.spawnRoom || 'ji_guomen');
+    var app=document.getElementById('app'); if(app) app.classList.remove('hidden');
+    var tt=document.getElementById('title'); if(tt) tt.classList.add('hidden');
+  }
 
   var $status=document.getElementById('status');
   $status.onclick=function(){ openModal('clock'); };   // 点击状态栏 → 时辰钟表
@@ -963,17 +1091,91 @@ window.onerror=function(msg,url,line,col,err){
       checkDeath();
     }
   }
-  // 死亡：气血归零 → 回标题页（读档/重开）
-  function checkDeath(){ if(!state.dead && state.hp<=0){ die(); } }
+  // 死亡：气血归零 → 回标题屏（读档/重开）
+  function checkDeath(){ if(state && !state.dead && state.hp<=0){ die(); } }
   function die(){
-    state.dead=true;   // 注意：不落盘（save 对 hp<=0 跳过），读档即回到死前存档
+    state.dead=true;   // 不落盘（save 对 hp<=0 跳过），回标题屏读档即回到死前存档
     $modal.classList.remove('hidden');
     $card.innerHTML='<h3 style="color:#8a3b2e">⚔ 殒 落</h3>'+
-      '<p class="tip">你气血耗尽，魂归尘土……乱世如炉，无人会记得你的姓名。</p>'+
-      '<button class="close" id="m-load">读档续命</button>'+
-      '<button class="close" id="m-new" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">重头来过</button>';
-    var ld=document.getElementById('m-load'); if(ld)ld.onclick=function(){location.reload();};
-    var nw=document.getElementById('m-new'); if(nw)nw.onclick=function(){clearSave();location.reload();};
+      '<p class="tip">气血已枯，魂归尘土——乱世如炉，谁记你姓名？<br>欲续前缘，且回首页拾卷重展。</p>'+
+      '<button class="close" id="m-home">回 首 页</button>'+
+      (curSlot? '<button class="close" id="m-load" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">读 档 续 命</button>':'');
+    var hm=document.getElementById('m-home'); if(hm)hm.onclick=function(){ closeModal(); showTitle(); };
+    var ld=document.getElementById('m-load'); if(ld)ld.onclick=function(){ closeModal(); enterGame(rawSlot(curSlot), curSlot); };
+  }
+  // ===== 标题屏与子面板 =====
+  function showTitle(){
+    state=null; curSlot=0;
+    var app=document.getElementById('app'); if(app) app.classList.add('hidden');
+    var tt=document.getElementById('title'); if(tt) tt.classList.remove('hidden');
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  // 择档面板（mode: 'new'=开新局 / 'load'=读旧档）
+  function renderSlotsHTML(mode){
+    var title = mode==='new' ? '仗 剑 入 世 · 择 卷' : '拾 卷 续 缘 · 择 档';
+    var intro = mode==='new'
+      ? '择一空卷落笔；若卷中已有旧事，将覆而新写。'
+      : '择一卷展读，续那未竟之缘。空卷不可读。';
+    var rows='';
+    for(var i=1;i<=3;i++){
+      var m=slotMeta(i);
+      if(m.empty){
+        rows+='<div class="slot" data-slot="'+i+'" data-mode="'+mode+'">'+
+          '<div class="sl-top"><span class="sl-empty">第 '+i+' 卷 · 空</span></div>'+
+          '<div class="sl-meta">尚未落墨。</div></div>';
+      } else {
+        rows+='<div class="slot" data-slot="'+i+'" data-mode="'+mode+'">'+
+          '<div class="sl-top"><span class="sl-name">第 '+i+' 卷 · '+escapeHtml(m.name)+'</span>'+
+          '<span class="sl-sect">'+m.rep+' 声名</span></div>'+
+          '<div class="sl-meta">'+m.sect+' · '+escapeHtml(m.room)+' · '+m.time+'</div>'+
+          '<div class="sl-sect">历 '+m.day+' 日</div></div>';
+      }
+    }
+    return '<h3>'+title+'</h3><p class="tip">'+intro+'</p><div class="slot-row">'+rows+'</div>';
+  }
+  // 图鉴：览物志
+  function renderCodex(){
+    var known={}; if(state&&state.learnedMartial) state.learnedMartial.forEach(function(id){known[id]=1;});
+    var byLine={};
+    Object.keys(G.MARTIAL_ARTS||{}).forEach(function(id){
+      var m=G.MARTIAL_ARTS[id]; if(!m||!m.line) return;
+      (byLine[m.line]=byLine[m.line]||[]).push({name:m.name,on:!!known[id]});
+    });
+    var h='<h3>览 物 志</h3><p class="tip">江湖风物，已历者标朱。</p>';
+    h+='<div class="codex-sec"><h4>武 学（十三艺线）</h4><div class="codex-grid">';
+    Object.keys(byLine).forEach(function(line){
+      byLine[line].forEach(function(it){ h+='<span class="codex-chip'+(it.on?' on':'')+'">'+it.name+'</span>'; });
+    });
+    h+='</div></div>';
+    h+='<div class="codex-sec"><h4>门 派</h4><div class="codex-grid">';
+    Object.keys(G.SECTS||{}).forEach(function(k){ h+='<span class="codex-chip">'+G.SECTS[k].name+'</span>'; });
+    h+='</div></div>';
+    if(G.ENEMIES){
+      h+='<div class="codex-sec"><h4>贼 寇 名 录</h4><div class="codex-grid">';
+      Object.keys(G.ENEMIES).forEach(function(k){ var e=G.ENEMIES[k]; if(e&&e.name) h+='<span class="codex-chip">'+e.name+'</span>'; });
+      h+='</div></div>';
+    }
+    return h;
+  }
+  // 设置：整肃行装
+  function renderSettings(){
+    var ts=settings.textSpeed;
+    return '<h3>整 肃 行 装</h3>'+
+      '<div class="set-row"><span>文字演出</span><div class="seg" id="seg-speed">'+
+        '<button data-v="0" class="'+(ts===0?'on':'')+'">疾</button>'+
+        '<button data-v="1" class="'+(ts===1?'on':'')+'">常</button>'+
+        '<button data-v="2" class="'+(ts===2?'on':'')+'">缓</button></div></div>'+
+      '<div class="set-row"><span>默认自动战斗</span><div class="seg" id="seg-auto">'+
+        '<button data-v="1" class="'+(settings.autoBattle?'on':'')+'">开</button>'+
+        '<button data-v="0" class="'+(!settings.autoBattle?'on':'')+'">关</button></div></div>'+
+      '<button class="close" id="m-clear" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:14px;">清除全部存档</button>'+
+      '<p class="tip">设定已存，演武时遵循。</p>';
+  }
+  function bindTitle(){
+    var ts=document.getElementById('t-start'); if(ts) ts.onclick=function(){ openModal('newgame'); };
+    var tl=document.getElementById('t-load'); if(tl) tl.onclick=function(){ openModal('load'); };
+    var tc=document.getElementById('t-codex'); if(tc) tc.onclick=function(){ openModal('codex'); };
+    var tset=document.getElementById('t-set'); if(tset) tset.onclick=function(){ openModal('settings'); };
   }
   // 体力亏空：精力耗尽则无法行动（硬性限制）
   function exert(label){
@@ -1829,13 +2031,43 @@ window.onerror=function(msg,url,line,col,err){
         '<button class="close" id="m-reset" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清空存档 · 重头来过</button>'+
         '<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台</button>'+
         '<p class="tip">存档位于浏览器本地，清除浏览器数据会一并丢失。</p>';
+    } else if(kind==='newgame'){
+      h=renderSlotsHTML('new');
+    } else if(kind==='load'){
+      h=renderSlotsHTML('load');
+    } else if(kind==='codex'){
+      h=renderCodex();
+    } else if(kind==='settings'){
+      h=renderSettings();
     }
     $card.innerHTML=h+'<button class="close" id="m-close">收 起</button>';
     $modal.classList.remove('hidden');
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
-    var rs=document.getElementById('m-reset'); if(rs)rs.onclick=function(){clearSave();location.reload();};
+    var rs=document.getElementById('m-reset'); if(rs)rs.onclick=function(){
+      if(!confirm('清除全部三档存档？此去不可复返。')) return;
+      SLOTS.forEach(function(k,i){ clearSlot(i+1); });
+      toast('三档已清'); showTitle(); closeModal();
+    };
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
+    // 择档面板交互
+    $card.querySelectorAll('.slot[data-slot]').forEach(function(el){
+      el.onclick=function(){
+        var slot=parseInt(el.getAttribute('data-slot'),10);
+        var mode=el.getAttribute('data-mode');
+        if(mode==='new'){
+          if(slotExists(slot) && !confirm('第 '+slot+' 卷已有旧事，覆而新写？')) return;
+          clearSlot(slot); enterGame(G.defaultSave(), slot); closeModal();
+        } else {
+          if(!slotExists(slot)){ toast('此卷尚空，无可续之缘'); return; }
+          enterGame(rawSlot(slot), slot); closeModal();
+        }
+      };
+    });
+    // 设置面板交互
+    var sp=document.getElementById('seg-speed'); if(sp) sp.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.textSpeed=parseInt(b.getAttribute('data-v'),10); saveSettings(); sp.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); toast('演出·'+['疾','常','缓'][settings.textSpeed]); }; });
+    var au=document.getElementById('seg-auto'); if(au) au.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.autoBattle=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); au.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); toast('自动战斗·'+(settings.autoBattle?'开':'关')); }; });
+    var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
     if(kind==='map') initMap({});
     // 装备面板交互
     $card.querySelectorAll('.eq-slot[data-slot]').forEach(function(el){
@@ -2316,8 +2548,8 @@ window.onerror=function(msg,url,line,col,err){
   // ===== 序幕 =====
   G.DIALOGUES.prologue.forEach(function(l){log(l,'env');});
   log('— 颍川起兵 —','title');
-  renderStatus();
-  renderRoom(state.room || state.spawnRoom || 'ji_guomen');
+  bindTitle();
+  showTitle();
 
   window.addEventListener('beforeunload',function(){state.lastSeen=Date.now();save(state);});
   }catch(e){
