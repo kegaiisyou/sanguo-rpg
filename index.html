@@ -644,6 +644,9 @@ window.onerror=function(msg,url,line,col,err){
     var canvas=document.querySelector('#modal-card .map-canvas'); if(!canvas) return;
     var vp=canvas.querySelector('.map-viewport');
     var scale=1, tx=0, ty=0, moved=false;
+    // 动态最大缩放：避免放大后的合成层超过 GPU 单纹理上限（常见 4096）导致整图变空白
+    var baseW=vp.offsetWidth||2000, baseH=vp.offsetHeight||2000;
+    var maxScale=Math.max(0.6, Math.min(3, 4000/Math.max(baseW, baseH)));
     function apply(){
       vp.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';
       var bar=canvas.querySelector('.ms-bar'); if(bar) bar.style.width=Math.max(28,Math.min(150,MAP_CELL*scale))+'px';
@@ -660,7 +663,7 @@ window.onerror=function(msg,url,line,col,err){
       var r=canvas.getBoundingClientRect();
       var ox=clientX-r.left, oy=clientY-r.top;
       var gx=(ox-tx)/scale, gy=(oy-ty)/scale;
-      scale=Math.max(0.5, Math.min(3, newScale));
+      scale=Math.max(0.3, Math.min(maxScale, newScale));
       tx=ox-gx*scale; ty=oy-gy*scale; apply();
     }
     // 鼠标拖拽 / 滚轮
