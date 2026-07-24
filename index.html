@@ -40,41 +40,45 @@
     padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   }
 
-  /* ===== 顶部状态栏（两行：身份 + 数值条） ===== */
+  /* ===== 顶部状态条：仅显示 名字 · 时辰 ===== */
   #status{
-    flex:0 0 auto;
-    padding:9px 16px 10px;
+    flex:0 0 auto;display:flex;align-items:center;gap:8px;
+    padding:7px 16px;cursor:pointer;
     border-bottom:1px solid var(--panel-line);
     background:linear-gradient(180deg,rgba(255,253,248,.9),rgba(255,253,248,.45));
     backdrop-filter:blur(6px);
+    font-size:13px;color:var(--ink-soft);
   }
-  .st-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft);}
-  .st-top .who{font-size:14px;color:var(--ink);font-weight:700;font-family:"STKaiti","KaiTi","Songti SC",serif;letter-spacing:1px;}
-  .st-top .dot{color:var(--ink-faint);}
-  .st-top .sh{color:var(--seal);}
-  .st-top .ka{color:var(--jade);}
-  .st-top .rp{color:var(--gold);}
-  .st-bars{display:flex;align-items:center;gap:11px 14px;flex-wrap:wrap;padding-top:7px;}
-  .bar{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-soft);}
-  .bar>span{white-space:nowrap;font-family:"STKaiti","KaiTi",serif;}
-  .bar i{flex:1 1 56px;height:6px;border-radius:4px;background:rgba(74,62,48,.14);overflow:hidden;min-width:46px;}
-  .bar i b{display:block;height:100%;border-radius:4px;transition:width .4s;}
-  .bar i.s-hp b{background:var(--seal);}
-  .bar i.s-mp b{background:var(--jade);}
-  .bar i.s-en b{background:var(--gold);}
-  .bar em{font-style:normal;font-size:10.5px;color:var(--ink-faint);min-width:44px;text-align:right;}
-  .st-bars .txt{display:flex;gap:10px;font-size:11.5px;color:var(--ink-soft);}
-  .st-bars .txt .jade{color:var(--jade);}
-  .st-bars .txt .gold{color:var(--gold);}
-  .st-bars .txt .danger{color:#c0392b;font-weight:700;}
-  .st-warn{margin-top:6px;padding:6px 9px;border-radius:8px;font-size:12px;line-height:1.5;
-    background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.35);color:#a83227;
-    font-family:"STKaiti","KaiTi","Songti SC",serif;}
+  #status:active{opacity:.72;}
+  #status .who{font-size:14px;color:var(--ink);font-weight:700;font-family:"STKaiti","KaiTi","Songti SC",serif;letter-spacing:1px;}
+  #status .dot{color:var(--ink-faint);}
+  #status .st-clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);font-family:"STKaiti","KaiTi",serif;letter-spacing:.5px;}
+  #status .st-time{color:var(--seal);font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
+  #status .st-era{font-size:11.5px;color:#9a7b3a;font-family:"STKaiti","KaiTi",serif;}
+  #status .st-wx{flex:none;font-size:12px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;white-space:nowrap;}
+  #status .st-hint{font-size:12px;opacity:.55;margin-left:1px;flex:none;}
 
+  /* ===== 地点标签页：从文本栏上方凸起，像文件夹标签 ===== */
+  .loc-tab{
+    flex:0 0 auto;align-self:flex-start;
+    margin:3px 0 -4px 14px;            /* 底部负边距：探入文本栏顶部，形成"贴"在面板上的标签感 */
+    padding:7px 16px 9px;
+    display:flex;align-items:center;gap:7px;
+    background:linear-gradient(180deg,rgba(176,131,47,.26),rgba(176,131,47,.12));
+    border:1px solid rgba(176,131,47,.45);border-bottom:none;
+    border-radius:14px 14px 0 0;
+    font-family:"STKaiti","KaiTi","Songti SC",serif;
+    font-size:15px;font-weight:700;letter-spacing:2px;color:#6e4f17;
+    box-shadow:0 -7px 14px -9px rgba(60,48,34,.35);
+    z-index:3;
+  }
+  .loc-tab::before{content:'📍';font-size:13px;line-height:1;}
   /* ===== 中部文字叙事窗 ===== */
   #scene{
     flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
-    padding:16px 16px 6px;
+    padding:18px 16px 6px;
+    background:linear-gradient(180deg,rgba(255,253,248,.72),rgba(252,248,239,.5));
+    border-top:1px solid rgba(176,131,47,.2);
   }
   #scene::-webkit-scrollbar{width:0;}
   .narr{margin:0 0 12px;line-height:1.85;font-size:15.5px;
@@ -159,48 +163,78 @@
   /* 分组标题（此前无样式，现统一样式） */
   .grp{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:4px;
     color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.7;margin:5px 0 3px;}
-  /* ===== NPC/物件：点击弹出紧凑浮动小菜单（右键菜单风格，不占网格空间） ===== */
-  .obj-popup{position:fixed;z-index:120;display:flex;flex-direction:column;align-items:center;gap:5px;
-    padding:6px 8px;border-radius:11px;max-width:min(300px, calc(100vw - 16px));
-    background:rgba(255,253,248,.97);backdrop-filter:blur(14px);
-    border:1px solid rgba(176,131,47,.32);
-    box-shadow:0 5px 24px rgba(60,48,34,.20),0 0 0 1px rgba(176,131,47,.07);
-    animation:opPop .24s cubic-bezier(.2,.9,.3,1.35) both;}
-  @keyframes opPop{from{opacity:0;margin-top:-5px;}to{opacity:1;margin-top:0;}}
-  /* 指向按钮的小三角（默认在上方，弹到按钮下方时） */
-  .obj-popup::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%);
-    width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;
-    border-bottom:6px solid rgba(255,253,248,.97);}
-  .obj-popup::after{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);
-    width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;
-    border-bottom:7px solid rgba(176,131,47,.32);z-index:-1;}
-  /* 弹到按钮上方时，箭头翻转到下方 */
-  .obj-popup.op-up::before{top:auto;bottom:-6px;border-bottom:none;border-top:6px solid rgba(255,253,248,.97);}
-  .obj-popup.op-up::after{top:auto;bottom:-7px;border-bottom:none;border-top:7px solid rgba(176,131,47,.32);}
-  .obj-popup .op-desc{font-size:10.5px;color:var(--ink-faint);text-align:center;
-    width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2;}
-  .obj-popup .op-row{display:flex;flex-direction:column;gap:4px;align-items:stretch;}
-  .op-btn{padding:7px 14px;border-radius:7px;background:var(--btn);border:1px solid var(--btn-line);
-    font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;text-align:center;
-    box-shadow:0 1px 6px rgba(60,48,34,.08);font-family:"PingFang SC","Microsoft YaHei",sans-serif;transition:.14s;}
-  .op-btn:hover{background:rgba(158,39,46,.08);border-color:rgba(158,39,46,.4);}
-  .op-btn:active{transform:scale(.97);}
-  .op-btn.danger{color:#c0392b;border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.06);}
-  /* ===== 常驻移动条：Dock 上方横向方向药丸（日常移动主要入口，永远可见） ===== */
-  .move-bar{flex:0 0 auto;display:none;align-items:center;gap:6px;padding:7px 8px;margin:0 0 4px;
-    background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.22);border-radius:14px;
-    overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
-  .move-bar.has-exits{display:flex;}
-  .move-bar::-webkit-scrollbar{display:none;}
-  .move-bar .mb-label{flex:none;align-self:center;font-size:11px;color:#9a7b3a;
-    font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;padding-right:2px;}
-  .mv-exit{flex:none;display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;cursor:pointer;
-    background:rgba(255,253,248,.95);border:1px solid rgba(176,131,47,.4);box-shadow:0 2px 6px rgba(60,48,34,.10);
+  /* ===== NPC/物件：点击弹出右键式浮动菜单（贴合光标，紧凑无描述） ===== */
+  .obj-menu{position:fixed;z-index:130;min-width:128px;display:flex;flex-direction:column;
+    padding:5px;gap:1px;border-radius:10px;
+    background:rgba(255,253,248,.98);backdrop-filter:blur(14px);
+    border:1px solid rgba(176,131,47,.3);box-shadow:0 6px 20px rgba(60,48,34,.22);
+    animation:opMenu .14s ease-out both;}
+  @keyframes opMenu{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:scale(1);}}
+  .obj-menu .op-btn{padding:8px 11px;border-radius:7px;background:transparent;border:1px solid transparent;
+    font-size:13.5px;color:var(--ink);cursor:pointer;white-space:nowrap;text-align:left;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;transition:.12s;display:flex;align-items:center;gap:8px;width:100%;}
+  .obj-menu .op-btn:hover{background:rgba(176,131,47,.15);border-color:rgba(176,131,47,.3);}
+  .obj-menu .op-btn:active{transform:scale(.98);}
+  .obj-menu .op-btn.has-ic .op-ic{font-size:15px;flex:none;}
+  .obj-menu .op-btn.danger{color:#c0392b;}
+  .obj-menu .op-btn.danger:hover{background:rgba(192,57,43,.12);border-color:rgba(192,57,43,.35);}
+  .obj-menu .op-sep{height:1px;margin:3px 4px;background:rgba(176,131,47,.2);}
+  /* ===== 常驻移动区：Dock 上方方向罗盘（位置即方位，洛阳在下·马市在右） ===== */
+  /* ===== 底部枢纽区：方向 Tab 栏 +（左：NPC 列表 ｜ 右：方向罗盘）===== */
+  #lower{flex:0 0 auto;display:flex;flex-direction:column;align-items:stretch;padding:0 8px 4px;}
+  #move-tabs{flex:0 0 auto;display:flex;gap:6px;justify-content:center;margin:1px 0 -1px;position:relative;z-index:2;}
+  .mv-tab{flex:none;padding:5px 15px;border-radius:13px 13px 0 0;cursor:pointer;font-size:12px;
+    font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;color:#9a7b3a;
+    background:rgba(176,131,47,.07);border:1px solid rgba(176,131,47,.22);border-bottom:none;
+    transition:background .14s,color .14s;}
+  .mv-tab:hover{background:rgba(176,131,47,.16);}
+  .mv-tab:active{transform:translateY(1px);}
+  .mv-tab.active{background:rgba(176,131,47,.2);color:#6e4f17;font-weight:700;box-shadow:0 -2px 8px -4px rgba(60,48,34,.4);}
+  #lower-body{flex:0 0 auto;display:flex;gap:10px;align-items:center;justify-content:center;}
+  /* —— 左侧 NPC 列表：填补罗盘左侧空挡 —— */
+  #npc-list{flex:0 0 116px;align-self:stretch;display:none;flex-direction:column;gap:6px;
+    max-height:158px;overflow-y:auto;padding:8px 6px;border-radius:12px;
+    background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.22);
+    box-shadow:0 2px 10px rgba(60,48,34,.06);}
+  #npc-list.has{display:flex;}
+  #npc-list.many{flex:0 0 142px;}                 /* 人数多（≥4）加宽左栏，避免拥挤 */
+  #npc-list .nl-hd{font-size:11px;letter-spacing:2px;color:#9a7b3a;font-family:"STKaiti",serif;text-align:center;
+    padding-bottom:1px;border-bottom:1px dashed rgba(176,131,47,.3);}
+  #npc-list .nl-empty{font-size:11px;color:var(--ink-faint);text-align:center;padding:8px 2px;}
+  .nl-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:9px;cursor:pointer;
+    background:rgba(255,253,248,.92);border:1px solid rgba(176,131,47,.32);
+    font-size:12px;color:var(--ink);text-align:left;-webkit-user-select:none;user-select:none;transition:.12s;}
+  #npc-list.many .nl-item{padding:5px 7px;font-size:11.5px;}
+  .nl-item:hover{background:rgba(176,131,47,.15);border-color:rgba(176,131,47,.55);}
+  .nl-item:active{transform:scale(.97);}
+  .nl-item .nl-ic{font-size:14px;flex:none;}
+  .nl-item .nl-nm{line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* —— 方向罗盘 —— */
+  .move-bar{
+    flex:0 0 auto;display:none;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:repeat(3,auto);
+    gap:6px;align-self:center;
+    width:min(100% - 16px, 300px);
+    margin:2px 0 4px;padding:11px;
+    background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.22);border-radius:18px;
+    box-shadow:0 2px 10px rgba(60,48,34,.08);
+  }
+  .move-bar.has-exits{display:grid;}
+  /* 中心「你在此」 */
+  .mv-center{grid-row:2;grid-column:2;display:flex;align-items:center;justify-content:center;
+    font-size:11px;color:#9a7b3a;font-family:"STKaiti","KaiTi",serif;
+    padding:6px 4px;border-radius:12px;background:rgba(176,131,47,.10);
+    border:1px dashed rgba(176,131,47,.4);text-align:center;line-height:1.2;}
+  .mv-exit{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    padding:8px 4px;border-radius:12px;cursor:pointer;
+    background:rgba(255,253,248,.95);border:1px solid rgba(176,131,47,.4);
+    box-shadow:0 2px 6px rgba(60,48,34,.10);
     transition:transform .16s,background .16s,border-color .16s,box-shadow .16s;-webkit-user-select:none;user-select:none;}
   .mv-exit:hover{background:rgba(176,131,47,.16);border-color:rgba(176,131,47,.6);}
-  .mv-exit:active{transform:scale(.95);}
-  .mv-exit .mv-arrow{font-size:15px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;line-height:1;}
-  .mv-exit .mv-nm{font-size:12px;color:var(--ink);line-height:1;max-width:96px;
+  .mv-exit:active{transform:scale(.93);}
+  .mv-exit .mv-arrow{font-size:17px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;line-height:1;}
+  .mv-exit .mv-nm{font-size:10.5px;color:var(--ink);line-height:1.1;text-align:center;max-width:80px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* 轻功方向：青色虚线 */
   .mv-exit.leap{background:rgba(74,144,160,.10);border-style:dashed;border-color:rgba(74,144,160,.55);}
@@ -208,7 +242,7 @@
   /* 坐骑方向：金辉 */
   .mv-exit.mount{background:rgba(176,131,47,.20);border-color:rgba(176,131,47,.72);}
   /* 探查脉冲高亮（dock「🔍探查」触发） */
-  @keyframes mbPulse{0%{box-shadow:0 0 0 0 rgba(176,131,47,.5),0 2px 6px rgba(60,48,34,.10);}70%{box-shadow:0 0 0 11px rgba(176,131,47,0);}100%{box-shadow:0 0 0 0 rgba(176,131,47,0);}}
+  @keyframes mbPulse{0%{box-shadow:0 0 0 0 rgba(176,131,47,.5);}70%{box-shadow:0 0 0 12px rgba(176,131,47,0);}100%{box-shadow:0 0 0 0 rgba(176,131,47,0);}}
   .move-bar.pulse{border-color:rgba(176,131,47,.6);animation:mbPulse 1.1s ease-out 2;}
   /* ===== 战斗武技：紧凑芯片行（满配也不眼花） ===== */
   .c-arts{grid-column:1/-1;margin:1px 0 2px;}
@@ -271,6 +305,37 @@
     animation:fade .25s ease both;}
   #modal.hidden{display:none;}
   @keyframes fade{from{opacity:0}to{opacity:1}}
+  /* ===== 时辰钟表弹窗 ===== */
+  .clk-dial{position:relative;width:min(70vw,248px);aspect-ratio:1/1;margin:12px auto 6px;border-radius:50%;
+    background:radial-gradient(circle at 50% 42%,rgba(255,253,248,.92),rgba(244,236,220,.66));
+    border:2px solid rgba(176,131,47,.5);
+    box-shadow:inset 0 0 28px rgba(176,131,47,.18),0 6px 20px rgba(60,48,34,.18);}
+  .clk-dial.night{background:radial-gradient(circle at 50% 42%,#2c3454,#171d31);
+    border-color:rgba(120,150,210,.5);box-shadow:inset 0 0 32px rgba(15,25,55,.6),0 6px 20px rgba(10,15,30,.45);}
+  .clk-lab{position:absolute;font-size:12px;font-family:"STKaiti","KaiTi",serif;color:#6e4f17;font-weight:700;
+    transform:translate(-50%,-50%);}
+  .clk-dial.night .clk-lab{color:#cdd6f0;}
+  .clk-lab.cur{color:#b5362e;font-size:14px;text-shadow:0 0 8px rgba(181,54,46,.5);}
+  .clk-dial.night .clk-lab.cur{color:#ffd27a;text-shadow:0 0 10px rgba(255,210,122,.7);}
+  .clk-hand{position:absolute;left:50%;top:50%;width:3px;height:40%;border-radius:3px;
+    background:linear-gradient(#b5362e,rgba(181,54,46,.12));transform-origin:50% 100%;}
+  .clk-dial.night .clk-hand{background:linear-gradient(#ffd27a,rgba(255,210,122,.1));}
+  .clk-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:48%;}
+  .clk-t{font-size:22px;font-weight:700;font-family:"STKaiti","KaiTi",serif;color:#5a3f12;font-variant-numeric:tabular-nums;}
+  .clk-dial.night .clk-t{color:#f2e6c8;}
+  .clk-s{font-size:13px;color:#8a6a2e;font-family:"STKaiti","KaiTi",serif;margin-top:-1px;}
+  .clk-dial.night .clk-s{color:#cdd6f0;}
+  .clk-e{font-size:10px;color:#9a7b3a;margin-top:3px;line-height:1.3;}
+  .clk-dial.night .clk-e{color:#9fb0d8;}
+  /* —— 钟表弹窗：农历 / 公历 / 天候 对照 —— */
+  .clk-meta{margin:4px auto 0;width:min(82vw,268px);display:flex;flex-direction:column;gap:6px;}
+  .clk-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:6px 10px;border-radius:9px;background:rgba(176,131,47,.08);border:1px solid rgba(176,131,47,.22);}
+  .clk-row span{font-size:11px;letter-spacing:2px;color:#9a7b3a;font-family:"STKaiti","KaiTi",serif;}
+  .clk-row b{font-size:13px;color:var(--ink);font-family:"STKaiti","KaiTi",serif;font-weight:700;text-align:right;}
+  .clk-dial.night ~ .clk-meta .clk-row{background:rgba(120,150,210,.1);border-color:rgba(120,150,210,.28);}
+  .clk-dial.night ~ .clk-meta .clk-row span{color:#9fb0d8;}
+  .clk-dial.night ~ .clk-meta .clk-row b{color:#eef2ff;}
   .card{
     width:100%;max-width:440px;max-height:82dvh;overflow-y:auto;
     background:var(--panel);border:1px solid var(--panel-line);border-radius:16px;
@@ -392,15 +457,24 @@ window.onerror=function(msg,url,line,col,err){
 
 <div id="app">
   <header id="status"></header>
+  <div class="loc-tab" id="loc-tab"></div>
   <main id="scene"><div id="narr"></div></main>
   <section id="actions"></section>
-  <div id="move-bar" class="move-bar"></div>
+  <div id="lower">
+    <div id="move-tabs">
+      <div class="mv-tab active" data-tab="go">出行</div>
+      <div class="mv-tab" data-tab="scout">🔍 探查</div>
+    </div>
+    <div id="lower-body">
+      <aside id="npc-list"></aside>
+      <div id="move-bar" class="move-bar"></div>
+    </div>
+  </div>
   <nav id="dock">
     <button data-modal="char"><span class="ic">🧭</span>角色</button>
     <button data-modal="pack"><span class="ic">🎒</span>行囊</button>
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
-    <button data-modal="survey"><span class="ic">🔍</span>探查</button>
     <button data-modal="rest" class="rest"><span class="ic">🧘</span>调息</button>
     <button data-modal="more"><span class="ic">☰</span>更多</button>
   </nav>
@@ -427,6 +501,47 @@ window.onerror=function(msg,url,line,col,err){
   var G = window.LF.SharedGame;
   var KEY='lf_save_v1';
   var SHICHEN=['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'];
+
+  // ===== 历法（农历为主 · 公历为对照锚点）与天候 =====
+  var LUNAR_MONTHS=['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+  var LUNAR_START={month:12, day:15};   // 游戏始于「光和元年·腊月十五」（示例锚定）
+  var WK=['日','一','二','三','四','五','六'];   // 星期（公历对照用，仅弹窗展示）
+  var WK_BASE=5;                        // 腊月十五 = 星期五（示例锚定，保证对照可读）
+  var WEATHERS=[
+    {n:'晴',  ic:'☀'},
+    {n:'多云',ic:'🌤'},
+    {n:'阴',  ic:'☁'},
+    {n:'微雨',ic:'🌦'},
+    {n:'大雨',ic:'🌧'},
+    {n:'雪',  ic:'❄'},
+    {n:'雾',  ic:'🌫'},
+    {n:'风',  ic:'🌬'}
+  ];
+  function lunarDayName(d){
+    var cn=['','一','二','三','四','五','六','七','八','九','十'];
+    if(d>=1&&d<=10) return '初'+cn[d];
+    if(d>=11&&d<=19) return '十'+cn[d-10];
+    if(d===20) return '二十';
+    if(d>=21&&d<=29) return '廿'+cn[d-20];
+    return '三十';
+  }
+  // 由累计天数派生农历月日 / 年号年序 / 公历对照 / 星期（确定性、可重算）
+  function deriveCalendar(){
+    var d=state.day||0;
+    var totalMonths=(LUNAR_START.month-1)+Math.floor(d/30);
+    var month=(totalMonths%12)+1;
+    var day=((LUNAR_START.day-1)+(d%30))%30+1;
+    var years=Math.floor(totalMonths/12);
+    return {
+      month:month, day:day,
+      monthName:LUNAR_MONTHS[month-1],
+      dayName:lunarDayName(day),
+      eraYear:1+years,
+      adYear:178+years,
+      wk:WK[(WK_BASE+d)%7],
+      gregMonth:month, gregDay:day
+    };
+  }
 
   function load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
   function save(d){ if(!d||d.hp<=0||d.dead) return; try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){} }
@@ -455,6 +570,17 @@ window.onerror=function(msg,url,line,col,err){
     if(!s.spd) s.spd=20;
     // time 字段
     if(s.time==null) s.time=0;
+    // clock（当日分钟）缺失时，按时辰起点还原，保证旧档时间显示对齐
+    var SH_START=[23,1,3,5,7,9,11,13,15,17,19,21];
+    if(s.clock==null) s.clock=(SH_START[s.time%12]*60)+22;
+    if(s.day==null) s.day=0;
+    if(s.weather==null) s.weather=0;         // 天候索引，缺省为「晴」
+    if(!s.eraName || typeof s.eraName!=='string') s.eraName='光和';  // 旧档缺年号则补默认
+    // 由 day 回写年号年序，保证旧档历法自洽
+    var d=s.day||0;
+    var tm=(12-1)+Math.floor(d/30);          // 腊月(12)起算
+    s.eraYear=1+Math.floor(tm/12);
+    s.adYear=178+Math.floor(tm/12);
     // 确保武器艺线所有 key 存在
     for(var l in def.lines){ if(s.lines[l]===undefined) s.lines[l]=0; }
     // 确保艺线经验 key 存在（P2）
@@ -477,6 +603,7 @@ window.onerror=function(msg,url,line,col,err){
   if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
 
   var $status=document.getElementById('status');
+  $status.onclick=function(){ openModal('clock'); };   // 点击状态栏 → 时辰钟表
   var $narr=document.getElementById('narr');
   var $actions=document.getElementById('actions');
   var $modal=document.getElementById('modal');
@@ -556,39 +683,25 @@ window.onerror=function(msg,url,line,col,err){
     state.reputation=Math.max(0,Math.min(100,state.reputation+n));
     log('【声望】'+(state.reputation-old>=0?'+':'')+(state.reputation-old)+'（当前 '+state.reputation+' · '+repTitle(state.reputation)+'）','good');
   }
-  function bar(label,cur,max,cls){
-    var pct=Math.max(0,Math.min(100, max?cur/max*100:0));
-    return '<div class="bar"><span>'+label+'</span><i class="'+cls+'"><b style="width:'+pct+'%"></b></i><em>'+cur+'/'+max+'</em></div>';
-  }
   function renderStatus(){
-    var sect=G.SECTS[state.sect]?G.SECTS[state.sect].name:state.sect;
     var sh=SHICHEN[state.time%12];
-    var ka = moralLabel();
-    var mt = moralTitle();
-    var es = effectiveStats();
-    var warn='';
-    if(state.energy<=0) warn='精力耗尽 · 无法行动（请「帐中休整」）';
-    else if(state.food<=0||state.drink<=0) warn='饥馁缠身 · 气血正被侵蚀（请「休整」补给）';
+    var hh=String(Math.floor(state.clock/60)).padStart(2,'0');
+    var mm=String(state.clock%60).padStart(2,'0');
+    var c=deriveCalendar();
+    var era=(state.eraName||'光和')+(c.eraYear===1?'元年':c.eraYear+'年');
+    var w=WEATHERS[state.weather]||WEATHERS[0];
     $status.innerHTML=
-      '<div class="st-top">'+
-        '<span class="who">'+state.name+'</span>'+
-        '<span class="dot">·</span><span>'+sect+'</span>'+
-        '<span class="dot">·</span><span>LV.'+state.level+'</span>'+
-        '<span class="dot">·</span><span class="sh">'+sh+'</span>'+
-        '<span class="dot">·</span><span class="ka">'+ka+'</span>'+
-        '<span class="dot">·</span><span class="rp">风评·'+mt+'</span>'+
-        '<span class="dot">·</span><span class="rp">声望'+state.reputation+'</span>'+
-      '</div>'+
-      '<div class="st-bars">'+
-        bar('气血',state.hp,es.maxHp,'s-hp')+
-        bar('内力',state.mp,es.maxMp,'s-mp')+
-        bar('精力',state.energy,state.maxEnergy,'s-en')+
-        '<div class="txt"><span'+(state.food<=0?' class="danger"':'')+'>食 '+state.food+'</span><span'+(state.drink<=0?' class="danger"':'')+'>水 '+state.drink+'</span>'+
-          '<span class="jade">潜 '+state.pot+'</span><span class="gold">银 '+state.gold+'</span>'+
-          '<span class="jade">攻 '+Math.round(es.atk)+'</span><span class="gold">防 '+Math.round(es.def)+'</span>'+
-          '<span>命 '+(es.hitRate*100).toFixed(0)+'%</span><span>暴 '+(es.critRate*100).toFixed(0)+'%</span></div>'+
-      '</div>'+
-      (warn?'<div class="st-warn">⚠ '+warn+'</div>':'');
+      '<span class="who">'+state.name+'</span>'+
+      '<span class="dot">·</span>'+
+      '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
+      '<span class="st-time">'+sh+'</span>'+
+      '<span class="dot">·</span>'+
+      '<span class="st-era">'+era+'·'+c.monthName+'月'+c.dayName+'</span>'+
+      '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>'+
+      '<span class="st-hint" title="点击查看时辰钟表与历法">🕓</span>';
+  }
+  function renderLocTab(room){
+    var t=document.getElementById('loc-tab'); if(t) t.textContent=room.name||'';
   }
 
   // ===== 升级 / 效果结算 =====
@@ -619,11 +732,26 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 时间与生存消耗 =====
   function advanceTime(n){
-    n=n||1; state.time=(state.time+n)%12;
+    n=n||1;
+    var before=state.clock;
+    var total=before + n*120;
+    var crossings=Math.floor(total/1440);   // 跨子夜次数 = 经过的天数
+    state.time=(state.time+n)%12;
+    state.clock=total%1440;                  // 每时辰 = 120 游戏分钟
+    if(crossings>0){
+      state.day=(state.day||0)+crossings;
+      syncCalendar();                        // 跨日 → 农历月日 / 年号年序随之推进
+      if(Math.random()<0.55) state.weather=Math.floor(Math.random()*WEATHERS.length); // 新日易天候
+    }
     state.food=Math.max(0,state.food-n);
     state.drink=Math.max(0,state.drink-n);
     state.energy=Math.max(0,state.energy-2*n);
     maybeStarve();
+  }
+  // 由累计天数回写年号年序（年号恒定「光和」，游戏内自洽）
+  function syncCalendar(){
+    var c=deriveCalendar();
+    state.eraYear=c.eraYear; state.adYear=c.adYear;
   }
   // 饥饿过高：食物/饮水耗尽则持续侵蚀气血（硬性限制）；归零即殒落
   function maybeStarve(){
@@ -659,7 +787,7 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 动态按钮区（分组菜单：对话 / 探查 / 行动 / 移动） =====
   var lastGroup=null;
-  function clearActions(){$actions.innerHTML='';lastGroup=null;collapseObjPanel();document.removeEventListener('click', onDocCollapseObj, true);}
+  function clearActions(){$actions.innerHTML='';lastGroup=null;collapseObjPanel();}
   function addBtn(label, fn, cls){
     var b=document.createElement('button');
     b.className='act '+(cls||''); b.textContent=label;
@@ -712,16 +840,9 @@ window.onerror=function(msg,url,line,col,err){
     state.room=rid;
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     if(!silent){
-      log('〔'+room.name+'〕','title');
       room.desc.forEach(function(d){ log(d,'env'); });
     }
-    if(room.npcs && room.npcs.length){
-      log('〔此处人物〕','sys');
-      room.npcs.forEach(function(k){
-        var n=G.DIALOGUES.npcs[k];
-        if(n) log(n.lines[0].slice(0,20)+'…','npc', n.name);
-      });
-    }
+    renderLocTab(room);
     if(room.items && room.items.length){
       log('〔地上之物〕','sys');
       room.items.forEach(function(it){ log('· '+it,'item'); });
@@ -760,7 +881,6 @@ window.onerror=function(msg,url,line,col,err){
       {type:'npc',   key:'hanbo',   icon:'👤', name:'县尉韩博',  desc:'按剑而立，目光如炬',                actions:[{label:'与他交谈', fn:function(){ talk('hanbo'); }}]},
       {type:'building',key:'tent',  icon:'⛺', name:'中军大帐',  desc:'案上谱录，凝神参悟',                actions:[{label:'研习武学', fn:function(){ handleAction('learn'); }, tip:'案上谱录，凝神参悟'},
                                                                             {label:'帐中休整', fn:function(){ actRest(); },         tip:'盹一觉，气血内力尽复'}]},
-      {type:'feature',key:'training',icon:'⚔️',name:'操练场',   desc:'木人桩列于场中，供你试招练手',      actions:[{label:'与木人过招', fn:function(){ handleAction('spar_dummy'); }, tip:'木人桩不伤性命，正可演练新招'}]},
       {type:'feature',key:'arena',  icon:'🏆', name:'挑战台',   desc:'温酒斩华雄，名震天下',              actions:[{label:'温酒斩华雄', fn:function(){ handleAction('battle_hua_xiong'); }, tip:'需声望≥20·首场Boss战'}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川城', desc:'城门方向，市集熙攘',                actions:[{label:'前往颍川城', fn:function(){ move('北','city'); }}]},
@@ -904,13 +1024,6 @@ window.onerror=function(msg,url,line,col,err){
         {label:'与他交谈', fn:function(){ talk('heishan_zhu'); }},
         {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zhu'); }, tip:'夺寨先斩贼首'}
       ]},
-      {type:'npc', key:'test_npc', icon:'🧪', name:'【测试】多按钮演示', desc:'用来测试弹出菜单多按钮排版的演示NPC', actions:[
-        {label:'交谈', fn:function(){ log('（测试NPC）你与本使者相谈甚欢。','say'); }},
-        {label:'交易', fn:function(){ log('（测试NPC）本使者身上并无什么好物。','say'); }},
-        {label:'攻击', danger:true, fn:function(){ log('（测试NPC）你挥出一拳，使者侧身避过。','combat'); }},
-        {label:'给予', fn:function(){ log('（测试NPC）你递上一物，使者微笑收下。','sys'); }},
-        {label:'观察', fn:function(){ log('（测试NPC）此人衣衫朴素，袖口绣着一行小字：「CodeBuddy 测试专用」。','env'); }}
-      ]},
       {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾聚义厅'},
       {type:'exit', dir:'南', icon:'🚪', name:'南·寨门', desc:'退回寨门', actions:[{label:'退回寨门', fn:function(){ move('南','ji_heishan_zhai'); }}]},
       {type:'exit', dir:'北', icon:'📦', name:'北·后寨', desc:'囤积赃物的所在', actions:[{label:'入后寨', fn:function(){ move('北','ji_heishan_houzhai'); }}]}
@@ -928,6 +1041,7 @@ window.onerror=function(msg,url,line,col,err){
   function buildActions(room, popExits){
     clearActions();
     grpCursor=null;
+    renderNpcList(room);   // 左侧 NPC 列表（配置房间与兼容房间统一渲染，避免与下方按钮重复）
     // 战败封锁：仅底部 dock「🧘调息」可恢复，场景按钮全部隐藏
     if(state.defeated){
       log('〔力竭〕你重伤未愈，动弹不得——点底部「🧘 调息」恢复后，方可再动。','sys');
@@ -935,7 +1049,6 @@ window.onerror=function(msg,url,line,col,err){
     }
     var objs=ROOM_OBJECTS[room.id];
     if(objs && objs.length){
-      renderObjs(objs.filter(function(o){return o.type==='npc';}), 'ren');
       renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
       var exitsObjs=objs.filter(function(o){return o.type==='exit';});
       if(exitsObjs.length){
@@ -946,13 +1059,6 @@ window.onerror=function(msg,url,line,col,err){
       return;
     }
     // fallback：旧版分组按钮（兼容无配置的房间；探查已由 dock 接管）
-    (room.npcs||[]).forEach(function(k){
-      var n=G.DIALOGUES.npcs[k]; if(!n) return;
-      var acts=[{label:'交谈', fn:function(){ talk(k); }}];
-      var btn=mkAct('ren','👤','与'+n.name+'交谈',function(e){
-        toggleObjExpand(e, btn, {name:n.name, desc:n.name+' · 当前态度：'+npcAttitude(k)}, acts);
-      });
-    });
     (room.actions||[]).forEach(function(a){
       var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
       var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
@@ -962,6 +1068,33 @@ window.onerror=function(msg,url,line,col,err){
       renderMoveBar(room);
     }
     renderSelf(room);
+  }
+  // ===== 左侧 NPC 列表（地图左侧，点击弹出菜单）=====
+  function renderNpcList(room){
+    var box=document.getElementById('npc-list'); if(!box) return;
+    box.innerHTML=''; box.classList.remove('has');
+    var items=[];
+    var objs=ROOM_OBJECTS[room.id];
+    if(objs && objs.length){
+      objs.filter(function(o){return o.type==='npc';}).forEach(function(o){
+        items.push({o:o, acts:buildNpcActions(o)});
+      });
+    } else {
+      (room.npcs||[]).forEach(function(k){
+        var n=G.DIALOGUES.npcs[k]; if(!n) return;
+        items.push({o:{name:n.name, icon:'👤', key:k, desc:n.name}, acts:buildNpcActions({name:n.name, key:k, desc:n.name})});
+      });
+    }
+    if(!items.length){ box.innerHTML='<div class="nl-empty">此处无人</div>'; return; }
+    box.classList.add('has');
+    box.classList.toggle('many', items.length>=4);   // 人数多时加宽，避免太挤
+    var hd=document.createElement('div'); hd.className='nl-hd'; hd.textContent='此处人物'; box.appendChild(hd);
+    items.forEach(function(it){
+      var chip=document.createElement('button'); chip.className='nl-item';
+      chip.innerHTML='<span class="nl-ic">'+(it.o.icon||'👤')+'</span><span class="nl-nm">'+it.o.name+'</span>';
+      chip.onclick=function(e){ toggleObjExpand(e, chip, it.o, it.acts); };
+      box.appendChild(chip);
+    });
   }
   var grpCursor=null;
   function isSelfCare(a){
@@ -982,71 +1115,94 @@ window.onerror=function(msg,url,line,col,err){
       var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); });
     });
   }
-  // ===== NPC/物件：点击弹出紧凑浮动小菜单（fixed 定位，不占网格空间） =====
+  // ===== NPC/物件：点击弹出右键式浮动菜单（贴合光标，无描述） =====
   var objPanelOpen=null;
   function toggleObjExpand(e, btn, o, acts){
     e.stopPropagation();
-    if(objPanelOpen && objPanelOpen._owner===btn){ collapseObjPanel(); return; }
-    if(objPanelOpen) collapseObjPanel();
-    var panel=document.createElement('div');
-    panel.className='obj-popup'; panel._owner=btn;
-    if(o.desc){ var d=document.createElement('div'); d.className='op-desc'; d.textContent=o.desc; panel.appendChild(d); }
-    var row=document.createElement('div'); row.className='op-row';
-    acts.forEach(function(a){
+    if(objPanelOpen){ collapseObjPanel(); return; }
+    openObjMenu(e, o, acts);
+  }
+  function openObjMenu(e, o, acts){
+    var panel=document.createElement('div'); panel.className='obj-menu';
+    (acts||[]).forEach(function(a){
+      if(a.sep){ var s=document.createElement('div'); s.className='op-sep'; panel.appendChild(s); return; }
       var b=document.createElement('button');
-      b.className='op-btn'+(a.danger?' danger':'');
-      b.textContent=a.label||'';
-      b.onclick=function(ev){ ev.stopPropagation(); if(a.fn) a.fn(); collapseObjPanel(); };
-      row.appendChild(b);
+      b.className='op-btn'+(a.danger?' danger':'')+(a.icon?' has-ic':'');
+      b.innerHTML=(a.icon?'<span class="op-ic">'+a.icon+'</span>':'')+'<span class="op-lb">'+a.label+'</span>';
+      b.onclick=function(ev){ ev.stopPropagation(); collapseObjPanel(); if(a.fn) a.fn(); };
+      panel.appendChild(b);
     });
-    panel.appendChild(row);
     document.body.appendChild(panel);
-    btn.classList.add('open');
-    objPanelOpen=panel;
-    // 延迟一帧等浏览器布局稳定后再定位，避免 visibility:hidden 预计算导致宽度偏差
-    setTimeout(function(){ positionPopup(panel, btn); }, 0);
-    // 场景滚动时自动收起
+    objPanelOpen={panel:panel};
+    positionMenu(panel, e.clientX, e.clientY);
+    setTimeout(function(){
+      document.addEventListener('click', onDocCollapseObj, true);
+      document.addEventListener('keydown', onKeyCollapseObj, true);
+    }, 0);
     var sc=document.getElementById('scene'); if(sc) sc.addEventListener('scroll', collapseObjPanel, {once:true});
-    setTimeout(function(){ document.addEventListener('click', onDocCollapseObj, true); }, 0);
   }
-  function positionPopup(panel, btn){
-    if(!panel.parentNode) return;
-    var br=btn.getBoundingClientRect();
-    var vh=window.innerHeight;
-    // 水平居中于按钮，用 translateX(-50%) 自动对齐，无需预计算宽度
-    panel.style.left=(br.left+br.width/2)+'px';
-    panel.style.transform='translateX(-50%)';
-    var ph=panel.offsetHeight;
-    var top=br.bottom+8; // 默认在按钮下方
-    var up=false;
-    if(top+ph>vh-12){ top=br.top-ph-8; up=true; } // 空间不够则弹到上方
-    panel.style.top=top+'px';
-    if(up) panel.classList.add('op-up');
+  // 以光标为锚点定位，遇边界自动翻转，避免溢出屏幕
+  function positionMenu(panel, x, y){
+    var vw=window.innerWidth, vh=window.innerHeight;
+    var mw=panel.offsetWidth, mh=panel.offsetHeight;
+    var left=x, top=y;
+    if(left+mw>vw-8) left=Math.max(8, vw-mw-8);
+    if(top+mh>vh-8) top=Math.max(8, vh-mh-8);
+    panel.style.left=left+'px'; panel.style.top=top+'px';
   }
+  function onKeyCollapseObj(e){ if(e.key==='Escape') collapseObjPanel(); }
+  function onDocCollapseObj(e){ if(objPanelOpen && !objPanelOpen.panel.contains(e.target)) collapseObjPanel(); }
   function collapseObjPanel(){
     if(!objPanelOpen) return;
-    var owner=objPanelOpen._owner;
-    if(objPanelOpen.parentNode) objPanelOpen.remove();
+    var p=objPanelOpen.panel; objPanelOpen=null;
     document.removeEventListener('click', onDocCollapseObj, true);
-    if(owner) owner.classList.remove('open');
-    objPanelOpen=null;
+    document.removeEventListener('keydown', onKeyCollapseObj, true);
+    if(p && p.parentNode) p.parentNode.removeChild(p);
   }
-  function onDocCollapseObj(e){
-    if(objPanelOpen && !objPanelOpen.contains(e.target)) collapseObjPanel();
+  // ===== NPC 标准操作列：交谈 / 观察 / 攻击 + 对象自带动作 =====
+  function buildNpcActions(o){
+    var acts=[];
+    acts.push({label:'交谈', icon:'💬', fn:function(){ if(o.key) talk(o.key); }});
+    acts.push({label:'观察', icon:'👁', fn:function(){ observeNpc(o); }});
+    var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
+    acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
+      if(dangerAct){ dangerAct.fn(); return; }
+      if(o.key && G.ENEMIES && G.ENEMIES[o.key]){ startCombat(o.key); return; }
+      log('〔'+o.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys');
+    }});
+    (o.actions||[]).forEach(function(a){
+      if(a.danger) return;                       // 敌意动作已并入「攻击」
+      if(/交谈|观察/.test(a.label||'')) return;  // 去重标准项
+      acts.push(a);
+    });
+    return acts;
   }
-  // ===== 常驻移动条：Dock 上方横向方向药丸（日常移动主要入口，永远可见） =====
+  function observeNpc(o){
+    var key=o.key, parts=[];
+    if(o.desc) parts.push(o.desc);
+    if(key && G.DIALOGUES.npcs[key]) parts.push('当前态度：'+npcAttitude(key));
+    if(!parts.length) parts.push('你凝神打量，未见异常。');
+    log('〔观察·'+o.name+'〕'+parts.join('；')+'。','sys');
+  }
+  // ===== 常驻移动区：Dock 上方方向罗盘（位置即方位，永远可见） =====
   var DIR_ARROW={'北':'↑','南':'↓','东':'→','西':'←','东北':'↗','西北':'↖','东南':'↘','西南':'↙'};
+  // 方向 → 罗盘 3×3 网格坐标 [行,列]（上北下南左西右东）
+  var DIR_GRID={'北':[1,2],'东北':[1,3],'东':[2,3],'东南':[3,3],'南':[3,2],'西南':[3,1],'西':[2,1],'西北':[1,1]};
   function renderMoveBar(room){
     var bar=document.getElementById('move-bar'); if(!bar) return;
     bar.innerHTML=''; bar.classList.remove('pulse','has-exits');
     var exits=currentRoomExits();
-    if(!exits.length) return;           // 无出口：隐藏移动条，不占空间
+    if(!exits.length) return;           // 无出口：隐藏移动区，不占空间
     bar.classList.add('has-exits');
-    var lab=document.createElement('span'); lab.className='mb-label'; lab.textContent='出行'; bar.appendChild(lab);
+    // 中心：当前所在
+    var ctr=document.createElement('div'); ctr.className='mv-center'; ctr.textContent='你在此';
+    bar.appendChild(ctr);
     exits.forEach(function(o){
       var tid=o.tid || (room.exits && room.exits[o.dir]);
+      var g=DIR_GRID[o.dir]||[2,2];
       var b=document.createElement('button');
       b.className='mv-exit e-'+o.dir+(o.kind?(' '+o.kind):'');
+      b.style.gridRow=g[0]; b.style.gridColumn=g[1];
       b.innerHTML='<span class="mv-arrow">'+(DIR_ARROW[o.dir]||'➤')+'</span><span class="mv-nm">'+stripDir(o.name)+'</span>';
       b.onclick=function(){ move(o.dir, tid); };
       bar.appendChild(b);
@@ -1353,6 +1509,39 @@ window.onerror=function(msg,url,line,col,err){
             (ex?'<span class="ex">'+ex+'</span>':'')+'</div>';
       });
       h+='<p class="tip">当前身处「'+curRoom().name+'」。以出口方向在江湖穿行；其余地域将随主线推进逐一解锁。</p>';
+    } else if(kind==='clock'){
+      var R=41; // 时辰标签半径（百分比）
+      var clkLabels='';
+      SHICHEN.forEach(function(name,i){
+        var ang=(i*30-90)*Math.PI/180;     // 子时居顶，顺时针排布
+        var x=50+R*Math.cos(ang), y=50+R*Math.sin(ang);
+        var cur=(i===state.time%12);
+        clkLabels+='<span class="clk-lab'+(cur?' cur':'')+'" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%">'+name.replace('时','')+'</span>';
+      });
+      var handAng=(state.clock/1440)*360-90;   // 指针随当日分钟转动
+      var isDay=((state.time%12)>=3 && (state.time%12)<=9);  // 卯~酉为昼
+      var c=deriveCalendar();
+      var era=(state.eraName||'光和')+(c.eraYear===1?'元年':c.eraYear+'年');
+      var w=WEATHERS[state.weather]||WEATHERS[0];
+      var hh=String(Math.floor(state.clock/60)).padStart(2,'0');
+      var mm=String(state.clock%60).padStart(2,'0');
+      h='<h3>时 辰 钟</h3>'+
+        '<div class="clk-dial '+(isDay?'day':'night')+'">'+
+          clkLabels+
+          '<div class="clk-hand" style="transform:translate(-50%,-100%) rotate('+handAng.toFixed(1)+'deg)"></div>'+
+          '<div class="clk-center">'+
+            '<div class="clk-t">'+hh+':'+mm+'</div>'+
+            '<div class="clk-s">'+SHICHEN[state.time%12]+'</div>'+
+            '<div class="clk-e">'+(isDay?'☀':'🌙')+' '+era+'</div>'+
+            '<div class="clk-e">'+c.monthName+'月'+c.dayName+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="clk-meta">'+
+          '<div class="clk-row"><span>天候</span><b>'+w.ic+' '+w.n+'</b></div>'+
+          '<div class="clk-row"><span>农历</span><b>'+era+c.monthName+'月'+c.dayName+'</b></div>'+
+          '<div class="clk-row"><span>公历</span><b>公元'+c.adYear+'年 '+c.gregMonth+'月'+c.gregDay+'日 · 星期'+c.wk+'</b></div>'+
+        '</div>'+
+        '<p class="tip">子时居顶（夜半），午时居底（正午）；卯时朝阳在东、酉时落日于西。</p>';
     } else if(kind==='more'){
       h='<h3>更 多</h3>'+
         row('游戏','乱世烽火 · 水墨')+
@@ -1390,6 +1579,15 @@ window.onerror=function(msg,url,line,col,err){
       if(m==='rest'){ dockRest(); return; }
       if(m==='survey'){ dockSurvey(); return; }
       openModal(m);
+    };
+  });
+  // 方向 Tab 栏：出行（罗盘）/ 探查（整合进枢纽区，dock 已移除探查）
+  document.querySelectorAll('#move-tabs .mv-tab').forEach(function(t){
+    t.onclick=function(){
+      var tab=t.getAttribute('data-tab');
+      document.querySelectorAll('#move-tabs .mv-tab').forEach(function(x){x.classList.remove('active');});
+      t.classList.add('active');
+      if(tab==='scout'){ dockSurvey(); }   // 探查：脉冲高亮出口 / 记录环境
     };
   });
   function dockSurvey(){
