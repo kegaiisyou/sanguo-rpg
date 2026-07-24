@@ -353,12 +353,20 @@
   .card .skills span{padding:5px 11px;border:1px solid var(--btn-line);border-radius:20px;
     font-size:13px;background:var(--btn);color:var(--ink);}
   .card p.tip{color:var(--ink-faint);font-size:12.5px;line-height:1.7;margin:12px 0 0;}
-  .card .map-node{display:flex;align-items:center;gap:10px;padding:9px 6px;font-size:14.5px;
-    border-bottom:1px dashed var(--panel-line);}
-  .card .map-node .dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--ink-faint);flex:0 0 auto;}
-  .card .map-node.cur .dot{background:var(--seal);border-color:var(--seal);box-shadow:0 0 0 4px rgba(158,59,46,.15);}
-  .card .map-node.cur{color:var(--seal);font-weight:700;}
-  .card .map-node .ex{color:var(--ink-faint);font-size:12px;margin-left:auto;}
+  /* ===== 山河志·空间地图 ===== */
+  .map-canvas{max-height:58vh;overflow:auto;margin:6px -16px 0;padding:4px 16px 8px;}
+  .map-grid{position:relative;margin:0 auto;}
+  .map-svg{position:absolute;left:0;top:0;pointer-events:none;}
+  .map-pin{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
+    align-items:center;gap:3px;cursor:default;width:84px;}
+  .map-pin .mp-dot{width:11px;height:11px;border-radius:50%;background:rgba(176,131,47,.35);
+    border:2px solid rgba(140,103,40,.75);flex:0 0 auto;transition:.12s;}
+  .map-pin .mp-nm{font-size:11px;line-height:1.25;text-align:center;color:var(--ink-soft);
+    background:rgba(255,253,248,.9);border-radius:6px;padding:1px 4px;white-space:nowrap;}
+  .map-pin.cur .mp-dot{background:var(--seal);border-color:var(--seal);
+    box-shadow:0 0 0 4px rgba(158,59,46,.18);transform:scale(1.25);}
+  .map-pin.cur .mp-nm{color:var(--seal);font-weight:700;background:rgba(255,247,240,.96);
+    box-shadow:0 1px 4px rgba(60,48,34,.18);}
   .card .close{margin-top:18px;width:100%;padding:12px;border:none;border-radius:12px;
     background:rgba(158,59,46,.14);color:var(--seal);font-size:15px;font-weight:600;cursor:pointer;}
   .card .close:active{transform:scale(.97);}
@@ -517,6 +525,16 @@ window.onerror=function(msg,url,line,col,err){
     {n:'雾',  ic:'🌫'},
     {n:'风',  ic:'🌬'}
   ];
+  // 山河志空间坐标（网格 col,row；row 越小越北，col 越大越东）。依出口方位手工排布，体现地理关系。
+  var MAP_COORDS={
+    camp:[6,7], city:[6,6], stream:[5,7], forest:[7,7],
+    forest_patrol_a:[8,7], forest_patrol_b:[8,6], forest_patrol_c:[8,5],
+    luoyang:[6,3],
+    ji_guomen:[9,3], ji_liumin:[8,3], ji_mashi:[10,3], ji_nanmen:[9,2],
+    ji_heishan_zhai:[10,2], ji_tongqu:[9,1], ji_heishan_juyi:[10,1], ji_junying:[8,1],
+    ji_yiguan:[8,0], ji_zhoumu:[9,0], ji_heishan_houzhai:[10,0], ji_dashi:[11,1],
+    ji_minli:[12,1], ji_xuegong:[11,0], ji_zhoumu_houtang:[7,0]
+  };
   function lunarDayName(d){
     var cn=['','一','二','三','四','五','六','七','八','九','十'];
     if(d>=1&&d<=10) return '初'+cn[d];
@@ -1501,14 +1519,44 @@ window.onerror=function(msg,url,line,col,err){
         row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
         '<p class="tip">「颍川城」寻胡商购药、助医馆华老；「山林」巡山剿匪可领县尉韩伯托付；「溪畔」访水镜先生与左慈。后续章节随主线推进开启。</p>';
     } else if(kind==='map'){
-      h='<h3>山 河 志</h3>';
-      Object.keys(G.ROOMS).forEach(function(rid){
-        var r=G.ROOMS[rid];
-        var ex=Object.keys(r.exits||{}).map(function(d){return d+'→'+G.ROOMS[r.exits[d]].name;}).join('，');
-        h+='<div class="map-node'+(rid===state.room?' cur':'')+'"><span class="dot"></span>'+r.name+
-            (ex?'<span class="ex">'+ex+'</span>':'')+'</div>';
+      // 空间地图：按 MAP_COORDS 网格排布节点，连线表示出口通达关系
+      var keys=Object.keys(G.ROOMS).filter(function(rid){return MAP_COORDS[rid];});
+      var mx=0, my=0;
+      keys.forEach(function(rid){ var c=MAP_COORDS[rid]; if(c[0]>mx)mx=c[0]; if(c[1]>my)my=c[1]; });
+      var CELL=92, W=(mx+1)*CELL, H=(my+1)*CELL;
+      function px(c){ return (c[0]+0.5)*CELL; }
+      function py(c){ return (c[1]+0.5)*CELL; }
+      // 连线（每条出口一条，去重避免反向重复）
+      var seen={}, lines='';
+      keys.forEach(function(rid){
+        var c=MAP_COORDS[rid], r=G.ROOMS[rid];
+        Object.keys(r.exits||{}).forEach(function(dir){
+          var tid=r.exits[dir];
+          if(!MAP_COORDS[tid]) return;
+          var k=[rid,tid].sort().join('|');
+          if(seen[k]) return; seen[k]=1;
+          var tc=MAP_COORDS[tid];
+          var reach=(rid===state.room||tid===state.room);
+          lines+='<line x1="'+px(c)+'" y1="'+py(c)+'" x2="'+px(tc)+'" y2="'+py(tc)+'" '+
+                 'stroke="'+(reach?'rgba(158,59,46,.55)':'rgba(176,131,47,.32)')+'" '+
+                 'stroke-width="'+(reach?2.4:1.4)+'" '+(reach?'':'stroke-dasharray="4 4"')+'/>';
+        });
       });
-      h+='<p class="tip">当前身处「'+curRoom().name+'」。以出口方向在江湖穿行；其余地域将随主线推进逐一解锁。</p>';
+      // 节点
+      var pins='';
+      keys.forEach(function(rid){
+        var c=MAP_COORDS[rid], r=G.ROOMS[rid], cur=(rid===state.room);
+        var x=px(c), y=py(c);
+        var ex=Object.keys(r.exits||{}).map(function(d){return d+'·'+G.ROOMS[r.exits[d]].name;}).join('，');
+        pins+='<div class="map-pin'+(cur?' cur':'')+'" style="left:'+x+'px;top:'+y+'px" '+
+              'title="'+r.name+(ex?'\n〔通达〕'+ex:'')+'">'+
+              '<span class="mp-dot"></span><span class="mp-nm">'+r.name+'</span></div>';
+      });
+      h='<h3>山 河 志</h3>'+
+        '<div class="map-canvas"><div class="map-grid" style="width:'+W+'px;height:'+H+'px">'+
+          '<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+pins+
+        '</div></div>'+
+        '<p class="tip">红点为当前所处「'+curRoom().name+'」，虚线为其通达之路；据出口方位铺展，北在上、东在右。其余地域将随主线推进逐一解锁。</p>';
     } else if(kind==='clock'){
       var R=41; // 时辰标签半径（百分比）
       var clkLabels='';
