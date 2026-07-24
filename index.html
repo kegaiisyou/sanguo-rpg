@@ -113,7 +113,9 @@
     padding:7px 6px 11px;font-family:"PingFang SC","Microsoft YaHei",sans-serif;opacity:.8;}
   /* 分组底色卡片：人物/场景/去处 各异；自身 加边框强化「关于我」 */
   .act.g-ren{background:rgba(86,59,107,.13);border-color:rgba(86,59,107,.32);}
-  .act.g-ren .ob-nm{color:#4a3560;}
+  .act.g-ren.obj-btn{flex-direction:row;gap:0;padding:4px 10px;min-height:28px;font-size:13px;line-height:1.3;}
+  .act.g-ren.obj-btn .ob-ic{display:none;}
+  .act.g-ren.obj-btn .ob-nm{font-size:13px;color:#4a3560;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .act.g-scene{background:rgba(63,125,94,.13);border-color:rgba(63,125,94,.32);}
   .act.g-scene .ob-nm{color:#2f5d45;}
   .act.g-exit{background:rgba(176,131,47,.15);border-color:rgba(176,131,47,.38);}
@@ -177,12 +179,12 @@
   .obj-popup.op-up::after{top:auto;bottom:-7px;border-bottom:none;border-top:7px solid rgba(176,131,47,.32);}
   .obj-popup .op-desc{font-size:10.5px;color:var(--ink-faint);text-align:center;
     width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2;}
-  .obj-popup .op-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:center;}
-  .op-btn{padding:6px 12px;border-radius:7px;background:var(--btn);border:1px solid var(--btn-line);
-    font-size:12.5px;color:var(--ink);cursor:pointer;white-space:nowrap;box-shadow:0 1px 6px rgba(60,48,34,.08);
-    font-family:"PingFang SC","Microsoft YaHei",sans-serif;transition:.14s;}
+  .obj-popup .op-row{display:flex;flex-direction:column;gap:4px;align-items:stretch;}
+  .op-btn{padding:7px 14px;border-radius:7px;background:var(--btn);border:1px solid var(--btn-line);
+    font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;text-align:center;
+    box-shadow:0 1px 6px rgba(60,48,34,.08);font-family:"PingFang SC","Microsoft YaHei",sans-serif;transition:.14s;}
   .op-btn:hover{background:rgba(158,39,46,.08);border-color:rgba(158,39,46,.4);}
-  .op-btn:active{transform:scale(.95);}
+  .op-btn:active{transform:scale(.97);}
   .op-btn.danger{color:#c0392b;border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.06);}
   /* ===== 罗盘枢纽：中心为「四周环境/返回」按钮，展开后方位按钮按真实方位落位 ===== */
   .exit-compass{grid-column:span 1;display:grid;grid-template-columns:repeat(3,1fr);
