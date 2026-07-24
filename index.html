@@ -495,12 +495,12 @@
     font-size:62px;line-height:1.04;letter-spacing:2px;margin:0;font-weight:400;color:#1b140d;
     text-shadow:0 2px 16px rgba(255,250,235,.6),0 1px 0 rgba(255,255,255,.25);}
   .tt-name span{display:block;}
-  .tt-seal{position:relative;align-self:flex-end;margin-bottom:8px;width:34px;height:46px;border:2px solid #9c2b1e;color:#9c2b1e;
-    border-radius:3px;font-size:15px;line-height:19px;display:flex;align-items:center;justify-content:center;
-    background:rgba(156,43,30,.06);writing-mode:vertical-rl;letter-spacing:1px;
-    box-shadow:0 0 0 2px rgba(156,43,30,.10) inset;transform:rotate(-3deg);
-    font-family:"STKaiti","KaiTi",serif;}
-  .tt-poem{font-family:"Zhi Mang Xing","STKaiti","KaiTi",serif;font-size:21px;letter-spacing:2px;white-space:nowrap;color:#3a2c1c;opacity:.82;margin-top:16px;text-shadow:0 1px 10px rgba(255,250,235,.5);}
+  /* 诗句：隐于背景的淡墨大字，大气 */
+  .tt-poem-bg{position:absolute;z-index:0;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-family:"Zhi Mang Xing","STKaiti","KaiTi",serif;
+    font-size:clamp(56px,14vw,150px);line-height:1.28;letter-spacing:6px;white-space:nowrap;
+    color:#15100a;text-align:center;opacity:.11;pointer-events:none;
+    text-shadow:0 0 34px rgba(20,15,8,.18);}
   /* 分隔朱线 + 印记 */
   .tt-rule{display:flex;align-items:center;gap:11px;margin:24px 0 2px;color:#9c2b1e;font-size:11px;}
   .tt-rule::before,.tt-rule::after{content:'';height:1px;width:56px;}
@@ -552,12 +552,11 @@ window.onerror=function(msg,url,line,col,err){
 </div>
 
 <div id="title">
+  <div class="tt-poem-bg">滚滚长江东逝水<br>浪花淘尽英雄</div>
   <div class="tt-inner">
     <div class="tt-head">
-      <h1 class="tt-name"><span>乱</span><span>世</span><span>烽</span><span>火</span></h1>
-      <span class="tt-seal">烽火</span>
+      <h1 class="tt-name"><span>三</span><span>国</span><span>群</span><span>侠</span><span>传</span></h1>
     </div>
-    <div class="tt-poem">滚滚长江东逝水　浪花淘尽英雄</div>
     <div class="tt-rule">❖</div>
     <div class="tt-menu">
       <button class="t-btn" id="t-start">仗 剑 入 世</button>
@@ -565,7 +564,6 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-codex">览 物 志</button>
       <button class="t-btn" id="t-set">整 肃 行 装</button>
     </div>
-    <div class="tt-foot">汉灵帝 · 光和元年</div>
   </div>
 </div>
 
@@ -1962,7 +1960,7 @@ window.onerror=function(msg,url,line,col,err){
     return h;
   }
   function openModal(kind){
-    if(state.dead){ die(); return; }
+    if(state && state.dead){ die(); return; }
     if(kind==='dev'){ renderDev(); return; }
    try{
     var h='';
