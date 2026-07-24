@@ -635,7 +635,7 @@ window.onerror=function(msg,url,line,col,err){
         bg+'<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+pins+
       '</div></div>'+
       '<div class="map-scale"><span class="ms-bar"></span><span class="ms-tx">1 格 ≈ '+MAP_LI+' 里</span></div>'+
-      '<div class="map-hint">拖拽平移 · 滚轮 / 双指缩放</div></div>'+
+      '<div class="map-hint">拖拽平移 · 滚轮/双指缩放 · 双击复位</div></div>'+
       '<p class="tip">'+tip+'</p>';
   }
   // 地图交互：以当前所处为中心、拖拽平移、滚轮/双指缩放
@@ -667,16 +667,21 @@ window.onerror=function(msg,url,line,col,err){
       tx=ox-gx*scale; ty=oy-gy*scale; apply();
     }
     // 鼠标拖拽 / 滚轮
+    // 清理上一次打开地图遗留的全局监听，避免重复绑定泄漏
+    if(initMap._ac){ try{ initMap._ac.abort(); }catch(e){} }
+    var ac=new AbortController(); initMap._ac=ac; var sig={signal:ac.signal};
     var dragging=false, sx=0, sy=0, stx=0, sty=0;
-    canvas.addEventListener('mousedown', function(e){ dragging=true; moved=false; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty; });
+    canvas.addEventListener('mousedown', function(e){ dragging=true; moved=false; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty; }, sig);
     window.addEventListener('mousemove', function(e){
       if(!dragging) return;
       var dx=e.clientX-sx, dy=e.clientY-sy;
       if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
       tx=stx+dx; ty=sty+dy; apply();
-    });
-    window.addEventListener('mouseup', function(){ dragging=false; });
-    canvas.addEventListener('wheel', function(e){ e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY<0?1.12:0.89); }, {passive:false});
+    }, sig);
+    window.addEventListener('mouseup', function(){ dragging=false; }, sig);
+    canvas.addEventListener('wheel', function(e){ e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY<0?1.12:0.89); }, {passive:false, signal:ac.signal});
+    // 双击任意处：复位到「当前所处」并恢复默认缩放，防止平移后找不到地图
+    canvas.addEventListener('dblclick', function(){ scale=1; centerOn(state.room); }, sig);
     // 触摸：单指平移 / 双指缩放
     var t0=null, dist0=0, z0=1;
     canvas.addEventListener('touchstart', function(e){
@@ -1185,6 +1190,93 @@ window.onerror=function(msg,url,line,col,err){
       {type:'npc',   key:'minlao',  icon:'👤', name:'流民老者', desc:'田庐尽毁，乞儿待济',                  actions:[{label:'与他交谈', fn:function(){ talk('minlao'); }}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾流民棚'},
       {type:'exit',  dir:'东',     icon:'🚪', name:'东·郭门',   desc:'回郭门方向',                          actions:[{label:'回郭门',     fn:function(){ move('东','ji_guomen'); }}]}
+    ],
+    // ═══ 蓟城·新增街道 / 市井 / 民居 / 北郊通道（补全 ROOM_OBJECTS） ═══
+    ji_beimen:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾朔门城楼',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest', icon:'🧱', name:'门洞歇处', desc:'倚墙避风小憩，气血内力尽复',          actions:[{label:'门洞歇脚', fn:function(){ actRest(); }, tip:'倚墙避风小憩，气血内力尽复'}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('南','ji_tongqu'); }}]},
+      {type:'exit',  dir:'北',     icon:'🌾', name:'北·城外农田',desc:'出城往北郊，阡陌连绵',              actions:[{label:'出北门',     fn:function(){ move('北','ji_tian'); }}]}
+    ],
+    ji_xishijie:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾西市街',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'东',     icon:'🚪', name:'东·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('东','ji_tongqu'); }}]},
+      {type:'exit',  dir:'西',     icon:'⚔️', name:'西·军营',   desc:'旌旗猎猎，突骑操练',                  actions:[{label:'往军营',     fn:function(){ move('西','ji_junying'); }}]},
+      {type:'exit',  dir:'北',     icon:'🏛️', name:'北·州牧府', desc:'幽州刺史部治所，朱门铜钉',            actions:[{label:'往州牧府',   fn:function(){ move('北','ji_zhoumu'); }}]},
+      {type:'exit',  dir:'南',     icon:'🏛️', name:'南·郡衙',   desc:'钱粮刑名，击鼓鸣冤',                  actions:[{label:'往郡衙',     fn:function(){ move('南','ji_junya'); }}]}
+    ],
+    ji_dongshijie:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾东市街',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'西',     icon:'🚪', name:'西·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('西','ji_tongqu'); }}]},
+      {type:'exit',  dir:'东',     icon:'🏪', name:'东·大市',   desc:'四方商贾辐辏，货物琳琅',              actions:[{label:'往大市',     fn:function(){ move('东','ji_dashi'); }}]},
+      {type:'exit',  dir:'北',     icon:'🍶', name:'北·醉仙楼', desc:'三层木楼，丝竹觥筹',                  actions:[{label:'往醉仙楼',   fn:function(){ move('北','ji_jiulou'); }}]},
+      {type:'exit',  dir:'南',     icon:'🍵', name:'南·清风茶肆',desc:'炉香袅袅，说书正酣',                  actions:[{label:'往茶肆',     fn:function(){ move('南','ji_chasi'); }}]}
+    ],
+    ji_lianwu:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾练武校场',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'feature',key:'spar',  icon:'🏟️', name:'校场试招', desc:'与健卒过招，磨砺身手',                  actions:[{label:'校场试招', fn:function(){ handleAction('spar_bandit'); }, tip:'与健卒过招，磨砺身手'}]},
+      {type:'exit',  dir:'南',     icon:'⚔️', name:'南·军营',   desc:'回军营方向',                          actions:[{label:'回军营',     fn:function(){ move('南','ji_junying'); }}]}
+    ],
+    ji_junya:[
+      {type:'npc',   key:'xianling',icon:'👤', name:'蓟县县令', desc:'掌一县钱粮刑名、户籍徭役',            actions:[{label:'与他交谈', fn:function(){ talk('xianling'); }}]},
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾郡衙',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'北',     icon:'🚪', name:'北·西市街', desc:'回西市街，达通衢',                    actions:[{label:'回西市街',   fn:function(){ move('北','ji_xishijie'); }}]}
+    ],
+    ji_jiulou:[
+      {type:'npc',   key:'xiaoguan',icon:'👤', name:'醉仙楼掌柜', desc:'沽得幽州烈酒，消息最灵',            actions:[{label:'与他交谈', fn:function(){ talk('xiaoguan'); }}]},
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾醉仙楼',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest', icon:'🍶', name:'楼中饮宴', desc:'沽酒小酌，气血内力尽复',                actions:[{label:'楼中饮宴', fn:function(){ actRest(); }, tip:'沽酒小酌，气血内力尽复'}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·东市街', desc:'回东市街，达通衢',                    actions:[{label:'回东市街',   fn:function(){ move('南','ji_dongshijie'); }}]}
+    ],
+    ji_chasi:[
+      {type:'npc',   key:'shuosheng',icon:'👤', name:'说书先生', desc:'拍案说三分，满堂喝彩',                actions:[{label:'与他交谈', fn:function(){ talk('shuosheng'); }}]},
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾清风茶肆',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest', icon:'🍵', name:'茶肆歇脚', desc:'品茗小坐，气血内力尽复',                actions:[{label:'茶肆歇脚', fn:function(){ actRest(); }, tip:'品茗小坐，气血内力尽复'}]},
+      {type:'exit',  dir:'北',     icon:'🚪', name:'北·东市街', desc:'回东市街，达通衢',                    actions:[{label:'回东市街',   fn:function(){ move('北','ji_dongshijie'); }}]}
+    ],
+    ji_minju:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾北巷民居',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'南',     icon:'🏡', name:'南·平民里', desc:'回平民里',                            actions:[{label:'回平民里',   fn:function(){ move('南','ji_minli'); }}]}
+    ],
+    ji_minju2:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾南巷民居',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'北',     icon:'🏚️', name:'北·平民里', desc:'回平民里',                            actions:[{label:'回平民里',   fn:function(){ move('北','ji_minli'); }}]}
+    ],
+    ji_tian:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾城外农田',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest', icon:'🌾', name:'田埂小憩', desc:'倚界石歇脚，气血内力尽复',            actions:[{label:'田埂小憩', fn:function(){ actRest(); }, tip:'倚界石歇脚，气血内力尽复'}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·北门',   desc:'回朔门方向',                          actions:[{label:'回北门',     fn:function(){ move('南','ji_beimen'); }}]},
+      {type:'exit',  dir:'北',     icon:'🌿', name:'北·荒地',   desc:'田垄渐荒，蒿草没胫',                  actions:[{label:'往荒地',     fn:function(){ move('北','ji_huangdi'); }}]},
+      {type:'exit',  dir:'东',     icon:'🌳', name:'东·小树林', desc:'林木稀疏，静僻宜歇',                  actions:[{label:'往小树林',   fn:function(){ move('东','ji_xiaoshulin'); }}]}
+    ],
+    ji_xiaoshulin:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾小树林',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest', icon:'🌳', name:'林间歇脚', desc:'倚树小憩，气血内力尽复',                actions:[{label:'林间歇脚', fn:function(){ actRest(); }, tip:'倚树小憩，气血内力尽复'}]},
+      {type:'exit',  dir:'西',     icon:'🌾', name:'西·农田',   desc:'回农田方向',                          actions:[{label:'回农田',     fn:function(){ move('西','ji_tian'); }}]},
+      {type:'exit',  dir:'北',     icon:'🌲', name:'北·森林',   desc:'林木渐密，野有凶险',                  actions:[{label:'往森林',     fn:function(){ move('北','ji_senlin'); }}]}
+    ],
+    ji_huangdi:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾城外荒地',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'南',     icon:'🌾', name:'南·农田',   desc:'回农田方向',                          actions:[{label:'回农田',     fn:function(){ move('南','ji_tian'); }}]},
+      {type:'exit',  dir:'北',     icon:'⛰️', name:'北·小山丘', desc:'缓丘隆起，远眺蓟城',                  actions:[{label:'往小山丘',   fn:function(){ move('北','ji_xiaoqiu'); }}]},
+      {type:'exit',  dir:'东',     icon:'🌲', name:'东·森林',   desc:'林木渐密，野有凶险',                  actions:[{label:'往森林',     fn:function(){ move('东','ji_senlin'); }}]}
+    ],
+    ji_senlin:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾城外森林',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'feature',key:'patrol',icon:'🌲', name:'林中巡探', desc:'深入森林，搜检贼踪',                    actions:[{label:'林中巡探', fn:function(){ handleAction('patrol'); }, tip:'深入森林，搜检有无贼踪'}]},
+      {type:'exit',  dir:'南',     icon:'🌳', name:'南·小树林', desc:'回小树林方向',                        actions:[{label:'回小树林',   fn:function(){ move('南','ji_xiaoshulin'); }}]},
+      {type:'exit',  dir:'西',     icon:'🌿', name:'西·荒地',   desc:'回荒地方向',                          actions:[{label:'回荒地',     fn:function(){ move('西','ji_huangdi'); }}]}
+    ],
+    ji_xiaoqiu:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾小山丘',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'building',key:'rest', icon:'⛰️', name:'丘顶歇息', desc:'坐巨石上远眺，气血内力尽复',            actions:[{label:'丘顶歇息', fn:function(){ actRest(); }, tip:'坐巨石上远眺，气血内力尽复'}]},
+      {type:'exit',  dir:'南',     icon:'🌿', name:'南·荒地',   desc:'回荒地方向',                          actions:[{label:'回荒地',     fn:function(){ move('南','ji_huangdi'); }}]},
+      {type:'exit',  dir:'北',     icon:'🪨', name:'北·荒山',   desc:'怪石嶙峋，黑山余脉',                  actions:[{label:'往荒山',     fn:function(){ move('北','ji_huangshan'); }}]}
+    ],
+    ji_huangshan:[
+      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾城外荒山',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'南',     icon:'⛰️', name:'南·小山丘', desc:'回小山丘方向',                        actions:[{label:'回小山丘',   fn:function(){ move('南','ji_xiaoqiu'); }}]},
+      {type:'exit',  dir:'北',     icon:'🔥', name:'北·黑山寨', desc:'贼巢所在，兵刃相击',                  actions:[{label:'闯黑山寨',   fn:function(){ move('北','ji_heishan_zhai'); }}]}
     ],
     // ═══ 北邙·巡山道（实走巡逻子地图，往来随机遇敌） ═══
     forest_patrol_a:[
