@@ -159,22 +159,25 @@
     color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.7;margin:5px 0 3px;}
   /* ===== NPC/物件：点击弹出紧凑浮动小菜单（右键菜单风格，不占网格空间） ===== */
   .obj-popup{position:fixed;z-index:120;display:flex;flex-direction:column;align-items:center;gap:5px;
-    padding:6px 8px;border-radius:11px;
+    padding:6px 8px;border-radius:11px;max-width:min(300px, calc(100vw - 16px));
     background:rgba(255,253,248,.97);backdrop-filter:blur(14px);
     border:1px solid rgba(176,131,47,.32);
     box-shadow:0 5px 24px rgba(60,48,34,.20),0 0 0 1px rgba(176,131,47,.07);
-    animation:opPop .24s cubic-bezier(.2,.9,.3,1.35) both;transform-origin:top center;}
-  @keyframes opPop{from{opacity:0;transform:scale(.82) translateY(-5px);}to{opacity:1;transform:scale(1) translateY(0);}}
-  /* 指向按钮的小三角 */
+    animation:opPop .24s cubic-bezier(.2,.9,.3,1.35) both;}
+  @keyframes opPop{from{opacity:0;margin-top:-5px;}to{opacity:1;margin-top:0;}}
+  /* 指向按钮的小三角（默认在上方，弹到按钮下方时） */
   .obj-popup::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%);
     width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;
     border-bottom:6px solid rgba(255,253,248,.97);}
   .obj-popup::after{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);
     width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;
     border-bottom:7px solid rgba(176,131,47,.32);z-index:-1;}
+  /* 弹到按钮上方时，箭头翻转到下方 */
+  .obj-popup.op-up::before{top:auto;bottom:-6px;border-bottom:none;border-top:6px solid rgba(255,253,248,.97);}
+  .obj-popup.op-up::after{top:auto;bottom:-7px;border-bottom:none;border-top:7px solid rgba(176,131,47,.32);}
   .obj-popup .op-desc{font-size:10.5px;color:var(--ink-faint);text-align:center;
-    max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2;}
-  .obj-popup .op-row{display:flex;gap:5px;align-items:center;}
+    width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2;}
+  .obj-popup .op-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:center;}
   .op-btn{padding:6px 12px;border-radius:7px;background:var(--btn);border:1px solid var(--btn-line);
     font-size:12.5px;color:var(--ink);cursor:pointer;white-space:nowrap;box-shadow:0 1px 6px rgba(60,48,34,.08);
     font-family:"PingFang SC","Microsoft YaHei",sans-serif;transition:.14s;}
@@ -1017,25 +1020,25 @@ window.onerror=function(msg,url,line,col,err){
     document.body.appendChild(panel);
     btn.classList.add('open');
     objPanelOpen=panel;
-    positionPopup(panel, btn);
+    // 延迟一帧等浏览器布局稳定后再定位，避免 visibility:hidden 预计算导致宽度偏差
+    setTimeout(function(){ positionPopup(panel, btn); }, 0);
     // 场景滚动时自动收起
     var sc=document.getElementById('scene'); if(sc) sc.addEventListener('scroll', collapseObjPanel, {once:true});
     setTimeout(function(){ document.addEventListener('click', onDocCollapseObj, true); }, 0);
   }
   function positionPopup(panel, btn){
+    if(!panel.parentNode) return;
     var br=btn.getBoundingClientRect();
-    var vw=window.innerWidth, vh=window.innerHeight;
-    // 先用 visibility:hidden 量尺寸，避免闪动
-    panel.style.visibility='hidden'; panel.style.left='0'; panel.style.top='0';
-    // 强制布局以获取正确尺寸
-    panel.offsetHeight;
-    var pw=panel.offsetWidth, ph=panel.offsetHeight;
-    var left=br.left+br.width/2-pw/2;
-    left=Math.max(6, Math.min(left, vw-pw-6));
-    var top=br.bottom+7; // 按钮下方 7px
-    if(top+ph>vh-10){ top=br.top-ph-7; } // 空间不够则弹到按钮上方
-    panel.style.left=left+'px'; panel.style.top=top+'px';
-    panel.style.visibility='';
+    var vh=window.innerHeight;
+    // 水平居中于按钮，用 translateX(-50%) 自动对齐，无需预计算宽度
+    panel.style.left=(br.left+br.width/2)+'px';
+    panel.style.transform='translateX(-50%)';
+    var ph=panel.offsetHeight;
+    var top=br.bottom+8; // 默认在按钮下方
+    var up=false;
+    if(top+ph>vh-12){ top=br.top-ph-8; up=true; } // 空间不够则弹到上方
+    panel.style.top=top+'px';
+    if(up) panel.classList.add('op-up');
   }
   function collapseObjPanel(){
     if(!objPanelOpen) return;
