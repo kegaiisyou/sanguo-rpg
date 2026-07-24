@@ -555,27 +555,38 @@ window.onerror=function(msg,url,line,col,err){
     forest_patrol_a:[8,7], forest_patrol_b:[8,6], forest_patrol_c:[8,5],
     luoyang:[6,3],
     ji_guomen:[9,3], ji_liumin:[8,3], ji_mashi:[13,3], ji_nanmen:[9,2],
-    ji_heishan_zhai:[13,2], ji_tongqu:[9,1], ji_heishan_juyi:[13,1], ji_junying:[8,1],
-    ji_yiguan:[8,0], ji_zhoumu:[9,0], ji_heishan_houzhai:[13,0], ji_dashi:[11,1],
-    ji_minli:[12,1], ji_xuegong:[11,0], ji_zhoumu_houtang:[7,0]
+    ji_tongqu:[9,1], ji_junying:[8,1],
+    ji_yiguan:[8,0], ji_zhoumu:[9,0], ji_dashi:[11,1],
+    ji_minli:[12,1], ji_xuegong:[11,0], ji_zhoumu_houtang:[7,0],
+    // 蓟城正北 · 出北门渐进通道（太行山前，黑山军在州北山区）
+    ji_beimen:[9,-1],
+    ji_tian:[9,-2], ji_xiaoshulin:[10,-2],
+    ji_huangdi:[9,-3], ji_senlin:[10,-3],
+    ji_xiaoqiu:[9,-4],
+    ji_huangshan:[9,-5],
+    ji_heishan_zhai:[9,-6], ji_heishan_juyi:[9,-7], ji_heishan_houzhai:[9,-8]
   };
   var MAP_CELL=92;     // 单格像素
   var MAP_LI=60;       // 1 格 = 60 里（用于距离刻度）
+  var MAPMINC=0, MAPMINR=0;  // 地图网格最小列/行（支持负坐标：蓟城正北通道）
   // 山河志空间地图 HTML（main 查看 / 调试选出生点 共用）
   function buildMapHTML(opts){
     opts=opts||{};
     var keys=Object.keys(G.ROOMS).filter(function(rid){return MAP_COORDS[rid];});
-    var mx=0, my=0;
-    keys.forEach(function(rid){ var c=MAP_COORDS[rid]; if(c[0]>mx)mx=c[0]; if(c[1]>my)my=c[1]; });
-    var W=(mx+1)*MAP_CELL, H=(my+1)*MAP_CELL;
-    function px(c){ return (c[0]+0.5)*MAP_CELL; }
-    function py(c){ return (c[1]+0.5)*MAP_CELL; }
-    // 区域底色（中原 / 洛阳 / 幽州）
+    var minc=0,maxc=0,minr=0,maxr=0;
+    keys.forEach(function(rid){ var c=MAP_COORDS[rid];
+      if(c[0]<minc)minc=c[0]; if(c[0]>maxc)maxc=c[0];
+      if(c[1]<minr)minr=c[1]; if(c[1]>maxr)maxr=c[1]; });
+    var W=(maxc-minc+1)*MAP_CELL, H=(maxr-minr+1)*MAP_CELL;
+    function px(c){ return (c[0]-minc+0.5)*MAP_CELL; }
+    function py(c){ return (c[1]-minr+0.5)*MAP_CELL; }
+    MAPMINC=minc; MAPMINR=minr;
+    // 区域底色（中原 / 洛阳 / 幽州 / 黑山）
     var regions=[
       {x:px([6,7]), y:py([6,7]), r:165, c:'rgba(120,160,96,.18)', t:'中 原'},
       {x:px([6,3]), y:py([6,3]), r:130, c:'rgba(196,160,70,.18)', t:'洛 阳'},
-      {x:px([10.5,1.5]), y:py([10.5,1.5]), r:300, c:'rgba(96,140,190,.16)', t:'幽 州'},
-      {x:px([13,1]), y:py([13,1]), r:120, c:'rgba(90,86,80,.14)', t:'黑 山'}
+      {x:px([10,-1]), y:py([10,-1]), r:380, c:'rgba(96,140,190,.16)', t:'幽 州'},
+      {x:px([9,-6]), y:py([9,-6]), r:160, c:'rgba(90,86,80,.14)', t:'黑 山'}
     ];
     var bg='';
     regions.forEach(function(rg){
@@ -636,8 +647,8 @@ window.onerror=function(msg,url,line,col,err){
     function centerOn(rid){
       var c=MAP_COORDS[rid]||[0,0];
       var r=canvas.getBoundingClientRect();
-      tx=r.width/2 - (c[0]+0.5)*MAP_CELL*scale;
-      ty=r.height/2 - (c[1]+0.5)*MAP_CELL*scale;
+      tx=r.width/2 - (c[0]-MAPMINC+0.5)*MAP_CELL*scale;
+      ty=r.height/2 - (c[1]-MAPMINR+0.5)*MAP_CELL*scale;
       apply();
     }
     function zoomAt(clientX, clientY, factor){ setZoom(scale*factor, clientX, clientY); }
