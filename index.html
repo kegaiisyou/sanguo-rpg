@@ -354,11 +354,27 @@
     font-size:13px;background:var(--btn);color:var(--ink);}
   .card p.tip{color:var(--ink-faint);font-size:12.5px;line-height:1.7;margin:12px 0 0;}
   /* ===== 山河志·空间地图 ===== */
-  .map-canvas{max-height:58vh;overflow:auto;margin:6px -16px 0;padding:4px 16px 8px;}
-  .map-grid{position:relative;margin:0 auto;}
+  .map-canvas{position:relative;height:54vh;max-height:460px;overflow:hidden;margin:6px -16px 0;
+    border-radius:12px;border:1px solid rgba(176,131,47,.28);touch-action:none;
+    background:
+      radial-gradient(120% 120% at 30% 80%, rgba(120,160,96,.10), transparent 60%),
+      radial-gradient(120% 120% at 70% 20%, rgba(96,140,190,.10), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(176,131,47,.05) 0 1px, transparent 1px 46px),
+      repeating-linear-gradient(90deg, rgba(176,131,47,.05) 0 1px, transparent 1px 46px),
+      linear-gradient(160deg,#f6efe0,#efe6d2);}
+  .map-viewport{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;cursor:grab;}
+  .map-viewport:active{cursor:grabbing;}
+  .map-grid{position:relative;}
+  .map-region{position:absolute;border-radius:50%;pointer-events:none;
+    box-shadow:inset 0 0 40px rgba(255,255,255,.25);}
+  .map-region-t{position:absolute;transform:translate(-50%,0);font-family:"STKaiti","KaiTi",serif;
+    font-size:18px;letter-spacing:6px;color:rgba(120,90,40,.30);pointer-events:none;font-weight:700;}
   .map-svg{position:absolute;left:0;top:0;pointer-events:none;}
   .map-pin{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
-    align-items:center;gap:3px;cursor:default;width:84px;}
+    align-items:center;gap:3px;cursor:default;width:84px;z-index:2;}
+  .map-pin.pick{cursor:pointer;}
+  .map-pin .mp-star{position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+    color:#e6b400;font-size:13px;text-shadow:0 1px 2px rgba(255,255,255,.8);}
   .map-pin .mp-dot{width:11px;height:11px;border-radius:50%;background:rgba(176,131,47,.35);
     border:2px solid rgba(140,103,40,.75);flex:0 0 auto;transition:.12s;}
   .map-pin .mp-nm{font-size:11px;line-height:1.25;text-align:center;color:var(--ink-soft);
@@ -367,6 +383,14 @@
     box-shadow:0 0 0 4px rgba(158,59,46,.18);transform:scale(1.25);}
   .map-pin.cur .mp-nm{color:var(--seal);font-weight:700;background:rgba(255,247,240,.96);
     box-shadow:0 1px 4px rgba(60,48,34,.18);}
+  .map-pin.pick:hover .mp-dot{background:rgba(176,131,47,.7);border-color:rgba(140,103,40,.9);}
+  .map-scale{position:absolute;left:14px;bottom:12px;display:flex;align-items:center;gap:7px;
+    font-size:11px;color:var(--ink-soft);pointer-events:none;z-index:3;}
+  .map-scale .ms-bar{display:inline-block;height:6px;border-radius:3px;width:92px;
+    background:linear-gradient(90deg,rgba(120,90,40,.7),rgba(120,90,40,.25));
+    border:1px solid rgba(120,90,40,.4);}
+  .map-hint{position:absolute;right:14px;bottom:12px;font-size:11px;color:rgba(120,90,40,.6);
+    pointer-events:none;z-index:3;}
   .card .close{margin-top:18px;width:100%;padding:12px;border:none;border-radius:12px;
     background:rgba(158,59,46,.14);color:var(--seal);font-size:15px;font-weight:600;cursor:pointer;}
   .card .close:active{transform:scale(.97);}
@@ -535,6 +559,139 @@ window.onerror=function(msg,url,line,col,err){
     ji_yiguan:[8,0], ji_zhoumu:[9,0], ji_heishan_houzhai:[10,0], ji_dashi:[11,1],
     ji_minli:[12,1], ji_xuegong:[11,0], ji_zhoumu_houtang:[7,0]
   };
+  var MAP_CELL=92;     // 单格像素
+  var MAP_LI=60;       // 1 格 = 60 里（用于距离刻度）
+  // 山河志空间地图 HTML（main 查看 / 调试选出生点 共用）
+  function buildMapHTML(opts){
+    opts=opts||{};
+    var keys=Object.keys(G.ROOMS).filter(function(rid){return MAP_COORDS[rid];});
+    var mx=0, my=0;
+    keys.forEach(function(rid){ var c=MAP_COORDS[rid]; if(c[0]>mx)mx=c[0]; if(c[1]>my)my=c[1]; });
+    var W=(mx+1)*MAP_CELL, H=(my+1)*MAP_CELL;
+    function px(c){ return (c[0]+0.5)*MAP_CELL; }
+    function py(c){ return (c[1]+0.5)*MAP_CELL; }
+    // 区域底色（中原 / 洛阳 / 幽州）
+    var regions=[
+      {x:px([6,7]), y:py([6,7]), r:165, c:'rgba(120,160,96,.18)', t:'中 原'},
+      {x:px([6,3]), y:py([6,3]), r:130, c:'rgba(196,160,70,.18)', t:'洛 阳'},
+      {x:px([9.5,1.2]), y:py([9.5,1.2]), r:235, c:'rgba(96,140,190,.16)', t:'幽 州'}
+    ];
+    var bg='';
+    regions.forEach(function(rg){
+      bg+='<div class="map-region" style="left:'+rg.x+'px;top:'+rg.y+'px;width:'+(rg.r*2)+'px;height:'+(rg.r*2)+'px;margin-left:-'+rg.r+'px;margin-top:-'+rg.r+'px;background:'+rg.c+'"></div>';
+      bg+='<div class="map-region-t" style="left:'+rg.x+'px;top:'+(rg.y-rg.r+16)+'px">'+rg.t+'</div>';
+    });
+    // 连线（每条出口一条，去重避免反向重复）
+    var seen={}, lines='';
+    keys.forEach(function(rid){
+      var c=MAP_COORDS[rid], r=G.ROOMS[rid];
+      Object.keys(r.exits||{}).forEach(function(dir){
+        var tid=r.exits[dir];
+        if(!MAP_COORDS[tid]) return;
+        var k=[rid,tid].sort().join('|');
+        if(seen[k]) return; seen[k]=1;
+        var tc=MAP_COORDS[tid];
+        var reach=(rid===state.room||tid===state.room);
+        lines+='<line x1="'+px(c)+'" y1="'+py(c)+'" x2="'+px(tc)+'" y2="'+py(tc)+'" '+
+               'stroke="'+(reach?'rgba(158,59,46,.55)':'rgba(176,131,47,.32)')+'" '+
+               'stroke-width="'+(reach?2.4:1.4)+'" '+(reach?'':'stroke-dasharray="4 4"')+'/>';
+      });
+    });
+    // 节点
+    var pins='';
+    keys.forEach(function(rid){
+      var c=MAP_COORDS[rid], r=G.ROOMS[rid], cur=(rid===state.room);
+      var x=px(c), y=py(c);
+      var ex=Object.keys(r.exits||{}).map(function(d){return d+'·'+G.ROOMS[r.exits[d]].name;}).join('，');
+      var badge=(opts.pickSpawn&&rid===state.spawnRoom)?'<span class="mp-star">★</span>':'';
+      pins+='<div class="map-pin'+(cur?' cur':'')+(opts.pickSpawn?' pick':'')+'" '+
+              (opts.pickSpawn?' data-spawn="'+rid+'"':'')+
+              ' style="left:'+x+'px;top:'+y+'px" '+
+              'title="'+r.name+(ex?'\n〔通达〕'+ex:'')+'">'+
+              badge+'<span class="mp-dot"></span><span class="mp-nm">'+r.name+'</span></div>';
+    });
+    var title=opts.pickSpawn?'🗺 设置出生点':'山 河 志';
+    var tip=opts.pickSpawn
+      ? '点击一处地点设为出生点，并立即传送至此（已自动存档）。当前出生点：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)
+      : '红点为当前所处「'+curRoom().name+'」，实线为其通达之路；拖拽平移、滚轮 / 双指缩放。其余地域将随主线推进逐一解锁。';
+    return '<h3>'+title+'</h3>'+
+      '<div class="map-canvas"><div class="map-viewport"><div class="map-grid" style="width:'+W+'px;height:'+H+'px">'+
+        bg+'<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+pins+
+      '</div></div>'+
+      '<div class="map-scale"><span class="ms-bar"></span><span class="ms-tx">1 格 ≈ '+MAP_LI+' 里</span></div>'+
+      '<div class="map-hint">拖拽平移 · 滚轮 / 双指缩放</div></div>'+
+      '<p class="tip">'+tip+'</p>';
+  }
+  // 地图交互：以当前所处为中心、拖拽平移、滚轮/双指缩放
+  function initMap(opts){
+    opts=opts||{};
+    var canvas=document.querySelector('#modal-card .map-canvas'); if(!canvas) return;
+    var vp=canvas.querySelector('.map-viewport');
+    var scale=1, tx=0, ty=0, moved=false;
+    function apply(){
+      vp.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';
+      var bar=canvas.querySelector('.ms-bar'); if(bar) bar.style.width=Math.max(28,Math.min(150,MAP_CELL*scale))+'px';
+    }
+    function centerOn(rid){
+      var c=MAP_COORDS[rid]||[0,0];
+      var r=canvas.getBoundingClientRect();
+      tx=r.width/2 - (c[0]+0.5)*MAP_CELL*scale;
+      ty=r.height/2 - (c[1]+0.5)*MAP_CELL*scale;
+      apply();
+    }
+    function zoomAt(clientX, clientY, factor){ setZoom(scale*factor, clientX, clientY); }
+    function setZoom(newScale, clientX, clientY){
+      var r=canvas.getBoundingClientRect();
+      var ox=clientX-r.left, oy=clientY-r.top;
+      var gx=(ox-tx)/scale, gy=(oy-ty)/scale;
+      scale=Math.max(0.5, Math.min(3, newScale));
+      tx=ox-gx*scale; ty=oy-gy*scale; apply();
+    }
+    // 鼠标拖拽 / 滚轮
+    var dragging=false, sx=0, sy=0, stx=0, sty=0;
+    canvas.addEventListener('mousedown', function(e){ dragging=true; moved=false; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty; });
+    window.addEventListener('mousemove', function(e){
+      if(!dragging) return;
+      var dx=e.clientX-sx, dy=e.clientY-sy;
+      if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
+      tx=stx+dx; ty=sty+dy; apply();
+    });
+    window.addEventListener('mouseup', function(){ dragging=false; });
+    canvas.addEventListener('wheel', function(e){ e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY<0?1.12:0.89); }, {passive:false});
+    // 触摸：单指平移 / 双指缩放
+    var t0=null, dist0=0, z0=1;
+    canvas.addEventListener('touchstart', function(e){
+      if(e.touches.length===1){ t0={x:e.touches[0].clientX, y:e.touches[0].clientY, tx:tx, ty:ty}; moved=false; }
+      else if(e.touches.length===2){ dist0=touchDist(e); z0=scale; }
+    }, {passive:false});
+    canvas.addEventListener('touchmove', function(e){
+      e.preventDefault();
+      if(e.touches.length===1 && t0){
+        var dx=e.touches[0].clientX-t0.x, dy=e.touches[0].clientY-t0.y;
+        if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
+        tx=t0.tx+dx; ty=t0.ty+dy; apply();
+      } else if(e.touches.length===2 && dist0){
+        var d=touchDist(e), mid=touchMid(e);
+        setZoom(z0*(d/dist0), mid.x, mid.y);
+      }
+    }, {passive:false});
+    canvas.addEventListener('touchend', function(e){ if(e.touches.length===0) t0=null; });
+    function touchDist(e){ var a=e.touches[0], b=e.touches[1]; return Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); }
+    function touchMid(e){ var a=e.touches[0], b=e.touches[1]; return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2}; }
+    // 选出生点
+    if(opts.pickSpawn){
+      vp.querySelectorAll('[data-spawn]').forEach(function(el){
+        el.addEventListener('click', function(){
+          if(moved) return;
+          var rid=el.getAttribute('data-spawn');
+          state.spawnRoom=rid;
+          log('【调试】出生点已设为：'+G.ROOMS[rid].name+'。','good');
+          closeModal(); renderRoom(rid); save(state);
+        });
+      });
+    }
+    centerOn(state.room);
+  }
   function lunarDayName(d){
     var cn=['','一','二','三','四','五','六','七','八','九','十'];
     if(d>=1&&d<=10) return '初'+cn[d];
@@ -1519,44 +1676,7 @@ window.onerror=function(msg,url,line,col,err){
         row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
         '<p class="tip">「颍川城」寻胡商购药、助医馆华老；「山林」巡山剿匪可领县尉韩伯托付；「溪畔」访水镜先生与左慈。后续章节随主线推进开启。</p>';
     } else if(kind==='map'){
-      // 空间地图：按 MAP_COORDS 网格排布节点，连线表示出口通达关系
-      var keys=Object.keys(G.ROOMS).filter(function(rid){return MAP_COORDS[rid];});
-      var mx=0, my=0;
-      keys.forEach(function(rid){ var c=MAP_COORDS[rid]; if(c[0]>mx)mx=c[0]; if(c[1]>my)my=c[1]; });
-      var CELL=92, W=(mx+1)*CELL, H=(my+1)*CELL;
-      function px(c){ return (c[0]+0.5)*CELL; }
-      function py(c){ return (c[1]+0.5)*CELL; }
-      // 连线（每条出口一条，去重避免反向重复）
-      var seen={}, lines='';
-      keys.forEach(function(rid){
-        var c=MAP_COORDS[rid], r=G.ROOMS[rid];
-        Object.keys(r.exits||{}).forEach(function(dir){
-          var tid=r.exits[dir];
-          if(!MAP_COORDS[tid]) return;
-          var k=[rid,tid].sort().join('|');
-          if(seen[k]) return; seen[k]=1;
-          var tc=MAP_COORDS[tid];
-          var reach=(rid===state.room||tid===state.room);
-          lines+='<line x1="'+px(c)+'" y1="'+py(c)+'" x2="'+px(tc)+'" y2="'+py(tc)+'" '+
-                 'stroke="'+(reach?'rgba(158,59,46,.55)':'rgba(176,131,47,.32)')+'" '+
-                 'stroke-width="'+(reach?2.4:1.4)+'" '+(reach?'':'stroke-dasharray="4 4"')+'/>';
-        });
-      });
-      // 节点
-      var pins='';
-      keys.forEach(function(rid){
-        var c=MAP_COORDS[rid], r=G.ROOMS[rid], cur=(rid===state.room);
-        var x=px(c), y=py(c);
-        var ex=Object.keys(r.exits||{}).map(function(d){return d+'·'+G.ROOMS[r.exits[d]].name;}).join('，');
-        pins+='<div class="map-pin'+(cur?' cur':'')+'" style="left:'+x+'px;top:'+y+'px" '+
-              'title="'+r.name+(ex?'\n〔通达〕'+ex:'')+'">'+
-              '<span class="mp-dot"></span><span class="mp-nm">'+r.name+'</span></div>';
-      });
-      h='<h3>山 河 志</h3>'+
-        '<div class="map-canvas"><div class="map-grid" style="width:'+W+'px;height:'+H+'px">'+
-          '<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+pins+
-        '</div></div>'+
-        '<p class="tip">红点为当前所处「'+curRoom().name+'」，虚线为其通达之路；据出口方位铺展，北在上、东在右。其余地域将随主线推进逐一解锁。</p>';
+      h=buildMapHTML({});
     } else if(kind==='clock'){
       var R=41; // 时辰标签半径（百分比）
       var clkLabels='';
@@ -1606,6 +1726,7 @@ window.onerror=function(msg,url,line,col,err){
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var rs=document.getElementById('m-reset'); if(rs)rs.onclick=function(){clearSave();location.reload();};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
+    if(kind==='map') initMap({});
     // 装备面板交互
     $card.querySelectorAll('.eq-slot[data-slot]').forEach(function(el){
       el.onclick=function(){ unequip(el.getAttribute('data-slot')); };
@@ -1762,29 +1883,11 @@ window.onerror=function(msg,url,line,col,err){
   // ===== 调试：大地图选出生点 =====
   function openSpawnMap(){
     if(state.dead){ die(); return; }
-    var h='<h3>🗺 设置出生点</h3>'+
-          '<p class="tip">点击一处地点，将其设为你的初始出生点，并立即传送至此（已自动存档）。</p>';
-    Object.keys(G.ROOMS).forEach(function(rid){
-      var r=G.ROOMS[rid];
-      var ex=Object.keys(r.exits||{}).map(function(d){return d+'→'+G.ROOMS[r.exits[d]].name;}).join('，');
-      h+='<div class="map-node'+(rid===state.room?' cur':'')+'" data-spawn="'+rid+'" style="cursor:pointer;">'+
-          '<span class="dot"></span>'+(rid===state.spawnRoom?'★ ':'')+r.name+
-          (ex?'<span class="ex">'+ex+'</span>':'')+'</div>';
-    });
-    h+='<button class="close" id="m-close">取 消</button>';
-    $card.innerHTML=h;
+    var h=buildMapHTML({pickSpawn:true});
+    $card.innerHTML=h+'<button class="close" id="m-close">取 消</button>';
     $modal.classList.remove('hidden');
-    $card.querySelectorAll('[data-spawn]').forEach(function(el){
-      el.onclick=function(){
-        var rid=el.getAttribute('data-spawn');
-        state.spawnRoom=rid;
-        log('【调试】出生点已设为：'+G.ROOMS[rid].name+'。','good');
-        closeModal();
-        renderRoom(rid);
-        save(state);
-      };
-    });
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+    initMap({pickSpawn:true});
   }
   function toast(msg){$toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400);}
 
