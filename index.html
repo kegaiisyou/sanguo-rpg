@@ -914,6 +914,13 @@ window.onerror=function(msg,url,line,col,err){
         {label:'与他交谈', fn:function(){ talk('heishan_zhu'); }},
         {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zhu'); }, tip:'夺寨先斩贼首'}
       ]},
+      {type:'npc', key:'test_npc', icon:'🧪', name:'【测试】多按钮演示', desc:'用来测试弹出菜单多按钮排版的演示NPC', actions:[
+        {label:'交谈', fn:function(){ log('（测试NPC）你与本使者相谈甚欢。','say'); }},
+        {label:'交易', fn:function(){ log('（测试NPC）本使者身上并无什么好物。','say'); }},
+        {label:'攻击', danger:true, fn:function(){ log('（测试NPC）你挥出一拳，使者侧身避过。','combat'); }},
+        {label:'给予', fn:function(){ log('（测试NPC）你递上一物，使者微笑收下。','sys'); }},
+        {label:'观察', fn:function(){ log('（测试NPC）此人衣衫朴素，袖口绣着一行小字：「CodeBuddy 测试专用」。','env'); }}
+      ]},
       {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾聚义厅'},
       {type:'exit', dir:'南', icon:'🚪', name:'南·寨门', desc:'退回寨门', actions:[{label:'退回寨门', fn:function(){ move('南','ji_heishan_zhai'); }}]},
       {type:'exit', dir:'北', icon:'📦', name:'北·后寨', desc:'囤积赃物的所在', actions:[{label:'入后寨', fn:function(){ move('北','ji_heishan_houzhai'); }}]}
