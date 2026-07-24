@@ -303,7 +303,7 @@
   #dock button.rest{color:var(--seal);}
 
   /* ===== 弹窗 ===== */
-  #modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  #modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
     background:rgba(40,32,24,.34);backdrop-filter:blur(3px);padding:24px;
     animation:fade .25s ease both;}
   #modal.hidden{display:none;}
@@ -495,12 +495,21 @@
     font-size:62px;line-height:1.04;letter-spacing:2px;margin:0;font-weight:400;color:#1b140d;
     text-shadow:0 2px 16px rgba(255,250,235,.6),0 1px 0 rgba(255,255,255,.25);}
   .tt-name span{display:block;}
+  /* 副标题 */
+  .tt-sub{font-family:"Ma Shan Zheng","STKaiti","KaiTi",serif;font-size:23px;letter-spacing:8px;
+    color:#3a2c1c;opacity:.88;margin-top:9px;text-shadow:0 1px 10px rgba(255,250,235,.5);}
   /* 诗句：隐于背景的淡墨大字，大气 */
   .tt-poem-bg{position:absolute;z-index:0;left:50%;top:50%;transform:translate(-50%,-50%);
     font-family:"Zhi Mang Xing","STKaiti","KaiTi",serif;
     font-size:clamp(56px,14vw,150px);line-height:1.28;letter-spacing:6px;white-space:nowrap;
     color:#15100a;text-align:center;opacity:.11;pointer-events:none;
     text-shadow:0 0 34px rgba(20,15,8,.18);}
+  /* 背景侠义诗句：极淡墨痕，缀于上下 */
+  .tt-verse{position:absolute;z-index:0;left:50%;transform:translateX(-50%);white-space:nowrap;
+    font-family:"Zhi Mang Xing","STKaiti","KaiTi",serif;font-size:clamp(16px,3.4vw,32px);
+    letter-spacing:3px;color:#15100a;opacity:.07;pointer-events:none;text-shadow:0 0 24px rgba(20,15,8,.12);}
+  .tt-verse-top{top:7%;}
+  .tt-verse-bottom{bottom:7%;}
   /* 分隔朱线 + 印记 */
   .tt-rule{display:flex;align-items:center;gap:11px;margin:24px 0 2px;color:#9c2b1e;font-size:11px;}
   .tt-rule::before,.tt-rule::after{content:'';height:1px;width:56px;}
@@ -553,10 +562,13 @@ window.onerror=function(msg,url,line,col,err){
 
 <div id="title">
   <div class="tt-poem-bg">滚滚长江东逝水<br>浪花淘尽英雄</div>
+  <div class="tt-verse tt-verse-top">天下大势 · 分久必合 合久必分</div>
+  <div class="tt-verse tt-verse-bottom">受任于败军之际 · 奉命于危难之间</div>
   <div class="tt-inner">
     <div class="tt-head">
-      <h1 class="tt-name"><span>三</span><span>国</span><span>群</span><span>侠</span><span>传</span></h1>
+      <h1 class="tt-name"><span>乱</span><span>世</span><span>烽</span><span>火</span></h1>
     </div>
+    <div class="tt-sub">三国群侠传</div>
     <div class="tt-rule">❖</div>
     <div class="tt-menu">
       <button class="t-btn" id="t-start">仗 剑 入 世</button>
