@@ -470,48 +470,53 @@
   .eq-x,.eq-w{flex:0 0 auto;font-size:12px;color:var(--seal);padding:2px 8px;border:1px solid rgba(158,59,46,.3);border-radius:8px;}
   .equip-bag{display:flex;flex-direction:column;gap:6px;margin-top:2px;}
 
-  /* ===== 标题屏 · 滚滚长江东逝水 ===== */
+  /* ===== 标题屏 · 古风水墨 ===== */
   .hidden{display:none !important;}
-  #title{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    overflow:hidden;color:#f4ecdd;text-align:center;
-    font-family:"STKaiti","KaiTi","Songti SC",serif;
-    background:linear-gradient(180deg,#1b2640 0%,#39344f 26%,#7c4a3e 56%,#c9772f 73%,#e8b15a 86%,#f0d9a6 100%);}
-  #title.hidden{display:none;}
-  .tt-sun{position:absolute;top:17%;left:50%;transform:translateX(-50%);width:150px;height:150px;border-radius:50%;
-    background:radial-gradient(circle at 50% 50%,#ffeec0 0%,#ffd089 36%,#f0a14c 64%,rgba(240,161,76,0) 72%);
-    box-shadow:0 0 110px 46px rgba(255,190,110,.32);}
-  .tt-mtn{position:absolute;left:-5%;right:-5%;bottom:30%;height:34vh;pointer-events:none;}
-  .tt-mtn1{bottom:33%;opacity:.5;background:#241b2e;
-    clip-path:polygon(0 100%,11% 52%,27% 80%,44% 38%,61% 72%,79% 33%,100% 66%,100% 100%);}
-  .tt-mtn2{bottom:30%;opacity:.62;background:#3a2c34;
-    clip-path:polygon(0 100%,17% 70%,37% 44%,54% 78%,71% 50%,89% 74%,100% 60%,100% 100%);}
-  .tt-mist{position:absolute;left:0;right:0;bottom:27%;height:9%;pointer-events:none;
-    background:linear-gradient(180deg,rgba(240,220,190,0),rgba(244,224,194,.55));filter:blur(4px);}
-  .tt-river{position:absolute;left:0;right:0;bottom:0;height:30%;pointer-events:none;overflow:hidden;
-    background:linear-gradient(180deg,rgba(60,40,30,.15),#caa15a 32%,#9c6b3a 100%);}
-  .tt-river::before{content:'';position:absolute;inset:0;opacity:.5;
-    background:repeating-linear-gradient(90deg,rgba(255,240,200,.20) 0 7px,transparent 7px 24px);
-    animation:ttflow 7s linear infinite;}
-  @keyframes ttflow{from{background-position:0 0}to{background-position:64px 0}}
-  .tt-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:9px;padding:0 24px;max-width:560px;}
-  .tt-poem{font-size:25px;letter-spacing:7px;line-height:1.55;color:#fbe6c4;
-    text-shadow:0 2px 12px rgba(20,10,5,.6);opacity:.94;}
-  .tt-poem2{font-size:12.5px;letter-spacing:3px;color:#e9cfa0;opacity:.82;}
+  #title{position:fixed;inset:0;z-index:60;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#2a2118;text-align:center;
+    font-family:"STKaiti","KaiTi","Songti SC","STSong",serif;
+    background:radial-gradient(130% 115% at 50% -12%,#f3e9d0 0%,#e8d9b5 48%,#d4c193 100%);}
+  #title::after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 95% at 50% 42%,rgba(255,255,255,0) 52%,rgba(86,66,36,.20) 100%);}
+  /* 远山墨色 */
+  .tt-mtn{position:absolute;left:-6%;right:-6%;bottom:0;height:48vh;pointer-events:none;}
+  .tt-mtn1{bottom:0;opacity:.5;background:#27331c;
+    clip-path:polygon(0 100%,0 58%,14% 34%,28% 56%,42% 26%,58% 52%,72% 24%,86% 48%,100% 32%,100% 100%);}
+  .tt-mtn2{bottom:0;opacity:.8;background:#1d2515;
+    clip-path:polygon(0 100%,0 70%,18% 52%,34% 68%,50% 44%,66% 64%,82% 46%,100% 60%,100% 100%);}
+  .tt-mist{position:absolute;left:0;right:0;bottom:30%;height:16%;pointer-events:none;
+    background:linear-gradient(180deg,rgba(245,235,210,0),rgba(240,228,200,.5));filter:blur(7px);}
+  .tt-river{position:absolute;left:0;right:0;bottom:0;height:26%;pointer-events:none;overflow:hidden;
+    background:linear-gradient(180deg,rgba(60,70,40,.05),#c9b482 36%,#a98f5e 100%);}
+  .tt-river::before{content:'';position:absolute;inset:0;opacity:.45;
+    background:repeating-linear-gradient(95deg,rgba(255,250,230,.32) 0 6px,transparent 6px 22px);
+    animation:ttflow 9s linear infinite;}
+  @keyframes ttflow{from{background-position:0 0}to{background-position:60px 0}}
+  .tt-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;padding:0 24px;max-width:640px;}
+  /* 题名：墨笔主视觉 */
   .tt-head{position:relative;display:inline-block;margin-top:4px;}
-  .tt-name{font-size:58px;letter-spacing:15px;margin:0;color:#f6e3b0;font-weight:700;
-    text-shadow:0 2px 0 #8a2e22,0 4px 16px rgba(0,0,0,.5),0 0 28px rgba(255,200,120,.35);}
-  .tt-seal{position:absolute;right:-30px;top:6px;width:30px;height:42px;border:2px solid #b5392c;color:#b5392c;
-    border-radius:4px;font-size:14px;line-height:18px;display:flex;align-items:center;justify-content:center;
-    background:rgba(181,57,44,.08);writing-mode:vertical-rl;letter-spacing:1px;
-    box-shadow:0 0 0 2px rgba(181,57,44,.12) inset;}
-  .tt-sub{font-size:12.5px;letter-spacing:3px;color:#f2dcad;opacity:.92;margin-top:2px;}
-  .tt-menu{display:flex;flex-direction:column;gap:12px;margin-top:20px;width:min(78vw,300px);}
-  .t-btn{font-family:"STKaiti","KaiTi",serif;font-size:18px;letter-spacing:8px;padding:13px 0 13px 8px;cursor:pointer;
-    color:#3a2a18;background:linear-gradient(180deg,rgba(255,248,232,.93),rgba(244,230,205,.86));
-    border:1px solid rgba(120,80,40,.5);border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:.16s;}
-  .t-btn:active{transform:translateY(1px);background:rgba(255,236,202,.98);}
-  .t-btn:hover{box-shadow:0 6px 18px rgba(0,0,0,.32);}
-  .tt-foot{margin-top:22px;font-size:11.5px;letter-spacing:2px;color:#ecd6ad;opacity:.72;max-width:84vw;line-height:1.7;}
+  .tt-name{font-size:74px;letter-spacing:9px;margin:0;font-weight:700;color:#1d1610;
+    text-shadow:0 1px 0 rgba(255,255,255,.4),0 3px 12px rgba(60,45,20,.18);}
+  .tt-seal{position:absolute;right:-46px;top:9px;width:34px;height:46px;border:2px solid #9c2b1e;color:#9c2b1e;
+    border-radius:3px;font-size:15px;line-height:19px;display:flex;align-items:center;justify-content:center;
+    background:rgba(156,43,30,.06);writing-mode:vertical-rl;letter-spacing:1px;
+    box-shadow:0 0 0 2px rgba(156,43,30,.10) inset;transform:rotate(-3deg);}
+  .tt-poem{font-size:16px;letter-spacing:6px;color:#473826;opacity:.7;margin-top:16px;}
+  /* 分隔朱线 + 印记 */
+  .tt-rule{display:flex;align-items:center;gap:11px;margin:24px 0 2px;color:#9c2b1e;font-size:11px;}
+  .tt-rule::before,.tt-rule::after{content:'';height:1px;width:56px;}
+  .tt-rule::before{background:linear-gradient(90deg,transparent,#9c2b1e);}
+  .tt-rule::after{background:linear-gradient(90deg,#9c2b1e,transparent);}
+  /* 菜单：墨字，悬停朱染 */
+  .tt-menu{display:flex;flex-direction:column;align-items:center;margin-top:10px;}
+  .t-btn{font-family:inherit;font-size:21px;letter-spacing:9px;padding:11px 28px 11px 37px;cursor:pointer;
+    color:#2c2218;background:none;border:none;position:relative;transition:.22s;}
+  .t-btn::after{content:'';position:absolute;left:50%;right:50%;bottom:6px;height:1.5px;background:#9c2b1e;opacity:0;transition:.25s;}
+  .t-btn:hover{color:#9c2b1e;letter-spacing:10px;}
+  .t-btn:hover::after{left:23%;right:23%;opacity:1;}
+  .t-btn:active{transform:translateY(1px);}
+  .tt-foot{margin-top:30px;font-size:11px;letter-spacing:3px;color:#6a5536;opacity:.62;}
   /* 读档 / 设置 / 图鉴 子面板（复用 modal 容器） */
   .slot-row{display:flex;flex-direction:column;gap:10px;margin:6px 0 2px;}
   .slot{border:1px solid var(--btn-line);border-radius:12px;padding:11px 13px;background:var(--btn);cursor:pointer;transition:.16s;text-align:left;}
@@ -549,26 +554,24 @@ window.onerror=function(msg,url,line,col,err){
 </div>
 
 <div id="title">
-  <div class="tt-sun"></div>
   <div class="tt-mtn tt-mtn1"></div>
   <div class="tt-mtn tt-mtn2"></div>
   <div class="tt-mist"></div>
   <div class="tt-river"></div>
   <div class="tt-inner">
-    <div class="tt-poem">滚滚长江东逝水<br>浪花淘尽英雄</div>
-    <div class="tt-poem2">是非成败转头空 · 青山依旧在 · 几度夕阳红</div>
     <div class="tt-head">
       <h1 class="tt-name">乱世烽火</h1>
       <span class="tt-seal">烽火</span>
     </div>
-    <div class="tt-sub">汉灵帝 · 光和年间 — 黄巾未起 · 群雄将乱</div>
+    <div class="tt-poem">滚滚长江东逝水　浪花淘尽英雄</div>
+    <div class="tt-rule">❖</div>
     <div class="tt-menu">
-      <button class="t-btn" id="t-start">⚔ 仗 剑 入 世</button>
-      <button class="t-btn" id="t-load">📜 拾 卷 续 缘</button>
-      <button class="t-btn" id="t-codex">📖 览 物 志</button>
-      <button class="t-btn" id="t-set">⚙ 整 肃 行 装</button>
+      <button class="t-btn" id="t-start">仗 剑 入 世</button>
+      <button class="t-btn" id="t-load">拾 卷 续 缘</button>
+      <button class="t-btn" id="t-codex">览 物 志</button>
+      <button class="t-btn" id="t-set">整 肃 行 装</button>
     </div>
-    <div class="tt-foot">凭栏远眺，江声浩荡；乱世如炉，且看你如何立身。</div>
+    <div class="tt-foot">汉灵帝 · 光和元年</div>
   </div>
 </div>
 
