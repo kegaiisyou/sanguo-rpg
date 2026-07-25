@@ -525,11 +525,11 @@
   .tt-scroll-body{position:absolute;inset:0;padding:26px 16px;
     writing-mode:vertical-rl;
     font-family:"Ma Shan Zheng","Zhi Mang Xing","STKaiti","KaiTi",serif;
-    font-size:clamp(13px,1.55vw,18px);
+    font-size:clamp(11px,1.3vw,15px);
     line-height:1.85;letter-spacing:1px;column-gap:9px;
-    color:#15100a;opacity:.19;
+    color:#15100a;opacity:.12;
     text-shadow:0 0 6px rgba(20,15,8,.10);}
-  .tt-scroll-body span{margin:0 4px;will-change:transform;}
+  .tt-scroll-body span{margin:0 2px;will-change:transform;overflow:hidden;}
   /* 分隔朱线 + 印记 */
   .tt-rule{display:flex;align-items:center;gap:11px;margin:24px 0 2px;color:#9c2b1e;font-size:11px;}
   .tt-rule::before,.tt-rule::after{content:'';height:1px;width:56px;}
@@ -594,6 +594,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-load">拾 卷 续 缘</button>
       <button class="t-btn" id="t-codex">览 物 志</button>
       <button class="t-btn" id="t-set">整 肃 行 装</button>
+      <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
   </div>
 </div>
@@ -1214,11 +1215,24 @@ window.onerror=function(msg,url,line,col,err){
       '<button class="close" id="m-clear" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:14px;">清除全部存档</button>'+
       '<p class="tip">设定已存，演武时遵循。</p>';
   }
+  // 开发人员名单：群英同撰
+  function renderCredit(){
+    return '<h3>群 英 同 撰</h3>'+
+      '<p class="tip">此卷得以成书，赖诸君同心戮力。勒名于左，以志其功。</p>'+
+      row('总 撰','乱世烽火 · 工作室')+
+      row('执 笔','CodeBuddy（AI 协作）')+
+      row('程 式','CodeBuddy（AI 协作）')+
+      row('绘 事','（待镌）')+
+      row('校 勘','（待镌）')+
+      row('音 律','（待镌）')+
+      '<p class="tip">名录待补，若有同撰者，可于此续刻其名。</p>';
+  }
   function bindTitle(){
     var ts=document.getElementById('t-start'); if(ts) ts.onclick=function(){ openModal('newgame'); };
     var tl=document.getElementById('t-load'); if(tl) tl.onclick=function(){ openModal('load'); };
     var tc=document.getElementById('t-codex'); if(tc) tc.onclick=function(){ openModal('codex'); };
     var tset=document.getElementById('t-set'); if(tset) tset.onclick=function(){ openModal('settings'); };
+    var tcr=document.getElementById('t-credit'); if(tcr) tcr.onclick=function(){ openModal('credit'); };
   }
   // 体力亏空：精力耗尽则无法行动（硬性限制）
   function exert(label){
@@ -2082,6 +2096,8 @@ window.onerror=function(msg,url,line,col,err){
       h=renderCodex();
     } else if(kind==='settings'){
       h=renderSettings();
+    } else if(kind==='credit'){
+      h=renderCredit();
     }
     $card.innerHTML=h+'<button class="close" id="m-close">收 起</button>';
     $modal.classList.remove('hidden');
@@ -2598,11 +2614,12 @@ window.onerror=function(msg,url,line,col,err){
     if(el){
       var parts=el.textContent.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
       var html='';
-      for(var k=0;k<5;k++){
+      for(var k=0;k<6;k++){
         for(var i=0;i<parts.length;i++){
           var rot=(Math.random()*6-3).toFixed(2);
           var dy=(Math.random()*26-13).toFixed(1);
-          html+='<span style="display:block;transform:rotate('+rot+'deg) translateY('+dy+'px)">'+parts[i]+'</span>';
+          var maxh=(48+Math.random()*120).toFixed(0);
+          html+='<span style="display:block;max-height:'+maxh+'px;transform:rotate('+rot+'deg) translateY('+dy+'px)">'+parts[i]+'</span>';
         }
       }
       el.innerHTML=html;
