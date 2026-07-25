@@ -445,6 +445,18 @@
   .act.danger{color:var(--seal);border-color:rgba(158,59,46,.45);background:rgba(158,59,46,.06);}
   .act.danger:hover{background:rgba(158,59,46,.15);}
 
+  /* ===== 战斗态：压缩操作面板，把空间让给战斗文字输出 ===== */
+  #app.in-combat #actions{ max-height:38dvh; gap:6px; padding-top:8px; }
+  #app.in-combat .c-arts{ margin:0; }
+  #app.in-combat .c-arts-label{ margin:0 0 4px; }
+  /* 武技芯片改单行横滑，不再把面板撑高 */
+  #app.in-combat .c-arts-row{ flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start;
+    padding-bottom:4px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  #app.in-combat .c-arts-row::-webkit-scrollbar{ display:none; }
+  #app.in-combat .mart-chip{ flex:0 0 auto; min-width:96px; max-width:140px; }
+  #app.in-combat .act{ padding-top:9px; padding-bottom:9px; }
+  #app.in-combat #scene{ scroll-behavior:smooth; }
+
   /* ===== 场景对象卡片 ===== */
   .obj-card{grid-column:1/-1;width:100%;background:var(--btn);border:1px solid var(--btn-line);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);animation:rise .35s ease both;}
   .obj-head{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;transition:.18s;}
@@ -2475,6 +2487,7 @@ window.onerror=function(msg,url,line,col,err){
 
   /** 开始战斗 */
   function startCombat(enemyId){
+    var appEl=document.getElementById('app'); if(appEl) appEl.classList.add('in-combat');
     var es=effectiveStats();
     var pstate=Object.assign({}, state, {
       atk:es.atk, def:es.def, maxHp:es.maxHp, maxMp:es.maxMp, spd:es.spd,
@@ -2614,6 +2627,7 @@ window.onerror=function(msg,url,line,col,err){
   function endCombat(result){
     if(combatMode===null) return;   // 防止重复调用（如快速连点）
     combatMode=null;
+    var appEl=document.getElementById('app'); if(appEl) appEl.classList.remove('in-combat');
     clearActions();                  // 清除战斗按钮，防止残留可点击
     if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断 playTurn
     var st=G.CombatEngine.getStatus();
