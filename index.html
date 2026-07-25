@@ -1057,23 +1057,33 @@ window.onerror=function(msg,url,line,col,err){
       else if(done) done();
     })();
   }
-  function log(text, cls, name){
+  function log(text, cls, name, done){
     cls=cls||'env';
     var p=document.createElement('p');
     p.className='narr '+cls;
     var sc=document.getElementById('scene');
     function scroll(){ if(sc) sc.scrollTop=sc.scrollHeight; }
+    function finish(){ if(done) done(); }
     var delay = settings.textSpeed===0?0:(settings.textSpeed===1?18:46);
     if(cls==='npc' && name){
       var s=document.createElement('span'); s.className='nm'; s.textContent=name+'：'; p.appendChild(s);
       var tn=document.createTextNode(''); p.appendChild(tn); $narr.appendChild(p);
-      if(delay<=0){ tn.textContent=text; scroll(); }
-      else { p.classList.add('typing'); typeInto(tn, text, delay, function(){ p.classList.remove('typing'); scroll(); }, scroll); }
+      if(delay<=0){ tn.textContent=text; scroll(); finish(); }
+      else { p.classList.add('typing'); typeInto(tn, text, delay, function(){ p.classList.remove('typing'); scroll(); finish(); }, scroll); }
     } else {
       var tn2=document.createTextNode(''); p.appendChild(tn2); $narr.appendChild(p);
-      if(delay<=0){ tn2.textContent=text; scroll(); }
-      else { p.classList.add('typing'); typeInto(tn2, text, delay, function(){ p.classList.remove('typing'); scroll(); }, scroll); }
+      if(delay<=0){ tn2.textContent=text; scroll(); finish(); }
+      else { p.classList.add('typing'); typeInto(tn2, text, delay, function(){ p.classList.remove('typing'); scroll(); finish(); }, scroll); }
     }
+  }
+  // 串行叙事：逐行依次输出，前一行打字完成后隔 gap 再播下一行，避免多行同时刷出眼花
+  function logScene(lines, gap, onDone){
+    gap = gap==null ? 150 : gap;
+    (function play(i){
+      if(i>=lines.length){ if(onDone) onDone(); return; }
+      var l=lines[i];
+      log(l.t, l.c, null, function(){ setTimeout(function(){ play(i+1); }, gap); });
+    })(0);
   }
 
   // ===== 状态栏（两行：身份 + 数值条） =====
@@ -1426,30 +1436,35 @@ window.onerror=function(msg,url,line,col,err){
     var room=G.ROOMS[rid]; if(!room) return;
     state.room=rid;
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
+    var narr=[];
     if(!silent){
-      room.desc.forEach(function(d){ log(d,'env'); });
+      room.desc.forEach(function(d){ narr.push({t:d, c:'env'}); });
+      if(room.items && room.items.length){
+        narr.push({t:'〔地上之物〕', c:'sys'});
+        room.items.forEach(function(it){ narr.push({t:'· '+it, c:'item'}); });
+      }
+      if(room.exits){
+        var ex=Object.keys(room.exits).map(function(d){return d+'·'+G.ROOMS[room.exits[d]].name;}).join('　');
+        narr.push({t:'〔出口〕 '+ex, c:'exit'});
+      }
+      // 新房间自动探查：标记已探索，记录 find 描述，出口立即可用
+      if(!explored){
+        explored=true;
+        if(!state.exploredRooms) state.exploredRooms={};
+        state.exploredRooms[rid]=true;
+        save(state);
+        var find=room.find||'你凝神四望，周遭风物、通路尽收眼底。';
+        narr.push({t:find, c:'investigate'});
+      }
     }
     renderLocTab(room);
-    if(room.items && room.items.length){
-      log('〔地上之物〕','sys');
-      room.items.forEach(function(it){ log('· '+it,'item'); });
-    }
-    if(room.exits){
-      var ex=Object.keys(room.exits).map(function(d){return d+'·'+G.ROOMS[room.exits[d]].name;}).join('　');
-      log('〔出口〕 '+ex,'exit');
-    }
-    // 新房间自动探查：标记已探索，记录 find 描述，出口立即可用
-    if(!explored && !silent){
-      explored=true;
-      if(!state.exploredRooms) state.exploredRooms={};
-      state.exploredRooms[rid]=true;
-      save(state);
-      var find=room.find||'你凝神四望，周遭风物、通路尽收眼底。';
-      log(find,'investigate');
-    }
     buildActions(room);
-    if(room.patrol && !silent){ maybeAmbush(room); }
     save(state); renderStatus();
+    // 叙事逐行串行播放（按钮已先就绪，文字依次刷出，不再同时眼花）
+    logScene(narr, 150, function(){
+      // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
+      if(room.patrol && !silent) maybeAmbush(room);
+    });
   }
   // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 黄巾余孽）
   function maybeAmbush(room){
