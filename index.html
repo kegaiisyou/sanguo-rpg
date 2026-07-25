@@ -456,6 +456,9 @@
   #app.in-combat .mart-chip{ flex:0 0 auto; min-width:96px; max-width:140px; }
   #app.in-combat .act{ padding-top:9px; padding-bottom:9px; }
   #app.in-combat #scene{ scroll-behavior:smooth; }
+  /* 战斗时隐藏底部移动罗盘与功能 dock，专注战斗 */
+  #app.in-combat #lower,
+  #app.in-combat #dock{ display:none; }
 
   /* ===== 场景对象卡片 ===== */
   .obj-card{grid-column:1/-1;width:100%;background:var(--btn);border:1px solid var(--btn-line);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);animation:rise .35s ease both;}
