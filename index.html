@@ -491,31 +491,45 @@
   .tt-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;padding:18px 28px;
     -webkit-user-select:none;user-select:none;}
   /* 题名：毛笔竖排立轴 */
-  .tt-head{position:relative;display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:8px;margin-top:4px;}
+  .tt-head{position:relative;display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:8px;margin-top:4px;transform:translateY(-11vh);}
   .tt-name{display:flex;flex-direction:column;align-items:center;font-family:"Ma Shan Zheng","STKaiti","KaiTi",serif;
     font-size:62px;line-height:1.04;letter-spacing:2px;margin:0;font-weight:400;color:#1b140d;
-    text-shadow:0 2px 16px rgba(255,250,235,.6),0 1px 0 rgba(255,255,255,.25);}
+    text-shadow:0 2px 16px rgba(255,250,235,.6),0 1px 0 rgba(255,255,255,.25);transform:translateY(-12px);}
   .tt-name span{display:block;}
-  /* 副标题 */
-  .tt-sub{font-family:"Ma Shan Zheng","STKaiti","KaiTi",serif;font-size:23px;letter-spacing:8px;
-    color:#3a2c1c;opacity:.88;margin-top:9px;text-shadow:0 1px 10px rgba(255,250,235,.5);}
-  /* 诗句：隐于背景的淡墨大字，大气 */
-  .tt-poem-bg{position:absolute;z-index:0;left:50%;top:50%;transform:translate(-50%,-50%);
-    font-family:"Zhi Mang Xing","STKaiti","KaiTi",serif;
-    font-size:clamp(56px,14vw,150px);line-height:1.28;letter-spacing:6px;white-space:nowrap;
-    color:#15100a;text-align:center;opacity:.11;pointer-events:none;
-    text-shadow:0 0 34px rgba(20,15,8,.18);}
+  /* 副标题：竖排题款，与主标题错落并立 */
+  .tt-sub{writing-mode:vertical-rl;font-family:"Ma Shan Zheng","STKaiti","KaiTi",serif;
+    font-size:22px;letter-spacing:6px;color:#3a2c1c;opacity:.9;margin-left:14px;align-self:flex-end;
+    transform:translateY(24px) rotate(2.5deg);
+    text-shadow:0 1px 10px rgba(255,250,235,.5);}
   /* 背景写经长卷：多句诗竖排右起、密密麻麻、隐约如经文 */
   .tt-scroll{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
     -webkit-mask-image:radial-gradient(120% 100% at 50% 50%,#000 52%,transparent 100%);
-    mask-image:radial-gradient(120% 100% at 50% 50%,#000 52%,transparent 100%);}
+    mask-image:radial-gradient(120% 100% at 50% 50%,#000 52%,transparent 100%);
+    animation:scrollFloat 46s ease-in-out infinite;}
+  @keyframes scrollFloat{0%{transform:translate(0,0)}50%{transform:translate(1.6vmax,-1vmax)}100%{transform:translate(0,0)}}
+  /* 水墨晕染 + 烟尘动态层 */
+  .tt-inkfx{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
+  .tt-inkfx i{position:absolute;display:block;border-radius:50%;filter:blur(46px);}
+  .tt-inkfx i:nth-child(1){width:48vmax;height:48vmax;left:-10vmax;top:6vmax;
+    background:radial-gradient(circle,rgba(18,14,9,.55),rgba(18,14,9,0) 70%);
+    animation:inkDrift1 27s ease-in-out infinite;}
+  .tt-inkfx i:nth-child(2){width:42vmax;height:42vmax;right:-8vmax;bottom:2vmax;
+    background:radial-gradient(circle,rgba(54,46,34,.5),rgba(54,46,34,0) 70%);
+    animation:inkDrift2 34s ease-in-out infinite;}
+  .tt-inkfx i:nth-child(3){width:64vmax;height:32vmax;left:16vmax;top:-8vmax;
+    background:radial-gradient(circle,rgba(232,225,206,.20),rgba(232,225,206,0) 70%);
+    animation:inkDrift3 41s ease-in-out infinite;}
+  @keyframes inkDrift1{0%{transform:translate(0,0) scale(1);opacity:.5}50%{transform:translate(6vmax,-4vmax) scale(1.18);opacity:.72}100%{transform:translate(0,0) scale(1);opacity:.5}}
+  @keyframes inkDrift2{0%{transform:translate(0,0) scale(1);opacity:.45}50%{transform:translate(-5vmax,5vmax) scale(1.12);opacity:.62}100%{transform:translate(0,0) scale(1);opacity:.45}}
+  @keyframes inkDrift3{0%{transform:translate(0,0) scale(1);opacity:.18}50%{transform:translate(4vmax,3vmax) scale(1.14);opacity:.32}100%{transform:translate(0,0) scale(1);opacity:.18}}
   .tt-scroll-body{position:absolute;inset:0;padding:26px 16px;
     writing-mode:vertical-rl;
-    font-family:"STKaiti","KaiTi","Songti SC","STSong",serif;
+    font-family:"Ma Shan Zheng","Zhi Mang Xing","STKaiti","KaiTi",serif;
     font-size:clamp(13px,1.55vw,18px);
     line-height:1.85;letter-spacing:1px;column-gap:9px;
-    color:#15100a;opacity:.06;
+    color:#15100a;opacity:.19;
     text-shadow:0 0 6px rgba(20,15,8,.10);}
+  .tt-scroll-body span{margin:0 4px;will-change:transform;}
   /* 分隔朱线 + 印记 */
   .tt-rule{display:flex;align-items:center;gap:11px;margin:24px 0 2px;color:#9c2b1e;font-size:11px;}
   .tt-rule::before,.tt-rule::after{content:'';height:1px;width:56px;}
@@ -568,12 +582,12 @@ window.onerror=function(msg,url,line,col,err){
 
 <div id="title">
   <div class="tt-scroll"><div class="tt-scroll-body">滚滚长江东逝水 浪花淘尽英雄 是非成败转头空 青山依旧在 几度夕阳红 天下大势 分久必合 合久必分 受任于败军之际 奉命于危难之间 捐躯赴国难 视死忽如归 老骥伏枥 志在千里 烈士暮年 壮心不已 黄沙百战穿金甲 不破楼兰终不还 风萧萧兮易水寒 壮士一去兮不复还 十步杀一人 千里不留行 事了拂衣去 深藏身与名 铁马冰河征铎冷 狼烟万里戍楼寒 长戈夜啸霜天月 羸马晨嘶古战场 百战黄沙埋甲胄 一腔热血沃山河 旌旗裂雪过函谷 鼓角连营卷朔风 一剑霜寒十四州 匹夫怒发可吞牛 醉里挑灯看吴钩 男儿仗剑觅封侯 恩仇笑纳杯中酒 生死轻抛马后尘 江湖浪迹身如寄 肝胆轮囷气若虹 分鼎当年争虎踞 论交乱世重鸿毛 单骑斩将出重围 赤兔嘶风血染衣 卧龙一去空梁甫 落凤坡前草色秋 滚滚长江东逝水 浪花淘尽英雄 是非成败转头空 青山依旧在 几度夕阳红 天下大势 分久必合 合久必分 受任于败军之际 奉命于危难之间 捐躯赴国难 视死忽如归 老骥伏枥 志在千里 烈士暮年 壮心不已 黄沙百战穿金甲 不破楼兰终不还 风萧萧兮易水寒 壮士一去兮不复还 十步杀一人 千里不留行 事了拂衣去 深藏身与名 铁马冰河征铎冷 狼烟万里戍楼寒 长戈夜啸霜天月 羸马晨嘶古战场 百战黄沙埋甲胄 一腔热血沃山河 旌旗裂雪过函谷 鼓角连营卷朔风 一剑霜寒十四州 匹夫怒发可吞牛 醉里挑灯看吴钩 男儿仗剑觅封侯 恩仇笑纳杯中酒 生死轻抛马后尘 江湖浪迹身如寄 肝胆轮囷气若虹 分鼎当年争虎踞 论交乱世重鸿毛 单骑斩将出重围 赤兔嘶风血染衣 卧龙一去空梁甫 落凤坡前草色秋</div></div>
-  <div class="tt-poem-bg">滚滚长江东逝水<br>浪花淘尽英雄</div>
+  <div class="tt-inkfx"><i></i><i></i><i></i></div>
   <div class="tt-inner">
     <div class="tt-head">
       <h1 class="tt-name"><span>乱</span><span>世</span><span>烽</span><span>火</span></h1>
+      <div class="tt-sub">三国群侠传</div>
     </div>
-    <div class="tt-sub">三国群侠传</div>
     <div class="tt-rule">❖</div>
     <div class="tt-menu">
       <button class="t-btn" id="t-start">仗 剑 入 世</button>
@@ -2582,10 +2596,16 @@ window.onerror=function(msg,url,line,col,err){
   (function(){
     var el=document.querySelector('.tt-scroll-body');
     if(el){
-      var t=el.textContent.replace(/\s+/g,' ').trim();
-      var s=t;
-      for(var i=0;i<8;i++){ s+='　'+t; }
-      el.textContent=s;
+      var parts=el.textContent.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+      var html='';
+      for(var k=0;k<5;k++){
+        for(var i=0;i<parts.length;i++){
+          var rot=(Math.random()*6-3).toFixed(2);
+          var dy=(Math.random()*26-13).toFixed(1);
+          html+='<span style="display:block;transform:rotate('+rot+'deg) translateY('+dy+'px)">'+parts[i]+'</span>';
+        }
+      }
+      el.innerHTML=html;
     }
   })();
   showTitle();
