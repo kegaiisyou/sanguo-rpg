@@ -2543,10 +2543,11 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   /** 渲染战斗回合（场景 + 按钮） */
-  function renderCombatRound(){
-    var st=G.CombatEngine.getStatus();
-    if(st.result){ endCombat(st.result); return; }
-    clearActions();
+    function renderCombatRound(){
+      var st=G.CombatEngine.getStatus();
+      if(st.result){ endCombat(st.result); return; }
+      if(st.player.hp<=0){ endCombat('lose'); return; }   // 兜底：气血归零立即判负
+      clearActions();
     renderCombatCard();
 
     // ── 武技/招式：紧凑芯片行（满配也不眼花）──
@@ -2586,23 +2587,25 @@ window.onerror=function(msg,url,line,col,err){
     battleLog.forEach(function(entry){
       logText(entry.text, entry.type||'env');
     });
-    // 同步战意/内力回 state
-    var st=G.CombatEngine.getStatus();
-    state.hp=st.player.hp; state.mp=st.player.mp;   // 同步战斗内血量/内力，状态栏实时准确
-    // 检查结束
-    if(st.result){ endCombat(st.result); return; }
-    renderCombatRound();
+      // 同步战意/内力回 state
+      var st=G.CombatEngine.getStatus();
+      state.hp=st.player.hp; state.mp=st.player.mp;   // 同步战斗内血量/内力，状态栏实时准确
+      // 检查结束（含兜底：玩家气血归零立即判负，防任何漏判导致战斗续行）
+      if(st.result){ endCombat(st.result); return; }
+      if(st.player.hp<=0){ endCombat('lose'); return; }
+      renderCombatRound();
   }
 
   /** 处理逃跑 */
   function handleCombatFlee(){
     var r=G.CombatEngine.tryFlee();
     log(r.text,'sys');
-    if(r.success){ endCombat('fled'); return; }
-    if(r.log) r.log.forEach(function(e){ log(e.text,e.type||'sys'); });
-    var st=G.CombatEngine.getStatus();
-    if(st.result){ endCombat(st.result); return; }
-    renderCombatRound();
+      if(r.success){ endCombat('fled'); return; }
+      if(r.log) r.log.forEach(function(e){ log(e.text,e.type||'sys'); });
+      var st=G.CombatEngine.getStatus();
+      if(st.result){ endCombat(st.result); return; }
+      if(st.player.hp<=0){ endCombat('lose'); return; }   // 兜底：逃跑失败被打死也立即判负
+      renderCombatRound();
   }
 
   /** 自动战斗 */

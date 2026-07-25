@@ -551,6 +551,7 @@
         log.push({ type:'system', text:'撤退失败！敌方趁机攻击——' });
         var eAct = this._pickEnemyAction();
         this._resolveAction('enemy', eAct, log);
+        this._checkEnd();   // 逃跑失败致死也立即判负，避免拖到下一回合
         this.state.log = log;
         return { success: false, text: '未能脱身，反被追击！', log: log };
       }
