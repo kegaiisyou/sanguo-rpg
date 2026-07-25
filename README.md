@@ -1,7 +1,7 @@
 # 三国江湖 RPG - 开发文档
 
 ## 项目概述
-三国题材网页RPG游戏，纯HTML/CSS/JS实现
+三国题材网页 RPG 游戏，纯 HTML/CSS/JS 实现
 
 ---
 
