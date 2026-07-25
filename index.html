@@ -503,31 +503,83 @@
     text-shadow:0 1px 10px rgba(255,250,235,.5);}
   /* 背景写经长卷：多句诗竖排右起、密密麻麻、隐约如经文 */
   .tt-scroll{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
-    -webkit-mask-image:radial-gradient(120% 100% at 50% 50%,#000 52%,transparent 100%);
-    mask-image:radial-gradient(120% 100% at 50% 50%,#000 52%,transparent 100%);
+    -webkit-mask-image:radial-gradient(135% 122% at 50% 50%,#000 24%,rgba(0,0,0,.5) 54%,transparent 93%);
+    mask-image:radial-gradient(135% 122% at 50% 50%,#000 24%,rgba(0,0,0,.5) 54%,transparent 93%);
     animation:scrollFloat 46s ease-in-out infinite;}
   @keyframes scrollFloat{0%{transform:translate(0,0)}50%{transform:translate(1.6vmax,-1vmax)}100%{transform:translate(0,0)}}
   /* 水墨晕染 + 烟尘动态层 */
   .tt-inkfx{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
-  .tt-inkfx i{position:absolute;display:block;border-radius:50%;filter:blur(46px);}
-  .tt-inkfx i:nth-child(1){width:48vmax;height:48vmax;left:-10vmax;top:6vmax;
-    background:radial-gradient(circle,rgba(18,14,9,.55),rgba(18,14,9,0) 70%);
-    animation:inkDrift1 27s ease-in-out infinite;}
-  .tt-inkfx i:nth-child(2){width:42vmax;height:42vmax;right:-8vmax;bottom:2vmax;
-    background:radial-gradient(circle,rgba(54,46,34,.5),rgba(54,46,34,0) 70%);
-    animation:inkDrift2 34s ease-in-out infinite;}
-  .tt-inkfx i:nth-child(3){width:64vmax;height:32vmax;left:16vmax;top:-8vmax;
-    background:radial-gradient(circle,rgba(232,225,206,.20),rgba(232,225,206,0) 70%);
-    animation:inkDrift3 41s ease-in-out infinite;}
-  @keyframes inkDrift1{0%{transform:translate(0,0) scale(1);opacity:.5}50%{transform:translate(6vmax,-4vmax) scale(1.18);opacity:.72}100%{transform:translate(0,0) scale(1);opacity:.5}}
-  @keyframes inkDrift2{0%{transform:translate(0,0) scale(1);opacity:.45}50%{transform:translate(-5vmax,5vmax) scale(1.12);opacity:.62}100%{transform:translate(0,0) scale(1);opacity:.45}}
-  @keyframes inkDrift3{0%{transform:translate(0,0) scale(1);opacity:.18}50%{transform:translate(4vmax,3vmax) scale(1.14);opacity:.32}100%{transform:translate(0,0) scale(1);opacity:.18}}
+  /* 强暗角：四周压暗，聚焦中央，制造视觉冲击 */
+  .tt-inkfx::before{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
+    background:radial-gradient(120% 110% at 50% 44%,transparent 34%,rgba(8,6,3,.62) 100%);}
+  /* 漂浮尘粒：细碎微光如烟气浮尘 */
+  .tt-inkfx::after{content:"";position:absolute;inset:-15%;z-index:4;pointer-events:none;opacity:.85;
+    background:
+      radial-gradient(2px 2px at 18% 28%,rgba(255,248,228,.55),transparent),
+      radial-gradient(1.5px 1.5px at 72% 62%,rgba(255,248,228,.45),transparent),
+      radial-gradient(2px 2px at 42% 82%,rgba(255,248,228,.4),transparent),
+      radial-gradient(1.5px 1.5px at 86% 18%,rgba(255,248,228,.5),transparent),
+      radial-gradient(2.5px 2.5px at 56% 46%,rgba(255,248,228,.32),transparent),
+      radial-gradient(1.5px 1.5px at 30% 64%,rgba(255,248,228,.4),transparent),
+      radial-gradient(2px 2px at 64% 88%,rgba(255,248,228,.38),transparent);
+    background-size:55% 55%;
+    animation:dustDrift 26s linear infinite;}
+  @keyframes dustDrift{0%{transform:translate(0,0)}100%{transform:translate(-14%,-20%)}}
+  .tt-inkfx i{position:absolute;display:block;border-radius:50%;filter:blur(34px);}
+  /* 左上浓墨，大幅横扫 */
+  .tt-inkfx i:nth-child(1){width:62vmax;height:62vmax;left:-20vmax;top:-10vmax;
+    background:radial-gradient(circle,rgba(10,7,4,.9),rgba(10,7,4,0) 66%);
+    animation:inkDrift1 18s ease-in-out infinite;}
+  /* 右下浓墨，反向横扫 */
+  .tt-inkfx i:nth-child(2){width:54vmax;height:54vmax;right:-18vmax;bottom:-12vmax;
+    background:radial-gradient(circle,rgba(34,26,16,.82),rgba(34,26,16,0) 66%);
+    animation:inkDrift2 22s ease-in-out infinite;}
+  /* 顶部淡烟，提亮氛围 */
+  .tt-inkfx i:nth-child(3){width:82vmax;height:44vmax;left:8vmax;top:-16vmax;
+    background:radial-gradient(circle,rgba(228,218,194,.34),rgba(228,218,194,0) 70%);
+    animation:inkDrift3 26s ease-in-out infinite;}
+  /* 中央墨晕，缓慢呼吸聚散 */
+  .tt-inkfx i:nth-child(4){width:46vmax;height:46vmax;left:26vmax;top:26vmax;
+    background:radial-gradient(circle,rgba(16,11,6,.78),rgba(16,11,6,0) 64%);
+    animation:inkDrift4 30s ease-in-out infinite;}
+  @keyframes inkDrift1{0%{transform:translate(0,0) scale(1);opacity:.7}50%{transform:translate(12vmax,7vmax) scale(1.25);opacity:.95}100%{transform:translate(0,0) scale(1);opacity:.7}}
+  @keyframes inkDrift2{0%{transform:translate(0,0) scale(1);opacity:.62}50%{transform:translate(-10vmax,-8vmax) scale(1.2);opacity:.88}100%{transform:translate(0,0) scale(1);opacity:.62}}
+  @keyframes inkDrift3{0%{transform:translate(0,0) scale(1);opacity:.22}50%{transform:translate(7vmax,5vmax) scale(1.18);opacity:.42}100%{transform:translate(0,0) scale(1);opacity:.22}}
+  @keyframes inkDrift4{0%{transform:translate(0,0) scale(.9);opacity:.5}50%{transform:translate(-6vmax,4vmax) scale(1.3);opacity:.82}100%{transform:translate(0,0) scale(.9);opacity:.5}}
+  /* 经文之上：随机墨滴晕染——滴落挡字、缓缓淡化、过会儿另处再滴 */
+  .tt-inkblot{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;}
+  .tt-inkblot i{position:absolute;display:block;border-radius:50%;transform:translate(-50%,-50%) scale(0);
+    background:radial-gradient(circle,rgba(11,7,3,.94),rgba(11,7,3,.55) 42%,rgba(11,7,3,0) 72%);
+    filter:blur(5px);animation:inkDrip 7.5s ease-out forwards;}
+  @keyframes inkDrip{0%{transform:translate(-50%,-50%) scale(0);opacity:0}
+    12%{opacity:.95}55%{transform:translate(-50%,-50%) scale(1);opacity:.95}
+    100%{transform:translate(-50%,-50%) scale(1.18);opacity:0}}
+  /* 底部白色烟尘：行军尘土飞扬，自下而上翻涌 */
+  .tt-dust{position:absolute;left:0;right:0;bottom:0;height:48vh;z-index:2;pointer-events:none;overflow:hidden;}
+  .tt-dust::before{content:"";position:absolute;left:0;right:0;bottom:0;height:30vh;
+    background:linear-gradient(0deg,rgba(238,231,214,.42),rgba(238,231,214,0));}
+  .tt-dust i{position:absolute;bottom:-14vmax;border-radius:50%;filter:blur(26px);
+    background:radial-gradient(circle,rgba(240,234,218,.5),rgba(240,234,218,0) 68%);}
+  .tt-dust i:nth-child(1){left:6%;width:30vmax;height:30vmax;animation:dustRise 9s linear infinite;}
+  .tt-dust i:nth-child(2){left:26%;width:24vmax;height:24vmax;animation:dustRise 11s linear infinite 2s;}
+  .tt-dust i:nth-child(3){left:46%;width:34vmax;height:34vmax;animation:dustRise 8s linear infinite 1s;}
+  .tt-dust i:nth-child(4){left:64%;width:26vmax;height:26vmax;animation:dustRise 12s linear infinite 3s;}
+  .tt-dust i:nth-child(5){left:82%;width:30vmax;height:30vmax;animation:dustRise 10s linear infinite .5s;}
+  @keyframes dustRise{0%{transform:translateY(0) scale(.8);opacity:0}
+    18%{opacity:.6}100%{transform:translateY(-40vh) scale(1.5);opacity:0}}
+  /* 移动端：标题 -11vh 上移过甚贴顶边，复位避免顶到边缘 */
+  @media (max-width:680px){
+    .tt-head{transform:translateY(0);}
+    .tt-name{font-size:48px;}
+    .tt-sub{font-size:18px;margin-left:9px;}
+    .t-btn{font-size:21px;padding:7px 18px;}
+  }
   .tt-scroll-body{position:absolute;inset:0;padding:26px 16px;
     writing-mode:vertical-rl;
     font-family:"Ma Shan Zheng","Zhi Mang Xing","STKaiti","KaiTi",serif;
-    font-size:clamp(11px,1.3vw,15px);
+    font-size:clamp(16px,2.15vw,24px);
     line-height:1.85;letter-spacing:1px;column-gap:9px;
-    color:#15100a;opacity:.12;
+    color:#15100a;opacity:.11;
     text-shadow:0 0 6px rgba(20,15,8,.10);}
   .tt-scroll-body span{margin:0 2px;will-change:transform;overflow:hidden;}
   /* 分隔朱线 + 印记 */
@@ -582,7 +634,9 @@ window.onerror=function(msg,url,line,col,err){
 
 <div id="title">
   <div class="tt-scroll"><div class="tt-scroll-body">滚滚长江东逝水 浪花淘尽英雄 是非成败转头空 青山依旧在 几度夕阳红 天下大势 分久必合 合久必分 受任于败军之际 奉命于危难之间 捐躯赴国难 视死忽如归 老骥伏枥 志在千里 烈士暮年 壮心不已 黄沙百战穿金甲 不破楼兰终不还 风萧萧兮易水寒 壮士一去兮不复还 十步杀一人 千里不留行 事了拂衣去 深藏身与名 铁马冰河征铎冷 狼烟万里戍楼寒 长戈夜啸霜天月 羸马晨嘶古战场 百战黄沙埋甲胄 一腔热血沃山河 旌旗裂雪过函谷 鼓角连营卷朔风 一剑霜寒十四州 匹夫怒发可吞牛 醉里挑灯看吴钩 男儿仗剑觅封侯 恩仇笑纳杯中酒 生死轻抛马后尘 江湖浪迹身如寄 肝胆轮囷气若虹 分鼎当年争虎踞 论交乱世重鸿毛 单骑斩将出重围 赤兔嘶风血染衣 卧龙一去空梁甫 落凤坡前草色秋 滚滚长江东逝水 浪花淘尽英雄 是非成败转头空 青山依旧在 几度夕阳红 天下大势 分久必合 合久必分 受任于败军之际 奉命于危难之间 捐躯赴国难 视死忽如归 老骥伏枥 志在千里 烈士暮年 壮心不已 黄沙百战穿金甲 不破楼兰终不还 风萧萧兮易水寒 壮士一去兮不复还 十步杀一人 千里不留行 事了拂衣去 深藏身与名 铁马冰河征铎冷 狼烟万里戍楼寒 长戈夜啸霜天月 羸马晨嘶古战场 百战黄沙埋甲胄 一腔热血沃山河 旌旗裂雪过函谷 鼓角连营卷朔风 一剑霜寒十四州 匹夫怒发可吞牛 醉里挑灯看吴钩 男儿仗剑觅封侯 恩仇笑纳杯中酒 生死轻抛马后尘 江湖浪迹身如寄 肝胆轮囷气若虹 分鼎当年争虎踞 论交乱世重鸿毛 单骑斩将出重围 赤兔嘶风血染衣 卧龙一去空梁甫 落凤坡前草色秋</div></div>
-  <div class="tt-inkfx"><i></i><i></i><i></i></div>
+  <div class="tt-inkblot"></div>
+  <div class="tt-inkfx"><i></i><i></i><i></i><i></i></div>
+  <div class="tt-dust"><i></i><i></i><i></i><i></i><i></i></div>
   <div class="tt-inner">
     <div class="tt-head">
       <h1 class="tt-name"><span>乱</span><span>世</span><span>烽</span><span>火</span></h1>
@@ -1218,14 +1272,15 @@ window.onerror=function(msg,url,line,col,err){
   // 开发人员名单：群英同撰
   function renderCredit(){
     return '<h3>群 英 同 撰</h3>'+
-      '<p class="tip">此卷得以成书，赖诸君同心戮力。勒名于左，以志其功。</p>'+
-      row('总 撰','乱世烽火 · 工作室')+
-      row('执 笔','CodeBuddy（AI 协作）')+
-      row('程 式','CodeBuddy（AI 协作）')+
-      row('绘 事','（待镌）')+
-      row('校 勘','（待镌）')+
-      row('音 律','（待镌）')+
-      '<p class="tip">名录待补，若有同撰者，可于此续刻其名。</p>';
+      '<p class="tip">此作由一人独力编撰，赖 AI 襄助而成。勒名于左，以志其事。</p>'+
+      row('总 撰','一只大鸽子')+
+      row('执 笔','一只大鸽子')+
+      row('程 式','一只大鸽子')+
+      row('绘 事','一只大鸽子')+
+      row('校 勘','一只大鸽子')+
+      row('音 律','一只大鸽子')+
+      row('协 力','CodeBuddy（AI 协作）')+
+      '<p class="tip">一人一灯，江湖路远。若遇同好，可续刻其名。</p>';
   }
   function bindTitle(){
     var ts=document.getElementById('t-start'); if(ts) ts.onclick=function(){ openModal('newgame'); };
@@ -2623,6 +2678,24 @@ window.onerror=function(msg,url,line,col,err){
         }
       }
       el.innerHTML=html;
+    }
+  })();
+  // 墨滴随机晕染：在经文上随机滴落、晕开挡字、缓缓淡化，过会儿另处再滴
+  (function(){
+    var box=document.querySelector('.tt-inkblot');
+    if(box){
+      function drip(){
+        var b=document.createElement('i');
+        var x=(Math.random()*86+7).toFixed(1);
+        var y=(Math.random()*86+7).toFixed(1);
+        var s=(13+Math.random()*22).toFixed(0);
+        b.style.left=x+'%';b.style.top=y+'%';
+        b.style.width=s+'vmax';b.style.height=s+'vmax';
+        box.appendChild(b);
+        setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); },7600);
+      }
+      drip();
+      setInterval(function(){ drip(); if(Math.random()<.4) drip(); },2600);
     }
   })();
   showTitle();
