@@ -611,6 +611,13 @@
   .set-row .seg{display:flex;gap:6px;}
   .set-row .seg button{font-family:"STKaiti","KaiTi",serif;font-size:13px;padding:6px 12px;border:1px solid var(--btn-line);border-radius:9px;background:var(--btn);color:var(--ink-soft);cursor:pointer;}
   .set-row .seg button.on{border-color:rgba(158,59,46,.5);background:rgba(158,59,46,.1);color:var(--seal);font-weight:700;}
+  /* 设置标签页 */
+  .set-tabs{display:flex;gap:6px;margin:2px 0 14px;border-bottom:1px solid var(--panel-line);}
+  .set-tabs button{flex:1;padding:9px 4px;background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-soft);font-size:13.5px;letter-spacing:2px;cursor:pointer;font-family:"PingFang SC","Microsoft YaHei",sans-serif;transition:.16s;}
+  .set-tabs button.on{color:var(--seal);border-bottom-color:var(--seal);}
+  .set-panel.hidden{display:none;}
+  /* 标题特效关闭：隐藏烟尘/墨晕层 */
+  #title.no-fx .tt-inkfx,#title.no-fx .tt-dust,#title.no-fx .tt-inkblot{display:none;}
 </style>
 </head>
 <body>
@@ -677,7 +684,7 @@ window.onerror=function(msg,url,line,col,err){
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
     <button data-modal="rest" class="rest"><span class="ic">🧘</span>调息</button>
-    <button data-modal="more"><span class="ic">☰</span>更多</button>
+    <button data-modal="settings"><span class="ic">⚙️</span>设置</button>
   </nav>
 </div>
 
@@ -707,6 +714,8 @@ window.onerror=function(msg,url,line,col,err){
   var settings=(function(){ try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return {};} })();
   if(typeof settings.textSpeed!=='number') settings.textSpeed=1;
   if(typeof settings.autoBattle!=='boolean') settings.autoBattle=false;
+  if(typeof settings.sound!=='boolean') settings.sound=false;
+  if(typeof settings.titleFx!=='boolean') settings.titleFx=true;
   function saveSettings(){ try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){} }
   var SHICHEN=['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'];
 
@@ -1209,6 +1218,26 @@ window.onerror=function(msg,url,line,col,err){
     state=null; curSlot=0;
     var app=document.getElementById('app'); if(app) app.classList.add('hidden');
     var tt=document.getElementById('title'); if(tt) tt.classList.remove('hidden');
+    applyTitleFx();
+  }
+  // 标题特效开关：关则隐藏水墨烟尘/墨晕层
+  function applyTitleFx(){
+    var tt=document.getElementById('title');
+    if(tt) tt.classList.toggle('no-fx', settings.titleFx===false);
+  }
+  // 互动提示音（音效开时）
+  var _actx=null;
+  function tick(freq){
+    if(!settings.sound) return;
+    try{
+      _actx=_actx||new (window.AudioContext||window.webkitAudioContext)();
+      var o=_actx.createOscillator(), g=_actx.createGain();
+      o.type='sine'; o.frequency.value=freq||540;
+      o.connect(g); g.connect(_actx.destination);
+      g.gain.setValueAtTime(.07,_actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001,_actx.currentTime+.12);
+      o.start(); o.stop(_actx.currentTime+.13);
+    }catch(e){}
   }
   function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   // 择档面板（mode: 'new'=开新局 / 'load'=读旧档）
@@ -1258,19 +1287,46 @@ window.onerror=function(msg,url,line,col,err){
     }
     return h;
   }
-  // 设置：整肃行装
-  function renderSettings(){
+  // 设置：标签页（画面 / 声音 / 游戏）；fromTitle 时不含调试台
+  function renderSettings(opts){
+    opts=opts||{};
+    var fromTitle=!!opts.fromTitle;
     var ts=settings.textSpeed;
-    return '<h3>整 肃 行 装</h3>'+
+    var gfx=
       '<div class="set-row"><span>文字演出</span><div class="seg" id="seg-speed">'+
         '<button data-v="0" class="'+(ts===0?'on':'')+'">疾</button>'+
         '<button data-v="1" class="'+(ts===1?'on':'')+'">常</button>'+
         '<button data-v="2" class="'+(ts===2?'on':'')+'">缓</button></div></div>'+
+      '<div class="set-row"><span>标题特效</span><div class="seg" id="seg-fx">'+
+        '<button data-v="1" class="'+(settings.titleFx!==false?'on':'')+'">开</button>'+
+        '<button data-v="0" class="'+(settings.titleFx===false?'on':'')+'">关</button></div></div>'+
+      '<p class="tip">水墨烟尘与墨晕动画；喧嚣可关，长夜更静。</p>';
+    var snd=
+      '<div class="set-row"><span>音效</span><div class="seg" id="seg-snd">'+
+        '<button data-v="1" class="'+(settings.sound?'on':'')+'">开</button>'+
+        '<button data-v="0" class="'+(!settings.sound?'on':'')+'">关</button></div></div>'+
+      '<p class="tip">开关互动提示音。</p>';
+    var game=
       '<div class="set-row"><span>默认自动战斗</span><div class="seg" id="seg-auto">'+
         '<button data-v="1" class="'+(settings.autoBattle?'on':'')+'">开</button>'+
-        '<button data-v="0" class="'+(!settings.autoBattle?'on':'')+'">关</button></div></div>'+
-      '<button class="close" id="m-clear" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:14px;">清除全部存档</button>'+
-      '<p class="tip">设定已存，演武时遵循。</p>';
+        '<button data-v="0" class="'+(!settings.autoBattle?'on':'')+'">关</button></div></div>';
+    if(!fromTitle){
+      game+='<button class="close" id="m-save" style="margin-top:14px;">立即存档</button>';
+    }
+    game+='<button class="close" id="m-clear" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清除全部存档</button>';
+    if(!fromTitle){
+      game+='<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台</button>';
+    }
+    game+='<p class="tip">设定已存，演武时遵循。</p>';
+    return '<h3>设 置</h3>'+
+      '<div class="set-tabs">'+
+        '<button data-tab="gfx" class="on">画面</button>'+
+        '<button data-tab="snd">声音</button>'+
+        '<button data-tab="game">游戏</button>'+
+      '</div>'+
+      '<div class="set-panel" data-panel="gfx">'+gfx+'</div>'+
+      '<div class="set-panel hidden" data-panel="snd">'+snd+'</div>'+
+      '<div class="set-panel hidden" data-panel="game">'+game+'</div>';
   }
   // 开发人员名单：群英同撰
   function renderCredit(){
@@ -1289,7 +1345,7 @@ window.onerror=function(msg,url,line,col,err){
     var ts=document.getElementById('t-start'); if(ts) ts.onclick=function(){ openModal('newgame'); };
     var tl=document.getElementById('t-load'); if(tl) tl.onclick=function(){ openModal('load'); };
     var tc=document.getElementById('t-codex'); if(tc) tc.onclick=function(){ openModal('codex'); };
-    var tset=document.getElementById('t-set'); if(tset) tset.onclick=function(){ openModal('settings'); };
+    var tset=document.getElementById('t-set'); if(tset) tset.onclick=function(){ openModal('settings',{fromTitle:true}); };
     var tcr=document.getElementById('t-credit'); if(tcr) tcr.onclick=function(){ openModal('credit'); };
   }
   // 体力亏空：精力耗尽则无法行动（硬性限制）
@@ -1546,7 +1602,7 @@ window.onerror=function(msg,url,line,col,err){
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·东市街', desc:'回东市街，达通衢',                    actions:[{label:'回东市街',   fn:function(){ move('南','ji_dongshijie'); }}]}
     ],
     ji_chasi:[
-      {type:'npc',   key:'shuosheng',icon:'👤', name:'说书先生', desc:'拍案说三分，满堂喝彩',                actions:[{label:'与他交谈', fn:function(){ talk('shuosheng'); }}]},
+      {type:'npc',   key:'shuosheng',icon:'👤', name:'说书先生', desc:'拍案说游侠，满堂喝彩',                actions:[{label:'与他交谈', fn:function(){ talk('shuosheng'); }}]},
       {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾清风茶肆',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'building',key:'rest', icon:'🍵', name:'茶肆歇脚', desc:'品茗小坐，气血内力尽复',                actions:[{label:'茶肆歇脚', fn:function(){ actRest(); }, tip:'品茗小坐，气血内力尽复'}]},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·东市街', desc:'回东市街，达通衢',                    actions:[{label:'回东市街',   fn:function(){ move('北','ji_dongshijie'); }}]}
@@ -2062,10 +2118,11 @@ window.onerror=function(msg,url,line,col,err){
     }
     return h;
   }
-  function openModal(kind){
+  function openModal(kind, opts){
     if(state && state.dead){ die(); return; }
     if(kind==='dev'){ renderDev(); return; }
    try{
+    var modalOpts=opts||{};
     var h='';
     if(kind==='char'){
       h='<h3>角 色</h3>'+
@@ -2137,15 +2194,6 @@ window.onerror=function(msg,url,line,col,err){
           '<div class="clk-row"><span>公历</span><b>公元'+c.adYear+'年 '+c.gregMonth+'月'+c.gregDay+'日 · 星期'+c.wk+'</b></div>'+
         '</div>'+
         '<p class="tip">子时居顶（夜半），午时居底（正午）；卯时朝阳在东、酉时落日于西。</p>';
-    } else if(kind==='more'){
-      h='<h3>更 多</h3>'+
-        row('游戏','乱世烽火 · 水墨')+
-        row('版本',G.CONSTANTS.VERSION)+
-        row('存档','已自动保存至本地')+
-        '<button class="close" id="m-save">立即存档</button>'+
-        '<button class="close" id="m-reset" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清空存档 · 重头来过</button>'+
-        '<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台</button>'+
-        '<p class="tip">存档位于浏览器本地，清除浏览器数据会一并丢失。</p>';
     } else if(kind==='newgame'){
       h=renderSlotsHTML('new');
     } else if(kind==='load'){
@@ -2153,7 +2201,7 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='codex'){
       h=renderCodex();
     } else if(kind==='settings'){
-      h=renderSettings();
+      h=renderSettings(modalOpts);
     } else if(kind==='credit'){
       h=renderCredit();
     }
@@ -2161,12 +2209,9 @@ window.onerror=function(msg,url,line,col,err){
     $modal.classList.remove('hidden');
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
-    var rs=document.getElementById('m-reset'); if(rs)rs.onclick=function(){
-      if(!confirm('清除全部三档存档？此去不可复返。')) return;
-      SLOTS.forEach(function(k,i){ clearSlot(i+1); });
-      toast('三档已清'); showTitle(); closeModal();
-    };
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
+    // 设置标签页切换
+    $card.querySelectorAll('.set-tabs button').forEach(function(b){ b.onclick=function(){ var t=b.getAttribute('data-tab'); $card.querySelectorAll('.set-tabs button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); $card.querySelectorAll('.set-panel').forEach(function(p){ p.classList.toggle('hidden', p.getAttribute('data-panel')!==t); }); tick(); }; });
     // 择档面板交互
     $card.querySelectorAll('.slot[data-slot]').forEach(function(el){
       el.onclick=function(){
@@ -2181,9 +2226,11 @@ window.onerror=function(msg,url,line,col,err){
         }
       };
     });
-    // 设置面板交互
-    var sp=document.getElementById('seg-speed'); if(sp) sp.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.textSpeed=parseInt(b.getAttribute('data-v'),10); saveSettings(); sp.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); toast('演出·'+['疾','常','缓'][settings.textSpeed]); }; });
-    var au=document.getElementById('seg-auto'); if(au) au.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.autoBattle=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); au.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); toast('自动战斗·'+(settings.autoBattle?'开':'关')); }; });
+    // 设置面板交互（标签页内容）
+    var sp=document.getElementById('seg-speed'); if(sp) sp.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.textSpeed=parseInt(b.getAttribute('data-v'),10); saveSettings(); sp.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(600); toast('演出·'+['疾','常','缓'][settings.textSpeed]); }; });
+    var fx=document.getElementById('seg-fx'); if(fx) fx.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.titleFx=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); fx.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(520); applyTitleFx(); toast('标题特效·'+(settings.titleFx?'开':'关')); }; });
+    var snd=document.getElementById('seg-snd'); if(snd) snd.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.sound=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); snd.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); if(settings.sound) tick(700); toast('音效·'+(settings.sound?'开':'关')); }; });
+    var au=document.getElementById('seg-auto'); if(au) au.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.autoBattle=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); au.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(600); toast('自动战斗·'+(settings.autoBattle?'开':'关')); }; });
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
     if(kind==='map') initMap({});
     // 装备面板交互
@@ -2348,7 +2395,7 @@ window.onerror=function(msg,url,line,col,err){
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
     initMap({pickSpawn:true});
   }
-  function toast(msg){$toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400);}
+  function toast(msg){ if(settings.sound) tick(480); $toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400); }
 
   // HTML 注入辅助（战斗卡片用）
   function logHTML(html, cls){
