@@ -279,6 +279,37 @@
     20%{transform:translate(-4px,2px);}40%{transform:translate(4px,-2px);}
     60%{transform:translate(-3px,1px);}80%{transform:translate(3px,-1px);}}
 
+  /* ===== 战斗结算特写：胜金光 / 败灰屏 ===== */
+  .combat-fx{position:fixed;inset:0;z-index:120;pointer-events:none;display:flex;align-items:center;justify-content:center;}
+  .combat-fx.win{animation:winFlash 1.25s ease-out forwards;}
+  @keyframes winFlash{
+    0%{opacity:0;background:radial-gradient(circle at center,rgba(255,238,180,0) 0%,rgba(255,238,180,0) 100%);}
+    25%{opacity:1;background:radial-gradient(circle at center,rgba(255,236,170,.9) 0%,rgba(255,205,80,.4) 46%,rgba(255,236,170,0) 78%);}
+    100%{opacity:0;background:radial-gradient(circle at center,rgba(255,236,170,0) 0%,rgba(255,236,170,0) 100%);}
+  }
+  .combat-fx .fx-word{font-family:"STKaiti","KaiTi",serif;font-weight:800;letter-spacing:10px;
+    opacity:0;user-select:none;}
+  .combat-fx.win .fx-word{font-size:72px;color:#8a5a12;
+    text-shadow:0 0 26px rgba(255,210,90,.95),0 2px 5px rgba(255,255,255,.85);
+    animation:winWord 1.25s cubic-bezier(.2,.8,.3,1.2) forwards;}
+  @keyframes winWord{0%{opacity:0;transform:scale(.4) rotate(-6deg);}
+    42%{opacity:1;transform:scale(1.18) rotate(2deg);}
+    70%{transform:scale(1) rotate(0);}
+    100%{opacity:0;transform:scale(1.05);}}
+  .combat-fx.lose{animation:loseFlash 1.6s ease-out forwards;}
+  @keyframes loseFlash{0%{opacity:0;background:rgba(18,14,14,0);}
+    30%{opacity:1;background:rgba(28,18,18,.6);}
+    100%{opacity:1;background:rgba(28,18,18,.34);}}
+  .combat-fx.lose .fx-word{font-size:72px;color:#9a2a22;
+    text-shadow:0 0 22px rgba(120,20,16,.85),0 2px 5px rgba(0,0,0,.5);
+    animation:loseWord 1.6s ease-out forwards;}
+  @keyframes loseWord{0%{opacity:0;transform:translateY(22px) scale(1.12);}
+    40%{opacity:1;transform:translateY(0) scale(1);}
+    100%{opacity:1;transform:translateY(0) scale(1);}}
+  /* 战斗卡在胜负时已定格：胜利微泛金边，失败转灰 */
+  #combat-card.settle-win .c-enemy{border-color:rgba(176,131,47,.6);box-shadow:0 0 14px rgba(176,131,47,.25);}
+  #combat-card.settle-lose .c-enemy,.combat-card.settle-lose .c-player{filter:grayscale(.7) brightness(.85);}
+
   /* ===== 战斗武技：紧凑芯片行（满配也不眼花） ===== */
   .c-arts{grid-column:1/-1;margin:1px 0 2px;}
   .c-arts-label{text-align:center;font-size:11px;letter-spacing:4px;color:var(--ink-faint);
@@ -455,6 +486,7 @@
   .c-enemy .c-hp{background:var(--seal);}
   .c-enemy .c-hp-warn{background:#c0762a;}
   .c-enemy .c-hp-danger{background:#a03030;}
+  .c-enemy .c-hpfill{height:100%;border-radius:4px;transition:width .45s ease;}
   .c-enemy .ec-buffs,.c-enemy .ec-dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
   .c-enemy .ec-tag{padding:2px 8px;border-radius:10px;font-size:11px;color:var(--ink-soft);background:rgba(74,62,48,.08);}
   .c-enemy .ec-tag.debuff{color:var(--seal);background:rgba(158,59,46,.12);}
@@ -1483,6 +1515,7 @@ window.onerror=function(msg,url,line,col,err){
   function renderRoom(rid, silent){
     var room=G.ROOMS[rid]; if(!room) return;
     state.room=rid;
+    if(combatCardEl){ if(combatCardEl.parentNode) combatCardEl.parentNode.removeChild(combatCardEl); combatCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
     if(!silent){
@@ -2596,11 +2629,37 @@ window.onerror=function(msg,url,line,col,err){
     state.energy=Math.max(0,state.energy-5);   // 应战耗精力
     combatMode = settings.autoBattle ? 'auto' : 'manual';
     $narr.innerHTML='';
+    combatCardEl=null;
     var enemy=G.CombatEngine.getEnemy();
     log('════ 刀兵相见 ════','combat');
     log(enemy.name+(enemy.title?' · '+enemy.title:''),'title');
+    renderCombatCard();   // 构建持久战斗卡（满血 / 满状态）
     if(settings.autoBattle){ startAutoBattle('optimal'); }
     else { renderCombatRound(); }
+  }
+
+  /** 战斗卡：持久 DOM（仅首次创建，之后只更新血条宽度以实现平滑过渡） */
+  var combatCardEl=null;
+  // 按累计血量更新战斗卡血条（自动模式逐条回放时用）
+  function updateCardBars(eHp, pHp, eMax, pMax){
+    if(!combatCardEl) return;
+    var ePct=Math.round(Math.max(0,eHp)/Math.max(1,eMax)*100);
+    var eCls=ePct>50?'c-hp':ePct>25?'c-hp-warn':'c-hp-danger';
+    var fill=combatCardEl.querySelector('.c-hpfill');
+    fill.className='c-hpfill '+eCls;
+    fill.style.width=ePct+'%';
+    combatCardEl.querySelector('.ec-hpv').textContent=Math.max(0,eHp)+'/'+eMax;
+    combatCardEl.querySelector('.cp-hp').textContent='气血 '+Math.max(0,pHp)+'/'+pMax;
+  }
+  // 胜负结算特写覆盖层
+  function playCombatFx(kind){
+    var fx=document.createElement('div');
+    fx.className='combat-fx '+kind;
+    var w=document.createElement('div'); w.className='fx-word';
+    w.textContent= kind==='win'?'胜':'败';
+    fx.appendChild(w);
+    document.body.appendChild(fx);
+    setTimeout(function(){ if(fx.parentNode) fx.parentNode.removeChild(fx); }, kind==='win'?1300:1650);
   }
 
   /** 渲染战斗卡 */
@@ -2618,23 +2677,33 @@ window.onerror=function(msg,url,line,col,err){
       e.dots.forEach(function(d){ bufHtml+='<span class="ec-tag debuff">'+d.name+' '+d.turns+'回合</span>'; });
     }
 
-    logHTML(
-      '<div class="c-enemy">'+
-        '<div class="ec-top"><span class="ec-name">'+e.name+'</span><span class="ec-title">'+e.title+'</span></div>'+
-        '<div class="ec-hp"><span>气血</span><div class="c-bar"><div class="'+hpCls+'" style="width:'+hpPct+'%"></div></div><span>'+Math.max(0,e.hp)+'/'+e.maxHp+'</span></div>'+
-        (bufHtml?'<div class="ec-buffs">'+bufHtml+'</div>':'')+
-      '</div>'
-    ,'env');
-
-    logHTML(
-      '<div class="c-player">'+
-        '<span>▲ '+state.name+'</span>'+
-        '<span class="cp-hp">气血 '+p.hp+'/'+p.maxHp+'</span>'+
-        '<span class="cp-mp">内力 '+p.mp+'/'+p.maxMp+'</span>'+
-        '<span class="cp-rage">战意 '+p.rage+'/'+p.maxRage+'</span>'+
-      '</div>'+
-      '<div class="c-round">—— 第 '+st.round+' 回合 ——</div>'
-    ,'sys');
+    if(!combatCardEl){
+      combatCardEl=document.createElement('div');
+      combatCardEl.id='combat-card';
+      combatCardEl.innerHTML=
+        '<div class="c-enemy">'+
+          '<div class="ec-top"><span class="ec-name"></span><span class="ec-title"></span></div>'+
+          '<div class="ec-hp"><span>气血</span><div class="c-bar"><div class="c-hpfill"></div></div><span class="ec-hpv"></span></div>'+
+          '<div class="ec-buffs"></div>'+
+        '</div>'+
+        '<div class="c-player"><span class="cp-name"></span>'+
+          '<span class="cp-hp"></span><span class="cp-mp"></span><span class="cp-rage"></span></div>'+
+        '<div class="c-round"></div>';
+      $narr.appendChild(combatCardEl);
+    }
+    var q=function(sel){ return combatCardEl.querySelector(sel); };
+    q('.ec-name').textContent=e.name||'';
+    q('.ec-title').textContent=e.title||'';
+    var fill=q('.c-hpfill');
+    fill.className='c-hpfill '+hpCls;
+    fill.style.width=hpPct+'%';
+    q('.ec-hpv').textContent=Math.max(0,e.hp)+'/'+e.maxHp;
+    q('.ec-buffs').innerHTML=bufHtml;
+    q('.cp-name').textContent='▲ '+(state.name||'你');
+    q('.cp-hp').textContent='气血 '+p.hp+'/'+p.maxHp;
+    q('.cp-mp').textContent='内力 '+p.mp+'/'+p.maxMp;
+    q('.cp-rage').textContent='战意 '+p.rage+'/'+p.maxRage;
+    q('.c-round').textContent='—— 第 '+st.round+' 回合 ——';
   }
 
   /** 渲染战斗回合（场景 + 按钮） */
@@ -2714,12 +2783,21 @@ window.onerror=function(msg,url,line,col,err){
     var seq=result.log.filter(function(e){
       return ['player_atk','enemy_atk','debuff','buff','dot','counter','system'].indexOf(e.type)>=0;
     });
+    // autoResolve 已算到终态：逐条回放时按日志累计血条，实现平滑扣血
+    var st0=G.CombatEngine.getStatus();
+    var runE=st0.enemy.hp, runP=st0.player.hp;   // 以当前真实血量起算（兼容中途切自动）
     (function play(i){
       if(i>=seq.length){
         var st=G.CombatEngine.getStatus(); state.mp=st.player.mp;
         endCombat(result.result); return;
       }
-      logCombat(seq[i]);
+      var e=seq[i];
+      if(e.type==='player_atk') runE-=(e.dmg||0);
+      else if(e.type==='enemy_atk') runP-=(e.dmg||0);
+      else if(e.type==='counter' && e.dmg) runE-=e.dmg;            // 反弹：敌方受伤
+      else if(e.type==='dot' && e.dmg){ if(e.side==='enemy') runE-=e.dmg; else runP-=e.dmg; }
+      updateCardBars(runE, runP, st0.enemy.maxHp, st0.player.maxHp);
+      logCombat(e);
       setTimeout(function(){ play(i+1); }, 420);
     })(0);
   }
@@ -2801,6 +2879,8 @@ window.onerror=function(msg,url,line,col,err){
           '<div class="cs-detail">'+detail+'</div>'+
         '</div>'
       ,'good');
+      if(combatCardEl) combatCardEl.classList.add('settle-win');
+      playCombatFx('win');
       toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
     } else if(result==='lose'){
       state.hp=1;
@@ -2811,6 +2891,8 @@ window.onerror=function(msg,url,line,col,err){
           '<div class="cs-detail">眼前一黑……你重伤倒地，气若游丝。须先「休整」恢复，方可再动。</div>'+
         '</div>'
       ,'combat');
+      if(combatCardEl) combatCardEl.classList.add('settle-lose');
+      playCombatFx('lose');
       toast('败北！气血仅余1点');
     } else if(result==='fled'){
       log('你已脱离战斗，回到原地。','sys');

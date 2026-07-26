@@ -272,7 +272,7 @@
           var reflect = Math.round(totalDmg * pForce.reflectDmg);
           if (reflect > 0) {
             this.state.enemy.hp = Math.max(0, this.state.enemy.hp - reflect);
-            log.push({ type:'counter', text: '你以震字诀反弹 ' + reflect + ' 伤害！' });
+            log.push({ type:'counter', text: '你以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect });
           }
         }
       }
@@ -293,7 +293,7 @@
         var surviving = [];
         unit.dots.forEach(function(d) {
           unit.hp = Math.max(0, unit.hp - d.dmg);
-          log.push({ type:'dot', text: (side==='player'?'你':unit.name) + '受到' + d.name + ' ' + d.dmg + '点' });
+          log.push({ type:'dot', text: (side==='player'?'你':unit.name) + '受到' + d.name + ' ' + d.dmg + '点', dmg: d.dmg, side: side });
           d.turns--;
           if (d.turns > 0) surviving.push(d);
         });
