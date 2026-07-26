@@ -398,7 +398,7 @@
       ],
       exits: { '南': 'ji_huangdi', '北': 'ji_huangshan' },
       find: '细看：丘顶巨石后有被人坐卧的痕迹，灰烬犹温；北望山影森然，黑山之脉已隐隐在望。',
-      npcs: [], items: [],
+      npcs: ['stray_dog'], items: [],
       actions: [
         { id: 'rest', label: '丘顶歇息', group: '行动', tip: '坐巨石上远眺，气血内力尽复' }
       ]
@@ -411,7 +411,7 @@
       ],
       exits: { '南': 'ji_xiaoqiu', '北': 'ji_heishan_zhai' },
       find: '细看：岩壁上凿着粗糙的箭头指向北面山坳；风中隐约传来人声与兵刃相击，黑山寨便在坳中。',
-      npcs: [], items: ['岩缝里的断刃'],
+      npcs: ['deserter'], items: ['岩缝里的断刃'],
       actions: []
     },
     ji_liumin: {
@@ -421,7 +421,7 @@
         '几个乞儿蹲在路口，伸出脏兮兮的手。偶尔有溃兵在此劫掠，妇孺的哭声随风飘散。'
       ],
       exits: { '东': 'ji_guomen' },
-      npcs: ['minlao'],
+      npcs: ['minlao', 'hungry_refugee'],
       find: '细看：棚户以破席败革搭成，老弱蜷缩其间，小儿哭声断续。东面就是回郭门的路；若肯周济，或能问出些北疆流言。',
       items: [],
       actions: [

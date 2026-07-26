@@ -85,6 +85,39 @@
       drop: { gold: [0, 0], pot: [0, 0], table: [], equip: { tier: 0, chance: 0 } }
     },
 
+    // ─── 新手练级（出生点周边·必能打过）───
+    stray_dog: {
+      id: 'stray_dog', name: '野犬', title: '城外流浪恶犬',
+      hp: 50, atk: 6, def: 2, spd: 16,
+      skills: [
+        { id: 'bite', name: '扑咬', beat: 28, dmgMul: 0.9, desc: '低吼扑上，张口便咬' }
+      ],
+      ai: 'aggressive',
+      drop: { gold: [3, 10], pot: [2, 6], table: [], equip: { tier: 1, chance: 20 } }
+    },
+    hungry_refugee: {
+      id: 'hungry_refugee', name: '饥饿流民', title: '饿极暴起的难民',
+      hp: 80, atk: 7, def: 3, spd: 14,
+      skills: [
+        { id: 'claw', name: '乱抓', beat: 26, dmgMul: 0.8, desc: '十指如爪，胡乱抓挠' },
+        { id: 'snatch', name: '抢夺', beat: 30, dmgMul: 0.6, desc: '扑上来抢夺吃食' }
+      ],
+      ai: 'aggressive',
+      drop: { gold: [2, 8], pot: [2, 5], table: [], equip: { tier: 1, chance: 15 } }
+    },
+    deserter: {
+      id: 'deserter', name: '落单溃兵', title: '掉队西凉溃卒',
+      hp: 130, atk: 11, def: 8, spd: 18,
+      skills: [
+        { id: 'wild_slash', name: '怯懦挥砍', beat: 30, dmgMul: 1.0, desc: '心慌意乱，胡乱砍杀',
+          eff: { slowChance: 0.2, slowTurns: 1 } },
+        { id: 'cower', name: '缩身', beat: 22, dmgMul: 0, desc: '抱头缩身，勉强招架',
+          eff: { selfBuff: { def: 4, turns: 2 } } }
+      ],
+      ai: 'defensive',
+      drop: { gold: [8, 20], pot: [4, 10], table: [], equip: { tier: 1, chance: 30 } }
+    },
+
     // ─── 黑山寨（剿匪据点） ───
     heishan_zei: {
       id: 'heishan_zei', name: '黑山寨卒', title: '黑山喽啰',
