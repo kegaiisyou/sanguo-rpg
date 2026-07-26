@@ -2643,8 +2643,11 @@ window.onerror=function(msg,url,line,col,err){
   // 给锚点加一次性动画 class
   function flashAnchor(side, cls, ms){
     var a=combatAnchor(side); if(!a) return;
-    a.classList.remove(cls); void a.offsetWidth; a.classList.add(cls);
-    setTimeout(function(){ a.classList.remove(cls); }, ms||500);
+    var toks=String(cls).split(/\s+/).filter(Boolean);
+    toks.forEach(function(t){ a.classList.remove(t); });
+    void a.offsetWidth;
+    toks.forEach(function(t){ a.classList.add(t); });
+    setTimeout(function(){ toks.forEach(function(t){ a.classList.remove(t); }); }, ms||500);
   }
   // 伤害飘字：挂到承受方卡上方，浮起淡出
   function floatDamage(dmg, side, crit){
