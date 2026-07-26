@@ -16,6 +16,7 @@
       food: 100, maxFood: 100,       // 食物：随行走/时间流失
       drink: 100, maxDrink: 100,     // 饮水：随行走/时间流失
       pot: 0,                        // 潜能：历练所得，修炼武学消耗
+      apt: { jinli:5, gengu:5, shenfa:5, wuxing:5, fuyuan:5, gongfa:5 }, // 先天资质：劲力/根骨/身法/悟性/福缘/功法亲和（不计入战力，影响成长底色；升级随修为微涨，见 GAME_DESIGN 4.0）
       chivalry: 0,                   // 侠义值（P3 善恶双轨·正数轴，互不抵消）
       notoriety: 0,                  // 凶名值（P3 善恶双轨·正数轴，互不抵消）
       reputation: 0,                 // 声望 0-100（P4 起由胜战真实获取；调试台仅 ?dev=1 可直赋）
@@ -59,6 +60,11 @@
     save.atk = 15 + (sect.bonus.atk || 0);
     save.def = 5 + (sect.bonus.def || 0);
     save.spd = 20;                       // 基础身法
+    // 门派资质底色（角色创建属性，按出身分配；见 GAME_DESIGN 4.0）
+    if(!save.apt) save.apt={jinli:5,gengu:5,shenfa:5,wuxing:5,fuyuan:5,gongfa:5};
+    if(save.sect==='taiping'){ save.apt.wuxing+=2; save.apt.fuyuan+=1; }
+    else if(save.sect==='xiliang'){ save.apt.gengu+=2; save.apt.jinli+=1; }
+    else { save.apt.jinli+=1; save.apt.gengu+=1; } // 颍川义军：均衡
     return save;
   }
 

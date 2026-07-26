@@ -1167,13 +1167,29 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // ===== 升级 / 效果结算 =====
+  // 敌人修为经验：依敌方气血与攻击估算（设计 4.7：修为经验来自战斗结算）
+  function enemyExp(en){
+    if(!en || en.id==='dummy') return 0;
+    return Math.max(1, Math.round((en.hp + en.atk*4) / 10));
+  }
+  // 先天资质标签（设计 4.0：劲力/根骨/身法/悟性/福缘/功法亲和）
+  function aptTags(){
+    if(!state.apt) return '—';
+    var L={jinli:'劲力',gengu:'根骨',shenfa:'身法',wuxing:'悟性',fuyuan:'福缘',gongfa:'功法亲和'};
+    return Object.keys(L).map(function(k){return '<span>'+L[k]+' '+state.apt[k]+'</span>';}).join('');
+  }
+  // 升级：按五维底色分配（劲力→攻、根骨→血防、身法→速、悟性→内力），并累计资质
   function addXp(n){
+    if(!state.apt) state.apt={jinli:5,gengu:5,shenfa:5,wuxing:5,fuyuan:5,gongfa:5};
     state.exp+=n;
     while(state.exp>=G.BALANCE.expNeed(state.level) && state.level<G.CONSTANTS.MAX_LEVEL){
       state.exp-=G.BALANCE.expNeed(state.level); state.level++;
-      state.maxHp+=10;state.maxMp+=5;state.atk+=2;state.def+=1;
+      state.apt.jinli++;  state.atk+=2;                  // 劲力 → 攻击
+      state.apt.gengu++;  state.maxHp+=10; state.def+=1; // 根骨 → 气血/防御
+      state.apt.shenfa++; state.spd+=1;                  // 身法 → 速度
+      state.apt.wuxing++; state.maxMp+=5;                // 悟性 → 内力
       state.hp=state.maxHp;state.mp=state.maxMp;
-      log('【破境】你已至 LV.'+state.level+'！气血内力尽复，实力大涨。','good');
+      log('【破境】修为精进！已至 LV.'+state.level+'（劲力'+state.apt.jinli+' 根骨'+state.apt.gengu+' 身法'+state.apt.shenfa+'）。气血内力尽复，实力大涨。','good');
     }
   }
   function applyEffect(e){
@@ -2169,6 +2185,7 @@ window.onerror=function(msg,url,line,col,err){
         row('凶名',state.notoriety)+
         row('风评',moralTitle())+
         row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
+        '<div class="row"><span>先天资质</span></div><div class="skills">'+aptTags()+'</div>'+
         row('当前所处',curRoom().name)+
         '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
         '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；潜能由历练积攒，用于研习武学。</p>';
@@ -2664,6 +2681,9 @@ window.onerror=function(msg,url,line,col,err){
       var drop=G.CombatEngine.getDrop();
       state.gold+=drop.gold;
       state.pot+=drop.pot;
+      // ── 修为经验（4.7.1：战斗胜利补发，关闭断线）──
+      var expGain=enemyExp(enemy);
+      addXp(expGain);
       // ── 掉落入库（P1 背包系统：按 id 堆叠 count）──
       drop.items.forEach(function(it){
         var ex=null;
@@ -2671,7 +2691,7 @@ window.onerror=function(msg,url,line,col,err){
         if(ex){ ex.count=(ex.count||1)+1; }
         else { state.items.push({id:it.id, name:it.name, count:1}); }
       });
-      var detail=drop.gold+'银两 · 潜能+'+drop.pot;
+      var detail='修为+'+expGain+' · '+drop.gold+'银两 · 潜能+'+drop.pot;
       if(drop.items.length) detail+=' · '+drop.items.map(function(it){return it.name;}).join('、');
       // ── 装备掉落（P1 完整）──
       if(drop.equip){
