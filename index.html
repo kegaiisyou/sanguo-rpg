@@ -491,8 +491,20 @@
   .c-enemy .ec-tag{padding:2px 8px;border-radius:10px;font-size:11px;color:var(--ink-soft);background:rgba(74,62,48,.08);}
   .c-enemy .ec-tag.debuff{color:var(--seal);background:rgba(158,59,46,.12);}
 
+  /* 战斗卡改为常驻 HUD：吸顶固定在叙事窗顶部，长回合也不被顶出屏幕 */
+  #combat-card{
+    position:sticky; top:0; z-index:6;
+    margin:0 -4px 12px; padding:8px 4px 10px;
+    background:linear-gradient(180deg,var(--paper) 76%,rgba(244,238,226,0));
+    border-bottom:1px solid rgba(158,59,46,.18);
+  }
+  #combat-card .c-enemy,#combat-card .c-player{margin:0 0 8px;}
+
   .c-player{margin:0 0 12px;font-size:13px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px 14px;}
   .c-player .cp-hp{color:var(--seal);font-weight:600;}
+
+  /* 战斗日志类型图标：长回合也能一眼分辨攻防/暴击/状态 */
+  .narr.ico::before{content:attr(data-ico);margin-right:6px;opacity:.85;font-family:system-ui,sans-serif;}
   .c-player .cp-mp{color:var(--jade);font-weight:600;}
   .c-player .cp-rage{color:#c0762a;font-weight:600;}
 
@@ -2525,6 +2537,7 @@ window.onerror=function(msg,url,line,col,err){
     p.textContent=text;
     $narr.appendChild(p);
     var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
+    return p;
   }
 
   // ── 战斗动态效果辅助 ──
@@ -2546,12 +2559,18 @@ window.onerror=function(msg,url,line,col,err){
     sc.classList.remove('shake'); void sc.offsetWidth; sc.classList.add('shake');
     setTimeout(function(){ sc.classList.remove('shake'); }, 340);
   }
-  // 战斗日志：分类样式 + 暴击特写 + 伤害飘字 + 震屏
+  // 战斗日志：分类样式 + 类型图标 + 暴击特写 + 伤害飘字 + 震屏
+  var COMBAT_ICON={
+    player_atk:'⚔', enemy_atk:'🗡', buff:'⬆', debuff:'☣',
+    dot:'☠', counter:'⚡', heal:'✚', system:'·'
+  };
   function logCombat(entry){
     var text=entry.text||''; var cls=entry.type||'sys';
     var crit=/暴击/.test(text);
     if(crit) cls+=' crit';
-    logText(text, cls);
+    var el=logText(text, cls);
+    var ico=COMBAT_ICON[entry.type];
+    if(ico && !crit){ el.classList.add('ico'); el.setAttribute('data-ico', ico); }
     if(entry.dmg && entry.dmg>0){
       floatDamage(entry.dmg, entry.type==='player_atk'?'enemy':'player', crit);
     }
