@@ -475,8 +475,14 @@
 
   /* ===== 战斗 UI ===== */
   .c-enemy{background:rgba(158,59,46,.08);border:1px solid rgba(158,59,46,.25);
-    border-radius:12px;padding:14px 16px;margin:0 0 14px;}
-  .c-enemy .ec-top{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;}
+    border-radius:12px;padding:12px 14px;margin:0 0 12px;display:flex;gap:12px;align-items:center;}
+  /* 敌人立绘（emoji 大图标） */
+  .c-enemy .ec-fig{flex:0 0 auto;width:46px;height:46px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;font-size:30px;line-height:1;
+    background:radial-gradient(circle at 50% 38%,rgba(158,59,46,.16),rgba(158,59,46,.04));
+    border:1px solid rgba(158,59,46,.22);filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
+  .c-enemy .ec-info{flex:1;min-width:0;}
+  .c-enemy .ec-top{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;}
   .c-enemy .ec-name{font-size:17px;font-weight:700;color:var(--seal);
     font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;}
   .c-enemy .ec-title{font-size:12px;color:var(--ink-faint);font-weight:400;letter-spacing:0;}
@@ -490,6 +496,16 @@
   .c-enemy .ec-buffs,.c-enemy .ec-dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
   .c-enemy .ec-tag{padding:2px 8px;border-radius:10px;font-size:11px;color:var(--ink-soft);background:rgba(74,62,48,.08);}
   .c-enemy .ec-tag.debuff{color:var(--seal);background:rgba(158,59,46,.12);}
+  /* 敌方意图预告（telegraph） */
+  .c-enemy .ec-intent{margin-top:7px;font-size:12px;font-weight:600;letter-spacing:.5px;
+    display:inline-flex;align-items:center;padding:3px 9px;border-radius:10px;}
+  .c-enemy .ec-intent.threat-normal{color:#7a5d2e;background:rgba(192,118,42,.14);border:1px solid rgba(192,118,42,.3);}
+  .c-enemy .ec-intent.threat-heavy{color:#a03030;background:rgba(160,48,48,.14);border:1px solid rgba(160,48,48,.4);
+    animation:intentPulse 1s ease-in-out infinite;}
+  .c-enemy .ec-intent.threat-defend{color:#2f5f8f;background:rgba(47,95,143,.14);border:1px solid rgba(47,95,143,.35);}
+  @keyframes intentPulse{0%,100%{box-shadow:0 0 0 0 rgba(160,48,48,.25);}50%{box-shadow:0 0 0 4px rgba(160,48,48,0);}}
+  /* 玩家立绘 */
+  .c-player .ec-fig-p{flex:0 0 auto;font-size:18px;margin-right:4px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.12));}
 
   /* 战斗卡改为常驻 HUD：吸顶固定在叙事窗顶部，长回合也不被顶出屏幕 */
   #combat-card{
@@ -2573,6 +2589,13 @@ window.onerror=function(msg,url,line,col,err){
     player_atk:'⚔', enemy_atk:'🗡', buff:'⬆', debuff:'☣',
     dot:'☠', counter:'⚡', heal:'✚', system:'·'
   };
+  // 敌人立绘（emoji 大图标，按 id 映射；缺省回退 👤）
+  var ENEMY_PORTRAIT={
+    bandit:'🥷', bandit_chief:'👹', yellow_turban:'🛡️', hua_xiong:'⚔️',
+    dummy:'🪵', heishan_zei:'🔥', heishan_zhu:'👺',
+    hungry_refugee:'🥺', stray_dog:'🐕', deserter:'💂'
+  };
+  var PLAYER_PORTRAIT='🧍';
   function logCombat(entry){
     var text=entry.text||''; var cls=entry.type||'sys';
     var crit=/暴击/.test(text);
@@ -2668,6 +2691,7 @@ window.onerror=function(msg,url,line,col,err){
 
   /** 战斗卡：持久 DOM（仅首次创建，之后只更新血条宽度以实现平滑过渡） */
   var combatCardEl=null;
+  var currentEnemyIntent=null;   // 本回合敌方预告（peekEnemyIntent 返回）
   // 按累计血量更新战斗卡血条（自动模式逐条回放时用）
   function updateCardBars(eHp, pHp, eMax, pMax){
     if(!combatCardEl) return;
@@ -2710,22 +2734,35 @@ window.onerror=function(msg,url,line,col,err){
       combatCardEl.id='combat-card';
       combatCardEl.innerHTML=
         '<div class="c-enemy">'+
-          '<div class="ec-top"><span class="ec-name"></span><span class="ec-title"></span></div>'+
-          '<div class="ec-hp"><span>气血</span><div class="c-bar"><div class="c-hpfill"></div></div><span class="ec-hpv"></span></div>'+
-          '<div class="ec-buffs"></div>'+
+          '<div class="ec-fig"></div>'+
+          '<div class="ec-info">'+
+            '<div class="ec-top"><span class="ec-name"></span><span class="ec-title"></span></div>'+
+            '<div class="ec-hp"><span>气血</span><div class="c-bar"><div class="c-hpfill"></div></div><span class="ec-hpv"></span></div>'+
+            '<div class="ec-intent"></div>'+
+            '<div class="ec-buffs"></div>'+
+          '</div>'+
         '</div>'+
-        '<div class="c-player"><span class="cp-name"></span>'+
+        '<div class="c-player"><span class="ec-fig-p">'+PLAYER_PORTRAIT+'</span>'+
+          '<span class="cp-name"></span>'+
           '<span class="cp-hp"></span><span class="cp-mp"></span><span class="cp-rage"></span></div>'+
         '<div class="c-round"></div>';
       $narr.appendChild(combatCardEl);
     }
     var q=function(sel){ return combatCardEl.querySelector(sel); };
+    q('.ec-fig').textContent=ENEMY_PORTRAIT[e.id]||'👤';
     q('.ec-name').textContent=e.name||'';
     q('.ec-title').textContent=e.title||'';
     var fill=q('.c-hpfill');
     fill.className='c-hpfill '+hpCls;
     fill.style.width=hpPct+'%';
     q('.ec-hpv').textContent=Math.max(0,e.hp)+'/'+e.maxHp;
+    // 敌方意图预告（仅手动模式显示）
+    var it=q('.ec-intent');
+    if(currentEnemyIntent){
+      var threat=currentEnemyIntent.threat;
+      it.className='ec-intent '+(threat==='heavy'?'threat-heavy':threat==='defend'?'threat-defend':'threat-normal');
+      it.textContent=(threat==='heavy'?'⚠ ':'')+currentEnemyIntent.label;
+    } else { it.className='ec-intent'; it.textContent=''; }
     q('.ec-buffs').innerHTML=bufHtml;
     q('.cp-name').textContent='▲ '+(state.name||'你');
     q('.cp-hp').textContent='气血 '+p.hp+'/'+p.maxHp;
@@ -2740,6 +2777,8 @@ window.onerror=function(msg,url,line,col,err){
       if(st.result){ endCombat(st.result); return; }
       if(st.player.hp<=0){ endCombat('lose'); return; }   // 兜底：气血归零立即判负
       clearActions();
+    // 手动模式：先锁定并显示敌方本回合意图，供玩家选防御/闪避博弈
+    currentEnemyIntent = G.CombatEngine.peekEnemyIntent();
     renderCombatCard();
 
     // ── 武技/招式：紧凑芯片行（满配也不眼花）──

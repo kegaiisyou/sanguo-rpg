@@ -66,7 +66,8 @@
         lineGains: [],
         log: [],
         round: 0,
-        result: null
+        result: null,
+        enemyIntent: null   // 本回合敌方主行动预告（由 peekEnemyIntent 锁定）
       };
 
       return { ok: true };
@@ -397,6 +398,24 @@
       return atks3.length ? atks3[Math.floor(Math.random() * atks3.length)] : 'defend';
     },
 
+    // ─── 敌方意图预告（供 UI 显示，玩家可据此选防御/闪避）───
+    // 锁定本回合敌方主行动，保证"预告 = 实际结算"
+    peekEnemyIntent: function() {
+      var act = this._pickEnemyAction();
+      this.state.enemyIntent = act;
+      var label, threat = 'normal';
+      if (act === 'defend') {
+        label = '摆出防御架势';
+        threat = 'defend';
+      } else {
+        var dmgMul = (act && act.dmgMul) || 0;
+        var name = (act && act.name) || '普攻';
+        if (dmgMul >= 1.5) { label = '蓄力「' + name + '」'; threat = 'heavy'; }
+        else { label = '欲施「' + name + '」'; threat = 'normal'; }
+      }
+      return { action: act, label: label, threat: threat };
+    },
+
     // ─── 玩家 AI（自动模式） ───
     _pickPlayerAction: function(strategy) {
       var self = this;
@@ -505,9 +524,10 @@
       this._resolveAction('player', playerAction, log);
       if (this._checkEnd()) { this.state.log = log; return log; }
 
-      // 4) 敌方行动（若未在运招中抢攻）
+      // 4) 敌方行动（若未在运招中抢攻）— 使用预告锁定的主行动，保证一致
       if (!playerAction || playerAction === 'defend' || playerAction.beat <= 60) {
-        var eAct = this._pickEnemyAction();
+        var eAct = this.state.enemyIntent || this._pickEnemyAction();
+        this.state.enemyIntent = null;
         this._resolveAction('enemy', eAct, log);
         if (this._checkEnd()) { this.state.log = log; return log; }
       }
@@ -596,6 +616,7 @@
           stunNext: this.state.player.stunNext
         },
         enemy: {
+          id: this.state.enemy.id,
           name: this.state.enemy.name,
           title: this.state.enemy.title,
           hp: this.state.enemy.hp, maxHp: this.state.enemy.maxHp,
