@@ -1855,17 +1855,26 @@ window.onerror=function(msg,url,line,col,err){
     var box=document.getElementById('npc-list'); if(!box) return;
     box.innerHTML=''; box.classList.remove('has');
     var items=[];
+    var seen={};   // 已在 ROOM_OBJECTS 中以 NPC 形式出现的 key，避免与 npcs 重复
     var objs=ROOM_OBJECTS[room.id];
     if(objs && objs.length){
       objs.filter(function(o){return o.type==='npc';}).forEach(function(o){
+        seen[o.key]=1;
         items.push({o:o, acts:buildNpcActions(o)});
       });
-    } else {
-      (room.npcs||[]).forEach(function(k){
+    }
+    // 合并房间 npcs：敌人型 → 可「挑战」；对话型 → 原交谈逻辑
+    (room.npcs||[]).forEach(function(k){
+      if(seen[k]) return;
+      var en = G.ENEMIES ? G.ENEMIES.get(k) : null;
+      if(en){
+        var o={name:en.name, icon:'⚔', key:k, desc:en.title||'来者不善'};
+        items.push({o:o, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat(k); }}]});
+      } else {
         var n=G.DIALOGUES.npcs[k]; if(!n) return;
         items.push({o:{name:n.name, icon:'👤', key:k, desc:n.name}, acts:buildNpcActions({name:n.name, key:k, desc:n.name})});
-      });
-    }
+      }
+    });
     if(!items.length){ box.innerHTML='<div class="nl-empty">此处无人</div>'; return; }
     box.classList.add('has');
     box.classList.toggle('many', items.length>=4);   // 人数多时加宽，避免太挤
@@ -2830,6 +2839,9 @@ window.onerror=function(msg,url,line,col,err){
     if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断 playTurn
     var st=G.CombatEngine.getStatus();
     var enemy=G.CombatEngine.getEnemy();
+    // 终局先用真实状态同步战斗卡（避免最后一击致负/致死时卡面停留在上一回合血量）
+    if(combatCardEl) renderCombatCard();
+
 
     // 更新玩家状态
     state.hp=st.player.hp;
