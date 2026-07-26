@@ -240,15 +240,15 @@
       log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg });
 
       // ─── 附加效果 ───
-      // 中毒
+      // 中毒（可叠层）
       if (eff.poisonChance && Math.random() < eff.poisonChance) {
-        target.dots.push({ name:'中毒', dmg:eff.poisonDmg||8, turns:eff.poisonTurns||3 });
+        self._addDot(target, '中毒', eff.poisonDmg||8, eff.poisonTurns||3);
         log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '中毒！（每回合-' + (eff.poisonDmg||8) + '，' + (eff.poisonTurns||3) + '回合）' });
       }
 
-      // 灼烧
+      // 灼烧（可叠层）
       if (eff.burnChance && Math.random() < eff.burnChance) {
-        target.dots.push({ name:'灼烧', dmg:eff.burnDmg||6, turns:eff.burnTurns||3 });
+        self._addDot(target, '灼烧', eff.burnDmg||6, eff.burnTurns||3);
         log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '被灼烧！（每回合-' + (eff.burnDmg||6) + '，' + (eff.burnTurns||3) + '回合）' });
       }
 
@@ -285,7 +285,20 @@
       return totalDmg;
     },
 
-    // ─── 结算 DoT ───
+    // ─── 叠加状态（同名 DoT 叠层，层数增伤、回合取较长）───
+    _addDot: function(unit, name, dmg, turns) {
+      for (var i = 0; i < unit.dots.length; i++) {
+        if (unit.dots[i].name === name) {
+          unit.dots[i].stacks = (unit.dots[i].stacks || 1) + 1;
+          unit.dots[i].dmg = dmg;
+          unit.dots[i].turns = Math.max(unit.dots[i].turns, turns);
+          return;
+        }
+      }
+      unit.dots.push({ name: name, dmg: dmg, turns: turns, stacks: 1 });
+    },
+
+    // ─── 结算 DoT（按层数累计伤害）───
     _tickDots: function(log) {
       var self = this;
       ['player', 'enemy'].forEach(function(side) {
@@ -293,8 +306,9 @@
         if (!unit.dots.length) return;
         var surviving = [];
         unit.dots.forEach(function(d) {
-          unit.hp = Math.max(0, unit.hp - d.dmg);
-          log.push({ type:'dot', text: (side==='player'?'你':unit.name) + '受到' + d.name + ' ' + d.dmg + '点', dmg: d.dmg, side: side });
+          var dmg = d.dmg * (d.stacks || 1);
+          unit.hp = Math.max(0, unit.hp - dmg);
+          log.push({ type:'dot', text: (side==='player'?'你':unit.name) + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: side });
           d.turns--;
           if (d.turns > 0) surviving.push(d);
         });

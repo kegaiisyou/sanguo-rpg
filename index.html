@@ -506,6 +506,30 @@
   @keyframes intentPulse{0%,100%{box-shadow:0 0 0 0 rgba(160,48,48,.25);}50%{box-shadow:0 0 0 4px rgba(160,48,48,0);}}
   /* 玩家立绘 */
   .c-player .ec-fig-p{flex:0 0 auto;font-size:18px;margin-right:4px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.12));}
+  /* 玩家状态区（增益/减益） */
+  .c-player .cp-status{flex-basis:100%;display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+
+  /* ── 受击 / 格挡 / 闪避 / 暴击 差异化特写 ── */
+  .c-enemy.hit, .c-player.hit{animation:hitShake .4s ease;}
+  .c-enemy.hit:not(.hit-crit), .c-player.hit:not(.hit-crit){box-shadow:0 0 0 2px rgba(160,48,48,.5) inset;}
+  .c-enemy.hit-crit, .c-player.hit-crit{animation:hitCrit .42s ease;box-shadow:0 0 14px rgba(192,39,26,.5);}
+  @keyframes hitShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}50%{transform:translateX(4px);}75%{transform:translateX(-2px);}}
+  @keyframes hitCrit{0%{transform:translateX(0) scale(1);}20%{transform:translateX(-7px) scale(1.02);}45%{transform:translateX(6px);}100%{transform:translateX(0) scale(1);}}
+  .c-enemy.block, .c-player.block{animation:blockFlash .6s ease;}
+  @keyframes blockFlash{0%,100%{box-shadow:0 0 0 0 rgba(47,95,143,0);}30%{box-shadow:0 0 0 3px rgba(47,95,143,.55),0 0 16px rgba(47,95,143,.4);}}
+  .c-enemy.dodge, .c-player.dodge{animation:dodgeShake .4s ease;}
+  @keyframes dodgeShake{0%,100%{transform:translateX(0);}20%{transform:translateX(6px);}50%{transform:translateX(-5px);}80%{transform:translateX(3px);}}
+  /* 漂浮标签：闪避(灰)/格挡(蓝) */
+  .dmg-float.label-dodge{color:#9a9a9a;font-size:18px;}
+  .dmg-float.label-block{color:#2f5f8f;font-size:18px;text-shadow:0 0 6px rgba(47,95,143,.5);}
+  /* 玩家侧效果落在卡左下，避免与敌方(右上)重叠 */
+  .dmg-float.side-player{top:auto;bottom:-2px;left:16px;right:auto;}
+  .crit-burst.side-player{top:auto;bottom:6px;left:22px;right:auto;}
+  /* 暴击金红爆裂粒子 */
+  .crit-burst{position:absolute;top:6px;right:20px;width:6px;height:6px;border-radius:50%;
+    background:radial-gradient(circle,#ffd27a,#c0271a);box-shadow:0 0 10px 4px rgba(192,39,26,.55);
+    animation:critBurst .6s ease-out forwards;pointer-events:none;z-index:7;}
+  @keyframes critBurst{0%{transform:scale(.4);opacity:1;}60%{transform:scale(7);opacity:.5;}100%{transform:scale(10);opacity:0;}}
 
   /* 战斗卡改为常驻 HUD：吸顶固定在叙事窗顶部，长回合也不被顶出屏幕 */
   #combat-card{
@@ -2566,17 +2590,50 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // ── 战斗动态效果辅助 ──
-  // 伤害飘字：挂到敌人卡/玩家状态区上方，浮起淡出
-  function floatDamage(dmg, side, crit){
+  // 取得受击锚点（敌人卡 / 玩家状态区）
+  function combatAnchor(side){
     var sel = side==='enemy' ? '#scene .c-enemy' : '#scene .c-player';
     var list = document.querySelectorAll(sel);
-    var anchor = list.length ? list[list.length-1] : null;
-    if(!anchor) return;
+    return list.length ? list[list.length-1] : null;
+  }
+  // 给锚点加一次性动画 class
+  function flashAnchor(side, cls, ms){
+    var a=combatAnchor(side); if(!a) return;
+    a.classList.remove(cls); void a.offsetWidth; a.classList.add(cls);
+    setTimeout(function(){ a.classList.remove(cls); }, ms||500);
+  }
+  // 伤害飘字：挂到承受方卡上方，浮起淡出
+  function floatDamage(dmg, side, crit){
+    var a=combatAnchor(side); if(!a) return;
     var f=document.createElement('div');
-    f.className='dmg-float'+(crit?' crit':'');
+    f.className='dmg-float side-'+side+(crit?' crit':'');
     f.textContent='-'+dmg;
-    anchor.appendChild(f);
+    a.appendChild(f);
     setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 900);
+  }
+  // 漂浮文字标签（闪避/格挡等）
+  function floatLabel(side, txt, kind){
+    var a=combatAnchor(side); if(!a) return;
+    var f=document.createElement('div');
+    f.className='dmg-float label-'+kind+' side-'+side;
+    f.textContent=txt;
+    a.appendChild(f);
+    setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 900);
+  }
+  // 暴击金红爆裂粒子
+  function critBurst(side){
+    var a=combatAnchor(side); if(!a) return;
+    var b=document.createElement('div'); b.className='crit-burst side-'+side; a.appendChild(b);
+    setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 620);
+  }
+  // 受击：红闪 + 后仰
+  function flashHit(side, crit){ flashAnchor(side, crit?'hit hit-crit':'hit', 420); }
+  // 格挡：蓝盾光
+  function flashBlock(side){ flashAnchor(side, 'block', 620); }
+  // 闪避：灰字"闪" + 抖动
+  function showDodge(side){
+    floatLabel(side, '闪', 'dodge');
+    flashAnchor(side, 'dodge', 420);
   }
   // 受击/暴击震屏
   function shakeScene(){
@@ -2584,7 +2641,7 @@ window.onerror=function(msg,url,line,col,err){
     sc.classList.remove('shake'); void sc.offsetWidth; sc.classList.add('shake');
     setTimeout(function(){ sc.classList.remove('shake'); }, 340);
   }
-  // 战斗日志：分类样式 + 类型图标 + 暴击特写 + 伤害飘字 + 震屏
+  // 战斗日志：分类样式 + 类型图标 + 暴击/受击/格挡/闪避差异化特写
   var COMBAT_ICON={
     player_atk:'⚔', enemy_atk:'🗡', buff:'⬆', debuff:'☣',
     dot:'☠', counter:'⚡', heal:'✚', system:'·'
@@ -2603,8 +2660,23 @@ window.onerror=function(msg,url,line,col,err){
     var el=logText(text, cls);
     var ico=COMBAT_ICON[entry.type];
     if(ico && !crit){ el.classList.add('ico'); el.setAttribute('data-ico', ico); }
-    if(entry.dmg && entry.dmg>0){
-      floatDamage(entry.dmg, entry.type==='player_atk'?'enemy':'player', crit);
+
+    // 目标侧（承受方）：谁在挨这一下
+    var side=null;
+    if(entry.type==='player_atk') side='enemy';
+    else if(entry.type==='enemy_atk') side='player';
+    else if(entry.type==='counter') side='enemy';
+    else if(entry.type==='dot') side=(entry.side==='enemy'?'enemy':'player');
+
+    if(/闪过|未命中/.test(text) && side){
+      showDodge(side);                              // 闪避：灰字 + 抖动
+    } else if(/格挡/.test(text)){
+      var bs = /^你/.test(text) ? 'player' : 'enemy'; // 谁在格挡
+      flashBlock(bs); floatLabel(bs,'格挡','block');  // 格挡：蓝盾光
+    } else if(entry.dmg && entry.dmg>0 && side){
+      floatDamage(entry.dmg, side, crit);           // 伤害飘字
+      flashHit(side, crit);                          // 受击红闪/后仰
+      if(crit) critBurst(side);                      // 暴击金红爆裂粒子
     }
     if(crit || (entry.dmg && entry.dmg>=25)) shakeScene();
   }
@@ -2726,7 +2798,15 @@ window.onerror=function(msg,url,line,col,err){
       e.buffs.forEach(function(b){ bufHtml+='<span class="ec-tag">'+(b.type==='atk'?'攻↑':'速↑')+' '+b.turns+'回合</span>'; });
     }
     if(e.dots&&e.dots.length){
-      e.dots.forEach(function(d){ bufHtml+='<span class="ec-tag debuff">'+d.name+' '+d.turns+'回合</span>'; });
+      e.dots.forEach(function(d){ bufHtml+='<span class="ec-tag debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+' '+d.turns+'回合</span>'; });
+    }
+    // 玩家侧状态（增益/减益）
+    var pBufHtml='';
+    if(p.buffs&&p.buffs.length){
+      p.buffs.forEach(function(b){ pBufHtml+='<span class="ec-tag">'+(b.type==='atk'?'攻↑':'速↑')+' '+b.turns+'回合</span>'; });
+    }
+    if(p.dots&&p.dots.length){
+      p.dots.forEach(function(d){ pBufHtml+='<span class="ec-tag debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+' '+d.turns+'回合</span>'; });
     }
 
     if(!combatCardEl){
@@ -2744,7 +2824,8 @@ window.onerror=function(msg,url,line,col,err){
         '</div>'+
         '<div class="c-player"><span class="ec-fig-p">'+PLAYER_PORTRAIT+'</span>'+
           '<span class="cp-name"></span>'+
-          '<span class="cp-hp"></span><span class="cp-mp"></span><span class="cp-rage"></span></div>'+
+          '<span class="cp-hp"></span><span class="cp-mp"></span><span class="cp-rage"></span>'+
+          '<div class="cp-status"></div></div>'+
         '<div class="c-round"></div>';
       $narr.appendChild(combatCardEl);
     }
@@ -2764,6 +2845,7 @@ window.onerror=function(msg,url,line,col,err){
       it.textContent=(threat==='heavy'?'⚠ ':'')+currentEnemyIntent.label;
     } else { it.className='ec-intent'; it.textContent=''; }
     q('.ec-buffs').innerHTML=bufHtml;
+    q('.cp-status').innerHTML=pBufHtml;
     q('.cp-name').textContent='▲ '+(state.name||'你');
     q('.cp-hp').textContent='气血 '+p.hp+'/'+p.maxHp;
     q('.cp-mp').textContent='内力 '+p.mp+'/'+p.maxMp;
