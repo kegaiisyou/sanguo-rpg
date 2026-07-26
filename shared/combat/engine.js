@@ -193,6 +193,7 @@
 
     // ─── 处理一次行动 ───
     _resolveAction: function(actor, action, log) {
+      var self = this;
       var unit = this.state[actor];
       var target = this.state[actor === 'player' ? 'enemy' : 'player'];
       var aName = actor === 'player' ? '你' : unit.name;
@@ -769,7 +770,6 @@
         });
       }
       // ── P5：战意战术技能（满足条件才出现）──
-      var p = this.state.player;
       if (p.rage >= 30) {
         list.push({ id: 'rage_roar', name: '怒吼', type: 'rage', beat: RAGE_ACTIONS.roar.beat,
           dmgMul: 0, cost: RAGE_ACTIONS.roar.cost, attr: null, desc: RAGE_ACTIONS.roar.desc,

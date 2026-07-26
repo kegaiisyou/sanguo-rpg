@@ -1188,6 +1188,7 @@ window.onerror=function(msg,url,line,col,err){
     curSlot=slot||0;
     state = normalize(data || G.defaultSave());
     G.applySect(state);
+    SFX.setEnabled(state.sfxOn!==false);   // 载入存档后同步音效开关
     if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
     $narr.innerHTML='';
     renderStatus();
@@ -2699,7 +2700,7 @@ window.onerror=function(msg,url,line,col,err){
 
   // ── V5：轻量音效（Web Audio 合成，零外部资源）──
   var SFX=(function(){
-    var ctx=null, enabled = (typeof state!=='undefined' ? (state.sfxOn!==false) : true);
+    var ctx=null, enabled = true;   // 默认开；载入存档后由 syncSfxFromState() 同步
     function ac(){
       if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ctx=null; } }
       if(ctx && ctx.state==='suspended'){ try{ ctx.resume(); }catch(e){} }
