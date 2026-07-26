@@ -10,6 +10,7 @@
     // ─── 测试/教学用 ───
     bandit: {
       id: 'bandit', name: '山贼', title: '流窜匪徒',
+      element: '土',
       hp: 300, atk: 25, def: 15, spd: 20,
       skills: [
         { id: 'slash', name: '劈砍', beat: 30, dmgMul: 1.0, desc: '举刀劈下' },
@@ -23,6 +24,7 @@
     // ─── 中等敌人 ───
     bandit_chief: {
       id: 'bandit_chief', name: '流寇头目', title: '山寨首领',
+      element: '土',
       hp: 600, atk: 40, def: 25, spd: 25,
       skills: [
         { id: 'heavy_slash', name: '重砍', beat: 40, dmgMul: 1.3, desc: '全力一刀' },
@@ -39,6 +41,7 @@
     // ─── 黄巾系 ───
     yellow_turban: {
       id: 'yellow_turban', name: '黄巾力士', title: '太平道护法',
+      element: '土',
       hp: 800, atk: 50, def: 35, spd: 22,
       skills: [
         { id: 'talisman', name: '符箓·炎', beat: 35, dmgMul: 1.1, desc: '符纸化火袭向',
@@ -56,6 +59,7 @@
     // ─── Boss：华雄 ───
     hua_xiong: {
       id: 'hua_xiong', name: '华雄', title: '董卓麾下大将',
+      element: '金',
       hp: 1200, atk: 60, def: 45, spd: 30,
       skills: [
         { id: 'drag_blade', name: '拖刀', beat: 40, dmgMul: 1.3, desc: '拖刀而来，刀光如练',
@@ -79,6 +83,7 @@
     // ─── 木人桩（测试用，不掉落） ───
     dummy: {
       id: 'dummy', name: '木人桩', title: '练功器械',
+      element: '木',
       hp: 9999, atk: 0, def: 10, spd: 1,
       skills: [],
       ai: 'defensive',
@@ -88,6 +93,7 @@
     // ─── 新手练级（出生点周边·必能打过）───
     stray_dog: {
       id: 'stray_dog', name: '野犬', title: '城外流浪恶犬',
+      element: '无',
       hp: 50, atk: 6, def: 2, spd: 16,
       skills: [
         { id: 'bite', name: '扑咬', beat: 28, dmgMul: 0.9, desc: '低吼扑上，张口便咬' }
@@ -97,6 +103,7 @@
     },
     hungry_refugee: {
       id: 'hungry_refugee', name: '饥饿流民', title: '饿极暴起的难民',
+      element: '无',
       hp: 80, atk: 7, def: 3, spd: 14,
       skills: [
         { id: 'claw', name: '乱抓', beat: 26, dmgMul: 0.8, desc: '十指如爪，胡乱抓挠' },
@@ -107,6 +114,7 @@
     },
     deserter: {
       id: 'deserter', name: '落单溃兵', title: '掉队西凉溃卒',
+      element: '金',
       hp: 130, atk: 11, def: 8, spd: 18,
       skills: [
         { id: 'wild_slash', name: '怯懦挥砍', beat: 30, dmgMul: 1.0, desc: '心慌意乱，胡乱砍杀',
@@ -121,6 +129,7 @@
     // ─── 黑山寨（剿匪据点） ───
     heishan_zei: {
       id: 'heishan_zei', name: '黑山寨卒', title: '黑山喽啰',
+      element: '金',
       hp: 360, atk: 32, def: 18, spd: 22,
       skills: [
         { id: 'slash', name: '劈砍', beat: 30, dmgMul: 1.0, desc: '举刀劈下' },
@@ -131,6 +140,7 @@
     },
     heishan_zhu: {
       id: 'heishan_zhu', name: '黑山寨主·张燕', title: '黑山一十七部之主',
+      element: '金',
       hp: 1000, atk: 58, def: 40, spd: 28,
       skills: [
         { id: 'yan_slash', name: '雁翎刀法', beat: 35, dmgMul: 1.3, desc: '刀光如燕掠', attr: { wu: '金' } },

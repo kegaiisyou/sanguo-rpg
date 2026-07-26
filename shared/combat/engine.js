@@ -4,6 +4,24 @@
   // ========== 战斗引擎 ==========
   // 半手动回合制 + 节拍模型 + 运招中 + 速度差额外行动
 
+  // ── P2：五行相克（金克木→土→水→火→金）──
+  var ATTR_CYCLE = { '金': '木', '木': '土', '土': '水', '水': '火', '火': '金' };
+
+  // ── P5：战意战术技能（消耗 rage 的额外可选项）──
+  var RAGE_ACTIONS = {
+    roar: {
+      id: 'rage_roar', name: '怒吼', type: 'rage', beat: 20, dmgMul: 0,
+      eff: { selfBuff: { atk: 6, spd: 5, turns: 2 } },
+      cost: { type: 'rage', val: 30 },
+      desc: '消耗战意，怒吼助威：攻击+6、速度+5（2回合）'
+    },
+    laststand: {
+      id: 'rage_laststand', name: '死战', type: 'rage', beat: 20, dmgMul: 0,
+      special: 'laststand', cost: { type: 'rage', val: 20 },
+      desc: '残血时燃尽战意：转化为大量攻击加成'
+    }
+  };
+
   var CombatEngine = {
 
     // ─── 初始化 ───
@@ -36,6 +54,13 @@
         var built = self._buildArt(aid, (playerState.realm && playerState.realm[aid]) || 0);
         if (built) artMap[aid] = built;
       });
+      // ── P2：玩家五行（取首个带 wu 的武学，缺省「无」）──
+      var pElem = '无';
+      for (var ai = 0; ai < artIds.length; ai++) {
+        var pa = artMap[artIds[ai]];
+        if (pa && pa.attr && pa.attr.wu) { pElem = pa.attr.wu; break; }
+      }
+
       this.state = {
         player: {
           name: playerState.name || '你',
@@ -45,6 +70,7 @@
           atk: playerState.atk || 15, def: playerState.def || 7, spd: playerState.spd || 20,
           artIds: artIds,
           artMap: artMap,
+          element: playerState.element || pElem,
           hitRate: playerState.hitRate || 0.92,
           buffs: [], dots: [],
           defStance: false, stunNext: false,
@@ -57,6 +83,7 @@
           mp: 0, maxMp: 0, rage: 0, maxRage: 100,
           skills: enemyData.skills || [],
           ai: enemyData.ai || 'aggressive',
+          element: enemyData.element || '无',
           hitRate: 0.9,
           buffs: [], dots: [],
           defStance: false, stunNext: false,
@@ -67,6 +94,7 @@
         log: [],
         round: 0,
         result: null,
+        combo: 0,           // 玩家连击计数（P3）
         enemyIntent: null   // 本回合敌方主行动预告（由 peekEnemyIntent 锁定）
       };
 
@@ -123,8 +151,8 @@
     },
 
     // ─── 计算伤害 ───
-    // 伤害 = atk × dmgMul × 100 / (100 + def)，支持破甲/破防/暴伤
-    calcDamage: function(actor, action, crit) {
+    // 伤害 = atk × dmgMul × 100 / (100 + def)，支持破甲/破防/暴伤/属性克制
+    calcDamage: function(actor, action, crit, attrMul) {
       var unit = this.state[actor];
       var mul = (action && action.dmgMul) || 1;
       var eff = (action && action.eff) || {};
@@ -137,11 +165,30 @@
 
       var effDef = tDef * (1 - Math.min(armorPen, 0.8)) * (1 - ignoreDef);
       var raw = Math.round(unit.atk * mul * 100 / (100 + Math.max(0, effDef)));
+      // 属性克制（P2）：克制 ×1.25，被克 ×0.8
+      if (attrMul && attrMul !== 1) raw = Math.round(raw * attrMul);
       if (crit) {
         var cd = 1.5 * (1 + (eff.critDmgAdd || 0));
         raw = Math.round(raw * cd);
       }
       return Math.max(1, raw);
+    },
+
+    // ── P2：五行相克判定（攻方 wu vs 守方 element）──
+    _attrCounter: function(action, target) {
+      var aw = action && action.attr && action.attr.wu;
+      var dw = target && target.element;
+      if (!aw || !dw || aw === '无' || dw === '无') return { mul: 1, type: null };
+      if (ATTR_CYCLE[aw] === dw) return { mul: 1.25, type: 'counter' };   // 我克你
+      if (ATTR_CYCLE[dw] === aw) return { mul: 0.8, type: 'countered' };   // 你克我
+      return { mul: 1, type: null };
+    },
+
+    // ── P5：战意技能合成（rage_roar / rage_laststand）──
+    _rageAction: function(id) {
+      if (id === 'rage_roar') return RAGE_ACTIONS.roar;
+      if (id === 'rage_laststand') return RAGE_ACTIONS.laststand;
+      return null;
     },
 
     // ─── 处理一次行动 ───
@@ -185,6 +232,15 @@
         return 0;
       }
 
+      // P5：死战（燃尽战意转化为攻击）
+      if (action.special === 'laststand') {
+        var rg = unit.rage;
+        var boost = Math.floor(rg * 0.4);
+        unit.atk += boost;
+        log.push({ type: 'buff', text: aName + '燃尽战意，死战不退！攻击力+' + boost + '（当前 ' + unit.atk + '）' });
+        return 0;
+      }
+
       // 被动技能（不产生行动效果）
       if (action.passive) return 0;
 
@@ -202,7 +258,8 @@
 
       var hasCrit = action.forceCrit ||
         Math.random() < (0.05 + (unit.forceEff.critRate || 0) + (eff.critRate || 0));
-      var dmg = this.calcDamage(actor, action, hasCrit);
+      var acInfo = this._attrCounter(action, target);   // P2 属性克制
+      var dmg = this.calcDamage(actor, action, hasCrit, acInfo.mul);
       var hitCount = action.multiHit || 1;
       var totalDmg = 0;
       var hitsDesc = [];
@@ -224,6 +281,20 @@
 
       target.hp = Math.max(0, target.hp);
 
+      // P3：连击计数（玩家连续命中累计，被打中清零）
+      var comboNote = '';
+      if (isPlayer && totalDmg > 0) {
+        this.state.combo = (this.state.combo || 0) + 1;
+        if (this.state.combo % 3 === 0) {
+          var burst = Math.round(totalDmg * 0.05);
+          target.hp = Math.max(0, target.hp - burst);
+          totalDmg += burst;
+          comboNote = ' 连击×' + this.state.combo + '！气势爆发(+' + burst + ')';
+        }
+      } else if (actor === 'enemy' && totalDmg > 0) {
+        this.state.combo = 0;
+      }
+
       // 记录玩家出招的艺线经验（P2：战斗出手累积）
       if (isPlayer && action.line) {
         this.state.lineGains.push({ line: action.line, crit: hasCrit });
@@ -233,9 +304,12 @@
       var desc = aName + '使出「' + (action.name || '普攻') + '」';
       if (hasCrit) desc += '【暴击！】';
       if (hitCount > 1) desc += ' ' + hitsDesc.join(' · ');
+      if (acInfo.type === 'counter') desc += '（克制！）';
+      else if (acInfo.type === 'countered') desc += '（被克）';
       desc += ' → 造成 ' + totalDmg + ' 伤害';
       if (armorPen > 0) desc += '（破甲）';
       if (eff.ignoreDef) desc += '（破防）';
+      desc += comboNote;
 
       log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg });
 
@@ -418,6 +492,7 @@
       var act = this._pickEnemyAction();
       this.state.enemyIntent = act;
       var label, threat = 'normal';
+      var counter = false;   // 敌克我（预警玩家选防御/闪避）
       if (act === 'defend') {
         label = '摆出防御架势';
         threat = 'defend';
@@ -426,8 +501,11 @@
         var name = (act && act.name) || '普攻';
         if (dmgMul >= 1.5) { label = '蓄力「' + name + '」'; threat = 'heavy'; }
         else { label = '欲施「' + name + '」'; threat = 'normal'; }
+        if (act && act.attr && this._attrCounter(act, this.state.player).type === 'counter') {
+          counter = true;
+        }
       }
-      return { action: act, label: label, threat: threat };
+      return { action: act, label: label, threat: threat, counter: counter };
     },
 
     // ─── 玩家 AI（自动模式） ───
@@ -508,7 +586,7 @@
       if (actionId === 'defend') {
         playerAction = 'defend';
       } else if (actionId && actionId !== '__auto__') {
-        playerAction = this.state.player.artMap[actionId] || global.LF.MARTIAL_ARTS.get(actionId);
+        playerAction = this.state.player.artMap[actionId] || global.LF.MARTIAL_ARTS.get(actionId) || this._rageAction(actionId);
         if (!playerAction) { log.push({ type:'system', text:'未知招式' }); this.state.log = log; return log; }
         // 校验消耗
         if (playerAction.cost && playerAction.cost.type === 'mp' && this.state.player.mp < playerAction.cost.val) {
@@ -624,6 +702,8 @@
           hp: this.state.player.hp, maxHp: this.state.player.maxHp,
           mp: this.state.player.mp, maxMp: this.state.player.maxMp,
           rage: this.state.player.rage, maxRage: this.state.player.maxRage,
+          element: this.state.player.element,
+          combo: this.state.combo || 0,
           buffs: this.state.player.buffs.slice(),
           dots: this.state.player.dots.slice(),
           defStance: this.state.player.defStance,
@@ -634,6 +714,7 @@
           name: this.state.enemy.name,
           title: this.state.enemy.title,
           hp: this.state.enemy.hp, maxHp: this.state.enemy.maxHp,
+          element: this.state.enemy.element,
           buffs: this.state.enemy.buffs.slice(),
           dots: this.state.enemy.dots.slice(),
           defStance: this.state.enemy.defStance,
@@ -686,6 +767,18 @@
           dmgMul: art.dmgMul, cost: art.cost, attr: art.attr,
           desc: art.desc || '', affordable: affordable, multiHit: art.multiHit
         });
+      }
+      // ── P5：战意战术技能（满足条件才出现）──
+      var p = this.state.player;
+      if (p.rage >= 30) {
+        list.push({ id: 'rage_roar', name: '怒吼', type: 'rage', beat: RAGE_ACTIONS.roar.beat,
+          dmgMul: 0, cost: RAGE_ACTIONS.roar.cost, attr: null, desc: RAGE_ACTIONS.roar.desc,
+          affordable: true, multiHit: 1 });
+      }
+      if (p.hp < p.maxHp * 0.3 && p.rage >= 20) {
+        list.push({ id: 'rage_laststand', name: '死战', type: 'rage', beat: RAGE_ACTIONS.laststand.beat,
+          dmgMul: 0, cost: RAGE_ACTIONS.laststand.cost, attr: null, desc: RAGE_ACTIONS.laststand.desc,
+          affordable: true, multiHit: 1 });
       }
       return list;
     },

@@ -531,6 +531,49 @@
     animation:critBurst .6s ease-out forwards;pointer-events:none;z-index:7;}
   @keyframes critBurst{0%{transform:scale(.4);opacity:1;}60%{transform:scale(7);opacity:.5;}100%{transform:scale(10);opacity:0;}}
 
+  /* ── V3：战场氛围（背景随敌人主题，统一浅色调保证可读性）── */
+  #scene{position:relative;}
+  #scene[data-bg="snow"]{background:linear-gradient(165deg,#eef3f8 0%,#dde6ee 60%,#cdd8e2 100%);}
+  #scene[data-bg="camp"]{background:radial-gradient(circle at 50% 0%,#f0e2cf 0%,#e3d2b6 60%,#d8c4a3 100%);}
+  #scene[data-bg="fort"]{background:linear-gradient(180deg,#e9e3f0 0%,#ddd4e8 60%,#cfc4e0 100%);}
+  #scene[data-bg="altar"]{background:radial-gradient(circle at 50% 25%,#f6e8c6 0%,#ecd9ad 60%,#e0c890 100%);}
+  #scene[data-bg="wild"]{background:linear-gradient(180deg,#e6ecd8 0%,#d6e0c2 60%,#c6d2ad 100%);}
+  #scene[data-bg="train"]{background:linear-gradient(180deg,#e9e9e9 0%,#dcdcdc 60%,#cbcbcb 100%);}
+  #scene[data-bg="plain"]{background:var(--paper);}
+  /* 劣势：四周渐暗红 */
+  #scene.bg-danger{box-shadow:inset 0 0 120px 26px rgba(150,18,18,.42);animation:bgDanger 1.3s ease-in-out infinite;}
+  @keyframes bgDanger{0%,100%{box-shadow:inset 0 0 110px 22px rgba(150,18,18,.34);}50%{box-shadow:inset 0 0 135px 30px rgba(160,20,20,.5);}}
+
+  /* ── 五行属标签 / 连击 HUD ── */
+  .ec-elem,.cp-elem{font-size:11px;color:var(--ink-faint);border:1px solid rgba(74,62,48,.25);
+    border-radius:8px;padding:0 6px;line-height:16px;margin-left:4px;}
+  .cp-combo{font-size:12px;font-weight:700;color:#c0762a;letter-spacing:.5px;margin-left:6px;}
+  .cp-combo.hot{color:#a03030;text-shadow:0 0 8px rgba(160,48,48,.4);animation:comboPulse .5s ease infinite;}
+  @keyframes comboPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+
+  /* 敌方克制预警 */
+  .c-enemy .ec-intent.counter-warn{color:#a03030;background:rgba(160,48,48,.16);border:1px solid rgba(160,48,48,.5);
+    animation:intentPulse 1s ease-in-out infinite;}
+
+  /* ── V5：战意技能芯片 ── */
+  .mart-chip.rage{color:#7a3fb0;border-color:rgba(122,63,176,.45);background:rgba(122,63,176,.07);}
+  .mart-chip.rage:hover{background:rgba(122,63,176,.16);}
+
+  /* ── V6：出招微动画（clash）── */
+  #combat-card.clash .ec-fig,#combat-card.clash .ec-fig-p{animation:clashPop .3s ease;}
+  @keyframes clashPop{0%{transform:scale(1);}45%{transform:scale(1.22);filter:drop-shadow(0 0 8px rgba(192,39,26,.6));}100%{transform:scale(1);}}
+
+  /* ── V4：胜负特写加强 ── */
+  #combat-card.settle-win .ec-fig{transform:rotate(82deg) translateY(10px);opacity:.3;transition:transform .8s ease,opacity .8s ease;filter:grayscale(.5);}
+  #combat-card.settle-lose{transform:translateY(10px) scale(.99);filter:grayscale(.5) brightness(.9);transition:transform .8s ease,filter .8s ease;}
+  .combat-fx .fx-spark{position:absolute;top:-8%;width:7px;height:7px;border-radius:50%;
+    background:radial-gradient(circle,#ffe9a8,#c8920f);box-shadow:0 0 8px rgba(200,150,40,.8);animation:fxFall 1.3s linear forwards;}
+  @keyframes fxFall{0%{transform:translateY(0) scale(1);opacity:0;}12%{opacity:1;}100%{transform:translateY(104vh) scale(.4);opacity:0;}}
+  .combat-fx .fx-crack{position:absolute;inset:0;opacity:0;animation:fxCrack 1.6s ease-out forwards;
+    background:linear-gradient(135deg,transparent 46%,rgba(20,10,10,.55) 48%,rgba(20,10,10,.55) 52%,transparent 54%),
+      linear-gradient(58deg,transparent 60%,rgba(20,10,10,.4) 62%,transparent 64%);}
+  @keyframes fxCrack{0%{opacity:0;transform:scale(1.12);}30%{opacity:.85;}100%{opacity:.5;transform:scale(1);}}
+
   /* 战斗卡改为常驻 HUD：吸顶固定在叙事窗顶部，长回合也不被顶出屏幕 */
   #combat-card{
     position:sticky; top:0; z-index:6;
@@ -2653,6 +2696,37 @@ window.onerror=function(msg,url,line,col,err){
     hungry_refugee:'🥺', stray_dog:'🐕', deserter:'💂'
   };
   var PLAYER_PORTRAIT='🧍';
+
+  // ── V5：轻量音效（Web Audio 合成，零外部资源）──
+  var SFX=(function(){
+    var ctx=null, enabled = (typeof state!=='undefined' ? (state.sfxOn!==false) : true);
+    function ac(){
+      if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ctx=null; } }
+      if(ctx && ctx.state==='suspended'){ try{ ctx.resume(); }catch(e){} }
+      return ctx;
+    }
+    function tone(freq,dur,type,vol,delay){
+      var c=ac(); if(!c) return;
+      var t=c.currentTime+(delay||0);
+      var o=c.createOscillator(), g=c.createGain();
+      o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(vol||0.2,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t+dur+0.03);
+    }
+    return {
+      setEnabled:function(v){ enabled=v; },
+      isEnabled:function(){ return enabled; },
+      swing:function(){ if(!enabled) return; tone(520,0.10,'triangle',0.10); tone(760,0.07,'sine',0.05,0.02); },
+      hit:function(){ if(!enabled) return; tone(150,0.16,'sine',0.22); tone(85,0.20,'square',0.10,0.01); },
+      crit:function(){ if(!enabled) return; tone(900,0.10,'square',0.16); tone(1320,0.12,'sine',0.10,0.03); },
+      win:function(){ if(!enabled) return; [523,659,784,1047].forEach(function(f,i){ tone(f,0.42,'triangle',0.16,i*0.12); }); },
+      lose:function(){ if(!enabled) return; [392,330,262,196].forEach(function(f,i){ tone(f,0.5,'sine',0.16,i*0.14); }); }
+    };
+  })();
+
   function logCombat(entry){
     var text=entry.text||''; var cls=entry.type||'sys';
     var crit=/暴击/.test(text);
@@ -2679,6 +2753,13 @@ window.onerror=function(msg,url,line,col,err){
       if(crit) critBurst(side);                      // 暴击金红爆裂粒子
     }
     if(crit || (entry.dmg && entry.dmg>=25)) shakeScene();
+    // V5：音效
+    if(entry.type==='player_atk' || entry.type==='enemy_atk'){
+      if(crit) SFX.crit();
+      else { SFX.swing(); setTimeout(function(){ SFX.hit(); }, 110); }
+    } else if((entry.type==='counter' || entry.type==='dot') && entry.dmg){
+      SFX.hit();
+    }
   }
 
   // ═══════════════════════════════════════════
@@ -2749,6 +2830,12 @@ window.onerror=function(msg,url,line,col,err){
     });
     var r=G.CombatEngine.init(pstate, enemyId);
     if(r.error){ log(r.error,'sys'); return; }
+    // V3：战场氛围（按敌人定主题背景）
+    var SCENE_THEME={ bandit:'camp', bandit_chief:'camp', heishan_zei:'camp', heishan_zhu:'fort',
+      yellow_turban:'altar', hua_xiong:'snow', stray_dog:'wild', hungry_refugee:'wild',
+      deserter:'wild', dummy:'train' };
+    var sceneEl=document.getElementById('scene');
+    if(sceneEl){ sceneEl.dataset.bg = SCENE_THEME[enemyId] || 'plain'; sceneEl.classList.remove('bg-danger'); }
     state.energy=Math.max(0,state.energy-5);   // 应战耗精力
     combatMode = settings.autoBattle ? 'auto' : 'manual';
     $narr.innerHTML='';
@@ -2782,6 +2869,17 @@ window.onerror=function(msg,url,line,col,err){
     var w=document.createElement('div'); w.className='fx-word';
     w.textContent= kind==='win'?'胜':'败';
     fx.appendChild(w);
+    if(kind==='win'){
+      for(var i=0;i<16;i++){
+        var s=document.createElement('span'); s.className='fx-spark';
+        s.style.left=(Math.random()*100)+'%';
+        s.style.animationDelay=(Math.random()*0.6).toFixed(2)+'s';
+        s.style.animationDuration=(1.0+Math.random()*0.6).toFixed(2)+'s';
+        fx.appendChild(s);
+      }
+    } else {
+      var c=document.createElement('div'); c.className='fx-crack'; fx.appendChild(c);
+    }
     document.body.appendChild(fx);
     setTimeout(function(){ if(fx.parentNode) fx.parentNode.removeChild(fx); }, kind==='win'?1300:1650);
   }
@@ -2816,15 +2914,15 @@ window.onerror=function(msg,url,line,col,err){
         '<div class="c-enemy">'+
           '<div class="ec-fig"></div>'+
           '<div class="ec-info">'+
-            '<div class="ec-top"><span class="ec-name"></span><span class="ec-title"></span></div>'+
+            '<div class="ec-top"><span class="ec-name"></span><span class="ec-title"></span><span class="ec-elem"></span></div>'+
             '<div class="ec-hp"><span>气血</span><div class="c-bar"><div class="c-hpfill"></div></div><span class="ec-hpv"></span></div>'+
             '<div class="ec-intent"></div>'+
             '<div class="ec-buffs"></div>'+
           '</div>'+
         '</div>'+
         '<div class="c-player"><span class="ec-fig-p">'+PLAYER_PORTRAIT+'</span>'+
-          '<span class="cp-name"></span>'+
-          '<span class="cp-hp"></span><span class="cp-mp"></span><span class="cp-rage"></span>'+
+          '<span class="cp-name"></span><span class="cp-elem"></span>'+
+          '<span class="cp-hp"></span><span class="cp-mp"></span><span class="cp-rage"></span><span class="cp-combo"></span>'+
           '<div class="cp-status"></div></div>'+
         '<div class="c-round"></div>';
       $narr.appendChild(combatCardEl);
@@ -2841,11 +2939,23 @@ window.onerror=function(msg,url,line,col,err){
     var it=q('.ec-intent');
     if(currentEnemyIntent){
       var threat=currentEnemyIntent.threat;
-      it.className='ec-intent '+(threat==='heavy'?'threat-heavy':threat==='defend'?'threat-defend':'threat-normal');
-      it.textContent=(threat==='heavy'?'⚠ ':'')+currentEnemyIntent.label;
+      var iCls='ec-intent '+(threat==='heavy'?'threat-heavy':threat==='defend'?'threat-defend':'threat-normal');
+      var iTxt=(threat==='heavy'?'⚠ ':'')+currentEnemyIntent.label;
+      if(currentEnemyIntent.counter){ iCls+=' counter-warn'; iTxt='⚠ 克制你！ '+currentEnemyIntent.label; }
+      it.className=iCls; it.textContent=iTxt;
     } else { it.className='ec-intent'; it.textContent=''; }
     q('.ec-buffs').innerHTML=bufHtml;
     q('.cp-status').innerHTML=pBufHtml;
+    // 五行属标签（P2）
+    q('.ec-elem').textContent=(e.element && e.element!=='无')?('属'+e.element):'';
+    q('.cp-elem').textContent=(p.element && p.element!=='无')?('属'+p.element):'';
+    // 连击 HUD（P3）
+    var cmb=q('.cp-combo');
+    if(p.combo>1){ cmb.textContent='连击 ×'+p.combo; cmb.className='cp-combo'+(p.combo>=3?' hot':''); }
+    else { cmb.textContent=''; cmb.className='cp-combo'; }
+    // V3：我方劣势时四周渐暗红
+    var sc=document.getElementById('scene');
+    if(sc){ if(p.hp/p.maxHp < 0.3) sc.classList.add('bg-danger'); else sc.classList.remove('bg-danger'); }
     q('.cp-name').textContent='▲ '+(state.name||'你');
     q('.cp-hp').textContent='气血 '+p.hp+'/'+p.maxHp;
     q('.cp-mp').textContent='内力 '+p.mp+'/'+p.maxMp;
@@ -2876,7 +2986,7 @@ window.onerror=function(msg,url,line,col,err){
                 (a.cost&&a.cost.type==='rage'?'耗战意':'')+
                 (a.multiHit?' · '+a.multiHit+'段':'');
         var chip=document.createElement('button');
-        chip.className='mart-chip '+(a.affordable?(a.type==='ultimate'?'danger':''):'disabled');
+        chip.className='mart-chip '+(a.affordable?(a.type==='ultimate'?'danger':(a.type==='rage'?'rage':'')):'disabled');
         chip.innerHTML='<span class="mc-nm">'+a.name+(a.type==='ultimate'?' ✦':'')+'</span>'+
           '<span class="mc-meta">'+a.beat+'拍'+(cost?' · '+cost:'')+(a.multiHit?' · '+a.multiHit+'段':'')+'</span>';
         chip.title=tip;
@@ -2890,16 +3000,25 @@ window.onerror=function(msg,url,line,col,err){
 
     addGrouped('战术','⛊ 防御架势',function(){ handleCombatAction('defend'); },'减伤·回复少量内力');
     addGrouped('战术','⇱ 撤退',function(){ handleCombatFlee(); },'速度差决定成功率');
+    addGrouped('战术','🔊 音效 '+(SFX.isEnabled()?'开':'关'),function(){
+      SFX.setEnabled(!SFX.isEnabled()); state.sfxOn=SFX.isEnabled(); save(state); renderCombatRound();
+    },'点击开关战斗音效');
     addGrouped('战术','⚡ 自动战斗',function(){ startAutoBattle('optimal'); },'激进·AI代战');
     addGrouped('战术','🛡 自动(保守)',function(){ startAutoBattle('conservative'); },'防守·稳扎稳打');
   }
 
   /** 处理手动战斗操作 */
   function handleCombatAction(actionId){
-    var battleLog=G.CombatEngine.playTurn(actionId);
-    battleLog.forEach(function(entry){
-      logCombat(entry);
-    });
+    if(combatMode!=='manual') return;   // V6：防连点/动画期间重复触发
+    clearActions();                      // 收起按钮，准备出招微动画
+    var card=combatCardEl;
+    if(card) card.classList.add('clash');
+    setTimeout(function(){
+      if(card) card.classList.remove('clash');
+      var battleLog=G.CombatEngine.playTurn(actionId);
+      battleLog.forEach(function(entry){
+        logCombat(entry);
+      });
       // 同步战意/内力回 state
       var st=G.CombatEngine.getStatus();
       state.hp=st.player.hp; state.mp=st.player.mp;   // 同步战斗内血量/内力，状态栏实时准确
@@ -2907,6 +3026,7 @@ window.onerror=function(msg,url,line,col,err){
       if(st.result){ endCombat(st.result); return; }
       if(st.player.hp<=0){ endCombat('lose'); return; }
       renderCombatRound();
+    }, 300);
   }
 
   /** 处理逃跑 */
@@ -2956,6 +3076,7 @@ window.onerror=function(msg,url,line,col,err){
     if(combatMode===null) return;   // 防止重复调用（如快速连点）
     combatMode=null;
     var appEl=document.getElementById('app'); if(appEl) appEl.classList.remove('in-combat');
+    var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.dataset.bg=''; sceneEl.classList.remove('bg-danger'); }
     clearActions();                  // 清除战斗按钮，防止残留可点击
     if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断 playTurn
     var st=G.CombatEngine.getStatus();
@@ -3033,6 +3154,7 @@ window.onerror=function(msg,url,line,col,err){
       ,'good');
       if(combatCardEl) combatCardEl.classList.add('settle-win');
       playCombatFx('win');
+      SFX.win();
       toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
     } else if(result==='lose'){
       state.hp=1;
@@ -3045,6 +3167,7 @@ window.onerror=function(msg,url,line,col,err){
       ,'combat');
       if(combatCardEl) combatCardEl.classList.add('settle-lose');
       playCombatFx('lose');
+      SFX.lose();
       toast('败北！气血仅余1点');
     } else if(result==='fled'){
       log('你已脱离战斗，回到原地。','sys');
