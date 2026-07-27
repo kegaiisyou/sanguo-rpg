@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>战斗画面原型对比 · 首页</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0e13;color:#dfe6ee;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:8vh 24px}
+  h1{font-size:26px;letter-spacing:1px;margin:0 0 6px}
+  .sub{color:#8b97a6;font-size:14px;margin-bottom:34px;line-height:1.6}
+  .card{display:block;text-decoration:none;color:inherit;border:1px solid #25303f;background:#121723;
+    border-radius:12px;padding:20px 22px;margin-bottom:16px;transition:.15s}
+  .card:hover{border-color:#3a5a8c;background:#16202e;transform:translateY(-2px)}
+  .card b{font-size:18px;color:#cfe3ff}
+  .card .tag{display:inline-block;font-size:12px;color:#ffd24a;border:1px solid #5a4a1a;
+    border-radius:6px;padding:1px 8px;margin-left:8px}
+  .card p{margin:8px 0 0;color:#9aa6b4;font-size:14px;line-height:1.6}
+  .note{margin-top:30px;font-size:13px;color:#6b7686;line-height:1.7;border-top:1px solid #1d2632;padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>战斗画面重构 · 原型对比</h1>
+  <div class="sub">三个方案均为<strong>零美术素材、纯代码</strong>实现。点开各自演示，凭观感决定方向。
+  目标：在「骑砍式千军万马」+「无双式割草演出」之间，找到不依赖美术资源也能出效果的做法。</div>
+
+  <a class="card" href="proto-a.html">
+    <b>原型 A · Canvas 兵海 + 文字演出</b><span class="tag">推荐</span>
+    <p>两军数百单位在 Canvas 上对冲、混战、溃散；斩将时全屏「斬」字印章砸下 + 白光 + 慢动作。最贴近骑砍战场 + 无双割草，且性能可上万单位。</p>
+  </a>
+  <a class="card" href="proto-b.html">
+    <b>原型 B · 纯文字电影战报</b>
+    <p>完全放弃图形，用流式巨字战报 + 关键词高亮 + 拟声词（破！斬！）+ 数字滚动推进，信长/太阁风。成本最低，但缺大场面画面感。</p>
+  </a>
+  <a class="card" href="proto-c.html">
+    <b>原型 C · 极简几何 + 速度线</b>
+    <p>三角=兵、圆=将、线=冲锋轨迹，靠镜头震动、速度线、墨溅营造无双爽感。比写实 SVG 干净，但千军万马表现力有限。</p>
+  </a>
+  <a class="card" href="proto-ab.html">
+    <b>原型 A+B · 兵海战场 + 文字战报（组合）</b>
+    <p>底层 Canvas 兵海打千军万马（A），上层电影式文字战报推进（B），斩将触发全屏「斬」印章。兼顾大场面与叙事节奏。</p>
+  </a>
+  <a class="card" href="proto-rpg.html">
+    <b>原型 · 纯文字武侠（落魄剑客 · 江湖遭遇）</b><span class="tag">已定方向</span>
+    <p>武侠风：你饰落魄剑客，夜走荒山撞上三名江湖败类。全程纯文字演出——个人战文字交互（风扫落叶/铁壁/踏雪无痕/绝学·惊鸿照影/遁走），门派视角是纯文字战报（弟子数字滚动、斩将「斬」印章）。
+    内核同一套 <code>resolveAttack</code>，区别只在"描写尺度"，从一人到千军都能写。角色全凭文字塑形，弃用旧版卡片/头像。</p>
+  </a>
+
+  <div class="note">方向已定：以 <b>统一内核（分形战斗模型）</b> 为地基，开局身份 = <b>落魄剑客 / 江湖浪人</b>（武侠个人向、遭遇战为主、弱门派）。
+  表现层采用 <b>纯文字</b>（文字交互 + 文字战报 + 印章特效），零素材、最能灵活覆盖从个体侠客到门派千军的各类效果与野心。角色不再用卡片/头像，全凭文字描写。同一套 <code>resolveAttack</code> 驱动所有尺度，后续平滑升级为门派、武林大会、侠义抉择、书信门规。</div>
+</div>
+</body>
+</html>

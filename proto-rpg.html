@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原型 · 武侠（纯文字战斗）</title>
+<style>
+  html,body{margin:0;height:100%;background:#0c0f14;color:#e6ebf1;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+  #wrap{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column}
+  #wrap::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(circle at 50% 120%,rgba(221,107,32,.18),transparent 46%),
+      radial-gradient(circle at 50% 0%,#15110c,#0c0f14 72%)}
+  #wrap::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:6;
+    box-shadow:inset 0 0 200px 60px rgba(0,0,0,.7)}
+  .top{position:relative;z-index:4;padding:16px 24px 4px;text-align:center}
+  .top h1{margin:0;font-size:19px;letter-spacing:4px;color:#ffd9a8;
+    font-family:"STKaiti","KaiTi","SimSun",serif}
+  .top p{margin:6px auto 0;font-size:13px;color:#9aa6b4;line-height:1.6;max-width:680px}
+  /* 文字战报 */
+  .report{position:relative;z-index:4;flex:1;overflow:hidden;padding:10px 7vw 6px;
+    display:flex;flex-direction:column;justify-content:flex-end;gap:7px}
+  .report .l{font-family:"STKaiti","KaiTi","SimSun",serif;font-size:17px;line-height:1.75;
+    color:#d7dde6;opacity:0;animation:rise .55s forwards;text-shadow:0 1px 5px #000}
+  .report .l .k{color:#ffd24a;font-weight:700}
+  .report .l .r{color:#ff8a7a}
+  .report .l .b{color:#9ec9ff}
+  .report .l.big{font-size:21px;text-align:center;color:#fff;margin:8px 0;letter-spacing:1px}
+  .report .l.sys{color:#7e8a99;font-size:14px;font-style:italic}
+  @keyframes rise{to{opacity:1}}
+  /* 状态条（文字） */
+  #status{position:relative;z-index:4;padding:4px 7vw;font-size:13px;color:#9aa6b4;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    font-family:"STKaiti","KaiTi","SimSun",serif}
+  #status .me{color:#9ec9ff}#status .en{color:#ff8a7a}
+  .btxt{letter-spacing:-1px;font-family:"Courier New",monospace}
+  /* 操作 */
+  .ops{position:relative;z-index:4;display:flex;gap:10px;justify-content:center;padding:12px;flex-wrap:wrap}
+  .ops button{background:#161d29;color:#cfe3ff;border:1px solid #34507a;padding:10px 16px;border-radius:8px;
+    font-size:14px;cursor:pointer;font-family:"STKaiti","KaiTi","SimSun",serif}
+  .ops button:hover{background:#243247}
+  .ops button:disabled{opacity:.4;cursor:default}
+  .ops .stam{color:#9ae6b4;font-size:13px;align-self:center;margin-left:6px;font-family:"STKaiti","KaiTi","SimSun",serif}
+  /* 印章 / 闪白（文字特效） */
+  .stamp{position:absolute;top:44%;left:50%;z-index:7;transform:translate(-50%,-50%) scale(0) rotate(-14deg);
+    font-size:min(30vw,210px);font-weight:900;color:#e23b2e;font-family:"STKaiti","KaiTi","SimSun",serif;
+    text-shadow:0 0 40px rgba(226,59,46,.85);opacity:0;pointer-events:none}
+  .stamp.show{animation:stamp .9s cubic-bezier(.2,1.5,.35,1) forwards}
+  @keyframes stamp{0%{opacity:0;transform:translate(-50%,-50%) scale(2.6) rotate(-14deg)}
+    16%{opacity:1}42%{transform:translate(-50%,-50%) scale(1) rotate(-14deg)}82%{opacity:1}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(1.04) rotate(-14deg)}}
+  .flash{position:absolute;inset:0;z-index:6;background:#fff;opacity:0;pointer-events:none}
+  .flash.show{animation:fl .35s ease-out}
+  @keyframes fl{0%{opacity:.9}100%{opacity:0}}
+  .nav{position:absolute;top:14px;right:22px;z-index:7;font-size:12px;color:#6b7a8d}
+  .nav a{color:#7fa8d8;text-decoration:none;margin-left:8px}
+  .toggle{position:absolute;bottom:12px;right:22px;z-index:7}
+  .toggle button{background:#15171c;color:#9fb0c3;border:1px solid #2a3645;padding:7px 14px;border-radius:7px;font-size:12px;cursor:pointer}
+  details{position:absolute;bottom:12px;left:22px;z-index:7;color:#7e8a99;font-size:12px;max-width:42vw}
+  details summary{cursor:pointer;color:#8fa3bb}
+  details p{line-height:1.6;margin:6px 0 0}
+  code{background:#161c26;padding:1px 5px;border-radius:4px;color:#b9c6d6}
+  /* 门派层（纯文字） */
+  #army{position:absolute;inset:0;z-index:8;background:radial-gradient(circle at 50% 30%,#16202c,#0b0e13 76%);
+    display:none;flex-direction:column}
+  #army .ah{display:flex;justify-content:space-between;align-items:center;padding:22px 8vw 6px}
+  #army .side{font-family:"STKaiti","KaiTi","SimSun",serif;text-align:center}
+  #army .side .lab{font-size:15px;letter-spacing:2px}
+  #army .side.me .lab{color:#5fb0ff}#army .side.en .lab{color:#ff6b6b}
+  #army .side .big{display:block;font-size:46px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;text-shadow:0 2px 12px #000}
+  #army .side.me .big{color:#cfe6ff}#army .side.en .big{color:#ffc7c7}
+  #army .btxt{font-size:13px}
+  #army .vs{font-size:26px;color:#6b7a8d;font-family:"STKaiti","KaiTi","SimSun",serif}
+  #army .report{padding-top:4px}
+  #army .ops{border-top:1px solid #1c2531}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div class="top">
+    <h1>江 湖 夜 雨 · 荒 山 遭 遇</h1>
+    <p>你是遭师门除名的落魄剑客，夜走荒山。枯林里转出三名拦路的江湖败类——为活命，也为那一口不平之气。文字演出的好处：同一套内核，从你一人，到门派千军，都能写。</p>
+  </div>
+  <div id="status"></div>
+  <div class="report" id="log"></div>
+  <div class="ops" id="ops">
+    <button data-a="attack">出剑·风扫落叶</button>
+    <button data-a="guard">封剑·铁壁</button>
+    <button data-a="dodge">身法·踏雪无痕</button>
+    <button data-a="skill">绝学·惊鸿照影</button>
+    <button data-a="flee">遁走</button>
+    <span class="stam" id="stam">真气 100</span>
+  </div>
+  <div class="stamp" id="stamp">斬</div>
+  <div class="flash" id="flash"></div>
+  <div class="nav"><a href="proto-index.html">对比首页</a><a href="proto-b.html">纯文字战报B</a></div>
+  <button class="toggle" id="toArmy">切换：门派视角（纯文字）</button>
+  <details>
+    <summary>延续性说明（为什么文字能长成门派战）</summary>
+    <p>战斗内核是统一的 <code>Entity{scale,count,stats}</code> + <code>resolveAttack(a,d)</code>：剑客是 <code>scale:'unit',count:1</code>，
+    门派千军是 <code>scale:'army',count:1000</code>，走<strong>同一套</strong>结算，区别只在<strong>描写的尺度</strong>。点右下"门派视角"即同一
+    <code>resolveAttack</code> 驱动的<strong>纯文字战报</strong>：弟子数字滚动、斩将时「斬」印章砸下。文字无素材限制，可随意叠加书信、门规、独白等效果；角色不再用卡片/头像，全凭文字塑形。</p>
+  </details>
+  <div id="army">
+    <div class="ah">
+      <div class="side me"><span class="lab">青冥剑派</span><span class="big" id="aN">0</span><span class="btxt" id="aB"></span></div>
+      <div class="vs">⚔</div>
+      <div class="side en"><span class="lab">血刀门</span><span class="big" id="eN">0</span><span class="btxt" id="eB"></span></div>
+    </div>
+    <div class="report" id="armyLog"></div>
+    <div class="stamp" id="aStamp">斬</div>
+    <div class="flash" id="aFlash"></div>
+    <div class="ops"><button id="armyGo">▶ 率众迎敌</button></div>
+  </div>
+</div>
+<script>
+/* ============ 统一内核（跨尺度，保延续性） ============ */
+function makeEntity(cfg){return{
+  id:cfg.id,name:cfg.name,faction:cfg.faction,scale:cfg.scale||'unit',count:cfg.count||1,
+  maxHp:cfg.hp,hp:cfg.hp,
+  stats:Object.assign({atk:10,def:5,morale:60,mobility:50},cfg.stats||{}),
+  alive:true,guarding:false,dodging:false};}
+// army 尺度下伤害用基础攻击力（不乘 count），否则一帧清零、没过程
+function resolveAttack(a,d,opts){opts=opts||{};
+  const atkPow=a.scale==='army'?a.stats.atk:a.stats.atk*(a.count||1);
+  let dmg=Math.max(1,Math.round(atkPow*0.5-d.stats.def*0.25+(Math.random()*5-2.5)));
+  const crit=Math.random()<(opts.critChance!=null?opts.critChance:0.14);
+  if(crit)dmg=Math.round(dmg*1.9);
+  d.hp-=dmg;if(d.hp<0)d.hp=0;
+  if(d.hp<=0)d.alive=false;
+  return{dmg,crit,dead:!d.alive};}
+
+/* ============ 江湖遭遇战（scale:'unit'，纯文字演出） ============ */
+const logEl=document.getElementById('log'),stamp=document.getElementById('stamp'),flash=document.getElementById('flash'),
+  ops=document.getElementById('ops'),stamEl=document.getElementById('stam'),statusEl=document.getElementById('status');
+let player,enemies=[],busy=false,stamina=100,over=false;
+function barTxt(hp,max){const n=12,f=Math.max(0,Math.round(hp/max*n));return '█'.repeat(f)+'░'.repeat(n-f);}
+function line(html,cls){const d=document.createElement('div');d.className='l'+(cls?' '+cls:'');d.innerHTML=html;
+  logEl.appendChild(d);while(logEl.children.length>6)logEl.removeChild(logEl.firstChild);}
+function renderStatus(){if(!player)return;
+  statusEl.innerHTML=`<span class="me">【你·落魄剑客】 ${barTxt(player.hp,player.maxHp)} ${player.hp}</span>`+
+    enemies.map(e=>`<span class="en">${e.name} ${e.alive?barTxt(e.hp,e.maxHp)+' '+e.hp:'已亡'}</span>`).join(' ');}
+function critFx(){stamp.classList.remove('show');void stamp.offsetWidth;stamp.classList.add('show');
+  flash.classList.remove('show');void flash.offsetWidth;flash.classList.add('show');}
+function buildDuel(){logEl.innerHTML='';player=makeEntity({id:'p',name:'云无名（剑客）',faction:'player',scale:'unit',hp:64,stats:{atk:14,def:6}});
+  enemies=[makeEntity({id:'e1',name:'催命刀·周彪',faction:'enemy',hp:44,stats:{atk:11,def:4}}),
+    makeEntity({id:'e2',name:'飞蝗·钱三',faction:'enemy',hp:40,stats:{atk:10,def:4}}),
+    makeEntity({id:'e3',name:'独眼阎罗·孙麻子',faction:'enemy',hp:48,stats:{atk:12,def:5}})];
+  stamina=100;over=false;busy=false;
+  line('枯林萧萧，残雪覆径。你按剑而行，月光下照见三名拦路之人。','big');
+  line('那为首的汉子啐道：「此路是我开——留下买路财，或留下项上人头。」');
+  renderStatus();setButtons(true);stamEl.textContent='真气 '+stamina;}
+function setButtons(on){[...ops.querySelectorAll('button')].forEach(b=>b.disabled=!on||over);}
+function act(action){if(busy||over)return;const alive=enemies.filter(e=>e.alive);if(!alive.length)return;
+  busy=true;setButtons(false);
+  if(action==='flee'){setTimeout(()=>doFlee(alive),300);return;}
+  let target=alive.reduce((a,b)=>a.hp<=b.hp?a:b);
+  if(action==='attack'||action==='skill'){
+    if(action==='skill'){if(stamina<35){line('你真气不济，施不出<b class="r">惊鸿照影</b>。','sys');busy=false;setButtons(true);return;}
+      stamina-=35;stamEl.textContent='真气 '+stamina;}
+    const moveName=action==='skill'?'一式「惊鸿照影」，剑光如练':'「风扫落叶」，长剑斜挑';
+    setTimeout(()=>{
+      const r=resolveAttack(player,target,{critChance:action==='skill'?0.45:0.16});
+      line(`你使出${moveName}，直取 <b class="r">${target.name}</b> 中要害，剑锋透体，伤其 <b class="k">${r.dmg}</b>${r.crit?'（<b class="k">剑气暴涌！</b>）':''}。`);
+      if(r.crit)critFx();
+      renderStatus();
+      if(r.dead){line(`<b class="r">${target.name}</b> 闷哼一声，扑倒在雪泥之中，再不动弹。`);}
+      setTimeout(()=>enemyTurn(),560);
+    },300);
+  }else if(action==='guard'){player.guarding=true;
+    line('你凝立如松，使一招<b class="k">「铁壁」</b>，横剑相格，硬生生卸开来招。');setTimeout(()=>enemyTurn(),440);}
+  else if(action==='dodge'){player.dodging=true;
+    line('你足尖一点，<b class="k">「踏雪无痕」</b>身法展开，堪堪错开来袭的兵刃。');setTimeout(()=>enemyTurn(),440);}
+}
+function enemyTurn(){const alive=enemies.filter(e=>e.alive);if(!alive.length)return finish('win');
+  let i=0;
+  (function next(){if(i>=alive.length){if(player.alive&&enemies.some(e=>e.alive)){busy=false;setButtons(true);}return;}
+    const e=alive[i++];if(!e.alive){next();return;}
+    setTimeout(()=>{
+      if(player.dodging&&Math.random()<0.55){line(`你身形飘忽，避开 <b class="r">${e.name}</b> 的狠招，反占先机。`);}
+      else{let r=resolveAttack(e,player,{critChance:0.12});
+        if(player.guarding)r.dmg=Math.round(r.dmg*0.5);
+        line(`<b class="r">${e.name}</b> 欺身一刀，你肩头一凉，受 <b class="r">${r.dmg}</b> 伤${r.crit?'（<b class="r">重伤！</b>）':''}。`);
+        if(r.crit)critFx();
+        renderStatus();
+        if(r.dead){line('眼前一黑，你栽入雪中。江湖路远，又一缕冤魂。');return finish('lose');}}
+      player.guarding=false;player.dodging=false;
+      setTimeout(next,500);
+    },300);
+  })();
+}
+function doFlee(alive){const chance=Math.max(0.25,0.8-alive.length*0.18);
+  if(Math.random()<chance){line('你剑光一晃，没入枯林深处。<b class="k">留得性命，才有来日之剑。</b>','big');finish('flee');}
+  else{line('<b class="r">遁走失败！</b>去路早被封死，刀光已逼到眉睫。');setTimeout(enemyTurn,420);}}
+function finish(type){over=true;setButtons(false);
+  setTimeout(()=>{let msg='';
+    if(type==='win'){const loot=['半卷《青冥剑谱》残页','一瓶金疮药','几两散碎银子','一枚温润的玉佩'];
+      const gear=loot[Math.floor(Math.random()*loot.length)];const fame=20+Math.floor(Math.random()*30);
+      msg=`林间复归死寂。你从尸首边拾起【${gear}】，江湖声望 +<b class="k">${fame}</b>。`;}
+    else if(type==='lose'){msg='你倒在雪地里，再没能握住那柄秋水剑。';}
+    else{msg='你走了。江湖之大，未必没有重逢之日。';}
+    line(msg,'big');
+    const b=document.createElement('button');b.textContent='↻ 再战一场';b.style.cssText='margin:8px auto 0;display:block;background:#1a2230;color:#cfe3ff;border:1px solid #34507a;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:"STKaiti","KaiTi","SimSun",serif';
+    b.onclick=()=>{buildDuel();};logEl.appendChild(b);
+  },700);}
+ops.querySelectorAll('button').forEach(b=>b.onclick=()=>act(b.dataset.a));
+buildDuel();
+
+/* ============ 门派视角（同一内核，scale:'army'，纯文字战报） ============ */
+const toArmy=document.getElementById('toArmy'),army=document.getElementById('army'),
+  aN=document.getElementById('aN'),eN=document.getElementById('eN'),aB=document.getElementById('aB'),eB=document.getElementById('eB'),
+  armyLog=document.getElementById('armyLog'),armyGo=document.getElementById('armyGo'),
+  aStamp=document.getElementById('aStamp'),aFlash=document.getElementById('aFlash');
+let armyRun=false,myArmy,foeArmy,aPhase='idle',aT=0,aLast=0,aKills=0,stampDone=false;
+toArmy.onclick=()=>{army.style.display=army.style.display==='flex'?'none':'flex';};
+function aLine(html,cls){const d=document.createElement('div');d.className='l'+(cls?' '+cls:'');d.innerHTML=html;
+  armyLog.appendChild(d);while(armyLog.children.length>7)armyLog.removeChild(armyLog.firstChild);}
+function armyStamp(){aStamp.classList.remove('show');void aStamp.offsetWidth;aStamp.classList.add('show');
+  aFlash.classList.remove('show');void aFlash.offsetWidth;aFlash.classList.add('show');}
+function armyHud(){aN.textContent=myArmy.count;eN.textContent=foeArmy.count;
+  aB.textContent=barTxt(myArmy.count,myArmy.maxHp);eB.textContent=barTxt(foeArmy.count,foeArmy.maxHp);}
+function armyGoFn(){if(armyRun)return;armyRun=true;aPhase='advance';aT=0;aLast=performance.now();armyGo.disabled=true;armyLog.innerHTML='';
+  myArmy=makeEntity({id:'me',name:'青冥剑派',faction:'player',scale:'army',count:500,hp:500,stats:{atk:12,def:6}});
+  foeArmy=makeEntity({id:'foe',name:'血刀门',faction:'enemy',scale:'army',count:800,hp:800,stats:{atk:6,def:6}});
+  stampDone=false;armyHud();
+  aLine('江湖夜雨，山门欲摧。','big');
+  aLine('你执掌 <b class="b">青冥剑派</b> 残部，门下弟子 <b class="b">五百</b>，立於断壁残垣之前。');
+  aLine('夜色中涌来 <b class="r">血刀门</b> 门人 <b class="r">八百</b>，刀光映雪，杀气蔽山。');
+  aLine('—— <b class="k">率众迎敌！</b>',null);
+  requestAnimationFrame(armyLoop);}
+armyGo.onclick=armyGoFn;
+function armyStep(dt){
+  if(aPhase==='clash'){
+    const r=resolveAttack(myArmy,foeArmy,{critChance:0.04});
+    foeArmy.count=Math.max(0,foeArmy.count-Math.max(1,Math.round(r.dmg*0.5)));
+    const r2=resolveAttack(foeArmy,myArmy,{critChance:0.04});
+    myArmy.count=Math.max(0,myArmy.count-Math.max(1,Math.round(r2.dmg*0.5)));
+    aKills=800-foeArmy.count;armyHud();}}
+function armyLoop(now){let dt=(now-aLast)/1000;aLast=now;if(dt>0.05)dt=0.05;aT+=dt;armyStep(dt);
+  if(aPhase==='advance'&&aT>1.6){aPhase='clash';aT=0;
+    aLine('两派相交——剑气纵横，掌风呼啸，血肉横飞于风雪之中。','big');
+    aFlash.classList.remove('show');void aFlash.offsetWidth;aFlash.classList.add('show');}
+  else if(aPhase==='clash'&&!stampDone&&aKills>300){stampDone=true;armyStamp();
+    aLine('血刀门掌门授首！群邪无首，阵脚陡乱。','big');}
+  else if(aPhase==='clash'&&(foeArmy.count<=0||myArmy.count<=0)){aPhase='route';aT=0;
+    const won=foeArmy.count<=0;armyHud();
+    if(won)aLine(`血刀门作鸟兽散。山门暂保，此役斩敌约 <b class="k">${aKills}</b> 人。`,'big');
+    else aLine('青冥弟子不支，旗倒人散……同一套 resolveAttack，不过换了个尺度。','big');
+    armyRun=false;armyGo.disabled=false;armyGo.textContent='↻ 再战一场';}
+  if(armyRun)requestAnimationFrame(armyLoop);}
+</script>
+</body>
+</html>
