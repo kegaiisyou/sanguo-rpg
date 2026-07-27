@@ -678,6 +678,10 @@
 
       while (maxRounds-- > 0) {
         var log = this.playTurn('__auto__');
+        // 给每条回放日志附带「该回合结束后」的血量快照，
+        // 前端回放直接读快照设血条，避免从终态反向扣血导致的血条异常
+        var eHp = this.state.enemy.hp, pHp = this.state.player.hp;
+        log.forEach(function(e) { e.eHp = eHp; e.pHp = pHp; });
         fullLog.push.apply(fullLog, log);
         if (this.state.result) break;
       }
