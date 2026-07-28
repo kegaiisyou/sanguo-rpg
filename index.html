@@ -733,8 +733,8 @@
 
   /* 战斗卡改为常驻 HUD：吸顶固定在叙事窗顶部，长回合也不被顶出屏幕 */
   #combat-card{
-    position:sticky; top:0; z-index:6;
-    margin:0 -4px 18px; padding:8px 4px 14px;
+    position:relative; flex:0 0 auto; z-index:6;
+    margin:0; padding:8px 10px 12px;
     background:linear-gradient(180deg,rgba(255,253,248,.98),rgba(252,248,239,.98));
     border-bottom:2px solid rgba(60,40,30,.22);
     box-shadow:0 6px 16px rgba(60,40,30,.06);
@@ -797,7 +797,8 @@
 
   /* 战斗行动菜单：紧凑一行，小图标+文字，自动换行兜底 */
   #app.in-combat #actions{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center;
-    padding:9px 6px 12px; align-items:center; }
+    padding:9px 6px 12px; align-items:center; border-top:2px solid rgba(60,40,30,.18);
+    background:linear-gradient(0deg,rgba(255,253,248,.97),rgba(252,248,239,.85)); }
   #app.in-combat .act.cb-menu{ display:inline-flex; flex-direction:row; align-items:center; justify-content:center; gap:6px;
     padding:8px 14px; min-height:0; border-radius:11px; background:var(--btn);
     border:1px solid var(--btn-line); box-shadow:var(--shadow);
@@ -3392,7 +3393,11 @@ window.onerror=function(msg,url,line,col,err){
           '</div>'+
         '</div>'+
         '<div class="c-round"></div>';
-      $narr.appendChild(combatCardEl);
+      // 关键修复：状态卡移到 #scene 之前、作为 #app 的独立固定块，
+      // 不再嵌入叙事滚动层（$narr），避免随叙事文字滚动/被刷到上方
+      var _sc=document.getElementById('scene'), _ap=document.getElementById('app');
+      if(_sc&&_ap){ _ap.insertBefore(combatCardEl,_sc); }
+      else { $narr.appendChild(combatCardEl); }
     }
     var q=function(sel){ return combatCardEl.querySelector(sel); };
     q('.ec-name').textContent=e.name||'';
