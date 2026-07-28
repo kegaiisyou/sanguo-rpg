@@ -936,6 +936,27 @@
     .tt-name{font-size:48px;}
     .tt-sub{font-size:18px;margin-left:9px;}
     .t-btn{font-size:21px;padding:7px 18px;}
+
+    /* ── 底部 UI 手机适配：防止窄屏折成两排 ── */
+    /* 系统栏 6 按钮强制一行，缩字号/内距防溢出 */
+    #dock{flex-wrap:nowrap;}
+    #dock button{flex:1 1 0;min-width:0;padding:8px 1px 9px;font-size:10px;letter-spacing:0;gap:3px;}
+    #dock button .ic{font-size:17px;}
+
+    /* 常驻移动罗盘缩放，避免溢出挤压 */
+    .move-bar{width:min(100% - 10px, 276px);padding:9px;gap:5px;}
+    .mv-exit{padding:6px 3px;}
+
+    /* 普通模式动作网格更紧凑，少占底部空间 */
+    #actions{grid-template-columns:repeat(auto-fill, minmax(84px,1fr));gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));}
+
+    /* 战斗菜单：窄屏改单行横滑，避免折成两排（之前 flex-wrap 在手机上换行） */
+    #app.in-combat #actions{
+      flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:11px;
+    }
+    #app.in-combat #actions::-webkit-scrollbar{display:none;}
+    #app.in-combat .act.cb-menu{flex:0 0 auto;}
   }
   .tt-scroll-body{position:absolute;inset:0;padding:26px 16px;
     writing-mode:vertical-rl;
