@@ -605,8 +605,10 @@
     45%{transform:translate(-50%,-50%) scale(.98) rotate(0);opacity:.95;}
     100%{transform:translate(-50%,-50%) scale(1);opacity:0;}
   }
-  /* 图像版拳印：正片叠底融入卡面，透明底/白底均可自然“抠除” */
-  .impact.is-img{display:block;width:104px;height:104px;object-fit:contain;mix-blend-mode:multiply;}
+  /* 图像版拳印：用 normal 直接叠加（不再 multiply，避免暗色外圈在浅肤色上发黑成黑圈），
+     轻微提亮+加饱和让淤青红润；尺寸放大提升手机端可见度 */
+  .impact.is-img{display:block;width:118px;height:118px;object-fit:contain;
+    mix-blend-mode:normal;filter:saturate(1.18) brightness(1.06);}
   .impact.is-img::before,.impact.is-img::after{content:none;}
   /* 无图回退：克制写实钝击闷痕（CSS 绘制），武器线仅颜色区分 */
   .impact.noimg::before{
