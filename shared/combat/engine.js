@@ -312,7 +312,11 @@
       if (eff.ignoreDef) desc += '（破防）';
       desc += comboNote;
 
-      log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg, eHp: this.state.enemy.hp, pHp: this.state.player.hp });
+      // 攻击武器线（供前端渲染拳印/剑痕/刀影等差异化受击特效）
+      var atkLine = isPlayer ? (action.line || 'fist') : self._enemyLine(action);
+
+      log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg,
+        atkLine: atkLine, eHp: this.state.enemy.hp, pHp: this.state.player.hp });
 
       // ─── 附加效果 ───
       // 中毒（可叠层）
@@ -490,6 +494,21 @@
     // 连击（身法更快时追加的轻攻击：节奏快、伤害低、必中）
     _makeQuickAtk: function() {
       return { name: '快速追击', beat: 15, dmgMul: 0.6, cost: {}, guaranteed: true };
+    },
+
+    // 由敌人招式名/描述推断武器线，供受击特效选择印记
+    _enemyLine: function(skill) {
+      if (!skill) return 'fist';
+      var s = ((skill.id || '') + ' ' + (skill.name || '') + ' ' + (skill.desc || '')).toLowerCase();
+      if (s.indexOf('刀') >= 0 || s.indexOf('slash') >= 0 || s.indexOf('blade') >= 0) return 'blade';
+      if (s.indexOf('剑') >= 0 || s.indexOf('sword') >= 0) return 'sword';
+      if (s.indexOf('枪') >= 0 || s.indexOf('spear') >= 0) return 'spear';
+      if (s.indexOf('棍') >= 0 || s.indexOf('staff') >= 0) return 'staff';
+      if (s.indexOf('锤') >= 0 || s.indexOf('hammer') >= 0) return 'hammer';
+      if (s.indexOf('鞭') >= 0 || s.indexOf('whip') >= 0) return 'whip';
+      if (s.indexOf('拳') >= 0 || s.indexOf('fist') >= 0 || s.indexOf('崩') >= 0) return 'fist';
+      if (s.indexOf('火') >= 0 || s.indexOf('fire') >= 0 || s.indexOf('焰') >= 0) return 'fire';
+      return 'fist';
     },
 
     // ─── 敌方意图预告（供 UI 显示，玩家可据此选防御/闪避）───

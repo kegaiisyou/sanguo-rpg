@@ -476,7 +476,7 @@
   /* ===== 战斗 UI（方案A：敌我左右两张紧凑卡片） ===== */
   /* 顶部状态区：一行两卡，中间留给文字播报 */
   .c-roster{display:flex;gap:14px;align-items:stretch;justify-content:space-between;margin:0 0 10px;}
-  .c-enemy,.c-player{margin:0;min-width:0;flex:0 0 auto;width:46%;max-width:290px;display:flex;flex-direction:column;
+  .c-enemy,.c-player{margin:0;min-width:0;flex:0 0 auto;width:46%;max-width:290px;display:flex;flex-direction:column;position:relative;overflow:visible;
     border-radius:13px;padding:9px 11px;border:1px solid;}
   .c-enemy{border-color:rgba(158,59,46,.22);background:linear-gradient(180deg,rgba(158,59,46,.08),rgba(158,59,46,.02));}
   .c-player{border-color:rgba(26,54,93,.22);background:linear-gradient(180deg,rgba(26,54,93,.08),rgba(26,54,93,.02));}
@@ -535,11 +535,118 @@
   .c-player .cp-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
 
   /* ── 受击 / 格挡 / 闪避 / 暴击 差异化特写 ── */
-  .c-enemy.hit, .c-player.hit{animation:hitShake .4s ease;}
-  .c-enemy.hit:not(.hit-crit), .c-player.hit:not(.hit-crit){box-shadow:0 0 0 2px rgba(160,48,48,.5) inset;}
-  .c-enemy.hit-crit, .c-player.hit-crit{animation:hitCrit .42s ease;box-shadow:0 0 14px rgba(192,39,26,.5);}
-  @keyframes hitShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}50%{transform:translateX(4px);}75%{transform:translateX(-2px);}}
+  /* ── 攻击 / 受击 差异化动画 ── */
+  /* 攻击方：金光外放 + 向对手方向前冲 + 放大 */
+  .c-player.attacking{
+    animation:atkLunge-left .48s ease;
+    box-shadow:0 0 0 3px rgba(218,165,32,.65),0 0 20px rgba(218,165,32,.3) !important;
+  }
+  .c-enemy.attacking{
+    animation:atkLunge-right .48s ease;
+    box-shadow:0 0 0 3px rgba(218,165,32,.65),0 0 20px rgba(218,165,32,.3) !important;
+  }
+  @keyframes atkLunge-left{
+    0%{transform:translate(0,0) scale(1);filter:brightness(1);opacity:1;}
+    16%{transform:translate(-3px,-7px) scale(1.05);filter:brightness(1.55);opacity:.82;}
+    34%{transform:translate(-8px,0) scale(1.06);filter:brightness(1.4);opacity:1;}
+    100%{transform:translate(0,0) scale(1);filter:brightness(1);opacity:1;}
+  }
+  @keyframes atkLunge-right{
+    0%{transform:translate(0,0) scale(1);filter:brightness(1);opacity:1;}
+    16%{transform:translate(3px,-7px) scale(1.05);filter:brightness(1.55);opacity:.82;}
+    34%{transform:translate(8px,0) scale(1.06);filter:brightness(1.4);opacity:1;}
+    100%{transform:translate(0,0) scale(1);filter:brightness(1);opacity:1;}
+  }
+  /* 受击：红暗后仰 + 褪色 + 被推向反方向 */
+  .c-player.hit:not(.hit-crit){
+    animation:hitBack-right .52s ease;
+    box-shadow:0 0 0 3px rgba(180,30,30,.7),0 0 22px rgba(180,30,30,.45) !important;
+  }
+  .c-enemy.hit:not(.hit-crit){
+    animation:hitBack-left .52s ease;
+    box-shadow:0 0 0 3px rgba(180,30,30,.7),0 0 22px rgba(180,30,30,.45) !important;
+  }
+  @keyframes hitBack-right{
+    0%{transform:translateX(0);filter:brightness(1) saturate(1);}
+    18%{transform:translateX(6px);filter:brightness(.35) saturate(.2);}
+    42%{transform:translateX(-3px);filter:brightness(.65);}
+    65%{transform:translateX(2px);}
+    100%{transform:translateX(0);filter:brightness(1) saturate(1);}
+  }
+  @keyframes hitBack-left{
+    0%{transform:translateX(0);filter:brightness(1) saturate(1);}
+    18%{transform:translateX(-6px);filter:brightness(.35) saturate(.2);}
+    42%{transform:translateX(3px);filter:brightness(.65);}
+    65%{transform:translateX(-2px);}
+    100%{transform:translateX(0);filter:brightness(1) saturate(1);}
+  }
+  .c-enemy.hit-crit,.c-player.hit-crit{animation:hitCrit .46s ease;box-shadow:0 0 20px rgba(220,30,20,.7),0 0 0 3px rgba(220,30,20,.8) !important;}
+
   @keyframes hitCrit{0%{transform:translateX(0) scale(1);}20%{transform:translateX(-7px) scale(1.02);}45%{transform:translateX(6px);}100%{transform:translateX(0) scale(1);}}
+
+  /* ── 攻击方"冒出武器"特效 ── */
+  .wpop{position:absolute;left:50%;top:-4px;transform:translateX(-50%);pointer-events:none;z-index:7;
+    font-family:"STKaiti","KaiTi",serif;font-weight:700;font-size:34px;line-height:1;
+    color:#d4a017;text-shadow:0 0 10px rgba(212,160,23,.85),0 2px 3px rgba(0,0,0,.45);
+    animation:weaponPop .6s ease forwards;}
+  @keyframes weaponPop{
+    0%{transform:translate(-50%,12px) scale(.5);opacity:0;}
+    32%{transform:translate(-50%,-16px) scale(1.3);opacity:1;}
+    100%{transform:translate(-50%,-40px) scale(1);opacity:0;}
+  }
+
+  /* ── 受击打击印记：图像化管线（AI 拳印图 + multiply 混合，0.5s 轻缩淡出）── */
+  /* 基线普通攻击＝拳：使用 assets/impacts/fist.svg（可替换为 AI 生成的透明/白底拳印 PNG） */
+  .impact{position:absolute;pointer-events:none;z-index:6;left:50%;top:50%;
+    transform:translate(-50%,-50%);transform-origin:center;animation:impactStamp .5s ease forwards;}
+  @keyframes impactStamp{
+    0%{transform:translate(-50%,-50%) scale(.7) rotate(-6deg);opacity:0;}
+    16%{transform:translate(-50%,-50%) scale(1.06) rotate(2deg);opacity:1;}
+    45%{transform:translate(-50%,-50%) scale(.98) rotate(0);opacity:.95;}
+    100%{transform:translate(-50%,-50%) scale(1);opacity:0;}
+  }
+  /* 图像版拳印：正片叠底融入卡面，透明底/白底均可自然“抠除” */
+  .impact.is-img{display:block;width:104px;height:104px;object-fit:contain;mix-blend-mode:multiply;}
+  .impact.is-img::before,.impact.is-img::after{content:none;}
+  /* 无图回退：克制写实钝击闷痕（CSS 绘制），武器线仅颜色区分 */
+  .impact.noimg::before{
+    content:'';position:absolute;left:50%;top:50%;width:58px;height:58px;transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:radial-gradient(circle at 50% 46%,
+      rgba(20,0,0,.42) 0%, rgba(20,0,0,.16) 18%,
+      currentColor 40%, currentColor 52%, rgba(0,0,0,0) 72%);
+    opacity:.82;z-index:-1;}
+  .impact.noimg::after{
+    content:'';position:absolute;left:50%;top:50%;width:44px;height:40px;
+    transform:translate(-54%,-48%) rotate(-18deg);
+    border-radius:48% 52% 54% 46%/52% 48% 52% 48%;
+    background:radial-gradient(circle at 40% 38%, currentColor 0%, rgba(0,0,0,0) 64%);
+    opacity:.42;z-index:-1;}
+  .impact.noimg.imp-fist{color:rgba(176,46,40,.92);}
+  .impact.noimg.imp-sword{color:rgba(150,160,180,.85);}
+  .impact.noimg.imp-blade{color:rgba(196,120,50,.88);}
+  .impact.noimg.imp-spear{color:rgba(150,165,190,.85);}
+  .impact.noimg.imp-staff{color:rgba(150,110,70,.88);}
+  .impact.noimg.imp-hammer{color:rgba(190,150,50,.9);}
+  .impact.noimg.imp-whip{color:rgba(180,90,150,.9);}
+  .impact.noimg.imp-fire{color:rgba(196,90,30,.9);}
+  /* 伤痕：同一印记，停留更久、更暗（图片版降亮加饱和，CSS版换暗红） */
+  .impact.imp-wound{animation:woundLinger 1.15s ease forwards;}
+  .impact.imp-wound.is-img{filter:brightness(.78) saturate(1.25);}
+  .impact.imp-wound.noimg{color:rgba(150,28,26,.88);}
+  @keyframes woundLinger{
+    0%{transform:translate(-50%,-50%) scale(.7) rotate(-6deg);opacity:0;}
+    20%{transform:translate(-50%,-50%) scale(1.06);opacity:.95;}
+    100%{transform:translate(-50%,-50%) scale(1);opacity:.5;}
+  }
+  /* 绷带：停留更久、偏苍白 */
+  .impact.imp-bandage{animation:bandageWrap 1s ease forwards;}
+  .impact.imp-bandage.is-img{filter:grayscale(.7) brightness(1.15);}
+  .impact.imp-bandage.noimg{color:rgba(214,214,214,.9);}
+  @keyframes bandageWrap{
+    0%{transform:translate(-50%,-50%) scale(.6) rotate(-30deg);opacity:0;}
+    100%{transform:translate(-50%,-50%) scale(1) rotate(-18deg);opacity:.85;}
+  }
   .c-enemy.block, .c-player.block{animation:blockFlash .6s ease;}
   @keyframes blockFlash{0%,100%{box-shadow:0 0 0 0 rgba(47,95,143,0);}30%{box-shadow:0 0 0 3px rgba(47,95,143,.55),0 0 16px rgba(47,95,143,.4);}}
   .c-enemy.dodge, .c-player.dodge{animation:dodgeShake .4s ease;}
@@ -651,7 +758,7 @@
   .c-player .cp-id{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1 1 auto;}
   .c-player .cp-name{font-size:16px;font-weight:700;color:#1f3d6b;font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;}
   /* 出招时整卡微动（替代原 SVG 前倾前摇） */
-  .c-enemy.attacking,.c-player.attacking{animation:clashPop .3s ease;}
+  /* 出招时整卡微动已迁移至上方差异化 animation */
   /* 武侠「斬」印章特效 */
   .combat-seal{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) rotate(-12deg);
     font-family:"STKaiti","KaiTi",serif;font-size:128px;font-weight:900;color:rgba(192,39,26,.92);
@@ -2368,6 +2475,7 @@ window.onerror=function(msg,url,line,col,err){
     }
   }
   function actRest(){
+    var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
     clearActions();
     var esR=effectiveStats();
     state.hp=esR.maxHp; state.mp=esR.maxMp; state.energy=state.maxEnergy;
@@ -2520,6 +2628,8 @@ window.onerror=function(msg,url,line,col,err){
   }
   function openModal(kind, opts){
     if(state && state.dead){ die(); return; }
+    // 打开任何弹窗时先移除战斗红光氛围，防止满血/非战斗画面泛红
+    var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
     if(kind==='dev'){ renderDev(); return; }
    try{
     var modalOpts=opts||{};
@@ -2878,7 +2988,43 @@ window.onerror=function(msg,url,line,col,err){
     setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 620);
   }
   // 受击：红闪 + 后仰
-  function flashHit(side, crit){ flashAnchor(side, crit?'hit hit-crit':'hit', 420); }
+  function flashHit(side, crit){ flashAnchor(side, crit?'hit hit-crit':'hit', 560); }
+  // 攻击武器字 / 受击印记 挂载到状态卡（随机微偏移，避免重叠）
+  var ATK_GLYPH={fist:'拳',sword:'剑',blade:'刀',spear:'枪',staff:'棍',hammer:'锤',whip:'鞭',fire:'焰'};
+  function combatAnchorAppend(side, html, cls, life){
+    var a=combatAnchor(side); if(!a) return null;
+    var el=document.createElement('div'); el.className=cls; el.innerHTML=html;
+    var rx=(Math.random()*46-23), ry=(Math.random()*28-14);
+    el.style.left='calc(50% + '+rx+'px)';
+    el.style.top='calc(46% + '+ry+'px)';
+    a.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, life||760);
+    return el;
+  }
+  // 攻击方"冒出武器"字（拳/剑/刀…）
+  function popWeapon(side, line){ combatAnchorAppend(side, ATK_GLYPH[line]||'击', 'wpop', 640); }
+  // 受击方差异化印记：拳印/剑痕/刀影…，kind 可叠加 wound(伤痕)/bandage(绷带)
+  // 图像化管线：每种武学一张专属图，放到 IMPACT_IMAGES 即可生效；未配置的武器线回退 CSS 闷痕
+  // fist: AI 生成的写实皮下淤青拳印（已去白底/去水印），multiply 正片叠底融入卡面
+  var IMPACT_IMAGES = { fist: 'assets/impacts/fist_clean.png' };
+  function floatImpact(side, line, kind){
+    line = line || 'fist';
+    var kindCls = (kind && kind!=='hit') ? ' imp-'+kind : '';
+    var life = kind==='wound' ? 1200 : (kind==='bandage' ? 1000 : 760);
+    var img = IMPACT_IMAGES[line];
+    if(img){
+      var a=combatAnchor(side); if(!a) return null;
+      var el=document.createElement('img');
+      el.className='impact is-img imp-'+line+kindCls; el.src=img; el.alt='';
+      var rx=(Math.random()*46-23), ry=(Math.random()*28-14);
+      el.style.left='calc(50% + '+rx+'px)';
+      el.style.top='calc(46% + '+ry+'px)';
+      a.appendChild(el);
+      setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, life);
+      return el;
+    }
+    combatAnchorAppend(side, '', 'impact noimg imp-'+line+kindCls, life);
+  }
   // 格挡：蓝盾光
   function flashBlock(side){ flashAnchor(side, 'block', 620); }
   // 闪避：灰字"闪" + 抖动
@@ -2953,7 +3099,7 @@ window.onerror=function(msg,url,line,col,err){
   function markAttack(side){
     var a=combatAnchor(side); if(!a) return;
     a.classList.remove('attacking'); void a.offsetWidth; a.classList.add('attacking');
-    setTimeout(function(){ a.classList.remove('attacking'); }, 360);
+    setTimeout(function(){ a.classList.remove('attacking'); }, 520);
   }
   // 暴击特写：场景暗角 + 轻微推近（一次性）
   function markSceneCrit(){
@@ -3001,8 +3147,8 @@ window.onerror=function(msg,url,line,col,err){
     var text=entry.text||''; var cls=entry.type||'sys';
     var crit=/暴击/.test(text);
     if(crit) cls+=' crit';
-    if(entry.type==='player_atk') markAttack('player');
-    else if(entry.type==='enemy_atk') markAttack('enemy');
+    if(entry.type==='player_atk'){ markAttack('player'); }
+    else if(entry.type==='enemy_atk'){ markAttack('enemy'); }
     var el=logText(text, cls);
     var ico=COMBAT_ICON[entry.type];
     if(ico && !crit){ el.classList.add('ico'); el.setAttribute('data-ico', ico); }
@@ -3022,6 +3168,13 @@ window.onerror=function(msg,url,line,col,err){
     } else if(entry.dmg && entry.dmg>0 && side){
       floatDamage(entry.dmg, side, crit);           // 伤害飘字
       flashHit(side, crit);                          // 受击红闪/后仰
+      floatImpact(side, entry.atkLine, 'hit');       // 受击差异化印记（拳印/剑痕/刀影…）
+      // 重伤：高频受击叠加"伤痕"裂迹
+      if(crit || entry.dmg>=20) floatImpact(side, entry.atkLine, 'wound');
+      // 濒危：低血时随机缠上"绷带"
+      var maxHp = side==='enemy' ? G.CombatEngine.getStatus().enemy.maxHp : effectiveStats().maxHp;
+      var curHp = side==='enemy' ? entry.eHp : entry.pHp;
+      if(maxHp && curHp!=null && curHp/maxHp < 0.3 && Math.random()<0.45) floatImpact(side, entry.atkLine, 'bandage');
       if(crit){ critBurst(side); markSceneCrit(); flashSeal('斬'); }   // 暴击金红爆裂粒子 + 场景特写 + 武侠斩印
     }
     if(crit || (entry.dmg && entry.dmg>=25)) shakeScene();
@@ -3368,7 +3521,7 @@ window.onerror=function(msg,url,line,col,err){
       var pHp=(typeof e.pHp==='number')?e.pHp:st0.player.hp;
       updateCardBars(eHp, pHp, st0.enemy.maxHp, st0.player.maxHp);
       logCombat(e);
-      setTimeout(function(){ play(i+1); }, 420);
+      setTimeout(function(){ play(i+1); }, 1050);
     })(0);
   }
 

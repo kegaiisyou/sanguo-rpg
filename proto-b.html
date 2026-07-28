@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原型B · 纯文字电影战报</title>
+<style>
+  html,body{margin:0;height:100%;background:#08090c;color:#e8e8e8;
+    font-family:"PingFang SC","Microsoft YaHei",serif;overflow:hidden}
+  #wrap{position:relative;width:100vw;height:100vh}
+  /* 暗角电影感 */
+  #wrap::after{content:'';position:absolute;inset:0;pointer-events:none;
+    box-shadow:inset 0 0 220px 70px rgba(0,0,0,.85)}
+  #stage{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:0 8vw 16vh;gap:10px}
+  .line{font-size:24px;letter-spacing:3px;opacity:0;transform:translateY(14px);
+    animation:rise .9s ease forwards;text-shadow:0 2px 10px #000;color:#cdd6e0}
+  .line .k{color:#ffd24a;font-weight:700}
+  .line .r{color:#ff6b6b;font-weight:700}
+  @keyframes rise{to{opacity:1;transform:translateY(0)}}
+  .word{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) scale(.4);
+    font-size:min(30vw,220px);font-weight:900;font-family:"STKaiti","KaiTi",serif;opacity:0;
+    color:#e23b2e;text-shadow:0 0 40px rgba(226,59,46,.8);animation:word 1.1s cubic-bezier(.2,1.5,.3,1) forwards}
+  @keyframes word{0%{opacity:0;transform:translate(-50%,-50%) scale(2.4) rotate(-8deg)}
+    18%{opacity:1}60%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-8deg)}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(1.1) rotate(-8deg)}}
+  .bar{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:5}
+  button{background:#15171c;color:#cfe3ff;border:1px solid #34507a;padding:10px 22px;border-radius:8px;font-size:15px;cursor:pointer}
+  button:hover{background:#1f2330}
+  button:disabled{opacity:.5;cursor:default}
+  .tip{position:absolute;bottom:74px;left:50%;transform:translateX(-50%);color:#8893a3;font-size:13px;z-index:5}
+  .nav{position:absolute;bottom:26px;right:22px;font-size:12px;color:#55606e;z-index:5}
+  .nav a{color:#7fa8d8;text-decoration:none;margin-left:8px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage"></div>
+  <div class="tip">原型B：放弃图形，用流式巨字战报 + 拟声词 + 数字滚动（零素材 · 信长/太阁风）</div>
+  <div class="bar"><button id="go">▶ 开始演示</button></div>
+  <div class="nav">对比：<a href="proto-ab.html">A+B 组合</a><a href="proto-a.html">A 兵海演出</a><a href="proto-c.html">C 几何速度线</a><a href="proto-index.html">首页</a></div>
+</div>
+<script>
+const stage=document.getElementById('stage'),go=document.getElementById('go');
+let bRunning=false;
+const steps=[
+ {t:0,   html:'<span class="k">建安五年</span> · 官渡夜'},
+ {t:1100,html:'曹公麾下精骑五千，衔枚夜进'},
+ {t:2600,html:'突遇 <span class="r">淳于琼</span> 护粮之军 ——'},
+ {t:3800,word:true,html:'破！'},
+ {t:4800,html:'敌阵大乱，火光冲天，营栅尽焚'},
+ {t:6200,count:true,html:'斩首'},
+ {t:7400,word:true,html:'斬'},
+ {t:8400,html:'河北既定，天下之势初分'},
+];
+function spawnLine(html){const d=document.createElement('div');d.className='line';d.innerHTML=html;stage.appendChild(d);}
+function spawnWord(html){const d=document.createElement('div');d.className='word';d.textContent=html;document.getElementById('wrap').appendChild(d);
+  setTimeout(()=>d.remove(),1200);}
+function spawnCount(prefix){const d=document.createElement('div');d.className='line';
+  d.innerHTML=prefix+' <span class="r" id="cnt">0</span> 级';stage.appendChild(d);
+  const el=document.getElementById('cnt');let v=0;const target=12700;
+  const iv=setInterval(()=>{v+=Math.ceil(target/45);if(v>=target){v=target;clearInterval(iv);}
+    el.textContent=v.toLocaleString();},22);}
+function play(){if(bRunning)return;bRunning=true;stage.innerHTML='';go.disabled=true;
+  steps.forEach(s=>setTimeout(()=>{if(s.count)spawnCount(s.html);else if(s.word)spawnWord(s.html);else spawnLine(s.html);},s.t));
+  setTimeout(()=>{bRunning=false;go.disabled=false;},9000);}
+go.addEventListener('click',play);
+</script>
+</body>
+</html>
