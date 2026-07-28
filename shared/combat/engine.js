@@ -219,7 +219,7 @@
       if (action.eff && action.eff.selfHeal) {
         var heal = action.eff.selfHeal;
         unit.hp = Math.min(unit.maxHp, unit.hp + heal);
-        log.push({ type:'heal', text: unit.name + '恢复 ' + heal + ' 气血' });
+        log.push({ type:'heal', text: unit.name + '恢复 ' + heal + ' 气血', eHp: this.state.enemy.hp, pHp: this.state.player.hp });
         return 0;
       }
 
@@ -312,7 +312,7 @@
       if (eff.ignoreDef) desc += '（破防）';
       desc += comboNote;
 
-      log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg });
+      log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg, eHp: this.state.enemy.hp, pHp: this.state.player.hp });
 
       // ─── 附加效果 ───
       // 中毒（可叠层）
@@ -348,7 +348,7 @@
           var reflect = Math.round(totalDmg * pForce.reflectDmg);
           if (reflect > 0) {
             this.state.enemy.hp = Math.max(0, this.state.enemy.hp - reflect);
-            log.push({ type:'counter', text: '你以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect });
+            log.push({ type:'counter', text: '你以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: this.state.enemy.hp, pHp: this.state.player.hp });
           }
         }
       }
@@ -383,7 +383,7 @@
         unit.dots.forEach(function(d) {
           var dmg = d.dmg * (d.stacks || 1);
           unit.hp = Math.max(0, unit.hp - dmg);
-          log.push({ type:'dot', text: (side==='player'?'你':unit.name) + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: side });
+          log.push({ type:'dot', text: (side==='player'?'你':unit.name) + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: side, eHp: this.state.enemy.hp, pHp: this.state.player.hp });
           d.turns--;
           if (d.turns > 0) surviving.push(d);
         });
@@ -485,6 +485,11 @@
         if ((skills[b].dmgMul || 0) > 0) atks3.push(skills[b]);
       }
       return atks3.length ? atks3[Math.floor(Math.random() * atks3.length)] : 'defend';
+    },
+
+    // 连击（身法更快时追加的轻攻击：节奏快、伤害低、必中）
+    _makeQuickAtk: function() {
+      return { name: '快速追击', beat: 15, dmgMul: 0.6, cost: {}, guaranteed: true };
     },
 
     // ─── 敌方意图预告（供 UI 显示，玩家可据此选防御/闪避）───
@@ -604,40 +609,67 @@
         playerAction = this._pickPlayerAction(strat);
       }
 
-      // 2) 运招中判定（beat>60 的重招）
-      if (playerAction && playerAction !== 'defend' && playerAction.beat > 60) {
+      // ── 行动阶段：按「速度/节拍」排定出手顺序，速度快者先手并可连击 ──
+      // 2) 运招中（重招 beat>60）：敌抢先出手一次（视作敌之本回合主行动）
+      var heavyPreempt = (playerAction && playerAction !== 'defend' && playerAction.beat > 60);
+      var enemyMainDone = false;
+      if (heavyPreempt) {
         log.push({ type:'system', text:'你凝神聚气，大招蓄力中——' });
-        // 敌方趁机出手
         var ePreAct = this._pickEnemyAction();
         this._resolveAction('enemy', ePreAct, log);
         if (this._checkEnd()) { this.state.log = log; return log; }
+        enemyMainDone = true;
       }
 
-      // 3) 玩家行动结算
-      this._resolveAction('player', playerAction, log);
-      if (this._checkEnd()) { this.state.log = log; return log; }
-
-      // 4) 敌方行动（若未在运招中抢攻）— 使用预告锁定的主行动，保证一致
-      if (!playerAction || playerAction === 'defend' || playerAction.beat <= 60) {
-        var eAct = this.state.enemyIntent || this._pickEnemyAction();
-        this.state.enemyIntent = null;
-        this._resolveAction('enemy', eAct, log);
-        if (this._checkEnd()) { this.state.log = log; return log; }
-      }
-
-      // 5) 速度差额外行动
+      // 3) 计算本回合双方出手次数：基础各 1 次，身法差每 20 点追加 1 次（封顶 3 次连击）
       var spdGap = this.state.player.spd - this.state.enemy.spd;
-      if (spdGap > 20 && !stunnedThisTurn) {
-        log.push({ type:'system', text:'你身法占优，抢出连击！' });
-        // 快速追加一次轻攻击
-        var quickAtk = { name:'快速追击', beat:15, dmgMul:0.6, cost:{}, guaranteed:true };
-        this._resolveAction('player', quickAtk, log);
-        if (this._checkEnd()) { this.state.log = log; return log; }
-      } else if (spdGap < -20) {
-        log.push({ type:'system', text:'敌身法极快，再度袭来！' });
-        var eBonus = this._pickEnemyAction();
-        this._resolveAction('enemy', eBonus, log);
-        if (this._checkEnd()) { this.state.log = log; return log; }
+      var extra = Math.min(3, Math.floor(Math.abs(spdGap) / 20));
+      var pCount = 1, eCount = 1;
+      if (playerAction === 'defend') pCount = 1;
+      else if (spdGap > 20 && !stunnedThisTurn) pCount += extra;   // 玩家更快 → 追连击
+      else if (spdGap < -20) eCount += extra;                       // 敌更快 → 敌连击
+
+      // 4) 排定出手队列：速度快者先手（同速玩家先手），重招时敌已先占主行动
+      var pFirst = spdGap >= 0;
+      var eMain = (enemyMainDone ? null : (this.state.enemyIntent || this._pickEnemyAction()));
+      this.state.enemyIntent = null;
+      var pi = 0, ei = enemyMainDone ? 1 : 0;
+      while (pi < pCount || ei < eCount) {
+        if (pFirst) {
+          if (pi < pCount) {
+            if (pi === 0 && spdGap >= 20) log.push({ type:'system', text:'你身法更快，抢得先机！' });
+            else if (pi === 1) log.push({ type:'system', text:'你身法占优，抢出连击！' });
+            else if (pi > 1) log.push({ type:'system', text:'你身法如电，又夺一击！' });
+            this._resolveAction('player', (pi === 0 ? playerAction : this._makeQuickAtk()), log);
+            if (this._checkEnd()) { this.state.log = log; return log; }
+            pi++;
+          }
+          if (ei < eCount) {
+            if (ei === 0 && spdGap <= -20) log.push({ type:'system', text:'敌身法更快，抢得先机！' });
+            else if (ei === 1) log.push({ type:'system', text:'敌身法极快，再度袭来！' });
+            else if (ei > 1) log.push({ type:'system', text:'敌势如疾风，又是一击！' });
+            this._resolveAction('enemy', (ei === 0 ? eMain : this._pickEnemyAction()), log);
+            if (this._checkEnd()) { this.state.log = log; return log; }
+            ei++;
+          }
+        } else {
+          if (ei < eCount) {
+            if (ei === 0 && spdGap <= -20) log.push({ type:'system', text:'敌身法更快，抢得先机！' });
+            else if (ei === 1) log.push({ type:'system', text:'敌身法极快，再度袭来！' });
+            else if (ei > 1) log.push({ type:'system', text:'敌势如疾风，又是一击！' });
+            this._resolveAction('enemy', (ei === 0 ? eMain : this._pickEnemyAction()), log);
+            if (this._checkEnd()) { this.state.log = log; return log; }
+            ei++;
+          }
+          if (pi < pCount) {
+            if (pi === 0 && spdGap >= 20) log.push({ type:'system', text:'你身法更快，抢得先机！' });
+            else if (pi === 1) log.push({ type:'system', text:'你身法占优，抢出连击！' });
+            else if (pi > 1) log.push({ type:'system', text:'你身法如电，又夺一击！' });
+            this._resolveAction('player', (pi === 0 ? playerAction : this._makeQuickAtk()), log);
+            if (this._checkEnd()) { this.state.log = log; return log; }
+            pi++;
+          }
+        }
       }
 
       // 6) 战意增长
