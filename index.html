@@ -831,6 +831,15 @@
   .slot .sl-empty{font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--ink-faint);letter-spacing:2px;}
   .slot .sl-meta{font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6;}
   .slot .sl-sect{font-size:11.5px;color:#9a7b3a;letter-spacing:1px;}
+  .slot .sl-body{transition:opacity .18s;}
+  .slot .sl-confirm{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--btn-line);}
+  .slot .sl-confirm p{margin:0 0 8px;font-size:12.5px;color:var(--seal);letter-spacing:1px;}
+  .slot .sl-confirm .sl-actions{display:flex;gap:8px;}
+  .slot .sl-confirm .sl-actions button{flex:1;padding:7px 0;border-radius:8px;border:1px solid var(--btn-line);background:var(--btn);font-family:inherit;font-size:13px;cursor:pointer;transition:.16s;}
+  .slot .sl-confirm .sl-actions button:hover{background:rgba(158,59,46,.1);border-color:rgba(158,59,46,.4);}
+  .slot .sl-confirm .sl-actions .sl-yes{color:#8a3b2e;border-color:rgba(158,59,46,.45);background:rgba(158,59,46,.08);font-weight:600;}
+  .slot.on-confirm .sl-body{opacity:.25;pointer-events:none;}
+  .slot.on-confirm .sl-confirm{display:block;}
   .codex-sec{margin:8px 0 4px;}
   .codex-sec h4{margin:0 0 6px;font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--seal);letter-spacing:2px;border-bottom:1px solid var(--panel-line);padding-bottom:4px;}
   .codex-grid{display:flex;flex-wrap:wrap;gap:6px;}
@@ -1505,16 +1514,27 @@ window.onerror=function(msg,url,line,col,err){
     var rows='';
     for(var i=1;i<=3;i++){
       var m=slotMeta(i);
+      var confirmHTML = (mode==='new' && !m.empty)
+        ? '<div class="sl-confirm">'+
+            '<p>第 '+i+' 卷已有旧事，覆而新写？</p>'+
+            '<div class="sl-actions">'+
+              '<button class="sl-yes" data-action="overwrite" data-slot="'+i+'">覆 写</button>'+
+              '<button data-action="cancel" data-slot="'+i+'">再 想 想</button>'+
+            '</div>'+
+          '</div>'
+        : '';
       if(m.empty){
         rows+='<div class="slot" data-slot="'+i+'" data-mode="'+mode+'">'+
+          '<div class="sl-body">'+
           '<div class="sl-top"><span class="sl-empty">第 '+i+' 卷 · 空</span></div>'+
-          '<div class="sl-meta">尚未落墨。</div></div>';
+          '<div class="sl-meta">尚未落墨。</div></div>'+confirmHTML+'</div>';
       } else {
         rows+='<div class="slot" data-slot="'+i+'" data-mode="'+mode+'">'+
+          '<div class="sl-body">'+
           '<div class="sl-top"><span class="sl-name">第 '+i+' 卷 · '+escapeHtml(m.name)+'</span>'+
           '<span class="sl-sect">'+m.rep+' 声名</span></div>'+
           '<div class="sl-meta">'+m.sect+' · '+escapeHtml(m.room)+' · '+m.time+'</div>'+
-          '<div class="sl-sect">历 '+m.day+' 日</div></div>';
+          '<div class="sl-sect">历 '+m.day+' 日</div></div>'+confirmHTML+'</div>';
       }
     }
     return '<h3>'+title+'</h3><p class="tip">'+intro+'</p><div class="slot-row">'+rows+'</div>';
@@ -2486,15 +2506,35 @@ window.onerror=function(msg,url,line,col,err){
     $card.querySelectorAll('.set-tabs button').forEach(function(b){ b.onclick=function(){ var t=b.getAttribute('data-tab'); $card.querySelectorAll('.set-tabs button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); $card.querySelectorAll('.set-panel').forEach(function(p){ p.classList.toggle('hidden', p.getAttribute('data-panel')!==t); }); tick(); }; });
     // 择档面板交互
     $card.querySelectorAll('.slot[data-slot]').forEach(function(el){
-      el.onclick=function(){
+      el.onclick=function(e){
+        // 若点击的是确认层按钮，由下方独立绑定处理，不冒泡到 slot
+        if(e.target.closest('.sl-confirm')) return;
         var slot=parseInt(el.getAttribute('data-slot'),10);
         var mode=el.getAttribute('data-mode');
         if(mode==='new'){
-          if(slotExists(slot) && !confirm('第 '+slot+' 卷已有旧事，覆而新写？')) return;
+          if(slotExists(slot)){
+            // 显示行内确认层（替代浏览器 confirm，避免沙箱/拦截导致无反应）
+            el.classList.add('on-confirm');
+            return;
+          }
           clearSlot(slot); enterGame(G.defaultSave(), slot); closeModal();
         } else {
           if(!slotExists(slot)){ toast('此卷尚空，无可续之缘'); return; }
           enterGame(rawSlot(slot), slot); closeModal();
+        }
+      };
+    });
+    // 覆写确认层按钮
+    $card.querySelectorAll('.sl-confirm button[data-action]').forEach(function(btn){
+      btn.onclick=function(e){
+        e.stopPropagation();
+        var slot=parseInt(btn.getAttribute('data-slot'),10);
+        var act=btn.getAttribute('data-action');
+        if(act==='overwrite'){
+          clearSlot(slot); enterGame(G.defaultSave(), slot); closeModal();
+        } else {
+          var slotEl=btn.closest('.slot');
+          if(slotEl) slotEl.classList.remove('on-confirm');
         }
       };
     });
