@@ -29,8 +29,8 @@
       repExp: 0,                     // 声望经验累计（后续真实途径用，先留字段）
       gold: 50,
       skills: ['basic_fist'],
-      room: 'yuyang_guomen',         // 当前所处房间（默认出生点：渔阳·郭门，比蓟城更早接触的北疆门户）
-      spawnRoom: 'yuyang_guomen',    // 玩家出生点（调试台可改；新局/重置后落点）
+      room: 'yanshan_shankou',       // 当前所处房间（默认出生点：燕山·山口，暂置于渔阳以北边塞山脉）
+      spawnRoom: 'yanshan_shankou',  // 玩家出生点（调试台可改；新局/重置后落点）
       flags: {},
       lastSeen: Date.now(),
       time: 4,                       // 时辰索引（0子..4辰..11亥）；辰时=7:00-8:59
