@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>主角单人 · 回合制战斗画面</title>
+<style>
+  :root{
+    --bg:#0e1116; --ink:#e9e3d2; --dim:#8b8370; --seal:#c0271a; --jade:#3a9d7e;
+    --gold:#e8c268; --rage:#a06bd0; --line:#2a2f38; --panel:rgba(20,24,30,.72);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+  #app{display:grid;grid-template-rows:auto 1fr auto;height:100vh;position:relative}
+  #app::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:40;
+    box-shadow:inset 0 0 200px 60px rgba(0,0,0,.6)}
+
+  /* ---------- 顶栏：回合 + 战场氛围 ---------- */
+  header{padding:8px 18px 6px;background:linear-gradient(180deg,#14181f,#0e1116);
+    border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;z-index:5}
+  .round{font-family:"STKaiti","KaiTi",serif;letter-spacing:4px;color:var(--dim);font-size:14px}
+  .round b{color:var(--gold);font-size:16px}
+  .amb{font-size:12px;color:var(--dim)}
+  .amb .k{color:#b9d8c8}
+
+  /* ---------- 战场 ---------- */
+  main{position:relative;z-index:4;display:flex;align-items:stretch;overflow:hidden;
+    background:
+      radial-gradient(60% 50% at 22% 60%,rgba(58,157,126,.10),transparent 60%),
+      radial-gradient(60% 50% at 80% 60%,rgba(192,39,26,.12),transparent 60%),
+      linear-gradient(180deg,#0f1319,#0b0e12 70%,#070a0d);}
+  .side{width:34%;display:flex;flex-direction:column;justify-content:center;padding:14px 18px;gap:8px}
+  .side.enemy{align-items:flex-end;text-align:right}
+
+  /* 铭牌 */
+  .plaque{font-family:"STKaiti","KaiTi",serif}
+  .pname{font-size:22px;font-weight:700;letter-spacing:3px;line-height:1.1}
+  .pname.hero{color:#cfe3ff}
+  .pname.foe{color:var(--seal)}
+  .ptitle{font-size:12px;color:var(--dim);letter-spacing:1px;margin-top:2px}
+  .ptags{margin-top:5px;display:flex;gap:6px;flex-wrap:wrap}
+  .side.enemy .ptags{justify-content:flex-end}
+  .tag{font-size:11px;padding:1px 7px;border-radius:8px;border:1px solid rgba(140,131,112,.35);color:var(--dim)}
+  .tag.elem{border-color:rgba(232,194,104,.5);color:var(--gold)}
+  .tag.yin{border-color:rgba(160,107,208,.5);color:#c79be6}
+
+  /* 五维资质 chips */
+  .apt{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+  .side.enemy .apt{justify-content:flex-end}
+  .apt span{font-size:10.5px;color:var(--dim);background:rgba(255,255,255,.04);
+    border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+  .apt b{color:var(--ink)}
+
+  /* 资源条 */
+  .bars{width:100%;margin-top:10px;display:flex;flex-direction:column;gap:7px}
+  .bar{display:flex;align-items:center;gap:8px}
+  .side.enemy .bar{flex-direction:row-reverse}
+  .bar .lab{font-size:11px;color:var(--dim);width:34px;flex:0 0 auto}
+  .side.enemy .bar .lab{text-align:left}
+  .track{flex:1;height:12px;background:rgba(255,255,255,.06);border-radius:7px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.05)}
+  .fill{height:100%;width:100%;border-radius:7px;transition:width .45s cubic-bezier(.2,.8,.2,1)}
+  .f-hp{background:linear-gradient(90deg,#7a1c14,var(--seal))}
+  .f-mp{background:linear-gradient(90deg,#1f5e4a,var(--jade))}
+  .f-rage{background:linear-gradient(90deg,#5b2f86,var(--rage))}
+  .bar .num{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;width:78px;flex:0 0 auto;text-align:right}
+  .side.enemy .bar .num{text-align:left}
+
+  /* 攻防速 + 连击 */
+  .stats{display:flex;gap:10px;margin-top:9px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+  .side.enemy .stats{justify-content:flex-end}
+  .stats b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .combo{margin-left:auto;color:var(--gold);font-weight:700;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px}
+  .combo.hot{color:var(--seal);text-shadow:0 0 10px rgba(192,39,26,.5);animation:cp 0.5s ease infinite}
+  @keyframes cp{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+  /* Buff / 敌方意图 */
+  .status{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;min-height:18px}
+  .side.enemy .status{justify-content:flex-end}
+  .buff{font-size:10.5px;padding:1px 7px;border-radius:8px}
+  .buff.good{color:#9fe3c6;background:rgba(58,157,126,.12);border:1px solid rgba(58,157,126,.4)}
+  .buff.bad{color:#f0a59a;background:rgba(192,39,26,.12);border:1px solid rgba(192,39,26,.4)}
+  .intent{margin-top:8px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;
+    padding:3px 10px;border-radius:8px;border-left:3px solid}
+  .intent.normal{color:#caa34a;background:rgba(202,163,74,.1);border-color:rgba(202,163,74,.5)}
+  .intent.heavy{color:var(--seal);background:rgba(192,39,26,.12);border-color:rgba(192,39,26,.6);animation:ip 1s ease-in-out infinite}
+  .intent.defend{color:#6ea8d8;background:rgba(110,168,216,.1);border-color:rgba(110,168,216,.5)}
+  @keyframes ip{0%,100%{box-shadow:0 0 0 0 rgba(192,39,26,.25)}50%{box-shadow:0 0 0 5px rgba(192,39,26,0)}}
+
+  /* 中央：墨影立绘 + 特效 */
+  .center{flex:1;position:relative;display:flex;align-items:center;justify-content:center;gap:38px}
+  .fig{width:118px;height:172px;position:relative;filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
+  .fig .head{position:absolute;top:0;left:50%;transform:translateX(-50%);width:38px;height:42px;border-radius:50% 50% 46% 46%;
+    background:radial-gradient(circle at 38% 34%,#3a4658,#1a2230)}
+  .fig .body{position:absolute;top:38px;left:50%;transform:translateX(-50%);width:76px;height:118px;border-radius:38px 38px 18px 18px;
+    background:linear-gradient(160deg,#33414f,#171d27)}
+  .fig .blade{position:absolute;top:30px;right:-14px;width:4px;height:120px;border-radius:3px;transform:rotate(18deg);
+    background:linear-gradient(180deg,#dfe7ef,#9aa6b4);box-shadow:0 0 8px rgba(200,220,240,.5)}
+  .fig.foe .head{background:radial-gradient(circle at 38% 34%,#5a2420,#2a0f0d)}
+  .fig.foe .body{background:linear-gradient(160deg,#5a2a25,#22100e)}
+  .fig.foe .blade{background:linear-gradient(180deg,#e7b9a0,#a8614a);box-shadow:0 0 8px rgba(220,120,90,.5);left:-14px;right:auto;transform:rotate(-18deg)}
+  .fig.lunge{animation:ln .36s ease}
+  .fig.foe.lunge{animation:lnR .36s ease}
+  @keyframes ln{0%{transform:translateX(0)}40%{transform:translateX(34px) rotate(4deg)}100%{transform:translateX(0)}}
+  @keyframes lnR{0%{transform:translateX(0)}40%{transform:translateX(-34px) rotate(-4deg)}100%{transform:translateX(0)}}
+  .fig.hit{animation:hs .42s ease}
+  .fig.hitC{animation:hc .46s ease;filter:drop-shadow(0 0 16px rgba(192,39,26,.7))}
+  @keyframes hs{0%,100%{transform:translateX(0)}22%{transform:translateX(-7px)}50%{transform:translateX(5px)}78%{transform:translateX(-3px)}}
+  @keyframes hc{0%{transform:translateX(0) scale(1)}18%{transform:translateX(-10px) scale(1.04)}46%{transform:translateX(8px)}100%{transform:translateX(0) scale(1)}}
+  .fig.block{animation:bf .6s ease}
+  @keyframes bf{0%,100%{filter:drop-shadow(0 0 0 rgba(110,168,216,0))}30%{filter:drop-shadow(0 0 14px rgba(110,168,216,.7))}}
+  .fig.dodge{animation:df .4s ease}
+  @keyframes df{0%,100%{transform:translateX(0)}20%{transform:translateX(14px)}55%{transform:translateX(-10px)}85%{transform:translateX(5px)}}
+
+  /* 浮字 */
+  .float{position:absolute;font-family:"STKaiti","KaiTi",serif;font-weight:800;font-size:30px;pointer-events:none;z-index:12;
+    animation:fl 1s ease-out forwards;text-shadow:0 2px 6px #000}
+  .float.dmg{color:#ff7a5e}
+  .float.crit{color:var(--gold);font-size:40px;text-shadow:0 0 14px rgba(232,194,104,.8)}
+  .float.heal{color:#7fe0b0}
+  .float.dodge{color:#9aa6b4;font-size:22px}
+  .float.block{color:#6ea8d8;font-size:22px}
+  @keyframes fl{0%{opacity:0;transform:translateY(8px) scale(.7)}18%{opacity:1;transform:translateY(-6px) scale(1.1)}100%{opacity:0;transform:translateY(-52px) scale(1)}}
+  .burst{position:absolute;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle,#ffd98a,#c0271a);
+    box-shadow:0 0 12px 5px rgba(192,39,26,.55);animation:bst .6s ease-out forwards;z-index:11;pointer-events:none}
+  @keyframes bst{0%{transform:scale(.4);opacity:1}60%{transform:scale(7);opacity:.5}100%{transform:scale(10);opacity:0}}
+
+  /* 印章「斬」 */
+  .seal{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-13deg);z-index:30;pointer-events:none;
+    font-family:"STKaiti","KaiTi",serif;font-size:min(26vw,170px);font-weight:900;color:rgba(192,39,26,.92);
+    text-shadow:0 0 22px rgba(192,39,26,.55);opacity:0}
+  .seal.show{animation:ss .9s cubic-bezier(.2,.7,.3,1) forwards}
+  @keyframes ss{0%{opacity:0;transform:translate(-50%,-50%) rotate(-13deg) scale(2.4)}
+    16%{opacity:1;transform:translate(-50%,-50%) rotate(-13deg) scale(1)}
+    82%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(-13deg) scale(1.05)}}
+  .flash{position:absolute;inset:0;z-index:25;background:#fff;opacity:0;pointer-events:none}
+  .flash.show{animation:fl2 .4s ease-out}
+  @keyframes fl2{0%{opacity:.8}100%{opacity:0}}
+  main.danger{box-shadow:inset 0 0 130px 30px rgba(150,18,18,.45);animation:dg 1.3s ease-in-out infinite}
+  @keyframes dg{0%,100%{box-shadow:inset 0 0 120px 26px rgba(150,18,18,.34)}50%{box-shadow:inset 0 0 150px 36px rgba(160,20,20,.52)}}
+
+  /* 战报 */
+  .log{position:absolute;left:14px;bottom:12px;width:min(46%,420px);max-height:42%;overflow-y:auto;z-index:14;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;backdrop-filter:blur(3px)}
+  .log::-webkit-scrollbar{width:6px}.log::-webkit-scrollbar-thumb{background:#2a2f38;border-radius:3px}
+  .l{font-family:"STKaiti","KaiTi","SimSun",serif;font-size:14px;line-height:1.7;color:#d7d2c2;
+    opacity:0;transform:translateY(6px);animation:rise .4s forwards;margin-bottom:3px}
+  @keyframes rise{to{opacity:1;transform:translateY(0)}}
+  .l .k{color:var(--gold);font-weight:700}.l .r{color:#ff8a6e}.l .b{color:#9ec9ff}.l .g{color:#7fe0b0}
+  .l.sys{color:var(--dim);font-style:italic;font-size:13px}
+
+  /* ---------- 底部：行动 ---------- */
+  footer{background:linear-gradient(0deg,#14181f,#0e1116);border-top:1px solid var(--line);
+    padding:10px 16px 13px;z-index:5}
+  .acts{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+  .act{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:10px;
+    padding:8px 14px;cursor:pointer;font-family:"STKaiti","KaiTi",serif;font-size:15px;transition:.15s;
+    display:flex;flex-direction:column;align-items:center;min-width:84px;line-height:1.2}
+  .act small{font-size:10.5px;color:var(--dim);margin-top:2px;font-family:"PingFang SC",sans-serif}
+  .act:hover:not(:disabled){background:#1b2230;border-color:#3a4658}
+  .act:disabled{opacity:.4;cursor:default}
+  .act.danger{border-color:rgba(192,39,26,.5);color:#f0a59a}
+  .act.rage{border-color:rgba(160,107,208,.5);color:#c79be6}
+  .act.ult{border-color:rgba(232,194,104,.5);color:var(--gold)}
+  .hint{text-align:center;color:var(--dim);font-size:12px;margin-top:9px;line-height:1.5}
+  .hint b{color:var(--gold)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="round">第 <b id="roundNo">1</b> 回合 · 半手动回合制</div>
+    <div class="amb">战场：<span class="k" id="amb">荒野·月色森冷</span> ｜ 五行相克已启（<span class="k" id="ke"></span>）</div>
+  </header>
+
+  <main id="stage">
+    <!-- 主角 -->
+    <div class="side hero">
+      <div class="plaque">
+        <div class="pname hero" id="hName">你</div>
+        <div class="ptitle" id="hTitle">颍川义军·义从</div>
+        <div class="ptags"><span class="tag elem" id="hElem">火</span><span class="tag yin" id="hYin">刚</span><span class="tag" id="hLv">LV.7</span></div>
+        <div class="apt" id="hApt"></div>
+      </div>
+      <div class="bars">
+        <div class="bar"><span class="lab">气血</span><div class="track"><div class="fill f-hp" id="hHp"></div></div><span class="num" id="hHpN"></span></div>
+        <div class="bar"><span class="lab">内力</span><div class="track"><div class="fill f-mp" id="hMp"></div></div><span class="num" id="hMpN"></span></div>
+        <div class="bar"><span class="lab">战意</span><div class="track"><div class="fill f-rage" id="hRage"></div></div><span class="num" id="hRageN"></span></div>
+      </div>
+      <div class="stats">
+        <span>攻 <b id="hAtk"></b></span><span>防 <b id="hDef"></b></span><span>速 <b id="hSpd"></b></span>
+        <span class="combo" id="hCombo"></span>
+      </div>
+      <div class="status" id="hBuff"></div>
+    </div>
+
+    <div class="center">
+      <div class="fig hero" id="figHero"><div class="head"></div><div class="body"></div><div class="blade"></div></div>
+      <div class="fig foe" id="figFoe"><div class="head"></div><div class="body"></div><div class="blade"></div></div>
+      <div class="seal" id="seal">斬</div>
+      <div class="flash" id="flash"></div>
+    </div>
+
+    <!-- 敌 -->
+    <div class="side enemy">
+      <div class="plaque">
+        <div class="pname foe" id="fName">黄巾余孽</div>
+        <div class="ptitle" id="fTitle">流寇头目</div>
+        <div class="ptags"><span class="tag elem" id="fElem">金</span><span class="tag yin" id="fYin">柔</span></div>
+      </div>
+      <div class="bars">
+        <div class="bar"><span class="lab">气血</span><div class="track"><div class="fill f-hp" id="fHp"></div></div><span class="num" id="fHpN"></span></div>
+        <div class="bar"><span class="lab">内力</span><div class="track"><div class="fill f-mp" id="fMp"></div></div><span class="num" id="fMpN"></span></div>
+      </div>
+      <div class="stats">
+        <span>攻 <b id="fAtk"></b></span><span>防 <b id="fDef"></b></span><span>速 <b id="fSpd"></b></span>
+      </div>
+      <div class="intent" id="fIntent"></div>
+      <div class="status" id="fBuff"></div>
+    </div>
+
+    <div class="log" id="log"></div>
+  </main>
+
+  <footer>
+    <div class="acts" id="acts"></div>
+    <div class="hint" id="hint">择一<b>动作</b>推演战局：攻击积攒战意，绝学耗战意，技艺耗内力；守势/身法可应变，丹药疗伤，遁走求生。</div>
+  </footer>
+</div>
+<script>
+/* =====================================================================
+   主角单人 · 回合制战斗画面（纯战斗 UI 原型）
+   属性体系严格参照项目设定文档：
+     · 五维资质 劲力/根骨/身法/悟性/福缘/功法亲和
+     · 资源 气血(hp)/内力(mp)/战意(rage) + Buff/Debuff
+     · 战斗属性 攻击(atk)/防御(def)/速度(spd)
+     · 五行相克 + 阴阳(刚柔)  · 战斗内核 攻×100/(100+防) + 半手动回合制 + 战意
+   主角门派沿用项目真实设定「颍川义军」，不引入虚构武侠。
+   ===================================================================== */
+
+// 五行相克：我克者受伤加重，被克者受伤加重（双向）
+const KE = {金:'木', 木:'土', 土:'水', 水:'火', 火:'金'};
+const ELEM_CN = {金:'金',木:'木',水:'水',火:'火',土:'土'};
+const $ = s=>document.querySelector(s);
+const fmt = n=>Math.round(n).toLocaleString();
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ---------- 主角（单人，玩家操控的唯一角色） ----------
+const hero = {
+  name:'你', title:'颍川义军·义从', lv:7,
+  hp:186, maxHp:186, mp:60, maxMp:60, rage:0, maxRage:100,
+  atk:34, def:21, spd:28,
+  apt:{jinli:8, gengu:7, shenfa:6, wuxing:5, fuyuan:4, gongfa:6},
+  elem:'火', yin:'刚',          // 五行 + 阴阳
+  buffs:[], combo:0, alive:true,
+};
+
+// ---------- 敌（单人对手：一名） ----------
+const foe = {
+  name:'黄巾余孽', title:'流寇头目·张大彪', lv:6,
+  hp:162, maxHp:162, mp:40, maxMp:40,
+  atk:30, def:18, spd:22,
+  elem:'金', yin:'柔',
+  buffs:[], intent:null, charge:0, alive:true,
+};
+
+// ---------- 招式（含普通/技巧/绝学，耗内力或战意） ----------
+const SKILLS = {
+  atk:  {name:'挥击',     type:'normal',   cost:null,                mul:1.0,  crit:0.12, desc:'寻常一击，积攒战意'},
+  skill:{name:'巧击·回风',type:'skill',    cost:{t:'mp',v:12},       mul:1.3,  crit:0.16, desc:'灵动一击，提身法', buff:{id:'gale',label:'疾风',cls:'good',spd:6,turns:2}},
+  ult:  {name:'绝学·惊鸿照影',type:'ultimate',cost:{t:'rage',v:50},  mul:2.4,  crit:0.40, desc:'倾尽战意，一击定生死'},
+};
+
+let round=1, busy=false, over=false, pills=3;
+
+// ---------- 渲染 ----------
+function render(){
+  // 主角
+  $('#hName').textContent=hero.name; $('#hTitle').textContent=hero.title;
+  $('#hElem').textContent=ELEM_CN[hero.elem]; $('#hYin').textContent=hero.yin==='gang'?'刚':'柔';
+  $('#hLv').textContent='LV.'+hero.lv;
+  $('#hApt').innerHTML=Object.entries({jinli:'劲力',gengu:'根骨',shenfa:'身法',wuxing:'悟性',fuyuan:'福缘',gongfa:'功法亲和'})
+    .map(([k,v])=>`<span>${v} <b>${hero.apt[k]}</b></span>`).join('');
+  setBar('hHp',hero.hp,hero.maxHp); setBar('hMp',hero.mp,hero.maxMp); setBar('hRage',hero.rage,hero.maxRage);
+  $('#hAtk').textContent=hero.atk; $('#hDef').textContent=hero.def; $('#hSpd').textContent=hero.spd;
+  const c=$('#hCombo');
+  if(hero.combo>1){c.textContent='连击 ×'+hero.combo; c.className='combo'+(hero.combo>=4?' hot':'');} else c.textContent='';
+  renderBuffs('hBuff',hero.buffs);
+
+  // 敌
+  $('#fName').textContent=foe.name; $('#fTitle').textContent=foe.title;
+  $('#fElem').textContent=ELEM_CN[foe.elem]; $('#fYin').textContent=foe.yin==='gang'?'刚':'柔';
+  setBar('fHp',foe.hp,foe.maxHp); setBar('fMp',foe.mp,foe.maxMp);
+  $('#fAtk').textContent=foe.atk; $('#fDef').textContent=foe.def; $('#fSpd').textContent=foe.spd;
+  renderBuffs('fBuff',foe.buffs);
+  renderIntent();
+
+  $('#roundNo').textContent=round;
+  $('#amb').textContent = hero.hp/hero.maxHp<0.3 ? '险境·命悬一线' : '荒野·月色森冷';
+  $('main').classList.toggle('danger', hero.hp/hero.maxHp<0.3 && !over);
+  $('#ke').textContent = `火克金·金克木·木克土·土克水·水克火`;
+}
+function setBar(id,cur,max){ const pct=clamp(cur/max*100,0,100);
+  $('#'+id).style.width=pct+'%';
+  const n=$('#'+id+'N'); if(n) n.textContent=fmt(Math.max(0,Math.round(cur)))+' / '+fmt(max);
+}
+function renderBuffs(elId,arr){
+  $(elId).innerHTML=arr.map(b=>`<span class="buff ${b.cls}">${b.label}${b.turns?('·'+b.turns):''}</span>`).join('');
+}
+function renderIntent(){
+  const i=foe.intent; if(!i){$('#fIntent').textContent='';return;}
+  const map={attack:['normal','突袭'],heavy:['heavy','力劈（重击）'],defend:['defend','守势'],charge:['normal','蓄力']};
+  const [th,lab]=map[i.type];
+  $('#fIntent').className='intent '+th;
+  $('#fIntent').textContent='意图：'+lab+(i.type==='heavy'?' ⚠':'');
+}
+
+// ---------- 特效 ----------
+function floatText(side,text,cls){
+  const m=$('#stage'); const f=document.createElement('div'); f.className='float '+cls; f.textContent=text;
+  const foeSide = side==='foe';
+  f.style.left = (foeSide? '74%':'20%'); f.style.top='46%';
+  m.appendChild(f); setTimeout(()=>f.remove(),1000);
+}
+function burst(side){ const m=$('#stage'); const b=document.createElement('div'); b.className='burst';
+  b.style.left=(side==='foe'?'76%':'22%'); b.style.top='48%'; m.appendChild(b); setTimeout(()=>b.remove(),650); }
+function sealFx(){ const s=$('#seal'); s.classList.remove('show'); void s.offsetWidth; s.classList.add('show');
+  const f=$('#flash'); f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
+function anim(id,cls){ const e=$(id); e.classList.remove(cls); void e.offsetWidth; e.classList.add(cls);
+  setTimeout(()=>e.classList.remove(cls),500); }
+
+// ---------- 战报 ----------
+function log(html,cls){ const d=document.createElement('div'); d.className='l'+(cls?' '+cls:'');
+  d.innerHTML=html; const L=$('#log'); L.appendChild(d); while(L.children.length>40) L.removeChild(L.firstChild);
+  L.scrollTop=L.scrollHeight; }
+
+// ---------- 伤害结算（攻×100/(100+防) + 五行 + 暴击） ----------
+function resolve(atk, def, mul, opt){
+  const elemAtk=opt.elemAtk, elemDef=opt.elemDef;
+  let coef=1;
+  if(elemAtk&&elemDef){ if(KE[elemAtk]===elemDef) coef=1.3; else if(KE[elemDef]===elemAtk) coef=0.8; }
+  let d=atk*mul*100/(100+def)*coef;
+  const crit=Math.random()<(opt.crit||0.12);
+  if(crit) d*=1.8;
+  return {dmg:Math.max(1,Math.round(d)), crit, ke:(elemAtk&&elemDef&&KE[elemAtk]===elemDef)};
+}
+
+// ---------- 主角行动 ----------
+async function heroAct(kind){
+  if(busy||over) return; busy=true; setBtns(false);
+  const sk=SKILLS[kind];
+
+  // 耗内力 / 战意 校验
+  if(sk.cost){
+    if(sk.cost.t==='mp' && hero.mp<sk.cost.v){ log('内力不足，无法运使【'+sk.name+'】。','sys'); busy=false; setBtns(true); return; }
+    if(sk.cost.t==='rage' && hero.rage<sk.cost.v){ log('战意未盈，绝学难发。','sys'); busy=false; setBtns(true); return; }
+  }
+  if(sk.cost){ if(sk.cost.t==='mp') hero.mp-=sk.cost.v; else hero.rage-=sk.cost.v; }
+
+  anim('#figHero','lunge');
+  await wait(180);
+  const defMul = foe.buffs.some(b=>b.id==='guard')?1.4:1;
+  const r=resolve(hero.atk, foe.def*defMul, sk.mul, {elemAtk:hero.elem, elemDef:foe.elem, crit:sk.crit});
+  foe.hp=Math.max(0,foe.hp-r.dmg);
+
+  // 战意积攒
+  if(kind==='atk') hero.rage=clamp(hero.rage+14,0,hero.maxRage);
+  else if(kind==='skill') hero.rage=clamp(hero.rage+9,0,hero.maxRage);
+  hero.combo++;
+
+  anim('#figFoe', r.crit?'hitC':'hit');
+  if(r.crit){ sealFx(); burst('foe'); floatText('foe', '-'+fmt(r.dmg),'crit'); }
+  else floatText('foe','-'+fmt(r.dmg),'dmg');
+
+  // 技艺附加身法增益
+  if(sk.buff){ applyBuff(hero, {...sk.buff}); }
+
+  log(`<span class="b">【你】</span>使出<span class="k">${sk.name}</span>${r.ke?'，<span class="g">五行克制</span>':''}，`+
+      `剑势及体，<span class="r">${foe.name}</span> 气血 ${r.crit?'<span class="k">暴击</span> 重创':''} 折 <span class="k">${fmt(r.dmg)}</span>。`);
+
+  if(foe.hp<=0){ foe.alive=false; render(); return finish(true); }
+  render();
+  await wait(420);
+  await foeTurn();
+  if(checkOver()) return;
+  newRound(); busy=false; setBtns(true);
+}
+
+// ---------- 守势 / 身法 / 丹药 / 遁走 ----------
+async function heroDefend(){
+  if(busy||over) return; busy=true; setBtns(false);
+  applyBuff(hero,{id:'guard',label:'守护',cls:'good',mit:0.4,turns:1});
+  hero.mp=clamp(hero.mp+10,0,hero.maxMp); hero.combo=0;
+  anim('#figHero','block');
+  log(`<span class="b">【你】</span>横兵自守，凝神结护，<span class="g">受创大减</span>，内力稍复。`);
+  render(); await wait(360); await foeTurn(); if(checkOver())return; newRound(); busy=false; setBtns(true);
+}
+async function heroDodge(){
+  if(busy||over) return; busy=true; setBtns(false);
+  applyBuff(hero,{id:'evade',label:'周旋',cls:'good',dodge:0.4,turns:1});
+  hero.combo=0;
+  anim('#figHero','dodge');
+  log(`<span class="b">【你】</span>身形游走，<span class="g">避实击虚</span>，伺机而动。`);
+  render(); await wait(360); await foeTurn(); if(checkOver())return; newRound(); busy=false; setBtns(true);
+}
+async function heroHeal(){
+  if(busy||over) return; busy=true; setBtns(false);
+  if(pills<=0){ log('金疮药已用尽。','sys'); busy=false; setBtns(true); return; }
+  pills--; const h=Math.min(60, hero.maxHp-hero.hp); hero.hp+=h;
+  floatText('hero','+'+h,'heal'); anim('#figHero','block');
+  log(`<span class="b">【你】</span>吞下金疮药，气血 <span class="g">回复 ${h}</span>。（余 ${pills}）`);
+  render(); await wait(360); await foeTurn(); if(checkOver())return; newRound(); busy=false; setBtns(true);
+}
+async function heroFlee(){
+  if(busy||over) return; busy=true; setBtns(false);
+  const chance=clamp(0.35 + (hero.spd-foe.spd)/120, 0.1, 0.85);
+  anim('#figHero','dodge');
+  if(Math.random()<chance){ log('<span class="b">【你】</span>觑个空档，抽身疾走，没入夜色——<span class="g">脱身！</span>','sys');
+    await wait(500); return finish('flee'); }
+  log(`<span class="b">【你】</span>欲退不得，<span class="r">${foe.name}</span> 抢步封路！`);
+  render(); await wait(360); await foeTurn(); if(checkOver())return; newRound(); busy=false; setBtns(true);
+}
+
+// ---------- 敌方回合（意图预告驱动，4 类 AI） ----------
+function rollIntent(){
+  if(foe.hp/foe.maxHp<0.3 && Math.random()<0.4) return {type:'defend'};
+  const r=Math.random();
+  if(r<0.5) return {type:'attack'};
+  if(r<0.8) return {type:'heavy'};
+  return {type:'charge'};
+}
+async function foeTurn(){
+  if(!foe.alive) return;
+  const i=foe.intent||rollIntent();
+  // 守势
+  if(i.type==='defend'){
+    applyBuff(foe,{id:'guard',label:'守护',cls:'good',mit:0.4,turns:1});
+    log(`<span class="r">【${foe.name}】</span>按盾而立，<span class="g">守得密不透风</span>。`);
+    anim('#figFoe','block'); render(); await wait(300); tickBuffs(); return;
+  }
+  // 蓄力
+  if(i.type==='charge'){
+    foe.charge=1; log(`<span class="r">【${foe.name}】</span>沉腰蓄势，刀芒内敛——似有雷霆一击在后。`);
+    anim('#figFoe','lunge'); render(); await wait(300); tickBuffs(); return;
+  }
+  // 攻击 / 重击
+  let mul = i.type==='heavy'?1.7:1.0;
+  if(foe.charge){ mul*=1.5; foe.charge=0; }
+  anim('#figFoe','lunge'); await wait(170);
+
+  // 主角闪避
+  const ev=hero.buffs.find(b=>b.id==='evade');
+  if(ev && Math.random()<ev.dodge){
+    floatText('hero','闪避','dodge'); anim('#figHero','dodge');
+    log(`<span class="b">【你】</span>捷如鬼魅，<span class="g">堪堪避开</span> <span class="r">${foe.name}</span> 这记${i.type==='heavy'?'重击':'劈砍'}！`);
+    render(); await wait(320); tickBuffs(); return;
+  }
+  const mit = hero.buffs.find(b=>b.id==='guard');
+  const defMul = mit? (1+ (mit.mit||0)) : 1;
+  const r=resolve(foe.atk, hero.def*defMul, mul, {elemAtk:foe.elem, elemDef:hero.elem, crit:0.14});
+  const final = Math.max(1, Math.round(r.dmg));
+  hero.hp=Math.max(0,hero.hp-final);
+  hero.combo=0;
+  anim('#figHero', r.crit?'hitC':'hit');
+  if(r.crit){ sealFx(); burst('hero'); floatText('hero','-'+fmt(final),'crit'); }
+  else floatText('hero','-'+fmt(final),'dmg');
+  log(`<span class="r">【${foe.name}】</span>${i.type==='heavy'?'力劈华山':'挥刀抢攻'}${r.ke?'，<span class="r">五行被克</span>':''}，`+
+      `<span class="b">你</span> ${mit?'<span class="g">架隔大半</span>，':''}${r.crit?'<span class="k">暴击</span> ':''}受创 <span class="k">${fmt(final)}</span>。`);
+  if(hero.hp<=0){ hero.alive=false; render(); return finish(false); }
+  render(); await wait(280); tickBuffs();
+}
+function tickBuffs(){ [hero,foe].forEach(u=>{
+    u.buffs.forEach(b=>{ b.turns--; if(b.turns<=0 && b.spdDelta) u.spd-=b.spdDelta; });
+    u.buffs=u.buffs.filter(b=>b.turns>0); }); }
+
+function applyBuff(u,b){
+  const ex=u.buffs.find(x=>x.id===b.id);
+  if(ex){ ex.turns=Math.max(ex.turns,b.turns); return; }   // 刷新持续回合，不重复加成
+  if(b.spd){ b.spdDelta=b.spd; u.spd+=b.spd; }              // 记录增量，到期回退
+  u.buffs.push({...b});
+}
+
+// ---------- 回合 / 结局 ----------
+function newRound(){ round++; foe.intent=rollIntent(); render(); }
+function checkOver(){ if(!hero.alive){ finish(false); return true; } if(!foe.alive){ finish(true); return true; } return false; }
+function finish(type){
+  if(over) return;            // 幂等：避免重复结算
+  over=true; busy=true; setBtns(false);
+  const win = type===true;
+  if(type==='flee'){ log('<span class="g">—— 你已脱身，战局未分。</span>','sys'); }
+  else if(win){ log(`<span class="k">—— ${foe.name} 轰然倒地，血染荒草。此战，你胜。</span>`,'sys'); }
+  else { log(`<span class="r">—— 你气血已竭，眼前一黑，栽落尘埃。</span>`,'sys'); }
+  const b=document.createElement('button'); b.textContent='↻ 再战一场';
+  b.style.cssText='position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;background:#1b2230;color:#cfe3ff;border:1px solid #34507a;padding:9px 20px;border-radius:9px;cursor:pointer;font-family:"STKaiti","KaiTi",serif';
+  b.onclick=()=>location.reload(); $('#stage').appendChild(b);
+}
+
+// ---------- 行动按钮 ----------
+function setBtns(on){ document.querySelectorAll('.act').forEach(b=>b.disabled=!on); }
+function buildActs(){
+  const acts=[
+    {t:'攻击', s:`战意+14`, fn:()=>heroAct('atk')},
+    {t:'巧击·回风', s:`内力12`, cls:'', fn:()=>heroAct('skill')},
+    {t:'绝学·惊鸿照影', s:`战意50`, cls:'ult', fn:()=>heroAct('ult')},
+    {t:'守势', s:`减伤·复内力`, fn:heroDefend},
+    {t:'身法·周旋', s:`闪避+40%`, fn:heroDodge},
+    {t:'丹药', s:`疗伤60·余${pills}`, fn:heroHeal},
+    {t:'遁走', s:`脱身求生`, cls:'rage', fn:heroFlee},
+  ];
+  const box=$('#acts'); box.innerHTML='';
+  acts.forEach(a=>{ const el=document.createElement('div'); el.className='act'+(a.cls?' '+a.cls:'');
+    el.innerHTML=`${a.t}<small>${a.s}</small>`; el.onclick=a.fn; box.appendChild(el); });
+}
+
+// ---------- 启动 ----------
+foe.intent=rollIntent();
+log(`【荒野遭遇】月色森冷，<span class="r">${foe.name}·${foe.title}</span> 拦路邀战。你按剑而立，<span class="b">颍川义军</span>的旗号在风中猎猎。`,'sys');
+log('五行相克已启：火克金——你的攻势正克其锋。','sys');
+render(); buildActs();
+</script>
+</body>
+</html>

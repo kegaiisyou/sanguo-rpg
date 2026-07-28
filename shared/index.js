@@ -3,15 +3,21 @@
 (function (global) {
   var LF = global.LF = global.LF || {};
 
-  // 默认存档（门派加成由 applySect 在新建时套用一次）
+  // 基础资质：角色出身前的底子；门派加成在其上【叠加】，不替代
+  var BASE = { maxHp:100, maxMp:30, atk:15, def:5, spd:20 };
+  var BASE_APT = { jinli:5, gengu:5, shenfa:5, wuxing:5, fuyuan:5, gongfa:5 };
+
+  // 默认存档：开局【无门派】——主角以"江湖散人 / 游侠"身份起事；
+  //   门派（颍川义军 / 太平道 / 西凉军）为【中后期可选补充玩法】，满足条件后方可主动加入（见 joinSect）
   function defaultSave() {
     return {
       version: '0.2.0',
       name: '你',
-      sect: 'yingchuan',
+      sect: null,                       // ⚠ 开局不属任何门派；中后期满足条件方可加入（joinSect）
       level: 1, exp: 0,
       hp: 100, maxHp: 100,
       mp: 30, maxMp: 30,
+      atk: 15, def: 5,                  // 基础战力（无门派亦成立，不再依赖 applySect 设定）
       energy: 100, maxEnergy: 100,   // 精力：行动消耗，休整恢复
       food: 100, maxFood: 100,       // 食物：随行走/时间流失
       drink: 100, maxDrink: 100,     // 饮水：随行走/时间流失
@@ -51,21 +57,67 @@
     };
   }
 
-  // 套用门派加成（仅新建存档时调用一次）
+  // 套用门派加成（仅新建 / 读档时调用一次）：以【基础值】为准，再叠加存档中已记录的门派
+  //   —— 开局 sect 为 null 时直接返回，主角保持"江湖散人"基础值，不再被强制归入某一派
   function applySect(save) {
+    save.maxHp = BASE.maxHp; save.maxMp = BASE.maxMp;
+    save.atk = BASE.atk; save.def = BASE.def; save.spd = BASE.spd;
+    save.apt = { jinli:5, gengu:5, shenfa:5, wuxing:5, fuyuan:5, gongfa:5 };
     var sect = LF.SECTS[save.sect];
-    if (!sect) return save;
-    save.maxHp = 100 + (sect.bonus.maxHp || 0);
-    save.maxMp = 30 + (sect.bonus.maxMp || 0);
-    save.atk = 15 + (sect.bonus.atk || 0);
-    save.def = 5 + (sect.bonus.def || 0);
-    save.spd = 20;                       // 基础身法
-    // 门派资质底色（角色创建属性，按出身分配；见 GAME_DESIGN 4.0）
-    if(!save.apt) save.apt={jinli:5,gengu:5,shenfa:5,wuxing:5,fuyuan:5,gongfa:5};
-    if(save.sect==='taiping'){ save.apt.wuxing+=2; save.apt.fuyuan+=1; }
-    else if(save.sect==='xiliang'){ save.apt.gengu+=2; save.apt.jinli+=1; }
-    else { save.apt.jinli+=1; save.apt.gengu+=1; } // 颍川义军：均衡
+    if (!sect) return save;             // 开局未入门：保持基础值
+    _addSectBonus(save, sect);
+    save._sectApplied = save.sect;
     return save;
+  }
+
+  function _addSectBonus(save, sect) {
+    var b = sect.bonus || {};
+    save.maxHp += (b.maxHp || 0); save.maxMp += (b.maxMp || 0);
+    save.atk   += (b.atk   || 0); save.def   += (b.def   || 0);
+    if (sect.apt) { for (var k in sect.apt) { if (save.apt[k] != null) save.apt[k] += sect.apt[k]; } }
+  }
+
+  // 是否满足加入某门派的条件（中后期门派作为可选补充玩法，设门槛避免开局即定型）
+  function canJoinSect(save, id) {
+    var sect = LF.SECTS[id];
+    if (!sect) return false;
+    if (save.sect === id) return false;                 // 已入此门
+    var req = sect.unlock || {};
+    if (req.reputation != null && (save.reputation || 0) < req.reputation) return false;
+    if (req.level != null && (save.level || 1) < req.level) return false;
+    if (req.flag && !(save.flags && save.flags[req.flag])) return false; // 需先触发某剧情节点
+    return true;
+  }
+
+  // 中后期【主动加入门派】：增量叠加、保留养成，绝不重置基础值；
+  //   若已入门他派则先剥离旧加成，再套用新门派（可转投）。返回是否成功
+  function joinSect(save, id) {
+    if (!canJoinSect(save, id)) return false;
+    var prevId = save._sectApplied || save.sect;            // 兼容未记录 _sectApplied 的旧档
+    if (prevId && LF.SECTS[prevId]) {                       // 剥离旧门派加成
+      var ob = LF.SECTS[prevId], o = ob.bonus || {};
+      save.maxHp = Math.max(1, save.maxHp - (o.maxHp || 0));
+      save.maxMp = Math.max(0, save.maxMp - (o.maxMp || 0));
+      save.atk   = Math.max(1, save.atk   - (o.atk   || 0));
+      save.def   = Math.max(0, save.def   - (o.def   || 0));
+      if (ob.apt) { for (var k in ob.apt) { if (save.apt[k] != null) save.apt[k] -= ob.apt[k]; } }
+    }
+    save.sect = id;
+    _addSectBonus(save, LF.SECTS[id]);
+    save._sectApplied = id;
+    save.hp = save.maxHp; save.mp = save.maxMp;        // 入门馈赠：气血内力尽复
+    _grantSectSkills(save, LF.SECTS[id]);
+    return true;
+  }
+
+  function _grantSectSkills(save, sect) {
+    if (!sect.startingSkills) return;
+    save.skills = save.skills || [];
+    save.learnedMartial = save.learnedMartial || [];
+    sect.startingSkills.forEach(function (sk) {
+      if (save.skills.indexOf(sk) < 0) save.skills.push(sk);
+      if (save.learnedMartial.indexOf(sk) < 0) save.learnedMartial.push(sk);
+    });
   }
 
   LF.SharedGame = {
@@ -81,7 +133,9 @@
     ITEMS: LF.ITEMS,
     CombatEngine: LF.CombatEngine,
     defaultSave: defaultSave,
-    applySect: applySect
+    applySect: applySect,
+    canJoinSect: canJoinSect,
+    joinSect: joinSect
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = LF.SharedGame;

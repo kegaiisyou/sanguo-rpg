@@ -86,7 +86,7 @@
 | 文件 | 职责 |
 |------|------|
 | `index.html` | H5 主端：UI 渲染、状态栏、研习/行囊/任务/更多弹窗、`handleAction` 调度、战斗界面、资源逻辑（`advanceTime`/`maybeStarve`/`exert`） |
-| `shared/index.js` | `defaultSave()`（存档结构）、`normalize()`（旧档兼容）、`applySect()`（门派加成） |
+| `shared/index.js` | `defaultSave()`（存档结构，开局 `sect:null` 无门派）、`normalize()`（旧档兼容）、`applySect()`（新建/读档时以基础值套用已记录的门派）、`canJoinSect()`/`joinSect()`（中后期主动加入门派，增量叠加、保留养成、可转投） |
 | `shared/combat/engine.js` | 战斗引擎：初始化、回合、出手、Buff、AI、结算 |
 | `shared/data/martial.js` | `MARTIAL_ARTS`：招式/绝技/发力技巧 + 13 艺线定义 |
 | `shared/data/enemies.js` | 敌人模板（含声望奖励隐含映射见 `index.html` `RREP`） |

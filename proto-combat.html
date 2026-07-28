@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>战斗 UI · 三分隔通用布局</title>
+<style>
+  :root{
+    --bg:#0c0f14; --ink:#e6ebf1; --dim:#8b97a6; --gold:#ffd24a;
+    --ally:#5fb0ff; --enemy:#ff6b6b; --wall:#c9a24a; --neutral:#9aa6b4;
+    --line:#1d2632; --panel:#121723; --panel2:#16202e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+  #app{display:grid;grid-template-rows:auto 1fr auto;height:100vh;position:relative}
+  #app::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:30;
+    box-shadow:inset 0 0 200px 60px rgba(0,0,0,.55)}
+  /* ---------- 顶部：场景切换 + 敌我状态 ---------- */
+  header{position:relative;z-index:5;background:linear-gradient(180deg,#10141c,#0c0f14);
+    border-bottom:1px solid var(--line);padding:10px 16px 12px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .tab{background:var(--panel);color:var(--dim);border:1px solid var(--line);
+    padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;letter-spacing:1px;transition:.15s}
+  .tab:hover{color:var(--ink);border-color:#2a3645}
+  .tab.on{background:#1c2a3e;color:#cfe3ff;border-color:#3a5a8c}
+  .sides{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+  .sides::-webkit-scrollbar{height:6px}
+  .sides::-webkit-scrollbar-thumb{background:#26323f;border-radius:3px}
+  .card{min-width:168px;flex:1;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:9px 11px;position:relative;transition:.2s}
+  .card.player{border-color:#3a5a8c;box-shadow:0 0 0 1px #3a5a8c inset,0 4px 18px rgba(58,90,140,.25)}
+  .card.dead{opacity:.4;filter:grayscale(1)}
+  .cname{font-size:13px;font-weight:700;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center}
+  .cname .tag{font-size:10px;padding:1px 6px;border-radius:6px;background:#222c3a;color:var(--dim);font-weight:400}
+  .cname .tag.me{background:#1c2a3e;color:#9ec9ff}
+  .bar{height:9px;background:#0a0d12;border-radius:6px;margin:8px 0 5px;overflow:hidden;border:1px solid #1a222e}
+  .bar i{display:block;height:100%;border-radius:6px;transition:width .35s ease}
+  .cnum{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;display:flex;justify-content:space-between}
+  .cnum b{color:var(--ink);font-weight:700}
+  .morale{display:flex;align-items:center;gap:6px;margin-top:6px}
+  .morale span{font-size:10px;color:var(--dim);white-space:nowrap}
+  .mbar{flex:1;height:5px;background:#0a0d12;border-radius:4px;overflow:hidden}
+  .mbar i{display:block;height:100%;background:linear-gradient(90deg,#7a3a3a,#caa34a,#7ad6a0);transition:width .3s}
+  .ctend{font-size:11px;margin-top:6px;color:#9ec9ff}
+  /* ---------- 中部：实时文字播报 ---------- */
+  main{position:relative;z-index:4;overflow-y:auto;padding:14px 6vw 18px;
+    display:flex;flex-direction:column;gap:9px;scroll-behavior:smooth}
+  main::-webkit-scrollbar{width:8px}
+  main::-webkit-scrollbar-thumb{background:#26323f;border-radius:4px}
+  .sys{color:var(--dim);font-size:13px;font-style:italic;letter-spacing:.5px}
+  .l{font-family:"STKaiti","KaiTi","SimSun",serif;font-size:16.5px;line-height:1.85;
+    color:#d7dde6;opacity:0;transform:translateY(8px);animation:rise .5s forwards;text-shadow:0 1px 4px #000}
+  .l .k{color:var(--gold);font-weight:700}
+  .l .r{color:var(--enemy)}
+  .l .b{color:var(--ally)}
+  .l .w{color:#c9a2ff}
+  .l.big{font-size:20px;text-align:center;color:#fff;margin:6px 0;letter-spacing:1px}
+  @keyframes rise{to{opacity:1;transform:translateY(0)}}
+  .stamp{position:absolute;top:42%;left:50%;z-index:20;transform:translate(-50%,-50%) scale(0) rotate(-14deg);
+    font-size:min(28vw,200px);font-weight:900;color:#e23b2e;font-family:"STKaiti","KaiTi","SimSun",serif;
+    text-shadow:0 0 40px rgba(226,59,46,.85),0 0 12px rgba(255,180,120,.6);opacity:0;pointer-events:none}
+  .stamp.show{animation:stamp .9s cubic-bezier(.2,1.5,.35,1) forwards}
+  @keyframes stamp{0%{opacity:0;transform:translate(-50%,-50%) scale(2.6) rotate(-14deg)}
+    16%{opacity:1}42%{transform:translate(-50%,-50%) scale(1) rotate(-14deg)}82%{opacity:1}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(1.04) rotate(-14deg)}}
+  .flash{position:absolute;inset:0;z-index:18;background:#fff;opacity:0;pointer-events:none}
+  .flash.show{animation:fl .35s ease-out}
+  @keyframes fl{0%{opacity:.85}100%{opacity:0}}
+  /* ---------- 底部：操作（动作倾向） ---------- */
+  footer{position:relative;z-index:5;background:linear-gradient(0deg,#10141c,#0c0f14);
+    border-top:1px solid var(--line);padding:11px 16px 13px}
+  .ops{display:flex;gap:9px;flex-wrap:wrap;align-items:center;justify-content:center}
+  .tend{background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:9px 15px;border-radius:9px;
+    font-size:14px;cursor:pointer;font-family:"STKaiti","KaiTi","SimSun",serif;transition:.15s;display:flex;flex-direction:column;align-items:center;min-width:78px}
+  .tend small{font-size:10.5px;color:var(--dim);margin-top:2px;font-family:"PingFang SC",sans-serif}
+  .tend:hover{background:var(--panel2);border-color:#2a3645}
+  .tend.on{background:#1c2a3e;border-color:#3a5a8c;color:#cfe3ff}
+  .tend.on small{color:#9ec9ff}
+  .run{display:flex;gap:10px;justify-content:center;margin-top:11px;align-items:center}
+  .btn{background:#1b2330;color:#cfe3ff;border:1px solid #34507a;padding:9px 22px;border-radius:9px;
+    font-size:14px;cursor:pointer;font-family:"STKaiti","KaiTi","SimSun",serif}
+  .btn:hover{background:#243247}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn.primary{background:#2a3c58;border-color:#4a6da0}
+  .spd{color:var(--dim);font-size:12px;display:flex;align-items:center;gap:5px}
+  .spd select{background:#121723;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12px}
+  .hint{text-align:center;color:var(--dim);font-size:12px;margin-top:8px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="tabs" id="tabs"></div>
+    <div class="sides" id="sides"></div>
+  </header>
+
+  <main id="log">
+    <div class="stamp" id="stamp">斬</div>
+    <div class="flash" id="flash"></div>
+  </main>
+
+  <footer>
+    <div class="ops" id="tends"></div>
+    <div class="run">
+      <button class="btn primary" id="beat">▷ 推演一拍</button>
+      <button class="btn" id="auto">▶ 自动推演</button>
+      <button class="btn" id="reset">↻ 重整战局</button>
+      <span class="spd">节奏
+        <select id="spd">
+          <option value="1400">舒缓</option>
+          <option value="900" selected>常速</option>
+          <option value="500">疾风</option>
+          <option value="260">奔雷</option>
+        </select>
+      </span>
+    </div>
+    <div class="hint" id="hint">上方为各方态势（可横向滚动，支持多阵营混战）；中部为实时战报，辞藻铺陈间皆附具体数值；下方选定你的<strong>动作倾向</strong>，再推演一拍。</div>
+  </footer>
+</div>
+<script>
+/* =====================================================================
+   通用分形战斗内核：同一套 resolve，从一人到千军、从兵戈到唇枪皆可驱动。
+   去掉了原先写死的武侠门派（青冥剑派/血刀门/落魄剑客），改为按场景生成
+   各方势力（faction），敌我状态、文字播报、动作倾向三者解耦，便于向
+   多人对战 / 军团混战 / 小规模械斗 / 攻城战役 / 辩论 等任意形态扩展。
+   ===================================================================== */
+
+// 动作倾向：玩家可选择的“战术姿态”，影响攻防与暴击
+const TENDENCY = {
+  assault:  {name:'猛攻', atk:1.45, def:0.72, crit:0.20, desc:'全军压上，攻势如潮'},
+  guard:    {name:'稳守', atk:0.82, def:1.6,  crit:0.10, desc:'结阵自固，以静制动'},
+  maneuver: {name:'周旋', atk:1.0,  def:1.0,  crit:0.14, dodge:0.35, desc:'游斗进退，避实击虚'},
+  stratagem:{name:'奇谋', atk:0.62, def:1.0,  crit:0.34, desc:'出奇制胜，十之二三建奇功'},
+  charge:   {name:'蓄势', atk:0.42, def:1.2,  crit:0.10, desc:'敛锋养锐，蓄力愈深来日愈重'},
+};
+
+// 场景配置：可任意增删，fac 的 side 支持 ally / enemy / wall / neutral
+const SCENARIOS = {
+  melee3: {
+    tab:'多人对战', kind:'force',
+    intro:'乱军之中，三方并立。你执掌一军，与赤旗、玄甲相争于野，鹿死谁手未可知。',
+    fac:[
+      {id:'me', name:'我方·锐卒', side:'ally',  max:24,  atk:16, def:9,  morale:76},
+      {id:'r',  name:'赤旗军',     side:'enemy', max:22,  atk:15, def:10, morale:70},
+      {id:'b',  name:'玄甲军',     side:'enemy', max:26,  atk:17, def:11, morale:72},
+    ]
+  },
+  army: {
+    tab:'军团混战', kind:'force',
+    intro:'四镇并起，旌旗蔽野。万军相撞，血肉成泥——此即乱世之常态。',
+    fac:[
+      {id:'me',    name:'我军',     side:'ally',  max:4200, atk:20, def:12, morale:78},
+      {id:'ally2', name:'同盟军',   side:'ally',  max:2600, atk:17, def:11, morale:70},
+      {id:'e1',    name:'叛军',     side:'enemy', max:3800, atk:19, def:13, morale:74},
+      {id:'e2',    name:'流寇',     side:'enemy', max:1500, atk:14, def:8,  morale:60},
+    ]
+  },
+  brawl: {
+    tab:'小规模械斗', kind:'force',
+    intro:'街巷狭路，二十余人混斗。刀棍相加，转眼见红。',
+    fac:[
+      {id:'me',  name:'我方弟兄', side:'ally',  max:22, atk:14, def:8, morale:66},
+      {id:'foe', name:'对头人马', side:'enemy', max:19, atk:13, def:9, morale:68},
+    ]
+  },
+  siege: {
+    tab:'攻城战役', kind:'force',
+    intro:'兵临城下。云梯、冲车、火油俱备，唯有那座巍巍城墙横亘眼前。',
+    fac:[
+      {id:'me',   name:'攻方·我军', side:'ally', max:3200, atk:22, def:10, morale:80},
+      {id:'wall', name:'城墙',       side:'wall', max:1800, atk:0,  def:34, morale:100},
+      {id:'def',  name:'守军',       side:'enemy',max:1600, atk:15, def:16, morale:75},
+    ]
+  },
+  debate: {
+    tab:'辩论', kind:'words',
+    intro:'公堂之上，两造激辩。以理服人，以辞夺心；辞锋折尽者，理屈词穷。',
+    fac:[
+      {id:'me', name:'正方·我方', side:'ally',  max:100, atk:18, def:10, morale:70},
+      {id:'op', name:'反方',       side:'enemy', max:100, atk:17, def:11, morale:68},
+    ]
+  },
+};
+
+// 名词映射：force=兵戈，words=辞锋
+const NOUN = {
+  force:{unit:'人', hp:'兵力', verb:['猛攻','突阵','冲杀','邀击','夹击','奋击'],
+         fall:'溃', bigFall:'灭', win:'胜', lose:'败'},
+  words:{unit:'分', hp:'辞锋', verb:['陈词','诘问','引证','驳斥','立论','巧辩'],
+         fall:'服', bigFall:'屈', win:'胜', lose:'负'},
+};
+
+// ---------- 状态 ----------
+let scn, factions=[], player, autoTimer=null, over=false, beatNo=0;
+
+const $ = s=>document.querySelector(s);
+const logEl=$('#log'), sidesEl=$('#sides'), tabsEl=$('#tabs'), tendsEl=$('#tends');
+const stampEl=$('#stamp'), flashEl=$('#flash');
+const fmt = n=>Math.round(n).toLocaleString();
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+
+function makeFac(c){
+  return {id:c.id,name:c.name,side:c.side,kind:scn.kind,
+    max:c.max,hp:c.max,atk:c.atk,def:c.def,morale:c.morale==null?70:c.morale,
+    tendency: c.side==='ally'?'assault':'assault', charge:0, alive:c.max>0,
+    isPlayer: c.id==='me'};
+}
+
+// ---------- 渲染：顶部态势 ----------
+function sideColor(s){return s==='ally'?'var(--ally)':s==='enemy'?'var(--enemy)':s==='wall'?'var(--wall)':'var(--neutral)';}
+function renderSides(){
+  sidesEl.innerHTML='';
+  factions.forEach(f=>{
+    const pct=clamp(f.hp/f.max*100,0,100);
+    const col=sideColor(f.side);
+    const noun=NOUN[f.kind];
+    const t=f.tendency?TENDENCY[f.tendency]:null;
+    const el=document.createElement('div');
+    el.className='card'+(f.isPlayer?' player':'')+(f.alive?'':' dead');
+    el.innerHTML=
+      `<div class="cname"><span style="color:${col}">${f.name}</span>`+
+      `<span class="tag ${f.isPlayer?'me':''}">${f.side==='wall'?'营垒':(f.side==='ally'?'我方':f.side==='enemy'?'敌方':'中立')}</span></div>`+
+      `<div class="bar"><i style="width:${pct}%;background:${col}"></i></div>`+
+      `<div class="cnum"><span>${noun.hp}</span><b>${fmt(f.hp)} <span style="color:var(--dim);font-weight:400">/ ${fmt(f.max)}</span></b></div>`+
+      `<div class="morale"><span>士气</span><div class="mbar"><i style="width:${f.morale}%"></i></div><span style="color:var(--dim)">${Math.round(f.morale)}</span></div>`+
+      (f.isPlayer&&t?`<div class="ctend">倾向：${t.name}</div>`:'');
+    sidesEl.appendChild(el);
+  });
+}
+
+// ---------- 渲染：底部倾向 ----------
+function renderTends(){
+  tendsEl.innerHTML='';
+  Object.keys(TENDENCY).forEach(k=>{
+    const t=TENDENCY[k];
+    const el=document.createElement('div');
+    el.className='tend'+(player&&player.tendency===k?' on':'');
+    el.innerHTML=`${t.name}<small>${t.desc}</small>`;
+    el.onclick=()=>{ if(!player||over)return; player.tendency=k; player._tendChanged=true; renderTends(); renderSides(); };
+    tendsEl.appendChild(el);
+  });
+}
+
+// ---------- 目标选取（支持多方 / 城墙优先级） ----------
+function targetsFor(f){
+  if(f.side==='ally'){
+    const wall=factions.find(x=>x.side==='wall'&&x.alive);
+    if(wall) return [wall];
+    return factions.filter(x=>x.alive&&x.side==='enemy');
+  }
+  if(f.side==='enemy') return factions.filter(x=>x.alive&&x.side==='ally');
+  if(f.side==='wall') return [];
+  return factions.filter(x=>x.alive&&x.side!==f.side);
+}
+function pickTarget(f){
+  const ts=targetsFor(f); if(!ts.length) return null;
+  // 优先攻击最强者（除墙外按兵力/辞锋）
+  return ts.reduce((a,b)=> (b.hp>a.hp?b:a));
+}
+
+// ---------- 战斗结算（沿用项目内核 攻×100/(100+防)） ----------
+function calcDamage(a,d){
+  const ta=TENDENCY[a.tendency];
+  // 蓄势释放：此前积攒的 charge 转化为本拍加成
+  let atkMul=ta.atk;
+  if(a.charge>0 && a.tendency!=='charge'){ atkMul*=(1+a.charge); a.charge=0; }
+  const defMul=TENDENCY[d.tendency]?TENDENCY[d.tendency].def:1;
+  if(d.tendency==='maneuver' && Math.random()<(TENDENCY.maneuver.dodge)) return {dmg:0,dodged:true,crit:false};
+  const atkPow=a.atk*atkMul;
+  const defPow=Math.max(1,d.def*defMul);
+  let dmg=Math.max(1, Math.round(atkPow*100/(100+defPow) + (Math.random()*6-3)));
+  const crit=Math.random()<ta.crit;
+  if(crit) dmg=Math.round(dmg*1.8);
+  return {dmg,crit,dodged:false};
+}
+
+// ---------- 一拍推演 ----------
+function simulateBeat(){
+  if(over) return;
+  beatNo++;
+  const noun=NOUN[scn.kind];
+  const events=[]; // {type,char,side,name}
+  factions.forEach(f=>f.beatOut=null);
+  factions.forEach(f=>f.beatIn=null);
+
+  // 非玩家方随机换姿态，增加变数
+  factions.forEach(f=>{ if(!f.isPlayer && f.alive && f.atk>0 && Math.random()<0.4)
+    f.tendency=rnd(['assault','guard','maneuver','stratagem']); });
+
+  // 结算各方攻击
+  factions.forEach(f=>{
+    if(!f.alive || f.atk<=0) return;
+    if(f.tendency==='charge'){ f.charge=Math.min(f.charge+0.35,2); }
+    const tgt=pickTarget(f); if(!tgt) return;
+    const res=calcDamage(f,tgt);
+    f.beatOut={name:tgt.name, dmg:res.dmg, crit:res.crit};
+    tgt.beatIn={from:f.name, dmg:res.dmg, dodged:res.dodged};
+    if(res.dodged){ f.beatOut.dodged=true; return; }
+    tgt.hp=Math.max(0,tgt.hp-res.dmg);
+    tgt.morale=clamp(tgt.morale-(res.dmg/Math.max(1,tgt.max))*34-(res.crit?7:0),0,100);
+    f.morale=clamp(f.morale+(res.crit?6:1.5),0,100);
+    if(tgt.hp<=0 && tgt.alive){
+      tgt.alive=false;
+      events.push({type:'fall',char: tgt.side==='wall'?'破':(res.dmg/Math.max(1,tgt.max)>0.5?noun.bigFall:noun.fall),
+        side:tgt.side,name:tgt.name});
+    }
+    if(res.crit && f.isPlayer) events.push({type:'crit',char:'斬',side:f.side,name:f.name});
+    if(res.crit && !f.isPlayer && Math.random()<0.5) events.push({type:'crit',char:'破',side:f.side,name:f.name});
+  });
+
+  // 士气崩溃 → 溃散
+  factions.forEach(f=>{
+    if(f.alive && f.morale<=18 && Math.random()<0.5){
+      f.alive=false;
+      events.push({type:'fall',char:noun.fall,side:f.side,name:f.name});
+      f._routed=true;
+    }
+  });
+
+  narrate(events);
+  renderSides();
+  checkEnd();
+}
+
+// ---------- 文字播报（辞藻铺陈 + 具体数值） ----------
+function line(html,cls){const d=document.createElement('div');d.className='l'+(cls?' '+cls:'');d.innerHTML=html;
+  logEl.appendChild(d); while(logEl.children.length>46) logEl.removeChild(logEl.firstChild);
+  logEl.scrollTop=logEl.scrollHeight;}
+function stampFx(char){stampEl.textContent=char;stampEl.classList.remove('show');void stampEl.offsetWidth;stampEl.classList.add('show');
+  flashEl.classList.remove('show');void flashEl.offsetWidth;flashEl.classList.add('show');}
+
+const ADJ_FORCE=['旌旗猎猎','杀声震野','刀光映雪','鼓角齐鸣','烟尘蔽日','血浪翻涌'];
+const ADJ_WORDS =['辞锋锐利','引经据典','步步紧逼','妙语连珠','咄咄逼人','鞭辟入里'];
+
+function narrate(events){
+  const noun=NOUN[scn.kind];
+  const adj = scn.kind==='force'?ADJ_FORCE:ADJ_WORDS;
+
+  // 玩家方详细播报
+  if(player.beatOut){
+    const o=player.beatOut;
+    const v=rnd(noun.verb);
+    if(o.dodged){
+      line(`<span class="b">【${player.name}】</span>${rnd(adj)}，身形飘忽，堪堪避开 <span class="r">${o.name}</span> 的来势，反占先机。`);
+    }else{
+      const inten = o.dmg/Math.max(1,player.max)>0.12?'，气势如虹':'';
+      const crit = o.crit?`（<span class="k">辞锋暴涌！</span>）`:'';
+      const wlab = scn.kind==='force'?'折其':'削其辞锋';
+      line(`<span class="b">【${player.name}】</span>${rnd(adj)}，使一招「${v}」${inten}，直取 <span class="r">${o.name}</span> 要害，${wlab} <span class="k">${fmt(o.dmg)}</span> ${noun.unit}${crit}。`);
+    }
+  }
+  if(player.beatIn && !player.beatIn.dodged){
+    const i=player.beatIn;
+    line(`<span class="r">【${i.from}】</span>寻隙反击，<span class="b">${player.name}</span> 肩头一凉，受 <span class="r">${fmt(i.dmg)}</span> 创，士气降至 <span class="r">${Math.round(player.morale)}</span>。`);
+  }else if(player.beatIn && player.beatIn.dodged){
+    line(`<span class="b">【${player.name}】</span>游刃有余，将 <span class="r">${player.beatIn.from}</span> 的攻势尽数化去。`);
+  }
+
+  // 其余各方的简明战报
+  const others=factions.filter(f=>!f.isPlayer && f.alive && f.atk>0 && f.beatOut);
+  if(others.length){
+    const parts=others.map(f=>{
+      const o=f.beatOut;
+      if(o.dodged) return `<span class="${f.side==='enemy'?'r':'b'}">${f.name}</span> 攻势落空`;
+      const wlab=scn.kind==='force'?'折':'削';
+      return `<span class="${f.side==='enemy'?'r':'b'}">${f.name}</span> ${rnd(noun.verb)}，<span class="${f.side==='enemy'?'b':'r'}">${o.name}</span> ${wlab} <span class="k">${fmt(o.dmg)}</span>${o.crit?'（暴）':''}`;
+    });
+    line(parts.join('；')+'。', scn.kind==='force'?'':'');
+  }
+
+  // 城墙相关
+  const wall=factions.find(f=>f.side==='wall');
+  if(wall && !wall.alive && !wall._announced){
+    wall._announced=true;
+    line(`云梯既登，敌楼火起——<span class="k">城墙崩塌一角</span>！守军再无屏障，城门洞开。`,'big');
+  }
+
+  // 大事件印章
+  if(events.length){
+    const dramatic=events.find(e=>e.type==='fall')||events.find(e=>e.type==='crit');
+    if(dramatic){
+      stampFx(dramatic.char);
+      const f=events.find(e=>e.type==='fall');
+      if(f){
+        const who = f.side==='wall'?'':`的 <span class="${f.side==='enemy'?'r':'b'}">${f.name}</span>`;
+        line(`${f.name} ${f.char==='破'?'城垣倾颓':'阵脚大乱'}${f._routed?'（士气崩溃，不战自溃）':''}，去者过半。`,'big');
+      }
+    }
+  }
+
+  // 状态小结（每隔几拍）
+  if(beatNo%4===0 && !over){
+    const alive=factions.filter(f=>f.alive);
+    const sum=alive.map(f=>`<span class="${f.side==='enemy'?'r':'b'}">${f.name}</span> ${fmt(f.hp)}`).join(' · ');
+    line(`——战况：${sum}`,'sys');
+  }
+}
+
+// ---------- 结局判定 ----------
+function checkEnd(){
+  const allyAlive=factions.some(f=>f.side==='ally'&&f.alive);
+  const enemyAlive=factions.some(f=>f.side==='enemy'&&f.alive);
+  const wall=factions.find(f=>f.side==='wall');
+  // 攻城：墙破且守军灭 → 胜；攻方灭 → 败
+  if(scn.key==='siege'){
+    const defAlive=factions.find(f=>f.id==='def')?.alive;
+    if(!enemyAlive && (!wall||!wall.alive)) return finish('win');
+    if(!allyAlive) return finish('lose');
+    return;
+  }
+  if(scn.kind==='words'){
+    if(!enemyAlive) return finish('win');
+    if(!allyAlive) return finish('lose');
+    return;
+  }
+  // 其余：任一方灭即分胜负（多方则看我方是否独存/被灭）
+  if(!allyAlive) return finish('lose');
+  if(!enemyAlive) return finish('win');
+  if(factions.filter(f=>f.alive).length<=1) return finish(factions[0].side==='ally'?'win':'lose');
+}
+
+function finish(type){
+  over=true; stopAuto();
+  const noun=NOUN[scn.kind];
+  const win = type==='win';
+  let msg = win
+    ? (scn.kind==='words'?'雄辩滔滔，反方词穷，满堂肃然——此辩，<span class="k">正方胜</span>。'
+                         :'烟尘渐息，敌势已竭。你按剑四顾，<span class="k">胜局已定</span>。')
+    : (scn.kind==='words'?'言路受阻，辞锋折尽，你一时语塞——此辩，<span class="r">反方胜</span>。'
+                         :'阵脚松动，伤亡惨重。再撑不住，只得且战且退。');
+  line(msg,'big');
+  const b=document.createElement('button');b.textContent='↻ 再战一场';
+  b.style.cssText='margin:10px auto 0;display:block;background:#1a2230;color:#cfe3ff;border:1px solid #34507a;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:"STKaiti","KaiTi","SimSun",serif';
+  b.onclick=()=>load(scn.key); logEl.appendChild(b);
+  $('#beat').disabled=true; $('#auto').disabled=true;
+}
+
+// ---------- 场景载入 ----------
+function load(key){
+  scn=SCENARIOS[key];
+  factions=scn.fac.map(makeFac);
+  player=factions.find(f=>f.isPlayer);
+  over=false; beatNo=0;
+  stopAuto();
+  // 顶部标签
+  tabsEl.innerHTML='';
+  Object.keys(SCENARIOS).forEach(k=>{
+    const t=document.createElement('div');t.className='tab'+(k===key?' on':'');
+    t.textContent=SCENARIOS[k].tab;t.onclick=()=>load(k);tabsEl.appendChild(t);
+  });
+  // 清空播报（保留特效层）
+  [...logEl.children].forEach(c=>{ if(c.id!=='stamp'&&c.id!=='flash') c.remove(); });
+  line(`【${scn.tab}】 ${scn.intro}`,'big');
+  line('两军对垒，胜负未分。择一<strong>动作倾向</strong>，推演战局。','sys');
+  renderSides(); renderTends();
+  $('#beat').disabled=false; $('#auto').disabled=false;
+}
+
+// ---------- 自动推演 ----------
+function startAuto(){
+  if(over||autoTimer) return;
+  $('#auto').textContent='⏸ 暂停';
+  const tick=()=>{ if(over){stopAuto();return;} simulateBeat(); autoTimer=setTimeout(tick, +$('#spd').value); };
+  simulateBeat(); autoTimer=setTimeout(tick, +$('#spd').value);
+}
+function stopAuto(){ if(autoTimer){clearTimeout(autoTimer);autoTimer=null;} $('#auto').textContent='▶ 自动推演'; }
+
+// ---------- 绑定 ----------
+$('#beat').onclick=()=>{ if(!over) simulateBeat(); };
+$('#auto').onclick=()=>{ autoTimer?stopAuto():startAuto(); };
+$('#reset').onclick=()=>load(scn.key);
+
+// 启动
+load('melee3');
+</script>
+</body>
+</html>

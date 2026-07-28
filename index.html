@@ -144,15 +144,14 @@
     display:flex;align-items:center;justify-content:center;text-align:center;
     padding:9px 8px;font-size:13.5px;line-height:1.25;min-height:38px;color:var(--ink);
     font-family:"PingFang SC","Microsoft YaHei",sans-serif;
-    background:var(--btn);border:1px solid var(--btn-line);border-radius:10px;
+    background:transparent;border:1px solid rgba(60,40,30,.22);border-radius:0;
     cursor:pointer;transition:.18s;
-    box-shadow:var(--shadow);
+    font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;
   }
   .act:hover{background:rgba(158,59,46,.10);border-color:rgba(158,59,46,.4);
     box-shadow:0 0 0 3px rgba(158,59,46,.08),0 2px 14px rgba(158,59,46,.12);}
   .act:active{transform:scale(.97);}
-  .act.open{background:rgba(176,131,47,.16);border-color:rgba(176,131,47,.55);
-    box-shadow:0 0 0 3px rgba(176,131,47,.12),var(--shadow);}
+  .act.open{background:rgba(176,131,47,.14);border-color:rgba(176,131,47,.55);}
   .act:disabled{opacity:.4;cursor:default;filter:grayscale(.4);}
   .act.wide{grid-column:1/-1;text-align:left;
     font-family:"STKaiti","KaiTi","Songti SC",serif;font-size:15px;
@@ -317,12 +316,13 @@
   .c-arts-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
   .mart-chip{flex:1 1 calc(25% - 6px);min-width:82px;max-width:180px;
     display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 6px;
-    border-radius:10px;cursor:pointer;text-align:center;
-    background:var(--btn);border:1px solid var(--btn-line);box-shadow:var(--shadow);transition:.16s;}
-  .mart-chip:hover{background:rgba(158,39,46,.08);border-color:rgba(158,39,46,.4);}
-  .mart-chip:active{transform:scale(.97);}
-  .mart-chip.disabled{opacity:.4;cursor:default;filter:grayscale(.4);}
-  .mart-chip.danger{background:rgba(158,39,46,.13);border-color:rgba(158,39,46,.45);}
+    border-radius:0;cursor:pointer;text-align:center;
+    background:transparent;border:1px solid rgba(60,40,30,.2);transition:.16s;
+    font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
+  .mart-chip:hover{background:rgba(158,39,46,.07);border-color:var(--seal);}
+  .mart-chip:active{transform:scale(.98);}
+  .mart-chip.disabled{opacity:.35;cursor:default;filter:grayscale(.4);}
+  .mart-chip.danger{background:rgba(158,39,46,.1);border-color:rgba(158,39,46,.45);}
   .mart-chip .mc-nm{font-size:13px;font-weight:600;color:var(--ink);font-family:"STKaiti","KaiTi",serif;line-height:1.2;}
   .mart-chip.danger .mc-nm{color:var(--seal);}
   .mart-chip .mc-meta{font-size:10px;color:var(--ink-faint);}
@@ -474,8 +474,8 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   /* ===== 战斗 UI ===== */
-  .c-enemy{background:rgba(158,59,46,.08);border:1px solid rgba(158,59,46,.25);
-    border-radius:12px;padding:12px 14px;margin:0 0 12px;display:flex;gap:12px;align-items:center;}
+  .c-enemy{display:flex;gap:12px;align-items:center;padding:6px 2px 8px;margin:0 0 12px;
+    border-bottom:1px solid rgba(60,40,30,.12);}
   /* 敌人立绘（emoji 大图标） */
   .c-enemy .ec-fig{flex:0 0 auto;width:88px;height:116px;border-radius:12px;
     display:flex;align-items:flex-end;justify-content:center;overflow:visible;
@@ -509,11 +509,11 @@
   .c-enemy .ec-tag.debuff{color:var(--seal);background:rgba(158,59,46,.12);}
   /* 敌方意图预告（telegraph） */
   .c-enemy .ec-intent{margin-top:7px;font-size:12px;font-weight:600;letter-spacing:.5px;
-    display:inline-flex;align-items:center;padding:3px 9px;border-radius:10px;}
-  .c-enemy .ec-intent.threat-normal{color:#7a5d2e;background:rgba(192,118,42,.14);border:1px solid rgba(192,118,42,.3);}
-  .c-enemy .ec-intent.threat-heavy{color:#a03030;background:rgba(160,48,48,.14);border:1px solid rgba(160,48,48,.4);
+    display:inline-flex;align-items:center;padding:2px 0 2px 9px;border-left:3px solid rgba(158,59,46,.45);}
+  .c-enemy .ec-intent.threat-normal{color:#7a5d2e;background:rgba(192,118,42,.08);}
+  .c-enemy .ec-intent.threat-heavy{color:#a03030;background:rgba(160,48,48,.1);
     animation:intentPulse 1s ease-in-out infinite;}
-  .c-enemy .ec-intent.threat-defend{color:#2f5f8f;background:rgba(47,95,143,.14);border:1px solid rgba(47,95,143,.35);}
+  .c-enemy .ec-intent.threat-defend{color:#2f5f8f;background:rgba(47,95,143,.08);}
   @keyframes intentPulse{0%,100%{box-shadow:0 0 0 0 rgba(160,48,48,.25);}50%{box-shadow:0 0 0 4px rgba(160,48,48,0);}}
   /* 玩家立绘 */
   .c-player .ec-fig-p{flex:0 0 auto;width:88px;height:116px;margin-left:auto;order:2;align-self:center;
@@ -614,9 +614,9 @@
   /* 战斗卡改为常驻 HUD：吸顶固定在叙事窗顶部，长回合也不被顶出屏幕 */
   #combat-card{
     position:sticky; top:0; z-index:6;
-    margin:0 -4px 12px; padding:8px 4px 10px;
-    background:linear-gradient(180deg,var(--paper) 76%,rgba(244,238,226,0));
-    border-bottom:1px solid rgba(158,59,46,.18);
+    margin:0 -4px 12px; padding:6px 4px 8px;
+    background:transparent;
+    border-bottom:1px solid rgba(60,40,30,.12);
   }
   #combat-card .c-enemy,#combat-card .c-player{margin:0 0 8px;}
 
@@ -630,6 +630,24 @@
 
   .c-round{text-align:center;font-size:12px;color:var(--ink-faint);letter-spacing:3px;
     margin:8px 0 4px;font-family:"STKaiti","KaiTi",serif;}
+
+  /* ── 纯文字武侠：文字铭牌替换 emoji / SVG 立绘 ── */
+  .c-enemy .ec-plaque{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:1px;
+    padding:2px 12px 2px 4px;border-right:1px solid rgba(158,59,46,.2);min-width:0;text-align:center;}
+  .c-enemy .ec-title-pre{font-size:11px;color:var(--ink-faint);letter-spacing:1px;line-height:1.2;}
+  .c-enemy .ec-name{font-size:19px;font-weight:700;color:var(--seal);font-family:"STKaiti","KaiTi",serif;letter-spacing:3px;line-height:1.15;}
+  .c-enemy .ec-elem{font-size:11px;color:var(--ink-faint);}
+  .c-player .cp-plaque{flex:1 1 100%;font-size:12px;color:var(--ink-soft);font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;margin-bottom:2px;}
+  /* 出招时整卡微动（替代原 SVG 前倾前摇） */
+  .c-enemy.attacking,.c-player.attacking{animation:clashPop .3s ease;}
+  /* 武侠「斬」印章特效 */
+  .combat-seal{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) rotate(-12deg);
+    font-family:"STKaiti","KaiTi",serif;font-size:128px;font-weight:900;color:rgba(192,39,26,.92);
+    text-shadow:0 0 18px rgba(192,39,26,.55);z-index:80;pointer-events:none;opacity:0;
+    animation:sealStamp .9s cubic-bezier(.2,.7,.3,1) forwards;}
+  @keyframes sealStamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-12deg) scale(2.4);}
+    16%{opacity:1;transform:translate(-50%,-50%) rotate(-12deg) scale(1);}
+    72%{opacity:1;}100%{opacity:0;transform:translate(-50%,-50%) rotate(-12deg) scale(1.06);}}
 
   .c-summary{background:rgba(63,125,94,.08);border:1px solid rgba(63,125,94,.3);border-radius:12px;
     padding:14px 16px;margin:12px 0;text-align:center;}
@@ -1161,7 +1179,7 @@ window.onerror=function(msg,url,line,col,err){
     return {
       slot:slot, empty:false,
       name: s.name||'无名客',
-      sect: (G.SECTS[s.sect]&&G.SECTS[s.sect].name)||'游侠',
+      sect: (G.SECTS[s.sect]&&G.SECTS[s.sect].name)||'江湖散人',
       rep: s.reputation||0,
       time: SHICHEN[(s.time||0)%12],
       room: (G.ROOMS[s.room]&&G.ROOMS[s.room].name)||'未知之地',
@@ -2379,7 +2397,7 @@ window.onerror=function(msg,url,line,col,err){
     var h='';
     if(kind==='char'){
       h='<h3>角 色</h3>'+
-        row('门派',G.SECTS[state.sect].name)+
+        row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '未入门 · 江湖散人')+
         row('等级','LV.'+state.level)+
         row('气血',state.hp+' / '+effectiveStats().maxHp)+
         row('内力',state.mp+' / '+state.maxMp)+
@@ -2794,6 +2812,11 @@ window.onerror=function(msg,url,line,col,err){
     sc.classList.remove('crit-moment'); void sc.offsetWidth; sc.classList.add('crit-moment');
     setTimeout(function(){ sc.classList.remove('crit-moment'); }, 560);
   }
+  // 武侠「斬」印章：暴击 / 斩将时盖下
+  function flashSeal(ch){
+    var s=document.createElement('div'); s.className='combat-seal'; s.textContent=ch||'斬';
+    document.body.appendChild(s); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 900);
+  }
 
   // ── V5：轻量音效（Web Audio 合成，零外部资源）──
   var SFX=(function(){
@@ -2850,7 +2873,7 @@ window.onerror=function(msg,url,line,col,err){
     } else if(entry.dmg && entry.dmg>0 && side){
       floatDamage(entry.dmg, side, crit);           // 伤害飘字
       flashHit(side, crit);                          // 受击红闪/后仰
-      if(crit){ critBurst(side); markSceneCrit(); }   // 暴击金红爆裂粒子 + 场景特写
+      if(crit){ critBurst(side); markSceneCrit(); flashSeal('斬'); }   // 暴击金红爆裂粒子 + 场景特写 + 武侠斩印
     }
     if(crit || (entry.dmg && entry.dmg>=25)) shakeScene();
     // V5：音效
@@ -2941,8 +2964,8 @@ window.onerror=function(msg,url,line,col,err){
     $narr.innerHTML='';
     combatCardEl=null;
     var enemy=G.CombatEngine.getEnemy();
-    log('════ 刀兵相见 ════','combat');
-    log(enemy.name+(enemy.title?' · '+enemy.title:''),'title');
+    log('──── 狭路相逢 ────','combat');
+    log((enemy.title?('「'+enemy.title+'」'):'')+enemy.name+' 拦住去路！','title');
     renderCombatCard();   // 构建持久战斗卡（满血 / 满状态）
     if(settings.autoBattle){ startAutoBattle('optimal'); }
     else { renderCombatRound(); }
@@ -3012,15 +3035,14 @@ window.onerror=function(msg,url,line,col,err){
       combatCardEl.id='combat-card';
       combatCardEl.innerHTML=
         '<div class="c-enemy">'+
-          '<div class="ec-fig"></div>'+
+          '<div class="ec-plaque"><span class="ec-title-pre"></span><span class="ec-name"></span><span class="ec-elem"></span></div>'+
           '<div class="ec-info">'+
-            '<div class="ec-top"><span class="ec-name"></span><span class="ec-title"></span><span class="ec-elem"></span></div>'+
             '<div class="ec-hp"><span>气血</span><div class="c-bar"><div class="c-hpfill"></div></div><span class="ec-hpv"></span></div>'+
             '<div class="ec-intent"></div>'+
             '<div class="ec-buffs"></div>'+
           '</div>'+
         '</div>'+
-        '<div class="c-player"><span class="ec-fig-p">'+buildPortrait('player')+'</span>'+
+        '<div class="c-player"><span class="cp-plaque"></span>'+
           '<span class="cp-name"></span><span class="cp-elem"></span>'+
           '<span class="cp-hp"></span><span class="cp-mp"></span><span class="cp-rage"></span><span class="cp-combo"></span>'+
           '<div class="cp-status"></div></div>'+
@@ -3028,9 +3050,8 @@ window.onerror=function(msg,url,line,col,err){
       $narr.appendChild(combatCardEl);
     }
     var q=function(sel){ return combatCardEl.querySelector(sel); };
-    q('.ec-fig').innerHTML=buildPortrait('enemy', e.id);
     q('.ec-name').textContent=e.name||'';
-    q('.ec-title').textContent=e.title||'';
+    q('.ec-title-pre').textContent=e.title?('「'+e.title+'」'):'';
     var fill=q('.c-hpfill');
     fill.className='c-hpfill '+hpCls;
     fill.style.width=hpPct+'%';
@@ -3056,6 +3077,8 @@ window.onerror=function(msg,url,line,col,err){
     // V3：我方劣势时四周渐暗红
     var sc=document.getElementById('scene');
     if(sc){ if(p.hp/p.maxHp < 0.3) sc.classList.add('bg-danger'); else sc.classList.remove('bg-danger'); }
+    var sectName = (state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '未入门';
+    q('.cp-plaque').textContent = sectName + ' · 游侠';
     q('.cp-name').textContent='▲ '+(state.name||'你');
     q('.cp-hp').textContent='气血 '+p.hp+'/'+p.maxHp;
     q('.cp-mp').textContent='内力 '+p.mp+'/'+p.maxMp;
@@ -3103,8 +3126,8 @@ window.onerror=function(msg,url,line,col,err){
     addGrouped('战术','🔊 音效 '+(SFX.isEnabled()?'开':'关'),function(){
       SFX.setEnabled(!SFX.isEnabled()); state.sfxOn=SFX.isEnabled(); save(state); renderCombatRound();
     },'点击开关战斗音效');
-    addGrouped('战术','⚡ 自动战斗',function(){ startAutoBattle('optimal'); },'激进·AI代战');
-    addGrouped('战术','🛡 自动(保守)',function(){ startAutoBattle('conservative'); },'防守·稳扎稳打');
+    addGrouped('战术','自动战斗·激进',function(){ startAutoBattle('optimal'); },'AI 代战，攻守兼备');
+    addGrouped('战术','自动战斗·保守',function(){ startAutoBattle('conservative'); },'稳扎稳打，优先自保');
   }
 
   /** 处理手动战斗操作 */
