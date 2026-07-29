@@ -20,7 +20,7 @@
 | **P1 背包（子集）** | ✅ 完成 | `items` 字段 + 掉落堆叠入库 + 行囊展示（`skillTags` 同屏展示武学） | `shared/index.js` `defaultSave().items`、`index.html` 行囊弹窗 |
 | **P2 武学合一（最小版）** | ✅ 完成 | 研习界面接 `learnedMartial`，按 13 艺线分组 + 门槛锁 + 学招涨艺线；行囊/任务显示真招式；发力技巧可装配 | `index.html` `openLearn()`、`skillTags()`、`shared/data/martial.js`（MARTIAL_ARTS） |
 | **P3 声望框架** | ✅ 完成 | 8 档称号、状态栏、华雄门控（声望≥20）、任务弹窗展示 | `index.html` `repTitle()`、`renderStatus()`、任务弹窗 |
-| **P4 主线门控** | ✅ 完成 | 胜战真实 `addReputation`（山贼+2/流寇+4/黄巾+5/华雄+20）；`state.quest` 计数；华雄→洛阳解锁链（新增洛阳城房间） | `index.html` `endCombat()` 胜利分支、`shared/story/rooms.js`（luoyang 房间） |
+| **P4 主线门控** | ✅ 完成 | 胜战真实 `addReputation`（山贼+2/流寇+4/盗匪+5/华雄+20）；`state.quest` 计数；华雄→洛阳解锁链（新增洛阳城房间） | `index.html` `endCombat()` 胜利分支、`shared/story/rooms.js`（luoyang 房间） |
 | **资源硬性限制** | ✅ 完成 | 饥饿（食/水耗尽）持续扣血；精力耗尽封锁行动；战斗耗精力；状态栏红字警告；三处补「休整」防卡死 | `index.html` `maybeStarve()`、`exert()`、`move()`、`startCombat()`、`renderStatus()` |
 | **清理** | ✅ 完成 | 移除木人桩入口；调试台改为 `?dev=1` 才显示；底部 dock「更多」→「设置」按钮 | `shared/story/rooms.js`、`index.html` 设置弹窗 |
 | **UI 交互重构** | ✅ 完成 | 场景对象卡片式交互：人物/建筑/家具/出口以卡片呈现，点击展开具体动作（交谈/攻击/休整/移动）；手风琴收起；告别平铺长按钮列表 | `index.html` `ROOM_OBJECTS` 配置 + 重写 `buildActions()` + `.obj-card` CSS |
@@ -32,7 +32,7 @@
 | **天候系统** | ✅ 完成 | 8 种天候（晴/多云/阴/微雨/大雨/雪/雾/风），跨日随机变化；状态栏图标+名称；钟表弹窗可选查看（已精简：移除意境描述，仅留名称+图标） | `index.html`（`WEATHERS`、状态栏 `st-wx`、`advanceTime` 跨日换天候） |
 | **NPC 交互重构（右键式浮层菜单）** | ✅ 完成 | 点击 NPC/物件在**光标处弹出不带描述的紧凑浮层**（交谈/观察/攻击 + 对象自带动作，带淡入缩放动画）；遇屏幕边缘自动翻转避免溢出；点空白 / `Esc` / 滚动场景自动收起 | `index.html`（`openObjMenu`/`positionMenu`/`collapseObjPanel`、`.obj-menu` CSS） |
 | **清理·测试实体** | ✅ 完成 | ① 移除主营「操练场·木人桩」（`spar_dummy`→`enemies.dummy` 不可达死代码待清）；② 移除黑山寨聚义厅「【测试】多按钮演示」NPC（5 按钮排版演示）。两者测试使命已完，游戏内不再出现 | `index.html` `ROOM_OBJECTS`（camp / ji_heishan_zhai 房间） |
-| **时间锚点订正** | ✅ 完成 | 年号由「中平元年（184）」改为「**光和元年（178）**」，与 `GAME_DESIGN.md` 时间锚点（光和年间·黄巾起义前夜）一致；序章文案同步 `汉灵帝光和年间`；旧档缺年号补默认 `光和` | `shared/index.js`（eraName/adYear）、`index.html`（历法派生/normalize/状态栏/钟表兜底）、`shared/story/dialogues.js`（序章） |
+| **时间锚点订正** | ✅ 完成 | 年号由「中平元年（184）」改为「**光和元年（178）**」，与 `GAME_DESIGN.md` 时间锚点（光和年间·乱象初显之世）一致；序章文案同步 `汉灵帝光和年间`；旧档缺年号补默认 `光和` | `shared/index.js`（eraName/adYear）、`index.html`（历法派生/normalize/状态栏/钟表兜底）、`shared/story/dialogues.js`（序章） |
 | **山河志·空间地图** | ✅ 完成 | 「山河」弹窗由竖排列表改为**按出口方位铺展的网格空间地图**：① 节点按 `MAP_COORDS`(col/row) 定位（北在上、东在右），连线表出口通达关系，当前所处红点高亮、通达之路实线加深、悬停显「〔通达〕方向·地名」；② 加**山河底色**（中原/洛阳/幽州区域色块 + 网格纹 + 羊皮纸底）、**距离刻度**（1 格 ≈ 60 里，随缩放实时变化）；③ **默认以当前所处为中心**、支持**任意拖拽平移**、**滚轮 / 双指缩放**（0.5×–3×）；④ 调试台「设置出生点」复用同一空间地图（点节点即设出生点并传送），修复旧列表样式丢失后的拥挤问题 | `index.html`（`MAP_COORDS`/`MAP_CELL`/`buildMapHTML`/`initMap`、`MAP_COORDS` 渲染、`.map-canvas/.map-viewport/.map-region/.map-scale` CSS） |
 | **P5 影门** | ⬜ 仅骨架 | 设计文档仅占位，代码未实现 | — |
 | **P6 家族兴衰** | ⬜ 仅骨架 | 设计文档仅占位，代码未实现 | — |

@@ -38,9 +38,9 @@
         table: [{ item: 'blade_manual_frag', name: '刀谱残页', weight: 3 }], equip: { tier: 2, chance: 50 } }
     },
 
-    // ─── 黄巾系 ───
+    // ─── 太平道系 ───
     yellow_turban: {
-      id: 'yellow_turban', name: '黄巾力士', title: '太平道护法',
+      id: 'yellow_turban', name: '太平力士', title: '太平道护法',
       element: '土',
       hp: 800, atk: 50, def: 35, spd: 22,
       skills: [

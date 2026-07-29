@@ -1167,7 +1167,7 @@ window.onerror=function(msg,url,line,col,err){
   var CREATE_POOL=15, APT_BASE=5, APT_MAX=10;
   var PROLOGUE='光和元年，汉室倾颓之象已显。'+'\n'+
     '宦官弄权于朝，党锢之祸未消；凉州边将拥兵，幽冀流民载道。'+'\n'+
-    '黄巾之祸尚在十年之后，而天下将乱的烽烟，已起于青苹之末。'+'\n'+
+    '大乱尚在十年之后，而天下将乱的烽烟，已起于青苹之末。'+'\n'+
     '你本江湖散人，因避祸或求道，行脚至渔阳以北的燕山之口——'+'\n'+
     '北望塞外，鲜卑牧马；南顾中原，星火将燃。'+'\n'+
     '这一日，你束紧行囊，决意踏入这即将翻覆的江湖。';
@@ -2026,12 +2026,12 @@ window.onerror=function(msg,url,line,col,err){
       if(room.patrol && !silent) maybeAmbush(room);
     });
   }
-  // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 黄巾余孽）
+  // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 流寇）
   function maybeAmbush(room){
     if(state.defeated) return;
     if(Math.random() < 0.5){
       var enemy = Math.random()<0.6 ? 'bandit' : 'yellow_turban';
-      log('〔警觉〕林间树影倏动，一伙'+(enemy==='bandit'?'山贼':'黄巾余孽')+'自草莽中杀出，拦住去路！','combat');
+      log('〔警觉〕林间树影倏动，一伙'+(enemy==='bandit'?'山贼':'流寇')+'自草莽中杀出，拦住去路！','combat');
       startCombat(enemy);
     } else {
       log('这一程山道尚算平静，只闻松涛与远鸟。你按刀而行，未遇拦路之敌。','sys');
@@ -2046,7 +2046,7 @@ window.onerror=function(msg,url,line,col,err){
       {type:'feature',key:'arena',  icon:'🏆', name:'挑战台',   desc:'力斩华雄，名震天下',              actions:[{label:'力斩华雄', fn:function(){ handleAction('battle_hua_xiong'); }, tip:'需声望≥20·首场Boss战'}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川城', desc:'城门方向，市集熙攘',                actions:[{label:'前往颍川城', fn:function(){ move('北','city'); }}]},
-      {type:'exit',  dir:'东',     icon:'🌲', name:'东·北邙山林',desc:'山林幽深，黄巾余孽盘踞',           actions:[{label:'前往北邙山林', fn:function(){ move('东','forest'); }}]},
+      {type:'exit',  dir:'东',     icon:'🌲', name:'东·北邙山林',desc:'山林幽深，流寇盘踞',           actions:[{label:'前往北邙山林', fn:function(){ move('东','forest'); }}]},
       {type:'exit',  dir:'西',     icon:'🏞️',name:'西·溪畔草庐',desc:'溪水潺潺，水镜先生居此',           actions:[{label:'前往溪畔草庐', fn:function(){ move('西','stream'); }}]},
       {type:'exit',  key:'luoyang_gate', icon:'🏛️', name:'南·洛阳方向', desc:'远赴洛阳，凯旋之门',        actions:[{label:'赴洛阳', fn:function(){ handleAction('visit_luoyang'); }, tip:'需先力斩华雄·扬名'}]}
     ],
@@ -2858,7 +2858,7 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='quest'){
       h='<h3>任 务</h3>'+
         row('当前所处',curRoom().name)+
-        row('主线·剿匪', '山贼/流寇 '+state.quest.bandit+' · 黄巾 '+state.quest.turban)+
+        row('主线·剿匪', '山贼/流寇 '+state.quest.bandit+' · 盗匪 '+state.quest.turban)+
         row('主线·斩华雄', state.quest.hua_xiong?'✓ 已斩（声望达'+state.reputation+'）':'未斩（声望需≥20）')+
         row('地域·洛阳', state.quest.luoyang?'✓ 已解锁':'未解锁')+
         row('已习武学',state.learnedMartial.length+' 门')+
