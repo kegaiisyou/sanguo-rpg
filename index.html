@@ -2950,7 +2950,8 @@ window.onerror=function(msg,url,line,col,err){
         var slot=parseInt(btn.getAttribute('data-slot'),10);
         var act=btn.getAttribute('data-action');
         if(act==='overwrite'){
-          clearSlot(slot); enterGame(G.defaultSave(), slot); closeModal();
+          // 覆写 = 在该卷重建新角色，仍须走捏人→序章→入局流程
+          beginCreate(slot);
         } else {
           var slotEl=btn.closest('.slot');
           if(slotEl) slotEl.classList.remove('on-confirm');
