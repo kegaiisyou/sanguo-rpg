@@ -2818,7 +2818,9 @@ window.onerror=function(msg,url,line,col,err){
     if(btn) btn.onclick=function(){ clearSlot(pendingSlot); enterGame(pendingSave, pendingSlot); closeModal(); };
   }
 
+  var currentModalKind=null;
   function openModal(kind, opts){
+    currentModalKind=kind;
     if(state && state.dead){ die(); return; }
     // 打开任何弹窗时先移除战斗红光氛围，防止满血/非战斗画面泛红
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
@@ -2978,7 +2980,12 @@ window.onerror=function(msg,url,line,col,err){
      var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
    }
   }
-  function closeModal(){ if(state && state.dead){ die(); return; } $modal.classList.add('hidden'); }
+  function closeModal(){
+    if(state && state.dead){ die(); return; }
+    // 捏人/序章进行中（state 尚未建立）禁止中途收起，否则会露出标题屏并丢失进度
+    if((currentModalKind==='create' || currentModalKind==='opening') && !state){ return; }
+    $modal.classList.add('hidden');
+  }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   document.querySelectorAll('#dock button').forEach(function(b){
     b.onclick=function(){
