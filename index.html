@@ -2043,12 +2043,12 @@ window.onerror=function(msg,url,line,col,err){
       {type:'npc',   key:'hanbo',   icon:'👤', name:'县尉韩博',  desc:'按剑而立，目光如炬',                actions:[{label:'与他交谈', fn:function(){ talk('hanbo'); }}]},
       {type:'building',key:'tent',  icon:'⛺', name:'中军大帐',  desc:'案上谱录，凝神参悟',                actions:[{label:'研习武学', fn:function(){ handleAction('learn'); }, tip:'案上谱录，凝神参悟'},
                                                                             {label:'帐中休整', fn:function(){ actRest(); },         tip:'盹一觉，气血内力尽复'}]},
-      {type:'feature',key:'arena',  icon:'🏆', name:'挑战台',   desc:'温酒斩华雄，名震天下',              actions:[{label:'温酒斩华雄', fn:function(){ handleAction('battle_hua_xiong'); }, tip:'需声望≥20·首场Boss战'}]},
+      {type:'feature',key:'arena',  icon:'🏆', name:'挑战台',   desc:'力斩华雄，名震天下',              actions:[{label:'力斩华雄', fn:function(){ handleAction('battle_hua_xiong'); }, tip:'需声望≥20·首场Boss战'}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川城', desc:'城门方向，市集熙攘',                actions:[{label:'前往颍川城', fn:function(){ move('北','city'); }}]},
       {type:'exit',  dir:'东',     icon:'🌲', name:'东·北邙山林',desc:'山林幽深，黄巾余孽盘踞',           actions:[{label:'前往北邙山林', fn:function(){ move('东','forest'); }}]},
       {type:'exit',  dir:'西',     icon:'🏞️',name:'西·溪畔草庐',desc:'溪水潺潺，水镜先生居此',           actions:[{label:'前往溪畔草庐', fn:function(){ move('西','stream'); }}]},
-      {type:'exit',  key:'luoyang_gate', icon:'🏛️', name:'南·洛阳方向', desc:'远赴洛阳，凯旋之门',        actions:[{label:'赴洛阳', fn:function(){ handleAction('visit_luoyang'); }, tip:'需先斩华雄·扬名'}]}
+      {type:'exit',  key:'luoyang_gate', icon:'🏛️', name:'南·洛阳方向', desc:'远赴洛阳，凯旋之门',        actions:[{label:'赴洛阳', fn:function(){ handleAction('visit_luoyang'); }, tip:'需先力斩华雄·扬名'}]}
     ],
     city:[
       {type:'npc',   key:'hualao',  icon:'👤', name:'华老',     desc:'城西医馆，正捣药',                    actions:[{label:'与他交谈', fn:function(){ talk('hualao'); }}]},
@@ -2562,7 +2562,7 @@ window.onerror=function(msg,url,line,col,err){
         startCombat('hua_xiong'); break;
       case 'visit_luoyang':
         if(!exert('远赴洛阳')) return;
-        if(!state.quest.luoyang){ log('洛阳城门紧闭——需先「温酒斩华雄」扬名立万，方得入城。','sys'); return; }
+        if(!state.quest.luoyang){ log('洛阳城门紧闭——需先力斩华雄扬名立万，方得入城。','sys'); return; }
         move('南','luoyang'); break;
     }
   }
@@ -3786,7 +3786,7 @@ window.onerror=function(msg,url,line,col,err){
       else if(enemy.id==='yellow_turban') state.quest.turban++;
       else if(enemy.id==='hua_xiong'){
         state.quest.hua_xiong=true; state.quest.luoyang=true;
-        log('【主线】温酒斩华雄！洛阳之门已为你敞开，可自「颍川主营」赴洛阳。','good');
+        log('【主线】力斩华雄！洛阳之门已为你敞开，可自「颍川主营」赴洛阳。','good');
       }
       else if(enemy.id==='heishan_zhu'){
         log('【剿匪】黑山寨主张燕授首！聚义厅群龙无首，余众溃散——此寨已平。','good');

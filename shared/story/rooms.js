@@ -19,8 +19,8 @@
         { id: 'spar_bandit', label: '入林试炼（剿山贼）', group: '行动', tip: '实战磨砺武艺' },
         { id: 'spar_chief', label: '讨伐流寇头目', group: '行动', tip: '战力验证（中等）' },
         { id: 'spar_turban', label: '征讨黄巾力士', group: '行动', tip: '符箓之力（中等）' },
-        { id: 'battle_hua_xiong', label: '温酒斩华雄', group: '行动', tip: '需声望≥20·首场Boss战' },
-        { id: 'visit_luoyang', label: '赴洛阳', group: '行动', tip: '需先斩华雄·扬名' }
+        { id: 'battle_hua_xiong', label: '力斩华雄', group: '行动', tip: '需声望≥20·首场Boss战' },
+        { id: 'visit_luoyang', label: '赴洛阳', group: '行动', tip: '需先力斩华雄·扬名' }
       ]
     },
     city: {
@@ -71,11 +71,11 @@
     luoyang: {
       id: 'luoyang', name: '洛阳城',
       desc: [
-        '洛阳城阙巍峨，朱雀大街车水马龙。你「温酒斩华雄」之名已传遍九州，百姓夹道相迎，孩童指你而呼「温酒斩将者」。',
+        '洛阳城阙巍峨，朱雀大街车水马龙。你力斩华雄之名已传遍州郡，百姓夹道相迎。',
         '太庙之前，老兵斟酒相敬：「壮士此战，气吞山河！」中原未平，然你已立下不世奇功，青史当留一笔。'
       ],
       exits: { '南': 'camp', '北': 'ji_guomen' },
-      find: '细看：城阙巍峨，朱雀大街车水马龙；太庙前老兵斟酒相敬，孩童指你而呼「温酒斩将者」，声名已传九州。',
+      find: '细看：城阙巍峨，朱雀大街车水马龙；太庙前老兵斟酒相敬，孩童指你而呼「斩华雄者」，声名已传州郡。',
       npcs: [],
       items: [],
       actions: [
