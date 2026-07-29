@@ -58,14 +58,23 @@
     };
   }
 
-  // 套用门派加成（仅新建 / 读档时调用一次）：以【基础值】为准，再叠加存档中已记录的门派
-  //   —— 开局 sect 为 null 时直接返回，主角保持"江湖散人"基础值，不再被强制归入某一派
+  // 套用门派加成（仅新建 / 读档时由 enterGame 调用一次）：
+  //   —— 保留玩家【捏人 / 养成】所得的资质与战力，仅在入门时【幂等叠加】门派加成，绝不重置基础值。
+  //   —— 开局 sect 为 null 时直接返回，主角保持"江湖散人"配置（含捏人资质），不被强制归入某一派。
   function applySect(save) {
-    save.maxHp = BASE.maxHp; save.maxMp = BASE.maxMp;
-    save.atk = BASE.atk; save.def = BASE.def; save.spd = BASE.spd;
-    save.apt = { jinli:5, gengu:5, shenfa:5, wuxing:5, fuyuan:5, gongfa:5 };
     var sect = LF.SECTS[save.sect];
-    if (!sect) return save;             // 开局未入门：保持基础值
+    if (!sect) { save._sectApplied = null; return save; }   // 未入门：保留玩家配置
+    if (save._sectApplied === save.sect) return save;       // 已套用过，避免重载重复叠加
+    // 若曾入他派，先剥离旧加成（与 joinSect 一致）
+    if (save._sectApplied && LF.SECTS[save._sectApplied]) {
+      var ob = LF.SECTS[save._sectApplied], o = ob.bonus || {};
+      save.maxHp = Math.max(1, save.maxHp - (o.maxHp || 0));
+      save.maxMp = Math.max(0, save.maxMp - (o.maxMp || 0));
+      save.atk   = Math.max(1, save.atk   - (o.atk   || 0));
+      save.def   = Math.max(0, save.def   - (o.def   || 0));
+      if (ob.apt) { for (var k in ob.apt) { if (save.apt[k] != null) save.apt[k] -= ob.apt[k]; } }
+    }
+    if (!save.apt) save.apt = { jinli:5, gengu:5, shenfa:5, wuxing:5, fuyuan:5, gongfa:5 };
     _addSectBonus(save, sect);
     save._sectApplied = save.sect;
     return save;

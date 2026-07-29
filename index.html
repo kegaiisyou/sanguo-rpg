@@ -1017,6 +1017,34 @@
   .set-panel.hidden{display:none;}
   /* 标题特效关闭：隐藏烟尘/墨晕层 */
   #title.no-fx .tt-inkfx,#title.no-fx .tt-dust,#title.no-fx .tt-inkblot{display:none;}
+  /* 捏人 / 序章 */
+  .cr-field{display:flex;align-items:center;gap:12px;margin:4px 0 2px;}
+  .cr-field label{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:3px;color:var(--seal);min-width:42px;}
+  .cr-input{flex:1;font-family:"STKaiti","KaiTi",serif;font-size:17px;letter-spacing:2px;padding:8px 12px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);outline:none;transition:.16s;}
+  .cr-input:focus{border-color:rgba(158,59,46,.5);background:rgba(158,59,46,.05);}
+  .cr-sec{margin:14px 0 4px;}
+  .cr-sec-t{font-family:"STKaiti","KaiTi",serif;font-size:14.5px;letter-spacing:2px;color:var(--seal);margin-bottom:8px;display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-bottom:1px solid var(--panel-line);padding-bottom:5px;}
+  .cr-pool{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:12px;letter-spacing:0;color:var(--ink-soft);}
+  .cr-pool b{color:var(--seal);font-size:14px;}
+  .og-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .og-card{border:1px solid var(--btn-line);border-radius:11px;padding:9px 11px;background:var(--btn);cursor:pointer;transition:.16s;}
+  .og-card:hover{background:rgba(158,59,46,.06);border-color:rgba(158,59,46,.35);}
+  .og-card.on{border-color:rgba(158,59,46,.6);background:rgba(158,59,46,.1);box-shadow:0 0 0 1px rgba(158,59,46,.25) inset;}
+  .og-name{font-family:"STKaiti","KaiTi",serif;font-size:15px;font-weight:700;color:var(--ink);letter-spacing:1px;}
+  .og-desc{font-size:11.5px;color:var(--ink-soft);margin:3px 0 4px;line-height:1.5;}
+  .og-bonus{font-size:11px;color:#9a7b3a;letter-spacing:.5px;}
+  .ap-list{display:flex;flex-direction:column;gap:7px;}
+  .ap-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 4px;border-bottom:1px dashed var(--panel-line);}
+  .ap-name{font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--ink);letter-spacing:1px;}
+  .ap-name i{display:block;font-style:normal;font-size:10.5px;color:var(--ink-faint);letter-spacing:0;margin-top:1px;}
+  .ap-ctrl{display:flex;align-items:center;gap:12px;}
+  .ap-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--btn-line);background:var(--btn);color:var(--seal);font-size:18px;line-height:1;cursor:pointer;transition:.15s;font-family:inherit;}
+  .ap-btn:hover:not(:disabled){background:rgba(158,59,46,.12);border-color:rgba(158,59,46,.5);}
+  .ap-btn:disabled{opacity:.32;cursor:default;}
+  .ap-val{font-family:"STKaiti","KaiTi",serif;font-size:18px;font-weight:700;color:var(--ink);min-width:24px;text-align:center;}
+  .cr-actions{display:flex;justify-content:center;margin-top:16px;}
+  .op-text{font-family:"STKaiti","KaiTi",serif;font-size:16px;line-height:2.05;color:var(--ink);letter-spacing:1px;min-height:220px;padding:6px 2px;}
+  .op-line{margin:0 0 2px;}
 </style>
 </head>
 <body>
@@ -1117,6 +1145,33 @@ window.onerror=function(msg,url,line,col,err){
   if(typeof settings.titleFx!=='boolean') settings.titleFx=true;
   function saveSettings(){ try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){} }
   var SHICHEN=['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'];
+
+  // ===== 捏人 / 开场序章 =====
+  var APT_DEFS=[
+    {k:'jinli',  n:'劲力', t:'主攻击'},
+    {k:'gengu',  n:'根骨', t:'主气血·防御'},
+    {k:'shenfa', n:'身法', t:'主身法速度'},
+    {k:'wuxing', n:'悟性', t:'主内力·武学领悟'},
+    {k:'fuyuan', n:'福缘', t:'主奇遇·掉落'},
+    {k:'gongfa', n:'功法亲和', t:'主招式研习'}
+  ];
+  var APT_NAME={jinli:'劲力',gengu:'根骨',shenfa:'身法',wuxing:'悟性',fuyuan:'福缘',gongfa:'功法亲和'};
+  var ORIGINS=[
+    {id:'bianjun', name:'边军子弟', desc:'渔阳边塞行伍出身，弓马娴熟、皮糙肉厚', apt:{jinli:1,gengu:1,shenfa:1}},
+    {id:'hanmen',  name:'寒门书生', desc:'耕读传家，通文墨而心性坚韧', apt:{wuxing:2,fuyuan:1}},
+    {id:'youxia',  name:'市井游侠', desc:'走惯江湖的散人，见多识广、手腕活络', apt:{shenfa:1,fuyuan:1,gongfa:1}},
+    {id:'shoulie', name:'山林猎户', desc:'燕山猎户之子，攀山越岭身手极敏捷', apt:{shenfa:2,jinli:1}},
+    {id:'shangjia',name:'商贾之子', desc:'往来边市的商旅之后，财货充裕', apt:{fuyuan:2,gongfa:1}, gold:30}
+  ];
+  var ORIGINS_BY_ID={}; ORIGINS.forEach(function(o){ORIGINS_BY_ID[o.id]=o;});
+  var CREATE_POOL=15, APT_BASE=5, APT_MAX=10;
+  var PROLOGUE='光和元年，汉室倾颓之象已显。'+'\n'+
+    '宦官弄权于朝，党锢之祸未消；凉州边将拥兵，幽冀流民载道。'+'\n'+
+    '黄巾之祸尚在十年之后，而天下将乱的烽烟，已起于青苹之末。'+'\n'+
+    '你本江湖散人，因避祸或求道，行脚至渔阳以北的燕山之口——'+'\n'+
+    '北望塞外，鲜卑牧马；南顾中原，星火将燃。'+'\n'+
+    '这一日，你束紧行囊，决意踏入这即将翻覆的江湖。';
+  var pendingSlot=0, pendingSave=null, createState=null;
 
   // ===== 历法（农历为主 · 公历为对照锚点）与天候 =====
   var LUNAR_MONTHS=['正','二','三','四','五','六','七','八','九','十','冬','腊'];
@@ -2663,6 +2718,106 @@ window.onerror=function(msg,url,line,col,err){
     }
     return h;
   }
+  // ===== 捏人 / 开场序章 =====
+  function initCreateState(){
+    var apt={}; APT_DEFS.forEach(function(a){ apt[a.k]=0; });
+    createState={ name:'', origin:null, apt:apt, pool:CREATE_POOL };
+  }
+  function effApt(k){
+    var o=createState.origin? (ORIGINS_BY_ID[createState.origin].apt[k]||0) : 0;
+    return Math.max(1, Math.min(APT_MAX, APT_BASE+o+createState.apt[k]));
+  }
+  function beginCreate(slot){
+    pendingSlot=slot||0;
+    initCreateState();
+    openModal('create');
+  }
+  function renderCreateHTML(){
+    if(!createState) initCreateState();
+    var originCards=ORIGINS.map(function(or){
+      var bonus=[];
+      if(or.apt) Object.keys(or.apt).forEach(function(k){ bonus.push((APT_NAME[k]||k)+'+'+or.apt[k]); });
+      if(or.gold) bonus.push('金+'+or.gold);
+      return '<div class="og-card'+(createState.origin===or.id?' on':'')+'" data-id="'+or.id+'">'+
+        '<div class="og-name">'+or.name+'</div>'+
+        '<div class="og-desc">'+or.desc+'</div>'+
+        '<div class="og-bonus">'+(bonus.join('  ')||'—')+'</div>'+
+      '</div>';
+    }).join('');
+    var aptRows=APT_DEFS.map(function(a){
+      var v=effApt(a.k);
+      var disMin=(v<=1), disMax=(v>=APT_MAX || createState.pool<=0);
+      return '<div class="ap-row">'+
+        '<span class="ap-name">'+a.n+'<i>'+a.t+'</i></span>'+
+        '<div class="ap-ctrl">'+
+          '<button class="ap-btn" data-act="dec" data-k="'+a.k+'"'+(disMin?' disabled':'')+'>−</button>'+
+          '<b class="ap-val">'+v+'</b>'+
+          '<button class="ap-btn" data-act="inc" data-k="'+a.k+'"'+(disMax?' disabled':'')+'>＋</button>'+
+        '</div></div>';
+    }).join('');
+    return '<h3>落 笔 · 捏 人</h3>'+
+      '<div class="cr-field"><label>姓名</label><input id="cr-name" class="cr-input" maxlength="8" placeholder="无名客"></div>'+
+      '<div class="cr-sec"><div class="cr-sec-t">出 身<span class="cr-pool">禀赋赠先天资质</span></div><div class="og-grid">'+originCards+'</div></div>'+
+      '<div class="cr-sec"><div class="cr-sec-t">先 天 资 质<span class="cr-pool">可分配 <b id="cr-pool">'+createState.pool+'</b> 点（基础 '+APT_BASE+'，范围 1–'+APT_MAX+'）</span></div><div class="ap-list">'+aptRows+'</div></div>'+
+      '<p class="tip">资质不计入即时战力，却决定日后破境成长之底色：劲力主攻击、根骨主气血防御、身法主速度、悟性主内力与武学领悟、福缘主奇遇掉落、功法亲和主招式研习。</p>'+
+      '<div class="cr-actions"><button class="close" id="cr-go">落 笔 入 世</button></div>';
+  }
+  function bindCreate(){
+    var nameEl=document.getElementById('cr-name');
+    if(nameEl){ nameEl.value=createState.name||''; nameEl.oninput=function(){ createState.name=nameEl.value; };
+      nameEl.onkeydown=function(e){ if(e&&e.key==='Enter'){ var g=document.getElementById('cr-go'); if(g) g.click(); } }; }
+    $card.querySelectorAll('.og-card').forEach(function(c){
+      c.onclick=function(){ createState.origin=(createState.origin===c.getAttribute('data-id'))?null:c.getAttribute('data-id'); openModal('create'); };
+    });
+    $card.querySelectorAll('.ap-btn').forEach(function(b){
+      b.onclick=function(){
+        var k=b.getAttribute('data-k'), act=b.getAttribute('data-act');
+        if(act==='inc'){ if(createState.pool>0 && effApt(k)<APT_MAX){ createState.apt[k]++; createState.pool--; } }
+        else { if(effApt(k)>1){ createState.apt[k]--; createState.pool++; } }
+        openModal('create');
+      };
+    });
+    var go=document.getElementById('cr-go'); if(go) go.onclick=confirmCreate;
+  }
+  function confirmCreate(){
+    var name=(createState.name||'').trim()||'无名客';
+    var apt={}; APT_DEFS.forEach(function(a){ apt[a.k]=effApt(a.k); });
+    var save=G.defaultSave();
+    save.name=name; save.apt=apt;
+    if(createState.origin){
+      var or=ORIGINS_BY_ID[createState.origin];
+      if(or.gold) save.gold=(save.gold||0)+or.gold;
+    }
+    save.origin=createState.origin||null;
+    pendingSave=save;
+    openModal('opening');
+  }
+  function renderOpeningHTML(){
+    return '<h3>序 章 · 光和元年</h3>'+
+      '<div class="op-text" id="op-text"></div>'+
+      '<div class="cr-actions"><button class="close hidden" id="op-go">踏 入 江 湖</button></div>';
+  }
+  function startOpeningType(){
+    var node=document.getElementById('op-text'); var btn=document.getElementById('op-go');
+    if(!node) return; if(btn) btn.classList.add('hidden');
+    var lines=PROLOGUE.split('\n');
+    (function typeLine(li){
+      if(li>=lines.length){ if(btn) btn.classList.remove('hidden'); return; }
+      var span=document.createElement('div'); span.className='op-line'; node.appendChild(span);
+      var text=lines[li], j=0;
+      (function step(){
+        span.textContent=text.slice(0,j);
+        if(j<text.length){ j++; setTimeout(step, 30); }
+        else { setTimeout(function(){ typeLine(li+1); }, 240); }
+      })();
+    })(0);
+  }
+  function bindOpening(){
+    startOpeningType();
+    var btn=document.getElementById('op-go');
+    if(btn) btn.onclick=function(){ clearSlot(pendingSlot); enterGame(pendingSave, pendingSlot); closeModal(); };
+  }
+
   function openModal(kind, opts){
     if(state && state.dead){ die(); return; }
     // 打开任何弹窗时先移除战斗红光氛围，防止满血/非战斗画面泛红
@@ -2674,6 +2829,7 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='char'){
       h='<h3>角 色</h3>'+
         row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '未入门 · 江湖散人')+
+        row('出身',(state.origin && ORIGINS_BY_ID[state.origin])?ORIGINS_BY_ID[state.origin].name:'布衣 · 江湖散人')+
         row('等级','LV.'+state.level)+
         row('气血',state.hp+' / '+effectiveStats().maxHp)+
         row('内力',state.mp+' / '+state.maxMp)+
@@ -2742,6 +2898,11 @@ window.onerror=function(msg,url,line,col,err){
           '<div class="clk-row"><span>公历</span><b>公元'+c.adYear+'年 '+c.gregMonth+'月'+c.gregDay+'日 · 星期'+c.wk+'</b></div>'+
         '</div>'+
         '<p class="tip">子时居顶（夜半），午时居底（正午）；卯时朝阳在东、酉时落日于西。</p>';
+    } else if(kind==='create'){
+      if(!createState) initCreateState();
+      h=renderCreateHTML();
+    } else if(kind==='opening'){
+      h=renderOpeningHTML();
     } else if(kind==='newgame'){
       h=renderSlotsHTML('new');
     } else if(kind==='load'){
@@ -2754,6 +2915,8 @@ window.onerror=function(msg,url,line,col,err){
       h=renderCredit();
     }
     $card.innerHTML=h+'<button class="close" id="m-close">收 起</button>';
+    if(kind==='create') bindCreate();
+    if(kind==='opening') bindOpening();
     $modal.classList.remove('hidden');
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
@@ -2773,7 +2936,7 @@ window.onerror=function(msg,url,line,col,err){
             el.classList.add('on-confirm');
             return;
           }
-          clearSlot(slot); enterGame(G.defaultSave(), slot); closeModal();
+          beginCreate(slot);
         } else {
           if(!slotExists(slot)){ toast('此卷尚空，无可续之缘'); return; }
           enterGame(rawSlot(slot), slot); closeModal();
