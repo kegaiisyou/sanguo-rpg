@@ -598,6 +598,16 @@
     // ─── 执行一回合（手动：传入 actionId；自动：AI 自选） ───
     playTurn: function(actionId) {
       var log = [];
+      // 给每条战斗日志在「出招当时」即时打上血量快照：回放端据此严格随出招顺序正向渲染血条，
+      // 消除「整回合末 / 终态统一快照」导致的 buff/debuff/system 日志血量提前跳变（手动与自动战斗通用）
+      var _snap = this;
+      var _origPush = log.push.bind(log);
+      log.push = function (entry) {
+        entry = entry || {};
+        if (typeof entry.eHp !== 'number') entry.eHp = _snap.state.enemy.hp;
+        if (typeof entry.pHp !== 'number') entry.pHp = _snap.state.player.hp;
+        return _origPush(entry);
+      };
       this.state.log = [];
       this.state.round++;
       var stunnedThisTurn = !!this.state.player.stunNext;
@@ -729,10 +739,7 @@
 
       while (maxRounds-- > 0) {
         var log = this.playTurn('__auto__');
-        // 给每条回放日志附带「该回合结束后」的血量快照，
-        // 前端回放直接读快照设血条，避免从终态反向扣血导致的血条异常
-        var eHp = this.state.enemy.hp, pHp = this.state.player.hp;
-        log.forEach(function(e) { e.eHp = eHp; e.pHp = pHp; });
+        // 每条日志已由 playTurn 在出招当时打上血量快照（见 playTurn 内 log.push 包裹），回放直接正向渲染
         fullLog.push.apply(fullLog, log);
         if (this.state.result) break;
       }
