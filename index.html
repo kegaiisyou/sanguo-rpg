@@ -1059,6 +1059,7 @@
   body.onb.reveal-loctab #loc-tab{ display:block !important; }
   body.onb.reveal-actions #actions{ display:flex !important; }
   body.onb.reveal-actions #npc-list{ display:flex !important; }
+  body.onb.reveal-npc #npc-list{ display:flex !important; }
   body.onb.reveal-lower #lower{ display:flex !important; }
   body.onb.reveal-dock #dock{ display:flex !important; }
   .onb-glow{ animation:onbPulse 1.1s ease-in-out infinite; border-radius:10px; }
@@ -1074,6 +1075,25 @@
   *{ -webkit-touch-callout:none; }
   /* 拦截双击缩放（iOS Safari 会忽略 user-scalable=no，需 JS 阻止默认）所依赖的单击计时 */
   .no-zoom-guard{ touch-action:none; }
+  /* ===== 引导战斗卡（脚本化教学战斗，复用战斗卡观感） ===== */
+  #tut-combat{ position:relative; margin:10px 12px; padding:10px; border:1px solid rgba(196,164,102,.4); border-radius:10px; background:linear-gradient(180deg,#241c12,#1a140d); box-shadow:0 6px 18px rgba(0,0,0,.45); }
+  #tut-combat .c-roster{ display:flex; flex-direction:column; gap:8px; }
+  #tut-combat .c-enemy,#tut-combat .c-player{ display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:rgba(0,0,0,.25); }
+  #tut-combat .ec-fig,#tut-combat .ec-fig-p{ width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; background:#3a2e1c; color:#e8c878; border:1px solid #8a6f3e; flex:0 0 auto; }
+  #tut-combat .ec-name,#tut-combat .cp-name{ font-size:14px; color:#f0e2c0; }
+  #tut-combat .ec-info{ flex:1; }
+  #tut-combat .ec-hp,#tut-combat .cp-bar{ display:flex; align-items:center; gap:6px; font-size:11px; color:#cdb98c; }
+  #tut-combat .c-bar,#tut-combat .cp-track{ flex:1; height:8px; background:rgba(0,0,0,.4); border-radius:5px; overflow:hidden; }
+  #tut-combat .c-hpfill{ height:100%; width:100%; background:linear-gradient(90deg,#c0392b,#e67e22); }
+  #tut-combat .cp-fill.hp{ height:100%; background:linear-gradient(90deg,#27ae60,#2ecc71); }
+  #tut-combat .c-round{ text-align:center; color:#e8c878; font-size:12px; margin:8px 0; font-family:"STKaiti",serif; letter-spacing:2px; }
+  #tut-combat .c-act{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:4px; }
+  #tut-combat .tut-act{ flex:1; min-width:62px; padding:10px 6px; border-radius:9px; border:1px solid #8a6f3e; background:linear-gradient(180deg,#4a3c24,#2e2415); color:#f0e2c0; font-size:13px; cursor:pointer; }
+  #tut-combat .tut-act:active{ transform:translateY(1px); }
+  #tut-combat .tut-act.onb-glow{ box-shadow:0 0 0 3px rgba(232,200,120,.9),0 0 18px rgba(232,200,120,.5); }
+  /* ===== 教学链回头路变暗（被追兵挡住） ===== */
+  .mv-exit.mv-blocked{ opacity:.28; filter:grayscale(1); }
+  .mv-exit.mv-blocked:active{ transform:none; }
 </style>
 </head>
 <body>
@@ -1526,7 +1546,8 @@ window.onerror=function(msg,url,line,col,err){
     // 开场渐进式 UI：新局落在教学入口时，先进入空白引导态（隐藏顶栏/DOCK/行动区/罗盘）
     if((state.room==='ys_entrance'||state.spawnRoom==='ys_entrance') && !(state.flags && state.flags.onb && state.flags.onb.done)){
       if(!state.flags) state.flags={};
-      if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[]};
+      if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
+      onbReveal('npc');   // 教学期间老乞丐始终可交谈（常驻 NPC）
       applyOnboard();
     }
     renderRoom(state.room || state.spawnRoom || 'ji_guomen');
@@ -2038,7 +2059,10 @@ window.onerror=function(msg,url,line,col,err){
   function renderRoom(rid, silent){
     var room=G.ROOMS[rid]; if(!room) return;
     state.room=rid;
-    if(state.flags && state.flags.onb && !state.flags.onb.done && rid==='ys_entrance'){ startOnboardingIntro(room); return; }
+    if(state.flags && state.flags.onb && !state.flags.onb.done){
+      if(rid==='ys_entrance'){ startOnboardingIntro(room); return; }
+      if(rid==='ys_ne' && !state.flags.onb.tcDone){ startTutorialBattle(room); return; }
+    }
     if(combatCardEl){ if(combatCardEl.parentNode) combatCardEl.parentNode.removeChild(combatCardEl); combatCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
@@ -2067,8 +2091,8 @@ window.onerror=function(msg,url,line,col,err){
     save(state); renderStatus();
     // 叙事逐行串行播放（按钮已先就绪，文字依次刷出，不再同时眼花）
     logScene(narr, 150, function(){
-      // 教学链按房间逐一点亮对应 UI（引导先出，功能后给）
-      onbTeachOnRoom(room);
+      // 教学链：进入房间后触发对应引导（如燕山山口逃脱）
+      onbRoomEnter(room);
       // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
       if(room.patrol && !silent) maybeAmbush(room);
     });
@@ -2327,62 +2351,9 @@ window.onerror=function(msg,url,line,col,err){
       {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾后寨'},
       {type:'exit', dir:'南', icon:'🚪', name:'南·聚义厅', desc:'退回聚义厅', actions:[{label:'退回聚义厅', fn:function(){ move('南','ji_heishan_juyi'); }}]}
     ],
-    // ═══ 开场教学 · 燕山小村落（八方向绕圈链） ═══
-    ys_entrance:[
-      {type:'npc', key:'beggar_old', icon:'🧙', name:'老乞丐', desc:'衣衫褴褛，醉眼却精光四射，方才拽你进灶影', actions:[
-        {label:'〔正经〕多谢前辈救命之恩', fn:function(){ tutorialQuip('serious'); }},
-        {label:'〔不正经〕喂——系统？如来神掌安排一下？', fn:function(){ tutorialQuip('joking'); }},
-        {label:'〔沉默〕……（装死）', fn:function(){ tutorialQuip('silent'); }},
-        {label:'请前辈赐教几手拳脚', fn:function(){ tutorialTeachFist(); }, tip:'老乞丐授你一套无名拳法'},
-        {label:'前辈给的行军散呢？', fn:function(){ tutorialGiveMedicine(); }, tip:'老乞丐塞来一瓶行军散'},
-        {label:'我这是……在哪？', fn:function(){ tutorialHintStatus(); }}
-      ]},
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾村口', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'北', icon:'🚪', name:'北·北巷', desc:'窄巷向北，马蹄声渐密', actions:[{label:'前往北巷', fn:function(){ move('北','ys_north'); }}]}
-    ],
-    ys_north:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾北巷', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'东北', icon:'🚪', name:'东北·猎棚', desc:'棚后小径往东北', actions:[{label:'前往猎棚', fn:function(){ move('东北','ys_ne'); }}]},
-      {type:'exit', dir:'南', icon:'↩️', name:'南·村口', desc:'退回村口', actions:[{label:'返回村口', fn:function(){ move('南','ys_entrance'); }}]}
-    ],
-    ys_ne:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾猎棚', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'东', icon:'🚪', name:'东·溪桥', desc:'东去溪桥', actions:[{label:'前往溪桥', fn:function(){ move('东','ys_east'); }}]},
-      {type:'exit', dir:'西南', icon:'↩️', name:'西南·北巷', desc:'退回北巷', actions:[{label:'返回北巷', fn:function(){ move('西南','ys_north'); }}]}
-    ],
-    ys_east:[
-      {type:'feature',key:'fight', icon:'⚔️', name:'与太平道流民对峙', desc:'三名黄巾流民拦路', actions:[{label:'上前迎敌（剧情）', fn:function(){ tutorialWound(); }, tip:'击退流民，却也负伤'}]},
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾溪桥', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'东南', icon:'🚪', name:'东南·田垄', desc:'南去田垄', actions:[{label:'前往田垄', fn:function(){ move('东南','ys_se'); }}]},
-      {type:'exit', dir:'西', icon:'↩️', name:'西·猎棚', desc:'退回猎棚', actions:[{label:'返回猎棚', fn:function(){ move('西','ys_ne'); }}]}
-    ],
-    ys_se:[
-      {type:'feature',key:'hint', icon:'❗', name:'老乞丐替你检视伤口', desc:'老乞丐教你查看自身状态', actions:[{label:'听老乞丐讲解「角色」', fn:function(){ tutorialHintStatus(); }}]},
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾田垄', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'南', icon:'🚪', name:'南·磨坊', desc:'南去磨坊', actions:[{label:'前往磨坊', fn:function(){ move('南','ys_south'); }}]},
-      {type:'exit', dir:'西北', icon:'↩️', name:'西北·溪桥', desc:'退回溪桥', actions:[{label:'返回溪桥', fn:function(){ move('西北','ys_east'); }}]}
-    ],
-    ys_south:[
-      {type:'feature',key:'use', icon:'💊', name:'老乞丐叮嘱用药', desc:'引导打开行囊使用行军散', actions:[{label:'听老乞丐讲「行囊」', fn:function(){ tutorialHintPack(); }}]},
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾磨坊', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'西南', icon:'🚪', name:'西南·谷场', desc:'西去谷场', actions:[{label:'前往谷场', fn:function(){ move('西南','ys_sw'); }}]},
-      {type:'exit', dir:'北', icon:'↩️', name:'北·田垄', desc:'退回田垄', actions:[{label:'返回田垄', fn:function(){ move('北','ys_se'); }}]}
-    ],
-    ys_sw:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾谷场', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'西', icon:'🚪', name:'西·柴院', desc:'西去柴院', actions:[{label:'前往柴院', fn:function(){ move('西','ys_west'); }}]},
-      {type:'exit', dir:'东北', icon:'↩️', name:'东北·磨坊', desc:'退回磨坊', actions:[{label:'返回磨坊', fn:function(){ move('东北','ys_south'); }}]}
-    ],
-    ys_west:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾柴院', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'西北', icon:'🚪', name:'西北·哨所', desc:'西北去哨所', actions:[{label:'前往哨所', fn:function(){ move('西北','ys_nw'); }}]},
-      {type:'exit', dir:'东', icon:'↩️', name:'东·谷场', desc:'退回谷场', actions:[{label:'返回谷场', fn:function(){ move('东','ys_sw'); }}]}
-    ],
-    ys_nw:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾哨所', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit', dir:'北', icon:'🏔️', name:'北·燕山山口', desc:'出山，投身江湖', actions:[{label:'走出燕山', fn:function(){ move('北','yanshan_shankou'); }}]},
-      {type:'exit', dir:'东南', icon:'↩️', name:'东南·柴院', desc:'退回柴院', actions:[{label:'返回柴院', fn:function(){ move('东南','ys_west'); }}]}
-    ]
+    // ═══ 开场教学房间（ys_*）不再在此定义对象 ═══
+    // 引导改由「老乞丐对话（tutorialBeggarTalk）+ 移动条（ONB_CHAIN 变暗回头路）」驱动，
+    // 走下方 fallback：仅渲染移动条 + 左侧 room.npcs 里的老乞丐，避免与对话引导重复/冲突。
   };
 
   // 研习武学仅限特定房间（主营/郡学宫）
@@ -2548,6 +2519,8 @@ window.onerror=function(msg,url,line,col,err){
   var DIR_ARROW={'北':'↑','南':'↓','东':'→','西':'←','东北':'↗','西北':'↖','东南':'↘','西南':'↙'};
   // 方向 → 罗盘 3×3 网格坐标 [行,列]（上北下南左西右东）
   var DIR_GRID={'北':[1,2],'东北':[1,3],'东':[2,3],'东南':[3,3],'南':[3,2],'西南':[3,1],'西':[2,1],'西北':[1,1]};
+  // 教学链线性顺序：仅开放前进方向，回头路变暗（被追兵挡住）
+  var ONB_CHAIN=['ys_entrance','ys_north','ys_ne','ys_east','ys_se','ys_south','ys_sw','ys_west','ys_nw','yanshan_shankou'];
   function renderMoveBar(room){
     var bar=document.getElementById('move-bar'); if(!bar) return;
     bar.innerHTML=''; bar.classList.remove('pulse','has-exits');
@@ -2557,14 +2530,20 @@ window.onerror=function(msg,url,line,col,err){
     // 中心：当前所在
     var ctr=document.createElement('div'); ctr.className='mv-center'; ctr.textContent='你在此';
     bar.appendChild(ctr);
+    // 教学链：仅开放前进方向，回头路变暗（被追兵挡住，点之提示逃跑）
+    var onb=state.flags&&state.flags.onb;
+    var fwd=null;
+    if(onb && !onb.done){ var ci=ONB_CHAIN.indexOf(room.id); if(ci>=0 && ci<ONB_CHAIN.length-1) fwd=ONB_CHAIN[ci+1]; }
     exits.forEach(function(o){
       var tid=o.tid || (room.exits && room.exits[o.dir]);
       var g=DIR_GRID[o.dir]||[2,2];
+      var blocked = fwd && tid!==fwd;
       var b=document.createElement('button');
-      b.className='mv-exit e-'+o.dir+(o.kind?(' '+o.kind):'');
+      b.className='mv-exit e-'+o.dir+(o.kind?(' '+o.kind):'')+(blocked?' mv-blocked':'');
       b.style.gridRow=g[0]; b.style.gridColumn=g[1];
       b.innerHTML='<span class="mv-arrow">'+(DIR_ARROW[o.dir]||'➤')+'</span><span class="mv-nm">'+stripDir(o.name)+'</span>';
-      b.onclick=function(){ move(o.dir, tid); };
+      if(blocked){ b.onclick=function(){ toast('乌桓骑兵追来！此刻不能回头，快往前逃！'); }; }
+      else { b.onclick=function(){ move(o.dir, tid); }; }
       bar.appendChild(b);
     });
   }
@@ -2590,6 +2569,7 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 行走探索 =====
   function move(dir, tid){
+    if(document.getElementById('tut-combat')){ toast('正与乌桓游骑缠斗，先应敌！'); return; }
     if(!exert('远行')) return;
     state.energy=Math.max(0,state.energy-4);
     state.food=Math.max(0,state.food-1);
@@ -2597,7 +2577,6 @@ window.onerror=function(msg,url,line,col,err){
     advanceTime(1);
     log('你朝'+dir+'方行去，沿途景物渐换……','sys');
     renderRoom(tid);
-    if(state.flags && state.flags.onb && !state.flags.onb.done && tid==='yanshan_shankou') finishOnboarding();
   }
 
   // ===== NPC 态度（由善恶双轴驱动，GAME_DESIGN 4.2） =====
@@ -2623,9 +2602,10 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // ===== NPC 对话 =====
-  function talk(k){
-    var n=G.DIALOGUES.npcs[k];
-    if(!n) return;
+function talk(k){
+  if(state.flags && state.flags.onb && !state.flags.onb.done && k==='beggar_old'){ tutorialBeggarTalk(); return; }
+  var n=G.DIALOGUES.npcs[k];
+  if(!n) return;
     var at=npcAttitude(k);
     log('〔'+n.name+'·态度：'+at+'〕','npc');
     if(at==='敌视'){
@@ -2788,49 +2768,6 @@ window.onerror=function(msg,url,line,col,err){
   }
   function row(k,v){return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>';}
   // 行囊装备面板（P1 完整）
-  // ===== 开场教学 · 燕山小村落 辅助函数 =====
-  function tutorialQuip(kind){
-    if(!state.flags) state.flags={};
-    if(state.flags._quip_done){ log('（你已表过态了，老乞丐嗬嗬一笑。）','sys'); return; }
-    state.flags._quip_done=true; state.flags.personality=kind;
-    if(kind==='serious'){ log('你整了整衣衫，正色道：「多谢前辈救命之恩，晚辈没齿难忘。」','player'); log('老乞丐嗬嗬一笑：「正经小子，倒是少见。」','npc'); }
-    else if(kind==='joking'){ log('你四下张望，脱口便道：「喂——系统？呼叫系统！如来神掌给安排一下？」','player'); log('老乞丐一愣，随即笑骂：「瞎咧咧啥，老子又不是那劳什子系统。先顾好你这小命罢！」','npc'); }
-    else { log('你闭眼装死，一声不吭。','player'); log('老乞丐戳了戳你：「装死可不顶用，小叫花。」','npc'); }
-    save(state);
-  }
-  function tutorialTeachFist(){
-    if(state.learnedMartial.indexOf('wu_ming_quan')>=0){ log('老乞丐摆手：「这套拳你已学了，自己多练。」','npc'); return; }
-    state.learnedMartial.push('wu_ming_quan');
-    state.lines.fist=Math.max(state.lines.fist||0,1);
-    log('老乞丐随手比划一套平平无奇的拳脚：「记着——拳贵直、劲贵整，先求稳，再求狠。这便当是本钱。」','npc');
-    log('【习得】无名拳法！（已收入武学，可在「角色」查看，战斗中以拳脚施展）','good');
-    save(state); renderStatus();
-  }
-  function tutorialGiveMedicine(){
-    if(!state.items) state.items=[];
-    var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='xingjun_san'){ ex=state.items[i]; break; } }
-    if(ex){ log('老乞丐又摸出一瓶行军散：「还有，收好。」','npc'); ex.count=(ex.count||1)+1; }
-    else { state.items.push({id:'xingjun_san',name:'行军散',count:1,cat:'药剂',effect:{hp:80}}); log('老乞丐从怀里摸出个小瓷瓶塞给你：「行军散，疗伤的，紧要时别忘用。」','npc'); }
-    save(state); renderStatus(); openModal('pack');
-  }
-  function tutorialHintStatus(){
-    log('老乞丐敲了敲你脑壳：「傻小子，点下头底下那个『角色』，你自个儿气血内力、几斤几两，全在上头亮着呢。」','npc');
-    log('〔引导〕点击右下角「角色」图标，查看自身气血 / 内力 / 精力等状态。','sys');
-  }
-  function tutorialHintPack(){
-    log('老乞丐指了指你怀里的瓷瓶：「点『行囊』，把那瓶行军散使了，气血便回得来。」','npc');
-    log('〔引导〕点击右下角「行囊」图标，找到「行军散」，点「使用」恢复气血。','sys');
-  }
-  function tutorialWound(){
-    if(!state.flags) state.flags={};
-    if(state.flags._wounded){ log('溪桥上已无流民踪影，只余凌乱脚印。','sys'); return; }
-    state.flags._wounded=true;
-    log('三名太平道流民挥刀扑来！你护住要害，与老乞丐合力将其击退，肩头却挨了一记，血当即涌了出来。','npc');
-    var maxhp=effectiveStats().maxHp; var dmg=Math.max(1, Math.floor(maxhp*0.6));
-    state.hp=Math.max(1, state.hp-dmg);
-    log('【负伤】气血 -'+dmg+'（当前 '+state.hp+'/'+maxhp+'）。老乞丐撕下衣襟替你裹伤。','bad');
-    save(state); renderStatus();
-  }
   function useItemOutside(id){
     if(!state.items||!state.items.length){ toast('背包空空，未携一物'); return; }
     var idx=-1; for(var i=0;i<state.items.length;i++){ if(state.items[i].id===id){ idx=i; break; } }
@@ -2847,7 +2784,7 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // ===== 开场渐进式 UI 揭示（空白 → 文字 → 选项 → 逐一点亮功能） =====
-  var ONB_LAYERS=['status','loctab','actions','lower','dock'];
+  var ONB_LAYERS=['status','loctab','actions','lower','dock','npc'];
   function applyOnboard(){
     if(!state.flags || !state.flags.onb || state.flags.onb.done){
       document.body.classList.remove('onb');
@@ -2864,70 +2801,82 @@ window.onerror=function(msg,url,line,col,err){
     applyOnboard(); save(state);
   }
   function highlightOnb(layer){
-    var id = layer==='status' ? 'status' : (layer==='dock' ? 'dock' : 'lower');
+    var id = layer==='status' ? 'status' : (layer==='dock' ? 'dock' : layer==='npc' ? 'npc-list' : layer==='loctab' ? 'loc-tab' : 'lower');
     var el=document.getElementById(id);
     if(!el) return;
     el.classList.add('onb-glow');
     setTimeout(function(){ el.classList.remove('onb-glow'); }, 4200);
   }
-  function showOnboardChoices(){
-    removeOnboardChoices();
+  // （旧 showOnboardChoices / removeOnboardChoices 已废弃：开场改为与老乞丐对话驱动）
+  function tutAsk(prompt, options){
+    removeTutChoices();
     var app=document.getElementById('app'), lower=document.getElementById('lower');
     if(!app||!lower) return;
-    var box=document.createElement('div'); box.id='onboard-choices'; box.className='onb-choices';
-    box.innerHTML='<div class="onb-prompt">（你望向老乞丐，喉头动了动——）</div>'+
-      '<button class="onb-btn" id="onb-a">多谢前辈救命之恩</button>'+
-      '<button class="onb-btn" id="onb-b">我……这是穿越了吗？我这是在哪里？</button>';
+    var box=document.createElement('div'); box.id='tut-choices'; box.className='onb-choices';
+    box.innerHTML='<div class="onb-prompt">'+(prompt||'')+'</div>';
+    options.forEach(function(o){
+      var b=document.createElement('button'); b.className='onb-btn'; b.textContent=o.label;
+      b.onclick=function(){ removeTutChoices(); o.fn(); };
+      box.appendChild(b);
+    });
     app.insertBefore(box, lower);
-    document.getElementById('onb-a').onclick=function(){ onbChoose('serious'); };
-    document.getElementById('onb-b').onclick=function(){ onbChoose('transmigrator'); };
   }
-  function removeOnboardChoices(){
-    var b=document.getElementById('onboard-choices'); if(b&&b.parentNode) b.parentNode.removeChild(b);
-  }
-  function onbChoose(kind){
-    var ob=state.flags.onb; if(ob.phase==='chosen') return;
-    ob.personality=kind; ob.phase='chosen';
-    removeOnboardChoices();
-    if(kind==='serious'){
-      ob.favor=(ob.favor||0)+1;
-      logScene([
-        {t:'你挣扎坐起，朝老乞丐郑重一揖：「多谢前辈救命之恩，晚辈没齿难忘。」',c:'player'},
-        {t:'老乞丐打量你一眼，嗬嗬笑道：「小乞丐还挺有良心的。」',c:'npc',n:'老乞丐'},
-        {t:'他神色一凛，压低嗓子：「但此处不是说话的地方——随老夫撤出村去！」',c:'npc',n:'老乞丐'},
-        {t:'〔已点亮下方「出行」罗盘，亮起的方位即可前往。先随老乞丐出村。〕',c:'sys'}
-      ], 900, function(){ onbReveal('lower'); highlightOnb('lower'); });
-    } else {
-      logScene([
-        {t:'你捂着脑袋，脱口道：「我……这是穿越了吗？我这是在哪里？」',c:'player'},
-        {t:'老乞丐一愣，凑近眯眼瞧你：「穿……越？你这小子莫不是摔糊涂了，连自个在燕山脚下都不晓得？」',c:'npc',n:'老乞丐'},
-        {t:'「先看清你自个儿如今是啥光景——上头的气血时辰，便是你的命脉。」',c:'npc',n:'老乞丐'},
-        {t:'〔已点亮顶部「状态栏」，你的气血 / 内力 / 时辰都在上头。〕',c:'sys'}
-      ], 900, function(){
-        onbReveal('status'); highlightOnb('status');
-        setTimeout(function(){
-          logScene([
-            {t:'老乞丐揪你起身：「瞧够了没？此地不宜久留，随老夫撤出村去！」',c:'npc',n:'老乞丐'},
-            {t:'〔已点亮下方「出行」罗盘，亮起的方位即可前往。先随老乞丐出村。〕',c:'sys'}
-          ], 900, function(){ onbReveal('lower'); highlightOnb('lower'); });
-        }, 1800);
-      });
+  function removeTutChoices(){ var b=document.getElementById('tut-choices'); if(b&&b.parentNode) b.parentNode.removeChild(b); }
+  function tutorialBeggarTalk(){
+    var ob=state.flags.onb; if(ob.done) return;
+    if(state.room==='ys_entrance'){
+      if(ob.talked.entrance){ log('老乞丐低声：「别磨蹭，往北撤——点下头罗盘上的『北』。」','npc','老乞丐'); return; }
+      ob.talked.entrance=true; save(state);
+      log('老乞丐压着嗓子：「此地不宜久留，乌桓游骑顷刻便至——随老夫往北撤！」','npc','老乞丐');
+      tutAsk('你要如何应他？', [
+        {label:'多谢前辈救命之恩，晚辈听您吩咐。', fn:function(){
+          ob.personality='serious'; ob.favor=(ob.favor||0)+1; save(state);
+          log('你郑重一揖：「多谢前辈救命之恩，晚辈没齿难忘。」','player');
+          log('老乞丐嗬嗬一笑：「小乞丐还挺有良心——少客套，保命要紧！」','npc','老乞丐');
+          onbReveal('lower'); onbReveal('loctab'); highlightOnb('lower');
+          log('〔已点亮下方「出行」罗盘与位置名——往「北」便是北巷。〕','sys');
+        }},
+        {label:'我……这是哪里？我怎会在此？', fn:function(){
+          ob.personality='transmigrator'; save(state);
+          log('你捂着脑袋：「我……这是哪里？我怎会在此？」','player');
+          log('老乞丐一愣：「甭管哪，保命要紧！随老夫往北撤——点下头罗盘上的『北』。」','npc','老乞丐');
+          onbReveal('lower'); onbReveal('loctab'); highlightOnb('lower');
+          log('〔已点亮下方「出行」罗盘与位置名——往「北」便是北巷。〕','sys');
+        }}
+      ]);
+      return;
     }
-    save(state);
+    if(state.room==='ys_north'){
+      if(ob.talked.north){ log('老乞丐：「东北那头是猎棚，随我来，别落单。」','npc','老乞丐'); return; }
+      ob.talked.north=true; save(state);
+      log('老乞丐敲你脑壳：「先看清你自个光景——盯住上头『状态栏』，气血时辰都挂在那。」','npc','老乞丐');
+      onbReveal('status'); highlightOnb('status');
+      log('〔顶部「状态栏」已点亮——气血 / 内力 / 时辰常驻在此。〕','sys');
+      tutAsk('老乞丐问你名姓。', [
+        {label:'（随口报了个名。）', fn:function(){
+          log('你支吾报了名。老乞丐皱眉：「这叫什么名儿？罢了罢了，活下来再说。」','npc','老乞丐');
+          log('老乞丐：「东北那头是猎棚，随我来——别落单。」','npc','老乞丐');
+        }},
+        {label:'（闷声不答。）', fn:function(){
+          log('你闷不吭声。老乞丐摆手：「哑巴也好，少惹眼。东北那头是猎棚，随我来。」','npc','老乞丐');
+        }}
+      ]);
+      return;
+    }
+    if(!ob.tcDone){ log('老乞丐：「贴着我走，别声张。」','npc','老乞丐'); return; }
+    log('老乞丐：「走罢，别停。出了燕山口，江湖便大了。」','npc','老乞丐');
   }
   function startOnboardingIntro(room){
     applyOnboard();
-    buildActions(room);   // 预先填充隐藏的「出行」罗盘/状态/NPC，点亮后才可见
+    buildActions(room);   // 预先填充隐藏的罗盘/状态/NPC，点亮后才可见
     var ob=state.flags.onb;
-    // 开场分两段：先播环境+老乞丐行动，再由主角视角收尾，每段播完才给下一步，放慢节奏
-    var part1=room.desc.slice(0,2).map(function(d){ return {t:d,c:'env'}; });
-    var part2=room.desc.slice(2).map(function(d){ return {t:d,c:'env'}; });
-    logScene(part1, 900, function(){
-      if(!ob.personality){
-        showOnboardChoices();   // 看完前两段再弹选项，玩家先被带入情境
+    // 开场完整播完（含「醒来」段）再提示与老乞丐交谈，避免断档
+    var narr=room.desc.map(function(d){ return {t:d,c:'env'}; });
+    logScene(narr, 800, function(){
+      if(!ob.talked || !ob.talked.entrance){
+        log('〔老乞丐就在身侧，点左侧「老乞丐」与他交谈。〕','sys');
       } else {
-        var tail=part2.concat([{t:'（你与老乞丐屏息贴墙，只待寻隙撤出村去。）',c:'sys'}]);
-        logScene(tail, 900);
+        log('（你与老乞丐屏息贴墙，只待寻隙撤出村去。）','sys');
       }
     });
   }
@@ -2936,25 +2885,141 @@ window.onerror=function(msg,url,line,col,err){
     state.flags.onb.done=true;
     applyOnboard(); save(state);
   }
-  // 教学链按房间逐一点亮对应 UI：引导先出，功能后给
-  function onbTeachOnRoom(room){
+  // 教学链：进入房间后触发对应引导（如燕山山口逃脱）
+  function onbRoomEnter(room){
     if(!state.flags || !state.flags.onb || state.flags.onb.done) return;
     var ob=state.flags.onb;
-    if(room.id==='ys_east' && !state.flags._wounded){
-      // 东溪桥：太平道流民冲突，剧情负伤；老乞丐塞来行军散（此时仍只出行 UI）
-      tutorialWound();
-      if(!state.items) state.items=[];
-      var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='xingjun_san'){ ex=state.items[i]; break; } }
-      if(ex) ex.count++; else state.items.push({id:'xingjun_san',name:'行军散',count:1,cat:'药剂',effect:{hp:80}});
-      log('老乞丐撕下衣襟替你裹伤，又塞来个小瓷瓶：「行军散，紧要时别忘用。」','npc','老乞丐');
-      save(state); renderStatus();
-    } else if(room.id==='ys_se' && ob.reveal.indexOf('status')<0){
-      // 田垄：老乞丐让你看自己伤势 → 点亮顶部状态栏
-      setTimeout(function(){ onbReveal('status'); highlightOnb('status'); log('〔上方「状态栏」已点亮——你的气血、内力、时辰常驻在此。〕','sys'); }, 500);
-    } else if(room.id==='ys_south' && ob.reveal.indexOf('dock')<0){
-      // 磨坊：老乞丐让你用行军散 → 点亮底部行囊
-      setTimeout(function(){ onbReveal('dock'); highlightOnb('dock'); log('〔底部「行囊」已点亮——打开它，把行军散用上，气血便回得来。〕','sys'); }, 500);
+    if(room.id==='yanshan_shankou' && !ob.done){ onbEscape(room); }
+  }
+  function onbEscape(room){
+    var ob=state.flags.onb;
+    logScene([
+      {t:'二人沿乱石径疾奔，身后号角愈急。老乞丐忽然将你往隘口一推：「进了山口便是白檀屯寨，亭长盘查归盘查，总比落进乌桓手里强！」',c:'npc',n:'老乞丐'},
+      {t:'你跌撞冲出隘口，回望时，老乞丐反身迎向追兵，枯瘦的背影立在风口，如一截老树。',c:'env'},
+      {t:'火把与喊杀声渐渐远去——你们甩掉了追兵。',c:'sys'}
+    ], 900, function(){
+      if((ob.favor||0)>=1){
+        log('老乞丐也踱出隘口，拍拍身上灰：「俺这把老骨头，便留在燕山口罢。日后你回此歇脚，俺给你看门。」','npc','老乞丐');
+        log('〔老乞丐自此常驻燕山山口，可随时与他交谈。〕','good');
+      } else {
+        var rn=G.ROOMS['yanshan_shankou'].npcs; var i=rn?rn.indexOf('beggar_old'):-1; if(i>=0) rn.splice(i,1);
+        log('老乞丐摆摆手，没入夜色：「小子，自个儿闯去罢。江湖路远，好自为之。」','npc','老乞丐');
+        log('〔老乞丐就此离去，未留在燕山山口。〕','sys');
+      }
+      finishOnboarding();
+      renderMoveBar(G.ROOMS[state.room]); renderNpcList();   // 重渲移动条，开放燕山山口四向出口
+    });
+  }
+  // 脚本化引导战斗：乌桓游骑拦路，老乞丐逐步教学（攻/教拳/受伤给药/挡路撤退）
+  function startTutorialBattle(room){
+    var ob=state.flags.onb; ob.tcStarted=true; save(state);
+    var eHpMax=100, eHp=100;
+    var pHpMax=effectiveStats().maxHp, pHp=state.hp;
+    if(combatCardEl && combatCardEl.parentNode){ combatCardEl.parentNode.removeChild(combatCardEl); combatCardEl=null; }
+    var card=document.createElement('div'); card.id='tut-combat'; card.className='tut-card';
+    card.innerHTML=
+      '<div class="c-roster">'+
+        '<div class="c-enemy"><div class="ec-head"><div class="ec-fig">骑</div><div class="ec-plaque"><span class="ec-name">乌桓游骑</span></div></div>'+
+        '<div class="ec-info"><div class="ec-hp"><span>气血</span><div class="c-bar"><div class="c-hpfill"></div></div><span class="ec-hpv"></span></div></div></div>'+
+        '<div class="c-player"><div class="cp-head"><div class="ec-fig-p">你</div><div class="cp-id"><span class="cp-name">▲ 你</span></div></div>'+
+        '<div class="cp-body"><div class="cp-bars"><div class="cp-bar"><span class="cp-lab">气血</span><div class="cp-track"><div class="cp-fill hp"></div></div><span class="cp-num cp-num-hp"></span></div></div></div></div>'+
+      '</div>'+
+      '<div class="c-round" id="tut-step">—— 乌桓游骑拦路 ——</div>'+
+      '<div class="c-act" id="tut-acts"></div>';
+    var sc=document.getElementById('scene'), ap=document.getElementById('app');
+    if(sc&&ap) ap.insertBefore(card, sc); else document.body.appendChild(card);
+    var eFill=card.querySelector('.c-hpfill'), eHpv=card.querySelector('.ec-hpv');
+    var pFill=card.querySelector('.cp-fill.hp'), pHpv=card.querySelector('.cp-num-hp');
+    var stepEl=card.querySelector('#tut-step'), acts=card.querySelector('#tut-acts');
+    function upBars(){
+      eFill.style.width=Math.round(Math.max(0,eHp)/eHpMax*100)+'%'; eHpv.textContent=Math.max(0,eHp)+'/'+eHpMax;
+      pFill.style.width=Math.round(Math.max(0,pHp)/pHpMax*100)+'%'; pHpv.textContent=Math.max(0,pHp)+'/'+pHpMax;
     }
+    upBars();
+    function clearActs(){ acts.innerHTML=''; }
+    function btn(label, cls, fn){ var b=document.createElement('button'); b.className='tut-act'+(cls?(' '+cls):''); b.textContent=label; b.onclick=fn; acts.appendChild(b); return b; }
+    function glow(sel){ acts.querySelectorAll('.tut-act').forEach(function(b){b.classList.remove('onb-glow');}); var b=acts.querySelector(sel); if(b) b.classList.add('onb-glow'); }
+    function hint(msg){ log(msg,'npc','老乞丐'); }
+    var onItem=null, onFlee=null;
+    function showAll(onAttack){
+      clearActs();
+      btn('⚔ 攻击','primary', function(){ if(onAttack) onAttack(); else hint('老乞丐：「此刻不必进攻，听我号令！」'); });
+      glow('.primary');
+      btn('🛡 防御','', function(){ hint('老乞丐：「防御是避其锋芒——先用攻击挫他！」'); });
+      btn('💊 道具','', function(){ if(onItem) onItem(); else hint('老乞丐：「此刻用不着物件，先动手！」'); });
+      btn('🏃 撤退','', function(){ if(onFlee) onFlee(); else hint('老乞丐：「未到撤的时候，先应敌！」'); });
+    }
+    function start(){
+      stepEl.textContent='老乞丐：看清下头四个按钮';
+      log('三名乌桓游骑自林中突出，弯刀映雪，嘶吼扑来！','combat');
+      log('老乞丐：「下头四个按钮——〔攻击〕出手、〔防御〕避锋、〔道具〕用物、〔撤退〕脱身。先点〔攻击〕，挫他锐气！」','npc','老乞丐');
+      onItem=onFlee=null;
+      showAll(function(){ atk1(); });
+    }
+    function atk1(){
+      eHp=Math.max(0,eHp-45); upBars();
+      log('你抢步迎上，一记劈砍，为首游骑闷哼退开。','player');
+      log('老乞丐：「好！这便是进攻——看我教你一套拳法！」','npc','老乞丐');
+      if(state.learnedMartial.indexOf('wu_ming_quan')<0) state.learnedMartial.push('wu_ming_quan');
+      log('【习得】无名拳法！（已收入武学，可在「角色」查看）','good');
+      renderStatus();
+      stepEl.textContent='老乞丐：再点【攻击】，施展「无名拳法」';
+      showAll(function(){ atk2(); });
+    }
+    function atk2(){
+      eHp=Math.max(0,eHp-55); upBars();
+      log('你依老乞丐所授，一招「无名拳法」直取中宫，游骑应声落马！','player');
+      log('老乞丐：「成了！拳贵直、劲贵整，记着了？」','npc','老乞丐');
+      stepEl.textContent='—— 敌势一挫 ——';
+      clearActs();
+      setTimeout(wound, 900);
+    }
+    function wound(){
+      log('另一骑自背后突袭，你肩头中刀，气血骤减！','combat');
+      pHp=Math.max(1, Math.round(pHpMax*0.5)); upBars(); state.hp=pHp; renderStatus();
+      log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药。','npc','老乞丐');
+      if(!state.items) state.items=[];
+      var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='jinchuang'){ ex=state.items[i]; break; } }
+      if(ex) ex.count=(ex.count||1)+1; else state.items.push({id:'jinchuang',name:'金疮药',count:1,cat:'药剂',effect:{hp:120}});
+      onbReveal('dock'); highlightOnb('dock'); save(state); renderStatus();
+      log('〔底部「行囊」已点亮——点开它，把「金疮药」用上，气血便回得来。〕','sys');
+      onItem=function(){ useJinchuang(); };
+      onFlee=null;
+      stepEl.textContent='老乞丐：点【道具】，用金疮药！';
+      showAll(null);
+      acts.querySelectorAll('.tut-act').forEach(function(b){ b.classList.remove('onb-glow'); if(b.textContent.indexOf('道具')>=0) b.classList.add('onb-glow'); });
+    }
+    function useJinchuang(){
+      var found=-1; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='jinchuang'){ found=i; break; } }
+      if(found<0){ openModal('pack'); return; }
+      var it=state.items[found]; var add=it.effect.hp; pHp=Math.min(pHpMax, pHp+add); upBars(); state.hp=pHp;
+      it.count--; if(it.count<=0) state.items.splice(found,1); save(state); renderStatus();
+      log('你撕开金疮药敷上伤口，气血回升。','player');
+      stepEl.textContent='—— 伤势稍缓 ——';
+      clearActs();
+      setTimeout(beggarWin, 900);
+    }
+    function beggarWin(){
+      log('老乞丐枯手翻飞，所示的竟是极高深的武功，残敌尽数被震退、溃不成军！','npc','老乞丐');
+      eHp=0; upBars();
+      stepEl.textContent='老乞丐：看老夫手段！';
+      clearActs();
+      setTimeout(more, 1000);
+    }
+    function more(){
+      log('然而号角再起——又是一队乌桓骑兵杀到！','combat');
+      log('老乞丐：「我来挡住，你继续跑！点〔撤退〕，往东去！」','npc','老乞丐');
+      onFlee=function(){ endTutBattle(); };
+      showAll(null);
+      acts.querySelectorAll('.tut-act').forEach(function(b){ b.classList.remove('onb-glow'); if(b.textContent.indexOf('撤退')>=0) b.classList.add('onb-glow'); });
+    }
+    function endTutBattle(){
+      if(card&&card.parentNode) card.parentNode.removeChild(card);
+      ob.tcDone=true; save(state);
+      log('你依言撤身，窜入林道，身后的喊杀声渐渐被风声盖过……','sys');
+      renderRoom('ys_ne');
+    }
+    start();
   }
 
   function renderEquipPanel(){
