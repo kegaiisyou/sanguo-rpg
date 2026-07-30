@@ -1068,6 +1068,12 @@
   .onb-btn{ background:linear-gradient(180deg,#4a3c24,#2e2415); color:#f0e2c0; border:1px solid #8a6f3e; border-radius:9px; padding:11px 12px; font-size:14px; text-align:left; cursor:pointer; line-height:1.35; }
   .onb-btn:hover{ background:linear-gradient(180deg,#5a4a2e,#3a2e1c); }
   .onb-btn:active{ transform:translateY(1px); }
+  /* 禁用移动端浏览器默认缩放手势（双指捏合 / 双击放大），避免影响游玩 */
+  html, body{ touch-action:manipulation; -webkit-text-size-adjust:100%; }
+  html{ -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+  *{ -webkit-touch-callout:none; }
+  /* 拦截双击缩放（iOS Safari 会忽略 user-scalable=no，需 JS 阻止默认）所依赖的单击计时 */
+  .no-zoom-guard{ touch-action:none; }
 </style>
 </head>
 <body>
@@ -1078,6 +1084,19 @@ window.onerror=function(msg,url,line,col,err){
   pre.textContent='JS ERROR\n'+msg+'\n'+url+':'+line+':'+col+'\n'+(err&&err.stack?err.stack:'');
   document.body.innerHTML=''; document.body.appendChild(pre);
 };
+// ===== 禁用移动端浏览器默认缩放手势（双指捏合 / 双击放大）=====
+// iOS Safari 会忽略 viewport 的 user-scalable=no，需用 JS 阻止默认缩放手势。
+(function(){
+  var lastTouchEnd=0;
+  document.addEventListener('touchend', function(e){
+    var now=(new Date()).getTime();
+    if(now-lastTouchEnd<=300){ e.preventDefault(); } // 拦截快速双击（双击缩放触发）
+    lastTouchEnd=now;
+  }, {passive:false});
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }); // 拦截双指捏合缩放
+  document.addEventListener('gesturechange', function(e){ e.preventDefault(); });
+  document.addEventListener('dblclick', function(e){ e.preventDefault(); });
+})();
 </script>
 <div id="ink-bg">
   <svg viewBox="0 0 560 260" preserveAspectRatio="none">
