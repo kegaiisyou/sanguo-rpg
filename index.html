@@ -370,6 +370,8 @@
     background:rgba(40,32,24,.34);backdrop-filter:blur(3px);padding:24px;
     animation:fade .25s ease both;}
   #modal.hidden{display:none;}
+  /* 捏人专用不透明水墨背景：打开捏人时隐藏标题页，弹窗自带背景，不再透出标题 */
+  #modal.modal-create-bg{ background:radial-gradient(120% 80% at 50% 18%,#2c2418 0%,#1b160f 60%,#100c08 100%); }
   @keyframes fade{from{opacity:0}to{opacity:1}}
   /* ===== 时辰钟表弹窗 ===== */
   .clk-dial{position:relative;width:min(70vw,248px);aspect-ratio:1/1;margin:12px auto 6px;border-radius:50%;
@@ -1185,12 +1187,6 @@ window.onerror=function(msg,url,line,col,err){
   ];
   var ORIGINS_BY_ID={}; ORIGINS.forEach(function(o){ORIGINS_BY_ID[o.id]=o;});
   var CREATE_POOL=15, APT_BASE=5, APT_MAX=10;
-  var PROLOGUE='光和元年，汉室倾颓之象已显。'+'\n'+
-    '宦官弄权于朝，党锢之祸未消；凉州边将拥兵，幽冀流民载道。'+'\n'+
-    '大乱尚在十年之后，而天下将乱的烽烟，已起于青苹之末。'+'\n'+
-    '你本江湖散人，因避祸或求道，行脚至渔阳以北的燕山之口——'+'\n'+
-    '北望塞外，鲜卑牧马；南顾中原，星火将燃。'+'\n'+
-    '这一日，你束紧行囊，决意踏入这即将翻覆的江湖。';
   var pendingSlot=0, pendingSave=null, createState=null;
 
   // ===== 历法（农历为主 · 公历为对照锚点）与天候 =====
@@ -2052,6 +2048,8 @@ window.onerror=function(msg,url,line,col,err){
     save(state); renderStatus();
     // 叙事逐行串行播放（按钮已先就绪，文字依次刷出，不再同时眼花）
     logScene(narr, 150, function(){
+      // 教学链按房间逐一点亮对应 UI（引导先出，功能后给）
+      onbTeachOnRoom(room);
       // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
       if(room.patrol && !silent) maybeAmbush(room);
     });
@@ -2580,7 +2578,7 @@ window.onerror=function(msg,url,line,col,err){
     advanceTime(1);
     log('你朝'+dir+'方行去，沿途景物渐换……','sys');
     renderRoom(tid);
-    if(state.flags && state.flags.onb && !state.flags.onb.done) finishOnboarding();
+    if(state.flags && state.flags.onb && !state.flags.onb.done && tid==='yanshan_shankou') finishOnboarding();
   }
 
   // ===== NPC 态度（由善恶双轴驱动，GAME_DESIGN 4.2） =====
@@ -2847,7 +2845,8 @@ window.onerror=function(msg,url,line,col,err){
     applyOnboard(); save(state);
   }
   function highlightOnb(layer){
-    var el = layer==='status' ? document.getElementById('status') : document.getElementById('lower');
+    var id = layer==='status' ? 'status' : (layer==='dock' ? 'dock' : 'lower');
+    var el=document.getElementById(id);
     if(!el) return;
     el.classList.add('onb-glow');
     setTimeout(function(){ el.classList.remove('onb-glow'); }, 4200);
@@ -2917,6 +2916,26 @@ window.onerror=function(msg,url,line,col,err){
     if(!state.flags || !state.flags.onb) return;
     state.flags.onb.done=true;
     applyOnboard(); save(state);
+  }
+  // 教学链按房间逐一点亮对应 UI：引导先出，功能后给
+  function onbTeachOnRoom(room){
+    if(!state.flags || !state.flags.onb || state.flags.onb.done) return;
+    var ob=state.flags.onb;
+    if(room.id==='ys_east' && !state.flags._wounded){
+      // 东溪桥：太平道流民冲突，剧情负伤；老乞丐塞来行军散（此时仍只出行 UI）
+      tutorialWound();
+      if(!state.items) state.items=[];
+      var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='xingjun_san'){ ex=state.items[i]; break; } }
+      if(ex) ex.count++; else state.items.push({id:'xingjun_san',name:'行军散',count:1,cat:'药剂',effect:{hp:80}});
+      log('老乞丐撕下衣襟替你裹伤，又塞来个小瓷瓶：「行军散，紧要时别忘用。」','npc','老乞丐');
+      save(state); renderStatus();
+    } else if(room.id==='ys_se' && ob.reveal.indexOf('status')<0){
+      // 田垄：老乞丐让你看自己伤势 → 点亮顶部状态栏
+      setTimeout(function(){ onbReveal('status'); highlightOnb('status'); log('〔上方「状态栏」已点亮——你的气血、内力、时辰常驻在此。〕','sys'); }, 500);
+    } else if(room.id==='ys_south' && ob.reveal.indexOf('dock')<0){
+      // 磨坊：老乞丐让你用行军散 → 点亮底部行囊
+      setTimeout(function(){ onbReveal('dock'); highlightOnb('dock'); log('〔底部「行囊」已点亮——打开它，把行军散用上，气血便回得来。〕','sys'); }, 500);
+    }
   }
 
   function renderEquipPanel(){
@@ -2995,7 +3014,7 @@ window.onerror=function(msg,url,line,col,err){
       '<div class="cr-sec"><div class="cr-sec-t">出 身<span class="cr-pool">禀赋赠先天资质</span></div><div class="og-grid">'+originCards+'</div></div>'+
       '<div class="cr-sec"><div class="cr-sec-t">先 天 资 质<span class="cr-pool">可分配 <b id="cr-pool">'+createState.pool+'</b> 点（基础 '+APT_BASE+'，范围 1–'+APT_MAX+'）</span></div><div class="ap-list">'+aptRows+'</div></div>'+
       '<p class="tip">资质不计入即时战力，却决定日后破境成长之底色：劲力主攻击、根骨主气血防御、身法主速度、悟性主内力与武学领悟、福缘主奇遇掉落、功法亲和主招式研习。</p>'+
-      '<div class="cr-actions"><button class="close" id="cr-go">落 笔 入 世</button></div>';
+      '<div class="cr-actions"><button class="close" id="cr-go">踏 入 江 湖</button></div>';
   }
   function bindCreate(){
     var nameEl=document.getElementById('cr-name');
@@ -3025,34 +3044,11 @@ window.onerror=function(msg,url,line,col,err){
     }
     save.origin=createState.origin||null;
     pendingSave=save;
-    openModal('opening');
+    // 落笔入世 → 直接踏入江湖，进入第一段开场引导剧情（不再弹序幕框）
+    var tt=document.getElementById('title'); if(tt) tt.classList.add('hidden');
+    enterGame(pendingSave, pendingSlot); closeModal();
+    pendingSave=null;
   }
-  function renderOpeningHTML(){
-    return '<h3>序 章 · 光和元年</h3>'+
-      '<div class="op-text" id="op-text"></div>'+
-      '<div class="cr-actions"><button class="close hidden" id="op-go">踏 入 江 湖</button></div>';
-  }
-  function startOpeningType(){
-    var node=document.getElementById('op-text'); var btn=document.getElementById('op-go');
-    if(!node) return; if(btn) btn.classList.add('hidden');
-    var lines=PROLOGUE.split('\n');
-    (function typeLine(li){
-      if(li>=lines.length){ if(btn) btn.classList.remove('hidden'); return; }
-      var span=document.createElement('div'); span.className='op-line'; node.appendChild(span);
-      var text=lines[li], j=0;
-      (function step(){
-        span.textContent=text.slice(0,j);
-        if(j<text.length){ j++; setTimeout(step, 30); }
-        else { setTimeout(function(){ typeLine(li+1); }, 240); }
-      })();
-    })(0);
-  }
-  function bindOpening(){
-    startOpeningType();
-    var btn=document.getElementById('op-go');
-    if(btn) btn.onclick=function(){ clearSlot(pendingSlot); enterGame(pendingSave, pendingSlot); closeModal(); };
-  }
-
   var currentModalKind=null;
   function openModal(kind, opts){
     currentModalKind=kind;
@@ -3062,6 +3058,10 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='dev'){ renderDev(); return; }
    try{
     var modalOpts=opts||{};
+    // 捏人时隐藏标题页，并给弹窗不透明水墨背景，避免背景停留在标题页
+    var tt=document.getElementById('title');
+    if(tt){ if(kind==='create') tt.classList.add('hidden'); else if(!state) tt.classList.remove('hidden'); }
+    $modal.classList.toggle('modal-create-bg', kind==='create');
     var h='';
     if(kind==='char'){
       h='<h3>角 色</h3>'+
@@ -3141,8 +3141,6 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='create'){
       if(!createState) initCreateState();
       h=renderCreateHTML();
-    } else if(kind==='opening'){
-      h=renderOpeningHTML();
     } else if(kind==='newgame'){
       h=renderSlotsHTML('new');
     } else if(kind==='load'){
@@ -3156,7 +3154,6 @@ window.onerror=function(msg,url,line,col,err){
     }
     $card.innerHTML=h;
     if(kind==='create') bindCreate();
-    if(kind==='opening') bindOpening();
     if(kind==='pack'){ $card.querySelectorAll('.pi-use').forEach(function(b){ b.onclick=function(){ useItemOutside(b.getAttribute('data-id')); }; }); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
@@ -3170,6 +3167,9 @@ window.onerror=function(msg,url,line,col,err){
         if(e.target.closest('.sl-confirm')) return;
         var slot=parseInt(el.getAttribute('data-slot'),10);
         var mode=el.getAttribute('data-mode');
+        // 点任意档时先收回其它已展开的「是否覆盖」确认层（同一时刻只允许一个展开）
+        var slots=el.parentNode ? el.parentNode.querySelectorAll('.slot.on-confirm') : [];
+        for(var si=0; si<slots.length; si++){ if(slots[si]!==el) slots[si].classList.remove('on-confirm'); }
         if(mode==='new'){
           if(slotExists(slot)){
             // 显示行内确认层（替代浏览器 confirm，避免沙箱/拦截导致无反应）
@@ -3220,8 +3220,8 @@ window.onerror=function(msg,url,line,col,err){
   }
   function closeModal(){
     if(state && state.dead){ die(); return; }
-    // 捏人/序章进行中（state 尚未建立）禁止中途收起，否则会露出标题屏并丢失进度
-    if((currentModalKind==='create' || currentModalKind==='opening') && !state){ return; }
+    // 捏人进行中（state 尚未建立）禁止中途收起，否则会露出标题屏并丢失进度
+    if(currentModalKind==='create' && !state){ return; }
     $modal.classList.add('hidden');
   }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
