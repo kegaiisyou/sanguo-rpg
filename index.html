@@ -1038,7 +1038,7 @@
   .ap-name{font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--ink);letter-spacing:1px;}
   .ap-name i{display:block;font-style:normal;font-size:10.5px;color:var(--ink-faint);letter-spacing:0;margin-top:1px;}
   .ap-ctrl{display:flex;align-items:center;gap:12px;}
-  .ap-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--btn-line);background:var(--btn);color:var(--seal);font-size:18px;line-height:1;cursor:pointer;transition:.15s;font-family:inherit;}
+  .ap-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--btn-line);background:var(--btn);color:var(--seal);font-size:18px;line-height:1;cursor:pointer;transition:.15s;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0;}
   .ap-btn:hover:not(:disabled){background:rgba(158,59,46,.12);border-color:rgba(158,59,46,.5);}
   .ap-btn:disabled{opacity:.32;cursor:default;}
   .ap-val{font-family:"STKaiti","KaiTi",serif;font-size:18px;font-weight:700;color:var(--ink);min-width:24px;text-align:center;}
@@ -1119,7 +1119,6 @@ window.onerror=function(msg,url,line,col,err){
   <div id="lower">
     <div id="move-tabs">
       <div class="mv-tab active" data-tab="go">出行</div>
-      <div class="mv-tab" data-tab="scout">🔍 探查</div>
     </div>
     <div id="lower-body">
       <aside id="npc-list"></aside>
@@ -1565,7 +1564,7 @@ window.onerror=function(msg,url,line,col,err){
     (function play(i){
       if(i>=lines.length){ if(onDone) onDone(); return; }
       var l=lines[i];
-      log(l.t, l.c, null, function(){ setTimeout(function(){ play(i+1); }, gap); });
+      log(l.t, l.c, l.n, function(){ setTimeout(function(){ play(i+1); }, gap); });
     })(0);
   }
 
@@ -2874,21 +2873,27 @@ window.onerror=function(msg,url,line,col,err){
     removeOnboardChoices();
     if(kind==='serious'){
       ob.favor=(ob.favor||0)+1;
-      log('你挣扎坐起，朝老乞丐郑重一揖：「多谢前辈救命之恩，晚辈没齿难忘。」','player');
-      log('老乞丐打量你一眼，嗬嗬笑道：「小乞丐还挺有良心的。」','npc','老乞丐');
-      log('他神色一凛，压低嗓子：「但此处不是说话的地方——随老夫撤出村去！」','npc','老乞丐');
-      onbReveal('lower'); highlightOnb('lower');
-      log('〔已点亮下方「出行」罗盘，亮起的方位即可前往。先随老乞丐出村。〕','sys');
+      logScene([
+        {t:'你挣扎坐起，朝老乞丐郑重一揖：「多谢前辈救命之恩，晚辈没齿难忘。」',c:'player'},
+        {t:'老乞丐打量你一眼，嗬嗬笑道：「小乞丐还挺有良心的。」',c:'npc',n:'老乞丐'},
+        {t:'他神色一凛，压低嗓子：「但此处不是说话的地方——随老夫撤出村去！」',c:'npc',n:'老乞丐'},
+        {t:'〔已点亮下方「出行」罗盘，亮起的方位即可前往。先随老乞丐出村。〕',c:'sys'}
+      ], 900, function(){ onbReveal('lower'); highlightOnb('lower'); });
     } else {
-      log('你捂着脑袋，脱口道：「我……这是穿越了吗？我这是在哪里？」','player');
-      log('老乞丐一愣，凑近眯眼瞧你：「穿……越？你这小子莫不是摔糊涂了，连自个在燕山脚下都不晓得？」','npc','老乞丐');
-      onbReveal('status'); highlightOnb('status');
-      log('「先看清你自个儿如今是啥光景——上头的气血时辰，便是你的命脉。」','npc','老乞丐');
-      setTimeout(function(){
-        log('老乞丐揪你起身：「瞧够了没？此地不宜久留，随老夫撤出村去！」','npc','老乞丐');
-        onbReveal('lower'); highlightOnb('lower');
-        log('〔已点亮下方「出行」罗盘，亮起的方位即可前往。先随老乞丐出村。〕','sys');
-      }, 1500);
+      logScene([
+        {t:'你捂着脑袋，脱口道：「我……这是穿越了吗？我这是在哪里？」',c:'player'},
+        {t:'老乞丐一愣，凑近眯眼瞧你：「穿……越？你这小子莫不是摔糊涂了，连自个在燕山脚下都不晓得？」',c:'npc',n:'老乞丐'},
+        {t:'「先看清你自个儿如今是啥光景——上头的气血时辰，便是你的命脉。」',c:'npc',n:'老乞丐'},
+        {t:'〔已点亮顶部「状态栏」，你的气血 / 内力 / 时辰都在上头。〕',c:'sys'}
+      ], 900, function(){
+        onbReveal('status'); highlightOnb('status');
+        setTimeout(function(){
+          logScene([
+            {t:'老乞丐揪你起身：「瞧够了没？此地不宜久留，随老夫撤出村去！」',c:'npc',n:'老乞丐'},
+            {t:'〔已点亮下方「出行」罗盘，亮起的方位即可前往。先随老乞丐出村。〕',c:'sys'}
+          ], 900, function(){ onbReveal('lower'); highlightOnb('lower'); });
+        }, 1800);
+      });
     }
     save(state);
   }
@@ -2896,10 +2901,16 @@ window.onerror=function(msg,url,line,col,err){
     applyOnboard();
     buildActions(room);   // 预先填充隐藏的「出行」罗盘/状态/NPC，点亮后才可见
     var ob=state.flags.onb;
-    var narr=room.desc.map(function(d){ return {t:d,c:'env'}; });
-    logScene(narr, 170, function(){
-      if(!ob.personality){ showOnboardChoices(); }
-      else { if(ob.reveal.indexOf('lower')<0) onbReveal('lower'); log('（你与老乞丐屏息贴墙，只待寻隙撤出村去。）','sys'); }
+    // 开场分两段：先播环境+老乞丐行动，再由主角视角收尾，每段播完才给下一步，放慢节奏
+    var part1=room.desc.slice(0,2).map(function(d){ return {t:d,c:'env'}; });
+    var part2=room.desc.slice(2).map(function(d){ return {t:d,c:'env'}; });
+    logScene(part1, 900, function(){
+      if(!ob.personality){
+        showOnboardChoices();   // 看完前两段再弹选项，玩家先被带入情境
+      } else {
+        var tail=part2.concat([{t:'（你与老乞丐屏息贴墙，只待寻隙撤出村去。）',c:'sys'}]);
+        logScene(tail, 900);
+      }
     });
   }
   function finishOnboarding(){
@@ -3143,12 +3154,11 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='credit'){
       h=renderCredit();
     }
-    $card.innerHTML=h+'<button class="close" id="m-close">收 起</button>';
+    $card.innerHTML=h;
     if(kind==='create') bindCreate();
     if(kind==='opening') bindOpening();
     if(kind==='pack'){ $card.querySelectorAll('.pi-use').forEach(function(b){ b.onclick=function(){ useItemOutside(b.getAttribute('data-id')); }; }); }
     $modal.classList.remove('hidden');
-    var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
     // 设置标签页切换
@@ -3203,7 +3213,7 @@ window.onerror=function(msg,url,line,col,err){
       el.onclick=function(){ equipItem(el.getAttribute('data-id')); };
     });
    }catch(err){
-     $card.innerHTML='<h3>界面出错</h3><p class="tip">'+String((err&&err.message)||err)+'</p><button class="close" id="m-close">收 起</button>';
+     $card.innerHTML='<h3>界面出错</h3><p class="tip">'+String((err&&err.message)||err)+'</p>';
      $modal.classList.remove('hidden');
      var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
    }
