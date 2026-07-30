@@ -1045,6 +1045,27 @@
   .cr-actions{display:flex;justify-content:center;margin-top:16px;}
   .op-text{font-family:"STKaiti","KaiTi",serif;font-size:16px;line-height:2.05;color:var(--ink);letter-spacing:1px;min-height:220px;padding:6px 2px;}
   .op-line{margin:0 0 2px;}
+  .pack-items{display:flex;flex-direction:column;gap:6px;margin:2px 0 6px;}
+  .pack-item{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.25);border-radius:6px;padding:6px 8px;}
+  .pi-nm{color:#e9d8b0;flex:1;}
+  .pi-tip{color:#9c8a64;font-size:11px;}
+  .pi-use{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;}
+  .pi-use:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
+  /* ===== 开场渐进式 UI 揭示：空白 → 文字 → 选项 → 逐一点亮功能 ===== */
+  body.onb #status, body.onb #loc-tab, body.onb #actions, body.onb #npc-list, body.onb #lower, body.onb #dock{ display:none !important; }
+  body.onb.reveal-status #status{ display:flex !important; }
+  body.onb.reveal-loctab #loc-tab{ display:block !important; }
+  body.onb.reveal-actions #actions{ display:flex !important; }
+  body.onb.reveal-actions #npc-list{ display:flex !important; }
+  body.onb.reveal-lower #lower{ display:flex !important; }
+  body.onb.reveal-dock #dock{ display:flex !important; }
+  .onb-glow{ animation:onbPulse 1.1s ease-in-out infinite; border-radius:10px; }
+  @keyframes onbPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(232,200,120,0); } 50%{ box-shadow:0 0 0 3px rgba(232,200,120,.9), 0 0 22px rgba(232,200,120,.55); } }
+  .onb-choices{ display:flex; flex-direction:column; gap:8px; padding:12px 14px calc(14px + env(safe-area-inset-bottom)); background:rgba(20,16,10,.4); border-top:1px solid rgba(196,164,102,.3); }
+  .onb-prompt{ color:#cdb98c; font-size:12.5px; margin-bottom:2px; font-style:italic; }
+  .onb-btn{ background:linear-gradient(180deg,#4a3c24,#2e2415); color:#f0e2c0; border:1px solid #8a6f3e; border-radius:9px; padding:11px 12px; font-size:14px; text-align:left; cursor:pointer; line-height:1.35; }
+  .onb-btn:hover{ background:linear-gradient(180deg,#5a4a2e,#3a2e1c); }
+  .onb-btn:active{ transform:translateY(1px); }
 </style>
 </head>
 <body>
@@ -1128,8 +1149,8 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/martial.js"></script>
 <script src="shared/data/enemies.js"></script>
 <script src="shared/data/items.js"></script>
-<script src="shared/combat/engine.js"></script>
-<script src="shared/index.js"></script>
+    <script src="shared/combat/engine.js"></script>
+    <script src="shared/index.js"></script>
 <script>
 (function(){
   try{
@@ -1203,6 +1224,9 @@ window.onerror=function(msg,url,line,col,err){
     // 幽州 · 燕山（渔阳以北山脉屏障，row -8~-10）
     yanshan_shankou:[14,-8], yanshan_feng:[15,-8], yanshan_jian:[13,-8],
     yanshan_lindao:[14,-9], yanshan_xueling:[15,-9], yanshan_zhandao:[14,-10],
+    // 幽州 · 燕山·小村落（开场教学绕圈链，row -10~-12）
+    ys_entrance:[14,-11], ys_north:[14,-12], ys_ne:[15,-12], ys_east:[15,-11],
+    ys_se:[15,-10], ys_south:[14,-10], ys_sw:[13,-10], ys_west:[13,-11], ys_nw:[13,-12],
     // 蓟城：南北主干（郭门—南门—通衢—北门）串起东/西市街，市街再连各建筑
     ji_guomen:[9,3], ji_liumin:[8,3], ji_mashi:[13,3], ji_nanmen:[9,2],
     ji_tongqu:[9,1], ji_beimen:[9,0],
@@ -1485,6 +1509,12 @@ window.onerror=function(msg,url,line,col,err){
     if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
     $narr.innerHTML='';
     renderStatus();
+    // 开场渐进式 UI：新局落在教学入口时，先进入空白引导态（隐藏顶栏/DOCK/行动区/罗盘）
+    if((state.room==='ys_entrance'||state.spawnRoom==='ys_entrance') && !(state.flags && state.flags.onb && state.flags.onb.done)){
+      if(!state.flags) state.flags={};
+      if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[]};
+      applyOnboard();
+    }
     renderRoom(state.room || state.spawnRoom || 'ji_guomen');
     var app=document.getElementById('app'); if(app) app.classList.remove('hidden');
     var tt=document.getElementById('title'); if(tt) tt.classList.add('hidden');
@@ -1994,6 +2024,7 @@ window.onerror=function(msg,url,line,col,err){
   function renderRoom(rid, silent){
     var room=G.ROOMS[rid]; if(!room) return;
     state.room=rid;
+    if(state.flags && state.flags.onb && !state.flags.onb.done && rid==='ys_entrance'){ startOnboardingIntro(room); return; }
     if(combatCardEl){ if(combatCardEl.parentNode) combatCardEl.parentNode.removeChild(combatCardEl); combatCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
@@ -2279,6 +2310,62 @@ window.onerror=function(msg,url,line,col,err){
     ji_heishan_houzhai:[
       {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾后寨'},
       {type:'exit', dir:'南', icon:'🚪', name:'南·聚义厅', desc:'退回聚义厅', actions:[{label:'退回聚义厅', fn:function(){ move('南','ji_heishan_juyi'); }}]}
+    ],
+    // ═══ 开场教学 · 燕山小村落（八方向绕圈链） ═══
+    ys_entrance:[
+      {type:'npc', key:'beggar_old', icon:'🧙', name:'老乞丐', desc:'衣衫褴褛，醉眼却精光四射，方才拽你进灶影', actions:[
+        {label:'〔正经〕多谢前辈救命之恩', fn:function(){ tutorialQuip('serious'); }},
+        {label:'〔不正经〕喂——系统？如来神掌安排一下？', fn:function(){ tutorialQuip('joking'); }},
+        {label:'〔沉默〕……（装死）', fn:function(){ tutorialQuip('silent'); }},
+        {label:'请前辈赐教几手拳脚', fn:function(){ tutorialTeachFist(); }, tip:'老乞丐授你一套无名拳法'},
+        {label:'前辈给的行军散呢？', fn:function(){ tutorialGiveMedicine(); }, tip:'老乞丐塞来一瓶行军散'},
+        {label:'我这是……在哪？', fn:function(){ tutorialHintStatus(); }}
+      ]},
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾村口', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'北', icon:'🚪', name:'北·北巷', desc:'窄巷向北，马蹄声渐密', actions:[{label:'前往北巷', fn:function(){ move('北','ys_north'); }}]}
+    ],
+    ys_north:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾北巷', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'东北', icon:'🚪', name:'东北·猎棚', desc:'棚后小径往东北', actions:[{label:'前往猎棚', fn:function(){ move('东北','ys_ne'); }}]},
+      {type:'exit', dir:'南', icon:'↩️', name:'南·村口', desc:'退回村口', actions:[{label:'返回村口', fn:function(){ move('南','ys_entrance'); }}]}
+    ],
+    ys_ne:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾猎棚', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'东', icon:'🚪', name:'东·溪桥', desc:'东去溪桥', actions:[{label:'前往溪桥', fn:function(){ move('东','ys_east'); }}]},
+      {type:'exit', dir:'西南', icon:'↩️', name:'西南·北巷', desc:'退回北巷', actions:[{label:'返回北巷', fn:function(){ move('西南','ys_north'); }}]}
+    ],
+    ys_east:[
+      {type:'feature',key:'fight', icon:'⚔️', name:'与太平道流民对峙', desc:'三名黄巾流民拦路', actions:[{label:'上前迎敌（剧情）', fn:function(){ tutorialWound(); }, tip:'击退流民，却也负伤'}]},
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾溪桥', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'东南', icon:'🚪', name:'东南·田垄', desc:'南去田垄', actions:[{label:'前往田垄', fn:function(){ move('东南','ys_se'); }}]},
+      {type:'exit', dir:'西', icon:'↩️', name:'西·猎棚', desc:'退回猎棚', actions:[{label:'返回猎棚', fn:function(){ move('西','ys_ne'); }}]}
+    ],
+    ys_se:[
+      {type:'feature',key:'hint', icon:'❗', name:'老乞丐替你检视伤口', desc:'老乞丐教你查看自身状态', actions:[{label:'听老乞丐讲解「角色」', fn:function(){ tutorialHintStatus(); }}]},
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾田垄', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'南', icon:'🚪', name:'南·磨坊', desc:'南去磨坊', actions:[{label:'前往磨坊', fn:function(){ move('南','ys_south'); }}]},
+      {type:'exit', dir:'西北', icon:'↩️', name:'西北·溪桥', desc:'退回溪桥', actions:[{label:'返回溪桥', fn:function(){ move('西北','ys_east'); }}]}
+    ],
+    ys_south:[
+      {type:'feature',key:'use', icon:'💊', name:'老乞丐叮嘱用药', desc:'引导打开行囊使用行军散', actions:[{label:'听老乞丐讲「行囊」', fn:function(){ tutorialHintPack(); }}]},
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾磨坊', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'西南', icon:'🚪', name:'西南·谷场', desc:'西去谷场', actions:[{label:'前往谷场', fn:function(){ move('西南','ys_sw'); }}]},
+      {type:'exit', dir:'北', icon:'↩️', name:'北·田垄', desc:'退回田垄', actions:[{label:'返回田垄', fn:function(){ move('北','ys_se'); }}]}
+    ],
+    ys_sw:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾谷场', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'西', icon:'🚪', name:'西·柴院', desc:'西去柴院', actions:[{label:'前往柴院', fn:function(){ move('西','ys_west'); }}]},
+      {type:'exit', dir:'东北', icon:'↩️', name:'东北·磨坊', desc:'退回磨坊', actions:[{label:'返回磨坊', fn:function(){ move('东北','ys_south'); }}]}
+    ],
+    ys_west:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾柴院', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'西北', icon:'🚪', name:'西北·哨所', desc:'西北去哨所', actions:[{label:'前往哨所', fn:function(){ move('西北','ys_nw'); }}]},
+      {type:'exit', dir:'东', icon:'↩️', name:'东·谷场', desc:'退回谷场', actions:[{label:'返回谷场', fn:function(){ move('东','ys_sw'); }}]}
+    ],
+    ys_nw:[
+      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾哨所', actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit', dir:'北', icon:'🏔️', name:'北·燕山山口', desc:'出山，投身江湖', actions:[{label:'走出燕山', fn:function(){ move('北','yanshan_shankou'); }}]},
+      {type:'exit', dir:'东南', icon:'↩️', name:'东南·柴院', desc:'退回柴院', actions:[{label:'返回柴院', fn:function(){ move('东南','ys_west'); }}]}
     ]
   };
 
@@ -2494,6 +2581,7 @@ window.onerror=function(msg,url,line,col,err){
     advanceTime(1);
     log('你朝'+dir+'方行去，沿途景物渐换……','sys');
     renderRoom(tid);
+    if(state.flags && state.flags.onb && !state.flags.onb.done) finishOnboarding();
   }
 
   // ===== NPC 态度（由善恶双轴驱动，GAME_DESIGN 4.2） =====
@@ -2684,6 +2772,142 @@ window.onerror=function(msg,url,line,col,err){
   }
   function row(k,v){return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>';}
   // 行囊装备面板（P1 完整）
+  // ===== 开场教学 · 燕山小村落 辅助函数 =====
+  function tutorialQuip(kind){
+    if(!state.flags) state.flags={};
+    if(state.flags._quip_done){ log('（你已表过态了，老乞丐嗬嗬一笑。）','sys'); return; }
+    state.flags._quip_done=true; state.flags.personality=kind;
+    if(kind==='serious'){ log('你整了整衣衫，正色道：「多谢前辈救命之恩，晚辈没齿难忘。」','player'); log('老乞丐嗬嗬一笑：「正经小子，倒是少见。」','npc'); }
+    else if(kind==='joking'){ log('你四下张望，脱口便道：「喂——系统？呼叫系统！如来神掌给安排一下？」','player'); log('老乞丐一愣，随即笑骂：「瞎咧咧啥，老子又不是那劳什子系统。先顾好你这小命罢！」','npc'); }
+    else { log('你闭眼装死，一声不吭。','player'); log('老乞丐戳了戳你：「装死可不顶用，小叫花。」','npc'); }
+    save(state);
+  }
+  function tutorialTeachFist(){
+    if(state.learnedMartial.indexOf('wu_ming_quan')>=0){ log('老乞丐摆手：「这套拳你已学了，自己多练。」','npc'); return; }
+    state.learnedMartial.push('wu_ming_quan');
+    state.lines.fist=Math.max(state.lines.fist||0,1);
+    log('老乞丐随手比划一套平平无奇的拳脚：「记着——拳贵直、劲贵整，先求稳，再求狠。这便当是本钱。」','npc');
+    log('【习得】无名拳法！（已收入武学，可在「角色」查看，战斗中以拳脚施展）','good');
+    save(state); renderStatus();
+  }
+  function tutorialGiveMedicine(){
+    if(!state.items) state.items=[];
+    var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='xingjun_san'){ ex=state.items[i]; break; } }
+    if(ex){ log('老乞丐又摸出一瓶行军散：「还有，收好。」','npc'); ex.count=(ex.count||1)+1; }
+    else { state.items.push({id:'xingjun_san',name:'行军散',count:1,cat:'药剂',effect:{hp:80}}); log('老乞丐从怀里摸出个小瓷瓶塞给你：「行军散，疗伤的，紧要时别忘用。」','npc'); }
+    save(state); renderStatus(); openModal('pack');
+  }
+  function tutorialHintStatus(){
+    log('老乞丐敲了敲你脑壳：「傻小子，点下头底下那个『角色』，你自个儿气血内力、几斤几两，全在上头亮着呢。」','npc');
+    log('〔引导〕点击右下角「角色」图标，查看自身气血 / 内力 / 精力等状态。','sys');
+  }
+  function tutorialHintPack(){
+    log('老乞丐指了指你怀里的瓷瓶：「点『行囊』，把那瓶行军散使了，气血便回得来。」','npc');
+    log('〔引导〕点击右下角「行囊」图标，找到「行军散」，点「使用」恢复气血。','sys');
+  }
+  function tutorialWound(){
+    if(!state.flags) state.flags={};
+    if(state.flags._wounded){ log('溪桥上已无流民踪影，只余凌乱脚印。','sys'); return; }
+    state.flags._wounded=true;
+    log('三名太平道流民挥刀扑来！你护住要害，与老乞丐合力将其击退，肩头却挨了一记，血当即涌了出来。','npc');
+    var maxhp=effectiveStats().maxHp; var dmg=Math.max(1, Math.floor(maxhp*0.6));
+    state.hp=Math.max(1, state.hp-dmg);
+    log('【负伤】气血 -'+dmg+'（当前 '+state.hp+'/'+maxhp+'）。老乞丐撕下衣襟替你裹伤。','bad');
+    save(state); renderStatus();
+  }
+  function useItemOutside(id){
+    if(!state.items||!state.items.length){ toast('背包空空，未携一物'); return; }
+    var idx=-1; for(var i=0;i<state.items.length;i++){ if(state.items[i].id===id){ idx=i; break; } }
+    if(idx<0){ toast('没有此物'); return; }
+    var it=state.items[idx], used=false;
+    if(it.effect){
+      if(it.effect.hp){ var add=it.effect.hp; state.hp=Math.min(effectiveStats().maxHp,state.hp+add); used=true; log('你服下「'+it.name+'」，疗伤 +'+add+'。','player'); }
+      if(it.effect.mp){ var am=it.effect.mp; state.mp=Math.min(state.maxMp,state.mp+am); used=true; }
+      if(it.effect.dmg){ log('「'+it.name+'」需临敌方能伤人，此处用不上。','sys'); }
+    }
+    if(!used){ toast('此物无法在此使用'); return; }
+    it.count--; if(it.count<=0) state.items.splice(idx,1);
+    save(state); renderStatus(); openModal('pack');
+  }
+
+  // ===== 开场渐进式 UI 揭示（空白 → 文字 → 选项 → 逐一点亮功能） =====
+  var ONB_LAYERS=['status','loctab','actions','lower','dock'];
+  function applyOnboard(){
+    if(!state.flags || !state.flags.onb || state.flags.onb.done){
+      document.body.classList.remove('onb');
+      ONB_LAYERS.forEach(function(l){ document.body.classList.remove('reveal-'+l); });
+      return;
+    }
+    var rv=state.flags.onb.reveal||[];
+    document.body.classList.add('onb');
+    ONB_LAYERS.forEach(function(l){ if(rv.indexOf(l)>=0) document.body.classList.add('reveal-'+l); else document.body.classList.remove('reveal-'+l); });
+  }
+  function onbReveal(layer){
+    if(!state.flags) state.flags={}; if(!state.flags.onb) state.flags.onb={started:true, personality:null, favor:0, reveal:[]};
+    if(state.flags.onb.reveal.indexOf(layer)<0) state.flags.onb.reveal.push(layer);
+    applyOnboard(); save(state);
+  }
+  function highlightOnb(layer){
+    var el = layer==='status' ? document.getElementById('status') : document.getElementById('lower');
+    if(!el) return;
+    el.classList.add('onb-glow');
+    setTimeout(function(){ el.classList.remove('onb-glow'); }, 4200);
+  }
+  function showOnboardChoices(){
+    removeOnboardChoices();
+    var app=document.getElementById('app'), lower=document.getElementById('lower');
+    if(!app||!lower) return;
+    var box=document.createElement('div'); box.id='onboard-choices'; box.className='onb-choices';
+    box.innerHTML='<div class="onb-prompt">（你望向老乞丐，喉头动了动——）</div>'+
+      '<button class="onb-btn" id="onb-a">多谢前辈救命之恩</button>'+
+      '<button class="onb-btn" id="onb-b">我……这是穿越了吗？我这是在哪里？</button>';
+    app.insertBefore(box, lower);
+    document.getElementById('onb-a').onclick=function(){ onbChoose('serious'); };
+    document.getElementById('onb-b').onclick=function(){ onbChoose('transmigrator'); };
+  }
+  function removeOnboardChoices(){
+    var b=document.getElementById('onboard-choices'); if(b&&b.parentNode) b.parentNode.removeChild(b);
+  }
+  function onbChoose(kind){
+    var ob=state.flags.onb; if(ob.phase==='chosen') return;
+    ob.personality=kind; ob.phase='chosen';
+    removeOnboardChoices();
+    if(kind==='serious'){
+      ob.favor=(ob.favor||0)+1;
+      log('你挣扎坐起，朝老乞丐郑重一揖：「多谢前辈救命之恩，晚辈没齿难忘。」','player');
+      log('老乞丐打量你一眼，嗬嗬笑道：「小乞丐还挺有良心的。」','npc','老乞丐');
+      log('他神色一凛，压低嗓子：「但此处不是说话的地方——随老夫撤出村去！」','npc','老乞丐');
+      onbReveal('lower'); highlightOnb('lower');
+      log('〔已点亮下方「出行」罗盘，亮起的方位即可前往。先随老乞丐出村。〕','sys');
+    } else {
+      log('你捂着脑袋，脱口道：「我……这是穿越了吗？我这是在哪里？」','player');
+      log('老乞丐一愣，凑近眯眼瞧你：「穿……越？你这小子莫不是摔糊涂了，连自个在燕山脚下都不晓得？」','npc','老乞丐');
+      onbReveal('status'); highlightOnb('status');
+      log('「先看清你自个儿如今是啥光景——上头的气血时辰，便是你的命脉。」','npc','老乞丐');
+      setTimeout(function(){
+        log('老乞丐揪你起身：「瞧够了没？此地不宜久留，随老夫撤出村去！」','npc','老乞丐');
+        onbReveal('lower'); highlightOnb('lower');
+        log('〔已点亮下方「出行」罗盘，亮起的方位即可前往。先随老乞丐出村。〕','sys');
+      }, 1500);
+    }
+    save(state);
+  }
+  function startOnboardingIntro(room){
+    applyOnboard();
+    buildActions(room);   // 预先填充隐藏的「出行」罗盘/状态/NPC，点亮后才可见
+    var ob=state.flags.onb;
+    var narr=room.desc.map(function(d){ return {t:d,c:'env'}; });
+    logScene(narr, 170, function(){
+      if(!ob.personality){ showOnboardChoices(); }
+      else { if(ob.reveal.indexOf('lower')<0) onbReveal('lower'); log('（你与老乞丐屏息贴墙，只待寻隙撤出村去。）','sys'); }
+    });
+  }
+  function finishOnboarding(){
+    if(!state.flags || !state.flags.onb) return;
+    state.flags.onb.done=true;
+    applyOnboard(); save(state);
+  }
+
   function renderEquipPanel(){
     var slots=['weapon','armor','trinket','mount'];
     var slotName={weapon:'兵刃',armor:'护甲',trinket:'饰品',mount:'坐骑'};
@@ -2851,7 +3075,10 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='pack'){
       h='<h3>行 囊</h3>'+
         (state.items.length
-          ? '<div class="row"><span>物品</span></div><div class="skills">'+state.items.map(function(it){return '<span>'+it.name+' ×'+(it.count||1)+'</span>';}).join('')+'</div>'
+          ? '<div class="row"><span>物品</span></div><div class="pack-items">'+state.items.map(function(it){
+              var tip=[]; if(it.effect){ if(it.effect.hp)tip.push('疗伤'+it.effect.hp); if(it.effect.mp)tip.push('回内力'+it.effect.mp); if(it.effect.dmg)tip.push('伤人'+it.effect.dmg); }
+              return '<div class="pack-item"><span class="pi-nm">'+it.name+' ×'+(it.count||1)+'</span>'+(tip.length?'<span class="pi-tip">'+tip.join('·')+'</span>':'')+'<button class="pi-use" data-id="'+it.id+'">使用</button></div>';
+            }).join('')+'</div>'
           : row('物品','（空）'))+
         renderEquipPanel()+
         '<p class="tip">装备由战斗掉落，点击装备/卸下。已装备属性自动并入战斗（攻/防/气血/内力/身法）。</p>';
@@ -2919,6 +3146,7 @@ window.onerror=function(msg,url,line,col,err){
     $card.innerHTML=h+'<button class="close" id="m-close">收 起</button>';
     if(kind==='create') bindCreate();
     if(kind==='opening') bindOpening();
+    if(kind==='pack'){ $card.querySelectorAll('.pi-use').forEach(function(b){ b.onclick=function(){ useItemOutside(b.getAttribute('data-id')); }; }); }
     $modal.classList.remove('hidden');
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};

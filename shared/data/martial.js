@@ -45,6 +45,19 @@
       ]
     },
 
+    wu_ming_quan: {
+      id: 'wu_ming_quan', name: '无名拳法', line: 'fist', type: 'skill',
+      beat: 20, cost: {}, dmgMul: 0.9,
+      attr: { wu: null, yin: '刚' },
+      desc: '老乞丐所授，平平无奇的一套拳脚，却暗合拳理根基，宜作开手根基',
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+8%' },
+        { realm: 3, eff: '出拳更稳，命中提升' },
+        { realm: 6, eff: '伤害+25%，偶发连击' }
+      ]
+    },
+
     lian_xing_tui: {
       id: 'lian_xing_tui', name: '连星腿', line: 'fist', type: 'skill',
       beat: 30, cost: { type: 'mp', val: 5 }, dmgMul: 0.85,
