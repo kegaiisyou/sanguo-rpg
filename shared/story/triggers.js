@@ -128,6 +128,31 @@
   //   ]
   // });
 
+  // 逃亡途中（onb 未结束）常驻催促：避免老乞丐在中间房间"哑火"只剩态度台词
+  TRIGGERS.push({
+    id: 'beggar_flee', hook: 'onTalk', npc: 'beggar_old', once: false,
+    roomIn: ['ys_entrance','ys_north','ys_ne','ys_east','ys_se','ys_south','ys_sw','ys_west','ys_nw'],
+    cond: { notFlag: 'flags.onb.done' },
+    steps: [
+      { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐压低嗓子：「别停，贴着我走——乌桓的探子就在后头，快往前！」' }
+    ]
+  });
+
+  // 山口常驻（onb 结束后）：老乞丐留守燕山口，可随时交谈（常驻 NPC 交互模板，可复用）
+  TRIGGERS.push({
+    id: 'beggar_ambient', hook: 'onTalk', npc: 'beggar_old', room: 'yanshan_shankou', once: false,
+    cond: { flags: { 'onb.done': true } },
+    steps: [
+      { t: 'npcTalk', npc: 'beggar_old',
+        prompt: '老乞丐盘腿坐在隘口石上：「{{name}}，走累了便在此歇脚。还有啥要问老夫的？」',
+        asks: [
+          { label: '前辈守着燕山口，可知如今天下情势？',
+            say: '老乞丐嗬嗬一笑：「乌桓退了，可豪强并起——白檀屯寨的亭长比官还横。你自个儿留神，莫撞枪口。」' },
+          { label: '（拱手告辞）', say: '你朝老乞丐一拱手，转身去了。' }
+        ] }
+    ]
+  });
+
   LF.TRIGGERS = TRIGGERS;
   if (LF.SharedGame) LF.SharedGame.TRIGGERS = TRIGGERS;
   if (typeof module !== 'undefined' && module.exports) module.exports = TRIGGERS;
