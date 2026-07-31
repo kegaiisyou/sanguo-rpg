@@ -2808,7 +2808,7 @@ window.onerror=function(msg,url,line,col,err){
     ONB_LAYERS.forEach(function(l){ if(rv.indexOf(l)>=0) document.body.classList.add('reveal-'+l); else document.body.classList.remove('reveal-'+l); });
   }
   function onbReveal(layer){
-    if(!state.flags) state.flags={}; if(!state.flags.onb) state.flags.onb={started:true, personality:null, favor:0, reveal:[]};
+    if(!state.flags) state.flags={}; if(!state.flags.onb) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
     if(state.flags.onb.reveal.indexOf(layer)<0) state.flags.onb.reveal.push(layer);
     applyOnboard(); save(state);
   }
@@ -2943,6 +2943,7 @@ window.onerror=function(msg,url,line,col,err){
     return handled;
   }
   function graduate(){
+    if(state.flags && state.flags.onb) state.flags.onb.done=true;   // 教学链毕业：解锁 NPC 的观察/攻击等完整菜单
     document.body.classList.remove('onb');
     ONB_LAYERS.forEach(function(l){ document.body.classList.remove('reveal-'+l); });
     state.moveGate=null;
@@ -3709,10 +3710,11 @@ window.onerror=function(msg,url,line,col,err){
   /** 开始战斗 */
   function startCombat(enemyId, opt){
     opt=opt||{};
-    if(opt.tutorial && state.onb && !state.onb.done){
-      state.onb.tcTutorial=true; state.onb.tcDone=false; state.onb.packGiven=false;
-      state.onb.tcTried={atk:false,def:false};
-      state.onb.tcMsgs={attack:false,defend:false,pack:false,use:false,finish:false};
+    // 注意：引导/教学状态统一存于 state.flags.onb（历史代码曾误用未定义的 state.onb，已统一修正）
+    if(opt.tutorial && state.flags.onb && !state.flags.onb.tcDone){
+      state.flags.onb.tcTutorial=true; state.flags.onb.tcDone=false; state.flags.onb.packGiven=false;
+      state.flags.onb.tcTried={atk:false,def:false};
+      state.flags.onb.tcMsgs={attack:false,defend:false,pack:false,use:false,finish:false};
     }
     var appEl=document.getElementById('app'); if(appEl) appEl.classList.add('in-combat');
     var es=effectiveStats();
@@ -3729,23 +3731,25 @@ window.onerror=function(msg,url,line,col,err){
     var sceneEl=document.getElementById('scene');
     if(sceneEl){ sceneEl.dataset.bg = SCENE_THEME[enemyId] || 'plain'; sceneEl.classList.remove('bg-danger'); }
     state.energy=Math.max(0,state.energy-5);   // 应战耗精力
-    combatMode = settings.autoBattle ? 'auto' : 'manual';
+    // 教学战斗强制手动模式：本就是教玩家攻/防/道具/撤退，自动结算会跳过全部引导
+    var forceManual = !!opt.tutorial;
+    combatMode = (forceManual || !settings.autoBattle) ? 'manual' : 'auto';
     $narr.innerHTML='';
     combatCardEl=null;
     var enemy=G.CombatEngine.getEnemy();
     log('──── 狭路相逢 ────','combat');
     log((enemy.title?('「'+enemy.title+'」'):'')+enemy.name+' 拦住去路！','title');
     renderCombatCard();   // 构建持久战斗卡（满血 / 满状态）
-    if(settings.autoBattle){ startAutoBattle('optimal'); }
+    if(combatMode==='auto'){ startAutoBattle('optimal'); }
     else { renderCombatRound(); }
   }
 
   /** 开场教学战斗是否激活 */
-  function tutCombatActive(){ return !!(state.onb && state.onb.tcTutorial && !state.onb.tcDone); }
+  function tutCombatActive(){ return !!(state.flags.onb && state.flags.onb.tcTutorial && !state.flags.onb.tcDone); }
   /** 老乞丐扔来行囊：给金疮药 + 点亮行囊 + 解锁道具按钮 */
   function tutThrowPack(){
-    if(!state.onb) return;
-    state.onb.packGiven=true;
+    if(!state.flags.onb) return;
+    state.flags.onb.packGiven=true;
     if(!state.items) state.items=[];
     var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='jinchuang'){ ex=state.items[i]; break; } }
     if(ex) ex.count=(ex.count||1)+1; else state.items.push({id:'jinchuang',name:'金疮药',count:1,cat:'药剂',effect:{hp:120}});
@@ -3904,21 +3908,21 @@ window.onerror=function(msg,url,line,col,err){
     // 教学引导层：开场教学战斗期间，分步提示 + 道具按钮按进度显隐
     if(tutCombatActive()){
       var stT=G.CombatEngine.getStatus();
-      if(!state.onb.packGiven){
-        if(stT.player.hp < stT.player.maxHp || (state.onb.tcTried && state.onb.tcTried.atk && state.onb.tcTried.def)){
+      if(!state.flags.onb.packGiven){
+        if(stT.player.hp < stT.player.maxHp || (state.flags.onb.tcTried && state.flags.onb.tcTried.atk && state.flags.onb.tcTried.def)){
           tutThrowPack();
         }
       }
-      if(!state.onb.packGiven){
-        if(!state.onb.tcTried || !state.onb.tcTried.atk){
-          if(!state.onb.tcMsgs.attack){ log('老乞丐：「看清下头——〔攻击〕出手、〔防御〕避锋、〔撤退〕脱身。先点〔攻击〕，挫他锐气！」','npc','老乞丐'); state.onb.tcMsgs.attack=true; }
-        } else if(!state.onb.tcTried.def){
-          if(!state.onb.tcMsgs.defend){ log('老乞丐：「再点〔防御〕——看敌人意图，择机减伤。」','npc','老乞丐'); state.onb.tcMsgs.defend=true; }
+      if(!state.flags.onb.packGiven){
+        if(!state.flags.onb.tcTried || !state.flags.onb.tcTried.atk){
+          if(!state.flags.onb.tcMsgs.attack){ log('老乞丐：「看清下头——〔攻击〕出手、〔防御〕避锋、〔撤退〕脱身。先点〔攻击〕，挫他锐气！」','npc','老乞丐'); state.flags.onb.tcMsgs.attack=true; }
+        } else if(!state.flags.onb.tcTried.def){
+          if(!state.flags.onb.tcMsgs.defend){ log('老乞丐：「再点〔防御〕——看敌人意图，择机减伤。」','npc','老乞丐'); state.flags.onb.tcMsgs.defend=true; }
         } else {
-          if(!state.onb.tcMsgs.finish){ log('老乞丐：「攻防皆会了——这行囊你先收着，日后受伤便取药疗伤。」','npc','老乞丐'); state.onb.tcMsgs.finish=true; }
+          if(!state.flags.onb.tcMsgs.finish){ log('老乞丐：「攻防皆会了——这行囊你先收着，日后受伤便取药疗伤。」','npc','老乞丐'); state.flags.onb.tcMsgs.finish=true; }
         }
       } else {
-        if(!state.onb.tcMsgs.use){ log('老乞丐：「点〔道具〕，打开行囊——里头有金疮药，受伤便能取用疗伤。」','npc','老乞丐'); state.onb.tcMsgs.use=true; }
+        if(!state.flags.onb.tcMsgs.use){ log('老乞丐：「点〔道具〕，打开行囊——里头有金疮药，受伤便能取用疗伤。」','npc','老乞丐'); state.flags.onb.tcMsgs.use=true; }
       }
     }
     // 手动模式：先锁定并显示敌方本回合意图，供玩家选防御/闪避博弈
@@ -3941,8 +3945,8 @@ window.onerror=function(msg,url,line,col,err){
       handleCombatFlee();
     });
     // 道具（子菜单：药剂 / 暗器 等）——教学战斗中，老乞丐扔来行囊前不展示
-    if(!(tutCombatActive() && !state.onb.packGiven)){
-      addActionBtn('💊','道具', function(){ openPackInCombat(); }, (tutCombatActive() && state.onb.packGiven)?'onb-glow':null);
+    if(!(tutCombatActive() && !state.flags.onb.packGiven)){
+      addActionBtn('💊','道具', function(){ openPackInCombat(); }, (tutCombatActive() && state.flags.onb.packGiven)?'onb-glow':null);
     }
     // 设置（子菜单：音效 等）
     addActionBtn('⚙','设置', function(){ openSettingsInCombat(); });
@@ -3950,9 +3954,9 @@ window.onerror=function(msg,url,line,col,err){
 
   /** 处理手动战斗操作 */
   function handleCombatAction(actionId){
-    if(tutCombatActive() && state.onb.tcTried){
-      if(actionId==='attack') state.onb.tcTried.atk=true;
-      if(actionId==='defend') state.onb.tcTried.def=true;
+    if(tutCombatActive() && state.flags.onb.tcTried){
+      if(actionId==='attack') state.flags.onb.tcTried.atk=true;
+      if(actionId==='defend') state.flags.onb.tcTried.def=true;
       save(state);
     }
     if(combatMode!=='manual' || combatBusy) return;   // 防连点/动画期间重复触发
@@ -4049,11 +4053,11 @@ window.onerror=function(msg,url,line,col,err){
     clearActions();                  // 清除战斗按钮，防止残留可点击
     if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断 playTurn
     // 开场教学战斗：战败/逃跑由老乞丐救场，避免新手卡死（仍算教学完成）
-    var tutC = state.onb && state.onb.tcTutorial && !state.onb.tcDone;
+    var tutC = state.flags.onb && state.flags.onb.tcTutorial && !state.flags.onb.tcDone;
     if(tutC && result!=='win'){
       if(result==='lose'){ state.hp = effectiveStats().maxHp; log('老乞丐枯手一拂，将你从刀下拽回：「这刀老夫替你挡了！」','npc','老乞丐'); }
       else { log('老乞丐：「罢了，先撤一步，拳脚日后再练。」','npc','老乞丐'); }
-      state.onb.tcDone=true; state.onb.tcTutorial=false; state.defeated=false;
+      state.flags.onb.tcDone=true; state.flags.onb.tcTutorial=false; state.defeated=false;
       log('〔教学演练结束——往后真打可没这般好运，记得用药、看敌意。〕','sys');
       save(state); renderStatus();
       if(combatCardEl){ combatCardEl.classList.add('settle-win'); }
@@ -4075,7 +4079,7 @@ window.onerror=function(msg,url,line,col,err){
 
     if(result==='win'){
       if(tutCombatActive()){
-        state.onb.tcDone=true; state.onb.tcTutorial=false;
+        state.flags.onb.tcDone=true; state.flags.onb.tcTutorial=false;
         if(state.learnedMartial.indexOf('wu_ming_quan')<0) state.learnedMartial.push('wu_ming_quan');
         log('老乞丐枯手翻飞，所示武功极高深，残敌尽数被震退、溃不成军！','npc','老乞丐');
         log('老乞丐：「这便是「无名拳法」——拳贵直、劲贵整，记着了？」','npc','老乞丐');
