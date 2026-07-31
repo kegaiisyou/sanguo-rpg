@@ -26,7 +26,8 @@
     steps: [
       { t: 'narrate', room: 'ys_entrance' },
       { t: 'sys', text: '〔雪地、断墙、满身血痂……你记不起自己是谁，只知方才险些死了。点下方「老乞丐」与他交谈，听他交代去处。〕' },
-      { t: 'reveal', layer: 'npc' }
+      { t: 'reveal', layer: 'npc' },
+      { t: 'reveal', layer: 'status' }
     ]
   });
 

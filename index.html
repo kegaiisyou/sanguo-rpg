@@ -3763,8 +3763,7 @@ window.onerror=function(msg,url,line,col,err){
     var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='jinchuang'){ ex=state.items[i]; break; } }
     if(ex) ex.count=1; else state.items.push({id:'jinchuang',name:'金疮药',count:1,cat:'药剂',effect:{hp:120}});
     onbReveal('dock'); highlightOnb('dock'); save(state); renderStatus();
-    log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤。','npc','老乞丐');
-    log('〔底部「行囊」已点亮——点〔道具〕，打开行囊取药疗伤。〕','sys');
+    log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤（下头「道具」已点亮）。','npc','老乞丐');
     save(state);
   }
 
@@ -3776,32 +3775,43 @@ window.onerror=function(msg,url,line,col,err){
   function tutCombatAct(actionId){
     var eng=G.CombatEngine, st=eng.state;
     var enemy=st.enemy, p=st.player;
+    var atkT = state.flags.onb.tcTried.atk;
+    var defT = state.flags.onb.tcTried.def;
+    var usedItem = !!state.flags.onb.tcUsedItem;
+    // 收尾：攻击/防御/道具三项皆已练过，且本次点的是攻击 —— 这才真正送敌上路
+    var finishing = (atkT && defT && usedItem && actionId==='attack');
+
     if(actionId==='defend'){
-      if(state.flags.onb.tcTried && state.flags.onb.tcTried.atk && !state.flags.onb.tcTried.def){
+      state.flags.onb.tcTried.def=true;
+      if(atkT){
         log('你依言横臂护住要害。老乞丐掌风一引，将乌桓骑兵的刀势荡开，顺势一掌印在他马腹——','npc','老乞丐');
         log('老乞丐：「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
-        enemy.hp=Math.max(0,enemy.hp-80);
       } else {
-        log('你横臂护身。老乞丐在一旁颔首：「稳住，先看他刀往哪走。」','npc','老乞丐');
-        enemy.hp=Math.max(0,enemy.hp-40);
+        log('你横臂护身。老乞丐在一旁颔首：「稳住，先看他刀往哪走——待会再教你出招。」','npc','老乞丐');
       }
-      state.flags.onb.tcTried.def=true;
-    } else {
-      if(!(state.flags.onb.tcTried && state.flags.onb.tcTried.atk)){
+      enemy.hp=Math.max(1, enemy.hp-40);
+    } else {   // attack
+      if(!atkT){
         // 首击：完整演出——主角虚招落空，老乞丐无名掌法救场，主角被刀芒擦伤，老乞丐甩出行囊
-        log('你摆开架势，心里害怕却强装镇静，随手一拳却是打在空气——乌桓骑兵跃马挥刀，迎面劈下！','npc','老乞丐');
-        log('老乞丐无名掌法暴起，劲气横飞：一掌贴着弯刀错身而过，顺带一手拉住你的衣领，堪堪替你躲过这记致命杀招；可刀芒锐气擦过，仍在你臂上划开一道血口。','npc','老乞丐');
-        log('老乞丐就势将你往东一推，甩出那只行囊：「接着！先顾着自个儿的伤口！」','npc','老乞丐');
-        enemy.hp=Math.max(0,enemy.hp-120);
-        p.hp=Math.max(1, p.hp-22); state.hp=p.hp;     // 刀芒锐气砍伤
-        if(!state.flags.onb.packGiven) tutThrowPack();  // 扔下行囊 → 点亮「道具」教学
         state.flags.onb.tcTried.atk=true;
+        log('你摆开架势强装镇静，随手一拳却打在空气——乌桓骑兵跃马挥刀，迎面劈下！','npc','老乞丐');
+        log('老乞丐无名掌法暴起，劲气错身而过，顺手拽你衣领躲过杀招；刀芒锐气擦过，在你臂上划开一道血口。','npc','老乞丐');
+        enemy.hp=Math.max(1, enemy.hp-120);
+        p.hp=Math.max(1, p.hp-22); state.hp=p.hp;     // 刀芒锐气砍伤
+        if(!state.flags.onb.packGiven) tutThrowPack();  // 受伤后老乞丐甩出行囊 → 解锁「道具」教学
+      } else if(finishing){
+        log('老乞丐无名掌法再起，掌力如潮，一掌正印在乌桓骑兵胸口，将他连人带马震退数丈！','npc','老乞丐');
+        enemy.hp=0;
       } else {
-        log('你又出一拳引他分神，老乞丐无名掌法再起，劲气如潮，一掌正印在乌桓骑兵胸口！','npc','老乞丐');
-        enemy.hp=Math.max(0,enemy.hp-120);
-        p.hp=Math.max(1, p.hp-12); state.hp=p.hp;
+        log('你又出一拳引他分神，老乞丐掌法再起，劲气如潮，又印他胸口几分！','npc','老乞丐');
+        enemy.hp=Math.max(1, enemy.hp-60);
+        p.hp=Math.max(1, p.hp-10); state.hp=p.hp;
       }
     }
+    // 关键兜底：教学未走完（攻击/防御/道具没全练过）前，敌人绝不被打死，
+    // 无论玩家怎么乱点、乱序，教学必定依次教完攻→防→道具→收尾，不会被两下普攻跳关。
+    if(!finishing) enemy.hp=Math.max(enemy.hp, 70);
+
     renderCombatCard();   // 同步卡面血条
     save(state);
     if(enemy.hp<=0){
@@ -3970,11 +3980,11 @@ window.onerror=function(msg,url,line,col,err){
       }
       // 分步引导文案（剧情与引导合一）：攻击 → 防御 → 道具 → 收尾
       if(!atkT){
-        if(!state.flags.onb.tcMsgs.attack){ log('老乞丐：「看清下头——〔攻击〕出手、〔防御〕避锋、〔撤退〕脱身、〔设置〕调音。先点亮的那枚〔攻击〕，挫他锐气！」','npc','老乞丐'); state.flags.onb.tcMsgs.attack=true; }
+        if(!state.flags.onb.tcMsgs.attack){ log('老乞丐：「先点亮的〔攻击〕，挫他锐气！」','npc','老乞丐'); state.flags.onb.tcMsgs.attack=true; }
       } else if(!defT){
-        if(!state.flags.onb.tcMsgs.defend){ log('老乞丐：「行囊已到手。再点〔防御〕——看敌势，借力卸力，莫硬接！」','npc','老乞丐'); state.flags.onb.tcMsgs.defend=true; }
+        if(!state.flags.onb.tcMsgs.defend){ log('老乞丐：「再点〔防御〕——看敌势，借力卸力，莫硬接！」','npc','老乞丐'); state.flags.onb.tcMsgs.defend=true; }
       } else if(!usedItem){
-        if(!state.flags.onb.tcMsgs.use){ log('老乞丐：「攻防皆会了。点〔道具〕，打开行囊——里头有金疮药，治你臂上那道刀伤！」','npc','老乞丐'); state.flags.onb.tcMsgs.use=true; }
+        if(!state.flags.onb.tcMsgs.use){ log('老乞丐：「点〔道具〕，取金疮药治你臂上刀伤！」','npc','老乞丐'); state.flags.onb.tcMsgs.use=true; }
       } else {
         if(!state.flags.onb.tcMsgs.finish){ log('老乞丐：「好生养着。再点〔攻击〕，送这乌桓斥候上路！」','npc','老乞丐'); state.flags.onb.tcMsgs.finish=true; }
       }
