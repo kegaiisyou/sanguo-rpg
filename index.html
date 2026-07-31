@@ -2099,6 +2099,7 @@ window.onerror=function(msg,url,line,col,err){
     logScene(narr, 150, function(){
       // 教学链：进入房间后触发对应引导（如燕山山口逃脱）
       onbRoomEnter(room);
+      renderMoveBar(G.ROOMS[state.room]);   // 门禁（moveGate）更新后重渲移动条，避免东北等方向残留旧门禁锁定
       // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
       if(room.patrol && !silent && !onboarding) maybeAmbush(room);
     });
@@ -2501,13 +2502,17 @@ window.onerror=function(msg,url,line,col,err){
   function buildNpcActions(o){
     var acts=[];
     acts.push({label:'交谈', icon:'💬', fn:function(){ if(o.key) talk(o.key); }});
-    acts.push({label:'观察', icon:'👁', fn:function(){ observeNpc(o); }});
-    var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
-    acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
-      if(dangerAct){ dangerAct.fn(); return; }
-      if(o.key && G.ENEMIES && G.ENEMIES[o.key]){ startCombat(o.key); return; }
-      log('〔'+o.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys');
-    }});
+    // 开场教学链（onb 未完成）期间：仅保留「交谈」，隐藏「观察」「攻击」，避免新手误触/无意义选项
+    var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
+    if(!onboarding){
+      acts.push({label:'观察', icon:'👁', fn:function(){ observeNpc(o); }});
+      var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
+      acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
+        if(dangerAct){ dangerAct.fn(); return; }
+        if(o.key && G.ENEMIES && G.ENEMIES[o.key]){ startCombat(o.key); return; }
+        log('〔'+o.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys');
+      }});
+    }
     (o.actions||[]).forEach(function(a){
       if(a.danger) return;                       // 敌意动作已并入「攻击」
       if(/交谈|观察/.test(a.label||'')) return;  // 去重标准项
@@ -2885,7 +2890,7 @@ window.onerror=function(msg,url,line,col,err){
           return { label: resolveTpl(a.label), fn: function(){
             applySet(a.set, step.npc);
             (a.reveal||[]).forEach(function(l){ onbReveal(l); });
-            if(a.say) log(resolveTpl(a.say),'npc', npcName);
+            if(a.say) log(resolveTpl(a.say));   // say 为混合叙事（含主角动作+老乞丐台词），不附加「老乞丐：」前缀以免不通顺
             save(state);
             if(a.then && a.then.length){ runSteps(a.then, 0, next); } else { next(); }
           }};
