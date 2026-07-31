@@ -3778,47 +3778,46 @@ window.onerror=function(msg,url,line,col,err){
     var atkT = state.flags.onb.tcTried.atk;
     var defT = state.flags.onb.tcTried.def;
     var usedItem = !!state.flags.onb.tcUsedItem;
-    // 收尾：攻击/防御/道具三项皆已练过，且本次点的是攻击 —— 这才真正送敌上路
-    var finishing = (atkT && defT && usedItem && actionId==='attack');
+    // 当前应当练习的步骤（严格状态机，杜绝乱序导致的死循环）
+    var expect = !atkT ? 'attack' : (!defT ? 'defend' : (!usedItem ? 'item' : 'finish'));
+    if(actionId!=='attack' && actionId!=='defend') return;  // 教学战只处理攻/防（道具走 openPack）
 
+    // 点错按钮：老乞丐温和纠正，不推进、不扣血、敌人不死 —— 永远只能靠"当前高亮的那一步"前进
+    if(expect==='attack' && actionId!=='attack'){
+      log('老乞丐：「别急——先点〔攻击〕，试试你的拳脚！」','npc','老乞丐'); return;
+    }
+    if(expect==='defend' && actionId!=='defend'){
+      log('老乞丐：「攻击你会了，这回试试〔防御〕——看敌势，借力卸力！」','npc','老乞丐'); return;
+    }
+    if(expect==='item'){
+      log('老乞丐：「先用〔道具〕取金疮药，治你臂上刀伤——疗伤也是功夫！」','npc','老乞丐'); return;
+    }
+    if(expect==='finish' && actionId!=='attack'){
+      log('老乞丐：「攻防皆会、伤也疗了——再点〔攻击〕，送他上路！」','npc','老乞丐'); return;
+    }
+
+    // ── 点对了：按步骤演出 ──
     if(actionId==='defend'){
       state.flags.onb.tcTried.def=true;
-      if(atkT){
-        log('你依言横臂护住要害。老乞丐掌风一引，将乌桓骑兵的刀势荡开，顺势一掌印在他马腹——','npc','老乞丐');
-        log('老乞丐：「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
-      } else {
-        log('你横臂护身。老乞丐在一旁颔首：「稳住，先看他刀往哪走——待会再教你出招。」','npc','老乞丐');
-      }
+      log('你依言横臂护住要害。老乞丐掌风一引，将乌桓骑兵的刀势荡开，顺势一掌印在他马腹——','npc','老乞丐');
+      log('老乞丐：「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
       enemy.hp=Math.max(1, enemy.hp-40);
     } else {   // attack
-      if(!atkT){
-        // 首击：完整演出——主角虚招落空，老乞丐无名掌法救场，主角被刀芒擦伤，老乞丐甩出行囊
+      if(expect==='attack'){   // 首击完整演出
         state.flags.onb.tcTried.atk=true;
         log('你摆开架势强装镇静，随手一拳却打在空气——乌桓骑兵跃马挥刀，迎面劈下！','npc','老乞丐');
         log('老乞丐无名掌法暴起，劲气错身而过，顺手拽你衣领躲过杀招；刀芒锐气擦过，在你臂上划开一道血口。','npc','老乞丐');
         enemy.hp=Math.max(1, enemy.hp-120);
         p.hp=Math.max(1, p.hp-22); state.hp=p.hp;     // 刀芒锐气砍伤
         if(!state.flags.onb.packGiven) tutThrowPack();  // 受伤后老乞丐甩出行囊 → 解锁「道具」教学
-      } else if(finishing){
+      } else {   // expect==='finish' 收尾击杀
         log('老乞丐无名掌法再起，掌力如潮，一掌正印在乌桓骑兵胸口，将他连人带马震退数丈！','npc','老乞丐');
         enemy.hp=0;
-      } else {
-        log('你又出一拳引他分神，老乞丐掌法再起，劲气如潮，又印他胸口几分！','npc','老乞丐');
-        enemy.hp=Math.max(1, enemy.hp-60);
-        p.hp=Math.max(1, p.hp-10); state.hp=p.hp;
       }
     }
-    // 关键兜底：教学未走完（攻击/防御/道具没全练过）前，敌人绝不被打死，
-    // 无论玩家怎么乱点、乱序，教学必定依次教完攻→防→道具→收尾，不会被两下普攻跳关。
-    if(!finishing) enemy.hp=Math.max(enemy.hp, 70);
-
     renderCombatCard();   // 同步卡面血条
     save(state);
-    if(enemy.hp<=0){
-      st.result='win';
-      endCombat('win');
-      return;
-    }
+    if(enemy.hp<=0){ st.result='win'; endCombat('win'); return; }
     renderCombatRound();
   }
 
@@ -4010,8 +4009,9 @@ window.onerror=function(msg,url,line,col,err){
     var glowDef=tut && atkT && !defT;
     var glowItem=tut && atkT && defT && !usedItem;
 
-    // 进攻（子菜单：普通攻击 + 武技）
-    addActionBtn('⚔','攻击', function(){ openAttackMenu(atkAction, arts); }, glowAtk?'primary onb-glow':'primary');
+    // 进攻（子菜单：普通攻击 + 武技）—— 教学期间仅在"攻击"为当前目标时才高亮，避免与常态红色 primary 混淆
+    var atkCls = glowAtk ? 'primary onb-glow' : (tut ? '' : 'primary');
+    addActionBtn('⚔','攻击', function(){ openAttackMenu(atkAction, arts); }, atkCls);
     // 防御 / 撤退
     addActionBtn('🛡','防御', function(){ handleCombatAction('defend'); }, glowDef?'onb-glow':null);
     addActionBtn('🏃','撤退', function(){

@@ -51,8 +51,7 @@
       lineExp: {},                              // { lineId: 经验值 }（P2 战斗出手累积）
       learnedMartial: ['beng_quan'],            // 已学招式（新武学系统）
       equippedForce: ['cun_jin'],               // 已装配发力技巧（初始带寸劲暴击）
-      items: [{id:'jinchuang',name:'金疮药',count:3,cat:'药剂',effect:{hp:50}},  // 背包：药剂（疗伤）
-              {id:'feibiao',name:'飞镖',count:3,cat:'暗器',effect:{dmg:30}}],  // 暗器（伤人，演示「道具」子菜单分类）
+      items: [{id:'jinchuang',name:'金疮药',count:1,cat:'药剂',effect:{hp:50}}],  // 背包：药剂（疗伤）；飞镖已移除，避免新手混淆
       equips: [],                                // 装备背包：每件独立装备对象（见 LF.ITEMS.rollEquip）
       equipment: { weapon:null, armor:null, trinket:null, mount:null }, // 已装备槽位
       quest: { bandit:0, turban:0, hua_xiong:false, luoyang:false }  // P4 主线进度计数
