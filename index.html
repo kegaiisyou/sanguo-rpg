@@ -2609,8 +2609,8 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== NPC 对话 =====
   function talk(k){
-    if(document.getElementById('tut-ask')) return;   // 选项面板开启中，避免 npcTalk 重复叠加触发/重复结算
-    if(checkTriggers({hook:'onTalk', npc:k})) return;
+    if(document.getElementById('tut-choices')) return;   // 选项面板开启中，避免 npcTalk 重复叠加触发/重复结算
+    if(checkTriggers({hook:'onTalk', npc:k, room: state.room})) return;
   var n=G.DIALOGUES.npcs[k];
   if(!n) return;
     var at=npcAttitude(k);
