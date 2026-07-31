@@ -32,6 +32,7 @@
       room: 'ys_entrance',           // 当前所处房间（默认出生点：燕山·村落口，开场教学绕圈链入口）
       spawnRoom: 'ys_entrance',      // 玩家出生点（调试台可改；新局/重置后落点）
       flags: {},
+      npcFavor: {},                     // NPC 好感度表（keyed by npc id），供触发引擎复合判断
       lastSeen: Date.now(),
       time: 4,                       // 时辰索引（0子..4辰..11亥）；辰时=7:00-8:59
       clock: 442,                    // 当日分钟数 0-1439，442 = 7:22（与 time=辰时 对齐）
