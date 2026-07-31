@@ -1554,8 +1554,7 @@ window.onerror=function(msg,url,line,col,err){
     if((state.room==='ys_entrance'||state.spawnRoom==='ys_entrance') && !(state.flags && state.flags.onb && state.flags.onb.done)){
       if(!state.flags) state.flags={};
       if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
-      onbReveal('npc');   // 教学期间老乞丐始终可交谈（常驻 NPC）
-      applyOnboard();
+      applyOnboard();   // NPC 列表延后到开场剧本「点下方老乞丐」一步才 reveal，避免提前交互引发 bug
     }
     renderRoom(state.room || state.spawnRoom || 'ji_guomen');
     var app=document.getElementById('app'); if(app) app.classList.remove('hidden');
