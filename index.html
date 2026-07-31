@@ -805,7 +805,7 @@
   #app.in-combat #dock{ display:none; }
 
   /* 战斗行动菜单：紧凑一行，小图标+文字，自动换行兜底 */
-  #app.in-combat #actions{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center;
+  #app.in-combat #actions{ display:flex !important; flex-wrap:wrap; gap:7px; justify-content:center;
     padding:9px 6px 12px; align-items:center; border-top:2px solid rgba(60,40,30,.18);
     background:linear-gradient(0deg,rgba(255,253,248,.97),rgba(252,248,239,.85)); }
   #app.in-combat .act.cb-menu{ display:inline-flex; flex-direction:row; align-items:center; justify-content:center; gap:6px;
