@@ -21,6 +21,18 @@
       drop: { gold: [10, 30], pot: [5, 15], table: [], equip: { tier: 1, chance: 35 } }
     },
 
+    // 乌桓游骑斥候（开场教学战专用：弱、必反击，便于演示攻击/防御/道具）
+    wuhuan_scout: {
+      id: 'wuhuan_scout', name: '乌桓斥候', title: '游骑哨探',
+      element: '金',
+      hp: 170, atk: 20, def: 12, spd: 26,
+      skills: [
+        { id: 'scout_slash', name: '突刺', beat: 28, dmgMul: 1.0, desc: '弯刀疾刺' }
+      ],
+      ai: 'aggressive',
+      drop: { gold: [4, 10], pot: [2, 6], table: [], equip: { tier: 0, chance: 0 } }
+    },
+
     // ─── 中等敌人 ───
     bandit_chief: {
       id: 'bandit_chief', name: '流寇头目', title: '山寨首领',
