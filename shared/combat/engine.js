@@ -533,73 +533,13 @@
       return { action: act, label: label, threat: threat, counter: counter };
     },
 
-    // ─── 玩家 AI（自动模式） ───
-    _pickPlayerAction: function(strategy) {
-      var self = this;
-      var p = this.state.player;
-      var arts = p.artIds;
-      var available = [];
 
-      for (var i = 0; i < arts.length; i++) {
-        var art = p.artMap[arts[i]] || global.LF.MARTIAL_ARTS.get(arts[i]);
-        if (!art) continue;
-        if (art.type === 'technique') continue; // 发力技巧非主动使用
-        if (art.cost && art.cost.type === 'mp' && p.mp < art.cost.val) continue;
-        if (art.cost && art.cost.type === 'rage' && p.rage < art.cost.val) continue;
-        available.push(art);
-      }
 
-      // 无可用的——只能普防（返回字符串标识，由 _resolveAction 识别）
-      if (available.length === 0) return 'defend';
-
-      var hpR = p.hp / Math.max(1, p.maxHp);
-
-      // ─── 保守策略 ───
-      if (strategy === 'conservative') {
-        if (hpR < 0.5 && Math.random() < 0.35) return 'defend';
-        available.sort(function(a, b) {
-          return (a.cost && a.cost.val || 0) - (b.cost && b.cost.val || 0);
-        });
-        return available[0];
-      }
-
-      // ─── 最优策略 ───
-      // 残血 → 大招拼死一搏
-      if (hpR < 0.25) {
-        // 优先绝技
-        var ult = null;
-        for (var u = 0; u < available.length; u++) {
-          if (available[u].type === 'ultimate') { ult = available[u]; break; }
-        }
-        if (ult) return ult;
-
-        available.sort(function(a, b) { return (b.dmgMul || 0) - (a.dmgMul || 0); });
-        return available[0];
-      }
-
-      // 绝技就绪且能斩杀
-      var enemyHpR = this.state.enemy.hp / Math.max(1, this.state.enemy.maxHp);
-      for (var j = 0; j < available.length; j++) {
-        if (available[j].type === 'ultimate') {
-          var estDmg = this.calcDamage('player', available[j], false);
-          if (estDmg >= this.state.enemy.hp) return available[j];
-        }
-      }
-
-      // 最高 DPS 可负担的武技
-      available.sort(function(a, b) {
-        var dA = (a.dmgMul || 0) / Math.max(1, a.beat || 25);
-        var dB = (b.dmgMul || 0) / Math.max(1, b.beat || 25);
-        return dB - dA;
-      });
-      return available[0];
-    },
-
-    // ─── 执行一回合（手动：传入 actionId；自动：AI 自选） ───
+    // ─── 执行一回合（半手动：传入玩家指令 actionId） ───
     playTurn: function(actionId) {
       var log = [];
       // 给每条战斗日志在「出招当时」即时打上血量快照：回放端据此严格随出招顺序正向渲染血条，
-      // 消除「整回合末 / 终态统一快照」导致的 buff/debuff/system 日志血量提前跳变（手动与自动战斗通用）
+      // 消除「整回合末 / 终态统一快照」导致的 buff/debuff/system 日志血量提前跳变（半手动战斗通用）
       var _snap = this;
       var _origPush = log.push.bind(log);
       log.push = function (entry) {
@@ -616,11 +556,11 @@
       this._tickDots(log);
       if (this._checkEnd()) { this.state.log = log; return log; }
 
-      // 确定玩家行动
+      // 确定玩家行动（战斗为半手动：actionId 由玩家指令传入）
       var playerAction;
       if (actionId === 'defend') {
         playerAction = 'defend';
-      } else if (actionId && actionId !== '__auto__') {
+      } else if (actionId) {
         playerAction = this.state.player.artMap[actionId] || global.LF.MARTIAL_ARTS.get(actionId) || this._rageAction(actionId);
         if (!playerAction) { log.push({ type:'system', text:'未知招式' }); this.state.log = log; return log; }
         // 校验消耗
@@ -633,9 +573,9 @@
           this.state.log = log; return log;
         }
       } else {
-        // 自动模式：AI 选择（策略由 autoResolve 暂存于 _autoStrat）
-        var strat = (actionId === '__auto__') ? (this._autoStrat || 'optimal') : 'optimal';
-        playerAction = this._pickPlayerAction(strat);
+        // 兜底（正常不会走到）：默认普通攻击，避免空指令卡死
+        var _fb = this.state.player.artIds && this.state.player.artIds[0];
+        playerAction = (_fb && (this.state.player.artMap[_fb] || global.LF.MARTIAL_ARTS.get(_fb))) || 'defend';
       }
 
       // ── 行动阶段：按「速度/节拍」排定出手顺序，速度快者先手并可连击 ──
@@ -731,29 +671,7 @@
       }
     },
 
-    // ─── 全自动战斗 ───
-    autoResolve: function(strategy) {
-      var fullLog = [];
-      var maxRounds = 60;
-      this._autoStrat = strategy || 'optimal';
 
-      while (maxRounds-- > 0) {
-        var log = this.playTurn('__auto__');
-        // 每条日志已由 playTurn 在出招当时打上血量快照（见 playTurn 内 log.push 包裹），回放直接正向渲染
-        fullLog.push.apply(fullLog, log);
-        if (this.state.result) break;
-      }
-
-      if (!this.state.result) this.state.result = 'draw';
-
-      return {
-        result: this.state.result,
-        log: fullLog,
-        rounds: this.state.round,
-        playerHp: this.state.player.hp,
-        enemyHp: this.state.enemy.hp
-      };
-    },
 
     // ─── 获取战斗状态（供 UI） ───
     getStatus: function() {

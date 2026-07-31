@@ -1206,10 +1206,9 @@ window.onerror=function(msg,url,line,col,err){
   var SLOTS=['lf_save_1','lf_save_2','lf_save_3'];   // 三档存档
   var curSlot=0;                                     // 当前游戏所在档位（0=未入局）
   var SETTINGS_KEY='lf_settings_v1';
-  // 设置：文字演出速度(0疾/1常/2缓) / 自动战斗默认
+  // 设置：文字演出速度(0疾/1常/2缓)
   var settings=(function(){ try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return {};} })();
   if(typeof settings.textSpeed!=='number') settings.textSpeed=1;
-  if(typeof settings.autoBattle!=='boolean') settings.autoBattle=false;
   if(typeof settings.sound!=='boolean') settings.sound=false;
   if(typeof settings.titleFx!=='boolean') settings.titleFx=true;
   function saveSettings(){ try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){} }
@@ -1884,10 +1883,7 @@ window.onerror=function(msg,url,line,col,err){
         '<button data-v="1" class="'+(settings.sound?'on':'')+'">开</button>'+
         '<button data-v="0" class="'+(!settings.sound?'on':'')+'">关</button></div></div>'+
       '<p class="tip">开关互动提示音。</p>';
-    var game=
-      '<div class="set-row"><span>默认自动战斗</span><div class="seg" id="seg-auto">'+
-        '<button data-v="1" class="'+(settings.autoBattle?'on':'')+'">开</button>'+
-        '<button data-v="0" class="'+(!settings.autoBattle?'on':'')+'">关</button></div></div>';
+    var game='';
     if(!fromTitle){
       game+='<button class="close" id="m-save" style="margin-top:14px;">立即存档</button>';
     }
@@ -2580,7 +2576,7 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 行走探索 =====
   function move(dir, tid){
-    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }   // 真实战斗/自动战斗进行中禁止移动
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }   // 战斗进行中禁止移动
     if(!exert('远行')) return;
     state.energy=Math.max(0,state.energy-4);
     state.food=Math.max(0,state.food-1);
@@ -3217,7 +3213,6 @@ window.onerror=function(msg,url,line,col,err){
     var sp=document.getElementById('seg-speed'); if(sp) sp.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.textSpeed=parseInt(b.getAttribute('data-v'),10); saveSettings(); sp.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(600); toast('演出·'+['疾','常','缓'][settings.textSpeed]); }; });
     var fx=document.getElementById('seg-fx'); if(fx) fx.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.titleFx=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); fx.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(520); applyTitleFx(); toast('标题特效·'+(settings.titleFx?'开':'关')); }; });
     var snd=document.getElementById('seg-snd'); if(snd) snd.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.sound=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); snd.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); if(settings.sound) tick(700); toast('音效·'+(settings.sound?'开':'关')); }; });
-    var au=document.getElementById('seg-auto'); if(au) au.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.autoBattle=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); au.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(600); toast('自动战斗·'+(settings.autoBattle?'开':'关')); }; });
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
     if(kind==='map') initMap({});
     // 装备面板交互
@@ -3651,9 +3646,8 @@ window.onerror=function(msg,url,line,col,err){
   // ═══════════════════════════════════════════
   //  战 斗 系 统（v0.2 半手动回合制 + 节拍 + 战意）
   // ═══════════════════════════════════════════
-  var combatMode=null;  // null | 'manual' | 'auto'
+  var combatMode=null;  // null | 'manual'（自动战斗已移除）
   var combatBusy=false; // 回合播放中，防止动画期间重复触发
-  var combatAutoStrategy='optimal';
 
   /** 计算含装备+艺线加成的有效属性（P1 装备 / P2 艺线：攻/命中/暴击/内力/身法） */
   function effectiveStats(){
@@ -3731,17 +3725,15 @@ window.onerror=function(msg,url,line,col,err){
     var sceneEl=document.getElementById('scene');
     if(sceneEl){ sceneEl.dataset.bg = SCENE_THEME[enemyId] || 'plain'; sceneEl.classList.remove('bg-danger'); }
     state.energy=Math.max(0,state.energy-5);   // 应战耗精力
-    // 教学战斗强制手动模式：本就是教玩家攻/防/道具/撤退，自动结算会跳过全部引导
-    var forceManual = !!opt.tutorial;
-    combatMode = (forceManual || !settings.autoBattle) ? 'manual' : 'auto';
+    // 战斗为半手动（自动战斗已移除）；教学战斗本就是教玩家攻/防/道具/撤退
+    combatMode='manual';
     $narr.innerHTML='';
     combatCardEl=null;
     var enemy=G.CombatEngine.getEnemy();
     log('──── 狭路相逢 ────','combat');
     log((enemy.title?('「'+enemy.title+'」'):'')+enemy.name+' 拦住去路！','title');
     renderCombatCard();   // 构建持久战斗卡（满血 / 满状态）
-    if(combatMode==='auto'){ startAutoBattle('optimal'); }
-    else { renderCombatRound(); }
+    renderCombatRound();
   }
 
   /** 开场教学战斗是否激活 */
@@ -3749,6 +3741,7 @@ window.onerror=function(msg,url,line,col,err){
   /** 老乞丐扔来行囊：给金疮药 + 点亮行囊 + 解锁道具按钮 */
   function tutThrowPack(){
     if(!state.flags.onb) return;
+    if(state.flags.onb.packGiven) return;   // 防重复发放
     state.flags.onb.packGiven=true;
     if(!state.items) state.items=[];
     var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='jinchuang'){ ex=state.items[i]; break; } }
@@ -3757,6 +3750,50 @@ window.onerror=function(msg,url,line,col,err){
     log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤。','npc','老乞丐');
     log('〔底部「行囊」已点亮——点〔道具〕，打开行囊取药疗伤。〕','sys');
     save(state);
+  }
+
+  /**
+   * 开场教学战：脚本化演出。
+   * 设计：主角出手多为虚招（打在空气），真正重创乌桓骑兵的是老乞丐的「无名掌法」；
+   * 主角只会被刀芒锐气擦伤——由此自然引出「行囊/金疮药」教学，将剧情、引导、系统功能合而为一。
+   */
+  function tutCombatAct(actionId){
+    var eng=G.CombatEngine, st=eng.state;
+    var enemy=st.enemy, p=st.player;
+    if(actionId==='defend'){
+      if(state.flags.onb.tcTried && state.flags.onb.tcTried.atk && !state.flags.onb.tcTried.def){
+        log('你依言横臂护住要害。老乞丐掌风一引，将乌桓骑兵的刀势荡开，顺势一掌印在他马腹——','npc','老乞丐');
+        log('老乞丐：「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
+        enemy.hp=Math.max(0,enemy.hp-80);
+      } else {
+        log('你横臂护身。老乞丐在一旁颔首：「稳住，先看他刀往哪走。」','npc','老乞丐');
+        enemy.hp=Math.max(0,enemy.hp-40);
+      }
+      state.flags.onb.tcTried.def=true;
+    } else {
+      if(!(state.flags.onb.tcTried && state.flags.onb.tcTried.atk)){
+        // 首击：完整演出——主角虚招落空，老乞丐无名掌法救场，主角被刀芒擦伤，老乞丐甩出行囊
+        log('你摆开架势，心里害怕却强装镇静，随手一拳却是打在空气——乌桓骑兵跃马挥刀，迎面劈下！','npc','老乞丐');
+        log('老乞丐无名掌法暴起，劲气横飞：一掌贴着弯刀错身而过，顺带一手拉住你的衣领，堪堪替你躲过这记致命杀招；可刀芒锐气擦过，仍在你臂上划开一道血口。','npc','老乞丐');
+        log('老乞丐就势将你往东一推，甩出那只行囊：「接着！先顾着自个儿的伤口！」','npc','老乞丐');
+        enemy.hp=Math.max(0,enemy.hp-120);
+        p.hp=Math.max(1, p.hp-22); state.hp=p.hp;     // 刀芒锐气砍伤
+        if(!state.flags.onb.packGiven) tutThrowPack();  // 扔下行囊 → 点亮「道具」教学
+        state.flags.onb.tcTried.atk=true;
+      } else {
+        log('你又出一拳引他分神，老乞丐无名掌法再起，劲气如潮，一掌正印在乌桓骑兵胸口！','npc','老乞丐');
+        enemy.hp=Math.max(0,enemy.hp-120);
+        p.hp=Math.max(1, p.hp-12); state.hp=p.hp;
+      }
+    }
+    renderCombatCard();   // 同步卡面血条
+    save(state);
+    if(enemy.hp<=0){
+      st.result='win';
+      endCombat('win');
+      return;
+    }
+    renderCombatRound();
   }
 
   /** 战斗卡：持久 DOM（仅首次创建，之后只更新血条宽度以实现平滑过渡） */
@@ -3908,25 +3945,23 @@ window.onerror=function(msg,url,line,col,err){
     // 教学引导层：开场教学战斗期间，分步提示 + 道具按钮按进度显隐
     if(tutCombatActive()){
       var stT=G.CombatEngine.getStatus();
-      if(!state.flags.onb.packGiven){
-        if(stT.player.hp < stT.player.maxHp || (state.flags.onb.tcTried && state.flags.onb.tcTried.atk && state.flags.onb.tcTried.def)){
-          tutThrowPack();
-        }
+      // 受伤即由老乞丐扔出行囊（首击时已在 tutCombatAct 内抛出，此处兜底）
+      if(!state.flags.onb.packGiven && (stT.player.hp < stT.player.maxHp || (state.flags.onb.tcTried && state.flags.onb.tcTried.atk && state.flags.onb.tcTried.def))){
+        tutThrowPack();
       }
-      if(!state.flags.onb.packGiven){
-        if(!state.flags.onb.tcTried || !state.flags.onb.tcTried.atk){
-          if(!state.flags.onb.tcMsgs.attack){ log('老乞丐：「看清下头——〔攻击〕出手、〔防御〕避锋、〔撤退〕脱身。先点〔攻击〕，挫他锐气！」','npc','老乞丐'); state.flags.onb.tcMsgs.attack=true; }
-        } else if(!state.flags.onb.tcTried.def){
-          if(!state.flags.onb.tcMsgs.defend){ log('老乞丐：「再点〔防御〕——看敌人意图，择机减伤。」','npc','老乞丐'); state.flags.onb.tcMsgs.defend=true; }
-        } else {
-          if(!state.flags.onb.tcMsgs.finish){ log('老乞丐：「攻防皆会了——这行囊你先收着，日后受伤便取药疗伤。」','npc','老乞丐'); state.flags.onb.tcMsgs.finish=true; }
-        }
+      // 分步引导：〔攻击〕→〔防御〕→〔道具/收尾〕，三项均会教到（行囊在首击已抛出，故不再以它门控防御提示）
+      if(!state.flags.onb.tcTried || !state.flags.onb.tcTried.atk){
+        if(!state.flags.onb.tcMsgs.attack){ log('老乞丐：「看清下头——〔攻击〕出手、〔防御〕避锋、〔撤退〕脱身。先点〔攻击〕，挫他锐气！」','npc','老乞丐'); state.flags.onb.tcMsgs.attack=true; }
+      } else if(!state.flags.onb.tcTried.def){
+        if(!state.flags.onb.tcMsgs.defend){ log('老乞丐：「再点〔防御〕——看敌人意图，择机减伤。」','npc','老乞丐'); state.flags.onb.tcMsgs.defend=true; }
       } else {
-        if(!state.flags.onb.tcMsgs.use){ log('老乞丐：「点〔道具〕，打开行囊——里头有金疮药，受伤便能取用疗伤。」','npc','老乞丐'); state.flags.onb.tcMsgs.use=true; }
+        if(!state.flags.onb.tcMsgs.finish){ log('老乞丐：「攻防皆会了——这行囊你先收着，日后受伤便取药疗伤。」','npc','老乞丐'); state.flags.onb.tcMsgs.finish=true; }
+        if(!state.flags.onb.tcMsgs.use){ log('老乞丐：「点〔道具〕，打开行囊——里头有金疮药，受伤便能取用疗伤。方才那刀已划破你臂膀，正好试药！」','npc','老乞丐'); state.flags.onb.tcMsgs.use=true; }
       }
     }
-    // 手动模式：先锁定并显示敌方本回合意图，供玩家选防御/闪避博弈
-    currentEnemyIntent = G.CombatEngine.peekEnemyIntent();
+    // 敌方意图预告（教学战中由老乞丐代为应对，不显示敌方意图）
+    if(tutCombatActive()) currentEnemyIntent=null;
+    else currentEnemyIntent = G.CombatEngine.peekEnemyIntent();
     renderCombatCard();
 
     // ── 行动菜单（紧凑横排：攻击 / 防御 / 撤退 / 道具 / 设置）──
@@ -3954,6 +3989,11 @@ window.onerror=function(msg,url,line,col,err){
 
   /** 处理手动战斗操作 */
   function handleCombatAction(actionId){
+    if(tutCombatActive()){
+      // 开场教学战：脚本化演出，将「剧情 / 引导 / 系统功能」合而为一（见 tutCombatAct）
+      tutCombatAct(actionId);
+      return;
+    }
     if(tutCombatActive() && state.flags.onb.tcTried){
       if(actionId==='attack') state.flags.onb.tcTried.atk=true;
       if(actionId==='defend') state.flags.onb.tcTried.def=true;
@@ -4012,38 +4052,6 @@ window.onerror=function(msg,url,line,col,err){
       renderCombatRound();
   }
 
-  /** 自动战斗 */
-  function startAutoBattle(strategy){
-    combatMode='auto';
-    combatAutoStrategy=strategy;
-    clearActions();
-    log('【自动战斗】放手一搏，交由天意——','sys');
-    var result=G.CombatEngine.autoResolve(strategy);
-    // 串行逐条播放战斗日志，体现攻防过程（分类动画 / 飘字 / 震屏）
-    var seq=result.log.filter(function(e){
-      return ['player_atk','enemy_atk','debuff','buff','dot','counter','system'].indexOf(e.type)>=0;
-    });
-    // 直接读取引擎为每条日志附带的回合末血量快照，正向、准确渲染血条
-    // （避免从终态反向扣血：胜方敌人终态 hp=0 导致全程 0%、玩家方回放末尾暴跌后瞬回）
-    var st0=G.CombatEngine.getStatus();
-    (function play(i){
-      if(i>=seq.length){
-        var st=G.CombatEngine.getStatus(); state.mp=st.player.mp;
-        endCombat(result.result); return;
-      }
-      var e=seq[i];
-      if(e.type==='player_atk') flashHit('enemy', !!e.crit);
-      else if(e.type==='enemy_atk') flashHit('player', !!e.crit);
-      else if(e.type==='debuff') flashHit('enemy', false);
-      else if(e.type==='buff') flashHit('player', false);
-      var eHp=(typeof e.eHp==='number')?e.eHp:st0.enemy.hp;
-      var pHp=(typeof e.pHp==='number')?e.pHp:st0.player.hp;
-      updateCardBars(eHp, pHp, st0.enemy.maxHp, st0.player.maxHp);
-      logCombat(e);
-      setTimeout(function(){ play(i+1); }, 1050);
-    })(0);
-  }
-
   /** 战斗结束 */
   function endCombat(result){
     if(combatMode===null) return;   // 防止重复调用（如快速连点）
@@ -4084,6 +4092,8 @@ window.onerror=function(msg,url,line,col,err){
         log('老乞丐枯手翻飞，所示武功极高深，残敌尽数被震退、溃不成军！','npc','老乞丐');
         log('老乞丐：「这便是「无名拳法」——拳贵直、劲贵整，记着了？」','npc','老乞丐');
         log('【习得】无名拳法！（已收入武学，可在「角色」查看）','good');
+        log('老乞丐朝东一努嘴：「前头便是去路，快走！点下头「移动」往东去。」','npc','老乞丐');
+        log('〔教学演练结束——往后真打可没这般好运，记着用药、看清敌意。〕','sys');
         renderStatus(); save(state);
       }
       var drop=G.CombatEngine.getDrop();

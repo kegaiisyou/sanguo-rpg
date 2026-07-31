@@ -21,13 +21,15 @@
       drop: { gold: [10, 30], pot: [5, 15], table: [], equip: { tier: 1, chance: 35 } }
     },
 
-    // 乌桓游骑斥候（开场教学战专用：弱、必反击，便于演示攻击/防御/道具）
+    // 乌桓游骑斥候（开场教学战专用：实力强劲，以反衬老乞丐「无名掌法」之强）
     wuhuan_scout: {
       id: 'wuhuan_scout', name: '乌桓斥候', title: '游骑哨探',
       element: '金',
-      hp: 170, atk: 20, def: 12, spd: 26,
+      hp: 240, atk: 38, def: 16, spd: 34,
       skills: [
-        { id: 'scout_slash', name: '突刺', beat: 28, dmgMul: 1.0, desc: '弯刀疾刺' }
+        { id: 'scout_slash', name: '突刺', beat: 28, dmgMul: 1.0, desc: '弯刀疾刺' },
+        { id: 'rider_chop', name: '跃马斩', beat: 40, dmgMul: 1.5, desc: '跃马挥刀，力劈而下',
+          eff: { bleedChance: 0.3 } }
       ],
       ai: 'aggressive',
       drop: { gold: [4, 10], pot: [2, 6], table: [], equip: { tier: 0, chance: 0 } }
