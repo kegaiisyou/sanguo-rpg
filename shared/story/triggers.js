@@ -79,7 +79,7 @@
 
   // 猎棚·屏息避敌 → 教学战斗（真实战斗引擎，演示攻击/防御/道具/撤退）
   TRIGGERS.push({
-    id: 'intro_battle', hook: 'onEnter', room: 'ys_ne', once: true,
+    id: 'intro_battle', hook: 'onEnter', room: 'ys_ne',
     cond: { notFlag: 'flags.onb.tcDone' },
     steps: [
       { t: 'npcTalk', npc: 'beggar_old',
