@@ -1120,6 +1120,18 @@
   /* ===== 教学链回头路变暗（被追兵挡住） ===== */
   .mv-exit.mv-blocked{ opacity:.28; filter:grayscale(1); }
   .mv-exit.mv-blocked:active{ transform:none; }
+  /* 加载页：遮住脚本加载期间的粗糙/未排版内容 */
+  #loader{ position:fixed; inset:0; z-index:9999; background:radial-gradient(circle at 50% 35%, #2a2018, #140f0a); display:flex; align-items:center; justify-content:center; color:#e8c878; font-family:"STKaiti","KaiTi",serif; transition:opacity .55s ease; }
+  #loader.hidden{ opacity:0; pointer-events:none; }
+  #loader .ld-title{ font-size:28px; letter-spacing:8px; text-shadow:0 2px 10px rgba(0,0,0,.5); }
+  #loader .ld-sub{ margin-top:14px; font-size:13px; opacity:.7; letter-spacing:3px; }
+  #loader .ld-spin{ width:32px; height:32px; margin:20px auto 0; border:3px solid rgba(232,200,120,.22); border-top-color:#e8c878; border-radius:50%; animation:ldspin 1s linear infinite; }
+  @keyframes ldspin{ to{ transform:rotate(360deg); } }
+  /* 状态栏：禁止换行、提升信息密度（无名客等短名也保持单行） */
+  #status{ flex-wrap:nowrap; overflow:hidden; }
+  #status > span{ white-space:nowrap; min-width:0; }
+  /* 教学战斗：收起「内力/战意」，只留气血，降低新手认知负担 */
+  body.tut-combat .cp-bar.row-mp, body.tut-combat .cp-bar.row-rage{ display:none !important; }
 </style>
 </head>
 <body>
@@ -1205,6 +1217,7 @@ window.onerror=function(msg,url,line,col,err){
 
 <div id="modal" class="hidden"><div class="card" id="modal-card"></div></div>
 <div id="toast"></div>
+<div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
 <script src="shared/config/constants.js"></script>
 <script src="shared/config/balance.js"></script>
@@ -1626,7 +1639,23 @@ window.onerror=function(msg,url,line,col,err){
     var fn=activeTyper.fn; activeTyper=null; fn();
   }
   (function(){ var _sc=document.getElementById('scene'); if(_sc) _sc.addEventListener('click', function(){ skipTypewriter(); }); })();
+  // 串行输出队列：所有叙事段落入队，一次只打字一段；前段完成(或快进)后才出下一段，
+  // 从根本上杜绝「好几行一起刷出」让玩家措手不及
+  var logQueue=[], logBusy=false;
   function log(text, cls, name, done){
+    if(!$narr){ return; }
+    logQueue.push({text:text, cls:cls, name:name, done:done});
+    if(!logBusy) pumpLog();
+  }
+  function pumpLog(){
+    if(logBusy) return;
+    var item=logQueue.shift();
+    if(!item){ return; }
+    logBusy=true;
+    logNow(item.text, item.cls, item.name, function(){ logBusy=false; if(item.done) item.done(); pumpLog(); });
+  }
+  // 真正执行单段打字（由 log 队列驱动）
+  function logNow(text, cls, name, done){
     cls=cls||'env';
     var p=document.createElement('p');
     p.className='narr '+cls;
@@ -3761,6 +3790,7 @@ window.onerror=function(msg,url,line,col,err){
     }
     var appEl=document.getElementById('app'); if(appEl) appEl.classList.add('in-combat');
     document.body.classList.add('in-combat');   // 用于盖过 body.onb.reveal-* 的显示规则，战斗时隐藏 NPC/移动区
+    if(opt.tutorial && state.flags.onb && !state.flags.onb.tcDone) document.body.classList.add('tut-combat');
     var es=effectiveStats();
     var pstate=Object.assign({}, state, {
       atk:es.atk, def:es.def, maxHp:es.maxHp, maxMp:es.maxMp, spd:es.spd,
@@ -3941,8 +3971,8 @@ window.onerror=function(msg,url,line,col,err){
             '<div class="cp-body">'+
               '<div class="cp-bars">'+
                 '<div class="cp-bar"><span class="cp-lab">气血</span><div class="cp-track"><div class="cp-fill hp"></div></div><span class="cp-num cp-num-hp"></span></div>'+
-                '<div class="cp-bar"><span class="cp-lab">内力</span><div class="cp-track"><div class="cp-fill mp"></div></div><span class="cp-num cp-num-mp"></span></div>'+
-                '<div class="cp-bar"><span class="cp-lab">战意</span><div class="cp-track"><div class="cp-fill rage"></div></div><span class="cp-num cp-num-rage"></span></div>'+
+                '<div class="cp-bar row-mp"><span class="cp-lab">内力</span><div class="cp-track"><div class="cp-fill mp"></div></div><span class="cp-num cp-num-mp"></span></div>'+
+                '<div class="cp-bar row-rage"><span class="cp-lab">战意</span><div class="cp-track"><div class="cp-fill rage"></div></div><span class="cp-num cp-num-rage"></span></div>'+
               '</div>'+
               '<span class="cp-combo"></span>'+
               '<div class="cp-status"></div>'+
@@ -4064,7 +4094,9 @@ window.onerror=function(msg,url,line,col,err){
   function handleCombatAction(actionId){
     if(tutCombatActive()){
       // 开场教学战：脚本化演出，将「剧情 / 引导 / 系统功能」合而为一（见 tutCombatAct）
-      tutCombatAct(actionId);
+      // 修复：子菜单传来的招式 id（如 beng_quan）需归一为 'attack'，否则 tutCombatAct 直接 return 导致"无反应"
+      var tutAct = (actionId==='defend') ? 'defend' : 'attack';
+      tutCombatAct(tutAct);
       return;
     }
     if(tutCombatActive() && state.flags.onb.tcTried){
@@ -4131,6 +4163,7 @@ window.onerror=function(msg,url,line,col,err){
     combatMode=null;
     var appEl=document.getElementById('app'); if(appEl) appEl.classList.remove('in-combat');
     document.body.classList.remove('in-combat');
+    document.body.classList.remove('tut-combat');
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.dataset.bg=''; sceneEl.classList.remove('bg-danger'); }
     clearActions();                  // 清除战斗按钮，防止残留可点击
     if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断 playTurn
@@ -4316,6 +4349,7 @@ window.onerror=function(msg,url,line,col,err){
     }
   })();
   showTitle();
+  (function(){ var ld=document.getElementById('loader'); if(ld){ setTimeout(function(){ ld.classList.add('hidden'); }, 320); } })();   // 加载页淡出
 
   window.addEventListener('beforeunload',function(){state.lastSeen=Date.now();save(state);});
   }catch(e){
