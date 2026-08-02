@@ -67,6 +67,13 @@
   #status .st-era{font-size:11.5px;color:#9a7b3a;font-family:"STKaiti","KaiTi",serif;}
   #status .st-wx{flex:none;font-size:12px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;white-space:nowrap;}
   #status .st-hint{font-size:12px;opacity:.55;margin-left:1px;flex:none;}
+  /* 打字中：轻触可快进的指示（闪烁的 ▾） */
+  .narr.typing::after{ content:' ▾'; color:var(--ink-faint); font-size:.85em; animation: skipblink 1.1s ease-in-out infinite; }
+  @keyframes skipblink{ 0%,100%{opacity:.25} 50%{opacity:.7} }
+  /* 设置-文字速度滑块 */
+  input[type=range].lf-range{ width:100%; accent-color:var(--seal); margin:6px 0 2px; }
+  .set-row.col{ flex-direction:column; align-items:stretch; gap:2px; }
+  .spd-val{ font-size:12px; color:var(--ink-soft); }
 
   /* ===== 地点标签页：从文本栏上方凸起，像文件夹标签 ===== */
   .loc-tab{
@@ -1217,12 +1224,16 @@ window.onerror=function(msg,url,line,col,err){
   var SLOTS=['lf_save_1','lf_save_2','lf_save_3'];   // 三档存档
   var curSlot=0;                                     // 当前游戏所在档位（0=未入局）
   var SETTINGS_KEY='lf_settings_v1';
-  // 设置：文字演出速度(0疾/1常/2缓)
+  // 设置：文字演出速度（每字毫秒；0=瞬/无动画；默认偏慢，可在设置内调节）
   var settings=(function(){ try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return {};} })();
-  if(typeof settings.textSpeed!=='number') settings.textSpeed=1;
+  if(typeof settings.textSpeed!=='number') settings.textSpeed=55;            // 默认偏慢
+  else if(settings.textSpeed===1) settings.textSpeed=22;   // 旧版「常」迁移
+  else if(settings.textSpeed===2) settings.textSpeed=55;   // 旧版「缓」迁移
+  // settings.textSpeed===0 保留为「瞬」；其余数值（已是毫秒）原样保留
   if(typeof settings.sound!=='boolean') settings.sound=false;
   if(typeof settings.titleFx!=='boolean') settings.titleFx=true;
   function saveSettings(){ try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){} }
+  function lfSpeedLabel(v){ return v<=0?'瞬（无动画）':(v+' ms / 字'); }
   var SHICHEN=['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'];
 
   // ===== 捏人 / 开场序章 =====
@@ -1566,6 +1577,7 @@ window.onerror=function(msg,url,line,col,err){
       if(!state.flags) state.flags={};
       if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
       applyOnboard();   // NPC 列表延后到开场剧本「点下方老乞丐」一步才 reveal，避免提前交互引发 bug
+      toast('轻触叙事文字，可立即显示整段');
     }
     renderRoom(state.room || state.spawnRoom || 'ji_guomen');
     var app=document.getElementById('app'); if(app) app.classList.remove('hidden');
@@ -1583,15 +1595,35 @@ window.onerror=function(msg,url,line,col,err){
   function curRoom(){ return G.ROOMS[state.room] || G.ROOMS.camp; }
 
   // ===== 文字叙事窗 =====
+  // 轻触快进：仅立即显示「当前正在打字」的那一段；两次快进至少间隔 300ms，防误触连跳多段
+  var activeTyper=null, lastSkipAt=0;
   function typeInto(node, text, delay, done, onstep){
-    var i=0;
+    var i=0, finished=false, timer=null;
+    function finish(){
+      if(finished) return; finished=true;
+      if(timer){ clearTimeout(timer); timer=null; }
+      node.textContent=text;
+      if(onstep) onstep();
+      if(activeTyper && activeTyper.fn===finish) activeTyper=null;
+      if(done) done();
+    }
+    activeTyper={ fn: finish };
     (function step(){
+      if(finished) return;
       node.textContent=text.slice(0,i);
       if(onstep) onstep();
-      if(i<text.length){ i++; setTimeout(step, delay); }
-      else if(done) done();
+      if(i<text.length){ i++; timer=setTimeout(step, delay); }
+      else finish();
     })();
   }
+  function skipTypewriter(){
+    if(!activeTyper) return;
+    var now=Date.now();
+    if(now-lastSkipAt<300) return;   // 防误触：两次快进至少间隔 300ms
+    lastSkipAt=now;
+    var fn=activeTyper.fn; activeTyper=null; fn();
+  }
+  (function(){ var _sc=document.getElementById('scene'); if(_sc) _sc.addEventListener('click', function(){ skipTypewriter(); }); })();
   function log(text, cls, name, done){
     cls=cls||'env';
     var p=document.createElement('p');
@@ -1599,7 +1631,7 @@ window.onerror=function(msg,url,line,col,err){
     var sc=document.getElementById('scene');
     function scroll(){ if(sc) sc.scrollTop=sc.scrollHeight; }
     function finish(){ if(done) done(); }
-    var delay = settings.textSpeed===0?0:(settings.textSpeed===1?18:46);
+    var delay = settings.textSpeed>0 ? settings.textSpeed : 0;
     if(cls==='npc' && name){
       var s=document.createElement('span'); s.className='nm'; s.textContent=name+'：'; p.appendChild(s);
       var tn=document.createTextNode(''); p.appendChild(tn); $narr.appendChild(p);
@@ -1881,10 +1913,9 @@ window.onerror=function(msg,url,line,col,err){
     var fromTitle=!!opts.fromTitle;
     var ts=settings.textSpeed;
     var gfx=
-      '<div class="set-row"><span>文字演出</span><div class="seg" id="seg-speed">'+
-        '<button data-v="0" class="'+(ts===0?'on':'')+'">疾</button>'+
-        '<button data-v="1" class="'+(ts===1?'on':'')+'">常</button>'+
-        '<button data-v="2" class="'+(ts===2?'on':'')+'">缓</button></div></div>'+
+      '<div class="set-row col"><span>文字演出（越大越慢）</span>'+
+        '<input type="range" class="lf-range" id="rng-speed" min="0" max="100" step="5" value="'+ts+'">'+
+        '<span class="spd-val" id="spd-val">'+lfSpeedLabel(ts)+'</span></div>'+
       '<div class="set-row"><span>标题特效</span><div class="seg" id="seg-fx">'+
         '<button data-v="1" class="'+(settings.titleFx!==false?'on':'')+'">开</button>'+
         '<button data-v="0" class="'+(settings.titleFx===false?'on':'')+'">关</button></div></div>'+
@@ -2901,6 +2932,7 @@ window.onerror=function(msg,url,line,col,err){
           return { label: resolveTpl(a.label), fn: function(){
             applySet(a.set, step.npc);
             (a.reveal||[]).forEach(function(l){ onbReveal(l); });
+            if(a.highlight){ (Array.isArray(a.highlight)?a.highlight:[a.highlight]).forEach(function(l){ highlightOnb(l); }); }
             if(a.say) log(resolveTpl(a.say));   // say 为混合叙事（含主角动作+老乞丐台词），不附加「老乞丐：」前缀以免不通顺
             save(state);
             if(a.then && a.then.length){ runSteps(a.then, 0, next); } else { next(); }
@@ -3225,7 +3257,7 @@ window.onerror=function(msg,url,line,col,err){
       };
     });
     // 设置面板交互（标签页内容）
-    var sp=document.getElementById('seg-speed'); if(sp) sp.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.textSpeed=parseInt(b.getAttribute('data-v'),10); saveSettings(); sp.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(600); toast('演出·'+['疾','常','缓'][settings.textSpeed]); }; });
+    var rng=document.getElementById('rng-speed'); if(rng) rng.oninput=function(){ settings.textSpeed=parseInt(rng.value,10); saveSettings(); var _v=document.getElementById('spd-val'); if(_v) _v.textContent=lfSpeedLabel(settings.textSpeed); };
     var fx=document.getElementById('seg-fx'); if(fx) fx.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.titleFx=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); fx.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(520); applyTitleFx(); toast('标题特效·'+(settings.titleFx?'开':'关')); }; });
     var snd=document.getElementById('seg-snd'); if(snd) snd.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.sound=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); snd.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); if(settings.sound) tick(700); toast('音效·'+(settings.sound?'开':'关')); }; });
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
