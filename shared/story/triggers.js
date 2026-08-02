@@ -59,11 +59,11 @@
         prompt: '老乞丐敲你脑壳：「小子，你叫什么名儿？老夫总不能一路喊你『喂』。报上名来——往后行走江湖，这名头要紧。」',
         asks: [
           { label: '〔报名〕我叫{{name}}，敢问前辈尊号？', set: { favor: 1, 'flags.onb.named': true }, reveal: ['status'], highlight: 'status',
-            say: '老乞丐哈哈一笑：「名号？喊我老乞丐便罢。{{name}}，记下了——」他兴致上来，抬手指着你头顶：「你且认得这『状态栏』：左首是你名号；往后气血内力、时辰天色、年号历法，皆在此一览。气血是你性命，红了便是伤重；内力使招式；时辰关系天色与遭遇。东北那头是猎棚，随老夫来，别落单。」' },
+            say: '老乞丐哈哈一笑：「名号？喊我老乞丐便罢。{{name}}，记下了——」他兴致上来，抬手指着你头顶：「你且认得这『状态栏』（顶栏）：左首是你名号，其右是时辰与十二辰刻，再右是年号年序与农历月日，最右是天色风雨。气血内力不在此栏，而在🧭「角色」与临敌的人物卡上——气血是你性命，红了便是伤重；内力用来施展招式。时辰关系天色与遭遇，有些事只在特定时辰现。东边那头便是猎棚，随老夫来，别落单。」' },
           { label: '〔反问〕前辈，如今是哪朝哪代？', set: { favor: -1, 'flags.onb.named': true }, reveal: ['status'], highlight: 'status',
-            say: '老乞丐一愣，摇摇头：「哪朝哪代？老夫流落江湖大半生，早不记这些了。你自个瞧头顶那『状态栏』——时辰、年号都写着哩，不必问我。既问了，便与老夫同去东北猎棚，路上再与你细说。」' },
+            say: '老乞丐一愣，摇摇头：「哪朝哪代？老夫流落江湖大半生，早不记这些了。你自个点开头顶那『状态栏』——时辰、年号历法都写着哩，不必问我。顶栏只显名号、时辰、年号与天色；气血内力要瞧🧭「角色」。既问了，便与老夫同去东边猎棚，路上再与你细说。」' },
           { label: '〔沉默〕（闷声不答。）', set: { favor: -1, 'flags.onb.named': true }, reveal: ['status'], highlight: 'status',
-            say: '老乞丐摆摆手：「也罢，出门在外，本不该轻信他人。你既不愿说，老夫不勉强——但头顶这『状态栏』你须认得：姓名、时辰、年号历法皆在其中。往后行走江湖，先看清自个光景。东北那头是猎棚，随老夫来。」' }
+            say: '老乞丐摆摆手：「也罢，出门在外，本不该轻信他人。你既不愿说，老夫不勉强——但头顶这『状态栏』你须认得：左首名号，右列时辰、年号历法与天色。气血内力不在此栏，要瞧🧭「角色」与战斗人物卡。往后行走江湖，先看清自个光景。东边那头是猎棚，随老夫来。」' }
         ] },
       { t: 'moveGate', fromChain: true }   // 问名完成→立即解锁东北前进（罗盘实时刷新）
     ]
@@ -164,10 +164,36 @@
     ]
   });
 
-  // 山口常驻（onb 结束后）：老乞丐留守燕山口，可随时交谈（常驻 NPC 交互模板，可复用）
+  // 山口·新手引导（毕业後首次交谈）：讲解行囊非战斗用药 + 任务系统，并交付第一个新手任务
+  TRIGGERS.push({
+    id: 'tut_world_guide', hook: 'onTalk', npc: 'beggar_old', room: 'yanshan_shankou', once: true,
+    cond: { flags: { 'flags.onb.done': true, 'quest.tut': false } },
+    steps: [
+      { t: 'log', cls: 'env', text: '老乞丐就着风口坐下，拍拍身边石墩：「既出了山，江湖的门道也得知晓几分。」' },
+      { t: 'log', cls: 'env', text: '「其一，行囊：点下头🎒「行囊」，选中物件按「使用」。非战时服药可疗伤、回内力；暗器唯有临敌方能伤人——平日带了也施展不出。」' },
+      { t: 'log', cls: 'env', text: '「其二，任务：点📜「任务」可看主线进度与所托之事；顶栏状态点开能看时辰历法。气血内力不在顶栏，而在🧭「角色」与战斗人物卡上。」' },
+      { t: 'log', cls: 'env', text: '「其三，眼下有桩小事托你：我那老相识在白檀军屯当差。你既往南去，替我捎个口信、探探动静；到了白檀，自有人接应。回头与我说一声便好。」' },
+      { t: 'setFlag', path: 'quest.tut', value: 'accepted' },
+      { t: 'log', cls: 'sys', text: '〔任务〕新手·送信白檀：从燕山口往南赴白檀军屯，探看老乞丐的相识（点📜任务可追踪）。' }
+    ]
+  });
+
+  // 新手任务·送信白檀：到达白檀军屯即完成任务并发放奖励
+  TRIGGERS.push({
+    id: 'tut_quest_done', hook: 'onEnter', room: 'baitan_tun', once: true,
+    cond: { flags: { 'quest.tut': 'accepted' } },
+    steps: [
+      { t: 'log', cls: 'env', text: '你到白檀军屯，交割了老乞丐的口信——其老相识拍拍你肩，塞来几枚铜钱与一瓶伤药作谢。' },
+      { t: 'grant', gold: 30, rep: 3, items: [{ id: 'jinchuang', name: '金疮药', count: 1, cat: '药剂', effect: { hp: 120 } }] },
+      { t: 'setFlag', path: 'quest.tut', value: 'done' },
+      { t: 'log', cls: 'sys', text: '〔任务〕新手·送信白檀 ✓ 已完成（奖励：铜钱+30 · 江湖声望+3 · 金疮药×1）。回燕山口与老乞丐一说，他便知晓。' }
+    ]
+  });
+
+  // 山口常驻（onb 结束后、且已接下新手任务）：老乞丐留守燕山口，可随时交谈（常驻 NPC 交互模板，可复用）
   TRIGGERS.push({
     id: 'beggar_ambient', hook: 'onTalk', npc: 'beggar_old', room: 'yanshan_shankou', once: false,
-    cond: { flags: { 'flags.onb.done': true } },
+    cond: { flags: { 'flags.onb.done': true, 'quest.tut': true } },
     steps: [
       // 好感反馈：问名时结下的善缘/冷淡，在此延续
       { t: 'branch', if: { npcFavor: { key: 'beggar_old', min: 1 } },

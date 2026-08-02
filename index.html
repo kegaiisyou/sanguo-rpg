@@ -1301,7 +1301,7 @@ window.onerror=function(msg,url,line,col,err){
     baitan_cang:[13,-7], baitan_liao:[15,-7],
     // 幽州 · 燕山（渔阳以北山脉屏障，row -8~-10）
     yanshan_shankou:[14,-8], yanshan_feng:[15,-8], yanshan_jian:[13,-8],
-    yanshan_lindao:[14,-9], yanshan_xueling:[15,-9], yanshan_zhandao:[14,-10],
+    yanshan_lindao:[14,-9], yanshan_xueling:[15,-9], yanshan_zhandao:[13,-9],
     // 幽州 · 燕山·小村落（开场教学绕圈链，row -10~-12）
     ys_entrance:[14,-11], ys_north:[14,-12], ys_ne:[15,-12], ys_east:[15,-11],
     ys_se:[15,-10], ys_south:[14,-10], ys_sw:[13,-10], ys_west:[13,-11], ys_nw:[13,-12],
@@ -2995,6 +2995,16 @@ window.onerror=function(msg,url,line,col,err){
         break;  // 战斗异步，后续步骤待战斗结束再续（开场战斗为链尾，无需续）
       }
       case 'setFlag': setPath(state, step.path, step.value); save(state); next(); break;
+      case 'grant': {
+        if(step.gold){ state.gold=Math.max(0,(state.gold||0)+step.gold); }
+        if(step.rep){ addReputation(step.rep); }
+        if(step.items && step.items.length){ step.items.forEach(function(it){
+          if(!state.items) state.items=[];
+          var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id===it.id){ ex=state.items[i]; break; } }
+          if(ex){ ex.count=(ex.count||1)+(it.count||1); } else { state.items.push({id:it.id, name:it.name, count:it.count||1, cat:it.cat, effect:it.effect}); }
+        }); }
+        save(state); renderStatus(); next(); break;
+      }
       case 'removeNpc': { var rn=G.ROOMS[state.room].npcs, i=rn?rn.indexOf(step.key):-1; if(i>=0) rn.splice(i,1); next(); break; }
       case 'branch': { var ok = step.if ? testCond(step.if) : true; runSteps(ok?(step.then||[]):(step.else||[]), 0, next); break; }
       case 'graduate': graduate(); next(); break;
@@ -3193,6 +3203,7 @@ window.onerror=function(msg,url,line,col,err){
         row('主线·剿匪', '山贼/流寇 '+state.quest.bandit+' · 盗匪 '+state.quest.turban)+
         row('主线·斩华雄', state.quest.hua_xiong?'✓ 已斩（声望达'+state.reputation+'）':'未斩（声望需≥20）')+
         row('地域·洛阳', state.quest.luoyang?'✓ 已解锁':'未解锁')+
+        row('新手·送信白檀', (state.quest&&state.quest.tut==='done')?'✓ 已完成（铜钱+30·声望+3）':((state.quest&&state.quest.tut==='accepted')?'进行中（赴白檀军屯·燕山口南去）':'未接取（燕山口·老乞丐）'))+
         row('已习武学',state.learnedMartial.length+' 门')+
         row('发力技巧',state.equippedForce.length+' 式')+
         row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
@@ -4204,7 +4215,7 @@ window.onerror=function(msg,url,line,col,err){
         log('老乞丐枯手翻飞，所示武功极高深，残敌尽数被震退、溃不成军！','env');
         log('「这便是「无名拳法」——拳贵直、劲贵整，记着了？」','npc','老乞丐');
         log('【习得】无名拳法！（已收入武学，可在「角色」查看）','good');
-        log('朝东一努嘴：「前头便是去路，快走！点下头「移动」往东去。」','npc','老乞丐');
+        log('朝你一努嘴：「前头便是去路——点下头「移动」，随老夫往下头去便是。」','npc','老乞丐');
         log('你喘匀了气，打量这猎棚：棚角堆着干茅与兽骨，灶台余烬未熄，外头东北风卷着雪沫子，一下下扑打篷布。老乞丐已替你望风，只催你动身。','env');
         log('〔教学演练结束——往后真打可没这般好运，记着用药、看清敌意。〕','sys');
         renderStatus(); save(state);
