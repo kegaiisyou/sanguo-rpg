@@ -2958,7 +2958,7 @@ window.onerror=function(msg,url,line,col,err){
         break;
       }
       case 'sys': log(step.text,'sys'); next(); break;
-      case 'log': log(step.text, step.cls||'npc', step.npc); next(); break;
+      case 'log': log(resolveTpl(step.text), step.cls||'npc', step.npc); next(); break;
       case 'reveal': onbReveal(step.layer); if(step.highlight) highlightOnb(step.layer); next(); break;
       case 'highlight': highlightOnb(step.layer); next(); break;
       case 'npcTalk': {
@@ -3832,7 +3832,7 @@ window.onerror=function(msg,url,line,col,err){
     var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='jinchuang'){ ex=state.items[i]; break; } }
     if(ex) ex.count=1; else state.items.push({id:'jinchuang',name:'金疮药',count:1,cat:'药剂',effect:{hp:120}});
     onbReveal('dock'); highlightOnb('dock'); save(state); renderStatus();
-    log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤（下头「道具」已点亮）。','npc','老乞丐');
+    log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤（下头「道具」已点亮）。','env');
     save(state);
   }
 
@@ -3853,34 +3853,34 @@ window.onerror=function(msg,url,line,col,err){
 
     // 点错按钮：老乞丐温和纠正，不推进、不扣血、敌人不死 —— 永远只能靠"当前高亮的那一步"前进
     if(expect==='attack' && actionId!=='attack'){
-      log('老乞丐：「别急——先点〔攻击〕，试试你的拳脚！」','npc','老乞丐'); return;
+      log('「别急——先点〔攻击〕，试试你的拳脚！」','npc','老乞丐'); return;
     }
     if(expect==='defend' && actionId!=='defend'){
-      log('老乞丐：「攻击你会了，这回试试〔防御〕——看敌势，借力卸力！」','npc','老乞丐'); return;
+      log('「攻击你会了，这回试试〔防御〕——看敌势，借力卸力！」','npc','老乞丐'); return;
     }
     if(expect==='item'){
-      log('老乞丐：「先用〔道具〕取金疮药，治你臂上刀伤——疗伤也是功夫！」','npc','老乞丐'); return;
+      log('「先用〔道具〕取金疮药，治你臂上刀伤——疗伤也是功夫！」','npc','老乞丐'); return;
     }
     if(expect==='finish' && actionId!=='attack'){
-      log('老乞丐：「攻防皆会、伤也疗了——再点〔攻击〕，送他上路！」','npc','老乞丐'); return;
+      log('「攻防皆会、伤也疗了——再点〔攻击〕，送他上路！」','npc','老乞丐'); return;
     }
 
     // ── 点对了：按步骤演出 ──
     if(actionId==='defend'){
       state.flags.onb.tcTried.def=true;
-      log('你依言横臂护住要害。老乞丐掌风一引，将乌桓骑兵的刀势荡开，顺势一掌印在他马腹——','npc','老乞丐');
-      log('老乞丐：「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
+      log('你依言横臂护住要害。老乞丐掌风一引，将乌桓骑兵的刀势荡开，顺势一掌印在他马腹——','env');
+      log('「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
       enemy.hp=Math.max(1, enemy.hp-40);
     } else {   // attack
       if(expect==='attack'){   // 首击完整演出
         state.flags.onb.tcTried.atk=true;
-        log('你摆开架势强装镇静，随手一拳却打在空气——乌桓骑兵跃马挥刀，迎面劈下！','npc','老乞丐');
-        log('老乞丐无名掌法暴起，劲气错身而过，顺手拽你衣领躲过杀招；刀芒锐气擦过，在你臂上划开一道血口。','npc','老乞丐');
+        log('你摆开架势强装镇静，随手一拳却打在空气——乌桓骑兵跃马挥刀，迎面劈下！','env');
+        log('老乞丐无名掌法暴起，劲气错身而过，顺手拽你衣领躲过杀招；刀芒锐气擦过，在你臂上划开一道血口。','env');
         enemy.hp=Math.max(1, enemy.hp-120);
         p.hp=Math.max(1, p.hp-22); state.hp=p.hp;     // 刀芒锐气砍伤
         if(!state.flags.onb.packGiven) tutThrowPack();  // 受伤后老乞丐甩出行囊 → 解锁「道具」教学
       } else {   // expect==='finish' 收尾击杀
-        log('老乞丐无名掌法再起，掌力如潮，一掌正印在乌桓骑兵胸口，将他连人带马震退数丈！','npc','老乞丐');
+        log('老乞丐无名掌法再起，掌力如潮，一掌正印在乌桓骑兵胸口，将他连人带马震退数丈！','env');
         enemy.hp=0;
       }
     }
@@ -4048,13 +4048,13 @@ window.onerror=function(msg,url,line,col,err){
       }
       // 分步引导文案（剧情与引导合一）：攻击 → 防御 → 道具 → 收尾
       if(!atkT){
-        if(!state.flags.onb.tcMsgs.attack){ log('老乞丐：「先点亮的〔攻击〕，挫他锐气！」','npc','老乞丐'); state.flags.onb.tcMsgs.attack=true; }
+        if(!state.flags.onb.tcMsgs.attack){ log('「先点亮的〔攻击〕，挫他锐气！」','npc','老乞丐'); state.flags.onb.tcMsgs.attack=true; }
       } else if(!defT){
-        if(!state.flags.onb.tcMsgs.defend){ log('老乞丐：「再点〔防御〕——看敌势，借力卸力，莫硬接！」','npc','老乞丐'); state.flags.onb.tcMsgs.defend=true; }
+        if(!state.flags.onb.tcMsgs.defend){ log('「再点〔防御〕——看敌势，借力卸力，莫硬接！」','npc','老乞丐'); state.flags.onb.tcMsgs.defend=true; }
       } else if(!usedItem){
-        if(!state.flags.onb.tcMsgs.use){ log('老乞丐：「点〔道具〕，取金疮药治你臂上刀伤！」','npc','老乞丐'); state.flags.onb.tcMsgs.use=true; }
+        if(!state.flags.onb.tcMsgs.use){ log('「点〔道具〕，取金疮药治你臂上刀伤！」','npc','老乞丐'); state.flags.onb.tcMsgs.use=true; }
       } else {
-        if(!state.flags.onb.tcMsgs.finish){ log('老乞丐：「好生养着。再点〔攻击〕，送这乌桓斥候上路！」','npc','老乞丐'); state.flags.onb.tcMsgs.finish=true; }
+        if(!state.flags.onb.tcMsgs.finish){ log('「好生养着。再点〔攻击〕，送这乌桓斥候上路！」','npc','老乞丐'); state.flags.onb.tcMsgs.finish=true; }
       }
     }
     // 敌方意图预告（教学战中由老乞丐代为应对，不显示敌方意图）
@@ -4084,7 +4084,7 @@ window.onerror=function(msg,url,line,col,err){
     // 防御 / 撤退
     addActionBtn('🛡','防御', function(){ handleCombatAction('defend'); }, glowDef?'onb-glow':null);
     addActionBtn('🏃','撤退', function(){
-      if(tutCombatActive()){ log('老乞丐：「未到撤的时候，先应敌！」','npc','老乞丐'); return; }
+      if(tutCombatActive()){ log('「未到撤的时候，先应敌！」','npc','老乞丐'); return; }
       handleCombatFlee();
     });
     // 道具（子菜单：药剂 / 暗器 等）——教学战斗中，老乞丐扔来行囊前不展示
@@ -4175,8 +4175,8 @@ window.onerror=function(msg,url,line,col,err){
     // 开场教学战斗：战败/逃跑由老乞丐救场，避免新手卡死（仍算教学完成）
     var tutC = state.flags.onb && state.flags.onb.tcTutorial && !state.flags.onb.tcDone;
     if(tutC && result!=='win'){
-      if(result==='lose'){ state.hp = effectiveStats().maxHp; log('老乞丐枯手一拂，将你从刀下拽回：「这刀老夫替你挡了！」','npc','老乞丐'); }
-      else { log('老乞丐：「罢了，先撤一步，拳脚日后再练。」','npc','老乞丐'); }
+      if(result==='lose'){ state.hp = effectiveStats().maxHp; log('老乞丐枯手一拂，将你从刀下拽回：「这刀老夫替你挡了！」','env'); }
+      else { log('「罢了，先撤一步，拳脚日后再练。」','npc','老乞丐'); }
       state.flags.onb.tcDone=true; state.flags.onb.tcTutorial=false; state.defeated=false;
       log('〔教学演练结束——往后真打可没这般好运，记得用药、看敌意。〕','sys');
       save(state); renderStatus();
@@ -4201,10 +4201,10 @@ window.onerror=function(msg,url,line,col,err){
       if(tutCombatActive()){
         state.flags.onb.tcDone=true; state.flags.onb.tcTutorial=false;
         if(state.learnedMartial.indexOf('wu_ming_quan')<0) state.learnedMartial.push('wu_ming_quan');
-        log('老乞丐枯手翻飞，所示武功极高深，残敌尽数被震退、溃不成军！','npc','老乞丐');
-        log('老乞丐：「这便是「无名拳法」——拳贵直、劲贵整，记着了？」','npc','老乞丐');
+        log('老乞丐枯手翻飞，所示武功极高深，残敌尽数被震退、溃不成军！','env');
+        log('「这便是「无名拳法」——拳贵直、劲贵整，记着了？」','npc','老乞丐');
         log('【习得】无名拳法！（已收入武学，可在「角色」查看）','good');
-        log('老乞丐朝东一努嘴：「前头便是去路，快走！点下头「移动」往东去。」','npc','老乞丐');
+        log('朝东一努嘴：「前头便是去路，快走！点下头「移动」往东去。」','npc','老乞丐');
         log('你喘匀了气，打量这猎棚：棚角堆着干茅与兽骨，灶台余烬未熄，外头东北风卷着雪沫子，一下下扑打篷布。老乞丐已替你望风，只催你动身。','env');
         log('〔教学演练结束——往后真打可没这般好运，记着用药、看清敌意。〕','sys');
         renderStatus(); save(state);

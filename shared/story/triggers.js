@@ -95,8 +95,8 @@
     steps: [
       // 好感反馈：问名时态度（健谈/冷淡）在此轻微体现
       { t: 'branch', if: { npcFavor: { key: 'beggar_old', min: 1 } },
-        then: [ { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐见你跟来，眉眼舒展：「{{name}}，你倒是听劝——且贴着我，莫声张。」' } ],
-        else: [ { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐瞥你一眼，神色淡淡的：「既跟来了，便贴着我，莫添乱。」' } ] },
+        then: [ { t: 'log', cls: 'env', text: '老乞丐见你跟来，眉眼舒展：「{{name}}，你倒是听劝——且贴着我，莫声张。」' } ],
+        else: [ { t: 'log', cls: 'env', text: '老乞丐瞥你一眼，神色淡淡的：「既跟来了，便贴着我，莫添乱。」' } ] },
       { t: 'npcTalk', npc: 'beggar_old',
         prompt: '老乞丐忽然将你往棚后一按，枯指点着你眉心，气声里压着急：「屏息——外头有马嘶，是乌桓的哨探巡过来了。莫出声，莫乱动。」',
         asks: [
@@ -171,8 +171,8 @@
     steps: [
       // 好感反馈：问名时结下的善缘/冷淡，在此延续
       { t: 'branch', if: { npcFavor: { key: 'beggar_old', min: 1 } },
-        then: [ { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐见是你，咧嘴一笑：「{{name}}，来啦？坐下烤烤火，外头风雪大。」' } ],
-        else: [ { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐淡淡一点头：「是你。坐罢，隘口风大，莫久站。」' } ] },
+        then: [ { t: 'log', cls: 'env', text: '老乞丐见是你，咧嘴一笑：「{{name}}，来啦？坐下烤烤火，外头风雪大。」' } ],
+        else: [ { t: 'log', cls: 'env', text: '老乞丐淡淡一点头：「是你。坐罢，隘口风大，莫久站。」' } ] },
       { t: 'npcTalk', npc: 'beggar_old',
         prompt: '老乞丐盘腿坐在隘口石上：「{{name}}，走累了便在此歇脚。还有啥要问老夫的？」',
         asks: [
