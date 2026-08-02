@@ -51,19 +51,21 @@
 
   // 北巷·老乞丐问名姓（复用玩家捏脸填写的姓名；三选项决定状态栏解锁与好感）
   // 注：状态栏不在村口点亮，等到此处「问名」由三个选项分别解锁，呼应"先别显状态栏"的需求
+  // 问名设为「必经」：选完即写入 flags.onb.named，并立即解锁东北前进（见 gate_north_name）
   TRIGGERS.push({
     id: 'intro_beggar_north', hook: 'onTalk', npc: 'beggar_old', room: 'ys_north', once: true,
     steps: [
       { t: 'npcTalk', npc: 'beggar_old',
         prompt: '老乞丐敲你脑壳：「小子，你叫什么名儿？老夫总不能一路喊你『喂』。报上名来——往后行走江湖，这名头要紧。」',
         asks: [
-          { label: '〔报名〕我叫{{name}}，敢问前辈尊号？', set: { favor: 1 }, reveal: ['status'], highlight: 'status',
+          { label: '〔报名〕我叫{{name}}，敢问前辈尊号？', set: { favor: 1, 'flags.onb.named': true }, reveal: ['status'], highlight: 'status',
             say: '老乞丐哈哈一笑：「名号？喊我老乞丐便罢。{{name}}，记下了——」他兴致上来，抬手指着你头顶：「你且认得这『状态栏』：左首是你名号；往后气血内力、时辰天色、年号历法，皆在此一览。气血是你性命，红了便是伤重；内力使招式；时辰关系天色与遭遇。东北那头是猎棚，随老夫来，别落单。」' },
-          { label: '〔反问〕前辈，如今是哪朝哪代？', set: { favor: -1 }, reveal: ['status'], highlight: 'status',
+          { label: '〔反问〕前辈，如今是哪朝哪代？', set: { favor: -1, 'flags.onb.named': true }, reveal: ['status'], highlight: 'status',
             say: '老乞丐一愣，摇摇头：「哪朝哪代？老夫流落江湖大半生，早不记这些了。你自个瞧头顶那『状态栏』——时辰、年号都写着哩，不必问我。既问了，便与老夫同去东北猎棚，路上再与你细说。」' },
-          { label: '〔沉默〕（闷声不答。）', set: { favor: -1 }, reveal: ['status'], highlight: 'status',
+          { label: '〔沉默〕（闷声不答。）', set: { favor: -1, 'flags.onb.named': true }, reveal: ['status'], highlight: 'status',
             say: '老乞丐摆摆手：「也罢，出门在外，本不该轻信他人。你既不愿说，老夫不勉强——但头顶这『状态栏』你须认得：姓名、时辰、年号历法皆在其中。往后行走江湖，先看清自个光景。东北那头是猎棚，随老夫来。」' }
-        ] }
+        ] },
+      { t: 'moveGate', fromChain: true }   // 问名完成→立即解锁东北前进（罗盘实时刷新）
     ]
   });
 
@@ -76,11 +78,25 @@
     steps: [ { t: 'moveGate', fromChain: true } ]
   });
 
+  // 北巷·问名必经：未问名前锁住所有出口，逼玩家先与老乞丐交谈报名（牺牲跳过自由度，确保状态栏必现）
+  // 必须排在 intro_chain_gate 之后，否则会被其 fromChain 的 fwd 覆盖
+  TRIGGERS.push({
+    id: 'gate_north_name', hook: 'onEnter', room: 'ys_north', once: false,
+    cond: { flags: { 'flags.onb.done': false, 'flags.onb.named': false } },
+    steps: [
+      { t: 'moveGate', fwd: '__block__', hint: '老乞丐叉腰拦在棚口：「小子，连名儿都不报，休想往前——先与老夫问名！」' }
+    ]
+  });
+
   // 猎棚·屏息避敌 → 教学战斗（真实战斗引擎，演示攻击/防御/道具/撤退）
   TRIGGERS.push({
     id: 'intro_battle', hook: 'onEnter', room: 'ys_ne',
     cond: { notFlag: 'flags.onb.tcDone' },
     steps: [
+      // 好感反馈：问名时态度（健谈/冷淡）在此轻微体现
+      { t: 'branch', if: { npcFavor: { key: 'beggar_old', min: 1 } },
+        then: [ { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐见你跟来，眉眼舒展：「{{name}}，你倒是听劝——且贴着我，莫声张。」' } ],
+        else: [ { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐瞥你一眼，神色淡淡的：「既跟来了，便贴着我，莫添乱。」' } ] },
       { t: 'npcTalk', npc: 'beggar_old',
         prompt: '老乞丐忽然将你往棚后一按，枯指点着你眉心，气声里压着急：「屏息——外头有马嘶，是乌桓的哨探巡过来了。莫出声，莫乱动。」',
         asks: [
@@ -151,8 +167,12 @@
   // 山口常驻（onb 结束后）：老乞丐留守燕山口，可随时交谈（常驻 NPC 交互模板，可复用）
   TRIGGERS.push({
     id: 'beggar_ambient', hook: 'onTalk', npc: 'beggar_old', room: 'yanshan_shankou', once: false,
-    cond: { flags: { 'onb.done': true } },
+    cond: { flags: { 'flags.onb.done': true } },
     steps: [
+      // 好感反馈：问名时结下的善缘/冷淡，在此延续
+      { t: 'branch', if: { npcFavor: { key: 'beggar_old', min: 1 } },
+        then: [ { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐见是你，咧嘴一笑：「{{name}}，来啦？坐下烤烤火，外头风雪大。」' } ],
+        else: [ { t: 'log', cls: 'npc', npc: '老乞丐', text: '老乞丐淡淡一点头：「是你。坐罢，隘口风大，莫久站。」' } ] },
       { t: 'npcTalk', npc: 'beggar_old',
         prompt: '老乞丐盘腿坐在隘口石上：「{{name}}，走累了便在此歇脚。还有啥要问老夫的？」',
         asks: [

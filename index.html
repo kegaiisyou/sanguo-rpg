@@ -1638,7 +1638,11 @@ window.onerror=function(msg,url,line,col,err){
     lastSkipAt=now;
     var fn=activeTyper.fn; activeTyper=null; fn();
   }
-  (function(){ var _sc=document.getElementById('scene'); if(_sc) _sc.addEventListener('click', function(){ skipTypewriter(); }); })();
+  // 快进：仅点击「叙事区文字」才生效；点中任何按钮/控件（移动罗盘、对话选项、行动区、NPC 列表）一律不触发，避免误触跳过剧情
+  (function(){ var _sc=document.getElementById('scene'); if(_sc) _sc.addEventListener('click', function(e){
+    if(e.target && e.target.closest) { var hit=e.target.closest('button, a, .onb-choices, .mv-exit, .mv-bar, .dock, .npc-list'); if(hit) return; }
+    skipTypewriter();
+  }); })();
   // 串行输出队列：所有叙事段落入队，一次只打字一段；前段完成(或快进)后才出下一段，
   // 从根本上杜绝「好几行一起刷出」让玩家措手不及
   var logQueue=[], logBusy=false;
@@ -2980,10 +2984,11 @@ window.onerror=function(msg,url,line,col,err){
         } else {
           state.moveGate={ fwd:step.fwd, back:step.back, lockBack:!!step.lockBack, hint:step.hint };
         }
+        renderMoveBar(G.ROOMS[state.room]);   // 门禁变化即时刷新罗盘（如问名后解锁前进）
         next();
         break;
       }
-      case 'clearGate': state.moveGate=null; next(); break;
+      case 'clearGate': state.moveGate=null; renderMoveBar(G.ROOMS[state.room]); next(); break;
       case 'event': { var ev=findEvent(step.id); if(ev) runEvent(ev); next(); break; }
       case 'combat': {
         startCombat(step.enemy, {tutorial: !!step.tutorial});
@@ -4200,6 +4205,7 @@ window.onerror=function(msg,url,line,col,err){
         log('老乞丐：「这便是「无名拳法」——拳贵直、劲贵整，记着了？」','npc','老乞丐');
         log('【习得】无名拳法！（已收入武学，可在「角色」查看）','good');
         log('老乞丐朝东一努嘴：「前头便是去路，快走！点下头「移动」往东去。」','npc','老乞丐');
+        log('你喘匀了气，打量这猎棚：棚角堆着干茅与兽骨，灶台余烬未熄，外头东北风卷着雪沫子，一下下扑打篷布。老乞丐已替你望风，只催你动身。','env');
         log('〔教学演练结束——往后真打可没这般好运，记着用药、看清敌意。〕','sys');
         renderStatus(); save(state);
       }
