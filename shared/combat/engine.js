@@ -41,33 +41,11 @@
         enemyDatas.push(ed0);
       }
 
-      // 聚合玩家的发力技巧效果
-      var forceEff = {};
-      var forceIds = playerState.equippedForce || [];
-      forceIds.forEach(function(fid) {
-        var f = MARTIAL_ARTS.get(fid);
-        if (f && f.eff) {
-          for (var k in f.eff) { forceEff[k] = f.eff[k]; }
-        }
+      // 玩家可单人或一队（队伍作战）：playerState 为数组或单个对象
+      var playerStates = Array.isArray(playerState) ? playerState : [playerState];
+      var playerUnits = playerStates.map(function(ps, idx) {
+        return self._buildPlayerUnit(ps, idx);
       });
-
-      // 玩家的武学 ID 列表（用副本，避免战斗初始化意外修改全局存档数组）
-      var artIds = (playerState.learnedMartial || []).slice();
-      // 保证新手至少能用崩拳
-      if (artIds.indexOf('beng_quan') === -1) artIds.push('beng_quan');
-
-      // ── P2：招式实际效果（含境界突破加成）映射 ──
-      var artMap = {};
-      artIds.forEach(function(aid) {
-        var built = self._buildArt(aid, (playerState.realm && playerState.realm[aid]) || 0);
-        if (built) artMap[aid] = built;
-      });
-      // ── P2：玩家五行（取首个带 wu 的武学，缺省「无」）──
-      var pElem = '无';
-      for (var ai = 0; ai < artIds.length; ai++) {
-        var pa = artMap[artIds[ai]];
-        if (pa && pa.attr && pa.attr.wu) { pElem = pa.attr.wu; break; }
-      }
 
       // 构建多敌数组
       var enemies = enemyDatas.map(function(ed, idx) {
@@ -89,35 +67,64 @@
       });
 
       this.state = {
-        player: {
-          name: playerState.name || '你',
-          hp: playerState.hp, maxHp: playerState.maxHp,
-          mp: playerState.mp || 0, maxMp: playerState.maxMp || 30,
-          rage: 0, maxRage: 100,
-          atk: playerState.atk || 15, def: playerState.def || 7, spd: playerState.spd || 20,
-          artIds: artIds,
-          artMap: artMap,
-          element: playerState.element || pElem,
-          hitRate: playerState.hitRate || 0.92,
-          buffs: [], dots: [],
-          defStance: false, stunNext: false,
-          chargeMul: 1,        // 蓄力倍率（卡牌战：蓄力→重击翻倍）
-          dodgeNext: false,    // 闪避姿态（卡牌战：规避本回合敌方攻击）
-          forceEff: Object.assign({}, forceEff, { critRate: (forceEff.critRate || 0) + (playerState.critRate || 0) })
-        },
+        playerUnits: playerUnits,
+        player: playerUnits[0],       // 别名：主角 = 队伍首位（掉落/同步/教学回滚用）
         enemies: enemies,
-        enemy: enemies[0],            // 别名，供旧半手动渲染/掉落回滚使用
-        enemyData: enemyDatas[0],     // 掉落仍以首敌为基准（多敌可后续聚合）
+        enemy: enemies[0],            // 别名：供旧半手动渲染使用
+        enemyData: enemyDatas[0],     // 掉落仍以首敌为基准
         enemyDatas: enemyDatas,
         lineGains: [],
         log: [],
-        round: 0,
+        round: 1,
         result: null,
         combo: 0,           // 玩家连击计数（P3）
         enemyIntent: null   // 本回合敌方主行动预告（旧半手动单敌用）
       };
 
       return { ok: true };
+    },
+
+    // ── 由玩家状态构建一名作战单位（主角或同伴）──
+    _buildPlayerUnit: function(ps, idx) {
+      var self = this;
+      var MARTIAL_ARTS = global.LF.MARTIAL_ARTS;
+      var forceEff = {};
+      (ps.equippedForce || []).forEach(function(fid) {
+        var f = MARTIAL_ARTS.get(fid);
+        if (f && f.eff) { for (var k in f.eff) { forceEff[k] = f.eff[k]; } }
+      });
+      var artIds = (ps.learnedMartial || []).slice();
+      if (artIds.indexOf('beng_quan') === -1) artIds.push('beng_quan');   // 保证至少能用崩拳
+      var artMap = {};
+      artIds.forEach(function(aid) {
+        var built = self._buildArt(aid, (ps.realm && ps.realm[aid]) || 0);
+        if (built) artMap[aid] = built;
+      });
+      var pElem = ps.element || '无';
+      if (pElem === '无') {
+        for (var ai = 0; ai < artIds.length; ai++) {
+          var pa = artMap[artIds[ai]];
+          if (pa && pa.attr && pa.attr.wu) { pElem = pa.attr.wu; break; }
+        }
+      }
+      return {
+        idx: idx,
+        name: ps.name || ('同伴' + (idx + 1)),
+        hp: ps.hp, maxHp: ps.maxHp,
+        mp: ps.mp || 0, maxMp: ps.maxMp || 30,
+        rage: 0, maxRage: 100,
+        atk: ps.atk || 15, def: ps.def || 7, spd: ps.spd || 20,
+        artIds: artIds,
+        artMap: artMap,
+        element: pElem,
+        hitRate: ps.hitRate || 0.92,
+        critRate: ps.critRate || 0,
+        buffs: [], dots: [],
+        defStance: false, stunNext: false,
+        chargeMul: 1,
+        dodgeNext: false,
+        forceEff: Object.assign({}, forceEff, { critRate: (forceEff.critRate || 0) + (ps.critRate || 0) })
+      };
     },
 
     // ── P2：解析境界突破描述文本 → 结构化数值加成 ──
@@ -212,10 +219,19 @@
     // ─── 处理一次行动（targetUnit 为具体目标；旧半手动传 state.enemy）───
     _resolveAction: function(actor, action, log, targetUnit) {
       var self = this;
-      var unit = this.state[actor];
-      var target = targetUnit || this.state[actor === 'player' ? 'enemy' : 'player'];
-      var aName = actor === 'player' ? '你' : unit.name;
-      var isPlayer = actor === 'player';
+      // actor 可为 'player'/'enemy' 字符串（向后兼容），也可为具体单位对象（队伍作战）
+      var unit, isPlayer, aName;
+      if (typeof actor === 'object' && actor !== null) {
+        unit = actor;
+        isPlayer = this.state.playerUnits.indexOf(unit) >= 0;
+        aName = unit.name;
+      } else {
+        unit = this.state[actor];
+        isPlayer = actor === 'player';
+        aName = actor === 'player' ? '你' : unit.name;
+      }
+      // 默认目标：对手阵营中首个存活者（玩家→敌；敌人→玩家单位）
+      var target = targetUnit || this._firstLiving(isPlayer ? this.state.enemies : this.state.playerUnits);
 
       // 眩晕跳过
       if (unit.stunNext) {
@@ -363,14 +379,14 @@
         log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '行动变缓！（' + (eff.slowTurns||2) + '回合）' });
       }
 
-      // 反弹：当敌人攻击玩家时，玩家的震字诀反弹伤害（伤害回弹给攻击方 unit）
+      // 反弹：当敌人攻击玩家时，被命中玩家的震字诀反弹伤害（伤害回弹给攻击方 unit）
       if (!isPlayer && totalDmg > 0) {
-        var pForce = this.state.player.forceEff;
+        var pForce = target.forceEff;
         if (pForce.reflectDmg) {
           var reflect = Math.round(totalDmg * pForce.reflectDmg);
           if (reflect > 0) {
             unit.hp = Math.max(0, unit.hp - reflect);
-            log.push({ type:'counter', text: '你以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: unit.hp, pHp: this.state.player.hp });
+            log.push({ type:'counter', text: target.name + '以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: unit.hp, pHp: this.state.player.hp });
           }
         }
       }
@@ -395,17 +411,18 @@
       unit.dots.push({ name: name, dmg: dmg, turns: turns, stacks: 1 });
     },
 
-    // ─── 结算 DoT（按层数累计伤害）───
+    // ─── 结算 DoT（按层数累计伤害；队伍作战时覆盖所有玩家单位 + 所有敌人）───
     _tickDots: function(log) {
       var self = this;
-      ['player'].concat(this.state.enemies.map(function(e){ return 'enemy_' + e.idx; })).forEach(function(key) {
-        var unit = key === 'player' ? self.state.player : self.state.enemies[parseInt(key.split('_')[1], 10)];
+      var all = this.state.playerUnits.concat(this.state.enemies);
+      all.forEach(function(unit) {
         if (!unit || !unit.dots.length) return;
+        var isP = self.state.playerUnits.indexOf(unit) >= 0;
         var surviving = [];
         unit.dots.forEach(function(d) {
           var dmg = d.dmg * (d.stacks || 1);
           unit.hp = Math.max(0, unit.hp - dmg);
-          log.push({ type:'dot', text: (key==='player'?'你':unit.name) + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: key, eHp: self.state.enemies[0] ? self.state.enemies[0].hp : 0, pHp: self.state.player.hp });
+          log.push({ type:'dot', text: unit.name + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: isP?'player':'enemy', eHp: self.state.enemies[0] ? self.state.enemies[0].hp : 0, pHp: self.state.player ? self.state.player.hp : 0 });
           d.turns--;
           if (d.turns > 0) surviving.push(d);
         });
@@ -416,7 +433,7 @@
     // ─── 结算 Buff 衰减 ───
     _tickBuffs: function() {
       var self = this;
-      var sides = [this.state.player].concat(this.state.enemies);
+      var sides = this.state.playerUnits.concat(this.state.enemies);
       sides.forEach(function(unit) {
         if (!unit.buffs.length) return;
         var surviving = [];
@@ -434,13 +451,28 @@
       });
     },
 
-    // ─── 检查结束 ───
+    // ─── 检查结束（全灭判定）───
     _checkEnd: function() {
-      if (this.state.player.hp <= 0) { this.state.result = 'lose'; return true; }
-      for (var i = 0; i < this.state.enemies.length; i++) {
-        if (this.state.enemies[i].hp > 0) return false;
+      if (this.state.playerUnits.every(function(u){ return u.hp <= 0; })) { this.state.result = 'lose'; return true; }
+      if (this.state.enemies.every(function(e){ return e.hp <= 0; })) { this.state.result = 'win'; return true; }
+      return false;
+    },
+
+    // ─── 工具：取某阵营首个存活单位 ───
+    _firstLiving: function(list) {
+      for (var i = 0; i < list.length; i++) { if (list[i].hp > 0) return list[i]; }
+      return null;
+    },
+    // ─── 工具：敌方选择攻击目标（玩家单位；偏残血）───
+    _pickPlayerTarget: function() {
+      var ps = this.state.playerUnits.filter(function(u){ return u.hp > 0; });
+      if (!ps.length) return null;
+      if (Math.random() < 0.35) {
+        var w = ps[0];
+        ps.forEach(function(u){ if (u.hp / u.maxHp < w.hp / w.maxHp) w = u; });
+        return w;
       }
-      this.state.result = 'win'; return true;
+      return ps[Math.floor(Math.random() * ps.length)];
     },
 
     // ─── 敌方 AI（可传入指定敌 unit；缺省取首敌，兼容旧半手动）───
@@ -875,6 +907,18 @@
           defStance: this.state.enemy.defStance,
           stunNext: this.state.enemy.stunNext
         },
+        playerUnits: this.state.playerUnits.map(function(u){
+          return {
+            idx: u.idx, name: u.name,
+            hp: u.hp, maxHp: u.maxHp,
+            mp: u.mp, maxMp: u.maxMp,
+            element: u.element,
+            rage: u.rage, maxRage: u.maxRage,
+            buffs: u.buffs.slice(), dots: u.dots.slice(),
+            defStance: u.defStance, stunNext: u.stunNext,
+            chargeMul: u.chargeMul || 1, dodgeNext: u.dodgeNext
+          };
+        }),
         enemies: enemies,
         log: this.state.log.slice()
       };
@@ -888,8 +932,8 @@
       return ATTR_CYCLE[aw] === dw;
     },
 
-    getDrop: function() {
-      var ed = this.state.enemyData;
+    getDrop: function(ed) {
+      ed = ed || this.state.enemyData;
       if (!ed || !ed.drop) return { gold: 0, pot: 0, items: [] };
       var d = ed.drop;
       var gold = d.gold ? Math.floor(d.gold[0] + Math.random() * (d.gold[1] - d.gold[0] + 1)) : 0;
@@ -915,31 +959,25 @@
     },
 
     getPlayerActionList: function() {
+      return this.getUnitActions(this.state.player);
+    },
+
+    // 返回指定玩家单位的行动列表（队伍作战：每名队员各自可选）
+    getUnitActions: function(unit) {
       var self = this;
-      var p = this.state.player;
       var list = [];
-      for (var i = 0; i < p.artIds.length; i++) {
-        var art = p.artMap[p.artIds[i]] || global.LF.MARTIAL_ARTS.get(p.artIds[i]);
+      for (var i = 0; i < unit.artIds.length; i++) {
+        var art = unit.artMap[unit.artIds[i]] || global.LF.MARTIAL_ARTS.get(unit.artIds[i]);
         if (!art) continue;
         if (art.type === 'technique') continue; // 不显示为行动选项
         var affordable = true;
-        if (art.cost && art.cost.type === 'mp' && p.mp < art.cost.val) affordable = false;
-        if (art.cost && art.cost.type === 'rage' && p.rage < art.cost.val) affordable = false;
+        if (art.cost && art.cost.type === 'mp' && unit.mp < art.cost.val) affordable = false;
+        if (art.cost && art.cost.type === 'rage' && unit.rage < art.cost.val) affordable = false;
         list.push({
           id: art.id, name: art.name, type: art.type, beat: art.beat,
           dmgMul: art.dmgMul, cost: art.cost, attr: art.attr,
           desc: art.desc || '', affordable: affordable, multiHit: art.multiHit
         });
-      }
-      if (p.rage >= 30) {
-        list.push({ id: 'rage_roar', name: '怒吼', type: 'rage', beat: RAGE_ACTIONS.roar.beat,
-          dmgMul: 0, cost: RAGE_ACTIONS.roar.cost, attr: null, desc: RAGE_ACTIONS.roar.desc,
-          affordable: true, multiHit: 1 });
-      }
-      if (p.hp < p.maxHp * 0.3 && p.rage >= 20) {
-        list.push({ id: 'rage_laststand', name: '死战', type: 'rage', beat: RAGE_ACTIONS.laststand.beat,
-          dmgMul: 0, cost: RAGE_ACTIONS.laststand.cost, attr: null, desc: RAGE_ACTIONS.laststand.desc,
-          affordable: true, multiHit: 1 });
       }
       return list;
     },
@@ -947,6 +985,60 @@
     // ── P2：返回本场战斗玩家出招的艺线经验累积 ──
     getLineGains: function() {
       return this.state.lineGains || [];
+    },
+
+    // ─── 队伍战斗：玩家阶段（一次性结算所有队员指令）───
+    // orders: 按出招顺序的指令数组，元素为 {unit, actionId, targetIdx}
+    //   actionId 可为 'defend' / 'item' / 具体武学 id；'item' 已在下令时即时结算，此处跳过
+    runPlayerPhase: function(orders) {
+      var log = [];
+      this.state.log = [];
+      this.state.round++;
+      // 回合开始：全场 DoT 结算一次
+      this._tickDots(log);
+      if (this._checkEnd()) { this.state.log = log; return log; }
+      for (var i = 0; i < orders.length; i++) {
+        var o = orders[i];
+        var unit = o.unit;
+        if (!unit || unit.hp <= 0) continue;             // 阵亡者无法行动
+        if (o.actionId === 'item') continue;            // 道具已即时结算
+        if (o.actionId === 'defend') { this._resolveAction(unit, 'defend', log); continue; }
+        var living = this.state.enemies.filter(function(e){ return e.hp > 0; });
+        if (!living.length) break;
+        var target = (o.targetIdx != null && this.state.enemies[o.targetIdx] && this.state.enemies[o.targetIdx].hp > 0)
+          ? this.state.enemies[o.targetIdx] : living[0];
+        var action = unit.artMap[o.actionId] || unit.artMap['beng_quan'];
+        this._resolveAction(unit, action, log, target);
+        if (this._checkEnd()) { this.state.log = log; return log; }
+      }
+      this.state.log = log;
+      return log;
+    },
+
+    // ─── 队伍战斗：敌方阶段（所有存活敌人依序出手，目标为玩家单位）───
+    runEnemyPhase: function() {
+      var self = this, log = [];
+      var living = this.state.enemies.filter(function(e){ return e.hp > 0; });
+      living.forEach(function(e) {
+        if (self._checkEnd()) return;
+        var tgt = self._pickPlayerTarget();
+        if (!tgt) return;
+        var act = (e.intent && e.intent !== 'defend') ? e.intent : self._pickEnemyAction(e);
+        if (!e.intent) e.intent = act;
+        self._resolveAction(e, act, log, tgt);
+      });
+      if (!this._checkEnd()) {
+        this._tickBuffs();
+        this.state.playerUnits.forEach(function(u){ if (u.hp > 0) u.mp = Math.min(u.maxMp, u.mp + Math.max(1, Math.round(u.maxMp * 0.05))); });
+        this.state.enemies.forEach(function(e){ if (e.hp > 0) e.mp = Math.min(e.maxMp, e.mp + Math.max(1, Math.round(e.maxMp * 0.05))); });
+        this.peekEnemyIntents();   // 预告下回合意图
+      }
+      this.state.log = log;
+      return log;
+    },
+
+    getAllEnemyData: function() {
+      return this.state.enemyDatas;
     }
 
   };
