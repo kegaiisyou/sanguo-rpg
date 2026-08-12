@@ -1804,6 +1804,7 @@ window.onerror=function(msg,url,line,col,err){
     if(lockObserver) return;
     lockObserver=new MutationObserver(function(muts){
       if(!narrActive()) return;
+      if(combatMode) return;   // 战斗中由 DQ 逻辑自行管理 #actions，不在此处上锁（syncActionLock 也不再解锁，需保持一致）
       muts.forEach(function(m){
         m.addedNodes.forEach(function(n){
           if(n.nodeType!==1) return;
@@ -3341,7 +3342,8 @@ window.onerror=function(msg,url,line,col,err){
       save.room='ji_heishan_zhai';
       save.spawnRoom='ji_heishan_zhai';
       save.flags=save.flags||{};
-      save.flags.onb={ started:true, done:true, named:true, tcDone:true, tcTutorial:true, packGiven:true,
+      // 注意：tcTutorial 必须为 false（且 tcDone 为 true），否则 tutCombatActive() 会走旧的半手动战斗分支（已废弃），绕开 DQ 团体战斗
+      save.flags.onb={ started:true, done:true, named:true, tcDone:true, tcTutorial:false, packGiven:true,
         personality:null, favor:0, reveal:['status','loctab','actions','npc','lower','dock'], talked:{},
         tcTried:{atk:true,def:true}, tcUsedItem:true, tcMsgs:{attack:true,defend:true,pack:true,use:true,finish:true} };
       save.items=save.items||[];
@@ -4052,10 +4054,10 @@ window.onerror=function(msg,url,line,col,err){
     var enemy=G.CombatEngine.getEnemy();
     log('──── 狭路相逢 ────','combat');
     log((enemy.title?('「'+enemy.title+'」'):'')+enemy.name+' 拦住去路！','title');
-    // 卡牌战斗（默认） vs 旧半手动（教学战） vs DQ 风格队伍回合制（常规战斗）
+    // 卡牌战斗（默认） vs DQ 风格队伍回合制（常规战斗 / 教学战均走此路）
+    // 注：旧的半手动 renderCombatCard 已废弃（bug 多），教学战也统一走 DQ，tutCombatActive() 仅用于 endCombat 的教学提示与救场
     combatMode = (CARD_COMBAT && !opt.tutorial && G.CardSystem) ? 'card' : 'manual';
     if(combatMode==='card'){ startCardBattle(); }
-    else if(tutCombatActive()){ renderCombatCard(); renderCombatRound(); }
     else { dqInitCombat(); }   // DQ 风格：列阵 + 逐人下令 + 攻击选目标 + 敌群齐出
   }
 
@@ -4461,12 +4463,11 @@ window.onerror=function(msg,url,line,col,err){
     setTimeout(dqNextCommand, 200);
   }
 
-  /** 轮到当前队员下令 */
+  /** 轮到当前队员下令（必须用引擎真实单位对象：带 artIds/artMap，getStatus 副本不含） */
   function dqNextCommand(){
-    var st=G.CombatEngine.getStatus();
-    var living=st.playerUnits.filter(function(u){ return u.hp>0; });
-    if(dqCursor>=living.length){ dqResolveRound(); return; }
-    dqRenderCommands(living[dqCursor]);
+    var units=G.CombatEngine.state.playerUnits.filter(function(u){ return u.hp>0; });
+    if(dqCursor>=units.length){ dqResolveRound(); return; }
+    dqRenderCommands(units[dqCursor]);
   }
 
   /** 显示某队员命令菜单（DQ 四选项） */
@@ -4474,7 +4475,7 @@ window.onerror=function(msg,url,line,col,err){
     var ra=document.getElementById('actions'); if(!ra) return;
     ra.innerHTML='';
     var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent=(unit.idx===0?'你':unit.name)+' 的回合'; ra.appendChild(tip);
-    function btn(label, fn, cls){ var b=document.createElement('button'); b.className='mv-btn'+(cls?' '+cls:''); b.textContent=label; b.onclick=fn; ra.appendChild(b); }
+    function btn(label, fn, cls){ var b=document.createElement('button'); b.className='mv-btn'+(cls?' '+cls:''); b.classList.remove('locked'); b.textContent=label; b.onclick=fn; ra.appendChild(b); }
     btn('攻击', function(){ dqShowTargets(unit); });
     btn('防御', function(){ dqOrders.push({unit:unit, actionId:'defend'}); dqAdvance(); });
     btn('道具', function(){ dqOpenItems(unit); }, 'item');
