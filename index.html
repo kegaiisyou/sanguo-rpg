@@ -3908,8 +3908,8 @@ window.onerror=function(msg,url,line,col,err){
   // ═══════════════════════════════════════════
   var combatMode=null;  // null | 'manual' | 'card'（卡牌战斗）
   var combatBusy=false; // 回合播放中，防止动画期间重复触发
-  // ── 卡牌战斗开关与运行时状态（绞杀者模式：CARD_COMBAT=false 即全量回退旧半手动）──
-  var CARD_COMBAT=true;
+  // ── 卡牌战斗开关与运行时状态（CARD_COMBAT=false → 最简半手动回合制，默认关：拖拽卡牌层 bug 多，先稳定再优化）──
+  var CARD_COMBAT=false;
   var cardState=null;     // { draw, hand, discard, handSize, intents, selected }
   var cardBattleEl=null;  // 卡牌战斗 DOM 容器
 
