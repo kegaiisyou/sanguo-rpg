@@ -3,6 +3,8 @@
 
   // ========== 战斗引擎 ==========
   // 半手动回合制 + 节拍模型 + 运招中 + 速度差额外行动
+  // 卡牌战斗（v0.4）：新增多敌 enemies[] 支持与 playCard/endTurn/peekEnemyIntents。
+  // 旧半手动 playTurn 路径保留（state.enemy 仍为 enemies[0] 别名），供回滚用。
 
   // ── P2：五行相克（金克木→土→水→火→金）──
   var ATTR_CYCLE = { '金': '木', '木': '土', '土': '水', '水': '火', '火': '金' };
@@ -25,13 +27,19 @@
   var CombatEngine = {
 
     // ─── 初始化 ───
+    // enemyId 可为字符串（单敌，向后兼容）或数组（多敌组合）
     init: function(playerState, enemyId) {
       var self = this;
       var ENEMIES = global.LF.ENEMIES;
       var MARTIAL_ARTS = global.LF.MARTIAL_ARTS;
 
-      var enemyData = ENEMIES.get(enemyId);
-      if (!enemyData) return { error: '未知敌人：' + enemyId };
+      var ids = Array.isArray(enemyId) ? enemyId : [enemyId];
+      var enemyDatas = [];
+      for (var di = 0; di < ids.length; di++) {
+        var ed0 = ENEMIES.get(ids[di]);
+        if (!ed0) return { error: '未知敌人：' + ids[di] };
+        enemyDatas.push(ed0);
+      }
 
       // 聚合玩家的发力技巧效果
       var forceEff = {};
@@ -61,6 +69,25 @@
         if (pa && pa.attr && pa.attr.wu) { pElem = pa.attr.wu; break; }
       }
 
+      // 构建多敌数组
+      var enemies = enemyDatas.map(function(ed, idx) {
+        return {
+          idx: idx,
+          id: ed.id, name: ed.name, title: ed.title || '',
+          hp: ed.hp, maxHp: ed.hp,
+          atk: ed.atk, def: ed.def, spd: ed.spd,
+          mp: 0, maxMp: 0, rage: 0, maxRage: 100,
+          skills: ed.skills || [],
+          ai: ed.ai || 'aggressive',
+          element: ed.element || '无',
+          hitRate: 0.9,
+          buffs: [], dots: [],
+          defStance: false, stunNext: false,
+          forceEff: {},
+          intent: null   // 本回合该敌预告（卡牌战锁定用）
+        };
+      });
+
       this.state = {
         player: {
           name: playerState.name || '你',
@@ -74,28 +101,20 @@
           hitRate: playerState.hitRate || 0.92,
           buffs: [], dots: [],
           defStance: false, stunNext: false,
+          chargeMul: 1,        // 蓄力倍率（卡牌战：蓄力→重击翻倍）
+          dodgeNext: false,    // 闪避姿态（卡牌战：规避本回合敌方攻击）
           forceEff: Object.assign({}, forceEff, { critRate: (forceEff.critRate || 0) + (playerState.critRate || 0) })
         },
-        enemy: {
-          id: enemyData.id, name: enemyData.name, title: enemyData.title || '',
-          hp: enemyData.hp, maxHp: enemyData.hp,
-          atk: enemyData.atk, def: enemyData.def, spd: enemyData.spd,
-          mp: 0, maxMp: 0, rage: 0, maxRage: 100,
-          skills: enemyData.skills || [],
-          ai: enemyData.ai || 'aggressive',
-          element: enemyData.element || '无',
-          hitRate: 0.9,
-          buffs: [], dots: [],
-          defStance: false, stunNext: false,
-          forceEff: {}
-        },
-        enemyData: enemyData,
+        enemies: enemies,
+        enemy: enemies[0],            // 别名，供旧半手动渲染/掉落回滚使用
+        enemyData: enemyDatas[0],     // 掉落仍以首敌为基准（多敌可后续聚合）
+        enemyDatas: enemyDatas,
         lineGains: [],
         log: [],
         round: 0,
         result: null,
         combo: 0,           // 玩家连击计数（P3）
-        enemyIntent: null   // 本回合敌方主行动预告（由 peekEnemyIntent 锁定）
+        enemyIntent: null   // 本回合敌方主行动预告（旧半手动单敌用）
       };
 
       return { ok: true };
@@ -150,18 +169,17 @@
       return art;
     },
 
-    // ─── 计算伤害 ───
+    // ─── 计算伤害（targetUnit 为具体目标单位，支持多敌）───
     // 伤害 = atk × dmgMul × 100 / (100 + def)，支持破甲/破防/暴伤/属性克制
-    calcDamage: function(actor, action, crit, attrMul) {
+    calcDamage: function(actor, action, targetUnit, crit, attrMul) {
       var unit = this.state[actor];
       var mul = (action && action.dmgMul) || 1;
       var eff = (action && action.eff) || {};
       var armorPen = (unit.forceEff.armorPen || 0) + (eff.breakDef || 0) + (eff.armorPen || 0);
       var ignoreDef = eff.ignoreDef || 0;
 
-      var target = this.state[actor === 'player' ? 'enemy' : 'player'];
-      var tDef = target.def;
-      if (target.defStance) tDef = Math.round(tDef * 1.5);
+      var tDef = targetUnit.def;
+      if (targetUnit.defStance) tDef = Math.round(tDef * 1.5);
 
       var effDef = tDef * (1 - Math.min(armorPen, 0.8)) * (1 - ignoreDef);
       var raw = Math.round(unit.atk * mul * 100 / (100 + Math.max(0, effDef)));
@@ -191,11 +209,11 @@
       return null;
     },
 
-    // ─── 处理一次行动 ───
-    _resolveAction: function(actor, action, log) {
+    // ─── 处理一次行动（targetUnit 为具体目标；旧半手动传 state.enemy）───
+    _resolveAction: function(actor, action, log, targetUnit) {
       var self = this;
       var unit = this.state[actor];
-      var target = this.state[actor === 'player' ? 'enemy' : 'player'];
+      var target = targetUnit || this.state[actor === 'player' ? 'enemy' : 'player'];
       var aName = actor === 'player' ? '你' : unit.name;
       var isPlayer = actor === 'player';
 
@@ -219,7 +237,7 @@
       if (action.eff && action.eff.selfHeal) {
         var heal = action.eff.selfHeal;
         unit.hp = Math.min(unit.maxHp, unit.hp + heal);
-        log.push({ type:'heal', text: unit.name + '恢复 ' + heal + ' 气血', eHp: this.state.enemy.hp, pHp: this.state.player.hp });
+        log.push({ type:'heal', text: unit.name + '恢复 ' + heal + ' 气血', eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: this.state.player.hp });
         return 0;
       }
 
@@ -260,7 +278,7 @@
       var hasCrit = action.forceCrit ||
         Math.random() < (0.05 + (unit.forceEff.critRate || 0) + (eff.critRate || 0));
       var acInfo = this._attrCounter(action, target);   // P2 属性克制
-      var dmg = this.calcDamage(actor, action, hasCrit, acInfo.mul);
+      var dmg = this.calcDamage(actor, action, target, hasCrit, acInfo.mul);
       var hitCount = action.multiHit || 1;
       var totalDmg = 0;
       var hitsDesc = [];
@@ -316,7 +334,7 @@
       var atkLine = isPlayer ? (action.line || 'fist') : self._enemyLine(action);
 
       log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg,
-        atkLine: atkLine, eHp: this.state.enemy.hp, pHp: this.state.player.hp });
+        atkLine: atkLine, eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: this.state.player.hp });
 
       // ─── 附加效果 ───
       // 中毒（可叠层）
@@ -345,14 +363,14 @@
         log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '行动变缓！（' + (eff.slowTurns||2) + '回合）' });
       }
 
-      // 反弹：当敌人攻击玩家时，玩家的震字诀反弹伤害
+      // 反弹：当敌人攻击玩家时，玩家的震字诀反弹伤害（伤害回弹给攻击方 unit）
       if (!isPlayer && totalDmg > 0) {
         var pForce = this.state.player.forceEff;
         if (pForce.reflectDmg) {
           var reflect = Math.round(totalDmg * pForce.reflectDmg);
           if (reflect > 0) {
-            this.state.enemy.hp = Math.max(0, this.state.enemy.hp - reflect);
-            log.push({ type:'counter', text: '你以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: this.state.enemy.hp, pHp: this.state.player.hp });
+            unit.hp = Math.max(0, unit.hp - reflect);
+            log.push({ type:'counter', text: '你以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: unit.hp, pHp: this.state.player.hp });
           }
         }
       }
@@ -380,14 +398,14 @@
     // ─── 结算 DoT（按层数累计伤害）───
     _tickDots: function(log) {
       var self = this;
-      ['player', 'enemy'].forEach(function(side) {
-        var unit = self.state[side];
-        if (!unit.dots.length) return;
+      ['player'].concat(this.state.enemies.map(function(e){ return 'enemy_' + e.idx; })).forEach(function(key) {
+        var unit = key === 'player' ? self.state.player : self.state.enemies[parseInt(key.split('_')[1], 10)];
+        if (!unit || !unit.dots.length) return;
         var surviving = [];
         unit.dots.forEach(function(d) {
           var dmg = d.dmg * (d.stacks || 1);
           unit.hp = Math.max(0, unit.hp - dmg);
-          log.push({ type:'dot', text: (side==='player'?'你':unit.name) + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: side, eHp: this.state.enemy.hp, pHp: this.state.player.hp });
+          log.push({ type:'dot', text: (key==='player'?'你':unit.name) + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: key, eHp: self.state.enemies[0] ? self.state.enemies[0].hp : 0, pHp: self.state.player.hp });
           d.turns--;
           if (d.turns > 0) surviving.push(d);
         });
@@ -398,8 +416,8 @@
     // ─── 结算 Buff 衰减 ───
     _tickBuffs: function() {
       var self = this;
-      ['player', 'enemy'].forEach(function(side) {
-        var unit = self.state[side];
+      var sides = [this.state.player].concat(this.state.enemies);
+      sides.forEach(function(unit) {
         if (!unit.buffs.length) return;
         var surviving = [];
         unit.buffs.forEach(function(b) {
@@ -419,13 +437,15 @@
     // ─── 检查结束 ───
     _checkEnd: function() {
       if (this.state.player.hp <= 0) { this.state.result = 'lose'; return true; }
-      if (this.state.enemy.hp <= 0)  { this.state.result = 'win';  return true; }
-      return false;
+      for (var i = 0; i < this.state.enemies.length; i++) {
+        if (this.state.enemies[i].hp > 0) return false;
+      }
+      this.state.result = 'win'; return true;
     },
 
-    // ─── 敌方 AI ───
-    _pickEnemyAction: function() {
-      var e = this.state.enemy;
+    // ─── 敌方 AI（可传入指定敌 unit；缺省取首敌，兼容旧半手动）───
+    _pickEnemyAction: function(enemyUnit) {
+      var e = enemyUnit || this.state.enemy;
       var skills = e.skills || [];
       var hpR = e.hp / Math.max(1, e.maxHp);
 
@@ -511,8 +531,7 @@
       return 'fist';
     },
 
-    // ─── 敌方意图预告（供 UI 显示，玩家可据此选防御/闪避）───
-    // 锁定本回合敌方主行动，保证"预告 = 实际结算"
+    // ─── 敌方意图预告（单敌，旧半手动 UI 用）───
     peekEnemyIntent: function() {
       var act = this._pickEnemyAction();
       this.state.enemyIntent = act;
@@ -533,13 +552,158 @@
       return { action: act, label: label, threat: threat, counter: counter };
     },
 
+    // ─── 多敌意图预告（卡牌战用）：锁定并显示每个存活敌人的意图 ───
+    peekEnemyIntents: function() {
+      var self = this;
+      var out = [];
+      this.state.enemies.forEach(function(e) {
+        if (e.hp <= 0) { out.push({ idx: e.idx, dead: true }); return; }
+        var act = self._pickEnemyAction(e);
+        e.intent = act;   // 锁定，保证"预告 = 实际结算"
+        var label, threat = 'normal', counter = false;
+        if (act === 'defend') {
+          label = '摆出防御架势'; threat = 'defend';
+        } else {
+          var dmgMul = (act && act.dmgMul) || 0;
+          var name = (act && act.name) || '普攻';
+          if (dmgMul >= 1.5) { label = '蓄力「' + name + '」'; threat = 'heavy'; }
+          else { label = '欲施「' + name + '」'; threat = 'normal'; }
+          if (act && act.attr && self._attrCounter(act, self.state.player).type === 'counter') counter = true;
+        }
+        out.push({ idx: e.idx, action: act, label: label, threat: threat, counter: counter });
+      });
+      return out;
+    },
 
+    // ─── 出一张卡（卡牌战核心入口）───
+    // card: { kind, cost, target:'enemy'|'self'|'all', dmgMul?, chargeMul?, action? }
+    // targetIdx: 单体目标在 enemies 中的索引（target==='self'/'all' 时忽略）
+    playCard: function(card, targetIdx) {
+      var self = this;
+      var log = [];
+      this.state.log = [];
+      var player = this.state.player;
 
-    // ─── 执行一回合（半手动：传入玩家指令 actionId） ───
+      // 逃跑特殊结算
+      if (card.kind === 'flee') {
+        var r = this.tryFlee();
+        var flog = (r && r.log) ? r.log : [{ type:'system', text: r.text }];
+        this.state.log = flog;
+        return { log: flog, fled: r.success, ended: !!r.success };
+      }
+
+      // 扣除内力（能量）
+      if (card.cost) player.mp = Math.max(0, player.mp - card.cost);
+
+      if (card.kind === 'defend') {
+        this._resolveAction('player', 'defend', log);
+      } else if (card.kind === 'charge') {
+        player.chargeMul = (player.chargeMul || 1) * (card.chargeMul || 1.6);
+        log.push({ type:'buff', text: '你凝神蓄力，下击伤害×' + player.chargeMul.toFixed(2) });
+      } else if (card.kind === 'dodge') {
+        player.dodgeNext = true;
+        log.push({ type:'buff', text: '你身形虚晃，准备闪避本回合攻击' });
+      } else if (card.kind === 'attack' || card.kind === 'skill') {
+        // 基础攻击卡把战斗参数挂在卡牌顶层（dmgMul/attr/multiHit/eff/line/name），
+        // 而 card.action 为 undefined —— 必须并入 action，否则重击的 1.6 倍率等会被丢弃
+        var action = Object.assign({}, card.action || {});
+        if (card.dmgMul != null) action.dmgMul = (action.dmgMul || 1) * card.dmgMul;
+        if (card.attr) action.attr = card.attr;
+        if (card.multiHit) action.multiHit = card.multiHit;
+        if (card.eff) action.eff = Object.assign({}, action.eff, card.eff);
+        if (card.line) action.line = card.line;
+        if (!action.name) action.name = card.name;
+        if (card.forceCrit) action.forceCrit = true;
+        if (card.guaranteed) action.guaranteed = true;
+        // 应用蓄力倍率
+        if (player.chargeMul && player.chargeMul > 1) {
+          action.dmgMul = (action.dmgMul || 1) * player.chargeMul;
+          player.chargeMul = 1;
+        }
+        var targets = [];
+        if (card.target === 'self') {
+          targets.push(this.state.player);   // 自我增益 / 治疗
+        } else if (card.target === 'all') {
+          this.state.enemies.forEach(function(e) { if (e.hp > 0) targets.push(e); });
+        } else {
+          var t = this.state.enemies[targetIdx];
+          if (!t || t.hp <= 0) {
+            // 目标已亡，自动选首个存活敌
+            for (var i = 0; i < this.state.enemies.length; i++) {
+              if (this.state.enemies[i].hp > 0) { t = this.state.enemies[i]; break; }
+            }
+          }
+          if (t) targets.push(t);
+        }
+        var selfRef = this;
+        targets.forEach(function(tgt) {
+          selfRef._resolveAction('player', action, log, tgt);
+        });
+      } else {
+        log.push({ type:'system', text: '未知卡牌：' + card.kind });
+      }
+
+      this.state.log = log;
+      return { log: log, ended: this.state.result !== null };
+    },
+
+    // ─── 结束玩家回合（卡牌战：敌方阶段 + DoT/Buff 结算 + 抽牌准备）───
+    endTurn: function() {
+      var self = this;
+      var log = [];
+      this.state.log = [];
+      var _snap = this;
+      var _origPush = log.push.bind(log);
+      log.push = function (entry) {
+        entry = entry || {};
+        if (typeof entry.eHp !== 'number') entry.eHp = (_snap.state.enemies[0] ? _snap.state.enemies[0].hp : 0);
+        if (typeof entry.pHp !== 'number') entry.pHp = _snap.state.player.hp;
+        return _origPush(entry);
+      };
+
+      // 1) DoT 结算（玩家 + 各敌）
+      this._tickDots(log);
+      if (this._checkEnd()) { this.state.log = log; return { log: log, ended: true }; }
+
+      // 2) 敌方阶段：存活敌人依次行动（使用锁定的意图）
+      var alive = this.state.enemies.filter(function(e) { return e.hp > 0; });
+      for (var i = 0; i < alive.length; i++) {
+        var e = alive[i];
+        if (e.stunNext) { e.stunNext = false; log.push({ type:'system', text: e.name + '眩晕，无法行动！' }); continue; }
+        // 闪避姿态：规避本回合所有敌方攻击
+        if (this.state.player.dodgeNext) {
+          log.push({ type:'system', text: e.name + '的攻击被你闪身避开！' });
+          continue;
+        }
+        var act = e.intent || this._pickEnemyAction(e);
+        e.intent = null;  // 消费意图
+        this._resolveAction('enemy', act, log, this.state.player);
+        if (this._checkEnd()) { this.state.log = log; return { log: log, ended: true }; }
+      }
+
+      // 3) Buff 衰减
+      this._tickBuffs();
+
+      // 4) 回合推进
+      this.state.round++;
+
+      // 5) 清理瞬态、恢复能量（内力每回合重置为上限）
+      this.state.player.chargeMul = 1;
+      this.state.player.dodgeNext = false;
+      this.state.player.mp = this.state.player.maxMp;
+      this.state.player.rage = Math.min(100, this.state.player.rage + 12);
+      for (var j = 0; j < this.state.enemies.length; j++) {
+        this.state.enemies[j].rage = Math.min(100, this.state.enemies[j].rage + 8);
+      }
+
+      this.state.log = log;
+      return { log: log, ended: this.state.result !== null };
+    },
+
+    // ─── 执行一回合（半手动：传入玩家指令 actionId，单敌）───
     playTurn: function(actionId) {
       var log = [];
-      // 给每条战斗日志在「出招当时」即时打上血量快照：回放端据此严格随出招顺序正向渲染血条，
-      // 消除「整回合末 / 终态统一快照」导致的 buff/debuff/system 日志血量提前跳变（半手动战斗通用）
+      // 给每条战斗日志在「出招当时」即时打上血量快照
       var _snap = this;
       var _origPush = log.push.bind(log);
       log.push = function (entry) {
@@ -585,12 +749,12 @@
       if (heavyPreempt) {
         log.push({ type:'system', text:'你凝神聚气，大招蓄力中——' });
         var ePreAct = this._pickEnemyAction();
-        this._resolveAction('enemy', ePreAct, log);
+        this._resolveAction('enemy', ePreAct, log, this.state.player);
         if (this._checkEnd()) { this.state.log = log; return log; }
         enemyMainDone = true;
       }
 
-      // 3) 计算本回合双方出手次数：基础各 1 次，身法差每 20 点追加 1 次（封顶 3 次连击）
+      // 3) 计算本回合双方出手次数
       var spdGap = this.state.player.spd - this.state.enemy.spd;
       var extra = Math.min(3, Math.floor(Math.abs(spdGap) / 20));
       var pCount = 1, eCount = 1;
@@ -598,7 +762,7 @@
       else if (spdGap > 20 && !stunnedThisTurn) pCount += extra;   // 玩家更快 → 追连击
       else if (spdGap < -20) eCount += extra;                       // 敌更快 → 敌连击
 
-      // 4) 排定出手队列：速度快者先手（同速玩家先手），重招时敌已先占主行动
+      // 4) 排定出手队列
       var pFirst = spdGap >= 0;
       var eMain = (enemyMainDone ? null : (this.state.enemyIntent || this._pickEnemyAction()));
       this.state.enemyIntent = null;
@@ -609,7 +773,7 @@
             if (pi === 0 && spdGap >= 20) log.push({ type:'system', text:'你身法更快，抢得先机！' });
             else if (pi === 1) log.push({ type:'system', text:'你身法占优，抢出连击！' });
             else if (pi > 1) log.push({ type:'system', text:'你身法如电，又夺一击！' });
-            this._resolveAction('player', (pi === 0 ? playerAction : this._makeQuickAtk()), log);
+            this._resolveAction('player', (pi === 0 ? playerAction : this._makeQuickAtk()), log, this.state.enemy);
             if (this._checkEnd()) { this.state.log = log; return log; }
             pi++;
           }
@@ -617,7 +781,7 @@
             if (ei === 0 && spdGap <= -20) log.push({ type:'system', text:'敌身法更快，抢得先机！' });
             else if (ei === 1) log.push({ type:'system', text:'敌身法极快，再度袭来！' });
             else if (ei > 1) log.push({ type:'system', text:'敌势如疾风，又是一击！' });
-            this._resolveAction('enemy', (ei === 0 ? eMain : this._pickEnemyAction()), log);
+            this._resolveAction('enemy', (ei === 0 ? eMain : this._pickEnemyAction()), log, this.state.player);
             if (this._checkEnd()) { this.state.log = log; return log; }
             ei++;
           }
@@ -626,7 +790,7 @@
             if (ei === 0 && spdGap <= -20) log.push({ type:'system', text:'敌身法更快，抢得先机！' });
             else if (ei === 1) log.push({ type:'system', text:'敌身法极快，再度袭来！' });
             else if (ei > 1) log.push({ type:'system', text:'敌势如疾风，又是一击！' });
-            this._resolveAction('enemy', (ei === 0 ? eMain : this._pickEnemyAction()), log);
+            this._resolveAction('enemy', (ei === 0 ? eMain : this._pickEnemyAction()), log, this.state.player);
             if (this._checkEnd()) { this.state.log = log; return log; }
             ei++;
           }
@@ -634,7 +798,7 @@
             if (pi === 0 && spdGap >= 20) log.push({ type:'system', text:'你身法更快，抢得先机！' });
             else if (pi === 1) log.push({ type:'system', text:'你身法占优，抢出连击！' });
             else if (pi > 1) log.push({ type:'system', text:'你身法如电，又夺一击！' });
-            this._resolveAction('player', (pi === 0 ? playerAction : this._makeQuickAtk()), log);
+            this._resolveAction('player', (pi === 0 ? playerAction : this._makeQuickAtk()), log, this.state.enemy);
             if (this._checkEnd()) { this.state.log = log; return log; }
             pi++;
           }
@@ -664,17 +828,25 @@
         var log = [];
         log.push({ type:'system', text:'撤退失败！敌方趁机攻击——' });
         var eAct = this._pickEnemyAction();
-        this._resolveAction('enemy', eAct, log);
-        this._checkEnd();   // 逃跑失败致死也立即判负，避免拖到下一回合
+        this._resolveAction('enemy', eAct, log, this.state.player);
+        this._checkEnd();
         this.state.log = log;
         return { success: false, text: '未能脱身，反被追击！', log: log };
       }
     },
 
-
-
-    // ─── 获取战斗状态（供 UI） ───
+    // ─── 获取战斗状态（供 UI）───
     getStatus: function() {
+      var self = this;
+      var enemies = this.state.enemies.map(function(e) {
+        return {
+          idx: e.idx, id: e.id, name: e.name, title: e.title,
+          hp: e.hp, maxHp: e.maxHp, element: e.element,
+          buffs: e.buffs.slice(), dots: e.dots.slice(),
+          defStance: e.defStance, stunNext: e.stunNext,
+          intent: e.intent ? { label: (e.intent === 'defend' ? '摆出防御架势' : ('欲施「' + (e.intent.name || '普攻') + '」')), threat: (e.intent !== 'defend' && (e.intent.dmgMul || 0) >= 1.5 ? 'heavy' : 'normal'), counter: !!(e.intent && e.intent.attr && CombatEngine._attrCounterStatic(e.intent, self.state.player.element)) } : null
+        };
+      });
       return {
         round: this.state.round,
         result: this.state.result,
@@ -688,7 +860,9 @@
           buffs: this.state.player.buffs.slice(),
           dots: this.state.player.dots.slice(),
           defStance: this.state.player.defStance,
-          stunNext: this.state.player.stunNext
+          stunNext: this.state.player.stunNext,
+          chargeMul: this.state.player.chargeMul || 1,
+          dodgeNext: this.state.player.dodgeNext
         },
         enemy: {
           id: this.state.enemy.id,
@@ -701,8 +875,17 @@
           defStance: this.state.enemy.defStance,
           stunNext: this.state.enemy.stunNext
         },
+        enemies: enemies,
         log: this.state.log.slice()
       };
+    },
+
+    // 静态属性克制判定（getStatus 用，避免依赖 this）
+    _attrCounterStatic: function(action, targetElement) {
+      var aw = action && action.attr && action.attr.wu;
+      var dw = targetElement;
+      if (!aw || !dw || aw === '无' || dw === '无') return false;
+      return ATTR_CYCLE[aw] === dw;
     },
 
     getDrop: function() {
@@ -719,7 +902,6 @@
           }
         });
       }
-      // ── 装备掉落（P1 完整）：按敌人 equip 配置概率生成 ──
       var equip = null;
       var ITEMS = global.LF && global.LF.ITEMS;
       if (ITEMS && d.equip && d.equip.tier && Math.random() * 100 < (d.equip.chance || 0)) {
@@ -749,7 +931,6 @@
           desc: art.desc || '', affordable: affordable, multiHit: art.multiHit
         });
       }
-      // ── P5：战意战术技能（满足条件才出现）──
       if (p.rage >= 30) {
         list.push({ id: 'rage_roar', name: '怒吼', type: 'rage', beat: RAGE_ACTIONS.roar.beat,
           dmgMul: 0, cost: RAGE_ACTIONS.roar.cost, attr: null, desc: RAGE_ACTIONS.roar.desc,

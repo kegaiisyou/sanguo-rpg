@@ -155,6 +155,9 @@
     box-shadow:0 1px 0 rgba(255,255,255,.45);}
   .narr.typing::after{content:'▌';color:var(--gold);animation:blink 1s steps(1) infinite;margin-left:1px;font-weight:400;}
   @keyframes blink{50%{opacity:0;}}
+  /* 文字输出中：交互按钮锁定（变灰不可点），避免「文案未出完就点去下一处」 */
+  .locked{ opacity:.4 !important; filter:grayscale(.85) !important; pointer-events:none !important; cursor:not-allowed !important; }
+  #move-bar.locked, #actions.locked{ filter:none; }
   .act{
     grid-column:span 1;
     display:flex;align-items:center;justify-content:center;text-align:center;
@@ -1039,6 +1042,9 @@
   .cr-field{display:flex;align-items:center;gap:12px;margin:4px 0 2px;}
   .cr-field label{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:3px;color:var(--seal);min-width:42px;}
   .cr-input{flex:1;font-family:"STKaiti","KaiTi",serif;font-size:17px;letter-spacing:2px;padding:8px 12px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);outline:none;transition:.16s;}
+  /* 捏人 · 跳过新手教程（测试用） */
+  .cr-skip{display:flex;align-items:center;gap:8px;margin:6px 0 2px;padding:8px 12px;border:1px dashed #8a6f3e;border-radius:10px;background:rgba(163,29,29,.08);color:#e6d3a6;font-size:13.5px;cursor:pointer;user-select:none;}
+  .cr-skip input{width:16px;height:16px;accent-color:var(--seal);cursor:pointer;}
   .cr-input:focus{border-color:rgba(158,59,46,.5);background:rgba(158,59,46,.05);}
   .cr-sec{margin:14px 0 4px;}
   .cr-sec-t{font-family:"STKaiti","KaiTi",serif;font-size:14.5px;letter-spacing:2px;color:var(--seal);margin-bottom:8px;display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-bottom:1px solid var(--panel-line);padding-bottom:5px;}
@@ -1132,6 +1138,96 @@
   #status > span{ white-space:nowrap; min-width:0; }
   /* 教学战斗：收起「内力/战意」，只留气血，降低新手认知负担 */
   body.tut-combat .cp-bar.row-mp, body.tut-combat .cp-bar.row-rage{ display:none !important; }
+
+  /* ===================== 卡牌战斗（v0.4） ===================== */
+  #card-battle{
+    position:relative; z-index:30; margin:10px 12px 14px; padding:0;
+    display:flex; flex-direction:column; gap:10px;
+    background:linear-gradient(180deg, rgba(31,27,22,.94), rgba(20,17,14,.97));
+    border:1px solid rgba(158,43,37,.35); border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 0 0 1px rgba(239,231,214,.04);
+    backdrop-filter:blur(8px); overflow:hidden;
+    font-family:"PingFang SC","STKaiti",serif;
+  }
+  #card-battle.settle-win{ animation:cbWin .6s ease; }
+  #card-battle.settle-lose{ animation:cbLose .6s ease; }
+  @keyframes cbWin{ 0%{box-shadow:0 0 0 0 rgba(63,167,150,.0);} 40%{box-shadow:0 0 40px 6px rgba(63,167,150,.5);} 100%{box-shadow:0 18px 50px rgba(0,0,0,.55);} }
+  @keyframes cbLose{ 0%{box-shadow:0 0 0 0 rgba(192,57,43,.0);} 40%{box-shadow:0 0 40px 6px rgba(192,57,43,.5);} 100%{box-shadow:0 18px 50px rgba(0,0,0,.55);} }
+  .cb-top{ display:flex; align-items:center; justify-content:space-between; padding:8px 14px; background:rgba(0,0,0,.28); border-bottom:1px solid rgba(239,231,214,.06); }
+  .cb-round{ font-size:13px; color:#c9bba0; letter-spacing:2px; }
+  .cb-help{ font-size:11px; color:#8a7d65; max-width:60%; text-align:right; }
+  .cb-enemies{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; padding:16px 10px 6px; }
+  .cb-enemy{ position:relative; width:152px; padding:10px 10px 12px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(43,36,28,.92), rgba(28,23,18,.96));
+    border:1px solid rgba(192,57,43,.4); transition:transform .15s, box-shadow .15s; }
+  .cb-enemy.dead{ opacity:.25; filter:grayscale(1); pointer-events:none; }
+  .cb-enemy .cb-fig{ width:46px;height:46px;border-radius:50%; display:flex;align-items:center;justify-content:center;
+    font-size:22px; background:radial-gradient(circle at 40% 35%, #5a2b25, #2a1410); color:#e8c878;
+    border:1px solid rgba(232,200,120,.4); margin-bottom:6px; }
+  .cb-enemy .cb-name{ font-size:15px; color:#efe7d6; font-weight:600; }
+  .cb-enemy .cb-elem{ font-size:11px; color:#3FA796; }
+  .cb-enemy .cb-buffs{ margin-top:4px; min-height:14px; }
+  .cb-enemy .cb-buffs span{ font-size:10px; padding:1px 5px; border-radius:8px; margin-right:3px; background:rgba(63,167,150,.18); color:#bfe; }
+  .cb-enemy .cb-buffs span.debuff{ background:rgba(192,57,43,.2); color:#fbb; }
+  .cb-enemy .cb-hp{ display:flex; align-items:center; gap:6px; margin-top:6px; }
+  .cb-enemy .cb-hp span{ font-size:11px; color:#c9bba0; min-width:48px; text-align:right; }
+  .cb-enemy .c-bar{ flex:1; height:8px; border-radius:4px; background:rgba(74,62,48,.16); overflow:hidden; }
+  .cb-enemy .c-hpfill{ height:100%; border-radius:4px; transition:width .45s ease; }
+  .cb-enemy .c-hp{ background:linear-gradient(90deg,#3FA796,#2c7a6f); }
+  .cb-enemy .c-hp-warn{ background:#c0762a; }
+  .cb-enemy .c-hp-danger{ background:#a03030; }
+  .cb-intent{ position:absolute; top:-11px; left:50%; transform:translateX(-50%); padding:2px 9px; border-radius:10px;
+    font-size:11px; white-space:nowrap; background:rgba(0,0,0,.65); border:1px solid rgba(232,200,120,.3); color:#e8c878; }
+  .cb-intent.threat-heavy{ color:#ffd9a0; border-color:#c0392b; box-shadow:0 0 12px rgba(192,57,43,.6); animation:pulseRed 1s ease-in-out infinite; }
+  .cb-intent.threat-defend{ color:#bfe; border-color:#3FA796; }
+  .cb-intent.counter-warn{ color:#ffb3a0; border-color:#e07b39; }
+  @keyframes pulseRed{ 0%,100%{ box-shadow:0 0 6px rgba(192,57,43,.4);} 50%{ box-shadow:0 0 16px rgba(192,57,43,.8);} }
+  .cb-field{ position:relative; min-height:64px; margin:0 14px; border:1px dashed rgba(239,231,214,.14);
+    border-radius:12px; display:flex; align-items:center; justify-content:center; color:#6f6452; font-size:12px; transition:.15s; }
+  .cb-field.aoe-ok{ border-color:rgba(192,57,43,.6); background:rgba(192,57,43,.08); color:#e8a; }
+  .cb-aoe{ position:absolute; inset:0; border-radius:12px; pointer-events:none; opacity:0; transition:.18s;
+    background:radial-gradient(circle at 50% 50%, rgba(192,57,43,.22), rgba(192,57,43,.04) 70%); box-shadow:inset 0 0 0 2px rgba(192,57,43,.5); }
+  .cb-aoe.show{ opacity:1; }
+  .cb-player{ display:flex; align-items:center; gap:12px; padding:8px 14px; background:rgba(0,0,0,.22); border-top:1px solid rgba(239,231,214,.06); }
+  .cb-player .cb-fig-p{ width:42px;height:42px;border-radius:50%; display:flex;align-items:center;justify-content:center;
+    font-size:20px; background:radial-gradient(circle at 40% 35%, #2c5a52, #16302b); color:#bfe; border:1px solid rgba(63,167,150,.5); }
+  .cb-player .cb-pinfo{ font-size:13px; color:#efe7d6; }
+  .cb-player .cb-pinfo b{ color:#e8c878; }
+  .cb-energy{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .cb-energy .cb-e-bar{ width:120px; height:10px; border-radius:6px; background:rgba(0,0,0,.4); overflow:hidden; border:1px solid rgba(63,167,150,.3); }
+  .cb-energy .cb-e-fill{ height:100%; background:linear-gradient(90deg,#3FA796,#6fe0cf); width:0%; transition:width .25s; }
+  .cb-energy .cb-e-num{ font-size:12px; color:#bfe; min-width:52px; text-align:right; }
+  .cb-hand{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:12px 12px 14px; min-height:150px; align-items:flex-end; }
+  .cb-card{ position:relative; width:104px; height:142px; border-radius:12px;
+    background:linear-gradient(180deg, #efe7d6, #d8cbb0); color:#2a241c; cursor:grab; user-select:none;
+    transition:transform .12s, box-shadow .12s; box-shadow:0 6px 16px rgba(0,0,0,.4); border:1px solid rgba(0,0,0,.2);
+    display:flex; flex-direction:column; touch-action:none; }
+  .cb-card:hover{ transform:translateY(-10px); box-shadow:0 14px 26px rgba(0,0,0,.5); }
+  .cb-card .cb-bar{ height:6px; border-radius:12px 12px 0 0; }
+  .cb-card .cb-cost{ position:absolute; top:6px; right:6px; width:22px;height:22px;border-radius:50%;
+    background:#9E2B25; color:#fff; font-size:12px; display:flex;align-items:center;justify-content:center; box-shadow:0 0 0 2px rgba(255,255,255,.5); font-weight:700; }
+  .cb-card .cb-cname{ font-size:14px; font-weight:700; text-align:center; margin-top:14px; }
+  .cb-card .cb-cdesc{ font-size:10px; line-height:1.35; padding:6px 8px; color:#4a4030; flex:1; }
+  .cb-card .cb-aoe-tag{ position:absolute; bottom:6px; left:50%; transform:translateX(-50%); font-size:9px; color:#9E2B25; font-weight:700; }
+  .cb-card.disabled{ filter:grayscale(.7) brightness(.82); cursor:not-allowed; }
+  .cb-card.disabled:hover{ transform:none; }
+  .cb-card.dragging{ opacity:.3; }
+  .cb-card.selected{ box-shadow:0 0 0 3px #3FA796,0 14px 26px rgba(0,0,0,.5); transform:translateY(-12px); }
+  .cb-card.color-attack .cb-bar{ background:linear-gradient(90deg,#C0392B,#9E2B25); }
+  .cb-card.color-charge .cb-bar{ background:linear-gradient(90deg,#3a3a3a,#14110e); }
+  .cb-card.color-defend .cb-bar{ background:linear-gradient(90deg,#3FA796,#2c7a6f); }
+  .cb-card.color-dodge .cb-bar{ background:linear-gradient(90deg,#eef3f7,#c9d6df); }
+  .cb-card.color-flee .cb-bar{ background:linear-gradient(90deg,#D4A017,#a87f10); }
+  .drop-ok{ outline:2px solid #3FA796; outline-offset:2px; box-shadow:0 0 18px rgba(63,167,150,.5); }
+  .cb-side{ display:flex; align-items:center; gap:14px; padding:0 14px 12px; justify-content:flex-end; font-size:12px; color:#c9bba0; }
+  .cb-pile{ display:flex; flex-direction:column; align-items:center; gap:2px; color:#9b8e76; }
+  .cb-pile b{ color:#efe7d6; }
+  .cb-end{ padding:7px 18px; border-radius:10px; border:1px solid rgba(192,57,43,.5);
+    background:linear-gradient(180deg,#9E2B25,#7B1E1E); color:#f3e6d2; font-size:14px; cursor:pointer; letter-spacing:1px; }
+  .cb-end:hover{ background:linear-gradient(180deg,#C0392B,#9E2B25); }
+  .cb-end:active{ transform:translateY(1px); }
+  .cb-hint{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,.8);
+    color:#e8c878; padding:8px 16px; border-radius:10px; border:1px solid rgba(232,200,120,.4); font-size:13px; pointer-events:none; z-index:40; }
 </style>
 </head>
 <body>
@@ -1231,6 +1327,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/enemies.js"></script>
 <script src="shared/data/items.js"></script>
     <script src="shared/combat/engine.js"></script>
+    <script src="shared/combat/cards.js"></script>
     <script src="shared/index.js"></script>
 <script>
 (function(){
@@ -1646,9 +1743,49 @@ window.onerror=function(msg,url,line,col,err){
   // 串行输出队列：所有叙事段落入队，一次只打字一段；前段完成(或快进)后才出下一段，
   // 从根本上杜绝「好几行一起刷出」让玩家措手不及
   var logQueue=[], logBusy=false;
+  var narrOngoing=false; // 是否正处于「连续叙事」中（保证逐行间隙按钮仍锁定）
+  var narrToken=0;      // 场景叙事令牌：新场景使旧序列失效，杜绝旧文字混入新场景
+  var lockObserver=null;
+  // 是否正处于「文字输出中」（打字 / 排队 / 连续叙事）
+  function narrActive(){ return logBusy || (logQueue && logQueue.length>0) || narrOngoing; }
+  // 文字输出中：锁定所有交互按钮（变灰不可点），输出完成或快进到底后自动解锁
+  function syncActionLock(){
+    var active=narrActive();
+    var sel='#move-bar button, #npc button, .npc-panel button, .obj-panel button, .onb-choices button, #actions button:not(.cb-menu)';
+    var nodes=document.querySelectorAll(sel);
+    for(var i=0;i<nodes.length;i++){ if(active) nodes[i].classList.add('locked'); else nodes[i].classList.remove('locked'); }
+    var narr=document.getElementById('narr');
+    if(narr) narr.classList.toggle('typing', active);
+  }
+  // 新场景/战斗开始时，丢弃旧场景残留的排队文字与打字定时器，避免文案串场
+  function flushNarr(){
+    narrToken++;                 // 使任何进行中的旧 logScene 序列失效
+    logQueue.length=0;
+    if(activeTyper && activeTyper.timer){ try{ clearTimeout(activeTyper.timer); }catch(e){} }
+    activeTyper=null;
+    logBusy=false;
+    narrOngoing=false;
+    syncActionLock();
+  }
+  function initLockObserver(){
+    if(lockObserver) return;
+    lockObserver=new MutationObserver(function(muts){
+      if(!narrActive()) return;
+      muts.forEach(function(m){
+        m.addedNodes.forEach(function(n){
+          if(n.nodeType!==1) return;
+          var bs=(n.matches && n.matches('button:not(.cb-menu)')) ? [n] : (n.querySelectorAll?n.querySelectorAll('button:not(.cb-menu)'):[]);
+          for(var i=0;i<bs.length;i++) bs[i].classList.add('locked');
+        });
+      });
+    });
+    ['actions','move-bar','npc'].forEach(function(id){ var el=document.getElementById(id); if(el) lockObserver.observe(el,{childList:true,subtree:true}); });
+  }
+  initLockObserver();
   function log(text, cls, name, done){
     if(!$narr){ return; }
-    logQueue.push({text:text, cls:cls, name:name, done:done});
+    logQueue.push({text:String(text==null?'':text), cls:cls, name:name, done:done});
+    syncActionLock();           // 开始输出即锁定按钮（防「文案未完就点下一处」）
     if(!logBusy) pumpLog();
   }
   function pumpLog(){
@@ -1656,7 +1793,7 @@ window.onerror=function(msg,url,line,col,err){
     var item=logQueue.shift();
     if(!item){ return; }
     logBusy=true;
-    logNow(item.text, item.cls, item.name, function(){ logBusy=false; if(item.done) item.done(); pumpLog(); });
+    logNow(item.text, item.cls, item.name, function(){ logBusy=false; if(item.done) item.done(); syncActionLock(); pumpLog(); });
   }
   // 真正执行单段打字（由 log 队列驱动）
   function logNow(text, cls, name, done){
@@ -1681,8 +1818,11 @@ window.onerror=function(msg,url,line,col,err){
   // 串行叙事：逐行依次输出，前一行打字完成后隔 gap 再播下一行，避免多行同时刷出眼花
   function logScene(lines, gap, onDone){
     gap = gap==null ? 150 : gap;
+    var myToken = ++narrToken;          // 本段叙事获得令牌
+    narrOngoing=true; syncActionLock(); // 连续叙事期间保持按钮锁定
     (function play(i){
-      if(i>=lines.length){ if(onDone) onDone(); return; }
+      if(myToken!==narrToken){ if(narrOngoing){ narrOngoing=false; syncActionLock(); } return; } // 已被新场景取代，放弃旧叙事
+      if(i>=lines.length){ narrOngoing=false; if(onDone) onDone(); syncActionLock(); return; }
       var l=lines[i];
       log(l.t, l.c, l.n, function(){ setTimeout(function(){ play(i+1); }, gap); });
     })(0);
@@ -2143,6 +2283,7 @@ window.onerror=function(msg,url,line,col,err){
   var explored=false;        // 当前房间是否已探查（调查四周后解锁「去处」）
   function renderRoom(rid, silent){
     var room=G.ROOMS[rid]; if(!room) return;
+    narrToken++;                 // 新场景：使任何残留的旧叙事序列失效
     state.room=rid;
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     var suppressNarr = onboarding && (rid==='ys_entrance' || rid==='ys_ne');
@@ -2171,6 +2312,7 @@ window.onerror=function(msg,url,line,col,err){
     }
     renderLocTab(room);
     buildActions(room);
+    syncActionLock();            // 锁定新生成的房间按钮，待本场叙事播完再解锁
     save(state); renderStatus();
     // 叙事逐行串行播放（按钮已先就绪，文字依次刷出，不再同时眼花）
     logScene(narr, 150, function(){
@@ -2184,7 +2326,14 @@ window.onerror=function(msg,url,line,col,err){
   // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 流寇）
   function maybeAmbush(room){
     if(state.defeated) return;
-    if(Math.random() < 0.5){
+    var r=Math.random();
+    if(r < 0.18){
+      // 群战：两名同伙包抄（验证多敌/AOE 路径）
+      var pair = Math.random()<0.6 ? ['bandit','bandit'] : ['yellow_turban','yellow_turban'];
+      var label = pair[0]==='bandit' ? '山贼' : '流寇';
+      log('〔警觉〕林间杀声四起，两名'+label+'自两侧包抄，拦住去路！','combat');
+      startCombat(pair);
+    } else if(r < 0.5){
       var enemy = Math.random()<0.6 ? 'bandit' : 'yellow_turban';
       log('〔警觉〕林间树影倏动，一伙'+(enemy==='bandit'?'山贼':'流寇')+'自草莽中杀出，拦住去路！','combat');
       startCombat(enemy);
@@ -2575,6 +2724,8 @@ window.onerror=function(msg,url,line,col,err){
     document.removeEventListener('keydown', onKeyCollapseObj, true);
     if(p && p.parentNode) p.parentNode.removeChild(p);
   }
+  // NPC → 可战敌人 映射：当 NPC 的 key 与敌人 id 不一致时，用此表指向真正的敌人
+  var NPC_COMBAT_MAP = { 'heishan_zhai':'heishan_zei' };
   // ===== NPC 标准操作列：交谈 / 观察 / 攻击 + 对象自带动作 =====
   function buildNpcActions(o){
     var acts=[];
@@ -2586,7 +2737,8 @@ window.onerror=function(msg,url,line,col,err){
       var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
       acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
         if(dangerAct){ dangerAct.fn(); return; }
-        if(o.key && G.ENEMIES && G.ENEMIES[o.key]){ startCombat(o.key); return; }
+        var eid = (G.ENEMIES && G.ENEMIES[o.key]) ? o.key : (NPC_COMBAT_MAP[o.key] || null);
+        if(eid && G.ENEMIES[eid]){ startCombat(eid); return; }
         log('〔'+o.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys');
       }});
     }
@@ -3080,7 +3232,7 @@ window.onerror=function(msg,url,line,col,err){
   // ===== 捏人 / 开场序章 =====
   function initCreateState(){
     var apt={}; APT_DEFS.forEach(function(a){ apt[a.k]=0; });
-    createState={ name:'', origin:null, apt:apt, pool:CREATE_POOL };
+    createState={ name:'', origin:null, apt:apt, pool:CREATE_POOL, skip:false };
   }
   function effApt(k){
     var o=createState.origin? (ORIGINS_BY_ID[createState.origin].apt[k]||0) : 0;
@@ -3119,6 +3271,7 @@ window.onerror=function(msg,url,line,col,err){
       '<div class="cr-sec"><div class="cr-sec-t">出 身<span class="cr-pool">禀赋赠先天资质</span></div><div class="og-grid">'+originCards+'</div></div>'+
       '<div class="cr-sec"><div class="cr-sec-t">先 天 资 质<span class="cr-pool">可分配 <b id="cr-pool">'+createState.pool+'</b> 点（基础 '+APT_BASE+'，范围 1–'+APT_MAX+'）</span></div><div class="ap-list">'+aptRows+'</div></div>'+
       '<p class="tip">资质不计入即时战力，却决定日后破境成长之底色：劲力主攻击、根骨主气血防御、身法主速度、悟性主内力与武学领悟、福缘主奇遇掉落、功法亲和主招式研习。</p>'+
+      '<label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用 · 直接抵达黑山寨）</label>'+
       '<div class="cr-actions"><button class="close" id="cr-go">踏 入 江 湖</button></div>';
   }
   function bindCreate(){
@@ -3135,6 +3288,8 @@ window.onerror=function(msg,url,line,col,err){
         openModal('create');
       };
     });
+    var skipEl=document.getElementById('cr-skip');
+    if(skipEl){ skipEl.checked=!!createState.skip; skipEl.onchange=function(){ createState.skip=!!skipEl.checked; }; }
     var go=document.getElementById('cr-go'); if(go) go.onclick=confirmCreate;
   }
   function confirmCreate(){
@@ -3147,6 +3302,17 @@ window.onerror=function(msg,url,line,col,err){
       if(or.gold) save.gold=(save.gold||0)+or.gold;
     }
     save.origin=createState.origin||null;
+    // 跳过新手教程（测试用）：直接抵达黑山寨·寨门，并标记教学已完成、补发一包金疮药
+    if(createState.skip){
+      save.room='ji_heishan_zhai';
+      save.spawnRoom='ji_heishan_zhai';
+      save.flags=save.flags||{};
+      save.flags.onb={ started:true, done:true, named:true, tcDone:true, tcTutorial:true, packGiven:true,
+        personality:null, favor:0, reveal:['status','loctab','actions','npc','lower','dock'], talked:{},
+        tcTried:{atk:true,def:true}, tcUsedItem:true, tcMsgs:{attack:true,defend:true,pack:true,use:true,finish:true} };
+      save.items=save.items||[];
+      if(!save.items.some(function(it){ return it.id==='jinchuang'; })) save.items.push({id:'jinchuang',name:'金疮药',count:2,cat:'药剂',effect:{hp:120}});
+    }
     pendingSave=save;
     // 落笔入世 → 直接踏入江湖，进入第一段开场引导剧情（不再弹序幕框）
     var tt=document.getElementById('title'); if(tt) tt.classList.add('hidden');
@@ -3740,8 +3906,12 @@ window.onerror=function(msg,url,line,col,err){
   // ═══════════════════════════════════════════
   //  战 斗 系 统（v0.2 半手动回合制 + 节拍 + 战意）
   // ═══════════════════════════════════════════
-  var combatMode=null;  // null | 'manual'（自动战斗已移除）
+  var combatMode=null;  // null | 'manual' | 'card'（卡牌战斗）
   var combatBusy=false; // 回合播放中，防止动画期间重复触发
+  // ── 卡牌战斗开关与运行时状态（绞杀者模式：CARD_COMBAT=false 即全量回退旧半手动）──
+  var CARD_COMBAT=true;
+  var cardState=null;     // { draw, hand, discard, handSize, intents, selected }
+  var cardBattleEl=null;  // 卡牌战斗 DOM 容器
 
   /** 计算含装备+艺线加成的有效属性（P1 装备 / P2 艺线：攻/命中/暴击/内力/身法） */
   function effectiveStats(){
@@ -3798,6 +3968,12 @@ window.onerror=function(msg,url,line,col,err){
   /** 开始战斗 */
   function startCombat(enemyId, opt){
     opt=opt||{};
+    // 校验敌人 id：无效则给出提示并中止，避免进入战斗后在 init 中崩溃
+    if(typeof enemyId==='string') enemyId=[enemyId];
+    var valid=(enemyId||[]).filter(function(id){ return G.ENEMIES && !!G.ENEMIES[id]; });
+    if(!valid.length){ log('〔系统〕此处并无可战之敌，刀兵无从施展。','sys'); return; }
+    var themeId = valid[0];
+    enemyId = valid;
     // 注意：引导/教学状态统一存于 state.flags.onb（历史代码曾误用未定义的 state.onb，已统一修正）
     if(opt.tutorial && state.flags.onb && !state.flags.onb.tcDone){
       state.flags.onb.tcTutorial=true; state.flags.onb.tcDone=false; state.flags.onb.packGiven=false;
@@ -3806,6 +3982,7 @@ window.onerror=function(msg,url,line,col,err){
     }
     var appEl=document.getElementById('app'); if(appEl) appEl.classList.add('in-combat');
     document.body.classList.add('in-combat');   // 用于盖过 body.onb.reveal-* 的显示规则，战斗时隐藏 NPC/移动区
+    collapseObjPanel();           // 关闭可能开着的 NPC/对象面板，避免压在战场上
     if(opt.tutorial && state.flags.onb && !state.flags.onb.tcDone) document.body.classList.add('tut-combat');
     var es=effectiveStats();
     var pstate=Object.assign({}, state, {
@@ -3819,17 +3996,19 @@ window.onerror=function(msg,url,line,col,err){
       yellow_turban:'altar', hua_xiong:'snow', stray_dog:'wild', hungry_refugee:'wild',
       deserter:'wild', dummy:'train' };
     var sceneEl=document.getElementById('scene');
-    if(sceneEl){ sceneEl.dataset.bg = SCENE_THEME[enemyId] || 'plain'; sceneEl.classList.remove('bg-danger'); }
+    if(sceneEl){ sceneEl.dataset.bg = SCENE_THEME[themeId] || 'plain'; sceneEl.classList.remove('bg-danger'); }
     state.energy=Math.max(0,state.energy-5);   // 应战耗精力
-    // 战斗为半手动（自动战斗已移除）；教学战斗本就是教玩家攻/防/道具/撤退
-    combatMode='manual';
     $narr.innerHTML='';
+    flushNarr();                 // 丢弃旧场景残留文字，避免串场
     combatCardEl=null;
+    cardBattleEl=null; cardState=null;
     var enemy=G.CombatEngine.getEnemy();
     log('──── 狭路相逢 ────','combat');
     log((enemy.title?('「'+enemy.title+'」'):'')+enemy.name+' 拦住去路！','title');
-    renderCombatCard();   // 构建持久战斗卡（满血 / 满状态）
-    renderCombatRound();
+    // 卡牌战斗（默认） vs 旧半手动（教学战 / 回退开关 CARD_COMBAT=false / CardSystem 未加载时回退）
+    combatMode = (CARD_COMBAT && !opt.tutorial && G.CardSystem) ? 'card' : 'manual';
+    if(combatMode==='card'){ startCardBattle(); }
+    else { renderCombatCard(); renderCombatRound(); }
   }
 
   /** 开场教学战斗是否激活 */
@@ -4191,15 +4370,17 @@ window.onerror=function(msg,url,line,col,err){
       state.flags.onb.tcDone=true; state.flags.onb.tcTutorial=false; state.defeated=false;
       log('〔教学演练结束——往后真打可没这般好运，记得用药、看敌意。〕','sys');
       save(state); renderStatus();
-      if(combatCardEl){ combatCardEl.classList.add('settle-win'); }
+      var _sc=combatCardEl||cardBattleEl;
+      if(_sc){ _sc.classList.add('settle-win'); }
       playCombatFx('win');
-      setTimeout(function(){ if(combatCardEl&&combatCardEl.parentNode) combatCardEl.parentNode.removeChild(combatCardEl); combatCardEl=null; }, 1200);
+      cardState=null;
+      setTimeout(function(){ [combatCardEl,cardBattleEl].forEach(function(el){ if(el&&el.parentNode) el.parentNode.removeChild(el); }); combatCardEl=null; cardBattleEl=null; }, 1200);
       return;
     }
     var st=G.CombatEngine.getStatus();
     var enemy=G.CombatEngine.getEnemy();
     // 终局先用真实状态同步战斗卡（避免最后一击致负/致死时卡面停留在上一回合血量）
-    if(combatCardEl) renderCombatCard();
+    if(combatCardEl) renderCombatCard(); else if(cardBattleEl) renderCardBattle();
 
 
     // 更新玩家状态
@@ -4280,7 +4461,7 @@ window.onerror=function(msg,url,line,col,err){
           '<div class="cs-detail">'+detail+'</div>'+
         '</div>'
       ,'good');
-      if(combatCardEl) combatCardEl.classList.add('settle-win');
+      if(combatCardEl) combatCardEl.classList.add('settle-win'); else if(cardBattleEl) cardBattleEl.classList.add('settle-win');
       playCombatFx('win');
       SFX.win();
       toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
@@ -4293,7 +4474,7 @@ window.onerror=function(msg,url,line,col,err){
           '<div class="cs-detail">眼前一黑……你重伤倒地，气若游丝。须先「休整」恢复，方可再动。</div>'+
         '</div>'
       ,'combat');
-      if(combatCardEl) combatCardEl.classList.add('settle-lose');
+      if(combatCardEl) combatCardEl.classList.add('settle-lose'); else if(cardBattleEl) cardBattleEl.classList.add('settle-lose');
       playCombatFx('lose');
       SFX.lose();
       toast('败北！气血仅余1点');
@@ -4308,6 +4489,282 @@ window.onerror=function(msg,url,line,col,err){
     // 返回房间（战败时只留休整按钮，由 buildActions 的 defeated 锁控制）
     addBtn('返回',function(){ renderRoom(state.room,true); },'wide');
     save(state); renderStatus();
+  }
+
+  // ===================== 卡牌战斗（v0.4）=====================
+  // 复用 CombatEngine 的伤害/五行/Buff/掉落/AI；本层只负责牌组、出牌、拖拽与范围指示。
+
+  /** 进入卡牌战斗：构建牌组 + 抽起手 + 预告敌意 */
+  function startCardBattle(){
+    var es=effectiveStats();
+    var ctx={
+      es:{ atk:es.atk, def:es.def, maxHp:es.maxHp, maxMp:es.maxMp, spd:es.spd,
+           hitRate:es.hitRate, critRate:es.critRate, element:es.element },
+      artIds:(state.learnedMartial||[]).slice(),
+      artMap:G.CombatEngine.state.player.artMap
+    };
+    var built=G.CardSystem.buildDeck(ctx);
+    cardState=G.CardSystem.start(built.handSize, built.deck);
+    // 开局能量（内力）充满
+    G.CombatEngine.state.player.mp=G.CombatEngine.state.player.maxMp;
+    cardState.intents=[];
+    cardState.selected=null;
+    cardState.helpShown=false;
+    beginCardTurn(true);
+  }
+
+  /** 开始一个玩家回合：锁定敌意预告、抽满手牌、渲染 */
+  function beginCardTurn(first){
+    if(G.CombatEngine.state.result){ endCombat(G.CombatEngine.state.result); return; }
+    cardState.intents=G.CombatEngine.peekEnemyIntents();   // 锁定本回合敌方意图（预告=实际）
+    G.CardSystem.drawToFull(cardState);
+    renderCardBattle();
+    if(first && !cardState.helpShown){
+      cardState.helpShown=true;
+      setTimeout(function(){ if(cardBattleEl){ showCardHint('拖动卡牌到敌人/场地发动；或先点卡再点目标。内力不足则无法出牌。'); } }, 450);
+    }
+  }
+
+  /** 出一张牌（统一入口：拖拽落点 / 点击目标 / 技能） */
+  function playCardOn(card, targetIdx){
+    if(combatBusy || !cardState) return;
+    if(card.cost > G.CombatEngine.state.player.mp){ toast('内力不足'); return; }
+    combatBusy=true;
+    // 清掉选择/高亮态
+    cardState.selected=null;
+    clearDropTargets();
+    var res=G.CombatEngine.playCard(card, (targetIdx==null||targetIdx<0) ? 0 : targetIdx);
+    (res.log||[]).forEach(function(en){ logCombat(en); });
+    G.CardSystem.discard(cardState, card);
+    var st=G.CombatEngine.getStatus();
+    state.hp=st.player.hp; state.mp=st.player.mp;   // 同步战斗内血量/内力
+    combatBusy=false;
+    if(res.fled){ endCombat('fled'); return; }
+    if(res.ended || G.CombatEngine.state.result){ endCombat(G.CombatEngine.state.result); return; }
+    renderCardBattle();
+  }
+
+  /** 结束玩家回合：敌方阶段 + DoT/Buff 结算 + 新回合抽牌 */
+  function endCardTurn(){
+    if(combatBusy || !cardState) return;
+    if(G.CombatEngine.state.result){ endCombat(G.CombatEngine.state.result); return; }
+    combatBusy=true;
+    cardState.selected=null; clearDropTargets();
+    var res=G.CombatEngine.endTurn();
+    (res.log||[]).forEach(function(en){ logCombat(en); });
+    combatBusy=false;
+    if(res.ended || G.CombatEngine.state.result){ endCombat(G.CombatEngine.state.result); return; }
+    beginCardTurn(false);
+  }
+
+  /** 渲染卡牌战斗界面 */
+  function renderCardBattle(){
+    var st=G.CombatEngine.getStatus();
+    var p=st.player;
+    if(!cardBattleEl){
+      cardBattleEl=document.createElement('div');
+      cardBattleEl.id='card-battle';
+      var _sc=document.getElementById('scene'), _ap=document.getElementById('app');
+      if(_sc&&_ap){ _ap.insertBefore(cardBattleEl,_sc); }
+      else { $narr.appendChild(cardBattleEl); }
+    }
+    // ── 敌方区 ──
+    var enemiesHtml='';
+    st.enemies.forEach(function(e){
+      var hpPct=Math.round(Math.max(0,e.hp)/Math.max(1,e.maxHp)*100);
+      var intent=cardState.intents?cardState.intents[e.idx]:null;
+      var iCls='cb-intent', iTxt='';
+      if(intent && !intent.dead && e.hp>0){
+        if(intent.threat==='heavy') iCls+=' threat-heavy';
+        else if(intent.threat==='defend') iCls+=' threat-defend';
+        if(intent.counter) iCls+=' counter-warn';
+        iTxt=(intent.threat==='heavy'?'⚠ ':'')+(intent.counter?'克制你！ ':'')+intent.label;
+      }
+      var buf='';
+      (e.buffs||[]).forEach(function(b){ buf+='<span>'+((b.type==='atk'?'攻↑':b.type==='spd'?'速↑':'增益'))+' '+b.turns+'</span>'; });
+      (e.dots||[]).forEach(function(d){ buf+='<span class="debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+' '+d.turns+'</span>'; });
+      enemiesHtml+=
+        '<div class="cb-enemy'+(e.hp<=0?' dead':'')+'" data-idx="'+e.idx+'" data-drop="enemy">'+
+          (iTxt?'<div class="'+iCls+'">'+escapeHtml(iTxt)+'</div>':'')+
+          '<div class="cb-fig">'+escapeHtml((e.name||'敌').charAt(0))+'</div>'+
+          '<div class="cb-name">'+escapeHtml(e.name||'敌')+'</div>'+
+          '<div class="cb-elem">'+((e.element&&e.element!=='无')?('属'+e.element):'')+'</div>'+
+          '<div class="cb-hp"><div class="c-bar"><div class="c-hpfill '+(hpPct>50?'c-hp':hpPct>25?'c-hp-warn':'c-hp-danger')+'" style="width:'+hpPct+'%"></div></div><span>'+Math.max(0,e.hp)+'/'+e.maxHp+'</span></div>'+
+          '<div class="cb-buffs">'+buf+'</div>'+
+        '</div>';
+    });
+    // ── 手牌区 ──
+    var handHtml='';
+    cardState.hand.forEach(function(c){
+      var dis = c.cost > p.mp ? ' disabled' : '';
+      var sel = (cardState.selected===c.uid) ? ' selected' : '';
+      handHtml+=
+        '<div class="cb-card color-'+c.color+dis+sel+'" data-uid="'+c.uid+'" data-target="'+c.target+'" data-cost="'+c.cost+'">'+
+          '<div class="cb-bar"></div>'+
+          '<div class="cb-cost">'+c.cost+'</div>'+
+          '<div class="cb-cname">'+escapeHtml(c.name)+'</div>'+
+          '<div class="cb-cdesc">'+escapeHtml(c.desc||'')+'</div>'+
+          (c.aoe?'<div class="cb-aoe-tag">群体</div>':'')+
+        '</div>';
+    });
+    // ── 能量条 ──
+    var ePct=Math.round(Math.max(0,p.mp)/Math.max(1,p.maxMp)*100);
+    var energyHtml='<div class="cb-energy"><span>内力</span><div class="cb-e-bar"><div class="cb-e-fill" style="width:'+ePct+'%"></div></div><span class="cb-e-num">'+Math.max(0,p.mp)+'/'+p.maxMp+'</span></div>';
+    // ── 玩家 BUFF ──
+    var pBuf='';
+    (p.buffs||[]).forEach(function(b){ pBuf+='<span>'+((b.type==='atk'?'攻↑':b.type==='spd'?'速↑':'增益'))+' '+b.turns+'</span>'; });
+    (p.dots||[]).forEach(function(d){ pBuf+='<span class="debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+' '+d.turns+'</span>'; });
+
+    cardBattleEl.innerHTML=
+      '<div class="cb-top">'+
+        '<div class="cb-round">—— 第 '+st.round+' 回合 ——</div>'+
+        '<div class="cb-help">看敌意预告出牌 · 内力为出牌资源，每回合回满</div>'+
+      '</div>'+
+      '<div class="cb-enemies">'+enemiesHtml+'</div>'+
+      '<div class="cb-field" data-drop="field">将群体/AOE 卡拖到此处发动<span class="cb-aoe"></span></div>'+
+      '<div class="cb-player" data-drop="self">'+
+        '<div class="cb-fig-p">'+escapeHtml((state.name||'我').charAt(0))+'</div>'+
+        '<div class="cb-pinfo"><b>'+escapeHtml(state.name||'你')+'</b>'+
+          (p.element&&p.element!=='无'?' <span style="color:#3FA796">属'+p.element+'</span>':'')+
+          (p.chargeMul>1?' <span style="color:#e8c878">蓄力×'+p.chargeMul.toFixed(2)+'</span>':'')+
+          (p.dodgeNext?' <span style="color:#cfe">闪避</span>':'')+
+          (p.combo>1?' <span style="color:#ffd9a0">连击×'+p.combo+'</span>':'')+
+          '<div class="cb-buffs">'+pBuf+'</div>'+
+        '</div>'+
+        energyHtml+
+      '</div>'+
+      '<div class="cb-hand">'+handHtml+'</div>'+
+      '<div class="cb-side">'+
+        '<div class="cb-pile">抽牌堆<b>'+cardState.draw.length+'</b></div>'+
+        '<div class="cb-pile">弃牌堆<b>'+cardState.discard.length+'</b></div>'+
+        '<button class="cb-end">结束回合 ›</button>'+
+      '</div>';
+
+    bindCardBattleEvents();
+  }
+
+  /** 绑定卡牌战斗交互（拖拽 + 点击双模式、AOE 范围指示、目标高亮） */
+  function bindCardBattleEvents(){
+    var endBtn=cardBattleEl.querySelector('.cb-end');
+    if(endBtn) endBtn.onclick=function(){ endCardTurn(); };
+
+    // 拖拽 / 点选：手牌
+    cardBattleEl.querySelectorAll('.cb-card').forEach(function(el){
+      if(el.classList.contains('disabled')) return;
+      el.addEventListener('pointerdown', function(e){ onCardPointerDown(e, el); });
+    });
+
+    // 点击目标（点击模式下生效）
+    cardBattleEl.querySelectorAll('[data-drop]').forEach(function(el){
+      el.onclick=function(){
+        if(!cardState || cardState.selected==null) return;
+        var card=findCardByUid(cardState.selected);
+        if(!card) return;
+        var r=resolveDrop(card, el);
+        if(r!==false && r!==undefined){ playCardOn(card, r); }
+      };
+    });
+  }
+
+  function findCardByUid(uid){
+    if(!cardState) return null;
+    for(var i=0;i<cardState.hand.length;i++){ if(cardState.hand[i].uid===uid) return cardState.hand[i]; }
+    return null;
+  }
+
+  /** 卡片按下：区分「拖拽出牌」与「点击选中」 */
+  function onCardPointerDown(e, el){
+    if(combatBusy || !cardState) return;
+    var card=findCardByUid(parseInt(el.dataset.uid,10));
+    if(!card) return;
+    if(card.cost > G.CombatEngine.state.player.mp){ toast('内力不足'); return; }
+    e.preventDefault();
+    var startX=e.clientX, startY=e.clientY, moved=false, dragging=false;
+    el.classList.add('dragging');
+    showDropTargets(card.target);
+    if(card.target==='all') showAoe(true);
+
+    function move(ev){
+      var dx=ev.clientX-startX, dy=ev.clientY-startY;
+      if(!moved && (Math.abs(dx)>6 || Math.abs(dy)>6)){ moved=true; dragging=true; }
+      if(dragging){
+        el.style.position='fixed';
+        el.style.left=(ev.clientX-52)+'px';
+        el.style.top=(ev.clientY-71)+'px';
+        el.style.zIndex=999; el.style.pointerEvents='none'; el.style.margin='0';
+      }
+    }
+    function up(ev){
+      document.removeEventListener('pointermove',move);
+      document.removeEventListener('pointerup',up);
+      el.classList.remove('dragging');
+      if(dragging){
+        clearDropTargets(); showAoe(false);
+        // 复位样式（renderCardBattle 会重建，此处仅兜底）
+        el.style.position=''; el.style.left=''; el.style.top=''; el.style.zIndex=''; el.style.pointerEvents='';
+        var tgt=document.elementFromPoint(ev.clientX, ev.clientY);
+        var r=resolveDrop(card, tgt);
+        if(r!==false && r!==undefined){ playCardOn(card, r); }
+        else { renderCardBattle(); }   // 落点无效，回弹
+      } else {
+        // 视为点击：切换选中
+        clearDropTargets(); showAoe(false);
+        if(cardState.selected===card.uid){ cardState.selected=null; renderCardBattle(); }
+        else { cardState.selected=card.uid; showDropTargets(card.target); if(card.target==='all') showAoe(true); renderCardBattle(); }
+      }
+    }
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+  }
+
+  /** 依据卡牌目标类型解析落点元素 → 返回目标索引或 sentinel(-1 表示 self/AOE) 或 false(无效) */
+  function resolveDrop(card, tgtEl){
+    if(!tgtEl || !tgtEl.closest) return false;
+    var enemyEl=tgtEl.closest('.cb-enemy');
+    var fieldEl=tgtEl.closest('.cb-field');
+    var selfEl=tgtEl.closest('.cb-player');
+    if(card.target==='enemy'){
+      if(enemyEl && !enemyEl.classList.contains('dead')) return parseInt(enemyEl.dataset.idx,10);
+      return false;
+    }
+    if(card.target==='all'){
+      if(enemyEl || fieldEl) return -1;   // AOE：作用全体存活敌人
+      return false;
+    }
+    // self / flee：拖到玩家自身或场地均可
+    if(selfEl || fieldEl) return -1;
+    return false;
+  }
+
+  /** 高亮合法落点 */
+  function showDropTargets(target){
+    if(!cardBattleEl) return;
+    clearDropTargets();
+    if(target==='enemy' || target==='all'){
+      cardBattleEl.querySelectorAll('.cb-enemy:not(.dead)').forEach(function(el){ el.classList.add('drop-ok'); });
+    }
+    if(target==='all'){
+      var f=cardBattleEl.querySelector('.cb-field'); if(f) f.classList.add('aoe-ok');
+    }
+    if(target==='self' || target==='flee'){
+      var p=cardBattleEl.querySelector('.cb-player'); if(p) p.classList.add('drop-ok');
+      var f2=cardBattleEl.querySelector('.cb-field'); if(f2) f2.classList.add('aoe-ok');
+    }
+  }
+  function clearDropTargets(){
+    if(!cardBattleEl) return;
+    cardBattleEl.querySelectorAll('.drop-ok').forEach(function(el){ el.classList.remove('drop-ok'); });
+    var f=cardBattleEl.querySelector('.cb-field'); if(f) f.classList.remove('aoe-ok');
+  }
+  function showAoe(on){
+    if(!cardBattleEl) return;
+    var a=cardBattleEl.querySelector('.cb-aoe'); if(a) a.classList.toggle('show', !!on);
+  }
+  function showCardHint(msg){
+    if(!cardBattleEl) return;
+    var h=document.createElement('div'); h.className='cb-hint'; h.textContent=msg;
+    cardBattleEl.appendChild(h);
+    setTimeout(function(){ if(h.parentNode) h.parentNode.removeChild(h); }, 3200);
   }
 
   // ===== 存档时间戳（仅用于读档续命，不再结算任何离线/放置收益）=====

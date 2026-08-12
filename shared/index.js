@@ -142,6 +142,7 @@
     ENEMIES: LF.ENEMIES,
     ITEMS: LF.ITEMS,
     CombatEngine: LF.CombatEngine,
+    CardSystem: LF.CardSystem,
     defaultSave: defaultSave,
     applySect: applySect,
     canJoinSect: canJoinSect,
