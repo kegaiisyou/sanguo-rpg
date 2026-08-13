@@ -866,6 +866,15 @@
   #app.in-combat .act.cb-menu:active{ transform:scale(.96); }
   #app.in-combat .grp{ display:none; }
 
+  /* DQ 战斗指令按钮：复用卡牌前 .act 战斗按钮风格，放大点击区（手机端更友好） */
+  #app.in-combat #actions .act.cb-menu{ min-height:44px; padding:10px 16px; font-size:14px; }
+  #app.in-combat #actions .act.cb-menu.ghost{ background:rgba(74,62,48,.06); border-color:rgba(74,62,48,.22); color:var(--ink-soft); }
+  #app.in-combat #actions .act.cb-menu.item{ background:rgba(63,125,94,.13); border-color:rgba(63,125,94,.42); color:#2f5d45; }
+  #app.in-combat #actions .act.cb-menu.flee{ background:rgba(158,59,46,.15); border-color:rgba(158,59,46,.5); color:var(--seal); }
+  /* 谁在行动：醒目横幅，避免误以为「卡住」 */
+  #app.in-combat #actions .dq-turn{ flex:1 1 100%; text-align:center; font-family:"STKaiti","KaiTi",serif;
+    font-size:15px; font-weight:700; letter-spacing:3px; color:var(--seal); margin:0 0 2px; }
+
   /* ===== 场景对象卡片 ===== */
   .obj-card{grid-column:1/-1;width:100%;background:var(--btn);border:1px solid var(--btn-line);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);animation:rise .35s ease both;}
   .obj-head{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;transition:.18s;}
@@ -1005,13 +1014,14 @@
     /* 普通模式动作网格更紧凑，少占底部空间 */
     #actions{grid-template-columns:repeat(auto-fill, minmax(84px,1fr));gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));}
 
-    /* 战斗菜单：窄屏改单行横滑，避免折成两排（之前 flex-wrap 在手机上换行） */
+    /* 战斗菜单：窄屏放大点击区 + 安全区内边距，避免底部按钮太小 / 被刘海遮挡 */
     #app.in-combat #actions{
       flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
-      -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:11px;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none;
+      padding:10px 8px calc(14px + env(safe-area-inset-bottom));
     }
     #app.in-combat #actions::-webkit-scrollbar{display:none;}
-    #app.in-combat .act.cb-menu{flex:0 0 auto;}
+    #app.in-combat .act.cb-menu{ flex:0 0 auto; min-height:50px; padding:14px 22px; font-size:16px; }
   }
   .tt-scroll-body{position:absolute;inset:0;padding:26px 16px;
     writing-mode:vertical-rl;
@@ -4475,7 +4485,7 @@ window.onerror=function(msg,url,line,col,err){
     var ra=document.getElementById('actions'); if(!ra) return;
     ra.innerHTML='';
     var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent=(unit.idx===0?'你':unit.name)+' 的回合'; ra.appendChild(tip);
-    function btn(label, fn, cls){ var b=document.createElement('button'); b.className='mv-btn'+(cls?' '+cls:''); b.classList.remove('locked'); b.textContent=label; b.onclick=fn; ra.appendChild(b); }
+    function btn(label, fn, cls){ var b=document.createElement('button'); b.className='act cb-menu'+(cls?' '+cls:''); b.classList.remove('locked'); b.textContent=label; b.onclick=fn; ra.appendChild(b); }
     btn('攻击', function(){ dqShowTargets(unit); });
     btn('防御', function(){ dqOrders.push({unit:unit, actionId:'defend'}); dqAdvance(); });
     btn('道具', function(){ dqOpenItems(unit); }, 'item');
@@ -4491,10 +4501,10 @@ window.onerror=function(msg,url,line,col,err){
     var aid = unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan');
     st.enemies.forEach(function(e){
       if(e.hp<=0) return;
-      var b=document.createElement('button'); b.className='mv-btn'; b.textContent=e.name+(st.enemies.filter(function(x){return x.name===e.name;}).length>1?(' '+(['甲','乙','丙','丁','戊'][e.idx]||(e.idx+1))):'');
+      var b=document.createElement('button'); b.className='act cb-menu'; b.textContent=e.name+(st.enemies.filter(function(x){return x.name===e.name;}).length>1?(' '+(['甲','乙','丙','丁','戊'][e.idx]||(e.idx+1))):'');
       b.onclick=function(){ dqOrders.push({unit:unit, actionId:aid, targetIdx:e.idx}); dqAdvance(); }; ra.appendChild(b);
     });
-    var cancel=document.createElement('button'); cancel.className='mv-btn ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
+    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
   }
 
   /** 道具：给该队员使用恢复类道具（即时结算，占用该队员本回合） */
@@ -4505,7 +4515,7 @@ window.onerror=function(msg,url,line,col,err){
     ra.innerHTML='';
     var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='给 '+(unit.idx===0?'你':unit.name)+' 使用'; ra.appendChild(tip);
     usables.forEach(function(it){
-      var b=document.createElement('button'); b.className='mv-btn item'; b.textContent=it.name+(it.count>1?(' ×'+it.count):'');
+      var b=document.createElement('button'); b.className='act cb-menu item'; b.textContent=it.name+(it.count>1?(' ×'+it.count):'');
       b.onclick=function(){
         var before=unit.hp;
         unit.hp=Math.min(unit.maxHp, unit.hp+(it.effect.hp||0));
@@ -4518,7 +4528,7 @@ window.onerror=function(msg,url,line,col,err){
       };
       ra.appendChild(b);
     });
-    var cancel=document.createElement('button'); cancel.className='mv-btn ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
+    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
   }
   function dqConsumeItem(id){
     for(var i=0;i<state.items.length;i++){ if(state.items[i].id===id){ state.items[i].count--; if(state.items[i].count<=0) state.items.splice(i,1); break; } }
@@ -4532,7 +4542,7 @@ window.onerror=function(msg,url,line,col,err){
     if(r.log) r.log.forEach(function(e){ log(e.text,e.type||'sys'); });
     var st=G.CombatEngine.getStatus();
     if(st.result){ endCombat(st.result); return; }
-    if(st.player.hp<=0){ endCombat('lose'); return; }
+    if(st.playerUnits[0].hp<=0){ endCombat('lose'); return; }
     log('敌军围困，脱身不得！','sys');
     dqAdvance();   // 逃跑失败，该队员本回合作废
   }
