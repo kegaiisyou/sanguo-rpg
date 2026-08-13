@@ -179,10 +179,12 @@
     // ─── 计算伤害（targetUnit 为具体目标单位，支持多敌）───
     // 伤害 = atk × dmgMul × 100 / (100 + def)，支持破甲/破防/暴伤/属性克制
     calcDamage: function(actor, action, targetUnit, crit, attrMul) {
-      var unit = this.state[actor];
+      // actor 可为 'player'/'enemy' 字符串（兼容旧半手动），也可为具体单位对象（DQ 队伍作战）
+      var unit = (typeof actor === 'object' && actor !== null) ? actor : this.state[actor];
+      if (!unit) return 0;  // 无效 actor 直接返回，避免 forceEff 等空指针连环炸
       var mul = (action && action.dmgMul) || 1;
       var eff = (action && action.eff) || {};
-      var armorPen = (unit.forceEff.armorPen || 0) + (eff.breakDef || 0) + (eff.armorPen || 0);
+      var armorPen = ((unit.forceEff && unit.forceEff.armorPen) || 0) + (eff.breakDef || 0) + (eff.armorPen || 0);
       var ignoreDef = eff.ignoreDef || 0;
 
       var tDef = targetUnit.def;
@@ -253,7 +255,7 @@
       if (action.eff && action.eff.selfHeal) {
         var heal = action.eff.selfHeal;
         unit.hp = Math.min(unit.maxHp, unit.hp + heal);
-        log.push({ type:'heal', text: unit.name + '恢复 ' + heal + ' 气血', eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: this.state.player.hp });
+        log.push({ type:'heal', text: unit.name + '恢复 ' + heal + ' 气血', eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: (this.state.player && this.state.player.hp) || 0 });
         return 0;
       }
 
@@ -292,7 +294,7 @@
       }
 
       var hasCrit = action.forceCrit ||
-        Math.random() < (0.05 + (unit.forceEff.critRate || 0) + (eff.critRate || 0));
+        Math.random() < (0.05 + ((unit.forceEff && unit.forceEff.critRate) || 0) + (eff.critRate || 0));
       var acInfo = this._attrCounter(action, target);   // P2 属性克制
       var dmg = this.calcDamage(actor, action, target, hasCrit, acInfo.mul);
       var hitCount = action.multiHit || 1;
@@ -335,7 +337,7 @@
         this.state.lineGains.push({ line: action.line, crit: hasCrit });
       }
 
-      var armorPen = (unit.forceEff.armorPen || 0) + (eff.breakDef || 0) + (eff.armorPen || 0);
+      var armorPen = ((unit.forceEff && unit.forceEff.armorPen) || 0) + (eff.breakDef || 0) + (eff.armorPen || 0);
       var desc = aName + '使出「' + (action.name || '普攻') + '」';
       if (hasCrit) desc += '【暴击！】';
       if (hitCount > 1) desc += ' ' + hitsDesc.join(' · ');
@@ -350,7 +352,7 @@
       var atkLine = isPlayer ? (action.line || 'fist') : self._enemyLine(action);
 
       log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg,
-        atkLine: atkLine, eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: this.state.player.hp });
+        atkLine: atkLine, eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: (this.state.player && this.state.player.hp) || 0 });
 
       // ─── 附加效果 ───
       // 中毒（可叠层）
@@ -386,7 +388,7 @@
           var reflect = Math.round(totalDmg * pForce.reflectDmg);
           if (reflect > 0) {
             unit.hp = Math.max(0, unit.hp - reflect);
-            log.push({ type:'counter', text: target.name + '以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: unit.hp, pHp: this.state.player.hp });
+            log.push({ type:'counter', text: target.name + '以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: unit.hp, pHp: (this.state.player && this.state.player.hp) || 0 });
           }
         }
       }
