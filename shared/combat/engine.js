@@ -496,8 +496,9 @@
           if (buff && Math.random() < 0.6) return buff;
         }
 
-        // 玩家残血→大招斩杀
-        var playerHpR = this.state.player.hp / Math.max(1, this.state.player.maxHp);
+        // 玩家残血→大招斩杀（取存活玩家单位中最低血量比例，避免主角阵亡而同伴存活时误判）
+        var alivePs = this.state.playerUnits.filter(function(u){ return u.hp > 0; });
+        var playerHpR = alivePs.length ? Math.min.apply(null, alivePs.map(function(u){ return u.hp / Math.max(1, u.maxHp); })) : 0;
         if (playerHpR < 0.3) {
           var heavy = [];
           for (var j = 0; j < skills.length; j++) {
@@ -995,7 +996,6 @@
     runPlayerPhase: function(orders) {
       var log = [];
       this.state.log = [];
-      this.state.round++;
       // 回合开始：全场 DoT 结算一次
       this._tickDots(log);
       if (this._checkEnd()) { this.state.log = log; return log; }
@@ -1025,14 +1025,15 @@
         if (self._checkEnd()) return;
         var tgt = self._pickPlayerTarget();
         if (!tgt) return;
-        var act = (e.intent && e.intent !== 'defend') ? e.intent : self._pickEnemyAction(e);
-        if (!e.intent) e.intent = act;
+        // 尊重已锁定的意图预告（含 'defend'）；仅当未预告时才由 AI 现选
+        var act = (e.intent != null) ? e.intent : self._pickEnemyAction(e);
         self._resolveAction(e, act, log, tgt);
       });
       if (!this._checkEnd()) {
         this._tickBuffs();
         this.state.playerUnits.forEach(function(u){ if (u.hp > 0) u.mp = Math.min(u.maxMp, u.mp + Math.max(1, Math.round(u.maxMp * 0.05))); });
         this.state.enemies.forEach(function(e){ if (e.hp > 0) e.mp = Math.min(e.maxMp, e.mp + Math.max(1, Math.round(e.maxMp * 0.05))); });
+        this.state.round++;   // 整轮（玩家+敌方）结束，回合数 +1
         this.peekEnemyIntents();   // 预告下回合意图
       }
       this.state.log = log;
