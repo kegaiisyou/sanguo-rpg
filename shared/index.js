@@ -51,9 +51,17 @@
       lineExp: {},                              // { lineId: 经验值 }（P2 战斗出手累积）
       learnedMartial: ['beng_quan'],            // 已学招式（新武学系统）
       equippedForce: ['cun_jin'],               // 已装配发力技巧（初始带寸劲暴击）
-      items: [{id:'jinchuang',name:'金疮药',count:1,cat:'药剂',effect:{hp:50}}],  // 背包：药剂（疗伤）；飞镖已移除，避免新手混淆
-      equips: [],                                // 装备背包：每件独立装备对象（见 LF.ITEMS.rollEquip）
-      equipment: { weapon:null, armor:null, trinket:null, mount:null }, // 已装备槽位
+      // ─── v0.6 格子制行囊（30 格）+ 六装备槽 ───
+      pack: (function () {
+        var a = new Array(30).fill(null);
+        a[0] = { defId:'jinchuang',   name:'金疮药',   icon:'🧪', cat:'药剂', desc:'外敷金创，止血生肌，可疗外伤五十。', count:1, effect:{hp:50} };
+        a[1] = { defId:'zangbu_hat',  name:'脏布帽子', icon:'🧢', cat:'装备', slot:'hat',    desc:'一顶灰扑扑的布帽，聊胜于无。', count:1, atk:0,def:0,hp:0,mp:0,spd:0, quality:'white' };
+        a[2] = { defId:'polan_stick', name:'破烂木棒', icon:'🪵', cat:'装备', slot:'weapon', desc:'枯枝胡乱削成，挥之噗噗作响，聊备一格。', count:1, atk:2,def:0,hp:0,mp:0,spd:0, quality:'white' };
+        a[3] = { defId:'roubao',      name:'肉包子',   icon:'🥟', cat:'食饵', desc:'热乎包子一只，啃下可充饥解渴。', count:10, effect:{food:20,drink:5} };
+        return a;
+      })(),                                       // 30 格行囊：可拖拽自由摆放
+      equips: [],                                 // 兼容旧字段（已并入 pack，保留避免 undefined）
+      equipment: { hat:null, cloth:null, shoe:null, weapon:null, trinket:null, belt:null }, // 六装备槽
       quest: { bandit:0, turban:0, hua_xiong:false, luoyang:false }  // P4 主线进度计数
     };
   }

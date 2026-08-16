@@ -89,6 +89,115 @@
         { text: '谦辞', effect: { maxMp: 10 },
           result: '你拱手逊谢，心中却已定下大计。' }
       ]
+    },
+
+    // ── 新增奇遇：流民托孤（蓟城流民区） ──
+    {
+      id: 'ev_refugee', title: '流民托孤',
+      text: '蓟城外难民如蚁。一名妇人跪在雪泥里，将襁褓塞向你：「壮士，妾身撑不住了……这孩子，求您带他一条生路。」',
+      choices: [
+        { text: '倾囊分粮，携孤归乡（耗银5）', cost: { gold: 5 }, moral: 'chivalry',
+          effect: { reputation: 2, xp: 15 },
+          result: '你解下干粮袋塞进她怀里，又抱过孩子。妇人叩首泣谢，你只觉肩头沉了些，心却定了。' },
+        { text: '黯然离去', effect: {},
+          result: '你别过脸去，脚步却比来时重。风雪里那声婴啼，久久未散。' },
+        { text: '趁危夺其随身财物', moral: 'notoriety', effect: { gold: 15 },
+          result: '你一把掠过她腕上铜镯与几枚钱，妇人呆望着你，眼神比雪还冷。' }
+      ]
+    },
+    // ── 新增奇遇：酒楼听舆（渔阳酒楼） ──
+    {
+      id: 'ev_tavern', title: '酒楼听舆',
+      text: '渔阳酒楼人声鼎沸。邻桌商旅压低嗓子议论：「听说白檀屯寨的亭长，比州郡的官还横……」',
+      choices: [
+        { text: '沽酒请众人唠嗑（耗银8）', cost: { gold: 8 }, effect: { reputation: 2, xp: 10 },
+          result: '几碗酒下肚，话匣子开了。你听来不少关节：何处有贼、何处有贤、何处可避风头。' },
+        { text: '默记于心', effect: { mp: 5 },
+          result: '你不动声色，将零碎消息一一存入心底。' },
+        { text: '寻衅滋事，夺人腰缠', moral: 'notoriety', effect: { gold: 20 },
+          result: '你借酒撒疯，一把扣住那商旅的钱袋。满楼哗然，却无人敢拦。' }
+      ]
+    },
+    // ── 新增奇遇：黑山招徕（黑山寨） ──
+    {
+      id: 'ev_heishan', title: '黑山招徕',
+      text: '黑山寨口，一名喽啰斜倚矛杆：「看壮士气度不凡——不如入伙？劫官道、破豪强，快意恩仇，胜过这乱世乞活。」',
+      choices: [
+        { text: '严词拒绝，劝其散伙（侠义）', moral: 'chivalry', effect: { xp: 20, reputation: 2 },
+          result: '你冷笑：「聚啸山林，终是草寇。趁早散了，免得身首异处。」喽啰悻悻退去。' },
+        { text: '假意周旋，暗记虚实', effect: { mp: 5, xp: 5 },
+          result: '你含笑敷衍，眼角却将寨中布防尽收眼底。' },
+        { text: '入伙劫掠（凶名）', moral: 'notoriety', effect: { gold: 40, reputation: 1 },
+          result: '你一点头，喽啰欢呼簇拥。当夜便随队劫了一票——凶名，自此在黑山落了户。' }
+      ]
+    },
+    // ── 新增奇遇：战场遗孤（蓟城荒山） ──
+    {
+      id: 'ev_orphan', title: '战场遗孤',
+      text: '蓟城荒山，新坟累累。一个孩童蹲在残旗旁啜泣，怀里还死死攥着半截断剑——那是他父亲的身份。',
+      choices: [
+        { text: '携孤护送归乡（耗银10）', cost: { gold: 10 }, moral: 'chivalry',
+          effect: { reputation: 3, xp: 15 },
+          result: '你牵起那孩子，将他送回尚在的亲族。孩童破涕为笑，你心头一酸。' },
+        { text: '留银两而去', effect: { gold: -5 },
+          result: '你解下几枚铜钱放在他脚边，转身离去。身后那声「多谢大哥」，稚嫩得刺耳。' },
+        { text: '搜刮遗骸旁财物（凶名）', moral: 'notoriety', effect: { gold: 25 },
+          result: '你面无表情地翻检尸骸，取下值钱物事。孩童的哭声，你充耳不闻。' }
+      ]
+    },
+    // ── 新增奇遇：古刹问禅（渔阳茶肆/寺院） ──
+    {
+      id: 'ev_oldmonk', title: '古刹问禅',
+      text: '渔阳城外古刹，一老僧扫地不辍。见你来，缓缓道：「施主眉间杀气未消，可愿听老衲一句？」',
+      choices: [
+        { text: '听禅入定', effect: { maxMp: 15 },
+          result: '你盘膝而坐，听木鱼声中杂念渐消。内息流转，竟比平日绵长许多。' },
+        { text: '布施香火（耗银10）', cost: { gold: 10 }, moral: 'chivalry',
+          effect: { reputation: 2, xp: 5 },
+          result: '你添了香火钱。老僧合十：「善哉。施主心中有秤，自会称量这乱世。」' },
+        { text: '盗取殿上香火钱（凶名）', moral: 'notoriety', effect: { gold: 15 },
+          result: '你趁老僧背身，一把抓了供桌铜钱。木鱼声停了一瞬，又缓缓响了起来。' }
+      ]
+    },
+    // ── 新增奇遇：江湖论剑（蓟城森林） ──
+    {
+      id: 'ev_wanderer', title: '江湖论剑',
+      text: '蓟城森林深处，一背负长剑的游侠横剑相拦：「久闻乱世出英杰——可否赐教一二？」',
+      choices: [
+        { text: '应战切磋', effect: { xp: 15, atk: 1 },
+          result: '剑光交错数十合，你虽未胜，招式却被逼出几分新意。攻伐之意，愈发凝实。' },
+        { text: '礼下于人，请教一式', effect: { xp: 8, mp: 3 },
+          result: '你执礼甚恭。游侠大笑，随手演了一路起手式，你暗暗记下了。' },
+        { text: '出言讥讽，扬长而去（凶名）', moral: 'notoriety', effect: { xp: 3 },
+          result: '你嗤笑一声：「也配论剑？」拂袖而去。身后游侠摇头，却也懒得追。' }
+      ]
+    },
+    // ── 新增奇遇：决堤赈灾（白檀田） ──
+    {
+      id: 'ev_flood', title: '决堤赈灾',
+      text: '白檀屯田一带河堤决口，灾民跪在泥水里哭喊。里正束手：「粮仓紧闭，谁敢擅开？」',
+      choices: [
+        { text: '出粮赈济灾民（耗银15）', cost: { gold: 15 }, moral: 'chivalry',
+          effect: { reputation: 5, xp: 15 },
+          result: '你开仓放粮、搭棚施粥。灾民叩拜如潮，里正也不得不对你拱手。' },
+        { text: '袖手旁观', effect: {},
+          result: '你立在堤上，看泥水漫过田垄。乱世之中，这样的景象，看得太多了。' },
+        { text: '囤粮居奇，趁荒抬价（凶名）', moral: 'notoriety', effect: { gold: 30 },
+          result: '你反手低买高卖，趁灾民危急狠赚一笔。笑声里，是此起彼伏的骂名。' }
+      ]
+    },
+    // ── 新增奇遇：夜半刺客（蓟城学宫） ──
+    {
+      id: 'ev_assassin', title: '夜半刺客',
+      text: '蓟城学宫夜深，一道黑影破窗而入，短刃直取你咽喉！你侧身避过，反手扣住他手腕：「谁派你来的？」',
+      choices: [
+        { text: '反手制住，诘其主使（侠义）', moral: 'chivalry', effect: { xp: 20, gold: 20, reputation: 2 },
+          result: '你卸了刺客兵刃，套出幕后之人，顺手搜出赏银。明早，这消息自有用处。' },
+        { text: '破财消灾（耗银20）', cost: { gold: 20 }, effect: {},
+          result: '你将一袋银两掷去：「滚。下回换个干净些的杀手。」黑影拾银遁入夜色。' },
+        { text: '杀之灭口（凶名）', moral: 'notoriety', effect: { xp: 10, gold: 10 },
+          result: '你指尖一紧，刺客便软了下去。搜出腰牌与钱袋，你面无表情地没入廊影。' }
+      ]
     }
   ];
   global.LF = global.LF || {};

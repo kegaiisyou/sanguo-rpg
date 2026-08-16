@@ -182,6 +182,273 @@
       desc: '螺旋发力，装配后攻击附加30%破甲',
       eff: { armorPen: 0.30 },
       learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 棍 ───
+    qi_mei_gun: {
+      id: 'qi_mei_gun', name: '齐眉棍', line: 'staff', type: 'skill',
+      beat: 25, cost: {}, dmgMul: 1.0,
+      attr: { wu: '土', yin: '刚' },
+      desc: '棍法根基，横扫直劈，朴实而沉稳',
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+10%' },
+        { realm: 3, eff: '暴击率+10%' },
+        { realm: 6, eff: '伤害+25%，连击一次' }
+      ]
+    },
+    gun_lin_qiu_yu: {
+      id: 'gun_lin_qiu_yu', name: '棍林秋雨', line: 'staff', type: 'skill',
+      beat: 35, cost: { type: 'mp', val: 7 }, dmgMul: 1.15,
+      attr: { wu: '土', yin: '刚' },
+      desc: '棍影连绵如雨，二段连打',
+      multiHit: 2,
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    jin_gang_fu_di: {
+      id: 'jin_gang_fu_di', name: '金刚伏地', line: 'staff', type: 'ultimate',
+      beat: 50, cost: { type: 'rage', val: 100 }, dmgMul: 1.8,
+      attr: { wu: '土', yin: '刚' },
+      desc: '抡棍如山压下，势不可挡',
+      eff: { stunChance: 0.15 },
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 戟 ───
+    ji_zhan_yi_ji: {
+      id: 'ji_zhan_yi_ji', name: '戟展一击', line: 'halberd', type: 'skill',
+      beat: 28, cost: {}, dmgMul: 1.0,
+      attr: { wu: '金', yin: '刚' },
+      desc: '戟刃挑刺，刚猛直取',
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+10%' },
+        { realm: 3, eff: '暴击率+15%' }
+      ]
+    },
+    fang_tian_hua_ji: {
+      id: 'fang_tian_hua_ji', name: '方天画戟', line: 'halberd', type: 'skill',
+      beat: 38, cost: { type: 'mp', val: 8 }, dmgMul: 1.25,
+      attr: { wu: '金', yin: '刚' },
+      desc: '戟尖专破防御架势',
+      eff: { breakDef: 0.3 },
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    long_chu_qian_tan: {
+      id: 'long_chu_qian_tan', name: '龙出浅滩', line: 'halberd', type: 'ultimate',
+      beat: 50, cost: { type: 'rage', val: 100 }, dmgMul: 1.8,
+      attr: { wu: '金', yin: '刚' },
+      desc: '一戟挑天，戟法杀招',
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 锤 ───
+    liu_xing_chui: {
+      id: 'liu_xing_chui', name: '流星锤', line: 'hammer', type: 'skill',
+      beat: 30, cost: {}, dmgMul: 1.1,
+      attr: { wu: '金', yin: '刚' },
+      desc: '锤势沉重，一击裂石',
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+10%' },
+        { realm: 3, eff: '破甲' }
+      ]
+    },
+    kai_shan_chui: {
+      id: 'kai_shan_chui', name: '开山锤', line: 'hammer', type: 'skill',
+      beat: 40, cost: { type: 'mp', val: 9 }, dmgMul: 1.3,
+      attr: { wu: '金', yin: '刚' },
+      desc: '重锤击首，有概率震晕',
+      eff: { stunChance: 0.2 },
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    tian_lie_di_chui: {
+      id: 'tian_lie_di_chui', name: '天裂地锤', line: 'hammer', type: 'ultimate',
+      beat: 52, cost: { type: 'rage', val: 100 }, dmgMul: 1.9,
+      attr: { wu: '金', yin: '刚' },
+      desc: '双锤砸地，天崩地裂',
+      eff: { stunChance: 0.15 },
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 鞭 ───
+    ruo_shui_bian: {
+      id: 'ruo_shui_bian', name: '弱水鞭', line: 'whip', type: 'skill',
+      beat: 26, cost: {}, dmgMul: 0.95,
+      attr: { wu: '水', yin: '柔' },
+      desc: '鞭走柔劲，缠身难脱',
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+8%' },
+        { realm: 3, eff: '连击一次' }
+      ]
+    },
+    she_xing_bian: {
+      id: 'she_xing_bian', name: '蛇行鞭', line: 'whip', type: 'skill',
+      beat: 34, cost: { type: 'mp', val: 6 }, dmgMul: 1.1,
+      attr: { wu: '水', yin: '柔' },
+      desc: '鞭如灵蛇，二段缠绕',
+      multiHit: 2,
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    wan_gou_bian: {
+      id: 'wan_gou_bian', name: '万钩鞭', line: 'whip', type: 'ultimate',
+      beat: 50, cost: { type: 'rage', val: 100 }, dmgMul: 1.7,
+      attr: { wu: '水', yin: '柔' },
+      desc: '鞭影如网，缚敌于无形',
+      multiHit: 2,
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 弓 ───
+    bai_bu_chuan_yang: {
+      id: 'bai_bu_chuan_yang', name: '百步穿杨', line: 'bow', type: 'skill',
+      beat: 28, cost: {}, dmgMul: 1.05,
+      attr: { wu: '金', yin: '柔' },
+      desc: '一箭离弦，百步穿杨',
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+10%' },
+        { realm: 3, eff: '暴击率+15%' }
+      ]
+    },
+    lian_zhu_jian: {
+      id: 'lian_zhu_jian', name: '连珠箭', line: 'bow', type: 'skill',
+      beat: 34, cost: { type: 'mp', val: 6 }, dmgMul: 1.0,
+      attr: { wu: '金', yin: '柔' },
+      desc: '三连急射，箭箭追命',
+      multiHit: 3,
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    lie_ri_leng_jian: {
+      id: 'lie_ri_leng_jian', name: '烈日冷箭', line: 'bow', type: 'ultimate',
+      beat: 50, cost: { type: 'rage', val: 100 }, dmgMul: 1.9,
+      attr: { wu: '金', yin: '刚' },
+      desc: '蓄力一箭穿心，必取敌酋',
+      eff: { ignoreDef: 0.3 },
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 暗器 ───
+    fei_biao: {
+      id: 'fei_biao', name: '飞镖', line: 'hidden', type: 'skill',
+      beat: 18, cost: {}, dmgMul: 0.8,
+      attr: { wu: '金', yin: '柔' },
+      desc: '出手极快，耗力极微',
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+8%' },
+        { realm: 3, eff: '连击一次' }
+      ]
+    },
+    mei_hua_zhen: {
+      id: 'mei_hua_zhen', name: '梅花针', line: 'hidden', type: 'skill',
+      beat: 26, cost: { type: 'mp', val: 4 }, dmgMul: 0.9,
+      attr: { wu: '金', yin: '柔' },
+      desc: '淬毒暗器，中者身毒',
+      eff: { poisonChance: 0.5, poisonDmg: 6, poisonTurns: 3 },
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    tian_nv_san_hua: {
+      id: 'tian_nv_san_hua', name: '天女散花', line: 'hidden', type: 'ultimate',
+      beat: 46, cost: { type: 'rage', val: 100 }, dmgMul: 1.6,
+      attr: { wu: '金', yin: '柔' },
+      desc: '满天花雨，暗器如蝗',
+      multiHit: 4,
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 骑术 ───
+    ben_ti_chong_zhen: {
+      id: 'ben_ti_chong_zhen', name: '奔蹄冲阵', line: 'ride', type: 'skill',
+      beat: 30, cost: {}, dmgMul: 1.1,
+      attr: { wu: '土', yin: '刚' },
+      desc: '策马冲撞，破开阵脚',
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+10%' },
+        { realm: 3, eff: '破甲' }
+      ]
+    },
+    tie_qi_ta_ying: {
+      id: 'tie_qi_ta_ying', name: '铁骑踏营', line: 'ride', type: 'skill',
+      beat: 40, cost: { type: 'mp', val: 9 }, dmgMul: 1.35,
+      attr: { wu: '土', yin: '刚' },
+      desc: '铁骑踏营，有概率踏晕敌阵',
+      eff: { stunChance: 0.2 },
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    wan_jun_ta_di: {
+      id: 'wan_jun_ta_di', name: '万钧踏地', line: 'ride', type: 'ultimate',
+      beat: 52, cost: { type: 'rage', val: 100 }, dmgMul: 1.9,
+      attr: { wu: '土', yin: '刚' },
+      desc: '千军辟易，一踏山河动',
+      eff: { stunChance: 0.15 },
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 轻功 ───
+    ti_ruo_qing_yan: {
+      id: 'ti_ruo_qing_yan', name: '体若轻燕', line: 'light', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      desc: '身法轻灵，装配后暴击率+15%',
+      eff: { critRate: 0.15 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 }
+    },
+    ta_xue_wu_hen: {
+      id: 'ta_xue_wu_hen', name: '踏雪无痕', line: 'light', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      desc: '步法飘忽，装配后攻击破甲+15%',
+      eff: { armorPen: 0.15 },
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    yan_lue_fei_ti: {
+      id: 'yan_lue_fei_ti', name: '燕掠飞踢', line: 'light', type: 'skill',
+      beat: 28, cost: { type: 'mp', val: 5 }, dmgMul: 1.0,
+      attr: { wu: '金', yin: '刚' },
+      desc: '腾身而起，二段连踢',
+      multiHit: 2,
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    liu_xing_zhui_yue: {
+      id: 'liu_xing_zhui_yue', name: '流星追月', line: 'light', type: 'ultimate',
+      beat: 48, cost: { type: 'rage', val: 100 }, dmgMul: 1.7,
+      attr: { wu: '金', yin: '刚' },
+      desc: '凌空连踢，如流星追月',
+      multiHit: 3,
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 内功 ───
+    yang_qi_jue: {
+      id: 'yang_qi_jue', name: '养气诀', line: 'internal', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      desc: '内息绵长，装配后暴击率+10%',
+      eff: { critRate: 0.10 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 2, eff: '暴击率+15%' },
+        { realm: 5, eff: '暴击伤害+40%' }
+      ]
+    },
+    xuan_yin_jue: {
+      id: 'xuan_yin_jue', name: '玄阴诀', line: 'internal', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      desc: '阴柔内劲透体，装配后破甲+20%',
+      eff: { armorPen: 0.20 },
+      learn: { lineMin: 2, wuxing: 0, neigong: 0 }
+    },
+    hun_yuan_gong: {
+      id: 'hun_yuan_gong', name: '混元功', line: 'internal', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      desc: '混元护体，装配后受击反弹20%伤害',
+      eff: { reflectDmg: 0.20 },
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
     }
   };
 

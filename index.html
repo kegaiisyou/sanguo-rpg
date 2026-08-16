@@ -1116,6 +1116,33 @@
   .pi-tip{color:#9c8a64;font-size:11px;}
   .pi-use{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;}
   .pi-use:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
+  /* ===== 格子制行囊 v0.6 ===== */
+  .pack-wrap{max-width:560px;margin:0 auto;}
+  .pack-title{font-family:"STKaiti","KaiTi",serif;font-size:22px;letter-spacing:6px;text-align:center;color:#e9d8b0;margin-bottom:10px;}
+  .pack-sub{font-size:12px;color:#9c8a64;letter-spacing:1px;margin-left:8px;}
+  .equip-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px;}
+  .equipslot{min-height:78px;background:rgba(0,0,0,.22);border:1px solid rgba(196,164,102,.3);border-radius:8px;padding:6px;display:flex;align-items:center;justify-content:center;}
+  .pcell-eq{width:100%;text-align:center;cursor:pointer;}
+  .pcell-eq .pcell-ic{font-size:26px;line-height:1.1;}
+  .pcell-eq .pcell-nm{font-size:12px;color:#e9d8b0;margin-top:2px;}
+  .pcell-eq .pcell-st{font-size:10px;color:#9c8a64;}
+  .pcell-empty .pcell-ic{opacity:.35;}
+  .pack-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+  .packcell{position:relative;min-height:70px;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:8px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:grab;user-select:none;touch-action:none;}
+  .packcell:active{cursor:grabbing;}
+  .packcell .pcell-ic{font-size:24px;line-height:1.1;pointer-events:none;}
+  .packcell .pcell-nm{font-size:11px;color:#e9d8b0;margin-top:2px;pointer-events:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .packcell .pcell-st{font-size:9px;color:#9c8a64;pointer-events:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .packcell .pcell-cnt{position:absolute;right:4px;bottom:2px;font-size:11px;color:#f0e2c0;background:rgba(0,0,0,.5);border-radius:6px;padding:0 4px;pointer-events:none;}
+  .pcell-sel{outline:2px solid #d8b46a;box-shadow:0 0 10px rgba(216,180,106,.6);}
+  .pack-op{display:flex;align-items:center;gap:8px;margin-top:12px;min-height:34px;flex-wrap:wrap;justify-content:center;}
+  .pack-op-hint{color:#9c8a64;font-size:12px;}
+  .pack-opinfo{color:#e9d8b0;font-size:13px;}
+  .btn-mini{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;}
+  .btn-mini:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
+  .pack-foot{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;}
+  .pack-cap{color:#9c8a64;font-size:12px;}
+  .pack-ghost{position:fixed;width:36px;height:36px;font-size:26px;line-height:36px;text-align:center;background:rgba(0,0,0,.35);border:1px solid #d8b46a;border-radius:8px;pointer-events:none;z-index:9999;}
   /* ===== 开场渐进式 UI 揭示：空白 → 文字 → 选项 → 逐一点亮功能 ===== */
   body.onb #status, body.onb #loc-tab, body.onb #actions, body.onb #npc-list, body.onb #lower, body.onb #dock{ display:none !important; }
   body.onb.reveal-status #status{ display:flex !important; }
@@ -1721,6 +1748,7 @@ window.onerror=function(msg,url,line,col,err){
     curSlot=slot||0;
     state = normalize(data || G.defaultSave());
     G.applySect(state);
+    packEnsure(state);                     // 行囊/6 装备槽兼容与初始化（v0.6）
     SFX.setEnabled(state.sfxOn!==false);   // 载入存档后同步音效开关
     if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
     $narr.innerHTML='';
@@ -2271,9 +2299,10 @@ window.onerror=function(msg,url,line,col,err){
   }
   // 战斗中药：弹出背包，按「药剂 / 暗器 / 其他」分类取用（不消耗回合）
   function openPackInCombat(){
-    if(!state.items || !state.items.length){ toast('背包空空，未携一物'); return; }
+    var items=packList();
+    if(!items.length){ toast('行囊空空，未携一物'); return; }
     var cats={}, order=[];
-    state.items.forEach(function(it,idx){
+    items.forEach(function(it,idx){
       var c=it.cat||'其他';
       if(!cats[c]){ cats[c]=[]; order.push(c); }
       cats[c].push({it:it,idx:idx});
@@ -2295,7 +2324,7 @@ window.onerror=function(msg,url,line,col,err){
     openSheet({title:'行囊 · 战地取用', desc:'择物以应战：药剂疗伤、暗器伤人，皆不误战机。', actions:acts});
   }
   function useItemInCombat(idx){
-    var it=state.items[idx]; if(!it) return;
+    var it=state.pack[idx]; if(!it) return;
     var eng=G.CombatEngine, st=eng.state;   // 必须用实时引擎状态，getStatus() 返回的是副本，改副本不会同步卡面血条
     var used=false;
     if(it.effect){
@@ -2306,7 +2335,7 @@ window.onerror=function(msg,url,line,col,err){
         log('你抖手发出「'+it.name+'」，伤敌 '+d+' 点！','player'); }
     }
     if(!used){ toast('此物无法在战中使用'); return; }
-    it.count--; if(it.count<=0) state.items.splice(idx,1);
+    it.count--; if(it.count<=0) state.pack[idx]=null;
     if(tutCombatActive()) state.flags.onb.tcUsedItem=true;   // 标记已用道具，引导进入收尾
     save(state); renderCombatCard();
     if(st.enemy.hp<=0){ endCombat('win'); return; }   // 暗器毙敌立即结算
@@ -2905,6 +2934,12 @@ window.onerror=function(msg,url,line,col,err){
     if(k==='yingmen' && state.notoriety>=30){ var es2=findEvent('ev_shadow'); if(es2) runEvent(es2); return; }
     if(k==='shuijing' && state.chivalry>=40 && state.notoriety>=40){ var eu=findEvent('ev_usurper'); if(eu) runEvent(eu); return; }
     if(k==='hanbo' && Math.random()<0.6){ var ev=findEvent('ev_hanbo'); if(ev) runEvent(ev); }
+    // ── 奇遇：与任意江湖人闲谈，偶发新事件（不与特定 NPC 的专属事件冲突） ──
+    if(Math.random()<0.25){
+      var xp=['ev_refugee','ev_tavern','ev_heishan','ev_orphan','ev_oldmonk','ev_wanderer','ev_flood','ev_assassin'];
+      var xv=xp[Math.floor(Math.random()*xp.length)];
+      var xev=findEvent(xv); if(xev){ runEvent(xev); return; }
+    }
   }
 
   // ===== 行动分发 =====
@@ -2915,7 +2950,7 @@ window.onerror=function(msg,url,line,col,err){
       case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
       case 'patrol': if(!exert('深入山林')) return; 
-        var pool=['ev_escapees','ev_hermit','ev_leftci','ev_merchant','ev_hanbo'];
+        var pool=['ev_escapees','ev_hermit','ev_leftci','ev_merchant','ev_hanbo','ev_refugee','ev_tavern','ev_heishan','ev_orphan','ev_oldmonk','ev_wanderer','ev_flood','ev_assassin'];
         var ev2=findEvent(pool[Math.floor(Math.random()*pool.length)]);
         if(ev2) runEvent(ev2); break;
       // ─── 战斗试炼 ───
@@ -3053,20 +3088,197 @@ window.onerror=function(msg,url,line,col,err){
     }).join('');
   }
   function row(k,v){return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>';}
-  // 行囊装备面板（P1 完整）
-  function useItemOutside(id){
-    if(!state.items||!state.items.length){ toast('背包空空，未携一物'); return; }
-    var idx=-1; for(var i=0;i<state.items.length;i++){ if(state.items[i].id===id){ idx=i; break; } }
-    if(idx<0){ toast('没有此物'); return; }
-    var it=state.items[idx], used=false;
-    if(it.effect){
-      if(it.effect.hp){ var add=it.effect.hp; state.hp=Math.min(effectiveStats().maxHp,state.hp+add); used=true; log('你服下「'+it.name+'」，疗伤 +'+add+'。','player'); }
-      if(it.effect.mp){ var am=it.effect.mp; state.mp=Math.min(state.maxMp,state.mp+am); used=true; }
-      if(it.effect.dmg){ log('「'+it.name+'」需临敌方能伤人，此处用不上。','sys'); }
+  // ===================== 格子制行囊核心（v0.6） =====================
+  function packEnsure(st){
+    if(!st.equipment) st.equipment={};
+    LF.ITEMS.SLOT_KEYS.forEach(function(k){ if(!(k in st.equipment)) st.equipment[k]=null; });
+    if(!Array.isArray(st.pack)){ st.pack=new Array(30).fill(null); }
+    else { if(st.pack.length<30){ for(var i=st.pack.length;i<30;i++) st.pack.push(null); } }
+    if(st.equipment.armor){ st.equipment.cloth=st.equipment.armor; delete st.equipment.armor; }
+    if(st.equipment.mount){ st.equipment.belt=st.equipment.mount; delete st.equipment.mount; }
+    if(Array.isArray(st.items)){ st.items.forEach(function(it){ var e=st.pack.indexOf(null); if(e<0) e=st.pack.length; st.pack[e]=it; }); st.items=null; }
+  }
+  function packIsStackable(it){ return it && it.cat!=='装备'; }
+  function packFirstEmpty(){ for(var i=0;i<state.pack.length;i++){ if(!state.pack[i]) return i; } return -1; }
+  function packAdd(itemOrDefId, count){
+    var it; if(typeof itemOrDefId==='string'){ it=LF.ITEMS.makeItem(itemOrDefId, count||1); }
+    else { it=itemOrDefId; if(count) it.count=(it.count||1)+count; }
+    if(!it) return false;
+    if(packIsStackable(it)){
+      for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && c.defId===it.defId && c.cat!=='装备'){ c.count=(c.count||1)+(it.count||1); return true; } }
     }
-    if(!used){ toast('此物无法在此使用'); return; }
-    it.count--; if(it.count<=0) state.items.splice(idx,1);
-    save(state); renderStatus(); openModal('pack');
+    var e=packFirstEmpty(); if(e<0){ toast('行囊已满，拾取失败。'); return false; }
+    state.pack[e]=it; return true;
+  }
+  function packConsume(defId, n){
+    n=n||1; var rem=n;
+    for(var i=0;i<state.pack.length && rem>0;i++){ var c=state.pack[i]; if(c && c.defId===defId && c.cat!=='装备'){ var take=Math.min(rem, c.count||1); c.count-=take; rem-=take; if(c.count<=0) state.pack[i]=null; } }
+    return rem===0;
+  }
+  function packFind(defId){ for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && c.defId===defId) return c; } return null; }
+  function packList(){ var o=[]; for(var i=0;i<state.pack.length;i++){ if(state.pack[i]) o.push(state.pack[i]); } return o; }
+
+  function packGet(loc){ return loc.kind==='pack' ? state.pack[loc.idx] : state.equipment[loc.slot]; }
+  function packSet(loc,val){ if(loc.kind==='pack') state.pack[loc.idx]=val; else state.equipment[loc.slot]=val; }
+  function locEq(a,b){ return a.kind===b.kind && (a.kind==='pack' ? a.idx===b.idx : a.slot===b.slot); }
+
+  function afterPackChange(){ clampHp(); if(typeof save==='function') save(state); renderStatus(); if(typeof openModal==='function') openModal('pack'); }
+
+  function movePackItem(from,to){
+    if(locEq(from,to)) return;
+    if(from.kind==='pack' && to.kind==='pack'){
+      var s=state.pack[from.idx], d=state.pack[to.idx];
+      state.pack[to.idx]=s; state.pack[from.idx]=d; afterPackChange(); return;
+    }
+    if(from.kind==='pack' && to.kind==='equip'){
+      var it=state.pack[from.idx];
+      if(!it || it.cat!=='装备' || it.slot!==to.slot){ toast('该物不可装备于「'+LF.ITEMS.SLOTS[to.slot].label+'」。'); return; }
+      var old=state.equipment[to.slot];
+      state.equipment[to.slot]=it; state.pack[from.idx]=old;
+      toast('已装备「'+it.name+'」。'); afterPackChange(); return;
+    }
+    if(from.kind==='equip' && to.kind==='pack'){ unequipToPack(from.slot, to.idx); return; }
+  }
+  function equipFromPackTo(idx,slot){ movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); }
+  function unequipToPack(slot,toIdx){
+    var eq=state.equipment[slot]; if(!eq) return;
+    if(toIdx!=null && !state.pack[toIdx]){ state.pack[toIdx]=eq; state.equipment[slot]=null; }
+    else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法卸下。'); return; } state.pack[e]=eq; state.equipment[slot]=null; }
+    toast('已卸下「'+eq.name+'」。'); afterPackChange();
+  }
+  function usePackItem(idx){
+    var it=state.pack[idx]; if(!it) return;
+    if(it.cat==='装备'){ toast('装备需拖至装备栏，不可直接使用。'); return; }
+    if(it.effect){
+      if(it.effect.hp){ state.hp=Math.min(state.maxHp, state.hp+(it.effect.hp||0)); toast('伤势略缓（+'+(it.effect.hp||0)+'）。'); }
+      if(it.effect.mp){ state.mp=Math.min(state.maxMp, state.mp+(it.effect.mp||0)); toast('内息稍复（+'+(it.effect.mp||0)+'）。'); }
+      if(it.effect.food){ state.food=Math.min(100,(state.food||0)+(it.effect.food||0)); toast('腹中稍暖（+'+(it.effect.food||0)+'）。'); }
+      if(it.effect.drink){ state.drink=Math.min(100,(state.drink||0)+(it.effect.drink||0)); toast('喉间得润（+'+(it.effect.drink||0)+'）。'); }
+    } else { toast('此物暂无可施用之效。'); return; }
+    it.count--; if(it.count<=0) state.pack[idx]=null;
+    afterPackChange();
+  }
+  function discardPackItem(idx){
+    var it=state.pack[idx]; if(!it) return;
+    state.pack[idx]=null; toast('已丢弃「'+it.name+'」。'); afterPackChange();
+  }
+  function packAutoSort(){
+    var items=packList();
+    var map={}; items.forEach(function(it){ if(it.cat!=='装备'){ var key=it.defId; if(!map[key]) map[key]={item:it}; else map[key].item.count+=(it.count||1); } });
+    var equipItems=items.filter(function(it){ return it.cat==='装备'; });
+    var merged=Object.keys(map).map(function(k){ return map[k].item; });
+    var out=merged.concat(equipItems);
+    for(var i=0;i<state.pack.length;i++) state.pack[i]=null;
+    out.forEach(function(it,i){ state.pack[i]=it; });
+    toast('行囊已整理。'); afterPackChange();
+  }
+
+  var packSel=null;
+  function renderPack(){
+    function statLine(it){ return LF.ITEMS.statText(it); }
+    var eqHtml='';
+    LF.ITEMS.SLOT_KEYS.forEach(function(slot){
+      var eq=state.equipment[slot], sl=LF.ITEMS.SLOTS[slot];
+      var selCls=(packSel && packSel.kind==='equip' && packSel.slot===slot)?' pcell-sel':'';
+      var inner = eq
+        ? '<div class="pcell-eq" data-loc="equip:'+slot+'"><div class="pcell-ic">'+eq.icon+'</div><div class="pcell-nm">'+eq.name+'</div><div class="pcell-st">'+statLine(eq)+'</div></div>'
+        : '<div class="pcell-eq pcell-empty" data-loc="equip:'+slot+'"><div class="pcell-ic">'+sl.icon+'</div><div class="pcell-nm">'+sl.label+'</div></div>';
+      eqHtml += '<div class="equipslot'+selCls+'">'+inner+'</div>';
+    });
+    var grid='';
+    for(var i=0;i<state.pack.length;i++){
+      var it=state.pack[i];
+      var selCls=(packSel && packSel.kind==='pack' && packSel.idx===i)?' pcell-sel':'';
+      if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
+      var qc = it.quality ? (LF.ITEMS.QMAP[it.quality]?LF.ITEMS.QMAP[it.quality].color:'#9a948a') : '#9a948a';
+      var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
+      grid += '<div class="packcell" data-loc="pack:'+i+'" title="'+it.name+(it.desc?('：'+it.desc):'')+'">'
+            + '<div class="pcell-ic" style="color:'+qc+'">'+it.icon+'</div>'
+            + '<div class="pcell-nm">'+it.name+'</div>'
+            + '<div class="pcell-st">'+statLine(it)+'</div>'
+            + cnt + '</div>';
+    }
+    var opHtml = packSel
+      ? '<div class="pack-op"><span class="pack-opinfo">已选中「'+(packGet(packSel)?packGet(packSel).name:'')+'」</span>'
+        + '<button class="btn-mini" onclick="LFUI.usePackItem('+packSel.idx+')">使用</button>'
+        + '<button class="btn-mini" onclick="LFUI.discardPackItem('+packSel.idx+')">丢弃</button>'
+        + '<button class="btn-mini" onclick="LFUI.clearPackSel()">取消</button></div>'
+      : '<div class="pack-op pack-op-hint">点选物品后再点目标格可移动；桌面端亦可直接拖拽。</div>';
+    return '<div class="pack-wrap">'
+      + '<div class="pack-title">行 囊　<span class="pack-sub">六装备栏 · 三十格</span></div>'
+      + '<div class="equip-bar">'+eqHtml+'</div>'
+      + '<div class="pack-grid">'+grid+'</div>'
+      + opHtml
+      + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
+      + '<span class="pack-cap">容量 '+packList().length+' / 30</span></div>'
+      + '</div>';
+  }
+  function clearPackSel(){ packSel=null; openModal('pack'); }
+  function parseLoc(s){ if(!s) return null; var p=s.split(':'); if(p[0]==='pack') return {kind:'pack',idx:parseInt(p[1],10)}; if(p[0]==='equip') return {kind:'equip',slot:p[1]}; return null; }
+  function bindPackInteractions(){
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var cells=card.querySelectorAll('[data-loc]');
+    cells.forEach(function(el){
+      el.onclick=function(){
+        if(el.__dragMoved){ el.__dragMoved=false; return; }
+        var loc=parseLoc(el.getAttribute('data-loc')); if(!loc) return;
+        if(packSel){
+          if(locEq(packSel,loc)){ packSel=null; openModal('pack'); return; }
+          movePackItem(packSel,loc); packSel=null;
+        } else {
+          var it=packGet(loc);
+          if(it){ packSel=loc; openModal('pack'); }
+          else if(loc.kind==='equip'){ unequipToPack(loc.slot); }
+        }
+      };
+    });
+    cells.forEach(function(el){
+      el.setAttribute('draggable','true');
+      el.ondragstart=function(e){
+        var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)){ e.preventDefault(); return; }
+        el.__from=loc; e.dataTransfer.setData('text/plain', el.getAttribute('data-loc'));
+      };
+      el.ondragover=function(e){ e.preventDefault(); };
+      el.ondrop=function(e){
+        e.preventDefault();
+        var to=parseLoc(el.getAttribute('data-loc')); if(!to) return;
+        var from=el.__from || parseLoc(e.dataTransfer.getData('text/plain'));
+        if(from) movePackItem(from,to);
+      };
+    });
+    var dragging=null, ghost=null, sx=0, sy=0, moved=false;
+    cells.forEach(function(el){
+      el.onpointerdown=function(e){
+        if(e.pointerType==='mouse') return;
+        var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)) return;
+        dragging=loc; moved=false; sx=e.clientX; sy=e.clientY;
+      };
+    });
+    card.onpointermove=function(e){
+      if(!dragging) return;
+      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; }
+      if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; card.appendChild(ghost); }
+      ghost.textContent=(packGet(dragging)||{}).icon||'';
+      ghost.style.left=(e.clientX-18)+'px'; ghost.style.top=(e.clientY-18)+'px';
+    };
+    card.onpointerup=function(e){
+      var from=dragging; dragging=null;
+      if(ghost){ ghost.remove(); ghost=null; }
+      if(!from || !moved) return;
+      var tgt=document.elementFromPoint(e.clientX,e.clientY);
+      while(tgt && tgt!==card && !tgt.getAttribute('data-loc')) tgt=tgt.parentNode;
+      var to=parseLoc(tgt?tgt.getAttribute('data-loc'):null);
+      if(to) movePackItem(from,to);
+    };
+  }
+  window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, clearPackSel:clearPackSel, packAutoSort:packAutoSort };
+
+  // 行囊装备面板（P1 完整）
+  function useItemOutside(defId){
+    // 行囊里直接“使用”物品（非战斗，疗伤/补内/进食）
+    var idx=-1;
+    for(var i=0;i<state.pack.length;i++){ if(state.pack[i] && state.pack[i].defId===defId){ idx=i; break; } }
+    if(idx>=0) usePackItem(idx);
   }
 
   // ===== 开场渐进式 UI 揭示（空白 → 文字 → 选项 → 逐一点亮功能） =====
@@ -3195,11 +3407,7 @@ window.onerror=function(msg,url,line,col,err){
       case 'grant': {
         if(step.gold){ state.gold=Math.max(0,(state.gold||0)+step.gold); }
         if(step.rep){ addReputation(step.rep); }
-        if(step.items && step.items.length){ step.items.forEach(function(it){
-          if(!state.items) state.items=[];
-          var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id===it.id){ ex=state.items[i]; break; } }
-          if(ex){ ex.count=(ex.count||1)+(it.count||1); } else { state.items.push({id:it.id, name:it.name, count:it.count||1, cat:it.cat, effect:it.effect}); }
-        }); }
+        if(step.items && step.items.length){ step.items.forEach(function(it){ packAdd({defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat, count:it.count||1, effect:it.effect}); }); }
         save(state); renderStatus(); next(); break;
       }
       case 'removeNpc': { var rn=G.ROOMS[state.room].npcs, i=rn?rn.indexOf(step.key):-1; if(i>=0) rn.splice(i,1); next(); break; }
@@ -3410,15 +3618,7 @@ window.onerror=function(msg,url,line,col,err){
         '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
         '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；潜能由历练积攒，用于研习武学。</p>';
     } else if(kind==='pack'){
-      h='<h3>行 囊</h3>'+
-        (state.items.length
-          ? '<div class="row"><span>物品</span></div><div class="pack-items">'+state.items.map(function(it){
-              var tip=[]; if(it.effect){ if(it.effect.hp)tip.push('疗伤'+it.effect.hp); if(it.effect.mp)tip.push('回内力'+it.effect.mp); if(it.effect.dmg)tip.push('伤人'+it.effect.dmg); }
-              return '<div class="pack-item"><span class="pi-nm">'+it.name+' ×'+(it.count||1)+'</span>'+(tip.length?'<span class="pi-tip">'+tip.join('·')+'</span>':'')+'<button class="pi-use" data-id="'+it.id+'">使用</button></div>';
-            }).join('')+'</div>'
-          : row('物品','（空）'))+
-        renderEquipPanel()+
-        '<p class="tip">装备由战斗掉落，点击装备/卸下。已装备属性自动并入战斗（攻/防/气血/内力/身法）。</p>';
+      h=renderPack();
     } else if(kind==='quest'){
       h='<h3>任 务</h3>'+
         row('当前所处',curRoom().name)+
@@ -3481,7 +3681,7 @@ window.onerror=function(msg,url,line,col,err){
     }
     $card.innerHTML=h;
     if(kind==='create') bindCreate();
-    if(kind==='pack'){ $card.querySelectorAll('.pi-use').forEach(function(b){ b.onclick=function(){ useItemOutside(b.getAttribute('data-id')); }; }); }
+    if(kind==='pack'){ bindPackInteractions(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
@@ -3634,7 +3834,7 @@ window.onerror=function(msg,url,line,col,err){
     else if(act==='pot+200'){ state.pot+=200; log('【速填】潜能 +200（当前 '+state.pot+'）','good'); }
     else if(act==='gold+500'){ state.gold+=500; log('【速填】银两 +500（当前 '+state.gold+'）','good'); }
     else if(act==='full'){ var esF=effectiveStats(); state.hp=esF.maxHp; state.mp=esF.maxMp; state.energy=state.maxEnergy; state.food=state.maxFood; state.drink=state.maxDrink; log('【速填】气血/内力/精力/饥渴 全满','good'); }
-    else if(act==='mkgear'){ var eq=LF.ITEMS.rollEquip(3); state.equips.push(eq); save(state); renderDev(); toast('夺得 '+eq.name); }
+    else if(act==='mkgear'){ var eq=LF.ITEMS.rollEquip(3); packAdd(LF.ITEMS.equipToPackItem(eq)); save(state); renderDev(); toast('夺得 '+eq.name); }
     // ── P3 善恶双轴调试 ──
     else if(act==='cha+10'){ state.chivalry+=10; log('【调试】侠义 +10（当前 '+state.chivalry+'）','good'); }
     else if(act==='not+10'){ state.notoriety+=10; log('【调试】凶名 +10（当前 '+state.notoriety+'）','good'); }
@@ -3972,7 +4172,7 @@ window.onerror=function(msg,url,line,col,err){
   /** 计算含装备+艺线加成的有效属性（P1 装备 / P2 艺线：攻/命中/暴击/内力/身法） */
   function effectiveStats(){
     var atk=state.atk, def=state.def, maxHp=state.maxHp, maxMp=state.maxMp, spd=state.spd;
-    ['weapon','armor','trinket','mount'].forEach(function(sl){
+    LF.ITEMS.SLOT_KEYS.forEach(function(sl){
       var eq=state.equipment[sl]; if(!eq) return;
       atk+=(eq.atk||0); def+=(eq.def||0); maxHp+=(eq.hp||0); maxMp+=(eq.mp||0); spd+=(eq.spd||0);
     });
@@ -3997,8 +4197,9 @@ window.onerror=function(msg,url,line,col,err){
   // 每场战斗结束（胜/败/逃）已装备耐久 -1，耗尽则损毁
   function decayEquipment(){
     var broken=[];
-    ['weapon','armor','trinket','mount'].forEach(function(sl){
+    LF.ITEMS.SLOT_KEYS.forEach(function(sl){
       var eq=state.equipment[sl]; if(!eq) return;
+      if(typeof eq.dur!=='number') return;   // 期初装具无耐久，不损耗
       eq.dur-=1;
       if(eq.dur<=0){ state.equipment[sl]=null; broken.push(eq.name); }
     });
@@ -4008,18 +4209,11 @@ window.onerror=function(msg,url,line,col,err){
   // 装备/卸下
   function equipItem(id){
     var idx=-1;
-    for(var i=0;i<state.equips.length;i++){ if(state.equips[i].id===id){ idx=i; break; } }
+    for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && c.cat==='装备' && c.defId===id){ idx=i; break; } }
     if(idx<0) return;
-    var eq=state.equips[idx], slot=eq.type;
-    if(state.equipment[slot]) state.equips.push(state.equipment[slot]); // 原装备退回背包
-    state.equipment[slot]=eq; state.equips.splice(idx,1);
-    clampHp(); save(state); renderStatus(); openModal('pack'); toast('已装备 '+eq.name);
+    var eq=state.pack[idx]; equipFromPackTo(idx, eq.slot);
   }
-  function unequip(slot){
-    var eq=state.equipment[slot]; if(!eq) return;
-    state.equipment[slot]=null; state.equips.push(eq);
-    clampHp(); save(state); renderStatus(); openModal('pack'); toast('已卸下 '+eq.name);
-  }
+  function unequip(slot){ unequipToPack(slot); }
 
   /** 开始战斗 */
   function startCombat(enemyId, opt){
@@ -4078,9 +4272,7 @@ window.onerror=function(msg,url,line,col,err){
     if(!state.flags.onb) return;
     if(state.flags.onb.packGiven) return;   // 防重复发放
     state.flags.onb.packGiven=true;
-    if(!state.items) state.items=[];
-    var ex=null; for(var i=0;i<state.items.length;i++){ if(state.items[i].id==='jinchuang'){ ex=state.items[i]; break; } }
-    if(ex) ex.count=1; else state.items.push({id:'jinchuang',name:'金疮药',count:1,cat:'药剂',effect:{hp:120}});
+    packAdd('jinchuang',1);   // 老乞丐赠金疮药（已堆叠则 +1）
     onbReveal('dock'); highlightOnb('dock'); save(state); renderStatus();
     log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤（下头「道具」已点亮）。','env');
     save(state);
@@ -4510,7 +4702,7 @@ window.onerror=function(msg,url,line,col,err){
   /** 道具：给该队员使用恢复类道具（即时结算，占用该队员本回合） */
   function dqOpenItems(unit){
     var ra=document.getElementById('actions'); if(!ra) return;
-    var usables=(state.items||[]).filter(function(it){ return it.effect && (it.effect.hp||it.effect.mp); });
+    var usables=packList().filter(function(it){ return it.effect && (it.effect.hp||it.effect.mp); });
     if(!usables.length){ log('〔行囊空空，无物可疗。〕','sys'); dqRenderCommands(unit); return; }
     ra.innerHTML='';
     var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='给 '+(unit.idx===0?'你':unit.name)+' 使用'; ra.appendChild(tip);
@@ -4521,7 +4713,7 @@ window.onerror=function(msg,url,line,col,err){
         unit.hp=Math.min(unit.maxHp, unit.hp+(it.effect.hp||0));
         unit.mp=Math.min(unit.maxMp, unit.mp+(it.effect.mp||0));
         if(unit.idx===0){ state.hp=unit.hp; state.mp=unit.mp; }
-        dqConsumeItem(it.id);
+        dqConsumeItem(it.defId);
         dqOrders.push({unit:unit, actionId:'item'});   // 占用该队员本次行动
         log((unit.idx===0?'你':unit.name)+'使用'+it.name+'，回复 '+Math.max(0,unit.hp-before)+' 气血。','good');
         dqRenderCard(); dqAdvance();
@@ -4530,8 +4722,8 @@ window.onerror=function(msg,url,line,col,err){
     });
     var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
   }
-  function dqConsumeItem(id){
-    for(var i=0;i<state.items.length;i++){ if(state.items[i].id===id){ state.items[i].count--; if(state.items[i].count<=0) state.items.splice(i,1); break; } }
+  function dqConsumeItem(defId){
+    for(var i=0;i<state.pack.length;i++){ if(state.pack[i] && state.pack[i].defId===defId){ state.pack[i].count--; if(state.pack[i].count<=0) state.pack[i]=null; break; } }
   }
 
   /** 撤退：全队尝试脱身（主角判定） */
@@ -4651,18 +4843,13 @@ window.onerror=function(msg,url,line,col,err){
       state.gold+=drop.gold;
       state.pot+=drop.pot;
       addXp(expGain);
-      // ── 掉落入库（P1 背包系统：按 id 堆叠 count）──
-      drop.items.forEach(function(it){
-        var ex=null;
-        for(var i=0;i<state.items.length;i++){ if(state.items[i].id===it.id){ ex=state.items[i]; break; } }
-        if(ex){ ex.count=(ex.count||1)+1; }
-        else { state.items.push({id:it.id, name:it.name, count:1}); }
-      });
+      // ── 掉落入库（v0.6 格子行囊：按 defId 堆叠 count）──
+      drop.items.forEach(function(it){ packAdd({defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat||'道具', count:1, effect:it.effect}); });
       var detail='修为+'+expGain+' · '+drop.gold+'银两 · 潜能+'+drop.pot;
       if(drop.items.length) detail+=' · '+drop.items.map(function(it){return it.name;}).join('、');
       // ── 装备掉落（P1 完整）──
       if(drop.equip){
-        state.equips.push(drop.equip);
+        packAdd(LF.ITEMS.equipToPackItem(drop.equip));
         detail+=' · 夺得'+drop.equip.qualityName+'「'+drop.equip.name+'」('+LF.ITEMS.statText(drop.equip)+')';
       }
 

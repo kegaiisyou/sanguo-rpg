@@ -1,8 +1,18 @@
 (function (global) {
   'use strict';
 
-  // ========== 装备系统数据层（P1 完整：武器/防具/饰品/坐骑 + 品质 + 耐久） ==========
-  // 装备由战斗掉落生成；装备后并入角色有效属性（攻/防/血/内/速）。
+  // ========== 装备系统数据层（格子制行囊 + 六装备槽） ==========
+  // 六装备槽（贴合三国武侠）：帽笠 / 衣甲 / 鞋履 / 兵刃 / 饰品 / 腰带
+  //   ——「坐骑」并入腰带（战带/鞍带），「护腕」可后续作为扩展槽。
+  var SLOTS = {
+    hat:     { label:'帽笠', icon:'🎩' },
+    cloth:   { label:'衣甲', icon:'🥋' },
+    shoe:    { label:'鞋履', icon:'🥾' },
+    weapon:  { label:'兵刃', icon:'⚔️' },
+    trinket: { label:'饰品', icon:'💍' },
+    belt:    { label:'腰带', icon:'🪢' }
+  };
+  var SLOT_KEYS = Object.keys(SLOTS);
 
   // 品质：倍率影响数值，颜色用于界面标签
   var QUALITY = [
@@ -15,14 +25,24 @@
   var QMAP = {};
   QUALITY.forEach(function (q) { QMAP[q.key] = q; });
 
-  // 四槽位类型定义
+  // 六类型（随机掉落用），一一对应六槽
   var TYPES = {
     weapon:  { label: '兵刃', names: ['铁剑', '钢刀', '长枪', '梨花枪', '雁翎刀', '丈八蛇矛', '熟铜锏', '流星锤'], base: [4, 12], bias: 'atk' },
-    armor:   { label: '护甲', names: ['皮甲', '锁子甲', '铁鳞甲', '明光铠', '山文甲'],               base: [3, 10], bias: 'def' },
+    cloth:   { label: '衣甲', names: ['皮甲', '锁子甲', '铁鳞甲', '明光铠', '山文甲'],               base: [3, 10], bias: 'def' },
+    hat:     { label: '帽笠', names: ['皮帽', '铁盔', '簪缨盔', '凤翅盔', '束发冠'],               base: [1, 4],  bias: 'def' },
+    shoe:    { label: '鞋履', names: ['布鞋', '战靴', '乌皮靴', '云履', '麻鞋'],                   base: [1, 4],  bias: 'spd' },
     trinket: { label: '饰品', names: ['玉佩', '青玉戒', '狼牙坠', '铜符', '夜光璧'],                 base: [2, 6],  bias: 'mix' },
-    mount:   { label: '坐骑', names: ['黄骠马', '乌骓马', '赤兔驹', '照夜白'],                       base: [3, 8],  bias: 'spd' }
+    belt:    { label: '腰带', names: ['布带', '犀带', '玉带', '吞兽带', '蹀躞带'],                 base: [1, 4],  bias: 'mix' }
   };
   var TYPE_KEYS = Object.keys(TYPES);
+
+  // 静态物品定义（期初行囊 / 任务 / 商店）。defId 唯一键。
+  var DEFS = {
+    jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
+    roubao:      { defId: 'roubao',      name: '肉包子', icon: '🥟', cat: '食饵', effect: { food: 20, drink: 5 },     desc: '热乎包子一只，啃下可充饥解渴。' },
+    zangbu_hat:  { defId: 'zangbu_hat',  name: '脏布帽子', icon: '🧢', cat: '装备', slot: 'hat',    stats: {},        desc: '一顶灰扑扑的布帽，聊胜于无。', quality: 'white' },
+    polan_stick: { defId: 'polan_stick', name: '破烂木棒', icon: '🪵', cat: '装备', slot: 'weapon', stats: { atk: 2 }, desc: '枯枝胡乱削成，挥之噗噗作响，聊备一格。', quality: 'white' }
+  };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -32,7 +52,6 @@
     tier = tier || 1;
     var type = pick(TYPE_KEYS);
     var td = TYPES[type];
-    // 品质随 tier 上移（tier1 多白绿，tier4 多出紫橙）
     var qidx = Math.round((tier - 1) + (Math.random() * 2.4 - 1.0));
     if (qidx < 0) qidx = 0;
     if (qidx >= QUALITY.length) qidx = QUALITY.length - 1;
@@ -40,14 +59,17 @@
     var scale = 1 + (tier - 1) * 0.32;
     function val(base) { return Math.max(1, Math.round(ri(base[0], base[1]) * scale * q.mult)); }
     var atk = 0, def = 0, hp = 0, mp = 0, spd = 0;
-    if (type === 'weapon') { atk = val(td.base); }
-    else if (type === 'armor') { def = val(td.base); hp = val([12, 32]); }
+    if (type === 'weapon')      { atk = val(td.base); }
+    else if (type === 'cloth')  { def = val(td.base); hp = val([12, 32]); }
+    else if (type === 'hat')    { def = val(td.base); }
+    else if (type === 'shoe')   { spd = val(td.base); }
+    else if (type === 'belt')   { if (Math.random() < 0.5) def = val(td.base); else spd = val(td.base); }
     else if (type === 'trinket') {
       var r = Math.random();
-      if (r < 0.4) { atk = val(td.base); }
+      if (r < 0.4)      { atk = val(td.base); }
       else if (r < 0.7) { def = val(td.base); }
-      else { hp = val([12, 28]); mp = val([6, 18]); }
-    } else if (type === 'mount') { spd = val(td.base); }
+      else              { hp = val([12, 28]); mp = val([6, 18]); }
+    }
     var maxDur = ri(14, 26);
     return {
       id: 'eq_' + Date.now().toString(36) + Math.floor(Math.random() * 1e5).toString(36),
@@ -59,8 +81,9 @@
     };
   }
 
-  // 属性摘要文本
+  // 属性摘要文本（兼容掉落装备对象与背包装备物品）
   function statText(eq) {
+    if (!eq) return '';
     var p = [];
     if (eq.atk) p.push('攻+' + eq.atk);
     if (eq.def) p.push('防+' + eq.def);
@@ -70,9 +93,35 @@
     return p.join(' ');
   }
 
+  // 由静态定义生成背包物品（期初 / 任务 / 商店用）
+  function makeItem(defId, count) {
+    var d = DEFS[defId]; if (!d) return null;
+    var it = { defId: d.defId, name: d.name, icon: d.icon, cat: d.cat, desc: d.desc, count: count || 1 };
+    if (d.effect) it.effect = JSON.parse(JSON.stringify(d.effect));
+    if (d.cat === '装备') {
+      it.slot = d.slot; it.quality = d.quality || 'white';
+      it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;
+      if (d.stats) { for (var k in d.stats) { if (k in it) it[k] = d.stats[k]; } }
+    }
+    return it;
+  }
+
+  // 由掉落/生成的装备对象转成背包物品
+  function equipToPackItem(eq) {
+    var sl = SLOTS[eq.type] || { label: eq.typeName || '装备', icon: '🛡️' };
+    return {
+      defId: eq.id, name: eq.name, icon: sl.icon, cat: '装备', slot: eq.type,
+      atk: eq.atk || 0, def: eq.def || 0, hp: eq.hp || 0, mp: eq.mp || 0, spd: eq.spd || 0,
+      quality: eq.quality, qualityName: eq.qualityName, qualityColor: eq.color,
+      dur: eq.dur, maxDur: eq.maxDur,
+      desc: (eq.qualityName || '') + '·' + sl.label + '：' + (statText(eq) || '')
+    };
+  }
+
   var ITEMS = {
-    QUALITY: QUALITY, QMAP: QMAP, TYPES: TYPES,
-    rollEquip: rollEquip, statText: statText
+    SLOTS: SLOTS, SLOT_KEYS: SLOT_KEYS,
+    QUALITY: QUALITY, QMAP: QMAP, TYPES: TYPES, DEFS: DEFS,
+    rollEquip: rollEquip, statText: statText, makeItem: makeItem, equipToPackItem: equipToPackItem
   };
 
   global.LF = global.LF || {};
