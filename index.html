@@ -1120,24 +1120,40 @@
   .pack-wrap{max-width:560px;margin:0 auto;}
   .pack-title{font-family:"STKaiti","KaiTi",serif;font-size:22px;letter-spacing:6px;text-align:center;color:#e9d8b0;margin-bottom:10px;}
   .pack-sub{font-size:12px;color:#9c8a64;letter-spacing:1px;margin-left:8px;}
-  .equip-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px;}
-  .equipslot{min-height:78px;background:rgba(0,0,0,.22);border:1px solid rgba(196,164,102,.3);border-radius:8px;padding:6px;display:flex;align-items:center;justify-content:center;}
-  .pcell-eq{width:100%;text-align:center;cursor:pointer;}
-  .pcell-eq .pcell-ic{font-size:26px;line-height:1.1;}
-  .pcell-eq .pcell-nm{font-size:12px;color:#e9d8b0;margin-top:2px;}
-  .pcell-eq .pcell-st{font-size:10px;color:#9c8a64;}
-  .pcell-empty .pcell-ic{opacity:.35;}
-  .pack-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
-  .packcell{position:relative;min-height:70px;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:8px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:grab;user-select:none;touch-action:none;}
-  .packcell:active{cursor:grabbing;}
-  .packcell .pcell-ic{font-size:24px;line-height:1.1;pointer-events:none;}
+  .equip-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;}
+  .equipslot{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.22);border:1px solid rgba(196,164,102,.3);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .pcell-eq{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:2px;box-sizing:border-box;}
+  .pcell-eq .pcell-ic{font-size:22px;line-height:1.1;pointer-events:none;}
+  .pcell-eq .pcell-nm{font-size:11px;color:#e9d8b0;margin-top:2px;pointer-events:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pcell-eq .pcell-st{font-size:9px;color:#c9a86a;pointer-events:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
+  .pcell-empty .pcell-ic{opacity:.3;filter:grayscale(1);}
+  .pack-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+  .packcell{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;overflow:hidden;box-sizing:border-box;}
+  .packcell .pcell-ic{font-size:22px;line-height:1.1;pointer-events:none;}
   .packcell .pcell-nm{font-size:11px;color:#e9d8b0;margin-top:2px;pointer-events:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .packcell .pcell-st{font-size:9px;color:#9c8a64;pointer-events:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .packcell .pcell-cnt{position:absolute;right:4px;bottom:2px;font-size:11px;color:#f0e2c0;background:rgba(0,0,0,.5);border-radius:6px;padding:0 4px;pointer-events:none;}
+  .packcell .pcell-st{font-size:9px;color:#c9a86a;pointer-events:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
+  .packcell .pcell-cnt{position:absolute;right:3px;bottom:2px;font-size:10px;color:#f0e2c0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   .pcell-sel{outline:2px solid #d8b46a;box-shadow:0 0 10px rgba(216,180,106,.6);}
-  .pack-op{display:flex;align-items:center;gap:8px;margin-top:12px;min-height:34px;flex-wrap:wrap;justify-content:center;}
-  .pack-op-hint{color:#9c8a64;font-size:12px;}
-  .pack-opinfo{color:#e9d8b0;font-size:13px;}
+  .pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
+  .pack-inspect{margin-top:12px;background:rgba(0,0,0,.3);border:1px solid rgba(196,164,102,.32);border-radius:10px;padding:12px 14px;text-align:left;}
+  .pack-inspect-empty{color:#9c8a64;font-size:12px;text-align:center;}
+  .pi-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .pi-ic{font-size:30px;line-height:1;flex:0 0 auto;}
+  .pi-titles{flex:1;min-width:0;}
+  .pi-name{font-size:16px;color:#f0e2c0;font-weight:bold;}
+  .pi-meta{font-size:11px;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .pi-cat{color:#9c8a64;}
+  .pi-quality{font-weight:bold;}
+  .pi-count{color:#f0e2c0;}
+  .pi-row{display:flex;gap:8px;font-size:12px;margin-top:6px;line-height:1.45;}
+  .pi-label{flex:0 0 36px;color:#9c8a64;}
+  .pi-attrs{color:#e9d8b0;}
+  .pi-eff{color:#9fd0a8;}
+  .pi-dur{display:flex;align-items:center;gap:8px;color:#e9d8b0;flex:1;}
+  .pi-dur-bar{flex:1;max-width:170px;height:7px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;}
+  .pi-dur-bar i{display:block;height:100%;background:linear-gradient(90deg,#7bbf6a,#cf9b3f);}
+  .pi-desc{margin-top:9px;font-size:12px;color:#cdbb95;line-height:1.55;border-top:1px dashed rgba(196,164,102,.25);padding-top:9px;}
+  .pi-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;}
   .btn-mini{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;}
   .btn-mini:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
   .pack-foot{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;}
@@ -3173,9 +3189,10 @@ window.onerror=function(msg,url,line,col,err){
     toast('行囊已整理。'); afterPackChange();
   }
 
-  var packSel=null;
+  var packSel=null, packInspect=null;
   function renderPack(){
     function statLine(it){ return LF.ITEMS.statText(it); }
+    function inspCls(loc){ return (packInspect && locEq(packInspect,loc))?' pcell-insp':''; }
     var eqHtml='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
       var eq=state.equipment[slot], sl=LF.ITEMS.SLOTS[slot];
@@ -3183,7 +3200,7 @@ window.onerror=function(msg,url,line,col,err){
       var inner = eq
         ? '<div class="pcell-eq" data-loc="equip:'+slot+'"><div class="pcell-ic">'+eq.icon+'</div><div class="pcell-nm">'+eq.name+'</div><div class="pcell-st">'+statLine(eq)+'</div></div>'
         : '<div class="pcell-eq pcell-empty" data-loc="equip:'+slot+'"><div class="pcell-ic">'+sl.icon+'</div><div class="pcell-nm">'+sl.label+'</div></div>';
-      eqHtml += '<div class="equipslot'+selCls+'">'+inner+'</div>';
+      eqHtml += '<div class="equipslot'+selCls+inspCls({kind:'equip',slot:slot})+'">'+inner+'</div>';
     });
     var grid='';
     for(var i=0;i<state.pack.length;i++){
@@ -3192,26 +3209,71 @@ window.onerror=function(msg,url,line,col,err){
       if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
       var qc = it.quality ? (LF.ITEMS.QMAP[it.quality]?LF.ITEMS.QMAP[it.quality].color:'#9a948a') : '#9a948a';
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
-      grid += '<div class="packcell" data-loc="pack:'+i+'" title="'+it.name+(it.desc?('：'+it.desc):'')+'">'
+      grid += '<div class="packcell'+selCls+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
             + '<div class="pcell-ic" style="color:'+qc+'">'+it.icon+'</div>'
             + '<div class="pcell-nm">'+it.name+'</div>'
             + '<div class="pcell-st">'+statLine(it)+'</div>'
             + cnt + '</div>';
     }
-    var opHtml = packSel
-      ? '<div class="pack-op"><span class="pack-opinfo">已选中「'+(packGet(packSel)?packGet(packSel).name:'')+'」</span>'
-        + '<button class="btn-mini" onclick="LFUI.usePackItem('+packSel.idx+')">使用</button>'
-        + '<button class="btn-mini" onclick="LFUI.discardPackItem('+packSel.idx+')">丢弃</button>'
-        + '<button class="btn-mini" onclick="LFUI.clearPackSel()">取消</button></div>'
-      : '<div class="pack-op pack-op-hint">点选物品后再点目标格可移动；桌面端亦可直接拖拽。</div>';
     return '<div class="pack-wrap">'
       + '<div class="pack-title">行 囊　<span class="pack-sub">六装备栏 · 三十格</span></div>'
       + '<div class="equip-bar">'+eqHtml+'</div>'
       + '<div class="pack-grid">'+grid+'</div>'
-      + opHtml
+      + renderPackInspect()
       + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
       + '<span class="pack-cap">容量 '+packList().length+' / 30</span></div>'
       + '</div>';
+  }
+  // 物品详情面板：单击物品后展示属性 / 耐久 / 使用效果 / 描述
+  function renderPackInspect(){
+    if(!packInspect){
+      return '<div class="pack-inspect pack-inspect-empty">点选物品，可查看其属性、耐久与使用之效。</div>';
+    }
+    var it = packGet(packInspect);
+    if(!it){ packInspect=null; return '<div class="pack-inspect pack-inspect-empty">点选物品，可查看其属性、耐久与使用之效。</div>'; }
+    var q = LF.ITEMS.QMAP[it.quality] || {name:'凡品',color:'#9a948a'};
+    var qname = it.qualityName || q.name;
+    var qcolor = it.qualityColor || q.color;
+    var html = '<div class="pack-inspect">';
+    html += '<div class="pi-head"><span class="pi-ic" style="color:'+qcolor+'">'+it.icon+'</span>'
+          + '<div class="pi-titles"><div class="pi-name">'+it.name+'</div>'
+          + '<div class="pi-meta"><span class="pi-cat">'+it.cat+'</span>'
+          + '<span class="pi-quality" style="color:'+qcolor+'">'+qname+'</span>'
+          + (it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'') + '</div></div></div>';
+    if(it.cat==='装备'){
+      if(it.slot && LF.ITEMS.SLOTS[it.slot]) html += '<div class="pi-row"><span class="pi-label">部位</span><span>'+LF.ITEMS.SLOTS[it.slot].label+'</span></div>';
+      var attrs=[];
+      if(it.atk) attrs.push('攻击 +'+it.atk);
+      if(it.def) attrs.push('防御 +'+it.def);
+      if(it.hp)  attrs.push('气血 +'+it.hp);
+      if(it.mp)  attrs.push('内息 +'+it.mp);
+      if(it.spd) attrs.push('身法 +'+it.spd);
+      if(attrs.length) html += '<div class="pi-row"><span class="pi-label">属性</span><span class="pi-attrs">'+attrs.join('　')+'</span></div>';
+      if(it.maxDur){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); html += '<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span></div>'; }
+      else { html += '<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur">此物无损耗</span></div>'; }
+    }
+    if(it.effect){
+      var effs=[];
+      if(it.effect.hp) effs.push('疗伤 +'+it.effect.hp);
+      if(it.effect.mp) effs.push('复内 +'+it.effect.mp);
+      if(it.effect.food) effs.push('充饥 +'+it.effect.food);
+      if(it.effect.drink) effs.push('解渴 +'+it.effect.drink);
+      if(effs.length) html += '<div class="pi-row"><span class="pi-label">使用</span><span class="pi-eff">'+effs.join('　')+'</span></div>';
+    }
+    if(it.desc) html += '<div class="pi-desc">'+it.desc+'</div>';
+    var act='<div class="pi-actions">';
+    if(it.cat==='装备'){
+      if(packInspect.kind==='equip') act += '<button class="btn-mini" onclick="LFUI.unequipInspect()">卸下</button>';
+      else act += '<button class="btn-mini" onclick="LFUI.equipInspect()">装备</button>';
+    } else {
+      act += '<button class="btn-mini" onclick="LFUI.useInspect()">使用</button>';
+    }
+    if(packInspect.kind==='pack') act += '<button class="btn-mini" onclick="LFUI.discardInspect()">丢弃</button>';
+    act += '<button class="btn-mini" onclick="LFUI.moveInspect()">移动</button>';
+    act += '<button class="btn-mini" onclick="LFUI.closeInspect()">关闭</button>';
+    act += '</div>';
+    html += act + '</div>';
+    return html;
   }
   function clearPackSel(){ packSel=null; openModal('pack'); }
   function parseLoc(s){ if(!s) return null; var p=s.split(':'); if(p[0]==='pack') return {kind:'pack',idx:parseInt(p[1],10)}; if(p[0]==='equip') return {kind:'equip',slot:p[1]}; return null; }
@@ -3224,12 +3286,11 @@ window.onerror=function(msg,url,line,col,err){
         var loc=parseLoc(el.getAttribute('data-loc')); if(!loc) return;
         if(packSel){
           if(locEq(packSel,loc)){ packSel=null; openModal('pack'); return; }
-          movePackItem(packSel,loc); packSel=null;
-        } else {
-          var it=packGet(loc);
-          if(it){ packSel=loc; openModal('pack'); }
-          else if(loc.kind==='equip'){ unequipToPack(loc.slot); }
+          movePackItem(packSel,loc); packSel=null; packInspect=null; openModal('pack'); return;
         }
+        var it=packGet(loc);
+        packInspect = it ? loc : null;
+        openModal('pack');
       };
     });
     cells.forEach(function(el){
@@ -3243,7 +3304,7 @@ window.onerror=function(msg,url,line,col,err){
         e.preventDefault();
         var to=parseLoc(el.getAttribute('data-loc')); if(!to) return;
         var from=el.__from || parseLoc(e.dataTransfer.getData('text/plain'));
-        if(from) movePackItem(from,to);
+        if(from){ movePackItem(from,to); packInspect=null; openModal('pack'); }
       };
     });
     var dragging=null, ghost=null, sx=0, sy=0, moved=false;
@@ -3271,7 +3332,15 @@ window.onerror=function(msg,url,line,col,err){
       if(to) movePackItem(from,to);
     };
   }
-  window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, clearPackSel:clearPackSel, packAutoSort:packAutoSort };
+  // 详情面板操作
+  function useInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; usePackItem(idx); if(!state.pack[idx]) packInspect=null; }
+  function discardInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; packInspect=null; discardPackItem(idx); }
+  function equipInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; var it=state.pack[idx]; if(!it||it.cat!=='装备') return; var slot=it.slot; if(!slot){ toast('此物无可装备之处。'); return; } movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); packInspect={kind:'equip',slot:slot}; openModal('pack'); }
+  function unequipInspect(){ if(!packInspect||packInspect.kind!=='equip') return; var slot=packInspect.slot; var eq=state.equipment[slot]; unequipToPack(slot); if(eq){ for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===eq){ packInspect={kind:'pack',idx:i}; break; } } } else packInspect=null; openModal('pack'); }
+  function moveInspect(){ if(!packInspect) return; packSel=packInspect; openModal('pack'); }
+  function closeInspect(){ packInspect=null; openModal('pack'); }
+  window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, clearPackSel:clearPackSel, packAutoSort:packAutoSort,
+    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, moveInspect:moveInspect, closeInspect:closeInspect };
 
   // 行囊装备面板（P1 完整）
   function useItemOutside(defId){
