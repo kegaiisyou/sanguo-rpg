@@ -1191,7 +1191,7 @@
   .btn-mini:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
   .pack-foot{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px;}
   .pack-cap{color:#9c8a64;font-size:12px;}
-  .pack-ghost{position:fixed;width:36px;height:36px;font-size:26px;line-height:36px;text-align:center;background:rgba(0,0,0,.35);border:1px solid #d8b46a;border-radius:8px;pointer-events:none;z-index:9999;}
+  .pack-ghost{position:fixed;transform:translate(-50%,-50%);max-width:128px;padding:4px 9px;font-size:13px;line-height:1.2;text-align:center;color:#f4e6c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(20,12,30,.82);border:1px solid #d8b46a;border-radius:8px;box-shadow:0 3px 10px rgba(0,0,0,.45);pointer-events:none;z-index:9999;}
   /* 行囊弹窗：放宽卡片并锁定自身滚动，内部分区各自滚动 */
   .pack-card{max-width:560px;display:flex;flex-direction:column;overflow:hidden;}
   /* ===== 开场渐进式 UI 揭示：空白 → 文字 → 选项 → 逐一点亮功能 ===== */
@@ -3371,30 +3371,32 @@ window.onerror=function(msg,url,line,col,err){
         if(from){ movePackItem(from,to); packInspect=null; openModal('pack'); }
       };
     });
-    var dragging=null, ghost=null, sx=0, sy=0, moved=false;
+    var dragging=null, ghost=null, sx=0, sy=0, moved=false, srcEl=null;
     cells.forEach(function(el){
       el.onpointerdown=function(e){
         if(e.pointerType==='mouse') return;
         var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)) return;
-        dragging=loc; moved=false; sx=e.clientX; sy=e.clientY;
+        dragging=loc; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
       };
     });
     card.onpointermove=function(e){
       if(!dragging) return;
-      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; }
-      if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; card.appendChild(ghost); }
+      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
+      if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; document.body.appendChild(ghost); }
       ghost.textContent=(packGet(dragging)||{}).name||'';
-      ghost.style.left=(e.clientX-18)+'px'; ghost.style.top=(e.clientY-18)+'px';
+      ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
     };
-    card.onpointerup=function(e){
+    function endDrag(e, cancelled){
       var from=dragging; dragging=null;
       if(ghost){ ghost.remove(); ghost=null; }
-      if(!from || !moved) return;
+      if(!from || !moved || cancelled){ return; }
       var tgt=document.elementFromPoint(e.clientX,e.clientY);
       while(tgt && tgt!==card && !tgt.getAttribute('data-loc')) tgt=tgt.parentNode;
       var to=parseLoc(tgt?tgt.getAttribute('data-loc'):null);
       if(to) movePackItem(from,to);
-    };
+    }
+    card.onpointerup=function(e){ endDrag(e,false); };
+    card.onpointercancel=function(e){ endDrag(e,true); };
   }
   // 详情面板操作
   function useInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; usePackItem(idx); if(!state.pack[idx]) packInspect=null; }
