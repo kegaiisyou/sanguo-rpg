@@ -1158,6 +1158,7 @@
   .ep-weapon{left:78px;top:55px;width:30px;}
   .ep-shoe{left:38px;top:99px;width:48px;}
   /* 背包槽：独立于六装备槽，人形下方横向铺满，虚线金边以区分 */
+  /* 背包槽：独立于六装备槽，人形右侧肩膀旁（虚线金边以区分） */
   .ep-bagflow{position:absolute;left:86px;top:24px;width:38px;min-height:28px;background:rgba(22,14,32,.62);border:1px dashed rgba(216,180,106,.7);}
   .ep-bagflow .ep-name{font-size:10px;line-height:1.1;}
   .ep-bagflow.pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
@@ -3248,6 +3249,12 @@ window.onerror=function(msg,url,line,col,err){
   function equipFromPackTo(idx,slot){ movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); }
   function unequipToPack(slot,toIdx){
     var eq=state.equipment[slot]; if(!eq) return;
+    // 卸下会缩减容量（如背囊/腰包提供 packSpace），若卸下后装不下则禁止，避免丢物或状态不一致
+    if(eq.packSpace){
+      var maxAfter = packMax() - eq.packSpace;
+      var cnt = state.pack.filter(function(x){ return x; }).length;
+      if(cnt > maxAfter){ toast('卸下后背囊空间不足，无法卸下「'+eq.name+'」。'); return; }
+    }
     if(toIdx!=null && !state.pack[toIdx]){ state.pack[toIdx]=eq; state.equipment[slot]=null; }
     else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法卸下。'); return; } state.pack[e]=eq; state.equipment[slot]=null; }
     toast('已卸下「'+eq.name+'」。'); afterPackChange();
