@@ -4,8 +4,10 @@
   var LF = global.LF = global.LF || {};
 
   // 基础资质：角色出身前的底子；门派加成在其上【叠加】，不替代
-  var BASE = { maxHp:100, maxMp:30, atk:15, def:5, spd:20 };
-  var BASE_APT = { jinli:5, gengu:5, shenfa:5, wuxing:5, fuyuan:5, gongfa:5 };
+  var BASE = { maxHp:100, maxMp:0, atk:15, def:5, spd:20 };
+  // 四维属性 → 战斗数值换算（开局四维皆=5，故初始战力等同旧 BASE：气血100/攻击15/防御5/身法20）
+  //   气血 ×20 → 气血上限；攻击 ×3 → 攻击；防御 ×1 → 防御；身法 ×4 → 身法
+  var ATTR_RATIO = { hp:20, atk:3, def:2, spd:4 };   // 防御改为 ×2：每点防御换算 2 点防御值（原 ×1）
 
   // 默认存档：开局【无门派】——主角以"江湖散人 / 游侠"身份起事；
   //   门派（颍川义军 / 太平道 / 西凉军）为【中后期可选补充玩法】，满足条件后方可主动加入（见 joinSect）
@@ -16,13 +18,16 @@
       sect: null,                       // ⚠ 开局不属任何门派；中后期满足条件方可加入（joinSect）
       level: 1, exp: 0,
       hp: 100, maxHp: 100,
-      mp: 30, maxMp: 30,
-      atk: 15, def: 5,                  // 基础战力（无门派亦成立，不再依赖 applySect 设定）
+      mp: 0, maxMp: 0,                  // 内力开局锁定 0，待后期通内功心法解锁
+      atk: 15, def: 5, spd: 20,         // 派生战力（由 recalcBase 依据 attr+bonus 计算；spd 初值防未重算时 NaN）
       energy: 100, maxEnergy: 100,   // 精力：行动消耗，休整恢复
       food: 100, maxFood: 100,       // 食物：随行走/时间流失
       drink: 100, maxDrink: 100,     // 饮水：随行走/时间流失
       pot: 0,                        // 潜能：历练所得，修炼武学消耗
-      apt: { jinli:5, gengu:5, shenfa:5, wuxing:5, fuyuan:5, gongfa:5 }, // 先天资质：劲力/根骨/身法/悟性/福缘/功法亲和（不计入战力，影响成长底色；升级随修为微涨，见 GAME_DESIGN 4.0）
+      attr: { hp:5, atk:5, def:5, spd:5 },    // 四维（捏人可分配，每点换战力见 ATTR_RATIO）
+      freePoints: 5,                          // 开局可自由分配点数（捏人用完归 0，每升一级 +1）
+      sectBonus:  { hp:0, atk:0, def:0, spd:0 }, // 门派永久战力加成
+      flatBonus:  { hp:0, atk:0, def:0, spd:0 }, // 技能/事件等永久战力加成
       chivalry: 0,                   // 侠义值（P3 善恶双轨·正数轴，互不抵消）
       notoriety: 0,                  // 凶名值（P3 善恶双轨·正数轴，互不抵消）
       reputation: 0,                 // 声望 0-100（P4 起由胜战真实获取；调试台仅 ?dev=1 可直赋）
@@ -71,30 +76,39 @@
   // 套用门派加成（仅新建 / 读档时由 enterGame 调用一次）：
   //   —— 保留玩家【捏人 / 养成】所得的资质与战力，仅在入门时【幂等叠加】门派加成，绝不重置基础值。
   //   —— 开局 sect 为 null 时直接返回，主角保持"江湖散人"配置（含捏人资质），不被强制归入某一派。
+  // 依据四维 attr + 门派/永久加成 重算派生战力（combat engine 直接读 atk/def/spd/maxHp）
+  function recalcBase(s) {
+    var R = ATTR_RATIO, b = s.sectBonus || {}, f = s.flatBonus || {};
+    s.maxHp = s.attr.hp * R.hp + (b.hp || 0) + (f.hp || 0);
+    s.atk   = s.attr.atk * R.atk + (b.atk || 0) + (f.atk || 0);
+    s.def   = s.attr.def * R.def + (b.def || 0) + (f.def || 0);
+    s.spd   = s.attr.spd * R.spd + (b.spd || 0) + (f.spd || 0);
+    return s;
+  }
+
   function applySect(save) {
     var sect = LF.SECTS[save.sect];
     if (!sect) { save._sectApplied = null; return save; }   // 未入门：保留玩家配置
     if (save._sectApplied === save.sect) return save;       // 已套用过，避免重载重复叠加
-    // 若曾入他派，先剥离旧加成（与 joinSect 一致）
+    save.sectBonus = save.sectBonus || { hp:0, atk:0, def:0, spd:0 };
+    // 若曾入他派，先剥离旧加成
     if (save._sectApplied && LF.SECTS[save._sectApplied]) {
-      var ob = LF.SECTS[save._sectApplied], o = ob.bonus || {};
-      save.maxHp = Math.max(1, save.maxHp - (o.maxHp || 0));
-      save.maxMp = Math.max(0, save.maxMp - (o.maxMp || 0));
-      save.atk   = Math.max(1, save.atk   - (o.atk   || 0));
-      save.def   = Math.max(0, save.def   - (o.def   || 0));
-      if (ob.apt) { for (var k in ob.apt) { if (save.apt[k] != null) save.apt[k] -= ob.apt[k]; } }
+      var o = LF.SECTS[save._sectApplied].bonus || {};
+      save.sectBonus.hp  = Math.max(0, save.sectBonus.hp  - (o.maxHp || 0));
+      save.sectBonus.atk = Math.max(0, save.sectBonus.atk - (o.atk   || 0));
+      save.sectBonus.def = Math.max(0, save.sectBonus.def - (o.def   || 0));
+      save.sectBonus.spd = Math.max(0, save.sectBonus.spd - (o.spd   || 0));
+      save.maxMp = Math.max(0, (save.maxMp || 0) - (o.maxMp || 0));
     }
-    if (!save.apt) save.apt = { jinli:5, gengu:5, shenfa:5, wuxing:5, fuyuan:5, gongfa:5 };
-    _addSectBonus(save, sect);
+    var b = sect.bonus || {};
+    save.sectBonus.hp  += (b.maxHp || 0);
+    save.sectBonus.atk += (b.atk   || 0);
+    save.sectBonus.def += (b.def   || 0);
+    save.sectBonus.spd += (b.spd   || 0);
+    save.maxMp = Math.max(0, (save.maxMp || 0) + (b.maxMp || 0));
+    recalcBase(save);
     save._sectApplied = save.sect;
     return save;
-  }
-
-  function _addSectBonus(save, sect) {
-    var b = sect.bonus || {};
-    save.maxHp += (b.maxHp || 0); save.maxMp += (b.maxMp || 0);
-    save.atk   += (b.atk   || 0); save.def   += (b.def   || 0);
-    if (sect.apt) { for (var k in sect.apt) { if (save.apt[k] != null) save.apt[k] += sect.apt[k]; } }
   }
 
   // 是否满足加入某门派的条件（中后期门派作为可选补充玩法，设门槛避免开局即定型）
@@ -113,18 +127,9 @@
   //   若已入门他派则先剥离旧加成，再套用新门派（可转投）。返回是否成功
   function joinSect(save, id) {
     if (!canJoinSect(save, id)) return false;
-    var prevId = save._sectApplied || save.sect;            // 兼容未记录 _sectApplied 的旧档
-    if (prevId && LF.SECTS[prevId]) {                       // 剥离旧门派加成
-      var ob = LF.SECTS[prevId], o = ob.bonus || {};
-      save.maxHp = Math.max(1, save.maxHp - (o.maxHp || 0));
-      save.maxMp = Math.max(0, save.maxMp - (o.maxMp || 0));
-      save.atk   = Math.max(1, save.atk   - (o.atk   || 0));
-      save.def   = Math.max(0, save.def   - (o.def   || 0));
-      if (ob.apt) { for (var k in ob.apt) { if (save.apt[k] != null) save.apt[k] -= ob.apt[k]; } }
-    }
     save.sect = id;
-    _addSectBonus(save, LF.SECTS[id]);
-    save._sectApplied = id;
+    save._sectApplied = null;
+    applySect(save);
     save.hp = save.maxHp; save.mp = save.maxMp;        // 入门馈赠：气血内力尽复
     _grantSectSkills(save, LF.SECTS[id]);
     return true;
@@ -156,7 +161,9 @@
     defaultSave: defaultSave,
     applySect: applySect,
     canJoinSect: canJoinSect,
-    joinSect: joinSect
+    joinSect: joinSect,
+    recalcBase: recalcBase,
+    ATTR_RATIO: ATTR_RATIO
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = LF.SharedGame;

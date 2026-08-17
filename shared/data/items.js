@@ -104,7 +104,6 @@
     if (eq.hp)  p.push('血+' + eq.hp);
     if (eq.mp)  p.push('内+' + eq.mp);
     if (eq.spd) p.push('速+' + eq.spd);
-    if (eq.wuxing) p.push('悟+' + eq.wuxing);
     return p.join(' ');
   }
 
@@ -115,7 +114,7 @@
     if (d.effect) it.effect = JSON.parse(JSON.stringify(d.effect));
     if (d.cat === '装备') {
       it.slot = d.slot; it.quality = d.quality || 'white';
-      it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0; it.wuxing = 0;
+      it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;
       if (d.stats) { for (var k in d.stats) { if (k in it) it[k] = d.stats[k]; } }
       if (d.packSpace) it.packSpace = d.packSpace;   // 背包装备槽：扩充行囊容量
     }

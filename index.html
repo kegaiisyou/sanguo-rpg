@@ -1495,24 +1495,16 @@ window.onerror=function(msg,url,line,col,err){
   var SHICHEN=['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'];
 
   // ===== 捏人 / 开场序章 =====
-  var APT_DEFS=[
-    {k:'jinli',  n:'劲力', t:'主攻击'},
-    {k:'gengu',  n:'根骨', t:'主气血·防御'},
-    {k:'shenfa', n:'身法', t:'主身法速度'},
-    {k:'wuxing', n:'悟性', t:'主内力·武学领悟'},
-    {k:'fuyuan', n:'福缘', t:'主奇遇·掉落'},
-    {k:'gongfa', n:'功法亲和', t:'主招式研习'}
+  // 四维属性（直接对应战斗数值，无资质壳；每点换算见 G.ATTR_RATIO）
+  var ATTR_DEFS=[
+    {k:'hp',  n:'气血', t:'每点 +'+G.ATTR_RATIO.hp+' 气血上限'},
+    {k:'atk', n:'攻击', t:'每点 +'+G.ATTR_RATIO.atk+' 攻击'},
+    {k:'def', n:'防御', t:'每点 +'+G.ATTR_RATIO.def+' 防御'},
+    {k:'spd', n:'身法', t:'每点 +'+G.ATTR_RATIO.spd+' 身法'}
   ];
-  var APT_NAME={jinli:'劲力',gengu:'根骨',shenfa:'身法',wuxing:'悟性',fuyuan:'福缘',gongfa:'功法亲和'};
-  var ORIGINS=[
-    {id:'bianjun', name:'边军子弟', desc:'渔阳边塞行伍出身，弓马娴熟、皮糙肉厚', apt:{jinli:1,gengu:1,shenfa:1}},
-    {id:'hanmen',  name:'寒门书生', desc:'耕读传家，通文墨而心性坚韧', apt:{wuxing:2,fuyuan:1}},
-    {id:'youxia',  name:'市井游侠', desc:'走惯江湖的散人，见多识广、手腕活络', apt:{shenfa:1,fuyuan:1,gongfa:1}},
-    {id:'shoulie', name:'山林猎户', desc:'燕山猎户之子，攀山越岭身手极敏捷', apt:{shenfa:2,jinli:1}},
-    {id:'shangjia',name:'商贾之子', desc:'往来边市的商旅之后，财货充裕', apt:{fuyuan:2,gongfa:1}, gold:30}
-  ];
-  var ORIGINS_BY_ID={}; ORIGINS.forEach(function(o){ORIGINS_BY_ID[o.id]=o;});
-  var CREATE_POOL=15, APT_BASE=5, APT_MAX=10;
+  var CREATE_FREE=5;   // 开局可自由分配点数
+  var ATTR_MIN=1;      // 单属性下限（初始 5，可降至 1 以便重新分配）
+  var ATTR_MAX=20;     // 单属性上限
   var pendingSlot=0, pendingSave=null, createState=null;
 
   // ===== 历法（农历为主 · 公历为对照锚点）与天候 =====
@@ -1817,6 +1809,14 @@ window.onerror=function(msg,url,line,col,err){
       s.notoriety = (typeof s.karma==='number' && s.karma<0) ? (-s.karma) : 0;
     }
     delete s.karma;
+    // 旧档清理：已弃用的资质壳与出身
+    if(s.apt) delete s.apt;
+    if(s.origin) s.origin=null;
+    // 四维系统迁移：旧档无 attr/freePoints/sectBonus/flatBonus 时补默认，避免 recalcBase 崩溃
+    if(!s.attr || typeof s.attr!=='object') s.attr={hp:5,atk:5,def:5,spd:5};
+    if(typeof s.freePoints!=='number') s.freePoints=0;
+    if(!s.sectBonus || typeof s.sectBonus!=='object') s.sectBonus={hp:0,atk:0,def:0,spd:0};
+    if(!s.flatBonus || typeof s.flatBonus!=='object') s.flatBonus={hp:0,atk:0,def:0,spd:0};
     return s;
   }
 
@@ -1826,6 +1826,7 @@ window.onerror=function(msg,url,line,col,err){
     curSlot=slot||0;
     state = normalize(data || G.defaultSave());
     G.applySect(state);
+    G.recalcBase(state);                      // 依据四维 attr + 门派加成 重算派生战力
     packEnsure(state);                     // 行囊/6 装备槽兼容与初始化（v0.6）
     SFX.setEnabled(state.sfxOn!==false);   // 载入存档后同步音效开关
     if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
@@ -2065,38 +2066,31 @@ window.onerror=function(msg,url,line,col,err){
     if(!en || en.id==='dummy') return 0;
     return Math.max(1, Math.round((en.hp + en.atk*4) / 10));
   }
-  // 先天资质标签（设计 4.0：劲力/根骨/身法/悟性/福缘/功法亲和）
-  function aptTags(){
-    if(!state.apt) return '—';
-    var L={jinli:'劲力',gengu:'根骨',shenfa:'身法',wuxing:'悟性',fuyuan:'福缘',gongfa:'功法亲和'};
-    return Object.keys(L).map(function(k){return '<span>'+L[k]+' '+state.apt[k]+'</span>';}).join('');
-  }
-  // 升级：按五维底色分配（劲力→攻、根骨→血防、身法→速、悟性→内力），并累计资质
+  // 升级：每级获得 1 点自由属性点（加点见角色面板 attrAllocHTML）
   function addXp(n){
-    if(!state.apt) state.apt={jinli:5,gengu:5,shenfa:5,wuxing:5,fuyuan:5,gongfa:5};
+    if(!state.attr) state.attr={hp:5,atk:5,def:5,spd:5};
     state.exp+=n;
     while(state.exp>=G.BALANCE.expNeed(state.level) && state.level<G.CONSTANTS.MAX_LEVEL){
       state.exp-=G.BALANCE.expNeed(state.level); state.level++;
-      state.apt.jinli++;  state.atk+=2;                  // 劲力 → 攻击
-      state.apt.gengu++;  state.maxHp+=10; state.def+=1; // 根骨 → 气血/防御
-      state.apt.shenfa++; state.spd+=1;                  // 身法 → 速度
-      state.apt.wuxing++; state.maxMp+=5;                // 悟性 → 内力
-      state.hp=state.maxHp;state.mp=state.maxMp;
-      log('【破境】修为精进！已至 LV.'+state.level+'（劲力'+state.apt.jinli+' 根骨'+state.apt.gengu+' 身法'+state.apt.shenfa+'）。气血内力尽复，实力大涨。','good');
+      state.freePoints=(state.freePoints||0)+1;              // 每升一级获得 1 点自由属性点
+      state.hp=state.maxHp;state.mp=state.maxMp;             // 破境气血内力尽复
+      log('【破境】修为精进！已至 LV.'+state.level+'，获得 1 点自由属性点（余 '+(state.freePoints||0)+'）。气血尽复。','good');
     }
   }
   function applyEffect(e){
     e=e||{}; var got=[];
     if(e.xp){addXp(e.xp);got.push('修为+'+e.xp);}
     if(e.gold){state.gold=Math.max(0,state.gold+e.gold);got.push('银两'+(e.gold>0?'+':'')+e.gold);}
-    if(e.atk){state.atk+=e.atk;got.push('攻+'+e.atk);}
-    if(e.def){state.def+=e.def;got.push('防+'+e.def);}
+    if(e.atk){ if(!state.flatBonus) state.flatBonus={hp:0,atk:0,def:0,spd:0}; state.flatBonus.atk+=e.atk; got.push('攻+'+e.atk); }
+    if(e.def){ if(!state.flatBonus) state.flatBonus={hp:0,atk:0,def:0,spd:0}; state.flatBonus.def+=e.def; got.push('防+'+e.def); }
     if(e.maxMp){state.maxMp+=e.maxMp;state.mp+=e.maxMp;got.push('内力上限+'+e.maxMp);}
     if(e.mp==='full'){state.mp=state.maxMp;} else if(e.mp){state.mp=Math.min(state.maxMp,state.mp+e.mp);}
     if(e.hp==='full'){state.hp=state.maxHp;got.push('气血尽复');} else if(e.hp){state.hp=Math.min(state.maxHp,state.hp+e.hp);got.push('气血+'+e.hp);}
     if(e.flag)state.flags[e.flag]=true;
     if(e.reputation){addReputation(e.reputation);}
     else if(e.rep){addReputation(e.rep);}
+    // 永久战力加成（atk/def）经 flatBonus 累加后，必须重算派生战力方能生效
+    if(e.atk || e.def){ G.recalcBase(state); clampHp(); }
     if(e.give){
       var arr=Array.isArray(e.give)?e.give:[e.give];
       arr.forEach(function(g){
@@ -3273,10 +3267,6 @@ window.onerror=function(msg,url,line,col,err){
   function packSet(loc,val){ if(loc.kind==='pack') state.pack[loc.idx]=val; else state.equipment[loc.slot]=val; }
   function locEq(a,b){ return a.kind===b.kind && (a.kind==='pack' ? a.idx===b.idx : a.slot===b.slot); }
 
-  // 装备「悟性」类物品（如书囊）时，资质随装备增减；卸下则回退
-  function applyEquipApt(eq, sign){
-    if(eq && eq.wuxing){ if(!state.apt) state.apt={jinli:5,gengu:5,shenfa:5,wuxing:5,fuyuan:5,gongfa:5}; state.apt.wuxing = (state.apt.wuxing||5) + sign*(eq.wuxing||0); }
-  }
   function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof openModal==='function') openModal('pack'); }
 
   function movePackItem(from,to){
@@ -3289,9 +3279,7 @@ window.onerror=function(msg,url,line,col,err){
       var it=state.pack[from.idx];
       if(!it || it.cat!=='装备' || it.slot!==to.slot){ toast('该物不可装备于「'+LF.ITEMS.SLOTS[to.slot].label+'」。'); return; }
       var old=state.equipment[to.slot];
-      if(old) applyEquipApt(old, -1);          // 旧装备卸下，回退其资质加成
       state.equipment[to.slot]=it; state.pack[from.idx]=old;
-      applyEquipApt(it, +1);                   // 新装备上身，应用资质加成
       toast('已装备「'+it.name+'」。'); afterPackChange(); return;
     }
     if(from.kind==='equip' && to.kind==='pack'){ unequipToPack(from.slot, to.idx); return; }
@@ -3305,7 +3293,6 @@ window.onerror=function(msg,url,line,col,err){
       var cnt = state.pack.filter(function(x){ return x; }).length;
       if(cnt > maxAfter){ toast('卸下后背囊空间不足，无法卸下「'+eq.name+'」。'); return; }
     }
-    applyEquipApt(eq, -1);                     // 卸下真正发生 → 回退资质加成（置于拦截之后，避免误扣）
     if(toIdx!=null && !state.pack[toIdx]){ state.pack[toIdx]=eq; state.equipment[slot]=null; }
     else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法卸下。'); return; } state.pack[e]=eq; state.equipment[slot]=null; }
     toast('已卸下「'+eq.name+'」。'); afterPackChange();
@@ -3411,7 +3398,7 @@ window.onerror=function(msg,url,line,col,err){
       + row('防御', s.def||0)
       + row('身法', s.spd||0)
       + row('气血', s.maxHp||0)
-      + row('内力', s.maxMp||0)
+      + (s.maxMp>0? row('内力', s.maxMp||0):'')
       + '</div></div>';
   }
   // 物品详情面板：单击物品后展示属性 / 耐久 / 使用效果 / 描述
@@ -3746,13 +3733,10 @@ window.onerror=function(msg,url,line,col,err){
   }
   // ===== 捏人 / 开场序章 =====
   function initCreateState(){
-    var apt={}; APT_DEFS.forEach(function(a){ apt[a.k]=0; });
-    createState={ name:'', origin:null, apt:apt, pool:CREATE_POOL, skip:false };
+    var attr={}; ATTR_DEFS.forEach(function(a){ attr[a.k]=5; }); // 四维初始皆 5
+    createState={ name:'', attr:attr, pool:CREATE_FREE, skip:false };
   }
-  function effApt(k){
-    var o=createState.origin? (ORIGINS_BY_ID[createState.origin].apt[k]||0) : 0;
-    return Math.max(1, Math.min(APT_MAX, APT_BASE+o+createState.apt[k]));
-  }
+  // 资质壳已移除，加点直接作用于四维 attr
   function beginCreate(slot){
     pendingSlot=slot||0;
     initCreateState();
@@ -3760,21 +3744,13 @@ window.onerror=function(msg,url,line,col,err){
   }
   function renderCreateHTML(){
     if(!createState) initCreateState();
-    var originCards=ORIGINS.map(function(or){
-      var bonus=[];
-      if(or.apt) Object.keys(or.apt).forEach(function(k){ bonus.push((APT_NAME[k]||k)+'+'+or.apt[k]); });
-      if(or.gold) bonus.push('金+'+or.gold);
-      return '<div class="og-card'+(createState.origin===or.id?' on':'')+'" data-id="'+or.id+'">'+
-        '<div class="og-name">'+or.name+'</div>'+
-        '<div class="og-desc">'+or.desc+'</div>'+
-        '<div class="og-bonus">'+(bonus.join('  ')||'—')+'</div>'+
-      '</div>';
-    }).join('');
-    var aptRows=APT_DEFS.map(function(a){
-      var v=effApt(a.k);
-      var disMin=(v<=1), disMax=(v>=APT_MAX || createState.pool<=0);
+    var R=G.ATTR_RATIO;
+    var attrRows=ATTR_DEFS.map(function(a){
+      var v=createState.attr[a.k];
+      var combat = a.k==='hp'? v*R.hp : a.k==='atk'? v*R.atk : a.k==='def'? v*R.def : v*R.spd;
+      var disMin=(v<=ATTR_MIN), disMax=(v>=ATTR_MAX || createState.pool<=0);
       return '<div class="ap-row">'+
-        '<span class="ap-name">'+a.n+'<i>'+a.t+'</i></span>'+
+        '<span class="ap-name">'+a.n+'<i>'+a.t+' · 当前战力 '+combat+'</i></span>'+
         '<div class="ap-ctrl">'+
           '<button class="ap-btn" data-act="dec" data-k="'+a.k+'"'+(disMin?' disabled':'')+'>−</button>'+
           '<b class="ap-val">'+v+'</b>'+
@@ -3783,23 +3759,19 @@ window.onerror=function(msg,url,line,col,err){
     }).join('');
     return '<h3>落 笔 · 捏 人</h3>'+
       '<div class="cr-field"><label>姓名</label><input id="cr-name" class="cr-input" maxlength="8" placeholder="无名客"></div>'+
-      '<div class="cr-sec"><div class="cr-sec-t">出 身<span class="cr-pool">禀赋赠先天资质</span></div><div class="og-grid">'+originCards+'</div></div>'+
-      '<div class="cr-sec"><div class="cr-sec-t">先 天 资 质<span class="cr-pool">可分配 <b id="cr-pool">'+createState.pool+'</b> 点（基础 '+APT_BASE+'，范围 1–'+APT_MAX+'）</span></div><div class="ap-list">'+aptRows+'</div></div>'+
-      '<p class="tip">资质不计入即时战力，却决定日后破境成长之底色：劲力主攻击、根骨主气血防御、身法主速度、悟性主内力与武学领悟、福缘主奇遇掉落、功法亲和主招式研习。</p>'+
+      '<div class="cr-sec"><div class="cr-sec-t">四 维 配 点<span class="cr-pool">可分配 <b id="cr-pool">'+createState.pool+'</b> 点（每维 1–'+ATTR_MAX+'，初始皆 5）</span></div><div class="ap-list">'+attrRows+'</div></div>'+
+      '<p class="tip">四维直接决定即时战力：气血主血量、攻击主伤害、防御主减伤、身法主速度先手。内力为习武之人通内功心法后所得，开局不开放。</p>'+
       '<label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用 · 直接抵达黑山寨）</label>'+
       '<div class="cr-actions"><button class="close" id="cr-go">踏 入 江 湖</button></div>';
   }
   function bindCreate(){
     var nameEl=document.getElementById('cr-name');
     if(nameEl){ nameEl.value=createState.name||''; nameEl.oninput=function(){ createState.name=nameEl.value; }; }
-    $card.querySelectorAll('.og-card').forEach(function(c){
-      c.onclick=function(){ createState.origin=(createState.origin===c.getAttribute('data-id'))?null:c.getAttribute('data-id'); openModal('create'); };
-    });
     $card.querySelectorAll('.ap-btn').forEach(function(b){
       b.onclick=function(){
         var k=b.getAttribute('data-k'), act=b.getAttribute('data-act');
-        if(act==='inc'){ if(createState.pool>0 && effApt(k)<APT_MAX){ createState.apt[k]++; createState.pool--; } }
-        else { if(effApt(k)>1){ createState.apt[k]--; createState.pool++; } }
+        if(act==='inc'){ if(createState.pool>0 && createState.attr[k]<ATTR_MAX){ createState.attr[k]++; createState.pool--; } }
+        else { if(createState.attr[k]>ATTR_MIN){ createState.attr[k]--; createState.pool++; } }
         openModal('create');
       };
     });
@@ -3807,16 +3779,55 @@ window.onerror=function(msg,url,line,col,err){
     if(skipEl){ skipEl.checked=!!createState.skip; skipEl.onchange=function(){ createState.skip=!!skipEl.checked; }; }
     var go=document.getElementById('cr-go'); if(go) go.onclick=confirmCreate;
   }
+  function attrAllocHTML(){
+    if(!state.attr) state.attr={hp:5,atk:5,def:5,spd:5};
+    var R=G.ATTR_RATIO, fp=(state.freePoints||0)>0;
+    return ATTR_DEFS.map(function(a){
+      var v=state.attr[a.k];
+      var combat = a.k==='hp'? v*R.hp : a.k==='atk'? v*R.atk : a.k==='def'? v*R.def : v*R.spd;
+      var disMin=(v<=ATTR_MIN), disMax=(v>=ATTR_MAX || !fp);
+      return '<div class="ap-row">'+
+        '<span class="ap-name">'+a.n+'<i>战力 '+combat+'</i></span>'+
+        '<div class="ap-ctrl">'+
+          '<button class="ap-btn" data-act="attr-dec" data-k="'+a.k+'"'+(disMin?' disabled':'')+'>−</button>'+
+          '<b class="ap-val">'+v+'</b>'+
+          '<button class="ap-btn" data-act="attr-inc" data-k="'+a.k+'"'+(disMax?' disabled':'')+'>＋</button>'+
+        '</div></div>';
+    }).join('');
+  }
+  function bindAttrAlloc(){
+    if(!$card) return;
+    $card.querySelectorAll('[data-act="attr-inc"]').forEach(function(b){
+      b.onclick=function(){
+        var k=b.getAttribute('data-k');
+        if((state.freePoints||0)>0 && state.attr[k]<ATTR_MAX){
+          state.attr[k]++; state.freePoints=(state.freePoints||0)-1;
+          G.recalcBase(state); clampHp();
+          if(typeof save==='function') save(state);
+          openModal('char'); renderStatus();
+        }
+      };
+    });
+    $card.querySelectorAll('[data-act="attr-dec"]').forEach(function(b){
+      b.onclick=function(){
+        var k=b.getAttribute('data-k');
+        if(state.attr[k]>ATTR_MIN){
+          state.attr[k]--; state.freePoints=(state.freePoints||0)+1;
+          G.recalcBase(state); clampHp();
+          if(typeof save==='function') save(state);
+          openModal('char'); renderStatus();
+        }
+      };
+    });
+  }
   function confirmCreate(){
     var name=(createState.name||'').trim()||'无名客';
-    var apt={}; APT_DEFS.forEach(function(a){ apt[a.k]=effApt(a.k); });
+    var attr={}; ATTR_DEFS.forEach(function(a){ attr[a.k]=createState.attr[a.k]; });
     var save=G.defaultSave();
-    save.name=name; save.apt=apt;
-    if(createState.origin){
-      var or=ORIGINS_BY_ID[createState.origin];
-      if(or.gold) save.gold=(save.gold||0)+or.gold;
-    }
-    save.origin=createState.origin||null;
+    save.name=name;
+    save.attr=attr;          // 四维（含分配后的数值）
+    save.freePoints=0;       // 开局 5 点已在此分配完毕
+    save.origin=null;
     // 跳过新手教程（测试用）：直接抵达黑山寨·寨门，并标记教学已完成、补发一包金疮药
     if(createState.skip){
       save.room='ji_heishan_zhai';
@@ -3860,12 +3871,12 @@ window.onerror=function(msg,url,line,col,err){
     $modal.classList.toggle('modal-create-bg', kind==='create');
     var h='';
     if(kind==='char'){
+      var es=effectiveStats();
       h='<h3>角 色</h3>'+
         row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '未入门 · 江湖散人')+
-        row('出身',(state.origin && ORIGINS_BY_ID[state.origin])?ORIGINS_BY_ID[state.origin].name:'布衣 · 江湖散人')+
         row('等级','LV.'+state.level)+
-        row('气血',state.hp+' / '+effectiveStats().maxHp)+
-        row('内力',state.mp+' / '+state.maxMp)+
+        row('气血',state.hp+' / '+es.maxHp)+
+        (es.maxMp>0? row('内力',state.mp+' / '+es.maxMp):'')+
         row('精力',state.energy+' / '+state.maxEnergy)+
         row('食物',state.food+' / '+state.maxFood)+
         row('饮水',state.drink+' / '+state.maxDrink)+
@@ -3875,10 +3886,11 @@ window.onerror=function(msg,url,line,col,err){
         row('凶名',state.notoriety)+
         row('风评',moralTitle())+
         row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
-        '<div class="row"><span>先天资质</span></div><div class="skills">'+aptTags()+'</div>'+
+        row('自由属性点',(state.freePoints||0))+
+        '<div class="row"><span>四维（点击 ± 加点）</span></div><div class="ap-list">'+attrAllocHTML()+'</div>'+
         row('当前所处',curRoom().name)+
         '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
-        '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；潜能由历练积攒，用于研习武学。</p>';
+        '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
     } else if(kind==='pack'){
       h=renderPack();
     } else if(kind==='quest'){
@@ -3944,6 +3956,7 @@ window.onerror=function(msg,url,line,col,err){
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack');
     if(kind==='create') bindCreate();
+    if(kind==='char') bindAttrAlloc();
     if(kind==='pack'){ bindPackInteractions(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};

@@ -24,7 +24,6 @@
       faction: '汉室忠义 · 颍川士族',
       elem: '土',                         // 守土之象
       bonus: { atk: 2, def: 2, maxHp: 20 },
-      apt: { jinli: 1, gengu: 1 },        // 均衡加成
       startingSkills: ['basic_fist'],
       martials: ['颍川战法（群战阵势）', '乡勇刀（守土刀法）', '结寨策（防御心法）'],
       grievance: [
@@ -41,7 +40,6 @@
       faction: '黄天 · 底层秘教',
       elem: '水',                         // 符水之象
       bonus: { maxMp: 30, atk: 1 },
-      apt: { wuxing: 2, fuyuan: 1 },      // 悟性、福缘见长
       startingSkills: ['basic_fist', 'tu_na'],
       martials: ['太平咒（符箓奇术）', '吐纳术（内功根基）', '太平力士诀（蛮力外功）'],
       grievance: [
@@ -58,7 +56,6 @@
       faction: '凉州军阀 · 边军悍卒',
       elem: '金',                         // 锋金之象
       bonus: { atk: 4, maxHp: 40, def: 1 },
-      apt: { gengu: 2, jinli: 1 },        // 根骨、劲力见长
       startingSkills: ['basic_fist'],
       martials: ['西凉刀法（悍勇劈砍）', '铁骑冲阵（骑战之术）', '凉州硬功（外门横练）'],
       grievance: [
