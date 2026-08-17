@@ -1119,8 +1119,8 @@
   /* ===== 行囊 v0.7：左装备栏 · 右物品栏 · 底信息栏 ===== */
   .pack-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
   .pack-head{flex:0 0 auto;display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:10px;}
-  .pack-title{font-family:"STKaiti","KaiTi",serif;font-size:21px;letter-spacing:5px;color:#f5e6be;text-shadow:0 2px 4px rgba(0,0,0,.6);}
-  .pack-sub{font-size:12px;color:#b6a47e;letter-spacing:1px;}
+  .pack-title{font-family:"STKaiti","KaiTi",serif;font-size:22px;letter-spacing:6px;color:#ffd268;text-shadow:0 0 8px rgba(255,200,90,.55),0 2px 4px rgba(0,0,0,.65);}
+
   /* 主体：左装备 / 右物品 */
   .pack-main{flex:1 1 auto;display:flex;gap:12px;min-height:0;}
   /* 左：装备栏（紫调面板，明显区分） */
@@ -1157,6 +1157,10 @@
   .ep-belt{left:38px;top:75px;width:48px;}
   .ep-weapon{left:78px;top:55px;width:30px;}
   .ep-shoe{left:38px;top:99px;width:48px;}
+  /* 背包槽：独立于六装备槽，人形下方横向铺满，虚线金边以区分 */
+  .ep-bagflow{position:relative;width:100%;min-height:30px;margin-top:3px;background:rgba(22,14,32,.62);border:1px dashed rgba(216,180,106,.7);}
+  .ep-bagflow.pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
+  .ep-bagflow .ep-qbadge{top:3px;right:3px;}
   /* 右：物品栏（金调面板 + 明显滚动条） */
   .pack-right{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;
     background:linear-gradient(180deg,rgba(176,131,47,.12),rgba(176,131,47,.03));
@@ -1177,10 +1181,10 @@
   .pcell-sel{outline:2px solid #d8b46a;box-shadow:0 0 10px rgba(216,180,106,.6);}
   .pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
   /* 底信息栏：固定，不随物品栏滚动 */
-  .pack-info{flex:0 0 auto;max-height:40%;margin-top:10px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:10px 12px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
+  .pack-info{flex:0 0 auto;max-height:30%;margin-top:10px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:8px 10px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
   .pack-inspect{text-align:left;}
   .pack-inspect-empty{color:#9c8a64;font-size:12px;text-align:center;}
-  .pi-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .pi-head{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
   .pi-ic{font-size:30px;line-height:1;flex:0 0 auto;}
   .pi-titles{flex:1;min-width:0;}
   .pi-name{font-size:16px;color:#f0e2c0;font-weight:bold;}
@@ -1199,8 +1203,8 @@
   .pi-dur{display:flex;align-items:center;gap:8px;color:#e9d8b0;flex:1;}
   .pi-dur-bar{flex:1;max-width:170px;height:7px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;}
   .pi-dur-bar i{display:block;height:100%;background:linear-gradient(90deg,#7bbf6a,#cf9b3f);}
-  .pi-desc{margin-top:9px;font-size:12px;color:#cdbb95;line-height:1.55;border-top:1px dashed rgba(196,164,102,.25);padding-top:9px;}
-  .pi-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;}
+  .pi-desc{margin-top:6px;font-size:12px;color:#cdbb95;line-height:1.5;border-top:1px dashed rgba(196,164,102,.25);padding-top:6px;}
+  .pi-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
   .btn-mini{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:8px;padding:9px 14px;min-height:42px;cursor:pointer;font-size:13.5px;line-height:1.2;min-width:56px;}
   @media (max-width:560px){ .btn-mini{ padding:11px 16px; min-height:46px; font-size:14px; } }
   .btn-mini:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
@@ -1465,10 +1469,10 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260813a"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260813a"></script>
+<script src="shared/data/items.js?v=20260817a"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
-    <script src="shared/index.js?v=20260813a"></script>
+    <script src="shared/index.js?v=20260817a"></script>
 <script>
 (function(){
   try{
@@ -3161,11 +3165,26 @@ window.onerror=function(msg,url,line,col,err){
   }
   function row(k,v){return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>';}
   // ===================== 格子制行囊核心（v0.6） =====================
+  // 背包基础容量（无背包装备时）；背包装备槽（equipment.bag）可额外增加
+  var BASE_PACK = 6;
+  function packMax(st){
+    st = st || state;
+    var m = BASE_PACK;
+    if(st && st.equipment && st.equipment.bag && st.equipment.bag.packSpace){ m += st.equipment.bag.packSpace; }
+    return m;
+  }
   function packEnsure(st){
     if(!st.equipment) st.equipment={};
     LF.ITEMS.SLOT_KEYS.forEach(function(k){ if(!(k in st.equipment)) st.equipment[k]=null; });
-    if(!Array.isArray(st.pack)){ st.pack=new Array(30).fill(null); }
-    else { if(st.pack.length<30){ for(var i=st.pack.length;i<30;i++) st.pack.push(null); } }
+    var max = packMax(st);
+    if(!Array.isArray(st.pack)){ st.pack=new Array(max).fill(null); }
+    else {
+      var items = st.pack.filter(function(x){ return x; });
+      if(items.length>max) items=items.slice(0,max);   // 容量缩小时丢弃溢出（保留前 max 件）
+      var a=new Array(max).fill(null);
+      for(var i=0;i<items.length;i++) a[i]=items[i];
+      st.pack=a;
+    }
     if(st.equipment.armor){ st.equipment.cloth=st.equipment.armor; delete st.equipment.armor; }
     if(st.equipment.mount){ st.equipment.belt=st.equipment.mount; delete st.equipment.mount; }
     if(Array.isArray(st.items)){ st.items.forEach(function(it){
@@ -3264,8 +3283,9 @@ window.onerror=function(msg,url,line,col,err){
       + '<rect x="48" y="88" width="12" height="18" rx="6"/>'
       + '<rect x="64" y="88" width="12" height="18" rx="6"/>'
       + '</g></svg>';
-    var eqHtml='';
+    var eqHtml='', bagSlot='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
+      if(slot==='bag') return;            // 背包槽独立于六装备槽，单独放在人形下方
       var eq=state.equipment[slot], sl=LF.ITEMS.SLOTS[slot];
       var insCls=(packInspect && packInspect.kind==='equip' && packInspect.slot===slot)?' pcell-insp':'';
       var badge = '';
@@ -3277,6 +3297,17 @@ window.onerror=function(msg,url,line,col,err){
         : '<div class="ep-ph">'+sl.label+'</div>';
       eqHtml += '<div class="equipslot ep-'+slot+insCls+'" data-loc="equip:'+slot+'">'+inner+badge+durBar+'</div>';
     });
+    // 背包槽（bag）：人形下方独立渲染
+    (function(){
+      var eq=state.equipment.bag, sl=LF.ITEMS.SLOTS.bag;
+      var insCls=(packInspect && packInspect.kind==='equip' && packInspect.slot==='bag')?' pcell-insp':'';
+      var badge='';
+      if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
+      var durBar='';
+      if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
+      var inner=eq?'<div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph">'+sl.label+'</div>';
+      bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag">'+inner+badge+durBar+'</div>';
+    })();
     eqHtml = sil + eqHtml;
     var grid='';
     for(var i=0;i<state.pack.length;i++){
@@ -3289,9 +3320,9 @@ window.onerror=function(msg,url,line,col,err){
             + cnt + qb + '</div>';
     }
     return '<div class="pack-wrap">'
-      + '<div class="pack-head"><span class="pack-title">行 囊</span><span class="pack-sub">装备 · 物品</span></div>'
+      + '<div class="pack-head"><span class="pack-title">行 囊</span></div>'
       + '<div class="pack-main">'
-      +   '<div class="pack-left"><div class="pack-left-title">装 备</div><div class="equip-figure">'+eqHtml+'</div>'+renderEquipStats()+'</div>'
+      +   '<div class="pack-left"><div class="pack-left-title">装 备</div><div class="equip-figure">'+eqHtml+'</div>'+bagSlot+renderEquipStats()+'</div>'
       +   '<div class="pack-right"><div class="pack-right-title">物 品</div>'
       +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
       +   '</div>'
@@ -3299,7 +3330,7 @@ window.onerror=function(msg,url,line,col,err){
       + '<div class="pack-info">'+renderPackInspect()+'</div>'
       + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
       + '<span class="pack-hint">拖动整理 · 点按查看</span>'
-      + '<span class="pack-cap">容量 '+packList().length+'</span></div>'
+      + '<span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span></div>'
       + '</div>';
   }
   function renderEquipStats(){
@@ -3348,6 +3379,7 @@ window.onerror=function(msg,url,line,col,err){
         parts.push(s);
       });
       if(parts.length) html += '<div class="pi-row"><span class="pi-label">属性</span><span class="pi-attrs">'+parts.join('　')+'</span></div>';
+      if(it.packSpace) html += '<div class="pi-row"><span class="pi-label">容量</span><span class="pi-eff">背包空间 +'+it.packSpace+'</span></div>';
       if(it.maxDur){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); html += '<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span></div>'; }
       else { html += '<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur">此物无损耗</span></div>'; }
     }

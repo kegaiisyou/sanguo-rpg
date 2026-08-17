@@ -1,16 +1,18 @@
 (function (global) {
   'use strict';
 
-  // ========== 装备系统数据层（格子制行囊 + 六装备槽） ==========
+  // ========== 装备系统数据层（格子制行囊 + 六装备槽 + 背包槽） ==========
   // 六装备槽（贴合三国武侠）：帽笠 / 衣甲 / 鞋履 / 兵刃 / 饰品 / 腰带
   //   ——「坐骑」并入腰带（战带/鞍带），「护腕」可后续作为扩展槽。
+  //   ——「背包」为独立装备槽，腰包 / 鞶囊等可穿戴以扩充行囊容量。
   var SLOTS = {
     hat:     { label:'帽笠', icon:'🎩' },
     cloth:   { label:'衣甲', icon:'🥋' },
     shoe:    { label:'鞋履', icon:'🥾' },
     weapon:  { label:'兵刃', icon:'⚔️' },
     trinket: { label:'饰品', icon:'💍' },
-    belt:    { label:'腰带', icon:'🪢' }
+    belt:    { label:'腰带', icon:'🪢' },
+    bag:     { label:'背包', icon:'👝' }
   };
   var SLOT_KEYS = Object.keys(SLOTS);
 
@@ -41,7 +43,9 @@
     jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
     roubao:      { defId: 'roubao',      name: '肉包子', icon: '🥟', cat: '食饵', effect: { food: 20, drink: 5 },     desc: '热乎包子一只，啃下可充饥解渴。' },
     zangbu_hat:  { defId: 'zangbu_hat',  name: '脏布帽子', icon: '🧢', cat: '装备', slot: 'hat',    stats: {},        desc: '一顶灰扑扑的布帽，聊胜于无。', quality: 'white' },
-    polan_stick: { defId: 'polan_stick', name: '破烂木棒', icon: '🪵', cat: '装备', slot: 'weapon', stats: { atk: 2 }, desc: '枯枝胡乱削成，挥之噗噗作响，聊备一格。', quality: 'white' }
+    polan_stick: { defId: 'polan_stick', name: '破烂木棒', icon: '🪵', cat: '装备', slot: 'weapon', stats: { atk: 2 }, desc: '枯枝胡乱削成，挥之噗噗作响，聊备一格。', quality: 'white' },
+    yaobao:  { defId: 'yaobao',  name: '便携腰包', icon: '👝', cat: '装备', slot: 'bag', stats: {}, packSpace: 4,  desc: '软皮小囊，系于腰间，多纳杂物四件。', quality: 'white' },
+    hutou:   { defId: 'hutou',   name: '虎头鞶囊', icon: '🎒', cat: '装备', slot: 'bag', stats: {}, packSpace: 20, desc: '虎头纹鞶囊，革坚囊阔，可容杂物二十。', quality: 'green' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
@@ -102,6 +106,7 @@
       it.slot = d.slot; it.quality = d.quality || 'white';
       it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;
       if (d.stats) { for (var k in d.stats) { if (k in it) it[k] = d.stats[k]; } }
+      if (d.packSpace) it.packSpace = d.packSpace;   // 背包装备槽：扩充行囊容量
     }
     return it;
   }
