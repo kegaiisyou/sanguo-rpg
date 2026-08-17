@@ -1465,7 +1465,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
-<script src="shared/story/events.js?v=20260813a"></script>
+<script src="shared/story/events.js?v=20260817c"></script>
 <script src="shared/story/dialogues.js?v=20260813a"></script>
     <script src="shared/story/rooms.js?v=20260813a"></script>
     <script src="shared/story/triggers.js?v=20260813a"></script>
@@ -1474,7 +1474,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260817b"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
-    <script src="shared/index.js?v=20260817b"></script>
+    <script src="shared/index.js?v=20260817c"></script>
 <script>
 (function(){
   try{
@@ -2097,6 +2097,15 @@ window.onerror=function(msg,url,line,col,err){
     if(e.flag)state.flags[e.flag]=true;
     if(e.reputation){addReputation(e.reputation);}
     else if(e.rep){addReputation(e.rep);}
+    if(e.give){
+      var arr=Array.isArray(e.give)?e.give:[e.give];
+      arr.forEach(function(g){
+        var defId=g.defId||g, n=g.n||1;
+        var it=LF.ITEMS.makeItem(defId, n);
+        if(packAdd(it)) got.push((it.name||defId)+'×'+n);
+        else got.push('（行囊已满，'+defId+'未得）');
+      });
+    }
     if(got.length) log('【收获】'+got.join('，')+'。','good');
   }
   function findEvent(id){ for(var i=0;i<G.EVENTS.length;i++) if(G.EVENTS[i].id===id) return G.EVENTS[i]; return null; }
@@ -2516,6 +2525,7 @@ window.onerror=function(msg,url,line,col,err){
       {type:'exit',  dir:'南',     icon:'🚪', name:'南·颍川主营',desc:'主营方向，旌旗半卷',                actions:[{label:'返回颍川主营', fn:function(){ move('南','camp'); }}]}
     ],
     forest:[
+      {type:'feature',key:'gather', icon:'🌿', name:'草药丛',   desc:'林下背阴处，几丛野草药正肥，俯身可采得草药', actions:gatherActs},
       {type:'feature',key:'deep',   icon:'🌲', name:'山林深处', desc:'深入山林，往来巡逻剿寇',              actions:[{label:'深入巡山', fn:function(){ if(!exert('深入山林')) return; move('北','forest_patrol_a'); }, tip:'拨草寻踪，山道间或遇敌'}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'西',     icon:'🚪', name:'西·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('西','camp'); }}]}
@@ -2828,7 +2838,7 @@ window.onerror=function(msg,url,line,col,err){
   function renderObjs(list, group){
     if(!list.length) return;
     list.forEach(function(o){
-      var acts=(o.actions||[]).filter(function(a){return !isSelfCare(a);});
+      var acts=(typeof o.actions==='function'? o.actions(): (o.actions||[])).filter(function(a){return !isSelfCare(a);});
       var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); });
     });
   }
@@ -3060,6 +3070,40 @@ window.onerror=function(msg,url,line,col,err){
     buildActions(curRoom()); save(state); renderStatus();
   }
 
+  // ===== 野外采药（北邙山林·草药丛） =====
+  // 状态机：点击「采集草药」→ 耗时 1 时辰，草丛变为「可拾取」；点击「拾取草药」入包，满则提示
+  function gatherActs(){
+    var g=state.gather;
+    if(g && g.room===state.room && g.phase==='ready'){
+      return [{label:'拾取草药', icon:'🌿', fn:function(){ doPickGather(); }}];
+    }
+    return [{label:'采集草药', icon:'🌿', fn:function(){ startGather(); }}];
+  }
+  function startGather(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    state.gatherCount = state.gatherCount || {};
+    var k = state.room + '@' + state.day;
+    if((state.gatherCount[k]||0) >= 3){ toast('此处今日已采过三回，草药渐稀，明日再来。'); return; }
+    advanceTime(1);                                   // 采撷耗约一个时辰
+    state.gatherCount[k] = (state.gatherCount[k]||0) + 1;
+    state.gather = { room: state.room, phase: 'ready' };
+    log('你蹲身拨开草叶，俯首采撷，忙活约一个时辰——草丛间已遗下可拾之药。','env');
+    renderRoom(state.room);                           // 重渲后按钮变为「拾取草药」
+  }
+  function doPickGather(){
+    if(!state.gather || state.gather.room!==state.room || state.gather.phase!=='ready') return;
+    var n = 2 + Math.floor(Math.random()*2);            // 得草药 2~3 株
+    var it = LF.ITEMS.makeItem('caoyao', n);
+    // 预判能否装入（与 packAdd 逻辑一致：可堆叠同物，或有空位）
+    var ok=false;
+    if(packIsStackable(it)){ var kk=itemKey(it); for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)===kk && c.cat!=='装备'){ ok=true; break; } } }
+    if(!ok){ if(packFirstEmpty()>=0) ok=true; }
+    if(!ok){ toast('行囊已满，草药散落于地，无处安放——腾出空位再来拾取。'); return; }
+    packAdd(it);                                       // 此时必能装入
+    state.gather = null;
+    log('你拾起野草 '+n+' 株，收入行囊（可往「草庐/客栈」合成疗伤之物）。','good');
+    afterPackChange(); renderRoom(state.room);
+  }
   // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){
     clearActions();
@@ -3229,6 +3273,10 @@ window.onerror=function(msg,url,line,col,err){
   function packSet(loc,val){ if(loc.kind==='pack') state.pack[loc.idx]=val; else state.equipment[loc.slot]=val; }
   function locEq(a,b){ return a.kind===b.kind && (a.kind==='pack' ? a.idx===b.idx : a.slot===b.slot); }
 
+  // 装备「悟性」类物品（如书囊）时，资质随装备增减；卸下则回退
+  function applyEquipApt(eq, sign){
+    if(eq && eq.wuxing){ if(!state.apt) state.apt={jinli:5,gengu:5,shenfa:5,wuxing:5,fuyuan:5,gongfa:5}; state.apt.wuxing = (state.apt.wuxing||5) + sign*(eq.wuxing||0); }
+  }
   function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof openModal==='function') openModal('pack'); }
 
   function movePackItem(from,to){
@@ -3241,7 +3289,9 @@ window.onerror=function(msg,url,line,col,err){
       var it=state.pack[from.idx];
       if(!it || it.cat!=='装备' || it.slot!==to.slot){ toast('该物不可装备于「'+LF.ITEMS.SLOTS[to.slot].label+'」。'); return; }
       var old=state.equipment[to.slot];
+      if(old) applyEquipApt(old, -1);          // 旧装备卸下，回退其资质加成
       state.equipment[to.slot]=it; state.pack[from.idx]=old;
+      applyEquipApt(it, +1);                   // 新装备上身，应用资质加成
       toast('已装备「'+it.name+'」。'); afterPackChange(); return;
     }
     if(from.kind==='equip' && to.kind==='pack'){ unequipToPack(from.slot, to.idx); return; }
@@ -3255,6 +3305,7 @@ window.onerror=function(msg,url,line,col,err){
       var cnt = state.pack.filter(function(x){ return x; }).length;
       if(cnt > maxAfter){ toast('卸下后背囊空间不足，无法卸下「'+eq.name+'」。'); return; }
     }
+    applyEquipApt(eq, -1);                     // 卸下真正发生 → 回退资质加成（置于拦截之后，避免误扣）
     if(toIdx!=null && !state.pack[toIdx]){ state.pack[toIdx]=eq; state.equipment[slot]=null; }
     else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法卸下。'); return; } state.pack[e]=eq; state.equipment[slot]=null; }
     toast('已卸下「'+eq.name+'」。'); afterPackChange();
@@ -3381,7 +3432,7 @@ window.onerror=function(msg,url,line,col,err){
     if(it.cat==='装备'){
       if(it.slot && LF.ITEMS.SLOTS[it.slot]) html += '<div class="pi-row"><span class="pi-label">部位</span><span>'+LF.ITEMS.SLOTS[it.slot].label+'</span></div>';
       var cur = (packInspect.kind==='pack' && state.equipment && it.slot) ? state.equipment[it.slot] : null;
-      var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息']];
+      var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
       var parts=[];
       fields.forEach(function(f){
         var v=it[f[0]]||0; if(!v) return;

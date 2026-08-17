@@ -45,7 +45,17 @@
     zangbu_hat:  { defId: 'zangbu_hat',  name: '脏布帽子', icon: '🧢', cat: '装备', slot: 'hat',    stats: {},        desc: '一顶灰扑扑的布帽，聊胜于无。', quality: 'white' },
     polan_stick: { defId: 'polan_stick', name: '破烂木棒', icon: '🪵', cat: '装备', slot: 'weapon', stats: { atk: 2 }, desc: '枯枝胡乱削成，挥之噗噗作响，聊备一格。', quality: 'white' },
     yaobao:  { defId: 'yaobao',  name: '便携腰包', icon: '👝', cat: '装备', slot: 'belt', stats: {}, packSpace: 4,  desc: '软皮小囊，系于腰间，多纳杂物四件。', quality: 'white' },
-    hutou:   { defId: 'hutou',   name: '虎头鞶囊', icon: '🎒', cat: '装备', slot: 'bag', stats: {}, packSpace: 20, desc: '虎头纹鞶囊，革坚囊阔，可容杂物二十。', quality: 'green' }
+    hutou:   { defId: 'hutou',   name: '虎头鞶囊', icon: '🎒', cat: '装备', slot: 'bag', stats: {}, packSpace: 20, desc: '虎头纹鞶囊，革坚囊阔，可容杂物二十。', quality: 'green' },
+    // —— 背囊/行囊类（占「背包」槽，扩充行囊容量；与虎头鞶囊互斥，择一而用）——
+    xiaonang:       { defId: 'xiaonang',       name: '小囊',     icon: '👝', cat: '装备', slot: 'bag', stats: {},       packSpace: 6,  desc: '寻常小皮囊，粗能容物六件。', quality: 'white' },
+    shunang:        { defId: 'shunang',        name: '书囊',     icon: '🎒', cat: '装备', slot: 'bag', stats: { wuxing: 1 }, packSpace: 10, desc: '书生负笈之囊，囊中常卷，渐通文墨（悟性 +1）。', quality: 'green' },
+    jianyixingzhuang:{ defId: 'jianyixingzhuang', name: '简易行装', icon: '🎒', cat: '装备', slot: 'bag', stats: { spd: 1 },  packSpace: 4,  desc: '一卷轻便行囊，减负疾行（身法 +1）。', quality: 'white' },
+    pibao:          { defId: 'pibao',          name: '皮革包裹', icon: '🎒', cat: '装备', slot: 'bag', stats: {},       packSpace: 14, desc: '厚实皮革裹就，囊阔能容十四。', quality: 'green' },
+    caiyaobiluo:    { defId: 'caiyaobiluo',    name: '采药背篓', icon: '🧺', cat: '装备', slot: 'bag', stats: {},       packSpace: 15, desc: '竹编背篓，采药山行尤便，可容十五。', quality: 'green' },
+    // —— 腰带：防御型（与「便携腰包」互斥，体现「要容量还是要防御」的取舍）——
+    shutong:        { defId: 'shutong',        name: '熟铜护腰', icon: '🪢', cat: '装备', slot: 'belt', stats: { def: 1 }, desc: '熟铜片缀就的护腰，堪挡一刀（防御 +1）。', quality: 'white' },
+    // —— 素材：野外采集所得 ——
+    caoyao:         { defId: 'caoyao',         name: '草药',     icon: '🌿', cat: '素材', desc: '山野可入药的茎叶，多凑几味可合成疗伤之物。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
@@ -94,6 +104,7 @@
     if (eq.hp)  p.push('血+' + eq.hp);
     if (eq.mp)  p.push('内+' + eq.mp);
     if (eq.spd) p.push('速+' + eq.spd);
+    if (eq.wuxing) p.push('悟+' + eq.wuxing);
     return p.join(' ');
   }
 
@@ -104,7 +115,7 @@
     if (d.effect) it.effect = JSON.parse(JSON.stringify(d.effect));
     if (d.cat === '装备') {
       it.slot = d.slot; it.quality = d.quality || 'white';
-      it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;
+      it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0; it.wuxing = 0;
       if (d.stats) { for (var k in d.stats) { if (k in it) it[k] = d.stats[k]; } }
       if (d.packSpace) it.packSpace = d.packSpace;   // 背包装备槽：扩充行囊容量
     }

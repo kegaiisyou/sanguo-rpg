@@ -27,7 +27,7 @@
       notoriety: 0,                  // 凶名值（P3 善恶双轨·正数轴，互不抵消）
       reputation: 0,                 // 声望 0-100（P4 起由胜战真实获取；调试台仅 ?dev=1 可直赋）
       repExp: 0,                     // 声望经验累计（后续真实途径用，先留字段）
-      gold: 50,
+      gold: 200,
       skills: ['basic_fist'],
       room: 'ys_entrance',           // 当前所处房间（默认出生点：燕山·村落口，开场教学绕圈链入口）
       spawnRoom: 'ys_entrance',      // 玩家出生点（调试台可改；新局/重置后落点）
