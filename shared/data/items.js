@@ -44,7 +44,7 @@
     roubao:      { defId: 'roubao',      name: '肉包子', icon: '🥟', cat: '食饵', effect: { food: 20, drink: 5 },     desc: '热乎包子一只，啃下可充饥解渴。' },
     zangbu_hat:  { defId: 'zangbu_hat',  name: '脏布帽子', icon: '🧢', cat: '装备', slot: 'hat',    stats: {},        desc: '一顶灰扑扑的布帽，聊胜于无。', quality: 'white' },
     polan_stick: { defId: 'polan_stick', name: '破烂木棒', icon: '🪵', cat: '装备', slot: 'weapon', stats: { atk: 2 }, desc: '枯枝胡乱削成，挥之噗噗作响，聊备一格。', quality: 'white' },
-    yaobao:  { defId: 'yaobao',  name: '便携腰包', icon: '👝', cat: '装备', slot: 'bag', stats: {}, packSpace: 4,  desc: '软皮小囊，系于腰间，多纳杂物四件。', quality: 'white' },
+    yaobao:  { defId: 'yaobao',  name: '便携腰包', icon: '👝', cat: '装备', slot: 'belt', stats: {}, packSpace: 4,  desc: '软皮小囊，系于腰间，多纳杂物四件。', quality: 'white' },
     hutou:   { defId: 'hutou',   name: '虎头鞶囊', icon: '🎒', cat: '装备', slot: 'bag', stats: {}, packSpace: 20, desc: '虎头纹鞶囊，革坚囊阔，可容杂物二十。', quality: 'green' }
   };
 

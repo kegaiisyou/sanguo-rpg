@@ -1158,7 +1158,8 @@
   .ep-weapon{left:78px;top:55px;width:30px;}
   .ep-shoe{left:38px;top:99px;width:48px;}
   /* 背包槽：独立于六装备槽，人形下方横向铺满，虚线金边以区分 */
-  .ep-bagflow{position:relative;width:100%;min-height:30px;margin-top:3px;background:rgba(22,14,32,.62);border:1px dashed rgba(216,180,106,.7);}
+  .ep-bagflow{position:absolute;left:86px;top:24px;width:38px;min-height:28px;background:rgba(22,14,32,.62);border:1px dashed rgba(216,180,106,.7);}
+  .ep-bagflow .ep-name{font-size:10px;line-height:1.1;}
   .ep-bagflow.pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
   .ep-bagflow .ep-qbadge{top:3px;right:3px;}
   /* 右：物品栏（金调面板 + 明显滚动条） */
@@ -1181,18 +1182,18 @@
   .pcell-sel{outline:2px solid #d8b46a;box-shadow:0 0 10px rgba(216,180,106,.6);}
   .pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
   /* 底信息栏：固定，不随物品栏滚动 */
-  .pack-info{flex:0 0 auto;max-height:30%;margin-top:10px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:8px 10px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
+  .pack-info{flex:0 0 auto;max-height:22%;margin-top:10px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
   .pack-inspect{text-align:left;}
   .pack-inspect-empty{color:#9c8a64;font-size:12px;text-align:center;}
-  .pi-head{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
-  .pi-ic{font-size:30px;line-height:1;flex:0 0 auto;}
+  .pi-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .pi-ic{font-size:26px;line-height:1;flex:0 0 auto;}
   .pi-titles{flex:1;min-width:0;}
-  .pi-name{font-size:16px;color:#f0e2c0;font-weight:bold;}
+  .pi-name{font-size:14px;color:#f0e2c0;font-weight:bold;}
   .pi-meta{font-size:11px;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
   .pi-cat{color:#9c8a64;}
   .pi-quality{font-weight:bold;}
   .pi-count{color:#f0e2c0;}
-  .pi-row{display:flex;gap:8px;font-size:12px;margin-top:6px;line-height:1.45;}
+  .pi-row{display:flex;gap:6px;font-size:11.5px;margin-top:4px;line-height:1.4;}
   .pi-label{flex:0 0 36px;color:#9c8a64;}
   .pi-attrs{color:#e9d8b0;display:flex;flex-wrap:wrap;gap:2px 10px;}
   .pi-stat{white-space:nowrap;}
@@ -1203,8 +1204,8 @@
   .pi-dur{display:flex;align-items:center;gap:8px;color:#e9d8b0;flex:1;}
   .pi-dur-bar{flex:1;max-width:170px;height:7px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;}
   .pi-dur-bar i{display:block;height:100%;background:linear-gradient(90deg,#7bbf6a,#cf9b3f);}
-  .pi-desc{margin-top:6px;font-size:12px;color:#cdbb95;line-height:1.5;border-top:1px dashed rgba(196,164,102,.25);padding-top:6px;}
-  .pi-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .pi-desc{margin-top:5px;font-size:11.5px;color:#cdbb95;line-height:1.45;border-top:1px dashed rgba(196,164,102,.25);padding-top:5px;}
+  .pi-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
   .btn-mini{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:8px;padding:9px 14px;min-height:42px;cursor:pointer;font-size:13.5px;line-height:1.2;min-width:56px;}
   @media (max-width:560px){ .btn-mini{ padding:11px 16px; min-height:46px; font-size:14px; } }
   .btn-mini:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
@@ -1469,10 +1470,10 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260813a"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260817a"></script>
+<script src="shared/data/items.js?v=20260817b"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
-    <script src="shared/index.js?v=20260817a"></script>
+    <script src="shared/index.js?v=20260817b"></script>
 <script>
 (function(){
   try{
@@ -3170,8 +3171,16 @@ window.onerror=function(msg,url,line,col,err){
   function packMax(st){
     st = st || state;
     var m = BASE_PACK;
-    if(st && st.equipment && st.equipment.bag && st.equipment.bag.packSpace){ m += st.equipment.bag.packSpace; }
+    if(st && st.equipment){ for(var k in st.equipment){ var eq=st.equipment[k]; if(eq && eq.packSpace) m += eq.packSpace; } }
     return m;
+  }
+  // 装备/卸下背包装备后，按容量重排行囊数组长度（仅增长；缩容且装不下时保留原状以免丢物）
+  function packResize(){
+    var max=packMax();
+    var items=state.pack.filter(function(x){ return x; });
+    if(items.length>max){ toast('卸下背包后容量不足，物品暂留原处。'); return; }
+    while(state.pack.length<max) state.pack.push(null);
+    if(state.pack.length>max){ var a=new Array(max).fill(null), k=0; for(var i=0;i<state.pack.length;i++){ if(state.pack[i]) a[k++]=state.pack[i]; } state.pack=a; }
   }
   function packEnsure(st){
     if(!st.equipment) st.equipment={};
@@ -3219,7 +3228,7 @@ window.onerror=function(msg,url,line,col,err){
   function packSet(loc,val){ if(loc.kind==='pack') state.pack[loc.idx]=val; else state.equipment[loc.slot]=val; }
   function locEq(a,b){ return a.kind===b.kind && (a.kind==='pack' ? a.idx===b.idx : a.slot===b.slot); }
 
-  function afterPackChange(){ clampHp(); if(typeof save==='function') save(state); renderStatus(); if(typeof openModal==='function') openModal('pack'); }
+  function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof openModal==='function') openModal('pack'); }
 
   function movePackItem(from,to){
     if(locEq(from,to)) return;
@@ -3322,7 +3331,7 @@ window.onerror=function(msg,url,line,col,err){
     return '<div class="pack-wrap">'
       + '<div class="pack-head"><span class="pack-title">行 囊</span></div>'
       + '<div class="pack-main">'
-      +   '<div class="pack-left"><div class="pack-left-title">装 备</div><div class="equip-figure">'+eqHtml+'</div>'+bagSlot+renderEquipStats()+'</div>'
+      +   '<div class="pack-left"><div class="pack-left-title">装 备</div><div class="equip-figure">'+eqHtml+bagSlot+'</div>'+renderEquipStats()+'</div>'
       +   '<div class="pack-right"><div class="pack-right-title">物 品</div>'
       +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
       +   '</div>'
@@ -3381,7 +3390,6 @@ window.onerror=function(msg,url,line,col,err){
       if(parts.length) html += '<div class="pi-row"><span class="pi-label">属性</span><span class="pi-attrs">'+parts.join('　')+'</span></div>';
       if(it.packSpace) html += '<div class="pi-row"><span class="pi-label">容量</span><span class="pi-eff">背包空间 +'+it.packSpace+'</span></div>';
       if(it.maxDur){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); html += '<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span></div>'; }
-      else { html += '<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur">此物无损耗</span></div>'; }
     }
     if(it.effect){
       var effs=[];

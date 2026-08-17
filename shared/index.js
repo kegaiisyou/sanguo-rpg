@@ -58,7 +58,7 @@
         a[1] = { defId:'zangbu_hat',  name:'脏布帽子', icon:'🧢', cat:'装备', slot:'hat',    desc:'一顶灰扑扑的布帽，聊胜于无。', count:1, atk:0,def:0,hp:0,mp:0,spd:0, quality:'white' };
         a[2] = { defId:'polan_stick', name:'破烂木棒', icon:'🪵', cat:'装备', slot:'weapon', desc:'枯枝胡乱削成，挥之噗噗作响，聊备一格。', count:1, atk:2,def:0,hp:0,mp:0,spd:0, quality:'white' };
         a[3] = { defId:'roubao',      name:'肉包子',   icon:'🥟', cat:'食饵', desc:'热乎包子一只，啃下可充饥解渴。', count:10, effect:{food:20,drink:5} };
-        a[4] = { defId:'yaobao',      name:'便携腰包', icon:'👝', cat:'装备', slot:'bag', desc:'软皮小囊，系于腰间，多纳杂物四件。', count:1, atk:0,def:0,hp:0,mp:0,spd:0, packSpace:4,  quality:'white' };
+        a[4] = { defId:'yaobao',      name:'便携腰包', icon:'👝', cat:'装备', slot:'belt', desc:'软皮小囊，系于腰间，多纳杂物四件。', count:1, atk:0,def:0,hp:0,mp:0,spd:0, packSpace:4,  quality:'white' };
         a[5] = { defId:'hutou',       name:'虎头鞶囊', icon:'🎒', cat:'装备', slot:'bag', desc:'虎头纹鞶囊，革坚囊阔，可容杂物二十。', count:1, atk:0,def:0,hp:0,mp:0,spd:0, packSpace:20, quality:'green' };
         return a;
       })(),                                       // 基础 6 格：可拖拽自由摆放；装备背包后扩容
