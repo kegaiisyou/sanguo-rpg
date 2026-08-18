@@ -33,8 +33,8 @@
       repExp: 0,                     // 声望经验累计（后续真实途径用，先留字段）
       gold: 200,
       skills: ['basic_fist'],
-      room: 'ys_entrance',           // 当前所处房间（默认出生点：燕山·村落口，开场教学绕圈链入口）
-      spawnRoom: 'ys_entrance',      // 玩家出生点（调试台可改；新局/重置后落点）
+      room: 'camp_yard',             // 当前所处房间（默认出生点：苦役营·劳役场，开场教学密道线入口）
+      spawnRoom: 'camp_yard',        // 玩家出生点（调试台可改；新局/重置后落点）
       flags: {},
       npcFavor: {},                     // NPC 好感度表（keyed by npc id），供触发引擎复合判断
       lastSeen: Date.now(),

@@ -342,7 +342,7 @@
         '南接白檀屯寨，北入林道，西下深涧，东登峰峦。风过隘口如呜咽，夹着塞外的草腥。'
       ],
       exits: { '南': 'baitan_tun', '北': 'yanshan_lindao', '西': 'yanshan_jian', '东': 'yanshan_feng' },
-      npcs: ['yanshan_tingzhang', 'beggar_old'],
+      npcs: ['yanshan_tingzhang', 'mulongfeng'],
       find: '细看：两峰夹峙一線可通，关候亭长率卒盘查；南接白檀屯寨，北入林道，西下深涧，东登峰峦，风过隘口如呜咽。',
       items: [],
       actions: [
@@ -923,6 +923,31 @@
       exits: { '东': 'ys_north', '南': 'ys_west', '东南': 'yanshan_shankou' },
       npcs: ['beggar_old'], items: [],
       find: '细看：哨所东南下通燕山口（开放世界），南回柴院，东回北巷。',
+      actions: []
+    },
+    // ───────── 苦役营·教学切片（密道线出生点） ─────────
+    camp_yard: {
+      id: 'camp_yard', name: '苦役营·劳役场',
+      desc: [
+        '苦役营的劳役场空阔，乱石夯土，日头毒辣。黑压压一片囚徒或搬石或掘土，狱卒皮鞭声不时作响。',
+        '场中央搭着个土台，是说书先生周听涛开嗓的地方；西边塌了半截的墙根下，缩着个哑老囚，据说是替人守着什么。'
+      ],
+      exits: { '西': 'camp_wall' },
+      find: '细看：囚徒如蚁，狱卒往来；场心土台留着醒木痕，西边塌墙根藤蔓爬墙。〔西〕塌墙根（西）往墙根去。',
+      npcs: ['zhoutingtao'],
+      items: [],
+      actions: []
+    },
+    camp_wall: {
+      id: 'camp_wall', name: '苦役营·塌墙根',
+      desc: [
+        '营墙在这段塌了半截，乱砖委地，藤蔓爬满。风从砖缝里钻过，带着外面草木的腥气。',
+        '一个哑老囚蜷在墙根阴影里，见人只眨眨眼——据说是替周听涛守着什么暗道。'
+      ],
+      exits: { '东': 'camp_yard', '北': 'yanshan_shankou' },
+      find: '细看：塌墙根乱砖委地，藤蔓爬墙；哑老囚默坐阴影，指尖似在无意义地划动。〔东〕回劳役场（东）；〔北〕墙外（北）。',
+      npcs: ['moshu'],
+      items: [],
       actions: []
     }
   };
