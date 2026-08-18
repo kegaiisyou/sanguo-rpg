@@ -436,6 +436,9 @@
     border-bottom:1px dashed var(--panel-line);font-size:14px;}
   .card .row span:first-child{color:var(--ink-soft);}
   .card .row span:last-child{color:var(--ink);font-weight:600;}
+  .card .row.exp-sub{font-size:12.5px;color:var(--ink-soft);border-bottom:none;padding:0 2px 3px;}
+  .card .exp-bar{height:9px;background:rgba(74,62,48,.14);border-radius:6px;overflow:hidden;margin:1px 2px 9px;}
+  .card .exp-bar i{display:block;height:100%;background:linear-gradient(90deg,#b0832f,#e0b14a);border-radius:6px;transition:width .35s ease;}
   .card .skills{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
   .card .skills span{padding:5px 11px;border:1px solid var(--btn-line);border-radius:20px;
     font-size:13px;background:var(--btn);color:var(--ink);}
@@ -1216,6 +1219,7 @@
   @media (max-width:560px){ .pack-foot .btn{ padding:11px 20px; min-height:46px; font-size:14px; } }
   .pack-foot .btn:active{transform:translateY(1px);}
   .pack-cap{color:#9c8a64;font-size:12px;}
+  .pack-gold{color:#c89a3a;font-size:13px;font-weight:600;}
   .pack-hint{color:#8c7c5a;font-size:11.5px;letter-spacing:.5px;}
   .pack-ghost{position:fixed;transform:translate(-50%,-50%);max-width:128px;padding:4px 9px;font-size:13px;line-height:1.2;text-align:center;color:#f4e6c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(20,12,30,.82);border:1px solid #d8b46a;border-radius:8px;box-shadow:0 3px 10px rgba(0,0,0,.45);pointer-events:none;z-index:9999;}
   /* 行囊弹窗：放宽卡片并锁定自身滚动，内部分区各自滚动 */
@@ -3384,7 +3388,8 @@ window.onerror=function(msg,url,line,col,err){
       + '<div class="pack-info">'+renderPackInspect()+'</div>'
       + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
       + '<span class="pack-hint">拖动整理 · 点按查看</span>'
-      + '<span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span></div>'
+      + '<span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span>'
+      + '<span class="pack-gold">银两 '+state.gold+'</span></div>'
       + '</div>';
   }
   function renderEquipStats(){
@@ -3826,7 +3831,7 @@ window.onerror=function(msg,url,line,col,err){
     var save=G.defaultSave();
     save.name=name;
     save.attr=attr;          // 四维（含分配后的数值）
-    save.freePoints=0;       // 开局 5 点已在此分配完毕
+    save.freePoints=createState.pool;   // 捏人未分配完的点转为入局后自由属性点，避免白丢
     save.origin=null;
     // 跳过新手教程（测试用）：直接抵达黑山寨·寨门，并标记教学已完成、补发一包金疮药
     if(createState.skip){
@@ -3873,15 +3878,21 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='char'){
       var es=effectiveStats();
       h='<h3>角 色</h3>'+
-        row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '未入门 · 江湖散人')+
-        row('等级','LV.'+state.level)+
+        (function(){
+          var need=(state.level>=G.CONSTANTS.MAX_LEVEL)?0:G.BALANCE.expNeed(state.level);
+          if(!need) return row('等级','LV.'+state.level+' · 圆满')
+            + '<div class="exp-bar"><i style="width:100%"></i></div>';
+          var pct=Math.max(0,Math.min(100,Math.round(state.exp/need*100)));
+          return row('等级','LV.'+state.level)
+            + '<div class="row exp-sub"><span>修为</span><span>'+state.exp+' / '+need+'</span></div>'
+            + '<div class="exp-bar"><i style="width:'+pct+'%"></i></div>';
+        })()+
         row('气血',state.hp+' / '+es.maxHp)+
         (es.maxMp>0? row('内力',state.mp+' / '+es.maxMp):'')+
         row('精力',state.energy+' / '+state.maxEnergy)+
         row('食物',state.food+' / '+state.maxFood)+
         row('饮水',state.drink+' / '+state.maxDrink)+
         row('潜能',state.pot)+
-        row('银两',state.gold)+
         row('侠义',state.chivalry)+
         row('凶名',state.notoriety)+
         row('风评',moralTitle())+
@@ -4742,8 +4753,7 @@ window.onerror=function(msg,url,line,col,err){
     // V3：我方劣势时四周渐暗红
     var sc=document.getElementById('scene');
     if(sc){ if(p.hp/p.maxHp < 0.3) sc.classList.add('bg-danger'); else sc.classList.remove('bg-danger'); }
-    var sectName = (state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '未入门';
-    q('.cp-plaque').textContent = sectName + ' · 游侠';
+    q('.cp-plaque').textContent = 'LV.'+state.level+' · 游侠';
     q('.cp-name').textContent='▲ '+(state.name||'你');
     // 玩家三条状态条（气血 / 内力 / 战意）
     var _pct=function(v,m){ return Math.round(Math.max(0,v)/Math.max(1,m)*100); };

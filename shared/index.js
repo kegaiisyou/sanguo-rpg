@@ -3,9 +3,8 @@
 (function (global) {
   var LF = global.LF = global.LF || {};
 
-  // 基础资质：角色出身前的底子；门派加成在其上【叠加】，不替代
-  var BASE = { maxHp:100, maxMp:0, atk:15, def:20, spd:20 };
   // 四维属性 → 战斗数值换算（开局四维皆=5：气血100/攻击15/防御20/身法20；防御×4 配合新减伤模型，每点防御属性≈4%减伤）
+  // 派生战力初值见 defaultSave（由 recalcBase 依据 attr+bonus 重算，此处字面量仅作占位）
   //   气血 ×20 → 气血上限；攻击 ×3 → 攻击；防御 ×4 → 防御（配合减伤模型防膨胀）；身法 ×4 → 身法
   var ATTR_RATIO = { hp:20, atk:3, def:4, spd:4 };   // 防御×4：每点防御属性换算 4 点防御战力（配合减伤模型防膨胀）
 
@@ -25,7 +24,7 @@
       drink: 100, maxDrink: 100,     // 饮水：随行走/时间流失
       pot: 0,                        // 潜能：历练所得，修炼武学消耗
       attr: { hp:5, atk:5, def:5, spd:5 },    // 四维（捏人可分配，每点换战力见 ATTR_RATIO）
-      freePoints: 5,                          // 开局可自由分配点数（捏人用完归 0，每升一级 +1）
+      freePoints: 0,                          // 入局后可自由分配点数（捏人未分配完的点由 confirmCreate 转入，每升一级 +1）
       sectBonus:  { hp:0, atk:0, def:0, spd:0 }, // 门派永久战力加成
       flatBonus:  { hp:0, atk:0, def:0, spd:0 }, // 技能/事件等永久战力加成
       chivalry: 0,                   // 侠义值（P3 善恶双轨·正数轴，互不抵消）
