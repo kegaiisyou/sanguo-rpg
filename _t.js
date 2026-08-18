@@ -10,6 +10,11 @@ var global={LF:{ENEMIES:new Map(),MARTIAL_ARTS:{}}};
   // ── P2：五行相克（金克木→土→水→火→金）──
   var ATTR_CYCLE = { '金': '木', '木': '土', '土': '水', '水': '火', '火': '金' };
 
+  // 伤害公式（百分比减伤模型，与 engine.js 同步）
+  var DEF_DR_PER = 0.01;    // 每点防御战力提供 1% 减伤
+  var DEF_DR_CAP = 0.80;    // 减伤率硬上限 80%（保留 20% 穿透）
+  var DMG_SCALE  = 1.85;    // 攻击伤害放大系数
+
   // ── P5：战意战术技能（消耗 rage 的额外可选项）──
   var RAGE_ACTIONS = {
     roar: {
@@ -178,7 +183,7 @@ var global={LF:{ENEMIES:new Map(),MARTIAL_ARTS:{}}};
     },
 
     // ─── 计算伤害（targetUnit 为具体目标单位，支持多敌）───
-    // 伤害 = atk × dmgMul × 100 / (100 + def)，支持破甲/破防/暴伤/属性克制
+    // 伤害 = atk × dmgMul × DMG_SCALE × (1 - 减伤率)，减伤率 = min(0.8, def×1%)，支持破甲/破防/暴伤/属性克制
     calcDamage: function(actor, action, targetUnit, crit, attrMul) {
       // actor 可为 'player'/'enemy' 字符串（兼容旧半手动），也可为具体单位对象（DQ 队伍作战）
       var unit = (typeof actor === 'object' && actor !== null) ? actor : this.state[actor];
@@ -191,7 +196,8 @@ var global={LF:{ENEMIES:new Map(),MARTIAL_ARTS:{}}};
       if (targetUnit.defStance) tDef = Math.round(tDef * 1.5);
 
       var effDef = tDef * (1 - Math.min(armorPen, 0.8)) * (1 - ignoreDef);
-      var raw = Math.round(unit.atk * mul * 100 / (100 + Math.max(0, effDef)));
+      var reduction = Math.min(DEF_DR_CAP, effDef * DEF_DR_PER);
+      var raw = Math.round(unit.atk * mul * DMG_SCALE * (1 - reduction));
       // 属性克制（P2）：克制 ×1.25，被克 ×0.8
       if (attrMul && attrMul !== 1) raw = Math.round(raw * attrMul);
       if (crit) {

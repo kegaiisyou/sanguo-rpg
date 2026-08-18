@@ -9,6 +9,17 @@
   // ── P2：五行相克（金克木→土→水→火→金）──
   var ATTR_CYCLE = { '金': '木', '木': '土', '土': '水', '水': '火', '火': '金' };
 
+  // 伤害公式（百分比减伤模型）
+  //   减伤率 = min(DEF_DR_CAP, def × DEF_DR_PER)，伤害 = atk × dmgMul × DMG_SCALE × (1 - 减伤率)
+  // 相比旧分数公式 atk/(DEF_BASE+def)：
+  //   ① 每点防御的减伤恒定（线性），数值膨胀（def 到几百几千）时攻防仍保持比例平衡；
+  //   ② 减伤率有硬上限 DEF_DR_CAP（保留穿透），双方不会因高 def 而互相刮痧 → 不 softlock；
+  //   ③ 策略性：面对高攻敌人堆防收益高、面对低攻敌人堆攻收益高，形成攻防取舍。
+  // 参数说明（配合 shared/index.js 防御换算×4）：每点防御属性 ≈ 4% 减伤；溢出点 def=80，当前数值（玩家≤40/怪≤45）全程有效不触顶
+  var DEF_DR_PER = 0.01;    // 每点防御战力提供 1% 减伤（原 2.5%，太高致 def45 Boss 提前触顶 80%）
+  var DEF_DR_CAP = 0.80;    // 减伤率硬上限 80%（保留 20% 穿透，避免完全免伤；抗膨胀：def 再高也不 softlock）
+  var DMG_SCALE  = 1.85;    // 攻击伤害放大系数（重调以保持开局手感：玩家打怪≈26、怪打玩家≈22）
+
   // ── P5：战意战术技能（消耗 rage 的额外可选项）──
   var RAGE_ACTIONS = {
     roar: {
@@ -177,7 +188,7 @@
     },
 
     // ─── 计算伤害（targetUnit 为具体目标单位，支持多敌）───
-    // 伤害 = atk × dmgMul × 100 / (100 + def)，支持破甲/破防/暴伤/属性克制
+    // 伤害 = atk × dmgMul × DMG_SCALE × (1 - 减伤率)，减伤率 = min(0.8, def×1%)，支持破甲/破防/暴伤/属性克制
     calcDamage: function(actor, action, targetUnit, crit, attrMul) {
       // actor 可为 'player'/'enemy' 字符串（兼容旧半手动），也可为具体单位对象（DQ 队伍作战）
       var unit = (typeof actor === 'object' && actor !== null) ? actor : this.state[actor];
@@ -191,7 +202,8 @@
       if (targetUnit.defStance) tDef = Math.round(tDef * 1.5);
 
       var effDef = tDef * (1 - Math.min(armorPen, 0.8)) * (1 - ignoreDef);
-      var raw = Math.round(unit.atk * mul * 100 / (100 + Math.max(0, effDef)));
+      var reduction = Math.min(DEF_DR_CAP, effDef * DEF_DR_PER);
+      var raw = Math.round(unit.atk * mul * DMG_SCALE * (1 - reduction));
       // 属性克制（P2）：克制 ×1.25，被克 ×0.8
       if (attrMul && attrMul !== 1) raw = Math.round(raw * attrMul);
       if (crit) {
