@@ -69,6 +69,14 @@
     steps: [ { t: 'clearGate' } ]
   });
 
+  // 4.5) 回到劳役场：解除塌墙根门禁
+  // 修复：wall_gate 设的是全局 state.moveGate（fwd=camp_yard），离场后若不清，
+  // 会残留在出生点，把「西→塌墙根」也锁死（西门目标不是 camp_yard → blocked），导致无法再西去。
+  TRIGGERS.push({
+    id: 'yard_clear_gate', hook: 'onEnter', room: 'camp_yard', once: false,
+    steps: [ { t: 'clearGate' } ]
+  });
+
   // 5) 默叔·引你入密道（逃逸枢纽）
   TRIGGERS.push({
     id: 'moshu_escort', hook: 'onTalk', npc: 'moshu', room: 'camp_wall', once: true,
