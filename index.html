@@ -1470,9 +1470,9 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260817c"></script>
-<script src="shared/story/dialogues.js?v=20260819d"></script>
-    <script src="shared/story/rooms.js?v=20260819d"></script>
-    <script src="shared/story/triggers.js?v=20260819d"></script>
+<script src="shared/story/dialogues.js?v=20260819e"></script>
+    <script src="shared/story/rooms.js?v=20260819e"></script>
+    <script src="shared/story/triggers.js?v=20260819e"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
 <script src="shared/data/items.js?v=20260817b"></script>
@@ -3013,8 +3013,15 @@ window.onerror=function(msg,url,line,col,err){
       log(n.name+'面色不豫：「久闻壮士凶名……恕不奉陪。」说罢拂袖而去。','npc');
       return;
     }
-    var line=n.lines[Math.floor(Math.random()*n.lines.length)];
-    log(line,'npc', n.name);
+    var lines=n.lines||[];
+    if(lines.length){
+      state.npcSeq=state.npcSeq||{};
+      var idx=(state.npcSeq[k]||0)%lines.length;
+      state.npcSeq[k]=idx+1;
+      log(lines[idx],'npc', n.name);
+    } else {
+      log('〔'+n.name+'〕他默然不语，似有心事。','npc');
+    }
   }
 
   // ===== 行动分发 =====
