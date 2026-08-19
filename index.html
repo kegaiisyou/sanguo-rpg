@@ -1499,7 +1499,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820s"></script>
+<script src="shared/config/constants.js?v=20260820t"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1519,7 +1519,7 @@ window.onerror=function(msg,url,line,col,err){
 <script>
 (function(){
   try{
-  var G = window.LF.SharedGame;
+  var G = window.LF && (window.LF.SharedGame || window.LF);
   var SLOTS=['lf_save_1','lf_save_2','lf_save_3'];   // 三档存档
   var curSlot=0;                                     // 当前游戏所在档位（0=未入局）
   var SETTINGS_KEY='lf_settings_v1';
@@ -5878,7 +5878,7 @@ window.onerror=function(msg,url,line,col,err){
 
 
   // ===== 序幕 =====
-  G.DIALOGUES.prologue.forEach(function(l){log(l,'env');});
+  var _pro=(G&&G.DIALOGUES&&G.DIALOGUES.prologue)||[]; if(_pro.forEach){ _pro.forEach(function(l){log(l,'env');}); }
   log('— 颍川起兵 —','title');
   bindTitle();
   (function(){
@@ -5932,11 +5932,12 @@ window.onerror=function(msg,url,line,col,err){
   showTitle();
   (function(){ var ld=document.getElementById('loader'); if(ld){ setTimeout(function(){ ld.classList.add('hidden'); }, 320); } })();   // 加载页淡出
 
-  window.addEventListener('beforeunload',function(){state.lastSeen=Date.now();save(state);});
+  window.addEventListener('beforeunload',function(){ if(state){ state.lastSeen=Date.now(); save(state); } });
   }catch(e){
     var pre=document.createElement('pre');
     pre.style.cssText='padding:24px;color:#c00;background:#fff;white-space:pre-wrap;font-size:13px;line-height:1.6';
     pre.textContent=e.stack || e.message || String(e);
+    try{ pre.textContent+=' [诊断] G='+(typeof G)+' SharedGame='+(window.LF&&typeof window.LF.SharedGame)+' LF.DIALOGUES='+(window.LF&&typeof window.LF.DIALOGUES)+' G.DIALOGUES='+(G&&typeof G.DIALOGUES)+' G.SECTS='+(G&&typeof G.SECTS)+' G.ROOMS='+(G&&typeof G.ROOMS)+' LF.CONSTANTS='+(window.LF&&typeof window.LF.CONSTANTS); }catch(_){}
     document.body.innerHTML='';
     document.body.appendChild(pre);
   }
