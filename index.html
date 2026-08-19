@@ -3015,17 +3015,6 @@ window.onerror=function(msg,url,line,col,err){
     }
     var line=n.lines[Math.floor(Math.random()*n.lines.length)];
     log(line,'npc', n.name);
-    // ── P3 双轴解锁事件 ──
-    if(k==='hanbo' && state.chivalry>=30){ var er=findEvent('ev_righteous'); if(er) runEvent(er); return; }
-    if(k==='yingmen' && state.notoriety>=30){ var es2=findEvent('ev_shadow'); if(es2) runEvent(es2); return; }
-    if(k==='shuijing' && state.chivalry>=40 && state.notoriety>=40){ var eu=findEvent('ev_usurper'); if(eu) runEvent(eu); return; }
-    if(k==='hanbo' && Math.random()<0.6){ var ev=findEvent('ev_hanbo'); if(ev) runEvent(ev); }
-    // ── 奇遇：与任意江湖人闲谈，偶发新事件（不与特定 NPC 的专属事件冲突） ──
-    if(Math.random()<0.25){
-      var xp=['ev_refugee','ev_tavern','ev_heishan','ev_orphan','ev_oldmonk','ev_wanderer','ev_flood','ev_assassin'];
-      var xv=xp[Math.floor(Math.random()*xp.length)];
-      var xev=findEvent(xv); if(xev){ runEvent(xev); return; }
-    }
   }
 
   // ===== 行动分发 =====
@@ -3035,10 +3024,8 @@ window.onerror=function(msg,url,line,col,err){
       case 'rest':  actRest(); break;
       case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
-      case 'patrol': if(!exert('深入山林')) return; 
-        var pool=['ev_escapees','ev_hermit','ev_leftci','ev_merchant','ev_hanbo','ev_refugee','ev_tavern','ev_heishan','ev_orphan','ev_oldmonk','ev_wanderer','ev_flood','ev_assassin'];
-        var ev2=findEvent(pool[Math.floor(Math.random()*pool.length)]);
-        if(ev2) runEvent(ev2); break;
+      case 'patrol': if(!exert('深入山林')) return;
+        log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
       // ─── 战斗试炼 ───
       case 'spar_bandit': if(!exert('应战')) return; startCombat('bandit'); break;
       case 'spar_chief':  if(!exert('应战')) return; startCombat('bandit_chief'); break;
