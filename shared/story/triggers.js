@@ -22,24 +22,20 @@
 
   // ───────────────────────── 开场教学：苦役营·密道线 ─────────────────────────
 
-  // 1) 劳役场·进场：场景已由 enterRoom 自动播报（已精简为「醒来+劳役场」两句）；
-  //    此处只负责揭示 NPC、并由官差牢头强制主角担石，不再重复播系统旁白。
+  // 1) 劳役场·进场：场景已由 enterRoom 自动播报（「醒来+劳役场」两句）。
+  //    此处一次性点亮交互界面（NPC / 行动 / 下方区），并由官差牢头在叙事里喝令去担石——
+  //    改用「叙事旁白」而非模态弹窗，避免手机端进场即被弹窗打断；玩家落座即可直接点「担石劳作」开玩。
   TRIGGERS.push({
     id: 'camp_opening', hook: 'onEnter', room: 'camp_yard', once: true,
     steps: [
       { t: 'reveal', layer: 'npc' },
-      { t: 'npcTalk', npc: 'laotou',
-        prompt: '（牢头踹了你一脚，唾沫横飞）新来的囚籍！别他娘装死——滚去场中担石，今日不担满三车休想歇脚！',
-        asks: [
-          { label: '〔领命〕低头去扛石。',
-            set: { 'flags.onb.driven': true },
-            reveal: ['lower', 'actions'],
-            say: '你唯有低头去扛石。场中蹲着个蓬头囚徒正压着嗓子讲古，闲了不妨凑近听听——横竖也得先熬过这苦役。' }
-        ] }
+      { t: 'reveal', layer: 'lower' },
+      { t: 'reveal', layer: 'actions' },
+      { t: 'log', cls: 'npc', text: '（一名狱卒踱到你跟前，踢了踢脚边碎石）新来的？少发愣——场中那些石头，今天归你搬。搬不满三车，晌饭就甭想。' }
     ]
   });
 
-  // 2.2) 首次担石劳作：渐进揭示状态栏 + 位置页签（不再系统明示，引导交由玩家自由探索）
+  // 2.2) 首次担石劳作：记一次劳作体验，并顺带点亮状态栏 + 位置页签（自然的「干完活才看自身状态」时刻）
   TRIGGERS.push({
     id: 'labor_first', hook: 'onCustom', room: 'camp_yard', once: true,
     cond: { notFlag: 'flags.onb.labored' },
@@ -47,8 +43,7 @@
       { t: 'log', cls: 'sys', text: '你扛起乱石，肩头火辣。日头毒辣，囚徒如蚁，狱卒皮鞭声在身后炸响——这便是苦役营的日夜。' },
       { t: 'setFlag', path: 'flags.onb.labored', value: true },
       { t: 'reveal', layer: 'status' },
-      { t: 'reveal', layer: 'loctab' },
-      { t: 'sys', text: '你抹了把汗，四下打量——这劳役场到底几处去路，总得先看清。' }
+      { t: 'reveal', layer: 'loctab' }
     ]
   });
 
