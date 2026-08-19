@@ -1213,6 +1213,7 @@
   .shop-good.shop-bad .sg-buy{color:#e0796f;}
   .shop-right .pack-grid{grid-template-columns:repeat(3,1fr);gap:7px;}
   .pcell-sell{position:absolute;left:3px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
+  .pcell-dur{position:absolute;left:3px;top:2px;font-size:10px;color:#9fd0e0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   .shop-info{flex:0 0 auto;max-height:26%;margin-top:8px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
   .shop-info .pi-actions{margin-top:6px;}
   .shop-foot{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin-top:8px;}
@@ -1466,7 +1467,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819r</div>
+    <div class="tt-ver" id="tt-ver">v20260820s</div>
   </div>
 </div>
 
@@ -1498,7 +1499,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819r"></script>
+<script src="shared/config/constants.js?v=20260820s"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -3308,17 +3309,17 @@ window.onerror=function(msg,url,line,col,err){
   // 货郎商店数据已外置到 shared/data/shops.js（详见 LF.SHOPS.build_pedlar），便于调价与扩展
   var shopState='build_pedlar';
   var shopSel=null;
-  // 取某物在货郎处的「收购价」（不在货郎收购清单里则返回 null）
+  // 取某物在货郎处的「收购价」（货郎不收 / 收购价<=0 时返回 null）
   function shopSellPrice(id){
     var shop=LF.SHOPS[shopState]; if(!shop) return null;
     var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; });
-    return r? r.sell : null;
+    return (r && r.sell>0) ? r.sell : null;
   }
   function renderShopPanel(){
     var shop = LF.SHOPS[shopState] || {name:'', items:[]};
     var DEFS=LF.ITEMS;
-    // 左栏：货郎的货（点按购入）
-    var goodsGrid = shop.items.map(function(r){
+    // 左栏：货郎的货（仅展示 buy>0 的，点按购入）
+    var goodsGrid = shop.items.filter(function(r){ return r.buy>0; }).map(function(r){
       var d=DEFS[r.id]||{};
       var canBuy = state.gold>=r.buy;
       return '<div class="shop-good'+(canBuy?'':' shop-bad')+'" data-shop="'+r.id+'">'
@@ -3327,7 +3328,7 @@ window.onerror=function(msg,url,line,col,err){
         + '<div class="sg-buy">买 '+r.buy+' 两</div>'
         + '</div>';
     }).join('');
-    // 右栏：玩家行囊（仅物品，标售价）
+    // 右栏：玩家行囊（仅物品，标售价 / 耐久）
     var grid='';
     for(var i=0;i<state.pack.length;i++){
       var it=state.pack[i];
@@ -3335,10 +3336,11 @@ window.onerror=function(msg,url,line,col,err){
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var sp = shopSellPrice(it.defId);
       var sellTag = (sp!=null) ? '<span class="pcell-sell">卖'+sp+'</span>' : '';
+      var durTag = (it.maxDur) ? '<span class="pcell-dur">'+it.dur+'/'+it.maxDur+'</span>' : '';
       var selCls = (shopSel===i)?' pcell-sel':'';
       grid += '<div class="packcell'+selCls+'" data-loc="pack:'+i+'">'
             + '<div class="pcell-nm">'+it.name+'</div>'
-            + cnt + sellTag + '</div>';
+            + cnt + sellTag + durTag + '</div>';
     }
     return '<div class="shop-wrap">'
       + '<div class="shop-head"><span class="shop-title">💰 '+shop.name+' · 交易</span><span class="shop-gold">银两 '+state.gold+' 两</span></div>'
@@ -3620,7 +3622,7 @@ window.onerror=function(msg,url,line,col,err){
       }); st.items=null; }
   }
   function itemKey(it){ return it ? (it.defId || it.id) : null; }
-  function packIsStackable(it){ return it && it.cat!=='装备'; }
+  function packIsStackable(it){ return it && it.cat!=='装备' && !it.maxDur; }
   function packFirstEmpty(){ for(var i=0;i<state.pack.length;i++){ if(!state.pack[i]) return i; } return -1; }
   function packAdd(itemOrDefId, count){
     var it; if(typeof itemOrDefId==='string'){ it=LF.ITEMS.makeItem(itemOrDefId, count||1); }
