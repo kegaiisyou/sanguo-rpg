@@ -27,43 +27,54 @@
   TRIGGERS.push({
     id: 'camp_opening', hook: 'onEnter', room: 'camp_yard', once: true,
     steps: [
-      { t: 'sys', text: '〔苦役营·劳役场。黑压压一片囚徒与往来狱卒。场中一个蓬头囚徒正压着嗓子讲古——点下方「周听涛」听他讲些什么。〕' },
+      { t: 'sys', text: '〔苦役营·劳役场。你昏沉沉醒来，竟不知怎的做了囚徒。黑压压一片囚徒与往来狱卒。场中一个蓬头囚徒正压着嗓子讲古——点下方「周听涛」，先听听他在讲些什么。〕' },
       { t: 'reveal', layer: 'npc' },
       { t: 'npcTalk', npc: 'zhoutingtao',
         prompt: '周听涛压着嗓子：「天下分久必合，合久必分——这乱世里，最出彩的偏是先秦刺客。易水萧萧，荆轲白马一去不返；鱼肠藏刃，专诸笑里酬恩。剑客的潇洒，不在活命，在来去从容。列位，这般孤勇，如今可还在？」',
         asks: [
           { label: '〔听书〕先生讲得精彩，这孤勇可在？',
-            set: { favor: 1 },
+            set: { favor: 1, 'flags.onb.talked': true },
             reveal: ['lower', 'actions'],
-            say: '周听涛独独朝你挤眼：「你这囚籍的，命数不在牢里。听得进老夫一句，往后自有生路。」说罢以指蘸茶，在案上画了个「墙」字，又轻轻抹去——你心头一凛。〔已点亮下方场景 / 罗盘 / 行动区；与先生多攀谈、在场中担石，可探得生路。〕' }
+            say: '周听涛独独朝你挤眼：「你初来，连苦役营的日月都没尝过，急什么。先去场中担石劳作，体会这营里的日子；再环顾四周、看清几处去路——回来老夫再与你细说生路。」〔已点亮下方场景 / 罗盘 / 行动区；先去「担石劳作」，再去「环顾四周」，最后回来寻先生。〕' }
         ] }
     ]
   });
 
-  // 2.2) 首次担石劳作：渐进揭示状态栏 + 位置页签（onb 分层，对应文档序列）
+  // 2.2) 首次担石劳作：渐进揭示状态栏 + 位置页签，并引导勘察
   TRIGGERS.push({
     id: 'labor_first', hook: 'onCustom', room: 'camp_yard', once: true,
-    cond: { notFlag: 'flags.task.labored' },
+    cond: { notFlag: 'flags.onb.labored' },
     steps: [
       { t: 'log', cls: 'sys', text: '你扛起乱石，肩头火辣。日头毒辣，囚徒如蚁，狱卒皮鞭声在身后炸响——这便是苦役营的日夜。' },
-      { t: 'setFlag', path: 'flags.task.labored', value: true },
+      { t: 'setFlag', path: 'flags.onb.labored', value: true },
       { t: 'reveal', layer: 'status' },
       { t: 'reveal', layer: 'loctab' },
-      { t: 'sys', text: '〔系统〕你已体会苦役营的劳役。上方状态栏与位置页签已开启。' }
+      { t: 'sys', text: '〔系统〕你已体会苦役。上方状态栏与位置页签已开启。接着，点行动区「环顾四周」，看清这营里几处去路。' }
     ]
   });
 
-  // 2) 周听涛·取信授密道线（好感≥1 且尚未取得线索）
+  // 2.5) 环顾四周（勘察劳役场）：揭示去路，引导回周听涛问生路
+  TRIGGERS.push({
+    id: 'survey_yard', hook: 'onCustom', room: 'camp_yard', once: true,
+    cond: { flags: { 'flags.onb.labored': true }, notFlag: 'flags.onb.surveyed' },
+    steps: [
+      { t: 'log', cls: 'sys', text: '你环顾劳役场：西边塌了半截的墙根，藤蔓爬墙——那是营墙的缺口，风里带着外面的草木腥气；东南角一道低矮门洞，通向囚室，里头囚徒横七竖八。狱卒往来，各处出口皆被看死，唯有那塌墙根透着几分松动。' },
+      { t: 'setFlag', path: 'flags.onb.surveyed', value: true },
+      { t: 'sys', text: '〔系统〕你已看清去路：西去塌墙根、东南去囚室。如今去寻周听涛，他既叫你勘察，自会说出一条生路。' }
+    ]
+  });
+
+  // 2) 周听涛·取信授密道线（须先尝过苦、看清路，且尚未取得线索）
   TRIGGERS.push({
     id: 'zt_crypt', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_yard', once: true,
-    cond: { npcFavor: { key: 'zhoutingtao', min: 1 }, notFlag: 'flags.route.crypt' },
+    cond: { flags: { 'flags.onb.labored': true, 'flags.onb.surveyed': true }, notFlag: 'flags.route.crypt' },
     steps: [
       { t: 'npcTalk', npc: 'zhoutingtao',
-        prompt: '你凑近低问：「先生方才那『墙』字，是何意？」周听涛四下瞅了瞅，压低嗓子：',
+        prompt: '你凑近低问：「先生，石也担了，路也看清了，那生路——」周听涛四下瞅了瞅，压低嗓子：',
         asks: [
           { label: '〔请教〕先生既知生路，可否指点？',
             set: { 'flags.route.crypt': true },
-            say: '「老夫装疯这些日子，没白装。营后塌墙根下有暗道，默叔替我守着。你若信得过，夜里随我来——记着，塌墙根，寻默叔。」〔已得密道线索：去西边塌墙根找默叔。〕' }
+            say: '「老夫装疯这些日子，没白装。营后塌墙根下有暗道，默叔替我守着。你若信得过，夜里随我来——记着，塌墙根，寻默叔。」〔已得密道线索：先去东南囚室寻默叔对暗号，再赴西边塌墙根钻暗道。〕' }
         ] }
     ]
   });

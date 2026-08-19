@@ -1432,7 +1432,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819d</div>
+    <div class="tt-ver" id="tt-ver">v20260819f</div>
   </div>
 </div>
 
@@ -1464,15 +1464,15 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819d"></script>
+<script src="shared/config/constants.js?v=20260819f"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260817c"></script>
-<script src="shared/story/dialogues.js?v=20260819e"></script>
-    <script src="shared/story/rooms.js?v=20260819e"></script>
-    <script src="shared/story/triggers.js?v=20260819e"></script>
+<script src="shared/story/dialogues.js?v=20260819f"></script>
+    <script src="shared/story/rooms.js?v=20260819f"></script>
+    <script src="shared/story/triggers.js?v=20260819f"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
 <script src="shared/data/items.js?v=20260817b"></script>
@@ -3038,6 +3038,11 @@ window.onerror=function(msg,url,line,col,err){
         if(!exert('担石劳作')) return;
         if(!checkTriggers({hook:'onCustom', room:'camp_yard'}))
           log('你又扛起乱石，汗如雨下。苦役营的日夜，漫长得没有尽头。','sys');
+        break;
+      case 'survey_yard':
+        if(!exert('环顾四周')) return;
+        if(!checkTriggers({hook:'onCustom', room: state.room}))
+          log('你又环顾了一圈劳役场，乱石、藤蔓、往来狱卒——一切如旧。','sys');
         break;
       case 'wall_choose':
         if(!exert('勘察墙根')) return;
