@@ -1437,7 +1437,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819o</div>
+    <div class="tt-ver" id="tt-ver">v20260819p</div>
   </div>
 </div>
 
@@ -1469,7 +1469,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819o"></script>
+<script src="shared/config/constants.js?v=20260819p"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1480,7 +1480,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260819i"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260819m"></script>
+<script src="shared/data/items.js?v=20260819p"></script>
     <script src="shared/data/recipes.js?v=20260819o"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
@@ -2538,6 +2538,7 @@ window.onerror=function(msg,url,line,col,err){
       {type:'feature', key:'tree',     icon:'🌳', name:'一棵老树', desc:'粗壮老树，枝干坚实，正堪伐取',   actions:treeActs},
       {type:'feature', key:'bench',    icon:'🔨', name:'木工台',   desc:'粗木搭就的工作台，可将木头加工成木材', actions:benchActs},
       {type:'feature', key:'toolpile', icon:'🪓', name:'工具堆',   desc:'墙角堆着些杂役用的家伙什',       actions:[{label:'拾取斧头', icon:'🪓', fn:function(){ pickupAxe(); }}]},
+      {type:'npc', key:'pedlar', icon:'🧺', name:'货郎', desc:'挑担行商，收售木料与器具', actions:[{label:'与他交易', icon:'💰', fn:function(){ openModal('shop', {shop:'build_pedlar'}); }}]},
       {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·北邙山林',desc:'返回山林',                        actions:[{label:'返回北邙山林', fn:function(){ move('北','forest'); }}]}
     ],
@@ -2963,7 +2964,7 @@ window.onerror=function(msg,url,line,col,err){
   // 当前房间的方位通路（兼容 ROOM_OBJECTS 与旧版 room.exits）
   function currentRoomExits(){
     var room=G.ROOMS[state.room];
-    var objs=ROOM_OBJECTS[room.id]||[];
+    var objs=roomObjs(room.id);
     var ex=objs.filter(function(o){return o.type==='exit';});
     if(ex.length) return ex;
     return Object.keys(room.exits||{}).map(function(dir){
@@ -3130,6 +3131,7 @@ window.onerror=function(msg,url,line,col,err){
     if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
     var withAxe = !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
     advanceTime(1);
+    if(withAxe) consumeTool('futou',1);
     if(withAxe){
       packAdd('mutou', 1);
       log('你抡圆锈斧，咔咔几声，老树应声倒下，得木头×1。','env');
@@ -3223,6 +3225,118 @@ window.onerror=function(msg,url,line,col,err){
     log('你从墙角的工具堆里捡起一把锈迹斑斑的斧头，握在手里沉甸甸的。','sys');
     buildActions(G.ROOMS[state.room]);   // 拾斧后刷新，使老树菜单即时变为「挥斧伐木」
   }
+  // ===== 帐篷放置 + 货郎交易（建造系统测试房） =====
+  function consumeTool(defId, n){
+    for(var i=0;i<state.pack.length;i++){
+      var it=state.pack[i]; if(!it || it.defId!==defId || !it.maxDur) continue;
+      it.dur = (it.dur||0) - n;
+      if(it.dur<=0){ state.pack[i]=null; log('你的'+it.name+'耐久耗尽，咔嚓一声损毁了。','sys'); }
+      else if(it.dur<=2){ log(it.name+'已有些松垮（耐久 '+it.dur+'/'+it.maxDur+'），趁还能用多伐几根。','sys'); }
+      return;
+    }
+  }
+  // 合并静态 ROOM_OBJECTS 与玩家动态放置物（帐篷等），供场景/列表/出口统一读取
+  function roomObjs(roomId){
+    var base = ROOM_OBJECTS[roomId] || [];
+    var placed = (state.placed && state.placed[roomId]) || [];
+    var dyn = placed.map(function(p){
+      if(p.key==='tent') return {type:'feature', key:'tent', icon:'⛺', name:'帐篷', desc:'支起的行帐，可在此休整或收起', actions:tentActs};
+      return {type:'feature', key:p.key, icon:'❓', name:'未知物', desc:'', actions:[]};
+    });
+    return base.concat(dyn);
+  }
+  function tentActs(){
+    return [
+      {label:'休息', icon:'🧘', fn:function(){ closeModal(); actRest(); }},
+      {label:'收起', icon:'📦', fn:function(){ packUpTent(); }}
+    ];
+  }
+  function placeInspect(){
+    if(!packInspect || packInspect.kind!=='pack') return;
+    var idx=packInspect.idx; var it=state.pack[idx]; if(!it || !it.placeable) return;
+    state.placed = state.placed || {};
+    state.placed[state.room] = state.placed[state.room] || [];
+    if(state.placed[state.room].some(function(o){ return o.key==='tent'; })){ toast('此处已支有一顶帐篷。'); return; }
+    state.pack[idx]=null;
+    state.placed[state.room].push({key:'tent'});
+    packInspect=null;
+    afterPackChange();
+    log('你抖开帐篷，支于空地一角。','sys');
+    if(currentModalKind==='pack') openModal('pack');
+  }
+  function packUpTent(){
+    state.placed = state.placed || {};
+    var arr = state.placed[state.room];
+    if(!arr || !arr.some(function(o){ return o.key==='tent'; })){ toast('此处并无帐篷可收。'); return; }
+    state.placed[state.room] = arr.filter(function(o){ return o.key!=='tent'; });
+    packAdd('zhangpeng', 1);
+    packInspect=null;
+    afterPackChange();
+    log('你收起帐篷，卷作一团揣入行囊。','sys');
+    if(currentModalKind==='pack') openModal('pack');
+  }
+  // 货郎（建造系统测试房商人）
+  LF.SHOPS = LF.SHOPS || {};
+  LF.SHOPS.build_pedlar = {
+    name:'货郎',
+    items:[
+      {id:'mutou',      buy:8,  sell:3},
+      {id:'xiaoshuzhi', buy:3,  sell:1},
+      {id:'futou',      buy:35, sell:12},
+      {id:'zhangpeng',  buy:60, sell:25}
+    ]
+  };
+  var shopState='build_pedlar';
+  function renderShopPanel(){
+    var shop = LF.SHOPS[shopState] || {name:'', items:[]};
+    var DEFS=LF.ITEMS;
+    function rowHTML(r){
+      var d=DEFS[r.id]||{};
+      var have=(packFind(r.id)||{count:0}).count;
+      var canBuy = state.gold>=r.buy;
+      var canSell = have>0;
+      return '<div style="border:1px solid #6b5a3a;border-radius:8px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'+
+        '<div style="font-size:16px;margin-bottom:4px;">'+(d.icon||'')+' <b>'+d.name+'</b> <span style="opacity:.6;font-size:12px;">(持有 '+have+')</span></div>'+
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;">'+
+          '<span style="font-size:13px;color:#d8c9a8;">买 '+r.buy+' 两</span>'+
+          '<button class="sheet-btn" '+(canBuy?'':'data-dis="1" style="opacity:.45;"')+' data-buy="'+r.id+'">买入</button>'+
+          '<span style="font-size:13px;color:#d8c9a8;">卖 '+r.sell+' 两</span>'+
+          '<button class="sheet-btn" '+(canSell?'':'data-dis="1" style="opacity:.45;"')+' data-sell="'+r.id+'">卖出</button>'+
+        '</div></div>';
+    }
+    return '<h3 style="text-align:center;margin:0 0 4px;">💰 '+shop.name+' · 交易</h3>'+
+           '<p class="tip" style="text-align:center;margin:0 0 10px;">银两 '+state.gold+' 两</p>'+
+           shop.items.map(rowHTML).join('')+
+           '<button class="sheet-leave" id="m-leave">告 辞</button>';
+  }
+  function bindShopPanel(){
+    $card.querySelectorAll('[data-buy]').forEach(function(b){
+      b.onclick=function(){ if(b.getAttribute('data-dis')) return; buyFromShop(b.getAttribute('data-buy')); };
+    });
+    $card.querySelectorAll('[data-sell]').forEach(function(b){
+      b.onclick=function(){ if(b.getAttribute('data-dis')) return; sellToShop(b.getAttribute('data-sell')); };
+    });
+    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
+  }
+  function buyFromShop(id){
+    var shop=LF.SHOPS[shopState]; if(!shop) return;
+    var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; }); if(!r) return;
+    if(state.gold<r.buy){ toast('银两不足，买不起。'); return; }
+    state.gold-=r.buy; packAdd(id,1);
+    afterPackChange();
+    log('你向货郎购入'+(LF.ITEMS[id]||{}).name+'×1，付银 '+r.buy+' 两。','sys');
+    $card.innerHTML=renderShopPanel(); bindShopPanel();
+  }
+  function sellToShop(id){
+    var shop=LF.SHOPS[shopState]; if(!shop) return;
+    var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; }); if(!r) return;
+    if(!(packFind(id))){ toast('你没有可卖的'+(LF.ITEMS[id]||{}).name+'。'); return; }
+    packConsume(id,1); state.gold+=r.sell;
+    afterPackChange();
+    log('你卖给货郎'+(LF.ITEMS[id]||{}).name+'×1，得银 '+r.sell+' 两。','sys');
+    $card.innerHTML=renderShopPanel(); bindShopPanel();
+  }
+
   // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){
     clearActions();
@@ -3430,7 +3544,8 @@ window.onerror=function(msg,url,line,col,err){
       if(it.effect.mp){ state.mp=Math.min(state.maxMp, state.mp+(it.effect.mp||0)); toast('内息稍复（+'+(it.effect.mp||0)+'）。'); }
       if(it.effect.food){ state.food=Math.min(100,(state.food||0)+(it.effect.food||0)); toast('腹中稍暖（+'+(it.effect.food||0)+'）。'); }
       if(it.effect.drink){ state.drink=Math.min(100,(state.drink||0)+(it.effect.drink||0)); toast('喉间得润（+'+(it.effect.drink||0)+'）。'); }
-    } else { toast('此物暂无可施用之效。'); return; }
+    } else if(it.maxDur){ toast('「'+it.name+'」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
+    else { toast('此物暂无可施用之效。'); return; }
     it.count--; if(it.count<=0) state.pack[idx]=null;
     afterPackChange();
   }
@@ -3570,13 +3685,15 @@ window.onerror=function(msg,url,line,col,err){
       if(it.effect.drink) effs.push('解渴 +'+it.effect.drink);
       if(effs.length) html += '<div class="pi-row"><span class="pi-label">使用</span><span class="pi-eff">'+effs.join('　')+'</span></div>';
     }
+    if(it.maxDur && it.cat!=='装备'){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); html += '<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span></div>'; }
     if(it.desc) html += '<div class="pi-desc">'+it.desc+'</div>';
     var act='<div class="pi-actions">';
     if(it.cat==='装备'){
       if(packInspect.kind==='equip') act += '<button class="btn-mini" onclick="LFUI.unequipInspect()">卸下</button>';
       else act += '<button class="btn-mini" onclick="LFUI.equipInspect()">装备</button>';
     } else {
-      act += '<button class="btn-mini" onclick="LFUI.useInspect()">使用</button>';
+      if(it.effect) act += '<button class="btn-mini" onclick="LFUI.useInspect()">使用</button>';
+      if(it.placeable) act += '<button class="btn-mini" onclick="LFUI.placeInspect()">放置</button>';
     }
     if(packInspect.kind==='pack') act += '<button class="btn-mini" onclick="LFUI.discardInspect()">丢弃</button>';
     act += '<button class="btn-mini" onclick="LFUI.closeInspect()">关闭</button>';
@@ -3646,7 +3763,7 @@ window.onerror=function(msg,url,line,col,err){
   function closeInspect(){ packInspect=null; openModal('pack'); }
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
   window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort,
-    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats };
+    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect };
 
   // 行囊装备面板（P1 完整）
   function useItemOutside(defId){
@@ -4087,6 +4204,9 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='craft'){
       if(opts && opts.bench) craftState.bench = opts.bench;
       h=renderCraftPanel();
+    } else if(kind==='shop'){
+      if(opts && opts.shop) shopState=opts.shop;
+      h=renderShopPanel();
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack');
@@ -4094,6 +4214,7 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='char') bindAttrAlloc();
     if(kind==='pack'){ bindPackInteractions(); }
     if(kind==='craft'){ bindCraftPanel(); }
+    if(kind==='shop'){ bindShopPanel(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};

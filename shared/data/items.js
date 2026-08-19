@@ -60,7 +60,8 @@
     xiaoshuzhi:    { defId: 'xiaoshuzhi', name: '小树枝', icon: '🍂', cat: '素材', desc: '徒手折下的细弱枝条，需于木工台加工方能成材。' },
     mutou:         { defId: 'mutou',   name: '木头',   icon: '🪵', cat: '素材', desc: '粗伐的树干枝料，可于木工台加工成木材，亦能直接搭架。' },
     mucai:         { defId: 'mucai',   name: '木材',   icon: '🟫', cat: '素材', desc: '经木工台刨削而成的规整木料，修筑与打造的基材。' },
-    futou:         { defId: 'futou',   name: '斧头',   icon: '🪓', cat: '素材', desc: '锈迹斑斑的斧头。持之伐木，收获倍增——工具亦可作消耗口。' }
+    futou:         { defId: 'futou',   name: '斧头',   icon: '🪓', cat: '素材', tool:true, maxDur:5, desc: '伐木器具。持之伐木可得粗实木头；每伐一次耗耐久 1，耐久尽则损毁。亦可售与行商。' },
+    zhangpeng:     { defId: 'zhangpeng', name: '帐篷', icon: '⛺', cat: '器具', placeable:true, desc: '可携行的小帐。于背包「放置」后支起，房中即可「休息」「收起」。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
@@ -117,6 +118,7 @@
     var d = DEFS[defId]; if (!d) return null;
     var it = { defId: d.defId, name: d.name, icon: d.icon, cat: d.cat, desc: d.desc, count: count || 1 };
     if (d.effect) it.effect = JSON.parse(JSON.stringify(d.effect));
+    if (d.maxDur) { it.maxDur = d.maxDur; it.dur = d.maxDur; }
     if (d.cat === '装备') {
       it.slot = d.slot; it.quality = d.quality || 'white';
       it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;
