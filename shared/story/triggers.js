@@ -30,7 +30,7 @@
       { t: 'sys', text: '〔苦役营·劳役场。黑压压一片囚徒与往来狱卒。当中一人拍案而起，醒木一拍——是说书先生周听涛。点下方「周听涛」听他说书。〕' },
       { t: 'reveal', layer: 'npc' },
       { t: 'npcTalk', npc: 'zhoutingtao',
-        prompt: '周听涛醒木拍案：「话说天下大势，分久必合，合久必分……如今这汉室，也到了分崩的时候喽。」又道：「且说那使枪的少年夜走太行，一杆孤枪挑翻十八寨；又有那独臂刀客，单刀赴会，血溅五步……列位看官，这般孤勇，可还在不在？」',
+        prompt: '周听涛醒木拍案：「话说天下大势，分久必合，合久必分——分则诸侯裂土，侠客横行。老夫独爱那先秦刺客，最是潇洒写意：易水萧萧，荆轲白马出燕京，一歌风发动苍冥；鱼肠隐隐，专诸藏刃入深庭，笑里恩仇付浊醽；沧海沉沉，聂政孤身酬知己，白虹贯日气如霆。剑起处残星欲坠，袖翻时明月犹清，来去从容快意恩仇，方是男儿写意行。列位看官，这般孤勇，可还在不在？」',
         asks: [
           { label: '〔听书〕先生讲得精彩，这孤勇可在？',
             set: { favor: 1 },
@@ -51,6 +51,21 @@
           { label: '〔请教〕先生既知生路，可否指点？',
             set: { 'flags.route.crypt': true },
             say: '「老夫装疯这些日子，没白装。营后塌墙根下有暗道，默叔替我守着。你若信得过，夜里随我来——记着，塌墙根，寻默叔。」〔已得密道线索：去西边塌墙根找默叔。〕' }
+        ] }
+    ]
+  });
+
+  // 2.5) 周听涛·授「孤勇」心法（已取得密道线索，且尚未受教）
+  TRIGGERS.push({
+    id: 'zt_teach', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_yard', once: true,
+    cond: { npcFavor: { key: 'zhoutingtao', min: 1 }, flags: { 'flags.route.crypt': true }, notFlag: 'flags.task.taught' },
+    steps: [
+      { t: 'npcTalk', npc: 'zhoutingtao',
+        prompt: '你再凑近：「先生方才说那先秦刺客的写意孤勇，晚辈心向往之。可否略授一二？」',
+        asks: [
+          { label: '〔受教〕愿闻其详。',
+            set: { 'flags.task.taught': true },
+            say: '「刺客之潇洒，不在剑利，在来去从容、酬知己而不惜身。牢记八字——』他蘸茶在案上写：『事了拂衣，深藏功名。』「塌墙根见了默叔，照这八字行事，必能全身而退。」〔已受先生「孤勇」心法，且去塌墙根寻默叔。〕' }
         ] }
     ]
   });
@@ -77,16 +92,31 @@
     steps: [ { t: 'clearGate' } ]
   });
 
-  // 5) 默叔·引你入密道（逃逸枢纽）
+  // 5) 默叔·示意暗号（逃逸前置：先对上暗号，再钻暗道）
   TRIGGERS.push({
-    id: 'moshu_escort', hook: 'onTalk', npc: 'moshu', room: 'camp_wall', once: true,
-    cond: { flags: { 'flags.route.crypt': true } },
+    id: 'moshu_signal', hook: 'onTalk', npc: 'moshu', room: 'camp_wall', once: true,
+    cond: { flags: { 'flags.route.crypt': true }, notFlag: 'flags.task.signal' },
     steps: [
       { t: 'npcTalk', npc: 'moshu',
-        prompt: '默叔见是你，咧嘴无声一笑，朝塌墙根一指，又比了个「随我来」的手势。',
+        prompt: '默叔见是你，咧嘴无声一笑，却先抬手虚按，示意你蹲下；又伸出三根指头，缓缓收起两根，只留食指朝塌墙根一点。',
+        asks: [
+          { label: '（蹲下，按他手势比出「一指墙根」）',
+            set: { 'flags.task.signal': true },
+            say: '默叔眼中一亮，点头。他比了个「随我来」的手势，等你起身——暗号对上了。〔已与默叔对上暗号，可随他钻暗道。〕' }
+        ] }
+    ]
+  });
+
+  // 5.5) 默叔·引你入密道（逃逸枢纽）
+  TRIGGERS.push({
+    id: 'moshu_escort', hook: 'onTalk', npc: 'moshu', room: 'camp_wall', once: true,
+    cond: { flags: { 'flags.route.crypt': true, 'flags.task.signal': true } },
+    steps: [
+      { t: 'npcTalk', npc: 'moshu',
+        prompt: '默叔见暗号已对，咧嘴一笑，拨开乱砖，露出幽深暗道，招手让你跟上。',
         asks: [
           { label: '（随默叔钻进塌墙根的暗道）',
-            say: '你跟着默叔拨开乱砖，暗道幽深，潮气扑面。七拐八绕，头顶人声渐远——你们钻出了营墙。' }
+            say: '你跟着默叔钻入暗道，潮气扑面，七拐八绕，头顶人声渐远——你们钻出了营墙。' }
         ] },
       { t: 'setFlag', path: 'flags.route.escaped_crypt', value: true },
       { t: 'setFlag', path: 'flags.onb.done', value: true },
@@ -103,8 +133,16 @@
     steps: [
       { t: 'narrate', room: 'yanshan_shankou' },
       { t: 'log', cls: 'npc', npc: '穆长风', text: '穆长风斜倚隘口石上，见你钻出，咧嘴一笑：「出来了？老夫当年也是从这墙根爬出去的——结果又给抓了回来，哈哈！莫学我。」' },
-      { t: 'log', cls: 'env', text: '「外头往南是白檀军屯，老相识在那儿当差。你既出了营，自去闯吧。江湖险恶，保重。」' },
-      { t: 'setFlag', path: 'flags.route.contact', value: true },
+      { t: 'npcTalk', npc: 'mulongfeng',
+        prompt: '穆长风拍拍身旁石墩，示意你坐下：「既出来了，喝口风。外头世界，可比这墙里凶得多。」',
+        asks: [
+          { label: '〔问江湖〕前辈既出得来，可知外头出路？',
+            set: { 'flags.route.contact': true },
+            say: '「往南是白檀军屯，老相识在那儿当差，初出江湖可去投奔；往北渔阳、蓟城，正是乱世横流、英雄并起之处。你既出了营，自去闯吧——江湖险恶，保重。」' },
+          { label: '〔辞行〕前辈保重，晚辈去也。',
+            set: { 'flags.route.contact': true },
+            say: '「去罢去罢，莫回头。这墙根的风，老夫替你挡着。」他笑着挥手，身影没入隘口的风里。' }
+        ] },
       { t: 'log', cls: 'sys', text: '〔接应〕外部接应线已接驳：南去白檀军屯可寻穆长风旧识（开放世界钩子）。' }
     ]
   });
