@@ -1437,7 +1437,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819g</div>
+    <div class="tt-ver" id="tt-ver">v20260819h</div>
   </div>
 </div>
 
@@ -1469,14 +1469,14 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819g"></script>
+<script src="shared/config/constants.js?v=20260819h"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260817c"></script>
 <script src="shared/story/dialogues.js?v=20260819f"></script>
-    <script src="shared/story/rooms.js?v=20260819g"></script>
+    <script src="shared/story/rooms.js?v=20260819h"></script>
     <script src="shared/story/triggers.js?v=20260819f"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
@@ -2464,14 +2464,13 @@ window.onerror=function(msg,url,line,col,err){
         var ex=Object.keys(room.exits).map(function(d){return d+'·'+G.ROOMS[room.exits[d]].name;}).join('　');
         narr.push({t:'〔出口〕 '+ex, c:'exit'});
       }
-      // 新房间自动探查：标记已探索，记录 find 描述，出口立即可用
+      // 新房间自动探查：标记已探索，出口立即可用。
+      // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「环顾四周 / 探查」在玩家主动行动时揭示。
       if(!explored){
         explored=true;
         if(!state.exploredRooms) state.exploredRooms={};
         state.exploredRooms[rid]=true;
         save(state);
-        var find=room.find||'你凝神四望，周遭风物、通路尽收眼底。';
-        narr.push({t:find, c:'investigate'});
       }
     }
     renderLocTab(room);
