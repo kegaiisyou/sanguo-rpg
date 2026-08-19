@@ -1190,6 +1190,35 @@
   .packcell .pcell-cnt{position:absolute;right:3px;bottom:2px;font-size:10px;color:#f0e2c0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   .pcell-sel{outline:2px solid #d8b46a;box-shadow:0 0 10px rgba(216,180,106,.6);}
   .pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
+  /* ===== 商店（货郎）双栏：左货品 / 右行囊 ===== */
+  .shop-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
+  .shop-head{flex:0 0 auto;display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px;border-bottom:1px solid rgba(196,164,102,.35);margin-bottom:8px;}
+  .shop-title{font-family:"STKaiti","KaiTi",serif;font-size:20px;letter-spacing:3px;color:#ffd268;text-shadow:0 0 8px rgba(255,200,90,.5),0 2px 4px rgba(0,0,0,.6);}
+  .shop-gold{font-size:14px;color:#f0e2c0;}
+  .shop-main{flex:1 1 auto;display:flex;gap:10px;min-height:0;}
+  .shop-left,.shop-right{flex:1 1 0;display:flex;flex-direction:column;min-height:0;background:rgba(36,24,12,.30);border:1px solid rgba(196,164,102,.35);border-radius:12px;padding:6px;box-sizing:border-box;}
+  .shop-left{background:linear-gradient(180deg,rgba(120,80,40,.22),rgba(120,80,40,.06));border-color:rgba(216,180,106,.55);}
+  .shop-pane-title{flex:0 0 auto;text-align:center;font-size:13px;color:#d8c9a8;margin-bottom:6px;letter-spacing:1px;}
+  .shop-scroll{flex:1 1 auto;overflow-y:auto;min-height:0;padding-right:5px;scrollbar-width:thin;scrollbar-color:#b08d4f rgba(0,0,0,.22);}
+  .shop-scroll::-webkit-scrollbar{width:9px;}
+  .shop-scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.22);border-radius:6px;}
+  .shop-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#c8a05c,#8a6f3e);border-radius:6px;}
+  .shop-goods-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .shop-good{aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(216,180,106,.4);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:manipulation;padding:4px;box-sizing:border-box;}
+  .shop-good:active{transform:scale(.97);background:rgba(216,180,106,.12);}
+  .shop-good .sg-icon{font-size:30px;line-height:1;pointer-events:none;}
+  .shop-good .sg-name{font-size:13px;color:#f4e6c2;font-weight:600;margin-top:4px;pointer-events:none;}
+  .shop-good .sg-buy{font-size:12px;color:#ffd98a;margin-top:3px;pointer-events:none;}
+  .shop-good.shop-bad{opacity:.45;}
+  .shop-good.shop-bad .sg-buy{color:#e0796f;}
+  .shop-right .pack-grid{grid-template-columns:repeat(3,1fr);gap:7px;}
+  .pcell-sell{position:absolute;left:3px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
+  .shop-info{flex:0 0 auto;max-height:26%;margin-top:8px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
+  .shop-info .pi-actions{margin-top:6px;}
+  .shop-foot{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin-top:8px;}
+  .shop-foot .btn{flex:0 0 auto;}
+  .shop-hint{font-size:12px;color:#bfae8a;flex:1 1 auto;text-align:right;}
+  @media (max-width:560px){ .shop-goods-grid{grid-template-columns:repeat(2,1fr);} .shop-right .pack-grid{grid-template-columns:repeat(3,1fr);} }
   /* 底信息栏：固定，不随物品栏滚动 */
   .pack-info{flex:0 0 auto;max-height:22%;margin-top:10px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
   .pack-inspect{text-align:left;}
@@ -1437,7 +1466,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819p</div>
+    <div class="tt-ver" id="tt-ver">v20260819q</div>
   </div>
 </div>
 
@@ -1469,7 +1498,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819p"></script>
+<script src="shared/config/constants.js?v=20260819q"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -3287,35 +3316,117 @@ window.onerror=function(msg,url,line,col,err){
     ]
   };
   var shopState='build_pedlar';
+  var shopSel=null;
+  // 取某物在货郎处的「收购价」（不在货郎收购清单里则返回 null）
+  function shopSellPrice(id){
+    var shop=LF.SHOPS[shopState]; if(!shop) return null;
+    var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; });
+    return r? r.sell : null;
+  }
   function renderShopPanel(){
     var shop = LF.SHOPS[shopState] || {name:'', items:[]};
     var DEFS=LF.ITEMS;
-    function rowHTML(r){
+    // 左栏：货郎的货（点按购入）
+    var goodsGrid = shop.items.map(function(r){
       var d=DEFS[r.id]||{};
-      var have=(packFind(r.id)||{count:0}).count;
       var canBuy = state.gold>=r.buy;
-      var canSell = have>0;
-      return '<div style="border:1px solid #6b5a3a;border-radius:8px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'+
-        '<div style="font-size:16px;margin-bottom:4px;">'+(d.icon||'')+' <b>'+d.name+'</b> <span style="opacity:.6;font-size:12px;">(持有 '+have+')</span></div>'+
-        '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;">'+
-          '<span style="font-size:13px;color:#d8c9a8;">买 '+r.buy+' 两</span>'+
-          '<button class="sheet-btn" '+(canBuy?'':'data-dis="1" style="opacity:.45;"')+' data-buy="'+r.id+'">买入</button>'+
-          '<span style="font-size:13px;color:#d8c9a8;">卖 '+r.sell+' 两</span>'+
-          '<button class="sheet-btn" '+(canSell?'':'data-dis="1" style="opacity:.45;"')+' data-sell="'+r.id+'">卖出</button>'+
-        '</div></div>';
+      return '<div class="shop-good'+(canBuy?'':' shop-bad')+'" data-shop="'+r.id+'">'
+        + '<div class="sg-icon">'+(d.icon||'❓')+'</div>'
+        + '<div class="sg-name">'+d.name+'</div>'
+        + '<div class="sg-buy">买 '+r.buy+' 两</div>'
+        + '</div>';
+    }).join('');
+    // 右栏：玩家行囊（仅物品，标售价）
+    var grid='';
+    for(var i=0;i<state.pack.length;i++){
+      var it=state.pack[i];
+      if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
+      var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
+      var sp = shopSellPrice(it.defId);
+      var sellTag = (sp!=null) ? '<span class="pcell-sell">卖'+sp+'</span>' : '';
+      var selCls = (shopSel===i)?' pcell-sel':'';
+      grid += '<div class="packcell'+selCls+'" data-loc="pack:'+i+'">'
+            + '<div class="pcell-nm">'+it.name+'</div>'
+            + cnt + sellTag + '</div>';
     }
-    return '<h3 style="text-align:center;margin:0 0 4px;">💰 '+shop.name+' · 交易</h3>'+
-           '<p class="tip" style="text-align:center;margin:0 0 10px;">银两 '+state.gold+' 两</p>'+
-           shop.items.map(rowHTML).join('')+
-           '<button class="sheet-leave" id="m-leave">告 辞</button>';
+    return '<div class="shop-wrap">'
+      + '<div class="shop-head"><span class="shop-title">💰 '+shop.name+' · 交易</span><span class="shop-gold">银两 '+state.gold+' 两</span></div>'
+      + '<div class="shop-main">'
+      +   '<div class="shop-left" data-sellzone><div class="shop-pane-title">货郎的货 · 点按购入</div><div class="shop-scroll"><div class="shop-goods-grid">'+goodsGrid+'</div></div></div>'
+      +   '<div class="shop-right"><div class="shop-pane-title">你的行囊</div><div class="shop-scroll"><div class="pack-grid">'+grid+'</div></div></div>'
+      + '</div>'
+      + '<div class="shop-info">'+renderShopInfo()+'</div>'
+      + '<div class="shop-foot"><button class="btn" id="m-leave">告 辞</button><span class="shop-hint">点选物品看售价 · 拖到左栏即售</span></div>'
+      + '</div>';
+  }
+  function renderShopInfo(){
+    if(shopSel==null || !state.pack[shopSel]) return '<div class="pack-inspect pack-inspect-empty">点选右边物品，可见售价与详情；拖到左栏即可出售。</div>';
+    var it=state.pack[shopSel]; var d=LF.ITEMS[it.defId]||{};
+    var sp=shopSellPrice(it.defId);
+    var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'+(d.icon||'')+' '+it.name+'</div>'
+      + '<div class="pi-meta"><span class="pi-cat">'+it.cat+'</span>'+(it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'')+'</div></div></div>';
+    if(it.maxDur){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); html+='<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span></div>'; }
+    if(it.desc) html+='<div class="pi-desc">'+it.desc+'</div>';
+    if(sp!=null){
+      html+='<div class="pi-actions"><button class="btn-mini" onclick="LFUI.shopSell1()">出售×1（'+sp+'两）</button>';
+      if(it.count>1) html+='<button class="btn-mini" onclick="LFUI.shopSellAll()">全售×'+it.count+'（'+(sp*it.count)+'两）</button>';
+      html+='</div>';
+    } else {
+      html+='<div class="pi-desc" style="opacity:.7;margin-top:4px;">货郎不收此物。</div>';
+    }
+    html+='</div>';
+    return html;
   }
   function bindShopPanel(){
-    $card.querySelectorAll('[data-buy]').forEach(function(b){
-      b.onclick=function(){ if(b.getAttribute('data-dis')) return; buyFromShop(b.getAttribute('data-buy')); };
+    var card=document.getElementById('modal-card'); if(!card) return;
+    // 货郎货品：点按购入（钱不够置灰并提示）
+    card.querySelectorAll('[data-shop]').forEach(function(el){
+      el.onclick=function(){
+        if(el.classList.contains('shop-bad')){ toast('银两不足，买不起。'); return; }
+        buyFromShop(el.getAttribute('data-shop'));
+      };
     });
-    $card.querySelectorAll('[data-sell]').forEach(function(b){
-      b.onclick=function(){ if(b.getAttribute('data-dis')) return; sellToShop(b.getAttribute('data-sell')); };
+    // 玩家物品：点选查看 / 触屏拖拽到左栏出售
+    var cells=card.querySelectorAll('.shop-right [data-loc]');
+    cells.forEach(function(el){
+      el.onclick=function(){
+        if(el.__dragMoved){ el.__dragMoved=false; return; }
+        var idx=parseInt(el.getAttribute('data-loc').split(':')[1],10);
+        shopSel = (state.pack[idx])? idx : null;
+        card.querySelectorAll('.shop-right .packcell').forEach(function(c){ c.classList.remove('pcell-sel'); });
+        if(shopSel!=null) el.classList.add('pcell-sel');
+        var info=card.querySelector('.shop-info'); if(info) info.innerHTML=renderShopInfo();
+      };
     });
+    var ghost=null, dragging=null, srcEl=null, sx=0, sy=0, moved=false;
+    cells.forEach(function(el){
+      el.setAttribute('draggable','true');
+      el.onpointerdown=function(e){
+        if(e.pointerType==='mouse') return;
+        var idx=parseInt(el.getAttribute('data-loc').split(':')[1],10);
+        if(!state.pack[idx]) return;
+        dragging=idx; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
+      };
+    });
+    card.onpointermove=function(e){
+      if(dragging==null) return;
+      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
+      if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; document.body.appendChild(ghost); }
+      ghost.textContent=(state.pack[dragging]||{}).name||'';
+      ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
+    };
+    function endDrag(e, cancelled){
+      var from=dragging; dragging=null;
+      if(ghost){ ghost.remove(); ghost=null; }
+      if(from==null || !moved || cancelled) return;
+      var left=card.querySelector('.shop-left'); if(!left) return;
+      var rect=left.getBoundingClientRect();
+      if(e.clientX>=rect.left && e.clientX<=rect.right && e.clientY>=rect.top && e.clientY<=rect.bottom){
+        sellToShop(from, 1);
+      }
+    }
+    card.onpointerup=function(e){ endDrag(e,false); };
+    card.onpointercancel=function(e){ endDrag(e,true); };
     var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
   }
   function buyFromShop(id){
@@ -3327,15 +3438,18 @@ window.onerror=function(msg,url,line,col,err){
     log('你向货郎购入'+(LF.ITEMS[id]||{}).name+'×1，付银 '+r.buy+' 两。','sys');
     $card.innerHTML=renderShopPanel(); bindShopPanel();
   }
-  function sellToShop(id){
-    var shop=LF.SHOPS[shopState]; if(!shop) return;
-    var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; }); if(!r) return;
-    if(!(packFind(id))){ toast('你没有可卖的'+(LF.ITEMS[id]||{}).name+'。'); return; }
-    packConsume(id,1); state.gold+=r.sell;
+  function sellToShop(idx, n){
+    var it=state.pack[idx]; if(!it) return;
+    var sp=shopSellPrice(it.defId); if(sp==null){ toast('货郎不收此物。'); return; }
+    n=n||1; if(n>it.count) n=it.count; if(n<=0) return;
+    packConsume(it.defId, n); state.gold+=sp*n;
+    if(!state.pack[idx]) shopSel=null;
     afterPackChange();
-    log('你卖给货郎'+(LF.ITEMS[id]||{}).name+'×1，得银 '+r.sell+' 两。','sys');
+    log('你卖给货郎'+(LF.ITEMS[it.defId]||{}).name+'×'+n+'，得银 '+(sp*n)+' 两。','sys');
     $card.innerHTML=renderShopPanel(); bindShopPanel();
   }
+  window.LFUI.shopSell1=function(){ if(shopSel==null) return; sellToShop(shopSel,1); };
+  window.LFUI.shopSellAll=function(){ if(shopSel==null) return; var it=state.pack[shopSel]; if(!it) return; sellToShop(shopSel, it.count); };
 
   // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){
@@ -4209,7 +4323,7 @@ window.onerror=function(msg,url,line,col,err){
       h=renderShopPanel();
     }
     $card.innerHTML=h;
-    $card.classList.toggle('pack-card', kind==='pack');
+    $card.classList.toggle('pack-card', kind==='pack' || kind==='shop');
     if(kind==='create') bindCreate();
     if(kind==='char') bindAttrAlloc();
     if(kind==='pack'){ bindPackInteractions(); }
