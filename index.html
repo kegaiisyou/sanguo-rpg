@@ -1204,7 +1204,7 @@
   .shop-scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.22);border-radius:6px;}
   .shop-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#c8a05c,#8a6f3e);border-radius:6px;}
   .shop-goods-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
-  .shop-good{aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(216,180,106,.4);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:manipulation;padding:4px;box-sizing:border-box;}
+  .shop-good{aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(216,180,106,.4);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;padding:4px;box-sizing:border-box;}
   .shop-good:active{transform:scale(.97);background:rgba(216,180,106,.12);}
   .shop-good .sg-icon{font-size:30px;line-height:1;pointer-events:none;}
   .shop-good .sg-name{font-size:13px;color:#f4e6c2;font-weight:600;margin-top:4px;pointer-events:none;}
@@ -1466,7 +1466,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819q</div>
+    <div class="tt-ver" id="tt-ver">v20260819r</div>
   </div>
 </div>
 
@@ -1498,7 +1498,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819q"></script>
+<script src="shared/config/constants.js?v=20260819r"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1511,6 +1511,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/enemies.js?v=20260813a"></script>
 <script src="shared/data/items.js?v=20260819p"></script>
     <script src="shared/data/recipes.js?v=20260819o"></script>
+    <script src="shared/data/shops.js?v=20260819r"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260818a"></script>
@@ -3304,17 +3305,7 @@ window.onerror=function(msg,url,line,col,err){
     log('你收起帐篷，卷作一团揣入行囊。','sys');
     if(currentModalKind==='pack') openModal('pack');
   }
-  // 货郎（建造系统测试房商人）
-  LF.SHOPS = LF.SHOPS || {};
-  LF.SHOPS.build_pedlar = {
-    name:'货郎',
-    items:[
-      {id:'mutou',      buy:8,  sell:3},
-      {id:'xiaoshuzhi', buy:3,  sell:1},
-      {id:'futou',      buy:35, sell:12},
-      {id:'zhangpeng',  buy:60, sell:25}
-    ]
-  };
+  // 货郎商店数据已外置到 shared/data/shops.js（详见 LF.SHOPS.build_pedlar），便于调价与扩展
   var shopState='build_pedlar';
   var shopSel=null;
   // 取某物在货郎处的「收购价」（不在货郎收购清单里则返回 null）
@@ -3379,14 +3370,20 @@ window.onerror=function(msg,url,line,col,err){
   }
   function bindShopPanel(){
     var card=document.getElementById('modal-card'); if(!card) return;
-    // 货郎货品：点按购入（钱不够置灰并提示）
+    // 货郎货品：点按购入（钱不够置灰并提示）/ 拖到右边背包=购买 / 原生拖拽供桌面
     card.querySelectorAll('[data-shop]').forEach(function(el){
       el.onclick=function(){
+        if(el.__dragMoved){ el.__dragMoved=false; return; }
         if(el.classList.contains('shop-bad')){ toast('银两不足，买不起。'); return; }
         buyFromShop(el.getAttribute('data-shop'));
       };
+      el.setAttribute('draggable','true');
+      el.ondragstart=function(e){
+        var id=el.getAttribute('data-shop');
+        e.dataTransfer.setData('text/plain', JSON.stringify({kind:'buy', id:id}));
+      };
     });
-    // 玩家物品：点选查看 / 触屏拖拽到左栏出售
+    // 玩家物品：点选查看 / 拖到左栏出售 / 原生拖拽供桌面
     var cells=card.querySelectorAll('.shop-right [data-loc]');
     cells.forEach(function(el){
       el.onclick=function(){
@@ -3397,32 +3394,60 @@ window.onerror=function(msg,url,line,col,err){
         if(shopSel!=null) el.classList.add('pcell-sel');
         var info=card.querySelector('.shop-info'); if(info) info.innerHTML=renderShopInfo();
       };
-    });
-    var ghost=null, dragging=null, srcEl=null, sx=0, sy=0, moved=false;
-    cells.forEach(function(el){
       el.setAttribute('draggable','true');
+      el.ondragstart=function(e){
+        var idx=parseInt(el.getAttribute('data-loc').split(':')[1],10);
+        if(!state.pack[idx]){ e.preventDefault(); return; }
+        e.dataTransfer.setData('text/plain', JSON.stringify({kind:'sell', idx:idx}));
+      };
+    });
+    // 左栏接收「拖入出售」，右栏接收「拖入购买」（原生 HTML5 拖拽）
+    var left=card.querySelector('.shop-left');
+    left.ondragover=function(e){ e.preventDefault(); };
+    left.ondrop=function(e){ e.preventDefault(); try{ var d=JSON.parse(e.dataTransfer.getData('text/plain')); if(d.kind==='sell') sellToShop(d.idx,1); }catch(_){} };
+    var right=card.querySelector('.shop-right');
+    right.ondragover=function(e){ e.preventDefault(); };
+    right.ondrop=function(e){ e.preventDefault(); try{ var d=JSON.parse(e.dataTransfer.getData('text/plain')); if(d.kind==='buy') buyFromShop(d.id); }catch(_){} };
+    // 触屏拖拽（pointer）：出售拖入左栏、购买拖入右栏
+    var ghost=null, dragging=null, srcEl=null, sx=0, sy=0, moved=false;
+    function startDrag(kind, payload, el, e){
+      dragging={kind:kind, payload:payload}; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
+    }
+    card.querySelectorAll('.shop-right [data-loc]').forEach(function(el){
       el.onpointerdown=function(e){
         if(e.pointerType==='mouse') return;
         var idx=parseInt(el.getAttribute('data-loc').split(':')[1],10);
         if(!state.pack[idx]) return;
-        dragging=idx; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
+        startDrag('sell', idx, el, e);
+      };
+    });
+    card.querySelectorAll('[data-shop]').forEach(function(el){
+      el.onpointerdown=function(e){
+        if(e.pointerType==='mouse') return;
+        if(el.classList.contains('shop-bad')) return;
+        startDrag('buy', el.getAttribute('data-shop'), el, e);
       };
     });
     card.onpointermove=function(e){
-      if(dragging==null) return;
+      if(!dragging) return;
       if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
       if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; document.body.appendChild(ghost); }
-      ghost.textContent=(state.pack[dragging]||{}).name||'';
+      var nm = dragging.kind==='sell' ? ((state.pack[dragging.payload]||{}).name||'') : ((LF.ITEMS[dragging.payload]||{}).name||'');
+      ghost.textContent=nm;
       ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
     };
     function endDrag(e, cancelled){
-      var from=dragging; dragging=null;
+      var d=dragging; dragging=null;
       if(ghost){ ghost.remove(); ghost=null; }
-      if(from==null || !moved || cancelled) return;
-      var left=card.querySelector('.shop-left'); if(!left) return;
-      var rect=left.getBoundingClientRect();
-      if(e.clientX>=rect.left && e.clientX<=rect.right && e.clientY>=rect.top && e.clientY<=rect.bottom){
-        sellToShop(from, 1);
+      if(!d || !moved || cancelled) return;
+      if(d.kind==='sell'){
+        var L=card.querySelector('.shop-left'); if(!L) return;
+        var r=L.getBoundingClientRect();
+        if(e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom) sellToShop(d.payload,1);
+      } else if(d.kind==='buy'){
+        var R=card.querySelector('.shop-right'); if(!R) return;
+        var rr=R.getBoundingClientRect();
+        if(e.clientX>=rr.left && e.clientX<=rr.right && e.clientY>=rr.top && e.clientY<=rr.bottom) buyFromShop(d.payload);
       }
     }
     card.onpointerup=function(e){ endDrag(e,false); };
