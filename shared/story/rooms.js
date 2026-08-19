@@ -934,7 +934,7 @@
       ],
       exits: { '西': 'camp_wall', '囚室': 'camp_cell' },
       find: '囚徒如蚁，狱卒往来；场中那蓬头囚徒仍压着嗓子讲古，旁人听得入神。你若凑近，或许能听出些名堂。',
-      npcs: ['zhoutingtao'],
+      npcs: ['laotou', 'zhoutingtao'],
       items: [],
       actions: [
         { id: 'labor_yard', label: '担石劳作', tip: '在场中担石，体会苦役营的日夜。' },
