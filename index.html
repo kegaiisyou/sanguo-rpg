@@ -1437,7 +1437,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819m</div>
+    <div class="tt-ver" id="tt-ver">v20260819o</div>
   </div>
 </div>
 
@@ -1469,7 +1469,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819n"></script>
+<script src="shared/config/constants.js?v=20260819o"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1481,6 +1481,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
 <script src="shared/data/items.js?v=20260819m"></script>
+    <script src="shared/data/recipes.js?v=20260819o"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260818a"></script>
@@ -3157,17 +3158,20 @@ window.onerror=function(msg,url,line,col,err){
     if(!(state.flags && state.flags.buildTestSearched)){
       acts.push({label:'翻找工作台', icon:'🔍', fn:function(){ searchBench(); }});
     }
-    acts.push({label:'制作…', icon:'🔨', fn:function(){ openModal('craft'); }});
+    acts.push({label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }});
     return acts;
   }
-  // 木工台配方（测试用）：T0 素材 → T1 木材。多配方以「制作面板」呈现，避免物体浮动菜单膨胀
-  var BENCH_RECIPES = [
-    { id:'twig_timber', name:'木材', icon:'🟫', out:'mucai', outN:1, in:[{id:'xiaoshuzhi', n:2}], note:'细枝捆扎刨削成材（耗料较多）' },
-    { id:'wood_timber', name:'木材', icon:'🟫', out:'mucai', outN:1, in:[{id:'mutou', n:1}], note:'粗木直接解板成材（斧伐料更划算）' }
-  ];
+  // 制作面板状态：记录当前工作台与选中品类（标签页）
+  var craftState = { bench:'bench', cat:null };
   function buildCraftHTML(){
-    var DEFS=LF.ITEMS;
+    var recipes = (LF.RECIPES && LF.RECIPES[craftState.bench]) || [];
+    var DEFS = LF.ITEMS;
     function cnt(id){ var it=packFind(id); return it?it.count:0; }
+    // 按 cat 分组（保持首次出现顺序）
+    var cats = [], idx = {};
+    recipes.forEach(function(r){ if(idx[r.cat]==null){ idx[r.cat]=cats.length; cats.push(r.cat); } });
+    if(!craftState.cat || cats.indexOf(craftState.cat)<0) craftState.cat = cats[0];
+    var activeCat = craftState.cat;
     function rowHTML(r){
       var can=r.in.every(function(x){ return cnt(x.id)>=x.n; });
       var ins=r.in.map(function(x){ var d=DEFS[x.id]||{}; return (d.icon||'')+d.name+'×'+x.n+' <span style="opacity:.6">('+cnt(x.id)+')</span>'; }).join(' ＋ ');
@@ -3179,20 +3183,30 @@ window.onerror=function(msg,url,line,col,err){
                '<div style="font-size:12px;opacity:.6;margin-bottom:8px;">'+r.note+'</div>'+
                btn+'</div>';
     }
+    var tabHTML = cats.map(function(c){
+      var on = (c===activeCat) ? ' style="background:linear-gradient(180deg,#6e5a36,#4a3a22);color:#ffe9b8;border-color:#d8b46a;"' : '';
+      return '<button class="craft-tab" data-cat="'+c+'"'+on+'>'+c+'</button>';
+    }).join('');
+    var rows = recipes.filter(function(r){ return r.cat===activeCat; }).map(rowHTML).join('');
     return '<h3 style="text-align:center;margin:0 0 4px;">🔨 木工台 · 制作</h3>'+
+           (cats.length>1 ? '<div class="craft-tabs" style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">'+tabHTML+'</div>' : '')+
            '<p class="tip" style="text-align:center;margin:0 0 10px;">选一配方，将材料加工成形</p>'+
-           BENCH_RECIPES.map(rowHTML).join('')+
+           rows+
            '<button class="sheet-leave" id="m-leave">收 工</button>';
   }
   function renderCraftPanel(){ return buildCraftHTML(); }
   function bindCraftPanel(){
+    $card.querySelectorAll('.craft-tab').forEach(function(t){
+      t.onclick=function(){ craftState.cat = t.getAttribute('data-cat'); $card.innerHTML=buildCraftHTML(); bindCraftPanel(); };
+    });
     $card.querySelectorAll('.sheet-btn[data-r]').forEach(function(b){
       b.onclick=function(){ if(b.getAttribute('data-dis')) return; doCraft(b.getAttribute('data-r')); };
     });
     var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
   }
   function doCraft(id){
-    var r=null; for(var i=0;i<BENCH_RECIPES.length;i++){ if(BENCH_RECIPES[i].id===id){ r=BENCH_RECIPES[i]; break; } }
+    var list = (LF.RECIPES && LF.RECIPES[craftState.bench]) || [];
+    var r=null; for(var i=0;i<list.length;i++){ if(list[i].id===id){ r=list[i]; break; } }
     if(!r) return;
     for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(LF.ITEMS[r.out]||{}).name); return; } }
     r.in.forEach(function(x){ packConsume(x.id, x.n); });
@@ -3378,7 +3392,7 @@ window.onerror=function(msg,url,line,col,err){
   function packSet(loc,val){ if(loc.kind==='pack') state.pack[loc.idx]=val; else state.equipment[loc.slot]=val; }
   function locEq(a,b){ return a.kind===b.kind && (a.kind==='pack' ? a.idx===b.idx : a.slot===b.slot); }
 
-  function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof openModal==='function') openModal('pack'); if(combatMode===null && !state.dead) buildActions(G.ROOMS[state.room]); }
+  function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof openModal==='function' && currentModalKind==='pack') openModal('pack'); if(combatMode===null && !state.dead) buildActions(G.ROOMS[state.room]); }
 
   function movePackItem(from,to){
     if(locEq(from,to)) return;
@@ -4070,6 +4084,9 @@ window.onerror=function(msg,url,line,col,err){
       h=renderSettings(modalOpts);
     } else if(kind==='credit'){
       h=renderCredit();
+    } else if(kind==='craft'){
+      if(opts && opts.bench) craftState.bench = opts.bench;
+      h=renderCraftPanel();
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack');
@@ -4144,6 +4161,7 @@ window.onerror=function(msg,url,line,col,err){
     // 捏人进行中（state 尚未建立）禁止中途收起，否则会露出标题屏并丢失进度
     if(currentModalKind==='create' && !state){ return; }
     $modal.classList.add('hidden');
+    currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
   }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   var $modalX=document.getElementById('modal-x');
