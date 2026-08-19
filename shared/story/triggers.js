@@ -34,9 +34,22 @@
         asks: [
           { label: '〔听书〕先生讲得精彩，这孤勇可在？',
             set: { favor: 1 },
-            reveal: ['lower', 'loctab', 'actions'],
-            say: '醒木先生独独朝你挤眼：「你这囚籍的，命数不在牢里。听得进老夫一句，往后自有生路。」说罢以指蘸茶，在案上画了个「墙」字，又轻轻抹去——你心头一凛。〔已点亮下方场景 / 罗盘 / 行动区；与先生多攀谈，可探得生路。〕' }
+            reveal: ['lower', 'actions'],
+            say: '醒木先生独独朝你挤眼：「你这囚籍的，命数不在牢里。听得进老夫一句，往后自有生路。」说罢以指蘸茶，在案上画了个「墙」字，又轻轻抹去——你心头一凛。〔已点亮下方场景 / 罗盘 / 行动区；与先生多攀谈、在场中担石，可探得生路。〕' }
         ] }
+    ]
+  });
+
+  // 2.2) 首次担石劳作：渐进揭示状态栏 + 位置页签（onb 分层，对应文档序列）
+  TRIGGERS.push({
+    id: 'labor_first', hook: 'onCustom', room: 'camp_yard', once: true,
+    cond: { notFlag: 'flags.task.labored' },
+    steps: [
+      { t: 'log', cls: 'sys', text: '你扛起乱石，肩头火辣。日头毒辣，囚徒如蚁，狱卒皮鞭声在身后炸响——这便是苦役营的日夜。' },
+      { t: 'setFlag', path: 'flags.task.labored', value: true },
+      { t: 'reveal', layer: 'status' },
+      { t: 'reveal', layer: 'loctab' },
+      { t: 'sys', text: '〔系统〕你已体会苦役营的劳役。上方状态栏与位置页签已开启。' }
     ]
   });
 
@@ -70,18 +83,11 @@
     ]
   });
 
-  // 3) 塌墙根·无密道线索：封锁出口，只能退回劳役场
+  // 3) 塌墙根·未逃脱前：封锁出口，只能退回劳役场（北门锁死，逼走密道抉择）
   TRIGGERS.push({
     id: 'wall_gate', hook: 'onEnter', room: 'camp_wall', once: false,
-    cond: { notFlag: 'flags.route.crypt' },
-    steps: [ { t: 'moveGate', fwd: 'camp_yard', hint: '塌墙根下空空荡荡，默叔不在——没有先生许可，这道墙根你过不去。先回场上寻先生。' } ]
-  });
-
-  // 4) 塌墙根·有线索：默叔守口，放行
-  TRIGGERS.push({
-    id: 'wall_open', hook: 'onEnter', room: 'camp_wall', once: false,
-    cond: { flags: { 'flags.route.crypt': true } },
-    steps: [ { t: 'clearGate' } ]
+    cond: { notFlag: 'flags.route.escaped_crypt' },
+    steps: [ { t: 'moveGate', fwd: 'camp_yard', hint: '塌墙根下空空荡荡，没有先生许可与默叔暗号，这道墙根你过不去。先回场上寻先生、再去囚室问默叔。' } ]
   });
 
   // 4.5) 回到劳役场：解除塌墙根门禁
@@ -92,9 +98,9 @@
     steps: [ { t: 'clearGate' } ]
   });
 
-  // 5) 默叔·示意暗号（逃逸前置：先对上暗号，再钻暗道）
+  // 5) 囚室·默叔示意暗号（逃逸前置：在囚室对上暗号，再赴塌墙根决断）
   TRIGGERS.push({
-    id: 'moshu_signal', hook: 'onTalk', npc: 'moshu', room: 'camp_wall', once: true,
+    id: 'moshu_signal', hook: 'onTalk', npc: 'moshu', room: 'camp_cell', once: true,
     cond: { flags: { 'flags.route.crypt': true }, notFlag: 'flags.task.signal' },
     steps: [
       { t: 'npcTalk', npc: 'moshu',
@@ -102,27 +108,24 @@
         asks: [
           { label: '（蹲下，按他手势比出「一指墙根」）',
             set: { 'flags.task.signal': true },
-            say: '默叔眼中一亮，点头。他比了个「随我来」的手势，等你起身——暗号对上了。〔已与默叔对上暗号，可随他钻暗道。〕' }
+            say: '默叔眼中一亮，点头。他比了个「随我来」的手势，等你起身——暗号对上了。〔已与默叔对上暗号，可赴塌墙根钻暗道。〕' }
         ] }
     ]
   });
 
-  // 5.5) 默叔·引你入密道（逃逸枢纽）
+  // 5.5) 塌墙根·密道决断（路线枢纽：玩家主动勘察后逃脱）
+  // 由 camp_wall 的「勘察塌墙根·决断出营」动作以 hook:'onCustom' 触发；
+  // 仅当已取得密道线索且与默叔对上暗号时成立，否则仅给提示（见 handleAction）。
   TRIGGERS.push({
-    id: 'moshu_escort', hook: 'onTalk', npc: 'moshu', room: 'camp_wall', once: true,
+    id: 'wall_escape', hook: 'onCustom', room: 'camp_wall', once: true,
     cond: { flags: { 'flags.route.crypt': true, 'flags.task.signal': true } },
     steps: [
-      { t: 'npcTalk', npc: 'moshu',
-        prompt: '默叔见暗号已对，咧嘴一笑，拨开乱砖，露出幽深暗道，招手让你跟上。',
-        asks: [
-          { label: '（随默叔钻进塌墙根的暗道）',
-            say: '你跟着默叔钻入暗道，潮气扑面，七拐八绕，头顶人声渐远——你们钻出了营墙。' }
-        ] },
+      { t: 'log', cls: 'env', text: '你按默叔所授暗号，拨开乱砖——塌墙根下赫然一道幽深暗道。你不再犹豫，钻了进去。潮气扑面，七拐八绕，头顶人声渐远，你钻出了营墙。' },
       { t: 'setFlag', path: 'flags.route.escaped_crypt', value: true },
       { t: 'setFlag', path: 'flags.onb.done', value: true },
       { t: 'clearGate' },
       { t: 'graduate' },
-      { t: 'sys', text: '〔教学完成〕你已逃出苦役营。点下方移动罗盘「北」前往燕山·山口，寻穆长风接应。' }
+      { t: 'sys', text: '〔教学完成〕你已逃出苦役营。点下方移动罗盘「北」前往燕山·山口，寻穆长风接应。（塌墙根还有苏娘搓绳、福生传信——攀绳、外应另两条路，留待他日。）' }
     ]
   });
 

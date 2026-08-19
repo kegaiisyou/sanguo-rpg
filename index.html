@@ -1470,9 +1470,9 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260817c"></script>
-<script src="shared/story/dialogues.js?v=20260819a"></script>
-    <script src="shared/story/rooms.js?v=20260819a"></script>
-    <script src="shared/story/triggers.js?v=20260819c"></script>
+<script src="shared/story/dialogues.js?v=20260819d"></script>
+    <script src="shared/story/rooms.js?v=20260819d"></script>
+    <script src="shared/story/triggers.js?v=20260819d"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
 <script src="shared/data/items.js?v=20260817b"></script>
@@ -3026,6 +3026,17 @@ window.onerror=function(msg,url,line,col,err){
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
+      // ─── 教程：劳作 / 塌墙根决断 ───
+      case 'labor_yard':
+        if(!exert('担石劳作')) return;
+        if(!checkTriggers({hook:'onCustom', room:'camp_yard'}))
+          log('你又扛起乱石，汗如雨下。苦役营的日夜，漫长得没有尽头。','sys');
+        break;
+      case 'wall_choose':
+        if(!exert('勘察墙根')) return;
+        if(!checkTriggers({hook:'onCustom', room:'camp_wall'}))
+          log('你勘察塌墙根：乱砖委地，藤蔓爬墙。你尚未探得密道暗号——需先去囚室寻默叔问明入口，或另谋苏娘攀绳、福生传信之路。','sys');
+        break;
       // ─── 战斗试炼 ───
       case 'spar_bandit': if(!exert('应战')) return; startCombat('bandit'); break;
       case 'spar_chief':  if(!exert('应战')) return; startCombat('bandit_chief'); break;
