@@ -1437,7 +1437,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819j</div>
+    <div class="tt-ver" id="tt-ver">v20260819k</div>
   </div>
 </div>
 
@@ -1469,7 +1469,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819j"></script>
+<script src="shared/config/constants.js?v=20260819k"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -3125,8 +3125,9 @@ window.onerror=function(msg,url,line,col,err){
     afterPackChange(); renderRoom(state.room);
   }
   // ===== 建造系统测试房间：采集(砍树) → 制作(木工台) 垂直切片 =====
-  function chopTree(withAxe){
+  function chopTree(){
     if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    var withAxe = !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
     advanceTime(1);
     if(withAxe){
       packAdd('mutou', 3);
@@ -3136,10 +3137,11 @@ window.onerror=function(msg,url,line,col,err){
       log('你徒手折下几根枯枝，费力只捋得木头×1。若有把斧头，定快得多。','env');
     }
     afterPackChange();
+    buildActions(G.ROOMS[state.room]);   // 刷新场景物体（斧头/材料状态即时反映到菜单）
   }
   function treeActs(){
     var hasAxe = !!packFind('futou');
-    return [{label: hasAxe ? '挥斧伐木' : '徒手折枝', icon:'🌳', fn:function(){ chopTree(hasAxe); }}];
+    return [{label: hasAxe ? '挥斧伐木' : '徒手折枝', icon:'🌳', fn:function(){ chopTree(); }}];
   }
   function searchBench(){
     state.flags = state.flags || {};
@@ -3148,7 +3150,7 @@ window.onerror=function(msg,url,line,col,err){
     packAdd('mutou', 1);
     afterPackChange();
     log('你翻了翻木工台，台板下压着一根边角木头，顺手收了。','sys');
-    renderRoom(state.room);
+    buildActions(G.ROOMS[state.room]);   // 仅刷新物体（移除「翻找」），不重播场景旁白
   }
   function craftTimber(){
     if(!packFind('mutou')){ toast('木头不足，先去砍些木头。'); return; }
@@ -3156,6 +3158,7 @@ window.onerror=function(msg,url,line,col,err){
     packAdd('mucai', 1);
     afterPackChange();
     log('你于木工台上推刨锯削，一根木头化作一段可用木材。','sys');
+    buildActions(G.ROOMS[state.room]);
   }
   function benchActs(){
     var acts=[];
@@ -3174,6 +3177,7 @@ window.onerror=function(msg,url,line,col,err){
     packAdd('futou', 1);
     afterPackChange();
     log('你从墙角的工具堆里捡起一把锈迹斑斑的斧头，握在手里沉甸甸的。','sys');
+    buildActions(G.ROOMS[state.room]);   // 拾斧后刷新，使老树菜单即时变为「挥斧伐木」
   }
   // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){
