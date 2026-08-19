@@ -1437,7 +1437,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819k</div>
+    <div class="tt-ver" id="tt-ver">v20260819m</div>
   </div>
 </div>
 
@@ -1469,7 +1469,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819l"></script>
+<script src="shared/config/constants.js?v=20260819m"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1480,7 +1480,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260819i"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260819j"></script>
+<script src="shared/data/items.js?v=20260819m"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260818a"></script>
@@ -3166,7 +3166,7 @@ window.onerror=function(msg,url,line,col,err){
     { id:'wood_timber', name:'木材', icon:'🟫', out:'mucai', outN:1, in:[{id:'mutou', n:1}], note:'粗木直接解板成材（斧伐料更划算）' }
   ];
   function buildCraftHTML(){
-    var DEFS=G.ITEMS;
+    var DEFS=LF.ITEMS;
     function cnt(id){ var it=packFind(id); return it?it.count:0; }
     function rowHTML(r){
       var can=r.in.every(function(x){ return cnt(x.id)>=x.n; });
@@ -3194,12 +3194,12 @@ window.onerror=function(msg,url,line,col,err){
   function doCraft(id){
     var r=null; for(var i=0;i<BENCH_RECIPES.length;i++){ if(BENCH_RECIPES[i].id===id){ r=BENCH_RECIPES[i]; break; } }
     if(!r) return;
-    for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(G.ITEMS[r.out]||{}).name); return; } }
+    for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(LF.ITEMS[r.out]||{}).name); return; } }
     r.in.forEach(function(x){ packConsume(x.id, x.n); });
     packAdd(r.out, r.outN);
     advanceTime(1);
     afterPackChange();
-    log('你于木工台上劳作，制成'+(G.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
+    log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
     $card.innerHTML=buildCraftHTML(); bindCraftPanel();
   }
   function pickupAxe(){
