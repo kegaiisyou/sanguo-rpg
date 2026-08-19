@@ -1437,7 +1437,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260819i</div>
+    <div class="tt-ver" id="tt-ver">v20260819j</div>
   </div>
 </div>
 
@@ -1469,18 +1469,18 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260819i"></script>
+<script src="shared/config/constants.js?v=20260819j"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260817c"></script>
 <script src="shared/story/dialogues.js?v=20260819i"></script>
-    <script src="shared/story/rooms.js?v=20260819h"></script>
+    <script src="shared/story/rooms.js?v=20260819j"></script>
     <script src="shared/story/triggers.js?v=20260819i"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260817b"></script>
+<script src="shared/data/items.js?v=20260819j"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260818a"></script>
@@ -2530,7 +2530,15 @@ window.onerror=function(msg,url,line,col,err){
       {type:'feature',key:'gather', icon:'🌿', name:'草药丛',   desc:'林下背阴处，几丛野草药正肥，俯身可采得草药', actions:gatherActs},
       {type:'feature',key:'deep',   icon:'🌲', name:'山林深处', desc:'深入山林，往来巡逻剿寇',              actions:[{label:'深入巡山', fn:function(){ if(!exert('深入山林')) return; move('北','forest_patrol_a'); }, tip:'拨草寻踪，山道间或遇敌'}]},
       {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'西',     icon:'🚪', name:'西·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('西','camp'); }}]}
+      {type:'exit',  dir:'西',     icon:'🚪', name:'西·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('西','camp'); }}]},
+      {type:'exit',  dir:'南',     icon:'🚪', name:'南·建造系统测试',desc:'林间一片空地，似有人搭了座木工台', actions:[{label:'前往建造系统测试', fn:function(){ move('南','build_test'); }}]}
+    ],
+    build_test:[
+      {type:'feature', key:'tree',     icon:'🌳', name:'一棵老树', desc:'粗壮老树，枝干坚实，正堪伐取',   actions:treeActs},
+      {type:'feature', key:'bench',    icon:'🔨', name:'木工台',   desc:'粗木搭就的工作台，可将木头加工成木材', actions:benchActs},
+      {type:'feature', key:'toolpile', icon:'🪓', name:'工具堆',   desc:'墙角堆着些杂役用的家伙什',       actions:[{label:'拾取斧头', icon:'🪓', fn:function(){ pickupAxe(); }}]},
+      {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'exit',  dir:'北',     icon:'🚪', name:'北·北邙山林',desc:'返回山林',                        actions:[{label:'返回北邙山林', fn:function(){ move('北','forest'); }}]}
     ],
     stream:[
       {type:'npc',   key:'shuijing',icon:'👤', name:'水镜先生', desc:'立于岸畔，长须随风',                  actions:[{label:'与他交谈', fn:function(){ talk('shuijing'); }}]},
@@ -3115,6 +3123,57 @@ window.onerror=function(msg,url,line,col,err){
     state.gather = null;
     log('你拾起野草 '+n+' 株，收入行囊（可往「草庐/客栈」合成疗伤之物）。','good');
     afterPackChange(); renderRoom(state.room);
+  }
+  // ===== 建造系统测试房间：采集(砍树) → 制作(木工台) 垂直切片 =====
+  function chopTree(withAxe){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    advanceTime(1);
+    if(withAxe){
+      packAdd('mutou', 3);
+      log('你抡圆锈斧，咔咔几声，老树应声而倒，得木头×3。','env');
+    } else {
+      packAdd('mutou', 1);
+      log('你徒手折下几根枯枝，费力只捋得木头×1。若有把斧头，定快得多。','env');
+    }
+    afterPackChange();
+  }
+  function treeActs(){
+    var hasAxe = !!packFind('futou');
+    return [{label: hasAxe ? '挥斧伐木' : '徒手折枝', icon:'🌳', fn:function(){ chopTree(hasAxe); }}];
+  }
+  function searchBench(){
+    state.flags = state.flags || {};
+    if(state.flags.buildTestSearched){ toast('木工台已翻找过了。'); return; }
+    state.flags.buildTestSearched = true;
+    packAdd('mutou', 1);
+    afterPackChange();
+    log('你翻了翻木工台，台板下压着一根边角木头，顺手收了。','sys');
+    renderRoom(state.room);
+  }
+  function craftTimber(){
+    if(!packFind('mutou')){ toast('木头不足，先去砍些木头。'); return; }
+    packConsume('mutou', 1);
+    packAdd('mucai', 1);
+    afterPackChange();
+    log('你于木工台上推刨锯削，一根木头化作一段可用木材。','sys');
+  }
+  function benchActs(){
+    var acts=[];
+    if(!(state.flags && state.flags.buildTestSearched)){
+      acts.push({label:'翻找工作台', icon:'🔍', fn:function(){ searchBench(); }});
+    }
+    if(packFind('mutou')){
+      acts.push({label:'加工·木头→木材', icon:'🔨', fn:function(){ craftTimber(); }});
+    } else {
+      acts.push({label:'（需木头）加工木材', icon:'🔨', fn:function(){ toast('木工台上空空——先去砍些木头再来。'); }});
+    }
+    return acts;
+  }
+  function pickupAxe(){
+    if(packFind('futou')){ toast('你已有一把斧头了。'); return; }
+    packAdd('futou', 1);
+    afterPackChange();
+    log('你从墙角的工具堆里捡起一把锈迹斑斑的斧头，握在手里沉甸甸的。','sys');
   }
   // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){

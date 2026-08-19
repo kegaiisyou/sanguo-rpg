@@ -55,7 +55,11 @@
     // —— 腰带：防御型（与「便携腰包」互斥，体现「要容量还是要防御」的取舍）——
     shutong:        { defId: 'shutong',        name: '熟铜护腰', icon: '🪢', cat: '装备', slot: 'belt', stats: { def: 1 }, desc: '熟铜片缀就的护腰，堪挡一刀（防御 +1）。', quality: 'white' },
     // —— 素材：野外采集所得 ——
-    caoyao:         { defId: 'caoyao',         name: '草药',     icon: '🌿', cat: '素材', desc: '山野可入药的茎叶，多凑几味可合成疗伤之物。' }
+    caoyao:         { defId: 'caoyao',         name: '草药',     icon: '🌿', cat: '素材', desc: '山野可入药的茎叶，多凑几味可合成疗伤之物。' },
+    // —— 建造/制造系统测试素材 ——
+    mutou:         { defId: 'mutou',   name: '木头',   icon: '🪵', cat: '素材', desc: '粗伐的树干枝料，可于木工台加工成木材，亦能直接搭架。' },
+    mucai:         { defId: 'mucai',   name: '木材',   icon: '🟫', cat: '素材', desc: '经木工台刨削而成的规整木料，修筑与打造的基材。' },
+    futou:         { defId: 'futou',   name: '斧头',   icon: '🪓', cat: '素材', desc: '锈迹斑斑的斧头。持之伐木，收获倍增——工具亦可作消耗口。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
