@@ -146,6 +146,9 @@
     rollEquip: rollEquip, statText: statText, makeItem: makeItem, equipToPackItem: equipToPackItem
   };
 
+  // 将静态物品定义直接挂到 LF.ITEMS 上，使 LF.ITEMS['mutou'] 等直接可用（同时保留 LF.ITEMS.DEFS）
+  for (var _dk in DEFS) { if (!( _dk in ITEMS)) ITEMS[_dk] = DEFS[_dk]; }
+
   global.LF = global.LF || {};
   global.LF.ITEMS = ITEMS;
   if (typeof module !== 'undefined' && module.exports) module.exports = ITEMS;
