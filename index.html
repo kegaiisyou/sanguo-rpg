@@ -503,7 +503,17 @@
   .map-legend .mpk-town{background:#9aa8c0;}
   .map-legend .mpk-camp{background:#c0803a;}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
+  .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
+  .map-rivers .mp-river{fill:none;stroke:rgba(70,110,170,.30);stroke-width:2.5;stroke-linecap:round;}
+  .map-rivers .mp-river-t{font-family:"STKaiti","KaiTi",serif;font-size:14px;letter-spacing:3px;
+    fill:rgba(70,110,170,.55);pointer-events:none;}
+  .map-rivers .mp-sea{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:8px;
+    fill:rgba(94,72,42,.30);pointer-events:none;text-anchor:middle;}
+  .map-canvas.lv2 .map-rivers{opacity:.45;}
   .map-states-svg{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
+  /* 连线圆头 + 密集节点隐藏次要名称 */
+  .map-svg .mp-line{stroke-linecap:round;}
+  .map-pin.mp-hide-nm .mp-nm{display:none;}
   .map-states-svg .map-state-sh{cursor:pointer;pointer-events:all;transition:filter .15s;}
   .map-states-svg .map-state-sh:hover{filter:brightness(1.35);}
   .map-state-name{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:4px;font-weight:700;
@@ -1548,7 +1558,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820ab"></script>
+<script src="shared/config/constants.js?v=20260820ad"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1562,7 +1572,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260820aa"></script>
     <script src="shared/data/recipes.js?v=20260820aa"></script>
     <script src="shared/data/shops.js?v=20260820aa"></script>
-    <script src="shared/data/map.js?v=20260820ac"></script>
+    <script src="shared/data/map.js?v=20260820ad"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
@@ -1701,7 +1711,8 @@ window.onerror=function(msg,url,line,col,err){
         '<span class="mz-dot"></span><span class="map-zone-nm">'+z.icon+' '+z.name+'</span></div>';
     });
     zonesHtml+='</div>';
-    // ── lv2 房间层：连线（每条出口一条，去重避免反向重复）──
+    // ── lv2 房间层：连线（每条出口一条，去重避免反向重复；自节点边缘出发不穿透圆点）──
+    var DOT=9;
     var seen={}, lines='';
     keys.forEach(function(rid){
       var c=coords[rid], r=G.ROOMS[rid];
@@ -1711,25 +1722,49 @@ window.onerror=function(msg,url,line,col,err){
         var k=[rid,tid].sort().join('|');
         if(seen[k]) return; seen[k]=1;
         var tc=coords[tid];
+        var x1=px(c), y1=py(c), x2=px(tc), y2=py(tc);
+        var dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy);
+        if(L>DOT*2.4){ var ux=dx/L, uy=dy/L; x1+=ux*DOT; y1+=uy*DOT; x2-=ux*DOT; y2-=uy*DOT; }
         var reach=(rid===state.room||tid===state.room);
-        lines+='<line x1="'+px(c)+'" y1="'+py(c)+'" x2="'+px(tc)+'" y2="'+py(tc)+'" '+
-               'stroke="'+(reach?'rgba(158,59,46,.55)':'rgba(176,131,47,.32)')+'" '+
-               'stroke-width="'+(reach?2.4:1.4)+'" '+(reach?'':'stroke-dasharray="4 4"')+'/>';
+        lines+='<line class="mp-line'+(reach?' on':'')+'" x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" '+
+               'stroke="'+(reach?'rgba(158,59,46,.62)':'rgba(176,131,47,.28)')+'" '+
+               'stroke-width="'+(reach?2.6:1.5)+'" '+(reach?'':'stroke-dasharray="4 4"')+'/>';
       });
     });
-    // ── lv2 房间层：节点（按 mapKind 分色）──
+    // ── lv2 房间层：节点（按 mapKind 分色；密集区域自动隐藏次要名称防重叠）──
+    var nodeOrder=keys.map(function(rid){
+      var c=coords[rid], r=G.ROOMS[rid];
+      var sc=(rid===state.room?100:0)+(mapKind(rid)==='city'?30:0)+Object.keys(r.exits||{}).length*4;
+      return {rid:rid, x:px(c), y:py(c), sc:sc};
+    });
+    nodeOrder.sort(function(a,b){ return b.sc-a.sc; });
+    var shown=[], hideNm={};
+    nodeOrder.forEach(function(n){
+      var hit=shown.some(function(s){ return Math.hypot(n.x-s.x, n.y-s.y) < 74; });
+      if(hit) hideNm[n.rid]=1; else shown.push(n);
+    });
     var pins='';
     keys.forEach(function(rid){
       var c=coords[rid], r=G.ROOMS[rid], cur=(rid===state.room);
       var x=px(c), y=py(c);
       var ex=Object.keys(r.exits||{}).map(function(d){return d+'·'+G.ROOMS[r.exits[d]].name;}).join('，');
       var badge=(opts.pickSpawn&&rid===state.spawnRoom)?'<span class="mp-star">★</span>':'';
-      pins+='<div class="map-pin mp-k-'+mapKind(rid)+(cur?' cur':'')+(opts.pickSpawn?' pick':'')+'" '+
+      pins+='<div class="map-pin mp-k-'+mapKind(rid)+(cur?' cur':'')+(opts.pickSpawn?' pick':'')+(hideNm[rid]?' mp-hide-nm':'')+'" '+
               (opts.pickSpawn?' data-spawn="'+rid+'"':'')+
               ' style="left:'+x+'px;top:'+y+'px" '+
               'title="'+r.name+(ex?'\n〔通达〕'+ex:'')+'">'+
               badge+'<span class="mp-dot"></span><span class="mp-nm">'+r.name+'</span></div>';
     });
+    // ── lv0 州域装饰：黄河 / 长江 示意线与塞外标注（增强舆图质感）──
+    function P(c){ return px(c)+','+py(c); }
+    var rivers='<svg width="'+W+'" height="'+H+'" class="map-rivers">'
+      +'<path d="M '+P([-3,-1])+' C '+P([1,2])+' '+P([6,-2])+' '+P([9,1])+' C '+P([11,3])+' '+P([14,2])+' '+P([17,1])+'" class="mp-river"/>'
+      +'<path d="M '+P([-3,13])+' C '+P([1,12])+' '+P([5,12])+' '+P([8,11])+' C '+P([11,10])+' '+P([15,11])+' '+P([18,11])+'" class="mp-river"/>'
+      +'<text x="'+px([4,1])+'" y="'+(py([4,1])-7)+'" class="mp-river-t">黄河</text>'
+      +'<text x="'+px([3,13])+'" y="'+(py([3,13])+15)+'" class="mp-river-t">长江</text>'
+      +'<text x="'+px([-6,-10])+'" y="'+py([-6,-10])+'" class="mp-sea">塞 外</text>'
+      +'<text x="'+px([-5,17])+'" y="'+py([-5,17])+'" class="mp-sea">南 海</text>'
+      +'</svg>';
     // 图例
     var legend=Object.keys(MAP_KIND_LABEL).map(function(k){
       return '<span><i class="mpk mpk-'+k+'"></i>'+MAP_KIND_LABEL[k]+'</span>';
@@ -1741,6 +1776,7 @@ window.onerror=function(msg,url,line,col,err){
     return '<h3>'+title+'</h3>'+
       '<div class="map-canvas lv0"><div class="map-viewport"><div class="map-grid" style="width:'+W+'px;height:'+H+'px">'+
         '<svg width="'+W+'" height="'+H+'" class="map-states-svg">'+statesSvg+'</svg>'+
+        rivers+
         bg+
         zonesHtml+
         '<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+
