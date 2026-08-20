@@ -459,12 +459,10 @@
   .map-viewport:active{cursor:grabbing;}
   .map-grid{position:relative;background:none;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
-  /* 古地图底：内联 SVG（1024×1024，米黄纸基 + 山川剪影 + 长江黄河蜿蜒 + 东面海域 + 西面沙漠 + 暗角） */
+  /* 古地图底：水墨山水图（2048×2560，米黄纸基 + 山川剪影 + 长江黄河 + 东面海域 + 西面沙漠 + 暗角） */
   .map-bg{position:absolute;left:0;top:0;width:100%;height:100%;
     background-color:#e7d8b3;
-    background-image:
-      /* 古地图 SVG：山川 + 黄河(青灰) + 长江(青灰) + 东海 + 沙漠 + 暗角 */
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='paper' cx='50%25' cy='48%25' r='75%25'><stop offset='0%25' stop-color='%23f4ead0'/><stop offset='55%25' stop-color='%23e7d8b3'/><stop offset='100%25' stop-color='%23c8b388'/></radialGradient><radialGradient id='sea' cx='92%25' cy='40%25' r='45%25'><stop offset='0%25' stop-color='%23a6b8c0' stop-opacity='.65'/><stop offset='55%25' stop-color='%23c4cfd4' stop-opacity='.30'/><stop offset='100%25' stop-color='%23cfd6da' stop-opacity='0'/></radialGradient><radialGradient id='desert' cx='8%25' cy='55%25' r='35%25'><stop offset='0%25' stop-color='%23c89a5b' stop-opacity='.50'/><stop offset='55%25' stop-color='%23d8b377' stop-opacity='.25'/><stop offset='100%25' stop-color='%23e0c08a' stop-opacity='0'/></radialGradient><linearGradient id='mtn' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%236b7a85' stop-opacity='.55'/><stop offset='60%25' stop-color='%238a99a4' stop-opacity='.35'/><stop offset='100%25' stop-color='%23a8b5be' stop-opacity='0'/></linearGradient><linearGradient id='mtnDeep' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%234d5a64' stop-opacity='.70'/><stop offset='100%25' stop-color='%236b7a85' stop-opacity='0'/></linearGradient><linearGradient id='riverY' x1='0' y1='0' x2='1' y2='0'><stop offset='0%25' stop-color='%23c9b06b' stop-opacity='.55'/><stop offset='100%25' stop-color='%23b89a4d' stop-opacity='.45'/></linearGradient><linearGradient id='riverL' x1='0' y1='0' x2='1' y2='0'><stop offset='0%25' stop-color='%239eb2bf' stop-opacity='.55'/><stop offset='100%25' stop-color='%237d92a0' stop-opacity='.45'/></linearGradient><radialGradient id='vignette' cx='50%25' cy='50%25' r='70%25'><stop offset='55%25' stop-color='%23000' stop-opacity='0'/><stop offset='100%25' stop-color='%233a2e1c' stop-opacity='.45'/></radialGradient><filter id='blur'><feGaussianBlur stdDeviation='14'/></filter></defs><rect width='1024' height='1024' fill='url(%23paper)'/><ellipse cx='60' cy='520' rx='280' ry='320' fill='url(%23desert)'/><ellipse cx='160' cy='720' rx='220' ry='180' fill='%23c89a5b' opacity='.18'/><g stroke='%23a07a45' stroke-width='1.2' fill='none' opacity='.35'><path d='M 20 540 Q 80 530 140 540 T 260 540'/><path d='M 30 600 Q 100 588 170 600 T 310 600'/><path d='M 50 680 Q 130 670 210 680 T 360 680'/><path d='M 80 760 Q 160 752 240 760 T 380 760'/></g><ellipse cx='990' cy='380' rx='320' ry='380' fill='url(%23sea)'/><g stroke='%236f8a92' stroke-width='1.2' fill='none' opacity='.55'><path d='M 780 200 Q 820 195 860 200 T 940 200'/><path d='M 760 280 Q 800 275 840 280 T 920 280'/><path d='M 800 360 Q 840 355 880 360 T 960 360'/><path d='M 770 460 Q 820 455 870 460 T 970 460'/><path d='M 820 540 Q 860 535 900 540 T 990 540'/><path d='M 800 620 Q 850 615 900 620 T 1000 620'/></g><g filter='url(%23blur)' opacity='.55'><ellipse cx='320' cy='280' rx='380' ry='80' fill='%23e6dcc4'/><ellipse cx='420' cy='220' rx='420' ry='60' fill='%23f0e8d0'/><ellipse cx='280' cy='340' rx='340' ry='70' fill='%23dfd2b3'/></g><g fill='url(%23mtn)'><path d='M 300 540 L 360 420 L 420 480 L 470 380 L 540 460 L 600 400 L 680 500 L 740 440 L 800 510 L 760 560 L 660 580 L 540 580 L 420 580 L 320 580 Z' opacity='.75'/><path d='M 250 620 L 320 510 L 390 580 L 460 500 L 540 570 L 600 520 L 680 600 L 600 640 L 500 640 L 380 640 L 280 640 Z' opacity='.55'/></g><g fill='url(%23mtnDeep)'><path d='M 180 880 L 240 760 L 290 820 L 340 720 L 400 800 L 460 740 L 540 820 L 620 760 L 700 840 L 760 780 L 820 860 L 780 920 L 660 920 L 520 920 L 380 920 L 240 920 Z' opacity='.85'/><path d='M 240 1000 L 290 880 L 350 940 L 410 860 L 480 940 L 550 880 L 630 950 L 710 900 L 770 980 L 700 1024 L 580 1024 L 420 1024 L 280 1024 Z' opacity='.55'/></g><path d='M 320 360 Q 380 380 440 360 Q 520 340 580 380 Q 640 420 700 400 Q 760 380 820 420 Q 880 460 940 440' stroke='url(%23riverY)' stroke-width='6' fill='none' stroke-linecap='round' opacity='.85'/><path d='M 260 700 Q 340 680 400 720 Q 460 760 540 740 Q 620 720 700 760 Q 780 800 860 780 Q 920 760 980 800' stroke='url(%23riverL)' stroke-width='7' fill='none' stroke-linecap='round' opacity='.85'/><g fill='%233a2e1c' opacity='.35'><circle cx='430' cy='500' r='3.5'/><circle cx='370' cy='600' r='3'/><circle cx='540' cy='460' r='3.5'/><circle cx='490' cy='820' r='3'/><circle cx='650' cy='780' r='3'/></g><rect width='1024' height='1024' fill='url(%23vignette)'/></svg>");
+    background-image:url('assets/map_inkwash.jpg?v=20260820aq');
     background-size:100% 100%;
     background-repeat:no-repeat;
     background-position:center;
@@ -1591,7 +1589,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820ap"></script>
+<script src="shared/config/constants.js?v=20260820aq"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1605,7 +1603,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260820aa"></script>
     <script src="shared/data/recipes.js?v=20260820aa"></script>
     <script src="shared/data/shops.js?v=20260820aa"></script>
-    <script src="shared/data/map.js?v=20260820ap"></script>
+    <script src="shared/data/map.js?v=20260820aq"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
