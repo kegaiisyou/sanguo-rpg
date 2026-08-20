@@ -393,7 +393,8 @@
   /* 弹窗右上角全局关闭按钮 */
   .modal-shell{position:relative;width:100%;max-width:440px;}
   .modal-x{position:absolute;top:-12px;right:-12px;z-index:90;width:36px;height:36px;border:2px solid #f3e9d6;border-radius:50%;
-    background:#b5362e;color:#fff;font-size:17px;line-height:32px;text-align:center;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0;margin:0;line-height:1;
+    background:#b5362e;color:#fff;font-size:17px;cursor:pointer;
     box-shadow:0 4px 12px rgba(0,0,0,.35);transition:background .15s,transform .15s;}
   .modal-x:hover{background:#7d241d;transform:rotate(90deg);}
   /* 捏人专用不透明水墨背景：打开捏人时隐藏标题页，弹窗自带背景，不再透出标题 */
@@ -1501,7 +1502,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820w"></script>
+<script src="shared/config/constants.js?v=20260820x"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2810,7 +2811,7 @@ window.onerror=function(msg,url,line,col,err){
       log('〔力竭〕你重伤未愈，动弹不得——点底部「🧘 调息」恢复后，方可再动。','sys');
       return;
     }
-    var objs=ROOM_OBJECTS[room.id];
+    var objs=roomObjs(room.id);
     if(objs && objs.length){
       renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
       var exitsObjs=objs.filter(function(o){return o.type==='exit';});

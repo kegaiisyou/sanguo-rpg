@@ -3,7 +3,7 @@
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260820w',
+    VERSION: '20260820x',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
