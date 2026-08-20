@@ -1499,7 +1499,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820t"></script>
+<script src="shared/config/constants.js?v=20260820u"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -3475,8 +3475,8 @@ window.onerror=function(msg,url,line,col,err){
     log('你卖给货郎'+(LF.ITEMS[it.defId]||{}).name+'×'+n+'，得银 '+(sp*n)+' 两。','sys');
     $card.innerHTML=renderShopPanel(); bindShopPanel();
   }
-  window.LFUI.shopSell1=function(){ if(shopSel==null) return; sellToShop(shopSel,1); };
-  window.LFUI.shopSellAll=function(){ if(shopSel==null) return; var it=state.pack[shopSel]; if(!it) return; sellToShop(shopSel, it.count); };
+  function shopSell1(){ if(shopSel==null) return; sellToShop(shopSel,1); }
+  function shopSellAll(){ if(shopSel==null) return; var it=state.pack[shopSel]; if(!it) return; sellToShop(shopSel, it.count); }
 
   // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){
@@ -3904,7 +3904,8 @@ window.onerror=function(msg,url,line,col,err){
   function closeInspect(){ packInspect=null; openModal('pack'); }
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
   window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort,
-    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect };
+    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect,
+    shopSell1:shopSell1, shopSellAll:shopSellAll };
 
   // 行囊装备面板（P1 完整）
   function useItemOutside(defId){
