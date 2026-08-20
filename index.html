@@ -482,6 +482,26 @@
   .map-pin.cur .mp-nm{color:var(--seal);font-weight:700;background:rgba(255,247,240,.96);
     box-shadow:0 1px 4px rgba(60,48,34,.18);}
   .map-pin.pick:hover .mp-dot{background:rgba(176,131,47,.7);border-color:rgba(140,103,40,.9);}
+  /* 节点分色（mapKind：城镇/野外/贼巢/军屯/教学/村镇/营地） */
+  .map-pin.mp-k-city .mp-dot{background:#b8964a;border-color:#8a6f3e;}
+  .map-pin.mp-k-wild .mp-dot{background:#7a9b6e;border-color:#55734e;}
+  .map-pin.mp-k-dungeon .mp-dot{background:#a04a3c;border-color:#773229;}
+  .map-pin.mp-k-tutorial .mp-dot{background:#8a6fc0;border-color:#5f4a94;}
+  .map-pin.mp-k-fort .mp-dot{background:#8a7a5a;border-color:#63563e;}
+  .map-pin.mp-k-town .mp-dot{background:#9aa8c0;border-color:#6c7894;}
+  .map-pin.mp-k-camp .mp-dot{background:#c0803a;border-color:#8a5a24;}
+  /* 图例 */
+  .map-legend{position:absolute;left:14px;top:10px;display:flex;gap:8px;flex-wrap:wrap;z-index:3;
+    font-size:10px;color:rgba(120,90,40,.75);pointer-events:none;}
+  .map-legend span{display:inline-flex;align-items:center;gap:4px;}
+  .map-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .map-legend .mpk-city{background:#b8964a;}
+  .map-legend .mpk-wild{background:#7a9b6e;}
+  .map-legend .mpk-dungeon{background:#a04a3c;}
+  .map-legend .mpk-tutorial{background:#8a6fc0;}
+  .map-legend .mpk-fort{background:#8a7a5a;}
+  .map-legend .mpk-town{background:#9aa8c0;}
+  .map-legend .mpk-camp{background:#c0803a;}
   .map-scale{position:absolute;left:14px;bottom:12px;display:flex;align-items:center;gap:7px;
     font-size:11px;color:var(--ink-soft);pointer-events:none;z-index:3;}
   .map-scale .ms-bar{display:inline-block;height:6px;border-radius:3px;width:92px;
@@ -1503,7 +1523,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820aa"></script>
+<script src="shared/config/constants.js?v=20260820ab"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1517,6 +1537,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260820aa"></script>
     <script src="shared/data/recipes.js?v=20260820aa"></script>
     <script src="shared/data/shops.js?v=20260820aa"></script>
+    <script src="shared/data/map.js?v=20260820ab"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
@@ -1567,65 +1588,69 @@ window.onerror=function(msg,url,line,col,err){
     {n:'雾',  ic:'🌫'},
     {n:'风',  ic:'🌬'}
   ];
-  // 山河志空间坐标（网格 col,row；row 越小越北，col 越大越东）。依出口方位手工排布，体现地理关系。
-  var MAP_COORDS={
-    camp:[6,7], city:[6,6], stream:[5,7], forest:[7,7],
-    forest_patrol_a:[8,7], forest_patrol_b:[8,6], forest_patrol_c:[8,5],
-    luoyang:[6,3],
-    // 幽州 · 渔阳（汉末渔阳郡治，今北京密云西南；位于蓟城东北，北疆前沿）
-    yuyang_guomen:[14,-1], yuyang_nanmen:[14,-2], yuyang_tongqu:[14,-3], yuyang_beimen:[14,-4],
-    yuyang_xishijie:[13,-3], yuyang_junya:[13,-4], yuyang_junying:[12,-3], yuyang_yiguan:[12,-4],
-    yuyang_dongshijie:[15,-3], yuyang_dashi:[16,-3], yuyang_jiulou:[15,-4], yuyang_chasi:[15,-2],
-    // 幽州 · 白檀军屯（渔阳郡北，滦水屯田戍堡，row -5~-7）
-    baitan_yingmen:[14,-5], baitan_tun:[14,-6], baitan_tian:[13,-6], baitan_ma:[15,-6],
-    baitan_cang:[13,-7], baitan_liao:[15,-7],
-    // 幽州 · 燕山（渔阳以北山脉屏障，row -8~-10）
-    yanshan_shankou:[14,-8], yanshan_feng:[15,-8], yanshan_jian:[13,-8],
-    yanshan_lindao:[14,-9], yanshan_xueling:[15,-9], yanshan_zhandao:[13,-9],
-    // 幽州 · 燕山·小村落（开场教学绕圈链，row -10~-12）
-    ys_entrance:[14,-11], ys_north:[14,-12], ys_ne:[15,-12], ys_east:[15,-11],
-    ys_se:[15,-10], ys_south:[14,-10], ys_sw:[13,-10], ys_west:[13,-11], ys_nw:[13,-12],
-    // 蓟城：南北主干（郭门—南门—通衢—北门）串起东/西市街，市街再连各建筑
-    ji_guomen:[9,3], ji_liumin:[8,3], ji_mashi:[13,3], ji_nanmen:[9,2],
-    ji_tongqu:[9,1], ji_beimen:[9,0],
-    ji_xishijie:[8,1], ji_dongshijie:[10,1],
-    ji_zhoumu:[8,0], ji_lianwu:[7,0],
-    ji_junying:[7,1], ji_yiguan:[7,2], ji_junya:[8,2],
-    ji_dashi:[11,1], ji_xuegong:[11,0],
-    ji_jiulou:[10,0], ji_chasi:[10,2],
-    ji_minli:[12,1], ji_minju:[12,0], ji_minju2:[12,2],
-    // 蓟城正北 · 出北门渐进通道（太行山前，黑山军在州北山区）
-    ji_tian:[9,-1], ji_xiaoshulin:[10,-1],
-    ji_huangdi:[9,-2], ji_senlin:[10,-2],
-    ji_xiaoqiu:[9,-3],
-    ji_huangshan:[9,-4],
-    ji_heishan_zhai:[9,-5], ji_heishan_juyi:[9,-6], ji_heishan_houzhai:[9,-7]
-  };
-  var MAP_CELL=92;     // 单格像素
-  var MAP_LI=60;       // 1 格 = 60 里（用于距离刻度）
+  // 山河志空间坐标（网格 col,row；row 越小越北，col 越大越东）
+  // 数据外置于 shared/data/map.js（LF.MAP）：coords 坐标 / regions 区域 / kinds 节点分色 / cell·li 图例
+  // 自愈：凡 G.ROOMS 中存在但缺坐标的房间，依任一有坐标出口的方位就近生成，地图与 rooms 永不失配
+  var MAP_COORDS=null;
+  var MAP_CELL=92;     // 单格像素（缺省，覆盖自 LF.MAP.cell）
+  var MAP_LI=60;       // 1 格 = 60 里（用于距离刻度，缺省，覆盖自 LF.MAP.li）
   var MAPMINC=0, MAPMINR=0;  // 地图网格最小列/行（支持负坐标：蓟城正北通道）
-  // 山河志空间地图 HTML（main 查看 / 调试选出生点 共用）
+  var DIR_DELTA={ '北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0],
+                  '东北':[1,-1],'西北':[-1,-1],'东南':[1,1],'西南':[-1,1] };
+  function mapData(){ return (window.LF && LF.MAP) || {}; }
+  function resolveMapCoords(){
+    if(MAP_COORDS) return MAP_COORDS;
+    MAP_CELL = mapData().cell || 92;
+    MAP_LI = mapData().li || 60;
+    var coords={};
+    var base=mapData().coords||{};
+    for(var k in base){ coords[k]=base[k].slice(); }
+    var changed=true;
+    while(changed){
+      changed=false;
+      for(var rid in G.ROOMS){
+        if(coords[rid]) continue;
+        var room=G.ROOMS[rid];
+        for(var dir in (room.exits||{})){
+          var tid=room.exits[dir];
+          if(!coords[tid]) continue;
+          var d=DIR_DELTA[dir]; if(!d) continue;
+          coords[rid]=[coords[tid][0]+d[0], coords[tid][1]+d[1]];
+          changed=true; break;
+        }
+      }
+    }
+    MAP_COORDS=coords;
+    return coords;
+  }
+  function mapKind(rid){
+    var k=mapData().kinds && mapData().kinds[rid];
+    if(k) return k;
+    if(/^ys_/.test(rid) || rid==='camp_yard' || rid==='camp_cell' || rid==='camp_wall') return 'tutorial';
+    if(/^ji_heishan_/.test(rid)) return 'dungeon';
+    if(/^baitan_/.test(rid) || /^(yuyang_guomen|yuyang_nanmen|yuyang_tongqu|yuyang_beimen)$/.test(rid)) return 'fort';
+    if(/^ji_/.test(rid) || /^yuyang_/.test(rid)) return 'city';
+    return 'wild';
+  }
+  // 图例文案（对应 kinds 取值）
+  var MAP_KIND_LABEL={ city:'城镇', wild:'野外', dungeon:'贼巢', fort:'军屯', tutorial:'教学', town:'村镇', camp:'营地' };
+  // 山河志空间地图 HTML（main 查看 / 调试选出生点 共用；数据驱动 shared/data/map.js）
   function buildMapHTML(opts){
     opts=opts||{};
-    var keys=Object.keys(G.ROOMS).filter(function(rid){return MAP_COORDS[rid];});
+    var coords=resolveMapCoords();
+    var keys=Object.keys(G.ROOMS).filter(function(rid){return coords[rid];});
     var minc=0,maxc=0,minr=0,maxr=0;
-    keys.forEach(function(rid){ var c=MAP_COORDS[rid];
+    keys.forEach(function(rid){ var c=coords[rid];
       if(c[0]<minc)minc=c[0]; if(c[0]>maxc)maxc=c[0];
       if(c[1]<minr)minr=c[1]; if(c[1]>maxr)maxr=c[1]; });
     var W=(maxc-minc+1)*MAP_CELL, H=(maxr-minr+1)*MAP_CELL;
     function px(c){ return (c[0]-minc+0.5)*MAP_CELL; }
     function py(c){ return (c[1]-minr+0.5)*MAP_CELL; }
     MAPMINC=minc; MAPMINR=minr;
-    // 区域底色（中原 / 洛阳 / 幽州 / 黑山）
-    var regions=[
-      {x:px([6,7]), y:py([6,7]), r:165, c:'rgba(120,160,96,.18)', t:'中 原'},
-      {x:px([6,3]), y:py([6,3]), r:130, c:'rgba(196,160,70,.18)', t:'洛 阳'},
-      {x:px([14,-3]), y:py([14,-3]), r:165, c:'rgba(120,150,200,.13)', t:'渔 阳'},
-      {x:px([14,-6]), y:py([14,-6]), r:135, c:'rgba(150,128,88,.13)', t:'白 檀'},
-      {x:px([14,-9]), y:py([14,-9]), r:155, c:'rgba(110,140,110,.14)', t:'燕 山'},
-      {x:px([10,-0.5]), y:py([10,-0.5]), r:470, c:'rgba(96,140,190,.16)', t:'幽 州'},
-      {x:px([9,-5]), y:py([9,-5]), r:170, c:'rgba(90,86,80,.14)', t:'黑 山'}
-    ];
+    // 区域底色（数据化：LF.MAP.regions）
+    var regions=(mapData().regions||[]).map(function(rg){
+      return {x:px(rg.center), y:py(rg.center), r:rg.r, c:rg.c, t:rg.t};
+    });
     var bg='';
     regions.forEach(function(rg){
       bg+='<div class="map-region" style="left:'+rg.x+'px;top:'+rg.y+'px;width:'+(rg.r*2)+'px;height:'+(rg.r*2)+'px;margin-left:-'+rg.r+'px;margin-top:-'+rg.r+'px;background:'+rg.c+'"></div>';
@@ -1634,32 +1659,36 @@ window.onerror=function(msg,url,line,col,err){
     // 连线（每条出口一条，去重避免反向重复）
     var seen={}, lines='';
     keys.forEach(function(rid){
-      var c=MAP_COORDS[rid], r=G.ROOMS[rid];
+      var c=coords[rid], r=G.ROOMS[rid];
       Object.keys(r.exits||{}).forEach(function(dir){
         var tid=r.exits[dir];
-        if(!MAP_COORDS[tid]) return;
+        if(!coords[tid]) return;
         var k=[rid,tid].sort().join('|');
         if(seen[k]) return; seen[k]=1;
-        var tc=MAP_COORDS[tid];
+        var tc=coords[tid];
         var reach=(rid===state.room||tid===state.room);
         lines+='<line x1="'+px(c)+'" y1="'+py(c)+'" x2="'+px(tc)+'" y2="'+py(tc)+'" '+
                'stroke="'+(reach?'rgba(158,59,46,.55)':'rgba(176,131,47,.32)')+'" '+
                'stroke-width="'+(reach?2.4:1.4)+'" '+(reach?'':'stroke-dasharray="4 4"')+'/>';
       });
     });
-    // 节点
+    // 节点（按 mapKind 分色）
     var pins='';
     keys.forEach(function(rid){
-      var c=MAP_COORDS[rid], r=G.ROOMS[rid], cur=(rid===state.room);
+      var c=coords[rid], r=G.ROOMS[rid], cur=(rid===state.room);
       var x=px(c), y=py(c);
       var ex=Object.keys(r.exits||{}).map(function(d){return d+'·'+G.ROOMS[r.exits[d]].name;}).join('，');
       var badge=(opts.pickSpawn&&rid===state.spawnRoom)?'<span class="mp-star">★</span>':'';
-      pins+='<div class="map-pin'+(cur?' cur':'')+(opts.pickSpawn?' pick':'')+'" '+
+      pins+='<div class="map-pin mp-k-'+mapKind(rid)+(cur?' cur':'')+(opts.pickSpawn?' pick':'')+'" '+
               (opts.pickSpawn?' data-spawn="'+rid+'"':'')+
               ' style="left:'+x+'px;top:'+y+'px" '+
               'title="'+r.name+(ex?'\n〔通达〕'+ex:'')+'">'+
               badge+'<span class="mp-dot"></span><span class="mp-nm">'+r.name+'</span></div>';
     });
+    // 图例
+    var legend=Object.keys(MAP_KIND_LABEL).map(function(k){
+      return '<span><i class="mpk mpk-'+k+'"></i>'+MAP_KIND_LABEL[k]+'</span>';
+    }).join('');
     var title=opts.pickSpawn?'🗺 设置出生点':'山 河 志';
     var tip=opts.pickSpawn
       ? '点击一处地点设为出生点，并立即传送至此（已自动存档）。当前出生点：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)
@@ -1668,6 +1697,7 @@ window.onerror=function(msg,url,line,col,err){
       '<div class="map-canvas"><div class="map-viewport"><div class="map-grid" style="width:'+W+'px;height:'+H+'px">'+
         bg+'<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+pins+
       '</div></div>'+
+      '<div class="map-legend">'+legend+'</div>'+
       '<div class="map-scale"><span class="ms-bar"></span><span class="ms-tx">1 格 ≈ '+MAP_LI+' 里</span></div>'+
       '<div class="map-hint">拖拽平移 · 滚轮/双指缩放 · 双击复位</div></div>'+
       '<p class="tip">'+tip+'</p>';
@@ -1686,7 +1716,7 @@ window.onerror=function(msg,url,line,col,err){
       var bar=canvas.querySelector('.ms-bar'); if(bar) bar.style.width=Math.max(28,Math.min(150,MAP_CELL*scale))+'px';
     }
     function centerOn(rid){
-      var c=MAP_COORDS[rid]||[0,0];
+      var c=resolveMapCoords()[rid]||[0,0];
       var r=canvas.getBoundingClientRect();
       tx=r.width/2 - (c[0]-MAPMINC+0.5)*MAP_CELL*scale;
       ty=r.height/2 - (c[1]-MAPMINR+0.5)*MAP_CELL*scale;
