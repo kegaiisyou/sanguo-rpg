@@ -1586,7 +1586,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820am"></script>
+<script src="shared/config/constants.js?v=20260820an"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1600,7 +1600,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260820aa"></script>
     <script src="shared/data/recipes.js?v=20260820aa"></script>
     <script src="shared/data/shops.js?v=20260820aa"></script>
-    <script src="shared/data/map.js?v=20260820am"></script>
+    <script src="shared/data/map.js?v=20260820an"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
@@ -1782,11 +1782,9 @@ window.onerror=function(msg,url,line,col,err){
     });
     // ── lv2 房间层：节点（按 mapKind 分色；标签统一朝下、按间距防重叠，当前房间永远显示）──
     var pins='';
-    // 节点位置缓存：供 apply() 动态做「屏幕间距贪心防重叠」。
-    // 间距判定基于 世界距离×当前缩放=屏幕像素，缩放越大放得越近，可显示的标签越多；
-    // 放大到最大时间距天然足够 → 全部显示；缩小后自动收敛，次要节点只留圆点。
-    // 既不叠字、又不牺牲"放大看细节"。
-    var pinGeos=[];   // [{rid,x,y,cur,city,spawn}]
+    // 标签是否隐藏由 initMap 的 apply() 按「屏幕间距」（世界距离×缩放）动态贪心决定：
+    // 缩放越大放得越近、可显示的标签越多，放大到最大时间距天然足够 → 全部显示；缩小后自动收敛。
+    // 节点坐标用 data-wx/data-wy 记录在 DOM 上，apply() 直接读取，避免跨函数共享变量。
     keys.forEach(function(rid){
       var c=coords[rid], r=G.ROOMS[rid], cur=(rid===state.room);
       var x=px(c), y=py(c);
@@ -1805,7 +1803,6 @@ window.onerror=function(msg,url,line,col,err){
              ' style="left:'+x+'px;top:'+y+'px'+(tutorialOnly&&!opts.pickSpawn?';display:none':'')+'" '+
              'title="'+r.name+(ex?'\n〔通达〕'+ex:'')+'">'+
              badge+'<span class="mp-dot"></span><span class="mp-nm">'+r.name+'</span></div>';
-      pinGeos.push({rid:rid, x:x, y:y, cur:cur, city:kind==='city', spawn:(opts.pickSpawn&&rid===state.spawnRoom)});
     });
     // ── lv0 州域装饰：黄河 / 长江 示意线与塞外标注（增强舆图质感）──
     function P(c){ return px(c)+','+py(c); }
@@ -1897,32 +1894,43 @@ window.onerror=function(msg,url,line,col,err){
       });
       // 动态防重叠：按「屏幕间距」（世界距离×缩放）贪心决定哪些标签显示。
       // 优先级：当前房间 > 出生点 > 城池 > 其余；间距用屏幕像素（放大→全显示，缩小→自动收敛）。
-      if(next==='lv2' && pinGeos.length){
-        var GAP=46;   // 屏幕安全间距（px）：两个相邻标签圆心间需至少保持的屏幕距离
-        var shown=[];                            // 已占位的 [{x,y}]
-        // 排序：当前房间、出生点、城池优先
-        var order=pinGeos.map(function(o,i){return i;});
+      // 节点数据直接从已渲染的 DOM 读取（data-wx/data-wy/class），不依赖外部变量，避免跨函数作用域问题。
+      if(next==='lv2'){
+        var pinEls=canvas.querySelectorAll('.map-pin');
+        var geos=[], order=[];
+        for(var p=0;p<pinEls.length;p++){
+          var el=pinEls[p];
+          if(el.style.display==='none') continue;   // 教学节点已 display:none 的跳过
+          var gx=parseFloat(el.getAttribute('data-wx')), gy=parseFloat(el.getAttribute('data-wy'));
+          if(isNaN(gx)||isNaN(gy)) continue;
+          var geo={el:el, rid:el.getAttribute('data-rid'), x:gx, y:gy,
+                   cur:el.classList.contains('cur'),
+                   spawn:el.classList.contains('pick')&&el.hasAttribute('data-spawn'),
+                   city:el.classList.contains('mp-k-city')};
+          geos.push(geo);
+        }
+        order=geos.map(function(o,i){return i;});
         order.sort(function(a,b){
-          var A=pinGeos[a], B=pinGeos[b];
+          var A=geos[a], B=geos[b];
           if(A.cur!==B.cur) return B.cur?1:-1;
           if(A.spawn!==B.spawn) return B.spawn?1:-1;
           if(A.city!==B.city) return B.city?1:-1;
           return 0;
         });
-        var keep={};
+        var GAP=46;   // 屏幕安全间距（px）：两个相邻标签圆心间需至少保持的屏幕距离
+        var shown=[], keep={};
         order.forEach(function(i){
-          var o=pinGeos[i];
+          var o=geos[i];
           var forced=o.cur||o.spawn;
           var dMin=1e9;
           shown.forEach(function(s){ dMin=Math.min(dMin, Math.hypot(o.x-s.x, o.y-s.y)); });
           // 屏幕间距 = 世界距离 × scale；大于 GAP 或强制显示则保留标签
           if(forced || dMin*scale>=GAP){ shown.push({x:o.x,y:o.y}); keep[o.rid]=1; }
         });
-        var pins=canvas.querySelectorAll('.map-pin');
-        for(var k=0;k<pins.length;k++){
-          var rid2=pins[k].getAttribute('data-rid');
-          if(rid2 && keep[rid2]) pins[k].classList.remove('mp-lbl-hide');
-          else if(rid2) pins[k].classList.add('mp-lbl-hide');
+        for(var k=0;k<pinEls.length;k++){
+          var rid2=pinEls[k].getAttribute('data-rid');
+          if(rid2 && keep[rid2]) pinEls[k].classList.remove('mp-lbl-hide');
+          else if(rid2) pinEls[k].classList.add('mp-lbl-hide');
         }
       }
     }
