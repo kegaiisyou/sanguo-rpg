@@ -61,7 +61,12 @@
     mutou:         { defId: 'mutou',   name: '木头',   icon: '🪵', cat: '素材', desc: '粗伐的树干枝料，可于木工台加工成木材，亦能直接搭架。' },
     mucai:         { defId: 'mucai',   name: '木材',   icon: '🟫', cat: '素材', desc: '经木工台刨削而成的规整木料，修筑与打造的基材。' },
     futou:         { defId: 'futou',   name: '斧头',   icon: '🪓', cat: '素材', tool:true, maxDur:5, desc: '伐木器具。持之伐木可得粗实木头；每伐一次耗耐久 1，耐久尽则损毁。亦可售与行商。' },
-    zhangpeng:     { defId: 'zhangpeng', name: '帐篷', icon: '⛺', cat: '器具', placeable:true, desc: '可携行的小帐。于背包「放置」后支起，房中即可「休息」「收起」。' }
+    zhangpeng:     { defId: 'zhangpeng', name: '帐篷', icon: '⛺', cat: '器具', placeable:true,
+      place:{ key:'tent', icon:'⛺', name:'帐篷', desc:'支起的行帐，可在此休整或收起', actions:'tent' },
+      desc: '可携行的小帐。于背包「放置」后支起，房中即可「休息」「收起」。' },
+    gongzuotai:    { defId: 'gongzuotai', name: '便携工作台', icon: '🔨', cat: '器具', placeable:true,
+      place:{ key:'p_bench', icon:'🔨', name:'木工台', desc:'摊开随行的木工台，可将木头加工成木材', actions:'p_bench' },
+      desc: '可折叠的轻便木工台，于背包「放置」后支起，即可制作木器。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
@@ -120,6 +125,7 @@
     if (d.effect) it.effect = JSON.parse(JSON.stringify(d.effect));
     if (d.maxDur) { it.maxDur = d.maxDur; it.dur = d.maxDur; }
     if (d.placeable) it.placeable = true;   // 可放置/支起类（如帐篷）
+    if (d.place) it.place = d.place;        // 放置模板：放置后生成的场景对象定义
     if (d.cat === '装备') {
       it.slot = d.slot; it.quality = d.quality || 'white';
       it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;

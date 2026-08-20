@@ -1491,6 +1491,7 @@ window.onerror=function(msg,url,line,col,err){
   <nav id="dock">
     <button data-modal="char"><span class="ic">🧭</span>角色</button>
     <button data-modal="pack"><span class="ic">🎒</span>行囊</button>
+    <button data-modal="party"><span class="ic">🤝</span>队伍</button>
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
     <button data-modal="rest" class="rest"><span class="ic">🧘</span>调息</button>
@@ -1502,23 +1503,23 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820y"></script>
+<script src="shared/config/constants.js?v=20260820z"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260817c"></script>
-<script src="shared/story/dialogues.js?v=20260819i"></script>
+<script src="shared/story/dialogues.js?v=20260820z"></script>
     <script src="shared/story/rooms.js?v=20260819j"></script>
     <script src="shared/story/triggers.js?v=20260819i"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260820w"></script>
-    <script src="shared/data/recipes.js?v=20260819o"></script>
+<script src="shared/data/items.js?v=20260820z"></script>
+    <script src="shared/data/recipes.js?v=20260820z"></script>
     <script src="shared/data/shops.js?v=20260819r"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
-    <script src="shared/index.js?v=20260818a"></script>
+    <script src="shared/index.js?v=20260820z"></script>
 <script>
 (function(){
   try{
@@ -2574,6 +2575,9 @@ window.onerror=function(msg,url,line,col,err){
       {type:'feature', key:'bench',    icon:'🔨', name:'木工台',   desc:'粗木搭就的工作台，可将木头加工成木材', actions:benchActs},
       {type:'feature', key:'toolpile', icon:'🪓', name:'工具堆',   desc:'墙角堆着些杂役用的家伙什',       actions:[{label:'拾取斧头', icon:'🪓', fn:function(){ pickupAxe(); }}]},
       {type:'npc', key:'pedlar', icon:'🧺', name:'货郎', desc:'挑担行商，收售木料与器具', actions:[{label:'与他交易', icon:'💰', fn:function(){ openModal('shop', {shop:'build_pedlar'}); }}]},
+      {type:'npc', key:'liupan', icon:'🗡️', name:'游侠·刘磐', desc:'背负环首刀，抱拳而立', actions:[
+        {label:'邀请入队', icon:'🤝', fn:function(){ recruitCompanion('liupan'); }}
+      ]},
       {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·北邙山林',desc:'返回山林',                        actions:[{label:'返回北邙山林', fn:function(){ move('北','forest'); }}]}
     ],
@@ -2840,9 +2844,11 @@ window.onerror=function(msg,url,line,col,err){
     box.innerHTML=''; box.classList.remove('has');
     var items=[];
     var seen={};   // 已在 ROOM_OBJECTS 中以 NPC 形式出现的 key，避免与 npcs 重复
+    var rec=(state.flags && state.flags.recruited)||{};
     var objs=ROOM_OBJECTS[room.id];
     if(objs && objs.length){
       objs.filter(function(o){return o.type==='npc';}).forEach(function(o){
+        if(rec[o.key]) return;         // 已入队的随从不再显示于场景
         seen[o.key]=1;
         items.push({o:o, acts:buildNpcActions(o)});
       });
@@ -2850,6 +2856,7 @@ window.onerror=function(msg,url,line,col,err){
     // 合并房间 npcs：敌人型 → 可「挑战」；对话型 → 原交谈逻辑
     (room.npcs||[]).forEach(function(k){
       if(seen[k]) return;
+      if(rec[k]) return;               // 已入队的随从不再显示
       var en = G.ENEMIES ? G.ENEMIES.get(k) : null;
       if(en){
         var o={name:en.name, icon:'⚔', key:k, desc:en.title||'来者不善'};
@@ -2935,6 +2942,68 @@ window.onerror=function(msg,url,line,col,err){
   }
   // NPC → 可战敌人 映射：当 NPC 的 key 与敌人 id 不一致时，用此表指向真正的敌人
   var NPC_COMBAT_MAP = { 'heishan_zhai':['heishan_zei','heishan_zei'] };  // 小兵成组（演示敌群作战）
+  // ===== 随从系统：可招募 NPC → 入队 → 共同战斗（CombatEngine 已支持 state.party） =====
+  var COMPANION_DEFS = {
+    liupan: {
+      id:'liupan', name:'游侠·刘磐',
+      hp:150, maxHp:150, mp:20, maxMp:20,
+      atk:15, def:9, spd:15,
+      element:'火', learnedMartial:['beng_quan'], realm:{}, equippedForce:[],
+      critRate:0.04, hitRate:0.92,
+      desc:'使一口环首刀，为人豪爽，愿随你闯荡江湖。'
+    }
+  };
+  function recruitCompanion(key){
+    var c=COMPANION_DEFS[key]; if(!c){ toast('此人不可招入队中。'); return; }
+    if(!state.party) state.party=[];
+    if(state.party.some(function(m){ return m.id===c.id; })){ toast(c.name+'已在队中。'); return; }
+    state.party.push(Object.assign({}, c));
+    if(!state.flags) state.flags={};
+    if(!state.flags.recruited) state.flags.recruited={};
+    state.flags.recruited[key]=true;   // 标记已招募，NPC 从场景列表中隐去
+    save(state);
+    if(typeof buildActions==='function') buildActions(G.ROOMS[state.room]);
+    log(c.name+'抱拳道：「承蒙看得起，愿随壮士同生共死！」','good');
+    toast(c.name+' 加入队伍！');
+  }
+  function dismissCompanion(id){
+    if(!state.party) return;
+    var idx=-1;
+    for(var i=0;i<state.party.length;i++){ if(state.party[i].id===id){ idx=i; break; } }
+    if(idx<0) return;
+    var c=state.party[idx];
+    state.party.splice(idx,1);
+    for(var k in COMPANION_DEFS){ if(COMPANION_DEFS[k].id===id && state.flags && state.flags.recruited){ delete state.flags.recruited[k]; } }
+    save(state);
+    if(currentModalKind==='party') openModal('party');
+    log(c.name+'与你拱手作别，转身没入人海。','sys');
+    toast(c.name+' 已离队。');
+  }
+  function renderPartyPanel(){
+    var list=(state.party||[]);
+    var html='<h3>队 伍</h3>';
+    if(!list.length){
+      html+='<p class="tip">你孤身一人行走江湖。江湖儿女中自有可招募之人——留意 NPC 的「邀请入队」。</p>';
+    }
+    list.forEach(function(c){
+      var arts=(c.learnedMartial||[]).map(function(aid){ var a=G.MARTIAL_ARTS.get(aid); return '<span>'+(a?a.name:aid)+'</span>'; }).join('');
+      html+='<div style="border:1px solid #6b5a3a;border-radius:10px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+        +   '<span style="font-weight:700;font-size:15px;">'+(c.name||'同伴')+'</span>'
+        +   '<button class="btn-mini" style="background:#7d241d;border-color:#a13a2c;" onclick="LFUI.dismissCompanion(\''+c.id+'\')">解散</button>'
+        + '</div>'
+        + row('气血', c.hp+' / '+c.maxHp)
+        + row('内力', (c.mp||0)+' / '+(c.maxMp||0))
+        + row('攻击', c.atk||0)
+        + row('防御', c.def||0)
+        + row('身法', c.spd||0)
+        + row('五行', c.element||'无')
+        + '<div class="row"><span>武学</span></div><div class="skills">'+(arts||'<span>未习武学</span>')+'</div>'
+        + '<p class="tip">'+((COMPANION_DEFS[c.id]||{}).desc||'每场战斗同伴满血入场，可随你一起出手。')+'</p>'
+        + '</div>';
+    });
+    return html;
+  }
   // ===== NPC 标准操作列：交谈 / 观察 / 攻击 + 对象自带动作 =====
   function buildNpcActions(o){
     var acts=[];
@@ -3270,44 +3339,66 @@ window.onerror=function(msg,url,line,col,err){
       return;
     }
   }
-  // 合并静态 ROOM_OBJECTS 与玩家动态放置物（帐篷等），供场景/列表/出口统一读取
+  // ===== 通用可放置物品（模板驱动：物品定义 place 字段 → 场景对象） =====
+  // 放置物动作表：place.actions 字符串 → 动作函数（物品数据外置，动作需在此注册）
+  // 旧存档兼容：早期放置数据仅存 {key:'tent'}（无 defId），用此表回填物品
+  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai' };
+  var PLACE_ACTIONS = {
+    tent: function(){
+      return [
+        {label:'休息', icon:'🧘', fn:function(){ closeModal(); actRest(); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('tent'); }}
+      ];
+    },
+    p_bench: function(){
+      return [
+        {label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('p_bench'); }}
+      ];
+    }
+  };
+  // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
   function roomObjs(roomId){
     var base = ROOM_OBJECTS[roomId] || [];
     var placed = (state.placed && state.placed[roomId]) || [];
     var dyn = placed.map(function(p){
-      if(p.key==='tent') return {type:'feature', key:'tent', icon:'⛺', name:'帐篷', desc:'支起的行帐，可在此休整或收起', actions:tentActs};
-      return {type:'feature', key:p.key, icon:'❓', name:'未知物', desc:'', actions:[]};
+      var defId = p.defId || PLACE_KEY_DEF[p.key];
+      var pl = ((LF.ITEMS[defId]||{}).place) || {};
+      var acts = PLACE_ACTIONS[pl.actions] || function(){ return []; };
+      return {type:'feature', key:pl.key||p.key, icon:pl.icon||'❓', name:pl.name||'未知物', desc:pl.desc||'', actions:acts};
     });
-    return base.concat(dyn);
-  }
-  function tentActs(){
-    return [
-      {label:'休息', icon:'🧘', fn:function(){ closeModal(); actRest(); }},
-      {label:'收起', icon:'📦', fn:function(){ packUpTent(); }}
-    ];
+    // 放置物覆盖同 key 的静态 feature（如收起的工作台摆放后，静态木工台不再重复显示）
+    var dynKeys={}; dyn.forEach(function(o){ dynKeys[o.key]=1; });
+    var filteredBase = base.filter(function(o){ return !(o.type==='feature' && dynKeys[o.key]); });
+    return filteredBase.concat(dyn);
   }
   function placeInspect(){
     if(!packInspect || packInspect.kind!=='pack') return;
-    var idx=packInspect.idx; var it=state.pack[idx]; if(!it || !(it.placeable || (LF.ITEMS[it.defId]||{}).placeable)) return;
+    var idx=packInspect.idx; var it=state.pack[idx];
+    var pl = (it && (it.place || ((LF.ITEMS[it.defId]||{}).place))) || null;
+    if(!it || !(it.placeable || pl)) return;
     state.placed = state.placed || {};
     state.placed[state.room] = state.placed[state.room] || [];
-    if(state.placed[state.room].some(function(o){ return o.key==='tent'; })){ toast('此处已支有一顶帐篷。'); return; }
+    if(state.placed[state.room].some(function(o){ return o.key===pl.key; })){ toast('此处已支有'+pl.name+'。'); return; }
     state.pack[idx]=null;
-    state.placed[state.room].push({key:'tent'});
+    state.placed[state.room].push({key:pl.key, defId:it.defId});
     packInspect=null;
     afterPackChange();
-    log('你抖开帐篷，支于空地一角。','sys');
+    log('你支起'+pl.name+'，安置于'+curRoom().name+'。','sys');
     if(currentModalKind==='pack') openModal('pack');
   }
-  function packUpTent(){
+  function packUpPlaced(key){
     state.placed = state.placed || {};
     var arr = state.placed[state.room];
-    if(!arr || !arr.some(function(o){ return o.key==='tent'; })){ toast('此处并无帐篷可收。'); return; }
-    state.placed[state.room] = arr.filter(function(o){ return o.key!=='tent'; });
-    packAdd('zhangpeng', 1);
+    if(!arr || !arr.some(function(o){ return o.key===key; })){ toast('此处并无此物可收。'); return; }
+    var p=null;
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===key){ p=arr[i]; arr.splice(i,1); break; } }
+    var defId = p.defId || PLACE_KEY_DEF[p.key];
+    var ok = packAdd(defId, 1);
+    if(!ok){ if(p) arr.push(p); toast('行囊已满，无法收起。'); return; }
     packInspect=null;
     afterPackChange();
-    log('你收起帐篷，卷作一团揣入行囊。','sys');
+    log('你收起'+((LF.ITEMS[defId]||{}).name||'此物')+'，收进行囊。','sys');
     if(currentModalKind==='pack') openModal('pack');
   }
   // 货郎商店数据已外置到 shared/data/shops.js（详见 LF.SHOPS.build_pedlar），便于调价与扩展
@@ -3365,8 +3456,8 @@ window.onerror=function(msg,url,line,col,err){
     if(it.maxDur){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); html+='<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span></div>'; }
     if(it.desc) html+='<div class="pi-desc">'+it.desc+'</div>';
     if(sp!=null){
-      html+='<div class="pi-actions"><button class="btn-mini" onclick="LFUI.shopSell1()">出售×1（'+sp+'两）</button>';
-      if(it.count>1) html+='<button class="btn-mini" onclick="LFUI.shopSellAll()">全售×'+it.count+'（'+(sp*it.count)+'两）</button>';
+      html+='<div class="pi-actions"><button class="btn-mini" onclick="LFUI.confirmSell('+shopSel+',1)">出售×1（'+sp+'两）</button>';
+      if(it.count>1) html+='<button class="btn-mini" onclick="LFUI.confirmSell('+shopSel+','+it.count+')">全售×'+it.count+'（'+(sp*it.count)+'两）</button>';
       html+='</div>';
     } else {
       html+='<div class="pi-desc" style="opacity:.7;margin-top:4px;">货郎不收此物。</div>';
@@ -3381,7 +3472,7 @@ window.onerror=function(msg,url,line,col,err){
       el.onclick=function(){
         if(el.__dragMoved){ el.__dragMoved=false; return; }
         if(el.classList.contains('shop-bad')){ toast('银两不足，买不起。'); return; }
-        buyFromShop(el.getAttribute('data-shop'));
+        showBuyPanel(el.getAttribute('data-shop'));
       };
       el.setAttribute('draggable','true');
       el.ondragstart=function(e){
@@ -3460,16 +3551,62 @@ window.onerror=function(msg,url,line,col,err){
     card.onpointercancel=function(e){ endDrag(e,true); };
     var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
   }
-  function buyFromShop(id){
+  // 计算某货品当前最多能买几件（受金币与行囊空间共同限制）
+  function buySpaceLimit(id){
+    var it=LF.ITEMS.makeItem(id,1); if(!it) return 0;
+    if(packIsStackable(it)){          // 可堆叠：已有同类则不限，否则需 1 空格
+      if(packFind(id)) return 9999;
+      return packFirstEmpty()>=0 ? 9999 : 0;
+    }
+    var empt=0; for(var i=0;i<state.pack.length;i++){ if(!state.pack[i]) empt++; }
+    return empt;
+  }
+  function buyFromShop(id, n){
     var shop=LF.SHOPS[shopState]; if(!shop) return;
     var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; }); if(!r) return;
-    if(state.gold<r.buy){ toast('银两不足，买不起。'); return; }
+    if(!r.buy){ toast('货郎不出售此物。'); return; }
+    n=n||1;
+    var maxGold=Math.floor(state.gold/r.buy);
+    if(maxGold<=0){ toast('银两不足，买不起。'); return; }
+    var maxSpace=buySpaceLimit(id);
+    var want=Math.min(n, maxGold, maxSpace);
+    if(want<=0){ toast('行囊空间不足，无法购买。'); return; }
     var _nm=(LF.ITEMS[id]||{}).name||'物品';
-    state.gold-=r.buy; packAdd(id,1);
+    var bought=0;
+    for(var i=0;i<want;i++){ if(packAdd(id,1)) bought++; else break; }
+    var cost=r.buy*bought; state.gold-=cost;
     afterPackChange();
-    toast('购入 '+_nm+'×1，付银 '+r.buy+' 两');
-    log('你向货郎购入'+_nm+'×1，付银 '+r.buy+' 两。','sys');
+    if(bought>0){
+      toast('购入 '+_nm+'×'+bought+'，付银 '+cost+' 两');
+      log('你向货郎购入'+_nm+'×'+bought+'，付银 '+cost+' 两。','sys');
+    }
+    if(bought<want) toast('行囊空间有限，仅购得 '+bought+' 件。');
     $card.innerHTML=renderShopPanel(); bindShopPanel();
+  }
+  // 货品格子点击 → 数量选择面板（显示在底栏信息区）
+  function showBuyPanel(id){
+    var shop=LF.SHOPS[shopState]; if(!shop) return;
+    var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; }); if(!r||!r.buy) return;
+    var maxGold=Math.floor(state.gold/r.buy);
+    var maxSpace=buySpaceLimit(id);
+    var max=Math.min(maxGold, maxSpace);
+    var d=LF.ITEMS[id]||{};
+    var info=document.querySelector('.shop-info'); if(!info) return;
+    if(max<=0){ info.innerHTML='<div class="pack-inspect">银两或行囊不足，买不了'+(d.name||'此物')+'。</div>'; return; }
+    var qs=[1,5,10].filter(function(q){ return q<=max; });
+    if(qs.indexOf(max)<0) qs.push(max);
+    var html='<div class="pack-inspect"><div class="pi-name">买入 '+(d.icon||'')+' '+(d.name||'')+'（'+r.buy+'两/件 · 可买'+max+'件）</div><div class="pi-actions">'
+      + qs.map(function(q){ return '<button class="btn-mini" data-buyq="'+q+'" data-buyid="'+id+'">×'+q+'</button>'; }).join('')
+      + '<button class="btn-mini" data-buyq="0" data-buyid="'+id+'" style="opacity:.6">取消</button>'
+      + '</div></div>';
+    info.innerHTML=html;
+    info.querySelectorAll('[data-buyq]').forEach(function(b){
+      b.onclick=function(){
+        var q=parseInt(b.getAttribute('data-buyq'),10);
+        if(q<=0){ info.innerHTML=renderShopInfo(); return; }
+        buyFromShop(b.getAttribute('data-buyid'), q);
+      };
+    });
   }
   function sellToShop(idx, n){
     var it=state.pack[idx]; if(!it) return;
@@ -3483,8 +3620,30 @@ window.onerror=function(msg,url,line,col,err){
     log('你卖给货郎'+_nm+'×'+n+'，得银 '+(sp*n)+' 两。','sys');
     $card.innerHTML=renderShopPanel(); bindShopPanel();
   }
-  function shopSell1(){ if(shopSel==null) return; sellToShop(shopSel,1); }
-  function shopSellAll(){ if(shopSel==null) return; var it=state.pack[shopSel]; if(!it) return; sellToShop(shopSel, it.count); }
+  // 出售二次确认：首次点击进入确认态，再点一次才成交，5 秒后自动复原
+  var pendingSell=null;
+  function confirmSell(idx, n){
+    var it=state.pack[idx]; if(!it) return;
+    var sp=shopSellPrice(it.defId); if(sp==null){ toast('货郎不收此物。'); return; }
+    if(pendingSell && pendingSell.idx===idx && pendingSell.n===n){
+      pendingSell=null;
+      sellToShop(idx, n);
+      return;
+    }
+    pendingSell={idx:idx, n:n};
+    var info=document.querySelector('.shop-info');
+    if(info) info.innerHTML='<div class="pack-inspect"><div class="pi-row"><span class="pi-label">确认出售？</span></div>'
+      + '<div class="pi-desc" style="opacity:.85;margin-top:2px;">'+(LF.ITEMS[it.defId]||{}).name+' ×'+n+'（得银 '+(sp*n)+'两）</div>'
+      + '<div class="pi-actions">'
+      + '<button class="btn-mini" style="background:#7d241d;border-color:#a13a2c;" onclick="LFUI.confirmSell('+idx+','+n+')">确认出售</button>'
+      + '<button class="btn-mini" onclick="LFUI.cancelSell()">取消</button></div></div>';
+  }
+  function cancelSell(){
+    pendingSell=null;
+    var info=document.querySelector('.shop-info'); if(info) info.innerHTML=renderShopInfo();
+  }
+  function shopSell1(){ if(shopSel==null) return; confirmSell(shopSel,1); }
+  function shopSellAll(){ if(shopSel==null) return; var it=state.pack[shopSel]; if(!it) return; confirmSell(shopSel, it.count); }
 
   // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){
@@ -3842,7 +4001,7 @@ window.onerror=function(msg,url,line,col,err){
       else act += '<button class="btn-mini" onclick="LFUI.equipInspect()">装备</button>';
     } else {
       if(it.effect) act += '<button class="btn-mini" onclick="LFUI.useInspect()">使用</button>';
-      if(it.placeable || (LF.ITEMS[it.defId]||{}).placeable) act += '<button class="btn-mini" onclick="LFUI.placeInspect()">放置</button>';
+      if(it.placeable || (LF.ITEMS[it.defId]||{}).placeable || (LF.ITEMS[it.defId]||{}).place) act += '<button class="btn-mini" onclick="LFUI.placeInspect()">放置</button>';
     }
     if(packInspect.kind==='pack') act += '<button class="btn-mini" onclick="LFUI.discardInspect()">丢弃</button>';
     act += '<button class="btn-mini" onclick="LFUI.closeInspect()">关闭</button>';
@@ -3913,7 +4072,8 @@ window.onerror=function(msg,url,line,col,err){
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
   window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort,
     useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect,
-    shopSell1:shopSell1, shopSellAll:shopSellAll };
+    shopSell1:shopSell1, shopSellAll:shopSellAll, confirmSell:confirmSell, cancelSell:cancelSell,
+    dismissCompanion:dismissCompanion };
 
   // 行囊装备面板（P1 完整）
   function useItemOutside(defId){
@@ -4292,6 +4452,8 @@ window.onerror=function(msg,url,line,col,err){
         '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
     } else if(kind==='pack'){
       h=renderPack();
+    } else if(kind==='party'){
+      h=renderPartyPanel();
     } else if(kind==='quest'){
       h='<h3>任 务</h3>'+
         row('当前所处',curRoom().name)+

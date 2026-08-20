@@ -14,7 +14,8 @@ LF.RECIPES = {
   // 木工台：T0 素材 → T1 木材
   bench: [
     { id:'twig_timber', cat:'木材类', name:'木材', icon:'🟫', out:'mucai', outN:1, in:[{id:'xiaoshuzhi', n:2}], note:'细枝捆扎刨削成材（耗料较多）' },
-    { id:'wood_timber', cat:'木材类', name:'木材', icon:'🟫', out:'mucai', outN:1, in:[{id:'mutou', n:1}], note:'粗木直接解板成材（斧伐料更划算）' }
+    { id:'wood_timber', cat:'木材类', name:'木材', icon:'🟫', out:'mucai', outN:1, in:[{id:'mutou', n:1}], note:'粗木直接解板成材（斧伐料更划算）' },
+    { id:'fold_bench', cat:'器具类', name:'便携工作台', icon:'🔨', out:'gongzuotai', outN:1, in:[{id:'mucai', n:3}], note:'以规整木材攒成可折叠的工作台，随行随用' }
     // 后续接入：{ id:'plank', cat:'木材类', name:'木板', out:'muban', outN:1, in:[{id:'mucai', n:2}] ... }
     //          { id:'hammer', cat:'器具类', name:'木槌', out:'muchui', outN:1, in:[{id:'mucai', n:2},{id:'xiaoshuzhi', n:1}] ... }
   ]

@@ -56,6 +56,7 @@
       learnedMartial: ['beng_quan'],            // 已学招式（新武学系统）
       equippedForce: ['cun_jin'],               // 已装配发力技巧（初始带寸劲暴击）
       // ─── v0.7 格子制行囊：基础容量 6 格 + 背包槽（腰包/鞶囊可扩容） ───
+      party: [],                                    // 随从同伴（每场战斗满血入场，见 startCombat）
       pack: (function () {
         var a = new Array(6).fill(null);
         a[0] = { defId:'jinchuang',   name:'金疮药',   icon:'🧪', cat:'药剂', desc:'外敷金创，止血生肌，可疗外伤五十。', count:1, effect:{hp:50} };
