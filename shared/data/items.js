@@ -119,6 +119,7 @@
     var it = { defId: d.defId, name: d.name, icon: d.icon, cat: d.cat, desc: d.desc, count: count || 1 };
     if (d.effect) it.effect = JSON.parse(JSON.stringify(d.effect));
     if (d.maxDur) { it.maxDur = d.maxDur; it.dur = d.maxDur; }
+    if (d.placeable) it.placeable = true;   // 可放置/支起类（如帐篷）
     if (d.cat === '装备') {
       it.slot = d.slot; it.quality = d.quality || 'white';
       it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;
