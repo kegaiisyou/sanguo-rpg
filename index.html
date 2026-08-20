@@ -502,6 +502,31 @@
   .map-legend .mpk-fort{background:#8a7a5a;}
   .map-legend .mpk-town{background:#9aa8c0;}
   .map-legend .mpk-camp{background:#c0803a;}
+  /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
+  .map-states-svg{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
+  .map-states-svg .map-state-sh{cursor:pointer;pointer-events:all;transition:filter .15s;}
+  .map-states-svg .map-state-sh:hover{filter:brightness(1.35);}
+  .map-state-name{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:4px;font-weight:700;
+    text-anchor:middle;dominant-baseline:central;fill:rgba(94,72,42,.92);pointer-events:none;}
+  /* ── 三级地图 · 区域层（lv1：城池/要地节点）── */
+  .map-zones{position:absolute;left:0;top:0;width:100%;height:100%;transition:opacity .12s;z-index:1;}
+  .map-zone{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;
+    gap:2px;cursor:pointer;width:92px;user-select:none;-webkit-user-select:none;}
+  .map-zone .mz-dot{width:12px;height:12px;border-radius:50%;background:rgba(120,90,40,.28);
+    border:2px solid rgba(120,90,40,.65);flex:0 0 auto;transition:.12s;}
+  .map-zone.open .mz-dot{background:#b0832f;border-color:#8a6f3e;box-shadow:0 0 0 3px rgba(176,131,47,.14);}
+  .map-zone.open:hover .mz-dot{transform:scale(1.25);background:#caa33c;}
+  .map-zone .map-zone-nm{font-size:12.5px;line-height:1.2;text-align:center;color:rgba(94,72,42,.55);
+    background:rgba(255,253,248,.9);border-radius:6px;padding:1px 5px;white-space:nowrap;pointer-events:none;}
+  .map-zone.open .map-zone-nm{color:var(--ink);font-weight:600;}
+  /* ── 三级地图 · 层级显隐（由 initMap 按缩放阈值切换 canvas.lv0/1/2）── */
+  .map-canvas.lv0 .map-zones{display:none;}
+  .map-canvas.lv0 .map-svg,.map-canvas.lv0 .map-pins{display:none;}
+  .map-canvas.lv0 .map-region,.map-canvas.lv0 .map-region-t{display:none;}
+  .map-canvas.lv1 .map-states-svg{opacity:.32;}
+  .map-canvas.lv1 .map-svg,.map-canvas.lv1 .map-pins{display:none;}
+  .map-canvas.lv2 .map-states-svg{display:none;}
+  .map-canvas.lv2 .map-zones{opacity:.45;}
   .map-scale{position:absolute;left:14px;bottom:12px;display:flex;align-items:center;gap:7px;
     font-size:11px;color:var(--ink-soft);pointer-events:none;z-index:3;}
   .map-scale .ms-bar{display:inline-block;height:6px;border-radius:3px;width:92px;
@@ -1537,7 +1562,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260820aa"></script>
     <script src="shared/data/recipes.js?v=20260820aa"></script>
     <script src="shared/data/shops.js?v=20260820aa"></script>
-    <script src="shared/data/map.js?v=20260820ab"></script>
+    <script src="shared/data/map.js?v=20260820ac"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
@@ -1635,18 +1660,30 @@ window.onerror=function(msg,url,line,col,err){
   // 图例文案（对应 kinds 取值）
   var MAP_KIND_LABEL={ city:'城镇', wild:'野外', dungeon:'贼巢', fort:'军屯', tutorial:'教学', town:'村镇', camp:'营地' };
   // 山河志空间地图 HTML（main 查看 / 调试选出生点 共用；数据驱动 shared/data/map.js）
+  // 三级缩放：lv0 州域（十三州轮廓）→ lv1 区域（城池/要地）→ lv2 房间（格子与连线）
   function buildMapHTML(opts){
     opts=opts||{};
     var coords=resolveMapCoords();
+    var states=mapData().states||[];
+    var zones=mapData().zones||[];
     var keys=Object.keys(G.ROOMS).filter(function(rid){return coords[rid];});
     var minc=0,maxc=0,minr=0,maxr=0;
-    keys.forEach(function(rid){ var c=coords[rid];
-      if(c[0]<minc)minc=c[0]; if(c[0]>maxc)maxc=c[0];
-      if(c[1]<minr)minr=c[1]; if(c[1]>maxr)maxr=c[1]; });
+    function range(c){ if(c[0]<minc)minc=c[0]; if(c[0]>maxc)maxc=c[0]; if(c[1]<minr)minr=c[1]; if(c[1]>maxr)maxr=c[1]; }
+    keys.forEach(function(rid){ range(coords[rid]); });
+    states.forEach(function(s){ (s.poly||[]).forEach(range); });
+    zones.forEach(function(z){ range(z.pos); });
     var W=(maxc-minc+1)*MAP_CELL, H=(maxr-minr+1)*MAP_CELL;
     function px(c){ return (c[0]-minc+0.5)*MAP_CELL; }
     function py(c){ return (c[1]-minr+0.5)*MAP_CELL; }
     MAPMINC=minc; MAPMINR=minr;
+    // ── lv0 州域层：十三州轮廓（SVG polygon + 州名）──
+    var statesSvg='';
+    states.forEach(function(s){
+      var pts=(s.poly||[]).map(function(c){return px(c)+','+py(c);}).join(' ');
+      statesSvg+='<polygon class="map-state-sh" data-state="'+s.id+'" fill="'+s.c+'" stroke="'+s.b+'" points="'+pts+'"></polygon>';
+      var lc=s.label||(s.poly[0]||[0,0]);
+      statesSvg+='<text class="map-state-name" data-state="'+s.id+'" x="'+px(lc)+'" y="'+py(lc)+'">'+s.name+'</text>';
+    });
     // 区域底色（数据化：LF.MAP.regions）
     var regions=(mapData().regions||[]).map(function(rg){
       return {x:px(rg.center), y:py(rg.center), r:rg.r, c:rg.c, t:rg.t};
@@ -1656,7 +1693,15 @@ window.onerror=function(msg,url,line,col,err){
       bg+='<div class="map-region" style="left:'+rg.x+'px;top:'+rg.y+'px;width:'+(rg.r*2)+'px;height:'+(rg.r*2)+'px;margin-left:-'+rg.r+'px;margin-top:-'+rg.r+'px;background:'+rg.c+'"></div>';
       bg+='<div class="map-region-t" style="left:'+rg.x+'px;top:'+(rg.y-rg.r+16)+'px">'+rg.t+'</div>';
     });
-    // 连线（每条出口一条，去重避免反向重复）
+    // ── lv1 区域层：城池/要地节点（open 高亮可点，未开放暗色占位）──
+    var zonesHtml='<div class="map-zones">';
+    zones.forEach(function(z){
+      zonesHtml+='<div class="map-zone'+(z.open?' open':'')+(z.kind?' mz-k-'+z.kind:'')+'" data-zone="'+z.id+'" data-open="'+(z.open?1:0)+'" '+
+        'style="left:'+px(z.pos)+'px;top:'+py(z.pos)+'px" title="'+z.name+' · '+z.st+((z.desc)?'\n'+z.desc:'')+'">'+
+        '<span class="mz-dot"></span><span class="map-zone-nm">'+z.icon+' '+z.name+'</span></div>';
+    });
+    zonesHtml+='</div>';
+    // ── lv2 房间层：连线（每条出口一条，去重避免反向重复）──
     var seen={}, lines='';
     keys.forEach(function(rid){
       var c=coords[rid], r=G.ROOMS[rid];
@@ -1672,7 +1717,7 @@ window.onerror=function(msg,url,line,col,err){
                'stroke-width="'+(reach?2.4:1.4)+'" '+(reach?'':'stroke-dasharray="4 4"')+'/>';
       });
     });
-    // 节点（按 mapKind 分色）
+    // ── lv2 房间层：节点（按 mapKind 分色）──
     var pins='';
     keys.forEach(function(rid){
       var c=coords[rid], r=G.ROOMS[rid], cur=(rid===state.room);
@@ -1692,10 +1737,14 @@ window.onerror=function(msg,url,line,col,err){
     var title=opts.pickSpawn?'🗺 设置出生点':'山 河 志';
     var tip=opts.pickSpawn
       ? '点击一处地点设为出生点，并立即传送至此（已自动存档）。当前出生点：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)
-      : '红点为当前所处「'+curRoom().name+'」，实线为其通达之路；拖拽平移、滚轮 / 双指缩放。其余地域将随主线推进逐一解锁。';
+      : '初始为十三州全境轮廓：滚轮 / 双指拉远看州界，拉近浮现州内城池与要地，再拉近见具体去处。当前位于「'+curRoom().name+'」；点州可跳转、点城可拉近。';
     return '<h3>'+title+'</h3>'+
-      '<div class="map-canvas"><div class="map-viewport"><div class="map-grid" style="width:'+W+'px;height:'+H+'px">'+
-        bg+'<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+pins+
+      '<div class="map-canvas lv0"><div class="map-viewport"><div class="map-grid" style="width:'+W+'px;height:'+H+'px">'+
+        '<svg width="'+W+'" height="'+H+'" class="map-states-svg">'+statesSvg+'</svg>'+
+        bg+
+        zonesHtml+
+        '<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+
+        pins+
       '</div></div>'+
       '<div class="map-legend">'+legend+'</div>'+
       '<div class="map-scale"><span class="ms-bar"></span><span class="ms-tx">1 格 ≈ '+MAP_LI+' 里</span></div>'+
@@ -1707,27 +1756,51 @@ window.onerror=function(msg,url,line,col,err){
     opts=opts||{};
     var canvas=document.querySelector('#modal-card .map-canvas'); if(!canvas) return;
     var vp=canvas.querySelector('.map-viewport');
-    var scale=1, tx=0, ty=0, moved=false;
-    // 动态最大缩放：避免放大后的合成层超过 GPU 单纹理上限（常见 4096）导致整图变空白
-    var baseW=vp.offsetWidth||2000, baseH=vp.offsetHeight||2000;
-    var maxScale=Math.max(0.6, Math.min(3, 4000/Math.max(baseW, baseH)));
+    var grid=canvas.querySelector('.map-grid');
+    var scale=1, tx=0, ty=0, moved=false, lv='lv0';
+    // 动态最大缩放：按地图实际画布尺寸限制，避免放大后的合成层超过 GPU 单纹理上限（常见 4096）导致整图空白
+    var gw=grid.offsetWidth||2000, gh=grid.offsetHeight||3000;
+    var maxScale=Math.max(1.5, Math.min(3.2, 3800/Math.max(gw, gh)));
+    var homeScale=0.3;    // 州域总览初始缩放（打开地图先见十三州轮廓）
+    var LV0=0.55, LV1=1.5; // 层级阈值：<LV0 州域 / <LV1 区域 / ≥LV1 房间
+    function setLv(next){
+      if(lv===next) return;
+      lv=next;
+      canvas.className=canvas.className.replace(/\blv[0-2]\b/g,'').replace(/\s+/g,' ').trim()+' '+lv;
+    }
     function apply(){
       vp.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';
-      var bar=canvas.querySelector('.ms-bar'); if(bar) bar.style.width=Math.max(28,Math.min(150,MAP_CELL*scale))+'px';
+      var bar=canvas.querySelector('.ms-bar'); if(bar) bar.style.width=Math.max(18,Math.min(150,MAP_CELL*scale))+'px';
+      var next = opts.pickSpawn ? 'lv2' : (scale<LV0 ? 'lv0' : (scale<LV1 ? 'lv1' : 'lv2'));
+      setLv(next);
+      // 州名 / 城池名 / 底色标签：按缩放反补偿，使屏幕字号恒定可读
+      var comp=1/scale;
+      canvas.querySelectorAll('.map-state-name, .map-zone-nm, .map-region-t').forEach(function(el){
+        var base = el.classList.contains('map-state-name') ? 16 : (el.classList.contains('map-region-t') ? 17 : 12.5);
+        el.style.fontSize=(base*comp)+'px';
+      });
     }
-    function centerOn(rid){
-      var c=resolveMapCoords()[rid]||[0,0];
+    function centerWorld(c, sc){
+      if(sc) scale=Math.max(homeScale*0.9, Math.min(maxScale, sc));
       var r=canvas.getBoundingClientRect();
       tx=r.width/2 - (c[0]-MAPMINC+0.5)*MAP_CELL*scale;
       ty=r.height/2 - (c[1]-MAPMINR+0.5)*MAP_CELL*scale;
       apply();
+    }
+    function centerOn(rid){ centerWorld(resolveMapCoords()[rid]||[0,0]); }
+    function homeView(){
+      var r=canvas.getBoundingClientRect();
+      var w=Math.max(120,r.width), h=Math.max(120,r.height);
+      homeScale=Math.max(0.16, Math.min(0.9, Math.min(w/gw, h/gh)*0.97));
+      scale=opts.pickSpawn ? 1 : homeScale;
+      centerWorld(resolveMapCoords()[state.room]||[0,0]);
     }
     function zoomAt(clientX, clientY, factor){ setZoom(scale*factor, clientX, clientY); }
     function setZoom(newScale, clientX, clientY){
       var r=canvas.getBoundingClientRect();
       var ox=clientX-r.left, oy=clientY-r.top;
       var gx=(ox-tx)/scale, gy=(oy-ty)/scale;
-      scale=Math.max(0.3, Math.min(maxScale, newScale));
+      scale=Math.max(homeScale*0.9, Math.min(maxScale, newScale));
       tx=ox-gx*scale; ty=oy-gy*scale; apply();
     }
     // 鼠标拖拽 / 滚轮
@@ -1744,8 +1817,8 @@ window.onerror=function(msg,url,line,col,err){
     }, sig);
     window.addEventListener('mouseup', function(){ dragging=false; }, sig);
     canvas.addEventListener('wheel', function(e){ e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY<0?1.12:0.89); }, {passive:false, signal:ac.signal});
-    // 双击任意处：复位到「当前所处」并恢复默认缩放，防止平移后找不到地图
-    canvas.addEventListener('dblclick', function(){ scale=1; centerOn(state.room); }, sig);
+    // 双击任意处：复位到初始总览（州域全境），防止平移后找不到地图
+    canvas.addEventListener('dblclick', function(){ homeView(); }, sig);
     // 触摸：单指平移 / 双指缩放
     var t0=null, dist0=0, z0=1;
     canvas.addEventListener('touchstart', function(e){
@@ -1766,6 +1839,32 @@ window.onerror=function(msg,url,line,col,err){
     canvas.addEventListener('touchend', function(e){ if(e.touches.length===0) t0=null; });
     function touchDist(e){ var a=e.touches[0], b=e.touches[1]; return Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); }
     function touchMid(e){ var a=e.touches[0], b=e.touches[1]; return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2}; }
+    // 州域点击：拉近到该州（进入区域层）
+    if(!opts.pickSpawn){
+      canvas.querySelectorAll('.map-state-sh').forEach(function(poly){
+        poly.addEventListener('click', function(){
+          if(moved) return;
+          var id=poly.getAttribute('data-state');
+          var st=null; (mapData().states||[]).forEach(function(s){ if(s.id===id) st=s; });
+          if(!st) return;
+          var pts=st.poly||[], cx=0, cy=0;
+          pts.forEach(function(p){ cx+=p[0]; cy+=p[1]; });
+          if(!pts.length) return;
+          centerWorld([cx/pts.length, cy/pts.length], Math.max(LV1*0.97, Math.min(LV0*2.2, 1.1)));
+        });
+      });
+      // 城池/要地点击：已开放 → 拉近到房间层；未开放 → 提示
+      canvas.querySelectorAll('.map-zone').forEach(function(el){
+        el.addEventListener('click', function(){
+          if(moved) return;
+          var id=el.getAttribute('data-zone');
+          var z=null; (mapData().zones||[]).forEach(function(x){ if(x.id===id) z=x; });
+          if(!z) return;
+          if(el.getAttribute('data-open')==='1'){ centerWorld(z.pos, Math.min(maxScale, LV1*1.25)); }
+          else { toast('「'+z.name+'」尚未开放，将随主线推进解锁。'); }
+        });
+      });
+    }
     // 选出生点
     if(opts.pickSpawn){
       vp.querySelectorAll('[data-spawn]').forEach(function(el){
@@ -1778,7 +1877,7 @@ window.onerror=function(msg,url,line,col,err){
         });
       });
     }
-    centerOn(state.room);
+    homeView();
   }
   function lunarDayName(d){
     var cn=['','一','二','三','四','五','六','七','八','九','十'];
