@@ -1503,7 +1503,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820z"></script>
+<script src="shared/config/constants.js?v=20260820aa"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1514,9 +1514,9 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260819i"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260820z"></script>
-    <script src="shared/data/recipes.js?v=20260820z"></script>
-    <script src="shared/data/shops.js?v=20260819r"></script>
+<script src="shared/data/items.js?v=20260820aa"></script>
+    <script src="shared/data/recipes.js?v=20260820aa"></script>
+    <script src="shared/data/shops.js?v=20260820aa"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
@@ -2555,7 +2555,8 @@ window.onerror=function(msg,url,line,col,err){
       {type:'exit',  key:'luoyang_gate', icon:'🏛️', name:'南·洛阳方向', desc:'远赴洛阳，凯旋之门',        actions:[{label:'赴洛阳', fn:function(){ handleAction('visit_luoyang'); }, tip:'需先力斩华雄·扬名'}]}
     ],
     city:[
-      {type:'npc',   key:'hualao',  icon:'👤', name:'华老',     desc:'城西医馆，正捣药',                    actions:[{label:'与他交谈', fn:function(){ talk('hualao'); }}]},
+      {type:'npc',   key:'hualao',  icon:'👤', name:'华老',     desc:'城西医馆，正捣药',                    actions:[{label:'与他交谈', fn:function(){ talk('hualao'); }},
+                                                               {label:'买药',   icon:'🧪', fn:function(){ openModal('shop', {shop:'doctor'}); }}]},
       {type:'npc',   key:'yingmen', icon:'👤', name:'营门校尉', desc:'按刀守门，盘查进出',                  actions:[{label:'与他交谈', fn:function(){ talk('yingmen'); }}]},
       {type:'feature',key:'market', icon:'🏪', name:'市集',     desc:'行商云集，可交易伤药钱粮',            actions:[{label:'逛市集', fn:function(){ handleAction('market'); }, tip:'与行商交易伤药钱粮'},
                                                                             {label:'维持治安', fn:function(){ handleAction('city_patrol'); }, tip:'驱赶城中溃兵'}]},
@@ -3342,7 +3343,7 @@ window.onerror=function(msg,url,line,col,err){
   // ===== 通用可放置物品（模板驱动：物品定义 place 字段 → 场景对象） =====
   // 放置物动作表：place.actions 字符串 → 动作函数（物品数据外置，动作需在此注册）
   // 旧存档兼容：早期放置数据仅存 {key:'tent'}（无 defId），用此表回填物品
-  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai' };
+  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai', campfire:'campfire', sleepmat:'sleepmat' };
   var PLACE_ACTIONS = {
     tent: function(){
       return [
@@ -3355,8 +3356,37 @@ window.onerror=function(msg,url,line,col,err){
         {label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }},
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('p_bench'); }}
       ];
+    },
+    campfire: function(){
+      return [
+        {label:'烤火取暖', icon:'🔥', fn:function(){ campfireRest(); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('campfire'); }}
+      ];
+    },
+    sleepmat: function(){
+      return [
+        {label:'躺下小睡', icon:'💤', fn:function(){ sleepmatRest(); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('sleepmat'); }}
+      ];
     }
   };
+  // 篝火：烤火取暖 —— 精力全复，食物/饮水各回一半
+  function campfireRest(){
+    state.energy=state.maxEnergy;
+    state.food=Math.min(state.maxFood, (state.food||0)+Math.floor(state.maxFood/2));
+    state.drink=Math.min(state.maxDrink, (state.drink||0)+Math.floor(state.maxDrink/2));
+    save(state); renderStatus();
+    log('你于篝火旁坐下，暖意烘身，掏出干粮就火烤了烤——精力复足，饥渴稍解。','good');
+  }
+  // 草席：躺下小睡 —— 恢复 60% 气血内力 + 精力全复（弱于帐篷的完全恢复）
+  function sleepmatRest(){
+    var esR=effectiveStats();
+    state.hp=Math.min(esR.maxHp, Math.round((state.hp||0) + (esR.maxHp-state.hp)*0.6));
+    if(state.mp>0) state.mp=Math.min(esR.maxMp, Math.round((state.mp||0) + (esR.maxMp-state.mp)*0.6));
+    state.energy=state.maxEnergy;
+    save(state); renderStatus();
+    log('你铺开草席，和衣而卧，浅眠片刻——气力稍复，血伤亦缓了大半。','good');
+  }
   // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
   function roomObjs(roomId){
     var base = ROOM_OBJECTS[roomId] || [];

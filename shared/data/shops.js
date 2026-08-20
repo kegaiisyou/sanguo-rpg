@@ -10,7 +10,18 @@
         { id: 'mutou',      buy: 8,  sell: 3  },
         { id: 'xiaoshuzhi', buy: 3,  sell: 1  },
         { id: 'futou',      buy: 35, sell: 12 },
-        { id: 'zhangpeng',  buy: 60, sell: 25 }
+        { id: 'zhangpeng',  buy: 60, sell: 25 },
+        { id: 'gongzuotai', buy: 40, sell: 15 },
+        { id: 'campfire',   buy: 12, sell: 4  },
+        { id: 'sleepmat',   buy: 20, sell: 8  }
+      ]
+    },
+    doctor: {
+      name: '药铺',
+      items: [
+        { id: 'jinchuang', buy: 30, sell: 12 },
+        { id: 'roubao',    buy: 8,  sell: 3  },
+        { id: 'caoyao',    buy: 5,  sell: 2  }
       ]
     }
     // 以后新增商人只需在此追加，例如：

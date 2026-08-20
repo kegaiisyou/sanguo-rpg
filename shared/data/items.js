@@ -66,7 +66,13 @@
       desc: '可携行的小帐。于背包「放置」后支起，房中即可「休息」「收起」。' },
     gongzuotai:    { defId: 'gongzuotai', name: '便携工作台', icon: '🔨', cat: '器具', placeable:true,
       place:{ key:'p_bench', icon:'🔨', name:'木工台', desc:'摊开随行的木工台，可将木头加工成木材', actions:'p_bench' },
-      desc: '可折叠的轻便木工台，于背包「放置」后支起，即可制作木器。' }
+      desc: '可折叠的轻便木工台，于背包「放置」后支起，即可制作木器。' },
+    campfire:      { defId: 'campfire', name: '篝火', icon: '🔥', cat: '器具', placeable:true,
+      place:{ key:'campfire', icon:'🔥', name:'篝火', desc:'噼啪作响的营火，可烤火取暖、烘炊干粮', actions:'campfire' },
+      desc: '一捆干柴点起的营火。于背包「放置」后，可烤火取暖恢复精力、烘热干粮。' },
+    sleepmat:      { defId: 'sleepmat', name: '草席', icon: '🛏️', cat: '器具', placeable:true,
+      place:{ key:'sleepmat', icon:'🛏️', name:'草席', desc:'一领草编卧席，铺地即可小睡养神', actions:'sleepmat' },
+      desc: '轻便的草编卧席。于背包「放置」后铺地，可躺下小睡，回复气血内力。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
