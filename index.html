@@ -458,12 +458,22 @@
   .map-viewport{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;cursor:grab;}
   .map-viewport:active{cursor:grabbing;}
   .map-grid{position:relative;background:none;}
-  /* 水墨底图与地图元素同处一层，跟随拖动一起平移 / 缩放，避免视差分层感。
-     用 inline grid 下绝对定位；CSS 上叠 50% 米色减淡，整体被 viewport 的 transform 带动 */
+  /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
+  /* 羊皮纸古地图底：米黄纸基 + 斑驳做旧 + 微噪点，边缘暗角，观感如古代舆图 */
   .map-bg{position:absolute;left:0;top:0;width:100%;height:100%;
-    background:linear-gradient(rgba(239,231,209,.5),rgba(239,231,209,.5)),url(assets/map_inkwash.jpg) center/100% 100% no-repeat;
-    background-size:100% 100%;
     background-color:var(--paper);
+    background-image:
+      /* 纸面斑驳晕染 */
+      radial-gradient(ellipse 60% 40% at 22% 18%, rgba(176,131,47,.12), transparent 60%),
+      radial-gradient(ellipse 50% 35% at 78% 30%, rgba(120,90,40,.10), transparent 65%),
+      radial-gradient(ellipse 55% 40% at 55% 78%, rgba(176,131,47,.08), transparent 60%),
+      radial-gradient(ellipse 45% 30% at 30% 65%, rgba(120,90,40,.07), transparent 65%),
+      /* 微噪点纸纹 */
+      repeating-linear-gradient(0deg, rgba(120,90,40,.025) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(120,90,40,.02) 0 1px, transparent 1px 3px),
+      /* 整体轻微泛旧的底色 */
+      linear-gradient(160deg, #f3ecd8 0%, #eadfc4 38%, #e2d3ae 70%, #d8c69a 100%);
+    box-shadow:inset 0 0 90px rgba(70,52,26,.30);
     pointer-events:none;z-index:0;}
   .map-region{position:absolute;border-radius:50%;pointer-events:none;
     box-shadow:inset 0 0 40px rgba(255,255,255,.25);}
@@ -1586,7 +1596,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820an"></script>
+<script src="shared/config/constants.js?v=20260820ao"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1600,7 +1610,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260820aa"></script>
     <script src="shared/data/recipes.js?v=20260820aa"></script>
     <script src="shared/data/shops.js?v=20260820aa"></script>
-    <script src="shared/data/map.js?v=20260820an"></script>
+    <script src="shared/data/map.js?v=20260820ao"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
@@ -1859,10 +1869,14 @@ window.onerror=function(msg,url,line,col,err){
     function clamp(){
       var r=canvas.getBoundingClientRect();
       var gw2=gw*scale, gh2=gh*scale;
-      if(gw2 <= r.width) tx=(r.width-gw2)/2;            // 地图比视口小：居中，不可拖
-      else tx=Math.max(r.width-gw2, Math.min(0, tx));   // 否则限制在 [右贴边, 左贴边]
-      if(gh2 <= r.height) ty=(r.height-gh2)/2;
-      else ty=Math.max(r.height-gh2, Math.min(0, ty));
+      if(gw2 <= r.width){            // 地图比视口窄：默认居中，但允许在视口内小幅拖动（不钉死）
+        var m=(r.width-gw2)/2, slack=Math.max(0, (r.width-gw2)*0.35);
+        tx=Math.max(m-slack, Math.min(m+slack, tx));
+      } else tx=Math.max(r.width-gw2, Math.min(0, tx));
+      if(gh2 <= r.height){
+        var m2=(r.height-gh2)/2, slack2=Math.max(0, (r.height-gh2)*0.35);
+        ty=Math.max(m2-slack2, Math.min(m2+slack2, ty));
+      } else ty=Math.max(r.height-gh2, Math.min(0, ty));
     }
     function apply(){
       clamp();
@@ -1871,12 +1885,12 @@ window.onerror=function(msg,url,line,col,err){
       var next = opts.pickSpawn ? 'lv2' : (scale<LV0 ? 'lv0' : (scale<LV1 ? 'lv1' : 'lv2'));
       setLv(next);
       // 字号反补偿：屏幕上的字号保持视觉恒定（不被放大缩小）。
-      // 反补偿后字与圆点都要用 transform 缩回去（不能用 font-size 与 width/height 直接除，因缩放≠字号比例）
       var comp=1/scale;
       canvas.querySelectorAll('.map-state-name, .map-zone-nm, .map-region-t').forEach(function(el){
         var base = el.classList.contains('map-state-name') ? 16 : (el.classList.contains('map-region-t') ? 17 : 12.5);
         el.style.fontSize=base+'px';
-        el.style.transform='translate(-50%,0) scale('+comp.toFixed(4)+')';
+        if(el.tagName==='text'){ el.style.transform='scale('+comp.toFixed(4)+')'; }   // SVG 文本：仅缩放（text-anchor 已居中）
+        else { el.style.transform='translate(-50%,0) scale('+comp.toFixed(4)+')'; }   // HTML 元素：保持定位居中 + 缩放
       });
       // 房间标签 / 圆点：base 即 CSS 默认值，反向缩放
       canvas.querySelectorAll('.mp-nm').forEach(function(el){
