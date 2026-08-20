@@ -453,16 +453,18 @@
   .card p.tip{color:var(--ink-faint);font-size:12.5px;line-height:1.7;margin:12px 0 0;}
   /* ===== 山河志·空间地图 ===== */
   .map-canvas{position:relative;height:54vh;max-height:460px;overflow:hidden;margin:6px -16px 0;
-    border-radius:12px;border:1px solid rgba(176,131,47,.28);touch-action:none;
-    background:
-      radial-gradient(120% 120% at 30% 80%, rgba(120,160,96,.10), transparent 60%),
-      radial-gradient(120% 120% at 70% 20%, rgba(96,140,190,.10), transparent 60%),
-      repeating-linear-gradient(0deg, rgba(176,131,47,.05) 0 1px, transparent 1px 46px),
-      repeating-linear-gradient(90deg, rgba(176,131,47,.05) 0 1px, transparent 1px 46px),
-      linear-gradient(160deg,#f6efe0,#efe6d2);}
+    border-radius:12px;border:1px solid rgba(120,90,40,.5);touch-action:none;
+    box-shadow:inset 0 0 70px rgba(40,30,15,.35), inset 0 0 0 4px rgba(120,90,40,.2);}
   .map-viewport{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;cursor:grab;}
   .map-viewport:active{cursor:grabbing;}
-  .map-grid{position:relative;}
+  .map-grid{position:relative;background:none;}
+  /* 水墨底图与地图元素同处一层，跟随拖动一起平移 / 缩放，避免视差分层感。
+     用 inline grid 下绝对定位；CSS 上叠 50% 米色减淡，整体被 viewport 的 transform 带动 */
+  .map-bg{position:absolute;left:0;top:0;width:100%;height:100%;
+    background:linear-gradient(rgba(239,231,209,.5),rgba(239,231,209,.5)),url(assets/map_inkwash.jpg) center/100% 100% no-repeat;
+    background-size:100% 100%;
+    background-color:var(--paper);
+    pointer-events:none;z-index:0;}
   .map-region{position:absolute;border-radius:50%;pointer-events:none;
     box-shadow:inset 0 0 40px rgba(255,255,255,.25);}
   .map-region-t{position:absolute;transform:translate(-50%,0);font-family:"STKaiti","KaiTi",serif;
@@ -473,14 +475,26 @@
   .map-pin.pick{cursor:pointer;}
   .map-pin .mp-star{position:absolute;top:-9px;left:50%;transform:translateX(-50%);
     color:#e6b400;font-size:13px;text-shadow:0 1px 2px rgba(255,255,255,.8);}
-  .map-pin .mp-dot{width:11px;height:11px;border-radius:50%;background:rgba(176,131,47,.35);
-    border:2px solid rgba(140,103,40,.75);flex:0 0 auto;transition:.12s;}
-  .map-pin .mp-nm{font-size:11px;line-height:1.25;text-align:center;color:var(--ink-soft);
-    background:rgba(255,253,248,.9);border-radius:6px;padding:1px 4px;white-space:nowrap;}
-  .map-pin.cur .mp-dot{background:var(--seal);border-color:var(--seal);
-    box-shadow:0 0 0 4px rgba(158,59,46,.18);transform:scale(1.25);}
-  .map-pin.cur .mp-nm{color:var(--seal);font-weight:700;background:rgba(255,247,240,.96);
-    box-shadow:0 1px 4px rgba(60,48,34,.18);}
+  /* 圆点 / 标签字号由 initMap 按缩放反补偿，固定屏幕可读尺寸 */
+  .map-pin .mp-dot{width:12px;height:12px;border-radius:50%;background:#b0832f;
+    border:2px solid #fff;box-shadow:0 0 0 1.5px rgba(80,52,26,.7),0 1px 3px rgba(40,28,14,.4);
+    flex:0 0 auto;transition:.12s;font-size:0;}  /* font-size 占位，由 JS 反补偿 */
+  .map-pin .mp-nm{position:relative;font-size:11px;line-height:1.25;text-align:center;color:var(--ink);
+    background:rgba(255,251,242,.94);border:1px solid rgba(120,90,40,.35);border-radius:6px;
+    padding:1px 5px;white-space:nowrap;font-weight:600;box-shadow:0 1px 3px rgba(50,35,18,.18);
+    transform-origin:top center;font-size:0;}  /* 占位，由 JS 反补偿 */
+  /* 引线：标签统一经短竖线连到下方圆点，方向一致（光荣三国志式疏朗标注） */
+  .map-pin .mp-nm::after{content:'';position:absolute;left:50%;top:-5px;
+    width:1.5px;height:5px;background:rgba(80,52,26,.6);transform:translateX(-50%);}
+  /* 密集区次要房间：只留圆点，隐藏标签避免叠字（title 悬停/点按仍可查名） */
+  .map-pin.mp-lbl-hide .mp-nm{display:none;}
+  .map-pin.mp-lbl-hide .mp-nm::after{display:none;}
+  /* 标签被隐藏时圆点也缩为更小一颗，并去发光阴影，避免视觉上"大片圆点漂浮无字"的杂乱感 */
+  .map-pin.mp-lbl-hide .mp-dot{box-shadow:0 1px 2px rgba(40,28,14,.3);opacity:.85;}
+  .map-pin.cur .mp-dot{background:var(--seal);border-color:#fff;
+    box-shadow:0 0 0 2px var(--seal),0 0 0 5px rgba(158,59,46,.22);transform:scale(1.3);}
+  .map-pin.cur .mp-nm{color:#fff;background:var(--seal);border-color:var(--seal);
+    font-weight:700;box-shadow:0 1px 5px rgba(60,20,14,.3);}
   .map-pin.pick:hover .mp-dot{background:rgba(176,131,47,.7);border-color:rgba(140,103,40,.9);}
   /* 节点分色（mapKind：城镇/野外/贼巢/军屯/教学/村镇/营地） */
   .map-pin.mp-k-city .mp-dot{background:#b8964a;border-color:#8a6f3e;}
@@ -509,13 +523,22 @@
     fill:rgba(70,110,170,.55);pointer-events:none;}
   .map-rivers .mp-sea{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:8px;
     fill:rgba(94,72,42,.30);pointer-events:none;text-anchor:middle;}
+  .map-region{pointer-events:none;}
+  /* ── 外围地貌层：海/草原/沙漠环绕十三州（光荣三国志风）── */
+  .map-terrain{position:absolute;left:0;top:0;pointer-events:none;}
+  .map-terrain-t{font-family:"STKaiti","KaiTi",serif;font-size:15px;letter-spacing:6px;
+    text-anchor:middle;pointer-events:none;}
+  .map-canvas.lv2 .map-terrain{opacity:.78;}
   .map-canvas.lv2 .map-rivers{opacity:.45;}
   .map-states-svg{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
-  /* 连线圆头 + 密集节点隐藏次要名称 */
+  /* 连线圆头 + 标签错位防重叠（相邻房间上下交错标注） */
   .map-svg .mp-line{stroke-linecap:round;}
   .map-pin.mp-hide-nm .mp-nm{display:none;}
-  .map-states-svg .map-state-sh{cursor:pointer;pointer-events:all;transition:filter .15s;}
-  .map-states-svg .map-state-sh:hover{filter:brightness(1.35);}
+  .map-pin.mp-lbl-up .mp-nm{order:-1;margin-bottom:3px;}
+  .map-pin.mp-lbl-down .mp-nm{order:2;margin-top:3px;}
+  .map-states-svg .map-state-sh{cursor:pointer;pointer-events:all;transition:filter .15s;
+    stroke-width:1.8;filter:drop-shadow(0 1px 1px rgba(60,40,20,.28));}
+  .map-states-svg .map-state-sh:hover{filter:brightness(1.3) drop-shadow(0 1px 2px rgba(60,40,20,.4));}
   .map-state-name{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:4px;font-weight:700;
     text-anchor:middle;dominant-baseline:central;fill:rgba(94,72,42,.92);pointer-events:none;}
   /* ── 三级地图 · 区域层（lv1：城池/要地节点）── */
@@ -529,14 +552,19 @@
   .map-zone .map-zone-nm{font-size:12.5px;line-height:1.2;text-align:center;color:rgba(94,72,42,.55);
     background:rgba(255,253,248,.9);border-radius:6px;padding:1px 5px;white-space:nowrap;pointer-events:none;}
   .map-zone.open .map-zone-nm{color:var(--ink);font-weight:600;}
-  /* ── 三级地图 · 层级显隐（由 initMap 按缩放阈值切换 canvas.lv0/1/2）── */
+  /* ── 三级地图 · 层级显隐（由 initMap 按缩放阈值切换 canvas.lv0/1/2）──
+     lv0 州域：仅州轮廓+河流+塞外标注；lv1 区域：城池要地+淡州界+区域底色；
+     lv2 房间：仅房间节点与连线（隐藏州/城标签，避免多重点位重叠）── */
+  .map-canvas:not(.lv2) .map-pin{display:none;}        /* 房间层只在最近距离显示 */
   .map-canvas.lv0 .map-zones{display:none;}
-  .map-canvas.lv0 .map-svg,.map-canvas.lv0 .map-pins{display:none;}
+  .map-canvas.lv0 .map-svg{display:none;}
   .map-canvas.lv0 .map-region,.map-canvas.lv0 .map-region-t{display:none;}
-  .map-canvas.lv1 .map-states-svg{opacity:.32;}
-  .map-canvas.lv1 .map-svg,.map-canvas.lv1 .map-pins{display:none;}
+  .map-canvas.lv1 .map-states-svg{opacity:.30;}
+  .map-canvas.lv1 .map-svg{display:none;}
   .map-canvas.lv2 .map-states-svg{display:none;}
-  .map-canvas.lv2 .map-zones{opacity:.45;}
+  .map-canvas.lv2 .map-zones{display:none;}
+  .map-canvas.lv2 .map-region-t{display:none;}
+  .map-canvas.lv2 .map-region{opacity:.5;}
   .map-scale{position:absolute;left:14px;bottom:12px;display:flex;align-items:center;gap:7px;
     font-size:11px;color:var(--ink-soft);pointer-events:none;z-index:3;}
   .map-scale .ms-bar{display:inline-block;height:6px;border-radius:3px;width:92px;
@@ -1558,7 +1586,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260820ad"></script>
+<script src="shared/config/constants.js?v=20260820am"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1572,7 +1600,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260820aa"></script>
     <script src="shared/data/recipes.js?v=20260820aa"></script>
     <script src="shared/data/shops.js?v=20260820aa"></script>
-    <script src="shared/data/map.js?v=20260820ad"></script>
+    <script src="shared/data/map.js?v=20260820am"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
     <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
@@ -1687,10 +1715,11 @@ window.onerror=function(msg,url,line,col,err){
     function py(c){ return (c[1]-minr+0.5)*MAP_CELL; }
     MAPMINC=minc; MAPMINR=minr;
     // ── lv0 州域层：十三州轮廓（SVG polygon + 州名）──
+    function solid(c){ return c.replace(/,\s*[\d.]+\)$/, ',0.30)'); } // 加实陆地填充，贴合光荣三国志风
     var statesSvg='';
     states.forEach(function(s){
       var pts=(s.poly||[]).map(function(c){return px(c)+','+py(c);}).join(' ');
-      statesSvg+='<polygon class="map-state-sh" data-state="'+s.id+'" fill="'+s.c+'" stroke="'+s.b+'" points="'+pts+'"></polygon>';
+      statesSvg+='<polygon class="map-state-sh" data-state="'+s.id+'" fill="'+solid(s.c)+'" stroke="'+s.b+'" points="'+pts+'"></polygon>';
       var lc=s.label||(s.poly[0]||[0,0]);
       statesSvg+='<text class="map-state-name" data-state="'+s.id+'" x="'+px(lc)+'" y="'+py(lc)+'">'+s.name+'</text>';
     });
@@ -1703,6 +1732,26 @@ window.onerror=function(msg,url,line,col,err){
       bg+='<div class="map-region" style="left:'+rg.x+'px;top:'+rg.y+'px;width:'+(rg.r*2)+'px;height:'+(rg.r*2)+'px;margin-left:-'+rg.r+'px;margin-top:-'+rg.r+'px;background:'+rg.c+'"></div>';
       bg+='<div class="map-region-t" style="left:'+rg.x+'px;top:'+(rg.y-rg.r+16)+'px">'+rg.t+'</div>';
     });
+    // ── 外围地貌层：海/草原/沙漠从四面包围十三州（光荣三国志风），置于州界之下作世界底衬 ──
+    var terrains=(mapData().terrains||[]).map(function(t){
+      return {x:px([t.cx,t.cy]), y:py([t.cx,t.cy]), rx:t.rx*MAP_CELL, ry:t.ry*MAP_CELL, kind:t.kind, t:t.t};
+    });
+    var terrain='<svg width="'+W+'" height="'+H+'" class="map-terrain"><defs>'
+      +'<radialGradient id="tg-sea" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#4e80b2" stop-opacity=".42"/><stop offset="62%" stop-color="#4e80b2" stop-opacity=".26"/><stop offset="100%" stop-color="#4e80b2" stop-opacity="0"/></radialGradient>'
+      +'<radialGradient id="tg-grass" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#96aa6c" stop-opacity=".36"/><stop offset="100%" stop-color="#96aa6c" stop-opacity="0"/></radialGradient>'
+      +'<radialGradient id="tg-desert" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ceb078" stop-opacity=".46"/><stop offset="100%" stop-color="#ceb078" stop-opacity="0"/></radialGradient>'
+      +'<filter id="tg-soft" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="'+(MAP_CELL*0.26).toFixed(1)+'"/></filter>'
+      +'</defs><g filter="url(#tg-soft)">';
+    terrains.forEach(function(t){
+      var fill=t.kind==='sea'?'url(#tg-sea)':t.kind==='grass'?'url(#tg-grass)':'url(#tg-desert)';
+      terrain+='<ellipse cx="'+t.x.toFixed(1)+'" cy="'+t.y.toFixed(1)+'" rx="'+t.rx.toFixed(1)+'" ry="'+t.ry.toFixed(1)+'" fill="'+fill+'"/>';
+    });
+    terrain+='</g>';
+    terrains.forEach(function(t){
+      var col=t.kind==='sea'?'rgba(58,96,138,.6)':t.kind==='grass'?'rgba(92,112,66,.62)':'rgba(150,118,60,.62)';
+      terrain+='<text class="map-terrain-t" x="'+t.x.toFixed(1)+'" y="'+t.y.toFixed(1)+'" fill="'+col+'">'+t.t+'</text>';
+    });
+    terrain+='</svg>';
     // ── lv1 区域层：城池/要地节点（open 高亮可点，未开放暗色占位）──
     var zonesHtml='<div class="map-zones">';
     zones.forEach(function(z){
@@ -1731,29 +1780,32 @@ window.onerror=function(msg,url,line,col,err){
                'stroke-width="'+(reach?2.6:1.5)+'" '+(reach?'':'stroke-dasharray="4 4"')+'/>';
       });
     });
-    // ── lv2 房间层：节点（按 mapKind 分色；密集区域自动隐藏次要名称防重叠）──
-    var nodeOrder=keys.map(function(rid){
-      var c=coords[rid], r=G.ROOMS[rid];
-      var sc=(rid===state.room?100:0)+(mapKind(rid)==='city'?30:0)+Object.keys(r.exits||{}).length*4;
-      return {rid:rid, x:px(c), y:py(c), sc:sc};
-    });
-    nodeOrder.sort(function(a,b){ return b.sc-a.sc; });
-    var shown=[], hideNm={};
-    nodeOrder.forEach(function(n){
-      var hit=shown.some(function(s){ return Math.hypot(n.x-s.x, n.y-s.y) < 74; });
-      if(hit) hideNm[n.rid]=1; else shown.push(n);
-    });
+    // ── lv2 房间层：节点（按 mapKind 分色；标签统一朝下、按间距防重叠，当前房间永远显示）──
     var pins='';
+    // 节点位置缓存：供 apply() 动态做「屏幕间距贪心防重叠」。
+    // 间距判定基于 世界距离×当前缩放=屏幕像素，缩放越大放得越近，可显示的标签越多；
+    // 放大到最大时间距天然足够 → 全部显示；缩小后自动收敛，次要节点只留圆点。
+    // 既不叠字、又不牺牲"放大看细节"。
+    var pinGeos=[];   // [{rid,x,y,cur,city,spawn}]
     keys.forEach(function(rid){
       var c=coords[rid], r=G.ROOMS[rid], cur=(rid===state.room);
       var x=px(c), y=py(c);
       var ex=Object.keys(r.exits||{}).map(function(d){return d+'·'+G.ROOMS[r.exits[d]].name;}).join('，');
       var badge=(opts.pickSpawn&&rid===state.spawnRoom)?'<span class="mp-star">★</span>':'';
-      pins+='<div class="map-pin mp-k-'+mapKind(rid)+(cur?' cur':'')+(opts.pickSpawn?' pick':'')+(hideNm[rid]?' mp-hide-nm':'')+'" '+
-              (opts.pickSpawn?' data-spawn="'+rid+'"':'')+
-              ' style="left:'+x+'px;top:'+y+'px" '+
-              'title="'+r.name+(ex?'\n〔通达〕'+ex:'')+'">'+
-              badge+'<span class="mp-dot"></span><span class="mp-nm">'+r.name+'</span></div>';
+      // 开场教学（tutorial）房间节点：日常地图（非出生点选择模式）一律隐藏（教学毕业后再显示无意义、且与玩家所在区域不在一处，干扰读图）；
+      // 选出生点模式下保留可见（玩家可能想把出生点设回起点）。
+      var kind=mapKind(rid);
+      var tutorialOnly=kind==='tutorial';
+      // 标签统一朝下（方向一致更顺眼）；是否隐藏由 apply() 按当前缩放动态决定
+      var cls='mp-k-'+kind+(cur?' cur':'')+(opts.pickSpawn?' pick':'');
+      pins+='<div class="map-pin '+cls+'" '+
+             (opts.pickSpawn?' data-spawn="'+rid+'"':'')+
+             ' data-wx="'+x+'" data-wy="'+y+'" '+
+             ' data-rid="'+rid+'"'+
+             ' style="left:'+x+'px;top:'+y+'px'+(tutorialOnly&&!opts.pickSpawn?';display:none':'')+'" '+
+             'title="'+r.name+(ex?'\n〔通达〕'+ex:'')+'">'+
+             badge+'<span class="mp-dot"></span><span class="mp-nm">'+r.name+'</span></div>';
+      pinGeos.push({rid:rid, x:x, y:y, cur:cur, city:kind==='city', spawn:(opts.pickSpawn&&rid===state.spawnRoom)});
     });
     // ── lv0 州域装饰：黄河 / 长江 示意线与塞外标注（增强舆图质感）──
     function P(c){ return px(c)+','+py(c); }
@@ -1762,9 +1814,8 @@ window.onerror=function(msg,url,line,col,err){
       +'<path d="M '+P([-3,13])+' C '+P([1,12])+' '+P([5,12])+' '+P([8,11])+' C '+P([11,10])+' '+P([15,11])+' '+P([18,11])+'" class="mp-river"/>'
       +'<text x="'+px([4,1])+'" y="'+(py([4,1])-7)+'" class="mp-river-t">黄河</text>'
       +'<text x="'+px([3,13])+'" y="'+(py([3,13])+15)+'" class="mp-river-t">长江</text>'
-      +'<text x="'+px([-6,-10])+'" y="'+py([-6,-10])+'" class="mp-sea">塞 外</text>'
-      +'<text x="'+px([-5,17])+'" y="'+py([-5,17])+'" class="mp-sea">南 海</text>'
       +'</svg>';
+    // 注：山脉/海岸美术现由 assets/map_inkwash.jpg 水墨山水底图承担，故移除矢量装饰层
     // 图例
     var legend=Object.keys(MAP_KIND_LABEL).map(function(k){
       return '<span><i class="mpk mpk-'+k+'"></i>'+MAP_KIND_LABEL[k]+'</span>';
@@ -1775,6 +1826,9 @@ window.onerror=function(msg,url,line,col,err){
       : '初始为十三州全境轮廓：滚轮 / 双指拉远看州界，拉近浮现州内城池与要地，再拉近见具体去处。当前位于「'+curRoom().name+'」；点州可跳转、点城可拉近。';
     return '<h3>'+title+'</h3>'+
       '<div class="map-canvas lv0"><div class="map-viewport"><div class="map-grid" style="width:'+W+'px;height:'+H+'px">'+
+        // 水墨底图放最底层、跟着 grid 一起平移缩放，避免与上层州界/节点之间出现"分层漂浮"的视差
+        '<div class="map-bg"></div>'+
+        terrain+
         '<svg width="'+W+'" height="'+H+'" class="map-states-svg">'+statesSvg+'</svg>'+
         rivers+
         bg+
@@ -1804,20 +1858,110 @@ window.onerror=function(msg,url,line,col,err){
       lv=next;
       canvas.className=canvas.className.replace(/\blv[0-2]\b/g,'').replace(/\s+/g,' ').trim()+' '+lv;
     }
+    // 边界钳制：保证地图网格始终留在视口内，拖拽 / 缩放都不会飘到地图外空白处
+    function clamp(){
+      var r=canvas.getBoundingClientRect();
+      var gw2=gw*scale, gh2=gh*scale;
+      if(gw2 <= r.width) tx=(r.width-gw2)/2;            // 地图比视口小：居中，不可拖
+      else tx=Math.max(r.width-gw2, Math.min(0, tx));   // 否则限制在 [右贴边, 左贴边]
+      if(gh2 <= r.height) ty=(r.height-gh2)/2;
+      else ty=Math.max(r.height-gh2, Math.min(0, ty));
+    }
     function apply(){
+      clamp();
       vp.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';
       var bar=canvas.querySelector('.ms-bar'); if(bar) bar.style.width=Math.max(18,Math.min(150,MAP_CELL*scale))+'px';
       var next = opts.pickSpawn ? 'lv2' : (scale<LV0 ? 'lv0' : (scale<LV1 ? 'lv1' : 'lv2'));
       setLv(next);
-      // 州名 / 城池名 / 底色标签：按缩放反补偿，使屏幕字号恒定可读
+      // 字号反补偿：屏幕上的字号保持视觉恒定（不被放大缩小）。
+      // 反补偿后字与圆点都要用 transform 缩回去（不能用 font-size 与 width/height 直接除，因缩放≠字号比例）
       var comp=1/scale;
       canvas.querySelectorAll('.map-state-name, .map-zone-nm, .map-region-t').forEach(function(el){
         var base = el.classList.contains('map-state-name') ? 16 : (el.classList.contains('map-region-t') ? 17 : 12.5);
-        el.style.fontSize=(base*comp)+'px';
+        el.style.fontSize=base+'px';
+        el.style.transform='translate(-50%,0) scale('+comp.toFixed(4)+')';
       });
+      // 房间标签 / 圆点：base 即 CSS 默认值，反向缩放
+      canvas.querySelectorAll('.mp-nm').forEach(function(el){
+        el.style.fontSize='11px';
+        // 已经在 CSS 上用 transform-origin 控制中心，此处只覆盖缩放（不让 translate 冲突）
+        el.style.transform='scale('+comp.toFixed(4)+')';
+      });
+      canvas.querySelectorAll('.mp-dot').forEach(function(el){
+        el.style.width=(12*comp)+'px';
+        el.style.height=(12*comp)+'px';
+      });
+      canvas.querySelectorAll('.mz-dot').forEach(function(el){
+        el.style.width=(14*comp)+'px';
+        el.style.height=(14*comp)+'px';
+      });
+      // 动态防重叠：按「屏幕间距」（世界距离×缩放）贪心决定哪些标签显示。
+      // 优先级：当前房间 > 出生点 > 城池 > 其余；间距用屏幕像素（放大→全显示，缩小→自动收敛）。
+      if(next==='lv2' && pinGeos.length){
+        var GAP=46;   // 屏幕安全间距（px）：两个相邻标签圆心间需至少保持的屏幕距离
+        var shown=[];                            // 已占位的 [{x,y}]
+        // 排序：当前房间、出生点、城池优先
+        var order=pinGeos.map(function(o,i){return i;});
+        order.sort(function(a,b){
+          var A=pinGeos[a], B=pinGeos[b];
+          if(A.cur!==B.cur) return B.cur?1:-1;
+          if(A.spawn!==B.spawn) return B.spawn?1:-1;
+          if(A.city!==B.city) return B.city?1:-1;
+          return 0;
+        });
+        var keep={};
+        order.forEach(function(i){
+          var o=pinGeos[i];
+          var forced=o.cur||o.spawn;
+          var dMin=1e9;
+          shown.forEach(function(s){ dMin=Math.min(dMin, Math.hypot(o.x-s.x, o.y-s.y)); });
+          // 屏幕间距 = 世界距离 × scale；大于 GAP 或强制显示则保留标签
+          if(forced || dMin*scale>=GAP){ shown.push({x:o.x,y:o.y}); keep[o.rid]=1; }
+        });
+        var pins=canvas.querySelectorAll('.map-pin');
+        for(var k=0;k<pins.length;k++){
+          var rid2=pins[k].getAttribute('data-rid');
+          if(rid2 && keep[rid2]) pins[k].classList.remove('mp-lbl-hide');
+          else if(rid2) pins[k].classList.add('mp-lbl-hide');
+        }
+      }
+    }
+    // ── 缩放区段化：三档吸附（州域总览 → 区域 → 房间），禁止自由连续 zoom。
+    // 档位由屏幕尺寸动态推导，保证不同设备上语义一致；滚轮/双指/点选都吸附到最近档位。
+    var tiers=[];   // [S0 州域, S1 区域, S2 房间]
+    function buildTiers(){
+      var r=canvas.getBoundingClientRect();
+      var w=Math.max(120,r.width), h=Math.max(120,r.height);
+      var hs=Math.max(0.16, Math.min(0.9, Math.min(w/gw, h/gh)*0.97));
+      tiers=[
+        hs,                                                   // S0 州域总览
+        Math.max(LV0*0.9, Math.min(LV1, hs*3.2)),             // S1 区域
+        Math.max(LV1*1.05, Math.min(maxScale, hs*8))          // S2 房间
+      ];
+      return hs;
+    }
+    // 将 target 吸附到距其最近的档位；dir 为 1 时强制向上进档、-1 向下退档（用于滚轮/双指明确的进退手势）
+    function snapToTier(target, dir){
+      if(!tiers.length) return target;
+      if(dir>0){ // 进档：找比当前更大的最近档位
+        var up=null;
+        tiers.forEach(function(t){ if(t>scale+1e-4 && (!up||t<up)) up=t; });
+        if(up===null) up=tiers[tiers.length-1];
+        return up;
+      }
+      if(dir<0){ // 退档：找比当前更小的最近档位
+        var dn=null;
+        tiers.forEach(function(t){ if(t<scale-1e-4 && (!dn||t>dn)) dn=t; });
+        if(dn===null) dn=tiers[0];
+        return dn;
+      }
+      // 自由吸附：取最近档位
+      var best=tiers[0], bd=Math.abs(target-tiers[0]);
+      tiers.forEach(function(t){ var d=Math.abs(target-t); if(d<bd){ bd=d; best=t; } });
+      return best;
     }
     function centerWorld(c, sc){
-      if(sc) scale=Math.max(homeScale*0.9, Math.min(maxScale, sc));
+      if(sc){ buildTiers(); scale=snapToTier(sc, 0); }
       var r=canvas.getBoundingClientRect();
       tx=r.width/2 - (c[0]-MAPMINC+0.5)*MAP_CELL*scale;
       ty=r.height/2 - (c[1]-MAPMINR+0.5)*MAP_CELL*scale;
@@ -1829,6 +1973,7 @@ window.onerror=function(msg,url,line,col,err){
       var w=Math.max(120,r.width), h=Math.max(120,r.height);
       homeScale=Math.max(0.16, Math.min(0.9, Math.min(w/gw, h/gh)*0.97));
       scale=opts.pickSpawn ? 1 : homeScale;
+      buildTiers();
       centerWorld(resolveMapCoords()[state.room]||[0,0]);
     }
     function zoomAt(clientX, clientY, factor){ setZoom(scale*factor, clientX, clientY); }
@@ -1836,7 +1981,8 @@ window.onerror=function(msg,url,line,col,err){
       var r=canvas.getBoundingClientRect();
       var ox=clientX-r.left, oy=clientY-r.top;
       var gx=(ox-tx)/scale, gy=(oy-ty)/scale;
-      scale=Math.max(homeScale*0.9, Math.min(maxScale, newScale));
+      // 区段吸附：无论手势多剧烈，最终只落三档之一
+      scale=snapToTier(newScale, 0);
       tx=ox-gx*scale; ty=oy-gy*scale; apply();
     }
     // 鼠标拖拽 / 滚轮
@@ -1852,27 +1998,47 @@ window.onerror=function(msg,url,line,col,err){
       tx=stx+dx; ty=sty+dy; apply();
     }, sig);
     window.addEventListener('mouseup', function(){ dragging=false; }, sig);
-    canvas.addEventListener('wheel', function(e){ e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY<0?1.12:0.89); }, {passive:false, signal:ac.signal});
+    canvas.addEventListener('wheel', function(e){
+      e.preventDefault();
+      var dir=e.deltaY<0 ? 1 : -1;
+      var next=snapToTier(scale, dir);
+      if(next===scale) return;              // 已在最内/最外档，不再跳动
+      var r=canvas.getBoundingClientRect();
+      var ox=e.clientX-r.left, oy=e.clientY-r.top;
+      var gx=(ox-tx)/scale, gy=(oy-ty)/scale;
+      scale=next; tx=ox-gx*scale; ty=oy-gy*scale; apply();
+    }, {passive:false, signal:ac.signal});
     // 双击任意处：复位到初始总览（州域全境），防止平移后找不到地图
     canvas.addEventListener('dblclick', function(){ homeView(); }, sig);
-    // 触摸：单指平移 / 双指缩放
-    var t0=null, dist0=0, z0=1;
+    // 触摸：单指平移 / 双指缩放（区段化：拉伸/捏合只在档位间进退，杜绝中间比例与意外乱拉）
+    var t0=null, dist0=0, z0=1, pinchDone=false;
     canvas.addEventListener('touchstart', function(e){
       if(e.touches.length===1){ t0={x:e.touches[0].clientX, y:e.touches[0].clientY, tx:tx, ty:ty}; moved=false; }
-      else if(e.touches.length===2){ dist0=touchDist(e); z0=scale; }
+      else if(e.touches.length===2){ dist0=touchDist(e); z0=scale; pinchDone=false; t0=null; }
     }, {passive:false});
     canvas.addEventListener('touchmove', function(e){
       e.preventDefault();
-      if(e.touches.length===1 && t0){
+      if(e.touches.length===1 && t0 && !pinchDone){
         var dx=e.touches[0].clientX-t0.x, dy=e.touches[0].clientY-t0.y;
         if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
         tx=t0.tx+dx; ty=t0.ty+dy; apply();
       } else if(e.touches.length===2 && dist0){
         var d=touchDist(e), mid=touchMid(e);
-        setZoom(z0*(d/dist0), mid.x, mid.y);
+        // 拉伸超过 8% 进一档，捏合超过 8% 退一档；同一次手势只触发一次进退，防连续抖跳
+        if(!pinchDone && Math.abs(d-dist0)/dist0 > 0.08){
+          pinchDone=true;
+          var dir=(d>dist0)?1:-1;
+          var next=snapToTier(scale, dir);
+          if(next!==scale){
+            var r=canvas.getBoundingClientRect();
+            var ox=mid.x-r.left, oy=mid.y-r.top;
+            var gx=(ox-tx)/scale, gy=(oy-ty)/scale;
+            scale=next; tx=ox-gx*scale; ty=oy-gy*scale; apply();
+          }
+        }
       }
     }, {passive:false});
-    canvas.addEventListener('touchend', function(e){ if(e.touches.length===0) t0=null; });
+    canvas.addEventListener('touchend', function(e){ if(e.touches.length===0){ t0=null; dist0=0; } });
     function touchDist(e){ var a=e.touches[0], b=e.touches[1]; return Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); }
     function touchMid(e){ var a=e.touches[0], b=e.touches[1]; return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2}; }
     // 州域点击：拉近到该州（进入区域层）
@@ -1886,7 +2052,7 @@ window.onerror=function(msg,url,line,col,err){
           var pts=st.poly||[], cx=0, cy=0;
           pts.forEach(function(p){ cx+=p[0]; cy+=p[1]; });
           if(!pts.length) return;
-          centerWorld([cx/pts.length, cy/pts.length], Math.max(LV1*0.97, Math.min(LV0*2.2, 1.1)));
+          centerWorld([cx/pts.length, cy/pts.length], (tiers[1]||LV1));   // 点州 → 拉近到「区域」档
         });
       });
       // 城池/要地点击：已开放 → 拉近到房间层；未开放 → 提示
@@ -1896,7 +2062,7 @@ window.onerror=function(msg,url,line,col,err){
           var id=el.getAttribute('data-zone');
           var z=null; (mapData().zones||[]).forEach(function(x){ if(x.id===id) z=x; });
           if(!z) return;
-          if(el.getAttribute('data-open')==='1'){ centerWorld(z.pos, Math.min(maxScale, LV1*1.25)); }
+          if(el.getAttribute('data-open')==='1'){ centerWorld(z.pos, (tiers[2]||maxScale)); }
           else { toast('「'+z.name+'」尚未开放，将随主线推进解锁。'); }
         });
       });
@@ -4512,6 +4678,22 @@ window.onerror=function(msg,url,line,col,err){
       '<label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用 · 直接抵达黑山寨）</label>'+
       '<div class="cr-actions"><button class="close" id="cr-go">踏 入 江 湖</button></div>';
   }
+  // 仅更新加点数值/按钮/战力，避免每次点击整体重建弹窗（手机卡顿根因）
+  function updateCreateUI(){
+    var poolEl=document.getElementById('cr-pool'); if(poolEl) poolEl.textContent=createState.pool;
+    var R=G.ATTR_RATIO;
+    $card.querySelectorAll('.ap-row').forEach(function(row){
+      var incBtn=row.querySelector('[data-act="inc"]');
+      var k=incBtn? incBtn.getAttribute('data-k'):null; if(!k) return;
+      var v=createState.attr[k];
+      var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=v;
+      var combat = k==='hp'? v*R.hp : k==='atk'? v*R.atk : k==='def'? v*R.def : v*R.spd;
+      var def=ATTR_DEFS.filter(function(a){return a.k===k;})[0];
+      var iEl=row.querySelector('.ap-name i'); if(iEl) iEl.textContent=def.t+' · 当前战力 '+combat;
+      if(incBtn) incBtn.disabled=(v>=ATTR_MAX || createState.pool<=0);
+      var decBtn=row.querySelector('[data-act="dec"]'); if(decBtn) decBtn.disabled=(v<=ATTR_MIN);
+    });
+  }
   function bindCreate(){
     var nameEl=document.getElementById('cr-name');
     if(nameEl){ nameEl.value=createState.name||''; nameEl.oninput=function(){ createState.name=nameEl.value; }; }
@@ -4520,7 +4702,7 @@ window.onerror=function(msg,url,line,col,err){
         var k=b.getAttribute('data-k'), act=b.getAttribute('data-act');
         if(act==='inc'){ if(createState.pool>0 && createState.attr[k]<ATTR_MAX){ createState.attr[k]++; createState.pool--; } }
         else { if(createState.attr[k]>ATTR_MIN){ createState.attr[k]--; createState.pool++; } }
-        openModal('create');
+        updateCreateUI();
       };
     });
     var skipEl=document.getElementById('cr-skip');
