@@ -10,3 +10,23 @@ Desktop.ini
 # 构建依赖与临时输出
 node_modules/
 _dom_stdout.txt
+
+# 开发/调试临时脚本与产物（不入库）
+_*.py
+_*.txt
+_*.png
+_*.geojson
+pv*.png
+pvgrid.png
+show.png
+cloud_run.txt
+img_run*.txt
+run*.txt
+ai_bg_log.txt
+
+# 参考图/中间产物（不入库）
+map_ref.png
+reforig.png
+refp.png
+assets/map_ref.png
+assets/_ref_orig.png
