@@ -459,16 +459,19 @@
   .map-viewport:active{cursor:grabbing;}
   .map-grid{position:relative;background:none;transform-origin:0 0;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
-  /* 背景底图暂时隐藏：当前参考图(map_ref.png)扰乱视线，待 AI 生图(map_ai.png)确定后再替换显示。
-     替换时把下面 background-image 改回 url('assets/map_ai.png?v=20260820ax') 即可。 */
+  /* 底图采用羊皮纸底纹（map_parchment.png）——纯纹理、无具体地名/路网，叠加在上层州界/河流/节点之下；
+     之前尝试的 AI 生图 map_ai.png 实为现代集市插画（prompt 跑偏），废弃不用。 */
   .map-bg{position:absolute;left:0;top:0;width:100%;height:100%;
     background-color:#e7d8b3;
-    background-image:none;
+    background-image:url('assets/map_parchment.png?v=20260821l');
     background-size:100% 100%;
     background-repeat:no-repeat;
     background-position:center;
     box-shadow:inset 0 0 90px rgba(70,52,26,.30);
     pointer-events:none;z-index:0;opacity:.92;}
+  .map-canvas .map-btn-recenter{position:absolute;right:10px;bottom:34px;z-index:5;padding:5px 10px;font-size:12px;border-radius:8px;background:rgba(255,251,242,.92);border:1px solid rgba(120,90,40,.5);color:#5a3a1a;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18);font-family:inherit;line-height:1.2;}
+  .map-canvas .map-btn-recenter:hover{background:#fff7d6;border-color:rgba(160,80,40,.7);color:#7a2a10;}
+  .map-canvas .map-btn-recenter:active{transform:translateY(1px);}
   /* 退为背景的米黄水洗层：乘色混合（multiply），把底图柔化为底纹，让上层州界/河流/节点成为视觉主体 */
   .map-fade{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;
     background:radial-gradient(ellipse 70% 65% at 50% 46%, rgba(255,247,228,0) 30%, rgba(232,212,168,.55) 100%),
@@ -1313,9 +1316,11 @@
   .pack-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
   @media (max-width:560px){ /* UISPEC.BREAKPOINTS.MOBILE_MAX=560 */ .pack-grid{grid-template-columns:repeat(3,1fr);gap:7px;} }
   .packcell{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;overflow:hidden;box-sizing:border-box;padding:3px 2px 1px;}
-  .packcell .pcell-ic{display:flex;align-items:center;justify-content:center;pointer-events:none;width:100%;line-height:1.05;}
-  .pcell-qbadge{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;box-shadow:0 0 2px rgba(0,0,0,.7);pointer-events:none;z-index:2;}
-  .packcell .pcell-cnt{position:absolute;right:3px;bottom:2px;font-size:10px;color:#f0e2c0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
+  .packcell .pcell-ic{display:flex;align-items:center;justify-content:center;pointer-events:none;width:100%;line-height:1.05;padding:1px 6px 12px;box-sizing:border-box;}
+  .pcell-qbadge{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;box-shadow:0 0 2px rgba(0,0,0,.7);pointer-events:none;z-index:3;}
+  .packcell .pcell-cnt{position:absolute;right:3px;bottom:2px;font-size:10px;color:#f0e2c0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;z-index:3;}
+  .pcell-sell{position:absolute;left:3px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;z-index:3;}
+  .pcell-dur{position:absolute;left:3px;top:2px;font-size:10px;color:#9fd0e0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;z-index:3;}
   /* 文字图标：以物品名排版替代 emoji（整字/2字/2+2两排/前词+缩小） */
   .ic-txt{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.14;text-align:center;font-weight:700;letter-spacing:.02em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:normal;overflow-wrap:anywhere;}
   .ic-txt b{font-weight:700;}
@@ -1637,7 +1642,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821k"></script>
+<script src="shared/config/constants.js?v=20260821l"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1907,6 +1912,7 @@ window.onerror=function(msg,url,line,col,err){
           '</div>'+
         '</div>'+
         '<div class="map-scale"><span class="ms-bar"></span><span class="ms-tx">1 格 ≈ '+MAP_LI+' 里</span></div>'+
+        (opts.pickSpawn?'':'<button class="map-btn-recenter" id="m-map-recenter" title="居中到当前所在">⌖ 回到当前位置</button>')+
         '<div class="map-hint">拖拽平移 · 滚轮/双指缩放 · 双击复位</div>'+
       '</div>'+
       '<p class="tip">'+tip+'</p>';
@@ -1918,6 +1924,7 @@ window.onerror=function(msg,url,line,col,err){
     var vp=canvas.querySelector('.map-viewport');
     var grid=canvas.querySelector('.map-grid');
     var overlay=canvas.querySelector('.map-overlay');
+    var rb=canvas.querySelector('#m-map-recenter'); if(rb) rb.onclick=function(){ centerOn(state.room); };
     var scale=1, tx=0, ty=0, moved=false, lv='lv0';
     // 动态最大缩放：按地图实际画布尺寸限制，避免放大后的合成层超过 GPU 单纹理上限（常见 4096）导致整图空白
     var gw=grid.offsetWidth||2000, gh=grid.offsetHeight||3000;
@@ -4248,7 +4255,6 @@ window.onerror=function(msg,url,line,col,err){
       var d=DEFS[r.id]||{};
       var canBuy = state.gold>=r.buy;
       return '<div class="shop-good'+(canBuy?'':' shop-bad')+'" data-shop="'+r.id+'">'
-        + '<div class="sg-icon">'+itemIconHTML(d, 22)+'</div>'
         + '<div class="sg-name">'+d.name+'</div>'
         + '<div class="sg-buy">买 '+r.buy+' 两</div>'
         + '</div>';
