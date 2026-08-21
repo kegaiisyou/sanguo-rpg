@@ -13,6 +13,10 @@
 //   - DoT 中毒叠加与到期
 //   - 多段攻击 multiHit
 //   - 回合数计数（每整轮 +1，回归：重复 +1）
+//   - 玩家防御减伤 & 命中后 defStance 清除
+//   - 自Buff(atk) 到期还原属性
+//   - 多敌：必须全灭才判胜
+//   - 单敌旧路径 playTurn 不崩溃且生效（index.html 实况调用 G.CombatEngine.playTurn）
 // ===========================================================================
 
 // ---- 可控随机数（让结果可复现）----
@@ -276,6 +280,106 @@ section('回合计数');
   }
   check('起始回合=1', startRound === 1, 'round=' + startRound);
   check('3 个整轮后回合=4（每轮+1，无重复+1）', eng.state.round === 4, 'round=' + eng.state.round);
+}
+
+// 11) 玩家防御：减伤 & 命中后清除 defStance
+section('玩家防御减伤');
+{
+  function enemyHitDmg(defend) {
+    const e = Object.create(CombatEngine);
+    e.init(strongPlayer(), 'bandit');
+    if (defend) e.state.playerUnits[0].defStance = true;
+    const before = e.state.playerUnits[0].hp;
+    e.runEnemyPhase();
+    return before - e.state.playerUnits[0].hp;
+  }
+  RNG = 0;
+  const dmgNo = enemyHitDmg(false);
+  const dmgDef = enemyHitDmg(true);
+  check('防御使受到伤害下降', dmgDef < dmgNo, 'no=' + dmgNo + ' def=' + dmgDef);
+  const e2 = Object.create(CombatEngine);
+  e2.init(strongPlayer(), 'bandit');
+  e2.state.playerUnits[0].defStance = true;
+  e2.runEnemyPhase();
+  check('防御被命中后 defStance 清除', e2.state.playerUnits[0].defStance === false, 'defStance=' + e2.state.playerUnits[0].defStance);
+}
+
+// 12) 自Buff(atk) 到期还原
+section('自Buff到期还原');
+{
+  RNG = 0;
+  const eng = Object.create(CombatEngine);
+  eng.init(strongPlayer(), 'boss');
+  const boss = eng.state.enemies[0];
+  const base = boss.atk;
+  const buffSkill = { id: 'boss_buff', name: '魔气护体', type: 'skill', eff: { selfBuff: { atk: 10, spd: 5, turns: 2 } } };
+  eng._resolveAction(boss, buffSkill, [], boss);
+  check('selfBuff 后 atk+10', boss.atk === base + 10, 'atk=' + boss.atk);
+  eng._tickBuffs();
+  check('1 回合后 atk 仍 +10', boss.atk === base + 10, 'atk=' + boss.atk);
+  eng._tickBuffs();
+  check('buff 到期 atk 还原', boss.atk === base, 'atk=' + boss.atk);
+}
+
+// 13) 多敌：必须全灭才判胜
+section('多敌全灭判定');
+{
+  RNG = 0;
+  const eng = Object.create(CombatEngine);
+  eng.init(strongPlayer(), 'bandit');
+  const e2 = JSON.parse(JSON.stringify(eng.state.enemies[0]));
+  e2.hp = e2.maxHp = 500;          // 拉高血量，确保一击不致死
+  eng.state.enemies.push(e2);
+  eng.state.enemies[0].hp = 0;      // 先杀掉第一个
+  eng.runPlayerPhase([{ unit: eng.state.playerUnits[0], actionId: 'beng_quan', targetIdx: 1 }]);
+  check('未全灭 → 非 win', eng.state.result !== 'win', 'result=' + eng.state.result);
+  eng.state.enemies[1].hp = 0;      // 杀掉第二个
+  eng.runPlayerPhase([]);           // 空指令触发 _checkEnd
+  check('全灭 → win', eng.state.result === 'win', 'result=' + eng.state.result);
+}
+
+// 14) 单敌旧路径 playTurn 不崩溃且生效（index.html 实况调用 G.CombatEngine.playTurn）
+section('单敌 playTurn 旧路径');
+{
+  RNG = 0;
+  const eng = Object.create(CombatEngine);
+  eng.init(strongPlayer(), 'bandit');
+  const before = eng.state.enemy.hp;
+  let threw = false, r = null;
+  try { r = eng.playTurn('beng_quan'); } catch (e) { threw = true; }
+  check('playTurn 不崩溃', !threw, threw ? 'threw' : '');
+  check('playTurn 返回日志数组', Array.isArray(r), 'r=' + (r && r.length));
+  check('playTurn 造成敌人掉血', eng.state.enemy.hp < before, 'before=' + before + ' after=' + eng.state.enemy.hp);
+}
+
+// 15) tryFlee：速度决定成败 & 多敌以存活敌为基准（修复 enemies[0] 已死仍按死敌判定）
+section('tryFlee 逃跑判定');
+{
+  RNG = 0;
+  // 玩家比敌快 → 必逃（chance 被 max 0.1 下限约束，但 RNG=0<chance 必成功）
+  const fast = Object.create(CombatEngine);
+  fast.init(strongPlayer(), 'bandit');
+  fast.state.player.spd = 50;     // 远高于 bandit
+  let r = fast.tryFlee();
+  check('玩家远快于敌 → 逃跑成功', r.success === true, 'result=' + fast.state.result);
+
+  RNG = 0;
+  // 玩家比敌慢 → 必失败（chance<=0.1，RNG=0<0.1 仍成功！所以用 RNG=9 制造失败，并断言失败后未结束/或丢血）
+  const slow = Object.create(CombatEngine);
+  slow.init(strongPlayer(), 'bandit');
+  slow.state.player.spd = 1;      // 远低于 bandit(14)
+  RNG = 9;
+  let r2 = slow.tryFlee();
+  check('玩家远慢于敌 → 逃跑失败', r2.success === false, 'result=' + slow.state.result);
+  check('逃跑失败后未误判胜利', slow.state.result !== 'win', 'result=' + slow.state.result);
+
+  // 多敌：enemies[0] 已死，其余存活且更快 → 不应按死敌(慢)判定（修复点）
+  // RNG=5 (Math.random=0.5)：
+  //   死敌基准(spd14)→spdDiff16→chance0.72→0.5<0.72 成功；
+  //   活敌基准(spd60)→spdDiff-30→chance0.1→0.5<0.1 失败
+  // 故断言失败即证明修复生效（按最快存活敌判定）
+  let r4 = (function(){ const m = Object.create(CombatEngine); m.init(strongPlayer(),'bandit'); const x=JSON.parse(JSON.stringify(m.state.enemies[0])); x.spd=60; x.maxHp=x.hp=500; m.state.enemies.push(x); m.state.enemies[0].hp=0; m.state.player.spd=30; RNG = 5; return m.tryFlee(); })();
+  check('多敌(敌0已死,活敌更快)：按最快存活敌判定 → 较慢 → 逃跑失败', r4.success === false, 'success=' + r4.success + ' result=' + r4.result);
 }
 
 // ============================ 汇总 ============================

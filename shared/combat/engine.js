@@ -865,7 +865,10 @@
 
     // ─── 逃跑 ───
     tryFlee: function() {
-      var spdDiff = this.state.player.spd - this.state.enemy.spd;
+      // 多敌战中应以「最快的存活敌」为速度基准；enemies[0] 可能已死，不能再用 state.enemy
+      var living = this.state.enemies.filter(function(e) { return e.hp > 0; });
+      var ref = living.length ? living.reduce(function(a, b) { return b.spd > a.spd ? b : a; }) : this.state.enemy;
+      var spdDiff = this.state.player.spd - ref.spd;
       var chance = Math.min(0.9, Math.max(0.1, 0.4 + spdDiff * 0.02));
       if (Math.random() < chance) {
         this.state.result = 'fled';
