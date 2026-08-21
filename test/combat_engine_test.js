@@ -382,6 +382,68 @@ section('tryFlee 逃跑判定');
   check('多敌(敌0已死,活敌更快)：按最快存活敌判定 → 较慢 → 逃跑失败', r4.success === false, 'success=' + r4.success + ' result=' + r4.result);
 }
 
+// 16) defStance 未被攻击也复位（修复：防御单位未被选为目标时永久减伤）
+section('defStance 未被攻击也复位');
+{
+  RNG = 0;
+  // 玩家防御 → 敌方两个目标都打另一个 → 该玩家未被命中，但下一玩家回合 defStance 必须清空
+  const eng = Object.create(CombatEngine);
+  eng.init(strongPlayer(), 'bandit');
+  const pu = eng.state.playerUnits[0];
+  pu.defStance = true;   // 模拟上回合防御残留
+  // 直接走 runPlayerPhase 开头逻辑（清除玩家方 defStance）
+  eng.runPlayerPhase([]);
+  check('玩家回合开始清除上回合 defStance', pu.defStance === false, 'defStance=' + pu.defStance);
+  // 注：runEnemyPhase 开头只清敌方 defStance；玩家 defStance 在其被敌方命中时（317-320）才清除，属正确行为
+}
+
+// 17) 敌方防御后玩家攻击减伤
+section('敌方防御减伤');
+{
+  function playerHitDmg(defend) {
+    const e = Object.create(CombatEngine);
+    e.init(strongPlayer(), 'bandit');
+    // 拉高敌人血量，避免一击致死时伤害被 HP 上限封顶（导致 drop 不等于真实伤害）
+    e.state.enemies[0].hp = e.state.enemies[0].maxHp = 500;
+    if (defend) e.state.enemies[0].defStance = true;
+    const before = e.state.enemies[0].hp;
+    e.runPlayerPhase([{ unit: e.state.playerUnits[0], actionId: 'beng_quan', targetIdx: 0 }]);
+    return before - e.state.enemies[0].hp;
+  }
+  RNG = 1; // 非暴击（RNG=1>0.05 → 不暴击，避免暴击放大掩盖防御减伤；hitRate=1 保证命中）
+  const dmgNo = playerHitDmg(false);
+  const dmgDef = playerHitDmg(true);
+  check('敌方防御使受到伤害下降', dmgDef < dmgNo, 'no=' + dmgNo + ' def=' + dmgDef);
+  check('防御减伤约 1/3（round 误差内）', dmgDef === Math.round(dmgNo * 2 / 3), 'no=' + dmgNo + ' def=' + dmgDef);
+}
+
+// 18) calcDamage 减伤矩阵（护甲 / 防御姿态 / 暴击）
+section('calcDamage 减伤矩阵');
+{
+  RNG = 1; // 非暴击（RNG=1 → r=0.01<0.2 → 非暴击分支）
+  const eng = Object.create(CombatEngine);
+  eng.init(strongPlayer(), 'bandit');
+  const pu = eng.state.playerUnits[0];
+  const art = pu.artMap['beng_quan'];
+  const en = eng.state.enemies[0];
+  const base = eng.calcDamage(pu, art, en, false, 1);
+  check('基础伤害 > 0', base > 0, 'base=' + base);
+  // 防御姿态 ×1.5 减伤
+  en.defStance = true;
+  const defDmg = eng.calcDamage(pu, art, en, false, 1);
+  check('防御姿态减伤（≈2/3）', defDmg === Math.round(base * 2 / 3), 'base=' + base + ' def=' + defDmg);
+  en.defStance = false;
+  // 护甲降低伤害：tDef+20 应使伤害下降（公式含 1+0.06*tDef 分母，且与血上限无关）
+  const enArm = JSON.parse(JSON.stringify(en));
+  enArm.def = en.def + 20;
+  const armDmg = eng.calcDamage(pu, art, enArm, false, 1);
+  check('护甲提升使伤害下降', armDmg < base, 'base=' + base + ' arm=' + armDmg);
+  // 暴击：RNG=0 → 必暴，伤害更高
+  RNG = 0;
+  const crit = eng.calcDamage(pu, art, en, true, 1);
+  check('暴击伤害高于非暴击基础', crit > base, 'base=' + base + ' crit=' + crit);
+}
+
 // ============================ 汇总 ============================
 console.log('\n==== 战斗引擎自测结果 ====');
 let fail = 0;

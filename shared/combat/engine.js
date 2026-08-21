@@ -199,11 +199,12 @@
       var ignoreDef = eff.ignoreDef || 0;
 
       var tDef = targetUnit.def;
-      if (targetUnit.defStance) tDef = Math.round(tDef * 1.5);
 
       var effDef = tDef * (1 - Math.min(armorPen, 0.8)) * (1 - ignoreDef);
       var reduction = Math.min(DEF_DR_CAP, effDef * DEF_DR_PER);
       var raw = Math.round(unit.atk * mul * DMG_SCALE * (1 - reduction));
+      // 防御姿态：固定减伤 1/3（独立于 def 属性，低防单位也生效；置于暴击/克制之前）
+      if (targetUnit.defStance) raw = Math.round(raw * 2 / 3);
       // 属性克制（P2）：克制 ×1.25，被克 ×0.8
       if (attrMul && attrMul !== 1) raw = Math.round(raw * attrMul);
       if (crit) {
@@ -887,6 +888,8 @@
     runPlayerPhase: function(orders) {
       var log = [];
       this.state.log = [];
+      // 回合开始：清除玩家方上回合残留的防御姿态（defStance 仅生效一个敌方回合，未被攻击命中的也在此复位，避免永久减伤）
+      this.state.playerUnits.forEach(function(u){ if (u.hp > 0) u.defStance = false; });
       // 回合开始：全场 DoT 结算一次
       this._tickDots(log);
       if (this._checkEnd()) { this.state.log = log; return log; }
@@ -911,6 +914,8 @@
     // ─── 队伍战斗：敌方阶段（所有存活敌人依序出手，目标为玩家单位）───
     runEnemyPhase: function() {
       var self = this, log = [];
+      // 回合开始：清除敌方上回合残留的防御姿态（避免永久减伤，未命中清除之外再保险）
+      this.state.enemies.forEach(function(e){ if (e.hp > 0) e.defStance = false; });
       var living = this.state.enemies.filter(function(e){ return e.hp > 0; });
       living.forEach(function(e) {
         if (self._checkEnd()) return;
