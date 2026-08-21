@@ -165,6 +165,16 @@
 - **改动**（`shared/data/map.js`）：凉州 `poly` 重画为西北块（与并州/益州共界、无重叠）；武威 zone `[-4,1]→[-10,8]` 迁入凉州。
 - `VERSION` → `20260821w`，同步 `map.js` 的 `?v=`。
 
+## 2026-08-21 · 货郎选中报错修复 + 地图改用参考图（v20260821x）
+
+### 货郎点击报错
+- `renderShopInfo` 调 `fmtPrice` 报 `ReferenceError`。根因：`fmtPrice/sgFontSize` 原定义在 `renderShopPanel` 内部，而 `renderShopInfo` 在外部独立函数，访问不到。
+- 修复：提升到模块级，删除内部重复定义。
+
+### 地图改用参考图底图
+- `.map-grid` 背景 = `ScreenShot_20260821_230620_978.png`（铺满）；`.map-state-sh` 改透明（仅留热区）；`.map-state-name` 改米白+深棕描边保证可读；各档 opacity 调高。
+- `VERSION` → `20260821x`，同步 `constants.js` 的 `?v=`。
+
 ### 待办 / 已知问题
 - [ ] AI 水墨底图生成（重做，prompt 需校准）：任务曾提交成功且 DONE，但未取到下载地址（`assets/map_ai.png` 仍是早期错误图）；底图暂用纯 CSS 宣纸底兜底，出图后改 `.map-bg` 的 `background-image` 即可。
 - [ ] 可选优化：回到当前位置按钮、当前房间高亮飘字、塞外地形文字样式、道路动效。

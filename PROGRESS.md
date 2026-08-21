@@ -406,6 +406,17 @@
 - **改动**（`shared/data/map.js`）：重写凉州 `poly` 为西北梯形块（顶点 `[-13,-3],[-14,1],[-13.5,6],[-13,11],[-11.5,12],[-10,11],[-10,7],[-12.5,6],[-12.5,2],[-13.5,-2]`）：东距并州西界（col -8）留黄河空档、南与益州西界（col -12.5）共边，互不重叠；武威 zone 坐标 `[-4,1]→[-10,8]` 迁入凉州域内。
 - `VERSION` → `20260821w`，同步 `map.js` 的 `?v=`。
 
+### 9.18 货郎选中报错修复 + 地图改用参考图底图（v20260821x）
+- **货郎报错**：点击货品触发 `renderShopInfo`，其中 `fmtPrice(price)` 报 `ReferenceError: fmtPrice is not defined`。
+  - **根因**：`fmtPrice`/`sgFontSize` 定义在 `renderShopPanel` **内部**（局部），而 `renderShopInfo` 在 `renderShopPanel` **外部**（独立函数），作用域访问不到。
+  - **修复**：将 `fmtPrice`/`sgFontSize` 提升为模块级（位于 `renderShopPanel` 之前），删除 `renderShopPanel` 内部重复定义；`renderShopInfo` 与 `goodsGrid` 共用。
+- **地图改用参考图底图**：用户反馈手画多边形"太丑"，要求直接用参考图。
+  - `.map-grid` 背景改为 `url('ScreenShot_20260821_230620_978.png') center/100% 100% no-repeat`（参考图铺满）。
+  - `.map-state-sh` polygon 改为 `fill/stroke:transparent`（隐藏手画轮廓，仅保留透明热区供点击）。
+  - `.map-state-name` 改为米白填充 + 深棕描边（paint-order:stroke），保证在彩色参考图上清晰可读。
+  - 各档 `opacity` 调高（lv0 .82 / lv1 .95 / lv2 .7），州名始终可见。
+- `VERSION` → `20260821x`，同步 `constants.js` 的 `?v=`。
+
 ---
 
-*最后更新：2026-08-21（§九：营造系统 MVP 至 v20260821w——跳教程直达建造测试场、铁料武器链与图纸多渠道、建造耗代价、场景文本精简、背包 icon 留白、自由时长休息替代 dock 调息、炉膛冶炼进度条、十三州 label 相对质心归位、选中态去外发光改纯底色、地图州名质心分布修复、货郎货品选中态、凉州按参考图重画至西北）*
+*最后更新：2026-08-21（§九：营造系统 MVP 至 v20260821x——跳教程直达建造测试场、铁料武器链与图纸多渠道、建造耗代价、场景文本精简、背包 icon 留白、自由时长休息替代 dock 调息、炉膛冶炼进度条、十三州 label 相对质心归位、选中态去外发光改纯底色、地图州名质心分布修复、货郎货品选中态、凉州按参考图重画至西北、货郎选中报错修复、地图改用参考图底图）*

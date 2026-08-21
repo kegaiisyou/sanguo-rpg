@@ -457,7 +457,7 @@
     box-shadow:inset 0 0 70px rgba(40,30,15,.35), inset 0 0 0 4px rgba(120,90,40,.2);}
   .map-viewport{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;cursor:grab;}
   .map-viewport:active{cursor:grabbing;}
-  .map-grid{position:relative;background:none;transform-origin:0 0;}
+  .map-grid{position:relative;background:url('ScreenShot_20260821_230620_978.png') center/100% 100% no-repeat;transform-origin:0 0;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
   /* 底图采用羊皮纸底纹（map_parchment.png）——纯纹理、无具体地名/路网，叠加在上层州界/河流/节点之下；
      之前尝试的 AI 生图 map_ai.png 实为现代集市插画（prompt 跑偏），废弃不用。 */
@@ -551,8 +551,7 @@
   .map-pin.mp-hide-nm .mp-nm{display:none;}
   .map-pin.mp-lbl-up .mp-nm{order:-1;margin-bottom:3px;}
   .map-pin.mp-lbl-down .mp-nm{order:2;margin-top:3px;}
-  .map-states-svg .map-state-sh{cursor:pointer;pointer-events:all;transition:filter .15s;
-    stroke-width:1.8;filter:drop-shadow(0 1px 1px rgba(60,40,20,.28));}
+  .map-states-svg .map-state-sh{cursor:pointer;pointer-events:all;fill:transparent!important;stroke:transparent!important;}
   .map-states-svg .map-state-sh:hover{filter:brightness(1.3) drop-shadow(0 1px 2px rgba(60,40,20,.4));}
   .map-state-name{font-family:"STKaiti","KaiTi",serif;font-size:25px;letter-spacing:5px;font-weight:700;
     text-anchor:middle;dominant-baseline:central;
@@ -597,10 +596,10 @@
   .map-canvas.lv0 .map-zones{display:none;}
   .map-canvas.lv0 .map-svg{display:none;}
   .map-canvas.lv0 .map-region,.map-canvas.lv0 .map-region-t{display:none;}
-  .map-canvas.lv0 .map-states-svg{opacity:.35;pointer-events:none;}   /* 全览：州界清晰、州名淡化作锚点（label 已校准到州内中心，不再重叠） */
+  .map-canvas.lv0 .map-states-svg{opacity:.82;pointer-events:none;}   /* 全览：州名作锚点（参考图已含州界，poly 透明） */
   .map-canvas.lv1 .map-states-svg{opacity:.95;}   /* 区域档：州名清晰显示，便于定位 */
   .map-canvas.lv1 .map-svg{display:none;}
-  .map-canvas.lv2 .map-states-svg{opacity:.55;}   /* 房间档：州名淡显，与节点共存 */
+  .map-canvas.lv2 .map-states-svg{opacity:.7;}   /* 房间档：州名淡显，与节点共存 */
   .map-canvas.lv2 .map-zones{display:none;}
   .map-canvas.lv2 .map-region-t{display:none;}
   .map-canvas.lv2 .map-region{opacity:.5;}
@@ -1609,7 +1608,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260821w</div>
+    <div class="tt-ver" id="tt-ver">v20260821x</div>
   </div>
 </div>
 
@@ -1641,7 +1640,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821v"></script>
+<script src="shared/config/constants.js?v=20260821x"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -4257,24 +4256,24 @@ window.onerror=function(msg,url,line,col,err){
     var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; });
     return (r && r.sell>0) ? r.sell : null;
   }
+  // 售价格式化（模块级，供 renderShopPanel / renderShopInfo 共用）
+  function fmtPrice(n){
+    n = Number(n)||0;
+    if(n<=9999) return n+' 两';
+    if(n<=99999999){ var v=(n/10000).toFixed(n<100000?1:0); return (v.replace(/\.0$/,''))+'万 两'; }
+    var v2=(n/100000000).toFixed(n<1000000000?1:0); return (v2.replace(/\.0$/,''))+'亿 两';
+  }
+  function sgFontSize(name){
+    var L = (name||'').replace(/\s+/g,'').length;
+    if(L<=2) return '12px';
+    if(L<=3) return '11px';
+    if(L<=4) return '10px';
+    if(L<=5) return '9px';
+    return '8.5px';
+  }
   function renderShopPanel(){
     var shop = LF.SHOPS[shopState] || {name:'', items:[]};
     var DEFS=LF.ITEMS;
-    // 售价格式化：≤9999 直接显示「N 两」；≤99999999 →「X.X 万 两」；更大 →「X.X 亿 两」，避免超高数值撑爆格子
-    function fmtPrice(n){
-      n = Number(n)||0;
-      if(n<=9999) return n+' 两';
-      if(n<=99999999){ var v=(n/10000).toFixed(n<100000?1:0); return (v.replace(/\.0$/,''))+'万 两'; }
-      var v2=(n/100000000).toFixed(n<1000000000?1:0); return (v2.replace(/\.0$/,''))+'亿 两';
-    }
-    function sgFontSize(name){
-      var L = (name||'').replace(/\s+/g,'').length;
-      if(L<=2) return '12px';
-      if(L<=3) return '11px';
-      if(L<=4) return '10px';
-      if(L<=5) return '9px';
-      return '8.5px';
-    }
     // 左栏：货郎的货（仅展示 buy>0 的，点按购入）
     var goodsGrid = shop.items.filter(function(r){ return r.buy>0; }).map(function(r){
       var d=DEFS[r.id]||{};
