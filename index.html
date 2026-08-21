@@ -1283,8 +1283,8 @@
   .equip-figure{position:relative;width:124px;height:104px;margin:0 auto;flex:0 0 auto;}
   .equip-sil{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.35;}
   .equipslot{position:absolute;width:56px;min-height:22px;background:rgba(22,14,32,.62);border:1px solid rgba(186,160,220,.55);border-radius:7px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:2px;box-sizing:border-box;overflow:hidden;}
-  .equipslot.pcell-sel{outline:2px solid #d8b46a;box-shadow:0 0 10px rgba(216,180,106,.6);}
-  .equipslot.pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
+  .equipslot.pcell-sel{background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.85);}
+  .equipslot.pcell-insp{background:rgba(70,142,168,.42);box-shadow:inset 0 0 0 2px rgba(135,206,232,.85);}
   .ep-name{font-size:11.5px;color:#f7e9c8;font-weight:600;line-height:1.15;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.55);}
   .ep-ph{font-size:10px;color:#cdb8ee;letter-spacing:1px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
   /* 装备格品质角标 + 耐久条 */
@@ -1301,7 +1301,7 @@
   /* 背包槽：与 weapon 同列上方，虚线金边以区分 */
   .ep-bagflow{position:absolute;left:64px;top:50px;width:58px;min-height:22px;background:rgba(22,14,32,.62);border:1px dashed rgba(216,180,106,.7);}
   .ep-bagflow .ep-name{font-size:10.5px;line-height:1.1;}
-  .ep-bagflow.pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
+  .ep-bagflow.pcell-insp{background:rgba(70,142,168,.42);box-shadow:inset 0 0 0 2px rgba(135,206,232,.85);}
   .ep-bagflow .ep-qbadge{top:3px;right:3px;}
   /* 右：物品栏（金调面板 + 明显滚动条） */
   .pack-right{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;
@@ -1329,8 +1329,8 @@
   .forge-bar{height:14px;background:rgba(0,0,0,.35);border:1px solid rgba(196,164,102,.35);border-radius:7px;overflow:hidden;margin:8px 2px 2px;}
   .forge-bar i{display:block;height:100%;background:linear-gradient(90deg,#c0392b,#e67e22);transition:width .3s ease;}
   .forge-pct{font-size:12px;color:#f4e6c2;opacity:.85;text-align:center;}
-  .pcell-sel{position:relative;outline:2px solid #ffd76a;box-shadow:0 0 0 2px rgba(255,215,106,.35),0 0 12px rgba(255,200,90,.65);background:rgba(255,215,106,.14);z-index:1;}
-  .pcell-insp{position:relative;outline:2px solid #6fd0e8;box-shadow:0 0 0 2px rgba(111,208,232,.3),0 0 12px rgba(111,176,201,.6);background:rgba(111,208,232,.12);z-index:1;}
+  .pcell-sel{position:relative;background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.9);z-index:1;}
+  .pcell-insp{position:relative;background:rgba(70,142,168,.42);box-shadow:inset 0 0 0 2px rgba(135,206,232,.9);z-index:1;}
   /* ===== 商店（货郎）双栏：左货品 / 右行囊 ===== */
   .shop-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
   .shop-head{flex:0 0 auto;display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px;border-bottom:1px solid rgba(196,164,102,.35);margin-bottom:8px;}
@@ -1608,7 +1608,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260820s</div>
+    <div class="tt-ver" id="tt-ver">v20260821u</div>
   </div>
 </div>
 
@@ -1640,7 +1640,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821s"></script>
+<script src="shared/config/constants.js?v=20260821t"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1786,12 +1786,22 @@ window.onerror=function(msg,url,line,col,err){
     MAPWK=REF.SX*W/REF.IW; MAPWB=REF.OX*W/REF.IW;
     MAPHK=REF.SY*H/REF.IH; MAPHB=REF.OY*H/REF.IH;
     // ── lv0 州域层：十三州轮廓（SVG polygon + 州名）──
+    // 州名落点 = 多边形质心 + label（label 为相对质心的小偏移，单位同 poly 的 [col,row]）
+    function polyCentroid(poly){
+      if(!poly||!poly.length) return [0,0];
+      var a=0,cx=0,cy=0,i,p,q,cross;
+      for(i=0;i<poly.length;i++){ p=poly[i]; q=poly[(i+1)%poly.length]; cross=p[0]*q[1]-q[0]*p[1]; a+=cross; cx+=(p[0]+q[0])*cross; cy+=(p[1]+q[1])*cross; }
+      a*=0.5;
+      if(Math.abs(a)<1e-6){ var sx=0,sy=0; poly.forEach(function(pp){sx+=pp[0];sy+=pp[1];}); return [sx/poly.length,sy/poly.length]; }
+      return [cx/(6*a), cy/(6*a)];
+    }
     var statesSvg='';
     states.forEach(function(s){
       var pts=(s.poly||[]).map(function(c){return px(c)+','+py(c);}).join(' ');
       // 十三州：fill 极浅透明（保持热区可点）+ stroke 可见深褐描边，轮廓清晰但不抢戏
       statesSvg+='<polygon class="map-state-sh" data-state="'+s.id+'" fill="rgba(120,90,50,.05)" stroke="rgba(92,66,38,.55)" stroke-width="1.6" points="'+pts+'"></polygon>';
-      var lc=s.label||(s.poly[0]||[0,0]);
+      var cen=polyCentroid(s.poly), off=s.label||[0,0];
+      var lc=[cen[0]+(off[0]||0), cen[1]+(off[1]||0)];
       statesSvg+='<text class="map-state-name" data-state="'+s.id+'" x="'+px(lc)+'" y="'+py(lc)+'">'+s.name+'</text>';
     });
     // 区域底色（数据化：LF.MAP.regions）—— 仅记录世界坐标，left/top 由 apply() 按 scale 重算

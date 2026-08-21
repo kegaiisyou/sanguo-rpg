@@ -134,6 +134,24 @@
   - `lv2` 房间档：州名 `opacity:.55`（淡显，与节点共存）。
 - `VERSION` → `20260821s`，同步 `constants.js` / `map.js` 的 `?v=` 缓存参数。
 
+## 2026-08-21 · 选中态去外发光，改纯底色区分（v20260821t）
+
+- **反馈**：背包/货郎选中后高光（外发光 + outline + 半透填充）溢出格子、像"贴纸"飘在表面，要求改成"改底色"即可，看出选中就够。
+- **修复**（`index.html`）：
+  - `.pcell-sel` 改 `background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.9);`，去掉 `outline` 与外发光。
+  - `.pcell-insp` 改 `background:rgba(70,142,168,.42);box-shadow:inset 0 0 0 2px rgba(135,206,232,.9);`，同样去掉外发光。
+  - `.equipslot.pcell-sel/.pcell-insp` 同步（加深底 + 内嵌描边，无溢出）。
+  - `.ep-bagflow.pcell-insp` 同步。
+  - 底色（金/青加深 + 1.0 alpha 内嵌描边）叠加在 `.packcell` 默认 `rgba(0,0,0,.18)` 黑色玻璃上后，对比清晰、不溢出格子边界。
+- `VERSION` → `20260821t`，仅同步 `constants.js` 的 `?v=`（本次 CSS 仅在 `index.html`）。
+
+## 2026-08-21 · 地图州名挤成一团修复（v20260821u）
+
+- **现象**：十三州名全部重叠在地图左下角/原点附近，挤成一团。
+- **根因**：州名由 SVG `<text>` 渲染，`var lc=s.label||...` 直接把 `label` 当**绝对网格坐标**传给 `px()/py()`。v20260821s 误将 `label` 当作"相对质心偏移"改成了 `[0,0]/[-1,1]` 等接近原点的值，于是所有州名被钉在网格原点 → 全挤一起。
+- **修复**（`index.html` `buildMapHTML`）：新增 `polyCentroid(poly)`（shoelace 面积质心，退化时回退顶点平均），州名落点改为 `质心 + label`（label 现作相对质心小偏移语义，保留各州已设的 `[-1,1]` 等微调）。州名因此自然散布到各州域中心、互不重叠。
+- `VERSION` → `20260821u`，同步 `constants.js` 的 `?v=`。
+
 ### 待办 / 已知问题
 - [ ] AI 水墨底图生成（重做，prompt 需校准）：任务曾提交成功且 DONE，但未取到下载地址（`assets/map_ai.png` 仍是早期错误图）；底图暂用纯 CSS 宣纸底兜底，出图后改 `.map-bg` 的 `background-image` 即可。
 - [ ] 可选优化：回到当前位置按钮、当前房间高亮飘字、塞外地形文字样式、道路动效。
