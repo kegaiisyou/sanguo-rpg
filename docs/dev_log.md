@@ -175,6 +175,18 @@
 - `.map-grid` 背景 = `ScreenShot_20260821_230620_978.png`（铺满）；`.map-state-sh` 改透明（仅留热区）；`.map-state-name` 改米白+深棕描边保证可读；各档 opacity 调高。
 - `VERSION` → `20260821x`，同步 `constants.js` 的 `?v=`。
 
+## 2026-08-22 · 货郎属性 undefined + 双高亮 + 隐藏自加州名（v20260821y）
+
+### 货品 undefined
+- `renderShopInfo` 货品分支读 `r.icon/cat/desc/name`，但 `LF.SHOPS` items 只有 `{id,buy,sell}`。改为从 `LF.ITEMS[r.id]` 取真实字段（`.icon/.name/.cat/.desc`）。
+
+### 双高亮
+- 行囊 click 只清 `.packcell` 的 `pcell-sel`，未清 `[data-shop]` 的 `pcell-sel`，也未把 `shopGoodSel` 复位。补齐后"货品↔行囊"互斥单选。
+
+### 隐藏自加州名
+- 参考图 PNG 自带隶书大字州名，与自加米白州名叠双层。`.map-state-name{opacity:0;}` 让图自带文字独占显示。
+- `VERSION` → `20260821y`，同步 `constants.js` 的 `?v=`。
+
 ### 待办 / 已知问题
 - [ ] AI 水墨底图生成（重做，prompt 需校准）：任务曾提交成功且 DONE，但未取到下载地址（`assets/map_ai.png` 仍是早期错误图）；底图暂用纯 CSS 宣纸底兜底，出图后改 `.map-bg` 的 `background-image` 即可。
 - [ ] 可选优化：回到当前位置按钮、当前房间高亮飘字、塞外地形文字样式、道路动效。

@@ -558,6 +558,7 @@
     fill:rgba(66,46,26,.95);
     paint-order:stroke fill;                 /* 先描边后填充，描边形成光晕 */
     stroke:rgba(255,248,232,.94);stroke-width:6.5px;   /* 米白粗描边：去掉州界线后州名成为唯一州界标识，需更醒目 */
+    opacity:0;            /* v20260821y：参考图 PNG 已自带隶书州名，隐藏自加，避免双层字 */
     pointer-events:none;}
   /* ── 顶层 HTML 标签层（map-overlay）：跟 .map-grid 同坐标平移、不参与 scale ──
      把 HTML 标签从原 .map-grid 内抽出，是为了避免双层 transform 叠加破坏字体子像素抗锯齿，
@@ -1608,7 +1609,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260821x</div>
+    <div class="tt-ver" id="tt-ver">v20260821y</div>
   </div>
 </div>
 
@@ -1640,7 +1641,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821x"></script>
+<script src="shared/config/constants.js?v=20260821y"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -4313,12 +4314,17 @@ window.onerror=function(msg,url,line,col,err){
       var shop=LF.SHOPS[shopState]; var r=null;
       if(shop) shop.items.forEach(function(x){ if(x.id===shopGoodSel) r=x; });
       if(r){
+        var def=LF.ITEMS[r.id]||{};
         var price=r.buy!=null?r.buy:0;
+        var icon=def.icon||'';
+        var name=def.name||r.id;
+        var cat=def.cat||'货';
+        var desc=def.desc||'';
         var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'
-          + (r.icon?('<span class="ic-txt" style="font-size:18px;"><b>'+r.icon+'</b></span> '):'')
-          + '<span style="margin-left:4px;">'+r.name+'</span></div>'
-          + '<div class="pi-meta"><span class="pi-cat">'+(r.cat||'货')+'</span></div></div></div>';
-        if(r.desc) html+='<div class="pi-desc">'+r.desc+'</div>';
+          + (icon?('<span class="ic-txt" style="font-size:18px;"><b>'+icon+'</b></span> '):'')
+          + '<span style="margin-left:4px;">'+name+'</span></div>'
+          + '<div class="pi-meta"><span class="pi-cat">'+cat+'</span></div></div></div>';
+        if(desc) html+='<div class="pi-desc">'+desc+'</div>';
         html+='<div class="pi-actions"><button class="btn-mini" onclick="LFUI.showBuyPanel(\''+r.id+'\')">购买（'+fmtPrice(price)+'两）</button></div>';
         html+='</div>';
         return html;
@@ -4369,7 +4375,9 @@ window.onerror=function(msg,url,line,col,err){
         if(el.__dragMoved){ el.__dragMoved=false; return; }
         var idx=parseInt(el.getAttribute('data-loc').split(':')[1],10);
         shopSel = (state.pack[idx])? idx : null;
+        shopGoodSel = null;   // 选行囊时清货品选中（互斥）
         card.querySelectorAll('.shop-right .packcell').forEach(function(c){ c.classList.remove('pcell-sel'); });
+        card.querySelectorAll('[data-shop]').forEach(function(c){ c.classList.remove('pcell-sel'); });
         if(shopSel!=null) el.classList.add('pcell-sel');
         var info=card.querySelector('.shop-info'); if(info) info.innerHTML=renderShopInfo();
       };
