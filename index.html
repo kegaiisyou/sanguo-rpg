@@ -1306,8 +1306,8 @@
   .pack-scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.22);border-radius:6px;}
   .pack-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#c8a05c,#8a6f3e);border-radius:6px;border:2px solid rgba(0,0,0,.22);}
   .pack-scroll::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#dab56e,#9a7a44);}
-  .pack-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
-  @media (max-width:560px){ /* UISPEC.BREAKPOINTS.MOBILE_MAX=560 */ .pack-grid{grid-template-columns:repeat(3,1fr);gap:7px;} }
+  .pack-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+  @media (max-width:560px){ /* UISPEC.BREAKPOINTS.MOBILE_MAX=560 */ .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;} }
   .packcell{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;overflow:hidden;box-sizing:border-box;padding:3px 2px 1px;}
   .packcell .pcell-ic{display:flex;align-items:center;justify-content:center;pointer-events:none;width:100%;line-height:1.05;padding:1px 6px 12px;box-sizing:border-box;}
   .pcell-qbadge{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;box-shadow:0 0 2px rgba(0,0,0,.7);pointer-events:none;z-index:3;}
@@ -1342,10 +1342,10 @@
   .shop-good:active{transform:scale(.97);background:rgba(216,180,106,.12);}
   .shop-good .sg-icon{font-size:24px;line-height:1;pointer-events:none;margin-bottom:2px;}
   .shop-good .sg-name{font-size:11px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;word-break:break-word;padding:2px 3px 0;}
-  .shop-good .sg-buy{font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:1px 4px;margin-top:3px;pointer-events:none;min-width:46px;box-sizing:border-box;text-align:center;line-height:1.3;flex-shrink:0;}
+  .shop-good .sg-buy{font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:1px 4px;margin-top:3px;pointer-events:none;min-width:0;box-sizing:border-box;text-align:center;line-height:1.3;flex-shrink:0;}
   .shop-good.shop-bad{opacity:.45;}
   .shop-good.shop-bad .sg-buy{color:#e0796f;}
-  .shop-right .pack-grid{grid-template-columns:repeat(3,1fr);gap:7px;}
+  .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
   .pcell-sell{position:absolute;left:3px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   .pcell-dur{position:absolute;left:3px;top:2px;font-size:10px;color:#9fd0e0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   .shop-info{flex:0 0 auto;max-height:26%;margin-top:8px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
@@ -1353,7 +1353,25 @@
   .shop-foot{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin-top:8px;}
   .shop-foot .btn{flex:0 0 auto;}
   .shop-hint{font-size:12px;color:#bfae8a;flex:1 1 auto;text-align:right;}
-  @media (max-width:560px){ .shop-main{flex-direction:column;} .shop-left,.shop-right{min-width:0;} .shop-goods-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;} .shop-right .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;} .pack-left{flex-basis:118px;} .shop-good{padding:5px 3px;} .shop-good .sg-icon{font-size:18px;} .shop-good .sg-name{font-size:10.5px;} }
+  @media (max-width:560px){
+    /* 行囊：装备区改横排（人形+属性并排），物品区下移占满整行，杜绝右侧被窗口裁切 */
+    .pack-main{flex-direction:column;gap:10px;}
+    .pack-left{flex:0 0 auto;width:100%;flex-direction:row;align-items:center;gap:12px;padding:8px 10px;}
+    .pack-left-title{display:none;}
+    .pack-left .equip-figure{margin:0;}
+    .pack-left .pack-left-stats{flex:1 1 auto;min-width:0;width:auto;max-height:104px;overflow-y:auto;}
+    .pack-right{flex:1 1 auto;min-height:0;width:100%;}
+    .pack-right .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+    /* 货郎：货品/行囊纵向堆叠，货品区限高54%，行囊占余下；3列格子更宽松 */
+    .shop-main{flex-direction:column;gap:10px;}
+    .shop-left{flex:0 0 auto;max-height:54%;min-height:150px;}
+    .shop-right{flex:1 1 auto;min-height:0;}
+    .shop-goods-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+    .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+    .shop-good{padding:5px 3px;}
+    .shop-good .sg-name{font-size:10.5px;}
+    .shop-good .sg-buy{font-size:9.5px;padding:1px 3px;}
+  }
   /* 底信息栏：固定，不随物品栏滚动 */
   .pack-info{flex:0 0 auto;max-height:22%;margin-top:10px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
   .pack-inspect{text-align:left;}
@@ -1633,7 +1651,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260822ac"></script>
+<script src="shared/config/constants.js?v=20260822ad"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
