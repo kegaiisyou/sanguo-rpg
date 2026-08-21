@@ -77,6 +77,14 @@
 - `VERSION` → `20260821l`，同步 `constants.js` 的 `?v=` 与底图 `map_parchment.png?v=` 缓存参数。
 - **生图说明**：`map_ai.png` 是错误图（生图流程跑偏生成了集市）；我没有该外部生图任务的查询入口（无法查"任务是否完成"），后续若需水墨底图，建议用准确 prompt（"古代三国乱世 水墨山水 地图纹理 山川河流 羊皮纸 留白"）重生；当前以羊皮纸底纹 + 上层州界的方案即可获得"古地图"质感。
 
+## 2026-08-21 · UI 修复（背包/货郎字溢出 + 地图州名归位）（v20260821m）
+
+- **背包/货郎物品字溢出（竖排一列）**：根因是 `.ic-txt` 仍残留旧的 `flex-direction:column`，把物品全称竖排成"一列字"溢出格子。改为 `display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%`（横排单行、超宽截断）；删除不再使用的 `.ic-txt i/.ic-pair/.ic-one` 拆分样式。货郎 `.sg-name` 补 `width:100%; box-sizing:border-box` + `.shop-good` 加 `min-width:0`，确保商品名截断生效、不再挤压售价。
+- **背包数量角标遮挡**：`.pcell-ic` 底部留白 `padding-bottom` 由 12px 增至 15px，图标上移更充分避开右下数量/左下售价/左上耐久角标。
+- **地图州名重叠（兖州被豫州挡）**：州名 `label` 偏移单位是**网格**，兖州 `label:[10,7]`、豫州 `label:[6,8]`、冀州 `label:[9,3]` 把名字推离各自多边形、压住邻州。归位为兖 `[0,0]`、豫 `[0,1]`、冀 `[0,0]`（落在州内中心），互不重叠；豫州微偏下避开颍川节点。
+- **地图美化**：`.map-state-name` 加 `paint-order:stroke` 描边（深褐描边），提升古地图质感与可读性。
+- `VERSION` → `20260821m`，同步 `constants.js` / `map.js` 的 `?v=` 缓存参数。
+
 ### 待办 / 已知问题
 - [ ] AI 水墨底图生成（重做，prompt 需校准）：任务曾提交成功且 DONE，但未取到下载地址（`assets/map_ai.png` 仍是早期错误图）；底图暂用纯 CSS 宣纸底兜底，出图后改 `.map-bg` 的 `background-image` 即可。
 - [ ] 可选优化：回到当前位置按钮、当前房间高亮飘字、塞外地形文字样式、道路动效。

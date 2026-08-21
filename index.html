@@ -1322,11 +1322,8 @@
   .pcell-sell{position:absolute;left:3px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;z-index:3;}
   .pcell-dur{position:absolute;left:3px;top:2px;font-size:10px;color:#9fd0e0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;z-index:3;}
   /* 文字图标：以物品名排版替代 emoji（整字/2字/2+2两排/前词+缩小） */
-  .ic-txt{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.14;text-align:center;font-weight:700;letter-spacing:.02em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:normal;overflow-wrap:anywhere;}
+  .ic-txt{display:inline-block;max-width:100%;line-height:1.2;text-align:center;font-weight:700;letter-spacing:.01em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;}
   .ic-txt b{font-weight:700;}
-  .ic-txt i{font-style:normal;font-size:.56em;opacity:.82;letter-spacing:.02em;}
-  .ic-txt.ic-pair b,.ic-txt.ic-pair i{font-size:.82em;}
-  .ic-txt.ic-one b{font-size:1.2em;}
   .build-msg{margin:4px 0 6px;padding:6px 8px;border-radius:8px;background:rgba(120,200,140,.12);border:1px solid rgba(120,200,140,.35);color:#9fd9a8;text-align:center;font-size:13px;}
   .forge-bar{height:14px;background:rgba(0,0,0,.35);border:1px solid rgba(196,164,102,.35);border-radius:7px;overflow:hidden;margin:8px 2px 2px;}
   .forge-bar i{display:block;height:100%;background:linear-gradient(90deg,#c0392b,#e67e22);transition:width .3s ease;}
@@ -1350,7 +1347,7 @@
   .shop-good{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(216,180,106,.4);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;padding:2px;box-sizing:border-box;overflow:hidden;}
   .shop-good:active{transform:scale(.97);background:rgba(216,180,106,.12);}
   .shop-good .sg-icon{font-size:24px;line-height:1;pointer-events:none;margin-bottom:2px;}
-  .shop-good .sg-name{font-size:11px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 3px;}
+  .shop-good .sg-name{font-size:11px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;width:100%;box-sizing:border-box;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 3px;}
   .shop-good .sg-buy{font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:1px 6px;margin-top:3px;pointer-events:none;}
   .shop-good.shop-bad{opacity:.45;}
   .shop-good.shop-bad .sg-buy{color:#e0796f;}
@@ -1642,7 +1639,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821l"></script>
+<script src="shared/config/constants.js?v=20260821m"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1657,7 +1654,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
-    <script src="shared/data/map.js?v=20260820bd"></script>
+    <script src="shared/data/map.js?v=20260821m"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
