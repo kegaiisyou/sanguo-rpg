@@ -1331,6 +1331,7 @@
   .forge-pct{font-size:12px;color:#f4e6c2;opacity:.85;text-align:center;}
   .pcell-sel{position:relative;background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.9);z-index:1;}
   .pcell-insp{position:relative;background:rgba(70,142,168,.42);box-shadow:inset 0 0 0 2px rgba(135,206,232,.9);z-index:1;}
+  .shop-good.pcell-sel{background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.9);}
   /* ===== 商店（货郎）双栏：左货品 / 右行囊 ===== */
   .shop-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
   .shop-head{flex:0 0 auto;display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px;border-bottom:1px solid rgba(196,164,102,.35);margin-bottom:8px;}
@@ -1608,7 +1609,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260821u</div>
+    <div class="tt-ver" id="tt-ver">v20260821v</div>
   </div>
 </div>
 
@@ -1640,7 +1641,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821t"></script>
+<script src="shared/config/constants.js?v=20260821v"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -4249,6 +4250,7 @@ window.onerror=function(msg,url,line,col,err){
   // 货郎商店数据已外置到 shared/data/shops.js（详见 LF.SHOPS.build_pedlar），便于调价与扩展
   var shopState='build_pedlar';
   var shopSel=null;
+  var shopGoodSel=null;
   // 取某物在货郎处的「收购价」（货郎不收 / 收购价<=0 时返回 null）
   function shopSellPrice(id){
     var shop=LF.SHOPS[shopState]; if(!shop) return null;
@@ -4277,7 +4279,8 @@ window.onerror=function(msg,url,line,col,err){
     var goodsGrid = shop.items.filter(function(r){ return r.buy>0; }).map(function(r){
       var d=DEFS[r.id]||{};
       var canBuy = state.gold>=r.buy;
-      return '<div class="shop-good'+(canBuy?'':' shop-bad')+'" data-shop="'+r.id+'">'
+      var goodSelCls=(shopGoodSel===r.id)?' pcell-sel':'';
+      return '<div class="shop-good'+(canBuy?'':' shop-bad')+goodSelCls+'" data-shop="'+r.id+'">'
         + '<div class="sg-name" style="font-size:'+sgFontSize(d.name)+';">'+d.name+'</div>'
         + '<div class="sg-buy">买 '+fmtPrice(r.buy)+'</div>'
         + '</div>';
@@ -4307,7 +4310,22 @@ window.onerror=function(msg,url,line,col,err){
       + '</div>';
   }
   function renderShopInfo(){
-    if(shopSel==null || !state.pack[shopSel]) return '<div class="pack-inspect pack-inspect-empty">点选右边物品，可见售价与详情；拖到左栏即可出售。</div>';
+    if(shopGoodSel!=null){
+      var shop=LF.SHOPS[shopState]; var r=null;
+      if(shop) shop.items.forEach(function(x){ if(x.id===shopGoodSel) r=x; });
+      if(r){
+        var price=r.buy!=null?r.buy:0;
+        var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'
+          + (r.icon?('<span class="ic-txt" style="font-size:18px;"><b>'+r.icon+'</b></span> '):'')
+          + '<span style="margin-left:4px;">'+r.name+'</span></div>'
+          + '<div class="pi-meta"><span class="pi-cat">'+(r.cat||'货')+'</span></div></div></div>';
+        if(r.desc) html+='<div class="pi-desc">'+r.desc+'</div>';
+        html+='<div class="pi-actions"><button class="btn-mini" onclick="LFUI.showBuyPanel(\''+r.id+'\')">购买（'+fmtPrice(price)+'两）</button></div>';
+        html+='</div>';
+        return html;
+      }
+    }
+    if(shopSel==null || !state.pack[shopSel]) return '<div class="pack-inspect pack-inspect-empty">点选左边货品或右边物品，可看售价与详情；拖到对侧即可买卖。</div>';
     var it=state.pack[shopSel]; var d=LF.ITEMS[it.defId]||{};
     var sp=shopSellPrice(it.defId);
     var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(it, 20)+' <span style="margin-left:4px;">'+it.name+'</span></div>'
@@ -4331,7 +4349,13 @@ window.onerror=function(msg,url,line,col,err){
       el.onclick=function(){
         if(el.__dragMoved){ el.__dragMoved=false; return; }
         if(el.classList.contains('shop-bad')){ toast('银两不足，买不起。'); return; }
-        showBuyPanel(el.getAttribute('data-shop'));
+        var id=el.getAttribute('data-shop');
+        if(shopGoodSel===id){ showBuyPanel(id); return; }   // 再点一次 → 弹购入数量面板
+        shopGoodSel=id; shopSel=null;   // 选中货品时取消行囊选中
+        card.querySelectorAll('[data-shop]').forEach(function(c){ c.classList.remove('pcell-sel'); });
+        card.querySelectorAll('.shop-right .packcell').forEach(function(c){ c.classList.remove('pcell-sel'); });
+        el.classList.add('pcell-sel');
+        var info=card.querySelector('.shop-info'); if(info) info.innerHTML=renderShopInfo();
       };
       el.setAttribute('draggable','true');
       el.ondragstart=function(e){
