@@ -3,7 +3,7 @@
 
   // ========== 战斗引擎 ==========
   // 半手动回合制 + 节拍模型 + 运招中 + 速度差额外行动
-  // 卡牌战斗（v0.4）：新增多敌 enemies[] 支持与 playCard/endTurn/peekEnemyIntents。
+  // 队伍战斗引擎：多敌 enemies[] 支持，提供 peekEnemyIntents / playTurn(单敌半手动) / runPlayerPhase / runEnemyPhase(多敌队伍回合制)。
   // 旧半手动 playTurn 路径保留（state.enemy 仍为 enemies[0] 别名），供回滚用。
 
   // ── P2：五行相克（金克木→土→水→火→金）──
@@ -622,130 +622,6 @@
       return out;
     },
 
-    // ─── 出一张卡（卡牌战核心入口）───
-    // card: { kind, cost, target:'enemy'|'self'|'all', dmgMul?, chargeMul?, action? }
-    // targetIdx: 单体目标在 enemies 中的索引（target==='self'/'all' 时忽略）
-    playCard: function(card, targetIdx) {
-      var self = this;
-      var log = [];
-      this.state.log = [];
-      var player = this.state.player;
-
-      // 逃跑特殊结算
-      if (card.kind === 'flee') {
-        var r = this.tryFlee();
-        var flog = (r && r.log) ? r.log : [{ type:'system', text: r.text }];
-        this.state.log = flog;
-        return { log: flog, fled: r.success, ended: !!r.success };
-      }
-
-      // 扣除内力（能量）
-      if (card.cost) player.mp = Math.max(0, player.mp - card.cost);
-
-      if (card.kind === 'defend') {
-        this._resolveAction('player', 'defend', log);
-      } else if (card.kind === 'charge') {
-        player.chargeMul = (player.chargeMul || 1) * (card.chargeMul || 1.6);
-        log.push({ type:'buff', text: '你凝神蓄力，下击伤害×' + player.chargeMul.toFixed(2) });
-      } else if (card.kind === 'dodge') {
-        player.dodgeNext = true;
-        log.push({ type:'buff', text: '你身形虚晃，准备闪避本回合攻击' });
-      } else if (card.kind === 'attack' || card.kind === 'skill') {
-        // 基础攻击卡把战斗参数挂在卡牌顶层（dmgMul/attr/multiHit/eff/line/name），
-        // 而 card.action 为 undefined —— 必须并入 action，否则重击的 1.6 倍率等会被丢弃
-        var action = Object.assign({}, card.action || {});
-        if (card.dmgMul != null) action.dmgMul = (action.dmgMul || 1) * card.dmgMul;
-        if (card.attr) action.attr = card.attr;
-        if (card.multiHit) action.multiHit = card.multiHit;
-        if (card.eff) action.eff = Object.assign({}, action.eff, card.eff);
-        if (card.line) action.line = card.line;
-        if (!action.name) action.name = card.name;
-        if (card.forceCrit) action.forceCrit = true;
-        if (card.guaranteed) action.guaranteed = true;
-        // 应用蓄力倍率
-        if (player.chargeMul && player.chargeMul > 1) {
-          action.dmgMul = (action.dmgMul || 1) * player.chargeMul;
-          player.chargeMul = 1;
-        }
-        var targets = [];
-        if (card.target === 'self') {
-          targets.push(this.state.player);   // 自我增益 / 治疗
-        } else if (card.target === 'all') {
-          this.state.enemies.forEach(function(e) { if (e.hp > 0) targets.push(e); });
-        } else {
-          var t = this.state.enemies[targetIdx];
-          if (!t || t.hp <= 0) {
-            // 目标已亡，自动选首个存活敌
-            for (var i = 0; i < this.state.enemies.length; i++) {
-              if (this.state.enemies[i].hp > 0) { t = this.state.enemies[i]; break; }
-            }
-          }
-          if (t) targets.push(t);
-        }
-        var selfRef = this;
-        targets.forEach(function(tgt) {
-          selfRef._resolveAction('player', action, log, tgt);
-        });
-      } else {
-        log.push({ type:'system', text: '未知卡牌：' + card.kind });
-      }
-
-      this.state.log = log;
-      return { log: log, ended: this.state.result !== null };
-    },
-
-    // ─── 结束玩家回合（卡牌战：敌方阶段 + DoT/Buff 结算 + 抽牌准备）───
-    endTurn: function() {
-      var self = this;
-      var log = [];
-      this.state.log = [];
-      var _snap = this;
-      var _origPush = log.push.bind(log);
-      log.push = function (entry) {
-        entry = entry || {};
-        if (typeof entry.eHp !== 'number') entry.eHp = (_snap.state.enemies[0] ? _snap.state.enemies[0].hp : 0);
-        if (typeof entry.pHp !== 'number') entry.pHp = _snap.state.player.hp;
-        return _origPush(entry);
-      };
-
-      // 1) DoT 结算（玩家 + 各敌）
-      this._tickDots(log);
-      if (this._checkEnd()) { this.state.log = log; return { log: log, ended: true }; }
-
-      // 2) 敌方阶段：存活敌人依次行动（使用锁定的意图）
-      var alive = this.state.enemies.filter(function(e) { return e.hp > 0; });
-      for (var i = 0; i < alive.length; i++) {
-        var e = alive[i];
-        if (e.stunNext) { e.stunNext = false; log.push({ type:'system', text: e.name + '眩晕，无法行动！' }); continue; }
-        // 闪避姿态：规避本回合所有敌方攻击
-        if (this.state.player.dodgeNext) {
-          log.push({ type:'system', text: e.name + '的攻击被你闪身避开！' });
-          continue;
-        }
-        var act = e.intent || this._pickEnemyAction(e);
-        e.intent = null;  // 消费意图
-        this._resolveAction('enemy', act, log, this.state.player);
-        if (this._checkEnd()) { this.state.log = log; return { log: log, ended: true }; }
-      }
-
-      // 3) Buff 衰减
-      this._tickBuffs();
-
-      // 4) 回合推进
-      this.state.round++;
-
-      // 5) 清理瞬态、恢复能量（内力每回合重置为上限）
-      this.state.player.chargeMul = 1;
-      this.state.player.dodgeNext = false;
-      this.state.player.mp = this.state.player.maxMp;
-      this.state.player.rage = Math.min(100, this.state.player.rage + 12);
-      for (var j = 0; j < this.state.enemies.length; j++) {
-        this.state.enemies[j].rage = Math.min(100, this.state.enemies[j].rage + 8);
-      }
-
-      this.state.log = log;
-      return { log: log, ended: this.state.result !== null };
-    },
 
     // ─── 执行一回合（半手动：传入玩家指令 actionId，单敌）───
     playTurn: function(actionId) {
