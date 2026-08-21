@@ -597,10 +597,10 @@
   .map-canvas.lv0 .map-zones{display:none;}
   .map-canvas.lv0 .map-svg{display:none;}
   .map-canvas.lv0 .map-region,.map-canvas.lv0 .map-region-t{display:none;}
-  .map-canvas.lv0 .map-states-svg{opacity:0;pointer-events:none;}   /* 全览只留轮廓，避免州名挤成一团 */
-  .map-canvas.lv1 .map-states-svg{opacity:.85;}   /* 区域档显示州名，便于定位 */
+  .map-canvas.lv0 .map-states-svg{opacity:.35;pointer-events:none;}   /* 全览：州界清晰、州名淡化作锚点（label 已校准到州内中心，不再重叠） */
+  .map-canvas.lv1 .map-states-svg{opacity:.95;}   /* 区域档：州名清晰显示，便于定位 */
   .map-canvas.lv1 .map-svg{display:none;}
-  .map-canvas.lv2 .map-states-svg{opacity:.42;}   /* 房间档州名淡显，与节点共存 */
+  .map-canvas.lv2 .map-states-svg{opacity:.55;}   /* 房间档：州名淡显，与节点共存 */
   .map-canvas.lv2 .map-zones{display:none;}
   .map-canvas.lv2 .map-region-t{display:none;}
   .map-canvas.lv2 .map-region{opacity:.5;}
@@ -1640,7 +1640,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821r"></script>
+<script src="shared/config/constants.js?v=20260821s"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1655,7 +1655,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
-    <script src="shared/data/map.js?v=20260821m"></script>
+    <script src="shared/data/map.js?v=20260821s"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
