@@ -77,8 +77,16 @@
     shitiao:        { defId: 'shitiao',       name: '石料', icon: '🪨', cat: '素材', desc: '采自岩壁的石块，夯基砌灶的硬底料。' },
     zhuan:          { defId: 'zhuan',         name: '砖头', icon: '🧱', cat: '素材', desc: '窑烧而成的土砖，垒砌围墙与炉体的规整块材。' },
     tiekuai:        { defId: 'tiekuai',       name: '铁料', icon: '⛓️', cat: '素材', desc: '冶炼工坊熔石取铁所得，打造兵刃器具的关键材料。' },
+    tiekuangshi:    { defId: 'tiekuangshi',   name: '铁矿石', icon: '⛏️', cat: '素材', desc: '崖间采得的铁矿石。投入冶炼工坊，添柴鼓风烧炼，可化成铁料。' },
     tuzhi_yeolian:  { defId: 'tuzhi_yeolian', name: '冶炼工坊图', icon: '📜', cat: '图纸', blueprint: 'bp_yeolian', price: 30,
-      desc: '营造冶炼工坊的图样。于背包「依图营造」置于房中，备料后可分阶筑成工坊，炉成可熔石取铁。' }
+      desc: '营造冶炼工坊的图样。于背包「依图营造」置于房中，备料后可分阶筑成工坊，炉成可熔石取铁。' },
+    // —— 冶炼工坊产出（铁料加工链）——
+    tiejian:  { defId: 'tiejian',  name: '铁剑', icon: '⚔️', cat: '装备', slot: 'weapon', stats: { atk: 8 }, quality: 'green',
+      desc: '冶炼工坊打制的铁剑，刃口冷冽，远胜木棒。' },
+    tiefu:    { defId: 'tiefu',    name: '铁斧', icon: '🪓', cat: '素材', tool: true, maxDur: 15, price: 60,
+      desc: '铁铸斧头，伐木采石更为趁手（耐久 15）。' },
+    tiema:    { defId: 'tiema',    name: '铁马掌', icon: '🧲', cat: '素材', price: 15,
+      desc: '打铁余料锻成的马蹄铁，可售与马市，亦或他途。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }

@@ -18,7 +18,9 @@
           eff: { slowChance: 0.4, slowTurns: 2 } }
       ],
       ai: 'aggressive',
-      drop: { gold: [10, 30], pot: [5, 15], table: [], equip: { tier: 1, chance: 35 } }
+      drop: { gold: [10, 30], pot: [5, 15],
+        table: [{ item: 'shitiao', name: '石料', weight: 25 }, { item: 'mutou', name: '木头', weight: 30 }, { item: 'tiekuangshi', name: '铁矿石', weight: 12 }],
+        equip: { tier: 1, chance: 35 } }
     },
 
     // 乌桓游骑斥候（开场教学战专用：实力强劲，以反衬老乞丐「无名掌法」之强）
@@ -49,7 +51,8 @@
       ],
       ai: 'aggressive',
       drop: { gold: [40, 100], pot: [15, 30],
-        table: [{ item: 'blade_manual_frag', name: '刀谱残页', weight: 3 }], equip: { tier: 2, chance: 50 } }
+        table: [{ item: 'blade_manual_frag', name: '刀谱残页', weight: 3 }, { item: 'shitiao', name: '石料', weight: 35 }, { item: 'zhuan', name: '砖头', weight: 25 }],
+        equip: { tier: 2, chance: 50 } }
     },
 
     // ─── 太平道系 ───

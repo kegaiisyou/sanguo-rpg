@@ -21,6 +21,12 @@ LF.RECIPES = {
     { id:'brick_kiln', cat:'建筑类', name:'砖头', icon:'🧱', out:'zhuan', outN:1, in:[{id:'shitiao', n:2}], note:'石料入窑烧制成砖，规整耐用，垒砌炉体围墙' }
     // 后续接入：{ id:'plank', cat:'木材类', name:'木板', out:'muban', outN:1, in:[{id:'mucai', n:2}] ... }
     //          { id:'hammer', cat:'器具类', name:'木槌', out:'muchui', outN:1, in:[{id:'mucai', n:2},{id:'xiaoshuzhi', n:1}] ... }
+  ],
+  // 冶炼工坊：铁料 → 武器 / 工具
+  forge: [
+    { id:'forg_sword', cat:'兵刃类', name:'铁剑', icon:'⚔️', out:'tiejian', outN:1, in:[{id:'tiekuai', n:3},{id:'mutou', n:1}], note:'铁料入炉锻打，配上木柄，成一柄冷冽铁剑' },
+    { id:'forg_axe', cat:'工具类', name:'铁斧', icon:'🪓', out:'tiefu', outN:1, in:[{id:'tiekuai', n:2},{id:'mucai', n:1}], note:'铁料锻斧，刃利耐磨损，伐木采石更趁手' },
+    { id:'forg_horse', cat:'杂类', name:'铁马掌', icon:'🧲', out:'tiema', outN:1, in:[{id:'tiekuai', n:1}], note:'余料锻成马蹄铁，可售与马市换银两' }
   ]
   // 后续工作台（矿炉 / 铁砧 / 织机 …）仅需在此追加对应 key 即可
 };

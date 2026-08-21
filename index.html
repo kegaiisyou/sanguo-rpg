@@ -1312,9 +1312,8 @@
   .pack-scroll::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#dab56e,#9a7a44);}
   .pack-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
   @media (max-width:560px){ /* UISPEC.BREAKPOINTS.MOBILE_MAX=560 */ .pack-grid{grid-template-columns:repeat(3,1fr);gap:7px;} }
-  .packcell{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;overflow:hidden;box-sizing:border-box;}
-  .packcell .pcell-ic{display:flex;align-items:center;justify-content:center;pointer-events:none;min-height:26px;width:100%;}
-  .packcell .pcell-nm{font-size:11px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;padding:0 3px;text-shadow:0 1px 2px rgba(0,0,0,.55);}
+  .packcell{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;overflow:hidden;box-sizing:border-box;padding:3px 2px 1px;}
+  .packcell .pcell-ic{display:flex;align-items:center;justify-content:center;pointer-events:none;width:100%;line-height:1.05;}
   .pcell-qbadge{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;box-shadow:0 0 2px rgba(0,0,0,.7);pointer-events:none;z-index:2;}
   .packcell .pcell-cnt{position:absolute;right:3px;bottom:2px;font-size:10px;color:#f0e2c0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   /* 文字图标：以物品名排版替代 emoji（整字/2字/2+2两排/前词+缩小） */
@@ -1324,6 +1323,9 @@
   .ic-txt.ic-pair b,.ic-txt.ic-pair i{font-size:.82em;}
   .ic-txt.ic-one b{font-size:1.2em;}
   .build-msg{margin:4px 0 6px;padding:6px 8px;border-radius:8px;background:rgba(120,200,140,.12);border:1px solid rgba(120,200,140,.35);color:#9fd9a8;text-align:center;font-size:13px;}
+  .forge-bar{height:14px;background:rgba(0,0,0,.35);border:1px solid rgba(196,164,102,.35);border-radius:7px;overflow:hidden;margin:8px 2px 2px;}
+  .forge-bar i{display:block;height:100%;background:linear-gradient(90deg,#c0392b,#e67e22);transition:width .3s ease;}
+  .forge-pct{font-size:12px;color:#f4e6c2;opacity:.85;text-align:center;}
   .pcell-sel{outline:2px solid #d8b46a;box-shadow:0 0 10px rgba(216,180,106,.6);}
   .pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
   /* ===== 商店（货郎）双栏：左货品 / 右行囊 ===== */
@@ -1627,7 +1629,6 @@ window.onerror=function(msg,url,line,col,err){
     <button data-modal="party"><span class="ic">🤝</span>队伍</button>
     <button data-modal="quest"><span class="ic">📜</span>任务</button>
     <button data-modal="map"><span class="ic">🗺️</span>山河</button>
-    <button data-modal="rest" class="rest"><span class="ic">🧘</span>调息</button>
     <button data-modal="settings"><span class="ic">⚙️</span>设置</button>
   </nav>
 </div>
@@ -1636,7 +1637,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821f"></script>
+<script src="shared/config/constants.js?v=20260821i"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1646,11 +1647,11 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/rooms.js?v=20260819j"></script>
     <script src="shared/story/triggers.js?v=20260819i"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
-<script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260821f"></script>
-    <script src="shared/data/recipes.js?v=20260821f"></script>
-    <script src="shared/data/build.js?v=20260821f"></script>
-    <script src="shared/data/shops.js?v=20260820aa"></script>
+<script src="shared/data/enemies.js?v=20260821i"></script>
+<script src="shared/data/items.js?v=20260821i"></script>
+    <script src="shared/data/recipes.js?v=20260821i"></script>
+    <script src="shared/data/build.js?v=20260821i"></script>
+    <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260820bd"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
@@ -2602,6 +2603,7 @@ window.onerror=function(msg,url,line,col,err){
     state.drink=Math.max(0,state.drink-n);
     state.energy=Math.max(0,state.energy-2*n);
     maybeStarve();
+    tickForge(n);   // 炉膛随时辰持续推进
   }
   // 由累计天数回写年号年序（年号恒定「光和」，游戏内自洽）
   function syncCalendar(){
@@ -2916,6 +2918,13 @@ window.onerror=function(msg,url,line,col,err){
 
   // ===== 房间渲染 =====
   var explored=false;        // 当前房间是否已探查（调查四周后解锁「去处」）
+  // 场景入场描述精简：只保留首句、超过 28 字截断，完整描述留给「探查/环顾」播放
+  function shortScene(t){
+    t=(t||'').trim(); if(!t) return t;
+    var m=t.match(/^[\s\S]{0,28}?[。！？]/);
+    if(m) return m[0];
+    return t.length>30 ? t.slice(0,29)+'…' : t;
+  }
   function renderRoom(rid, silent){
     var room=G.ROOMS[rid]; if(!room) return;
     narrToken++;                 // 新场景：使任何残留的旧叙事序列失效
@@ -2927,7 +2936,7 @@ window.onerror=function(msg,url,line,col,err){
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
     if(!silent && !suppressNarr){
-      room.desc.forEach(function(d){ narr.push({t:d, c:'env'}); });
+      room.desc.forEach(function(d){ narr.push({t:shortScene(d), c:'env'}); });
       if(room.items && room.items.length){
         narr.push({t:'〔地上之物〕', c:'sys'});
         room.items.forEach(function(it){ narr.push({t:'· '+it, c:'item'}); });
@@ -3248,9 +3257,10 @@ window.onerror=function(msg,url,line,col,err){
     clearActions();
     grpCursor=null;
     renderNpcList(room);   // 左侧 NPC 列表（配置房间与兼容房间统一渲染，避免与下方按钮重复）
-    // 战败封锁：仅底部 dock「🧘调息」可恢复，场景按钮全部隐藏
+    // 战败封锁：仅可「席地打盹」恢复，场景其余按钮全部隐藏
     if(state.defeated){
-      log('〔力竭〕你重伤未愈，动弹不得——点底部「🧘 调息」恢复后，方可再动。','sys');
+      log('〔力竭〕你重伤未愈，动弹不得——就地打盹歇息，方能续战。','sys');
+      var b=mkAct('scene','🧱','席地打盹',function(){ openRestModal('ground'); });
       return;
     }
     var objs=roomObjs(room.id);
@@ -3683,12 +3693,15 @@ window.onerror=function(msg,url,line,col,err){
   // ===== 建造系统测试房间：采集(砍树) → 制作(木工台) 垂直切片 =====
   function chopTree(){
     if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
-    var withAxe = !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
+    var hasIronAxe = !!packFind('tiefu');
+    var withAxe = hasIronAxe || !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
     advanceTime(1);
-    if(withAxe) consumeTool('futou',1);
+    if(hasIronAxe) consumeTool('tiefu',1);
+    else if(withAxe) consumeTool('futou',1);
     if(withAxe){
-      packAdd('mutou', 1);
-      log('你抡圆锈斧，咔咔几声，老树应声倒下，得木头×1。','env');
+      var n = hasIronAxe ? 2 : 1;
+      packAdd('mutou', n);
+      log('你抡'+(hasIronAxe?'铁':'锈')+'斧，咔咔几声，老树应声倒下，得木头×'+n+'。','env');
     } else {
       packAdd('xiaoshuzhi', 1);
       log('你徒手折下几根细枝，捋得小树枝×1。若有把斧头，便能伐得粗实木头。','env');
@@ -3697,7 +3710,7 @@ window.onerror=function(msg,url,line,col,err){
     buildActions(G.ROOMS[state.room]);   // 刷新场景物体（斧头/材料状态即时反映到菜单）
   }
   function treeActs(){
-    var hasAxe = !!packFind('futou');
+    var hasAxe = !!packFind('tiefu') || !!packFind('futou');
     return [{label: hasAxe ? '挥斧伐木' : '徒手折枝', icon:'🌳', fn:function(){ chopTree(); }}];
   }
   function searchBench(){
@@ -3796,7 +3809,7 @@ window.onerror=function(msg,url,line,col,err){
   var PLACE_ACTIONS = {
     tent: function(){
       return [
-        {label:'休息', icon:'🧘', fn:function(){ closeModal(); actRest(); }},
+        {label:'休息…', icon:'🧘', fn:function(){ closeModal(); openRestModal('tent'); }},
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('tent'); }}
       ];
     },
@@ -3808,33 +3821,74 @@ window.onerror=function(msg,url,line,col,err){
     },
     campfire: function(){
       return [
-        {label:'烤火取暖', icon:'🔥', fn:function(){ campfireRest(); }},
+        {label:'烤火取暖…', icon:'🔥', fn:function(){ closeModal(); openRestModal('campfire'); }},
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('campfire'); }}
       ];
     },
     sleepmat: function(){
       return [
-        {label:'躺下小睡', icon:'💤', fn:function(){ sleepmatRest(); }},
+        {label:'躺下小睡…', icon:'💤', fn:function(){ closeModal(); openRestModal('sleepmat'); }},
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('sleepmat'); }}
       ];
     }
   };
-  // 篝火：烤火取暖 —— 精力全复，食物/饮水各回一半
-  function campfireRest(){
-    state.energy=state.maxEnergy;
-    state.food=Math.min(state.maxFood, (state.food||0)+Math.floor(state.maxFood/2));
-    state.drink=Math.min(state.maxDrink, (state.drink||0)+Math.floor(state.maxDrink/2));
-    save(state); renderStatus();
-    log('你于篝火旁坐下，暖意烘身，掏出干粮就火烤了烤——精力复足，饥渴稍解。','good');
+  // 休息设施配置：不同设施恢复效率不同，休息时长可由玩家自选
+  var REST_KINDS = {
+    tent:     { name:'帐篷',   hp: 0.35, mp: 0.35, en: 0.40, fd: 0.30, dr: 0.30 }, // 帐篷：全恢复效率最高
+    sleepmat: { name:'草席',   hp: 0.22, mp: 0.22, en: 0.32, fd: 0.20, dr: 0.20 }, // 草席：中等
+    campfire: { name:'篝火',   hp: 0.10, mp: 0.10, en: 0.38, fd: 0.50, dr: 0.50 }, // 篝火：暖身解饥渴、精力恢复快
+    ground:   { name:'席地打盹', hp: 0.08, mp: 0.08, en: 0.22, fd: 0.12, dr: 0.12 }  // 就地：聊胜于无
+  };
+  // 打开自由时长休息面板（设施决定效率；战败只能就地打盹）
+  function openRestModal(kind){
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    if(state.dead){ die(); return; }
+    if(state.defeated && kind!=='ground'){ toast('你重伤未愈，动弹不得，只能席地打盹。'); kind='ground'; }
+    openModal('rest', {kind:kind});
   }
-  // 草席：躺下小睡 —— 恢复 60% 气血内力 + 精力全复（弱于帐篷的完全恢复）
-  function sleepmatRest(){
-    var esR=effectiveStats();
-    state.hp=Math.min(esR.maxHp, Math.round((state.hp||0) + (esR.maxHp-state.hp)*0.6));
-    if(state.mp>0) state.mp=Math.min(esR.maxMp, Math.round((state.mp||0) + (esR.maxMp-state.mp)*0.6));
-    state.energy=state.maxEnergy;
+  function renderRestPanel(){
+    var kind = (restState.kind||'ground');
+    var cfg = REST_KINDS[kind] || REST_KINDS.ground;
+    // 休息时长档位：1 / 3 / 6 时辰，恢复量随时长线性增长
+    var opts = [ {h:1, lb:'小憩 · 1 时辰'}, {h:3, lb:'安睡 · 3 时辰'}, {h:6, lb:'酣眠 · 6 时辰'} ];
+    var esR = effectiveStats();
+    function est(h){
+      return '精力+'+Math.round(esR.maxEnergy*cfg.en*h)+'　气血+'+Math.round(esR.maxHp*cfg.hp*h)
+        + (esR.maxMp>0?('　内力+'+Math.round(esR.maxMp*cfg.mp*h)):'')
+        + '　饥渴+'+Math.round(100*cfg.fd*h)+'%';
+    }
+    var h = '<h3 style="text-align:center;margin:0 0 6px;">'+cfg.name+' · 歇息</h3>'
+      + '<p class="tip">歇息推进时辰，恢复随长短而异；饥渴食水亦会流逝。'+est(1)+'。</p>';
+    opts.forEach(function(o){
+      h += '<button class="sheet-btn" style="margin:6px 0;" data-rest="'+o.h+'">'+o.lb+'<br><span style="font-size:12px;opacity:.75;">'+est(o.h)+'</span></button>';
+    });
+    h += '<button class="sheet-leave" id="m-rest-leave">收 工</button>';
+    return h;
+  }
+  function bindRestPanel(){
+    $card.querySelectorAll('[data-rest]').forEach(function(b){
+      b.onclick=function(){ doRest(parseInt(b.getAttribute('data-rest'),10)||1); };
+    });
+    var lv=document.getElementById('m-rest-leave'); if(lv) lv.onclick=closeModal;
+  }
+  // 执行自由时长休息：推进时间并按要求恢复
+  function doRest(hours){
+    var kind = restState.kind || 'ground';
+    var cfg = REST_KINDS[kind] || REST_KINDS.ground;
+    var esR = effectiveStats();
+    advanceTime(hours);
+    var hpGain = Math.round(esR.maxHp*cfg.hp*hours);
+    var mpGain = esR.maxMp>0 ? Math.round(esR.maxMp*cfg.mp*hours) : 0;
+    var enGain = Math.round(esR.maxEnergy*cfg.en*hours);
+    state.hp = Math.min(esR.maxHp, (state.hp||0)+hpGain);
+    if(state.mp>0) state.mp = Math.min(esR.maxMp, (state.mp||0)+mpGain);
+    state.energy = Math.min(state.maxEnergy, (state.energy||0)+enGain);
+    state.food = Math.min(state.maxFood, (state.food||0)+Math.round(state.maxFood*cfg.fd*hours));
+    state.drink = Math.min(state.maxDrink, (state.drink||0)+Math.round(state.maxDrink*cfg.dr*hours));
+    if(state.defeated){ state.defeated=false; }
     save(state); renderStatus();
-    log('你铺开草席，和衣而卧，浅眠片刻——气力稍复，血伤亦缓了大半。','good');
+    log('你在'+cfg.name+'歇了'+hours+'个时辰——气血内力精力渐复，饥渴亦有所解。','good');
+    closeModal(); buildActions(G.ROOMS[state.room]);
   }
   // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
   function roomObjs(roomId){
@@ -3951,7 +4005,8 @@ window.onerror=function(msg,url,line,col,err){
   function buildDoneActions(siteKey, bp){
     var acts = [];
     if(bp.done === 'forge'){
-      acts.push({label:'熔石取铁', icon:'🔥', fn:function(){ forgeSmelt(siteKey); }});
+      acts.push({label:'炉膛…', icon:'🔥', fn:function(){ openForgePanel(siteKey); }});
+      acts.push({label:'打造…', icon:'⚒️', fn:function(){ openModal('craft', {bench:'forge'}); }});
     }
     acts.push({label:'端详', icon:'👁', fn:function(){ log('〔'+bp.doneName+'〕'+(bp.desc||''), 'sys'); }});
     return acts;
@@ -3979,6 +4034,9 @@ window.onerror=function(msg,url,line,col,err){
     if((p.got[matId]||0) >= need){ toast('该材料已填满此阶段所需。'); return; }
     var cur = packFind(matId);
     if(!cur || (cur.count||0) < 1){ toast('行囊中无'+(LF.ITEMS[matId]||{}).name+'。'); return; }
+    if(state.energy<=0){ toast('精力已尽，先休整恢复再行填充。'); return; }
+    advanceTime(1);
+    state.energy=Math.max(0,state.energy-1);
     packConsume(matId, 1);
     p.got[matId] = (p.got[matId]||0) + 1;
     save(state); afterPackChange();
@@ -3995,6 +4053,9 @@ window.onerror=function(msg,url,line,col,err){
     var stage = stages[p.stage];
     if(!stage){ p.done = true; save(state); afterPackChange(); log('工事收尾，'+bp.doneName+'落成！','good'); buildActions(G.ROOMS[state.room]); return; }
     for(var k in stage.need){ if((p.got[k]||0) < stage.need[k]){ toast('「'+stage.name+'」材料未齐，无法搭建。'); return; } }
+    if(state.energy<=0){ toast('精力已尽，先休整恢复再行搭建。'); return; }
+    advanceTime(1);
+    state.energy=Math.max(0,state.energy-2);
     p.stage++;
     save(state); afterPackChange();
     if(p.stage >= stages.length){
@@ -4005,6 +4066,8 @@ window.onerror=function(msg,url,line,col,err){
     }
     buildActions(G.ROOMS[state.room]);
   }
+  // 休息面板
+  var restState = { kind: 'ground' };
   // 营造面板
   var buildState = { site:null, msg:'' };
   function buildMatRows(siteKey){
@@ -4054,9 +4117,15 @@ window.onerror=function(msg,url,line,col,err){
     if((state.buildCount[k]||0) >= 3){ toast('此处今日已采过三回，崖壁渐薄，明日再来。'); return; }
     advanceTime(1);
     state.buildCount[k] = (state.buildCount[k]||0) + 1;
-    packAdd('shitiao', 1);
+    var hasIronAxe = !!packFind('tiefu');
+    if(hasIronAxe) consumeTool('tiefu',1);
+    var n = hasIronAxe ? 2 : 1;
+    packAdd('shitiao', n);
+    // 崖壁偶露铁矿：采石有一定概率连铁矿石一并剥落
+    var ores = 0;
+    if(Math.random() < 0.35){ ores = hasIronAxe ? 2 : 1; packAdd('tiekuangshi', ores); }
     afterPackChange();
-    log('你抡镐凿石，哐哐数声，剥下石料×1。','env');
+    log('你抡'+(hasIronAxe?'铁斧凿石':'镐凿石')+'，哐哐数声，剥下石料×'+n+(ores?('，兼得铁矿石×'+ores):'')+'。','env');
   }
   function build_quarry_actions(){
     return [{label:'采石料', icon:'⛏️', fn:function(){ mineStone(); }}];
@@ -4076,15 +4145,115 @@ window.onerror=function(msg,url,line,col,err){
     log('你拨开草垛，旧木箱里静静躺着一卷泛黄的《冶炼工坊图》。','good');
     buildActions(G.ROOMS[state.room]);
   }
-  // 冶炼工坊：熔石取铁（石料 → 铁料）
-  function forgeSmelt(){
-    var cur = packFind('shitiao');
-    if(!cur || (cur.count||0) < 1){ toast('炉中无石料可熔。'); return; }
-    advanceTime(1);
-    packConsume('shitiao', 1);
-    packAdd('tiekuai', 1);
-    afterPackChange();
-    log('炉火彤彤，你投石入炉，风箱鼓动，熔得铁料×1。','env');
+  // ===== 冶炼工坊：炉膛（铁矿石 + 木材燃料 → 分时辰烧制 → 铁料）=====
+  var forgeState = { site:null, msg:'' };
+  function findForge(siteKey){
+    var arr = (state.placed && state.placed[state.room]) || [];
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey) return arr[i]; }
+    return null;
+  }
+  // 炉膛状态存于 placed 对象上：p.forge = { ore, wood, burn, prog, need, out }
+  //   ore 已投铁矿石 / wood 已投木材 / burn 是否在烧 / prog 当前烧制进度 / need 总需时辰 / out 已炼铁料待取
+  function ensureForgeState(p){
+    if(!p.forge) p.forge = { ore:0, wood:0, burn:false, prog:0, need:0, out:0 };
+    return p.forge;
+  }
+  function openForgePanel(siteKey){
+    openModal('forge', {site:siteKey});
+  }
+  function renderForgePanel(){
+    var p = findForge(forgeState.site); if(!p) return '<p class="tip">炉膛已不存在。</p>';
+    var bp = LF.BUILD[p.bp] || {};
+    var f = ensureForgeState(p);
+    var row = function(k,v){ return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>'; };
+    var pct = f.need>0 ? Math.min(100, Math.round(f.prog/f.need*100)) : 0;
+    var bar = f.burn
+      ? '<div class="forge-bar"><i style="width:'+pct+'%"></i></div><div class="forge-pct">烧制中 '+pct+'%'+(f.prog)+'/'+(f.need)+' 时辰</div>'
+      : (f.prog>0 ? '<div class="forge-bar"><i style="width:'+pct+'%"></i></div><div class="forge-pct">熄火 · 进度 '+pct+'%</div>' : '<p class="tip">炉膛尚冷，投料后点火。</p>');
+    var msg = forgeState.msg; forgeState.msg='';
+    var h = '<h3 style="text-align:center;margin:0 0 4px;">'+(bp.doneIcon||'🔥')+' 冶炼炉膛</h3>'
+      + (msg ? '<div class="build-msg">'+msg+'</div>' : '')
+      + row('铁矿石', f.ore)
+      + row('木材', f.wood)
+      + row('已炼铁料', f.out)
+      + bar
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:10px 0;">'
+      + '<button class="btn-mini" data-forge="ore">投铁矿石×1</button>'
+      + '<button class="btn-mini" data-forge="wood">投木材×1</button>'
+      + (f.burn ? '' : '<button class="btn-mini" data-forge="fire">点火烧制</button>')
+      + (f.out>0 ? '<button class="btn-mini" data-forge="take">收取铁料</button>' : '')
+      + '</div>'
+      + '<p class="tip">每块铁矿石需 2 时辰烧炼、耗 2 木材；可在任意行动推进时辰时持续烧制。</p>'
+      + '<button class="sheet-leave" id="m-forge-leave">收 工</button>';
+    return h;
+  }
+  function bindForgePanel(){
+    $card.querySelectorAll('[data-forge]').forEach(function(b){
+      b.onclick=function(){ forgeAct(b.getAttribute('data-forge')); };
+    });
+    var lv=document.getElementById('m-forge-leave'); if(lv) lv.onclick=closeModal;
+  }
+  function forgeAct(act){
+    var p = findForge(forgeState.site); if(!p) return;
+    var f = ensureForgeState(p);
+    if(act==='ore'){
+      var cur = packFind('tiekuangshi');
+      if(!cur || (cur.count||0) < 1){ toast('行囊中无铁矿石。'); return; }
+      if(state.energy<=0){ toast('精力已尽，先休整恢复再行添料。'); return; }
+      packConsume('tiekuangshi', 1);
+      f.ore++;
+      forgeState.msg = '已投铁矿石×1。';
+      save(state); afterPackChange();
+    } else if(act==='wood'){
+      var w = packFind('mucai');
+      if(!w || (w.count||0) < 1){ toast('行囊中无木材。'); return; }
+      if(state.energy<=0){ toast('精力已尽，先休整恢复再行添柴。'); return; }
+      packConsume('mucai', 1);
+      f.wood++;
+      forgeState.msg = '已投木材×1。';
+      save(state); afterPackChange();
+    } else if(act==='fire'){
+      if(f.burn){ toast('炉火正旺。'); return; }
+      if(f.ore<1){ toast('炉中无铁矿石。'); return; }
+      if(f.wood<1){ toast('炉中无木材，添柴方可点火。'); return; }
+      f.burn = true;
+      f.prog = 0;
+      f.need = f.ore*2;   // 每块矿石需 2 时辰烧炼
+      forgeState.msg = '你引火点燃炉膛，炉火渐旺……';
+      log('你引火点燃炉膛，风箱鼓动，炉火渐旺——铁矿石在烈焰中缓缓融化。','env');
+      save(state);
+    } else if(act==='take'){
+      if(f.out<1){ toast('炉中尚无炼成铁料。'); return; }
+      var got = packAdd('tiekuai', f.out);
+      if(!got){ toast('行囊已满，先腾出空位。'); return; }
+      log('你钳出铁料×'+f.out+'，趁热打制成块。','good');
+      f.out = 0;
+      save(state); afterPackChange();
+    }
+    openModal('forge', {site:forgeState.site});
+  }
+  // 烧制推进：任意行动推进时辰时调用（在 advanceTime 内 hook）
+  function tickForge(n){
+    if(!state.placed) return;
+    var roomIds = Object.keys(state.placed);
+    for(var r=0; r<roomIds.length; r++){
+      var arr = state.placed[roomIds[r]];
+      if(!arr) continue;
+      for(var i=0; i<arr.length; i++){
+        var p = arr[i];
+        if(!p || !p.forge || !p.forge.burn) continue;
+        var f = p.forge;
+        var step = Math.min(n, f.need - f.prog);
+        f.prog += step;
+        var woodCost = step;
+        f.wood = Math.max(0, f.wood - woodCost);
+        if(f.wood<=0 && f.prog < f.need){ f.burn=false; }   // 燃料耗尽熄火
+        if(f.prog >= f.need){
+          f.out += f.ore;      // 全部矿石炼成铁料
+          f.ore = 0; f.prog = 0; f.need = 0; f.burn = false;
+        }
+      }
+    }
   }
   // 货郎商店数据已外置到 shared/data/shops.js（详见 LF.SHOPS.build_pedlar），便于调价与扩展
   var shopState='build_pedlar';
@@ -4119,8 +4288,7 @@ window.onerror=function(msg,url,line,col,err){
       var durTag = (it.maxDur) ? '<span class="pcell-dur">'+it.dur+'/'+it.maxDur+'</span>' : '';
       var selCls = (shopSel===i)?' pcell-sel':'';
       grid += '<div class="packcell'+selCls+'" data-loc="pack:'+i+'">'
-            + '<div class="pcell-ic">'+itemIconHTML(it,20)+'</div>'
-            + '<div class="pcell-nm">'+it.name+'</div>'
+            + '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'
             + cnt + sellTag + durTag + '</div>';
     }
     return '<div class="shop-wrap">'
@@ -4604,8 +4772,7 @@ window.onerror=function(msg,url,line,col,err){
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
-            + '<div class="pcell-ic">'+itemIconHTML(it,20)+'</div>'
-            + '<div class="pcell-nm">'+it.name+'</div>'
+            + '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'
             + cnt + qb + '</div>';
     }
     return '<div class="pack-wrap">'
@@ -5003,7 +5170,7 @@ window.onerror=function(msg,url,line,col,err){
       '<div class="cr-field"><label>姓名</label><input id="cr-name" class="cr-input" maxlength="8" placeholder="无名客"></div>'+
       '<div class="cr-sec"><div class="cr-sec-t">四 维 配 点<span class="cr-pool">可分配 <b id="cr-pool">'+createState.pool+'</b> 点（每维 1–'+ATTR_MAX+'，初始皆 5）</span></div><div class="ap-list">'+attrRows+'</div></div>'+
       '<p class="tip">四维直接决定即时战力：气血主血量、攻击主伤害、防御主减伤、身法主速度先手。内力为习武之人通内功心法后所得，开局不开放。</p>'+
-      '<label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用 · 直接抵达黑山寨）</label>'+
+      '<label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用 · 直接抵达建造测试场）</label>'+
       '<div class="cr-actions"><button class="close" id="cr-go">踏 入 江 湖</button></div>';
   }
   // 仅更新加点数值/按钮/战力，避免每次点击整体重建弹窗（手机卡顿根因）
@@ -5086,10 +5253,10 @@ window.onerror=function(msg,url,line,col,err){
     save.attr=attr;          // 四维（含分配后的数值）
     save.freePoints=createState.pool;   // 捏人未分配完的点转为入局后自由属性点，避免白丢
     save.origin=null;
-    // 跳过新手教程（测试用）：直接抵达黑山寨·寨门，并标记教学已完成、补发一包金疮药
+    // 跳过新手教程（测试用）：直接抵达建造测试场（营造系统体验房），并标记教学已完成、补发一包金疮药
     if(createState.skip){
-      save.room='ji_heishan_zhai';
-      save.spawnRoom='ji_heishan_zhai';
+      save.room='build_test';
+      save.spawnRoom='build_test';
       save.flags=save.flags||{};
       // 注意：tcTutorial 必须为 false（且 tcDone 为 true），否则 tutCombatActive() 会走旧的半手动战斗分支（已废弃），绕开 DQ 团体战斗
       save.flags.onb={ started:true, done:true, named:true, tcDone:true, tcTutorial:false, packGiven:true,
@@ -5227,6 +5394,12 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='build'){
       if(opts && opts.site) buildState.site = opts.site;
       h=renderBuildPanel();
+    } else if(kind==='rest'){
+      if(opts && opts.kind) restState.kind = opts.kind;
+      h=renderRestPanel();
+    } else if(kind==='forge'){
+      if(opts && opts.site) forgeState.site = opts.site;
+      h=renderForgePanel();
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop');
@@ -5236,6 +5409,8 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ bindShopPanel(); }
     if(kind==='build'){ bindBuildPanel(); }
+    if(kind==='rest'){ bindRestPanel(); }
+    if(kind==='forge'){ bindForgePanel(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
@@ -5342,9 +5517,9 @@ window.onerror=function(msg,url,line,col,err){
     }
   }
   function dockRest(){
-    if(combatMode){ toast('战斗中无法调息'); return; }
+    if(combatMode){ toast('战斗中无法歇息'); return; }
     if(state.dead){ die(); return; }
-    actRest();
+    openRestModal('ground');
   }
   // ===== 调试台（测试用：直赋声望/武学等，真正获取途径后续接入） =====
   function handleDev(act){
@@ -6390,8 +6565,12 @@ window.onerror=function(msg,url,line,col,err){
       state.gold+=drop.gold;
       state.pot+=drop.pot;
       addXp(expGain);
-      // ── 掉落入库（v0.6 格子行囊：按 defId 堆叠 count）──
-      drop.items.forEach(function(it){ packAdd({defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat||'道具', count:1, effect:it.effect}); });
+      // ── 掉落入库（v0.6 格子行囊：按 defId 堆叠 count；优先走 makeItem 以带全静态定义）──
+      drop.items.forEach(function(it){
+        var made = LF.ITEMS.makeItem(it.id, 1);
+        if(made) packAdd(made);
+        else packAdd({defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat||'道具', count:1, effect:it.effect});
+      });
       var detail='修为+'+expGain+' · '+drop.gold+'银两 · 潜能+'+drop.pot;
       if(drop.items.length) detail+=' · '+drop.items.map(function(it){return it.name;}).join('、');
       // ── 装备掉落（P1 完整）──

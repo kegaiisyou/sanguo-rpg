@@ -7,13 +7,17 @@
     build_pedlar: {
       name: '货郎',
       items: [
-        { id: 'mutou',      buy: 8,  sell: 3  },
-        { id: 'xiaoshuzhi', buy: 3,  sell: 1  },
-        { id: 'futou',      buy: 35, sell: 12 },
-        { id: 'zhangpeng',  buy: 60, sell: 25 },
-        { id: 'gongzuotai', buy: 40, sell: 15 },
-        { id: 'campfire',   buy: 12, sell: 4  },
-        { id: 'sleepmat',   buy: 20, sell: 8  }
+        { id: 'mutou',       buy: 8,  sell: 3  },
+        { id: 'xiaoshuzhi',  buy: 3,  sell: 1  },
+        { id: 'shitiao',     buy: 10, sell: 4  },
+        { id: 'tiekuangshi', buy: 14, sell: 6  },
+        { id: 'zhuan',       buy: 18, sell: 7  },
+        { id: 'tuzhi_yeolian', buy: 30, sell: 10 },
+        { id: 'futou',       buy: 35, sell: 12 },
+        { id: 'zhangpeng',   buy: 60, sell: 25 },
+        { id: 'gongzuotai',  buy: 40, sell: 15 },
+        { id: 'campfire',    buy: 12, sell: 4  },
+        { id: 'sleepmat',    buy: 20, sell: 8  }
       ]
     },
     doctor: {

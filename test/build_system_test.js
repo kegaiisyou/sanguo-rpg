@@ -24,6 +24,7 @@ global.LF = global.LF || {};
 require('../shared/data/items.js');
 require('../shared/data/build.js');
 require('../shared/data/recipes.js');
+require('../shared/data/shops.js');
 
 const ITEMS = global.LF.ITEMS;
 const BUILD = global.LF.BUILD;
@@ -84,9 +85,45 @@ if (brickRecipe) {
 }
 
 section('关键材料定义');
-['shitiao', 'zhuan', 'tiekuai'].forEach(function (k) {
+['shitiao', 'zhuan', 'tiekuai', 'tiekuangshi'].forEach(function (k) {
   check(!!ITEMS[k], '建材 ' + k + ' 已定义');
 });
+
+section('冶炼工坊 forge 配方');
+const forgeRecipes = RECIPES.forge || [];
+check(forgeRecipes.length >= 3, 'forge 存在至少 3 条配方（当前 ' + forgeRecipes.length + '）');
+forgeRecipes.forEach(function (r) {
+  check(!!ITEMS[r.out], 'forge 配方产出 ' + r.out + ' 有物品定义');
+  (r.in || []).forEach(function (x) {
+    check(!!ITEMS[x.id], 'forge 配方材料 ' + x.id + ' 有物品定义');
+  });
+});
+['tiejian', 'tiefu', 'tiema'].forEach(function (k) {
+  check(!!ITEMS[k], '铁料加工产出 ' + k + ' 已定义');
+});
+
+section('货郎可购图纸与建材');
+const pedlar = global.LF.SHOPS && global.LF.SHOPS.build_pedlar;
+check(!!pedlar, '货郎商店存在');
+if (pedlar) {
+  const ids = (pedlar.items || []).map(function (x) { return x.id; });
+  check(ids.indexOf('tuzhi_yeolian') >= 0, '货郎出售冶炼工坊图');
+  check(ids.indexOf('shitiao') >= 0, '货郎出售石料');
+  check(ids.indexOf('zhuan') >= 0, '货郎出售砖头');
+}
+
+section('敌人建材掉落表');
+require('../shared/data/enemies.js');
+const EN = global.LF.ENEMIES || {};
+if (EN.bandit) {
+  const tbl = (EN.bandit.drop && EN.bandit.drop.table) || [];
+  check(tbl.some(function (t) { return t.item === 'shitiao'; }), '山贼掉落石料');
+  check(tbl.some(function (t) { return t.item === 'mutou'; }), '山贼掉落木头');
+}
+if (EN.bandit_chief) {
+  const tbl = (EN.bandit_chief.drop && EN.bandit_chief.drop.table) || [];
+  check(tbl.some(function (t) { return t.item === 'zhuan'; }), '流寇头目掉落砖头');
+}
 
 console.log(fail ? ('\n共有 ' + fail + ' 项失败') : '\n全部通过');
 process.exit(fail ? 1 : 0);
