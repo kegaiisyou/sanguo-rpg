@@ -1361,7 +1361,7 @@
   .shop-foot{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin-top:8px;}
   .shop-foot .btn{flex:0 0 auto;}
   .shop-hint{font-size:12px;color:#bfae8a;flex:1 1 auto;text-align:right;}
-  @media (max-width:560px){ .shop-main{flex-direction:column;} .shop-left,.shop-right{min-width:0;} .shop-goods-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;} .shop-right .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;} .pack-left{flex-basis:118px;} .shop-good{padding:5px 3px;} .shop-good .sg-ic{width:26px;height:26px;} .shop-good .sg-name{font-size:10.5px;} }
+  @media (max-width:560px){ .shop-main{flex-direction:column;} .shop-left,.shop-right{min-width:0;} .shop-goods-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;} .shop-right .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;} .pack-left{flex-basis:118px;} .shop-good{padding:5px 3px;} .shop-good .sg-icon{font-size:18px;} .shop-good .sg-name{font-size:10.5px;} }
   /* 底信息栏：固定，不随物品栏滚动 */
   .pack-info{flex:0 0 auto;max-height:22%;margin-top:10px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
   .pack-inspect{text-align:left;}
@@ -1641,7 +1641,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260822aa"></script>
+<script src="shared/config/constants.js?v=20260822ab"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1977,10 +1977,11 @@ window.onerror=function(msg,url,line,col,err){
 //   不参与 scale → 字号/dot 尺寸在 CSS 层保持绝对屏幕像素，无需反补偿。
 //   SVG 的 .map-state-name 同样是矢量 + 字号反补偿仍要给（外层 grid 仍带 scale）。
       var comp=1/scale;
-      var showSvgNames = scale < 0.9;   // 拉远(参考图隶书已缩到看不清)时改显矢量州名，恒定字号始终可读；放大时交给 PNG 隶书避免巨型重影
+      var showSvgMap = scale < 0.9;   // 拉远(参考图 PNG 的州界/隶书已缩到看不清)时改显矢量州界+州名；放大时交给 PNG，避免与 PNG 自带边界/隶书出现「双边界」「双字」重影
+      canvas.querySelectorAll('.map-state-sh').forEach(function(el){ el.style.opacity = showSvgMap ? '1' : '0'; });  // 描边恒定像素宽(non-scaling-stroke)，拉远始终清晰
       canvas.querySelectorAll('.map-state-name').forEach(function(el){
         el.style.fontSize=(22*comp).toFixed(3)+'px';        // SVG 字号用 inline style 覆盖 CSS 16px；避免 transform:scale 模糊
-        el.style.opacity = showSvgNames ? '1' : '0';
+        el.style.opacity = showSvgMap ? '1' : '0';
       });
       if(overlay){
         overlay.querySelectorAll('[data-wx]').forEach(function(el){
