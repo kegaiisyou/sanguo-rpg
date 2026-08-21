@@ -459,24 +459,16 @@
   .map-viewport:active{cursor:grabbing;}
   .map-grid{position:relative;background:url('ScreenShot_20260821_230620_978.png') center/100% 100% no-repeat;transform-origin:0 0;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
-  /* 底图采用羊皮纸底纹（map_parchment.png）——纯纹理、无具体地名/路网，叠加在上层州界/河流/节点之下；
-     之前尝试的 AI 生图 map_ai.png 实为现代集市插画（prompt 跑偏），废弃不用。 */
+  /* 参考图 PNG 自带完整色彩州块/州名/河流/外族注记，是地图的【视觉主体】；
+     之前用的羊皮纸纹理层会把它盖成棕色，已废弃。仅保留极淡的内阴影做暗角。 */
   .map-bg{position:absolute;left:0;top:0;width:100%;height:100%;
-    background-color:#e7d8b3;
-    background-image:url('assets/map_parchment.png?v=20260821l');
-    background-size:100% 100%;
-    background-repeat:no-repeat;
-    background-position:center;
-    box-shadow:inset 0 0 90px rgba(70,52,26,.30);
-    pointer-events:none;z-index:0;opacity:.92;}
+    box-shadow:inset 0 0 70px rgba(40,28,8,.22);
+    pointer-events:none;z-index:0;}
   .map-canvas .map-btn-recenter{position:absolute;right:10px;bottom:34px;z-index:5;padding:5px 10px;font-size:12px;border-radius:8px;background:rgba(255,251,242,.92);border:1px solid rgba(120,90,40,.5);color:#5a3a1a;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18);font-family:inherit;line-height:1.2;}
   .map-canvas .map-btn-recenter:hover{background:#fff7d6;border-color:rgba(160,80,40,.7);color:#7a2a10;}
   .map-canvas .map-btn-recenter:active{transform:translateY(1px);}
-  /* 退为背景的米黄水洗层：乘色混合（multiply），把底图柔化为底纹，让上层州界/河流/节点成为视觉主体 */
-  .map-fade{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;
-    background:radial-gradient(ellipse 70% 65% at 50% 46%, rgba(255,247,228,0) 30%, rgba(232,212,168,.55) 100%),
-               linear-gradient(180deg, rgba(247,241,225,.55) 0%, rgba(247,241,225,0) 16%, rgba(247,241,225,0) 84%, rgba(247,241,225,.5) 100%);
-    mix-blend-mode:multiply;}
+  /* 米黄水洗层（multiply）已废弃：会把参考图 PNG 的彩色州块压灰、变暗；让 PNG 自带的色彩直接呈现。 */
+  .map-fade{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;background:none;mix-blend-mode:normal;}
   .map-region{position:absolute;border-radius:50%;pointer-events:none;opacity:.62;
     box-shadow:inset 0 0 40px rgba(255,255,255,.25);}
   /* 区域题字：印章朱红 + 疏朗字距，仿古地图木刻题名层次 */
@@ -1641,7 +1633,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260822ab"></script>
+<script src="shared/config/constants.js?v=20260822ac"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1977,12 +1969,9 @@ window.onerror=function(msg,url,line,col,err){
 //   不参与 scale → 字号/dot 尺寸在 CSS 层保持绝对屏幕像素，无需反补偿。
 //   SVG 的 .map-state-name 同样是矢量 + 字号反补偿仍要给（外层 grid 仍带 scale）。
       var comp=1/scale;
-      var showSvgMap = scale < 0.9;   // 拉远(参考图 PNG 的州界/隶书已缩到看不清)时改显矢量州界+州名；放大时交给 PNG，避免与 PNG 自带边界/隶书出现「双边界」「双字」重影
-      canvas.querySelectorAll('.map-state-sh').forEach(function(el){ el.style.opacity = showSvgMap ? '1' : '0'; });  // 描边恒定像素宽(non-scaling-stroke)，拉远始终清晰
-      canvas.querySelectorAll('.map-state-name').forEach(function(el){
-        el.style.fontSize=(22*comp).toFixed(3)+'px';        // SVG 字号用 inline style 覆盖 CSS 16px；避免 transform:scale 模糊
-        el.style.opacity = showSvgMap ? '1' : '0';
-      });
+      // SVG 州界/州名不再显示：参考图 PNG 自带完整州界与隶书，是地图的视觉主体；
+      // SVG 多边形只作为不可见点击命中区，名字与边界由 PNG 提供，恒定像素清晰。
+      canvas.querySelectorAll('.map-state-name').forEach(function(el){ el.style.fontSize=(22*comp).toFixed(3)+'px'; });
       if(overlay){
         overlay.querySelectorAll('[data-wx]').forEach(function(el){
           var wx=parseFloat(el.getAttribute('data-wx'));
