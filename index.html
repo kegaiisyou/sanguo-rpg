@@ -1644,7 +1644,6 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/shops.js?v=20260820aa"></script>
     <script src="shared/data/map.js?v=20260820bd"></script>
     <script src="shared/combat/engine.js?v=20260813a"></script>
-    <script src="shared/combat/cards.js?v=20260813a"></script>
     <script src="shared/index.js?v=20260820z"></script>
 <script>
 (function(){
@@ -5495,12 +5494,8 @@ window.onerror=function(msg,url,line,col,err){
   // ═══════════════════════════════════════════
   //  战 斗 系 统（v0.2 半手动回合制 + 节拍 + 战意）
   // ═══════════════════════════════════════════
-  var combatMode=null;  // null | 'manual' | 'card'（卡牌战斗）
+  var combatMode=null;  // null | 'manual'
   var combatBusy=false; // 回合播放中，防止动画期间重复触发
-  // ── 卡牌战斗开关与运行时状态（CARD_COMBAT=false → 最简半手动回合制，默认关：拖拽卡牌层 bug 多，先稳定再优化）──
-  var CARD_COMBAT=false;
-  var cardState=null;     // { draw, hand, discard, handSize, intents, selected }
-  var cardBattleEl=null;  // 卡牌战斗 DOM 容器
 
   /** 计算含装备+艺线加成的有效属性（P1 装备 / P2 艺线：攻/命中/暴击/内力/身法） */
   function effectiveStats(){
@@ -5587,15 +5582,12 @@ window.onerror=function(msg,url,line,col,err){
     $narr.innerHTML='';
     flushNarr();                 // 丢弃旧场景残留文字，避免串场
     combatCardEl=null;
-    cardBattleEl=null; cardState=null;
     var enemy=G.CombatEngine.getEnemy();
     log('──── 狭路相逢 ────','combat');
     log((enemy.title?('「'+enemy.title+'」'):'')+enemy.name+' 拦住去路！','title');
-    // 卡牌战斗（默认） vs DQ 风格队伍回合制（常规战斗 / 教学战均走此路）
-    // 注：旧的半手动 renderCombatCard 已废弃（bug 多），教学战也统一走 DQ，tutCombatActive() 仅用于 endCombat 的教学提示与救场
-    combatMode = (CARD_COMBAT && !opt.tutorial && G.CardSystem) ? 'card' : 'manual';
-    if(combatMode==='card'){ startCardBattle(); }
-    else { dqInitCombat(); }   // DQ 风格：列阵 + 逐人下令 + 攻击选目标 + 敌群齐出
+    // 卡牌战斗系统已移除，统一走 DQ 风格队伍回合制（常规战斗 / 教学战均走此路）
+    combatMode='manual';
+    dqInitCombat();   // DQ 风格：列阵 + 逐人下令 + 攻击选目标 + 敌群齐出
   }
 
   /** 开场教学战斗是否激活 */
@@ -6130,17 +6122,15 @@ window.onerror=function(msg,url,line,col,err){
       state.flags.onb.tcDone=true; state.flags.onb.tcTutorial=false; state.defeated=false;
       log('〔教学演练结束——往后真打可没这般好运，记得用药、看敌意。〕','sys');
       save(state); renderStatus();
-      var _sc=combatCardEl||cardBattleEl;
-      if(_sc){ _sc.classList.add('settle-win'); }
+      if(combatCardEl){ combatCardEl.classList.add('settle-win'); }
       playCombatFx('win');
-      cardState=null;
-      setTimeout(function(){ [combatCardEl,cardBattleEl,dqCardEl].forEach(function(el){ if(el&&el.parentNode) el.parentNode.removeChild(el); }); combatCardEl=null; cardBattleEl=null; dqCardEl=null; }, 1200);
+      setTimeout(function(){ [combatCardEl,dqCardEl].forEach(function(el){ if(el&&el.parentNode) el.parentNode.removeChild(el); }); combatCardEl=null; dqCardEl=null; }, 1200);
       return;
     }
     var st=G.CombatEngine.getStatus();
     var enemy=G.CombatEngine.getEnemy();
     // 终局先用真实状态同步战斗卡（避免最后一击致负/致死时卡面停留在上一回合血量）
-    if(combatCardEl) renderCombatCard(); else if(cardBattleEl) renderCardBattle(); else if(dqCardEl) dqRenderCard();
+    if(combatCardEl) renderCombatCard(); else if(dqCardEl) dqRenderCard();
 
 
     // 更新玩家状态
@@ -6224,7 +6214,7 @@ window.onerror=function(msg,url,line,col,err){
           '<div class="cs-detail">'+detail+'</div>'+
         '</div>'
       ,'good');
-      if(combatCardEl) combatCardEl.classList.add('settle-win'); else if(cardBattleEl) cardBattleEl.classList.add('settle-win'); else if(dqCardEl) dqCardEl.classList.add('settle-win');
+      if(combatCardEl) combatCardEl.classList.add('settle-win'); else if(dqCardEl) dqCardEl.classList.add('settle-win');
       playCombatFx('win');
       SFX.win();
       toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
@@ -6237,7 +6227,7 @@ window.onerror=function(msg,url,line,col,err){
           '<div class="cs-detail">眼前一黑……你重伤倒地，气若游丝。须先「休整」恢复，方可再动。</div>'+
         '</div>'
       ,'combat');
-      if(combatCardEl) combatCardEl.classList.add('settle-lose'); else if(cardBattleEl) cardBattleEl.classList.add('settle-lose'); else if(dqCardEl) dqCardEl.classList.add('settle-lose');
+      if(combatCardEl) combatCardEl.classList.add('settle-lose'); else if(dqCardEl) dqCardEl.classList.add('settle-lose');
       playCombatFx('lose');
       SFX.lose();
       toast('败北！气血仅余1点');
@@ -6254,281 +6244,6 @@ window.onerror=function(msg,url,line,col,err){
     save(state); renderStatus();
   }
 
-  // ===================== 卡牌战斗（v0.4）=====================
-  // 复用 CombatEngine 的伤害/五行/Buff/掉落/AI；本层只负责牌组、出牌、拖拽与范围指示。
-
-  /** 进入卡牌战斗：构建牌组 + 抽起手 + 预告敌意 */
-  function startCardBattle(){
-    var es=effectiveStats();
-    var ctx={
-      es:{ atk:es.atk, def:es.def, maxHp:es.maxHp, maxMp:es.maxMp, spd:es.spd,
-           hitRate:es.hitRate, critRate:es.critRate, element:es.element },
-      artIds:(state.learnedMartial||[]).slice(),
-      artMap:G.CombatEngine.state.player.artMap
-    };
-    var built=G.CardSystem.buildDeck(ctx);
-    cardState=G.CardSystem.start(built.handSize, built.deck);
-    // 开局能量（内力）充满
-    G.CombatEngine.state.player.mp=G.CombatEngine.state.player.maxMp;
-    cardState.intents=[];
-    cardState.selected=null;
-    cardState.helpShown=false;
-    beginCardTurn(true);
-  }
-
-  /** 开始一个玩家回合：锁定敌意预告、抽满手牌、渲染 */
-  function beginCardTurn(first){
-    if(G.CombatEngine.state.result){ endCombat(G.CombatEngine.state.result); return; }
-    cardState.intents=G.CombatEngine.peekEnemyIntents();   // 锁定本回合敌方意图（预告=实际）
-    G.CardSystem.drawToFull(cardState);
-    renderCardBattle();
-    if(first && !cardState.helpShown){
-      cardState.helpShown=true;
-      setTimeout(function(){ if(cardBattleEl){ showCardHint('拖动卡牌到敌人/场地发动；或先点卡再点目标。内力不足则无法出牌。'); } }, 450);
-    }
-  }
-
-  /** 出一张牌（统一入口：拖拽落点 / 点击目标 / 技能） */
-  function playCardOn(card, targetIdx){
-    if(combatBusy || !cardState) return;
-    if(card.cost > G.CombatEngine.state.player.mp){ toast('内力不足'); return; }
-    combatBusy=true;
-    // 清掉选择/高亮态
-    cardState.selected=null;
-    clearDropTargets();
-    var res=G.CombatEngine.playCard(card, (targetIdx==null||targetIdx<0) ? 0 : targetIdx);
-    (res.log||[]).forEach(function(en){ logCombat(en); });
-    G.CardSystem.discard(cardState, card);
-    var st=G.CombatEngine.getStatus();
-    state.hp=st.player.hp; state.mp=st.player.mp;   // 同步战斗内血量/内力
-    combatBusy=false;
-    if(res.fled){ endCombat('fled'); return; }
-    if(res.ended || G.CombatEngine.state.result){ endCombat(G.CombatEngine.state.result); return; }
-    renderCardBattle();
-  }
-
-  /** 结束玩家回合：敌方阶段 + DoT/Buff 结算 + 新回合抽牌 */
-  function endCardTurn(){
-    if(combatBusy || !cardState) return;
-    if(G.CombatEngine.state.result){ endCombat(G.CombatEngine.state.result); return; }
-    combatBusy=true;
-    cardState.selected=null; clearDropTargets();
-    var res=G.CombatEngine.endTurn();
-    (res.log||[]).forEach(function(en){ logCombat(en); });
-    combatBusy=false;
-    if(res.ended || G.CombatEngine.state.result){ endCombat(G.CombatEngine.state.result); return; }
-    beginCardTurn(false);
-  }
-
-  /** 渲染卡牌战斗界面 */
-  function renderCardBattle(){
-    var st=G.CombatEngine.getStatus();
-    var p=st.player;
-    if(!cardBattleEl){
-      cardBattleEl=document.createElement('div');
-      cardBattleEl.id='card-battle';
-      var _sc=document.getElementById('scene'), _ap=document.getElementById('app');
-      if(_sc&&_ap){ _ap.insertBefore(cardBattleEl,_sc); }
-      else { $narr.appendChild(cardBattleEl); }
-    }
-    // ── 敌方区 ──
-    var enemiesHtml='';
-    st.enemies.forEach(function(e){
-      var hpPct=Math.round(Math.max(0,e.hp)/Math.max(1,e.maxHp)*100);
-      var intent=cardState.intents?cardState.intents[e.idx]:null;
-      var iCls='cb-intent', iTxt='';
-      if(intent && !intent.dead && e.hp>0){
-        if(intent.threat==='heavy') iCls+=' threat-heavy';
-        else if(intent.threat==='defend') iCls+=' threat-defend';
-        if(intent.counter) iCls+=' counter-warn';
-        iTxt=(intent.threat==='heavy'?'⚠ ':'')+(intent.counter?'克制你！ ':'')+intent.label;
-      }
-      var buf='';
-      (e.buffs||[]).forEach(function(b){ buf+='<span>'+((b.type==='atk'?'攻↑':b.type==='spd'?'速↑':'增益'))+' '+b.turns+'</span>'; });
-      (e.dots||[]).forEach(function(d){ buf+='<span class="debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+' '+d.turns+'</span>'; });
-      enemiesHtml+=
-        '<div class="cb-enemy'+(e.hp<=0?' dead':'')+'" data-idx="'+e.idx+'" data-drop="enemy">'+
-          (iTxt?'<div class="'+iCls+'">'+escapeHtml(iTxt)+'</div>':'')+
-          '<div class="cb-fig">'+escapeHtml((e.name||'敌').charAt(0))+'</div>'+
-          '<div class="cb-name">'+escapeHtml(e.name||'敌')+'</div>'+
-          '<div class="cb-elem">'+((e.element&&e.element!=='无')?('属'+e.element):'')+'</div>'+
-          '<div class="cb-hp"><div class="c-bar"><div class="c-hpfill '+(hpPct>50?'c-hp':hpPct>25?'c-hp-warn':'c-hp-danger')+'" style="width:'+hpPct+'%"></div></div><span>'+Math.max(0,e.hp)+'/'+e.maxHp+'</span></div>'+
-          '<div class="cb-buffs">'+buf+'</div>'+
-        '</div>';
-    });
-    // ── 手牌区 ──
-    var handHtml='';
-    cardState.hand.forEach(function(c){
-      var dis = c.cost > p.mp ? ' disabled' : '';
-      var sel = (cardState.selected===c.uid) ? ' selected' : '';
-      handHtml+=
-        '<div class="cb-card color-'+c.color+dis+sel+'" data-uid="'+c.uid+'" data-target="'+c.target+'" data-cost="'+c.cost+'">'+
-          '<div class="cb-bar"></div>'+
-          '<div class="cb-cost">'+c.cost+'</div>'+
-          '<div class="cb-cname">'+escapeHtml(c.name)+'</div>'+
-          '<div class="cb-cdesc">'+escapeHtml(c.desc||'')+'</div>'+
-          (c.aoe?'<div class="cb-aoe-tag">群体</div>':'')+
-        '</div>';
-    });
-    // ── 能量条 ──
-    var ePct=Math.round(Math.max(0,p.mp)/Math.max(1,p.maxMp)*100);
-    var energyHtml='<div class="cb-energy"><span>内力</span><div class="cb-e-bar"><div class="cb-e-fill" style="width:'+ePct+'%"></div></div><span class="cb-e-num">'+Math.max(0,p.mp)+'/'+p.maxMp+'</span></div>';
-    // ── 玩家 BUFF ──
-    var pBuf='';
-    (p.buffs||[]).forEach(function(b){ pBuf+='<span>'+((b.type==='atk'?'攻↑':b.type==='spd'?'速↑':'增益'))+' '+b.turns+'</span>'; });
-    (p.dots||[]).forEach(function(d){ pBuf+='<span class="debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+' '+d.turns+'</span>'; });
-
-    cardBattleEl.innerHTML=
-      '<div class="cb-top">'+
-        '<div class="cb-round">—— 第 '+st.round+' 回合 ——</div>'+
-        '<div class="cb-help">看敌意预告出牌 · 内力为出牌资源，每回合回满</div>'+
-      '</div>'+
-      '<div class="cb-enemies">'+enemiesHtml+'</div>'+
-      '<div class="cb-field" data-drop="field">将群体/AOE 卡拖到此处发动<span class="cb-aoe"></span></div>'+
-      '<div class="cb-player" data-drop="self">'+
-        '<div class="cb-fig-p">'+escapeHtml((state.name||'我').charAt(0))+'</div>'+
-        '<div class="cb-pinfo"><b>'+escapeHtml(state.name||'你')+'</b>'+
-          (p.element&&p.element!=='无'?' <span style="color:#3FA796">属'+p.element+'</span>':'')+
-          (p.chargeMul>1?' <span style="color:#e8c878">蓄力×'+p.chargeMul.toFixed(2)+'</span>':'')+
-          (p.dodgeNext?' <span style="color:#cfe">闪避</span>':'')+
-          (p.combo>1?' <span style="color:#ffd9a0">连击×'+p.combo+'</span>':'')+
-          '<div class="cb-buffs">'+pBuf+'</div>'+
-        '</div>'+
-        energyHtml+
-      '</div>'+
-      '<div class="cb-hand">'+handHtml+'</div>'+
-      '<div class="cb-side">'+
-        '<div class="cb-pile">抽牌堆<b>'+cardState.draw.length+'</b></div>'+
-        '<div class="cb-pile">弃牌堆<b>'+cardState.discard.length+'</b></div>'+
-        '<button class="cb-end">结束回合 ›</button>'+
-      '</div>';
-
-    bindCardBattleEvents();
-  }
-
-  /** 绑定卡牌战斗交互（拖拽 + 点击双模式、AOE 范围指示、目标高亮） */
-  function bindCardBattleEvents(){
-    var endBtn=cardBattleEl.querySelector('.cb-end');
-    if(endBtn) endBtn.onclick=function(){ endCardTurn(); };
-
-    // 拖拽 / 点选：手牌
-    cardBattleEl.querySelectorAll('.cb-card').forEach(function(el){
-      if(el.classList.contains('disabled')) return;
-      el.addEventListener('pointerdown', function(e){ onCardPointerDown(e, el); });
-    });
-
-    // 点击目标（点击模式下生效）
-    cardBattleEl.querySelectorAll('[data-drop]').forEach(function(el){
-      el.onclick=function(){
-        if(!cardState || cardState.selected==null) return;
-        var card=findCardByUid(cardState.selected);
-        if(!card) return;
-        var r=resolveDrop(card, el);
-        if(r!==false && r!==undefined){ playCardOn(card, r); }
-      };
-    });
-  }
-
-  function findCardByUid(uid){
-    if(!cardState) return null;
-    for(var i=0;i<cardState.hand.length;i++){ if(cardState.hand[i].uid===uid) return cardState.hand[i]; }
-    return null;
-  }
-
-  /** 卡片按下：区分「拖拽出牌」与「点击选中」 */
-  function onCardPointerDown(e, el){
-    if(combatBusy || !cardState) return;
-    var card=findCardByUid(parseInt(el.dataset.uid,10));
-    if(!card) return;
-    if(card.cost > G.CombatEngine.state.player.mp){ toast('内力不足'); return; }
-    e.preventDefault();
-    var startX=e.clientX, startY=e.clientY, moved=false, dragging=false;
-    el.classList.add('dragging');
-    showDropTargets(card.target);
-    if(card.target==='all') showAoe(true);
-
-    function move(ev){
-      var dx=ev.clientX-startX, dy=ev.clientY-startY;
-      if(!moved && (Math.abs(dx)>6 || Math.abs(dy)>6)){ moved=true; dragging=true; }
-      if(dragging){
-        el.style.position='fixed';
-        el.style.left=(ev.clientX-52)+'px';
-        el.style.top=(ev.clientY-71)+'px';
-        el.style.zIndex=999; el.style.pointerEvents='none'; el.style.margin='0';
-      }
-    }
-    function up(ev){
-      document.removeEventListener('pointermove',move);
-      document.removeEventListener('pointerup',up);
-      el.classList.remove('dragging');
-      if(dragging){
-        clearDropTargets(); showAoe(false);
-        // 复位样式（renderCardBattle 会重建，此处仅兜底）
-        el.style.position=''; el.style.left=''; el.style.top=''; el.style.zIndex=''; el.style.pointerEvents='';
-        var tgt=document.elementFromPoint(ev.clientX, ev.clientY);
-        var r=resolveDrop(card, tgt);
-        if(r!==false && r!==undefined){ playCardOn(card, r); }
-        else { renderCardBattle(); }   // 落点无效，回弹
-      } else {
-        // 视为点击：切换选中
-        clearDropTargets(); showAoe(false);
-        if(cardState.selected===card.uid){ cardState.selected=null; renderCardBattle(); }
-        else { cardState.selected=card.uid; showDropTargets(card.target); if(card.target==='all') showAoe(true); renderCardBattle(); }
-      }
-    }
-    document.addEventListener('pointermove', move);
-    document.addEventListener('pointerup', up);
-  }
-
-  /** 依据卡牌目标类型解析落点元素 → 返回目标索引或 sentinel(-1 表示 self/AOE) 或 false(无效) */
-  function resolveDrop(card, tgtEl){
-    if(!tgtEl || !tgtEl.closest) return false;
-    var enemyEl=tgtEl.closest('.cb-enemy');
-    var fieldEl=tgtEl.closest('.cb-field');
-    var selfEl=tgtEl.closest('.cb-player');
-    if(card.target==='enemy'){
-      if(enemyEl && !enemyEl.classList.contains('dead')) return parseInt(enemyEl.dataset.idx,10);
-      return false;
-    }
-    if(card.target==='all'){
-      if(enemyEl || fieldEl) return -1;   // AOE：作用全体存活敌人
-      return false;
-    }
-    // self / flee：拖到玩家自身或场地均可
-    if(selfEl || fieldEl) return -1;
-    return false;
-  }
-
-  /** 高亮合法落点 */
-  function showDropTargets(target){
-    if(!cardBattleEl) return;
-    clearDropTargets();
-    if(target==='enemy' || target==='all'){
-      cardBattleEl.querySelectorAll('.cb-enemy:not(.dead)').forEach(function(el){ el.classList.add('drop-ok'); });
-    }
-    if(target==='all'){
-      var f=cardBattleEl.querySelector('.cb-field'); if(f) f.classList.add('aoe-ok');
-    }
-    if(target==='self' || target==='flee'){
-      var p=cardBattleEl.querySelector('.cb-player'); if(p) p.classList.add('drop-ok');
-      var f2=cardBattleEl.querySelector('.cb-field'); if(f2) f2.classList.add('aoe-ok');
-    }
-  }
-  function clearDropTargets(){
-    if(!cardBattleEl) return;
-    cardBattleEl.querySelectorAll('.drop-ok').forEach(function(el){ el.classList.remove('drop-ok'); });
-    var f=cardBattleEl.querySelector('.cb-field'); if(f) f.classList.remove('aoe-ok');
-  }
-  function showAoe(on){
-    if(!cardBattleEl) return;
-    var a=cardBattleEl.querySelector('.cb-aoe'); if(a) a.classList.toggle('show', !!on);
-  }
-  function showCardHint(msg){
-    if(!cardBattleEl) return;
-    var h=document.createElement('div'); h.className='cb-hint'; h.textContent=msg;
-    cardBattleEl.appendChild(h);
-    setTimeout(function(){ if(h.parentNode) h.parentNode.removeChild(h); }, 3200);
-  }
 
   // ===== 存档时间戳（仅用于读档续命，不再结算任何离线/放置收益）=====
 
