@@ -597,9 +597,10 @@
   .map-canvas.lv0 .map-zones{display:none;}
   .map-canvas.lv0 .map-svg{display:none;}
   .map-canvas.lv0 .map-region,.map-canvas.lv0 .map-region-t{display:none;}
-  .map-canvas.lv1 .map-states-svg{opacity:.62;}   /* 区域层仍保留可辨的州名，便于定位 */
+  .map-canvas.lv0 .map-states-svg{opacity:0;pointer-events:none;}   /* 全览只留轮廓，避免州名挤成一团 */
+  .map-canvas.lv1 .map-states-svg{opacity:.85;}   /* 区域档显示州名，便于定位 */
   .map-canvas.lv1 .map-svg{display:none;}
-  .map-canvas.lv2 .map-states-svg{display:none;}
+  .map-canvas.lv2 .map-states-svg{opacity:.42;}   /* 房间档州名淡显，与节点共存 */
   .map-canvas.lv2 .map-zones{display:none;}
   .map-canvas.lv2 .map-region-t{display:none;}
   .map-canvas.lv2 .map-region{opacity:.5;}
@@ -1322,7 +1323,7 @@
   .pcell-sell{position:absolute;left:3px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;z-index:3;}
   .pcell-dur{position:absolute;left:3px;top:2px;font-size:10px;color:#9fd0e0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;z-index:3;}
   /* 文字图标：以物品名排版替代 emoji（整字/2字/2+2两排/前词+缩小） */
-  .ic-txt{display:inline-block;max-width:100%;line-height:1.2;text-align:center;font-weight:700;letter-spacing:.01em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;}
+  .ic-txt{display:block;max-width:100%;line-height:1.22;text-align:center;font-weight:700;letter-spacing:.01em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:normal;overflow-wrap:anywhere;word-break:break-word;}
   .ic-txt b{font-weight:700;}
   .build-msg{margin:4px 0 6px;padding:6px 8px;border-radius:8px;background:rgba(120,200,140,.12);border:1px solid rgba(120,200,140,.35);color:#9fd9a8;text-align:center;font-size:13px;}
   .forge-bar{height:14px;background:rgba(0,0,0,.35);border:1px solid rgba(196,164,102,.35);border-radius:7px;overflow:hidden;margin:8px 2px 2px;}
@@ -1347,7 +1348,7 @@
   .shop-good{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(216,180,106,.4);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;padding:2px;box-sizing:border-box;overflow:hidden;}
   .shop-good:active{transform:scale(.97);background:rgba(216,180,106,.12);}
   .shop-good .sg-icon{font-size:24px;line-height:1;pointer-events:none;margin-bottom:2px;}
-  .shop-good .sg-name{font-size:11px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;width:100%;box-sizing:border-box;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 3px;}
+  .shop-good .sg-name{font-size:11px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;word-break:break-word;padding:2px 3px 0;}
   .shop-good .sg-buy{font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:1px 6px;margin-top:3px;pointer-events:none;}
   .shop-good.shop-bad{opacity:.45;}
   .shop-good.shop-bad .sg-buy{color:#e0796f;}
@@ -1639,7 +1640,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821m"></script>
+<script src="shared/config/constants.js?v=20260821n"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>

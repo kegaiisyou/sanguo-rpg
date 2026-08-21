@@ -85,6 +85,14 @@
 - **地图美化**：`.map-state-name` 加 `paint-order:stroke` 描边（深褐描边），提升古地图质感与可读性。
 - `VERSION` → `20260821m`，同步 `constants.js` / `map.js` 的 `?v=` 缓存参数。
 
+## 2026-08-21 · UI 修复（背包/货郎字完整显示 + 地图全览去重）（v20260821n）
+
+- **背包/货郎字全变省略号**：上轮 `white-space:nowrap; text-overflow:ellipsis` 在窄格子里把超宽名称截断成"…"。改为**横排换行完整显示**（`white-space:normal; overflow-wrap:anywhere; word-break:break-word`），物品/商品全称完整可见、不截断。
+- **背包图标留白**：`.pcell-ic` 由 `padding:1px 6px 12px` → `padding:4px 5px 16px`（四周留白、底部 16px 给堆叠数字让位，防互相遮挡）。
+- **地图州名重叠（全览档更甚）**：上轮把兖/豫/冀 `label` 归位到州中心，反而让中原密集州名（豫州↔司隶）贴在一起。改为**显示分层**：`lv0` 全览只留州轮廓、`opacity:0` 隐藏州名（永不挤成一团）；`lv1` 区域档 `opacity:.85` 显示州名；`lv2` 房间档 `opacity:.42` 淡显州名并与节点共存。彻底消除全览重叠。
+- `VERSION` → `20260821n`，同步 `constants.js` 的 `?v=` 缓存参数。
+- 说明：地图矢量结构（州界/河流/节点）已就绪，州名重叠靠"全览隐藏、放大显示"解决；若需真正的水墨底图，须用校准 prompt 重新生图（之前 `map_ai.png` 跑偏成集市插画，已废弃），该生图任务我无查询入口，可帮你起草 prompt 但你侧生成。
+
 ### 待办 / 已知问题
 - [ ] AI 水墨底图生成（重做，prompt 需校准）：任务曾提交成功且 DONE，但未取到下载地址（`assets/map_ai.png` 仍是早期错误图）；底图暂用纯 CSS 宣纸底兜底，出图后改 `.map-bg` 的 `background-image` 即可。
 - [ ] 可选优化：回到当前位置按钮、当前房间高亮飘字、塞外地形文字样式、道路动效。
