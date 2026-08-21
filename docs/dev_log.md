@@ -102,6 +102,12 @@
 - **`.shop-good` 间距微调**：`padding:2px → 3px` 给文字更多呼吸空间。
 - `VERSION` → `20260821o`，同步 `constants.js` 的 `?v=` 缓存参数。
 
+## 2026-08-21 · 紧急修复：货郎面板白屏（v20260821p）
+
+- **根因**：v20260821o 中 `fmtPrice`/`sgFontSize` 两个工具函数的插入编辑"成功但磁盘未变"（已多次出现此现象），而 `renderShopPanel` 的 `goodsGrid` 已经调用了 `sgFontSize(d.name)`/`fmtPrice(r.buy)`。结果函数未定义 → `renderShopPanel()` 抛 `ReferenceError` → 货郎交易面板整页白屏/出错。
+- **修复**：将 `fmtPrice`/`sgFontSize` 真正写入 `renderShopPanel` 函数体内、调用点之前（地址 4252-4265），确认 lint 0、调用链闭合。
+- `VERSION` → `20260821p`，同步 `constants.js` 的 `?v=` 缓存参数。
+
 ### 待办 / 已知问题
 - [ ] AI 水墨底图生成（重做，prompt 需校准）：任务曾提交成功且 DONE，但未取到下载地址（`assets/map_ai.png` 仍是早期错误图）；底图暂用纯 CSS 宣纸底兜底，出图后改 `.map-bg` 的 `background-image` 即可。
 - [ ] 可选优化：回到当前位置按钮、当前房间高亮飘字、塞外地形文字样式、道路动效。
