@@ -19,7 +19,7 @@
       ],
       ai: 'aggressive',
       drop: { gold: [10, 30], pot: [5, 15],
-        table: [{ item: 'shitiao', name: '石料', weight: 25 }, { item: 'mutou', name: '木头', weight: 30 }, { item: 'tiekuangshi', name: '铁矿石', weight: 12 }],
+        table: [{ item: 'shengrou', name: '生肉', weight: 22 }, { item: 'shitiao', name: '石料', weight: 25 }, { item: 'mutou', name: '木头', weight: 30 }, { item: 'tiekuangshi', name: '铁矿石', weight: 12 }],
         equip: { tier: 1, chance: 35 } }
     },
 
@@ -116,7 +116,7 @@
         { id: 'bite', name: '扑咬', beat: 28, dmgMul: 0.9, desc: '低吼扑上，张口便咬' }
       ],
       ai: 'aggressive',
-      drop: { gold: [3, 10], pot: [2, 6], table: [], equip: { tier: 1, chance: 20 } }
+      drop: { gold: [3, 10], pot: [2, 6], table: [{ item: 'shengrou', name: '生肉', weight: 18 }], equip: { tier: 1, chance: 20 } }
     },
     hungry_refugee: {
       id: 'hungry_refugee', name: '饥饿流民', title: '饿极暴起的难民',

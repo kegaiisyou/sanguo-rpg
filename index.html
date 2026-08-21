@@ -1317,7 +1317,7 @@
   .pcell-qbadge{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;box-shadow:0 0 2px rgba(0,0,0,.7);pointer-events:none;z-index:2;}
   .packcell .pcell-cnt{position:absolute;right:3px;bottom:2px;font-size:10px;color:#f0e2c0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   /* 文字图标：以物品名排版替代 emoji（整字/2字/2+2两排/前词+缩小） */
-  .ic-txt{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.14;text-align:center;font-weight:700;letter-spacing:.06em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:nowrap;}
+  .ic-txt{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.14;text-align:center;font-weight:700;letter-spacing:.02em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:normal;overflow-wrap:anywhere;}
   .ic-txt b{font-weight:700;}
   .ic-txt i{font-style:normal;font-size:.56em;opacity:.82;letter-spacing:.02em;}
   .ic-txt.ic-pair b,.ic-txt.ic-pair i{font-size:.82em;}
@@ -1346,7 +1346,7 @@
   .shop-good:active{transform:scale(.97);background:rgba(216,180,106,.12);}
   .shop-good .sg-icon{font-size:24px;line-height:1;pointer-events:none;margin-bottom:2px;}
   .shop-good .sg-name{font-size:11px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 3px;}
-  .shop-good .sg-buy{position:absolute;right:2px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
+  .shop-good .sg-buy{font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:1px 6px;margin-top:3px;pointer-events:none;}
   .shop-good.shop-bad{opacity:.45;}
   .shop-good.shop-bad .sg-buy{color:#e0796f;}
   .shop-right .pack-grid{grid-template-columns:repeat(3,1fr);gap:7px;}
@@ -1637,19 +1637,19 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821i"></script>
+<script src="shared/config/constants.js?v=20260821k"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
-<script src="shared/story/events.js?v=20260817c"></script>
+<script src="shared/story/events.js?v=20260821j"></script>
 <script src="shared/story/dialogues.js?v=20260820z"></script>
     <script src="shared/story/rooms.js?v=20260819j"></script>
-    <script src="shared/story/triggers.js?v=20260819i"></script>
+    <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
-<script src="shared/data/enemies.js?v=20260821i"></script>
-<script src="shared/data/items.js?v=20260821i"></script>
-    <script src="shared/data/recipes.js?v=20260821i"></script>
+<script src="shared/data/enemies.js?v=20260821j"></script>
+<script src="shared/data/items.js?v=20260821j"></script>
+    <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260820bd"></script>
@@ -3743,7 +3743,7 @@ window.onerror=function(msg,url,line,col,err){
     var activeCat = craftState.cat;
     function rowHTML(r){
       var can=r.in.every(function(x){ return cnt(x.id)>=x.n; });
-      var ins=r.in.map(function(x){ var d=DEFS[x.id]||{}; return itemIconHTML(d,16)+' '+d.name+'×'+x.n+' <span style="opacity:.6">('+cnt(x.id)+')</span>'; }).join(' ＋ ');
+      var ins=r.in.map(function(x){ var d=DEFS[x.id]||{}; return itemIconHTML(d,16)+'×'+x.n+' <span style="opacity:.6">('+cnt(x.id)+')</span>'; }).join(' ＋ ');
       var od=DEFS[r.out]||{};
       var btn='<button class="sheet-btn" '+(can?'':'data-dis="1" style="opacity:.45;"')+' data-r="'+r.id+'">'+(can?'制 作':'材 料 不 足')+'</button>';
       return '<div style="border:1px solid #6b5a3a;border-radius:8px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'+
@@ -3870,6 +3870,7 @@ window.onerror=function(msg,url,line,col,err){
       b.onclick=function(){ doRest(parseInt(b.getAttribute('data-rest'),10)||1); };
     });
     var lv=document.getElementById('m-rest-leave'); if(lv) lv.onclick=closeModal;
+    var ck=document.getElementById('m-rest-cook'); if(ck) ck.onclick=function(){ closeModal(); openModal('craft',{bench:'kitchen'}); };
   }
   // 执行自由时长休息：推进时间并按要求恢复
   function doRest(hours){
@@ -3957,36 +3958,11 @@ window.onerror=function(msg,url,line,col,err){
     log('你收起'+((LF.ITEMS[defId]||{}).name||'此物')+'，收进行囊。','sys');
     if(currentModalKind==='pack') openModal('pack');
   }
-  // ===== 文字图标：物品名排版替代 emoji =====
-  // 规则：单字=整字；二字=一行；三字=前2大+后1小；四字=2+2两排等大；
-  //       五字及以上：优先取前2/前3字中能成词的前缀大字，其余缩小
-  var ICON_WORDS = {};
-  (function(){
-    ['金疮','肉包','脏布','帽子','破烂','木棒','便携','腰包','虎头','鞶囊','简易','行装','皮革','包裹','采药','背篓','熟铜','护腰','小树','木头','木材','斧头','帐篷','工作台','篝火','草席','石料','砖头','铁料','草药','小囊','书囊','冶炼','工坊','窑炉','药炉','营地','流民','苦役','囚室','地道','暗门','塌墙','叛军','黄巾','白檀','军屯','驿站','驿站','官道','渡口','山隘','隘口','峡谷','山寨','木寨','土屋','草棚','柴门','竹篱','哨塔','箭楼','粮仓','草料','马厩','水井','磨坊','药圃','菜畦','果园','桑林','桃林','竹林','松林','石林','乱石','碎石','崖壁','洞窟','矿洞','铜矿','铁矿','煤矿','盐井','盐田'].forEach(function(w){ ICON_WORDS[w]=1; });
-  })();
-  function iconParts(name){
-    var n=(name||'').replace(/\s+/g,'');
-    if(!n) return {h:'?', s:'', pair:false};
-    var L=n.length;
-    if(L<=1) return {h:n, s:'', pair:false};
-    if(L===2) return {h:n, s:'', pair:false};
-    if(L===3) return {h:n.slice(0,2), s:n.slice(2), pair:false};
-    if(L===4) return {h:n.slice(0,2), s:n.slice(2), pair:true};
-    // L>=5：优先找能成词的前缀（先3后2），否则默认前2字
-    if(ICON_WORDS[n.slice(0,3)]) return {h:n.slice(0,3), s:n.slice(3), pair:false};
-    if(ICON_WORDS[n.slice(0,2)]) return {h:n.slice(0,2), s:n.slice(2), pair:false};
-    return {h:n.slice(0,2), s:n.slice(2), pair:false};
-  }
+  // ===== 文字图标：直接显示物品全称，统一字号（不再按字数拆分/缩小） =====
   function itemIconHTML(it, px){
-    var p = iconParts((it && (it.name||it.defId)) || '');
+    var n = (it && (it.name || it.defId)) || '';
     px = px || 16;
-    if(p.pair){
-      return '<span class="ic-txt ic-pair" style="font-size:'+px+'px;"><b>'+p.h+'</b><i>'+p.s+'</i></span>';
-    }
-    if(p.s){
-      return '<span class="ic-txt" style="font-size:'+px+'px;"><b>'+p.h+'</b><i>'+p.s+'</i></span>';
-    }
-    return '<span class="ic-txt ic-one" style="font-size:'+px+'px;"><b>'+p.h+'</b></span>';
+    return '<span class="ic-txt" style="font-size:'+px+'px;"><b>'+n+'</b></span>';
   }
   // ===== 营造系统：蓝图 → 工地 → 填充材料 → 分阶搭建 → 落成 =====
   // 工地/建筑在 placed 中以 { key, defId, bp, stage, got, done } 存储（见 roomObjs 渲染）
@@ -4085,7 +4061,7 @@ window.onerror=function(msg,url,line,col,err){
       var packN = (packFind(k)||{count:0}).count;
       var done = have >= need;
       html += '<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'
-        + '<span>'+itemIconHTML(it, 18)+' '+(it.name||k)+'</span>'
+        + '<span>'+itemIconHTML(it, 18)+'</span>'
         + '<span style="opacity:.8;flex:1;">'+have+' / '+need+'　·　行囊'+packN+'</span>'
         + (done ? '<span style="color:#8fce8f;">已备齐</span>' : '<button class="btn-mini" data-site="'+siteKey+'" data-mat="'+k+'">填充</button>')
         + '</div>';
@@ -4098,7 +4074,7 @@ window.onerror=function(msg,url,line,col,err){
     var icon = p && p.done ? (bp.doneIcon||'🏭') : (bp.siteIcon||'🏗️');
     var name = p && p.done ? (bp.doneName||'建筑') : (bp.siteName||'营造中');
     var msg = buildState.msg; buildState.msg='';
-    return '<h3 style="text-align:center;margin:0 0 4px;">'+itemIconHTML({name:name}, 18)+' '+name+'</h3>'
+    return '<h3 style="text-align:center;margin:0 0 4px;">'+itemIconHTML({name:name}, 18)+'</h3>'
       + (msg ? '<div class="build-msg">'+msg+'</div>' : '')
       + buildMatRows(buildState.site)
       + '<button class="sheet-leave" id="m-leave">收 工</button>';
@@ -4449,7 +4425,7 @@ window.onerror=function(msg,url,line,col,err){
     if(max<=0){ info.innerHTML='<div class="pack-inspect">银两或行囊不足，买不了'+(d.name||'此物')+'。</div>'; return; }
     var qs=[1,5,10].filter(function(q){ return q<=max; });
     if(qs.indexOf(max)<0) qs.push(max);
-    var html='<div class="pack-inspect"><div class="pi-name">'+itemIconHTML(d, 18)+' <span style="margin-left:4px;">买入 '+(d.name||'')+'（'+r.buy+'两/件 · 可买'+max+'件）</span></div><div class="pi-actions">'
+    var html='<div class="pack-inspect"><div class="pi-name">'+itemIconHTML(d, 18)+' <span style="margin-left:4px;">买入（'+r.buy+'两/件 · 可买'+max+'件）</span></div><div class="pi-actions">'
       + qs.map(function(q){ return '<button class="btn-mini" data-buyq="'+q+'" data-buyid="'+id+'">×'+q+'</button>'; }).join('')
       + '<button class="btn-mini" data-buyq="0" data-buyid="'+id+'" style="opacity:.6">取消</button>'
       + '</div></div>';
@@ -4815,7 +4791,7 @@ window.onerror=function(msg,url,line,col,err){
     var qname = it.qualityName || q.name;
     var qcolor = it.qualityColor || q.color;
     var html = '<div class="pack-inspect">';
-    html += '<div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(it, 22)+' <span style="margin-left:4px;">'+it.name+'</span></div>'
+    html += '<div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(it, 22)+'</div>'
           + '<div class="pi-meta"><span class="pi-cat">'+it.cat+'</span>'
           + '<span class="pi-quality" style="color:'+qcolor+'">'+qname+'</span>'
           + (it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'') + '</div></div></div>';
@@ -5327,15 +5303,13 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='party'){
       h=renderPartyPanel();
     } else if(kind==='quest'){
+      var qmark=function(v,ok){ return ok ? '<b style="color:#7fce8f;">'+v+'</b>' : '<span style="color:#d8c9a8;">'+v+'</span>'; };
+      var qt=(state.quest.tut==='done')?'✓ 已完成（铜钱+30·声望+3）':((state.quest.tut==='accepted')?'进行中（赴白檀军屯·燕山口南去）':'未接取（燕山口·老乞丐）');
       h='<h3>任 务</h3>'+
-        row('当前所处',curRoom().name)+
-        row('主线·剿匪', '山贼/流寇 '+state.quest.bandit+' · 盗匪 '+state.quest.turban)+
-        row('主线·斩华雄', state.quest.hua_xiong?'✓ 已斩（声望达'+state.reputation+'）':'未斩（声望需≥20）')+
-        row('地域·洛阳', state.quest.luoyang?'✓ 已解锁':'未解锁')+
-        row('新手·送信白檀', (state.quest&&state.quest.tut==='done')?'✓ 已完成（铜钱+30·声望+3）':((state.quest&&state.quest.tut==='accepted')?'进行中（赴白檀军屯·燕山口南去）':'未接取（燕山口·老乞丐）'))+
-        row('已习武学',state.learnedMartial.length+' 门')+
-        row('发力技巧',state.equippedForce.length+' 式')+
-        row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
+        row('主线·剿匪', qmark('山贼/流寇 '+state.quest.bandit+' · 盗匪 '+state.quest.turban, (state.quest.bandit+state.quest.turban)>0))+
+        row('主线·斩华雄', qmark(state.quest.hua_xiong?'✓ 已斩（声望达'+state.reputation+'）':'未斩（声望需≥20）', state.quest.hua_xiong))+
+        row('地域·洛阳', qmark(state.quest.luoyang?'✓ 已解锁':'未解锁', state.quest.luoyang))+
+        row('新手·送信白檀', qmark(qt, state.quest.tut==='done'))+
         '<p class="tip">「颍川城」寻胡商购药、助医馆华老；「山林」巡山剿匪可领县尉韩伯托付；「溪畔」访水镜先生与左慈。后续章节随主线推进开启。</p>';
     } else if(kind==='map'){
       h=buildMapHTML({});

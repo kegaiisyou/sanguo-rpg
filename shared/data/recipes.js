@@ -27,6 +27,11 @@ LF.RECIPES = {
     { id:'forg_sword', cat:'兵刃类', name:'铁剑', icon:'⚔️', out:'tiejian', outN:1, in:[{id:'tiekuai', n:3},{id:'mutou', n:1}], note:'铁料入炉锻打，配上木柄，成一柄冷冽铁剑' },
     { id:'forg_axe', cat:'工具类', name:'铁斧', icon:'🪓', out:'tiefu', outN:1, in:[{id:'tiekuai', n:2},{id:'mucai', n:1}], note:'铁料锻斧，刃利耐磨损，伐木采石更趁手' },
     { id:'forg_horse', cat:'杂类', name:'铁马掌', icon:'🧲', out:'tiema', outN:1, in:[{id:'tiekuai', n:1}], note:'余料锻成马蹄铁，可售与马市换银两' }
+  ],
+  // 炊事灶（篝火 / 客栈 / 草庐 皆可调取）：素材 → 疗伤与干粮，打通生存闭环
+  kitchen: [
+    { id:'brew_jinchuang', cat:'疗伤类', name:'金疮药', icon:'🧪', out:'jinchuang', outN:1, in:[{id:'caoyao', n:2}], note:'两味草药捣敷，止血生肌——可疗外伤五十' },
+    { id:'cook_roubao', cat:'干粮类', name:'肉包子', icon:'🥟', out:'roubao', outN:1, in:[{id:'shengrou', n:1}], note:'生肉裹面炊熟成包——食+20 饮+5，解一时饥渴' }
   ]
   // 后续工作台（矿炉 / 铁砧 / 织机 …）仅需在此追加对应 key 即可
 };

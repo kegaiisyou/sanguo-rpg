@@ -140,6 +140,13 @@
     ]
   });
 
+  // 凯旋钩子：斩华雄、凯旋后首访洛阳，触发「关东盟檄」事件，铺陈第二章三条线
+  TRIGGERS.push({
+    id: 'kaixuan_hook', hook: 'onEnter', room: 'luoyang', once: true,
+    cond: { flags: { 'quest.luoyang': true } },
+    steps: [ { event: 'ev_kaixuan_decree' } ]
+  });
+
   LF.TRIGGERS = TRIGGERS;
   if (LF.SharedGame) LF.SharedGame.TRIGGERS = TRIGGERS;
   if (typeof module !== 'undefined' && module.exports) module.exports = TRIGGERS;

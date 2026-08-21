@@ -211,6 +211,21 @@
           result: '你指尖一紧，刺客便软了下去。搜出腰牌与钱袋，你面无表情地没入廊影。' }
       ]
     }
+  ,
+    {
+      id: 'ev_kaixuan_decree', title: '凯旋 · 关东盟檄',
+      text: '洛阳城中，贺宴方歇。忽有快马入城，自酸枣传下关东诸侯联署的盟檄——董卓焚京、挟帝西迁，诸侯已起兵讨之。亦有人笑你：「江湖路阔，何不自立？」又有道长遥指：「乱世武学，正待名师。」',
+      choices: [
+        { text: '〔受檄〕赴酸枣，会盟诸侯共讨董卓', moral: 'chivalry', effect: { reputation: 3, xp: 15, flag: 'ch2_league' },
+          result: '你接下盟檄，整束行装。第二章·讨董联军线，待续。' },
+        { text: '〔游历〕江湖方阔，先去蓟北、白檀等处闯荡', effect: { xp: 10, flag: 'ch2_wander' },
+          result: '你一笑置之，纵马向野。开放世界线，待续。' },
+        { text: '〔寻师〕乱世武学，欲拜入名门正道', effect: { flag: 'ch2_sect' },
+          result: '你暗记此事，留意名师踪迹。门派线，待续。' },
+        { text: '〔辞谢〕且回营中，容后再议', effect: {},
+          result: '你称谢收下请帖，暂且告退。' }
+      ]
+    }
   ];
   global.LF = global.LF || {};
   global.LF.EVENTS = EVENTS;

@@ -56,6 +56,7 @@
     shutong:        { defId: 'shutong',        name: '熟铜护腰', icon: '🪢', cat: '装备', slot: 'belt', stats: { def: 1 }, desc: '熟铜片缀就的护腰，堪挡一刀（防御 +1）。', quality: 'white' },
     // —— 素材：野外采集所得 ——
     caoyao:         { defId: 'caoyao',         name: '草药',     icon: '🌿', cat: '素材', desc: '山野可入药的茎叶，多凑几味可合成疗伤之物。' },
+    shengrou:       { defId: 'shengrou',       name: '生肉',     icon: '🥩', cat: '素材', desc: '猎获或劫掠所得的生肉，于篝火炊制可成一包肉脯干粮。' },
     // —— 建造/制造系统测试素材 ——
     xiaoshuzhi:    { defId: 'xiaoshuzhi', name: '小树枝', icon: '🍂', cat: '素材', desc: '徒手折下的细弱枝条，需于木工台加工方能成材。' },
     mutou:         { defId: 'mutou',   name: '木头',   icon: '🪵', cat: '素材', desc: '粗伐的树干枝料，可于木工台加工成木材，亦能直接搭架。' },
