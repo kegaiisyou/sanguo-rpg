@@ -1313,9 +1313,17 @@
   .pack-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
   @media (max-width:560px){ /* UISPEC.BREAKPOINTS.MOBILE_MAX=560 */ .pack-grid{grid-template-columns:repeat(3,1fr);gap:7px;} }
   .packcell{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;overflow:hidden;box-sizing:border-box;}
-  .packcell .pcell-nm{font-size:13px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;padding:0 3px;text-shadow:0 1px 2px rgba(0,0,0,.55);}
+  .packcell .pcell-ic{display:flex;align-items:center;justify-content:center;pointer-events:none;min-height:26px;width:100%;}
+  .packcell .pcell-nm{font-size:11px;color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;padding:0 3px;text-shadow:0 1px 2px rgba(0,0,0,.55);}
   .pcell-qbadge{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;box-shadow:0 0 2px rgba(0,0,0,.7);pointer-events:none;z-index:2;}
   .packcell .pcell-cnt{position:absolute;right:3px;bottom:2px;font-size:10px;color:#f0e2c0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
+  /* 文字图标：以物品名排版替代 emoji（整字/2字/2+2两排/前词+缩小） */
+  .ic-txt{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.14;text-align:center;font-weight:700;letter-spacing:.06em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:nowrap;}
+  .ic-txt b{font-weight:700;}
+  .ic-txt i{font-style:normal;font-size:.56em;opacity:.82;letter-spacing:.02em;}
+  .ic-txt.ic-pair b,.ic-txt.ic-pair i{font-size:.82em;}
+  .ic-txt.ic-one b{font-size:1.2em;}
+  .build-msg{margin:4px 0 6px;padding:6px 8px;border-radius:8px;background:rgba(120,200,140,.12);border:1px solid rgba(120,200,140,.35);color:#9fd9a8;text-align:center;font-size:13px;}
   .pcell-sel{outline:2px solid #d8b46a;box-shadow:0 0 10px rgba(216,180,106,.6);}
   .pcell-insp{outline:2px solid #6fb0c9;box-shadow:0 0 10px rgba(111,176,201,.55);}
   /* ===== 商店（货郎）双栏：左货品 / 右行囊 ===== */
@@ -1628,7 +1636,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821e"></script>
+<script src="shared/config/constants.js?v=20260821f"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1639,8 +1647,9 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260819i"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260813a"></script>
-<script src="shared/data/items.js?v=20260820aa"></script>
-    <script src="shared/data/recipes.js?v=20260820aa"></script>
+<script src="shared/data/items.js?v=20260821f"></script>
+    <script src="shared/data/recipes.js?v=20260821f"></script>
+    <script src="shared/data/build.js?v=20260821f"></script>
     <script src="shared/data/shops.js?v=20260820aa"></script>
     <script src="shared/data/map.js?v=20260820bd"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
@@ -3006,6 +3015,8 @@ window.onerror=function(msg,url,line,col,err){
         {label:'邀请入队', icon:'🤝', fn:function(){ recruitCompanion('liupan'); }}
       ]},
       {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+      {type:'feature', key:'quarry',   icon:'🪨', name:'采石崖',   desc:'崖壁裸露青石，敲击可采下石料',     actions: build_quarry_actions},
+      {type:'feature', key:'crate',    icon:'📦', name:'残破木箱', desc:'半埋草垛里的旧木箱，似有人遗落了图纸', actions: build_crate_actions},
       {type:'exit',  dir:'北',     icon:'🚪', name:'北·北邙山林',desc:'返回山林',                        actions:[{label:'返回北邙山林', fn:function(){ move('北','forest'); }}]}
     ],
     stream:[
@@ -3719,11 +3730,11 @@ window.onerror=function(msg,url,line,col,err){
     var activeCat = craftState.cat;
     function rowHTML(r){
       var can=r.in.every(function(x){ return cnt(x.id)>=x.n; });
-      var ins=r.in.map(function(x){ var d=DEFS[x.id]||{}; return (d.icon||'')+d.name+'×'+x.n+' <span style="opacity:.6">('+cnt(x.id)+')</span>'; }).join(' ＋ ');
+      var ins=r.in.map(function(x){ var d=DEFS[x.id]||{}; return itemIconHTML(d,16)+' '+d.name+'×'+x.n+' <span style="opacity:.6">('+cnt(x.id)+')</span>'; }).join(' ＋ ');
       var od=DEFS[r.out]||{};
       var btn='<button class="sheet-btn" '+(can?'':'data-dis="1" style="opacity:.45;"')+' data-r="'+r.id+'">'+(can?'制 作':'材 料 不 足')+'</button>';
       return '<div style="border:1px solid #6b5a3a;border-radius:8px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'+
-               '<div style="font-size:16px;margin-bottom:4px;">'+od.icon+' <b>'+od.name+'×'+r.outN+'</b></div>'+
+               '<div style="font-size:16px;margin-bottom:4px;">'+itemIconHTML(od,20)+' <b>'+od.name+'×'+r.outN+'</b></div>'+
                '<div style="font-size:13px;color:#d8c9a8;margin-bottom:6px;">'+ins+'</div>'+
                '<div style="font-size:12px;opacity:.6;margin-bottom:8px;">'+r.note+'</div>'+
                btn+'</div>';
@@ -3830,10 +3841,17 @@ window.onerror=function(msg,url,line,col,err){
     var base = ROOM_OBJECTS[roomId] || [];
     var placed = (state.placed && state.placed[roomId]) || [];
     var dyn = placed.map(function(p){
+      if(p.bp){
+        var bp = LF.BUILD[p.bp] || {};
+        if(p.done){
+          return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.doneName||'建筑'}, 14), name:bp.doneName||'建筑', desc:bp.desc||'', actions:buildDoneActions(bp.key||p.key, bp)};
+        }
+        return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.siteName||'营造中'}, 14), name:bp.siteName||'营造中', desc:bp.desc||'', actions:buildSiteActions(bp.key||p.key)};
+      }
       var defId = p.defId || PLACE_KEY_DEF[p.key];
       var pl = ((LF.ITEMS[defId]||{}).place) || {};
       var acts = PLACE_ACTIONS[pl.actions] || function(){ return []; };
-      return {type:'feature', key:pl.key||p.key, icon:pl.icon||'❓', name:pl.name||'未知物', desc:pl.desc||'', actions:acts};
+      return {type:'feature', key:pl.key||p.key, icon:itemIconHTML({name:pl.name||'未知物'}, 14), name:pl.name||'未知物', desc:pl.desc||'', actions:acts};
     });
     // 放置物覆盖同 key 的静态 feature（如收起的工作台摆放后，静态木工台不再重复显示）
     var dynKeys={}; dyn.forEach(function(o){ dynKeys[o.key]=1; });
@@ -3843,12 +3861,28 @@ window.onerror=function(msg,url,line,col,err){
   function placeInspect(){
     if(!packInspect || packInspect.kind!=='pack') return;
     var idx=packInspect.idx; var it=state.pack[idx];
+    if(!it) return;
+    // 图纸类：依图在房中营造建筑（多阶段、需填充材料）
+    var bpId = (LF.ITEMS[it.defId]||{}).blueprint;
+    if(bpId){
+      var bp = LF.BUILD[bpId] || {};
+      state.placed = state.placed || {};
+      state.placed[state.room] = state.placed[state.room] || [];
+      if(state.placed[state.room].some(function(o){ return o.bp===bpId; })){ toast('此处已在营造'+(bp.siteName||'该建筑')+'。'); return; }
+      if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
+      state.placed[state.room].push({key:bp.key, defId:it.defId, bp:bpId, stage:0, got:{}});
+      packInspect=null;
+      afterPackChange();
+      log('你展开'+it.name+'，依图在'+curRoom().name+'勘定地基，开工营造。','sys');
+      if(currentModalKind==='pack') openModal('pack');
+      return;
+    }
     var pl = (it && (it.place || ((LF.ITEMS[it.defId]||{}).place))) || null;
-    if(!it || !(it.placeable || pl)) return;
+    if(!(it.placeable || pl)) return;
     state.placed = state.placed || {};
     state.placed[state.room] = state.placed[state.room] || [];
     if(state.placed[state.room].some(function(o){ return o.key===pl.key; })){ toast('此处已支有'+pl.name+'。'); return; }
-    state.pack[idx]=null;
+    if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
     state.placed[state.room].push({key:pl.key, defId:it.defId});
     packInspect=null;
     afterPackChange();
@@ -3869,6 +3903,189 @@ window.onerror=function(msg,url,line,col,err){
     log('你收起'+((LF.ITEMS[defId]||{}).name||'此物')+'，收进行囊。','sys');
     if(currentModalKind==='pack') openModal('pack');
   }
+  // ===== 文字图标：物品名排版替代 emoji =====
+  // 规则：单字=整字；二字=一行；三字=前2大+后1小；四字=2+2两排等大；
+  //       五字及以上：优先取前2/前3字中能成词的前缀大字，其余缩小
+  var ICON_WORDS = {};
+  (function(){
+    ['金疮','肉包','脏布','帽子','破烂','木棒','便携','腰包','虎头','鞶囊','简易','行装','皮革','包裹','采药','背篓','熟铜','护腰','小树','木头','木材','斧头','帐篷','工作台','篝火','草席','石料','砖头','铁料','草药','小囊','书囊','冶炼','工坊','窑炉','药炉','营地','流民','苦役','囚室','地道','暗门','塌墙','叛军','黄巾','白檀','军屯','驿站','驿站','官道','渡口','山隘','隘口','峡谷','山寨','木寨','土屋','草棚','柴门','竹篱','哨塔','箭楼','粮仓','草料','马厩','水井','磨坊','药圃','菜畦','果园','桑林','桃林','竹林','松林','石林','乱石','碎石','崖壁','洞窟','矿洞','铜矿','铁矿','煤矿','盐井','盐田'].forEach(function(w){ ICON_WORDS[w]=1; });
+  })();
+  function iconParts(name){
+    var n=(name||'').replace(/\s+/g,'');
+    if(!n) return {h:'?', s:'', pair:false};
+    var L=n.length;
+    if(L<=1) return {h:n, s:'', pair:false};
+    if(L===2) return {h:n, s:'', pair:false};
+    if(L===3) return {h:n.slice(0,2), s:n.slice(2), pair:false};
+    if(L===4) return {h:n.slice(0,2), s:n.slice(2), pair:true};
+    // L>=5：优先找能成词的前缀（先3后2），否则默认前2字
+    if(ICON_WORDS[n.slice(0,3)]) return {h:n.slice(0,3), s:n.slice(3), pair:false};
+    if(ICON_WORDS[n.slice(0,2)]) return {h:n.slice(0,2), s:n.slice(2), pair:false};
+    return {h:n.slice(0,2), s:n.slice(2), pair:false};
+  }
+  function itemIconHTML(it, px){
+    var p = iconParts((it && (it.name||it.defId)) || '');
+    px = px || 16;
+    if(p.pair){
+      return '<span class="ic-txt ic-pair" style="font-size:'+px+'px;"><b>'+p.h+'</b><i>'+p.s+'</i></span>';
+    }
+    if(p.s){
+      return '<span class="ic-txt" style="font-size:'+px+'px;"><b>'+p.h+'</b><i>'+p.s+'</i></span>';
+    }
+    return '<span class="ic-txt ic-one" style="font-size:'+px+'px;"><b>'+p.h+'</b></span>';
+  }
+  // ===== 营造系统：蓝图 → 工地 → 填充材料 → 分阶搭建 → 落成 =====
+  // 工地/建筑在 placed 中以 { key, defId, bp, stage, got, done } 存储（见 roomObjs 渲染）
+  function findPlacedBp(siteKey){
+    var arr = (state.placed && state.placed[state.room]) || [];
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey) return arr[i]; }
+    return null;
+  }
+  function buildSiteActions(siteKey){
+    return [
+      {label:'查看进度', icon:'📋', fn:function(){ inspectBuildSite(siteKey); }},
+      {label:'填充材料', icon:'🧺', fn:function(){ openModal('build', {site:siteKey}); }},
+      {label:'搭建', icon:'🔨', fn:function(){ buildStage(siteKey); }}
+    ];
+  }
+  function buildDoneActions(siteKey, bp){
+    var acts = [];
+    if(bp.done === 'forge'){
+      acts.push({label:'熔石取铁', icon:'🔥', fn:function(){ forgeSmelt(siteKey); }});
+    }
+    acts.push({label:'端详', icon:'👁', fn:function(){ log('〔'+bp.doneName+'〕'+(bp.desc||''), 'sys'); }});
+    return acts;
+  }
+  function inspectBuildSite(siteKey){
+    var p = findPlacedBp(siteKey); if(!p) return;
+    var bp = LF.BUILD[p.bp]; if(!bp) return;
+    var stages = bp.stages || [];
+    if(p.done){ log('〔'+bp.doneName+'〕'+bp.desc, 'good'); return; }
+    var stage = stages[p.stage];
+    if(!stage){ log('〔'+bp.siteName+'〕工事已完，只待收尾落成。', 'sys'); return; }
+    var parts = [];
+    for(var k in stage.need){
+      var it = LF.ITEMS[k] || {};
+      parts.push((it.name||k)+' '+(p.got[k]||0)+'/'+stage.need[k]);
+    }
+    var next = stages[p.stage+1] ? '；完成后将进行「'+stages[p.stage+1].name+'」' : '；此为最后一程，搭建完毕即可落成';
+    log('〔'+bp.siteName+'·第'+(p.stage+1)+'/'+stages.length+'阶·'+stage.name+'〕所需：'+parts.join('、')+next, 'sys');
+  }
+  function buildAddMat(siteKey, matId){
+    var p = findPlacedBp(siteKey); if(!p) return;
+    var bp = LF.BUILD[p.bp]; if(!bp || p.done) return;
+    var stage = (bp.stages||[])[p.stage]; if(!stage) return;
+    var need = stage.need[matId]; if(!need) return;
+    if((p.got[matId]||0) >= need){ toast('该材料已填满此阶段所需。'); return; }
+    var cur = packFind(matId);
+    if(!cur || (cur.count||0) < 1){ toast('行囊中无'+(LF.ITEMS[matId]||{}).name+'。'); return; }
+    packConsume(matId, 1);
+    p.got[matId] = (p.got[matId]||0) + 1;
+    save(state); afterPackChange();
+    var matName=(LF.ITEMS[matId]||{}).name || matId;
+    log('你填入'+matName+'×1，'+stage.name+'更近一步。','env');
+    buildState.msg = '已填入 '+matName+'×1，'+stage.name+'更近一步。';
+    if(currentModalKind==='build') openModal('build', {site:siteKey});
+  }
+  function buildStage(siteKey){
+    var p = findPlacedBp(siteKey); if(!p) return;
+    var bp = LF.BUILD[p.bp]; if(!bp) return;
+    var stages = bp.stages || [];
+    if(p.done){ toast(bp.doneName+'已然落成。'); return; }
+    var stage = stages[p.stage];
+    if(!stage){ p.done = true; save(state); afterPackChange(); log('工事收尾，'+bp.doneName+'落成！','good'); buildActions(G.ROOMS[state.room]); return; }
+    for(var k in stage.need){ if((p.got[k]||0) < stage.need[k]){ toast('「'+stage.name+'」材料未齐，无法搭建。'); return; } }
+    p.stage++;
+    save(state); afterPackChange();
+    if(p.stage >= stages.length){
+      p.done = true;
+      log('你抟土垒石、架木为炉——'+bp.doneName+'终告落成！','good');
+    } else {
+      log('你完成了「'+stage.name+'」，工事推进至「'+stages[p.stage].name+'」。','env');
+    }
+    buildActions(G.ROOMS[state.room]);
+  }
+  // 营造面板
+  var buildState = { site:null, msg:'' };
+  function buildMatRows(siteKey){
+    var p = findPlacedBp(siteKey); if(!p) return '<p class="tip">此处并无营造工地。</p>';
+    var bp = LF.BUILD[p.bp]; if(!bp) return '<p class="tip">未知图纸。</p>';
+    if(p.done) return '<p class="tip">'+(bp.doneIcon||'')+' '+bp.doneName+'已然落成。'+(bp.desc||'')+'</p>';
+    var stages = bp.stages || [];
+    var stage = stages[p.stage];
+    if(!stage) return '<p class="tip">工事已完，只待收尾——去工地「搭建」即可落成。</p>';
+    var html = '<p class="tip">营造进度：'+p.stage+' / '+stages.length+'　当前·<b>'+stage.name+'</b></p>';
+    for(var k in stage.need){
+      var it = LF.ITEMS[k] || {};
+      var have = p.got[k] || 0;
+      var need = stage.need[k];
+      var packN = (packFind(k)||{count:0}).count;
+      var done = have >= need;
+      html += '<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'
+        + '<span>'+itemIconHTML(it, 18)+' '+(it.name||k)+'</span>'
+        + '<span style="opacity:.8;flex:1;">'+have+' / '+need+'　·　行囊'+packN+'</span>'
+        + (done ? '<span style="color:#8fce8f;">已备齐</span>' : '<button class="btn-mini" data-site="'+siteKey+'" data-mat="'+k+'">填充</button>')
+        + '</div>';
+    }
+    return html;
+  }
+  function renderBuildPanel(){
+    var p = findPlacedBp(buildState.site);
+    var bp = p ? (LF.BUILD[p.bp]||{}) : {};
+    var icon = p && p.done ? (bp.doneIcon||'🏭') : (bp.siteIcon||'🏗️');
+    var name = p && p.done ? (bp.doneName||'建筑') : (bp.siteName||'营造中');
+    var msg = buildState.msg; buildState.msg='';
+    return '<h3 style="text-align:center;margin:0 0 4px;">'+itemIconHTML({name:name}, 18)+' '+name+'</h3>'
+      + (msg ? '<div class="build-msg">'+msg+'</div>' : '')
+      + buildMatRows(buildState.site)
+      + '<button class="sheet-leave" id="m-leave">收 工</button>';
+  }
+  function bindBuildPanel(){
+    $card.querySelectorAll('[data-mat]').forEach(function(b){
+      b.onclick=function(){ buildAddMat(b.getAttribute('data-site'), b.getAttribute('data-mat')); };
+    });
+    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
+  }
+  // 采石崖：采石料（每日限次，与采药一致）
+  function mineStone(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    state.buildCount = state.buildCount || {};
+    var k = state.room + '@' + state.day;
+    if((state.buildCount[k]||0) >= 3){ toast('此处今日已采过三回，崖壁渐薄，明日再来。'); return; }
+    advanceTime(1);
+    state.buildCount[k] = (state.buildCount[k]||0) + 1;
+    packAdd('shitiao', 1);
+    afterPackChange();
+    log('你抡镐凿石，哐哐数声，剥下石料×1。','env');
+  }
+  function build_quarry_actions(){
+    return [{label:'采石料', icon:'⛏️', fn:function(){ mineStone(); }}];
+  }
+  // 残破木箱：一次性拾取「冶炼工坊图」
+  function build_crate_actions(){
+    var got = state.flags && state.flags.buildCrateGot;
+    if(got) return [{label:'木箱已空', icon:'📭', fn:function(){ toast('木箱已然空了。'); }}];
+    return [{label:'翻找木箱', icon:'🔍', fn:function(){ openBuildCrate(); }}];
+  }
+  function openBuildCrate(){
+    state.flags = state.flags || {};
+    if(state.flags.buildCrateGot){ toast('木箱已然空了。'); return; }
+    state.flags.buildCrateGot = true;
+    packAdd('tuzhi_yeolian', 1);
+    afterPackChange();
+    log('你拨开草垛，旧木箱里静静躺着一卷泛黄的《冶炼工坊图》。','good');
+    buildActions(G.ROOMS[state.room]);
+  }
+  // 冶炼工坊：熔石取铁（石料 → 铁料）
+  function forgeSmelt(){
+    var cur = packFind('shitiao');
+    if(!cur || (cur.count||0) < 1){ toast('炉中无石料可熔。'); return; }
+    advanceTime(1);
+    packConsume('shitiao', 1);
+    packAdd('tiekuai', 1);
+    afterPackChange();
+    log('炉火彤彤，你投石入炉，风箱鼓动，熔得铁料×1。','env');
+  }
   // 货郎商店数据已外置到 shared/data/shops.js（详见 LF.SHOPS.build_pedlar），便于调价与扩展
   var shopState='build_pedlar';
   var shopSel=null;
@@ -3886,7 +4103,7 @@ window.onerror=function(msg,url,line,col,err){
       var d=DEFS[r.id]||{};
       var canBuy = state.gold>=r.buy;
       return '<div class="shop-good'+(canBuy?'':' shop-bad')+'" data-shop="'+r.id+'">'
-        + '<div class="sg-icon">'+(d.icon||'❓')+'</div>'
+        + '<div class="sg-icon">'+itemIconHTML(d, 22)+'</div>'
         + '<div class="sg-name">'+d.name+'</div>'
         + '<div class="sg-buy">买 '+r.buy+' 两</div>'
         + '</div>';
@@ -3902,6 +4119,7 @@ window.onerror=function(msg,url,line,col,err){
       var durTag = (it.maxDur) ? '<span class="pcell-dur">'+it.dur+'/'+it.maxDur+'</span>' : '';
       var selCls = (shopSel===i)?' pcell-sel':'';
       grid += '<div class="packcell'+selCls+'" data-loc="pack:'+i+'">'
+            + '<div class="pcell-ic">'+itemIconHTML(it,20)+'</div>'
             + '<div class="pcell-nm">'+it.name+'</div>'
             + cnt + sellTag + durTag + '</div>';
     }
@@ -3919,7 +4137,7 @@ window.onerror=function(msg,url,line,col,err){
     if(shopSel==null || !state.pack[shopSel]) return '<div class="pack-inspect pack-inspect-empty">点选右边物品，可见售价与详情；拖到左栏即可出售。</div>';
     var it=state.pack[shopSel]; var d=LF.ITEMS[it.defId]||{};
     var sp=shopSellPrice(it.defId);
-    var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'+(d.icon||'')+' '+it.name+'</div>'
+    var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(it, 20)+' <span style="margin-left:4px;">'+it.name+'</span></div>'
       + '<div class="pi-meta"><span class="pi-cat">'+it.cat+'</span>'+(it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'')+'</div></div></div>';
     if(it.maxDur){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); html+='<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span></div>'; }
     if(it.desc) html+='<div class="pi-desc">'+it.desc+'</div>';
@@ -4063,7 +4281,7 @@ window.onerror=function(msg,url,line,col,err){
     if(max<=0){ info.innerHTML='<div class="pack-inspect">银两或行囊不足，买不了'+(d.name||'此物')+'。</div>'; return; }
     var qs=[1,5,10].filter(function(q){ return q<=max; });
     if(qs.indexOf(max)<0) qs.push(max);
-    var html='<div class="pack-inspect"><div class="pi-name">买入 '+(d.icon||'')+' '+(d.name||'')+'（'+r.buy+'两/件 · 可买'+max+'件）</div><div class="pi-actions">'
+    var html='<div class="pack-inspect"><div class="pi-name">'+itemIconHTML(d, 18)+' <span style="margin-left:4px;">买入 '+(d.name||'')+'（'+r.buy+'两/件 · 可买'+max+'件）</span></div><div class="pi-actions">'
       + qs.map(function(q){ return '<button class="btn-mini" data-buyq="'+q+'" data-buyid="'+id+'">×'+q+'</button>'; }).join('')
       + '<button class="btn-mini" data-buyq="0" data-buyid="'+id+'" style="opacity:.6">取消</button>'
       + '</div></div>';
@@ -4386,6 +4604,7 @@ window.onerror=function(msg,url,line,col,err){
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
+            + '<div class="pcell-ic">'+itemIconHTML(it,20)+'</div>'
             + '<div class="pcell-nm">'+it.name+'</div>'
             + cnt + qb + '</div>';
     }
@@ -4429,7 +4648,7 @@ window.onerror=function(msg,url,line,col,err){
     var qname = it.qualityName || q.name;
     var qcolor = it.qualityColor || q.color;
     var html = '<div class="pack-inspect">';
-    html += '<div class="pi-head"><div class="pi-titles"><div class="pi-name">'+it.name+'</div>'
+    html += '<div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(it, 22)+' <span style="margin-left:4px;">'+it.name+'</span></div>'
           + '<div class="pi-meta"><span class="pi-cat">'+it.cat+'</span>'
           + '<span class="pi-quality" style="color:'+qcolor+'">'+qname+'</span>'
           + (it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'') + '</div></div></div>';
@@ -4469,7 +4688,9 @@ window.onerror=function(msg,url,line,col,err){
       else act += '<button class="btn-mini" onclick="LFUI.equipInspect()">装备</button>';
     } else {
       if(it.effect) act += '<button class="btn-mini" onclick="LFUI.useInspect()">使用</button>';
-      if(it.placeable || (LF.ITEMS[it.defId]||{}).placeable || (LF.ITEMS[it.defId]||{}).place) act += '<button class="btn-mini" onclick="LFUI.placeInspect()">放置</button>';
+      var canPlace = it.placeable || (LF.ITEMS[it.defId]||{}).placeable || (LF.ITEMS[it.defId]||{}).place;
+      var isBlueprint = !!(LF.ITEMS[it.defId]||{}).blueprint;
+      if(canPlace || isBlueprint) act += '<button class="btn-mini" onclick="LFUI.placeInspect()">'+(isBlueprint?'依图营造':'放置')+'</button>';
     }
     if(packInspect.kind==='pack') act += '<button class="btn-mini" onclick="LFUI.discardInspect()">丢弃</button>';
     act += '<button class="btn-mini" onclick="LFUI.closeInspect()">关闭</button>';
@@ -5003,6 +5224,9 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='shop'){
       if(opts && opts.shop) shopState=opts.shop;
       h=renderShopPanel();
+    } else if(kind==='build'){
+      if(opts && opts.site) buildState.site = opts.site;
+      h=renderBuildPanel();
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop');
@@ -5011,6 +5235,7 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='pack'){ bindPackInteractions(); }
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ bindShopPanel(); }
+    if(kind==='build'){ bindBuildPanel(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};

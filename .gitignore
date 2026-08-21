@@ -15,6 +15,7 @@ _dom_stdout.txt
 _*.py
 _*.txt
 _*.png
+_serve.js
 _*.geojson
 pv*.png
 pvgrid.png

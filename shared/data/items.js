@@ -72,7 +72,13 @@
       desc: '一捆干柴点起的营火。于背包「放置」后，可烤火取暖恢复精力、烘热干粮。' },
     sleepmat:      { defId: 'sleepmat', name: '草席', icon: '🛏️', cat: '器具', placeable:true,
       place:{ key:'sleepmat', icon:'🛏️', name:'草席', desc:'一领草编卧席，铺地即可小睡养神', actions:'sleepmat' },
-      desc: '轻便的草编卧席。于背包「放置」后铺地，可躺下小睡，回复气血内力。' }
+      desc: '轻便的草编卧席。于背包「放置」后铺地，可躺下小睡，回复气血内力。' },
+    // —— 营造系统：建材与图纸 ——
+    shitiao:        { defId: 'shitiao',       name: '石料', icon: '🪨', cat: '素材', desc: '采自岩壁的石块，夯基砌灶的硬底料。' },
+    zhuan:          { defId: 'zhuan',         name: '砖头', icon: '🧱', cat: '素材', desc: '窑烧而成的土砖，垒砌围墙与炉体的规整块材。' },
+    tiekuai:        { defId: 'tiekuai',       name: '铁料', icon: '⛓️', cat: '素材', desc: '冶炼工坊熔石取铁所得，打造兵刃器具的关键材料。' },
+    tuzhi_yeolian:  { defId: 'tuzhi_yeolian', name: '冶炼工坊图', icon: '📜', cat: '图纸', blueprint: 'bp_yeolian', price: 30,
+      desc: '营造冶炼工坊的图样。于背包「依图营造」置于房中，备料后可分阶筑成工坊，炉成可熔石取铁。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
@@ -132,6 +138,7 @@
     if (d.maxDur) { it.maxDur = d.maxDur; it.dur = d.maxDur; }
     if (d.placeable) it.placeable = true;   // 可放置/支起类（如帐篷）
     if (d.place) it.place = d.place;        // 放置模板：放置后生成的场景对象定义
+    if (d.blueprint) it.blueprint = d.blueprint; // 图纸类：依图在房中营造建筑
     if (d.cat === '装备') {
       it.slot = d.slot; it.quality = d.quality || 'white';
       it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;
