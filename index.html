@@ -1329,8 +1329,8 @@
   .forge-bar{height:14px;background:rgba(0,0,0,.35);border:1px solid rgba(196,164,102,.35);border-radius:7px;overflow:hidden;margin:8px 2px 2px;}
   .forge-bar i{display:block;height:100%;background:linear-gradient(90deg,#c0392b,#e67e22);transition:width .3s ease;}
   .forge-pct{font-size:12px;color:#f4e6c2;opacity:.85;text-align:center;}
-  .pcell-sel{outline:2px solid #d8b46a inset;box-shadow:0 0 5px rgba(216,180,106,.45);}
-  .pcell-insp{outline:2px solid #6fb0c9 inset;box-shadow:0 0 5px rgba(111,176,201,.4);}
+  .pcell-sel{position:relative;outline:2px solid #ffd76a;box-shadow:0 0 0 2px rgba(255,215,106,.35),0 0 12px rgba(255,200,90,.65);background:rgba(255,215,106,.14);z-index:1;}
+  .pcell-insp{position:relative;outline:2px solid #6fd0e8;box-shadow:0 0 0 2px rgba(111,208,232,.3),0 0 12px rgba(111,176,201,.6);background:rgba(111,208,232,.12);z-index:1;}
   /* ===== 商店（货郎）双栏：左货品 / 右行囊 ===== */
   .shop-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
   .shop-head{flex:0 0 auto;display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px;border-bottom:1px solid rgba(196,164,102,.35);margin-bottom:8px;}
@@ -1640,7 +1640,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div></div></div>
 
-<script src="shared/config/constants.js?v=20260821p"></script>
+<script src="shared/config/constants.js?v=20260821r"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1789,8 +1789,8 @@ window.onerror=function(msg,url,line,col,err){
     var statesSvg='';
     states.forEach(function(s){
       var pts=(s.poly||[]).map(function(c){return px(c)+','+py(c);}).join(' ');
-      // 十三州仅作点击热区：fill/stroke 全透明，去色块也去州界线，观感最干净（透明多边形仍可点击跳转）
-      statesSvg+='<polygon class="map-state-sh" data-state="'+s.id+'" fill="transparent" stroke="transparent" points="'+pts+'"></polygon>';
+      // 十三州：fill 极浅透明（保持热区可点）+ stroke 可见深褐描边，轮廓清晰但不抢戏
+      statesSvg+='<polygon class="map-state-sh" data-state="'+s.id+'" fill="rgba(120,90,50,.05)" stroke="rgba(92,66,38,.55)" stroke-width="1.6" points="'+pts+'"></polygon>';
       var lc=s.label||(s.poly[0]||[0,0]);
       statesSvg+='<text class="map-state-name" data-state="'+s.id+'" x="'+px(lc)+'" y="'+py(lc)+'">'+s.name+'</text>';
     });

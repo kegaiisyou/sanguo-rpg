@@ -108,6 +108,21 @@
 - **修复**：将 `fmtPrice`/`sgFontSize` 真正写入 `renderShopPanel` 函数体内、调用点之前（地址 4252-4265），确认 lint 0、调用链闭合。
 - `VERSION` → `20260821p`，同步 `constants.js` 的 `?v=` 缓存参数。
 
+## 2026-08-21 · UI 微调：货郎售价标签整齐（v20260821q）
+
+- **售价标签宽度不齐**：`.sg-buy` 默认块级、自适应内容宽度——"买 8 两"窄、"买 40 两"宽，同列里高度不齐。
+- **修复**：固定 `min-width:46px` + `text-align:center` + `line-height:1.3` + `flex-shrink:0`，所有售价标签统一最小宽且居中，整列对齐；padding 微调 `1px 4px` 配合最小宽。
+- `VERSION` → `20260821q`，同步 `constants.js` 的 `?v=` 缓存参数。
+
+## 2026-08-21 · UI 修复（选中高光 + 顶字换色 + 州界描边）（v20260821r）
+
+- **背包/货郎/装备槽选中无高光**：`.pcell-sel/.pcell-insp` 原为弱 `inset` outline + 5px 光晕，几乎看不出选中。改为**实色描边 2px + 内层高亮填充 + 外发光**（金 `#ffd76a` / 青 `#6fd0e8`，区分"选中/检查"），并补修 `.equipslot.pcell-sel` 漏改的弱版本。
+- **窗口顶字不显眼**：货郎标题 `.shop-title` 黄色 `#ffd268` 改为**亮金白 `#fff3c8`** + 加粗 + 强金光描边，窗口顶部一眼可见。
+- **地图州界不可见**：原 `fill/stroke` 全透明（去色块也去州界线）。改为 `fill:rgba(120,90,50,.05)`（极浅热区）+ `stroke:rgba(92,66,38,.55)` 深褐描边 1.6px，轮廓清晰但不抢戏。
+- `VERSION` → `20260821r`，同步 `constants.js` 的 `?v=` 缓存参数。
+- 地图参考图：用户将提供参考图后，下一轮按图精修十三州 polygon 坐标 + label 位置。
+
 ### 待办 / 已知问题
-- [ ] AI 水墨底图生成（重做，prompt 需校准）：任务曾提交成功且 DONE，但未取到下载地址（`assets/map_ai.png` 仍是早期错误图）；底图暂用纯 CSS 宣纸底兜底，出图后改 `.map-bg` 的 `background-image` 即可。
+- [ ] AI 水墨底图生成（重做，prompt 需校准）
+- [ ] 按用户参考图精修十三州 polygon + 州名 label 位置：任务曾提交成功且 DONE，但未取到下载地址（`assets/map_ai.png` 仍是早期错误图）；底图暂用纯 CSS 宣纸底兜底，出图后改 `.map-bg` 的 `background-image` 即可。
 - [ ] 可选优化：回到当前位置按钮、当前房间高亮飘字、塞外地形文字样式、道路动效。
