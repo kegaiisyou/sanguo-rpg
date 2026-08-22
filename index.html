@@ -1175,17 +1175,22 @@
   .t-btn:hover::after{left:23%;right:23%;opacity:1;}
   .t-btn:active{transform:translateY(1px);}
   .tt-foot{margin-top:30px;font-size:11px;letter-spacing:3px;color:#6a5536;opacity:.62;}
-  /* v20260822af：加载页底部健康游戏公告（国内游戏行业惯例标语），加载完毕随 #loader.hidden 一起淡出 */
-  .ld-notice{margin-top:22px;display:flex;flex-direction:column;align-items:center;gap:4px;
-    padding:11px 18px;border:1px solid rgba(232,200,120,.28);
-    background:rgba(255,250,238,.78);border-radius:9px;text-align:center;line-height:1.7;
+  /* v20260822ah：加载页底部健康游戏公告（国内游戏行业惯例标语），加载完毕随 #loader.hidden 一起淡出。
+     手机端采用 2 列网格排版：每条标语独立一行、左右对齐成块，重点条目加粗朱红，标题下加细分隔线。 */
+  .ld-notice{margin-top:22px;display:flex;flex-direction:column;align-items:center;gap:9px;
+    padding:13px 14px 14px;border:1px solid rgba(232,200,120,.30);
+    background:rgba(255,250,238,.82);border-radius:10px;text-align:center;
     font-family:"PingFang SC","Microsoft YaHei",sans-serif;
-    letter-spacing:.5px;user-select:none;-webkit-user-select:none;
-    box-shadow:0 1px 6px rgba(0,0,0,.32);max-width:560px;}
-  .ld-notice .ld-no-label{font-family:"STKaiti","KaiTi",serif;font-size:14px;font-weight:700;
-    color:rgba(158,59,46,.78);letter-spacing:5px;margin-bottom:2px;}
-  .ld-notice .ld-no-body{font-size:11px;color:rgba(60,48,34,.7);letter-spacing:1.4px;}
-  .ld-notice .ld-no-body b{color:rgba(158,59,46,.85);font-weight:600;}
+    user-select:none;-webkit-user-select:none;
+    box-shadow:0 2px 8px rgba(0,0,0,.35);max-width:560px;width:100%;}
+  .ld-notice .ld-no-label{font-family:"STKaiti","KaiTi",serif;font-size:14.5px;font-weight:700;
+    color:rgba(158,59,46,.8);letter-spacing:6px;position:relative;padding-bottom:8px;}
+  .ld-notice .ld-no-label::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+    width:54px;height:1px;background:rgba(158,59,46,.35);}
+  .ld-no-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;width:100%;}
+  .ld-no-item{font-size:12px;color:rgba(60,48,34,.72);letter-spacing:2.5px;line-height:1.5;
+    white-space:nowrap;text-align:center;}
+  .ld-no-item.b{color:rgba(158,59,46,.95);font-weight:600;}
   /* 读档 / 设置 / 图鉴 子面板（复用 modal 容器） */
   .slot-row{display:flex;flex-direction:column;gap:10px;margin:6px 0 2px;}
   .slot{border:1px solid var(--btn-line);border-radius:12px;padding:11px 13px;background:var(--btn);cursor:pointer;transition:.16s;text-align:left;}
@@ -1665,11 +1670,19 @@ window.onerror=function(msg,url,line,col,err){
 <div id="toast"></div>
 <div id="loader"><div class="ld-inner"><div class="ld-title">乱 世 烽 火</div><div class="ld-sub">江 湖 载 入 中 …</div><div class="ld-spin"></div><div class="ld-notice" role="note" aria-label="健康游戏公告">
       <div class="ld-no-label">健 康 游 戏 公 告</div>
-      <div class="ld-no-body">抵制不良游戏 · 拒绝盗版游戏 · <b>注意自我保护</b> · 谨防受骗上当</div>
-      <div class="ld-no-body">适度游戏益脑 · <b>沉迷游戏伤身</b> · 合理安排时间 · 享受健康生活</div>
+      <div class="ld-no-grid">
+        <span class="ld-no-item">抵制不良游戏</span>
+        <span class="ld-no-item">拒绝盗版游戏</span>
+        <span class="ld-no-item b">注意自我保护</span>
+        <span class="ld-no-item">谨防受骗上当</span>
+        <span class="ld-no-item">适度游戏益脑</span>
+        <span class="ld-no-item b">沉迷游戏伤身</span>
+        <span class="ld-no-item">合理安排时间</span>
+        <span class="ld-no-item">享受健康生活</span>
+      </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260822ag"></script>
+<script src="shared/config/constants.js?v=20260822ah"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
