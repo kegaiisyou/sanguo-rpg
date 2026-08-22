@@ -1363,17 +1363,16 @@
   .shop-foot .btn{flex:0 0 auto;}
   .shop-hint{font-size:12px;color:#bfae8a;flex:1 1 auto;text-align:right;}
   @media (max-width:560px){
-    /* 行囊：装备区改横排（人形+属性并排），物品区下移占满整行，杜绝右侧被窗口裁切 */
-    .pack-main{flex-direction:column;gap:10px;}
-    .pack-left{flex:0 0 auto;width:100%;flex-direction:row;align-items:center;gap:12px;padding:8px 10px;flex-wrap:wrap;}
+    /* 行囊：保持「装备在左、物品在右」左右布局；装备图缩小、属性面板限高、物品区独立滚动，杜绝裁切/换行成上下 */
+    .pack-main{flex-direction:row;gap:8px;}
+    .pack-left{flex:0 0 136px;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;}
     .pack-left-title{display:none;}
     .pack-left .equip-figure{margin:0;transform:scale(.85);transform-origin:center;flex:0 0 auto;}
-    .pack-left .pack-left-stats{flex:1 1 130px;min-width:0;width:auto;max-height:none;overflow:visible;}
-    .pack-right{flex:1 1 auto;min-height:0;width:100%;max-height:36vh;overflow-y:auto;}
-    .pack-right .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
-    .pack-info{flex:0 0 auto;max-height:none;min-height:80px;}
+    .pack-left .pack-left-stats{flex:1 1 auto;min-width:0;width:100%;max-height:120px;overflow-y:auto;}
+    .pack-right{flex:1 1 auto;min-width:0;min-height:0;max-height:40vh;overflow-y:auto;}
+    .pack-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+    .pack-info{flex:0 0 auto;max-height:26vh;min-height:70px;}
     .modal-shell{max-width:560px;}
-    .card.pack-card{max-height:none;overflow:visible;}
     /* 货郎：货品/行囊纵向堆叠，货品区限高54%，行囊占余下；3列格子更宽松 */
     .shop-main{flex-direction:column;gap:10px;}
     .shop-left{flex:0 0 auto;max-height:54%;min-height:150px;}
@@ -1423,6 +1422,8 @@
   .pack-ghost{position:fixed;transform:translate(-50%,-50%);max-width:128px;padding:4px 9px;font-size:13px;line-height:1.2;text-align:center;color:#f4e6c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(20,12,30,.82);border:1px solid #d8b46a;border-radius:8px;box-shadow:0 3px 10px rgba(0,0,0,.45);pointer-events:none;z-index:9999;}
   /* 行囊弹窗：放宽卡片并锁定自身滚动，内部分区各自滚动 */
   .pack-card{max-width:560px;display:flex;flex-direction:column;overflow:hidden;}
+  /* v20260822ag：覆盖 .pack-card 的 overflow:hidden，让超高内容走卡片滚动条，杜绝被 max-height:82dvh 裁掉 */
+  .card.pack-card{overflow-y:auto;}
   /* ===== 开场渐进式 UI 揭示：空白 → 文字 → 选项 → 逐一点亮功能 ===== */
   body.onb #status, body.onb #loc-tab, body.onb #actions, body.onb #npc-list, body.onb #lower, body.onb #dock{ display:none !important; }
   body.onb.reveal-status #status{ display:flex !important; }
@@ -1668,7 +1669,7 @@ window.onerror=function(msg,url,line,col,err){
       <div class="ld-no-body">适度游戏益脑 · <b>沉迷游戏伤身</b> · 合理安排时间 · 享受健康生活</div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260822af"></script>
+<script src="shared/config/constants.js?v=20260822ag"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
