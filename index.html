@@ -1375,7 +1375,13 @@
     .pack-left .equip-figure{margin:0;transform:scale(.85);transform-origin:center;flex:0 0 auto;}
     .pack-left .pack-left-stats{flex:1 1 auto;min-width:0;width:100%;max-height:120px;overflow-y:auto;}
     .pack-right{flex:1 1 auto;min-width:0;min-height:0;max-height:40vh;overflow-y:auto;}
-    .pack-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+    .pack-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+    /* v20260822ak：手机端物品格子文字缩小（内联13px 用 !important 覆盖），防止窄格溢出 */
+    .packcell .ic-txt{font-size:11px !important;letter-spacing:.01em;line-height:1.15;}
+    .packcell .pcell-ic{padding:1px 3px 10px;}
+    .packcell .pcell-cnt{font-size:9px;right:2px;bottom:1px;padding:0 3px;}
+    .packcell .pcell-sell{font-size:9px;left:2px;bottom:1px;padding:0 3px;}
+    .packcell .pcell-dur{font-size:9px;left:2px;top:1px;padding:0 3px;}
     .pack-info{flex:0 0 auto;max-height:26vh;min-height:70px;}
     .modal-shell{max-width:560px;}
     /* 货郎：与 PC 一致保持「左货品/右行囊」左右双栏；窄屏下网格 3 列、字号微调保证不溢出 */
@@ -1683,7 +1689,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260822aj"></script>
+<script src="shared/config/constants.js?v=20260822ak"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
