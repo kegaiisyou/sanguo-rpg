@@ -1378,15 +1378,16 @@
     .pack-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
     .pack-info{flex:0 0 auto;max-height:26vh;min-height:70px;}
     .modal-shell{max-width:560px;}
-    /* 货郎：货品/行囊纵向堆叠，货品区限高54%，行囊占余下；3列格子更宽松 */
-    .shop-main{flex-direction:column;gap:10px;}
-    .shop-left{flex:0 0 auto;max-height:54%;min-height:150px;}
-    .shop-right{flex:1 1 auto;min-height:0;}
-    .shop-goods-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
-    .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
-    .shop-good{padding:5px 3px;}
-    .shop-good .sg-name{font-size:10.5px;}
-    .shop-good .sg-buy{font-size:9.5px;padding:1px 3px;}
+    /* 货郎：与 PC 一致保持「左货品/右行囊」左右双栏；窄屏下网格 3 列、字号微调保证不溢出 */
+    .shop-main{flex-direction:row;gap:8px;}
+    .shop-left,.shop-right{flex:1 1 0;min-width:0;max-height:none;min-height:0;}
+    .shop-goods-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+    .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+    .shop-good{padding:4px 2px;}
+    .shop-good .sg-icon{font-size:20px;}
+    .shop-good .sg-name{font-size:9.5px;}
+    .shop-good .sg-buy{font-size:9px;padding:1px 3px;}
+    .shop-info{max-height:22vh;min-height:70px;}
   }
   /* 底信息栏：固定，不随物品栏滚动 */
   .pack-info{flex:0 0 auto;max-height:22%;margin-top:10px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
@@ -1682,7 +1683,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260822ah"></script>
+<script src="shared/config/constants.js?v=20260822ai"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
