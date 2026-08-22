@@ -527,6 +527,29 @@
   .map-legend .mpk-fort{background:#8a7a5a;}
   .map-legend .mpk-town{background:#9aa8c0;}
   .map-legend .mpk-camp{background:#c0803a;}
+  /* v20260822am：方案A 列表式山河志（按州分组卡片，手机/PC 通用，无拖拽缩放/字体模糊） */
+  .map-list{position:relative;height:64vh;max-height:560px;margin:6px -16px 0;padding:10px 12px;border-radius:12px;
+    border:1px solid rgba(120,90,40,.5);background:rgba(24,18,10,.30);
+    box-shadow:inset 0 0 40px rgba(40,30,15,.18), inset 0 0 0 4px rgba(120,90,40,.14);
+    overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .map-list .map-legend{position:static;margin-bottom:8px;}
+  .ml-state{margin-bottom:9px;border:1px solid rgba(216,180,106,.32);border-radius:10px;background:rgba(0,0,0,.16);overflow:hidden;}
+  .ml-state-hd{display:flex;align-items:baseline;justify-content:space-between;padding:6px 10px;
+    background:rgba(216,180,106,.13);border-bottom:1px solid rgba(216,180,106,.22);}
+  .ml-st{font-family:"STKaiti","KaiTi",serif;font-size:15px;letter-spacing:4px;color:#f4e6c2;font-weight:700;}
+  .ml-cnt{font-size:10.5px;color:#b8a67e;letter-spacing:1px;}
+  .ml-places{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:5px;padding:7px;}
+  .ml-p{display:flex;align-items:center;gap:6px;padding:5px 7px;border:1px solid rgba(216,180,106,.20);border-radius:8px;
+    background:rgba(0,0,0,.22);color:#f4e6c2;cursor:pointer;text-align:left;min-width:0;user-select:none;-webkit-tap-highlight-color:transparent;}
+  .ml-p:active{transform:scale(.97);background:rgba(216,180,106,.12);}
+  .ml-p.cur{border-color:#ffd98a;background:rgba(216,180,106,.16);box-shadow:0 0 0 1px rgba(255,217,138,.45);}
+  .ml-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#9aa8c0;}
+  .ml-p.mpk-city .ml-dot{background:#b8964a;} .ml-p.mpk-wild .ml-dot{background:#7a9b6e;}
+  .ml-p.mpk-dungeon .ml-dot{background:#a04a3c;} .ml-p.mpk-fort .ml-dot{background:#8a7a5a;}
+  .ml-p.mpk-town .ml-dot{background:#9aa8c0;} .ml-p.mpk-camp .ml-dot{background:#c0803a;}
+  .ml-nm{flex:1;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ml-kd{font-size:9px;color:#b8a67e;flex-shrink:0;letter-spacing:.5px;}
+  .ml-star{color:#ffd98a;font-size:10px;flex-shrink:0;}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
   .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
   .map-rivers .mp-river{fill:none;stroke:rgba(70,110,170,.30);stroke-width:2.5;stroke-linecap:round;}
@@ -1693,7 +1716,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260822al"></script>
+<script src="shared/config/constants.js?v=20260822am"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2247,6 +2270,93 @@ window.onerror=function(msg,url,line,col,err){
           state.spawnRoom=rid;
           log('【调试】出生点已设为：'+G.ROOMS[rid].name+'。','good');
           closeModal(); renderRoom(rid); save(state);
+        });
+      });
+    }
+    homeView();
+  }
+  // v20260822am：方案A 列表式山河志 —— 按州分组的卡片列表，手机/PC 通用，无拖拽缩放、无字体模糊。
+  // 房间→州归属用「点-多边形」判定（房间坐标与州 poly 同在网格坐标系）；未命中任何州的房间归入「塞外·野」兜底组。
+  function buildMapListHTML(opts){
+    opts=opts||{};
+    var coords=resolveMapCoords();
+    var states=mapData().states||[];
+    var keys=Object.keys(G.ROOMS).filter(function(rid){return coords[rid];});
+    var cur=state.room;
+    function inPoly(poly,pt){
+      var x=pt[0],y=pt[1],ins=false;
+      for(var i=0,j=poly.length-1;i<poly.length;j=i++){
+        var xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];
+        if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) ins=!ins;
+      }
+      return ins;
+    }
+    function stateOf(rid){
+      var pt=coords[rid];
+      if(!pt) return null;
+      for(var i=0;i<states.length;i++){ if(inPoly(states[i].poly,pt)) return states[i]; }
+      return null;
+    }
+    var buckets={}, orphan=[];
+    keys.forEach(function(rid){
+      var kind=mapKind(rid);
+      if(kind==='tutorial'&&!opts.pickSpawn) return;   // 教学房间日常隐藏（选出生点模式保留）
+      var stt=stateOf(rid);
+      var it={rid:rid,name:G.ROOMS[rid].name,kind:kind,cur:(rid===cur),spawn:(opts.pickSpawn&&rid===state.spawnRoom)};
+      if(stt) (buckets[stt.id]=buckets[stt.id]||[]).push(it);
+      else orphan.push(it);
+    });
+    function sorter(a,b){ if(a.cur!==b.cur) return a.cur?-1:1; return (a.name<b.name?-1:a.name>b.name?1:0); }
+    function itemHtml(it){
+      var cls='ml-p mpk-'+it.kind+(it.cur?' cur':'');
+      return '<div class="'+cls+'"'+(opts.pickSpawn?' data-spawn="'+it.rid+'"':' data-rid="'+it.rid+'"')+'>'+
+        '<span class="ml-dot"></span><span class="ml-nm">'+it.name+'</span>'+
+        (it.spawn?'<span class="ml-star">★</span>':'')+
+        '<span class="ml-kd">'+MAP_KIND_LABEL[it.kind]+'</span></div>';
+    }
+    // 州排序：label 行（北→南）；州内房间：当前所在优先 → 名称字典序
+    var order=states.slice().sort(function(a,b){ return (a.label[1]-b.label[1]); });
+    var html='';
+    order.forEach(function(st){
+      var list=buckets[st.id]||[];
+      if(!list.length) return;
+      list.sort(sorter);
+      html+='<div class="ml-state"><div class="ml-state-hd"><span class="ml-st">'+st.name+'</span><span class="ml-cnt">'+list.length+' 处</span></div>'+
+        '<div class="ml-places">'+list.map(itemHtml).join('')+'</div></div>';
+    });
+    if(orphan.length){
+      orphan.sort(sorter);
+      html+='<div class="ml-state"><div class="ml-state-hd"><span class="ml-st">塞 外 · 野</span><span class="ml-cnt">'+orphan.length+' 处</span></div>'+
+        '<div class="ml-places">'+orphan.map(itemHtml).join('')+'</div></div>';
+    }
+    var legend=Object.keys(MAP_KIND_LABEL).filter(function(k){return k!=='tutorial';}).map(function(k){
+      return '<span><i class="mpk mpk-'+k+'"></i>'+MAP_KIND_LABEL[k]+'</span>';
+    }).join('');
+    var title=opts.pickSpawn?'🗺 设置出生点':'山 河 志';
+    var tip=opts.pickSpawn
+      ? '点击一处地点设为出生点，并立即传送至此（已自动存档）。当前出生点：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)
+      : '按州分列各地去处，点击即可循山河志前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」；已去之处无需再远行。';
+    return '<h3>'+title+'</h3>'+
+      '<div class="map-list"><div class="map-legend">'+legend+'</div>'+html+'</div>'+
+      '<p class="tip">'+tip+'</p>';
+  }
+  // 列表式地图交互（与旧 initMap 的点击语义一致）
+  function initMapList(opts){
+    opts=opts||{};
+    var card=document.querySelector('#modal-card .map-list'); if(!card) return;
+    if(opts.pickSpawn){
+      card.querySelectorAll('[data-spawn]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var rid=el.getAttribute('data-spawn');
+          state.spawnRoom=rid;
+          log('【调试】出生点已设为：'+G.ROOMS[rid].name+'。','good');
+          closeModal(); renderRoom(rid); save(state);
+        });
+      });
+    } else {
+      card.querySelectorAll('[data-rid]').forEach(function(el){
+        el.addEventListener('click', function(){
+          goRoomOnMap(el.getAttribute('data-rid'));
         });
       });
     }
@@ -5419,7 +5529,7 @@ window.onerror=function(msg,url,line,col,err){
         row('新手·送信白檀', qmark(qt, state.quest.tut==='done'))+
         '<p class="tip">「颍川城」寻胡商购药、助医馆华老；「山林」巡山剿匪可领县尉韩伯托付；「溪畔」访水镜先生与左慈。后续章节随主线推进开启。</p>';
     } else if(kind==='map'){
-      h=buildMapHTML({});
+      h=buildMapListHTML({});
     } else if(kind==='clock'){
       var R=41; // 时辰标签半径（百分比）
       var clkLabels='';
@@ -5540,7 +5650,7 @@ window.onerror=function(msg,url,line,col,err){
     var fx=document.getElementById('seg-fx'); if(fx) fx.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.titleFx=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); fx.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(520); applyTitleFx(); toast('标题特效·'+(settings.titleFx?'开':'关')); }; });
     var snd=document.getElementById('seg-snd'); if(snd) snd.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.sound=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); snd.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); if(settings.sound) tick(700); toast('音效·'+(settings.sound?'开':'关')); }; });
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
-    if(kind==='map') initMap({});
+    if(kind==='map') initMapList({});
     // 装备面板交互
     $card.querySelectorAll('.eq-slot[data-slot]').forEach(function(el){
       el.onclick=function(){ unequip(el.getAttribute('data-slot')); };
@@ -5705,11 +5815,11 @@ window.onerror=function(msg,url,line,col,err){
   // ===== 调试：大地图选出生点 =====
   function openSpawnMap(){
     if(state.dead){ die(); return; }
-    var h=buildMapHTML({pickSpawn:true});
+    var h=buildMapListHTML({pickSpawn:true});
     $card.innerHTML=h+'<button class="close" id="m-close">取 消</button>';
     $modal.classList.remove('hidden');
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
-    initMap({pickSpawn:true});
+    initMapList({pickSpawn:true});
   }
   function toast(msg){ if(settings.sound) tick(480); $toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400); }
 
