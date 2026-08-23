@@ -53,7 +53,18 @@
       ji_huangdi:[9,-2], ji_senlin:[10,-2],
       ji_xiaoqiu:[9,-3],
       ji_huangshan:[9,-4],
-      ji_heishan_zhai:[9,-5], ji_heishan_juyi:[9,-6], ji_heishan_houzhai:[9,-7]
+      ji_heishan_zhai:[9,-5], ji_heishan_juyi:[9,-6], ji_heishan_houzhai:[9,-7],
+      // ── 十三州州治所（v20260822as 按参考图补齐坐标；房间见 rooms.js，暂未放 NPC）──
+      ye:[10,5],        // 冀州 · 邺城
+      changyi:[11,7],   // 兖州 · 昌邑
+      xiapi:[16,8],     // 徐州 · 下邳
+      linzi:[14,4],     // 青州 · 临淄
+      xiangyang:[6,10], // 荆州 · 襄阳
+      shouchun:[12,11], // 扬州 · 寿春
+      chengdu:[1,11],   // 益州 · 成都
+      wuwei:[-10,8],    // 凉州 · 武威
+      jinyang:[3,-5],   // 并州 · 晋阳
+      fanyu:[4,17]      // 交州 · 番禺
     },
 
     // 外围地貌（光荣《三国志》风：十三州之外有海/草原/沙漠环绕，不留空）
@@ -120,15 +131,16 @@
       { id:'heishan',   name:'黑山寨',   icon:'🦹', pos:[9,-5],  st:'幽州', open:true,  kind:'dungeon', desc:'黑山军据守的险寨' },
       { id:'build_test',name:'建造场',   icon:'🔨', pos:[7,8],   st:'豫州', open:true,  kind:'camp',    desc:'木工台与测试营地' },
       { id:'chang_an',  name:'长安',     icon:'🏯', pos:[2,2],   st:'司隶', open:false, kind:'city',    desc:'西京长安，龙脉所在' },
-      { id:'ye',        name:'邺城',     icon:'🏯', pos:[10,5],  st:'冀州', open:false, kind:'city',    desc:'冀州州治，铜雀台起' },
-      { id:'jinyang',   name:'晋阳',     icon:'🏯', pos:[3,-5],  st:'并州', open:false, kind:'city',    desc:'并州州治，表里山河' },
-      { id:'chengdu',   name:'成都',     icon:'🏯', pos:[1,11],  st:'益州', open:false, kind:'city',    desc:'益州州治，天府之国' },
-      { id:'xiangyang', name:'襄阳',     icon:'🏯', pos:[6,10],  st:'荆州', open:false, kind:'city',    desc:'荆州北门锁钥' },
-      { id:'shouchun',  name:'寿春',     icon:'🏯', pos:[12,11], st:'扬州', open:false, kind:'city',    desc:'淮南重镇，锁钥江淮' },
-      { id:'linzi',     name:'临淄',     icon:'🏯', pos:[14,4],  st:'青州', open:false, kind:'city',    desc:'青州州治，齐都故地' },
-      { id:'xiapi',     name:'下邳',     icon:'🏯', pos:[16,8],  st:'徐州', open:false, kind:'city',    desc:'徐州州治，古邳名邑' },
-      { id:'fanyu',     name:'番禺',     icon:'🏯', pos:[4,17],  st:'交州', open:false, kind:'city',    desc:'交州州治，岭南都会' },
-      { id:'wuwei',     name:'武威',     icon:'🏯', pos:[-10,8],  st:'凉州', open:false, kind:'city',    desc:'河西咽喉，凉州重镇' }
+      { id:'ye',        name:'邺城',     icon:'🏯', pos:[10,5],  st:'冀州', open:true,  kind:'city',    desc:'冀州州治，铜雀台起' },
+      { id:'changyi',   name:'昌邑',     icon:'🏯', pos:[11,7],  st:'兖州', open:true,  kind:'city',    desc:'兖州州治，控扼中原' },
+      { id:'jinyang',   name:'晋阳',     icon:'🏯', pos:[3,-5],  st:'并州', open:true,  kind:'city',    desc:'并州州治，表里山河' },
+      { id:'chengdu',   name:'成都',     icon:'🏯', pos:[1,11],  st:'益州', open:true,  kind:'city',    desc:'益州州治，天府之国' },
+      { id:'xiangyang', name:'襄阳',     icon:'🏯', pos:[6,10],  st:'荆州', open:true,  kind:'city',    desc:'荆州北门锁钥' },
+      { id:'shouchun',  name:'寿春',     icon:'🏯', pos:[12,11], st:'扬州', open:true,  kind:'city',    desc:'淮南重镇，锁钥江淮' },
+      { id:'linzi',     name:'临淄',     icon:'🏯', pos:[14,4],  st:'青州', open:true,  kind:'city',    desc:'青州州治，齐都故地' },
+      { id:'xiapi',     name:'下邳',     icon:'🏯', pos:[16,8],  st:'徐州', open:true,  kind:'city',    desc:'徐州州治，古邳名邑' },
+      { id:'fanyu',     name:'番禺',     icon:'🏯', pos:[4,17],  st:'交州', open:true,  kind:'city',    desc:'交州州治，岭南都会' },
+      { id:'wuwei',     name:'武威',     icon:'🏯', pos:[-10,8], st:'凉州', open:true,  kind:'city',    desc:'河西咽喉，凉州重镇' }
     ],
 
     // 山脉/海岸美术现由 assets/map_inkwash.jpg 水墨山水底图承担（见 index.html .map-canvas 背景）

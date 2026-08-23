@@ -569,8 +569,8 @@
   .mk-bg{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;}
   .mk-region{position:absolute;border-radius:50%;pointer-events:none;opacity:.42;}
   .mk-lines{position:absolute;left:0;top:0;pointer-events:none;}
-  .mk-lines .mk-river{fill:none;stroke:rgba(76,128,180,.5);stroke-width:4;stroke-linecap:round;opacity:.8;}
-  .mk-lines .mk-river.r2{stroke-width:3;}
+  .mk-lines .mk-river{fill:none;stroke:rgba(70,120,175,.62);stroke-width:9;stroke-linecap:round;opacity:.85;}
+  .mk-lines .mk-river.r2{stroke-width:5.5;}
   .mk-lines .mk-river-t{font-family:"STKaiti","KaiTi",serif;font-size:15px;letter-spacing:4px;fill:rgba(70,115,170,.85);pointer-events:none;}
   .mk-lines .mk-road{fill:none;stroke:rgba(122,92,44,.5);stroke-width:2;stroke-linecap:round;}
   .mk-lines .mk-road.on{stroke:rgba(158,59,46,.82);stroke-width:2.8;stroke-dasharray:8 6;animation:mkFlow 1.5s linear infinite;}
@@ -1761,14 +1761,14 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260822ar"></script>
+<script src="shared/config/constants.js?v=20260822as"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260821j"></script>
 <script src="shared/story/dialogues.js?v=20260820z"></script>
-    <script src="shared/story/rooms.js?v=20260819j"></script>
+    <script src="shared/story/rooms.js?v=20260822as"></script>
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260821j"></script>
@@ -1776,7 +1776,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
-    <script src="shared/data/map.js?v=20260821w"></script>
+    <script src="shared/data/map.js?v=20260822as"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
@@ -3376,7 +3376,7 @@ window.onerror=function(msg,url,line,col,err){
       }
       if(room.exits){
         var ex=Object.keys(room.exits).map(function(d){return d+'·'+G.ROOMS[room.exits[d]].name;}).join('　');
-        narr.push({t:'〔出口〕 '+ex, c:'exit'});
+        if(ex) narr.push({t:'〔出口〕 '+ex, c:'exit'});
       }
       // 新房间自动探查：标记已探索，出口立即可用。
       // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「环顾四周 / 探查」在玩家主动行动时揭示。
