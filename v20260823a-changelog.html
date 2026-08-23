@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>v20260823a 变更日志 · 乱世烽火</title>
+<style>
+  body{font-family:"PingFang SC","Microsoft YaHei",serif;background:#f6efe0;color:#3a2e1a;margin:0;padding:24px;line-height:1.7;}
+  .c{max-width:920px;margin:0 auto;background:#fffaf0;border:1px solid #c8b48c;border-radius:14px;padding:26px 30px;box-shadow:0 6px 28px rgba(80,52,26,.18);}
+  h1{font-family:"STKaiti","KaiTi",serif;font-size:28px;margin:0 0 6px;letter-spacing:6px;color:#8a2e1c;text-align:center;}
+  h2{font-family:"STKaiti","KaiTi",serif;font-size:18px;color:#5a4628;border-left:4px solid #c89a3a;padding-left:10px;margin-top:30px;letter-spacing:2px;}
+  .sub{text-align:center;color:#8a7a5a;font-size:13px;margin-bottom:22px;letter-spacing:2px;}
+  .item{margin:14px 0;padding:10px 14px;background:#fff;border:1px solid #e8d8b4;border-radius:8px;}
+  .item b{color:#8a2e1c;}
+  code{background:#faecd0;padding:2px 6px;border-radius:4px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#6c4523;}
+  a.btn{display:inline-block;padding:9px 18px;background:#8a2e1c;color:#fffaf0;text-decoration:none;border-radius:8px;font-size:14px;letter-spacing:2px;}
+  ul{margin:8px 0;padding-left:20px;}
+  li{margin:4px 0;}
+  table{width:100%;border-collapse:collapse;margin:10px 0;}
+  th,td{border:1px solid #e0cfa6;padding:6px 10px;font-size:13.5px;text-align:left;}
+  th{background:#f3e6c4;color:#5a4628;}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">v20260823a 变更日志 · 2026-08-23 · 城市系统：人口 / 治安 / 商业 参数驱动</div>
+  <p style="text-align:center;margin:8px 0 18px;">
+    <a class="btn" href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">▶ 在线试玩（请硬刷新 Ctrl+F5 / ⌘⇧R）</a>
+  </p>
+
+  <h2>🏙 城市系统（第一版）</h2>
+  <div class="item">
+    <b>每个城市新增三项基础参数</b>（0–100 相对值），数据驱动、按参数实时生成内容，而非为每城手写房间：
+    <table>
+      <tr><th>参数</th><th>作用</th></tr>
+      <tr><td>人口 pop</td><td>决定城市规模等级（巨邑 / 大城 / 州城 / 县城 / 边邑）与城中百姓 NPC 数量</td></tr>
+      <tr><td>治安 order</td><td>低治安城市出现「落单溃兵」敌人（可挑战）；并出现「维持治安」行动</td></tr>
+      <tr><td>商业 commerce</td><td>高商业城市出现「行脚商贩」（可交易）与「逛市集」行动</td></tr>
+    </table>
+    <ul>
+      <li><b>进入城市先报城郭概况</b>：如「〔城郭·邺城·冀州〕大城｜户口数十万｜夜不闭户｜市井兴旺」</li>
+      <li><b>城中人物随参数变化</b>：人口越多百姓 NPC 越多；治安低则有溃兵出没；商业高则有行商可买卖</li>
+      <li>全套参数覆盖<b>司隶（洛阳）、幽州（蓟城 / 渔阳）、豫州（颍川）</b>及<b>十三州全部州治所</b>（邺、昌邑、下邳、临淄、襄阳、寿春、成都、武威、晋阳、番禺）</li>
+      <li>「维持治安」「逛市集」复用已有事件（溃兵劫掠 / 西域行商），行动随参数增减</li>
+    </ul>
+  </div>
+
+  <h2>🧩 设计取舍</h2>
+  <div class="item">
+    <ul>
+      <li>采用<b>「单房间 + 参数派生」</b>而非「每城手写 N 个房间」：城市仍是地图上的一个节点，进入后内容由参数动态生成——扩展新城市只需在 <code>cities.js</code> 加一行数据</li>
+      <li>参数为静态基准值，后续可接玩家行为（如剿匪提升治安、行商提升商业）形成轻度成长闭环</li>
+    </ul>
+  </div>
+
+  <h2>📋 改动文件</h2>
+  <div class="item">
+    <b>shared/data/cities.js</b> — <b>（新增）</b>城市参数表：人口 / 治安 / 商业 / 城防 / 州属 / 简述，覆盖 14 城<br>
+    <b>index.html</b> — 城市系统派生逻辑（<code>cityProfile / cityLine / cityNpcs / cityActs</code>）；NPC 列表与行动按钮注入；进城报城郭概况；缓存参数 <code>?v=20260823a</code><br>
+    <b>shared/config/constants.js</b> — <code>VERSION: '20260822as' → '20260823a'</code>
+  </div>
+
+  <p style="text-align:center;color:#8a7a5a;font-size:12.5px;margin-top:30px;">线上地址：<a href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">https://kegaiisyou.github.io/sanguo-rpg/</a>（若仍显示旧版本号，硬刷新 Ctrl+F5 / ⌘⇧R）</p>
+</div>
+</body>
+</html>

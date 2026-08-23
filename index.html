@@ -1761,7 +1761,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260822as"></script>
+<script src="shared/config/constants.js?v=20260823a"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1777,6 +1777,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260822as"></script>
+    <script src="shared/data/cities.js?v=20260823a"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
@@ -3369,6 +3370,9 @@ window.onerror=function(msg,url,line,col,err){
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
     if(!silent && !suppressNarr){
+      // 城市系统：进城先报城郭概况（人口/治安/商业，数据 shared/data/cities.js）
+      var cityLineTxt=cityLine(rid);
+      if(cityLineTxt) narr.push({t:cityLineTxt, c:'sys'});
       room.desc.forEach(function(d){ narr.push({t:shortScene(d), c:'env'}); });
       if(room.items && room.items.length){
         narr.push({t:'〔地上之物〕', c:'sys'});
@@ -3686,6 +3690,53 @@ window.onerror=function(msg,url,line,col,err){
   var LEARN_ROOMS={'camp':true,'ji_xuegong':true};
   function roomCanLearn(rid){ return !!LEARN_ROOMS[rid]; }
 
+  // ===== 城市系统：数据驱动派生（数据 shared/data/cities.js） =====
+  // 进入城市房间时按人口/治安/商业参数生成城郭概况、人物与可行动作，免去为每城手写房间
+  function cityProfile(cid){
+    var c=(LF.CITIES||{})[cid]; if(!c) return null;
+    var tier = c.pop>=85?'巨邑': c.pop>=70?'大城': c.pop>=55?'州城': c.pop>=40?'县城':'边邑';
+    var popDesc = c.pop>=85?'户口百万': c.pop>=70?'户口数十万': c.pop>=55?'户口数万': c.pop>=40?'户口数千':'人口稀少';
+    var orderDesc = c.order>=70?'路不拾遗': c.order>=55?'夜不闭户': c.order>=40?'盗匪出没':'兵荒马乱';
+    var comDesc = c.commerce>=70?'商贾云集': c.commerce>=55?'市井兴旺': c.commerce>=40?'买卖尚可':'市面萧条';
+    return {c:c, tier:tier, popDesc:popDesc, orderDesc:orderDesc, comDesc:comDesc};
+  }
+  function cityLine(cid){
+    var p=cityProfile(cid); if(!p) return '';
+    return '〔城郭·'+p.c.name+'·'+p.c.state+'〕'+p.tier+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc;
+  }
+  // 城中人物：百姓数量随人口；治安低出现溃兵；商业高出现行商（触发交易事件）
+  function cityNpcs(cid){
+    var p=cityProfile(cid); if(!p) return [];
+    var items=[];
+    var nCiv=Math.min(5, 1+Math.floor(p.c.pop/20));
+    var says=['近来城中米价又涨了……','听说明日有马队入城，可去瞧瞧。','壮士远道而来，可要当心盗匪。','哎，这世道，能安稳过活便是福。','客官可是来贩货的？东市好货不少。'];
+    for(var i=0;i<nCiv;i++){
+      (function(idx){
+        var o={name:'城中百姓', icon:'👤', key:'civ_'+cid+'_'+idx, desc:'往来市井的城中百姓'};
+        items.push({o:o, acts:[
+          {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+says[Math.floor(Math.random()*says.length)],'npc'); }},
+          {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
+        ]});
+      })(i);
+    }
+    if(p.c.order<45){
+      var en={name:'落单溃兵', icon:'⚔', key:'deserter', desc:'衣甲散乱的溃卒'};
+      items.push({o:en, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat('deserter'); }}]});
+    }
+    if(p.c.commerce>=60){
+      var m={name:'行脚商贩', icon:'🛒', key:'mch_'+cid, desc:'挑着货担、走街串巷的行商'};
+      items.push({o:m, acts:[{label:'看看货色', icon:'🛒', fn:function(){ runEvent(findEvent('ev_merchant')); }}]});
+    }
+    return items;
+  }
+  // 城中可做之事：商业高可逛市集；治安低可维持治安
+  function cityActs(cid){
+    var p=cityProfile(cid); if(!p) return [];
+    var out=[];
+    if(p.c.commerce>=60) out.push({id:'market', label:'逛市集', tip:'市井买卖，或有奇货'});
+    if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
+    return out;
+  }
   function buildActions(room, popExits){
     clearActions();
     grpCursor=null;
@@ -3696,6 +3747,11 @@ window.onerror=function(msg,url,line,col,err){
       var b=mkAct('scene','🧱','席地打盹',function(){ openRestModal('ground'); });
       return;
     }
+    // 城市系统：按商业/治安派生可做之事（逛市集、维持治安）——对配置城市与占位州治均生效
+    cityActs(room.id).forEach(function(a){
+      var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
+      var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
+    });
     var objs=roomObjs(room.id);
     if(objs && objs.length){
       renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
@@ -3747,6 +3803,13 @@ window.onerror=function(msg,url,line,col,err){
         items.push({o:{name:n.name, icon:'👤', key:k, desc:n.name}, acts:buildNpcActions({name:n.name, key:k, desc:n.name})});
       }
     });
+    // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
+    var cityExtras=cityNpcs(room.id);
+    for(var ci=0; ci<cityExtras.length; ci++){
+      if(seen[cityExtras[ci].o.key]) continue;
+      if(rec[cityExtras[ci].o.key]) continue;
+      items.push(cityExtras[ci]);
+    }
     if(!items.length){ box.innerHTML='<div class="nl-empty">此处无人</div>'; return; }
     box.classList.add('has');
     box.classList.toggle('many', items.length>=4);   // 人数多时加宽，避免太挤
