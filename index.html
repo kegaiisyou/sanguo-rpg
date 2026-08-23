@@ -550,6 +550,16 @@
   .ml-nm{flex:1;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ml-kd{font-size:9px;color:#b8a67e;flex-shrink:0;letter-spacing:.5px;}
   .ml-star{color:#ffd98a;font-size:10px;flex-shrink:0;}
+  /* v20260822ao：A+B —— 顶部十三州缩略图（按真实方位排布），点击州块直达对应州卡片 */
+  .ml-mini{margin:0 0 8px;padding:6px 8px 4px;background:rgba(0,0,0,.18);border:1px solid rgba(216,180,106,.32);border-radius:10px;}
+  .ml-mini-svg{width:100%;height:auto;display:block;cursor:pointer;}
+  .ml-mini-st{fill:rgba(216,180,106,.18);stroke:rgba(216,180,106,.55);stroke-width:1;cursor:pointer;transition:fill .15s;}
+  .ml-mini-st:hover{fill:rgba(255,232,150,.32);}
+  .ml-mini-st.cur{fill:rgba(255,217,138,.26);stroke:#ffd98a;stroke-width:1.8;}
+  .ml-mini-st.view{stroke:#f4e6c2;stroke-width:1.8;}
+  .ml-mini-t{font-size:10.5px;color:#b8a67e;text-align:center;margin-top:4px;letter-spacing:1px;}
+  .ml-state{scroll-margin-top:8px;}
+  .ml-state.flash{border-color:#ffd98a;box-shadow:0 0 0 2px rgba(255,217,138,.5);}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
   .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
   .map-rivers .mp-river{fill:none;stroke:rgba(70,110,170,.30);stroke-width:2.5;stroke-linecap:round;}
@@ -1716,7 +1726,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260822an"></script>
+<script src="shared/config/constants.js?v=20260822ao"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2321,14 +2331,30 @@ window.onerror=function(msg,url,line,col,err){
       var list=buckets[st.id]||[];
       if(!list.length) return;
       list.sort(sorter);
-      html+='<div class="ml-state"><div class="ml-state-hd"><span class="ml-st">'+st.name+'</span><span class="ml-cnt">'+list.length+' 处</span></div>'+
+      html+='<div class="ml-state" data-state="'+st.id+'"><div class="ml-state-hd"><span class="ml-st">'+st.name+'</span><span class="ml-cnt">'+list.length+' 处</span></div>'+
         '<div class="ml-places">'+list.map(itemHtml).join('')+'</div></div>';
     });
     if(orphan.length){
       orphan.sort(sorter);
-      html+='<div class="ml-state"><div class="ml-state-hd"><span class="ml-st">塞 外 · 野</span><span class="ml-cnt">'+orphan.length+' 处</span></div>'+
+      html+='<div class="ml-state" data-state="orphan"><div class="ml-state-hd"><span class="ml-st">塞 外 · 野</span><span class="ml-cnt">'+orphan.length+' 处</span></div>'+
         '<div class="ml-places">'+orphan.map(itemHtml).join('')+'</div></div>';
     }
+    // v20260822ao：A+B —— 十三州缩略图（真实方位），当前所在州金框高亮
+    var curSt=stateOf(cur), curStId=curSt?curSt.id:'';
+    var minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    states.forEach(function(s){ (s.poly||[]).forEach(function(p){
+      if(p[0]<minX)minX=p[0]; if(p[0]>maxX)maxX=p[0]; if(p[1]<minY)minY=p[1]; if(p[1]>maxY)maxY=p[1];
+    }); });
+    var MW=200, MH=Math.max(88, Math.round((maxY-minY)/Math.max(1,(maxX-minX))*MW)+10);
+    var SX=function(c){ return (c[0]-minX)/Math.max(1,(maxX-minX))*MW; };
+    var SY=function(c){ return (c[1]-minY)/Math.max(1,(maxY-minY))*MH; };
+    var mini='<div class="ml-mini"><svg class="ml-mini-svg" viewBox="0 0 '+MW+' '+MH+'" preserveAspectRatio="xMidYMid meet">';
+    states.forEach(function(s){
+      var pts=(s.poly||[]).map(function(p){ return SX(p).toFixed(1)+','+SY(p).toFixed(1); }).join(' ');
+      var cls='ml-mini-st'+(s.id===curStId?' cur':'');
+      mini+='<polygon class="'+cls+'" data-state="'+s.id+'" points="'+pts+'"></polygon>';
+    });
+    mini+='</svg><div class="ml-mini-t">十三州疆域 · 点州直达</div></div>';
     var legend=Object.keys(MAP_KIND_LABEL).filter(function(k){return k!=='tutorial';}).map(function(k){
       return '<span><i class="mpk mpk-'+k+'"></i>'+MAP_KIND_LABEL[k]+'</span>';
     }).join('');
@@ -2337,7 +2363,7 @@ window.onerror=function(msg,url,line,col,err){
       ? '点击一处地点设为出生点，并立即传送至此（已自动存档）。当前出生点：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)
       : '按州分列各地去处，点击即可循山河志前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」；已去之处无需再远行。';
     return '<h3>'+title+'</h3>'+
-      '<div class="map-list"><div class="map-legend">'+legend+'</div>'+html+'</div>'+
+      '<div class="map-list">'+mini+'<div class="map-legend">'+legend+'</div>'+html+'</div>'+
       '<p class="tip">'+tip+'</p>';
   }
   // 列表式地图交互（与旧 initMap 的点击语义一致）
@@ -2357,6 +2383,38 @@ window.onerror=function(msg,url,line,col,err){
       card.querySelectorAll('[data-rid]').forEach(function(el){
         el.addEventListener('click', function(){
           goRoomOnMap(el.getAttribute('data-rid'));
+        });
+      });
+    }
+    // v20260822ao：A+B —— 缩略图 ↔ 州卡片双向联动
+    var mini=card.querySelector('.ml-mini-svg');
+    if(mini){
+      mini.querySelectorAll('[data-state]').forEach(function(poly){
+        poly.addEventListener('click', function(){
+          var sid=poly.getAttribute('data-state');
+          var st=card.querySelector('.ml-state[data-state="'+sid+'"]');
+          if(!st) return;
+          st.scrollIntoView({behavior:'smooth',block:'start'});
+          st.classList.add('flash');
+          clearTimeout(st._ft);
+          st._ft=setTimeout(function(){ st.classList.remove('flash'); },1200);
+        });
+      });
+      var ticking=false;
+      card.addEventListener('scroll', function(){
+        if(ticking) return; ticking=true;
+        requestAnimationFrame(function(){
+          ticking=false;
+          var vh=card.clientHeight, top=card.scrollTop;
+          var curEl=null, best=Infinity;
+          card.querySelectorAll('.ml-state').forEach(function(st){
+            var d=Math.abs(st.offsetTop-top-vh*0.25);
+            if(d<best){ best=d; curEl=st; }
+          });
+          var sid=curEl?curEl.getAttribute('data-state'):'';
+          mini.querySelectorAll('[data-state]').forEach(function(poly){
+            poly.classList.toggle('view', poly.getAttribute('data-state')===sid);
+          });
         });
       });
     }
