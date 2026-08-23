@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>v20260824a 变更日志 · 乱世烽火</title>
+<style>
+  body{font-family:"PingFang SC","Microsoft YaHei",serif;background:#f6efe0;color:#3a2e1a;margin:0;padding:24px;line-height:1.7;}
+  .c{max-width:920px;margin:0 auto;background:#fffaf0;border:1px solid #c8b48c;border-radius:14px;padding:26px 30px;box-shadow:0 6px 28px rgba(80,52,26,.18);}
+  h1{font-family:"STKaiti","KaiTi",serif;font-size:28px;margin:0 0 6px;letter-spacing:6px;color:#8a2e1c;text-align:center;}
+  h2{font-family:"STKaiti","KaiTi",serif;font-size:18px;color:#5a4628;border-left:4px solid #c89a3a;padding-left:10px;margin-top:30px;letter-spacing:2px;}
+  .sub{text-align:center;color:#8a7a5a;font-size:13px;margin-bottom:22px;letter-spacing:2px;}
+  .item{margin:14px 0;padding:10px 14px;background:#fff;border:1px solid #e8d8b4;border-radius:8px;}
+  .item b{color:#8a2e1c;}
+  code{background:#faecd0;padding:2px 6px;border-radius:4px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#6c4523;}
+  a.btn{display:inline-block;padding:9px 18px;background:#8a2e1c;color:#fffaf0;text-decoration:none;border-radius:8px;font-size:14px;letter-spacing:2px;}
+  ul{margin:8px 0;padding-left:20px;}
+  li{margin:4px 0;}
+  table{width:100%;border-collapse:collapse;margin:10px 0;}
+  th,td{border:1px solid #e0cfa6;padding:6px 10px;font-size:13.5px;text-align:left;}
+  th{background:#f3e6c4;color:#5a4628;}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">v20260824a 变更日志 · 2026-08-24 · 城市网格：程序生成的 N×N 城内房间</div>
+  <p style="text-align:center;margin:8px 0 18px;">
+    <a class="btn" href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">▶ 在线试玩（请硬刷新 Ctrl+F5 / ⌘⇧R）</a>
+  </p>
+
+  <h2>🏯 城市网格系统（程序生成房间）</h2>
+  <div class="item">
+    每个启用 <code>grid</code> 字段的城市，进入后展示一张 <b>N×N 的城内房间网格</b>，点击相邻格移动，而非单一房间。房间内容由格子类型实时派生：
+    <table>
+      <tr><th>格子类型</th><th>城内表现</th><th>可交互</th></tr>
+      <tr><td>🏛 城中广场</td><td>州衙旌旗、商旅如织</td><td>就地休整 / 维持治安</td></tr>
+      <tr><td>🚪 城门</td><td>出城门户</td><td>返回山河志（出城）</td></tr>
+      <tr><td>🛒 市集</td><td>摊贩鳞次</td><td>逛市集（交易）</td></tr>
+      <tr><td>🏠 民宅</td><td>寻常百姓家</td><td>交谈百姓 / 休整</td></tr>
+      <tr><td>⚔ 军营</td><td>旌甲林立</td><td>募兵操练（入队）</td></tr>
+      <tr><td>🌾 农庄</td><td>田垄新绿</td><td>与农夫交谈</td></tr>
+      <tr><td>🟫 空地 / 🔥 焦土</td><td>未营建 / 劫后</td><td>（预留扩建 / 战火降级）</td></tr>
+    </table>
+    <ul>
+      <li><b>规模分级</b>：都城洛阳 9×9、州城 7×7（邺 / 昌邑 / 下邳 / 临淄 / 襄阳 / 寿春 / 成都 / 武威 / 晋阳 / 番禺）、县城颍川 5×5</li>
+      <li><b>布局稳定</b>：用基于城市 id 的种子伪随机生成，同一城每次进入布局一致；布局存入 <code>state.flags.cityGrid</code> 持久化（旧档兼容）</li>
+      <li><b>移动</b>：仅可点击与当前格上/下/左/右相邻的格子；当前格高亮，远处格子置灰不可瞬移</li>
+      <li><b>内容随参数</b>：商业越高市集越多、城防越高军营越多；治安低则城中广场 / 街巷刷出「落单溃兵」（可挑战）</li>
+      <li>蓟城、渔阳保留原有<b>手写多房间街区</b>（不启用网格，避免覆盖既有内容）</li>
+    </ul>
+  </div>
+
+  <h2>🧩 设计取舍</h2>
+  <div class="item">
+    <ul>
+      <li>采用<b>「类型矩阵 + 派生」</b>而非手写 81 个房间：只存一张字符矩阵（每城约 N×N 个类型），房间内容全靠 <code>cityCell*</code> 派生——加城市只需在 <code>cities.js</code> 加一行并标 <code>grid</code></li>
+      <li>网格是<b>扩建 / 降级</b>的载体：后续 <code>grid</code> 边长随 <code>pop/wall</code> 增长解锁外圈空地，战火使 <code>wall</code> 跌破则标记 <code>ruin</code> 焦土（已预留类型）</li>
+      <li>复用既有 <code>renderRoom / move / state.flags</code> 体系，对原架构几乎零侵入</li>
+    </ul>
+  </div>
+
+  <h2>📋 改动文件</h2>
+  <div class="item">
+    <b>shared/data/cities.js</b> — 为 12 城新增 <code>grid</code> 字段（5 / 7 / 9），标注网格规模等级<br>
+    <b>index.html</b> — 城市网格系统：<code>genCityGrid / cityCellDesc / cityCellNpcs / cityCellActs / goCell / renderCityGridActions</code>；<code>#city-grid</code> 容器；<code>renderRoom / buildActions / renderNpcList / handleAction</code> 接入；缓存参数 <code>?v=20260824a</code><br>
+    <b>shared/config/constants.js</b> — <code>VERSION: '20260823a' → '20260824a'</code>
+  </div>
+
+  <p style="text-align:center;color:#8a7a5a;font-size:12.5px;margin-top:30px;">线上地址：<a href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">https://kegaiisyou.github.io/sanguo-rpg/</a>（若仍显示旧版本号，硬刷新 Ctrl+F5 / ⌘⇧R）</p>
+</div>
+</body>
+</html>

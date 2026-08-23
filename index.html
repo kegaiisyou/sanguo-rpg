@@ -1725,6 +1725,7 @@ window.onerror=function(msg,url,line,col,err){
   <header id="status"></header>
   <div class="loc-tab" id="loc-tab"></div>
   <main id="scene"><div id="narr"></div></main>
+  <section id="city-grid"></section>
   <section id="actions"></section>
   <div id="lower">
     <div id="move-tabs">
@@ -1761,7 +1762,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260823a"></script>
+<script src="shared/config/constants.js?v=20260824a"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1777,7 +1778,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260822as"></script>
-    <script src="shared/data/cities.js?v=20260823a"></script>
+    <script src="shared/data/cities.js?v=20260824a"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
@@ -3363,6 +3364,16 @@ window.onerror=function(msg,url,line,col,err){
     var room=G.ROOMS[rid]; if(!room) return;
     narrToken++;                 // 新场景：使任何残留的旧叙事序列失效
     state.room=rid;
+    if(isCityGrid(rid)){
+      var __m=genCityGrid(rid);
+      if(!state.flags.cityPos || state.flags.cityPos.cid!==rid){
+        var __c=Math.floor(__m.size/2);
+        state.flags.cityPos={cid:rid, x:__c, y:__c};
+      }
+      var __cg=document.getElementById('city-grid'); if(__cg) __cg.style.display='grid';
+    } else {
+      var __cg2=document.getElementById('city-grid'); if(__cg2){ __cg2.style.display='none'; __cg2.innerHTML=''; }
+    }
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     var suppressNarr = onboarding && (rid==='ys_entrance' || rid==='ys_ne');
     if(combatCardEl){ if(combatCardEl.parentNode) combatCardEl.parentNode.removeChild(combatCardEl); combatCardEl=null; }
@@ -3737,6 +3748,136 @@ window.onerror=function(msg,url,line,col,err){
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
     return out;
   }
+  // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
+  // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
+  var CELL_META={
+    plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'}, road:{i:'🛤',nm:'街巷'},
+    market:{i:'🛒',nm:'市集'}, home:{i:'🏠',nm:'民宅'}, barracks:{i:'⚔',nm:'军营'},
+    farm:{i:'🌾',nm:'农庄'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'}
+  };
+  var CELL_DESC={
+    plaza:'城中广场四达，州衙旌旗在望，商旅往来如织。',
+    gate:'城门巍峨，匾额森然，出城可重返山河。',
+    road:'长街深巷，偶有行人仓皇而过。',
+    market:'市集喧阗，摊贩鳞次，奇货时隐其中。',
+    home:'寻常民宅，檐下晾着布衣，孩童探头张望。',
+    barracks:'军营肃整，旌甲林立，校尉按剑而立。',
+    farm:'城郊农庄，田垄新绿，农夫荷锄而立。',
+    empty:'一片空地，瓦砾草莽，尚待营建。',
+    ruin:'焦土未冷，断壁残垣，劫后萧索。'
+  };
+  function seededRand(seed){
+    var h=2166136261; for(var i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
+    var s=h>>>0;
+    return function(){ s|=0; s=s+0x6D2B79F5|0; var t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+  }
+  function isCityGrid(rid){ var c=(LF.CITIES||{})[rid]; return !!(c && c.grid); }
+  function genCityGrid(cid){
+    var c=(LF.CITIES||{})[cid]; if(!c||!c.grid) return null;
+    if(state.flags.cityGrid && state.flags.cityGrid[cid]) return state.flags.cityGrid[cid];
+    var size=c.grid, rnd=seededRand(cid+'_grid');
+    var cx=Math.floor(size/2), cy=Math.floor(size/2);
+    var g=[];
+    for(var y=0;y<size;y++){ var row=[];
+      for(var x=0;x<size;x++){
+        var t;
+        if(x===cx && y===cy) t='plaza';
+        else if(((x===cx)||(y===cy)) && (x===0||x===size-1||y===0||y===size-1)) t='gate';
+        else {
+          var roll=rnd();
+          if(roll<0.20) t='market';
+          else if(roll<0.46) t='home';
+          else if(roll<0.58) t='barracks';
+          else if(roll<0.68) t='farm';
+          else if(roll<0.78) t='road';
+          else t='empty';
+          if(t==='market' && c.commerce<55 && rnd()<0.5) t='home';
+          if(t==='barracks' && c.wall<60 && rnd()<0.5) t='road';
+        }
+        row.push(t);
+      }
+      g.push(row);
+    }
+    state.flags.cityGrid=state.flags.cityGrid||{};
+    state.flags.cityGrid[cid]={size:size, cells:g};
+    return state.flags.cityGrid[cid];
+  }
+  function cityCellDesc(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return [];
+    var t=m.cells[y][x], meta=CELL_META[t];
+    return ['〔城内·'+meta.nm+'〕'+CELL_DESC[t]];
+  }
+  function cityCellNpcs(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return [];
+    var t=m.cells[y][x], p=cityProfile(cid), items=[];
+    if(t==='market'){
+      var m1={name:'行脚商贩', icon:'🛒', key:'mch_'+cid, desc:'挑担走街的行商'};
+      items.push({o:m1, acts:[{label:'看看货色', icon:'🛒', fn:function(){ runEvent(findEvent('ev_merchant')); }}]});
+    }
+    if(t==='barracks'){
+      var s={name:'营中守军', icon:'⚔', key:'sol_'+cid, desc:'按剑肃立的戍卒'};
+      items.push({o:s, acts:[{label:'交谈', icon:'💬', fn:function(){ log('〔守军〕此城乃'+p.c.name+'要冲，校尉治军严整，盗匪不敢近。','npc'); }}]});
+    }
+    if(t==='farm'){
+      var f={name:'田舍农夫', icon:'🌾', key:'fm_'+cid, desc:'荷锄的城中农户'};
+      items.push({o:f, acts:[{label:'交谈', icon:'💬', fn:function(){ log('〔农夫〕年景尚可，仓中有粮，人心便安。','npc'); }}]});
+    }
+    if(t==='plaza'||t==='home'||t==='road'){
+      var nCiv=Math.min(5,1+Math.floor(p.c.pop/20));
+      var says=['近来城中米价又涨了……','壮士远道而来，可要当心盗匪。','哎，这世道，安稳过活便是福。','客官可是来贩货的？东市好货不少。','听说明日有马队入城。'];
+      for(var i=0;i<nCiv;i++){
+        (function(idx){
+          var o={name:'城中百姓', icon:'👤', key:'civ_'+cid+'_'+x+'_'+y+'_'+idx, desc:'往来市井的百姓'};
+          items.push({o:o, acts:[
+            {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+says[Math.floor(Math.random()*says.length)],'npc'); }},
+            {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
+          ]});
+        })(i);
+      }
+    }
+    if(p.c.order<45){ var en={name:'落单溃兵', icon:'⚔', key:'deserter_'+cid, desc:'衣甲散乱的溃卒'}; items.push({o:en, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat('deserter'); }}]}); }
+    return items;
+  }
+  function cityCellActs(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return [];
+    var t=m.cells[y][x], p=cityProfile(cid), out=[];
+    if(t==='market') out.push({id:'market', label:'逛市集', tip:'市井买卖，或有奇货'});
+    if(t==='barracks') out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'});
+    if(t==='plaza'||t==='home'||t==='gate'||t==='road'||t==='farm') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
+    if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
+    out.push({id:'leave_city', label:'返回山河志', tip:'出城，重览山河'});
+    return out;
+  }
+  function goCell(cid,x,y){
+    var cp=state.flags.cityPos; if(!cp) return;
+    if(Math.abs(cp.x-x)+Math.abs(cp.y-y)!==1) return;   // 仅相邻格可移动
+    state.flags.cityPos={cid:cid, x:x, y:y};
+    renderRoom(cid, true);
+  }
+  function renderCityGridActions(room){
+    var cid=room.id, cp=state.flags.cityPos, m=genCityGrid(cid);
+    if(!m) return;
+    var size=m.size;
+    var cg=document.getElementById('city-grid'); cg.innerHTML='';
+    cg.style.display='grid'; cg.style.gridTemplateColumns='repeat('+size+',1fr)';
+    cg.style.gap='5px'; cg.style.margin='10px 0 14px'; cg.style.maxWidth=(size*46)+'px'; cg.style.padding='0';
+    for(var y=0;y<size;y++) for(var x=0;x<size;x++){
+      var t=m.cells[y][x], meta=CELL_META[t];
+      var b=document.createElement('button');
+      b.className='cg-cell cg-'+t+(cp.x===x&&cp.y===y?' cg-cur':'');
+      b.textContent=meta.i; b.title=meta.nm;
+      b.style.fontSize='20px'; b.style.padding='6px 0'; b.style.borderRadius='6px';
+      b.style.border='1px solid rgba(255,255,255,.12)'; b.style.background='rgba(0,0,0,.25)'; b.style.cursor='pointer';
+      var adj=Math.abs(cp.x-x)+Math.abs(cp.y-y);
+      if(adj===1){ b.onclick=(function(nx,ny){ return function(){ goCell(cid,nx,ny); }; })(x,y); }
+      else if(!(cp.x===x&&cp.y===y)){ b.disabled=true; b.style.opacity='.35'; b.style.cursor='default'; }
+      cg.appendChild(b);
+    }
+    cityCellActs(cid,cp.x,cp.y).forEach(function(a){
+      var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
+      var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
+    });
+  }
   function buildActions(room, popExits){
     clearActions();
     grpCursor=null;
@@ -3745,6 +3886,11 @@ window.onerror=function(msg,url,line,col,err){
     if(state.defeated){
       log('〔力竭〕你重伤未愈，动弹不得——就地打盹歇息，方能续战。','sys');
       var b=mkAct('scene','🧱','席地打盹',function(){ openRestModal('ground'); });
+      return;
+    }
+    // 城市网格：渲染 N×N 小地图 + 当前格动作（取代旧出口/对象按钮）
+    if(isCityGrid(room.id)){
+      renderCityGridActions(room);
       return;
     }
     // 城市系统：按商业/治安派生可做之事（逛市集、维持治安）——对配置城市与占位州治均生效
@@ -3804,7 +3950,7 @@ window.onerror=function(msg,url,line,col,err){
       }
     });
     // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
-    var cityExtras=cityNpcs(room.id);
+    var cityExtras = isCityGrid(room.id) ? cityCellNpcs(room.id, state.flags.cityPos.x, state.flags.cityPos.y) : cityNpcs(room.id);
     for(var ci=0; ci<cityExtras.length; ci++){
       if(seen[cityExtras[ci].o.key]) continue;
       if(rec[cityExtras[ci].o.key]) continue;
@@ -4105,6 +4251,15 @@ window.onerror=function(msg,url,line,col,err){
       case 'rest':  actRest(); break;
       case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
+      case 'recruit':
+        if(!exert('入营募兵')) return;
+        state.flags.recruited=state.flags.recruited||{};
+        var rk=state.room+'_sol';
+        if(state.flags.recruited[rk]){ log('此城军营已拨卒于你，无需再募。','sys'); break; }
+        state.flags.recruited[rk]=true;
+        log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
+        break;
+      case 'leave_city': openModal('map'); break;
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
       // ─── 教程：劳作 / 塌墙根决断 ───
