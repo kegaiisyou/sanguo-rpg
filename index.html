@@ -649,6 +649,14 @@
   .mc-cell.mc-unbuilt{background:rgba(120,110,90,.18);border-color:rgba(160,150,120,.30);color:#9b9384;}
   .mc-cell.mc-block{cursor:not-allowed;}
   .mc-cell.mc-locked{filter:grayscale(.8) brightness(.78);opacity:.6;}
+  /* 道路等级（v20260824g）：等级越高路面越亮 */
+  .mc-cell.mc-r1{background:rgba(96,66,38,.34);}
+  .mc-cell.mc-r2{background:rgba(150,110,55,.24);}
+  .mc-cell.mc-r3{background:rgba(160,135,75,.22);}
+  .mc-cell.mc-r4{background:rgba(150,145,95,.24);}
+  .mc-cell.mc-r5{background:rgba(130,155,105,.30);}
+  .mc-cell.mc-burnt{box-shadow:inset 0 0 0 2px rgba(210,90,45,.55);}
+  .mc-cell.mc-broken{background:rgba(60,50,40,.5);border-color:rgba(200,120,60,.5);color:#d8b28a;}
   .mc-back{margin-left:8px;background:rgba(90,70,40,.5);border-color:rgba(220,170,90,.4);}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
   .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
@@ -1816,7 +1824,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260824b"></script>
+<script src="shared/config/constants.js?v=20260824g"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -3813,7 +3821,8 @@ window.onerror=function(msg,url,line,col,err){
     palace:{i:'🏯',nm:'皇宫'}, gov:{i:'🏛',nm:'衙署'},
     plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'}, road:{i:'🛤',nm:'街巷'},
     market:{i:'🛒',nm:'市集'}, home:{i:'🏠',nm:'民宅'}, barracks:{i:'⚔',nm:'军营'},
-    farm:{i:'🌾',nm:'农庄'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'}
+    farm:{i:'🌾',nm:'农庄'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'},
+    broken:{i:'⛔',nm:'断路'}
   };
   var CELL_DESC={
     palace:'宫阙巍峨，金瓦耀日，甲士环侍，天子所居之地，气象森严。',
@@ -3827,7 +3836,8 @@ window.onerror=function(msg,url,line,col,err){
     farm:'阡陌纵横，农人扶犁，仓廪所系，民食之源。',
     empty:'一片空地，瓦砾草莽，尚待营建。',
     ruin:'焦土未冷，断壁残垣，劫后萧索。',
-    unbuilt:'城郭未及营建，草莽瓦砾，尚无居人。'
+    unbuilt:'城郭未及营建，草莽瓦砾，尚无居人。',
+    broken:'壕沟纵横，路基翻起，道路被掘断，无法通行。'
   };
   // ══ 城市盛衰 / 归属系统（v20260824d）══
   // 建设度(dev)决定建成半径：随盛衰扩建/降级；焦土(ruin)由战火标记；归属(owner)易主则中枢变帅府/行辕
@@ -3841,12 +3851,46 @@ window.onerror=function(msg,url,line,col,err){
     if(state.flags.cityOwner[cid]==null) state.flags.cityOwner[cid]=(c.owner||'汉');
     if(!state.flags.cityBurned) state.flags.cityBurned={};
     if(!state.flags.cityBurned[cid]) state.flags.cityBurned[cid]={};
+    if(!state.flags.cityBroken) state.flags.cityBroken={};
+    if(!state.flags.cityBroken[cid]) state.flags.cityBroken[cid]={};
   }
   function cityDevOf(cid){ ensureCityState(cid); return state.flags.cityDev[cid]; }
   function cityOwnerOf(cid){ ensureCityState(cid); return state.flags.cityOwner[cid]; }
   function cityDefaultOwner(cid){ var c=(LF.CITIES||{})[cid]||{}; return c.owner||'汉'; }
   function isCaptured(cid){ return cityOwnerOf(cid)!==cityDefaultOwner(cid); }
   function cityBurnedMap(cid){ ensureCityState(cid); return state.flags.cityBurned[cid]; }
+  function cityBrokenMap(cid){ ensureCityState(cid); return state.flags.cityBroken[cid]; }
+  // ══ 道路等级系统（v20260824g）══
+  // 道路分五等：泥泞→土路→砂石→石板→官道。主街(中轴)随建设度逐级升档，侧街低一档；
+  // 战火(焦土)降两级、最低泥泞（道路不封死）；被故意掘断(broken)则彻底不可通行。
+  var ROAD_TIERS=[
+    {nm:'泥泞土路', ic:'🟤', eng:3, desc:'雨后泥泞，深一脚浅一脚'},
+    {nm:'土路', ic:'🟠', eng:2, desc:'夯实的黄土路，尚算平整'},
+    {nm:'砂石路', ic:'🪨', eng:2, desc:'铺撒砂石，雨天不陷'},
+    {nm:'石板路', ic:'🧱', eng:1, desc:'青石铺就，行走便捷'},
+    {nm:'官道大街', ic:'🛣️', eng:1, desc:'宽阔官道，车马通行无碍'}
+  ];
+  function roadInfo(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return null;
+    var t=cellDisplayType(cid,x,y);
+    if(t!=='road' && t!=='gate') return null;
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
+    var isAxis=(x===cx||y===cy);
+    var dev=cityDevOf(cid);
+    var lv;
+    if(isAxis) lv=(dev>=85?5:dev>=65?4:dev>=45?3:dev>=25?2:1);
+    else lv=Math.max(1,(dev>=85?4:dev>=65?3:dev>=45?2:1)-1);
+    if(cityBurnedMap(cid)[x+','+y]) lv=Math.max(1,lv-2);   // 战火降两级，最低泥泞
+    return {lv:lv, nm:ROAD_TIERS[lv-1].nm, ic:ROAD_TIERS[lv-1].ic, eng:ROAD_TIERS[lv-1].eng, desc:ROAD_TIERS[lv-1].desc, axis:isAxis, gate:(m.cells[y][x]==='gate')};
+  }
+  function burnedGates(cid){
+    var m=genCityGrid(cid); if(!m) return 0;
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2), bm=cityBurnedMap(cid), n=0;
+    [[cx,0],[0,cy],[size-1,cy],[cx,size-1]].forEach(function(p){ if(bm[p[0]+','+p[1]]) n++; });
+    return n;
+  }
+  // 每座被焚城门使守军战力减 8%（最多三成）——城门不免疫火烧，焚毁自有其代价
+  function siegeGuardMul(cid){ var n=burnedGates(cid); return n? Math.max(0.7,1-0.08*n):1; }
   function setCityDev(cid,v){ if(!state.flags.cityDev) state.flags.cityDev={}; state.flags.cityDev[cid]=Math.max(0,Math.min(100,v)); }
   function playerFaction(){ return state.faction || '义军'; }
   function centerTypeOf(cid){ var m=genCityGrid(cid); if(!m) return 'gov'; var c=Math.floor(m.size/2); return m.cells[c][c]; }
@@ -3873,10 +3917,14 @@ window.onerror=function(msg,url,line,col,err){
   }
   function cellDisplayType(cid,x,y){
     var t=baseDisplayType(cid,x,y);
-    if(t!=='unbuilt' && cityBurnedMap(cid)[x+','+y]) return 'ruin';
+    if(t==='unbuilt') return t;
+    var km=cityBrokenMap(cid);
+    if(km[x+','+y]) return 'broken';                        // 故意掘断 → 断路，彻底不可通行
+    if(t==='road'||t==='gate') return t;                    // 道路/城门被战火所焚仍可通行，仅降级（见 roadInfo）；城门另有守军减益
+    if(cityBurnedMap(cid)[x+','+y]) return 'ruin';
     return t;
   }
-  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt'; }
+  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt' && t!=='broken'; }
   function burnCells(cid,n){
     var m=genCityGrid(cid); if(!m) return;
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
@@ -3969,7 +4017,13 @@ window.onerror=function(msg,url,line,col,err){
   function cityCellDesc(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
     var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
-    return ['〔城内·'+meta.nm+'〕'+(CELL_DESC[t]||'')];
+    var d='〔城内·'+meta.nm+'〕'+(CELL_DESC[t]||'');
+    if(t==='road'||t==='gate'){
+      var ri=roadInfo(cid,x,y);
+      if(ri) d+='（'+ri.nm+'：'+ri.desc+'）';
+      if(cityBurnedMap(cid)[x+','+y]) d+=' 此地曾遭战火，路面坑洼焦黑。';
+    }
+    return [d];
   }
   function cityCellNpcs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
@@ -4042,22 +4096,47 @@ window.onerror=function(msg,url,line,col,err){
   }
   function cityCellActs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
-    var t=m.cells[y][x], p=cityProfile(cid), out=[];
+    var t=m.cells[y][x], dt=cellDisplayType(cid,x,y), p=cityProfile(cid), out=[];
+    var bm=cityBurnedMap(cid), km=cityBrokenMap(cid);
+    var burnt=!!bm[x+','+y], broken=!!km[x+','+y];
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
     if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
-    if(t!=='ruin') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
+    if(dt!=='ruin' && dt!=='unbuilt' && dt!=='broken') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
-    if(t==='gate') out.push({id:'leave_city', label:'出城门', tip:'经城门出城，重览山河'});
+    if(t==='gate') out.push({id:'leave_city', label:'出城门', tip: burnt?'城门残破，仍可通行，出城重览山河':'经城门出城，重览山河'});
+    // ── 道路治理（v20260824g）──
+    if(t==='road' || t==='gate'){
+      if(broken) out.push({id:'road_repair', label:'填土重修', tip:'填平壕沟，恢复此路通行'});
+      else if(burnt) out.push({id:'road_repair', label:'修整道路', tip:'清整战火焦痕，恢复路面等级'});
+    }
+    if(dt==='road' && !broken && !burnt && !(x===cx&&y===cy))
+      out.push({id:'road_break', label:'掘断道路', danger:true, tip:'掘壕断路，此地沦为不可通行（可于旁侧填平重修）'});
+    // 旁侧断路可隔格填平（避免掘断后自我封路无法修复）
+    var DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+    DIRS.forEach(function(d){
+      var nx=x+d[0], ny=y+d[1];
+      if(nx>=0&&nx<size&&ny>=0&&ny<size && km[nx+','+ny] && !broken)
+        out.push({id:'road_repair', label:'填平断路', tip:'填平前方壕沟，恢复此路通行', data:{tx:nx,ty:ny}});
+    });
+    // 寻路出城（其他手段：自动沿可通行道路行至最近城门；断路阻隔则无法成行）
+    out.push({id:'leave_auto', label:'寻路出城', tip:'自动沿可通行道路行至最近城门出城（若断路阻隔则无法成行）'});
     return out;
   }
   function goCell(cid,x,y){
     var cp=state.flags.cityPos; if(!cp || cp.cid!==cid) return;
     if(Math.abs(cp.x-x)+Math.abs(cp.y-y)!==1) return;   // 仅相邻格可移动
     if(!exert('远行')) return;
-    state.energy=Math.max(0,state.energy-2);
+    var ri=roadInfo(cid,x,y);
+    var eng=(ri?ri.eng:2);   // 道路等级越高通行越省力（官道1 / 泥泞3）
+    state.energy=Math.max(0,state.energy-eng);
     state.food=Math.max(0,state.food-1); state.drink=Math.max(0,state.drink-1);
     advanceTime(1);
     state.flags.cityPos={cid:cid, x:x, y:y};
-    log('你转入城中街巷，景物渐换……','sys');
+    if(ri){
+      log('你沿'+ri.nm+'前行'+(ri.gate?'，城门口就在眼前':(ri.axis?'，渐近城门':''))+'……','sys');
+    } else {
+      log('你转入城中街巷，景物渐换……','sys');
+    }
     renderRoom(cid, true);
     save(state);
     if(currentModalKind==='map') openModal('map');   // 城内地图模式下同步刷新网格
@@ -4073,13 +4152,15 @@ window.onerror=function(msg,url,line,col,err){
     var cells='';
     for(var y=0;y<size;y++) for(var x=0;x<size;x++){
       var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
+      var ri=(t==='road'||t==='gate')?roadInfo(cid,x,y):null;
+      var burnt=!!cityBurnedMap(cid)[x+','+y];
       var cur=(cp.x===x&&cp.y===y);
       var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
-      var locked=(t==='ruin'||t==='unbuilt');
-      var cls='mc-cell mc-'+t+(cur?' mc-cur':'')+(adj&&!locked?' mc-adj':'')+(locked?' mc-block mc-locked':'');
+      var locked=(t==='ruin'||t==='unbuilt'||t==='broken');
+      var cls='mc-cell mc-'+t+(ri?(' mc-r'+ri.lv):'')+(cur?' mc-cur':'')+(adj&&!locked?' mc-adj':'')+(locked?' mc-block mc-locked':'')+(burnt?' mc-burnt':'');
       cells+='<div class="'+cls+'" data-x="'+x+'" data-y="'+y+'"'+
         ' style="left:'+(x*CELL)+'px;top:'+(y*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
-        '<span class="mc-ic">'+meta.i+'</span><span class="mc-nm">'+cellDisplayName(cid,t)+'</span></div>';
+        '<span class="mc-ic">'+(ri&&!ri.gate?ri.ic:meta.i)+'</span><span class="mc-nm">'+(ri?(ri.gate?'城门'+(burnt?'·焚':''):ri.nm+(burnt?'·焚':'')):cellDisplayName(cid,t))+'</span></div>';
     }
     var curMetaName=cellDisplayName(cid, m.cells[cp.y][cp.x]);
     return '<h3>'+cname+' · 城内布防图</h3>'+
@@ -4087,7 +4168,7 @@ window.onerror=function(msg,url,line,col,err){
       '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button>'+
         '<button class="mk-back" id="mc-back">🗺 返回山河志（出城）</button></div>'+
       '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMetaName+'〕。'+
-        '出城请点「返回山河志」。城内规模随盛衰可扩建或毁于战火（焦土不可通行）。</p>';
+        '道路分泥泞/土路/砂石/石板/官道五等，建设度越高通行越省力；战火降级、掘断则断路。出城须经城门（或「寻路出城」）。</p>';
   }
   function initMapCity(opts){
     opts=opts||{};
@@ -4101,7 +4182,7 @@ window.onerror=function(msg,url,line,col,err){
         if(isCur || canEnterCell(cid,x,y)){
           el.addEventListener('click', function(){
             if(isCur) return;
-            if(!canEnterCell(cid,x,y)){ toast((cellDisplayType(cid,x,y)==='ruin'?'那处已成焦土，无从通行。':'城垣未及营建，暂不可往。')); return; }
+            if(!canEnterCell(cid,x,y)){ toast((cellDisplayType(cid,x,y)==='broken'?'此路已被掘断，无法通行。':(cellDisplayType(cid,x,y)==='ruin'?'那处已成焦土，无从通行。':'城垣未及营建，暂不可往。'))); return; }
             goCell(cid, x, y);
           });
         } else {
@@ -4420,9 +4501,10 @@ window.onerror=function(msg,url,line,col,err){
       DIRS.forEach(function(d){
         var nx=cp.x+d[1], ny=cp.y+d[2];
         if(nx>=0&&nx<m.size&&ny>=0&&ny<m.size){
-          if(!canEnterCell(state.room,nx,ny)) return;   // 焦土/未营建不可通行
+          if(!canEnterCell(state.room,nx,ny)) return;   // 焦土/未营建/断路不可通行
           var t=cellDisplayType(state.room,nx,ny);
-          ex.push({dir:d[0], name:d[0]+'·'+cellDisplayName(state.room,t), icon:'🚪', tid:'__cell__', kind:'cell'});
+          var ri=(t==='road'||t==='gate')?roadInfo(state.room,nx,ny):null;
+          ex.push({dir:d[0], name:d[0]+'·'+(ri?ri.nm:cellDisplayName(state.room,t)), icon:'🚪', tid:'__cell__', kind:'cell'});
         }
       });
       return ex;
@@ -4541,12 +4623,94 @@ window.onerror=function(msg,url,line,col,err){
         state.flags.recruited[rk]=true;
         log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
         break;
-      case 'leave_city': openModal('map', {forceWorld:true}); break;
+      case 'leave_city': {
+        var _cp=state.flags.cityPos||{}, _ct=(_cp.cid? cellDisplayType(_cp.cid, _cp.x, _cp.y):'');
+        if(_ct!=='gate'){ toast('须至城门方能出城——沿道路走到城门口，或「寻路出城」。'); break; }
+        openModal('map', {forceWorld:true}); break;
+      }
+      case 'road_break': {
+        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
+        var _cp=state.flags.cityPos; if(!_cp) break;
+        var _cid=_cp.cid, _m=genCityGrid(_cid); if(!_m) break;
+        var _sz=_m.size, _cxp=Math.floor(_sz/2), _cyp=Math.floor(_sz/2);
+        if(cellDisplayType(_cid,_cp.x,_cp.y)!=='road'){ toast('此处并非可掘断的道路。'); break; }
+        if(cityBrokenMap(_cid)[_cp.x+','+_cp.y]){ toast('此路已断，无需再掘。'); break; }
+        if(_cp.x===_cxp&&_cp.y===_cyp){ toast('城中枢要之地，不可掘断。'); break; }
+        if(!exert('掘土断路')) return;
+        cityBrokenMap(_cid)[_cp.x+','+_cp.y]=true;
+        log('你抡镐掘壕，土石翻飞——脚下道路已成断路，不复通行。','sys');
+        renderRoom(_cid, true); save(state);
+        if(currentModalKind==='map') openModal('map');
+        break;
+      }
+      case 'road_repair': {
+        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
+        var _cp=state.flags.cityPos; if(!_cp) break;
+        var _cid=_cp.cid;
+        var _tx=(a&&a.data&&a.data.tx!=null)?a.data.tx:_cp.x;
+        var _ty=(a&&a.data&&a.data.ty!=null)?a.data.ty:_cp.y;
+        var _m=genCityGrid(_cid); if(!_m) break;
+        var _km=cityBrokenMap(_cid), _bm=cityBurnedMap(_cid);
+        var _wasBroken=!!_km[_tx+','+_ty], _wasBurnt=!!_bm[_tx+','+_ty];
+        if(!_wasBroken && !_wasBurnt){ toast('此处道路完好，无需修整。'); break; }
+        if(!exert('挥铲整路')) return;
+        delete _km[_tx+','+_ty];
+        if(_wasBroken) log('你一锹一铲填平壕沟，断路重开，通行如初。','good');
+        else { delete _bm[_tx+','+_ty]; log('你清整焦痕、夯实路基，路面重归平整（道路等级恢复）。','good'); }
+        renderRoom(_cid, true); save(state);
+        if(currentModalKind==='map') openModal('map');
+        break;
+      }
+      case 'leave_auto': {
+        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
+        var _cp=state.flags.cityPos; if(!_cp) break;
+        var _cid=_cp.cid, _m=genCityGrid(_cid); if(!_m) break;
+        var _sz=_m.size, _sx=_cp.x, _sy=_cp.y, _key=_sx+','+_sy;
+        var _vis={}; _vis[_key]=1;
+        var _q=[_key], _head=0, _par={}, _target=null;
+        var _dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+        while(_head<_q.length){
+          var _k=_q[_head++], _sp=_k.split(',');
+          var _px=+_sp[0], _py=+_sp[1];
+          if(_m.cells[_py][_px]==='gate' && canEnterCell(_cid,_px,_py)){ _target=_k; break; }
+          for(var _di=0;_di<4;_di++){
+            var _nx=_px+_dirs[_di][0], _ny=_py+_dirs[_di][1];
+            if(_nx<0||_nx>=_sz||_ny<0||_ny>=_sz) continue;
+            var _nk=_nx+','+_ny;
+            if(_vis[_nk]) continue;
+            if(!canEnterCell(_cid,_nx,_ny)) continue;
+            _vis[_nk]=1; _par[_nk]=_k; _q.push(_nk);
+          }
+        }
+        if(!_target){ toast('无路可通城门——断路阻隔，须先填平断路再行出城。'); break; }
+        var _path=[], _k2=_target;
+        while(_k2){ _path.push(_k2); _k2=_par[_k2]; }
+        _path.reverse();
+        var _steps=_path.length-1, _eng=0;
+        for(var _si=1;_si<_path.length;_si++){
+          var _pp=_path[_si].split(',');
+          var _ri=roadInfo(_cid,+_pp[0],+_pp[1]);
+          _eng+=(_ri?_ri.eng:2);
+        }
+        if(!exert('寻路出城')) return;
+        state.energy=Math.max(0,state.energy-_eng);
+        state.food=Math.max(0,state.food-_steps);
+        state.drink=Math.max(0,state.drink-_steps);
+        advanceTime(_steps);
+        var _tp=_target.split(',');
+        state.flags.cityPos={cid:_cid, x:+_tp[0], y:+_tp[1]};
+        log('你沿街巷穿行'+_steps+'格直抵城门（精力-'+_eng+'），城门在望。','sys');
+        renderRoom(_cid, true); save(state);
+        if(currentModalKind==='map') openModal('map');
+        break;
+      }
       case 'siege':
         if(!exert('起兵略地')) return;
         if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
         pendingSiegeCid=state.room;
-        startCombat('city_guard');
+        var _bg=burnedGates(state.room);
+        if(_bg>0) log('城门焚毁未修，守军凭残垣据守，士气涣散！','sys');
+        startCombat('city_guard', {guardMul: siegeGuardMul(state.room)});
         break;
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
@@ -7206,6 +7370,11 @@ window.onerror=function(msg,url,line,col,err){
     (state.party||[]).forEach(function(c){ if(c) party.push(Object.assign({}, c, { hp:c.maxHp })); });
     var r=G.CombatEngine.init(party, enemyId);
     if(r.error){ log(r.error,'sys'); return; }
+    // 城门被焚（不免疫火烧）→ 守军战力下降
+    if(opt.guardMul && opt.guardMul<1){
+      var _g=G.CombatEngine.getEnemy();
+      if(_g){ _g.hp=_g.maxHp=Math.max(1,Math.round(_g.maxHp*opt.guardMul)); _g.atk=Math.max(1,Math.round(_g.atk*opt.guardMul)); _g.def=Math.max(1,Math.round(_g.def*opt.guardMul)); }
+    }
     // V3：战场氛围（按敌人定主题背景）
     var SCENE_THEME={ bandit:'camp', bandit_chief:'camp', heishan_zei:'camp', heishan_zhu:'fort',
       yellow_turban:'altar', hua_xiong:'snow', stray_dog:'wild', hungry_refugee:'wild',
