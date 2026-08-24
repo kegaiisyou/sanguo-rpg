@@ -231,6 +231,26 @@
   .nl-item:active{transform:scale(.97);}
   .nl-item .nl-ic{font-size:14px;flex:none;}
   .nl-item .nl-nm{line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 可进入的建筑入口 chips，区别于一般人物 */
+  .nl-item.nl-bld{background:rgba(122,86,46,.16);border-color:rgba(176,131,47,.6);}
+  .nl-item.nl-bld:hover{background:rgba(176,131,47,.26);}
+  .nl-item.nl-bld::after{content:'入';margin-left:auto;font-size:10px;color:#9a7b3a;border:1px solid rgba(176,131,47,.5);border-radius:5px;padding:0 4px;}
+  /* —— 建筑内部面板 —— */
+  #modal-card .bld-sub{font-size:12px;color:#9a7b3a;text-align:center;margin:-4px 0 12px;}
+  #modal-card .bld-list{display:flex;flex-direction:column;gap:8px;}
+  #modal-card .bld-ent{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;cursor:pointer;
+    background:rgba(255,253,248,.92);border:1px solid rgba(176,131,47,.32);transition:.12s;}
+  #modal-card .bld-ent:hover{background:rgba(176,131,47,.16);border-color:rgba(176,131,47,.6);}
+  #modal-card .bld-ent-ic{font-size:20px;flex:none;}
+  #modal-card .bld-ent-nm{flex:1;font-size:14px;color:var(--ink);}
+  #modal-card .bld-ent-ki{font-size:10px;color:#9a7b3a;border:1px solid rgba(176,131,47,.45);border-radius:5px;padding:1px 5px;}
+  #modal-card .bld-detail{display:flex;flex-direction:column;gap:10px;}
+  #modal-card .bld-d-head{font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  #modal-card .bld-d-desc{font-size:13px;line-height:1.7;color:var(--ink-soft);background:rgba(255,253,248,.6);
+    border-left:3px solid rgba(176,131,47,.5);padding:8px 11px;border-radius:0 8px 8px 0;}
+  #modal-card .bld-acts{display:flex;flex-direction:column;gap:8px;}
+  #modal-card .bld-act{width:100%;justify-content:flex-start;text-align:left;}
+  #modal-card .bld-back{margin-top:4px;}
   /* —— 方向罗盘 —— */
   .move-bar{
     flex:0 0 auto;display:none;
@@ -1791,7 +1811,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260824d"></script>
-<script src="shared/data/items.js?v=20260821j"></script>
+<script src="shared/data/items.js?v=20260824e"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
@@ -3796,6 +3816,7 @@ window.onerror=function(msg,url,line,col,err){
   // ══ 城市盛衰 / 归属系统（v20260824d）══
   // 建设度(dev)决定建成半径：随盛衰扩建/降级；焦土(ruin)由战火标记；归属(owner)易主则中枢变帅府/行辕
   var pendingSiegeCid=null;
+  var buildingState=null;   // 建筑内部交互状态：{building, cid, x, y, ent}
   function ensureCityState(cid){
     var c=(LF.CITIES||{})[cid]||{};
     if(!state.flags.cityDev) state.flags.cityDev={};
@@ -3934,41 +3955,14 @@ window.onerror=function(msg,url,line,col,err){
     var t=m.cells[y][x], p=cityProfile(cid), c=(LF.CITIES||{})[cid]||{}, items=[];
     var cnm=c.name||'此城';
     if(t==='market'){
-      // 一条商街：药铺·布庄·食肆·杂货，皆为可交互的具体铺户（后期可挂真实 NPC 与专属剧情）
-      var yaofu={name:'济世药铺', icon:'🧪', key:'shop_yaofu_'+cid, desc:'坐堂郎中，药香盈室'};
-      items.push({o:yaofu, acts:[
-        {label:'疗伤抓药', icon:'🧪', fn:function(){
-          if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
-          if(!exert('抓药疗伤')) return;
-          state.hp=Math.min(state.maxHp,state.hp+45); state.mp=Math.min(state.maxMp,state.mp+12);
-          log('〔药铺〕老郎中搭脉开方，服药后伤势渐缓（气血+45·内力+12）。','good'); }},
-        {label:'问诊', icon:'💬', fn:function(){ log('〔药铺〕郎中道：「壮士脉象沉稳，只是旅途劳顿，静养便好。」','npc'); }}
-      ]});
-      var buzhuang={name:'锦绣布庄', icon:'🧵', key:'shop_bz_'+cid, desc:'尺量裁剪，衣甲琳琅'};
-      items.push({o:buzhuang, acts:[
-        {label:'置办衣甲', icon:'🧵', fn:function(){
-          if(!exert('置办衣甲')) return;
-          state.def=(state.def||0)+2;
-          log('〔布庄〕新裁战袍加身，护体更坚（防御+2）。','good'); }},
-        {label:'问价', icon:'💬', fn:function(){ log('〔布庄〕掌柜笑道：「上等铠甲需良铁，寻常布衣倒便宜。」','npc'); }}
-      ]});
-      var shishi={name:'悦来食肆', icon:'🍜', key:'shop_ss_'+cid, desc:'热气蒸腾，面饼飘香'};
-      items.push({o:shishi, acts:[
-        {label:'打尖进食', icon:'🍜', fn:function(){
-          if(!exert('打尖进食')) return;
-          state.food=state.maxFood; state.drink=Math.max(state.drink, Math.round(state.maxDrink*0.6));
-          log('〔食肆〕热汤面饼下肚，饥渴尽消（粮草补满）。','good'); }},
-        {label:'小酌', icon:'🍶', fn:function(){ log('〔食肆〕你浅饮一盏，听邻桌商旅谈及'+cnm+'近日行市。','npc'); }}
-      ]});
-      var zahuo={name:'万丰杂货', icon:'🎒', key:'shop_zh_'+cid, desc:'水火器用，一应俱全'};
-      items.push({o:zahuo, acts:[
-        {label:'采买补给', icon:'🎒', fn:function(){
-          if(!exert('采买补给')) return;
-          state.drink=state.maxDrink;
-          log('〔杂货铺〕水囊火折尽数补齐，长途无虞（饮水补满）。','good'); }},
-        {label:'问市', icon:'💬', fn:function(){ log('〔杂货铺〕掌柜道：「'+cnm+'商路通达，南货北货皆备。」','npc'); }}
-      ]});
-      return items;
+      // 商街：药铺·布庄·食肆·杂货·营造所 —— 皆为「可进入的屋舍」，进入后与内部 NPC、功能物件交互
+      return [
+        {enter:{building:'yaofu'}},
+        {enter:{building:'buzhuang'}},
+        {enter:{building:'shishi'}},
+        {enter:{building:'zahuo'}},
+        {enter:{building:'gongzao'}}
+      ];
     }
     if(t==='farm'){
       var zhuang={name:cnm+'庄头', icon:'🌾', key:'farm_'+cid, desc:'肤色黧黑，熟悉农事'};
@@ -4029,7 +4023,6 @@ window.onerror=function(msg,url,line,col,err){
     var m=genCityGrid(cid); if(!m) return [];
     var t=m.cells[y][x], p=cityProfile(cid), out=[];
     if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
-    if(cityDevOf(cid)<100) out.push({id:'build', label:'兴修城垣', tip:'征夫筑垣，扩建城池、解锁外圈空地'});
     if(t!=='ruin') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
     out.push({id:'leave_city', label:'返回山河志', tip:'出城，重览山河'});
@@ -4181,19 +4174,29 @@ window.onerror=function(msg,url,line,col,err){
     });
     // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
     var cityExtras = isCityGrid(room.id) ? cityCellNpcs(room.id, state.flags.cityPos.x, state.flags.cityPos.y) : cityNpcs(room.id);
+    var enters=[];
     for(var ci=0; ci<cityExtras.length; ci++){
-      if(seen[cityExtras[ci].o.key]) continue;
-      if(rec[cityExtras[ci].o.key]) continue;
-      items.push(cityExtras[ci]);
+      var ce=cityExtras[ci];
+      if(ce.enter){ enters.push(ce); continue; }   // 建筑入口单独渲染，不计入人物列表
+      if(seen[ce.o.key]) continue;
+      if(rec[ce.o.key]) continue;
+      items.push(ce);
     }
-    if(!items.length){ box.innerHTML='<div class="nl-empty">此处无人</div>'; return; }
+    if(!items.length && !enters.length){ box.innerHTML='<div class="nl-empty">此处无人</div>'; return; }
     box.classList.add('has');
-    box.classList.toggle('many', items.length>=4);   // 人数多时加宽，避免太挤
+    box.classList.toggle('many', (items.length+enters.length)>=4);   // 人数多时加宽，避免太挤
     var hd=document.createElement('div'); hd.className='nl-hd'; hd.textContent='此处人物'; box.appendChild(hd);
     items.forEach(function(it){
       var chip=document.createElement('button'); chip.className='nl-item';
       chip.innerHTML='<span class="nl-ic">'+(it.o.icon||'👤')+'</span><span class="nl-nm">'+it.o.name+'</span>';
       chip.onclick=function(e){ toggleObjExpand(e, chip, it.o, it.acts); };
+      box.appendChild(chip);
+    });
+    enters.forEach(function(it){
+      var b=BUILDINGS[it.enter.building];
+      var chip=document.createElement('button'); chip.className='nl-item nl-bld';
+      chip.innerHTML='<span class="nl-ic">'+(b?b.icon:'🏠')+'</span><span class="nl-nm">'+(b?b.name:it.enter.building)+'</span>';
+      chip.onclick=function(){ if(b) openModal('building',{building:it.enter.building, cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}); };
       box.appendChild(chip);
     });
   }
@@ -4518,15 +4521,6 @@ window.onerror=function(msg,url,line,col,err){
         log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
         break;
       case 'leave_city': openModal('map', {forceWorld:true}); break;
-      case 'build':
-        if(!exert('兴修城垣')) return;
-        if(cityDevOf(state.room)>=100){ log('此城营建已极盛，外郭尽辟，无复可兴。','sys'); break; }
-        setCityDev(state.room, cityDevOf(state.room)+8);
-        advanceTime(2);
-        log('你征发民夫，夯土筑垣、浚壕立栅。城池规模渐扩（建设度 '+cityDevOf(state.room)+'），外圈空地次第开辟为民居街市。','sys');
-        renderRoom(state.room,true);
-        if(currentModalKind==='map') openModal('map');
-        break;
       case 'siege':
         if(!exert('起兵略地')) return;
         if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
@@ -6223,6 +6217,150 @@ window.onerror=function(msg,url,line,col,err){
     pendingSave=null;
   }
   var currentModalKind=null;
+  // ══ 建筑物内部交互系统（v20260824e）══
+  // 药铺/布庄/食肆/杂货/营造所 皆为「可进入的屋舍」：进入后与内部 NPC、功能物件交互，取代原一键式空泛交互
+  var BUILDINGS = {
+    yaofu: {
+      name:'济世药铺', icon:'🧪', sub:'门悬药葫芦，柜列百草，药香盈室',
+      interior: [
+        { kind:'npc', name:'坐堂大夫', icon:'👴', desc:'须发皆白的老郎中，悬壶济世，深谙岐黄。', acts:[
+          { label:'问诊', icon:'💬', fn:function(){
+              var s='老大夫搭上你的脉门，沉吟片刻。';
+              if(packFind('jinchuang')) s+='「你带有金疮药，若金创未愈，可让老夫为你敷上。」';
+              else if(packFind('caoyao')) s+='「身有草药几味，可取药炉炼作金疮药，便于外敷。」';
+              else s+='「伤药无多，且往药柜翻检药斗，或市集采买些草药罢。」';
+              log(s,'sys'); openModal('building'); } },
+          { label:'施治·敷金疮药', icon:'🩹', fn:function(){
+              var idx=-1; for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)==='jinchuang'){ idx=i; break; } }
+              if(idx<0){ toast('你身上并无金疮药，须先备药。'); return; }
+              usePackItem({kind:'pack', idx});
+              log('老大夫就着灯火为你敷药包扎，创处一阵清凉，血止痛缓。','sys');
+              openModal('building'); } }
+        ]},
+        { kind:'npc', name:'抓药药商', icon:'🧑‍💼', desc:'柜后司药的伙计，算盘拨得噼啪响。', acts:[
+          { label:'采买药材', icon:'🪙', fn:function(){ openModal('shop', {shop:'doctor'}); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('药商笑道：「客官有所不知，这草药须得依方配伍，单味可不成气候。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'药柜', icon:'🗄️', desc:'百格药斗，分门别类贮着各色药材。', acts:[
+          { label:'翻检药斗', icon:'🤲', fn:function(){ if(!exert('翻检')) return; if(packAdd('caoyao',1)) log('你于药斗中取得一束草药，收入行囊。','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'捣药罐', icon:'⚗️', desc:'青石药臼，捣药之声笃笃。', acts:[
+          { label:'捣制药草', icon:'🥄', fn:function(){ if(!packFind('caoyao')){ toast('行囊里没有可捣的草药。'); return; } if(!exert('捣药')) return; packConsume('caoyao',1); packAdd('yaofen',1); log('你将草药投入臼中，捣作细粉，清香扑鼻。','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'药炉', icon:'🔥', desc:'炭火熊熊的炼药炉，丹火不熄。', acts:[
+          { label:'炼制金疮药', icon:'🧪', fn:function(){ if(!packFind('caoyao')){ toast('炼药需先有草药，去药柜翻检罢。'); return; } if(!exert('炼药')) return; packConsume('caoyao',1); packAdd('jinchuang',1); log('炉火淬炼，草药凝作一瓶金疮药。','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'炼药台', icon:'⚗️', desc:'青玉案几，用以合药配伍。', acts:[
+          { label:'合炼汤药', icon:'🍵', fn:function(){ if(!packFind('jinchuang')||!packFind('yaofen')){ toast('需备金疮药与草药粉各一，方可合炼。'); return; } if(!exert('合药')) return; packConsume('jinchuang',1); packConsume('yaofen',1); packAdd('tangyao',1); log('金疮药合草药粉，于台上熬炼成一碗汤药。','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'熬药壶', icon:'🫖', desc:'小炭炉上坐着药壶，咕嘟作响。', acts:[
+          { label:'熬制汤药', icon:'🍲', fn:function(){ if(!hasCount('caoyao',2)){ toast('熬汤药须草药两味，药柜可取。'); return; } if(!exert('熬药')) return; packConsume('caoyao',2); packAdd('tangyao',1); log('文火慢熬，草药化作一碗温补汤药。','sys'); openModal('building'); } }
+        ]}
+      ]
+    },
+    buzhuang: {
+      name:'锦绣布庄', icon:'🧵', sub:'机杼声声，绫罗满架',
+      interior: [
+        { kind:'npc', name:'布庄掌柜', icon:'🧑‍💼', desc:'精明的中年掌柜，掌中算盘不离。', acts:[
+          { label:'置办衣甲', icon:'🛡️', fn:function(){ if(!exert('置办衣甲')) return; state.def=(state.def||0)+2; log('掌柜取来新裁战袍加身，护体更坚（防御+2）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜道：「客官这身行头该换换了，刀枪无眼，甲胄要紧。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'织机', icon:'🪡', desc:'木织机一架，织娘投梭走线。', acts:[
+          { label:'看织娘织锦', icon:'👀', fn:function(){ log('你驻足看织娘投梭，经纬交织，渐成云锦一段。','sys'); openModal('building'); } }
+        ]}
+      ]
+    },
+    shishi: {
+      name:'悦来食肆', icon:'🍜', sub:'灶火正旺，酒旗招展',
+      interior: [
+        { kind:'npc', name:'食肆掌柜', icon:'🧑‍🍳', desc:'围着油渍围裙的胖掌柜，嗓门洪亮。', acts:[
+          { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; state.food=state.maxFood; state.drink=Math.max(state.drink, Math.round((state.maxDrink||0)*0.6)); log('热汤面饼下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜抹着桌子：「客官慢用，热汤管够！」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'灶台', icon:'🔥', desc:'大灶一口，汤锅翻滚。', acts:[
+          { label:'讨碗热汤', icon:'🥣', fn:function(){ if(!exert('讨汤')) return; state.food=Math.min(state.maxFood,(state.food||0)+10); log('灶上舀得一碗热汤，下肚暖意融融。','sys'); renderStatus(); openModal('building'); } }
+        ]}
+      ]
+    },
+    zahuo: {
+      name:'万丰杂货', icon:'🏪', sub:'针头线脑，百货杂陈',
+      interior: [
+        { kind:'npc', name:'杂货掌柜', icon:'🧑‍💼', desc:'眯眼算账的老朝奉。', acts:[
+          { label:'采买补给', icon:'🛒', fn:function(){ if(!exert('采买补给')) return; state.drink=state.maxDrink; log('水囊火折尽数补齐，长途无虞（饮水补满）。','good'); renderStatus(); openModal('building'); } },
+          { label:'采办物料', icon:'🪵', fn:function(){ openModal('shop', {shop:'build_pedlar'}); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('朝奉道：「客官要寻甚稀罕物？小店虽小，或能凑办。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'货架', icon:'📦', desc:'靠墙货架，瓶罐竹篾杂列。', acts:[
+          { label:'翻看货品', icon:'👀', fn:function(){ log('你拂过架上尘土，瓶罐间多是油烛绳结之类。','sys'); openModal('building'); } }
+        ]}
+      ]
+    },
+    gongzao: {
+      name:'营造所', icon:'🔨', sub:'匠作萃聚，砖石木料山积',
+      interior: [
+        { kind:'npc', name:'匠作师傅', icon:'👷', desc:'满手老茧的老匠人，督着营造。', acts:[
+          { label:'问营造', icon:'💬', fn:function(){ log('匠师指点：「城池以建设度为凭——夯土、立木、砌砖、设栅，四事皆备，外郭自当拓开。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'夯土基', icon:'🟫', desc:'夯实墙基的夯具。', acts:[
+          { label:'夯土筑基', icon:'🔨', fn:function(){ if(!exert('夯土')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('你持夯具将墙基一层层砸实，城垣渐起（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'木作台', icon:'🪚', desc:'刨削木料的工作台。', acts:[
+          { label:'木作立架', icon:'🪵', fn:function(){ if(!exert('木作')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('木作台上锯刨声声，梁架立起（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'砖窑', icon:'🧱', desc:'窑火正红的砖窑。', acts:[
+          { label:'烧砖砌墙', icon:'🧱', fn:function(){ if(!exert('砌砖')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('砖窑出砖，垒砌围墙，城郭更见齐整（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'立栅', icon:'🪵', desc:'削木为栅的栅栏架。', acts:[
+          { label:'立栅设防', icon:'🚧', fn:function(){ if(!exert('立栅')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('削木立栅，周遭设防，外圈渐辟为民居街市（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
+        ]}
+      ]
+    }
+  };
+  function hasCount(defId,n){ var c=packFind(defId); return c && (c.count||1)>=n; }
+  function renderBuildingPanel(){
+    if(!buildingState) buildingState={building:'yaofu', ent:null};
+    var b=BUILDINGS[buildingState.building]; if(!b) return '<div class="empty">此处并无屋舍。</div>';
+    var h='<h3>'+b.icon+' '+b.name+'</h3>';
+    h+='<div class="bld-sub">'+b.sub+'</div>';
+    if(buildingState.ent==null){
+      h+='<div class="bld-list">';
+      b.interior.forEach(function(ent,i){
+        h+='<div class="bld-ent" data-i="'+i+'">'+
+             '<span class="bld-ent-ic">'+ent.icon+'</span>'+
+             '<span class="bld-ent-nm">'+ent.name+'</span>'+
+             '<span class="bld-ent-ki">'+(ent.kind==='npc'?'人物':'物件')+'</span>'+
+           '</div>';
+      });
+      h+='</div><p class="tip">点选屋中人物或物件，与之交互。</p>';
+    } else {
+      var ent=b.interior[buildingState.ent];
+      h+='<div class="bld-detail">';
+      h+='<div class="bld-d-head">'+ent.icon+' '+ent.name+' <span class="bld-ent-ki">'+(ent.kind==='npc'?'人物':'物件')+'</span></div>';
+      h+='<div class="bld-d-desc">'+ent.desc+'</div>';
+      h+='<div class="bld-acts">';
+      ent.acts.forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
+      h+='</div><button class="btn bld-back" data-back="1">返 回</button>';
+      h+='</div>';
+    }
+    return h;
+  }
+  function bindBuildingPanel(){
+    if(!buildingState) return;
+    var b=BUILDINGS[buildingState.building]; if(!b) return;
+    var ent=buildingState.ent;
+    if(ent==null){
+      $card.querySelectorAll('.bld-ent').forEach(function(el){
+        el.onclick=function(){ buildingState.ent=+el.getAttribute('data-i'); openModal('building'); };
+      });
+    } else {
+      var e=b.interior[ent];
+      $card.querySelectorAll('.bld-act').forEach(function(el){
+        el.onclick=function(){ var a=e.acts[+el.getAttribute('data-ai')]; if(a&&a.fn) a.fn(); };
+      });
+      var back=$card.querySelector('.bld-back'); if(back) back.onclick=function(){ buildingState.ent=null; openModal('building'); };
+    }
+  }
+
   function openModal(kind, opts){
     currentModalKind=kind;
     if(state && state.dead){ die(); return; }
@@ -6354,6 +6492,7 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='build'){ bindBuildPanel(); }
     if(kind==='rest'){ bindRestPanel(); }
     if(kind==='forge'){ bindForgePanel(); }
+    if(kind==='building'){ bindBuildingPanel(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};

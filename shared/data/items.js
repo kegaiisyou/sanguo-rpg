@@ -42,6 +42,8 @@
   var DEFS = {
     jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
     roubao:      { defId: 'roubao',      name: '肉包子', icon: '🥟', cat: '食饵', effect: { food: 20, drink: 5 },     desc: '热乎包子一只，啃下可充饥解渴。' },
+    yaofen:      { defId: 'yaofen',      name: '草药粉', icon: '🌿', cat: '药剂', effect: { hp: 25 },                 desc: '捣碎的草药细粉，作敷料可缓伤痛。' },
+    tangyao:     { defId: 'tangyao',     name: '汤药',   icon: '🍵', cat: '药剂', effect: { hp: 130 },                desc: '慢火熬出的汤药，温养气血，重伤可复。' },
     zangbu_hat:  { defId: 'zangbu_hat',  name: '脏布帽子', icon: '🧢', cat: '装备', slot: 'hat',    stats: {},        desc: '一顶灰扑扑的布帽，聊胜于无。', quality: 'white' },
     polan_stick: { defId: 'polan_stick', name: '破烂木棒', icon: '🪵', cat: '装备', slot: 'weapon', stats: { atk: 2 }, desc: '枯枝胡乱削成，挥之噗噗作响，聊备一格。', quality: 'white' },
     yaobao:  { defId: 'yaobao',  name: '便携腰包', icon: '👝', cat: '装备', slot: 'belt', stats: {}, packSpace: 4,  desc: '软皮小囊，系于腰间，多纳杂物四件。', quality: 'white' },
