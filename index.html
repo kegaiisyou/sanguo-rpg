@@ -595,6 +595,22 @@
     .map-king{height:58vh;}
     .mk-nm{font-size:11.5px;}
   }
+  /* ── 山河图 · 城内网格视图（v20260824b）── */
+  .map-city{position:relative;height:62vh;max-height:540px;margin:8px -16px 0;border-radius:12px;
+    overflow:auto;background:radial-gradient(120% 120% at 50% 0,#26201a 0%,#181410 70%);
+    border:1px solid rgba(255,255,255,.10);padding:14px;}
+  .map-city-canvas{position:relative;margin:auto;}
+  .mc-cell{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;border-radius:9px;border:1px solid rgba(255,255,255,.12);
+    background:rgba(0,0,0,.28);color:#e8ddc8;cursor:default;user-select:none;transition:.12s;}
+  .mc-cell .mc-ic{font-size:22px;line-height:1;}
+  .mc-cell .mc-nm{font-size:10px;opacity:.8;}
+  .mc-cell.mc-adj{cursor:pointer;background:rgba(120,90,40,.28);border-color:rgba(220,170,90,.55);}
+  .mc-cell.mc-adj:hover{background:rgba(150,110,50,.42);transform:scale(1.04);}
+  .mc-cell.mc-cur{border-color:#ffd479;box-shadow:0 0 0 2px rgba(255,212,121,.55),0 0 18px rgba(255,212,121,.35);}
+  .mc-cell.mc-empty{opacity:.5;}
+  .mc-cell.mc-ruin{background:rgba(70,22,16,.45);border-color:rgba(180,60,40,.55);color:#e8a;}
+  .mc-back{margin-left:8px;background:rgba(90,70,40,.5);border-color:rgba(220,170,90,.4);}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
   .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
   .map-rivers .mp-river{fill:none;stroke:rgba(70,110,170,.30);stroke-width:2.5;stroke-linecap:round;}
@@ -1725,7 +1741,6 @@ window.onerror=function(msg,url,line,col,err){
   <header id="status"></header>
   <div class="loc-tab" id="loc-tab"></div>
   <main id="scene"><div id="narr"></div></main>
-  <section id="city-grid"></section>
   <section id="actions"></section>
   <div id="lower">
     <div id="move-tabs">
@@ -1762,7 +1777,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260824a"></script>
+<script src="shared/config/constants.js?v=20260824b"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1778,7 +1793,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260822as"></script>
-    <script src="shared/data/cities.js?v=20260824a"></script>
+    <script src="shared/data/cities.js?v=20260824b"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
@@ -3370,9 +3385,6 @@ window.onerror=function(msg,url,line,col,err){
         var __c=Math.floor(__m.size/2);
         state.flags.cityPos={cid:rid, x:__c, y:__c};
       }
-      var __cg=document.getElementById('city-grid'); if(__cg) __cg.style.display='grid';
-    } else {
-      var __cg2=document.getElementById('city-grid'); if(__cg2){ __cg2.style.display='none'; __cg2.innerHTML=''; }
     }
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     var suppressNarr = onboarding && (rid==='ys_entrance' || rid==='ys_ne');
@@ -3410,7 +3422,7 @@ window.onerror=function(msg,url,line,col,err){
     logScene(narr, 150, function(){
       // 教学链：进入房间后触发对应引导（如燕山山口逃脱）
       onbRoomEnter(room);
-      renderMoveBar(G.ROOMS[state.room]);   // 门禁（moveGate）更新后重渲移动条，避免东北等方向残留旧门禁锁定
+      renderMoveBar(G.ROOMS[state.room]);   // 门禁（moveGate）更新后重渲移动条；城内格子由 currentRoomExits 提供方向
       // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
       if(room.patrol && !silent && !onboarding) maybeAmbush(room);
     });
@@ -3849,34 +3861,65 @@ window.onerror=function(msg,url,line,col,err){
     return out;
   }
   function goCell(cid,x,y){
-    var cp=state.flags.cityPos; if(!cp) return;
+    var cp=state.flags.cityPos; if(!cp || cp.cid!==cid) return;
     if(Math.abs(cp.x-x)+Math.abs(cp.y-y)!==1) return;   // 仅相邻格可移动
+    if(!exert('远行')) return;
+    state.energy=Math.max(0,state.energy-2);
+    state.food=Math.max(0,state.food-1); state.drink=Math.max(0,state.drink-1);
+    advanceTime(1);
     state.flags.cityPos={cid:cid, x:x, y:y};
+    log('你转入城中街巷，景物渐换……','sys');
     renderRoom(cid, true);
+    save(state);
+    if(currentModalKind==='map') openModal('map');   // 城内地图模式下同步刷新网格
   }
-  function renderCityGridActions(room){
-    var cid=room.id, cp=state.flags.cityPos, m=genCityGrid(cid);
-    if(!m) return;
-    var size=m.size;
-    var cg=document.getElementById('city-grid'); cg.innerHTML='';
-    cg.style.display='grid'; cg.style.gridTemplateColumns='repeat('+size+',1fr)';
-    cg.style.gap='5px'; cg.style.margin='10px 0 14px'; cg.style.maxWidth=(size*46)+'px'; cg.style.padding='0';
+  // ===== 山河图 · 城内网格视图（v20260824b）=====
+  // 在山河志内展示城内 N×N 布局，点相邻格或借底部方向键皆可移动；不再占用文字框
+  function buildMapCityHTML(opts){
+    opts=opts||{};
+    var cid=state.room, cp=state.flags.cityPos, m=genCityGrid(cid);
+    if(!m) return '';
+    var size=m.size, CELL=62, W=size*CELL, H=size*CELL;
+    var cname=((LF.CITIES[cid]||{}).name||'城');
+    var cells='';
     for(var y=0;y<size;y++) for(var x=0;x<size;x++){
       var t=m.cells[y][x], meta=CELL_META[t];
-      var b=document.createElement('button');
-      b.className='cg-cell cg-'+t+(cp.x===x&&cp.y===y?' cg-cur':'');
-      b.textContent=meta.i; b.title=meta.nm;
-      b.style.fontSize='20px'; b.style.padding='6px 0'; b.style.borderRadius='6px';
-      b.style.border='1px solid rgba(255,255,255,.12)'; b.style.background='rgba(0,0,0,.25)'; b.style.cursor='pointer';
-      var adj=Math.abs(cp.x-x)+Math.abs(cp.y-y);
-      if(adj===1){ b.onclick=(function(nx,ny){ return function(){ goCell(cid,nx,ny); }; })(x,y); }
-      else if(!(cp.x===x&&cp.y===y)){ b.disabled=true; b.style.opacity='.35'; b.style.cursor='default'; }
-      cg.appendChild(b);
+      var cur=(cp.x===x&&cp.y===y);
+      var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
+      var cls='mc-cell mc-'+t+(cur?' mc-cur':'')+(adj?' mc-adj':'')+(t==='ruin'?' mc-block':'');
+      cells+='<div class="'+cls+'" data-x="'+x+'" data-y="'+y+'"'+
+        ' style="left:'+(x*CELL)+'px;top:'+(y*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
+        '<span class="mc-ic">'+meta.i+'</span><span class="mc-nm">'+meta.nm+'</span></div>';
     }
-    cityCellActs(cid,cp.x,cp.y).forEach(function(a){
-      var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
-      var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
+    var curMeta=CELL_META[m.cells[cp.y][cp.x]];
+    return '<h3>'+cname+' · 城内布防图</h3>'+
+      '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
+      '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button>'+
+        '<button class="mk-back" id="mc-back">🗺 返回山河志（出城）</button></div>'+
+      '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMeta.nm+'〕。'+
+        '出城请点「返回山河志」。城内规模随盛衰可扩建或毁于战火（焦土不可通行）。</p>';
+  }
+  function initMapCity(opts){
+    opts=opts||{};
+    var wrap=document.querySelector('#modal-card .map-city'); if(!wrap) return;
+    var cid=state.room, cp=state.flags.cityPos, m=genCityGrid(cid);
+    wrap.querySelectorAll('.mc-cell').forEach(function(el){
+      var x=+el.getAttribute('data-x'), y=+el.getAttribute('data-y');
+      var isCur=(cp.x===x&&cp.y===y);
+      var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
+      if(isCur||adj){
+        el.addEventListener('click', function(){ if(isCur) return; goCell(cid, x, y); });
+      } else {
+        el.style.cursor='default';
+      }
     });
+    var rb=document.getElementById('mc-recenter');
+    if(rb) rb.onclick=function(){
+      var cur=wrap.querySelector('.mc-cell.mc-cur');
+      if(cur) cur.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+    };
+    var back=document.getElementById('mc-back');
+    if(back) back.onclick=function(){ handleAction('leave_city'); };
   }
   function buildActions(room, popExits){
     clearActions();
@@ -3888,9 +3931,12 @@ window.onerror=function(msg,url,line,col,err){
       var b=mkAct('scene','🧱','席地打盹',function(){ openRestModal('ground'); });
       return;
     }
-    // 城市网格：渲染 N×N 小地图 + 当前格动作（取代旧出口/对象按钮）
+    // 城市网格：当前格动作派生（取代旧出口/对象按钮）；移动改由底部方向键（currentRoomExits）负责
     if(isCityGrid(room.id)){
-      renderCityGridActions(room);
+      cityCellActs(room.id, state.flags.cityPos.x, state.flags.cityPos.y).forEach(function(a){
+        var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
+        var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
+      });
       return;
     }
     // 城市系统：按商业/治安派生可做之事（逛市集、维持治安）——对配置城市与占位州治均生效
@@ -4158,6 +4204,21 @@ window.onerror=function(msg,url,line,col,err){
   // 当前房间的方位通路（兼容 ROOM_OBJECTS 与旧版 room.exits）
   function currentRoomExits(){
     var room=G.ROOMS[state.room];
+    if(isCityGrid(state.room)){
+      var cp=state.flags.cityPos, m=genCityGrid(state.room);
+      if(!m) return [];
+      var DIRS=[['北',0,-1],['南',0,1],['东',1,0],['西',-1,0]];
+      var ex=[];
+      DIRS.forEach(function(d){
+        var nx=cp.x+d[1], ny=cp.y+d[2];
+        if(nx>=0&&nx<m.size&&ny>=0&&ny<m.size){
+          var t=m.cells[ny][nx];
+          if(t==='ruin') return;   // 焦土不可通行
+          ex.push({dir:d[0], name:d[0]+'·'+CELL_META[t].nm, icon:'🚪', tid:'__cell__', kind:'cell'});
+        }
+      });
+      return ex;
+    }
     var objs=roomObjs(room.id);
     var ex=objs.filter(function(o){return o.type==='exit';});
     if(ex.length) return ex;
@@ -4178,6 +4239,19 @@ window.onerror=function(msg,url,line,col,err){
   // ===== 行走探索 =====
   function move(dir, tid){
     if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }   // 战斗进行中禁止移动
+    if(isCityGrid(state.room)){
+      var dm={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]}[dir];
+      if(dm){
+        var _cp=state.flags.cityPos, _m=genCityGrid(state.room);
+        var nx=_cp.x+dm[0], ny=_cp.y+dm[1];
+        if(nx>=0&&nx<_m.size&&ny>=0&&ny<_m.size && _m.cells[ny][nx]!=='ruin'){
+          goCell(state.room, nx, ny);
+          return;
+        }
+      }
+      toast('此处无路可去。');
+      return;
+    }
     if(!exert('远行')) return;
     state.energy=Math.max(0,state.energy-4);
     state.food=Math.max(0,state.food-1);
@@ -4259,7 +4333,7 @@ window.onerror=function(msg,url,line,col,err){
         state.flags.recruited[rk]=true;
         log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
         break;
-      case 'leave_city': openModal('map'); break;
+      case 'leave_city': openModal('map', {forceWorld:true}); break;
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
       // ─── 教程：劳作 / 塌墙根决断 ───
@@ -6125,7 +6199,10 @@ window.onerror=function(msg,url,line,col,err){
     var fx=document.getElementById('seg-fx'); if(fx) fx.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.titleFx=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); fx.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(520); applyTitleFx(); toast('标题特效·'+(settings.titleFx?'开':'关')); }; });
     var snd=document.getElementById('seg-snd'); if(snd) snd.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.sound=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); snd.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); if(settings.sound) tick(700); toast('音效·'+(settings.sound?'开':'关')); }; });
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
-    if(kind==='map') initMapKing({});
+    if(kind==='map'){
+      if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld) initMapCity({});
+      else initMapKing({});
+    }
     // 装备面板交互
     $card.querySelectorAll('.eq-slot[data-slot]').forEach(function(el){
       el.onclick=function(){ unequip(el.getAttribute('data-slot')); };
