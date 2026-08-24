@@ -1793,7 +1793,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260822as"></script>
-    <script src="shared/data/cities.js?v=20260824b"></script>
+    <script src="shared/data/cities.js?v=20260824c"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
@@ -2989,7 +2989,12 @@ window.onerror=function(msg,url,line,col,err){
       '<span class="st-ver">v'+LF.CONSTANTS.VERSION+'</span>';
   }
   function renderLocTab(room){
-    var t=document.getElementById('loc-tab'); if(t) t.textContent=room.name||'';
+    var loc=room.name||'';
+    if(isCityGrid(room.id) && state.flags.cityPos){
+      var _m=genCityGrid(room.id);
+      if(_m){ var _ct=_m.cells[state.flags.cityPos.y][state.flags.cityPos.x]; loc+=' · '+cellDisplayName(room.id,_ct); }
+    }
+    var t=document.getElementById('loc-tab'); if(t) t.textContent=loc;
   }
 
   // ===== 升级 / 效果结算 =====
@@ -3762,22 +3767,37 @@ window.onerror=function(msg,url,line,col,err){
   }
   // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
   // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
+  var GRID_VER='20260824c';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
   var CELL_META={
+    palace:{i:'🏯',nm:'皇宫'}, gov:{i:'🏛',nm:'衙署'},
     plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'}, road:{i:'🛤',nm:'街巷'},
     market:{i:'🛒',nm:'市集'}, home:{i:'🏠',nm:'民宅'}, barracks:{i:'⚔',nm:'军营'},
     farm:{i:'🌾',nm:'农庄'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'}
   };
   var CELL_DESC={
-    plaza:'城中广场四达，州衙旌旗在望，商旅往来如织。',
+    palace:'宫阙巍峨，金瓦耀日，甲士环侍，天子所居之地，气象森严。',
+    gov:'衙署高敞，匾额肃然，郡守（县令）于此听讼断案、发号施令。',
+    plaza:'城中广场四达，旌旗在望，商旅往来如织。',
     gate:'城门巍峨，匾额森然，出城可重返山河。',
     road:'长街深巷，偶有行人仓皇而过。',
-    market:'市集喧阗，摊贩鳞次，奇货时隐其中。',
+    market:'市列珠玑，铺肆连绵——药铺、布庄、食肆、杂货各据一隅。',
     home:'寻常民宅，檐下晾着布衣，孩童探头张望。',
     barracks:'军营肃整，旌甲林立，校尉按剑而立。',
-    farm:'城郊农庄，田垄新绿，农夫荷锄而立。',
+    farm:'阡陌纵横，农人扶犁，仓廪所系，民食之源。',
     empty:'一片空地，瓦砾草莽，尚待营建。',
     ruin:'焦土未冷，断壁残垣，劫后萧索。'
   };
+  // 行政中心按城市等级显示不同名称：都城→皇宫，州城→州衙，县城→城主府
+  function cellDisplayName(cid,t){
+    if(t==='gov'){
+      var _c=(LF.CITIES||{})[cid]||{};
+      var _tier=_c.tier || (_c.grid>=9?'capital':_c.grid>=7?'zhou':'xian');
+      if(_tier==='zhou') return '州衙';
+      if(_tier==='xian') return '城主府';
+      return '衙署';
+    }
+    return CELL_META[t]? CELL_META[t].nm : t;
+  }
   function seededRand(seed){
     var h=2166136261; for(var i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
     var s=h>>>0;
@@ -3786,14 +3806,16 @@ window.onerror=function(msg,url,line,col,err){
   function isCityGrid(rid){ var c=(LF.CITIES||{})[rid]; return !!(c && c.grid); }
   function genCityGrid(cid){
     var c=(LF.CITIES||{})[cid]; if(!c||!c.grid) return null;
-    if(state.flags.cityGrid && state.flags.cityGrid[cid]) return state.flags.cityGrid[cid];
+    if(state.flags.cityGrid && state.flags.cityGrid[cid] && state.flags.cityGrid[cid].ver===GRID_VER) return state.flags.cityGrid[cid];
     var size=c.grid, rnd=seededRand(cid+'_grid');
     var cx=Math.floor(size/2), cy=Math.floor(size/2);
+    var tier=c.tier || (c.grid>=9?'capital':c.grid>=7?'zhou':'xian');
+    var centerType=(tier==='capital') ? 'palace' : 'gov';   // 都城中央为皇宫，其余为衙门/城主府
     var g=[];
     for(var y=0;y<size;y++){ var row=[];
       for(var x=0;x<size;x++){
         var t;
-        if(x===cx && y===cy) t='plaza';
+        if(x===cx && y===cy) t=centerType;
         else if(((x===cx)||(y===cy)) && (x===0||x===size-1||y===0||y===size-1)) t='gate';
         else {
           var roll=rnd();
@@ -3811,7 +3833,7 @@ window.onerror=function(msg,url,line,col,err){
       g.push(row);
     }
     state.flags.cityGrid=state.flags.cityGrid||{};
-    state.flags.cityGrid[cid]={size:size, cells:g};
+    state.flags.cityGrid[cid]={ver:GRID_VER, size:size, cells:g};
     return state.flags.cityGrid[cid];
   }
   function cityCellDesc(cid,x,y){
@@ -3821,21 +3843,86 @@ window.onerror=function(msg,url,line,col,err){
   }
   function cityCellNpcs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
-    var t=m.cells[y][x], p=cityProfile(cid), items=[];
+    var t=m.cells[y][x], p=cityProfile(cid), c=(LF.CITIES||{})[cid]||{}, items=[];
+    var cnm=c.name||'此城';
     if(t==='market'){
-      var m1={name:'行脚商贩', icon:'🛒', key:'mch_'+cid, desc:'挑担走街的行商'};
-      items.push({o:m1, acts:[{label:'看看货色', icon:'🛒', fn:function(){ runEvent(findEvent('ev_merchant')); }}]});
-    }
-    if(t==='barracks'){
-      var s={name:'营中守军', icon:'⚔', key:'sol_'+cid, desc:'按剑肃立的戍卒'};
-      items.push({o:s, acts:[{label:'交谈', icon:'💬', fn:function(){ log('〔守军〕此城乃'+p.c.name+'要冲，校尉治军严整，盗匪不敢近。','npc'); }}]});
+      // 一条商街：药铺·布庄·食肆·杂货，皆为可交互的具体铺户（后期可挂真实 NPC 与专属剧情）
+      var yaofu={name:'济世药铺', icon:'🧪', key:'shop_yaofu_'+cid, desc:'坐堂郎中，药香盈室'};
+      items.push({o:yaofu, acts:[
+        {label:'疗伤抓药', icon:'🧪', fn:function(){
+          if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+          if(!exert('抓药疗伤')) return;
+          state.hp=Math.min(state.maxHp,state.hp+45); state.mp=Math.min(state.maxMp,state.mp+12);
+          log('〔药铺〕老郎中搭脉开方，服药后伤势渐缓（气血+45·内力+12）。','good'); }},
+        {label:'问诊', icon:'💬', fn:function(){ log('〔药铺〕郎中道：「壮士脉象沉稳，只是旅途劳顿，静养便好。」','npc'); }}
+      ]});
+      var buzhuang={name:'锦绣布庄', icon:'🧵', key:'shop_bz_'+cid, desc:'尺量裁剪，衣甲琳琅'};
+      items.push({o:buzhuang, acts:[
+        {label:'置办衣甲', icon:'🧵', fn:function(){
+          if(!exert('置办衣甲')) return;
+          state.def=(state.def||0)+2;
+          log('〔布庄〕新裁战袍加身，护体更坚（防御+2）。','good'); }},
+        {label:'问价', icon:'💬', fn:function(){ log('〔布庄〕掌柜笑道：「上等铠甲需良铁，寻常布衣倒便宜。」','npc'); }}
+      ]});
+      var shishi={name:'悦来食肆', icon:'🍜', key:'shop_ss_'+cid, desc:'热气蒸腾，面饼飘香'};
+      items.push({o:shishi, acts:[
+        {label:'打尖进食', icon:'🍜', fn:function(){
+          if(!exert('打尖进食')) return;
+          state.food=state.maxFood; state.drink=Math.max(state.drink, Math.round(state.maxDrink*0.6));
+          log('〔食肆〕热汤面饼下肚，饥渴尽消（粮草补满）。','good'); }},
+        {label:'小酌', icon:'🍶', fn:function(){ log('〔食肆〕你浅饮一盏，听邻桌商旅谈及'+cnm+'近日行市。','npc'); }}
+      ]});
+      var zahuo={name:'万丰杂货', icon:'🎒', key:'shop_zh_'+cid, desc:'水火器用，一应俱全'};
+      items.push({o:zahuo, acts:[
+        {label:'采买补给', icon:'🎒', fn:function(){
+          if(!exert('采买补给')) return;
+          state.drink=state.maxDrink;
+          log('〔杂货铺〕水囊火折尽数补齐，长途无虞（饮水补满）。','good'); }},
+        {label:'问市', icon:'💬', fn:function(){ log('〔杂货铺〕掌柜道：「'+cnm+'商路通达，南货北货皆备。」','npc'); }}
+      ]});
+      return items;
     }
     if(t==='farm'){
-      var f={name:'田舍农夫', icon:'🌾', key:'fm_'+cid, desc:'荷锄的城中农户'};
-      items.push({o:f, acts:[{label:'交谈', icon:'💬', fn:function(){ log('〔农夫〕年景尚可，仓中有粮，人心便安。','npc'); }}]});
+      var zhuang={name:cnm+'庄头', icon:'🌾', key:'farm_'+cid, desc:'肤色黧黑，熟悉农事'};
+      items.push({o:zhuang, acts:[
+        {label:'问农', icon:'💬', fn:function(){ log('〔庄头〕今年雨水尚可，秋收在望，'+cnm+'仓廪也算充实。','npc'); }},
+        {label:'助农', icon:'🌾', fn:function(){
+          if(!exert('下田助农')) return;
+          state.food=Math.min(state.maxFood, state.food+12);
+          log('〔农庄〕你下田搭了把手，庄头塞来新麦（粮草+12）。','good'); }},
+        {label:'购粮', icon:'💰', fn:function(){
+          if(!exert('向农购粮')) return;
+          state.food=state.maxFood;
+          log('〔农庄〕你向庄头籴粮，行囊充实（粮草补满）。','good'); }}
+      ]});
+      return items;
     }
-    if(t==='plaza'||t==='home'||t==='road'){
-      var nCiv=Math.min(5,1+Math.floor(p.c.pop/20));
+    if(t==='palace'){
+      var chen={name:'宫门近臣', icon:'🏯', key:'pal_'+cid, desc:'绯衣秉笏，侍立宫门'};
+      items.push({o:chen, acts:[
+        {label:'入宫觐见', icon:'🏯', fn:function(){ log('〔近臣〕'+cnm+'乃天子所居，朝会方散，陛下今日论及讨董之事，神色凝重。','npc'); }},
+        {label:'叩阙陈情', icon:'📜', fn:function(){ log('〔近臣〕壮士若有良策，可书于帛上，待明日大朝呈奏。','npc'); }}
+      ]});
+      return items;
+    }
+    if(t==='gov'){
+      var zhu={name:(c.tier==='xian'?'县衙主簿':'州府从事'), icon:'🏛', key:'gov_'+cid, desc:'执笔案前，熟稔政务'};
+      items.push({o:zhu, acts:[
+        {label:'参谒长官', icon:'🏛', fn:function(){ log('〔主簿〕'+cnm+(c.tier==='xian'?'县令':'郡守')+'正在理事，案牍盈几，忙于'+((c.owner)?'军政':'治安')+'。','npc'); }},
+        {label:'问政', icon:'💬', fn:function(){ log('〔主簿〕「'+cnm+'如今治安'+(p.c.order>=60?'尚安':'不靖')+'，商旅'+(p.c.commerce>=60?'繁盛':'寥落')+'。」','npc'); }}
+      ]});
+      return items;
+    }
+    if(t==='barracks'){
+      var s={name:'营中校尉', icon:'⚔', key:'sol_'+cid, desc:'按剑肃立的戍卒首领'};
+      items.push({o:s, acts:[
+        {label:'交谈', icon:'💬', fn:function(){ log('〔校尉〕此城乃'+cnm+'要冲，治军严整，盗匪不敢近。','npc'); }},
+        {label:'点卯', icon:'📋', fn:function(){ log('〔校尉〕校尉展阅兵册，营中士卒'+(p.c.wall>=60?'甲械精良':'器械不齐')+'。','npc'); }}
+      ]});
+      return items;
+    }
+    if(t==='plaza'||t==='home'||t==='road'||t==='gate'||t==='empty'){
+      var nCiv=Math.min(4,1+Math.floor(p.c.pop/25));
       var says=['近来城中米价又涨了……','壮士远道而来，可要当心盗匪。','哎，这世道，安稳过活便是福。','客官可是来贩货的？东市好货不少。','听说明日有马队入城。'];
       for(var i=0;i<nCiv;i++){
         (function(idx){
@@ -3853,9 +3940,8 @@ window.onerror=function(msg,url,line,col,err){
   function cityCellActs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
     var t=m.cells[y][x], p=cityProfile(cid), out=[];
-    if(t==='market') out.push({id:'market', label:'逛市集', tip:'市井买卖，或有奇货'});
     if(t==='barracks') out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'});
-    if(t==='plaza'||t==='home'||t==='gate'||t==='road'||t==='farm') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
+    if(t!=='ruin') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
     out.push({id:'leave_city', label:'返回山河志', tip:'出城，重览山河'});
     return out;
@@ -3889,14 +3975,14 @@ window.onerror=function(msg,url,line,col,err){
       var cls='mc-cell mc-'+t+(cur?' mc-cur':'')+(adj?' mc-adj':'')+(t==='ruin'?' mc-block':'');
       cells+='<div class="'+cls+'" data-x="'+x+'" data-y="'+y+'"'+
         ' style="left:'+(x*CELL)+'px;top:'+(y*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
-        '<span class="mc-ic">'+meta.i+'</span><span class="mc-nm">'+meta.nm+'</span></div>';
+        '<span class="mc-ic">'+meta.i+'</span><span class="mc-nm">'+cellDisplayName(cid,t)+'</span></div>';
     }
-    var curMeta=CELL_META[m.cells[cp.y][cp.x]];
+    var curMetaName=cellDisplayName(cid, m.cells[cp.y][cp.x]);
     return '<h3>'+cname+' · 城内布防图</h3>'+
       '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
       '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button>'+
         '<button class="mk-back" id="mc-back">🗺 返回山河志（出城）</button></div>'+
-      '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMeta.nm+'〕。'+
+      '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMetaName+'〕。'+
         '出城请点「返回山河志」。城内规模随盛衰可扩建或毁于战火（焦土不可通行）。</p>';
   }
   function initMapCity(opts){
@@ -6078,7 +6164,11 @@ window.onerror=function(msg,url,line,col,err){
         row('新手·送信白檀', qmark(qt, state.quest.tut==='done'))+
         '<p class="tip">「颍川城」寻胡商购药、助医馆华老；「山林」巡山剿匪可领县尉韩伯托付；「溪畔」访水镜先生与左慈。后续章节随主线推进开启。</p>';
     } else if(kind==='map'){
-      h=buildMapKingHTML({});
+      if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
+        h=buildMapCityHTML({});
+      } else {
+        h=buildMapKingHTML({});
+      }
     } else if(kind==='clock'){
       var R=41; // 时辰标签半径（百分比）
       var clkLabels='';
