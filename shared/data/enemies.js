@@ -171,6 +171,22 @@
         table: [{ item: 'heishan_token', name: '黑山令', weight: 6 }],
         equip: { tier: 3, chance: 80 }
       }
+    },
+
+    // ─── 城防守军（攻城战专用：玩家起兵略地，胜则易帜夺城，败则城遭兵火）───
+    city_guard: {
+      id: 'city_guard', name: '城防守军', title: '据城死守之卒',
+      element: '金',
+      hp: 760, atk: 44, def: 30, spd: 24,
+      skills: [
+        { id: 'guard_thrust', name: '拒马刺', beat: 30, dmgMul: 1.1, desc: '长戟前刺，拒敌于阵前' },
+        { id: 'guard_wall', name: '结阵', beat: 22, dmgMul: 0, desc: '收矛结阵，守御森严',
+          eff: { selfBuff: { def: 6, turns: 2 } } },
+        { id: 'guard_roar', name: '鼓噪', beat: 18, dmgMul: 0, desc: '擂鼓助威，士气大振',
+          eff: { selfBuff: { atk: 5, spd: 4, turns: 2 } } }
+      ],
+      ai: 'defensive',
+      drop: { gold: [30, 80], pot: [10, 25], table: [], equip: { tier: 2, chance: 30 } }
     }
   };
 

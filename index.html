@@ -610,6 +610,9 @@
   .mc-cell.mc-cur{border-color:#ffd479;box-shadow:0 0 0 2px rgba(255,212,121,.55),0 0 18px rgba(255,212,121,.35);}
   .mc-cell.mc-empty{opacity:.5;}
   .mc-cell.mc-ruin{background:rgba(70,22,16,.45);border-color:rgba(180,60,40,.55);color:#e8a;}
+  .mc-cell.mc-unbuilt{background:rgba(120,110,90,.18);border-color:rgba(160,150,120,.30);color:#9b9384;}
+  .mc-cell.mc-block{cursor:not-allowed;}
+  .mc-cell.mc-locked{filter:grayscale(.8) brightness(.78);opacity:.6;}
   .mc-back{margin-left:8px;background:rgba(90,70,40,.5);border-color:rgba(220,170,90,.4);}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
   .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
@@ -1787,7 +1790,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/rooms.js?v=20260822as"></script>
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
-<script src="shared/data/enemies.js?v=20260821j"></script>
+<script src="shared/data/enemies.js?v=20260824d"></script>
 <script src="shared/data/items.js?v=20260821j"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260821i"></script>
@@ -3730,7 +3733,9 @@ window.onerror=function(msg,url,line,col,err){
   }
   function cityLine(cid){
     var p=cityProfile(cid); if(!p) return '';
-    return '〔城郭·'+p.c.name+'·'+p.c.state+'〕'+p.tier+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc;
+    var _s='〔城郭·'+p.c.name+'·'+p.c.state+'〕'+p.tier+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc;
+    if(isCaptured(cid)) _s+='｜〔'+cityOwnerOf(cid)+'所占〕';   // 势力易主后显示占领势力
+    return _s;
   }
   // 城中人物：百姓数量随人口；治安低出现溃兵；商业高出现行商（触发交易事件）
   function cityNpcs(cid){
@@ -3785,16 +3790,99 @@ window.onerror=function(msg,url,line,col,err){
     barracks:'军营肃整，旌甲林立，校尉按剑而立。',
     farm:'阡陌纵横，农人扶犁，仓廪所系，民食之源。',
     empty:'一片空地，瓦砾草莽，尚待营建。',
-    ruin:'焦土未冷，断壁残垣，劫后萧索。'
+    ruin:'焦土未冷，断壁残垣，劫后萧索。',
+    unbuilt:'城郭未及营建，草莽瓦砾，尚无居人。'
   };
-  // 行政中心按城市等级显示不同名称：都城→皇宫，州城→州衙，县城→城主府
+  // ══ 城市盛衰 / 归属系统（v20260824d）══
+  // 建设度(dev)决定建成半径：随盛衰扩建/降级；焦土(ruin)由战火标记；归属(owner)易主则中枢变帅府/行辕
+  var pendingSiegeCid=null;
+  function ensureCityState(cid){
+    var c=(LF.CITIES||{})[cid]||{};
+    if(!state.flags.cityDev) state.flags.cityDev={};
+    if(state.flags.cityDev[cid]==null) state.flags.cityDev[cid]=Math.min(100, 35+Math.round((c.pop||50)*0.6));
+    if(!state.flags.cityOwner) state.flags.cityOwner={};
+    if(state.flags.cityOwner[cid]==null) state.flags.cityOwner[cid]=(c.owner||'汉');
+    if(!state.flags.cityBurned) state.flags.cityBurned={};
+    if(!state.flags.cityBurned[cid]) state.flags.cityBurned[cid]={};
+  }
+  function cityDevOf(cid){ ensureCityState(cid); return state.flags.cityDev[cid]; }
+  function cityOwnerOf(cid){ ensureCityState(cid); return state.flags.cityOwner[cid]; }
+  function cityDefaultOwner(cid){ var c=(LF.CITIES||{})[cid]||{}; return c.owner||'汉'; }
+  function isCaptured(cid){ return cityOwnerOf(cid)!==cityDefaultOwner(cid); }
+  function cityBurnedMap(cid){ ensureCityState(cid); return state.flags.cityBurned[cid]; }
+  function setCityDev(cid,v){ if(!state.flags.cityDev) state.flags.cityDev={}; state.flags.cityDev[cid]=Math.max(0,Math.min(100,v)); }
+  function playerFaction(){ return state.faction || '义军'; }
+  function centerTypeOf(cid){ var m=genCityGrid(cid); if(!m) return 'gov'; var c=Math.floor(m.size/2); return m.cells[c][c]; }
+  function devRadius(dev,size){
+    var R=Math.floor(size/2);
+    if(dev>=85) return R;
+    if(dev>=65) return Math.max(1,Math.round(R*0.8));
+    if(dev>=45) return Math.max(1,Math.round(R*0.6));
+    if(dev>=25) return Math.max(1,Math.round(R*0.4));
+    return 1;
+  }
+  function baseDisplayType(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return 'empty';
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
+    if(x===cx&&y===cy) return m.cells[y][x];
+    var R=devRadius(cityDevOf(cid),size);
+    if(Math.max(Math.abs(x-cx),Math.abs(y-cy))>R) return 'unbuilt';
+    return m.cells[y][x];
+  }
+  function cellDisplayType(cid,x,y){
+    var t=baseDisplayType(cid,x,y);
+    if(t!=='unbuilt' && cityBurnedMap(cid)[x+','+y]) return 'ruin';
+    return t;
+  }
+  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt'; }
+  function burnCells(cid,n){
+    var m=genCityGrid(cid); if(!m) return;
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
+    var bm=cityBurnedMap(cid);
+    var cp=state.flags.cityPos||{};
+    var cand=[];
+    for(var y=0;y<size;y++) for(var x=0;x<size;x++){
+      if(x===cx&&y===cy) continue;
+      if(cp.cid===cid && cp.x===x && cp.y===y) continue;
+      var t=baseDisplayType(cid,x,y);
+      if(t==='unbuilt') continue;
+      if(bm[x+','+y]) continue;
+      cand.push(x+','+y);
+    }
+    for(var i=cand.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var tmp=cand[i]; cand[i]=cand[j]; cand[j]=tmp; }
+    for(var k=0;k<n&&k<cand.length;k++) bm[cand[k]]=true;
+  }
+  function siegeWin(cid){
+    state.flags.cityOwner=state.flags.cityOwner||{};
+    state.flags.cityOwner[cid]=playerFaction();
+    setCityDev(cid, cityDevOf(cid)+18);
+    var ct=centerTypeOf(cid);
+    var cnm=((LF.CITIES||{})[cid]||{}).name||'城';
+    log('〔克城〕守军溃散，「'+cnm+'」易帜——中枢改立「'+cellDisplayName(cid,ct)+'」，'+playerFaction()+' 据此城！','combat');
+    log('战后稍歇，外郭营建更见起色，可容更多百姓居止。','sys');
+  }
+  function siegeLose(cid){
+    setCityDev(cid, cityDevOf(cid)-28);
+    burnCells(cid, 3+Math.floor(Math.random()*3));
+    state.hp=1; state.defeated=true;
+    var cnm=((LF.CITIES||{})[cid]||{}).name||'城';
+    log('〔败退〕攻城失利，守军反扑，「'+cnm+'」城中数处火起，化作焦土焦垣。','combat');
+    log('你力竭倒地，须先「休整」恢复，方可再动。','sys');
+  }
+  // 行政中心按城市等级显示不同名称：都城→皇宫，州城→州衙，县城→城主府；势力易主后变帅府/行辕
   function cellDisplayName(cid,t){
+    if(t==='unbuilt') return '未营建';
     if(t==='gov'){
+      if(isCaptured(cid)) return '行辕';
       var _c=(LF.CITIES||{})[cid]||{};
       var _tier=_c.tier || (_c.grid>=9?'capital':_c.grid>=7?'zhou':'xian');
       if(_tier==='zhou') return '州衙';
       if(_tier==='xian') return '城主府';
       return '衙署';
+    }
+    if(t==='palace'){
+      if(isCaptured(cid)) return '帅府';
+      return CELL_META.palace.nm;
     }
     return CELL_META[t]? CELL_META[t].nm : t;
   }
@@ -3838,8 +3926,8 @@ window.onerror=function(msg,url,line,col,err){
   }
   function cityCellDesc(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
-    var t=m.cells[y][x], meta=CELL_META[t];
-    return ['〔城内·'+meta.nm+'〕'+CELL_DESC[t]];
+    var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
+    return ['〔城内·'+meta.nm+'〕'+(CELL_DESC[t]||'')];
   }
   function cityCellNpcs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
@@ -3940,7 +4028,8 @@ window.onerror=function(msg,url,line,col,err){
   function cityCellActs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
     var t=m.cells[y][x], p=cityProfile(cid), out=[];
-    if(t==='barracks') out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'});
+    if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
+    if(cityDevOf(cid)<100) out.push({id:'build', label:'兴修城垣', tip:'征夫筑垣，扩建城池、解锁外圈空地'});
     if(t!=='ruin') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
     out.push({id:'leave_city', label:'返回山河志', tip:'出城，重览山河'});
@@ -3969,10 +4058,11 @@ window.onerror=function(msg,url,line,col,err){
     var cname=((LF.CITIES[cid]||{}).name||'城');
     var cells='';
     for(var y=0;y<size;y++) for(var x=0;x<size;x++){
-      var t=m.cells[y][x], meta=CELL_META[t];
+      var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
       var cur=(cp.x===x&&cp.y===y);
       var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
-      var cls='mc-cell mc-'+t+(cur?' mc-cur':'')+(adj?' mc-adj':'')+(t==='ruin'?' mc-block':'');
+      var locked=(t==='ruin'||t==='unbuilt');
+      var cls='mc-cell mc-'+t+(cur?' mc-cur':'')+(adj&&!locked?' mc-adj':'')+(locked?' mc-block mc-locked':'');
       cells+='<div class="'+cls+'" data-x="'+x+'" data-y="'+y+'"'+
         ' style="left:'+(x*CELL)+'px;top:'+(y*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
         '<span class="mc-ic">'+meta.i+'</span><span class="mc-nm">'+cellDisplayName(cid,t)+'</span></div>';
@@ -3994,7 +4084,15 @@ window.onerror=function(msg,url,line,col,err){
       var isCur=(cp.x===x&&cp.y===y);
       var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
       if(isCur||adj){
-        el.addEventListener('click', function(){ if(isCur) return; goCell(cid, x, y); });
+        if(isCur || canEnterCell(cid,x,y)){
+          el.addEventListener('click', function(){
+            if(isCur) return;
+            if(!canEnterCell(cid,x,y)){ toast((cellDisplayType(cid,x,y)==='ruin'?'那处已成焦土，无从通行。':'城垣未及营建，暂不可往。')); return; }
+            goCell(cid, x, y);
+          });
+        } else {
+          el.style.cursor='default';
+        }
       } else {
         el.style.cursor='default';
       }
@@ -4298,9 +4396,9 @@ window.onerror=function(msg,url,line,col,err){
       DIRS.forEach(function(d){
         var nx=cp.x+d[1], ny=cp.y+d[2];
         if(nx>=0&&nx<m.size&&ny>=0&&ny<m.size){
-          var t=m.cells[ny][nx];
-          if(t==='ruin') return;   // 焦土不可通行
-          ex.push({dir:d[0], name:d[0]+'·'+CELL_META[t].nm, icon:'🚪', tid:'__cell__', kind:'cell'});
+          if(!canEnterCell(state.room,nx,ny)) return;   // 焦土/未营建不可通行
+          var t=cellDisplayType(state.room,nx,ny);
+          ex.push({dir:d[0], name:d[0]+'·'+cellDisplayName(state.room,t), icon:'🚪', tid:'__cell__', kind:'cell'});
         }
       });
       return ex;
@@ -4330,7 +4428,7 @@ window.onerror=function(msg,url,line,col,err){
       if(dm){
         var _cp=state.flags.cityPos, _m=genCityGrid(state.room);
         var nx=_cp.x+dm[0], ny=_cp.y+dm[1];
-        if(nx>=0&&nx<_m.size&&ny>=0&&ny<_m.size && _m.cells[ny][nx]!=='ruin'){
+        if(nx>=0&&nx<_m.size&&ny>=0&&ny<_m.size && canEnterCell(state.room,nx,ny)){
           goCell(state.room, nx, ny);
           return;
         }
@@ -4420,6 +4518,21 @@ window.onerror=function(msg,url,line,col,err){
         log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
         break;
       case 'leave_city': openModal('map', {forceWorld:true}); break;
+      case 'build':
+        if(!exert('兴修城垣')) return;
+        if(cityDevOf(state.room)>=100){ log('此城营建已极盛，外郭尽辟，无复可兴。','sys'); break; }
+        setCityDev(state.room, cityDevOf(state.room)+8);
+        advanceTime(2);
+        log('你征发民夫，夯土筑垣、浚壕立栅。城池规模渐扩（建设度 '+cityDevOf(state.room)+'），外圈空地次第开辟为民居街市。','sys');
+        renderRoom(state.room,true);
+        if(currentModalKind==='map') openModal('map');
+        break;
+      case 'siege':
+        if(!exert('起兵略地')) return;
+        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
+        pendingSiegeCid=state.room;
+        startCombat('city_guard');
+        break;
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
       // ─── 教程：劳作 / 塌墙根决断 ───
@@ -7358,6 +7471,24 @@ window.onerror=function(msg,url,line,col,err){
       if(combatCardEl){ combatCardEl.classList.add('settle-win'); }
       playCombatFx('win');
       setTimeout(function(){ [combatCardEl,dqCardEl].forEach(function(el){ if(el&&el.parentNode) el.parentNode.removeChild(el); }); combatCardEl=null; dqCardEl=null; }, 1200);
+      return;
+    }
+    // ── 攻城战（易主/火战）特殊处理（v20260824d）──
+    if(pendingSiegeCid){
+      var sc=pendingSiegeCid; pendingSiegeCid=null;
+      if(result==='fled'){
+        log('你鸣金收兵，撤出战场，「'+(((LF.CITIES||{})[sc]||{}).name||'城')+'」暂未易主。','sys');
+      } else if(result==='win'){
+        siegeWin(sc);
+      } else {
+        siegeLose(sc);
+      }
+      var _fx=(result==='win'?'win':(result==='lose'?'lose':''));
+      if(combatCardEl) combatCardEl.classList.add(result==='win'?'settle-win':(result==='lose'?'settle-lose':''));
+      else if(dqCardEl) dqCardEl.classList.add(result==='win'?'settle-win':(result==='lose'?'settle-lose':''));
+      playCombatFx(_fx);
+      addBtn('返回',function(){ renderRoom(state.room,true); },'wide');
+      save(state); renderStatus();
       return;
     }
     var st=G.CombatEngine.getStatus();
