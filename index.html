@@ -1837,7 +1837,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/enemies.js?v=20260824d"></script>
 <script src="shared/data/items.js?v=20260824f"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
-    <script src="shared/data/build.js?v=20260821i"></script>
+    <script src="shared/data/build.js?v=20260824i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260822as"></script>
     <script src="shared/data/cities.js?v=20260824c"></script>
@@ -3434,8 +3434,14 @@ window.onerror=function(msg,url,line,col,err){
     if(isCityGrid(rid)){
       var __m=genCityGrid(rid);
       if(!state.flags.cityPos || state.flags.cityPos.cid!==rid){
-        var __c=Math.floor(__m.size/2);
-        state.flags.cityPos={cid:rid, x:__c, y:__c};
+        // 进城先到城门（南门优先；若被焚/掘断不可通行则顺延其他城门，兜底城心）
+        var __c=Math.floor(__m.size/2), __s=__m.size-1;
+        var __gates=[[__c,__s],[__c,0],[0,__c],[__s,__c],[__c,__c]];   // 南 北 西 东 城心
+        var __g=__gates[0];
+        for(var __gi=0;__gi<__gates.length;__gi++){
+          if(canEnterCell(rid,__gates[__gi][0],__gates[__gi][1])){ __g=__gates[__gi]; break; }
+        }
+        state.flags.cityPos={cid:rid, x:__g[0], y:__g[1]};
       }
     }
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
@@ -4030,16 +4036,24 @@ window.onerror=function(msg,url,line,col,err){
     var t=m.cells[y][x], p=cityProfile(cid), c=(LF.CITIES||{})[cid]||{}, items=[];
     var cnm=c.name||'此城';
     if(t==='market'){
-      // 商街：药铺·布庄·食肆·杂货·营造所 —— 皆为「可进入的屋舍」，进入后与内部 NPC、功能物件交互
-      return [
-        {enter:{building:'yaofu'}},
-        {enter:{building:'buzhuang'}},
-        {enter:{building:'shishi'}},
-        {enter:{building:'zahuo'}},
-        {enter:{building:'gongzao'}}
-      ];
-    }
-    if(t==='farm'){
+      // 商街：店铺是「场景交互物品」，入口已由 cityCellActs 渲染为场景物件按钮（进·药铺…），
+      // 此处仅保留市井人物，避免店铺占据 NPC 位置
+      var mktSays=['东市的铺子今日又进了新货。','客官是要采买些什么？','这街面一入夜便冷清下来。','听说明日有马队入城，商旅可要多了。'];
+      var vendor={name:'市井商贩', icon:'🛒', key:'mkt_'+cid, desc:'守着摊位的市井商贩'};
+      items.push({o:vendor, acts:[
+        {label:'问价', icon:'💰', fn:function(){ log('〔市井商贩〕「货是好货，价也公道，客官尽管挑。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔市井商贩〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }}
+      ]});
+      for(var mi=0; mi<2; mi++){
+        (function(idx){
+          var o={name:'城中百姓', icon:'👤', key:'mktciv_'+cid+'_'+idx, desc:'往来商街采买的百姓'};
+          items.push({o:o, acts:[
+            {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }},
+            {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
+          ]});
+        })(mi);
+      }
+    } else if(t==='farm'){
       var zhuang={name:cnm+'庄头', icon:'🌾', key:'farm_'+cid, desc:'肤色黧黑，熟悉农事'};
       items.push({o:zhuang, acts:[
         {label:'问农', icon:'💬', fn:function(){ log('〔庄头〕今年雨水尚可，秋收在望，'+cnm+'仓廪也算充实。','npc'); }},
@@ -4101,6 +4115,14 @@ window.onerror=function(msg,url,line,col,err){
     var burnt=!!bm[x+','+y], broken=!!km[x+','+y];
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
     if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
+    if(t==='market'){
+      // 商街店铺 = 场景交互物品：作为场景物件按钮渲染（进·药铺 等），不再占用 NPC 列表
+      var mktKeys=['yaofu','buzhuang','shishi','zahuo','gongzao'];
+      mktKeys.forEach(function(k){
+        var bd=BUILDINGS[k]; if(!bd) return;
+        out.push({id:'enter_building', label:'进·'+bd.name, icon:bd.icon, tip:'步入'+bd.name+'——'+(bd.sub||'入内一观'), data:{building:k}});
+      });
+    }
     if(dt!=='ruin' && dt!=='unbuilt' && dt!=='broken') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
     if(t==='gate') out.push({id:'leave_city', label:'出城门', tip: burnt?'城门残破，仍可通行，出城重览山河':'经城门出城，重览山河'});
@@ -4214,8 +4236,15 @@ window.onerror=function(msg,url,line,col,err){
     if(isCityGrid(room.id)){
       cityCellActs(room.id, state.flags.cityPos.x, state.flags.cityPos.y).forEach(function(a){
         var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
-        var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
+        var btn=mkAct('scene', a.icon||'·', a.label, function(e){
+          // 进入某处（进·店铺/进·建筑）意图明确，单击直达，不再套「执 行」菜单
+          if(a.id==='enter_building'){ handleAction(a.id,a); return; }
+          toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts);
+        });
       });
+      // 玩家在城内营造的建筑 / 放置的设备，作为场景物件一并展示（按房间整体存储，城内各处皆可寻得）
+      var pobjs=roomObjs(room.id, {placedOnly:true});
+      if(pobjs.length) renderObjs(pobjs, 'scene');
       return;
     }
     // 城市系统：按商业/治安派生可做之事（逛市集、维持治安）——对配置城市与占位州治均生效
@@ -4615,6 +4644,10 @@ window.onerror=function(msg,url,line,col,err){
       case 'rest':  actRest(); break;
       case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
+      case 'enter_building':
+        if(a && a.data && a.data.building && !exert('步入店铺')) return;
+        openModal('building', {building:(a&&a.data?a.data.building:'yaofu'), cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)});
+        break;
       case 'recruit':
         if(!exert('入营募兵')) return;
         state.flags.recruited=state.flags.recruited||{};
@@ -4995,7 +5028,7 @@ window.onerror=function(msg,url,line,col,err){
     closeModal(); buildActions(G.ROOMS[state.room]);
   }
   // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
-  function roomObjs(roomId){
+  function roomObjs(roomId, opts){
     var base = ROOM_OBJECTS[roomId] || [];
     var placed = (state.placed && state.placed[roomId]) || [];
     var dyn = placed.map(function(p){
@@ -5013,7 +5046,8 @@ window.onerror=function(msg,url,line,col,err){
     });
     // 放置物覆盖同 key 的静态 feature（如收起的工作台摆放后，静态木工台不再重复显示）
     var dynKeys={}; dyn.forEach(function(o){ dynKeys[o.key]=1; });
-    var filteredBase = base.filter(function(o){ return !(o.type==='feature' && dynKeys[o.key]); });
+    // placedOnly：仅渲染玩家放置物（城市网格等由 cell 动作/左栏 NPC 承担场景内容，屏蔽旧版静态 ROOM_OBJECTS 条目）
+    var filteredBase = opts && opts.placedOnly ? [] : base.filter(function(o){ return !(o.type==='feature' && dynKeys[o.key]); });
     return filteredBase.concat(dyn);
   }
   function placeInspect(){
@@ -5086,6 +5120,12 @@ window.onerror=function(msg,url,line,col,err){
     if(bp.done === 'forge'){
       acts.push({label:'炉膛…', icon:'🔥', fn:function(){ openForgePanel(siteKey); }});
       acts.push({label:'打造…', icon:'⚒️', fn:function(){ openModal('craft', {bench:'forge'}); }});
+    }
+    // 蓝图含 interior 时：建成后可步入，成为可进出的独立房间（左下 NPC + 上方交互物件）
+    if(bp.interior && bp.interior.length){
+      acts.push({label:'进·'+(bp.doneName||'屋内'), icon:bp.doneIcon||'🚪', fn:function(){
+        var _p=findPlacedBp(siteKey); if(_p) openModal('building',{bp:_p.bp});
+      }});
     }
     acts.push({label:'端详', icon:'👁', fn:function(){ log('〔'+bp.doneName+'〕'+(bp.desc||''), 'sys'); }});
     return acts;
@@ -6073,6 +6113,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   function onbReveal(layer){
     if(!state.flags) state.flags={}; if(!state.flags.onb) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
+    if(!state.flags.onb.reveal) state.flags.onb.reveal=[];   // 老存档/新造存档可能缺 reveal 数组
     if(state.flags.onb.reveal.indexOf(layer)<0) state.flags.onb.reveal.push(layer);
     applyOnboard(); save(state);
   }
@@ -6613,9 +6654,20 @@ window.onerror=function(msg,url,line,col,err){
     }
     return b.areas[key];
   }
+  function bldDef(){
+    if(!buildingState) return null;
+    // 玩家营造的蓝图建筑：用 LF.BUILD[蓝图id] 的动态 interior 临时构造屋舍定义
+    if(buildingState.bp){
+      var bp=LF.BUILD[buildingState.bp]; if(!bp) return null;
+      return { name:bp.doneName||'屋舍', icon:bp.doneIcon||'🏠', sub:bp.desc||'',
+        interior:bp.interior||[], rootName:bp.rootName, subAreas:bp.subAreas, areas:bp.areas,
+        rootExtraNpcs:bp.rootExtraNpcs, rootExtraObjs:bp.rootExtraObjs };
+    }
+    return BUILDINGS[buildingState.building] || null;
+  }
   function renderBuildingPanel(){
-    if(!buildingState || !BUILDINGS[buildingState.building]) return '<div class="empty">此处并无屋舍。</div>';
-    var b=BUILDINGS[buildingState.building];
+    var b=bldDef();
+    if(!b) return '<div class="empty">此处并无屋舍。</div>';
     var area=bldCurArea(b);
     if(buildingState.sel!=null){
       var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
@@ -6650,8 +6702,8 @@ window.onerror=function(msg,url,line,col,err){
     return h;
   }
   function bindBuildingPanel(){
-    if(!buildingState || !BUILDINGS[buildingState.building]) return;
-    var b=BUILDINGS[buildingState.building];
+    var b=bldDef();
+    if(!b) return;
     var area=bldCurArea(b);
     if(buildingState.sel!=null){
       var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
@@ -6795,8 +6847,11 @@ window.onerror=function(msg,url,line,col,err){
       if(opts && opts.site) forgeState.site = opts.site;
       h=renderForgePanel();
     } else if(kind==='building'){
-      if(opts && opts.building){ buildingState = { building:opts.building, cid:opts.cid, x:opts.x, y:opts.y, area:'root', stack:[], sel:null }; }
-      if(!buildingState || !buildingState.area){ buildingState={building:'yaofu', area:'root', stack:[], sel:null}; }
+      if(opts && (opts.building || opts.bp)){
+        var _bpd=(opts.bp ? (LF.BUILD[opts.bp]||null) : null);
+        buildingState = { building:(opts.building || (_bpd? '__bp_'+_bpd.key : 'yaofu')), bp:(opts.bp||null), cid:opts.cid, x:opts.x, y:opts.y, area:'root', stack:[], sel:null };
+      }
+      if(!buildingState || !buildingState.area){ buildingState={building:'yaofu', bp:null, area:'root', stack:[], sel:null}; }
       h=renderBuildingPanel();
     }
     $card.innerHTML=h;
