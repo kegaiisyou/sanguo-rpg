@@ -7488,6 +7488,7 @@ window.onerror=function(msg,url,line,col,err){
       else if(dqCardEl) dqCardEl.classList.add(result==='win'?'settle-win':(result==='lose'?'settle-lose':''));
       playCombatFx(_fx);
       addBtn('返回',function(){ renderRoom(state.room,true); },'wide');
+      if(currentModalKind==='map') openModal('map');   // 攻城后若山河图正开着，即时刷新网格（易主/焦土）
       save(state); renderStatus();
       return;
     }
