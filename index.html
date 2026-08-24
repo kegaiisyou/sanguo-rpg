@@ -1824,7 +1824,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260824h"></script>
+<script src="shared/config/constants.js?v=20260825a"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2830,7 +2830,7 @@ window.onerror=function(msg,url,line,col,err){
   var $card=document.getElementById('modal-card');
   var $toast=document.getElementById('toast');
 
-  function curRoom(){ return G.ROOMS[state.room] || G.ROOMS.camp; }
+  function curRoom(){ return G.ROOMS[state.room] || bldRoom(state.room) || G.ROOMS.camp; }
 
   // ===== 文字叙事窗 =====
   // 轻触快进：仅立即显示「当前正在打字」的那一段；两次快进至少间隔 300ms，防误触连跳多段
@@ -3428,7 +3428,7 @@ window.onerror=function(msg,url,line,col,err){
     return t.length>30 ? t.slice(0,29)+'…' : t;
   }
   function renderRoom(rid, silent){
-    var room=G.ROOMS[rid]; if(!room) return;
+    var room=G.ROOMS[rid]||bldRoom(rid); if(!room) return;
     narrToken++;                 // 新场景：使任何残留的旧叙事序列失效
     state.room=rid;
     if(isCityGrid(rid)){
@@ -3480,7 +3480,7 @@ window.onerror=function(msg,url,line,col,err){
     logScene(narr, 150, function(){
       // 教学链：进入房间后触发对应引导（如燕山山口逃脱）
       onbRoomEnter(room);
-      renderMoveBar(G.ROOMS[state.room]);   // 门禁（moveGate）更新后重渲移动条；城内格子由 currentRoomExits 提供方向
+      renderMoveBar(G.ROOMS[state.room]||bldRoom(state.room));   // 门禁（moveGate）更新后重渲移动条；城内格子由 currentRoomExits 提供方向
       // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
       if(room.patrol && !silent && !onboarding) maybeAmbush(room);
     });
@@ -4223,6 +4223,7 @@ window.onerror=function(msg,url,line,col,err){
     if(back) back.onclick=function(){ handleAction('leave_city'); };
   }
   function buildActions(room, popExits){
+    if(!room) room=curRoom();
     clearActions();
     grpCursor=null;
     renderNpcList(room);   // 左侧 NPC 列表（配置房间与兼容房间统一渲染，避免与下方按钮重复）
@@ -4230,6 +4231,20 @@ window.onerror=function(msg,url,line,col,err){
     if(state.defeated){
       log('〔力竭〕你重伤未愈，动弹不得——就地打盹歇息，方能续战。','sys');
       var b=mkAct('scene','🧱','席地打盹',function(){ openRestModal('ground'); });
+      return;
+    }
+    // 建筑内部房间：场景物件（含子区域/返回出口）按按钮呈现，无方向罗盘
+    if(isBldRoom(room.id)){
+      var _bobjs=roomObjs(room.id);
+      if(_bobjs && _bobjs.length) _bobjs.forEach(function(o){
+        var _acts=(typeof o.actions==='function'? o.actions(): (o.actions||[]));
+        var _btn=mkAct('scene', o.icon, o.name, function(e){
+          // 出入口单击直达；其余物件展开浮动菜单
+          if(o.direct && _acts.length){ _acts[0].fn(); return; }
+          toggleObjExpand(e, _btn, o, _acts);
+        });
+      });
+      renderSelf(room);
       return;
     }
     // 城市网格：当前格动作派生（取代旧出口/对象按钮）；移动改由底部方向键（currentRoomExits）负责
@@ -4276,7 +4291,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   // ===== 左侧 NPC 列表（地图左侧，点击弹出菜单）=====
   function renderNpcList(room){
-    if(!room && state.room) room=G.ROOMS[state.room];
+    if(!room && state.room) room=G.ROOMS[state.room]||bldRoom(state.room);
     var box=document.getElementById('npc-list'); if(!box) return;
     box.innerHTML=''; box.classList.remove('has');
     var items=[];
@@ -4303,6 +4318,13 @@ window.onerror=function(msg,url,line,col,err){
         items.push({o:{name:n.name, icon:'👤', key:k, desc:n.name}, acts:buildNpcActions({name:n.name, key:k, desc:n.name})});
       }
     });
+    // 建筑内部房间：以 interior/子区域 npcs 直接呈现（复用浮动菜单交互）
+    if(isBldRoom(room.id)){
+      var _bf=bldForRoom(room.id);
+      if(_bf) (_bf.ar.npcs||[]).forEach(function(e,i){
+        items.push({o:{name:e.name, icon:e.icon, key:'bldn_'+room.id+'_'+i, desc:e.desc}, acts:(e.acts||[])});
+      });
+    }
     // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
     var cityExtras = isCityGrid(room.id) ? cityCellNpcs(room.id, state.flags.cityPos.x, state.flags.cityPos.y) : cityNpcs(room.id);
     var enters=[];
@@ -4327,7 +4349,7 @@ window.onerror=function(msg,url,line,col,err){
       var b=BUILDINGS[it.enter.building];
       var chip=document.createElement('button'); chip.className='nl-item nl-bld';
       chip.innerHTML='<span class="nl-ic">'+(b?b.icon:'🏠')+'</span><span class="nl-nm">'+(b?b.name:it.enter.building)+'</span>';
-      chip.onclick=function(){ if(b) openModal('building',{building:it.enter.building, cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}); };
+      chip.onclick=function(){ enterBldRoom(it.enter.building, {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}); };
       box.appendChild(chip);
     });
   }
@@ -4521,7 +4543,10 @@ window.onerror=function(msg,url,line,col,err){
   }
   // 当前房间的方位通路（兼容 ROOM_OBJECTS 与旧版 room.exits）
   function currentRoomExits(){
-    var room=G.ROOMS[state.room];
+    var room=G.ROOMS[state.room]||bldRoom(state.room);
+    if(!room) return [];
+    // 建筑内部无方位罗盘：子区域与出入口以场景按钮呈现
+    if(isBldRoom(state.room)) return [];
     if(isCityGrid(state.room)){
       var cp=state.flags.cityPos, m=genCityGrid(state.room);
       if(!m) return [];
@@ -4646,7 +4671,7 @@ window.onerror=function(msg,url,line,col,err){
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
       case 'enter_building':
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
-        openModal('building', {building:(a&&a.data?a.data.building:'yaofu'), cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)});
+        enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)});
         break;
       case 'recruit':
         if(!exert('入营募兵')) return;
@@ -5029,6 +5054,23 @@ window.onerror=function(msg,url,line,col,err){
   }
   // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
   function roomObjs(roomId, opts){
+    // 建筑内部房间：interior/子区域的物件 + 子区域/返回出口 → 场景按钮
+    if(isBldRoom(roomId)){
+      var _f=bldForRoom(roomId), _out=[];
+      if(_f){
+        (_f.ar.objs||[]).forEach(function(o,i){
+          _out.push({type:'feature', key:'bldo_'+roomId+'_'+i, icon:o.icon, name:o.name, desc:o.desc, actions:(o.acts||[])});
+        });
+        (_f.ar.areas||[]).forEach(function(a){
+          _out.push({type:'feature', key:'blda_'+roomId+'_'+a.key, icon:'🚪', name:a.label||a.key, desc:'', direct:true, actions:[{label:a.label||a.key, icon:'🚪', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key+'@'+a.key)}]});
+        });
+        if(!_f.ar.isRoot){
+          _out.push({type:'feature', key:'bldup_'+roomId, icon:'⬅', name:'返回'+( _f.b.rootName||_f.b.name), desc:'', direct:true, actions:[{label:'返回'+( _f.b.rootName||_f.b.name), icon:'⬅', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key)}]});
+        }
+        _out.push({type:'feature', key:'bldout_'+roomId, icon:'🚪', name:'返回街道', desc:'', direct:true, actions:[{label:'走出此处，回到街巷', icon:'🚪', fn:function(){ leaveBldRoom(); }}]});
+      }
+      return _out;
+    }
     var base = ROOM_OBJECTS[roomId] || [];
     var placed = (state.placed && state.placed[roomId]) || [];
     var dyn = placed.map(function(p){
@@ -5124,7 +5166,7 @@ window.onerror=function(msg,url,line,col,err){
     // 蓝图含 interior 时：建成后可步入，成为可进出的独立房间（左下 NPC + 上方交互物件）
     if(bp.interior && bp.interior.length){
       acts.push({label:'进·'+(bp.doneName||'屋内'), icon:bp.doneIcon||'🚪', fn:function(){
-        var _p=findPlacedBp(siteKey); if(_p) openModal('building',{bp:_p.bp});
+        var _p=findPlacedBp(siteKey); if(_p) enterBldRoom('site_'+siteKey, {kind:'room', room:state.room, bp:_p.bp});
       }});
     }
     acts.push({label:'端详', icon:'👁', fn:function(){ log('〔'+bp.doneName+'〕'+(bp.desc||''), 'sys'); }});
@@ -6642,6 +6684,62 @@ window.onerror=function(msg,url,line,col,err){
     },
     }
   };
+
+  // ══ 建筑内部＝可进入房间（v20260825）══
+  // 房间 id 约定：__bld__<key>（正堂）/ __bld__<key>@<areaKey>（子区域）
+  // key = BUILDINGS 键（yaofu…）或 site_<siteKey>（玩家放置建筑）；进入后为独立房间场景，而非弹窗
+  function isBldRoom(rid){ return !!(rid && rid.indexOf('__bld__')===0); }
+  function bldForRoom(rid){
+    var m=(rid||'').match(/^__bld__(.+?)(?:@(.+))?$/); if(!m) return null;
+    var key=m[1], areaKey=m[2];
+    var b=BUILDINGS[key];
+    if(!b && state && state.flags && state.flags.bldEnt && state.flags.bldEnt.key===key){
+      var _bp=LF.BUILD[state.flags.bldEnt.bp];
+      if(_bp) b={ name:_bp.doneName||'屋舍', icon:_bp.doneIcon||'🏠', sub:_bp.desc||'', interior:_bp.interior||[], rootName:_bp.rootName, rootExtraNpcs:_bp.rootExtraNpcs, rootExtraObjs:_bp.rootExtraObjs, subAreas:_bp.subAreas, areas:_bp.areas };
+    }
+    if(!b) return null;
+    var ar;
+    if(!areaKey){
+      var npcs=(b.interior||[]).filter(function(e){return e.kind==='npc';});
+      if(b.rootExtraNpcs) npcs=npcs.concat(b.rootExtraNpcs);
+      var objs=(b.interior||[]).filter(function(e){return e.kind==='obj';});
+      if(b.rootExtraObjs) objs=objs.concat(b.rootExtraObjs);
+      ar={ name:(b.rootName||b.name), icon:b.icon, desc:b.sub, npcs:npcs, objs:objs, areas:(b.subAreas||[]), isRoot:true };
+    } else {
+      ar=b.areas && b.areas[areaKey] || null;
+      if(!ar) return null;
+      ar={ name:ar.name, icon:ar.icon||'🚪', desc:ar.desc, npcs:ar.npcs||[], objs:ar.objs||[], areas:ar.areas||[], isRoot:false };
+    }
+    return { id:rid, key:key, areaKey:areaKey, b:b, ar:ar };
+  }
+  function bldRoom(rid){
+    var f=bldForRoom(rid); if(!f) return null;
+    return { id:rid, name:f.ar.name, icon:f.ar.icon, desc:[f.ar.desc||''], bldKey:f.key, isBld:true };
+  }
+  function enterBldRoom(key, back){
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    if(!state.flags) state.flags={};
+    state.flags.bldEnt={ key:key, back:back||null, bp:(back&&back.bp)||null };
+    closeModal();
+    renderRoom('__bld__'+key, true);
+  }
+  function bldMove(tid){
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    advanceTime(1);
+    log('你移步前行，景物为之一变……','sys');
+    renderRoom(tid);
+  }
+  function leaveBldRoom(){
+    var ent=state.flags && state.flags.bldEnt;
+    var back=ent && ent.back;
+    delete state.flags.bldEnt;
+    if(back && back.kind==='city'){
+      state.flags.cityPos={cid:back.cid,x:back.x,y:back.y};
+      renderRoom(back.cid);
+    } else {
+      renderRoom((back && back.room) || 'camp');
+    }
+  }
   function hasCount(defId,n){ var c=packFind(defId); return c && (c.count||1)>=n; }
   function bldCurArea(b){
     var key=buildingState.area||'root';
@@ -6847,6 +6945,12 @@ window.onerror=function(msg,url,line,col,err){
       if(opts && opts.site) forgeState.site = opts.site;
       h=renderForgePanel();
     } else if(kind==='building'){
+      // 已在建筑房间内：acts 中的 openModal('building') 用作场景刷新，不再弹窗
+      if(state && state.room && isBldRoom(state.room)){
+        closeModal();
+        renderRoom(state.room, true);
+        return;
+      }
       if(opts && (opts.building || opts.bp)){
         var _bpd=(opts.bp ? (LF.BUILD[opts.bp]||null) : null);
         buildingState = { building:(opts.building || (_bpd? '__bp_'+_bpd.key : 'yaofu')), bp:(opts.bp||null), cid:opts.cid, x:opts.x, y:opts.y, area:'root', stack:[], sel:null };
@@ -6967,7 +7071,7 @@ window.onerror=function(msg,url,line,col,err){
       bar.scrollIntoView({behavior:'smooth', block:'center'});
     } else {
       // 无出口房间：重新记录环境描述
-      var room=G.ROOMS[state.room];
+      var room=G.ROOMS[state.room]||bldRoom(state.room);
       var find=room&&room.find||'你凝神四望，周遭风物尽收眼底。';
       log(find,'investigate');
       toast('已探明周遭');
