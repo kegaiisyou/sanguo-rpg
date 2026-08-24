@@ -251,6 +251,22 @@
   #modal-card .bld-acts{display:flex;flex-direction:column;gap:8px;}
   #modal-card .bld-act{width:100%;justify-content:flex-start;text-align:left;}
   #modal-card .bld-back{margin-top:4px;}
+  /* 建筑内部区域导航（v20260824f） */
+  #modal-card .bld-crumb{font-size:12px;color:#9a7b3a;margin:-6px 0 8px;text-align:center;letter-spacing:.5px;}
+  #modal-card .bld-ent.bld-npc{background:rgba(122,86,46,.10);border-color:rgba(176,131,47,.45);}
+  #modal-card .bld-ent.bld-obj{background:rgba(70,110,140,.10);border-color:rgba(90,140,170,.45);}
+  #modal-card .bld-ent::after{margin-left:auto;font-size:10px;color:#fff;background:rgba(120,120,120,.5);
+    border-radius:5px;padding:0 5px;}
+  #modal-card .bld-ent.bld-npc::after{content:'谈';}
+  #modal-card .bld-ent.bld-obj::after{content:'用';}
+  #modal-card .bld-areas{display:flex;flex-direction:column;gap:8px;margin-top:12px;
+    border-top:1px dashed rgba(176,131,47,.4);padding-top:12px;}
+  #modal-card .bld-area{width:100%;justify-content:flex-start;text-align:left;
+    background:rgba(176,131,47,.14);border:1px solid rgba(176,131,47,.5);}
+  #modal-card .bld-area:hover{background:rgba(176,131,47,.26);}
+  #modal-card .bld-nav{display:flex;gap:8px;margin-top:14px;}
+  #modal-card .bld-up{flex:1;background:rgba(120,120,120,.16);border:1px solid rgba(120,120,120,.5);}
+  #modal-card .bld-exit{flex:1;background:rgba(140,70,60,.18);border:1px solid rgba(160,80,70,.6);}
   /* —— 方向罗盘 —— */
   .move-bar{
     flex:0 0 auto;display:none;
@@ -1811,7 +1827,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260824d"></script>
-<script src="shared/data/items.js?v=20260824e"></script>
+<script src="shared/data/items.js?v=20260824f"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260821i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
@@ -3846,6 +3862,11 @@ window.onerror=function(msg,url,line,col,err){
     var m=genCityGrid(cid); if(!m) return 'empty';
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
     if(x===cx&&y===cy) return m.cells[y][x];
+    if(x===cx || y===cy){            // 中轴大街（含城门）恒为可通行：保证出城必经城门、且城门始终可达
+      var t=m.cells[y][x];
+      if(t==='unbuilt') t='road';
+      return t;
+    }
     var R=devRadius(cityDevOf(cid),size);
     if(Math.max(Math.abs(x-cx),Math.abs(y-cy))>R) return 'unbuilt';
     return m.cells[y][x];
@@ -4025,7 +4046,7 @@ window.onerror=function(msg,url,line,col,err){
     if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
     if(t!=='ruin') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
-    out.push({id:'leave_city', label:'返回山河志', tip:'出城，重览山河'});
+    if(t==='gate') out.push({id:'leave_city', label:'出城门', tip:'经城门出城，重览山河'});
     return out;
   }
   function goCell(cid,x,y){
@@ -6233,7 +6254,7 @@ window.onerror=function(msg,url,line,col,err){
           { label:'施治·敷金疮药', icon:'🩹', fn:function(){
               var idx=-1; for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)==='jinchuang'){ idx=i; break; } }
               if(idx<0){ toast('你身上并无金疮药，须先备药。'); return; }
-              usePackItem({kind:'pack', idx});
+              usePackItem(idx);
               log('老大夫就着灯火为你敷药包扎，创处一阵清凉，血止痛缓。','sys');
               openModal('building'); } }
         ]},
@@ -6256,7 +6277,23 @@ window.onerror=function(msg,url,line,col,err){
         { kind:'obj', name:'熬药壶', icon:'🫖', desc:'小炭炉上坐着药壶，咕嘟作响。', acts:[
           { label:'熬制汤药', icon:'🍲', fn:function(){ if(!hasCount('caoyao',2)){ toast('熬汤药须草药两味，药柜可取。'); return; } if(!exert('熬药')) return; packConsume('caoyao',2); packAdd('tangyao',1); log('文火慢熬，草药化作一碗温补汤药。','sys'); openModal('building'); } }
         ]}
-      ]
+      ],
+    subAreas:[{key:'yaofu_hou',label:'入后堂'},{key:'yaofu_lou',label:'上二楼'}],
+    areas:{
+      yaofu_hou:{ name:'后堂', icon:'🚪', desc:'库房碾坊，药香沉静，学徒正晾药帘。', npcs:[
+        { name:'药铺学徒', icon:'🧑', desc:'束发少年，忙着称量药材。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('学徒道：「师父说，这药性有寒热温凉，配错了要出人命的。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'晒药匾', icon:'🟫', desc:'竹匾里铺着切好的饮片，日头下泛香。', acts:[
+          { label:'翻动饮片', icon:'🤲', fn:function(){ if(!exert('翻药')) return; log('你帮着翻了翻药匾，饮片匀称，香气更盛。','sys'); } }
+        ]}
+      ], areas:[] },
+      yaofu_lou:{ name:'二楼客房', icon:'🪜', desc:'雅静客房，偶有宿疾老者在此静养。', npcs:[
+        { name:'宿疾老者', icon:'🧓', desc:'面色青白，久病未愈的乡绅。', acts:[
+          { label:'探问', icon:'💬', fn:function(){ log('老者咳嗽两声：「老朽这咳疾缠身半载，怕是熬不过这个冬天喽……」','sys'); } }
+        ]}
+      ], objs:[], areas:[] }
     },
     buzhuang: {
       name:'锦绣布庄', icon:'🧵', sub:'机杼声声，绫罗满架',
@@ -6268,7 +6305,18 @@ window.onerror=function(msg,url,line,col,err){
         { kind:'obj', name:'织机', icon:'🪡', desc:'木织机一架，织娘投梭走线。', acts:[
           { label:'看织娘织锦', icon:'👀', fn:function(){ log('你驻足看织娘投梭，经纬交织，渐成云锦一段。','sys'); openModal('building'); } }
         ]}
-      ]
+      ],
+    subAreas:[{key:'bz_hou',label:'入后库'}],
+    areas:{
+      bz_hou:{ name:'后库', icon:'🚪', desc:'布匹成堆，裁缝在此赶制衣甲。', npcs:[
+        { name:'裁缝', icon:'🧵', desc:'指尖生茧的老裁缝。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('裁缝道：「甲靠生漆浸过才硬，布要双股绞才牢。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'布料架', icon:'🧶', desc:'架上绫罗绢帛与各色粗布。', acts:[
+          { label:'翻看布料', icon:'👀', fn:function(){ log('你拂过架上布匹，粗布结实、绸缎滑手。','sys'); } }
+        ]}
+      ], areas:[] }
     },
     shishi: {
       name:'悦来食肆', icon:'🍜', sub:'灶火正旺，酒旗招展',
@@ -6280,7 +6328,50 @@ window.onerror=function(msg,url,line,col,err){
         { kind:'obj', name:'灶台', icon:'🔥', desc:'大灶一口，汤锅翻滚。', acts:[
           { label:'讨碗热汤', icon:'🥣', fn:function(){ if(!exert('讨汤')) return; state.food=Math.min(state.maxFood,(state.food||0)+10); log('灶上舀得一碗热汤，下肚暖意融融。','sys'); renderStatus(); openModal('building'); } }
         ]}
-      ]
+      ],
+    rootName:'大堂',
+    rootExtraNpcs:[
+      { name:'店小二', icon:'🧑', desc:'端盘擦桌、招呼客人的伶俐小伙。', acts:[
+        { label:'唤小二添茶', icon:'🍵', fn:function(){ if(!exert('唤小二')) return; log('小二拎壶过来给你满上热茶，笑道：「客官慢用！」','sys'); } },
+        { label:'打听消息', icon:'💬', fn:function(){ log('小二压低声音：「楼上有几位商贾在谈军粮买卖，听着蹊跷……」','sys'); } }
+      ]},
+      { name:'酒客', icon:'🧑‍🦱', desc:'踞案独酌的过路客。', acts:[
+        { label:'攀谈', icon:'💬', fn:function(){ log('酒客咂口酒：「如今天下不靖，这酒钱都涨了三成喽。」','sys'); } }
+      ]}
+    ],
+    subAreas:[{key:'ss_houchu',label:'入后厨'},{key:'ss_ersou',label:'上二楼'},{key:'ss_houyuan',label:'去后院'}],
+    areas:{
+      ss_houchu:{ name:'后厨', icon:'🍳', desc:'灶火熊熊，油烟与香气交织。', npcs:[
+        { name:'厨子', icon:'👨‍🍳', desc:'满面油光的大厨，掌勺不停。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('厨子擦汗：「客官要吃些甚么？今儿有现成的热汤面。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'菜案', icon:'🔪', desc:'案上码着时蔬鲜肉。', acts:[
+          { label:'翻看食材', icon:'👀', fn:function(){ log('案上青菜水灵、肉脯鲜红，后厨井井有条。','sys'); } }
+        ]}
+      ], areas:[] },
+      ss_ersou:{ name:'二楼雅座', icon:'🪜', desc:'临窗雅座，商旅据案高谈。', npcs:[
+        { name:'行商', icon:'🧑‍💼', desc:'踞坐雅间的贩货客。', acts:[
+          { label:'攀谈', icon:'💬', fn:function(){ log('行商道：「北地战马紧俏，南货却贱，倒腾一趟利市三倍。」','sys'); } }
+        ]},
+        { name:'醉汉', icon:'🥴', desc:'伏案酣睡的醉客。', acts:[
+          { label:'推醒', icon:'✋', fn:function(){ log('你推了推醉汉，他嘟囔两句又睡了过去。','sys'); } }
+        ]}
+      ], objs:[], areas:[{key:'ss_yajian',label:'进雅间'}] },
+      ss_yajian:{ name:'雅间', icon:'🚪', desc:'屏帘半掩的私密雅间。', npcs:[
+        { name:'密谈客', icon:'🕴️', desc:'压低嗓音的两个陌生人。', acts:[
+          { label:'偷听', icon:'👂', fn:function(){ if(!exert('屏息偷听')) return; log('你贴近屏帘，隐约听见「……约在子时，城西……」便再无声。','sys'); } }
+        ]}
+      ], objs:[], areas:[] },
+      ss_houyuan:{ name:'后院', icon:'🌿', desc:'静谧后院，水井与马厩所在。', npcs:[
+        { name:'马夫', icon:'🧑‍🌾', desc:'喂马的粗豪汉子。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('马夫道：「好马得喂饱豆料，跑长途才不掉链子。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'水井', icon:'⛲', desc:'后院老井，井水清冽。', acts:[
+          { label:'打水', icon:'🪣', fn:function(){ if(!exert('打水')) return; state.drink=Math.min(state.maxDrink,(state.drink||0)+8); log('你摇轱辘打上一桶井水，灌了几口，燥意全消（饮水+8）。','sys'); renderStatus(); } }
+        ]}
+      ], areas:[] }
     },
     zahuo: {
       name:'万丰杂货', icon:'🏪', sub:'针头线脑，百货杂陈',
@@ -6293,7 +6384,18 @@ window.onerror=function(msg,url,line,col,err){
         { kind:'obj', name:'货架', icon:'📦', desc:'靠墙货架，瓶罐竹篾杂列。', acts:[
           { label:'翻看货品', icon:'👀', fn:function(){ log('你拂过架上尘土，瓶罐间多是油烛绳结之类。','sys'); openModal('building'); } }
         ]}
-      ]
+      ],
+    subAreas:[{key:'zh_ku',label:'入库房'}],
+    areas:{
+      zh_ku:{ name:'库房', icon:'📦', desc:'堆满筐篓杂货的后库。', npcs:[
+        { name:'伙计', icon:'🧑', desc:'蹲着捆扎货物的小伙计。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('伙计道：「客官要的稀罕物，得翻箱倒柜寻寻。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'杂物堆', icon:'📦', desc:'墙角摞着竹篾油烛之类。', acts:[
+          { label:'翻检', icon:'👀', fn:function(){ if(!exert('翻检')) return; log('你翻了翻杂物堆，瓶罐间多是油烛绳结。','sys'); } }
+        ]}
+      ], areas:[] }
     },
     gongzao: {
       name:'营造所', icon:'🔨', sub:'匠作萃聚，砖石木料山积',
@@ -6314,51 +6416,94 @@ window.onerror=function(msg,url,line,col,err){
           { label:'立栅设防', icon:'🚧', fn:function(){ if(!exert('立栅')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('削木立栅，周遭设防，外圈渐辟为民居街市（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
         ]}
       ]
+    },
+    subAreas:[{key:'gz_liao',label:'入料场'}],
+    areas:{
+      gz_liao:{ name:'料场', icon:'🪵', desc:'木料石料堆积如山的场院。', npcs:[
+        { name:'料场匠人', icon:'🧑‍🔧', desc:'监看料场的副匠。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('匠人道：「好料出好活，这粱木得选三年的杉木才扛得住。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'木料堆', icon:'🪵', desc:'成捆的原木与板材。', acts:[
+          { label:'翻看木料', icon:'👀', fn:function(){ if(!exert('翻看')) return; log('你拨弄木料，杉木轻韧、松木结实，各有所用。','sys'); } }
+        ]},
+        { name:'石料堆', icon:'🪨', desc:'青石条与碎石。', acts:[
+          { label:'搬弄石料', icon:'🏋️', fn:function(){ if(!exert('搬弄')) return; log('你掂了掂石条，分量十足，正合砌基。','sys'); } }
+        ]}
+      ], areas:[] }
     }
   };
   function hasCount(defId,n){ var c=packFind(defId); return c && (c.count||1)>=n; }
+  function bldCurArea(b){
+    var key=buildingState.area||'root';
+    if(key==='root' || !b.areas || !b.areas[key]){
+      var npcs=(b.interior||[]).filter(function(e){return e.kind==='npc';});
+      if(b.rootExtraNpcs) npcs=npcs.concat(b.rootExtraNpcs);
+      var objs=(b.interior||[]).filter(function(e){return e.kind==='obj';});
+      if(b.rootExtraObjs) objs=objs.concat(b.rootExtraObjs);
+      return { name:(b.rootName||b.name), icon:b.icon, desc:b.sub, npcs:npcs, objs:objs, areas:(b.subAreas||[]), isRoot:true };
+    }
+    return b.areas[key];
+  }
   function renderBuildingPanel(){
-    if(!buildingState) buildingState={building:'yaofu', ent:null};
-    var b=BUILDINGS[buildingState.building]; if(!b) return '<div class="empty">此处并无屋舍。</div>';
-    var h='<h3>'+b.icon+' '+b.name+'</h3>';
-    h+='<div class="bld-sub">'+b.sub+'</div>';
-    if(buildingState.ent==null){
-      h+='<div class="bld-list">';
-      b.interior.forEach(function(ent,i){
-        h+='<div class="bld-ent" data-i="'+i+'">'+
-             '<span class="bld-ent-ic">'+ent.icon+'</span>'+
-             '<span class="bld-ent-nm">'+ent.name+'</span>'+
-             '<span class="bld-ent-ki">'+(ent.kind==='npc'?'人物':'物件')+'</span>'+
-           '</div>';
-      });
-      h+='</div><p class="tip">点选屋中人物或物件，与之交互。</p>';
-    } else {
-      var ent=b.interior[buildingState.ent];
+    if(!buildingState || !BUILDINGS[buildingState.building]) return '<div class="empty">此处并无屋舍。</div>';
+    var b=BUILDINGS[buildingState.building];
+    var area=bldCurArea(b);
+    if(buildingState.sel!=null){
+      var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
+      var e=list[buildingState.sel];
+      if(!e){ buildingState.sel=null; return renderBuildingPanel(); }
+      var h='<div class="bld-crumb">'+b.icon+b.name+' › '+area.name+'</div>';
       h+='<div class="bld-detail">';
-      h+='<div class="bld-d-head">'+ent.icon+' '+ent.name+' <span class="bld-ent-ki">'+(ent.kind==='npc'?'人物':'物件')+'</span></div>';
-      h+='<div class="bld-d-desc">'+ent.desc+'</div>';
+      h+='<div class="bld-d-head">'+e.icon+' '+e.name+' <span class="bld-ent-ki">'+(buildingState.selKind==='obj'?'物件':'人物')+'</span></div>';
+      h+='<div class="bld-d-desc">'+e.desc+'</div>';
       h+='<div class="bld-acts">';
-      ent.acts.forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
+      (e.acts||[]).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
       h+='</div><button class="btn bld-back" data-back="1">返 回</button>';
       h+='</div>';
+      return h;
     }
+    var h='<div class="bld-crumb">'+b.icon+' '+b.name+'</div>';
+    h+='<h3>'+area.icon+' '+area.name+'</h3>';
+    h+='<div class="bld-sub">'+area.desc+'</div>';
+    h+='<div class="bld-list">';
+    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
+    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
+    h+='</div>';
+    if(area.areas && area.areas.length){
+      h+='<div class="bld-areas">';
+      area.areas.forEach(function(a){ h+='<button class="btn bld-area" data-area="'+a.key+'">'+a.label+'</button>'; });
+      h+='</div>';
+    }
+    h+='<div class="bld-nav">';
+    if(buildingState.stack && buildingState.stack.length) h+='<button class="btn bld-up" data-up="1">↩ 返回上层</button>';
+    h+='<button class="btn bld-exit" data-exit="1">🚪 返回街道</button>';
+    h+='</div>';
     return h;
   }
   function bindBuildingPanel(){
-    if(!buildingState) return;
-    var b=BUILDINGS[buildingState.building]; if(!b) return;
-    var ent=buildingState.ent;
-    if(ent==null){
-      $card.querySelectorAll('.bld-ent').forEach(function(el){
-        el.onclick=function(){ buildingState.ent=+el.getAttribute('data-i'); openModal('building'); };
-      });
-    } else {
-      var e=b.interior[ent];
-      $card.querySelectorAll('.bld-act').forEach(function(el){
-        el.onclick=function(){ var a=e.acts[+el.getAttribute('data-ai')]; if(a&&a.fn) a.fn(); };
-      });
-      var back=$card.querySelector('.bld-back'); if(back) back.onclick=function(){ buildingState.ent=null; openModal('building'); };
+    if(!buildingState || !BUILDINGS[buildingState.building]) return;
+    var b=BUILDINGS[buildingState.building];
+    var area=bldCurArea(b);
+    if(buildingState.sel!=null){
+      var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
+      var e=list[buildingState.sel];
+      if(e){
+        $card.querySelectorAll('.bld-act').forEach(function(el){
+          el.onclick=function(){ var a=e.acts[+el.getAttribute('data-ai')]; if(a&&a.fn){ a.fn(); if(currentModalKind==='building') openModal('building'); } };
+        });
+      }
+      var back=$card.querySelector('.bld-back'); if(back) back.onclick=function(){ buildingState.sel=null; openModal('building'); };
+      return;
     }
+    $card.querySelectorAll('.bld-ent').forEach(function(el){
+      el.onclick=function(){ buildingState.selKind=el.getAttribute('data-kind'); buildingState.sel=+el.getAttribute('data-i'); openModal('building'); };
+    });
+    $card.querySelectorAll('.bld-area').forEach(function(el){
+      el.onclick=function(){ if(buildingState.stack) buildingState.stack.push(buildingState.area); buildingState.area=el.getAttribute('data-area'); buildingState.sel=null; openModal('building'); };
+    });
+    var up=$card.querySelector('.bld-up'); if(up) up.onclick=function(){ if(buildingState.stack && buildingState.stack.length) buildingState.area=buildingState.stack.pop(); else buildingState.area='root'; buildingState.sel=null; openModal('building'); };
+    var exit=$card.querySelector('.bld-exit'); if(exit) exit.onclick=function(){ closeModal(); };
   }
 
   function openModal(kind, opts){
@@ -6481,6 +6626,10 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='forge'){
       if(opts && opts.site) forgeState.site = opts.site;
       h=renderForgePanel();
+    } else if(kind==='building'){
+      if(opts && opts.building){ buildingState = { building:opts.building, cid:opts.cid, x:opts.x, y:opts.y, area:'root', stack:[], sel:null }; }
+      if(!buildingState || !buildingState.area){ buildingState={building:'yaofu', area:'root', stack:[], sel:null}; }
+      h=renderBuildingPanel();
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop');
