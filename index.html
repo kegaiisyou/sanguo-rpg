@@ -1824,7 +1824,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260824g"></script>
+<script src="shared/config/constants.js?v=20260824h"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -6459,6 +6459,7 @@ window.onerror=function(msg,url,line,col,err){
         ]}
       ], objs:[], areas:[] }
     },
+    },
     buzhuang: {
       name:'锦绣布庄', icon:'🧵', sub:'机杼声声，绫罗满架',
       interior: [
@@ -6481,6 +6482,7 @@ window.onerror=function(msg,url,line,col,err){
           { label:'翻看布料', icon:'👀', fn:function(){ log('你拂过架上布匹，粗布结实、绸缎滑手。','sys'); } }
         ]}
       ], areas:[] }
+    },
     },
     shishi: {
       name:'悦来食肆', icon:'🍜', sub:'灶火正旺，酒旗招展',
@@ -6537,6 +6539,7 @@ window.onerror=function(msg,url,line,col,err){
         ]}
       ], areas:[] }
     },
+    },
     zahuo: {
       name:'万丰杂货', icon:'🏪', sub:'针头线脑，百货杂陈',
       interior: [
@@ -6561,6 +6564,7 @@ window.onerror=function(msg,url,line,col,err){
         ]}
       ], areas:[] }
     },
+    },
     gongzao: {
       name:'营造所', icon:'🔨', sub:'匠作萃聚，砖石木料山积',
       interior: [
@@ -6579,8 +6583,7 @@ window.onerror=function(msg,url,line,col,err){
         { kind:'obj', name:'立栅', icon:'🪵', desc:'削木为栅的栅栏架。', acts:[
           { label:'立栅设防', icon:'🚧', fn:function(){ if(!exert('立栅')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('削木立栅，周遭设防，外圈渐辟为民居街市（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
         ]}
-      ]
-    },
+      ],
     subAreas:[{key:'gz_liao',label:'入料场'}],
     areas:{
       gz_liao:{ name:'料场', icon:'🪵', desc:'木料石料堆积如山的场院。', npcs:[
@@ -6595,6 +6598,7 @@ window.onerror=function(msg,url,line,col,err){
           { label:'搬弄石料', icon:'🏋️', fn:function(){ if(!exert('搬弄')) return; log('你掂了掂石条，分量十足，正合砌基。','sys'); } }
         ]}
       ], areas:[] }
+    },
     }
   };
   function hasCount(defId,n){ var c=packFind(defId); return c && (c.count||1)>=n; }
