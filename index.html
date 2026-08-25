@@ -267,6 +267,11 @@
   #modal-card .bld-nav{display:flex;gap:8px;margin-top:14px;}
   #modal-card .bld-up{flex:1;background:rgba(120,120,120,.16);border:1px solid rgba(120,120,120,.5);}
   #modal-card .bld-exit{flex:1;background:rgba(140,70,60,.18);border:1px solid rgba(160,80,70,.6);}
+  /* —— 城况面板（v20260825d） —— */
+  #modal-card .city-mk{display:flex;flex-direction:column;gap:6px;margin:2px 0 6px;
+    background:rgba(255,253,248,.6);border:1px solid rgba(176,131,47,.3);border-radius:9px;padding:9px 11px;}
+  #modal-card .mk-i{font-size:13px;line-height:1.6;color:var(--ink-soft);}
+  #modal-card .mk-i b{color:var(--seal);}
   /* —— 方向罗盘 —— */
   .move-bar{
     flex:0 0 auto;display:none;
@@ -1826,7 +1831,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260825c"></script>
+<script src="shared/config/constants.js?v=20260825d"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1842,7 +1847,8 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/build.js?v=20260824i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260822as"></script>
-    <script src="shared/data/cities.js?v=20260824c"></script>
+    <script src="shared/data/cities.js?v=20260825d"></script>
+    <script src="shared/data/markets.js?v=20260825d"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
@@ -3781,13 +3787,45 @@ window.onerror=function(msg,url,line,col,err){
     var popDesc = c.pop>=85?'户口百万': c.pop>=70?'户口数十万': c.pop>=55?'户口数万': c.pop>=40?'户口数千':'人口稀少';
     var orderDesc = c.order>=70?'路不拾遗': c.order>=55?'夜不闭户': c.order>=40?'盗匪出没':'兵荒马乱';
     var comDesc = c.commerce>=70?'商贾云集': c.commerce>=55?'市井兴旺': c.commerce>=40?'买卖尚可':'市面萧条';
-    return {c:c, tier:tier, popDesc:popDesc, orderDesc:orderDesc, comDesc:comDesc};
+    var agriDesc = (c.agri>=70?'沃野千里': c.agri>=55?'田畴丰美': c.agri>=40?'耕耨寻常':'地瘠人稀');
+    var ctypeDesc = ({plain:'平原城',mountain:'山城',port:'港口城',fort:'城寨'})[c.ctype||'plain'];
+    var gates = cityGates(c);
+    return {c:c, tier:tier, tierDesc:tier, popDesc:popDesc, orderDesc:orderDesc, comDesc:comDesc, agriDesc:agriDesc, ctypeDesc:ctypeDesc, gates:gates};
   }
   function cityLine(cid){
     var p=cityProfile(cid); if(!p) return '';
-    var _s='〔城郭·'+p.c.name+'·'+p.c.state+'〕'+p.tier+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc;
+    var _s='〔城郭·'+p.c.name+'·'+p.c.state+'〕'+p.tierDesc+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc+'｜农:'+p.agriDesc+'｜'+p.ctypeDesc;
     if(isCaptured(cid)) _s+='｜〔'+cityOwnerOf(cid)+'所占〕';   // 势力易主后显示占领势力
     return _s;
+  }
+  // 城况面板（v20260825d）：参数 + 城型 + 城门 + 市集清单
+  function renderCityStat(cid){
+    var p=cityProfile(cid); if(!p) return '<h3>城 况</h3><p class="empty">暂无此城数据。</p>';
+    var m=genCityGrid(cid);
+    var mkHtml='';
+    if(m && m.markets){
+      var seen={}, list=[];
+      for(var k in m.markets){ var mk=m.markets[k]; if(!seen[mk.name]){ seen[mk.name]=1; list.push(mk); } }
+      if(list.length){
+        mkHtml='<div class="row"><span>市集（'+list.length+' 处）</span></div><div class="city-mk">';
+        list.forEach(function(mk){
+          var shops=mk.shops.map(function(s){ return s.sign; }).join('、');
+          mkHtml+='<div class="mk-i">🏯 <b>'+mk.name+'</b>：'+shops+'</div>';
+        });
+        mkHtml+='</div>';
+      }
+    }
+    return '<h3>城 况 · '+p.c.name+'</h3>'+
+      row('行政', p.tierDesc)+
+      row('城型', p.ctypeDesc)+
+      row('城门', p.gates+' 座')+
+      row('人口', p.popDesc)+
+      row('治安', p.orderDesc)+
+      row('商业', p.comDesc)+
+      row('农业', p.agriDesc)+
+      row('城防', (p.c.wall>=60?'高垒深沟': p.c.wall>=45?'城墙完固': p.c.wall>=30?'城垣可守':'防守疏懈'))+
+      (mkHtml? mkHtml : '')+
+      '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。</p>';
   }
   // 城中人物：百姓数量随人口；治安低出现溃兵；商业高出现行商（触发交易事件）
   function cityNpcs(cid){
@@ -3820,11 +3858,20 @@ window.onerror=function(msg,url,line,col,err){
     var out=[];
     if(p.c.commerce>=60) out.push({id:'market', label:'逛市集', tip:'市井买卖，或有奇货'});
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
+    out.push({id:'city_stat', label:'城况一览', icon:'📊', tip:'查看本城参数、城型与市集'});
     return out;
   }
   // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
   // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
-  var GRID_VER='20260824c';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
+  var GRID_VER='20260825d';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
+  // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
+  function cityGates(c){
+    var ct=c.ctype||'plain';
+    if(ct==='fort') return Math.max(1, Math.min(3, 1+Math.floor((c.wall||0)/40)));
+    if(ct==='mountain') return Math.max(1, Math.min(2, 1+Math.floor((c.wall||0)/55)));
+    if(ct==='port') return Math.max(2, Math.min(3, 2+Math.floor((c.commerce||0)/50)));
+    return 4;
+  }
   var CELL_META={
     palace:{i:'🏯',nm:'皇宫'}, gov:{i:'🏛',nm:'衙署'},
     plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'}, road:{i:'🛤',nm:'街巷'},
@@ -3997,12 +4044,19 @@ window.onerror=function(msg,url,line,col,err){
     var cx=Math.floor(size/2), cy=Math.floor(size/2);
     var tier=c.tier || (c.grid>=9?'capital':c.grid>=7?'zhou':'xian');
     var centerType=(tier==='capital') ? 'palace' : 'gov';   // 都城中央为皇宫，其余为衙门/城主府
+    // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减，见 cityGates）
+    var gateOrder = (c.ctype==='port') ? [[cx,0],[size-1,cy],[cx,size-1],[0,cy]]
+                   : (c.ctype==='mountain') ? [[cx,0],[0,cy],[cx,size-1],[size-1,cy]]
+                   : (c.ctype==='fort') ? [[cx,0],[cx,size-1],[0,cy],[size-1,cy]]
+                   : [[cx,0],[size-1,cy],[cx,size-1],[0,cy]];
+    var nG = cityGates(c), gateSet={};
+    for(var gi=0; gi<nG && gi<gateOrder.length; gi++){ var gp=gateOrder[gi]; gateSet[gp[0]+','+gp[1]]=1; }
     var g=[];
     for(var y=0;y<size;y++){ var row=[];
       for(var x=0;x<size;x++){
         var t;
         if(x===cx && y===cy) t=centerType;
-        else if(((x===cx)||(y===cy)) && (x===0||x===size-1||y===0||y===size-1)) t='gate';
+        else if(gateSet[x+','+y]) t='gate';
         else {
           var roll=rnd();
           if(roll<0.20) t='market';
@@ -4018,8 +4072,28 @@ window.onerror=function(msg,url,line,col,err){
       }
       g.push(row);
     }
+    // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
+    var markets={};
+    var MK = (typeof LF!=='undefined' && LF.MARKETS);
+    var mktPool=['yaofu','buzhuang','shishi','zahuo','gongzao'];
+    for(var my=0;my<size;my++) for(var mx=0;mx<size;mx++){
+      if(g[my][mx]!=='market') continue;
+      var dx=mx-cx, dy=my-cy, dir='中';
+      if(Math.abs(dx)>=Math.abs(dy)) dir = dx>0?'东':(dx<0?'西':'中');
+      else dir = dy<0?'北':(dy>0?'南':'中');
+      var mrnd=seededRand(cid+'_mkt_'+mx+'_'+my);
+      var nShop=Math.max(2, Math.min((tier==='capital'?5:tier==='zhou'?4:3), 2+Math.floor((c.commerce||0)/30)));
+      var taken={}, shops=[];
+      for(var si=0;si<nShop;si++){
+        var mk = MK ? mktPool[Math.floor(mrnd()*mktPool.length)] : mktPool[si%mktPool.length];
+        var sg = MK ? MK.sign(mk, mrnd, taken) : ((BUILDINGS[mk]&&BUILDINGS[mk].name)||mk);
+        shops.push({key:mk, sign:sg});
+      }
+      var nm = MK ? MK.marketName(cid, dir, shops[0].key, mrnd) : (dir+'市');
+      markets[mx+','+my]={ name:nm, dir:dir, shops:shops };
+    }
     state.flags.cityGrid=state.flags.cityGrid||{};
-    state.flags.cityGrid[cid]={ver:GRID_VER, size:size, cells:g};
+    state.flags.cityGrid[cid]={ver:GRID_VER, size:size, cells:g, markets:markets, gates:nG};
     return state.flags.cityGrid[cid];
   }
   function cityCellDesc(cid,x,y){
@@ -4040,7 +4114,9 @@ window.onerror=function(msg,url,line,col,err){
     if(t==='market'){
       // 商街：店铺是「场景交互物品」，入口已由 cityCellActs 渲染为场景物件按钮（进·药铺…），
       // 此处仅保留市井人物，避免店铺占据 NPC 位置
-      var mktSays=['东市的铺子今日又进了新货。','客官是要采买些什么？','这街面一入夜便冷清下来。','听说明日有马队入城，商旅可要多了。'];
+      var mk = m.markets && m.markets[x+','+y];
+      var mktName = mk? mk.name : '市集';
+      var mktSays=[mktName+'的铺子今日又进了新货。','客官是要采买些什么？','这街面一入夜便冷清下来。','听说明日有马队入城，商旅可要多了。'];
       var vendor={name:'市井商贩', icon:'🛒', key:'mkt_'+cid, desc:'守着摊位的市井商贩'};
       items.push({o:vendor, acts:[
         {label:'问价', icon:'💰', fn:function(){ log('〔市井商贩〕「货是好货，价也公道，客官尽管挑。」','npc'); }},
@@ -4118,12 +4194,20 @@ window.onerror=function(msg,url,line,col,err){
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
     if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
     if(t==='market'){
-      // 商街店铺 = 场景交互物品：作为场景物件按钮渲染（进·药铺 等），不再占用 NPC 列表
-      var mktKeys=['yaofu','buzhuang','shishi','zahuo','gongzao'];
-      mktKeys.forEach(function(k){
-        var bd=BUILDINGS[k]; if(!bd) return;
-        out.push({id:'enter_building', label:'进·'+bd.name, icon:bd.icon, tip:'步入'+bd.name+'——'+(bd.sub||'入内一观'), data:{building:k}});
-      });
+      // 商街店铺 = 场景交互物品：以本市场商铺清单（含程序生成招牌）渲染（进·字号 等），不再占用 NPC 列表
+      var mkt = m.markets && m.markets[x+','+y];
+      if(mkt){
+        mkt.shops.forEach(function(sh){
+          var bd=BUILDINGS[sh.key]; if(!bd) return;
+          out.push({id:'enter_building', label:'进·'+sh.sign, icon:bd.icon, tip:'步入'+sh.sign+'——'+(bd.sub||'入内一观'), data:{building:sh.key, sign:sh.sign, mkt:mkt.name}});
+        });
+      } else {
+        // 兜底（旧档无市场数据）：沿用全局五店
+        ['yaofu','buzhuang','shishi','zahuo','gongzao'].forEach(function(k){
+          var bd=BUILDINGS[k]; if(!bd) return;
+          out.push({id:'enter_building', label:'进·'+bd.name, icon:bd.icon, tip:'步入'+bd.name+'——'+(bd.sub||'入内一观'), data:{building:k}});
+        });
+      }
     }
     if(dt!=='ruin' && dt!=='unbuilt' && dt!=='broken') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
     if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
@@ -4182,9 +4266,13 @@ window.onerror=function(msg,url,line,col,err){
       var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
       var locked=(t==='ruin'||t==='unbuilt'||t==='broken');
       var cls='mc-cell mc-'+t+(ri?(' mc-r'+ri.lv):'')+(cur?' mc-cur':'')+(adj&&!locked?' mc-adj':'')+(locked?' mc-block mc-locked':'')+(burnt?' mc-burnt':'');
+      var _nm;
+      if(ri) _nm = ri.gate?'城门'+(burnt?'·焚':''):ri.nm+(burnt?'·焚':'');
+      else if(t==='market'){ var _mk=m.markets&&m.markets[x+','+y]; _nm = _mk? _mk.name : cellDisplayName(cid,t); }
+      else _nm = cellDisplayName(cid,t);
       cells+='<div class="'+cls+'" data-x="'+x+'" data-y="'+y+'"'+
         ' style="left:'+(x*CELL)+'px;top:'+(y*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
-        '<span class="mc-ic">'+(ri&&!ri.gate?ri.ic:meta.i)+'</span><span class="mc-nm">'+(ri?(ri.gate?'城门'+(burnt?'·焚':''):ri.nm+(burnt?'·焚':'')):cellDisplayName(cid,t))+'</span></div>';
+        '<span class="mc-ic">'+(ri&&!ri.gate?ri.ic:meta.i)+'</span><span class="mc-nm">'+_nm+'</span></div>';
     }
     var curMetaName=cellDisplayName(cid, m.cells[cp.y][cp.x]);
     return '<h3>'+cname+' · 城内布防图</h3>'+
@@ -4258,6 +4346,12 @@ window.onerror=function(msg,url,line,col,err){
           if(a.id==='enter_building'){ handleAction(a.id,a); return; }
           toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts);
         });
+      });
+      // 城市级动作（城况一览 / 逛市集）并入场景——非网格城在下方 cityActs 分支渲染，此处补回以免网格城缺漏；
+      // 这两个意图明确，单击直达，不再套「执 行」菜单
+      cityActs(room.id).forEach(function(a){
+        if(a.id!=='city_stat' && a.id!=='market') return;
+        mkAct('scene', a.icon||'·', a.label, function(e){ handleAction(a.id, a); });
       });
       // 玩家在城内营造的建筑 / 放置的设备，作为场景物件一并展示（按房间整体存储，城内各处皆可寻得）
       var pobjs=roomObjs(room.id, {placedOnly:true});
@@ -4688,9 +4782,10 @@ window.onerror=function(msg,url,line,col,err){
       case 'rest':  actRest(); break;
       case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
+      case 'city_stat': openModal('citystat', {cid:(a&&a.data?a.data.cid:state.room)}); break;
       case 'enter_building':
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
-        enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)});
+        enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
         break;
       case 'recruit':
         if(!exert('入营募兵')) return;
@@ -6751,7 +6846,7 @@ window.onerror=function(msg,url,line,col,err){
       if(b.rootExtraNpcs) npcs=npcs.concat(b.rootExtraNpcs);
       var objs=(b.interior||[]).filter(function(e){return e.kind==='obj';});
       if(b.rootExtraObjs) objs=objs.concat(b.rootExtraObjs);
-      ar={ name:(b.rootName||b.name), icon:b.icon, desc:b.sub, npcs:npcs, objs:objs, areas:(b.subAreas||[]), isRoot:true };
+      ar={ name:((state&&state.flags&&state.flags.bldEnt&&state.flags.bldEnt.sign)||b.rootName||b.name), icon:b.icon, desc:b.sub, npcs:npcs, objs:objs, areas:(b.subAreas||[]), isRoot:true };
     } else {
       ar=b.areas && b.areas[areaKey] || null;
       if(!ar) return null;
@@ -6763,10 +6858,10 @@ window.onerror=function(msg,url,line,col,err){
     var f=bldForRoom(rid); if(!f) return null;
     return { id:rid, name:f.ar.name, icon:f.ar.icon, desc:[f.ar.desc||''], bldKey:f.key, isBld:true };
   }
-  function enterBldRoom(key, back){
+  function enterBldRoom(key, back, sign){
     if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
     if(!state.flags) state.flags={};
-    state.flags.bldEnt={ key:key, back:back||null, bp:(back&&back.bp)||null };
+    state.flags.bldEnt={ key:key, back:back||null, bp:(back&&back.bp)||null, sign:(sign||null) };
     closeModal();
     renderRoom('__bld__'+key, true);
   }
@@ -6818,7 +6913,7 @@ window.onerror=function(msg,url,line,col,err){
       var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
       var e=list[buildingState.sel];
       if(!e){ buildingState.sel=null; return renderBuildingPanel(); }
-      var h='<div class="bld-crumb">'+b.icon+b.name+' › '+area.name+'</div>';
+      var h='<div class="bld-crumb">'+b.icon+((state&&state.flags&&state.flags.bldEnt&&state.flags.bldEnt.sign)||b.name)+' › '+area.name+'</div>';
       h+='<div class="bld-detail">';
       h+='<div class="bld-d-head">'+e.icon+' '+e.name+' <span class="bld-ent-ki">'+(buildingState.selKind==='obj'?'物件':'人物')+'</span></div>';
       h+='<div class="bld-d-desc">'+e.desc+'</div>';
@@ -6828,7 +6923,7 @@ window.onerror=function(msg,url,line,col,err){
       h+='</div>';
       return h;
     }
-    var h='<div class="bld-crumb">'+b.icon+' '+b.name+'</div>';
+    var h='<div class="bld-crumb">'+b.icon+' '+((state&&state.flags&&state.flags.bldEnt&&state.flags.bldEnt.sign)||b.name)+'</div>';
     h+='<h3>'+area.icon+' '+area.name+'</h3>';
     h+='<div class="bld-sub">'+area.desc+'</div>';
     h+='<div class="bld-list">';
@@ -6991,6 +7086,8 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='forge'){
       if(opts && opts.site) forgeState.site = opts.site;
       h=renderForgePanel();
+    } else if(kind==='citystat'){
+      h=renderCityStat(opts && opts.cid ? opts.cid : state.room);
     } else if(kind==='building'){
       // 已在建筑房间内：acts 中的 openModal('building') 用作场景刷新，不再弹窗
       if(state && state.room && isBldRoom(state.room)){
