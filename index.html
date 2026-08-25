@@ -279,6 +279,8 @@
     box-shadow:0 2px 10px rgba(60,48,34,.08);
   }
   .move-bar.has-exits{display:grid;}
+  .mv-bld-exits{grid-column:1 / span 3; grid-row:3; display:flex; gap:6px; margin-top:2px;}
+  .mv-bld-exits .mv-exit{flex:1 1 0; min-width:0;}
   /* 中心「你在此」 */
   .mv-center{grid-row:2;grid-column:2;display:flex;align-items:center;justify-content:center;
     font-size:11px;color:#9a7b3a;font-family:"STKaiti","KaiTi",serif;
@@ -1824,7 +1826,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260825b"></script>
+<script src="shared/config/constants.js?v=20260825c"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -4519,6 +4521,23 @@ window.onerror=function(msg,url,line,col,err){
   function renderMoveBar(room){
     var bar=document.getElementById('move-bar'); if(!bar) return;
     bar.innerHTML=''; bar.classList.remove('pulse','has-exits');
+    // 建筑内部房间：方向罗盘无意义，改显示「退出该房间」按钮（v20260825c）
+    if(isBldRoom(state.room)){
+      bar.classList.add('has-exits');
+      var _ctr=document.createElement('div'); _ctr.className='mv-center'; _ctr.textContent='你在此'; bar.appendChild(_ctr);
+      var _f=bldForRoom(state.room);
+      var _wrap=document.createElement('div'); _wrap.className='mv-bld-exits';
+      if(_f && !_f.ar.isRoot){
+        var _up=document.createElement('button'); _up.className='mv-exit e-out';
+        _up.innerHTML='<span class="mv-arrow">⬅</span><span class="mv-nm">返回正堂</span>';
+        _up.onclick=function(){ bldMove('__bld__'+_f.key); }; _wrap.appendChild(_up);
+      }
+      var _go=document.createElement('button'); _go.className='mv-exit e-out';
+      _go.innerHTML='<span class="mv-arrow">🚪</span><span class="mv-nm">返回街巷</span>';
+      _go.onclick=function(){ leaveBldRoom(); }; _wrap.appendChild(_go);
+      bar.appendChild(_wrap);
+      return;
+    }
     var exits=currentRoomExits();
     if(!exits.length) return;           // 无出口：隐藏移动区，不占空间
     bar.classList.add('has-exits');
@@ -5069,9 +5088,24 @@ window.onerror=function(msg,url,line,col,err){
     return c.x===tag.x && c.y===tag.y;
   }
 
+  // 玩家放置物 → 场景物件（统一映射，城市/野外/建筑内部房间共用）
+  function placedFeature(p){
+    if(p.bp){
+      var bp = LF.BUILD[p.bp] || {};
+      if(p.done){
+        return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.doneName||'建筑'}, 14), name:bp.doneName||'建筑', desc:bp.desc||'', actions:buildDoneActions(bp.key||p.key, bp)};
+      }
+      return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.siteName||'营造中'}, 14), name:bp.siteName||'营造中', desc:bp.desc||'', actions:buildSiteActions(bp.key||p.key)};
+    }
+    var defId = p.defId || PLACE_KEY_DEF[p.key];
+    var pl = ((LF.ITEMS[defId]||{}).place) || {};
+    var acts = PLACE_ACTIONS[pl.actions] || function(){ return []; };
+    return {type:'feature', key:pl.key||p.key, icon:itemIconHTML({name:pl.name||'未知物'}, 14), name:pl.name||'未知物', desc:pl.desc||'', actions:acts};
+  }
   // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
   function roomObjs(roomId, opts){
-    // 建筑内部房间：interior/子区域的物件 + 子区域/返回出口 → 场景按钮
+    // 建筑内部房间：interior/子区域的物件 + 子区域跳转 + 玩家在房内放置物 → 场景按钮
+    // （返回街道/返回正堂统一收进底部移动罗盘，见 renderMoveBar 的 isBldRoom 分支，避免重复）
     if(isBldRoom(roomId)){
       var _f=bldForRoom(roomId), _out=[];
       if(_f){
@@ -5082,28 +5116,19 @@ window.onerror=function(msg,url,line,col,err){
           _out.push({type:'feature', key:'blda_'+roomId+'_'+a.key, icon:'🚪', name:a.label||a.key, desc:'', direct:true, actions:[{label:a.label||a.key, icon:'🚪', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key+'@'+a.key)}]});
         });
         if(!_f.ar.isRoot){
-          _out.push({type:'feature', key:'bldup_'+roomId, icon:'⬅', name:'返回'+( _f.b.rootName||_f.b.name), desc:'', direct:true, actions:[{label:'返回'+( _f.b.rootName||_f.b.name), icon:'⬅', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key)}]});
+          _out.push({type:'feature', key:'bldup_'+roomId, icon:'⬅', name:'返回'+(_f.b.rootName||_f.b.name), desc:'', direct:true, actions:[{label:'返回'+(_f.b.rootName||_f.b.name), icon:'⬅', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key)}]});
         }
         _out.push({type:'feature', key:'bldout_'+roomId, icon:'🚪', name:'返回街道', desc:'', direct:true, actions:[{label:'走出此处，回到街巷', icon:'🚪', fn:function(){ leaveBldRoom(); }}]});
       }
+      // 玩家在房内放置的物件（帐篷/篝火…）：按本房间 id 隔离，进店/进房后也保留可见（v20260825c）
+      var _placed=(state.placed && state.placed[roomId]) || [];
+      _placed.forEach(function(p){ var _o=placedFeature(p); if(_o) _out.push(_o); });
       return _out;
     }
     var base = ROOM_OBJECTS[roomId] || [];
     var placed = (state.placed && state.placed[roomId]) || [];
     var _cellTag = placedCellTag(roomId);
-    var dyn = placed.filter(function(p){ return placedInCell(p, roomId, _cellTag); }).map(function(p){
-      if(p.bp){
-        var bp = LF.BUILD[p.bp] || {};
-        if(p.done){
-          return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.doneName||'建筑'}, 14), name:bp.doneName||'建筑', desc:bp.desc||'', actions:buildDoneActions(bp.key||p.key, bp)};
-        }
-        return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.siteName||'营造中'}, 14), name:bp.siteName||'营造中', desc:bp.desc||'', actions:buildSiteActions(bp.key||p.key)};
-      }
-      var defId = p.defId || PLACE_KEY_DEF[p.key];
-      var pl = ((LF.ITEMS[defId]||{}).place) || {};
-      var acts = PLACE_ACTIONS[pl.actions] || function(){ return []; };
-      return {type:'feature', key:pl.key||p.key, icon:itemIconHTML({name:pl.name||'未知物'}, 14), name:pl.name||'未知物', desc:pl.desc||'', actions:acts};
-    });
+    var dyn = placed.filter(function(p){ return placedInCell(p, roomId, _cellTag); }).map(placedFeature);
     // 放置物覆盖同 key 的静态 feature（如收起的工作台摆放后，静态木工台不再重复显示）
     var dynKeys={}; dyn.forEach(function(o){ dynKeys[o.key]=1; });
     // placedOnly：仅渲染玩家放置物（城市网格等由 cell 动作/左栏 NPC 承担场景内容，屏蔽旧版静态 ROOM_OBJECTS 条目）
