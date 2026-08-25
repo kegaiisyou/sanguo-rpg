@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>v20260822ae 改动总结</title>
+<style>
+  :root{--ink:#3a2618;--line:rgba(120,90,40,.28);--panel:#fff9eb;--paper:#f7efe0}
+  *{box-sizing:border-box}
+  body{margin:0;padding:24px;font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+       background:linear-gradient(140deg,#f7efe0 0%,#efe1c4 100%);color:var(--ink);min-height:100vh}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{margin:0 0 6px;font-family:"STKaiti","KaiTi",serif;font-size:28px;letter-spacing:6px;
+     text-align:center;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .sub{text-align:center;font-size:13px;color:#6a5536;margin-bottom:24px;letter-spacing:1px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+        padding:16px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(80,52,26,.06)}
+  .card h2{margin:0 0 8px;font-size:16px;color:#5a3a1a;letter-spacing:1px;
+            border-left:3px solid #9e3b2e;padding-left:9px}
+  .card p{margin:6px 0;line-height:1.78;font-size:13.5px}
+  code{background:rgba(60,42,22,.08);padding:1px 6px;border-radius:4px;font-size:12.5px;
+       color:#7a2a10}
+  ul,ol{margin:6px 0 6px 22px;line-height:1.78;font-size:13.5px}
+  li{margin:3px 0}
+  .kbd{font-size:11px;background:rgba(158,59,46,.18);padding:1px 7px;border-radius:3px;color:#7a2010}
+  .ok{color:#3a7a3a;font-weight:600}
+  .before-after{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}
+  .ba{border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+      background:#fffdf6;font-size:13px;line-height:1.7}
+  .ba h3{margin:0 0 6px;font-size:13px;color:#7a4a2a;letter-spacing:1px}
+  .ba.bad h3{color:#9e3b2e}
+  .ba.ok h3{color:#3a7a3a}
+  pre{background:rgba(60,42,22,.06);padding:10px 12px;border-radius:6px;
+      font-size:11.5px;line-height:1.5;overflow-x:auto;white-space:pre-wrap}
+  .meta{display:flex;justify-content:space-between;font-size:11px;color:#8a6a40;
+        padding:6px 0;border-top:1px dashed var(--line);margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>v20260822ae 迭代总结</h1>
+<div class="sub">山河志 · 2026-08-22 · commit <code>9e57ed8</code> · pushed to <code>kegaiisyou/sanguo-rpg</code></div>
+
+<div class="card">
+  <h2>① 标题页加健康游戏公告</h2>
+  <p>在 <code>.tt-inner</code> 末尾、版本号 <code>.tt-ver</code> 下方插入一块 <code>.tt-notice</code> 卡片，遵循国内游戏行业惯例标语：</p>
+  <ul>
+    <li>标题「<b>健 康 游 戏 公 告</b>」（隶书字体仿古，红色弱饱和）</li>
+    <li>第一行：抵制不良游戏 · 拒绝盗版游戏 · <b>注意自我保护</b> · 谨防受骗上当</li>
+    <li>第二行：适度游戏益脑 · <b>沉迷游戏伤身</b> · 合理安排时间 · 享受健康生活</li>
+  </ul>
+  <p>样式：米色卡片背景 + 棕红描边 + 阴影，置于标题页与版本号之间，整体协调不抢戏。</p>
+</div>
+
+<div class="card">
+  <h2>② 地图直接用用户简化版参考图</h2>
+  <p><b>问题根因</b>：之前 <code>.map-grid</code> 的 background 引用了
+     <code>background:url('ScreenShot_20260821_230620_978.png') ...</code>，
+     这是用户截图的本地文件路径，<span style="color:#9e3b2e"><b>项目根目录根本不存在该 PNG</b></span>，
+     因此浏览器静默回退为空白背景，屏上看不到任何州界/州名——之前会议上又叠加了羊皮纸、水洗、米黄 multiply 等多层污染，最终效果非常糟。</p>
+
+  <div class="before-after">
+    <div class="ba bad">
+      <h3>改动前（用户反馈："丑爆了"）</h3>
+      <pre>.map-grid{
+  background:url('ScreenShot_20260821_230620_978.png')
+    center/100% 100% no-repeat;
+}
+/* 此文件不存在 → 空背景 */
+/* + .map-bg 羊皮纸 inset shadow */
+/* + .map-fade multiply 水洗层 */
+/* + .map-region 彩色区域圈 */
+/* + .map-state-sh 描边+隶书州名 */
+/* = 视觉污染、州界错位、双字 */</pre>
+    </div>
+    <div class="ba ok">
+      <h3>改动后（用户极简参考图）</h3>
+      <pre>.map-grid{
+  background:url('assets/_pv_ref.png?v=20260822ae')
+    center/100% 100% no-repeat;
+}
+.map-bg,.map-fade{display:none}
+.map-canvas .map-region,
+.map-canvas .map-region-t,
+.map-canvas .map-terrain,
+.map-canvas .map-svg{display:none}
+.map-state-sh{   /* 仅作不可见命中区 */
+  fill:transparent;stroke:transparent;stroke-width:0}
+.map-state-name{display:none}
+/* = PNG 直接呈现 + poly 命中区保持 */</pre>
+    </div>
+  </div>
+
+  <ul>
+    <li>新底图采用 <code>assets/_pv_ref.png</code>（1000×960，与用户截图等比），含完整彩色州块（白、紫、青、橙、黄、桃红、红、绿、棕）+ 蓝色水系（黄河、长江）+ 隶书州名（胖隶书大气）+ 外族注记（匈奴、鲜卑、西域长史府、夷洲）</li>
+    <li>SVG 的 13 州 polygon 改为完全透明，只作不可见点击命中区；<code>hover</code> 时浮出淡黄色高亮，让用户知道命中了哪州</li>
+    <li>SVG <code>&lt;text class="map-state-name"&gt;</code> 直接 <code>display:none</code>，隶书州名由 PNG 承担</li>
+    <li>SVG 海/草原/沙漠的渐变 radial、彩色区域圈、印章题字、房间连线 SVG 全部 <code>display:none</code>——它们过去与 PNG 错位重影，是麻烦的根源</li>
+    <li><code>.map-canvas</code> 内阴影从 <code>rgba(40,30,15,.35)/70px</code> 减弱到 <code>rgba(40,30,15,.18)/50px</code>，避免压暗这张彩色 PNG</li>
+  </ul>
+
+  <p><b>JS 同步清理（不破坏语法）</b>：</p>
+  <ol>
+    <li><code>apply()</code> 中删除 <code>canvas.querySelectorAll('.map-state-name').forEach(...)</code> 反字号补偿循环（display:none 后无意义）</li>
+    <li><code>buildMapHTML()</code> 中 polygon 的 inline <code>fill/stroke</code> 改为 <code>transparent</code>，并删除 <code>&lt;text&gt;</code> 节点生成（PNG 已含隶书，且 CSS 已 display:none）</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h2>版本号与缓存号同步</h2>
+  <ul>
+    <li><code>shared/config/constants.js</code>：<code>VERSION: '20260822ad'</code> → <code>'20260822ae'</code></li>
+    <li><code>index.html</code>：<code>script src="shared/config/constants.js?v=20260822ad"</code> → <code>?v=20260822ae</code></li>
+    <li><code>index.html</code> 内的 <code>assets/_pv_ref.png</code> 也加 <code>?v=20260822ae</code> 强制 GitHub Pages CDN 重新拉图，避免缓存命中</li>
+    <li><code>shared/index.js</code> 的 <code>defaultSave.version='0.2.0'</code> 是【存档 schema 版本号】，与显示版本无关，按 memory 规则保持不动</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>本次改动 文件清单</h2>
+  <ul>
+    <li><code>index.html</code>：60 行（37 增 / 25 删 / 2 net）—— 主要为 CSS 替换（背景图 URL + 隐藏冗余层）、HTML 插入（健康游戏公告 div）、JS 删 1 行反字号循环、改 polygon 字面量</li>
+    <li><code>shared/config/constants.js</code>：1 行（VERSION bump）</li>
+  </ul>
+  <p>改动经 <code>git diff --stat</code> 核对：<code>2 files changed, 37 insertions(+), 25 deletions(-)</code></p>
+</div>
+
+<div class="card">
+  <h2>如何验证</h2>
+  <ol>
+    <li>浏览器打开 <a href="https://kegaiisyou.github.io/sanguo-rpg/">https://kegaiisyou.github.io/sanguo-rpg/</a>（需硬刷 ⌘⇧R / Ctrl+F5）</li>
+    <li>标题页底部应出现「健康游戏公告」卡片</li>
+    <li>点「新档入局」或「继续游戏」进入地图</li>
+    <li>地图现在应该看到彩色州块（白、紫、青、橙、黄、桃红、红、绿、棕）+ 蓝色水系 + 隶书州名（不带双层字、不带羊皮纸、不带水洗层）</li>
+    <li>点击各州仍能进入州志/战斗，hover 时有淡黄高亮</li>
+    <li>移动端 560px 以下布局已适配上一版（v20260822ad）</li>
+  </ol>
+</div>
+
+<div class="meta">
+  <span>山河志 · commit 9e57ed8 · pushed main · ready to deploy</span>
+  <span>ready for user verification on mobile & desktop</span>
+</div>
+
+</div>
+</body>
+</html>

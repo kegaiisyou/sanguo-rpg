@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>v20260822ak 变更日志 · 乱世烽火</title>
+<style>
+  body{font-family:"PingFang SC","Microsoft YaHei",serif;background:#f6efe0;color:#3a2e1a;margin:0;padding:24px;line-height:1.7;}
+  .c{max-width:920px;margin:0 auto;background:#fffaf0;border:1px solid #c8b48c;border-radius:14px;padding:26px 30px;box-shadow:0 6px 28px rgba(80,52,26,.18);}
+  h1{font-family:"STKaiti","KaiTi",serif;font-size:28px;margin:0 0 6px;letter-spacing:6px;color:#8a2e1c;text-align:center;}
+  h2{font-family:"STKaiti","KaiTi",serif;font-size:18px;color:#5a4628;border-left:4px solid #c89a3a;padding-left:10px;margin-top:30px;letter-spacing:2px;}
+  .sub{text-align:center;color:#8a7a5a;font-size:13px;margin-bottom:22px;letter-spacing:2px;}
+  .item{margin:14px 0;padding:10px 14px;background:#fff;border:1px solid #e8d8b4;border-radius:8px;}
+  .item b{color:#8a2e1c;}
+  code{background:#faecd0;padding:2px 6px;border-radius:4px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#6c4523;}
+  a.btn{display:inline-block;padding:9px 18px;background:#8a2e1c;color:#fffaf0;text-decoration:none;border-radius:8px;font-size:14px;letter-spacing:2px;}
+  hr{border:none;border-top:1px dashed #c8b48c;margin:30px 0;}
+  /* 格子对比 */
+  .cell{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;width:84px;height:84px;border-radius:8px;margin:8px;vertical-align:top;position:relative;overflow:hidden;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);}
+  .cell span{display:block;font-weight:700;line-height:1.15;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);}
+  .old-cell span{font-size:13px;background:#fff1ee;}
+  .new-cell span{font-size:11px;background:#f0f8ee;}
+  .cap{font-size:12px;color:#8a7a5a;text-align:center;}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">v20260822ak 变更日志 · 2026-08-22</div>
+  <p style="text-align:center;margin:8px 0 18px;">
+    <a class="btn" href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">▶ 在线试玩（请硬刷新 Ctrl+F5 / ⌘⇧R）</a>
+  </p>
+
+  <h2>🔍 本次修复：手机端物品格子文字溢出</h2>
+
+  <p style="text-align:center;"><b>根因</b>：手机端背包是左右布局（装备区固定 136px + 物品区 ~160px），右侧 3 列格子每格仅约 50px；
+  但物品文字图标由 <code>itemIconHTML(it,13)</code> 生成<b>内联 <code>font-size:13px</code></b>——4 字物品名（如"粗制砖块"）实际宽 52px+，必然溢出被裁，且内联样式让普通 CSS 覆盖不了。</p>
+
+  <div style="text-align:center;">
+    <div class="cell old-cell"><span>粗制砖块</span></div><span class="cap">❌ 旧：13px 4字≈52px &gt; 50px 格子 → 溢出</span>
+    <br><div class="cell new-cell"><span>粗制砖块</span></div><span class="cap">✅ 新：11px 4字≈44px &lt; 50px 格子 → 放得下</span>
+  </div>
+
+  <div class="item">
+    <b>修复内容</b>（`@media (max-width:560px)` 内）
+    <br>· <code>.packcell .ic-txt{font-size:11px !important;line-height:1.15}</code> — 用 <code>!important</code> 覆盖内联 13px，全部物品格子文字统一缩小
+    <br>· <code>.packcell .pcell-ic{padding:1px 3px 10px}</code> — 图标容器左右内边距 6→3px，把宽度让给文字
+    <br>· 角标同步缩小：数量 <code>10→9px</code>、可售 <code>10→9px</code>、耐久 <code>10→9px</code>，右下/左下/左上各收边
+    <br>· 物品网格间距 <code>6→5px</code>，多挤出一点每格宽度
+  </div>
+
+  <h2>📋 改动文件（commit 975d2df）</h2>
+  <div class="item">
+    <b>shared/config/constants.js</b> — <code>VERSION: '20260822aj' → '20260822ak'</code>
+    <br><b>index.html</b> — mobile 断点格子文字/角标缩小 + <code>&lt;script src="...?v=20260822ak"&gt;</code>
+  </div>
+
+  <p style="text-align:center;color:#8a7a5a;font-size:12.5px;margin-top:30px;">线上地址：<a href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">https://kegaiisyou.github.io/sanguo-rpg/</a>（若仍显示旧版本号，硬刷新 Ctrl+F5 / ⌘⇧R）</p>
+</div>
+</body>
+</html>

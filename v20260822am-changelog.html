@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>v20260822am 变更日志 · 乱世烽火</title>
+<style>
+  body{font-family:"PingFang SC","Microsoft YaHei",serif;background:#f6efe0;color:#3a2e1a;margin:0;padding:24px;line-height:1.7;}
+  .c{max-width:920px;margin:0 auto;background:#fffaf0;border:1px solid #c8b48c;border-radius:14px;padding:26px 30px;box-shadow:0 6px 28px rgba(80,52,26,.18);}
+  h1{font-family:"STKaiti","KaiTi",serif;font-size:28px;margin:0 0 6px;letter-spacing:6px;color:#8a2e1c;text-align:center;}
+  h2{font-family:"STKaiti","KaiTi",serif;font-size:18px;color:#5a4628;border-left:4px solid #c89a3a;padding-left:10px;margin-top:30px;letter-spacing:2px;}
+  .sub{text-align:center;color:#8a7a5a;font-size:13px;margin-bottom:22px;letter-spacing:2px;}
+  .item{margin:14px 0;padding:10px 14px;background:#fff;border:1px solid #e8d8b4;border-radius:8px;}
+  .item b{color:#8a2e1c;}
+  code{background:#faecd0;padding:2px 6px;border-radius:4px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#6c4523;}
+  a.btn{display:inline-block;padding:9px 18px;background:#8a2e1c;color:#fffaf0;text-decoration:none;border-radius:8px;font-size:14px;letter-spacing:2px;}
+  hr{border:none;border-top:1px dashed #c8b48c;margin:30px 0;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  td,th{border:1px solid #e0d0ac;padding:6px 10px;text-align:left;}
+  th{background:#f4e8cc;}
+  ul{margin:8px 0;padding-left:20px;}
+  li{margin:4px 0;}
+  .old-cell span{font-size:11px;}
+  .cap{font-size:12px;color:#8a7a5a;text-align:center;}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">v20260822am 变更日志 · 2026-08-22 · 地图方案 A（列表式山河志）</div>
+  <p style="text-align:center;margin:8px 0 18px;">
+    <a class="btn" href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">▶ 在线试玩（请硬刷新 Ctrl+F5 / ⌘⇧R）</a>
+  </p>
+
+  <h2>🗺 方案 A：从「拖拽缩放画布」改为「按州分组的列表式山河志」</h2>
+  <div class="item">
+    <b>为什么换</b>：原三级缩放画布（州域→区域→房间）在手机端表现不佳——拖拽/双指缩放易误触、CSS 缩放破坏文字抗锯齿、命中区歧义，你已多次反馈。列表式（率土/三战/百景图式）手机一屏可读、点击直达、零误触。
+  </div>
+  <div class="item">
+    <b>新形态</b>：十三州按地理位置自北向南排列，每州一张古卷卡片，州内列出全部可去之处（分色圆点按 城镇/野外/贼巢/军屯/村镇/营地 分类 + 名称 + 分类角标）。
+    <br>· 当前所在房间卡片<b>金框高亮</b>
+    <br>· 不在任何州界内的地点（如塞外/荒野）自动归入「塞 外 · 野」兜底组，不丢任何去处
+    <br>· 教学房间日常隐藏（选出生点模式保留可见）
+  </div>
+  <div class="item">
+    <b>交互</b>：
+    <ul>
+      <li>点击任意地点 → 循山河志直接前往（与步行同消耗：体力-4、食物-1、饮水-1、时间+1刻）</li>
+      <li>调试「设置出生点」面板同样切换为列表式，点选即设为出生点并传送</li>
+    </ul>
+  </div>
+  <div class="item">
+    <b>技术要点</b>：
+    <ul>
+      <li>新增 <code>buildMapListHTML(opts)</code> / <code>initMapList(opts)</code>；<code>openModal('map')</code> 与 <code>openSpawnMap()</code> 全部改走新入口</li>
+      <li>房间→州归属用<b>点-多边形判定</b>（房间坐标与州轮廓同在网格坐标系，零额外数据）</li>
+      <li>州排序按州名 label 行坐标（北→南），州内按「当前所在优先 + 名称字典序」</li>
+      <li>旧 <code>buildMapHTML</code>/<code>initMap</code> 保留不再调用（备选回退）</li>
+      <li>彻底告别：拖拽、滚轮/双指缩放、字体模糊、命中区歧义</li>
+    </ul>
+  </div>
+
+  <h2>🔎 顺带排查结论（无新增 bug）</h2>
+  <div class="item">
+    · <code>LFUI</code> 导出 15 项与全部调用一致；<code>showBuyPanel</code> 已导出
+    <br>· 全站 JS 内联 <code>font-size</code> 仅剩 <code>itemIconHTML</code> 一处（手机端已 <code>!important</code> 覆盖）
+    <br>· lint 0 错误
+  </div>
+
+  <h2>📋 改动文件</h2>
+  <div class="item">
+    <b>index.html</b> — 新增列表式山河志 CSS（<code>.map-list/.ml-state/.ml-p</code> 等）+ <code>buildMapListHTML/initMapList</code> + 2 处调用入口切换 + 缓存参数 <code>?v=20260822am</code>
+    <br><b>shared/config/constants.js</b> — <code>VERSION: '20260822al' → '20260822am'</code>
+  </div>
+
+  <h2>🔜 后续（方案 B 预留）</h2>
+  <div class="item">
+    若之后想要「全局地图感」，可在列表顶部加 13 州色块小缩略图（按真实方位摆放、点击滚动到对应州卡片）即升级为方案 B——本次列表结构已按州分组，天然支持。
+  </div>
+
+  <p style="text-align:center;color:#8a7a5a;font-size:12.5px;margin-top:30px;">线上地址：<a href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">https://kegaiisyou.github.io/sanguo-rpg/</a>（若仍显示旧版本号，硬刷新 Ctrl+F5 / ⌘⇧R）</p>
+</div>
+</body>
+</html>

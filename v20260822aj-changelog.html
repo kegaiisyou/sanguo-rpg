@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>v20260822aj 变更日志 · 乱世烽火</title>
+<style>
+  body{font-family:"PingFang SC","Microsoft YaHei",serif;background:#f6efe0;color:#3a2e1a;margin:0;padding:24px;line-height:1.7;}
+  .c{max-width:920px;margin:0 auto;background:#fffaf0;border:1px solid #c8b48c;border-radius:14px;padding:26px 30px;box-shadow:0 6px 28px rgba(80,52,26,.18);}
+  h1{font-family:"STKaiti","KaiTi",serif;font-size:28px;margin:0 0 6px;letter-spacing:6px;color:#8a2e1c;text-align:center;}
+  h2{font-family:"STKaiti","KaiTi",serif;font-size:18px;color:#5a4628;border-left:4px solid #c89a3a;padding-left:10px;margin-top:30px;letter-spacing:2px;}
+  .sub{text-align:center;color:#8a7a5a;font-size:13px;margin-bottom:22px;letter-spacing:2px;}
+  .item{margin:14px 0;padding:10px 14px;background:#fff;border:1px solid #e8d8b4;border-radius:8px;}
+  .item b{color:#8a2e1c;}
+  code{background:#faecd0;padding:2px 6px;border-radius:4px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#6c4523;}
+  a.btn{display:inline-block;padding:9px 18px;background:#8a2e1c;color:#fffaf0;text-decoration:none;border-radius:8px;font-size:14px;letter-spacing:2px;}
+  hr{border:none;border-top:1px dashed #c8b48c;margin:30px 0;}
+  .err{background:#fff1ee;border:1px solid #e8b4a8;}
+  .err b{color:#b03a2a;}
+  .fix{background:#f0f8ee;border:1px solid #b4d8a8;}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">v20260822aj 变更日志 · 2026-08-22</div>
+  <p style="text-align:center;margin:8px 0 18px;">
+    <a class="btn" href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">▶ 在线试玩（请硬刷新 Ctrl+F5 / ⌘⇧R）</a>
+  </p>
+
+  <h2>🐛 本次修复：货郎购买报错</h2>
+  <div class="item err">
+    <b>报错信息</b>：<code>lfui.showbuypanel is not a function</code><br>
+    <b>根因</b>：货郎商品卡片的「购买」按钮在 HTML 里写的是 <code>onclick="LFUI.showBuyPanel(...)"</code>，
+    但 <code>window.LFUI</code> 导出对象里<b>漏掉了 <code>showBuyPanel</code></b>（其他按钮 <code>confirmSell</code> / <code>cancelSell</code> 等都导出了，唯独漏了它）→ 点击即抛错。
+  </div>
+  <div class="item fix">
+    <b>修复</b>：把 <code>showBuyPanel:showBuyPanel</code> 加入 <code>window.LFUI</code> 导出：
+    <br><code>window.LFUI = { ... shopSell1, shopSellAll, confirmSell, cancelSell, <b>showBuyPanel:showBuyPanel</b>, dismissCompanion };</code>
+  </div>
+  <div class="item">
+    <b>顺带全面排查</b>：逐一核对页面中所有 <code>LFUI.xxx</code> 调用（解散、购买、出售×1、全售、确认出售、取消、自动整理、属性折叠、卸下、装备、使用、放置、丢弃、关闭）——均已正确导出，无同类隐患。
+  </div>
+
+  <h2>📋 改动文件（commit 97016bc）</h2>
+  <div class="item">
+    <b>shared/config/constants.js</b> — <code>VERSION: '20260822ai' → '20260822aj'</code>
+    <br><b>index.html</b> — LFUI 导出增加 <code>showBuyPanel</code> + <code>&lt;script src="...?v=20260822aj"&gt;</code>
+  </div>
+
+  <p style="text-align:center;color:#8a7a5a;font-size:12.5px;margin-top:30px;">线上地址：<a href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">https://kegaiisyou.github.io/sanguo-rpg/</a>（若仍显示旧版本号，硬刷新 Ctrl+F5 / ⌘⇧R）</p>
+</div>
+</body>
+</html>

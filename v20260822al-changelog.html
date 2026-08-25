@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>v20260822al 变更日志 · 乱世烽火</title>
+<style>
+  body{font-family:"PingFang SC","Microsoft YaHei",serif;background:#f6efe0;color:#3a2e1a;margin:0;padding:24px;line-height:1.7;}
+  .c{max-width:920px;margin:0 auto;background:#fffaf0;border:1px solid #c8b48c;border-radius:14px;padding:26px 30px;box-shadow:0 6px 28px rgba(80,52,26,.18);}
+  h1{font-family:"STKaiti","KaiTi",serif;font-size:28px;margin:0 0 6px;letter-spacing:6px;color:#8a2e1c;text-align:center;}
+  h2{font-family:"STKaiti","KaiTi",serif;font-size:18px;color:#5a4628;border-left:4px solid #c89a3a;padding-left:10px;margin-top:30px;letter-spacing:2px;}
+  .sub{text-align:center;color:#8a7a5a;font-size:13px;margin-bottom:22px;letter-spacing:2px;}
+  .item{margin:14px 0;padding:10px 14px;background:#fff;border:1px solid #e8d8b4;border-radius:8px;}
+  .item b{color:#8a2e1c;}
+  code{background:#faecd0;padding:2px 6px;border-radius:4px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#6c4523;}
+  a.btn{display:inline-block;padding:9px 18px;background:#8a2e1c;color:#fffaf0;text-decoration:none;border-radius:8px;font-size:14px;letter-spacing:2px;}
+  hr{border:none;border-top:1px dashed #c8b48c;margin:30px 0;}
+  /* 格子对比 */
+  .cell{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;width:92px;min-height:86px;height:auto;border-radius:8px;margin:8px;vertical-align:top;position:relative;overflow:hidden;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);padding:4px 2px 3px;}
+  .cell span{display:block;font-weight:700;line-height:1.2;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);}
+  .cell em{display:block;font-style:normal;font-size:8.5px;line-height:1.25;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 3px;margin-top:2px;white-space:nowrap;}
+  .old-cell span{font-size:11px;}
+  .new-cell span{font-size:9px;}
+  .cap{font-size:12px;color:#8a7a5a;text-align:center;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  td,th{border:1px solid #e0d0ac;padding:6px 10px;text-align:left;}
+  th{background:#f4e8cc;}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">v20260822al 变更日志 · 2026-08-22</div>
+  <p style="text-align:center;margin:8px 0 18px;">
+    <a class="btn" href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">▶ 在线试玩（请硬刷新 Ctrl+F5 / ⌘⇧R）</a>
+  </p>
+
+  <h2>🔍 本次修复：货郎物品名与价格 字号大 / 排版不齐 / 显示不全</h2>
+
+  <p style="text-align:center;"><b>根因一</b>：<code>sgFontSize()</code> 本应按品名长度返回字号，但调用处写成了
+  <code>style="font-size:'+sgFontSize(d.name)+'"</code> —— 直接把 <code>sg-n2</code>~<code>sg-n6</code> 这类<b>分级 class 名当字号值</b>塞进内联样式（无效值，字体回落默认大字），且内联样式让手机断点 CSS 的 9.5px 完全覆盖不掉。</p>
+  <p style="text-align:center;"><b>根因二</b>：<code>.shop-good{aspect-ratio:1/1}</code> 把格子锁成<b>正方形</b>——手机端每格仅约 50px 宽，5 字品名（如"五禽戏图谱"）必然换行挤出，价格行再被 <code>overflow:hidden</code> 裁切，所以「显示不全、不整齐」。</p>
+
+  <div style="text-align:center;">
+    <div class="cell old-cell"><span>五禽戏图谱</span><em>买 2.4万 两</em></div><span class="cap">❌ 旧：大字号+正方形锁高 → 挤出/裁切</span>
+    <br><div class="cell new-cell"><span>五禽戏图谱</span><em>买 2.4万 两</em></div><span class="cap">✅ 新：按长度分级 + 去锁高 + 价格固定小号</span>
+  </div>
+
+  <h2>🛠 修复内容</h2>
+  <div class="item">
+    <b>① <code>sgFontSize()</code> 改为返回分级 class</b>（<code>sg-n2</code>~<code>sg-n6</code>）
+    <br>· 品名 ≤2 字 → n2，≤3 字 → n3，≤4 字 → n4，≤5 字 → n5，其余 → n6
+  </div>
+  <div class="item">
+    <b>② 货品卡片 HTML 改用 class</b>：<code>&lt;div class="sg-name '+sgFontSize(d.name)+'"&gt;</code> —— 去掉无效内联字号
+  </div>
+  <div class="item">
+    <b>③ PC 分级 CSS</b>（与旧内联逐级一致，无回归）：
+    <table>
+      <tr><th>级别</th><th>≤2字</th><th>≤3字</th><th>≤4字</th><th>≤5字</th><th>&gt;5字</th></tr>
+      <tr><td>PC</td><td>12px</td><td>11px</td><td>10px</td><td>9px</td><td>8.5px</td></tr>
+      <tr><td>手机</td><td>11px</td><td>10px</td><td>9.5px</td><td>8.5px</td><td>8px</td></tr>
+    </table>
+  </div>
+  <div class="item">
+    <b>④ 手机断点（<code>@media max-width:560px</code>）</b>
+    <br>· <code>.shop-good{aspect-ratio:auto;min-height:52px}</code> — 去掉正方形锁高，格子高度自适应，杜绝品名/价格被裁
+    <br>· 图标 20px、品名分级微缩（上表手机行）、<code>line-height:1.2</code>、收窄左右内边距
+    <br>· 价格 <code>.sg-buy{font-size:8.5px;white-space:nowrap;margin-top:2px}</code> — 固定小号、单行不折行，排版整齐
+  </div>
+
+  <h2>🔎 顺带排查结论（无新增 bug）</h2>
+  <div class="item">
+    · <code>LFUI</code> 导出 15 项 vs 全部调用逐一核对：<code>showBuyPanel</code> 已导出，定义存在（<code>function showBuyPanel</code>），无缺项
+    <br>· 全站 JS 内联 <code>font-size</code> 仅剩 <code>itemIconHTML(it,px)</code> 一处（上版已用 <code>!important</code> 处理手机端），PC 端按调用处传参属合理设计
+    <br>· 其余 <code>style.*</code> 赋值均为位置/尺寸类（left/top/width），不参与断点覆盖
+    <br>· 静态检查：0 lint 错误
+  </div>
+
+  <h2>📋 改动文件</h2>
+  <div class="item">
+    <b>shared/config/constants.js</b> — <code>VERSION: '20260822ak' → '20260822al'</code>
+    <br><b>index.html</b> — <code>sgFontSize()</code> 分级 + 货品卡片 class + PC/手机两套 <code>sg-n2~sg-n6</code> CSS + 缓存参数 <code>?v=20260822al</code>
+  </div>
+
+  <p style="text-align:center;color:#8a7a5a;font-size:12.5px;margin-top:30px;">线上地址：<a href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">https://kegaiisyou.github.io/sanguo-rpg/</a>（若仍显示旧版本号，硬刷新 Ctrl+F5 / ⌘⇧R）</p>
+</div>
+</body>
+</html>

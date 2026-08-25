@@ -37,6 +37,8 @@
 | **P5 影门** | ⬜ 仅骨架 | 设计文档仅占位，代码未实现 | — |
 | **P6 家族兴衰** | ⬜ 仅骨架 | 设计文档仅占位，代码未实现 | — |
 | **标题屏 UI** | ✅ 完成 | 长江落日水墨标题屏：四入口（仗剑入世/拾卷续缘/览物志/整肃）；三档存档（lf_save_1~3，旧档 lf_save_v1 自动迁第一档）；死亡弹「殒落」回标题屏（可拾卷续缘或读档续命）；图鉴（武学/门派/贼寇名录）与设置标签页（画面/声音/游戏；标题页同款但无调试台）弹窗 | `index.html`（#title / openModal newgame·load·codex·settings / enterGame·showTitle / saveToSlot·slotMeta）、`shared/index.js` |
+| **招牌联动** | ✅ 完成 | 店铺招牌随机生成（如「福兴杂货铺」），掌柜/店主台词自称「福兴号」等（13 处闲谈嵌入，无招牌回退建筑名），增强代入感 | `index.html`（`bldZihao()`）、`shared/data/markets.js`（sign 生成） |
+| **店铺营业时间** | ✅ 完成 | 建筑内动作按 <code>when</code> 时辰显隐（day=卯~酉 / night=戌~丑 / morn=卯辰 / dusk=酉戌）；赌馆入夜（戌时）出「豪赌一场」（±30 两、<20 两拒客），香烛店清晨（卯时）才可「请香烛」（得线香） | `index.html`（`bldActOk()`/`bldActsFilter()`/赌馆·香烛 acts）、`shared/data/items.js`（xiang 线香） |
 
 ---
 

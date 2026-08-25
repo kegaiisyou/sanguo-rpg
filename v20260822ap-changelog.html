@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>v20260822ap 变更日志 · 乱世烽火</title>
+<style>
+  body{font-family:"PingFang SC","Microsoft YaHei",serif;background:#f6efe0;color:#3a2e1a;margin:0;padding:24px;line-height:1.7;}
+  .c{max-width:920px;margin:0 auto;background:#fffaf0;border:1px solid #c8b48c;border-radius:14px;padding:26px 30px;box-shadow:0 6px 28px rgba(80,52,26,.18);}
+  h1{font-family:"STKaiti","KaiTi",serif;font-size:28px;margin:0 0 6px;letter-spacing:6px;color:#8a2e1c;text-align:center;}
+  h2{font-family:"STKaiti","KaiTi",serif;font-size:18px;color:#5a4628;border-left:4px solid #c89a3a;padding-left:10px;margin-top:30px;letter-spacing:2px;}
+  .sub{text-align:center;color:#8a7a5a;font-size:13px;margin-bottom:22px;letter-spacing:2px;}
+  .item{margin:14px 0;padding:10px 14px;background:#fff;border:1px solid #e8d8b4;border-radius:8px;}
+  .item b{color:#8a2e1c;}
+  code{background:#faecd0;padding:2px 6px;border-radius:4px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#6c4523;}
+  a.btn{display:inline-block;padding:9px 18px;background:#8a2e1c;color:#fffaf0;text-decoration:none;border-radius:8px;font-size:14px;letter-spacing:2px;}
+  ul{margin:8px 0;padding-left:20px;}
+  li{margin:4px 0;}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">v20260822ap 变更日志 · 2026-08-22 · 地图改为「三国群英传式」大地图</div>
+  <p style="text-align:center;margin:8px 0 18px;">
+    <a class="btn" href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">▶ 在线试玩（请硬刷新 Ctrl+F5 / ⌘⇧R）</a>
+  </p>
+
+  <h2>🗺 地图形态第三次调整：按你的要求回归「纯方位 + 大间距」</h2>
+  <div class="item">
+    <b>为什么换</b>：v20260822am/ao 的「州分组列表 + 缩略图」信息密度高但你觉得<b>乱</b>。你要的是简单、有空间方位感——类似三国群英传的大地图。本次完全抛弃州轮廓/分组/缩略图，只留「房间按真实方位散开 + 道路相连」。
+  </div>
+  <div class="item">
+    <b>新形态</b>：
+    <ul>
+      <li><b>房间节点</b>：按世界坐标（col/row）换算成大地图位置，节点间距从原 46px/格 拉大到 <b>110px/格</b>，相邻房间不再互相挤压</li>
+      <li><b>图标+名字</b>：城镇🏯 村镇🏘️ 野外🌲 贼巢⛰️ 军屯🛡️ 营地⛺ 教学📜，白字深描边，羊皮纸底图上清晰醒目</li>
+      <li><b>道路连线</b>：房间出口相连成路网（与步行路径一致），当前房间相邻的道路<b>朱红色高亮</b></li>
+      <li><b>区域淡色块</b>：取自 regions 数据（中原/冀州等），画出大块山水区域感，帮定位</li>
+      <li><b>当前房间</b>：图标放大 + 顶部金色光点 + 名字金色描边；打开地图自动居中到当前位置</li>
+    </ul>
+  </div>
+  <div class="item">
+    <b>交互</b>：
+    <ul>
+      <li>单指拖动（原生滚动，手机跟手、无惯性抖动），无缩放、无模糊</li>
+      <li>点击任一节点 → 循山河志前往（体力-4/食物-1/水-1/时间+1刻）</li>
+      <li>「⌖ 回到当前位置」按钮：一键滚回当前房间居中</li>
+      <li>图例保留（分类颜色），放在底部工具栏</li>
+      <li>出生点设置模式同步切换（★标记当前出生点）</li>
+    </ul>
+  </div>
+  <div class="item">
+    <b>技术要点</b>：
+    <ul>
+      <li>新增 <code>buildMapKingHTML/initMapKing</code>；<code>openModal('map')</code> 与 <code>openSpawnMap</code> 全部改走新入口</li>
+      <li>间距参数 <code>KING_CELL=110</code>（原 46），画布尺寸 = 坐标范围 × 110 + 边距，超出容器即可滚动</li>
+      <li>道路线用 SVG <code>&lt;line&gt;</code> 绝对定位，零新增数据；区域块用 regions 中心/半径按比例放大</li>
+      <li>旧 <code>buildMapListHTML/initMapList/buildMapHTML/initMap</code> 保留不调用（可回退）</li>
+    </ul>
+  </div>
+
+  <h2>📋 改动文件</h2>
+  <div class="item">
+    <b>index.html</b> — 大地图 CSS（<code>.map-king/.mk-canvas/.mk-pin/.mk-region/.mk-lines/.mk-recenter</code> 等）+ <code>buildMapKingHTML/initMapKing</code> + 4 处调用入口切换 + 缓存参数 <code>?v=20260822ap</code>
+    <br><b>shared/config/constants.js</b> — <code>VERSION: '20260822ao' → '20260822ap'</code>
+  </div>
+
+  <p style="text-align:center;color:#8a7a5a;font-size:12.5px;margin-top:30px;">线上地址：<a href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">https://kegaiisyou.github.io/sanguo-rpg/</a>（若仍显示旧版本号，硬刷新 Ctrl+F5 / ⌘⇧R）</p>
+</div>
+</body>
+</html>

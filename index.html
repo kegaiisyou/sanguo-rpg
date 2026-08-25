@@ -1842,13 +1842,13 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260824d"></script>
-<script src="shared/data/items.js?v=20260824f"></script>
+<script src="shared/data/items.js?v=20260825f"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260824i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
     <script src="shared/data/map.js?v=20260822as"></script>
     <script src="shared/data/cities.js?v=20260825d"></script>
-    <script src="shared/data/markets.js?v=20260825d"></script>
+    <script src="shared/data/markets.js?v=20260825e"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
 <script>
@@ -3804,10 +3804,18 @@ window.onerror=function(msg,url,line,col,err){
     var m=genCityGrid(cid);
     var mkHtml='';
     if(m && m.markets){
-      var seen={}, list=[];
-      for(var k in m.markets){ var mk=m.markets[k]; if(!seen[mk.name]){ seen[mk.name]=1; list.push(mk); } }
+      var seen={}, list=[], total=0;
+      for(var k in m.markets){
+        total++;
+        var mk=m.markets[k];
+        var _xy=k.split(',');
+        // 仅统计已营建、当前可见的市集（与城内地图一致：开发度半径外/遭战火者不计入），避免面板虚报
+        if(cellDisplayType(cid, +_xy[0], +_xy[1])!=='market') continue;
+        if(!seen[mk.name]){ seen[mk.name]=1; list.push(mk); }
+      }
       if(list.length){
-        mkHtml='<div class="row"><span>市集（'+list.length+' 处）</span></div><div class="city-mk">';
+        var _tip = (total>list.length) ? ('，另有 '+(total-list.length)+' 处位于未营建/焦土区，待营建或修缮后开放') : '';
+        mkHtml='<div class="row"><span>市集（已营建 '+list.length+' 处'+_tip+'）</span></div><div class="city-mk">';
         list.forEach(function(mk){
           var shops=mk.shops.map(function(s){ return s.sign; }).join('、');
           mkHtml+='<div class="mk-i">🏯 <b>'+mk.name+'</b>：'+shops+'</div>';
@@ -3852,12 +3860,10 @@ window.onerror=function(msg,url,line,col,err){
     }
     return items;
   }
-  // 城中可做之事：商业高可逛市集；治安低可维持治安
+  // 城中可做之事：保留信息类「城况一览」，移除空泛的「逛市集/维持治安」互动（逛市集改由城内市集格进入，维持治安暂由剧情触发）
   function cityActs(cid){
     var p=cityProfile(cid); if(!p) return [];
     var out=[];
-    if(p.c.commerce>=60) out.push({id:'market', label:'逛市集', tip:'市井买卖，或有奇货'});
-    if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
     out.push({id:'city_stat', label:'城况一览', icon:'📊', tip:'查看本城参数、城型与市集'});
     return out;
   }
@@ -4075,7 +4081,7 @@ window.onerror=function(msg,url,line,col,err){
     // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
     var markets={};
     var MK = (typeof LF!=='undefined' && LF.MARKETS);
-    var mktPool=['yaofu','buzhuang','shishi','zahuo','gongzao'];
+    var mktPool=['yaofu','buzhuang','shishi','zahuo','gongzao','jiulou','ranfang','gaodian','qianzhuang','tiejiang','wuguan','biaoju','chalou','duguang','maxing','shudian','xiangzhu'];
     for(var my=0;my<size;my++) for(var mx=0;mx<size;mx++){
       if(g[my][mx]!=='market') continue;
       var dx=mx-cx, dy=my-cy, dir='中';
@@ -4083,9 +4089,11 @@ window.onerror=function(msg,url,line,col,err){
       else dir = dy<0?'北':(dy>0?'南':'中');
       var mrnd=seededRand(cid+'_mkt_'+mx+'_'+my);
       var nShop=Math.max(2, Math.min((tier==='capital'?5:tier==='zhou'?4:3), 2+Math.floor((c.commerce||0)/30)));
-      var taken={}, shops=[];
+      var taken={}, takenKey={}, shops=[];
       for(var si=0;si<nShop;si++){
-        var mk = MK ? mktPool[Math.floor(mrnd()*mktPool.length)] : mktPool[si%mktPool.length];
+        var mk, _t=0;
+        do { mk = mktPool[Math.floor(mrnd()*mktPool.length)]; _t++; } while(takenKey[mk]>=2 && _t<24);  // 同类最多 2 家，保证市场内商铺多样
+        takenKey[mk]=(takenKey[mk]||0)+1;
         var sg = MK ? MK.sign(mk, mrnd, taken) : ((BUILDINGS[mk]&&BUILDINGS[mk].name)||mk);
         shops.push({key:mk, sign:sg});
       }
@@ -4209,8 +4217,6 @@ window.onerror=function(msg,url,line,col,err){
         });
       }
     }
-    if(dt!=='ruin' && dt!=='unbuilt' && dt!=='broken') out.push({id:'rest', label:'就地休整', tip:'寻馆驿安歇，气血内力尽复'});
-    if(p.c.order<55) out.push({id:'city_patrol', label:'维持治安', tip:'城中盗匪渐生，巡查肃清'});
     if(t==='gate') out.push({id:'leave_city', label:'出城门', tip: burnt?'城门残破，仍可通行，出城重览山河':'经城门出城，重览山河'});
     // ── 道路治理（v20260824g）──
     if(t==='road' || t==='gate'){
@@ -4358,7 +4364,7 @@ window.onerror=function(msg,url,line,col,err){
       if(pobjs.length) renderObjs(pobjs, 'scene');
       return;
     }
-    // 城市系统：按商业/治安派生可做之事（逛市集、维持治安）——对配置城市与占位州治均生效
+    // 城市系统：派生可做之事（城况一览）——对配置城市与占位州治均生效
     cityActs(room.id).forEach(function(a){
       var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
       var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
@@ -4418,7 +4424,7 @@ window.onerror=function(msg,url,line,col,err){
     if(isBldRoom(room.id)){
       var _bf=bldForRoom(room.id);
       if(_bf) (_bf.ar.npcs||[]).forEach(function(e,i){
-        items.push({o:{name:e.name, icon:e.icon, key:'bldn_'+room.id+'_'+i, desc:e.desc}, acts:(e.acts||[])});
+        items.push({o:{name:e.name, icon:e.icon, key:'bldn_'+room.id+'_'+i, desc:e.desc}, acts:bldActsFilter(e.acts)});
       });
     }
     // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
@@ -5205,7 +5211,7 @@ window.onerror=function(msg,url,line,col,err){
       var _f=bldForRoom(roomId), _out=[];
       if(_f){
         (_f.ar.objs||[]).forEach(function(o,i){
-          _out.push({type:'feature', key:'bldo_'+roomId+'_'+i, icon:o.icon, name:o.name, desc:o.desc, actions:(o.acts||[])});
+          _out.push({type:'feature', key:'bldo_'+roomId+'_'+i, icon:o.icon, name:o.name, desc:o.desc, actions:bldActsFilter(o.acts)});
         });
         (_f.ar.areas||[]).forEach(function(a){
           _out.push({type:'feature', key:'blda_'+roomId+'_'+a.key, icon:'🚪', name:a.label||a.key, desc:'', direct:true, actions:[{label:a.label||a.key, icon:'🚪', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key+'@'+a.key)}]});
@@ -6335,6 +6341,27 @@ window.onerror=function(msg,url,line,col,err){
   function getPath(o,p){ var ks=String(p).split('.'),c=o; for(var i=0;i<ks.length;i++){ if(c==null) return undefined; c=c[ks[i]]; } return c; }
   function setPath(o,p,v){ var ks=String(p).split('.'),c=o; for(var i=0;i<ks.length-1;i++){ if(c[ks[i]]==null) c[ks[i]]={}; c=c[ks[i]]; } c[ks[ks.length-1]]=v; }
   function isDay(){ var h=state.time%12; return h>=3 && h<=9; }
+  // ── 招牌联动：当前店铺字号（如「福兴杂货铺」→「福兴」），供掌柜台词自称「福兴号」；无招牌时回退建筑名 ──
+  function bldZihao(){
+    var ent=state.flags&&state.flags.bldEnt;
+    var b=ent&&BUILDINGS[ent.key];
+    if(!b && ent && ent.bp) b=LF.BUILD[ent.bp]||null;
+    var sign=ent&&ent.sign;
+    if(!sign) return (b&&(b.doneName||b.name))||'本店';
+    var zh=sign.replace(/(药铺|布庄|食肆|杂货铺|营造所|酒楼|染坊|糕点铺|钱庄|铁匠铺|武馆|镖局|茶楼|赌馆|马行|书肆|香烛店|铺|馆|坊|店|行|肆|庄|楼)$/,'');
+    return zh? zh+'号' : sign;
+  }
+  // ── 营业时间：act.when 过滤建筑内动作——day=卯~酉(昼) / night=戌~丑(夜) / morn=卯辰(清晨) / dusk=酉戌(黄昏)；缺省恒显示 ──
+  function bldActOk(a){
+    var w=a&&a.when; if(!w) return true;
+    var h=state.time%12;
+    if(w==='day') return h>=3 && h<=9;
+    if(w==='night') return h>=10 || h<=1;
+    if(w==='morn') return h===3 || h===4;
+    if(w==='dusk') return h===9 || h===10;
+    return true;
+  }
+  function bldActsFilter(acts){ if(typeof acts==='function') return acts; return (acts||[]).filter(bldActOk); }
   function resolveTpl(s){ if(typeof s!=='string') return s; return s.replace(/\{\{name\}\}/g, (state.name||'无名客')); }
   function testCond(c){
     if(!c) return true;
@@ -6649,7 +6676,7 @@ window.onerror=function(msg,url,line,col,err){
         ]},
         { kind:'npc', name:'抓药药商', icon:'🧑‍💼', desc:'柜后司药的伙计，算盘拨得噼啪响。', acts:[
           { label:'采买药材', icon:'🪙', fn:function(){ openModal('shop', {shop:'doctor'}); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('药商笑道：「客官有所不知，这草药须得依方配伍，单味可不成气候。」','sys'); openModal('building'); } }
+          { label:'闲谈', icon:'💬', fn:function(){ log('药商笑道：「客官有所不知，'+bldZihao()+'的药草须得依方配伍，单味可不成气候。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'药柜', icon:'🗄️', desc:'百格药斗，分门别类贮着各色药材。', acts:[
           { label:'翻检药斗', icon:'🤲', fn:function(){ if(!exert('翻检')) return; if(packAdd('caoyao',1)) log('你于药斗中取得一束草药，收入行囊。','sys'); openModal('building'); } }
@@ -6714,7 +6741,7 @@ window.onerror=function(msg,url,line,col,err){
       interior: [
         { kind:'npc', name:'食肆掌柜', icon:'🧑‍🍳', desc:'围着油渍围裙的胖掌柜，嗓门洪亮。', acts:[
           { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; state.food=state.maxFood; state.drink=Math.max(state.drink, Math.round((state.maxDrink||0)*0.6)); log('热汤面饼下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜抹着桌子：「客官慢用，热汤管够！」','sys'); openModal('building'); } }
+          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜抹着桌子：「客官慢用，'+bldZihao()+'的热汤管够！」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'灶台', icon:'🔥', desc:'大灶一口，汤锅翻滚。', acts:[
           { label:'讨碗热汤', icon:'🥣', fn:function(){ if(!exert('讨汤')) return; state.food=Math.min(state.maxFood,(state.food||0)+10); log('灶上舀得一碗热汤，下肚暖意融融。','sys'); renderStatus(); openModal('building'); } }
@@ -6771,7 +6798,7 @@ window.onerror=function(msg,url,line,col,err){
         { kind:'npc', name:'杂货掌柜', icon:'🧑‍💼', desc:'眯眼算账的老朝奉。', acts:[
           { label:'采买补给', icon:'🛒', fn:function(){ if(!exert('采买补给')) return; state.drink=state.maxDrink; log('水囊火折尽数补齐，长途无虞（饮水补满）。','good'); renderStatus(); openModal('building'); } },
           { label:'采办物料', icon:'🪵', fn:function(){ openModal('shop', {shop:'build_pedlar'}); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('朝奉道：「客官要寻甚稀罕物？小店虽小，或能凑办。」','sys'); openModal('building'); } }
+          { label:'闲谈', icon:'💬', fn:function(){ log('朝奉道：「客官要寻甚稀罕物？'+bldZihao()+'虽小，货路却宽，或能凑办。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'货架', icon:'📦', desc:'靠墙货架，瓶罐竹篾杂列。', acts:[
           { label:'翻看货品', icon:'👀', fn:function(){ log('你拂过架上尘土，瓶罐间多是油烛绳结之类。','sys'); openModal('building'); } }
@@ -6824,6 +6851,183 @@ window.onerror=function(msg,url,line,col,err){
         ]}
       ], areas:[] }
     },
+    },
+    // ── 商铺类型池扩充（v20260825e）：酒楼/染坊/糕点铺/钱庄/铁匠铺/武馆/镖局/茶楼/赌馆/马行/书肆/香烛店 ──
+    jiulou: {
+      name:'醉仙楼', icon:'🍶', sub:'朱阁临街，酒旗高挑，烹羊宰牛且为乐',
+      interior: [
+        { kind:'npc', name:'酒楼掌柜', icon:'🧑‍🍳', desc:'胖掌柜笑面迎客，算盘珠响。', acts:[
+          { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; state.food=state.maxFood; state.drink=Math.max(state.drink, Math.round((state.maxDrink||0)*0.7)); log('热馔醇酿下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜道：「客官可知，这壶中物最误事，也最解忧。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'npc', name:'店小二', icon:'🧑', desc:'穿梭席间的伶俐伙计。', acts:[
+          { label:'唤小二添酒', icon:'🍶', fn:function(){ if(!exert('唤小二')) return; log('小二拎壶过来满上：「客官慢用，今儿有上好的黍酒！」','sys'); } },
+          { label:'打听消息', icon:'💬', fn:function(){ log('小二压低嗓门：「楼上那位将军，半夜还在与人对弈，神色忡忡……」','sys'); } }
+        ]},
+        { kind:'obj', name:'酒瓮', icon:'🏺', desc:'墙角摞着几口酒瓮，泥封沁香。', acts:[
+          { label:'打一壶酒', icon:'🍶', fn:function(){ if(!exert('打酒')) return; if(packAdd('jiu',1)) log('你打了壶黍酒，酒香扑鼻，或可御寒壮行。','sys'); openModal('building'); } }
+        ]}
+      ],
+      subAreas:[{key:'jl_erlou',label:'上二楼'}],
+      areas:{
+        jl_erlou:{ name:'二楼雅座', icon:'🪜', desc:'临窗雅座，说书声起。', npcs:[
+          { name:'说书人', icon:'🗣️', desc:'醒木一拍，正说得唾沫横飞。', acts:[
+            { label:'听说书', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('说书人拍案：「温酒斩华雄，杯酒尚温，青龙刀已落——好不痛快！」满堂喝彩。','sys'); } },
+            { label:'打赏', icon:'🪙', fn:function(){ log('你掷下几文，说书人拱手：「谢赏！再听一段三英战吕布？」','sys'); } }
+          ]}
+        ], objs:[], areas:[] }
+      }
+    },
+    ranfang: {
+      name:'彩云染坊', icon:'🎨', sub:'青红皂白诸色入缸，布帛如染春山',
+      interior: [
+        { kind:'npc', name:'染匠', icon:'🧑‍🎨', desc:'满臂染渍的老师傅。', acts:[
+          { label:'染布', icon:'🎨', fn:function(){ if(!exert('染布')) return; log('你将素绢投入染缸，绞出时已是青碧如水。','sys'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('染匠道：「'+bldZihao()+'的靛青得发酵七日，急不得；色不正，是火候没到。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'染缸', icon:'🪣', desc:'数口大缸，色水幽深。', acts:[
+          { label:'翻看染缸', icon:'👀', fn:function(){ log('缸中靛蓝、茜红、栀子黄，各色沉浮。','sys'); } }
+        ]}
+      ],
+      subAreas:[{key:'rf_liang',label:'去晾布场'}],
+      areas:{
+        rf_liang:{ name:'晾布场', icon:'🌿', desc:'竹竿上高高低低晾着彩布，风过如旗。', npcs:[], objs:[
+          { name:'晾布竿', icon:'🧵', desc:'随风轻摆的湿布。', acts:[
+            { label:'翻动布料', icon:'🤲', fn:function(){ if(!exert('翻布')) return; log('你帮着翻了翻晾布，色已半干，香气清浅。','sys'); } }
+          ]
+        }], areas:[] }
+      }
+    },
+    gaodian: {
+      name:'稻香糕点铺', icon:'🍰', sub:'蒸笼腾腾，蜜香满街',
+      interior: [
+        { kind:'npc', name:'糕点娘', icon:'👩‍🍳', desc:'系着围裙、笑靥如花的少妇。', acts:[
+          { label:'买糕点', icon:'🍪', fn:function(){ if(!exert('买糕点')) return; state.food=Math.min(state.maxFood,(state.food||0)+12); log('你称了斤许蜜糕胡饼，粮草稍济（粮草+12）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('糕点娘道：「客官尝尝这杏仁酥，是家翁从长安学来的方子——咱'+bldZihao()+'就靠这手艺立足。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'蒸笼', icon:'🥟', desc:'竹蒸笼叠得老高，热气直冒。', acts:[
+          { label:'掀笼看货', icon:'👀', fn:function(){ log('笼中米糕雪白、枣泥酥红，香气扑鼻。','sys'); } }
+        ]}
+      ]
+    },
+    qianzhuang: {
+      name:'汇通钱庄', icon:'🪙', sub:'高柜台、铁栅栏，金银出纳叮当',
+      interior: [
+        { kind:'npc', name:'钱庄掌柜', icon:'🧓', desc:'戴玳瑁镜、拨算盘的老朝奉。', acts:[
+          { label:'兑换金银', icon:'🪙', fn:function(){ log('掌柜将银锭秤了又秤，开出庄票一张：「客官收好，凭票通兑。」','sys'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('老朝奉低声：「'+bldZihao()+'是本城老字号，钱在手里不如粮在仓——兵荒马乱的，客官当心。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'钱柜', icon:'🗄️', desc:'沉重的铁柜，锁孔幽深。', acts:[
+          { label:'打量钱柜', icon:'👀', fn:function(){ log('钱柜纹丝不动，想是极沉；账房先生瞪了你一眼。','sys'); } }
+        ]}
+      ]
+    },
+    tiejiang: {
+      name:'打铁营', icon:'⚒️', sub:'风箱呼啸，铁花四溅',
+      interior: [
+        { kind:'npc', name:'铁匠', icon:'🧔', desc:'赤膊壮汉，臂有刺青，锤不离手。', acts:[
+          { label:'打制兵器', icon:'⚔', fn:function(){ if(!exert('打铁')) return; state.atk=(state.atk||0)+2; log('铁匠为你打就一柄厚背刀，寒光逼人（攻击+2）。','good'); renderStatus(); openModal('building'); } },
+          { label:'修整甲胄', icon:'🛡️', fn:function(){ if(!exert('修甲')) return; state.def=(state.def||0)+2; log('铁匠敲敲打打，将你甲胄补得严丝合缝（防御+2）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('铁匠抹汗：「好钢需千锤——'+bldZihao()+'的招牌也是这么熬出来的。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'熔炉', icon:'🔥', desc:'炉膛通红，炭火噼啪。', acts:[
+          { label:'看打铁', icon:'👀', fn:function(){ if(!exert('看打铁')) return; log('你看着铁匠抡锤，火星溅起如萤，一柄剑坯渐成。','sys'); } }
+        ]}
+      ],
+      subAreas:[{key:'tj_liao',label:'入料场'}],
+      areas:{
+        tj_liao:{ name:'料场', icon:'🪨', desc:'矿石铁锭堆积。', npcs:[], objs:[
+          { name:'铁料堆', icon:'⛏️', desc:'生铁与精钢。', acts:[
+            { label:'翻看铁料', icon:'👀', fn:function(){ log('精钢泛青、生铁灰暗，好刃须好铁。','sys'); } }
+          ]
+        }], areas:[] }
+      }
+    },
+    wuguan: {
+      name:'振武馆', icon:'🥋', sub:'演武场上刀枪剑戟，喝声不绝',
+      interior: [
+        { kind:'npc', name:'教头', icon:'🥋', desc:'精神矍铄的枪棒教头。', acts:[
+          { label:'习武演武', icon:'⚔', fn:function(){ if(!exert('习武')) return; state.atk=(state.atk||0)+1; log('教头指点你一招「进步撩阴」，身手精进（攻击+1）。','good'); renderStatus(); openModal('building'); } },
+          { label:'请教门道', icon:'💬', fn:function(){ log('教头道：「军中枪法贵直，江湖刀法贵变——客官既到'+bldZihao()+'，习哪一路？」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'木人桩', icon:'🪵', desc:'遍体钉痕的木桩。', acts:[
+          { label:'练上几式', icon:'🥊', fn:function(){ if(!exert('练武')) return; log('你对木人桩拆了几招，拳风呼呼，筋骨舒展。','sys'); } }
+        ]}
+      ]
+    },
+    biaoju: {
+      name:'威远镖局', icon:'🛡️', sub:'镖旗猎猎，趟子手往来如梭',
+      interior: [
+        { kind:'npc', name:'镖头', icon:'🧗', desc:'腰挎朴刀、眼神锐利的汉子。', acts:[
+          { label:'接谈镖务', icon:'💬', fn:function(){ log('镖头打量你：「'+bldZihao()+'这趟镖走荆州，路上不太平，客官可要同行？」','sys'); openModal('building'); } },
+          { label:'打听行程', icon:'👂', fn:function(){ log('镖头压低声音：「前头官道有流寇，绕道走河津稳妥些。」','sys'); } }
+        ]},
+        { kind:'obj', name:'镖旗', icon:'🚩', desc:'绣着「威远」二字的镖旗。', acts:[
+          { label:'端详镖旗', icon:'👀', fn:function(){ log('镖旗被摩挲得发亮，想是走过不少路。','sys'); } }
+        ]}
+      ]
+    },
+    chalou: {
+      name:'听雨茶楼', icon:'🍵', sub:'竹炉汤沸，茶烟袅袅',
+      interior: [
+        { kind:'npc', name:'茶博士', icon:'🧑', desc:'提壶续水的老茶倌。', acts:[
+          { label:'上茶', icon:'🍵', fn:function(){ if(!exert('上茶')) return; state.drink=Math.min(state.maxDrink,(state.drink||0)+10); log('一盏清茶入喉，润喉解乏（饮水+10）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('茶博士道：「'+bldZihao()+'这壶中茶如人生，头苦二甘三回甜——客官细品。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'npc', name:'说书先生', icon:'🗣️', desc:'醒木轻敲，正讲三分天下。', acts:[
+          { label:'听说书', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('说书先生：「且说那赤壁一把火，烧得北船樯橹灰飞烟灭……」满座唏嘘。','sys'); } },
+          { label:'打听消息', icon:'💬', fn:function(){ log('你递过茶钱，先生低声：「听闻江东欲结亲，事有不谐……」','sys'); } }
+        ]}
+      ]
+    },
+    duguang: {
+      name:'快活赌坊', icon:'🎲', sub:'骰声铿锵，吆喝连天',
+      interior: [
+        { kind:'npc', name:'赌徒', icon:'🎲', desc:'眼发红、袖藏骰的精瘦汉。', acts:[
+          { label:'掷骰一博', icon:'🎲', danger:true, fn:function(){ if(!exert('赌博')) return; var win=Math.random()<0.5; log(win?'你押中点数，赢得几贯，眉开眼笑。':'你手气不济，输了几文，懊恼不已。','sys'); openModal('building'); } },
+          { label:'豪赌一场', icon:'🎲', danger:true, when:'night', fn:function(){ if(!exert('豪赌')) return; if(state.gold<20){ log('赌徒乜斜你一眼：「囊中羞涩，也敢进这夜局？」','sys'); return; } var win=Math.random()<0.45; if(win){ state.gold+=30; log('入夜赌局灯火如昼，你押上重注，骰子落定——通吃！银两 +30（当前 '+state.gold+'）。','good'); } else { state.gold-=30; log('入夜赌局灯火如昼，你押上重注，骰子翻落——血本无归，银两 -30（当前 '+state.gold+'）。','bad'); } openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ var h=state.time%12; log(h>=10||h<=1 ? '赌徒压低声：「客官来得正是时候，入夜的局子才够味——敢不敢玩把大的？」' : '赌徒嘿嘿一笑：「'+bldZihao()+'白日小赌怡情，入夜才有大场面——十赌九输，可偏有人想着那一赢。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'骰盆', icon:'🥏', desc:'青瓷骰盆，六子乱滚。', acts:[
+          { label:'看人下注', icon:'👀', fn:function(){ log('盆边围了三两人，吆五喝六，热闹非常。','sys'); } }
+        ]}
+      ]
+    },
+    maxing: {
+      name:'千里马行', icon:'🐴', sub:'马嘶声声，料豆满槽',
+      interior: [
+        { kind:'npc', name:'马贩', icon:'🧑‍🌾', desc:'络腮胡、懂马性的老行家。', acts:[
+          { label:'相马买马', icon:'🐴', fn:function(){ if(!exert('相马')) return; if(packAdd('horse',1)) log('你相中一匹栗色川马，蹄声如鼓，正堪长途。','good'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('马贩道：「西凉马骏，幽州马韧，南马矮而温——'+bldZihao()+'走南闯北，各有所用。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'马厩', icon:'🐎', desc:'并排马槽，料豆清香。', acts:[
+          { label:'喂马', icon:'🌾', fn:function(){ if(!exert('喂马')) return; log('你添了把料豆，马儿打响鼻，蹭了蹭你手心。','sys'); } }
+        ]}
+      ]
+    },
+    shudian: {
+      name:'翰墨书肆', icon:'📜', sub:'竹简累累，韦编盈架（纸贵简行，仍以简为主）',
+      interior: [
+        { kind:'npc', name:'书生', icon:'🧑‍🎓', desc:'青衫落拓、指染墨痕的儒生。', acts:[
+          { label:'购简抄书', icon:'📜', fn:function(){ if(!exert('购书')) return; if(packAdd('jian',1)) log('你购得几卷竹简，或为兵法，或为诗赋，沉甸甸压肩。','sys'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('书生叹：「蔡侯纸虽已出世，价昂而难得，寻常仍用竹简——'+bldZihao()+'架上，韦编三绝，非虚言也。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'简牍架', icon:'📚', desc:'架上竹简层层，麻绳编缀。', acts:[
+          { label:'翻看简牍', icon:'👀', fn:function(){ if(!exert('翻简')) return; log('你抽出一卷，墨迹古拙，辨得「兵马未动，粮草先行」八字。','sys'); } }
+        ]}
+      ]
+    },
+    xiangzhu: {
+      name:'宝馨香烛店', icon:'🕯️', sub:'香烟缭绕，烛影摇红',
+      interior: [
+        { kind:'npc', name:'香铺掌柜', icon:'🧓', desc:'面容慈和的香铺东家。', acts:[
+          { label:'请香烛', icon:'🕯️', when:'morn', fn:function(){ if(!exert('请香')) return; if(packAdd('xiang',1)) log('晨光初透，掌柜捧出今晨新卷的头香：「'+bldZihao()+'晨起开张，头炷香最灵——客官有缘，请了这炷，心诚则灵。」','good'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ var h=state.time%12; log(h===3||h===4 ? '掌柜合十道：「晨光初透，正是开张时——'+bldZihao()+'的头香最灵，客官请一炷？」' : '掌柜合十道：「小店卯时开张、过午歇业——'+bldZihao()+'的规矩，客官记牢了，莫扑空。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'香案', icon:'🕯️', desc:'供着神主，香炉余烬。', acts:[
+          { label:'上香', icon:'🙏', fn:function(){ if(!exert('上香')) return; log('你拈香三拜，青烟袅袅，心头稍静。','sys'); } }
+        ]}
+      ]
     }
   };
 
@@ -6918,7 +7122,7 @@ window.onerror=function(msg,url,line,col,err){
       h+='<div class="bld-d-head">'+e.icon+' '+e.name+' <span class="bld-ent-ki">'+(buildingState.selKind==='obj'?'物件':'人物')+'</span></div>';
       h+='<div class="bld-d-desc">'+e.desc+'</div>';
       h+='<div class="bld-acts">';
-      (e.acts||[]).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
+      bldActsFilter(e.acts).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
       h+='</div><button class="btn bld-back" data-back="1">返 回</button>';
       h+='</div>';
       return h;
@@ -6935,10 +7139,7 @@ window.onerror=function(msg,url,line,col,err){
       area.areas.forEach(function(a){ h+='<button class="btn bld-area" data-area="'+a.key+'">'+a.label+'</button>'; });
       h+='</div>';
     }
-    h+='<div class="bld-nav">';
-    if(buildingState.stack && buildingState.stack.length) h+='<button class="btn bld-up" data-up="1">↩ 返回上层</button>';
-    h+='<button class="btn bld-exit" data-exit="1">🚪 返回街道</button>';
-    h+='</div>';
+    // 注：建筑内无方向罗盘，退出统一由房间底部「返回街巷/返回正堂」按钮（move-bar）完成，故弹窗不再重复放置导航按钮，避免繁琐
     return h;
   }
   function bindBuildingPanel(){
@@ -6950,7 +7151,7 @@ window.onerror=function(msg,url,line,col,err){
       var e=list[buildingState.sel];
       if(e){
         $card.querySelectorAll('.bld-act').forEach(function(el){
-          el.onclick=function(){ var a=e.acts[+el.getAttribute('data-ai')]; if(a&&a.fn){ a.fn(); if(currentModalKind==='building') openModal('building'); } };
+          el.onclick=function(){ var a=bldActsFilter(e.acts)[+el.getAttribute('data-ai')]; if(a&&a.fn){ a.fn(); if(currentModalKind==='building') openModal('building'); } };
         });
       }
       var back=$card.querySelector('.bld-back'); if(back) back.onclick=function(){ buildingState.sel=null; openModal('building'); };

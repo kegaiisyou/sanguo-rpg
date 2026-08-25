@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>v20260822ao 变更日志 · 乱世烽火</title>
+<style>
+  body{font-family:"PingFang SC","Microsoft YaHei",serif;background:#f6efe0;color:#3a2e1a;margin:0;padding:24px;line-height:1.7;}
+  .c{max-width:920px;margin:0 auto;background:#fffaf0;border:1px solid #c8b48c;border-radius:14px;padding:26px 30px;box-shadow:0 6px 28px rgba(80,52,26,.18);}
+  h1{font-family:"STKaiti","KaiTi",serif;font-size:28px;margin:0 0 6px;letter-spacing:6px;color:#8a2e1c;text-align:center;}
+  h2{font-family:"STKaiti","KaiTi",serif;font-size:18px;color:#5a4628;border-left:4px solid #c89a3a;padding-left:10px;margin-top:30px;letter-spacing:2px;}
+  .sub{text-align:center;color:#8a7a5a;font-size:13px;margin-bottom:22px;letter-spacing:2px;}
+  .item{margin:14px 0;padding:10px 14px;background:#fff;border:1px solid #e8d8b4;border-radius:8px;}
+  .item b{color:#8a2e1c;}
+  code{background:#faecd0;padding:2px 6px;border-radius:4px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#6c4523;}
+  a.btn{display:inline-block;padding:9px 18px;background:#8a2e1c;color:#fffaf0;text-decoration:none;border-radius:8px;font-size:14px;letter-spacing:2px;}
+  ul{margin:8px 0;padding-left:20px;}
+  li{margin:4px 0;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  td,th{border:1px solid #e0d0ac;padding:6px 10px;text-align:left;}
+  th{background:#f4e8cc;}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">v20260822ao 变更日志 · 2026-08-22 · 地图 A+B 结合（列表 + 十三州缩略图联动）</div>
+  <p style="text-align:center;margin:8px 0 18px;">
+    <a class="btn" href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">▶ 在线试玩（请硬刷新 Ctrl+F5 / ⌘⇧R）</a>
+  </p>
+
+  <h2>🗺 A+B：在列表式山河志顶部加入「十三州缩略图」联动</h2>
+  <div class="item">
+    <b>新形态</b>：打开山河志，顶部先是一幅<b>十三州疆域色块图</b>（按真实地理方位排布，纯 SVG 矢量，随窗口自适应宽高），下方保持按州分组的古卷卡片列表。
+    <ul>
+      <li>当前所在州：色块<b>金色描边 + 亮底</b>常驻高亮</li>
+      <li>点击任一州块 → 下方列表<b>平滑滚动</b>到对应州卡片，并<b>金框闪烁</b>提示 1.2s</li>
+      <li>滚动列表时 → 顶部缩略图<b>同步高亮</b>当前浏览到的州（白色描边）</li>
+    </ul>
+  </div>
+  <div class="item">
+    <b>技术要点</b>：
+    <ul>
+      <li>缩略图用各州 <code>poly</code> 轮廓点集做 min/max 归一化后线性映射到 <code>viewBox 200×~130</code>，零新增数据、零素材依赖</li>
+      <li>州卡片带 <code>data-state</code>；联动事件绑定在 <code>initMapList</code>，滚动同步用 <code>requestAnimationFrame</code> 节流，手机端流畅</li>
+      <li>出生点设置模式同样可用缩略图（当前所在州高亮）</li>
+      <li>「塞外·野」兜底组无对应色块，点击无操作（正常）</li>
+    </ul>
+  </div>
+  <div class="item">
+    <b>手机体验</b>：全屏单列滚动，缩略图 100% 宽自适应；点击目标大（整块州域），无拖拽/缩放误触，无字体模糊。
+  </div>
+
+  <h2>📋 改动文件</h2>
+  <div class="item">
+    <b>index.html</b> — 缩略图 CSS（<code>.ml-mini/.ml-mini-st(.cur/.view)/.ml-state.flash</code> 等）+ <code>buildMapListHTML</code> 生成 SVG 色块 + <code>initMapList</code> 双向联动 + 缓存参数 <code>?v=20260822ao</code>
+    <br><b>shared/config/constants.js</b> — <code>VERSION: '20260822an' → '20260822ao'</code>
+  </div>
+
+  <p style="text-align:center;color:#8a7a5a;font-size:12.5px;margin-top:30px;">线上地址：<a href="https://kegaiisyou.github.io/sanguo-rpg/" target="_blank">https://kegaiisyou.github.io/sanguo-rpg/</a>（若仍显示旧版本号，硬刷新 Ctrl+F5 / ⌘⇧R）</p>
+</div>
+</body>
+</html>
