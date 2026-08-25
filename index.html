@@ -1824,7 +1824,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260825a"></script>
+<script src="shared/config/constants.js?v=20260825b"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -5052,6 +5052,23 @@ window.onerror=function(msg,url,line,col,err){
     log('你在'+cfg.name+'歇了'+hours+'个时辰——气血内力精力渐复，饥渴亦有所解。','good');
     closeModal(); buildActions(G.ROOMS[state.room]);
   }
+  // 城市格放置物定位（v20260825b）：城市网格内放置物带 {cell:{x,y}}，按格隔离，不再全城共享；
+  // 旧存档无格坐标的放置物视为位于城心格，保证不"消失"。
+  function placedCellTag(roomId){
+    var cp=state.flags && state.flags.cityPos;
+    if(!cp || !isCityGrid(roomId) || cp.cid!==roomId) return null;
+    return {x:cp.x, y:cp.y};
+  }
+  function placedInCell(p, roomId, tag){
+    if(!tag) return true;                       // 非城市房间：全部在当前房间可见
+    var c=p.cell;
+    if(!c){                                     // 旧存档无格数据 → 归城心格
+      var m=genCityGrid(roomId); if(!m) return true;
+      var s=m.size; c={x:Math.floor(s/2), y:Math.floor(s/2)};
+    }
+    return c.x===tag.x && c.y===tag.y;
+  }
+
   // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
   function roomObjs(roomId, opts){
     // 建筑内部房间：interior/子区域的物件 + 子区域/返回出口 → 场景按钮
@@ -5073,7 +5090,8 @@ window.onerror=function(msg,url,line,col,err){
     }
     var base = ROOM_OBJECTS[roomId] || [];
     var placed = (state.placed && state.placed[roomId]) || [];
-    var dyn = placed.map(function(p){
+    var _cellTag = placedCellTag(roomId);
+    var dyn = placed.filter(function(p){ return placedInCell(p, roomId, _cellTag); }).map(function(p){
       if(p.bp){
         var bp = LF.BUILD[p.bp] || {};
         if(p.done){
@@ -5096,15 +5114,16 @@ window.onerror=function(msg,url,line,col,err){
     if(!packInspect || packInspect.kind!=='pack') return;
     var idx=packInspect.idx; var it=state.pack[idx];
     if(!it) return;
+    var _tag=placedCellTag(state.room);   // 城市网格：放置物归当前格（cell），跨格隔离
     // 图纸类：依图在房中营造建筑（多阶段、需填充材料）
     var bpId = (LF.ITEMS[it.defId]||{}).blueprint;
     if(bpId){
       var bp = LF.BUILD[bpId] || {};
       state.placed = state.placed || {};
       state.placed[state.room] = state.placed[state.room] || [];
-      if(state.placed[state.room].some(function(o){ return o.bp===bpId; })){ toast('此处已在营造'+(bp.siteName||'该建筑')+'。'); return; }
+      if(state.placed[state.room].some(function(o){ return o.bp===bpId && placedInCell(o, state.room, _tag); })){ toast('此处已在营造'+(bp.siteName||'该建筑')+'。'); return; }
       if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
-      state.placed[state.room].push({key:bp.key, defId:it.defId, bp:bpId, stage:0, got:{}});
+      state.placed[state.room].push({key:bp.key, defId:it.defId, bp:bpId, stage:0, got:{}, cell:_tag});
       packInspect=null;
       afterPackChange();
       log('你展开'+it.name+'，依图在'+curRoom().name+'勘定地基，开工营造。','sys');
@@ -5115,9 +5134,9 @@ window.onerror=function(msg,url,line,col,err){
     if(!(it.placeable || pl)) return;
     state.placed = state.placed || {};
     state.placed[state.room] = state.placed[state.room] || [];
-    if(state.placed[state.room].some(function(o){ return o.key===pl.key; })){ toast('此处已支有'+pl.name+'。'); return; }
+    if(state.placed[state.room].some(function(o){ return o.key===pl.key && placedInCell(o, state.room, _tag); })){ toast('此处已支有'+pl.name+'。'); return; }
     if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
-    state.placed[state.room].push({key:pl.key, defId:it.defId});
+    state.placed[state.room].push({key:pl.key, defId:it.defId, cell:_tag});
     packInspect=null;
     afterPackChange();
     log('你支起'+pl.name+'，安置于'+curRoom().name+'。','sys');
@@ -5126,9 +5145,10 @@ window.onerror=function(msg,url,line,col,err){
   function packUpPlaced(key){
     state.placed = state.placed || {};
     var arr = state.placed[state.room];
-    if(!arr || !arr.some(function(o){ return o.key===key; })){ toast('此处并无此物可收。'); return; }
+    var _tag=placedCellTag(state.room);
+    if(!arr || !arr.some(function(o){ return o.key===key && placedInCell(o, state.room, _tag); })){ toast('此处并无此物可收。'); return; }
     var p=null;
-    for(var i=0;i<arr.length;i++){ if(arr[i].key===key){ p=arr[i]; arr.splice(i,1); break; } }
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===key && placedInCell(arr[i], state.room, _tag)){ p=arr[i]; arr.splice(i,1); break; } }
     var defId = p.defId || PLACE_KEY_DEF[p.key];
     var ok = packAdd(defId, 1);
     if(!ok){ if(p) arr.push(p); toast('行囊已满，无法收起。'); return; }
@@ -5147,7 +5167,8 @@ window.onerror=function(msg,url,line,col,err){
   // 工地/建筑在 placed 中以 { key, defId, bp, stage, got, done } 存储（见 roomObjs 渲染）
   function findPlacedBp(siteKey){
     var arr = (state.placed && state.placed[state.room]) || [];
-    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey) return arr[i]; }
+    var _tag=placedCellTag(state.room);
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey && placedInCell(arr[i], state.room, _tag)) return arr[i]; }
     return null;
   }
   function buildSiteActions(siteKey){
@@ -5310,7 +5331,8 @@ window.onerror=function(msg,url,line,col,err){
   var forgeState = { site:null, msg:'' };
   function findForge(siteKey){
     var arr = (state.placed && state.placed[state.room]) || [];
-    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey) return arr[i]; }
+    var _tag=placedCellTag(state.room);
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey && placedInCell(arr[i], state.room, _tag)) return arr[i]; }
     return null;
   }
   // 炉膛状态存于 placed 对象上：p.forge = { ore, wood, burn, prog, need, out }
@@ -7192,6 +7214,11 @@ window.onerror=function(msg,url,line,col,err){
     initMapKing({pickSpawn:true});
   }
   function toast(msg){ if(settings.sound) tick(480); $toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400); }
+
+  // ── 全局桥接（v20260825b）：shared/data/build.js 等数据文件中的交互回调在全局作用域
+  //    解析 openModal/log/exert/packFind…，需将游戏内部函数暴露到 window，否则建筑内面板（如铁砧打造）打开报 ReferenceError
+  window.openModal=openModal; window.closeModal=closeModal; window.log=log; window.toast=toast;
+  window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
 
   // HTML 注入辅助（战斗卡片用）
   function logHTML(html, cls){
