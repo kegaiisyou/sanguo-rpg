@@ -46,7 +46,13 @@
       chengdu:[1,11],   // 益州 · 成都
       wuwei:[-10,8],    // 凉州 · 武威
       jinyang:[3,-5],   // 并州 · 晋阳
-      fanyu:[4,17]      // 交州 · 番禺
+      fanyu:[4,17],     // 交州 · 番禺
+      chang_an:[2,5],    // 司隶 · 长安（西京）
+      jianye:[14,12],    // 扬州 · 建业（孙吴都）
+      hanzhong:[3,7],    // 益州 · 汉中
+      jiangling:[6,13],  // 荆州 · 江陵（南郡）
+      xiangping:[16,-3], // 幽州 · 襄平（辽东）
+      xuchang:[8,6]      // 豫州 · 许都（帝都）
     },
 
     // 外围地貌（光荣《三国志》风：十三州之外有海/草原/沙漠环绕，不留空）
@@ -109,7 +115,7 @@
       { id:'yuyang',    name:'渔阳',     icon:'🏯', pos:[14,-1], st:'幽州', open:true,  kind:'city',    desc:'渔阳郡治，边塞重镇' },
       { id:'heishan',   name:'黑山寨',   icon:'🦹', pos:[9,-5],  st:'幽州', open:true,  kind:'dungeon', desc:'黑山军据守的险寨' },
       { id:'build_test',name:'建造场',   icon:'🔨', pos:[7,8],   st:'豫州', open:true,  kind:'camp',    desc:'木工台与测试营地' },
-      { id:'chang_an',  name:'长安',     icon:'🏯', pos:[2,2],   st:'司隶', open:false, kind:'city',    desc:'西京长安，龙脉所在' },
+      { id:'chang_an',  name:'长安',     icon:'🏯', pos:[2,5],   st:'司隶', open:true,  kind:'city',    desc:'西京旧都，关中雄城，董卓迁都之地' },
       { id:'ye',        name:'邺城',     icon:'🏯', pos:[10,5],  st:'冀州', open:true,  kind:'city',    desc:'冀州州治，铜雀台起' },
       { id:'changyi',   name:'昌邑',     icon:'🏯', pos:[11,7],  st:'兖州', open:true,  kind:'city',    desc:'兖州州治，控扼中原' },
       { id:'jinyang',   name:'晋阳',     icon:'🏯', pos:[3,-5],  st:'并州', open:true,  kind:'city',    desc:'并州州治，表里山河' },
@@ -119,7 +125,12 @@
       { id:'linzi',     name:'临淄',     icon:'🏯', pos:[14,4],  st:'青州', open:true,  kind:'city',    desc:'青州州治，齐都故地' },
       { id:'xiapi',     name:'下邳',     icon:'🏯', pos:[16,8],  st:'徐州', open:true,  kind:'city',    desc:'徐州州治，古邳名邑' },
       { id:'fanyu',     name:'番禺',     icon:'🏯', pos:[4,17],  st:'交州', open:true,  kind:'city',    desc:'交州州治，岭南都会' },
-      { id:'wuwei',     name:'武威',     icon:'🏯', pos:[-10,8], st:'凉州', open:true,  kind:'city',    desc:'河西咽喉，凉州重镇' }
+      { id:'wuwei',     name:'武威',     icon:'🏯', pos:[-10,8], st:'凉州', open:true,  kind:'city',    desc:'河西咽喉，凉州重镇' },
+      { id:'jianye',     name:'建业',     icon:'🏯', pos:[14,12], st:'扬州', open:true,  kind:'city',    desc:'江东都会，孙吴根基' },
+      { id:'hanzhong',   name:'汉中',     icon:'🏯', pos:[3,7],   st:'益州', open:true,  kind:'city',    desc:'益州北屏，汉中之战要冲' },
+      { id:'jiangling',  name:'江陵',     icon:'🏯', pos:[6,13],  st:'荆州', open:true,  kind:'city',    desc:'南郡治所，长江军港' },
+      { id:'xiangping',  name:'襄平',     icon:'🏯', pos:[16,-3], st:'幽州', open:true,  kind:'city',    desc:'辽东重镇，公孙氏割据之基' },
+      { id:'xuchang',    name:'许都',     icon:'🏯', pos:[8,6],   st:'豫州', open:true,  kind:'city',    desc:'颍川腹地，曹魏霸业之基（帝都）' }
     ],
 
     // 山脉/海岸美术现由 assets/map_inkwash.jpg 水墨山水底图承担（见 index.html .map-canvas 背景）

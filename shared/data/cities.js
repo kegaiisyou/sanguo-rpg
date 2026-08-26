@@ -29,7 +29,14 @@
     chengdu:   { name:'成都',   state:'益州', tier:'zhou', pop:75, order:60, commerce:78, wall:68, agri:80, grid:7, desc:'益州州治，天府之国' },
     wuwei:     { name:'武威',   state:'凉州', tier:'zhou', pop:55, order:38, commerce:50, wall:72, agri:35, ctype:'fort',   grid:5, desc:'河西咽喉，凉州重镇（城寨）' },
     jinyang:   { name:'晋阳',   state:'并州', tier:'zhou', pop:58, order:55, commerce:48, wall:85, agri:45, ctype:'mountain', grid:5, desc:'并州州治，表里山河（山城）' },
-    fanyu:     { name:'番禺',   state:'交州', tier:'zhou', pop:60, order:45, commerce:72, wall:50, agri:50, ctype:'port',     grid:5, desc:'交州州治，岭南都会（港口城）' }
+    fanyu:     { name:'番禺',   state:'交州', tier:'zhou', pop:60, order:45, commerce:72, wall:50, agri:50, ctype:'port',     grid:5, desc:'交州州治，岭南都会（港口城）' },
+    // ── 历史名城 V1（v20260826f）：补全地图四角＋核心叙事；许都作帝都特殊城 ──
+    chang_an:  { name:'长安',   state:'司隶', tier:'capital', pop:70, order:60, commerce:65, wall:88, agri:45, grid:9, desc:'西京旧都，关中雄城，董卓迁都之地' },
+    jianye:    { name:'建业',   state:'扬州', tier:'capital', pop:75, order:62, commerce:78, wall:70, agri:55, ctype:'port',     grid:9, desc:'江东都会，孙吴根基，襟江带湖（港口城）' },
+    hanzhong:  { name:'汉中',   state:'益州', tier:'zhou',     pop:45, order:55, commerce:40, wall:85, agri:50, grid:7, desc:'益州北屏，汉中之战要冲，崇山固垒' },
+    jiangling: { name:'江陵',   state:'荆州', tier:'zhou',     pop:60, order:50, commerce:72, wall:75, agri:55, ctype:'port',     grid:7, desc:'南郡治所，长江军港，关羽失荆之地' },
+    xiangping: { name:'襄平',   state:'幽州', tier:'zhou',     pop:38, order:40, commerce:45, wall:65, agri:42, grid:5, desc:'辽东重镇，公孙氏割据之基，远踞东北' },
+    xuchang:   { name:'许都',   state:'豫州', tier:'capital', pop:72, order:70, commerce:60, wall:80, agri:52, grid:7, desc:'颍川腹地，曹魏霸业之基，挟天子以令诸侯（帝都）' }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.CITIES;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -69,6 +69,10 @@
       })(),                                       // 基础 6 格：可拖拽自由摆放；装备背包后扩容
       equips: [],                                 // 兼容旧字段（已并入 pack，保留避免 undefined）
       equipment: { hat:null, cloth:null, shoe:null, weapon:null, trinket:null, belt:null, bag:null }, // 六装备槽 + 背包槽
+      faction: '义军',                    // 玩家势力名（接住既有 state.faction；'义军' 起事）
+      title: '游侠',                      // 官职：游侠→县令→太守→州牧→君主（占城即得 tier 对应官职）
+      ruledCities: [],                    // 玩家统治的城 rid 列表（占城时追加）
+      tokens: [],                         // 持有信物 defId（权柄道具，预留）
       quest: { bandit:0, turban:0, hua_xiong:false, luoyang:false }  // P4 主线进度计数
     };
   }

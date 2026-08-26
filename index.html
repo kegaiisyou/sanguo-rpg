@@ -10,6 +10,24 @@
 <style>
   .tt-ver{margin-top:18px;font-size:12px;letter-spacing:2px;color:rgba(40,32,24,.55);font-family:var(--serif,serif);}
   .st-ver{font-size:11px;color:rgba(40,32,24,.5);letter-spacing:1px;margin-left:6px;}
+  .st-faction{font-size:11px;color:#7d6a2e;margin-left:6px;cursor:pointer;border:1px solid rgba(125,106,46,.45);padding:1px 6px;border-radius:6px;letter-spacing:1px;}
+  .st-faction:hover{background:rgba(125,106,46,.12);}
+  .edict-box{max-width:460px;margin:0 auto;padding:8px 14px;}
+  .edict-h{font-family:var(--serif,serif);font-size:20px;text-align:center;margin-bottom:6px;color:#6b3b2e;}
+  .edict-sub{text-align:center;color:#5a4a38;font-size:13px;margin-bottom:10px;}
+  .edict-acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .edict-acts .btn{display:flex;flex-direction:column;align-items:center;min-width:96px;padding:10px 8px;line-height:1.5;}
+  .edict-acts .btn .sub{font-size:11px;color:rgba(40,32,24,.55);}
+  .edict-foot{margin-top:12px;text-align:center;font-size:12px;color:rgba(40,32,24,.5);}
+  .faction-map{max-width:520px;margin:0 auto;padding:6px 12px;}
+  .fm-h{font-family:var(--serif,serif);font-size:20px;text-align:center;margin-bottom:10px;color:#6b3b2e;}
+  .fm-row{border-bottom:1px solid rgba(40,32,24,.12);padding:8px 4px;}
+  .fm-lord{font-size:15px;margin-bottom:2px;}
+  .fm-lord small{color:rgba(40,32,24,.55);font-weight:normal;}
+  .fm-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+  .fm-cities{font-size:14px;color:#3a2e22;margin:2px 0;}
+  .fm-desc{font-size:12px;color:rgba(40,32,24,.6);}
+  .fm-foot{margin-top:12px;text-align:center;font-size:13px;color:#5a4a38;}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1831,26 +1849,26 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260826a"></script>
+<script src="shared/config/constants.js?v=20260826g"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260821j"></script>
 <script src="shared/story/dialogues.js?v=20260825i"></script>
-    <script src="shared/story/rooms.js?v=20260825g"></script>
+    <script src="shared/story/rooms.js?v=20260826f"></script>
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260824d"></script>
-<script src="shared/data/items.js?v=20260825f"></script>
+<script src="shared/data/items.js?v=20260826e"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
-    <script src="shared/data/build.js?v=20260824i"></script>
-    <script src="shared/data/shops.js?v=20260821i"></script>
-    <script src="shared/data/map.js?v=20260825g"></script>
-    <script src="shared/data/cities.js?v=20260825g"></script>
+    <script src="shared/data/build.js?v=20260826e"></script>
+    <script src="shared/data/shops.js?v=20260826e"></script>
+    <script src="shared/data/map.js?v=20260826f"></script>
+    <script src="shared/data/cities.js?v=20260826f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
-    <script src="shared/index.js?v=20260821a"></script>
+    <script src="shared/index.js?v=20260826g"></script>
 <script>
 (function(){
   try{
@@ -3040,6 +3058,7 @@ window.onerror=function(msg,url,line,col,err){
       '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>'+
       '<span class="st-gold" title="银两">💰'+state.gold+'</span>'+
       '<span class="st-hint" title="点击查看时辰钟表与历法">🕓</span>'+
+      '<span class="st-faction" title="查看天下势力分布" onclick="openModal(\'factionMap\')">🏴 '+factionName(playerFaction())+'</span>'+
       '<span class="st-ver">v'+LF.CONSTANTS.VERSION+'</span>';
   }
   function renderLocTab(room){
@@ -3113,6 +3132,7 @@ window.onerror=function(msg,url,line,col,err){
     state.energy=Math.max(0,state.energy-2*n);
     maybeStarve();
     tickForge(n);   // 炉膛随时辰持续推进
+    tickBuildOrders(crossings);   // 城市营造工单：跨日推进宏观委派 + 结算每日市租（第3步）
   }
   // 由累计天数回写年号年序（年号恒定「光和」，游戏内自洽）
   function syncCalendar(){
@@ -3609,7 +3629,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   function cityLine(cid){
     var p=cityProfile(cid); if(!p) return '';
-    var _s='〔城郭·'+p.c.name+'·'+p.c.state+'〕'+p.tierDesc+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc+'｜农:'+p.agriDesc+'｜'+p.ctypeDesc;
+    var _s='〔'+p.c.name+'·'+p.c.state+'·城况〕'+p.tierDesc+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc+'｜农:'+p.agriDesc+'｜'+p.ctypeDesc;
     if(isCaptured(cid)) _s+='｜〔'+cityOwnerOf(cid)+'所占〕';   // 势力易主后显示占领势力
     return _s;
   }
@@ -3638,17 +3658,35 @@ window.onerror=function(msg,url,line,col,err){
         mkHtml+='</div>';
       }
     }
+    // 在建营造工单（第3步）：列出本城所有「building」状态的 BuildOrder
+    var boHtml='';
+    var _bo=state.flags.buildOrders;
+    if(_bo){
+      var boList=[];
+      for(var _bid in _bo){ var _o=_bo[_bid]; if(_o && _o.cid===cid && _o.status==='building') boList.push(_o); }
+      if(boList.length){
+        boHtml='<div class="row"><span>营造工事（'+boList.length+' 处）</span></div><div class="city-mk">';
+        boList.forEach(function(_o){
+          var _bp=LF.BUILD[_o.blueprintId]||{};
+          var _st=(_bp.stages||[]).length;
+          boHtml+='<div class="mk-i">🚧 <b>'+(_bp.doneName||'新筑')+'</b>：阶段 '+Math.min((_o.stageIndex||0)+1,_st)+' / '+_st+'　人力 '+(_o.laborPaid||0)+'/'+(_o.laborNeeded||(_bp.labor||2))+'</div>';
+        });
+        boHtml+='</div>';
+      }
+    }
     return '<h3>城 况 · '+p.c.name+'</h3>'+
       row('行政', p.tierDesc)+
       row('城型', p.ctypeDesc)+
       row('城门', p.gates+' 座')+
+      row('城级', cityLevelName(cid)+'（'+cityGridSize(cid)+'×'+cityGridSize(cid)+' 格，建设度 '+cityDevOf(cid)+'）')+
       row('人口', p.popDesc)+
       row('治安', p.orderDesc)+
       row('商业', p.comDesc)+
       row('农业', p.agriDesc)+
       row('城防', (p.c.wall>=60?'高垒深沟': p.c.wall>=45?'城墙完固': p.c.wall>=30?'城垣可守':'防守疏懈'))+
       (mkHtml? mkHtml : '')+
-      '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。</p>';
+      (boHtml? boHtml : '')+
+      '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。城内空地可点格「营造」筑新宅新市。</p>';
   }
   // ===== 城市 NPC 生成（数据驱动；v20260825i 合并原 cityNpcs/cityCellNpcs 为统一生成器）=====
   // 每类城市格子对应一组 NPC 生成规则；新增/调整城市 NPC 只需改此配置，无需动生成逻辑。
@@ -3720,6 +3758,7 @@ window.onerror=function(msg,url,line,col,err){
     var p=cityProfile(cid); if(!p) return [];
     var out=[];
     out.push({id:'city_stat', label:'城况一览', icon:'📊', tip:'查看本城参数、城型与市集'});
+    out.push({id:'city_upgrade', label:'兴修城垣', icon:'🧱', tip:'拓建城池，提升城市等级（耗砖石木）'});
     return out;
   }
   // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
@@ -3738,7 +3777,7 @@ window.onerror=function(msg,url,line,col,err){
     plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'}, road:{i:'🛤',nm:'街巷'},
     market:{i:'🛒',nm:'市集'}, home:{i:'🏠',nm:'民宅'}, barracks:{i:'⚔',nm:'军营'},
     farm:{i:'🌾',nm:'农庄'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'},
-    broken:{i:'⛔',nm:'断路'}
+    broken:{i:'⛔',nm:'断路'}, site:{i:'🚧',nm:'工地'}
   };
   var CELL_DESC={
     palace:'宫阙巍峨，金瓦耀日，甲士环侍，天子所居之地，气象森严。',
@@ -3753,7 +3792,8 @@ window.onerror=function(msg,url,line,col,err){
     empty:'一片空地，瓦砾草莽，尚待营建。',
     ruin:'焦土未冷，断壁残垣，劫后萧索。',
     unbuilt:'城郭未及营建，草莽瓦砾，尚无居人。',
-    broken:'壕沟纵横，路基翻起，道路被掘断，无法通行。'
+    broken:'壕沟纵横，路基翻起，道路被掘断，无法通行。',
+    site:'建材成堆、工匠往来，工事未完，暂不可入。'
   };
   // ══ 城市盛衰 / 归属系统（v20260824d）══
   // 建设度(dev)决定建成半径：随盛衰扩建/降级；焦土(ruin)由战火标记；归属(owner)易主则中枢变帅府/行辕
@@ -3764,15 +3804,70 @@ window.onerror=function(msg,url,line,col,err){
     if(!state.flags.cityDev) state.flags.cityDev={};
     if(state.flags.cityDev[cid]==null) state.flags.cityDev[cid]=Math.min(100, 35+Math.round((c.pop||50)*0.6));
     if(!state.flags.cityOwner) state.flags.cityOwner={};
-    if(state.flags.cityOwner[cid]==null) state.flags.cityOwner[cid]=(c.owner||'汉');
+    if(state.flags.cityOwner[cid]==null) state.flags.cityOwner[cid]=cityDefaultOwner(cid);
     if(!state.flags.cityBurned) state.flags.cityBurned={};
     if(!state.flags.cityBurned[cid]) state.flags.cityBurned[cid]={};
     if(!state.flags.cityBroken) state.flags.cityBroken={};
     if(!state.flags.cityBroken[cid]) state.flags.cityBroken[cid]={};
+    if(!state.flags.cityLevel) state.flags.cityLevel={};
+    if(state.flags.cityLevel[cid]==null){
+      var _t=(LF.CITIES||{})[cid]||{};
+      state.flags.cityLevel[cid]= (_t.tier==='capital')?7 : (_t.tier==='zhou')?4 : (_t.tier==='xian')?3 : (_t.grid>=9?7:_t.grid>=7?4:_t.grid>=5?3:0);
+    }
+    // 城市营造覆盖层（第3步）：cityCells[cid]["x,y"]=CellInst{type,level,shops,owner,built,buildOrderId}
+    if(!state.flags.cityCells) state.flags.cityCells={};
+    if(!state.flags.cityCells[cid]) state.flags.cityCells[cid]={};
+    // 统一工单：宏观（requester:npcId，tick 按天推进）与微观（requester:'player'，现场 exert 推进）共用
+    if(!state.flags.buildOrders) state.flags.buildOrders={};
+    if(!state.flags.buildOrderSeq) state.flags.buildOrderSeq=0;
+  }
+  // ══ 城市等级动态系统（v20260826c）══
+  // 等级 0..7 平滑对应 grid 2..9（每次升级仅 +1 圈）：村/镇/乡/县城/郡城/府城/州城/都城
+  var CITY_LV_SIZE=[2,3,4,5,6,7,8,9];
+  var CITY_LV_NAME=['村','镇','乡','县城','郡城','府城','州城','都城'];
+  function cityTierLv(cid){
+    var cl=state.flags.cityLevel && state.flags.cityLevel[cid];
+    if(cl!=null) return cl;
+    var c=(LF.CITIES||{})[cid]||{};
+    if(c.tier==='capital') return 7;
+    if(c.tier==='zhou') return 4;
+    if(c.tier==='xian') return 3;
+    var g=c.grid||5;
+    return (g>=9?7:g>=7?4:g>=5?3:0);
+  }
+  function cityGridSize(cid){ return CITY_LV_SIZE[cityTierLv(cid)]||3; }
+  function cityLevelName(cid){ return CITY_LV_NAME[cityTierLv(cid)]||'城'; }
+  // 玩家微观升级：校验材料并提升城市等级（宏观委派版由 BuildOrder 在第3步接管，此处为即时路径）
+  function tryUpgradeCity(cid){
+    ensureCityState(cid);
+    var lv=state.flags.cityLevel[cid];
+    if(lv>=CITY_LV_SIZE.length-1){ toast((CITY_LV_NAME[lv]||'城')+'已至极制，无可再升。'); return; }
+    var RES_NM={'zhuan':'砖','shitiao':'石料','mucai':'木材'};
+    var need={zhuan:Math.round(40*(lv+1)), shitiao:Math.round(25*(lv+1)), mucai:Math.round(15*(lv+1))};
+    var miss=[];
+    for(var k in need){ if((packFind(k)||0) < need[k]) miss.push((RES_NM[k]||k)+'×'+need[k]); }
+    if(miss.length){ toast('拓建城垣所需材料不足：'+miss.join('、')+'。'); return; }
+    for(var k2 in need){ packConsume(k2, need[k2]); }
+    state.flags.cityLevel[cid]=lv+1;
+    afterPackChange();
+    log('夯土累石，城垣拓建——'+(CITY_LV_NAME[lv+1]||'城')+'初成，新坊市渐辟（建设度 '+cityDevOf(cid)+'）。','sys');
+    if(state.room===cid) renderRoom(cid,true);
+    openModal('citystat',{cid:cid});
+  }
+  // 降级（战争/政变/匪患）：城市等级 -1，触发流亡（越界建筑清理由 cityCells 覆盖层在第3步启用）
+  function downgradeCity(cid){
+    ensureCityState(cid);
+    var lv=state.flags.cityLevel[cid];
+    if(lv<=0) return;
+    state.flags.cityLevel[cid]=lv-1;
+    log((CITY_LV_NAME[lv]||'城')+'遭劫，城垣崩颓，降为'+(CITY_LV_NAME[lv-1]||'城')+'，民户流散。','sys');
   }
   function cityDevOf(cid){ ensureCityState(cid); return state.flags.cityDev[cid]; }
   function cityOwnerOf(cid){ ensureCityState(cid); return state.flags.cityOwner[cid]; }
-  function cityDefaultOwner(cid){ var c=(LF.CITIES||{})[cid]||{}; return c.owner||'汉'; }
+  function cityDefaultOwner(cid){
+    var c=(LF.CITIES||{})[cid]||{};
+    return ((LF.CITY_OWNER||{})[cid])||c.owner||'汉';
+  }
   function isCaptured(cid){ return cityOwnerOf(cid)!==cityDefaultOwner(cid); }
   function cityBurnedMap(cid){ ensureCityState(cid); return state.flags.cityBurned[cid]; }
   function cityBrokenMap(cid){ ensureCityState(cid); return state.flags.cityBroken[cid]; }
@@ -3831,16 +3926,40 @@ window.onerror=function(msg,url,line,col,err){
     if(Math.max(Math.abs(x-cx),Math.abs(y-cy))>R) return 'unbuilt';
     return m.cells[y][x];
   }
+  // ══ 城市营造覆盖层（第3步：BuildOrder + cityCells 四层叠加）══
+  // cityCells[cid]["x,y"]=CellInst{type,level,shops,owner,built,buildOrderId}
+  // 四层叠加：掘断(broken) > 覆盖层(override：已建→type / 施工中→site) > 焦土(ruin) > 底层(baseDisplayType)
+  function cityCellInst(cid,x,y){
+    ensureCityState(cid);
+    return (state.flags.cityCells[cid]||{})[x+','+y]||null;
+  }
+  function setCityCell(cid,x,y,inst){
+    ensureCityState(cid);
+    var k=x+','+y;
+    if(inst) state.flags.cityCells[cid][k]=inst; else delete state.flags.cityCells[cid][k];
+  }
+  function nextBuildOrderId(){
+    state.flags.buildOrderSeq=(state.flags.buildOrderSeq||0)+1;
+    return 'bo'+state.flags.buildOrderSeq;
+  }
+  function buildOrderById(id){ return (state.flags.buildOrders||{})[id]||null; }
+  function activeBuildOrder(cid,x,y){
+    var inst=cityCellInst(cid,x,y);
+    if(!inst||!inst.buildOrderId) return null;
+    return buildOrderById(inst.buildOrderId);
+  }
   function cellDisplayType(cid,x,y){
+    var km=cityBrokenMap(cid);
+    if(km[x+','+y]) return 'broken';                        // 掘断 > 一切（含自建道路）：断路即彻底不可通行
+    var inst=cityCellInst(cid,x,y);
+    if(inst) return inst.built ? inst.type : 'site';        // 覆盖层：已建显示建筑、施工中显示工地
     var t=baseDisplayType(cid,x,y);
     if(t==='unbuilt') return t;
-    var km=cityBrokenMap(cid);
-    if(km[x+','+y]) return 'broken';                        // 故意掘断 → 断路，彻底不可通行
     if(t==='road'||t==='gate') return t;                    // 道路/城门被战火所焚仍可通行，仅降级（见 roadInfo）；城门另有守军减益
     if(cityBurnedMap(cid)[x+','+y]) return 'ruin';
     return t;
   }
-  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt' && t!=='broken'; }
+  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt' && t!=='broken' && t!=='site'; }
   function burnCells(cid,n){
     var m=genCityGrid(cid); if(!m) return;
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
@@ -3861,6 +3980,11 @@ window.onerror=function(msg,url,line,col,err){
   function siegeWin(cid){
     state.flags.cityOwner=state.flags.cityOwner||{};
     state.flags.cityOwner[cid]=playerFaction();
+    // ── v20260826g 身份系统：占城即得 tier 对应官职（取更高者）──
+    var _tier=((LF.CITIES||{})[cid]||{}).tier||'xian';
+    var _gained=_tier==='capital'?'君主':_tier==='zhou'?'州牧':'太守';
+    if((LF.TITLES||[]).indexOf(state.title) < (LF.TITLES||[]).indexOf(_gained)) state.title=_gained;
+    if(state.ruledCities.indexOf(cid)<0) state.ruledCities.push(cid);
     setCityDev(cid, cityDevOf(cid)+18);
     var ct=centerTypeOf(cid);
     var cnm=((LF.CITIES||{})[cid]||{}).name||'城';
@@ -3878,6 +4002,7 @@ window.onerror=function(msg,url,line,col,err){
   // 行政中心按城市等级显示不同名称：都城→皇宫，州城→州衙，县城→城主府；势力易主后变帅府/行辕
   function cellDisplayName(cid,t){
     if(t==='unbuilt') return '未营建';
+    if(t==='site') return '工地';
     if(t==='gov'){
       if(isCaptured(cid)) return '行辕';
       var _c=(LF.CITIES||{})[cid]||{};
@@ -3900,8 +4025,10 @@ window.onerror=function(msg,url,line,col,err){
   function isCityGrid(rid){ var c=(LF.CITIES||{})[rid]; return !!(c && c.grid); }
   function genCityGrid(cid){
     var c=(LF.CITIES||{})[cid]; if(!c||!c.grid) return null;
-    if(state.flags.cityGrid && state.flags.cityGrid[cid] && state.flags.cityGrid[cid].ver===GRID_VER) return state.flags.cityGrid[cid];
-    var size=c.grid, rnd=seededRand(cid+'_grid');
+    var _lv=cityTierLv(cid);
+    var _myVer=GRID_VER+'@'+_lv;
+    if(state.flags.cityGrid && state.flags.cityGrid[cid] && state.flags.cityGrid[cid].ver===_myVer) return state.flags.cityGrid[cid];
+    var size=cityGridSize(cid), rnd=seededRand(cid+'_grid_'+_lv);
     var cx=Math.floor(size/2), cy=Math.floor(size/2);
     var tier=c.tier || (c.grid>=9?'capital':c.grid>=7?'zhou':'xian');
     var centerType=(tier==='capital') ? 'palace' : 'gov';   // 都城中央为皇宫，其余为衙门/城主府
@@ -3956,7 +4083,7 @@ window.onerror=function(msg,url,line,col,err){
       markets[mx+','+my]={ name:nm, dir:dir, shops:shops };
     }
     state.flags.cityGrid=state.flags.cityGrid||{};
-    state.flags.cityGrid[cid]={ver:GRID_VER, size:size, cells:g, markets:markets, gates:nG};
+    state.flags.cityGrid[cid]={ver:_myVer, size:size, cells:g, markets:markets, gates:nG};
     return state.flags.cityGrid[cid];
   }
   function cityCellDesc(cid,x,y){
@@ -3968,21 +4095,37 @@ window.onerror=function(msg,url,line,col,err){
       if(ri) d+='（'+ri.nm+'：'+ri.desc+'）';
       if(cityBurnedMap(cid)[x+','+y]) d+=' 此地曾遭战火，路面坑洼焦黑。';
     }
+    if(t==='site'){
+      var _inst=cityCellInst(cid,x,y);
+      var _o=_inst&&_inst.buildOrderId?buildOrderById(_inst.buildOrderId):null;
+      var _bp=_o?LF.BUILD[_o.blueprintId]:null;
+      if(_o&&_bp){
+        var _stage=(_bp.stages||[])[_o.stageIndex];
+        d+=' 正在营造「'+(_bp.doneName||'新筑')+'」，当前工段「'+(_stage?_stage.name:'收尾')+'」。';
+      }
+    }
     return [d];
   }
     function cityCellNpcs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
     var p=cityProfile(cid); if(!p) return [];
     var c=(LF.CITIES||{})[cid]||{};
-    var gen = NPC_GEN[ m.cells[y][x] ] || NPC_GEN.common;
+    var gen = NPC_GEN[ cellDisplayType(cid,x,y) ] || NPC_GEN.common;
     return gen(cid,x,y,c, c.name||'此城', m);
   }
   function cityCellActs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
-    var t=m.cells[y][x], dt=cellDisplayType(cid,x,y), p=cityProfile(cid), out=[];
+    var dt=cellDisplayType(cid,x,y), t=dt, p=cityProfile(cid), out=[];
     var bm=cityBurnedMap(cid), km=cityBrokenMap(cid);
     var burnt=!!bm[x+','+y], broken=!!km[x+','+y];
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
+    // 营造入口（第3步）：工地可继续营造；空地可择蓝图开工（已建格升级留待后续）
+    var inst=cityCellInst(cid,x,y);
+    if(inst && !inst.built){
+      out.push({id:'city_build', label:'继续营造', icon:'🚧', tip:'回到工地，投料营造，工成则此格落成新筑', data:{cid:cid,x:x,y:y}});
+    } else if(!inst && dt==='empty'){
+      out.push({id:'city_build', label:'营造新筑', icon:'🏗️', tip:'择空地依图纸营造建筑（民宅/市集/农庄/军营/土路）', data:{cid:cid,x:x,y:y}});
+    }
     if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
     if(t==='market'){
       // 商街店铺 = 场景交互物品：以本市场商铺清单（含程序生成招牌）渲染（进·字号 等），不再占用 NPC 列表
@@ -4017,7 +4160,244 @@ window.onerror=function(msg,url,line,col,err){
     });
     // 寻路出城（其他手段：自动沿可通行道路行至最近城门；断路阻隔则无法成行）
     out.push({id:'leave_auto', label:'寻路出城', tip:'自动沿可通行道路行至最近城门出城（若断路阻隔则无法成行）'});
+    // ── 政令台（v20260826g 身份系统）：立于中枢且此城归你所统，方能发号 ──
+    if(x===cx && y===cy && cityOwnerOf(cid)===playerFaction()){
+      out.push({id:'edict', label:'政令台', icon:'📜', tip:'于此发号政令：征税、安民、观天下大势'});
+    }
     return out;
+  }
+  // ══ 城市营造（第3步：微观现场建造，BuildOrder 驱动）══
+  // 现场「营造」→ 择蓝图开工 → 逐阶段投料 + 营造(exert) → 落成写 cityCells 覆盖层
+  var cityBuildState={cid:null,x:null,y:null};
+  function cityBuildBpList(cid,x,y){
+    var out=[], cur=cellDisplayType(cid,x,y);
+    for(var k in LF.BUILD){
+      var bp=LF.BUILD[k];
+      if(!bp || !bp.city) continue;
+      if((bp.onTypes||[]).indexOf(cur)<0) continue;
+      out.push({id:k, bp:bp});
+    }
+    return out;
+  }
+  function cityBuildMatTotal(bp){
+    var total={};
+    (bp.stages||[]).forEach(function(s){ for(var mk in s.need) total[mk]=(total[mk]||0)+s.need[mk]; });
+    return total;
+  }
+  // 第4步图纸系统：城市营造需先持对应图纸，开工即耗去图样（v20260826）
+  function startCityBuild(cid,x,y,bpId){
+    var bp=LF.BUILD[bpId]; if(!bp) return;
+    if(bp.tuzhi){
+      var tzd=LF.ITEMS[bp.tuzhi]||{};
+      if(!packFind(bp.tuzhi)){ toast('营造「'+(bp.doneName||'此建筑')+'」需先持有「'+(tzd.name||'图纸')+'」——可于货郎处购得。'); return; }
+    }
+    var inst=cityCellInst(cid,x,y);
+    if(inst && inst.built){ toast('此格已有建筑落成。'); return; }
+    if(inst && !inst.built){ toast('此格已有工地，去「继续营造」推进工事。'); return; }
+    ensureCityState(cid);
+    state.flags.buildOrders=state.flags.buildOrders||{};
+    var id=nextBuildOrderId();
+    var stages=bp.stages||[], matsNeeded={};
+    stages.forEach(function(s){ for(var mk in s.need){ matsNeeded[mk]=(matsNeeded[mk]||0)+s.need[mk]; } });
+    state.flags.buildOrders[id]={
+      id:id, cid:cid, x:x, y:y, blueprintId:bpId,
+      requester:'player', level:1,
+      matsNeeded:matsNeeded, matsPaid:{},
+      laborNeeded:(bp.labor||2), laborPaid:0, moneyPaid:0,
+      stages:stages, stageIndex:0,
+      startDay:(state.day||0), estDays:0, status:'building', assignedNpc:null
+    };
+    setCityCell(cid,x,y,{type:bp.cellType||'home', level:1, shops:[], owner:'player', built:false, buildOrderId:id});
+    if(bp.tuzhi) packConsume(bp.tuzhi,1);
+    log('你持「'+((LF.ITEMS[bp.tuzhi]||{}).name||'图样')+'」择定空地，破土动工——「'+(bp.doneName||'新筑')+'」开始营造！','sys');
+    save(state);
+    openModal('citybuild',{cid:cid,x:x,y:y});
+  }
+  // 投料：每投入 1 份材料耗时 1 时辰 + 精力 1
+  function cityBuildMat(o, matId){
+    var bp=LF.BUILD[o.blueprintId]; if(!bp || o.status!=='building') return;
+    var stage=(bp.stages||[])[o.stageIndex]; if(!stage) return;
+    var need=stage.need[matId]; if(!need) return;
+    if((o.matsPaid[matId]||0) >= need){ toast('「'+stage.name+'」所需此料已备齐。'); return; }
+    var cur=packFind(matId);
+    if(!cur || (cur.count||0) < 1){ toast('行囊中无'+(LF.ITEMS[matId]||{}).name+'。'); return; }
+    if(state.energy<=0){ toast('精力已尽，先休整恢复再行填充。'); return; }
+    advanceTime(1);
+    state.energy=Math.max(0,state.energy-1);
+    packConsume(matId,1);
+    o.matsPaid[matId]=(o.matsPaid[matId]||0)+1;
+    save(state); afterPackChange();
+    log('你投入'+(LF.ITEMS[matId]||{}).name+'×1 于「'+stage.name+'」。','env');
+    if(currentModalKind==='citybuild') openModal('citybuild',{cid:o.cid,x:o.x,y:o.y});
+  }
+  // 营造：本阶段材料备齐后，每轮 exert 推 laborPaid；满则进入下一阶段，末阶段满则落成
+  function cityBuildExert(o){
+    var bp=LF.BUILD[o.blueprintId]; if(!bp || o.status!=='building') return;
+    var stages=bp.stages||[];
+    var stage=stages[o.stageIndex];
+    if(!stage){ finishCityBuild(o); return; }
+    for(var mk in stage.need){ if((o.matsPaid[mk]||0) < stage.need[mk]){ toast('「'+stage.name+'」材料未齐，无法营造。'); return; } }
+    if(state.energy<=0){ toast('精力已尽，先休整恢复再行营造。'); return; }
+    if(!exert('营造')) return;
+    advanceTime(1);
+    state.energy=Math.max(0,state.energy-2);
+    o.laborPaid=(o.laborPaid||0)+1;
+    var needLabor=(bp.labor||2);
+    save(state); afterPackChange();
+    if(o.laborPaid >= needLabor){
+      o.laborPaid=0;
+      o.stageIndex++;
+      if(o.stageIndex >= stages.length){ finishCityBuild(o); return; }
+      log('你完成了「'+stage.name+'」，工事推进至「'+stages[o.stageIndex].name+'」。','env');
+    } else {
+      log('你挥汗如雨，昼夜营造——「'+stage.name+'」工事更进一层（'+o.laborPaid+'/'+needLabor+'）。','env');
+    }
+    if(currentModalKind==='citybuild') openModal('citybuild',{cid:o.cid,x:o.x,y:o.y});
+  }
+  // 落成：built=true 写入 cityCells 覆盖层；市集预设空铺面（后续招商/升级）
+  function finishCityBuild(o){
+    var bp=LF.BUILD[o.blueprintId]||{};
+    var inst=cityCellInst(o.cid,o.x,o.y);
+    if(inst){
+      inst.built=true; inst.type=bp.cellType||inst.type;
+      if(inst.type==='market' && !inst.shops) inst.shops=[];
+    }
+    o.status='done';
+    var cnm=((LF.CITIES||{})[o.cid]||{}).name||'城中';
+    log('〔工成〕'+(bp.doneName||'建筑')+'于「'+cnm+'」落成！匠人散去，百姓渐聚。','good');
+    save(state); afterPackChange();
+    if(state.room===o.cid){ renderRoom(o.cid,true); }
+    closeModal();
+  }
+  function cityCellSiteName(cid,x,y){
+    var inst=cityCellInst(cid,x,y);
+    if(inst && inst.buildOrderId){ var o=buildOrderById(inst.buildOrderId); if(o){ var bp=LF.BUILD[o.blueprintId]||{}; return bp.siteName||'工地'; } }
+    return '工地';
+  }
+  function heldTuzhiList(){
+    var out=[];
+    (state.pack||[]).forEach(function(it){ if(it && (LF.ITEMS[it.defId]||{}).cat==='图纸') out.push(it); });
+    return out;
+  }
+  function renderCityBuildPanel(){
+    var S=cityBuildState, cid=S.cid, x=S.x, y=S.y;
+    if(cid==null||x==null||y==null) return '<h3>营 造</h3><p class="tip">未定位营造地点。</p>';
+    var inst=cityCellInst(cid,x,y);
+    var cnm=((LF.CITIES||{})[cid]||{}).name||'城中';
+    var head='<h3>营 造 · '+cnm+'</h3>';
+    var body='';
+    if(inst && !inst.built){
+      var o=activeBuildOrder(cid,x,y);
+      body = o ? renderCityBuildProgress(o) : '<p class="tip">工地空置，工匠徘徊。去别处空地择图开工。</p>';
+    } else if(inst && inst.built){
+      body=renderCityBuildDone(inst);
+    } else {
+      var list=cityBuildBpList(cid,x,y);
+      if(!list.length){
+        body='<p class="tip">此格（'+cellDisplayName(cid,cellDisplayType(cid,x,y))+'）无可营造之蓝图——寻城中空地（🟫）营造。</p>';
+      } else {
+        var held=heldTuzhiList();
+        var holdHtml='<p class="tip" style="border:1px dashed #6b5a3a;padding:6px;border-radius:8px;">持有图纸：'+(held.length?held.map(function(it){var d=LF.ITEMS[it.defId]||{};return (d.icon||'')+(d.name||it.defId)+'×'+(it.count||1);}).join('　'):'无（可于「货郎」处购得城市营造图样）')+'</p>';
+        body=holdHtml+'<p class="tip">此地为「'+cellDisplayName(cid,cellDisplayType(cid,x,y))+'」。持图者方可开工：</p>';
+        list.forEach(function(it){
+          var bp=it.bp, total=cityBuildMatTotal(bp), mats='';
+          for(var mk in total) mats+=((LF.ITEMS[mk]||{}).name||mk)+'×'+total[mk]+'　';
+          var has=!bp.tuzhi||packFind(bp.tuzhi);
+          var badge=bp.tuzhi?'　〔'+(has?'持图':'缺图')+'〕':'';
+          var btn=has?'<button class="btn-mini" data-start="'+it.id+'">开 工</button>':'<button class="btn-mini" disabled style="opacity:.5;cursor:not-allowed;">缺 图</button>';
+          body+='<div style="display:flex;align-items:center;gap:10px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'+
+            '<div style="flex:1;"><b>'+bp.doneName+badge+'</b><div class="tip">'+bp.desc+'</div>'+
+            '<div class="tip">耗材：'+mats+'　营造：'+(bp.stages||[]).length+' 阶段 × '+(bp.labor||2)+' 轮</div></div>'+
+            '<span style="flex:none;">'+btn+'</span></div>';
+        });
+      }
+    }
+    return head+body+'<button class="btn-mini" id="cb-leave" style="width:100%;margin-top:8px;">收 工</button>';
+  }
+  function renderCityBuildProgress(o){
+    var bp=LF.BUILD[o.blueprintId]||{};
+    var stages=bp.stages||[];
+    var stage=stages[o.stageIndex];
+    if(!stage) return '<p class="tip">工事已毕，只待收尾。</p>';
+    var html='<p class="tip">营造「<b>'+bp.doneName+'</b>」· 阶段 '+Math.min(o.stageIndex+1,stages.length)+' / '+stages.length+'　当前·<b>'+stage.name+'</b></p>';
+    for(var k in stage.need){
+      var it=LF.ITEMS[k]||{};
+      var have=o.matsPaid[k]||0, need=stage.need[k], packN=(packFind(k)||{count:0}).count;
+      var done=have>=need;
+      html+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'+
+        '<span>'+itemIconHTML(it,18)+'</span>'+
+        '<span style="opacity:.8;flex:1;">'+have+' / '+need+'　·　行囊'+packN+'</span>'+
+        (done?'<span style="color:#8fce8f;">已备齐</span>':'<button class="btn-mini" data-order="'+o.id+'" data-mat="'+k+'">投 料</button>')+
+        '</div>';
+    }
+    var matsOk=true;
+    for(var k2 in stage.need){ if((o.matsPaid[k2]||0) < stage.need[k2]){ matsOk=false; break; } }
+    html+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'+
+      '<span>⚒️</span><span style="opacity:.8;flex:1;">营造进度（人力）'+o.laborPaid+' / '+(bp.labor||2)+'</span>'+
+      (matsOk?'<button class="btn-mini" data-order="'+o.id+'" data-exert="1">营 造</button>':'')+
+      '</div>';
+    if(!matsOk) html+='<p class="tip">投齐本阶段材料，方可开营造（每轮耗时 1 时辰、耗 4 精力）。</p>';
+    return html;
+  }
+  function renderCityBuildDone(inst){
+    var nm=cellDisplayName(cityBuildState.cid, inst.type);
+    var ownerName=inst.owner==='player' ? '你' : (inst.owner||'未知');
+    return '<p class="tip">「'+nm+'」已然落成（等级 '+(inst.level||1)+'，产权：'+ownerName+'）。'+
+      (inst.type==='market'?'　市集每日可收市租（10 钱/级），银两自动入你名下。':'')+'</p>';
+  }
+  function bindCityBuildPanel(){
+    var S=cityBuildState;
+    var card=document.querySelector('#modal-card');
+    if(!card) return;
+    card.querySelectorAll('[data-start]').forEach(function(b){
+      b.onclick=function(){ startCityBuild(S.cid,S.x,S.y,b.getAttribute('data-start')); };
+    });
+    card.querySelectorAll('[data-mat]').forEach(function(b){
+      b.onclick=function(){ var o=buildOrderById(b.getAttribute('data-order')); if(o) cityBuildMat(o, b.getAttribute('data-mat')); };
+    });
+    card.querySelectorAll('[data-exert]').forEach(function(b){
+      b.onclick=function(){ var o=buildOrderById(b.getAttribute('data-order')); if(o) cityBuildExert(o); };
+    });
+    var lv=document.getElementById('cb-leave'); if(lv) lv.onclick=function(){ closeModal(); };
+  }
+  // ══ 宏观工单推进 + 每日市租（第3步）══
+  // 微观(requester:'player')由玩家现场 exert 推进；宏观(requester:npcId)每日跨子夜按 estDays 推进（第5步政令台委派启用）
+  function tickBuildOrders(n){
+    var bo=state.flags.buildOrders;
+    if(!bo || n<=0) return;
+    for(var id in bo){
+      var o=bo[id]; if(!o || o.status!=='building') continue;
+      if(o.requester==='player') continue;
+      var mul=(typeof npcBuildSpeed==='function')?npcBuildSpeed(o.assignedNpc):1;
+      o.laborPaid=(o.laborPaid||0)+Math.max(1, Math.ceil((o.laborNeeded||1)/Math.max(1,(o.estDays||1))*n*mul));
+      var mats=o.matsNeeded||{};
+      for(var mk in mats) o.matsPaid[mk]=mats[mk];
+      if(o.laborPaid >= (o.laborNeeded||1)){
+        o.status='done';
+        commitBuildOrder(o);
+        var _bp=LF.BUILD[o.blueprintId]||{};
+        log('〔工成〕'+( _bp.doneName||'建筑')+'落成（工单 '+o.id+'）。','sys');
+      }
+    }
+    collectRents();
+  }
+  function commitBuildOrder(o){
+    var bp=LF.BUILD[o.blueprintId]||{};
+    var inst=cityCellInst(o.cid,o.x,o.y);
+    if(inst){ inst.built=true; inst.type=bp.cellType||inst.type; inst.level=o.level||inst.level; }
+  }
+  // 市租：已建市集按等级每日入其 owner 名下（player→state.gold；其余留待第5/6步势力钱袋）
+  function collectRents(){
+    var cc=state.flags.cityCells; if(!cc) return;
+    for(var cid in cc){
+      var cells=cc[cid]; if(!cells) continue;
+      for(var k in cells){
+        var c=cells[k];
+        if(!c || c.type!=='market' || !c.built) continue;
+        var rent=(c.level||1)*10;
+        if(c.owner==='player') state.gold=(state.gold||0)+rent;
+      }
+    }
   }
   function goCell(cid,x,y){
     var cp=state.flags.cityPos; if(!cp || cp.cid!==cid) return;
@@ -4038,6 +4418,89 @@ window.onerror=function(msg,url,line,col,err){
     save(state);
     if(currentModalKind==='map') openModal('map');   // 城内地图模式下同步刷新网格
   }
+  // ── 身份 / 势力系统（v20260826g）：政令台 + 势力图 ──
+  function factionName(id){
+    if(id==='义军'||id==='player') return (LF.FACTIONS&&LF.FACTIONS.player)?LF.FACTIONS.player.name:'义军';
+    if(id==='汉'||id==='han') return (LF.FACTIONS&&LF.FACTIONS.han)?LF.FACTIONS.han.name:'汉室';
+    var f=(LF.FACTIONS||{})[id]; return f?f.name:id;
+  }
+  function factionColor(id){
+    if(id==='义军'||id==='player') return (LF.FACTIONS&&LF.FACTIONS.player)?LF.FACTIONS.player.color:'#3a3a3a';
+    if(id==='汉'||id==='han') return (LF.FACTIONS&&LF.FACTIONS.han)?LF.FACTIONS.han.color:'#7d6a2e';
+    var f=(LF.FACTIONS||{})[id]; return f?f.color:'#888';
+  }
+  function civilEdict(kind){
+    var cid=state.room;
+    if(!isCityGrid(cid)) return;
+    if(cityOwnerOf(cid)!==playerFaction()){ toast('你并非此城之主，何谈政令？'); return; }
+    var c=(LF.CITIES||{})[cid]||{};
+    if(kind==='tax'){
+      var last=(state.flags.cityTax||{})[cid];
+      if(last===state.day){ toast('今日已在此征过税赋。'); return; }
+      var gain=Math.round((c.pop+c.commerce)/12)+5;
+      state.gold+=gain;
+      state.flags.cityTax=state.flags.cityTax||{}; state.flags.cityTax[cid]=state.day;
+      state.flags.cityOrder=state.flags.cityOrder||{};
+      var ord=(state.flags.cityOrder[cid]!=null?state.flags.cityOrder[cid]:c.order)-4;
+      state.flags.cityOrder[cid]=Math.max(0,ord);
+      log('你颁下政令，差役挨户征缴。'+c.name+'岁入 💰'+gain+' 两，然胥吏扰民，治安略降。','sys');
+      toast('征得 💰'+gain+' 两');
+    } else if(kind==='pacify'){
+      if(state.gold<20){ toast('府库空虚，无银安民。'); return; }
+      state.gold-=20;
+      state.flags.cityOrder=state.flags.cityOrder||{};
+      var o2=(state.flags.cityOrder[cid]!=null?state.flags.cityOrder[cid]:c.order)+6;
+      state.flags.cityOrder[cid]=Math.min(100,o2);
+      log('你开仓赈济、张贴安民告示，'+c.name+'百姓稍安，治安渐复。','good');
+      toast('安民：治安 +6');
+    }
+    renderStatus(); save(state); openModal('edict');
+  }
+  function renderEdict(){
+    var cid=state.room; if(!isCityGrid(cid)) return '';
+    var c=(LF.CITIES||{})[cid]||{};
+    var ord=(state.flags.cityOrder&&state.flags.cityOrder[cid]!=null)?state.flags.cityOrder[cid]:c.order;
+    var taxReady=(state.flags.cityTax||{})[cid]!==state.day;
+    var taxTip=taxReady?('可征 💰'+(Math.round((c.pop+c.commerce)/12)+5)+' 两'):'今日已征';
+    var h='';
+    h+='<div class="edict-box">';
+    h+='<div class="edict-h">📜 '+c.name+' · 政令台</div>';
+    h+='<div class="edict-sub">官职：'+(state.title||'游侠')+'　｜　势力：'+factionName(playerFaction())+'　｜　治安：'+ord+'</div>';
+    h+='<div class="edict-acts">';
+    h+='<button class="btn" onclick="civilEdict(\'tax\')">💰 征税<br><span class="sub">'+taxTip+'</span></button>';
+    h+='<button class="btn" onclick="civilEdict(\'pacify\')">🤝 安民<br><span class="sub">耗💰20，治安+6</span></button>';
+    h+='<button class="btn" onclick="openModal(\'factionMap\')">🏴 大势<br><span class="sub">观天下势力</span></button>';
+    h+='</div>';
+    h+='<div class="edict-foot">立于中枢、城归你所统，方能发号。占城即得官职，聚财养士。</div>';
+    h+='</div>';
+    return h;
+  }
+  function renderFactionMap(){
+    var groups={};
+    var keys=Object.keys(LF.CITIES||{});
+    keys.forEach(function(cid){
+      var owner=cityOwnerOf(cid);
+      var fid=(owner==='义军'||owner==='player')?'player':owner;
+      if(!groups[fid]) groups[fid]={fid:fid, cities:[]};
+      groups[fid].cities.push((LF.CITIES[cid]||{}).name||cid);
+    });
+    var order=['han','dongzhuo','yuanshao','caocao','sunce','liubiao','liuzhang','gongsun','matang','player'];
+    var h='';
+    h+='<div class="faction-map">';
+    h+='<div class="fm-h">🏴 天下大势 · 群雄割据</div>';
+    order.forEach(function(fid){
+      var g=groups[fid]; if(!g) return;
+      var f=(LF.FACTIONS||{})[fid]||{name:fid, color:'#888', desc:''};
+      h+='<div class="fm-row">';
+      h+='<div class="fm-lord"><span class="fm-dot" style="background:'+f.color+'"></span><b>'+f.name+'</b>'+(f.lord?'　<small>主君 '+f.lord+'</small>':'')+'</div>';
+      h+='<div class="fm-cities">'+g.cities.join('、')+'</div>';
+      h+='<div class="fm-desc">'+f.desc+'</div>';
+      h+='</div>';
+    });
+    h+='<div class="fm-foot">你治下：'+((state.ruledCities||[]).length)+' 城　｜　官职：'+(state.title||'游侠')+'　｜　势力：'+factionName(playerFaction())+'</div>';
+    h+='</div>';
+    return h;
+  }
   // ===== 山河图 · 城内网格视图（v20260824b）=====
   // 在山河志内展示城内 N×N 布局，点相邻格或借底部方向键皆可移动；不再占用文字框
   function buildMapCityHTML(opts){
@@ -4053,11 +4516,12 @@ window.onerror=function(msg,url,line,col,err){
       var burnt=!!cityBurnedMap(cid)[x+','+y];
       var cur=(cp.x===x&&cp.y===y);
       var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
-      var locked=(t==='ruin'||t==='unbuilt'||t==='broken');
+      var locked=(t==='ruin'||t==='unbuilt'||t==='broken'||t==='site');
       var cls='mc-cell mc-'+t+(ri?(' mc-r'+ri.lv):'')+(cur?' mc-cur':'')+(adj&&!locked?' mc-adj':'')+(locked?' mc-block mc-locked':'')+(burnt?' mc-burnt':'');
       var _nm;
       if(ri) _nm = ri.gate?'城门'+(burnt?'·焚':''):ri.nm+(burnt?'·焚':'');
       else if(t==='market'){ var _mk=m.markets&&m.markets[x+','+y]; _nm = _mk? _mk.name : cellDisplayName(cid,t); }
+      else if(t==='site') _nm = cityCellSiteName(cid,x,y);
       else _nm = cellDisplayName(cid,t);
       cells+='<div class="'+cls+'" data-x="'+x+'" data-y="'+y+'"'+
         ' style="left:'+(x*CELL)+'px;top:'+(y*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
@@ -4084,7 +4548,7 @@ window.onerror=function(msg,url,line,col,err){
         if(isCur || canEnterCell(cid,x,y)){
           el.addEventListener('click', function(){
             if(isCur) return;
-            if(!canEnterCell(cid,x,y)){ toast((cellDisplayType(cid,x,y)==='broken'?'此路已被掘断，无法通行。':(cellDisplayType(cid,x,y)==='ruin'?'那处已成焦土，无从通行。':'城垣未及营建，暂不可往。'))); return; }
+            if(!canEnterCell(cid,x,y)){ var _dt=cellDisplayType(cid,x,y); toast((_dt==='broken'?'此路已被掘断，无法通行。':(_dt==='ruin'?'那处已成焦土，无从通行。':(_dt==='site'?'此处正在营造，工匠往来，暂不可入。':'城垣未及营建，暂不可往。')))); return; }
             goCell(cid, x, y);
           });
         } else {
@@ -4572,6 +5036,15 @@ window.onerror=function(msg,url,line,col,err){
       case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
       case 'city_stat': openModal('citystat', {cid:(a&&a.data?a.data.cid:state.room)}); break;
+      case 'city_upgrade': tryUpgradeCity((a&&a.data?a.data.cid:state.room)); break;
+      case 'city_build': {
+        var _bda=(a&&a.data)||{};
+        cityBuildState.cid=(_bda.cid!=null)?_bda.cid:state.room;
+        cityBuildState.x=(_bda.x!=null)?_bda.x:(state.flags.cityPos?state.flags.cityPos.x:0);
+        cityBuildState.y=(_bda.y!=null)?_bda.y:(state.flags.cityPos?state.flags.cityPos.y:0);
+        openModal('citybuild',{cid:cityBuildState.cid,x:cityBuildState.x,y:cityBuildState.y});
+        break;
+      }
       case 'enter_building':
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
         enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
@@ -4588,6 +5061,10 @@ window.onerror=function(msg,url,line,col,err){
         var _cp=state.flags.cityPos||{}, _ct=(_cp.cid? cellDisplayType(_cp.cid, _cp.x, _cp.y):'');
         if(_ct!=='gate'){ toast('须至城门方能出城——沿道路走到城门口，或「寻路出城」。'); break; }
         openModal('map', {forceWorld:true}); break;
+      }
+      case 'edict': {
+        if(!isCityGrid(state.room)){ toast('此处非城池中枢，无处发号。'); break; }
+        openModal('edict'); break;
       }
       case 'road_break': {
         if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
@@ -5220,6 +5697,39 @@ window.onerror=function(msg,url,line,col,err){
   }
   function build_quarry_actions(){
     return [{label:'采石料', icon:'⛏️', fn:function(){ mineStone(); }}];
+  }
+  // 伐木场：伐木取材（每日限次，仿采石崖）
+  function cutWood(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    if(!exert('伐木')) return;
+    state.buildCount = state.buildCount || {};
+    var k = 'wood_' + state.room + '@' + state.day;
+    if((state.buildCount[k]||0) >= 3){ toast('今日采伐已足三回，林子需养，明日再来。'); return; }
+    state.buildCount[k] = (state.buildCount[k]||0) + 1;
+    advanceTime(1);
+    var hasAxe = !!packFind('tiefu') || !!packFind('futou');
+    var n = hasAxe ? 2 : 1;
+    packAdd('mucai', n);
+    afterPackChange();
+    log('你'+(hasAxe?'挥斧斫木':'徒手折枝')+'，哢哢数声，得木材×'+n+'。','env');
+    openModal('building');
+  }
+  // 砖窑：烧砖（每日限次，耗柴火/石料，仿采石崖）
+  function fireBrick(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    if(!exert('烧砖')) return;
+    state.buildCount = state.buildCount || {};
+    var k = 'brick_' + state.room + '@' + state.day;
+    if((state.buildCount[k]||0) >= 3){ toast('今日窑火已足三窑，歇火养窑，明日再烧。'); return; }
+    state.buildCount[k] = (state.buildCount[k]||0) + 1;
+    advanceTime(1);
+    var hasFuel = !!packFind('mucai');
+    var n = hasFuel ? 2 : 1;
+    if(hasFuel) packConsume('mucai', 1);
+    packAdd('zhuan', n);
+    afterPackChange();
+    log('你添柴鼓风，窑火映红脸膛，出砖×'+n+(hasFuel?'（耗木材×1为薪）':'（无薪，砖质稍逊）')+'。','env');
+    openModal('building');
   }
   // 残破木箱：一次性拾取「冶炼工坊图」
   function build_crate_actions(){
@@ -7071,6 +7581,11 @@ window.onerror=function(msg,url,line,col,err){
       h=renderForgePanel();
     } else if(kind==='citystat'){
       h=renderCityStat(opts && opts.cid ? opts.cid : state.room);
+    } else if(kind==='citybuild'){
+      if(opts && opts.cid!=null) cityBuildState.cid=opts.cid;
+      if(opts && opts.x!=null) cityBuildState.x=opts.x;
+      if(opts && opts.y!=null) cityBuildState.y=opts.y;
+      h=renderCityBuildPanel();
     } else if(kind==='building'){
       // 已在建筑房间内：acts 中的 openModal('building') 用作场景刷新，不再弹窗
       if(state && state.room && isBldRoom(state.room)){
@@ -7084,6 +7599,10 @@ window.onerror=function(msg,url,line,col,err){
       }
       if(!buildingState || !buildingState.area){ buildingState={building:'yaofu', bp:null, area:'root', stack:[], sel:null}; }
       h=renderBuildingPanel();
+    } else if(kind==='edict'){
+      h=renderEdict();
+    } else if(kind==='factionMap'){
+      h=renderFactionMap();
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop');
@@ -7096,6 +7615,7 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='rest'){ bindRestPanel(); }
     if(kind==='forge'){ bindForgePanel(); }
     if(kind==='building'){ bindBuildingPanel(); }
+    if(kind==='citybuild'){ bindCityBuildPanel(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
@@ -7324,6 +7844,13 @@ window.onerror=function(msg,url,line,col,err){
   //    解析 openModal/log/exert/packFind…，需将游戏内部函数暴露到 window，否则建筑内面板（如铁砧打造）打开报 ReferenceError
   window.openModal=openModal; window.closeModal=closeModal; window.log=log; window.toast=toast;
   window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
+  // ── 调试桥（城市营造系统，回归脚本用）：暴露只读/推进函数，不影响正常游戏 ──
+  window.DBG=window.DBG||{};
+  window.DBG.city={ startCityBuild:startCityBuild, cityBuildMat:cityBuildMat, cityBuildExert:cityBuildExert,
+    cityCellInst:cityCellInst, setCityCell:setCityCell, cellDisplayType:cellDisplayType, canEnterCell:canEnterCell,
+    tickBuildOrders:tickBuildOrders, collectRents:collectRents, buildOrderById:buildOrderById,
+    cityBuildBpList:cityBuildBpList, cityGridSize:cityGridSize, ensureCityState:ensureCityState,
+    state:function(){ return state; }, save:save };
 
   // HTML 注入辅助（战斗卡片用）
   function logHTML(html, cls){
