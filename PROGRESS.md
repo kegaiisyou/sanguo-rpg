@@ -463,9 +463,10 @@
 
 **已知缺口 / 技术债（接棒重点）**
 1. **文档脱节**：本文档此前停在 v20260821y，本次补录至 v20260825f；`GAME_DESIGN.md` 仍停在 2026-07-29，待同步。
-2. **新手教程半迁移**：苦役营 `camp_*` 新教程（3/11 房、5/30 NPC、密道线预览）已落地，但旧燕山 `ys_*` 的 `ONB_CHAIN` 硬编码仍残留，两套并存，需二选一收尾（做完苦役营完整版 / 或回退清理旧链）。
-3. **营造 emoji 残留**：`build.js` 的 `icon` 字段与 `renderBuildPanel` / 炉膛标题仍用 emoji，与"文字图标"目标不一致，应统一走 `itemIconHTML` + `doneName` / `siteName`。
-4. **无用残留**：`narrative/` 目录为空、`_game_inline.js` 未跟踪，疑似调试残留，建议清理或归档。
+2. **新手教程半迁移（已收口）**：旧燕山 `ys_*` 已清理——`index.html` 中 `ONB_CHAIN` 已移除、`ys_*` 判定改为仅 `camp_*`、`ys_contact` 触发挂起、房间层 `yanshan_*`（6 间）已删除、出生点现为 `camp_yard`、山河志地图燕山节点已移除；`camp_wall` 北出改接 `baitan_tun` 以保证开放世界连通。苦役营 `camp_*` 教程仍仅 3/11 房、5/30 NPC、密道线预览，需补完。
+3. **营造 emoji 残留（已清理）**：`build.js` 的 `icon` 字段与 `renderBuildPanel` / 炉膛标题已统一走 `itemIconHTML` 文字图标（v20260825f 前提交）。
+4. **无用残留**：`narrative/` 目录为空、`_game_inline.js` / `_del_beggar.js` 未跟踪，疑似调试残留，建议清理或归档。
+5. **城市系统全程序生成规划**：除 3 锚点（`camp_*` 苦役营、`ji_heishan_*` 黑山山寨、`build_test` 建造试验地图）外，其余手写 ROOMS 已统一加 `[待程序生成]` 标记，待统一生成器接管；`genCityGrid` 当前仅做单元格内部导航，城市根房间生成器尚未实现。
 
 ---
 

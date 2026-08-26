@@ -115,30 +115,10 @@
       { t: 'setFlag', path: 'flags.onb.done', value: true },
       { t: 'clearGate' },
       { t: 'graduate' },
-      { t: 'sys', text: '〔教学完成〕你已逃出苦役营。点下方移动罗盘「北」前往燕山·山口，寻穆长风接应。（塌墙根还有苏娘搓绳、福生传信——攀绳、外应另两条路，留待他日。）' }
+      { t: 'sys', text: '〔教学完成〕你已逃出苦役营。点下方移动罗盘「北」钻出墙外，前往白檀军屯，自此汇入北疆乱世。（塌墙根还有苏娘搓绳、福生传信——攀绳、外应另两条路，留待他日。）' }
     ]
   });
 
-  // 6) 山口·穆长风接应（外部接应线切片）
-  TRIGGERS.push({
-    id: 'ys_contact', hook: 'onEnter', room: 'yanshan_shankou', once: true,
-    cond: { flags: { 'flags.route.escaped_crypt': true } },
-    steps: [
-      { t: 'narrate', room: 'yanshan_shankou' },
-      { t: 'log', cls: 'npc', npc: '穆长风', text: '穆长风斜倚隘口石上，见你钻出，咧嘴一笑：「出来了？老夫当年也是从这墙根爬出去的——结果又给抓了回来，哈哈！莫学我。」' },
-      { t: 'npcTalk', npc: 'mulongfeng',
-        prompt: '穆长风拍拍身旁石墩，示意你坐下：「既出来了，喝口风。外头世界，可比这墙里凶得多。」',
-        asks: [
-          { label: '〔问江湖〕前辈既出得来，可知外头出路？',
-            set: { 'flags.route.contact': true },
-            say: '「往南是白檀军屯，老相识在那儿当差，初出江湖可去投奔；往北渔阳、蓟城，正是乱世横流、英雄并起之处。你既出了营，自去闯吧——江湖险恶，保重。」' },
-          { label: '〔辞行〕前辈保重，晚辈去也。',
-            set: { 'flags.route.contact': true },
-            say: '「去罢去罢，莫回头。这墙根的风，老夫替你挡着。」他笑着挥手，身影没入隘口的风里。' }
-        ] },
-      { t: 'log', cls: 'sys', text: '〔接应〕外部接应线已接驳：南去白檀军屯可寻穆长风旧识（开放世界钩子）。' }
-    ]
-  });
 
   // 凯旋钩子：斩华雄、凯旋后首访洛阳，触发「关东盟檄」事件，铺陈第二章三条线
   TRIGGERS.push({

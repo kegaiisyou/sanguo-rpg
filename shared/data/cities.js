@@ -14,10 +14,9 @@
 (function(global){
   global.LF = global.LF || {};
   global.LF.CITIES = {
-    // ── 已有城市（多房间城市挂在城门/入口房间上，不启用网格以保留手写街区）──
-    ji_guomen: { name:'蓟城',   state:'幽州', tier:'zhou', pop:72, order:58, commerce:62, wall:82, agri:50, desc:'幽州州治，北疆雄城' },
-    yuyang_guomen:{ name:'渔阳', state:'幽州', tier:'zhou', pop:55, order:50, commerce:55, wall:66, agri:40, desc:'渔阳郡治，边塞重镇' },
     // ── 启用城内网格的城市（grid 字段触发 9×9/7×7/5×5 程序生成房间）──
+    ji_guomen: { name:'蓟城',   state:'幽州', tier:'zhou', pop:72, order:58, commerce:62, wall:82, agri:50, grid:7, desc:'幽州州治，北疆雄城' },
+    yuyang_guomen:{ name:'渔阳', state:'幽州', tier:'zhou', pop:55, order:50, commerce:55, wall:66, agri:40, grid:7, desc:'渔阳郡治，边塞重镇' },
     luoyang:   { name:'洛阳',   state:'司隶', tier:'capital', pop:95, order:60, commerce:92, wall:90, agri:70, grid:9, desc:'汉室京师，宫阙巍峨' },
     city:      { name:'颍川',   state:'豫州', tier:'xian',    pop:45, order:40, commerce:55, wall:40, agri:60, grid:5, desc:'中原腹地，乱世初起之地' },
     // ── 十三州州治所（v20260824 启用城内网格；tier=zhou → 中央为州衙）──

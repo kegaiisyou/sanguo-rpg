@@ -23,38 +23,20 @@
     li: 60,     // 1 格 = 60 里
 
     coords: {
-      // ── 中原 · 颍川（初开之地，属豫州）──
-      camp:[6,7], city:[6,6.5], stream:[5,7], forest:[7,7], build_test:[7,8],
-      forest_patrol_a:[8,7], forest_patrol_b:[8,6.5], forest_patrol_c:[8,8],
-      luoyang:[5,4],   // 洛阳（司隶州治，置于司隶州内）
-      // ── 幽州 · 渔阳（南北中轴 + 东西两市，间距 2 格防名称重叠）──
-      yuyang_guomen:[14,-1], yuyang_nanmen:[14,-3], yuyang_tongqu:[14,-5], yuyang_beimen:[14,-7],
-      yuyang_xishijie:[12,-5], yuyang_junya:[12,-7], yuyang_junying:[11,-5], yuyang_yiguan:[11,-7],
-      yuyang_dongshijie:[16,-5], yuyang_dashi:[17,-5], yuyang_jiulou:[16,-7], yuyang_chasi:[16,-3],
-      // ── 幽州 · 白檀军屯（渔阳以北、燕山以南：营门→屯寨→山口 自南向北一条线）──
-      baitan_yingmen:[14,-8], baitan_tun:[14,-9], baitan_tian:[13,-9], baitan_ma:[15,-9],
-      baitan_cang:[13,-8], baitan_liao:[15,-8],
-      // ── 幽州 · 燕山（北移两格，与苦役营拉开距离）──
-      yanshan_shankou:[14,-10], yanshan_feng:[15,-10], yanshan_jian:[13,-10],
-      yanshan_lindao:[14,-11], yanshan_xueling:[15,-11], yanshan_zhandao:[13,-11],
-      // ── 苦役营教学切片（幽州东境，与燕山错开）──
+      // ── 中原 · 颍川（初开之地；颍川城为网格城根）──
+      city:[6,6.5], build_test:[7,8],
+      luoyang:[5,4],   // 洛阳（司隶州治，网格城根）
+      // ── 幽州 · 渔阳（网格城根，仅留城门根房）──
+      yuyang_guomen:[14,-1],
+      // ── 苦役营教学切片（锚点·保留手写）──
       camp_wall:[16,-9], camp_yard:[17,-9], camp_cell:[17,-10],
-      // ── 蓟城（幽州州治）──
-      ji_guomen:[9,3], ji_liumin:[8,2.6], ji_mashi:[13,3], ji_nanmen:[9,2],
-      ji_tongqu:[9,1], ji_beimen:[9,0],
-      ji_xishijie:[8,1], ji_dongshijie:[10,1],
-      ji_zhoumu:[8,0], ji_lianwu:[7,0],
-      ji_junying:[7,1], ji_yiguan:[7,2], ji_junya:[8,2],
-      ji_dashi:[11,1], ji_xuegong:[11,0],
-      ji_jiulou:[10,0], ji_chasi:[10,2],
-      ji_minli:[12,1], ji_minju:[12,0], ji_minju2:[12,2],
-      // ── 蓟城正北 · 渐进通道（黑山余脉）──
-      ji_tian:[9,-1], ji_xiaoshulin:[10,-1],
-      ji_huangdi:[9,-2], ji_senlin:[10,-2],
-      ji_xiaoqiu:[9,-3],
-      ji_huangshan:[9,-4],
+      // ── 林径（手写连接：苦役营 ↔ 黑山寨）──
+      lindao:[13,-7],
+      // ── 黑山寨（锚点·保留手写）──
       ji_heishan_zhai:[9,-5], ji_heishan_juyi:[9,-6], ji_heishan_houzhai:[9,-7],
-      // ── 十三州州治所（v20260822as 按参考图补齐坐标；房间见 rooms.js，暂未放 NPC）──
+      // ── 蓟城（网格城根，仅留城门根房）──
+      ji_guomen:[9,3],
+      // ── 十三州州治所（网格城根；房间见 rooms.js）──
       ye:[10,5],        // 冀州 · 邺城
       changyi:[11,7],   // 兖州 · 昌邑
       xiapi:[16,8],     // 徐州 · 下邳
@@ -82,8 +64,7 @@
       { t:'中 原',  c:'rgba(120,160,96,.18)',  center:[6,7],   r:82 },
       { t:'洛 阳',  c:'rgba(196,160,70,.18)',  center:[5,4],   r:62 },
       { t:'渔 阳',  c:'rgba(120,150,200,.13)', center:[14,-4], r:105 },
-      { t:'白 檀',  c:'rgba(150,128,88,.13)',  center:[14,-8], r:60 },
-      { t:'燕 山',  c:'rgba(110,140,110,.14)', center:[14,-10], r:77 },
+
       { t:'幽 州',  c:'rgba(96,140,190,.16)',  center:[11,-5], r:245 },
       { t:'黑 山',  c:'rgba(90,86,80,.14)',    center:[9,-5],  r:85 }
     ],
@@ -125,9 +106,7 @@
       { id:'yingchuan', name:'颍川',     icon:'🏙️', pos:[6,7],   st:'豫州', open:true,  kind:'city',    desc:'中原腹地，乱世初起之地' },
       { id:'luoyang',   name:'洛阳',     icon:'🏯', pos:[5,4],   st:'司隶', open:true,  kind:'city',    desc:'汉室京师，宫阙巍峨' },
       { id:'jicheng',   name:'蓟城',     icon:'🏯', pos:[9,2],   st:'幽州', open:true,  kind:'city',    desc:'幽州州治，北疆雄城' },
-      { id:'yuyang',    name:'渔阳',     icon:'🏰', pos:[14,-3], st:'幽州', open:true,  kind:'fort',    desc:'渔阳郡治，边塞重镇' },
-      { id:'baitan',    name:'白檀军屯', icon:'⚔️', pos:[14,-8], st:'幽州', open:true,  kind:'fort',    desc:'滦水屯田戍堡' },
-      { id:'yanshan',   name:'燕山',     icon:'⛰️', pos:[14,-10], st:'幽州', open:true,  kind:'wild',    desc:'燕山余脉，峰峦叠嶂' },
+      { id:'yuyang',    name:'渔阳',     icon:'🏯', pos:[14,-1], st:'幽州', open:true,  kind:'city',    desc:'渔阳郡治，边塞重镇' },
       { id:'heishan',   name:'黑山寨',   icon:'🦹', pos:[9,-5],  st:'幽州', open:true,  kind:'dungeon', desc:'黑山军据守的险寨' },
       { id:'build_test',name:'建造场',   icon:'🔨', pos:[7,8],   st:'豫州', open:true,  kind:'camp',    desc:'木工台与测试营地' },
       { id:'chang_an',  name:'长安',     icon:'🏯', pos:[2,2],   st:'司隶', open:false, kind:'city',    desc:'西京长安，龙脉所在' },
@@ -145,17 +124,10 @@
 
     // 山脉/海岸美术现由 assets/map_inkwash.jpg 水墨山水底图承担（见 index.html .map-canvas 背景）
 
-    // 节点分色覆盖（未列出者按房间 id 前缀自动推断：ys_→教学、ji_heishan_→贼巢、
-    //                 baitan_/渔阳四门→军屯、ji_/yuyang_→城镇、其余→野外）
+    // 节点分色覆盖（未列出者按房间 id 前缀自动推断：ji_heishan_→贼巢、ji_/yuyang_→城镇、其余→野外）
     kinds: {
-      forest:'wild', build_test:'wild', stream:'town', camp:'camp',
-      forest_patrol_a:'wild', forest_patrol_b:'wild', forest_patrol_c:'wild',
-      yanshan_shankou:'wild', yanshan_feng:'wild', yanshan_jian:'wild',
-      yanshan_lindao:'wild', yanshan_xueling:'wild', yanshan_zhandao:'wild',
-      ji_liumin:'wild', ji_mashi:'wild',
-      ji_tian:'wild', ji_xiaoshulin:'wild', ji_huangdi:'wild', ji_senlin:'wild',
-      ji_xiaoqiu:'wild', ji_huangshan:'wild',
-      luoyang:'city'
+      build_test:'wild', luoyang:'city',
+      lindao:'wild'
     }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.MAP;

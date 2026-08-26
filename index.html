@@ -1831,14 +1831,14 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260825d"></script>
+<script src="shared/config/constants.js?v=20260826a"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
 <script src="shared/story/events.js?v=20260821j"></script>
-<script src="shared/story/dialogues.js?v=20260820z"></script>
-    <script src="shared/story/rooms.js?v=20260822as"></script>
+<script src="shared/story/dialogues.js?v=20260825i"></script>
+    <script src="shared/story/rooms.js?v=20260825g"></script>
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260824d"></script>
@@ -1846,8 +1846,8 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260824i"></script>
     <script src="shared/data/shops.js?v=20260821i"></script>
-    <script src="shared/data/map.js?v=20260822as"></script>
-    <script src="shared/data/cities.js?v=20260825d"></script>
+    <script src="shared/data/map.js?v=20260825g"></script>
+    <script src="shared/data/cities.js?v=20260825g"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260821a"></script>
@@ -1939,9 +1939,8 @@ window.onerror=function(msg,url,line,col,err){
   function mapKind(rid){
     var k=mapData().kinds && mapData().kinds[rid];
     if(k) return k;
-    if(/^ys_/.test(rid) || rid==='camp_yard' || rid==='camp_cell' || rid==='camp_wall') return 'tutorial';
+    if(rid==='camp_yard' || rid==='camp_cell' || rid==='camp_wall') return 'tutorial';
     if(/^ji_heishan_/.test(rid)) return 'dungeon';
-    if(/^baitan_/.test(rid) || /^(yuyang_guomen|yuyang_nanmen|yuyang_tongqu|yuyang_beimen)$/.test(rid)) return 'fort';
     if(/^ji_/.test(rid) || /^yuyang_/.test(rid)) return 'city';
     return 'wild';
   }
@@ -2838,7 +2837,7 @@ window.onerror=function(msg,url,line,col,err){
   var $card=document.getElementById('modal-card');
   var $toast=document.getElementById('toast');
 
-  function curRoom(){ return G.ROOMS[state.room] || bldRoom(state.room) || G.ROOMS.camp; }
+  function curRoom(){ return G.ROOMS[state.room] || bldRoom(state.room) || G.ROOMS.camp_yard; }
 
   // ===== 文字叙事窗 =====
   // 轻触快进：仅立即显示「当前正在打字」的那一段；两次快进至少间隔 300ms，防误触连跳多段
@@ -3453,7 +3452,7 @@ window.onerror=function(msg,url,line,col,err){
       }
     }
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
-    var suppressNarr = onboarding && (rid==='ys_entrance' || rid==='ys_ne');
+    var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell');
     if(combatCardEl){ if(combatCardEl.parentNode) combatCardEl.parentNode.removeChild(combatCardEl); combatCardEl=null; }
     if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
@@ -3513,34 +3512,9 @@ window.onerror=function(msg,url,line,col,err){
   }
   // ===== 场景对象配置：每个房间的可交互元素（人物/建筑/家具/出口） =====
   var ROOM_OBJECTS={
-    camp:[
-      {type:'npc',   key:'hanbo',   icon:'👤', name:'县尉韩博',  desc:'按剑而立，目光如炬',                actions:[{label:'与他交谈', fn:function(){ talk('hanbo'); }}]},
-      {type:'building',key:'tent',  icon:'⛺', name:'中军大帐',  desc:'案上谱录，凝神参悟',                actions:[{label:'研习武学', fn:function(){ handleAction('learn'); }, tip:'案上谱录，凝神参悟'},
-                                                                            {label:'帐中休整', fn:function(){ actRest(); },         tip:'盹一觉，气血内力尽复'}]},
-      {type:'feature',key:'arena',  icon:'🏆', name:'挑战台',   desc:'力斩华雄，名震天下',              actions:[{label:'力斩华雄', fn:function(){ handleAction('battle_hua_xiong'); }, tip:'需声望≥20·首场Boss战'}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川城', desc:'城门方向，市集熙攘',                actions:[{label:'前往颍川城', fn:function(){ move('北','city'); }}]},
-      {type:'exit',  dir:'东',     icon:'🌲', name:'东·北邙山林',desc:'山林幽深，流寇盘踞',           actions:[{label:'前往北邙山林', fn:function(){ move('东','forest'); }}]},
-      {type:'exit',  dir:'西',     icon:'🏞️',name:'西·溪畔草庐',desc:'溪水潺潺，水镜先生居此',           actions:[{label:'前往溪畔草庐', fn:function(){ move('西','stream'); }}]},
-      {type:'exit',  key:'luoyang_gate', icon:'🏛️', name:'南·洛阳方向', desc:'远赴洛阳，凯旋之门',        actions:[{label:'赴洛阳', fn:function(){ handleAction('visit_luoyang'); }, tip:'需先力斩华雄·扬名'}]}
-    ],
-    city:[
-      {type:'npc',   key:'hualao',  icon:'👤', name:'华老',     desc:'城西医馆，正捣药',                    actions:[{label:'与他交谈', fn:function(){ talk('hualao'); }},
-                                                               {label:'买药',   icon:'🧪', fn:function(){ openModal('shop', {shop:'doctor'}); }}]},
-      {type:'npc',   key:'yingmen', icon:'👤', name:'营门校尉', desc:'按刀守门，盘查进出',                  actions:[{label:'与他交谈', fn:function(){ talk('yingmen'); }}]},
-      {type:'feature',key:'market', icon:'🏪', name:'市集',     desc:'行商云集，可交易伤药钱粮',            actions:[{label:'逛市集', fn:function(){ handleAction('market'); }, tip:'与行商交易伤药钱粮'},
-                                                                            {label:'维持治安', fn:function(){ handleAction('city_patrol'); }, tip:'驱赶城中溃兵'}]},
-      {type:'building',key:'inn',   icon:'🏨', name:'客栈',     desc:'酒楼歇脚，气血内力尽复',              actions:[{label:'客栈安歇', fn:function(){ actRest(); }, tip:'酒楼歇脚，气血内力尽复'}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·颍川主营',desc:'主营方向，旌旗半卷',                actions:[{label:'返回颍川主营', fn:function(){ move('南','camp'); }}]}
-    ],
-    forest:[
-      {type:'feature',key:'gather', icon:'🌿', name:'草药丛',   desc:'林下背阴处，几丛野草药正肥，俯身可采得草药', actions:gatherActs},
-      {type:'feature',key:'deep',   icon:'🌲', name:'山林深处', desc:'深入山林，往来巡逻剿寇',              actions:[{label:'深入巡山', fn:function(){ if(!exert('深入山林')) return; move('北','forest_patrol_a'); }, tip:'拨草寻踪，山道间或遇敌'}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'西',     icon:'🚪', name:'西·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('西','camp'); }}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·建造系统测试',desc:'林间一片空地，似有人搭了座木工台', actions:[{label:'前往建造系统测试', fn:function(){ move('南','build_test'); }}]}
-    ],
+
+
+
     build_test:[
       {type:'feature', key:'tree',     icon:'🌳', name:'一棵老树', desc:'粗壮老树，枝干坚实，正堪伐取',   actions:treeActs},
       {type:'feature', key:'bench',    icon:'🔨', name:'木工台',   desc:'粗木搭就的工作台，可将木头加工成木材', actions:benchActs},
@@ -3552,201 +3526,42 @@ window.onerror=function(msg,url,line,col,err){
       {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
       {type:'feature', key:'quarry',   icon:'🪨', name:'采石崖',   desc:'崖壁裸露青石，敲击可采下石料',     actions: build_quarry_actions},
       {type:'feature', key:'crate',    icon:'📦', name:'残破木箱', desc:'半埋草垛里的旧木箱，似有人遗落了图纸', actions: build_crate_actions},
-      {type:'exit',  dir:'北',     icon:'🚪', name:'北·北邙山林',desc:'返回山林',                        actions:[{label:'返回北邙山林', fn:function(){ move('北','forest'); }}]}
+      {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川城',desc:'返回颍川城',                        actions:[{label:'返回颍川城', fn:function(){ move('北','city'); }}]}
     ],
-    stream:[
-      {type:'npc',   key:'shuijing',icon:'👤', name:'水镜先生', desc:'立于岸畔，长须随风',                  actions:[{label:'与他交谈', fn:function(){ talk('shuijing'); }}]},
-      {type:'npc',   key:'zuoci',   icon:'👤', name:'左慈',     desc:'斜倚石上，含笑不语',                  actions:[{label:'与他交谈', fn:function(){ talk('zuoci'); }}]},
-      {type:'building',key:'hut',   icon:'🏡', name:'草庐',     desc:'水镜先生邀你歇脚，尽复状态',          actions:[{label:'草庐借宿', fn:function(){ actRest(); }, tip:'水镜先生邀你歇脚，尽复状态'}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'东',     icon:'🚪', name:'东·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('东','camp'); }}]}
-    ],
-    luoyang:[
-      {type:'building',key:'tavern',icon:'🍶', name:'酒肆',     desc:'太庙之前，老兵斟酒相敬',              actions:[{label:'城中休整', fn:function(){ actRest(); }, tip:'酒肆安歇，气血内力尽复'}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾此地',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'北',     icon:'🏛️', name:'北·蓟城幽州',desc:'北上幽州，奔赴北疆',                actions:[{label:'前往蓟城',   fn:function(){ move('北','ji_guomen'); }}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·颍川主营',desc:'回主营方向',                        actions:[{label:'返回颍川主营', fn:function(){ move('南','camp'); }}]}
-    ],
-    // ═══ 幽州·蓟城（12 间核心） ═══
-    ji_guomen:[
-      {type:'npc',   key:'guanli',  icon:'👤', name:'城门税吏', desc:'验籍过关防，记下姓名',                actions:[{label:'与他交谈', fn:function(){ talk('guanli'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾郭门内外',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest',  icon:'🧱', name:'墙根歇处', desc:'依墙小憩，气血内力尽复',              actions:[{label:'郭门歇脚', fn:function(){ actRest(); }, tip:'依墙小憩，气血内力尽复'}]},
-      {type:'exit',  dir:'北',     icon:'🚪', name:'北·蓟城南门',desc:'入城方向，门楼巍然',                actions:[{label:'入蓟城',     fn:function(){ move('北','ji_nanmen'); }}]},
-      {type:'exit',  dir:'西',     icon:'🏕️', name:'西·流民棚',  desc:'荒地上棚屋杂乱，流民聚集',          actions:[{label:'前往流民棚', fn:function(){ move('西','ji_liumin'); }}]},
-      {type:'exit',  dir:'东',     icon:'🐴', name:'东·城外马市',desc:'马嘶阵阵，乌桓马商吆喝',            actions:[{label:'前往马市',   fn:function(){ move('东','ji_mashi'); }}]},
-      {type:'exit',  dir:'南',     icon:'🏛️', name:'南·洛阳',    desc:'南下中原，回洛阳城',                  actions:[{label:'返回洛阳',   fn:function(){ move('南','luoyang'); }}]}
-    ],
-    ji_nanmen:[
-      {type:'npc',   key:'shoumen', icon:'👤', name:'守门校尉', desc:'阳门城防，盘查往来',                  actions:[{label:'与他交谈', fn:function(){ talk('shoumen'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾阳门城楼',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest',  icon:'🏯', name:'门楼歇处', desc:'倚门楼小憩，气血内力尽复',            actions:[{label:'门楼歇息', fn:function(){ actRest(); }, tip:'倚门楼小憩，气血内力尽复'}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·郭门',   desc:'出城方向，通外郭',                    actions:[{label:'出郭门',     fn:function(){ move('南','ji_guomen'); }}]},
-      {type:'exit',  dir:'北',     icon:'🏘️', name:'北·通衢大街',desc:'城中主轴，车水马龙',                actions:[{label:'入通衢大街', fn:function(){ move('北','ji_tongqu'); }}]}
-    ],
-    ji_tongqu:[
-      {type:'npc',   key:'shuoshu', icon:'👤', name:'说书老人', desc:'燕都旧事，易水悲歌',                  actions:[{label:'与他交谈', fn:function(){ talk('shuoshu'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾通衢大街',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·阳门',   desc:'南向出城，通郭门',                    actions:[{label:'往南门',     fn:function(){ move('南','ji_nanmen'); }}]},
-      {type:'exit',  dir:'北',     icon:'🏛️', name:'北·朔门',   desc:'蓟城北门，出城往北郊',                actions:[{label:'往北门',     fn:function(){ move('北','ji_beimen'); }}]},
-      {type:'exit',  dir:'东',     icon:'🏪', name:'东·东市街', desc:'酒楼茶肆，渐入繁华',                  actions:[{label:'往东市街',   fn:function(){ move('东','ji_dongshijie'); }}]},
-      {type:'exit',  dir:'西',     icon:'⚔️', name:'西·西市街', desc:'官署军营，市声渐稀',                  actions:[{label:'往西市街',   fn:function(){ move('西','ji_xishijie'); }}]}
-    ],
-    ji_zhoumu:[
-      {type:'npc',   key:'liuyu',   icon:'👤', name:'州牧刘虞', desc:'仁政安民，怀柔边夷',                  actions:[{label:'与他交谈', fn:function(){ talk('liuyu'); }}]},
-      {type:'npc',   key:'gongsun', icon:'👤', name:'公孙瓒',   desc:'铁甲映烛，唯力是视',                  actions:[{label:'与他交谈', fn:function(){ talk('gongsun'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾州牧府正厅',                      actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·西市街', desc:'回西市街，通官署军营',                actions:[{label:'回西市街',   fn:function(){ move('南','ji_xishijie'); }}]}
-    ],
-    ji_dashi:[
-      {type:'npc',   key:'shiling', icon:'👤', name:'市令',     desc:'旗鼓开市，平粜周济',                  actions:[{label:'与他交谈', fn:function(){ talk('shiling'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾大市',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'feature',key:'market', icon:'🏪', name:'市集交易', desc:'与商贾交易钱粮药材',                  actions:[{label:'逛市集',     fn:function(){ handleAction('market'); }, tip:'与商贾交易钱粮药材'}]},
-      {type:'exit',  dir:'西',     icon:'🚪', name:'西·东市街', desc:'回东市街，达通衢',                    actions:[{label:'回东市街',   fn:function(){ move('西','ji_dongshijie'); }}]},
-      {type:'exit',  dir:'北',     icon:'📚', name:'北·郡学宫', desc:'青瓦白墙，松柏掩映',                  actions:[{label:'往学宫',     fn:function(){ move('北','ji_xuegong'); }}]},
-      {type:'exit',  dir:'东',     icon:'🏘️', name:'东·平民里', desc:'闾里巷道，军户民居',                  actions:[{label:'往平民里',   fn:function(){ move('东','ji_minli'); }}]},
-      {type:'exit',  dir:'南',     icon:'🍵', name:'南·清风茶肆',desc:'炉香袅袅，说书正酣',                  actions:[{label:'往茶肆',     fn:function(){ move('南','ji_chasi'); }}]}
-    ],
-    ji_junying:[
-      {type:'npc',   key:'duwei',   icon:'👤', name:'军营都尉', desc:'突骑精锐，可校可投',                  actions:[{label:'与他交谈', fn:function(){ talk('duwei'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾军营',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'东',     icon:'🚪', name:'东·西市街', desc:'回西市街，达通衢',                    actions:[{label:'回西市街',   fn:function(){ move('东','ji_xishijie'); }}]},
-      {type:'exit',  dir:'北',     icon:'🏟️', name:'北·练武场', desc:'木人箭靶，健卒较技',                  actions:[{label:'往练武场',   fn:function(){ move('北','ji_lianwu'); }}]},
-      {type:'exit',  dir:'南',     icon:'🏨', name:'南·驿馆',   desc:'传舍驿馆，供官吏歇脚',                actions:[{label:'往驿馆',     fn:function(){ move('南','ji_yiguan'); }}]}
-    ],
-    ji_xuegong:[
-      {type:'npc',   key:'boshi',   icon:'👤', name:'郡学博士', desc:'六艺射御，古枪可参',                  actions:[{label:'与他交谈', fn:function(){ talk('boshi'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾郡学宫',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'feature',key:'learn',  icon:'📜', name:'研习武学', desc:'参悟儒门心法与燕地枪术',              actions:[{label:'研习武学',   fn:function(){ handleAction('learn'); }, tip:'参悟儒门心法与燕地枪术'}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·大市',   desc:'回大市方向',                          actions:[{label:'回大市',     fn:function(){ move('南','ji_dashi'); }}]}
-    ],
-    ji_yiguan:[
-      {type:'npc',   key:'yicheng', icon:'👤', name:'驿馆驿丞', desc:'传舍歇脚，代递简书',                  actions:[{label:'与他交谈', fn:function(){ talk('yicheng'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾驿馆',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest',  icon:'🛏️', name:'驿馆卧房', desc:'卧房虽简却整洁，可安歇',              actions:[{label:'驿馆歇宿', fn:function(){ actRest(); }, tip:'卧房安歇，气血内力尽复'}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·军营',   desc:'回军营方向',                          actions:[{label:'回军营',     fn:function(){ move('南','ji_junying'); }}]}
-    ],
-    ji_minli:[
-      {type:'npc',   key:'likui',   icon:'👤', name:'里魁',     desc:'管着里坊，体察疾苦',                  actions:[{label:'与他交谈', fn:function(){ talk('likui'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾平民里巷',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'西',     icon:'🚪', name:'西·大市',   desc:'回大市方向',                          actions:[{label:'回大市',     fn:function(){ move('西','ji_dashi'); }}]},
-      {type:'exit',  dir:'北',     icon:'🏡', name:'北·民居',   desc:'北巷院落，烟火可亲',                  actions:[{label:'往北巷民居', fn:function(){ move('北','ji_minju'); }}]},
-      {type:'exit',  dir:'南',     icon:'🏚️', name:'南·民居',   desc:'南巷更深，铁匠叮当',                  actions:[{label:'往南巷民居', fn:function(){ move('南','ji_minju2'); }}]}
-    ],
-    ji_mashi:[
-      {type:'npc',   key:'wuhuan',  icon:'👤', name:'乌桓马商', desc:'良马皮货，银钱交易',                  actions:[{label:'与他交谈', fn:function(){ talk('wuhuan'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾马市草场',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest',  icon:'🌾', name:'草料堆',   desc:'倚草料堆小憩，气血内力尽复',          actions:[{label:'马场歇息', fn:function(){ actRest(); }, tip:'倚草料堆小憩，气血内力尽复'}]},
-      {type:'exit',  dir:'西',     icon:'🚪', name:'西·郭门',   desc:'回郭门方向',                          actions:[{label:'回郭门',     fn:function(){ move('西','ji_guomen'); }}]}
-    ],
-    ji_liumin:[
-      {type:'npc',   key:'minlao',  icon:'👤', name:'流民老者', desc:'田庐尽毁，乞儿待济',                  actions:[{label:'与他交谈', fn:function(){ talk('minlao'); }}]},
-      {type:'feature',key:'env',    icon:'🔍', name:'四周环境', desc:'环顾流民棚'},
-      {type:'exit',  dir:'东',     icon:'🚪', name:'东·郭门',   desc:'回郭门方向',                          actions:[{label:'回郭门',     fn:function(){ move('东','ji_guomen'); }}]}
-    ],
-    // ═══ 蓟城·新增街道 / 市井 / 民居 / 北郊通道（补全 ROOM_OBJECTS） ═══
-    ji_beimen:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾朔门城楼',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest', icon:'🧱', name:'门洞歇处', desc:'倚墙避风小憩，气血内力尽复',          actions:[{label:'门洞歇脚', fn:function(){ actRest(); }, tip:'倚墙避风小憩，气血内力尽复'}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('南','ji_tongqu'); }}]},
-      {type:'exit',  dir:'北',     icon:'🌾', name:'北·城外农田',desc:'出城往北郊，阡陌连绵',              actions:[{label:'出北门',     fn:function(){ move('北','ji_tian'); }}]}
-    ],
-    ji_xishijie:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾西市街',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'东',     icon:'🚪', name:'东·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('东','ji_tongqu'); }}]},
-      {type:'exit',  dir:'西',     icon:'⚔️', name:'西·军营',   desc:'旌旗猎猎，突骑操练',                  actions:[{label:'往军营',     fn:function(){ move('西','ji_junying'); }}]},
-      {type:'exit',  dir:'北',     icon:'🏛️', name:'北·州牧府', desc:'幽州刺史部治所，朱门铜钉',            actions:[{label:'往州牧府',   fn:function(){ move('北','ji_zhoumu'); }}]},
-      {type:'exit',  dir:'南',     icon:'🏛️', name:'南·郡衙',   desc:'钱粮刑名，击鼓鸣冤',                  actions:[{label:'往郡衙',     fn:function(){ move('南','ji_junya'); }}]}
-    ],
-    ji_dongshijie:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾东市街',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'西',     icon:'🚪', name:'西·通衢大街',desc:'回城中主轴',                        actions:[{label:'回通衢大街', fn:function(){ move('西','ji_tongqu'); }}]},
-      {type:'exit',  dir:'东',     icon:'🏪', name:'东·大市',   desc:'四方商贾辐辏，货物琳琅',              actions:[{label:'往大市',     fn:function(){ move('东','ji_dashi'); }}]},
-      {type:'exit',  dir:'北',     icon:'🍶', name:'北·醉仙楼', desc:'三层木楼，丝竹觥筹',                  actions:[{label:'往醉仙楼',   fn:function(){ move('北','ji_jiulou'); }}]},
-      {type:'exit',  dir:'南',     icon:'🍵', name:'南·清风茶肆',desc:'炉香袅袅，说书正酣',                  actions:[{label:'往茶肆',     fn:function(){ move('南','ji_chasi'); }}]}
-    ],
-    ji_lianwu:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾练武校场',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'feature',key:'spar',  icon:'🏟️', name:'校场试招', desc:'与健卒过招，磨砺身手',                  actions:[{label:'校场试招', fn:function(){ handleAction('spar_bandit'); }, tip:'与健卒过招，磨砺身手'}]},
-      {type:'exit',  dir:'南',     icon:'⚔️', name:'南·军营',   desc:'回军营方向',                          actions:[{label:'回军营',     fn:function(){ move('南','ji_junying'); }}]}
-    ],
-    ji_junya:[
-      {type:'npc',   key:'xianling',icon:'👤', name:'蓟县县令', desc:'掌一县钱粮刑名、户籍徭役',            actions:[{label:'与他交谈', fn:function(){ talk('xianling'); }}]},
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾郡衙',                            actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'北',     icon:'🚪', name:'北·西市街', desc:'回西市街，达通衢',                    actions:[{label:'回西市街',   fn:function(){ move('北','ji_xishijie'); }}]}
-    ],
-    ji_jiulou:[
-      {type:'npc',   key:'xiaoguan',icon:'👤', name:'醉仙楼掌柜', desc:'沽得幽州烈酒，消息最灵',            actions:[{label:'与他交谈', fn:function(){ talk('xiaoguan'); }}]},
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾醉仙楼',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest', icon:'🍶', name:'楼中饮宴', desc:'沽酒小酌，气血内力尽复',                actions:[{label:'楼中饮宴', fn:function(){ actRest(); }, tip:'沽酒小酌，气血内力尽复'}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·东市街', desc:'回东市街，达通衢',                    actions:[{label:'回东市街',   fn:function(){ move('南','ji_dongshijie'); }}]}
-    ],
-    ji_chasi:[
-      {type:'npc',   key:'shuosheng',icon:'👤', name:'说书先生', desc:'拍案说游侠，满堂喝彩',                actions:[{label:'与他交谈', fn:function(){ talk('shuosheng'); }}]},
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾清风茶肆',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest', icon:'🍵', name:'茶肆歇脚', desc:'品茗小坐，气血内力尽复',                actions:[{label:'茶肆歇脚', fn:function(){ actRest(); }, tip:'品茗小坐，气血内力尽复'}]},
-      {type:'exit',  dir:'北',     icon:'🚪', name:'北·东市街', desc:'回东市街，达通衢',                    actions:[{label:'回东市街',   fn:function(){ move('北','ji_dongshijie'); }}]}
-    ],
-    ji_minju:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾北巷民居',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'南',     icon:'🏡', name:'南·平民里', desc:'回平民里',                            actions:[{label:'回平民里',   fn:function(){ move('南','ji_minli'); }}]}
-    ],
-    ji_minju2:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾南巷民居',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'北',     icon:'🏚️', name:'北·平民里', desc:'回平民里',                            actions:[{label:'回平民里',   fn:function(){ move('北','ji_minli'); }}]}
-    ],
-    ji_tian:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾城外农田',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest', icon:'🌾', name:'田埂小憩', desc:'倚界石歇脚，气血内力尽复',            actions:[{label:'田埂小憩', fn:function(){ actRest(); }, tip:'倚界石歇脚，气血内力尽复'}]},
-      {type:'exit',  dir:'南',     icon:'🚪', name:'南·北门',   desc:'回朔门方向',                          actions:[{label:'回北门',     fn:function(){ move('南','ji_beimen'); }}]},
-      {type:'exit',  dir:'北',     icon:'🌿', name:'北·荒地',   desc:'田垄渐荒，蒿草没胫',                  actions:[{label:'往荒地',     fn:function(){ move('北','ji_huangdi'); }}]},
-      {type:'exit',  dir:'东',     icon:'🌳', name:'东·小树林', desc:'林木稀疏，静僻宜歇',                  actions:[{label:'往小树林',   fn:function(){ move('东','ji_xiaoshulin'); }}]}
-    ],
-    ji_xiaoshulin:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾小树林',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest', icon:'🌳', name:'林间歇脚', desc:'倚树小憩，气血内力尽复',                actions:[{label:'林间歇脚', fn:function(){ actRest(); }, tip:'倚树小憩，气血内力尽复'}]},
-      {type:'exit',  dir:'西',     icon:'🌾', name:'西·农田',   desc:'回农田方向',                          actions:[{label:'回农田',     fn:function(){ move('西','ji_tian'); }}]},
-      {type:'exit',  dir:'北',     icon:'🌲', name:'北·森林',   desc:'林木渐密，野有凶险',                  actions:[{label:'往森林',     fn:function(){ move('北','ji_senlin'); }}]}
-    ],
-    ji_huangdi:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾城外荒地',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'南',     icon:'🌾', name:'南·农田',   desc:'回农田方向',                          actions:[{label:'回农田',     fn:function(){ move('南','ji_tian'); }}]},
-      {type:'exit',  dir:'北',     icon:'⛰️', name:'北·小山丘', desc:'缓丘隆起，远眺蓟城',                  actions:[{label:'往小山丘',   fn:function(){ move('北','ji_xiaoqiu'); }}]},
-      {type:'exit',  dir:'东',     icon:'🌲', name:'东·森林',   desc:'林木渐密，野有凶险',                  actions:[{label:'往森林',     fn:function(){ move('东','ji_senlin'); }}]}
-    ],
-    ji_senlin:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾城外森林',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'feature',key:'patrol',icon:'🌲', name:'林中巡探', desc:'深入森林，搜检贼踪',                    actions:[{label:'林中巡探', fn:function(){ handleAction('patrol'); }, tip:'深入森林，搜检有无贼踪'}]},
-      {type:'exit',  dir:'南',     icon:'🌳', name:'南·小树林', desc:'回小树林方向',                        actions:[{label:'回小树林',   fn:function(){ move('南','ji_xiaoshulin'); }}]},
-      {type:'exit',  dir:'西',     icon:'🌿', name:'西·荒地',   desc:'回荒地方向',                          actions:[{label:'回荒地',     fn:function(){ move('西','ji_huangdi'); }}]}
-    ],
-    ji_xiaoqiu:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾小山丘',                          actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'building',key:'rest', icon:'⛰️', name:'丘顶歇息', desc:'坐巨石上远眺，气血内力尽复',            actions:[{label:'丘顶歇息', fn:function(){ actRest(); }, tip:'坐巨石上远眺，气血内力尽复'}]},
-      {type:'exit',  dir:'南',     icon:'🌿', name:'南·荒地',   desc:'回荒地方向',                          actions:[{label:'回荒地',     fn:function(){ move('南','ji_huangdi'); }}]},
-      {type:'exit',  dir:'北',     icon:'🪨', name:'北·荒山',   desc:'怪石嶙峋，黑山余脉',                  actions:[{label:'往荒山',     fn:function(){ move('北','ji_huangshan'); }}]}
-    ],
-    ji_huangshan:[
-      {type:'feature',key:'env',   icon:'🔍', name:'四周环境', desc:'环顾城外荒山',                        actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'exit',  dir:'南',     icon:'⛰️', name:'南·小山丘', desc:'回小山丘方向',                        actions:[{label:'回小山丘',   fn:function(){ move('南','ji_xiaoqiu'); }}]},
-      {type:'exit',  dir:'北',     icon:'🔥', name:'北·黑山寨', desc:'贼巢所在，兵刃相击',                  actions:[{label:'闯黑山寨',   fn:function(){ move('北','ji_heishan_zhai'); }}]}
-    ],
-    // ═══ 北邙·巡山道（实走巡逻子地图，往来随机遇敌） ═══
-    forest_patrol_a:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾巡山道（东）'},
-      {type:'exit', dir:'南', icon:'🚪', name:'南·回北邙山林', desc:'退回路林主道', actions:[{label:'返回山林', fn:function(){ move('南','forest'); }}]},
-      {type:'exit', dir:'东', icon:'🌲', name:'东·巡山道（中）', desc:'林壑渐深，偶有黑影', actions:[{label:'前往中段', fn:function(){ move('东','forest_patrol_b'); }}]}
-    ],
-    forest_patrol_b:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾巡山道（中）'},
-      {type:'exit', dir:'西', icon:'🌲', name:'西·巡山道（东）', desc:'回路东段山道', actions:[{label:'返回东段', fn:function(){ move('西','forest_patrol_a'); }}]},
-      {type:'exit', dir:'北', icon:'🌲', name:'北·巡山道（西）', desc:'密林幽暗，最宜伏击', actions:[{label:'前往西段', fn:function(){ move('北','forest_patrol_c'); }}]}
-    ],
-    forest_patrol_c:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾巡山道（西）'},
-      {type:'exit', dir:'南', icon:'🌲', name:'南·巡山道（中）', desc:'回路中段山道', actions:[{label:'返回中段', fn:function(){ move('南','forest_patrol_b'); }}]},
-      {type:'exit', dir:'东', icon:'🚪', name:'东·回北邙山林', desc:'退回路林主道', actions:[{label:'返回山林', fn:function(){ move('东','forest'); }}]}
-    ],
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // ═══ 剿匪据点：黑山寨（寨门 / 聚义厅 / 后寨） ═══
     ji_heishan_zhai:[
       {type:'npc', key:'heishan_zhai', icon:'🔪', name:'黑山寨卒', desc:'横刀拦路，面带凶相', actions:[
@@ -3754,7 +3569,7 @@ window.onerror=function(msg,url,line,col,err){
         {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zei'); }, tip:'恶贼当前，不必多言'}
       ]},
       {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾黑山寨门'},
-      {type:'exit', dir:'南', icon:'🚪', name:'南·荒山', desc:'退回路荒山方向', actions:[{label:'退回荒山', fn:function(){ move('南','ji_huangshan'); }}]},
+      {type:'exit', dir:'南', icon:'🚪', name:'南·林径', desc:'退回林径，往苦役营', actions:[{label:'退回林径', fn:function(){ move('南','lindao'); }}]},
       {type:'exit', dir:'北', icon:'🔥', name:'北·聚义厅', desc:'灯火通明，人影幢幢', actions:[{label:'闯聚义厅', fn:function(){ move('北','ji_heishan_juyi'); }}]}
     ],
     ji_heishan_juyi:[
@@ -3776,7 +3591,7 @@ window.onerror=function(msg,url,line,col,err){
   };
 
   // 研习武学仅限特定房间（主营/郡学宫）
-  var LEARN_ROOMS={'camp':true,'ji_xuegong':true};
+  var LEARN_ROOMS={};
   function roomCanLearn(rid){ return !!LEARN_ROOMS[rid]; }
 
   // ===== 城市系统：数据驱动派生（数据 shared/data/cities.js） =====
@@ -3835,31 +3650,71 @@ window.onerror=function(msg,url,line,col,err){
       (mkHtml? mkHtml : '')+
       '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。</p>';
   }
-  // 城中人物：百姓数量随人口；治安低出现溃兵；商业高出现行商（触发交易事件）
-  function cityNpcs(cid){
-    var p=cityProfile(cid); if(!p) return [];
-    var items=[];
-    var nCiv=Math.min(5, 1+Math.floor(p.c.pop/20));
-    var says=['近来城中米价又涨了……','听说明日有马队入城，可去瞧瞧。','壮士远道而来，可要当心盗匪。','哎，这世道，能安稳过活便是福。','客官可是来贩货的？东市好货不少。'];
-    for(var i=0;i<nCiv;i++){
-      (function(idx){
-        var o={name:'城中百姓', icon:'👤', key:'civ_'+cid+'_'+idx, desc:'往来市井的城中百姓'};
+  // ===== 城市 NPC 生成（数据驱动；v20260825i 合并原 cityNpcs/cityCellNpcs 为统一生成器）=====
+  // 每类城市格子对应一组 NPC 生成规则；新增/调整城市 NPC 只需改此配置，无需动生成逻辑。
+  // 统一由 cityCellNpcs(cid,x,y) 调度：未列出类型的格子回落到 common（百姓+溃兵）。
+  var NPC_GEN = {
+    market: function(cid,x,y,c,cnm,m){
+      var mk=m.markets&&m.markets[x+','+y], mktName=mk?mk.name:'市集';
+      var mktSays=[mktName+'的铺子今日又进了新货。','客官是要采买些什么？','这街面一入夜便冷清下来。','听说明日有马队入城，商旅可要多了。'];
+      var items=[];
+      var vendor={name:'市井商贩', icon:'🛒', key:'mkt_'+cid, desc:'守着摊位的市井商贩'};
+      items.push({o:vendor, acts:[
+        {label:'问价', icon:'💰', fn:function(){ log('〔市井商贩〕「货是好货，价也公道，客官尽管挑。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔市井商贩〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }}
+      ]});
+      for(var mi=0;mi<2;mi++){ (function(idx){
+        var o={name:'城中百姓', icon:'👤', key:'mktciv_'+cid+'_'+idx, desc:'往来商街采买的百姓'};
+        items.push({o:o, acts:[
+          {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }},
+          {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
+        ]});
+      })(mi); }
+      return items;
+    },
+    farm: function(cid,x,y,c,cnm){
+      var zhuang={name:cnm+'庄头', icon:'🌾', key:'farm_'+cid, desc:'肤色黧黑，熟悉农事'};
+      return [{o:zhuang, acts:[
+        {label:'问农', icon:'🌾', fn:function(){ log('〔庄头〕今年雨水尚可，秋收在望，'+cnm+'仓廪也算充实。','npc'); }},
+        {label:'助农', icon:'🌾', fn:function(){ if(!exert('下田助农')) return; state.food=Math.min(state.maxFood,state.food+12); log('〔农庄〕你下田搭了把手，庄头塞来新麦（粮草+12）。','good'); }},
+        {label:'购粮', icon:'💰', fn:function(){ if(!exert('向农购粮')) return; state.food=state.maxFood; log('〔农庄〕你向庄头籴粮，行囊充实（粮草补满）。','good'); }}
+      ]}];
+    },
+    palace: function(cid,x,y,c,cnm){
+      var chen={name:'宫门近臣', icon:'🏯', key:'pal_'+cid, desc:'绯衣秉笏，侍立宫门'};
+      return [{o:chen, acts:[
+        {label:'入宫觐见', icon:'🏯', fn:function(){ log('〔近臣〕'+cnm+'乃天子所居，朝会方散，陛下今日论及讨董之事，神色凝重。','npc'); }},
+        {label:'叩阙陈情', icon:'📜', fn:function(){ log('〔近臣〕壮士若有良策，可书于帛上，待明日大朝呈奏。','npc'); }}
+      ]}];
+    },
+    gov: function(cid,x,y,c,cnm){
+      var zhu={name:(c.tier==='xian'?'县衙主簿':'州府从事'), icon:'🏛', key:'gov_'+cid, desc:'执笔案前，熟稔政务'};
+      return [{o:zhu, acts:[
+        {label:'参谒长官', icon:'🏛', fn:function(){ log('〔主簿〕'+cnm+(c.tier==='xian'?'县令':'郡守')+'正在理事，案牍盈几，忙于'+((c.owner)?'军政':'治安')+'。','npc'); }},
+        {label:'问政', icon:'💬', fn:function(){ log('〔主簿〕「'+cnm+'如今治安'+(c.order>=60?'尚安':'不靖')+'，商旅'+(c.commerce>=60?'繁盛':'寥落')+'。」','npc'); }}
+      ]}];
+    },
+    barracks: function(cid,x,y,c,cnm){
+      var s={name:'营中校尉', icon:'⚔', key:'sol_'+cid, desc:'按剑肃立的戍卒首领'};
+      return [{o:s, acts:[
+        {label:'交谈', icon:'💬', fn:function(){ log('〔校尉〕此城乃'+cnm+'要冲，治军严整，盗匪不敢近。','npc'); }},
+        {label:'点卯', icon:'📋', fn:function(){ log('〔校尉〕校尉展阅兵册，营中士卒'+(c.wall>=60?'甲械精良':'器械不齐')+'。','npc'); }}
+      ]}];
+    },
+    common: function(cid,x,y,c,cnm){
+      var items=[], nCiv=Math.min(4,1+Math.floor(c.pop/25));
+      var says=['近来城中米价又涨了……','壮士远道而来，可要当心盗匪。','哎，这世道，安稳过活便是福。','客官可是来贩货的？东市好货不少。','听说明日有马队入城。'];
+      for(var i=0;i<nCiv;i++){ (function(idx){
+        var o={name:'城中百姓', icon:'👤', key:'civ_'+cid+'_'+x+'_'+y+'_'+idx, desc:'往来市井的百姓'};
         items.push({o:o, acts:[
           {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+says[Math.floor(Math.random()*says.length)],'npc'); }},
           {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
         ]});
-      })(i);
+      })(i); }
+      if(c.order<45){ var en={name:'落单溃兵', icon:'⚔', key:'deserter_'+cid, desc:'衣甲散乱的溃卒'}; items.push({o:en, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat('deserter'); }}]}); }
+      return items;
     }
-    if(p.c.order<45){
-      var en={name:'落单溃兵', icon:'⚔', key:'deserter', desc:'衣甲散乱的溃卒'};
-      items.push({o:en, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat('deserter'); }}]});
-    }
-    if(p.c.commerce>=60){
-      var m={name:'行脚商贩', icon:'🛒', key:'mch_'+cid, desc:'挑着货担、走街串巷的行商'};
-      items.push({o:m, acts:[{label:'看看货色', icon:'🛒', fn:function(){ runEvent(findEvent('ev_merchant')); }}]});
-    }
-    return items;
-  }
+  };
   // 城中可做之事：保留信息类「城况一览」，移除空泛的「逛市集/维持治安」互动（逛市集改由城内市集格进入，维持治安暂由剧情触发）
   function cityActs(cid){
     var p=cityProfile(cid); if(!p) return [];
@@ -4115,84 +3970,12 @@ window.onerror=function(msg,url,line,col,err){
     }
     return [d];
   }
-  function cityCellNpcs(cid,x,y){
+    function cityCellNpcs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
-    var t=m.cells[y][x], p=cityProfile(cid), c=(LF.CITIES||{})[cid]||{}, items=[];
-    var cnm=c.name||'此城';
-    if(t==='market'){
-      // 商街：店铺是「场景交互物品」，入口已由 cityCellActs 渲染为场景物件按钮（进·药铺…），
-      // 此处仅保留市井人物，避免店铺占据 NPC 位置
-      var mk = m.markets && m.markets[x+','+y];
-      var mktName = mk? mk.name : '市集';
-      var mktSays=[mktName+'的铺子今日又进了新货。','客官是要采买些什么？','这街面一入夜便冷清下来。','听说明日有马队入城，商旅可要多了。'];
-      var vendor={name:'市井商贩', icon:'🛒', key:'mkt_'+cid, desc:'守着摊位的市井商贩'};
-      items.push({o:vendor, acts:[
-        {label:'问价', icon:'💰', fn:function(){ log('〔市井商贩〕「货是好货，价也公道，客官尽管挑。」','npc'); }},
-        {label:'闲谈', icon:'💬', fn:function(){ log('〔市井商贩〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }}
-      ]});
-      for(var mi=0; mi<2; mi++){
-        (function(idx){
-          var o={name:'城中百姓', icon:'👤', key:'mktciv_'+cid+'_'+idx, desc:'往来商街采买的百姓'};
-          items.push({o:o, acts:[
-            {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }},
-            {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
-          ]});
-        })(mi);
-      }
-    } else if(t==='farm'){
-      var zhuang={name:cnm+'庄头', icon:'🌾', key:'farm_'+cid, desc:'肤色黧黑，熟悉农事'};
-      items.push({o:zhuang, acts:[
-        {label:'问农', icon:'💬', fn:function(){ log('〔庄头〕今年雨水尚可，秋收在望，'+cnm+'仓廪也算充实。','npc'); }},
-        {label:'助农', icon:'🌾', fn:function(){
-          if(!exert('下田助农')) return;
-          state.food=Math.min(state.maxFood, state.food+12);
-          log('〔农庄〕你下田搭了把手，庄头塞来新麦（粮草+12）。','good'); }},
-        {label:'购粮', icon:'💰', fn:function(){
-          if(!exert('向农购粮')) return;
-          state.food=state.maxFood;
-          log('〔农庄〕你向庄头籴粮，行囊充实（粮草补满）。','good'); }}
-      ]});
-      return items;
-    }
-    if(t==='palace'){
-      var chen={name:'宫门近臣', icon:'🏯', key:'pal_'+cid, desc:'绯衣秉笏，侍立宫门'};
-      items.push({o:chen, acts:[
-        {label:'入宫觐见', icon:'🏯', fn:function(){ log('〔近臣〕'+cnm+'乃天子所居，朝会方散，陛下今日论及讨董之事，神色凝重。','npc'); }},
-        {label:'叩阙陈情', icon:'📜', fn:function(){ log('〔近臣〕壮士若有良策，可书于帛上，待明日大朝呈奏。','npc'); }}
-      ]});
-      return items;
-    }
-    if(t==='gov'){
-      var zhu={name:(c.tier==='xian'?'县衙主簿':'州府从事'), icon:'🏛', key:'gov_'+cid, desc:'执笔案前，熟稔政务'};
-      items.push({o:zhu, acts:[
-        {label:'参谒长官', icon:'🏛', fn:function(){ log('〔主簿〕'+cnm+(c.tier==='xian'?'县令':'郡守')+'正在理事，案牍盈几，忙于'+((c.owner)?'军政':'治安')+'。','npc'); }},
-        {label:'问政', icon:'💬', fn:function(){ log('〔主簿〕「'+cnm+'如今治安'+(p.c.order>=60?'尚安':'不靖')+'，商旅'+(p.c.commerce>=60?'繁盛':'寥落')+'。」','npc'); }}
-      ]});
-      return items;
-    }
-    if(t==='barracks'){
-      var s={name:'营中校尉', icon:'⚔', key:'sol_'+cid, desc:'按剑肃立的戍卒首领'};
-      items.push({o:s, acts:[
-        {label:'交谈', icon:'💬', fn:function(){ log('〔校尉〕此城乃'+cnm+'要冲，治军严整，盗匪不敢近。','npc'); }},
-        {label:'点卯', icon:'📋', fn:function(){ log('〔校尉〕校尉展阅兵册，营中士卒'+(p.c.wall>=60?'甲械精良':'器械不齐')+'。','npc'); }}
-      ]});
-      return items;
-    }
-    if(t==='plaza'||t==='home'||t==='road'||t==='gate'||t==='empty'){
-      var nCiv=Math.min(4,1+Math.floor(p.c.pop/25));
-      var says=['近来城中米价又涨了……','壮士远道而来，可要当心盗匪。','哎，这世道，安稳过活便是福。','客官可是来贩货的？东市好货不少。','听说明日有马队入城。'];
-      for(var i=0;i<nCiv;i++){
-        (function(idx){
-          var o={name:'城中百姓', icon:'👤', key:'civ_'+cid+'_'+x+'_'+y+'_'+idx, desc:'往来市井的百姓'};
-          items.push({o:o, acts:[
-            {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+says[Math.floor(Math.random()*says.length)],'npc'); }},
-            {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
-          ]});
-        })(i);
-      }
-    }
-    if(p.c.order<45){ var en={name:'落单溃兵', icon:'⚔', key:'deserter_'+cid, desc:'衣甲散乱的溃卒'}; items.push({o:en, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat('deserter'); }}]}); }
-    return items;
+    var p=cityProfile(cid); if(!p) return [];
+    var c=(LF.CITIES||{})[cid]||{};
+    var gen = NPC_GEN[ m.cells[y][x] ] || NPC_GEN.common;
+    return gen(cid,x,y,c, c.name||'此城', m);
   }
   function cityCellActs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
@@ -4260,7 +4043,7 @@ window.onerror=function(msg,url,line,col,err){
   function buildMapCityHTML(opts){
     opts=opts||{};
     var cid=state.room, cp=state.flags.cityPos, m=genCityGrid(cid);
-    if(!m) return '';
+    if(!m||!cp) return '';
     var size=m.size, CELL=62, W=size*CELL, H=size*CELL;
     var cname=((LF.CITIES[cid]||{}).name||'城');
     var cells='';
@@ -4292,6 +4075,7 @@ window.onerror=function(msg,url,line,col,err){
     opts=opts||{};
     var wrap=document.querySelector('#modal-card .map-city'); if(!wrap) return;
     var cid=state.room, cp=state.flags.cityPos, m=genCityGrid(cid);
+    if(!cp||!m) return;
     wrap.querySelectorAll('.mc-cell').forEach(function(el){
       var x=+el.getAttribute('data-x'), y=+el.getAttribute('data-y');
       var isCur=(cp.x===x&&cp.y===y);
@@ -4345,7 +4129,7 @@ window.onerror=function(msg,url,line,col,err){
     }
     // 城市网格：当前格动作派生（取代旧出口/对象按钮）；移动改由底部方向键（currentRoomExits）负责
     if(isCityGrid(room.id)){
-      cityCellActs(room.id, state.flags.cityPos.x, state.flags.cityPos.y).forEach(function(a){
+      cityCellActs(room.id, (state.flags.cityPos?state.flags.cityPos.x:0), (state.flags.cityPos?state.flags.cityPos.y:0)).forEach(function(a){
         var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
         var btn=mkAct('scene', a.icon||'·', a.label, function(e){
           // 进入某处（进·店铺/进·建筑）意图明确，单击直达，不再套「执 行」菜单
@@ -4428,7 +4212,7 @@ window.onerror=function(msg,url,line,col,err){
       });
     }
     // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
-    var cityExtras = isCityGrid(room.id) ? cityCellNpcs(room.id, state.flags.cityPos.x, state.flags.cityPos.y) : cityNpcs(room.id);
+    var cityExtras = cityCellNpcs(room.id, (state.flags.cityPos?state.flags.cityPos.x:0), (state.flags.cityPos?state.flags.cityPos.y:0));
     var enters=[];
     for(var ci=0; ci<cityExtras.length; ci++){
       var ce=cityExtras[ci];
@@ -4616,8 +4400,6 @@ window.onerror=function(msg,url,line,col,err){
   var DIR_ARROW={'北':'↑','南':'↓','东':'→','西':'←','东北':'↗','西北':'↖','东南':'↘','西南':'↙'};
   // 方向 → 罗盘 3×3 网格坐标 [行,列]（上北下南左西右东）
   var DIR_GRID={'北':[1,2],'东北':[1,3],'东':[2,3],'东南':[3,3],'南':[3,2],'西南':[3,1],'西':[2,1],'西北':[1,1]};
-  // 教学链线性顺序：仅开放前进方向，回头路变暗（被追兵挡住）
-  var ONB_CHAIN=['ys_entrance','ys_north','ys_ne','ys_east','ys_se','ys_south','ys_sw','ys_west','ys_nw','yanshan_shankou'];
   function renderMoveBar(room){
     var bar=document.getElementById('move-bar'); if(!bar) return;
     bar.innerHTML=''; bar.classList.remove('pulse','has-exits');
@@ -4644,7 +4426,7 @@ window.onerror=function(msg,url,line,col,err){
     // 中心：当前所在
     var ctr=document.createElement('div'); ctr.className='mv-center'; ctr.textContent='你在此';
     bar.appendChild(ctr);
-    // 移动门禁：由触发引擎经 state.moveGate 设定（开场燕山链即一例；任何"被追/护送"剧情可复用）
+    // 移动门禁：由触发引擎经 state.moveGate 设定（任何"被追/护送"剧情可复用，如苦役营越狱逃亡）
     var gate=state.moveGate;
     var fwd=gate && gate.fwd;
     exits.forEach(function(o){
@@ -4668,7 +4450,7 @@ window.onerror=function(msg,url,line,col,err){
     if(isBldRoom(state.room)) return [];
     if(isCityGrid(state.room)){
       var cp=state.flags.cityPos, m=genCityGrid(state.room);
-      if(!m) return [];
+      if(!m||!cp) return [];
       var DIRS=[['北',0,-1],['南',0,1],['东',1,0],['西',-1,0]];
       var ex=[];
       DIRS.forEach(function(d){
@@ -4706,6 +4488,7 @@ window.onerror=function(msg,url,line,col,err){
       var dm={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]}[dir];
       if(dm){
         var _cp=state.flags.cityPos, _m=genCityGrid(state.room);
+        if(!_cp||!_m){ toast('此处无路可去。'); return; }
         var nx=_cp.x+dm[0], ny=_cp.y+dm[1];
         if(nx>=0&&nx<_m.size&&ny>=0&&ny<_m.size && canEnterCell(state.room,nx,ny)){
           goCell(state.room, nx, ny);
@@ -5312,7 +5095,7 @@ window.onerror=function(msg,url,line,col,err){
     }
     // 蓝图含 interior 时：建成后可步入，成为可进出的独立房间（左下 NPC + 上方交互物件）
     if(bp.interior && bp.interior.length){
-      acts.push({label:'进·'+(bp.doneName||'屋内'), icon:bp.doneIcon||'🚪', fn:function(){
+      acts.push({label:'进·'+(bp.doneName||'屋内'), icon:itemIconHTML({name:bp.doneName||'屋内'},13), fn:function(){
         var _p=findPlacedBp(siteKey); if(_p) enterBldRoom('site_'+siteKey, {kind:'room', room:state.room, bp:_p.bp});
       }});
     }
@@ -5381,7 +5164,7 @@ window.onerror=function(msg,url,line,col,err){
   function buildMatRows(siteKey){
     var p = findPlacedBp(siteKey); if(!p) return '<p class="tip">此处并无营造工地。</p>';
     var bp = LF.BUILD[p.bp]; if(!bp) return '<p class="tip">未知图纸。</p>';
-    if(p.done) return '<p class="tip">'+(bp.doneIcon||'')+' '+bp.doneName+'已然落成。'+(bp.desc||'')+'</p>';
+    if(p.done) return '<p class="tip">'+bp.doneName+'已然落成。'+(bp.desc||'')+'</p>';
     var stages = bp.stages || [];
     var stage = stages[p.stage];
     if(!stage) return '<p class="tip">工事已完，只待收尾——去工地「搭建」即可落成。</p>';
@@ -5403,7 +5186,7 @@ window.onerror=function(msg,url,line,col,err){
   function renderBuildPanel(){
     var p = findPlacedBp(buildState.site);
     var bp = p ? (LF.BUILD[p.bp]||{}) : {};
-    var icon = p && p.done ? (bp.doneIcon||'🏭') : (bp.siteIcon||'🏗️');
+    var icon = p && p.done ? itemIconHTML({name:bp.doneName||'建筑'},13) : itemIconHTML({name:bp.siteName||'营造中'},13);
     var name = p && p.done ? (bp.doneName||'建筑') : (bp.siteName||'营造中');
     var msg = buildState.msg; buildState.msg='';
     return '<h3 style="text-align:center;margin:0 0 4px;">'+itemIconHTML({name:name}, 18)+'</h3>'
@@ -5480,7 +5263,7 @@ window.onerror=function(msg,url,line,col,err){
       ? '<div class="forge-bar"><i style="width:'+pct+'%"></i></div><div class="forge-pct">烧制中 '+pct+'%'+(f.prog)+'/'+(f.need)+' 时辰</div>'
       : (f.prog>0 ? '<div class="forge-bar"><i style="width:'+pct+'%"></i></div><div class="forge-pct">熄火 · 进度 '+pct+'%</div>' : '<p class="tip">炉膛尚冷，投料后点火。</p>');
     var msg = forgeState.msg; forgeState.msg='';
-    var h = '<h3 style="text-align:center;margin:0 0 4px;">'+(bp.doneIcon||'🔥')+' 冶炼炉膛</h3>'
+    var h = '<h3 style="text-align:center;margin:0 0 4px;">冶炼炉膛</h3>'
       + (msg ? '<div class="build-msg">'+msg+'</div>' : '')
       + row('铁矿石', f.ore)
       + row('木材', f.wood)
@@ -6416,10 +6199,9 @@ window.onerror=function(msg,url,line,col,err){
         break;   // 等待玩家选择，选择后才 next()
       }
       case 'moveGate': {
+        // fromChain 仅燕山链用过，链已弃用；此处保留通用门禁（fwd/back/lockBack），用于苦役营越狱等剧情
         if(step.fromChain){
-          var ci=ONB_CHAIN.indexOf(state.room);
-          if(ci>=0 && ci<ONB_CHAIN.length-1){ state.moveGate={ fwd:ONB_CHAIN[ci+1], hint:step.hint||'乌桓骑兵追来！此刻不能回头，快往前逃！' }; }
-          else { state.moveGate=null; }
+          state.moveGate=null;
         } else {
           state.moveGate={ fwd:step.fwd, back:step.back, lockBack:!!step.lockBack, hint:step.hint };
         }
@@ -7041,7 +6823,7 @@ window.onerror=function(msg,url,line,col,err){
     var b=BUILDINGS[key];
     if(!b && state && state.flags && state.flags.bldEnt && state.flags.bldEnt.key===key){
       var _bp=LF.BUILD[state.flags.bldEnt.bp];
-      if(_bp) b={ name:_bp.doneName||'屋舍', icon:_bp.doneIcon||'🏠', sub:_bp.desc||'', interior:_bp.interior||[], rootName:_bp.rootName, rootExtraNpcs:_bp.rootExtraNpcs, rootExtraObjs:_bp.rootExtraObjs, subAreas:_bp.subAreas, areas:_bp.areas };
+      if(_bp) b={ name:_bp.doneName||'屋舍', icon:itemIconHTML({name:_bp.doneName||'屋舍'},13), sub:_bp.desc||'', interior:_bp.interior||[], rootName:_bp.rootName, rootExtraNpcs:_bp.rootExtraNpcs, rootExtraObjs:_bp.rootExtraObjs, subAreas:_bp.subAreas, areas:_bp.areas };
     }
     if(!b) return null;
     var ar;
@@ -7054,7 +6836,7 @@ window.onerror=function(msg,url,line,col,err){
     } else {
       ar=b.areas && b.areas[areaKey] || null;
       if(!ar) return null;
-      ar={ name:ar.name, icon:ar.icon||'🚪', desc:ar.desc, npcs:ar.npcs||[], objs:ar.objs||[], areas:ar.areas||[], isRoot:false };
+      ar={ name:ar.name, icon:ar.icon||'进', desc:ar.desc, npcs:ar.npcs||[], objs:ar.objs||[], areas:ar.areas||[], isRoot:false };
     }
     return { id:rid, key:key, areaKey:areaKey, b:b, ar:ar };
   }
@@ -7083,7 +6865,7 @@ window.onerror=function(msg,url,line,col,err){
       state.flags.cityPos={cid:back.cid,x:back.x,y:back.y};
       renderRoom(back.cid);
     } else {
-      renderRoom((back && back.room) || 'camp');
+      renderRoom((back && back.room) || 'camp_yard');
     }
   }
   function hasCount(defId,n){ var c=packFind(defId); return c && (c.count||1)>=n; }
@@ -7103,7 +6885,7 @@ window.onerror=function(msg,url,line,col,err){
     // 玩家营造的蓝图建筑：用 LF.BUILD[蓝图id] 的动态 interior 临时构造屋舍定义
     if(buildingState.bp){
       var bp=LF.BUILD[buildingState.bp]; if(!bp) return null;
-      return { name:bp.doneName||'屋舍', icon:bp.doneIcon||'🏠', sub:bp.desc||'',
+      return { name:bp.doneName||'屋舍', icon:itemIconHTML({name:bp.doneName||'屋舍'},13), sub:bp.desc||'',
         interior:bp.interior||[], rootName:bp.rootName, subAreas:bp.subAreas, areas:bp.areas,
         rootExtraNpcs:bp.rootExtraNpcs, rootExtraObjs:bp.rootExtraObjs };
     }
