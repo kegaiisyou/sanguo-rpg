@@ -1834,7 +1834,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260827h</div>
+    <div class="tt-ver" id="tt-ver">v20260827i</div>
   </div>
 </div>
 
@@ -1878,7 +1878,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260827h"></script>
+<script src="shared/config/constants.js?v=20260827i"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -7869,6 +7869,9 @@ window.onerror=function(msg,url,line,col,err){
   //    解析 openModal/log/exert/packFind…，需将游戏内部函数暴露到 window，否则建筑内面板（如铁砧打造）打开报 ReferenceError
   window.openModal=openModal; window.closeModal=closeModal; window.log=log; window.toast=toast;
   window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
+  // ── 全局桥接（v20260827i）：shared/story/rooms.js 工厂闭包引用 state.flags/state.room（read-only），
+  //    通过 getter 暴露当前 state；内部仍以 IIFE 内的 var state 为主写入源
+  Object.defineProperty(window, 'state', { get: function(){ return state; }, configurable: true });
   // ── 调试桥（城市营造系统，回归脚本用）：暴露只读/推进函数，不影响正常游戏 ──
   window.DBG=window.DBG||{};
   window.DBG.city={ startCityBuild:startCityBuild, cityBuildMat:cityBuildMat, cityBuildExert:cityBuildExert,
