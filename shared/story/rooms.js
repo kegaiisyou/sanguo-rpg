@@ -1,32 +1,34 @@
-// 乱世烽火 · 房间数据（共享层）
-// 锚点（苦役营 / 黑山寨 / 建造测试）为手写保留；城市根房由 shared/data/cities.js 的 grid 程序生成内部网格
+// 房间定义（手写部分）
+// 说明：
+//   1) 本文件只保留「手写锚点房」（苦役营 / 黑山寨 / 建造测试 / 林径）。
+//   2) 程序生成城市（CITIES.grid 驱动）不再在此手写——其房间对象在启动时由
+//      index.html 的 registerCityRooms() 依据 shared/data/cities.js 自动合成并注入 G.ROOMS。
+//      cities.js 是城市唯一真相源，新增城市只需改 cities.js 一条 + map.js 的 coords 一个坐标。
+//   3) 手写锚点房的「可交互物件」原散落在 index.html 的 ROOM_OBJECTS，现并入本文件（一房一文件）。
+//      以 buildRoomObjects() 工厂返回，待引擎加载后由 index.html 调用实例化
+//      （避免加载期引用尚未定义的引擎全局：packFind / state / chopTree 等）。
 (function(global){
+  if(!global.LF) global.LF = {};
   var ROOMS = {
-
-  // ═══ 锚点 · 苦役营（教学切片，保留手写） ═══
+  // ═══ 锚点 · 苦役营（保留手写） ═══
     camp_yard: {
       id: 'camp_yard',
       name: '苦役营·劳役场',
       desc: [
-        '你昏沉沉醒来，竟不知怎的做了囚徒。苦役营的劳役场空阔，乱石夯土，日头毒辣。',
-        '黑压压一片囚徒或搬石或掘土，狱卒皮鞭声不时作响；场中蹲着个蓬头囚徒，正压着嗓子讲古。'
+        '劳役场黄土夯实，烈日下囚徒们扛石运土，皮鞭声与喘息声交织。远处哨塔上戍卒眯眼张望。',
+        '场边木栅低矮，几名囚徒趁监工转身的间隙，低声交换着眼神——这里的人都想出去。'
       ],
       exits: {
-        '西': 'camp_wall',
-        '囚室': 'camp_cell'
+        '西': 'camp_cell',
+        '北': 'camp_wall'
       },
-      find: '囚徒如蚁，狱卒往来；场中那蓬头囚徒仍压着嗓子讲古，旁人听得入神。你若凑近，或许能听出些名堂。',
+      find: '劳役场黄土夯实，囚徒扛石运土。〔西〕囚室（西）；〔北〕塌墙根（北）；林木幽深处似有去路。',
       npcs: [
-        'laotou',
-        'zhoutingtao'
+        'zhou_tingtao',
+        'hu_shi'
       ],
       items: [],
       actions: [
-        {
-          id: 'labor_yard',
-          label: '担石劳作',
-          tip: '在场中担石，体会苦役营的日夜。'
-        },
         {
           id: 'survey_yard',
           label: '环顾四周',
@@ -139,9 +141,28 @@
         '台旁一棵老树粗壮挺拔，墙角还堆着些杂役用的家伙什。此地似是专供试手「建造系统」之所。'
       ],
       exits: {
-        '北': 'city'
+        '北': 'city',
+        '东': 'combat_test'
       },
       find: '空地中央一座木工台，旁有老树与一堆积役工具——显然是试手建造的去处。',
+      npcs: [],
+      items: [],
+      actions: []
+    },
+
+  // ═══ 锚点 · 演武场（战斗系统测试，置于建造场隔壁） ═══
+    combat_test: {
+      id: 'combat_test',
+      name: '演武场·试炼坪',
+      desc: [
+        '建造场东侧辟出一片空坪，木桩、草人列于四隅。坪心立着一块试炼碑，碑侧按修为高下分列数名「陪练」——皆为符术所化，伤而不死，专供试招。',
+        '此处不耗气力、不损声名，正宜将各路敌手的拳脚、招式、五行逐一试过，摸清自家斤两，再去闯那真刀真枪的江湖。'
+      ],
+      exits: {
+        '西': 'build_test',
+        '北': 'city'
+      },
+      find: '空坪木桩草人列于四隅，坪心试炼碑按修为分列数名陪练。〔西〕回建造场（西）；〔北〕返颍川（北）。',
       npcs: [],
       items: [],
       actions: []
@@ -163,383 +184,114 @@
       npcs: [],
       items: [],
       actions: []
-    },
-
-  // ═══ 程序生成城市根房（CITIES.grid 驱动内部网格，城区由 cities.js 程序生成） ═══
-    city: {
-      id: 'city',
-      name: '颍川城',
-      desc: [
-        '颍川城内市集熙攘，酒肆茶楼人声鼎沸。西域胡商牵着骆驼穿行，铜铃叮当。',
-        '城西医馆飘出药香，华老正捣药；街头偶有溃兵游荡，神色仓皇，似在寻机劫掠。'
-      ],
-      exits: {},
-      find: '市集人声鼎沸，西域胡商铜铃叮当；城西医馆药香浮动，街头溃兵游荡，神色仓皇似在寻机劫掠。',
-      npcs: [],
-      items: [
-        '行商摊上的金疮药'
-      ],
-      actions: [
-        {
-          id: 'market',
-          label: '逛市集',
-          group: '行动',
-          tip: '与行商交易伤药钱粮'
-        },
-        {
-          id: 'city_patrol',
-          label: '维持治安',
-          group: '行动',
-          tip: '驱赶城中溃兵'
-        },
-        {
-          id: 'rest',
-          label: '客栈安歇',
-          group: '行动',
-          tip: '酒楼歇脚，气血内力尽复'
-        }
-      ]
-    },
-    luoyang: {
-      id: 'luoyang',
-      name: '洛阳城',
-      desc: [
-        '洛阳城阙巍峨，朱雀大街车水马龙。你力斩华雄之名已传遍州郡，百姓夹道相迎。',
-        '太庙之前，老兵斟酒相敬：「壮士此战，气吞山河！」中原未平，然你已立下不世奇功，青史当留一笔。'
-      ],
-      exits: {},
-      find: '城阙巍峨，朱雀大街车水马龙；太庙前老兵斟酒相敬，孩童指你而呼「斩华雄者」，声名已传州郡。',
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '酒肆安歇，气血内力尽复'
-        }
-      ]
-    },
-    ji_guomen: {
-      id: 'ji_guomen',
-      name: '蓟城·郭门',
-      desc: [
-        '夯土城墙巍然矗立，郭门内外往来车马络绎不绝。城门税吏正逐一盘查过往商旅，铜铃与驼铃此起彼伏。',
-        '城外远处可见流民棚的炊烟，马市那边传来阵阵马嘶声。南行可返中原洛阳，入郭门即进蓟城。'
-      ],
-      exits: {},
-      npcs: [],
-      find: '郭门两侧揭帖写满入城税则，墙根兵卒正煮着腥膻肉汤。西去土路连着流民棚，东边草场马群扬尘——乌桓马商的旗幡格外扎眼；北面城楼便是入城正门。',
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '郭门歇脚',
-          group: '行动',
-          tip: '依墙小憩，气血内力尽复'
-        }
-      ]
-    },
-    yuyang_guomen: {
-      id: 'yuyang_guomen',
-      name: '渔阳·郭门',
-      desc: [
-        '夯土城墙夹道而立，郭门扼南北通衢之喉。南来北往的商旅、流民在税亭前排起长队，驼铃与车辙声不绝。',
-        '城外南望，蓟城（幽州治所）大道烟尘隐隐；入郭门即进渔阳城。关吏正挨个验籍，墙根戍卒就着风沙啃着硬饼。'
-      ],
-      exits: {},
-      npcs: [],
-      find: '郭门两侧揭帖写满入城税则与宵禁时刻，墙根戍卒就着风沙啃硬饼。南去蓟城大道尘土飞扬，北入城去便是南门；西首兵营旌旗隐约，东边市声渐起——渔阳便是个北疆门户的模样。',
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '郭门歇脚',
-          group: '行动',
-          tip: '依墙避风小憩，气血内力尽复'
-        }
-      ]
-    },
-    ye: {
-      id: 'ye',
-      name: '邺城',
-      desc: [
-        '邺城雄峙漳水之滨，城墙高峻，市井井然。州衙官署沿中轴排列，比屋连甍，气象俨然。',
-        '城头旌旗寂寂，街上行人稀疏——新附之地，百业待兴。远处铜雀台基初筑，工匠三三两两散坐歇息。'
-      ],
-      find: '漳水绕郭，州衙巍然；铜雀台基初筑，街市疏朗。邺城初定，静待风云。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    changyi: {
-      id: 'changyi',
-      name: '昌邑',
-      desc: [
-        '昌邑乃兖州腹地大邑，四通八达，仓廪充实。州牧府第门庭冷落，两列戟架空空如也。',
-        '长街尽头的烽燧台上，戍卒凭栏远望。城外旷野一马平川，正合驰骋；只惜兵甲未集，暂无一将一卒在此驻守。'
-      ],
-      find: '州牧府第门庭冷落，戟架空空；城外平川千里，却无兵甲。昌邑空城一座，待君坐镇。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    xiapi: {
-      id: 'xiapi',
-      name: '下邳',
-      desc: [
-        '下邳襟带泗沂，城垒坚固，为徐州州治。泗水帆樯往来，货殖辐辏。',
-        '州衙大门洞开，堂上案牍蒙尘；衙役书吏皆已散去。城北土城之上，唯见孤鸟盘旋。'
-      ],
-      find: '泗水帆樯如织，城垒高坚；州衙案牍蒙尘，人去楼空。下邳静候明主。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    linzi: {
-      id: 'linzi',
-      name: '临淄',
-      desc: [
-        '临淄古齐故都，城郭宏阔，人烟稠密。稷下学宫残垣犹在，隐隐有弦歌之遗风。',
-        '市廛之上货栈林立，然多已闭户；齐地富庶之名不减，唯缺刺史坐镇。'
-      ],
-      find: '稷下旧垣，弦歌遗响；市廛货栈林立却多闭户。临淄殷富，待贤而治。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    xiangyang: {
-      id: 'xiangyang',
-      name: '襄阳',
-      desc: [
-        '襄阳北据汉沔，南面荆山，水陆之冲。汉水绕城东去，帆影点点。',
-        '城上戍楼空悬刁斗，江畔渡口舟子寥寥。荆襄沃野千里，只待州牧开府。'
-      ],
-      find: '汉沔环流，荆山拱卫；戍楼刁斗空悬，江畔舟子寥寥。襄阳形胜，静待开府。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    shouchun: {
-      id: 'shouchun',
-      name: '寿春',
-      desc: [
-        '寿春当淮泗之冲，城池绵延，为扬州要镇。淮水汤汤，烟波浩渺。',
-        '城坊市列如棋布，然商旅稀少；水师营寨泊于水滨，空有战船十数艘。'
-      ],
-      find: '淮水汤汤绕城，市列棋布；水寨战船空泊，商旅稀疏。寿春锁钥江淮，待主守御。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    chengdu: {
-      id: 'chengdu',
-      name: '成都',
-      desc: [
-        '成都沃野千里，天府之国。锦官城外，江水如带；城内街衢纵横，竹影婆娑。',
-        '蜀锦织户机杼声稀，酒肆旗帘半卷。都亭驿马空闲，满城空等一人。'
-      ],
-      find: '锦江环郭，沃野千里；机杼声稀，驿马空闲。成都天府，虚位以待。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    wuwei: {
-      id: 'wuwei',
-      name: '武威',
-      desc: [
-        '武威据河西咽喉，通西域孔道。城郭雄踞，驼铃远去，商旅踏沙而行。',
-        '州衙简朴，帐幕半旧；城中羌胡杂处，市集上胡商与汉贾低声议价。凉州铁骑之名犹在，只是马厩空空。'
-      ],
-      find: '雄踞河西，驼铃过沙；州衙帐幕半旧，马厩空空。武威锁钥丝路，亟待整军。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    jinyang: {
-      id: 'jinyang',
-      name: '晋阳',
-      desc: [
-        '晋阳表里山河，襟带汾水，虎踞并州。城依龙山而筑，险固冠于天下。',
-        '北门之外，雁门关路隐隐；城内府库积粟尚丰，唯守卒稀少，街巷阒静。'
-      ],
-      find: '汾水襟带，龙山虎踞；府库积粟，守卒稀少。晋阳险固，虚席待主。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ]
-    },
-    fanyu: {
-      id: 'fanyu',
-      name: '番禺',
-      desc: [
-        '番禺为交州州治，濒临南海，瘴雾熏风。城港之内，海舶云集，珠玑玳瑁堆积如山。',
-        '刺史府第依山面海，庭院中椰蕉扶疏。越人市侩操着汉越双语，买卖兴隆，只是官府人稀。'
-      ],
-      find: '海舶云集，珠玑成山；刺史府第面海，椰蕉扶疏。番禺富庶岭南，空悬州印。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [
-        {
-          id: 'rest',
-          label: '城中休整',
-          group: '行动',
-          tip: '寻一处馆驿安歇，气血内力尽复'
-        }
-      ],
-    },
-    chang_an: {
-      id: 'chang_an',
-      name: '长安城',
-      desc: [
-        '长安为西京旧都，宫阙连云，街市繁盛。董卓既迁都于此，冠盖云集，然乱世未靖。',
-        '未央长乐之基犹在，横门之外商旅络绎；关中沃野，漕渠通波，诚为王霸之基。'
-      ],
-      find: '宫阙连云，横门商旅络绎；渭水之滨沃野千里。长安乃西京旧都，王霸之基。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [ { id:'rest', label:'城中休整', group:'行动', tip:'寻一处馆驿安歇，气血内力尽复' } ]
-    },
-    jianye: {
-      id: 'jianye',
-      name: '建业城',
-      desc: [
-        '建业为江东都会，襟江带湖，舟楫如织。孙氏据有江东，以此为本，渐成鼎足之势。',
-        '石头城下潮声阵阵，市廛之上吴侬软语；北望中原，每有王图霸业之思。'
-      ],
-      find: '襟江带湖，舟楫如织；石头城下潮声阵阵。建业乃孙吴根基，江东都会。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [ { id:'rest', label:'城中休整', group:'行动', tip:'寻一处馆驿安歇，气血内力尽复' } ]
-    },
-    hanzhong: {
-      id: 'hanzhong',
-      name: '汉中城',
-      desc: [
-        '汉中北倚秦岭，南屏巴山，崇山固垒，号为天险。汉水贯其中，沃野可耕，实益州北门之锁钥。',
-        '城头戍卒往来，街市商旅不绝；昔日刘邦据此成汉，今又成兵家必争之要冲。'
-      ],
-      find: '秦岭巴山之间，汉水绕城；崇山固垒，沃野可耕。汉中乃益州北屏，汉中之战要冲。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [ { id:'rest', label:'城中休整', group:'行动', tip:'寻一处馆驿安歇，气血内力尽复' } ]
-    },
-    jiangling: {
-      id: 'jiangling',
-      name: '江陵城',
-      desc: [
-        '江陵为南郡治所，控长江之险，舟船辐辏，号为荆州军港。关羽昔年镇此，水陆要冲，兵家必争。',
-        '码头桅樯如林，城中米市兴旺；北望襄阳，南接洞庭，实为江左门户。'
-      ],
-      find: '长江之滨，桅樯如林；南郡治所，军港雄踞。江陵乃荆州门户，关羽失荆之地。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [ { id:'rest', label:'城中休整', group:'行动', tip:'寻一处馆驿安歇，气血内力尽复' } ]
-    },
-    xiangping: {
-      id: 'xiangping',
-      name: '襄平城',
-      desc: [
-        '襄平远踞辽东，白山黑水之间，公孙氏据之以为根本。城小而坚，胡汉杂处，商旅通于絶域。',
-        '城外沃野千里，然地寒人稀；北望肃慎，东临沧海，实远疆之重镇。'
-      ],
-      find: '白山黑水之间，城坚人稀；公孙氏据此为根本。襄平乃辽东重镇，远踞东北。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [ { id:'rest', label:'城中休整', group:'行动', tip:'寻一处馆驿安歇，气血内力尽复' } ]
-    },
-    xuchang: {
-      id: 'xuchang',
-      name: '许都城',
-      desc: [
-        '许都居颍川腹地，四通八达。曹公迎天子于此，挟天子以令诸侯，遂成霸业之基。',
-        '宫室初营，街市日盛；中原士子辐辏，兵戈渐息而王命重申。'
-      ],
-      find: '颍川腹地，宫室初营；曹公迎天子于此，王命重申。许都乃曹魏霸业之基（帝都）。',
-      exits: {},
-      npcs: [],
-      items: [],
-      actions: [ { id:'rest', label:'城中休整', group:'行动', tip:'寻一处馆驿安歇，气血内力尽复' } ]
     }
   };
-  global.LF = global.LF || {};
+
+  // ── 手写锚点房的「可交互物件」（工厂：引擎就绪后由 index.html 实例化）──
+  function buildRoomObjects(){
+    function treeActs(){
+      var hasAxe = !!packFind('tiefu') || !!packFind('futou');
+      return [{label: hasAxe ? '挥斧伐木' : '徒手折枝', icon:'🌳', fn:function(){ chopTree(); }}];
+    }
+    function benchActs(){
+      var acts=[];
+      if(!(state.flags && state.flags.buildTestSearched)){
+        acts.push({label:'翻找工作台', icon:'🔍', fn:function(){ searchBench(); }});
+      }
+      acts.push({label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }});
+      return acts;
+    }
+    function build_quarry_actions(){
+      return [{label:'采石料', icon:'⛏️', fn:function(){ mineStone(); }}];
+    }
+    function build_crate_actions(){
+      var got = state.flags && state.flags.buildCrateGot;
+      if(got) return [{label:'木箱已空', icon:'📭', fn:function(){ toast('木箱已然空了。'); }}];
+      return [{label:'翻找木箱', icon:'🔍', fn:function(){ openBuildCrate(); }}];
+    }
+    return {
+      build_test:[
+        {type:'feature', key:'tree',     icon:'🌳', name:'一棵老树', desc:'粗壮老树，枝干坚实，正堪伐取',   actions:treeActs},
+        {type:'feature', key:'bench',    icon:'🔨', name:'木工台',   desc:'粗木搭就的工作台，可将木头加工成木材', actions:benchActs},
+        {type:'feature', key:'toolpile', icon:'🪓', name:'工具堆',   desc:'墙角堆着些杂役用的家伙什',       actions:[{label:'拾取斧头', icon:'🪓', fn:function(){ pickupAxe(); }}]},
+        {type:'npc', key:'pedlar', icon:'🧺', name:'货郎', desc:'挑担行商，收售木料与器具', actions:[{label:'与他交易', icon:'💰', fn:function(){ openModal('shop', {shop:'build_pedlar'}); }}]},
+        {type:'npc', key:'liupan', icon:'🗡️', name:'游侠·刘磐', desc:'背负环首刀，抱拳而立', actions:[
+          {label:'邀请入队', icon:'🤝', fn:function(){ recruitCompanion('liupan'); }}
+        ]},
+        {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+        {type:'feature', key:'quarry',     icon:'🪨', name:'采石崖',   desc:'崖壁裸露青石，敲击可采下石料',     actions: build_quarry_actions},
+        {type:'feature', key:'crate',    icon:'📦', name:'残破木箱', desc:'半埋草垛里的旧木箱，似有人遗落了图纸', actions: build_crate_actions},
+        {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川',desc:'返回颍川',                           actions:[{label:'返回颍川', fn:function(){ move('北','city'); }}]}
+      ],
+
+      // ═══ 战斗系统测试：演武场（建造场隔壁） ═══
+      combat_test:[
+        {type:'feature', key:'newbie', icon:'🪵', name:'新手试炼桩', desc:'木人桩与几只极易对付的活靶，供熟悉基础攻防', acts:[
+          {label:'木人桩（无伤·测UI）', icon:'🥊', fn:function(){ startCombat('dummy'); }},
+          {label:'野犬（hp50·无）', icon:'🐕', fn:function(){ startCombat('stray_dog'); }},
+          {label:'饥饿流民（hp80·无）', icon:'🧎', fn:function(){ startCombat('hungry_refugee'); }},
+          {label:'落单溃兵（hp130·金）', icon:'🪖', fn:function(){ startCombat('deserter'); }}
+        ]},
+        {type:'feature', key:'mid', icon:'⚔️', name:'寻常试炼', desc:'山野间常见的匪类，正经练手', acts:[
+          {label:'山贼（hp300·土）', icon:'🪓', fn:function(){ startCombat('bandit'); }},
+          {label:'黑山寨卒（hp360·金）', icon:'🔪', fn:function(){ startCombat('heishan_zei'); }},
+          {label:'流寇头目（hp600·土）', icon:'👹', fn:function(){ startCombat('bandit_chief'); }}
+        ]},
+        {type:'feature', key:'elite', icon:'🔥', name:'精锐试炼', desc:'久历战阵的劲敌，招式带异常', acts:[
+          {label:'乌桓斥候（hp240·金）', icon:'🏹', fn:function(){ startCombat('wuhuan_scout'); }},
+          {label:'太平力士（hp800·土·符术）', icon:'🟡', fn:function(){ startCombat('yellow_turban'); }},
+          {label:'黑山寨主·张燕（hp1000·金·Boss）', icon:'😈', fn:function(){ startCombat('heishan_zhu'); }}
+        ]},
+        {type:'feature', key:'boss', icon:'👑', name:'宿敌试炼', desc:'一方豪强的压阵之将，全力一战', acts:[
+          {label:'华雄（hp1200·金·Boss）', icon:'🐅', fn:function(){ startCombat('hua_xiong'); }}
+        ]},
+        {type:'feature', key:'beast_low', icon:'🐺', name:'寻常野兽', desc:'林原间的走兽飞禽，宜试手身法', acts:[
+          {label:'野犬（hp50·无）', icon:'🐕', fn:function(){ startCombat('stray_dog'); }},
+          {label:'野狼（hp150·金）', icon:'🐺', fn:function(){ startCombat('wild_wolf'); }},
+          {label:'野猪（hp240·土·冲撞晕）', icon:'🐗', fn:function(){ startCombat('wild_boar'); }},
+          {label:'蝮蛇（hp90·木·毒）', icon:'🐍', fn:function(){ startCombat('venom_snake'); }}
+        ]},
+        {type:'feature', key:'beast_high', icon:'🐯', name:'凶兽', desc:'深山旷野的猛兽，招式带异常', acts:[
+          {label:'黑熊（hp520·土）', icon:'🐻', fn:function(){ startCombat('black_bear'); }},
+          {label:'苍鹰（hp200·金·极速）', icon:'🦅', fn:function(){ startCombat('goshawk'); }},
+          {label:'巨蟒（hp460·木·绞缠毒）', icon:'🐲', fn:function(){ startCombat('python'); }},
+          {label:'雪狼（hp340·金·北境）', icon:'🐺', fn:function(){ startCombat('snow_wolf'); }},
+          {label:'疯牛（hp280·土·冲撞晕）', icon:'🐂', fn:function(){ startCombat('mad_bull'); }},
+          {label:'群狼（hp300·金·连击）', icon:'🐺', fn:function(){ startCombat('wolf_pack'); }},
+          {label:'猛虎（hp720·金·兽王级）', icon:'🐯', fn:function(){ startCombat('tiger'); }}
+        ]},
+        {type:'feature', key:'env', icon:'🔍', name:'四周环境', desc:'环顾试炼坪', acts:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
+        {type:'exit', dir:'西', icon:'🚪', name:'西·建造场', desc:'返回建造系统测试场', actions:[{label:'返回建造场', fn:function(){ move('西','build_test'); }}]},
+        {type:'exit', dir:'北', icon:'🏯', name:'北·颍川', desc:'返回颍川城', actions:[{label:'返回颍川', fn:function(){ move('北','city'); }}]}
+      ],
+
+      // ═══ 剿匪据点：黑山寨（寨门 / 聚义厅 / 后寨） ═══
+      ji_heishan_zhai:[
+        {type:'npc', key:'heishan_zhai', icon:'🔪', name:'黑山寨卒', desc:'横刀拦路，面带凶相', actions:[
+          {label:'与他交谈', fn:function(){ talk('heishan_zhai'); }},
+          {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zei'); }, tip:'恶贼当前，不必多言'}
+        ]},
+        {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾黑山寨门'},
+        {type:'exit', dir:'南', icon:'🚪', name:'南·林径', desc:'退回林径，往苦役营', actions:[{label:'退回林径', fn:function(){ move('南','lindao'); }}]},
+        {type:'exit', dir:'北', icon:'🔥', name:'北·聚义厅', desc:'灯火通明，人影幢幢', actions:[{label:'闯聚义厅', fn:function(){ move('北','ji_heishan_juyi'); }}]}
+      ],
+      ji_heishan_juyi:[
+        {type:'npc', key:'heishan_zhu', icon:'🔥', name:'黑山寨主·张燕', desc:'抚刀而笑，杀机毕露', actions:[
+          {label:'与他交谈', fn:function(){ talk('heishan_zhu'); }},
+          {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zhu'); }, tip:'夺寨先斩贼首'}
+        ]},
+        {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾聚义厅'},
+        {type:'exit', dir:'南', icon:'🚪', name:'南·寨门', desc:'退回寨门', actions:[{label:'退回寨门', fn:function(){ move('南','ji_heishan_zhai'); }}]},
+        {type:'exit', dir:'北', icon:'📦', name:'北·后寨', desc:'囤积赃物的所在', actions:[{label:'入后寨', fn:function(){ move('北','ji_heishan_houzhai'); }}]}
+      ],
+      ji_heishan_houzhai:[
+        {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾后寨'},
+        {type:'exit', dir:'南', icon:'🚪', name:'南·聚义厅', desc:'退回聚义厅', actions:[{label:'退回聚义厅', fn:function(){ move('南','ji_heishan_juyi'); }}]}
+      ]
+    };
+  }
+  global.LF.buildRoomObjects = buildRoomObjects;
+
   global.LF.ROOMS = ROOMS;
   if (typeof module !== 'undefined' && module.exports) module.exports = ROOMS;
 })(typeof window !== 'undefined' ? window : globalThis);

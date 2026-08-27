@@ -24,7 +24,7 @@
 
     coords: {
       // ── 中原 · 颍川（初开之地；颍川城为网格城根）──
-      city:[6,6.5], build_test:[7,8],
+      city:[6,6.5], build_test:[7,8], combat_test:[8,8],
       luoyang:[5,4],   // 洛阳（司隶州治，网格城根）
       // ── 幽州 · 渔阳（网格城根，仅留城门根房）──
       yuyang_guomen:[14,-1],
@@ -109,35 +109,18 @@
 
     // 区域层节点：州内城池 / 要地（open=true 表示该地已有实际内容，未开放的名城以暗色占位）
     zones: [
-      { id:'yingchuan', name:'颍川',     icon:'🏙️', pos:[6,7],   st:'豫州', open:true,  kind:'city',    desc:'中原腹地，乱世初起之地' },
-      { id:'luoyang',   name:'洛阳',     icon:'🏯', pos:[5,4],   st:'司隶', open:true,  kind:'city',    desc:'汉室京师，宫阙巍峨' },
-      { id:'jicheng',   name:'蓟城',     icon:'🏯', pos:[9,2],   st:'幽州', open:true,  kind:'city',    desc:'幽州州治，北疆雄城' },
-      { id:'yuyang',    name:'渔阳',     icon:'🏯', pos:[14,-1], st:'幽州', open:true,  kind:'city',    desc:'渔阳郡治，边塞重镇' },
+      // 城市州治节点不再在此手写——由 index.html 在启动时依据 cities.js + coords 自动派生（buildCityZones），
+      // 新增城市只需在 shared/data/cities.js 加一条 + 本文件 coords 一个坐标。
       { id:'heishan',   name:'黑山寨',   icon:'🦹', pos:[9,-5],  st:'幽州', open:true,  kind:'dungeon', desc:'黑山军据守的险寨' },
       { id:'build_test',name:'建造场',   icon:'🔨', pos:[7,8],   st:'豫州', open:true,  kind:'camp',    desc:'木工台与测试营地' },
-      { id:'chang_an',  name:'长安',     icon:'🏯', pos:[2,5],   st:'司隶', open:true,  kind:'city',    desc:'西京旧都，关中雄城，董卓迁都之地' },
-      { id:'ye',        name:'邺城',     icon:'🏯', pos:[10,5],  st:'冀州', open:true,  kind:'city',    desc:'冀州州治，铜雀台起' },
-      { id:'changyi',   name:'昌邑',     icon:'🏯', pos:[11,7],  st:'兖州', open:true,  kind:'city',    desc:'兖州州治，控扼中原' },
-      { id:'jinyang',   name:'晋阳',     icon:'🏯', pos:[3,-5],  st:'并州', open:true,  kind:'city',    desc:'并州州治，表里山河' },
-      { id:'chengdu',   name:'成都',     icon:'🏯', pos:[1,11],  st:'益州', open:true,  kind:'city',    desc:'益州州治，天府之国' },
-      { id:'xiangyang', name:'襄阳',     icon:'🏯', pos:[6,10],  st:'荆州', open:true,  kind:'city',    desc:'荆州北门锁钥' },
-      { id:'shouchun',  name:'寿春',     icon:'🏯', pos:[12,11], st:'扬州', open:true,  kind:'city',    desc:'淮南重镇，锁钥江淮' },
-      { id:'linzi',     name:'临淄',     icon:'🏯', pos:[14,4],  st:'青州', open:true,  kind:'city',    desc:'青州州治，齐都故地' },
-      { id:'xiapi',     name:'下邳',     icon:'🏯', pos:[16,8],  st:'徐州', open:true,  kind:'city',    desc:'徐州州治，古邳名邑' },
-      { id:'fanyu',     name:'番禺',     icon:'🏯', pos:[4,17],  st:'交州', open:true,  kind:'city',    desc:'交州州治，岭南都会' },
-      { id:'wuwei',     name:'武威',     icon:'🏯', pos:[-10,8], st:'凉州', open:true,  kind:'city',    desc:'河西咽喉，凉州重镇' },
-      { id:'jianye',     name:'建业',     icon:'🏯', pos:[14,12], st:'扬州', open:true,  kind:'city',    desc:'江东都会，孙吴根基' },
-      { id:'hanzhong',   name:'汉中',     icon:'🏯', pos:[3,7],   st:'益州', open:true,  kind:'city',    desc:'益州北屏，汉中之战要冲' },
-      { id:'jiangling',  name:'江陵',     icon:'🏯', pos:[6,13],  st:'荆州', open:true,  kind:'city',    desc:'南郡治所，长江军港' },
-      { id:'xiangping',  name:'襄平',     icon:'🏯', pos:[16,-3], st:'幽州', open:true,  kind:'city',    desc:'辽东重镇，公孙氏割据之基' },
-      { id:'xuchang',    name:'许都',     icon:'🏯', pos:[8,6],   st:'豫州', open:true,  kind:'city',    desc:'颍川腹地，曹魏霸业之基（帝都）' }
+      { id:'combat_test',name:'演武场',   icon:'⚔️', pos:[8,8],   st:'豫州', open:true,  kind:'camp',    desc:'试炼坪·可试诸般敌手' }
     ],
 
     // 山脉/海岸美术现由 assets/map_inkwash.jpg 水墨山水底图承担（见 index.html .map-canvas 背景）
 
     // 节点分色覆盖（未列出者按房间 id 前缀自动推断：ji_heishan_→贼巢、ji_/yuyang_→城镇、其余→野外）
     kinds: {
-      build_test:'wild', luoyang:'city',
+      build_test:'wild', combat_test:'wild', luoyang:'city',
       lindao:'wild'
     }
   };

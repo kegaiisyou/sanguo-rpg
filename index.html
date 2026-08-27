@@ -427,6 +427,30 @@
   .learn-line .ll-lv{font-size:11.5px;color:var(--ink-faint);}
   .card .skills span.force{background:rgba(176,131,47,.16);border-color:rgba(176,131,47,.4);color:#8a6a2e;}
 
+  /* ===== 志向（目标追踪）/ 门派面板（P0 系统补全） ===== */
+  .st-goal,.st-sect{cursor:pointer;}
+  .st-goal:hover,.st-sect:hover{filter:brightness(1.15);}
+  .obj-list{display:flex;flex-direction:column;gap:10px;margin:6px 0 2px;}
+  .obj{border:1px solid var(--btn-line);border-radius:10px;padding:9px 12px;background:var(--btn);}
+  .obj-t{font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--seal);font-weight:600;margin-bottom:3px;}
+  .obj-h{font-size:12.5px;color:var(--ink-faint);line-height:1.5;}
+  .obj-p{font-size:12px;color:#8a6a2e;margin-top:4px;}
+  .obj-done-title{margin-top:12px;font-size:12px;color:var(--ink-faint);}
+  .obj-done{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;}
+  .obj-d{font-size:12px;color:#7fce8f;border:1px solid rgba(127,206,143,.4);border-radius:14px;padding:3px 10px;}
+  .sect-list{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
+  .sect{border:1px solid var(--btn-line);border-radius:12px;padding:12px 14px;background:var(--btn);}
+  .sect.on{border-color:rgba(127,206,143,.5);}
+  .sect-name{font-family:"STKaiti","KaiTi",serif;font-size:16px;color:var(--seal);font-weight:700;}
+  .sect-fac{font-size:11px;color:var(--ink-faint);font-weight:400;margin-left:6px;}
+  .sect-desc{font-size:12.5px;color:var(--ink-faint);line-height:1.55;margin:5px 0;}
+  .sect-bonus{font-size:12px;color:#8a6a2e;margin:3px 0;}
+  .sect-skill{font-size:12px;color:#3a6ea5;margin:3px 0;}
+  .sect-req{font-size:12px;color:var(--ink-faint);margin:3px 0;}
+  .sect-join{margin-top:8px;width:100%;}
+  .sect-join:disabled{opacity:.5;cursor:not-allowed;}
+  .sect-joined{margin-top:8px;color:#7fce8f;font-size:13px;}
+
   /* ===== 底部常驻功能栏（全局面板入口，与上下文按钮再分级） ===== */
   #dock{
     flex:0 0 auto;display:flex;
@@ -1854,23 +1878,24 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260827"></script>
+<script src="shared/config/constants.js?v=20260827e"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
+<script src="shared/story/objectives.js?v=20260827c"></script>
 <script src="shared/story/events.js?v=20260821j"></script>
 <script src="shared/story/dialogues.js?v=20260825i"></script>
-    <script src="shared/story/rooms.js?v=20260826f"></script>
+    <script src="shared/story/rooms.js?v=20260827e"></script>
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
-<script src="shared/data/enemies.js?v=20260824d"></script>
+<script src="shared/data/enemies.js?v=20260827e"></script>
 <script src="shared/data/items.js?v=20260826e"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
     <script src="shared/data/shops.js?v=20260826e"></script>
-    <script src="shared/data/map.js?v=20260826f"></script>
-    <script src="shared/data/cities.js?v=20260826f"></script>
+    <script src="shared/data/map.js?v=20260827b"></script>
+    <script src="shared/data/cities.js?v=20260827b"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260826g"></script>
@@ -3088,6 +3113,8 @@ window.onerror=function(msg,url,line,col,err){
       '<span class="st-gold" title="银两">💰'+state.gold+'</span>'+
       '<span class="st-hint" title="点击查看时辰钟表与历法">🕓</span>'+
       '<span class="st-faction" title="查看天下势力分布" onclick="openModal(\'factionMap\')">🏴 '+factionName(playerFaction())+'</span>'+
+      '<span class="st-goal" title="当前志向（点击展开）" onclick="event.stopPropagation();openModal(\'quest\')">🎯 '+topObjectiveText()+'</span>'+
+      '<span class="st-sect" title="'+(state.sect?(G.SECTS[state.sect]?G.SECTS[state.sect].name:'门派'):'选择门派')+'" onclick="event.stopPropagation();openModal(\'sect\')">'+(state.sect?(G.SECTS[state.sect]?('⚔ '+G.SECTS[state.sect].name):'⚔ 门派'):'⚔ 门派')+'</span>'+
       '<span class="st-ver">v'+LF.CONSTANTS.VERSION+'</span>';
   }
   function renderLocTab(room){
@@ -3328,6 +3355,88 @@ window.onerror=function(msg,url,line,col,err){
       row('协 力','CodeBuddy（AI 协作）')+
       '<p class="tip">一人一灯，江湖路远。若遇同好，可续刻其名。</p>';
   }
+  // ===== P0：志向（目标追踪）+ 门派加入 UX =====
+  var QORDER={white:0,green:1,blue:2,purple:3,orange:4};
+  function objBestEquip(s){ var b={q:0,name:''}; if(s.equipment){ Object.keys(s.equipment).forEach(function(k){ var it=s.equipment[k]; if(it&&it.quality!=null){ var q=QORDER[it.quality]; if(q!=null&&q>b.q){b.q=q;b.name=it.name;} } }); } return b; }
+  function renderObjectives(){
+    if(!LF.OBJECTIVES) return '<h3>志 向</h3><p class="tip">数据未载入。</p>';
+    var arr=LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(state),prog:o.prog(state)}; });
+    var active=arr.filter(function(x){return !x.done;});
+    var done=arr.filter(function(x){return x.done;});
+    var h='<h3>志 向</h3>'+
+      '<p class="tip">乱世无师，唯志可引。下列为当前可追逐之目标，达成即自动勾销——循此而行，可自立于乱世，无需他人提点。</p>';
+    if(active.length){
+      h+='<div class="obj-list">';
+      active.forEach(function(x){
+        h+='<div class="obj"><div class="obj-t">◈ '+x.o.title+'</div>'+
+           '<div class="obj-h">'+x.o.hint+'</div>'+
+           '<div class="obj-p">进度 · '+x.prog+'</div></div>';
+      });
+      h+='</div>';
+    } else {
+      h+='<p class="tip" style="color:#7fce8f;">诸事已了，江湖路远，自去纵横罢。</p>';
+    }
+    if(done.length){
+      h+='<div class="obj-done-title">已达成</div><div class="obj-done">';
+      done.forEach(function(x){ h+='<span class="obj-d">✓ '+x.o.title+'</span>'; });
+      h+='</div>';
+    }
+    return h;
+  }
+  function sectBonusText(b){
+    if(!b) return '';
+    var m={atk:'攻',def:'防',maxHp:'气血',maxMp:'内力',spd:'身法'};
+    var p=[]; Object.keys(b).forEach(function(k){ if(b[k]) p.push('+'+b[k]+' '+m[k]); });
+    return p.join(' · ');
+  }
+  function sectReqText(d){
+    var u=d.unlock||{}, p=[];
+    if(u.reputation) p.push('江湖声望≥'+u.reputation);
+    if(u.level) p.push('等级≥'+u.level);
+    if(u.flag) p.push('需先触发「'+(({met_zhangjiao:'张角之遇'})[u.flag]||u.flag)+'」');
+    return p.length?p.join(' · '):'无门槛';
+  }
+  function renderSectPanel(){
+    if(!G.SECTS) return '<h3>门 派</h3><p class="tip">数据未载入。</p>';
+    var h='<h3>门 派</h3>'+
+      '<p class="tip">门派为「中后期可选玩法」：声望初立后方可主动加入，得门风加成与传功。已入者不可更易。</p>'+
+      '<div class="sect-list">';
+    Object.keys(G.SECTS).forEach(function(id){
+      var d=G.SECTS[id], joined=state.sect===id, can=G.canJoinSect(state,id);
+      h+='<div class="sect'+(joined?' on':'')+'">'+
+        '<div class="sect-name">'+d.name+'<span class="sect-fac">'+d.faction+'</span></div>'+
+        '<div class="sect-desc">'+d.style+'</div>'+
+        '<div class="sect-bonus">门风加成 · '+sectBonusText(d.bonus)+'</div>'+
+        '<div class="sect-skill">传功 · '+((d.martials||[]).join('、'))+'</div>'+
+        '<div class="sect-req">加入条件 · '+sectReqText(d)+'</div>'+
+        (joined?'<div class="sect-joined">✓ 已身属此派</div>'
+               :(can.ok?'<button class="sect-join" data-sect="'+id+'">加 入 此 派</button>'
+                       :'<button class="sect-join" disabled title="'+can.reason+'">未达条件</button>'))+
+        '</div>';
+    });
+    h+='</div>';
+    return h;
+  }
+  function bindSectPanel(){
+    document.querySelectorAll('.sect-join[data-sect]').forEach(function(b){
+      if(b.disabled) return;
+      b.onclick=function(){
+        var id=b.getAttribute('data-sect');
+        if(state.sect){ toast('你已身属「'+G.SECTS[state.sect].name+'」'); return; }
+        var r=G.canJoinSect(state,id);
+        if(!r.ok){ toast(r.reason); return; }
+        G.joinSect(state,id);
+        log('你拜入「'+G.SECTS[id].name+'」，得传功心法。','good');
+        toast('已加入「'+G.SECTS[id].name+'」');
+        openModal('sect'); renderStatus();
+      };
+    });
+  }
+  function topObjectiveText(){
+    if(!LF.OBJECTIVES) return '志向';
+    for(var i=0;i<LF.OBJECTIVES.length;i++){ if(!LF.OBJECTIVES[i].check(state)) return LF.OBJECTIVES[i].title; }
+    return '诸事已了';
+  }
   function bindTitle(){
     var tv=document.getElementById('tt-ver'); if(tv) tv.textContent='v'+LF.CONSTANTS.VERSION;
     var ts=document.getElementById('t-start'); if(ts) ts.onclick=function(){ openModal('newgame'); };
@@ -3561,84 +3670,8 @@ window.onerror=function(msg,url,line,col,err){
     }
   }
   // ===== 场景对象配置：每个房间的可交互元素（人物/建筑/家具/出口） =====
-  var ROOM_OBJECTS={
+  var ROOM_OBJECTS = (LF.buildRoomObjects ? LF.buildRoomObjects() : {});
 
-
-
-    build_test:[
-      {type:'feature', key:'tree',     icon:'🌳', name:'一棵老树', desc:'粗壮老树，枝干坚实，正堪伐取',   actions:treeActs},
-      {type:'feature', key:'bench',    icon:'🔨', name:'木工台',   desc:'粗木搭就的工作台，可将木头加工成木材', actions:benchActs},
-      {type:'feature', key:'toolpile', icon:'🪓', name:'工具堆',   desc:'墙角堆着些杂役用的家伙什',       actions:[{label:'拾取斧头', icon:'🪓', fn:function(){ pickupAxe(); }}]},
-      {type:'npc', key:'pedlar', icon:'🧺', name:'货郎', desc:'挑担行商，收售木料与器具', actions:[{label:'与他交易', icon:'💰', fn:function(){ openModal('shop', {shop:'build_pedlar'}); }}]},
-      {type:'npc', key:'liupan', icon:'🗡️', name:'游侠·刘磐', desc:'背负环首刀，抱拳而立', actions:[
-        {label:'邀请入队', icon:'🤝', fn:function(){ recruitCompanion('liupan'); }}
-      ]},
-      {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-      {type:'feature', key:'quarry',   icon:'🪨', name:'采石崖',   desc:'崖壁裸露青石，敲击可采下石料',     actions: build_quarry_actions},
-      {type:'feature', key:'crate',    icon:'📦', name:'残破木箱', desc:'半埋草垛里的旧木箱，似有人遗落了图纸', actions: build_crate_actions},
-      {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川城',desc:'返回颍川城',                        actions:[{label:'返回颍川城', fn:function(){ move('北','city'); }}]}
-    ],
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // ═══ 剿匪据点：黑山寨（寨门 / 聚义厅 / 后寨） ═══
-    ji_heishan_zhai:[
-      {type:'npc', key:'heishan_zhai', icon:'🔪', name:'黑山寨卒', desc:'横刀拦路，面带凶相', actions:[
-        {label:'与他交谈', fn:function(){ talk('heishan_zhai'); }},
-        {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zei'); }, tip:'恶贼当前，不必多言'}
-      ]},
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾黑山寨门'},
-      {type:'exit', dir:'南', icon:'🚪', name:'南·林径', desc:'退回林径，往苦役营', actions:[{label:'退回林径', fn:function(){ move('南','lindao'); }}]},
-      {type:'exit', dir:'北', icon:'🔥', name:'北·聚义厅', desc:'灯火通明，人影幢幢', actions:[{label:'闯聚义厅', fn:function(){ move('北','ji_heishan_juyi'); }}]}
-    ],
-    ji_heishan_juyi:[
-      {type:'npc', key:'heishan_zhu', icon:'🔥', name:'黑山寨主·张燕', desc:'抚刀而笑，杀机毕露', actions:[
-        {label:'与他交谈', fn:function(){ talk('heishan_zhu'); }},
-        {label:'拔刀相向', danger:true, fn:function(){ handleAction('spar_heishan_zhu'); }, tip:'夺寨先斩贼首'}
-      ]},
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾聚义厅'},
-      {type:'exit', dir:'南', icon:'🚪', name:'南·寨门', desc:'退回寨门', actions:[{label:'退回寨门', fn:function(){ move('南','ji_heishan_zhai'); }}]},
-      {type:'exit', dir:'北', icon:'📦', name:'北·后寨', desc:'囤积赃物的所在', actions:[{label:'入后寨', fn:function(){ move('北','ji_heishan_houzhai'); }}]}
-    ],
-    ji_heishan_houzhai:[
-      {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾后寨'},
-      {type:'exit', dir:'南', icon:'🚪', name:'南·聚义厅', desc:'退回聚义厅', actions:[{label:'退回聚义厅', fn:function(){ move('南','ji_heishan_juyi'); }}]}
-    ],
-    // ═══ 开场教学房间（ys_*）不再在此定义对象 ═══
-    // 引导改由触发引擎（shared/story/triggers.js）驱动：老乞丐对话 + 移动门禁（state.moveGate）
-    // 走下方 fallback：仅渲染移动条 + 左侧 room.npcs 里的老乞丐，避免与对话引导重复/冲突。
-  };
 
   // 研习武学仅限特定房间（主营/郡学宫）
   var LEARN_ROOMS={};
@@ -5205,10 +5238,7 @@ window.onerror=function(msg,url,line,col,err){
     afterPackChange();
     buildActions(G.ROOMS[state.room]);   // 刷新场景物体（斧头/材料状态即时反映到菜单）
   }
-  function treeActs(){
-    var hasAxe = !!packFind('tiefu') || !!packFind('futou');
-    return [{label: hasAxe ? '挥斧伐木' : '徒手折枝', icon:'🌳', fn:function(){ chopTree(); }}];
-  }
+
   function searchBench(){
     state.flags = state.flags || {};
     if(state.flags.buildTestSearched){ toast('木工台已翻找过了。'); return; }
@@ -5218,14 +5248,7 @@ window.onerror=function(msg,url,line,col,err){
     log('你翻了翻木工台，台板下压着一根边角木头，顺手收了。','sys');
     buildActions(G.ROOMS[state.room]);   // 仅刷新物体（移除「翻找」），不重播场景旁白
   }
-  function benchActs(){
-    var acts=[];
-    if(!(state.flags && state.flags.buildTestSearched)){
-      acts.push({label:'翻找工作台', icon:'🔍', fn:function(){ searchBench(); }});
-    }
-    acts.push({label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }});
-    return acts;
-  }
+
   // 制作面板状态：记录当前工作台与选中品类（标签页）
   var craftState = { bench:'bench', cat:null };
   function buildCraftHTML(){
@@ -5650,9 +5673,7 @@ window.onerror=function(msg,url,line,col,err){
     afterPackChange();
     log('你抡'+(hasIronAxe?'铁斧凿石':'镐凿石')+'，哐哐数声，剥下石料×'+n+(ores?('，兼得铁矿石×'+ores):'')+'。','env');
   }
-  function build_quarry_actions(){
-    return [{label:'采石料', icon:'⛏️', fn:function(){ mineStone(); }}];
-  }
+
   // 伐木场：伐木取材（每日限次，仿采石崖）
   function cutWood(){
     if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
@@ -5687,11 +5708,7 @@ window.onerror=function(msg,url,line,col,err){
     openModal('building');
   }
   // 残破木箱：一次性拾取「冶炼工坊图」
-  function build_crate_actions(){
-    var got = state.flags && state.flags.buildCrateGot;
-    if(got) return [{label:'木箱已空', icon:'📭', fn:function(){ toast('木箱已然空了。'); }}];
-    return [{label:'翻找木箱', icon:'🔍', fn:function(){ openBuildCrate(); }}];
-  }
+
   function openBuildCrate(){
     state.flags = state.flags || {};
     if(state.flags.buildCrateGot){ toast('木箱已然空了。'); return; }
@@ -7459,14 +7476,7 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='party'){
       h=renderPartyPanel();
     } else if(kind==='quest'){
-      var qmark=function(v,ok){ return ok ? '<b style="color:#7fce8f;">'+v+'</b>' : '<span style="color:#d8c9a8;">'+v+'</span>'; };
-      var qt=(state.quest.tut==='done')?'✓ 已完成（铜钱+30·声望+3）':((state.quest.tut==='accepted')?'进行中（赴白檀军屯·燕山口南去）':'未接取（燕山口·老乞丐）');
-      h='<h3>任 务</h3>'+
-        row('主线·剿匪', qmark('山贼/流寇 '+state.quest.bandit+' · 盗匪 '+state.quest.turban, (state.quest.bandit+state.quest.turban)>0))+
-        row('主线·斩华雄', qmark(state.quest.hua_xiong?'✓ 已斩（声望达'+state.reputation+'）':'未斩（声望需≥20）', state.quest.hua_xiong))+
-        row('地域·洛阳', qmark(state.quest.luoyang?'✓ 已解锁':'未解锁', state.quest.luoyang))+
-        row('新手·送信白檀', qmark(qt, state.quest.tut==='done'))+
-        '<p class="tip">「颍川城」寻胡商购药、助医馆华老；「山林」巡山剿匪可领县尉韩伯托付；「溪畔」访水镜先生与左慈。后续章节随主线推进开启。</p>';
+      h=renderObjectives();
     } else if(kind==='map'){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
         h=buildMapCityHTML({});
@@ -7558,6 +7568,8 @@ window.onerror=function(msg,url,line,col,err){
       h=renderEdict();
     } else if(kind==='factionMap'){
       h=renderFactionMap();
+    } else if(kind==='sect'){
+      h=renderSectPanel();
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop');
@@ -7571,6 +7583,7 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='forge'){ bindForgePanel(); }
     if(kind==='building'){ bindBuildingPanel(); }
     if(kind==='citybuild'){ bindCityBuildPanel(); }
+    if(kind==='sect'){ bindSectPanel(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
@@ -8212,7 +8225,7 @@ window.onerror=function(msg,url,line,col,err){
     // V3：战场氛围（按敌人定主题背景）
     var SCENE_THEME={ bandit:'camp', bandit_chief:'camp', heishan_zei:'camp', heishan_zhu:'fort',
       yellow_turban:'altar', hua_xiong:'snow', stray_dog:'wild', hungry_refugee:'wild',
-      deserter:'wild', dummy:'train' };
+      deserter:'wild', wuhuan_scout:'wild', city_guard:'fort', dummy:'train' };
     var sceneEl=document.getElementById('scene');
     if(sceneEl){ sceneEl.dataset.bg = SCENE_THEME[themeId] || 'plain'; sceneEl.classList.remove('bg-danger'); }
     state.energy=Math.max(0,state.energy-5);   // 应战耗精力
@@ -8972,6 +8985,39 @@ window.onerror=function(msg,url,line,col,err){
     document.body.innerHTML='';
     document.body.appendChild(pre);
   }
+
+  // ── 城市房间由 cities.js 程序合成（rooms.js 不再手写）；山河志州治节点由 cities.js+coords 自动派生 ──
+  function registerCityRooms(){
+    var C = LF.CITIES || {};
+    for(var cid in C){
+      var c = C[cid];
+      if(!c || !c.grid) continue;
+      if(G.ROOMS[cid]) continue;
+      G.ROOMS[cid] = {
+        id:cid, name:c.name,
+        desc:(c.blurb || [c.desc || c.name]),
+        find:(c.blurbFind || ''),
+        exits:{}, npcs:[],
+        items:(c.groundItems || []),
+        actions:(c.rootActs || [{id:'rest',label:'城中休整',group:'行动',tip:'寻一处馆驿安歇，气血内力尽复'}]),
+        isCity:true
+      };
+    }
+  }
+  function buildCityZones(){
+    var C = LF.CITIES || {};
+    var arr = [];
+    for(var cid in C){
+      var c = C[cid];
+      if(!c || !c.grid) continue;
+      var zid = c.zoneId || cid;
+      arr.push({ id:zid, name:c.name, icon:(c.icon||'🏯'), pos:((LF.MAP&&LF.MAP.coords&&LF.MAP.coords[cid])||[0,0]), st:c.state, open:true, kind:'city', desc:(c.desc||c.name) });
+    }
+    return arr;
+  }
+  registerCityRooms();
+  LF.MAP.zones = (LF.MAP.zones || []).concat(buildCityZones());
+
 })();
 </script>
 </body>
