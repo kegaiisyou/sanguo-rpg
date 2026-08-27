@@ -226,32 +226,32 @@
 
       // ═══ 战斗系统测试：演武场（建造场隔壁） ═══
       combat_test:[
-        {type:'feature', key:'newbie', icon:'🪵', name:'新手试炼桩', desc:'木人桩与几只极易对付的活靶，供熟悉基础攻防', acts:[
+        {type:'feature', key:'newbie', icon:'🪵', name:'新手试炼桩', desc:'木人桩与几只极易对付的活靶，供熟悉基础攻防', actions:[
           {label:'木人桩（无伤·测UI）', icon:'🥊', fn:function(){ startCombat('dummy'); }},
           {label:'野犬（hp50·无）', icon:'🐕', fn:function(){ startCombat('stray_dog'); }},
           {label:'饥饿流民（hp80·无）', icon:'🧎', fn:function(){ startCombat('hungry_refugee'); }},
           {label:'落单溃兵（hp130·金）', icon:'🪖', fn:function(){ startCombat('deserter'); }}
         ]},
-        {type:'feature', key:'mid', icon:'⚔️', name:'寻常试炼', desc:'山野间常见的匪类，正经练手', acts:[
+        {type:'feature', key:'mid', icon:'⚔️', name:'寻常试炼', desc:'山野间常见的匪类，正经练手', actions:[
           {label:'山贼（hp300·土）', icon:'🪓', fn:function(){ startCombat('bandit'); }},
           {label:'黑山寨卒（hp360·金）', icon:'🔪', fn:function(){ startCombat('heishan_zei'); }},
           {label:'流寇头目（hp600·土）', icon:'👹', fn:function(){ startCombat('bandit_chief'); }}
         ]},
-        {type:'feature', key:'elite', icon:'🔥', name:'精锐试炼', desc:'久历战阵的劲敌，招式带异常', acts:[
+        {type:'feature', key:'elite', icon:'🔥', name:'精锐试炼', desc:'久历战阵的劲敌，招式带异常', actions:[
           {label:'乌桓斥候（hp240·金）', icon:'🏹', fn:function(){ startCombat('wuhuan_scout'); }},
           {label:'太平力士（hp800·土·符术）', icon:'🟡', fn:function(){ startCombat('yellow_turban'); }},
           {label:'黑山寨主·张燕（hp1000·金·Boss）', icon:'😈', fn:function(){ startCombat('heishan_zhu'); }}
         ]},
-        {type:'feature', key:'boss', icon:'👑', name:'宿敌试炼', desc:'一方豪强的压阵之将，全力一战', acts:[
+        {type:'feature', key:'boss', icon:'👑', name:'宿敌试炼', desc:'一方豪强的压阵之将，全力一战', actions:[
           {label:'华雄（hp1200·金·Boss）', icon:'🐅', fn:function(){ startCombat('hua_xiong'); }}
         ]},
-        {type:'feature', key:'beast_low', icon:'🐺', name:'寻常野兽', desc:'林原间的走兽飞禽，宜试手身法', acts:[
+        {type:'feature', key:'beast_low', icon:'🐺', name:'寻常野兽', desc:'林原间的走兽飞禽，宜试手身法', actions:[
           {label:'野犬（hp50·无）', icon:'🐕', fn:function(){ startCombat('stray_dog'); }},
           {label:'野狼（hp150·金）', icon:'🐺', fn:function(){ startCombat('wild_wolf'); }},
           {label:'野猪（hp240·土·冲撞晕）', icon:'🐗', fn:function(){ startCombat('wild_boar'); }},
           {label:'蝮蛇（hp90·木·毒）', icon:'🐍', fn:function(){ startCombat('venom_snake'); }}
         ]},
-        {type:'feature', key:'beast_high', icon:'🐯', name:'凶兽', desc:'深山旷野的猛兽，招式带异常', acts:[
+        {type:'feature', key:'beast_high', icon:'🐯', name:'凶兽', desc:'深山旷野的猛兽，招式带异常', actions:[
           {label:'黑熊（hp520·土）', icon:'🐻', fn:function(){ startCombat('black_bear'); }},
           {label:'苍鹰（hp200·金·极速）', icon:'🦅', fn:function(){ startCombat('goshawk'); }},
           {label:'巨蟒（hp460·木·绞缠毒）', icon:'🐲', fn:function(){ startCombat('python'); }},

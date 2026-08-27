@@ -1878,24 +1878,24 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260827e"></script>
+<script src="shared/config/constants.js?v=20260827f"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
 <script src="shared/story/skills.js?v=20260813a"></script>
-<script src="shared/story/objectives.js?v=20260827c"></script>
+<script src="shared/story/objectives.js?v=20260827f"></script>
 <script src="shared/story/events.js?v=20260821j"></script>
 <script src="shared/story/dialogues.js?v=20260825i"></script>
-    <script src="shared/story/rooms.js?v=20260827e"></script>
+    <script src="shared/story/rooms.js?v=20260827f"></script>
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
-<script src="shared/data/enemies.js?v=20260827e"></script>
+<script src="shared/data/enemies.js?v=20260827f"></script>
 <script src="shared/data/items.js?v=20260826e"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
     <script src="shared/data/shops.js?v=20260826e"></script>
-    <script src="shared/data/map.js?v=20260827b"></script>
-    <script src="shared/data/cities.js?v=20260827b"></script>
+    <script src="shared/data/map.js?v=20260827f"></script>
+    <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
     <script src="shared/combat/engine.js?v=20260821e"></script>
     <script src="shared/index.js?v=20260826g"></script>
@@ -4736,7 +4736,7 @@ window.onerror=function(msg,url,line,col,err){
     return b;
   }
   function renderObjs(list, group){
-    if(!list.length) return;
+    if(!list || !list.length) return;
     list.forEach(function(o){
       var acts=(typeof o.actions==='function'? o.actions(): (o.actions||[])).filter(function(a){return !isSelfCare(a);});
       var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); });
@@ -6276,7 +6276,7 @@ window.onerror=function(msg,url,line,col,err){
     for(var i=0;i<state.pack.length && rem>0;i++){ var c=state.pack[i]; if(c && itemKey(c)===defId && c.cat!=='装备'){ var take=Math.min(rem, c.count||1); c.count-=take; rem-=take; if(c.count<=0) state.pack[i]=null; } }
     return rem===0;
   }
-  function packFind(defId){ for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)===defId) return c; } return null; }
+  function packFind(defId){ if(!state || !state.pack) return null; for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)===defId) return c; } return null; }
   function packList(){ var o=[]; for(var i=0;i<state.pack.length;i++){ if(state.pack[i]) o.push(state.pack[i]); } return o; }
 
   function packGet(loc){ return loc.kind==='pack' ? state.pack[loc.idx] : state.equipment[loc.slot]; }
