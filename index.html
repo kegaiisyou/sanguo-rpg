@@ -1834,7 +1834,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260827i</div>
+    <div class="tt-ver" id="tt-ver">v20260827j</div>
   </div>
 </div>
 
@@ -1878,7 +1878,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260827i"></script>
+<script src="shared/config/constants.js?v=20260827j"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1886,7 +1886,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/story/objectives.js?v=20260827f"></script>
 <script src="shared/story/events.js?v=20260821j"></script>
 <script src="shared/story/dialogues.js?v=20260825i"></script>
-    <script src="shared/story/rooms.js?v=20260827f"></script>
+    <script src="shared/story/rooms.js?v=20260827j"></script>
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260827f"></script>
@@ -7869,6 +7869,12 @@ window.onerror=function(msg,url,line,col,err){
   //    解析 openModal/log/exert/packFind…，需将游戏内部函数暴露到 window，否则建筑内面板（如铁砧打造）打开报 ReferenceError
   window.openModal=openModal; window.closeModal=closeModal; window.log=log; window.toast=toast;
   window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
+  // ── 全局桥接（v20260827j）：shared/story/rooms.js 等外部脚本的工厂闭包在全局作用域解析引擎函数，
+  //    缺一即报 ReferenceError（真实浏览器严格词法作用域）。全部补齐：移动/交互/战斗/招募/渲染。
+  window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction;
+  window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
+  window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;
+  window.startCombat=startCombat;
   // ── 全局桥接（v20260827i）：shared/story/rooms.js 工厂闭包引用 state.flags/state.room（read-only），
   //    通过 getter 暴露当前 state；内部仍以 IIFE 内的 var state 为主写入源
   Object.defineProperty(window, 'state', { get: function(){ return state; }, configurable: true });
