@@ -674,12 +674,7 @@
   .mc-cell.mc-unbuilt{background:rgba(120,110,90,.18);border-color:rgba(160,150,120,.30);color:#9b9384;}
   .mc-cell.mc-block{cursor:not-allowed;}
   .mc-cell.mc-locked{filter:grayscale(.8) brightness(.78);opacity:.6;}
-  /* 道路等级（v20260824g）：等级越高路面越亮 */
-  .mc-cell.mc-r1{background:rgba(96,66,38,.34);}
-  .mc-cell.mc-r2{background:rgba(150,110,55,.24);}
-  .mc-cell.mc-r3{background:rgba(160,135,75,.22);}
-  .mc-cell.mc-r4{background:rgba(150,145,95,.24);}
-  .mc-cell.mc-r5{background:rgba(130,155,105,.30);}
+
   .mc-cell.mc-burnt{box-shadow:inset 0 0 0 2px rgba(210,90,45,.55);}
   .mc-cell.mc-broken{background:rgba(60,50,40,.5);border-color:rgba(200,120,60,.5);color:#d8b28a;}
   .mc-back{margin-left:8px;background:rgba(90,70,40,.5);border-color:rgba(220,170,90,.4);}
@@ -700,6 +695,10 @@
   .map-states-svg{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
   /* 连线圆头 + 标签错位防重叠（相邻房间上下交错标注） */
   .map-svg .mp-line{stroke-linecap:round;}
+  .map-roads-svg{position:absolute;left:0;top:0;pointer-events:none;}
+  .map-canvas.lv0 .map-roads-svg{display:none;}
+  .map-roads-svg .mp-road{stroke:rgba(120,92,46,.58);stroke-width:2;stroke-dasharray:6 5;stroke-linecap:round;}
+  .map-roads-svg .mp-road:hover{stroke:rgba(150,60,40,.85);}
   .map-pin.mp-hide-nm .mp-nm{display:none;}
   .map-pin.mp-lbl-up .mp-nm{order:-1;margin-bottom:3px;}
   .map-pin.mp-lbl-down .mp-nm{order:2;margin-top:3px;}
@@ -774,6 +773,8 @@
   .card .dev:hover{border-color:rgba(158,59,46,.4);}
   .card .dev.on{background:rgba(63,125,94,.16);border-color:rgba(63,125,94,.5);color:var(--jade);}
   .card .dev.wide{flex:1 1 100%;}
+  .card .dev-sel{padding:8px 10px;font-size:13px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
+  .dev-sub{font-size:11px;color:var(--ink-faint);font-weight:400;margin-left:6px;}
 
   #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
     background:rgba(44,38,32,.9);color:#f4eee2;padding:9px 18px;border-radius:22px;font-size:13px;
@@ -1409,6 +1410,10 @@
   .ap-btn:hover:not(:disabled){background:rgba(158,59,46,.12);border-color:rgba(158,59,46,.5);}
   .ap-btn:disabled{opacity:.32;cursor:default;}
   .ap-val{font-family:"STKaiti","KaiTi",serif;font-size:18px;font-weight:700;color:var(--ink);min-width:24px;text-align:center;}
+  .ap-foot{margin-top:8px;font-size:12px;color:var(--ink-faint);}
+  .ap-foot b{color:var(--seal);}
+  .ap-confirm{margin-top:10px;width:100%;padding:11px 0;font-size:15px;border:1px solid rgba(158,59,46,.55);border-radius:12px;background:rgba(158,59,46,.14);color:var(--seal);cursor:pointer;font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;}
+  .ap-confirm:hover{background:rgba(158,59,46,.24);}
   .cr-actions{display:flex;justify-content:center;margin-top:16px;}
   .op-text{font-family:"STKaiti","KaiTi",serif;font-size:16px;line-height:2.05;color:var(--ink);letter-spacing:1px;min-height:220px;padding:6px 2px;}
   .op-line{margin:0 0 2px;}
@@ -1849,7 +1854,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260826g"></script>
+<script src="shared/config/constants.js?v=20260827"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2072,12 +2077,31 @@ window.onerror=function(msg,url,line,col,err){
                'stroke-width="'+(reach?2.8:2)+'" '+(reach?'':'stroke-dasharray="5 4"')+'/>';
       });
     });
+    // ── 历史驿道：名城之间以真实古道相连，呈现“城市联通”（独立层，州域级即显）──
+    var _zonesById={}; zones.forEach(function(z){ _zonesById[z.id]=z; });
+    var CITY_ROADS=[
+      ['luoyang','chang_an'],['luoyang','xuchang'],['xuchang','ye'],['luoyang','ye'],
+      ['chang_an','hanzhong'],['hanzhong','xiangyang'],['xiangyang','jiangling'],['jiangling','jianye'],
+      ['xuchang','shouchun'],['shouchun','jianye'],['ye','jicheng'],['jicheng','xiangping'],
+      ['luoyang','jinyang'],['jinyang','jicheng'],['chang_an','wuwei'],['xuchang','xiapi'],
+      ['xiapi','shouchun'],['xiapi','linzi'],['linzi','ye'],['changyi','xuchang'],
+      ['changyi','linzi'],['changyi','xiapi'],['chengdu','hanzhong'],['chengdu','jiangling'],
+      ['fanyu','jianye'],['fanyu','jiangling'],['yingchuan','luoyang'],['yingchuan','xuchang'],['yuyang','jicheng']
+    ];
+    var roadsHTML='';
+    CITY_ROADS.forEach(function(pair){
+      var A=_zonesById[pair[0]], B=_zonesById[pair[1]];
+      if(!A||!B) return;
+      var ax=px(A.pos), ay=py(A.pos), bx=px(B.pos), by=py(B.pos);
+      roadsHTML+='<line class="mp-road" x1="'+ax.toFixed(1)+'" y1="'+ay.toFixed(1)+'" x2="'+bx.toFixed(1)+'" y2="'+by.toFixed(1)+'" />';
+    });
     // ── lv2 房间层：节点（按 mapKind 分色；标签统一朝下、按间距防重叠，当前房间永远显示）──
     var pins='';
     // 标签是否隐藏由 initMap 的 apply() 按「屏幕间距」（世界距离×缩放）动态贪心决定：
     // 缩放越大放得越近、可显示的标签越多，放大到最大时间距天然足够 → 全部显示；缩小后自动收敛。
     // 节点坐标用 data-wx/data-wy 记录在 DOM 上，apply() 直接读取，避免跨函数共享变量。
     keys.forEach(function(rid){
+      if(!opts.pickSpawn && isCityGrid(rid)) return; // 名城已在州治节点以干净名呈现，隐藏房间引脚，去除“某某城/郭门”重名杂乱
       var c=coords[rid], r=G.ROOMS[rid], cur=(rid===state.room);
       var x=px(c), y=py(c);
       var ex=Object.keys(r.exits||{}).map(function(d){return d+'·'+G.ROOMS[r.exits[d]].name;}).join('，');
@@ -2119,6 +2143,7 @@ window.onerror=function(msg,url,line,col,err){
             terrain+
             '<svg width="'+W+'" height="'+H+'" class="map-states-svg">'+statesSvg+'</svg>'+
             '<svg width="'+W+'" height="'+H+'" class="map-svg">'+lines+'</svg>'+
+            '<svg width="'+W+'" height="'+H+'" class="map-roads-svg">'+roadsHTML+'</svg>'+
           '</div>'+
           // ── 顶层 HTML 标签层：跟 .map-grid 同坐标平移（不带 scale），所有尺寸/字号恒定为屏幕像素
           '<div class="map-overlay">'+
@@ -2381,8 +2406,12 @@ window.onerror=function(msg,url,line,col,err){
           var id=el.getAttribute('data-zone');
           var z=null; (mapData().zones||[]).forEach(function(x){ if(x.id===id) z=x; });
           if(!z) return;
-          if(el.getAttribute('data-open')==='1'){ centerWorld(z.pos, (tiers[2]||maxScale)); }
-          else { toast('「'+z.name+'」尚未开放，将随主线推进解锁。'); }
+          if(el.getAttribute('data-open')!=='1'){ toast('「'+z.name+'」尚未开放，将随主线推进解锁。'); return; }
+          // 名城：点击直接前往（与步行同消耗），落实“城市联通”
+          var rid=null;
+          if(G.ROOMS[z.id]) rid=z.id;
+          else { var _za={yingchuan:'city',jicheng:'ji_guomen',yuyang:'yuyang_guomen'}; rid=_za[z.id]||null; }
+          if(rid){ goRoomOnMap(rid); } else { centerWorld(z.pos, (tiers[2]||maxScale)); }
         });
       });
       // 房间节点点击 → 循山河志直接前往该房间（与步行同消耗；教学/出生点选择模式除外）
@@ -3086,6 +3115,7 @@ window.onerror=function(msg,url,line,col,err){
       state.hp=state.maxHp;state.mp=state.maxMp;             // 破境气血内力尽复
       log('【破境】修为精进！已至 LV.'+state.level+'，获得 1 点自由属性点（余 '+(state.freePoints||0)+'）。气血尽复。','good');
     }
+    if((state.freePoints||0)>0 && combatMode===null){ try{ openModal('char'); }catch(e){} }
   }
   function applyEffect(e){
     e=e||{}; var got=[];
@@ -3774,17 +3804,16 @@ window.onerror=function(msg,url,line,col,err){
   }
   var CELL_META={
     palace:{i:'🏯',nm:'皇宫'}, gov:{i:'🏛',nm:'衙署'},
-    plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'}, road:{i:'🛤',nm:'街巷'},
+    plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'},
     market:{i:'🛒',nm:'市集'}, home:{i:'🏠',nm:'民宅'}, barracks:{i:'⚔',nm:'军营'},
     farm:{i:'🌾',nm:'农庄'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'},
-    broken:{i:'⛔',nm:'断路'}, site:{i:'🚧',nm:'工地'}
+    site:{i:'🚧',nm:'工地'}
   };
   var CELL_DESC={
     palace:'宫阙巍峨，金瓦耀日，甲士环侍，天子所居之地，气象森严。',
     gov:'衙署高敞，匾额肃然，郡守（县令）于此听讼断案、发号施令。',
     plaza:'城中广场四达，旌旗在望，商旅往来如织。',
     gate:'城门巍峨，匾额森然，出城可重返山河。',
-    road:'长街深巷，偶有行人仓皇而过。',
     market:'市列珠玑，铺肆连绵——药铺、布庄、食肆、杂货各据一隅。',
     home:'寻常民宅，檐下晾着布衣，孩童探头张望。',
     barracks:'军营肃整，旌甲林立，校尉按剑而立。',
@@ -3792,7 +3821,6 @@ window.onerror=function(msg,url,line,col,err){
     empty:'一片空地，瓦砾草莽，尚待营建。',
     ruin:'焦土未冷，断壁残垣，劫后萧索。',
     unbuilt:'城郭未及营建，草莽瓦砾，尚无居人。',
-    broken:'壕沟纵横，路基翻起，道路被掘断，无法通行。',
     site:'建材成堆、工匠往来，工事未完，暂不可入。'
   };
   // ══ 城市盛衰 / 归属系统（v20260824d）══
@@ -3870,30 +3898,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   function isCaptured(cid){ return cityOwnerOf(cid)!==cityDefaultOwner(cid); }
   function cityBurnedMap(cid){ ensureCityState(cid); return state.flags.cityBurned[cid]; }
-  function cityBrokenMap(cid){ ensureCityState(cid); return state.flags.cityBroken[cid]; }
-  // ══ 道路等级系统（v20260824g）══
-  // 道路分五等：泥泞→土路→砂石→石板→官道。主街(中轴)随建设度逐级升档，侧街低一档；
-  // 战火(焦土)降两级、最低泥泞（道路不封死）；被故意掘断(broken)则彻底不可通行。
-  var ROAD_TIERS=[
-    {nm:'泥泞土路', ic:'🟤', eng:3, desc:'雨后泥泞，深一脚浅一脚'},
-    {nm:'土路', ic:'🟠', eng:2, desc:'夯实的黄土路，尚算平整'},
-    {nm:'砂石路', ic:'🪨', eng:2, desc:'铺撒砂石，雨天不陷'},
-    {nm:'石板路', ic:'🧱', eng:1, desc:'青石铺就，行走便捷'},
-    {nm:'官道大街', ic:'🛣️', eng:1, desc:'宽阔官道，车马通行无碍'}
-  ];
-  function roadInfo(cid,x,y){
-    var m=genCityGrid(cid); if(!m) return null;
-    var t=cellDisplayType(cid,x,y);
-    if(t!=='road' && t!=='gate') return null;
-    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
-    var isAxis=(x===cx||y===cy);
-    var dev=cityDevOf(cid);
-    var lv;
-    if(isAxis) lv=(dev>=85?5:dev>=65?4:dev>=45?3:dev>=25?2:1);
-    else lv=Math.max(1,(dev>=85?4:dev>=65?3:dev>=45?2:1)-1);
-    if(cityBurnedMap(cid)[x+','+y]) lv=Math.max(1,lv-2);   // 战火降两级，最低泥泞
-    return {lv:lv, nm:ROAD_TIERS[lv-1].nm, ic:ROAD_TIERS[lv-1].ic, eng:ROAD_TIERS[lv-1].eng, desc:ROAD_TIERS[lv-1].desc, axis:isAxis, gate:(m.cells[y][x]==='gate')};
-  }
+  // 注：道路等级 / 断路修缮系统已于 v20260827 移除；城市格只保留真实地点（市集/军营/官署…），道路作为可通行空地。
   function burnedGates(cid){
     var m=genCityGrid(cid); if(!m) return 0;
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2), bm=cityBurnedMap(cid), n=0;
@@ -3919,7 +3924,7 @@ window.onerror=function(msg,url,line,col,err){
     if(x===cx&&y===cy) return m.cells[y][x];
     if(x===cx || y===cy){            // 中轴大街（含城门）恒为可通行：保证出城必经城门、且城门始终可达
       var t=m.cells[y][x];
-      if(t==='unbuilt') t='road';
+      if(t==='unbuilt') t='empty';
       return t;
     }
     var R=devRadius(cityDevOf(cid),size);
@@ -3949,17 +3954,15 @@ window.onerror=function(msg,url,line,col,err){
     return buildOrderById(inst.buildOrderId);
   }
   function cellDisplayType(cid,x,y){
-    var km=cityBrokenMap(cid);
-    if(km[x+','+y]) return 'broken';                        // 掘断 > 一切（含自建道路）：断路即彻底不可通行
     var inst=cityCellInst(cid,x,y);
     if(inst) return inst.built ? inst.type : 'site';        // 覆盖层：已建显示建筑、施工中显示工地
     var t=baseDisplayType(cid,x,y);
     if(t==='unbuilt') return t;
-    if(t==='road'||t==='gate') return t;                    // 道路/城门被战火所焚仍可通行，仅降级（见 roadInfo）；城门另有守军减益
+    if(t==='gate') return t;                                // 城门另有守军减益
     if(cityBurnedMap(cid)[x+','+y]) return 'ruin';
     return t;
   }
-  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt' && t!=='broken' && t!=='site'; }
+  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt' && t!=='site'; }
   function burnCells(cid,n){
     var m=genCityGrid(cid); if(!m) return;
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
@@ -4051,10 +4054,10 @@ window.onerror=function(msg,url,line,col,err){
           else if(roll<0.46) t='home';
           else if(roll<0.58) t='barracks';
           else if(roll<0.68) t='farm';
-          else if(roll<0.78) t='road';
+          else if(roll<0.78) t='empty';
           else t='empty';
           if(t==='market' && c.commerce<55 && rnd()<0.5) t='home';
-          if(t==='barracks' && c.wall<60 && rnd()<0.5) t='road';
+          if(t==='barracks' && c.wall<60 && rnd()<0.5) t='empty';
         }
         row.push(t);
       }
@@ -4090,10 +4093,8 @@ window.onerror=function(msg,url,line,col,err){
     var m=genCityGrid(cid); if(!m) return [];
     var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
     var d='〔城内·'+meta.nm+'〕'+(CELL_DESC[t]||'');
-    if(t==='road'||t==='gate'){
-      var ri=roadInfo(cid,x,y);
-      if(ri) d+='（'+ri.nm+'：'+ri.desc+'）';
-      if(cityBurnedMap(cid)[x+','+y]) d+=' 此地曾遭战火，路面坑洼焦黑。';
+    if(t==='gate'){
+      if(cityBurnedMap(cid)[x+','+y]) d+=' 城门曾遭战火，焦痕犹在。';
     }
     if(t==='site'){
       var _inst=cityCellInst(cid,x,y);
@@ -4116,8 +4117,8 @@ window.onerror=function(msg,url,line,col,err){
   function cityCellActs(cid,x,y){
     var m=genCityGrid(cid); if(!m) return [];
     var dt=cellDisplayType(cid,x,y), t=dt, p=cityProfile(cid), out=[];
-    var bm=cityBurnedMap(cid), km=cityBrokenMap(cid);
-    var burnt=!!bm[x+','+y], broken=!!km[x+','+y];
+    var bm=cityBurnedMap(cid);
+    var burnt=!!bm[x+','+y];
     var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
     // 营造入口（第3步）：工地可继续营造；空地可择蓝图开工（已建格升级留待后续）
     var inst=cityCellInst(cid,x,y);
@@ -4144,22 +4145,8 @@ window.onerror=function(msg,url,line,col,err){
       }
     }
     if(t==='gate') out.push({id:'leave_city', label:'出城门', tip: burnt?'城门残破，仍可通行，出城重览山河':'经城门出城，重览山河'});
-    // ── 道路治理（v20260824g）──
-    if(t==='road' || t==='gate'){
-      if(broken) out.push({id:'road_repair', label:'填土重修', tip:'填平壕沟，恢复此路通行'});
-      else if(burnt) out.push({id:'road_repair', label:'修整道路', tip:'清整战火焦痕，恢复路面等级'});
-    }
-    if(dt==='road' && !broken && !burnt && !(x===cx&&y===cy))
-      out.push({id:'road_break', label:'掘断道路', danger:true, tip:'掘壕断路，此地沦为不可通行（可于旁侧填平重修）'});
-    // 旁侧断路可隔格填平（避免掘断后自我封路无法修复）
-    var DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
-    DIRS.forEach(function(d){
-      var nx=x+d[0], ny=y+d[1];
-      if(nx>=0&&nx<size&&ny>=0&&ny<size && km[nx+','+ny] && !broken)
-        out.push({id:'road_repair', label:'填平断路', tip:'填平前方壕沟，恢复此路通行', data:{tx:nx,ty:ny}});
-    });
-    // 寻路出城（其他手段：自动沿可通行道路行至最近城门；断路阻隔则无法成行）
-    out.push({id:'leave_auto', label:'寻路出城', tip:'自动沿可通行道路行至最近城门出城（若断路阻隔则无法成行）'});
+    // 寻路出城（自动沿可通行道路行至最近城门）
+    out.push({id:'leave_auto', label:'寻路出城', tip:'自动沿可通行道路行至最近城门出城'});
     // ── 政令台（v20260826g 身份系统）：立于中枢且此城归你所统，方能发号 ──
     if(x===cx && y===cy && cityOwnerOf(cid)===playerFaction()){
       out.push({id:'edict', label:'政令台', icon:'📜', tip:'于此发号政令：征税、安民、观天下大势'});
@@ -4403,14 +4390,14 @@ window.onerror=function(msg,url,line,col,err){
     var cp=state.flags.cityPos; if(!cp || cp.cid!==cid) return;
     if(Math.abs(cp.x-x)+Math.abs(cp.y-y)!==1) return;   // 仅相邻格可移动
     if(!exert('远行')) return;
-    var ri=roadInfo(cid,x,y);
-    var eng=(ri?ri.eng:2);   // 道路等级越高通行越省力（官道1 / 泥泞3）
+    var ri=(cellDisplayType(cid,x,y)==='gate')?{gate:true,nm:'城门'}:null;
+    var eng=(ri?1:2);   // 经城门省力
     state.energy=Math.max(0,state.energy-eng);
     state.food=Math.max(0,state.food-1); state.drink=Math.max(0,state.drink-1);
     advanceTime(1);
     state.flags.cityPos={cid:cid, x:x, y:y};
     if(ri){
-      log('你沿'+ri.nm+'前行'+(ri.gate?'，城门口就在眼前':(ri.axis?'，渐近城门':''))+'……','sys');
+      log('你行至城门口，城门在望……','sys');
     } else {
       log('你转入城中街巷，景物渐换……','sys');
     }
@@ -4512,12 +4499,12 @@ window.onerror=function(msg,url,line,col,err){
     var cells='';
     for(var y=0;y<size;y++) for(var x=0;x<size;x++){
       var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
-      var ri=(t==='road'||t==='gate')?roadInfo(cid,x,y):null;
+      var ri=(t==='gate')?{gate:true,nm:'城门',ic:'🏛️',desc:''}:null;
       var burnt=!!cityBurnedMap(cid)[x+','+y];
       var cur=(cp.x===x&&cp.y===y);
       var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
-      var locked=(t==='ruin'||t==='unbuilt'||t==='broken'||t==='site');
-      var cls='mc-cell mc-'+t+(ri?(' mc-r'+ri.lv):'')+(cur?' mc-cur':'')+(adj&&!locked?' mc-adj':'')+(locked?' mc-block mc-locked':'')+(burnt?' mc-burnt':'');
+      var locked=(t==='ruin'||t==='unbuilt'||t==='site');
+      var cls='mc-cell mc-'+t+(ri&&ri.lv?(' mc-r'+ri.lv):'')+(cur?' mc-cur':'')+(adj&&!locked?' mc-adj':'')+(locked?' mc-block mc-locked':'')+(burnt?' mc-burnt':'');
       var _nm;
       if(ri) _nm = ri.gate?'城门'+(burnt?'·焚':''):ri.nm+(burnt?'·焚':'');
       else if(t==='market'){ var _mk=m.markets&&m.markets[x+','+y]; _nm = _mk? _mk.name : cellDisplayName(cid,t); }
@@ -4533,7 +4520,7 @@ window.onerror=function(msg,url,line,col,err){
       '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button>'+
         '<button class="mk-back" id="mc-back">🗺 返回山河志（出城）</button></div>'+
       '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMetaName+'〕。'+
-        '道路分泥泞/土路/砂石/石板/官道五等，建设度越高通行越省力；战火降级、掘断则断路。出城须经城门（或「寻路出城」）。</p>';
+        '城中街道可自由通行；出城须经城门（或「寻路出城」）。</p>';
   }
   function initMapCity(opts){
     opts=opts||{};
@@ -4922,7 +4909,7 @@ window.onerror=function(msg,url,line,col,err){
         if(nx>=0&&nx<m.size&&ny>=0&&ny<m.size){
           if(!canEnterCell(state.room,nx,ny)) return;   // 焦土/未营建/断路不可通行
           var t=cellDisplayType(state.room,nx,ny);
-          var ri=(t==='road'||t==='gate')?roadInfo(state.room,nx,ny):null;
+          var ri=(t==='gate')?{gate:true,nm:'城门'}:null;
           ex.push({dir:d[0], name:d[0]+'·'+(ri?ri.nm:cellDisplayName(state.room,t)), icon:'🚪', tid:'__cell__', kind:'cell'});
         }
       });
@@ -5066,39 +5053,7 @@ window.onerror=function(msg,url,line,col,err){
         if(!isCityGrid(state.room)){ toast('此处非城池中枢，无处发号。'); break; }
         openModal('edict'); break;
       }
-      case 'road_break': {
-        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
-        var _cp=state.flags.cityPos; if(!_cp) break;
-        var _cid=_cp.cid, _m=genCityGrid(_cid); if(!_m) break;
-        var _sz=_m.size, _cxp=Math.floor(_sz/2), _cyp=Math.floor(_sz/2);
-        if(cellDisplayType(_cid,_cp.x,_cp.y)!=='road'){ toast('此处并非可掘断的道路。'); break; }
-        if(cityBrokenMap(_cid)[_cp.x+','+_cp.y]){ toast('此路已断，无需再掘。'); break; }
-        if(_cp.x===_cxp&&_cp.y===_cyp){ toast('城中枢要之地，不可掘断。'); break; }
-        if(!exert('掘土断路')) return;
-        cityBrokenMap(_cid)[_cp.x+','+_cp.y]=true;
-        log('你抡镐掘壕，土石翻飞——脚下道路已成断路，不复通行。','sys');
-        renderRoom(_cid, true); save(state);
-        if(currentModalKind==='map') openModal('map');
-        break;
-      }
-      case 'road_repair': {
-        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
-        var _cp=state.flags.cityPos; if(!_cp) break;
-        var _cid=_cp.cid;
-        var _tx=(a&&a.data&&a.data.tx!=null)?a.data.tx:_cp.x;
-        var _ty=(a&&a.data&&a.data.ty!=null)?a.data.ty:_cp.y;
-        var _m=genCityGrid(_cid); if(!_m) break;
-        var _km=cityBrokenMap(_cid), _bm=cityBurnedMap(_cid);
-        var _wasBroken=!!_km[_tx+','+_ty], _wasBurnt=!!_bm[_tx+','+_ty];
-        if(!_wasBroken && !_wasBurnt){ toast('此处道路完好，无需修整。'); break; }
-        if(!exert('挥铲整路')) return;
-        delete _km[_tx+','+_ty];
-        if(_wasBroken) log('你一锹一铲填平壕沟，断路重开，通行如初。','good');
-        else { delete _bm[_tx+','+_ty]; log('你清整焦痕、夯实路基，路面重归平整（道路等级恢复）。','good'); }
-        renderRoom(_cid, true); save(state);
-        if(currentModalKind==='map') openModal('map');
-        break;
-      }
+
       case 'leave_auto': {
         if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
         var _cp=state.flags.cityPos; if(!_cp) break;
@@ -5127,7 +5082,7 @@ window.onerror=function(msg,url,line,col,err){
         var _steps=_path.length-1, _eng=0;
         for(var _si=1;_si<_path.length;_si++){
           var _pp=_path[_si].split(',');
-          var _ri=roadInfo(_cid,+_pp[0],+_pp[1]);
+          var _ri=(_si===_path.length-1)?{eng:1}:null;
           _eng+=(_ri?_ri.eng:2);
         }
         if(!exert('寻路出城')) return;
@@ -6870,19 +6825,28 @@ window.onerror=function(msg,url,line,col,err){
   }
   function attrAllocHTML(){
     if(!state.attr) state.attr={hp:5,atk:5,def:5,spd:5};
-    var R=G.ATTR_RATIO, fp=(state.freePoints||0)>0;
+    var R=G.ATTR_RATIO, fp=(state.freePoints||0);
     return ATTR_DEFS.map(function(a){
       var v=state.attr[a.k];
       var combat = a.k==='hp'? v*R.hp : a.k==='atk'? v*R.atk : a.k==='def'? v*R.def : v*R.spd;
-      var disMin=(v<=ATTR_MIN), disMax=(v>=ATTR_MAX || !fp);
+      var disMax=(v>=ATTR_MAX || fp<=0);
       return '<div class="ap-row">'+
         '<span class="ap-name">'+a.n+'<i>战力 '+combat+'</i></span>'+
         '<div class="ap-ctrl">'+
-          '<button class="ap-btn" data-act="attr-dec" data-k="'+a.k+'"'+(disMin?' disabled':'')+'>−</button>'+
           '<b class="ap-val">'+v+'</b>'+
           '<button class="ap-btn" data-act="attr-inc" data-k="'+a.k+'"'+(disMax?' disabled':'')+'>＋</button>'+
         '</div></div>';
-    }).join('');
+    }).join('')+
+    '<div class="ap-foot">可分配自由点：<b>'+(state.freePoints||0)+'</b>（加点即定型，不可回调）</div>'+
+    '<button class="ap-confirm" data-act="attr-confirm">确认加点 · 定型</button>';
+  }
+  function confirmAttr(){
+    G.recalcBase(state); clampHp();
+    if(typeof save==='function') save(state);
+    state.pendingLevel=false;
+    closeModal(); renderStatus();
+    if((state.freePoints||0)>0) toast('尚有 '+(state.freePoints||0)+' 点未分配，可再开角色面板加点');
+    else toast('属性已定型');
   }
   function bindAttrAlloc(){
     if(!$card) return;
@@ -6897,17 +6861,8 @@ window.onerror=function(msg,url,line,col,err){
         }
       };
     });
-    $card.querySelectorAll('[data-act="attr-dec"]').forEach(function(b){
-      b.onclick=function(){
-        var k=b.getAttribute('data-k');
-        if(state.attr[k]>ATTR_MIN){
-          state.attr[k]--; state.freePoints=(state.freePoints||0)+1;
-          G.recalcBase(state); clampHp();
-          if(typeof save==='function') save(state);
-          openModal('char'); renderStatus();
-        }
-      };
-    });
+    var cf=$card.querySelector('[data-act="attr-confirm"]');
+    if(cf) cf.onclick=confirmAttr;
   }
   function confirmCreate(){
     var name=(createState.name||'').trim()||'无名客';
@@ -7775,6 +7730,46 @@ window.onerror=function(msg,url,line,col,err){
     else if(act==='gold+500'){ state.gold+=500; log('【速填】银两 +500（当前 '+state.gold+'）','good'); }
     else if(act==='full'){ var esF=effectiveStats(); state.hp=esF.maxHp; state.mp=esF.maxMp; state.energy=state.maxEnergy; state.food=state.maxFood; state.drink=state.maxDrink; log('【速填】气血/内力/精力/饥渴 全满','good'); }
     else if(act==='mkgear'){ var eq=LF.ITEMS.rollEquip(3); packAdd(LF.ITEMS.equipToPackItem(eq)); save(state); renderDev(); toast('夺得 '+eq.name); }
+    // ── 等级 / 身份势力 / 城市 调试（v20260827）──
+    else if(act==='xp+200'){ addXp(200); }
+    else if(act==='dev-capture'){
+      state.faction=state.faction||'义军';
+      var cp=state.flags.cityPos; if(!cp || !isCityGrid(cp.cid)){ toast('你不在城中（立于中枢方能占城）'); return; }
+      var cid=cp.cid;
+      if(isCaptured(cid)){ toast('「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」已是你的领地'); return; }
+      if(!state.flags.cityOwner) state.flags.cityOwner={};
+      state.ruledCities=state.ruledCities||[];
+      state.flags.cityOwner[cid]=state.faction;
+      if(state.ruledCities.indexOf(cid)<0) state.ruledCities.push(cid);
+      var _tier=(LF.CITIES[cid]||{}).tier||'xian';
+      var _tt=_tier==='capital'?'君主':_tier==='zhou'?'州牧':'太守';
+      if(LF.TITLES.indexOf(_tt)>LF.TITLES.indexOf(state.title)) state.title=_tt;
+      log('【调试】已占领「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」，授官「'+state.title+'」','good');
+      renderStatus();
+    }
+    else if(act==='dev-release'){
+      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
+      var cid=cp.cid;
+      state.flags.cityOwner[cid]=cityDefaultOwner(cid);
+      state.ruledCities=state.ruledCities||[];
+      var _idx=state.ruledCities.indexOf(cid); if(_idx>=0) state.ruledCities.splice(_idx,1);
+      var _best='游侠';
+      state.ruledCities.forEach(function(rc){ var t=(LF.CITIES[rc]||{}).tier||'xian'; var tt=t==='capital'?'君主':t==='zhou'?'州牧':'太守'; if(LF.TITLES.indexOf(tt)>LF.TITLES.indexOf(_best)) _best=tt; });
+      state.title=_best;
+      log('【调试】已释放「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」','sys');
+      renderStatus();
+    }
+    else if(act==='dev-citydev'){
+      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
+      if(!state.flags.cityDev) state.flags.cityDev={};
+      state.flags.cityDev[cp.cid]=Math.min(100,(state.flags.cityDev[cp.cid]||0)+20);
+      log('【调试】'+cp.cid+' 建设度→'+(state.flags.cityDev[cp.cid]),'good');
+    }
+    else if(act==='dev-burn'){
+      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
+      burnCells(cp.cid,3);
+      log('【调试】'+cp.cid+' 焚城（随机3格）','sys');
+    }
     // ── P3 善恶双轴调试 ──
     else if(act==='cha+10'){ state.chivalry+=10; log('【调试】侠义 +10（当前 '+state.chivalry+'）','good'); }
     else if(act==='not+10'){ state.notoriety+=10; log('【调试】凶名 +10（当前 '+state.notoriety+'）','good'); }
@@ -7782,17 +7777,30 @@ window.onerror=function(msg,url,line,col,err){
   }
   function renderDev(){
     var MA=G.MARTIAL_ARTS;
-    var rep=state.reputation;
-    var h='<h3>🛠 调 试 台</h3>';
-    h+='<div class="dev-sec"><div class="dev-h">声望（当前 '+rep+' · '+repTitle(rep)+'）</div><div class="dev-btns">'+
-         '<button class="dev" data-act="rep+5">+5</button>'+
-         '<button class="dev" data-act="rep20">设=20</button>'+
-         '<button class="dev" data-act="rep100">设=100</button>'+
-         '<button class="dev" data-act="rep0">清零</button></div></div>';
+    state.faction=state.faction||'义军';
+    var rep=state.reputation, fp=(state.freePoints||0);
+    var facOpts=Object.keys(LF.FACTIONS).map(function(f){
+      var val=(f==='player')?'义军':f;  // 玩家势力在存档中以 '义军' 存储，下拉值与之对齐
+      return '<option value="'+val+'"'+(val===state.faction?' selected':'')+'>'+LF.FACTIONS[f].name+'</option>';
+    }).join('');
+    var titleOpts=LF.TITLES.map(function(t){
+      return '<option value="'+t+'"'+(t===state.title?' selected':'')+'>'+t+'</option>';
+    }).join('');
+    var cityName=(state.flags.cityPos && LF.CITIES[state.flags.cityPos.cid])?LF.CITIES[state.flags.cityPos.cid].name:(state.flags.cityPos?state.flags.cityPos.cid:'不在城');
+    var h='<h3>🛠 调 试 台 <span class="dev-sub">v'+LF.CONSTANTS.VERSION+'</span></h3>';
+    // 资源
+    h+='<div class="dev-sec"><div class="dev-h">资源（声望 '+rep+' · 银两 '+state.gold+' · 潜能 '+state.pot+' · 自由点 '+fp+'）</div><div class="dev-btns">'+
+       '<button class="dev" data-act="rep+5">声望+5</button><button class="dev" data-act="rep100">声望=100</button>'+
+       '<button class="dev" data-act="gold+500">银两+500</button><button class="dev" data-act="pot+200">潜能+200</button>'+
+       '<button class="dev" data-act="xp+200">经验+200</button><button class="dev" data-act="full">回满状态</button></div></div>';
+    // 善恶
     h+='<div class="dev-sec"><div class="dev-h">善恶双轴（侠义 '+state.chivalry+' · 凶名 '+state.notoriety+' · '+moralTitle()+'）</div><div class="dev-btns">'+
-         '<button class="dev" data-act="cha+10">侠义+10</button>'+
-         '<button class="dev" data-act="not+10">凶名+10</button>'+
-         '<button class="dev" data-act="moral0">清零</button></div></div>';
+       '<button class="dev" data-act="cha+10">侠义+10</button><button class="dev" data-act="not+10">凶名+10</button><button class="dev" data-act="moral0">清零</button></div></div>';
+    // 身份 / 势力（含名城占领、官职）
+    h+='<div class="dev-sec"><div class="dev-h">身份 / 势力（当前：'+factionName(state.faction)+' · '+state.title+'）</div>'+
+       '<div class="dev-btns"><select id="dev-fac" class="dev-sel">'+facOpts+'</select><select id="dev-title" class="dev-sel">'+titleOpts+'</select></div>'+
+       '<div class="dev-btns"><button class="dev" data-act="dev-capture">占领所在城</button><button class="dev" data-act="dev-release">释放所在城</button></div></div>';
+    // 武学
     h+='<div class="dev-sec"><div class="dev-h">武学招式（点击 学/弃）</div><div class="dev-btns">';
     for(var k in MA){ var a=MA[k]; if(!a||!a.id||a.type==='technique') continue;
       var owned=state.learnedMartial.indexOf(a.id)>=0;
@@ -7804,18 +7812,19 @@ window.onerror=function(msg,url,line,col,err){
       var on=state.equippedForce.indexOf(a2.id)>=0;
       h+='<button class="dev'+(on?' on':'')+'" data-act="force:'+a2.id+'">'+(on?'✓ ':'+ ')+a2.name+'</button>';
     }
-    h+='</div><div class="dev-btns"><button class="dev wide" data-act="allmartial">⚡ 一键满配武学（全招式+全发力技巧）</button></div></div>';
-    h+='<div class="dev-sec"><div class="dev-h">艺线 / 境界（突破效果后续接入）</div><div class="dev-btns">'+
-         '<button class="dev" data-act="lines+5">全艺线+5</button>'+
-         '<button class="dev" data-act="realm+1">全境界+1</button></div></div>';
+    h+='</div><div class="dev-btns"><button class="dev wide" data-act="allmartial">⚡ 一键满配武学</button></div></div>';
+    // 突破
+    h+='<div class="dev-sec"><div class="dev-h">艺线 / 境界（突破增强战力）</div><div class="dev-btns">'+
+       '<button class="dev" data-act="lines+5">全艺线+5</button><button class="dev" data-act="realm+1">全境界+1</button></div></div>';
+    // 角色速填
     h+='<div class="dev-sec"><div class="dev-h">角色速填</div><div class="dev-btns">'+
-         '<button class="dev" data-act="maxlv">满级</button>'+
-         '<button class="dev" data-act="pot+200">潜能+200</button>'+
-         '<button class="dev" data-act="gold+500">银两+500</button>'+
-         '<button class="dev" data-act="full">回满状态</button>'+
-         '<button class="dev" data-act="mkgear">掉件装备</button></div></div>';
+       '<button class="dev" data-act="maxlv">满级(设等级)</button><button class="dev" data-act="mkgear">掉件装备</button></div></div>';
+    // 城市
+    h+='<div class="dev-sec"><div class="dev-h">城市（当前：'+cityName+'）</div><div class="dev-btns">'+
+       '<button class="dev" data-act="dev-citydev">建设+20</button><button class="dev" data-act="dev-burn">焚城(随机3格)</button></div></div>';
+    // 出生点
     h+='<div class="dev-sec"><div class="dev-h">出生点（当前：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)+'）</div><div class="dev-btns">'+
-         '<button class="dev wide" data-act="setspawn">🗺 设置出生点（弹大地图选点）</button></div></div>';
+       '<button class="dev wide" data-act="setspawn">🗺 设置出生点</button></div></div>';
     h+='<button class="close" id="m-close">收 起</button>';
     $card.innerHTML=h;
     $modal.classList.remove('hidden');
@@ -7823,10 +7832,13 @@ window.onerror=function(msg,url,line,col,err){
       btn.onclick=function(){
         var a=btn.getAttribute('data-act');
         if(a==='setspawn'){ openSpawnMap(); return; }
-        handleDev(a); save(state); renderStatus(); renderDev();
+        handleDev(a); save(state); renderStatus();
+        if(currentModalKind!=='char') renderDev();
       };
     });
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+    var fsel=document.getElementById('dev-fac'); if(fsel){ fsel.onchange=function(){ state.faction=fsel.value; log('【调试】势力→'+factionName(state.faction),'sys'); renderStatus(); renderDev(); }; }
+    var tsel=document.getElementById('dev-title'); if(tsel){ tsel.onchange=function(){ state.title=tsel.value; renderStatus(); renderDev(); }; }
   }
 
   // ===== 调试：大地图选出生点 =====
