@@ -1169,6 +1169,28 @@
   .cs-discard:active{transform:scale(.96);}
   .cs-overlay .act.cb-menu.primary{margin-top:16px;width:100%;min-height:48px;font-size:16px;letter-spacing:3px;}
 
+  /* ===== 整理行囊：左右对照（左战利品 / 右行囊） ===== */
+  .cs-organize-overlay{position:fixed;inset:0;z-index:65;display:flex;align-items:center;justify-content:center;
+    background:rgba(28,22,16,.6);backdrop-filter:blur(2px);padding:16px;animation:csFade .18s ease-out;}
+  .cs-org-card{width:100%;max-width:560px;background:var(--paper);border:1px solid rgba(60,40,30,.18);
+    border-radius:16px;box-shadow:0 14px 44px rgba(40,28,16,.45);padding:16px 16px 14px;text-align:center;animation:csPop .22s cubic-bezier(.2,.9,.3,1.2);}
+  .cs-org-h{font-size:17px;font-weight:800;letter-spacing:2px;color:var(--jade);font-family:"STKaiti","KaiTi",serif;margin-bottom:10px;}
+  .cs-panes{display:flex;gap:12px;}
+  .cs-pane{flex:1;min-width:0;background:rgba(63,125,94,.05);border:1px solid rgba(63,125,94,.18);border-radius:11px;padding:8px;}
+  .cs-pane-h{font-size:12.5px;color:var(--ink-soft);letter-spacing:2px;margin-bottom:6px;font-family:"STKaiti","KaiTi",serif;}
+  .cs-loot{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto;}
+  .cs-loot-item{display:flex;align-items:center;gap:6px;background:rgba(176,131,47,.08);border:1px solid rgba(176,131,47,.3);
+    border-radius:8px;padding:7px 9px;font-size:13px;font-family:"STKaiti","KaiTi",serif;}
+  .cs-li-ic{font-size:16px;}
+  .cs-li-nm{flex:1;text-align:left;}
+  .cs-li-st{font-size:11px;color:var(--seal);letter-spacing:1px;}
+  .cs-of-done{font-size:13px;color:var(--jade);padding:14px 0;letter-spacing:1px;}
+  .cs-pack-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:240px;overflow:auto;}
+  .cs-pack-grid .packcell{cursor:pointer;transition:transform .12s,box-shadow .12s;}
+  .cs-pack-grid .packcell:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(158,59,46,.18);border-color:var(--seal);}
+  .cs-pack-grid .pcell-empty{opacity:.4;}
+  .cs-org-cap{font-size:12px;color:var(--ink-faint);margin:10px 0 4px;letter-spacing:1px;}
+
   .act.danger{color:var(--seal);border-color:rgba(158,59,46,.45);background:rgba(158,59,46,.06);}
   .act.danger:hover{background:rgba(158,59,46,.15);}
 
@@ -1907,7 +1929,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828n"></script>
+<script src="shared/config/constants.js?v=20260828o"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -6861,7 +6883,6 @@ window.onerror=function(msg,url,line,col,err){
     pendingSave=null;
   }
   var currentModalKind=null;
-  var pendingSettleClose=null;   // 战斗结算：整理行囊关闭弹窗后的收尾回调
   // ══ 建筑物内部交互系统（v20260824e）══
   // 药铺/布庄/食肆/杂货/营造所 皆为「可进入的屋舍」：进入后与内部 NPC、功能物件交互，取代原一键式空泛交互
   var BUILDINGS = {
@@ -7599,8 +7620,6 @@ window.onerror=function(msg,url,line,col,err){
     if(currentModalKind==='create' && !state){ return; }
     $modal.classList.add('hidden');
     currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
-    // 战斗结算：整理行囊后关闭弹窗时，尝试把溢出战利品装回背包
-    if(pendingSettleClose){ var _f=pendingSettleClose; pendingSettleClose=null; if(typeof _f==='function') _f(); }
   }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   var $modalX=document.getElementById('modal-x');
@@ -8378,15 +8397,34 @@ window.onerror=function(msg,url,line,col,err){
     // 教学：老乞丐赠行囊前不显示「道具」，避免提前绕过关卡；正常战恒显示
     if(!(tut && !state.flags.onb.packGiven)) btn('道具', function(){ dqOpenItems(unit); }, tut&&step==='item'?'onb-glow':'item');
     btn('撤退', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','老乞丐'); return; } dqTryFlee(unit); }, 'flee');
+    // 武学：选择已学招式（连线已有的 G.MARTIAL_ARTS，使之在战斗里真正可用）
+    if(!tut && unit.artIds.length){
+      btn('武学', function(){ dqShowArts(unit); }, 'skill');
+    }
   }
 
-  /** 攻击：选择目标敌人 */
-  function dqShowTargets(unit){
+  /** 武学：列出该队员已学招式，选后进入目标选择 */
+  function dqShowArts(unit){
+    var ra=document.getElementById('actions'); if(!ra) return;
+    ra.innerHTML='';
+    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='选择武学'; ra.appendChild(tip);
+    (unit.artIds||[]).forEach(function(aid){
+      var a=G.MARTIAL_ARTS.get(aid); if(!a) return;
+      var b=document.createElement('button'); b.className='act cb-menu skill';
+      b.textContent=a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':''));
+      b.onclick=function(){ dqShowTargets(unit, aid); };
+      ra.appendChild(b);
+    });
+    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
+  }
+
+  /** 攻击：选择目标敌人（forcedAid 指定招式，缺省用 beng_quan） */
+  function dqShowTargets(unit, forcedAid){
     var ra=document.getElementById('actions'); if(!ra) return;
     ra.innerHTML='';
     var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='选择攻击目标'; ra.appendChild(tip);
     var st=G.CombatEngine.getStatus();
-    var aid = unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan');
+    var aid = forcedAid || (unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan'));
     st.enemies.forEach(function(e){
       if(e.hp<=0) return;
       var b=document.createElement('button'); b.className='act cb-menu'; b.textContent=e.name+(st.enemies.filter(function(x){return x.name===e.name;}).length>1?(' '+(['甲','乙','丙','丁','戊'][e.idx]||(e.idx+1))):'');
@@ -8708,21 +8746,54 @@ window.onerror=function(msg,url,line,col,err){
       var box=document.getElementById('cs-overflow'); if(!box) return;
       if(!overflow.length){ box.innerHTML=''; var cs=document.getElementById('cs-confirm'); if(cs) cs.textContent='确认'; return; }
       box.innerHTML='<div class="cs-of-hint">行囊已满！以下战利品未能装入：'+overflow.map(function(it){return it.icon+it.name;}).join('、')+
-        '。点下方按钮整理行囊，丢弃不需要之物以腾出空位：</div>'+
-        '<button id="cs-organize" class="act cb-menu primary" style="margin-top:8px;width:100%;">🎒 整理行囊</button>';
+        '。点下方按钮整理行囊（左为战利品、右为行囊，对照着丢弃腾位）：</div>'+
+        '<button id="cs-organize" class="act cb-menu primary" style="margin-top:8px;width:100%;">🎒 整理行囊（左右对照）</button>';
       var cs=document.getElementById('cs-confirm'); if(cs) cs.textContent='放弃剩余战利品并确认';
       var org=document.getElementById('cs-organize');
-      if(org) org.onclick=function(){
-        pendingSettleClose=csTryStow;   // 行囊关弹窗后尝试装入溢出战利品
-        openModal('pack');
-      };
+      if(org) org.onclick=renderOrganize;
     }
-    // 行囊整理后：把溢出战利品尽量装回背包，并重绘结算面板
-    function csTryStow(){
-      for(var k=0;k<overflow.length;k++){
-        if(packAdd(overflow[k])){ summary.items.push(overflow[k]); overflow.splice(k,1); k--; }
+    // 左右对照整理：左=待装入战利品，右=当前行囊（点物品即丢弃腾位并自动装入一件战利品）
+    function renderOrganize(){
+      var po=document.getElementById('cs-organize-overlay'); if(po&&po.parentNode) po.parentNode.removeChild(po);
+      po=document.createElement('div'); po.id='cs-organize-overlay'; po.className='cs-organize-overlay';
+      var lootHtml=(overflow.length?'':
+          '<div class="cs-of-done">全部战利品已装入行囊 ✔</div>')+
+        overflow.map(function(it){
+          return '<div class="cs-loot-item"><span class="cs-li-ic">'+it.icon+'</span>'+
+            '<span class="cs-li-nm">'+it.name+(it.count>1?(' ×'+it.count):'')+'</span>'+
+            '<span class="cs-li-st">待装入</span></div>';
+        }).join('');
+      var grid='';
+      for(var i=0;i<state.pack.length;i++){
+        var it=state.pack[i];
+        if(!it){ grid+='<div class="packcell pcell-empty"></div>'; continue; }
+        var cnt=(it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
+        grid+='<div class="packcell cs-discard-cell" data-idx="'+i+'">'+
+          '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'+cnt+'</div>';
       }
-      renderItems(); renderOverflow(); renderStatus();
+      po.innerHTML='<div class="cs-org-card">'+
+        '<div class="cs-org-h">整理行囊 · 腾出空位装入战利品</div>'+
+        '<div class="cs-panes">'+
+          '<div class="cs-pane"><div class="cs-pane-h">战 利 品</div><div class="cs-loot">'+lootHtml+'</div></div>'+
+          '<div class="cs-pane"><div class="cs-pane-h">行 囊（点物品丢弃）</div><div class="pack-grid cs-pack-grid">'+grid+'</div></div>'+
+        '</div>'+
+        '<div class="cs-org-cap">容量 '+packList().length+' / '+packMax()+'</div>'+
+        '<button id="cs-org-back" class="act cb-menu primary">返回结算</button>'+
+        '</div>';
+      (document.getElementById('app')||document.body).appendChild(po);
+      Array.prototype.forEach.call(po.querySelectorAll('.cs-discard-cell'), function(c){
+        c.onclick=function(){
+          var idx=parseInt(c.getAttribute('data-idx'),10);
+          var it=state.pack[idx]; if(!it) return;
+          discardPackItem(idx);   // 丢弃一件，腾出空位
+          for(var k=0;k<overflow.length;k++){
+            if(packAdd(overflow[k])){ summary.items.push(overflow[k]); overflow.splice(k,1); break; }  // 自动装入一件溢出战利品
+          }
+          renderItems(); renderStatus(); renderOrganize();
+        };
+      });
+      var back=document.getElementById('cs-org-back');
+      if(back) back.onclick=function(){ if(po.parentNode) po.parentNode.removeChild(po); renderOverflow(); };
     }
     renderItems(); renderOverflow();
     var cs=document.getElementById('cs-confirm');
