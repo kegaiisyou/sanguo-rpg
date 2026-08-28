@@ -310,6 +310,27 @@
       ],
       ai: 'aggressive',
       drop: { gold: [25, 60], pot: [12, 28], table: [{ item: 'shengrou', name: '生肉', weight: 40 }], equip: { tier: 3, chance: 45 } }
+    },
+
+    // ─── 战利品系统测试专用：幸运星（血薄、属性低，但掉落丰厚，专测「搜打撤」窗口）───
+    lucky_star: {
+      id: 'lucky_star', name: '幸运星', title: '试炼·欧皇', icon: '🌟', element: '无',
+      hp: 24, atk: 6, def: 4, spd: 14,
+      skills: [
+        { id: 'beng_quan', name: '崩拳', beat: 30, dmgMul: 1.0, desc: '一记直拳，软绵绵却偏巧命中。' }
+      ],
+      ai: 'balanced',
+      drop: {
+        gold: [20, 50], pot: [3, 6],
+        table: [
+          { item: 'jinchuang', name: '金疮药', weight: 100 },
+          { item: 'roubao',    name: '肉包子',  weight: 100 },
+          { item: 'caoyao',    name: '草药',    weight: 100 },
+          { item: 'shengrou',  name: '生肉',    weight: 100 },
+          { item: 'yaofen',    name: '草药粉',  weight: 100 }
+        ],
+        equip: { tier: 2, chance: 100 }
+      }
     }
   };
 

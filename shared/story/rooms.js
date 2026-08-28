@@ -221,6 +221,7 @@
         {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
         {type:'feature', key:'quarry',     icon:'🪨', name:'采石崖',   desc:'崖壁裸露青石，敲击可采下石料',     actions: build_quarry_actions},
         {type:'feature', key:'crate',    icon:'📦', name:'残破木箱', desc:'半埋草垛里的旧木箱，似有人遗落了图纸', actions: build_crate_actions},
+        {type:'feature', key:'loot_chest', icon:'🧰', name:'试炼宝箱', desc:'一只不上锁的木箱，里头好似塞满了杂物——打开看看？', actions:[{label:'打开宝箱', icon:'🧰', fn:function(){ openTestChest(); }}]},
         {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川',desc:'返回颍川',                           actions:[{label:'返回颍川', fn:function(){ move('北','city'); }}]},
         {type:'exit',  dir:'东',     icon:'🏯', name:'东·演武场',desc:'试炼坪，可测试战斗系统',             actions:[{label:'前往演武场', fn:function(){ move('东','combat_test'); }}]}
       ],
@@ -232,6 +233,9 @@
           {label:'野犬（hp50·无）', icon:'🐕', fn:function(){ startCombat('stray_dog'); }},
           {label:'饥饿流民（hp80·无）', icon:'🧎', fn:function(){ startCombat('hungry_refugee'); }},
           {label:'落单溃兵（hp130·金）', icon:'🪖', fn:function(){ startCombat('deserter'); }}
+        ]},
+        {type:'feature', key:'lucky', icon:'🌟', name:'幸运星（测试·欧皇）', desc:'血薄却满载而归的试炼福星，专测战利品/搜打撤系统', actions:[
+          {label:'挑战幸运星', icon:'🌟', danger:true, fn:function(){ startCombat('lucky_star'); }}
         ]},
         {type:'feature', key:'mid', icon:'⚔️', name:'寻常试炼', desc:'山野间常见的匪类，正经练手', actions:[
           {label:'山贼（hp300·土）', icon:'🪓', fn:function(){ startCombat('bandit'); }},
