@@ -1959,7 +1959,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828aa"></script>
+<script src="shared/config/constants.js?v=20260828ab"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -6277,7 +6277,9 @@ window.onerror=function(msg,url,line,col,err){
       var k=itemKey(it);
       for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)===k && c.cat!=='装备'){ c.count=(c.count||1)+(it.count||1); return true; } }
     }
-    var e=packFirstEmpty(); if(e<0){ toast('行囊已满，拾取失败。'); return false; }
+    var e=packFirstEmpty();
+    if(e<0 && state.pack.length<packMax()){ while(state.pack.length<packMax()) state.pack.push(null); e=packFirstEmpty(); }   // 防御：数组短于容量时先补齐再判定
+    if(e<0){ toast('行囊已满，拾取失败。'); return false; }
     state.pack[e]=it; return true;
   }
   function packConsume(defId, n){
@@ -8843,7 +8845,7 @@ window.onerror=function(msg,url,line,col,err){
       if(cell) return cell;                       // 落在具体格子 → 按该格
       return pane?{pane:pane, idx:null}:null;     // 落在面板空白处 → 落对方栏首位
     }
-    function firstEmpty(){ for(var i=0;i<state.pack.length;i++) if(!state.pack[i]) return i; return -1; }
+    function firstEmpty(){ if(state.pack.length<packMax()){ while(state.pack.length<packMax()) state.pack.push(null); } for(var i=0;i<state.pack.length;i++) if(!state.pack[i]) return i; return -1; }   // 先补齐到容量再找空位，避免数组短于容量时误报满
     function firstLootEmpty(){ for(var i=0;i<lootArr.length;i++){ if(!lootArr[i]) return i; } return lootArr.length; }   // 满则追加（战利品栏不限数量）
     function sameStack(a,b){ if(!a||!b||a.cat==='装备'||b.cat==='装备'||a.maxDur||b.maxDur) return false; var ka=a.defId||a.id, kb=b.defId||b.id; return !!ka && ka===kb; }   // 仅同 defId 非装备可堆叠
     function doMove(src,tgt){
@@ -8965,6 +8967,7 @@ window.onerror=function(msg,url,line,col,err){
         }
       }
       state.pack=real.filter(function(x){return x;});
+      packResize();   // 整理后数组可能短于容量，补齐到 packMax，避免 UI 出现"幽灵空位"而 packAdd 误判行囊已满
       save(state); renderStatus(); sel=null; hideInfo(); rerender();
     }
     var ta=document.getElementById('lp-takeall');
