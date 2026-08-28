@@ -1945,7 +1945,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828u"></script>
+<script src="shared/config/constants.js?v=20260828v"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -8819,13 +8819,14 @@ window.onerror=function(msg,url,line,col,err){
         state.pack[tgt.idx]=bit;
         state.pack[src.idx]= occ2 || null;   // 交换，原格清空或放回换出物
       } else if(src.pane==='bag' && tgt.pane==='loot'){
-        var bit2=state.pack[src.idx]; if(!bit2) return;
-        var slot=(tgt.idx!=null && !lootArr[tgt.idx]) ? tgt.idx : firstLootEmpty();
-        if(slot>=0){ state.pack[src.idx]=null; lootArr[slot]=bit2; }   // 找到空位才挪
-        // 战利品已满则不动，物品保留在背包原位
-      } else if(src.pane==='loot' && tgt.pane==='loot' && src.idx!==tgt.idx){
-        var a=lootArr[src.idx], b=lootArr[tgt.idx]; lootArr[src.idx]=b; lootArr[tgt.idx]=a;   // 交换，保持格数
+        // 拖到左侧＝丢弃：把行囊里的物品主动放弃（与 UI 提示一致），不塞回战利品
+        state.pack[src.idx]=null;
+      } else if(src.pane==='loot' && tgt.pane==='loot'){
+        if(tgt.idx==null || src.idx===tgt.idx){ lootArr[src.idx]=null; }   // 拖到左侧空白/自身＝放弃
+        else { var a=lootArr[src.idx], b=lootArr[tgt.idx]; lootArr[src.idx]=b; lootArr[tgt.idx]=a; }   // 交换，保持格数
       }
+      // 规整行囊：稀疏 undefined 填成 null，并补齐到容量上限（不重排索引，避免拖拽后错位）
+      (function(){ var max=packMax(); for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===undefined) state.pack[i]=null; } while(state.pack.length<max) state.pack.push(null); })();
       sel=null; hideInfo(); renderStatus(); rerender();
     }
     function onTap(src){
