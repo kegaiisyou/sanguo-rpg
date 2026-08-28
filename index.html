@@ -78,7 +78,8 @@
     font-size:13px;color:var(--ink-soft);
   }
   #status:active{opacity:.72;}
-  #status .who{font-size:14px;color:var(--ink);font-weight:700;font-family:"STKaiti","KaiTi","Songti SC",serif;letter-spacing:1px;}
+  #status .who{font-size:14px;color:var(--ink);font-weight:700;font-family:"STKaiti","KaiTi","Songti SC",serif;letter-spacing:1px;
+    max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #status .dot{color:var(--ink-faint);}
   #status .st-clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);font-family:"STKaiti","KaiTi",serif;letter-spacing:.5px;}
   #status .st-time{color:var(--seal);font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
@@ -1140,6 +1141,34 @@
   .c-summary .cs-title{font-size:18px;font-weight:700;letter-spacing:4px;font-family:"STKaiti","KaiTi",serif;}
   .c-summary .cs-detail{font-size:13px;color:var(--ink-soft);margin-top:4px;}
 
+  /* ===== 战斗结算面板（战后先弹此，不立即退回场景，避免方向罗盘干扰优先离开） ===== */
+  .cs-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+    background:rgba(28,22,16,.55);backdrop-filter:blur(2px);padding:18px;animation:csFade .18s ease-out;}
+  @keyframes csFade{from{opacity:0;}to{opacity:1;}}
+  .cs-card{width:100%;max-width:420px;background:var(--paper);border:1px solid rgba(60,40,30,.18);
+    border-radius:16px;box-shadow:0 12px 40px rgba(40,28,16,.4);padding:20px 20px 18px;text-align:center;
+    animation:csPop .22s cubic-bezier(.2,.9,.3,1.2);}
+  @keyframes csPop{from{transform:translateY(14px) scale(.96);opacity:0;}to{transform:none;opacity:1;}}
+  .cs-title{font-size:24px;font-weight:800;letter-spacing:8px;font-family:"STKaiti","KaiTi",serif;color:var(--jade);}
+  .cs-overlay.lose .cs-title{color:var(--seal);}
+  .cs-overlay.fled .cs-title{color:var(--ink);}
+  .cs-sub{font-size:13px;color:var(--ink-soft);margin-top:4px;letter-spacing:1px;}
+  .cs-rewards{margin:14px 0 4px;display:flex;flex-direction:column;gap:7px;}
+  .cs-row{font-size:14px;color:var(--ink);background:rgba(63,125,94,.07);border:1px solid rgba(63,125,94,.18);
+    border-radius:9px;padding:8px 12px;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
+  .cs-row.ln{background:rgba(176,131,47,.08);border-color:rgba(176,131,47,.3);}
+  .cs-items{display:flex;flex-direction:column;gap:7px;margin-top:7px;}
+  .cs-overflow{margin:12px 0 4px;background:rgba(158,59,46,.06);border:1px dashed rgba(158,59,46,.4);
+    border-radius:11px;padding:12px;}
+  .cs-of-hint{font-size:12.5px;color:var(--seal);margin-bottom:8px;line-height:1.5;}
+  .cs-pack{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;}
+  .cs-discard{font-family:"STKaiti","KaiTi",serif;font-size:13px;letter-spacing:.5px;padding:8px 12px;border-radius:9px;
+    border:1px solid rgba(158,59,46,.4);background:rgba(255,253,248,.9);color:var(--ink);cursor:pointer;
+    transition:transform .12s,box-shadow .12s;}
+  .cs-discard:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(158,59,46,.16);border-color:var(--seal);}
+  .cs-discard:active{transform:scale(.96);}
+  .cs-overlay .act.cb-menu.primary{margin-top:16px;width:100%;min-height:48px;font-size:16px;letter-spacing:3px;}
+
   .act.danger{color:var(--seal);border-color:rgba(158,59,46,.45);background:rgba(158,59,46,.06);}
   .act.danger:hover{background:rgba(158,59,46,.15);}
 
@@ -1878,7 +1907,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828k"></script>
+<script src="shared/config/constants.js?v=20260828m"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -3103,7 +3132,7 @@ window.onerror=function(msg,url,line,col,err){
     var era=(state.eraName||'光和')+(c.eraYear===1?'元年':c.eraYear+'年');
     var w=WEATHERS[state.weather]||WEATHERS[0];
     $status.innerHTML=
-      '<span class="who">'+state.name+'</span>'+
+      '<span class="who" title="'+state.name+'">'+state.name+'</span>'+
       '<span class="dot">·</span>'+
       '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
       '<span class="st-time">'+sh+'</span>'+
@@ -8470,9 +8499,8 @@ window.onerror=function(msg,url,line,col,err){
   function endCombat(result){
     if(combatMode===null) return;   // 防止重复调用（如快速连点）
     combatMode=null;
-    var appEl=document.getElementById('app'); if(appEl) appEl.classList.remove('in-combat');
-    document.body.classList.remove('in-combat');
-    document.body.classList.remove('tut-combat');
+    // 注意：保留 in-combat（含 #lower/#dock 隐藏）直到结算面板被「确认」关闭，
+    // 这样方向罗盘不会在战后提前浮现、暗示玩家优先离开场景
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.dataset.bg=''; sceneEl.classList.remove('bg-danger'); }
     clearActions();                  // 清除战斗按钮，防止残留可点击
     if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断重复结算
@@ -8486,7 +8514,8 @@ window.onerror=function(msg,url,line,col,err){
       save(state); renderStatus();
       if(dqCardEl){ dqCardEl.classList.add('settle-win'); }
       playCombatFx('win');
-      setTimeout(function(){ if(dqCardEl&&dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }, 1200);
+      showCombatSettlement({result:'win', title:'演 练 结 束', sub:'老乞丐出手相救，化险为夷。',
+        lines:[{text:'教学演练完成——往后真打可没这般好运。'}]}, exitCombatToRoom);
       return;
     }
     // ── 攻城战（易主/火战）特殊处理（v20260824d）──
@@ -8502,9 +8531,13 @@ window.onerror=function(msg,url,line,col,err){
       var _fx=(result==='win'?'win':(result==='lose'?'lose':''));
       if(dqCardEl) dqCardEl.classList.add(result==='win'?'settle-win':(result==='lose'?'settle-lose':''));
       playCombatFx(_fx);
-      addBtn('返回',function(){ renderRoom(state.room,true); },'wide');
-      if(currentModalKind==='map') openModal('map');   // 攻城后若山河图正开着，即时刷新网格（易主/焦土）
+      var cityName=(((LF.CITIES||{})[sc]||{}).name||'城');
       save(state); renderStatus();
+      showCombatSettlement({result:result, enemyName:cityName,
+        lines: result==='win' ? [{text:'「'+cityName+'」已收入麾下。'}]
+             : result==='fled' ? [{text:'鸣金收兵，「'+cityName+'」暂未易主。'}]
+             : [{text:'兵败如山倒，「'+cityName+'」未能取下。'}]},
+        function(){ if(currentModalKind==='map') openModal('map'); exitCombatToRoom(); });
       return;
     }
     var st=G.CombatEngine.getStatus();
@@ -8545,17 +8578,21 @@ window.onerror=function(msg,url,line,col,err){
       state.pot+=drop.pot;
       addXp(expGain);
       // ── 掉落入库（v0.6 格子行囊：按 defId 堆叠 count；优先走 makeItem 以带全静态定义）──
+      // 行囊满则转入 overflow，由结算面板给玩家丢弃腾位的机会
+      var summary={ result:'win', enemyName:enemy.name, expGain:expGain, gold:drop.gold, pot:drop.pot, items:[], overflow:[], lines:[] };
+      if(tutCombatActive()) summary.lines.push({text:'【习得】无名拳法！已收入武学。'});
+      function stow(it){
+        if(packAdd(it)) summary.items.push({name:it.name, icon:it.icon||'📦', count:it.count||1});
+        else summary.overflow.push(it);
+      }
       drop.items.forEach(function(it){
         var made = LF.ITEMS.makeItem(it.id, 1);
-        if(made) packAdd(made);
-        else packAdd({defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat||'道具', count:1, effect:it.effect});
+        stow(made || {defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat||'道具', count:1, effect:it.effect});
       });
-      var detail='修为+'+expGain+' · '+drop.gold+'银两 · 潜能+'+drop.pot;
-      if(drop.items.length) detail+=' · '+drop.items.map(function(it){return it.name;}).join('、');
       // ── 装备掉落（P1 完整）──
       if(drop.equip){
-        packAdd(LF.ITEMS.equipToPackItem(drop.equip));
-        detail+=' · 夺得'+drop.equip.qualityName+'「'+drop.equip.name+'」('+LF.ITEMS.statText(drop.equip)+')';
+        stow(LF.ITEMS.equipToPackItem(drop.equip));
+        summary.lines.push({text:'夺得'+drop.equip.qualityName+'「'+drop.equip.name+'」('+LF.ITEMS.statText(drop.equip)+')'});
       }
 
       // ── 声望 / 主线进度（P4 真实获取途径，替代调试台直赋）──
@@ -8566,10 +8603,13 @@ window.onerror=function(msg,url,line,col,err){
       else if(enemy.id==='hua_xiong'){
         state.quest.hua_xiong=true; state.quest.luoyang=true;
         log('【主线】力斩华雄！洛阳之门已为你敞开，可自「颍川主营」赴洛阳。','good');
+        summary.lines.push({text:'【主线】力斩华雄！洛阳之门已开。'});
       }
       else if(enemy.id==='heishan_zhu'){
         log('【剿匪】黑山寨主张燕授首！聚义厅群龙无首，余众溃散——此寨已平。','good');
+        summary.lines.push({text:'【剿匪】黑山寨主张燕授首，此寨已平。'});
       }
+      if(RREP[enemy.id]) summary.repText=RREP[enemy.id];
 
       // ── P2：艺线经验由战斗出手累积，满则升级 ──
       var gains=G.CombatEngine.getLineGains()||[];
@@ -8588,43 +8628,106 @@ window.onerror=function(msg,url,line,col,err){
           state.lines[l]=lv;
         }
         if(upMsgs.length) log('【武学精进】'+upMsgs.join('、')+' 突破！攻防随之精进。','good');
+        if(upMsgs.length) summary.lines.push({text:'【武学精进】'+upMsgs.join('、')+' 突破！'});
       }
 
-      logHTML(
-        '<div class="c-summary win">'+
-          '<div class="cs-title">✦ 大胜 ✦</div>'+
-          '<div class="cs-detail">「'+enemy.name+'」败于你手！</div>'+
-          '<div class="cs-detail">'+detail+'</div>'+
-        '</div>'
-      ,'good');
       if(dqCardEl) dqCardEl.classList.add('settle-win');
       playCombatFx('win');
       SFX.win();
       toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
+      showCombatSettlement(summary, exitCombatToRoom);
     } else if(result==='lose'){
       state.hp=1;
       state.defeated=true;   // 战败标记：封锁一切行动直到休整恢复
-      logHTML(
-        '<div class="c-summary lose">'+
-          '<div class="cs-title">✘ 战 败</div>'+
-          '<div class="cs-detail">眼前一黑……你重伤倒地，气若游丝。须先「休整」恢复，方可再动。</div>'+
-        '</div>'
-      ,'combat');
       if(dqCardEl) dqCardEl.classList.add('settle-lose');
       playCombatFx('lose');
       SFX.lose();
       toast('败北！气血仅余1点');
+      showCombatSettlement({result:'lose', enemyName:enemy.name,
+        lines:[{text:'重伤倒地，气若游丝——须先「休整」恢复，方可再动。'}]}, exitCombatToRoom);
     } else if(result==='fled'){
       log('你已脱离战斗，回到原地。','sys');
       toast('已脱离战斗');
+      showCombatSettlement({result:'fled', enemyName:enemy.name,
+        lines:[{text:'你已脱离战斗，回到原地。'}]}, exitCombatToRoom);
     } else {
       log('两败俱伤，战斗未分胜负，各自收兵。','sys');
       toast('战斗未分胜负');
+      showCombatSettlement({result:'fled', enemyName:enemy.name,
+        lines:[{text:'两败俱伤，战斗未分胜负，各自收兵。'}]}, exitCombatToRoom);
     }
 
-    // 返回房间（战败时只留休整按钮，由 buildActions 的 defeated 锁控制）
-    addBtn('返回',function(){ renderRoom(state.room,true); },'wide');
     save(state); renderStatus();
+  }
+
+  // 退出战斗结算、回到正常场景（同时解除 in-combat，让方向罗盘等恢复正常显示）
+  function exitCombatToRoom(){
+    var appEl=document.getElementById('app'); if(appEl) appEl.classList.remove('in-combat');
+    document.body.classList.remove('in-combat');
+    document.body.classList.remove('tut-combat');
+    if(dqCardEl && dqCardEl.parentNode){ dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
+    renderRoom(state.room, true);
+  }
+
+  // 战斗结算面板：战后弹出，展示战利品并真正入库；行囊满则让玩家丢弃腾位
+  function showCombatSettlement(summary, onConfirm){
+    onConfirm = onConfirm || exitCombatToRoom;
+    var ov=document.getElementById('combat-settle');
+    if(ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    ov=document.createElement('div'); ov.id='combat-settle';
+    ov.className='cs-overlay '+(summary.result==='lose'?'lose':(summary.result==='fled'?'fled':'win'));
+    var titleText = summary.title || (summary.result==='win'?'✦ 大 胜 ✦':(summary.result==='lose'?'✘ 战 败':'⤺ 撤 退'));
+    var sub = summary.sub || (summary.enemyName ? ('「'+summary.enemyName+'」'+(summary.result==='win'?'败于你手':(summary.result==='lose'?'将你击溃':'已被甩在身后'))) : '');
+    var fixed='';
+    if(summary.expGain) fixed+='<div class="cs-row">⚔ 修为 +'+summary.expGain+'</div>';
+    if(summary.gold) fixed+='<div class="cs-row">💰 银两 +'+summary.gold+'</div>';
+    if(summary.pot) fixed+='<div class="cs-row">✦ 潜能 +'+summary.pot+'</div>';
+    if(summary.repText) fixed+='<div class="cs-row">🏴 声望 +'+summary.repText+'</div>';
+    (summary.lines||[]).forEach(function(ln){ fixed+='<div class="cs-row ln">'+ln.text+'</div>'; });
+    ov.innerHTML=
+      '<div class="cs-card">'+
+        '<div class="cs-title">'+titleText+'</div>'+
+        (sub?'<div class="cs-sub">'+sub+'</div>':'')+
+        '<div class="cs-rewards">'+fixed+'<div class="cs-items" id="cs-items"></div></div>'+
+        '<div id="cs-overflow"></div>'+
+        '<button id="cs-confirm" class="act cb-menu primary">确认</button>'+
+      '</div>';
+    (document.getElementById('app')||document.body).appendChild(ov);
+
+    var overflow=(summary.overflow||[]).slice();
+    function renderItems(){
+      var box=document.getElementById('cs-items'); if(!box) return;
+      box.innerHTML=(summary.items||[]).map(function(it){
+        return '<div class="cs-row">'+it.icon+' 获得 '+it.name+(it.count>1?(' ×'+it.count):'')+'</div>';
+      }).join('');
+    }
+    function renderOverflow(){
+      var box=document.getElementById('cs-overflow'); if(!box) return;
+      if(!overflow.length){ box.innerHTML=''; var cs=document.getElementById('cs-confirm'); if(cs) cs.textContent='确认'; return; }
+      var items=packList();
+      var btns=items.map(function(it,i){
+        return '<button class="cs-discard" data-idx="'+i+'">'+it.icon+' '+it.name+(it.count>1?(' ×'+it.count):'')+'</button>';
+      }).join('');
+      box.innerHTML='<div class="cs-of-hint">行囊已满！以下战利品未能装入：'+overflow.map(function(it){return it.icon+it.name;}).join('、')+'。请丢弃一件物品以腾出空位：</div>'+
+        '<div class="cs-pack">'+btns+'</div>';
+      var cs=document.getElementById('cs-confirm'); if(cs) cs.textContent='放弃剩余战利品并确认';
+      Array.prototype.forEach.call(box.querySelectorAll('.cs-discard'), function(b){
+        b.onclick=function(){
+          var idx=parseInt(b.getAttribute('data-idx'),10);
+          discardPackItem(idx);   // 丢弃一件，腾出空位
+          for(var k=0;k<overflow.length;k++){
+            if(packAdd(overflow[k])){ summary.items.push(overflow[k]); overflow.splice(k,1); break; }
+          }
+          renderItems(); renderOverflow(); renderStatus();
+        };
+      });
+    }
+    renderItems(); renderOverflow();
+    var cs=document.getElementById('cs-confirm');
+    if(cs) cs.onclick=function(){
+      if(ov.parentNode) ov.parentNode.removeChild(ov);
+      onConfirm();
+    };
   }
 
 
