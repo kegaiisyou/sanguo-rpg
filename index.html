@@ -1184,7 +1184,12 @@
   .cs-pane.loot{background:rgba(176,131,47,.06);border-color:rgba(176,131,47,.28);}
   .cs-pane-h{font-size:12.5px;color:var(--ink-soft);letter-spacing:2px;margin-bottom:6px;font-family:"STKaiti","KaiTi",serif;}
   .cs-pane.loot .cs-pane-h{color:#9a6b1e;}
-  .cs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:240px;overflow:auto;padding:4px;align-content:start;grid-auto-rows:minmax(54px,auto);}
+  .cs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:240px;overflow:auto;padding:4px;align-content:start;grid-auto-rows:minmax(54px,auto);
+    scrollbar-width:thin;scrollbar-color:rgba(176,131,47,.55) rgba(0,0,0,.08);}
+  .cs-grid::-webkit-scrollbar{width:12px;}
+  .cs-grid::-webkit-scrollbar-track{background:rgba(0,0,0,.08);border-radius:7px;}
+  .cs-grid::-webkit-scrollbar-thumb{background:rgba(176,131,47,.55);border-radius:7px;border:2px solid rgba(0,0,0,.06);}
+  .cs-grid::-webkit-scrollbar-thumb:active{background:rgba(176,131,47,.8);}
   .cs-grid .packcell{aspect-ratio:1/1;min-height:54px;min-width:0;cursor:pointer;transition:transform .1s,box-shadow .1s,border-color .1s;touch-action:none;user-select:none;}
   .cs-grid .packcell:hover{transform:translateY(-1px);}
   .cs-grid .packcell.sel{border-color:var(--seal);box-shadow:0 0 0 2px rgba(158,59,46,.45);background:rgba(158,59,46,.07);}
@@ -1948,7 +1953,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828w"></script>
+<script src="shared/config/constants.js?v=20260828x"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -8794,11 +8799,15 @@ window.onerror=function(msg,url,line,col,err){
     }
     function cellAt(x,y){
       var el=document.elementFromPoint(x,y);
-      while(el && el!==document.body && !(el.classList&&el.classList.contains('packcell'))) el=el.parentNode;
-      if(el && el.classList && el.classList.contains('packcell'))
-        return {pane:el.getAttribute('data-pane'), idx:parseInt(el.getAttribute('data-idx'),10)};
-      var pane = (el && el.classList && el.classList.contains('cs-pane')) ? (el.classList.contains('loot')?'loot':'bag') : null;
-      return pane?{pane:pane, idx:null}:null;
+      var cell=null, pane=null;
+      while(el && el!==document.body){
+        if(!cell && el.classList && el.classList.contains('packcell'))
+          cell={pane:el.getAttribute('data-pane'), idx:parseInt(el.getAttribute('data-idx'),10)};
+        if(!pane && el.classList && el.classList.contains('cs-pane')) pane=el.classList.contains('loot')?'loot':'bag';
+        el=el.parentNode;
+      }
+      if(cell) return cell;                       // 落在具体格子 → 按该格
+      return pane?{pane:pane, idx:null}:null;     // 落在面板空白处 → 落对方栏首位
     }
     function firstEmpty(){ for(var i=0;i<state.pack.length;i++) if(!state.pack[i]) return i; return -1; }
     function firstLootEmpty(){ for(var i=0;i<LOOT_CAP;i++){ if(!lootArr[i]) return i; } return -1; }
