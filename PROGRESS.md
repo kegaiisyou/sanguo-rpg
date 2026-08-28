@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260825f`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260828k`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -470,4 +470,13 @@
 
 ---
 
-*最后更新：2026-08-25（§九：营造系统 MVP 至 v20260825f——新增城市系统、可进入建筑 interior 机制、地图大重构、UI/移动端打磨延续；并补录 §9.24 当前状态总览与已知缺口。当前用户可见版本 `20260825f`）*
+### 9.25 战斗双轨清理 + 运招预告修复（v20260828k）
+- **移除旧半手动单敌路径（死代码）**：`engine.js` 删 `playTurn` / `peekEnemyIntent` / `getPlayerActionList` / `getUnitActions`；`index.html` 删旧卡渲染（`renderCombatCard` / `renderCombatRound` / `updateCardBars` / `currentEnemyIntent` / `combatCardEl`）、旧战斗菜单（`openAttackMenu` / `openPackInCombat` / `useItemInCombat` / `openSettingsInCombat` / `addActionBtn`）、`handleCombatAction`（非教学分支）/ `handleCombatFlee` / `combatBusy`。战斗统一 DQ 队伍回合制。
+- **运招抢攻预告不一致 bug 消除**：该 bug（beat>60 时敌先抢攻一次再打预告招、UI 只预告主招导致误导决策）位于旧 `playTurn`；删除后 DQ 路径 `e.intent` 锁定「预告=结算」，不再误导。
+- **教学战并入 DQ 菜单**：新增 `tutStep()` 状态机（attack→defend→item→finish）+ `dqRenderCommands` 分步高亮/引导文案 + 攻/防按钮接 `tutCombatAct` 演出 + 道具按钮（老乞丐赠行囊前隐藏）+ 撤退拦截；`tutCombatAct` 改操作 `st.enemies[0]`/`st.playerUnits[0]`，刷新走 `dqRenderCard()`/`dqRenderRound()`（顺带修掉教学战「DQ 卡 + 旧卡并存」的隐性双卡 bug）。
+- **战斗道具统一入口**：`dqOpenItems` 支持恢复类 + 暗器（`effect.dmg` 伤存活首敌、毙敌即时 `dqFinish`），含教学步进拦截；原 `useItemInCombat` 暗器能力无损迁移。
+- 引擎 `getStatus` 保留 `playerUnits`/`enemies`（`player`/`enemy` 旧字段仅引擎内部日志快照自用）；测试删除 playTurn section（45/45 仍通过）。版本 bump `20260827j → 20260828k`，`?v=` 缓存参数同步。
+
+---
+
+*最后更新：2026-08-28（§9.25：战斗双轨清理 + 运招预告修复，v20260828k）*

@@ -16,7 +16,7 @@
 //   - 玩家防御减伤 & 命中后 defStance 清除
 //   - 自Buff(atk) 到期还原属性
 //   - 多敌：必须全灭才判胜
-//   - 单敌旧路径 playTurn 不崩溃且生效（index.html 实况调用 G.CombatEngine.playTurn）
+//   - 旧半手动 playTurn 路径已于 20260828 移除（统一走 DQ 队伍回合制）
 // ===========================================================================
 
 // ---- 可控随机数（让结果可复现）----
@@ -338,21 +338,7 @@ section('多敌全灭判定');
   check('全灭 → win', eng.state.result === 'win', 'result=' + eng.state.result);
 }
 
-// 14) 单敌旧路径 playTurn 不崩溃且生效（index.html 实况调用 G.CombatEngine.playTurn）
-section('单敌 playTurn 旧路径');
-{
-  RNG = 0;
-  const eng = Object.create(CombatEngine);
-  eng.init(strongPlayer(), 'bandit');
-  const before = eng.state.enemy.hp;
-  let threw = false, r = null;
-  try { r = eng.playTurn('beng_quan'); } catch (e) { threw = true; }
-  check('playTurn 不崩溃', !threw, threw ? 'threw' : '');
-  check('playTurn 返回日志数组', Array.isArray(r), 'r=' + (r && r.length));
-  check('playTurn 造成敌人掉血', eng.state.enemy.hp < before, 'before=' + before + ' after=' + eng.state.enemy.hp);
-}
-
-// 15) tryFlee：速度决定成败 & 多敌以存活敌为基准（修复 enemies[0] 已死仍按死敌判定）
+// 14) tryFlee：速度决定成败 & 多敌以存活敌为基准（修复 enemies[0] 已死仍按死敌判定）
 section('tryFlee 逃跑判定');
 {
   RNG = 0;

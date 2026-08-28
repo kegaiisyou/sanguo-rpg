@@ -3,8 +3,9 @@
 
   // ========== 战斗引擎 ==========
   // 半手动回合制 + 节拍模型 + 运招中 + 速度差额外行动
-  // 队伍战斗引擎：多敌 enemies[] 支持，提供 peekEnemyIntents / playTurn(单敌半手动) / runPlayerPhase / runEnemyPhase(多敌队伍回合制)。
-  // 旧半手动 playTurn 路径保留（state.enemy 仍为 enemies[0] 别名），供回滚用。
+  // 队伍战斗引擎：多敌 enemies[] 支持，提供 peekEnemyIntents / runPlayerPhase / runEnemyPhase（DQ 队伍回合制）。
+  // state.enemy 为 enemies[0] 的便捷别名（日志快照用）；playerUnits[0] 为主角。
+  // 旧半手动 playTurn 路径已于 20260828 移除（运招抢攻预告不一致 bug 随之消除，统一走 DQ 预告即结算）。
 
   // ── P2：五行相克（金克木→土→水→火→金）──
   var ATTR_CYCLE = { '金': '木', '木': '土', '土': '水', '水': '火', '火': '金' };
@@ -81,15 +82,14 @@
         playerUnits: playerUnits,
         player: playerUnits[0],       // 别名：主角 = 队伍首位（掉落/同步/教学回滚用）
         enemies: enemies,
-        enemy: enemies[0],            // 别名：供旧半手动渲染使用
+        enemy: enemies[0],            // 别名：引擎内部日志快照/判定用
         enemyData: enemyDatas[0],     // 掉落仍以首敌为基准
         enemyDatas: enemyDatas,
         lineGains: [],
         log: [],
         round: 1,
         result: null,
-        combo: 0,           // 玩家连击计数（P3）
-        enemyIntent: null   // 本回合敌方主行动预告（旧半手动单敌用）
+        combo: 0            // 玩家连击计数（P3）
       };
 
       return { ok: true };
@@ -579,28 +579,7 @@
       return 'fist';
     },
 
-    // ─── 敌方意图预告（单敌，旧半手动 UI 用）───
-    peekEnemyIntent: function() {
-      var act = this._pickEnemyAction();
-      this.state.enemyIntent = act;
-      var label, threat = 'normal';
-      var counter = false;   // 敌克我（预警玩家选防御/闪避）
-      if (act === 'defend') {
-        label = '摆出防御架势';
-        threat = 'defend';
-      } else {
-        var dmgMul = (act && act.dmgMul) || 0;
-        var name = (act && act.name) || '普攻';
-        if (dmgMul >= 1.5) { label = '蓄力「' + name + '」'; threat = 'heavy'; }
-        else { label = '欲施「' + name + '」'; threat = 'normal'; }
-        if (act && act.attr && this._attrCounter(act, this.state.player).type === 'counter') {
-          counter = true;
-        }
-      }
-      return { action: act, label: label, threat: threat, counter: counter };
-    },
-
-    // ─── 多敌意图预告（卡牌战用）：锁定并显示每个存活敌人的意图 ───
+    // ─── 多敌意图预告（DQ 战用）：锁定并显示每个存活敌人的意图 ───
     peekEnemyIntents: function() {
       var self = this;
       var out = [];
@@ -623,122 +602,6 @@
       return out;
     },
 
-
-    // ─── 执行一回合（半手动：传入玩家指令 actionId，单敌）───
-    playTurn: function(actionId) {
-      var log = [];
-      // 给每条战斗日志在「出招当时」即时打上血量快照
-      var _snap = this;
-      var _origPush = log.push.bind(log);
-      log.push = function (entry) {
-        entry = entry || {};
-        if (typeof entry.eHp !== 'number') entry.eHp = _snap.state.enemy.hp;
-        if (typeof entry.pHp !== 'number') entry.pHp = _snap.state.player.hp;
-        return _origPush(entry);
-      };
-      this.state.log = [];
-      this.state.round++;
-      var stunnedThisTurn = !!this.state.player.stunNext;
-
-      // 1) DoT 结算
-      this._tickDots(log);
-      if (this._checkEnd()) { this.state.log = log; return log; }
-
-      // 确定玩家行动（战斗为半手动：actionId 由玩家指令传入）
-      var playerAction;
-      if (actionId === 'defend') {
-        playerAction = 'defend';
-      } else if (actionId) {
-        playerAction = this.state.player.artMap[actionId] || global.LF.MARTIAL_ARTS.get(actionId) || this._rageAction(actionId);
-        if (!playerAction) { log.push({ type:'system', text:'未知招式' }); this.state.log = log; return log; }
-        // 校验消耗
-        if (playerAction.cost && playerAction.cost.type === 'mp' && this.state.player.mp < playerAction.cost.val) {
-          log.push({ type:'system', text:'内力不足！' });
-          this.state.log = log; return log;
-        }
-        if (playerAction.cost && playerAction.cost.type === 'rage' && this.state.player.rage < playerAction.cost.val) {
-          log.push({ type:'system', text:'战意不足！' });
-          this.state.log = log; return log;
-        }
-      } else {
-        // 兜底（正常不会走到）：默认普通攻击，避免空指令卡死
-        var _fb = this.state.player.artIds && this.state.player.artIds[0];
-        playerAction = (_fb && (this.state.player.artMap[_fb] || global.LF.MARTIAL_ARTS.get(_fb))) || 'defend';
-      }
-
-      // ── 行动阶段：按「速度/节拍」排定出手顺序，速度快者先手并可连击 ──
-      // 2) 运招中（重招 beat>60）：敌抢先出手一次（视作敌之本回合主行动）
-      var heavyPreempt = (playerAction && playerAction !== 'defend' && playerAction.beat > 60);
-      var enemyMainDone = false;
-      if (heavyPreempt) {
-        log.push({ type:'system', text:'你凝神聚气，大招蓄力中——' });
-        var ePreAct = this._pickEnemyAction();
-        this._resolveAction('enemy', ePreAct, log, this.state.player);
-        if (this._checkEnd()) { this.state.log = log; return log; }
-        enemyMainDone = true;
-      }
-
-      // 3) 计算本回合双方出手次数
-      var spdGap = this.state.player.spd - this.state.enemy.spd;
-      var extra = Math.min(3, Math.floor(Math.abs(spdGap) / 20));
-      var pCount = 1, eCount = 1;
-      if (playerAction === 'defend') pCount = 1;
-      else if (spdGap > 20 && !stunnedThisTurn) pCount += extra;   // 玩家更快 → 追连击
-      else if (spdGap < -20) eCount += extra;                       // 敌更快 → 敌连击
-
-      // 4) 排定出手队列
-      var pFirst = spdGap >= 0;
-      var eMain = (enemyMainDone ? null : (this.state.enemyIntent || this._pickEnemyAction()));
-      this.state.enemyIntent = null;
-      var pi = 0, ei = enemyMainDone ? 1 : 0;
-      while (pi < pCount || ei < eCount) {
-        if (pFirst) {
-          if (pi < pCount) {
-            if (pi === 0 && spdGap >= 20) log.push({ type:'system', text:'你身法更快，抢得先机！' });
-            else if (pi === 1) log.push({ type:'system', text:'你身法占优，抢出连击！' });
-            else if (pi > 1) log.push({ type:'system', text:'你身法如电，又夺一击！' });
-            this._resolveAction('player', (pi === 0 ? playerAction : this._makeQuickAtk()), log, this.state.enemy);
-            if (this._checkEnd()) { this.state.log = log; return log; }
-            pi++;
-          }
-          if (ei < eCount) {
-            if (ei === 0 && spdGap <= -20) log.push({ type:'system', text:'敌身法更快，抢得先机！' });
-            else if (ei === 1) log.push({ type:'system', text:'敌身法极快，再度袭来！' });
-            else if (ei > 1) log.push({ type:'system', text:'敌势如疾风，又是一击！' });
-            this._resolveAction('enemy', (ei === 0 ? eMain : this._pickEnemyAction()), log, this.state.player);
-            if (this._checkEnd()) { this.state.log = log; return log; }
-            ei++;
-          }
-        } else {
-          if (ei < eCount) {
-            if (ei === 0 && spdGap <= -20) log.push({ type:'system', text:'敌身法更快，抢得先机！' });
-            else if (ei === 1) log.push({ type:'system', text:'敌身法极快，再度袭来！' });
-            else if (ei > 1) log.push({ type:'system', text:'敌势如疾风，又是一击！' });
-            this._resolveAction('enemy', (ei === 0 ? eMain : this._pickEnemyAction()), log, this.state.player);
-            if (this._checkEnd()) { this.state.log = log; return log; }
-            ei++;
-          }
-          if (pi < pCount) {
-            if (pi === 0 && spdGap >= 20) log.push({ type:'system', text:'你身法更快，抢得先机！' });
-            else if (pi === 1) log.push({ type:'system', text:'你身法占优，抢出连击！' });
-            else if (pi > 1) log.push({ type:'system', text:'你身法如电，又夺一击！' });
-            this._resolveAction('player', (pi === 0 ? playerAction : this._makeQuickAtk()), log, this.state.enemy);
-            if (this._checkEnd()) { this.state.log = log; return log; }
-            pi++;
-          }
-        }
-      }
-
-      // 6) 战意增长
-      this.state.player.rage = Math.min(100, this.state.player.rage + 12);
-      this.state.enemy.rage = Math.min(100, this.state.enemy.rage + 8);
-
-      // 7) Buff 衰减
-      this._tickBuffs();
-
-      this.state.log = log;
-      return log;
-    },
 
     // ─── 逃跑 ───
     tryFlee: function() {
@@ -851,30 +714,6 @@
 
     getEnemy: function() {
       return this.state.enemyData;
-    },
-
-    getPlayerActionList: function() {
-      return this.getUnitActions(this.state.player);
-    },
-
-    // 返回指定玩家单位的行动列表（队伍作战：每名队员各自可选）
-    getUnitActions: function(unit) {
-      var self = this;
-      var list = [];
-      for (var i = 0; i < unit.artIds.length; i++) {
-        var art = unit.artMap[unit.artIds[i]] || global.LF.MARTIAL_ARTS.get(unit.artIds[i]);
-        if (!art) continue;
-        if (art.type === 'technique') continue; // 不显示为行动选项
-        var affordable = true;
-        if (art.cost && art.cost.type === 'mp' && unit.mp < art.cost.val) affordable = false;
-        if (art.cost && art.cost.type === 'rage' && unit.rage < art.cost.val) affordable = false;
-        list.push({
-          id: art.id, name: art.name, type: art.type, beat: art.beat,
-          dmgMul: art.dmgMul, cost: art.cost, attr: art.attr,
-          desc: art.desc || '', affordable: affordable, multiHit: art.multiHit
-        });
-      }
-      return list;
     },
 
     // ── P2：返回本场战斗玩家出招的艺线经验累积 ──
