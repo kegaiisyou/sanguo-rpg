@@ -1944,7 +1944,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828q"></script>
+<script src="shared/config/constants.js?v=20260828r"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -7854,7 +7854,7 @@ window.onerror=function(msg,url,line,col,err){
   window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction;
   window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
   window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;
-  window.startCombat=startCombat;
+  window.startCombat=startCombat; window.openTestChest=openTestChest;
   // ── 全局桥接（v20260827i）：shared/story/rooms.js 工厂闭包引用 state.flags/state.room（read-only），
   //    通过 getter 暴露当前 state；内部仍以 IIFE 内的 var state 为主写入源
   Object.defineProperty(window, 'state', { get: function(){ return state; }, configurable: true });
