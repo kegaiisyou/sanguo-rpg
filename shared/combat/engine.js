@@ -300,7 +300,7 @@
       var hitRate = unit.hitRate || 0.92;
       if (!action.guaranteed && Math.random() > hitRate) {
         log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk',
-          text: aName + '的「' + (action.name || '普攻') + '」被对方闪过！（未命中）' });
+          text: aName + '的「' + (action.name || '普攻') + '」被「' + target.name + '」闪过！（未命中）' });
         if (action.cost && action.cost.type === 'mp') unit.mp -= (action.cost.val || 0);
         if (action.cost && action.cost.type === 'rage') unit.rage -= (action.cost.val || 0);
         return 0;
@@ -356,7 +356,7 @@
       if (hitCount > 1) desc += ' ' + hitsDesc.join(' · ');
       if (acInfo.type === 'counter') desc += '（克制！）';
       else if (acInfo.type === 'countered') desc += '（被克）';
-      desc += ' → 造成 ' + totalDmg + ' 伤害';
+      desc += '，对「' + target.name + '」造成 ' + totalDmg + ' 伤害';
       if (armorPen > 0) desc += '（破甲）';
       if (eff.ignoreDef) desc += '（破防）';
       desc += comboNote;

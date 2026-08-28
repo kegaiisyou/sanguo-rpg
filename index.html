@@ -1142,7 +1142,7 @@
   .c-summary .cs-detail{font-size:13px;color:var(--ink-soft);margin-top:4px;}
 
   /* ===== 战斗结算面板（战后先弹此，不立即退回场景，避免方向罗盘干扰优先离开） ===== */
-  .cs-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+  .cs-overlay{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
     background:rgba(28,22,16,.55);backdrop-filter:blur(2px);padding:18px;animation:csFade .18s ease-out;}
   @keyframes csFade{from{opacity:0;}to{opacity:1;}}
   .cs-card{width:100%;max-width:420px;background:var(--paper);border:1px solid rgba(60,40,30,.18);
@@ -1907,7 +1907,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828m"></script>
+<script src="shared/config/constants.js?v=20260828n"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1926,7 +1926,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/map.js?v=20260827f"></script>
     <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
-    <script src="shared/combat/engine.js?v=20260828k"></script>
+    <script src="shared/combat/engine.js?v=20260828n"></script>
     <script src="shared/index.js?v=20260826g"></script>
 <script>
 (function(){
@@ -6861,6 +6861,7 @@ window.onerror=function(msg,url,line,col,err){
     pendingSave=null;
   }
   var currentModalKind=null;
+  var pendingSettleClose=null;   // 战斗结算：整理行囊关闭弹窗后的收尾回调
   // ══ 建筑物内部交互系统（v20260824e）══
   // 药铺/布庄/食肆/杂货/营造所 皆为「可进入的屋舍」：进入后与内部 NPC、功能物件交互，取代原一键式空泛交互
   var BUILDINGS = {
@@ -7598,6 +7599,8 @@ window.onerror=function(msg,url,line,col,err){
     if(currentModalKind==='create' && !state){ return; }
     $modal.classList.add('hidden');
     currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
+    // 战斗结算：整理行囊后关闭弹窗时，尝试把溢出战利品装回背包
+    if(pendingSettleClose){ var _f=pendingSettleClose; pendingSettleClose=null; if(typeof _f==='function') _f(); }
   }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   var $modalX=document.getElementById('modal-x');
@@ -8704,23 +8707,22 @@ window.onerror=function(msg,url,line,col,err){
     function renderOverflow(){
       var box=document.getElementById('cs-overflow'); if(!box) return;
       if(!overflow.length){ box.innerHTML=''; var cs=document.getElementById('cs-confirm'); if(cs) cs.textContent='确认'; return; }
-      var items=packList();
-      var btns=items.map(function(it,i){
-        return '<button class="cs-discard" data-idx="'+i+'">'+it.icon+' '+it.name+(it.count>1?(' ×'+it.count):'')+'</button>';
-      }).join('');
-      box.innerHTML='<div class="cs-of-hint">行囊已满！以下战利品未能装入：'+overflow.map(function(it){return it.icon+it.name;}).join('、')+'。请丢弃一件物品以腾出空位：</div>'+
-        '<div class="cs-pack">'+btns+'</div>';
+      box.innerHTML='<div class="cs-of-hint">行囊已满！以下战利品未能装入：'+overflow.map(function(it){return it.icon+it.name;}).join('、')+
+        '。点下方按钮整理行囊，丢弃不需要之物以腾出空位：</div>'+
+        '<button id="cs-organize" class="act cb-menu primary" style="margin-top:8px;width:100%;">🎒 整理行囊</button>';
       var cs=document.getElementById('cs-confirm'); if(cs) cs.textContent='放弃剩余战利品并确认';
-      Array.prototype.forEach.call(box.querySelectorAll('.cs-discard'), function(b){
-        b.onclick=function(){
-          var idx=parseInt(b.getAttribute('data-idx'),10);
-          discardPackItem(idx);   // 丢弃一件，腾出空位
-          for(var k=0;k<overflow.length;k++){
-            if(packAdd(overflow[k])){ summary.items.push(overflow[k]); overflow.splice(k,1); break; }
-          }
-          renderItems(); renderOverflow(); renderStatus();
-        };
-      });
+      var org=document.getElementById('cs-organize');
+      if(org) org.onclick=function(){
+        pendingSettleClose=csTryStow;   // 行囊关弹窗后尝试装入溢出战利品
+        openModal('pack');
+      };
+    }
+    // 行囊整理后：把溢出战利品尽量装回背包，并重绘结算面板
+    function csTryStow(){
+      for(var k=0;k<overflow.length;k++){
+        if(packAdd(overflow[k])){ summary.items.push(overflow[k]); overflow.splice(k,1); k--; }
+      }
+      renderItems(); renderOverflow(); renderStatus();
     }
     renderItems(); renderOverflow();
     var cs=document.getElementById('cs-confirm');
