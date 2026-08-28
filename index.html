@@ -3110,11 +3110,6 @@ window.onerror=function(msg,url,line,col,err){
       '<span class="dot">·</span>'+
       '<span class="st-era">'+era+'·'+c.monthName+'月'+c.dayName+'</span>'+
       '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>'+
-      '<span class="st-gold" title="银两">💰'+state.gold+'</span>'+
-      '<span class="st-hint" title="点击查看时辰钟表与历法">🕓</span>'+
-      '<span class="st-faction" title="查看天下势力分布" onclick="openModal(\'factionMap\')">🏴 '+factionName(playerFaction())+'</span>'+
-      '<span class="st-goal" title="当前志向（点击展开）" onclick="event.stopPropagation();openModal(\'quest\')">🎯 '+topObjectiveText()+'</span>'+
-      '<span class="st-sect" title="'+(state.sect?(G.SECTS[state.sect]?G.SECTS[state.sect].name:'门派'):'选择门派')+'" onclick="event.stopPropagation();openModal(\'sect\')">'+(state.sect?(G.SECTS[state.sect]?('⚔ '+G.SECTS[state.sect].name):'⚔ 门派'):'⚔ 门派')+'</span>'+
       '<span class="st-ver">v'+LF.CONSTANTS.VERSION+'</span>';
   }
   function renderLocTab(room){
