@@ -1194,7 +1194,10 @@
   .cs-grid .packcell:hover{transform:translateY(-1px);}
   .cs-grid .packcell.sel{border-color:var(--seal);box-shadow:0 0 0 2px rgba(158,59,46,.45);background:rgba(158,59,46,.07);}
   .cs-grid .packcell.drop-ok{border-color:var(--jade);box-shadow:0 0 0 2px rgba(63,125,94,.5);}
+  @keyframes repPulse{0%{box-shadow:0 0 0 0 rgba(63,125,94,.7);}100%{box-shadow:0 0 0 7px rgba(63,125,94,0);}}
+  .cs-grid .packcell.just-rep{border-color:var(--jade)!important;box-shadow:0 0 0 2px rgba(63,125,94,.65);animation:repPulse 1.2s ease-out;}
   .cs-grid .pcell-empty{opacity:.55;border-style:dashed;background:rgba(0,0,0,.16);touch-action:pan-y;}
+  .cs-grid .packcell.dragging{opacity:.4;transform:scale(.94);}
   .cs-grid .pcell-ic{padding:2px 4px 14px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;}
   .cs-empty{font-size:12px;color:var(--ink-faint);padding:10px 0;text-align:center;}
   .cs-org-cap{font-size:12px;color:var(--ink-faint);margin:9px 0 5px;letter-spacing:1px;}
@@ -1205,6 +1208,9 @@
   .li-acts{display:flex;gap:6px;margin-top:8px;}
   .li-act{flex:1;padding:6px 0;font-size:13px;letter-spacing:2px;border-radius:8px;border:1px solid rgba(63,125,94,.45);background:rgba(63,125,94,.16);color:#2f7a55;cursor:pointer;font-family:"STKaiti","KaiTi",serif;}
   .li-act:active{background:rgba(63,125,94,.3);}
+  .li-cmp{margin-top:7px;font-size:12.5px;line-height:1.5;border-top:1px dashed rgba(60,40,30,.18);padding-top:6px;}
+  .li-cmp.good{color:#2f7a55;}
+  .li-cmp.bad{color:#b0451e;}
   .loot-info .li-name{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:1px;}
   .loot-info .li-cat{font-size:11.5px;color:var(--ink-soft);margin:2px 0 4px;letter-spacing:1px;}
   .loot-info .li-line{font-size:13px;color:var(--jade);letter-spacing:1px;}
@@ -1953,7 +1959,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828x"></script>
+<script src="shared/config/constants.js?v=20260828y"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -8730,7 +8736,7 @@ window.onerror=function(msg,url,line,col,err){
   // 战利品「搜打撤」窗口：左战利品 / 右行囊，点物品看属性、拖动取舍、拾取全部
   function mountLootPanes(host, lootArr){
     host.classList.add('cs-panes-host');
-    var LOOT_CAP = Math.max(8, lootArr.length);   // 固定格数：拖走后保留空格子
+    var lastReplaced=null;   // 装备替换后高亮的背包格
     host.innerHTML=
       '<div class="cs-panes-tip">拖到右侧行囊＝拾取；拖到左侧＝暂存（确认后未取走的战利品将被放弃）。点物品看属性，可装备/使用。</div>'+
       '<div class="cs-panes">'+
@@ -8744,7 +8750,7 @@ window.onerror=function(msg,url,line,col,err){
       var lg=document.getElementById('lp-loot'); if(!lg) return;
       var bg=document.getElementById('lp-bag');
       var lgh='', lc=0;
-      for(var li=0; li<LOOT_CAP; li++){
+      for(var li=0; li<lootArr.length; li++){
         var it=lootArr[li];
         if(it){
           lc++;
@@ -8759,7 +8765,8 @@ window.onerror=function(msg,url,line,col,err){
       for(var bi=0; bi<bcap; bi++){
         var bit=state.pack[bi];
         if(!bit){ bgh+='<div class="packcell pcell-empty" data-pane="bag" data-idx="'+bi+'"></div>'; continue; }
-        bgh+='<div class="packcell'+(sel&&sel.pane==='bag'&&sel.idx===bi?' sel':'')+'" data-pane="bag" data-idx="'+bi+'">'+
+        var rep = lastReplaced && lastReplaced.pane==='bag' && lastReplaced.idx===bi;
+        bgh+='<div class="packcell'+(sel&&sel.pane==='bag'&&sel.idx===bi?' sel':'')+(rep?' just-rep':'')+'" data-pane="bag" data-idx="'+bi+'">'+
           '<div class="pcell-ic">'+itemIconHTML(bit,15)+'</div>'+(bit.count>1?'<span class="pcell-cnt">'+bit.count+'</span>':'')+'</div>';
       }
       bg.innerHTML=bgh;
@@ -8771,8 +8778,9 @@ window.onerror=function(msg,url,line,col,err){
     }
     function onDown(e){
       var c=e.currentTarget;
-      if(c.classList.contains('pcell-empty')) return;   // 空格不是拖拽源
+      if(c.classList.contains('pcell-empty')) return;   // 空格不是拖拽源（交给滚动）
       e.preventDefault();
+      hideInfo(); sel=null; c.classList.add('dragging');
       dragSrc={pane:c.getAttribute('data-pane'), idx:parseInt(c.getAttribute('data-idx'),10)};
       startX=e.clientX; startY=e.clientY; moved=false;
       try{ c.setPointerCapture(e.pointerId); }catch(_){}
@@ -8810,7 +8818,7 @@ window.onerror=function(msg,url,line,col,err){
       return pane?{pane:pane, idx:null}:null;     // 落在面板空白处 → 落对方栏首位
     }
     function firstEmpty(){ for(var i=0;i<state.pack.length;i++) if(!state.pack[i]) return i; return -1; }
-    function firstLootEmpty(){ for(var i=0;i<LOOT_CAP;i++){ if(!lootArr[i]) return i; } return -1; }
+    function firstLootEmpty(){ for(var i=0;i<lootArr.length;i++){ if(!lootArr[i]) return i; } return lootArr.length; }   // 满则追加（战利品栏不限数量）
     function doMove(src,tgt){
       // 同格 = 不操作（避免物品消失）
       if(src.pane===tgt.pane && tgt.idx!=null && src.idx===tgt.idx) return;
@@ -8823,20 +8831,22 @@ window.onerror=function(msg,url,line,col,err){
         var it=lootArr[src.idx]; if(!it) return;
         var bi=(tgt.idx==null)?firstEmpty():tgt.idx; if(bi<0){ toast('行囊已满'); return; }   // 背包满
         var occ=state.pack[bi];
-        lootArr[src.idx]= occ ? occ : null;   // 换出物回填战利品（临时背包，确认后才结算）
-        state.pack[bi]=it;
+        if(occ && occ.id===it.id){ occ.count=(occ.count||1)+(it.count||1); lootArr[src.idx]=null; }   // 同物自动堆叠
+        else { lootArr[src.idx]= occ ? occ : null; state.pack[bi]=it; }   // 换出物回填战利品（临时背包，确认后才结算）
       } else if(src.pane==='bag' && tgt.pane==='loot'){
         var bit=state.pack[src.idx]; if(!bit) return;
-        var slot=(tgt.idx==null)?firstLootEmpty():tgt.idx; if(slot<0){ toast('战利品栏已满'); return; }   // 战利品栏满则不动
-        var occL=lootArr[slot];
-        state.pack[src.idx]= occL || null;   // 换出物回填行囊
-        lootArr[slot]=bit;
+        var slot=(tgt.idx==null)?firstLootEmpty():tgt.idx; var occL=lootArr[slot];
+        if(occL && occL.id===bit.id){ occL.count=(occL.count||1)+(bit.count||1); state.pack[src.idx]=null; }   // 同物堆叠
+        else { state.pack[src.idx]= occL || null; lootArr[slot]=bit; }
       } else if(src.pane==='bag' && tgt.pane==='bag'){
         var bit2=state.pack[src.idx]; if(!bit2) return;
         var occ2=state.pack[tgt.idx];
-        state.pack[tgt.idx]=bit2; state.pack[src.idx]= occ2 || null;   // 交换
+        if(occ2 && occ2.id===bit2.id){ occ2.count=(occ2.count||1)+(bit2.count||1); state.pack[src.idx]=null; }   // 同物堆叠
+        else { state.pack[tgt.idx]=bit2; state.pack[src.idx]= occ2 || null; }   // 交换
       } else if(src.pane==='loot' && tgt.pane==='loot' && src.idx!==tgt.idx){
-        var a=lootArr[src.idx], b=lootArr[tgt.idx]; lootArr[src.idx]=b; lootArr[tgt.idx]=a;   // 交换，保持格数
+        var a=lootArr[src.idx], b=lootArr[tgt.idx];
+        if(a && b && a.id===b.id){ b.count=(b.count||1)+(a.count||1); lootArr[src.idx]=null; }   // 同物堆叠
+        else { lootArr[src.idx]=b; lootArr[tgt.idx]=a; }
       }
       // 规整行囊：稀疏 undefined 填成 null，并补齐到容量上限（不重排索引，避免拖拽后错位）
       (function(){ var max=packMax(); for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===undefined) state.pack[i]=null; } while(state.pack.length<max) state.pack.push(null); })();
@@ -8866,17 +8876,21 @@ window.onerror=function(msg,url,line,col,err){
       return h;
     }
     function actOn(it, act){
-      var idx;
-      if(sel.pane==='loot'){          // 战利品中的物品：先拾取到行囊再装备/使用
-        idx=firstEmpty();
-        if(idx<0){ toast('行囊已满，无法装备/使用'); return; }
-        var occ=state.pack[idx];
-        lootArr[sel.idx]= occ||null;
-        state.pack[idx]=it;
-      } else { idx=sel.idx; }
-      if(act==='equip'){ if(it.slot) equipFromPackTo(idx, it.slot); }
-      else { usePackItem(idx); }
+      if(act==='equip'){
+        var oldEq = it.slot ? state.equipment[it.slot] : null;
+        var idx = (sel.pane==='loot') ? firstEmpty() : sel.idx;
+        if(idx<0){ toast('行囊已满，无法装备'); return; }
+        if(sel.pane==='loot'){ var occ=state.pack[idx]; lootArr[sel.idx]=occ||null; state.pack[idx]=it; }
+        equipFromPackTo(idx, it.slot);
+        if(oldEq){ var ri=state.pack.indexOf(oldEq); if(ri>=0){ lastReplaced={pane:'bag', idx:ri}; } }   // 高亮被换下的装备
+      } else {
+        var idx2 = (sel.pane==='loot') ? firstEmpty() : sel.idx;
+        if(idx2<0){ toast('行囊已满，无法使用'); return; }
+        if(sel.pane==='loot'){ var occ2=state.pack[idx2]; lootArr[sel.idx]=occ2||null; state.pack[idx2]=it; }
+        usePackItem(idx2);
+      }
       save(state); renderStatus(); rerender(); hideInfo();
+      if(lastReplaced) setTimeout(function(){ lastReplaced=null; rerender(); }, 1300);
     }
     // 悬浮弹层：跟随所点格子定位，空间不足自动翻到格子上方，避免破坏网格布局
     function positionInfo(box, cell){
@@ -8890,9 +8904,13 @@ window.onerror=function(msg,url,line,col,err){
       if(top < m) top=m;
       box.style.left=left+'px'; box.style.top=top+'px'; box.style.bottom=''; box.style.transform='';
     }
-    function reposition(){ var box=document.getElementById('lp-info'); if(box && box.style.display==='block') positionInfo(box, host.querySelector('.packcell.sel')); }
-    window.addEventListener('scroll', reposition, true);
-    window.addEventListener('resize', reposition);
+    function relayout(){ var box=document.getElementById('lp-info'); if(box && box.style.display==='block') hideInfo(); }   // 滚动/缩放即收起弹层，避免遮挡
+    window.addEventListener('scroll', relayout, true);
+    window.addEventListener('resize', relayout);
+    host.addEventListener('pointerdown', function(e){   // 点空白区域收起弹层
+      if(e.target.closest('.packcell') || e.target.closest('.loot-info')) return;
+      if(document.getElementById('lp-info').style.display==='block'){ hideInfo(); sel=null; rerender(); }
+    }, true);
     function hideInfo(){ var box=document.getElementById('lp-info'); if(box){ box.style.display='none'; box.innerHTML=''; } }
     function makeGhost(it,e){
       ghost=document.createElement('div'); ghost.className='loot-ghost';
@@ -8911,7 +8929,10 @@ window.onerror=function(msg,url,line,col,err){
       var prio={'装备':0,'丹药':1,'兵粮':2,'材料':3,'杂物':4};
       var real=state.pack.filter(function(x){return x;});
       real.sort(function(a,b){ var pa=prio[a.cat]!=null?prio[a.cat]:9, pb=prio[b.cat]!=null?prio[b.cat]:9; if(pa!==pb) return pa-pb; return (a.name||'').localeCompare(b.name||''); });
-      state.pack=real; save(state); renderStatus(); sel=null; hideInfo(); rerender();
+      // 整理时合并同 id 堆叠
+      for(var i=0;i<real.length-1;i++){ if(real[i] && real[i+1] && real[i].id===real[i+1].id){ real[i].count=(real[i].count||1)+(real[i+1].count||1); real[i+1]=null; } }
+      state.pack=real.filter(function(x){return x;});
+      save(state); renderStatus(); sel=null; hideInfo(); rerender();
     }
     var ta=document.getElementById('lp-takeall');
     if(ta) ta.onclick=function(){
@@ -8953,6 +8974,19 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // 物品属性信息（战利品窗口点选时显示）
+  function compareEquip(it){
+    if(!it || it.cat!=='装备' || !it.slot) return '';
+    var cur=state.equipment[it.slot];
+    if(!cur) return '<div class="li-cmp good">当前未装备此部位 · 可直接穿戴</div>';
+    var keys=[['atk','攻'],['def','防'],['spd','速'],['hp','气血']];
+    var parts=[];
+    keys.forEach(function(k){ var d=(it[k[0]]||0)-(cur[k[0]]||0); if(d!==0) parts.push((d>0?'▲ ':'▼ ')+k[1]+(d>0?' +':' ')+d); });
+    if(!parts.length) return '<div class="li-cmp">与当前「'+cur.name+'」属性相同</div>';
+    var sumAfter=(it.atk||0)+(it.def||0)+(it.spd||0)+(it.hp||0);
+    var sumCur=(cur.atk||0)+(cur.def||0)+(cur.spd||0)+(cur.hp||0);
+    var good = sumAfter>sumCur;
+    return '<div class="li-cmp '+(good?'good':'bad')+'">对比「'+cur.name+'」：'+parts.join(' · ')+'</div>';
+  }
   function lootInfoHTML(it){
     if(!it) return '';
     var h='<div class="li-name">'+itemIconHTML(it,16)+' '+it.name+'</div>';
@@ -8972,6 +9006,7 @@ window.onerror=function(msg,url,line,col,err){
       if(t.length) lines.push(t.join(' / '));
     }
     if(lines.length) h+='<div class="li-line">'+lines.join(' · ')+'</div>';
+    if(it.cat==='装备') h+=compareEquip(it);
     return h;
   }
 
