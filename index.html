@@ -1189,7 +1189,7 @@
   .cs-grid .packcell:hover{transform:translateY(-1px);}
   .cs-grid .packcell.sel{border-color:var(--seal);box-shadow:0 0 0 2px rgba(158,59,46,.45);background:rgba(158,59,46,.07);}
   .cs-grid .packcell.drop-ok{border-color:var(--jade);box-shadow:0 0 0 2px rgba(63,125,94,.5);}
-  .cs-grid .pcell-empty{opacity:.55;border-style:dashed;background:rgba(0,0,0,.16);}
+  .cs-grid .pcell-empty{opacity:.55;border-style:dashed;background:rgba(0,0,0,.16);touch-action:pan-y;}
   .cs-grid .pcell-ic{padding:2px 4px 14px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;}
   .cs-empty{font-size:12px;color:var(--ink-faint);padding:10px 0;text-align:center;}
   .cs-org-cap{font-size:12px;color:var(--ink-faint);margin:9px 0 5px;letter-spacing:1px;}
@@ -1197,6 +1197,9 @@
     filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));opacity:.92;}
   .loot-info{position:fixed;z-index:80;max-width:240px;max-height:46vh;overflow:auto;background:var(--paper);border:1px solid rgba(60,40,30,.28);
     border-radius:10px;padding:9px 11px;box-shadow:0 10px 30px rgba(40,28,16,.32);font-family:"STKaiti","KaiTi",serif;text-align:left;}
+  .li-acts{display:flex;gap:6px;margin-top:8px;}
+  .li-act{flex:1;padding:6px 0;font-size:13px;letter-spacing:2px;border-radius:8px;border:1px solid rgba(63,125,94,.45);background:rgba(63,125,94,.16);color:#2f7a55;cursor:pointer;font-family:"STKaiti","KaiTi",serif;}
+  .li-act:active{background:rgba(63,125,94,.3);}
   .loot-info .li-name{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:1px;}
   .loot-info .li-cat{font-size:11.5px;color:var(--ink-soft);margin:2px 0 4px;letter-spacing:1px;}
   .loot-info .li-line{font-size:13px;color:var(--jade);letter-spacing:1px;}
@@ -1945,7 +1948,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828v"></script>
+<script src="shared/config/constants.js?v=20260828w"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -8643,7 +8646,6 @@ window.onerror=function(msg,url,line,col,err){
       // ── 装备掉落（P1 完整）──
       if(drop.equip){
         summary.loot.push(LF.ITEMS.equipToPackItem(drop.equip));
-        summary.lines.push({text:'夺得'+drop.equip.qualityName+'「'+drop.equip.name+'」('+LF.ITEMS.statText(drop.equip)+')'});
       }
 
       // ── 声望 / 主线进度（P4 真实获取途径，替代调试台直赋）──
@@ -8725,10 +8727,10 @@ window.onerror=function(msg,url,line,col,err){
     host.classList.add('cs-panes-host');
     var LOOT_CAP = Math.max(8, lootArr.length);   // 固定格数：拖走后保留空格子
     host.innerHTML=
-      '<div class="cs-panes-tip">拖动物品到右侧行囊＝拾取；拖到左侧＝丢弃／放弃。点物品看属性。</div>'+
+      '<div class="cs-panes-tip">拖到右侧行囊＝拾取；拖到左侧＝暂存（确认后未取走的战利品将被放弃）。点物品看属性，可装备/使用。</div>'+
       '<div class="cs-panes">'+
         '<div class="cs-pane loot"><div class="cs-pane-h">战 利 品</div><div class="cs-grid" id="lp-loot"></div><button id="lp-takeall" class="loot-act take">拾 取 全 部</button></div>'+
-        '<div class="cs-pane"><div class="cs-pane-h">行 囊 · 拖到左侧＝丢弃</div><div class="cs-grid" id="lp-bag"></div><button id="lp-sort" class="loot-act">整 理 背 包</button></div>'+
+        '<div class="cs-pane"><div class="cs-pane-h">行 囊</div><div class="cs-grid" id="lp-bag"></div><button id="lp-sort" class="loot-act">整 理 背 包</button></div>'+
       '</div>'+
       '<div class="cs-org-cap" id="lp-cap"></div>'+
       '<div class="loot-info" id="lp-info" style="display:none;"></div>';
@@ -8801,29 +8803,31 @@ window.onerror=function(msg,url,line,col,err){
     function firstEmpty(){ for(var i=0;i<state.pack.length;i++) if(!state.pack[i]) return i; return -1; }
     function firstLootEmpty(){ for(var i=0;i<LOOT_CAP;i++){ if(!lootArr[i]) return i; } return -1; }
     function doMove(src,tgt){
-      // 拖回原位：不操作，避免物品消失
+      // 同格 = 不操作（避免物品消失）
       if(src.pane===tgt.pane && tgt.idx!=null && src.idx===tgt.idx) return;
-      // 背包→背包空白区（没落到格子上）：不操作，避免物品消失
+      // 背包→背包 空白背景 = 不操作
       if(src.pane==='bag' && tgt.pane==='bag' && tgt.idx==null) return;
+      // 战利品→战利品 空白背景 = 不操作（临时背包内，保持原位）
+      if(src.pane==='loot' && tgt.pane==='loot' && tgt.idx==null) return;
 
       if(src.pane==='loot' && tgt.pane==='bag'){
         var it=lootArr[src.idx]; if(!it) return;
-        var bi=(tgt.idx==null)?firstEmpty():tgt.idx; if(bi<0) return;   // 背包满
+        var bi=(tgt.idx==null)?firstEmpty():tgt.idx; if(bi<0){ toast('行囊已满'); return; }   // 背包满
         var occ=state.pack[bi];
-        lootArr[src.idx]= occ ? occ : null;   // 换出物回填战利品格（保持格子数）
+        lootArr[src.idx]= occ ? occ : null;   // 换出物回填战利品（临时背包，确认后才结算）
         state.pack[bi]=it;
-      } else if(src.pane==='bag' && tgt.pane==='bag'){
-        // 已在上面拦掉同格/空白区，这里 tgt.idx 必为有效不同格
-        var bit=state.pack[src.idx]; if(!bit) return;
-        var occ2=state.pack[tgt.idx];
-        state.pack[tgt.idx]=bit;
-        state.pack[src.idx]= occ2 || null;   // 交换，原格清空或放回换出物
       } else if(src.pane==='bag' && tgt.pane==='loot'){
-        // 拖到左侧＝丢弃：把行囊里的物品主动放弃（与 UI 提示一致），不塞回战利品
-        state.pack[src.idx]=null;
-      } else if(src.pane==='loot' && tgt.pane==='loot'){
-        if(tgt.idx==null || src.idx===tgt.idx){ lootArr[src.idx]=null; }   // 拖到左侧空白/自身＝放弃
-        else { var a=lootArr[src.idx], b=lootArr[tgt.idx]; lootArr[src.idx]=b; lootArr[tgt.idx]=a; }   // 交换，保持格数
+        var bit=state.pack[src.idx]; if(!bit) return;
+        var slot=(tgt.idx==null)?firstLootEmpty():tgt.idx; if(slot<0){ toast('战利品栏已满'); return; }   // 战利品栏满则不动
+        var occL=lootArr[slot];
+        state.pack[src.idx]= occL || null;   // 换出物回填行囊
+        lootArr[slot]=bit;
+      } else if(src.pane==='bag' && tgt.pane==='bag'){
+        var bit2=state.pack[src.idx]; if(!bit2) return;
+        var occ2=state.pack[tgt.idx];
+        state.pack[tgt.idx]=bit2; state.pack[src.idx]= occ2 || null;   // 交换
+      } else if(src.pane==='loot' && tgt.pane==='loot' && src.idx!==tgt.idx){
+        var a=lootArr[src.idx], b=lootArr[tgt.idx]; lootArr[src.idx]=b; lootArr[tgt.idx]=a;   // 交换，保持格数
       }
       // 规整行囊：稀疏 undefined 填成 null，并补齐到容量上限（不重排索引，避免拖拽后错位）
       (function(){ var max=packMax(); for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===undefined) state.pack[i]=null; } while(state.pack.length<max) state.pack.push(null); })();
@@ -8839,8 +8843,31 @@ window.onerror=function(msg,url,line,col,err){
     }
     function showInfo(it){
       var box=document.getElementById('lp-info'); if(!box) return;
-      box.innerHTML = lootInfoHTML(it); box.style.display='block';
+      box.innerHTML = lootInfoHTML(it) + liActionsHTML(it); box.style.display='block';
+      Array.prototype.forEach.call(box.querySelectorAll('.li-act'), function(b){
+        b.onclick=function(e){ e.stopPropagation(); actOn(it, b.getAttribute('data-act')); };
+      });
       positionInfo(box, host.querySelector('.packcell.sel'));
+    }
+    function liActionsHTML(it){
+      var h='<div class="li-acts">';
+      if(it.cat==='装备') h+='<button class="li-act" data-act="equip">装 备</button>';
+      if(it.effect || it.cat==='丹药' || it.cat==='兵粮') h+='<button class="li-act" data-act="use">使 用</button>';
+      h+='</div>';
+      return h;
+    }
+    function actOn(it, act){
+      var idx;
+      if(sel.pane==='loot'){          // 战利品中的物品：先拾取到行囊再装备/使用
+        idx=firstEmpty();
+        if(idx<0){ toast('行囊已满，无法装备/使用'); return; }
+        var occ=state.pack[idx];
+        lootArr[sel.idx]= occ||null;
+        state.pack[idx]=it;
+      } else { idx=sel.idx; }
+      if(act==='equip'){ if(it.slot) equipFromPackTo(idx, it.slot); }
+      else { usePackItem(idx); }
+      save(state); renderStatus(); rerender(); hideInfo();
     }
     // 悬浮弹层：跟随所点格子定位，空间不足自动翻到格子上方，避免破坏网格布局
     function positionInfo(box, cell){
@@ -8910,7 +8937,10 @@ window.onerror=function(msg,url,line,col,err){
     (document.getElementById('app')||document.body).appendChild(ov);
     mountLootPanes(document.getElementById('lp-host'), loot);
     var ok=document.getElementById('lp-ok');
-    if(ok) ok.onclick=function(){ save(state); renderStatus(); if(ov.parentNode) ov.parentNode.removeChild(ov); onConfirm(); };
+    if(ok) ok.onclick=function(){
+      if(loot.some(function(x){return x;}) && !ok.dataset.armed){ ok.dataset.armed='1'; ok.textContent='战利品未取完 · 再点确认放弃'; return; }   // 二次确认防误弃
+      save(state); renderStatus(); if(ov.parentNode) ov.parentNode.removeChild(ov); onConfirm();
+    };
   }
 
   // 物品属性信息（战利品窗口点选时显示）
@@ -8966,6 +8996,9 @@ window.onerror=function(msg,url,line,col,err){
     if(hasLoot) mountLootPanes(document.getElementById('cs-loot-host'), summary.loot);
     var cs=document.getElementById('cs-confirm');
     if(cs) cs.onclick=function(){
+      if(hasLoot && summary.loot.some(function(x){return x;}) && !cs.dataset.armed){
+        cs.dataset.armed='1'; cs.textContent='战利品未取完 · 再点确认放弃'; return;   // 二次确认防误弃
+      }
       save(state); renderStatus();   // 背包变动已入库；左栏残留＝放弃
       if(ov.parentNode) ov.parentNode.removeChild(ov);
       onConfirm();
