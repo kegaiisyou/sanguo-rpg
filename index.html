@@ -1959,7 +1959,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828z"></script>
+<script src="shared/config/constants.js?v=20260828aa"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -4872,6 +4872,20 @@ window.onerror=function(msg,url,line,col,err){
     var key=o.key, parts=[];
     if(o.desc) parts.push(o.desc);
     if(key && G.DIALOGUES.npcs[key]) parts.push('当前态度：'+npcAttitude(key));
+    // 掉落预览：NPC 对应敌人模板有掉落表时，展示可能掉落的物资/装备（战前情报）
+    var eid = (G.ENEMIES && G.ENEMIES[key]) ? key : ((NPC_COMBAT_MAP[key]||[])[0] || null);
+    if(eid && G.ENEMIES[eid] && G.ENEMIES[eid].drop){
+      var d=G.ENEMIES[eid].drop, dr=[];
+      if(d.gold && d.gold[1]>0) dr.push('银两'+d.gold[0]+'~'+d.gold[1]);
+      if(d.pot && d.pot[1]>0) dr.push('粮草'+d.pot[0]+'~'+d.pot[1]);
+      (d.table||[]).forEach(function(t){ dr.push(t.name+'（'+(t.weight||0)+'%）'); });
+      if(d.equip && d.equip.chance>0){
+        var QR={0:['凡品','良品'],1:['凡品','精良'],2:['良品','珍稀'],3:['精良','神兵'],4:['珍稀','神兵']};
+        var rng=QR[d.equip.tier]||['',''];
+        dr.push((rng[0]?rng[0]+'~'+rng[1]+'装备':'装备')+'（'+(d.equip.chance||0)+'%）');
+      }
+      if(dr.length) parts.push('可能掉落：'+dr.join('、'));
+    }
     if(!parts.length) parts.push('你凝神打量，未见异常。');
     log('〔观察·'+o.name+'〕'+parts.join('；')+'。','sys');
   }
@@ -8347,6 +8361,12 @@ window.onerror=function(msg,url,line,col,err){
   function dqInitCombat(){
     dqCardEl=document.getElementById('dq-combat-card');
     if(!dqCardEl){ dqCardEl=document.createElement('div'); dqCardEl.id='dq-combat-card'; dqCardEl.className='combat-card dq-combat-card'; var _sc=document.getElementById('scene'); if(_sc) _sc.appendChild(dqCardEl); }
+    if(!dqCardEl._skipBound){ dqCardEl._skipBound=true;   // 点击战斗卡 = 演出快进（跳过当前段等待，连点加速过场）
+      dqCardEl.addEventListener('click', function(e){
+        if(e.target && e.target.closest && e.target.closest('button, a')) return;
+        if(dqPlaySkip) dqPlaySkip();
+      });
+    }
     G.CombatEngine.peekEnemyIntents();
     dqRenderCard();
     setTimeout(function(){ dqRenderRound(); }, 400);
@@ -8542,17 +8562,21 @@ window.onerror=function(msg,url,line,col,err){
     });
   }
 
-  /** 逐条回放战斗日志：直接写入叙事层并刷新列阵（不受打字锁影响） */
+  /** 逐条回放战斗日志：直接写入叙事层并刷新列阵（不受打字锁影响）。
+   *  点击战斗卡可立即结束当前段等待（连点加速过场）；演出结束自动清除钩子。 */
+  var dqPlaySkip=null;
   function dqPlayLog(log, done){
-    var i=0;
-    (function step(){
-      if(i>=log.length){ done(); return; }
+    var i=0, timer=null;
+    function step(){
+      if(i>=log.length){ dqPlaySkip=null; if(done) done(); return; }
       var e=log[i++];
       dqPush(e.text);
       dqRenderCard();
       var d=(e.type==='player_atk'||e.type==='enemy_atk')?520:(e.type==='counter'||e.type==='dot')?420:300;
-      setTimeout(step, d);
-    })();
+      timer=setTimeout(step, d);
+    }
+    dqPlaySkip=function(){ if(timer){ clearTimeout(timer); timer=null; } step(); };
+    step();
   }
   function dqPush(text){
     if(!$narr) return;
@@ -8570,6 +8594,7 @@ window.onerror=function(msg,url,line,col,err){
   function endCombat(result){
     if(combatMode===null) return;   // 防止重复调用（如快速连点）
     combatMode=null;
+    dqPlaySkip=null;                // 战斗结束，清除演出快进钩子
     // 注意：保留 in-combat（含 #lower/#dock 隐藏）直到结算面板被「确认」关闭，
     // 这样方向罗盘不会在战后提前浮现、暗示玩家优先离开场景
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.dataset.bg=''; sceneEl.classList.remove('bg-danger'); }
@@ -8932,8 +8957,13 @@ window.onerror=function(msg,url,line,col,err){
       var prio={'装备':0,'丹药':1,'兵粮':2,'材料':3,'杂物':4};
       var real=state.pack.filter(function(x){return x;});
       real.sort(function(a,b){ var pa=prio[a.cat]!=null?prio[a.cat]:9, pb=prio[b.cat]!=null?prio[b.cat]:9; if(pa!==pb) return pa-pb; return (a.name||'').localeCompare(b.name||''); });
-      // 整理时合并同 id 堆叠
-      for(var i=0;i<real.length-1;i++){ if(real[i] && real[i+1] && real[i].id===real[i+1].id){ real[i].count=(real[i].count||1)+(real[i+1].count||1); real[i+1]=null; } }
+      // 整理时合并同 defId 堆叠（sameStack 判定：排除装备/耐久物，杜绝 undefined===undefined 误判导致不同物品错堆）
+      for(var i=0;i<real.length;i++){
+        if(!real[i]) continue;
+        for(var j=i+1;j<real.length;j++){
+          if(real[j] && sameStack(real[i], real[j])){ real[i].count=(real[i].count||1)+(real[j].count||1); real[j]=null; }
+        }
+      }
       state.pack=real.filter(function(x){return x;});
       save(state); renderStatus(); sel=null; hideInfo(); rerender();
     }
