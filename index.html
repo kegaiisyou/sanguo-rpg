@@ -1184,18 +1184,19 @@
   .cs-pane.loot{background:rgba(176,131,47,.06);border-color:rgba(176,131,47,.28);}
   .cs-pane-h{font-size:12.5px;color:var(--ink-soft);letter-spacing:2px;margin-bottom:6px;font-family:"STKaiti","KaiTi",serif;}
   .cs-pane.loot .cs-pane-h{color:#9a6b1e;}
-  .cs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:230px;overflow:auto;padding:2px;}
-  .cs-grid .packcell{cursor:pointer;transition:transform .1s,box-shadow .1s,border-color .1s;touch-action:none;user-select:none;}
+  .cs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:240px;overflow:auto;padding:4px 2px;align-content:start;}
+  .cs-grid .packcell{aspect-ratio:1/1;min-height:54px;cursor:pointer;transition:transform .1s,box-shadow .1s,border-color .1s;touch-action:none;user-select:none;}
   .cs-grid .packcell:hover{transform:translateY(-1px);}
   .cs-grid .packcell.sel{border-color:var(--seal);box-shadow:0 0 0 2px rgba(158,59,46,.45);background:rgba(158,59,46,.07);}
   .cs-grid .packcell.drop-ok{border-color:var(--jade);box-shadow:0 0 0 2px rgba(63,125,94,.5);}
   .cs-grid .pcell-empty{opacity:.38;border-style:dashed;}
+  .cs-grid .pcell-ic{padding:2px 4px 14px;line-height:1.1;}
   .cs-empty{font-size:12px;color:var(--ink-faint);padding:10px 0;text-align:center;}
   .cs-org-cap{font-size:12px;color:var(--ink-faint);margin:9px 0 5px;letter-spacing:1px;}
   .loot-ghost{position:fixed;z-index:300;pointer-events:none;transform:translate(-50%,-50%);font-size:26px;
     filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));opacity:.92;}
-  .loot-info{margin-top:8px;background:rgba(40,28,16,.05);border:1px solid rgba(60,40,30,.16);border-radius:10px;padding:9px 11px;
-    font-family:"STKaiti","KaiTi",serif;text-align:left;}
+  .loot-info{position:fixed;z-index:80;max-width:240px;max-height:46vh;overflow:auto;background:var(--paper);border:1px solid rgba(60,40,30,.28);
+    border-radius:10px;padding:9px 11px;box-shadow:0 10px 30px rgba(40,28,16,.32);font-family:"STKaiti","KaiTi",serif;text-align:left;}
   .loot-info .li-name{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:1px;}
   .loot-info .li-cat{font-size:11.5px;color:var(--ink-soft);margin:2px 0 4px;letter-spacing:1px;}
   .loot-info .li-line{font-size:13px;color:var(--jade);letter-spacing:1px;}
@@ -1944,7 +1945,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828r"></script>
+<script src="shared/config/constants.js?v=20260828s"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -8822,13 +8823,30 @@ window.onerror=function(msg,url,line,col,err){
       var cur = sel && sel.pane===src.pane && sel.idx===src.idx;
       if(cur){ sel=null; hideInfo(); rerender(); return; }
       sel={pane:src.pane, idx:src.idx};
+      rerender();   // 先渲染出带 .sel 的格子，便于定位弹层
       var it = src.pane==='loot'?lootArr[src.idx]:state.pack[src.idx];
-      showInfo(it); rerender();
+      showInfo(it);
     }
     function showInfo(it){
       var box=document.getElementById('lp-info'); if(!box) return;
       box.innerHTML = lootInfoHTML(it); box.style.display='block';
+      positionInfo(box, host.querySelector('.packcell.sel'));
     }
+    // 悬浮弹层：跟随所点格子定位，空间不足自动翻到格子上方，避免破坏网格布局
+    function positionInfo(box, cell){
+      var vw=window.innerWidth, vh=window.innerHeight, m=8;
+      var bw=box.offsetWidth||220, bh=box.offsetHeight||120;
+      if(!cell){ box.style.left='50%'; box.style.top=''; box.style.bottom=m+'px'; box.style.transform='translateX(-50%)'; return; }
+      var r=cell.getBoundingClientRect();
+      var left=r.left+r.width/2-bw/2; left=Math.max(m, Math.min(left, vw-bw-m));
+      var top=r.bottom+m;
+      if(top+bh > vh-m){ top=r.top-bh-m; }   // 下方放不下 → 翻到格子上方
+      if(top < m) top=m;
+      box.style.left=left+'px'; box.style.top=top+'px'; box.style.bottom=''; box.style.transform='';
+    }
+    function reposition(){ var box=document.getElementById('lp-info'); if(box && box.style.display==='block') positionInfo(box, host.querySelector('.packcell.sel')); }
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
     function hideInfo(){ var box=document.getElementById('lp-info'); if(box){ box.style.display='none'; box.innerHTML=''; } }
     function makeGhost(it,e){
       ghost=document.createElement('div'); ghost.className='loot-ghost';
