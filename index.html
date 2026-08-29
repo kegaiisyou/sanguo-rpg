@@ -1655,8 +1655,9 @@
     .packcell .pcell-dur{font-size:9px;left:2px;top:1px;padding:0 3px;}
     .pack-info{flex:0 0 auto;max-height:72px;min-height:46px;}
     .modal-shell{max-width:560px;}
-    /* 货郎：与 PC 一致保持「左货品/右行囊」左右双栏；窄屏下网格 3 列、字号微调保证不溢出 */
-    .shop-main{flex-direction:row;gap:8px;}
+    /* 货郎：窄屏下三栏改为纵向堆叠，避免 3 列被压扁导致布局错乱 */
+    .shop-main{display:flex;flex-direction:column;gap:8px;grid-template-columns:none;}
+    .shop-left,.shop-right,.shop-stage{max-height:30vh;}
     .shop-left,.shop-right{flex:1 1 0;min-width:0;max-height:none;min-height:0;}
     .shop-goods-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
     .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
@@ -1965,7 +1966,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260829ak"></script>
+<script src="shared/config/constants.js?v=20260829al"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -6109,66 +6110,7 @@ window.onerror=function(msg,url,line,col,err){
     $card.innerHTML=renderShopPanel(); bindShopPanel();
   }
   // 货品格子点击 → 数量选择面板（显示在底栏信息区）
-  function showBuyPanel(id){
-    var shop=LF.SHOPS[shopState]; if(!shop) return;
-    var r=null; shop.items.forEach(function(x){ if(x.id===id) r=x; }); if(!r||!r.buy) return;
-    var maxGold=Math.floor(state.gold/r.buy);
-    var maxSpace=buySpaceLimit(id);
-    var max=Math.min(maxGold, maxSpace);
-    var d=LF.ITEMS[id]||{};
-    var info=document.querySelector('.shop-info'); if(!info) return;
-    if(max<=0){ info.innerHTML='<div class="pack-inspect">银两或行囊不足，买不了'+(d.name||'此物')+'。</div>'; return; }
-    var qs=[1,5,10].filter(function(q){ return q<=max; });
-    if(qs.indexOf(max)<0) qs.push(max);
-    var html='<div class="pack-inspect"><div class="pi-name">'+itemIconHTML(d, 18)+' <span style="margin-left:4px;">买入（'+r.buy+'两/件 · 可买'+max+'件）</span></div><div class="pi-actions">'
-      + qs.map(function(q){ return '<button class="btn-mini" data-buyq="'+q+'" data-buyid="'+id+'">×'+q+'</button>'; }).join('')
-      + '<button class="btn-mini" data-buyq="0" data-buyid="'+id+'" style="opacity:.6">取消</button>'
-      + '</div></div>';
-    info.innerHTML=html;
-    info.querySelectorAll('[data-buyq]').forEach(function(b){
-      b.onclick=function(){
-        var q=parseInt(b.getAttribute('data-buyq'),10);
-        if(q<=0){ info.innerHTML=renderShopInfo(); return; }
-        buyFromShop(b.getAttribute('data-buyid'), q);
-      };
-    });
-  }
-  function sellToShop(idx, n){
-    var it=state.pack[idx]; if(!it) return;
-    var sp=shopSellPrice(it.defId); if(sp==null){ toast('货郎不收此物。'); return; }
-    n=n||1; if(n>it.count) n=it.count; if(n<=0) return;
-    var _nm=(LF.ITEMS[it.defId]||{}).name||'物品';
-    packConsume(it.defId, n); state.gold+=sp*n;
-    if(!state.pack[idx]) shopSel=null;
-    afterPackChange();
-    toast('售出 '+_nm+'×'+n+'，得银 '+(sp*n)+' 两');
-    log('你卖给货郎'+_nm+'×'+n+'，得银 '+(sp*n)+' 两。','sys');
-    $card.innerHTML=renderShopPanel(); bindShopPanel();
-  }
-  // 出售二次确认：首次点击进入确认态，再点一次才成交，5 秒后自动复原
-  var pendingSell=null;
-  function confirmSell(idx, n){
-    var it=state.pack[idx]; if(!it) return;
-    var sp=shopSellPrice(it.defId); if(sp==null){ toast('货郎不收此物。'); return; }
-    if(pendingSell && pendingSell.idx===idx && pendingSell.n===n){
-      pendingSell=null;
-      sellToShop(idx, n);
-      return;
-    }
-    pendingSell={idx:idx, n:n};
-    var info=document.querySelector('.shop-info');
-    if(info) info.innerHTML='<div class="pack-inspect"><div class="pi-row"><span class="pi-label">确认出售？</span></div>'
-      + '<div class="pi-desc" style="opacity:.85;margin-top:2px;">'+(LF.ITEMS[it.defId]||{}).name+' ×'+n+'（得银 '+(sp*n)+'两）</div>'
-      + '<div class="pi-actions">'
-      + '<button class="btn-mini" style="background:#7d241d;border-color:#a13a2c;" onclick="LFUI.confirmSell('+idx+','+n+')">确认出售</button>'
-      + '<button class="btn-mini" onclick="LFUI.cancelSell()">取消</button></div></div>';
-  }
-  function cancelSell(){
-    pendingSell=null;
-    var info=document.querySelector('.shop-info'); if(info) info.innerHTML=renderShopInfo();
-  }
-  function shopSell1(){ if(shopSel==null) return; confirmSell(shopSel,1); }
-  function shopSellAll(){ if(shopSel==null) return; var it=state.pack[shopSel]; if(!it) return; confirmSell(shopSel, it.count); }
+  // （注：旧版 showBuyPanel / sellToShop / confirmSell 等已废弃，交易改为「收购暂存 + 确认交易」模型，逻辑见 bindShopPanel / confirmSellStaging）
 
   // ===== 修炼（消耗潜能习真招式，接入 MARTIAL_ARTS，按 13 艺线分组） =====
   function openLearn(){
@@ -6462,7 +6404,7 @@ window.onerror=function(msg,url,line,col,err){
       +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
       +   '</div>'
       + '</div>'
-      + '<div class="pack-info">'+renderPackInspect()+'</div>'
+      + '<div class="loot-info" id="pack-float" style="display:none;">'+renderPackInspect()+'</div>'
       + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
       + '<button class="btn" '+(canDiscard()?'':'disabled')+' onclick="LFUI.discardInspect()">丢弃</button>'
       + '<span class="pack-hint">点按物品查看 · 点空白处关闭</span>'
@@ -6547,6 +6489,17 @@ window.onerror=function(msg,url,line,col,err){
     return html;
   }
   function parseLoc(s){ if(!s) return null; var p=s.split(':'); if(p[0]==='pack') return {kind:'pack',idx:parseInt(p[1],10)}; if(p[0]==='equip') return {kind:'equip',slot:p[1]}; return null; }
+  // 将行囊浮层详情框定位到被选中格子旁边（与战利品栏同一套视觉）
+  function showPackFloat(){
+    var f=document.getElementById('pack-float'); if(!f||!packInspect) return;
+    f.innerHTML=renderPackInspect(); f.style.display='block';
+    var sel = (packInspect.kind==='equip') ? '.equipslot[data-loc="equip:'+(packInspect.slot||'bag')+'"]' : '.packcell[data-loc="pack:'+packInspect.idx+'"]';
+    var a=document.querySelector(sel); if(!a) return;
+    var cw=a.getBoundingClientRect().width; if(cw) f.style.width=Math.max(88,Math.min(184,Math.round(cw)))+'px';
+    var fr=f.getBoundingClientRect(), ar=a.getBoundingClientRect();
+    if(ar.bottom+12+fr.height>innerHeight) f.style.top=Math.max(8,ar.top-fr.height-12)+'px'; else f.style.top=(ar.bottom+12)+'px';
+    if(ar.left+fr.width>innerWidth-8) f.style.left=Math.max(8,innerWidth-8-fr.width)+'px'; else f.style.left=ar.left+'px';
+  }
   var packLastClick={t:0, loc:null};
   function bindPackInteractions(){
     var card=document.getElementById('modal-card'); if(!card) return;
@@ -6561,6 +6514,7 @@ window.onerror=function(msg,url,line,col,err){
         var it=packGet(loc);
         packInspect = it ? loc : null;
         openModal('pack');
+        showPackFloat();
       };
     });
     cells.forEach(function(el){
@@ -6607,21 +6561,20 @@ window.onerror=function(msg,url,line,col,err){
     card.onclick=function(e){
       if(e.target.closest('[data-loc]')) return;   // 点物品格：由格子自身处理
       if(e.target.closest('button')) return;        // 点按钮：不关闭
-      if(e.target.closest('.pack-info')) return;    // 点在详情框内：保持显示
-      if(packInspect){ packInspect=null; openModal('pack'); }
+      if(e.target.closest('#pack-float')) return;   // 点在浮层内：保持显示
+      if(packInspect){ packInspect=null; var f=document.getElementById('pack-float'); if(f) f.style.display='none'; openModal('pack'); }
     };
   }
   // 详情面板操作
-  function useInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; usePackItem(idx); if(!state.pack[idx]) packInspect=null; }
-  function discardInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; packInspect=null; discardPackItem(idx); }
+  function useInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; usePackItem(idx); if(!state.pack[idx]) packInspect=null; openModal('pack'); showPackFloat(); }
+  function discardInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; packInspect=null; discardPackItem(idx); openModal('pack'); }
   function canDiscard(){ return !!(packInspect && packInspect.kind==='pack'); }
-  function equipInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; var it=state.pack[idx]; if(!it||it.cat!=='装备') return; var slot=it.slot; if(!slot){ toast('此物无可装备之处。'); return; } movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); packInspect={kind:'equip',slot:slot}; openModal('pack'); }
-  function unequipInspect(){ if(!packInspect||packInspect.kind!=='equip') return; var slot=packInspect.slot; var eq=state.equipment[slot]; unequipToPack(slot); if(eq){ for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===eq){ packInspect={kind:'pack',idx:i}; break; } } } else packInspect=null; openModal('pack'); }
+  function equipInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; var it=state.pack[idx]; if(!it||it.cat!=='装备') return; var slot=it.slot; if(!slot){ toast('此物无可装备之处。'); return; } movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); packInspect={kind:'equip',slot:slot}; openModal('pack'); showPackFloat(); }
+  function unequipInspect(){ if(!packInspect||packInspect.kind!=='equip') return; var slot=packInspect.slot; var eq=state.equipment[slot]; unequipToPack(slot); if(eq){ for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===eq){ packInspect={kind:'pack',idx:i}; break; } } } else packInspect=null; openModal('pack'); showPackFloat(); }
   function closeInspect(){ packInspect=null; openModal('pack'); }
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
   window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort,
     useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect,
-    shopSell1:shopSell1, shopSellAll:shopSellAll, confirmSell:confirmSell, cancelSell:cancelSell, showBuyPanel:showBuyPanel,
     dismissCompanion:dismissCompanion };
 
   // 行囊装备面板（P1 完整）
