@@ -23,7 +23,8 @@
         { id: 'zhangpeng',   buy: 60, sell: 25 },
         { id: 'gongzuotai',  buy: 40, sell: 15 },
         { id: 'campfire',    buy: 12, sell: 4  },
-        { id: 'sleepmat',    buy: 20, sell: 8  }
+        { id: 'sleepmat',    buy: 20, sell: 8  },
+        { id: 'ceshizhizhu', buy: 888, sell: 300 }
       ]
     },
     doctor: {

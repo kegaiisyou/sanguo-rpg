@@ -1650,7 +1650,7 @@
     .packcell .pcell-cnt{font-size:9px;right:2px;bottom:1px;padding:0 3px;}
     .packcell .pcell-sell{font-size:9px;left:2px;bottom:1px;padding:0 3px;}
     .packcell .pcell-dur{font-size:9px;left:2px;top:1px;padding:0 3px;}
-    .pack-info{flex:0 0 auto;max-height:88px;min-height:58px;}
+    .pack-info{flex:0 0 auto;max-height:72px;min-height:46px;}
     .modal-shell{max-width:560px;}
     /* 货郎：与 PC 一致保持「左货品/右行囊」左右双栏；窄屏下网格 3 列、字号微调保证不溢出 */
     .shop-main{flex-direction:row;gap:8px;}
@@ -1666,7 +1666,7 @@
     .shop-info{max-height:22vh;min-height:70px;}
   }
   /* 底信息栏：固定，不随物品栏滚动 */
-  .pack-info{flex:0 0 auto;min-height:58px;max-height:88px;margin-top:6px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:7px;padding:3px 6px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);font-size:10px;}
+  .pack-info{flex:0 0 auto;min-height:46px;max-height:72px;margin-top:6px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:7px;padding:3px 6px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);font-size:10px;}
   .pack-inspect{text-align:left;}
   .pack-inspect-empty{color:#9c8a64;font-size:10px;text-align:center;}
   .pi-head{display:flex;align-items:center;gap:4px;margin-bottom:1px;}
@@ -1677,7 +1677,7 @@
   .pi-cat{color:#9c8a64;}
   .pi-quality{font-weight:bold;}
   .pi-count{color:#f0e2c0;}
-  .pi-facts{display:flex;flex-wrap:wrap;align-items:center;gap:2px 7px;font-size:9.5px;line-height:1.3;margin-top:2px;color:#e9d8b0;}
+  .pi-facts{display:flex;flex-wrap:wrap;align-items:center;gap:2px 9px;font-size:9.5px;line-height:1.45;margin-top:3px;color:#e9d8b0;}
   .pi-label{display:none;}
   .pi-attrs{color:#e9d8b0;display:flex;flex-wrap:wrap;gap:2px 7px;}
   .pi-stat{white-space:nowrap;}
@@ -1690,13 +1690,16 @@
   .pi-dur-bar i{display:block;height:100%;background:linear-gradient(90deg,#7bbf6a,#cf9b3f);}
   .pi-desc{margin-top:2px;font-size:9.5px;color:#cdbb95;line-height:1.3;border-top:1px dashed rgba(196,164,102,.25);padding-top:2px;}
   .pi-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
-  .btn-mini{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:7px;padding:5px 9px;min-height:30px;cursor:pointer;font-size:10px;line-height:1.2;min-width:44px;}
-  @media (max-width:560px){ .btn-mini{ padding:11px 16px; min-height:46px; font-size:14px; } }
+  /* 物品操作按钮：内置于名称右侧空位（精简文字） */
+  .pi-acts{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;align-items:center;margin-left:6px;}
+  .btn-mini{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:6px;padding:3px 7px;min-height:24px;cursor:pointer;font-size:9px;line-height:1.2;min-width:38px;}
+  @media (max-width:560px){ .btn-mini{ padding:7px 12px; min-height:34px; font-size:12px; min-width:46px; } }
   .btn-mini:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
   .btn-mini:active{transform:translateY(1px);}
+  .btn-mini:disabled{opacity:.45;cursor:not-allowed;}
   .pack-foot{flex:0 0 auto;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 14px;margin-top:10px;}
-  .pack-foot .btn{background:linear-gradient(180deg,#4a3c24,#2e2415);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:8px;padding:9px 18px;min-height:42px;cursor:pointer;font-size:13.5px;line-height:1.2;}
-  @media (max-width:560px){ .pack-foot .btn{ padding:11px 20px; min-height:46px; font-size:14px; } }
+  .pack-foot .btn{background:linear-gradient(180deg,#4a3c24,#2e2415);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:7px;padding:5px 12px;min-height:28px;cursor:pointer;font-size:11px;line-height:1.2;}
+  @media (max-width:560px){ .pack-foot .btn{ padding:9px 16px; min-height:38px; font-size:13px; } }
   .pack-foot .btn:active{transform:translateY(1px);}
   .pack-cap{color:#9c8a64;font-size:12px;}
   .pack-gold{color:#c89a3a;font-size:13px;font-weight:600;}
@@ -1959,7 +1962,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260828ah"></script>
+<script src="shared/config/constants.js?v=20260829aj"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -1971,10 +1974,10 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260821j"></script>
     <script src="shared/data/martial.js?v=20260813a"></script>
 <script src="shared/data/enemies.js?v=20260827f"></script>
-<script src="shared/data/items.js?v=20260826e"></script>
+<script src="shared/data/items.js?v=20260829aj"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
-    <script src="shared/data/shops.js?v=20260826e"></script>
+    <script src="shared/data/shops.js?v=20260829aj"></script>
     <script src="shared/data/map.js?v=20260827f"></script>
     <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
@@ -6411,7 +6414,8 @@ window.onerror=function(msg,url,line,col,err){
       + '</div>'
       + '<div class="pack-info">'+renderPackInspect()+'</div>'
       + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
-      + '<span class="pack-hint">拖动整理 · 点按查看</span>'
+      + '<button class="btn" '+(canDiscard()?'':'disabled')+' onclick="LFUI.discardInspect()">丢弃</button>'
+      + '<span class="pack-hint">点按物品查看 · 点空白处关闭</span>'
       + '<span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span>'
       + '<span class="pack-gold">银两 '+state.gold+'</span></div>'
       + '</div>';
@@ -6440,11 +6444,23 @@ window.onerror=function(msg,url,line,col,err){
     var q = LF.ITEMS.QMAP[it.quality] || {name:'凡品',color:'#9a948a'};
     var qname = it.qualityName || q.name;
     var qcolor = it.qualityColor || q.color;
+    // 操作按钮（内置于名称右侧空位，精简文字）
+    var act='';
+    if(it.cat==='装备'){
+      if(packInspect.kind==='equip') act += '<button class="btn-mini" onclick="LFUI.unequipInspect()">卸下</button>';
+      else act += '<button class="btn-mini" onclick="LFUI.equipInspect()">装备</button>';
+    } else {
+      if(it.effect) act += '<button class="btn-mini" onclick="LFUI.useInspect()">使用</button>';
+      var canPlace = it.placeable || (LF.ITEMS[it.defId]||{}).placeable || (LF.ITEMS[it.defId]||{}).place;
+      var isBlueprint = !!(LF.ITEMS[it.defId]||{}).blueprint;
+      if(canPlace || isBlueprint) act += '<button class="btn-mini" onclick="LFUI.placeInspect()">'+(isBlueprint?'依图':'放置')+'</button>';
+    }
     var html = '<div class="pack-inspect">';
     html += '<div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(it, 15)+'</div>'
           + '<div class="pi-meta"><span class="pi-cat">'+it.cat+'</span>'
           + '<span class="pi-quality" style="color:'+qcolor+'">'+qname+'</span>'
-          + (it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'') + '</div></div></div>';
+          + (it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'') + '</div></div>'
+          + (act?'<div class="pi-acts">'+act+'</div>':'')+'</div>';
     var facts=[];
     if(it.cat==='装备'){
       if(it.slot && LF.ITEMS.SLOTS[it.slot]) facts.push('<span>部位·'+LF.ITEMS.SLOTS[it.slot].label+'</span>');
@@ -6477,20 +6493,7 @@ window.onerror=function(msg,url,line,col,err){
     if(it.maxDur && it.cat!=='装备'){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); facts.push('<span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span>'); }
     if(facts.length) html += '<div class="pi-facts">'+facts.join('')+'</div>';
     if(it.desc) html += '<div class="pi-desc">'+it.desc+'</div>';
-    var act='<div class="pi-actions">';
-    if(it.cat==='装备'){
-      if(packInspect.kind==='equip') act += '<button class="btn-mini" onclick="LFUI.unequipInspect()">卸下</button>';
-      else act += '<button class="btn-mini" onclick="LFUI.equipInspect()">装备</button>';
-    } else {
-      if(it.effect) act += '<button class="btn-mini" onclick="LFUI.useInspect()">使用</button>';
-      var canPlace = it.placeable || (LF.ITEMS[it.defId]||{}).placeable || (LF.ITEMS[it.defId]||{}).place;
-      var isBlueprint = !!(LF.ITEMS[it.defId]||{}).blueprint;
-      if(canPlace || isBlueprint) act += '<button class="btn-mini" onclick="LFUI.placeInspect()">'+(isBlueprint?'依图营造':'放置')+'</button>';
-    }
-    if(packInspect.kind==='pack') act += '<button class="btn-mini" onclick="LFUI.discardInspect()">丢弃</button>';
-    act += '<button class="btn-mini" onclick="LFUI.closeInspect()">关闭</button>';
-    act += '</div>';
-    html += act + '</div>';
+    html += '</div>';
     return html;
   }
   function parseLoc(s){ if(!s) return null; var p=s.split(':'); if(p[0]==='pack') return {kind:'pack',idx:parseInt(p[1],10)}; if(p[0]==='equip') return {kind:'equip',slot:p[1]}; return null; }
@@ -6546,10 +6549,18 @@ window.onerror=function(msg,url,line,col,err){
     }
     card.onpointerup=function(e){ endDrag(e,false); };
     card.onpointercancel=function(e){ endDrag(e,true); };
+    // 点空白处关闭属性详情
+    card.onclick=function(e){
+      if(e.target.closest('[data-loc]')) return;   // 点物品格：由格子自身处理
+      if(e.target.closest('button')) return;        // 点按钮：不关闭
+      if(e.target.closest('.pack-info')) return;    // 点在详情框内：保持显示
+      if(packInspect){ packInspect=null; openModal('pack'); }
+    };
   }
   // 详情面板操作
   function useInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; usePackItem(idx); if(!state.pack[idx]) packInspect=null; }
   function discardInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; packInspect=null; discardPackItem(idx); }
+  function canDiscard(){ return !!(packInspect && packInspect.kind==='pack'); }
   function equipInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; var it=state.pack[idx]; if(!it||it.cat!=='装备') return; var slot=it.slot; if(!slot){ toast('此物无可装备之处。'); return; } movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); packInspect={kind:'equip',slot:slot}; openModal('pack'); }
   function unequipInspect(){ if(!packInspect||packInspect.kind!=='equip') return; var slot=packInspect.slot; var eq=state.equipment[slot]; unequipToPack(slot); if(eq){ for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===eq){ packInspect={kind:'pack',idx:i}; break; } } } else packInspect=null; openModal('pack'); }
   function closeInspect(){ packInspect=null; openModal('pack'); }

@@ -103,7 +103,11 @@
     tiefu:    { defId: 'tiefu',    name: '铁斧', icon: '🪓', cat: '素材', tool: true, maxDur: 15, price: 60,
       desc: '铁铸斧头，伐木采石更为趁手（耐久 15）。' },
     tiema:    { defId: 'tiema',    name: '铁马掌', icon: '🧲', cat: '素材', price: 15,
-      desc: '打铁余料锻成的马蹄铁，可售与马市，亦或他途。' }
+      desc: '打铁余料锻成的马蹄铁，可售与马市，亦或他途。' },
+    // —— 显示测试专用：全属性加成的饰品 ——
+    ceshizhizhu: { defId: 'ceshizhizhu', name: '测试之珠', icon: '🔮', cat: '装备', slot: 'trinket',
+      stats: { atk: 18, def: 16, spd: 12, hp: 120, mp: 80, wuxing: 8 }, quality: 'orange',
+      desc: '专供界面测试的饰品：攻防身法、气血内力、乃至悟性，诸般属性皆有所加，以观多属性之排版效果。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
