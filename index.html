@@ -1609,8 +1609,11 @@
   .shop-head{flex:0 0 auto;display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px;border-bottom:1px solid rgba(196,164,102,.35);margin-bottom:8px;}
   .shop-title{font-family:"STKaiti","KaiTi",serif;font-size:20px;letter-spacing:3px;color:#ffd268;text-shadow:0 0 8px rgba(255,200,90,.5),0 2px 4px rgba(0,0,0,.6);}
   .shop-gold{font-size:15px;font-weight:700;color:#f4d58a;background:rgba(176,131,47,.18);padding:3px 11px;border-radius:12px;white-space:nowrap;}
-  .shop-main{flex:1 1 auto;display:flex;gap:10px;min-height:0;}
-  .shop-left,.shop-right{flex:1 1 0;display:flex;flex-direction:column;min-height:0;min-width:0;background:rgba(36,24,12,.30);border:1px solid rgba(196,164,102,.35);border-radius:12px;padding:6px;box-sizing:border-box;}
+  .shop-main{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;min-height:0;}
+  .shop-left,.shop-right,.shop-stage{flex:1 1 0;display:flex;flex-direction:column;min-height:0;min-width:0;background:rgba(36,24,12,.30);border:1px solid rgba(196,164,102,.35);border-radius:12px;padding:6px;box-sizing:border-box;}
+  .shop-stage{background:linear-gradient(180deg,rgba(120,90,50,.22),rgba(120,90,50,.06));border-color:rgba(216,170,90,.55);}
+  .shop-stage.drop-hl,.shop-right.drop-hl,.shop-left.drop-hl{box-shadow:0 0 0 2px #ffd98a inset;background:rgba(216,180,106,.16);}
+  .shop-stage .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
   .shop-left{background:linear-gradient(180deg,rgba(120,80,40,.22),rgba(120,80,40,.06));border-color:rgba(216,180,106,.55);}
   .shop-pane-title{flex:0 0 auto;text-align:center;font-size:13px;color:#d8c9a8;margin-bottom:6px;letter-spacing:1px;}
   .shop-scroll{flex:1 1 auto;overflow-y:auto;min-height:0;padding-right:5px;scrollbar-width:thin;scrollbar-color:#b08d4f rgba(0,0,0,.22);}
@@ -1962,7 +1965,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260829aj"></script>
+<script src="shared/config/constants.js?v=20260829ak"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -5843,6 +5846,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   // 货郎商店数据已外置到 shared/data/shops.js（详见 LF.SHOPS.build_pedlar），便于调价与扩展
   var shopState='build_pedlar';
+  var shopStaging=[];   // 收购暂存：玩家拖入待售的物品（确认交易前可反复拖出取回）
   var shopSel=null;
   var shopGoodSel=null;
   // 取某物在货郎处的「收购价」（货郎不收 / 收购价<=0 时返回 null）
@@ -5866,171 +5870,211 @@ window.onerror=function(msg,url,line,col,err){
   function renderShopPanel(){
     var shop = LF.SHOPS[shopState] || {name:'', items:[]};
     var DEFS=LF.ITEMS;
-    // 左栏：货郎的货（仅展示 buy>0 的，点按购入）
+    // 货郎的货（仅展示 buy>0 的）
     var goodsGrid = shop.items.filter(function(r){ return r.buy>0; }).map(function(r){
       var d=DEFS[r.id]||{};
-      var canBuy = state.gold>=r.buy;
-      var goodSelCls=(shopGoodSel===r.id)?' pcell-sel':'';
-      return '<div class="shop-good'+(canBuy?'':' shop-bad')+goodSelCls+'" data-shop="'+r.id+'">'
+      var canBuy = state.gold>=r.buy && buySpaceLimit(r.id)>0;
+      return '<div class="shop-good'+(canBuy?'':' shop-bad')+'" data-pane="buy" data-id="'+r.id+'">'
         + '<div class="sg-name '+sgFontSize(d.name)+'">'+d.name+'</div>'
         + '<div class="sg-buy">买 '+fmtPrice(r.buy)+'</div>'
         + '</div>';
     }).join('');
-    // 右栏：玩家行囊（仅物品，标售价 / 耐久）
+    // 收购暂存（待售）
+    var stageGrid='';
+    for(var si=0; si<shopStaging.length; si++){
+      var st=shopStaging[si];
+      var stp=shopSellPrice(st.defId);
+      stageGrid += '<div class="packcell" data-pane="stage" data-idx="'+si+'">'
+        + '<div class="pcell-ic">'+itemIconHTML(st,13)+'</div>'
+        + (st.count>1?('<span class="pcell-cnt">'+st.count+'</span>'):'')
+        + (stp!=null?'<span class="pcell-sell">卖'+stp+'</span>':'')
+        + '</div>';
+    }
+    if(!shopStaging.length) stageGrid='<div class="packcell pcell-empty"></div>';
+    // 玩家行囊
     var grid='';
     for(var i=0;i<state.pack.length;i++){
       var it=state.pack[i];
-      if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
-      var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
-      var sp = shopSellPrice(it.defId);
-      var sellTag = (sp!=null) ? '<span class="pcell-sell">卖'+sp+'</span>' : '';
-      var durTag = (it.maxDur) ? '<span class="pcell-dur">'+it.dur+'/'+it.maxDur+'</span>' : '';
-      var selCls = (shopSel===i)?' pcell-sel':'';
-      grid += '<div class="packcell'+selCls+'" data-loc="pack:'+i+'">'
+      if(!it){ grid += '<div class="packcell pcell-empty" data-pane="pack" data-idx="'+i+'"></div>'; continue; }
+      grid += '<div class="packcell" data-pane="pack" data-idx="'+i+'">'
             + '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'
-            + cnt + sellTag + durTag + '</div>';
+            + (it.count>1?('<span class="pcell-cnt">'+it.count+'</span>'):'')
+            + '</div>';
     }
+    var stTotal=0; shopStaging.forEach(function(x){ var sp=shopSellPrice(x.defId); if(sp!=null) stTotal+=sp*(x.count||1); });
     return '<div class="shop-wrap">'
       + '<div class="shop-head"><span class="shop-title">💰 '+shop.name+' · 交易</span><span class="shop-gold">银两 '+state.gold+' 两</span></div>'
       + '<div class="shop-main">'
-      +   '<div class="shop-left" data-sellzone><div class="shop-pane-title">货郎的货 · 点按购入</div><div class="shop-scroll"><div class="shop-goods-grid">'+goodsGrid+'</div></div></div>'
-      +   '<div class="shop-right"><div class="shop-pane-title">你的行囊</div><div class="shop-scroll"><div class="pack-grid">'+grid+'</div></div></div>'
+      +   '<div class="shop-left" data-pane="buy"><div class="shop-pane-title">货郎的货</div><div class="shop-scroll"><div class="shop-goods-grid">'+goodsGrid+'</div></div></div>'
+      +   '<div class="shop-stage" data-pane="stage" data-sellzone><div class="shop-pane-title">收购暂存 · 拖物品到此待售</div><div class="shop-scroll"><div class="pack-grid">'+stageGrid+'</div></div></div>'
+      +   '<div class="shop-right" data-pane="pack"><div class="shop-pane-title">你的行囊</div><div class="shop-scroll"><div class="pack-grid">'+grid+'</div></div></div>'
       + '</div>'
-      + '<div class="shop-info">'+renderShopInfo()+'</div>'
-      + '<div class="shop-foot"><button class="btn" id="m-leave">告 辞</button><span class="shop-hint">点选物品看售价 · 拖到左栏即售</span></div>'
+      + '<div class="loot-info" id="shop-float" style="display:none;"></div>'
+      + '<div class="shop-foot">'
+      +   '<button class="btn" id="m-leave">告 辞</button>'
+      +   '<button class="btn" id="shop-confirm"'+(shopStaging.length?'':' disabled')+'>确认交易（得 '+stTotal+' 两）</button>'
+      +   '<span class="shop-hint">拖物品到「收购暂存」即待售 · 点物品看属性 · 双击快速装备/使用</span>'
+      + '</div>'
       + '</div>';
   }
-  function renderShopInfo(){
-    if(shopGoodSel!=null){
-      var shop=LF.SHOPS[shopState]; var r=null;
-      if(shop) shop.items.forEach(function(x){ if(x.id===shopGoodSel) r=x; });
-      if(r){
-        var def=LF.ITEMS[r.id]||{};
-        var price=r.buy!=null?r.buy:0;
-        var icon=def.icon||'';
-        var name=def.name||r.id;
-        var cat=def.cat||'货';
-        var desc=def.desc||'';
-        var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'
-          + (icon?('<span class="ic-txt" style="font-size:18px;"><b>'+icon+'</b></span> '):'')
-          + '<span style="margin-left:4px;">'+name+'</span></div>'
-          + '<div class="pi-meta"><span class="pi-cat">'+cat+'</span></div></div></div>';
-        if(desc) html+='<div class="pi-desc">'+desc+'</div>';
-        html+='<div class="pi-actions"><button class="btn-mini" onclick="LFUI.showBuyPanel(\''+r.id+'\')">购买（'+fmtPrice(price)+'两）</button></div>';
-        html+='</div>';
-        return html;
+  function shopInfoHTML(it, src){
+    var d = (src.pane==='buy') ? (LF.ITEMS[src.id]||{}) : it;
+    var name = d.name || it.name || '';
+    var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(d,18)+' <span style="margin-left:4px;">'+name+'</span></div>'
+      + '<div class="pi-meta"><span class="pi-cat">'+d.cat+'</span>'+(it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'')+'</div></div></div>';
+    if(d.cat==='装备'){
+      var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
+      var parts=[];
+      fields.forEach(function(f){ var v=d[f[0]]||0; if(!v) return; parts.push(f[1]+' +'+v); });
+      if(parts.length) html+='<div class="pi-facts"><span>'+parts.join(' · ')+'</span></div>';
+    }
+    if(d.effect){ var effs=[]; if(d.effect.hp) effs.push('疗伤 +'+d.effect.hp); if(d.effect.mp) effs.push('复内 +'+d.effect.mp); if(d.effect.food) effs.push('充饥 +'+d.effect.food); if(d.effect.drink) effs.push('解渴 +'+d.effect.drink); if(effs.length) html+='<div class="pi-facts"><span class="pi-eff">'+effs.join(' · ')+'</span></div>'; }
+    if(d.desc) html+='<div class="pi-desc">'+d.desc+'</div>';
+    html+='<div class="pi-acts" style="margin-top:5px;justify-content:flex-start;">';
+    if(src.pane==='buy'){
+      var r=null; LF.SHOPS[shopState].items.forEach(function(x){ if(x.id===src.id) r=x; });
+      if(r && r.buy){
+        var maxGold=Math.floor(state.gold/r.buy), maxSpace=buySpaceLimit(src.id), max=Math.min(maxGold,maxSpace);
+        var qs=[1,5,10].filter(function(q){ return q<=max; }); if(qs.indexOf(max)<0 && max>0) qs.push(max);
+        if(max<=0) html+='<span style="font-size:9px;opacity:.7;">银两或行囊不足</span>';
+        else qs.forEach(function(q){ html+='<button class="btn-mini" data-act="buy" data-q="'+q+'">买×'+q+'</button>'; });
       }
+    } else if(src.pane==='pack'){
+      if(it.cat==='装备') html+='<button class="btn-mini" data-act="equip">装备</button>';
+      if(it.effect) html+='<button class="btn-mini" data-act="use">使用</button>';
+      var sp=shopSellPrice(it.defId);
+      if(sp!=null) html+='<button class="btn-mini" data-act="sell1">售出×1('+sp+'两)</button>';
+      html+='<button class="btn-mini" data-act="discard">丢弃</button>';
+    } else if(src.pane==='stage'){
+      html+='<button class="btn-mini" data-act="takeback">取回</button>';
+      var sp2=shopSellPrice(it.defId); if(sp2!=null) html+='<span style="font-size:9px;opacity:.85;margin-left:4px;">确认后得 '+sp2*(it.count||1)+' 两</span>';
     }
-    if(shopSel==null || !state.pack[shopSel]) return '<div class="pack-inspect pack-inspect-empty">点选左边货品或右边物品，可看售价与详情；拖到对侧即可买卖。</div>';
-    var it=state.pack[shopSel]; var d=LF.ITEMS[it.defId]||{};
-    var sp=shopSellPrice(it.defId);
-    var html='<div class="pack-inspect"><div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(it, 20)+' <span style="margin-left:4px;">'+it.name+'</span></div>'
-      + '<div class="pi-meta"><span class="pi-cat">'+it.cat+'</span>'+(it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'')+'</div></div></div>';
-    if(it.maxDur){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); html+='<div class="pi-row"><span class="pi-label">耐久</span><span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span></div>'; }
-    if(it.desc) html+='<div class="pi-desc">'+it.desc+'</div>';
-    if(sp!=null){
-      html+='<div class="pi-actions"><button class="btn-mini" onclick="LFUI.confirmSell('+shopSel+',1)">出售×1（'+sp+'两）</button>';
-      if(it.count>1) html+='<button class="btn-mini" onclick="LFUI.confirmSell('+shopSel+','+it.count+')">全售×'+it.count+'（'+(sp*it.count)+'两）</button>';
-      html+='</div>';
-    } else {
-      html+='<div class="pi-desc" style="opacity:.7;margin-top:4px;">货郎不收此物。</div>';
-    }
-    html+='</div>';
+    html+='</div></div>';
     return html;
   }
   function bindShopPanel(){
     var card=document.getElementById('modal-card'); if(!card) return;
-    // 货郎货品：点按购入（钱不够置灰并提示）/ 拖到右边背包=购买 / 原生拖拽供桌面
-    card.querySelectorAll('[data-shop]').forEach(function(el){
-      el.onclick=function(){
-        if(el.__dragMoved){ el.__dragMoved=false; return; }
-        if(el.classList.contains('shop-bad')){ toast('银两不足，买不起。'); return; }
-        var id=el.getAttribute('data-shop');
-        if(shopGoodSel===id){ showBuyPanel(id); return; }   // 再点一次 → 弹购入数量面板
-        shopGoodSel=id; shopSel=null;   // 选中货品时取消行囊选中
-        card.querySelectorAll('[data-shop]').forEach(function(c){ c.classList.remove('pcell-sel'); });
-        card.querySelectorAll('.shop-right .packcell').forEach(function(c){ c.classList.remove('pcell-sel'); });
-        el.classList.add('pcell-sel');
-        var info=card.querySelector('.shop-info'); if(info) info.innerHTML=renderShopInfo();
-      };
-      el.setAttribute('draggable','true');
-      el.ondragstart=function(e){
-        var id=el.getAttribute('data-shop');
-        e.dataTransfer.setData('text/plain', JSON.stringify({kind:'buy', id:id}));
-      };
-    });
-    // 玩家物品：点选查看 / 拖到左栏出售 / 原生拖拽供桌面
-    var cells=card.querySelectorAll('.shop-right [data-loc]');
-    cells.forEach(function(el){
-      el.onclick=function(){
-        if(el.__dragMoved){ el.__dragMoved=false; return; }
-        var idx=parseInt(el.getAttribute('data-loc').split(':')[1],10);
-        shopSel = (state.pack[idx])? idx : null;
-        shopGoodSel = null;   // 选行囊时清货品选中（互斥）
-        card.querySelectorAll('.shop-right .packcell').forEach(function(c){ c.classList.remove('pcell-sel'); });
-        card.querySelectorAll('[data-shop]').forEach(function(c){ c.classList.remove('pcell-sel'); });
-        if(shopSel!=null) el.classList.add('pcell-sel');
-        var info=card.querySelector('.shop-info'); if(info) info.innerHTML=renderShopInfo();
-      };
-      el.setAttribute('draggable','true');
-      el.ondragstart=function(e){
-        var idx=parseInt(el.getAttribute('data-loc').split(':')[1],10);
-        if(!state.pack[idx]){ e.preventDefault(); return; }
-        e.dataTransfer.setData('text/plain', JSON.stringify({kind:'sell', idx:idx}));
-      };
-    });
-    // 左栏接收「拖入出售」，右栏接收「拖入购买」（原生 HTML5 拖拽）
-    var left=card.querySelector('.shop-left');
-    left.ondragover=function(e){ e.preventDefault(); };
-    left.ondrop=function(e){ e.preventDefault(); try{ var d=JSON.parse(e.dataTransfer.getData('text/plain')); if(d.kind==='sell') sellToShop(d.idx,1); }catch(_){} };
-    var right=card.querySelector('.shop-right');
-    right.ondragover=function(e){ e.preventDefault(); };
-    right.ondrop=function(e){ e.preventDefault(); try{ var d=JSON.parse(e.dataTransfer.getData('text/plain')); if(d.kind==='buy') buyFromShop(d.id); }catch(_){} };
-    // 触屏拖拽（pointer）：出售拖入左栏、购买拖入右栏
-    var ghost=null, dragging=null, srcEl=null, sx=0, sy=0, moved=false;
-    function startDrag(kind, payload, el, e){
-      dragging={kind:kind, payload:payload}; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
+    var floatEl=document.getElementById('shop-float');
+    var sel=null, ghost=null, dragSrc=null, startX=0, startY=0, moved=false;
+    function rerender(){ card.innerHTML=renderShopPanel(); bindShopPanel(); }
+    function hideInfo(){ if(floatEl){ floatEl.style.display='none'; floatEl.innerHTML=''; } }
+    function paneOf(el){ while(el && el!==document.body){ if(el.getAttribute && el.getAttribute('data-pane')) return el.getAttribute('data-pane'); el=el.parentNode; } return null; }
+    function cellAt(x,y){
+      var el=document.elementFromPoint(x,y); var cell=null, pane=null;
+      while(el && el!==document.body){
+        if(!cell && el.classList && el.classList.contains('packcell')) cell={pane:el.getAttribute('data-pane'), idx:el.getAttribute('data-idx')!=null?parseInt(el.getAttribute('data-idx'),10):null};
+        if(!pane && el.getAttribute && el.getAttribute('data-pane')) pane=el.getAttribute('data-pane');
+        el=el.parentNode;
+      }
+      if(cell) return cell;
+      return pane?{pane:pane, idx:null}:null;
     }
-    card.querySelectorAll('.shop-right [data-loc]').forEach(function(el){
-      el.onpointerdown=function(e){
-        if(e.pointerType==='mouse') return;
-        var idx=parseInt(el.getAttribute('data-loc').split(':')[1],10);
-        if(!state.pack[idx]) return;
-        startDrag('sell', idx, el, e);
-      };
-    });
-    card.querySelectorAll('[data-shop]').forEach(function(el){
-      el.onpointerdown=function(e){
-        if(e.pointerType==='mouse') return;
-        if(el.classList.contains('shop-bad')) return;
-        startDrag('buy', el.getAttribute('data-shop'), el, e);
-      };
-    });
-    card.onpointermove=function(e){
-      if(!dragging) return;
-      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
-      if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; document.body.appendChild(ghost); }
-      var nm = dragging.kind==='sell' ? ((state.pack[dragging.payload]||{}).name||'') : ((LF.ITEMS[dragging.payload]||{}).name||'');
-      ghost.textContent=nm;
-      ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
-    };
-    function endDrag(e, cancelled){
-      var d=dragging; dragging=null;
-      if(ghost){ ghost.remove(); ghost=null; }
-      if(!d || !moved || cancelled) return;
-      if(d.kind==='sell'){
-        var L=card.querySelector('.shop-left'); if(!L) return;
-        var r=L.getBoundingClientRect();
-        if(e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom) sellToShop(d.payload,1);
-      } else if(d.kind==='buy'){
-        var R=card.querySelector('.shop-right'); if(!R) return;
-        var rr=R.getBoundingClientRect();
-        if(e.clientX>=rr.left && e.clientX<=rr.right && e.clientY>=rr.top && e.clientY<=rr.bottom) buyFromShop(d.payload);
+    function srcItem(src){ if(src.pane==='buy') return LF.ITEMS[src.id]; if(src.pane==='pack') return state.pack[src.idx]; if(src.pane==='stage') return shopStaging[src.idx]; return null; }
+    function makeGhost(it,e){ ghost=document.createElement('div'); ghost.className='loot-ghost'; ghost.innerHTML=it?itemIconHTML(it,28):'📦'; ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px'; document.body.appendChild(ghost); }
+    function hlDrop(e){ clearHl(); var c=cellAt(e.clientX,e.clientY); if(c && c.pane){ var pane=card.querySelector('.shop-'+c.pane); if(pane) pane.classList.add('drop-hl'); } }
+    function clearHl(){ Array.prototype.forEach.call(card.querySelectorAll('.drop-hl'), function(x){ x.classList.remove('drop-hl'); }); }
+    function onDown(e){
+      var c=e.currentTarget; if(c.classList.contains('pcell-empty')) return;
+      e.preventDefault(); hideInfo(); sel=null; c.classList.add('dragging');
+      dragSrc={pane:c.getAttribute('data-pane'), id:c.getAttribute('data-id'), idx:c.getAttribute('data-idx')!=null?parseInt(c.getAttribute('data-idx'),10):null};
+      startX=e.clientX; startY=e.clientY; moved=false;
+      try{ c.setPointerCapture(e.pointerId); }catch(_){}
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    }
+    function onMove(e){
+      if(!dragSrc) return;
+      if(!moved && (Math.abs(e.clientX-startX)>6||Math.abs(e.clientY-startY)>6)){ moved=true; makeGhost(srcItem(dragSrc),e); }
+      if(ghost){ ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px'; hlDrop(e); }
+    }
+    function onUp(e){
+      document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp);
+      if(ghost){ ghost.remove(); ghost=null; } clearHl();
+      var dc=card.querySelector('.packcell.dragging'); if(dc) dc.classList.remove('dragging');
+      if(moved){ var tgt=cellAt(e.clientX,e.clientY); if(tgt) doMove(dragSrc,tgt); }
+      else { onTap(dragSrc); }
+      dragSrc=null;
+    }
+    function doMove(src,tgt){
+      if(src.pane==='buy' && (tgt.pane==='pack'||tgt.pane==='stage')){
+        if(tgt.pane==='stage'){ toast('请先放入行囊再出售。'); return; }
+        buyFromShop(src.id, 1); return;   // buyFromShop 自身会重渲染
+      }
+      if(src.pane==='pack' && tgt.pane==='stage'){
+        var it=state.pack[src.idx]; if(!it) return;
+        if(shopSellPrice(it.defId)==null){ toast('货郎不收此物。'); return; }
+        shopStaging.push(it); state.pack[src.idx]=null; afterPackChange(); rerender(); return;
+      }
+      if(src.pane==='stage' && tgt.pane==='pack'){
+        var st=shopStaging[src.idx]; if(!st) return;
+        var e=packFirstEmpty(); if(e<0){ toast('行囊已满，取不回。'); return; }
+        state.pack[e]=st; shopStaging.splice(src.idx,1); afterPackChange(); rerender(); return;
+      }
+      if(src.pane==='pack' && tgt.pane==='pack'){
+        if(tgt.idx!=null) movePackItem({kind:'pack',idx:src.idx},{kind:'pack',idx:tgt.idx}); rerender(); return;
+      }
+      if(src.pane==='stage' && tgt.pane==='stage'){
+        if(tgt.idx!=null){ var a=shopStaging[src.idx], b=shopStaging[tgt.idx]; shopStaging[src.idx]=b; shopStaging[tgt.idx]=a; rerender(); } return;
       }
     }
-    card.onpointerup=function(e){ endDrag(e,false); };
-    card.onpointercancel=function(e){ endDrag(e,true); };
-    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
+    function onTap(src){
+      var it=srcItem(src); if(!it) return; sel=src; showInfo(it, src);
+    }
+    function showInfo(it, src){
+      if(!floatEl) return;
+      floatEl.innerHTML=shopInfoHTML(it, src); floatEl.style.display='block';
+      var sel2='.packcell[data-pane="'+src.pane+'"'+(src.idx!=null?('[data-idx="'+src.idx+'"]'):(src.id?('[data-id="'+src.id+'"]'):''))+']';
+      var anchor=card.querySelector(sel2);
+      if(anchor){ var cw=anchor.getBoundingClientRect().width; if(cw) floatEl.style.width=Math.max(88,Math.min(184,Math.round(cw)))+'px'; }
+      var fr=floatEl.getBoundingClientRect(), ar=anchor?anchor.getBoundingClientRect():{left:innerWidth/2,top:innerHeight/2,width:60,height:30,right:innerWidth/2+60,bottom:innerHeight/2+30};
+      if(ar.bottom+12+fr.height>innerHeight) floatEl.style.top=Math.max(8,ar.top-fr.height-12)+'px';
+      else floatEl.style.top=(ar.bottom+12)+'px';
+      if(ar.left+fr.width>innerWidth-8) floatEl.style.left=Math.max(8,innerWidth-8-fr.width)+'px';
+      else floatEl.style.left=ar.left+'px';
+      Array.prototype.forEach.call(floatEl.querySelectorAll('[data-act]'), function(b){
+        b.onclick=function(e){ e.stopPropagation(); var q=parseInt(b.getAttribute('data-q')||'1',10); actOn(it, src, b.getAttribute('data-act'), q); };
+      });
+    }
+    function actOn(it, src, act, q){
+      if(act==='buy'){ hideInfo(); buyFromShop(src.id, q); return; }
+      if(act==='equip'){ equipFromPackTo(src.idx, it.slot); hideInfo(); rerender(); return; }
+      if(act==='use'){ usePackItem(src.idx); hideInfo(); rerender(); return; }
+      if(act==='discard'){ discardPackItem(src.idx); hideInfo(); rerender(); return; }
+      if(act==='sell1'){ if(shopSellPrice(it.defId)==null){ toast('货郎不收此物。'); return; } shopStaging.push(state.pack[src.idx]); state.pack[src.idx]=null; afterPackChange(); hideInfo(); rerender(); return; }
+      if(act==='takeback'){ var e=packFirstEmpty(); if(e<0){ toast('行囊已满'); return; } state.pack[e]=shopStaging[src.idx]; shopStaging.splice(src.idx,1); afterPackChange(); hideInfo(); rerender(); return; }
+    }
+    // 绑定拖拽与点按
+    Array.prototype.forEach.call(card.querySelectorAll('.packcell:not(.pcell-empty)'), function(c){ c.addEventListener('pointerdown', onDown); });
+    Array.prototype.forEach.call(card.querySelectorAll('.shop-good'), function(c){ c.addEventListener('pointerdown', onDown); });
+    // 双击：快速购买 / 快速装备使用 / 取回
+    Array.prototype.forEach.call(card.querySelectorAll('.packcell:not(.pcell-empty),.shop-good'), function(c){
+      c.addEventListener('dblclick', function(e){
+        e.preventDefault(); var pane=c.getAttribute('data-pane');
+        if(pane==='buy'){ if(!c.classList.contains('shop-bad')) buyFromShop(c.getAttribute('data-id'),1); }
+        else if(pane==='pack'){ quickUseFromPack(parseInt(c.getAttribute('data-idx'),10)); rerender(); }
+        else if(pane==='stage'){ var e1=packFirstEmpty(); if(e1<0){ toast('行囊已满'); return; } state.pack[e1]=shopStaging[parseInt(c.getAttribute('data-idx'),10)]; shopStaging.splice(parseInt(c.getAttribute('data-idx'),10),1); afterPackChange(); rerender(); }
+      });
+    });
+    // 点空白处关闭浮层（仅绑定一次，避免重渲染时重复累加监听）
+    if(!card.__floatCloseBound){
+      card.__floatCloseBound=true;
+      card.addEventListener('pointerdown', function(e){
+        var f=document.getElementById('shop-float');
+        if(f && f.style.display!=='none' && !e.target.closest('#shop-float') && !e.target.closest('.packcell') && !e.target.closest('.shop-good')){ f.style.display='none'; f.innerHTML=''; }
+      }, true);
+    }
+    var cf=document.getElementById('shop-confirm'); if(cf) cf.onclick=function(){ confirmSellStaging(); };
+    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=function(){ returnStaging(); closeModal(); };
+  }
+  function confirmSellStaging(){
+    if(!shopStaging.length){ toast('暂存栏空空，无物可售。'); return; }
+    var total=0; shopStaging.forEach(function(x){ var sp=shopSellPrice(x.defId); if(sp!=null) total+=sp*(x.count||1); });
+    state.gold+=total; shopStaging=[]; afterPackChange();
+    toast('成交，得银 '+total+' 两。');
+    var card=document.getElementById('modal-card'); if(card){ card.innerHTML=renderShopPanel(); bindShopPanel(); }
+  }
+  function returnStaging(){
+    if(shopStaging.length){ shopStaging.forEach(function(x){ packAdd(x, x.count||1); }); shopStaging=[]; afterPackChange(); }
   }
   // 计算某货品当前最多能买几件（受金币与行囊空间共同限制）
   function buySpaceLimit(id){
@@ -6327,6 +6371,12 @@ window.onerror=function(msg,url,line,col,err){
     else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法卸下。'); return; } state.pack[e]=eq; state.equipment[slot]=null; }
     toast('已卸下「'+eq.name+'」。'); afterPackChange();
   }
+  // 双击格子：快速装备 / 快速使用
+  function quickUseFromPack(idx){
+    var it=state.pack[idx]; if(!it) return;
+    if(it.cat==='装备' && it.slot){ equipFromPackTo(idx, it.slot); }
+    else { usePackItem(idx); }
+  }
   function usePackItem(idx){
     var it=state.pack[idx]; if(!it) return;
     if(it.cat==='装备'){ toast('装备需拖至装备栏，不可直接使用。'); return; }
@@ -6497,13 +6547,17 @@ window.onerror=function(msg,url,line,col,err){
     return html;
   }
   function parseLoc(s){ if(!s) return null; var p=s.split(':'); if(p[0]==='pack') return {kind:'pack',idx:parseInt(p[1],10)}; if(p[0]==='equip') return {kind:'equip',slot:p[1]}; return null; }
+  var packLastClick={t:0, loc:null};
   function bindPackInteractions(){
     var card=document.getElementById('modal-card'); if(!card) return;
     var cells=card.querySelectorAll('[data-loc]');
     cells.forEach(function(el){
       el.onclick=function(){
         if(el.__dragMoved){ el.__dragMoved=false; return; }
-        var loc=parseLoc(el.getAttribute('data-loc')); if(!loc) return;
+        var key=el.getAttribute('data-loc'); var loc=parseLoc(key); if(!loc) return;
+        var now=Date.now();
+        if(packLastClick.loc===key && now-packLastClick.t<320){ packLastClick.t=0; quickUseFromPack(loc.idx); return; }  // 双击：快速装备/使用
+        packLastClick={t:now, loc:key};
         var it=packGet(loc);
         packInspect = it ? loc : null;
         openModal('pack');
@@ -7558,6 +7612,7 @@ window.onerror=function(msg,url,line,col,err){
       h=renderCraftPanel();
     } else if(kind==='shop'){
       if(opts && opts.shop) shopState=opts.shop;
+      shopStaging=[];
       h=renderShopPanel();
     } else if(kind==='build'){
       if(opts && opts.site) buildState.site = opts.site;
@@ -8785,7 +8840,7 @@ window.onerror=function(msg,url,line,col,err){
       '</div>'+
       '<div class="cs-org-cap" id="lp-cap"></div>'+
       '<div class="loot-info" id="lp-info" style="display:none;"></div>';
-    var sel=null, ghost=null, dragSrc=null, startX=0, startY=0, moved=false;
+    var sel=null, ghost=null, dragSrc=null, startX=0, startY=0, moved=false, lastTap={t:0,key:null};
     function rerender(){
       var lg=document.getElementById('lp-loot'); if(!lg) return;
       var bg=document.getElementById('lp-bag');
@@ -8895,12 +8950,32 @@ window.onerror=function(msg,url,line,col,err){
       sel=null; hideInfo(); renderStatus(); rerender();
     }
     function onTap(src){
+      var key=src.pane+':'+src.idx, now=Date.now();
+      if(lastTap.key===key && now-lastTap.t<320){ lastTap.t=0; quickLootGrab(src); return; }  // 双击：快速装备/使用
+      lastTap={t:now, key:key};
       var cur = sel && sel.pane===src.pane && sel.idx===src.idx;
       if(cur){ sel=null; hideInfo(); rerender(); return; }
       sel={pane:src.pane, idx:src.idx};
       rerender();   // 先渲染出带 .sel 的格子，便于定位弹层
       var it = src.pane==='loot'?lootArr[src.idx]:state.pack[src.idx];
       showInfo(it);
+    }
+    function quickLootGrab(src){
+      var it=src.pane==='loot'?lootArr[src.idx]:state.pack[src.idx]; if(!it) return;
+      if(it.cat==='装备' && it.slot){
+        var oldEq=state.equipment[it.slot];
+        if(src.pane==='loot') lootArr[src.idx]=null; else state.pack[src.idx]=oldEq||null;
+        state.equipment[it.slot]=it;
+        if(oldEq){ var ri=state.pack.indexOf(oldEq); if(ri>=0) lastReplaced={pane:'bag',idx:ri}; }
+        toast('装备「'+it.name+'」'+(oldEq?'，卸下「'+oldEq.name+'」':''));
+      } else if(it.effect || it.cat==='丹药' || it.cat==='兵粮'){
+        var useIdx;
+        if(src.pane==='loot'){ var e=firstEmpty(); if(e<0){ toast('行囊已满'); return; } lootArr[src.idx]=null; state.pack[e]=it; useIdx=e; }
+        else useIdx=src.idx;
+        usePackItem(useIdx);
+      }
+      save(state); renderStatus(); rerender(); hideInfo();
+      if(lastReplaced){ var rc=host.querySelector('.packcell[data-pane="bag"][data-idx="'+lastReplaced.idx+'"]'); if(rc) rc.scrollIntoView({block:'nearest',behavior:'smooth'}); setTimeout(function(){ lastReplaced=null; rerender(); },1300); }
     }
     function showInfo(it){
       var box=document.getElementById('lp-info'); if(!box) return;
