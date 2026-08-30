@@ -24,7 +24,18 @@
         { id: 'gongzuotai',  buy: 40, sell: 15 },
         { id: 'campfire',    buy: 12, sell: 4  },
         { id: 'sleepmat',    buy: 20, sell: 8  },
-        { id: 'ceshizhizhu', buy: 888, sell: 300 }
+        { id: 'ceshizhizhu', buy: 888, sell: 300 },
+        // —— 扩充：食材 / 资材 / 铁料 / 兵器 / 行囊 ——
+        { id: 'shengrou',     buy: 12, sell: 4 },
+        { id: 'xiang',        buy: 6,  sell: 2 },
+        { id: 'mucai',        buy: 20, sell: 8 },
+        { id: 'tiekuai',      buy: 40, sell: 16 },
+        { id: 'tiefu',        buy: 70, sell: 28 },
+        { id: 'tiema',        buy: 22, sell: 8 },
+        { id: 'tiejian',      buy: 90, sell: 35 },
+        { id: 'shutong',      buy: 28, sell: 10 },
+        { id: 'pibao',        buy: 50, sell: 20 },
+        { id: 'caiyaobiluo',  buy: 45, sell: 18 }
       ]
     },
     doctor: {

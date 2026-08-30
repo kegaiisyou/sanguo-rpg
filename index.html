@@ -1206,6 +1206,12 @@
   .loot-info{position:fixed;z-index:80;min-width:88px;max-width:184px;max-height:min(28vh,calc(100vh - 32px));overflow-y:auto;background:var(--paper);border:1px solid rgba(60,40,30,.28);
     border-radius:8px;padding:6px 7px;box-shadow:0 8px 24px rgba(40,28,16,.3);font-family:"STKaiti","KaiTi",serif;text-align:left;font-size:11px;overflow-wrap:break-word;word-break:break-word;}
   .li-acts{display:flex;gap:5px;margin-top:6px;background:#f8f2e4;padding-top:5px;border-top:1px solid rgba(60,40,30,.18);}   /* 不再 sticky：position:fixed 容器内 sticky 基准为视口底部，会让按钮“漏出”浮框外 */
+  /* 数量步进器（货郎买卖批量）：− 数字 + */
+  .li-qty{display:flex;align-items:center;gap:5px;margin-top:6px;}
+  .li-step{flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:1px solid rgba(63,125,94,.45);background:rgba(63,125,94,.16);color:#2f7a55;font-size:14px;line-height:1;cursor:pointer;font-family:inherit;padding:0;}
+  .li-step:active{transform:scale(.92);}
+  .li-qin{flex:1 1 auto;min-width:0;width:46px;text-align:center;border:1px solid rgba(60,40,30,.3);border-radius:6px;font-size:12px;padding:2px 0;font-family:inherit;}
+  .li-qmax{font-size:10px;color:var(--ink-soft);white-space:nowrap;}
   .li-act{flex:1;padding:4px 0;font-size:11px;letter-spacing:1px;border-radius:8px;border:1px solid rgba(63,125,94,.45);background:rgba(63,125,94,.16);color:#2f7a55;cursor:pointer;font-family:"STKaiti","KaiTi",serif;}
   .li-act:active{background:rgba(63,125,94,.3);}
   .li-cmp{margin-top:5px;font-size:11px;line-height:1.4;border-top:1px dashed rgba(60,40,30,.18);padding-top:5px;}
@@ -1647,6 +1653,9 @@
   .pcell-tag{position:absolute;left:3px;top:2px;font-size:9px;line-height:1.2;padding:1px 4px;border-radius:6px;pointer-events:none;z-index:3;white-space:nowrap;}
   .pcell-tag.pcell-buy{color:#eaf3dc;background:rgba(70,100,50,.72);}
   .pcell-tag.pcell-sell{color:#f6e0d8;background:rgba(140,80,55,.72);}
+  /* 待结算占位上的直接取消按钮（✕），始终可达，不必先点开浮框 */
+  .pcell-x{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;border:1px solid rgba(176,69,30,.65);background:rgba(176,69,30,.9);color:#fff;font-size:10px;line-height:14px;text-align:center;padding:0;cursor:pointer;z-index:5;font-family:inherit;}
+  .pcell-x:active{transform:scale(.9);}
   .shop-good{position:relative;}
   .shop-good.pcell-pending{background:repeating-linear-gradient(45deg,rgba(255,255,255,.16),rgba(255,255,255,.16) 6px,rgba(255,255,255,.08) 6px,rgba(255,255,255,.08) 12px);border:1px dashed rgba(196,164,102,.5);}
   .shop-badge{font-size:11px;color:#efe1bd;background:rgba(120,90,50,.32);border:1px solid rgba(196,164,102,.4);border-radius:10px;padding:2px 8px;flex:0 0 auto;}
@@ -1989,7 +1998,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260830j"></script>
+<script src="shared/config/constants.js?v=20260830k"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2004,7 +2013,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/data/items.js?v=20260829aj"></script>
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
-    <script src="shared/data/shops.js?v=20260829aj"></script>
+    <script src="shared/data/shops.js?v=20260830k"></script>
     <script src="shared/data/map.js?v=20260827f"></script>
     <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
@@ -5912,7 +5921,8 @@ window.onerror=function(msg,url,line,col,err){
       goodsHTML+='<div class="shop-good pcell-pending pcell-sell'+(shopSellSel===si?' pcell-sel':'')+'" data-sellp="'+si+'">'
         + '<div class="sg-name '+sgFontSize(d.name)+'">'+d.name+'</div>'
         + '<div class="sg-buy">+'+fmtPrice(p.price)+'</div>'
-        + '<span class="pcell-tag pcell-sell">待售×'+p.count+'</span></div>';
+        + '<span class="pcell-tag pcell-sell">待售×'+p.count+'</span>'
+        + '<button class="pcell-x" type="button" data-cx="sell" data-ci="'+si+'" title="取回">✕</button></div>';
     });
     // 右栏：玩家行囊真实物品（不渲染空格，避免塞入占位后视觉错位）+ 待付占位（灰态）
     var grid='';
@@ -5928,7 +5938,8 @@ window.onerror=function(msg,url,line,col,err){
       grid+='<div class="packcell pcell-pending pcell-buy'+(shopBuySel===bi?' pcell-sel':'')+'" data-buyp="'+bi+'">'
         + '<div class="pcell-ic">'+itemIconHTML(d,13)+'</div>'
         + '<span class="pcell-cnt">'+p.count+'</span>'
-        + '<span class="pcell-tag pcell-buy">待付</span></div>';
+        + '<span class="pcell-tag pcell-buy">待付</span>'
+        + '<button class="pcell-x" type="button" data-cx="buy" data-ci="'+bi+'" title="取消">✕</button></div>';
     });
     var bn=shopBuyPending.reduce(function(s,p){return s+p.price*p.count;},0);
     var sn=shopSellPending.reduce(function(s,p){return s+p.price*p.count;},0);
@@ -6004,14 +6015,17 @@ window.onerror=function(msg,url,line,col,err){
       if(r){
         var def=LF.ITEMS[r.id]||{};
         var ic=def.icon?('<span style="font-size:15px;">'+def.icon+'</span> '):'';
-        var price=r.buy; var maxGold=Math.floor(state.gold/price); var maxSpace=buySpaceLimit(r.id); var max=Math.min(maxGold, maxSpace);
+        var price=r.buy; var max=buyMaxNow(r.id);
         var h='<div class="li-name">'+ic+(def.name||r.id)+'</div>';
         h+='<div class="li-cat">'+(def.cat||'货')+'</div>';
-        h+='<div class="li-line">买价 '+fmtPrice(price)+' 两'+(max>0?(' · 可买 '+max+' 件'):'')+'</div>';
+        h+='<div class="li-line">买价 '+fmtPrice(price)+' 两'+(max>0?(' · 最多 '+max+' 件'):'')+'</div>';
         if(def.desc) h+='<div class="li-line" style="opacity:.85">'+def.desc+'</div>';
         if(max<=0) h+='<div class="li-line" style="opacity:.7">银两或行囊不足。</div>';
-        else { var qs=[1,5,10].filter(function(q){ return q<=max; }); if(qs.indexOf(max)<0) qs.push(max);
-          h+='<div class="li-acts">'+qs.map(function(q){ return '<button class="li-act" data-buyq="'+q+'" data-buyid="'+r.id+'">×'+q+'</button>'; }).join('')+'</div>'; }
+        else {
+          h+=qtyRow(max);
+          h+='<div class="li-acts"><button class="li-act" data-buygo="1" data-buyid="'+r.id+'">加入待付</button>'
+            + '<button class="li-act" data-buygo="max" data-buyid="'+r.id+'">填满</button></div>';
+        }
         return h;
       }
     }
@@ -6037,8 +6051,9 @@ window.onerror=function(msg,url,line,col,err){
     if(it.maxDur) h+='<div class="li-line">耐久 '+it.dur+'/'+it.maxDur+'</div>';
     if(it.desc) h+='<div class="li-line" style="opacity:.85">'+it.desc+'</div>';
     if(spr!=null){
-      var qs=[1]; if(it.count>1) qs.push(it.count);
-      h+='<div class="li-acts">'+qs.map(function(n){ return '<button class="li-act" data-sellq="'+n+'" data-selli="'+shopSel+'">'+((n===1)?'寄售×1':('全寄售×'+it.count))+'</button>'; }).join('')+'</div>';
+      var mx=it.count;
+      h+=qtyRow(mx);
+      h+='<div class="li-acts"><button class="li-act" data-sellgo="1" data-selli="'+shopSel+'">寄售</button></div>';
     } else {
       h+='<div class="li-line" style="opacity:.7">货郎不收此物。</div>';
     }
@@ -6049,6 +6064,11 @@ window.onerror=function(msg,url,line,col,err){
     var f=document.getElementById('shop-float');
     if(!f){ f=document.createElement('div'); f.className='loot-info'; f.id='shop-float'; document.body.appendChild(f); }
     f.innerHTML=html; f.style.display='block'; positionShopFloat(f);
+    // 数量步进器：− / ＋ 调整数字输入，超出上限自动夹取
+    f.querySelectorAll('.li-step').forEach(function(b){ b.onclick=function(){ var inp=f.querySelector('.li-qin'); if(!inp) return; var max=parseInt(inp.getAttribute('data-max'),10)||1; var v=parseInt(inp.value,10)||1; v=Math.max(1,Math.min(max, v+parseInt(b.getAttribute('data-step'),10))); inp.value=v; }; });
+    f.querySelectorAll('.li-qin').forEach(function(inp){ inp.oninput=function(){ var max=parseInt(inp.getAttribute('data-max'),10)||1; var v=parseInt(inp.value,10); if(isNaN(v)||v<1) v=1; if(v>max) v=max; inp.value=v; }; });
+    f.querySelectorAll('[data-buygo]').forEach(function(b){ b.onclick=function(){ var inp=f.querySelector('.li-qin'); var max=parseInt((inp&&inp.getAttribute('data-max'))||'0',10); var q=(b.getAttribute('data-buygo')==='max')?max:(parseInt(inp&&inp.value,10)||1); addBuyPending(b.getAttribute('data-buyid'), q); }; });
+    f.querySelectorAll('[data-sellgo]').forEach(function(b){ b.onclick=function(){ var inp=f.querySelector('.li-qin'); var q=Math.max(1, parseInt(inp&&inp.value,10)||1); addSellPending(parseInt(b.getAttribute('data-selli'),10), q); }; });
     f.querySelectorAll('[data-buyq]').forEach(function(b){ b.onclick=function(){ var q=parseInt(b.getAttribute('data-buyq'),10); if(q<=0){ showShopFloat(); return; } addBuyPending(b.getAttribute('data-buyid'), q); }; });
     f.querySelectorAll('[data-sellq]').forEach(function(b){ b.onclick=function(){ addSellPending(parseInt(b.getAttribute('data-selli'),10), parseInt(b.getAttribute('data-sellq'),10)); }; });
     f.querySelectorAll('[data-cancel]').forEach(function(b){ b.onclick=function(){ if(b.getAttribute('data-cancel')==='buy') removeBuyPending(parseInt(b.getAttribute('data-ci'),10)); else removeSellPending(parseInt(b.getAttribute('data-ci'),10)); }; });
@@ -6062,6 +6082,7 @@ window.onerror=function(msg,url,line,col,err){
     card.querySelectorAll('[data-shop],[data-sellp]').forEach(function(el){
       el.onclick=function(){
         if(el.__dragMoved){ el.__dragMoved=false; return; }
+        if(e.target.closest('.pcell-x')) return;
         shopSel=null; shopBuySel=null; clearSel('.shop-right .packcell'); clearSel('[data-sellp]'); clearSel('[data-shop]');
         var sid=el.getAttribute('data-shop'), sp=el.getAttribute('data-sellp');
         if(sid!=null) shopGoodSel=sid; else if(sp!=null) shopSellSel=parseInt(sp,10);
@@ -6078,6 +6099,7 @@ window.onerror=function(msg,url,line,col,err){
     card.querySelectorAll('.shop-right [data-loc],.shop-right [data-buyp]').forEach(function(el){
       el.onclick=function(){
         if(el.__dragMoved){ el.__dragMoved=false; return; }
+        if(e.target.closest('.pcell-x')) return;
         shopGoodSel=null; shopSellSel=null; clearSel('[data-shop]'); clearSel('[data-sellp]'); clearSel('.shop-right .packcell');
         var loc=el.getAttribute('data-loc'), bp=el.getAttribute('data-buyp');
         if(loc!=null){ var idx=parseInt(loc.split(':')[1],10); shopSel=(state.pack[idx])?idx:null; }
@@ -6105,6 +6127,7 @@ window.onerror=function(msg,url,line,col,err){
     card.querySelectorAll('.shop-right [data-loc],.shop-right [data-buyp]').forEach(function(el){
       el.onpointerdown=function(e){
         if(e.pointerType==='mouse') return;
+        if(e.target.closest('.pcell-x')) return;
         var loc=el.getAttribute('data-loc'), bp=el.getAttribute('data-buyp');
         if(loc!=null){ var idx=parseInt(loc.split(':')[1],10); if(!state.pack[idx]) return; startDrag('sell', idx, el, e); }
         else if(bp!=null) startDrag('buyp', parseInt(bp,10), el, e);
@@ -6141,6 +6164,8 @@ window.onerror=function(msg,url,line,col,err){
     card.onpointercancel=function(e){ endDrag(e,true); };
     var ok=document.getElementById('trade-ok'); if(ok) ok.onclick=function(){ confirmTrade(); };
     var lv=document.getElementById('m-leave'); if(lv) lv.onclick=function(){ restoreTradePending(); closeModal(); };
+    // 待结算占位上的直接「✕」取消（始终可达，不必先点开浮框）
+    card.querySelectorAll('.pcell-x').forEach(function(x){ x.onclick=function(e){ e.stopPropagation(); var ci=parseInt(x.getAttribute('data-ci'),10); if(x.getAttribute('data-cx')==='buy') removeBuyPending(ci); else removeSellPending(ci); }; });
     card.onpointerdown=function(e){
       if(e.target.closest('.shop-good') || e.target.closest('.shop-right .packcell') || e.target.closest('#shop-float')) return;
       var f=document.getElementById('shop-float'); if(f) f.style.display='none';
@@ -6157,6 +6182,23 @@ window.onerror=function(msg,url,line,col,err){
     }
     var empt=0; for(var i=0;i<state.pack.length;i++){ if(!state.pack[i]) empt++; }
     return empt;
+  }
+  // 某货品本笔交易「当前最多还能买几件」：减去已加入待付的部分（金币 + 行囊共同限制）
+  function buyMaxNow(id){
+    var shop=LF.SHOPS[shopState]; var r=null; if(shop) shop.items.forEach(function(x){ if(x.id===id) r=x; });
+    if(!r||!r.buy) return 0;
+    var used=0; shopBuyPending.forEach(function(p){ used+=p.price*p.count; });
+    var maxByGold=Math.floor((state.gold-used)/r.buy);
+    var maxBySpace=buySpaceLimit(id)-buyPendingCount(id);
+    return Math.max(0, Math.min(maxByGold, maxBySpace));
+  }
+  // 详情浮框里的数量步进器（− 数字 +），data-max 为上限
+  function qtyRow(max){
+    return '<div class="li-qty">'
+      + '<button class="li-step" type="button" data-step="-1">−</button>'
+      + '<input class="li-qin" type="number" inputmode="numeric" min="1" max="'+max+'" value="1" data-max="'+max+'">'
+      + '<button class="li-step" type="button" data-step="1">＋</button>'
+      + '<span class="li-qmax">/ '+max+'</span></div>';
   }
 
 
