@@ -225,7 +225,7 @@
       function clearSel(sel) { card.querySelectorAll(sel).forEach(function (c) { c.classList.remove('pcell-sel'); }); }
       // 左栏：真货点选 / sell 占位点选（数据驱动，统一处理）
       card.querySelectorAll('[data-shop],[data-sellp]').forEach(function (el) {
-        el.onclick = function () {
+        el.onclick = function (e) {
           if (el.__dragMoved) { el.__dragMoved = false; return; }
           if (e.target.closest('.pcell-x')) return;
           shopSel = null; shopBuySel = null; clearSel('.shop-right .packcell'); clearSel('[data-sellp]'); clearSel('[data-shop]');
@@ -242,7 +242,7 @@
       });
       // 右栏：真物点选 / buy 占位点选
       card.querySelectorAll('.shop-right [data-loc],.shop-right [data-buyp]').forEach(function (el) {
-        el.onclick = function () {
+        el.onclick = function (e) {
           if (el.__dragMoved) { el.__dragMoved = false; return; }
           if (e.target.closest('.pcell-x')) return;
           shopGoodSel = null; shopSellSel = null; clearSel('[data-shop]'); clearSel('[data-sellp]'); clearSel('.shop-right .packcell');
