@@ -1205,7 +1205,7 @@
     filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));opacity:.92;}
   .loot-info{position:fixed;z-index:80;min-width:88px;max-width:184px;max-height:28vh;overflow-y:auto;background:var(--paper);border:1px solid rgba(60,40,30,.28);
     border-radius:8px;padding:6px 7px;box-shadow:0 8px 24px rgba(40,28,16,.3);font-family:"STKaiti","KaiTi",serif;text-align:left;font-size:11px;overflow-wrap:break-word;word-break:break-word;}
-  .li-acts{display:flex;gap:5px;margin-top:5px;position:sticky;bottom:0;background:var(--paper);padding-top:4px;border-top:1px solid rgba(60,40,30,.14);}
+  .li-acts{display:flex;gap:5px;margin-top:5px;position:sticky;bottom:0;background:#f8f2e4;padding-top:5px;border-top:1px solid rgba(60,40,30,.18);box-shadow:0 -4px 8px -4px rgba(0,0,0,.22);z-index:2;}
   .li-act{flex:1;padding:4px 0;font-size:11px;letter-spacing:1px;border-radius:8px;border:1px solid rgba(63,125,94,.45);background:rgba(63,125,94,.16);color:#2f7a55;cursor:pointer;font-family:"STKaiti","KaiTi",serif;}
   .li-act:active{background:rgba(63,125,94,.3);}
   .li-cmp{margin-top:5px;font-size:11px;line-height:1.4;border-top:1px dashed rgba(60,40,30,.18);padding-top:5px;}
@@ -1640,6 +1640,16 @@
   .shop-foot{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin-top:8px;}
   .shop-foot .btn{flex:0 0 auto;}
   .shop-hint{font-size:12px;color:#bfae8a;flex:1 1 auto;text-align:right;}
+  /* 货郎非即时交易购物车条（不新增栏位，置于底部 foot 内） */
+  .shop-cart{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed rgba(196,164,102,.35);}
+  .shop-cart-empty{font-size:12px;color:#bfae8a;}
+  .sc-items{display:flex;flex-wrap:wrap;gap:4px;}
+  .sc-item{font-size:12px;background:rgba(36,24,12,.5);border:1px solid rgba(196,164,102,.4);border-radius:10px;padding:2px 8px;cursor:pointer;}
+  .sc-item b{margin-left:4px;color:#e0796f;font-weight:700;}
+  .sc-bar{display:flex;gap:6px;align-items:center;margin-left:auto;}
+  .sc-bar b{font-size:13px;}
+  .sc-neg{color:#e0796f;}
+  .sc-pos{color:#7fdc9a;}
   @media (max-width:560px){
     /* 行囊：保持「装备在左、物品在右」左右布局；装备图缩小、属性面板限高、物品区独立滚动，杜绝裁切/换行成上下 */
     .pack-main{flex-direction:row;gap:8px;}
@@ -1970,7 +1980,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260830e"></script>
+<script src="shared/config/constants.js?v=20260830f"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -5851,6 +5861,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   // 货郎商店数据已外置到 shared/data/shops.js（详见 LF.SHOPS.build_pedlar），便于调价与扩展
   var shopState='build_pedlar';
+  var shopCart={buy:[],sell:[]};
   var shopSel=null;
   var shopGoodSel=null;
   // 取某物在货郎处的「收购价」（货郎不收 / 收购价<=0 时返回 null）
@@ -5904,7 +5915,7 @@ window.onerror=function(msg,url,line,col,err){
       +   '<div class="shop-left" data-sellzone><div class="shop-pane-title">货郎的货 · 点按购入</div><div class="shop-scroll"><div class="shop-goods-grid">'+goodsGrid+'</div></div></div>'
       +   '<div class="shop-right"><div class="shop-pane-title">你的行囊</div><div class="shop-scroll"><div class="pack-grid">'+grid+'</div></div></div>'
       + '</div>'
-      + '<div class="shop-foot"><button class="btn" id="m-leave">告 辞</button><span class="shop-hint">点选物品看详情 · 拖到对侧即可买卖</span></div>'
+      + '<div class="shop-foot"><button class="btn" id="m-leave">告 辞</button><span class="shop-hint">拖到对侧加入交易，确认后结算</span><div class="shop-cart" id="shop-cart">'+renderShopCart()+'</div></div>'
       + '</div>';
   }
   // 货郎详情：与战利品栏同一套 .loot-info 浮框 + .li-* 内容
@@ -5940,11 +5951,8 @@ window.onerror=function(msg,url,line,col,err){
     if(it.maxDur) h+='<div class="li-line">耐久 '+it.dur+'/'+it.maxDur+'</div>';
     if(it.desc) h+='<div class="li-line" style="opacity:.85">'+it.desc+'</div>';
     if(sp!=null){
-      if(pendingSell && pendingSell.idx===shopSel){
-        h+='<div class="li-acts"><button class="li-act" style="background:rgba(176,69,30,.18);border-color:rgba(176,69,30,.55);color:#b0451e;" onclick="LFUI.confirmSell('+shopSel+','+pendingSell.n+')">确认出售</button><button class="li-act" onclick="LFUI.cancelSell()">取 消</button></div>';
-      } else {
-        h+='<div class="li-acts"><button class="li-act" onclick="LFUI.confirmSell('+shopSel+',1)">出售×1</button>'+(it.count>1?'<button class="li-act" onclick="LFUI.confirmSell('+shopSel+','+it.count+')">全售×'+it.count+'</button>':'')+'</div>';
-      }
+      var qs=[1]; if(it.count>1) qs.push(it.count);
+      h+='<div class="li-acts">'+qs.map(function(n){ return '<button class="li-act" onclick="LFUI.addToSell(\''+it.defId+'\','+n+')">'+((n===1)?'售×1':('全售×'+it.count))+'</button>'; }).join('')+'</div>';
     } else {
       h+='<div class="li-line" style="opacity:.7">货郎不收此物。</div>';
     }
@@ -6043,14 +6051,14 @@ window.onerror=function(msg,url,line,col,err){
       var d=dragging; dragging=null;
       if(ghost){ ghost.remove(); ghost=null; }
       if(!d || !moved || cancelled) return;
+      var L=card.querySelector('.shop-left'), R=card.querySelector('.shop-right');
       if(d.kind==='sell'){
-        var L=card.querySelector('.shop-left'); if(!L) return;
-        var r=L.getBoundingClientRect();
-        if(e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom) sellToShop(d.payload,1);
+        if(inRect(e,L)) addToSell(state.pack[d.payload]?state.pack[d.payload].defId:null, 1);
       } else if(d.kind==='buy'){
-        var R=card.querySelector('.shop-right'); if(!R) return;
-        var rr=R.getBoundingClientRect();
-        if(e.clientX>=rr.left && e.clientX<=rr.right && e.clientY>=rr.top && e.clientY<=rr.bottom) buyFromShop(d.payload);
+        if(inRect(e,R)) addToBuy(d.payload, 1);
+      } else if(d.kind==='pack'){
+        if(inRect(e,L)){ var it=state.pack[d.idx]; if(it) addToSell(it.defId, 1); }
+        else if(inRect(e,R)){ $card.innerHTML=renderShopPanel(); bindShopPanel(); showShopFloat(); }
       }
     }
     card.onpointerup=function(e){ endDrag(e,false); };
@@ -6329,6 +6337,17 @@ window.onerror=function(msg,url,line,col,err){
     if(from.kind==='equip' && to.kind==='pack'){ unequipToPack(from.slot, to.idx); return; }
   }
   function equipFromPackTo(idx,slot){ movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); }
+  // 行囊内拖拽排序：仅轻量刷新网格，保留滚动条位置、避免整窗重渲染卡顿
+  function swapPackCells(a,b){
+    if(locEq(a,b)) return;
+    var s=state.pack[a.idx], d=state.pack[b.idx];
+    state.pack[b.idx]=s; state.pack[a.idx]=d;
+    if(typeof save==='function') save(state);
+    renderStatus();
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var sc=card.querySelector('.pack-scroll'); var grid=sc&&sc.querySelector('.pack-grid');
+    if(sc && grid){ grid.innerHTML=renderPackGrid(); if(typeof bindPackInteractions==='function') bindPackInteractions(card); }
+  }
   function unequipToPack(slot,toIdx){
     var eq=state.equipment[slot]; if(!eq) return;
     // 卸下会缩减容量（如背囊/腰包提供 packSpace），若卸下后装不下则禁止，避免丢物或状态不一致
@@ -6376,9 +6395,22 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   var packInspect=null;
+  function inspCls(loc){ return (packInspect && locEq(packInspect,loc))?' pcell-insp':''; }
+  function renderPackGrid(){
+    var grid='';
+    for(var i=0;i<state.pack.length;i++){
+      var it=state.pack[i];
+      if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
+      var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
+      var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
+      grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
+            + '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'
+            + cnt + qb + '</div>';
+    }
+    return grid;
+  }
   function renderPack(){
-    function inspCls(loc){ return (packInspect && locEq(packInspect,loc))?' pcell-insp':''; }
-    // 卡通矮小人形（SVG 仅作底图，装备格绝对定位到对应部位）
+  // 卡通矮小人形（SVG 仅作底图，装备格绝对定位到对应部位）
     var sil = '<svg class="equip-sil" viewBox="0 0 124 130" preserveAspectRatio="xMidYMid meet">'
       + '<g fill="rgba(186,160,220,.2)" stroke="rgba(200,172,236,.75)" stroke-width="1.6">'
       + '<circle cx="62" cy="22" r="19"/>'
@@ -6573,7 +6605,7 @@ window.onerror=function(msg,url,line,col,err){
       var tgt=document.elementFromPoint(e.clientX,e.clientY);
       while(tgt && tgt!==card && !tgt.getAttribute('data-loc')) tgt=tgt.parentNode;
       var to=parseLoc(tgt?tgt.getAttribute('data-loc'):null);
-      if(to) movePackItem(from,to);
+      if(to) swapPackCells(from,to);
     }
     card.onpointerup=function(e){ endDrag(e,false); };
     card.onpointercancel=function(e){ endDrag(e,true); };
@@ -6603,7 +6635,7 @@ window.onerror=function(msg,url,line,col,err){
   function closeInspect(){ packInspect=null; openModal('pack'); }
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
   window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort,
-    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect, showBuyPanel:showBuyPanel, confirmSell:confirmSell, cancelSell:cancelSell, sellToShop:sellToShop, buyFromShop:buyFromShop, shopSell1:shopSell1, shopSellAll:shopSellAll, renderShopPanel:renderShopPanel, bindShopPanel:bindShopPanel,
+    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect, showBuyPanel:showBuyPanel, confirmSell:confirmSell, cancelSell:cancelSell, sellToShop:sellToShop, buyFromShop:buyFromShop, shopSell1:shopSell1, shopSellAll:shopSellAll, renderShopPanel:renderShopPanel, bindShopPanel:bindShopPanel, addToBuy:addToBuy, addToSell:addToSell, removeCart:removeCart, clearCart:clearCart, confirmCheckout:confirmCheckout,
     dismissCompanion:dismissCompanion };
   // 滚动/缩放时收起货郎与行囊浮框，避免遮挡（与战利品栏一致；只注册一次）
   window.addEventListener('scroll', function(e){
@@ -7603,7 +7635,7 @@ window.onerror=function(msg,url,line,col,err){
       h=renderCraftPanel();
     } else if(kind==='shop'){
       if(opts && opts.shop) shopState=opts.shop;
-      shopSel=null; shopGoodSel=null;
+      shopSel=null; shopGoodSel=null; shopCart={buy:[],sell:[]};
       h=renderShopPanel();
     } else if(kind==='build'){
       if(opts && opts.site) buildState.site = opts.site;
