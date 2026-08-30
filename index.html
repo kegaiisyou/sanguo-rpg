@@ -1968,7 +1968,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260830a"></script>
+<script src="shared/config/constants.js?v=20260830b"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -6451,73 +6451,53 @@ window.onerror=function(msg,url,line,col,err){
       + '</div></div>';
   }
   // 物品详情面板：单击物品后展示属性 / 耐久 / 使用效果 / 描述
+  // 行囊属性浮框：与战利品栏同一套 .loot-info 浅色纸 + .li-* 内容；操作按钮放末尾，避免挤压文字
   function renderPackInspect(){
-    if(!packInspect){
-      return '<div class="pack-inspect pack-inspect-empty">点选物品，可查看其属性、耐久与使用之效。</div>';
-    }
+    if(!packInspect) return '<div class="li-name">行囊</div><div class="li-line">点选物品，可查看其属性、耐久与使用之效。</div>';
     var it = packGet(packInspect);
-    if(!it){ packInspect=null; return '<div class="pack-inspect pack-inspect-empty">点选物品，可查看其属性、耐久与使用之效。</div>'; }
+    if(!it){ packInspect=null; return '<div class="li-name">行囊</div><div class="li-line">点选物品，可查看其属性、耐久与使用之效。</div>'; }
     var q = LF.ITEMS.QMAP[it.quality] || {name:'凡品',color:'#9a948a'};
     var qname = it.qualityName || q.name;
-    var qcolor = it.qualityColor || q.color;
-    // 操作按钮（内置于名称右侧空位，精简文字）
-    var act='';
+    var h='<div class="li-name">'+itemIconHTML(it,15)+' '+it.name+'</div>';
+    h+='<div class="li-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+qname):'')+(it.count>1?(' · ×'+it.count):'')+'</div>';
     if(it.cat==='装备'){
-      if(packInspect.kind==='equip') act += '<button class="btn-mini" onclick="LFUI.unequipInspect()">卸下</button>';
-      else act += '<button class="btn-mini" onclick="LFUI.equipInspect()">装备</button>';
-    } else {
-      if(it.effect) act += '<button class="btn-mini" onclick="LFUI.useInspect()">使用</button>';
-      var canPlace = it.placeable || (LF.ITEMS[it.defId]||{}).placeable || (LF.ITEMS[it.defId]||{}).place;
-      var isBlueprint = !!(LF.ITEMS[it.defId]||{}).blueprint;
-      if(canPlace || isBlueprint) act += '<button class="btn-mini" onclick="LFUI.placeInspect()">'+(isBlueprint?'依图':'放置')+'</button>';
-    }
-    var html = '<div class="pack-inspect">';
-    html += '<div class="pi-head"><div class="pi-titles"><div class="pi-name">'+itemIconHTML(it, 15)+'</div>'
-          + '<div class="pi-meta"><span class="pi-cat">'+it.cat+'</span>'
-          + '<span class="pi-quality" style="color:'+qcolor+'">'+qname+'</span>'
-          + (it.count>1?('<span class="pi-count">×'+it.count+'</span>'):'') + '</div></div>'
-          + (act?'<div class="pi-acts">'+act+'</div>':'')+'</div>';
-    var facts=[];
-    if(it.cat==='装备'){
-      if(it.slot && LF.ITEMS.SLOTS[it.slot]) facts.push('<span>部位·'+LF.ITEMS.SLOTS[it.slot].label+'</span>');
-      var cur = (packInspect.kind==='pack' && state.equipment && it.slot) ? state.equipment[it.slot] : null;
       var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
       var parts=[];
-      fields.forEach(function(f){
-        var v=it[f[0]]||0; if(!v) return;
-        var s=f[1]+' +'+v;
-        if(cur){ var cv=cur[f[0]]||0, d=v-cv;
-          if(d>0) s+=' <span class="pi-up">▲'+d+'</span>';
-          else if(d<0) s+=' <span class="pi-down">▼'+(0-d)+'</span>';
-          else s+=' <span class="pi-same">＝</span>';
-        }
-        s+='</span>';
-        parts.push(s);
-      });
-      if(parts.length) facts.push('<span class="pi-attrs">'+parts.join(' · ')+'</span>');
-      if(it.packSpace) facts.push('<span class="pi-eff">空间 +'+it.packSpace+'</span>');
-      if(it.maxDur){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); facts.push('<span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+'/'+it.maxDur+'</span>'); }
+      fields.forEach(function(f){ var v=it[f[0]]||0; if(v) parts.push(f[1]+' +'+v); });
+      if(parts.length) h+='<div class="li-line">'+parts.join(' · ')+'</div>';
+      if(it.packSpace) h+='<div class="li-line">空间 +'+it.packSpace+'</div>';
     }
+    if(it.maxDur){ h+='<div class="li-line">耐久 '+it.dur+' / '+it.maxDur+'</div>'; }
     if(it.effect){
-      var effs=[];
-      if(it.effect.hp) effs.push('疗伤 +'+it.effect.hp);
-      if(it.effect.mp) effs.push('复内 +'+it.effect.mp);
-      if(it.effect.food) effs.push('充饥 +'+it.effect.food);
-      if(it.effect.drink) effs.push('解渴 +'+it.effect.drink);
-      if(effs.length) facts.push('<span class="pi-eff">'+effs.join(' · ')+'</span>');
+      var e=it.effect, t=[];
+      if(e.hp) t.push('疗伤 +'+e.hp);
+      if(e.mp) t.push('复内 +'+e.mp);
+      if(e.food) t.push('充饥 +'+e.food);
+      if(e.drink) t.push('解渴 +'+e.drink);
+      if(e.dmg) t.push('伤害 +'+e.dmg);
+      if(t.length) h+='<div class="li-line">'+t.join(' · ')+'</div>';
     }
-    if(it.maxDur && it.cat!=='装备'){ var pct=Math.max(0,Math.round((it.dur/it.maxDur)*100)); facts.push('<span class="pi-dur"><span class="pi-dur-bar"><i style="width:'+pct+'%"></i></span>'+it.dur+' / '+it.maxDur+'</span>'); }
-    if(facts.length) html += '<div class="pi-facts">'+facts.join('')+'</div>';
-    if(it.desc) html += '<div class="pi-desc">'+it.desc+'</div>';
-    html += '</div>';
-    return html;
+    if(it.desc) h+='<div class="li-line" style="opacity:.85">'+it.desc+'</div>';
+    if(it.cat==='装备') h+=compareEquip(it);
+    // 操作按钮统一置于末尾
+    var acts='';
+    if(packInspect.kind==='equip') acts+='<button class="li-act" onclick="LFUI.unequipInspect()">卸 下</button>';
+    else {
+      if(it.cat==='装备') acts+='<button class="li-act" onclick="LFUI.equipInspect()">装 备</button>';
+      if(it.effect) acts+='<button class="li-act" onclick="LFUI.useInspect()">使 用</button>';
+      var canPlace=it.placeable||(LF.ITEMS[it.defId]||{}).placeable||(LF.ITEMS[it.defId]||{}).place;
+      var isBlueprint=!!(LF.ITEMS[it.defId]||{}).blueprint;
+      if(canPlace||isBlueprint) acts+='<button class="li-act" onclick="LFUI.placeInspect()">'+(isBlueprint?'依 图':'放 置')+'</button>';
+    }
+    if(acts) h+='<div class="li-acts">'+acts+'</div>';
+    return h;
   }
   function parseLoc(s){ if(!s) return null; var p=s.split(':'); if(p[0]==='pack') return {kind:'pack',idx:parseInt(p[1],10)}; if(p[0]==='equip') return {kind:'equip',slot:p[1]}; return null; }
   // 将行囊浮层详情框定位到被选中格子旁边（与战利品栏同一套视觉）
   function showPackFloat(){
     if(!packInspect) return;
     var f=document.getElementById('pack-float');
-    if(!f){ f=document.createElement('div'); f.className='pack-float-box'; f.id='pack-float'; document.body.appendChild(f); }
+    if(!f){ f=document.createElement('div'); f.className='loot-info'; f.id='pack-float'; document.body.appendChild(f); }
     f.innerHTML=renderPackInspect(); f.style.display='block';
     var a=document.querySelector('.pcell-insp'); if(!a){ f.style.display='none'; return; }
     var ar=a.getBoundingClientRect();
