@@ -35,7 +35,16 @@
         { id: 'tiejian',      buy: 90, sell: 35 },
         { id: 'shutong',      buy: 28, sell: 10 },
         { id: 'pibao',        buy: 50, sell: 20 },
-        { id: 'caiyaobiluo',  buy: 45, sell: 18 }
+        { id: 'caiyaobiluo',  buy: 45, sell: 18 },
+        // —— 东汉风新增：石器兵器 / 竹器 / 兽皮蛇类掉落物（buy:0 表示仅可寄售，不在货架陈列）——
+        { id: 'shidao',  buy: 35, sell: 14 },
+        { id: 'gumao',   buy: 55, sell: 22 },
+        { id: 'mugong',  buy: 45, sell: 18 },
+        { id: 'zhujia',  buy: 60, sell: 24 },
+        { id: 'zhujian', buy: 8,  sell: 3  },
+        { id: 'maopi',   buy: 0,  sell: 6  },
+        { id: 'shedan',  buy: 0,  sell: 10 },
+        { id: 'shepi',   buy: 0,  sell: 8  }
       ]
     },
     doctor: {

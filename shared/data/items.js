@@ -107,7 +107,16 @@
     // —— 显示测试专用：全属性加成的饰品 ——
     ceshizhizhu: { defId: 'ceshizhizhu', name: '测试之珠', icon: '🔮', cat: '装备', slot: 'trinket',
       stats: { atk: 18, def: 16, spd: 12, hp: 120, mp: 80, wuxing: 8 }, quality: 'orange',
-      desc: '专供界面测试的饰品：攻防身法、气血内力、乃至悟性，诸般属性皆有所加，以观多属性之排版效果。' }
+      desc: '专供界面测试的饰品：攻防身法、气血内力、乃至悟性，诸般属性皆有所加，以观多属性之排版效果。' },
+    // —— 东汉风新增：兽皮 / 蛇类 / 竹器 / 石器兵器 ——
+    maopi:   { defId: 'maopi',   name: '毛皮',     icon: '🐾', cat: '素材', desc: '猎获野兽剥下的毛皮，可缝衣制甲，亦能售与行商。' },
+    shedan:  { defId: 'shedan',  name: '蛇胆',     icon: '🟢', cat: '素材', desc: '蛇类肝胆，据闻可入药驱风，行商高价收之。' },
+    shepi:   { defId: 'shepi',   name: '蛇皮',     icon: '🐍', cat: '素材', desc: '蜕落或剥取的蛇皮，韧而轻，可制囊裹。' },
+    zhujian: { defId: 'zhujian', name: '竹简',     icon: '📜', cat: '素材', desc: '削竹为简、韦编成册，可录文记事，亦为营造图样之材。' },
+    shidao:  { defId: 'shidao',  name: '石刀',     icon: '🔪', cat: '装备', slot: 'weapon', stats: { atk: 3 }, quality: 'white', desc: '粗砺的石刃绑于木柄，劈砍虽钝，聊备防身。' },
+    gumao:   { defId: 'gumao',   name: '骨矛',     icon: '🗡️', cat: '装备', slot: 'weapon', stats: { atk: 5 }, quality: 'white', desc: '兽骨削尖为矛，锋锐胜于木棒，可刺可挑。' },
+    mugong:  { defId: 'mugong',  name: '木弓',     icon: '🏹', cat: '装备', slot: 'weapon', stats: { atk: 4 }, quality: 'white', desc: '竹木弯就的猎弓，远可射禽兽，近亦可格。' },
+    zhujia:  { defId: 'zhujia',  name: '竹制铠甲', icon: '🛡️', cat: '装备', slot: 'cloth', stats: { def: 2 }, quality: 'white', desc: '竹片编缀而成的铠甲，轻便耐磨，可挡寻常刀石（防御 +2）。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }

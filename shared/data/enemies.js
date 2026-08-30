@@ -204,7 +204,7 @@
           eff: { selfBuff: { atk: 5, spd: 4, turns: 2 } } }
       ],
       ai: 'aggressive',
-      drop: { gold: [5, 15], pot: [3, 8], table: [{ item: 'shengrou', name: '生肉', weight: 25 }], equip: { tier: 1, chance: 20 } }
+      drop: { gold: [5, 15], pot: [3, 8], table: [{ item: 'shengrou', name: '生肉', weight: 25 }, { item: 'maopi', name: '毛皮', weight: 30 }], equip: { tier: 1, chance: 20 } }
     },
     wild_boar: {
       id: 'wild_boar', name: '野猪', title: '山林蛮猪',
@@ -215,7 +215,7 @@
         { id: 'gore', name: '挑刺', beat: 30, dmgMul: 1.0, desc: '獠牙上挑' }
       ],
       ai: 'aggressive',
-      drop: { gold: [6, 18], pot: [3, 9], table: [{ item: 'shengrou', name: '生肉', weight: 30 }, { item: 'tiekuangshi', name: '铁矿石', weight: 8 }], equip: { tier: 1, chance: 18 } }
+      drop: { gold: [6, 18], pot: [3, 9], table: [{ item: 'shengrou', name: '生肉', weight: 30 }, { item: 'tiekuangshi', name: '铁矿石', weight: 8 }, { item: 'maopi', name: '毛皮', weight: 25 }], equip: { tier: 1, chance: 18 } }
     },
     venom_snake: {
       id: 'venom_snake', name: '蝮蛇', title: '草泽毒蛇',
@@ -226,7 +226,7 @@
         { id: 'coil', name: '盘绕', beat: 22, dmgMul: 0, desc: '盘身戒备', eff: { selfBuff: { def: 3, turns: 2 } } }
       ],
       ai: 'defensive',
-      drop: { gold: [2, 8], pot: [3, 7], table: [{ item: 'shengrou', name: '生肉', weight: 15 }], equip: { tier: 1, chance: 10 } }
+      drop: { gold: [2, 8], pot: [3, 7], table: [{ item: 'shengrou', name: '生肉', weight: 15 }, { item: 'shedan', name: '蛇胆', weight: 28 }, { item: 'shepi', name: '蛇皮', weight: 18 }], equip: { tier: 1, chance: 10 } }
     },
 
     // ── 深山/旷野·凶兽 ──
@@ -240,7 +240,7 @@
           eff: { selfBuff: { atk: 8, spd: 3, turns: 2 } } }
       ],
       ai: 'defensive',
-      drop: { gold: [15, 40], pot: [8, 18], table: [{ item: 'shengrou', name: '生肉', weight: 35 }, { item: 'tiekuangshi', name: '铁矿石', weight: 10 }], equip: { tier: 2, chance: 30 } }
+      drop: { gold: [15, 40], pot: [8, 18], table: [{ item: 'shengrou', name: '生肉', weight: 35 }, { item: 'tiekuangshi', name: '铁矿石', weight: 10 }, { item: 'maopi', name: '毛皮', weight: 35 }], equip: { tier: 2, chance: 30 } }
     },
     goshawk: {
       id: 'goshawk', name: '苍鹰', title: '旷野猛禽',
@@ -262,7 +262,7 @@
         { id: 'venom_bite', name: '毒噬', beat: 28, dmgMul: 0.9, desc: '毒牙深噬', eff: { poisonChance: 0.6, poisonDmg: 8, poisonTurns: 3 } }
       ],
       ai: 'defensive',
-      drop: { gold: [12, 30], pot: [8, 16], table: [{ item: 'shengrou', name: '生肉', weight: 25 }], equip: { tier: 2, chance: 25 } }
+      drop: { gold: [12, 30], pot: [8, 16], table: [{ item: 'shengrou', name: '生肉', weight: 25 }, { item: 'shedan', name: '蛇胆', weight: 30 }, { item: 'shepi', name: '蛇皮', weight: 20 }], equip: { tier: 2, chance: 25 } }
     },
     snow_wolf: {
       id: 'snow_wolf', name: '雪狼', title: '北境雪狼',
@@ -274,7 +274,7 @@
           eff: { selfBuff: { atk: 6, spd: 5, turns: 2 } } }
       ],
       ai: 'aggressive',
-      drop: { gold: [10, 28], pot: [5, 12], table: [{ item: 'shengrou', name: '生肉', weight: 22 }], equip: { tier: 2, chance: 22 } }
+      drop: { gold: [10, 28], pot: [5, 12], table: [{ item: 'shengrou', name: '生肉', weight: 22 }, { item: 'maopi', name: '毛皮', weight: 32 }], equip: { tier: 2, chance: 22 } }
     },
     mad_bull: {
       id: 'mad_bull', name: '疯牛', title: '原野狂牛',
