@@ -33,6 +33,7 @@
     var shopBuySel = null;     // 右侧 buy 占位选中（buyp 索引）
     var shopSellSel = null;    // 左侧 sell 占位选中（sellp 索引）
     var flashPack = {};        // 换格/放置后短暂高亮的行囊格 idx 集合（供 renderTrade 应用脉冲）
+    var okArmed = false;       // 「确认结算」二次确认状态（再点一次才真正结算，防误触）
 
     // 取某物在货郎处的「收购价」（货郎不收 / 收购价<=0 时返回 null）
     function shopSellPrice(id) {
@@ -196,6 +197,7 @@
       // 重渲前记录两栏滚动位置，整块 innerHTML 重渲后恢复（避免每次买卖/换格滚动条跳回顶部）
       var ls = $card.querySelector('.shop-left .shop-scroll'), rs = $card.querySelector('.shop-right .shop-scroll');
       var lt = ls ? ls.scrollTop : 0, rt = rs ? rs.scrollTop : 0;
+      okArmed = false;   // 重渲后复位二次确认（按钮文本也随重建复位）
       $card.innerHTML = renderShopPanel(); bindShopPanel();
       var nl = $card.querySelector('.shop-left .shop-scroll'), nr = $card.querySelector('.shop-right .shop-scroll');
       if (nl) nl.scrollTop = lt; if (nr) nr.scrollTop = rt;
@@ -450,7 +452,12 @@
       }
       card.onpointerup = function (e) { endDrag(e, false); };
       card.onpointercancel = function (e) { endDrag(e, true); };
-      var ok = document.getElementById('trade-ok'); if (ok) ok.onclick = function () { confirmTrade(); };
+      var ok = document.getElementById('trade-ok'); if (ok) ok.onclick = function () {
+        if (shopBuyPending.length === 0 && shopSellPending.length === 0) { confirmTrade(); return; }   // 空交易直接跳过
+        if (okArmed) { okArmed = false; if (ok._t) clearTimeout(ok._t); ok.textContent = '确认结算'; ok.classList.remove('armed'); confirmTrade(); return; }
+        okArmed = true; ok.textContent = '确定结算？'; ok.classList.add('armed');   // 再点一次才成交
+        ok._t = setTimeout(function () { okArmed = false; var b = document.getElementById('trade-ok'); if (b) { b.textContent = '确认结算'; b.classList.remove('armed'); } }, 3000);
+      };
       var lv = document.getElementById('m-leave'); if (lv) lv.onclick = function () { delete shopGoodsOrder[shopState]; restoreTradePending(); closeModal(); };
       // 待结算占位上的直接「✕」取消（始终可达，不必先点开浮框）
       card.querySelectorAll('.pcell-x').forEach(function (x) {
