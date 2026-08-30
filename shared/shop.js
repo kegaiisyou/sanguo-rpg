@@ -33,7 +33,7 @@
     var shopBuySel = null;     // 右侧 buy 占位选中（buyp 索引）
     var shopSellSel = null;    // 左侧 sell 占位选中（sellp 索引）
     var flashPack = {};        // 换格/放置后短暂高亮的行囊格 idx 集合（供 renderTrade 应用脉冲）
-    var okArmed = false;       // 「确认结算」二次确认状态（再点一次才真正结算，防误触）
+    var settleBox = null;      // 结算明细浮层元素（确认结算前弹出清单，防误触）
 
     // 取某物在货郎处的「收购价」（货郎不收 / 收购价<=0 时返回 null）
     function shopSellPrice(id) {
@@ -198,7 +198,7 @@
       // 重渲前记录两栏滚动位置，整块 innerHTML 重渲后恢复（避免每次买卖/换格滚动条跳回顶部）
       var ls = $card.querySelector('.shop-left .shop-scroll'), rs = $card.querySelector('.shop-right .shop-scroll');
       var lt = ls ? ls.scrollTop : 0, rt = rs ? rs.scrollTop : 0;
-      okArmed = false;   // 重渲后复位二次确认（按钮文本也随重建复位）
+      hideSettleDialog();   // 重渲时收起结算明细浮层（结算完成后自动消失）
       $card.innerHTML = renderShopPanel(); bindShopPanel();
       var nl = $card.querySelector('.shop-left .shop-scroll'), nr = $card.querySelector('.shop-right .shop-scroll');
       if (nl) nl.scrollTop = lt; if (nr) nr.scrollTop = rt;
@@ -253,6 +253,50 @@
       afterPackChange();
       toast('结算完成' + (bn ? ('：购入 ' + bn) : '') + (sn ? ('，售出 ' + sn) : ''));
       renderTrade();
+    }
+    // 结算明细浮层：确认前逐条列出购入/售出与收支，看清后再真正结算（防误触）
+    function hideSettleDialog() { if (settleBox) { settleBox.remove(); settleBox = null; } }
+    function showSettleDialog() {
+      hideSettleDialog();
+      var bn = 0, sn = 0;
+      shopBuyPending.forEach(function (p) { bn += p.price * p.count; });
+      shopSellPending.forEach(function (p) { sn += p.price * p.count; });
+      if (!bn && !sn) { confirmTrade(); return; }   // 空交易直接过
+      var rows = '';
+      if (shopBuyPending.length) {
+        rows += '<div class="sd-sec">购入 · 待付</div>';
+        shopBuyPending.forEach(function (p) {
+          var d = LF.ITEMS[p.id] || { name: p.id };
+          rows += '<div class="sd-row"><span class="sd-nm">' + (d.icon ? d.icon + ' ' : '') + (d.name || p.id) + ' ×' + p.count + '</span><span class="sd-p pay">−' + fmtPrice(p.price * p.count) + '</span></div>';
+        });
+      }
+      if (shopSellPending.length) {
+        rows += '<div class="sd-sec">售出 · 待收</div>';
+        shopSellPending.forEach(function (p) {
+          var d = LF.ITEMS[p.defId] || { name: p.defId };
+          rows += '<div class="sd-row"><span class="sd-nm">' + (d.icon ? d.icon + ' ' : '') + (d.name || p.defId) + ' ×' + p.count + '</span><span class="sd-p recv">+' + fmtPrice(p.price * p.count) + '</span></div>';
+        });
+      }
+      var net = sn - bn;
+      var netTxt = net > 0 ? '净收 ' + fmtPrice(net) : (net < 0 ? '净付 ' + fmtPrice(-net) : '收支相抵');
+      var lack = bn - S().gold;
+      var warn = lack > 0 ? '<div class="sd-warn">银两不足！还差 ' + fmtPrice(lack) + ' 两</div>' : '';
+      var box = document.createElement('div');
+      box.className = 'sd-mask';
+      box.innerHTML = '<div class="sd-panel">'
+        + '<div class="sd-title">结算明细</div>'
+        + '<div class="sd-list">' + rows + '</div>'
+        + '<div class="sd-total">将付 <b>' + fmtPrice(bn) + '</b> · 将收 <b>' + fmtPrice(sn) + '</b> · ' + netTxt + '</div>'
+        + warn
+        + '<div class="sd-acts">'
+        + (lack > 0 ? '' : '<button class="sd-btn sd-ok" type="button">确认结算</button>')
+        + '<button class="sd-btn sd-back" type="button">再想想</button>'
+        + '</div></div>';
+      box.onclick = function (e) { if (e.target === box) hideSettleDialog(); };
+      box.querySelector('.sd-back').onclick = function () { hideSettleDialog(); };
+      var okB = box.querySelector('.sd-ok'); if (okB) okB.onclick = function () { hideSettleDialog(); confirmTrade(); };
+      document.body.appendChild(box);
+      settleBox = box;
     }
     // 货郎详情：覆盖四种选中（左真货 / 右真物 / 右 buy 占位 / 左 sell 占位），与战利品栏同套 .loot-info 浮框
     function renderShopInfo() {
@@ -449,11 +493,9 @@
       card.onpointercancel = function (e) { endDrag(e, true); };
       var ok = document.getElementById('trade-ok'); if (ok) ok.onclick = function () {
         if (shopBuyPending.length === 0 && shopSellPending.length === 0) { confirmTrade(); return; }   // 空交易直接跳过
-        if (okArmed) { okArmed = false; if (ok._t) clearTimeout(ok._t); ok.textContent = '确认结算'; ok.classList.remove('armed'); confirmTrade(); return; }
-        okArmed = true; ok.textContent = '确定结算？'; ok.classList.add('armed');   // 再点一次才成交
-        ok._t = setTimeout(function () { okArmed = false; var b = document.getElementById('trade-ok'); if (b) { b.textContent = '确认结算'; b.classList.remove('armed'); } }, 3000);
+        showSettleDialog();   // 有交易：弹出明细浮层，逐条看清将付/将收后再确认（防误触）
       };
-      var lv = document.getElementById('m-leave'); if (lv) lv.onclick = function () { delete shopGoodsOrder[shopState]; restoreTradePending(); closeModal(); };
+      var lv = document.getElementById('m-leave'); if (lv) lv.onclick = function () { delete shopGoodsOrder[shopState]; restoreTradePending(); hideSettleDialog(); closeModal(); };
       // 待结算占位上的直接「✕」取消（始终可达，不必先点开浮框）
       card.querySelectorAll('.pcell-x').forEach(function (x) {
         x.onpointerdown = function (e) { e.stopPropagation(); };
