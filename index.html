@@ -1203,9 +1203,9 @@
   .cs-org-cap{font-size:12px;color:var(--ink-faint);margin:9px 0 5px;letter-spacing:1px;}
   .loot-ghost{position:fixed;z-index:300;pointer-events:none;transform:translate(-50%,-50%);font-size:26px;
     filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));opacity:.92;}
-  .loot-info{position:fixed;z-index:80;min-width:88px;max-width:184px;max-height:28vh;overflow-y:auto;background:var(--paper);border:1px solid rgba(60,40,30,.28);
+  .loot-info{position:fixed;z-index:80;min-width:88px;max-width:184px;max-height:min(28vh,calc(100vh - 32px));overflow-y:auto;background:var(--paper);border:1px solid rgba(60,40,30,.28);
     border-radius:8px;padding:6px 7px;box-shadow:0 8px 24px rgba(40,28,16,.3);font-family:"STKaiti","KaiTi",serif;text-align:left;font-size:11px;overflow-wrap:break-word;word-break:break-word;}
-  .li-acts{display:flex;gap:5px;margin-top:5px;position:sticky;bottom:0;background:#f8f2e4;padding-top:5px;border-top:1px solid rgba(60,40,30,.18);box-shadow:0 -4px 8px -4px rgba(0,0,0,.22);z-index:2;}
+  .li-acts{display:flex;gap:5px;margin-top:6px;background:#f8f2e4;padding-top:5px;border-top:1px solid rgba(60,40,30,.18);}   /* 不再 sticky：position:fixed 容器内 sticky 基准为视口底部，会让按钮“漏出”浮框外 */
   .li-act{flex:1;padding:4px 0;font-size:11px;letter-spacing:1px;border-radius:8px;border:1px solid rgba(63,125,94,.45);background:rgba(63,125,94,.16);color:#2f7a55;cursor:pointer;font-family:"STKaiti","KaiTi",serif;}
   .li-act:active{background:rgba(63,125,94,.3);}
   .li-cmp{margin-top:5px;font-size:11px;line-height:1.4;border-top:1px dashed rgba(60,40,30,.18);padding-top:5px;}
@@ -1989,7 +1989,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260830h"></script>
+<script src="shared/config/constants.js?v=20260830i"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -6665,6 +6665,8 @@ window.onerror=function(msg,url,line,col,err){
         if(e.pointerType==='mouse') return;
         var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)) return;
         dragging=loc; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
+        var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';   // 触屏拖拽起点立即隐藏行囊浮框
+        packInspect=null;
       };
     });
     card.onpointermove=function(e){
