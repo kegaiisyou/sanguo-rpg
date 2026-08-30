@@ -48,6 +48,12 @@
     }
     // 行囊格 data-loc 形如 "pack:索引"（旧逻辑按 split(':')[1] 取索引，这里统一管理，避免后续改动再踩 NaN）
     function locIdx(loc) { if (loc == null) return -1; var p = String(loc).split(':'); return parseInt(p.length > 1 ? p[1] : p[0], 10); }
+    // 行囊两格互换（持久化）
+    function swapPackSlots(a, b) { if (a === b) return; var pk = S().pack; var t = pk[a]; pk[a] = pk[b]; pk[b] = t; if (typeof save === 'function') save(S()); }
+    // 行囊第一个空格下标（无则 -1）
+    function firstEmptyPackIdx() { var pk = S().pack; for (var i = 0; i < pk.length; i++) if (!pk[i]) return i; return -1; }
+    // 货郎商品移到末尾（即「第一个空格」位置，仅会话内）
+    function moveGoodToEnd(fromId) { var ord = shopGoodsOrder[shopState]; if (!ord) return false; var a = ord.indexOf(fromId); if (a < 0) return false; ord.splice(a, 1); ord.push(fromId); return true; }
     // 货郎商品展示顺序（会话内记忆、不进存档、关闭即丢弃）
     var shopGoodsOrder = {};
     function ensureGoodsOrder() {
@@ -143,7 +149,7 @@
         + '</div>'
         + '<div class="shop-foot"><button class="btn" id="m-leave">告 辞</button>'
         +   '<span class="shop-hint">' + (bn ? ('将付 ' + fmtPrice(bn) + ' ') : '') + (sn ? ('将收 ' + fmtPrice(sn) + ' ') : '') + '· 同栏拖拽整理·拖到对侧买卖·✕取消</span>'
-        +   badge + '<button class="btn btn-ok" id="trade-ok">确认结算</button></div>'
+        +   badge + (shopBuyPending.length || shopSellPending.length ? '<button class="btn" id="trade-clear">清空待结算</button>' : '') + '<button class="btn btn-ok" id="trade-ok">确认结算</button></div>'
         + '</div>';
     }
     // ===== 统一交易系统：拖到对侧成为「待结算占位」，确认后统一结算 =====
@@ -307,9 +313,9 @@
       // 原生 HTML5 拖拽落点（桌面）
       var left = card.querySelector('.shop-left'), right = card.querySelector('.shop-right');
       left.ondragover = function (e) { e.preventDefault(); };
-      left.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'buy') reorderGoodsAtEl(e.target, d.payload); else if (d.kind === 'sell') addSellPending(d.payload, 1); else if (d.kind === 'buyp') removeBuyPending(d.payload); } catch (_) { } };   // buy 落左栏=同类换序（仅会话）
+      left.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'buy') { if (e.target.closest && e.target.closest('[data-shop]')) reorderGoodsAtEl(e.target, d.payload); else moveGoodToEnd(d.payload); } else if (d.kind === 'sell') addSellPending(d.payload, 1); else if (d.kind === 'buyp') removeBuyPending(d.payload); } catch (_) { } };   // buy 落左栏：具体货品换序，空白区移末尾（仅会话）
       right.ondragover = function (e) { e.preventDefault(); };
-      right.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'sell') reorderPackAtEl(e.target, d.payload); else if (d.kind === 'buy') addBuyPending(d.payload, 1); else if (d.kind === 'sellp') removeSellPending(d.payload); } catch (_) { } };   // sell 落右栏=行囊内换格（持久化）
+      right.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'sell') { if (e.target.closest && e.target.closest('.shop-right [data-loc]')) reorderPackAtEl(e.target, d.payload); else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); } } else if (d.kind === 'buy') addBuyPending(d.payload, 1); else if (d.kind === 'sellp') removeSellPending(d.payload); } catch (_) { } };   // sell 落右栏：具体格换格，空白区放首空格（持久化）
       // 触屏 pointer 拖拽：四向转移（buy→右 / sell→左 / buyp→左取消 / sellp→右取回）
       var ghost = null, dragging = null, srcEl = null, sx = 0, sy = 0, moved = false;
       function startDrag(kind, payload, el, e) { dragging = { kind: kind, payload: payload }; srcEl = el; moved = false; el.__dragMoved = false; sx = e.clientX; sy = e.clientY; var _sf = document.getElementById('shop-float'); if (_sf) _sf.style.display = 'none'; }
@@ -349,11 +355,19 @@
         var L = card.querySelector('.shop-left'), R = card.querySelector('.shop-right');
         // 右栏=我的行囊，左栏=货郎。拖到**同栏**=整理换位；拖到**对侧**=买卖。
         if (inRect(e, R)) {
-          if (d.kind === 'sell') reorderPackAtEl(document.elementFromPoint(e.clientX, e.clientY) || e.target, d.payload);   // 行囊内换格（持久化）
+          if (d.kind === 'sell') {
+            var tR = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+            if (tR && tR.closest && tR.closest('.shop-right [data-loc]')) reorderPackAtEl(tR, d.payload);            // 落到具体行囊格：换格/放置（持久化）
+            else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); }      // 行囊区域内非格子：自动放第一个空格
+          }
           else if (d.kind === 'buy') addBuyPending(d.payload, 1);          // 货郎货→行囊=购买
-          else if (d.kind === 'sellp') removeSellPending(d.payload);       // 待售→行囊=取回
+          else if (d.kind === 'sellp') removeSellPending(d.payload);       // 待售→行囊=取回/取消
         } else if (inRect(e, L)) {
-          if (d.kind === 'buy') reorderGoodsAtEl(document.elementFromPoint(e.clientX, e.clientY) || e.target, d.payload);    // 货郎货品内换序（仅会话）
+          if (d.kind === 'buy') {
+            var tL = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+            if (tL && tL.closest && tL.closest('[data-shop]')) reorderGoodsAtEl(tL, d.payload);                       // 落到具体货品：换序（仅会话）
+            else moveGoodToEnd(d.payload);                                                                      // 货郎区域内非货品：移到末尾=第一个空格
+          }
           else if (d.kind === 'sell') addSellPending(d.payload, 1);        // 行囊物→货郎=寄售
           else if (d.kind === 'buyp') removeBuyPending(d.payload);         // 待付→货郎=取消购买
         }
@@ -364,7 +378,12 @@
       var ok = document.getElementById('trade-ok'); if (ok) ok.onclick = function () { confirmTrade(); };
       var lv = document.getElementById('m-leave'); if (lv) lv.onclick = function () { delete shopGoodsOrder[shopState]; restoreTradePending(); closeModal(); };
       // 待结算占位上的直接「✕」取消（始终可达，不必先点开浮框）
-      card.querySelectorAll('.pcell-x').forEach(function (x) { x.onpointerdown = function (e) { e.stopPropagation(); }; x.onclick = function (e) { e.stopPropagation(); var ci = parseInt(x.getAttribute('data-ci'), 10); if (x.getAttribute('data-cx') === 'buy') removeBuyPending(ci); else removeSellPending(ci); }; });
+      card.querySelectorAll('.pcell-x').forEach(function (x) {
+        x.onpointerdown = function (e) { e.stopPropagation(); };
+        x.onclick = function (e) { e.stopPropagation(); var ci = parseInt(x.getAttribute('data-ci'), 10); if (x.getAttribute('data-cx') === 'buy') removeBuyPending(ci); else removeSellPending(ci); };
+      });
+      // 「清空待结算」：一键取回所有待付/待售（取消整笔交易）
+      var clr = document.getElementById('trade-clear'); if (clr) clr.onclick = function () { restoreTradePending(); renderTrade(); toast('已清空待结算。'); };
       card.onpointerdown = function (e) {
         if (e.target.closest('.shop-good') || e.target.closest('.shop-right .packcell') || e.target.closest('#shop-float')) return;
         var f = document.getElementById('shop-float'); if (f) f.style.display = 'none';
