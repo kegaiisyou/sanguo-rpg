@@ -1653,8 +1653,10 @@
   .pcell-tag{position:absolute;left:3px;top:2px;font-size:9px;line-height:1.2;padding:1px 4px;border-radius:6px;pointer-events:none;z-index:3;white-space:nowrap;}
   .pcell-tag.pcell-buy{color:#eaf3dc;background:rgba(70,100,50,.72);}
   .pcell-tag.pcell-sell{color:#f6e0d8;background:rgba(140,80,55,.72);}
+  /* 空位：与玩家真实行囊布局一致（不再压缩），方便对照摆放 */
+  .packcell.pcell-empty{background:rgba(0,0,0,.12);border:1px dashed rgba(216,180,106,.18);cursor:default;}
   /* 待结算占位上的直接取消按钮（✕），始终可达，不必先点开浮框 */
-  .pcell-x{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;border:1px solid rgba(176,69,30,.65);background:rgba(176,69,30,.9);color:#fff;font-size:10px;line-height:14px;text-align:center;padding:0;cursor:pointer;z-index:5;font-family:inherit;}
+  .pcell-x{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:1px solid rgba(176,69,30,.65);background:rgba(176,69,30,.9);color:#fff;font-size:11px;line-height:16px;text-align:center;padding:0;cursor:pointer;z-index:5;font-family:inherit;}
   .pcell-x:active{transform:scale(.9);}
   .shop-good{position:relative;}
   .shop-good.pcell-pending{background:repeating-linear-gradient(45deg,rgba(255,255,255,.16),rgba(255,255,255,.16) 6px,rgba(255,255,255,.08) 6px,rgba(255,255,255,.08) 12px);border:1px dashed rgba(196,164,102,.5);}
@@ -2014,7 +2016,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
     <script src="shared/data/shops.js?v=20260830l"></script>
-    <script src="shared/shop.js?v=20260830m"></script>
+    <script src="shared/shop.js?v=20260830n"></script>
     <script src="shared/data/map.js?v=20260827f"></script>
     <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
