@@ -2000,7 +2000,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260831a"></script>
+<script src="shared/config/constants.js?v=20260831c"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2016,7 +2016,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
     <script src="shared/data/shops.js?v=20260830l"></script>
-    <script src="shared/shop.js?v=20260831b"></script>
+    <script src="shared/shop.js?v=20260831c"></script>
     <script src="shared/data/map.js?v=20260827f"></script>
     <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
@@ -6380,7 +6380,7 @@ window.onerror=function(msg,url,line,col,err){
   function unequipInspect(){ if(!packInspect||packInspect.kind!=='equip') return; var slot=packInspect.slot; var eq=state.equipment[slot]; unequipToPack(slot); var repIdx=-1; if(eq){ for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===eq){ repIdx=i; packInspect={kind:'pack',idx:i}; break; } } } else packInspect=null; showPackFloat(); if(repIdx>=0) packHighlightReplaced(repIdx); }
   function closeInspect(){ packInspect=null; refreshPackGridLight(); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
-  window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort,
+  window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort, equipFromPackTo:equipFromPackTo, placeFromPackTo:placeFromPackTo,
     useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect, renderShopPanel:Shop.renderShopPanel, bindShopPanel:Shop.bindShopPanel, addBuyPending:Shop.addBuyPending, addSellPending:Shop.addSellPending, removeBuyPending:Shop.removeBuyPending, removeSellPending:Shop.removeSellPending, confirmTrade:Shop.confirmTrade,
     dismissCompanion:dismissCompanion };
   // 滚动/缩放时收起货郎与行囊浮框，避免遮挡（与战利品栏一致；只注册一次）
