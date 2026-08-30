@@ -136,23 +136,38 @@
           + '<span class="pcell-tag pcell-sell">待售×' + p.count + '</span>'
           + '<button class="pcell-x" type="button" data-cx="sell" data-ci="' + si + '" title="取回">✕</button></div>';
       });
-      // 右栏：玩家行囊真实物品（不渲染空格，避免塞入占位后视觉错位）+ 待付占位（灰态）
+      // 右栏：玩家行囊真实物品（按 idx）+ 待付品优先填入行囊空格，与真物无缝混排（不再单独堆末尾）
       var grid = '';
-      for (var i = 0; i < S().pack.length; i++) { var it = S().pack[i]; if (!it) { grid += '<div class="packcell pcell-empty"></div>'; continue; }
-        var cnt = (it.count > 1) ? ('<span class="pcell-cnt">' + it.count + '</span>') : '';
-        var sp = shopSellPrice(it.defId);
-        var sellTag = (sp != null) ? '<span class="pcell-sell">卖' + sp + '</span>' : '';
-        var durTag = (it.maxDur) ? '<span class="pcell-dur">' + it.dur + '/' + it.maxDur + '</span>' : '';
-        grid += '<div class="packcell' + (shopSel === i ? ' pcell-sel' : '') + '" data-loc="pack:' + i + '">'
-          + '<div class="pcell-ic">' + itemIconHTML(it, 13) + '</div>' + cnt + sellTag + durTag + '</div>';
+      var buyDrawn = 0;
+      for (var i = 0; i < S().pack.length; i++) {
+        var it = S().pack[i];
+        if (it) {
+          var cnt = (it.count > 1) ? ('<span class="pcell-cnt">' + it.count + '</span>') : '';
+          var sp = shopSellPrice(it.defId);
+          var sellTag = (sp != null) ? '<span class="pcell-sell">卖' + sp + '</span>' : '';
+          var durTag = (it.maxDur) ? '<span class="pcell-dur">' + it.dur + '/' + it.maxDur + '</span>' : '';
+          grid += '<div class="packcell' + (shopSel === i ? ' pcell-sel' : '') + '" data-loc="pack:' + i + '">'
+            + '<div class="pcell-ic">' + itemIconHTML(it, 13) + '</div>' + cnt + sellTag + durTag + '</div>';
+        } else if (buyDrawn < shopBuyPending.length) {
+          var bp = shopBuyPending[buyDrawn]; var bd = DEFS[bp.id] || { name: bp.id };
+          grid += '<div class="packcell pcell-buyp' + (shopBuySel === buyDrawn ? ' pcell-sel' : '') + '" data-buyp="' + buyDrawn + '">'
+            + '<div class="pcell-ic">' + itemIconHTML(bd, 13) + '</div>'
+            + '<span class="pcell-cnt">' + bp.count + '</span>'
+            + '<span class="pcell-tag pcell-buy">待付</span>'
+            + '<button class="pcell-x" type="button" data-cx="buy" data-ci="' + buyDrawn + '" title="取消">✕</button></div>';
+          buyDrawn++;
+        } else {
+          grid += '<div class="packcell pcell-empty" data-loc="pack:' + i + '"></div>';
+        }
       }
-      shopBuyPending.forEach(function (p, bi) { var d = DEFS[p.id] || { name: p.id };
-        grid += '<div class="packcell pcell-pending pcell-buy' + (shopBuySel === bi ? ' pcell-sel' : '') + '" data-buyp="' + bi + '">'
-          + '<div class="pcell-ic">' + itemIconHTML(d, 13) + '</div>'
-          + '<span class="pcell-cnt">' + p.count + '</span>'
+      for (; buyDrawn < shopBuyPending.length; buyDrawn++) {   // 行囊已满：待付品才追加在行囊格之后（少数情况）
+        var bp2 = shopBuyPending[buyDrawn]; var bd2 = DEFS[bp2.id] || { name: bp2.id };
+        grid += '<div class="packcell pcell-buyp' + (shopBuySel === buyDrawn ? ' pcell-sel' : '') + '" data-buyp="' + buyDrawn + '">'
+          + '<div class="pcell-ic">' + itemIconHTML(bd2, 13) + '</div>'
+          + '<span class="pcell-cnt">' + bp2.count + '</span>'
           + '<span class="pcell-tag pcell-buy">待付</span>'
-          + '<button class="pcell-x" type="button" data-cx="buy" data-ci="' + bi + '" title="取消">✕</button></div>';
-      });
+          + '<button class="pcell-x" type="button" data-cx="buy" data-ci="' + buyDrawn + '" title="取消">✕</button></div>';
+      }
       var bn = shopBuyPending.reduce(function (s, p) { return s + p.price * p.count; }, 0);
       var sn = shopSellPending.reduce(function (s, p) { return s + p.price * p.count; }, 0);
       var badge = (shopBuyPending.length || shopSellPending.length) ? ('<span class="shop-badge">待结算 ' + shopBuyPending.length + '购 / ' + shopSellPending.length + '售</span>') : '';

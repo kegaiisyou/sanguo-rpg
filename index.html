@@ -2016,7 +2016,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
     <script src="shared/data/shops.js?v=20260830l"></script>
-    <script src="shared/shop.js?v=20260831c"></script>
+    <script src="shared/shop.js?v=20260831d"></script>
     <script src="shared/data/map.js?v=20260827f"></script>
     <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
@@ -6076,6 +6076,7 @@ window.onerror=function(msg,url,line,col,err){
     if(from.kind==='equip' && to.kind==='pack'){ unequipToPack(from.slot, to.idx); return; }
   }
   function equipFromPackTo(idx,slot){ movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); }
+  function placeFromPackTo(idx){ if(idx==null || !state.pack[idx]) return; packInspect={kind:'pack',idx:idx}; placeInspect(); }
   // 行囊内拖拽排序：仅轻量刷新网格，保留滚动条位置、避免整窗重渲染卡顿
   function swapPackCells(a,b){
     if(locEq(a,b)) return;
