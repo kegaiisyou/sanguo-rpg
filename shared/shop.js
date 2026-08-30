@@ -79,6 +79,7 @@
       var tmp = shopSellPending[toIdx]; shopSellPending[toIdx] = shopSellPending[fromIdx]; shopSellPending[fromIdx] = tmp;
       return true;
     }
+    function moveSellToEnd(fromIdx) { var p = shopSellPending.splice(fromIdx, 1)[0]; if (p) { shopSellPending.push(p); return true; } return false; }
     // 同类区域内拖拽换位（整理）：行囊换格持久化；货郎商品换序仅会话内
     function reorderPackAtEl(el, fromIdx) {
       if (!el || !el.closest) return false;
@@ -314,10 +315,10 @@
       return h;
     }
     // 货郎浮框（挂 body，跟随被点选格子定位，与战利品栏同款 .loot-info 浅色纸）
-    function shopFloatShow(html) {
+    function shopFloatShow(html, cell) {
       var f = document.getElementById('shop-float');
       if (!f) { f = document.createElement('div'); f.className = 'loot-info'; f.id = 'shop-float'; document.body.appendChild(f); }
-      f.innerHTML = html; f.style.display = 'block'; positionShopFloat(f);
+      f.innerHTML = html; f.style.display = 'block'; positionShopFloat(f, cell);
       f.querySelectorAll('.li-step').forEach(function (b) { b.onclick = function () { var inp = f.querySelector('.li-qin'); if (!inp) return; var max = parseInt(inp.getAttribute('data-max'), 10) || 1; var v = parseInt(inp.value, 10) || 1; v = Math.max(1, Math.min(max, v + parseInt(b.getAttribute('data-step'), 10))); inp.value = v; }; });
       f.querySelectorAll('.li-qin').forEach(function (inp) { inp.oninput = function () { var max = parseInt(inp.getAttribute('data-max'), 10) || 1; var v = parseInt(inp.value, 10); if (isNaN(v) || v < 1) v = 1; if (v > max) v = max; inp.value = v; }; });
       f.querySelectorAll('[data-buygo]').forEach(function (b) { b.onclick = function () { var inp = f.querySelector('.li-qin'); var max = parseInt((inp && inp.getAttribute('data-max')) || '0', 10); var q = (b.getAttribute('data-buygo') === 'max') ? max : (parseInt(inp && inp.value, 10) || 1); addBuyPending(b.getAttribute('data-buyid'), q); }; });
@@ -330,15 +331,9 @@
       f.querySelectorAll('[data-place]').forEach(function (b) { b.onclick = function () { var idx = parseInt(b.getAttribute('data-idx'), 10); if (window.LFUI && window.LFUI.placeFromPackTo) window.LFUI.placeFromPackTo(idx); renderTrade(); }; });
       f.querySelectorAll('[data-discard]').forEach(function (b) { b.onclick = function () { var idx = parseInt(b.getAttribute('data-idx'), 10); if (window.LFUI && window.LFUI.discardPackItem) window.LFUI.discardPackItem(idx); renderTrade(); }; });
     }
-    function showShopFloat() { shopFloatShow(renderShopInfo()); }
-    // 货郎浮框固定在视口底部居中、加宽：双栏布局下跟随格子会遮挡另一栏，故不跟随
-    function positionShopFloat(box) {
-      box.style.maxWidth = 'min(92vw, 340px)';
-      box.style.left = '50%'; box.style.right = 'auto';
-      box.style.top = 'auto';
-      box.style.bottom = 'calc(env(safe-area-inset-bottom, 0px) + 76px)';
-      box.style.transform = 'translateX(-50%)';
-    }
+    function showShopFloat() { shopFloatShow(renderShopInfo(), $card.querySelector('.pcell-sel')); }
+    // 货郎浮框跟随被点选的物品（与行囊/战利品一致）：空间不足自动翻到上方、夹在视口内，不再钉死底部
+    function positionShopFloat(box, cell) { positionFloat(box, cell); }
     function bindShopPanel() {
       var card = document.getElementById('modal-card'); if (!card) return;
       function clearSel(sel) { card.querySelectorAll(sel).forEach(function (c) { c.classList.remove('pcell-sel'); }); }
@@ -446,7 +441,7 @@
           }
           else if (d.kind === 'sell') addSellPending(d.payload, 1);        // 行囊物→货郎=寄售
           else if (d.kind === 'buyp') removeBuyPending(d.payload);         // 待付→货郎=取消购买
-          else if (d.kind === 'sellp') { var tLp = document.elementFromPoint(e.clientX, e.clientY) || e.target; reorderSellPendingAtEl(tLp, d.payload); }   // 寄售在左栏内换位（整理结算顺序）
+          else if (d.kind === 'sellp') { var tLp = document.elementFromPoint(e.clientX, e.clientY) || e.target; if (!reorderSellPendingAtEl(tLp, d.payload)) moveSellToEnd(d.payload); }   // 寄售在左栏内换位（拖到具体寄售格换序，拖到他处重排到末尾）
         }
         renderTrade();
       }

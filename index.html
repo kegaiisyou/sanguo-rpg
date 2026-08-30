@@ -1644,6 +1644,9 @@
   .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
   .pcell-sell{position:absolute;left:3px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   .pcell-dur{position:absolute;left:3px;top:2px;font-size:10px;color:#9fd0e0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
+  /* 待付/待售占位的取消按钮：放大命中区，确保小格内也能点中 */
+  .pcell-x{position:absolute;top:1px;right:1px;width:24px;height:24px;font-size:15px;line-height:22px;text-align:center;color:#ffd6cb;background:rgba(150,40,28,.82);border:1px solid rgba(255,255,255,.3);border-radius:50%;z-index:6;cursor:pointer;padding:0;font-family:system-ui,sans-serif;}
+  .pcell-x:active{background:rgba(185,55,38,.96);transform:scale(.94);}
   .shop-info{flex:0 0 auto;max-height:26%;margin-top:8px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
   .shop-info .pi-actions{margin-top:6px;}
   .shop-foot{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin-top:8px;}
@@ -2004,7 +2007,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260831f"></script>
+<script src="shared/config/constants.js?v=20260831g"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2020,7 +2023,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
     <script src="shared/data/shops.js?v=20260830l"></script>
-    <script src="shared/shop.js?v=20260831f"></script>
+    <script src="shared/shop.js?v=20260831g"></script>
     <script src="shared/data/map.js?v=20260827f"></script>
     <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
