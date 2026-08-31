@@ -26,8 +26,10 @@
 
     // ── 模块内部状态（不污染 state.pack，故不进存档、不参与战斗/装备/容量）──
     var shopState = 'build_pedlar';
-    var shopBuyPending = [];    // 购入待付：{id, price, count}          ——渲染进右侧行囊格，灰态不可用
-    var shopSellPending = [];  // 售出待收：{defId, price, count, item} ——渲染进左侧货郎格，携带真物，可拖回取回
+    var shopBuyPending = [];    // 购入待付：{id, price, count, cell}   ——cell=行囊格 idx（占用真实格子，可自由拖动换位）
+    var shopSellPending = [];  // 售出待收：{defId, price, count, item, uid} ——uid=唯一序号（leftSeq 引用，增删不漂移）
+    var sellUidSeq = 1;         // 待售品 uid 自增序号
+    var leftSeq = null;         // 左栏统一显示顺序：'g:'+真货id 或 's:'+待售uid（会话内，待售可与真货任意换位）
     var shopSel = null;        // 右侧行囊真实物品选中 idx
     var shopGoodSel = null;    // 左侧货郎真货选中 id
     var shopBuySel = null;     // 右侧 buy 占位选中（buyp 索引）
@@ -54,8 +56,6 @@
     function swapPackSlots(a, b) { if (a === b) return; var pk = S().pack; var t = pk[a]; pk[a] = pk[b]; pk[b] = t; flashPack[a] = true; flashPack[b] = true; if (typeof save === 'function') save(S()); }
     // 行囊第一个空格下标（无则 -1）
     function firstEmptyPackIdx() { var pk = S().pack; for (var i = 0; i < pk.length; i++) if (!pk[i]) return i; return -1; }
-    // 货郎商品移到末尾（即「第一个空格」位置，仅会话内）
-    function moveGoodToEnd(fromId) { var ord = shopGoodsOrder[shopState]; if (!ord) return false; var a = ord.indexOf(fromId); if (a < 0) return false; ord.splice(a, 1); ord.push(fromId); return true; }
     // 货郎商品展示顺序（会话内记忆、不进存档、关闭即丢弃）
     var shopGoodsOrder = {};
     function ensureGoodsOrder() {
@@ -64,22 +64,6 @@
         shopGoodsOrder[shopState] = shop.items.filter(function (r) { return r.buy > 0; }).map(function (r) { return r.id; });
       }
     }
-    // 待结算占位在同栏内拖动换位（整理结算顺序）
-    function reorderBuyPendingAtEl(el, fromIdx) {
-      if (!el || !el.closest) return false;
-      var t = el.closest('[data-buyp]'); if (!t) return false;
-      var toIdx = parseInt(t.getAttribute('data-buyp'), 10); if (toIdx < 0 || toIdx === fromIdx) return false;
-      var tmp = shopBuyPending[toIdx]; shopBuyPending[toIdx] = shopBuyPending[fromIdx]; shopBuyPending[fromIdx] = tmp;
-      return true;
-    }
-    function reorderSellPendingAtEl(el, fromIdx) {
-      if (!el || !el.closest) return false;
-      var t = el.closest('[data-sellp]'); if (!t) return false;
-      var toIdx = parseInt(t.getAttribute('data-sellp'), 10); if (toIdx < 0 || toIdx === fromIdx) return false;
-      var tmp = shopSellPending[toIdx]; shopSellPending[toIdx] = shopSellPending[fromIdx]; shopSellPending[fromIdx] = tmp;
-      return true;
-    }
-    function moveSellToEnd(fromIdx) { var p = shopSellPending.splice(fromIdx, 1)[0]; if (p) { shopSellPending.push(p); return true; } return false; }
     // 同类区域内拖拽换位（整理）：行囊换格持久化；货郎商品换序仅会话内
     function reorderPackAtEl(el, fromIdx) {
       if (!el || !el.closest) return false;
@@ -88,15 +72,6 @@
       var pk = S().pack; var tmp = pk[toIdx]; pk[toIdx] = pk[fromIdx]; pk[fromIdx] = tmp;
       flashPack[toIdx] = true; flashPack[fromIdx] = true;
       if (typeof save === 'function') save(S());   // 行囊顺序持久化（下次开包/交易保持）
-      return true;
-    }
-    function reorderGoodsAtEl(el, fromId) {
-      if (!el || !el.closest) return false;
-      var t = el.closest('[data-shop]'); if (!t) return false;
-      var toId = t.getAttribute('data-shop'); if (!toId || toId === fromId) return false;
-      var ord = shopGoodsOrder[shopState]; if (!ord) return false;
-      var a = ord.indexOf(fromId), b = ord.indexOf(toId); if (a < 0 || b < 0) return false;
-      var tmp = ord[a]; ord[a] = ord[b]; ord[b] = tmp;
       return true;
     }
     // 一键把行囊中所有货郎肯收的物挂上寄售
@@ -114,35 +89,115 @@
       var L = (name || '').replace(/\s+/g, '').length;
       return 'sg-n' + (L <= 2 ? 2 : L <= 3 ? 3 : L <= 4 ? 4 : L <= 5 ? 5 : 6);
     }
+    // ── 待付格子模型 & 左栏统一顺序（真货 g:id + 待售 s:uid）──
+    function findShopRec(id) { var s = LF.SHOPS[shopState]; if (!s) return null; for (var i = 0; i < s.items.length; i++) if (s.items[i].id === id) return s.items[i]; return null; }
+    function baseGoods() { var s = LF.SHOPS[shopState] || { items: [] }; return s.items.filter(function (r) { return r.buy > 0; }); }
+    function sellIdxByUid(uid) { for (var i = 0; i < shopSellPending.length; i++) if (shopSellPending[i].uid === uid) return i; return -1; }
+    function buyPendingAtCell(cell) { for (var i = 0; i < shopBuyPending.length; i++) if (shopBuyPending[i].cell === cell) return i; return -1; }
+    // 待付品可用的「真空格」：pack 为空 且 未被其他待付品占用
+    function firstFreeCellForBuy() {
+      var pk = S().pack;
+      for (var i = 0; i < pk.length; i++) if (!pk[i] && buyPendingAtCell(i) < 0) return i;
+      return -1;
+    }
+    // 待付品移到指定格子：空格=移入；真物格=真物让位到旧格；其他待付格=两待付交换格子
+    function placeBuyPending(p, toCell) {
+      if (!p || toCell == null || toCell < 0 || toCell >= S().pack.length || toCell === p.cell) return;
+      var pk = S().pack;
+      var holder = buyPendingAtCell(toCell);
+      if (holder >= 0) {
+        var q = shopBuyPending[holder]; q.cell = p.cell; p.cell = toCell;
+      } else if (pk[toCell]) {
+        pk[p.cell] = pk[toCell]; pk[toCell] = null; p.cell = toCell;
+      } else {
+        p.cell = toCell;
+      }
+      flashPack[toCell] = true; flashPack[p.cell] = true;
+      if (typeof save === 'function') save(S());
+    }
+    // 左栏统一顺序
+    function ensureLeftSeq() {
+      if (leftSeq) {   // 保留已有顺序：清理失效项、补缺失真货
+        var good = leftSeq.filter(function (k) {
+          if (k.charAt(0) === 'g') { var r = findShopRec(k.slice(2)); return r && r.buy > 0; }
+          return sellIdxByUid(parseInt(k.slice(2), 10)) >= 0;
+        });
+        var have = {}; good.forEach(function (k) { if (k.charAt(0) === 'g') have[k.slice(2)] = true; });
+        baseGoods().forEach(function (r) { if (!have[r.id]) good.push('g:' + r.id); });
+        leftSeq = good;
+        return;
+      }
+      rebuildLeftSeq();
+    }
+    function rebuildLeftSeq() {
+      ensureGoodsOrder();
+      leftSeq = [];
+      var ord = shopGoodsOrder[shopState] || [];
+      var have = {}; ord.forEach(function (id) { have[id] = true; });
+      var base = baseGoods();
+      base.forEach(function (r) { if (have[r.id]) leftSeq.push('g:' + r.id); });
+      base.forEach(function (r) { if (!have[r.id]) leftSeq.push('g:' + r.id); });
+      shopSellPending.forEach(function (p) { if (p.uid != null) leftSeq.push('s:' + p.uid); });
+    }
+    function leftKeyOf(el) {
+      var t = el && el.closest ? el.closest('[data-shop],[data-selluid]') : null;
+      if (!t) return null;
+      if (t.getAttribute('data-shop') != null) return 'g:' + t.getAttribute('data-shop');
+      return 's:' + t.getAttribute('data-selluid');
+    }
+    function removeKey(key) { if (!leftSeq) return; var a = leftSeq.indexOf(key); if (a >= 0) leftSeq.splice(a, 1); }
+    function moveKeyToEnd(key) { if (!leftSeq) return; var a = leftSeq.indexOf(key); if (a >= 0) { leftSeq.splice(a, 1); leftSeq.push(key); } }
+    // 左栏拖放：同 defId 待售→堆叠；否则两格交换位置（待售可与真货/待售任意换位）
+    function dropLeft(dragKey, el) {
+      var dstKey = leftKeyOf(el);
+      if (!dstKey) { moveKeyToEnd(dragKey); return; }
+      if (dstKey === dragKey) return;
+      if (dragKey.charAt(0) === 's' && dstKey.charAt(0) === 's') {
+        var srcIdx = sellIdxByUid(parseInt(dragKey.slice(2), 10));
+        var dstIdx = sellIdxByUid(parseInt(dstKey.slice(2), 10));
+        if (srcIdx >= 0 && dstIdx >= 0 && shopSellPending[dstIdx].defId === shopSellPending[srcIdx].defId) {
+          shopSellPending[dstIdx].count += shopSellPending[srcIdx].count;   // 相同待售物堆叠
+          if (shopSellPending[dstIdx].item) shopSellPending[dstIdx].item.count = shopSellPending[dstIdx].count;
+          var merged = shopSellPending[dstIdx];
+          shopSellPending.splice(srcIdx, 1);
+          removeKey(dragKey);
+          shopSellSel = shopSellPending.indexOf(merged);   // splice 后索引可能偏移，用对象重算
+          return;
+        }
+      }
+      var a = leftSeq.indexOf(dragKey), b = leftSeq.indexOf(dstKey);
+      if (a < 0 || b < 0) return;
+      var t = leftSeq[a]; leftSeq[a] = leftSeq[b]; leftSeq[b] = t;   // 交换位置
+    }
     function renderShopPanel() {
       var shop = LF.SHOPS[shopState] || { name: '', items: [] };
       var DEFS = LF.ITEMS;
-      // 左栏：货郎真货（buy>0，按本会话整理顺序展示）+ 待售占位（玩家已拖来的待收物）
-      var base = shop.items.filter(function (r) { return r.buy > 0; });
+      // 左栏：按 leftSeq 统一顺序渲染（真货 data-shop + 待售 data-sellp/data-selluid），待售可插到任意位置、与真货任意换位
       ensureGoodsOrder();
-      var orderIds = shopGoodsOrder[shopState] || [];
-      var idset = {}; base.forEach(function (r) { idset[r.id] = true; });
-      var ordered = orderIds.filter(function (id) { return idset[id]; }).map(function (id) { for (var k = 0; k < base.length; k++) if (base[k].id === id) return base[k]; });
-      var extra = base.filter(function (r) { return orderIds.indexOf(r.id) < 0; });
-      var goods = ordered.concat(extra);
-      var goodsHTML = goods.map(function (r) {
-        var d = DEFS[r.id] || {}; var pc = buyPendingCount(r.id);
-        return '<div class="shop-good' + (S().gold >= r.buy ? '' : ' shop-bad') + (shopGoodSel === r.id ? ' pcell-sel' : '') + '" data-shop="' + r.id + '">'
-          + '<div class="sg-name ' + sgFontSize(d.name) + '">' + d.name + '</div>'
-          + '<div class="sg-buy">买 ' + fmtPrice(r.buy) + '</div>'
-          + (pc ? '<span class="pcell-tag pcell-buy">待付×' + pc + '</span>' : '')
-          + '</div>';
-      }).join('');
-      shopSellPending.forEach(function (p, si) { var d = DEFS[p.defId] || {};
-        goodsHTML += '<div class="shop-good pcell-pending pcell-sell' + (shopSellSel === si ? ' pcell-sel' : '') + '" data-sellp="' + si + '">'
-          + '<div class="sg-name ' + sgFontSize(d.name) + '">' + d.name + '</div>'
+      ensureLeftSeq();
+      var goodsHTML = leftSeq.map(function (key) {
+        if (key.charAt(0) === 'g') {
+          var gid = key.slice(2);
+          var r = findShopRec(gid); if (!r || !r.buy) return '';
+          var d = DEFS[gid] || {}; var pc = buyPendingCount(gid);
+          return '<div class="shop-good' + (S().gold >= r.buy ? '' : ' shop-bad') + (shopGoodSel === gid ? ' pcell-sel' : '') + '" data-shop="' + gid + '">'
+            + '<div class="sg-name ' + sgFontSize(d.name) + '">' + d.name + '</div>'
+            + '<div class="sg-buy">买 ' + fmtPrice(r.buy) + '</div>'
+            + (pc ? '<span class="pcell-tag pcell-buy">待付×' + pc + '</span>' : '')
+            + '</div>';
+        }
+        var si = sellIdxByUid(parseInt(key.slice(2), 10)); if (si < 0) return '';   // 失效项跳过（待售已被删除）
+        var p = shopSellPending[si]; var d2 = DEFS[p.defId] || {};
+        return '<div class="shop-good pcell-pending pcell-sell' + (shopSellSel === si ? ' pcell-sel' : '') + '" data-sellp="' + si + '" data-selluid="' + p.uid + '">'
+          + '<div class="sg-name ' + sgFontSize(d2.name) + '">' + d2.name + '</div>'
           + '<div class="sg-buy">+' + fmtPrice(p.price) + '</div>'
           + '<span class="pcell-tag pcell-sell">待售×' + p.count + '</span>'
           + '<button class="pcell-x" type="button" data-cx="sell" data-ci="' + si + '" title="取回">✕</button></div>';
-      });
-      // 右栏：玩家行囊真实物品（按 idx）+ 待付品优先填入行囊空格，与真物无缝混排（不再单独堆末尾）
+      }).join('');
+      // 右栏：真物按 idx 渲染；待付品绑定固定格子 cell（自由拖动换位，与真物无缝混排）
       var grid = '';
-      var buyDrawn = 0;
+      var cellBuy = {};
+      shopBuyPending.forEach(function (p, bi) { if (p.cell != null && p.cell >= 0) cellBuy[p.cell] = bi; });
       for (var i = 0; i < S().pack.length; i++) {
         var it = S().pack[i];
         if (it) {
@@ -152,25 +207,16 @@
           var durTag = (it.maxDur) ? '<span class="pcell-dur">' + it.dur + '/' + it.maxDur + '</span>' : '';
           grid += '<div class="packcell' + (shopSel === i ? ' pcell-sel' : '') + '" data-loc="pack:' + i + '">'
             + '<div class="pcell-ic">' + itemIconHTML(it, 13) + '</div>' + cnt + sellTag + durTag + '</div>';
-        } else if (buyDrawn < shopBuyPending.length) {
-          var bp = shopBuyPending[buyDrawn]; var bd = DEFS[bp.id] || { name: bp.id };
-          grid += '<div class="packcell pcell-buyp' + (shopBuySel === buyDrawn ? ' pcell-sel' : '') + '" data-buyp="' + buyDrawn + '">'
+        } else if (cellBuy[i] != null) {
+          var bi = cellBuy[i]; var bp = shopBuyPending[bi]; var bd = DEFS[bp.id] || { name: bp.id };
+          grid += '<div class="packcell pcell-buyp' + (shopBuySel === bi ? ' pcell-sel' : '') + '" data-buyp="' + bi + '" data-cell="' + i + '">'
             + '<div class="pcell-ic">' + itemIconHTML(bd, 13) + '</div>'
             + '<span class="pcell-cnt">' + bp.count + '</span>'
             + '<span class="pcell-tag pcell-buy">待付</span>'
-            + '<button class="pcell-x" type="button" data-cx="buy" data-ci="' + buyDrawn + '" title="取消">✕</button></div>';
-          buyDrawn++;
+            + '<button class="pcell-x" type="button" data-cx="buy" data-ci="' + bi + '" title="取消">✕</button></div>';
         } else {
           grid += '<div class="packcell pcell-empty" data-loc="pack:' + i + '"></div>';
         }
-      }
-      for (; buyDrawn < shopBuyPending.length; buyDrawn++) {   // 行囊已满：待付品才追加在行囊格之后（少数情况）
-        var bp2 = shopBuyPending[buyDrawn]; var bd2 = DEFS[bp2.id] || { name: bp2.id };
-        grid += '<div class="packcell pcell-buyp' + (shopBuySel === buyDrawn ? ' pcell-sel' : '') + '" data-buyp="' + buyDrawn + '">'
-          + '<div class="pcell-ic">' + itemIconHTML(bd2, 13) + '</div>'
-          + '<span class="pcell-cnt">' + bp2.count + '</span>'
-          + '<span class="pcell-tag pcell-buy">待付</span>'
-          + '<button class="pcell-x" type="button" data-cx="buy" data-ci="' + buyDrawn + '" title="取消">✕</button></div>';
       }
       var bn = shopBuyPending.reduce(function (s, p) { return s + p.price * p.count; }, 0);
       var sn = shopSellPending.reduce(function (s, p) { return s + p.price * p.count; }, 0);
@@ -191,6 +237,7 @@
     function restoreTradePending() {   // 离开货郎时归还寄售真物并清空购入占位
       if (shopSellPending.length) { shopSellPending.forEach(function (p) { if (p && p.item) packAdd(p.item); }); shopSellPending = []; }
       if (shopBuyPending.length) shopBuyPending = [];
+      if (leftSeq) leftSeq = leftSeq.filter(function (k) { return k.charAt(0) === 'g'; });   // 只剩真货（保留整理顺序）
       if (typeof save === 'function') save(S());
     }
     function buyPendingCount(id) { var n = 0; shopBuyPending.forEach(function (p) { if (p.id === id) n += p.count; }); return n; }
@@ -205,8 +252,8 @@
       // 换格/放置后短暂高亮，给玩家明确反馈（否则重渲后看不出变化）
       var fp = Object.keys(flashPack);
       if (fp.length) {
-        fp.forEach(function (k) { var el = $card.querySelector('.shop-right [data-loc="pack:' + k + '"]'); if (el) el.classList.add('just-moved'); });
-        setTimeout(function () { fp.forEach(function (k) { var el = $card.querySelector('.shop-right [data-loc="pack:' + k + '"]'); if (el) el.classList.remove('just-moved'); }); }, 700);
+        fp.forEach(function (k) { var el = $card.querySelector('.shop-right [data-loc="pack:' + k + '"],.shop-right [data-cell="' + k + '"]'); if (el) el.classList.add('just-moved'); });
+        setTimeout(function () { fp.forEach(function (k) { var el = $card.querySelector('.shop-right [data-loc="pack:' + k + '"],.shop-right [data-cell="' + k + '"]'); if (el) el.classList.remove('just-moved'); }); }, 700);
         flashPack = {};
       }
       showShopFloat();
@@ -221,7 +268,9 @@
       n = Math.max(1, Math.min(n || 1, max));
       if (n <= 0) { toast('银两或行囊不足。'); return; }
       for (var i = 0; i < shopBuyPending.length; i++) { if (shopBuyPending[i].id === id) { shopBuyPending[i].count += n; renderTrade(); toast('已加购：' + ((LF.ITEMS[id] || {}).name || id) + '×' + n); return; } }
-      shopBuyPending.push({ id: id, price: r.buy, count: n }); renderTrade();
+      var cell = firstFreeCellForBuy();
+      if (cell < 0) { toast('行囊空间不足。'); return; }
+      shopBuyPending.push({ id: id, price: r.buy, count: n, cell: cell }); renderTrade();
       toast('加入待付：购入 ' + ((LF.ITEMS[id] || {}).name || id) + '×' + n);
     }
     function addSellPending(idx, n) {
@@ -231,15 +280,38 @@
       var taken;
       if (n >= it.count) { taken = it; S().pack[idx] = null; }
       else { taken = LF.ITEMS.makeItem(it.defId, n); if (it.maxDur) taken.dur = it.dur; it.count -= n; }
-      shopSellPending.push({ defId: it.defId, price: sp, count: n, item: taken });
+      // 已有同类待售 → 直接堆叠（不新增格子/顺序项，数量累加）
+      for (var mi = 0; mi < shopSellPending.length; mi++) {
+        if (shopSellPending[mi].defId === it.defId) {
+          shopSellPending[mi].count += n;
+          if (shopSellPending[mi].item) shopSellPending[mi].item.count = shopSellPending[mi].count;
+          shopSel = null; afterPackChange(); renderTrade();
+          toast('加入寄售：售出 ' + ((LF.ITEMS[it.defId] || {}).name || it.defId) + '×' + n);
+          return;
+        }
+      }
+      var uid = ++sellUidSeq;
+      shopSellPending.push({ defId: it.defId, price: sp, count: n, item: taken, uid: uid });
+      if (leftSeq) leftSeq.push('s:' + uid);   // 新待售排到左栏末尾（之后可自由拖动换位）
       shopSel = null; afterPackChange(); renderTrade();
       toast('加入寄售：售出 ' + ((LF.ITEMS[it.defId] || {}).name || it.defId) + '×' + n);
     }
-    function removeBuyPending(i) { if (i >= 0 && i < shopBuyPending.length) { shopBuyPending.splice(i, 1); renderTrade(); } }
-    function removeSellPending(i) {
-      if (i >= 0 && i < shopSellPending.length) { var p = shopSellPending.splice(i, 1)[0]; if (p && p.item) packAdd(p.item); afterPackChange(); renderTrade(); }
+    function removeBuyPending(i) {
+      if (i >= 0 && i < shopBuyPending.length) {
+        shopBuyPending.splice(i, 1);
+        if (shopBuySel === i) shopBuySel = null;
+        renderTrade();
+      }
     }
-    function clearTradePending() { shopBuyPending = []; shopSellPending = []; }
+    function removeSellPending(i) {
+      if (i >= 0 && i < shopSellPending.length) {
+        var p = shopSellPending.splice(i, 1)[0];
+        if (p && p.uid != null) removeKey('s:' + p.uid);   // 同步移除左栏顺序项
+        if (p && p.item) packAdd(p.item);
+        if (shopSellSel === i) shopSellSel = null;
+        afterPackChange(); renderTrade();
+      }
+    }
     function confirmTrade() {
       if (!shopBuyPending.length && !shopSellPending.length) { toast('尚未加入任何交易。'); return; }
       var need = 0; shopBuyPending.forEach(function (p) { need += p.price * p.count; });
@@ -394,8 +466,8 @@
         el.setAttribute('draggable', 'true');
         el.ondragstart = function (e) {
           var _sf = document.getElementById('shop-float'); if (_sf) _sf.style.display = 'none';
-          var sid = el.getAttribute('data-shop'), sp = el.getAttribute('data-sellp');
-          e.dataTransfer.setData('text/plain', JSON.stringify({ kind: (sid != null ? 'buy' : 'sellp'), payload: (sid != null ? sid : parseInt(sp, 10)) }));
+          var sid = el.getAttribute('data-shop'), uid = el.getAttribute('data-selluid');
+          e.dataTransfer.setData('text/plain', JSON.stringify({ kind: (sid != null ? 'buy' : 'sellp'), payload: (sid != null ? sid : parseInt(uid, 10)) }));
         };
       });
       // 右栏：真物点选 / buy 占位点选
@@ -421,9 +493,14 @@
       // 原生 HTML5 拖拽落点（桌面）
       var left = card.querySelector('.shop-left'), right = card.querySelector('.shop-right');
       left.ondragover = function (e) { e.preventDefault(); };
-      left.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'buy') { if (e.target.closest && e.target.closest('[data-shop]')) reorderGoodsAtEl(e.target, d.payload); else moveGoodToEnd(d.payload); } else if (d.kind === 'sell') addSellPending(d.payload, 1); else if (d.kind === 'buyp') removeBuyPending(d.payload); else if (d.kind === 'sellp') { if (e.target.closest && e.target.closest('[data-sellp]')) reorderSellPendingAtEl(e.target, d.payload); } } catch (_) { } };   // buy 落左栏：具体货品换序，空白区移末尾（仅会话）；sellp 落左栏寄售格=换位
+      left.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'buy') dropLeft('g:' + d.payload, e.target); else if (d.kind === 'sell') addSellPending(d.payload, 1); else if (d.kind === 'buyp') removeBuyPending(d.payload); else if (d.kind === 'sellp') dropLeft('s:' + d.payload, e.target); } catch (_) { } };   // buy/sellp 落左栏：统一换位/堆叠/末尾；sell 落左栏=寄售；buyp 落左栏=取消
       right.ondragover = function (e) { e.preventDefault(); };
-      right.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'sell') { if (e.target.closest && e.target.closest('.shop-right [data-loc]')) reorderPackAtEl(e.target, d.payload); else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); } } else if (d.kind === 'buy') addBuyPending(d.payload, 1); else if (d.kind === 'sellp') removeSellPending(d.payload); else if (d.kind === 'buyp') { if (e.target.closest && e.target.closest('[data-buyp]')) reorderBuyPendingAtEl(e.target, d.payload); } } catch (_) { } };   // buyp 落右栏待付格=换位   // sell 落右栏：具体格换格，空白区放首空格（持久化）
+      right.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain'));
+        if (d.kind === 'sell') { var t2 = e.target.closest && e.target.closest('.shop-right [data-cell],[data-loc]'); if (t2) { var c2 = t2.getAttribute('data-cell') != null ? parseInt(t2.getAttribute('data-cell'), 10) : locIdx(t2.getAttribute('data-loc')); var bpAt = buyPendingAtCell(c2); if (bpAt >= 0) placeBuyPending(shopBuyPending[bpAt], d.payload); else reorderPackAtEl(t2, d.payload); } else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); } }
+        else if (d.kind === 'buy') addBuyPending(d.payload, 1);
+        else if (d.kind === 'sellp') { var _sd = sellIdxByUid(parseInt(d.payload, 10)); if (_sd >= 0) removeSellPending(_sd); }
+        else if (d.kind === 'buyp') { var t3 = e.target.closest && e.target.closest('.shop-right [data-cell],[data-loc]'); if (t3) { var c3 = t3.getAttribute('data-cell') != null ? parseInt(t3.getAttribute('data-cell'), 10) : locIdx(t3.getAttribute('data-loc')); placeBuyPending(shopBuyPending[d.payload], c3); } }
+      } catch (_) { } };   // sell 落右栏：空格/真物格换位，待付格则待付让位；buyp 落右栏任意格=待付移入该格（自由摆放）
       // 触屏 pointer 拖拽：四向转移（buy→右 / sell→左 / buyp→左取消 / sellp→右取回）
       var ghost = null, dragging = null, srcEl = null, sx = 0, sy = 0, moved = false, dropEl = null;
       function startDrag(kind, payload, el, e) { dragging = { kind: kind, payload: payload }; srcEl = el; moved = false; el.__dragMoved = false; sx = e.clientX; sy = e.clientY; var _sf = document.getElementById('shop-float'); if (_sf) _sf.style.display = 'none'; }
@@ -440,10 +517,9 @@
         el.onpointerdown = function (e) {
           if (e.pointerType === 'mouse') return;
           if (e.target.closest('.pcell-x')) return;
-          if (el.classList.contains('shop-bad')) return;
           var sid = el.getAttribute('data-shop');
-          if (sid != null) startDrag('buy', sid, el, e);
-          else startDrag('sellp', parseInt(el.getAttribute('data-sellp'), 10), el, e);
+          if (sid != null) { if (el.classList.contains('shop-bad')) return; startDrag('buy', sid, el, e); }
+          else startDrag('sellp', parseInt(el.getAttribute('data-selluid'), 10), el, e);   // 用 uid 定位（增删后索引不漂移）
         };
       });
       card.onpointermove = function (e) {
@@ -453,12 +529,12 @@
         var nm;
         if (dragging.kind === 'sell') nm = (S().pack[dragging.payload] || {}).name || '';
         else if (dragging.kind === 'buyp') nm = '待付·' + ((LF.ITEMS[shopBuyPending[dragging.payload] && shopBuyPending[dragging.payload].id] || {}).name || '');
-        else if (dragging.kind === 'sellp') nm = '寄售·' + ((LF.ITEMS[shopSellPending[dragging.payload] && shopSellPending[dragging.payload].defId] || {}).name || '');
+        else if (dragging.kind === 'sellp') { var _spi = sellIdxByUid(dragging.payload); nm = '寄售·' + ((LF.ITEMS[shopSellPending[_spi] && shopSellPending[_spi].defId] || {}).name || ''); }
         else nm = (LF.ITEMS[dragging.payload] || {}).name || '';
         ghost.textContent = nm; ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px';
         // 拖拽目标格实时高亮，提供落点反馈
         var under = document.elementFromPoint(e.clientX, e.clientY);
-        var cell = (under && under.closest) ? under.closest('.shop-right [data-loc], [data-shop], [data-buyp], [data-sellp]') : null;
+        var cell = (under && under.closest) ? under.closest('.shop-right [data-cell],[data-loc], [data-shop], [data-buyp], [data-selluid]') : null;
         if (dropEl && dropEl !== cell) { dropEl.classList.remove('shop-drop'); dropEl = null; }
         if (cell && cell !== dropEl) { dropEl = cell; cell.classList.add('shop-drop'); }
       };
@@ -471,21 +547,22 @@
         if (inRect(e, R)) {
           if (d.kind === 'sell') {
             var tR = document.elementFromPoint(e.clientX, e.clientY) || e.target;
-            if (tR && tR.closest && tR.closest('.shop-right [data-loc]')) reorderPackAtEl(tR, d.payload);            // 落到具体行囊格：换格/放置（持久化）
-            else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); }      // 行囊区域内非格子：自动放第一个空格
+            var tRc = tR && tR.closest ? tR.closest('.shop-right [data-cell],[data-loc]') : null;
+            if (tRc) {
+              var cR = tRc.getAttribute('data-cell') != null ? parseInt(tRc.getAttribute('data-cell'), 10) : locIdx(tRc.getAttribute('data-loc'));
+              var bpR = buyPendingAtCell(cR);
+              if (bpR >= 0) placeBuyPending(shopBuyPending[bpR], d.payload);   // 真物拖到待付格：待付让位到真物源格
+              else reorderPackAtEl(tRc, d.payload);                              // 空格/真物格：换位（持久化）
+            } else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); }
           }
           else if (d.kind === 'buy') addBuyPending(d.payload, 1);          // 货郎货→行囊=购买
-          else if (d.kind === 'sellp') removeSellPending(d.payload);       // 待售→行囊=取回/取消
-          else if (d.kind === 'buyp') { var tRp = document.elementFromPoint(e.clientX, e.clientY) || e.target; reorderBuyPendingAtEl(tRp, d.payload); }   // 待付在右栏内换位（整理结算顺序）
+          else if (d.kind === 'sellp') { var _sd2 = sellIdxByUid(d.payload); if (_sd2 >= 0) removeSellPending(_sd2); }   // 待售→行囊=取回/取消
+          else if (d.kind === 'buyp') { var tRp = document.elementFromPoint(e.clientX, e.clientY) || e.target; var tR2 = tRp && tRp.closest ? tRp.closest('.shop-right [data-cell],[data-loc]') : null; if (tR2) { var cRp = tR2.getAttribute('data-cell') != null ? parseInt(tR2.getAttribute('data-cell'), 10) : locIdx(tR2.getAttribute('data-loc')); placeBuyPending(shopBuyPending[d.payload], cRp); } }   // 待付拖到右栏任意格：自由摆放（空格/真物格/其他待付格）
         } else if (inRect(e, L)) {
-          if (d.kind === 'buy') {
-            var tL = document.elementFromPoint(e.clientX, e.clientY) || e.target;
-            if (tL && tL.closest && tL.closest('[data-shop]')) reorderGoodsAtEl(tL, d.payload);                       // 落到具体货品：换序（仅会话）
-            else moveGoodToEnd(d.payload);                                                                      // 货郎区域内非货品：移到末尾=第一个空格
-          }
+          if (d.kind === 'buy') { var tL = document.elementFromPoint(e.clientX, e.clientY) || e.target; dropLeft('g:' + d.payload, tL); }   // 真货在左栏内换位/到末尾
           else if (d.kind === 'sell') addSellPending(d.payload, 1);        // 行囊物→货郎=寄售
           else if (d.kind === 'buyp') removeBuyPending(d.payload);         // 待付→货郎=取消购买
-          else if (d.kind === 'sellp') { var tLp = document.elementFromPoint(e.clientX, e.clientY) || e.target; if (!reorderSellPendingAtEl(tLp, d.payload)) moveSellToEnd(d.payload); }   // 寄售在左栏内换位（拖到具体寄售格换序，拖到他处重排到末尾）
+          else if (d.kind === 'sellp') { var tLp = document.elementFromPoint(e.clientX, e.clientY) || e.target; dropLeft('s:' + d.payload, tLp); }   // 待售在左栏内：拖到同物=堆叠，拖到其他格=换位，拖空白=末尾
         }
         renderTrade();
       }
@@ -514,11 +591,11 @@
     // 计算某货品当前最多能买几件（受金币与行囊空间共同限制）
     function buySpaceLimit(id) {
       var it = LF.ITEMS.makeItem(id, 1); if (!it) return 0;
-      if (packIsStackable(it)) {          // 可堆叠：已有同类则不限，否则需 1 空格
+      if (packIsStackable(it)) {          // 可堆叠：已有同类则不限，否则需 1 真空格（待付占用的格不算）
         if (packFind(id)) return 9999;
-        return packFirstEmpty() >= 0 ? 9999 : 0;
+        return firstFreeCellForBuy() >= 0 ? 9999 : 0;
       }
-      var empt = 0; for (var i = 0; i < S().pack.length; i++) { if (!S().pack[i]) empt++; }
+      var empt = 0; for (var i = 0; i < S().pack.length; i++) { if (!S().pack[i] && buyPendingAtCell(i) < 0) empt++; }
       return empt;
     }
     // 某货品本笔交易「当前最多还能买几件」：减去已加入待付的部分（金币 + 行囊共同限制）
@@ -543,6 +620,7 @@
       shopState = id || 'build_pedlar';
       shopSel = null; shopGoodSel = null; shopBuySel = null; shopSellSel = null;
       shopBuyPending = []; shopSellPending = [];
+      leftSeq = null; sellUidSeq = 1;
       return renderShopPanel();
     }
 
