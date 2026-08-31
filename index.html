@@ -545,7 +545,7 @@
   .map-viewport:active{cursor:grabbing;}
   /* v20260822ae：直接用用户简化版参考图 assets/_pv_ref.png 作地图背景（彩色州块+蓝水系+隶书州名，一目了然）。
      之前用 'ScreenShot_20260821_230620_978.png'（项目根目录根本不存在）始终未加载成功，故此前屏上一片空白+无州界。 */
-  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260822ae') center/100% 100% no-repeat;transform-origin:0 0;}
+  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260831q') center/100% 100% no-repeat;transform-origin:0 0;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
   /* 参考图 PNG 自带完整视觉（州块+隶书州名+蓝水系+外族注记），所有叠加层都 display:none 让 PNG 直接呈现。 */
   .map-bg{display:none;}                                  /* 旧羊皮纸底纹层：被 PNG 完全覆盖，移除避免压暗 */
@@ -1636,6 +1636,7 @@
   .shop-good .sg-name{color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;word-break:break-word;padding:2px 3px 0;line-height:1.2;}
   .shop-good .sg-name.sg-n2{font-size:12px;} .shop-good .sg-name.sg-n3{font-size:11px;} .shop-good .sg-name.sg-n4{font-size:10px;} .shop-good .sg-name.sg-n5{font-size:9px;} .shop-good .sg-name.sg-n6{font-size:8.5px;}
   .shop-good .sg-buy{font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:1px 4px;margin-top:3px;pointer-events:none;min-width:0;box-sizing:border-box;text-align:center;line-height:1.3;flex-shrink:0;}
+  .sg-sellcnt{margin-top:3px;font-size:11px;font-weight:700;color:#fff1c8;background:linear-gradient(180deg,#8a3b1f,#5e2812);border:1px solid #c8703f;border-radius:7px;padding:1px 6px;line-height:1.5;box-shadow:0 1px 2px rgba(0,0,0,.4);}
   .shop-good.shop-bad{opacity:.45;}
   .shop-good.shop-bad .sg-buy{color:#e0796f;}
   /* 换格/放置成功后的短暂脉冲反馈（深色主题） */
@@ -2030,28 +2031,28 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260831m"></script>
-<script src="shared/config/ui-spec.js?v=20260814a"></script>
-<script src="shared/config/balance.js?v=20260814a"></script>
-<script src="shared/story/sects.js?v=20260813a"></script>
-<script src="shared/story/skills.js?v=20260813a"></script>
-<script src="shared/story/objectives.js?v=20260827f"></script>
-<script src="shared/story/events.js?v=20260821j"></script>
-<script src="shared/story/dialogues.js?v=20260825i"></script>
-    <script src="shared/story/rooms.js?v=20260828k"></script>
-    <script src="shared/story/triggers.js?v=20260821j"></script>
-    <script src="shared/data/martial.js?v=20260813a"></script>
-<script src="shared/data/enemies.js?v=20260830l"></script>
-<script src="shared/data/items.js?v=20260830l"></script>
-    <script src="shared/data/recipes.js?v=20260821j"></script>
-    <script src="shared/data/build.js?v=20260826e"></script>
-    <script src="shared/data/shops.js?v=20260830l"></script>
-    <script src="shared/shop.js?v=20260831m"></script>
-    <script src="shared/data/map.js?v=20260827f"></script>
-    <script src="shared/data/cities.js?v=20260827f"></script>
-    <script src="shared/data/markets.js?v=20260825e"></script>
-    <script src="shared/combat/engine.js?v=20260828p"></script>
-    <script src="shared/index.js?v=20260826g"></script>
+<script src="shared/config/constants.js?v=20260831q"></script>
+<script src="shared/config/ui-spec.js?v=20260831q"></script>
+<script src="shared/config/balance.js?v=20260831q"></script>
+<script src="shared/story/sects.js?v=20260831q"></script>
+<script src="shared/story/skills.js?v=20260831q"></script>
+<script src="shared/story/objectives.js?v=20260831q"></script>
+<script src="shared/story/events.js?v=20260831q"></script>
+<script src="shared/story/dialogues.js?v=20260831q"></script>
+    <script src="shared/story/rooms.js?v=20260831q"></script>
+    <script src="shared/story/triggers.js?v=20260831q"></script>
+    <script src="shared/data/martial.js?v=20260831q"></script>
+<script src="shared/data/enemies.js?v=20260831q"></script>
+<script src="shared/data/items.js?v=20260831q"></script>
+    <script src="shared/data/recipes.js?v=20260831q"></script>
+    <script src="shared/data/build.js?v=20260831q"></script>
+    <script src="shared/data/shops.js?v=20260831q"></script>
+    <script src="shared/shop.js?v=20260831q"></script>
+    <script src="shared/data/map.js?v=20260831q"></script>
+    <script src="shared/data/cities.js?v=20260831q"></script>
+    <script src="shared/data/markets.js?v=20260831q"></script>
+    <script src="shared/combat/engine.js?v=20260831q"></script>
+    <script src="shared/index.js?v=20260831q"></script>
 <script>
 (function(){
   try{
@@ -6636,20 +6637,6 @@ window.onerror=function(msg,url,line,col,err){
       }
     });
     h+='</div>';
-    if(state.equips.length){
-      h+='<div class="row"><span>行囊·装备</span></div><div class="equip-bag">';
-      state.equips.forEach(function(eq){
-        h+='<div class="eq-item" data-id="'+eq.id+'">'+
-           '<span class="eq-dot" style="background:'+eq.color+'"></span>'+
-           '<span class="eq-nm" style="color:'+eq.color+'">'+eq.name+'</span>'+
-           '<span class="eq-st">'+LF.ITEMS.statText(eq)+'</span>'+
-           '<span class="eq-dur">'+eq.dur+'/'+eq.maxDur+'</span>'+
-           '<span class="eq-w">装备</span></div>';
-      });
-      h+='</div>';
-    } else {
-      h+='<div class="row"><span>行囊·装备</span><span>（空）</span></div>';
-    }
     return h;
   }
   // ===== 捏人 / 开场序章 =====
@@ -7149,7 +7136,7 @@ window.onerror=function(msg,url,line,col,err){
       name:'翰墨书肆', icon:'📜', sub:'竹简累累，韦编盈架（纸贵简行，仍以简为主）',
       interior: [
         { kind:'npc', name:'书生', icon:'🧑‍🎓', desc:'青衫落拓、指染墨痕的儒生。', acts:[
-          { label:'购简抄书', icon:'📜', fn:function(){ if(!exert('购书')) return; if(packAdd('jian',1)) log('你购得几卷竹简，或为兵法，或为诗赋，沉甸甸压肩。','sys'); openModal('building'); } },
+          { label:'购简抄书', icon:'📜', fn:function(){ if(!exert('购书')) return; if(packAdd('zhujian',1)) log('你购得几卷竹简，或为兵法，或为诗赋，沉甸甸压肩。','sys'); openModal('building'); } },
           { label:'闲谈', icon:'💬', fn:function(){ log('书生叹：「蔡侯纸虽已出世，价昂而难得，寻常仍用竹简——'+bldZihao()+'架上，韦编三绝，非虚言也。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'简牍架', icon:'📚', desc:'架上竹简层层，麻绳编缀。', acts:[
@@ -7755,7 +7742,9 @@ window.onerror=function(msg,url,line,col,err){
   window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction;
   window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
   window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;
-  window.startCombat=startCombat; window.openTestChest=openTestChest;
+  window.startCombat=startCombat;
+  // 测试宝箱仅为调试用途：仅在 ?dev=1 时暴露，避免生产环境误触（无任何正常游戏逻辑调用它）
+  if (location.search.indexOf('dev=1') >= 0) window.openTestChest=openTestChest;
   // ── 全局桥接（v20260827i）：shared/story/rooms.js 工厂闭包引用 state.flags/state.room（read-only），
   //    通过 getter 暴露当前 state；内部仍以 IIFE 内的 var state 为主写入源
   Object.defineProperty(window, 'state', { get: function(){ return state; }, configurable: true });

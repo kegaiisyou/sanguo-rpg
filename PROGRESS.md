@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260828k`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260831q`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -479,4 +479,61 @@
 
 ---
 
-*最后更新：2026-08-28（§9.25：战斗双轨清理 + 运招预告修复，v20260828k）*
+### 9.26 货郎手机端手感优化 + 代码清理（v20260831m – v20260831o）
+
+**v20260831m · 货郎手机端滚动难操作优化**
+- **根因**：左栏 33 个货品整片 `.shop-good` 的 `touch-action:none` 让手机端手指滑动无法滚动；两栏 `max-height:none` 撑长后靠整张弹窗滚动。
+- **优化**：手机端 `@media` 把 `.shop-good`/`.shop-right .packcell` 的 `touch-action` 改为 `pan-y`（纵向滑动恢复滚动，横向拖拽与轻点选中仍由 JS 接管，互不冲突）；两栏 `max-height:56vh` 让 `.shop-scroll` 真正栏内滚动；滚动条加粗 14px + `overscroll-behavior:contain`，拇指好抓不误触外层。寄售/购买走浮框按钮（`data-sellgo` 已绑定），不依赖拖拽。
+
+**v20260831n · 手机长按拖拽寄售 + 待售数量醒目**
+- **拖拽纵向丢失修复**（用户实测反馈）：`pan-y` 下手指纵向滑动被浏览器滚动抢走。改移动端标准「长按 200ms 进入拖拽」——按住不动才拖（`setPointerCapture` + 临时 `touch-action:none` 锁定该格），轻滑（<10px）放行原生滚动，轻点仍正常选中；实测长按拖拽成功寄售、轻点仍弹浮框。
+- **待售数量醒目**：待售格底部新增橙底 **「寄售 N 件」** 行（同类多次拖自动堆叠到同一格累计总数，原仅左上角小标签不易察觉）。
+
+**v20260831o · 代码清理（冗余 / 死代码 / 调试接口）**
+- 删除 `state.equips` 恒为空死分支（装备已统一在 `equipment` 槽渲染，`shared/index.js` 仅保留兼容字段避免 undefined）。
+- `openTestChest` 调试接口加 `?dev=1` 守卫（与调试台一致；确认无任何正常游戏逻辑调用它，防生产环境误触）。
+- `shared/story/skills.js` 的 `LF.SKILLS` 武学树加「未接入任何升级/学习 UI」标注（真正驱动战斗的是 `state.learnedMartial`，避免维护者误判已生效）。
+- 排查结论：交易系统结算（`confirmTrade` 用 `p.price`、银两不足整单阻止、买入入包/卖出按收购价）正确；离开货郎 `openModal`/`closeModal` 均 `restoreTradePending` 归还寄售物，无物品丢失隐患。
+
+### 9.27 文件冗余清理 + 隐藏 bug 修复（v20260831p）
+
+**文件清理（彻底清理方案，用户确认）**
+- 删除明显无用：空目录 `shared/narrative/`、根目录调试脚本（`_fmt.py`/`_fmt2.py`/`_jscheck.py`/`_syn.py`）、日志（`srv.err`/`srv.log`）、旧版对照（`_msg.txt`/`_newshop.txt`/`_origshop.txt`）、23 个 `v*-changelog.html` 变更日志。
+- 归档保留：8 个 `proto-*.html` 原型 + 6 个根目录 `.md` 工作笔记（`combat-audit`/`design_vs_code_diff`/`新手教程重设计`/`开场复盘`/`路线与复查`/`制作表单`）→ `_archive/`（不删，留底备查）。
+- 删除 `assets/` 未引用历史资源（实际仅 `_pv_ref.png`/`title_bg.jpg`/`impacts/` 被代码引用）：`map_real/map_ai/map_inkwash/map_parchment/map_ref/_ref_orig/_pv_ref2/_pv_small/reforig/refp` 等 `.png/.jpg`，及 2 个 `_ne_*.geojson` 大文件（约 10MB）。
+- 核查：`_game_inline.js`/`_del_beggar.js` 实际文件已不存在（仅本文历史提及），无需删；`serve_nocache.py`/`verify_playtest.py` 保留作本地验证。
+
+**隐藏 bug 修复**
+- 「试炼宝箱」房间（`shared/story/rooms.js`）直接调用 `openTestChest()`，而该全局函数上一轮已改为仅 `?dev=1` 才暴露——生产环境下点击会抛 `ReferenceError`。加 `typeof openTestChest==='function'` 守卫，非 dev 模式静默不报错。
+
+---
+
+*最后更新：2026-08-31（§9.26–§9.27：代码清理 + 文件冗余清理 + 试炼宝箱 ReferenceError 修复，v20260831p）*
+
+### 9.28 数据交叉引用校验脚本 + 13 处悬空引用修复（v20260831q）
+
+**新增校验脚本 `test/cross_reference_check.js`**（15 条规则）
+- 覆盖：房间出口/NPC、敌人掉落、配方、商店、蓝图、物品蓝图、事件物品、门派武学、武学艺线、触发器、源码调用点（startCombat/move/talk/packAdd/openModal 等）、城市势力、ID 唯一性、装备槽位。
+- 智能提示：悬空引用自动给出「笔误/简写/命名不一致」候选；退出码 0=通过 / 1=有 ERROR / 2=仅 WARN。
+- 运行：`node test/cross_reference_check.js`（首跑即发现 13 ERROR + 1 WARN，全部人工核实为真实 bug）。
+
+**修复的悬空引用（13 处 ERROR）**
+- **房间 NPC**（`shared/story/rooms.js` camp_yard）：`'zhou_tingtao'` → `'zhoutingtao'`（与 dialogues/triggers 命名统一，修复劳役场周听涛不显示）；删除无任何定义的残留 `'hu_shi'`（设计稿中劳役场孙老/牛铁等未实现，当前精简版仅保留周听涛）。
+- **敌人掉落**（`shared/data/items.js` 补 5 个缺失物品定义）：`blade_manual_frag` 刀谱残页 / `talisman_scrap` 残符 / `halberd_manual_page` 画戟谱残页 / `war_horse_token` 战马令 / `heishan_token` 黑山令——修复流寇头目/太平力士/华雄/黑山寨主战利品永远无法入包。
+- **冶炼工坊**（`shared/data/build.js`）：`kuangshi`→`tiekuangshi`、`tieding`→`tiekuai`（6 处），修复「请他熔石」「熔石取铁」失效。
+- **酒楼/马市/书肆**（`index.html`）：`packAdd('jian')`→`packAdd('zhujian')`；补 `jiu` 黍酒、`horse` 川马物品定义，修复三处店肆购物买到无名空物品。
+
+**疑点处理（1 处 WARN）**
+- `CITIES.owner` 短名（yuan/lu/liu/ma/sun/kongrong/shixie）与 `FACTIONS` 全名不一致，且与 `CITY_OWNER` 有 7 处冲突（颍川/昌邑孔融vs曹操、下邳吕布vs曹操、渔阳/蓟城公孙度vs袁绍、寿春袁绍vs曹操、晋阳董卓vs马腾、番禺士燮vs汉室、许昌曹操vs汉室）。已按 `cityDefaultOwner` 的优先顺序（CITY_OWNER > c.owner）将 `cities.owner` 全部对齐为 `CITY_OWNER` 值，消除双源冲突。
+
+**版本/缓存同步**
+- 版本 `20260831p` → `20260831q`（`shared/config/constants.js`）；`index.html` 全部 23 处 `?v=` 缓存参数统一为 `20260831q`（此前残留 14 个旧版本号，存在缓存不刷新的隐患）。
+
+**验证**
+- `node test/cross_reference_check.js` → 0 ERROR / 0 WARN，全绿。
+- 全部 shared JS `node --check` 通过；`test/index_html_syntax_check.js` 0 错误；战斗引擎 45/45；营造系统全部通过。
+- 浏览器实测：标题屏/图鉴/存档选择/捏人/建造测试场全部正常渲染，无控制台报错；运行时确认 65 物品、20 城、周听涛等 NPC 解析正常。
+
+---
+
+*最后更新：2026-08-31（§9.28：数据交叉引用校验脚本 + 13 处悬空引用修复 + 版本缓存统一，v20260831q）*

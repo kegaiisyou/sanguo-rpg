@@ -116,7 +116,23 @@
     shidao:  { defId: 'shidao',  name: '石刀',     icon: '🔪', cat: '装备', slot: 'weapon', stats: { atk: 3 }, quality: 'white', desc: '粗砺的石刃绑于木柄，劈砍虽钝，聊备防身。' },
     gumao:   { defId: 'gumao',   name: '骨矛',     icon: '🗡️', cat: '装备', slot: 'weapon', stats: { atk: 5 }, quality: 'white', desc: '兽骨削尖为矛，锋锐胜于木棒，可刺可挑。' },
     mugong:  { defId: 'mugong',  name: '木弓',     icon: '🏹', cat: '装备', slot: 'weapon', stats: { atk: 4 }, quality: 'white', desc: '竹木弯就的猎弓，远可射禽兽，近亦可格。' },
-    zhujia:  { defId: 'zhujia',  name: '竹制铠甲', icon: '🛡️', cat: '装备', slot: 'cloth', stats: { def: 2 }, quality: 'white', desc: '竹片编缀而成的铠甲，轻便耐磨，可挡寻常刀石（防御 +2）。' }
+    zhujia:  { defId: 'zhujia',  name: '竹制铠甲', icon: '🛡️', cat: '装备', slot: 'cloth', stats: { def: 2 }, quality: 'white', desc: '竹片编缀而成的铠甲，轻便耐磨，可挡寻常刀石（防御 +2）。' },
+    // —— 强敌战利品（敌人掉落表引用；残页/令牌为收集与后续研习/支线素材）——
+    blade_manual_frag: { defId: 'blade_manual_frag', name: '刀谱残页', icon: '📜', cat: '素材',
+      desc: '某部刀谱散佞的一页，刀势刻痕犹存，多攒几页或可拼凑研习。' },
+    talisman_scrap:    { defId: 'talisman_scrap',    name: '残符',     icon: '🕯️', cat: '素材',
+      desc: '太平道符簋烧残的一角，纸面朱砂尚存，笔意晦涩难解。' },
+    halberd_manual_page:{ defId: 'halberd_manual_page', name: '画戟谱残页', icon: '📜', cat: '素材',
+      desc: '载有画戟招式的残页，笔画遂劲，隐有凛冽杀意。' },
+    war_horse_token:   { defId: 'war_horse_token',   name: '战马令',   icon: '🏇', cat: '素材', price: 60,
+      desc: '军中调马之令，持之或可往马市换得好马，亦可售与行商。' },
+    heishan_token:     { defId: 'heishan_token',     name: '黑山令',   icon: '🪙', cat: '素材', price: 40,
+      desc: '黑山军信物，铜牌刻燕形纹，凭此或可见黑山旧部，亦可售钱。' },
+    // —— 酒楼/马市商品（对应城内店肆交互 packAdd 引用）——
+    jiu:       { defId: 'jiu',       name: '黍酒', icon: '🍶', cat: '食饵', effect: { drink: 15, food: 5 },
+      desc: '黍米酿就的浊酒，酒香扑鼻，饮之解渴暖身，或可御寒壮行。' },
+    horse:     { defId: 'horse',     name: '川马', icon: '🐴', cat: '素材', price: 80,
+      desc: '相中的栗色川马，蹄声如鼓，正堪长途，亦可售与马行。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }

@@ -1,5 +1,8 @@
 // 乱世烽火 · 武学树（共享数据层 · 文字放置路线）
 // 树状：tier 分层，prereq 前置，cost 消耗修为，effect 永久加成
+// ⚠ 注意：本文件定义的 LF.SKILLS 武学树【当前未接入任何升级/学习 UI】。
+//   真正驱动战斗的招式源是 state.learnedMartial（由研习界面 MARTIAL_ARTS 写入），
+//   LF.SKILLS 仅为早期遗留数据，待门派/内功系统接入时可复用，请勿误以为已生效。
 (function (global) {
   var SKILLS = {
     basic_fist: {

@@ -193,7 +193,8 @@
         return '<div class="shop-good pcell-pending' + (shopSellSel === si ? ' pcell-sel' : '') + '" data-sellp="' + si + '" data-selluid="' + p.uid + '">'   // 不能带 pcell-sell 类：该类的 position:absolute 会让整格脱离网格、飘到容器外（"无法选中"的根因）
           + '<div class="sg-name ' + sgFontSize(d2.name) + '">' + d2.name + '</div>'
           + '<div class="sg-buy">+' + fmtPrice(p.price) + '</div>'
-          + '<span class="pcell-tag pcell-sell">待售×' + p.count + '</span>'
+          + '<div class="sg-sellcnt">寄售 ' + p.count + ' 件</div>'
+          + '<span class="pcell-tag pcell-sell">寄售×' + p.count + '</span>'
           + '<button class="pcell-x" type="button" data-cx="sell" data-ci="' + si + '" title="取回">✕</button></div>';
       }).join('');
       // 右栏：真物按 idx 渲染；待付品绑定固定格子 cell（自由拖动换位，与真物无缝混排）
@@ -519,7 +520,7 @@
         else if (d.kind === 'buyp') { var t3 = e.target.closest && e.target.closest('.shop-right [data-cell],[data-loc]'); if (t3) { var c3 = t3.getAttribute('data-cell') != null ? parseInt(t3.getAttribute('data-cell'), 10) : locIdx(t3.getAttribute('data-loc')); placeBuyPending(shopBuyPending[d.payload], c3); } }
       } catch (_) { } renderTrade(); };   // sell 落右栏：空格/真物格换位，待付格则待付让位；buyp 落右栏任意格=待付移入该格（自由摆放）
       // 触屏 pointer 拖拽：轻点(tap)放行 click 选中；位移超阈值才进入拖拽（否则"点选像被锁定/没反应"）
-      var ghost = null, dragging = null, srcEl = null, sx = 0, sy = 0, moved = false, dropEl = null;
+      var ghost = null, dragging = null, srcEl = null, sx = 0, sy = 0, moved = false, dropEl = null, longTimer = null;
       var pending = null;   // 按下但未确认拖拽的候选项 {kind,payload,el,sx,sy}
       function shopDragInfo(el) {
         var loc = el.getAttribute('data-loc'), bp = el.getAttribute('data-buyp'), sid = el.getAttribute('data-shop');
@@ -528,12 +529,14 @@
         if (sid != null) { if (el.classList.contains('shop-bad')) return null; return { kind: 'buy', payload: sid }; }
         return { kind: 'sellp', payload: parseInt(el.getAttribute('data-selluid'), 10) };
       }
-      function armDrag(di, el, e) { pending = { kind: di.kind, payload: di.payload, el: el, sx: e.clientX, sy: e.clientY }; }
-      function beginDrag() {
+      function armDrag(di, el, e) { pending = { kind: di.kind, payload: di.payload, el: el, sx: e.clientX, sy: e.clientY, e0: e }; }
+      function beginDrag(e) {   // 进入拖拽：锁定 pointer + 临时关闭该格滚动，避免纵向拖被浏览器滚动抢走（pan-y 副作用）
         if (!pending) return;
         dragging = { kind: pending.kind, payload: pending.payload };
         srcEl = pending.el; moved = false; pending.el.__dragMoved = false;
         sx = pending.sx; sy = pending.sy;
+        try { srcEl.setPointerCapture(e.pointerId); } catch (_) {}
+        srcEl.style.touchAction = 'none';
         pending = null;
         var _sf = document.getElementById('shop-float'); if (_sf) _sf.style.display = 'none';
       }
@@ -543,10 +546,16 @@
           if (e.target.closest('.pcell-x')) return;
           var di = shopDragInfo(el); if (!di) return;
           armDrag(di, el, e);
+          // 长按 200ms 进入拖拽（移动端惯例）：按住不动才拖，轻滑则放行滚动（pan-y），彻底解决"上下拖动变成滚动"
+          clearTimeout(longTimer);
+          longTimer = setTimeout(function () { if (pending) beginDrag(pending.e0); }, 200);
         };
       });
       card.onpointermove = function (e) {
-        if (pending) { if (Math.abs(e.clientX - pending.sx) > 12 || Math.abs(e.clientY - pending.sy) > 12) beginDrag(); }
+        // 尚未进入拖拽：手指已移动（用户想滚动浏览）→ 取消长按计时、放行原生滚动
+        if (pending && !dragging) {
+          if (Math.abs(e.clientX - pending.sx) > 10 || Math.abs(e.clientY - pending.sy) > 10) { clearTimeout(longTimer); longTimer = null; pending = null; return; }
+        }
         if (!dragging) return;
         if (!moved) { if (Math.abs(e.clientX - sx) < 8 && Math.abs(e.clientY - sy) < 8) return; moved = true; srcEl && (srcEl.__dragMoved = true); }
         if (!ghost) { ghost = document.createElement('div'); ghost.className = 'pack-ghost'; document.body.appendChild(ghost); }
@@ -565,6 +574,7 @@
       function endDrag(e, cancelled) {
         var d = dragging; dragging = null; if (ghost) { ghost.remove(); ghost = null; }
         if (dropEl) { dropEl.classList.remove('shop-drop'); dropEl = null; }
+        if (srcEl) { try { srcEl.style.touchAction = ''; } catch (_) {} }   // 还原滚动手势（恢复 pan-y）
         if (!d || !moved || cancelled) return;
         var L = card.querySelector('.shop-left'), R = card.querySelector('.shop-right');
         // 右栏=我的行囊，左栏=货郎。拖到**同栏**=整理换位；拖到**对侧**=买卖。
@@ -590,8 +600,8 @@
         }
         renderTrade();
       }
-      card.onpointerup = function (e) { if (pending) { pending = null; return; } endDrag(e, false); };   // 轻点未进入拖拽：放行 click 选中
-      card.onpointercancel = function (e) { if (pending) { pending = null; return; } endDrag(e, true); };
+      card.onpointerup = function (e) { clearTimeout(longTimer); longTimer = null; if (dragging) { endDrag(e, false); return; } if (pending) { pending = null; return; } };   // 拖拽中→结算落点；轻点未拖→放行 click 选中
+      card.onpointercancel = function (e) { clearTimeout(longTimer); longTimer = null; if (dragging) { endDrag(e, true); return; } if (pending) { pending = null; } };
       var ok = document.getElementById('trade-ok'); if (ok) ok.onclick = function () {
         if (shopBuyPending.length === 0 && shopSellPending.length === 0) { confirmTrade(); return; }   // 空交易直接跳过
         showSettleDialog();   // 有交易：弹出明细浮层，逐条看清将付/将收后再确认（防误触）
