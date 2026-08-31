@@ -1715,7 +1715,12 @@
     /* 货郎：窄屏下三栏改为纵向堆叠，避免 3 列被压扁导致布局错乱 */
     .shop-main{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
     .shop-left,.shop-right{max-height:34vh;}
-    .shop-left,.shop-right{flex:1 1 0;min-width:0;max-height:none;min-height:0;}
+    .shop-left,.shop-right{flex:1 1 0;min-width:0;max-height:56vh;min-height:0;}
+    /* 手机端恢复货品/行囊格纵向滚动：原 touch-action:none 让长列表整片滑不动（只能从 5px 间隙滑）；放开为 pan-y 后纵向顺滑滚动，横向拖拽与轻点选中仍由 JS 接管，寄售/购买走浮框按钮不依赖拖拽 */
+    .shop-good,.shop-right .packcell{touch-action:pan-y;}
+    .shop-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+    .shop-scroll::-webkit-scrollbar{width:14px;}
+    .shop-scroll{scrollbar-width:thin;scrollbar-color:#c8a05c rgba(0,0,0,.25);}
     .shop-goods-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
     .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
     /* v20260822al：手机去正方形锁高（防5字名+价格被裁），分级字号再微缩，价格固定小号不换行 */
@@ -2025,7 +2030,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260831l"></script>
+<script src="shared/config/constants.js?v=20260831m"></script>
 <script src="shared/config/ui-spec.js?v=20260814a"></script>
 <script src="shared/config/balance.js?v=20260814a"></script>
 <script src="shared/story/sects.js?v=20260813a"></script>
@@ -2041,7 +2046,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/recipes.js?v=20260821j"></script>
     <script src="shared/data/build.js?v=20260826e"></script>
     <script src="shared/data/shops.js?v=20260830l"></script>
-    <script src="shared/shop.js?v=20260831l"></script>
+    <script src="shared/shop.js?v=20260831m"></script>
     <script src="shared/data/map.js?v=20260827f"></script>
     <script src="shared/data/cities.js?v=20260827f"></script>
     <script src="shared/data/markets.js?v=20260825e"></script>
