@@ -490,39 +490,46 @@
           e.dataTransfer.setData('text/plain', JSON.stringify({ kind: (loc != null ? 'sell' : 'buyp'), payload: payload }));
         };
       });
-      // 原生 HTML5 拖拽落点（桌面）
+      // 原生 HTML5 拖拽落点（桌面）：drop 后立即 renderTrade 即时反馈（否则要等下次结算/买卖才刷新）
       var left = card.querySelector('.shop-left'), right = card.querySelector('.shop-right');
       left.ondragover = function (e) { e.preventDefault(); };
-      left.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'buy') dropLeft('g:' + d.payload, e.target); else if (d.kind === 'sell') addSellPending(d.payload, 1); else if (d.kind === 'buyp') removeBuyPending(d.payload); else if (d.kind === 'sellp') dropLeft('s:' + d.payload, e.target); } catch (_) { } };   // buy/sellp 落左栏：统一换位/堆叠/末尾；sell 落左栏=寄售；buyp 落左栏=取消
+      left.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain')); if (d.kind === 'buy') dropLeft('g:' + d.payload, e.target); else if (d.kind === 'sell') addSellPending(d.payload, 1); else if (d.kind === 'buyp') removeBuyPending(d.payload); else if (d.kind === 'sellp') dropLeft('s:' + d.payload, e.target); } catch (_) { } renderTrade(); };   // buy/sellp 落左栏：统一换位/堆叠/末尾；sell 落左栏=寄售；buyp 落左栏=取消
       right.ondragover = function (e) { e.preventDefault(); };
       right.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain'));
         if (d.kind === 'sell') { var t2 = e.target.closest && e.target.closest('.shop-right [data-cell],[data-loc]'); if (t2) { var c2 = t2.getAttribute('data-cell') != null ? parseInt(t2.getAttribute('data-cell'), 10) : locIdx(t2.getAttribute('data-loc')); var bpAt = buyPendingAtCell(c2); if (bpAt >= 0) placeBuyPending(shopBuyPending[bpAt], d.payload); else reorderPackAtEl(t2, d.payload); } else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); } }
         else if (d.kind === 'buy') addBuyPending(d.payload, 1);
         else if (d.kind === 'sellp') { var _sd = sellIdxByUid(parseInt(d.payload, 10)); if (_sd >= 0) removeSellPending(_sd); }
         else if (d.kind === 'buyp') { var t3 = e.target.closest && e.target.closest('.shop-right [data-cell],[data-loc]'); if (t3) { var c3 = t3.getAttribute('data-cell') != null ? parseInt(t3.getAttribute('data-cell'), 10) : locIdx(t3.getAttribute('data-loc')); placeBuyPending(shopBuyPending[d.payload], c3); } }
-      } catch (_) { } };   // sell 落右栏：空格/真物格换位，待付格则待付让位；buyp 落右栏任意格=待付移入该格（自由摆放）
-      // 触屏 pointer 拖拽：四向转移（buy→右 / sell→左 / buyp→左取消 / sellp→右取回）
+      } catch (_) { } renderTrade(); };   // sell 落右栏：空格/真物格换位，待付格则待付让位；buyp 落右栏任意格=待付移入该格（自由摆放）
+      // 触屏 pointer 拖拽：轻点(tap)放行 click 选中；位移超阈值才进入拖拽（否则"点选像被锁定/没反应"）
       var ghost = null, dragging = null, srcEl = null, sx = 0, sy = 0, moved = false, dropEl = null;
-      function startDrag(kind, payload, el, e) { dragging = { kind: kind, payload: payload }; srcEl = el; moved = false; el.__dragMoved = false; sx = e.clientX; sy = e.clientY; var _sf = document.getElementById('shop-float'); if (_sf) _sf.style.display = 'none'; }
-      card.querySelectorAll('.shop-right [data-loc],.shop-right [data-buyp]').forEach(function (el) {
+      var pending = null;   // 按下但未确认拖拽的候选项 {kind,payload,el,sx,sy}
+      function shopDragInfo(el) {
+        var loc = el.getAttribute('data-loc'), bp = el.getAttribute('data-buyp'), sid = el.getAttribute('data-shop');
+        if (loc != null) { var idx = locIdx(loc); return S().pack[idx] ? { kind: 'sell', payload: idx } : null; }   // 行囊空格不可拖
+        if (bp != null) return { kind: 'buyp', payload: parseInt(bp, 10) };
+        if (sid != null) { if (el.classList.contains('shop-bad')) return null; return { kind: 'buy', payload: sid }; }
+        return { kind: 'sellp', payload: parseInt(el.getAttribute('data-selluid'), 10) };
+      }
+      function armDrag(di, el, e) { pending = { kind: di.kind, payload: di.payload, el: el, sx: e.clientX, sy: e.clientY }; }
+      function beginDrag() {
+        if (!pending) return;
+        dragging = { kind: pending.kind, payload: pending.payload };
+        srcEl = pending.el; moved = false; pending.el.__dragMoved = false;
+        sx = pending.sx; sy = pending.sy;
+        pending = null;
+        var _sf = document.getElementById('shop-float'); if (_sf) _sf.style.display = 'none';
+      }
+      card.querySelectorAll('.shop-right [data-loc],.shop-right [data-buyp],[data-shop],[data-sellp]').forEach(function (el) {
         el.onpointerdown = function (e) {
-          if (e.pointerType === 'mouse') return;
+          if (e.pointerType === 'mouse') return;   // 桌面走 HTML5 拖拽
           if (e.target.closest('.pcell-x')) return;
-          var loc = el.getAttribute('data-loc'), bp = el.getAttribute('data-buyp');
-          if (loc != null) { var idx = locIdx(loc); if (!S().pack[idx]) return; startDrag('sell', idx, el, e); }
-          else if (bp != null) startDrag('buyp', parseInt(bp, 10), el, e);
-        };
-      });
-      card.querySelectorAll('[data-shop],[data-sellp]').forEach(function (el) {
-        el.onpointerdown = function (e) {
-          if (e.pointerType === 'mouse') return;
-          if (e.target.closest('.pcell-x')) return;
-          var sid = el.getAttribute('data-shop');
-          if (sid != null) { if (el.classList.contains('shop-bad')) return; startDrag('buy', sid, el, e); }
-          else startDrag('sellp', parseInt(el.getAttribute('data-selluid'), 10), el, e);   // 用 uid 定位（增删后索引不漂移）
+          var di = shopDragInfo(el); if (!di) return;
+          armDrag(di, el, e);
         };
       });
       card.onpointermove = function (e) {
+        if (pending) { if (Math.abs(e.clientX - pending.sx) > 12 || Math.abs(e.clientY - pending.sy) > 12) beginDrag(); }
         if (!dragging) return;
         if (!moved) { if (Math.abs(e.clientX - sx) < 8 && Math.abs(e.clientY - sy) < 8) return; moved = true; srcEl && (srcEl.__dragMoved = true); }
         if (!ghost) { ghost = document.createElement('div'); ghost.className = 'pack-ghost'; document.body.appendChild(ghost); }
@@ -566,8 +573,8 @@
         }
         renderTrade();
       }
-      card.onpointerup = function (e) { endDrag(e, false); };
-      card.onpointercancel = function (e) { endDrag(e, true); };
+      card.onpointerup = function (e) { if (pending) { pending = null; return; } endDrag(e, false); };   // 轻点未进入拖拽：放行 click 选中
+      card.onpointercancel = function (e) { if (pending) { pending = null; return; } endDrag(e, true); };
       var ok = document.getElementById('trade-ok'); if (ok) ok.onclick = function () {
         if (shopBuyPending.length === 0 && shopSellPending.length === 0) { confirmTrade(); return; }   // 空交易直接跳过
         showSettleDialog();   // 有交易：弹出明细浮层，逐条看清将付/将收后再确认（防误触）
