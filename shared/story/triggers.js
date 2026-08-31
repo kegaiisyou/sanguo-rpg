@@ -132,6 +132,66 @@
     ]
   });
 
+  // ════════════════ 支线：三则（v20260831t）════════════════
+  // 支线A · 黑山寨·后寨「井底货」：被掳货郎吴六——放人得药(侠) / 敲诈得银(凶)
+  TRIGGERS.push({
+    id: 'wz_wuliu', hook: 'onTalk', npc: 'wuliu', room: 'ji_heishan_houzhai', once: false,
+    cond: { notFlag: 'flags.wz_wuliu_done' },
+    steps: [
+      { t: 'npcTalk', npc: 'wuliu',
+        prompt: '你走近那蜷缩货郎。他抬头见你，先是一惊，随即膝行两步：「好汉！小的是过路货郎吴六，被这伙山贼掳来三日——若得脱身，愿以命酬！」',
+        asks: [
+          { label: '〔侠〕割绳放他下山', set: { 'flags.wz_wuliu_done': true },
+            then: [
+              { t: 'grant', rep: 2, items: [{id:'caoyao', name:'草药', icon:'🌿', cat:'素材', count:2}, {id:'roubao', name:'肉包子', icon:'🥟', cat:'食饵', count:1}] },
+              { t: 'log', cls: 'good', text: '你割断绳索。吴六千恩万谢，将贴身藏的草药与干粮塞进你手里，趁夜溜下山去——寨中少了一名苦力，山中多了一户感念你恩德的人家。' }
+            ] },
+          { label: '〔凶〕扣腕逼他拿银买命', set: { 'flags.wz_wuliu_done': true },
+            then: [
+              { t: 'grant', gold: 35 },
+              { t: 'log', cls: 'sys', text: '你扣住他腕子，冷冷道：「拿银买命。」吴六哆嗦着从货底摸出一小袋银钱奉上，恨恨地别过脸去。' }
+            ] },
+          { label: '暂不理他', say: '你只瞥了一眼，径直走开。吴六张了张嘴，终究没敢再唤。' }
+        ] }
+    ]
+  });
+
+  // 支线B · 林径「寻药篓」：受伤猎户托寻被野狼叼走的药篓（应下→战野狼→胜后交还得谢礼）
+  TRIGGERS.push({
+    id: 'wz_liehu', hook: 'onTalk', npc: 'liehu', room: 'lindao', once: false,
+    cond: { notFlag: 'flags.wz_liehu_done' },
+    steps: [
+      { t: 'npcTalk', npc: 'liehu',
+        prompt: '猎户见你停步，眼睛一亮：「小兄弟，可肯帮我个忙？药篓叫野狼拖进林子深处了，里头有给阿婆治伤的药——你若寻得回，愿以猎物相酬！」',
+        asks: [
+          { label: '应下，循狼迹入林', set: { 'flags.wz_liehu': true },
+            then: [
+              { t: 'log', cls: 'sys', text: '你循着草丛里的血迹与爪印拨草而入——林深忽暗，一头野狼正撕扯着那只药篓，见你逼近，呲牙低吼！' },
+              { t: 'combat', enemy: 'wild_wolf' }
+            ] },
+          { label: '婉言谢过', say: '你摇摇头。猎户叹了口气，垂眼不再言语。' }
+        ] }
+    ]
+  });
+
+  // 支线C · 苦役营·塌墙根「墙外接应」：教学毕业后回访福生，白檀屯接应送补给
+  TRIGGERS.push({
+    id: 'wz_fusheng', hook: 'onTalk', npc: 'fu_sheng', room: 'camp_wall', once: false,
+    cond: { flags: { 'flags.onb.done': true }, notFlag: 'flags.wz_fusheng_done' },
+    steps: [
+      { t: 'npcTalk', npc: 'fu_sheng',
+        prompt: '福生见你平安归来，眼睛一亮，压低嗓门：「嘿，你真钻出来啦！白檀屯的叔伯早候在墙外，托我带句话——北边庄子遭了雪灾，正缺人手。你若去，口粮管够，还能得些盘缠。」',
+        asks: [
+          { label: '应下这趟差，托福生转告', set: { 'flags.wz_fusheng_done': true },
+            then: [
+              { t: 'grant', gold: 15, rep: 2, items: [{id:'roubao', name:'肉包子', icon:'🥟', cat:'食饵', count:2}, {id:'jiu', name:'黍酒', icon:'🍶', cat:'食饵', count:1}] },
+              { t: 'log', cls: 'good', text: '你接过福生递来的干粮袋：肉包两只、黍酒一壶，还有十几文铜钱。福生咧嘴一笑：「白檀屯的叔伯记你的好，路上慢走！」' }
+            ] },
+          { label: '谢过，暂不前往', set: { 'flags.wz_fusheng_done': true }, say: '你拱拱手。福生会意，也不多劝，只道接应的人会再多等两日。' }
+        ] }
+    ]
+  });
+
   // 凯旋钩子：斩华雄、凯旋后首访洛阳，触发「关东盟檄」事件，铺陈第二章三条线
   TRIGGERS.push({
     id: 'kaixuan_hook', hook: 'onEnter', room: 'luoyang', once: true,

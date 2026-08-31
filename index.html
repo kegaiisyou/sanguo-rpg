@@ -545,7 +545,7 @@
   .map-viewport:active{cursor:grabbing;}
   /* v20260822ae：直接用用户简化版参考图 assets/_pv_ref.png 作地图背景（彩色州块+蓝水系+隶书州名，一目了然）。
      之前用 'ScreenShot_20260821_230620_978.png'（项目根目录根本不存在）始终未加载成功，故此前屏上一片空白+无州界。 */
-  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260831s') center/100% 100% no-repeat;transform-origin:0 0;}
+  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260831t') center/100% 100% no-repeat;transform-origin:0 0;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
   /* 参考图 PNG 自带完整视觉（州块+隶书州名+蓝水系+外族注记），所有叠加层都 display:none 让 PNG 直接呈现。 */
   .map-bg{display:none;}                                  /* 旧羊皮纸底纹层：被 PNG 完全覆盖，移除避免压暗 */
@@ -2033,28 +2033,28 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260831s"></script>
-<script src="shared/config/ui-spec.js?v=20260831s"></script>
-<script src="shared/config/balance.js?v=20260831s"></script>
-<script src="shared/story/sects.js?v=20260831s"></script>
-<script src="shared/story/skills.js?v=20260831s"></script>
-<script src="shared/story/objectives.js?v=20260831s"></script>
-<script src="shared/story/events.js?v=20260831s"></script>
-<script src="shared/story/dialogues.js?v=20260831s"></script>
-    <script src="shared/story/rooms.js?v=20260831s"></script>
-    <script src="shared/story/triggers.js?v=20260831s"></script>
-    <script src="shared/data/martial.js?v=20260831s"></script>
-<script src="shared/data/enemies.js?v=20260831s"></script>
-<script src="shared/data/items.js?v=20260831s"></script>
-    <script src="shared/data/recipes.js?v=20260831s"></script>
-    <script src="shared/data/build.js?v=20260831s"></script>
-    <script src="shared/data/shops.js?v=20260831s"></script>
-    <script src="shared/shop.js?v=20260831s"></script>
-    <script src="shared/data/map.js?v=20260831s"></script>
-    <script src="shared/data/cities.js?v=20260831s"></script>
-    <script src="shared/data/markets.js?v=20260831s"></script>
-    <script src="shared/combat/engine.js?v=20260831s"></script>
-    <script src="shared/index.js?v=20260831s"></script>
+<script src="shared/config/constants.js?v=20260831t"></script>
+<script src="shared/config/ui-spec.js?v=20260831t"></script>
+<script src="shared/config/balance.js?v=20260831t"></script>
+<script src="shared/story/sects.js?v=20260831t"></script>
+<script src="shared/story/skills.js?v=20260831t"></script>
+<script src="shared/story/objectives.js?v=20260831t"></script>
+<script src="shared/story/events.js?v=20260831t"></script>
+<script src="shared/story/dialogues.js?v=20260831t"></script>
+    <script src="shared/story/rooms.js?v=20260831t"></script>
+    <script src="shared/story/triggers.js?v=20260831t"></script>
+    <script src="shared/data/martial.js?v=20260831t"></script>
+<script src="shared/data/enemies.js?v=20260831t"></script>
+<script src="shared/data/items.js?v=20260831t"></script>
+    <script src="shared/data/recipes.js?v=20260831t"></script>
+    <script src="shared/data/build.js?v=20260831t"></script>
+    <script src="shared/data/shops.js?v=20260831t"></script>
+    <script src="shared/shop.js?v=20260831t"></script>
+    <script src="shared/data/map.js?v=20260831t"></script>
+    <script src="shared/data/cities.js?v=20260831t"></script>
+    <script src="shared/data/markets.js?v=20260831t"></script>
+    <script src="shared/combat/engine.js?v=20260831t"></script>
+    <script src="shared/index.js?v=20260831t"></script>
 <script>
 (function(){
   try{
@@ -8623,6 +8623,17 @@ window.onerror=function(msg,url,line,col,err){
         summary.lines.push({text:'【剿匪】黑山寨主张燕授首，此寨已平。'});
       }
       if(RREP[enemy.id]) summary.repText=RREP[enemy.id];
+
+      // ── 支线B：林径猎户寻药篓——胜野狼后交还药篓，猎户赠谢礼（v20260831t）──
+      if(enemy.id==='wild_wolf' && state.flags && state.flags.wz_liehu && !state.flags.wz_liehu_done){
+        state.flags.wz_liehu_done=true;
+        state.gold+=15;
+        addReputation(2);
+        packAdd('caoyao',3);
+        packAdd('roubao',1);
+        log('你拎着药篓走出林来。猎户接过药篓，喜极：「寻回来了！」硬塞给你草药三把、肉包一只与一串铜钱，又指了条采药捷径。','npc','受伤猎户');
+        summary.lines.push({text:'【支线·寻药篓】猎户得药，赠你谢礼（草药×3、肉包×1、银两+15）。'});
+      }
 
       // ── P2：艺线经验由战斗出手累积，满则升级 ──
       var gains=G.CombatEngine.getLineGains()||[];
