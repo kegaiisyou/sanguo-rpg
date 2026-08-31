@@ -268,7 +268,7 @@
       if (action.eff && action.eff.selfHeal) {
         var heal = action.eff.selfHeal;
         unit.hp = Math.min(unit.maxHp, unit.hp + heal);
-        log.push({ type:'heal', text: unit.name + '恢复 ' + heal + ' 气血', eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: (this.state.player && this.state.player.hp) || 0 });
+        log.push({ type:'heal', text: unit.name + '恢复 ' + heal + ' 气血', eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: (this.state.player && this.state.player.hp) || 0, selfSide: isPlayer ? 'player' : 'enemy', selfIdx: unit.idx });
         return 0;
       }
 
@@ -278,7 +278,7 @@
         var txts = [];
         if (b.atk) { unit.atk += b.atk; unit.buffs.push({ type:'atk', value:b.atk, turns:b.turns }); txts.push('攻击+' + b.atk); }
         if (b.spd) { unit.spd += b.spd; unit.buffs.push({ type:'spd', value:b.spd, turns:b.turns }); txts.push('速度+' + b.spd); }
-        log.push({ type:'buff', text: unit.name + '战力暴涨！' + txts.join('，') + '（' + b.turns + '回合）' });
+        log.push({ type:'buff', text: unit.name + '战力暴涨！' + txts.join('，') + '（' + b.turns + '回合）', selfSide: isPlayer ? 'player' : 'enemy', selfIdx: unit.idx });
         return 0;
       }
 
@@ -300,7 +300,8 @@
       var hitRate = unit.hitRate || 0.92;
       if (!action.guaranteed && Math.random() > hitRate) {
         log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk',
-          text: aName + '的「' + (action.name || '普攻') + '」被「' + target.name + '」闪过！（未命中）' });
+          text: aName + '的「' + (action.name || '普攻') + '」被「' + target.name + '」闪过！（未命中）',
+          tgtSide: isPlayer ? 'enemy' : 'player', tgtIdx: target.idx });
         if (action.cost && action.cost.type === 'mp') unit.mp -= (action.cost.val || 0);
         if (action.cost && action.cost.type === 'rage') unit.rage -= (action.cost.val || 0);
         return 0;
@@ -365,25 +366,26 @@
       var atkLine = isPlayer ? (action.line || 'fist') : self._enemyLine(action);
 
       log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg,
-        atkLine: atkLine, eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: (this.state.player && this.state.player.hp) || 0 });
+        atkLine: atkLine, eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: (this.state.player && this.state.player.hp) || 0,
+        tgtSide: isPlayer ? 'enemy' : 'player', tgtIdx: target.idx, crit: hasCrit, attrType: acInfo.type || null });
 
       // ─── 附加效果 ───
       // 中毒（可叠层）
       if (eff.poisonChance && Math.random() < eff.poisonChance) {
         self._addDot(target, '中毒', eff.poisonDmg||8, eff.poisonTurns||3);
-        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '中毒！（每回合-' + (eff.poisonDmg||8) + '，' + (eff.poisonTurns||3) + '回合）' });
+        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '中毒！（每回合-' + (eff.poisonDmg||8) + '，' + (eff.poisonTurns||3) + '回合）', tgtSide: isPlayer ? 'enemy' : 'player', tgtIdx: target.idx });
       }
 
       // 灼烧（可叠层）
       if (eff.burnChance && Math.random() < eff.burnChance) {
         self._addDot(target, '灼烧', eff.burnDmg||6, eff.burnTurns||3);
-        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '被灼烧！（每回合-' + (eff.burnDmg||6) + '，' + (eff.burnTurns||3) + '回合）' });
+        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '被灼烧！（每回合-' + (eff.burnDmg||6) + '，' + (eff.burnTurns||3) + '回合）', tgtSide: isPlayer ? 'enemy' : 'player', tgtIdx: target.idx });
       }
 
       // 眩晕
       if (eff.stunChance && Math.random() < eff.stunChance) {
         target.stunNext = true;
-        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '陷入眩晕！' });
+        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '陷入眩晕！', tgtSide: isPlayer ? 'enemy' : 'player', tgtIdx: target.idx });
       }
 
       // 减速
@@ -391,7 +393,7 @@
         var slowVal = Math.round(target.spd * 0.3);
         target.buffs.push({ type:'spd', value:-slowVal, turns: eff.slowTurns||2 });
         target.spd -= slowVal;
-        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '行动变缓！（' + (eff.slowTurns||2) + '回合）' });
+        log.push({ type:'debuff', text: (isPlayer ? target.name : '你') + '行动变缓！（' + (eff.slowTurns||2) + '回合）', tgtSide: isPlayer ? 'enemy' : 'player', tgtIdx: target.idx });
       }
 
       // 反弹：当敌人攻击玩家时，被命中玩家的震字诀反弹伤害（伤害回弹给攻击方 unit）
@@ -401,7 +403,7 @@
           var reflect = Math.round(totalDmg * pForce.reflectDmg);
           if (reflect > 0) {
             unit.hp = Math.max(0, unit.hp - reflect);
-            log.push({ type:'counter', text: target.name + '以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: unit.hp, pHp: (this.state.player && this.state.player.hp) || 0 });
+            log.push({ type:'counter', text: target.name + '以震字诀反弹 ' + reflect + ' 伤害！', dmg: reflect, eHp: unit.hp, pHp: (this.state.player && this.state.player.hp) || 0, tgtSide: 'enemy', tgtIdx: unit.idx });
           }
         }
       }
@@ -437,7 +439,7 @@
         unit.dots.forEach(function(d) {
           var dmg = d.dmg * (d.stacks || 1);
           unit.hp = Math.max(0, unit.hp - dmg);
-          log.push({ type:'dot', text: unit.name + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: isP?'player':'enemy', eHp: self.state.enemies[0] ? self.state.enemies[0].hp : 0, pHp: self.state.player ? self.state.player.hp : 0 });
+          log.push({ type:'dot', text: unit.name + '受' + d.name + (d.stacks>1?('×'+d.stacks):'') + ' ' + dmg + '点', dmg: dmg, side: isP?'player':'enemy', tgtIdx: unit.idx, eHp: self.state.enemies[0] ? self.state.enemies[0].hp : 0, pHp: self.state.player ? self.state.player.hp : 0 });
           d.turns--;
           if (d.turns > 0) surviving.push(d);
         });
