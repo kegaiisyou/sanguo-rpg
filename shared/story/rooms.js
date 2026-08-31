@@ -29,6 +29,11 @@
       items: [],
       actions: [
         {
+          id: 'labor_yard',
+          label: '担石劳作',
+          tip: '按狱卒吩咐扛石运土——熟悉劳作，点亮状态栏。'
+        },
+        {
           id: 'survey_yard',
           label: '环顾四周',
           tip: '勘察劳役场，看清几处去路。'

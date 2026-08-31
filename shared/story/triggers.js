@@ -120,6 +120,18 @@
   });
 
 
+  // 6) 逃出苦役营（onb.done 毕业）后·首次进入林径：乌桓游骑拦路，老乞丐开场教学战
+  //    教学战由 startCombat(...,{tutorial:true}) 激活 tutCombat 脚本演出（攻/防/道具分步引导，
+  //    老乞丐帮打 + 受伤赠金疮药），胜/败/逃均由老乞丐救场收尾并置 tcDone。
+  TRIGGERS.push({
+    id: 'tut_combat_lindao', hook: 'onEnter', room: 'lindao', once: true,
+    cond: { flags: { 'flags.onb.done': true }, notFlag: 'flags.onb.tcDone' },
+    steps: [
+      { t: 'log', cls: 'combat', text: '你钻出营墙，沿林径向北疾行——忽闻马蹄声碎，一名乌桓游骑横马拦路，弯刀出鞘！' },
+      { t: 'combat', enemy: 'wuhuan_scout', tutorial: true }
+    ]
+  });
+
   // 凯旋钩子：斩华雄、凯旋后首访洛阳，触发「关东盟檄」事件，铺陈第二章三条线
   TRIGGERS.push({
     id: 'kaixuan_hook', hook: 'onEnter', room: 'luoyang', once: true,

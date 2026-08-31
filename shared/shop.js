@@ -206,7 +206,7 @@
         if (it) {
           var cnt = (it.count > 1) ? ('<span class="pcell-cnt">' + it.count + '</span>') : '';
           var sp = shopSellPrice(it.defId);
-          var sellTag = (sp != null) ? '<span class="pcell-sell">卖' + sp + '</span>' : '';
+          var sellTag = (sp != null) ? '<span class="pcell-sell">卖 ' + sp + ' 两</span>' : '';
           var durTag = (it.maxDur) ? '<span class="pcell-dur">' + it.dur + '/' + it.maxDur + '</span>' : '';
           grid += '<div class="packcell' + (shopSel === i ? ' pcell-sel' : '') + '" data-loc="pack:' + i + '">'
             + '<div class="pcell-ic">' + itemIconHTML(it, 13) + '</div>' + cnt + sellTag + durTag + '</div>';
@@ -399,7 +399,7 @@
           var price = r.buy; var max = buyMaxNow(r.id);
           var h = '<div class="li-name">' + ic + (def.name || r.id) + '</div>';
           h += '<div class="li-cat">' + (def.cat || '货') + '</div>';
-          h += '<div class="li-line">买价 ' + fmtPrice(price) + ' 两' + (max > 0 ? (' · 最多 ' + max + ' 件') : '') + '</div>';
+          h += '<div class="li-line">买价 ' + fmtPrice(price) + (max > 0 ? (' · 最多 ' + max + ' 件') : '') + '</div>';
           if (def.desc) h += '<div class="li-line" style="opacity:.85">' + def.desc + '</div>';
           if (max <= 0) h += '<div class="li-line" style="opacity:.7">银两或行囊不足。</div>';
           else {
