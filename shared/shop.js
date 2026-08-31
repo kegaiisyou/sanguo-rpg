@@ -58,6 +58,7 @@
     function firstEmptyPackIdx() { var pk = S().pack; for (var i = 0; i < pk.length; i++) if (!pk[i]) return i; return -1; }
     // 货郎商品展示顺序（会话内记忆、不进存档、关闭即丢弃）
     var shopGoodsOrder = {};
+    var scrollToSell = false;   // 寄售成功后把左栏滚动到待售格（货郎真货多时待售格排在末尾，不滚动则看不见、误以为"无法选中"）
     function ensureGoodsOrder() {
       var shop = LF.SHOPS[shopState]; if (!shop) return;
       if (!shopGoodsOrder[shopState]) {
@@ -82,6 +83,7 @@
       if (!idxs.length) { toast('行囊里没有货郎肯收的东西。'); return; }
       idxs.sort(function (a, b) { return b - a; });   // 从大到小，避免逐个移除后索引错位
       idxs.forEach(function (idx) { var it = pk[idx]; if (it) addSellPending(idx, it.count); });
+      scrollToSell = true;
       shopSellSel = null; renderTrade();
     }
     // 货品名按长度分级（sg-n2~sg-n6），字号交给 CSS 分级控制
@@ -188,7 +190,7 @@
         }
         var si = sellIdxByUid(parseInt(key.slice(2), 10)); if (si < 0) return '';   // 失效项跳过（待售已被删除）
         var p = shopSellPending[si]; var d2 = DEFS[p.defId] || {};
-        return '<div class="shop-good pcell-pending pcell-sell' + (shopSellSel === si ? ' pcell-sel' : '') + '" data-sellp="' + si + '" data-selluid="' + p.uid + '">'
+        return '<div class="shop-good pcell-pending' + (shopSellSel === si ? ' pcell-sel' : '') + '" data-sellp="' + si + '" data-selluid="' + p.uid + '">'   // 不能带 pcell-sell 类：该类的 position:absolute 会让整格脱离网格、飘到容器外（"无法选中"的根因）
           + '<div class="sg-name ' + sgFontSize(d2.name) + '">' + d2.name + '</div>'
           + '<div class="sg-buy">+' + fmtPrice(p.price) + '</div>'
           + '<span class="pcell-tag pcell-sell">待售×' + p.count + '</span>'
@@ -256,6 +258,20 @@
         setTimeout(function () { fp.forEach(function (k) { var el = $card.querySelector('.shop-right [data-loc="pack:' + k + '"],.shop-right [data-cell="' + k + '"]'); if (el) el.classList.remove('just-moved'); }); }, 700);
         flashPack = {};
       }
+      // 寄售成功后自动把左栏滚到待售格可见（货郎真货多时待售格排在末尾，藏起来会让人觉得"格子无法选中/被锁定"）
+      if (scrollToSell) {
+        scrollToSell = false;
+        var se = $card.querySelector('.shop-left [data-sellp]');
+        if (se) {
+          var scEl = se.closest('.shop-scroll') || $card.querySelector('.shop-left .shop-scroll');
+          if (scEl) {
+            var sr2 = se.getBoundingClientRect(), scr2 = scEl.getBoundingClientRect();
+            if (sr2.bottom > scr2.bottom || sr2.top < scr2.top) {
+              scEl.scrollTop += sr2.top - scr2.top - 6;
+            }
+          }
+        }
+      }
       showShopFloat();
     }
     function addBuyPending(id, n) {
@@ -293,6 +309,7 @@
       var uid = ++sellUidSeq;
       shopSellPending.push({ defId: it.defId, price: sp, count: n, item: taken, uid: uid });
       if (leftSeq) leftSeq.push('s:' + uid);   // 新待售排到左栏末尾（之后可自由拖动换位）
+      scrollToSell = true;   // 寄售后滚动到待售格，确保用户能看到/选中自己的寄售
       shopSel = null; afterPackChange(); renderTrade();
       toast('加入寄售：售出 ' + ((LF.ITEMS[it.defId] || {}).name || it.defId) + '×' + n);
     }
