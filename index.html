@@ -545,7 +545,7 @@
   .map-viewport:active{cursor:grabbing;}
   /* v20260822ae：直接用用户简化版参考图 assets/_pv_ref.png 作地图背景（彩色州块+蓝水系+隶书州名，一目了然）。
      之前用 'ScreenShot_20260821_230620_978.png'（项目根目录根本不存在）始终未加载成功，故此前屏上一片空白+无州界。 */
-  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260831t') center/100% 100% no-repeat;transform-origin:0 0;}
+  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260831u') center/100% 100% no-repeat;transform-origin:0 0;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
   /* 参考图 PNG 自带完整视觉（州块+隶书州名+蓝水系+外族注记），所有叠加层都 display:none 让 PNG 直接呈现。 */
   .map-bg{display:none;}                                  /* 旧羊皮纸底纹层：被 PNG 完全覆盖，移除避免压暗 */
@@ -2033,28 +2033,28 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260831t"></script>
-<script src="shared/config/ui-spec.js?v=20260831t"></script>
-<script src="shared/config/balance.js?v=20260831t"></script>
-<script src="shared/story/sects.js?v=20260831t"></script>
-<script src="shared/story/skills.js?v=20260831t"></script>
-<script src="shared/story/objectives.js?v=20260831t"></script>
-<script src="shared/story/events.js?v=20260831t"></script>
-<script src="shared/story/dialogues.js?v=20260831t"></script>
-    <script src="shared/story/rooms.js?v=20260831t"></script>
-    <script src="shared/story/triggers.js?v=20260831t"></script>
-    <script src="shared/data/martial.js?v=20260831t"></script>
-<script src="shared/data/enemies.js?v=20260831t"></script>
-<script src="shared/data/items.js?v=20260831t"></script>
-    <script src="shared/data/recipes.js?v=20260831t"></script>
-    <script src="shared/data/build.js?v=20260831t"></script>
-    <script src="shared/data/shops.js?v=20260831t"></script>
-    <script src="shared/shop.js?v=20260831t"></script>
-    <script src="shared/data/map.js?v=20260831t"></script>
-    <script src="shared/data/cities.js?v=20260831t"></script>
-    <script src="shared/data/markets.js?v=20260831t"></script>
-    <script src="shared/combat/engine.js?v=20260831t"></script>
-    <script src="shared/index.js?v=20260831t"></script>
+<script src="shared/config/constants.js?v=20260831u"></script>
+<script src="shared/config/ui-spec.js?v=20260831u"></script>
+<script src="shared/config/balance.js?v=20260831u"></script>
+<script src="shared/story/sects.js?v=20260831u"></script>
+<script src="shared/story/skills.js?v=20260831u"></script>
+<script src="shared/story/objectives.js?v=20260831u"></script>
+<script src="shared/story/events.js?v=20260831u"></script>
+<script src="shared/story/dialogues.js?v=20260831u"></script>
+    <script src="shared/story/rooms.js?v=20260831u"></script>
+    <script src="shared/story/triggers.js?v=20260831u"></script>
+    <script src="shared/data/martial.js?v=20260831u"></script>
+<script src="shared/data/enemies.js?v=20260831u"></script>
+<script src="shared/data/items.js?v=20260831u"></script>
+    <script src="shared/data/recipes.js?v=20260831u"></script>
+    <script src="shared/data/build.js?v=20260831u"></script>
+    <script src="shared/data/shops.js?v=20260831u"></script>
+    <script src="shared/shop.js?v=20260831u"></script>
+    <script src="shared/data/map.js?v=20260831u"></script>
+    <script src="shared/data/cities.js?v=20260831u"></script>
+    <script src="shared/data/markets.js?v=20260831u"></script>
+    <script src="shared/combat/engine.js?v=20260831u"></script>
+    <script src="shared/index.js?v=20260831u"></script>
 <script>
 (function(){
   try{
@@ -6091,7 +6091,7 @@ window.onerror=function(msg,url,line,col,err){
   function packSet(loc,val){ if(loc.kind==='pack') state.pack[loc.idx]=val; else state.equipment[loc.slot]=val; }
   function locEq(a,b){ return a.kind===b.kind && (a.kind==='pack' ? a.idx===b.idx : a.slot===b.slot); }
 
-  function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof refreshPackGridLight==='function' && currentModalKind==='pack') refreshPackGridLight(); if(combatMode===null && !state.dead) buildActions(G.ROOMS[state.room]); }
+  function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof refreshPackGridLight==='function' && currentModalKind==='pack') refreshPackGridLight(); if(typeof refreshPackEquipLight==='function' && currentModalKind==='pack') refreshPackEquipLight(); if(combatMode===null && !state.dead) buildActions(G.ROOMS[state.room]); }
 
   function movePackItem(from,to){
     if(locEq(from,to)) return;
@@ -6125,6 +6125,15 @@ window.onerror=function(msg,url,line,col,err){
     var card=document.getElementById('modal-card'); if(!card) return;
     var sc=card.querySelector('.pack-scroll'); var grid=sc&&sc.querySelector('.pack-grid');
     if(sc && grid){ grid.innerHTML=renderPackGrid(); if(typeof bindPackInteractions==='function') bindPackInteractions(card); }
+  }
+  // 装备/卸下后仅重渲装备栏（人形+装备槽+背包槽）与战力属性，保留滚动位置，实时反馈装备变化
+  function refreshPackEquipLight(){
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var fig=card.querySelector('.equip-figure');
+    if(fig){ var w=document.createElement('div'); w.innerHTML=renderEquipFigure(); var nf=w.firstElementChild; if(nf) fig.replaceWith(nf); }
+    var st=card.querySelector('#packLeftStats');
+    if(st){ var w2=document.createElement('div'); w2.innerHTML=renderEquipStats(); var ns=w2.firstElementChild; if(ns) st.replaceWith(ns); }
+    if(typeof bindPackInteractions==='function') bindPackInteractions(card);
   }
   function unequipToPack(slot,toIdx){
     var eq=state.equipment[slot]; if(!eq) return;
@@ -6187,8 +6196,8 @@ window.onerror=function(msg,url,line,col,err){
     }
     return grid;
   }
-  function renderPack(){
-  // 卡通矮小人形（SVG 仅作底图，装备格绝对定位到对应部位）
+  // 装备栏图（人形 + 六装备槽 + 背包槽）：独立成函数，供 renderPack 与装备后实时刷新复用
+  function renderEquipFigure(){
     var sil = '<svg class="equip-sil" viewBox="0 0 124 130" preserveAspectRatio="xMidYMid meet">'
       + '<g fill="rgba(186,160,220,.2)" stroke="rgba(200,172,236,.75)" stroke-width="1.6">'
       + '<circle cx="62" cy="22" r="19"/>'
@@ -6224,6 +6233,9 @@ window.onerror=function(msg,url,line,col,err){
       bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag">'+inner+badge+durBar+'</div>';
     })();
     eqHtml = sil + eqHtml;
+    return '<div class="equip-figure">'+eqHtml+bagSlot+'</div>';
+  }
+  function renderPack(){
     var grid='';
     for(var i=0;i<state.pack.length;i++){
       var it=state.pack[i];
@@ -6237,7 +6249,7 @@ window.onerror=function(msg,url,line,col,err){
     return '<div class="pack-wrap">'
       + '<div class="pack-head"><span class="pack-title">行 囊</span></div>'
       + '<div class="pack-main">'
-      +   '<div class="pack-left"><div class="pack-left-title">装 备</div><div class="equip-figure">'+eqHtml+bagSlot+'</div>'+renderEquipStats()+'</div>'
+      +   '<div class="pack-left"><div class="pack-left-title">装 备</div>'+renderEquipFigure()+renderEquipStats()+'</div>'
       +   '<div class="pack-right"><div class="pack-right-title">物 品</div>'
       +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
       +   '</div>'

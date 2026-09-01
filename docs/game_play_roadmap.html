@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>乱世烽火 · 玩法系统总览与扩展路线图</title>
+<style>
+  :root{
+    --bg:#F4F3EE; --card:#FFFFFF; --line:#E4E3DD;
+    --txt:#1A1B1C; --sub:#6B7280; --accent:#B8863B; --accent2:#8B5A2B;
+    --gold:#C9A227; --red:#B03A2E; --green:#2E7D32; --blue:#336699;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--txt); font-family:'PingFang SC','Microsoft YaHei','Roboto',sans-serif; line-height:1.6; padding:24px 16px 60px;}
+  .wrap{max-width:960px; margin:0 auto;}
+  header{background:linear-gradient(135deg,#3E2C1E,#6B4A2B); color:#F5EFE0; border-radius:16px; padding:26px 24px; margin-bottom:24px;}
+  header h1{font-size:22px; letter-spacing:1px;}
+  header .sub{margin-top:8px; font-size:13px; color:#D8CBB0;}
+  header .ver{margin-top:6px; display:inline-block; background:rgba(255,255,255,.12); border-radius:6px; padding:2px 10px; font-size:12px; color:#F0E6CE;}
+  section{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 20px 22px; margin-bottom:20px;}
+  h2{font-size:17px; color:var(--accent2); border-left:4px solid var(--accent); padding-left:10px; margin-bottom:14px;}
+  h3{font-size:14px; color:var(--txt); margin:14px 0 8px;}
+  p{font-size:13.5px; color:var(--txt); margin-bottom:8px;}
+  .note{font-size:12.5px; color:var(--sub);}
+  .tag{display:inline-block; font-size:11px; border-radius:6px; padding:1px 8px; margin-right:6px; vertical-align:1px;}
+  .t-red{background:#FBE9E7; color:#B03A2E;}
+  .t-gold{background:#FFF8E1; color:#8A6D00;}
+  .t-green{background:#E8F5E9; color:#2E7D32;}
+  .t-blue{background:#E8F0FE; color:#336699;}
+  table{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:8px;}
+  th,td{border:1px solid var(--line); padding:7px 9px; text-align:left; vertical-align:top;}
+  th{background:#F7F3EA; color:#5B4632; font-weight:600; white-space:nowrap;}
+  .flow{position:relative; margin:6px 0 4px; padding-left:26px;}
+  .flow::before{content:''; position:absolute; left:9px; top:8px; bottom:8px; width:2px; background:linear-gradient(#C9A227,#B8863B,#8B5A2B);}
+  .fnode{position:relative; margin-bottom:14px;}
+  .fnode::before{content:''; position:absolute; left:-21px; top:6px; width:12px; height:12px; border-radius:50%; background:var(--accent); border:2px solid #fff; box-shadow:0 0 0 2px var(--accent);}
+  .fnode.gold::before{background:#C9A227; box-shadow:0 0 0 2px #C9A227;}
+  .fnode .ft{font-size:13.5px; font-weight:600;}
+  .fnode .fd{font-size:12.5px; color:var(--sub); margin-top:3px;}
+  .chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;}
+  .chip{font-size:11.5px; background:#F7F3EA; border:1px solid var(--line); border-radius:10px; padding:2px 9px; color:#5B4632;}
+  .chip.hl{background:#FFF8E1; border-color:#E6C36A; color:#8A6D00;}
+  .grid3{display:flex; flex-wrap:wrap; gap:12px;}
+  .pcard{flex:1 1 260px; min-width:0; background:#FBF8F1; border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+  .pcard .pt{font-size:13.5px; font-weight:600; color:var(--accent2); margin-bottom:6px;}
+  .pcard ul{list-style:none; font-size:12.5px; color:var(--txt);}
+  .pcard li{padding:3px 0 3px 14px; position:relative;}
+  .pcard li::before{content:'▸'; position:absolute; left:0; color:var(--accent);}
+  .prio{display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;}
+  .plabel{font-size:11px; font-weight:700; border-radius:8px; padding:2px 10px;}
+  .p0{background:#B03A2E; color:#fff;}
+  .p1{background:#C9A227; color:#fff;}
+  .p2{background:#78909C; color:#fff;}
+  .steps{margin:8px 0 0; padding-left:18px;}
+  .steps li{font-size:13px; margin-bottom:6px;}
+  .divider{height:1px; background:var(--line); margin:14px 0;}
+  footer{font-size:12px; color:var(--sub); text-align:center; margin-top:8px;}
+  @media (max-width:600px){
+    body{padding:14px 10px 40px;}
+    header h1{font-size:18px;}
+    th,td{font-size:12px; padding:6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>乱世烽火 · 三国群侠传</h1>
+  <div class="sub">玩法系统总览 · 扩展玩法与体验优化路线图</div>
+  <div class="ver">版本基线：v20260831t · 2026-08-31 · 全流程 AI 制作</div>
+</header>
+
+<!-- ============ 一、当前玩法流程 ============ -->
+<section>
+  <h2>一、当前玩法主线流程</h2>
+  <p class="note">数据口径：依据当前游戏源码（TRIGGERS 13 条 / EVENTS 17 条 / 房间 10+ / 城市 7 座 / 武学 41 门 / 敌人 26+ 种 / 目标 7 条 / 支线 3 条）。</p>
+
+  <div class="flow">
+    <div class="fnode gold">
+      <div class="ft">① 开局 · 捏人入世</div>
+      <div class="fd">四维配点（力量·敏捷·体魄·悟性）→ 择卷入世（无名客等身份）→ 踏入江湖。一档一命，江湖声望从「无名之辈」起步。</div>
+    </div>
+    <div class="fnode gold">
+      <div class="ft">② 新手教学 · 苦役营脱逃（已完整跑通）</div>
+      <div class="fd">担石劳作 → 环顾四周 → 周听涛·密道线索 → 默叔·暗号 → 塌墙根勘察·钻暗道 → 教学战（乌桓斥候：攻→防→道具→收尾）→ 习得无名拳法 → 毕业解锁导航。</div>
+      <div class="chips">
+        <span class="chip hl">担石劳作</span><span class="chip hl">环顾</span><span class="chip hl">密道线索</span>
+        <span class="chip hl">默叔暗号</span><span class="chip hl">钻暗道</span><span class="chip hl">教学战</span><span class="chip">习得拳法</span>
+      </div>
+    </div>
+    <div class="fnode gold">
+      <div class="ft">③ 主线 · 第一章「北疆」</div>
+      <div class="fd">林径 → 黑山寨剿匪（寨门·黑山寨卒 / 聚义厅·张燕 / 后寨·藏宝与俘丁）→ 斩华雄（虎牢·无名客下令周仓）→ 凯旋 → 洛阳「关东盟檄」事件 → 第二章三条线（结盟/反董/自立分线）。</div>
+      <div class="chips">
+        <span class="chip">林径</span><span class="chip">黑山寨·寨门</span><span class="chip">聚义厅·张燕</span>
+        <span class="chip">华雄战</span><span class="chip">凯旋·洛阳</span><span class="chip hl">第二章·三分线</span>
+      </div>
+    </div>
+    <div class="fnode">
+      <div class="ft">④ 支线（新增 3 条，可选）</div>
+      <div class="fd">黑山寨·后寨「井底货」货郎吴六（侠/凶抉择）｜林径「寻药篓」受伤猎户（战野狼得谢礼）｜苦役营·塌墙根「墙外接应」福生（教学后回访补給）。</div>
+      <div class="chips">
+        <span class="chip">井底货·货郎</span><span class="chip">寻药篓·猎户</span><span class="chip">墙外接应·福生</span>
+      </div>
+    </div>
+    <div class="fnode">
+      <div class="ft">⑤ 开放世界 · 自由探索（贯穿始终）</div>
+      <div class="fd">房间网格移动 + 山河图大地图 + 城市系统（蓟城/渔阳/洛阳/颍川/邺城/昌邑/襄阳）：人口、治安、商业驱动的街区与人物。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 二、系统全览 ============ -->
+<section>
+  <h2>二、当前系统全览（已实现）</h2>
+  <table>
+    <tr><th style="width:110px;">系统</th><th>现状要点</th><th style="width:74px;">状态</th></tr>
+    <tr><td><b>战斗</b></td><td>五行相克（金木水火土）；暴击/连击/DoT/眩晕/沉默；BossAI 意图预告；招式施放、防御、道具、撤退；双人同伴协同入战；dqFx 特效（飘字/闪击/爆震/封印/震屏）+ Boss 残血狂怒演出。</td><td><span class="tag t-green">完备</span></td></tr>
+    <tr><td><b>武学成长</b></td><td>41 门武学 / 13 艺线（24 武技 + 9 绝技 + 8 技巧），研习界面习得；修为升级 + 四维加点 + 潜能 + 艺线经验 + 突破。</td><td><span class="tag t-green">完备</span></td></tr>
+    <tr><td><b>经济</b></td><td>货郎买/卖（含「买价·两」单位修复）；背包容量/叠加；物品分类（食饵/药剂/素材/装备/图纸）；合成（药粉/肉脯）；装备 rollEquip 词条。</td><td><span class="tag t-green">完备</span></td></tr>
+    <tr><td><b>生存</b></td><td>气血 / 精力 / 食物 / 饮水 四维状态，随时间流逝消耗与恢复。</td><td><span class="tag t-blue">基础</span></td></tr>
+    <tr><td><b>同伴</b></td><td>周仓入队（满血参战），npcFavor 好感、入队随从机制。</td><td><span class="tag t-blue">基础</span></td></tr>
+    <tr><td><b>声望</b></td><td>侠义 / 凶名双轨、江湖声望、风评称号（无名之辈→…）。</td><td><span class="tag t-blue">基础</span></td></tr>
+    <tr><td><b>任务目标</b></td><td>7 条派生目标（杀敌/扬名/入派/武学/装备/财富/据城）+ 3 条支线。</td><td><span class="tag t-blue">基础</span></td></tr>
+    <tr><td><b>世界</b></td><td>房间网格、山河图、7 座城市（人口/治安/商业派生人物与入口）。</td><td><span class="tag t-blue">基础</span></td></tr>
+    <tr><td><b>教程</b></td><td>完整新手链路（担石劳作→暗号→钻暗道→教学战）浏览器实测跑通，0 报错。</td><td><span class="tag t-green">完备</span></td></tr>
+    <tr><td><b>图鉴</b></td><td>「览物志」收集展示。</td><td><span class="tag t-gold">待深化</span></td></tr>
+  </table>
+  <p class="note" style="margin-top:10px;">标注：<span class="tag t-green">完备</span> 机制完整可玩 · <span class="tag t-blue">基础</span> 可用但可深化 · <span class="tag t-gold">待深化</span> 有雏形待扩展。</p>
+</section>
+
+<!-- ============ 三、扩展方向 ============ -->
+<section>
+  <h2>三、扩展方向路线图</h2>
+
+  <h3>分层概览</h3>
+  <div class="grid3">
+    <div class="pcard">
+      <div class="pt">A · 玩法内容扩展（加料）</div>
+      <ul>
+        <li>更多支线 / 野外奇遇（沿用触发器模板）</li>
+        <li>同伴好感 · 专属剧情 · 双人合击技</li>
+        <li>据点经营（白檀屯 / 黑山寨改造）</li>
+        <li>副本秘境（古墓 / 雪灾救援 / 虎牢再战）</li>
+        <li>生产制造（炼药 / 锻造 / 烹饪）</li>
+        <li>多结局（第二章三条线收束）</li>
+      </ul>
+    </div>
+    <div class="pcard">
+      <div class="pt">B · 系统机制深化（打磨）</div>
+      <ul>
+        <li>任务追踪 UI / 目标高亮</li>
+        <li>敌人战术多样化 / 精英与 BOSS 设计</li>
+        <li>数值难度曲线 / 掉落曲线</li>
+        <li>存档增强（多槽 / 自动 / 云）</li>
+        <li>天气 / 时辰对玩法的影响</li>
+        <li>随机事件池 / 季节事件</li>
+      </ul>
+    </div>
+    <div class="pcard">
+      <div class="pt">C · 玩家体验优化（感受）</div>
+      <ul>
+        <li>音频：BGM / 战斗音效 / 环境音</li>
+        <li>UI 打磨：移动端 / 字体 / 动效</li>
+        <li>成就称号 · 收集率 · 通关反馈</li>
+        <li>图鉴系统深化 + 收集奖励</li>
+        <li>伤害统计 / 状态可视化</li>
+        <li>性能优化（动画 / 存档体积）</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>建议排期（按性价比）</h3>
+  <table>
+    <tr><th style="width:52px;">优先级</th><th style="width:170px;">方向</th><th>内容与理由</th><th style="width:80px;">工作量</th></tr>
+    <tr>
+      <td><span class="plabel p0">P0</span></td>
+      <td><b>任务追踪与引导</b></td>
+      <td>当前主线/支线靠文本推进，无显式目标指引。接入「当前目标」浮条 + 大地图标点，显著降低玩家迷路率。</td><td>小</td>
+    </tr>
+    <tr>
+      <td><span class="plabel p0">P0</span></td>
+      <td><b>更多支线（批量化）</b></td>
+      <td>触发器模板已成熟，可一次排 5–8 条野外奇遇/城市委托，迅速拉高可玩时长。</td><td>小</td>
+    </tr>
+    <tr>
+      <td><span class="plabel p0">P0</span></td>
+      <td><b>音频基础包</b></td>
+      <td>文字冒险最廉价的情绪放大器：BGM 循环 + 关键事件音效 + 战斗受击反馈。</td><td>中</td>
+    </tr>
+    <tr>
+      <td><span class="plabel p1">P1</span></td>
+      <td><b>同伴系统深化</b></td>
+      <td>好感度档位 → 专属对话/剧情 → 双人合击技，把周仓从「战斗数值」变成「有故事的角色」。</td><td>中</td>
+    </tr>
+    <tr>
+      <td><span class="plabel p1">P1</span></td>
+      <td><b>生产制造闭环</b></td>
+      <td>草药→药粉→金疮药、生肉→肉脯、图纸→装备，打通「采集→合成→装备」循环，丰富经济玩法。</td><td>中</td>
+    </tr>
+    <tr>
+      <td><span class="plabel p1">P1</span></td>
+      <td><b>据点/经营</b></td>
+      <td>利用已有「白檀屯接应」「黑山寨平寨」伏笔，做营地升级/物资调度，提供中期目标。</td><td>大</td>
+    </tr>
+    <tr>
+      <td><span class="plabel p2">P2</span></td>
+      <td><b>副本/秘境</b></td>
+      <td>「废弃古墓」「雪灾救援」等一次性副本：宝箱/陷阱/精英，承接主线后的挑战内容。</td><td>大</td>
+    </tr>
+    <tr>
+      <td><span class="plabel p2">P2</span></td>
+      <td><b>多结局收束</b></td>
+      <td>第二章三条线分别收束到结盟/反董/自立结局，按声望与关键抉择判定。</td><td>大</td>
+    </tr>
+    <tr>
+      <td><span class="plabel p2">P2</span></td>
+      <td><b>成就/图鉴深化</b></td>
+      <td>收集率、击杀统计、称号解锁与奖励挂钩，给长线玩家留存理由。</td><td>中</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ============ 四、AI 协同工作流 ============ -->
+<section>
+  <h2>四、AI 全程制作 · 工作流建议</h2>
+  <p>本作已形成一套适合「人定方向 + AI 执行」的稳定制作方法，建议固化：</p>
+  <ol class="steps">
+    <li><b>数据驱动优先</b>：支线/事件/对话/敌人全部落成纯数据（TRIGGERS/EVENTS/DIALOGUES/ENEMIES），新内容只加数据、不动引擎——本批 3 条支线即零引擎改动。</li>
+    <li><b>脚本生成文档</b>：用生成脚本（如 <code>scripts/gen_skill_tree.js</code>）把数据自动导出成可维护文档（武学树/物品表/支线索引），改数据重跑脚本即同步，避免手写文档失配。</li>
+    <li><b>改完即测</b>：每批改动先跑 node 三件套（战斗 45 项 / 交叉引用 15 规则 / HTML 语法），再浏览器实测关键链路，0 报错才提交。</li>
+    <li><b>小步提交 + 可回滚</b>：一个主题一个版本（v20260831r/s/t…），每次都 push GitHub，可随时回退到稳定版。</li>
+    <li><b>批次节奏</b>：单批聚焦 1 个主题（支线/战斗/教程/经济…），做完交付让用户测试反馈，再进下一批——迭代比一次性大改稳定。</li>
+    <li><b>预留钩子</b>：写内容时为未来留伏笔（如「苏娘攀绳、福生传信——留待他日」），后续扩展有现成接口。</li>
+  </ol>
+  <div class="divider"></div>
+  <p class="note">下一步建议：先做 P0 三项（任务追踪 + 批量化支线 + 音频基础包），单个版本内可完成并实测，收益立竿见影。</p>
+</section>
+
+<footer>乱世烽火 · 三国群侠传 —— 玩法规划文档 · 生成于 2026-08-31（v20260831t）</footer>
+</div>
+</body>
+</html>
