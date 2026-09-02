@@ -276,57 +276,28 @@
           stateGroups[s.state].push(s);
         });
         console.log('[战略地图] 州分组:', Object.keys(stateGroups));
+        console.log('[战略地图] D3版本:', d3.version);
         console.log('[战略地图] d3.geoMerge是否存在:', typeof d3.geoMerge);
+        console.log('[战略地图] d3.geo相关函数:', Object.keys(d3).filter(k => k.indexOf('geo') >= 0).join(', '));
+        console.log('[战略地图] turf是否存在:', typeof window.turf);
 
-        // 方法1：尝试用D3 geoMerge合并
-        let stateFeatures = [];
-        if (typeof d3.geoMerge === 'function') {
-          Object.entries(stateGroups).forEach(([stateName, stateCities]) => {
-            try {
-              const stateFC = {
-                type: 'FeatureCollection',
-                features: stateCities.map(s => ({
-                  type: 'Feature',
-                  properties: {},
-                  geometry: { type: 'Polygon', coordinates: [s.ring] }
-                }))
-              };
-              const mergedGeom = d3.geoMerge(stateFC);
-              if (mergedGeom) {
-                stateFeatures.push({
-                  type: 'Feature',
-                  properties: { state: stateName },
-                  geometry: mergedGeom
-                });
-                console.log('[战略地图] geoMerge合并成功:', stateName, '类型:', mergedGeom.type);
-              }
-            } catch (e) {
-              console.warn('[战略地图] geoMerge合并失败:', stateName, e);
-            }
-          });
-        }
-        console.log('[战略地图] geoMerge成功合并的州数:', stateFeatures.length);
+        // 直接画每个州的郡边界，用较粗的深棕色线条
+        // 虽然会看到内部边界，但至少能看到州级的大致轮廓
+        const stateFeatures = states.map(s => ({
+          type: 'Feature',
+          properties: { state: s.state, name: s.name },
+          geometry: { type: 'Polygon', coordinates: [s.ring] }
+        }));
 
-        // 方法2：如果合并失败，直接画每个州的郡边界用粗线（备用方案）
-        if (stateFeatures.length === 0) {
-          console.log('[战略地图] 使用备用方案：直接画郡边界');
-          stateFeatures = states.map(s => ({
-            type: 'Feature',
-            properties: { state: s.state, name: s.name },
-            geometry: { type: 'Polygon', coordinates: [s.ring] }
-          }));
-        }
-
-        // 渲染州级边界线
+        // 渲染边界线
         stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
           .attr('d', geoPath)
           .attr('fill','none')
           .attr('stroke','#3a2a10')
-          .attr('stroke-width', stateFeatures.length <= 13 ? 2.0 : 0.8)
+          .attr('stroke-width', 1.2)
           .attr('stroke-linejoin','round')
-          .attr('pointer-events','none')
-          .attr('opacity', stateFeatures.length <= 13 ? 1.0 : 0.7);
-        console.log('[战略地图] 渲染边界线数量:', stateFeatures.length);
+          .attr('pointer-events','none');
+        console.log('[战略地图] 渲染郡边界线数量:', stateFeatures.length);
       } catch (err) {
         console.warn('[战略地图] 州级边界渲染失败', err);
       }
