@@ -187,13 +187,6 @@
       paper.append('feColorMatrix').attr('in','n').attr('type','matrix')
         .attr('values','0 0 0 0 0.55  0 0 0 0 0.47  0 0 0 0 0.33  0 0 0 0.05 0');
 
-      // 背景矩形（确保背景色正确，不被全局CSS覆盖）
-      svg.append('rect')
-        .attr('x', 0).attr('y', 0)
-        .attr('width', W).attr('height', H)
-        .attr('fill', '#e7dcc0')
-        .attr('pointer-events', 'none');
-
       // 可缩放根层
       const root = svg.append('g').attr('id', 'sm-root');
 
@@ -210,41 +203,28 @@
           .attr('opacity',0.55).attr('stroke-linecap','round');
       });
 
-      // 州郡填充
+      // 州郡填充（暂时去掉填充色，只保留边界线）
       const stateLayer = root.append('g').attr('id', 'sm-states');
       statePaths = stateLayer.selectAll('path.main').data(fc.features).enter().append('path')
         .attr('class','main')
         .attr('d', geoPath)
-        .attr('fill', d => FACTIONS[d.properties.faction].fill)
-        .attr('stroke','none')
+        .attr('fill', 'none')
+        .attr('stroke', '#8a7a5a')
+        .attr('stroke-width', 0.8)
+        .attr('stroke-linejoin', 'round')
         .attr('pointer-events','all')
         .style('cursor','pointer')
         .on('click', function(e, d) { e.stopPropagation(); selectState(d); });
 
-      // 合并边界线
+      // 郡边界线（每个郡单独显示，不用turf合并，确保边界线可见）
       const borderLayer = root.append('g').attr('id', 'sm-borders');
-      try {
-        if (window.turf) {
-          const polys = states.map(s => window.turf.polygon([s.ring]));
-          const merged = window.turf.union(window.turf.featureCollection(polys));
-          const borderLines = window.turf.polygonToLine(merged);
-          const lineFeatures = borderLines.type === 'FeatureCollection' ? borderLines.features : [borderLines];
-          borderLayer.selectAll('path').data(lineFeatures).enter().append('path')
-            .attr('d', geoPath)
-            .attr('fill','none')
-            .attr('stroke','#18120a')
-            .attr('stroke-width',1.2)
-            .attr('stroke-linejoin','round')
-            .attr('pointer-events','none');
-        } else {
-          borderLayer.selectAll('path').data(fc.features).enter().append('path')
-            .attr('d', geoPath).attr('fill','none')
-            .attr('stroke','#18120a').attr('stroke-width',1.2)
-            .attr('pointer-events','none');
-        }
-      } catch (err) {
-        console.warn('turf 合并失败', err);
-      }
+      borderLayer.selectAll('path').data(fc.features).enter().append('path')
+        .attr('d', geoPath)
+        .attr('fill','none')
+        .attr('stroke','#5a4a30')
+        .attr('stroke-width',1.0)
+        .attr('stroke-linejoin','round')
+        .attr('pointer-events','none');
 
       // 城市节点
       cityMarks = cities.map(c => {

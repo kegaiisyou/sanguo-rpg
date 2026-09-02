@@ -29,11 +29,6 @@
   pointer-events: all;
 }
 .strategic-map-svg g { pointer-events: all; }
-/* 确保州郡path填充色不被全局CSS覆盖 */
-.strategic-map-svg path.main {
-  fill: inherit;
-  stroke: none;
-}
 
 /* 文字标签层：只 translate，不 scale（避免双层 transform 模糊） */
 .strategic-map-overlay {
