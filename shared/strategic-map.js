@@ -226,7 +226,7 @@
       //   .attr('stroke-linejoin','round')
       //   .attr('pointer-events','none');
 
-      // 州级边界线（用D3自带的geoMerge合并同州的郡，不依赖turf）
+      // 州级边界线（先用最简单的方法：直接画每个州的郡边界用粗线，不合并）
       const stateBorderLayer = root.append('g').attr('id', 'sm-state-borders');
       try {
         // 按州分组
@@ -236,44 +236,57 @@
           stateGroups[s.state].push(s);
         });
         console.log('[战略地图] 州分组:', Object.keys(stateGroups));
-        // 用D3 geoMerge合并每个州的郡边界
-        const stateFeatures = [];
-        Object.entries(stateGroups).forEach(([stateName, stateCities]) => {
-          try {
-            // 构建该州的FeatureCollection
-            const stateFC = {
-              type: 'FeatureCollection',
-              features: stateCities.map(s => ({
-                type: 'Feature',
-                properties: {},
-                geometry: { type: 'Polygon', coordinates: [s.ring] }
-              }))
-            };
-            // 用D3 geoMerge合并
-            const mergedGeom = d3.geoMerge(stateFC);
-            if (mergedGeom) {
-              stateFeatures.push({
-                type: 'Feature',
-                properties: { state: stateName },
-                geometry: mergedGeom
-              });
-              console.log('[战略地图] 州合并成功:', stateName, '郡数:', stateCities.length, 'geometry类型:', mergedGeom.type);
+        console.log('[战略地图] d3.geoMerge是否存在:', typeof d3.geoMerge);
+
+        // 方法1：尝试用D3 geoMerge合并
+        let stateFeatures = [];
+        if (typeof d3.geoMerge === 'function') {
+          Object.entries(stateGroups).forEach(([stateName, stateCities]) => {
+            try {
+              const stateFC = {
+                type: 'FeatureCollection',
+                features: stateCities.map(s => ({
+                  type: 'Feature',
+                  properties: {},
+                  geometry: { type: 'Polygon', coordinates: [s.ring] }
+                }))
+              };
+              const mergedGeom = d3.geoMerge(stateFC);
+              if (mergedGeom) {
+                stateFeatures.push({
+                  type: 'Feature',
+                  properties: { state: stateName },
+                  geometry: mergedGeom
+                });
+                console.log('[战略地图] geoMerge合并成功:', stateName, '类型:', mergedGeom.type);
+              }
+            } catch (e) {
+              console.warn('[战略地图] geoMerge合并失败:', stateName, e);
             }
-          } catch (e) {
-            console.warn('[战略地图] 州边界合并失败:', stateName, e);
-          }
-        });
-        console.log('[战略地图] 成功合并的州数:', stateFeatures.length);
-        // 渲染州级边界线
-        if (stateFeatures.length > 0) {
-          stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
-            .attr('d', geoPath)
-            .attr('fill','none')
-            .attr('stroke','#3a2a10')
-            .attr('stroke-width',2.0)
-            .attr('stroke-linejoin','round')
-            .attr('pointer-events','none');
+          });
         }
+        console.log('[战略地图] geoMerge成功合并的州数:', stateFeatures.length);
+
+        // 方法2：如果合并失败，直接画每个州的郡边界用粗线（备用方案）
+        if (stateFeatures.length === 0) {
+          console.log('[战略地图] 使用备用方案：直接画郡边界');
+          stateFeatures = states.map(s => ({
+            type: 'Feature',
+            properties: { state: s.state, name: s.name },
+            geometry: { type: 'Polygon', coordinates: [s.ring] }
+          }));
+        }
+
+        // 渲染州级边界线
+        stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
+          .attr('d', geoPath)
+          .attr('fill','none')
+          .attr('stroke','#3a2a10')
+          .attr('stroke-width', stateFeatures.length <= 13 ? 2.0 : 0.8)
+          .attr('stroke-linejoin','round')
+          .attr('pointer-events','none')
+          .attr('opacity', stateFeatures.length <= 13 ? 1.0 : 0.7);
+        console.log('[战略地图] 渲染边界线数量:', stateFeatures.length);
       } catch (err) {
         console.warn('[战略地图] 州级边界渲染失败', err);
       }
