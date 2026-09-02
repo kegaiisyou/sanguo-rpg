@@ -13,11 +13,8 @@
     none: { label:'争', fill:'rgba(160,150,140,0.92)', stroke:'#34291c', hover:'rgba(130,120,110,0.85)' },
   };
 
-  // 特殊地点（手写锚点房，不在 cities.js 里）
-  const SPECIAL_LOCATIONS = [
-    { id:'camp_yard', name:'苦役营', pos:[114.5, 36.6], color:'#9b59b6', desc:'新手教程·苦役营' },
-    { id:'ji_heishan_zhai', name:'黑山寨', pos:[114.2, 35.7], color:'#e67e22', desc:'剿匪支线·黑山寨' },
-  ];
+  // 特殊地点（地理坐标真相源见 shared/data/map.js 的 LF.MAP.specialGeo，与势力图网格坐标 coords 同文件维护）
+  const SPECIAL_LOCATIONS = Object.entries(global.LF.MAP.specialGeo || {}).map(([id, l]) => ({ id, ...l }));
 
   // 河流（手绘墨线）
   const RIVERS = [

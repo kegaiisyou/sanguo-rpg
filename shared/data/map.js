@@ -55,6 +55,12 @@
       xuchang:[8,6]      // 豫州 · 许都（帝都）
     },
 
+    // 特殊地点·地理坐标真相源（与上方 coords 网格坐标一一对应，单文件维护；战略图用 geo[pos:lng,lat]，势力图用 coords[col,row]，两坐标系不同但指向同一房间）
+    specialGeo: {
+      camp_yard:       { name:'苦役营', pos:[114.5, 36.6], color:'#9b59b6', desc:'新手教程·苦役营' },
+      ji_heishan_zhai: { name:'黑山寨', pos:[114.2, 35.7], color:'#e67e22', desc:'剿匪支线·黑山寨' },
+    },
+
     // 外围地貌（光荣《三国志》风：十三州之外有海/草原/沙漠环绕，不留空）
     // kind: sea(海) / grass(草原塞外) / desert(西域沙漠)；cx,cy 为中心（世界坐标），rx,ry 为半径
     terrains: [
