@@ -26,21 +26,21 @@
     { name:'淮河', width:2.0, color:'#4a6b76', pts:[[108,33],[111,33],[114,33],[117,33],[119,32.8]] },
   ];
 
-  // 州名位置（视口像素坐标，根据 modal 尺寸动态调整）
+  // 州名位置（经纬度坐标 [lng, lat]）
   const STATE_POSITIONS = {
-    '凉州': [0.12, 0.42],
-    '幽州': [0.62, 0.22],
-    '并州': [0.42, 0.30],
-    '冀州': [0.52, 0.32],
-    '司隶': [0.40, 0.42],
-    '兖州': [0.55, 0.42],
-    '青州': [0.65, 0.36],
-    '豫州': [0.48, 0.50],
-    '荆州': [0.40, 0.62],
-    '徐州': [0.65, 0.50],
-    '扬州': [0.58, 0.68],
-    '益州': [0.22, 0.58],
-    '交州': [0.38, 0.85],
+    '凉州': [102, 38],
+    '幽州': [116, 40],
+    '并州': [112, 38],
+    '冀州': [115, 37],
+    '司隶': [110, 34.5],
+    '兖州': [116, 35.5],
+    '青州': [118, 36.5],
+    '豫州': [113, 33],
+    '荆州': [112, 30],
+    '徐州': [117, 34],
+    '扬州': [119, 32],
+    '益州': [104, 31],
+    '交州': [110, 23],
   };
 
   // 加载郡边界 GeoJSON
@@ -106,12 +106,6 @@
     const ui = document.createElement('div');
     ui.className = 'strategic-map-ui';
     ui.innerHTML = `
-      <div class="strategic-legend">
-        <div class="row"><span class="swatch" style="background:${FACTIONS.wei.fill}"></span>曹魏</div>
-        <div class="row"><span class="swatch" style="background:${FACTIONS.shu.fill}"></span>蜀汉</div>
-        <div class="row"><span class="swatch" style="background:${FACTIONS.wu.fill}"></span>孙吴</div>
-        <div class="row"><span class="swatch" style="background:${FACTIONS.none.fill}"></span>争夺之地</div>
-      </div>
       <div class="strategic-info" id="sm-info">点击州郡或城池查看详情</div>
       <div class="strategic-zoom-ctrl">
         <button data-z="in" title="放大">＋</button>
@@ -193,6 +187,13 @@
       paper.append('feColorMatrix').attr('in','n').attr('type','matrix')
         .attr('values','0 0 0 0 0.55  0 0 0 0 0.47  0 0 0 0 0.33  0 0 0 0.05 0');
 
+      // 背景矩形（确保背景色正确，不被全局CSS覆盖）
+      svg.append('rect')
+        .attr('x', 0).attr('y', 0)
+        .attr('width', W).attr('height', H)
+        .attr('fill', '#e7dcc0')
+        .attr('pointer-events', 'none');
+
       // 可缩放根层
       const root = svg.append('g').attr('id', 'sm-root');
 
@@ -214,7 +215,7 @@
       statePaths = stateLayer.selectAll('path.main').data(fc.features).enter().append('path')
         .attr('class','main')
         .attr('d', geoPath)
-        .style('fill', d => FACTIONS[d.properties.faction].fill)
+        .attr('fill', d => FACTIONS[d.properties.faction].fill)
         .attr('stroke','none')
         .attr('pointer-events','all')
         .style('cursor','pointer')
@@ -303,17 +304,16 @@
         return { el: wrap, dot, nm, base: projection(loc.pos), loc };
       });
 
-      // 州名标签（按容器尺寸百分比定位）
+      // 州名标签（用投影坐标定位，放到overlay里跟随transform）
       stateLabelsDom = [];
       Object.entries(STATE_POSITIONS).forEach(([stateName, pos]) => {
         const el = document.createElement('div');
         el.className = 'strategic-state-label-dom';
         el.textContent = stateName;
-        const px = pos[0] * W;
-        const py = pos[1] * H;
-        el.style.left = px + 'px';
-        el.style.top = py + 'px';
-        container.appendChild(el);
+        // pos是[经度, 纬度]，用projection计算像素坐标
+        const px = projection(pos)[0];
+        const py = projection(pos)[1];
+        overlay.appendChild(el);
         stateLabelsDom.push({ el, name: stateName, baseX: px, baseY: py });
       });
 
@@ -326,6 +326,12 @@
           specialMarks.forEach(o => {
             o.el.style.left = (o.base[0] * k) + 'px';
             o.el.style.top = (o.base[1] * k) + 'px';
+          });
+        }
+        if (stateLabelsDom && stateLabelsDom.length) {
+          stateLabelsDom.forEach(o => {
+            o.el.style.left = (o.baseX * k) + 'px';
+            o.el.style.top = (o.baseY * k) + 'px';
           });
         }
       }
