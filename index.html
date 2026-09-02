@@ -1951,6 +1951,7 @@
   .cb-hint{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,.8);
     color:#e8c878; padding:8px 16px; border-radius:10px; border:1px solid rgba(232,200,120,.4); font-size:13px; pointer-events:none; z-index:40; }
 </style>
+<link rel="stylesheet" href="shared/css/strategic-map.css?v=20260902b" />
 </head>
 <body>
 <script>
@@ -2069,6 +2070,9 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/shop.js?v=20260902a"></script>
     <script src="shared/data/map.js?v=20260902a"></script>
     <script src="shared/data/cities.js?v=20260902a"></script>
+    <script src="shared/vendor/d3.min.js?v=20260902b"></script>
+    <script src="shared/vendor/turf.min.js?v=20260902b"></script>
+    <script src="shared/strategic-map.js?v=20260902b"></script>
     <script src="shared/data/markets.js?v=20260902a"></script>
     <script src="shared/combat/engine.js?v=20260902a"></script>
     <script src="shared/index.js?v=20260902a"></script>
@@ -7521,7 +7525,7 @@ window.onerror=function(msg,url,line,col,err){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
         h=buildMapCityHTML({});
       } else {
-        h=buildMapKingHTML({});
+        h=buildStrategicMapHTML({});
       }
     } else if(kind==='clock'){
       var R=41; // 时辰标签半径（百分比）
@@ -7673,7 +7677,7 @@ window.onerror=function(msg,url,line,col,err){
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
     if(kind==='map'){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld) initMapCity({});
-      else initMapKing({});
+      else initStrategicMapInGame({});
     }
     // 装备面板交互
     $card.querySelectorAll('.eq-slot[data-slot]').forEach(function(el){
@@ -7688,6 +7692,47 @@ window.onerror=function(msg,url,line,col,err){
      var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
    }
   }
+
+  // ===== 战略地图（D3 矢量 · 三国州郡）=====
+  function buildStrategicMapHTML(opts){
+    opts=opts||{};
+    var title = opts.pickSpawn ? '选择出生点' : '山河志 · 战略地图';
+    var tip = opts.pickSpawn
+      ? '点击一处城池设为出生点，并立即传送至此。'
+      : '拖拽平移 · 滚轮缩放 · 点击城池前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」。';
+    return '<h3>'+title+'</h3>'+
+      '<div id="strategic-map-container"></div>'+
+      '<p class="tip">'+tip+'</p>';
+  }
+  function initStrategicMapInGame(opts){
+    opts=opts||{};
+    var container=document.getElementById('strategic-map-container');
+    if(!container) return;
+    if(!window.LF || !LF.initStrategicMap){
+      container.innerHTML='<div class="strategic-loading">战略地图加载中...</div>';
+      return;
+    }
+    // 选出生点模式
+    if(opts.pickSpawn){
+      LF.initStrategicMap(container, {
+        onCityClick: function(city){
+          if(!city || !city.id) return;
+          state.spawnRoom=city.id;
+          log('【调试】出生点已设为：'+city.name+'。','good');
+          closeModal(); renderRoom(city.id); save(state);
+        }
+      });
+    } else {
+      // 正常模式：点击城市传送
+      LF.initStrategicMap(container, {
+        onCityClick: function(city){
+          if(!city || !city.id) return;
+          goRoomOnMap(city.id);
+        }
+      });
+    }
+  }
+
   function closeModal(){
     if(state && state.dead){ die(); return; }
     // 捏人进行中（state 尚未建立）禁止中途收起，否则会露出标题屏并丢失进度

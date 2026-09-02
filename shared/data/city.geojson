@@ -1,0 +1,859 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "交趾"
+      },
+      "geometry": {
+        "coordinates": [
+          105.875244,
+          21.053744
+        ],
+        "type": "Point"
+      },
+      "id": 0
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "江陵"
+      },
+      "geometry": {
+        "coordinates": [
+          112.225341,
+          30.334953
+        ],
+        "type": "Point"
+      },
+      "id": 1
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "武都"
+      },
+      "geometry": {
+        "coordinates": [
+          105.727272,
+          33.738044
+        ],
+        "type": "Point"
+      },
+      "id": 2
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "长沙"
+      },
+      "geometry": {
+        "coordinates": [
+          112.939453,
+          28.30438
+        ],
+        "type": "Point"
+      },
+      "id": 3
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "天水"
+      },
+      "geometry": {
+        "coordinates": [
+          105.704956,
+          34.597041
+        ],
+        "type": "Point"
+      },
+      "id": 4
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "会稽"
+      },
+      "geometry": {
+        "coordinates": [
+          120.574951,
+          29.988244
+        ],
+        "type": "Point"
+      },
+      "id": 5
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "河内"
+      },
+      "geometry": {
+        "coordinates": [
+          113.403625,
+          35.108674
+        ],
+        "type": "Point"
+      },
+      "id": 6
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "建业"
+      },
+      "geometry": {
+        "coordinates": [
+          118.727016,
+          32.005454
+        ],
+        "type": "Point"
+      },
+      "id": 7
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "永安"
+      },
+      "geometry": {
+        "coordinates": [
+          109.46846,
+          31.02234
+        ],
+        "type": "Point"
+      },
+      "id": 8
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "金城"
+      },
+      "geometry": {
+        "coordinates": [
+          103.8208,
+          36.05576
+        ],
+        "type": "Point"
+      },
+      "id": 9
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "武威"
+      },
+      "geometry": {
+        "coordinates": [
+          102.628784,
+          37.9312
+        ],
+        "type": "Point"
+      },
+      "id": 10
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "中山"
+      },
+      "geometry": {
+        "coordinates": [
+          115.004882,
+          38.518086
+        ],
+        "type": "Point"
+      },
+      "id": 11
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "长安"
+      },
+      "geometry": {
+        "coordinates": [
+          108.939056,
+          34.343436
+        ],
+        "type": "Point"
+      },
+      "id": 12
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "濮阳"
+      },
+      "geometry": {
+        "coordinates": [
+          115.010375,
+          35.78217
+        ],
+        "type": "Point"
+      },
+      "id": 13
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "琅琊"
+      },
+      "geometry": {
+        "coordinates": [
+          118.31726,
+          35.124401
+        ],
+        "type": "Point"
+      },
+      "id": 14
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "南海"
+      },
+      "geometry": {
+        "coordinates": [
+          113.384399,
+          22.93563
+        ],
+        "type": "Point"
+      },
+      "id": 15
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "蓟城"
+      },
+      "geometry": {
+        "coordinates": [
+          116.22651,
+          39.842501
+        ],
+        "type": "Point"
+      },
+      "id": 16
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "平原"
+      },
+      "geometry": {
+        "coordinates": [
+          116.444091,
+          37.169071
+        ],
+        "type": "Point"
+      },
+      "id": 17
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "襄阳"
+      },
+      "geometry": {
+        "coordinates": [
+          112.108612,
+          31.995265
+        ],
+        "type": "Point"
+      },
+      "id": 18
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "永昌"
+      },
+      "geometry": {
+        "coordinates": [
+          99.18457,
+          25.025884
+        ],
+        "type": "Point"
+      },
+      "id": 19
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "晋阳"
+      },
+      "geometry": {
+        "coordinates": [
+          112.557678,
+          37.872685
+        ],
+        "type": "Point"
+      },
+      "id": 20
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "北平"
+      },
+      "geometry": {
+        "coordinates": [
+          118.079888,
+          39.713456
+        ],
+        "type": "Point"
+      },
+      "id": 21
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "成都"
+      },
+      "geometry": {
+        "coordinates": [
+          104.073486,
+          30.685163
+        ],
+        "type": "Point"
+      },
+      "id": 22
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "北海"
+      },
+      "geometry": {
+        "coordinates": [
+          119.157714,
+          36.705861
+        ],
+        "type": "Point"
+      },
+      "id": 23
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "谯郡"
+      },
+      "geometry": {
+        "coordinates": [
+          115.795898,
+          33.870415
+        ],
+        "type": "Point"
+      },
+      "id": 24
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "下邳"
+      },
+      "geometry": {
+        "coordinates": [
+          118.022003,
+          33.934245
+        ],
+        "type": "Point"
+      },
+      "id": 25
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "襄平"
+      },
+      "geometry": {
+        "coordinates": [
+          122.942191,
+          41.124383
+        ],
+        "type": "Point"
+      },
+      "id": 26
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "越巂"
+      },
+      "geometry": {
+        "coordinates": [
+          102.260742,
+          27.882783
+        ],
+        "type": "Point"
+      },
+      "id": 27
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "南皮"
+      },
+      "geometry": {
+        "coordinates": [
+          116.677551,
+          38.052416
+        ],
+        "type": "Point"
+      },
+      "id": 28
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "汉中"
+      },
+      "geometry": {
+        "coordinates": [
+          107.001342,
+          33.082335
+        ],
+        "type": "Point"
+      },
+      "id": 29
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "吴郡"
+      },
+      "geometry": {
+        "coordinates": [
+          120.625076,
+          31.266079
+        ],
+        "type": "Point"
+      },
+      "id": 30
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "洛阳"
+      },
+      "geometry": {
+        "coordinates": [
+          112.416229,
+          34.658063
+        ],
+        "type": "Point"
+      },
+      "id": 31
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "上党"
+      },
+      "geometry": {
+        "coordinates": [
+          113.082275,
+          36.186658
+        ],
+        "type": "Point"
+      },
+      "id": 32
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "庐江"
+      },
+      "geometry": {
+        "coordinates": [
+          116.831359,
+          30.740655
+        ],
+        "type": "Point"
+      },
+      "id": 33
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "上庸"
+      },
+      "geometry": {
+        "coordinates": [
+          110.22583,
+          32.226742
+        ],
+        "type": "Point"
+      },
+      "id": 34
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "梓潼"
+      },
+      "geometry": {
+        "coordinates": [
+          105.161132,
+          31.644028
+        ],
+        "type": "Point"
+      },
+      "id": 35
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "邺城"
+      },
+      "geometry": {
+        "coordinates": [
+          114.472045,
+          36.575835
+        ],
+        "type": "Point"
+      },
+      "id": 36
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "寿春"
+      },
+      "geometry": {
+        "coordinates": [
+          116.783294,
+          32.564175
+        ],
+        "type": "Point"
+      },
+      "id": 37
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "建安"
+      },
+      "geometry": {
+        "coordinates": [
+          118.287048,
+          27.017537
+        ],
+        "type": "Point"
+      },
+      "id": 38
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "钜鹿"
+      },
+      "geometry": {
+        "coordinates": [
+          115.035095,
+          37.206269
+        ],
+        "type": "Point"
+      },
+      "id": 39
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "甘陵"
+      },
+      "geometry": {
+        "coordinates": [
+          115.7135,
+          36.851054
+        ],
+        "type": "Point"
+      },
+      "id": 40
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "合浦"
+      },
+      "geometry": {
+        "coordinates": [
+          109.201354,
+          21.665086
+        ],
+        "type": "Point"
+      },
+      "id": 41
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "陈留"
+      },
+      "geometry": {
+        "coordinates": [
+          114.52835,
+          34.66964
+        ],
+        "type": "Point"
+      },
+      "id": 42
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "牂牁"
+      },
+      "geometry": {
+        "coordinates": [
+          107.5177,
+          26.258936
+        ],
+        "type": "Point"
+      },
+      "id": 43
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "许昌"
+      },
+      "geometry": {
+        "coordinates": [
+          113.832092,
+          34.043556
+        ],
+        "type": "Point"
+      },
+      "id": 44
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "建宁"
+      },
+      "geometry": {
+        "coordinates": [
+          103.809814,
+          25.502784
+        ],
+        "type": "Point"
+      },
+      "id": 45
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "宛城"
+      },
+      "geometry": {
+        "coordinates": [
+          112.534332,
+          32.993691
+        ],
+        "type": "Point"
+      },
+      "id": 46
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "江州"
+      },
+      "geometry": {
+        "coordinates": [
+          106.534423,
+          29.592565
+        ],
+        "type": "Point"
+      },
+      "id": 47
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "桂阳"
+      },
+      "geometry": {
+        "coordinates": [
+          112.727966,
+          25.750424
+        ],
+        "type": "Point"
+      },
+      "id": 48
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "安定"
+      },
+      "geometry": {
+        "coordinates": [
+          106.969785,
+          35.62633
+        ],
+        "type": "Point"
+      },
+      "id": 49
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "豫章"
+      },
+      "geometry": {
+        "coordinates": [
+          115.856323,
+          28.685768
+        ],
+        "type": "Point"
+      },
+      "id": 50
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "弘农"
+      },
+      "geometry": {
+        "coordinates": [
+          110.879259,
+          34.545236
+        ],
+        "type": "Point"
+      },
+      "id": 51
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "汝南"
+      },
+      "geometry": {
+        "coordinates": [
+          114.05930785655323,
+          32.96725436397091
+        ],
+        "type": "Point"
+      },
+      "id": 52
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "广陵"
+      },
+      "geometry": {
+        "coordinates": [
+          120.1529754217375,
+          33.35486993223472
+        ],
+        "type": "Point"
+      },
+      "id": 53
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "小沛"
+      },
+      "geometry": {
+        "coordinates": [
+          116.57139544010607,
+          34.73613032739293
+        ],
+        "type": "Point"
+      },
+      "id": 54
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "江夏"
+      },
+      "geometry": {
+        "coordinates": [
+          114.24446306890968,
+          30.65219012492696
+        ],
+        "type": "Point"
+      },
+      "id": 55
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "济北"
+      },
+      "geometry": {
+        "coordinates": [
+          117.03500453457349,
+          36.61737896050589
+        ],
+        "type": "Point"
+      },
+      "id": 56
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "新野"
+      },
+      "geometry": {
+        "coordinates": [
+          113.08760760528975,
+          32.177134215355764
+        ],
+        "type": "Point"
+      },
+      "id": 57
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "零陵"
+      },
+      "geometry": {
+        "coordinates": [
+          109.40377127189106,
+          24.331267086953872
+        ],
+        "type": "Point"
+      },
+      "id": 58
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "夷洲"
+      },
+      "geometry": {
+        "coordinates": [
+          120.65860190789488,
+          24.175481286974673
+        ],
+        "type": "Point"
+      },
+      "id": 59
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "武陵"
+      },
+      "geometry": {
+        "coordinates": [
+          111.7,
+          29
+        ],
+        "type": "Point"
+      },
+      "id": 60
+    }
+  ]
+}
