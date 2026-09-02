@@ -266,84 +266,93 @@
       //   .attr('stroke-linejoin','round')
       //   .attr('pointer-events','none');
 
-      // 州级边界线（用turf.union合并同州的郡）
+      // 州级边界线（用turf.dissolve根据state属性合并同州的郡，去掉内部边界）
       const stateBorderLayer = root.append('g').attr('id', 'sm-state-borders');
       try {
-        // 按州分组
-        const stateGroups = {};
-        states.forEach(s => {
-          if (!stateGroups[s.state]) stateGroups[s.state] = [];
-          stateGroups[s.state].push(s);
-        });
-        console.log('[战略地图] 州分组:', Object.keys(stateGroups));
-        console.log('[战略地图] turf版本:', window.turf.version || 'unknown');
-        console.log('[战略地图] turf.union是否存在:', typeof window.turf.union);
-
-        // 用turf.union合并每个州的郡边界
-        const stateFeatures = [];
-        Object.entries(stateGroups).forEach(([stateName, stateCities]) => {
+        console.log('[战略地图] turf.dissolve是否存在:', typeof window.turf.dissolve);
+        
+        // 构建带state属性的FeatureCollection
+        const fcWithState = {
+          type: 'FeatureCollection',
+          features: states.map(s => ({
+            type: 'Feature',
+            properties: { state: s.state, name: s.name },
+            geometry: { type: 'Polygon', coordinates: [s.ring] }
+          }))
+        };
+        
+        let stateFeatures = [];
+        
+        // 方法1：用turf.dissolve合并（推荐，能干净去掉内部边界）
+        if (typeof window.turf.dissolve === 'function') {
           try {
-            console.log('[战略地图] 开始合并州:', stateName, '郡数:', stateCities.length);
-            // 构建该州的多边形列表
-            const polys = stateCities.map(s => window.turf.polygon([s.ring]));
-            console.log('[战略地图]', stateName, '构建多边形成功，数量:', polys.length);
-            
-            // 逐个合并
-            let merged = polys[0];
-            for (let i = 1; i < polys.length; i++) {
-              try {
-                merged = window.turf.union(merged, polys[i]);
-                if (!merged) {
-                  console.warn('[战略地图]', stateName, '第', i, '个合并结果为空');
-                  break;
-                }
-              } catch (e) {
-                console.warn('[战略地图]', stateName, '第', i, '个合并失败:', e.message);
-              }
-            }
-            
-            if (merged && merged.geometry) {
-              stateFeatures.push({
-                type: 'Feature',
-                properties: { state: stateName },
-                geometry: merged.geometry
+            const dissolved = window.turf.dissolve(fcWithState, { propertyName: 'state' });
+            if (dissolved && dissolved.features) {
+              stateFeatures = dissolved.features;
+              console.log('[战略地图] turf.dissolve合并成功，州数:', stateFeatures.length);
+              stateFeatures.forEach(f => {
+                console.log('[战略地图] 州:', f.properties.state, 'geometry类型:', f.geometry.type);
               });
-              console.log('[战略地图] 州合并成功:', stateName, 'geometry类型:', merged.geometry.type);
-            } else {
-              console.warn('[战略地图] 州合并最终结果为空:', stateName);
             }
           } catch (e) {
-            console.warn('[战略地图] 州边界合并失败:', stateName, e);
+            console.warn('[战略地图] turf.dissolve合并失败:', e);
           }
-        });
-        console.log('[战略地图] 成功合并的州数:', stateFeatures.length, '/', Object.keys(stateGroups).length);
+        }
+        
+        // 方法2：如果dissolve不可用，用turf.union逐个合并
+        if (stateFeatures.length === 0 && typeof window.turf.union === 'function') {
+          console.log('[战略地图] 使用turf.union逐个合并');
+          const stateGroups = {};
+          states.forEach(s => {
+            if (!stateGroups[s.state]) stateGroups[s.state] = [];
+            stateGroups[s.state].push(s);
+          });
+          Object.entries(stateGroups).forEach(([stateName, stateCities]) => {
+            try {
+              const polys = stateCities.map(s => window.turf.polygon([s.ring]));
+              let merged = polys[0];
+              for (let i = 1; i < polys.length; i++) {
+                try {
+                  const result = window.turf.union(merged, polys[i]);
+                  if (result) merged = result;
+                } catch (e) {}
+              }
+              if (merged && merged.geometry) {
+                stateFeatures.push({
+                  type: 'Feature',
+                  properties: { state: stateName },
+                  geometry: merged.geometry
+                });
+              }
+            } catch (e) {
+              console.warn('[战略地图] union合并失败:', stateName, e);
+            }
+          });
+          console.log('[战略地图] turf.union合并成功，州数:', stateFeatures.length);
+        }
+        
+        console.log('[战略地图] 最终州数:', stateFeatures.length);
 
         // 渲染州级边界线（如果合并成功）
         if (stateFeatures.length > 0) {
           stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
             .attr('d', geoPath)
             .attr('fill','none')
-            .attr('stroke','#3a2a10')
-            .attr('stroke-width',2.0)
+            .attr('stroke','#2a1a05')
+            .attr('stroke-width',2.5)
             .attr('stroke-linejoin','round')
             .attr('pointer-events','none');
           console.log('[战略地图] 渲染州级边界线数量:', stateFeatures.length);
         } else {
           // 合并失败，直接画郡边界
           console.log('[战略地图] 州合并全部失败，直接画郡边界');
-          const countyFeatures = states.map(s => ({
-            type: 'Feature',
-            properties: { state: s.state, name: s.name },
-            geometry: { type: 'Polygon', coordinates: [s.ring] }
-          }));
-          stateBorderLayer.selectAll('path').data(countyFeatures).enter().append('path')
+          stateBorderLayer.selectAll('path').data(fcWithState.features).enter().append('path')
             .attr('d', geoPath)
             .attr('fill','none')
             .attr('stroke','#3a2a10')
             .attr('stroke-width',1.2)
             .attr('stroke-linejoin','round')
             .attr('pointer-events','none');
-          console.log('[战略地图] 渲染郡边界线数量:', countyFeatures.length);
         }
       } catch (err) {
         console.warn('[战略地图] 州级边界渲染失败', err);
