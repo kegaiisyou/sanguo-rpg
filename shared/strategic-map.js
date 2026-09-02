@@ -266,7 +266,7 @@
       //   .attr('stroke-linejoin','round')
       //   .attr('pointer-events','none');
 
-      // 州级边界线（先用最简单的方法：直接画每个州的郡边界用粗线，不合并）
+      // 州级边界线（用turf.union合并同州的郡）
       const stateBorderLayer = root.append('g').attr('id', 'sm-state-borders');
       try {
         // 按州分组
@@ -276,28 +276,75 @@
           stateGroups[s.state].push(s);
         });
         console.log('[战略地图] 州分组:', Object.keys(stateGroups));
-        console.log('[战略地图] D3版本:', d3.version);
-        console.log('[战略地图] d3.geoMerge是否存在:', typeof d3.geoMerge);
-        console.log('[战略地图] d3.geo相关函数:', Object.keys(d3).filter(k => k.indexOf('geo') >= 0).join(', '));
-        console.log('[战略地图] turf是否存在:', typeof window.turf);
+        console.log('[战略地图] turf版本:', window.turf.version || 'unknown');
+        console.log('[战略地图] turf.union是否存在:', typeof window.turf.union);
 
-        // 直接画每个州的郡边界，用较粗的深棕色线条
-        // 虽然会看到内部边界，但至少能看到州级的大致轮廓
-        const stateFeatures = states.map(s => ({
-          type: 'Feature',
-          properties: { state: s.state, name: s.name },
-          geometry: { type: 'Polygon', coordinates: [s.ring] }
-        }));
+        // 用turf.union合并每个州的郡边界
+        const stateFeatures = [];
+        Object.entries(stateGroups).forEach(([stateName, stateCities]) => {
+          try {
+            console.log('[战略地图] 开始合并州:', stateName, '郡数:', stateCities.length);
+            // 构建该州的多边形列表
+            const polys = stateCities.map(s => window.turf.polygon([s.ring]));
+            console.log('[战略地图]', stateName, '构建多边形成功，数量:', polys.length);
+            
+            // 逐个合并
+            let merged = polys[0];
+            for (let i = 1; i < polys.length; i++) {
+              try {
+                merged = window.turf.union(merged, polys[i]);
+                if (!merged) {
+                  console.warn('[战略地图]', stateName, '第', i, '个合并结果为空');
+                  break;
+                }
+              } catch (e) {
+                console.warn('[战略地图]', stateName, '第', i, '个合并失败:', e.message);
+              }
+            }
+            
+            if (merged && merged.geometry) {
+              stateFeatures.push({
+                type: 'Feature',
+                properties: { state: stateName },
+                geometry: merged.geometry
+              });
+              console.log('[战略地图] 州合并成功:', stateName, 'geometry类型:', merged.geometry.type);
+            } else {
+              console.warn('[战略地图] 州合并最终结果为空:', stateName);
+            }
+          } catch (e) {
+            console.warn('[战略地图] 州边界合并失败:', stateName, e);
+          }
+        });
+        console.log('[战略地图] 成功合并的州数:', stateFeatures.length, '/', Object.keys(stateGroups).length);
 
-        // 渲染边界线
-        stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
-          .attr('d', geoPath)
-          .attr('fill','none')
-          .attr('stroke','#3a2a10')
-          .attr('stroke-width', 1.2)
-          .attr('stroke-linejoin','round')
-          .attr('pointer-events','none');
-        console.log('[战略地图] 渲染郡边界线数量:', stateFeatures.length);
+        // 渲染州级边界线（如果合并成功）
+        if (stateFeatures.length > 0) {
+          stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill','none')
+            .attr('stroke','#3a2a10')
+            .attr('stroke-width',2.0)
+            .attr('stroke-linejoin','round')
+            .attr('pointer-events','none');
+          console.log('[战略地图] 渲染州级边界线数量:', stateFeatures.length);
+        } else {
+          // 合并失败，直接画郡边界
+          console.log('[战略地图] 州合并全部失败，直接画郡边界');
+          const countyFeatures = states.map(s => ({
+            type: 'Feature',
+            properties: { state: s.state, name: s.name },
+            geometry: { type: 'Polygon', coordinates: [s.ring] }
+          }));
+          stateBorderLayer.selectAll('path').data(countyFeatures).enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill','none')
+            .attr('stroke','#3a2a10')
+            .attr('stroke-width',1.2)
+            .attr('stroke-linejoin','round')
+            .attr('pointer-events','none');
+          console.log('[战略地图] 渲染郡边界线数量:', countyFeatures.length);
+        }
       } catch (err) {
         console.warn('[战略地图] 州级边界渲染失败', err);
       }
