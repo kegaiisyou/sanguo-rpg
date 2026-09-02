@@ -192,41 +192,39 @@
       // 可缩放根层
       const root = svg.append('g').attr('id', 'sm-root');
 
-      // 河流
-      const riverLayer = root.append('g').attr('id', 'sm-rivers');
-      const rline = d3.line().x(d => projection(d)[0]).y(d => projection(d)[1]).curve(d3.curveCatmullRom);
-      riverLayer.selectAll('g').data(RIVERS).enter().append('g').each(function(r) {
-        const g = d3.select(this);
-        g.append('path').attr('d', rline(r.pts)).attr('fill','none')
-          .attr('stroke','#9fb6bf').attr('stroke-width', r.width*1.6)
-          .attr('opacity',0.26).attr('stroke-linecap','round');
-        g.append('path').attr('d', rline(r.pts)).attr('fill','none')
-          .attr('stroke', r.color).attr('stroke-width', r.width*0.85)
-          .attr('opacity',0.55).attr('stroke-linecap','round');
-      });
+      // 河流（暂时去掉）
+      // const riverLayer = root.append('g').attr('id', 'sm-rivers');
+      // const rline = d3.line().x(d => projection(d)[0]).y(d => projection(d)[1]).curve(d3.curveCatmullRom);
+      // riverLayer.selectAll('g').data(RIVERS).enter().append('g').each(function(r) {
+      //   const g = d3.select(this);
+      //   g.append('path').attr('d', rline(r.pts)).attr('fill','none')
+      //     .attr('stroke','#9fb6bf').attr('stroke-width', r.width*1.6)
+      //     .attr('opacity',0.26).attr('stroke-linecap','round');
+      //   g.append('path').attr('d', rline(r.pts)).attr('fill','none')
+      //     .attr('stroke', r.color).attr('stroke-width', r.width*0.85)
+      //     .attr('opacity',0.55).attr('stroke-linecap','round');
+      // });
 
-      // 州郡填充（暂时去掉填充色，只保留边界线）
+      // 州郡填充（暂时去掉填充色，只保留可点击区域，郡边界线隐藏）
       const stateLayer = root.append('g').attr('id', 'sm-states');
       statePaths = stateLayer.selectAll('path.main').data(fc.features).enter().append('path')
         .attr('class','main')
         .attr('d', geoPath)
         .attr('fill', 'none')
-        .attr('stroke', '#b8a888')
-        .attr('stroke-width', 0.2)
-        .attr('stroke-linejoin', 'round')
+        .attr('stroke', 'none')
         .attr('pointer-events','all')
         .style('cursor','pointer')
         .on('click', function(e, d) { e.stopPropagation(); selectState(d); });
 
-      // 郡边界线（更细）
-      const borderLayer = root.append('g').attr('id', 'sm-borders');
-      borderLayer.selectAll('path').data(fc.features).enter().append('path')
-        .attr('d', geoPath)
-        .attr('fill','none')
-        .attr('stroke','#9a8a6a')
-        .attr('stroke-width',0.25)
-        .attr('stroke-linejoin','round')
-        .attr('pointer-events','none');
+      // 郡边界线（暂时隐藏）
+      // const borderLayer = root.append('g').attr('id', 'sm-borders');
+      // borderLayer.selectAll('path').data(fc.features).enter().append('path')
+      //   .attr('d', geoPath)
+      //   .attr('fill','none')
+      //   .attr('stroke','#9a8a6a')
+      //   .attr('stroke-width',0.25)
+      //   .attr('stroke-linejoin','round')
+      //   .attr('pointer-events','none');
 
       // 州级边界线（用turf合并同州的郡，较粗的深棕色线条）
       const stateBorderLayer = root.append('g').attr('id', 'sm-state-borders');
