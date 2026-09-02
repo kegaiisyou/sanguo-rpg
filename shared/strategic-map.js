@@ -334,10 +334,11 @@
         if (stateFeatures.length > 0) {
           stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
             .attr('d', geoPath)
-            .attr('fill','none')
+            .attr('fill','rgba(150,120,80,0.06)')
             .attr('stroke','#2a1a05')
             .attr('stroke-width',2.5)
             .attr('stroke-linejoin','round')
+            .attr('vector-effect','non-scaling-stroke')
             .attr('pointer-events','none');
           console.log('[战略地图] 渲染州级边界线数量:', stateFeatures.length);
         } else {
@@ -349,6 +350,7 @@
             .attr('stroke','#3a2a10')
             .attr('stroke-width',1.2)
             .attr('stroke-linejoin','round')
+            .attr('vector-effect','non-scaling-stroke')
             .attr('pointer-events','none');
         }
       } catch (err) {
