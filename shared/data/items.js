@@ -132,7 +132,18 @@
     jiu:       { defId: 'jiu',       name: '黍酒', icon: '🍶', cat: '食饵', effect: { drink: 15, food: 5 },
       desc: '黍米酿就的浊酒，酒香扑鼻，饮之解渴暖身，或可御寒壮行。' },
     horse:     { defId: 'horse',     name: '川马', icon: '🐴', cat: '素材', price: 80,
-      desc: '相中的栗色川马，蹄声如鼓，正堪长途，亦可售与马行。' }
+      desc: '相中的栗色川马，蹄声如鼓，正堪长途，亦可售与马行。' },
+    // —— 苦役营教程物品（v20260902a · 10 越狱路线获取物）——
+    pickaxe:   { defId: 'pickaxe',   name: '镐锄', icon: '⛏️', cat: '素材', tool: true, maxDur: 8,
+      desc: '矿坑偷取的镐锄。挖地道线（路线2）必需——抡起来刨土挖墙，耐久 8。' },
+    sleep_drug: { defId: 'sleep_drug', name: '迷药', icon: '💤', cat: '药剂',
+      desc: '林娘以蒙汗草配制的迷药。下迷药业（路线3）下于饭中，可放倒官差；不伤性命。' },
+    wooden_pass: { defId: 'wooden_pass', name: '木牍路引', icon: '🪵', cat: '素材',
+      desc: '陈简以营中竹木伪造的路引木牍。伪造木牍线（路线5）混出门的凭证；汉末纸贵，木牍最便。' },
+    rope:      { defId: 'rope',      name: '绳', icon: '🪢', cat: '素材',
+      desc: '苏娘以竹麻搓制的绳。攀绳翻墙线（路线7）攀墙工具；结实耐用。' },
+    guard_tally:{ defId: 'guard_tally', name: '腰牌', icon: '🪪', cat: '素材',
+      desc: '赵虎的都伯腰牌，夺来可作暴动线（路线4）的信物；沾了血才到手。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }

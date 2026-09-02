@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260831q`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260902a`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -43,6 +43,7 @@
 | **城市系统** | ✅ 完成 | 程序化城市（人口/秩序/商业驱动内容）、城市网格地图（NxN 房间、点击移动、cell 派生 NPC）、城市兴衰 + 废墟火灾 + 阵营占领、道路分层（泥路→官道，火破坏道路/烧城门削弱守军，可破路断路，自动寻路到城门）、城市参数（农业/城型/城门/方位/交易品）、城市名称标准化 + 商铺招牌程序生成 + 城市参数面板 | `index.html`（城市网格/兴衰/占领/道路/招牌）、`shared/data/markets.js`、`shared/story/rooms.js`（城市房间） |
 | **可进入建筑（interior 机制）** | ✅ 完成 | 店铺 / 玩家营造建筑成为可步入的真实房间（动态 `__bld__` 房间 + 子区域导航 + 返回街道）；建筑 interior 放置物件渲染（商店里帐篷不再消失）；build.js 回调全局桥接（铁砧打造面板）；城市网格按单元格隔离放置 | `index.html`（`enter_building`/`renderRoom` interior 分支）、`shared/data/build.js`（interior 字段）、`shared/story/rooms.js` |
 | **山河志·地图大重构** | ✅ 完成 | 地图底图改为参考图 PNG 视觉主体（隐藏 SVG 遮罩）；列表式州图 → 迷你 13 州 svg 缩略图联动 → 三国英雄传风格 canvas（散布节点+道路线）→ 河流 + zoom/pan + 掉落图标/图例/教程；拉远时显 SVG 州界/州名；全部 13 州治房间 | `index.html`（`buildMapHTML`/`initMap`）、`assets/_pv_ref.png`、`shared/story/rooms.js`（13 州治） |
+| **苦役营新手教程·全量补全（v20260902a）** | ✅ 完成 | 沿用《新手教程重设计方案》（苦役营越狱 v3）真正落地：① **11 间房间**（原 3 间 + 新增伙房/农田/犬舍/仓库/矿坑/粮囤/练武场/岗哨，出口网络接驳）；② **30 名 NPC**（原 5 名 + 补全 25 名，含营吏/看守与囚徒，各带路线线索/好感/分支对话）；③ **10 条越狱路线全部分支**（密道/挖地道/下迷药/暴动/伪造木牍/收买犬卒/攀绳翻墙/水渠夜遁/劫狱强攻/外应接应，各自 NPC 好感前置、获取物、判定与逃脱钩子）；④ **教学战斗**（对 `camp_guard` 弱敌）+ **木人桩练武场**（`camp_dummy`，不掉血练攻防道具撤退）；⑤ **5 件教程物品**（镐锄/迷药/木牍路引/绳/腰牌）；⑥ **onb 渐进揭示扩展到全系统提示**（对话→场景→状态→行囊装备→角色→战斗→武学→交易→地图→历法→善恶，逐步点亮高亮）；旧 `wuhuan_scout` 退役、教学战敌改为 `camp_guard` | `shared/story/rooms.js`（11 间 camp_*）、`shared/story/dialogues.js`（30 名 camp_* NPC）、`shared/data/enemies.js`（camp_guard/camp_dummy，退役 wuhuan_scout）、`shared/data/items.js`（5 件教程物）、`shared/story/triggers.js`（10 线/练武场/教学战斗/逃脱钩子/camp_tour）、`index.html`（`openEscapeHub`/`doEscape`/`finishEscape`/`exitCombatToRoom` 钩子 + onb 扩展）、`_archive/新手教程重设计方案.md`（权威设计源） |
 
 ---
 
@@ -462,7 +463,7 @@
 
 **已知缺口 / 技术债（接棒重点）**
 1. **文档脱节**：本文档此前停在 v20260821y，本次补录至 v20260825f；`GAME_DESIGN.md` 仍停在 2026-07-29，待同步。
-2. **新手教程半迁移（已收口）**：旧燕山 `ys_*` 已清理——`index.html` 中 `ONB_CHAIN` 已移除、`ys_*` 判定改为仅 `camp_*`、`ys_contact` 触发挂起、房间层 `yanshan_*`（6 间）已删除、出生点现为 `camp_yard`、山河志地图燕山节点已移除；`camp_wall` 北出改接 `baitan_tun` 以保证开放世界连通。苦役营 `camp_*` 教程仍仅 3/11 房、5/30 NPC、密道线预览，需补完。
+2. **新手教程（已全量补完，v20260902a）**：旧燕山 `ys_*` 已清理——`index.html` 中 `ONB_CHAIN` 已移除、`ys_*` 判定改为仅 `camp_*`、`ys_contact` 触发挂起、房间层 `yanshan_*`（6 间）已删除、出生点现为 `camp_yard`、山河志地图燕山节点已移除；`camp_wall` 北出改接 `lindao`（开放世界林径）。苦役营 `camp_*` 教程已于 v20260902a 补全：11/11 房、30/30 NPC、10 条越狱路线全部分支、教学战斗（camp_guard）+ 木人桩（camp_dummy）、onb 渐进揭示扩展到全系统提示。
 3. **营造 emoji 残留（已清理）**：`build.js` 的 `icon` 字段与 `renderBuildPanel` / 炉膛标题已统一走 `itemIconHTML` 文字图标（v20260825f 前提交）。
 4. **无用残留**：`narrative/` 目录为空、`_game_inline.js` / `_del_beggar.js` 未跟踪，疑似调试残留，建议清理或归档。
 5. **城市系统全程序生成规划**：除 3 锚点（`camp_*` 苦役营、`ji_heishan_*` 黑山山寨、`build_test` 建造试验地图）外，其余手写 ROOMS 已统一加 `[待程序生成]` 标记，待统一生成器接管；`genCityGrid` 当前仅做单元格内部导航，城市根房间生成器尚未实现。

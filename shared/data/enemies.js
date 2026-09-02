@@ -23,18 +23,26 @@
         equip: { tier: 1, chance: 35 } }
     },
 
-    // 乌桓游骑斥候（开场教学战专用：实力强劲，以反衬老乞丐「无名掌法」之强）
-    wuhuan_scout: {
-      id: 'wuhuan_scout', name: '乌桓斥候', title: '游骑哨探',
+    // 苦役营官差（教学弱敌：开场教学战 / 路线4暴动 / 路线9劫狱强攻 专用）
+    camp_guard: {
+      id: 'camp_guard', name: '营中官差', title: '苦役营看守',
       element: '金',
-      hp: 240, atk: 38, def: 16, spd: 34,
+      hp: 140, atk: 16, def: 10, spd: 18,
       skills: [
-        { id: 'scout_slash', name: '突刺', beat: 28, dmgMul: 1.0, desc: '弯刀疾刺' },
-        { id: 'rider_chop', name: '跃马斩', beat: 40, dmgMul: 1.5, desc: '跃马挥刀，力劈而下',
-          eff: { bleedChance: 0.3 } }
+        { id: 'guard_thrust', name: '横矛刺', beat: 30, dmgMul: 1.0, desc: '长矛前刺，守御森严' },
+        { id: 'guard_chop', name: '腰刀劈', beat: 36, dmgMul: 1.2, desc: '腰刀斜劈，势大力沉' }
       ],
       ai: 'aggressive',
-      drop: { gold: [4, 10], pot: [2, 6], table: [], equip: { tier: 0, chance: 0 } }
+      drop: { gold: [3, 8], pot: [2, 5], table: [], equip: { tier: 0, chance: 0 } }
+    },
+    // 木人桩（练武场专用：不出手、不掉血，供反复练攻击/防御/用道具/撤退）
+    camp_dummy: {
+      id: 'camp_dummy', name: '练武木人桩', title: '韩铁所设',
+      element: '木',
+      hp: 9999, atk: 0, def: 10, spd: 1,
+      skills: [],
+      ai: 'defensive',
+      drop: { gold: [0, 0], pot: [0, 0], table: [], equip: { tier: 0, chance: 0 } }
     },
 
     // ─── 中等敌人 ───

@@ -545,7 +545,7 @@
   .map-viewport:active{cursor:grabbing;}
   /* v20260822ae：直接用用户简化版参考图 assets/_pv_ref.png 作地图背景（彩色州块+蓝水系+隶书州名，一目了然）。
      之前用 'ScreenShot_20260821_230620_978.png'（项目根目录根本不存在）始终未加载成功，故此前屏上一片空白+无州界。 */
-  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260831u') center/100% 100% no-repeat;transform-origin:0 0;}
+  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260902a') center/100% 100% no-repeat;transform-origin:0 0;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
   /* 参考图 PNG 自带完整视觉（州块+隶书州名+蓝水系+外族注记），所有叠加层都 display:none 让 PNG 直接呈现。 */
   .map-bg{display:none;}                                  /* 旧羊皮纸底纹层：被 PNG 完全覆盖，移除避免压暗 */
@@ -1798,6 +1798,22 @@
   body.onb.in-combat #actions{ display:flex !important; }
   .onb-glow{ animation:onbPulse 1.1s ease-in-out infinite; border-radius:10px; }
   @keyframes onbPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(232,200,120,0); } 50%{ box-shadow:0 0 0 3px rgba(232,200,120,.9), 0 0 22px rgba(232,200,120,.55); } }
+  /* 新手目标引导横幅：固定底部、常驻提示「当前该做什么」 */
+  .onb-goal{ position:fixed; left:50%; bottom:84px; transform:translateX(-50%); z-index:40;
+    max-width:92%; width:max-content; box-sizing:border-box;
+    background:linear-gradient(180deg,rgba(46,34,22,.96),rgba(34,24,15,.96));
+    color:#ffe9b8; padding:8px 14px; border-radius:13px; border:1px solid rgba(255,217,138,.55);
+    font-size:13px; line-height:1.45; font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+    box-shadow:0 6px 22px rgba(0,0,0,.38); pointer-events:none; letter-spacing:.3px; }
+  .onb-goal .og-ic{ color:#ffd98a; margin-right:6px; font-weight:700; }
+  .onb-goal[hidden]{ display:none; }
+  /* 战斗时隐藏目标横幅（战斗指令另成体系，避免干扰） */
+  #app.in-combat #onb-goal{ display:none; }
+  /* 当前目标高亮：持续金色脉冲，区别于一次性 onb-glow */
+  .onb-goal-hl{ animation:onbGoalPulse 1.4s ease-in-out infinite !important;
+    box-shadow:0 0 0 2px rgba(255,217,138,.9), 0 0 16px rgba(255,217,138,.55) !important; }
+  @keyframes onbGoalPulse{ 0%,100%{ box-shadow:0 0 0 2px rgba(255,217,138,.9),0 0 14px rgba(255,217,138,.5); }
+    50%{ box-shadow:0 0 0 3px rgba(255,217,138,1),0 0 22px rgba(255,217,138,.8); } }
   .onb-choices{ display:flex; flex-direction:column; gap:8px; padding:12px 14px calc(14px + env(safe-area-inset-bottom)); background:rgba(20,16,10,.4); border-top:1px solid rgba(196,164,102,.3); }
   .onb-prompt{ color:#cdb98c; font-size:12.5px; margin-bottom:2px; font-style:italic; }
   .onb-btn{ background:linear-gradient(180deg,#4a3c24,#2e2415); color:#f0e2c0; border:1px solid #8a6f3e; border-radius:9px; padding:11px 12px; font-size:14px; text-align:left; cursor:pointer; line-height:1.35; }
@@ -1997,6 +2013,7 @@ window.onerror=function(msg,url,line,col,err){
   <header id="status"></header>
   <div class="loc-tab" id="loc-tab"></div>
   <main id="scene"><div id="narr"></div></main>
+  <div id="onb-goal" class="onb-goal" hidden></div>
   <section id="actions"></section>
   <div id="lower">
     <div id="move-tabs">
@@ -2033,28 +2050,28 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260831u"></script>
-<script src="shared/config/ui-spec.js?v=20260831u"></script>
-<script src="shared/config/balance.js?v=20260831u"></script>
-<script src="shared/story/sects.js?v=20260831u"></script>
-<script src="shared/story/skills.js?v=20260831u"></script>
-<script src="shared/story/objectives.js?v=20260831u"></script>
-<script src="shared/story/events.js?v=20260831u"></script>
-<script src="shared/story/dialogues.js?v=20260831u"></script>
-    <script src="shared/story/rooms.js?v=20260831u"></script>
-    <script src="shared/story/triggers.js?v=20260831u"></script>
-    <script src="shared/data/martial.js?v=20260831u"></script>
-<script src="shared/data/enemies.js?v=20260831u"></script>
-<script src="shared/data/items.js?v=20260831u"></script>
-    <script src="shared/data/recipes.js?v=20260831u"></script>
-    <script src="shared/data/build.js?v=20260831u"></script>
-    <script src="shared/data/shops.js?v=20260831u"></script>
-    <script src="shared/shop.js?v=20260831u"></script>
-    <script src="shared/data/map.js?v=20260831u"></script>
-    <script src="shared/data/cities.js?v=20260831u"></script>
-    <script src="shared/data/markets.js?v=20260831u"></script>
-    <script src="shared/combat/engine.js?v=20260831u"></script>
-    <script src="shared/index.js?v=20260831u"></script>
+<script src="shared/config/constants.js?v=20260902a"></script>
+<script src="shared/config/ui-spec.js?v=20260902a"></script>
+<script src="shared/config/balance.js?v=20260902a"></script>
+<script src="shared/story/sects.js?v=20260902a"></script>
+<script src="shared/story/skills.js?v=20260902a"></script>
+<script src="shared/story/objectives.js?v=20260902a"></script>
+<script src="shared/story/events.js?v=20260902a"></script>
+<script src="shared/story/dialogues.js?v=20260902a"></script>
+    <script src="shared/story/rooms.js?v=20260902a"></script>
+    <script src="shared/story/triggers.js?v=20260902a"></script>
+    <script src="shared/data/martial.js?v=20260902a"></script>
+<script src="shared/data/enemies.js?v=20260902a"></script>
+<script src="shared/data/items.js?v=20260902a"></script>
+    <script src="shared/data/recipes.js?v=20260902a"></script>
+    <script src="shared/data/build.js?v=20260902a"></script>
+    <script src="shared/data/shops.js?v=20260902a"></script>
+    <script src="shared/shop.js?v=20260902a"></script>
+    <script src="shared/data/map.js?v=20260902a"></script>
+    <script src="shared/data/cities.js?v=20260902a"></script>
+    <script src="shared/data/markets.js?v=20260902a"></script>
+    <script src="shared/combat/engine.js?v=20260902a"></script>
+    <script src="shared/index.js?v=20260902a"></script>
 <script>
 (function(){
   try{
@@ -3716,6 +3733,7 @@ window.onerror=function(msg,url,line,col,err){
     logScene(narr, 150, function(){
       // 教学链：进入房间后触发对应引导（如燕山山口逃脱）
       onbRoomEnter(room);
+      onbGoal();   // 进入新房间后刷新「当前目标」高亮（NPC/动作按钮已就绪）
       renderMoveBar(G.ROOMS[state.room]||bldRoom(state.room));   // 门禁（moveGate）更新后重渲移动条；城内格子由 currentRoomExits 提供方向
       // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
       if(room.patrol && !silent && !onboarding) maybeAmbush(room);
@@ -4722,6 +4740,7 @@ window.onerror=function(msg,url,line,col,err){
     (room.actions||[]).forEach(function(a){
       var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
       var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
+      if(a.id) btn.dataset.act=a.id;   // 供新手目标引导高亮定位
     });
     if(room.exits && Object.keys(room.exits).length){
       // 有出口：日常移动交由 Dock 上方常驻移动条
@@ -4782,6 +4801,7 @@ window.onerror=function(msg,url,line,col,err){
     items.forEach(function(it){
       var chip=document.createElement('button'); chip.className='nl-item';
       chip.innerHTML='<span class="nl-ic">'+(it.o.icon||'👤')+'</span><span class="nl-nm">'+it.o.name+'</span>';
+      if(it.o.key) chip.dataset.k=it.o.key;   // 供新手目标引导高亮定位
       chip.onclick=function(e){ toggleObjExpand(e, chip, it.o, it.acts); };
       box.appendChild(chip);
     });
@@ -5237,8 +5257,29 @@ window.onerror=function(msg,url,line,col,err){
         break;
       case 'wall_choose':
         if(!exert('勘察墙根')) return;
-        if(!checkTriggers({hook:'onCustom', room:'camp_wall'}))
-          log('你勘察塌墙根：乱砖委地，藤蔓爬墙。你尚未探得密道暗号——需先去囚室寻默叔问明入口，或另谋苏娘攀绳、福生传信之路。','sys');
+        openEscapeHub('camp_wall');
+        break;
+      case 'gate_choose':
+        if(!exert('决断出营')) return;
+        openEscapeHub('camp_gate');
+        break;
+      case 'train_dummy':
+        if(!exert('戳木人桩')) return;
+        if(state.flags.route) state.flags.route.dummy_done=true; save(state);
+        startCombat('camp_dummy');
+        break;
+      case 'survey_kitchen':
+        if(!exert('打量伙房')) return;
+        log('你打量伙房：灶台下几瓶药材，墙角杂粮成堆。鲁大勺掌勺，林娘的蒙汗草也在——下药业（路线3）的物资本就在此。','sys');
+        break;
+      case 'survey_warehouse':
+        if(!exert('翻找仓库')) return;
+        if(!checkTriggers({hook:'onCustom', room:'camp_warehouse'}))
+          log('你翻找仓库：墙角倚着几把闲镐锄，竹木随手可取。若能趁郑刚打盹取一柄，挖地道线（路线2）便有了家伙。','sys');
+        break;
+      case 'survey_mine':
+        if(!exert('勘察矿道')) return;
+        log('你勘察矿道：向墙根延伸，石四说底下连着暗渠。若得吴算盘指水道走向，水渠夜遁线（路线8）便成了。','sys');
         break;
       // ─── 战斗试炼 ───
       case 'spar_bandit': if(!exert('应战')) return; startCombat('bandit'); break;
@@ -6470,6 +6511,32 @@ window.onerror=function(msg,url,line,col,err){
     el.classList.add('onb-glow');
     setTimeout(function(){ el.classList.remove('onb-glow'); }, 4200);
   }
+  // ===== 新手目标引导：根据当前进度显示「当前该做什么」并高亮对应按钮/NPC =====
+  function onbGoalClear(){
+    var g=document.getElementById('onb-goal'); if(g) g.classList.add('hidden');
+    var hl=document.querySelectorAll('.onb-goal-hl'); for(var i=0;i<hl.length;i++) hl[i].classList.remove('onb-goal-hl');
+  }
+  function onbGoalStep(){
+    var f=state.flags||{}, onb=f.onb; if(!onb||onb.done) return null;
+    var labored=!!onb.labored, surveyed=!!onb.surveyed;
+    if(!labored) return {text:'担石劳作，先熟悉营中苦役（点下方「担石劳作」）', sel:'#actions .act[data-act="labor_yard"]'};
+    if(!surveyed) return {text:'环顾劳役场，看清几处去路（点「环顾四周」）', sel:'#actions .act[data-act="survey_yard"]'};
+    if(!(f.route && f.route.crypt)) return {text:'去找讲古的周听涛，探听出营门道（劳役场·周听涛）', sel:'#npc-list .nl-item[data-k="zhoutingtao"]'};
+    if(!(f.task && f.task.signal)) return {text:'去囚室（西）与默叔对上暗号', sel:'#npc-list .nl-item[data-k="moshu"]'};
+    // 已对暗号：去任一枢纽决断出营（塌墙根北 / 岗哨南）
+    var sel=null;
+    if(document.querySelector('#actions .act[data-act="wall_choose"]')) sel='#actions .act[data-act="wall_choose"]';
+    else if(document.querySelector('#actions .act[data-act="gate_choose"]')) sel='#actions .act[data-act="gate_choose"]';
+    return {text:'塌墙根（北）或岗哨（南）皆可决断出营——点「决断出营」（也可先去别处探访更多门道）', sel:sel};
+  }
+  function onbGoal(){
+    if(!state.flags || !state.flags.onb || state.flags.onb.done){ onbGoalClear(); return; }
+    var s=onbGoalStep(); if(!s){ onbGoalClear(); return; }
+    var g=document.getElementById('onb-goal');
+    if(g){ g.classList.remove('hidden'); g.innerHTML='<span class="og-ic">➤</span>〔当前目标〕'+s.text; }
+    var hl=document.querySelectorAll('.onb-goal-hl'); for(var i=0;i<hl.length;i++) hl[i].classList.remove('onb-goal-hl');
+    if(s.sel){ var el=document.querySelector(s.sel); if(el){ el.classList.add('onb-goal-hl'); if(el.scrollIntoView) try{ el.scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){} } }
+  }
   // （旧 showOnboardChoices / removeOnboardChoices 已废弃：开场改为与老乞丐对话驱动）
   function tutAsk(prompt, options){
     removeTutChoices();
@@ -6619,6 +6686,7 @@ window.onerror=function(msg,url,line,col,err){
       handled=true;
       if(ctx.hook==='onTalk') break;   // 交谈类一次即可
     }
+    onbGoal();   // 旗标可能随触发改变，刷新「当前目标」与高亮
     return handled;
   }
   function graduate(){
@@ -6627,6 +6695,98 @@ window.onerror=function(msg,url,line,col,err){
     ONB_LAYERS.forEach(function(l){ document.body.classList.remove('reveal-'+l); });
     state.moveGate=null;
     renderMoveBar(G.ROOMS[state.room]); renderNpcList();
+  }
+
+  // ===== 苦役营·越狱逃脱枢纽（v20260902a）=====
+  // camp_wall「决断出营·墙根」与 camp_gate「决断出营·岗哨」共用此枢纽：
+  // 仅列出当前已解锁（flag/物品前置满足）的路线，玩家择一逃脱。
+  var ROUTE_INFO = {
+    crypt:   { name: '密道线',       where: 'camp_wall', flavor: '你按默叔所授暗号拨开乱砖，塌墙根下一道幽深暗道赫然在目。七拐八绕，头顶人声渐远，你钻出了营墙。' },
+    tunnel:  { name: '挖地道线',     where: 'camp_wall', flavor: '你抡起镐锄，在矿道那头刨了数夜，土松墙薄——哗啦一声，地道通了。你猫腰钻出，泥一身却自由了。' },
+    rope:    { name: '攀绳翻墙线',   where: 'camp_wall', flavor: '你将苏娘搓的绳甩上墙头，借力一荡，翻过碎瓷密布的墙脊，落在外头草丛里。' },
+    drain:   { name: '水渠夜遁线',   where: 'camp_wall', flavor: '子时换岗，你循吴算盘所指水道，顺暗渠摸黑漂出墙根，水声盖住了一切动静。' },
+    drug:    { name: '内应下药业',   where: 'camp_gate', flavor: '你趁伙房不备，将林娘的迷药下进粥锅。不多时官差东倒西歪睡死，你大摇大摆混出门去。' },
+    riot:    { name: '趁乱暴动线',   where: 'camp_gate', flavor: '换岗那阵你夺了赵虎腰牌，秦九霄一声断喝，囚徒们哄然而起——你趁乱杀开一条血路冲出岗哨。' },
+    wooden:  { name: '伪造木牍线',   where: 'camp_gate', flavor: '你举着陈简刻的木牍路引，岗哨官差懒得细看，一挥手放你过了正门。' },
+    bribe:   { name: '收买犬卒线',   where: 'camp_gate', flavor: '你塞出一把银钱，犬舍/粮囤的看守眯眼揣了，装作没瞧见——你从便门溜出了营墙。' },
+    assault: { name: '劫狱强攻线',   where: 'camp_gate', flavor: '木人桩上练出的拳脚今朝见真章：你硬闯岗哨，拳脚翻飞，把拦路的官差尽数放倒，杀出了这苦役营！' }
+  };
+  function escapeAvail(route){
+    var f=state.flags||{}, p=state.pack||[];
+    switch(route){
+      case 'crypt':   return !!(f.route && f.route.crypt) && !!(f.task && f.task.signal);
+      case 'tunnel':  return !!(f.route && f.route.tunnel) && !!packFind('pickaxe');
+      case 'rope':    return !!packFind('rope');
+      case 'drain':   return !!(f.route && f.route.drain);
+      case 'drug':    return !!(f.route && f.route.drug) && !!packFind('sleep_drug');
+      case 'riot':    return !!(f.route && f.route.riot);
+      case 'wooden':  return !!packFind('wooden_pass');
+      case 'bribe':   return (state.gold||0) >= 30;
+      case 'assault': return (state.level||1) >= 3 || !!(f.route && f.route.dummy_done);
+    }
+    return false;
+  }
+  function escapeLockHint(route){
+    var f=state.flags||{};
+    switch(route){
+      case 'crypt':   return '（未解锁：需周听涛授密道线索 + 囚室与默叔对暗号）';
+      case 'tunnel':  return '（未解锁：需苟三授挖地道线索 + 取得镐锄）';
+      case 'rope':    return '（未解锁：需苏娘搓绳）';
+      case 'drain':   return '（未解锁：需吴算/石四授水渠夜遁线索）';
+      case 'drug':    return '（未解锁：需鲁大/林娘配迷药 + 取得迷药）';
+      case 'riot':    return '（未解锁：需秦九霄授趁乱暴动线索）';
+      case 'wooden':  return '（未解锁：需陈简伪造木牍路引）';
+      case 'bribe':   return '（未解锁：需银两≥30，可收买犬卒/粮官）';
+      case 'assault': return '（未解锁：需战力达标——练武场练至等级≥3，或戳通木人桩）';
+    }
+    return '（未解锁）';
+  }
+  function openEscapeHub(room){
+    if(document.getElementById('tut-choices')) return;
+    if(state.flags && state.flags.onb && state.flags.onb.done){ log('你已逃出苦役营，不必再决断。','sys'); return; }
+    var routes = room==='camp_wall' ? ['crypt','tunnel','rope','drain'] : ['drug','riot','wooden','bribe','assault'];
+    var opts=[];
+    var anyOpen=false;
+    routes.forEach(function(r){
+      var info=ROUTE_INFO[r];
+      if(escapeAvail(r)){
+        anyOpen=true;
+        opts.push({ label: '〔'+info.name+'〕就此出营', fn: function(){ doEscape(r, room); } });
+      } else {
+        opts.push({ label: '〔'+info.name+'〕'+escapeLockHint(r), fn: function(){ log('这条路子还未备妥——'+escapeLockHint(r)+'。', 'sys'); } });
+      }
+    });
+    opts.push({ label: '再想想，先不逃', fn: function(){ log('你压下心头去意，先回营中再探探门道。','sys'); } });
+    var title = room==='camp_wall' ? '塌墙根下，你盘算着出营的法子——' : '岗哨咽喉，你思量着强出营墙的法子——';
+    if(!anyOpen) title += '（眼下尚无门路，去与营中众人多攀谈，或备齐所需之物）';
+    tutAsk(title, opts);
+  }
+  function doEscape(route, room){
+    if(route==='riot' || route==='assault'){
+      // 战斗路线：先与官差一战（教学战斗状态机；胜/被老乞丐救场均置 tcDone），战后由 exitCombatToRoom 钩子毕业
+      if(!state.flags.route) state.flags.route={};
+      state.flags.route._pending = route; save(state);
+      log('你决意走「'+ROUTE_INFO[route].name+'」——营中官差横矛拦来！','combat');
+      startCombat('camp_guard', { tutorial: true });
+      return;
+    }
+    finishEscape(route);
+  }
+  function finishEscape(route){
+    if(state.flags.route) state.flags.route._pending=null;
+    if(route==='riot' && !packFind('guard_tally')) packAdd('guard_tally',1);
+    if(route==='bribe'){ state.gold=Math.max(0,(state.gold||0)-30); }   // 收买犬卒：扣 30 银（叙事闭环，银钱开道）
+    if(state.flags.onb) state.flags.onb.done=true;
+    state.moveGate=null;
+    graduate();
+    log('〔'+ROUTE_INFO[route].name+'·逃脱〕'+ROUTE_INFO[route].flavor,'env');
+    log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。','sys');
+    save(state);
+    moveToOutside();
+  }
+  function moveToOutside(){
+    state.room='lindao'; state.moveGate=null; save(state);
+    renderRoom('lindao', true);
   }
   // 进场钩子：交由触发引擎评估（首访剧本 / 锁退路 / 逃脱等）
   function onbRoomEnter(room){
@@ -8160,7 +8320,7 @@ window.onerror=function(msg,url,line,col,err){
 
   /**
    * 开场教学战：脚本化演出（复用 DQ 战斗卡渲染）。
-   * 设计：主角出手多为虚招（打在空气），真正重创乌桓骑兵的是老乞丐的「无名掌法」；
+   * 设计：主角出手多为虚招（打在空气），真正重创官差的是老乞丐的「无名掌法」；
    * 主角只会被刀芒锐气擦伤——由此自然引出「行囊/金疮药」教学，将剧情、引导、系统功能合而为一。
    */
   function tutCombatAct(actionId){
@@ -8186,19 +8346,19 @@ window.onerror=function(msg,url,line,col,err){
     // ── 点对了：按步骤演出 ──
     if(actionId==='defend'){
       state.flags.onb.tcTried.def=true;
-      log('你依言横臂护住要害。老乞丐掌风一引，将乌桓骑兵的刀势荡开，顺势一掌印在他马腹——','env');
+      log('你依言横臂护住要害。老乞丐掌风一引，将官差的刀势荡开，顺势一掌印在他马腹——','env');
       log('「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
       enemy.hp=Math.max(1, enemy.hp-40);
     } else {   // attack
       if(expect==='attack'){   // 首击完整演出
         state.flags.onb.tcTried.atk=true;
-        log('你摆开架势强装镇静，随手一拳却打在空气——乌桓骑兵跃马挥刀，迎面劈下！','env');
+        log('你摆开架势强装镇静，随手一拳却打在空气——官差跃马挥刀，迎面劈下！','env');
         log('老乞丐无名掌法暴起，劲气错身而过，顺手拽你衣领躲过杀招；刀芒锐气擦过，在你臂上划开一道血口。','env');
         enemy.hp=Math.max(1, enemy.hp-120);
         p.hp=Math.max(1, p.hp-22); state.hp=p.hp;     // 刀芒锐气砍伤
         if(!state.flags.onb.packGiven) tutThrowPack();  // 受伤后老乞丐甩出行囊 → 解锁「道具」教学
       } else {   // expect==='finish' 收尾击杀
-        log('老乞丐无名掌法再起，掌力如潮，一掌正印在乌桓骑兵胸口，将他连人带马震退数丈！','env');
+        log('老乞丐无名掌法再起，掌力如潮，一掌正印在官差胸口，将他连人带马震退数丈！','env');
         enemy.hp=0;
       }
     }
@@ -8702,6 +8862,11 @@ window.onerror=function(msg,url,line,col,err){
     document.body.classList.remove('in-combat');
     document.body.classList.remove('tut-combat');
     if(dqCardEl && dqCardEl.parentNode){ dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
+    // 苦役营·岗哨战斗路线（暴动/劫狱强攻）：教学战斗胜/被救场后自动毕业逃脱
+    if(state.flags && state.flags.route && state.flags.route._pending && state.flags.onb && state.flags.onb.tcDone && !state.flags.onb.done){
+      var rp=state.flags.route._pending;
+      finishEscape(rp); return;
+    }
     renderRoom(state.room, true);
   }
 

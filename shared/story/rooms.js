@@ -20,11 +20,14 @@
       ],
       exits: {
         '西': 'camp_cell',
-        '北': 'camp_wall'
+        '北': 'camp_wall',
+        '东': 'camp_farm',
+        '南': 'camp_gate'
       },
-      find: '劳役场黄土夯实，囚徒扛石运土。〔西〕囚室（西）；〔北〕塌墙根（北）；林木幽深处似有去路。',
+      find: '劳役场黄土夯实，囚徒扛石运土。〔西〕囚室（西）；〔北〕塌墙根（北）；〔东〕农田（东）；〔南〕牢门岗哨（南）。',
       npcs: [
-        'zhoutingtao'
+        'zhoutingtao',
+        'qin_jiuxiao'
       ],
       items: [],
       actions: [
@@ -52,7 +55,8 @@
       },
       find: '囚室潮湿逼仄，草荐发硬；角落哑老囚默坐，指尖似在无意义地划动。〔东〕回劳役场（东）。',
       npcs: [
-        'moshu'
+        'moshu',
+        'qian_sh'
       ],
       items: [],
       actions: []
@@ -79,6 +83,166 @@
           id: 'wall_choose',
           label: '勘察塌墙根·决断出营',
           tip: '你既探得密道，决断从何处出营。'
+        }
+      ]
+    },
+
+  // ═══ 锚点 · 苦役营（其余 8 间 · v20260902a 补全） ═══
+    camp_farm: {
+      id: 'camp_farm',
+      name: '苦役营·农田',
+      desc: [
+        '营墙外的薄田被囚徒们翻得稀烂，几垄蔫苗在日头下打卷。老驿丞蹲在田埂上吧嗒着旱烟，几个苦力正弯腰锄地。',
+        '憨牛扛着耙从你身边经过，憨憨一笑；角落里石头闷头刨土，喜子哼着小曲，一派苦中作乐的光景。'
+      ],
+      exits: {
+        '西': 'camp_yard',
+        '南': 'camp_kitchen',
+        '北': 'camp_kennel'
+      },
+      find: '薄田稀烂，囚徒锄地；老驿丞蹲田埂。〔西〕回劳役场（西）；〔南〕伙房（南）；〔北〕犬舍（北）。',
+      npcs: [ 'sun_lao', 'niu_tie', 'liu_shi', 'wang_xi', 'zheng_gui' ],
+      items: [],
+      actions: []
+    },
+    camp_kitchen: {
+      id: 'camp_kitchen',
+      name: '苦役营·伙房',
+      desc: [
+        '伙房烟火气冲天，大灶上煮着能照见人影的稀粥。虎背熊腰的鲁大勺翻动铁锅，热气熏得他满脸油光。',
+        '墙角堆着几麻袋杂粮与药材，灶台下还塞着些瓶瓶罐罐——这便是全营的伙食与汤药出处。'
+      ],
+      exits: {
+        '北': 'camp_farm',
+        '东': 'camp_store'
+      },
+      find: '伙房煮粥，鲁大勺掌勺；墙角杂粮药材。〔北〕回农田（北）；〔东〕粮囤（东）。',
+      npcs: [ 'lu_da', 'lin_niang' ],
+      items: [],
+      actions: [
+        {
+          id: 'survey_kitchen',
+          label: '打量伙房',
+          tip: '看看灶台下的药材与粥锅，或能寻出什么门道。'
+        }
+      ]
+    },
+    camp_store: {
+      id: 'camp_store',
+      name: '苦役营·粮囤',
+      desc: [
+        '粮囤里麻袋垒得齐整，仓官黄主簿正拨着算盘，眼珠却不住往门外溜。逃荒来的旺儿缩在墙角，饿得直咽口水。',
+        '囤后有一道半掩的小门，似是运粮出入的便道——若打点得当，或能从此溜出。'
+      ],
+      exits: {
+        '西': 'camp_kitchen'
+      },
+      find: '粮囤麻袋齐整，黄主簿拨算盘；旺儿缩墙角。〔西〕回伙房（西）。囤后小门半掩。',
+      npcs: [ 'huang_er', 'li_wang' ],
+      items: [],
+      actions: []
+    },
+    camp_kennel: {
+      id: 'camp_kennel',
+      name: '苦役营·犬舍',
+      desc: [
+        '犬舍腥臊扑鼻，几条恶犬被铁链拴着，见了生人便呲牙低吼。犬卒冯二懒洋洋地靠墙打盹，马彪则怕狗似的远远站着。',
+        '犬舍后门直通营外小径——若犬卒肯睁只眼闭只眼，这条道最是省心。'
+      ],
+      exits: {
+        '南': 'camp_farm',
+        '东': 'camp_warehouse'
+      },
+      find: '犬舍腥臊，恶犬拴铁链；冯二打盹，马彪怕狗。〔南〕回农田（南）；〔东〕仓库（东）。犬舍后门通营外。',
+      npcs: [ 'feng_er', 'ma_biao' ],
+      items: [],
+      actions: []
+    },
+    camp_warehouse: {
+      id: 'camp_warehouse',
+      name: '苦役营·仓库',
+      desc: [
+        '仓库里堆着镐锄、绳索与竹木，刀笔吏陈简正借着天窗光校着什么，管账的吴算盘噼啪打着算盘。',
+        '此处竹木随手可取，正是伪造路引、搓绳攀墙的好去处；墙角还倚着几把闲着的镐锄。'
+      ],
+      exits: {
+        '西': 'camp_kennel',
+        '北': 'camp_mine'
+      },
+      find: '仓库堆镐锄绳索竹木；陈简校字，吴算盘打算盘。〔西〕回犬舍（西）；〔北〕矿坑（北）。此处竹木可取。',
+      npcs: [ 'chen_jian', 'wu_suan', 'zheng_gang' ],
+      items: [],
+      actions: [
+        {
+          id: 'survey_warehouse',
+          label: '翻找仓库',
+          tip: '墙角有闲镐锄，竹木随处可取——或许能取一柄傍身。'
+        }
+      ]
+    },
+    camp_mine: {
+      id: 'camp_mine',
+      name: '苦役营·矿坑',
+      desc: [
+        '矿坑幽深，煤尘呛人。矿奴石四拖着残腿在掌子面敲打，老囚徒苟三蹲在暗处，十指灵巧地拨弄着什么。',
+        '矿道向营墙根延伸，石四说底下连着一道暗渠——若顺渠摸黑，或能潜出墙外。'
+      ],
+      exits: {
+        '南': 'camp_warehouse',
+        '西': 'camp_training'
+      },
+      find: '矿坑幽深煤尘呛；石四敲矿，苟三蹲暗处。〔南〕回仓库（南）；〔西〕练武场（西）。矿道连暗渠。',
+      npcs: [ 'shi_si', 'gou_san' ],
+      items: [],
+      actions: [
+        {
+          id: 'survey_mine',
+          label: '勘察矿道',
+          tip: '矿道向墙根延伸，似有暗渠可潜出。'
+        }
+      ]
+    },
+    camp_training: {
+      id: 'camp_training',
+      name: '苦役营·练武场',
+      desc: [
+        '练武场列着木人桩，教头韩铁敞着衣襟，捶了捶沙袋般坚硬的胸膛。',
+        '「拳脚够硬，这营墙也拦不住你！」他斜眼打量你，「想出去？先在这桩上练出真章。」'
+      ],
+      exits: {
+        '东': 'camp_mine',
+        '北': 'camp_gate'
+      },
+      find: '练武场列木人桩，韩教头捶胸。〔东〕回矿坑（东）；〔北〕岗哨（北）。「拳脚硬亦可杀出。」',
+      npcs: [ 'han_tie' ],
+      items: [],
+      actions: [
+        {
+          id: 'train_dummy',
+          label: '戳木人桩',
+          tip: '在木人桩上练攻击/防御/用道具/撤退，熟悉战斗操作（不掉血）。'
+        }
+      ]
+    },
+    camp_gate: {
+      id: 'camp_gate',
+      name: '苦役营·牢门岗哨',
+      desc: [
+        '牢门岗哨是全营咽喉，都伯赵虎负手而立，副手钱彪盯梢最紧，伍长孙猛带班巡弋。',
+        '此处是营墙唯一的正门——强突、混出、收买、暴动，皆在此处见真章。'
+      ],
+      exits: {
+        '南': 'camp_yard',
+        '北': 'camp_training'
+      },
+      find: '岗哨咽喉，赵虎负手，钱彪盯梢，孙猛巡弋。〔南〕回劳役场（南）；〔北〕练武场（北）。正门在此。',
+      npcs: [ 'zhao_hu', 'qian_biao', 'sun_meng', 'li_heng', 'zhou_ba', 'wu_yong' ],
+      items: [],
+      actions: [
+        {
+          id: 'gate_choose',
+          label: '决断出营·岗哨',
+          tip: '你已探得数条门道，在此择一路强出营墙。'
         }
       ]
     },
@@ -188,7 +352,9 @@
       },
       find: '野径蜿蜒，北望林木幽深，山寨旗影隐约；南回塌墙根。〔南〕回苦役营（南）；〔北〕黑山寨（北）。',
       npcs: [
-        'liehu'
+        'liehu',
+        'wuliu',
+        'mu_changfeng'
       ],
       items: [],
       actions: []
@@ -251,7 +417,7 @@
           {label:'流寇头目（hp600·土）', icon:'👹', fn:function(){ startCombat('bandit_chief'); }}
         ]},
         {type:'feature', key:'elite', icon:'🔥', name:'精锐试炼', desc:'久历战阵的劲敌，招式带异常', actions:[
-          {label:'乌桓斥候（hp240·金）', icon:'🏹', fn:function(){ startCombat('wuhuan_scout'); }},
+          {label:'营中官差（hp140·金）', icon:'🏹', fn:function(){ startCombat('camp_guard'); }},
           {label:'太平力士（hp800·土·符术）', icon:'🟡', fn:function(){ startCombat('yellow_turban'); }},
           {label:'黑山寨主·张燕（hp1000·金·Boss）', icon:'😈', fn:function(){ startCombat('heishan_zhu'); }}
         ]},

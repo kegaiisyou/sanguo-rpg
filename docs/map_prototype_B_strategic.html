@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原型B · 三国志战略色块地图</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#1A1A2E;font-family:'Microsoft YaHei','PingFang SC',sans-serif;color:#E8E8E8;overflow:hidden;}
+  .wrap{display:flex;height:100vh;width:100vw;}
+  .map-area{flex:1;position:relative;background:#2A2A3E;overflow:hidden;}
+  .map-area svg{width:100%;height:100%;display:block;cursor:grab;}
+  .map-area svg:active{cursor:grabbing;}
+  /* 州色块 */
+  .state-path{cursor:pointer;transition:filter .15s, opacity .15s;stroke:#1A1A2E;stroke-width:2;}
+  .state-path:hover{filter:brightness(1.25) drop-shadow(0 0 8px rgba(255,255,255,.3));}
+  .state-path.selected{filter:brightness(1.3) drop-shadow(0 0 12px rgba(255,215,0,.6));stroke:#FFD700;stroke-width:3;}
+  .state-label{font-family:'Microsoft YaHei',sans-serif;font-weight:bold;fill:#fff;pointer-events:none;user-select:none;text-shadow:0 1px 3px rgba(0,0,0,.8);}
+  .city-dot{cursor:pointer;}
+  .city-dot:hover .city-circle{r:8;}
+  .city-label{font-family:'Microsoft YaHei',sans-serif;font-size:12px;fill:#E8E8E8;pointer-events:none;user-select:none;text-shadow:0 1px 2px rgba(0,0,0,.9);}
+  .city-capital .city-circle{fill:#FFD700 !important;}
+  .river{fill:none;stroke:#4A90C2;stroke-width:6;stroke-linecap:round;opacity:.7;pointer-events:none;}
+  .road{fill:none;stroke:#8B7355;stroke-width:2;stroke-dasharray:8 5;opacity:.6;pointer-events:none;}
+  .terrain-mountain{fill:#5A5A6E;opacity:.5;pointer-events:none;}
+  /* 顶部 */
+  .title-bar{position:absolute;top:0;left:0;right:0;padding:12px 20px;background:linear-gradient(180deg,rgba(26,26,46,.95),rgba(26,26,46,0));z-index:10;pointer-events:none;}
+  .title-bar h1{font-size:20px;letter-spacing:3px;color:#FFD700;}
+  .title-bar .sub{font-size:11px;color:#A0A0B0;margin-top:2px;letter-spacing:1px;}
+  .zoom-ctrl{position:absolute;right:14px;top:64px;display:flex;flex-direction:column;gap:5px;z-index:10;}
+  .zoom-ctrl button{width:38px;height:38px;border:1px solid #555;background:rgba(42,42,62,.9);color:#E8E8E8;font-size:18px;cursor:pointer;border-radius:4px;}
+  .zoom-ctrl button:hover{background:#3A3A5E;}
+  .lv-indicator{position:absolute;left:14px;bottom:14px;background:rgba(26,26,46,.9);color:#FFD700;padding:5px 12px;border-radius:3px;font-size:12px;z-index:10;border:1px solid #555;}
+  .debug-toggle{position:absolute;right:14px;bottom:14px;background:#8B2500;color:#fff;padding:8px 14px;border:none;border-radius:3px;cursor:pointer;font-size:12px;z-index:10;}
+  .debug-toggle.on{background:#1B5E20;}
+  .legend{position:absolute;left:14px;top:64px;background:rgba(42,42,62,.92);border:1px solid #555;border-radius:4px;padding:8px 10px;z-index:10;font-size:11px;max-height:60vh;overflow-y:auto;width:130px;}
+  .legend h4{font-size:12px;color:#FFD700;margin-bottom:5px;letter-spacing:1px;}
+  .legend-item{display:flex;align-items:center;gap:5px;margin:2px 0;color:#C8C8D8;cursor:pointer;}
+  .legend-item:hover{color:#fff;}
+  .legend-swatch{width:12px;height:12px;border-radius:2px;border:1px solid rgba(255,255,255,.3);flex-shrink:0;}
+  /* 信息面板 */
+  .info-panel{width:310px;background:#16213E;padding:18px;overflow-y:auto;border-left:2px solid #FFD700;}
+  .info-panel h2{font-size:17px;color:#FFD700;border-bottom:1px solid #334;border-bottom:1px solid #334;padding-bottom:8px;margin-bottom:12px;letter-spacing:2px;}
+  .info-panel .empty{color:#667;font-size:13px;line-height:1.8;margin-top:50px;text-align:center;}
+  .info-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #223;font-size:13px;}
+  .info-row .k{color:#889;}
+  .info-row .v{color:#E8E8E8;font-weight:bold;}
+  .faction-badge{display:inline-block;padding:3px 12px;border-radius:3px;font-size:12px;color:#fff;margin-bottom:10px;letter-spacing:2px;font-weight:bold;}
+  .panel-desc{font-size:12.5px;line-height:1.8;color:#AAB;margin-top:10px;}
+  .teleport-btn{width:100%;margin-top:14px;padding:10px;background:#B43C1E;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:13px;letter-spacing:2px;font-weight:bold;}
+  .teleport-btn:hover{background:#D44C2E;}
+  .stat-bar{margin:6px 0;}
+  .stat-bar .lbl{font-size:11px;color:#889;display:flex;justify-content:space-between;}
+  .stat-bar .bar{height:6px;background:#223;border-radius:3px;margin-top:2px;overflow:hidden;}
+  .stat-bar .fill{height:100%;border-radius:3px;}
+  .coord-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.15);font-size:80px;font-weight:bold;pointer-events:none;z-index:1;letter-spacing:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="map-area" id="mapArea">
+    <div class="coord-hint">天下</div>
+    <div class="title-bar">
+      <h1>◆ 群雄割据 · 州郡形势图</h1>
+      <div class="sub">原型B · 三国志战略色块风 · 十三州 / 郡治 / 地点三级缩放</div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="zoom-ctrl">
+      <button onclick="zoomBy(1.3)" title="放大">＋</button>
+      <button onclick="zoomBy(0.77)" title="缩小">－</button>
+      <button onclick="resetView()" title="复位">⊙</button>
+    </div>
+    <div class="lv-indicator" id="lvIndicator">当前层级：州域（十三州）</div>
+    <button class="debug-toggle" id="debugBtn" onclick="toggleDebug()">调试瞬移：关</button>
+    <svg id="mapSvg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2A2A3E"/>
+          <stop offset="100%" stop-color="#1A1A2E"/>
+        </linearGradient>
+      </defs>
+      <rect width="1000" height="700" fill="url(#bgGrad)"/>
+      <!-- 地形（山脉） -->
+      <g id="terrainLayer"></g>
+      <!-- 州色块层 -->
+      <g id="statesLayer"></g>
+      <!-- 州名 -->
+      <g id="stateLabels"></g>
+      <!-- 河流 -->
+      <g id="riversLayer"></g>
+      <!-- 驿道 -->
+      <g id="roadsLayer"></g>
+      <!-- 城市（lv1+） -->
+      <g id="citiesLayer" style="display:none;"></g>
+      <!-- 地点（lv2） -->
+      <g id="locationsLayer" style="display:none;"></g>
+    </svg>
+  </div>
+  <div class="info-panel" id="infoPanel">
+    <h2>◆ 州郡情报</h2>
+    <div class="empty">点击地图上的州郡<br/>查看势力所属与详情<br/><br/>滚轮缩放 / 拖动平移<br/>三级：州域 → 郡治 → 地点<br/>城市节点可瞬移（调试模式）</div>
+  </div>
+</div>
+
+<script>
+// ═══ 数据：东汉十三州（中心 + 半径 + 势力 + 属性）═══
+var STATES = [
+  {id:'you',   name:'幽州', cx:780, cy:120, r:95,  owner:'gongsunzan', pop:65,  army:40, econ:35, desc:'幽州州治蓟城，北疆雄城，外接乌桓鲜卑，民风剽悍，产良马。'},
+  {id:'ji',    name:'冀州', cx:640, cy:200, r:100, owner:'yuanshao',   pop:95,  army:85, econ:80, desc:'冀州州治邺，河北重地，户口百万，袁绍根基所在，兵精粮足。'},
+  {id:'bing',  name:'并州', cx:480, cy:180, r:85,  owner:'zhangyan',    pop:45,  army:55, econ:30, desc:'并州州治晋阳，太行纵横，黑山贼张燕盘踞，民风尚武，产铁矿。'},
+  {id:'liang', name:'凉州', cx:200, cy:240, r:110, owner:'mateng',      pop:40,  army:50, econ:25, desc:'凉州州治姑臧，河西走廊，羌胡杂处，马腾韩遂割据，产铁骑。'},
+  {id:'sili',  name:'司隶', cx:500, cy:310, r:75,  owner:'dongzhuo',    pop:80,  army:90, econ:70, desc:'司隶州治洛阳，京畿之地，天子所在，董卓挟天子以令诸侯，西凉铁骑。'},
+  {id:'yu',    name:'豫州', cx:620, cy:350, r:80,  owner:'yuanshu',     pop:85,  army:60, econ:65, desc:'豫州州治谯县，中原腹地，四战之地，袁术觊觎，曹操故乡。'},
+  {id:'yan',   name:'兖州', cx:700, cy:290, r:65,  owner:'caocao',      pop:70,  army:55, econ:60, desc:'兖州州治昌邑，曹操起家之地，黄巾余部众多，收编青州兵。'},
+  {id:'qing',  name:'青州', cx:800, cy:250, r:70,  owner:'kongrong',    pop:60,  army:30, econ:55, desc:'青州州治临淄，东海之滨，孔融北海相，黄巾余波未平，渔盐之利。'},
+  {id:'xu',    name:'徐州', cx:780, cy:370, r:70,  owner:'taoqian',     pop:75,  army:40, econ:70, desc:'徐州州治下邳，南北要冲，陶谦治理，百姓殷实，丹阳兵精锐。'},
+  {id:'yang',  name:'扬州', cx:720, cy:480, r:110, owner:'sunjian',     pop:70,  army:50, econ:60, desc:'扬州州治寿春，江南之地，水网密布，孙坚孙策基业，江东水师。'},
+  {id:'jing',  name:'荆州', cx:500, cy:470, r:100, owner:'liubiao',     pop:85,  army:55, econ:75, desc:'荆州州治襄阳，九省通衢，刘表治理，士民避难之所，水军强大。'},
+  {id:'yi',    name:'益州', cx:260, cy:450, r:115, owner:'liuzhang',    pop:75,  army:45, econ:80, desc:'益州州治成都，天府之国，蜀道天险，刘焉刘璋割据，物产丰饶。'},
+  {id:'jiao',  name:'交州', cx:560, cy:600, r:80,  owner:'shixie',      pop:35,  army:20, econ:30, desc:'交州州治番禺，岭南瘴疠之地，士燮兄弟治理，远离中原战火，产珍珠。'}
+];
+
+var FACTIONS = {
+  dongzhuo:  {name:'董卓',   color:'#8B0000', desc:'挟天子以令诸侯，据司隶，西凉铁骑，残暴嗜杀。'},
+  yuanshao:  {name:'袁绍',   color:'#1565C0', desc:'四世三公，据冀州，河北霸主，兵多将广。'},
+  caocao:    {name:'曹操',   color:'#1976D2', desc:'治世之能臣，乱世之奸雄，据兖州，任人唯贤。'},
+  yuanshu:   {name:'袁术',   color:'#7B1FA2', desc:'袁绍堂弟，据豫州，骄奢淫逸，后僭号称帝。'},
+  liubiao:   {name:'刘表',   color:'#2E7D32', desc:'汉室宗亲，据荆州，保境安民，座谈客耳。'},
+  sunjian:   {name:'孙坚',   color:'#E65100', desc:'江东猛虎，据扬州，勇烈过人，传国玉玺。'},
+  liuzhang:  {name:'刘璋',   color:'#388E3C', desc:'刘焉之子，据益州，暗弱无能，后迎刘备入蜀。'},
+  mateng:    {name:'马腾',   color:'#5D4037', desc:'西凉太守，据凉州西，羌胡归附，马超之父。'},
+  zhangyan:  {name:'张燕',   color:'#4E342E', desc:'黑山贼帅，据并州太行，百万之众，后降曹操。'},
+  gongsunzan:{name:'公孙瓒', color:'#00695C', desc:'幽州牧，据幽州，白马义从，与袁绍争河北。'},
+  kongrong:  {name:'孔融',   color:'#F9A825', desc:'北海相，据青州，孔子之后，名士风流，兵微将寡。'},
+  taoqian:   {name:'陶谦',   color:'#F57F17', desc:'徐州牧，据徐州，温厚长者，丹阳兵，三让徐州。'},
+  shixie:    {name:'士燮',   color:'#827717', desc:'交趾太守，据交州，岭南望族，学术精深，偏安一隅。'}
+};
+
+var CITIES = [
+  {id:'ji_guomen',    name:'蓟城',   state:'you',  x:780, y:120, owner:'yuanshao',   capital:true,  room:'ji_guomen', garrison:50},
+  {id:'yuyang_guomen',name:'渔阳',   state:'you',  x:830, y:150, owner:'yuanshao',   capital:false, room:'yuyang_guomen', garrison:30},
+  {id:'luoyang',       name:'洛阳',   state:'sili', x:500, y:310, owner:'dongzhuo',  capital:true,  room:'luoyang', garrison:80},
+  {id:'changan',       name:'长安',   state:'sili', x:430, y:280, owner:'dongzhuo',  capital:false, room:'changan', garrison:60},
+  {id:'ye',            name:'邺城',   state:'ji',   x:640, y:200, owner:'yuanshao',   capital:true,  room:'ye', garrison:70},
+  {id:'changyi',       name:'昌邑',   state:'yan',  x:700, y:290, owner:'caocao',     capital:true,  room:'changyi', garrison:40},
+  {id:'xiangyang',     name:'襄阳',   state:'jing', x:500, y:470, owner:'liubiao',    capital:true,  room:'xiangyang', garrison:55},
+  {id:'chengdu',       name:'成都',   state:'yi',   x:260, y:450, owner:'liuzhang',   capital:true,  room:'chengdu', garrison:45},
+  {id:'shouchun',      name:'寿春',   state:'yang', x:720, y:480, owner:'sunjian',    capital:true,  room:'shouchun', garrison:40},
+  {id:'xiapi',         name:'下邳',   state:'xu',   x:780, y:370, owner:'taoqian',    capital:true,  room:'xiapi', garrison:35},
+  {id:'linzi',         name:'临淄',   state:'qing', x:800, y:250, owner:'kongrong',   capital:true,  room:'linzi', garrison:25},
+  {id:'jinyang',       name:'晋阳',   state:'bing', x:480, y:180, owner:'zhangyan',   capital:true,  room:'jinyang', garrison:35},
+  {id:'guzang',        name:'姑臧',   state:'liang',x:200, y:240, owner:'mateng',     capital:true,  room:'guzang', garrison:30},
+  {id:'qiao',          name:'谯县',   state:'yu',   x:620, y:350, owner:'yuanshu',    capital:true,  room:'qiao', garrison:35},
+  {id:'panyu',         name:'番禺',   state:'jiao', x:560, y:600, owner:'shixie',     capital:true,  room:'panyu', garrison:15}
+];
+
+var LOCATIONS = [
+  {id:'heishan_zhai', name:'黑山寨', x:520, y:210, room:'ji_heishan_zhai', desc:'黑山贼张燕大寨，太行深处。'},
+  {id:'heishan_juyi', name:'聚义厅', x:525, y:205, room:'ji_heishan_juyi', desc:'黑山寨聚义厅，张燕所在。'},
+  {id:'heishan_houzhai',name:'后寨', x:530, y:200, room:'ji_heishan_houzhai', desc:'黑山寨后寨，藏宝与俘丁。'},
+  {id:'camp_yard',    name:'苦役营', x:560, y:230, room:'camp_yard', desc:'主角开局苦役营。'},
+  {id:'lindao',        name:'林径',   x:545, y:220, room:'lindao', desc:'苦役营外林径。'},
+  {id:'hulaoguan',     name:'虎牢关', x:540, y:300, room:'hulaoguan', desc:'洛阳东大门，华雄镇守。'},
+  {id:'hulao',         name:'虎牢',   x:545, y:295, room:'hulaoguan', desc:'虎牢关前。'}
+];
+
+// ═══ 生成州轮廓（更规则的多边形，三国志风格色块）═══
+function genStatePath(s){
+  var pts = [];
+  var n = 8;
+  var seed = s.cx * 31 + s.cy * 17;
+  function rnd(i){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  for(var i=0;i<n;i++){
+    var ang = (i/n) * Math.PI * 2;
+    var rr = s.r * (0.8 + rnd(i)*0.35);
+    var x = s.cx + Math.cos(ang)*rr;
+    var y = s.cy + Math.sin(ang)*rr*0.85;
+    pts.push(x.toFixed(1)+','+y.toFixed(1));
+  }
+  return 'M'+pts.join(' L')+' Z';
+}
+
+// ═══ 渲染 ═══
+var svg = document.getElementById('mapSvg');
+var statesLayer = document.getElementById('statesLayer');
+var stateLabels = document.getElementById('stateLabels');
+var citiesLayer = document.getElementById('citiesLayer');
+var locationsLayer = document.getElementById('locationsLayer');
+var riversLayer = document.getElementById('riversLayer');
+var roadsLayer = document.getElementById('roadsLayer');
+var terrainLayer = document.getElementById('terrainLayer');
+
+// 地形山脉（太行、秦岭等）
+var mountains = [
+  {d:'M 440,160 L 470,200 L 450,250 L 480,290', name:'太行山'},
+  {d:'M 350,340 L 400,360 L 450,350 L 500,370', name:'秦岭'},
+  {d:'M 180,380 L 220,420 L 200,480 L 240,520', name:'岷山'}
+];
+mountains.forEach(function(m){
+  var p = document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d', m.d);
+  p.setAttribute('class','terrain-mountain');
+  p.setAttribute('fill','none');
+  p.setAttribute('stroke','#5A5A6E');
+  p.setAttribute('stroke-width','3');
+  p.setAttribute('stroke-linecap','round');
+  terrainLayer.appendChild(p);
+});
+
+// 州
+STATES.forEach(function(s){
+  var f = FACTIONS[s.owner];
+  var path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d', genStatePath(s));
+  path.setAttribute('fill', f.color);
+  path.setAttribute('fill-opacity','0.72');
+  path.setAttribute('class','state-path');
+  path.setAttribute('data-id', s.id);
+  path.addEventListener('click', function(){ selectState(s); });
+  statesLayer.appendChild(path);
+
+  // 州名
+  var txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+  txt.setAttribute('x', s.cx); txt.setAttribute('y', s.cy+5);
+  txt.setAttribute('text-anchor','middle');
+  txt.setAttribute('class','state-label');
+  txt.setAttribute('font-size','18');
+  txt.setAttribute('letter-spacing','3');
+  txt.textContent = s.name;
+  stateLabels.appendChild(txt);
+});
+
+// 河流
+var rivers = [
+  {d:'M 80,290 Q 250,260 400,300 T 650,290 T 880,320 T 1000,350'},
+  {d:'M 320,530 Q 480,510 620,540 T 850,530 T 1000,560'}
+];
+rivers.forEach(function(r){
+  var p = document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d', r.d);
+  p.setAttribute('class','river');
+  riversLayer.appendChild(p);
+});
+
+// 驿道
+var roadPairs = [['luoyang','ye'],['luoyang','changan'],['ye','jinyang'],['luoyang','xiangyang'],['xiangyang','chengdu'],['shouchun','xiapi'],['xiapi','linzi'],['ye','linzi'],['luoyang','qiao'],['qiao','changyi']];
+roadPairs.forEach(function(pair){
+  var a = CITIES.find(function(c){return c.id===pair[0];});
+  var b = CITIES.find(function(c){return c.id===pair[1];});
+  if(a&&b){
+    var path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    var mx=(a.x+b.x)/2, my=(a.y+b.y)/2 - 12;
+    path.setAttribute('d','M'+a.x+','+a.y+' Q'+mx+','+my+' '+b.x+','+b.y);
+    path.setAttribute('class','road');
+    roadsLayer.appendChild(path);
+  }
+});
+
+// 城市
+CITIES.forEach(function(c){
+  var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','city-dot'+(c.capital?' city-capital':''));
+  g.setAttribute('data-id', c.id);
+  var circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  circle.setAttribute('class','city-circle');
+  circle.setAttribute('cx', c.x); circle.setAttribute('cy', c.y);
+  circle.setAttribute('r', c.capital?6:4.5);
+  circle.setAttribute('fill', FACTIONS[c.owner].color);
+  circle.setAttribute('stroke','#fff'); circle.setAttribute('stroke-width','1.5');
+  var txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+  txt.setAttribute('x', c.x+9); txt.setAttribute('y', c.y+4);
+  txt.setAttribute('class','city-label');
+  txt.setAttribute('font-weight', c.capital?'bold':'normal');
+  txt.textContent = c.name + (c.capital?' ★':'');
+  g.appendChild(circle); g.appendChild(txt);
+  g.addEventListener('click', function(e){ e.stopPropagation(); selectCity(c); });
+  citiesLayer.appendChild(g);
+});
+
+// 地点
+LOCATIONS.forEach(function(l){
+  var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','city-dot');
+  var circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  circle.setAttribute('class','city-circle');
+  circle.setAttribute('cx', l.x); circle.setAttribute('cy', l.y);
+  circle.setAttribute('r', 3.5);
+  circle.setAttribute('fill', '#B8860B');
+  circle.setAttribute('stroke','#fff'); circle.setAttribute('stroke-width','1');
+  var txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+  txt.setAttribute('x', l.x+7); txt.setAttribute('y', l.y+3);
+  txt.setAttribute('class','city-label');
+  txt.setAttribute('font-size','11');
+  txt.setAttribute('fill','#D4AF37');
+  txt.textContent = l.name;
+  g.appendChild(circle); g.appendChild(txt);
+  g.addEventListener('click', function(e){ e.stopPropagation(); selectLocation(l); });
+  locationsLayer.appendChild(g);
+});
+
+// 图例（可点击筛选）
+var legend = document.getElementById('legend');
+Object.keys(FACTIONS).forEach(function(k){
+  var f = FACTIONS[k];
+  var div = document.createElement('div');
+  div.className = 'legend-item';
+  div.innerHTML = '<span class="legend-swatch" style="background:'+f.color+';"></span>'+f.name;
+  div.addEventListener('click', function(){
+    // 高亮该势力所有州
+    document.querySelectorAll('.state-path').forEach(function(p){
+      var sid = p.getAttribute('data-id');
+      var st = STATES.find(function(s){return s.id===sid;});
+      if(st && st.owner===k){ p.style.fillOpacity='0.95'; p.style.stroke='#FFD700'; }
+      else { p.style.fillOpacity='0.25'; p.style.stroke='#1A1A2E'; }
+    });
+  });
+  legend.appendChild(div);
+});
+// 双击图例恢复
+legend.addEventListener('dblclick', function(){
+  document.querySelectorAll('.state-path').forEach(function(p){
+    p.style.fillOpacity=''; p.style.stroke='';
+  });
+});
+
+// ═══ 缩放/平移 ═══
+var scale=1, tx=0, ty=0;
+function applyTransform(){
+  svg.style.transformOrigin='center center';
+  svg.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';
+  updateLevel();
+}
+function zoomBy(f){ scale=Math.max(0.5,Math.min(6,scale*f)); applyTransform(); }
+function resetView(){ scale=1; tx=0; ty=0; applyTransform(); }
+svg.addEventListener('wheel', function(e){ e.preventDefault(); zoomBy(e.deltaY<0?1.15:0.87); }, {passive:false});
+var dragging=false, lastX=0, lastY=0;
+svg.addEventListener('mousedown', function(e){ dragging=true; lastX=e.clientX; lastY=e.clientY; });
+window.addEventListener('mousemove', function(e){ if(!dragging) return; tx+=(e.clientX-lastX); ty+=(e.clientY-lastY); lastX=e.clientX; lastY=e.clientY; applyTransform(); });
+window.addEventListener('mouseup', function(){ dragging=false; });
+
+function updateLevel(){
+  if(scale<1.6){ citiesLayer.style.display='none'; locationsLayer.style.display='none'; document.getElementById('lvIndicator').textContent='当前层级：州域（十三州）'; }
+  else if(scale<3.2){ citiesLayer.style.display=''; locationsLayer.style.display='none'; document.getElementById('lvIndicator').textContent='当前层级：郡治（城池要地）'; }
+  else { citiesLayer.style.display=''; locationsLayer.style.display=''; document.getElementById('lvIndicator').textContent='当前层级：地点（山寨/关卡）'; }
+}
+
+// ═══ 选中 ═══
+var debugMode=false;
+function selectState(s){
+  document.querySelectorAll('.state-path').forEach(function(p){ p.classList.remove('selected'); });
+  document.querySelector('.state-path[data-id="'+s.id+'"]').classList.add('selected');
+  var f=FACTIONS[s.owner];
+  var cities=CITIES.filter(function(c){return c.state===s.id;});
+  var panel=document.getElementById('infoPanel');
+  panel.innerHTML = '<h2>◆ '+s.name+'</h2>'
+    + '<span class="faction-badge" style="background:'+f.color+';">'+f.name+' 势力</span>'
+    + '<div class="info-row"><span class="k">州治</span><span class="v">'+(cities.find(function(c){return c.capital;})||{}).name+'—'+'</span></div>'
+    + '<div class="info-row"><span class="k">城池数</span><span class="v">'+cities.length+'</span></div>'
+    + '<div class="stat-bar"><div class="lbl"><span>人口</span><span>'+s.pop+'</span></div><div class="bar"><div class="fill" style="width:'+s.pop+'%;background:'+f.color+';"></div></div></div>'
+    + '<div class="stat-bar"><div class="lbl"><span>军力</span><span>'+s.army+'</span></div><div class="bar"><div class="fill" style="width:'+s.army+'%;background:#B43C1E;"></div></div></div>'
+    + '<div class="stat-bar"><div class="lbl"><span>经济</span><span>'+s.econ+'</span></div><div class="bar"><div class="fill" style="width:'+s.econ+'%;background:#2E7D32;"></div></div></div>'
+    + '<div class="panel-desc">'+s.desc+'</div>'
+    + '<div class="panel-desc" style="margin-top:8px;color:#C9A227;">【'+f.name+'】'+f.desc+'</div>';
+}
+function selectCity(c){
+  if(debugMode){ doTeleport(c); return; }
+  var f=FACTIONS[c.owner];
+  var st=STATES.find(function(s){return s.id===c.state;});
+  var panel=document.getElementById('infoPanel');
+  panel.innerHTML = '<h2>◆ '+c.name+(c.capital?' ★州治':'')+'</h2>'
+    + '<span class="faction-badge" style="background:'+f.color+';">'+f.name+' 势力</span>'
+    + '<div class="info-row"><span class="k">所属州</span><span class="v">'+st.name+'</span></div>'
+    + '<div class="info-row"><span class="k">驻军</span><span class="v">'+c.garrison+'</span></div>'
+    + '<div class="info-row"><span class="k">对应房间</span><span class="v" style="font-size:11px;">'+c.room+'</span></div>'
+    + '<div class="panel-desc">'+f.desc+'</div>'
+    + (debugMode ? '<button class="teleport-btn" onclick="doTeleport('+JSON.stringify(c).replace(/"/g,'&quot;')+')">⚡ 瞬移到此（调试）</button>' : '<div class="panel-desc" style="color:#667;margin-top:14px;">开启调试模式后可点击瞬移</div>');
+}
+function selectLocation(l){
+  if(debugMode){ doTeleport(l); return; }
+  var panel=document.getElementById('infoPanel');
+  panel.innerHTML = '<h2>◆ '+l.name+'</h2>'
+    + '<div class="info-row"><span class="k">对应房间</span><span class="v" style="font-size:11px;">'+l.room+'</span></div>'
+    + '<div class="panel-desc">'+l.desc+'</div>'
+    + (debugMode ? '<button class="teleport-btn" onclick="doTeleport('+JSON.stringify(l).replace(/"/g,'&quot;')+')">⚡ 瞬移到此（调试）</button>' : '');
+}
+function doTeleport(target){
+  var panel=document.getElementById('infoPanel');
+  panel.innerHTML = '<h2>◆ 瞬移调试</h2>'
+    + '<div class="panel-desc" style="color:#FFD700;font-size:15px;">⚡ 已瞬移至「'+target.name+'」</div>'
+    + '<div class="info-row"><span class="k">目标房间</span><span class="v" style="font-size:11px;">'+target.room+'</span></div>'
+    + '<div class="panel-desc" style="margin-top:10px;">原型阶段仅演示瞬移交互。<br/>接入游戏后将调用 enterRoom("'+target.room+'")。</div>';
+  var rect=svg.getBoundingClientRect();
+  var px=(target.x/1000)*rect.width, py=(target.y/700)*rect.height;
+  tx=rect.width/2-px*scale; ty=rect.height/2-py*scale;
+  applyTransform();
+}
+function toggleDebug(){
+  debugMode=!debugMode;
+  var btn=document.getElementById('debugBtn');
+  btn.textContent='调试瞬移：'+(debugMode?'开':'关');
+  btn.classList.toggle('on',debugMode);
+}
+applyTransform();
+</script>
+</body>
+</html>
