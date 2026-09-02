@@ -158,12 +158,14 @@
       // 构建州郡 feature
       const states = regionData.features.map(f => {
         const name = f.properties.city;
-        // 从城市列表找匹配的郡，获取势力
+        // 从城市列表找匹配的郡，获取势力和州名
         const city = cities.find(c => c.name === name);
         const faction = city ? city.owner : 'none';
+        const state = city ? city.state : '未知';
         return {
           id: name,
           name,
+          state,
           faction,
           desc: city ? city.desc : `${name}郡（${FACTIONS[faction].label}势力）`,
           ring: f.geometry.coordinates[0],
@@ -209,22 +211,62 @@
         .attr('class','main')
         .attr('d', geoPath)
         .attr('fill', 'none')
-        .attr('stroke', '#a89878')
-        .attr('stroke-width', 0.4)
+        .attr('stroke', '#b8a888')
+        .attr('stroke-width', 0.2)
         .attr('stroke-linejoin', 'round')
         .attr('pointer-events','all')
         .style('cursor','pointer')
         .on('click', function(e, d) { e.stopPropagation(); selectState(d); });
 
-      // 郡边界线（每个郡单独显示，不用turf合并，确保边界线可见）
+      // 郡边界线（更细）
       const borderLayer = root.append('g').attr('id', 'sm-borders');
       borderLayer.selectAll('path').data(fc.features).enter().append('path')
         .attr('d', geoPath)
         .attr('fill','none')
-        .attr('stroke','#7a6a4a')
-        .attr('stroke-width',0.5)
+        .attr('stroke','#9a8a6a')
+        .attr('stroke-width',0.25)
         .attr('stroke-linejoin','round')
         .attr('pointer-events','none');
+
+      // 州级边界线（用turf合并同州的郡，较粗的深棕色线条）
+      const stateBorderLayer = root.append('g').attr('id', 'sm-state-borders');
+      try {
+        if (window.turf) {
+          // 按州分组
+          const stateGroups = {};
+          states.forEach(s => {
+            if (!stateGroups[s.state]) stateGroups[s.state] = [];
+            stateGroups[s.state].push(s);
+          });
+          // 合并每个州的郡边界
+          const stateFeatures = [];
+          Object.entries(stateGroups).forEach(([stateName, stateCities]) => {
+            try {
+              const polys = stateCities.map(s => window.turf.polygon([s.ring]));
+              const merged = window.turf.union(window.turf.featureCollection(polys));
+              if (merged) {
+                stateFeatures.push({
+                  type: 'Feature',
+                  properties: { state: stateName },
+                  geometry: merged.geometry
+                });
+              }
+            } catch (e) {
+              console.warn('州边界合并失败:', stateName, e);
+            }
+          });
+          // 渲染州级边界线
+          stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill','none')
+            .attr('stroke','#4a3a20')
+            .attr('stroke-width',1.2)
+            .attr('stroke-linejoin','round')
+            .attr('pointer-events','none');
+        }
+      } catch (err) {
+        console.warn('州级边界渲染失败', err);
+      }
 
       // 城市节点
       cityMarks = cities.map(c => {
