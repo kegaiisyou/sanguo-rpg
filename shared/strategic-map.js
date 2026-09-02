@@ -116,6 +116,46 @@
     `;
     container.appendChild(ui);
 
+    // 浮动调试面板（手机也能看到日志）
+    const debugPanel = document.createElement('div');
+    debugPanel.className = 'strategic-debug-panel';
+    debugPanel.innerHTML = `
+      <div class="strategic-debug-header">
+        <span>🗺️ 地图调试</span>
+        <button class="strategic-debug-toggle">−</button>
+        <button class="strategic-debug-clear">清</button>
+      </div>
+      <div class="strategic-debug-content"></div>
+    `;
+    container.appendChild(debugPanel);
+    const debugContent = debugPanel.querySelector('.strategic-debug-content');
+    const debugToggle = debugPanel.querySelector('.strategic-debug-toggle');
+    const debugClear = debugPanel.querySelector('.strategic-debug-clear');
+    let debugMinimized = false;
+    debugToggle.addEventListener('click', () => {
+      debugMinimized = !debugMinimized;
+      debugContent.style.display = debugMinimized ? 'none' : 'block';
+      debugToggle.textContent = debugMinimized ? '+' : '−';
+    });
+    debugClear.addEventListener('click', () => {
+      debugContent.innerHTML = '';
+    });
+    // 重写console.log，捕获[战略地图]日志
+    const origLog = console.log.bind(console);
+    console.log = function(...args) {
+      origLog(...args);
+      try {
+        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+        if (msg.indexOf('[战略地图]') >= 0) {
+          const line = document.createElement('div');
+          line.className = 'strategic-debug-line';
+          line.textContent = msg;
+          debugContent.appendChild(line);
+          debugContent.scrollTop = debugContent.scrollHeight;
+        }
+      } catch(e) {}
+    };
+
     const info = ui.querySelector('#sm-info');
     const svg = d3.select(svgEl);
 
