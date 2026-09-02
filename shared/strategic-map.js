@@ -209,8 +209,8 @@
         .attr('class','main')
         .attr('d', geoPath)
         .attr('fill', 'none')
-        .attr('stroke', '#8a7a5a')
-        .attr('stroke-width', 0.8)
+        .attr('stroke', '#a89878')
+        .attr('stroke-width', 0.4)
         .attr('stroke-linejoin', 'round')
         .attr('pointer-events','all')
         .style('cursor','pointer')
@@ -221,8 +221,8 @@
       borderLayer.selectAll('path').data(fc.features).enter().append('path')
         .attr('d', geoPath)
         .attr('fill','none')
-        .attr('stroke','#5a4a30')
-        .attr('stroke-width',1.0)
+        .attr('stroke','#7a6a4a')
+        .attr('stroke-width',0.5)
         .attr('stroke-linejoin','round')
         .attr('pointer-events','none');
 
