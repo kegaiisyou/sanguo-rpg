@@ -363,13 +363,13 @@
         .attr('stroke', 'none')
         .attr('pointer-events', 'none');
 
-      // 郡填充层（干净非重叠郡面，带可见边框）
+      // 郡填充层（干净非重叠郡面，描边极轻以让州色块成主，郡边界退为分隔线）
       commanderyFillLayer = root.append('g').attr('id', 'sm-cmd-fill');
       commanderyFillLayer.selectAll('path').data(fc.features).enter().append('path')
         .attr('d', geoPath)
         .attr('fill', d => commanderyFill(d.properties))
-        .attr('stroke', 'rgba(40,26,5,0.5)')
-        .attr('stroke-width', 0.5)
+        .attr('stroke', 'rgba(40,26,5,0.18)')
+        .attr('stroke-width', 0.35)
         .attr('stroke-linejoin', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
