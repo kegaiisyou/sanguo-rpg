@@ -121,6 +121,7 @@
     wei:  'rgba(80,130,220,0.42)',
     shu:  'rgba(60,190,90,0.40)',
     wu:   'rgba(220,70,60,0.40)',
+    contested: 'rgba(220,170,40,0.42)',
     none: 'rgba(160,150,140,0.26)',
   };
   function commanderyTint(id) {
@@ -133,21 +134,6 @@
     if (overlayMode === 'commandery') return commanderyTint(p.id);
     return FACTION_FILL[p.faction] || FACTION_FILL.none;
   }
-  // 凹包容差：取同州郡顶点近邻间距的中位数，让州界贴着郡轮廓（更精确、少溢出邻州）
-  function hullMaxLen(pts) {
-    const n = pts.length;
-    if (n < 5) return 1e9;
-    const ds = [];
-    for (let i = 0; i < n; i++) {
-      let best = Infinity;
-      for (let j = 0; j < n; j++) { if (i === j) continue; const d = Math.hypot(pts[i][0]-pts[j][0], pts[i][1]-pts[j][1]); if (d < best) best = d; }
-      ds.push(best);
-    }
-    ds.sort((a, b) => a - b);
-    const med = ds[Math.floor(n / 2)] || 0.1;
-    return Math.max(med * 2.2, 0.04);
-  }
-
   // 河流（手绘墨线）
   const RIVERS = [
     { name:'黄河', width:3.0, color:'#3f6480', pts:[[100,35],[102,36],[104,35.4],[106,35],[108,34.9],[110,35.1],[112,35],[114,35.6],[116,36.2],[118,38],[119.5,40]] },
@@ -176,7 +162,7 @@
   let _regionCache = null;
   function loadRegions() {
     if (_regionCache) return _regionCache;
-    _regionCache = fetch('shared/data/region.geojson?v=1').then(r => r.json());
+    _regionCache = fetch('shared/data/map_regions.geojson?v=' + (global.LF.CONSTANTS ? global.LF.CONSTANTS.VERSION : '1')).then(r => r.json());
     return _regionCache;
   }
 
@@ -279,6 +265,8 @@
     let stateLabelsDom = [];
     let provinceLayer = null;
     let commanderyLayer = null;
+    let factionFillLayer = null;
+    let commanderyFillLayer = null;
 
     function render(regionData, cities) {
       svg.selectAll('*').remove();
@@ -292,20 +280,20 @@
       svg.attr('width', W).attr('height', H);
       projection.fitExtent([[0, 0], [W, H]], rectFC);
 
-      // 构建州郡 feature
-      const states = regionData.features.map(f => {
-        const name = f.properties.city;
-        // 从城市列表找匹配的郡，获取势力和州名
+      // 构建郡 feature（用 dissolve 后的干净非重叠郡面）
+      const cmdFeats = regionData.features.filter(f => f.properties.layer === 'commandery');
+      const states = cmdFeats.map(f => {
+        const name = f.properties.name;
         const city = cities.find(c => c.name === name);
-        const faction = city ? city.owner : 'none';
-        const state = city ? city.state : '未知';
+        const faction = f.properties.faction || (city ? city.owner : 'none');
+        const state = f.properties.state || (city ? city.state : '未知');
         return {
-          id: name,
+          id: f.properties.id || name,
           name,
           state,
           faction,
-          desc: city ? city.desc : `${name}郡（${FACTIONS[faction].label}势力）`,
-          ring: smoothClosedRing(simplifyRing(f.geometry.coordinates[0], 0.01), 2),
+          desc: city ? city.desc : `${name}郡`,
+          ring: smoothClosedRing(f.geometry.coordinates[0], 3),
           feature: f,
         };
       });
@@ -363,38 +351,50 @@
       //   .attr('stroke-linejoin','round')
       //   .attr('pointer-events','none');
 
-      // ── 州级轮廓（远看主显示）：同州的零散郡多边形做凸包，得到干净的十三州外框 ──
-      const byState = {};
-      states.forEach(s => { if (s.state && s.state !== '未知') (byState[s.state] = byState[s.state] || []).push(s); });
-      const provinceFeatures = Object.keys(byState).map(st => {
-        const pts = [];
-        byState[st].forEach(s => s.ring.forEach(c => pts.push(c)));
-        if (pts.length < 3) return { state: st, ring: pts };
-        return { state: st, ring: smoothClosedRing(concaveHull(pts, hullMaxLen(pts)), 6) };
-      });
+      // ── 分层数据：州(dissolve) / 势力(dissolve) / 郡(去重叠) ──
+      const provFeats = regionData.features.filter(f => f.properties.layer === 'province');
+      const facFeats = regionData.features.filter(f => f.properties.layer === 'faction');
+      const provinceFeatures = provFeats.map(f => ({
+        state: f.properties.state,
+        ring: smoothClosedRing(f.geometry.coordinates[0], 3),
+      }));
+
+      // 势力填充层（已 dissolve，无重叠无双线 → 干净的势力范围图）
+      factionFillLayer = root.append('g').attr('id', 'sm-faction-fill');
+      factionFillLayer.selectAll('path').data(facFeats).enter().append('path')
+        .attr('d', f => geoPath({ type: 'Feature', geometry: f.geometry }))
+        .attr('fill', f => FACTION_FILL[f.properties.faction] || FACTION_FILL.none)
+        .attr('stroke', 'none')
+        .attr('pointer-events', 'none');
+
+      // 郡填充层（干净非重叠郡面，带可见边框）
+      commanderyFillLayer = root.append('g').attr('id', 'sm-cmd-fill');
+      commanderyFillLayer.selectAll('path').data(fc.features).enter().append('path')
+        .attr('d', geoPath)
+        .attr('fill', d => commanderyFill(d.properties))
+        .attr('stroke', 'rgba(40,26,5,0.5)')
+        .attr('stroke-width', 0.5)
+        .attr('stroke-linejoin', 'round')
+        .attr('vector-effect', 'non-scaling-stroke')
+        .attr('pointer-events', 'none');
+
+      // 州级外框 stroke（置于填充之上，保证轮廓清晰）
       provinceLayer = root.append('g').attr('id', 'sm-provinces');
       provinceLayer.selectAll('path').data(provinceFeatures).enter().append('path')
         .attr('d', f => geoPath({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [f.ring] } }))
-        .attr('fill', 'rgba(130,100,60,0.12)')
+        .attr('fill', 'none')
         .attr('stroke', '#2a1a05')
         .attr('stroke-width', 2.6)
         .attr('stroke-linejoin', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
 
-      // ── 郡级区域（拉近渐显）：按势力/自定义填色，不描硬边→交界无双线 ──
-      commanderyLayer = root.append('g').attr('id', 'sm-commanderies');
-      commanderyLayer.selectAll('path').data(fc.features).enter().append('path')
-        .attr('d', geoPath)
-        .attr('fill', d => commanderyFill(d.properties))
-        .attr('stroke', 'rgba(40,26,5,0.22)')
-        .attr('stroke-width', 0.35)
-        .attr('stroke-linejoin', 'round')
-        .attr('vector-effect', 'non-scaling-stroke')
-        .attr('pointer-events', 'none');
       _applyOverlay = function(mode) {
         overlayMode = mode || overlayMode;
-        commanderyLayer.selectAll('path').attr('fill', d => commanderyFill(d.properties));
+        const fac = overlayMode === 'faction';
+        factionFillLayer.style('display', fac ? null : 'none');
+        commanderyFillLayer.style('display', fac ? 'none' : null);
+        if (!fac) commanderyFillLayer.selectAll('path').attr('fill', d => commanderyFill(d.properties));
       };
 
       // 城市节点
