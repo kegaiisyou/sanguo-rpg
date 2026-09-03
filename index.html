@@ -1951,7 +1951,7 @@
   .cb-hint{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,.8);
     color:#e8c878; padding:8px 16px; border-radius:10px; border:1px solid rgba(232,200,120,.4); font-size:13px; pointer-events:none; z-index:40; }
 </style>
-<link rel="stylesheet" href="shared/css/strategic-map.css?v=20260902s" />
+<link rel="stylesheet" href="shared/css/strategic-map.css?v=20260903d" />
 </head>
 <body>
 <script>
@@ -2051,7 +2051,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260902s"></script>
+<script src="shared/config/constants.js?v=20260903e"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -2069,10 +2069,10 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/shops.js?v=20260902a"></script>
     <script src="shared/shop.js?v=20260902a"></script>
     <script src="shared/data/map.js?v=20260902d"></script>
-    <script src="shared/data/cities.js?v=20260902a"></script>
+    <script src="shared/data/cities.js?v=20260903e"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/vendor/turf.min.js?v=20260902b"></script>
-    <script src="shared/strategic-map.js?v=20260902s"></script>
+    <script src="shared/strategic-map.js?v=20260903e"></script>
     <script src="shared/data/markets.js?v=20260902a"></script>
     <script src="shared/combat/engine.js?v=20260902a"></script>
     <script src="shared/index.js?v=20260902a"></script>
@@ -7097,10 +7097,44 @@ window.onerror=function(msg,url,line,col,err){
     var title = opts.pickSpawn ? '选择出生点' : '山河志 · 战略地图';
     var tip = opts.pickSpawn
       ? '点击一处城池设为出生点，并立即传送至此。'
-      : '拖拽平移 · 滚轮缩放 · 点击城池前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」。';
+      : '拖拽平移 · 滚轮缩放 · 点击城池前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」；点右下 ◎ 可回到所在处。';
     return '<h3>'+title+'</h3>'+
       '<div id="strategic-map-container"></div>'+
       '<p class="tip">'+tip+'</p>';
+  }
+  // 解析「此身所在」的地图标记：
+  //   城内/城格 → 城点；城内建筑 → 所属城；specialGeo 手写锚点房 → 该地理点
+  function smYouMark(){
+    if(!state || !state.room) return null;
+    var rid=state.room;
+    if(isBldRoom(rid)){
+      var back=state.flags && state.flags.bldEnt && state.flags.bldEnt.back;
+      if(back && back.kind==='city' && back.cid){
+        var _bc=(LF.CITIES||{})[back.cid];
+        if(_bc && _bc.pos) return {type:'you', pos:_bc.pos, cid:back.cid, label:'此身所在 · '+_bc.name};
+      }
+      return null;
+    }
+    var c=(LF.CITIES||{})[rid];
+    if(c && c.pos) return {type:'you', pos:c.pos, cid:rid, label:'此身所在 · '+c.name};
+    var sg=((LF.MAP&&LF.MAP.specialGeo)||{})[rid];
+    if(sg && sg.pos) return {type:'you', pos:sg.pos, cid:rid, label:'此身所在 · '+sg.name};
+    return null;
+  }
+  // 主线/任务目标打点（后续支线目标可在此追加）
+  function smGoalMarks(){
+    var marks=[];
+    if(state && state.quest && state.quest.luoyang){
+      var lc=(LF.CITIES||{}).luoyang;
+      if(lc && lc.pos) marks.push({type:'goal', pos:lc.pos, cid:'luoyang', label:'目标 · 赴洛阳'});
+    }
+    return marks;
+  }
+  function strategicMapMarks(){
+    var out=[];
+    var y=smYouMark(); if(y) out.push(y);
+    smGoalMarks().forEach(function(x){ out.push(x); });
+    return out;
   }
   function initStrategicMapInGame(opts){
     opts=opts||{};
@@ -7110,9 +7144,11 @@ window.onerror=function(msg,url,line,col,err){
       container.innerHTML='<div class="strategic-loading">战略地图加载中...</div>';
       return;
     }
+    var marks=strategicMapMarks();
     // 选出生点模式
     if(opts.pickSpawn){
       LF.initStrategicMap(container, {
+        marks: marks,
         onCityClick: function(city){
           if(!city || !city.id) return;
           state.spawnRoom=city.id;
@@ -7123,6 +7159,7 @@ window.onerror=function(msg,url,line,col,err){
     } else {
       // 正常模式：点击城市传送
       LF.initStrategicMap(container, {
+        marks: marks,
         onCityClick: function(city){
           if(!city || !city.id) return;
           goRoomOnMap(city.id);

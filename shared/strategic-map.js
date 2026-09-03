@@ -169,6 +169,7 @@
         owner: faction,
         capital: c.tier === 'zhou',
         desc: c.desc || c.name,
+        comm: c.comm != null ? c.comm : null, // 行政区名(郡/国/尹)，与城点显示名 name 解耦
         pos: c.pos, // [lng, lat]
       });
     }
@@ -208,6 +209,7 @@
     ui.innerHTML = `
       <div class="strategic-info" id="sm-info">点击州郡或城池查看详情</div>
       <div class="strategic-zoom-ctrl">
+        <button data-z="locate" title="定位到当前位置">◎</button>
         <button data-z="in" title="放大">＋</button>
         <button data-z="out" title="缩小">－</button>
         <button data-z="reset" title="复位">⟲</button>
@@ -228,6 +230,49 @@
     const projection = d3.geoMercator();
     const geoPath = d3.geoPath(projection);
 
+    // 平面路径生成器：先把坐标用 projection 投影，再用普通 d3 路径串拼接，
+    // 规避 d3.geoPath 的球面(测地线)处理把含尖刺/自接触顶点的环切成多子路径，
+    // 从而在州/郡/势力内部渲染出多余线条。几何本身已 clean，问题纯在渲染层。
+    function geomRings(geom) {
+      if (!geom) return [];
+      if (geom.type === 'Polygon') return [geom.coordinates[0]];
+      if (geom.type === 'MultiPolygon') return geom.coordinates.map(p => p[0]);
+      return [];
+    }
+    function planarPath(geom) {
+      return geomRings(geom).map(r => 'M' + r.map(c => {
+        const p = projection(c);
+        return p[0].toFixed(2) + ',' + p[1].toFixed(2);
+      }).join('L') + 'Z').join(' ');
+    }
+    function ringCentroid(pts) {
+      let a = 0, cx = 0, cy = 0;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const x0 = pts[i][0], y0 = pts[i][1], x1 = pts[i + 1][0], y1 = pts[i + 1][1];
+        const cr = x0 * y1 - x1 * y0;
+        a += cr; cx += (x0 + x1) * cr; cy += (y0 + y1) * cr;
+      }
+      a *= 0.5;
+      if (Math.abs(a) < 1e-9) {
+        let sx = 0, sy = 0;
+        for (const p of pts) { sx += p[0]; sy += p[1]; }
+        return [sx / (pts.length - 1), sy / (pts.length - 1)];
+      }
+      return [cx / (6 * a), cy / (6 * a)];
+    }
+    function planarCentroid(geom) {
+      const rings = geomRings(geom);
+      let best = null, bestArea = -1;
+      for (const r of rings) {
+        const pr = r.map(c => projection(c));
+        let a = 0;
+        for (let i = 0; i < pr.length - 1; i++) a += pr[i][0] * pr[i + 1][1] - pr[i + 1][0] * pr[i][1];
+        a = Math.abs(a * 0.5);
+        if (a > bestArea) { bestArea = a; best = pr; }
+      }
+      return best ? ringCentroid(best) : [0, 0];
+    }
+
     // 地理范围
     const BASE_EXTENT = [95, 17, 128, 44];
     const rectFC = {
@@ -247,7 +292,9 @@
     let selectedId = null;
     let statePaths = null;
     let cityMarks = [];
-      let commanderyLabelsDom = [];
+    let guideMarks = [];      // 引导标记：当前位置 / 目标打点
+    let locateGuide = null;   // 「定位到我」动画入口
+    let commanderyLabelsDom = [];
     let stateLabelsDom = [];
     let provinceLayer = null;
     let commanderyLayer = null;
@@ -273,9 +320,11 @@
         const city = cities.find(c => c.name === name);
         const faction = (FACTIONS[f.properties.faction] ? f.properties.faction : (city && FACTIONS[city.owner] ? city.owner : 'none'));
         const state = f.properties.state || (city ? city.state : '未知');
+        const comm = city && city.comm ? city.comm : null;
         return {
           id: f.properties.id || name,
           name,
+          comm,
           state,
           faction,
           desc: city ? city.desc : `${name}郡`,
@@ -287,7 +336,7 @@
         type: 'FeatureCollection',
         features: states.map(s => ({
           type: 'Feature',
-          properties: { id: s.id, name: s.name, faction: s.faction, desc: s.desc },
+          properties: { id: s.id, name: s.name, comm: s.comm, state: s.state, faction: s.faction, desc: s.desc },
           geometry: s.feature.geometry,
         })),
       };
@@ -344,7 +393,7 @@
       // 势力填充层（已 dissolve，无重叠无双线 → 干净的势力范围图）
       factionFillLayer = root.append('g').attr('id', 'sm-faction-fill');
       factionFillLayer.selectAll('path').data(facFeats).enter().append('path')
-        .attr('d', f => geoPath({ type: 'Feature', geometry: f.geometry }))
+        .attr('d', f => planarPath(f.geometry))
         .attr('fill', f => FACTION_FILL[f.properties.faction] || FACTION_FILL.none)
         .attr('stroke', 'none')
         .attr('pointer-events', 'none');
@@ -354,7 +403,7 @@
       // 郡填充层（干净非重叠郡面，仅填充；描边交给独立的郡边界层）
       commanderyFillLayer = root.append('g').attr('id', 'sm-cmd-fill');
       commanderyFillLayer.selectAll('path').data(fc.features).enter().append('path')
-        .attr('d', geoPath)
+        .attr('d', f => planarPath(f.geometry))
         .attr('fill', d => commanderyFill(d.properties))
         .attr('stroke', 'none')
         .attr('pointer-events', 'none');
@@ -362,7 +411,7 @@
       // 郡边界层（独立层级：不受 overlay 模式隐藏，与州边界交叉淡入淡出）
       const commanderyBorderLayer = root.append('g').attr('id', 'sm-cmd-border');
       commanderyBorderLayer.selectAll('path').data(fc.features).enter().append('path')
-        .attr('d', geoPath)
+        .attr('d', f => planarPath(f.geometry))
         .attr('fill', 'none')
         .attr('stroke', 'rgba(40,26,5,0.55)')
         .attr('stroke-width', 0.6)
@@ -373,23 +422,15 @@
       // 默认完全不显示，避免首帧渲染闪烁；由 applyTransform 在拉近时切换
       commanderyLayer.style('opacity', 0).style('display', 'none');
 
-      // 州级外框 bevel：宽深色底+暖色细线，肉眼明确是宏观疆界而非郡线残留
-      const provinceHalo = root.append('g').attr('id', 'sm-province-halo');
-      provinceHalo.selectAll('path').data(provinceFeatures).enter().append('path')
-        .attr('d', f => geoPath(f.feature))
-        .attr('fill', 'none')
-        .attr('stroke', '#0e0803')
-        .attr('stroke-width', 5)
-        .attr('stroke-linejoin', 'round')
-        .attr('vector-effect', 'non-scaling-stroke')
-        .attr('pointer-events', 'none');
+      // 州级外框：单一干净金色描边（宏观疆界清晰，且无粗黑 halo 带，杜绝州内视觉线条）
       provinceLayer = root.append('g').attr('id', 'sm-provinces');
       provinceLayer.selectAll('path').data(provinceFeatures).enter().append('path')
-        .attr('d', f => geoPath(f.feature))
+        .attr('d', f => planarPath(f.feature.geometry))
         .attr('fill', 'none')
         .attr('stroke', '#b8893a')
         .attr('stroke-width', 2.2)
         .attr('stroke-linejoin', 'round')
+        .attr('stroke-linecap', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
 
@@ -459,6 +500,38 @@
         return { el: wrap, dot, nm, base: projection(loc.pos), loc };
       });
 
+      // 引导标记：当前位置(you) / 目标打点(goal)。由游戏层 opts.marks 传入，
+      // 只做纯视觉叠加（pointer-events:none），不遮挡下方城点的点击传送。
+      guideMarks = [];
+      (opts.marks || []).forEach(m => {
+        if (!m || !m.pos || !m.pos.length) return;
+        const p = projection(m.pos);
+        if (!p || !isFinite(p[0]) || !isFinite(p[1])) return;
+        const isGoal = m.type === 'goal';
+        const wrap = document.createElement('div');
+        wrap.className = 'strategic-guide ' + (isGoal ? 'g-goal' : 'g-you');
+        const fig = document.createElement('div');
+        fig.className = 'sg-fig';
+        fig.textContent = isGoal ? '⚑' : '';
+        const pill = document.createElement('div');
+        pill.className = 'sg-pill';
+        pill.textContent = m.label || m.name || (isGoal ? '目标' : '当前所在');
+        wrap.appendChild(fig);
+        wrap.appendChild(pill);
+        overlay.appendChild(wrap);
+        guideMarks.push({ el: wrap, fig, pill, type: m.type || 'you', base: p });
+      });
+      // 有引导标记时，底栏提示补一行读图说明
+      if (guideMarks.length) {
+        const hint = ui.querySelector('.strategic-hint');
+        if (hint) {
+          const parts = ['拖拽平移 · 滚轮缩放 · 点击城池前往'];
+          if (guideMarks.some(o => o.type === 'you')) parts.push('◎ 你在此');
+          if (guideMarks.some(o => o.type === 'goal')) parts.push('⚑ 目标');
+          hint.innerHTML = parts.join('　');
+        }
+      }
+
       // 州名标签（用州几何真实质心定位，放到overlay里跟随transform）
       stateLabelsDom = [];
       provFeats.forEach(f => {
@@ -466,13 +539,10 @@
         const el = document.createElement('div');
         el.className = 'strategic-state-label-dom';
         el.textContent = stateName;
-        // geoPath.centroid 取该州 dissolve 后多边形的真实质心（像素坐标，k=1 基准）
-        // 保证州名落在对应州区域中间，不再跑出边界或彼此挤在一起
-        let c = geoPath.centroid(f);
+        // planarCentroid 取该州 dissolve 后多边形的真实质心（像素坐标，k=1 基准）
+        let c = planarCentroid(f.geometry);
         if (!isFinite(c[0]) || !isFinite(c[1])) {
-          // 退化几何兜底：用投影后包围盒中心
-          const b = geoPath.bounds(f);
-          c = [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2];
+          c = [0, 0];
         }
         overlay.appendChild(el);
         stateLabelsDom.push({ el, name: stateName, baseX: c[0], baseY: c[1] });
@@ -521,19 +591,27 @@
         nodes.forEach(n => { n.o.baseX = n.baseX; n.o.baseY = n.baseY; });
       }
 
-      // 郡名标签（投影质心定位，拉近时淡入）
+      // 郡名标签（投影质心定位，拉近时淡入；文案用与城点解耦的行政区名 comm，
+      // 对照史书为郡/国/尹等名号；非郡级区域（新野、夷洲 comm 为空）不设郡大标，仅以城点示之）
       commanderyLabelsDom = [];
       cmdFeats.forEach(f => {
+        const _city = cities.find(c => c.name === f.properties.name);
+        const comm = _city && _city.comm ? _city.comm : null;
+        if (!comm) return;
         const el = document.createElement('div');
         el.className = 'strategic-cmd-label-dom';
-        el.textContent = f.properties.name;
-        const c = geoPath.centroid(f);
+        el.textContent = comm;
+        const c = planarCentroid(f.geometry);
         overlay.appendChild(el);
-        commanderyLabelsDom.push({ el, name: f.properties.name, baseX: c[0], baseY: c[1] });
+        commanderyLabelsDom.push({ el, name: comm, baseX: c[0], baseY: c[1] });
       });
 
       function positionOverlay(k) {
         cityMarks.forEach(o => {
+          o.el.style.left = (o.base[0] * k) + 'px';
+          o.el.style.top = (o.base[1] * k) + 'px';
+        });
+        guideMarks.forEach(o => {
           o.el.style.left = (o.base[0] * k) + 'px';
           o.el.style.top = (o.base[1] * k) + 'px';
         });
@@ -570,14 +648,10 @@
         if (provinceLayer) {
           const pop = 1 - lod;
           provinceLayer.style('opacity', pop);
-          const halo = root.select('#sm-province-halo');
-          if (!halo.empty()) halo.style('opacity', pop);
         }
         if (commanderyLayer) {
-          // 拉远彻底不渲染（避免透明度残留），接近阈值后用 opacity 平滑淡入
-          const showCmd = lod > 0.02;
-          commanderyLayer.style('display', showCmd ? null : 'none');
-          if (showCmd) commanderyLayer.style('opacity', lod);
+          // 州内保持干净无内部线：郡边界线层始终隐藏（"郡"填色模式仍显示色块）
+          commanderyLayer.style('display', 'none');
         }
         if (commanderyFillLayer) commanderyFillLayer.style('opacity', lod);
         // 势力填充与郡同节奏淡入（远端只显示州描边，杜绝色块接缝造成的内部线）
@@ -585,7 +659,9 @@
         if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - lod); });
         if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod); });
         if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
-        if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { if (o.nm) o.nm.style.opacity = String(fade(k, 1.4, 3.0)); });
+        if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
+        // 引导标记任何缩放级别都保持可见（仅1~2枚，不产生干扰）
+        guideMarks.forEach(o => { if (o.el) o.el.style.opacity = '1'; });
         positionOverlay(k);
       }
 
@@ -599,6 +675,17 @@
       // 暴露给 zoom
       render._apply = applyTransform;
       render._statePaths = statePaths;
+
+      // 「定位到我」：把视图平滑移到当前位置（无 you 标记时退回第一个目标）
+      locateGuide = function() {
+        const g = guideMarks.find(o => o.type === 'you') || guideMarks[0];
+        if (!g || !W || !H) return;
+        const k = 2.6;
+        const tx = W / 2 - g.base[0] * k;
+        const ty = H / 2 - g.base[1] * k;
+        currentTransform = d3.zoomIdentity.translate(tx, ty).scale(k);
+        svg.transition().duration(450).call(zoom.transform, currentTransform);
+      };
     }
 
     function sealStyle(faction) {
@@ -609,12 +696,16 @@
     function selectState(d) {
       selectedId = d.properties.id;
       const f = FACTIONS[d.properties.faction] || FACTIONS.none;
+      const title = d.properties.comm || d.properties.name;
+      const hasCity = d.properties.comm && d.properties.comm !== d.properties.name;
       info.innerHTML = `
         <div class="strategic-info-h">
           <span class="seal" style="${sealStyle(d.properties.faction)}">${f.label}</span>
-          ${d.properties.name}
+          ${title}
         </div>
-        <div class="strategic-info-b">${d.properties.desc}</div>
+        <div class="strategic-info-b">${d.properties.desc}<br/>
+          <span style="color:#8a6a3a;font-size:11px;">${d.properties.state || ''}${hasCity ? ' · 城址 ' + d.properties.name : ''}</span>
+        </div>
       `;
       info.classList.add('show');
     }
@@ -627,7 +718,7 @@
           ${c.name}${c.capital ? ' · 州治' : ''}
         </div>
         <div class="strategic-info-b">${c.desc || ''}<br/>
-          <span style="color:#8a6a3a;font-size:11px;">${c.state} · ${c.grid}×${c.grid}城内</span>
+          <span style="color:#8a6a3a;font-size:11px;">${[c.comm, c.state, c.grid ? c.grid + '×' + c.grid + '城内' : ''].filter(Boolean).join(' · ')}</span>
         </div>
         <button class="go-btn" id="sm-go-btn">前往此城</button>
       `;
@@ -661,6 +752,7 @@
         const k = b.dataset.z;
         if (k === 'in') svg.transition().duration(200).call(zoom.scaleBy, 1.4);
         else if (k === 'out') svg.transition().duration(200).call(zoom.scaleBy, 1/1.4);
+        else if (k === 'locate') { if (locateGuide) locateGuide(); }
         else svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
       });
     });

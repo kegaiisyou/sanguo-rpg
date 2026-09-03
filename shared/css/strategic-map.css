@@ -128,6 +128,82 @@
   z-index: 4;
 }
 
+/* ── 引导标记：当前位置(you) / 目标(goal) ── */
+.strategic-guide {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 15;
+  line-height: 1;
+}
+.strategic-guide .sg-fig {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.strategic-guide .sg-pill {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 2px 7px;
+  border-radius: 9px;
+  background: rgba(248,241,222,0.94);
+  border: 1px solid #c9b67f;
+  color: #3a2410;
+  box-shadow: 0 1px 3px rgba(60,44,20,.28);
+  font-family: "STKaiti","KaiTi","楷体",serif;
+}
+/* 当前位置：朱红脉冲点 */
+.g-you .sg-fig {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #c2270f;
+  border: 2px solid #fff6dd;
+  box-shadow: 0 0 0 2px rgba(130,40,10,.5), 0 1px 4px rgba(60,20,0,.4);
+}
+.g-you .sg-fig::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(194,39,15,.65);
+  animation: sg-pulse 1.8s ease-out infinite;
+  pointer-events: none;
+}
+.g-you .sg-pill {
+  border-color: #c2270f;
+  color: #8f1805;
+  font-weight: 700;
+}
+/* 目标：小旗 + 深红胶囊 */
+.g-goal .sg-fig {
+  width: 18px;
+  height: 15px;
+  font-size: 15px;
+  color: #8a2020;
+  text-shadow: 0 0 2px #fff6dd, 0 0 3px #fff6dd;
+}
+.g-goal .sg-pill {
+  background: rgba(138,32,32,0.92);
+  border-color: #5c1414;
+  color: #f6ead0;
+  font-weight: 700;
+}
+@keyframes sg-pulse {
+  0%   { transform: scale(1);    opacity: .75; }
+  100% { transform: scale(2.7);  opacity: 0; }
+}
+
 /* UI 层 */
 .strategic-map-ui {
   position: absolute;
