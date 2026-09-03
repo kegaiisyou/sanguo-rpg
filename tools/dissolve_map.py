@@ -2,8 +2,34 @@
 # 构建期：把 region.geojson 的郡多边形按 州/势力/郡 分别 dissolve 合并，
 # 并用 difference 做分区，消除郡之间互相重叠导致的双线/色块，生成干净的 map_regions.geojson。
 import json, re
-from shapely.geometry import shape, mapping
+from shapely.geometry import shape, mapping, Polygon, MultiPolygon
 from shapely.ops import unary_union
+
+
+def fill_holes(geom):
+    """把 Polygon/MultiPolygon 的所有内洞填实(仅保留最外环)。
+    源命令ery彼此重叠(111对), unary_union 后会产生大量内环;
+    若不填洞, SVG 描边会把每个内环都画出来 = 州内无数混乱线条。
+    partition 仍能正确减去相邻势力(切到边界上变凹口,不是新洞)。"""
+    if geom is None or geom.is_empty:
+        return geom
+    g = geom if geom.is_valid else geom.buffer(0)
+    if g.is_empty:
+        return g
+    gt = g.geom_type
+    if gt == 'Polygon':
+        return Polygon(g.exterior) if g.interiors else g
+    if gt == 'MultiPolygon':
+        parts = []
+        for p in g.geoms:
+            if not p.is_valid:
+                p = p.buffer(0)
+            if p.geom_type == 'Polygon':
+                parts.append(Polygon(p.exterior) if p.interiors else p)
+            else:
+                parts.append(p)
+        return MultiPolygon(parts) if parts else g
+    return g
 
 SRC = 'shared/data/region.geojson'
 CITIES = 'shared/data/cities.js'
@@ -47,7 +73,7 @@ def partition(groups):
 state_groups = {}
 for nm, (st, ow) in meta.items():
     state_groups.setdefault(st, []).append(polys[nm])
-prov_union = {st: unary_union(pl) for st, pl in state_groups.items()}
+prov_union = {st: fill_holes(unary_union(pl)) for st, pl in state_groups.items()}
 prov_terr = partition(prov_union)
 
 # 势力（faction）
@@ -55,7 +81,7 @@ order = ['wei', 'shu', 'wu', 'contested', 'none']
 fac_groups = {}
 for nm, (st, ow) in meta.items():
     fac_groups.setdefault(ow, []).append(polys[nm])
-fac_union = {ow: unary_union(pl) for ow, pl in fac_groups.items()}
+fac_union = {ow: fill_holes(unary_union(pl)) for ow, pl in fac_groups.items()}
 fac_terr = partition({ow: fac_union[ow] for ow in order if ow in fac_union})
 
 # 郡（commandery）：小郡优先保留，大郡减去已被小郡占用的部分，得到干净非重叠郡面
