@@ -363,6 +363,8 @@
         .attr('fill', f => FACTION_FILL[f.properties.faction] || FACTION_FILL.none)
         .attr('stroke', 'none')
         .attr('pointer-events', 'none');
+      // 远端先隐藏势力填充，避免半透明色块接缝形成"内部线"；拉近时再淡入
+      factionFillLayer.style('opacity', 0);
 
       // 郡填充层（干净非重叠郡面，仅填充；描边交给独立的郡边界层）
       commanderyFillLayer = root.append('g').attr('id', 'sm-cmd-fill');
@@ -383,6 +385,8 @@
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
       commanderyLayer = commanderyBorderLayer;
+      // 默认完全不显示，避免首帧渲染闪烁；由 applyTransform 在拉近时切换
+      commanderyLayer.style('opacity', 0).style('display', 'none');
 
       // 州级外框 bevel：宽深色底+暖色细线，肉眼明确是宏观疆界而非郡线残留
       const provinceHalo = root.append('g').attr('id', 'sm-province-halo');
@@ -535,8 +539,15 @@
           const halo = root.select('#sm-province-halo');
           if (!halo.empty()) halo.style('opacity', pop);
         }
-        if (commanderyLayer) commanderyLayer.style('opacity', lod);
+        if (commanderyLayer) {
+          // 拉远彻底不渲染（避免透明度残留），接近阈值后用 opacity 平滑淡入
+          const showCmd = lod > 0.02;
+          commanderyLayer.style('display', showCmd ? null : 'none');
+          if (showCmd) commanderyLayer.style('opacity', lod);
+        }
         if (commanderyFillLayer) commanderyFillLayer.style('opacity', lod);
+        // 势力填充与郡同节奏淡入（远端只显示州描边，杜绝色块接缝造成的内部线）
+        if (factionFillLayer) factionFillLayer.style('opacity', lod);
         if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - lod); });
         if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod); });
         if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
