@@ -16,7 +16,7 @@
   // 特殊地点（地理坐标真相源见 shared/data/map.js 的 LF.MAP.specialGeo，与势力图网格坐标 coords 同文件维护）
   const SPECIAL_LOCATIONS = Object.entries(global.LF.MAP.specialGeo || {}).map(([id, l]) => ({ id, ...l }));
 
-  // 凸包（Monotone Chain）：把同州的零散郡多边形顶点合并成干净的州外框
+  // 几何工具：把同州的零散郡多边形合并成自然的州外框（凹包 + 样条平滑）
   function convexHull(pts) {
     if (pts.length < 3) return pts;
     const p = pts.slice().sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
@@ -27,6 +27,65 @@
     for (let i = p.length - 1; i >= 0; i--) { const pt = p[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], pt) <= 0) upper.pop(); upper.push(pt); }
     lower.pop(); upper.pop();
     return lower.concat(upper);
+  }
+  function segIntersect(a, b, c, d) {
+    const o = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+    const o1 = o(a, b, c), o2 = o(a, b, d), o3 = o(c, d, a), o4 = o(c, d, b);
+    return o1 !== o2 && o3 !== o4;
+  }
+  function pointSegDist(p, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+    let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+  }
+  // 凹包：从凸包出发，反复把过长的边用最近的外部点内凹替换，得到贴合郡分布的自然轮廓
+  function concaveHull(pts, maxLen) {
+    if (pts.length < 3) return pts.slice();
+    let hull = convexHull(pts);
+    let guard = 0, changed = true;
+    while (changed && guard++ < 4000) {
+      changed = false;
+      for (let i = 0; i < hull.length; i++) {
+        const a = hull[i], b = hull[(i + 1) % hull.length];
+        if (Math.hypot(a[0] - b[0], a[1] - b[1]) <= maxLen) continue;
+        let best = null, bestD = Infinity;
+        for (const p of pts) {
+          if (hull.indexOf(p) !== -1) continue;
+          const dd = pointSegDist(p, a, b);
+          if (dd < bestD) { bestD = dd; best = p; }
+        }
+        if (!best) break;
+        let ok = true;
+        for (let j = 0; j < hull.length; j++) {
+          if (j === i || (j + 1) % hull.length === i || j === (i + 1) % hull.length) continue;
+          if (segIntersect(a, best, hull[j], hull[(j + 1) % hull.length]) ||
+              segIntersect(best, b, hull[j], hull[(j + 1) % hull.length])) { ok = false; break; }
+        }
+        if (ok) { hull.splice(i + 1, 0, best); changed = true; break; }
+      }
+    }
+    return hull;
+  }
+  // 闭合环 + Catmull-Rom 平滑，让州界呈自然手绘曲线
+  function smoothClosedRing(ring, subdiv) {
+    const n = ring.length;
+    if (n < 3) return ring.slice();
+    subdiv = subdiv || 6;
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const p0 = ring[(i - 1 + n) % n], p1 = ring[i], p2 = ring[(i + 1) % n], p3 = ring[(i + 2) % n];
+      for (let j = 0; j < subdiv; j++) {
+        const t = j / subdiv, t2 = t * t, t3 = t2 * t;
+        const x = 0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+        const y = 0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+        out.push([x, y]);
+      }
+    }
+    out.push(out[0].slice());
+    return out;
   }
 
   // 河流（手绘墨线）
@@ -126,45 +185,6 @@
     `;
     container.appendChild(ui);
 
-    // 浮动调试面板（手机也能看到日志）
-    const debugPanel = document.createElement('div');
-    debugPanel.className = 'strategic-debug-panel';
-    debugPanel.innerHTML = `
-      <div class="strategic-debug-header">
-        <span>🗺️ 地图调试</span>
-        <button class="strategic-debug-toggle">−</button>
-        <button class="strategic-debug-clear">清</button>
-      </div>
-      <div class="strategic-debug-content"></div>
-    `;
-    container.appendChild(debugPanel);
-    const debugContent = debugPanel.querySelector('.strategic-debug-content');
-    const debugToggle = debugPanel.querySelector('.strategic-debug-toggle');
-    const debugClear = debugPanel.querySelector('.strategic-debug-clear');
-    let debugMinimized = false;
-    debugToggle.addEventListener('click', () => {
-      debugMinimized = !debugMinimized;
-      debugContent.style.display = debugMinimized ? 'none' : 'block';
-      debugToggle.textContent = debugMinimized ? '+' : '−';
-    });
-    debugClear.addEventListener('click', () => {
-      debugContent.innerHTML = '';
-    });
-    // 重写console.log，捕获[战略地图]日志
-    const origLog = console.log.bind(console);
-    console.log = function(...args) {
-      origLog(...args);
-      try {
-        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-        if (msg.indexOf('[战略地图]') >= 0) {
-          const line = document.createElement('div');
-          line.className = 'strategic-debug-line';
-          line.textContent = msg;
-          debugContent.appendChild(line);
-          debugContent.scrollTop = debugContent.scrollHeight;
-        }
-      } catch(e) {}
-    };
 
     const info = ui.querySelector('#sm-info');
     const svg = d3.select(svgEl);
@@ -284,7 +304,10 @@
       const provinceFeatures = Object.keys(byState).map(st => {
         const pts = [];
         byState[st].forEach(s => s.ring.forEach(c => pts.push(c)));
-        return { state: st, ring: convexHull(pts) };
+        if (pts.length < 3) return { state: st, ring: pts };
+        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+        const diag = Math.hypot(Math.max.apply(null, xs) - Math.min.apply(null, xs), Math.max.apply(null, ys) - Math.min.apply(null, ys));
+        return { state: st, ring: smoothClosedRing(concaveHull(pts, diag * 0.22), 6) };
       });
       provinceLayer = root.append('g').attr('id', 'sm-provinces');
       provinceLayer.selectAll('path').data(provinceFeatures).enter().append('path')
