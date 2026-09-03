@@ -87,6 +87,31 @@
     out.push(out[0].slice());
     return out;
   }
+  // 道格拉斯-普克抽稀：去掉郡多边形上过密的锯齿顶点
+  function rdpSimplify(pts, eps) {
+    if (pts.length < 3) return pts.slice();
+    const keep = new Array(pts.length).fill(false);
+    keep[0] = keep[pts.length - 1] = true;
+    const stack = [[0, pts.length - 1]];
+    while (stack.length) {
+      const [s, e] = stack.pop();
+      let maxD = 0, idx = -1;
+      for (let i = s + 1; i < e; i++) {
+        const d = pointSegDist(pts[i], pts[s], pts[e]);
+        if (d > maxD) { maxD = d; idx = i; }
+      }
+      if (maxD > eps && idx !== -1) { keep[idx] = true; stack.push([s, idx]); stack.push([idx, e]); }
+    }
+    return pts.filter((_, i) => keep[i]);
+  }
+  function simplifyRing(ring, tol) {
+    if (!ring || ring.length < 4) return ring ? ring.slice() : ring;
+    const open = (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1])
+      ? ring.slice(0, -1) : ring.slice();
+    const simp = rdpSimplify(open, tol);
+    if (simp.length < 3) return ring.slice();
+    return simp.concat([simp[0]]);
+  }
 
   // 河流（手绘墨线）
   const RIVERS = [
@@ -240,7 +265,7 @@
           state,
           faction,
           desc: city ? city.desc : `${name}郡（${FACTIONS[faction].label}势力）`,
-          ring: f.geometry.coordinates[0],
+          ring: simplifyRing(f.geometry.coordinates[0], 0.01),
           feature: f,
         };
       });
