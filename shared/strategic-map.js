@@ -141,22 +141,7 @@
     { name:'淮河', width:2.0, color:'#4a6b76', pts:[[108,33],[111,33],[114,33],[117,33],[119,32.8]] },
   ];
 
-  // 州名位置（经纬度坐标 [lng, lat]）
-  const STATE_POSITIONS = {
-    '凉州': [102, 38],
-    '幽州': [116, 40],
-    '并州': [112, 38],
-    '冀州': [115, 37],
-    '司隶': [110, 34.5],
-    '兖州': [116, 35.5],
-    '青州': [118, 36.5],
-    '豫州': [113, 33],
-    '荆州': [112, 30],
-    '徐州': [117, 34],
-    '扬州': [119, 32],
-    '益州': [104, 31],
-    '交州': [110, 23],
-  };
+  // 州名标签位置改为由州几何真实质心计算（见下方 stateLabelsDom 生成处），不再用硬编码坐标。
 
   // 加载郡边界 GeoJSON
   let _regionCache = null;
@@ -474,18 +459,67 @@
         return { el: wrap, dot, nm, base: projection(loc.pos), loc };
       });
 
-      // 州名标签（用投影坐标定位，放到overlay里跟随transform）
+      // 州名标签（用州几何真实质心定位，放到overlay里跟随transform）
       stateLabelsDom = [];
-      Object.entries(STATE_POSITIONS).forEach(([stateName, pos]) => {
+      provFeats.forEach(f => {
+        const stateName = f.properties.state;
         const el = document.createElement('div');
         el.className = 'strategic-state-label-dom';
         el.textContent = stateName;
-        // pos是[经度, 纬度]，用projection计算像素坐标
-        const px = projection(pos)[0];
-        const py = projection(pos)[1];
+        // geoPath.centroid 取该州 dissolve 后多边形的真实质心（像素坐标，k=1 基准）
+        // 保证州名落在对应州区域中间，不再跑出边界或彼此挤在一起
+        let c = geoPath.centroid(f);
+        if (!isFinite(c[0]) || !isFinite(c[1])) {
+          // 退化几何兜底：用投影后包围盒中心
+          const b = geoPath.bounds(f);
+          c = [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2];
+        }
         overlay.appendChild(el);
-        stateLabelsDom.push({ el, name: stateName, baseX: px, baseY: py });
+        stateLabelsDom.push({ el, name: stateName, baseX: c[0], baseY: c[1] });
       });
+
+      // 州名碰撞避让：以质心为锚，沿连线推开重叠的标签对，最大位移受限避免跑出本州。
+      // d3 forceSimulation 在密集团里会把孤立州（雍州等）也卷进来互推，导致跨州漂移，
+      // 所以改用直接可控的 pairwise 解析 + 限幅 nudge。
+      if (stateLabelsDom.length > 1) {
+        const nodes = stateLabelsDom.map(o => {
+          const rect = o.el.getBoundingClientRect();
+          const hw = (rect.width || (o.name.length * 18 + 8)) / 2;
+          const hh = (rect.height || 20) / 2;
+          return { o, origX: o.baseX, origY: o.baseY, baseX: o.baseX, baseY: o.baseY, r: Math.hypot(hw, hh) + 2 };
+        });
+        const MAX_NUDGE = 36; // 最大允许离质心位移(px)，超过则拉回，确保留在本州范围内
+        for (let iter = 0; iter < 80; iter++) {
+          let moved = false;
+          for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+              const a = nodes[i], b = nodes[j];
+              let dx = b.baseX - a.baseX, dy = b.baseY - a.baseY;
+              let dist = Math.hypot(dx, dy);
+              if (dist < 0.01) { dx = 1; dy = 0; dist = 1; } // 同点时给个默认方向
+              const need = a.r + b.r + 4;
+              if (dist < need) {
+                const push = (need - dist) / 2;
+                const nx = dx / dist, ny = dy / dist;
+                a.baseX -= nx * push; a.baseY -= ny * push;
+                b.baseX += nx * push; b.baseY += ny * push;
+                moved = true;
+              }
+            }
+          }
+          // 限幅：每个标签最多离原质心 MAX_NUDGE 像素
+          nodes.forEach(n => {
+            const dx = n.baseX - n.origX, dy = n.baseY - n.origY;
+            const d = Math.hypot(dx, dy);
+            if (d > MAX_NUDGE) {
+              n.baseX = n.origX + dx * MAX_NUDGE / d;
+              n.baseY = n.origY + dy * MAX_NUDGE / d;
+            }
+          });
+          if (!moved) break;
+        }
+        nodes.forEach(n => { n.o.baseX = n.baseX; n.o.baseY = n.baseY; });
+      }
 
       // 郡名标签（投影质心定位，拉近时淡入）
       commanderyLabelsDom = [];
