@@ -213,6 +213,28 @@
 }
 .strategic-zoom-ctrl button:active { transform: translateY(1px); }
 
+/* 填色模式切换 */
+.strategic-overlay-ctrl {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: flex;
+  gap: 4px;
+}
+.strategic-overlay-ctrl button {
+  padding: 3px 9px;
+  font-size: 12px;
+  font-family: serif;
+  color: #3a2c18;
+  background: rgba(235,224,198,0.92);
+  border: 1px solid #b7a47a;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 2px 2px 6px rgba(60,44,20,.18);
+}
+.strategic-overlay-ctrl button.active { background: #c8a45a; border-color: #8a6c34; color: #2a1d0c; }
+.strategic-overlay-ctrl button:active { transform: translateY(1px); }
+
 /* 提示 */
 .strategic-hint {
   position: absolute;

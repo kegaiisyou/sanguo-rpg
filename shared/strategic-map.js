@@ -113,6 +113,41 @@
     return simp.concat([simp[0]]);
   }
 
+  // 地图填色 / overlay（势力范围、灾害示意、按郡着色等）
+  let overlayMode = 'faction';
+  let customOverlay = null;
+  let _applyOverlay = null;
+  const FACTION_FILL = {
+    wei:  'rgba(80,130,220,0.42)',
+    shu:  'rgba(60,190,90,0.40)',
+    wu:   'rgba(220,70,60,0.40)',
+    none: 'rgba(160,150,140,0.26)',
+  };
+  function commanderyTint(id) {
+    let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
+    return `hsla(${h},45%,55%,0.32)`;
+  }
+  function commanderyFill(p) {
+    if (overlayMode === 'custom') return (customOverlay && customOverlay[p.id]) || 'rgba(150,120,80,0.06)';
+    if (overlayMode === 'none') return 'rgba(150,120,80,0.06)';
+    if (overlayMode === 'commandery') return commanderyTint(p.id);
+    return FACTION_FILL[p.faction] || FACTION_FILL.none;
+  }
+  // 凹包容差：取同州郡顶点近邻间距的中位数，让州界贴着郡轮廓（更精确、少溢出邻州）
+  function hullMaxLen(pts) {
+    const n = pts.length;
+    if (n < 5) return 1e9;
+    const ds = [];
+    for (let i = 0; i < n; i++) {
+      let best = Infinity;
+      for (let j = 0; j < n; j++) { if (i === j) continue; const d = Math.hypot(pts[i][0]-pts[j][0], pts[i][1]-pts[j][1]); if (d < best) best = d; }
+      ds.push(best);
+    }
+    ds.sort((a, b) => a - b);
+    const med = ds[Math.floor(n / 2)] || 0.1;
+    return Math.max(med * 2.2, 0.04);
+  }
+
   // 河流（手绘墨线）
   const RIVERS = [
     { name:'黄河', width:3.0, color:'#3f6480', pts:[[100,35],[102,36],[104,35.4],[106,35],[108,34.9],[110,35.1],[112,35],[114,35.6],[116,36.2],[118,38],[119.5,40]] },
@@ -206,6 +241,11 @@
         <button data-z="out" title="缩小">－</button>
         <button data-z="reset" title="复位">⟲</button>
       </div>
+      <div class="strategic-overlay-ctrl">
+        <button data-ov="faction" class="active" title="势力范围">势力</button>
+        <button data-ov="commandery" title="按郡着色">郡</button>
+        <button data-ov="none" title="无底色">无</button>
+      </div>
       <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>
     `;
     container.appendChild(ui);
@@ -265,7 +305,7 @@
           state,
           faction,
           desc: city ? city.desc : `${name}郡（${FACTIONS[faction].label}势力）`,
-          ring: simplifyRing(f.geometry.coordinates[0], 0.01),
+          ring: smoothClosedRing(simplifyRing(f.geometry.coordinates[0], 0.01), 2),
           feature: f,
         };
       });
@@ -330,30 +370,32 @@
         const pts = [];
         byState[st].forEach(s => s.ring.forEach(c => pts.push(c)));
         if (pts.length < 3) return { state: st, ring: pts };
-        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-        const diag = Math.hypot(Math.max.apply(null, xs) - Math.min.apply(null, xs), Math.max.apply(null, ys) - Math.min.apply(null, ys));
-        return { state: st, ring: smoothClosedRing(concaveHull(pts, diag * 0.22), 6) };
+        return { state: st, ring: smoothClosedRing(concaveHull(pts, hullMaxLen(pts)), 6) };
       });
       provinceLayer = root.append('g').attr('id', 'sm-provinces');
       provinceLayer.selectAll('path').data(provinceFeatures).enter().append('path')
         .attr('d', f => geoPath({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [f.ring] } }))
-        .attr('fill', 'rgba(150,120,80,0.07)')
+        .attr('fill', 'rgba(130,100,60,0.12)')
         .attr('stroke', '#2a1a05')
         .attr('stroke-width', 2.6)
         .attr('stroke-linejoin', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
 
-      // ── 郡级轮廓（拉近渐显）：每个郡多边形，默认透明，随缩放淡入 ──
+      // ── 郡级区域（拉近渐显）：按势力/自定义填色，不描硬边→交界无双线 ──
       commanderyLayer = root.append('g').attr('id', 'sm-commanderies');
       commanderyLayer.selectAll('path').data(fc.features).enter().append('path')
         .attr('d', geoPath)
-        .attr('fill', 'none')
-        .attr('stroke', '#5a4422')
-        .attr('stroke-width', 1)
+        .attr('fill', d => commanderyFill(d.properties))
+        .attr('stroke', 'rgba(40,26,5,0.22)')
+        .attr('stroke-width', 0.35)
         .attr('stroke-linejoin', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
+      _applyOverlay = function(mode) {
+        overlayMode = mode || overlayMode;
+        commanderyLayer.selectAll('path').attr('fill', d => commanderyFill(d.properties));
+      };
 
       // 城市节点
       cityMarks = cities.map(c => {
@@ -534,6 +576,17 @@
         else svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
       });
     });
+
+    // 填色模式切换（势力范围 / 按郡 / 无）
+    ui.querySelectorAll('.strategic-overlay-ctrl button').forEach(b => {
+      b.addEventListener('click', () => {
+        ui.querySelectorAll('.strategic-overlay-ctrl button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        if (_applyOverlay) _applyOverlay(b.dataset.ov);
+      });
+    });
+    // 对外 API：游戏可传入 {commanderyId:'rgba(...)'} 绘制灾害/自定义范围图
+    global.LF.setMapOverlay = function(mapById) { customOverlay = mapById || null; if (_applyOverlay) _applyOverlay('custom'); };
 
     // 点击空白
     svg.on('click', () => {
