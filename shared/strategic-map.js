@@ -16,6 +16,19 @@
   // 特殊地点（地理坐标真相源见 shared/data/map.js 的 LF.MAP.specialGeo，与势力图网格坐标 coords 同文件维护）
   const SPECIAL_LOCATIONS = Object.entries(global.LF.MAP.specialGeo || {}).map(([id, l]) => ({ id, ...l }));
 
+  // 凸包（Monotone Chain）：把同州的零散郡多边形顶点合并成干净的州外框
+  function convexHull(pts) {
+    if (pts.length < 3) return pts;
+    const p = pts.slice().sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lower = [];
+    for (const pt of p) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], pt) <= 0) lower.pop(); lower.push(pt); }
+    const upper = [];
+    for (let i = p.length - 1; i >= 0; i--) { const pt = p[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], pt) <= 0) upper.pop(); upper.push(pt); }
+    lower.pop(); upper.pop();
+    return lower.concat(upper);
+  }
+
   // 河流（手绘墨线）
   const RIVERS = [
     { name:'黄河', width:3.0, color:'#3f6480', pts:[[100,35],[102,36],[104,35.4],[106,35],[108,34.9],[110,35.1],[112,35],[114,35.6],[116,36.2],[118,38],[119.5,40]] },
@@ -179,6 +192,8 @@
     let statePaths = null;
     let cityMarks = [];
     let stateLabelsDom = [];
+    let provinceLayer = null;
+    let commanderyLayer = null;
 
     function render(regionData, cities) {
       svg.selectAll('*').remove();
@@ -263,99 +278,34 @@
       //   .attr('stroke-linejoin','round')
       //   .attr('pointer-events','none');
 
-      // 州级边界线（用turf.dissolve根据state属性合并同州的郡，去掉内部边界）
-      const stateBorderLayer = root.append('g').attr('id', 'sm-state-borders');
-      try {
-        console.log('[战略地图] turf.dissolve是否存在:', typeof window.turf.dissolve);
-        
-        // 构建带state属性的FeatureCollection
-        const fcWithState = {
-          type: 'FeatureCollection',
-          features: states.map(s => ({
-            type: 'Feature',
-            properties: { state: s.state, name: s.name },
-            geometry: { type: 'Polygon', coordinates: [s.ring] }
-          }))
-        };
-        
-        let stateFeatures = [];
-        
-        // 方法1：用turf.dissolve合并（推荐，能干净去掉内部边界）
-        if (typeof window.turf.dissolve === 'function') {
-          try {
-            const dissolved = window.turf.dissolve(fcWithState, { propertyName: 'state' });
-            if (dissolved && dissolved.features) {
-              stateFeatures = dissolved.features;
-              console.log('[战略地图] turf.dissolve合并成功，州数:', stateFeatures.length);
-              stateFeatures.forEach(f => {
-                console.log('[战略地图] 州:', f.properties.state, 'geometry类型:', f.geometry.type);
-              });
-            }
-          } catch (e) {
-            console.warn('[战略地图] turf.dissolve合并失败:', e);
-          }
-        }
-        
-        // 方法2：如果dissolve不可用，用turf.union逐个合并
-        if (stateFeatures.length === 0 && typeof window.turf.union === 'function') {
-          console.log('[战略地图] 使用turf.union逐个合并');
-          const stateGroups = {};
-          states.forEach(s => {
-            if (!stateGroups[s.state]) stateGroups[s.state] = [];
-            stateGroups[s.state].push(s);
-          });
-          Object.entries(stateGroups).forEach(([stateName, stateCities]) => {
-            try {
-              const polys = stateCities.map(s => window.turf.polygon([s.ring]));
-              let merged = polys[0];
-              for (let i = 1; i < polys.length; i++) {
-                try {
-                  const result = window.turf.union(merged, polys[i]);
-                  if (result) merged = result;
-                } catch (e) {}
-              }
-              if (merged && merged.geometry) {
-                stateFeatures.push({
-                  type: 'Feature',
-                  properties: { state: stateName },
-                  geometry: merged.geometry
-                });
-              }
-            } catch (e) {
-              console.warn('[战略地图] union合并失败:', stateName, e);
-            }
-          });
-          console.log('[战略地图] turf.union合并成功，州数:', stateFeatures.length);
-        }
-        
-        console.log('[战略地图] 最终州数:', stateFeatures.length);
+      // ── 州级轮廓（远看主显示）：同州的零散郡多边形做凸包，得到干净的十三州外框 ──
+      const byState = {};
+      states.forEach(s => { if (s.state && s.state !== '未知') (byState[s.state] = byState[s.state] || []).push(s); });
+      const provinceFeatures = Object.keys(byState).map(st => {
+        const pts = [];
+        byState[st].forEach(s => s.ring.forEach(c => pts.push(c)));
+        return { state: st, ring: convexHull(pts) };
+      });
+      provinceLayer = root.append('g').attr('id', 'sm-provinces');
+      provinceLayer.selectAll('path').data(provinceFeatures).enter().append('path')
+        .attr('d', f => geoPath({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [f.ring] } }))
+        .attr('fill', 'rgba(150,120,80,0.07)')
+        .attr('stroke', '#2a1a05')
+        .attr('stroke-width', 2.6)
+        .attr('stroke-linejoin', 'round')
+        .attr('vector-effect', 'non-scaling-stroke')
+        .attr('pointer-events', 'none');
 
-        // 渲染州级边界线（如果合并成功）
-        if (stateFeatures.length > 0) {
-          stateBorderLayer.selectAll('path').data(stateFeatures).enter().append('path')
-            .attr('d', geoPath)
-            .attr('fill','rgba(150,120,80,0.06)')
-            .attr('stroke','#2a1a05')
-            .attr('stroke-width',2.5)
-            .attr('stroke-linejoin','round')
-            .attr('vector-effect','non-scaling-stroke')
-            .attr('pointer-events','none');
-          console.log('[战略地图] 渲染州级边界线数量:', stateFeatures.length);
-        } else {
-          // 合并失败，直接画郡边界
-          console.log('[战略地图] 州合并全部失败，直接画郡边界');
-          stateBorderLayer.selectAll('path').data(fcWithState.features).enter().append('path')
-            .attr('d', geoPath)
-            .attr('fill','none')
-            .attr('stroke','#3a2a10')
-            .attr('stroke-width',1.2)
-            .attr('stroke-linejoin','round')
-            .attr('vector-effect','non-scaling-stroke')
-            .attr('pointer-events','none');
-        }
-      } catch (err) {
-        console.warn('[战略地图] 州级边界渲染失败', err);
-      }
+      // ── 郡级轮廓（拉近渐显）：每个郡多边形，默认透明，随缩放淡入 ──
+      commanderyLayer = root.append('g').attr('id', 'sm-commanderies');
+      commanderyLayer.selectAll('path').data(fc.features).enter().append('path')
+        .attr('d', geoPath)
+        .attr('fill', 'none')
+        .attr('stroke', '#5a4422')
+        .attr('stroke-width', 1)
+        .attr('stroke-linejoin', 'round')
+        .attr('vector-effect', 'non-scaling-stroke')
+        .attr('pointer-events', 'none');
 
       // 城市节点
       cityMarks = cities.map(c => {
@@ -447,11 +397,19 @@
         }
       }
 
-      // 应用变换
+      // 应用变换 + 按缩放分级显隐
+      function fade(k, lo, hi) { const t = (k - lo) / (hi - lo); return t <= 0 ? 0 : t >= 1 ? 1 : t; }
       function applyTransform(t) {
-        root.attr('transform', `translate(${t.x},${t.y}) scale(${t.k})`);
+        const k = t.k;
+        root.attr('transform', `translate(${t.x},${t.y}) scale(${k})`);
         overlay.style.transform = `translate(${t.x}px,${t.y}px)`;
-        positionOverlay(t.k);
+        // 远看：州轮廓+州名；拉近：郡轮廓+城市名淡入，州名淡出
+        if (provinceLayer) provinceLayer.style('opacity', 0.95 - 0.6 * fade(k, 1.6, 3.6));
+        if (commanderyLayer) commanderyLayer.style('opacity', fade(k, 1.0, 2.6));
+        if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - fade(k, 1.0, 2.2)); });
+        if (cityMarks.length) cityMarks.forEach(o => { if (o.nm) o.nm.style.opacity = String(fade(k, 1.4, 3.0)); });
+        if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { if (o.nm) o.nm.style.opacity = String(fade(k, 1.4, 3.0)); });
+        positionOverlay(k);
       }
 
       // 初始 transform
