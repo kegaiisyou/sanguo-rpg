@@ -528,17 +528,17 @@
         // 两级 LOD 交叉淡入淡出：
         //   拉远(k<1.9) → 只州描边+州名（郡描边/郡名/城名为0）
         //   拉近(k>3.4) → 州描边+州名淡出，郡描边+郡名+城名淡入
-        const t = fade(k, 1.9, 3.4);
+        const lod = fade(k, 1.9, 3.4);
         if (provinceLayer) {
-          const pop = 1 - t;
+          const pop = 1 - lod;
           provinceLayer.style('opacity', pop);
           const halo = root.select('#sm-province-halo');
           if (!halo.empty()) halo.style('opacity', pop);
         }
-        if (commanderyLayer) commanderyLayer.style('opacity', t);
-        if (commanderyFillLayer) commanderyFillLayer.style('opacity', t);
-        if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - t); });
-        if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(t); });
+        if (commanderyLayer) commanderyLayer.style('opacity', lod);
+        if (commanderyFillLayer) commanderyFillLayer.style('opacity', lod);
+        if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - lod); });
+        if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod); });
         if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
         if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { if (o.nm) o.nm.style.opacity = String(fade(k, 1.4, 3.0)); });
         positionOverlay(k);
