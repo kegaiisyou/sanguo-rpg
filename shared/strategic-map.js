@@ -285,7 +285,7 @@
       const states = cmdFeats.map(f => {
         const name = f.properties.name;
         const city = cities.find(c => c.name === name);
-        const faction = f.properties.faction || (city ? city.owner : 'none');
+        const faction = (FACTIONS[f.properties.faction] ? f.properties.faction : (city && FACTIONS[city.owner] ? city.owner : 'none'));
         const state = f.properties.state || (city ? city.state : '未知');
         return {
           id: f.properties.id || name,
@@ -374,13 +374,22 @@
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
 
-      // 州级外框 stroke（置于填充之上，保证轮廓清晰）
+      // 州级外框 bevel：宽深色底+暖色细线，肉眼明确是宏观疆界而非郡线残留
+      const provinceHalo = root.append('g').attr('id', 'sm-province-halo');
+      provinceHalo.selectAll('path').data(provinceFeatures).enter().append('path')
+        .attr('d', f => geoPath(f.feature))
+        .attr('fill', 'none')
+        .attr('stroke', '#0e0803')
+        .attr('stroke-width', 5)
+        .attr('stroke-linejoin', 'round')
+        .attr('vector-effect', 'non-scaling-stroke')
+        .attr('pointer-events', 'none');
       provinceLayer = root.append('g').attr('id', 'sm-provinces');
       provinceLayer.selectAll('path').data(provinceFeatures).enter().append('path')
         .attr('d', f => geoPath(f.feature))
         .attr('fill', 'none')
-        .attr('stroke', '#2a1a05')
-        .attr('stroke-width', 2.6)
+        .attr('stroke', '#b8893a')
+        .attr('stroke-width', 2.2)
         .attr('stroke-linejoin', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
@@ -490,10 +499,15 @@
         root.attr('transform', `translate(${t.x},${t.y}) scale(${k})`);
         overlay.style.transform = `translate(${t.x}px,${t.y}px)`;
         // 远看：州轮廓+州名；拉近：郡轮廓+城市名淡入，州名淡出
-        if (provinceLayer) provinceLayer.style('opacity', 0.95 - 0.6 * fade(k, 1.6, 3.6));
+        if (provinceLayer) {
+          const pop = 0.95 - 0.6 * fade(k, 1.6, 3.6);
+          provinceLayer.style('opacity', pop);
+          const halo = root.select('#sm-province-halo');
+          if (!halo.empty()) halo.style('opacity', pop);
+        }
         if (commanderyLayer) commanderyLayer.style('opacity', fade(k, 1.0, 2.6));
         if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - fade(k, 1.0, 2.2)); });
-        if (cityMarks.length) cityMarks.forEach(o => { if (o.nm) o.nm.style.opacity = String(fade(k, 1.4, 3.0)); });
+        if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
         if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { if (o.nm) o.nm.style.opacity = String(fade(k, 1.4, 3.0)); });
         positionOverlay(k);
       }
@@ -511,12 +525,13 @@
     }
 
     function sealStyle(faction) {
-      return `background:${FACTIONS[faction].stroke}`;
+      const f = FACTIONS[faction] || FACTIONS.none;
+      return `background:${f.stroke}`;
     }
 
     function selectState(d) {
       selectedId = d.properties.id;
-      const f = FACTIONS[d.properties.faction];
+      const f = FACTIONS[d.properties.faction] || FACTIONS.none;
       info.innerHTML = `
         <div class="strategic-info-h">
           <span class="seal" style="${sealStyle(d.properties.faction)}">${f.label}</span>
@@ -528,7 +543,7 @@
     }
 
     function selectCity(c) {
-      const f = FACTIONS[c.owner];
+      const f = FACTIONS[c.owner] || FACTIONS.none;
       info.innerHTML = `
         <div class="strategic-info-h">
           <span class="seal" style="${sealStyle(c.owner)}">${f.label}</span>
