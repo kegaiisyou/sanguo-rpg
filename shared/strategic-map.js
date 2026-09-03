@@ -280,7 +280,7 @@
       svg.attr('width', W).attr('height', H);
       projection.fitExtent([[0, 0], [W, H]], rectFC);
 
-      // 构建郡 feature（用 dissolve 后的干净非重叠郡面）
+      // 构建郡 feature（直接用 dissolve 后的几何，d3 处理 Polygon/MultiPolygon）
       const cmdFeats = regionData.features.filter(f => f.properties.layer === 'commandery');
       const states = cmdFeats.map(f => {
         const name = f.properties.name;
@@ -293,7 +293,6 @@
           state,
           faction,
           desc: city ? city.desc : `${name}郡`,
-          ring: smoothClosedRing(f.geometry.coordinates[0], 3),
           feature: f,
         };
       });
@@ -303,7 +302,7 @@
         features: states.map(s => ({
           type: 'Feature',
           properties: { id: s.id, name: s.name, faction: s.faction, desc: s.desc },
-          geometry: { type: 'Polygon', coordinates: [s.ring] },
+          geometry: s.feature.geometry,
         })),
       };
 
@@ -354,10 +353,7 @@
       // ── 分层数据：州(dissolve) / 势力(dissolve) / 郡(去重叠) ──
       const provFeats = regionData.features.filter(f => f.properties.layer === 'province');
       const facFeats = regionData.features.filter(f => f.properties.layer === 'faction');
-      const provinceFeatures = provFeats.map(f => ({
-        state: f.properties.state,
-        ring: smoothClosedRing(f.geometry.coordinates[0], 3),
-      }));
+      const provinceFeatures = provFeats.map(f => ({ state: f.properties.state, feature: f }));
 
       // 势力填充层（已 dissolve，无重叠无双线 → 干净的势力范围图）
       factionFillLayer = root.append('g').attr('id', 'sm-faction-fill');
@@ -381,7 +377,7 @@
       // 州级外框 stroke（置于填充之上，保证轮廓清晰）
       provinceLayer = root.append('g').attr('id', 'sm-provinces');
       provinceLayer.selectAll('path').data(provinceFeatures).enter().append('path')
-        .attr('d', f => geoPath({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [f.ring] } }))
+        .attr('d', f => geoPath(f.feature))
         .attr('fill', 'none')
         .attr('stroke', '#2a1a05')
         .attr('stroke-width', 2.6)
