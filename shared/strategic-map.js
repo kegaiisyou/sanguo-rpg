@@ -532,63 +532,127 @@
         }
       }
 
-      // 州名标签（用州几何真实质心定位，放到overlay里跟随transform）
+      // ── 标签锚点安全网：点/环判定 + 州(郡)内兜底 ──
+      // planarCentroid 取最大外环质心，凹形/多环几何时可能落在多边形外；
+      // 碰撞避让推开标签也可能越界。统一在投影像素坐标做判定，
+      // 保证「州名不出本州、郡名不出本郡」。
+      function pointInRingXY(p, ringPx) {
+        const x = p[0], y = p[1];
+        let inside = false;
+        for (let i = 0, j = ringPx.length - 2; i < ringPx.length - 1; j = i++) {
+          const xi = ringPx[i][0], yi = ringPx[i][1];
+          const xj = ringPx[j][0], yj = ringPx[j][1];
+          if ((yi > y) !== (yj > y) && x < (xj + (y - yj) / (yj - yi) * (xi - xj))) inside = !inside;
+        }
+        return inside;
+      }
+      function pointInStatePx(geom, p) {
+        if (!geom || !p || !isFinite(p[0]) || !isFinite(p[1])) return false;
+        const polys = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
+        for (let k = 0; k < polys.length; k++) {
+          const poly = polys[k];
+          if (!pointInRingXY(p, poly[0].map(c => projection(c)))) continue;
+          let hole = false;
+          for (let h = 1; h < poly.length; h++) {
+            if (pointInRingXY(p, poly[h].map(c => projection(c)))) { hole = true; break; }
+          }
+          if (!hole) return true;
+        }
+        return false;
+      }
+      // 沿 orig→target 回拉：target 在区外时退到刚进入本区的点（起点必在区内）
+      function pullIntoState(geom, orig, target) {
+        if (pointInStatePx(geom, target)) return target;
+        let ok = [orig[0], orig[1]];
+        let lo = 0, hi = 1;
+        for (let i = 0; i < 40; i++) {
+          const m = (lo + hi) / 2;
+          const p = [orig[0] + (target[0] - orig[0]) * m, orig[1] + (target[1] - orig[1]) * m];
+          if (pointInStatePx(geom, p)) { ok = p; lo = m; } else { hi = m; }
+        }
+        return ok;
+      }
+      // 锚点：优先用质心；不在本区(或多环区)时在区内 bbox 网格里找靠近中心的可用点
+      function insideAnchor(geom, candidate) {
+        if (candidate && pointInStatePx(geom, candidate)) return candidate;
+        const polys = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
+        let bb = null;
+        for (let k = 0; k < polys.length; k++) {
+          const outer = polys[k][0].map(c => projection(c));
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          for (let q = 0; q < outer.length; q++) {
+            if (outer[q][0] < minX) minX = outer[q][0];
+            if (outer[q][0] > maxX) maxX = outer[q][0];
+            if (outer[q][1] < minY) minY = outer[q][1];
+            if (outer[q][1] > maxY) maxY = outer[q][1];
+          }
+          const area = (maxX - minX) * (maxY - minY);
+          if (!bb || area > bb.area) bb = { minX, maxX, minY, maxY, area };
+        }
+        if (!bb) return [0, 0];
+        const cx = (bb.minX + bb.maxX) / 2, cy = (bb.minY + bb.maxY) / 2;
+        let best = null, bestD = Infinity;
+        for (let gy = 1; gy <= 30; gy++) {
+          for (let gx = 1; gx <= 30; gx++) {
+            const p = [bb.minX + (bb.maxX - bb.minX) * gx / 30, bb.minY + (bb.maxY - bb.minY) * gy / 30];
+            if (!pointInStatePx(geom, p)) continue;
+            const d = (p[0] - cx) * (p[0] - cx) + (p[1] - cy) * (p[1] - cy);
+            if (d < bestD) { bestD = d; best = p; }
+          }
+        }
+        return best || (candidate && isFinite(candidate[0]) && isFinite(candidate[1]) ? candidate : [0, 0]);
+      }
+
+      // 州名标签（投影质心定位，放到overlay里跟随transform）
       stateLabelsDom = [];
       provFeats.forEach(f => {
         const stateName = f.properties.state;
         const el = document.createElement('div');
         el.className = 'strategic-state-label-dom';
         el.textContent = stateName;
-        // planarCentroid 取该州 dissolve 后多边形的真实质心（像素坐标，k=1 基准）
-        let c = planarCentroid(f.geometry);
-        if (!isFinite(c[0]) || !isFinite(c[1])) {
-          c = [0, 0];
-        }
+        const c = insideAnchor(f.geometry, planarCentroid(f.geometry));
         overlay.appendChild(el);
-        stateLabelsDom.push({ el, name: stateName, baseX: c[0], baseY: c[1] });
+        stateLabelsDom.push({ el, name: stateName, geom: f.geometry, baseX: c[0], baseY: c[1] });
       });
 
-      // 州名碰撞避让：以质心为锚，沿连线推开重叠的标签对，最大位移受限避免跑出本州。
-      // d3 forceSimulation 在密集团里会把孤立州（雍州等）也卷进来互推，导致跨州漂移，
-      // 所以改用直接可控的 pairwise 解析 + 限幅 nudge。
+      // 州名碰撞避让：以质心为锚，沿连线推开重叠的标签对，限幅防跨州漂移；
+      // 每轮把越界点拉回本州内（关键：避免窄屏/缩小时「冀州跑到幽州」这类串区）。
       if (stateLabelsDom.length > 1) {
         const nodes = stateLabelsDom.map(o => {
           const rect = o.el.getBoundingClientRect();
           const hw = (rect.width || (o.name.length * 18 + 8)) / 2;
           const hh = (rect.height || 20) / 2;
-          return { o, origX: o.baseX, origY: o.baseY, baseX: o.baseX, baseY: o.baseY, r: Math.hypot(hw, hh) + 2 };
+          return { o, geom: o.geom, origX: o.baseX, origY: o.baseY, x: o.baseX, y: o.baseY, r: Math.hypot(hw, hh) + 2 };
         });
-        const MAX_NUDGE = 36; // 最大允许离质心位移(px)，超过则拉回，确保留在本州范围内
+        const MAX_NUDGE = 36; // 最大允许离质心位移(px)
         for (let iter = 0; iter < 80; iter++) {
           let moved = false;
           for (let i = 0; i < nodes.length; i++) {
             for (let j = i + 1; j < nodes.length; j++) {
               const a = nodes[i], b = nodes[j];
-              let dx = b.baseX - a.baseX, dy = b.baseY - a.baseY;
+              let dx = b.x - a.x, dy = b.y - a.y;
               let dist = Math.hypot(dx, dy);
               if (dist < 0.01) { dx = 1; dy = 0; dist = 1; } // 同点时给个默认方向
               const need = a.r + b.r + 4;
               if (dist < need) {
                 const push = (need - dist) / 2;
                 const nx = dx / dist, ny = dy / dist;
-                a.baseX -= nx * push; a.baseY -= ny * push;
-                b.baseX += nx * push; b.baseY += ny * push;
+                a.x -= nx * push; a.y -= ny * push;
+                b.x += nx * push; b.y += ny * push;
                 moved = true;
               }
             }
           }
-          // 限幅：每个标签最多离原质心 MAX_NUDGE 像素
           nodes.forEach(n => {
-            const dx = n.baseX - n.origX, dy = n.baseY - n.origY;
+            const dx = n.x - n.origX, dy = n.y - n.origY;
             const d = Math.hypot(dx, dy);
-            if (d > MAX_NUDGE) {
-              n.baseX = n.origX + dx * MAX_NUDGE / d;
-              n.baseY = n.origY + dy * MAX_NUDGE / d;
-            }
+            if (d > MAX_NUDGE) { n.x = n.origX + dx * MAX_NUDGE / d; n.y = n.origY + dy * MAX_NUDGE / d; }
+            const pulled = pullIntoState(n.geom, [n.origX, n.origY], [n.x, n.y]);
+            n.x = pulled[0]; n.y = pulled[1];
           });
           if (!moved) break;
         }
-        nodes.forEach(n => { n.o.baseX = n.baseX; n.o.baseY = n.baseY; });
+        nodes.forEach(n => { n.o.baseX = n.x; n.o.baseY = n.y; });
       }
 
       // 郡名标签（投影质心定位，拉近时淡入；文案用与城点解耦的行政区名 comm，
@@ -601,7 +665,7 @@
         const el = document.createElement('div');
         el.className = 'strategic-cmd-label-dom';
         el.textContent = comm;
-        const c = planarCentroid(f.geometry);
+        const c = insideAnchor(f.geometry, planarCentroid(f.geometry));
         overlay.appendChild(el);
         commanderyLabelsDom.push({ el, name: comm, baseX: c[0], baseY: c[1] });
       });
