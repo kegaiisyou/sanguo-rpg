@@ -262,6 +262,7 @@
     let selectedId = null;
     let statePaths = null;
     let cityMarks = [];
+      let commanderyLabelsDom = [];
     let stateLabelsDom = [];
     let provinceLayer = null;
     let commanderyLayer = null;
@@ -363,16 +364,25 @@
         .attr('stroke', 'none')
         .attr('pointer-events', 'none');
 
-      // 郡填充层（干净非重叠郡面，描边极轻以让州色块成主，郡边界退为分隔线）
+      // 郡填充层（干净非重叠郡面，仅填充；描边交给独立的郡边界层）
       commanderyFillLayer = root.append('g').attr('id', 'sm-cmd-fill');
       commanderyFillLayer.selectAll('path').data(fc.features).enter().append('path')
         .attr('d', geoPath)
         .attr('fill', d => commanderyFill(d.properties))
-        .attr('stroke', 'rgba(40,26,5,0.18)')
-        .attr('stroke-width', 0.35)
+        .attr('stroke', 'none')
+        .attr('pointer-events', 'none');
+
+      // 郡边界层（独立层级：不受 overlay 模式隐藏，与州边界交叉淡入淡出）
+      const commanderyBorderLayer = root.append('g').attr('id', 'sm-cmd-border');
+      commanderyBorderLayer.selectAll('path').data(fc.features).enter().append('path')
+        .attr('d', geoPath)
+        .attr('fill', 'none')
+        .attr('stroke', 'rgba(40,26,5,0.55)')
+        .attr('stroke-width', 0.6)
         .attr('stroke-linejoin', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
+      commanderyLayer = commanderyBorderLayer;
 
       // 州级外框 bevel：宽深色底+暖色细线，肉眼明确是宏观疆界而非郡线残留
       const provinceHalo = root.append('g').attr('id', 'sm-province-halo');
@@ -473,6 +483,17 @@
         stateLabelsDom.push({ el, name: stateName, baseX: px, baseY: py });
       });
 
+      // 郡名标签（投影质心定位，拉近时淡入）
+      commanderyLabelsDom = [];
+      cmdFeats.forEach(f => {
+        const el = document.createElement('div');
+        el.className = 'strategic-cmd-label-dom';
+        el.textContent = f.properties.name;
+        const c = geoPath.centroid(f);
+        overlay.appendChild(el);
+        commanderyLabelsDom.push({ el, name: f.properties.name, baseX: c[0], baseY: c[1] });
+      });
+
       function positionOverlay(k) {
         cityMarks.forEach(o => {
           o.el.style.left = (o.base[0] * k) + 'px';
@@ -490,6 +511,12 @@
             o.el.style.top = (o.baseY * k) + 'px';
           });
         }
+        if (commanderyLabelsDom && commanderyLabelsDom.length) {
+          commanderyLabelsDom.forEach(o => {
+            o.el.style.left = (o.baseX * k) + 'px';
+            o.el.style.top = (o.baseY * k) + 'px';
+          });
+        }
       }
 
       // 应用变换 + 按缩放分级显隐
@@ -498,15 +525,20 @@
         const k = t.k;
         root.attr('transform', `translate(${t.x},${t.y}) scale(${k})`);
         overlay.style.transform = `translate(${t.x}px,${t.y}px)`;
-        // 远看：州轮廓+州名；拉近：郡轮廓+城市名淡入，州名淡出
+        // 两级 LOD 交叉淡入淡出：
+        //   拉远(k<1.9) → 只州描边+州名（郡描边/郡名/城名为0）
+        //   拉近(k>3.4) → 州描边+州名淡出，郡描边+郡名+城名淡入
+        const t = fade(k, 1.9, 3.4);
         if (provinceLayer) {
-          const pop = 0.95 - 0.6 * fade(k, 1.6, 3.6);
+          const pop = 1 - t;
           provinceLayer.style('opacity', pop);
           const halo = root.select('#sm-province-halo');
           if (!halo.empty()) halo.style('opacity', pop);
         }
-        if (commanderyLayer) commanderyLayer.style('opacity', fade(k, 1.0, 2.6));
-        if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - fade(k, 1.0, 2.2)); });
+        if (commanderyLayer) commanderyLayer.style('opacity', t);
+        if (commanderyFillLayer) commanderyFillLayer.style('opacity', t);
+        if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - t); });
+        if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(t); });
         if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
         if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { if (o.nm) o.nm.style.opacity = String(fade(k, 1.4, 3.0)); });
         positionOverlay(k);
