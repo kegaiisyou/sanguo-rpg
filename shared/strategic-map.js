@@ -558,6 +558,24 @@
         }
         return false;
       }
+      // 抗退化「点是否在环内」（winding number）。deepAnchor 的扫描线网格 y 经常与
+      // 多边形顶点 y 完全重合（底部/顶部平行边、溶解产生的重复顶点），普通射线奇偶法
+      // 在这种重合下会把 bbox 角上「州外」的网格点误判为州内，再经细化搜索把锚点一路
+      // 推到州外（凉州/交州即此例，旧锚点落在主环外数十 px）。winding 对重合 y 稳定，
+      // 边界点一律视作在内（其距离≈0，不会成为最远点）。
+      function pointInRingWind(p, ringPx) {
+        const x = p[0], y = p[1];
+        let wn = 0;
+        const n = ringPx.length - 1;   // 环闭合：末点=首点
+        for (let i = 0; i < n; i++) {
+          const x1 = ringPx[i][0], y1 = ringPx[i][1];
+          const x2 = ringPx[i + 1][0], y2 = ringPx[i + 1][1];
+          const cr = (x2 - x1) * (y - y1) - (x - x1) * (y2 - y1);
+          if (y1 <= y) { if (y2 > y && cr > 0) wn++; }
+          else { if (y2 <= y && cr < 0) wn--; }
+        }
+        return wn !== 0;
+      }
       // 州名锚点：在州内取「离州边界最远」的深内点（近似 pole of inaccessibility）。
       // 凹形/细长州用纯质心会压线，碰撞避让又常把标签推到州界上（中心压边=半截字挂
       // 到州外，冀州串到幽州就是这路来的）。改取州形最深处后，中心天然离边界有距离，
@@ -569,10 +587,10 @@
         const outerPx = polyRingsPx.map(r => r[0]);
         const inGeom = (p) => {
           for (let k = 0; k < polyRingsPx.length; k++) {
-            if (!pointInRingXY(p, polyRingsPx[k][0])) continue;
+            if (!pointInRingWind(p, polyRingsPx[k][0])) continue;
             let hole = false;
             for (let h = 1; h < polyRingsPx[k].length; h++) {
-              if (pointInRingXY(p, polyRingsPx[k][h])) { hole = true; break; }
+              if (pointInRingWind(p, polyRingsPx[k][h])) { hole = true; break; }
             }
             if (!hole) return true;
           }
