@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260905d`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260905e`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -738,6 +738,14 @@
 - **顺手修引擎侧隐患**：旧 `guardMul`（城门被焚守军削弱）直接改 `getEnemy()` 返回的**共享 ENEMIES 定义**——会把 city_guard 永久削弱且每次叠加；v20260905d 起战力缩放统一作用于 `G.CombatEngine.state.enemies`（每场新建的单位数组），不再污染全局数据，`fieldLvl` 复用同一路径。
 - 校验：index 内联 0 语法错误；cross_reference 0 ERROR（9 WARN 为预存人工疑点）；`_verify_field.js`/`_verify_travel.js` 回归 ALL-OK/OK；lint 0。版本 **20260905c→20260905d**（本轮仅动 index.html 内联 + constants.js）。
 
+### §9.43 v20260905e：修复「出城直接报错」（GEN.field 房间参数错位导致 desc 塞入选项对象）
+
+**现象**：任意城市立于城门点「出城」立即报错 `TypeError: (t || "").trim is not a function`（`shortScene ← renderRoom ← leaveViaGate ← handleAction`），进郊野即崩。
+
+**根因（jsdom 整页 + 隔离双重复现确认）**：`shared/gen/rooms.js` 的 `GEN.field` 造房调用写成了
+`room(显示名, {…选项})`——只传 2 参，但统一房间工厂签名是 `room(id, name, options)`（其余 city/town/fort/dungeon/story 生成器均为 3 参）。于是**选项对象被当成了 `name` 属性、又作为兜底塞进 `desc:[name]`**：每间郊野房 `room.desc` 的唯一元素是「整包选项对象」，渲染时 `shortScene(d).trim` 对对象调用抛 TypeError。附带副作用：`rm.id` 变成显示名、`kind/isField/find/actions` 全被吞（fate 靠后面手工补字段掩盖，故数据层校验全绿、此前未被发现）。修复为三参调用：`room(rid, (p.name||p.id) + '·' + zh(r)+zh(c)+'格', {kind:'field',…})`——rid 归位、name 归位、desc 恢复为 `fieldDesc` 字符串数组。
+- 校验：`_chk_gen.js`（隔离生成 16 格）desc 全字符串、入口格 len=2；`_repro_exit.js`（jsdom 整页：读档蓟城南门 → 出城 → 郊野内东/西各一步）0 报错，房间正确切到 `fld_*`；`_verify_travel.js` 拓扑回归 OK；lint 0。版本 **20260905d→20260905e**（constants.js + index.html 中 `constants.js?v=` 与 `gen/rooms.js?v=20260904m` 同步 bump——旧缓存会继续加载坏 rooms.js，必须强刷）。
+
 ---
 
-*最后更新：2026-09-05（§9.41 郊野出没行为补全 → §9.42 郊野 × 天候/时辰机制层；版本 20260905d）*
+*最后更新：2026-09-05（§9.43 修复出城即崩 GEN.field 参数错位；版本 20260905e）*

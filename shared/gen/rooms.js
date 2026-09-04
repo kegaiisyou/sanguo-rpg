@@ -127,7 +127,7 @@
       for(var r=0;r<size;r++) for(var c=0;c<size;c++){
         var rid = T.roomId(p.id, r, c);
         var isEntry = (r===geo.entryR && c===geo.entryC);
-        var rm = room(p.id + '·' + gd + '郊野·' + zh(r) + zh(c) + '格', {
+        var rm = room(rid, (p.name || p.id) + '·' + zh(r) + zh(c) + '格', {
           kind:'field', isField:true,
           desc: fieldDesc(p, r, c, geo, isEntry),
           find:'', actions:[]
