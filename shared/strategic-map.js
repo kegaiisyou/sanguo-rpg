@@ -843,8 +843,11 @@
       // 应用变换 + 按缩放分级显隐
       function fade(k, lo, hi) { const t = (k - lo) / (hi - lo); return t <= 0 ? 0 : t >= 1 ? 1 : t; }
       function applyTransform(userT) {
-        const t = baseT.transform(userT);   // 叠加基础适配：把渲染坐标系映射到当前视口
-        const k = t.k;
+        // 叠加基础适配：把渲染坐标系映射到当前视口。
+        // d3 v7 的 ZoomTransform 已移除 .transform() 方法，这里用仿射合成等价实现：
+        //   t = baseT ∘ userT  →  k = baseT.k*userT.k, x = baseT.x + baseT.k*userT.x, y = baseT.y + baseT.k*userT.y
+        const k = baseT.k * userT.k;
+        const t = d3.zoomIdentity.translate(baseT.x + baseT.k * userT.x, baseT.y + baseT.k * userT.y).scale(k);
         root.attr('transform', `translate(${t.x},${t.y}) scale(${k})`);
         overlay.style.transform = `translate(${t.x}px,${t.y}px)`;
         // 两级 LOD 交叉淡入淡出：
