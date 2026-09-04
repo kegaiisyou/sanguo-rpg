@@ -2073,6 +2073,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/placeKinds.js?v=20260904g"></script>
     <script src="shared/data/places.js?v=20260904g"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
+    <script src="shared/gen/rooms.js?v=20260904h"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/vendor/turf.min.js?v=20260902b"></script>
     <script src="shared/strategic-map.js?v=20260904f"></script>
@@ -8789,6 +8790,24 @@ window.onerror=function(msg,url,line,col,err){
     }
   }
   registerCityRooms();
+
+  // ── 统一地点房间生成（Place 系统）：城市以外类型(fort/pass/landmark/dungeon/story...)由 gen/rooms.js 造房注入 G.ROOMS ──
+  function registerPlaceRooms(){
+    var P = LF.PLACES || {};
+    for(var pid in P){
+      var p = P[pid];
+      if(!p || p.kind==='city') continue;          // 城市已由 registerCityRooms 处理
+      if(G.ROOMS[pid]) continue;                    // 已有手写/生成则跳过
+      var rooms = (LF.genPlaceRooms ? LF.genPlaceRooms(pid) : null) || {};
+      for(var rid in rooms){ if(!G.ROOMS[rid]) G.ROOMS[rid] = rooms[rid]; }
+      // 副本入口：在 entry 地点房挂一条北向出口，连通地表↔秘谷
+      if(p.kind==='dungeon' && p.entry && G.ROOMS[p.entry]){
+        var er = G.ROOMS[p.entry]; if(!er.exits) er.exits = {};
+        if(!er.exits['北']) er.exits['北'] = pid + '@entrance';
+      }
+    }
+  }
+  registerPlaceRooms();
 
 })();
 </script>
