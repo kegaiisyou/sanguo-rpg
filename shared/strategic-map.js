@@ -361,20 +361,7 @@
       // 可缩放根层
       const root = svg.append('g').attr('id', 'sm-root');
 
-      // 河流（暂时去掉）
-      // const riverLayer = root.append('g').attr('id', 'sm-rivers');
-      // const rline = d3.line().x(d => projection(d)[0]).y(d => projection(d)[1]).curve(d3.curveCatmullRom);
-      // riverLayer.selectAll('g').data(RIVERS).enter().append('g').each(function(r) {
-      //   const g = d3.select(this);
-      //   g.append('path').attr('d', rline(r.pts)).attr('fill','none')
-      //     .attr('stroke','#9fb6bf').attr('stroke-width', r.width*1.6)
-      //     .attr('opacity',0.26).attr('stroke-linecap','round');
-      //   g.append('path').attr('d', rline(r.pts)).attr('fill','none')
-      //     .attr('stroke', r.color).attr('stroke-width', r.width*0.85)
-      //     .attr('opacity',0.55).attr('stroke-linecap','round');
-      // });
-
-      // 州郡填充（暂时去掉填充色，只保留可点击区域，郡边界线隐藏）
+      // 州郡填充（只保留可点击区域，郡边界线隐藏）
       const stateLayer = root.append('g').attr('id', 'sm-states');
       statePaths = stateLayer.selectAll('path.main').data(fc.features).enter().append('path')
         .attr('class','main')
@@ -384,16 +371,6 @@
         .attr('pointer-events','all')
         .style('cursor','pointer')
         .on('click', function(e, d) { e.stopPropagation(); selectState(d); });
-
-      // 郡边界线（暂时隐藏）
-      // const borderLayer = root.append('g').attr('id', 'sm-borders');
-      // borderLayer.selectAll('path').data(fc.features).enter().append('path')
-      //   .attr('d', geoPath)
-      //   .attr('fill','none')
-      //   .attr('stroke','#9a8a6a')
-      //   .attr('stroke-width',0.25)
-      //   .attr('stroke-linejoin','round')
-      //   .attr('pointer-events','none');
 
       // ── 分层数据：州(dissolve) / 势力(dissolve) / 郡(去重叠) ──
       const provFeats = regionData.features.filter(f => f.properties.layer === 'province');
@@ -820,12 +797,10 @@
           o.el.style.left = (o.base[0] * k) + 'px';
           o.el.style.top = (o.base[1] * k) + 'px';
         });
-        if (typeof specialMarks !== 'undefined') {
-          specialMarks.forEach(o => {
-            o.el.style.left = (o.base[0] * k) + 'px';
-            o.el.style.top = (o.base[1] * k) + 'px';
-          });
-        }
+        specialMarks.forEach(o => {
+          o.el.style.left = (o.base[0] * k) + 'px';
+          o.el.style.top = (o.base[1] * k) + 'px';
+        });
         if (stateLabelsDom && stateLabelsDom.length) {
           stateLabelsDom.forEach(o => {
             o.el.style.left = (o.baseX * k) + 'px';
@@ -874,7 +849,7 @@
         });
         if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod); });
         if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
-        if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
+        if (specialMarks.length) specialMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
         // 引导标记任何缩放级别都保持可见（仅1~2枚，不产生干扰）
         guideMarks.forEach(o => { if (o.el) o.el.style.opacity = '1'; });
         positionOverlay(t);
