@@ -715,12 +715,13 @@
       });
 
       // ===== 州名重叠求解（参考系 k=1，一次求解；之后位置与字号等比缩放保持不叠）=====
-      // 标签实测 w=44 h=23（字号20 / 字距2px）。宏观下中原相邻州（并冀司兖青徐豫幽）的
-      // 「最深内点」可能仅相距十几像素，20px 标签必然互压。此处做有限位移：
-      // 每对重叠沿「所需位移更小」的轴各推一半，累计位移封顶，并以「点仍在州内」
-      // （winding，含洞）为硬约束，保证标签不跨出本州 —— 替代早前无约束的全局避让。
+      // 标签实测 w≈38 h≈20（字号17 / 字距1.5px）。宏观下中原相邻州（并冀司兖青徐豫幽）的
+      // 「最深内点」可能仅相距十几像素，标签易互压。此处做有限位移：
+      // 每对重叠沿「所需位移更小」的轴各推一半，累计位移封顶，并以「标签盒四角仍在州内」
+      // （winding，含洞）为硬约束 —— 求解器只能把盒子推到贴州界、完全在州内，杜绝甩出轮廓；
+      // 窄州放不下时留最深内点（最小溢出），宁可轻微相邻也不越界。替代早前无约束全局避让。
       {
-        const HW = 22, HH = 11.5, GAP = 3;          // k=1、字号20 时半宽/半高 + 间隔
+        const HW = 19, HH = 9.5, GAP = 3;           // k=1、字号17 时半宽/半高 + 间隔
         const stateFeatByName = {};
         provFeats.forEach(f => { stateFeatByName[f.properties.state] = f; });
         // 预投影本州环（含洞），供位移约束复用
@@ -744,32 +745,20 @@
           }
           return false;
         }
-        // 本州外接框（宏观兜底约束）：宏观下标签盒本身宽于州域，
-        // 只允许中心在「州多边形 ∪ 州外接框」内活动，杜绝跨到别州的大幅漂移
-        const stateBBox = statePolysPx.map(polys => {
-          let b = null;
-          for (let p = 0; p < polys.length; p++) {
-            for (let q = 0; q < polys[p].outer.length; q++) {
-              const x = polys[p].outer[q][0], y = polys[p].outer[q][1];
-              if (!b) b = { x0: x, x1: x, y0: y, y1: y };
-              else { if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y; }
-            }
-          }
-          return b || { x0: -1e9, x1: 1e9, y0: -1e9, y1: 1e9 };
-        });
-        function inStateAllowed(idx, x, y) {
-          if (windInStateIdx(idx, x, y)) return true;
-          const b = stateBBox[idx];
-          return x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1;
+        // 硬约束：标签「盒四角」都须在本州多边形内（含洞判定），
+        // 不再退让到外接框 —— 求解器只能把盒子推到贴州界、完全在州内，杜绝甩出轮廓。
+        function boxInStateIdx(idx, x, y) {
+          return windInStateIdx(idx, x - HW, y - HH) && windInStateIdx(idx, x + HW, y - HH)
+              && windInStateIdx(idx, x - HW, y + HH) && windInStateIdx(idx, x + HW, y + HH);
         }
-        // 沿 x 或 y 单轴平移；远端出「州∪外接框」则二分回收，返回实际位移
+        // 沿 x 或 y 单轴平移；远端令任一角出州则二分回收，返回实际位移
         function shiftInState(idx, bx, by, isY, delta) {
           if (!delta) return { x: bx, y: by, moved: 0 };
           const sgn = delta > 0 ? 1 : -1, dist = Math.abs(delta);
           let lo = 0, hi = dist;
-          for (let b = 0; b < 14; b++) {
+          for (let b = 0; b < 16; b++) {
             const m = (lo + hi) / 2;
-            if (inStateAllowed(idx, isY ? bx : bx + sgn * m, isY ? by + sgn * m : by)) lo = m;
+            if (boxInStateIdx(idx, isY ? bx : bx + sgn * m, isY ? by + sgn * m : by)) lo = m;
             else hi = m;
           }
           return isY
@@ -867,7 +856,7 @@
         if (stateLabelsDom.length) stateLabelsDom.forEach(o => {
           o.el.style.opacity = String(1 - lod);
           // 远观等比缩小：k=1 基准 20px，k<1 时与地图同比例变小（与 k=1 布局重叠率恒定）
-          const fs = Math.max(11, 20 * Math.min(1, k));
+          const fs = Math.max(11, 17 * Math.min(1, k));
           o.el.style.fontSize = fs.toFixed(1) + 'px';
           o.el.style.letterSpacing = (fs < 15 ? '1px' : fs < 18 ? '1.5px' : '2px');
         });
