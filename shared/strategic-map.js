@@ -141,7 +141,7 @@
     { name:'淮河', width:2.0, color:'#4a6b76', pts:[[108,33],[111,33],[114,33],[117,33],[119,32.8]] },
   ];
 
-  // 州名标签位置改为由州几何真实质心计算（见下方 stateLabelsDom 生成处），不再用硬编码坐标。
+  // 州名标签位置由州几何「最深内点」计算（见下方 deepAnchor/stateLabelsDom），不再用硬编码坐标。
 
   // 加载郡边界 GeoJSON
   let _regionCache = null;
@@ -533,9 +533,7 @@
       }
 
       // ── 标签锚点安全网：点/环判定 + 州(郡)内兜底 ──
-      // planarCentroid 取最大外环质心，凹形/多环几何时可能落在多边形外；
-      // 碰撞避让推开标签也可能越界。统一在投影像素坐标做判定，
-      // 保证「州名不出本州、郡名不出本郡」。
+      // 统一在投影像素坐标判定「点是否落在州/郡内」，供最深内点搜索与兜底锚点使用。
       function pointInRingXY(p, ringPx) {
         const x = p[0], y = p[1];
         let inside = false;
@@ -560,19 +558,84 @@
         }
         return false;
       }
-      // 沿 orig→target 回拉：target 在区外时退到刚进入本区的点（起点必在区内）
-      function pullIntoState(geom, orig, target) {
-        if (pointInStatePx(geom, target)) return target;
-        let ok = [orig[0], orig[1]];
-        let lo = 0, hi = 1;
-        for (let i = 0; i < 40; i++) {
-          const m = (lo + hi) / 2;
-          const p = [orig[0] + (target[0] - orig[0]) * m, orig[1] + (target[1] - orig[1]) * m];
-          if (pointInStatePx(geom, p)) { ok = p; lo = m; } else { hi = m; }
+      // 州名锚点：在州内取「离州边界最远」的深内点（近似 pole of inaccessibility）。
+      // 凹形/细长州用纯质心会压线，碰撞避让又常把标签推到州界上（中心压边=半截字挂
+      // 到州外，冀州串到幽州就是这路来的）。改取州形最深处后，中心天然离边界有距离，
+      // 无需互相避让也能保证「州名落在本州轮廓内」。
+      function deepAnchor(geom) {
+        const polys = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
+        // 预投影所有环（外环+洞），网格搜索时不再重复投影
+        const polyRingsPx = polys.map(p => p.map(ring => ring.map(c => projection(c))));
+        const outerPx = polyRingsPx.map(r => r[0]);
+        const inGeom = (p) => {
+          for (let k = 0; k < polyRingsPx.length; k++) {
+            if (!pointInRingXY(p, polyRingsPx[k][0])) continue;
+            let hole = false;
+            for (let h = 1; h < polyRingsPx[k].length; h++) {
+              if (pointInRingXY(p, polyRingsPx[k][h])) { hole = true; break; }
+            }
+            if (!hole) return true;
+          }
+          return false;
+        };
+        // 取面积最大外环的包围盒（避免锚点被小岛等次要地块带偏）
+        let bb = null;
+        for (let k = 0; k < polys.length; k++) {
+          const o = outerPx[k];
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          for (let q = 0; q < o.length; q++) {
+            if (o[q][0] < minX) minX = o[q][0];
+            if (o[q][0] > maxX) maxX = o[q][0];
+            if (o[q][1] < minY) minY = o[q][1];
+            if (o[q][1] > maxY) maxY = o[q][1];
+          }
+          const area = (maxX - minX) * (maxY - minY);
+          if (!bb || area > bb.area) bb = { minX, maxX, minY, maxY, area };
         }
-        return ok;
+        if (!bb) return [0, 0];
+        const dist2 = (p) => {
+          let best = Infinity;
+          for (let k = 0; k < outerPx.length; k++) {
+            const o = outerPx[k], n = o.length;
+            if (n < 2) continue;
+            let x1 = o[n - 1][0], y1 = o[n - 1][1];
+            for (let i = 0; i < n; i++) {
+              const x2 = o[i][0], y2 = o[i][1];
+              const vx = x2 - x1, vy = y2 - y1;
+              const wx = p[0] - x1, wy = p[1] - y1;
+              const l2 = vx * vx + vy * vy;
+              const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, (wx * vx + wy * vy) / l2));
+              const qx = x1 + t * vx - p[0], qy = y1 + t * vy - p[1];
+              const d = qx * qx + qy * qy;
+              if (d < best) best = d;
+              x1 = x2; y1 = y2;
+            }
+          }
+          return best;
+        };
+        let best = null, bd = -1;
+        for (let gy = 0; gy <= 36; gy++) {
+          for (let gx = 0; gx <= 36; gx++) {
+            const p = [bb.minX + (bb.maxX - bb.minX) * gx / 36, bb.minY + (bb.maxY - bb.minY) * gy / 36];
+            if (!inGeom(p)) continue;
+            const d = dist2(p);
+            if (d > bd) { bd = d; best = p; }
+          }
+        }
+        if (best) {
+          const rx = (bb.maxX - bb.minX) / 72, ry = (bb.maxY - bb.minY) / 72;
+          for (let gy = -8; gy <= 8; gy++) {
+            for (let gx = -8; gx <= 8; gx++) {
+              const p = [best[0] + rx * gx, best[1] + ry * gy];
+              if (!inGeom(p)) continue;
+              const d = dist2(p);
+              if (d > bd) { bd = d; best = p; }
+            }
+          }
+        }
+        return best || insideAnchor(geom, planarCentroid(geom));
       }
-      // 锚点：优先用质心；不在本区(或多环区)时在区内 bbox 网格里找靠近中心的可用点
+      // 锚点（郡名等次要标签）：优先用质心；不在本区(或多环区)时在区内 bbox 网格里找靠近中心的可用点
       function insideAnchor(geom, candidate) {
         if (candidate && pointInStatePx(geom, candidate)) return candidate;
         const polys = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
@@ -603,57 +666,17 @@
         return best || (candidate && isFinite(candidate[0]) && isFinite(candidate[1]) ? candidate : [0, 0]);
       }
 
-      // 州名标签（投影质心定位，放到overlay里跟随transform）
+      // 州名标签（用本州「最深内点」作锚，放进 overlay 跟随 transform）
       stateLabelsDom = [];
       provFeats.forEach(f => {
         const stateName = f.properties.state;
         const el = document.createElement('div');
         el.className = 'strategic-state-label-dom';
         el.textContent = stateName;
-        const c = insideAnchor(f.geometry, planarCentroid(f.geometry));
+        const c = deepAnchor(f.geometry);
         overlay.appendChild(el);
-        stateLabelsDom.push({ el, name: stateName, geom: f.geometry, baseX: c[0], baseY: c[1] });
+        stateLabelsDom.push({ el, name: stateName, baseX: c[0], baseY: c[1] });
       });
-
-      // 州名碰撞避让：以质心为锚，沿连线推开重叠的标签对，限幅防跨州漂移；
-      // 每轮把越界点拉回本州内（关键：避免窄屏/缩小时「冀州跑到幽州」这类串区）。
-      if (stateLabelsDom.length > 1) {
-        const nodes = stateLabelsDom.map(o => {
-          const rect = o.el.getBoundingClientRect();
-          const hw = (rect.width || (o.name.length * 18 + 8)) / 2;
-          const hh = (rect.height || 20) / 2;
-          return { o, geom: o.geom, origX: o.baseX, origY: o.baseY, x: o.baseX, y: o.baseY, r: Math.hypot(hw, hh) + 2 };
-        });
-        const MAX_NUDGE = 36; // 最大允许离质心位移(px)
-        for (let iter = 0; iter < 80; iter++) {
-          let moved = false;
-          for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-              const a = nodes[i], b = nodes[j];
-              let dx = b.x - a.x, dy = b.y - a.y;
-              let dist = Math.hypot(dx, dy);
-              if (dist < 0.01) { dx = 1; dy = 0; dist = 1; } // 同点时给个默认方向
-              const need = a.r + b.r + 4;
-              if (dist < need) {
-                const push = (need - dist) / 2;
-                const nx = dx / dist, ny = dy / dist;
-                a.x -= nx * push; a.y -= ny * push;
-                b.x += nx * push; b.y += ny * push;
-                moved = true;
-              }
-            }
-          }
-          nodes.forEach(n => {
-            const dx = n.x - n.origX, dy = n.y - n.origY;
-            const d = Math.hypot(dx, dy);
-            if (d > MAX_NUDGE) { n.x = n.origX + dx * MAX_NUDGE / d; n.y = n.origY + dy * MAX_NUDGE / d; }
-            const pulled = pullIntoState(n.geom, [n.origX, n.origY], [n.x, n.y]);
-            n.x = pulled[0]; n.y = pulled[1];
-          });
-          if (!moved) break;
-        }
-        nodes.forEach(n => { n.o.baseX = n.x; n.o.baseY = n.y; });
-      }
 
       // 郡名标签（投影质心定位，拉近时淡入；文案用与城点解耦的行政区名 comm，
       // 对照史书为郡/国/尹等名号；非郡级区域（新野、夷洲 comm 为空）不设郡大标，仅以城点示之）
