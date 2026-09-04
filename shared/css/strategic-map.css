@@ -299,7 +299,8 @@
   gap: 4px;
 }
 .strategic-zoom-ctrl button,
-.strategic-zoom-toggle {
+.strategic-zoom-toggle,
+.strategic-overlay-toggle {
   width: 34px; height: 34px;
   display: flex;
   align-items: center;
@@ -315,13 +316,15 @@
   box-shadow: 2px 2px 6px rgba(60,44,20,.18);
 }
 .strategic-zoom-ctrl button svg,
-.strategic-zoom-toggle svg {
+.strategic-zoom-toggle svg,
+.strategic-overlay-toggle svg {
   display: block;
   width: 18px;
   height: 18px;
 }
 .strategic-zoom-ctrl button:active,
-.strategic-zoom-toggle:active { transform: translateY(1px); }
+.strategic-zoom-toggle:active,
+.strategic-overlay-toggle:active { transform: translateY(1px); }
 
 /* 手柄：宽屏隐藏；小屏展开收起时切换图标 */
 .strategic-zoom-toggle { display: none; }
@@ -334,11 +337,17 @@
 .strategic-zoom-fab.compact.open .strategic-zoom-toggle .sg-zoom-open { display: none; }
 .strategic-zoom-fab.compact.open .strategic-zoom-toggle .sg-zoom-close { display: block; }
 
-/* 填色模式切换 */
-.strategic-overlay-ctrl {
+/* 填色模式切换（左上浮动组；小屏默认收成单个手柄，点开才是按钮列） */
+.strategic-overlay-fab {
   position: absolute;
   left: 10px;
   top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.strategic-overlay-ctrl {
   display: flex;
   gap: 4px;
 }
@@ -355,6 +364,15 @@
 }
 .strategic-overlay-ctrl button.active { background: #c8a45a; border-color: #8a6c34; color: #2a1d0c; }
 .strategic-overlay-ctrl button:active { transform: translateY(1px); }
+
+/* 左上手柄：宽屏隐藏；小屏展开收起时切换图标 */
+.strategic-overlay-toggle { display: none; }
+.strategic-overlay-toggle .sg-ov-close { display: none; }
+.strategic-overlay-fab.compact .strategic-overlay-ctrl { display: none; }
+.strategic-overlay-fab.compact .strategic-overlay-toggle { display: flex; }
+.strategic-overlay-fab.compact.open .strategic-overlay-ctrl { display: flex; }
+.strategic-overlay-fab.compact.open .strategic-overlay-toggle .sg-ov-open { display: none; }
+.strategic-overlay-fab.compact.open .strategic-overlay-toggle .sg-ov-close { display: block; }
 
 /* 提示 */
 .strategic-hint {

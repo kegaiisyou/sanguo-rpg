@@ -217,10 +217,13 @@
         </div>
         <button class="strategic-zoom-toggle" title="展开/收起缩放工具" aria-label="缩放工具" aria-expanded="false"><svg class="sg-zoom-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/><path d="M10.5 7.6v5.8M7.6 10.5h5.8"/></svg><svg class="sg-zoom-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
       </div>
-      <div class="strategic-overlay-ctrl">
-        <button data-ov="faction" class="active" title="势力范围">势力</button>
-        <button data-ov="commandery" title="按郡着色">郡</button>
-        <button data-ov="none" title="无底色">无</button>
+      <div class="strategic-overlay-fab">
+        <button class="strategic-overlay-toggle" title="展开/收起填色模式" aria-label="填色模式" aria-expanded="false"><svg class="sg-ov-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><svg class="sg-ov-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
+        <div class="strategic-overlay-ctrl">
+          <button data-ov="faction" class="active" title="势力范围">势力</button>
+          <button data-ov="commandery" title="按郡着色">郡</button>
+          <button data-ov="none" title="无底色">无</button>
+        </div>
       </div>
       <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>
     `;
@@ -980,33 +983,29 @@
       });
     });
 
-    // 缩放按钮组收起式浮动组：小屏(容器宽<540)默认只露一个手柄，
-    // 点开才展开 4 钮列；在图上拖拽/双指缩放时自动收起，避免持续遮挡扬州/交州等右下区域。
-    const zoomFab = ui.querySelector('.strategic-zoom-fab');
+    // 两组控制（缩放 / 填色模式）的收起式浮动组：小屏(容器宽<540)默认只露手柄，
+    // 点开才展开按钮列；在图上拖拽/双指缩放时自动收起，避免持续遮挡并/司(左上)与扬州/交州(右下)。
     let applyCompact = null;
-    if (zoomFab) {
-      const zoomToggle = zoomFab.querySelector('.strategic-zoom-toggle');
-      applyCompact = () => {
-        const compact = ui.clientWidth < 540;
-        zoomFab.classList.toggle('compact', compact);
-        if (!compact) zoomFab.classList.remove('open');
-        if (zoomToggle) zoomToggle.setAttribute('aria-expanded', zoomFab.classList.contains('open'));
-      };
+    const bindFab = (fab, toggleSel) => {
+      if (!fab) return null;
+      const toggle = fab.querySelector(toggleSel);
       const setOpen = (open) => {
-        zoomFab.classList.toggle('open', open);
-        if (zoomToggle) zoomToggle.setAttribute('aria-expanded', open);
+        fab.classList.toggle('open', open);
+        if (toggle) toggle.setAttribute('aria-expanded', open);
       };
-      if (zoomToggle) {
-        zoomToggle.addEventListener('click', (e) => {
-          e.stopPropagation();
-          setOpen(!zoomFab.classList.contains('open'));
-        });
-      }
-      svgEl.addEventListener('pointerdown', () => {
-        if (zoomFab.classList.contains('open')) setOpen(false);
-      });
-      applyCompact();
-    }
+      if (toggle) toggle.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!fab.classList.contains('open')); });
+      svgEl.addEventListener('pointerdown', () => { if (fab.classList.contains('open')) setOpen(false); });
+      return () => {
+        const compact = ui.clientWidth < 540;
+        fab.classList.toggle('compact', compact);
+        if (!compact) fab.classList.remove('open');
+        if (toggle) toggle.setAttribute('aria-expanded', fab.classList.contains('open'));
+      };
+    };
+    const applyCompactZoom = bindFab(ui.querySelector('.strategic-zoom-fab'), '.strategic-zoom-toggle');
+    const applyCompactOverlay = bindFab(ui.querySelector('.strategic-overlay-fab'), '.strategic-overlay-toggle');
+    applyCompact = () => { if (applyCompactZoom) applyCompactZoom(); if (applyCompactOverlay) applyCompactOverlay(); };
+    applyCompact();
 
     // 填色模式切换（势力范围 / 按郡 / 无）
     ui.querySelectorAll('.strategic-overlay-ctrl button').forEach(b => {
