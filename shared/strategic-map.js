@@ -146,6 +146,8 @@
   // 加载郡边界 GeoJSON
   let _regionCache = null;
   function loadRegions() {
+    // 优先用 script 全局（shared/data/map_regions.js 设置 LF.REGIONS），避免 file:// 下 fetch 被浏览器拦截导致地图空白
+    if (global.LF && global.LF.REGIONS) return Promise.resolve(global.LF.REGIONS);
     if (_regionCache) return _regionCache;
     _regionCache = fetch('shared/data/map_regions.geojson?v=' + (global.LF.CONSTANTS ? global.LF.CONSTANTS.VERSION : '1')).then(r => r.json());
     return _regionCache;
