@@ -54,8 +54,30 @@
         { id: 'roubao',    buy: 8,  sell: 3  },
         { id: 'caoyao',    buy: 5,  sell: 2  }
       ]
+    },
+    // 郊野遇上的游方行商（v20260905a）：货随担走，货色少于城中，价略高；
+    //   主要价值是把荒野采集/猎获物（草药/矿石/木头/野果/毛皮/蛇胆…）就地换成盘缠。
+    field_trader: {
+      name: '游方行商',
+      items: [
+        // —— 货架（buy>0）：行脚随身贩售，聊作远途之便 ——
+        { id: 'roubao',      buy: 12, sell: 4  },
+        { id: 'jinchuang',   buy: 34, sell: 12 },
+        { id: 'yaofen',      buy: 20, sell: 7  },
+        { id: 'campfire',    buy: 15, sell: 5  },
+        { id: 'sleepmat',    buy: 24, sell: 8  },
+        // —— 收售（buy:0 仅寄售不上架）：野外所得就地脱手 ——
+        { id: 'caoyao',      buy: 0,  sell: 2  },
+        { id: 'tiekuangshi', buy: 0,  sell: 6  },
+        { id: 'mutou',       buy: 0,  sell: 3  },
+        { id: 'xiaoshuzhi',  buy: 0,  sell: 1  },
+        { id: 'yeguo',       buy: 0,  sell: 2  },
+        { id: 'shengrou',    buy: 0,  sell: 4  },
+        { id: 'maopi',       buy: 0,  sell: 6  },
+        { id: 'shedan',      buy: 0,  sell: 10 },
+        { id: 'shepi',       buy: 0,  sell: 8  },
+        { id: 'xiang',       buy: 0,  sell: 2  }
+      ]
     }
-    // 以后新增商人只需在此追加，例如：
-    // , blacksmith: { name:'铁匠', items:[ {id:'mucai', buy:0, sell:5}, {id:'tiekuai', buy:20, sell:8} ] }
   };
 })();

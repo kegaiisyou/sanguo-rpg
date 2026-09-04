@@ -15,6 +15,7 @@
     fort:     { label:'要塞', icon:'垒', color:'#9a6b3a', isCityType:true,  grid:5, battleScale:'strategic', gen:'fort',  isPass:false },
     pass:     { label:'关',   icon:'关', color:'#8a5a2a', isCityType:true,  grid:5, battleScale:'strategic', gen:'fort',  isPass:true  },
     wild:     { label:'野',   icon:'野', color:'#6f8f5a', isCityType:false, grid:0, battleScale:'tactical',  gen:'wild',  isPass:false },
+    field:    { label:'郊野', icon:'野', color:'#6f8f5a', isCityType:false, grid:0, battleScale:'tactical',  gen:'field', isField:true, isPass:false },
     landmark: { label:'名胜', icon:'◎', color:'#b06fa0', isCityType:false, grid:0, battleScale:'tactical',  gen:'landmark', isPass:false },
     dungeon:  { label:'副本', icon:'穴', color:'#5a7a9a', isCityType:false, grid:0, battleScale:'tactical',  gen:'dungeon', isPass:false },
     story:    { label:'剧情', icon:'卷', color:'#7a6a9a', isCityType:false, grid:0, battleScale:'tactical',  gen:'story',  isPass:false },
@@ -26,7 +27,8 @@
     fort:   { garrison:40, wall:70, defenseBonus:0.20, assault:'auto', supplies:30, tax:0, canGarrison:true  },
     pass:   { garrison:40, wall:80, defenseBonus:0.25, assault:'auto', supplies:20, tax:0, canGarrison:false },
     dungeon:{ floors:1, roomsPerFloor:4, spawns:[], boss:null, loot:[], respawn:'onClear', instance:false, difficulty:1, entryReq:{}, clearReward:null },
-    landmark:{ plot:null, battle:null, isBattlefield:false }
+    landmark:{ plot:null, battle:null, isBattlefield:false },
+    field:   { size:4, richness:0.5, risk:0.3 }
   };
 
   global.LF.PLACE_KINDS = KINDS;

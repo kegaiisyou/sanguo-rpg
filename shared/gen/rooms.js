@@ -8,6 +8,16 @@
   var KINDS = global.LF.PLACE_KINDS || {};
   var DEFAULTS = global.LF.PLACE_DEFAULTS || {};
 
+  // 郊野生成辅助：确定性随机 / 中文数 / 地形文案
+  function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+  function hashStr(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+  function zh(n){ return ['零','一','二','三','四','五','六','七','八','九'][n] || (''+n); }
+  function fieldDesc(p, r, c, geo, isEntry){
+    var lines = [ (p.name||'郊野') + '，古道两旁草木葳蕤，远处隐约可见城郭村落的轮廓。' ];
+    if(isEntry) lines.push('你立于郊野入口，身后是来时的城门，前方路径四通八达。');
+    return lines;
+  }
+
   function pack(id, r){ var o = {}; o[id] = r; return o; }
 
   // 统一房间工厂：补齐引擎需要的字段（desc 数组 / find / exits / npcs / items / actions）
@@ -103,6 +113,40 @@
       return pack(p.id, r);
     },
     wild: function(p){ return GEN.landmark(p); },
+
+    // 郊野（行军层）：N×N 可步行网格，八向出口接罗盘；内容由 systems/travel.js 散布。
+    // 入口格在「近边」中央，远边各格经 travel.link() 分支到邻地点。
+    field: function(p){
+      var T = global.LF.Travel; if(!T) return {};
+      var size = p.size || 4;
+      var gd = p.gateDir || '东';
+      var geo = T.fieldGeometry(size, gd);
+      var o = {};
+      var DIR8 = { '北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0],
+                   '东北':[1,-1],'西北':[-1,-1],'东南':[1,1],'西南':[-1,1] };
+      for(var r=0;r<size;r++) for(var c=0;c<size;c++){
+        var rid = T.roomId(p.id, r, c);
+        var isEntry = (r===geo.entryR && c===geo.entryC);
+        var rm = room(p.id + '·' + gd + '郊野·' + zh(r) + zh(c) + '格', {
+          kind:'field', isField:true,
+          desc: fieldDesc(p, r, c, geo, isEntry),
+          find:'', actions:[]
+        });
+        rm.isField = true; rm.fieldId = p.id; rm.fr = r; rm.fc = c; rm._entry = isEntry;
+        rm.exits = {};
+        for(var d in DIR8){
+          var nr = r + DIR8[d][1], nc = c + DIR8[d][0];
+          if(nr>=0 && nr<size && nc>=0 && nc<size) rm.exits[d] = T.roomId(p.id, nr, nc);
+        }
+        var rng = mulberry32(hashStr(p.id + '@' + r + '_' + c));
+        var sc = T.scatterContent(rng, p, r, c, isEntry);
+        if(sc.resources.length) rm.resources = sc.resources;
+        if(sc.monsters.length) rm.monsters = sc.monsters;
+        if(sc.npcs.length) rm.fieldNpcs = sc.npcs;
+        o[rid] = rm;
+      }
+      return o;
+    },
 
     // 副本：入口房(@entrance) + floors×roomsPerFloor 平面串联；首房东进、行末南接下层、西出回入口；西出洞口回地表(entry)
     dungeon: function(p){

@@ -2051,7 +2051,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260904l"></script>
+<script src="shared/config/constants.js?v=20260905d"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -2063,17 +2063,18 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260902a"></script>
     <script src="shared/data/martial.js?v=20260902a"></script>
 <script src="shared/data/enemies.js?v=20260902a"></script>
-<script src="shared/data/items.js?v=20260902a"></script>
+<script src="shared/data/items.js?v=20260904n"></script>
     <script src="shared/data/recipes.js?v=20260902a"></script>
     <script src="shared/data/build.js?v=20260902a"></script>
-    <script src="shared/data/shops.js?v=20260902a"></script>
+    <script src="shared/data/shops.js?v=20260905a"></script>
     <script src="shared/shop.js?v=20260902a"></script>
     <script src="shared/data/map.js?v=20260902d"></script>
     <script src="shared/data/cities.js?v=20260903e"></script>
-    <script src="shared/data/placeKinds.js?v=20260904g"></script>
+    <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260904g"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
-    <script src="shared/gen/rooms.js?v=20260904h"></script>
+    <script src="shared/systems/travel.js?v=20260904n"></script>
+    <script src="shared/gen/rooms.js?v=20260904m"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/vendor/turf.min.js?v=20260902b"></script>
     <script src="shared/data/map_regions.js?v=20260904i"></script>
@@ -2128,6 +2129,20 @@ window.onerror=function(msg,url,line,col,err){
     {n:'雾',  ic:'🌫'},
     {n:'风',  ic:'🌬'}
   ];
+  // 郊野 × 天候/昼夜 影响模型（v20260905d）：状态栏早已显示天候，此处让机制真正生效。
+  // walk:郊野每移一格的额外精力损耗；hunt:猎取潜行的成功率修正；amb:敌对伏击/夜袭概率修正。
+  var WX_EFF=[
+    {walk:0,   hunt:0,    amb:0,    tip:''},
+    {walk:0,   hunt:0,    amb:0,    tip:''},
+    {walk:0,   hunt:0,    amb:0.05, tip:'天色阴沉，林间易藏凶徒。'},
+    {walk:1,   hunt:0.08, amb:0.08, tip:'细雨湿滑，行路费力，柴薪易湿。'},
+    {walk:2,   hunt:0.10, amb:0.12, tip:'大雨滂沱！行路疲惫，露宿篝火皆难安身。'},
+    {walk:2,   hunt:0.12, amb:0.05, tip:'风雪交加，天寒地冻，行路疲累。'},
+    {walk:1,   hunt:0.15, amb:0.22, tip:'浓雾迷离，难辨远近——伏击难防，却宜潜行猎兽。'},
+    {walk:1,   hunt:0,    amb:0,    tip:'朔风扑面，行路吃力。'}
+  ];
+  function isDaytime(){ var t=(state.time||0)%12; return t>=3 && t<=9; }  // 卯~酉为昼
+  function wxEff(){ return WX_EFF[state.weather] || WX_EFF[0]; }
   // 山河志空间坐标（网格 col,row；row 越小越北，col 越大越东）
   // 数据外置于 shared/data/map.js（LF.MAP）：coords 坐标 / regions 区域 / kinds 节点分色 / cell·li 图例
   // 自愈：凡 G.ROOMS 中存在但缺坐标的房间，依任一有坐标出口的方位就近生成，地图与 rooms 永不失配
@@ -2181,7 +2196,7 @@ window.onerror=function(msg,url,line,col,err){
   function buildMapKingHTML(opts){
     opts=opts||{};
     var coords=resolveMapCoords();
-    var keys=Object.keys(G.ROOMS).filter(function(rid){return coords[rid];});
+    var keys=Object.keys(G.ROOMS).filter(function(rid){return coords[rid] && !(G.ROOMS[rid].isField);});
     var KC=110, PAD=46;
     var minc=Infinity,maxc=-Infinity,minr=Infinity,maxr=-Infinity;
     keys.forEach(function(rid){var c=coords[rid];
@@ -2303,7 +2318,7 @@ window.onerror=function(msg,url,line,col,err){
     } else {
       wrap.querySelectorAll('[data-rid]').forEach(function(el){
         el.addEventListener('click', function(){
-          goRoomOnMap(el.getAttribute('data-rid'));
+          mapNodeInfo(el.getAttribute('data-rid'));
         });
       });
     }
@@ -3120,9 +3135,10 @@ window.onerror=function(msg,url,line,col,err){
         room.items.forEach(function(it){ narr.push({t:'· '+it, c:'item'}); });
       }
       if(room.exits){
-        var ex=Object.keys(room.exits).map(function(d){return d+'·'+G.ROOMS[room.exits[d]].name;}).join('　');
-        if(ex) narr.push({t:'〔出口〕 '+ex, c:'exit'});
+        var exLines=Object.keys(room.exits).map(function(d){ return d+'·'+exitDisplayName(room.exits[d]); }).join('　');
+        if(exLines) narr.push({t:'〔出口〕 '+exLines, c:'exit'});
       }
+      if(room.isField) narr = narr.concat(fieldNarr(room));   // 郊野：资源/野兽/路人
       // 新房间自动探查：标记已探索，出口立即可用。
       // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「环顾四周 / 探查」在玩家主动行动时揭示。
       if(!explored){
@@ -3144,6 +3160,7 @@ window.onerror=function(msg,url,line,col,err){
       renderMoveBar(G.ROOMS[state.room]||bldRoom(state.room));   // 门禁（moveGate）更新后重渲移动条；城内格子由 currentRoomExits 提供方向
       // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
       if(room.patrol && !silent && !onboarding) maybeAmbush(room);
+      if(room.isField && !onboarding) maybeFieldAmbush(room);   // 郊野：主动野怪拦路
     });
   }
   // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 流寇）
@@ -4106,6 +4123,13 @@ window.onerror=function(msg,url,line,col,err){
       renderSelf(room);
       return;
     }
+    // 郊野房间：采集 / 挑战 / 交谈（移动仍走底部罗盘）
+    if(room.isField){
+      fieldActions(room);
+      if(room.exits && Object.keys(room.exits).length) renderMoveBar(room);
+      renderSelf(room);
+      return;
+    }
     // 城市网格：当前格动作派生（取代旧出口/对象按钮）；移动改由底部方向键（currentRoomExits）负责
     if(isCityGrid(room.id)){
       cityCellActs(room.id, (state.flags.cityPos?state.flags.cityPos.x:0), (state.flags.cityPos?state.flags.cityPos.y:0)).forEach(function(a){
@@ -4457,6 +4481,18 @@ window.onerror=function(msg,url,line,col,err){
           ex.push({dir:d[0], name:d[0]+'·'+(ri?ri.nm:cellDisplayName(state.room,t)), icon:'🚪', tid:'__cell__', kind:'cell'});
         }
       });
+      // 城门外向出口：经罗盘「出城」进入对应郊野（不同城门 → 不同郊野 → 不同邻城）
+      var ct2=cellDisplayType(state.room, cp.x, cp.y);
+      if(ct2==='gate'){
+        var od=gateOutwardDir(state.room, cp.x, cp.y);
+        var gt=(LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][od])||null;
+        if(gt){
+          var gp=(LF.PLACES && LF.PLACES[gt])||{};
+          var gRoom=gp.entryRoom || gt;          // 指向真实房间（郊野入口格），而非郊野 id
+          var dn=gp.name || '郊野';
+          ex.push({dir:od, name:od+'·出城('+dn+')', icon:'🚪', tid:gRoom, kind:'gateout'});
+        }
+      }
       return ex;
     }
     var objs=roomObjs(room.id);
@@ -4464,7 +4500,7 @@ window.onerror=function(msg,url,line,col,err){
     if(ex.length) return ex;
     return Object.keys(room.exits||{}).map(function(dir){
       var tid=room.exits[dir];
-      return {dir:dir, name:dir+'·'+G.ROOMS[tid].name, icon:'🚪', tid:tid};
+      return {dir:dir, name:dir+'·'+exitDisplayName(tid), icon:'🚪', tid:tid};
     });
   }
   function renderSelf(room){
@@ -4476,13 +4512,84 @@ window.onerror=function(msg,url,line,col,err){
 
   function stripDir(nm){ return (nm||'').replace(/^[^·]*·/,''); }
 
+  // —— 城门 / 郊野行军 辅助 ——
+  // 取某城实际可用的城门方向（与 genCityGrid 的 gateOrder 一致）
+  function availableGateDirs(pid){
+    var c=(LF.CITIES||{})[pid]; if(!c||!c.grid) return ['北','东','南','西'];
+    var ct=c.ctype||'plain';
+    var order = (ct==='port')?['北','东','南','西'] : (ct==='mountain')?['北','西','南','东'] : (ct==='fort')?['北','南','西','东'] : ['北','东','南','西'];
+    var nG=cityGates(c);
+    var out=[]; for(var i=0;i<nG && i<order.length;i++) out.push(order[i]);
+    return out;
+  }
+  // 城门格 → 朝外方位
+  function gateOutwardDir(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return null;
+    var s=m.size;
+    if(y===0) return '北'; if(y===s-1) return '南';
+    if(x===s-1) return '东'; if(x===0) return '西';
+    return null;
+  }
+  function gateCellCoord(pid, dir){
+    var m=genCityGrid(pid); if(!m) return null;
+    var s=m.size, cx=Math.floor(s/2), cy=Math.floor(s/2);
+    if(dir==='北') return [cx,0];
+    if(dir==='南') return [cx,s-1];
+    if(dir==='东') return [s-1,cy];
+    if(dir==='西') return [0,cy];
+    return [cx,cy];
+  }
+  // 到达某城时落在指定城门（供郊野→城 哨兵出口使用）
+  function arriveAtGate(pid, dir){
+    var gc=gateCellCoord(pid, dir);
+    if(!gc){ renderRoom(pid); return; }
+    state.flags.cityPos={cid:pid, x:gc[0], y:gc[1]};
+    renderRoom(pid);
+  }
+  // 从城门经郊野出城（罗盘点「出城」按钮或城门外向移动触发）
+  function leaveViaGate(dir){
+    var cp=state.flags.cityPos; if(!cp||cp.cid!==state.room){ toast('须先立于城门。'); return; }
+    var _fid = (LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][dir]) || null;
+    var target = _fid ? ((LF.PLACES && LF.PLACES[_fid] && LF.PLACES[_fid].entryRoom) || _fid) : null;
+    if(!target){ toast('此门暂无通途。'); return; }
+    if(!exert('远行')) return;
+    state.energy=Math.max(0,state.energy-2);
+    state.food=Math.max(0,state.food-1); state.drink=Math.max(0,state.drink-1);
+    advanceTime(1);
+    log('你出'+((LF.CITIES[state.room]||{}).name||'城')+'的'+dir+'门，踏上城外古道……','sys');
+    renderRoom(target);
+  }
+  // 出口显示名（处理 __gate__ 哨兵 → 入城提示）
+  function exitDisplayName(tid){
+    if(typeof tid==='string' && tid.indexOf('__gate__:')===0){
+      var _p=tid.split(':'), pid=_p[1], dir=_p[2];
+      var nm=(LF.CITIES&&LF.CITIES[pid]&&LF.CITIES[pid].name) || (LF.PLACES&&LF.PLACES[pid]&&LF.PLACES[pid].name) || pid;
+      return dir+'·入城('+nm+')';
+    }
+    var r=G.ROOMS[tid]; return r? r.name : tid;
+  }
+
   // ===== 行走探索 =====
   function move(dir, tid){
     if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }   // 战斗进行中禁止移动
+    // 郊野→城 哨兵出口：落到对应城门
+    if(typeof tid==='string' && tid.indexOf('__gate__:')===0){
+      var _p=tid.split(':'); arriveAtGate(_p[1], _p[2]); return;
+    }
     if(isCityGrid(state.room)){
+      var _cp=state.flags.cityPos;
+      if(_cp && _cp.cid===state.room){
+        var _ct=cellDisplayType(state.room, _cp.x, _cp.y);
+        if(_ct==='gate'){
+          var _od=gateOutwardDir(state.room, _cp.x, _cp.y);
+          if(_od===dir && LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][_od]){
+            leaveViaGate(_od); return;
+          }
+        }
+      }
       var dm={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]}[dir];
       if(dm){
-        var _cp=state.flags.cityPos, _m=genCityGrid(state.room);
+        var _m=genCityGrid(state.room);
         if(!_cp||!_m){ toast('此处无路可去。'); return; }
         var nx=_cp.x+dm[0], ny=_cp.y+dm[1];
         if(nx>=0&&nx<_m.size&&ny>=0&&ny<_m.size && canEnterCell(state.room,nx,ny)){
@@ -4494,13 +4601,228 @@ window.onerror=function(msg,url,line,col,err){
       return;
     }
     if(!exert('远行')) return;
-    state.energy=Math.max(0,state.energy-4);
+    // 郊野逐格穿行：遇雨雪雾等天候额外耗费体力（WX_EFF.walk），城郭内不受影响
+    var _oldR=G.ROOMS[state.room];
+    var _wx=wxEff();
+    var _fieldStep=(_oldR && _oldR.isField) || !!(tid && G.ROOMS[tid] && G.ROOMS[tid].isField);
+    var _extra=(_fieldStep && _wx.walk) ? _wx.walk : 0;
+    state.energy=Math.max(0,state.energy-4-_extra);
     state.food=Math.max(0,state.food-1);
     state.drink=Math.max(0,state.drink-1);
     advanceTime(1);
-    log('你朝'+dir+'方行去，沿途景物渐换……','sys');
+    log('你朝'+dir+'方行去，沿途景物渐换……'+(_extra?('（'+((WEATHERS[state.weather]||{}).n||'')+'中行路，分外耗费气力。）'):''),'sys');
+    var _gone=state.room;
     renderRoom(tid);
+    var _gc=_gone && G.ROOMS[_gone];
+    if(_gc && _gc.isField){
+      var _left=fieldPlacedCamps(_gc);
+      if(_left.length) log('你起身离营——'+_left.map(function(f){return f.name;}).join('、')+'留在原地（折返仍可寻回，亦可作来日途中歇脚）。','sys');
+    }
   }
+  // ===== 郊野内容（资源 / 野兽 / 路人）=====
+  // 此格仍存的野怪：玩家战后按格+野怪id 记录清剿（flags.fieldClearedMon），防反复刷同一批
+  function fieldMonstersLeft(room){
+    if(!room || !room.isField || !(room.monsters && room.monsters.length)) return [];
+    var cleared = state.flags && state.flags.fieldClearedMon && state.flags.fieldClearedMon[room.id];
+    var fled    = state.flags && state.flags.fieldFledMon    && state.flags.fieldFledMon[room.id];
+    return room.monsters.filter(function(m){
+      return !(cleared && cleared[m.id]) && !(fled && fled[m.id]);
+    });
+  }
+  function fieldNarr(room){
+    var out=[];
+    // 顶栏天候/昼夜提示（v20260905d）：让时间与天候对郊野的影响可见可感
+    var _w=(WEATHERS[state.weather]||WEATHERS[0]);
+    var _t=wxEff().tip;
+    out.push({t:'〔天候〕'+_w.n+'·'+(isDaytime()?'昼':'夜')+(_t?('，'+_t):'，天色和朗，正宜赶路。'), c:'sys'});
+    if(room.resources && room.resources.length){ room.resources.forEach(function(r){ out.push({t:'〔地利〕此处有'+r.name+'（'+r.amt+'）可采。', c:'item'}); }); }
+    var mons=fieldMonstersLeft(room);
+    if(mons.length){ mons.forEach(function(m){
+      var _lv=(({1:'一',2:'二',3:'三'})[m.lvl||1]||'')+'阶';
+      if(m.aggr==='hostile') out.push({t:'〔戒备〕'+m.name+'（'+_lv+'）逡巡于此，见你便露凶光。', c:'combat'});
+      else if(m.aggr==='neutral') out.push({t:'〔野兽〕'+m.name+'（'+_lv+'）在林间徘徊，似不主动袭人。', c:'sys'});
+      else out.push({t:'〔走兽〕'+m.name+'（'+_lv+'）见人便窜入草丛。', c:'sys'});
+    }); }
+    if(room.fieldNpcs && room.fieldNpcs.length){ room.fieldNpcs.forEach(function(n){ out.push({t:'〔路人〕'+n.name+'在此歇脚。', c:'sys'}); }); }
+    var fcamps=fieldPlacedCamps(room);
+    if(fcamps.length) out.push({t:'〔营地〕此处已支有'+fcamps.map(function(f){return f.name;}).join('、')+'，可就近安歇或收起带走。', c:'good'});
+    return out;
+  }
+  function fieldActions(room){
+    if(room.resources && room.resources.length){
+      room.resources.forEach(function(res){ mkAct('scene','🌿','采'+res.name, function(){ gatherField(room, res); }); });
+    }
+    fieldMonstersLeft(room).forEach(function(m){
+      if(m.aggr==='hostile') mkAct('scene','⚔','清剿·'+m.name, function(){ startCombat([m.id], {fieldLvl:m.lvl}); });
+      else if(m.aggr==='neutral') mkAct('scene','⚔','挑战'+m.name, function(){ startCombat([m.id], {fieldLvl:m.lvl}); });
+      else if(m.aggr==='flee') mkAct('scene','🏹','猎取·'+m.name, function(){ huntFieldBeast(room, m); });
+    });
+    if(room.fieldNpcs && room.fieldNpcs.length){
+      room.fieldNpcs.forEach(function(n){ mkAct('scene','💬','与'+n.name+'交谈', function(){ talkFieldNpc(room, n); }); });
+    }
+    addFieldCamp(room);
+  }
+  function gatherField(room, res){
+    if(!state.flags.fieldGathered) state.flags.fieldGathered={};
+    if(state.flags.fieldGathered[room.id] && state.flags.fieldGathered[room.id].indexOf(res.type)>=0){ toast(res.name+'已被采尽。'); return; }
+    var did = (res.item) || null;
+    if(!did || !LF.ITEMS[did]){ toast(res.name+'暂无可采（物产缺失）。'); return; }
+    if(!packAdd(did, 1)) return;   // 行囊满则由 packAdd 提示，此格不标记采尽，可回头再采
+    state.flags.fieldGathered[room.id]=state.flags.fieldGathered[room.id]||[];
+    state.flags.fieldGathered[room.id].push(res.type);
+    log('你俯身采得'+LF.ITEMS[did].name+'一份，收进行囊。','good');
+    save(state); buildActions(G.ROOMS[state.room]);
+  }
+  // 猎取惊兽（aggr==='flee'，如野彘）：屏息潜行接近；成则入战（胜者照常清剿+掉落），
+  // 败则惊走——按格+野怪id 记 flags.fieldFledMon，此后本格不再现身（存档持久）。
+  function huntFieldBeast(room, m){
+    if(state.defeated){ toast('你重伤在身，追不动猎物。'); return; }
+    var es=effectiveStats ? effectiveStats() : null;
+    var spd=(es && es.spd!=null) ? es.spd : ((state.spd||10));
+    // 潜行成功率 = 身手基础 − 兽阶警觉 + 天候掩行 − 夜间野兽警觉
+    var _wx=wxEff();
+    var p=0.60 + Math.max(0, spd-20)*0.006 - ((m.lvl||1)-1)*0.06 + (_wx.hunt||0) - (isDaytime()?0:0.05);
+    p=Math.min(0.85, Math.max(0.30, p));
+    log('你屏息蹑足，借草木掩身缓缓向'+m.name+'靠拢……'+(isDaytime()?'':'（夜色深沉，蹑步愈轻。）'),'sys');
+    if(Math.random() < p){
+      log(m.name+'惊觉回首，獠牙尽露与你搏斗起来！','combat');
+      startCombat([m.id], {fieldLvl:m.lvl});
+      return;
+    }
+    if(!state.flags.fieldFledMon) state.flags.fieldFledMon={};
+    var row=state.flags.fieldFledMon[room.id]; if(!row) row=state.flags.fieldFledMon[room.id]={};
+    row[m.id]=1;
+    save(state);
+    log(m.name+'耳聪目明，趁你尚未及身便蹬地窜入密林深处，转瞬没了踪影。','sys');
+    buildActions(G.ROOMS[state.room]);
+  }
+  function talkFieldNpc(room, n){
+    if(n.type==='trader'){
+      log('行商卸下担子：「壮士远来，荒野中正少个歇脚处——干粮伤药、柴薪卧席，小老儿都备了些，价好商量。」','sys');
+      openModal('shop', { shop:'field_trader' });
+      return;
+    }
+    if(n.type==='refugee'){
+      var rt = (Math.random() < 0.5)
+        ? '小老儿逃难至此，腹中空空，只盼太平…' + ((room && room.monsters && room.monsters.length)? '那边林子里似有歹人出没，将军路过当心。' : '将军若往南行，听说道上有商队结伴，或能捎您一程。')
+        : '前路不太平，行路切记贴身藏好干粮饮水。';
+      log('流民拱手叹道：「将军行行好——'+rt+'」','sys');
+      return;
+    }
+    log('路人朝你点了点头，继续赶路。','sys');
+  }
+  // ===== 郊野营地（v20260905b）：帐篷/篝火/草席在野外格可支设、可收起、可按设施安歇 =====
+  // 复用既有 state.placed[房间id] 放置物机制：野外格房间独立隔离；设施 key（物品 place.key）→ REST_KINDS
+  var PLACE_CAMP_KIND = { campfire:'campfire', sleepmat:'sleepmat', tent:'tent' };
+  var FIELD_CAMP_REST = { tent:'安歇…', campfire:'烤火取暖…', sleepmat:'躺下小睡…' };
+  // 本格已支设的营地设施（含图标/名称/对应休息档位；按 帐篷>篝火>草席 排序）
+  function fieldPlacedCamps(room){
+    if(!room || !room.id) return [];
+    var arr=(state.placed && state.placed[room.id]) || [];
+    var order={tent:0, campfire:1, sleepmat:2}, out=[];
+    arr.forEach(function(p){
+      var k=PLACE_CAMP_KIND[p && p.key]; if(!k) return;
+      var d=LF.ITEMS[p.defId] || {}; var pl=d.place || {};
+      out.push({ key:p.key, kind:k, name:pl.name || d.name || p.key, icon:pl.icon || '⛺', order:order[k] });
+    });
+    out.sort(function(a,b){ return a.order-b.order; });
+    return out;
+  }
+  // 行囊中可支设且本格尚未支设的营地器具（每类一例；行商处亦贩此等物）
+  function carriedCampGear(room){
+    if(!state.pack) return [];
+    var placed={}; fieldPlacedCamps(room).forEach(function(f){ placed[f.key]=1; });
+    var seen={}, out=[];
+    state.pack.forEach(function(it){
+      if(!it) return;
+      var d=LF.ITEMS[it.defId]; if(!d || !d.place) return;
+      var k=PLACE_CAMP_KIND[d.place.key]; if(!k || seen[d.place.key]) return;
+      if(placed[d.place.key]) return;
+      seen[d.place.key]=1;
+      out.push({ key:d.place.key, defId:it.defId, kind:k, name:d.name, icon:d.place.icon || '⛺' });
+    });
+    return out;
+  }
+  // 支设某器具入本格（行囊扣除一件；随即按该档位打开安歇面板）
+  function placeFieldGear(room, g){
+    if(state.defeated){ toast('你重伤动弹不得，先就地打盹吧。'); openRestModal('ground'); return; }
+    var tag=placedCellTag(room.id);
+    state.placed=state.placed || {}; state.placed[room.id]=state.placed[room.id] || [];
+    if(state.placed[room.id].some(function(o){ return o.key===g.key && placedInCell(o, room.id, tag); })){ toast('此处已支有'+g.name+'。'); return; }
+    var cur=packFind(g.defId);
+    if(!cur || (cur.count||1)<1){ toast('行囊中已无'+g.name+'。'); return; }
+    packConsume(g.defId, 1);
+    state.placed[room.id].push({ key:g.key, defId:g.defId, cell:tag });
+    log('你卸下行囊，支起'+g.name+'。','good');
+    afterPackChange();          // 存档 + 刷新行囊与场景（支设后场景按钮即切换为设施）
+    openRestModal(g.kind);
+  }
+  // 郊野格场景的营地按钮组：
+  //   已有支设设施 → 设施按钮（安歇…/收起带走），不再重复「扎营休整」；
+  //   行囊有器具   → 「布设·X」按钮 + 兜底「扎营休整」（露宿）；
+  //   否则         → 仅「扎营休整」。
+  function addFieldCamp(room){
+    var facs=fieldPlacedCamps(room);
+    if(facs.length){
+      facs.forEach(function(f){
+        var b=mkAct('scene', f.icon, f.name, function(e){
+          toggleObjExpand(e, b, {name:f.name, desc:'本格营地设施'}, [
+            {label: (FIELD_CAMP_REST[f.kind] || '安歇…'), icon:'💤', fn:function(){ openRestModal(f.kind); }},
+            {label:'收起带走', icon:'📦', fn:function(){ packUpPlaced(f.key); }}
+          ]);
+        });
+      });
+      return;
+    }
+    var carry=carriedCampGear(room);
+    carry.forEach(function(g){
+      mkAct('scene', g.icon, '布设·'+g.name, function(){ placeFieldGear(room, g); });
+    });
+    mkAct('scene','⛺','扎营休整', function(){ campInField(room); });
+  }
+  // 野外扎营（无设施兜底）：效率低于帐/席/篝火；格内仍有凶兽时，露宿醒转可能遭夜袭（见 doRest）
+  function campInField(room){
+    if(state.defeated){ toast('你重伤动弹不得，只能席地打盹。'); openRestModal('ground'); return; }
+    var host=fieldMonstersLeft(room).filter(function(m){ return m.aggr==='hostile'; });
+    if(host.length){
+      log('〔警觉〕此格仍有'+host.map(function(m){return m.name;}).join('、')+'逡巡——荒野露宿恐遭夜袭！','combat');
+    }
+    openRestModal('wild');
+  }
+  function maybeFieldAmbush(room){
+    if(state.defeated || combatMode!==null) return false;
+    var hostiles=fieldMonstersLeft(room).filter(function(m){ return m.aggr==='hostile'; });
+    if(!hostiles.length) return false;
+    // 拦路/夜袭概率 = 55% 基准 + 天候掩蔽修正 + 入夜加成（雾雨夜里更难提防），clamp 至 [0.2,0.9]
+    var _ch=0.55 + (wxEff().amb||0) + (isDaytime()?0:0.12);
+    _ch=Math.max(0.2, Math.min(0.9, _ch));
+    if(Math.random() < _ch){
+      var ids=hostiles.map(function(m){ return m.id; });
+      var ml=1; hostiles.forEach(function(m){ if((m.lvl||1)>ml) ml=m.lvl||1; });
+      var label=hostiles.map(function(m){ return m.name; }).join('、');
+      log('〔警觉〕'+label+(isDaytime()?('趁'+((WEATHERS[state.weather]||{}).n||'')+'天色'):'趁夜色')+'扑出，拦住去路！','combat');
+      startCombat(ids, {fieldLvl:ml});
+      return true;
+    }
+    return false;
+  }
+
+  // ===== 山河志 / RPG 地图 = 参考（点击仅显示信息，不作移动）=====
+  function placeInfo(id, name, kind, st, desc, owner, isPlace){
+    name = name || (LF.CITIES&&LF.CITIES[id]&&LF.CITIES[id].name) || (LF.PLACES&&LF.PLACES[id]&&LF.PLACES[id].name) || id;
+    var p = (LF.PLACES&&LF.PLACES[id]) || (LF.CITIES&&LF.CITIES[id]) || {};
+    var blurb = desc || p.blurb || p.desc || '';
+    if(Array.isArray(blurb)) blurb = blurb[0]||'';
+    toast('山河志 · '+name);
+    log('〔山河志·'+name+'〕'+(blurb||'形胜之地。'),'sys');
+  }
+  function mapNodeInfo(rid){
+    if(!rid) return;
+    var r=G.ROOMS[rid]; var name=(r&&r.name)||rid;
+    toast('山河志 · '+name);
+    log('〔山河志·'+name+'〕此处是山河志上的一处所在，仅供参照，不可由此移动。','sys');
+  }
+
   // 山河志地图旅行：点击房间节点直接前往（消耗与步行一致，不要求相邻出口）
   function goRoomOnMap(rid){
     var r=G.ROOMS[rid]; if(!r) return;
@@ -4591,7 +4913,10 @@ window.onerror=function(msg,url,line,col,err){
       case 'leave_city': {
         var _cp=state.flags.cityPos||{}, _ct=(_cp.cid? cellDisplayType(_cp.cid, _cp.x, _cp.y):'');
         if(_ct!=='gate'){ toast('须至城门方能出城——沿道路走到城门口，或「寻路出城」。'); break; }
-        openModal('map', {forceWorld:true}); break;
+        var _od=gateOutwardDir(_cp.cid, _cp.x, _cp.y);
+        if(LF.PLACE_GATES && LF.PLACE_GATES[_cp.cid] && LF.PLACE_GATES[_cp.cid][_od]) leaveViaGate(_od);
+        else toast('此门暂无通途。');
+        break;
       }
       case 'edict': {
         if(!isCityGrid(state.room)){ toast('此处非城池中枢，无处发号。'); break; }
@@ -4638,6 +4963,8 @@ window.onerror=function(msg,url,line,col,err){
         state.flags.cityPos={cid:_cid, x:+_tp[0], y:+_tp[1]};
         log('你沿街巷穿行'+_steps+'格直抵城门（精力-'+_eng+'），城门在望。','sys');
         renderRoom(_cid, true); save(state);
+        var _od2=gateOutwardDir(_cid, +_tp[0], +_tp[1]);
+        if(LF.PLACE_GATES && LF.PLACE_GATES[_cid] && LF.PLACE_GATES[_cid][_od2]) leaveViaGate(_od2);
         if(currentModalKind==='map') openModal('map');
         break;
       }
@@ -4888,8 +5215,22 @@ window.onerror=function(msg,url,line,col,err){
     tent:     { name:'帐篷',   hp: 0.35, mp: 0.35, en: 0.40, fd: 0.30, dr: 0.30 }, // 帐篷：全恢复效率最高
     sleepmat: { name:'草席',   hp: 0.22, mp: 0.22, en: 0.32, fd: 0.20, dr: 0.20 }, // 草席：中等
     campfire: { name:'篝火',   hp: 0.10, mp: 0.10, en: 0.38, fd: 0.50, dr: 0.50 }, // 篝火：暖身解饥渴、精力恢复快
+    wild:     { name:'野外露宿', hp: 0.12, mp: 0.12, en: 0.30, fd: 0.16, dr: 0.16 }, // 荒野扎营：以地为席，聊胜于无
     ground:   { name:'席地打盹', hp: 0.08, mp: 0.08, en: 0.22, fd: 0.12, dr: 0.12 }  // 就地：聊胜于无
   };
+  // 天候对野外歇息效率的折扣（键=天候索引；无折扣项=1）。帐篷遮风挡雨不受天候影响；
+  // 城市/建筑内歇息同样不受影响（outdoorRestFactor 先判 isField）。
+  var WX_REST={
+    3:{campfire:0.85, sleepmat:0.9, wild:0.9,  ground:0.85},  // 微雨：略打折扣
+    4:{campfire:0.5,  sleepmat:0.6, wild:0.55, ground:0.5},   // 大雨：露天皆难安身
+    5:{campfire:0.8,  sleepmat:0.8, wild:0.75, ground:0.7}    // 雪：天寒，无蔽风雪者折扣
+  };
+  function outdoorRestFactor(kind){
+    if(kind==='tent') return 1;
+    var _r=G.ROOMS[state.room]; if(!_r || !_r.isField) return 1;
+    var _t=WX_REST[state.weather]; if(!_t) return 1;
+    return (_t[kind]!=null) ? _t[kind] : 1;
+  }
   // 打开自由时长休息面板（设施决定效率；战败只能就地打盹）
   function openRestModal(kind){
     if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
@@ -4900,16 +5241,19 @@ window.onerror=function(msg,url,line,col,err){
   function renderRestPanel(){
     var kind = (restState.kind||'ground');
     var cfg = REST_KINDS[kind] || REST_KINDS.ground;
+    var wxFac = outdoorRestFactor(kind);
     // 休息时长档位：1 / 3 / 6 时辰，恢复量随时长线性增长
     var opts = [ {h:1, lb:'小憩 · 1 时辰'}, {h:3, lb:'安睡 · 3 时辰'}, {h:6, lb:'酣眠 · 6 时辰'} ];
     var esR = effectiveStats();
     function est(h){
-      return '精力+'+Math.round(esR.maxEnergy*cfg.en*h)+'　气血+'+Math.round(esR.maxHp*cfg.hp*h)
-        + (esR.maxMp>0?('　内力+'+Math.round(esR.maxMp*cfg.mp*h)):'')
-        + '　饥渴+'+Math.round(100*cfg.fd*h)+'%';
+      return '精力+'+Math.round(esR.maxEnergy*cfg.en*h*wxFac)+'　气血+'+Math.round(esR.maxHp*cfg.hp*h*wxFac)
+        + (esR.maxMp>0?('　内力+'+Math.round(esR.maxMp*cfg.mp*h*wxFac)):'')
+        + '　饥渴+'+Math.round(100*cfg.fd*h*wxFac)+'%';
     }
     var h = '<h3 style="text-align:center;margin:0 0 6px;">'+cfg.name+' · 歇息</h3>'
-      + '<p class="tip">歇息推进时辰，恢复随长短而异；饥渴食水亦会流逝。'+est(1)+'。</p>';
+      + '<p class="tip">歇息推进时辰，恢复随长短而异；饥渴食水亦会流逝。'+est(1)+'。'
+      + (wxFac<1 ? '<br><span style="color:#b8893a;">〔'+((WEATHERS[state.weather]||{}).n||'')+'〕野外无遮蔽，歇息恢复打折。</span>' : '')
+      + '</p>';
     opts.forEach(function(o){
       h += '<button class="sheet-btn" style="margin:6px 0;" data-rest="'+o.h+'">'+o.lb+'<br><span style="font-size:12px;opacity:.75;">'+est(o.h)+'</span></button>';
     });
@@ -4923,24 +5267,31 @@ window.onerror=function(msg,url,line,col,err){
     var lv=document.getElementById('m-rest-leave'); if(lv) lv.onclick=closeModal;
     var ck=document.getElementById('m-rest-cook'); if(ck) ck.onclick=function(){ closeModal(); openModal('craft',{bench:'kitchen'}); };
   }
-  // 执行自由时长休息：推进时间并按要求恢复
+  // 执行自由时长休息：推进时间并按要求恢复（野外天候差时打折，见 outdoorRestFactor）
   function doRest(hours){
     var kind = restState.kind || 'ground';
     var cfg = REST_KINDS[kind] || REST_KINDS.ground;
+    var wxFac = outdoorRestFactor(kind);
     var esR = effectiveStats();
     advanceTime(hours);
-    var hpGain = Math.round(esR.maxHp*cfg.hp*hours);
-    var mpGain = esR.maxMp>0 ? Math.round(esR.maxMp*cfg.mp*hours) : 0;
-    var enGain = Math.round(esR.maxEnergy*cfg.en*hours);
+    var hpGain = Math.round(esR.maxHp*cfg.hp*hours*wxFac);
+    var mpGain = esR.maxMp>0 ? Math.round(esR.maxMp*cfg.mp*hours*wxFac) : 0;
+    var enGain = Math.round(esR.maxEnergy*cfg.en*hours*wxFac);
     state.hp = Math.min(esR.maxHp, (state.hp||0)+hpGain);
     if(state.mp>0) state.mp = Math.min(esR.maxMp, (state.mp||0)+mpGain);
     state.energy = Math.min(state.maxEnergy, (state.energy||0)+enGain);
-    state.food = Math.min(state.maxFood, (state.food||0)+Math.round(state.maxFood*cfg.fd*hours));
-    state.drink = Math.min(state.maxDrink, (state.drink||0)+Math.round(state.maxDrink*cfg.dr*hours));
+    state.food = Math.min(state.maxFood, (state.food||0)+Math.round(state.maxFood*cfg.fd*hours*wxFac));
+    state.drink = Math.min(state.maxDrink, (state.drink||0)+Math.round(state.maxDrink*cfg.dr*hours*wxFac));
     if(state.defeated){ state.defeated=false; }
     save(state); renderStatus();
-    log('你在'+cfg.name+'歇了'+hours+'个时辰——气血内力精力渐复，饥渴亦有所解。','good');
-    closeModal(); buildActions(G.ROOMS[state.room]);
+    log('你在'+cfg.name+'歇了'+hours+'个时辰——气血内力精力渐复，饥渴亦有所解。'+(wxFac<1?'（惜'+((WEATHERS[state.weather]||{}).n||'')+'，无遮蔽处歇息吃力，恢复打了折扣。）':''),'good');
+    closeModal();
+    var _ambush = false;
+    var _rroom = G.ROOMS[state.room];
+    if(_rroom && _rroom.isField && kind!=='ground'){
+      _ambush = maybeFieldAmbush(_rroom);   // 凶兽未清剿的野地扎营（无论露宿或支帐围火）醒转皆可能遭袭
+    }
+    if(!_ambush) buildActions(G.ROOMS[state.room]);
   }
   // 城市格放置物定位（v20260825b）：城市网格内放置物带 {cell:{x,y}}，按格隔离，不再全城共享；
   // 旧存档无格坐标的放置物视为位于城心格，保证不"消失"。
@@ -7171,7 +7522,7 @@ window.onerror=function(msg,url,line,col,err){
         marks: marks,
         onCityClick: function(city){
           if(!city || !city.id) return;
-          goRoomOnMap(city.id);
+          placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);
         }
       });
     }
@@ -7765,10 +8116,20 @@ window.onerror=function(msg,url,line,col,err){
     (state.party||[]).forEach(function(c){ if(c) party.push(Object.assign({}, c, { hp:c.maxHp })); });
     var r=G.CombatEngine.init(party, enemyId);
     if(r.error){ log(r.error,'sys'); return; }
-    // 城门被焚（不免疫火烧）→ 守军战力下降
-    if(opt.guardMul && opt.guardMul<1){
-      var _g=G.CombatEngine.getEnemy();
-      if(_g){ _g.hp=_g.maxHp=Math.max(1,Math.round(_g.maxHp*opt.guardMul)); _g.atk=Math.max(1,Math.round(_g.atk*opt.guardMul)); _g.def=Math.max(1,Math.round(_g.def*opt.guardMul)); }
+    // 战力缩放（v20260905d：改为作用于「本场战斗单位」，不再污染全局 ENEMIES 数据——
+    // 旧实现直接改 getEnemy() 返回的共享敌人定义，城门焚毁会把 city_guard 永久削弱且多次叠加）：
+    //   guardMul  → 城门被焚（不免疫火烧）守军战力下降
+    //   fieldLvl  → 郊野凶兽按等阶强化（1~3 阶：每级气血/攻/防约 +25%、速度约 +12%）
+    var _mulF = (opt.guardMul && opt.guardMul<1) ? opt.guardMul : ((opt.fieldLvl&&opt.fieldLvl>1) ? (1+0.25*(opt.fieldLvl-1)) : null);
+    if(_mulF){
+      var _mulS = (opt.fieldLvl&&opt.fieldLvl>1) ? (1+0.12*(opt.fieldLvl-1)) : null;
+      var _es=(G.CombatEngine.state && G.CombatEngine.state.enemies)||[];
+      _es.forEach(function(_e){
+        _e.hp=_e.maxHp=Math.max(1,Math.round((_e.maxHp||1)*_mulF));
+        _e.atk=Math.max(1,Math.round((_e.atk||0)*_mulF));
+        _e.def=Math.max(1,Math.round((_e.def||0)*_mulF));
+        if(_mulS) _e.spd=Math.max(1,Math.round((_e.spd||10)*_mulS));
+      });
     }
     // V3：战场氛围（按敌人定主题背景）
     var SCENE_THEME={ bandit:'camp', bandit_chief:'camp', heishan_zei:'camp', heishan_zhu:'fort',
@@ -8316,6 +8677,16 @@ window.onerror=function(msg,url,line,col,err){
         if(upMsgs.length) summary.lines.push({text:'【武学精进】'+upMsgs.join('、')+' 突破！'});
       }
 
+      // ── 郊野战果归档：胜则按格+野怪id 记清剿（防反复刷同一批伏兽/野兽）──
+      var _froom = G.ROOMS[state.room];
+      if(_froom && _froom.isField && enemyDatas && enemyDatas.length){
+        var _cf0 = state.flags.fieldClearedMon;
+        if(!_cf0) _cf0 = state.flags.fieldClearedMon = {};
+        var _crow = _cf0[state.room];
+        if(!_crow) _crow = _cf0[state.room] = {};
+        enemyDatas.forEach(function(ed){ if(ed && ed.id) _crow[ed.id] = 1; });
+      }
+
       if(dqCardEl) dqCardEl.classList.add('settle-win');
       playCombatFx('win');
       SFX.win();
@@ -8796,7 +9167,13 @@ window.onerror=function(msg,url,line,col,err){
   }
   registerCityRooms();
 
-  // ── 统一地点房间生成（Place 系统）：城市以外类型(fort/pass/landmark/dungeon/story...)由 gen/rooms.js 造房注入 G.ROOMS ──
+  // ── 行军系统：按路网在相邻地点间生成「郊野」骨架，再连出入口（须先有 genCityGrid 等游戏函数）──
+  if(LF.Travel){
+    LF.Travel.setGateDirs(availableGateDirs);
+    LF.Travel.build();
+  }
+
+  // ── 统一地点房间生成（Place 系统）：城市以外类型(fort/pass/landmark/dungeon/story/field...)由 gen/rooms.js 造房注入 G.ROOMS ──
   function registerPlaceRooms(){
     var P = LF.PLACES || {};
     for(var pid in P){
@@ -8813,6 +9190,7 @@ window.onerror=function(msg,url,line,col,err){
     }
   }
   registerPlaceRooms();
+  if(LF.Travel) LF.Travel.link();   // 郊野网格造好后，连 近边入口↔母城 / 远边出口↔邻点
 
 })();
 </script>

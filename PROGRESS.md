@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260902a`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260905d`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -136,7 +136,7 @@
 ## 六、当前可玩内容速览（玩点 + 流程）
 
 ### 6.1 游戏状态（v0.2.0）
-- 框架闭环自洽，**61 个场景房间**（颍川主营·颍川城·北邙山林·溪畔草庐·洛阳 + 蓟城诸坊[通衢/南门/北门/州牧/学宫/大市/酒楼/军营/练武场/茶肆/平民里/民居等] + 黑山寨 + 北疆边塞[渔阳12坊·白檀军屯6·燕山6]）；开局新增**捏人界面**（自输姓名 + 选出身禀赋 + 六维先天资质点配 15 点，基础 5 / 范围 1–10）与**序章开场叙事**（光和元年背景打字机演出），新档位点击即进入捏人→序章→入局
+- 框架闭环自洽。手写场景房间（苦役营教学 11 间、黑山寨、颍川主营/城、北邙山林、溪畔草庐、洛阳、蓟城诸坊、北疆边塞[渔阳/白檀军屯/燕山]等）之上，另有 **Place 统一地点体系按 kind 造房**（关门瓮城/副本多层等，v20260904h 起，节点连通校验 80 房）；开局新增**捏人界面**（自输姓名 + 选出身禀赋 + 六维先天资质点配 15 点，基础 5 / 范围 1–10）与**序章开场叙事**（光和元年背景打字机演出），新档位点击即进入捏人→序章→入局
 - 时间：年号「**光和元年**（公元 178）」，农历 + 公历双轨 + 12 时辰，状态栏常驻古历 + 天候
 - 战斗：12 招式数据（9 招式 + 3 发力技巧，含绝技回马枪）+ 10 敌模板 + 4 AI + 华雄 Boss；半手动
 - 武学：13 艺线真招式研习 + 发力技巧装配，研习界面带门槛锁
@@ -159,14 +159,14 @@
 - 历法/天候营造沉浸；NPC 自由交互（交谈/观察/攻击，强调自由度）
 
 ### 6.3 主线流程
-燕山·山口（北疆幽州·出生） → 颍川早期可玩区域（剿匪/巡山攒声望，地图系统测试/演示） → 声望≥20 → 挑战台·力斩华雄 → 解锁洛阳 → 赴洛阳凯旋
+苦役营（新手教学·越狱毕业） → 林径/黑山寨 → 颍川早期可玩区域（剿匪/巡山攒声望，D3 战略地图演示） → 声望≥20 → 挑战台·力斩华雄 → 解锁洛阳 → 赴洛阳凯旋；捏人勾「跳过新手教程（测试用）」则直接落洛阳（朱雀大街，v20260904l）
 
 ### 6.4 探索 / 副线
 - 颍川城：逛市集交易、维持治安、与华老交谈
 - 北邙山林：巡山剿匪、林间栖身
 - 溪畔草庐：访水镜先生与左慈、草庐借宿
 - 建造系统测试房（北邙山林南）：砍树/采石 → 木工台制材 → 翻木箱得图纸 → 依图营造 → 冶炼工坊熔石取铁
-- 北疆边塞（汉末真实地理，蓟城东北→北）：渔阳（北疆门户·12坊：郭门/南门/通衢/北门/西市街/县衙/军营/驿馆/东市街/大市/望蓟楼/听涛茶肆）→ 白檀军屯（滦水屯田戍堡·营门/屯寨/屯田/马苑/粮廪/哨垒，曹操北征乌桓所经）→ 燕山（山脉屏障·山口/峰峦/深涧/林道/古栈道/雪岭，古栈道出塞）；当前**出生点暂设燕山·山口**
+- 北疆边塞（汉末真实地理，蓟城东北→北）：渔阳（北疆门户·12坊：郭门/南门/通衢/北门/西市街/县衙/军营/驿馆/东市街/大市/望蓟楼/听涛茶肆）→ 白檀军屯（滦水屯田戍堡·营门/屯寨/屯田/马苑/粮廪/哨垒，曹操北征乌桓所经）→ 燕山（山脉屏障·山口/峰峦/深涧/林道/古栈道/雪岭，古栈道出塞）；新手默认出生**苦役营·劳役场**（`camp_yard`，教学线，v20260902a 起）
 
 ---
 
@@ -621,4 +621,123 @@
 
 ---
 
-*最后更新：2026-08-31（§9.32：修复装备/卸下后行囊装备栏不实时刷新——抽出 renderEquipFigure + 新增 refreshPackEquipLight，装备与卸下均即时反馈，浏览器实测跑通，v20260831u）*
+### §9.33 战略地图 D3 化整体大迭代：dissolve 几何 + 两级 LOD + 州名定位/压边/求解（09-02 → 09-04，v20260902r – v20260904d）
+
+**从「网格山河志」切换到 D3 真实地理战略图（09-02 起，92de3a5 等一波提交）**
+- `92de3a5` 起 D3 `geoPath + geoMercator` 战略地图作为唯一地图入口（替换网格/列表式山河志），过程历经边界线显示调试（`55e7815`/`0f60710`/`46166c1` 等微调：州界合并不依赖 turf 用 `geoMerge`、后改用 turf.dissolve/union），`afec69e` 修复全红/图例/州名缩放跟随。
+- **构建期 dissolve（`21d1832`）**：源 `region.geojson` 61 郡彼此重叠（111 对相交）导致双线色块——新增 `tools/dissolve_map.py`（Python+shapely）按 州/势力/郡 `unary_union` + difference 分区互不重叠，产出 `shared/data/map_regions.geojson`（layer: province 14 / faction 4 / commandery 61，州为 MultiPolygon）。
+- 后续几何打磨：`6e996e6` 郡边界 RDP 抽稀消近看锯齿；`28d9f36` 州界凹包+样条平滑、移除地图调试面板与其 console.log 劫持；`6fd631c` 因 MultiPolygon 崩溃去除冗余曲线化省内存；`36d9408` 边界 `vector-effect:non-scaling-stroke` 修拉远轮廓消失；`b545ce5` 点击崩溃防呆 + 城市整组随缩放淡入淡出 + 州外框 halo 区分郡线；`cf4313b` 拉远藏势力填充、`display:none` 掐死郡层内部线。
+
+**两级 LOD 交叉淡入淡出（4ddfeca 源头填洞 → 2d3fdcd 州名居中 → ce5226e 州/郡描边分级）**
+- 拉远（k<1.9）：只显示州描边（深色 halo + 暖金线 `sm-province-halo/sm-provinces`）+ 州名（HTML 标签放 overlay，只 translate 不 scale → 不模糊）；拉近（k>3.4）：州层淡出、**郡描边**（`sm-cmd-border`）+ **郡名**（`geoPath.centroid` 质心）+ 城点/城名淡入；`fade(k,1.9,3.4)=lod` 全程交叉。
+- 州名定位（2d3fdcd 关键修复）：旧硬编码坐标与 dissolve 后真实几何对不上 → 改用 `geoPath.centroid` 真实质心 + **限幅碰撞避让**（重叠对沿连线各推半重叠量、迭代 80 次、单标签位移 ≤ MAX_NUDGE=36px 防跨州漂移）。
+- `5367942` 郡名与城市名解耦、`a63d603` 州名串区修复（标签逐轮拉回本州内 + 郡名区内兜底锚点）；`a6ba0ff` 修一处局部变量与参数重名导致的整页崩溃。
+
+**州名压边修复三连（P0-1 系，20260903g → 20260904a → 20260904d）**
+- `5e2e5cc`（v20260903g）：质心+避让会互相推离州界 → 改 `deepAnchor(geom)` = 本州内离边界最远点，删碰撞避让块。
+- `17ed4e1`（v20260904a）：deepAnchor 内普通射线奇偶判定在扫描线与顶点等高时误判州外点 → 换 winding number（半开 y1≤y<y2），凉州/交州锚点校正入州（其余 12 州零变化）。
+- `d8a54cb`（v20260904d）：求解器二分回收把锚点夹到州外接框、标签盒半宽甩出轮廓 → 硬约束改 `boxInStateIdx`（标签盒四角 winding 判定全入州），州名字号基准 20→17（box≈38×20），窄州宁留最小溢出不出界。
+
+### §9.34 战略图 UI / 性能打磨（v20260904c / e / f）
+
+- **v20260904c（7e31002）· 缩放按钮小屏收起式浮动组**：`.strategic-zoom-fab`（bottom:10 right:10）内含原 4 钮列 + 手柄 `.strategic-zoom-toggle`（放大镜 svg / 下箭头 svg）；`ui.clientWidth<540` 加 `.compact` 默认只露 34px 手柄不挡右下区，点开列、图上 pointerdown 自动收起；宽屏无变化。
+- **v20260904e（e88a732）· resize 性能**：不再整图重建，改为「渲染坐标系 / 视口尺寸」解耦——render 用当时视口 `fitExtent` 建坐标并记 baseW/baseH，`computeBaseFit()` 按当前视口算 baseT 等比缩放；`applyTransform` 内 `baseT.transform(userT)` 叠加；resize 只 `computeBaseFit()+_apply`。
+- **v20260904f（48a863f）· 左上填色模式栏对称化**：填色 3 钮（势力/郡/无）同款改 `.strategic-overlay-fab` 收起式（.compact + toggle + pointerdown 收起），重构出通用 `bindFab(fab,toggleSel)` 给 zoom/overlay 各绑一次；宽屏仍常显。
+
+### §9.35 Place 统一地点系统（v20260904g / h）
+
+- **v20260904g（3032b37）地基**：新增统一地点注册表 `shared/data/placeKinds.js`/`places.js`/`roads.js`——类型契约 + 路网自动生成（关门 chokepoint、A* 行军数据结构），为后续 systems/travel.js（行军）铺底。
+- **v20260904h（1b82f04）房间生成**：新增 `shared/gen/rooms.js`（暴露 `LF.genPlaceRooms(placeId)`/`LF.PLACE_GEN`），按 kind 生成房间图：city（兼容单根房，isCity，不碰原 registerCityRooms）/ town / camp / **fort+pass（关门入口 + 瓮城北 + 守营东 + 回程南西 + garrison/wall/defenseBonus）** / landmark+wild（plot/battle 钩子）/ **dungeon（入口 @entrance + floors×roomsPerFloor 平面串联，西出回入口，西出洞口回地表 entry）** / story 占位；`index.html` 新增 `registerPlaceRooms()` 注入 G.ROOMS，并为 dungeon 在 entry 地点房挂北向出口连通地表↔秘谷。校验（Node）：80 房间、虎牢关关门↔瓮城/守营连通、副本逐层可达。城市逻辑保持不变。
+
+### §9.36 「地图加载失败」根治与战略图清理（v20260904i – k）
+
+- **v20260904i（d48cf5c）· file:// 兼容**：geojson 由 fetch 改为 script 全局注入（新增 `shared/data/map_regions.js` 挂 `LF.REGIONS` 等），`loadRegions` 优先读全局、fetch 兜底——只解决 file:// 下 fetch 被 CORS 拦的空白。
+- **v20260904j（e3a38de）· 真根因**：无论 http/file:// 都报「地图加载失败」。根因在 `applyTransform` 调 `baseT.transform(userT)`，而 vendored d3 是 **v7.9.0（ZoomTransform 已移除 .transform() 方法）** → TypeError 被 render.catch 捕获 → 显示失败条。修复：改为仿射合成 `k=baseT.k*userT.k; t=d3.zoomIdentity.translate(baseT.x+baseT.k*userT.x, baseT.y+baseT.k*userT.y).scale(k)`（等价旧 `.transform` 语义 t=baseT∘userT；baseT=identity 时视觉不变）。jsdom + 真实 d3 复现：未报错、渲染 209 path + 63 城市/特殊节点。
+- **v20260904k（991732f）· 清理**：删除注释掉的河流/郡边界渲染块与冗余 typeof 判断（零行为变更）。
+
+### §9.37 v20260904l：战略图增强 + index.html 截断事故复盘 + 跳教程出生点改洛阳
+
+**战略图增强（strategic-map.js/css/constants）**
+- 移除 fetch 兜底与无用滤镜；渲染移至下一帧并加「地图加载中」占位（避免首帧长阻塞）；精简深锐边缘与避让预算；地图新增**野外地点 / 关卡副本点位**（点击经 `goRoomOnMap` 前往）与图例。
+
+**事故复盘（重要教训）**
+- `6f2ea58` 提交时对 `index.html` 做了**同一文件的多次并行 replace**，其中一次替换命中错误上下文，把文件**末尾 8 行吞掉**（`if(!er.exits['北']…)` 起至 `</html>`）并错位插入文本 → 主 inline `<script>` 失去 `</script>` 闭标签，浏览器把其后 ~334KB 全当 JS 解析 → **「江湖载入中…」转圈永不消失**（320ms 淡出 IIFE 永远轮不到）。
+- 修复（`7adefbd`）：从 `991732f` 整体恢复 `index.html`（8817 行、正常 `</script></body></html>` 收尾），重打 3 处 `?v` bump（css/constants.js/strategic-map.js k→l）；jsdom 复现补全 MutationObserver/location/localStorage/rAF 等浏览器全局后，loader 320ms 正常 `hidden`。
+- **教训：同一文件的多处编辑必须串行（读→改→验），严禁并行 replace。**
+
+**跳过新手教程的出生点 build_test → luoyang**
+- `confirmCreate` skip 分支 `save.room/spawnRoom='build_test'` → `'luoyang'`（洛阳朱雀大街，`grid:9` 城内网格由 `registerCityRooms` 依 `shared/data/cities.js` 自动合成、与战略图无关不触发 D3 加载）。
+- 同时置 `save.quest.hua_xiong=true; save.quest.luoyang=true;` 打通主线门控（避免在城门被「需先力斩华雄」卡住）；勾选框文案同步。
+
+---
+
+### §9.38 v20260904m–n：郊野行军系统（城→郊野→邻城陆路层）
+
+**背景**：承接 Place 体系（§9.36 一带）后，为 61 城 / 198 野外地点打通可步行的城际陆路；本节补记 v20260904m 起的构建，并记录 v20260904n 的数据契约修复与野外生存闭环。
+
+**郊野行军（v20260904m 起，shared/systems/travel.js）**
+- `build()` 依 PLACES/ROADS 为每个仍有多余方位的地点生成 `fld_<pid>_<dir>` 郊野（16 格 4×4 可穿越网格）；`link()` 两遍法接线：城市城门 ↔ 郊野入口、非城父地点挂反向回程出口、郊野远边按 sub-bearing 分流邻城；`PLACE_GATES` 供城内罗盘「出城(…郊野)」。多郊野争抢同一方位时非城地点避让内部出口方位、方位占满则跳过，**绝不覆盖既有出口**。
+- 郊野逐格房间由 `gen/rooms.js GEN.field` 生成并散布内容：`RES/MON/NPCS` → 格上 `resources / monsters / fieldNpcs`（伏击、野兽、行商流民、可采集物）。
+- 触发（index.html）：城内格出现城门出口即显「出城」，「进/出/穿越」走 `leaveViaGate / arriveAtGate / move`；郊野叙事/采集/交谈/伏击/扎营与移动共用同一套罗盘 + 场景动作流；战略图/RPG 山河志点击已改为纯参考不再传送。
+
+**v20260904n 本轮修复与闭环**
+- **采集落物契约**：`travel.js RES` 增加 `item` 字段映射真实 defId（草药=caoyao / 铁矿石=tiekuangshi / 木头=mutou / 野果=yeguo）并随 `scatterContent` 透传；`items.js` 新增 `yeguo 野果`（食饵，可充饥解渴）；`gatherField` 改按 `res.item` 入包（原 `packAdd('herb_'+type)` 指向不存在的 id，采集实际零收获），**行囊满则不标记采尽**，可回头再采。
+- **野怪 id 修正**：`MON` 的 `wolf/boar` → 真实敌人 id `wild_wolf / wild_boar`（原 id 在 ENEMIES 中不存在，「挑战」会开一场空战斗）。
+- **野怪清剿持久化**：战后（`endCombat` win 分支）按 **格 + 野怪 id** 记入 `flags.fieldClearedMon[roomId][monId]`；`fieldMonstersLeft()` 统一过滤叙事/动作/伏击逻辑 → 不再反复刷同一批伏兽，存档跨读档有效。
+- **野外扎营**：郊野格常驻场景动作「扎营休整」（`campInField` → `openRestModal('wild')`）；新增 `REST_KINDS.wild` 野外露宿（效率略优于席地打盹、低于帐/席/篝火）；`doRest` 收尾时若此格仍存凶兽则触发 `maybeFieldAmbush` 夜袭（胜则照常清剿入档）。横穿旷野可途中休整，但未清剿的凶兽格露宿有风险。
+
+**校验**：Node `_verify_field.js` 遍历 3136 郊野格——全部采集落物在 `LF.ITEMS`、全部野怪 id 在 `LF.ENEMIES`，0 悬空；`_verify_travel.js` 拓扑回归 61 城全连通、无死胡同/无缺失反向出口；index.html 内联 0 语法错误；cross_reference 0 ERROR。版本 **20260904l→20260904n**（constants.js + index.html 三处 `?v` 同步）。
+
+---
+
+### §9.39 v20260905a：郊野行商真实交易 + 流民对话质感
+
+- 郊野格此前遇上的 `行商` 只有「交易功能待开放」占位——本轮打通到既有货郎交易系统：`shops.js` 新增 `LF.SHOPS.field_trader`（店名「游方行商」），`talkFieldNpc` 中 `trader` 分支直接 `openModal('shop',{shop:'field_trader'})`（复用 Shop.openShop 的待结算占位买卖，代码零改动即获得整套左买/右卖/拖拽/结算）。
+- **商品设计**：货架（buy>0，价与城店相仿、个别略高以体现「深山远道」）——肉包子 12 / 金疮药 34 / 草药粉 20 / 篝火 15 / 草席 24；收售（buy:0 仅寄售不上架）——草药 2 / 铁矿石 6 / 木头 3 / 小树枝 1 / 野果 2 / 生肉 4 / 毛皮 6 / 蛇胆 10 / 蛇皮 8 / 线香 2。卖价与城店一致且均小于货架价，**无倒卖套利**；与上一轮采集清剿形成「采→售→补」的荒野经济小循环。
+- **流民**：原固定一句台词 → 按所在格是否有野怪与随机取景生成两句提示（歹人出没/商队结伴），聊胜于前。
+- 版本 **20260904n→20260905a**（constants.js + index.html 中 constants.js / shops.js 两处 `?v` 同步）。
+
+---
+
+### §9.40 v20260905b：郊野扎营真实化（帐篷/篝火/草席 野外可用）
+
+**背景**：§9.38 的「扎营休整」在任何郊野格都是免费抽象「野外露宿」，行囊里的帐篷/篝火/草席（placeable 器具）只有城里房里能放能用；§9.39 行商又专售篝火/草席——货卖得动却无处使。本轮让这批器具在野外真正落地。
+
+- **机制**：复用既有 `state.placed[房间id]` 放置物机制（野外格房间按格独立、全格可见），郊野场景新增营地按钮组 `addFieldCamp(room)`：
+  - 本格已支设施 → 设施按钮（按 帐篷>篝火>草席 排序），浮菜单 **安歇…**（按 REST_KINDS 对应档位开休息面板，帐篷恢复效率最高/篝火最解饥渴）/ **收起带走**（`packUpPlaced`，行囊满自动拒收）；
+  - 行囊有器具且本格未支 → **布设·X** 一键入格（`packConsume` 扣一件→`afterPackChange` 存档刷场景→按档位打开安歇）；另有兜底「扎营休整」露宿；
+  - 两者皆无 → 仍只「扎营休整」。
+- **叙事与防丢**：`fieldNarr` 顶栏补「〔营地〕此处已支有…」；自支设了营地的格离开（move 出格）时提示「X 留在原地（折返可寻回）」，防止玩家懵懂丢失行囊物件。
+- **夜袭公平性**：`doRest` 夜袭条件由「野外且 kind==='wild'」放宽为「野外且非 ground」——**凶兽未清剿的格，支帐围火歇息同样可能醒转遭袭**（否则买顶帐篷即可在贼窝旁白嫖安全大休，架空清剿）；战败强制打盹仍豁免，避免死锁。
+- 校验：index 内联 0 语法错误；cross_reference 0 ERROR；lint 干净。版本 **20260905a→20260905b**（constants.js + index.html 的 constants.js `?v` 同步；本轮仅动 index.html 内联与 constants.js）。
+
+---
+
+### §9.41 v20260905c：郊野出没行为补全（凶兽可主动清剿 / 惊兽可潜行猎取）
+
+**背景**：§9.38 散布的野怪按 `aggr` 分三类，但动作出口只有 `neutral`（野狼）挂了「挑战」按钮——**hostile（山贼/黄巾散卒）只能靠反复进出格赌 55% 拦路伏击、或露宿赌夜袭才能入战**（想扎营先清场非常别扭）；**flee（野彘）则完全无入口、永不进战斗**，其掉落表（生肉/毛皮/铁矿石）形同虚设。本轮补全三类行为出口。
+
+- `fieldActions` 怪物循环按 aggr 三分发：
+  - `hostile` → 「**清剿·山贼**」等（直接 `startCombat([m.id])`，胜照常入档 `fieldClearedMon`）；进场 55% 拦路伏击、露宿夜袭两条旧路径保留——清剿与否玩家可控，想安全扎营不必再反复进出掷骰；
+  - `neutral` → 原「挑战」不变；
+  - `flee` → 「**🏹 猎取·野彘**」新增 `huntFieldBeast`：成功率 `clamp(0.60 + max(0,身法-20)*0.006 - (lvl-1)*0.06, 0.30, 0.85)`（身法高者更易潜近、凶兽级数越高越警觉）→ 成功惊觉入战（胜利按怪 id 清剿+掉落），失败则「蹬地窜入密林」——按 **格+野怪id** 记 `flags.fieldFledMon`，本格不再现身，存档持久。
+- `fieldMonstersLeft` 统一过滤「已清剿 ∪ 已惊走」，叙事/动作/伏击/夜袭全部随之熄灭；惊走不影响 hostile 逻辑。
+- 校验：index 内联 0 语法错误；cross_reference 0 ERROR；`_verify_field.js` 内容散布回归（怪 id 全在 ENEMIES / 采集落物全在 ITEMS）0 悬空。版本 **20260905b→20260905c**（constants.js + index.html 的 constants.js `?v` 同步；本轮仅动 index.html 内联与 constants.js）。
+
+### §9.42 v20260905d：郊野 × 天候/时辰 机制层（历法天候从装饰变为规则）
+
+**背景**：历法（§9.31 前）与天候系统早已完成、状态栏常驻显示，但天气纯装饰——同一天候下跑路、狩猎、扎营、遇敌毫无差别；同时郊野野怪生成了 `lvl`(1~3) 却只写进叙事、战斗里打的是固定数值敌人（等阶形同虚设）。本轮把「天候 / 昼夜 / 兽阶」真正接进行走生态，并顺手修一个引擎侧隐患。
+
+- **天候影响模型 `WX_EFF`（对齐 WEATHERS 8 索引）** + 工具 `wxEff()` / `isDaytime()`（卯~酉为昼）：
+  - `walk`：郊野逐格移动的**额外精力损耗**（微雨/雾/风 +1，大雨/雪 +2），仅郊野格间穿行生效（`move()` 内按 出发格∪到达格 isField 判定），城郭室内不受影响，跑路 log 带天气说明；
+  - `hunt`：潜行猎取成功率修正（阴霾雨雪雾均有掩行加值，雾最高 +0.15；夜里野兽警觉 −0.05）；
+  - `amb`：敌对伏击/夜袭概率修正（雾 +0.22 最难防，其次大雨 +0.12）；夜行再 +0.12。
+- **郊野叙事即时可见**：`fieldNarr` 顶栏新增「〔天候〕晴·昼，天色和朗，正宜赶路／大雨滂沱！行路疲惫…」；野怪叙事带「（一/二/三阶）」等阶标注。
+- **野外歇息随天候打折 `WX_REST`/`outdoorRestFactor`**：大雨/微雨/雪天中露宿、席地、草席、篝火恢复按 0.5~0.9 折扣（**帐篷遮风挡雨不受影响**，鼓励备账防雨）；折扣只在郊野露天生效（`isField`），城内与建筑内歇息不变。休息面板估算值按折扣如实显示并附「野外无遮蔽，歇息恢复打折」提示；`doRest` 结算与说明同步。
+- **凶兽等阶真实战力 `startCombat(…,{fieldLvl})`**：郊野清剿/挑战/猎取/拦路伏击把该格凶兽 `m.lvl` 传入战斗——按 1~3 阶对**本场战斗单位**气血/攻/防 ×(1+0.25×级差)、速度 ×(1+0.12×级差)；掉落/经验/清剿归档仍按基础敌人数据（id 不变，数据自洽）。
+- **顺手修引擎侧隐患**：旧 `guardMul`（城门被焚守军削弱）直接改 `getEnemy()` 返回的**共享 ENEMIES 定义**——会把 city_guard 永久削弱且每次叠加；v20260905d 起战力缩放统一作用于 `G.CombatEngine.state.enemies`（每场新建的单位数组），不再污染全局数据，`fieldLvl` 复用同一路径。
+- 校验：index 内联 0 语法错误；cross_reference 0 ERROR（9 WARN 为预存人工疑点）；`_verify_field.js`/`_verify_travel.js` 回归 ALL-OK/OK；lint 0。版本 **20260905c→20260905d**（本轮仅动 index.html 内联 + constants.js）。
+
+---
+
+*最后更新：2026-09-05（§9.41 郊野出没行为补全 → §9.42 郊野 × 天候/时辰机制层；版本 20260905d）*
