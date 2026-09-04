@@ -283,19 +283,30 @@
 }
 .strategic-info .go-btn:hover { background: #a83030; }
 
-/* 缩放控制 */
-.strategic-zoom-ctrl {
+/* 缩放控制（右下浮动组；小屏默认收成单个手柄，点开才是 4 钮列） */
+.strategic-zoom-fab {
   position: absolute;
   right: 10px;
   bottom: 10px;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 4px;
 }
-.strategic-zoom-ctrl button {
+.strategic-zoom-ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.strategic-zoom-ctrl button,
+.strategic-zoom-toggle {
   width: 34px; height: 34px;
-  font-size: 18px;
-  font-family: serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
   color: #3a2c18;
   background: rgba(235,224,198,0.92);
   border: 1px solid #b7a47a;
@@ -303,7 +314,25 @@
   cursor: pointer;
   box-shadow: 2px 2px 6px rgba(60,44,20,.18);
 }
-.strategic-zoom-ctrl button:active { transform: translateY(1px); }
+.strategic-zoom-ctrl button svg,
+.strategic-zoom-toggle svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.strategic-zoom-ctrl button:active,
+.strategic-zoom-toggle:active { transform: translateY(1px); }
+
+/* 手柄：宽屏隐藏；小屏展开收起时切换图标 */
+.strategic-zoom-toggle { display: none; }
+.strategic-zoom-toggle .sg-zoom-close { display: none; }
+
+/* 小屏（宽度 <540px 时由 JS 加 compact）：默认只露手柄 */
+.strategic-zoom-fab.compact .strategic-zoom-ctrl { display: none; }
+.strategic-zoom-fab.compact .strategic-zoom-toggle { display: flex; }
+.strategic-zoom-fab.compact.open .strategic-zoom-ctrl { display: flex; }
+.strategic-zoom-fab.compact.open .strategic-zoom-toggle .sg-zoom-open { display: none; }
+.strategic-zoom-fab.compact.open .strategic-zoom-toggle .sg-zoom-close { display: block; }
 
 /* 填色模式切换 */
 .strategic-overlay-ctrl {

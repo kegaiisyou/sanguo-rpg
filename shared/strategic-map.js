@@ -208,11 +208,14 @@
     ui.className = 'strategic-map-ui';
     ui.innerHTML = `
       <div class="strategic-info" id="sm-info">点击州郡或城池查看详情</div>
-      <div class="strategic-zoom-ctrl">
-        <button data-z="locate" title="定位到当前位置">◎</button>
-        <button data-z="in" title="放大">＋</button>
-        <button data-z="out" title="缩小">－</button>
-        <button data-z="reset" title="复位">⟲</button>
+      <div class="strategic-zoom-fab">
+        <div class="strategic-zoom-ctrl">
+          <button data-z="locate" title="定位到当前位置" aria-label="定位到当前位置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>
+          <button data-z="in" title="放大" aria-label="放大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button data-z="out" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+          <button data-z="reset" title="复位" aria-label="复位"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg></button>
+        </div>
+        <button class="strategic-zoom-toggle" title="展开/收起缩放工具" aria-label="缩放工具" aria-expanded="false"><svg class="sg-zoom-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/><path d="M10.5 7.6v5.8M7.6 10.5h5.8"/></svg><svg class="sg-zoom-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
       </div>
       <div class="strategic-overlay-ctrl">
         <button data-ov="faction" class="active" title="势力范围">势力</button>
@@ -711,6 +714,106 @@
         commanderyLabelsDom.push({ el, name: comm, baseX: c[0], baseY: c[1] });
       });
 
+      // ===== 州名重叠求解（参考系 k=1，一次求解；之后位置与字号等比缩放保持不叠）=====
+      // 标签实测 w=44 h=23（字号20 / 字距2px）。宏观下中原相邻州（并冀司兖青徐豫幽）的
+      // 「最深内点」可能仅相距十几像素，20px 标签必然互压。此处做有限位移：
+      // 每对重叠沿「所需位移更小」的轴各推一半，累计位移封顶，并以「点仍在州内」
+      // （winding，含洞）为硬约束，保证标签不跨出本州 —— 替代早前无约束的全局避让。
+      {
+        const HW = 22, HH = 11.5, GAP = 3;          // k=1、字号20 时半宽/半高 + 间隔
+        const stateFeatByName = {};
+        provFeats.forEach(f => { stateFeatByName[f.properties.state] = f; });
+        // 预投影本州环（含洞），供位移约束复用
+        const statePolysPx = stateLabelsDom.map(o => {
+          const geom = stateFeatByName[o.name] ? stateFeatByName[o.name].geometry : null;
+          const polys = geom ? (geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates]) : [];
+          return polys.map(poly => ({
+            outer: poly[0].map(c => projection(c)),
+            holes: poly.slice(1).map(ring => ring.map(c => projection(c))),
+          }));
+        });
+        function windInStateIdx(idx, x, y) {
+          const polys = statePolysPx[idx];
+          for (let p = 0; p < polys.length; p++) {
+            if (!pointInRingWind([x, y], polys[p].outer)) continue;
+            let inHole = false;
+            for (let h = 0; h < polys[p].holes.length; h++) {
+              if (pointInRingWind([x, y], polys[p].holes[h])) { inHole = true; break; }
+            }
+            if (!inHole) return true;
+          }
+          return false;
+        }
+        // 本州外接框（宏观兜底约束）：宏观下标签盒本身宽于州域，
+        // 只允许中心在「州多边形 ∪ 州外接框」内活动，杜绝跨到别州的大幅漂移
+        const stateBBox = statePolysPx.map(polys => {
+          let b = null;
+          for (let p = 0; p < polys.length; p++) {
+            for (let q = 0; q < polys[p].outer.length; q++) {
+              const x = polys[p].outer[q][0], y = polys[p].outer[q][1];
+              if (!b) b = { x0: x, x1: x, y0: y, y1: y };
+              else { if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y; }
+            }
+          }
+          return b || { x0: -1e9, x1: 1e9, y0: -1e9, y1: 1e9 };
+        });
+        function inStateAllowed(idx, x, y) {
+          if (windInStateIdx(idx, x, y)) return true;
+          const b = stateBBox[idx];
+          return x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1;
+        }
+        // 沿 x 或 y 单轴平移；远端出「州∪外接框」则二分回收，返回实际位移
+        function shiftInState(idx, bx, by, isY, delta) {
+          if (!delta) return { x: bx, y: by, moved: 0 };
+          const sgn = delta > 0 ? 1 : -1, dist = Math.abs(delta);
+          let lo = 0, hi = dist;
+          for (let b = 0; b < 14; b++) {
+            const m = (lo + hi) / 2;
+            if (inStateAllowed(idx, isY ? bx : bx + sgn * m, isY ? by + sgn * m : by)) lo = m;
+            else hi = m;
+          }
+          return isY
+            ? { x: bx, y: by + sgn * lo, moved: lo }
+            : { x: bx + sgn * lo, y: by, moved: lo };
+        }
+        const cap = stateLabelsDom.map(() => 30);   // 每州累计位移上限(px, k=1)
+        for (let iter = 0; iter < 260; iter++) {
+          let any = false;
+          for (let i = 0; i < stateLabelsDom.length; i++) {
+            for (let j = i + 1; j < stateLabelsDom.length; j++) {
+              const A = stateLabelsDom[i], B = stateLabelsDom[j];
+              const dx = B.baseX - A.baseX, dy = B.baseY - A.baseY;
+              const adx = Math.abs(dx), ady = Math.abs(dy);
+              if (adx >= HW * 2 + GAP || ady >= HH * 2 + GAP) continue;
+              const needX = HW * 2 + GAP - adx;
+              const needY = HH * 2 + GAP - ady;
+              // 依次尝试 y / x 两轴，某轴被本州几何顶住则换另一轴
+              const axes = needY < needX ? [true, false] : [false, true];
+              for (let ai = 0; ai < axes.length; ai++) {
+                const useY = axes[ai];
+                const need = useY ? needY : needX;
+                const tb = cap[i] + cap[j];
+                if (tb < 0.5) continue;
+                // 预算按两州剩余可位移量分摊，能动的多动
+                let pa = Math.min(cap[i], need * (cap[i] / tb));
+                let pb = need - pa;
+                if (pb > cap[j]) pb = cap[j];
+                if (pa + pb < 0.5) continue;
+                const sA = useY ? (dy >= 0 ? -1 : 1) : (dx >= 0 ? -1 : 1);
+                const ra = shiftInState(i, A.baseX, A.baseY, useY, sA * pa);
+                const rb = shiftInState(j, B.baseX, B.baseY, useY, -sA * pb);
+                if (ra.moved < 0.5 && rb.moved < 0.5) continue;
+                cap[i] -= ra.moved; A.baseX = ra.x; A.baseY = ra.y;
+                cap[j] -= rb.moved; B.baseX = rb.x; B.baseY = rb.y;
+                any = true;
+                break;   // 本对已推，下一对
+              }
+            }
+          }
+          if (!any) break;
+        }
+      }
+
       function positionOverlay(k) {
         cityMarks.forEach(o => {
           o.el.style.left = (o.base[0] * k) + 'px';
@@ -761,7 +864,13 @@
         if (commanderyFillLayer) commanderyFillLayer.style('opacity', lod);
         // 势力填充与郡同节奏淡入（远端只显示州描边，杜绝色块接缝造成的内部线）
         if (factionFillLayer) factionFillLayer.style('opacity', lod);
-        if (stateLabelsDom.length) stateLabelsDom.forEach(o => { o.el.style.opacity = String(1 - lod); });
+        if (stateLabelsDom.length) stateLabelsDom.forEach(o => {
+          o.el.style.opacity = String(1 - lod);
+          // 远观等比缩小：k=1 基准 20px，k<1 时与地图同比例变小（与 k=1 布局重叠率恒定）
+          const fs = Math.max(11, 20 * Math.min(1, k));
+          o.el.style.fontSize = fs.toFixed(1) + 'px';
+          o.el.style.letterSpacing = (fs < 15 ? '1px' : fs < 18 ? '1.5px' : '2px');
+        });
         if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod); });
         if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
         if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
@@ -862,6 +971,34 @@
       });
     });
 
+    // 缩放按钮组收起式浮动组：小屏(容器宽<540)默认只露一个手柄，
+    // 点开才展开 4 钮列；在图上拖拽/双指缩放时自动收起，避免持续遮挡扬州/交州等右下区域。
+    const zoomFab = ui.querySelector('.strategic-zoom-fab');
+    let applyCompact = null;
+    if (zoomFab) {
+      const zoomToggle = zoomFab.querySelector('.strategic-zoom-toggle');
+      applyCompact = () => {
+        const compact = ui.clientWidth < 540;
+        zoomFab.classList.toggle('compact', compact);
+        if (!compact) zoomFab.classList.remove('open');
+        if (zoomToggle) zoomToggle.setAttribute('aria-expanded', zoomFab.classList.contains('open'));
+      };
+      const setOpen = (open) => {
+        zoomFab.classList.toggle('open', open);
+        if (zoomToggle) zoomToggle.setAttribute('aria-expanded', open);
+      };
+      if (zoomToggle) {
+        zoomToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setOpen(!zoomFab.classList.contains('open'));
+        });
+      }
+      svgEl.addEventListener('pointerdown', () => {
+        if (zoomFab.classList.contains('open')) setOpen(false);
+      });
+      applyCompact();
+    }
+
     // 填色模式切换（势力范围 / 按郡 / 无）
     ui.querySelectorAll('.strategic-overlay-ctrl button').forEach(b => {
       b.addEventListener('click', () => {
@@ -892,6 +1029,7 @@
     let rt;
     window.addEventListener('resize', () => {
       clearTimeout(rt);
+      if (applyCompact) applyCompact();
       rt = setTimeout(() => {
         const t = currentTransform;
         const cities2 = buildCitiesFromGame();
