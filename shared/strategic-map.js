@@ -291,6 +291,7 @@
     };
 
     let W, H;
+    let baseW = 0, baseH = 0, baseT = d3.zoomIdentity;   // 基础适配：渲染坐标系(首次视口) → 当前视口
     let currentTransform = d3.zoomIdentity;
     let selectedId = null;
     let statePaths = null;
@@ -315,6 +316,7 @@
       H = viewport.clientHeight;
       svg.attr('width', W).attr('height', H);
       projection.fitExtent([[0, 0], [W, H]], rectFC);
+      baseW = W; baseH = H;
 
       // 构建郡 feature（直接用 dissolve 后的几何，d3 处理 Polygon/MultiPolygon）
       const cmdFeats = regionData.features.filter(f => f.properties.layer === 'commandery');
@@ -803,7 +805,8 @@
         }
       }
 
-      function positionOverlay(k) {
+      function positionOverlay(t) {
+        const k = t.k;
         cityMarks.forEach(o => {
           o.el.style.left = (o.base[0] * k) + 'px';
           o.el.style.top = (o.base[1] * k) + 'px';
@@ -834,7 +837,8 @@
 
       // 应用变换 + 按缩放分级显隐
       function fade(k, lo, hi) { const t = (k - lo) / (hi - lo); return t <= 0 ? 0 : t >= 1 ? 1 : t; }
-      function applyTransform(t) {
+      function applyTransform(userT) {
+        const t = baseT.transform(userT);   // 叠加基础适配：把渲染坐标系映射到当前视口
         const k = t.k;
         root.attr('transform', `translate(${t.x},${t.y}) scale(${k})`);
         overlay.style.transform = `translate(${t.x}px,${t.y}px)`;
@@ -855,7 +859,7 @@
         if (factionFillLayer) factionFillLayer.style('opacity', lod);
         if (stateLabelsDom.length) stateLabelsDom.forEach(o => {
           o.el.style.opacity = String(1 - lod);
-          // 远观等比缩小：k=1 基准 20px，k<1 时与地图同比例变小（与 k=1 布局重叠率恒定）
+          // 远观等比缩小：k=1 基准 17px，k<1 时与地图同比例变小（与 k=1 布局重叠率恒定）
           const fs = Math.max(11, 17 * Math.min(1, k));
           o.el.style.fontSize = fs.toFixed(1) + 'px';
           o.el.style.letterSpacing = (fs < 15 ? '1px' : fs < 18 ? '1.5px' : '2px');
@@ -865,7 +869,7 @@
         if (typeof specialMarks !== 'undefined' && specialMarks.length) specialMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
         // 引导标记任何缩放级别都保持可见（仅1~2枚，不产生干扰）
         guideMarks.forEach(o => { if (o.el) o.el.style.opacity = '1'; });
-        positionOverlay(k);
+        positionOverlay(t);
       }
 
       // 初始 transform
@@ -873,6 +877,7 @@
         render._initDone = true;
         currentTransform = d3.zoomIdentity.translate(30, 60).scale(0.8);
       }
+      computeBaseFit();
       applyTransform(currentTransform);
 
       // 暴露给 zoom
@@ -883,12 +888,27 @@
       locateGuide = function() {
         const g = guideMarks.find(o => o.type === 'you') || guideMarks[0];
         if (!g || !W || !H) return;
-        const k = 2.6;
-        const tx = W / 2 - g.base[0] * k;
-        const ty = H / 2 - g.base[1] * k;
+        const k = 2.6 / (baseT.k || 1);                 // 保持屏幕上约 2.6 倍缩放手感
+        const target = baseT.invert([W / 2, H / 2]);    // 视口中心换算回渲染坐标系
+        const tx = target[0] - g.base[0] * k;
+        const ty = target[1] - g.base[1] * k;
         currentTransform = d3.zoomIdentity.translate(tx, ty).scale(k);
         svg.transition().duration(450).call(zoom.transform, currentTransform);
       };
+    }
+
+    // 基础适配：把「渲染坐标系(baseW×baseH，即首次渲染时的视口)」等比映射进当前视口。
+    // 仅随视口尺寸变化重算，resize 时调用后配合 applyTransform(currentTransform) 即可，
+    // 无需重建 SVG 与标签 DOM（避免手机转屏卡顿/闪烁）。
+    function computeBaseFit() {
+      const w = viewport.clientWidth, h = viewport.clientHeight;
+      W = w; H = h;
+      svg.attr('width', w).attr('height', h);
+      if (!baseW || !baseH) { baseW = w; baseH = h; }
+      const s = Math.min(w / baseW, h / baseH);
+      const tx = (w - baseW * s) / 2;
+      const ty = (h - baseH * s) / 2;
+      baseT = d3.zoomIdentity.translate(tx, ty).scale(s);
     }
 
     function sealStyle(faction) {
@@ -1014,18 +1034,14 @@
       container.innerHTML = '<div class="strategic-loading">地图加载失败，请刷新重试</div>';
     });
 
-    // 响应式
+    // 响应式：仅重算基础适配并复用当前变换，不再整图重建（手机转屏不卡顿/不闪烁）
     let rt;
     window.addEventListener('resize', () => {
       clearTimeout(rt);
       if (applyCompact) applyCompact();
       rt = setTimeout(() => {
-        const t = currentTransform;
-        const cities2 = buildCitiesFromGame();
-        loadRegions().then(regionData => {
-          render(regionData, cities2);
-          if (render._apply) render._apply(t);
-        });
+        computeBaseFit();
+        if (render._apply) render._apply(currentTransform);
       }, 200);
     });
 
