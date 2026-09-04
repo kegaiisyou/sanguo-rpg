@@ -16,6 +16,22 @@
   // 特殊地点（地理坐标真相源见 shared/data/map.js 的 LF.MAP.specialGeo，与势力图网格坐标 coords 同文件维护）
   const SPECIAL_LOCATIONS = Object.entries(global.LF.MAP.specialGeo || {}).map(([id, l]) => ({ id, ...l }));
 
+  // 野外地点/关卡/副本类型元数据：着色与文案与 shared/css/strategic-map.css 的 .place-loc/.p-* 一致
+  const PLACE_KIND_META = {
+    pass:     { label:'关隘', color:'#c14b12' },
+    fort:     { label:'关隘', color:'#c14b12' },
+    landmark: { label:'名胜', color:'#b8860b' },
+    dungeon:  { label:'副本', color:'#6a2f8f' },
+    town:     { label:'集镇', color:'#55703c' },
+    camp:     { label:'营地', color:'#55703c' },
+    wild:     { label:'野地', color:'#55703c' },
+    story:    { label:'剧情点', color:'#55703c' },
+  };
+  // 由统一地点注册表（shared/data/places.js 的 LF.PLACES）取「非城池」地点作为可前往点位：
+  // 城市(内部网格)沿用 LF.CITIES；关卡/名胜/野地/副本等才画成方形色点。
+  const PLACE_POINTS = Object.keys(global.LF.PLACES || {}).map(id => ({ id, p: global.LF.PLACES[id] }))
+    .filter(x => x.p && x.p.kind !== 'city' && x.p.pos && x.p.pos.length === 2);
+
   // 几何工具：把同州的零散郡多边形合并成自然的州外框（凹包 + 样条平滑）
   function convexHull(pts) {
     if (pts.length < 3) return pts;
@@ -143,14 +159,11 @@
 
   // 州名标签位置由州几何「最深内点」计算（见下方 deepAnchor/stateLabelsDom），不再用硬编码坐标。
 
-  // 加载郡边界 GeoJSON
-  let _regionCache = null;
+  // 加载郡边界：shared/data/map_regions.js 以 script 全局注入 LF.REGIONS。
+  // 不设 fetch 兜底（file:// 下 fetch 会被浏览器拦截，且注入已覆盖所有打开场景），省去版本号拼接与缓存。
   function loadRegions() {
-    // 优先用 script 全局（shared/data/map_regions.js 设置 LF.REGIONS），避免 file:// 下 fetch 被浏览器拦截导致地图空白
     if (global.LF && global.LF.REGIONS) return Promise.resolve(global.LF.REGIONS);
-    if (_regionCache) return _regionCache;
-    _regionCache = fetch('shared/data/map_regions.geojson?v=' + (global.LF.CONSTANTS ? global.LF.CONSTANTS.VERSION : '1')).then(r => r.json());
-    return _regionCache;
+    return Promise.reject(new Error('LF.REGIONS 未加载（请确认已引入 shared/data/map_regions.js）'));
   }
 
   // 从游戏 LF.CITIES 构建城市列表
@@ -227,10 +240,22 @@
           <button data-ov="none" title="无底色">无</button>
         </div>
       </div>
+      <div class="strategic-legend">
+        <div class="row"><span class="swatch" style="background:#c14b12;border-radius:50%"></span>关隘</div>
+        <div class="row"><span class="swatch" style="background:#b8860b;border-radius:50%"></span>名胜/古战场</div>
+        <div class="row"><span class="swatch" style="background:#6a2f8f;border-radius:50%"></span>副本入口</div>
+        <div class="row"><span class="swatch" style="background:#55703c;border-radius:50%"></span>野地/集镇</div>
+      </div>
       <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>
     `;
     container.appendChild(ui);
 
+    // 加载占位：先生成 DOM 让浏览器绘出提示，重量级同步绘图放到下一帧（见 loadRegions 回调），
+    // 打开地图时第一眼是"加载中"而非白屏/卡顿。
+    const loading = document.createElement('div');
+    loading.className = 'strategic-loading';
+    loading.textContent = '正在展开山河图…';
+    container.appendChild(loading);
 
     const info = ui.querySelector('#sm-info');
     const svg = d3.select(svgEl);
@@ -301,6 +326,7 @@
     let selectedId = null;
     let statePaths = null;
     let cityMarks = [];
+    let placeMarks = [];      // 野外地点/关卡/副本点位（LF.PLACES 非 city 条目）
     let guideMarks = [];      // 引导标记：当前位置 / 目标打点
     let locateGuide = null;   // 「定位到我」动画入口
     let commanderyLabelsDom = [];
@@ -350,13 +376,6 @@
           geometry: s.feature.geometry,
         })),
       };
-
-      // defs / 滤镜
-      const defs = svg.append('defs');
-      const paper = defs.append('filter').attr('id', 'sm-paper').attr('x','0').attr('y','0').attr('width','100%').attr('height','100%');
-      paper.append('feTurbulence').attr('type','fractalNoise').attr('baseFrequency','0.012 0.018').attr('numOctaves','3').attr('seed','11').attr('result','n');
-      paper.append('feColorMatrix').attr('in','n').attr('type','matrix')
-        .attr('values','0 0 0 0 0.55  0 0 0 0 0.47  0 0 0 0 0.33  0 0 0 0.05 0');
 
       // 可缩放根层
       const root = svg.append('g').attr('id', 'sm-root');
@@ -485,6 +504,44 @@
 
         overlay.appendChild(wrap);
         return { el: wrap, dot, nm, base: projection(loc.pos), loc };
+      });
+
+      // 野外地点/关卡/副本点位：副本点其「入口房」(id@entrance)，其余点其房间 id。
+      // 点击后经游戏层 goRoomOnMap 前往（副本入内后向东进洞逐层，西出口回地表地点）。
+      placeMarks = PLACE_POINTS.map(({ id, p }) => {
+        const meta = PLACE_KIND_META[p.kind] || { label:'地点', color:'#55703c' };
+        const roomId = (p.kind === 'dungeon') ? id + '@entrance' : id;
+        const wrap = document.createElement('div');
+        wrap.className = 'strategic-city place-loc p-' + p.kind;
+        wrap.setAttribute('data-cid', id);
+        wrap.style.zIndex = '4';
+
+        const dot = document.createElement('div');
+        dot.className = 'strategic-city-dot';
+        dot.style.background = meta.color;
+        dot.style.borderColor = '#2a1208';
+        dot.style.width = '9px';
+        dot.style.height = '9px';
+        dot.style.borderRadius = '3px';
+
+        const nm = document.createElement('div');
+        nm.className = 'strategic-city-name';
+        nm.textContent = p.name;
+        nm.style.fontSize = '11px';
+        nm.style.color = meta.color;
+
+        wrap.appendChild(dot);
+        wrap.appendChild(nm);
+
+        const pick = (ev) => {
+          if (ev) ev.stopPropagation();
+          selectPlace(p, meta, roomId);
+          if (opts.onCityClick) opts.onCityClick({ id: roomId, name: p.name, kind: p.kind, state: p.state, desc: p.desc, owner: p.owner, isPlace: true });
+        };
+        wrap.addEventListener('click', pick);
+
+        overlay.appendChild(wrap);
+        return { el: wrap, dot, nm, base: projection(p.pos), p };
       });
 
       // 引导标记：当前位置(you) / 目标打点(goal)。由游戏层 opts.marks 传入，
@@ -619,18 +676,19 @@
           return best;
         };
         let best = null, bd = -1;
-        for (let gy = 0; gy <= 36; gy++) {
-          for (let gx = 0; gx <= 36; gx++) {
-            const p = [bb.minX + (bb.maxX - bb.minX) * gx / 36, bb.minY + (bb.maxY - bb.minY) * gy / 36];
+        const GN = 30;   // 深度搜索网格 37×37 → 31×31，位置几乎不变但搜索量降约 40%（打开更跟手）
+        for (let gy = 0; gy <= GN; gy++) {
+          for (let gx = 0; gx <= GN; gx++) {
+            const p = [bb.minX + (bb.maxX - bb.minX) * gx / GN, bb.minY + (bb.maxY - bb.minY) * gy / GN];
             if (!inGeom(p)) continue;
             const d = dist2(p);
             if (d > bd) { bd = d; best = p; }
           }
         }
         if (best) {
-          const rx = (bb.maxX - bb.minX) / 72, ry = (bb.maxY - bb.minY) / 72;
-          for (let gy = -8; gy <= 8; gy++) {
-            for (let gx = -8; gx <= 8; gx++) {
+          const rx = (bb.maxX - bb.minX) / (GN * 2), ry = (bb.maxY - bb.minY) / (GN * 2);
+          for (let gy = -6; gy <= 6; gy++) {
+            for (let gx = -6; gx <= 6; gx++) {
               const p = [best[0] + rx * gx, best[1] + ry * gy];
               if (!inGeom(p)) continue;
               const d = dist2(p);
@@ -740,7 +798,7 @@
           if (!delta) return { x: bx, y: by, moved: 0 };
           const sgn = delta > 0 ? 1 : -1, dist = Math.abs(delta);
           let lo = 0, hi = dist;
-          for (let b = 0; b < 16; b++) {
+          for (let b = 0; b < 12; b++) {   // 12 次二分已把回收精度推到 <0.01px
             const m = (lo + hi) / 2;
             if (boxInStateIdx(idx, isY ? bx : bx + sgn * m, isY ? by + sgn * m : by)) lo = m;
             else hi = m;
@@ -750,7 +808,7 @@
             : { x: bx + sgn * lo, y: by, moved: lo };
         }
         const cap = stateLabelsDom.map(() => 30);   // 每州累计位移上限(px, k=1)
-        for (let iter = 0; iter < 260; iter++) {
+        for (let iter = 0; iter < 200; iter++) {   // 实际多在数十轮内收敛；封顶压到 200 轮控制最坏开销
           let any = false;
           for (let i = 0; i < stateLabelsDom.length; i++) {
             for (let j = i + 1; j < stateLabelsDom.length; j++) {
@@ -798,6 +856,10 @@
           o.el.style.top = (o.base[1] * k) + 'px';
         });
         specialMarks.forEach(o => {
+          o.el.style.left = (o.base[0] * k) + 'px';
+          o.el.style.top = (o.base[1] * k) + 'px';
+        });
+        placeMarks.forEach(o => {
           o.el.style.left = (o.base[0] * k) + 'px';
           o.el.style.top = (o.base[1] * k) + 'px';
         });
@@ -850,6 +912,7 @@
         if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod); });
         if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
         if (specialMarks.length) specialMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
+        if (placeMarks.length) placeMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
         // 引导标记任何缩放级别都保持可见（仅1~2枚，不产生干扰）
         guideMarks.forEach(o => { if (o.el) o.el.style.opacity = '1'; });
         positionOverlay(t);
@@ -914,6 +977,34 @@
         </div>
       `;
       info.classList.add('show');
+    }
+
+    // 野外地点/关卡/副本信息面板（无势力印章：以类型色示之；入口/级别提示便于直接前往）
+    function selectPlace(p, meta, roomId) {
+      const sub = [];
+      if (p.state) sub.push(p.state);
+      if (p.isPass) sub.push('关隘要道');
+      else if (p.isBattlefield) sub.push('古战场');
+      if (p.kind === 'dungeon') sub.push('入口在山洞内，需达等级 ' + ((p.entryReq && p.entryReq.level) || 1));
+      info.innerHTML = `
+        <div class="strategic-info-h">
+          <span class="seal" style="background:${meta.color}">${meta.label.charAt(0)}</span>
+          ${p.name}
+        </div>
+        <div class="strategic-info-b">${p.desc || p.name}<br/>
+          <span style="color:#8a6a3a;font-size:11px;">${sub.filter(Boolean).join(' · ')}</span>
+        </div>
+        <button class="go-btn" id="sm-go-btn">${p.kind === 'dungeon' ? '前往副本入口' : '前往'}</button>
+      `;
+      info.classList.add('show');
+
+      const goBtn = info.querySelector('#sm-go-btn');
+      if (goBtn) {
+        goBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (opts.onCityClick) opts.onCityClick({ id: roomId, name: p.name, kind: p.kind, state: p.state, desc: p.desc, owner: p.owner, isPlace: true });
+        });
+      }
     }
 
     function selectCity(c) {
@@ -1004,10 +1095,15 @@
       info.classList.remove('show');
     });
 
-    // 加载数据并渲染
+    // 加载数据并渲染（渲染放下一帧：占位提示先被绘制，消除首次同步重绘造成的"卡住"感）
     const cities = buildCitiesFromGame();
     loadRegions().then(regionData => {
-      render(regionData, cities);
+      // 无 requestAnimationFrame 环境(如无头测试)退回 setTimeout，保证仍能出图
+      const raf = global.requestAnimationFrame || ((fn) => setTimeout(fn, 16));
+      raf(() => {
+        render(regionData, cities);
+        loading.remove();
+      });
     }).catch(err => {
       console.error('战略地图加载失败', err);
       container.innerHTML = '<div class="strategic-loading">地图加载失败，请刷新重试</div>';

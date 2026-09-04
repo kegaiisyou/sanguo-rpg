@@ -1951,7 +1951,7 @@
   .cb-hint{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,.8);
     color:#e8c878; padding:8px 16px; border-radius:10px; border:1px solid rgba(232,200,120,.4); font-size:13px; pointer-events:none; z-index:40; }
 </style>
-<link rel="stylesheet" href="shared/css/strategic-map.css?v=20260904f" />
+<link rel="stylesheet" href="shared/css/strategic-map.css?v=20260904l" />
 </head>
 <body>
 <script>
@@ -2051,7 +2051,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260904f"></script>
+<script src="shared/config/constants.js?v=20260904l"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -2077,7 +2077,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/vendor/turf.min.js?v=20260902b"></script>
     <script src="shared/data/map_regions.js?v=20260904i"></script>
-    <script src="shared/strategic-map.js?v=20260904k"></script>
+    <script src="shared/strategic-map.js?v=20260904l"></script>
     <script src="shared/data/markets.js?v=20260902a"></script>
     <script src="shared/combat/engine.js?v=20260902a"></script>
     <script src="shared/index.js?v=20260902a"></script>
@@ -8271,6 +8271,8 @@ window.onerror=function(msg,url,line,col,err){
       if(enemy.id==='bandit'||enemy.id==='bandit_chief'||enemy.id==='heishan_zei'||enemy.id==='heishan_zhu') state.quest.bandit++;
       else if(enemy.id==='yellow_turban') state.quest.turban++;
       else if(enemy.id==='hua_xiong'){
+        state.quest.hua_xiong=true; state.quest.luoyow_turban') state.quest.turban++;
+      else if(enemy.id==='hua_xiong'){
         state.quest.hua_xiong=true; state.quest.luoyang=true;
         log('【主线】力斩华雄！洛阳之门已为你敞开，可自「颍川主营」赴洛阳。','good');
         summary.lines.push({text:'【主线】力斩华雄！洛阳之门已开。'});
@@ -8804,13 +8806,4 @@ window.onerror=function(msg,url,line,col,err){
       // 副本入口：在 entry 地点房挂一条北向出口，连通地表↔秘谷
       if(p.kind==='dungeon' && p.entry && G.ROOMS[p.entry]){
         var er = G.ROOMS[p.entry]; if(!er.exits) er.exits = {};
-        if(!er.exits['北']) er.exits['北'] = pid + '@entrance';
-      }
-    }
-  }
-  registerPlaceRooms();
-
-})();
-</script>
-</body>
-</html>
+        if(!er.e

@@ -401,4 +401,26 @@
   z-index: 30;
 }
 
+/* 野外地点/关卡/副本点位：方形色点（区别于城池圆点），与城点同节奏随缩放淡入 */
+.strategic-city.place-loc { z-index: 4; }
+.strategic-city.place-loc .strategic-city-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  border-width: 1.5px;
+  box-shadow: 0 0 0 1.5px rgba(231,220,192,0.9);
+}
+.strategic-city.place-loc .strategic-city-name {
+  font-size: 11px;
+  top: -7px;
+}
+.strategic-city.place-loc.p-pass .strategic-city-dot,
+.strategic-city.place-loc.p-fort .strategic-city-dot { background: #c14b12; border-color: #571c04; }
+.strategic-city.place-loc.p-landmark .strategic-city-dot { background: #b8860b; border-color: #4a2f02; }
+.strategic-city.place-loc.p-dungeon .strategic-city-dot { background: #6a2f8f; border-color: #2a0f3a; }
+.strategic-city.place-loc.p-town .strategic-city-dot,
+.strategic-city.place-loc.p-camp .strategic-city-dot,
+.strategic-city.place-loc.p-wild .strategic-city-dot,
+.strategic-city.place-loc.p-story .strategic-city-dot { background: #55703c; border-color: #1f2f0d; }
+
 
