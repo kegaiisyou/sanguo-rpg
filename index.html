@@ -715,6 +715,10 @@
   .map-tabs .mt-tab.on{color:#1c1308;font-weight:700;background:linear-gradient(180deg,#ffe3a3,#e0b25f);
     border-color:#f3cf85;box-shadow:0 0 10px rgba(255,205,110,.35);}
   .map-tab-body.hidden{display:none;}
+  .mc-cell.mf{background:rgba(58,74,52,.30);border-color:rgba(170,200,140,.28);}
+  .mc-cell.mf-entry{border-color:#7fb0ff;box-shadow:0 0 0 2px rgba(127,176,255,.45);}
+  ul.mf-exits{margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--ink-faint);line-height:1.6;}
+  ul.mf-exits li{margin:1px 0;}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
   .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
   .map-rivers .mp-river{fill:none;stroke:rgba(70,110,170,.30);stroke-width:2.5;stroke-linecap:round;}
@@ -2064,7 +2068,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260905m"></script>
+<script src="shared/config/constants.js?v=20260905n"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -4161,6 +4165,53 @@ window.onerror=function(msg,url,line,col,err){
         '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>'+
         '<p class="tip">拖拽平移 · 滚轮缩放 · 点城池查看详情/前往（体力-4·食物-1·饮水-1·时间+1刻）。'+
         '打开时默认以你所在之处居中；切回「城内布防图」可继续在城中走动。</p></div>';
+  }
+  // 郊野局部地图（v20260905n）：4×4 网格展示当前郊野——玩家所在格、入口(回母城)、资源/野兽/路人、远边通邻城出口
+  function buildFieldMapHTML(opts){
+    opts=opts||{};
+    var rid=state.room, room=G.ROOMS[rid];
+    if(!room || !room.isField || !room.fieldId) return '';
+    var fid=room.fieldId;
+    var fp=(LF.PLACES||{})[fid]||{};
+    var size=fp.size||4, gd=fp.gateDir||'东';
+    var geo=LF.Travel.fieldGeometry(size, gd);
+    var CELL=62, W=size*CELL, H=size*CELL, fc=room.fc, fr=room.fr;
+    var meta=((LF.Travel&&LF.Travel.fields)||{})[fid]||{};
+    var cells='';
+    for(var r=0;r<size;r++) for(var c=0;c<size;c++){
+      var cid=LF.Travel.roomId(fid,r,c), cr=G.ROOMS[cid]||{};
+      var isCur=(r===fr&&c===fc), isEntry=(r===geo.entryR&&c===geo.entryC);
+      var ic='·', nm='荒野';
+      if(isEntry){ ic='🚪'; nm='入口'; }
+      else if(cr.resources&&cr.resources.length){ ic='🌿'; nm=cr.resources[0].name; }
+      else if(cr.monsters&&cr.monsters.length){ var m0=cr.monsters[0]; ic=(m0.aggr==='flee'?'🐗':(m0.aggr==='neutral'?'🐺':'⚔')); nm=m0.name; }
+      else if(cr.fieldNpcs&&cr.fieldNpcs.length){ ic='💬'; nm=cr.fieldNpcs[0].name; }
+      var cls='mc-cell mf'+(isCur?' mc-cur':'')+(isEntry?' mf-entry':'');
+      cells+='<div class="'+cls+'" data-x="'+c+'" data-y="'+r+'"'+
+        ' style="left:'+(c*CELL)+'px;top:'+(r*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
+        '<span class="mc-ic">'+ic+'</span><span class="mc-nm">'+nm+'</span></div>';
+    }
+    var parentName=((LF.CITIES||{})[fp.parent]&&LF.CITIES[fp.parent].name)||((LF.PLACES||{})[fp.parent]&&LF.PLACES[fp.parent].name)||fp.parent||'';
+    var exits='';
+    (meta.neighbors||[]).forEach(function(nb){
+      var nn=((LF.PLACES||{})[nb.nid]&&LF.PLACES[nb.nid].name)||nb.nid;
+      exits+='<li>远边行军 → 『'+nn+'』</li>';
+    });
+    return '<h3>'+fp.name+' · 郊野图</h3>'+
+      '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
+      '<p class="tip">你正行于〔'+parentName+'〕之'+(gd)+'郊野。当前位于〔'+(room.nmBand||'郊野')+'〕。'+
+        '金框为你的所在；🚪 入口可回『'+parentName+'』。</p>'+
+      (exits?'<ul class="mf-exits">'+exits+'</ul>':'');
+  }
+  // 野外打开「地图」时的双页签：默认郊野图，可切换到山河志（十三州战略地图，v20260905n）
+  function buildFieldMapTabsHTML(){
+    return '<div class="map-tabs" id="map-tabs">'+
+      '<button type="button" class="mt-tab on" data-tab="field">🏕 郊野图</button>'+
+      '<button type="button" class="mt-tab" data-tab="world">🗺 山河志 · 十三州</button></div>'+
+      '<div class="map-tab-body" data-body="field">'+buildFieldMapHTML({})+'</div>'+
+      '<div class="map-tab-body hidden" data-body="world">'+
+        '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>'+
+        '<p class="tip">拖拽平移 · 滚轮缩放 · 点城池查看详情。打开时默认以你所在郊野居中。</p></div>';
   }
   // 页签绑定：布防图 与 山河志 互切；山河志首次切到时才初始化并聚焦「此身所在」
   function initMapTabs(){
@@ -7454,6 +7505,8 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='map'){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
         h=buildCityMapTabsHTML();            // 城内：布防图 ↔ 山河志 双页签
+      } else if(G.ROOMS[state.room] && G.ROOMS[state.room].isField){
+        h=buildFieldMapTabsHTML();           // 野外：郊野图 ↔ 山河志 双页签
       } else {
         h=buildStrategicMapHTML({});
       }
@@ -7609,6 +7662,8 @@ window.onerror=function(msg,url,line,col,err){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
         if(initMapTabs()) initMapCity({});          // 页签绑定 + 布防图默认页交互
         else initMapCity({});
+      } else if(G.ROOMS[state.room] && G.ROOMS[state.room].isField){
+        initMapTabs();                              // 野外：页签绑定；world 页首次切到才初始化战略图（focusYou 居中郊野）
       } else {
         initStrategicMapInGame({ focusYou:true });   // 山河志打开默认居中「此身所在」（v20260905j）
       }
