@@ -2064,7 +2064,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260905j"></script>
+<script src="shared/config/constants.js?v=20260905k"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -3123,9 +3123,14 @@ window.onerror=function(msg,url,line,col,err){
     if(isCityGrid(rid)){
       var __m=genCityGrid(rid);
       if(!state.flags.cityPos || state.flags.cityPos.cid!==rid){
-        // 进城先到城门（南门优先；若被焚/掘断不可通行则顺延其他城门，兜底城心）
+        // 进城先到城门（v20260905k：按路网自适应开着的城门依次取可通行格，兜底城心）
         var __c=Math.floor(__m.size/2), __s=__m.size-1;
-        var __gates=[[__c,__s],[__c,0],[0,__c],[__s,__c],[__c,__c]];   // 南 北 西 东 城心
+        var __gates=[];
+        (cityGateDirs(rid)||[]).forEach(function(_d){
+          var _gc=gateCellCoord(rid,_d); if(_gc) __gates.push(_gc);
+        });
+        if(!__gates.length) __gates=[[__c,0],[0,__c],[__s,__c],[__c,__s]];
+        __gates.push([__c,__c]);
         var __g=__gates[0];
         for(var __gi=0;__gi<__gates.length;__gi++){
           if(canEnterCell(rid,__gates[__gi][0],__gates[__gi][1])){ __g=__gates[__gi]; break; }
@@ -3351,7 +3356,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
   // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
-  var GRID_VER='20260825d';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
+  var GRID_VER='20260825e';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
   // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
   function cityGates(c){
     var ct=c.ctype||'plain';
@@ -3359,6 +3364,72 @@ window.onerror=function(msg,url,line,col,err){
     if(ct==='mountain') return Math.max(1, Math.min(2, 1+Math.floor((c.wall||0)/55)));
     if(ct==='port') return Math.max(2, Math.min(3, 2+Math.floor((c.commerce||0)/50)));
     return 4;
+  }
+  // —— 城门方向·路网自适应（v20260905k）——
+  // 旧版固定取「默认方位序的前 nG 个」开门：山城/寨城单门往往开在无路的一侧，
+  // 门格虽在、郊野却无人可通 → 晋阳/武威/上庸「有入无出」、交趾「有出无入」等孤城软锁。
+  // 现改为：在四方位里枚举 nG 个开门的组合，选择「郊野远边能真连到的路网邻居」
+  // （网格城权重 2、其它地点 1）总数最多的方向集；得分相同则维持城型默认序
+  // （即原本已最优的城零变化）。与 genCityGrid 门洞格 / availableGateDirs 同源。
+  var CITY_GATE_ORDER={ plain:['北','东','南','西'], mountain:['北','西','南','东'],
+                        fort:['北','南','西','东'], port:['北','东','南','西'] };
+  var CITY_GATE_DIRS_CACHE={};
+  function cityGateDirs(cid){
+    if(CITY_GATE_DIRS_CACHE[cid]) return CITY_GATE_DIRS_CACHE[cid];
+    var c=(LF.CITIES||{})[cid];
+    var ord=CITY_GATE_ORDER[(c&&c.ctype)||'plain']||['北','东','南','西'];
+    var out=ord.slice(0,4);
+    if(c && c.grid){
+      var nG=cityGates(c);
+      if(nG>=4) out=ord.slice(0,4);
+      else {
+        var DIRV={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]};
+        // 路网邻居向量（与 travel.js geoVec 同一屏幕坐标口径：北=-y、东=+x）
+        var nbs=(((LF.ROADS||{}).adj||{})[cid]||[]).map(function(e){
+          var np=(LF.PLACES||{})[e.to];
+          if(!np||!np.pos||np.pos.length!==2) return null;
+          var la=(c.pos[1]||0)*Math.PI/180;
+          return { v:[(np.pos[0]-c.pos[0])*Math.cos(la), -(np.pos[1]-c.pos[1])],
+                   city: !!((LF.CITIES[e.to]||{}).grid) };
+        }).filter(Boolean);
+        function angFrom(d,v){
+          var dv=DIRV[d], va=Math.atan2(v[1],v[0]), da=Math.atan2(dv[1],dv[0]);
+          var a=Math.abs(va-da); if(a>Math.PI) a=2*Math.PI-a; return a;
+        }
+        // 复刻 travel.js 的分组语义：先归最近「朝外」门，无朝外门才归最近门（后归不产生出野口）
+        function pick(gdirs, v){
+          var facing=[], all=[];
+          gdirs.forEach(function(d){ var dv=DIRV[d]; if(v[0]*dv[0]+v[1]*dv[1]>0) facing.push(d); all.push(d); });
+          var pool=facing.length?facing:all, best=pool[0], ba=1e9;
+          pool.forEach(function(d){ var a=angFrom(d,v); if(a<ba){ ba=a; best=d; } });
+          return { d:best, face:!!facing.length };
+        }
+        function score(set){
+          var by={}; set.forEach(function(d){ by[d]=[]; });
+          nbs.forEach(function(nb){ by[pick(set, nb.v).d].push(nb); });
+          var s=0;
+          set.forEach(function(d){
+            by[d].forEach(function(nb){ if(pick(set, nb.v).face) s += nb.city?2:1; });
+          });
+          return s;
+        }
+        function affinity(set){
+          var a=0; set.forEach(function(d){ a += 4 - ord.indexOf(d); }); return a;
+        }
+        var bestSet=null, bestSc=-1, bestAf=-1;
+        for(var mask=0; mask<16; mask++){
+          var bits=0; for(var b=0;b<4;b++) if(mask&(1<<b)) bits++;
+          if(bits!==nG) continue;
+          var set=[];
+          for(var i=0;i<4;i++) if(mask&(1<<i)) set.push(ord[i]);
+          var sc=score(set), af=affinity(set);
+          if(sc>bestSc || (sc===bestSc && af>bestAf)){ bestSc=sc; bestAf=af; bestSet=set; }
+        }
+        out = bestSet || ord.slice(0,nG);
+      }
+    }
+    CITY_GATE_DIRS_CACHE[cid]=out;
+    return out;
   }
   var CELL_META={
     palace:{i:'🏯',nm:'皇宫'}, gov:{i:'🏛',nm:'衙署'},
@@ -3593,13 +3664,14 @@ window.onerror=function(msg,url,line,col,err){
     var cx=Math.floor(size/2), cy=Math.floor(size/2);
     var tier=c.tier || (c.grid>=9?'capital':c.grid>=7?'zhou':'xian');
     var centerType=(tier==='capital') ? 'palace' : 'gov';   // 都城中央为皇宫，其余为衙门/城主府
-    // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减，见 cityGates）
-    var gateOrder = (c.ctype==='port') ? [[cx,0],[size-1,cy],[cx,size-1],[0,cy]]
-                   : (c.ctype==='mountain') ? [[cx,0],[0,cy],[cx,size-1],[size-1,cy]]
-                   : (c.ctype==='fort') ? [[cx,0],[cx,size-1],[0,cy],[size-1,cy]]
-                   : [[cx,0],[size-1,cy],[cx,size-1],[0,cy]];
-    var nG = cityGates(c), gateSet={};
-    for(var gi=0; gi<nG && gi<gateOrder.length; gi++){ var gp=gateOrder[gi]; gateSet[gp[0]+','+gp[1]]=1; }
+    // 城门方向为路网自适应（v20260905k，见 cityGateDirs），门洞格与 availableGateDirs 同源
+    var nG = cityGates(c);
+    var gateSides = cityGateDirs(cid), gateSet={};
+    gateSides.forEach(function(_d){
+      var _gx=(_d==='东')?size-1:((_d==='西')?0:cx);
+      var _gy=(_d==='南')?size-1:((_d==='北')?0:cy);
+      gateSet[_gx+','+_gy]=1;
+    });
     var g=[];
     for(var y=0;y<size;y++){ var row=[];
       for(var x=0;x<size;x++){
@@ -4556,14 +4628,11 @@ window.onerror=function(msg,url,line,col,err){
   function stripDir(nm){ return (nm||'').replace(/^[^·]*·/,''); }
 
   // —— 城门 / 郊野行军 辅助 ——
-  // 取某城实际可用的城门方向（与 genCityGrid 的 gateOrder 一致）
+  // 取某城实际可用的城门方向（v20260905k：路网自适应，与 genCityGrid 门洞格同源）
   function availableGateDirs(pid){
-    var c=(LF.CITIES||{})[pid]; if(!c||!c.grid) return ['北','东','南','西'];
-    var ct=c.ctype||'plain';
-    var order = (ct==='port')?['北','东','南','西'] : (ct==='mountain')?['北','西','南','东'] : (ct==='fort')?['北','南','西','东'] : ['北','东','南','西'];
-    var nG=cityGates(c);
-    var out=[]; for(var i=0;i<nG && i<order.length;i++) out.push(order[i]);
-    return out;
+    var c=(LF.CITIES||{})[pid];
+    if(!c || !c.grid) return ['北','东','南','西'];
+    return cityGateDirs(pid);
   }
   // 城门格 → 朝外方位
   function gateOutwardDir(cid,x,y){
