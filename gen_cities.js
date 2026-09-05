@@ -1,3 +1,9 @@
+// ⚠⚠⚠ 一次性引导脚本（bootstrap-only）⚠⚠⚠
+// 本脚本仅在项目最初生成 shared/data/cities.js 时使用。cities.js 现已包含多轮
+// 人工修复（如 v20260905l 梓潼 wall 50→55 达成全图强连通、owner 双源对齐等）。
+// 【切勿重跑本脚本】：它会用内置旧数据数组整体覆盖 cities.js，导致上述修复丢失。
+// 新增 / 修改城市请直接编辑 shared/data/cities.js。
+
 // 生成新的 cities.js，包含61个城市（D3地图城市名单）
 // 每个城市：经纬度pos / 势力owner / 等级tier / 城内网格grid / 数值属性
 
@@ -5,7 +11,7 @@ const fs = require('fs');
 
 // 61个城市基础数据：[id, name, state, tier, grid, lng, lat, owner, ctype, desc]
 // tier: zhou(州治9格) / jun(大郡7格) / xian(小县5格)
-// owner: wei(魏) / shu(蜀) / wu(吴) / contested(争夺)
+// owner: 旧值（wei/shu/wu/contested），已弃用；cities.js 实际归属见 LF.CITY_OWNER / FACTIONS
 // ctype: plain(平原) / port(港口) / mountain(山城)
 const cities = [
   // ═══ 幽州 ═══

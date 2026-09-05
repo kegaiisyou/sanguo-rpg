@@ -17,6 +17,7 @@ _*.txt
 _*.png
 _serve.js
 _*.geojson
+_*.js
 pv*.png
 pvgrid.png
 show.png
