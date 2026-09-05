@@ -2064,7 +2064,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260905k"></script>
+<script src="shared/config/constants.js?v=20260905l"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -2082,11 +2082,11 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/shops.js?v=20260905a"></script>
     <script src="shared/shop.js?v=20260902a"></script>
     <script src="shared/data/map.js?v=20260905g"></script>
-    <script src="shared/data/cities.js?v=20260903e"></script>
+    <script src="shared/data/cities.js?v=20260905l"></script>
     <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260904g"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
-    <script src="shared/systems/travel.js?v=20260905j"></script>
+    <script src="shared/systems/travel.js?v=20260905l"></script>
     <script src="shared/gen/rooms.js?v=20260905g"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/vendor/turf.min.js?v=20260902b"></script>
@@ -3356,7 +3356,7 @@ window.onerror=function(msg,url,line,col,err){
   }
   // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
   // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
-  var GRID_VER='20260825e';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
+  var GRID_VER='20260825f';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
   // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
   function cityGates(c){
     var ct=c.ctype||'plain';

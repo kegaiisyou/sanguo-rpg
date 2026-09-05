@@ -171,10 +171,16 @@
 
       if(isGridCity){
         // 真城市：按各城门方向（可用城门集合）生成郊野，回城由 currentRoomExits 动态处理
+        // v20260905l：郊野元数据只收纳「真能朝外走到」的邻点。单门/限门城把部分邻点背向
+        // 所有开门时，pickOutwardGate 会兜底塞进最近门郊野，但 link() 远边 along<=0 本就跳过、
+        // 走不出去 → 该邻点成了「列了却到不了」的假可达目标（误导城门罗盘/自动行军）。
+        // 这里在分组时就剔除背向成员：meta.neighbors 严格等于「从此郊野远边真能抵达」的集合。
         var gdirs = (T._gateDirs ? T._gateDirs(pid) : CARD);
         var byDir = {};
         nbs.forEach(function(nb){
           var d = pickOutwardGate(gdirs, nb.v);
+          var dv = dirVec(d);
+          if(nb.v[0]*dv[0] + nb.v[1]*dv[1] <= 0) return;   // 背向该门：物理不可达，不入组
           (byDir[d] = byDir[d] || []).push(nb);
         });
         Object.keys(byDir).forEach(function(d){ createField(d, byDir[d]); });
