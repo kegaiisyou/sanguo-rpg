@@ -302,42 +302,6 @@
       actions: []
     },
 
-  // ═══ 锚点 · 建造测试（保留手写） ═══
-    build_test: {
-      id: 'build_test',
-      name: '建造系统测试',
-      desc: [
-        '林间一片空地，阳光自枝叶罅隙漏下。地当央立着一座粗木搭就的木工台，台面刨痕累累。',
-        '台旁一棵老树粗壮挺拔，墙角还堆着些杂役用的家伙什。此地似是专供试手「建造系统」之所。'
-      ],
-      exits: {
-        '北': 'city',
-        '东': 'combat_test'
-      },
-      find: '空地中央一座木工台，旁有老树与一堆积役工具——显然是试手建造的去处。',
-      npcs: [],
-      items: [],
-      actions: []
-    },
-
-  // ═══ 锚点 · 演武场（战斗系统测试，置于建造场隔壁） ═══
-    combat_test: {
-      id: 'combat_test',
-      name: '演武场·试炼坪',
-      desc: [
-        '建造场东侧辟出一片空坪，木桩、草人列于四隅。坪心立着一块试炼碑，碑侧按修为高下分列数名「陪练」——皆为符术所化，伤而不死，专供试招。',
-        '此处不耗气力、不损声名，正宜将各路敌手的拳脚、招式、五行逐一试过，摸清自家斤两，再去闯那真刀真枪的江湖。'
-      ],
-      exits: {
-        '西': 'build_test',
-        '北': 'city'
-      },
-      find: '空坪木桩草人列于四隅，坪心试炼碑按修为分列数名陪练。〔西〕回建造场（西）；〔北〕返颍川（北）。',
-      npcs: [],
-      items: [],
-      actions: []
-    },
-
   // ═══ 林径（手写连接：苦役营 ↔ 黑山寨） ═══
     lindao: {
       id: 'lindao',
@@ -363,87 +327,7 @@
 
   // ── 手写锚点房的「可交互物件」（工厂：引擎就绪后由 index.html 实例化）──
   function buildRoomObjects(){
-    function treeActs(){
-      var hasAxe = !!packFind('tiefu') || !!packFind('futou');
-      return [{label: hasAxe ? '挥斧伐木' : '徒手折枝', icon:'🌳', fn:function(){ chopTree(); }}];
-    }
-    function benchActs(){
-      var acts=[];
-      if(!(state.flags && state.flags.buildTestSearched)){
-        acts.push({label:'翻找工作台', icon:'🔍', fn:function(){ searchBench(); }});
-      }
-      acts.push({label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }});
-      return acts;
-    }
-    function build_quarry_actions(){
-      return [{label:'采石料', icon:'⛏️', fn:function(){ mineStone(); }}];
-    }
-    function build_crate_actions(){
-      var got = state.flags && state.flags.buildCrateGot;
-      if(got) return [{label:'木箱已空', icon:'📭', fn:function(){ toast('木箱已然空了。'); }}];
-      return [{label:'翻找木箱', icon:'🔍', fn:function(){ openBuildCrate(); }}];
-    }
     return {
-      build_test:[
-        {type:'feature', key:'tree',     icon:'🌳', name:'一棵老树', desc:'粗壮老树，枝干坚实，正堪伐取',   actions:treeActs},
-        {type:'feature', key:'bench',    icon:'🔨', name:'木工台',   desc:'粗木搭就的工作台，可将木头加工成木材', actions:benchActs},
-        {type:'feature', key:'toolpile', icon:'🪓', name:'工具堆',   desc:'墙角堆着些杂役用的家伙什',       actions:[{label:'拾取斧头', icon:'🪓', fn:function(){ pickupAxe(); }}]},
-        {type:'npc', key:'pedlar', icon:'🧺', name:'货郎', desc:'挑担行商，收售木料与器具', actions:[{label:'与他交易', icon:'💰', fn:function(){ openModal('shop', {shop:'build_pedlar'}); }}]},
-        {type:'npc', key:'liupan', icon:'🗡️', name:'游侠·刘磐', desc:'背负环首刀，抱拳而立', actions:[
-          {label:'邀请入队', icon:'🤝', fn:function(){ recruitCompanion('liupan'); }}
-        ]},
-        {type:'feature', key:'env',      icon:'🔍', name:'四周环境', desc:'环顾这片空地',                   actions:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-        {type:'feature', key:'quarry',     icon:'🪨', name:'采石崖',   desc:'崖壁裸露青石，敲击可采下石料',     actions: build_quarry_actions},
-        {type:'feature', key:'crate',    icon:'📦', name:'残破木箱', desc:'半埋草垛里的旧木箱，似有人遗落了图纸', actions: build_crate_actions},
-        {type:'feature', key:'loot_chest', icon:'🧰', name:'试炼宝箱', desc:'一只不上锁的木箱，里头好似塞满了杂物——打开看看？', actions:[{label:'打开宝箱', icon:'🧰', fn:function(){ if(typeof openTestChest==='function') openTestChest(); else if(window.LF&&LF.toast) LF.toast('（调试宝箱仅在 ?dev=1 下开启）'); }}]},
-        {type:'exit',  dir:'北',     icon:'🚪', name:'北·颍川',desc:'返回颍川',                           actions:[{label:'返回颍川', fn:function(){ move('北','city'); }}]},
-        {type:'exit',  dir:'东',     icon:'🏯', name:'东·演武场',desc:'试炼坪，可测试战斗系统',             actions:[{label:'前往演武场', fn:function(){ move('东','combat_test'); }}]}
-      ],
-
-      // ═══ 战斗系统测试：演武场（建造场隔壁） ═══
-      combat_test:[
-        {type:'feature', key:'newbie', icon:'🪵', name:'新手试炼桩', desc:'木人桩与几只极易对付的活靶，供熟悉基础攻防', actions:[
-          {label:'木人桩（无伤·测UI）', icon:'🥊', fn:function(){ startCombat('dummy'); }},
-          {label:'野犬（hp50·无）', icon:'🐕', fn:function(){ startCombat('stray_dog'); }},
-          {label:'饥饿流民（hp80·无）', icon:'🧎', fn:function(){ startCombat('hungry_refugee'); }},
-          {label:'落单溃兵（hp130·金）', icon:'🪖', fn:function(){ startCombat('deserter'); }}
-        ]},
-        {type:'feature', key:'lucky', icon:'🌟', name:'幸运星（测试·欧皇）', desc:'血薄却满载而归的试炼福星，专测战利品/搜打撤系统', actions:[
-          {label:'挑战幸运星', icon:'🌟', danger:true, fn:function(){ startCombat('lucky_star'); }}
-        ]},
-        {type:'feature', key:'mid', icon:'⚔️', name:'寻常试炼', desc:'山野间常见的匪类，正经练手', actions:[
-          {label:'山贼（hp300·土）', icon:'🪓', fn:function(){ startCombat('bandit'); }},
-          {label:'黑山寨卒（hp360·金）', icon:'🔪', fn:function(){ startCombat('heishan_zei'); }},
-          {label:'流寇头目（hp600·土）', icon:'👹', fn:function(){ startCombat('bandit_chief'); }}
-        ]},
-        {type:'feature', key:'elite', icon:'🔥', name:'精锐试炼', desc:'久历战阵的劲敌，招式带异常', actions:[
-          {label:'营中官差（hp140·金）', icon:'🏹', fn:function(){ startCombat('camp_guard'); }},
-          {label:'太平力士（hp800·土·符术）', icon:'🟡', fn:function(){ startCombat('yellow_turban'); }},
-          {label:'黑山寨主·张燕（hp1000·金·Boss）', icon:'😈', fn:function(){ startCombat('heishan_zhu'); }}
-        ]},
-        {type:'feature', key:'boss', icon:'👑', name:'宿敌试炼', desc:'一方豪强的压阵之将，全力一战', actions:[
-          {label:'华雄（hp1200·金·Boss）', icon:'🐅', fn:function(){ startCombat('hua_xiong'); }}
-        ]},
-        {type:'feature', key:'beast_low', icon:'🐺', name:'寻常野兽', desc:'林原间的走兽飞禽，宜试手身法', actions:[
-          {label:'野犬（hp50·无）', icon:'🐕', fn:function(){ startCombat('stray_dog'); }},
-          {label:'野狼（hp150·金）', icon:'🐺', fn:function(){ startCombat('wild_wolf'); }},
-          {label:'野猪（hp240·土·冲撞晕）', icon:'🐗', fn:function(){ startCombat('wild_boar'); }},
-          {label:'蝮蛇（hp90·木·毒）', icon:'🐍', fn:function(){ startCombat('venom_snake'); }}
-        ]},
-        {type:'feature', key:'beast_high', icon:'🐯', name:'凶兽', desc:'深山旷野的猛兽，招式带异常', actions:[
-          {label:'黑熊（hp520·土）', icon:'🐻', fn:function(){ startCombat('black_bear'); }},
-          {label:'苍鹰（hp200·金·极速）', icon:'🦅', fn:function(){ startCombat('goshawk'); }},
-          {label:'巨蟒（hp460·木·绞缠毒）', icon:'🐲', fn:function(){ startCombat('python'); }},
-          {label:'雪狼（hp340·金·北境）', icon:'🐺', fn:function(){ startCombat('snow_wolf'); }},
-          {label:'疯牛（hp280·土·冲撞晕）', icon:'🐂', fn:function(){ startCombat('mad_bull'); }},
-          {label:'群狼（hp300·金·连击）', icon:'🐺', fn:function(){ startCombat('wolf_pack'); }},
-          {label:'猛虎（hp720·金·兽王级）', icon:'🐯', fn:function(){ startCombat('tiger'); }}
-        ]},
-        {type:'feature', key:'env', icon:'🔍', name:'四周环境', desc:'环顾试炼坪', acts:[{label:'环顾四周', fn:function(){ renderRoom(state.room, true); }}]},
-        {type:'exit', dir:'西', icon:'🚪', name:'西·建造场', desc:'返回建造系统测试场', actions:[{label:'返回建造场', fn:function(){ move('西','build_test'); }}]},
-        {type:'exit', dir:'北', icon:'🏯', name:'北·颍川', desc:'返回颍川城', actions:[{label:'返回颍川', fn:function(){ move('北','city'); }}]}
-      ],
-
       // ═══ 剿匪据点：黑山寨（寨门 / 聚义厅 / 后寨） ═══
       ji_heishan_zhai:[
         {type:'npc', key:'heishan_zhai', icon:'🔪', name:'黑山寨卒', desc:'横刀拦路，面带凶相', actions:[

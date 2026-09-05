@@ -24,7 +24,7 @@
 
     coords: {
       // ── 中原 · 颍川（初开之地；颍川城为网格城根）──
-      city:[6,6.5], build_test:[7,8], combat_test:[8,8],
+      city:[6,6.5],
       luoyang:[5,4],   // 洛阳（司隶州治，网格城根）
       // ── 幽州 · 渔阳（网格城根，仅留城门根房）──
       yuyang_guomen:[14,-1],
@@ -87,15 +87,13 @@
       // 区域节点（黑山寨/建造场/演武场等手写要地）；城市州治不再在此维护，
       // 由 cities.js + coords 作唯一真相源（见 shared/data/cities.js 与 map.js 的 coords）。
       { id:'heishan',   name:'黑山寨',   icon:'🦹', pos:[9,-5],  st:'幽州', open:true,  kind:'dungeon', desc:'黑山军据守的险寨' },
-      { id:'build_test',name:'建造场',   icon:'🔨', pos:[7,8],   st:'豫州', open:true,  kind:'camp',    desc:'木工台与测试营地' },
-      { id:'combat_test',name:'演武场',   icon:'⚔️', pos:[8,8],   st:'豫州', open:true,  kind:'camp',    desc:'试炼坪·可试诸般敌手' }
     ],
 
     // 山脉/海岸美术现由 assets/map_inkwash.jpg 水墨山水底图承担（见 index.html .map-canvas 背景）
 
     // 节点分色覆盖（未列出者按房间 id 前缀自动推断：ji_heishan_→贼巢、ji_/yuyang_→城镇、其余→野外）
     kinds: {
-      build_test:'wild', combat_test:'wild', luoyang:'city',
+      luoyang:'city',
       lindao:'wild'
     }
   };

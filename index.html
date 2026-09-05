@@ -800,6 +800,7 @@
   .card .dev.wide{flex:1 1 100%;}
   .card .dev-sel{padding:8px 10px;font-size:13px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
   .dev-sub{font-size:11px;color:var(--ink-faint);font-weight:400;margin-left:6px;}
+  .card .dev-tip{font-size:11px;color:var(--ink-faint);line-height:1.6;margin:6px 0 0;padding-left:10px;border-left:2px solid rgba(158,59,46,.35);}
 
   #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
     background:rgba(44,38,32,.9);color:#f4eee2;padding:9px 18px;border-radius:22px;font-size:13px;
@@ -2051,7 +2052,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260905e"></script>
+<script src="shared/config/constants.js?v=20260905g"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -2059,7 +2060,7 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/story/objectives.js?v=20260902a"></script>
 <script src="shared/story/events.js?v=20260902a"></script>
 <script src="shared/story/dialogues.js?v=20260902a"></script>
-    <script src="shared/story/rooms.js?v=20260902a"></script>
+    <script src="shared/story/rooms.js?v=20260905g"></script>
     <script src="shared/story/triggers.js?v=20260902a"></script>
     <script src="shared/data/martial.js?v=20260902a"></script>
 <script src="shared/data/enemies.js?v=20260902a"></script>
@@ -2068,13 +2069,13 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/build.js?v=20260902a"></script>
     <script src="shared/data/shops.js?v=20260905a"></script>
     <script src="shared/shop.js?v=20260902a"></script>
-    <script src="shared/data/map.js?v=20260902d"></script>
+    <script src="shared/data/map.js?v=20260905g"></script>
     <script src="shared/data/cities.js?v=20260903e"></script>
     <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260904g"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
     <script src="shared/systems/travel.js?v=20260904n"></script>
-    <script src="shared/gen/rooms.js?v=20260905e"></script>
+    <script src="shared/gen/rooms.js?v=20260905g"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/vendor/turf.min.js?v=20260902b"></script>
     <script src="shared/data/map_regions.js?v=20260904i"></script>
@@ -4566,7 +4567,11 @@ window.onerror=function(msg,url,line,col,err){
       var nm=(LF.CITIES&&LF.CITIES[pid]&&LF.CITIES[pid].name) || (LF.PLACES&&LF.PLACES[pid]&&LF.PLACES[pid].name) || pid;
       return dir+'·入城('+nm+')';
     }
-    var r=G.ROOMS[tid]; return r? r.name : tid;
+    var r=G.ROOMS[tid];
+    if(!r) return tid;
+    // 郊野行军格：罗盘出口用语义分段名（近郭/初野/深野/远野），不再显示冗长全名
+    if(r.isField && r.nmBand) return r.nmBand;
+    return r.name;
   }
 
   // ===== 行走探索 =====
@@ -4631,6 +4636,29 @@ window.onerror=function(msg,url,line,col,err){
   }
   function fieldNarr(room){
     var out=[];
+    // 方位与去向（v20260905f）：回城方向 + 出野可通何处，行军不再「盲走」
+    var _fid=room.fieldId;
+    if(_fid){
+      var _fp=(LF.PLACES||{})[_fid]||{};
+      var _fmeta=((LF.Travel&&LF.Travel.fields)||{})[_fid]||{};
+      var _par=_fp.parent||_fmeta.place;
+      if(_par){
+        var _pn=((LF.CITIES||{})[_par]&&LF.CITIES[_par].name)?LF.CITIES[_par].name:((LF.PLACES||{})[_par]?LF.PLACES[_par].name:_par);
+        var _g=_fp.gateDir||'东';
+        var _back=({'北':'南','南':'北','东':'西','西':'东','东北':'西南','西南':'东北','西北':'东南','东南':'西北'})[_g]||'';
+        var _outs=((_fmeta.neighbors)||[]).map(function(n){
+          return ((LF.CITIES||{})[n.nid]&&LF.CITIES[n.nid].name)?LF.CITIES[n.nid].name
+               : ((LF.PLACES||{})[n.nid]?LF.PLACES[n.nid].name:n.nid);
+        }).filter(Boolean);
+        var _txt;
+        if(_outs.length){
+          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'（出野）可至 '+_outs.join(' / ')+'。';
+        } else {
+          _txt='「'+(_fp.name||'野')+'」：向'+_back+'归「'+_pn+'」；其余方向似无通途，宜折返。';
+        }
+        out.push({t:'〔途〕'+_txt, c:'sys'});
+      }
+    }
     // 顶栏天候/昼夜提示（v20260905d）：让时间与天候对郊野的影响可见可感
     var _w=(WEATHERS[state.weather]||WEATHERS[0]);
     var _t=wxEff().tip;
@@ -7456,7 +7484,7 @@ window.onerror=function(msg,url,line,col,err){
     opts=opts||{};
     var title = opts.pickSpawn ? '选择出生点' : '山河志 · 战略地图';
     var tip = opts.pickSpawn
-      ? '点击一处城池设为出生点，并立即传送至此。'
+      ? '与山河志同一张地图：点圆点=城池、方点=关隘/野地/副本。点击任一点即设为出生点并立即传送（城市出生落在城门）。'
       : '拖拽平移 · 滚轮缩放 · 点击城池前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」；点右下 ◎ 可回到所在处。';
     return '<h3>'+title+'</h3>'+
       '<div id="strategic-map-container"></div>'+
@@ -7479,6 +7507,33 @@ window.onerror=function(msg,url,line,col,err){
     if(c && c.pos) return {type:'you', pos:c.pos, cid:rid, label:'此身所在 · '+c.name};
     var sg=((LF.MAP&&LF.MAP.specialGeo)||{})[rid];
     if(sg && sg.pos) return {type:'you', pos:sg.pos, cid:rid, label:'此身所在 · '+sg.name};
+    // 郊野行军格：按「母城 → 外邻各点均值」线性插值打点，表明正行于哪片郊野
+    var _cr=G.ROOMS[rid];
+    if(_cr && _cr.isField && _cr.fieldId){
+      var _fp=(LF.PLACES||{})[_cr.fieldId]||{};
+      var _par=_fp.parent;
+      var _cpos=null;
+      if((LF.CITIES||{})[_par] && LF.CITIES[_par].pos) _cpos=LF.CITIES[_par].pos;
+      else if((LF.PLACES||{})[_par] && LF.PLACES[_par].pos) _cpos=LF.PLACES[_par].pos;
+      var _fmeta=((LF.Travel&&LF.Travel.fields)||{})[_cr.fieldId]||{};
+      var _outs=((_fmeta.neighbors)||[]).map(function(n){
+        return ((LF.CITIES&&LF.CITIES[n.nid]&&LF.CITIES[n.nid].pos)?LF.CITIES[n.nid].pos
+              :((LF.PLACES&&LF.PLACES[n.nid]&&LF.PLACES[n.nid].pos)?LF.PLACES[n.nid].pos:null));
+      }).filter(Boolean);
+      if(_cpos && _outs.length){
+        var _g=_fp.gateDir||'东';
+        var _geo=LF.Travel.fieldGeometry(_fp.size||4,_g);
+        var _near=(_g==='东'||_g==='西')?_geo.nearCol:_geo.nearRow;
+        var _ax=(_g==='东'||_g==='西')?_cr.fc:_cr.fr;
+        var _den=(_fp.size||4)-1;
+        var _t=(_den<=0)?0.5:(((_g==='东'||_g==='南')?(_ax-_near):(_near-_ax))/_den);
+        _t=Math.max(0,Math.min(1,_t));
+        var _ox=0,_oy=0; _outs.forEach(function(p){ _ox+=p[0]; _oy+=p[1]; });
+        _ox/=_outs.length; _oy/=_outs.length;
+        return {type:'you', pos:[_cpos[0]+(_ox-_cpos[0])*_t, _cpos[1]+(_oy-_cpos[1])*_t],
+                cid:_cr.fieldId, label:'此身所在 · '+((_fp.name)||'郊野')};
+      }
+    }
     return null;
   }
   // 主线/任务目标打点（后续支线目标可在此追加）
@@ -7669,6 +7724,14 @@ window.onerror=function(msg,url,line,col,err){
     else if(act==='cha+10'){ state.chivalry+=10; log('【调试】侠义 +10（当前 '+state.chivalry+'）','good'); }
     else if(act==='not+10'){ state.notoriety+=10; log('【调试】凶名 +10（当前 '+state.notoriety+'）','good'); }
     else if(act==='moral0'){ state.chivalry=0; state.notoriety=0; state.flags.usurper_seen=false; log('【调试】善恶双轴清零','sys'); }
+    else if(act==='spawnNow'){
+      if(!state.spawnRoom){ toast('尚未设置出生点'); return; }
+      closeModal();
+      renderRoom(state.spawnRoom);
+      var _sn=((LF.CITIES||{})[state.spawnRoom]?LF.CITIES[state.spawnRoom].name
+        :((((LF.MAP&&LF.MAP.specialGeo)||{})[state.spawnRoom]||G.ROOMS[state.spawnRoom]||{}).name||state.spawnRoom));
+      log('已传送到出生点：'+_sn,'good');
+    }
   }
   function renderDev(){
     var MA=G.MARTIAL_ARTS;
@@ -7682,7 +7745,20 @@ window.onerror=function(msg,url,line,col,err){
       return '<option value="'+t+'"'+(t===state.title?' selected':'')+'>'+t+'</option>';
     }).join('');
     var cityName=(state.flags.cityPos && LF.CITIES[state.flags.cityPos.cid])?LF.CITIES[state.flags.cityPos.cid].name:(state.flags.cityPos?state.flags.cityPos.cid:'不在城');
+    // 出生点名解析：城市 / 手写特殊锚点 / 程序生成地点房 三种来源兼容
+    function spawnNameOf(s){
+      if(!s) return '未设置';
+      if((LF.CITIES||{})[s]) return LF.CITIES[s].name+'（城）';
+      var _sg=((LF.MAP&&LF.MAP.specialGeo)||{})[s]; if(_sg) return _sg.name;
+      var _r=G.ROOMS[s]; if(_r&&_r.name) return _r.name;
+      return s;
+    }
     var h='<h3>🛠 调 试 台 <span class="dev-sub">v'+LF.CONSTANTS.VERSION+'</span></h3>';
+    // 出生点（最常用 → 置顶）
+    h+='<div class="dev-sec"><div class="dev-h">出生点（当前：'+spawnNameOf(state.spawnRoom)+'）</div><div class="dev-btns">'+
+       '<button class="dev wide" data-act="setspawn">🗺 地图选出生点</button>'+
+       '<button class="dev wide" data-act="spawnNow">⤵ 传送至出生点</button></div>'+
+       '<p class="dev-tip">新档开局落点。城市出生落在城门，点击后立即传送验证。默认洛阳。</p></div>';
     // 资源
     h+='<div class="dev-sec"><div class="dev-h">资源（声望 '+rep+' · 银两 '+state.gold+' · 潜能 '+state.pot+' · 自由点 '+fp+'）</div><div class="dev-btns">'+
        '<button class="dev" data-act="rep+5">声望+5</button><button class="dev" data-act="rep100">声望=100</button>'+
@@ -7717,9 +7793,6 @@ window.onerror=function(msg,url,line,col,err){
     // 城市
     h+='<div class="dev-sec"><div class="dev-h">城市（当前：'+cityName+'）</div><div class="dev-btns">'+
        '<button class="dev" data-act="dev-citydev">建设+20</button><button class="dev" data-act="dev-burn">焚城(随机3格)</button></div></div>';
-    // 出生点
-    h+='<div class="dev-sec"><div class="dev-h">出生点（当前：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)+'）</div><div class="dev-btns">'+
-       '<button class="dev wide" data-act="setspawn">🗺 设置出生点</button></div></div>';
     h+='<button class="close" id="m-close">收 起</button>';
     $card.innerHTML=h;
     $modal.classList.remove('hidden');
@@ -7737,13 +7810,15 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   // ===== 调试：大地图选出生点 =====
+  // 与主地图同一套 D3 战略图（61 城 + 野外/关隘/副本全点位），点击任意点即设为出生点并传送
   function openSpawnMap(){
     if(state.dead){ die(); return; }
-    var h=buildMapKingHTML({pickSpawn:true});
+    var h=buildStrategicMapHTML({pickSpawn:true});
     $card.innerHTML=h+'<button class="close" id="m-close">取 消</button>';
     $modal.classList.remove('hidden');
+    currentModalKind='map';   // 与山河志一致，便于关闭/刷新逻辑复用
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
-    initMapKing({pickSpawn:true});
+    initStrategicMapInGame({pickSpawn:true});
   }
   function toast(msg){ if(settings.sound) tick(480); $toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400); }
 
@@ -7757,8 +7832,6 @@ window.onerror=function(msg,url,line,col,err){
   window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
   window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;
   window.startCombat=startCombat;
-  // 测试宝箱仅为调试用途：仅在 ?dev=1 时暴露，避免生产环境误触（无任何正常游戏逻辑调用它）
-  if (location.search.indexOf('dev=1') >= 0) window.openTestChest=openTestChest;
   // ── 全局桥接（v20260827i）：shared/story/rooms.js 工厂闭包引用 state.flags/state.room（read-only），
   //    通过 getter 暴露当前 state；内部仍以 IIFE 内的 var state 为主写入源
   Object.defineProperty(window, 'state', { get: function(){ return state; }, configurable: true });
@@ -8971,15 +9044,6 @@ window.onerror=function(msg,url,line,col,err){
     var sb=document.getElementById('lp-sort');
     if(sb) sb.onclick=function(){ organizePack(); };
     rerender();
-  }
-
-  // 测试宝箱：打开后弹出「搜打撤」战利品窗口（建造测试场）
-  function openTestChest(){
-    var loot=[];
-    function add(id,n){ var it=LF.ITEMS.makeItem(id,n||1); if(it) loot.push(it); }
-    add('jinchuang',2); add('roubao',1); add('caoyao',3); add('shengrou',1); add('yaofen',1);
-    var eq=LF.ITEMS.equipToPackItem(LF.ITEMS.rollEquip(3)); if(eq) loot.push(eq);
-    openLootWindow(loot, {title:'试 炼 宝 箱', sub:'整理战利品 · 拖动取舍后确认', onConfirm:function(){ renderRoom(state.room,true); }});
   }
 
   // 独立战利品窗口（宝箱等非战斗场景）：标题 + 左右对照 + 确认

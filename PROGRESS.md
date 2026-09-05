@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260905e`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260905g`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -746,6 +746,27 @@
 `room(显示名, {…选项})`——只传 2 参，但统一房间工厂签名是 `room(id, name, options)`（其余 city/town/fort/dungeon/story 生成器均为 3 参）。于是**选项对象被当成了 `name` 属性、又作为兜底塞进 `desc:[name]`**：每间郊野房 `room.desc` 的唯一元素是「整包选项对象」，渲染时 `shortScene(d).trim` 对对象调用抛 TypeError。附带副作用：`rm.id` 变成显示名、`kind/isField/find/actions` 全被吞（fate 靠后面手工补字段掩盖，故数据层校验全绿、此前未被发现）。修复为三参调用：`room(rid, (p.name||p.id) + '·' + zh(r)+zh(c)+'格', {kind:'field',…})`——rid 归位、name 归位、desc 恢复为 `fieldDesc` 字符串数组。
 - 校验：`_chk_gen.js`（隔离生成 16 格）desc 全字符串、入口格 len=2；`_repro_exit.js`（jsdom 整页：读档蓟城南门 → 出城 → 郊野内东/西各一步）0 报错，房间正确切到 `fld_*`；`_verify_travel.js` 拓扑回归 OK；lint 0。版本 **20260905d→20260905e**（constants.js + index.html 中 `constants.js?v=` 与 `gen/rooms.js?v=20260904m` 同步 bump——旧缓存会继续加载坏 rooms.js，必须强刷）。
 
+### §9.44 v20260905g：调试台出生点同步战略图 + 测试房清除 + 郊野行军体验优化
+
+**① 调试台出生点（用户反馈：与当前地图不同步 / 最常用应置顶）**
+- 旧 `openSpawnMap()` 用「山河志·网格图」`buildMapKingHTML`——该图节点只是零星旧手写房（city/build_test/州治…），与 Place/61 城体系早已脱节，地图近乎空白。
+- 改为**与主地图同一套 D3 战略图**：`buildStrategicMapHTML({pickSpawn:true}) + initStrategicMapInGame({pickSpawn:true})`（该 pickSpawn 分支此前已备好但无 UI 入口），圆点=城池、方点=关隘/野地/副本，点击任意点即设为出生点并立即传送；城市渲染自动落城门（`renderRoom` 兜底）。
+- 出生点区块在调试台**置顶为第一节**（原在末尾），新增「⤵ 传送至出生点」（`spawnNow`，供快速验证出生落点）；出生点名解析兼容城市/特殊锚点/生成地点三种来源（`spawnNameOf`），修复城市出生点显示空白。
+- 出生点入口 `currentModalKind='map'`，关闭/刷新与山河志一致。
+
+**② 测试地图遗留清除（用户反馈：测试房/测试内容是否已删净）**
+- 盘点：`build_test`（建造系统测试房）与 `combat_test`（演武场·试炼坪）实为**不可达孤岛**（出口'北→city'早悬空，无任何正式路径可达），仅存于数据层 + 已退役的网格出生图。
+- 清除：`shared/story/rooms.js` 删两房定义及 `buildRoomObjects` 的整段对象/辅助函数；`shared/data/map.js` 删 `coords/zones/kinds` 中 build_test/combat_test 条目；`index.html` 删 `openTestChest`（试炼宝箱）及其 `?dev=1` 全局桥。
+- 保留：苦役营教学链（camp_*/lindao/黑山寨）为正式主线不属测试；`enemies.dummy` 等战斗数据另有场景语义，不动。
+
+**③ 郊野行军体验优化（回应「野外没参考、走起来乱、盲走没方向感」）**
+- **格名语义化**：`GEN.field` 格名由无意义坐标「X城·东郊野·二〇格」改为**纵深分段**「近郭/初野/深野/远野」（`rm.nmBand`），3136 格全量校验通过、每段 784 均匀。
+- **〔途〕方位行**：`fieldNarr` 增加首行：本野来路/归城方向 + 「向X（出野）可至 邻城1/邻城2」，行军不再盲走（`state.room` 在任意格都可用）。
+- **战略图「你在此」**：`smYouMark` 增加郊野分支——按「母城 pos → 外邻各点均值」线性插值（轴向进度）打点，山河志上可看到自己正行于哪片郊野。
+- **罗盘出口名**：`exitDisplayName` 对郊野格出口显示语义段名（近郭/初野…）而非冗长全名。
+- 校验：`_verify_bands.js` 3136 格 band 分布=4×784 无异常；`_verify_travel.js` 城际全连通 OK；`_repro_exit.js`（jsdom 整页：读档蓟城南门→出城→郊野逐格移动回城）0 报错，覆盖 fieldNarr/罗盘/渲染新路径；lint 0。
+- 版本 **20260905e→20260905g**（constants.js VERSION + index.html 四处 `?v=`：constants / story:rooms / data:map / gen:rooms）。
+
 ---
 
-*最后更新：2026-09-05（§9.43 修复出城即崩 GEN.field 参数错位；版本 20260905e）*
+*最后更新：2026-09-05（§9.44 调试台出生点接 D3 战略图并置顶 · 测试房 build_test/combat_test/试炼宝箱清除 · 郊野格语义化命名+〔途〕方位+你在此打点；版本 20260905g）*

@@ -124,15 +124,22 @@
       var o = {};
       var DIR8 = { '北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0],
                    '东北':[1,-1],'西北':[-1,-1],'东南':[1,1],'西南':[-1,1] };
+      // 格名按离城纵深分段（取代无意义的「X行Y列格」）：近郭/初野/深野/远野
+      var BAND=['近郭','初野','深野','远野'];
+      var colAxis=(gd==='东'||gd==='西'), nearIdx=colAxis?geo.nearCol:geo.nearRow;
       for(var r=0;r<size;r++) for(var c=0;c<size;c++){
         var rid = T.roomId(p.id, r, c);
         var isEntry = (r===geo.entryR && c===geo.entryC);
-        var rm = room(rid, (p.name || p.id) + '·' + zh(r) + zh(c) + '格', {
+        var _ax=colAxis?c:r;
+        var _st=(gd==='东'||gd==='南')?(_ax-nearIdx):(nearIdx-_ax);
+        _st=Math.max(0,Math.min(size-1,_st));
+        var band=BAND[Math.min(3,_st)]||'郊野';
+        var rm = room(rid, (p.name || p.id) + '·' + band, {
           kind:'field', isField:true,
           desc: fieldDesc(p, r, c, geo, isEntry),
           find:'', actions:[]
         });
-        rm.isField = true; rm.fieldId = p.id; rm.fr = r; rm.fc = c; rm._entry = isEntry;
+        rm.isField = true; rm.nmBand = band; rm.fieldId = p.id; rm.fr = r; rm.fc = c; rm._entry = isEntry;
         rm.exits = {};
         for(var d in DIR8){
           var nr = r + DIR8[d][1], nc = c + DIR8[d][0];
