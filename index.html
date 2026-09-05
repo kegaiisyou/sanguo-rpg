@@ -325,6 +325,10 @@
   .mv-exit.leap .mv-arrow{color:#2f7d8c;}
   /* 坐骑方向：金辉 */
   .mv-exit.mount{background:rgba(176,131,47,.20);border-color:rgba(176,131,47,.72);}
+  /* 出城方向（立于城门格罗盘朝外）：暖金晕边，示意由此离城入野 */
+  .mv-exit.gateout{background:linear-gradient(180deg,rgba(176,131,47,.26),rgba(158,59,46,.12));border-color:rgba(198,120,60,.85);}
+  .mv-exit.gateout .mv-arrow{color:#a34a2c;}
+  .mv-exit.gateout .mv-nm{color:#7a3a22;font-weight:600;}
   /* 探查脉冲高亮（dock「🔍探查」触发） */
   @keyframes mbPulse{0%{box-shadow:0 0 0 0 rgba(176,131,47,.5);}70%{box-shadow:0 0 0 12px rgba(176,131,47,0);}100%{box-shadow:0 0 0 0 rgba(176,131,47,0);}}
   .move-bar.pulse{border-color:rgba(176,131,47,.6);animation:mbPulse 1.1s ease-out 2;}
@@ -2052,7 +2056,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260905g"></script>
+<script src="shared/config/constants.js?v=20260905i"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -2074,7 +2078,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260904g"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
-    <script src="shared/systems/travel.js?v=20260904n"></script>
+    <script src="shared/systems/travel.js?v=20260905h"></script>
     <script src="shared/gen/rooms.js?v=20260905g"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/vendor/turf.min.js?v=20260902b"></script>
@@ -3690,9 +3694,9 @@ window.onerror=function(msg,url,line,col,err){
         });
       }
     }
-    if(t==='gate') out.push({id:'leave_city', label:'出城门', tip: burnt?'城门残破，仍可通行，出城重览山河':'经城门出城，重览山河'});
-    // 寻路出城（自动沿可通行道路行至最近城门）
-    out.push({id:'leave_auto', label:'寻路出城', tip:'自动沿可通行道路行至最近城门出城'});
+    // v20260905h：出城统一走移动罗盘——立于城门格时，罗盘自动出现朝外的「出城」方向。
+    // 不再提供「出城门」场景按钮；任意格可用「前往城门」自动寻路抵门（不出城），到门后由罗盘定向踏出。
+    if(t!=='gate') out.push({id:'leave_auto', label:'前往城门', icon:'🚪', tip:'自动沿可通行道路行至最近城门；出城请在城门看罗盘，朝外方向踏出'});
     // ── 政令台（v20260826g 身份系统）：立于中枢且此城归你所统，方能发号 ──
     if(x===cx && y===cy && cityOwnerOf(cid)===playerFaction()){
       out.push({id:'edict', label:'政令台', icon:'📜', tip:'于此发号政令：征税、安民、观天下大势'});
@@ -4066,7 +4070,7 @@ window.onerror=function(msg,url,line,col,err){
       '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button>'+
         '<button class="mk-back" id="mc-back">🗺 返回山河志（出城）</button></div>'+
       '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMetaName+'〕。'+
-        '城中街道可自由通行；出城须经城门（或「寻路出城」）。</p>';
+        '城中街道可自由通行；出城须至城门——站上城门格，罗盘便会亮出朝外的出城方向。</p>';
   }
   function initMapCity(opts){
     opts=opts||{};
@@ -4457,6 +4461,7 @@ window.onerror=function(msg,url,line,col,err){
       b.className='mv-exit e-'+o.dir+(o.kind?(' '+o.kind):'')+(blocked?' mv-blocked':'');
       b.style.gridRow=g[0]; b.style.gridColumn=g[1];
       b.innerHTML='<span class="mv-arrow">'+(DIR_ARROW[o.dir]||'➤')+'</span><span class="mv-nm">'+stripDir(o.name)+'</span>';
+      if(o.place) b.title='出城前往：'+o.place;
       if(blocked){ b.onclick=function(){ toast(gate && gate.hint ? gate.hint : '此处暂不能去。'); }; }
       else { b.onclick=function(){ move(o.dir, tid); }; }
       bar.appendChild(b);
@@ -4490,8 +4495,8 @@ window.onerror=function(msg,url,line,col,err){
         if(gt){
           var gp=(LF.PLACES && LF.PLACES[gt])||{};
           var gRoom=gp.entryRoom || gt;          // 指向真实房间（郊野入口格），而非郊野 id
-          var dn=gp.name || '郊野';
-          ex.push({dir:od, name:od+'·出城('+dn+')', icon:'🚪', tid:gRoom, kind:'gateout'});
+          // v20260905i：罗盘钮名只标「出城」，去向写入 title，避免长名在 3×3 窄钮内截断
+          ex.push({dir:od, name:od+'·出城', icon:'🚪', tid:gRoom, kind:'gateout', place:(gp.name||'郊野')});
         }
       }
       return ex;
@@ -4939,11 +4944,21 @@ window.onerror=function(msg,url,line,col,err){
         log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
         break;
       case 'leave_city': {
-        var _cp=state.flags.cityPos||{}, _ct=(_cp.cid? cellDisplayType(_cp.cid, _cp.x, _cp.y):'');
-        if(_ct!=='gate'){ toast('须至城门方能出城——沿道路走到城门口，或「寻路出城」。'); break; }
-        var _od=gateOutwardDir(_cp.cid, _cp.x, _cp.y);
-        if(LF.PLACE_GATES && LF.PLACE_GATES[_cp.cid] && LF.PLACE_GATES[_cp.cid][_od]) leaveViaGate(_od);
-        else toast('此门暂无通途。');
+        // v20260905i：入口仅剩城内布防图「返回山河志（出城）」按钮；语义分层——
+        // 立于可出城门口 → 真正出城并收起布防图露出主界面；其余位置 → 直接返回世界山河志（不再拦截）
+        var _cp=state.flags.cityPos||{}, _cid2=_cp.cid||'';
+        if(_cid2 && LF.CITIES[_cid2]){
+          var _ct=cellDisplayType(_cid2, _cp.x, _cp.y);
+          if(_ct==='gate'){
+            var _od=gateOutwardDir(_cid2, _cp.x, _cp.y);
+            if(_od && LF.PLACE_GATES && LF.PLACE_GATES[_cid2] && LF.PLACE_GATES[_cid2][_od]){
+              if(currentModalKind==='map') closeModal();   // 布防图让位，露出郊野主界面
+              leaveViaGate(_od);
+              break;
+            }
+          }
+        }
+        openModal('map', {forceWorld:true});
         break;
       }
       case 'edict': {
@@ -4962,7 +4977,11 @@ window.onerror=function(msg,url,line,col,err){
         while(_head<_q.length){
           var _k=_q[_head++], _sp=_k.split(',');
           var _px=+_sp[0], _py=+_sp[1];
-          if(_m.cells[_py][_px]==='gate' && canEnterCell(_cid,_px,_py)){ _target=_k; break; }
+          // 只认「可出城」城门（该方向确有郊野通途）——部分城墙虽有门形却无路，若送玩家到死门会无路可出
+          if(_m.cells[_py][_px]==='gate' && canEnterCell(_cid,_px,_py)){
+            var _gd=gateOutwardDir(_cid,_px,_py);
+            if(_gd && LF.PLACE_GATES && LF.PLACE_GATES[_cid] && LF.PLACE_GATES[_cid][_gd]){ _target=_k; break; }
+          }
           for(var _di=0;_di<4;_di++){
             var _nx=_px+_dirs[_di][0], _ny=_py+_dirs[_di][1];
             if(_nx<0||_nx>=_sz||_ny<0||_ny>=_sz) continue;
@@ -4982,17 +5001,16 @@ window.onerror=function(msg,url,line,col,err){
           var _ri=(_si===_path.length-1)?{eng:1}:null;
           _eng+=(_ri?_ri.eng:2);
         }
-        if(!exert('寻路出城')) return;
+        if(!exert('前往城门')) return;
         state.energy=Math.max(0,state.energy-_eng);
         state.food=Math.max(0,state.food-_steps);
         state.drink=Math.max(0,state.drink-_steps);
         advanceTime(_steps);
         var _tp=_target.split(',');
         state.flags.cityPos={cid:_cid, x:+_tp[0], y:+_tp[1]};
-        log('你沿街巷穿行'+_steps+'格直抵城门（精力-'+_eng+'），城门在望。','sys');
+        // v20260905h：只寻路抵门、不再代做出城——出城由玩家立于城门时以罗盘朝外方向完成
+        log('你沿街巷穿行'+_steps+'格，抵达'+((LF.CITIES[_cid]||{}).name||'城')+'城门（精力-'+_eng+'）。城门在望——看罗盘，朝城外方向踏出即离城。','sys');
         renderRoom(_cid, true); save(state);
-        var _od2=gateOutwardDir(_cid, +_tp[0], +_tp[1]);
-        if(LF.PLACE_GATES && LF.PLACE_GATES[_cid] && LF.PLACE_GATES[_cid][_od2]) leaveViaGate(_od2);
         if(currentModalKind==='map') openModal('map');
         break;
       }

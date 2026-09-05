@@ -198,7 +198,10 @@
   }
   function link(){
     if(_linked) return;
-    var G = global.G; if(!G || !G.ROOMS) return;
+    // G 宿主：index.html 中 var G = window.LF.SharedGame（局部），未暴露为 window.G；
+    // 故回退到 global.LF.(SharedGame|LF)，确保浏览器真机与 Node 校验都能取到房间表。
+    var G = global.G || (global.LF && (global.LF.SharedGame || global.LF));
+    if(!G || !G.ROOMS) return;
     var ROOMS = G.ROOMS;
     var claimed = {};   // roomId -> { cardinal:true } 记录本函数设置的出口，避免多个郊野争抢同一方位导致互相覆盖
     function pickDir(roomId, pref){
