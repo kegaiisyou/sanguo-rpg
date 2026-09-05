@@ -707,6 +707,14 @@
   .mc-cell.mc-burnt{box-shadow:inset 0 0 0 2px rgba(210,90,45,.55);}
   .mc-cell.mc-broken{background:rgba(60,50,40,.5);border-color:rgba(200,120,60,.5);color:#d8b28a;}
   .mc-back{margin-left:8px;background:rgba(90,70,40,.5);border-color:rgba(220,170,90,.4);}
+  /* 城内地图 ↔ 山河志 双页签（v20260905j）*/
+  .map-tabs{display:flex;gap:10px;justify-content:center;padding:2px 0 6px;}
+  .map-tabs .mt-tab{font-family:inherit;font-size:14px;padding:6px 16px;border-radius:999px;color:#cbb079;
+    background:rgba(120,90,40,.20);border:1px solid rgba(220,170,90,.45);cursor:pointer;transition:.12s;}
+  .map-tabs .mt-tab:hover{color:#ffe0a8;}
+  .map-tabs .mt-tab.on{color:#1c1308;font-weight:700;background:linear-gradient(180deg,#ffe3a3,#e0b25f);
+    border-color:#f3cf85;box-shadow:0 0 10px rgba(255,205,110,.35);}
+  .map-tab-body.hidden{display:none;}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
   .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
   .map-rivers .mp-river{fill:none;stroke:rgba(70,110,170,.30);stroke-width:2.5;stroke-linecap:round;}
@@ -2056,7 +2064,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260905i"></script>
+<script src="shared/config/constants.js?v=20260905j"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -2078,12 +2086,12 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260904g"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
-    <script src="shared/systems/travel.js?v=20260905h"></script>
+    <script src="shared/systems/travel.js?v=20260905j"></script>
     <script src="shared/gen/rooms.js?v=20260905g"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/vendor/turf.min.js?v=20260902b"></script>
     <script src="shared/data/map_regions.js?v=20260904i"></script>
-    <script src="shared/strategic-map.js?v=20260904k"></script>
+    <script src="shared/strategic-map.js?v=20260905j"></script>
     <script src="shared/data/markets.js?v=20260902a"></script>
     <script src="shared/combat/engine.js?v=20260902a"></script>
     <script src="shared/index.js?v=20260902a"></script>
@@ -4065,12 +4073,43 @@ window.onerror=function(msg,url,line,col,err){
         '<span class="mc-ic">'+(ri&&!ri.gate?ri.ic:meta.i)+'</span><span class="mc-nm">'+_nm+'</span></div>';
     }
     var curMetaName=cellDisplayName(cid, m.cells[cp.y][cp.x]);
+    // v20260905j：移除「返回山河志（出城）」按钮——切山河志改走页签，出城仍须立于城门格经罗盘
     return '<h3>'+cname+' · 城内布防图</h3>'+
       '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
-      '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button>'+
-        '<button class="mk-back" id="mc-back">🗺 返回山河志（出城）</button></div>'+
+      '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button></div>'+
       '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMetaName+'〕。'+
         '城中街道可自由通行；出城须至城门——站上城门格，罗盘便会亮出朝外的出城方向。</p>';
+  }
+  // 城内打开「地图」时的双页签：默认城内布防图，可切换到山河志（十三州战略地图，v20260905j）
+  function buildCityMapTabsHTML(){
+    return '<div class="map-tabs" id="map-tabs">'+
+      '<button type="button" class="mt-tab on" data-tab="city">🏯 城内布防图</button>'+
+      '<button type="button" class="mt-tab" data-tab="world">🗺 山河志 · 十三州</button></div>'+
+      '<div class="map-tab-body" data-body="city">'+buildMapCityHTML({})+'</div>'+
+      '<div class="map-tab-body hidden" data-body="world">'+
+        '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>'+
+        '<p class="tip">拖拽平移 · 滚轮缩放 · 点城池查看详情/前往（体力-4·食物-1·饮水-1·时间+1刻）。'+
+        '打开时默认以你所在之处居中；切回「城内布防图」可继续在城中走动。</p></div>';
+  }
+  // 页签绑定：布防图 与 山河志 互切；山河志首次切到时才初始化并聚焦「此身所在」
+  function initMapTabs(){
+    var tabs=document.querySelector('#modal-card .map-tabs');
+    if(!tabs) return false;
+    var worldDone=false;
+    tabs.querySelectorAll('.mt-tab').forEach(function(b){
+      b.onclick=function(){
+        var go=b.getAttribute('data-tab');
+        tabs.querySelectorAll('.mt-tab').forEach(function(x){ x.classList.toggle('on', x===b); });
+        document.querySelectorAll('#modal-card .map-tab-body').forEach(function(x){
+          x.classList.toggle('hidden', x.getAttribute('data-body')!==go);
+        });
+        if(go==='world' && !worldDone){
+          worldDone=true;
+          initStrategicMapInGame({ focusYou:true });   // 打开即居中玩家所在
+        }
+      };
+    });
+    return true;
   }
   function initMapCity(opts){
     opts=opts||{};
@@ -4100,8 +4139,6 @@ window.onerror=function(msg,url,line,col,err){
       var cur=wrap.querySelector('.mc-cell.mc-cur');
       if(cur) cur.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
     };
-    var back=document.getElementById('mc-back');
-    if(back) back.onclick=function(){ handleAction('leave_city'); };
   }
   function buildActions(room, popExits){
     if(!room) room=curRoom();
@@ -4546,8 +4583,29 @@ window.onerror=function(msg,url,line,col,err){
     return [cx,cy];
   }
   // 到达某城时落在指定城门（供郊野→城 哨兵出口使用）
+  // 注意：目标城的该侧可能没有实际城门（单门山城只朝固定方向开门），此时落在墙/屋格会令玩家困在无路格。
+  // 改为：若指定方位无「可进入的城门格」，就近落到最近的真正城门格。
+  function nearestGateCell(pid, want){
+    var m=genCityGrid(pid); if(!m||!m.size) return want||null;
+    var s=m.size, best=null, bd=1e9;
+    for(var _y=0;_y<s;_y++) for(var _x=0;_x<s;_x++){
+      if(cellDisplayType(pid,_x,_y)!=='gate') continue;
+      if(!canEnterCell(pid,_x,_y)) continue;
+      var dd=Math.abs(_x-(want?want[0]:Math.floor(s/2)))+Math.abs(_y-(want?want[1]:Math.floor(s/2)));
+      if(dd<bd){ bd=dd; best=[_x,_y]; }
+    }
+    return best;
+  }
   function arriveAtGate(pid, dir){
     var gc=gateCellCoord(pid, dir);
+    var m=genCityGrid(pid);
+    if(gc && m && m.size){
+      var t=cellDisplayType(pid, gc[0], gc[1]);
+      if(t!=='gate' || !canEnterCell(pid, gc[0], gc[1])){
+        var fb=nearestGateCell(pid, gc);
+        if(fb) gc=fb;
+      }
+    }
     if(!gc){ renderRoom(pid); return; }
     state.flags.cityPos={cid:pid, x:gc[0], y:gc[1]};
     renderRoom(pid);
@@ -7327,7 +7385,7 @@ window.onerror=function(msg,url,line,col,err){
       h=renderObjectives();
     } else if(kind==='map'){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
-        h=buildMapCityHTML({});
+        h=buildCityMapTabsHTML();            // 城内：布防图 ↔ 山河志 双页签
       } else {
         h=buildStrategicMapHTML({});
       }
@@ -7480,8 +7538,12 @@ window.onerror=function(msg,url,line,col,err){
     var snd=document.getElementById('seg-snd'); if(snd) snd.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.sound=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); snd.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); if(settings.sound) tick(700); toast('音效·'+(settings.sound?'开':'关')); }; });
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
     if(kind==='map'){
-      if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld) initMapCity({});
-      else initStrategicMapInGame({});
+      if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
+        if(initMapTabs()) initMapCity({});          // 页签绑定 + 布防图默认页交互
+        else initMapCity({});
+      } else {
+        initStrategicMapInGame({ focusYou:true });   // 山河志打开默认居中「此身所在」（v20260905j）
+      }
     }
     // 装备面板交互
     $card.querySelectorAll('.eq-slot[data-slot]').forEach(function(el){
@@ -7590,9 +7652,10 @@ window.onerror=function(msg,url,line,col,err){
         }
       });
     } else {
-      // 正常模式：点击城市传送
+      // 正常模式：点击城市传送；focusYou=true 时首屏自动居中「此身所在」（v20260905j）
       LF.initStrategicMap(container, {
         marks: marks,
+        focusYou: !!opts.focusYou,
         onCityClick: function(city){
           if(!city || !city.id) return;
           placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);

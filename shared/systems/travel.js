@@ -47,6 +47,20 @@
     var da = Math.atan2(dv[1], dv[0]);
     return Math.abs(angNorm(va - da));
   }
+  // 城门郊野分组：把邻点归到「真能朝外通到它」的开门（该方向轴向分量 >0 中夹角最近者）。
+  // 旧版先按四方向量化再就近补门，邻点恰在门角平分/量化 tie 时会被塞进背向的门郊野，
+  // 使 link() 因 along<=0 跳过 → 城↔城 单向断头、无法穿野入城。
+  // 若无任何开门朝向该邻点（如山城只开两门而邻点在背侧），退回最近门，物理上不可达属合理。
+  function pickOutwardGate(gdirs, v){
+    var best=null, bestA=Infinity;
+    for(var i=0;i<gdirs.length;i++){
+      var d=gdirs[i], dv=dirVec(d);
+      if(v[0]*dv[0]+v[1]*dv[1]<=0) continue;   // 沿轴向分量≤0：此门背向邻点，不选
+      var a=angDiff(d,v);
+      if(a<bestA){ bestA=a; best=d; }
+    }
+    return best || nearestGateDir(gdirs, v);
+  }
 
   // 郊野几何：给定 size 与母地点在外侧的方向 gateDir（郊野坐落在母地点该侧）。
   // 近边 = 朝向母地点的一侧（入口格）；远边 = 朝外一侧（按方位分支到邻点）。
@@ -160,8 +174,7 @@
         var gdirs = (T._gateDirs ? T._gateDirs(pid) : CARD);
         var byDir = {};
         nbs.forEach(function(nb){
-          var d = nb.d;
-          if(gdirs.indexOf(d)<0) d = nearestGateDir(gdirs, nb.v);
+          var d = pickOutwardGate(gdirs, nb.v);
           (byDir[d] = byDir[d] || []).push(nb);
         });
         Object.keys(byDir).forEach(function(d){ createField(d, byDir[d]); });
@@ -243,27 +256,42 @@
         }
       }
     });
-    // 第二遍：远边各格按 sub-bearing 分支到邻地点（邻点回程出口让步于父房出口，方位满则跳过）
+    // 第二遍：远边各格按 sub-bearing 分支到邻地点（v20260905j）
+    // 旧版逐个邻点直接写 cell.exits[dir]，同一远野格被多个邻点共享时「后写覆盖先写」，
+    // 导致部分城↔城路径（如 洛阳东郊野→河内 被 lvboshe 占格）丢失入城哨兵、穿野无法入城。
+    // 现改为：外向邻点按投影排序后逐格独占分配（冲突向外就近寻空槽），保证每个邻点都有唯一出野口。
     Object.keys(fields).forEach(function(fid){
       var meta = fields[fid];
-      var pid = meta.place, dir = meta.dir, N = meta.size;
+      var dir = meta.dir, N = meta.size;
       var geo = fieldGeometry(N, dir);
       var entryId = roomId(fid, geo.entryR, geo.entryC);
-      var farCells = [];
-      for(var i=0;i<N;i++){ farCells.push( (dir==='东'||dir==='西') ? [i, geo.farCol] : [geo.farRow, i] ); }
+      var colAxis = (dir==='东'||dir==='西');
+      var axis = dirVec(dir), perp = perpVec(dir);
+      // 预分配：邻点沿远边排布的期望槽位（按横向投影 t 排序，稳定可复现）
+      var cands = [];
       meta.neighbors.forEach(function(nb){
-        var axis = dirVec(dir), perp = perpVec(dir);
         var along = nb.v[0]*axis[0] + nb.v[1]*axis[1];
-        if(along<=0) return;                       // 邻点不在外侧，跳过
+        if(along<=0) return;                       // 邻点不在该门朝外一侧，物理不可达，跳过
         var proj = nb.v[0]*perp[0] + nb.v[1]*perp[1];
         var len = Math.hypot(nb.v[0], nb.v[1]) || 1;
         var t = Math.max(-1, Math.min(1, proj/len));
-        var idx = Math.round((t+1)/2*(N-1));
-        var fc = farCells[idx]; if(!fc) return;
-        var cellId = roomId(fid, fc[0], fc[1]);
+        cands.push({ nb:nb, t:t, want: Math.round((t+1)/2*(N-1)) });
+      });
+      cands.sort(function(a,b){ return a.t - b.t; });
+      var usedIdx = {};
+      cands.forEach(function(o){
+        var want = o.want, slot = null;
+        for(var off=0; off<N && slot===null; off++){
+          var c1=want-off, c2=want+off;
+          if(c1>=0 && c1<N && !usedIdx[c1]) slot=c1;
+          else if(c2>=0 && c2<N && !usedIdx[c2]) slot=c2;
+        }
+        if(slot===null) return;                    // 远野槽已满（极端情形），略过
+        usedIdx[slot] = 1;
+        var cellId = colAxis ? roomId(fid, slot, geo.farCol) : roomId(fid, geo.farRow, slot);
         var cell = ROOMS[cellId]; if(!cell) return;
         cell.exits = cell.exits || {};
-        var nid = nb.nid, nk = (P[nid] && P[nid].kind) || '';
+        var nb = o.nb, nid = nb.nid, nk = (P[nid] && P[nid].kind) || '';
         var isCityN = KINDS[nk] && KINDS[nk].isCityType;
         var tgt;
         if(isCityN){
@@ -271,7 +299,7 @@
         } else {
           tgt = nid;                                    // 非城地点直接进其房
           var nr = ROOMS[nid];
-          if(nr){ nr.exits = nr.exits || {}; var bdir = pickDir(nid, opp(dir)); if(bdir){ claimed[nid]=claimed[nid]||{}; claimed[nid][bdir]=true; nr.exits[bdir] = entryId; } } // 回程出口（方位满则跳过）
+          if(nr){ nr.exits = nr.exits || {}; var bdir = pickDir(nid, opp(dir)); if(bdir){ claimed[nid]=claimed[nid]||{}; claimed[nid][bdir]=true; nr.exits[bdir] = entryId; } } // 回程出口（方位满则跳过，沿用旧语义回到郊野入口）
         }
         cell.exits[dir] = tgt;
       });

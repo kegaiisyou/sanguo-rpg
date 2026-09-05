@@ -930,8 +930,9 @@
       render._apply = applyTransform;
       render._statePaths = statePaths;
 
-      // 「定位到我」：把视图平滑移到当前位置（无 you 标记时退回第一个目标）
-      locateGuide = function() {
+      // 「定位到我」：把视图移到当前位置（无 you 标记时退回第一个目标）
+      // instant=true 用于山河志「打开即居中」（首帧无需补间，避免开场晃动）
+      locateGuide = function(instant) {
         const g = guideMarks.find(o => o.type === 'you') || guideMarks[0];
         if (!g || !W || !H) return;
         const k = 2.6 / (baseT.k || 1);                 // 保持屏幕上约 2.6 倍缩放手感
@@ -939,7 +940,8 @@
         const tx = target[0] - g.base[0] * k;
         const ty = target[1] - g.base[1] * k;
         currentTransform = d3.zoomIdentity.translate(tx, ty).scale(k);
-        svg.transition().duration(450).call(zoom.transform, currentTransform);
+        if (instant) svg.call(zoom.transform, currentTransform);
+        else svg.transition().duration(450).call(zoom.transform, currentTransform);
       };
     }
 
@@ -1103,6 +1105,11 @@
       raf(() => {
         render(regionData, cities);
         loading.remove();
+        // v20260905j：山河志打开默认以「此身所在」居中（k≈2.6 中近视野），不再永远首览十三州全景
+        if (opts.focusYou && locateGuide) {
+          const raf2 = global.requestAnimationFrame || ((fn) => setTimeout(fn, 60));
+          raf2(() => { try { locateGuide(true); } catch (e) { console.warn('focusYou', e); } });
+        }
       });
     }).catch(err => {
       console.error('战略地图加载失败', err);
