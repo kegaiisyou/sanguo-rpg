@@ -2088,7 +2088,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260905o"></script>
+<script src="shared/config/constants.js?v=20260906a"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -2100,7 +2100,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260902a"></script>
     <script src="shared/data/martial.js?v=20260902a"></script>
 <script src="shared/data/enemies.js?v=20260902a"></script>
-<script src="shared/data/items.js?v=20260904n"></script>
+<script src="shared/data/items.js?v=20260906a"></script>
     <script src="shared/data/recipes.js?v=20260902a"></script>
     <script src="shared/data/build.js?v=20260902a"></script>
     <script src="shared/data/shops.js?v=20260905a"></script>
@@ -2110,7 +2110,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260904g"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
-    <script src="shared/systems/travel.js?v=20260905l"></script>
+    <script src="shared/systems/travel.js?v=20260906a"></script>
     <script src="shared/gen/rooms.js?v=20260905g"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/data/map_regions.js?v=20260904i"></script>
@@ -4140,7 +4140,7 @@ window.onerror=function(msg,url,line,col,err){
     return h;
   }
   // ===== 山河图 · 城内网格视图（v20260824b）=====
-  // 在山河志内展示城内 N×N 布局，点相邻格或借底部方向键皆可移动；不再占用文字框
+  // 仅作城郭总览展示（地图不再承担移动职责），移动统一走下方方向键
   function buildMapCityHTML(opts){
     opts=opts||{};
     var cid=state.room, cp=state.flags.cityPos, m=genCityGrid(cid);
@@ -4170,7 +4170,7 @@ window.onerror=function(msg,url,line,col,err){
     return '<h3>'+cname+' · 城内布防图</h3>'+
       '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
       '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button></div>'+
-      '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMetaName+'〕。'+
+      '<p class="tip">城中街道由下方方向键游走；地图仅为城郭总览。当前位于〔'+curMetaName+'〕。'+
         '城中街道可自由通行；出城须至城门——站上城门格，罗盘便会亮出朝外的出城方向。</p>';
   }
   // 统一地图入口（v20260906c）：三套地图（城内布防图 / 郊野图 / 山河志）共用 openModal('map')，
@@ -4250,7 +4250,39 @@ window.onerror=function(msg,url,line,col,err){
       '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
       '<p class="tip">你正行于〔'+parentName+'〕之'+(gd)+'郊野，当前位于〔'+(room.nmBand||'郊野')+'〕。'+
         '金框为你的所在；🚪 入'+parentName+'（回城口）　🏰 入邻城（远边通城口）。</p>'+
-      (exits?'<ul class="mf-exits">'+exits+'</ul>':'');
+      (exits?'<ul class="mf-exits">'+exits+'</ul>':'') + buildFieldAttrPanel(fid);
+  }
+  // 野地属性面板（v20260906d）：聚合本野地资源/野怪/友好路人，列出临近城市与母城治安倾向
+  function buildFieldAttrPanel(fid){
+    var fp=(LF.PLACES||{})[fid]||{};
+    var size=fp.size||4, gd=fp.gateDir||'东';
+    var res={}, mon={}, npc={}, r, c, rm;
+    for(r=0;r<size;r++) for(c=0;c<size;c++){
+      rm=G.ROOMS[LF.Travel.roomId(fid,r,c)]; if(!rm) continue;
+      (rm.resources||[]).forEach(function(x){ if(!res[x.type]) res[x.type]={name:x.name,item:x.item,amt:0}; res[x.type].amt+=(x.amt||1); });
+      (rm.monsters||[]).forEach(function(x){ if(!mon[x.id]) mon[x.id]={name:x.name,aggr:x.aggr,lvl:1,n:0}; mon[x.id].n++; if((x.lvl||1)>mon[x.id].lvl) mon[x.id].lvl=x.lvl; });
+      (rm.fieldNpcs||[]).forEach(function(x){ if(!npc[x.type]) npc[x.type]={name:x.name,n:0}; npc[x.type].n++; });
+    }
+    var cid=fp.parent, cdef=(LF.CITIES||{})[cid]||{};
+    var order=(state.flags&&state.flags.cityOrder&&state.flags.cityOrder[cid]!=null)?state.flags.cityOrder[cid]:(cdef.order!=null?cdef.order:50);
+    var disp = order>=60?'安靖 🟢':(order<40?'动荡 🔴':'平靖 🟡');
+    var parentName=(cdef.name)||((LF.PLACES||{})[cid]&&LF.PLACES[cid].name)||cid;
+    var near=(LF.Travel.fields[fid]&&LF.Travel.fields[fid].neighbors)||[];
+    function listHtml(map, fn){ var ks=Object.keys(map); if(!ks.length) return '<span style="opacity:.5">无</span>'; return ks.map(fn).join('　'); }
+    var resHtml=listHtml(res,function(k){ var o=res[k]; return (o.item&&LF.ITEMS[o.item]?LF.ITEMS[o.item].icon:'🌿')+' '+o.name+'×'+o.amt; });
+    var monHtml=listHtml(mon,function(k){ var m=mon[k]; var ic=m.aggr==='flee'?'🐗':(m.aggr==='neutral'?'🐺':'⚔'); return ic+' '+m.name+'×'+m.n; });
+    var npcHtml=listHtml(npc,function(k){ return '💬 '+npc[k].name+'×'+npc[k].n; });
+    var nearHtml=near.length? near.map(function(nb){ var n=(LF.PLACES[nb.nid]&&LF.PLACES[nb.nid].name)||nb.nid; return '🏯 '+n+(nb.li?('（'+nb.li+'里）'):''); }).join('　') : '（荒僻无邻）';
+    var rowStyle='display:flex;gap:8px;padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:13px;line-height:1.5;';
+    var kStyle='flex:0 0 64px;color:#c8a45a;font-weight:600;';
+    var vStyle='flex:1;color:#e8e0cf;';
+    return '<div style="margin-top:10px;padding:8px 10px;background:rgba(0,0,0,.22);border:1px solid rgba(200,164,90,.28);border-radius:8px;">'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">母城治安</span><span style="'+vStyle+'">'+parentName+' · '+order+' · '+disp+'</span></div>'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">临近城市</span><span style="'+vStyle+'">'+nearHtml+'</span></div>'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">资源</span><span style="'+vStyle+'">'+resHtml+'</span></div>'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">野怪</span><span style="'+vStyle+'">'+monHtml+'</span></div>'+
+      '<div style="'+rowStyle+'border-bottom:none"><span style="'+kStyle+'">路人</span><span style="'+vStyle+'">'+npcHtml+'</span></div>'+
+      '</div>';
   }
   // 野外打开「地图」时的双页签：默认郊野图，可切换到山河志（十三州战略地图，v20260905n）
   function buildFieldMapTabsHTML(forceWorld){
@@ -4291,26 +4323,7 @@ window.onerror=function(msg,url,line,col,err){
   function initMapCity(opts){
     opts=opts||{};
     var wrap=document.querySelector('#modal-card .map-city'); if(!wrap) return;
-    var cid=state.room, cp=state.flags.cityPos, m=genCityGrid(cid);
-    if(!cp||!m) return;
-    wrap.querySelectorAll('.mc-cell').forEach(function(el){
-      var x=+el.getAttribute('data-x'), y=+el.getAttribute('data-y');
-      var isCur=(cp.x===x&&cp.y===y);
-      var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
-      if(isCur||adj){
-        if(isCur || canEnterCell(cid,x,y)){
-          el.addEventListener('click', function(){
-            if(isCur) return;
-            if(!canEnterCell(cid,x,y)){ var _dt=cellDisplayType(cid,x,y); toast((_dt==='broken'?'此路已被掘断，无法通行。':(_dt==='ruin'?'那处已成焦土，无从通行。':(_dt==='site'?'此处正在营造，工匠往来，暂不可入。':'城垣未及营建，暂不可往。')))); return; }
-            goCell(cid, x, y);
-          });
-        } else {
-          el.style.cursor='default';
-        }
-      } else {
-        el.style.cursor='default';
-      }
-    });
+    // 地图定位为「信息/总览」，不再作为移动手段：取消点格行走，仅保留回到当前位置
     var rb=document.getElementById('mc-recenter');
     if(rb) rb.onclick=function(){
       var cur=wrap.querySelector('.mc-cell.mc-cur');

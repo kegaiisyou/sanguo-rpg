@@ -83,6 +83,11 @@
     zhuan:          { defId: 'zhuan',         name: '砖头', icon: '🧱', cat: '素材', desc: '窑烧而成的土砖，垒砌围墙与炉体的规整块材。' },
     tiekuai:        { defId: 'tiekuai',       name: '铁料', icon: '⛓️', cat: '素材', desc: '冶炼工坊熔石取铁所得，打造兵刃器具的关键材料。' },
     tiekuangshi:    { defId: 'tiekuangshi',   name: '铁矿石', icon: '⛏️', cat: '素材', desc: '崖间采得的铁矿石。投入冶炼工坊，添柴鼓风烧炼，可化成铁料。' },
+    // —— 矿脉野地专属矿产（仅 geology==='mineral' 的野地可采）——
+    tongkuang:      { defId: 'tongkuang',     name: '铜矿',   icon: '🟤', cat: '素材', desc: '矿脉野地采得的铜矿，可铸钱锻器。' },
+    yinkuang:       { defId: 'yinkuang',      name: '银矿',   icon: '⚪', cat: '素材', desc: '矿脉野地采得的银矿，价昂于铜。' },
+    jade:           { defId: 'jade',          name: '玉石',   icon: '🟢', cat: '素材', desc: '矿脉野地采得的玉石，温润可雕琢佩饰。' },
+    yan:            { defId: 'yan',           name: '盐矿',   icon: '🧂', cat: '素材', desc: '矿脉野地采得的盐矿，行旅军中皆不可缺。' },
     tuzhi_yeolian:  { defId: 'tuzhi_yeolian', name: '冶炼工坊图', icon: '📜', cat: '图纸', blueprint: 'bp_yeolian', price: 30,
       desc: '营造冶炼工坊的图样。于背包「依图营造」置于房中，备料后可分阶筑成工坊，炉成可熔石取铁。' },
     tuzhi_woodcamp: { defId: 'tuzhi_woodcamp', name: '伐木场图', icon: '📜', cat: '图纸', blueprint: 'bp_woodcamp', price: 24,

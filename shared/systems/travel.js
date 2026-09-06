@@ -85,37 +85,79 @@
   // 内容表（供行军/遭遇引擎消费；后续军队/开采也读这里）
   // item 字段 = 采集后真实入包的物品 defId（须在 LF.ITEMS 中定义）
   var RES = [
-    {type:'herb',  name:'草药',   item:'caoyao'},
-    {type:'ore',   name:'铁矿石', item:'tiekuangshi'},
-    {type:'wood',  name:'木头',   item:'mutou'},
-    {type:'berry', name:'野果',   item:'yeguo'}
+    {type:'herb',   name:'草药',   item:'caoyao'},
+    {type:'ore',    name:'铁矿石', item:'tiekuangshi'},
+    {type:'wood',   name:'木头',   item:'mutou'},
+    {type:'berry',  name:'野果',   item:'yeguo'},
+    {type:'copper', name:'铜矿',   item:'tongkuang'},
+    {type:'silver', name:'银矿',   item:'yinkuang'},
+    {type:'jade',   name:'玉石',   item:'yushi'},
+    {type:'salt',   name:'盐矿',   item:'yan'}
   ];
-  var MON = [
+  var MINERAL = ['copper','silver','jade','salt'];   // 仅“矿脉野地”才出现的矿产
+  // 野怪分「敌对伏寇」与「野兽」：治安高→多野兽少伏寇；治安低→多敌对伏寇
+  var MON_HOSTILE = [
     {id:'bandit',        name:'山贼',     aggr:'hostile'},
-    {id:'yellow_turban', name:'黄巾散卒', aggr:'hostile'},
-    {id:'wild_wolf',     name:'野狼',     aggr:'neutral'},
-    {id:'wild_boar',     name:'野彘',     aggr:'flee'}
+    {id:'yellow_turban', name:'黄巾散卒', aggr:'hostile'}
   ];
-  var NPCS = [ {type:'trader', name:'行商'}, {type:'refugee', name:'流民'} ];
+  var MON_WILD = [
+    {id:'wild_wolf',  name:'野狼', aggr:'neutral'},
+    {id:'wild_boar',  name:'野彘', aggr:'flee'}
+  ];
+  var MON = MON_HOSTILE.concat(MON_WILD);
+  // 友好路人：治安高时优先生成（行商/流民/乡民/巡卒）
+  var NPC_FRIEND = [
+    {type:'trader',   name:'行商'},
+    {type:'refugee',  name:'流民'},
+    {type:'villager', name:'乡民'},
+    {type:'patrol',   name:'巡卒'}
+  ];
+  var NPCS = NPC_FRIEND;   // 兼容既有导出
+  function pick(arr, rng){ return arr[Math.floor(rng()*arr.length)]; }
+  // 母城治安（决定野地 disposition）：基础值取自 LF.CITIES[].order，运行时可被政令改写
+  function cityOrder(cid){
+    var C = (global.LF.CITIES||{})[cid]; if(!C) return 50;
+    return (C.order!=null)? C.order : 50;
+  }
 
   // 散布：返回 {resources, monsters, npcs}（入口格保持清爽，便于进出）
+  // 治安联动：母城治安高→安靖(多友好路人/野兽，少伏寇)；治安低→动荡(多敌对伏寇)
   function scatterContent(rng, p, r, c, isEntry){
     var res=[], mon=[], npc=[];
     var DEF = (global.LF.PLACE_DEFAULTS && global.LF.PLACE_DEFAULTS.field) || {};
     var richness = (p.richness!=null)? p.richness : (DEF.richness!=null?DEF.richness:0.5);
     var risk = (p.risk!=null)? p.risk : (DEF.risk!=null?DEF.risk:0.3);
+    var order = cityOrder(p.parent);
+    var calm = order>=60, tense = order<40;
+
+    // —— 资源（矿脉野地才出矿产）——
+    var mineralChance = (p.geology==='mineral') ? 0.22 : 0.0;
     var x = rng();
-    if(x < 0.16*richness + (isEntry?0:0.04)){
-      var rt = RES[Math.floor(rng()*RES.length)];
+    if(x < 0.16*richness + (isEntry?0:0.04) + mineralChance*(isEntry?0:1)){
+      var rt;
+      if(p.geology==='mineral' && rng() < 0.6){
+        rt = pick(RES.filter(function(o){ return MINERAL.indexOf(o.type)>=0; }), rng);
+      } else {
+        rt = pick(RES.filter(function(o){ return MINERAL.indexOf(o.type)<0; }), rng);
+      }
       res.push({ type:rt.type, name:rt.name, item:rt.item, amt: 1+Math.floor(rng()*3) });
     }
+
+    // —— 野怪：动荡多伏寇，安靖多野兽 ——
+    var mprob = 0.20*risk + (isEntry?0:0.05);
+    if(calm) mprob *= 0.6;
+    if(tense) mprob = Math.min(0.6, mprob*1.7);
     var y = rng();
-    if(y < 0.20*risk + (isEntry?0:0.05)){
-      var mt = MON[Math.floor(rng()*MON.length)];
+    if(y < mprob){
+      var hostile = tense ? (rng()<0.7) : (calm ? (rng()<0.2) : (rng()<0.5));
+      var mt = pick(hostile?MON_HOSTILE:MON_WILD, rng);
       mon.push({ id:mt.id, name:mt.name, aggr:mt.aggr, lvl: 1+Math.floor(rng()*3) });
     }
+
+    // —— 友好路人：安靖频出，动荡稀少 ——
+    var nprob = calm ? 0.13 : (tense ? 0.03 : 0.07);
     var z = rng();
-    if(z < 0.06){ var nt = NPCS[Math.floor(rng()*NPCS.length)]; npc.push({ type:nt.type, name:nt.name }); }
+    if(z < nprob){ var nt = pick(NPC_FRIEND, rng); npc.push({ type:nt.type, name:nt.name }); }
     return { resources:res, monsters:mon, npcs:npc };
   }
 
@@ -153,16 +195,34 @@
       }).filter(Boolean);
       if(!nbs.length) return;
 
+      // 地理命名：依母城短名 + 地貌词生成（取代带编号的「·郊野」长名）
+      var LANDFORM = ['道','原','野','川','岭','津','墟','阪','泽','麓'];
+      function geoName(fid, base){
+        if(global.LF.FIELD_NAMES && global.LF.FIELD_NAMES[fid]) return global.LF.FIELD_NAMES[fid];
+        return base + LANDFORM[hashStr(fid+'#nm') % LANDFORM.length];
+      }
       function createField(dir, list){
         var fid = ensureGate(pid, dir);
-        var geo = fieldGeometry(4, dir);
+        // 取本野地服务的“最远邻城”里数，决定野地规模：远→大野地，近→小野地
+        var maxLi = 0;
+        list.forEach(function(nb){
+          var e = (ROADS.adj[pid]||[]).filter(function(x){ return x.to===nb.nid; })[0];
+          nb.li = e ? e.li : 0;
+          if(nb.li>maxLi) maxLi=nb.li;
+        });
+        var size = maxLi>0 ? Math.max(3, Math.min(8, Math.round(maxLi/260))) : 4;
+        var geo = fieldGeometry(size, dir);
         var entryR = roomId(fid, geo.entryR, geo.entryC);
-        fields[fid] = { id:fid, place:pid, dir:dir, neighbors:list, size:4 };
+        var geology = (hashStr(fid+'#geo') % 100) < 30 ? 'mineral' : 'plain';
+        var order = cityOrder(pid);
+        var disp = order>=60 ? '安靖' : (order<40 ? '动荡' : '平靖');
+        fields[fid] = { id:fid, place:pid, dir:dir, neighbors:list, size:size, li:maxLi, geology:geology, disposition:disp, parentName:(pl.name||pid) };
         if(!P[fid]){
           P[fid] = {
-            id:fid, kind:'field', name: pl.name + (isCityType ? '·'+dir+'郊野' : '·郊野'),
+            id:fid, kind:'field', name: geoName(fid, pl.name||pid),
             state: pl.state, owner: pl.owner||'neutral', open:true, _seed:'field',
-            size:4, gateDir:dir, seed: hashStr(fid), parent: pid, parentDir:dir,
+            size:size, gateDir:dir, seed: hashStr(fid), parent: pid, parentDir:dir,
+            geology:geology, disposition:disp,
             entryRoom: entryR
           };
           // 注意：不设 pos，避免污染战略图点位
