@@ -4173,17 +4173,28 @@ window.onerror=function(msg,url,line,col,err){
       '<p class="tip">点相邻格，或借下方方向键游走城中。当前位于〔'+curMetaName+'〕。'+
         '城中街道可自由通行；出城须至城门——站上城门格，罗盘便会亮出朝外的出城方向。</p>';
   }
+  // 统一地图入口（v20260906c）：三套地图（城内布防图 / 郊野图 / 山河志）共用 openModal('map')，
+  // 行为一致；scope ∈ 'city' | 'field' | 'world' | 'auto'(默认=当前上下文) 决定默认展示页。
+  function openMap(scope, opts){
+    opts=opts||{}; var o={}; for(var _k in opts) o[_k]=opts[_k];
+    o._scope=scope||'auto';
+    if(scope==='world') o.forceWorld=true;
+    openModal('map', o);
+  }
   // 城内打开「地图」时的双页签：默认城内布防图，可切换到山河志（十三州战略地图，v20260905j）
-  function buildCityMapTabsHTML(){
+  function buildCityMapTabsHTML(forceWorld){
+    var cityOn=!forceWorld, worldOn=!!forceWorld;
     return '<div class="map-tabs" id="map-tabs">'+
-      '<button type="button" class="mt-tab on" data-tab="city">🏯 城内布防图</button>'+
-      '<button type="button" class="mt-tab" data-tab="world">🗺 山河志 · 十三州</button></div>'+
-      '<div class="map-tab-body" data-body="city">'+buildMapCityHTML({})+'</div>'+
-      '<div class="map-tab-body hidden" data-body="world">'+
+      '<button type="button" class="mt-tab'+(cityOn?' on':'')+'" data-tab="city">🏯 城内布防图</button>'+
+      '<button type="button" class="mt-tab'+(worldOn?' on':'')+'" data-tab="world">🗺 山河志 · 十三州</button></div>'+
+      '<div class="map-tab-body'+(cityOn?'':' hidden')+'" data-body="city">'+buildMapCityHTML({})+'</div>'+
+      '<div class="map-tab-body'+(worldOn?'':' hidden')+'" data-body="world">'+
         '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>'+
         '<p class="tip">拖拽平移 · 滚轮缩放 · 点城池查看详情/前往（体力-4·食物-1·饮水-1·时间+1刻）。'+
         '打开时默认以你所在之处居中；切回「城内布防图」可继续在城中走动。</p></div>';
   }
+  // 郊野入城点映射缓存：拓扑在 link() 后即固定，按郊野 id 缓存，避免每次开图重复扫描远边格（v20260906c）
+  var _FIELD_CITYOUT_CACHE={};
   // 郊野局部地图（v20260905n）：4×4 网格展示当前郊野——玩家所在格、入口(回母城)、资源/野兽/路人、远边通邻城出口
   function buildFieldMapHTML(opts){
     opts=opts||{};
@@ -4196,21 +4207,25 @@ window.onerror=function(msg,url,line,col,err){
     var CELL=62, W=size*CELL, H=size*CELL, fc=room.fc, fr=room.fr;
     var meta=((LF.Travel&&LF.Travel.fields)||{})[fid]||{};
     var parentName=((LF.CITIES||{})[fp.parent]&&LF.CITIES[fp.parent].name)||((LF.PLACES||{})[fp.parent]&&LF.PLACES[fp.parent].name)||fp.parent||'';
-    // 远边入城点：扫描远边各格，找出 exits[gateDir] 指向城市的格子，标注为「入城点」
-    var cityOut={};
-    (function(){
-      var far=[];
-      if(gd==='东'||gd==='西'){ for(var r=0;r<size;r++) far.push([r,geo.farCol]); }
-      else { for(var c=0;c<size;c++) far.push([geo.farRow,c]); }
-      far.forEach(function(p){
-        var rm=G.ROOMS[LF.Travel.roomId(fid,p[0],p[1])]||{};
-        var ex=rm.exits&&rm.exits[gd];
-        if(typeof ex==='string' && ex.indexOf('__gate__:')===0){
-          var nid=ex.split(':')[1];
-          cityOut[p[0]+','+p[1]]=((LF.CITIES||{})[nid]&&LF.CITIES[nid].name)||((LF.PLACES||{})[nid]&&LF.PLACES[nid].name)||nid;
-        }
-      });
-    })();
+    // 远边入城点：按郊野 id 缓存扫描结果（拓扑固定）；远边各格 exits[gateDir] 指向城市的即为入城口
+    if(!_FIELD_CITYOUT_CACHE[fid]){
+      var _co={};
+      (function(){
+        var far=[];
+        if(gd==='东'||gd==='西'){ for(var r=0;r<size;r++) far.push([r,geo.farCol]); }
+        else { for(var c=0;c<size;c++) far.push([geo.farRow,c]); }
+        far.forEach(function(p){
+          var rm=G.ROOMS[LF.Travel.roomId(fid,p[0],p[1])]||{};
+          var ex=rm.exits&&rm.exits[gd];
+          if(typeof ex==='string' && ex.indexOf('__gate__:')===0){
+            var nid=ex.split(':')[1];
+            _co[p[0]+','+p[1]]=((LF.CITIES||{})[nid]&&LF.CITIES[nid].name)||((LF.PLACES||{})[nid]&&LF.PLACES[nid].name)||nid;
+          }
+        });
+      })();
+      _FIELD_CITYOUT_CACHE[fid]=_co;
+    }
+    var cityOut=_FIELD_CITYOUT_CACHE[fid];
     var cells='';
     for(var r=0;r<size;r++) for(var c=0;c<size;c++){
       var cid=LF.Travel.roomId(fid,r,c), cr=G.ROOMS[cid]||{};
@@ -4218,7 +4233,7 @@ window.onerror=function(msg,url,line,col,err){
       var cityNm=cityOut[r+','+c];
       var ic='·', nm='荒野', cls='mc-cell mf'+(isCur?' mc-cur':'');
       if(isEntry){ ic='🚪'; nm='入'+parentName; cls+=' mf-entry'; }
-      else if(cityNm){ ic='🏰'; nm='入'+cityNm; cls+=' mf-cityout'; }
+      else if(cityNm){ ic='🏰'; nm='入'+cityNm+'·'+gd; cls+=' mf-cityout'; }
       else if(cr.resources&&cr.resources.length){ ic='🌿'; nm=cr.resources[0].name; }
       else if(cr.monsters&&cr.monsters.length){ var m0=cr.monsters[0]; ic=(m0.aggr==='flee'?'🐗':(m0.aggr==='neutral'?'🐺':'⚔')); nm=m0.name; }
       else if(cr.fieldNpcs&&cr.fieldNpcs.length){ ic='💬'; nm=cr.fieldNpcs[0].name; }
@@ -4238,20 +4253,26 @@ window.onerror=function(msg,url,line,col,err){
       (exits?'<ul class="mf-exits">'+exits+'</ul>':'');
   }
   // 野外打开「地图」时的双页签：默认郊野图，可切换到山河志（十三州战略地图，v20260905n）
-  function buildFieldMapTabsHTML(){
+  function buildFieldMapTabsHTML(forceWorld){
+    var fieldOn=!forceWorld, worldOn=!!forceWorld;
     return '<div class="map-tabs" id="map-tabs">'+
-      '<button type="button" class="mt-tab on" data-tab="field">🏕 郊野图</button>'+
-      '<button type="button" class="mt-tab" data-tab="world">🗺 山河志 · 十三州</button></div>'+
-      '<div class="map-tab-body" data-body="field">'+buildFieldMapHTML({})+'</div>'+
-      '<div class="map-tab-body hidden" data-body="world">'+
+      '<button type="button" class="mt-tab'+(fieldOn?' on':'')+'" data-tab="field">🏕 郊野图</button>'+
+      '<button type="button" class="mt-tab'+(worldOn?' on':'')+'" data-tab="world">🗺 山河志 · 十三州</button></div>'+
+      '<div class="map-tab-body'+(fieldOn?'':' hidden')+'" data-body="field">'+buildFieldMapHTML({})+'</div>'+
+      '<div class="map-tab-body'+(worldOn?'':' hidden')+'" data-body="world">'+
         '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>'+
         '<p class="tip">拖拽平移 · 滚轮缩放 · 点城池查看详情。打开时默认以你所在郊野居中。</p></div>';
   }
-  // 页签绑定：布防图 与 山河志 互切；山河志首次切到时才初始化并聚焦「此身所在」
+  // 页签绑定：布防图/郊野图 与 山河志 互切；山河志首次激活时（点击或默认页）才初始化并聚焦「此身所在」
   function initMapTabs(){
     var tabs=document.querySelector('#modal-card .map-tabs');
     if(!tabs) return false;
     var worldDone=false;
+    function activateWorld(){
+      if(worldDone) return;
+      worldDone=true;
+      initStrategicMapInGame({ focusYou:true });   // 打开即居中玩家所在
+    }
     tabs.querySelectorAll('.mt-tab').forEach(function(b){
       b.onclick=function(){
         var go=b.getAttribute('data-tab');
@@ -4259,12 +4280,12 @@ window.onerror=function(msg,url,line,col,err){
         document.querySelectorAll('#modal-card .map-tab-body').forEach(function(x){
           x.classList.toggle('hidden', x.getAttribute('data-body')!==go);
         });
-        if(go==='world' && !worldDone){
-          worldDone=true;
-          initStrategicMapInGame({ focusYou:true });   // 打开即居中玩家所在
-        }
+        if(go==='world') activateWorld();
       };
     });
+    // 若默认即为山河志页（如 openMap('world')），打开即初始化
+    var active=tabs.querySelector('.mt-tab.on');
+    if(active && active.getAttribute('data-tab')==='world') activateWorld();
     return true;
   }
   function initMapCity(opts){
@@ -5187,7 +5208,7 @@ window.onerror=function(msg,url,line,col,err){
             }
           }
         }
-        openModal('map', {forceWorld:true});
+        openMap('world');
         break;
       }
       case 'edict': {
@@ -7556,9 +7577,9 @@ window.onerror=function(msg,url,line,col,err){
       h=renderObjectives();
     } else if(kind==='map'){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
-        h=buildCityMapTabsHTML();            // 城内：布防图 ↔ 山河志 双页签
+        h=buildCityMapTabsHTML(modalOpts._scope==='world');   // 城内：布防图 ↔ 山河志 双页签（scope=world 默认山河志）
       } else if(G.ROOMS[state.room] && G.ROOMS[state.room].isField){
-        h=buildFieldMapTabsHTML();           // 野外：郊野图 ↔ 山河志 双页签
+        h=buildFieldMapTabsHTML(modalOpts._scope==='world');   // 野外：郊野图 ↔ 山河志 双页签
       } else {
         h=buildStrategicMapHTML({});
       }
