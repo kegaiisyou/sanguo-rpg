@@ -150,6 +150,7 @@
         if(sc.resources.length) rm.resources = sc.resources;
         if(sc.monsters.length) rm.monsters = sc.monsters;
         if(sc.npcs.length) rm.fieldNpcs = sc.npcs;
+        if(sc.water) rm.water = sc.water;
         o[rid] = rm;
       }
       return o;

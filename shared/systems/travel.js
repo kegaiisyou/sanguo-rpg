@@ -91,10 +91,15 @@
     {type:'berry',  name:'野果',   item:'yeguo'},
     {type:'copper', name:'铜矿',   item:'tongkuang'},
     {type:'silver', name:'银矿',   item:'yinkuang'},
-    {type:'jade',   name:'玉石',   item:'yushi'},
+    {type:'jade',   name:'玉石',   item:'jade'},
     {type:'salt',   name:'盐矿',   item:'yan'}
   ];
   var MINERAL = ['copper','silver','jade','salt'];   // 仅“矿脉野地”才出现的矿产
+  // 水域（小湖泊/河流）：郊野格按概率生成，可垂钓（产出鱼获）
+  var WATER = [
+    { type:'lake',  name:'湖泊', icon:'💧' },
+    { type:'river', name:'河流', icon:'🌊' }
+  ];
   // 野怪分「敌对伏寇」与「野兽」：治安高→多野兽少伏寇；治安低→多敌对伏寇
   var MON_HOSTILE = [
     {id:'bandit',        name:'山贼',     aggr:'hostile'},
@@ -158,7 +163,14 @@
     var nprob = calm ? 0.13 : (tense ? 0.03 : 0.07);
     var z = rng();
     if(z < nprob){ var nt = pick(NPC_FRIEND, rng); npc.push({ type:nt.type, name:nt.name }); }
-    return { resources:res, monsters:mon, npcs:npc };
+    // —— 水域（小湖泊/河流）：非入口格按概率生成；临港母城概率更高，更易得鱼 ——
+    var water = null;
+    if(!isEntry){
+      var parCity = (global.LF.CITIES||{})[p.parent];
+      var wchance = 0.16 + ((parCity && parCity.ctype==='port') ? 0.12 : 0);
+      if(rng() < wchance){ var wt = WATER[Math.floor(rng()*WATER.length)]; water = { type:wt.type, name:wt.name, icon:wt.icon }; }
+    }
+    return { resources:res, monsters:mon, npcs:npc, water:water };
   }
 
   // —— 构建郊野骨架（在 PLACES / ROADS 就绪后由 index.html 调用）——

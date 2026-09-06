@@ -28,13 +28,13 @@
       roadType:'pass', desc:'司隶咽喉，洛阳东门锁钥' },
 
     // 名胜：古战场 / 剧情钩子（五丈原·茅庐·落凤坡·吕伯奢宅·常山·赤壁·官渡）
-    wuzhangyuan: { kind:'landmark', name:'五丈原', state:'雍州', pos:[107.90,34.20],
+    wuzhangyuan: { kind:'wild', name:'五丈原', state:'雍州', pos:[107.90,34.20],
       battle:'wuzhang', isBattlefield:true, desc:'渭水南岸，武侯星落之处' },
     maolu: { kind:'landmark', name:'诸葛亮茅庐', state:'荆州', pos:[112.10,32.00],
       plot:'sangu_maolu', desc:'隆中草庐，三顾始出' },
     luofengpo: { kind:'landmark', name:'落凤坡', state:'益州', pos:[104.20,30.90],
       plot:'pangtong_die', isBattlefield:true, desc:'雒城西南，凤雏殒命' },
-    lvboshe: { kind:'landmark', name:'吕伯奢宅', state:'司隶', pos:[113.90,34.70],
+    lvboshe: { kind:'wild', name:'吕伯奢宅', state:'司隶', pos:[113.95,34.60],
       plot:'caocao_lvboshe', desc:'中牟道旁，孟德疑心夜刃' },
     changshan: { kind:'landmark', name:'常山', state:'冀州', pos:[114.60,38.10],
       plot:null, desc:'赵子龙故里，真定之地' },

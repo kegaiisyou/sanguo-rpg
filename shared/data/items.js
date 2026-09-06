@@ -149,7 +149,12 @@
     rope:      { defId: 'rope',      name: '绳', icon: '🪢', cat: '素材',
       desc: '苏娘以竹麻搓制的绳。攀绳翻墙线（路线7）攀墙工具；结实耐用。' },
     guard_tally:{ defId: 'guard_tally', name: '腰牌', icon: '🪪', cat: '素材',
-      desc: '赵虎的都伯腰牌，夺来可作暴动线（路线4）的信物；沾了血才到手。' }
+      desc: '赵虎的都伯腰牌，夺来可作暴动线（路线4）的信物；沾了血才到手。' },
+    // —— 渔获（郊野水域垂钓所得；可充饥，亦可售与行商）——
+    fish:       { defId: 'fish',       name: '鲜鱼', icon: '🐟', cat: '食饵', effect: { food: 25 },
+      desc: '郊野河湖钓得的鲜鱼，去鳞剖腹下锅最鲜；久置则腥，宜尽早烹食。' },
+    fish_dried: { defId: 'fish_dried', name: '咸鱼', icon: '🐟', cat: '食饵', price: 12, effect: { food: 18 },
+      desc: '盐渍风干的咸鱼，耐存不坏，行旅干粮之选，亦堪易米。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
