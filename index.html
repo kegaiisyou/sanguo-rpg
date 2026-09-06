@@ -68,7 +68,7 @@
     padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   }
 
-  /* ===== 顶部状态条：仅显示 名字 · 时辰 ===== */
+  /* ===== 顶部状态条：仅显示 名字 · 时辰 · 天气，名字完整不截断 ===== */
   #status{
     flex:0 0 auto;display:flex;align-items:center;gap:8px;
     padding:7px 16px;cursor:pointer;
@@ -79,7 +79,7 @@
   }
   #status:active{opacity:.72;}
   #status .who{font-size:14px;color:var(--ink);font-weight:700;font-family:"STKaiti","KaiTi","Songti SC",serif;letter-spacing:1px;
-    max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    flex:0 0 auto;white-space:nowrap;}
   #status .dot{color:var(--ink-faint);}
   #status .st-clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);font-family:"STKaiti","KaiTi",serif;letter-spacing:.5px;}
   #status .st-time{color:var(--seal);font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
@@ -2719,9 +2719,7 @@ window.onerror=function(msg,url,line,col,err){
       '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
       '<span class="st-time">'+sh+'</span>'+
       '<span class="dot">·</span>'+
-      '<span class="st-era">'+era+'·'+c.monthName+'月'+c.dayName+'</span>'+
-      '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>'+
-      '<span class="st-ver">v'+LF.CONSTANTS.VERSION+'</span>';
+      '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>';
   }
   function renderLocTab(room){
     var loc=room.name||'';
