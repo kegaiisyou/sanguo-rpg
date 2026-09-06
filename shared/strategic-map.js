@@ -157,6 +157,18 @@
     { name:'淮河', width:2.0, color:'#4a6b76', pts:[[108,33],[111,33],[114,33],[117,33],[119,32.8]] },
   ];
 
+  // 道路样式：按类型着色（官道/山道/水道/关隘），风险越高越偏红（提示贼寇/战乱/难行）
+  function roadStyle(e) {
+    const t = e.type || 'road';
+    if (t === 'water')    return { stroke:'#3a6f8f', width:1.4, dash:null,        opacity:0.70 };
+    if (t === 'pass')     return { stroke:'#c14b12', width:1.3, dash:'5 3',       opacity:0.85 };
+    if (t === 'mountain') return { stroke:'#7a7264', width:1.0, dash:'2 3',       opacity:0.60 };
+    // road：安靖(暖金) → 动荡(赤红) 随 risk 渐变
+    const r = Math.max(0, Math.min(1, e.risk || 0));
+    const cr = Math.round(156 + 86 * r), cg = Math.round(122 - 64 * r), cb = Math.round(58 - 30 * r);
+    return { stroke:`rgb(${cr},${cg},${cb})`, width:1.2, dash:null, opacity:0.82 };
+  }
+
   // 州名标签位置由州几何「最深内点」计算（见下方 deepAnchor/stateLabelsDom），不再用硬编码坐标。
 
   // 加载郡边界：shared/data/map_regions.js 以 script 全局注入 LF.REGIONS。
@@ -245,6 +257,7 @@
         <div class="row"><span class="swatch" style="background:#b8860b;border-radius:50%"></span>名胜/古战场</div>
         <div class="row"><span class="swatch" style="background:#6a2f8f;border-radius:50%"></span>副本入口</div>
         <div class="row"><span class="swatch" style="background:#55703c;border-radius:50%"></span>野地/集镇</div>
+        <div class="row"><span class="swatch" style="background:#9c7a3a;width:16px;height:3px;border-radius:2px;display:inline-block"></span>道路（红色=险）</div>
       </div>
       <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>
     `;
@@ -335,6 +348,7 @@
     let commanderyLayer = null;
     let factionFillLayer = null;
     let commanderyFillLayer = null;
+    let roadLayer = null;        // 道路层（数据驱动，从 LF.ROADS.edges 实时渲染）
 
     function render(regionData, cities) {
       svg.selectAll('*').remove();
@@ -439,6 +453,34 @@
         .attr('stroke-linecap', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
+
+      // ── 道路层：数据驱动实时渲染（LF.ROADS.edges），剧情加地点/改路自动反映，无需定死图 ──
+      // 道路 path 随 root 一起 transform（仅缩放/平移，不每帧重算路径），百来条边零卡顿；
+      // 端点用 projection 投影，与底图严格对齐。pointer-events:none 不挡州/城点击。
+      roadLayer = root.append('g').attr('id', 'sm-roads').attr('pointer-events', 'none');
+      const RD = global.LF.ROADS;
+      if (RD && RD.edges && RD.nodes) {
+        const traveled = (opts.traveled && Array.isArray(opts.traveled)) ? new Set(opts.traveled) : null;
+        const ekey = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+        RD.edges.forEach(e => {
+          const na = RD.nodes[e.a], nb = RD.nodes[e.b];
+          if (!na || !nb) return;
+          const pa = projection(na), pb = projection(nb);
+          if (!pa || !pb || !isFinite(pa[0]) || !isFinite(pb[0])) return;
+          const st = roadStyle(e);
+          const isTrav = traveled && traveled.has(ekey(e.a, e.b));
+          roadLayer.append('path')
+            .attr('d', `M${pa[0].toFixed(2)},${pa[1].toFixed(2)}L${pb[0].toFixed(2)},${pb[1].toFixed(2)}`)
+            .attr('fill', 'none')
+            .attr('stroke', st.stroke)
+            .attr('stroke-width', isTrav ? st.width + 0.6 : st.width)
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-dasharray', st.dash || null)
+            .attr('vector-effect', 'non-scaling-stroke')
+            .attr('pointer-events', 'none')
+            .attr('opacity', isTrav ? 1 : st.opacity);
+        });
+      }
 
       _applyOverlay = function(mode) {
         overlayMode = mode || overlayMode;
@@ -894,6 +936,11 @@
         if (provinceLayer) {
           const pop = 1 - lod;
           provinceLayer.style('opacity', pop);
+        }
+        // 道路层：任何缩放下都可见（用户要求按真实路网连城），远观淡、近观清，避免宏观视图杂乱
+        if (roadLayer) {
+          const rop = Math.min(0.92, 0.28 + 0.5 * k);
+          roadLayer.style('opacity', String(rop));
         }
         if (commanderyLayer) {
           // 州内保持干净无内部线：郡边界线层始终隐藏（"郡"填色模式仍显示色块）
