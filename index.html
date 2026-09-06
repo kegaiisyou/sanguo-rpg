@@ -135,6 +135,7 @@
   .narr.sys{color:var(--ink-faint);font-size:13px;} /* 系统/提示 */
   .narr.item{color:#7a5a2e;background:rgba(176,131,47,.10);padding:5px 10px;border-radius:8px;font-size:14px;display:inline-block;}
   .narr.exit{color:var(--ink-soft);font-size:13.5px;border-left:3px solid var(--gold);padding-left:10px;}
+  .narr.warn{color:#a05a1e;font-size:13.5px;border-left:3px solid #c07a3a;padding-left:10px;} /* 水路警示 */
 
   /* ===== 动态按钮区（分组菜单 · 自适应网格） ===== */
   /* 三层视觉分级：叙事区(浅) → 按钮区(略深+上沿分隔) → 系统dock(再深) */
@@ -2100,7 +2101,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260902a"></script>
     <script src="shared/data/martial.js?v=20260902a"></script>
 <script src="shared/data/enemies.js?v=20260902a"></script>
-<script src="shared/data/items.js?v=20260907a"></script>
+<script src="shared/data/items.js?v=20260907c"></script>
     <script src="shared/data/recipes.js?v=20260902a"></script>
     <script src="shared/data/build.js?v=20260902a"></script>
     <script src="shared/data/shops.js?v=20260905a"></script>
@@ -2110,7 +2111,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260907b"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
-    <script src="shared/systems/travel.js?v=20260907a"></script>
+    <script src="shared/systems/travel.js?v=20260907c"></script>
     <script src="shared/gen/rooms.js?v=20260907a"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/data/map_regions.js?v=20260904i"></script>
@@ -3291,7 +3292,7 @@ window.onerror=function(msg,url,line,col,err){
     return '<h3>城 况 · '+p.c.name+'</h3>'+
       row('行政', p.tierDesc)+
       row('城型', p.ctypeDesc)+
-      row('城门', p.gates+' 座')+
+      row('城门', (availableGateDirs(cid)||[]).length+' 座')+
       row('城级', cityLevelName(cid)+'（'+cityGridSize(cid)+'×'+cityGridSize(cid)+' 格，建设度 '+cityDevOf(cid)+'）')+
       row('人口', p.popDesc)+
       row('治安', p.orderDesc)+
@@ -3404,17 +3405,15 @@ window.onerror=function(msg,url,line,col,err){
     var out=ord.slice(0,4);
     if(c && c.grid){
       var nG=cityGates(c);
-      if(nG>=4) out=ord.slice(0,4);
-      else {
-        var DIRV={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]};
-        // 路网邻居向量（与 travel.js geoVec 同一屏幕坐标口径：北=-y、东=+x）
-        var nbs=(((LF.ROADS||{}).adj||{})[cid]||[]).map(function(e){
-          var np=(LF.PLACES||{})[e.to];
-          if(!np||!np.pos||np.pos.length!==2) return null;
-          var la=(c.pos[1]||0)*Math.PI/180;
-          return { v:[(np.pos[0]-c.pos[0])*Math.cos(la), -(np.pos[1]-c.pos[1])],
-                   city: !!((LF.CITIES[e.to]||{}).grid) };
-        }).filter(Boolean);
+      var DIRV={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]};
+      var nbs=(((LF.ROADS||{}).adj||{})[cid]||[]).map(function(e){
+        var np=(LF.PLACES||{})[e.to];
+        if(!np||!np.pos||np.pos.length!==2) return null;
+        var la=(c.pos[1]||0)*Math.PI/180;
+        return { v:[(np.pos[0]-c.pos[0])*Math.cos(la), -(np.pos[1]-c.pos[1])],
+                 city: !!((LF.CITIES[e.to]||{}).grid) };
+      }).filter(Boolean);
+      if(nbs.length){
         function angFrom(d,v){
           var dv=DIRV[d], va=Math.atan2(v[1],v[0]), da=Math.atan2(dv[1],dv[0]);
           var a=Math.abs(va-da); if(a>Math.PI) a=2*Math.PI-a; return a;
@@ -3439,16 +3438,23 @@ window.onerror=function(msg,url,line,col,err){
         function affinity(set){
           var a=0; set.forEach(function(d){ a += 4 - ord.indexOf(d); }); return a;
         }
+        // v20260907c：剔除「无正向邻点」的虚门，避免开出「有门无路」的城门（罗盘出不去）。
+        // 仅从「确有正向邻点」的可用方向中枚举开门组合（数量取 min(城型门数, 可用方向数)）。
+        var usable = ord.filter(function(d){
+          return nbs.some(function(nb){ return pick([d], nb.v).face; });
+        });
+        if(!usable.length) usable = ord.slice(0,4);   // 极端：无邻点（不应发生），退回默认四门
+        var k = Math.min(nG, usable.length);
         var bestSet=null, bestSc=-1, bestAf=-1;
-        for(var mask=0; mask<16; mask++){
-          var bits=0; for(var b=0;b<4;b++) if(mask&(1<<b)) bits++;
-          if(bits!==nG) continue;
+        for(var mask=0; mask<(1<<usable.length); mask++){
+          var bits=0; for(var b=0;b<usable.length;b++) if(mask&(1<<b)) bits++;
+          if(bits!==k) continue;
           var set=[];
-          for(var i=0;i<4;i++) if(mask&(1<<i)) set.push(ord[i]);
+          for(var i=0;i<usable.length;i++) if(mask&(1<<i)) set.push(usable[i]);
           var sc=score(set), af=affinity(set);
           if(sc>bestSc || (sc===bestSc && af>bestAf)){ bestSc=sc; bestAf=af; bestSet=set; }
         }
-        out = bestSet || ord.slice(0,nG);
+        out = bestSet || usable.slice(0, k);
       }
     }
     CITY_GATE_DIRS_CACHE[cid]=out;
@@ -4791,6 +4797,7 @@ window.onerror=function(msg,url,line,col,err){
     return best;
   }
   function arriveAtGate(pid, dir){
+    setOnBoat(false);   // 进城即上岸
     var gc=gateCellCoord(pid, dir);
     var m=genCityGrid(pid);
     if(gc && m && m.size){
@@ -4863,6 +4870,12 @@ window.onerror=function(msg,url,line,col,err){
       return;
     }
     if(!exert('远行')) return;
+    // 水路郊野：未乘船不得踏入（须先在本格「乘船渡江」）
+    var _tgtRoom=G.ROOMS[tid];
+    if(_tgtRoom && roomIsBoatRoute(_tgtRoom) && !isOnBoat()){
+      toast('此处是水路津渡，须先点「乘船渡江」方能渡江。');
+      return;
+    }
     // 郊野逐格穿行：遇雨雪雾等天候额外耗费体力（WX_EFF.walk），城郭内不受影响
     var _oldR=G.ROOMS[state.room];
     var _wx=wxEff();
@@ -4875,6 +4888,8 @@ window.onerror=function(msg,url,line,col,err){
     log('你朝'+dir+'方行去，沿途景物渐换……'+(_extra?('（'+((WEATHERS[state.weather]||{}).n||'')+'中行路，分外耗费气力。）'):''),'sys');
     var _gone=state.room;
     renderRoom(tid);
+    // 自动上岸：抵达陆地（城或非水路郊野）即离舟，整段水路只需乘一次船
+    if(!roomIsBoatRoute(G.ROOMS[tid])) setOnBoat(false);
     var _gc=_gone && G.ROOMS[_gone];
     if(_gc && _gc.isField){
       var _left=fieldPlacedCamps(_gc);
@@ -4949,9 +4964,33 @@ window.onerror=function(msg,url,line,col,err){
     if(room.fieldNpcs && room.fieldNpcs.length){ room.fieldNpcs.forEach(function(n){ out.push({t:'〔路人〕'+n.name+'在此歇脚。', c:'sys'}); }); }
     var fcamps=fieldPlacedCamps(room);
     if(fcamps.length) out.push({t:'〔营地〕此处已支有'+fcamps.map(function(f){return f.name;}).join('、')+'，可就近安歇或收起带走。', c:'good'});
+    if(roomIsBoatRoute(room)) out.push(isOnBoat()
+      ? {t:'〔水路〕烟波浩渺，你正乘舟渡江——沿岸码头渐近。', c:'sys'}
+      : {t:'〔水路〕此处为津渡水路，须「乘船渡江」方可前行。', c:'warn'});
     return out;
   }
+  // ===== 渡口坐船（v20260907c）=====
+  // 水路郊野（isBoatRoute，多为 port/shuizhai 起点的多段链）须乘船方可通过：
+  // 玩家进入水路郊野后须先「乘船渡江」，无舟无银则只能借无主小筏（保证不卡死）。
+  // 一旦登上陆地（城或非水路郊野）即自动上岸，整段水路只需乘一次船。
+  var BOAT_FEE = 12;   // 渡资（银两）；持有扁舟则免
+  function fieldMetaOf(room){ var fid=room&&room.fieldId; return fid?((LF.Travel&&LF.Travel.fields)||{})[fid]||((LF.PLACES||{})[fid]||{}):{}; }
+  function roomIsBoatRoute(room){ return !!(room && room.isField && fieldMetaOf(room).isBoatRoute); }
+  function isOnBoat(){ return !!(state.flags && state.flags.onBoat); }
+  function setOnBoat(v){ state.flags=state.flags||{}; state.flags.onBoat=!!v; }
+  function boatBoardAct(){
+    if(isOnBoat()){ toast('你已在舟中。'); return; }
+    if(packFind('zhou')){ setOnBoat(true); log('你解缆登舟，扁舟轻荡，准备渡江。','good'); }
+    else if((state.gold||0) >= BOAT_FEE){ state.gold-=BOAT_FEE; setOnBoat(true); log('你付了渡资 '+BOAT_FEE+' 银，登上渡船，船夫撑篙离岸。','good'); }
+    else { setOnBoat(true); log('渡口无舟可雇，你寻得一只无主小筏，亲自撑篙渡江。','sys'); }
+    buildActions(G.ROOMS[state.room]); renderStatus();
+  }
   function fieldActions(room){
+    // 水路郊野：须乘船方可通过（已在舟中则显示已乘，未乘则给出「乘船渡江」）
+    if(roomIsBoatRoute(room)){
+      if(isOnBoat()) mkAct('scene','⛵','已乘舟（渡江中）', function(){ toast('你正在舟中渡江，向岸边行去即可上岸。'); });
+      else mkAct('scene','🚣','乘船渡江', boatBoardAct);
+    }
     if(room.resources && room.resources.length){
       room.resources.forEach(function(res){ mkAct('scene','🌿','采'+res.name, function(){ gatherField(room, res); }); });
     }

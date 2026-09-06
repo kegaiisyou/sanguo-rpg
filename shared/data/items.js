@@ -41,6 +41,7 @@
   // 静态物品定义（期初行囊 / 任务 / 商店）。defId 唯一键。
   var DEFS = {
     jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
+    zhou:        { defId: 'zhou',        name: '扁舟',   icon: '⛵', cat: '道具', desc: '一叶轻舟，江河可渡。行经水路郊野时持有此舟，渡口乘船不取分文。' },
     roubao:      { defId: 'roubao',      name: '肉包子', icon: '🥟', cat: '食饵', effect: { food: 20, drink: 5 },     desc: '热乎包子一只，啃下可充饥解渴。' },
     yaofen:      { defId: 'yaofen',      name: '草药粉', icon: '🌿', cat: '药剂', effect: { hp: 25 },                 desc: '捣碎的草药细粉，作敷料可缓伤痛。' },
     tangyao:     { defId: 'tangyao',     name: '汤药',   icon: '🍵', cat: '药剂', effect: { hp: 130 },                desc: '慢火熬出的汤药，温养气血，重伤可复。' },

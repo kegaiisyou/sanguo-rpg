@@ -209,12 +209,14 @@
 
       // 地理命名：依母城短名 + 地貌词生成（取代带编号的「·郊野」长名）
       var LANDFORM = ['道','原','野','川','岭','津','墟','阪','泽','麓'];
-      function geoName(fid, base){
+      function geoName(fid, base, opts){
         if(global.LF.FIELD_NAMES && global.LF.FIELD_NAMES[fid]) return global.LF.FIELD_NAMES[fid];
-        return base + LANDFORM[hashStr(fid+'#nm') % LANDFORM.length];
+        var nm = base + LANDFORM[hashStr(fid+'#nm') % LANDFORM.length];
+        if(opts && opts.total>1) nm += '·第'+(opts.stage+1)+'程';
+        return nm;
       }
-      function createField(dir, list){
-        var fid = ensureGate(pid, dir);
+      function createField(fid, dir, list, opts){
+        opts = opts || {};
         // 取本野地服务的“最远邻城”里数，决定野地规模：远→大野地，近→小野地
         var maxLi = 0;
         list.forEach(function(nb){
@@ -228,16 +230,45 @@
         var geology = (hashStr(fid+'#geo') % 100) < 30 ? 'mineral' : 'plain';
         var order = cityOrder(pid);
         var disp = order>=60 ? '安靖' : (order<40 ? '动荡' : '平靖');
-        fields[fid] = { id:fid, place:pid, dir:dir, neighbors:list, size:size, li:maxLi, geology:geology, disposition:disp, parentName:(pl.name||pid) };
+        fields[fid] = { id:fid, place:pid, dir:dir, neighbors:list, size:size, li:maxLi, geology:geology, disposition:disp, parentName:(pl.name||pid),
+                        isBoatRoute: !!opts.isBoatRoute, stage:opts.stage||0, total:opts.total||1 };
         if(!P[fid]){
           P[fid] = {
-            id:fid, kind:'field', name: geoName(fid, pl.name||pid),
+            id:fid, kind:'field', name: geoName(fid, pl.name||pid, opts),
             state: pl.state, owner: pl.owner||'neutral', open:true, _seed:'field',
             size:size, gateDir:dir, seed: hashStr(fid), parent: pid, parentDir:dir,
             geology:geology, disposition:disp,
-            entryRoom: entryR
+            entryRoom: entryR,
+            isBoatRoute: !!opts.isBoatRoute
           };
           // 注意：不设 pos，避免污染战略图点位
+        }
+      }
+      // v20260907c：按“母城→邻城”里程分段，生成长途所需的「多段郊野」链：
+      // 玩家出城后须依次穿过数块郊野才能抵达（近程仍是一块，与原行为一致）。
+      // 母城为 渡口/水寨（port/shuizhai）时整条链标记为水路，需坐船。
+      var STAGE_LI = 200, MAX_STAGES = 6;
+      function createFieldChain(dir, list){
+        var maxLi = 0;
+        list.forEach(function(nb){
+          var e = (ROADS.adj[pid]||[]).filter(function(x){ return x.to===nb.nid; })[0];
+          nb.li = e ? e.li : 0; if(nb.li>maxLi) maxLi=nb.li;
+        });
+        var k = Math.max(1, Math.min(MAX_STAGES, Math.max(1, Math.round(maxLi/STAGE_LI))));
+        var isBoat = (pl.ctype==='port' || pl.ctype==='shuizhai');
+        // 预计算每段规模与入口房，便于链段前后相接
+        var fids=[], entries=[];
+        for(var i=0;i<k;i++){
+          var fid = ensureGate(pid, dir) + (k>1 && i>0 ? '_'+(i+1) : '');
+          var segLi = (i===k-1) ? maxLi : Math.max(60, Math.round(maxLi/k));
+          var sz = Math.max(3, Math.min(8, Math.round(segLi/260))) || 4;
+          var geo = fieldGeometry(sz, dir);
+          fids.push(fid); entries.push(roomId(fid, geo.entryR, geo.entryC));
+        }
+        for(var i=0;i<k;i++){
+          var neighbors = (i===k-1) ? list
+            : [{ nid: entries[i+1], v: dirVec(dir), li: Math.round(maxLi/k) }];
+          createField(fids[i], dir, neighbors, { isBoatRoute: isBoat, stage:i, total:k });
         }
       }
 
@@ -255,7 +286,18 @@
           if(nb.v[0]*dv[0] + nb.v[1]*dv[1] <= 0) return;   // 背向该门：物理不可达，不入组
           (byDir[d] = byDir[d] || []).push(nb);
         });
-        Object.keys(byDir).forEach(function(d){ createField(d, byDir[d]); });
+        // v20260907c：cityGateDirs 已为该门开洞（必有正向邻点），但若该邻点被更贴合的它门抢走，
+        // 本门会“有门无路”（罗盘出不去）。兜底：把“仅正向于本门”的邻点补回本门，保证每门必有出野通路。
+        gdirs.forEach(function(d){
+          if(byDir[d] && byDir[d].length) return;
+          var dv = dirVec(d);
+          nbs.forEach(function(nb){
+            if(nb.v[0]*dv[0] + nb.v[1]*dv[1] > 0){   // 仅正向于本门
+              (byDir[d] = byDir[d] || []).push(nb);
+            }
+          });
+        });
+        Object.keys(byDir).forEach(function(d){ createFieldChain(d, byDir[d]); });
       } else {
         // 非城地点：把邻居分配到「空闲方位」(避开内部出口)，每空闲方位一块郊野；重要(城市)邻居优先占用空闲方位
         var occ = (pl.kind==='fort' || pl.kind==='pass') ? ['北','东'] : [];
@@ -272,7 +314,7 @@
           var best = free.reduce(function(b,d){ return angDiff(d, nb.v) < angDiff(b, nb.v) ? d : b; }, free[0]);
           groups[best].push(nb);
         });
-        free.forEach(function(d){ if(groups[d].length) createField(d, groups[d]); });
+        free.forEach(function(d){ if(groups[d].length) createFieldChain(d, groups[d]); });
       }
     });
     global.LF.PLACE_GATES = PLACE_GATES;   // 供 index.html 城门罗盘读取
@@ -314,8 +356,13 @@
       var pk = (P[pid] && P[pid].kind) || '';
       var isCityParent = KINDS[pk] && KINDS[pk].isCityType;
       if(isCityParent && LF.CITIES[pid] && LF.CITIES[pid].grid){
-        // 真·城市（有城格）：由 currentRoomExits 动态生成「出城」出口，入口只留哨兵回城
-        entryRoom.exits[opp(dir)] = '__gate__:' + pid + ':' + dir;
+        if(meta.stage!==0){
+          // 多段郊野链的中段/末段：本段「回城哨兵」由上一程远边出口接好（见第二遍），
+          // 此处不预设直接回城，否则玩家可“抄近道”越过整条链、违背「逐段穿越」设计。
+        } else {
+          // 真·城市（有城格、且为链首段）：由 currentRoomExits 动态生成「出城」出口，入口只留哨兵回城
+          entryRoom.exits[opp(dir)] = '__gate__:' + pid + ':' + dir;
+        }
       } else {
         var pr = ROOMS[pid];
         if(pr){
