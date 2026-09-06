@@ -8625,6 +8625,7 @@ window.onerror=function(msg,url,line,col,err){
     }
     G.CombatEngine.peekEnemyIntents();
     dqRenderCard();
+    log('〔行动顺序条：蓝=我方指令，红=敌方意图，数字为出手节奏（越小越快）〕','sys');
     setTimeout(function(){ dqRenderRound(); }, 400);
   }
 
@@ -8688,9 +8689,9 @@ window.onerror=function(msg,url,line,col,err){
         else { var a=u.artMap[o.actionId]||u.artMap['beng_quan']; label=(a&&a.name)||'普攻'; beat=(a&&a.beat)||null; }
       } else { label='待定'; }
       var cls='p'+(o?'':' wait')+(u===cursorUnit?' cur':'');
-      cells.push('<span class="dq-order-step '+cls+'"><span class="ob-name">'+(u.idx===0?'你':u.name)+'</span><span class="ob-act">'+(o?label:'⋯')+'</span>'+(beat?beatBadge(beat):'')+'</span>');
+      cells.push('<span class="dq-order-step '+cls+'"><span class="ob-name">'+(u.idx===0?'你':u.name)+'</span><span class="ob-act">'+(o?label:'待下令')+'</span>'+(beat?beatBadge(beat):'')+'</span>');
     });
-    cells.push('<span class="dq-order-div">我方先手</span>');
+    cells.push('<span class="dq-order-div">▼ 敌方行动</span>');
     // ── 敌方段：存活敌人按已预告意图（蓄力重招标红） ──
     eng.enemies.forEach(function(e){
       if(e.hp<=0) return;
@@ -8700,13 +8701,14 @@ window.onerror=function(msg,url,line,col,err){
       else if(act && typeof act==='object'){ label='「'+(act.name||'普攻')+'」'; beat=act.beat||null; heavy=(act.dmgMul||0)>=1.5; done=true; }
       else { label='待定'; }
       var cls='e'+(done?'':' wait')+(heavy?' heavy':'');
-      cells.push('<span class="dq-order-step '+cls+'"><span class="ob-name">'+e.name+'</span><span class="ob-act">'+(done?label:'⋯')+'</span>'+(beat?beatBadge(beat):'')+(heavy?'<span class="ob-beat slow">重</span>':'')+'</span>');
+      cells.push('<span class="dq-order-step '+cls+'"><span class="ob-name">'+e.name+'</span><span class="ob-act">'+(done?label:'待意图')+'</span>'+(beat?beatBadge(beat):'')+(heavy?'<span class="ob-beat slow">重</span>':'')+'</span>');
     });
     el.innerHTML=cells.join('<span class="dq-order-arrow">→</span>');
   }
   function beatBadge(b){
     var cls=b<=20?'fast':(b<=30?'mid':'slow');
-    return '<span class="ob-beat '+cls+'">'+b+'</span>';
+    var label=b<=20?'快':(b<=30?'中':'慢');
+    return '<span class="ob-beat '+cls+'">'+label+b+'</span>';
   }
 
   /** 开场：清空本回合指令、预告敌意、进入首名队员下令 */
