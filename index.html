@@ -2068,7 +2068,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260905n"></script>
+<script src="shared/config/constants.js?v=20260905o"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -4828,13 +4828,31 @@ window.onerror=function(msg,url,line,col,err){
         var _pn=((LF.CITIES||{})[_par]&&LF.CITIES[_par].name)?LF.CITIES[_par].name:((LF.PLACES||{})[_par]?LF.PLACES[_par].name:_par);
         var _g=_fp.gateDir||'东';
         var _back=({'北':'南','南':'北','东':'西','西':'东','东北':'西南','西南':'东北','西北':'东南','东南':'西北'})[_g]||'';
+        // v20260905o 修复：原「出野」提示用整片郊野的 gateDir+neighbors，但出野出口只存在于远野边特定格、
+        // 且每格仅通一个邻城（travel.js:310 cell.exits[dir]=tgt），导致提示「向北出野可至X」与罗盘（按当前格 exits）不一致。
+        // 改为：优先以「当前格实际出野出口」播报；当前格无出野出口时，引导向 gateDir 深入至远野边格再出野。
+        var _here=[];
+        if(room.exits){
+          for(var _d in room.exits){
+            var _t=room.exits[_d];
+            if(typeof _t==='string' && _t.indexOf('__gate__:')===0){
+              var _nid=_t.split(':')[1];
+              if(_nid && _nid!==_par){   // 排除回母城哨兵，仅列真正出野至邻城的出口
+                var _nn=((LF.CITIES||{})[_nid]&&LF.CITIES[_nid].name)?LF.CITIES[_nid].name:((LF.PLACES||{})[_nid]?LF.PLACES[_nid].name:_nid);
+                if(_nn) _here.push(_d+'至'+_nn);
+              }
+            }
+          }
+        }
         var _outs=((_fmeta.neighbors)||[]).map(function(n){
           return ((LF.CITIES||{})[n.nid]&&LF.CITIES[n.nid].name)?LF.CITIES[n.nid].name
                : ((LF.PLACES||{})[n.nid]?LF.PLACES[n.nid].name:n.nid);
         }).filter(Boolean);
         var _txt;
-        if(_outs.length){
-          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'（出野）可至 '+_outs.join(' / ')+'。';
+        if(_here.length){
+          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；此格向'+_here.join('、')+'（出野）。';
+        } else if(_outs.length){
+          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'深入至远野边格可出野（可至 '+_outs.join(' / ')+'）。';
         } else {
           _txt='「'+(_fp.name||'野')+'」：向'+_back+'归「'+_pn+'」；其余方向似无通途，宜折返。';
         }
