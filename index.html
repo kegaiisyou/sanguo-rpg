@@ -444,6 +444,20 @@
   .obj-done-title{margin-top:12px;font-size:12px;color:var(--ink-faint);}
   .obj-done{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;}
   .obj-d{font-size:12px;color:#7fce8f;border:1px solid rgba(127,206,143,.4);border-radius:14px;padding:3px 10px;}
+  .obj-group-title{font-family:"STKaiti","KaiTi",serif;font-size:14px;color:var(--seal);margin:10px 0 4px;font-weight:700;}
+  .obj-head{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+  .obj-tag{font-size:11px;padding:1px 8px;border-radius:10px;color:#fff;flex:none;}
+  .obj-tag.t-main{background:#b8860b;} .obj-tag.t-side{background:#3a7d44;} .obj-tag.t-trial{background:#3a5f8a;}
+  .obj.t-main{border-color:rgba(184,134,11,.45);} .obj.t-side{border-color:rgba(58,125,68,.45);} .obj.t-trial{border-color:rgba(58,95,138,.45);}
+  .obj-bar{height:5px;background:rgba(0,0,0,.12);border-radius:3px;margin-top:6px;overflow:hidden;}
+  .obj-bar span{display:block;height:100%;background:linear-gradient(90deg,#c9a15a,#e0c07a);border-radius:3px;}
+  .obj-reward{font-size:12px;color:#7fce8f;margin-top:4px;}
+  .obj-track{margin-top:7px;font-size:12px;padding:4px 14px;border:1px solid var(--btn-line);border-radius:14px;background:var(--btn);color:var(--seal);cursor:pointer;}
+  .obj-track.on{border-color:rgba(184,134,11,.6);color:#b8860b;background:rgba(184,134,11,.08);}
+  .quest-track{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);background:linear-gradient(90deg,rgba(184,134,11,.14),rgba(184,134,11,.05));border-bottom:1px solid rgba(184,134,11,.25);padding:4px 10px;}
+  .quest-track b{font-family:"STKaiti","KaiTi",serif;color:#b8860b;}
+  .quest-track .qt-prog{color:var(--ink-faint);}
+  .quest-track .qt-clear{margin-left:auto;background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:12px;padding:2px 6px;}
   .sect-list{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
   .sect{border:1px solid var(--btn-line);border-radius:12px;padding:12px 14px;background:var(--btn);}
   .sect.on{border-color:rgba(127,206,143,.5);}
@@ -2051,6 +2065,7 @@ window.onerror=function(msg,url,line,col,err){
 <div id="app">
   <header id="status"></header>
   <div class="loc-tab" id="loc-tab"></div>
+  <div id="quest-track" class="quest-track" style="display:none"></div>
   <main id="scene"><div id="narr"></div></main>
   <div id="onb-goal" class="onb-goal" hidden></div>
   <section id="actions"></section>
@@ -2728,6 +2743,7 @@ window.onerror=function(msg,url,line,col,err){
     log('【声望】'+(state.reputation-old>=0?'+':'')+(state.reputation-old)+'（当前 '+state.reputation+' · '+repTitle(state.reputation)+'）','good');
   }
   function renderStatus(){
+    checkQuestRewards();
     var sh=SHICHEN[state.time%12];
     var hh=String(Math.floor(state.clock/60)).padStart(2,'0');
     var mm=String(state.clock%60).padStart(2,'0');
@@ -2741,6 +2757,17 @@ window.onerror=function(msg,url,line,col,err){
       '<span class="st-time">'+sh+'</span>'+
       '<span class="dot">·</span>'+
       '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>';
+    var qtr=document.getElementById('quest-track');
+    if(qtr){
+      var tq=state.trackingQuest, to=null;
+      if(tq){ for(var _qi=0;_qi<LF.OBJECTIVES.length;_qi++){ if(LF.OBJECTIVES[_qi].id===tq){ to=LF.OBJECTIVES[_qi]; break; } } }
+      if(to){
+        var _qdone=to.check(state);
+        qtr.style.display='';
+        qtr.innerHTML='<span class="qt-ic">📜</span>追踪 · <b>'+to.title+'</b><span class="qt-prog">'+(_qdone?'已达成 ✓':to.prog(state))+'</span><button class="qt-clear" type="button">✕</button>';
+        var _qb=qtr.querySelector('.qt-clear'); if(_qb){ _qb.onclick=function(){ state.trackingQuest=null; renderStatus(); }; }
+      } else { qtr.style.display='none'; }
+    }
   }
   function renderLocTab(room){
     var loc=room.name||'';
@@ -2984,30 +3011,89 @@ window.onerror=function(msg,url,line,col,err){
   var QORDER={white:0,green:1,blue:2,purple:3,orange:4};
   function objBestEquip(s){ var b={q:0,name:''}; if(s.equipment){ Object.keys(s.equipment).forEach(function(k){ var it=s.equipment[k]; if(it&&it.quality!=null){ var q=QORDER[it.quality]; if(q!=null&&q>b.q){b.q=q;b.name=it.name;} } }); } return b; }
   function renderObjectives(){
-    if(!LF.OBJECTIVES) return '<h3>志 向</h3><p class="tip">数据未载入。</p>';
-    var arr=LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(state),prog:o.prog(state)}; });
-    var active=arr.filter(function(x){return !x.done;});
+    if(!LF.OBJECTIVES) return '<h3>任 务</h3><p class="tip">数据未载入。</p>';
+    var arr=LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(state)}; });
+    var groups=[ {key:'main',name:'主 线',ic:'⚔'}, {key:'side',name:'支 线',ic:'🏮'}, {key:'trial',name:'修 行',ic:'📖'} ];
+    var h='<h3>任 务 日 志</h3>'+
+      '<p class="tip">乱世无师，唯志可引。达成任务即记功领赏；点「追踪」可将目标钉在顶栏，随时查看进度。</p>';
+    var hasActive=false;
+    groups.forEach(function(g){
+      var items=arr.filter(function(x){ return !x.done && (x.o.type||'side')===g.key; });
+      if(!items.length) return;
+      hasActive=true;
+      h+='<div class="obj-group"><div class="obj-group-title">'+g.ic+' '+g.name+'</div><div class="obj-list">';
+      items.forEach(function(x){ h+=objCardHTML(x); });
+      h+='</div></div>';
+    });
+    if(!hasActive){ h+='<p class="tip" style="color:#7fce8f;">诸事已了，江湖路远，自去纵横罢。</p>'; }
     var done=arr.filter(function(x){return x.done;});
-    var h='<h3>志 向</h3>'+
-      '<p class="tip">乱世无师，唯志可引。下列为当前可追逐之目标，达成即自动勾销——循此而行，可自立于乱世，无需他人提点。</p>';
-    if(active.length){
-      h+='<div class="obj-list">';
-      active.forEach(function(x){
-        h+='<div class="obj"><div class="obj-t">◈ '+x.o.title+'</div>'+
-           '<div class="obj-h">'+x.o.hint+'</div>'+
-           '<div class="obj-p">进度 · '+x.prog+'</div></div>';
-      });
-      h+='</div>';
-    } else {
-      h+='<p class="tip" style="color:#7fce8f;">诸事已了，江湖路远，自去纵横罢。</p>';
-    }
     if(done.length){
-      h+='<div class="obj-done-title">已达成</div><div class="obj-done">';
+      h+='<div class="obj-done-title">已达成（'+done.length+'）</div><div class="obj-done">';
       done.forEach(function(x){ h+='<span class="obj-d">✓ '+x.o.title+'</span>'; });
       h+='</div>';
     }
     return h;
   }
+  function objCardHTML(x){
+    var o=x.o;
+    var tn={main:'主线',side:'支线',trial:'修行'}[o.type]||'任务';
+    var cls=o.type==='main'?'t-main':(o.type==='trial'?'t-trial':'t-side');
+    var r='<div class="obj '+cls+'">'+
+      '<div class="obj-head"><span class="obj-tag '+cls+'">'+tn+'</span><span class="obj-t">'+o.title+'</span></div>'+
+      '<div class="obj-h">'+o.hint+'</div>';
+    if(typeof o.ratio==='function'){
+      var rt=Math.max(0,Math.min(1,o.ratio(state)||0));
+      r+='<div class="obj-bar"><span style="width:'+Math.round(rt*100)+'%"></span></div>'+
+         '<div class="obj-p">'+o.prog(state)+'</div>';
+    } else {
+      r+='<div class="obj-p">进度 · '+o.prog(state)+'</div>';
+    }
+    if(o.reward){
+      var rw=[];
+      if(o.reward.xp) rw.push('修为+'+o.reward.xp);
+      if(o.reward.gold) rw.push('银两+'+o.reward.gold);
+      if(o.reward.rep) rw.push('声望+'+o.reward.rep);
+      r+='<div class="obj-reward">奖励 · '+rw.join(' · ')+'</div>';
+    }
+    var tracking=state.trackingQuest===o.id;
+    r+='<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+o.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button>'+
+       '</div>';
+    return r;
+  }
+  function questTitle(qid){
+    if(LF.OBJECTIVES){ for(var i=0;i<LF.OBJECTIVES.length;i++){ if(LF.OBJECTIVES[i].id===qid) return LF.OBJECTIVES[i].title; } }
+    return qid;
+  }
+  function bindQuestPanel(){
+    document.querySelectorAll('.obj-track[data-quest]').forEach(function(b){
+      b.onclick=function(){
+        var qid=b.getAttribute('data-quest');
+        if(state.trackingQuest===qid){ state.trackingQuest=null; toast('已取消追踪'); }
+        else { state.trackingQuest=qid; toast('已追踪「'+questTitle(qid)+'」，目标显示在顶栏'); }
+        renderStatus();
+        openModal('quest');
+      };
+    });
+  }
+  function checkQuestRewards(){
+    if(!state || !LF.OBJECTIVES) return;
+    state.questRewards=state.questRewards||{};
+    var got=[];
+    LF.OBJECTIVES.forEach(function(o){
+      if(state.questRewards[o.id]) return;
+      if(o.check(state)){
+        state.questRewards[o.id]=true;
+        if(o.reward){
+          if(o.reward.xp){ addXp(o.reward.xp); got.push('修为+'+o.reward.xp); }
+          if(o.reward.gold){ state.gold=(state.gold||0)+o.reward.gold; got.push('银两+'+o.reward.gold); }
+          if(o.reward.rep){ addReputation(o.reward.rep); got.push('声望+'+o.reward.rep); }
+        }
+        got.push('任务「'+o.title+'」');
+      }
+    });
+    if(got.length) log('【任务达成】'+got.join('，')+'。','good');
+  }
+
   function sectBonusText(b){
     if(!b) return '';
     var m={atk:'攻',def:'防',maxHp:'气血',maxMp:'内力',spd:'身法'};
@@ -7765,6 +7851,7 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='building'){ bindBuildingPanel(); }
     if(kind==='citybuild'){ bindCityBuildPanel(); }
     if(kind==='sect'){ bindSectPanel(); }
+    if(kind==='quest'){ bindQuestPanel(); }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
