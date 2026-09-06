@@ -169,6 +169,32 @@
     return { stroke:`rgb(${cr},${cg},${cb})`, width:1.2, dash:null, opacity:0.82 };
   }
 
+  // 确定性字符串散列（FNV-1a）：让同一路段的曲线形状在每次渲染/resize 间稳定一致
+  function hashStr(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+  // 道路曲线生成：沿两端点采点 + 垂直方向正弦摆动，再用 Catmull-Rom(alpha) 平滑，得到不像直尺的自然道路。
+  // 摆动包络 env=sin(πt) 在两端=0，故路径精确起于/止于城点，不会与城脱节；振幅随路段长度、用 seed 做确定性随机。
+  const _roadLine = d3.line().curve(d3.curveCatmullRom.alpha(0.5));
+  function roadPathD(pa, pb, seed) {
+    const dx = pb[0] - pa[0], dy = pb[1] - pa[1];
+    const len = Math.hypot(dx, dy);
+    if (len < 8) return `M${pa[0].toFixed(2)},${pa[1].toFixed(2)}L${pb[0].toFixed(2)},${pb[1].toFixed(2)}`;
+    const nx = -dy / len, ny = dx / len;          // 垂直单位向量
+    let s = (seed >>> 0) || 1;
+    const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    const N = 10;
+    const phase = rnd() * Math.PI * 2;
+    const amp = Math.min(len * 0.07, 24) * (0.5 + 0.5 * rnd());
+    const pts = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const env = Math.sin(t * Math.PI);          // 两端 0、中段 1
+      const off = env * (amp * Math.sin(Math.PI * t) + amp * 0.35 * Math.sin(2 * Math.PI * t + phase));
+      pts.push([pa[0] + dx * t + nx * off, pa[1] + dy * t + ny * off]);
+    }
+    return _roadLine(pts);
+  }
+
   // 州名标签位置由州几何「最深内点」计算（见下方 deepAnchor/stateLabelsDom），不再用硬编码坐标。
 
   // 加载郡边界：shared/data/map_regions.js 以 script 全局注入 LF.REGIONS。
@@ -454,33 +480,63 @@
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
 
-      // ── 道路层：数据驱动实时渲染（LF.ROADS.edges），剧情加地点/改路自动反映，无需定死图 ──
-      // 道路 path 随 root 一起 transform（仅缩放/平移，不每帧重算路径），百来条边零卡顿；
+      // ── 道路层：数据驱动实时渲染；优先取「行军系统真实连通」(LF.Travel.fields)，
+      // 保证地图上画的线 == 玩家真能走通（不再出现「画了线却走不通」的假连通）；
+      // 行军未就绪时退回抽象路网 LF.ROADS.edges（仅示意，可能不可达）。
+      // 道路 path 随 root 一起 transform（仅缩放/平移，不每帧重算），百来条边零卡顿；
       // 端点用 projection 投影，与底图严格对齐。pointer-events:none 不挡州/城点击。
       roadLayer = root.append('g').attr('id', 'sm-roads').attr('pointer-events', 'none');
       const RD = global.LF.ROADS;
-      if (RD && RD.edges && RD.nodes) {
-        const traveled = (opts.traveled && Array.isArray(opts.traveled)) ? new Set(opts.traveled) : null;
-        const ekey = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
-        RD.edges.forEach(e => {
-          const na = RD.nodes[e.a], nb = RD.nodes[e.b];
-          if (!na || !nb) return;
-          const pa = projection(na), pb = projection(nb);
-          if (!pa || !pb || !isFinite(pa[0]) || !isFinite(pb[0])) return;
-          const st = roadStyle(e);
-          const isTrav = traveled && traveled.has(ekey(e.a, e.b));
-          roadLayer.append('path')
-            .attr('d', `M${pa[0].toFixed(2)},${pa[1].toFixed(2)}L${pb[0].toFixed(2)},${pb[1].toFixed(2)}`)
-            .attr('fill', 'none')
-            .attr('stroke', st.stroke)
-            .attr('stroke-width', isTrav ? st.width + 0.6 : st.width)
-            .attr('stroke-linecap', 'round')
-            .attr('stroke-dasharray', st.dash || null)
-            .attr('vector-effect', 'non-scaling-stroke')
-            .attr('pointer-events', 'none')
-            .attr('opacity', isTrav ? 1 : st.opacity);
+      const T = global.LF.Travel;
+      let edgeList = null;
+      if (T && T.fields) {
+        const seen = {};
+        edgeList = [];
+        Object.keys(T.fields).forEach(fid => {
+          const f = T.fields[fid];
+          if (!f || !f.place || !f.neighbors) return;
+          f.neighbors.forEach(nb => {
+            if (!nb || !nb.nid) return;
+            const a = f.place, b = nb.nid;
+            const key = a < b ? a + '|' + b : b + '|' + a;
+            if (seen[key]) return;
+            seen[key] = 1;
+            edgeList.push({ a, b });
+          });
         });
       }
+      if (!edgeList || !edgeList.length) {
+        edgeList = (RD && RD.edges) ? RD.edges.map(e => ({ a: e.a, b: e.b })) : [];
+      }
+      // 边类型/风险查表（无序键），用于着色
+      const roadMeta = {};
+      if (RD && RD.edges) RD.edges.forEach(e => {
+        const key = (e.a < e.b ? e.a + '|' + e.b : e.b + '|' + e.a);
+        roadMeta[key] = e;
+      });
+      const traveled = (opts.traveled && Array.isArray(opts.traveled)) ? new Set(opts.traveled) : null;
+      edgeList.forEach(edge => {
+        if (!RD || !RD.nodes) return;
+        const a = edge.a, b = edge.b;
+        const na = RD.nodes[a], nb = RD.nodes[b];
+        if (!na || !nb) return;
+        const pa = projection(na), pb = projection(nb);
+        if (!pa || !pb || !isFinite(pa[0]) || !isFinite(pb[0])) return;
+        const key = a < b ? a + '|' + b : b + '|' + a;
+        const meta = roadMeta[key] || { type: 'road', risk: 0.3 };
+        const st = roadStyle(meta);
+        const isTrav = traveled && traveled.has(key);
+        roadLayer.append('path')
+          .attr('d', roadPathD(pa, pb, hashStr(key)))
+          .attr('fill', 'none')
+          .attr('stroke', st.stroke)
+          .attr('stroke-width', isTrav ? st.width + 0.6 : st.width)
+          .attr('stroke-linecap', 'round')
+          .attr('stroke-dasharray', st.dash || null)
+          .attr('vector-effect', 'non-scaling-stroke')
+          .attr('pointer-events', 'none')
+          .attr('opacity', isTrav ? 1 : st.opacity);
+      });
 
       _applyOverlay = function(mode) {
         overlayMode = mode || overlayMode;
@@ -937,11 +993,8 @@
           const pop = 1 - lod;
           provinceLayer.style('opacity', pop);
         }
-        // 道路层：任何缩放下都可见（用户要求按真实路网连城），远观淡、近观清，避免宏观视图杂乱
-        if (roadLayer) {
-          const rop = Math.min(0.92, 0.28 + 0.5 * k);
-          roadLayer.style('opacity', String(rop));
-        }
+        // 道路层与郡名同节奏淡入淡出（拉远随郡名一起消失，拉近清晰）
+        if (roadLayer) roadLayer.style('opacity', String(lod));
         if (commanderyLayer) {
           // 州内保持干净无内部线：郡边界线层始终隐藏（"郡"填色模式仍显示色块）
           commanderyLayer.style('display', 'none');
