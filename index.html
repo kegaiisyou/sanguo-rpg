@@ -717,6 +717,7 @@
   .map-tab-body.hidden{display:none;}
   .mc-cell.mf{background:rgba(58,74,52,.30);border-color:rgba(170,200,140,.28);}
   .mc-cell.mf-entry{border-color:#7fb0ff;box-shadow:0 0 0 2px rgba(127,176,255,.45);}
+  .mc-cell.mf-cityout{border-color:#e8b04a;box-shadow:0 0 0 2px rgba(232,176,74,.5);}
   ul.mf-exits{margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--ink-faint);line-height:1.6;}
   ul.mf-exits li{margin:1px 0;}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
@@ -1119,7 +1120,26 @@
     border-radius:5px;padding:0 4px;margin:2px 3px 0 0;}
   .dq-round{text-align:center;font-size:12px;color:var(--ink-faint);letter-spacing:3px;margin-top:6px;
     font-family:"STKaiti","KaiTi",serif;}
-  .dq-turn{font-family:"STKaiti","KaiTi",serif;font-size:14px;font-weight:700;color:var(--seal);
+    /* ── P0-1 行动顺序条（v20260906a）：我方指令序（蓝）→ 敌方意图序（红），beat 徽标 = 出手节奏 ── */
+  .dq-orderbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 8px;margin:0 0 6px;
+    background:rgba(60,40,30,.06);border:1px solid rgba(60,40,30,.14);border-radius:10px;}
+  .dq-order-step{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 8px;border-radius:7px;white-space:nowrap;
+    box-shadow:0 1px 3px rgba(60,40,30,.08);}
+  .dq-order-step.p{background:rgba(31,61,107,.1);color:#1f3d6b;border:1px solid rgba(31,61,107,.28);}
+  .dq-order-step.e{background:rgba(192,39,26,.08);color:#9a1f14;border:1px solid rgba(192,39,26,.28);}
+  .dq-order-step.wait{opacity:.5;font-style:italic;}
+  .dq-order-step.heavy{background:rgba(192,39,26,.18);border-color:rgba(192,39,26,.55);}
+  .dq-order-step.cur{outline:2px solid rgba(176,131,47,.7);outline-offset:1px;}
+  .dq-order-step .ob-name{font-family:"STKaiti","KaiTi",serif;font-weight:700;}
+  .dq-order-step .ob-act{opacity:.88;}
+  .dq-order-step .ob-beat{font-size:10px;font-weight:700;padding:0 4px;border-radius:6px;background:rgba(60,40,30,.14);}
+  .dq-order-step .ob-beat.fast{background:rgba(79,157,105,.22);color:#2e6b41;}
+  .dq-order-step .ob-beat.mid{background:rgba(211,154,43,.2);color:#8a6512;}
+  .dq-order-step .ob-beat.slow{background:rgba(192,39,26,.18);color:#9a1f14;}
+  .dq-order-arrow{color:var(--ink-faint);font-size:11px;flex:0 0 auto;}
+  .dq-order-div{font-size:10.5px;letter-spacing:2px;color:var(--ink-faint);background:rgba(60,40,30,.12);
+    border-radius:5px;padding:2px 7px;flex:0 0 auto;font-family:"STKaiti","KaiTi",serif;}
+.dq-turn{font-family:"STKaiti","KaiTi",serif;font-size:14px;font-weight:700;color:var(--seal);
     letter-spacing:2px;margin:2px 0 6px;text-align:center;}
   .cb-line{font-size:14px;line-height:1.55;color:var(--ink);font-family:"STKaiti","KaiTi",serif;}
   .cb-line::before{content:'· ';color:var(--ink-faint);}
@@ -4175,21 +4195,37 @@ window.onerror=function(msg,url,line,col,err){
     var geo=LF.Travel.fieldGeometry(size, gd);
     var CELL=62, W=size*CELL, H=size*CELL, fc=room.fc, fr=room.fr;
     var meta=((LF.Travel&&LF.Travel.fields)||{})[fid]||{};
+    var parentName=((LF.CITIES||{})[fp.parent]&&LF.CITIES[fp.parent].name)||((LF.PLACES||{})[fp.parent]&&LF.PLACES[fp.parent].name)||fp.parent||'';
+    // 远边入城点：扫描远边各格，找出 exits[gateDir] 指向城市的格子，标注为「入城点」
+    var cityOut={};
+    (function(){
+      var far=[];
+      if(gd==='东'||gd==='西'){ for(var r=0;r<size;r++) far.push([r,geo.farCol]); }
+      else { for(var c=0;c<size;c++) far.push([geo.farRow,c]); }
+      far.forEach(function(p){
+        var rm=G.ROOMS[LF.Travel.roomId(fid,p[0],p[1])]||{};
+        var ex=rm.exits&&rm.exits[gd];
+        if(typeof ex==='string' && ex.indexOf('__gate__:')===0){
+          var nid=ex.split(':')[1];
+          cityOut[p[0]+','+p[1]]=((LF.CITIES||{})[nid]&&LF.CITIES[nid].name)||((LF.PLACES||{})[nid]&&LF.PLACES[nid].name)||nid;
+        }
+      });
+    })();
     var cells='';
     for(var r=0;r<size;r++) for(var c=0;c<size;c++){
       var cid=LF.Travel.roomId(fid,r,c), cr=G.ROOMS[cid]||{};
       var isCur=(r===fr&&c===fc), isEntry=(r===geo.entryR&&c===geo.entryC);
-      var ic='·', nm='荒野';
-      if(isEntry){ ic='🚪'; nm='入口'; }
+      var cityNm=cityOut[r+','+c];
+      var ic='·', nm='荒野', cls='mc-cell mf'+(isCur?' mc-cur':'');
+      if(isEntry){ ic='🚪'; nm='入'+parentName; cls+=' mf-entry'; }
+      else if(cityNm){ ic='🏰'; nm='入'+cityNm; cls+=' mf-cityout'; }
       else if(cr.resources&&cr.resources.length){ ic='🌿'; nm=cr.resources[0].name; }
       else if(cr.monsters&&cr.monsters.length){ var m0=cr.monsters[0]; ic=(m0.aggr==='flee'?'🐗':(m0.aggr==='neutral'?'🐺':'⚔')); nm=m0.name; }
       else if(cr.fieldNpcs&&cr.fieldNpcs.length){ ic='💬'; nm=cr.fieldNpcs[0].name; }
-      var cls='mc-cell mf'+(isCur?' mc-cur':'')+(isEntry?' mf-entry':'');
       cells+='<div class="'+cls+'" data-x="'+c+'" data-y="'+r+'"'+
         ' style="left:'+(c*CELL)+'px;top:'+(r*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
         '<span class="mc-ic">'+ic+'</span><span class="mc-nm">'+nm+'</span></div>';
     }
-    var parentName=((LF.CITIES||{})[fp.parent]&&LF.CITIES[fp.parent].name)||((LF.PLACES||{})[fp.parent]&&LF.PLACES[fp.parent].name)||fp.parent||'';
     var exits='';
     (meta.neighbors||[]).forEach(function(nb){
       var nn=((LF.PLACES||{})[nb.nid]&&LF.PLACES[nb.nid].name)||nb.nid;
@@ -4197,8 +4233,8 @@ window.onerror=function(msg,url,line,col,err){
     });
     return '<h3>'+fp.name+' · 郊野图</h3>'+
       '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
-      '<p class="tip">你正行于〔'+parentName+'〕之'+(gd)+'郊野。当前位于〔'+(room.nmBand||'郊野')+'〕。'+
-        '金框为你的所在；🚪 入口可回『'+parentName+'』。</p>'+
+      '<p class="tip">你正行于〔'+parentName+'〕之'+(gd)+'郊野，当前位于〔'+(room.nmBand||'郊野')+'〕。'+
+        '金框为你的所在；🚪 入'+parentName+'（回城口）　🏰 入邻城（远边通城口）。</p>'+
       (exits?'<ul class="mf-exits">'+exits+'</ul>':'');
   }
   // 野外打开「地图」时的双页签：默认郊野图，可切换到山河志（十三州战略地图，v20260905n）
@@ -8571,6 +8607,7 @@ window.onerror=function(msg,url,line,col,err){
     function debuffs(u){ var s=''; (u.dots||[]).forEach(function(d){ s+='<span class="dq-debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+'</span>'; }); return s; }
 
     var html='<div class="dq-field">';
+    html+='<div id="dq-orderbar" class="dq-orderbar" aria-label="行动顺序"></div>';
     html+='<div class="dq-side dq-enemies">';
     st.enemies.forEach(function(e){
       if(e.hp<=0){ html+='<div class="dq-unit dq-enemy dead"><div class="dq-uname">'+enemyLabels[e.idx]+'</div><div class="dq-dead">已败</div></div>'; return; }
@@ -8590,6 +8627,52 @@ window.onerror=function(msg,url,line,col,err){
     html+='<div class="dq-round">—— 第 '+st.round+' 回合 ——</div>';
     html+='</div>';
     dqCardEl.innerHTML=html;
+    dqRenderOrderBar();
+  }
+
+  /** P0-1 行动顺序条：渲染本回合行动序列（我方指令序→敌方意图序），beat 徽标 = 出手节奏 */
+  function dqRenderOrderBar(){
+    var el=document.getElementById('dq-orderbar');
+    if(!el) return;
+    var eng=G.CombatEngine.state;
+    if(!eng) return;
+    var cells=[];
+    // ── 我方段：存活队员按 dqOrders 指令序（未下令显示待定，当前光标单位加亮框） ──
+    var cursorUnit=null;
+    if(dqCursor!=null){
+      var liveUnits=eng.playerUnits.filter(function(u){ return u.hp>0; });
+      cursorUnit=liveUnits[dqCursor];
+    }
+    eng.playerUnits.forEach(function(u){
+      if(u.hp<=0) return;
+      var o=null;
+      for(var i=0;i<dqOrders.length;i++){ if(dqOrders[i].unit===u){ o=dqOrders[i]; break; } }
+      var label, beat=null;
+      if(o){
+        if(o.actionId==='defend'){ label='防御'; beat=30; }
+        else if(o.actionId==='item'){ label='用道具'; beat=25; }
+        else { var a=u.artMap[o.actionId]||u.artMap['beng_quan']; label=(a&&a.name)||'普攻'; beat=(a&&a.beat)||null; }
+      } else { label='待定'; }
+      var cls='p'+(o?'':' wait')+(u===cursorUnit?' cur':'');
+      cells.push('<span class="dq-order-step '+cls+'"><span class="ob-name">'+(u.idx===0?'你':u.name)+'</span><span class="ob-act">'+(o?label:'⋯')+'</span>'+(beat?beatBadge(beat):'')+'</span>');
+    });
+    cells.push('<span class="dq-order-div">我方先手</span>');
+    // ── 敌方段：存活敌人按已预告意图（蓄力重招标红） ──
+    eng.enemies.forEach(function(e){
+      if(e.hp<=0) return;
+      var act=e.intent;
+      var label, beat=null, heavy=false, done=false;
+      if(act==='defend'){ label='防御'; beat=30; done=true; }
+      else if(act && typeof act==='object'){ label='「'+(act.name||'普攻')+'」'; beat=act.beat||null; heavy=(act.dmgMul||0)>=1.5; done=true; }
+      else { label='待定'; }
+      var cls='e'+(done?'':' wait')+(heavy?' heavy':'');
+      cells.push('<span class="dq-order-step '+cls+'"><span class="ob-name">'+e.name+'</span><span class="ob-act">'+(done?label:'⋯')+'</span>'+(beat?beatBadge(beat):'')+(heavy?'<span class="ob-beat slow">重</span>':'')+'</span>');
+    });
+    el.innerHTML=cells.join('<span class="dq-order-arrow">→</span>');
+  }
+  function beatBadge(b){
+    var cls=b<=20?'fast':(b<=30?'mid':'slow');
+    return '<span class="ob-beat '+cls+'">'+b+'</span>';
   }
 
   /** 开场：清空本回合指令、预告敌意、进入首名队员下令 */
@@ -8732,7 +8815,7 @@ window.onerror=function(msg,url,line,col,err){
   }
 
   /** 推进到下一名队员 */
-  function dqAdvance(){ dqCursor++; dqNextCommand(); }
+  function dqAdvance(){ dqCursor++; dqRenderOrderBar(); dqNextCommand(); }
 
   /** 全员下令完毕：结算 玩家阶段 → 敌方阶段 → 下一回合 */
   function dqResolveRound(){
