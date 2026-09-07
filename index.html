@@ -3950,7 +3950,7 @@ window.onerror=function(msg,url,line,col,err){
     if(t==='mine'){ out.push({id:'mine_dig', label:'开凿矿料', icon:'⛏', tip:'挥镐采掘，可得石料'}); }
     if(t==='kitchen'){ out.push({id:'kitchen_cook', label:'生火造饭', icon:'🍚', tip:'于伙房埋锅造饭，稍歇精神'}); }
     if(t==='command'){ out.push({id:'command_talk', label:'中军议事', icon:'🚩', tip:'入帐议事，览军情城务'}); }
-    if(t==='warehouse'){ out.push({id:'warehouse_view', label:'清点仓库', icon:'📦', tip:'清点库中存粮木料'}); }
+    if(t==='warehouse'){ out.push({id:'warehouse_view', label:'进入仓库', icon:'📦', tip:'入库存取物资，存粮木料皆在此'}); }
     if(t==='drill'){ out.push({id:'drill_train', label:'操练武艺', icon:'🥋', tip:'于演武场挥汗操练，拳脚渐稳'}); }
     if(t==='sentry'){ out.push({id:'sentry_look', label:'瞭望岗哨', icon:'🏮', tip:'登岗瞭望，查看来往行踪'}); }
     if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
@@ -5495,8 +5495,7 @@ window.onerror=function(msg,url,line,col,err){
         break;
       }
       case 'warehouse_view': {
-        var _wlist=packList();
-        log('仓库清点：'+(LF.CITIES[state.room]||{}).name+'存粮尚可，行囊物资——'+( _wlist.length? _wlist.map(function(it){return it.name+'×'+it.count;}).join('、') : '空空如也' )+'。','sys');
+        openModal('storage',{cid:state.room});
         break;
       }
       case 'drill_train': {
@@ -5828,6 +5827,124 @@ window.onerror=function(msg,url,line,col,err){
     if(state.dead){ die(); return; }
     if(state.defeated && kind!=='ground'){ toast('你重伤未愈，动弹不得，只能席地打盹。'); kind='ground'; }
     openModal('rest', {kind:kind});
+  }
+  // ══ 仓库系统（v20260907k）：城中仓库 30 格，可存可取；苦役营初始存有木料石料 ══
+  var storageCid=null, storageSel=null;   // storageSel={src:'store'|'pack', defId, name, max}
+  function ensureStorage(cid){
+    ensureCityState(cid);
+    state.flags.storage=state.flags.storage||{};
+    var st=state.flags.storage[cid];
+    if(!st){
+      st=state.flags.storage[cid]={slots:30, items:[]};
+      var m=LF.ITEMS.makeItem('mucai',200); if(m) st.items.push(m);
+      var st2=LF.ITEMS.makeItem('shitiao',100); if(st2) st.items.push(st2);
+    }
+    return st;
+  }
+  function storageItemCount(st, defId){
+    var n=0; for(var i=0;i<st.items.length;i++){ var c=st.items[i]; if(c && itemKey(c)===defId) n+=c.count||0; }
+    return n;
+  }
+  function storageAdd(cid, itemOrDefId, count){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var it=(typeof itemOrDefId==='string')? LF.ITEMS.makeItem(itemOrDefId, count||1) : itemOrDefId;
+    if(!it) return false;
+    if(packIsStackable(it)){
+      var k=itemKey(it);
+      for(var i=0;i<st.items.length;i++){ var c=st.items[i]; if(c && itemKey(c)===k && c.cat!=='装备'){ c.count=(c.count||1)+(it.count||1); return true; } }
+    }
+    var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
+    if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
+    if(e<0){ toast('仓库已满，存不下了。'); return false; }
+    st.items[e]=it; return true;
+  }
+  function storagePut(cid, defId, n){
+    var it=packFind(defId);
+    if(!it || (it.count||0)<n){ toast('行囊此物不足。'); return; }
+    if(!packIsStackable(it)){ toast('装备无法存入仓库。'); return; }
+    if(!storageAdd(cid, defId, n)) return;
+    packConsume(defId, n);
+    save(state); afterPackChange();
+    log('你将'+(LF.ITEMS[defId]?LF.ITEMS[defId].name:defId)+'×'+n+'存入仓库。','sys');
+    if(currentModalKind==='storage') openModal('storage',{cid:cid});
+  }
+  function storageTake(cid, defId, n){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    if(storageItemCount(st, defId)<n){ toast('仓库此物不足。'); return; }
+    if(!packAdd(defId, n)){ toast('行囊已满，无法取出。'); return; }
+    var rem=n;
+    for(var i=0;i<st.items.length && rem>0;i++){ var c=st.items[i]; if(c && itemKey(c)===defId){ var take=Math.min(rem, c.count||0); c.count-=take; rem-=take; if(c.count<=0) st.items[i]=null; } }
+    save(state); afterPackChange();
+    log('你从仓库取出'+(LF.ITEMS[defId]?LF.ITEMS[defId].name:defId)+'×'+(n-rem)+'。','sys');
+    if(currentModalKind==='storage') openModal('storage',{cid:cid});
+  }
+  function renderStoragePanel(cid){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var cnm=(LF.CITIES[cid]||{}).name||'此城';
+    var used=0; for(var i=0;i<st.items.length;i++) if(st.items[i]) used++;
+    var cbase='display:flex;align-items:center;justify-content:center;position:relative;width:46px;height:46px;margin:2px;border-radius:6px;font-size:12px;color:#3a3226;cursor:pointer;';
+    var cells='';
+    for(var i=0;i<st.slots;i++){
+      var it=st.items[i];
+      if(!it){ cells+='<div style="'+cbase+'background:rgba(120,100,70,.08);border:1px dashed rgba(120,100,70,.25);"></div>'; }
+      else {
+        var sel=(storageSel && storageSel.src==='store' && storageSel.defId===itemKey(it));
+        var cnt=(it.count>1)?'<span style="position:absolute;right:2px;bottom:1px;font-size:10px;font-weight:700;color:#6b4a24;">'+it.count+'</span>':'';
+        cells+='<div data-st-sel="store:'+i+'" style="'+cbase+'background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(sel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(sel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';" title="'+it.name+'">'+itemIconHTML(it,12)+cnt+'</div>';
+      }
+    }
+    var packHtml='';
+    for(var i=0;i<state.pack.length;i++){ var pit=state.pack[i]; if(!pit||!packIsStackable(pit)) continue;
+      var pk=itemKey(pit); var psel=(storageSel && storageSel.src==='pack' && storageSel.defId===pk);
+      packHtml+='<button data-st-sel="pack:'+pk+'" style="display:inline-flex;align-items:center;gap:4px;margin:2px;padding:6px 10px;border-radius:8px;font-size:13px;color:#3a3226;cursor:pointer;background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(psel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(psel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';">'+itemIconHTML(pit,12)+' '+pit.name+(pit.count>1?' ×'+pit.count:'')+'</button>';
+    }
+    if(!packHtml) packHtml='<div class="tip" style="margin:6px 0;">行囊空空，无物可存。</div>';
+    var selHtml='<div class="tip" style="margin:8px 0 4px;color:#6b4a24;">点选上方格子取物，或点行囊物品存入。</div>';
+    if(storageSel && storageSel.defId){
+      var isStore=storageSel.src==='store';
+      var act=isStore?'取出':'存入';
+      var qs=[1,5,10,storageSel.max];
+      var btns='';
+      for(var qi=0;qi<qs.length;qi++){
+        var qv=qs[qi]; if(qi===3 && qv<=10) continue;
+        var lb=(qi===3)?'全部':'×'+qv;
+        btns+='<button data-st-act="'+(isStore?'take':'put')+'" data-st-n="'+qv+'" style="margin:3px;padding:8px 14px;border-radius:8px;font-size:14px;color:#f7f0e2;background:linear-gradient(180deg,#8a6a3c,#6b4a24);border:1px solid #5a3d1e;cursor:pointer;">'+lb+'</button>';
+      }
+      selHtml='<div style="margin:8px 0 4px;">已选：'+storageSel.name+'（'+(isStore?storageItemCount(state.flags.storage[cid], storageSel.defId):((packFind(storageSel.defId)||{}).count||0))+'）　'+act+'：'+btns+'</div>';
+    }
+    return '<h3 style="text-align:center;margin:0 0 6px;">仓 库 · '+cnm+'</h3>'
+      + '<p class="tip" style="margin:0 0 6px;">容量 '+st.slots+' 格 · 已用 '+used+' 格。'+(cid==='kuyilao'?'初置木料石料，供营建之需。':'')+'</p>'
+      + '<div style="display:flex;flex-wrap:wrap;justify-content:center;">'+cells+'</div>'
+      + selHtml
+      + '<div style="margin:10px 0 4px;font-size:13px;font-weight:700;color:#6b4a24;">行囊</div>'
+      + '<div style="display:flex;flex-wrap:wrap;justify-content:center;">'+packHtml+'</div>'
+      + '<button class="sheet-leave" id="m-st-leave">收 工</button>';
+  }
+  function bindStoragePanel(){
+    var card=document.getElementById('modal-card')||$card;
+    card.querySelectorAll('[data-st-sel]').forEach(function(el){
+      el.onclick=function(){
+        var sp=el.getAttribute('data-st-sel').split(':');
+        var src=sp[0], id=sp[1];
+        if(src==='store'){ var st=state.flags.storage[storageCid]; var it=st?st.items[parseInt(id,10)]:null; if(it){ storageSel={src:'store',defId:itemKey(it),name:it.name,max:it.count||0}; } }
+        else { var pit=packFind(id); if(pit){ storageSel={src:'pack',defId:id,name:pit.name,max:pit.count||0}; } }
+        if(storageCid!=null) openModal('storage',{cid:storageCid});
+      };
+    });
+    card.querySelectorAll('[data-st-act]').forEach(function(el){
+      el.onclick=function(){
+        if(!storageSel || storageCid==null) return;
+        var act=el.getAttribute('data-st-act');
+        var n=parseInt(el.getAttribute('data-st-n'),10)||1;
+        var st=state.flags.storage[storageCid];
+        var max=(act==='take')? storageItemCount(st, storageSel.defId) : ((packFind(storageSel.defId)||{}).count||0);
+        n=Math.min(n, max);
+        if(n<=0){ toast('无物可取。'); return; }
+        if(act==='take') storageTake(storageCid, storageSel.defId, n);
+        else storagePut(storageCid, storageSel.defId, n);
+      };
+    });
+    var lv=document.getElementById('m-st-leave'); if(lv) lv.onclick=closeModal;
   }
   function renderRestPanel(){
     var kind = (restState.kind||'ground');
@@ -7958,6 +8075,7 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='build'){
       if(opts && opts.site) buildState.site = opts.site;
       h=renderBuildPanel();
+    } else if(kind==='storage'){ storageCid=(opts&&opts.cid)?opts.cid:state.room; h=renderStoragePanel(storageCid);
     } else if(kind==='rest'){
       if(opts && opts.kind) restState.kind = opts.kind;
       h=renderRestPanel();
@@ -7992,13 +8110,14 @@ window.onerror=function(msg,url,line,col,err){
       h=renderSectPanel();
     }
     $card.innerHTML=h;
-    $card.classList.toggle('pack-card', kind==='pack' || kind==='shop');
+    $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage');
     if(kind==='create') bindCreate();
     if(kind==='char') bindAttrAlloc();
     if(kind==='pack'){ bindPackInteractions(); }
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ Shop.bindShopPanel(); }
     if(kind==='build'){ bindBuildPanel(); }
+    if(kind==='storage'){ bindStoragePanel(); }
     if(kind==='rest'){ bindRestPanel(); }
     if(kind==='forge'){ bindForgePanel(); }
     if(kind==='building'){ bindBuildingPanel(); }
