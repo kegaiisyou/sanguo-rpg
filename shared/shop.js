@@ -591,6 +591,7 @@
           var si = parseInt(el.getAttribute('data-store'), 10);
           var stt = (typeof ctx.storageGet === 'function') ? ctx.storageGet(shopStoreCid) : null;
           if (!stt || !stt.items[si]) { e.preventDefault(); return; }
+          e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', JSON.stringify({ kind: 'store', payload: si }));
         };
       });
@@ -628,11 +629,15 @@
           var loc = el.getAttribute('data-loc'), bp = el.getAttribute('data-buyp');
           var payload = loc != null ? locIdx(loc) : parseInt(bp, 10);
           if (loc != null && !S().pack[payload]) { e.preventDefault(); return; }
+          e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', JSON.stringify({ kind: (loc != null ? 'sell' : 'buyp'), payload: payload }));
         };
       });
       // 原生 HTML5 拖拽落点（桌面）：drop 后立即 renderTrade 即时反馈（否则要等下次结算/买卖才刷新）
       var left = card.querySelector('.shop-left'), right = card.querySelector('.shop-right');
+      // 面板级兜底：拖到标题/栏间距/空白处不显示禁止光标；drop 到非格子区域=无操作（物品原位）
+      card.ondragover = function (e) { e.preventDefault(); };
+      card.ondrop = function (e) { e.preventDefault(); };
       left.ondragover = function (e) { e.preventDefault(); };
       left.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain'));
         if (shopMode === 'storage') {
