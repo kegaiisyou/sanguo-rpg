@@ -78,6 +78,18 @@
       if (typeof save === 'function') save(S());   // 行囊顺序持久化（下次开包/交易保持）
       return true;
     }
+    // 行囊内拖拽落点：同物可堆叠=合并数量；否则=换位（拖到同物堆上直接堆叠）
+    function packMoveOrMerge(fromIdx, toIdx) {
+      if (fromIdx === toIdx || toIdx < 0 || toIdx >= S().pack.length) return false;
+      var pk = S().pack; var src = pk[fromIdx], dst = pk[toIdx];
+      if (src && dst && packIsStackable(src) && packIsStackable(dst) && (src.defId || src.id) === (dst.defId || dst.id) && dst.cat !== '装备') {
+        dst.count = (dst.count || 1) + (src.count || 1);
+        pk[fromIdx] = null; flashPack[toIdx] = true;
+        if (typeof save === 'function') save(S());
+        return true;
+      }
+      return swapPackSlots(fromIdx, toIdx);
+    }
     // 一键把行囊中所有货郎肯收的物挂上寄售
     function sellAllPack() {
       var shop = LF.SHOPS[shopState]; if (!shop) return;
@@ -634,7 +646,7 @@
       right.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain'));
         if (shopMode === 'storage') {
           if (d.kind === 'store') { var t2 = e.target.closest && e.target.closest('.shop-right [data-loc]'); var toIdx2 = t2 ? locIdx(t2.getAttribute('data-loc')) : -1; if (typeof ctx.storageTake === 'function') ctx.storageTake(shopStoreCid, d.payload, 1, toIdx2); }
-          else if (d.kind === 'sell') { var t3 = e.target.closest && e.target.closest('.shop-right [data-loc]'); var toIdx3 = t3 ? locIdx(t3.getAttribute('data-loc')) : -1; if (toIdx3 >= 0 && toIdx3 !== d.payload) reorderPackAtEl(t3, d.payload); else { var fi2 = firstEmptyPackIdx(); if (fi2 >= 0 && fi2 !== d.payload) swapPackSlots(d.payload, fi2); } }
+          else if (d.kind === 'sell') { var t3 = e.target.closest && e.target.closest('.shop-right [data-loc]'); var toIdx3 = t3 ? locIdx(t3.getAttribute('data-loc')) : -1; if (toIdx3 >= 0 && toIdx3 !== d.payload) packMoveOrMerge(d.payload, toIdx3); else { var fi2 = firstEmptyPackIdx(); if (fi2 >= 0 && fi2 !== d.payload) swapPackSlots(d.payload, fi2); } }
         } else if (d.kind === 'sell') { var t2 = e.target.closest && e.target.closest('.shop-right [data-cell],[data-loc]'); if (t2) { var c2 = t2.getAttribute('data-cell') != null ? parseInt(t2.getAttribute('data-cell'), 10) : locIdx(t2.getAttribute('data-loc')); var bpAt = buyPendingAtCell(c2); if (bpAt >= 0) placeBuyPending(shopBuyPending[bpAt], d.payload); else reorderPackAtEl(t2, d.payload); } else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); } }
         else if (d.kind === 'buy') addBuyPending(d.payload, 1);
         else if (d.kind === 'sellp') { var _sd = sellIdxByUid(parseInt(d.payload, 10)); if (_sd >= 0) removeSellPending(_sd); }
@@ -646,6 +658,7 @@
       function shopDragInfo(el) {
         var loc = el.getAttribute('data-loc'), bp = el.getAttribute('data-buyp'), sid = el.getAttribute('data-shop');
         if (loc != null) { var idx = locIdx(loc); return S().pack[idx] ? { kind: 'sell', payload: idx } : null; }   // 行囊空格不可拖
+        if (el.hasAttribute('data-store')) { var si2 = parseInt(el.getAttribute('data-store'), 10); var stt = (typeof ctx.storageGet === 'function') ? ctx.storageGet(shopStoreCid) : null; return (stt && stt.items[si2]) ? { kind: 'store', payload: si2 } : null; }
         if (bp != null) return { kind: 'buyp', payload: parseInt(bp, 10) };
         if (sid != null) { if (el.classList.contains('shop-bad')) return null; return { kind: 'buy', payload: sid }; }
         return { kind: 'sellp', payload: parseInt(el.getAttribute('data-selluid'), 10) };
@@ -661,7 +674,7 @@
         pending = null;
         var _sf = document.getElementById('shop-float'); if (_sf) _sf.style.display = 'none';
       }
-      card.querySelectorAll('.shop-right [data-loc],.shop-right [data-buyp],[data-shop],[data-sellp]').forEach(function (el) {
+      card.querySelectorAll('.shop-right [data-loc],.shop-right [data-buyp],[data-shop],[data-sellp],[data-store]').forEach(function (el) {
         el.onpointerdown = function (e) {
           if (e.pointerType === 'mouse') return;   // 桌面走 HTML5 拖拽
           if (e.target.closest('.pcell-x')) return;
@@ -669,7 +682,7 @@
           armDrag(di, el, e);
           // 长按 200ms 进入拖拽（移动端惯例）：按住不动才拖，轻滑则放行滚动（pan-y），彻底解决"上下拖动变成滚动"
           clearTimeout(longTimer);
-          longTimer = setTimeout(function () { if (pending) beginDrag(pending.e0); }, 200);
+          longTimer = setTimeout(function () { if (pending) beginDrag(pending.e0); }, 250);
         };
       });
       card.onpointermove = function (e) {
@@ -684,11 +697,12 @@
         if (dragging.kind === 'sell') nm = (S().pack[dragging.payload] || {}).name || '';
         else if (dragging.kind === 'buyp') nm = '待付·' + ((LF.ITEMS[shopBuyPending[dragging.payload] && shopBuyPending[dragging.payload].id] || {}).name || '');
         else if (dragging.kind === 'sellp') { var _spi = sellIdxByUid(dragging.payload); nm = '寄售·' + ((LF.ITEMS[shopSellPending[_spi] && shopSellPending[_spi].defId] || {}).name || ''); }
+        else if (dragging.kind === 'store') { var _sti = (typeof ctx.storageGet === 'function') ? ctx.storageGet(shopStoreCid) : null; nm = (_sti && _sti.items[dragging.payload] || {}).name || ''; }
         else nm = (LF.ITEMS[dragging.payload] || {}).name || '';
         ghost.textContent = nm; ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px';
         // 拖拽目标格实时高亮，提供落点反馈
         var under = document.elementFromPoint(e.clientX, e.clientY);
-        var cell = (under && under.closest) ? under.closest('.shop-right [data-cell],[data-loc], [data-shop], [data-buyp], [data-selluid]') : null;
+        var cell = cellAt(e.clientX, e.clientY, '.shop-right [data-cell],[data-loc], [data-shop], [data-buyp], [data-selluid], [data-store]') || ((under && under.closest) ? under.closest('.shop-right [data-cell],[data-loc], [data-shop], [data-buyp], [data-selluid], [data-store]') : null);
         if (dropEl && dropEl !== cell) { dropEl.classList.remove('shop-drop'); dropEl = null; }
         if (cell && cell !== dropEl) { dropEl = cell; cell.classList.add('shop-drop'); }
       };
@@ -698,24 +712,33 @@
         if (srcEl) { try { srcEl.style.touchAction = ''; } catch (_) {} }   // 还原滚动手势（恢复 pan-y）
         if (!d || !moved || cancelled) return;
         var L = card.querySelector('.shop-left'), R = card.querySelector('.shop-right');
-        // 右栏=我的行囊，左栏=货郎。拖到**同栏**=整理换位；拖到**对侧**=买卖。
-        if (inRect(e, R)) {
+        var isSt = (shopMode === 'storage');
+        // 落点判定：先几何命中目标栏格子（手指滑出面板边缘/格子滚动裁剪时仍可靠），再回退 inRect
+        var inL = inRect(e, L), inR = inRect(e, R);
+        if (cellAt(e.clientX, e.clientY, '.shop-right [data-cell],[data-loc],[data-buyp]')) inR = true;
+        if (cellAt(e.clientX, e.clientY, '[data-store],[data-shop],[data-sellp]')) inL = true;
+        // 右栏=我的行囊，左栏=仓库/货郎。拖到**同栏**=整理（同物堆叠/换位）；拖到**对侧**=存取/买卖。
+        if (inR) {
           if (d.kind === 'sell') {
-            var tR = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+            var tR = cellAt(e.clientX, e.clientY, '.shop-right [data-cell],[data-loc]') || (document.elementFromPoint(e.clientX, e.clientY) || e.target);
             var tRc = tR && tR.closest ? tR.closest('.shop-right [data-cell],[data-loc]') : null;
             if (tRc) {
               var cR = tRc.getAttribute('data-cell') != null ? parseInt(tRc.getAttribute('data-cell'), 10) : locIdx(tRc.getAttribute('data-loc'));
-              var bpR = buyPendingAtCell(cR);
-              if (bpR >= 0) placeBuyPending(shopBuyPending[bpR], d.payload);   // 真物拖到待付格：待付让位到真物源格
-              else reorderPackAtEl(tRc, d.payload);                              // 空格/真物格：换位（持久化）
+              if (isSt) { packMoveOrMerge(d.payload, cR); }   // 仓库模式行囊内：同物堆叠/换位
+              else { var bpR = buyPendingAtCell(cR); if (bpR >= 0) placeBuyPending(shopBuyPending[bpR], d.payload); else reorderPackAtEl(tRc, d.payload); }
             } else { var fi = firstEmptyPackIdx(); if (fi >= 0 && fi !== d.payload) swapPackSlots(d.payload, fi); }
           }
+          else if (d.kind === 'store') { var tRs = cellAt(e.clientX, e.clientY, '.shop-right [data-loc]') || (document.elementFromPoint(e.clientX, e.clientY) || e.target); var tRcs = tRs && tRs.closest ? tRs.closest('.shop-right [data-loc]') : null; var toR = tRcs ? locIdx(tRcs.getAttribute('data-loc')) : -1; if (typeof ctx.storageTake === 'function') ctx.storageTake(shopStoreCid, d.payload, 1, toR); }   // 仓库格→行囊=取出（落点合并/换位）
           else if (d.kind === 'buy') addBuyPending(d.payload, 1);          // 货郎货→行囊=购买
           else if (d.kind === 'sellp') { var _sd2 = sellIdxByUid(d.payload); if (_sd2 >= 0) removeSellPending(_sd2); }   // 待售→行囊=取回/取消
           else if (d.kind === 'buyp') { var tRp = document.elementFromPoint(e.clientX, e.clientY) || e.target; var tR2 = tRp && tRp.closest ? tRp.closest('.shop-right [data-cell],[data-loc]') : null; if (tR2) { var cRp = tR2.getAttribute('data-cell') != null ? parseInt(tR2.getAttribute('data-cell'), 10) : locIdx(tR2.getAttribute('data-loc')); placeBuyPending(shopBuyPending[d.payload], cRp); } }   // 待付拖到右栏任意格：自由摆放（空格/真物格/其他待付格）
-        } else if (inRect(e, L)) {
+        } else if (inL) {
           if (d.kind === 'buy') { var tL = document.elementFromPoint(e.clientX, e.clientY) || e.target; dropLeft('g:' + d.payload, tL); }   // 真货在左栏内换位/到末尾
-          else if (d.kind === 'sell') addSellPending(d.payload, 1);        // 行囊物→货郎=寄售
+          else if (d.kind === 'sell') {
+            if (isSt) { var tL2 = cellAt(e.clientX, e.clientY, '[data-store]') || (document.elementFromPoint(e.clientX, e.clientY) || e.target); var tLc2 = tL2 && tL2.closest ? tL2.closest('[data-store]') : null; var toL = tLc2 ? parseInt(tLc2.getAttribute('data-store'), 10) : -1; if (typeof ctx.storagePut === 'function') ctx.storagePut(d.payload, 1, shopStoreCid, toL); }   // 仓库模式行囊→仓库=存入（落点放置/堆叠/交换）
+            else addSellPending(d.payload, 1);        // 行囊物→货郎=寄售
+          }
+          else if (d.kind === 'store') { var tLs = cellAt(e.clientX, e.clientY, '[data-store]') || (document.elementFromPoint(e.clientX, e.clientY) || e.target); var tLcs = tLs && tLs.closest ? tLs.closest('[data-store]') : null; var toLs = tLcs ? parseInt(tLcs.getAttribute('data-store'), 10) : -1; if (toLs >= 0 && toLs !== d.payload && typeof ctx.storageSwap === 'function') ctx.storageSwap(shopStoreCid, d.payload, toLs); }   // 仓库内：同物堆叠/换位
           else if (d.kind === 'buyp') removeBuyPending(d.payload);         // 待付→货郎=取消购买
           else if (d.kind === 'sellp') { var tLp = document.elementFromPoint(e.clientX, e.clientY) || e.target; dropLeft('s:' + d.payload, tLp); }   // 待售在左栏内：拖到同物=堆叠，拖到其他格=换位，拖空白=末尾
         }
@@ -740,6 +763,16 @@
         if (e.target.closest('.shop-good') || e.target.closest('.packcell') || e.target.closest('#shop-float')) return;
         var f = document.getElementById('shop-float'); if (f) f.style.display = 'none';
       };
+    }
+    // 触屏拖拽命中判定（触屏 pointer 拖拽用）
+    function cellAt(x, y, sel) {
+      var best = null;
+      document.querySelectorAll(sel).forEach(function (c) {
+        if (best) return;
+        var r = c.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) best = c;
+      });
+      return best;
     }
     // 货郎拖拽命中判定（触屏 pointer 拖拽用）
     function inRect(e, el) { if (!el) return false; var r = el.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; }

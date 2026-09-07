@@ -5889,16 +5889,20 @@ window.onerror=function(msg,url,line,col,err){
     var it=state.pack[packIdx]; if(!it || (it.count||0)<n){ toast('行囊此物不足。'); return false; }
     ensureStorage(cid); var st=state.flags.storage[cid];
     var stack=packIsStackable(it);
+    function consume(n2){
+      it.count=(it.count||0)-n2;
+      if(it.count<=0) state.pack[packIdx]=null;
+    }
     if(toIdx!=null && toIdx>=0 && toIdx<st.slots){
       var dst=st.items[toIdx];
-      if(dst && stack && itemKey(dst)===itemKey(it) && dst.cat!=='装备'){ dst.count=(dst.count||1)+n; packConsume(it.defId, n); }
+      if(dst && stack && (dst.defId||dst.id)===(it.defId||it.id) && dst.cat!=='装备'){ dst.count=(dst.count||1)+n; consume(n); }
       else if(!dst){
-        if(stack){ var pc=LF.ITEMS.makeItem(it.defId, n); if(!pc) return false; st.items[toIdx]=pc; packConsume(it.defId, n); }
+        if(stack){ var pc=LF.ITEMS.makeItem(it.defId, n); if(!pc) return false; st.items[toIdx]=pc; consume(n); }
         else { if(n>1){ toast('装备一次存一件。'); return false; } st.items[toIdx]=it; state.pack[packIdx]=null; }
       } else {
         if(n>1){ toast('此处已有他物，一次仅可拖 1 件交换。'); return false; }
         var tmp=st.items[toIdx];
-        if(stack){ var p2=LF.ITEMS.makeItem(it.defId, 1); if(!p2) return false; st.items[toIdx]=p2; packConsume(it.defId, 1); }
+        if(stack){ var p2=LF.ITEMS.makeItem(it.defId, 1); if(!p2) return false; st.items[toIdx]=p2; consume(1); }
         else { st.items[toIdx]=it; state.pack[packIdx]=null; }
         if(state.pack[packIdx]===null){ state.pack[packIdx]=tmp; }
         else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，交换物无处安放。'); return false; } state.pack[e]=tmp; }
@@ -5909,7 +5913,7 @@ window.onerror=function(msg,url,line,col,err){
     }
     if(stack){
       if(!storageAdd(cid, it.defId, n)) return false;
-      packConsume(it.defId, n);
+      consume(n);
     } else {
       if(n>1){ toast('装备一次存一件。'); return false; }
       var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
@@ -5963,7 +5967,12 @@ window.onerror=function(msg,url,line,col,err){
   function storeSwap(cid, a, b){
     ensureStorage(cid); var st=state.flags.storage[cid];
     if(a===b||a<0||b<0||a>=st.slots||b>=st.slots) return;
-    var t=st.items[a]; st.items[a]=st.items[b]; st.items[b]=t;
+    var A=st.items[a], B=st.items[b];
+    if(A&&B&&packIsStackable(A)&&packIsStackable(B)&&itemKey(A)===itemKey(B)&&B.cat!=='装备'){
+      B.count=(B.count||1)+(A.count||1); st.items[a]=null;
+    } else {
+      st.items[a]=B; st.items[b]=A;
+    }
     save(state); afterPackChange();
   }
   function storeSort(cid){
