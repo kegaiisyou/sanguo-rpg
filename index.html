@@ -8584,7 +8584,7 @@ window.onerror=function(msg,url,line,col,err){
 
   /** 计算含装备+艺线加成的有效属性（P1 装备 / P2 艺线：攻/命中/暴击/内力/身法） */
   function effectiveStats(){
-    var atk=state.atk, def=state.def, maxHp=state.maxHp, maxMp=state.maxMp, spd=state.spd;
+    var atk=state.atk, def=state.def, maxHp=state.maxHp, maxMp=state.maxMp, maxEnergy=state.maxEnergy, maxFood=state.maxFood, maxDrink=state.maxDrink, spd=state.spd;
     LF.ITEMS.SLOT_KEYS.forEach(function(sl){
       var eq=state.equipment[sl]; if(!eq) return;
       atk+=(eq.atk||0); def+=(eq.def||0); maxHp+=(eq.hp||0); maxMp+=(eq.mp||0); spd+=(eq.spd||0);
@@ -8604,7 +8604,7 @@ window.onerror=function(msg,url,line,col,err){
     spd += lineSpd;
     var hitRate = Math.min(0.99, 0.92 + lineHit);
     var critRate = Math.min(0.35, lineCrit);
-    return {atk:atk,def:def,maxHp:maxHp,maxMp:maxMp,spd:spd,hitRate:hitRate,critRate:critRate};
+    return {atk:atk,def:def,maxHp:maxHp,maxMp:maxMp,maxEnergy:maxEnergy,maxFood:maxFood,maxDrink:maxDrink,spd:spd,hitRate:hitRate,critRate:critRate};
   }
   function clampHp(){ var mx=effectiveStats().maxHp; if(state.hp>mx) state.hp=mx; }
   // 每场战斗结束（胜/败/逃）已装备耐久 -1，耗尽则损毁
