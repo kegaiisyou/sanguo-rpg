@@ -437,12 +437,12 @@
     function renderShopInfo() {
       // 仓库模式：仓库格 / 行囊格详情（属性+装备对比+使用+存取）
       if (shopMode === 'storage') {
+        var statOf = function (it) { return (it && it.stats) ? it.stats : (((LF.ITEMS[it.defId] || {}).stats) || {}); };
         var sti = (typeof ctx.storageGet === 'function') ? ctx.storageGet(shopStoreCid) : null;
         if (shopStoreSel != null && sti && sti.items[shopStoreSel]) {
           var sit2 = sti.items[shopStoreSel]; var ic3 = itemIconHTML(sit2, 16);
           var h3 = '<div class="li-name">' + ic3 + ' ' + sit2.name + '</div>';
           h3 += '<div class="li-cat">' + (sit2.cat || '道具') + (sit2.count > 1 ? (' · ×' + sit2.count) : '') + '</div>';
-          var statOf = function (it) { return (it && it.stats) ? it.stats : (((LF.ITEMS[it.defId] || {}).stats) || {}); };
           if (statOf(sit2) && (statOf(sit2).atk || statOf(sit2).def || statOf(sit2).hp || statOf(sit2).spd)) h3 += '<div class="li-line">属性 攻+' + (statOf(sit2).atk || 0) + ' 防+' + (statOf(sit2).def || 0) + ' 血+' + (statOf(sit2).hp || 0) + ' 速+' + (statOf(sit2).spd || 0) + '</div>';
           if (sit2.maxDur) h3 += '<div class="li-line">耐久 ' + sit2.dur + '/' + sit2.maxDur + '</div>';
           if (sit2.desc) h3 += '<div class="li-line" style="opacity:.85">' + sit2.desc + '</div>';
