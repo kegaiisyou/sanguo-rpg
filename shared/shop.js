@@ -301,6 +301,7 @@
       if (typeof save === 'function') save(S());
     }
     function buyPendingCount(id) { var n = 0; shopBuyPending.forEach(function (p) { if (p.id === id) n += p.count; }); return n; }
+    var _pendWarned = false;   // 本轮会话是否已提示/滚动过结算入口（避免每次买卖都跳）
     function renderTrade() {
       // 重渲前记录两栏滚动位置，整块 innerHTML 重渲后恢复（避免每次买卖/换格滚动条跳回顶部）
       var ls = $card.querySelector('.shop-left .shop-scroll'), rs = $card.querySelector('.shop-right .shop-scroll');
@@ -687,7 +688,7 @@
           armDrag(di, el, e);
           // 长按 200ms 进入拖拽（移动端惯例）：按住不动才拖，轻滑则放行滚动（pan-y），彻底解决"上下拖动变成滚动"
           clearTimeout(longTimer);
-          longTimer = setTimeout(function () { if (pending) beginDrag(pending.e0); }, 250);
+          longTimer = setTimeout(function () { if (pending) beginDrag(pending.e0); }, 150);
         };
       });
       card.onpointermove = function (e) {
@@ -755,6 +756,13 @@
         if (shopBuyPending.length === 0 && shopSellPending.length === 0) { confirmTrade(); return; }   // 空交易直接跳过
         showSettleDialog();   // 有交易：弹出明细浮层，逐条看清将付/将收后再确认（防误触）
       };
+      if ((shopBuyPending.length || shopSellPending.length) && !_pendWarned) {
+        _pendWarned = true;
+        var _ft = document.querySelector('.shop-foot');
+        if (_ft && _ft.getBoundingClientRect().bottom > (window.innerHeight || document.documentElement.clientHeight)) {
+          _ft.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } else if (!shopBuyPending.length && !shopSellPending.length) { _pendWarned = false; }
       var lv = document.getElementById('m-leave'); if (lv) lv.onclick = function () { delete shopGoodsOrder[shopState]; restoreTradePending(); hideSettleDialog(); closeModal(); };
       // 待结算占位上的直接「✕」取消（始终可达，不必先点开浮框）
       card.querySelectorAll('.pcell-x').forEach(function (x) {

@@ -492,7 +492,7 @@
 
   /* ===== 弹窗 ===== */
   #modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
-    background:rgba(40,32,24,.34);backdrop-filter:blur(3px);padding:24px;
+    background:rgba(40,32,24,.34);backdrop-filter:blur(3px);padding:24px;overflow-y:auto;
     animation:fade .25s ease both;}
   #modal.hidden{display:none;}
   /* 弹窗右上角全局关闭按钮 */
@@ -1264,7 +1264,7 @@
   .li-qty{display:flex;align-items:center;gap:5px;margin-top:6px;}
   .li-step{flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:1px solid rgba(63,125,94,.45);background:rgba(63,125,94,.16);color:#2f7a55;font-size:14px;line-height:1;cursor:pointer;font-family:inherit;padding:0;}
   .li-step:active{transform:scale(.92);}
-  .li-qin{flex:1 1 auto;min-width:0;width:46px;text-align:center;border:1px solid rgba(60,40,30,.3);border-radius:6px;font-size:12px;padding:2px 0;font-family:inherit;}
+  .li-qin{flex:1 1 auto;min-width:0;width:52px;text-align:center;border:1px solid rgba(60,40,30,.4);border-radius:6px;font-size:13px;padding:6px 2px;font-family:inherit;user-select:text;-webkit-user-select:text;-webkit-tap-highlight-color:transparent;background:rgba(255,253,248,.9);color:var(--ink);}
   .li-qmax{font-size:10px;color:var(--ink-soft);white-space:nowrap;}
   .li-act{flex:1 1 auto;min-width:62px;padding:4px 0;font-size:11px;letter-spacing:1px;border-radius:8px;border:1px solid rgba(63,125,94,.45);background:rgba(63,125,94,.16);color:#2f7a55;cursor:pointer;font-family:"STKaiti","KaiTi",serif;}
   .li-act:active{background:rgba(63,125,94,.3);}
