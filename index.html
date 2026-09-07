@@ -1705,12 +1705,14 @@
   .shop-info{flex:0 0 auto;max-height:26%;margin-top:8px;background:rgba(36,24,12,.58);border:1px solid rgba(196,164,102,.55);border-radius:12px;padding:6px 8px;box-sizing:border-box;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,.32);}
   .shop-info .pi-actions{margin-top:6px;}
   .shop-foot{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;margin-top:10px;}
-  .sf-info{font-size:12.5px;color:var(--ink);text-align:center;letter-spacing:.4px;line-height:1.6;}
-  .sf-info .sf-pay{color:#d04a2e;font-weight:800;}
-  .sf-info .sf-recv{color:#1e7a3c;font-weight:800;}
+  .sf-info{font-size:12.5px;color:#e8dcc0;text-align:center;letter-spacing:.6px;line-height:1.7;font-family:"STKaiti","KaiTi",serif;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+  .sf-info .sf-pay{color:#ff9a7a;font-weight:800;}
+  .sf-info .sf-recv{color:#8fd4a8;font-weight:800;}
   .sf-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;}
-  .sf-acts .btn{flex:1 1 auto;min-width:76px;padding:9px 4px;font-size:13px;}
-  .shop-foot .shop-badge{background:rgba(176,131,47,.16);border:1px solid rgba(176,131,47,.55);color:#8a5f16;border-radius:5px;padding:1px 7px;font-size:11px;letter-spacing:.5px;}
+  .sf-acts .btn{flex:1 1 auto;min-width:76px;padding:9px 4px;font-size:13px;font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,235,190,.14);cursor:pointer;transition:.15s;}
+  .sf-acts .btn:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);border-color:#a8842f;}
+  .sf-acts .btn:active{transform:translateY(1px);}
+  .shop-foot .shop-badge{background:rgba(0,0,0,.42);border:1px solid rgba(255,215,138,.6);color:#ffd98a;border-radius:5px;padding:1px 7px;font-size:11px;letter-spacing:.5px;}
   .shop-hint{font-size:10px;color:#bfae8a;flex:1 1 auto;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* 结算明细浮层：确认交易前逐条列出购入/售出与收支（独立于 #modal，z 在 modal 之上、toast 之下） */
   .sd-mask{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;background:rgba(28,20,10,.46);backdrop-filter:blur(2px);padding:20px;}
@@ -1747,7 +1749,8 @@
   .shop-good{position:relative;}
   .shop-good.pcell-pending{background:rgba(0,0,0,.10);border:1px solid rgba(196,164,102,.5);}
   .shop-badge{font-size:11px;color:#efe1bd;background:rgba(120,90,50,.32);border:1px solid rgba(196,164,102,.4);border-radius:10px;padding:2px 8px;flex:0 0 auto;}
-  .shop-foot .btn-ok{background:linear-gradient(180deg,#f2dc9e,#d9b45c);border-color:#a8842f;color:#3d2c08;font-weight:800;font-size:14px;box-shadow:0 2px 8px rgba(120,84,20,.35);}
+  .shop-foot .btn-ok{background:linear-gradient(180deg,#c0392b,#8e2a1f);border-color:#e0805a;color:#ffe9c9;font-weight:800;font-size:14px;letter-spacing:3px;box-shadow:0 2px 8px rgba(90,20,8,.45),inset 0 1px 0 rgba(255,220,180,.25);}
+  .shop-foot .btn-ok:hover{background:linear-gradient(180deg,#d14a36,#9c2f22);border-color:#ef9a72;}
   .shop-cart-empty{font-size:12px;color:#bfae8a;}
   .sc-items{display:flex;flex-wrap:wrap;gap:4px;}
   .sc-item{font-size:12px;background:rgba(36,24,12,.5);border:1px solid rgba(196,164,102,.4);border-radius:10px;padding:2px 8px;cursor:pointer;}
@@ -1781,7 +1784,7 @@
     .shop-good,.shop-right .packcell{touch-action:pan-y;}
     .shop-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
     .shop-scroll::-webkit-scrollbar{width:14px;}
-    .sf-acts .btn{min-width:88px;padding:12px 6px;font-size:14px;}
+    .sf-acts .btn{min-width:88px;padding:12px 6px;font-size:14px;letter-spacing:2px;border-radius:10px;}
     .sf-info{font-size:13.5px;}
     .shop-scroll{scrollbar-width:thin;scrollbar-color:#c8a05c rgba(0,0,0,.25);}
     .shop-goods-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
