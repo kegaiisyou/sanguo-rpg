@@ -18,9 +18,20 @@ LF.RECIPES = {
     { id:'fold_bench', cat:'器具类', name:'便携工作台', icon:'🔨', out:'gongzuotai', outN:1, in:[{id:'mucai', n:3}], note:'以规整木材攒成可折叠的工作台，随行随用' },
     { id:'campfire_kit', cat:'器具类', name:'篝火', icon:'🔥', out:'campfire', outN:1, in:[{id:'mutou', n:2},{id:'xiaoshuzhi', n:1}], note:'干柴捆扎成束，引火即燃，可取暖烘食' },
     { id:'sleep_mat', cat:'器具类', name:'草席', icon:'🛏️', out:'sleepmat', outN:1, in:[{id:'mucai', n:2}], note:'削竹为骨、编草为席，铺地可眠' },
-    { id:'brick_kiln', cat:'建筑类', name:'砖头', icon:'🧱', out:'zhuan', outN:1, in:[{id:'shitiao', n:2}], note:'石料入窑烧制成砖，规整耐用，垒砌炉体围墙' }
-    // 后续接入：{ id:'plank', cat:'木材类', name:'木板', out:'muban', outN:1, in:[{id:'mucai', n:2}] ... }
-    //          { id:'hammer', cat:'器具类', name:'木槌', out:'muchui', outN:1, in:[{id:'mucai', n:2},{id:'xiaoshuzhi', n:1}] ... }
+    { id:'brick_kiln', cat:'建筑类', name:'砖头', icon:'🧱', out:'zhuan', outN:1, in:[{id:'shitiao', n:2}], note:'石料入窑烧制成砖，规整耐用，垒砌炉体围墙' },
+    // —— 图纸类（v20260908 新增建筑图纸制作）——
+    { id:'tuzhi_blacksmith', cat:'图纸类', name:'铁匠铺图', icon:'📜', out:'tuzhi_blacksmith', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:2}], note:'绘铁匠铺营造之法于木牍，依图可起炉设砧' },
+    { id:'tuzhi_tavern', cat:'图纸类', name:'酒楼图', icon:'📜', out:'tuzhi_tavern', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:2}], note:'绘酒楼营造之法于木牍，依图可起楼造灶' },
+    { id:'tuzhi_inn', cat:'图纸类', name:'客栈图', icon:'📜', out:'tuzhi_inn', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:2}], note:'绘客栈营造之法于木牍，依图可起房设柜' },
+    { id:'tuzhi_martialhall', cat:'图纸类', name:'武馆图', icon:'📜', out:'tuzhi_martialhall', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:2}], note:'绘武馆营造之法于木牍，依图可立桩设架' },
+    { id:'tuzhi_granary', cat:'图纸类', name:'粮仓图', icon:'📜', out:'tuzhi_granary', outN:1, in:[{id:'mucai',n:2},{id:'xiaoshuzhi',n:3}], note:'绘粮仓营造之法于木牍，依图可夯基筑囤（大型建筑）' },
+    { id:'tuzhi_watchtower', cat:'图纸类', name:'瞭望塔图', icon:'📜', out:'tuzhi_watchtower', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:2}], note:'绘瞭望塔营造之法于木牍，依图可立柱搭台' },
+    { id:'tuzhi_arrowtower', cat:'图纸类', name:'箭塔图', icon:'📜', out:'tuzhi_arrowtower', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:2}], note:'绘箭塔营造之法于木牍，依图可装弩设箭' },
+    { id:'tuzhi_farmland', cat:'图纸类', name:'农田图', icon:'📜', out:'tuzhi_farmland', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:1}], note:'绘农田营造之法于木牍，依图可整地修渠' },
+    { id:'tuzhi_well', cat:'图纸类', name:'水井图', icon:'📜', out:'tuzhi_well', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:1}], note:'绘水井营造之法于木牍，依图可挖井砌壁' },
+    { id:'tuzhi_pigpen', cat:'图纸类', name:'猪圈图', icon:'📜', out:'tuzhi_pigpen', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:1}], note:'绘猪圈营造之法于木牍，依图可围栅置槽' },
+    { id:'tuzhi_gate', cat:'图纸类', name:'寨门图', icon:'📜', out:'tuzhi_gate', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:2}], note:'绘寨门营造之法于木牍，依图可立门置闸' },
+    { id:'tuzhi_training', cat:'图纸类', name:'训练场图', icon:'📜', out:'tuzhi_training', outN:1, in:[{id:'mucai',n:1},{id:'xiaoshuzhi',n:2}], note:'绘训练场营造之法于木牍，依图可整地设器' }
   ],
   // 冶炼工坊：铁料 → 武器 / 工具
   forge: [
