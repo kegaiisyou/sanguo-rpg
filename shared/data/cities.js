@@ -34,6 +34,12 @@
       blurb:["渔阳城池在望，城墙完备。市集有序，买卖如常。","城头曹魏旌旗猎猎，守军披甲而立。入郭门即进渔阳，街衢纵横，百姓往来如常。"],
       blurbFind:'郭门两侧揭帖写满入城税则，墙根戍卒持戈而立。曹魏治下，渔阳商旅往来不绝；入城各坊分明，可自由穿行。',
       groundItems:[], rootActs:[{"id":"market","label":"逛市集","group":"行动","tip":"与行商交易伤药钱粮"},{"id":"rest","label":"郭门歇脚","group":"行动","tip":"依墙小憩，气血内力尽复"}] },
+    // ═══ 渔阳以北：苦役营城（3×3 镇级 · 全空地待营建）═══
+    kuyilao: { name:'苦役营', comm:'渔阳郡', state:'幽州', tier:'jun', pop:20, order:30, commerce:20, wall:35, agri:25, grid:3, pos:[117.05,40.72], layout:'empty',
+      desc:'渔阳以北的官营苦役地，正待营建', ctype:'plain', owner:'wei', garrison:20,
+      blurb:["苦役营地处渔阳北郊，营墙初立，棚舍寥寥。","北风卷着黄尘，远处戍楼隐约。入营门即见一片空旷场院，方方正正，待匠人划线营建。"],
+      blurbFind:'营门两侧木栅粗立，门内空地平整，四角界桩标明地块。苦役营尚在营建之初，场内空空如也。',
+      groundItems:[], rootActs:[{"id":"rest","label":"营门歇脚","group":"行动","tip":"依栅小憩，气血内力尽复"}] },
     xiangping: { name:'襄平', comm:'辽东郡', state:'幽州', tier:'jun', pop:62, order:65, commerce:62, wall:68, agri:52, grid:7, pos:[122.94,41.12],
       desc:'辽东孤郡，边塞雄城', ctype:'mountain', owner:'wei', garrison:60,
       blurb:["襄平城池在望，城墙完备。市集有序，买卖如常。","城头曹魏旌旗猎猎，守军披甲而立。入郭门即进襄平，街衢纵横，百姓往来如常。"],

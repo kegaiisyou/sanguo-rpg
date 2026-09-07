@@ -3606,7 +3606,7 @@ window.onerror=function(msg,url,line,col,err){
     if(c.tier==='zhou') return 4;
     if(c.tier==='xian') return 3;
     var g=c.grid||5;
-    return (g>=9?7:g>=7?4:g>=5?3:0);
+    return (g>=9?7:g>=7?4:g>=5?3:g>=3?1:0);
   }
   function cityGridSize(cid){ return CITY_LV_SIZE[cityTierLv(cid)]||3; }
   function cityLevelName(cid){ return CITY_LV_NAME[cityTierLv(cid)]||'城'; }
@@ -3795,6 +3795,8 @@ window.onerror=function(msg,url,line,col,err){
         if(x===cx && y===cy) t=centerType;
         else if(gateSet[x+','+y]) t='gate';
         else {
+          if(c.layout==='empty'){ t='empty'; }
+          else {
           var roll=rnd();
           if(roll<0.20) t='market';
           else if(roll<0.46) t='home';
@@ -3802,6 +3804,7 @@ window.onerror=function(msg,url,line,col,err){
           else if(roll<0.68) t='farm';
           else if(roll<0.78) t='empty';
           else t='empty';
+          }
           if(t==='market' && c.commerce<55 && rnd()<0.5) t='home';
           if(t==='barracks' && c.wall<60 && rnd()<0.5) t='empty';
         }
@@ -7063,7 +7066,7 @@ window.onerror=function(msg,url,line,col,err){
       var combat = a.k==='hp'? v*R.hp : a.k==='atk'? v*R.atk : a.k==='def'? v*R.def : v*R.spd;
       var disMin=(v<=ATTR_MIN), disMax=(v>=ATTR_MAX || createState.pool<=0);
       return '<div class="ap-row">'+
-        '<span class="ap-name">'+a.n+'<i>'+a.t+' · 当前战力 '+combat+'</i></span>'+
+        '<span class="ap-name">'+a.n+'<i>'+a.t+'</i></span>'+
         '<div class="ap-ctrl">'+
           '<button class="ap-btn" data-act="dec" data-k="'+a.k+'"'+(disMin?' disabled':'')+'>−</button>'+
           '<b class="ap-val">'+v+'</b>'+
@@ -7088,7 +7091,7 @@ window.onerror=function(msg,url,line,col,err){
       var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=v;
       var combat = k==='hp'? v*R.hp : k==='atk'? v*R.atk : k==='def'? v*R.def : v*R.spd;
       var def=ATTR_DEFS.filter(function(a){return a.k===k;})[0];
-      var iEl=row.querySelector('.ap-name i'); if(iEl) iEl.textContent=def.t+' · 当前战力 '+combat;
+      var iEl=row.querySelector('.ap-name i'); if(iEl) iEl.textContent=def.t;
       if(incBtn) incBtn.disabled=(v>=ATTR_MAX || createState.pool<=0);
       var decBtn=row.querySelector('[data-act="dec"]'); if(decBtn) decBtn.disabled=(v<=ATTR_MIN);
     });
