@@ -317,7 +317,6 @@
       find: '野径蜿蜒，北望林木幽深，山寨旗影隐约；南回塌墙根。〔南〕回苦役营（南）；〔北〕黑山寨（北）。',
       npcs: [
         'liehu',
-        'wuliu',
         'mu_changfeng'
       ],
       items: [],
@@ -350,6 +349,12 @@
       ji_heishan_houzhai:[
         {type:'feature',key:'env', icon:'🔍', name:'四周环境', desc:'环顾后寨'},
         {type:'exit', dir:'南', icon:'🚪', name:'南·聚义厅', desc:'退回聚义厅', actions:[{label:'退回聚义厅', fn:function(){ move('南','ji_heishan_juyi'); }}]}
+      ],
+      lindao: [
+        {type:'npc', key:'lindao_trader', icon:'🧺', name:'行脚货郎', desc:'挑着担子歇脚的行商，扁担上挂满干粮伤药', actions:[
+          {label:'买卖', icon:'🛒', fn:function(){ openModal('shop', {shop:'field_trader'}); }},
+          {label:'交谈', icon:'💬', fn:function(){ talk('lindao_trader'); }}
+        ]}
       ]
     };
   }

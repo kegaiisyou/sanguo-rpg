@@ -611,20 +611,34 @@
       var living = this.state.enemies.filter(function(e) { return e.hp > 0; });
       var ref = living.length ? living.reduce(function(a, b) { return b.spd > a.spd ? b : a; }) : this.state.enemy;
       var spdDiff = this.state.player.spd - ref.spd;
-      var chance = Math.min(0.9, Math.max(0.1, 0.4 + spdDiff * 0.02));
+      var chance = Math.min(0.95, Math.max(0.2, 0.55 + spdDiff * 0.02));
       if (Math.random() < chance) {
         this.state.result = 'fled';
-        return { success: true, text: '你寻隙脱出战圈，全身而退。' };
+        return { success: true, text: '你寻隙脱出战圈，全身而退。', chance: chance };
       } else {
-        // 逃跑失败，白送敌方一回合
+        // 逃跑失败，白送敌方一回合（追击伤害减半，避免"想跑差点死"劝退）
         var log = [];
-        log.push({ type:'system', text:'撤退失败！敌方趁机攻击——' });
+        log.push({ type:'system', text:'撤退失败！敌方趁隙反扑——' });
         var eAct = this._pickEnemyAction();
-        this._resolveAction('enemy', eAct, log, this.state.player);
+        var halfAct = eAct;
+        if (eAct && typeof eAct === 'object' && eAct !== 'defend') {
+          halfAct = {};
+          for (var k in eAct) halfAct[k] = eAct[k];
+          halfAct.dmgMul = (halfAct.dmgMul || 1) * 0.5;
+        }
+        this._resolveAction('enemy', halfAct, log, this.state.player);
         this._checkEnd();
         this.state.log = log;
-        return { success: false, text: '未能脱身，反被追击！', log: log };
+        return { success: false, text: '未能脱身，反被追击！', log: log, chance: chance };
       }
+    },
+
+    // ─── 撤退成功率（供 UI 显示，与 tryFlee 同一公式）───
+    fleeChance: function() {
+      var living = this.state.enemies.filter(function(e) { return e.hp > 0; });
+      var ref = living.length ? living.reduce(function(a, b) { return b.spd > a.spd ? b : a; }) : this.state.enemy;
+      var spdDiff = this.state.player.spd - ref.spd;
+      return Math.min(0.95, Math.max(0.2, 0.55 + spdDiff * 0.02));
     },
 
     // ─── 获取战斗状态（供 UI）───

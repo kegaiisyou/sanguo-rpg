@@ -6537,7 +6537,7 @@ window.onerror=function(msg,url,line,col,err){
     function row(label, val){ return '<div class="ps-row"><span>'+label+'</span><b>'+(val==null?'—':val)+'</b></div>'; }
     var collapsed = ((window.LF && LF.UISPEC && LF.UISPEC.isMobile()) || (window.innerWidth && window.innerWidth<=560)) ? ' collapsed' : '';
     return '<div class="pack-left-stats'+collapsed+'" id="packLeftStats">'
-      + '<div class="ps-h" onclick="LFUI.toggleStats()" role="button" tabindex="0">战 力 · 属 性 <span class="ps-caret">▾</span></div>'
+      + '<div class="ps-h" onclick="LFUI.toggleStats()" role="button" tabindex="0">属 性 <span class="ps-caret">▾</span></div>'
       + '<div class="ps-body">'
       + row('攻击', s.atk||0)
       + row('防御', s.def||0)
@@ -6858,6 +6858,7 @@ window.onerror=function(msg,url,line,col,err){
         var asks = (step.asks||[]).map(function(a){
           return { label: resolveTpl(a.label), fn: function(){
             applySet(a.set, step.npc);
+            onbGoal();   // 对话选项推进旗标后立即刷新「当前目标」引导（v20260907f）
             (a.reveal||[]).forEach(function(l){ onbReveal(l); });
             if(a.highlight){ (Array.isArray(a.highlight)?a.highlight:[a.highlight]).forEach(function(l){ highlightOnb(l); }); }
             if(a.say) log(resolveTpl(a.say));   // say 为混合叙事（含主角动作+老乞丐台词），不附加「老乞丐：」前缀以免不通顺
@@ -7112,36 +7113,61 @@ window.onerror=function(msg,url,line,col,err){
     var R=G.ATTR_RATIO, fp=(state.freePoints||0);
     return ATTR_DEFS.map(function(a){
       var v=state.attr[a.k];
-      var combat = a.k==='hp'? v*R.hp : a.k==='atk'? v*R.atk : a.k==='def'? v*R.def : v*R.spd;
-      var disMax=(v>=ATTR_MAX || fp<=0);
+      var disMax=(fp<=0);   // 游戏内加点无上限（v20260907f），仅受自由点约束；捏人面板仍限 1–20
       return '<div class="ap-row">'+
-        '<span class="ap-name">'+a.n+'<i>战力 '+combat+'</i></span>'+
+        '<span class="ap-name">'+a.n+'<i>'+a.t+'</i></span>'+
         '<div class="ap-ctrl">'+
           '<b class="ap-val">'+v+'</b>'+
           '<button class="ap-btn" data-act="attr-inc" data-k="'+a.k+'"'+(disMax?' disabled':'')+'>＋</button>'+
         '</div></div>';
     }).join('')+
-    '<div class="ap-foot">可分配自由点：<b>'+(state.freePoints||0)+'</b>（加点即定型，不可回调）</div>'+
-    '<button class="ap-confirm" data-act="attr-confirm">确认加点 · 定型</button>';
+    '<div class="ap-foot">可分配自由点：<b>'+(state.freePoints||0)+'</b>（未分配的点保留，可随时再开面板加点）</div>'+
+    '<button class="ap-confirm" data-act="attr-confirm">确认</button>';
   }
   function confirmAttr(){
     G.recalcBase(state); clampHp();
     if(typeof save==='function') save(state);
     state.pendingLevel=false;
     closeModal(); renderStatus();
-    if((state.freePoints||0)>0) toast('尚有 '+(state.freePoints||0)+' 点未分配，可再开角色面板加点');
-    else toast('属性已定型');
+    if((state.freePoints||0)>0) toast('加点已保存，尚有 '+(state.freePoints||0)+' 点未分配，可再开面板加点');
+    else toast('加点已保存');
+  }
+  /** 游戏内属性分配：仅刷新数值/自由点/禁用态，不重建弹窗（手机连点不卡） */
+  function updateAttrAllocUI(){
+    if(!$card) return;
+    var R=G.ATTR_RATIO, fp=(state.freePoints||0);
+    $card.querySelectorAll('.ap-row').forEach(function(row){
+      var incBtn=row.querySelector('[data-act="attr-inc"]');
+      var k=incBtn?incBtn.getAttribute('data-k'):null; if(!k) return;
+      var v=state.attr[k];
+      var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=v;
+      if(incBtn) incBtn.disabled=(fp<=0);
+    });
+    var fpEl=$card.querySelector('.ap-foot b'); if(fpEl) fpEl.textContent=fp;
+  }
+  /** 游戏内属性分配：仅刷新数值/自由点/禁用态，不重建弹窗（手机连点不卡） */
+  function updateAttrAllocUI(){
+    if(!$card) return;
+    var fp=(state.freePoints||0);
+    $card.querySelectorAll('.ap-row').forEach(function(row){
+      var incBtn=row.querySelector('[data-act="attr-inc"]');
+      var k=incBtn?incBtn.getAttribute('data-k'):null; if(!k) return;
+      var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=state.attr[k];
+      if(incBtn) incBtn.disabled=(fp<=0);
+    });
+    var fpEl=$card.querySelector('.ap-foot b'); if(fpEl) fpEl.textContent=fp;
   }
   function bindAttrAlloc(){
     if(!$card) return;
     $card.querySelectorAll('[data-act="attr-inc"]').forEach(function(b){
       b.onclick=function(){
         var k=b.getAttribute('data-k');
-        if((state.freePoints||0)>0 && state.attr[k]<ATTR_MAX){
+        if((state.freePoints||0)>0){
           state.attr[k]++; state.freePoints=(state.freePoints||0)-1;
           G.recalcBase(state); clampHp();
           if(typeof save==='function') save(state);
-          openModal('char'); renderStatus();
+          updateAttrAllocUI();   // 仅刷新数值/自由点，不再重建弹窗（修手机连点卡顿，v20260907f）
+          renderStatus();
         }
       };
     });
@@ -8909,8 +8935,8 @@ window.onerror=function(msg,url,line,col,err){
   function dqRenderCommands(unit){
     var ra=document.getElementById('actions'); if(!ra) return;
     ra.innerHTML='';
-    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent=(unit.idx===0?'你':unit.name)+' 的回合'; ra.appendChild(tip);
     var tut=tutCombatActive();
+    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent=(unit.idx===0?'你':unit.name)+' 的回合'+(tut?'〔教学演练中〕':''); ra.appendChild(tip);
     var step=tut?tutStep():null;
     // 教学引导文案（剧情与引导合一）：攻击 → 防御 → 道具 → 收尾
     if(tut){
@@ -8929,7 +8955,9 @@ window.onerror=function(msg,url,line,col,err){
     btn('防御', function(){ if(tut){ tutCombatAct('defend'); return; } dqOrders.push({unit:unit, actionId:'defend'}); dqAdvance(); }, tut&&step==='defend'?'onb-glow':null);
     // 教学：老乞丐赠行囊前不显示「道具」，避免提前绕过关卡；正常战恒显示
     if(!(tut && !state.flags.onb.packGiven)) btn('道具', function(){ dqOpenItems(unit); }, tut&&step==='item'?'onb-glow':'item');
-    btn('撤退', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','老乞丐'); return; } dqTryFlee(unit); }, 'flee');
+    var fleePct = 78;
+    try { fleePct = Math.max(20, Math.min(95, Math.round(G.CombatEngine.fleeChance()*100))); } catch(_e) {}
+    btn('撤退·' + fleePct + '%', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','老乞丐'); return; } dqTryFlee(unit); }, 'flee');
     // 武学：选择已学招式（连线已有的 G.MARTIAL_ARTS，使之在战斗里真正可用）
     if(!tut && unit.artIds.length){
       btn('武学', function(){ dqShowArts(unit); }, 'skill');
