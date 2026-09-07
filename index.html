@@ -3488,6 +3488,8 @@ window.onerror=function(msg,url,line,col,err){
   function cityGateDirs(cid){
     if(CITY_GATE_DIRS_CACHE[cid]) return CITY_GATE_DIRS_CACHE[cid];
     var c=(LF.CITIES||{})[cid];
+    // v20260907i：城市配置 gateDirs 强制开门方向（如苦役营仅开南门）；其余城市仍走路网自适应
+    if(c && c.gateDirs && c.gateDirs.length){ var _gd=c.gateDirs.slice(); CITY_GATE_DIRS_CACHE[cid]=_gd; return _gd; }
     var ord=CITY_GATE_ORDER[(c&&c.ctype)||'plain']||['北','东','南','西'];
     var out=ord.slice(0,4);
     if(c && c.grid){
@@ -3774,7 +3776,7 @@ window.onerror=function(msg,url,line,col,err){
   function genCityGrid(cid){
     var c=(LF.CITIES||{})[cid]; if(!c||!c.grid) return null;
     var _lv=cityTierLv(cid);
-    var _myVer=GRID_VER+'@'+_lv;
+    var _myVer=GRID_VER+'@'+_lv+((c.gateDirs||[]).join(','));
     if(state.flags.cityGrid && state.flags.cityGrid[cid] && state.flags.cityGrid[cid].ver===_myVer) return state.flags.cityGrid[cid];
     var size=cityGridSize(cid), rnd=seededRand(cid+'_grid_'+_lv);
     var cx=Math.floor(size/2), cy=Math.floor(size/2);
