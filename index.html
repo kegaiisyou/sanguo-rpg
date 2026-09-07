@@ -5878,6 +5878,82 @@ window.onerror=function(msg,url,line,col,err){
     log('你从仓库取出'+(LF.ITEMS[defId]?LF.ITEMS[defId].name:defId)+'×'+(n-rem)+'。','sys');
     if(currentModalKind==='storage') openModal('storage',{cid:cid});
   }
+  // ── 仓库模式（货郎同款交互）所需：格维度存取/换位/整理/使用/装备 ──
+  function storeGet(cid){ return ensureStorage(cid); }
+  function storePutFromPack(packIdx, n, cid){
+    var it=state.pack[packIdx]; if(!it || (it.count||0)<n){ toast('行囊此物不足。'); return false; }
+    if(packIsStackable(it)){
+      if(!storageAdd(cid, it.defId, n)) return false;
+      packConsume(it.defId, n);
+    } else {
+      if(n>1){ toast('装备一次存一件。'); return false; }
+      ensureStorage(cid); var st=state.flags.storage[cid];
+      var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
+      if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
+      if(e<0){ toast('仓库已满，存不下了。'); return false; }
+      st.items[e]=it; state.pack[packIdx]=null;
+    }
+    save(state); afterPackChange();
+    log('你将'+it.name+'×'+n+'存入仓库。','sys');
+    return true;
+  }
+  function storeTakeToPack(cid, si, n, toPackIdx){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var it=st.items[si]; if(!it) return false;
+    n=Math.min(n, it.count||0);
+    if(n<=0){ toast('仓库此物不足。'); return false; }
+    if(packIsStackable(it)){
+      if(!packAdd(it.defId, n)){ toast('行囊已满，无法取出。'); return false; }
+      it.count=(it.count||0)-n; if(it.count<=0) st.items[si]=null;
+    } else {
+      if(toPackIdx!=null && toPackIdx>=0 && !state.pack[toPackIdx]){ state.pack[toPackIdx]=it; st.items[si]=null; }
+      else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法取出。'); return false; } state.pack[e]=it; st.items[si]=null; }
+    }
+    save(state); afterPackChange();
+    log('你从仓库取出'+(it.name||'物')+(n>1?('×'+n):'')+'。','sys');
+    return true;
+  }
+  function storeSwap(cid, a, b){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    if(a===b||a<0||b<0||a>=st.slots||b>=st.slots) return;
+    var t=st.items[a]; st.items[a]=st.items[b]; st.items[b]=t;
+    save(state); afterPackChange();
+  }
+  function storeSort(cid){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var map={}; var order=[];
+    for(var i=0;i<st.items.length;i++){ var it=st.items[i]; if(!it) continue;
+      if(packIsStackable(it)){ var k=itemKey(it); if(!map[k]){ map[k]={item:it}; order.push(k); } else { map[k].item.count=(map[k].item.count||1)+(it.count||1); } }
+      else { order.push('_e'+i); map['_e'+i]={item:it}; }
+    }
+    for(var j=0;j<st.items.length;j++) st.items[j]=null;
+    order.forEach(function(k,ix){ if(ix<st.slots) st.items[ix]=map[k].item; });
+    toast('仓库已整理。'); save(state); afterPackChange();
+  }
+  function storeUseItem(cid, si){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var it=st.items[si]; if(!it) return;
+    if(it.cat==='装备'){ toast('装备需装备至身上，不可直接使用。'); return; }
+    if(it.effect){
+      if(it.effect.hp){ state.hp=Math.min(state.maxHp, state.hp+(it.effect.hp||0)); toast('伤势略缓（+'+(it.effect.hp||0)+'）。'); }
+      if(it.effect.mp){ state.mp=Math.min(state.maxMp, state.mp+(it.effect.mp||0)); toast('内息稍复（+'+(it.effect.mp||0)+'）。'); }
+      if(it.effect.food){ state.food=Math.min(100,(state.food||0)+(it.effect.food||0)); toast('腹中稍暖（+'+(it.effect.food||0)+'）。'); }
+      if(it.effect.drink){ state.drink=Math.min(100,(state.drink||0)+(it.effect.drink||0)); toast('喉间得润（+'+(it.effect.drink||0)+'）。'); }
+    } else if(it.maxDur){ toast('「'+it.name+'」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
+    else { toast('此物暂无可施用之效。'); return; }
+    it.count--; if(it.count<=0) st.items[si]=null;
+    save(state); afterPackChange();
+  }
+  function storeEquipItem(cid, si, slot){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var it=st.items[si]; if(!it) return;
+    var sl=(LF.ITEMS.SLOTS&&LF.ITEMS.SLOTS[slot])?LF.ITEMS.SLOTS[slot].label:slot;
+    if(it.cat!=='装备' || it.slot!==slot){ toast('该物不可装备于「'+sl+'」。'); return; }
+    var old=state.equipment[slot];
+    state.equipment[slot]=it; st.items[si]=old||null;
+    toast('已装备「'+it.name+'」。'+(old?('，原「'+old.name+'」退回仓库。'):''));
+    save(state); afterPackChange();
+  }
   function renderStoragePanel(cid){
     ensureStorage(cid); var st=state.flags.storage[cid];
     var cnm=(LF.CITIES[cid]||{}).name||'此城';
@@ -6426,6 +6502,7 @@ window.onerror=function(msg,url,line,col,err){
     getCard: function(){ return document.getElementById('modal-card'); },
     packAdd: packAdd, afterPackChange: afterPackChange, save: save, toast: toast,
     itemIconHTML: itemIconHTML, packIsStackable: packIsStackable, packFind: packFind, packFirstEmpty: packFirstEmpty,
+    storageGet: storeGet, storagePut: storePutFromPack, storageTake: storeTakeToPack, storageSort: storeSort, storageSwap: storeSwap,
     positionFloat: positionFloat, closeModal: closeModal
   });
   function openLearn(){
@@ -6934,7 +7011,8 @@ window.onerror=function(msg,url,line,col,err){
   function closeInspect(){ packInspect=null; refreshPackGridLight(); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
   window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort, equipFromPackTo:equipFromPackTo, placeFromPackTo:placeFromPackTo,
-    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect, renderShopPanel:Shop.renderShopPanel, bindShopPanel:Shop.bindShopPanel, addBuyPending:Shop.addBuyPending, addSellPending:Shop.addSellPending, removeBuyPending:Shop.removeBuyPending, removeSellPending:Shop.removeSellPending, confirmTrade:Shop.confirmTrade,
+    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect,
+    storeTake:storeTakeToPack, storePut:storePutFromPack, storeUse:storeUseItem, storeEquip:storeEquipItem, storeSort:storeSort, renderShopPanel:Shop.renderShopPanel, bindShopPanel:Shop.bindShopPanel, addBuyPending:Shop.addBuyPending, addSellPending:Shop.addSellPending, removeBuyPending:Shop.removeBuyPending, removeSellPending:Shop.removeSellPending, confirmTrade:Shop.confirmTrade,
     dismissCompanion:dismissCompanion };
   // 滚动/缩放时收起货郎与行囊浮框，避免遮挡（与战利品栏一致；只注册一次）
   window.addEventListener('scroll', function(e){
@@ -8075,7 +8153,7 @@ window.onerror=function(msg,url,line,col,err){
     } else if(kind==='build'){
       if(opts && opts.site) buildState.site = opts.site;
       h=renderBuildPanel();
-    } else if(kind==='storage'){ storageCid=(opts&&opts.cid)?opts.cid:state.room; h=renderStoragePanel(storageCid);
+    } else if(kind==='storage'){ storageCid=(opts&&opts.cid)?opts.cid:state.room; h=Shop.openShop(storageCid,'storage');
     } else if(kind==='rest'){
       if(opts && opts.kind) restState.kind = opts.kind;
       h=renderRestPanel();
@@ -8117,7 +8195,7 @@ window.onerror=function(msg,url,line,col,err){
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ Shop.bindShopPanel(); }
     if(kind==='build'){ bindBuildPanel(); }
-    if(kind==='storage'){ bindStoragePanel(); }
+    if(kind==='storage'){ Shop.bindShopPanel(); }
     if(kind==='rest'){ bindRestPanel(); }
     if(kind==='forge'){ bindForgePanel(); }
     if(kind==='building'){ bindBuildingPanel(); }
