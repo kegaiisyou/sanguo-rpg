@@ -3441,6 +3441,65 @@ window.onerror=function(msg,url,line,col,err){
         {label:'点卯', icon:'📋', fn:function(){ log('〔校尉〕校尉展阅兵册，营中士卒'+(c.wall>=60?'甲械精良':'器械不齐')+'。','npc'); }}
       ]}];
     },
+    sentry: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'营门哨兵', icon:'🏮', key:'sentry_'+cid, desc:'按刀立于岗哨的哨兵'}, acts:[
+        {label:'验牌', icon:'📜', fn:function(){ log('〔营门哨兵〕「有劳出示腰牌。营中规矩，进出皆须记档。」','npc'); }},
+        {label:'探问', icon:'💬', fn:function(){ log('〔营门哨兵〕「南面官道通渔阳，北边黑山常闻匪讯——出营多加小心。」','npc'); }}
+      ]});
+      return items;
+    },
+    prison: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'狱卒', icon:'⛓', key:'warden_'+cid, desc:'持钥看管的狱卒'}, acts:[
+        {label:'提审', icon:'📜', fn:function(){ log('〔狱卒〕「这批苦役是上月从渔阳押来的，多是欠租逃役的汉子，壮实着呢。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔狱卒〕「牢里阴冷，夜里常有号子声——听惯了也就不怕了。」','npc'); }}
+      ]});
+      items.push({o:{name:'镣铐囚徒', icon:'⛓', key:'inmate_'+cid, desc:'缩在牢角、镣铐加身的囚徒'}, acts:[
+        {label:'问话', icon:'💬', fn:function(){ log('〔囚徒〕「官爷，小的原是渔阳脚夫，只因欠了半石租米……若能脱困，愿为壮士牵马坠镫！」','npc'); }}
+      ]});
+      return items;
+    },
+    command: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'值守主将', icon:'🚩', key:'commander_'+cid, desc:'中军帐中值守的将领'}, acts:[
+        {label:'议事', icon:'📜', fn:function(){ log('〔主将〕「营盘初立，兵不足百、粮不过旬。先屯粮练兵，再图大计。」','npc'); }},
+        {label:'问策', icon:'💬', fn:function(){ log('〔主将〕「渔阳在南山道之南，黑山在北。守此要冲，进可窥渔阳，退可依黑山。」','npc'); }}
+      ]});
+      return items;
+    },
+    kitchen: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'火头军', icon:'🍚', key:'cook_'+cid, desc:'掌勺的伙夫'}, acts:[
+        {label:'讨碗热汤', icon:'🍲', fn:function(){ log('〔火头军〕「锅里有粟米糊糊，管够！吃饱了才有力气干活。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔火头军〕「伙房一日两顿，粗粮管饱——营里日子紧，可比牢里强。」','npc'); }}
+      ]});
+      return items;
+    },
+    mine: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'矿工', icon:'⛏', key:'miner_'+cid, desc:'挥镐采石的矿工'}, acts:[
+        {label:'问石料', icon:'📜', fn:function(){ log('〔矿工〕「这矿坑出青石，营墙屋基都靠它。要石料？拿镐自己凿两下也行。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔矿工〕「北山那边还有铁矿脉，只是山高匪多，没人敢去。」','npc'); }}
+      ]});
+      return items;
+    },
+    warehouse: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'仓吏', icon:'📦', key:'storeman_'+cid, desc:'执册记账的仓吏'}, acts:[
+        {label:'查账', icon:'📜', fn:function(){ log('〔仓吏〕「库中存粮十余车，木料砖石各若干——账目在此，壮士过目。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔仓吏〕「营里东西不多，胜在齐整。改日修仓拓库，还得再备料。」','npc'); }}
+      ]});
+      return items;
+    },
+    drill: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'演武教头', icon:'🥋', key:'drillmaster_'+cid, desc:'演练兵卒的教头'}, acts:[
+        {label:'讨教', icon:'🥊', fn:function(){ log('〔教头〕「拳脚无他，唯勤而已。日日演武，沙场方能活命。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔教头〕「营里新募的兵卒底子薄，先练站桩，再学厮杀。」','npc'); }}
+      ]});
+      return items;
+    },
     common: function(cid,x,y,c,cnm){
       var items=[], nCiv=Math.min(4,1+Math.floor(c.pop/25));
       var says=['近来城中米价又涨了……','壮士远道而来，可要当心盗匪。','哎，这世道，安稳过活便是福。','客官可是来贩货的？东市好货不少。','听说明日有马队入城。'];
@@ -3553,7 +3612,7 @@ window.onerror=function(msg,url,line,col,err){
     palace:{i:'🏯',nm:'皇宫'}, gov:{i:'🏛',nm:'衙署'},
     plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'},
     market:{i:'🛒',nm:'市集'}, home:{i:'🏠',nm:'民宅'}, barracks:{i:'⚔',nm:'军营'},
-    farm:{i:'🌾',nm:'农庄'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'},
+    farm:{i:'🌾',nm:'农庄'}, prison:{i:'⛓',nm:'牢房'}, mine:{i:'⛏',nm:'矿坑'}, kitchen:{i:'🍚',nm:'伙房'}, command:{i:'🚩',nm:'中军帐'}, warehouse:{i:'📦',nm:'仓库'}, drill:{i:'🥋',nm:'演武场'}, sentry:{i:'🏮',nm:'岗哨'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'},
     site:{i:'🚧',nm:'工地'}
   };
   var CELL_DESC={
@@ -3565,6 +3624,13 @@ window.onerror=function(msg,url,line,col,err){
     home:'寻常民宅，檐下晾着布衣，孩童探头张望。',
     barracks:'军营肃整，旌甲林立，校尉按剑而立。',
     farm:'阡陌纵横，农人扶犁，仓廪所系，民食之源。',
+    prison:'牢房阴森，铁栏纵横，镣铐叮当，囚徒或坐或卧。',
+    mine:'矿坑幽深，镐痕遍布，碎石堆旁搁着铁镐木筐。',
+    kitchen:'伙房烟火气浓，大锅沸汤，案板上堆着粗粮野菜。',
+    command:'中军帐高悬旌旗，案上摊着舆图军报，主将居中而坐。',
+    warehouse:'仓库厚门粗锁，粮袋木料堆垛齐整，仓吏执册清点。',
+    drill:'演武场平整开阔，木桩兵器林立，兵卒汗流浃背操练不休。',
+    sentry:'营门岗哨，哨兵按刀而立，日夜查验进出之人。',
     empty:'一片空地，瓦砾草莽，尚待营建。',
     ruin:'焦土未冷，断壁残垣，劫后萧索。',
     unbuilt:'城郭未及营建，草莽瓦砾，尚无居人。',
@@ -3776,7 +3842,7 @@ window.onerror=function(msg,url,line,col,err){
   function genCityGrid(cid){
     var c=(LF.CITIES||{})[cid]; if(!c||!c.grid) return null;
     var _lv=cityTierLv(cid);
-    var _myVer=GRID_VER+'@'+_lv+((c.gateDirs||[]).join(','));
+    var _myVer=GRID_VER+'@'+_lv+((c.gateDirs||[]).join(','))+((c.layoutGrid||[]).map(function(r){return r.join('');}).join('|'));
     if(state.flags.cityGrid && state.flags.cityGrid[cid] && state.flags.cityGrid[cid].ver===_myVer) return state.flags.cityGrid[cid];
     var size=cityGridSize(cid), rnd=seededRand(cid+'_grid_'+_lv);
     var cx=Math.floor(size/2), cy=Math.floor(size/2);
@@ -3794,7 +3860,8 @@ window.onerror=function(msg,url,line,col,err){
     for(var y=0;y<size;y++){ var row=[];
       for(var x=0;x<size;x++){
         var t;
-        if(x===cx && y===cy) t=centerType;
+        if(c.layoutGrid){ t=(c.layoutGrid[y]&&c.layoutGrid[y][x])||'empty'; }
+        else if(x===cx && y===cy) t=centerType;
         else if(gateSet[x+','+y]) t='gate';
         else {
           if(c.layout==='empty'){ t='empty'; }
@@ -3878,6 +3945,14 @@ window.onerror=function(msg,url,line,col,err){
     } else if(!inst && dt==='empty'){
       out.push({id:'city_build', label:'营造新筑', icon:'🏗️', tip:'择空地依图纸营造建筑（民宅/市集/农庄/军营/土路）', data:{cid:cid,x:x,y:y}});
     }
+    // ── 苦役营新格型互动（v20260907j）──
+    if(t==='prison'){ out.push({id:'prison_view', label:'查勘牢房', icon:'⛓', tip:'查看牢中囚徒，或提审问话'}); }
+    if(t==='mine'){ out.push({id:'mine_dig', label:'开凿矿料', icon:'⛏', tip:'挥镐采掘，可得石料'}); }
+    if(t==='kitchen'){ out.push({id:'kitchen_cook', label:'生火造饭', icon:'🍚', tip:'于伙房埋锅造饭，稍歇精神'}); }
+    if(t==='command'){ out.push({id:'command_talk', label:'中军议事', icon:'🚩', tip:'入帐议事，览军情城务'}); }
+    if(t==='warehouse'){ out.push({id:'warehouse_view', label:'清点仓库', icon:'📦', tip:'清点库中存粮木料'}); }
+    if(t==='drill'){ out.push({id:'drill_train', label:'操练武艺', icon:'🥋', tip:'于演武场挥汗操练，拳脚渐稳'}); }
+    if(t==='sentry'){ out.push({id:'sentry_look', label:'瞭望岗哨', icon:'🏮', tip:'登岗瞭望，查看来往行踪'}); }
     if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
     if(t==='market'){
       // 商街店铺 = 场景交互物品：以本市场商铺清单（含程序生成招牌）渲染（进·字号 等），不再占用 NPC 列表
@@ -4821,7 +4896,7 @@ window.onerror=function(msg,url,line,col,err){
       });
       // 城门外向出口：经罗盘「出城」进入对应郊野（不同城门 → 不同郊野 → 不同邻城）
       var ct2=cellDisplayType(state.room, cp.x, cp.y);
-      if(ct2==='gate'){
+      if(ct2==='gate'||ct2==='sentry'){
         var od=gateOutwardDir(state.room, cp.x, cp.y);
         var gt=(LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][od])||null;
         if(gt){
@@ -5380,7 +5455,7 @@ window.onerror=function(msg,url,line,col,err){
         var _cp=state.flags.cityPos||{}, _cid2=_cp.cid||'';
         if(_cid2 && LF.CITIES[_cid2]){
           var _ct=cellDisplayType(_cid2, _cp.x, _cp.y);
-          if(_ct==='gate'){
+          if(_ct==='gate'||_ct==='sentry'){
             var _od=gateOutwardDir(_cid2, _cp.x, _cp.y);
             if(_od && LF.PLACE_GATES && LF.PLACE_GATES[_cid2] && LF.PLACE_GATES[_cid2][_od]){
               if(currentModalKind==='map') closeModal();   // 布防图让位，露出郊野主界面
@@ -5396,6 +5471,45 @@ window.onerror=function(msg,url,line,col,err){
         if(!isCityGrid(state.room)){ toast('此处非城池中枢，无处发号。'); break; }
         openModal('edict'); break;
       }
+      case 'prison_view': {
+        if(!exert('查勘牢房')) break;
+        log('牢房铁栏后，一名囚徒抬眼望你：「官爷…小的冤枉啊——不过是偷了半袋粟米。」','npc');
+        break;
+      }
+      case 'mine_dig': {
+        if(!exert('开凿矿料')) break;
+        packAdd('shitiao', 1);
+        log('你挥镐凿下数块青石（获得石料×1）。','sys');
+        save(state); afterPackChange();
+        break;
+      }
+      case 'kitchen_cook': {
+        if(!exert('生火造饭')) break;
+        state.energy=Math.min((state.energyMax||100), state.energy+8);
+        log('伙房热气腾腾，你吃了一碗粗粮热汤，精力恢复少许。','sys');
+        save(state);
+        break;
+      }
+      case 'command_talk': {
+        log('中军帐内，舆图铺展，你默记城防地势——苦役营虽小，亦可为根基。','sys');
+        break;
+      }
+      case 'warehouse_view': {
+        var _wlist=packList();
+        log('仓库清点：'+(LF.CITIES[state.room]||{}).name+'存粮尚可，行囊物资——'+( _wlist.length? _wlist.map(function(it){return it.name+'×'+it.count;}).join('、') : '空空如也' )+'。','sys');
+        break;
+      }
+      case 'drill_train': {
+        if(!exert('操练武艺')) break;
+        state.energy=Math.max(0,state.energy-3);
+        log('你在演武场挥汗操练，拳脚渐稳（精力-3）。','sys');
+        save(state);
+        break;
+      }
+      case 'sentry_look': {
+        log('你登上岗哨，远眺四野——南面官道蜿蜒向渔阳，北望黑山隐约。','sys');
+        break;
+      }
 
       case 'leave_auto': {
         if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
@@ -5409,7 +5523,7 @@ window.onerror=function(msg,url,line,col,err){
           var _k=_q[_head++], _sp=_k.split(',');
           var _px=+_sp[0], _py=+_sp[1];
           // 只认「可出城」城门（该方向确有郊野通途）——部分城墙虽有门形却无路，若送玩家到死门会无路可出
-          if(_m.cells[_py][_px]==='gate' && canEnterCell(_cid,_px,_py)){
+          if((_m.cells[_py][_px]==='gate'||_m.cells[_py][_px]==='sentry') && canEnterCell(_cid,_px,_py)){
             var _gd=gateOutwardDir(_cid,_px,_py);
             if(_gd && LF.PLACE_GATES && LF.PLACE_GATES[_cid] && LF.PLACE_GATES[_cid][_gd]){ _target=_k; break; }
           }
