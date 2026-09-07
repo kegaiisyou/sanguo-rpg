@@ -226,9 +226,10 @@
           + '<div class="shop-left"><div class="shop-pane-title">仓库 · 点选取物</div><div class="shop-scroll"><div class="pack-grid">' + sg2 + '</div></div></div>'
           + '<div class="shop-right"><div class="shop-pane-title">你的行囊 · 拖物到左栏即存入</div><div class="shop-scroll"><div class="pack-grid">' + grid2 + '</div></div></div>'
           + '</div>'
-          + '<div class="shop-foot"><button class="btn" id="m-leave">收 工</button>'
+          + '<div class="shop-foot"><div class="sf-acts">'
+          + '<button class="btn" id="m-leave">收 工</button>'
           + '<button class="btn" id="pack-sort">整理仓库行囊</button>'
-          + '<span class="shop-hint">点选看属性 · 拖到对侧存取 · 同栏拖拽换位</span></div>'
+          + '</div></div>'
           + '</div>';
       }
       // 左栏：按 leftSeq 统一顺序渲染（真货 data-shop + 待售 data-sellp/data-selluid），待售可插到任意位置、与真货任意换位
@@ -280,17 +281,26 @@
       }
       var bn = shopBuyPending.reduce(function (s, p) { return s + p.price * p.count; }, 0);
       var sn = shopSellPending.reduce(function (s, p) { return s + p.price * p.count; }, 0);
-      var badge = (shopBuyPending.length || shopSellPending.length) ? ('<span class="shop-badge">待结算 ' + shopBuyPending.length + '购 / ' + shopSellPending.length + '售</span>') : '';
+      var hasP = shopBuyPending.length || shopSellPending.length;
+      var badge = hasP ? ('待结算 ' + shopBuyPending.length + '购 / ' + shopSellPending.length + '售') : '';
+      var info = hasP
+        ? ((bn ? ('将付 <b class="sf-pay">' + fmtPrice(bn) + '</b>') : '') + (bn && sn ? ' · ' : '') + (sn ? ('将收 <b class="sf-recv">' + fmtPrice(sn) + '</b>') : '') + (badge ? ' <span class="shop-badge">' + badge + '</span>' : ''))
+        : '银两 ' + S().gold + ' 两 · 点选货品或行囊物品即可买卖';
       return '<div class="shop-wrap">'
         + '<div class="shop-head"><span class="shop-title">💰 ' + shop.name + ' · 交易</span><span class="shop-gold">银两 ' + S().gold + ' 两</span></div>'
         + '<div class="shop-main">'
-        +   '<div class="shop-left"><div class="shop-pane-title">货郎的货 · 点按选购</div><div class="shop-scroll"><div class="shop-goods-grid">' + goodsHTML + '</div></div></div>'
-        +   '<div class="shop-right"><div class="shop-pane-title">你的行囊 · 拖物到左栏即寄售</div><div class="shop-scroll"><div class="pack-grid">' + grid + '</div></div></div>'
+        +   '<div class="shop-left"><div class="shop-pane-title">货郎的货</div><div class="shop-scroll"><div class="shop-goods-grid">' + goodsHTML + '</div></div></div>'
+        +   '<div class="shop-right"><div class="shop-pane-title">你的行囊</div><div class="shop-scroll"><div class="pack-grid">' + grid + '</div></div></div>'
         + '</div>'
-        + '<div class="shop-foot"><button class="btn" id="m-leave">告 辞</button>'
-        + '<button class="btn" id="pack-sort">整理行囊</button>'
-        +   '<span class="shop-hint">' + (bn ? ('将付 ' + fmtPrice(bn) + ' ') : '') + (sn ? ('将收 ' + fmtPrice(sn) + ' ') : '') + '· 同栏拖拽整理·拖到对侧买卖·✕取消</span>'
-        +   badge + (shopBuyPending.length || shopSellPending.length ? '<button class="btn" id="trade-clear">清空待结算</button>' : '') + '<button class="btn btn-ok" id="trade-ok">确认结算</button></div>'
+        + '<div class="shop-foot">'
+        +   '<div class="sf-info">' + info + '</div>'
+        +   '<div class="sf-acts">'
+        +     '<button class="btn" id="m-leave">告 辞</button>'
+        +     '<button class="btn" id="pack-sort">整理行囊</button>'
+        +     (hasP ? '<button class="btn" id="trade-clear">清空待结算</button>' : '')
+        +     '<button class="btn btn-ok" id="trade-ok">' + (hasP ? '确认结算' : '结 算') + '</button>'
+        +   '</div>'
+        + '</div>'
         + '</div>';
     }
     // ===== 统一交易系统：拖到对侧成为「待结算占位」，确认后统一结算 =====
@@ -622,6 +632,10 @@
           var loc = el.getAttribute('data-loc'), bp = el.getAttribute('data-buyp');
           if (loc != null) { var idx = locIdx(loc); shopSel = (S().pack[idx]) ? idx : null; }
           else if (bp != null) shopBuySel = parseInt(bp, 10);
+          if (loc != null && shopSel == null && bp == null) {   // 空白格：取消选中并收起浮框，不弹提示遮挡视野
+            var _sf2 = document.getElementById('shop-float'); if (_sf2) _sf2.style.display = 'none';
+            return;
+          }
           el.classList.add('pcell-sel'); showShopFloat();
         };
         el.setAttribute('draggable', 'true');
