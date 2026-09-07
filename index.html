@@ -5885,14 +5885,33 @@ window.onerror=function(msg,url,line,col,err){
   }
   // ── 仓库模式（货郎同款交互）所需：格维度存取/换位/整理/使用/装备 ──
   function storeGet(cid){ return ensureStorage(cid); }
-  function storePutFromPack(packIdx, n, cid){
+  function storePutFromPack(packIdx, n, cid, toIdx){
     var it=state.pack[packIdx]; if(!it || (it.count||0)<n){ toast('行囊此物不足。'); return false; }
-    if(packIsStackable(it)){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var stack=packIsStackable(it);
+    if(toIdx!=null && toIdx>=0 && toIdx<st.slots){
+      var dst=st.items[toIdx];
+      if(dst && stack && itemKey(dst)===itemKey(it) && dst.cat!=='装备'){ dst.count=(dst.count||1)+n; packConsume(it.defId, n); }
+      else if(!dst){
+        if(stack){ var pc=LF.ITEMS.makeItem(it.defId, n); if(!pc) return false; st.items[toIdx]=pc; packConsume(it.defId, n); }
+        else { if(n>1){ toast('装备一次存一件。'); return false; } st.items[toIdx]=it; state.pack[packIdx]=null; }
+      } else {
+        if(n>1){ toast('此处已有他物，一次仅可拖 1 件交换。'); return false; }
+        var tmp=st.items[toIdx];
+        if(stack){ var p2=LF.ITEMS.makeItem(it.defId, 1); if(!p2) return false; st.items[toIdx]=p2; packConsume(it.defId, 1); }
+        else { st.items[toIdx]=it; state.pack[packIdx]=null; }
+        if(state.pack[packIdx]===null){ state.pack[packIdx]=tmp; }
+        else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，交换物无处安放。'); return false; } state.pack[e]=tmp; }
+      }
+      save(state); afterPackChange();
+      log('你将'+it.name+'×'+n+'存入仓库。','sys');
+      return true;
+    }
+    if(stack){
       if(!storageAdd(cid, it.defId, n)) return false;
       packConsume(it.defId, n);
     } else {
       if(n>1){ toast('装备一次存一件。'); return false; }
-      ensureStorage(cid); var st=state.flags.storage[cid];
       var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
       if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
       if(e<0){ toast('仓库已满，存不下了。'); return false; }
@@ -5907,7 +5926,30 @@ window.onerror=function(msg,url,line,col,err){
     var it=st.items[si]; if(!it) return false;
     n=Math.min(n, it.count||0);
     if(n<=0){ toast('仓库此物不足。'); return false; }
-    if(packIsStackable(it)){
+    var stack=packIsStackable(it);
+    if(toPackIdx!=null && toPackIdx>=0 && toPackIdx<state.pack.length){
+      var dst=state.pack[toPackIdx];
+      if(dst && stack && itemKey(dst)===itemKey(it) && dst.cat!=='装备'){ dst.count=(dst.count||1)+n; it.count=(it.count||0)-n; if(it.count<=0) st.items[si]=null; }
+      else if(!dst){
+        if(stack){ var pc=LF.ITEMS.makeItem(it.defId, n); if(!pc) return false; state.pack[toPackIdx]=pc; it.count=(it.count||0)-n; if(it.count<=0) st.items[si]=null; }
+        else { state.pack[toPackIdx]=it; st.items[si]=null; }
+      } else {
+        if(n>1){ toast('此处已有他物，一次仅可拖 1 件交换。'); return false; }
+        var tmp=state.pack[toPackIdx];
+        if(stack){ var p2=LF.ITEMS.makeItem(it.defId, 1); if(!p2) return false; state.pack[toPackIdx]=p2; it.count=(it.count||0)-1; if(it.count<=0) st.items[si]=null; }
+        else { state.pack[toPackIdx]=it; st.items[si]=null; }
+        if(st.items[si]===null){ st.items[si]=tmp; }
+        else { var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
+          if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
+          if(e>=0) st.items[e]=tmp;
+          else { toast('仓库已满，交换物无处安放。'); return false; }
+        }
+      }
+      save(state); afterPackChange();
+      log('你从仓库取出'+(it.name||'物')+(n>1?('×'+n):'')+'。','sys');
+      return true;
+    }
+    if(stack){
       if(!packAdd(it.defId, n)){ toast('行囊已满，无法取出。'); return false; }
       it.count=(it.count||0)-n; if(it.count<=0) st.items[si]=null;
     } else {

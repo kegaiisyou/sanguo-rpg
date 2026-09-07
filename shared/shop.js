@@ -624,7 +624,7 @@
       left.ondragover = function (e) { e.preventDefault(); };
       left.ondrop = function (e) { e.preventDefault(); try { var d = JSON.parse(e.dataTransfer.getData('text/plain'));
         if (shopMode === 'storage') {
-          if (d.kind === 'sell') { if (typeof ctx.storagePut === 'function') ctx.storagePut(d.payload, 1, shopStoreCid); }
+          if (d.kind === 'sell') { var tg2 = e.target.closest && e.target.closest('[data-store]'); var di2 = tg2 ? parseInt(tg2.getAttribute('data-store'), 10) : -1; if (typeof ctx.storagePut === 'function') ctx.storagePut(d.payload, 1, shopStoreCid, di2); }
           else if (d.kind === 'store') { var tgt = e.target.closest && e.target.closest('[data-store]'); if (tgt) { var di = parseInt(tgt.getAttribute('data-store'), 10); if (di >= 0 && di !== d.payload && typeof ctx.storageSwap === 'function') ctx.storageSwap(shopStoreCid, d.payload, di); } }
         } else {
           if (d.kind === 'buy') dropLeft('g:' + d.payload, e.target); else if (d.kind === 'sell') addSellPending(d.payload, 1); else if (d.kind === 'buyp') removeBuyPending(d.payload); else if (d.kind === 'sellp') dropLeft('s:' + d.payload, e.target);
