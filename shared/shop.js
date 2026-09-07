@@ -370,7 +370,7 @@
       var net = sn - bn;
       var netTxt = net > 0 ? '净收 ' + fmtPrice(net) : (net < 0 ? '净付 ' + fmtPrice(-net) : '收支相抵');
       var lack = bn - S().gold;
-      var warn = lack > 0 ? '<div class="sd-warn">银两不足！还差 ' + fmtPrice(lack) + ' 两</div>' : '';
+      var warn = lack > 0 ? '<div class="sd-warn">银两不足！还差 ' + fmtPrice(lack) + '——可「再想想」回去删减待付，或先把行囊之物售给货郎凑足。</div>' : '';
       var box = document.createElement('div');
       box.className = 'sd-mask';
       box.innerHTML = '<div class="sd-panel">'
@@ -379,7 +379,7 @@
         + '<div class="sd-total">将付 <b>' + fmtPrice(bn) + '</b> · 将收 <b>' + fmtPrice(sn) + '</b> · ' + netTxt + '</div>'
         + warn
         + '<div class="sd-acts">'
-        + (lack > 0 ? '' : '<button class="sd-btn sd-ok" type="button">确认结算</button>')
+        + '<button class="sd-btn sd-ok' + (lack > 0 ? ' sd-ok-dis' : '') + '" type="button"' + (lack > 0 ? ' disabled' : '') + '>' + (lack > 0 ? '银两不足' : '确认结算') + '</button>'
         + '<button class="sd-btn sd-back" type="button">再想想</button>'
         + '</div></div>';
       box.onclick = function (e) { if (e.target === box) hideSettleDialog(); };

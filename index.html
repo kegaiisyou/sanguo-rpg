@@ -1725,6 +1725,7 @@
   .sd-btn{flex:1;padding:9px 0;font-size:13px;letter-spacing:2px;border-radius:10px;border:1px solid;cursor:pointer;font-family:inherit;}
   .sd-back{color:#6b5a3e;border-color:rgba(120,90,50,.45);background:rgba(120,90,50,.08);}
   .sd-ok{color:#fff;background:#2f7a55;border-color:#2f7a55;}
+  .sd-ok.sd-ok-dis{color:#dcd4c6;background:#9a8f7c;border-color:#8a7f6c;cursor:not-allowed;opacity:.8;}
   .sd-btn:active{transform:scale(.97);}
   /* 待结算占位：buy 渲染进右侧行囊格（灰态不可用）/ sell 渲染进左侧货郎格（携带真物） */
   .packcell.pcell-pending{background:repeating-linear-gradient(45deg,rgba(0,0,0,.22),rgba(0,0,0,.22) 6px,rgba(0,0,0,.14) 6px,rgba(0,0,0,.14) 12px);border-style:dashed;border-color:rgba(196,164,102,.5);cursor:default;filter:saturate(.6);}
@@ -2116,17 +2117,17 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/story/triggers.js?v=20260902a"></script>
     <script src="shared/data/martial.js?v=20260902a"></script>
 <script src="shared/data/enemies.js?v=20260902a"></script>
-<script src="shared/data/items.js?v=20260907c"></script>
+<script src="shared/data/items.js?v=20260907d"></script>
     <script src="shared/data/recipes.js?v=20260902a"></script>
     <script src="shared/data/build.js?v=20260902a"></script>
     <script src="shared/data/shops.js?v=20260905a"></script>
-    <script src="shared/shop.js?v=20260902a"></script>
+    <script src="shared/shop.js?v=20260907d"></script>
     <script src="shared/data/map.js?v=20260905g"></script>
     <script src="shared/data/cities.js?v=20260905l"></script>
     <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260907b"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
-    <script src="shared/systems/travel.js?v=20260907c"></script>
+    <script src="shared/systems/travel.js?v=20260907d"></script>
     <script src="shared/gen/rooms.js?v=20260907a"></script>
     <script src="shared/vendor/d3.min.js?v=20260902b"></script>
     <script src="shared/data/map_regions.js?v=20260904i"></script>
@@ -5020,15 +5021,22 @@ window.onerror=function(msg,url,line,col,err){
             }
           }
         }
-        var _outs=((_fmeta.neighbors)||[]).map(function(n){
-          return ((LF.CITIES||{})[n.nid]&&LF.CITIES[n.nid].name)?LF.CITIES[n.nid].name
-               : ((LF.PLACES||{})[n.nid]?LF.PLACES[n.nid].name:n.nid);
-        }).filter(Boolean);
+        var _outs=[], _nxt=null;
+        ((_fmeta.neighbors)||[]).forEach(function(n){
+          var _nm=((LF.CITIES||{})[n.nid]&&LF.CITIES[n.nid].name)?LF.CITIES[n.nid].name:((LF.PLACES||{})[n.nid]?LF.PLACES[n.nid].name:null);
+          if(_nm){ _outs.push(_nm); return; }
+          // 多段郊野链（v20260907d）：中段的「邻居」实为下一程入口房（fld_x@r_c），按其 fieldId 取名，
+          // 避免把 fld_xxx_南_2@1_2 这类房间 id 原文打进提示文案
+          var _nr=G.ROOMS[n.nid], _ff=_nr&&_nr.fieldId;
+          if(_ff && LF.PLACES[_ff] && LF.PLACES[_ff].name) _nxt=LF.PLACES[_ff].name;
+        });
         var _txt;
         if(_here.length){
           _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；此格向'+_here.join('、')+'（出野）。';
         } else if(_outs.length){
           _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'深入至远野边格可出野（可至 '+_outs.join(' / ')+'）。';
+        } else if(_nxt){
+          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'深入至远野边格即入『'+_nxt+'』，再行数程当可出野。';
         } else {
           _txt='「'+(_fp.name||'野')+'」：向'+_back+'归「'+_pn+'」；其余方向似无通途，宜折返。';
         }
@@ -7961,11 +7969,24 @@ window.onerror=function(msg,url,line,col,err){
       if((LF.CITIES||{})[_par] && LF.CITIES[_par].pos) _cpos=LF.CITIES[_par].pos;
       else if((LF.PLACES||{})[_par] && LF.PLACES[_par].pos) _cpos=LF.PLACES[_par].pos;
       var _fmeta=((LF.Travel&&LF.Travel.fields)||{})[_cr.fieldId]||{};
-      var _outs=((_fmeta.neighbors)||[]).map(function(n){
-        return ((LF.CITIES&&LF.CITIES[n.nid]&&LF.CITIES[n.nid].pos)?LF.CITIES[n.nid].pos
-              :((LF.PLACES&&LF.PLACES[n.nid]&&LF.PLACES[n.nid].pos)?LF.PLACES[n.nid].pos:null));
-      }).filter(Boolean);
-      if(_cpos && _outs.length){
+      // v20260907d：多段郊野链的中段 neighbors 是指向「下一程入口房」的虚拟邻点（无真实经纬）。
+      // 沿链递归到末段，收集真实邻城/邻地点的坐标作为外端点；endStage 用于按「段序+段内进度」全局插值，
+      // 使中段「此身所在」打点不再从战略图消失，且位置沿母城→外端点连续推进。
+      var _posList=[], _endStage=_fmeta.stage||0;
+      (function walk(m){
+        ((m.neighbors)||[]).forEach(function(n){
+          var _p=((LF.CITIES&&LF.CITIES[n.nid]&&LF.CITIES[n.nid].pos)?LF.CITIES[n.nid].pos
+                :((LF.PLACES&&LF.PLACES[n.nid]&&LF.PLACES[n.nid].pos)?LF.PLACES[n.nid].pos:null));
+          if(_p){ _posList.push(_p); return; }
+          var _nr=G.ROOMS[n.nid], _ff=_nr&&_nr.fieldId;
+          if(_ff && LF.Travel && LF.Travel.fields && LF.Travel.fields[_ff]){
+            var _nx=LF.Travel.fields[_ff];
+            if((_nx.stage||0)>_endStage) _endStage=_nx.stage||0;
+            if(_endStage<=8) walk(_nx);
+          }
+        });
+      })(_fmeta);
+      if(_cpos && _posList.length){
         var _g=_fp.gateDir||'东';
         var _geo=LF.Travel.fieldGeometry(_fp.size||4,_g);
         var _near=(_g==='东'||_g==='西')?_geo.nearCol:_geo.nearRow;
@@ -7973,9 +7994,10 @@ window.onerror=function(msg,url,line,col,err){
         var _den=(_fp.size||4)-1;
         var _t=(_den<=0)?0.5:(((_g==='东'||_g==='南')?(_ax-_near):(_near-_ax))/_den);
         _t=Math.max(0,Math.min(1,_t));
-        var _ox=0,_oy=0; _outs.forEach(function(p){ _ox+=p[0]; _oy+=p[1]; });
-        _ox/=_outs.length; _oy/=_outs.length;
-        return {type:'you', pos:[_cpos[0]+(_ox-_cpos[0])*_t, _cpos[1]+(_oy-_cpos[1])*_t],
+        var _s=_fmeta.stage||0, _glb=(_s+_t)/(_endStage+1);
+        var _ox=0,_oy=0; _posList.forEach(function(p){ _ox+=p[0]; _oy+=p[1]; });
+        _ox/=_posList.length; _oy/=_posList.length;
+        return {type:'you', pos:[_cpos[0]+(_ox-_cpos[0])*_glb, _cpos[1]+(_oy-_cpos[1])*_glb],
                 cid:_cr.fieldId, label:'此身所在 · '+((_fp.name)||'郊野')};
       }
     }

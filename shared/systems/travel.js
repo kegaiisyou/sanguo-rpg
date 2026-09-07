@@ -345,6 +345,9 @@
       return null;   // 无空闲方位：返回 null，由调用方跳过（绝不覆盖已有出口，避免数据损坏）
     }
     // 第一遍：入口↔母地点（父房出口优先占用方位，确保父房→郊野双向连通）
+    // v20260907d：仅处理链首段（stage===0）。多段链第2+程若也来抢父房方位，会让
+    // chibi/maolu/luofengpo 等非城父地点的 4 个方位被同方向各段顶爆 → 出口张冠李戴
+    // （chibi 南口指到东野第2程、西向 base 被挤掉）+ 中段挂上一步回父房的越级哨兵。
     Object.keys(fields).forEach(function(fid){
       var meta = fields[fid];
       var pid = meta.place, dir = meta.dir, N = meta.size;
@@ -353,16 +356,12 @@
       var entryRoom = ROOMS[entryId];
       if(!entryRoom) return;
       entryRoom.exits = entryRoom.exits || {};
+      if(meta.stage!==0) return;   // 链段(第2+程)：入口由上一程远边出口相接，不连父房、不挂回城哨兵
       var pk = (P[pid] && P[pid].kind) || '';
       var isCityParent = KINDS[pk] && KINDS[pk].isCityType;
       if(isCityParent && LF.CITIES[pid] && LF.CITIES[pid].grid){
-        if(meta.stage!==0){
-          // 多段郊野链的中段/末段：本段「回城哨兵」由上一程远边出口接好（见第二遍），
-          // 此处不预设直接回城，否则玩家可“抄近道”越过整条链、违背「逐段穿越」设计。
-        } else {
-          // 真·城市（有城格、且为链首段）：由 currentRoomExits 动态生成「出城」出口，入口只留哨兵回城
-          entryRoom.exits[opp(dir)] = '__gate__:' + pid + ':' + dir;
-        }
+        // 真·城市（有城格、且为链首段）：由 currentRoomExits 动态生成「出城」出口，入口只留哨兵回城
+        entryRoom.exits[opp(dir)] = '__gate__:' + pid + ':' + dir;
       } else {
         var pr = ROOMS[pid];
         if(pr){
