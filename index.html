@@ -3585,8 +3585,8 @@ window.onerror=function(msg,url,line,col,err){
     if(!state.flags.cityLevel) state.flags.cityLevel={};
     if(state.flags.cityLevel[cid]==null){
       var _t=(LF.CITIES||{})[cid]||{};
-      state.flags.cityLevel[cid]= (_t.tier==='capital')?7 : (_t.tier==='zhou')?4 : (_t.tier==='xian')?3 : (_t.grid>=9?7:_t.grid>=7?4:_t.grid>=5?3:0);
-    }
+      state.flags.cityLevel[cid]= (_t.tier==='capital')?7 : (_t.tier==='zhou')?4 : (_t.tier==='xian')?3 : (_t.grid>=9?7:_t.grid>=7?4:_t.grid>=5?3:_t.grid>=3?1:0);
+    } else if(state.flags.cityLevel[cid]===0){ var _g2=(LF.CITIES||{})[cid]||{}; if(_g2.grid>=3 && _g2.grid<5 && _g2.tier!=='xian' && _g2.tier!=='zhou' && _g2.tier!=='capital'){ state.flags.cityLevel[cid]=1; } }
     // 城市营造覆盖层（第3步）：cityCells[cid]["x,y"]=CellInst{type,level,shops,owner,built,buildOrderId}
     if(!state.flags.cityCells) state.flags.cityCells={};
     if(!state.flags.cityCells[cid]) state.flags.cityCells[cid]={};
