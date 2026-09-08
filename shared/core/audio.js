@@ -1,5 +1,5 @@
-// 乱世烽火 · 音频系统（v20260909c）
-// 音效用 Web Audio API 预解码到内存，播放零延迟；BGM 用 HTML5 Audio 循环
+// 乱世烽火 · 音频系统（v20260909e）
+// 全部用 Web Audio API 预解码到内存，音效零延迟，BGM 无缝循环
 (function (global) {
   'use strict';
   var enabled = true;
@@ -7,17 +7,18 @@
   var sfxVolume = 0.6;
   var ctx = null;
   var sfxGain = null;
-  var buffers = {};   // 解码后的 AudioBuffer
-  var loading = {};   // 正在加载的 Promise
-  var bgmAudio = null;
+  var bgmGain = null;
+  var bgmSrc = null;
+  var buffers = {};
+  var loading = {};
   var bgmPlaying = false;
 
-  var SFX_FILES = {
+  var FILES = {
     click: 'assets/audio/sfx_click.wav',
     coin: 'assets/audio/sfx_coin.wav',
-    attack: 'assets/audio/sfx_attack.wav'
+    attack: 'assets/audio/sfx_attack.wav',
+    bgm: 'assets/audio/bgm_main.wav'
   };
-  var BGM_FILE = 'assets/audio/bgm_main.wav';
 
   function ensureCtx() {
     if (ctx) return ctx;
@@ -26,53 +27,52 @@
       sfxGain = ctx.createGain();
       sfxGain.gain.value = sfxVolume;
       sfxGain.connect(ctx.destination);
+      bgmGain = ctx.createGain();
+      bgmGain.gain.value = bgmVolume;
+      bgmGain.connect(ctx.destination);
     } catch (e) { ctx = null; }
     return ctx;
   }
 
-  // 预加载并解码音效
-  function preloadSfx() {
+  function loadBuffer(key) {
+    if (buffers[key] !== undefined || loading[key]) return;
     var c = ensureCtx();
     if (!c) return;
-    Object.keys(SFX_FILES).forEach(function (key) {
-      if (buffers[key] || loading[key]) return;
-      loading[key] = fetch(SFX_FILES[key])
-        .then(function (r) { return r.arrayBuffer(); })
-        .then(function (buf) { return c.decodeAudioData(buf); })
-        .then(function (audioBuf) { buffers[key] = audioBuf; })
-        .catch(function () { buffers[key] = null; })
-        .finally(function () { delete loading[key]; });
-    });
+    loading[key] = fetch(FILES[key])
+      .then(function (r) { return r.arrayBuffer(); })
+      .then(function (buf) { return c.decodeAudioData(buf); })
+      .then(function (audioBuf) { buffers[key] = audioBuf; })
+      .catch(function () { buffers[key] = null; })
+      .finally(function () { delete loading[key]; });
   }
 
-  // 播放解码后的音效（零延迟）
-  function playBuffer(key) {
+  function preloadAll() {
+    Object.keys(FILES).forEach(loadBuffer);
+  }
+
+  function playBuffer(key, gain) {
     if (!enabled) return false;
     var c = ensureCtx();
     if (!c || !buffers[key]) return false;
     try {
       var src = c.createBufferSource();
       src.buffer = buffers[key];
-      var g = c.createGain();
-      g.gain.value = 1;
+      var g = gain || sfxGain;
       src.connect(g);
-      g.connect(sfxGain);
       src.start(0);
-      return true;
+      return src;
     } catch (e) { return false; }
   }
 
-  // 解锁 AudioContext（浏览器自动播放策略）
   function unlock() {
     var c = ensureCtx();
     if (c && c.state === 'suspended') c.resume();
-    if (!buffers.click && !loading.click) preloadSfx();
+    if (!buffers.bgm && !loading.bgm) preloadAll();
   }
   document.addEventListener('touchstart', unlock, { once: true, passive: true });
   document.addEventListener('click', unlock, { once: true });
-  // 页面加载后开始预加载
-  if (document.readyState === 'complete') preloadSfx();
-  else window.addEventListener('load', preloadSfx);
+  if (document.readyState === 'complete') preloadAll();
+  else window.addEventListener('load', preloadAll);
 
   // ── 代码合成 fallback ──
   function tone(freq, dur, type, vol) {
@@ -100,7 +100,7 @@
     src.connect(f); f.connect(g); g.connect(sfxGain || c.destination); src.start(t);
   }
 
-  // ── 音效函数 ──
+  // ── 音效 ──
   function sfxClick() { if (!playBuffer('click')) tone(880, 0.05, 'square', 0.1); }
   function sfxCoin() { if (!playBuffer('coin')) { tone(988, 0.06, 'square', 0.1); setTimeout(function () { tone(1319, 0.1, 'square', 0.1); }, 50); } }
   function sfxConfirm() { tone(523, 0.08, 'triangle', 0.15); setTimeout(function () { tone(659, 0.1, 'triangle', 0.15); }, 60); setTimeout(function () { tone(784, 0.12, 'triangle', 0.15); }, 120); }
@@ -119,26 +119,41 @@
   function sfxVictory() { [523, 659, 784, 1047, 1319].forEach(function (f, i) { setTimeout(function () { tone(f, 0.2, 'triangle', 0.15); }, i * 100); }); }
   function sfxDefeat() { [440, 392, 349, 294, 262].forEach(function (f, i) { setTimeout(function () { tone(f, 0.25, 'sine', 0.12); }, i * 120); }); }
 
-  // ── BGM（HTML5 Audio 循环）──
+  // ── BGM（Web Audio API 无缝循环）──
   function startBgm() {
     if (bgmPlaying) return;
+    var c = ensureCtx();
+    if (!c || !buffers.bgm) {
+      // 还没加载完，等加载完再播
+      if (!loading.bgm) loadBuffer('bgm');
+      var check = setInterval(function () {
+        if (buffers.bgm) { clearInterval(check); if (!bgmPlaying) doStartBgm(); }
+        else if (buffers.bgm === null) clearInterval(check);
+      }, 200);
+      return;
+    }
+    doStartBgm();
+  }
+  function doStartBgm() {
+    if (bgmPlaying || !enabled) return;
     try {
-      bgmAudio = new Audio(BGM_FILE);
-      bgmAudio.loop = true;
-      bgmAudio.volume = bgmVolume;
-      bgmAudio.preload = 'auto';
-      bgmAudio.play().then(function () { bgmPlaying = true; }).catch(function () { bgmAudio = null; });
-    } catch (e) { bgmAudio = null; }
+      bgmSrc = ctx.createBufferSource();
+      bgmSrc.buffer = buffers.bgm;
+      bgmSrc.loop = true;
+      bgmSrc.connect(bgmGain);
+      bgmSrc.start(0);
+      bgmPlaying = true;
+    } catch (e) { bgmSrc = null; }
   }
   function stopBgm() {
     bgmPlaying = false;
-    if (bgmAudio) { try { bgmAudio.pause(); bgmAudio.currentTime = 0; } catch (e) { } bgmAudio = null; }
+    if (bgmSrc) { try { bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
   }
 
   // ── 音量控制 ──
   function setBgmVolume(v) {
     bgmVolume = Math.max(0, Math.min(1, v));
-    if (bgmAudio) { try { bgmAudio.volume = bgmVolume; } catch (e) { } }
+    if (bgmGain) bgmGain.gain.value = bgmVolume;
     try { localStorage.setItem('sanguo_bgm_vol', bgmVolume); } catch (e) { }
   }
   function setSfxVolume(v) {
@@ -163,7 +178,6 @@
   }
   loadPrefs();
 
-  // ── 全局桥接 ──
   global.SFX = {
     setEnabled: setEnabled,
     isEnabled: function () { return enabled; },
