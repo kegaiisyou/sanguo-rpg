@@ -212,6 +212,17 @@
       discardInspect = Pack.discardInspect, canDiscard = Pack.canDiscard,
       packHighlightReplaced = Pack.packHighlightReplaced, equipInspect = Pack.equipInspect,
       unequipInspect = Pack.unequipInspect, closeInspect = Pack.closeInspect, toggleStats = Pack.toggleStats;
+  // 城市内部探索（建筑面板）：从 building.js 工厂注入引擎依赖
+  var Building = LF.createBuilding({
+    getState: function () { return state; },
+    getBuildingState: function () { return buildingState; },
+    LF: LF, getBUILDINGS: function () { return BUILDINGS; }, itemIconHTML: itemIconHTML,
+    bldActsFilter: bldActsFilter,
+    getCard: function () { return $card; }, getCurrentModalKind: function () { return currentModalKind; },
+    openModal: openModal, closeModal: closeModal
+  });
+  var bldCurArea = Building.bldCurArea, bldDef = Building.bldDef,
+      renderBuildingPanel = Building.renderBuildingPanel, bindBuildingPanel = Building.bindBuildingPanel;
   // ===== 捏人 / 开场序章 =====
   // 四维属性（直接对应战斗数值，无资质壳；每点换算见 G.ATTR_RATIO）
   var ATTR_DEFS=[
@@ -4568,85 +4579,6 @@
     }
   }
   function hasCount(defId,n){ var c=packFind(defId); return c && (c.count||1)>=n; }
-  function bldCurArea(b){
-    var key=buildingState.area||'root';
-    if(key==='root' || !b.areas || !b.areas[key]){
-      var npcs=(b.interior||[]).filter(function(e){return e.kind==='npc';});
-      if(b.rootExtraNpcs) npcs=npcs.concat(b.rootExtraNpcs);
-      var objs=(b.interior||[]).filter(function(e){return e.kind==='obj';});
-      if(b.rootExtraObjs) objs=objs.concat(b.rootExtraObjs);
-      return { name:(b.rootName||b.name), icon:b.icon, desc:b.sub, npcs:npcs, objs:objs, areas:(b.subAreas||[]), isRoot:true };
-    }
-    return b.areas[key];
-  }
-  function bldDef(){
-    if(!buildingState) return null;
-    // 玩家营造的蓝图建筑：用 LF.BUILD[蓝图id] 的动态 interior 临时构造屋舍定义
-    if(buildingState.bp){
-      var bp=LF.BUILD[buildingState.bp]; if(!bp) return null;
-      return { name:bp.doneName||'屋舍', icon:itemIconHTML({name:bp.doneName||'屋舍'},13), sub:bp.desc||'',
-        interior:bp.interior||[], rootName:bp.rootName, subAreas:bp.subAreas, areas:bp.areas,
-        rootExtraNpcs:bp.rootExtraNpcs, rootExtraObjs:bp.rootExtraObjs };
-    }
-    return BUILDINGS[buildingState.building] || null;
-  }
-  function renderBuildingPanel(){
-    var b=bldDef();
-    if(!b) return '<div class="empty">此处并无屋舍。</div>';
-    var area=bldCurArea(b);
-    if(buildingState.sel!=null){
-      var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
-      var e=list[buildingState.sel];
-      if(!e){ buildingState.sel=null; return renderBuildingPanel(); }
-      var h='<div class="bld-crumb">'+b.icon+((state&&state.flags&&state.flags.bldEnt&&state.flags.bldEnt.sign)||b.name)+' › '+area.name+'</div>';
-      h+='<div class="bld-detail">';
-      h+='<div class="bld-d-head">'+e.icon+' '+e.name+' <span class="bld-ent-ki">'+(buildingState.selKind==='obj'?'物件':'人物')+'</span></div>';
-      h+='<div class="bld-d-desc">'+e.desc+'</div>';
-      h+='<div class="bld-acts">';
-      bldActsFilter(e.acts).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
-      h+='</div><button class="btn bld-back" data-back="1">返 回</button>';
-      h+='</div>';
-      return h;
-    }
-    var h='<div class="bld-crumb">'+b.icon+' '+((state&&state.flags&&state.flags.bldEnt&&state.flags.bldEnt.sign)||b.name)+'</div>';
-    h+='<h3>'+area.icon+' '+area.name+'</h3>';
-    h+='<div class="bld-sub">'+area.desc+'</div>';
-    h+='<div class="bld-list">';
-    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
-    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
-    h+='</div>';
-    if(area.areas && area.areas.length){
-      h+='<div class="bld-areas">';
-      area.areas.forEach(function(a){ h+='<button class="btn bld-area" data-area="'+a.key+'">'+a.label+'</button>'; });
-      h+='</div>';
-    }
-    // 注：建筑内无方向罗盘，退出统一由房间底部「返回街巷/返回正堂」按钮（move-bar）完成，故弹窗不再重复放置导航按钮，避免繁琐
-    return h;
-  }
-  function bindBuildingPanel(){
-    var b=bldDef();
-    if(!b) return;
-    var area=bldCurArea(b);
-    if(buildingState.sel!=null){
-      var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
-      var e=list[buildingState.sel];
-      if(e){
-        $card.querySelectorAll('.bld-act').forEach(function(el){
-          el.onclick=function(){ var a=bldActsFilter(e.acts)[+el.getAttribute('data-ai')]; if(a&&a.fn){ a.fn(); if(currentModalKind==='building') openModal('building'); } };
-        });
-      }
-      var back=$card.querySelector('.bld-back'); if(back) back.onclick=function(){ buildingState.sel=null; openModal('building'); };
-      return;
-    }
-    $card.querySelectorAll('.bld-ent').forEach(function(el){
-      el.onclick=function(){ buildingState.selKind=el.getAttribute('data-kind'); buildingState.sel=+el.getAttribute('data-i'); openModal('building'); };
-    });
-    $card.querySelectorAll('.bld-area').forEach(function(el){
-      el.onclick=function(){ if(buildingState.stack) buildingState.stack.push(buildingState.area); buildingState.area=el.getAttribute('data-area'); buildingState.sel=null; openModal('building'); };
-    });
-    var up=$card.querySelector('.bld-up'); if(up) up.onclick=function(){ if(buildingState.stack && buildingState.stack.length) buildingState.area=buildingState.stack.pop(); else buildingState.area='root'; buildingState.sel=null; openModal('building'); };
-    var exit=$card.querySelector('.bld-exit'); if(exit) exit.onclick=function(){ closeModal(); };
-  }
 
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
