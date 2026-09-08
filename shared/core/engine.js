@@ -32,6 +32,20 @@
       clearSave = Save.clearSave, slotMeta = Save.slotMeta, normalize = Save.normalize;
   Save.migrateOld();
 
+  // 装备数据层：从 equipment.js 工厂注入引擎依赖（effectiveStats/decayEquipment/equipFromPackTo/equipItem/unequip）。
+  // 置于 Dev/Combat/Pack 等工厂之前，使下方别名立即可供各 createXxx ctx 与引擎内裸名消费；
+  // clampHp/log 为 function 声明（提升），Pack 的 movePackItem/unequipToPack 为后建 var → 经 getter 惰性注入。
+  var Equipment = LF.createEquipment({
+    getState: function () { return state; },
+    LF: LF,
+    clampHp: clampHp, log: log,
+    packMovePackItem: function () { return movePackItem; },
+    packUnequipToPack: function () { return unequipToPack; }
+  });
+  var effectiveStats = Equipment.effectiveStats, decayEquipment = Equipment.decayEquipment,
+      equipFromPackTo = Equipment.equipFromPackTo, equipItem = Equipment.equipItem,
+      unequip = Equipment.unequip;
+
   // 调试台：从 dev.js 工厂注入引擎依赖（handleDev/renderDev 不再读 window 裸全局）
   var Dev = LF.createDev({
     G: G, LF: LF,
@@ -3503,7 +3517,7 @@
   // 背包基础容量（无背包装备时）；背包装备槽（equipment.bag）可额外增加
   function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof refreshPackGridLight==='function' && currentModalKind==='pack') refreshPackGridLight(); if(typeof refreshPackEquipLight==='function' && currentModalKind==='pack') refreshPackEquipLight(); if(combatMode===null && !state.dead) buildActions(G.ROOMS[state.room]); }
 
-  function equipFromPackTo(idx,slot){ movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); }
+  // [moved → shared/core/equipment.js] 穿卸写路径 equipFromPackTo / equipItem / unequip
   function placeFromPackTo(idx){ if(idx==null || !state.pack[idx]) return; packInspect={kind:'pack',idx:idx}; placeInspect(); }
   // 行囊内拖拽排序：仅轻量刷新网格，保留滚动条位置、避免整窗重渲染卡顿
   var packInspect=null;
@@ -4201,51 +4215,9 @@
   var combatMode=null;
   var dqCardEl=null;  // null | 'manual'（DQ 战斗进行中）
 
-  /** 计算含装备+艺线加成的有效属性（P1 装备 / P2 艺线：攻/命中/暴击/内力/身法） */
-  function effectiveStats(){
-    var atk=state.atk, def=state.def, maxHp=state.maxHp, maxMp=state.maxMp, maxEnergy=state.maxEnergy, maxFood=state.maxFood, maxDrink=state.maxDrink, spd=state.spd;
-    LF.ITEMS.SLOT_KEYS.forEach(function(sl){
-      var eq=state.equipment[sl]; if(!eq) return;
-      atk+=(eq.atk||0); def+=(eq.def||0); maxHp+=(eq.hp||0); maxMp+=(eq.mp||0); spd+=(eq.spd||0);
-    });
-    // ── P2：艺线等级加成 ──
-    var lineAtk=0, lineCrit=0, lineHit=0, lineMp=0, lineSpd=0;
-    for(var l in state.lines){
-      var lv=state.lines[l]||0;
-      lineAtk += lv*0.6;
-      lineCrit += lv*0.003;
-      lineHit += lv*0.002;
-      if(l==='internal') lineMp += lv*1;   // 内功线 → 内力上限
-      if(l==='light')    lineSpd += lv*0.3; // 轻功线 → 身法
-    }
-    atk += lineAtk;
-    maxMp += lineMp;
-    spd += lineSpd;
-    var hitRate = Math.min(0.99, 0.92 + lineHit);
-    var critRate = Math.min(0.35, lineCrit);
-    return {atk:atk,def:def,maxHp:maxHp,maxMp:maxMp,maxEnergy:maxEnergy,maxFood:maxFood,maxDrink:maxDrink,spd:spd,hitRate:hitRate,critRate:critRate};
-  }
+  // [moved → shared/core/equipment.js] 有效属性计算 effectiveStats（装备 + 艺线加成），clampHp 仍留引擎
   function clampHp(){ var mx=effectiveStats().maxHp; if(state.hp>mx) state.hp=mx; }
-  // 每场战斗结束（胜/败/逃）已装备耐久 -1，耗尽则损毁
-  function decayEquipment(){
-    var broken=[];
-    LF.ITEMS.SLOT_KEYS.forEach(function(sl){
-      var eq=state.equipment[sl]; if(!eq) return;
-      if(typeof eq.dur!=='number') return;   // 期初装具无耐久，不损耗
-      eq.dur-=1;
-      if(eq.dur<=0){ state.equipment[sl]=null; broken.push(eq.name); }
-    });
-    if(broken.length) log('【装备】'+broken.join('、')+' 耐久已尽，损毁弃之。','sys');
-    clampHp();
-  }
-  // 装备/卸下
-  function equipItem(id){
-    var idx=-1;
-    for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && c.cat==='装备' && c.defId===id){ idx=i; break; } }
-    if(idx<0) return;
-    var eq=state.pack[idx]; equipFromPackTo(idx, eq.slot);
-  }
-  function unequip(slot){ unequipToPack(slot); }
+  // [moved → shared/core/equipment.js] 战后耐久衰减 decayEquipment / 穿卸 equipItem / unequip
 
 
 
