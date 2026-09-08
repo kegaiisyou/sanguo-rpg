@@ -26,8 +26,5 @@ LF.Core = LF.Core || {};
   LF.Core.SETTINGS_KEY=SETTINGS_KEY; LF.Core.settings=settings;
   LF.Core.SHICHEN=SHICHEN; LF.Core.state=state;
   LF.Core.saveSettings=saveSettings; LF.Core.lfSpeedLabel=lfSpeedLabel;
-  window.G=G; window.SLOTS=SLOTS; window.curSlot=curSlot;
-  window.SETTINGS_KEY=SETTINGS_KEY; window.settings=settings;
-  window.SHICHEN=SHICHEN; window.state=state;
-  window.saveSettings=saveSettings; window.lfSpeedLabel=lfSpeedLabel;
+
 })();

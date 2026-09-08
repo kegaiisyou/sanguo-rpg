@@ -5,6 +5,7 @@
 // 那些仍强耦合引擎闭包（state/G/SLOTS 与 save/normalize/renderRoom 等兄弟函数），暂留 engine.js。
 window.LF = window.LF || {};
 (function(){
+  LF.Core = LF.Core || {};
   var LUNAR_MONTHS=['正','二','三','四','五','六','七','八','九','十','冬','腊'];
   var LUNAR_START={month:12, day:15};   // 游戏始于「光和元年·腊月十五」（示例锚定）
   var WK=['日','一','二','三','四','五','六'];   // 星期（公历对照用，仅弹窗展示）
@@ -31,8 +32,8 @@ window.LF = window.LF || {};
     {walk:1,   hunt:0.15, amb:0.22, tip:'浓雾迷离，难辨远近——伏击难防，却宜潜行猎兽。'},
     {walk:1,   hunt:0,    amb:0,    tip:'朔风扑面，行路吃力。'}
   ];
-  function isDaytime(){ var t=(state.time||0)%12; return t>=3 && t<=9; }  // 卯~酉为昼
-  function wxEff(){ return WX_EFF[state.weather] || WX_EFF[0]; }
+  function isDaytime(){ var t=(LF.Core.state.time||0)%12; return t>=3 && t<=9; }  // 卯~酉为昼
+  function wxEff(){ return WX_EFF[LF.Core.state.weather] || WX_EFF[0]; }
   function mapData(){ return (window.LF && LF.MAP) || {}; }
   function lunarDayName(d){
     var cn=['','一','二','三','四','五','六','七','八','九','十'];
@@ -44,7 +45,7 @@ window.LF = window.LF || {};
   }
   // 由累计天数派生农历月日 / 年号年序 / 公历对照 / 星期（确定性、可重算）
   function deriveCalendar(){
-    var d=state.day||0;
+    var d=LF.Core.state.day||0;
     var totalMonths=(LUNAR_START.month-1)+Math.floor(d/30);
     var month=(totalMonths%12)+1;
     var day=((LUNAR_START.day-1)+(d%30))%30+1;
@@ -59,9 +60,9 @@ window.LF = window.LF || {};
       gregMonth:month, gregDay:day
     };
   }
-  // 暴露为全局（与旧 IIFE 闭包语义等价），供 engine.js 以裸名访问
-  window.LUNAR_MONTHS=LUNAR_MONTHS; window.LUNAR_START=LUNAR_START;
-  window.WK=WK; window.WK_BASE=WK_BASE; window.WEATHERS=WEATHERS; window.WX_EFF=WX_EFF;
-  window.isDaytime=isDaytime; window.wxEff=wxEff; window.mapData=mapData;
-  window.lunarDayName=lunarDayName; window.deriveCalendar=deriveCalendar;
+  // 暴露到 LF.Core（不再污染 window），engine.js 顶部统一取别名使用
+  LF.Core.LUNAR_MONTHS=LUNAR_MONTHS; LF.Core.LUNAR_START=LUNAR_START;
+  LF.Core.WK=WK; LF.Core.WK_BASE=WK_BASE; LF.Core.WEATHERS=WEATHERS; LF.Core.WX_EFF=WX_EFF;
+  LF.Core.isDaytime=isDaytime; LF.Core.wxEff=wxEff; LF.Core.mapData=mapData;
+  LF.Core.lunarDayName=lunarDayName; LF.Core.deriveCalendar=deriveCalendar;
 })();

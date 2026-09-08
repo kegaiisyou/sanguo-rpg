@@ -2,6 +2,36 @@
   try{
   // [moved → shared/core/state.js]
 
+  // ── 去全局泄漏：state.js / calendar.js 已只暴露到 LF.Core，此处一次性取别名 ──
+  var Core = LF.Core;
+  var G = Core.G || LF.SharedGame || LF;
+  var state = Core.state;
+  var settings = Core.settings;
+  var SLOTS = Core.SLOTS;
+  var curSlot = Core.curSlot;
+  var SETTINGS_KEY = Core.SETTINGS_KEY;
+  var saveSettings = Core.saveSettings;
+  var lfSpeedLabel = Core.lfSpeedLabel;
+  var SHICHEN = Core.SHICHEN;
+  var WEATHERS = Core.WEATHERS;
+  var WX_EFF = Core.WX_EFF;
+  var isDaytime = Core.isDaytime;
+  var wxEff = Core.wxEff;
+  var mapData = Core.mapData;
+  var lunarDayName = Core.lunarDayName;
+  var deriveCalendar = Core.deriveCalendar;
+  var LUNAR_MONTHS = Core.LUNAR_MONTHS;
+  var LUNAR_START = Core.LUNAR_START;
+  var WK = Core.WK;
+  var WK_BASE = Core.WK_BASE;
+
+  // 存档系统：从 save.js 工厂注入运行时上下文（不再读 window 裸全局）
+  var Save = LF.createSave({ SLOTS: SLOTS, G: G, SHICHEN: SHICHEN, getCurSlot: function(){ return curSlot; } });
+  var rawSlot = Save.rawSlot, saveToSlot = Save.saveToSlot, clearSlot = Save.clearSlot,
+      slotExists = Save.slotExists, save = Save.save, load = Save.load,
+      clearSave = Save.clearSave, slotMeta = Save.slotMeta, normalize = Save.normalize;
+  Save.migrateOld();
+
   // ===== 捏人 / 开场序章 =====
   // 四维属性（直接对应战斗数值，无资质壳；每点换算见 G.ATTR_RATIO）
   var ATTR_DEFS=[
@@ -233,100 +263,13 @@
   }
   // [moved → shared/core/calendar.js]
 
-  function rawSlot(slot){ try{return JSON.parse(localStorage.getItem(SLOTS[slot-1]));}catch(e){return null;} }
-  function saveToSlot(slot,d){ if(!slot||!d||d.hp<=0||d.dead) return; try{localStorage.setItem(SLOTS[slot-1],JSON.stringify(d));}catch(e){} }
-  function clearSlot(slot){try{localStorage.removeItem(SLOTS[slot-1]);}catch(e){} }
-  function slotExists(slot){ return !!rawSlot(slot); }
-  // 旧档迁移：v0.2.0 单键 lf_save_v1 → 第一档
-  (function migrateOld(){
-    try{
-      var old=localStorage.getItem('lf_save_v1');
-      if(old && !slotExists(1)){ localStorage.setItem(SLOTS[0], old); }
-      localStorage.removeItem('lf_save_v1');
-    }catch(e){}
-  })();
-  // 游戏中落盘：存至当前档
-  function save(d){ saveToSlot(curSlot,d); }
-  function load(){ return rawSlot(curSlot); }
-  function clearSave(){ if(curSlot) clearSlot(curSlot); }
-  // 读档元信息（供标题屏展示，无需全量 normalize）
-  function slotMeta(slot){
-    var d=rawSlot(slot); if(!d) return {slot:slot, empty:true};
-    var s=normalize(d);
-    return {
-      slot:slot, empty:false,
-      name: s.name||'无名客',
-      sect: (G.SECTS[s.sect]&&G.SECTS[s.sect].name)||'江湖散人',
-      rep: s.reputation||0,
-      time: SHICHEN[(s.time||0)%12],
-      room: (G.ROOMS[s.room]&&G.ROOMS[s.room].name)||'未知之地',
-      day: s.day||0
-    };
-  }
-  // 旧存档缺字段则补默认，保证兼容（v0.1 → v0.2 迁移）
-  function normalize(s){
-    var def=G.defaultSave();
-    // 顶层字段补全
-    for(var k in def){
-      if(s[k]===undefined) s[k]=def[k];
-      // 深拷贝嵌套对象，防止引用污染
-      if(typeof def[k]==='object' && def[k] && !Array.isArray(def[k]) && k!=='flags'){
-        if(typeof s[k]!=='object' || !s[k] || Array.isArray(s[k])) s[k]={};
-        for(var nk in def[k]){ if(s[k][nk]===undefined) s[k][nk]=def[k][nk]; }
-      }
-    }
-    // 数组字段补默认
-    if(!Array.isArray(s.learnedMartial)) s.learnedMartial=def.learnedMartial.slice();
-    if(!Array.isArray(s.equippedForce)) s.equippedForce=[];
-    if(!Array.isArray(s.skills)) s.skills=def.skills.slice();
-    if(!Array.isArray(s.items)) s.items=[];
-    if(!Array.isArray(s.equips)) s.equips=[];
-    if(!s.equipment || typeof s.equipment!=='object') s.equipment={weapon:null,armor:null,trinket:null,mount:null};
-    ['weapon','armor','trinket','mount'].forEach(function(sl){ if(s.equipment[sl]===undefined) s.equipment[sl]=null; });
-    // 旧存档没有 spd 则给默认
-    if(!s.spd) s.spd=20;
-    // time 字段
-    if(s.time==null) s.time=0;
-    // clock（当日分钟）缺失时，按时辰起点还原，保证旧档时间显示对齐
-    var SH_START=[23,1,3,5,7,9,11,13,15,17,19,21];
-    if(s.clock==null) s.clock=(SH_START[s.time%12]*60)+22;
-    if(s.day==null) s.day=0;
-    if(s.weather==null) s.weather=0;         // 天候索引，缺省为「晴」
-    if(!s.eraName || typeof s.eraName!=='string') s.eraName='光和';  // 旧档缺年号则补默认
-    // 由 day 回写年号年序，保证旧档历法自洽
-    var d=s.day||0;
-    var tm=(12-1)+Math.floor(d/30);          // 腊月(12)起算
-    s.eraYear=1+Math.floor(tm/12);
-    s.adYear=178+Math.floor(tm/12);
-    // 确保武器艺线所有 key 存在
-    for(var l in def.lines){ if(s.lines[l]===undefined) s.lines[l]=0; }
-    // 确保艺线经验 key 存在（P2）
-    if(!s.lineExp || typeof s.lineExp!=='object') s.lineExp={};
-    for(var l in def.lines){ if(s.lineExp[l]===undefined) s.lineExp[l]=0; }
-    // 确保善恶双轴存在（P3）：旧档 karma 单值迁移为 chivalry/notoriety
-    if(typeof s.chivalry!=='number'){
-      s.chivalry = (typeof s.karma==='number' && s.karma>0) ? s.karma : 0;
-    }
-    if(typeof s.notoriety!=='number'){
-      s.notoriety = (typeof s.karma==='number' && s.karma<0) ? (-s.karma) : 0;
-    }
-    delete s.karma;
-    // 旧档清理：已弃用的资质壳与出身
-    if(s.apt) delete s.apt;
-    if(s.origin) s.origin=null;
-    // 四维系统迁移：旧档无 attr/freePoints/sectBonus/flatBonus 时补默认，避免 recalcBase 崩溃
-    if(!s.attr || typeof s.attr!=='object') s.attr={hp:5,atk:5,def:5,spd:5};
-    if(typeof s.freePoints!=='number') s.freePoints=0;
-    if(!s.sectBonus || typeof s.sectBonus!=='object') s.sectBonus={hp:0,atk:0,def:0,spd:0};
-    if(!s.flatBonus || typeof s.flatBonus!=='object') s.flatBonus={hp:0,atk:0,def:0,spd:0};
-    return s;
-  }
+
 
   // [moved → shared/core/state.js]
   // 将一份存档数据载入为当前游戏状态并展卷
   function enterGame(data, slot){
     curSlot=slot||0;
-    state = normalize(data || G.defaultSave());
+    Core.state = state = normalize(data || G.defaultSave());
     G.applySect(state);
     G.recalcBase(state);                      // 依据四维 attr + 门派加成 重算派生战力
     packEnsure(state);                     // 行囊/6 装备槽兼容与初始化（v0.6）
@@ -671,7 +614,7 @@
   }
   // ===== 标题屏与子面板 =====
   function showTitle(){
-    state=null; curSlot=0;
+    state=null; curSlot=0; Core.state=state; Core.curSlot=curSlot;
     var app=document.getElementById('app'); if(app) app.classList.add('hidden');
     var tt=document.getElementById('title'); if(tt) tt.classList.remove('hidden');
     applyTitleFx();
@@ -5308,29 +5251,19 @@
     });
     var fpEl=$card.querySelector('.ap-foot b'); if(fpEl) fpEl.textContent=fp;
   }
-  /** 游戏内属性分配：仅刷新数值/自由点/禁用态，不重建弹窗（手机连点不卡） */
-  function updateAttrAllocUI(){
-    if(!$card) return;
-    var fp=(state.freePoints||0);
-    $card.querySelectorAll('.ap-row').forEach(function(row){
-      var incBtn=row.querySelector('[data-act="attr-inc"]');
-      var k=incBtn?incBtn.getAttribute('data-k'):null; if(!k) return;
-      var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=state.attr[k];
-      if(incBtn) incBtn.disabled=(fp<=0);
-    });
-    var fpEl=$card.querySelector('.ap-foot b'); if(fpEl) fpEl.textContent=fp;
-  }
   function bindAttrAlloc(){
     if(!$card) return;
+    var statusRaf=null;
     $card.querySelectorAll('[data-act="attr-inc"]').forEach(function(b){
       b.onclick=function(){
         var k=b.getAttribute('data-k');
         if((state.freePoints||0)>0){
           state.attr[k]++; state.freePoints=(state.freePoints||0)-1;
           G.recalcBase(state); clampHp();
-          if(typeof save==='function') save(state);
-          updateAttrAllocUI();   // 仅刷新数值/自由点，不再重建弹窗（修手机连点卡顿，v20260907f）
-          renderStatus();
+          updateAttrAllocUI();
+          // 状态栏用 rAF 合并，连点时只重绘一次（修手机连点卡顿，v20260908e）
+          if(statusRaf) cancelAnimationFrame(statusRaf);
+          statusRaf=requestAnimationFrame(function(){ renderStatus(); statusRaf=null; });
         }
       };
     });
