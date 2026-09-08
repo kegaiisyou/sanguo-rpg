@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260905o`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260908c`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -97,7 +97,10 @@
 |------|------|
 | `index.html` | H5 主端：UI 渲染、状态栏、研习/行囊/任务/更多弹窗、`handleAction` 调度、战斗界面、资源逻辑（`advanceTime`/`maybeStarve`/`exert`） |
 | `shared/index.js` | `defaultSave()`（存档结构，开局 `sect:null` 无门派）、`normalize()`（旧档兼容）、`applySect()`（新建/读档时以基础值套用已记录的门派）、`canJoinSect()`/`joinSect()`（中后期主动加入门派，增量叠加、保留养成、可转投） |
-| `shared/combat/engine.js` | 战斗引擎：初始化、回合、出手、Buff、AI、结算 |
+| `shared/core/state.js` | **运行时状态与设置容器**（v20260907v）：从 engine.js 顶部闭包抽出为全局可访问模块，`G/SLOTS/curSlot/settings/SHICHEN/state` 暴露到 `LF.Core` 与 `window`；引擎按子系统拆分的钥匙石，**须最先加载** |
+| `shared/core/calendar.js` | **历法/天候**（v20260907v）：农历/公历/12 时辰/8 天候 + `WX_EFF` 郊野天候模型，纯数据+纯函数；须于 state.js 后、engine.js 前加载 |
+| `shared/core/engine.js` | **主端引擎主体**（v20260908c）：战斗/移动/UI/渲染，state/calendar 已抽出；**最后加载** |
+| `shared/combat/engine.js` | 战斗子引擎（DQ 回合制）：初始化、回合、出手、Buff、AI、结算 |
 | `shared/data/martial.js` | `MARTIAL_ARTS`：招式/绝技/发力技巧 + 13 艺线定义 |
 | `shared/data/enemies.js` | 敌人模板（含声望奖励隐含映射见 `index.html` `RREP`） |
 | `shared/data/items.js` | 物品定义（含建材 `shitiao/zhuan/tiekuai`、图纸 `tuzhi_yeolian` 等）+ `makeItem` 生成 |
@@ -111,6 +114,8 @@
 | `PROJECT_GUIDE.md` | 三端统一规范（主端 H5） |
 
 > ⚠ 注意：设计文档 §3.1 计划的结构为 `shared/story/*`、`shared/config/*`，实际落点为 `shared/data/*`、`shared/story/rooms.js` 混用，与计划略有出入但功能自洽，可后续规范化。
+
+> **脚本加载顺序（v20260908c）**：`shared/core/state.js` → `shared/core/calendar.js` → `shared/core/engine.js` → 其余 `shared/*`（index.js / combat/engine.js / data/* / story/* / systems/* / strategic-map.js 等）。state.js 暴露全局状态容器、calendar.js 依赖之，engine.js 最后加载并消费两者；顺序错乱会导致裸名引用 `state`/`G` 未定义。
 
 ---
 
@@ -462,7 +467,7 @@
 - ⬜ 仅骨架/未做：P5 影门、P6 家族兴衰、门派/内功（内力 `mp` / `joinSect` 未实装）、GUIDE 引擎（数据驱动 guides.js，开场仍硬编码 `ONB_CHAIN`）、家族时间事件。
 
 **已知缺口 / 技术债（接棒重点）**
-1. **文档脱节**：本文档此前停在 v20260821y，本次补录至 v20260825f；`GAME_DESIGN.md` 仍停在 2026-07-29，待同步。
+1. **文档脱节**：本文档已补录至 v20260908c（含 v20260906–v20260908 引擎模块化重构）；`GAME_DESIGN.md` 仍为设计基线（v2.2，2026-07-29），与落地代码存在框架级偏差，仅作设计意图参考，非实现对照，待同步。
 2. **新手教程（已全量补完，v20260902a）**：旧燕山 `ys_*` 已清理——`index.html` 中 `ONB_CHAIN` 已移除、`ys_*` 判定改为仅 `camp_*`、`ys_contact` 触发挂起、房间层 `yanshan_*`（6 间）已删除、出生点现为 `camp_yard`、山河志地图燕山节点已移除；`camp_wall` 北出改接 `lindao`（开放世界林径）。苦役营 `camp_*` 教程已于 v20260902a 补全：11/11 房、30/30 NPC、10 条越狱路线全部分支、教学战斗（camp_guard）+ 木人桩（camp_dummy）、onb 渐进揭示扩展到全系统提示。
 3. **营造 emoji 残留（已清理）**：`build.js` 的 `icon` 字段与 `renderBuildPanel` / 炉膛标题已统一走 `itemIconHTML` 文字图标（v20260825f 前提交）。
 4. **无用残留**：`narrative/` 目录为空、`_game_inline.js` / `_del_beggar.js` 未跟踪，疑似调试残留，建议清理或归档。
@@ -849,4 +854,66 @@
 
 ---
 
-*最后更新：2026-09-06（§9.45–9.51 出城/回城闭环 · 跨城入城修复 + 城内地图双页签 · 城门方向路网自适应 · 全图强连通 · P0 清理 · 野外地图双页签 · 郊野〔途〕提示与罗盘一致化；版本 20260905o）*
+### §9.52 v20260906a–d：顶栏精简 + 地图渲染数据驱动 + 行动顺序条
+
+- **a（aef748b）· 顶栏精简**：状态栏仅显示「名字 · 时辰 · 天气」三要素，名字不再截断。
+- **b–c（5f10c9b / 38decf4 / cd35b77 / 69801f6 / 2ca160a / c59ce7d）· 地图渲染数据驱动**：
+  - 郊野图直接标注**入城点**——回城口（🚪）与远边通邻城口（🏰），附校验脚本。
+  - 地图渲染改读**行军系统真实路网** `LF.Travel.fields`（取既有行军数据而非另写线），解决「画了线却走不通」的假连通；路线数据源自真实可达邻点、采用垂直正交 + Catmull-Rom 曲线，两端固定精确连城点；路线图透明度与郡名共用 LOD，拉远随郡名一并淡入淡消；确定性地散列保证同一路段曲线形状每次渲染稳定。
+  - 入城点标注方位（gd）+ 按郊野缓存（2/7）、统一入口 `openMap(scope)` 与默认页；移除误提交的调试脚本 `_restart_server.ps1`。
+- **d（45d07c5）· 行动顺序条可读性**：beat 加 快/慢 标签、待定改「待下令/待意图」、敌方行动分隔、战斗开始加说明。
+
+### §9.53 v20260907a：任务系统改造（志向 → 任务日志）
+
+- 旧「志向」改为**任务日志**：主线 / 支线 / 修行 三组，进度条 + 达成奖励发放，顶栏追踪 HUD（928ec5e）。旧档兼容（原志向数据迁移为任务日志）。
+
+### §9.54 v20260907b：山河志扩充（历史名城 + 野外名胜 + 水寨）
+
+- **新增 9 城**（按真实经纬度写入 `cities.js`）：涿县（幽州·桃源故里）/ 渔阳（幽州北疆）/ 昌黎（幽州辽西 frontier）/ 陈仓（雍州·秦岭北口坚城）/ 街亭（雍州天水北鄙）/ 当阳（荆州南郡长坂坡）/ 夷陵（荆州三峡东口）/ 合肥（扬州濡须）/ 阴平（益州·邓艾偷渡）。加城只需写 `cities.js`，`places.js` 自动并入、`roads.js` 按 K=3 近邻自动连边，无需手连路网。
+- 郊野水域 + 垂钓 + 渔获；纳管 **水寨** 城型（`port`/`shuizhai` 开门方向自适应挑选确有邻城的一侧）；夏口因与江昌同址（~7km）不单加、白帝城已以 `yongan`（desc 已写白帝城）存在不重复。
+
+### §9.55 v20260907c：出城行军多段郊野链 + 水路坐船
+
+- **多段郊野链**：`travel.js build()` 的 `link()` 对每开门方向在 entries 后补多段郊野，按邻地相对城的地理方向排链（同方向多邻地：远的单段直连、近的按距城分 2–6 程）。关键约束：① stage0 入口格=原单段入口，仍保留回城出口 `__gate__:城:dir`；② stage>0 各段第一遍不再挂回城捷径（避免一步跳回城穿整条链）；③ 上一段 far-edge 格（「出野」向下一段入口）承接段间回链，末段 far-edge 接真实邻地（带门哨兵/邻地房）；中间段是 PLACES 独立 place（`fid_第N程`），roomId=`fid_r_c` 不变。`port`/`shuizhai` 城市开向多邻地的方向自动标 `isBoatRoute`。数据校验（70 城 441 郊野）：孤门 0 / 回城出口缺 0 / 111 条多段链 BFS 全通 / 水路 75。
+- **水路须乘船**：`isBoatRoute` 的郊野须乘船——`fieldNarr` 加〔水路〕（c:'warn'）；`fieldActions` 未乘时给「乘船渡江」act；`boatBoardAct` 设 `flags.onBoat=true`（持 `zhou` 扁舟免费 / 付渡资 12 两 / 都无则借无主小筏防卡死）；`move()` 进水路目标格前须 onBoat，否则 toast 拦；到陆地（城或非水路郊野）自动上岸（`setOnBoat(false)`，`arriveAtGate` 亦清）。新增道具 `zhou 扁舟`（cat 道具）免渡资。
+
+### §9.56 v20260907d–f：行商 / 休整 / 体验修复
+
+- **d（8e2b572）**：行商结算银两不足时确认钮改灰显禁用并明示差额与解决路径；修正 `fmtPrice` 重复「两」文案；修多段郊野链第 2+ 程误抢父房方位致出口张冠李戴。
+- **e（59c4de3）**：休整/速填面板精力恢复显示 NaN——`effectiveStats` 漏返回 `maxEnergy/maxFood/maxDrink`，休息后精力写入 NaN 污染存档，已补。
+- **f（dc8d944）**：体验修复——货郎买卖入口 + 撤退成功率/追击减半 + 引导即时刷新 + 教学回合提示 + 开局行囊清空 + 属性无上限单确认 + 连点卡顿。
+
+### §9.57 v20260907g–j：苦役营改造（镇级城市 + 3×3 布局 + 南门）
+
+- **g（fb8a6d5）**：苦役营改 3×3 镇级城市（渔阳北·全空地待营建 `layout:empty`）+ `cityTierLv` 支持 grid3 镇级；林径南口封禁旧苦役营（房间保留）；捏人面板去战力残留。
+- **h（65a8586）**：苦役营进城报错——`ensureCityState` 等级初始化无 grid3 档致误判村(2×2)渲染异常；补 g≥3 档 + 旧档 `cityLevel=0` 自动迁移为镇(3×3)。
+- **i（134adcc）**：苦役营仅开南门——城市配置 `gateDirs` 强制门向，其余城市仍走路网自适应；grid ver 按 gateDirs 加盐仅重建受影响城市。
+- **j（3ccb956）**：苦役营 3×3 布局落地——`layoutGrid` 按用户规划排布（北牢房/中军帐/南岗哨/农庄/矿坑/伙房/仓库/营房/演武场），新增 7 种格型含图标/描述/动作/NPC，岗哨兼作南门出城口。
+
+### §9.58 v20260907k–t：仓库系统（储物 + 货郎化 + 拖拽）+ UI 打磨
+
+- **k（abf6443）**：真实储物系统——30 格仓库 + 初始木料 200/石料 100，存取交互（1/5/10/全部），容量校验、行囊满保护、旧档兼容。
+- **l（f95f869）**：仓库面板升级为货郎同款交互——双栏网格（仓库 30 格 + 行囊）、点选看属性/装备对比/使用/装备、拖拽存取换位、一键整理。
+- **m（45f3f9f）**：UI 配色修正——金色系文字在浅米面板对比不足，统一加深（标题深金/容量银两深棕/栏目标题深金棕/提示深墨）。
+- **n（3a182e6）**：仓库点击行囊物品报错——`statOf` 定义作用域 bug（var 提升未赋值即引用），移至 storage 分支顶部。
+- **o–q（78f3b61 / fa711e9 / d0fb9b7）**：仓库拖拽——自由落点（空格放置/同物合并/异物交换，行囊↔仓库双向 + 同栏换位）；同栏拖同物合并；触屏支持仓库格拖拽 + 行囊↔仓库拖放；几何落点 `cellAt`（滚动区外精确）；源格扣减（多堆同物不再减错堆）；长按 250ms；面板级 dragover/drop 兜底消除禁止光标。
+- **r–t（33ae9fd / cbe9a1e / 7035319）**：货郎/仓库 UI 打磨——长按拖拽 250→150ms、数量输入框强制 `user-select:text` + 加大点击区（修手机点不出键盘）、`#modal` 加 overflow 超高可滚 + 首次产生待结算自动滚到结算钮；交易底部重排两行（信息行将付/将收 + 徽标 / 按钮行告辞·整理·清空·确认结算可换行）；确认结算金色高亮放大、去解释性文字、点击空白格不再弹遮挡浮框；按钮统一水墨金风（深棕渐变底金边楷体字，确认结算改朱砂红印章钮，信息行米色楷体+亮色收支，徽标深底金字）。
+
+### §9.59 v20260908a–b：建筑分级 + 新建筑 + 素材
+
+- **a（8a76a6d）**：建筑分级 + 12 个新建筑。
+- **b（718bc23）**：图纸改竹简样式，新增「竹子」「墨」素材。
+
+### §9.60 v20260908c（当前 · 未提交）：引擎模块化重构 shared/core/
+
+- **动机**：`shared/core/engine.js`（原 ~8000 行 IIFE）与 `index.html` 内联脚本维护困难，按子系统拆分。
+- **落地**：
+  - `shared/core/state.js`（v20260907v）：从 engine.js 顶部闭包抽出「运行时状态与设置容器」为全局可访问模块——`G/SLOTS/curSlot/SETTINGS_KEY/settings/SHICHEN/state/saveSettings/lfSpeedLabel` 暴露到 `LF.Core` 与 `window`，作为后续按子系统拆分 engine.js 的钥匙石；**须在任何 engine.js / core/*.js 之前加载**。
+  - `shared/core/calendar.js`（v20260907v）：历法/天候抽出为纯数据 + 仅读全局 state 的纯函数（农历/公历/12 时辰/8 天候 + `WX_EFF` 郊野 × 天候/昼夜 影响模型）；依赖 state.js，须在其后、engine.js 之前加载。
+  - `shared/core/engine.js`（v20260908c）：保留战斗/移动/UI/渲染主体，顶部 state/calendar 分节标记 `[moved → shared/core/state.js / calendar.js]`。
+  - `index.html` 加载顺序（已调整）：`state.js → calendar.js → engine.js`，其余 `shared/*`（index.js / combat/engine.js / data/* / story/* / systems/* / strategic-map.js 等）按依赖其后加载（见 §三 代码索引与加载顺序注）。
+- **已知待核对（in-progress）**：引擎拆分后入口集成需验证——`enterGame` 调 `SFX.setEnabled(...)` 等模块暴露是否完整；当前本地实测存在 `SFX` 未定义导致点「仗剑入世」进入时报 `TypeError: SFX.setEnabled is not a function` 的风险（整页被外层 `try/catch` 吞掉后 `var SFX` 未赋值所致），需确认 SFX 模块在 shared/core 加载链中正确暴露后再发布。
+
+---
+
+*最后更新：2026-09-08（§9.52–9.60 顶栏精简 + 地图渲染数据驱动 + 行动顺序条 · 任务系统改造 · 山河志 9 城/水寨 · 出城多段郊野链+水路坐船 · 行商/休整/体验修复 · 苦役营镇级 3×3/南门/仓库系统/货郎化拖拽 UI · 建筑分级+12 新建筑 · 引擎模块化重构 shared/core/；版本 20260908c）*

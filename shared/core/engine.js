@@ -1,0 +1,7972 @@
+(function(){
+  try{
+  // [moved → shared/core/state.js]
+
+  // ===== 捏人 / 开场序章 =====
+  // 四维属性（直接对应战斗数值，无资质壳；每点换算见 G.ATTR_RATIO）
+  var ATTR_DEFS=[
+    {k:'hp',  n:'气血', t:'每点 +'+G.ATTR_RATIO.hp+' 气血上限'},
+    {k:'atk', n:'攻击', t:'每点 +'+G.ATTR_RATIO.atk+' 攻击'},
+    {k:'def', n:'防御', t:'每点 +'+G.ATTR_RATIO.def+' 防御'},
+    {k:'spd', n:'身法', t:'每点 +'+G.ATTR_RATIO.spd+' 身法'}
+  ];
+  var CREATE_FREE=5;   // 开局可自由分配点数
+  var ATTR_MIN=1;      // 单属性下限（初始 5，可降至 1 以便重新分配）
+  var ATTR_MAX=20;     // 单属性上限
+  var pendingSlot=0, pendingSave=null, createState=null;
+
+  // ===== 历法（农历为主 · 公历为对照锚点）与天候 =====
+  // [moved → shared/core/calendar.js]
+  // 山河志空间坐标（网格 col,row；row 越小越北，col 越大越东）
+  // 数据外置于 shared/data/map.js（LF.MAP）：coords 坐标 / regions 区域 / kinds 节点分色 / cell·li 图例
+  // 自愈：凡 G.ROOMS 中存在但缺坐标的房间，依任一有坐标出口的方位就近生成，地图与 rooms 永不失配
+  var MAP_COORDS=null;
+  var MAP_CELL=92;     // 单格像素（缺省，覆盖自 LF.MAP.cell）
+  var MAP_LI=60;       // 1 格 = 60 里（用于距离刻度，缺省，覆盖自 LF.MAP.li）
+  var MAPMINC=0, MAPMINR=0;  // 地图网格最小列/行（支持负坐标：蓟城正北通道）
+  // 世界坐标线性换算（grid col/row → 底图像素）；历史上由已废弃的网格世界图按 REF 仿射填充。
+  // 现仅出生点地图（buildMapKingHTML）使用 resolveMapCoords 的 col/row；州域几何统一收敛到 region.geojson。
+  var MAPWK=1, MAPWB=0, MAPHK=1, MAPHB=0;
+  var DIR_DELTA={ '北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0],
+                  '东北':[1,-1],'西北':[-1,-1],'东南':[1,1],'西南':[-1,1] };
+  // [moved → shared/core/calendar.js]
+  function resolveMapCoords(){
+    if(MAP_COORDS) return MAP_COORDS;
+    MAP_CELL = mapData().cell || 92;
+    MAP_LI = mapData().li || 60;
+    var coords={};
+    var base=mapData().coords||{};
+    for(var k in base){ coords[k]=base[k].slice(); }
+    var changed=true;
+    while(changed){
+      changed=false;
+      for(var rid in G.ROOMS){
+        if(coords[rid]) continue;
+        var room=G.ROOMS[rid];
+        for(var dir in (room.exits||{})){
+          var tid=room.exits[dir];
+          if(!coords[tid]) continue;
+          var d=DIR_DELTA[dir]; if(!d) continue;
+          coords[rid]=[coords[tid][0]+d[0], coords[tid][1]+d[1]];
+          changed=true; break;
+        }
+      }
+    }
+    MAP_COORDS=coords;
+    return coords;
+  }
+  function mapKind(rid){
+    var k=mapData().kinds && mapData().kinds[rid];
+    if(k) return k;
+    if(rid==='camp_yard' || rid==='camp_cell' || rid==='camp_wall') return 'tutorial';
+    if(/^ji_heishan_/.test(rid)) return 'dungeon';
+    if(/^ji_/.test(rid) || /^yuyang_/.test(rid)) return 'city';
+    return 'wild';
+  }
+  // 图例文案（对应 kinds 取值）
+  var MAP_KIND_LABEL={ city:'城镇', wild:'野外', dungeon:'贼巢', fort:'军屯', tutorial:'教学', town:'村镇', camp:'营地' };
+  // 山河志空间地图 HTML（main 查看 / 调试选出生点 共用；数据驱动 shared/data/map.js）
+  // v20260822ar：三国群英传式大地图 —— 纯方位节点，间隔拉开（KING_CELL=110px）；SVG 示意河流（黄河/长江）+ 二次贝塞尔道路；节点无图标、无图例、不显示教学关卡；支持缩放（data-bx/by 基准坐标 + .mk-bg scale）。
+  function buildMapKingHTML(opts){
+    opts=opts||{};
+    var coords=resolveMapCoords();
+    var keys=Object.keys(G.ROOMS).filter(function(rid){return coords[rid] && !(G.ROOMS[rid].isField);});
+    var KC=110, PAD=46;
+    var minc=Infinity,maxc=-Infinity,minr=Infinity,maxr=-Infinity;
+    keys.forEach(function(rid){var c=coords[rid];
+      if(c[0]<minc)minc=c[0]; if(c[0]>maxc)maxc=c[0]; if(c[1]<minr)minr=c[1]; if(c[1]>maxr)maxr=c[1];
+    });
+    var W=(maxc-minc+1)*KC+PAD*2, H=(maxr-minr+1)*KC+PAD*2;
+    function px(c){ return PAD+(c[0]-minc)*KC; }
+    function py(c){ return PAD+(c[1]-minr)*KC; }
+    // 区域淡底色（山水区块感，取自 regions 数据，随间距放大）
+    var rg='';
+    (mapData().regions||[]).forEach(function(r){
+      var rr=Math.max(30, Math.round(r.r*KC/46));
+      rg+='<div class="mk-region" style="left:'+(px(r.center)-rr)+'px;top:'+(py(r.center)-rr)+'px;width:'+(rr*2)+'px;height:'+(rr*2)+'px;background:'+(r.c||'rgba(140,160,120,.35)')+'"></div>';
+    });
+    // ── SVG 层：示意河流 + 道路连线（都在 .mk-bg 内，随缩放整体 scale，矢量不模糊）──
+    var svg='<svg class="mk-lines" width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg">';
+    var MK_RIVERS=[
+      {name:'黄河',w:4,pts:[[.02,.55],[.10,.48],[.20,.52],[.30,.40],[.42,.46],[.54,.33],[.66,.38],[.78,.28],[.98,.22]]},
+      {name:'长江',w:3,pts:[[.02,.92],[.14,.84],[.28,.88],[.42,.80],[.56,.86],[.70,.76],[.84,.82],[.98,.72]]}
+    ];
+    function smoothRiver(pts){ // 中点二次贝塞尔平滑成蜿蜒河线
+      var d='M'+(pts[0][0]*W).toFixed(1)+' '+(pts[0][1]*H).toFixed(1);
+      for(var i=1;i<pts.length-1;i++){
+        var xc=(((pts[i][0]+pts[i+1][0])/2)*W).toFixed(1), yc=(((pts[i][1]+pts[i+1][1])/2)*H).toFixed(1);
+        d+=' Q'+(pts[i][0]*W).toFixed(1)+' '+(pts[i][1]*H).toFixed(1)+' '+xc+' '+yc;
+      }
+      var lp=pts[pts.length-1];
+      d+=' L'+(lp[0]*W).toFixed(1)+' '+(lp[1]*H).toFixed(1);
+      return d;
+    }
+    MK_RIVERS.forEach(function(rv,idx){
+      svg+='<path class="mk-river'+(idx>0?' r2':'')+'" d="'+smoothRiver(rv.pts)+'"/>';
+      var mp=rv.pts[Math.floor(rv.pts.length/2)];
+      svg+='<text class="mk-river-t" x="'+(mp[0]*W).toFixed(1)+'" y="'+(mp[1]*H).toFixed(1)+'">'+rv.name+'</text>';
+    });
+    var seen={}, lines='';
+    function mkPath(c,t){ // 二次贝塞尔曲线：路自然弯曲（弯向由坐标奇偶决定，避免同向堆叠）
+      var x1=px(c), y1=py(c), x2=px(t), y2=py(t), dx=x2-x1, dy=y2-y1;
+      var mx=(x1+x2)/2, my=(y1+y2)/2;
+      var off=Math.min(26, Math.max(14, Math.sqrt(dx*dx+dy*dy)*0.2));
+      var s=((c[0]+c[1])&1)?1:-1, cx, cy;
+      if(Math.abs(dx)>=Math.abs(dy)){ cx=mx; cy=my+off*s; }
+      else { cx=mx+off*s; cy=my; }
+      return 'M '+x1+' '+y1+' Q '+Math.round(cx)+' '+Math.round(cy)+' '+x2+' '+y2;
+    }
+    keys.forEach(function(rid){
+      var c=coords[rid], ex=G.ROOMS[rid].exits||{};
+      Object.keys(ex).forEach(function(dir){
+        var tid=ex[dir]; if(!coords[tid]) return;
+        var k=[rid,tid].sort().join('|'); if(seen[k]) return; seen[k]=1;
+        var reach=(rid===state.room||tid===state.room);
+        lines+='<path class="mk-road'+(reach?' on':'')+'" d="'+mkPath(c,coords[tid])+'"/>';
+      });
+    });
+    svg+=lines+'</svg>';
+    // 房间节点（纯文字，无 icon；data-bx/by 存基准像素坐标，缩放时按比例重排保证文字清晰）
+    var pins='';
+    keys.forEach(function(rid){
+      var r=G.ROOMS[rid], kind=mapKind(rid);
+      if(kind==='tutorial') return; // 教学关卡不在大地图显示
+      var cur=(rid===state.room), spawn=(opts.pickSpawn&&rid===state.spawnRoom);
+      var bx=Math.round(px(coords[rid])), by=Math.round(py(coords[rid]));
+      pins+='<div class="mk-pin'+(cur?' cur':'')+'"'+(opts.pickSpawn?' data-spawn="'+rid+'"':' data-rid="'+rid+'"')+
+        ' data-bx="'+bx+'" data-by="'+by+'" title="'+r.name+'" style="left:'+bx+'px;top:'+by+'px">'+
+        (spawn?'<span class="mk-spawn">★</span>':'')+
+        '<span class="mk-nm">'+r.name+'</span></div>';
+    });
+    var title=opts.pickSpawn?'🗺 设置出生点':'山 河 志';
+    var tip=opts.pickSpawn
+      ? '点击一处地点设为出生点，并立即传送至此（已自动存档）。当前出生点：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)
+      : '单指拖动查看疆域，双指缩放（按钮/Ctrl+滚轮亦可）。点击任一去处前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」；已去之处无需再远行。';
+    return '<h3>'+title+'</h3>'+
+      '<div class="map-king"><div class="map-king-canvas" style="width:'+W+'px;height:'+H+'px">'+
+        '<div class="mk-bg">'+rg+svg+'</div>'+pins+'</div></div>'+
+      '<div class="mk-bar"><div class="mk-zoom">'+
+        '<button id="mk-zoom-out" title="缩小">−</button>'+
+        '<button id="mk-zoom-in" title="放大">＋</button>'+
+        '<button id="mk-zoom-1" title="恢复原始大小">1:1</button></div>'+
+        '<button class="mk-recenter" id="mk-recenter">⌖ 回到当前位置</button></div>'+
+      '<p class="tip">'+tip+'</p>';
+  }
+  function initMapKing(opts){
+    opts=opts||{};
+    var wrap=document.querySelector('#modal-card .map-king'); if(!wrap) return;
+    var canvas=wrap.querySelector('.map-king-canvas');
+    var bg=wrap.querySelector('.mk-bg');
+    var W0=canvas.offsetWidth, H0=canvas.offsetHeight;
+    var SC=1, MIN=0.45, MAX=2.2;
+    var baseFs=(document.documentElement.clientWidth<=560)?11.5:12;
+    function applyScale(){ // 背景层 scale(矢量不模糊)，节点用 left/top/fontSize 重排（文字清晰）
+      canvas.style.width=Math.round(W0*SC)+'px';
+      canvas.style.height=Math.round(H0*SC)+'px';
+      if(bg) bg.style.transform='scale('+SC+')';
+      var fs=Math.max(7, Math.min(16, baseFs*SC));
+      wrap.querySelectorAll('.mk-pin').forEach(function(p){
+        p.style.left=Math.round(+p.getAttribute('data-bx')*SC)+'px';
+        p.style.top=Math.round(+p.getAttribute('data-by')*SC)+'px';
+        var nm=p.querySelector('.mk-nm'); if(nm) nm.style.fontSize=fs+'px';
+      });
+    }
+    function setScale(ns,avx,avy){ // 以容器内 (avx,avy) 为锚缩放，保持锚点内容不动
+      if(ns<MIN) ns=MIN; if(ns>MAX) ns=MAX;
+      if(ns===SC) return;
+      var ax=(avx!=null)?avx:wrap.clientWidth/2;
+      var ay=(avy!=null)?avy:wrap.clientHeight/2;
+      var cx=(wrap.scrollLeft+ax)/SC, cy=(wrap.scrollTop+ay)/SC;
+      SC=ns; applyScale();
+      wrap.scrollLeft=cx*SC-ax; wrap.scrollTop=cy*SC-ay;
+    }
+    if(opts.pickSpawn){
+      wrap.querySelectorAll('[data-spawn]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var rid=el.getAttribute('data-spawn');
+          state.spawnRoom=rid;
+          log('【调试】出生点已设为：'+G.ROOMS[rid].name+'。','good');
+          closeModal(); renderRoom(rid); save(state);
+        });
+      });
+    } else {
+      wrap.querySelectorAll('[data-rid]').forEach(function(el){
+        el.addEventListener('click', function(){
+          mapNodeInfo(el.getAttribute('data-rid'));
+        });
+      });
+    }
+    // 缩放：按钮 / Ctrl+滚轮 / 双指捏合（单指拖动交给原生滚动）
+    var zin=document.getElementById('mk-zoom-in'), zout=document.getElementById('mk-zoom-out'), z1=document.getElementById('mk-zoom-1');
+    if(zin) zin.addEventListener('click', function(){ setScale(SC*1.25); });
+    if(zout) zout.addEventListener('click', function(){ setScale(SC*0.8); });
+    if(z1) z1.addEventListener('click', function(){ setScale(1); });
+    wrap.addEventListener('wheel', function(e){
+      if(e.ctrlKey){
+        e.preventDefault();
+        var r=wrap.getBoundingClientRect();
+        setScale(SC*(e.deltaY<0?1.12:0.89), e.clientX-r.left, e.clientY-r.top);
+      }
+    }, {passive:false});
+    var ts=null;
+    function tdist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+    wrap.addEventListener('touchstart', function(e){
+      ts=(e.touches.length===2)?{d:tdist(e.touches), s:SC}:null;
+    }, {passive:true});
+    wrap.addEventListener('touchmove', function(e){
+      if(ts&&e.touches.length===2){
+        e.preventDefault();
+        var r=wrap.getBoundingClientRect();
+        var mx=(e.touches[0].clientX+e.touches[1].clientX)/2, my=(e.touches[0].clientY+e.touches[1].clientY)/2;
+        setScale(ts.s*tdist(e.touches)/ts.d, mx-r.left, my-r.top);
+      }
+    }, {passive:false});
+    wrap.addEventListener('touchend', function(){ ts=null; });
+    var rb=document.getElementById('mk-recenter');
+    if(rb) rb.addEventListener('click', function(){
+      var cur=wrap.querySelector('.mk-pin.cur')||wrap.querySelector('.mk-pin');
+      if(cur) cur.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+    });
+    // 初始定位到当前房间（居中）
+    var init=wrap.querySelector('.mk-pin.cur')||wrap.querySelector('.mk-pin');
+    if(init){ wrap.scrollLeft=Math.max(0, init.offsetLeft-wrap.clientWidth/2); wrap.scrollTop=Math.max(0, init.offsetTop-wrap.clientHeight/2); }
+  }
+  // [moved → shared/core/calendar.js]
+
+  function rawSlot(slot){ try{return JSON.parse(localStorage.getItem(SLOTS[slot-1]));}catch(e){return null;} }
+  function saveToSlot(slot,d){ if(!slot||!d||d.hp<=0||d.dead) return; try{localStorage.setItem(SLOTS[slot-1],JSON.stringify(d));}catch(e){} }
+  function clearSlot(slot){try{localStorage.removeItem(SLOTS[slot-1]);}catch(e){} }
+  function slotExists(slot){ return !!rawSlot(slot); }
+  // 旧档迁移：v0.2.0 单键 lf_save_v1 → 第一档
+  (function migrateOld(){
+    try{
+      var old=localStorage.getItem('lf_save_v1');
+      if(old && !slotExists(1)){ localStorage.setItem(SLOTS[0], old); }
+      localStorage.removeItem('lf_save_v1');
+    }catch(e){}
+  })();
+  // 游戏中落盘：存至当前档
+  function save(d){ saveToSlot(curSlot,d); }
+  function load(){ return rawSlot(curSlot); }
+  function clearSave(){ if(curSlot) clearSlot(curSlot); }
+  // 读档元信息（供标题屏展示，无需全量 normalize）
+  function slotMeta(slot){
+    var d=rawSlot(slot); if(!d) return {slot:slot, empty:true};
+    var s=normalize(d);
+    return {
+      slot:slot, empty:false,
+      name: s.name||'无名客',
+      sect: (G.SECTS[s.sect]&&G.SECTS[s.sect].name)||'江湖散人',
+      rep: s.reputation||0,
+      time: SHICHEN[(s.time||0)%12],
+      room: (G.ROOMS[s.room]&&G.ROOMS[s.room].name)||'未知之地',
+      day: s.day||0
+    };
+  }
+  // 旧存档缺字段则补默认，保证兼容（v0.1 → v0.2 迁移）
+  function normalize(s){
+    var def=G.defaultSave();
+    // 顶层字段补全
+    for(var k in def){
+      if(s[k]===undefined) s[k]=def[k];
+      // 深拷贝嵌套对象，防止引用污染
+      if(typeof def[k]==='object' && def[k] && !Array.isArray(def[k]) && k!=='flags'){
+        if(typeof s[k]!=='object' || !s[k] || Array.isArray(s[k])) s[k]={};
+        for(var nk in def[k]){ if(s[k][nk]===undefined) s[k][nk]=def[k][nk]; }
+      }
+    }
+    // 数组字段补默认
+    if(!Array.isArray(s.learnedMartial)) s.learnedMartial=def.learnedMartial.slice();
+    if(!Array.isArray(s.equippedForce)) s.equippedForce=[];
+    if(!Array.isArray(s.skills)) s.skills=def.skills.slice();
+    if(!Array.isArray(s.items)) s.items=[];
+    if(!Array.isArray(s.equips)) s.equips=[];
+    if(!s.equipment || typeof s.equipment!=='object') s.equipment={weapon:null,armor:null,trinket:null,mount:null};
+    ['weapon','armor','trinket','mount'].forEach(function(sl){ if(s.equipment[sl]===undefined) s.equipment[sl]=null; });
+    // 旧存档没有 spd 则给默认
+    if(!s.spd) s.spd=20;
+    // time 字段
+    if(s.time==null) s.time=0;
+    // clock（当日分钟）缺失时，按时辰起点还原，保证旧档时间显示对齐
+    var SH_START=[23,1,3,5,7,9,11,13,15,17,19,21];
+    if(s.clock==null) s.clock=(SH_START[s.time%12]*60)+22;
+    if(s.day==null) s.day=0;
+    if(s.weather==null) s.weather=0;         // 天候索引，缺省为「晴」
+    if(!s.eraName || typeof s.eraName!=='string') s.eraName='光和';  // 旧档缺年号则补默认
+    // 由 day 回写年号年序，保证旧档历法自洽
+    var d=s.day||0;
+    var tm=(12-1)+Math.floor(d/30);          // 腊月(12)起算
+    s.eraYear=1+Math.floor(tm/12);
+    s.adYear=178+Math.floor(tm/12);
+    // 确保武器艺线所有 key 存在
+    for(var l in def.lines){ if(s.lines[l]===undefined) s.lines[l]=0; }
+    // 确保艺线经验 key 存在（P2）
+    if(!s.lineExp || typeof s.lineExp!=='object') s.lineExp={};
+    for(var l in def.lines){ if(s.lineExp[l]===undefined) s.lineExp[l]=0; }
+    // 确保善恶双轴存在（P3）：旧档 karma 单值迁移为 chivalry/notoriety
+    if(typeof s.chivalry!=='number'){
+      s.chivalry = (typeof s.karma==='number' && s.karma>0) ? s.karma : 0;
+    }
+    if(typeof s.notoriety!=='number'){
+      s.notoriety = (typeof s.karma==='number' && s.karma<0) ? (-s.karma) : 0;
+    }
+    delete s.karma;
+    // 旧档清理：已弃用的资质壳与出身
+    if(s.apt) delete s.apt;
+    if(s.origin) s.origin=null;
+    // 四维系统迁移：旧档无 attr/freePoints/sectBonus/flatBonus 时补默认，避免 recalcBase 崩溃
+    if(!s.attr || typeof s.attr!=='object') s.attr={hp:5,atk:5,def:5,spd:5};
+    if(typeof s.freePoints!=='number') s.freePoints=0;
+    if(!s.sectBonus || typeof s.sectBonus!=='object') s.sectBonus={hp:0,atk:0,def:0,spd:0};
+    if(!s.flatBonus || typeof s.flatBonus!=='object') s.flatBonus={hp:0,atk:0,def:0,spd:0};
+    return s;
+  }
+
+  // [moved → shared/core/state.js]
+  // 将一份存档数据载入为当前游戏状态并展卷
+  function enterGame(data, slot){
+    curSlot=slot||0;
+    state = normalize(data || G.defaultSave());
+    G.applySect(state);
+    G.recalcBase(state);                      // 依据四维 attr + 门派加成 重算派生战力
+    packEnsure(state);                     // 行囊/6 装备槽兼容与初始化（v0.6）
+    SFX.setEnabled(state.sfxOn!==false);   // 载入存档后同步音效开关
+    if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
+    $narr.innerHTML='';
+    renderStatus();
+    // 开场渐进式 UI：新局落在教学入口时，先进入空白引导态（隐藏顶栏/DOCK/行动区/罗盘）
+    if((state.room==='camp_yard'||state.spawnRoom==='camp_yard') && !(state.flags && state.flags.onb && state.flags.onb.done)){
+      if(!state.flags) state.flags={};
+      if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
+      applyOnboard();   // NPC 列表延后到开场剧本「点下方老乞丐」一步才 reveal，避免提前交互引发 bug
+      toast('轻触叙事文字，可立即显示整段');
+    }
+    renderRoom(state.room || state.spawnRoom || 'ji_guomen');
+    var app=document.getElementById('app'); if(app) app.classList.remove('hidden');
+    var tt=document.getElementById('title'); if(tt) tt.classList.add('hidden');
+  }
+
+  var $status=document.getElementById('status');
+  $status.onclick=function(){ openModal('clock'); };   // 点击状态栏 → 时辰钟表
+  var $narr=document.getElementById('narr');
+  var $actions=document.getElementById('actions');
+  var $modal=document.getElementById('modal');
+  var $card=document.getElementById('modal-card');
+  var $toast=document.getElementById('toast');
+
+  function curRoom(){ return G.ROOMS[state.room] || bldRoom(state.room) || G.ROOMS.camp_yard; }
+
+  // ===== 文字叙事窗 =====
+  // 轻触快进：仅立即显示「当前正在打字」的那一段；两次快进至少间隔 300ms，防误触连跳多段
+  var activeTyper=null, lastSkipAt=0;
+  function typeInto(node, text, delay, done, onstep){
+    var i=0, finished=false, timer=null;
+    function finish(){
+      if(finished) return; finished=true;
+      if(timer){ clearTimeout(timer); timer=null; }
+      node.textContent=text;
+      if(onstep) onstep();
+      if(activeTyper && activeTyper.fn===finish) activeTyper=null;
+      if(done) done();
+    }
+    activeTyper={ fn: finish };
+    (function step(){
+      if(finished) return;
+      node.textContent=text.slice(0,i);
+      if(onstep) onstep();
+      if(i<text.length){ i++; timer=setTimeout(step, delay); }
+      else finish();
+    })();
+  }
+  function skipTypewriter(){
+    if(!activeTyper) return;
+    var now=Date.now();
+    if(now-lastSkipAt<300) return;   // 防误触：两次快进至少间隔 300ms
+    lastSkipAt=now;
+    var fn=activeTyper.fn; activeTyper=null; fn();
+  }
+  // 快进：仅点击「叙事区文字」才生效；点中任何按钮/控件（移动罗盘、对话选项、行动区、NPC 列表）一律不触发，避免误触跳过剧情
+  (function(){ var _sc=document.getElementById('scene'); if(_sc) _sc.addEventListener('click', function(e){
+    if(e.target && e.target.closest) { var hit=e.target.closest('button, a, .onb-choices, .mv-exit, .mv-bar, .dock, .npc-list'); if(hit) return; }
+    skipTypewriter();
+  }); })();
+  // 串行输出队列：所有叙事段落入队，一次只打字一段；前段完成(或快进)后才出下一段，
+  // 从根本上杜绝「好几行一起刷出」让玩家措手不及
+  var logQueue=[], logBusy=false;
+  var narrOngoing=false; // 是否正处于「连续叙事」中（保证逐行间隙按钮仍锁定）
+  var narrToken=0;      // 场景叙事令牌：新场景使旧序列失效，杜绝旧文字混入新场景
+  var lockObserver=null;
+  // 是否正处于「文字输出中」（打字 / 排队 / 连续叙事）
+  function narrActive(){ return logBusy || (logQueue && logQueue.length>0) || narrOngoing; }
+  // 文字输出中：锁定交互按钮（变灰不可点），输出完成或快进到底后自动解锁
+  // 注：战斗中（combatMode 为真）不锁 #actions —— 战斗指令菜单由战斗逻辑自行管理，不应被叙事锁挡住
+  function syncActionLock(){
+    var active=narrActive();
+    var sel='#move-bar button, #npc button, .npc-panel button, .obj-panel button, .onb-choices button';
+    if(!combatMode) sel+=', #actions button:not(.cb-menu)';
+    var nodes=document.querySelectorAll(sel);
+    for(var i=0;i<nodes.length;i++){ if(active) nodes[i].classList.add('locked'); else nodes[i].classList.remove('locked'); }
+    var narr=document.getElementById('narr');
+    if(narr) narr.classList.toggle('typing', active);
+  }
+  // 新场景/战斗开始时，丢弃旧场景残留的排队文字与打字定时器，避免文案串场
+  function flushNarr(){
+    narrToken++;                 // 使任何进行中的旧 logScene 序列失效
+    logQueue.length=0;
+    if(activeTyper && activeTyper.timer){ try{ clearTimeout(activeTyper.timer); }catch(e){} }
+    activeTyper=null;
+    logBusy=false;
+    narrOngoing=false;
+    syncActionLock();
+  }
+  function initLockObserver(){
+    if(lockObserver) return;
+    lockObserver=new MutationObserver(function(muts){
+      if(!narrActive()) return;
+      if(combatMode) return;   // 战斗中由 DQ 逻辑自行管理 #actions，不在此处上锁（syncActionLock 也不再解锁，需保持一致）
+      muts.forEach(function(m){
+        m.addedNodes.forEach(function(n){
+          if(n.nodeType!==1) return;
+          var bs=(n.matches && n.matches('button:not(.cb-menu)')) ? [n] : (n.querySelectorAll?n.querySelectorAll('button:not(.cb-menu)'):[]);
+          for(var i=0;i<bs.length;i++) bs[i].classList.add('locked');
+        });
+      });
+    });
+    ['actions','move-bar','npc'].forEach(function(id){ var el=document.getElementById(id); if(el) lockObserver.observe(el,{childList:true,subtree:true}); });
+  }
+  initLockObserver();
+  function log(text, cls, name, done){
+    if(!$narr){ return; }
+    logQueue.push({text:String(text==null?'':text), cls:cls, name:name, done:done});
+    syncActionLock();           // 开始输出即锁定按钮（防「文案未完就点下一处」）
+    if(!logBusy) pumpLog();
+  }
+  function pumpLog(){
+    if(logBusy) return;
+    var item=logQueue.shift();
+    if(!item){ return; }
+    logBusy=true;
+    logNow(item.text, item.cls, item.name, function(){ logBusy=false; if(item.done) item.done(); syncActionLock(); pumpLog(); });
+  }
+  // 真正执行单段打字（由 log 队列驱动）
+  function logNow(text, cls, name, done){
+    cls=cls||'env';
+    var p=document.createElement('p');
+    p.className='narr '+cls;
+    var sc=document.getElementById('scene');
+    function scroll(){ if(sc) sc.scrollTop=sc.scrollHeight; }
+    function finish(){ if(done) done(); }
+    var delay = settings.textSpeed>0 ? settings.textSpeed : 0;
+    if(cls==='npc' && name){
+      var s=document.createElement('span'); s.className='nm'; s.textContent=name+'：'; p.appendChild(s);
+      var tn=document.createTextNode(''); p.appendChild(tn); $narr.appendChild(p);
+      if(delay<=0){ tn.textContent=text; scroll(); finish(); }
+      else { p.classList.add('typing'); typeInto(tn, text, delay, function(){ p.classList.remove('typing'); scroll(); finish(); }, scroll); }
+    } else {
+      var tn2=document.createTextNode(''); p.appendChild(tn2); $narr.appendChild(p);
+      if(delay<=0){ tn2.textContent=text; scroll(); finish(); }
+      else { p.classList.add('typing'); typeInto(tn2, text, delay, function(){ p.classList.remove('typing'); scroll(); finish(); }, scroll); }
+    }
+  }
+  // 串行叙事：逐行依次输出，前一行打字完成后隔 gap 再播下一行，避免多行同时刷出眼花
+  function logScene(lines, gap, onDone){
+    gap = gap==null ? 150 : gap;
+    var myToken = ++narrToken;          // 本段叙事获得令牌
+    narrOngoing=true; syncActionLock(); // 连续叙事期间保持按钮锁定
+    (function play(i){
+      if(myToken!==narrToken){ if(narrOngoing){ narrOngoing=false; syncActionLock(); } return; } // 已被新场景取代，放弃旧叙事
+      if(i>=lines.length){ narrOngoing=false; if(onDone) onDone(); syncActionLock(); return; }
+      var l=lines[i];
+      log(l.t, l.c, l.n, function(){ setTimeout(function(){ play(i+1); }, gap); });
+    })(0);
+  }
+
+  // ===== 状态栏（两行：身份 + 数值条） =====
+  // P3 善恶双轨：侠义/凶名独立双轴，互不抵消
+  function moralLabel(){
+    var c=state.chivalry, n=state.notoriety;
+    if(c>0 && n>0) return '侠'+c+'·凶'+n;
+    if(c>0) return '侠'+c;
+    if(n>0) return '凶'+n;
+    return '中立';
+  }
+  // 风评称号（基于双轴阈值，见 GAME_DESIGN 4.2）
+  function moralTitle(){
+    var c=state.chivalry, n=state.notoriety;
+    if(c>=40 && n>=40) return '亦正亦邪·枭雄';
+    if(c>=30 && n>=30) return '正邪莫测';
+    if(c>=30) return '清流义士';
+    if(n>=30) return '绿林枭雄';
+    if(c>=10 && n>=10) return '正邪交织';
+    if(c>=10) return '侠义新秀';
+    if(n>=10) return '初露凶名';
+    return '无名之辈';
+  }
+  // 双轴累积 + 阈值解锁提示（P3）
+  function addChivalry(v){
+    var b=state.chivalry; state.chivalry=Math.max(0,state.chivalry+(v||1));
+    afterMoral('chivalry', b, state.chivalry);
+  }
+  function addNotoriety(v){
+    var b=state.notoriety; state.notoriety=Math.max(0,state.notoriety+(v||1));
+    afterMoral('notoriety', b, state.notoriety);
+  }
+  function afterMoral(axis, before, after){
+    if(axis==='chivalry'){
+      if(before<30 && after>=30) log('【风评】侠义值达 30！清流名士敬重，可接「侠义委托」。','good');
+      if(before<40 && after>=40) log('【风评】侠义值达 40！','good');
+    } else {
+      if(before<30 && after>=30) log('【风评】凶名值达 30！影门与绿林亲近，可接「高阶悬赏」。','good');
+      if(before<40 && after>=40) log('【风评】凶名值达 40！','good');
+    }
+    if(state.chivalry>=40 && state.notoriety>=40 && !state.flags.usurper_seen){
+      state.flags.usurper_seen=true;
+      log('【风评】侠义凶名俱达 40——亦正亦邪·枭雄 之路为你敞开！','good');
+    }
+  }
+  // 声望框架：0-100，称号区间见 GAME_DESIGN 4.1（P4 起由胜战真实获取；调试台内置常驻，可直赋测试）
+  function repTitle(rep){
+    if(rep>=95) return '一代宗师';
+    if(rep>=85) return '名扬天下';
+    if(rep>=70) return '威震一方';
+    if(rep>=55) return '名动一方';
+    if(rep>=40) return '江湖新秀';
+    if(rep>=25) return '小有名气';
+    if(rep>=10) return '初入江湖';
+    return '无名小卒';
+  }
+  function addReputation(n){
+    var old=state.reputation;
+    state.reputation=Math.max(0,Math.min(100,state.reputation+n));
+    log('【声望】'+(state.reputation-old>=0?'+':'')+(state.reputation-old)+'（当前 '+state.reputation+' · '+repTitle(state.reputation)+'）','good');
+  }
+  function renderStatus(){
+    checkQuestRewards();
+    var sh=SHICHEN[state.time%12];
+    var hh=String(Math.floor(state.clock/60)).padStart(2,'0');
+    var mm=String(state.clock%60).padStart(2,'0');
+    var c=deriveCalendar();
+    var era=(state.eraName||'光和')+(c.eraYear===1?'元年':c.eraYear+'年');
+    var w=WEATHERS[state.weather]||WEATHERS[0];
+    $status.innerHTML=
+      '<span class="who" title="'+state.name+'">'+state.name+'</span>'+
+      '<span class="dot">·</span>'+
+      '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
+      '<span class="st-time">'+sh+'</span>'+
+      '<span class="dot">·</span>'+
+      '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>';
+    var qtr=document.getElementById('quest-track');
+    if(qtr){
+      var tq=state.trackingQuest, to=null;
+      if(tq){ for(var _qi=0;_qi<LF.OBJECTIVES.length;_qi++){ if(LF.OBJECTIVES[_qi].id===tq){ to=LF.OBJECTIVES[_qi]; break; } } }
+      if(to){
+        var _qdone=to.check(state);
+        qtr.style.display='';
+        qtr.innerHTML='<span class="qt-ic">📜</span>追踪 · <b>'+to.title+'</b><span class="qt-prog">'+(_qdone?'已达成 ✓':to.prog(state))+'</span><button class="qt-clear" type="button">✕</button>';
+        var _qb=qtr.querySelector('.qt-clear'); if(_qb){ _qb.onclick=function(){ state.trackingQuest=null; renderStatus(); }; }
+      } else { qtr.style.display='none'; }
+    }
+  }
+  function renderLocTab(room){
+    var loc=room.name||'';
+    if(isCityGrid(room.id) && state.flags.cityPos){
+      var _m=genCityGrid(room.id);
+      if(_m){ var _ct=_m.cells[state.flags.cityPos.y][state.flags.cityPos.x]; loc+=' · '+cellDisplayName(room.id,_ct); }
+    }
+    var t=document.getElementById('loc-tab'); if(t) t.textContent=loc;
+  }
+
+  // ===== 升级 / 效果结算 =====
+  // 敌人修为经验：依敌方气血与攻击估算（设计 4.7：修为经验来自战斗结算）
+  function enemyExp(en){
+    if(!en || en.id==='dummy') return 0;
+    return Math.max(1, Math.round((en.hp + en.atk*4) / 10));
+  }
+  // 升级：每级获得 1 点自由属性点（加点见角色面板 attrAllocHTML）
+  function addXp(n){
+    if(!state.attr) state.attr={hp:5,atk:5,def:5,spd:5};
+    state.exp+=n;
+    while(state.exp>=G.BALANCE.expNeed(state.level) && state.level<G.CONSTANTS.MAX_LEVEL){
+      state.exp-=G.BALANCE.expNeed(state.level); state.level++;
+      state.freePoints=(state.freePoints||0)+1;              // 每升一级获得 1 点自由属性点
+      state.hp=state.maxHp;state.mp=state.maxMp;             // 破境气血内力尽复
+      log('【破境】修为精进！已至 LV.'+state.level+'，获得 1 点自由属性点（余 '+(state.freePoints||0)+'）。气血尽复。','good');
+    }
+    if((state.freePoints||0)>0 && combatMode===null){ try{ openModal('char'); }catch(e){} }
+  }
+  function applyEffect(e){
+    e=e||{}; var got=[];
+    if(e.xp){addXp(e.xp);got.push('修为+'+e.xp);}
+    if(e.gold){state.gold=Math.max(0,state.gold+e.gold);got.push('银两'+(e.gold>0?'+':'')+e.gold);}
+    if(e.atk){ if(!state.flatBonus) state.flatBonus={hp:0,atk:0,def:0,spd:0}; state.flatBonus.atk+=e.atk; got.push('攻+'+e.atk); }
+    if(e.def){ if(!state.flatBonus) state.flatBonus={hp:0,atk:0,def:0,spd:0}; state.flatBonus.def+=e.def; got.push('防+'+e.def); }
+    if(e.maxMp){state.maxMp+=e.maxMp;state.mp+=e.maxMp;got.push('内力上限+'+e.maxMp);}
+    if(e.mp==='full'){state.mp=state.maxMp;} else if(e.mp){state.mp=Math.min(state.maxMp,state.mp+e.mp);}
+    if(e.hp==='full'){state.hp=state.maxHp;got.push('气血尽复');} else if(e.hp){state.hp=Math.min(state.maxHp,state.hp+e.hp);got.push('气血+'+e.hp);}
+    if(e.flag)state.flags[e.flag]=true;
+    if(e.reputation){addReputation(e.reputation);}
+    else if(e.rep){addReputation(e.rep);}
+    // 永久战力加成（atk/def）经 flatBonus 累加后，必须重算派生战力方能生效
+    if(e.atk || e.def){ G.recalcBase(state); clampHp(); }
+    if(e.give){
+      var arr=Array.isArray(e.give)?e.give:[e.give];
+      arr.forEach(function(g){
+        var defId=g.defId||g, n=g.n||1;
+        var it=LF.ITEMS.makeItem(defId, n);
+        if(packAdd(it)) got.push((it.name||defId)+'×'+n);
+        else got.push('（行囊已满，'+defId+'未得）');
+      });
+    }
+    if(got.length) log('【收获】'+got.join('，')+'。','good');
+  }
+  function findEvent(id){ for(var i=0;i<G.EVENTS.length;i++) if(G.EVENTS[i].id===id) return G.EVENTS[i]; return null; }
+
+  // ===== 时间与生存消耗 =====
+  function advanceTime(n){
+    n=n||1;
+    var before=state.clock;
+    var total=before + n*120;
+    var crossings=Math.floor(total/1440);   // 跨子夜次数 = 经过的天数
+    state.time=(state.time+n)%12;
+    state.clock=total%1440;                  // 每时辰 = 120 游戏分钟
+    if(crossings>0){
+      state.day=(state.day||0)+crossings;
+      syncCalendar();                        // 跨日 → 农历月日 / 年号年序随之推进
+      if(Math.random()<0.55) state.weather=Math.floor(Math.random()*WEATHERS.length); // 新日易天候
+    }
+    state.food=Math.max(0,state.food-n);
+    state.drink=Math.max(0,state.drink-n);
+    state.energy=Math.max(0,state.energy-2*n);
+    maybeStarve();
+    tickForge(n);   // 炉膛随时辰持续推进
+    tickBuildOrders(crossings);   // 城市营造工单：跨日推进宏观委派 + 结算每日市租（第3步）
+  }
+  // 由累计天数回写年号年序（年号恒定「光和」，游戏内自洽）
+  function syncCalendar(){
+    var c=deriveCalendar();
+    state.eraYear=c.eraYear; state.adYear=c.adYear;
+  }
+  // 饥饿过高：食物/饮水耗尽则持续侵蚀气血（硬性限制）；归零即殒落
+  function maybeStarve(){
+    var dmg=0, msgs=[];
+    if(state.food<=0){ dmg+=6; msgs.push('腹中空虚'); }
+    if(state.drink<=0){ dmg+=4; msgs.push('喉间干涸'); }
+    if(dmg>0){
+      state.hp=Math.max(0,state.hp-dmg);
+      log('〔饥馁〕'+msgs.join('，')+'，气血-'+dmg+'。','combat');
+      checkDeath();
+    }
+  }
+  // 死亡：气血归零 → 回标题屏（读档/重开）
+  function checkDeath(){ if(state && !state.dead && state.hp<=0){ die(); } }
+  function die(){
+    state.dead=true;   // 不落盘（save 对 hp<=0 跳过），回标题屏读档即回到死前存档
+    $modal.classList.remove('hidden');
+    $card.innerHTML='<h3 style="color:#8a3b2e">⚔ 殒 落</h3>'+
+      '<p class="tip">气血已枯，魂归尘土——乱世如炉，谁记你姓名？<br>欲续前缘，且回首页拾卷重展。</p>'+
+      '<button class="close" id="m-home">回 首 页</button>'+
+      (curSlot? '<button class="close" id="m-load" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">读 档 续 命</button>':'');
+    var hm=document.getElementById('m-home'); if(hm)hm.onclick=function(){ closeModal(); showTitle(); };
+    var ld=document.getElementById('m-load'); if(ld)ld.onclick=function(){ closeModal(); enterGame(rawSlot(curSlot), curSlot); };
+  }
+  // ===== 标题屏与子面板 =====
+  function showTitle(){
+    state=null; curSlot=0;
+    var app=document.getElementById('app'); if(app) app.classList.add('hidden');
+    var tt=document.getElementById('title'); if(tt) tt.classList.remove('hidden');
+    applyTitleFx();
+  }
+  // 标题特效开关：关则隐藏水墨烟尘/墨晕层
+  function applyTitleFx(){
+    var tt=document.getElementById('title');
+    if(tt) tt.classList.toggle('no-fx', settings.titleFx===false);
+  }
+  // 互动提示音（音效开时）
+  var _actx=null;
+  function tick(freq){
+    if(!settings.sound) return;
+    try{
+      _actx=_actx||new (window.AudioContext||window.webkitAudioContext)();
+      var o=_actx.createOscillator(), g=_actx.createGain();
+      o.type='sine'; o.frequency.value=freq||540;
+      o.connect(g); g.connect(_actx.destination);
+      g.gain.setValueAtTime(.07,_actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001,_actx.currentTime+.12);
+      o.start(); o.stop(_actx.currentTime+.13);
+    }catch(e){}
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  // 择档面板（mode: 'new'=开新局 / 'load'=读旧档）
+  function renderSlotsHTML(mode){
+    var title = mode==='new' ? '仗 剑 入 世 · 择 卷' : '拾 卷 续 缘 · 择 档';
+    var intro = mode==='new'
+      ? '择一空卷落笔；若卷中已有旧事，将覆而新写。'
+      : '择一卷展读，续那未竟之缘。空卷不可读。';
+    var rows='';
+    for(var i=1;i<=3;i++){
+      var m=slotMeta(i);
+      var confirmHTML = (mode==='new' && !m.empty)
+        ? '<div class="sl-confirm">'+
+            '<p>第 '+i+' 卷已有旧事，覆而新写？</p>'+
+            '<div class="sl-actions">'+
+              '<button class="sl-yes" data-action="overwrite" data-slot="'+i+'">覆 写</button>'+
+              '<button data-action="cancel" data-slot="'+i+'">再 想 想</button>'+
+            '</div>'+
+          '</div>'
+        : '';
+      if(m.empty){
+        rows+='<div class="slot" data-slot="'+i+'" data-mode="'+mode+'">'+
+          '<div class="sl-body">'+
+          '<div class="sl-top"><span class="sl-empty">第 '+i+' 卷 · 空</span></div>'+
+          '<div class="sl-meta">尚未落墨。</div></div>'+confirmHTML+'</div>';
+      } else {
+        rows+='<div class="slot" data-slot="'+i+'" data-mode="'+mode+'">'+
+          '<div class="sl-body">'+
+          '<div class="sl-top"><span class="sl-name">第 '+i+' 卷 · '+escapeHtml(m.name)+'</span>'+
+          '<span class="sl-sect">'+m.rep+' 声名</span></div>'+
+          '<div class="sl-meta">'+m.sect+' · '+escapeHtml(m.room)+' · '+m.time+'</div>'+
+          '<div class="sl-sect">历 '+m.day+' 日</div></div>'+confirmHTML+'</div>';
+      }
+    }
+    return '<h3>'+title+'</h3><p class="tip">'+intro+'</p><div class="slot-row">'+rows+'</div>';
+  }
+  // 图鉴：览物志
+  function renderCodex(){
+    var known={}; if(state&&state.learnedMartial) state.learnedMartial.forEach(function(id){known[id]=1;});
+    var byLine={};
+    Object.keys(G.MARTIAL_ARTS||{}).forEach(function(id){
+      var m=G.MARTIAL_ARTS[id]; if(!m||!m.line) return;
+      (byLine[m.line]=byLine[m.line]||[]).push({name:m.name,on:!!known[id]});
+    });
+    var h='<h3>览 物 志</h3><p class="tip">江湖风物，已历者标朱。</p>';
+    h+='<div class="codex-sec"><h4>武 学（十三艺线）</h4><div class="codex-grid">';
+    Object.keys(byLine).forEach(function(line){
+      byLine[line].forEach(function(it){ h+='<span class="codex-chip'+(it.on?' on':'')+'">'+it.name+'</span>'; });
+    });
+    h+='</div></div>';
+    h+='<div class="codex-sec"><h4>门 派</h4><div class="codex-grid">';
+    Object.keys(G.SECTS||{}).forEach(function(k){ h+='<span class="codex-chip">'+G.SECTS[k].name+'</span>'; });
+    h+='</div></div>';
+    if(G.ENEMIES){
+      h+='<div class="codex-sec"><h4>贼 寇 名 录</h4><div class="codex-grid">';
+      Object.keys(G.ENEMIES).forEach(function(k){ var e=G.ENEMIES[k]; if(e&&e.name) h+='<span class="codex-chip">'+e.name+'</span>'; });
+      h+='</div></div>';
+    }
+    return h;
+  }
+  // 设置：标签页（画面 / 声音 / 游戏）；fromTitle 时不含调试台
+  function renderSettings(opts){
+    opts=opts||{};
+    var fromTitle=!!opts.fromTitle;
+    var ts=settings.textSpeed;
+    var gfx=
+      '<div class="set-row col"><span>文字演出（越大越慢）</span>'+
+        '<input type="range" class="lf-range" id="rng-speed" min="0" max="100" step="5" value="'+ts+'">'+
+        '<span class="spd-val" id="spd-val">'+lfSpeedLabel(ts)+'</span></div>'+
+      '<div class="set-row"><span>标题特效</span><div class="seg" id="seg-fx">'+
+        '<button data-v="1" class="'+(settings.titleFx!==false?'on':'')+'">开</button>'+
+        '<button data-v="0" class="'+(settings.titleFx===false?'on':'')+'">关</button></div></div>'+
+      '<p class="tip">水墨烟尘与墨晕动画；喧嚣可关，长夜更静。</p>';
+    var snd=
+      '<div class="set-row"><span>音效</span><div class="seg" id="seg-snd">'+
+        '<button data-v="1" class="'+(settings.sound?'on':'')+'">开</button>'+
+        '<button data-v="0" class="'+(!settings.sound?'on':'')+'">关</button></div></div>'+
+      '<p class="tip">开关互动提示音。</p>';
+    var game='';
+    if(!fromTitle){
+      game+='<button class="close" id="m-save" style="margin-top:14px;">立即存档</button>';
+    }
+    game+='<button class="close" id="m-clear" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清除全部存档</button>';
+    if(!fromTitle){
+      game+='<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台</button>';
+    }
+    game+='<p class="tip">设定已存，演武时遵循。</p>'+
+      '<p class="tip">当前版本 v'+LF.CONSTANTS.VERSION+'</p>';
+    return '<h3>设 置</h3>'+
+      '<div class="set-tabs">'+
+        '<button data-tab="gfx" class="on">画面</button>'+
+        '<button data-tab="snd">声音</button>'+
+        '<button data-tab="game">游戏</button>'+
+      '</div>'+
+      '<div class="set-panel" data-panel="gfx">'+gfx+'</div>'+
+      '<div class="set-panel hidden" data-panel="snd">'+snd+'</div>'+
+      '<div class="set-panel hidden" data-panel="game">'+game+'</div>';
+  }
+  // 开发人员名单：群英同撰
+  function renderCredit(){
+    return '<h3>群 英 同 撰</h3>'+
+      '<p class="tip">此作由一人独力编撰，赖 AI 襄助而成。勒名于左，以志其事。</p>'+
+      row('总 撰','一只大鸽子')+
+      row('执 笔','一只大鸽子')+
+      row('程 式','一只大鸽子')+
+      row('绘 事','一只大鸽子')+
+      row('校 勘','一只大鸽子')+
+      row('音 律','一只大鸽子')+
+      row('协 力','CodeBuddy（AI 协作）')+
+      '<p class="tip">一人一灯，江湖路远。若遇同好，可续刻其名。</p>';
+  }
+  // ===== P0：志向（目标追踪）+ 门派加入 UX =====
+  var QORDER={white:0,green:1,blue:2,purple:3,orange:4};
+  function objBestEquip(s){ var b={q:0,name:''}; if(s.equipment){ Object.keys(s.equipment).forEach(function(k){ var it=s.equipment[k]; if(it&&it.quality!=null){ var q=QORDER[it.quality]; if(q!=null&&q>b.q){b.q=q;b.name=it.name;} } }); } return b; }
+  function renderObjectives(){
+    if(!LF.OBJECTIVES) return '<h3>任 务</h3><p class="tip">数据未载入。</p>';
+    var arr=LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(state)}; });
+    var groups=[ {key:'main',name:'主 线',ic:'⚔'}, {key:'side',name:'支 线',ic:'🏮'}, {key:'trial',name:'修 行',ic:'📖'} ];
+    var h='<h3>任 务 日 志</h3>'+
+      '<p class="tip">乱世无师，唯志可引。达成任务即记功领赏；点「追踪」可将目标钉在顶栏，随时查看进度。</p>';
+    var hasActive=false;
+    groups.forEach(function(g){
+      var items=arr.filter(function(x){ return !x.done && (x.o.type||'side')===g.key; });
+      if(!items.length) return;
+      hasActive=true;
+      h+='<div class="obj-group"><div class="obj-group-title">'+g.ic+' '+g.name+'</div><div class="obj-list">';
+      items.forEach(function(x){ h+=objCardHTML(x); });
+      h+='</div></div>';
+    });
+    if(!hasActive){ h+='<p class="tip" style="color:#7fce8f;">诸事已了，江湖路远，自去纵横罢。</p>'; }
+    var done=arr.filter(function(x){return x.done;});
+    if(done.length){
+      h+='<div class="obj-done-title">已达成（'+done.length+'）</div><div class="obj-done">';
+      done.forEach(function(x){ h+='<span class="obj-d">✓ '+x.o.title+'</span>'; });
+      h+='</div>';
+    }
+    return h;
+  }
+  function objCardHTML(x){
+    var o=x.o;
+    var tn={main:'主线',side:'支线',trial:'修行'}[o.type]||'任务';
+    var cls=o.type==='main'?'t-main':(o.type==='trial'?'t-trial':'t-side');
+    var r='<div class="obj '+cls+'">'+
+      '<div class="obj-head"><span class="obj-tag '+cls+'">'+tn+'</span><span class="obj-t">'+o.title+'</span></div>'+
+      '<div class="obj-h">'+o.hint+'</div>';
+    if(typeof o.ratio==='function'){
+      var rt=Math.max(0,Math.min(1,o.ratio(state)||0));
+      r+='<div class="obj-bar"><span style="width:'+Math.round(rt*100)+'%"></span></div>'+
+         '<div class="obj-p">'+o.prog(state)+'</div>';
+    } else {
+      r+='<div class="obj-p">进度 · '+o.prog(state)+'</div>';
+    }
+    if(o.reward){
+      var rw=[];
+      if(o.reward.xp) rw.push('修为+'+o.reward.xp);
+      if(o.reward.gold) rw.push('银两+'+o.reward.gold);
+      if(o.reward.rep) rw.push('声望+'+o.reward.rep);
+      r+='<div class="obj-reward">奖励 · '+rw.join(' · ')+'</div>';
+    }
+    var tracking=state.trackingQuest===o.id;
+    r+='<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+o.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button>'+
+       '</div>';
+    return r;
+  }
+  function questTitle(qid){
+    if(LF.OBJECTIVES){ for(var i=0;i<LF.OBJECTIVES.length;i++){ if(LF.OBJECTIVES[i].id===qid) return LF.OBJECTIVES[i].title; } }
+    return qid;
+  }
+  function bindQuestPanel(){
+    document.querySelectorAll('.obj-track[data-quest]').forEach(function(b){
+      b.onclick=function(){
+        var qid=b.getAttribute('data-quest');
+        if(state.trackingQuest===qid){ state.trackingQuest=null; toast('已取消追踪'); }
+        else { state.trackingQuest=qid; toast('已追踪「'+questTitle(qid)+'」，目标显示在顶栏'); }
+        renderStatus();
+        openModal('quest');
+      };
+    });
+  }
+  function checkQuestRewards(){
+    if(!state || !LF.OBJECTIVES) return;
+    state.questRewards=state.questRewards||{};
+    var got=[];
+    LF.OBJECTIVES.forEach(function(o){
+      if(state.questRewards[o.id]) return;
+      if(o.check(state)){
+        state.questRewards[o.id]=true;
+        if(o.reward){
+          if(o.reward.xp){ addXp(o.reward.xp); got.push('修为+'+o.reward.xp); }
+          if(o.reward.gold){ state.gold=(state.gold||0)+o.reward.gold; got.push('银两+'+o.reward.gold); }
+          if(o.reward.rep){ addReputation(o.reward.rep); got.push('声望+'+o.reward.rep); }
+        }
+        got.push('任务「'+o.title+'」');
+      }
+    });
+    if(got.length) log('【任务达成】'+got.join('，')+'。','good');
+  }
+
+  function sectBonusText(b){
+    if(!b) return '';
+    var m={atk:'攻',def:'防',maxHp:'气血',maxMp:'内力',spd:'身法'};
+    var p=[]; Object.keys(b).forEach(function(k){ if(b[k]) p.push('+'+b[k]+' '+m[k]); });
+    return p.join(' · ');
+  }
+  function sectReqText(d){
+    var u=d.unlock||{}, p=[];
+    if(u.reputation) p.push('江湖声望≥'+u.reputation);
+    if(u.level) p.push('等级≥'+u.level);
+    if(u.flag) p.push('需先触发「'+(({met_zhangjiao:'张角之遇'})[u.flag]||u.flag)+'」');
+    return p.length?p.join(' · '):'无门槛';
+  }
+  function renderSectPanel(){
+    if(!G.SECTS) return '<h3>门 派</h3><p class="tip">数据未载入。</p>';
+    var h='<h3>门 派</h3>'+
+      '<p class="tip">门派为「中后期可选玩法」：声望初立后方可主动加入，得门风加成与传功。已入者不可更易。</p>'+
+      '<div class="sect-list">';
+    Object.keys(G.SECTS).forEach(function(id){
+      var d=G.SECTS[id], joined=state.sect===id, can=G.canJoinSect(state,id);
+      h+='<div class="sect'+(joined?' on':'')+'">'+
+        '<div class="sect-name">'+d.name+'<span class="sect-fac">'+d.faction+'</span></div>'+
+        '<div class="sect-desc">'+d.style+'</div>'+
+        '<div class="sect-bonus">门风加成 · '+sectBonusText(d.bonus)+'</div>'+
+        '<div class="sect-skill">传功 · '+((d.martials||[]).join('、'))+'</div>'+
+        '<div class="sect-req">加入条件 · '+sectReqText(d)+'</div>'+
+        (joined?'<div class="sect-joined">✓ 已身属此派</div>'
+               :(can.ok?'<button class="sect-join" data-sect="'+id+'">加 入 此 派</button>'
+                       :'<button class="sect-join" disabled title="'+can.reason+'">未达条件</button>'))+
+        '</div>';
+    });
+    h+='</div>';
+    return h;
+  }
+  function bindSectPanel(){
+    document.querySelectorAll('.sect-join[data-sect]').forEach(function(b){
+      if(b.disabled) return;
+      b.onclick=function(){
+        var id=b.getAttribute('data-sect');
+        if(state.sect){ toast('你已身属「'+G.SECTS[state.sect].name+'」'); return; }
+        var r=G.canJoinSect(state,id);
+        if(!r.ok){ toast(r.reason); return; }
+        G.joinSect(state,id);
+        log('你拜入「'+G.SECTS[id].name+'」，得传功心法。','good');
+        toast('已加入「'+G.SECTS[id].name+'」');
+        openModal('sect'); renderStatus();
+      };
+    });
+  }
+  function topObjectiveText(){
+    if(!LF.OBJECTIVES) return '志向';
+    for(var i=0;i<LF.OBJECTIVES.length;i++){ if(!LF.OBJECTIVES[i].check(state)) return LF.OBJECTIVES[i].title; }
+    return '诸事已了';
+  }
+  function bindTitle(){
+    var tv=document.getElementById('tt-ver'); if(tv) tv.textContent='v'+LF.CONSTANTS.VERSION;
+    var ts=document.getElementById('t-start'); if(ts) ts.onclick=function(){ openModal('newgame'); };
+    var tl=document.getElementById('t-load'); if(tl) tl.onclick=function(){ openModal('load'); };
+    var tc=document.getElementById('t-codex'); if(tc) tc.onclick=function(){ openModal('codex'); };
+    var tset=document.getElementById('t-set'); if(tset) tset.onclick=function(){ openModal('settings',{fromTitle:true}); };
+    var tcr=document.getElementById('t-credit'); if(tcr) tcr.onclick=function(){ openModal('credit'); };
+  }
+  // 体力亏空：精力耗尽则无法行动（硬性限制）
+  function exert(label){
+    if(state.energy<=0){
+      log('〔精力耗尽〕你四肢酸软，难以为继——须先「帐中休整」恢复精力，方可'+label+'。','sys');
+      return false;
+    }
+    return true;
+  }
+
+  // ===== 动态按钮区（分组菜单：对话 / 探查 / 行动 / 移动） =====
+  var lastGroup=null;
+  function clearActions(){$actions.innerHTML='';lastGroup=null;collapseObjPanel();}
+  function addBtn(label, fn, cls){
+    var b=document.createElement('button');
+    b.className='act '+(cls||''); b.textContent=label;
+    b.onclick=fn; $actions.appendChild(b);
+  }
+  function prependActsLabel(){
+    var l=document.createElement('div'); l.className='acts-label';
+    l.textContent='· 可 行 之 事 ·'; $actions.appendChild(l);
+  }
+  // 点击弹出的操作面板：详情 + 选项 + 告辞（始终可退回菜单）
+  function openSheet(o){
+    if(state.dead){ die(); return; }
+    o=o||{};
+    var acts=o.actions||[];
+    var h='<h3 style="display:flex;align-items:center;justify-content:center;gap:8px;">'+
+          (o.icon?'<span style="font-size:22px;line-height:1;">'+o.icon+'</span>':'')+
+          '<span>'+ (o.title||'') +'</span></h3>';
+    if(o.desc) h+='<p class="tip" style="text-align:center;font-size:14px;margin:2px 0 0;">'+o.desc+'</p>';
+    if(acts.length){
+      h+='<div class="sheet-btns">';
+      acts.forEach(function(a,i){ h+='<button class="sheet-btn'+(a.danger?' danger':'')+'" data-i="'+i+'">'+ (a.label||'') +'</button>'; });
+      h+='</div>';
+    }
+    h+='<button class="sheet-leave" id="m-leave">告 辞</button>';
+    $card.innerHTML=h;
+    $modal.classList.remove('hidden');
+    $card.querySelectorAll('.sheet-btn').forEach(function(btn){
+      btn.onclick=function(){ closeModal(); var a=acts[+btn.getAttribute('data-i')]; if(a&&a.fn) a.fn(); };
+    });
+    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
+  }
+  function addGrouped(group,label,fn,tip){
+    if(group!==lastGroup){
+      var t=document.createElement('div'); t.className='grp'; t.textContent='— '+group+' —';
+      $actions.appendChild(t); lastGroup=group;
+    }
+    var b=document.createElement('button'); b.className='act'; b.textContent=label;
+    if(tip){
+      b.onclick=function(){ openSheet({title:label, desc:tip, actions:[{label:'执 行', fn:fn}]}); };
+    } else {
+      b.onclick=fn;
+    }
+    $actions.appendChild(b);
+  }
+
+
+
+  // ===== 房间渲染 =====
+  var explored=false;        // 当前房间是否已探查（调查四周后解锁「去处」）
+  // 场景入场描述精简：只保留首句、超过 28 字截断，完整描述留给「探查/环顾」播放
+  function shortScene(t){
+    t=(t||'').trim(); if(!t) return t;
+    var m=t.match(/^[\s\S]{0,28}?[。！？]/);
+    if(m) return m[0];
+    return t.length>30 ? t.slice(0,29)+'…' : t;
+  }
+  function renderRoom(rid, silent){
+    var room=G.ROOMS[rid]||bldRoom(rid); if(!room) return;
+    narrToken++;                 // 新场景：使任何残留的旧叙事序列失效
+    state.room=rid;
+    if(isCityGrid(rid)){
+      var __m=genCityGrid(rid);
+      if(!state.flags.cityPos || state.flags.cityPos.cid!==rid){
+        // 进城先到城门（v20260905k：按路网自适应开着的城门依次取可通行格，兜底城心）
+        var __c=Math.floor(__m.size/2), __s=__m.size-1;
+        var __gates=[];
+        (cityGateDirs(rid)||[]).forEach(function(_d){
+          var _gc=gateCellCoord(rid,_d); if(_gc) __gates.push(_gc);
+        });
+        if(!__gates.length) __gates=[[__c,0],[0,__c],[__s,__c],[__c,__s]];
+        __gates.push([__c,__c]);
+        var __g=__gates[0];
+        for(var __gi=0;__gi<__gates.length;__gi++){
+          if(canEnterCell(rid,__gates[__gi][0],__gates[__gi][1])){ __g=__gates[__gi]; break; }
+        }
+        state.flags.cityPos={cid:rid, x:__g[0], y:__g[1]};
+      }
+    }
+    var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
+    var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell');
+    if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
+    explored = !!(state.exploredRooms && state.exploredRooms[rid]);
+    var narr=[];
+    if(!silent && !suppressNarr){
+      // 城市系统：进城先报城郭概况（人口/治安/商业，数据 shared/data/cities.js）
+      var cityLineTxt=cityLine(rid);
+      if(cityLineTxt) narr.push({t:cityLineTxt, c:'sys'});
+      room.desc.forEach(function(d){ narr.push({t:shortScene(d), c:'env'}); });
+      if(room.items && room.items.length){
+        narr.push({t:'〔地上之物〕', c:'sys'});
+        room.items.forEach(function(it){ narr.push({t:'· '+it, c:'item'}); });
+      }
+      if(room.exits){
+        var exLines=Object.keys(room.exits).map(function(d){ return d+'·'+exitDisplayName(room.exits[d]); }).join('　');
+        if(exLines) narr.push({t:'〔出口〕 '+exLines, c:'exit'});
+      }
+      if(room.isField) narr = narr.concat(fieldNarr(room));   // 郊野：资源/野兽/路人
+      // 新房间自动探查：标记已探索，出口立即可用。
+      // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「环顾四周 / 探查」在玩家主动行动时揭示。
+      if(!explored){
+        explored=true;
+        if(!state.exploredRooms) state.exploredRooms={};
+        state.exploredRooms[rid]=true;
+        save(state);
+      }
+    }
+    renderLocTab(room);
+    buildActions(room);
+    syncActionLock();            // 锁定新生成的房间按钮，待本场叙事播完再解锁
+    save(state); renderStatus();
+    // 叙事逐行串行播放（按钮已先就绪，文字依次刷出，不再同时眼花）
+    logScene(narr, 150, function(){
+      // 教学链：进入房间后触发对应引导（如燕山山口逃脱）
+      onbRoomEnter(room);
+      onbGoal();   // 进入新房间后刷新「当前目标」高亮（NPC/动作按钮已就绪）
+      renderMoveBar(G.ROOMS[state.room]||bldRoom(state.room));   // 门禁（moveGate）更新后重渲移动条；城内格子由 currentRoomExits 提供方向
+      // 巡逻山道遇敌提示延后到叙事结束，先看完场景再遇敌
+      if(room.patrol && !silent && !onboarding) maybeAmbush(room);
+      if(room.isField && !onboarding) maybeFieldAmbush(room);   // 郊野：主动野怪拦路
+    });
+  }
+  // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 流寇）
+  function maybeAmbush(room){
+    if(state.defeated) return;
+    var r=Math.random();
+    if(r < 0.18){
+      // 群战：两名同伙包抄（验证多敌/AOE 路径）
+      var pair = Math.random()<0.6 ? ['bandit','bandit'] : ['yellow_turban','yellow_turban'];
+      var label = pair[0]==='bandit' ? '山贼' : '流寇';
+      log('〔警觉〕林间杀声四起，两名'+label+'自两侧包抄，拦住去路！','combat');
+      startCombat(pair);
+    } else if(r < 0.5){
+      var enemy = Math.random()<0.6 ? 'bandit' : 'yellow_turban';
+      log('〔警觉〕林间树影倏动，一伙'+(enemy==='bandit'?'山贼':'流寇')+'自草莽中杀出，拦住去路！','combat');
+      startCombat(enemy);
+    } else {
+      log('这一程山道尚算平静，只闻松涛与远鸟。你按刀而行，未遇拦路之敌。','sys');
+    }
+  }
+  // ===== 场景对象配置：每个房间的可交互元素（人物/建筑/家具/出口） =====
+  var ROOM_OBJECTS = (LF.buildRoomObjects ? LF.buildRoomObjects() : {});
+
+
+  // 研习武学仅限特定房间（主营/郡学宫）
+  var LEARN_ROOMS={};
+  function roomCanLearn(rid){ return !!LEARN_ROOMS[rid]; }
+
+  // ===== 城市系统：数据驱动派生（数据 shared/data/cities.js） =====
+  // 进入城市房间时按人口/治安/商业参数生成城郭概况、人物与可行动作，免去为每城手写房间
+  function cityProfile(cid){
+    var c=(LF.CITIES||{})[cid]; if(!c) return null;
+    var tier = c.pop>=85?'巨邑': c.pop>=70?'大城': c.pop>=55?'州城': c.pop>=40?'县城':'边邑';
+    var popDesc = c.pop>=85?'户口百万': c.pop>=70?'户口数十万': c.pop>=55?'户口数万': c.pop>=40?'户口数千':'人口稀少';
+    var orderDesc = c.order>=70?'路不拾遗': c.order>=55?'夜不闭户': c.order>=40?'盗匪出没':'兵荒马乱';
+    var comDesc = c.commerce>=70?'商贾云集': c.commerce>=55?'市井兴旺': c.commerce>=40?'买卖尚可':'市面萧条';
+    var agriDesc = (c.agri>=70?'沃野千里': c.agri>=55?'田畴丰美': c.agri>=40?'耕耨寻常':'地瘠人稀');
+    var ctypeDesc = ({plain:'平原城',mountain:'山城',port:'港口城',fort:'城寨'})[c.ctype||'plain'];
+    var gates = cityGates(c);
+    return {c:c, tier:tier, tierDesc:tier, popDesc:popDesc, orderDesc:orderDesc, comDesc:comDesc, agriDesc:agriDesc, ctypeDesc:ctypeDesc, gates:gates};
+  }
+  function cityLine(cid){
+    var p=cityProfile(cid); if(!p) return '';
+    var _s='〔'+p.c.name+'·'+p.c.state+'·城况〕'+p.tierDesc+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc+'｜农:'+p.agriDesc+'｜'+p.ctypeDesc;
+    if(isCaptured(cid)) _s+='｜〔'+cityOwnerOf(cid)+'所占〕';   // 势力易主后显示占领势力
+    return _s;
+  }
+  // 城况面板（v20260825d）：参数 + 城型 + 城门 + 市集清单
+  function renderCityStat(cid){
+    var p=cityProfile(cid); if(!p) return '<h3>城 况</h3><p class="empty">暂无此城数据。</p>';
+    var m=genCityGrid(cid);
+    var mkHtml='';
+    if(m && m.markets){
+      var seen={}, list=[], total=0;
+      for(var k in m.markets){
+        total++;
+        var mk=m.markets[k];
+        var _xy=k.split(',');
+        // 仅统计已营建、当前可见的市集（与城内地图一致：开发度半径外/遭战火者不计入），避免面板虚报
+        if(cellDisplayType(cid, +_xy[0], +_xy[1])!=='market') continue;
+        if(!seen[mk.name]){ seen[mk.name]=1; list.push(mk); }
+      }
+      if(list.length){
+        var _tip = (total>list.length) ? ('，另有 '+(total-list.length)+' 处位于未营建/焦土区，待营建或修缮后开放') : '';
+        mkHtml='<div class="row"><span>市集（已营建 '+list.length+' 处'+_tip+'）</span></div><div class="city-mk">';
+        list.forEach(function(mk){
+          var shops=mk.shops.map(function(s){ return s.sign; }).join('、');
+          mkHtml+='<div class="mk-i">🏯 <b>'+mk.name+'</b>：'+shops+'</div>';
+        });
+        mkHtml+='</div>';
+      }
+    }
+    // 在建营造工单（第3步）：列出本城所有「building」状态的 BuildOrder
+    var boHtml='';
+    var _bo=state.flags.buildOrders;
+    if(_bo){
+      var boList=[];
+      for(var _bid in _bo){ var _o=_bo[_bid]; if(_o && _o.cid===cid && _o.status==='building') boList.push(_o); }
+      if(boList.length){
+        boHtml='<div class="row"><span>营造工事（'+boList.length+' 处）</span></div><div class="city-mk">';
+        boList.forEach(function(_o){
+          var _bp=LF.BUILD[_o.blueprintId]||{};
+          var _st=(_bp.stages||[]).length;
+          boHtml+='<div class="mk-i">🚧 <b>'+(_bp.doneName||'新筑')+'</b>：阶段 '+Math.min((_o.stageIndex||0)+1,_st)+' / '+_st+'　人力 '+(_o.laborPaid||0)+'/'+(_o.laborNeeded||(_bp.labor||2))+'</div>';
+        });
+        boHtml+='</div>';
+      }
+    }
+    return '<h3>城 况 · '+p.c.name+'</h3>'+
+      row('行政', p.tierDesc)+
+      row('城型', p.ctypeDesc)+
+      row('城门', (availableGateDirs(cid)||[]).length+' 座')+
+      row('城级', cityLevelName(cid)+'（'+cityGridSize(cid)+'×'+cityGridSize(cid)+' 格，建设度 '+cityDevOf(cid)+'）')+
+      row('人口', p.popDesc)+
+      row('治安', p.orderDesc)+
+      row('商业', p.comDesc)+
+      row('农业', p.agriDesc)+
+      row('城防', (p.c.wall>=60?'高垒深沟': p.c.wall>=45?'城墙完固': p.c.wall>=30?'城垣可守':'防守疏懈'))+
+      (mkHtml? mkHtml : '')+
+      (boHtml? boHtml : '')+
+      '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。城内空地可点格「营造」筑新宅新市。</p>';
+  }
+  // ===== 城市 NPC 生成（数据驱动；v20260825i 合并原 cityNpcs/cityCellNpcs 为统一生成器）=====
+  // 每类城市格子对应一组 NPC 生成规则；新增/调整城市 NPC 只需改此配置，无需动生成逻辑。
+  // 统一由 cityCellNpcs(cid,x,y) 调度：未列出类型的格子回落到 common（百姓+溃兵）。
+  var NPC_GEN = {
+    market: function(cid,x,y,c,cnm,m){
+      var mk=m.markets&&m.markets[x+','+y], mktName=mk?mk.name:'市集';
+      var mktSays=[mktName+'的铺子今日又进了新货。','客官是要采买些什么？','这街面一入夜便冷清下来。','听说明日有马队入城，商旅可要多了。'];
+      var items=[];
+      var vendor={name:'市井商贩', icon:'🛒', key:'mkt_'+cid, desc:'守着摊位的市井商贩'};
+      items.push({o:vendor, acts:[
+        {label:'问价', icon:'💰', fn:function(){ log('〔市井商贩〕「货是好货，价也公道，客官尽管挑。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔市井商贩〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }}
+      ]});
+      for(var mi=0;mi<2;mi++){ (function(idx){
+        var o={name:'城中百姓', icon:'👤', key:'mktciv_'+cid+'_'+idx, desc:'往来商街采买的百姓'};
+        items.push({o:o, acts:[
+          {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }},
+          {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
+        ]});
+      })(mi); }
+      return items;
+    },
+    farm: function(cid,x,y,c,cnm){
+      var zhuang={name:cnm+'庄头', icon:'🌾', key:'farm_'+cid, desc:'肤色黧黑，熟悉农事'};
+      return [{o:zhuang, acts:[
+        {label:'问农', icon:'🌾', fn:function(){ log('〔庄头〕今年雨水尚可，秋收在望，'+cnm+'仓廪也算充实。','npc'); }},
+        {label:'助农', icon:'🌾', fn:function(){ if(!exert('下田助农')) return; state.food=Math.min(state.maxFood,state.food+12); log('〔农庄〕你下田搭了把手，庄头塞来新麦（粮草+12）。','good'); }},
+        {label:'购粮', icon:'💰', fn:function(){ if(!exert('向农购粮')) return; state.food=state.maxFood; log('〔农庄〕你向庄头籴粮，行囊充实（粮草补满）。','good'); }}
+      ]}];
+    },
+    palace: function(cid,x,y,c,cnm){
+      var chen={name:'宫门近臣', icon:'🏯', key:'pal_'+cid, desc:'绯衣秉笏，侍立宫门'};
+      return [{o:chen, acts:[
+        {label:'入宫觐见', icon:'🏯', fn:function(){ log('〔近臣〕'+cnm+'乃天子所居，朝会方散，陛下今日论及讨董之事，神色凝重。','npc'); }},
+        {label:'叩阙陈情', icon:'📜', fn:function(){ log('〔近臣〕壮士若有良策，可书于帛上，待明日大朝呈奏。','npc'); }}
+      ]}];
+    },
+    gov: function(cid,x,y,c,cnm){
+      var zhu={name:(c.tier==='xian'?'县衙主簿':'州府从事'), icon:'🏛', key:'gov_'+cid, desc:'执笔案前，熟稔政务'};
+      return [{o:zhu, acts:[
+        {label:'参谒长官', icon:'🏛', fn:function(){ log('〔主簿〕'+cnm+(c.tier==='xian'?'县令':'郡守')+'正在理事，案牍盈几，忙于'+((c.owner)?'军政':'治安')+'。','npc'); }},
+        {label:'问政', icon:'💬', fn:function(){ log('〔主簿〕「'+cnm+'如今治安'+(c.order>=60?'尚安':'不靖')+'，商旅'+(c.commerce>=60?'繁盛':'寥落')+'。」','npc'); }}
+      ]}];
+    },
+    barracks: function(cid,x,y,c,cnm){
+      var s={name:'营中校尉', icon:'⚔', key:'sol_'+cid, desc:'按剑肃立的戍卒首领'};
+      return [{o:s, acts:[
+        {label:'交谈', icon:'💬', fn:function(){ log('〔校尉〕此城乃'+cnm+'要冲，治军严整，盗匪不敢近。','npc'); }},
+        {label:'点卯', icon:'📋', fn:function(){ log('〔校尉〕校尉展阅兵册，营中士卒'+(c.wall>=60?'甲械精良':'器械不齐')+'。','npc'); }}
+      ]}];
+    },
+    sentry: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'营门哨兵', icon:'🏮', key:'sentry_'+cid, desc:'按刀立于岗哨的哨兵'}, acts:[
+        {label:'验牌', icon:'📜', fn:function(){ log('〔营门哨兵〕「有劳出示腰牌。营中规矩，进出皆须记档。」','npc'); }},
+        {label:'探问', icon:'💬', fn:function(){ log('〔营门哨兵〕「南面官道通渔阳，北边黑山常闻匪讯——出营多加小心。」','npc'); }}
+      ]});
+      return items;
+    },
+    prison: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'狱卒', icon:'⛓', key:'warden_'+cid, desc:'持钥看管的狱卒'}, acts:[
+        {label:'提审', icon:'📜', fn:function(){ log('〔狱卒〕「这批苦役是上月从渔阳押来的，多是欠租逃役的汉子，壮实着呢。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔狱卒〕「牢里阴冷，夜里常有号子声——听惯了也就不怕了。」','npc'); }}
+      ]});
+      items.push({o:{name:'镣铐囚徒', icon:'⛓', key:'inmate_'+cid, desc:'缩在牢角、镣铐加身的囚徒'}, acts:[
+        {label:'问话', icon:'💬', fn:function(){ log('〔囚徒〕「官爷，小的原是渔阳脚夫，只因欠了半石租米……若能脱困，愿为壮士牵马坠镫！」','npc'); }}
+      ]});
+      return items;
+    },
+    command: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'值守主将', icon:'🚩', key:'commander_'+cid, desc:'中军帐中值守的将领'}, acts:[
+        {label:'议事', icon:'📜', fn:function(){ log('〔主将〕「营盘初立，兵不足百、粮不过旬。先屯粮练兵，再图大计。」','npc'); }},
+        {label:'问策', icon:'💬', fn:function(){ log('〔主将〕「渔阳在南山道之南，黑山在北。守此要冲，进可窥渔阳，退可依黑山。」','npc'); }}
+      ]});
+      return items;
+    },
+    kitchen: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'火头军', icon:'🍚', key:'cook_'+cid, desc:'掌勺的伙夫'}, acts:[
+        {label:'讨碗热汤', icon:'🍲', fn:function(){ log('〔火头军〕「锅里有粟米糊糊，管够！吃饱了才有力气干活。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔火头军〕「伙房一日两顿，粗粮管饱——营里日子紧，可比牢里强。」','npc'); }}
+      ]});
+      return items;
+    },
+    mine: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'矿工', icon:'⛏', key:'miner_'+cid, desc:'挥镐采石的矿工'}, acts:[
+        {label:'问石料', icon:'📜', fn:function(){ log('〔矿工〕「这矿坑出青石，营墙屋基都靠它。要石料？拿镐自己凿两下也行。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔矿工〕「北山那边还有铁矿脉，只是山高匪多，没人敢去。」','npc'); }}
+      ]});
+      return items;
+    },
+    warehouse: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'仓吏', icon:'📦', key:'storeman_'+cid, desc:'执册记账的仓吏'}, acts:[
+        {label:'查账', icon:'📜', fn:function(){ log('〔仓吏〕「库中存粮十余车，木料砖石各若干——账目在此，壮士过目。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔仓吏〕「营里东西不多，胜在齐整。改日修仓拓库，还得再备料。」','npc'); }}
+      ]});
+      return items;
+    },
+    drill: function(cid,x,y,c,cnm,m){
+      var items=[];
+      items.push({o:{name:'演武教头', icon:'🥋', key:'drillmaster_'+cid, desc:'演练兵卒的教头'}, acts:[
+        {label:'讨教', icon:'🥊', fn:function(){ log('〔教头〕「拳脚无他，唯勤而已。日日演武，沙场方能活命。」','npc'); }},
+        {label:'闲谈', icon:'💬', fn:function(){ log('〔教头〕「营里新募的兵卒底子薄，先练站桩，再学厮杀。」','npc'); }}
+      ]});
+      return items;
+    },
+    common: function(cid,x,y,c,cnm){
+      var items=[], nCiv=Math.min(4,1+Math.floor(c.pop/25));
+      var says=['近来城中米价又涨了……','壮士远道而来，可要当心盗匪。','哎，这世道，安稳过活便是福。','客官可是来贩货的？东市好货不少。','听说明日有马队入城。'];
+      for(var i=0;i<nCiv;i++){ (function(idx){
+        var o={name:'城中百姓', icon:'👤', key:'civ_'+cid+'_'+x+'_'+y+'_'+idx, desc:'往来市井的百姓'};
+        items.push({o:o, acts:[
+          {label:'交谈', icon:'💬', fn:function(){ log('〔城中百姓〕'+says[Math.floor(Math.random()*says.length)],'npc'); }},
+          {label:'观察', icon:'👁', fn:function(){ observeNpc(o); }}
+        ]});
+      })(i); }
+      if(c.order<45){ var en={name:'落单溃兵', icon:'⚔', key:'deserter_'+cid, desc:'衣甲散乱的溃卒'}; items.push({o:en, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat('deserter'); }}]}); }
+      return items;
+    }
+  };
+  // 城中可做之事：保留信息类「城况一览」，移除空泛的「逛市集/维持治安」互动（逛市集改由城内市集格进入，维持治安暂由剧情触发）
+  function cityActs(cid){
+    var p=cityProfile(cid); if(!p) return [];
+    var out=[];
+    out.push({id:'city_stat', label:'城况一览', icon:'📊', tip:'查看本城参数、城型与市集'});
+    out.push({id:'city_upgrade', label:'兴修城垣', icon:'🧱', tip:'拓建城池，提升城市等级（耗砖石木）'});
+    return out;
+  }
+  // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
+  // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
+  var GRID_VER='20260825f';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
+  // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
+  function cityGates(c){
+    var ct=c.ctype||'plain';
+    if(ct==='fort') return Math.max(1, Math.min(3, 1+Math.floor((c.wall||0)/40)));
+    if(ct==='mountain') return Math.max(1, Math.min(2, 1+Math.floor((c.wall||0)/55)));
+    if(ct==='port') return Math.max(2, Math.min(3, 2+Math.floor((c.commerce||0)/50)));
+    if(ct==='shuizhai') return Math.max(1, Math.min(3, 1+Math.floor((c.wall||0)/45)));  // 水寨：水上营垒，依水寨墙高开 1~3 门
+    return 4;
+  }
+  // —— 城门方向·路网自适应（v20260905k）——
+  // 旧版固定取「默认方位序的前 nG 个」开门：山城/寨城单门往往开在无路的一侧，
+  // 门格虽在、郊野却无人可通 → 晋阳/武威/上庸「有入无出」、交趾「有出无入」等孤城软锁。
+  // 现改为：在四方位里枚举 nG 个开门的组合，选择「郊野远边能真连到的路网邻居」
+  // （网格城权重 2、其它地点 1）总数最多的方向集；得分相同则维持城型默认序
+  // （即原本已最优的城零变化）。与 genCityGrid 门洞格 / availableGateDirs 同源。
+  var CITY_GATE_ORDER={ plain:['北','东','南','西'], mountain:['北','西','南','东'],
+                        fort:['北','南','西','东'], port:['北','东','南','西'],
+                        shuizhai:['北','东','南','西'] };
+  var CITY_GATE_DIRS_CACHE={};
+  function cityGateDirs(cid){
+    if(CITY_GATE_DIRS_CACHE[cid]) return CITY_GATE_DIRS_CACHE[cid];
+    var c=(LF.CITIES||{})[cid];
+    // v20260907i：城市配置 gateDirs 强制开门方向（如苦役营仅开南门）；其余城市仍走路网自适应
+    if(c && c.gateDirs && c.gateDirs.length){ var _gd=c.gateDirs.slice(); CITY_GATE_DIRS_CACHE[cid]=_gd; return _gd; }
+    var ord=CITY_GATE_ORDER[(c&&c.ctype)||'plain']||['北','东','南','西'];
+    var out=ord.slice(0,4);
+    if(c && c.grid){
+      var nG=cityGates(c);
+      var DIRV={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]};
+      var nbs=(((LF.ROADS||{}).adj||{})[cid]||[]).map(function(e){
+        var np=(LF.PLACES||{})[e.to];
+        if(!np||!np.pos||np.pos.length!==2) return null;
+        var la=(c.pos[1]||0)*Math.PI/180;
+        return { v:[(np.pos[0]-c.pos[0])*Math.cos(la), -(np.pos[1]-c.pos[1])],
+                 city: !!((LF.CITIES[e.to]||{}).grid) };
+      }).filter(Boolean);
+      if(nbs.length){
+        function angFrom(d,v){
+          var dv=DIRV[d], va=Math.atan2(v[1],v[0]), da=Math.atan2(dv[1],dv[0]);
+          var a=Math.abs(va-da); if(a>Math.PI) a=2*Math.PI-a; return a;
+        }
+        // 复刻 travel.js 的分组语义：先归最近「朝外」门，无朝外门才归最近门（后归不产生出野口）
+        function pick(gdirs, v){
+          var facing=[], all=[];
+          gdirs.forEach(function(d){ var dv=DIRV[d]; if(v[0]*dv[0]+v[1]*dv[1]>0) facing.push(d); all.push(d); });
+          var pool=facing.length?facing:all, best=pool[0], ba=1e9;
+          pool.forEach(function(d){ var a=angFrom(d,v); if(a<ba){ ba=a; best=d; } });
+          return { d:best, face:!!facing.length };
+        }
+        function score(set){
+          var by={}; set.forEach(function(d){ by[d]=[]; });
+          nbs.forEach(function(nb){ by[pick(set, nb.v).d].push(nb); });
+          var s=0;
+          set.forEach(function(d){
+            by[d].forEach(function(nb){ if(pick(set, nb.v).face) s += nb.city?2:1; });
+          });
+          return s;
+        }
+        function affinity(set){
+          var a=0; set.forEach(function(d){ a += 4 - ord.indexOf(d); }); return a;
+        }
+        // v20260907c：剔除「无正向邻点」的虚门，避免开出「有门无路」的城门（罗盘出不去）。
+        // 仅从「确有正向邻点」的可用方向中枚举开门组合（数量取 min(城型门数, 可用方向数)）。
+        var usable = ord.filter(function(d){
+          return nbs.some(function(nb){ return pick([d], nb.v).face; });
+        });
+        if(!usable.length) usable = ord.slice(0,4);   // 极端：无邻点（不应发生），退回默认四门
+        var k = Math.min(nG, usable.length);
+        var bestSet=null, bestSc=-1, bestAf=-1;
+        for(var mask=0; mask<(1<<usable.length); mask++){
+          var bits=0; for(var b=0;b<usable.length;b++) if(mask&(1<<b)) bits++;
+          if(bits!==k) continue;
+          var set=[];
+          for(var i=0;i<usable.length;i++) if(mask&(1<<i)) set.push(usable[i]);
+          var sc=score(set), af=affinity(set);
+          if(sc>bestSc || (sc===bestSc && af>bestAf)){ bestSc=sc; bestAf=af; bestSet=set; }
+        }
+        out = bestSet || usable.slice(0, k);
+      }
+    }
+    CITY_GATE_DIRS_CACHE[cid]=out;
+    return out;
+  }
+  var CELL_META={
+    palace:{i:'🏯',nm:'皇宫'}, gov:{i:'🏛',nm:'衙署'},
+    plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'},
+    market:{i:'🛒',nm:'市集'}, home:{i:'🏠',nm:'民宅'}, barracks:{i:'⚔',nm:'军营'},
+    farm:{i:'🌾',nm:'农庄'}, prison:{i:'⛓',nm:'牢房'}, mine:{i:'⛏',nm:'矿坑'}, kitchen:{i:'🍚',nm:'伙房'}, command:{i:'🚩',nm:'中军帐'}, warehouse:{i:'📦',nm:'仓库'}, drill:{i:'🥋',nm:'演武场'}, sentry:{i:'🏮',nm:'岗哨'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'},
+    site:{i:'🚧',nm:'工地'}
+  };
+  var CELL_DESC={
+    palace:'宫阙巍峨，金瓦耀日，甲士环侍，天子所居之地，气象森严。',
+    gov:'衙署高敞，匾额肃然，郡守（县令）于此听讼断案、发号施令。',
+    plaza:'城中广场四达，旌旗在望，商旅往来如织。',
+    gate:'城门巍峨，匾额森然，出城可重返山河。',
+    market:'市列珠玑，铺肆连绵——药铺、布庄、食肆、杂货各据一隅。',
+    home:'寻常民宅，檐下晾着布衣，孩童探头张望。',
+    barracks:'军营肃整，旌甲林立，校尉按剑而立。',
+    farm:'阡陌纵横，农人扶犁，仓廪所系，民食之源。',
+    prison:'牢房阴森，铁栏纵横，镣铐叮当，囚徒或坐或卧。',
+    mine:'矿坑幽深，镐痕遍布，碎石堆旁搁着铁镐木筐。',
+    kitchen:'伙房烟火气浓，大锅沸汤，案板上堆着粗粮野菜。',
+    command:'中军帐高悬旌旗，案上摊着舆图军报，主将居中而坐。',
+    warehouse:'仓库厚门粗锁，粮袋木料堆垛齐整，仓吏执册清点。',
+    drill:'演武场平整开阔，木桩兵器林立，兵卒汗流浃背操练不休。',
+    sentry:'营门岗哨，哨兵按刀而立，日夜查验进出之人。',
+    empty:'一片空地，瓦砾草莽，尚待营建。',
+    ruin:'焦土未冷，断壁残垣，劫后萧索。',
+    unbuilt:'城郭未及营建，草莽瓦砾，尚无居人。',
+    site:'建材成堆、工匠往来，工事未完，暂不可入。'
+  };
+  // ══ 城市盛衰 / 归属系统（v20260824d）══
+  // 建设度(dev)决定建成半径：随盛衰扩建/降级；焦土(ruin)由战火标记；归属(owner)易主则中枢变帅府/行辕
+  var pendingSiegeCid=null;
+  var buildingState=null;   // 建筑内部交互状态：{building, cid, x, y, ent}
+  function ensureCityState(cid){
+    var c=(LF.CITIES||{})[cid]||{};
+    if(!state.flags.cityDev) state.flags.cityDev={};
+    if(state.flags.cityDev[cid]==null) state.flags.cityDev[cid]=Math.min(100, 35+Math.round((c.pop||50)*0.6));
+    if(!state.flags.cityOwner) state.flags.cityOwner={};
+    if(state.flags.cityOwner[cid]==null) state.flags.cityOwner[cid]=cityDefaultOwner(cid);
+    if(!state.flags.cityBurned) state.flags.cityBurned={};
+    if(!state.flags.cityBurned[cid]) state.flags.cityBurned[cid]={};
+    if(!state.flags.cityBroken) state.flags.cityBroken={};
+    if(!state.flags.cityBroken[cid]) state.flags.cityBroken[cid]={};
+    if(!state.flags.cityLevel) state.flags.cityLevel={};
+    if(state.flags.cityLevel[cid]==null){
+      var _t=(LF.CITIES||{})[cid]||{};
+      state.flags.cityLevel[cid]= (_t.tier==='capital')?7 : (_t.tier==='zhou')?4 : (_t.tier==='xian')?3 : (_t.grid>=9?7:_t.grid>=7?4:_t.grid>=5?3:_t.grid>=3?1:0);
+    } else if(state.flags.cityLevel[cid]===0){ var _g2=(LF.CITIES||{})[cid]||{}; if(_g2.grid>=3 && _g2.grid<5 && _g2.tier!=='xian' && _g2.tier!=='zhou' && _g2.tier!=='capital'){ state.flags.cityLevel[cid]=1; } }
+    // 城市营造覆盖层（第3步）：cityCells[cid]["x,y"]=CellInst{type,level,shops,owner,built,buildOrderId}
+    if(!state.flags.cityCells) state.flags.cityCells={};
+    if(!state.flags.cityCells[cid]) state.flags.cityCells[cid]={};
+    // 统一工单：宏观（requester:npcId，tick 按天推进）与微观（requester:'player'，现场 exert 推进）共用
+    if(!state.flags.buildOrders) state.flags.buildOrders={};
+    if(!state.flags.buildOrderSeq) state.flags.buildOrderSeq=0;
+  }
+  // ══ 城市等级动态系统（v20260826c）══
+  // 等级 0..7 平滑对应 grid 2..9（每次升级仅 +1 圈）：村/镇/乡/县城/郡城/府城/州城/都城
+  var CITY_LV_SIZE=[2,3,4,5,6,7,8,9];
+  var CITY_LV_NAME=['村','镇','乡','县城','郡城','府城','州城','都城'];
+  function cityTierLv(cid){
+    var cl=state.flags.cityLevel && state.flags.cityLevel[cid];
+    if(cl!=null) return cl;
+    var c=(LF.CITIES||{})[cid]||{};
+    if(c.tier==='capital') return 7;
+    if(c.tier==='zhou') return 4;
+    if(c.tier==='xian') return 3;
+    var g=c.grid||5;
+    return (g>=9?7:g>=7?4:g>=5?3:g>=3?1:0);
+  }
+  function cityGridSize(cid){ return CITY_LV_SIZE[cityTierLv(cid)]||3; }
+  function cityLevelName(cid){ return CITY_LV_NAME[cityTierLv(cid)]||'城'; }
+  // 玩家微观升级：校验材料并提升城市等级（宏观委派版由 BuildOrder 在第3步接管，此处为即时路径）
+  function tryUpgradeCity(cid){
+    ensureCityState(cid);
+    var lv=state.flags.cityLevel[cid];
+    if(lv>=CITY_LV_SIZE.length-1){ toast((CITY_LV_NAME[lv]||'城')+'已至极制，无可再升。'); return; }
+    var RES_NM={'zhuan':'砖','shitiao':'石料','mucai':'木材'};
+    var need={zhuan:Math.round(40*(lv+1)), shitiao:Math.round(25*(lv+1)), mucai:Math.round(15*(lv+1))};
+    var miss=[];
+    for(var k in need){ if((packFind(k)||0) < need[k]) miss.push((RES_NM[k]||k)+'×'+need[k]); }
+    if(miss.length){ toast('拓建城垣所需材料不足：'+miss.join('、')+'。'); return; }
+    for(var k2 in need){ packConsume(k2, need[k2]); }
+    state.flags.cityLevel[cid]=lv+1;
+    afterPackChange();
+    log('夯土累石，城垣拓建——'+(CITY_LV_NAME[lv+1]||'城')+'初成，新坊市渐辟（建设度 '+cityDevOf(cid)+'）。','sys');
+    if(state.room===cid) renderRoom(cid,true);
+    openModal('citystat',{cid:cid});
+  }
+  // 降级（战争/政变/匪患）：城市等级 -1，触发流亡（越界建筑清理由 cityCells 覆盖层在第3步启用）
+  function downgradeCity(cid){
+    ensureCityState(cid);
+    var lv=state.flags.cityLevel[cid];
+    if(lv<=0) return;
+    state.flags.cityLevel[cid]=lv-1;
+    log((CITY_LV_NAME[lv]||'城')+'遭劫，城垣崩颓，降为'+(CITY_LV_NAME[lv-1]||'城')+'，民户流散。','sys');
+  }
+  function cityDevOf(cid){ ensureCityState(cid); return state.flags.cityDev[cid]; }
+  function cityOwnerOf(cid){ ensureCityState(cid); return state.flags.cityOwner[cid]; }
+  function cityDefaultOwner(cid){
+    var c=(LF.CITIES||{})[cid]||{};
+    return ((LF.CITY_OWNER||{})[cid])||c.owner||'汉';
+  }
+  function isCaptured(cid){ return cityOwnerOf(cid)!==cityDefaultOwner(cid); }
+  function cityBurnedMap(cid){ ensureCityState(cid); return state.flags.cityBurned[cid]; }
+  // 注：道路等级 / 断路修缮系统已于 v20260827 移除；城市格只保留真实地点（市集/军营/官署…），道路作为可通行空地。
+  function burnedGates(cid){
+    var m=genCityGrid(cid); if(!m) return 0;
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2), bm=cityBurnedMap(cid), n=0;
+    [[cx,0],[0,cy],[size-1,cy],[cx,size-1]].forEach(function(p){ if(bm[p[0]+','+p[1]]) n++; });
+    return n;
+  }
+  // 每座被焚城门使守军战力减 8%（最多三成）——城门不免疫火烧，焚毁自有其代价
+  function siegeGuardMul(cid){ var n=burnedGates(cid); return n? Math.max(0.7,1-0.08*n):1; }
+  function setCityDev(cid,v){ if(!state.flags.cityDev) state.flags.cityDev={}; state.flags.cityDev[cid]=Math.max(0,Math.min(100,v)); }
+  function playerFaction(){ return state.faction || '义军'; }
+  function centerTypeOf(cid){ var m=genCityGrid(cid); if(!m) return 'gov'; var c=Math.floor(m.size/2); return m.cells[c][c]; }
+  function devRadius(dev,size){
+    var R=Math.floor(size/2);
+    if(dev>=85) return R;
+    if(dev>=65) return Math.max(1,Math.round(R*0.8));
+    if(dev>=45) return Math.max(1,Math.round(R*0.6));
+    if(dev>=25) return Math.max(1,Math.round(R*0.4));
+    return 1;
+  }
+  function baseDisplayType(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return 'empty';
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
+    if(x===cx&&y===cy) return m.cells[y][x];
+    if(x===cx || y===cy){            // 中轴大街（含城门）恒为可通行：保证出城必经城门、且城门始终可达
+      var t=m.cells[y][x];
+      if(t==='unbuilt') t='empty';
+      return t;
+    }
+    var R=devRadius(cityDevOf(cid),size);
+    if(Math.max(Math.abs(x-cx),Math.abs(y-cy))>R) return 'unbuilt';
+    return m.cells[y][x];
+  }
+  // ══ 城市营造覆盖层（第3步：BuildOrder + cityCells 四层叠加）══
+  // cityCells[cid]["x,y"]=CellInst{type,level,shops,owner,built,buildOrderId}
+  // 四层叠加：掘断(broken) > 覆盖层(override：已建→type / 施工中→site) > 焦土(ruin) > 底层(baseDisplayType)
+  function cityCellInst(cid,x,y){
+    ensureCityState(cid);
+    return (state.flags.cityCells[cid]||{})[x+','+y]||null;
+  }
+  function setCityCell(cid,x,y,inst){
+    ensureCityState(cid);
+    var k=x+','+y;
+    if(inst) state.flags.cityCells[cid][k]=inst; else delete state.flags.cityCells[cid][k];
+  }
+  function nextBuildOrderId(){
+    state.flags.buildOrderSeq=(state.flags.buildOrderSeq||0)+1;
+    return 'bo'+state.flags.buildOrderSeq;
+  }
+  function buildOrderById(id){ return (state.flags.buildOrders||{})[id]||null; }
+  function activeBuildOrder(cid,x,y){
+    var inst=cityCellInst(cid,x,y);
+    if(!inst||!inst.buildOrderId) return null;
+    return buildOrderById(inst.buildOrderId);
+  }
+  function cellDisplayType(cid,x,y){
+    var inst=cityCellInst(cid,x,y);
+    if(inst) return inst.built ? inst.type : 'site';        // 覆盖层：已建显示建筑、施工中显示工地
+    var t=baseDisplayType(cid,x,y);
+    if(t==='unbuilt') return t;
+    if(t==='gate') return t;                                // 城门另有守军减益
+    if(cityBurnedMap(cid)[x+','+y]) return 'ruin';
+    return t;
+  }
+  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt' && t!=='site'; }
+  function burnCells(cid,n){
+    var m=genCityGrid(cid); if(!m) return;
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
+    var bm=cityBurnedMap(cid);
+    var cp=state.flags.cityPos||{};
+    var cand=[];
+    for(var y=0;y<size;y++) for(var x=0;x<size;x++){
+      if(x===cx&&y===cy) continue;
+      if(cp.cid===cid && cp.x===x && cp.y===y) continue;
+      var t=baseDisplayType(cid,x,y);
+      if(t==='unbuilt') continue;
+      if(bm[x+','+y]) continue;
+      cand.push(x+','+y);
+    }
+    for(var i=cand.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var tmp=cand[i]; cand[i]=cand[j]; cand[j]=tmp; }
+    for(var k=0;k<n&&k<cand.length;k++) bm[cand[k]]=true;
+  }
+  function siegeWin(cid){
+    state.flags.cityOwner=state.flags.cityOwner||{};
+    state.flags.cityOwner[cid]=playerFaction();
+    // ── v20260826g 身份系统：占城即得 tier 对应官职（取更高者）──
+    var _tier=((LF.CITIES||{})[cid]||{}).tier||'xian';
+    var _gained=_tier==='capital'?'君主':_tier==='zhou'?'州牧':'太守';
+    if((LF.TITLES||[]).indexOf(state.title) < (LF.TITLES||[]).indexOf(_gained)) state.title=_gained;
+    if(state.ruledCities.indexOf(cid)<0) state.ruledCities.push(cid);
+    setCityDev(cid, cityDevOf(cid)+18);
+    var ct=centerTypeOf(cid);
+    var cnm=((LF.CITIES||{})[cid]||{}).name||'城';
+    log('〔克城〕守军溃散，「'+cnm+'」易帜——中枢改立「'+cellDisplayName(cid,ct)+'」，'+playerFaction()+' 据此城！','combat');
+    log('战后稍歇，外郭营建更见起色，可容更多百姓居止。','sys');
+  }
+  function siegeLose(cid){
+    setCityDev(cid, cityDevOf(cid)-28);
+    burnCells(cid, 3+Math.floor(Math.random()*3));
+    state.hp=1; state.defeated=true;
+    var cnm=((LF.CITIES||{})[cid]||{}).name||'城';
+    log('〔败退〕攻城失利，守军反扑，「'+cnm+'」城中数处火起，化作焦土焦垣。','combat');
+    log('你力竭倒地，须先「休整」恢复，方可再动。','sys');
+  }
+  // 行政中心按城市等级显示不同名称：都城→皇宫，州城→州衙，县城→城主府；势力易主后变帅府/行辕
+  function cellDisplayName(cid,t){
+    if(t==='unbuilt') return '未营建';
+    if(t==='site') return '工地';
+    if(t==='gov'){
+      if(isCaptured(cid)) return '行辕';
+      var _c=(LF.CITIES||{})[cid]||{};
+      var _tier=_c.tier || (_c.grid>=9?'capital':_c.grid>=7?'zhou':'xian');
+      if(_tier==='zhou') return '州衙';
+      if(_tier==='xian') return '城主府';
+      return '衙署';
+    }
+    if(t==='palace'){
+      if(isCaptured(cid)) return '帅府';
+      return CELL_META.palace.nm;
+    }
+    return CELL_META[t]? CELL_META[t].nm : t;
+  }
+  function seededRand(seed){
+    var h=2166136261; for(var i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
+    var s=h>>>0;
+    return function(){ s|=0; s=s+0x6D2B79F5|0; var t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+  }
+  function isCityGrid(rid){ var c=(LF.CITIES||{})[rid]; return !!(c && c.grid); }
+  function genCityGrid(cid){
+    var c=(LF.CITIES||{})[cid]; if(!c||!c.grid) return null;
+    var _lv=cityTierLv(cid);
+    var _myVer=GRID_VER+'@'+_lv+((c.gateDirs||[]).join(','))+((c.layoutGrid||[]).map(function(r){return r.join('');}).join('|'));
+    if(state.flags.cityGrid && state.flags.cityGrid[cid] && state.flags.cityGrid[cid].ver===_myVer) return state.flags.cityGrid[cid];
+    var size=cityGridSize(cid), rnd=seededRand(cid+'_grid_'+_lv);
+    var cx=Math.floor(size/2), cy=Math.floor(size/2);
+    var tier=c.tier || (c.grid>=9?'capital':c.grid>=7?'zhou':'xian');
+    var centerType=(tier==='capital') ? 'palace' : 'gov';   // 都城中央为皇宫，其余为衙门/城主府
+    // 城门方向为路网自适应（v20260905k，见 cityGateDirs），门洞格与 availableGateDirs 同源
+    var nG = cityGates(c);
+    var gateSides = cityGateDirs(cid), gateSet={};
+    gateSides.forEach(function(_d){
+      var _gx=(_d==='东')?size-1:((_d==='西')?0:cx);
+      var _gy=(_d==='南')?size-1:((_d==='北')?0:cy);
+      gateSet[_gx+','+_gy]=1;
+    });
+    var g=[];
+    for(var y=0;y<size;y++){ var row=[];
+      for(var x=0;x<size;x++){
+        var t;
+        if(c.layoutGrid){ t=(c.layoutGrid[y]&&c.layoutGrid[y][x])||'empty'; }
+        else if(x===cx && y===cy) t=centerType;
+        else if(gateSet[x+','+y]) t='gate';
+        else {
+          if(c.layout==='empty'){ t='empty'; }
+          else {
+          var roll=rnd();
+          if(roll<0.20) t='market';
+          else if(roll<0.46) t='home';
+          else if(roll<0.58) t='barracks';
+          else if(roll<0.68) t='farm';
+          else if(roll<0.78) t='empty';
+          else t='empty';
+          }
+          if(t==='market' && c.commerce<55 && rnd()<0.5) t='home';
+          if(t==='barracks' && c.wall<60 && rnd()<0.5) t='empty';
+        }
+        row.push(t);
+      }
+      g.push(row);
+    }
+    // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
+    var markets={};
+    var MK = (typeof LF!=='undefined' && LF.MARKETS);
+    var mktPool=['yaofu','buzhuang','shishi','zahuo','gongzao','jiulou','ranfang','gaodian','qianzhuang','tiejiang','wuguan','biaoju','chalou','duguang','maxing','shudian','xiangzhu'];
+    for(var my=0;my<size;my++) for(var mx=0;mx<size;mx++){
+      if(g[my][mx]!=='market') continue;
+      var dx=mx-cx, dy=my-cy, dir='中';
+      if(Math.abs(dx)>=Math.abs(dy)) dir = dx>0?'东':(dx<0?'西':'中');
+      else dir = dy<0?'北':(dy>0?'南':'中');
+      var mrnd=seededRand(cid+'_mkt_'+mx+'_'+my);
+      var nShop=Math.max(2, Math.min((tier==='capital'?5:tier==='zhou'?4:3), 2+Math.floor((c.commerce||0)/30)));
+      var taken={}, takenKey={}, shops=[];
+      for(var si=0;si<nShop;si++){
+        var mk, _t=0;
+        do { mk = mktPool[Math.floor(mrnd()*mktPool.length)]; _t++; } while(takenKey[mk]>=2 && _t<24);  // 同类最多 2 家，保证市场内商铺多样
+        takenKey[mk]=(takenKey[mk]||0)+1;
+        var sg = MK ? MK.sign(mk, mrnd, taken) : ((BUILDINGS[mk]&&BUILDINGS[mk].name)||mk);
+        shops.push({key:mk, sign:sg});
+      }
+      var nm = MK ? MK.marketName(cid, dir, shops[0].key, mrnd) : (dir+'市');
+      markets[mx+','+my]={ name:nm, dir:dir, shops:shops };
+    }
+    state.flags.cityGrid=state.flags.cityGrid||{};
+    state.flags.cityGrid[cid]={ver:_myVer, size:size, cells:g, markets:markets, gates:nG};
+    return state.flags.cityGrid[cid];
+  }
+  function cityCellDesc(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return [];
+    var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
+    var d='〔城内·'+meta.nm+'〕'+(CELL_DESC[t]||'');
+    if(t==='gate'){
+      if(cityBurnedMap(cid)[x+','+y]) d+=' 城门曾遭战火，焦痕犹在。';
+    }
+    if(t==='site'){
+      var _inst=cityCellInst(cid,x,y);
+      var _o=_inst&&_inst.buildOrderId?buildOrderById(_inst.buildOrderId):null;
+      var _bp=_o?LF.BUILD[_o.blueprintId]:null;
+      if(_o&&_bp){
+        var _stage=(_bp.stages||[])[_o.stageIndex];
+        d+=' 正在营造「'+(_bp.doneName||'新筑')+'」，当前工段「'+(_stage?_stage.name:'收尾')+'」。';
+      }
+    }
+    return [d];
+  }
+    function cityCellNpcs(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return [];
+    var p=cityProfile(cid); if(!p) return [];
+    var c=(LF.CITIES||{})[cid]||{};
+    var gen = NPC_GEN[ cellDisplayType(cid,x,y) ] || NPC_GEN.common;
+    return gen(cid,x,y,c, c.name||'此城', m);
+  }
+  function cityCellActs(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return [];
+    var dt=cellDisplayType(cid,x,y), t=dt, p=cityProfile(cid), out=[];
+    var bm=cityBurnedMap(cid);
+    var burnt=!!bm[x+','+y];
+    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
+    // 营造入口（第3步）：工地可继续营造；空地可择蓝图开工（已建格升级留待后续）
+    var inst=cityCellInst(cid,x,y);
+    if(inst && !inst.built){
+      out.push({id:'city_build', label:'继续营造', icon:'🚧', tip:'回到工地，投料营造，工成则此格落成新筑', data:{cid:cid,x:x,y:y}});
+    } else if(!inst && dt==='empty'){
+      out.push({id:'city_build', label:'营造新筑', icon:'🏗️', tip:'择空地依图纸营造建筑（民宅/市集/农庄/军营/土路）', data:{cid:cid,x:x,y:y}});
+    }
+    // ── 苦役营新格型互动（v20260907j）──
+    if(t==='prison'){ out.push({id:'prison_view', label:'查勘牢房', icon:'⛓', tip:'查看牢中囚徒，或提审问话'}); }
+    if(t==='mine'){ out.push({id:'mine_dig', label:'开凿矿料', icon:'⛏', tip:'挥镐采掘，可得石料'}); }
+    if(t==='kitchen'){ out.push({id:'kitchen_cook', label:'生火造饭', icon:'🍚', tip:'于伙房埋锅造饭，稍歇精神'}); }
+    if(t==='command'){ out.push({id:'command_talk', label:'中军议事', icon:'🚩', tip:'入帐议事，览军情城务'}); }
+    if(t==='warehouse'){ out.push({id:'warehouse_view', label:'进入仓库', icon:'📦', tip:'入库存取物资，存粮木料皆在此'}); }
+    if(t==='drill'){ out.push({id:'drill_train', label:'操练武艺', icon:'🥋', tip:'于演武场挥汗操练，拳脚渐稳'}); }
+    if(t==='sentry'){ out.push({id:'sentry_look', label:'瞭望岗哨', icon:'🏮', tip:'登岗瞭望，查看来往行踪'}); }
+    if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
+    if(t==='market'){
+      // 商街店铺 = 场景交互物品：以本市场商铺清单（含程序生成招牌）渲染（进·字号 等），不再占用 NPC 列表
+      var mkt = m.markets && m.markets[x+','+y];
+      if(mkt){
+        mkt.shops.forEach(function(sh){
+          var bd=BUILDINGS[sh.key]; if(!bd) return;
+          out.push({id:'enter_building', label:'进·'+sh.sign, icon:bd.icon, tip:'步入'+sh.sign+'——'+(bd.sub||'入内一观'), data:{building:sh.key, sign:sh.sign, mkt:mkt.name}});
+        });
+      } else {
+        // 兜底（旧档无市场数据）：沿用全局五店
+        ['yaofu','buzhuang','shishi','zahuo','gongzao'].forEach(function(k){
+          var bd=BUILDINGS[k]; if(!bd) return;
+          out.push({id:'enter_building', label:'进·'+bd.name, icon:bd.icon, tip:'步入'+bd.name+'——'+(bd.sub||'入内一观'), data:{building:k}});
+        });
+      }
+    }
+    // v20260905h：出城统一走移动罗盘——立于城门格时，罗盘自动出现朝外的「出城」方向。
+    // 不再提供「出城门」场景按钮；任意格可用「前往城门」自动寻路抵门（不出城），到门后由罗盘定向踏出。
+    if(t!=='gate') out.push({id:'leave_auto', label:'前往城门', icon:'🚪', tip:'自动沿可通行道路行至最近城门；出城请在城门看罗盘，朝外方向踏出'});
+    // ── 政令台（v20260826g 身份系统）：立于中枢且此城归你所统，方能发号 ──
+    if(x===cx && y===cy && cityOwnerOf(cid)===playerFaction()){
+      out.push({id:'edict', label:'政令台', icon:'📜', tip:'于此发号政令：征税、安民、观天下大势'});
+    }
+    return out;
+  }
+  // ══ 城市营造（第3步：微观现场建造，BuildOrder 驱动）══
+  // 现场「营造」→ 择蓝图开工 → 逐阶段投料 + 营造(exert) → 落成写 cityCells 覆盖层
+  var cityBuildState={cid:null,x:null,y:null};
+  function cityBuildBpList(cid,x,y){
+    var out=[], cur=cellDisplayType(cid,x,y);
+    for(var k in LF.BUILD){
+      var bp=LF.BUILD[k];
+      if(!bp || !bp.city) continue;
+      if((bp.onTypes||[]).indexOf(cur)<0) continue;
+      out.push({id:k, bp:bp});
+    }
+    return out;
+  }
+  function cityBuildMatTotal(bp){
+    var total={};
+    (bp.stages||[]).forEach(function(s){ for(var mk in s.need) total[mk]=(total[mk]||0)+s.need[mk]; });
+    return total;
+  }
+  // 第4步图纸系统：城市营造需先持对应图纸，开工即耗去图样（v20260826）
+  function startCityBuild(cid,x,y,bpId){
+    var bp=LF.BUILD[bpId]; if(!bp) return;
+    if(bp.tuzhi){
+      var tzd=LF.ITEMS[bp.tuzhi]||{};
+      if(!packFind(bp.tuzhi)){ toast('营造「'+(bp.doneName||'此建筑')+'」需先持有「'+(tzd.name||'图纸')+'」——可于货郎处购得。'); return; }
+    }
+    var inst=cityCellInst(cid,x,y);
+    if(inst && inst.built){ toast('此格已有建筑落成。'); return; }
+    if(inst && !inst.built){ toast('此格已有工地，去「继续营造」推进工事。'); return; }
+    ensureCityState(cid);
+    state.flags.buildOrders=state.flags.buildOrders||{};
+    var id=nextBuildOrderId();
+    var stages=bp.stages||[], matsNeeded={};
+    stages.forEach(function(s){ for(var mk in s.need){ matsNeeded[mk]=(matsNeeded[mk]||0)+s.need[mk]; } });
+    state.flags.buildOrders[id]={
+      id:id, cid:cid, x:x, y:y, blueprintId:bpId,
+      requester:'player', level:1,
+      matsNeeded:matsNeeded, matsPaid:{},
+      laborNeeded:(bp.labor||2), laborPaid:0, moneyPaid:0,
+      stages:stages, stageIndex:0,
+      startDay:(state.day||0), estDays:0, status:'building', assignedNpc:null
+    };
+    setCityCell(cid,x,y,{type:bp.cellType||'home', level:1, shops:[], owner:'player', built:false, buildOrderId:id});
+    if(bp.tuzhi) packConsume(bp.tuzhi,1);
+    log('你持「'+((LF.ITEMS[bp.tuzhi]||{}).name||'图样')+'」择定空地，破土动工——「'+(bp.doneName||'新筑')+'」开始营造！','sys');
+    save(state);
+    openModal('citybuild',{cid:cid,x:x,y:y});
+  }
+  // 投料：每投入 1 份材料耗时 1 时辰 + 精力 1
+  function cityBuildMat(o, matId){
+    var bp=LF.BUILD[o.blueprintId]; if(!bp || o.status!=='building') return;
+    var stage=(bp.stages||[])[o.stageIndex]; if(!stage) return;
+    var need=stage.need[matId]; if(!need) return;
+    if((o.matsPaid[matId]||0) >= need){ toast('「'+stage.name+'」所需此料已备齐。'); return; }
+    var cur=packFind(matId);
+    if(!cur || (cur.count||0) < 1){ toast('行囊中无'+(LF.ITEMS[matId]||{}).name+'。'); return; }
+    if(state.energy<=0){ toast('精力已尽，先休整恢复再行填充。'); return; }
+    advanceTime(1);
+    state.energy=Math.max(0,state.energy-1);
+    packConsume(matId,1);
+    o.matsPaid[matId]=(o.matsPaid[matId]||0)+1;
+    save(state); afterPackChange();
+    log('你投入'+(LF.ITEMS[matId]||{}).name+'×1 于「'+stage.name+'」。','env');
+    if(currentModalKind==='citybuild') openModal('citybuild',{cid:o.cid,x:o.x,y:o.y});
+  }
+  // 营造：本阶段材料备齐后，每轮 exert 推 laborPaid；满则进入下一阶段，末阶段满则落成
+  function cityBuildExert(o){
+    var bp=LF.BUILD[o.blueprintId]; if(!bp || o.status!=='building') return;
+    var stages=bp.stages||[];
+    var stage=stages[o.stageIndex];
+    if(!stage){ finishCityBuild(o); return; }
+    for(var mk in stage.need){ if((o.matsPaid[mk]||0) < stage.need[mk]){ toast('「'+stage.name+'」材料未齐，无法营造。'); return; } }
+    if(state.energy<=0){ toast('精力已尽，先休整恢复再行营造。'); return; }
+    if(!exert('营造')) return;
+    advanceTime(1);
+    state.energy=Math.max(0,state.energy-2);
+    o.laborPaid=(o.laborPaid||0)+1;
+    var needLabor=(bp.labor||2);
+    save(state); afterPackChange();
+    if(o.laborPaid >= needLabor){
+      o.laborPaid=0;
+      o.stageIndex++;
+      if(o.stageIndex >= stages.length){ finishCityBuild(o); return; }
+      log('你完成了「'+stage.name+'」，工事推进至「'+stages[o.stageIndex].name+'」。','env');
+    } else {
+      log('你挥汗如雨，昼夜营造——「'+stage.name+'」工事更进一层（'+o.laborPaid+'/'+needLabor+'）。','env');
+    }
+    if(currentModalKind==='citybuild') openModal('citybuild',{cid:o.cid,x:o.x,y:o.y});
+  }
+  // 落成：built=true 写入 cityCells 覆盖层；市集预设空铺面（后续招商/升级）
+  function finishCityBuild(o){
+    var bp=LF.BUILD[o.blueprintId]||{};
+    var inst=cityCellInst(o.cid,o.x,o.y);
+    if(inst){
+      inst.built=true; inst.type=bp.cellType||inst.type;
+      if(inst.type==='market' && !inst.shops) inst.shops=[];
+    }
+    o.status='done';
+    var cnm=((LF.CITIES||{})[o.cid]||{}).name||'城中';
+    log('〔工成〕'+(bp.doneName||'建筑')+'于「'+cnm+'」落成！匠人散去，百姓渐聚。','good');
+    save(state); afterPackChange();
+    if(state.room===o.cid){ renderRoom(o.cid,true); }
+    closeModal();
+  }
+  function cityCellSiteName(cid,x,y){
+    var inst=cityCellInst(cid,x,y);
+    if(inst && inst.buildOrderId){ var o=buildOrderById(inst.buildOrderId); if(o){ var bp=LF.BUILD[o.blueprintId]||{}; return bp.siteName||'工地'; } }
+    return '工地';
+  }
+  function heldTuzhiList(){
+    var out=[];
+    (state.pack||[]).forEach(function(it){ if(it && (LF.ITEMS[it.defId]||{}).cat==='图纸') out.push(it); });
+    return out;
+  }
+  function renderCityBuildPanel(){
+    var S=cityBuildState, cid=S.cid, x=S.x, y=S.y;
+    if(cid==null||x==null||y==null) return '<h3>营 造</h3><p class="tip">未定位营造地点。</p>';
+    var inst=cityCellInst(cid,x,y);
+    var cnm=((LF.CITIES||{})[cid]||{}).name||'城中';
+    var head='<h3>营 造 · '+cnm+'</h3>';
+    var body='';
+    if(inst && !inst.built){
+      var o=activeBuildOrder(cid,x,y);
+      body = o ? renderCityBuildProgress(o) : '<p class="tip">工地空置，工匠徘徊。去别处空地择图开工。</p>';
+    } else if(inst && inst.built){
+      body=renderCityBuildDone(inst);
+    } else {
+      var list=cityBuildBpList(cid,x,y);
+      if(!list.length){
+        body='<p class="tip">此格（'+cellDisplayName(cid,cellDisplayType(cid,x,y))+'）无可营造之蓝图——寻城中空地（🟫）营造。</p>';
+      } else {
+        var held=heldTuzhiList();
+        var holdHtml='<p class="tip" style="border:1px dashed #6b5a3a;padding:6px;border-radius:8px;">持有图纸：'+(held.length?held.map(function(it){var d=LF.ITEMS[it.defId]||{};return (d.icon||'')+(d.name||it.defId)+'×'+(it.count||1);}).join('　'):'无（可于「货郎」处购得城市营造图样）')+'</p>';
+        body=holdHtml+'<p class="tip">此地为「'+cellDisplayName(cid,cellDisplayType(cid,x,y))+'」。持图者方可开工：</p>';
+        list.forEach(function(it){
+          var bp=it.bp, total=cityBuildMatTotal(bp), mats='';
+          for(var mk in total) mats+=((LF.ITEMS[mk]||{}).name||mk)+'×'+total[mk]+'　';
+          var has=!bp.tuzhi||packFind(bp.tuzhi);
+          var badge=bp.tuzhi?'　〔'+(has?'持图':'缺图')+'〕':'';
+          var btn=has?'<button class="btn-mini" data-start="'+it.id+'">开 工</button>':'<button class="btn-mini" disabled style="opacity:.5;cursor:not-allowed;">缺 图</button>';
+          body+='<div style="display:flex;align-items:center;gap:10px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'+
+            '<div style="flex:1;"><b>'+bp.doneName+badge+'</b><div class="tip">'+bp.desc+'</div>'+
+            '<div class="tip">耗材：'+mats+'　营造：'+(bp.stages||[]).length+' 阶段 × '+(bp.labor||2)+' 轮</div></div>'+
+            '<span style="flex:none;">'+btn+'</span></div>';
+        });
+      }
+    }
+    return head+body+'<button class="btn-mini" id="cb-leave" style="width:100%;margin-top:8px;">收 工</button>';
+  }
+  function renderCityBuildProgress(o){
+    var bp=LF.BUILD[o.blueprintId]||{};
+    var stages=bp.stages||[];
+    var stage=stages[o.stageIndex];
+    if(!stage) return '<p class="tip">工事已毕，只待收尾。</p>';
+    var html='<p class="tip">营造「<b>'+bp.doneName+'</b>」· 阶段 '+Math.min(o.stageIndex+1,stages.length)+' / '+stages.length+'　当前·<b>'+stage.name+'</b></p>';
+    for(var k in stage.need){
+      var it=LF.ITEMS[k]||{};
+      var have=o.matsPaid[k]||0, need=stage.need[k], packN=(packFind(k)||{count:0}).count;
+      var done=have>=need;
+      html+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'+
+        '<span>'+itemIconHTML(it,18)+'</span>'+
+        '<span style="opacity:.8;flex:1;">'+have+' / '+need+'　·　行囊'+packN+'</span>'+
+        (done?'<span style="color:#8fce8f;">已备齐</span>':'<button class="btn-mini" data-order="'+o.id+'" data-mat="'+k+'">投 料</button>')+
+        '</div>';
+    }
+    var matsOk=true;
+    for(var k2 in stage.need){ if((o.matsPaid[k2]||0) < stage.need[k2]){ matsOk=false; break; } }
+    html+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'+
+      '<span>⚒️</span><span style="opacity:.8;flex:1;">营造进度（人力）'+o.laborPaid+' / '+(bp.labor||2)+'</span>'+
+      (matsOk?'<button class="btn-mini" data-order="'+o.id+'" data-exert="1">营 造</button>':'')+
+      '</div>';
+    if(!matsOk) html+='<p class="tip">投齐本阶段材料，方可开营造（每轮耗时 1 时辰、耗 4 精力）。</p>';
+    return html;
+  }
+  function renderCityBuildDone(inst){
+    var nm=cellDisplayName(cityBuildState.cid, inst.type);
+    var ownerName=inst.owner==='player' ? '你' : (inst.owner||'未知');
+    return '<p class="tip">「'+nm+'」已然落成（等级 '+(inst.level||1)+'，产权：'+ownerName+'）。'+
+      (inst.type==='market'?'　市集每日可收市租（10 钱/级），银两自动入你名下。':'')+'</p>';
+  }
+  function bindCityBuildPanel(){
+    var S=cityBuildState;
+    var card=document.querySelector('#modal-card');
+    if(!card) return;
+    card.querySelectorAll('[data-start]').forEach(function(b){
+      b.onclick=function(){ startCityBuild(S.cid,S.x,S.y,b.getAttribute('data-start')); };
+    });
+    card.querySelectorAll('[data-mat]').forEach(function(b){
+      b.onclick=function(){ var o=buildOrderById(b.getAttribute('data-order')); if(o) cityBuildMat(o, b.getAttribute('data-mat')); };
+    });
+    card.querySelectorAll('[data-exert]').forEach(function(b){
+      b.onclick=function(){ var o=buildOrderById(b.getAttribute('data-order')); if(o) cityBuildExert(o); };
+    });
+    var lv=document.getElementById('cb-leave'); if(lv) lv.onclick=function(){ closeModal(); };
+  }
+  // ══ 宏观工单推进 + 每日市租（第3步）══
+  // 微观(requester:'player')由玩家现场 exert 推进；宏观(requester:npcId)每日跨子夜按 estDays 推进（第5步政令台委派启用）
+  function tickBuildOrders(n){
+    var bo=state.flags.buildOrders;
+    if(!bo || n<=0) return;
+    for(var id in bo){
+      var o=bo[id]; if(!o || o.status!=='building') continue;
+      if(o.requester==='player') continue;
+      var mul=(typeof npcBuildSpeed==='function')?npcBuildSpeed(o.assignedNpc):1;
+      o.laborPaid=(o.laborPaid||0)+Math.max(1, Math.ceil((o.laborNeeded||1)/Math.max(1,(o.estDays||1))*n*mul));
+      var mats=o.matsNeeded||{};
+      for(var mk in mats) o.matsPaid[mk]=mats[mk];
+      if(o.laborPaid >= (o.laborNeeded||1)){
+        o.status='done';
+        commitBuildOrder(o);
+        var _bp=LF.BUILD[o.blueprintId]||{};
+        log('〔工成〕'+( _bp.doneName||'建筑')+'落成（工单 '+o.id+'）。','sys');
+      }
+    }
+    collectRents();
+  }
+  function commitBuildOrder(o){
+    var bp=LF.BUILD[o.blueprintId]||{};
+    var inst=cityCellInst(o.cid,o.x,o.y);
+    if(inst){ inst.built=true; inst.type=bp.cellType||inst.type; inst.level=o.level||inst.level; }
+  }
+  // 市租：已建市集按等级每日入其 owner 名下（player→state.gold；其余留待第5/6步势力钱袋）
+  function collectRents(){
+    var cc=state.flags.cityCells; if(!cc) return;
+    for(var cid in cc){
+      var cells=cc[cid]; if(!cells) continue;
+      for(var k in cells){
+        var c=cells[k];
+        if(!c || c.type!=='market' || !c.built) continue;
+        var rent=(c.level||1)*10;
+        if(c.owner==='player') state.gold=(state.gold||0)+rent;
+      }
+    }
+  }
+  function goCell(cid,x,y){
+    var cp=state.flags.cityPos; if(!cp || cp.cid!==cid) return;
+    if(Math.abs(cp.x-x)+Math.abs(cp.y-y)!==1) return;   // 仅相邻格可移动
+    if(!exert('远行')) return;
+    var ri=(cellDisplayType(cid,x,y)==='gate')?{gate:true,nm:'城门'}:null;
+    var eng=(ri?1:2);   // 经城门省力
+    state.energy=Math.max(0,state.energy-eng);
+    state.food=Math.max(0,state.food-1); state.drink=Math.max(0,state.drink-1);
+    advanceTime(1);
+    state.flags.cityPos={cid:cid, x:x, y:y};
+    if(ri){
+      log('你行至城门口，城门在望……','sys');
+    } else {
+      log('你转入城中街巷，景物渐换……','sys');
+    }
+    renderRoom(cid, true);
+    save(state);
+    if(currentModalKind==='map') openModal('map');   // 城内地图模式下同步刷新网格
+  }
+  // ── 身份 / 势力系统（v20260826g）：政令台 + 势力图 ──
+  function factionName(id){
+    if(id==='义军'||id==='player') return (LF.FACTIONS&&LF.FACTIONS.player)?LF.FACTIONS.player.name:'义军';
+    if(id==='汉'||id==='han') return (LF.FACTIONS&&LF.FACTIONS.han)?LF.FACTIONS.han.name:'汉室';
+    var f=(LF.FACTIONS||{})[id]; return f?f.name:id;
+  }
+  function factionColor(id){
+    if(id==='义军'||id==='player') return (LF.FACTIONS&&LF.FACTIONS.player)?LF.FACTIONS.player.color:'#3a3a3a';
+    if(id==='汉'||id==='han') return (LF.FACTIONS&&LF.FACTIONS.han)?LF.FACTIONS.han.color:'#7d6a2e';
+    var f=(LF.FACTIONS||{})[id]; return f?f.color:'#888';
+  }
+  function civilEdict(kind){
+    var cid=state.room;
+    if(!isCityGrid(cid)) return;
+    if(cityOwnerOf(cid)!==playerFaction()){ toast('你并非此城之主，何谈政令？'); return; }
+    var c=(LF.CITIES||{})[cid]||{};
+    if(kind==='tax'){
+      var last=(state.flags.cityTax||{})[cid];
+      if(last===state.day){ toast('今日已在此征过税赋。'); return; }
+      var gain=Math.round((c.pop+c.commerce)/12)+5;
+      state.gold+=gain;
+      state.flags.cityTax=state.flags.cityTax||{}; state.flags.cityTax[cid]=state.day;
+      state.flags.cityOrder=state.flags.cityOrder||{};
+      var ord=(state.flags.cityOrder[cid]!=null?state.flags.cityOrder[cid]:c.order)-4;
+      state.flags.cityOrder[cid]=Math.max(0,ord);
+      log('你颁下政令，差役挨户征缴。'+c.name+'岁入 💰'+gain+' 两，然胥吏扰民，治安略降。','sys');
+      toast('征得 💰'+gain+' 两');
+    } else if(kind==='pacify'){
+      if(state.gold<20){ toast('府库空虚，无银安民。'); return; }
+      state.gold-=20;
+      state.flags.cityOrder=state.flags.cityOrder||{};
+      var o2=(state.flags.cityOrder[cid]!=null?state.flags.cityOrder[cid]:c.order)+6;
+      state.flags.cityOrder[cid]=Math.min(100,o2);
+      log('你开仓赈济、张贴安民告示，'+c.name+'百姓稍安，治安渐复。','good');
+      toast('安民：治安 +6');
+    }
+    renderStatus(); save(state); openModal('edict');
+  }
+  function renderEdict(){
+    var cid=state.room; if(!isCityGrid(cid)) return '';
+    var c=(LF.CITIES||{})[cid]||{};
+    var ord=(state.flags.cityOrder&&state.flags.cityOrder[cid]!=null)?state.flags.cityOrder[cid]:c.order;
+    var taxReady=(state.flags.cityTax||{})[cid]!==state.day;
+    var taxTip=taxReady?('可征 💰'+(Math.round((c.pop+c.commerce)/12)+5)+' 两'):'今日已征';
+    var h='';
+    h+='<div class="edict-box">';
+    h+='<div class="edict-h">📜 '+c.name+' · 政令台</div>';
+    h+='<div class="edict-sub">官职：'+(state.title||'游侠')+'　｜　势力：'+factionName(playerFaction())+'　｜　治安：'+ord+'</div>';
+    h+='<div class="edict-acts">';
+    h+='<button class="btn" onclick="civilEdict(\'tax\')">💰 征税<br><span class="sub">'+taxTip+'</span></button>';
+    h+='<button class="btn" onclick="civilEdict(\'pacify\')">🤝 安民<br><span class="sub">耗💰20，治安+6</span></button>';
+    h+='<button class="btn" onclick="openModal(\'factionMap\')">🏴 大势<br><span class="sub">观天下势力</span></button>';
+    h+='</div>';
+    h+='<div class="edict-foot">立于中枢、城归你所统，方能发号。占城即得官职，聚财养士。</div>';
+    h+='</div>';
+    return h;
+  }
+  function renderFactionMap(){
+    var groups={};
+    var keys=Object.keys(LF.CITIES||{});
+    keys.forEach(function(cid){
+      var owner=cityOwnerOf(cid);
+      var fid=(owner==='义军'||owner==='player')?'player':owner;
+      if(!groups[fid]) groups[fid]={fid:fid, cities:[]};
+      groups[fid].cities.push((LF.CITIES[cid]||{}).name||cid);
+    });
+    var order=['han','dongzhuo','yuanshao','caocao','sunce','liubiao','liuzhang','gongsun','matang','player'];
+    var h='';
+    h+='<div class="faction-map">';
+    h+='<div class="fm-h">🏴 天下大势 · 群雄割据</div>';
+    order.forEach(function(fid){
+      var g=groups[fid]; if(!g) return;
+      var f=(LF.FACTIONS||{})[fid]||{name:fid, color:'#888', desc:''};
+      h+='<div class="fm-row">';
+      h+='<div class="fm-lord"><span class="fm-dot" style="background:'+f.color+'"></span><b>'+f.name+'</b>'+(f.lord?'　<small>主君 '+f.lord+'</small>':'')+'</div>';
+      h+='<div class="fm-cities">'+g.cities.join('、')+'</div>';
+      h+='<div class="fm-desc">'+f.desc+'</div>';
+      h+='</div>';
+    });
+    h+='<div class="fm-foot">你治下：'+((state.ruledCities||[]).length)+' 城　｜　官职：'+(state.title||'游侠')+'　｜　势力：'+factionName(playerFaction())+'</div>';
+    h+='</div>';
+    return h;
+  }
+  // ===== 山河图 · 城内网格视图（v20260824b）=====
+  // 仅作城郭总览展示（地图不再承担移动职责），移动统一走下方方向键
+  function buildMapCityHTML(opts){
+    opts=opts||{};
+    var cid=state.room, cp=state.flags.cityPos, m=genCityGrid(cid);
+    if(!m||!cp) return '';
+    var size=m.size, CELL=62, W=size*CELL, H=size*CELL;
+    var cname=((LF.CITIES[cid]||{}).name||'城');
+    var cells='';
+    for(var y=0;y<size;y++) for(var x=0;x<size;x++){
+      var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
+      var ri=(t==='gate')?{gate:true,nm:'城门',ic:'🏛️',desc:''}:null;
+      var burnt=!!cityBurnedMap(cid)[x+','+y];
+      var cur=(cp.x===x&&cp.y===y);
+      var adj=(Math.abs(cp.x-x)+Math.abs(cp.y-y))===1;
+      var locked=(t==='ruin'||t==='unbuilt'||t==='site');
+      var cls='mc-cell mc-'+t+(ri&&ri.lv?(' mc-r'+ri.lv):'')+(cur?' mc-cur':'')+(adj&&!locked?' mc-adj':'')+(locked?' mc-block mc-locked':'')+(burnt?' mc-burnt':'');
+      var _nm;
+      if(ri) _nm = ri.gate?'城门'+(burnt?'·焚':''):ri.nm+(burnt?'·焚':'');
+      else if(t==='market'){ var _mk=m.markets&&m.markets[x+','+y]; _nm = _mk? _mk.name : cellDisplayName(cid,t); }
+      else if(t==='site') _nm = cityCellSiteName(cid,x,y);
+      else _nm = cellDisplayName(cid,t);
+      cells+='<div class="'+cls+'" data-x="'+x+'" data-y="'+y+'"'+
+        ' style="left:'+(x*CELL)+'px;top:'+(y*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
+        '<span class="mc-ic">'+(ri&&!ri.gate?ri.ic:meta.i)+'</span><span class="mc-nm">'+_nm+'</span></div>';
+    }
+    var curMetaName=cellDisplayName(cid, m.cells[cp.y][cp.x]);
+    // v20260905j：移除「返回山河志（出城）」按钮——切山河志改走页签，出城仍须立于城门格经罗盘
+    return '<h3>'+cname+' · 城内布防图</h3>'+
+      '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
+      '<div class="mk-bar"><button class="mk-recenter" id="mc-recenter">⌖ 回到当前位置</button></div>'+
+      '<p class="tip">城中街道由下方方向键游走；地图仅为城郭总览。当前位于〔'+curMetaName+'〕。'+
+        '城中街道可自由通行；出城须至城门——站上城门格，罗盘便会亮出朝外的出城方向。</p>';
+  }
+  // 统一地图入口（v20260906c）：三套地图（城内布防图 / 郊野图 / 山河志）共用 openModal('map')，
+  // 行为一致；scope ∈ 'city' | 'field' | 'world' | 'auto'(默认=当前上下文) 决定默认展示页。
+  function openMap(scope, opts){
+    opts=opts||{}; var o={}; for(var _k in opts) o[_k]=opts[_k];
+    o._scope=scope||'auto';
+    if(scope==='world') o.forceWorld=true;
+    openModal('map', o);
+  }
+  // 城内打开「地图」时的双页签：默认城内布防图，可切换到山河志（十三州战略地图，v20260905j）
+  function buildCityMapTabsHTML(forceWorld){
+    var cityOn=!forceWorld, worldOn=!!forceWorld;
+    return '<div class="map-tabs" id="map-tabs">'+
+      '<button type="button" class="mt-tab'+(cityOn?' on':'')+'" data-tab="city">🏯 城内布防图</button>'+
+      '<button type="button" class="mt-tab'+(worldOn?' on':'')+'" data-tab="world">🗺 山河志 · 十三州</button></div>'+
+      '<div class="map-tab-body'+(cityOn?'':' hidden')+'" data-body="city">'+buildMapCityHTML({})+'</div>'+
+      '<div class="map-tab-body'+(worldOn?'':' hidden')+'" data-body="world">'+
+        '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>'+
+        '<p class="tip">拖拽平移 · 滚轮缩放 · 点城池查看详情/前往（体力-4·食物-1·饮水-1·时间+1刻）。'+
+        '打开时默认以你所在之处居中；切回「城内布防图」可继续在城中走动。</p></div>';
+  }
+  // 郊野入城点映射缓存：拓扑在 link() 后即固定，按郊野 id 缓存，避免每次开图重复扫描远边格（v20260906c）
+  var _FIELD_CITYOUT_CACHE={};
+  // 郊野局部地图（v20260905n）：4×4 网格展示当前郊野——玩家所在格、入口(回母城)、资源/野兽/路人、远边通邻城出口
+  function buildFieldMapHTML(opts){
+    opts=opts||{};
+    var rid=state.room, room=G.ROOMS[rid];
+    if(!room || !room.isField || !room.fieldId) return '';
+    var fid=room.fieldId;
+    var fp=(LF.PLACES||{})[fid]||{};
+    var size=fp.size||4, gd=fp.gateDir||'东';
+    var geo=LF.Travel.fieldGeometry(size, gd);
+    var CELL=62, W=size*CELL, H=size*CELL, fc=room.fc, fr=room.fr;
+    var meta=((LF.Travel&&LF.Travel.fields)||{})[fid]||{};
+    var parentName=((LF.CITIES||{})[fp.parent]&&LF.CITIES[fp.parent].name)||((LF.PLACES||{})[fp.parent]&&LF.PLACES[fp.parent].name)||fp.parent||'';
+    // 远边入城点：按郊野 id 缓存扫描结果（拓扑固定）；远边各格 exits[gateDir] 指向城市的即为入城口
+    if(!_FIELD_CITYOUT_CACHE[fid]){
+      var _co={};
+      (function(){
+        var far=[];
+        if(gd==='东'||gd==='西'){ for(var r=0;r<size;r++) far.push([r,geo.farCol]); }
+        else { for(var c=0;c<size;c++) far.push([geo.farRow,c]); }
+        far.forEach(function(p){
+          var rm=G.ROOMS[LF.Travel.roomId(fid,p[0],p[1])]||{};
+          var ex=rm.exits&&rm.exits[gd];
+          if(typeof ex==='string' && ex.indexOf('__gate__:')===0){
+            var nid=ex.split(':')[1];
+            _co[p[0]+','+p[1]]=((LF.CITIES||{})[nid]&&LF.CITIES[nid].name)||((LF.PLACES||{})[nid]&&LF.PLACES[nid].name)||nid;
+          }
+        });
+      })();
+      _FIELD_CITYOUT_CACHE[fid]=_co;
+    }
+    var cityOut=_FIELD_CITYOUT_CACHE[fid];
+    var cells='';
+    for(var r=0;r<size;r++) for(var c=0;c<size;c++){
+      var cid=LF.Travel.roomId(fid,r,c), cr=G.ROOMS[cid]||{};
+      var isCur=(r===fr&&c===fc), isEntry=(r===geo.entryR&&c===geo.entryC);
+      var cityNm=cityOut[r+','+c];
+      var ic='·', nm='荒野', cls='mc-cell mf'+(isCur?' mc-cur':'');
+      if(isEntry){ ic='🚪'; nm='入'+parentName; cls+=' mf-entry'; }
+      else if(cityNm){ ic='🏰'; nm='入'+cityNm+'·'+gd; cls+=' mf-cityout'; }
+      else if(cr.resources&&cr.resources.length){ ic='🌿'; nm=cr.resources[0].name; }
+      else if(cr.monsters&&cr.monsters.length){ var m0=cr.monsters[0]; ic=(m0.aggr==='flee'?'🐗':(m0.aggr==='neutral'?'🐺':'⚔')); nm=m0.name; }
+      else if(cr.water){ ic=cr.water.icon||'💧'; nm=cr.water.name; }
+      else if(cr.fieldNpcs&&cr.fieldNpcs.length){ ic='💬'; nm=cr.fieldNpcs[0].name; }
+      cells+='<div class="'+cls+'" data-x="'+c+'" data-y="'+r+'"'+
+        ' style="left:'+(c*CELL)+'px;top:'+(r*CELL)+'px;width:'+CELL+'px;height:'+CELL+'px">'+
+        '<span class="mc-ic">'+ic+'</span><span class="mc-nm">'+nm+'</span></div>';
+    }
+    var exits='';
+    (meta.neighbors||[]).forEach(function(nb){
+      var nn=((LF.PLACES||{})[nb.nid]&&LF.PLACES[nb.nid].name)||nb.nid;
+      exits+='<li>远边行军 → 『'+nn+'』</li>';
+    });
+    return '<h3>'+fp.name+' · 郊野图</h3>'+
+      '<div class="map-city"><div class="map-city-canvas" style="width:'+W+'px;height:'+H+'px">'+cells+'</div></div>'+
+      '<p class="tip">你正行于〔'+parentName+'〕之'+(gd)+'郊野，当前位于〔'+(room.nmBand||'郊野')+'〕。'+
+        '金框为你的所在；🚪 入'+parentName+'（回城口）　🏰 入邻城（远边通城口）。'+
+        (fieldHasWater(room)?'　💧 水畔可 🎣 垂钓。':'')+'</p>'+
+      (exits?'<ul class="mf-exits">'+exits+'</ul>':'') + buildFieldAttrPanel(fid);
+  }
+  // 野地属性面板（v20260906d）：聚合本野地资源/野怪/友好路人，列出临近城市与母城治安倾向
+  function buildFieldAttrPanel(fid){
+    var fp=(LF.PLACES||{})[fid]||{};
+    var size=fp.size||4, gd=fp.gateDir||'东';
+    var res={}, mon={}, npc={}, wat={}, r, c, rm;
+    for(r=0;r<size;r++) for(c=0;c<size;c++){
+      rm=G.ROOMS[LF.Travel.roomId(fid,r,c)]; if(!rm) continue;
+      (rm.resources||[]).forEach(function(x){ if(!res[x.type]) res[x.type]={name:x.name,item:x.item,amt:0}; res[x.type].amt+=(x.amt||1); });
+      (rm.monsters||[]).forEach(function(x){ if(!mon[x.id]) mon[x.id]={name:x.name,aggr:x.aggr,lvl:1,n:0}; mon[x.id].n++; if((x.lvl||1)>mon[x.id].lvl) mon[x.id].lvl=x.lvl; });
+      (rm.fieldNpcs||[]).forEach(function(x){ if(!npc[x.type]) npc[x.type]={name:x.name,n:0}; npc[x.type].n++; });
+      if(rm.water){ if(!wat[rm.water.type]) wat[rm.water.type]={name:rm.water.name,icon:rm.water.icon,n:0}; wat[rm.water.type].n++; }
+    }
+    var cid=fp.parent, cdef=(LF.CITIES||{})[cid]||{};
+    var order=(state.flags&&state.flags.cityOrder&&state.flags.cityOrder[cid]!=null)?state.flags.cityOrder[cid]:(cdef.order!=null?cdef.order:50);
+    var disp = order>=60?'安靖 🟢':(order<40?'动荡 🔴':'平靖 🟡');
+    var parentName=(cdef.name)||((LF.PLACES||{})[cid]&&LF.PLACES[cid].name)||cid;
+    var near=(LF.Travel.fields[fid]&&LF.Travel.fields[fid].neighbors)||[];
+    function listHtml(map, fn){ var ks=Object.keys(map); if(!ks.length) return '<span style="opacity:.5">无</span>'; return ks.map(fn).join('　'); }
+    var resHtml=listHtml(res,function(k){ var o=res[k]; return (o.item&&LF.ITEMS[o.item]?LF.ITEMS[o.item].icon:'🌿')+' '+o.name+'×'+o.amt; });
+    var monHtml=listHtml(mon,function(k){ var m=mon[k]; var ic=m.aggr==='flee'?'🐗':(m.aggr==='neutral'?'🐺':'⚔'); return ic+' '+m.name+'×'+m.n; });
+    var npcHtml=listHtml(npc,function(k){ return '💬 '+npc[k].name+'×'+npc[k].n; });
+    var watHtml=listHtml(wat,function(k){ var o=wat[k]; return (o.icon||'💧')+' '+o.name+'×'+o.n; });
+    var nearHtml=near.length? near.map(function(nb){ var n=(LF.PLACES[nb.nid]&&LF.PLACES[nb.nid].name)||nb.nid; return '🏯 '+n+(nb.li?('（'+nb.li+'里）'):''); }).join('　') : '（荒僻无邻）';
+    var rowStyle='display:flex;gap:8px;padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:13px;line-height:1.5;';
+    var kStyle='flex:0 0 64px;color:#c8a45a;font-weight:600;';
+    var vStyle='flex:1;color:#e8e0cf;';
+    return '<div style="margin-top:10px;padding:8px 10px;background:rgba(0,0,0,.22);border:1px solid rgba(200,164,90,.28);border-radius:8px;">'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">母城治安</span><span style="'+vStyle+'">'+parentName+' · '+order+' · '+disp+'</span></div>'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">临近城市</span><span style="'+vStyle+'">'+nearHtml+'</span></div>'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">资源</span><span style="'+vStyle+'">'+resHtml+'</span></div>'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">野怪</span><span style="'+vStyle+'">'+monHtml+'</span></div>'+
+      '<div style="'+rowStyle+'"><span style="'+kStyle+'">水域</span><span style="'+vStyle+'">'+watHtml+'</span></div>'+
+      '<div style="'+rowStyle+'border-bottom:none"><span style="'+kStyle+'">路人</span><span style="'+vStyle+'">'+npcHtml+'</span></div>'+
+      '</div>';
+  }
+  // 野外打开「地图」时的双页签：默认郊野图，可切换到山河志（十三州战略地图，v20260905n）
+  function buildFieldMapTabsHTML(forceWorld){
+    var fieldOn=!forceWorld, worldOn=!!forceWorld;
+    return '<div class="map-tabs" id="map-tabs">'+
+      '<button type="button" class="mt-tab'+(fieldOn?' on':'')+'" data-tab="field">🏕 郊野图</button>'+
+      '<button type="button" class="mt-tab'+(worldOn?' on':'')+'" data-tab="world">🗺 山河志 · 十三州</button></div>'+
+      '<div class="map-tab-body'+(fieldOn?'':' hidden')+'" data-body="field">'+buildFieldMapHTML({})+'</div>'+
+      '<div class="map-tab-body'+(worldOn?'':' hidden')+'" data-body="world">'+
+        '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>'+
+        '<p class="tip">拖拽平移 · 滚轮缩放 · 点城池查看详情。打开时默认以你所在郊野居中。</p></div>';
+  }
+  // 页签绑定：布防图/郊野图 与 山河志 互切；山河志首次激活时（点击或默认页）才初始化并聚焦「此身所在」
+  function initMapTabs(){
+    var tabs=document.querySelector('#modal-card .map-tabs');
+    if(!tabs) return false;
+    var worldDone=false;
+    function activateWorld(){
+      if(worldDone) return;
+      worldDone=true;
+      initStrategicMapInGame({ focusYou:true });   // 打开即居中玩家所在
+    }
+    tabs.querySelectorAll('.mt-tab').forEach(function(b){
+      b.onclick=function(){
+        var go=b.getAttribute('data-tab');
+        tabs.querySelectorAll('.mt-tab').forEach(function(x){ x.classList.toggle('on', x===b); });
+        document.querySelectorAll('#modal-card .map-tab-body').forEach(function(x){
+          x.classList.toggle('hidden', x.getAttribute('data-body')!==go);
+        });
+        if(go==='world') activateWorld();
+      };
+    });
+    // 若默认即为山河志页（如 openMap('world')），打开即初始化
+    var active=tabs.querySelector('.mt-tab.on');
+    if(active && active.getAttribute('data-tab')==='world') activateWorld();
+    return true;
+  }
+  function initMapCity(opts){
+    opts=opts||{};
+    var wrap=document.querySelector('#modal-card .map-city'); if(!wrap) return;
+    // 地图定位为「信息/总览」，不再作为移动手段：取消点格行走，仅保留回到当前位置
+    var rb=document.getElementById('mc-recenter');
+    if(rb) rb.onclick=function(){
+      var cur=wrap.querySelector('.mc-cell.mc-cur');
+      if(cur) cur.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+    };
+  }
+  function buildActions(room, popExits){
+    if(!room) room=curRoom();
+    clearActions();
+    grpCursor=null;
+    renderNpcList(room);   // 左侧 NPC 列表（配置房间与兼容房间统一渲染，避免与下方按钮重复）
+    // 战败封锁：仅可「席地打盹」恢复，场景其余按钮全部隐藏
+    if(state.defeated){
+      log('〔力竭〕你重伤未愈，动弹不得——就地打盹歇息，方能续战。','sys');
+      var b=mkAct('scene','🧱','席地打盹',function(){ openRestModal('ground'); });
+      return;
+    }
+    // 建筑内部房间：场景物件（含子区域/返回出口）按按钮呈现，无方向罗盘
+    if(isBldRoom(room.id)){
+      var _bobjs=roomObjs(room.id);
+      if(_bobjs && _bobjs.length) _bobjs.forEach(function(o){
+        var _acts=(typeof o.actions==='function'? o.actions(): (o.actions||[]));
+        var _btn=mkAct('scene', o.icon, o.name, function(e){
+          // 出入口单击直达；其余物件展开浮动菜单
+          if(o.direct && _acts.length){ _acts[0].fn(); return; }
+          toggleObjExpand(e, _btn, o, _acts);
+        });
+      });
+      renderSelf(room);
+      return;
+    }
+    // 郊野房间：采集 / 挑战 / 交谈（移动仍走底部罗盘）
+    if(room.isField){
+      fieldActions(room);
+      if(room.exits && Object.keys(room.exits).length) renderMoveBar(room);
+      renderSelf(room);
+      return;
+    }
+    // 城市网格：当前格动作派生（取代旧出口/对象按钮）；移动改由底部方向键（currentRoomExits）负责
+    if(isCityGrid(room.id)){
+      cityCellActs(room.id, (state.flags.cityPos?state.flags.cityPos.x:0), (state.flags.cityPos?state.flags.cityPos.y:0)).forEach(function(a){
+        var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
+        var btn=mkAct('scene', a.icon||'·', a.label, function(e){
+          // 进入某处（进·店铺/进·建筑）意图明确，单击直达，不再套「执 行」菜单
+          if(a.id==='enter_building'){ handleAction(a.id,a); return; }
+          toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts);
+        });
+      });
+      // 城市级动作（城况一览 / 逛市集）并入场景——非网格城在下方 cityActs 分支渲染，此处补回以免网格城缺漏；
+      // 这两个意图明确，单击直达，不再套「执 行」菜单
+      cityActs(room.id).forEach(function(a){
+        if(a.id!=='city_stat' && a.id!=='market') return;
+        mkAct('scene', a.icon||'·', a.label, function(e){ handleAction(a.id, a); });
+      });
+      // 玩家在城内营造的建筑 / 放置的设备，作为场景物件一并展示（按房间整体存储，城内各处皆可寻得）
+      var pobjs=roomObjs(room.id, {placedOnly:true});
+      if(pobjs.length) renderObjs(pobjs, 'scene');
+      return;
+    }
+    // 城市系统：派生可做之事（城况一览）——对配置城市与占位州治均生效
+    cityActs(room.id).forEach(function(a){
+      var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
+      var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
+    });
+    var objs=roomObjs(room.id);
+    if(objs && objs.length){
+      renderObjs(objs.filter(function(o){return o.type==='feature' && o.key!=='env' && o.key!=='learn';}), 'scene');
+      var exitsObjs=objs.filter(function(o){return o.type==='exit';});
+      if(exitsObjs.length){
+        // 有出口：日常移动交由 Dock 上方常驻移动条
+        renderMoveBar(room);
+      }
+      renderSelf(room);
+      return;
+    }
+    // fallback：旧版分组按钮（兼容无配置的房间；探查已由 dock 接管）
+    (room.actions||[]).forEach(function(a){
+      var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
+      var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); });
+      if(a.id) btn.dataset.act=a.id;   // 供新手目标引导高亮定位
+    });
+    if(room.exits && Object.keys(room.exits).length){
+      // 有出口：日常移动交由 Dock 上方常驻移动条
+      renderMoveBar(room);
+    }
+    renderSelf(room);
+  }
+  // ===== 左侧 NPC 列表（地图左侧，点击弹出菜单）=====
+  function renderNpcList(room){
+    if(!room && state.room) room=G.ROOMS[state.room]||bldRoom(state.room);
+    var box=document.getElementById('npc-list'); if(!box) return;
+    box.innerHTML=''; box.classList.remove('has');
+    var items=[];
+    var seen={};   // 已在 ROOM_OBJECTS 中以 NPC 形式出现的 key，避免与 npcs 重复
+    var rec=(state.flags && state.flags.recruited)||{};
+    var objs=ROOM_OBJECTS[room.id];
+    if(objs && objs.length){
+      objs.filter(function(o){return o.type==='npc';}).forEach(function(o){
+        if(rec[o.key]) return;         // 已入队的随从不再显示于场景
+        seen[o.key]=1;
+        items.push({o:o, acts:buildNpcActions(o)});
+      });
+    }
+    // 合并房间 npcs：敌人型 → 可「挑战」；对话型 → 原交谈逻辑
+    (room.npcs||[]).forEach(function(k){
+      if(seen[k]) return;
+      if(rec[k]) return;               // 已入队的随从不再显示
+      var en = G.ENEMIES ? G.ENEMIES.get(k) : null;
+      if(en){
+        var o={name:en.name, icon:'⚔', key:k, desc:en.title||'来者不善'};
+        items.push({o:o, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat(k); }}]});
+      } else {
+        var n=G.DIALOGUES.npcs[k]; if(!n) return;
+        items.push({o:{name:n.name, icon:'👤', key:k, desc:n.name}, acts:buildNpcActions({name:n.name, key:k, desc:n.name})});
+      }
+    });
+    // 建筑内部房间：以 interior/子区域 npcs 直接呈现（复用浮动菜单交互）
+    if(isBldRoom(room.id)){
+      var _bf=bldForRoom(room.id);
+      if(_bf) (_bf.ar.npcs||[]).forEach(function(e,i){
+        items.push({o:{name:e.name, icon:e.icon, key:'bldn_'+room.id+'_'+i, desc:e.desc}, acts:bldActsFilter(e.acts)});
+      });
+    }
+    // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
+    var cityExtras = cityCellNpcs(room.id, (state.flags.cityPos?state.flags.cityPos.x:0), (state.flags.cityPos?state.flags.cityPos.y:0));
+    var enters=[];
+    for(var ci=0; ci<cityExtras.length; ci++){
+      var ce=cityExtras[ci];
+      if(ce.enter){ enters.push(ce); continue; }   // 建筑入口单独渲染，不计入人物列表
+      if(seen[ce.o.key]) continue;
+      if(rec[ce.o.key]) continue;
+      items.push(ce);
+    }
+    if(!items.length && !enters.length){ box.innerHTML='<div class="nl-empty">此处无人</div>'; return; }
+    box.classList.add('has');
+    box.classList.toggle('many', (items.length+enters.length)>=4);   // 人数多时加宽，避免太挤
+    var hd=document.createElement('div'); hd.className='nl-hd'; hd.textContent='此处人物'; box.appendChild(hd);
+    items.forEach(function(it){
+      var chip=document.createElement('button'); chip.className='nl-item';
+      chip.innerHTML='<span class="nl-ic">'+(it.o.icon||'👤')+'</span><span class="nl-nm">'+it.o.name+'</span>';
+      if(it.o.key) chip.dataset.k=it.o.key;   // 供新手目标引导高亮定位
+      chip.onclick=function(e){ toggleObjExpand(e, chip, it.o, it.acts); };
+      box.appendChild(chip);
+    });
+    enters.forEach(function(it){
+      var b=BUILDINGS[it.enter.building];
+      var chip=document.createElement('button'); chip.className='nl-item nl-bld';
+      chip.innerHTML='<span class="nl-ic">'+(b?b.icon:'🏠')+'</span><span class="nl-nm">'+(b?b.name:it.enter.building)+'</span>';
+      chip.onclick=function(){ enterBldRoom(it.enter.building, {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}); };
+      box.appendChild(chip);
+    });
+  }
+  var grpCursor=null;
+  function isSelfCare(a){
+    return (a.label==='研习武学') || /休整|歇|栖|借宿|调息/.test(a.label||'');
+  }
+  // 通用分组按钮（带分组底色；自身加边框由 .g-self 控制）
+  function mkAct(group, icon, name, fn, extraCls){
+    var b=document.createElement('button');
+    b.className='act obj-btn g-'+group+(extraCls?(' '+extraCls):'');
+    b.innerHTML='<span class="ob-ic">'+(icon||'·')+'</span><span class="ob-nm">'+name+'</span>';
+    b.onclick=function(e){ fn(e); }; $actions.appendChild(b);
+    return b;
+  }
+  function renderObjs(list, group){
+    if(!list || !list.length) return;
+    list.forEach(function(o){
+      var acts=(typeof o.actions==='function'? o.actions(): (o.actions||[])).filter(function(a){return !isSelfCare(a);});
+      var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); });
+    });
+  }
+  // ===== NPC/物件：点击弹出右键式浮动菜单（贴合光标，无描述） =====
+  var objPanelOpen=null;
+  function toggleObjExpand(e, btn, o, acts){
+    e.stopPropagation();
+    if(objPanelOpen){ collapseObjPanel(); return; }
+    openObjMenu(e, o, acts);
+  }
+  function openObjMenu(e, o, acts){
+    var panel=document.createElement('div'); panel.className='obj-menu';
+    (acts||[]).forEach(function(a){
+      if(a.sep){ var s=document.createElement('div'); s.className='op-sep'; panel.appendChild(s); return; }
+      var b=document.createElement('button');
+      b.className='op-btn'+(a.danger?' danger':'')+(a.icon?' has-ic':'');
+      b.innerHTML=(a.icon?'<span class="op-ic">'+a.icon+'</span>':'')+'<span class="op-lb">'+a.label+'</span>';
+      b.onclick=function(ev){ ev.stopPropagation(); collapseObjPanel(); if(a && typeof a.fn==='function') a.fn(); };
+      panel.appendChild(b);
+    });
+    document.body.appendChild(panel);
+    objPanelOpen={panel:panel};
+    positionMenu(panel, e.clientX, e.clientY);
+    setTimeout(function(){
+      document.addEventListener('click', onDocCollapseObj, true);
+      document.addEventListener('keydown', onKeyCollapseObj, true);
+    }, 0);
+    var sc=document.getElementById('scene'); if(sc) sc.addEventListener('scroll', collapseObjPanel, {once:true});
+  }
+  // 以光标为锚点定位，遇边界自动翻转，避免溢出屏幕
+  function positionMenu(panel, x, y){
+    var vw=window.innerWidth, vh=window.innerHeight;
+    var mw=panel.offsetWidth, mh=panel.offsetHeight;
+    var left=x, top=y;
+    if(left+mw>vw-8) left=Math.max(8, vw-mw-8);
+    if(top+mh>vh-8) top=Math.max(8, vh-mh-8);
+    panel.style.left=left+'px'; panel.style.top=top+'px';
+  }
+  function onKeyCollapseObj(e){ if(e.key==='Escape') collapseObjPanel(); }
+  function onDocCollapseObj(e){ if(objPanelOpen && !objPanelOpen.panel.contains(e.target)) collapseObjPanel(); }
+  function collapseObjPanel(){
+    if(!objPanelOpen) return;
+    var p=objPanelOpen.panel; objPanelOpen=null;
+    document.removeEventListener('click', onDocCollapseObj, true);
+    document.removeEventListener('keydown', onKeyCollapseObj, true);
+    if(p && p.parentNode) p.parentNode.removeChild(p);
+  }
+  // NPC → 可战敌人 映射：当 NPC 的 key 与敌人 id 不一致时，用此表指向真正的敌人
+  var NPC_COMBAT_MAP = { 'heishan_zhai':['heishan_zei','heishan_zei'] };  // 小兵成组（演示敌群作战）
+  // ===== 随从系统：可招募 NPC → 入队 → 共同战斗（CombatEngine 已支持 state.party） =====
+  var COMPANION_DEFS = {
+    liupan: {
+      id:'liupan', name:'游侠·刘磐',
+      hp:150, maxHp:150, mp:20, maxMp:20,
+      atk:15, def:9, spd:15,
+      element:'火', learnedMartial:['beng_quan'], realm:{}, equippedForce:[],
+      critRate:0.04, hitRate:0.92,
+      desc:'使一口环首刀，为人豪爽，愿随你闯荡江湖。'
+    }
+  };
+  function recruitCompanion(key){
+    var c=COMPANION_DEFS[key]; if(!c){ toast('此人不可招入队中。'); return; }
+    if(!state.party) state.party=[];
+    if(state.party.some(function(m){ return m.id===c.id; })){ toast(c.name+'已在队中。'); return; }
+    state.party.push(Object.assign({}, c));
+    if(!state.flags) state.flags={};
+    if(!state.flags.recruited) state.flags.recruited={};
+    state.flags.recruited[key]=true;   // 标记已招募，NPC 从场景列表中隐去
+    save(state);
+    if(typeof buildActions==='function') buildActions(G.ROOMS[state.room]);
+    log(c.name+'抱拳道：「承蒙看得起，愿随壮士同生共死！」','good');
+    toast(c.name+' 加入队伍！');
+  }
+  function dismissCompanion(id){
+    if(!state.party) return;
+    var idx=-1;
+    for(var i=0;i<state.party.length;i++){ if(state.party[i].id===id){ idx=i; break; } }
+    if(idx<0) return;
+    var c=state.party[idx];
+    state.party.splice(idx,1);
+    for(var k in COMPANION_DEFS){ if(COMPANION_DEFS[k].id===id && state.flags && state.flags.recruited){ delete state.flags.recruited[k]; } }
+    save(state);
+    if(currentModalKind==='party') openModal('party');
+    log(c.name+'与你拱手作别，转身没入人海。','sys');
+    toast(c.name+' 已离队。');
+  }
+  function renderPartyPanel(){
+    var list=(state.party||[]);
+    var html='<h3>队 伍</h3>';
+    if(!list.length){
+      html+='<p class="tip">你孤身一人行走江湖。江湖儿女中自有可招募之人——留意 NPC 的「邀请入队」。</p>';
+    }
+    list.forEach(function(c){
+      var arts=(c.learnedMartial||[]).map(function(aid){ var a=G.MARTIAL_ARTS.get(aid); return '<span>'+(a?a.name:aid)+'</span>'; }).join('');
+      html+='<div style="border:1px solid #6b5a3a;border-radius:10px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+        +   '<span style="font-weight:700;font-size:15px;">'+(c.name||'同伴')+'</span>'
+        +   '<button class="btn-mini" style="background:#7d241d;border-color:#a13a2c;" onclick="LFUI.dismissCompanion(\''+c.id+'\')">解散</button>'
+        + '</div>'
+        + row('气血', c.hp+' / '+c.maxHp)
+        + row('内力', (c.mp||0)+' / '+(c.maxMp||0))
+        + row('攻击', c.atk||0)
+        + row('防御', c.def||0)
+        + row('身法', c.spd||0)
+        + row('五行', c.element||'无')
+        + '<div class="row"><span>武学</span></div><div class="skills">'+(arts||'<span>未习武学</span>')+'</div>'
+        + '<p class="tip">'+((COMPANION_DEFS[c.id]||{}).desc||'每场战斗同伴满血入场，可随你一起出手。')+'</p>'
+        + '</div>';
+    });
+    return html;
+  }
+  // ===== NPC 标准操作列：交谈 / 观察 / 攻击 + 对象自带动作 =====
+  function buildNpcActions(o){
+    var acts=[];
+    acts.push({label:'交谈', icon:'💬', fn:function(){ if(o.key) talk(o.key); }});
+    // 开场教学链（onb 未完成）期间：仅保留「交谈」，隐藏「观察」「攻击」，避免新手误触/无意义选项
+    var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
+    if(!onboarding){
+      acts.push({label:'观察', icon:'👁', fn:function(){ observeNpc(o); }});
+      var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
+      acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
+        if(dangerAct){ dangerAct.fn(); return; }
+        var eid = (G.ENEMIES && G.ENEMIES[o.key]) ? o.key : (NPC_COMBAT_MAP[o.key] || null);
+        if(eid && G.ENEMIES[eid]){ startCombat(eid); return; }
+        log('〔'+o.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys');
+      }});
+    }
+    (o.actions||[]).forEach(function(a){
+      if(a.danger) return;                       // 敌意动作已并入「攻击」
+      if(/交谈|观察/.test(a.label||'')) return;  // 去重标准项
+      acts.push(a);
+    });
+    return acts;
+  }
+  function observeNpc(o){
+    var key=o.key, parts=[];
+    if(o.desc) parts.push(o.desc);
+    if(key && G.DIALOGUES.npcs[key]) parts.push('当前态度：'+npcAttitude(key));
+    // 掉落预览：NPC 对应敌人模板有掉落表时，展示可能掉落的物资/装备（战前情报）
+    var eid = (G.ENEMIES && G.ENEMIES[key]) ? key : ((NPC_COMBAT_MAP[key]||[])[0] || null);
+    if(eid && G.ENEMIES[eid] && G.ENEMIES[eid].drop){
+      var d=G.ENEMIES[eid].drop, dr=[];
+      if(d.gold && d.gold[1]>0) dr.push('银两'+d.gold[0]+'~'+d.gold[1]);
+      if(d.pot && d.pot[1]>0) dr.push('粮草'+d.pot[0]+'~'+d.pot[1]);
+      (d.table||[]).forEach(function(t){ dr.push(t.name+'（'+(t.weight||0)+'%）'); });
+      if(d.equip && d.equip.chance>0){
+        var QR={0:['凡品','良品'],1:['凡品','精良'],2:['良品','珍稀'],3:['精良','神兵'],4:['珍稀','神兵']};
+        var rng=QR[d.equip.tier]||['',''];
+        dr.push((rng[0]?rng[0]+'~'+rng[1]+'装备':'装备')+'（'+(d.equip.chance||0)+'%）');
+      }
+      if(dr.length) parts.push('可能掉落：'+dr.join('、'));
+    }
+    if(!parts.length) parts.push('你凝神打量，未见异常。');
+    log('〔观察·'+o.name+'〕'+parts.join('；')+'。','sys');
+  }
+  // ===== 常驻移动区：Dock 上方方向罗盘（位置即方位，永远可见） =====
+  var DIR_ARROW={'北':'↑','南':'↓','东':'→','西':'←','东北':'↗','西北':'↖','东南':'↘','西南':'↙'};
+  // 方向 → 罗盘 3×3 网格坐标 [行,列]（上北下南左西右东）
+  var DIR_GRID={'北':[1,2],'东北':[1,3],'东':[2,3],'东南':[3,3],'南':[3,2],'西南':[3,1],'西':[2,1],'西北':[1,1]};
+  function renderMoveBar(room){
+    var bar=document.getElementById('move-bar'); if(!bar) return;
+    bar.innerHTML=''; bar.classList.remove('pulse','has-exits');
+    // 建筑内部房间：方向罗盘无意义，改显示「退出该房间」按钮（v20260825c）
+    if(isBldRoom(state.room)){
+      bar.classList.add('has-exits');
+      var _ctr=document.createElement('div'); _ctr.className='mv-center'; _ctr.textContent='你在此'; bar.appendChild(_ctr);
+      var _f=bldForRoom(state.room);
+      var _wrap=document.createElement('div'); _wrap.className='mv-bld-exits';
+      if(_f && !_f.ar.isRoot){
+        var _up=document.createElement('button'); _up.className='mv-exit e-out';
+        _up.innerHTML='<span class="mv-arrow">⬅</span><span class="mv-nm">返回正堂</span>';
+        _up.onclick=function(){ bldMove('__bld__'+_f.key); }; _wrap.appendChild(_up);
+      }
+      var _go=document.createElement('button'); _go.className='mv-exit e-out';
+      _go.innerHTML='<span class="mv-arrow">🚪</span><span class="mv-nm">返回街巷</span>';
+      _go.onclick=function(){ leaveBldRoom(); }; _wrap.appendChild(_go);
+      bar.appendChild(_wrap);
+      return;
+    }
+    var exits=currentRoomExits();
+    if(!exits.length) return;           // 无出口：隐藏移动区，不占空间
+    bar.classList.add('has-exits');
+    // 中心：当前所在
+    var ctr=document.createElement('div'); ctr.className='mv-center'; ctr.textContent='你在此';
+    bar.appendChild(ctr);
+    // 移动门禁：由触发引擎经 state.moveGate 设定（任何"被追/护送"剧情可复用，如苦役营越狱逃亡）
+    var gate=state.moveGate;
+    var fwd=gate && gate.fwd;
+    exits.forEach(function(o){
+      var tid=o.tid || (room.exits && room.exits[o.dir]);
+      var g=DIR_GRID[o.dir]||[2,2];
+      var blocked = fwd && tid!==fwd;
+      var b=document.createElement('button');
+      b.className='mv-exit e-'+o.dir+(o.kind?(' '+o.kind):'')+(blocked?' mv-blocked':'');
+      b.style.gridRow=g[0]; b.style.gridColumn=g[1];
+      b.innerHTML='<span class="mv-arrow">'+(DIR_ARROW[o.dir]||'➤')+'</span><span class="mv-nm">'+stripDir(o.name)+'</span>';
+      if(o.place) b.title='出城前往：'+o.place;
+      if(blocked){ b.onclick=function(){ toast(gate && gate.hint ? gate.hint : '此处暂不能去。'); }; }
+      else { b.onclick=function(){ move(o.dir, tid); }; }
+      bar.appendChild(b);
+    });
+  }
+  // 当前房间的方位通路（兼容 ROOM_OBJECTS 与旧版 room.exits）
+  function currentRoomExits(){
+    var room=G.ROOMS[state.room]||bldRoom(state.room);
+    if(!room) return [];
+    // 建筑内部无方位罗盘：子区域与出入口以场景按钮呈现
+    if(isBldRoom(state.room)) return [];
+    if(isCityGrid(state.room)){
+      var cp=state.flags.cityPos, m=genCityGrid(state.room);
+      if(!m||!cp) return [];
+      var DIRS=[['北',0,-1],['南',0,1],['东',1,0],['西',-1,0]];
+      var ex=[];
+      DIRS.forEach(function(d){
+        var nx=cp.x+d[1], ny=cp.y+d[2];
+        if(nx>=0&&nx<m.size&&ny>=0&&ny<m.size){
+          if(!canEnterCell(state.room,nx,ny)) return;   // 焦土/未营建/断路不可通行
+          var t=cellDisplayType(state.room,nx,ny);
+          var ri=(t==='gate')?{gate:true,nm:'城门'}:null;
+          ex.push({dir:d[0], name:d[0]+'·'+(ri?ri.nm:cellDisplayName(state.room,t)), icon:'🚪', tid:'__cell__', kind:'cell'});
+        }
+      });
+      // 城门外向出口：经罗盘「出城」进入对应郊野（不同城门 → 不同郊野 → 不同邻城）
+      var ct2=cellDisplayType(state.room, cp.x, cp.y);
+      if(ct2==='gate'||ct2==='sentry'){
+        var od=gateOutwardDir(state.room, cp.x, cp.y);
+        var gt=(LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][od])||null;
+        if(gt){
+          var gp=(LF.PLACES && LF.PLACES[gt])||{};
+          var gRoom=gp.entryRoom || gt;          // 指向真实房间（郊野入口格），而非郊野 id
+          // v20260905i：罗盘钮名只标「出城」，去向写入 title，避免长名在 3×3 窄钮内截断
+          ex.push({dir:od, name:od+'·出城', icon:'🚪', tid:gRoom, kind:'gateout', place:(gp.name||'郊野')});
+        }
+      }
+      return ex;
+    }
+    var objs=roomObjs(room.id);
+    var ex=objs.filter(function(o){return o.type==='exit';});
+    if(ex.length) return ex;
+    return Object.keys(room.exits||{}).map(function(dir){
+      var tid=room.exits[dir];
+      return {dir:dir, name:dir+'·'+exitDisplayName(tid), icon:'🚪', tid:tid};
+    });
+  }
+  function renderSelf(room){
+    // 研习武学：仅特定房间出现；调息已移至底部 dock
+    if(roomCanLearn(room.id)){
+      mkAct('self','📖','研习武学', function(){ openLearn(); });
+    }
+  }
+
+  function stripDir(nm){ return (nm||'').replace(/^[^·]*·/,''); }
+
+  // —— 城门 / 郊野行军 辅助 ——
+  // 取某城实际可用的城门方向（v20260905k：路网自适应，与 genCityGrid 门洞格同源）
+  function availableGateDirs(pid){
+    var c=(LF.CITIES||{})[pid];
+    if(!c || !c.grid) return ['北','东','南','西'];
+    return cityGateDirs(pid);
+  }
+  // 城门格 → 朝外方位
+  function gateOutwardDir(cid,x,y){
+    var m=genCityGrid(cid); if(!m) return null;
+    var s=m.size;
+    if(y===0) return '北'; if(y===s-1) return '南';
+    if(x===s-1) return '东'; if(x===0) return '西';
+    return null;
+  }
+  function gateCellCoord(pid, dir){
+    var m=genCityGrid(pid); if(!m) return null;
+    var s=m.size, cx=Math.floor(s/2), cy=Math.floor(s/2);
+    if(dir==='北') return [cx,0];
+    if(dir==='南') return [cx,s-1];
+    if(dir==='东') return [s-1,cy];
+    if(dir==='西') return [0,cy];
+    return [cx,cy];
+  }
+  // 到达某城时落在指定城门（供郊野→城 哨兵出口使用）
+  // 注意：目标城的该侧可能没有实际城门（单门山城只朝固定方向开门），此时落在墙/屋格会令玩家困在无路格。
+  // 改为：若指定方位无「可进入的城门格」，就近落到最近的真正城门格。
+  function nearestGateCell(pid, want){
+    var m=genCityGrid(pid); if(!m||!m.size) return want||null;
+    var s=m.size, best=null, bd=1e9;
+    for(var _y=0;_y<s;_y++) for(var _x=0;_x<s;_x++){
+      if(cellDisplayType(pid,_x,_y)!=='gate') continue;
+      if(!canEnterCell(pid,_x,_y)) continue;
+      var dd=Math.abs(_x-(want?want[0]:Math.floor(s/2)))+Math.abs(_y-(want?want[1]:Math.floor(s/2)));
+      if(dd<bd){ bd=dd; best=[_x,_y]; }
+    }
+    return best;
+  }
+  function arriveAtGate(pid, dir){
+    setOnBoat(false);   // 进城即上岸
+    var gc=gateCellCoord(pid, dir);
+    var m=genCityGrid(pid);
+    if(gc && m && m.size){
+      var t=cellDisplayType(pid, gc[0], gc[1]);
+      if(t!=='gate' || !canEnterCell(pid, gc[0], gc[1])){
+        var fb=nearestGateCell(pid, gc);
+        if(fb) gc=fb;
+      }
+    }
+    if(!gc){ renderRoom(pid); return; }
+    state.flags.cityPos={cid:pid, x:gc[0], y:gc[1]};
+    renderRoom(pid);
+  }
+  // 从城门经郊野出城（罗盘点「出城」按钮或城门外向移动触发）
+  function leaveViaGate(dir){
+    var cp=state.flags.cityPos; if(!cp||cp.cid!==state.room){ toast('须先立于城门。'); return; }
+    var _fid = (LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][dir]) || null;
+    var target = _fid ? ((LF.PLACES && LF.PLACES[_fid] && LF.PLACES[_fid].entryRoom) || _fid) : null;
+    if(!target){ toast('此门暂无通途。'); return; }
+    if(!exert('远行')) return;
+    state.energy=Math.max(0,state.energy-2);
+    state.food=Math.max(0,state.food-1); state.drink=Math.max(0,state.drink-1);
+    advanceTime(1);
+    log('你出'+((LF.CITIES[state.room]||{}).name||'城')+'的'+dir+'门，踏上城外古道……','sys');
+    renderRoom(target);
+  }
+  // 出口显示名（处理 __gate__ 哨兵 → 入城提示）
+  function exitDisplayName(tid){
+    if(typeof tid==='string' && tid.indexOf('__gate__:')===0){
+      var _p=tid.split(':'), pid=_p[1], dir=_p[2];
+      var nm=(LF.CITIES&&LF.CITIES[pid]&&LF.CITIES[pid].name) || (LF.PLACES&&LF.PLACES[pid]&&LF.PLACES[pid].name) || pid;
+      return dir+'·入城('+nm+')';
+    }
+    var r=G.ROOMS[tid];
+    if(!r) return tid;
+    // 郊野行军格：罗盘出口用语义分段名（近郭/初野/深野/远野），不再显示冗长全名
+    if(r.isField && r.nmBand) return r.nmBand;
+    return r.name;
+  }
+
+  // ===== 行走探索 =====
+  function move(dir, tid){
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }   // 战斗进行中禁止移动
+    // 郊野→城 哨兵出口：落到对应城门
+    if(typeof tid==='string' && tid.indexOf('__gate__:')===0){
+      var _p=tid.split(':'); arriveAtGate(_p[1], _p[2]); return;
+    }
+    if(isCityGrid(state.room)){
+      var _cp=state.flags.cityPos;
+      if(_cp && _cp.cid===state.room){
+        var _ct=cellDisplayType(state.room, _cp.x, _cp.y);
+        if(_ct==='gate'){
+          var _od=gateOutwardDir(state.room, _cp.x, _cp.y);
+          if(_od===dir && LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][_od]){
+            leaveViaGate(_od); return;
+          }
+        }
+      }
+      var dm={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]}[dir];
+      if(dm){
+        var _m=genCityGrid(state.room);
+        if(!_cp||!_m){ toast('此处无路可去。'); return; }
+        var nx=_cp.x+dm[0], ny=_cp.y+dm[1];
+        if(nx>=0&&nx<_m.size&&ny>=0&&ny<_m.size && canEnterCell(state.room,nx,ny)){
+          goCell(state.room, nx, ny);
+          return;
+        }
+      }
+      toast('此处无路可去。');
+      return;
+    }
+    if(!exert('远行')) return;
+    // 水路郊野：未乘船不得踏入（须先在本格「乘船渡江」）
+    var _tgtRoom=G.ROOMS[tid];
+    if(_tgtRoom && roomIsBoatRoute(_tgtRoom) && !isOnBoat()){
+      toast('此处是水路津渡，须先点「乘船渡江」方能渡江。');
+      return;
+    }
+    // 郊野逐格穿行：遇雨雪雾等天候额外耗费体力（WX_EFF.walk），城郭内不受影响
+    var _oldR=G.ROOMS[state.room];
+    var _wx=wxEff();
+    var _fieldStep=(_oldR && _oldR.isField) || !!(tid && G.ROOMS[tid] && G.ROOMS[tid].isField);
+    var _extra=(_fieldStep && _wx.walk) ? _wx.walk : 0;
+    state.energy=Math.max(0,state.energy-4-_extra);
+    state.food=Math.max(0,state.food-1);
+    state.drink=Math.max(0,state.drink-1);
+    advanceTime(1);
+    log('你朝'+dir+'方行去，沿途景物渐换……'+(_extra?('（'+((WEATHERS[state.weather]||{}).n||'')+'中行路，分外耗费气力。）'):''),'sys');
+    var _gone=state.room;
+    renderRoom(tid);
+    // 自动上岸：抵达陆地（城或非水路郊野）即离舟，整段水路只需乘一次船
+    if(!roomIsBoatRoute(G.ROOMS[tid])) setOnBoat(false);
+    var _gc=_gone && G.ROOMS[_gone];
+    if(_gc && _gc.isField){
+      var _left=fieldPlacedCamps(_gc);
+      if(_left.length) log('你起身离营——'+_left.map(function(f){return f.name;}).join('、')+'留在原地（折返仍可寻回，亦可作来日途中歇脚）。','sys');
+    }
+  }
+  // ===== 郊野内容（资源 / 野兽 / 路人）=====
+  // 此格仍存的野怪：玩家战后按格+野怪id 记录清剿（flags.fieldClearedMon），防反复刷同一批
+  function fieldMonstersLeft(room){
+    if(!room || !room.isField || !(room.monsters && room.monsters.length)) return [];
+    var cleared = state.flags && state.flags.fieldClearedMon && state.flags.fieldClearedMon[room.id];
+    var fled    = state.flags && state.flags.fieldFledMon    && state.flags.fieldFledMon[room.id];
+    return room.monsters.filter(function(m){
+      return !(cleared && cleared[m.id]) && !(fled && fled[m.id]);
+    });
+  }
+  function fieldNarr(room){
+    var out=[];
+    // 方位与去向（v20260905f）：回城方向 + 出野可通何处，行军不再「盲走」
+    var _fid=room.fieldId;
+    if(_fid){
+      var _fp=(LF.PLACES||{})[_fid]||{};
+      var _fmeta=((LF.Travel&&LF.Travel.fields)||{})[_fid]||{};
+      var _par=_fp.parent||_fmeta.place;
+      if(_par){
+        var _pn=((LF.CITIES||{})[_par]&&LF.CITIES[_par].name)?LF.CITIES[_par].name:((LF.PLACES||{})[_par]?LF.PLACES[_par].name:_par);
+        var _g=_fp.gateDir||'东';
+        var _back=({'北':'南','南':'北','东':'西','西':'东','东北':'西南','西南':'东北','西北':'东南','东南':'西北'})[_g]||'';
+        // v20260905o 修复：原「出野」提示用整片郊野的 gateDir+neighbors，但出野出口只存在于远野边特定格、
+        // 且每格仅通一个邻城（travel.js:310 cell.exits[dir]=tgt），导致提示「向北出野可至X」与罗盘（按当前格 exits）不一致。
+        // 改为：优先以「当前格实际出野出口」播报；当前格无出野出口时，引导向 gateDir 深入至远野边格再出野。
+        var _here=[];
+        if(room.exits){
+          for(var _d in room.exits){
+            var _t=room.exits[_d];
+            if(typeof _t==='string' && _t.indexOf('__gate__:')===0){
+              var _nid=_t.split(':')[1];
+              if(_nid && _nid!==_par){   // 排除回母城哨兵，仅列真正出野至邻城的出口
+                var _nn=((LF.CITIES||{})[_nid]&&LF.CITIES[_nid].name)?LF.CITIES[_nid].name:((LF.PLACES||{})[_nid]?LF.PLACES[_nid].name:_nid);
+                if(_nn) _here.push(_d+'至'+_nn);
+              }
+            }
+          }
+        }
+        var _outs=[], _nxt=null;
+        ((_fmeta.neighbors)||[]).forEach(function(n){
+          var _nm=((LF.CITIES||{})[n.nid]&&LF.CITIES[n.nid].name)?LF.CITIES[n.nid].name:((LF.PLACES||{})[n.nid]?LF.PLACES[n.nid].name:null);
+          if(_nm){ _outs.push(_nm); return; }
+          // 多段郊野链（v20260907d）：中段的「邻居」实为下一程入口房（fld_x@r_c），按其 fieldId 取名，
+          // 避免把 fld_xxx_南_2@1_2 这类房间 id 原文打进提示文案
+          var _nr=G.ROOMS[n.nid], _ff=_nr&&_nr.fieldId;
+          if(_ff && LF.PLACES[_ff] && LF.PLACES[_ff].name) _nxt=LF.PLACES[_ff].name;
+        });
+        var _txt;
+        if(_here.length){
+          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；此格向'+_here.join('、')+'（出野）。';
+        } else if(_outs.length){
+          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'深入至远野边格可出野（可至 '+_outs.join(' / ')+'）。';
+        } else if(_nxt){
+          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'深入至远野边格即入『'+_nxt+'』，再行数程当可出野。';
+        } else {
+          _txt='「'+(_fp.name||'野')+'」：向'+_back+'归「'+_pn+'」；其余方向似无通途，宜折返。';
+        }
+        out.push({t:'〔途〕'+_txt, c:'sys'});
+      }
+    }
+    // 顶栏天候/昼夜提示（v20260905d）：让时间与天候对郊野的影响可见可感
+    var _w=(WEATHERS[state.weather]||WEATHERS[0]);
+    var _t=wxEff().tip;
+    out.push({t:'〔天候〕'+_w.n+'·'+(isDaytime()?'昼':'夜')+(_t?('，'+_t):'，天色和朗，正宜赶路。'), c:'sys'});
+    if(room.resources && room.resources.length){ room.resources.forEach(function(r){ out.push({t:'〔地利〕此处有'+r.name+'（'+r.amt+'）可采。', c:'item'}); }); }
+    var mons=fieldMonstersLeft(room);
+    if(mons.length){ mons.forEach(function(m){
+      var _lv=(({1:'一',2:'二',3:'三'})[m.lvl||1]||'')+'阶';
+      if(m.aggr==='hostile') out.push({t:'〔戒备〕'+m.name+'（'+_lv+'）逡巡于此，见你便露凶光。', c:'combat'});
+      else if(m.aggr==='neutral') out.push({t:'〔野兽〕'+m.name+'（'+_lv+'）在林间徘徊，似不主动袭人。', c:'sys'});
+      else out.push({t:'〔走兽〕'+m.name+'（'+_lv+'）见人便窜入草丛。', c:'sys'});
+    }); }
+    if(room.fieldNpcs && room.fieldNpcs.length){ room.fieldNpcs.forEach(function(n){ out.push({t:'〔路人〕'+n.name+'在此歇脚。', c:'sys'}); }); }
+    var fcamps=fieldPlacedCamps(room);
+    if(fcamps.length) out.push({t:'〔营地〕此处已支有'+fcamps.map(function(f){return f.name;}).join('、')+'，可就近安歇或收起带走。', c:'good'});
+    if(roomIsBoatRoute(room)) out.push(isOnBoat()
+      ? {t:'〔水路〕烟波浩渺，你正乘舟渡江——沿岸码头渐近。', c:'sys'}
+      : {t:'〔水路〕此处为津渡水路，须「乘船渡江」方可前行。', c:'warn'});
+    return out;
+  }
+  // ===== 渡口坐船（v20260907c）=====
+  // 水路郊野（isBoatRoute，多为 port/shuizhai 起点的多段链）须乘船方可通过：
+  // 玩家进入水路郊野后须先「乘船渡江」，无舟无银则只能借无主小筏（保证不卡死）。
+  // 一旦登上陆地（城或非水路郊野）即自动上岸，整段水路只需乘一次船。
+  var BOAT_FEE = 12;   // 渡资（银两）；持有扁舟则免
+  function fieldMetaOf(room){ var fid=room&&room.fieldId; return fid?((LF.Travel&&LF.Travel.fields)||{})[fid]||((LF.PLACES||{})[fid]||{}):{}; }
+  function roomIsBoatRoute(room){ return !!(room && room.isField && fieldMetaOf(room).isBoatRoute); }
+  function isOnBoat(){ return !!(state.flags && state.flags.onBoat); }
+  function setOnBoat(v){ state.flags=state.flags||{}; state.flags.onBoat=!!v; }
+  function boatBoardAct(){
+    if(isOnBoat()){ toast('你已在舟中。'); return; }
+    if(packFind('zhou')){ setOnBoat(true); log('你解缆登舟，扁舟轻荡，准备渡江。','good'); }
+    else if((state.gold||0) >= BOAT_FEE){ state.gold-=BOAT_FEE; setOnBoat(true); log('你付了渡资 '+BOAT_FEE+' 银，登上渡船，船夫撑篙离岸。','good'); }
+    else { setOnBoat(true); log('渡口无舟可雇，你寻得一只无主小筏，亲自撑篙渡江。','sys'); }
+    buildActions(G.ROOMS[state.room]); renderStatus();
+  }
+  function fieldActions(room){
+    // 水路郊野：须乘船方可通过（已在舟中则显示已乘，未乘则给出「乘船渡江」）
+    if(roomIsBoatRoute(room)){
+      if(isOnBoat()) mkAct('scene','⛵','已乘舟（渡江中）', function(){ toast('你正在舟中渡江，向岸边行去即可上岸。'); });
+      else mkAct('scene','🚣','乘船渡江', boatBoardAct);
+    }
+    if(room.resources && room.resources.length){
+      room.resources.forEach(function(res){ mkAct('scene','🌿','采'+res.name, function(){ gatherField(room, res); }); });
+    }
+    fieldMonstersLeft(room).forEach(function(m){
+      if(m.aggr==='hostile') mkAct('scene','⚔','清剿·'+m.name, function(){ startCombat([m.id], {fieldLvl:m.lvl}); });
+      else if(m.aggr==='neutral') mkAct('scene','⚔','挑战'+m.name, function(){ startCombat([m.id], {fieldLvl:m.lvl}); });
+      else if(m.aggr==='flee') mkAct('scene','🏹','猎取·'+m.name, function(){ huntFieldBeast(room, m); });
+    });
+    if(room.fieldNpcs && room.fieldNpcs.length){
+      room.fieldNpcs.forEach(function(n){ mkAct('scene','💬','与'+n.name+'交谈', function(){ talkFieldNpc(room, n); }); });
+    }
+    if(fieldHasWater(room)) mkAct('scene','🎣','垂钓', function(){ fishField(room); });
+    addFieldCamp(room);
+  }
+  function gatherField(room, res){
+    if(!state.flags.fieldGathered) state.flags.fieldGathered={};
+    if(state.flags.fieldGathered[room.id] && state.flags.fieldGathered[room.id].indexOf(res.type)>=0){ toast(res.name+'已被采尽。'); return; }
+    var did = (res.item) || null;
+    if(!did || !LF.ITEMS[did]){ toast(res.name+'暂无可采（物产缺失）。'); return; }
+    if(!packAdd(did, 1)) return;   // 行囊满则由 packAdd 提示，此格不标记采尽，可回头再采
+    state.flags.fieldGathered[room.id]=state.flags.fieldGathered[room.id]||[];
+    state.flags.fieldGathered[room.id].push(res.type);
+    log('你俯身采得'+LF.ITEMS[did].name+'一份，收进行囊。','good');
+    save(state); buildActions(G.ROOMS[state.room]);
+  }
+  // 水域垂钓（v20260907a）：郊野含水域格即可下钩，钓得鲜鱼/咸鱼入包；单格单局限 4 获，鱼惊则稍后再来
+  function fieldHasWater(room){
+    var fid=room && room.fieldId; if(!fid) return false;
+    var fp=(LF.PLACES||{})[fid]||{}; var size=fp.size||4;
+    for(var r=0;r<size;r++) for(var c=0;c<size;c++){
+      var rm=G.ROOMS[LF.Travel.roomId(fid,r,c)];
+      if(rm && rm.water) return true;
+    }
+    return false;
+  }
+  function fishField(room){
+    if(!fieldHasWater(room)){ toast('此处无水，无从下钩。'); return; }
+    state.flags.fieldFished=state.flags.fieldFished||{};
+    var n=(state.flags.fieldFished[room.id]||0);
+    if(n>=4){ toast('此间水域鱼已受惊，稍后再来方有所得。'); return; }
+    var did=(Math.random()<0.7)?'fish':'fish_dried';
+    var amt=1+Math.floor(Math.random()*3);
+    if(!packAdd(did, amt)) return;
+    state.flags.fieldFished[room.id]=n+1;
+    log('你抛竿静候，须臾竿弯——钓得'+LF.ITEMS[did].name+'×'+amt+'，收入行囊。','good');
+    save(state); buildActions(G.ROOMS[state.room]);
+  }
+  // 猎取惊兽（aggr==='flee'，如野彘）：屏息潜行接近；成则入战（胜者照常清剿+掉落），
+  // 败则惊走——按格+野怪id 记 flags.fieldFledMon，此后本格不再现身（存档持久）。
+  function huntFieldBeast(room, m){
+    if(state.defeated){ toast('你重伤在身，追不动猎物。'); return; }
+    var es=effectiveStats ? effectiveStats() : null;
+    var spd=(es && es.spd!=null) ? es.spd : ((state.spd||10));
+    // 潜行成功率 = 身手基础 − 兽阶警觉 + 天候掩行 − 夜间野兽警觉
+    var _wx=wxEff();
+    var p=0.60 + Math.max(0, spd-20)*0.006 - ((m.lvl||1)-1)*0.06 + (_wx.hunt||0) - (isDaytime()?0:0.05);
+    p=Math.min(0.85, Math.max(0.30, p));
+    log('你屏息蹑足，借草木掩身缓缓向'+m.name+'靠拢……'+(isDaytime()?'':'（夜色深沉，蹑步愈轻。）'),'sys');
+    if(Math.random() < p){
+      log(m.name+'惊觉回首，獠牙尽露与你搏斗起来！','combat');
+      startCombat([m.id], {fieldLvl:m.lvl});
+      return;
+    }
+    if(!state.flags.fieldFledMon) state.flags.fieldFledMon={};
+    var row=state.flags.fieldFledMon[room.id]; if(!row) row=state.flags.fieldFledMon[room.id]={};
+    row[m.id]=1;
+    save(state);
+    log(m.name+'耳聪目明，趁你尚未及身便蹬地窜入密林深处，转瞬没了踪影。','sys');
+    buildActions(G.ROOMS[state.room]);
+  }
+  function talkFieldNpc(room, n){
+    if(n.type==='trader'){
+      log('行商卸下担子：「壮士远来，荒野中正少个歇脚处——干粮伤药、柴薪卧席，小老儿都备了些，价好商量。」','sys');
+      openModal('shop', { shop:'field_trader' });
+      return;
+    }
+    if(n.type==='refugee'){
+      var rt = (Math.random() < 0.5)
+        ? '小老儿逃难至此，腹中空空，只盼太平…' + ((room && room.monsters && room.monsters.length)? '那边林子里似有歹人出没，将军路过当心。' : '将军若往南行，听说道上有商队结伴，或能捎您一程。')
+        : '前路不太平，行路切记贴身藏好干粮饮水。';
+      log('流民拱手叹道：「将军行行好——'+rt+'」','sys');
+      return;
+    }
+    log('路人朝你点了点头，继续赶路。','sys');
+  }
+  // ===== 郊野营地（v20260905b）：帐篷/篝火/草席在野外格可支设、可收起、可按设施安歇 =====
+  // 复用既有 state.placed[房间id] 放置物机制：野外格房间独立隔离；设施 key（物品 place.key）→ REST_KINDS
+  var PLACE_CAMP_KIND = { campfire:'campfire', sleepmat:'sleepmat', tent:'tent' };
+  var FIELD_CAMP_REST = { tent:'安歇…', campfire:'烤火取暖…', sleepmat:'躺下小睡…' };
+  // 本格已支设的营地设施（含图标/名称/对应休息档位；按 帐篷>篝火>草席 排序）
+  function fieldPlacedCamps(room){
+    if(!room || !room.id) return [];
+    var arr=(state.placed && state.placed[room.id]) || [];
+    var order={tent:0, campfire:1, sleepmat:2}, out=[];
+    arr.forEach(function(p){
+      var k=PLACE_CAMP_KIND[p && p.key]; if(!k) return;
+      var d=LF.ITEMS[p.defId] || {}; var pl=d.place || {};
+      out.push({ key:p.key, kind:k, name:pl.name || d.name || p.key, icon:pl.icon || '⛺', order:order[k] });
+    });
+    out.sort(function(a,b){ return a.order-b.order; });
+    return out;
+  }
+  // 行囊中可支设且本格尚未支设的营地器具（每类一例；行商处亦贩此等物）
+  function carriedCampGear(room){
+    if(!state.pack) return [];
+    var placed={}; fieldPlacedCamps(room).forEach(function(f){ placed[f.key]=1; });
+    var seen={}, out=[];
+    state.pack.forEach(function(it){
+      if(!it) return;
+      var d=LF.ITEMS[it.defId]; if(!d || !d.place) return;
+      var k=PLACE_CAMP_KIND[d.place.key]; if(!k || seen[d.place.key]) return;
+      if(placed[d.place.key]) return;
+      seen[d.place.key]=1;
+      out.push({ key:d.place.key, defId:it.defId, kind:k, name:d.name, icon:d.place.icon || '⛺' });
+    });
+    return out;
+  }
+  // 支设某器具入本格（行囊扣除一件；随即按该档位打开安歇面板）
+  function placeFieldGear(room, g){
+    if(state.defeated){ toast('你重伤动弹不得，先就地打盹吧。'); openRestModal('ground'); return; }
+    var tag=placedCellTag(room.id);
+    state.placed=state.placed || {}; state.placed[room.id]=state.placed[room.id] || [];
+    if(state.placed[room.id].some(function(o){ return o.key===g.key && placedInCell(o, room.id, tag); })){ toast('此处已支有'+g.name+'。'); return; }
+    var cur=packFind(g.defId);
+    if(!cur || (cur.count||1)<1){ toast('行囊中已无'+g.name+'。'); return; }
+    packConsume(g.defId, 1);
+    state.placed[room.id].push({ key:g.key, defId:g.defId, cell:tag });
+    log('你卸下行囊，支起'+g.name+'。','good');
+    afterPackChange();          // 存档 + 刷新行囊与场景（支设后场景按钮即切换为设施）
+    openRestModal(g.kind);
+  }
+  // 郊野格场景的营地按钮组：
+  //   已有支设设施 → 设施按钮（安歇…/收起带走），不再重复「扎营休整」；
+  //   行囊有器具   → 「布设·X」按钮 + 兜底「扎营休整」（露宿）；
+  //   否则         → 仅「扎营休整」。
+  function addFieldCamp(room){
+    var facs=fieldPlacedCamps(room);
+    if(facs.length){
+      facs.forEach(function(f){
+        var b=mkAct('scene', f.icon, f.name, function(e){
+          toggleObjExpand(e, b, {name:f.name, desc:'本格营地设施'}, [
+            {label: (FIELD_CAMP_REST[f.kind] || '安歇…'), icon:'💤', fn:function(){ openRestModal(f.kind); }},
+            {label:'收起带走', icon:'📦', fn:function(){ packUpPlaced(f.key); }}
+          ]);
+        });
+      });
+      return;
+    }
+    var carry=carriedCampGear(room);
+    carry.forEach(function(g){
+      mkAct('scene', g.icon, '布设·'+g.name, function(){ placeFieldGear(room, g); });
+    });
+    mkAct('scene','⛺','扎营休整', function(){ campInField(room); });
+  }
+  // 野外扎营（无设施兜底）：效率低于帐/席/篝火；格内仍有凶兽时，露宿醒转可能遭夜袭（见 doRest）
+  function campInField(room){
+    if(state.defeated){ toast('你重伤动弹不得，只能席地打盹。'); openRestModal('ground'); return; }
+    var host=fieldMonstersLeft(room).filter(function(m){ return m.aggr==='hostile'; });
+    if(host.length){
+      log('〔警觉〕此格仍有'+host.map(function(m){return m.name;}).join('、')+'逡巡——荒野露宿恐遭夜袭！','combat');
+    }
+    openRestModal('wild');
+  }
+  function maybeFieldAmbush(room){
+    if(state.defeated || combatMode!==null) return false;
+    var hostiles=fieldMonstersLeft(room).filter(function(m){ return m.aggr==='hostile'; });
+    if(!hostiles.length) return false;
+    // 拦路/夜袭概率 = 55% 基准 + 天候掩蔽修正 + 入夜加成（雾雨夜里更难提防），clamp 至 [0.2,0.9]
+    var _ch=0.55 + (wxEff().amb||0) + (isDaytime()?0:0.12);
+    _ch=Math.max(0.2, Math.min(0.9, _ch));
+    if(Math.random() < _ch){
+      var ids=hostiles.map(function(m){ return m.id; });
+      var ml=1; hostiles.forEach(function(m){ if((m.lvl||1)>ml) ml=m.lvl||1; });
+      var label=hostiles.map(function(m){ return m.name; }).join('、');
+      log('〔警觉〕'+label+(isDaytime()?('趁'+((WEATHERS[state.weather]||{}).n||'')+'天色'):'趁夜色')+'扑出，拦住去路！','combat');
+      startCombat(ids, {fieldLvl:ml});
+      return true;
+    }
+    return false;
+  }
+
+  // ===== 山河志 / RPG 地图 = 参考（点击仅显示信息，不作移动）=====
+  function placeInfo(id, name, kind, st, desc, owner, isPlace){
+    name = name || (LF.CITIES&&LF.CITIES[id]&&LF.CITIES[id].name) || (LF.PLACES&&LF.PLACES[id]&&LF.PLACES[id].name) || id;
+    var p = (LF.PLACES&&LF.PLACES[id]) || (LF.CITIES&&LF.CITIES[id]) || {};
+    var blurb = desc || p.blurb || p.desc || '';
+    if(Array.isArray(blurb)) blurb = blurb[0]||'';
+    toast('山河志 · '+name);
+    log('〔山河志·'+name+'〕'+(blurb||'形胜之地。'),'sys');
+  }
+  function mapNodeInfo(rid){
+    if(!rid) return;
+    var r=G.ROOMS[rid]; var name=(r&&r.name)||rid;
+    toast('山河志 · '+name);
+    log('〔山河志·'+name+'〕此处是山河志上的一处所在，仅供参照，不可由此移动。','sys');
+  }
+
+  // 山河志地图旅行：点击房间节点直接前往（消耗与步行一致，不要求相邻出口）
+  function goRoomOnMap(rid){
+    var r=G.ROOMS[rid]; if(!r) return;
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    if(!exert('远行')) return;
+    state.energy=Math.max(0,state.energy-4);
+    state.food=Math.max(0,state.food-1);
+    state.drink=Math.max(0,state.drink-1);
+    advanceTime(1);
+    log('你循山河志指引，跋涉至「'+r.name+'」。','sys');
+    closeModal(); renderRoom(rid); save(state);
+  }
+
+  // ===== NPC 态度（由善恶双轴驱动，GAME_DESIGN 4.2） =====
+  function npcAttitude(k){
+    var n=G.DIALOGUES.npcs[k];
+    var align=(n&&n.align)||'neutral';
+    var c=state.chivalry, no=state.notoriety;
+    if(align==='order'){
+      if(no>=30) return '敌视';
+      if(no>=10) return '戒备';
+      if(c>=30) return '敬重';
+      if(c>=10) return '友善';
+      return '平常';
+    }
+    if(align==='shadow'){
+      if(c>=30) return '戒备';
+      if(no>=30) return '亲近';
+      if(no>=10) return '友善';
+      return '平常';
+    }
+    if(c>=30||no>=30) return '看重';
+    return '平常';
+  }
+
+  // ===== NPC 对话 =====
+  function talk(k){
+    if(document.getElementById('tut-choices')) return;   // 选项面板开启中，避免 npcTalk 重复叠加触发/重复结算
+    if(checkTriggers({hook:'onTalk', npc:k, room: state.room})) return;
+  var n=G.DIALOGUES.npcs[k];
+  if(!n) return;
+    var at=npcAttitude(k);
+    log('〔'+n.name+'·态度：'+at+'〕','npc');
+    if(at==='敌视'){
+      log(n.name+'面色不豫：「久闻壮士凶名……恕不奉陪。」说罢拂袖而去。','npc');
+      return;
+    }
+    var lines=n.lines||[];
+    if(lines.length){
+      state.npcSeq=state.npcSeq||{};
+      var idx=(state.npcSeq[k]||0)%lines.length;
+      state.npcSeq[k]=idx+1;
+      log(lines[idx],'npc', n.name);
+    } else {
+      log('〔'+n.name+'〕他默然不语，似有心事。','npc');
+    }
+  }
+
+  // ===== 行动分发 =====
+  function handleAction(id, a){
+    switch(id){
+      case 'learn': openLearn(); break;
+      case 'rest':  actRest(); break;
+      case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
+      case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
+      case 'city_stat': openModal('citystat', {cid:(a&&a.data?a.data.cid:state.room)}); break;
+      case 'city_upgrade': tryUpgradeCity((a&&a.data?a.data.cid:state.room)); break;
+      case 'city_build': {
+        var _bda=(a&&a.data)||{};
+        cityBuildState.cid=(_bda.cid!=null)?_bda.cid:state.room;
+        cityBuildState.x=(_bda.x!=null)?_bda.x:(state.flags.cityPos?state.flags.cityPos.x:0);
+        cityBuildState.y=(_bda.y!=null)?_bda.y:(state.flags.cityPos?state.flags.cityPos.y:0);
+        openModal('citybuild',{cid:cityBuildState.cid,x:cityBuildState.x,y:cityBuildState.y});
+        break;
+      }
+      case 'enter_building':
+        if(a && a.data && a.data.building && !exert('步入店铺')) return;
+        enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
+        break;
+      case 'recruit':
+        if(!exert('入营募兵')) return;
+        state.flags.recruited=state.flags.recruited||{};
+        var rk=state.room+'_sol';
+        if(state.flags.recruited[rk]){ log('此城军营已拨卒于你，无需再募。','sys'); break; }
+        state.flags.recruited[rk]=true;
+        log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
+        break;
+      case 'leave_city': {
+        // v20260905i：入口仅剩城内布防图「返回山河志（出城）」按钮；语义分层——
+        // 立于可出城门口 → 真正出城并收起布防图露出主界面；其余位置 → 直接返回世界山河志（不再拦截）
+        var _cp=state.flags.cityPos||{}, _cid2=_cp.cid||'';
+        if(_cid2 && LF.CITIES[_cid2]){
+          var _ct=cellDisplayType(_cid2, _cp.x, _cp.y);
+          if(_ct==='gate'||_ct==='sentry'){
+            var _od=gateOutwardDir(_cid2, _cp.x, _cp.y);
+            if(_od && LF.PLACE_GATES && LF.PLACE_GATES[_cid2] && LF.PLACE_GATES[_cid2][_od]){
+              if(currentModalKind==='map') closeModal();   // 布防图让位，露出郊野主界面
+              leaveViaGate(_od);
+              break;
+            }
+          }
+        }
+        openMap('world');
+        break;
+      }
+      case 'edict': {
+        if(!isCityGrid(state.room)){ toast('此处非城池中枢，无处发号。'); break; }
+        openModal('edict'); break;
+      }
+      case 'prison_view': {
+        if(!exert('查勘牢房')) break;
+        log('牢房铁栏后，一名囚徒抬眼望你：「官爷…小的冤枉啊——不过是偷了半袋粟米。」','npc');
+        break;
+      }
+      case 'mine_dig': {
+        if(!exert('开凿矿料')) break;
+        packAdd('shitiao', 1);
+        log('你挥镐凿下数块青石（获得石料×1）。','sys');
+        save(state); afterPackChange();
+        break;
+      }
+      case 'kitchen_cook': {
+        if(!exert('生火造饭')) break;
+        state.energy=Math.min((state.energyMax||100), state.energy+8);
+        log('伙房热气腾腾，你吃了一碗粗粮热汤，精力恢复少许。','sys');
+        save(state);
+        break;
+      }
+      case 'command_talk': {
+        log('中军帐内，舆图铺展，你默记城防地势——苦役营虽小，亦可为根基。','sys');
+        break;
+      }
+      case 'warehouse_view': {
+        openModal('storage',{cid:state.room});
+        break;
+      }
+      case 'drill_train': {
+        if(!exert('操练武艺')) break;
+        state.energy=Math.max(0,state.energy-3);
+        log('你在演武场挥汗操练，拳脚渐稳（精力-3）。','sys');
+        save(state);
+        break;
+      }
+      case 'sentry_look': {
+        log('你登上岗哨，远眺四野——南面官道蜿蜒向渔阳，北望黑山隐约。','sys');
+        break;
+      }
+
+      case 'leave_auto': {
+        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
+        var _cp=state.flags.cityPos; if(!_cp) break;
+        var _cid=_cp.cid, _m=genCityGrid(_cid); if(!_m) break;
+        var _sz=_m.size, _sx=_cp.x, _sy=_cp.y, _key=_sx+','+_sy;
+        var _vis={}; _vis[_key]=1;
+        var _q=[_key], _head=0, _par={}, _target=null;
+        var _dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+        while(_head<_q.length){
+          var _k=_q[_head++], _sp=_k.split(',');
+          var _px=+_sp[0], _py=+_sp[1];
+          // 只认「可出城」城门（该方向确有郊野通途）——部分城墙虽有门形却无路，若送玩家到死门会无路可出
+          if((_m.cells[_py][_px]==='gate'||_m.cells[_py][_px]==='sentry') && canEnterCell(_cid,_px,_py)){
+            var _gd=gateOutwardDir(_cid,_px,_py);
+            if(_gd && LF.PLACE_GATES && LF.PLACE_GATES[_cid] && LF.PLACE_GATES[_cid][_gd]){ _target=_k; break; }
+          }
+          for(var _di=0;_di<4;_di++){
+            var _nx=_px+_dirs[_di][0], _ny=_py+_dirs[_di][1];
+            if(_nx<0||_nx>=_sz||_ny<0||_ny>=_sz) continue;
+            var _nk=_nx+','+_ny;
+            if(_vis[_nk]) continue;
+            if(!canEnterCell(_cid,_nx,_ny)) continue;
+            _vis[_nk]=1; _par[_nk]=_k; _q.push(_nk);
+          }
+        }
+        if(!_target){ toast('无路可通城门——断路阻隔，须先填平断路再行出城。'); break; }
+        var _path=[], _k2=_target;
+        while(_k2){ _path.push(_k2); _k2=_par[_k2]; }
+        _path.reverse();
+        var _steps=_path.length-1, _eng=0;
+        for(var _si=1;_si<_path.length;_si++){
+          var _pp=_path[_si].split(',');
+          var _ri=(_si===_path.length-1)?{eng:1}:null;
+          _eng+=(_ri?_ri.eng:2);
+        }
+        if(!exert('前往城门')) return;
+        state.energy=Math.max(0,state.energy-_eng);
+        state.food=Math.max(0,state.food-_steps);
+        state.drink=Math.max(0,state.drink-_steps);
+        advanceTime(_steps);
+        var _tp=_target.split(',');
+        state.flags.cityPos={cid:_cid, x:+_tp[0], y:+_tp[1]};
+        // v20260905h：只寻路抵门、不再代做出城——出城由玩家立于城门时以罗盘朝外方向完成
+        log('你沿街巷穿行'+_steps+'格，抵达'+((LF.CITIES[_cid]||{}).name||'城')+'城门（精力-'+_eng+'）。城门在望——看罗盘，朝城外方向踏出即离城。','sys');
+        renderRoom(_cid, true); save(state);
+        if(currentModalKind==='map') openModal('map');
+        break;
+      }
+      case 'siege':
+        if(!exert('起兵略地')) return;
+        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
+        pendingSiegeCid=state.room;
+        var _bg=burnedGates(state.room);
+        if(_bg>0) log('城门焚毁未修，守军凭残垣据守，士气涣散！','sys');
+        startCombat('city_guard', {guardMul: siegeGuardMul(state.room)});
+        break;
+      case 'patrol': if(!exert('深入山林')) return;
+        log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
+      // ─── 教程：劳作 / 塌墙根决断 ───
+      case 'labor_yard':
+        if(!exert('担石劳作')) return;
+        if(!checkTriggers({hook:'onCustom', room:'camp_yard'}))
+          log('你又扛起乱石，汗如雨下。苦役营的日夜，漫长得没有尽头。','sys');
+        break;
+      case 'survey_yard':
+        if(!exert('环顾四周')) return;
+        if(!checkTriggers({hook:'onCustom', room: state.room}))
+          log('你又环顾了一圈劳役场，乱石、藤蔓、往来狱卒——一切如旧。','sys');
+        break;
+      case 'wall_choose':
+        if(!exert('勘察墙根')) return;
+        openEscapeHub('camp_wall');
+        break;
+      case 'gate_choose':
+        if(!exert('决断出营')) return;
+        openEscapeHub('camp_gate');
+        break;
+      case 'train_dummy':
+        if(!exert('戳木人桩')) return;
+        if(state.flags.route) state.flags.route.dummy_done=true; save(state);
+        startCombat('camp_dummy');
+        break;
+      case 'survey_kitchen':
+        if(!exert('打量伙房')) return;
+        log('你打量伙房：灶台下几瓶药材，墙角杂粮成堆。鲁大勺掌勺，林娘的蒙汗草也在——下药业（路线3）的物资本就在此。','sys');
+        break;
+      case 'survey_warehouse':
+        if(!exert('翻找仓库')) return;
+        if(!checkTriggers({hook:'onCustom', room:'camp_warehouse'}))
+          log('你翻找仓库：墙角倚着几把闲镐锄，竹木随手可取。若能趁郑刚打盹取一柄，挖地道线（路线2）便有了家伙。','sys');
+        break;
+      case 'survey_mine':
+        if(!exert('勘察矿道')) return;
+        log('你勘察矿道：向墙根延伸，石四说底下连着暗渠。若得吴算盘指水道走向，水渠夜遁线（路线8）便成了。','sys');
+        break;
+      // ─── 战斗试炼 ───
+      case 'spar_bandit': if(!exert('应战')) return; startCombat('bandit'); break;
+      case 'spar_chief':  if(!exert('应战')) return; startCombat('bandit_chief'); break;
+      case 'spar_turban': if(!exert('应战')) return; startCombat('yellow_turban'); break;
+      // ─── 新战斗：木人桩 / 黑山寨 ───
+      case 'spar_dummy': if(!exert('应战')) return; startCombat('dummy'); break;
+      case 'spar_heishan_zei': if(!exert('应战')) return; startCombat('heishan_zei'); break;
+      case 'spar_heishan_zhu': if(!exert('应战')) return; startCombat('heishan_zhu'); break;
+      case 'battle_hua_xiong':
+        if(!exert('应战')) return;
+        if(state.reputation < 20){ log('时机未至——声望未达 20（当前 '+state.reputation+' · '+repTitle(state.reputation)+'），先扬名立万。','sys'); return; }
+        startCombat('hua_xiong'); break;
+      case 'visit_luoyang':
+        if(!exert('远赴洛阳')) return;
+        if(!state.quest.luoyang){ log('洛阳城门紧闭——需先力斩华雄扬名立万，方得入城。','sys'); return; }
+        move('南','luoyang'); break;
+    }
+  }
+  function actRest(){
+    var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
+    clearActions();
+    var esR=effectiveStats();
+    state.hp=esR.maxHp; state.mp=esR.maxMp; state.energy=state.maxEnergy;
+    state.food=state.maxFood; state.drink=state.maxDrink;
+    if(state.defeated){ state.defeated=false; log('你缓缓起身，伤势渐愈，气力渐复……','good'); }
+    else { log('你就地调息，闭目养神片刻——气血、内力、精力皆复，饥渴亦消。','env'); }
+    buildActions(curRoom()); save(state); renderStatus();
+  }
+
+  // ===== 野外采药（北邙山林·草药丛） =====
+  // 状态机：点击「采集草药」→ 耗时 1 时辰，草丛变为「可拾取」；点击「拾取草药」入包，满则提示
+  function gatherActs(){
+    var g=state.gather;
+    if(g && g.room===state.room && g.phase==='ready'){
+      return [{label:'拾取草药', icon:'🌿', fn:function(){ doPickGather(); }}];
+    }
+    return [{label:'采集草药', icon:'🌿', fn:function(){ startGather(); }}];
+  }
+  function startGather(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    state.gatherCount = state.gatherCount || {};
+    var k = state.room + '@' + state.day;
+    if((state.gatherCount[k]||0) >= 3){ toast('此处今日已采过三回，草药渐稀，明日再来。'); return; }
+    advanceTime(1);                                   // 采撷耗约一个时辰
+    state.gatherCount[k] = (state.gatherCount[k]||0) + 1;
+    state.gather = { room: state.room, phase: 'ready' };
+    log('你蹲身拨开草叶，俯首采撷，忙活约一个时辰——草丛间已遗下可拾之药。','env');
+    renderRoom(state.room);                           // 重渲后按钮变为「拾取草药」
+  }
+  function doPickGather(){
+    if(!state.gather || state.gather.room!==state.room || state.gather.phase!=='ready') return;
+    var n = 2 + Math.floor(Math.random()*2);            // 得草药 2~3 株
+    var it = LF.ITEMS.makeItem('caoyao', n);
+    // 预判能否装入（与 packAdd 逻辑一致：可堆叠同物，或有空位）
+    var ok=false;
+    if(packIsStackable(it)){ var kk=itemKey(it); for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)===kk && c.cat!=='装备'){ ok=true; break; } } }
+    if(!ok){ if(packFirstEmpty()>=0) ok=true; }
+    if(!ok){ toast('行囊已满，草药散落于地，无处安放——腾出空位再来拾取。'); return; }
+    packAdd(it);                                       // 此时必能装入
+    state.gather = null;
+    log('你拾起野草 '+n+' 株，收入行囊（可往「草庐/客栈」合成疗伤之物）。','good');
+    afterPackChange(); renderRoom(state.room);
+  }
+  // ===== 建造系统测试房间：采集(砍树) → 制作(木工台) 垂直切片 =====
+  function chopTree(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    var hasIronAxe = !!packFind('tiefu');
+    var withAxe = hasIronAxe || !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
+    advanceTime(1);
+    if(hasIronAxe) consumeTool('tiefu',1);
+    else if(withAxe) consumeTool('futou',1);
+    if(withAxe){
+      var n = hasIronAxe ? 2 : 1;
+      packAdd('mutou', n);
+      log('你抡'+(hasIronAxe?'铁':'锈')+'斧，咔咔几声，老树应声倒下，得木头×'+n+'。','env');
+    } else {
+      packAdd('xiaoshuzhi', 1);
+      log('你徒手折下几根细枝，捋得小树枝×1。若有把斧头，便能伐得粗实木头。','env');
+    }
+    afterPackChange();
+    buildActions(G.ROOMS[state.room]);   // 刷新场景物体（斧头/材料状态即时反映到菜单）
+  }
+
+  function searchBench(){
+    state.flags = state.flags || {};
+    if(state.flags.buildTestSearched){ toast('木工台已翻找过了。'); return; }
+    state.flags.buildTestSearched = true;
+    packAdd('mutou', 1);
+    afterPackChange();
+    log('你翻了翻木工台，台板下压着一根边角木头，顺手收了。','sys');
+    buildActions(G.ROOMS[state.room]);   // 仅刷新物体（移除「翻找」），不重播场景旁白
+  }
+
+  // 制作面板状态：记录当前工作台与选中品类（标签页）
+  var craftState = { bench:'bench', cat:null };
+  function buildCraftHTML(){
+    var recipes = (LF.RECIPES && LF.RECIPES[craftState.bench]) || [];
+    var DEFS = LF.ITEMS;
+    function cnt(id){ var it=packFind(id); return it?it.count:0; }
+    // 按 cat 分组（保持首次出现顺序）
+    var cats = [], idx = {};
+    recipes.forEach(function(r){ if(idx[r.cat]==null){ idx[r.cat]=cats.length; cats.push(r.cat); } });
+    if(!craftState.cat || cats.indexOf(craftState.cat)<0) craftState.cat = cats[0];
+    var activeCat = craftState.cat;
+    function rowHTML(r){
+      var can=r.in.every(function(x){ return cnt(x.id)>=x.n; });
+      var ins=r.in.map(function(x){ var d=DEFS[x.id]||{}; return itemIconHTML(d,16)+'×'+x.n+' <span style="opacity:.6">('+cnt(x.id)+')</span>'; }).join(' ＋ ');
+      var od=DEFS[r.out]||{};
+      var btn='<button class="sheet-btn" '+(can?'':'data-dis="1" style="opacity:.45;"')+' data-r="'+r.id+'">'+(can?'制 作':'材 料 不 足')+'</button>';
+      return '<div style="border:1px solid #6b5a3a;border-radius:8px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'+
+               '<div style="font-size:16px;margin-bottom:4px;">'+itemIconHTML(od,20)+' <b>'+od.name+'×'+r.outN+'</b></div>'+
+               '<div style="font-size:13px;color:#d8c9a8;margin-bottom:6px;">'+ins+'</div>'+
+               '<div style="font-size:12px;opacity:.6;margin-bottom:8px;">'+r.note+'</div>'+
+               btn+'</div>';
+    }
+    var tabHTML = cats.map(function(c){
+      var on = (c===activeCat) ? ' style="background:linear-gradient(180deg,#6e5a36,#4a3a22);color:#ffe9b8;border-color:#d8b46a;"' : '';
+      return '<button class="craft-tab" data-cat="'+c+'"'+on+'>'+c+'</button>';
+    }).join('');
+    var rows = recipes.filter(function(r){ return r.cat===activeCat; }).map(rowHTML).join('');
+    return '<h3 style="text-align:center;margin:0 0 4px;">🔨 木工台 · 制作</h3>'+
+           (cats.length>1 ? '<div class="craft-tabs" style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">'+tabHTML+'</div>' : '')+
+           '<p class="tip" style="text-align:center;margin:0 0 10px;">选一配方，将材料加工成形</p>'+
+           rows+
+           '<button class="sheet-leave" id="m-leave">收 工</button>';
+  }
+  function renderCraftPanel(){ return buildCraftHTML(); }
+  function bindCraftPanel(){
+    $card.querySelectorAll('.craft-tab').forEach(function(t){
+      t.onclick=function(){ craftState.cat = t.getAttribute('data-cat'); $card.innerHTML=buildCraftHTML(); bindCraftPanel(); };
+    });
+    $card.querySelectorAll('.sheet-btn[data-r]').forEach(function(b){
+      b.onclick=function(){ if(b.getAttribute('data-dis')) return; doCraft(b.getAttribute('data-r')); };
+    });
+    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
+  }
+  function doCraft(id){
+    var list = (LF.RECIPES && LF.RECIPES[craftState.bench]) || [];
+    var r=null; for(var i=0;i<list.length;i++){ if(list[i].id===id){ r=list[i]; break; } }
+    if(!r) return;
+    for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(LF.ITEMS[r.out]||{}).name); return; } }
+    r.in.forEach(function(x){ packConsume(x.id, x.n); });
+    packAdd(r.out, r.outN);
+    advanceTime(1);
+    afterPackChange();
+    log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
+    $card.innerHTML=buildCraftHTML(); bindCraftPanel();
+  }
+  function pickupAxe(){
+    if(packFind('futou')){ toast('你已有一把斧头了。'); return; }
+    packAdd('futou', 1);
+    afterPackChange();
+    log('你从墙角的工具堆里捡起一把锈迹斑斑的斧头，握在手里沉甸甸的。','sys');
+    buildActions(G.ROOMS[state.room]);   // 拾斧后刷新，使老树菜单即时变为「挥斧伐木」
+  }
+  // ===== 帐篷放置 + 货郎交易（建造系统测试房） =====
+  function consumeTool(defId, n){
+    for(var i=0;i<state.pack.length;i++){
+      var it=state.pack[i]; if(!it || it.defId!==defId || !it.maxDur) continue;
+      it.dur = (it.dur||0) - n;
+      if(it.dur<=0){ state.pack[i]=null; log('你的'+it.name+'耐久耗尽，咔嚓一声损毁了。','sys'); }
+      else if(it.dur<=2){ log(it.name+'已有些松垮（耐久 '+it.dur+'/'+it.maxDur+'），趁还能用多伐几根。','sys'); }
+      return;
+    }
+  }
+  // ===== 通用可放置物品（模板驱动：物品定义 place 字段 → 场景对象） =====
+  // 放置物动作表：place.actions 字符串 → 动作函数（物品数据外置，动作需在此注册）
+  // 旧存档兼容：早期放置数据仅存 {key:'tent'}（无 defId），用此表回填物品
+  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai', campfire:'campfire', sleepmat:'sleepmat' };
+  var PLACE_ACTIONS = {
+    tent: function(){
+      return [
+        {label:'休息…', icon:'🧘', fn:function(){ closeModal(); openRestModal('tent'); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('tent'); }}
+      ];
+    },
+    p_bench: function(){
+      return [
+        {label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('p_bench'); }}
+      ];
+    },
+    campfire: function(){
+      return [
+        {label:'烤火取暖…', icon:'🔥', fn:function(){ closeModal(); openRestModal('campfire'); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('campfire'); }}
+      ];
+    },
+    sleepmat: function(){
+      return [
+        {label:'躺下小睡…', icon:'💤', fn:function(){ closeModal(); openRestModal('sleepmat'); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('sleepmat'); }}
+      ];
+    }
+  };
+  // 休息设施配置：不同设施恢复效率不同，休息时长可由玩家自选
+  var REST_KINDS = {
+    tent:     { name:'帐篷',   hp: 0.35, mp: 0.35, en: 0.40, fd: 0.30, dr: 0.30 }, // 帐篷：全恢复效率最高
+    sleepmat: { name:'草席',   hp: 0.22, mp: 0.22, en: 0.32, fd: 0.20, dr: 0.20 }, // 草席：中等
+    campfire: { name:'篝火',   hp: 0.10, mp: 0.10, en: 0.38, fd: 0.50, dr: 0.50 }, // 篝火：暖身解饥渴、精力恢复快
+    wild:     { name:'野外露宿', hp: 0.12, mp: 0.12, en: 0.30, fd: 0.16, dr: 0.16 }, // 荒野扎营：以地为席，聊胜于无
+    ground:   { name:'席地打盹', hp: 0.08, mp: 0.08, en: 0.22, fd: 0.12, dr: 0.12 }  // 就地：聊胜于无
+  };
+  // 天候对野外歇息效率的折扣（键=天候索引；无折扣项=1）。帐篷遮风挡雨不受天候影响；
+  // 城市/建筑内歇息同样不受影响（outdoorRestFactor 先判 isField）。
+  var WX_REST={
+    3:{campfire:0.85, sleepmat:0.9, wild:0.9,  ground:0.85},  // 微雨：略打折扣
+    4:{campfire:0.5,  sleepmat:0.6, wild:0.55, ground:0.5},   // 大雨：露天皆难安身
+    5:{campfire:0.8,  sleepmat:0.8, wild:0.75, ground:0.7}    // 雪：天寒，无蔽风雪者折扣
+  };
+  function outdoorRestFactor(kind){
+    if(kind==='tent') return 1;
+    var _r=G.ROOMS[state.room]; if(!_r || !_r.isField) return 1;
+    var _t=WX_REST[state.weather]; if(!_t) return 1;
+    return (_t[kind]!=null) ? _t[kind] : 1;
+  }
+  // 打开自由时长休息面板（设施决定效率；战败只能就地打盹）
+  function openRestModal(kind){
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    if(state.dead){ die(); return; }
+    if(state.defeated && kind!=='ground'){ toast('你重伤未愈，动弹不得，只能席地打盹。'); kind='ground'; }
+    openModal('rest', {kind:kind});
+  }
+  // ══ 仓库系统（v20260907k）：城中仓库 30 格，可存可取；苦役营初始存有木料石料 ══
+  var storageCid=null, storageSel=null;   // storageSel={src:'store'|'pack', defId, name, max}
+  function ensureStorage(cid){
+    ensureCityState(cid);
+    state.flags.storage=state.flags.storage||{};
+    var st=state.flags.storage[cid];
+    if(!st){
+      st=state.flags.storage[cid]={slots:30, items:[]};
+      var m=LF.ITEMS.makeItem('mucai',200); if(m) st.items.push(m);
+      var st2=LF.ITEMS.makeItem('shitiao',100); if(st2) st.items.push(st2);
+    }
+    return st;
+  }
+  function storageItemCount(st, defId){
+    var n=0; for(var i=0;i<st.items.length;i++){ var c=st.items[i]; if(c && itemKey(c)===defId) n+=c.count||0; }
+    return n;
+  }
+  function storageAdd(cid, itemOrDefId, count){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var it=(typeof itemOrDefId==='string')? LF.ITEMS.makeItem(itemOrDefId, count||1) : itemOrDefId;
+    if(!it) return false;
+    if(packIsStackable(it)){
+      var k=itemKey(it);
+      for(var i=0;i<st.items.length;i++){ var c=st.items[i]; if(c && itemKey(c)===k && c.cat!=='装备'){ c.count=(c.count||1)+(it.count||1); return true; } }
+    }
+    var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
+    if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
+    if(e<0){ toast('仓库已满，存不下了。'); return false; }
+    st.items[e]=it; return true;
+  }
+  function storagePut(cid, defId, n){
+    var it=packFind(defId);
+    if(!it || (it.count||0)<n){ toast('行囊此物不足。'); return; }
+    if(!packIsStackable(it)){ toast('装备无法存入仓库。'); return; }
+    if(!storageAdd(cid, defId, n)) return;
+    packConsume(defId, n);
+    save(state); afterPackChange();
+    log('你将'+(LF.ITEMS[defId]?LF.ITEMS[defId].name:defId)+'×'+n+'存入仓库。','sys');
+    if(currentModalKind==='storage') openModal('storage',{cid:cid});
+  }
+  function storageTake(cid, defId, n){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    if(storageItemCount(st, defId)<n){ toast('仓库此物不足。'); return; }
+    if(!packAdd(defId, n)){ toast('行囊已满，无法取出。'); return; }
+    var rem=n;
+    for(var i=0;i<st.items.length && rem>0;i++){ var c=st.items[i]; if(c && itemKey(c)===defId){ var take=Math.min(rem, c.count||0); c.count-=take; rem-=take; if(c.count<=0) st.items[i]=null; } }
+    save(state); afterPackChange();
+    log('你从仓库取出'+(LF.ITEMS[defId]?LF.ITEMS[defId].name:defId)+'×'+(n-rem)+'。','sys');
+    if(currentModalKind==='storage') openModal('storage',{cid:cid});
+  }
+  // ── 仓库模式（货郎同款交互）所需：格维度存取/换位/整理/使用/装备 ──
+  function storeGet(cid){ return ensureStorage(cid); }
+  function storePutFromPack(packIdx, n, cid, toIdx){
+    var it=state.pack[packIdx]; if(!it || (it.count||0)<n){ toast('行囊此物不足。'); return false; }
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var stack=packIsStackable(it);
+    function consume(n2){
+      it.count=(it.count||0)-n2;
+      if(it.count<=0) state.pack[packIdx]=null;
+    }
+    if(toIdx!=null && toIdx>=0 && toIdx<st.slots){
+      var dst=st.items[toIdx];
+      if(dst && stack && (dst.defId||dst.id)===(it.defId||it.id) && dst.cat!=='装备'){ dst.count=(dst.count||1)+n; consume(n); }
+      else if(!dst){
+        if(stack){ var pc=LF.ITEMS.makeItem(it.defId, n); if(!pc) return false; st.items[toIdx]=pc; consume(n); }
+        else { if(n>1){ toast('装备一次存一件。'); return false; } st.items[toIdx]=it; state.pack[packIdx]=null; }
+      } else {
+        if(n>1){ toast('此处已有他物，一次仅可拖 1 件交换。'); return false; }
+        var tmp=st.items[toIdx];
+        if(stack){ var p2=LF.ITEMS.makeItem(it.defId, 1); if(!p2) return false; st.items[toIdx]=p2; consume(1); }
+        else { st.items[toIdx]=it; state.pack[packIdx]=null; }
+        if(state.pack[packIdx]===null){ state.pack[packIdx]=tmp; }
+        else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，交换物无处安放。'); return false; } state.pack[e]=tmp; }
+      }
+      save(state); afterPackChange();
+      log('你将'+it.name+'×'+n+'存入仓库。','sys');
+      return true;
+    }
+    if(stack){
+      if(!storageAdd(cid, it.defId, n)) return false;
+      consume(n);
+    } else {
+      if(n>1){ toast('装备一次存一件。'); return false; }
+      var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
+      if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
+      if(e<0){ toast('仓库已满，存不下了。'); return false; }
+      st.items[e]=it; state.pack[packIdx]=null;
+    }
+    save(state); afterPackChange();
+    log('你将'+it.name+'×'+n+'存入仓库。','sys');
+    return true;
+  }
+  function storeTakeToPack(cid, si, n, toPackIdx){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var it=st.items[si]; if(!it) return false;
+    n=Math.min(n, it.count||0);
+    if(n<=0){ toast('仓库此物不足。'); return false; }
+    var stack=packIsStackable(it);
+    if(toPackIdx!=null && toPackIdx>=0 && toPackIdx<state.pack.length){
+      var dst=state.pack[toPackIdx];
+      if(dst && stack && itemKey(dst)===itemKey(it) && dst.cat!=='装备'){ dst.count=(dst.count||1)+n; it.count=(it.count||0)-n; if(it.count<=0) st.items[si]=null; }
+      else if(!dst){
+        if(stack){ var pc=LF.ITEMS.makeItem(it.defId, n); if(!pc) return false; state.pack[toPackIdx]=pc; it.count=(it.count||0)-n; if(it.count<=0) st.items[si]=null; }
+        else { state.pack[toPackIdx]=it; st.items[si]=null; }
+      } else {
+        if(n>1){ toast('此处已有他物，一次仅可拖 1 件交换。'); return false; }
+        var tmp=state.pack[toPackIdx];
+        if(stack){ var p2=LF.ITEMS.makeItem(it.defId, 1); if(!p2) return false; state.pack[toPackIdx]=p2; it.count=(it.count||0)-1; if(it.count<=0) st.items[si]=null; }
+        else { state.pack[toPackIdx]=it; st.items[si]=null; }
+        if(st.items[si]===null){ st.items[si]=tmp; }
+        else { var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
+          if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
+          if(e>=0) st.items[e]=tmp;
+          else { toast('仓库已满，交换物无处安放。'); return false; }
+        }
+      }
+      save(state); afterPackChange();
+      log('你从仓库取出'+(it.name||'物')+(n>1?('×'+n):'')+'。','sys');
+      return true;
+    }
+    if(stack){
+      if(!packAdd(it.defId, n)){ toast('行囊已满，无法取出。'); return false; }
+      it.count=(it.count||0)-n; if(it.count<=0) st.items[si]=null;
+    } else {
+      if(toPackIdx!=null && toPackIdx>=0 && !state.pack[toPackIdx]){ state.pack[toPackIdx]=it; st.items[si]=null; }
+      else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法取出。'); return false; } state.pack[e]=it; st.items[si]=null; }
+    }
+    save(state); afterPackChange();
+    log('你从仓库取出'+(it.name||'物')+(n>1?('×'+n):'')+'。','sys');
+    return true;
+  }
+  function storeSwap(cid, a, b){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    if(a===b||a<0||b<0||a>=st.slots||b>=st.slots) return;
+    var A=st.items[a], B=st.items[b];
+    if(A&&B&&packIsStackable(A)&&packIsStackable(B)&&itemKey(A)===itemKey(B)&&B.cat!=='装备'){
+      B.count=(B.count||1)+(A.count||1); st.items[a]=null;
+    } else {
+      st.items[a]=B; st.items[b]=A;
+    }
+    save(state); afterPackChange();
+  }
+  function storeSort(cid){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var map={}; var order=[];
+    for(var i=0;i<st.items.length;i++){ var it=st.items[i]; if(!it) continue;
+      if(packIsStackable(it)){ var k=itemKey(it); if(!map[k]){ map[k]={item:it}; order.push(k); } else { map[k].item.count=(map[k].item.count||1)+(it.count||1); } }
+      else { order.push('_e'+i); map['_e'+i]={item:it}; }
+    }
+    for(var j=0;j<st.items.length;j++) st.items[j]=null;
+    order.forEach(function(k,ix){ if(ix<st.slots) st.items[ix]=map[k].item; });
+    toast('仓库已整理。'); save(state); afterPackChange();
+  }
+  function storeUseItem(cid, si){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var it=st.items[si]; if(!it) return;
+    if(it.cat==='装备'){ toast('装备需装备至身上，不可直接使用。'); return; }
+    if(it.effect){
+      if(it.effect.hp){ state.hp=Math.min(state.maxHp, state.hp+(it.effect.hp||0)); toast('伤势略缓（+'+(it.effect.hp||0)+'）。'); }
+      if(it.effect.mp){ state.mp=Math.min(state.maxMp, state.mp+(it.effect.mp||0)); toast('内息稍复（+'+(it.effect.mp||0)+'）。'); }
+      if(it.effect.food){ state.food=Math.min(100,(state.food||0)+(it.effect.food||0)); toast('腹中稍暖（+'+(it.effect.food||0)+'）。'); }
+      if(it.effect.drink){ state.drink=Math.min(100,(state.drink||0)+(it.effect.drink||0)); toast('喉间得润（+'+(it.effect.drink||0)+'）。'); }
+    } else if(it.maxDur){ toast('「'+it.name+'」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
+    else { toast('此物暂无可施用之效。'); return; }
+    it.count--; if(it.count<=0) st.items[si]=null;
+    save(state); afterPackChange();
+  }
+  function storeEquipItem(cid, si, slot){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var it=st.items[si]; if(!it) return;
+    var sl=(LF.ITEMS.SLOTS&&LF.ITEMS.SLOTS[slot])?LF.ITEMS.SLOTS[slot].label:slot;
+    if(it.cat!=='装备' || it.slot!==slot){ toast('该物不可装备于「'+sl+'」。'); return; }
+    var old=state.equipment[slot];
+    state.equipment[slot]=it; st.items[si]=old||null;
+    toast('已装备「'+it.name+'」。'+(old?('，原「'+old.name+'」退回仓库。'):''));
+    save(state); afterPackChange();
+  }
+  function renderStoragePanel(cid){
+    ensureStorage(cid); var st=state.flags.storage[cid];
+    var cnm=(LF.CITIES[cid]||{}).name||'此城';
+    var used=0; for(var i=0;i<st.items.length;i++) if(st.items[i]) used++;
+    var cbase='display:flex;align-items:center;justify-content:center;position:relative;width:46px;height:46px;margin:2px;border-radius:6px;font-size:12px;color:#3a3226;cursor:pointer;';
+    var cells='';
+    for(var i=0;i<st.slots;i++){
+      var it=st.items[i];
+      if(!it){ cells+='<div style="'+cbase+'background:rgba(120,100,70,.08);border:1px dashed rgba(120,100,70,.25);"></div>'; }
+      else {
+        var sel=(storageSel && storageSel.src==='store' && storageSel.defId===itemKey(it));
+        var cnt=(it.count>1)?'<span style="position:absolute;right:2px;bottom:1px;font-size:10px;font-weight:700;color:#6b4a24;">'+it.count+'</span>':'';
+        cells+='<div data-st-sel="store:'+i+'" style="'+cbase+'background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(sel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(sel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';" title="'+it.name+'">'+itemIconHTML(it,12)+cnt+'</div>';
+      }
+    }
+    var packHtml='';
+    for(var i=0;i<state.pack.length;i++){ var pit=state.pack[i]; if(!pit||!packIsStackable(pit)) continue;
+      var pk=itemKey(pit); var psel=(storageSel && storageSel.src==='pack' && storageSel.defId===pk);
+      packHtml+='<button data-st-sel="pack:'+pk+'" style="display:inline-flex;align-items:center;gap:4px;margin:2px;padding:6px 10px;border-radius:8px;font-size:13px;color:#3a3226;cursor:pointer;background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(psel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(psel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';">'+itemIconHTML(pit,12)+' '+pit.name+(pit.count>1?' ×'+pit.count:'')+'</button>';
+    }
+    if(!packHtml) packHtml='<div class="tip" style="margin:6px 0;">行囊空空，无物可存。</div>';
+    var selHtml='<div class="tip" style="margin:8px 0 4px;color:#6b4a24;">点选上方格子取物，或点行囊物品存入。</div>';
+    if(storageSel && storageSel.defId){
+      var isStore=storageSel.src==='store';
+      var act=isStore?'取出':'存入';
+      var qs=[1,5,10,storageSel.max];
+      var btns='';
+      for(var qi=0;qi<qs.length;qi++){
+        var qv=qs[qi]; if(qi===3 && qv<=10) continue;
+        var lb=(qi===3)?'全部':'×'+qv;
+        btns+='<button data-st-act="'+(isStore?'take':'put')+'" data-st-n="'+qv+'" style="margin:3px;padding:8px 14px;border-radius:8px;font-size:14px;color:#f7f0e2;background:linear-gradient(180deg,#8a6a3c,#6b4a24);border:1px solid #5a3d1e;cursor:pointer;">'+lb+'</button>';
+      }
+      selHtml='<div style="margin:8px 0 4px;">已选：'+storageSel.name+'（'+(isStore?storageItemCount(state.flags.storage[cid], storageSel.defId):((packFind(storageSel.defId)||{}).count||0))+'）　'+act+'：'+btns+'</div>';
+    }
+    return '<h3 style="text-align:center;margin:0 0 6px;">仓 库 · '+cnm+'</h3>'
+      + '<p class="tip" style="margin:0 0 6px;">容量 '+st.slots+' 格 · 已用 '+used+' 格。'+(cid==='kuyilao'?'初置木料石料，供营建之需。':'')+'</p>'
+      + '<div style="display:flex;flex-wrap:wrap;justify-content:center;">'+cells+'</div>'
+      + selHtml
+      + '<div style="margin:10px 0 4px;font-size:13px;font-weight:700;color:#6b4a24;">行囊</div>'
+      + '<div style="display:flex;flex-wrap:wrap;justify-content:center;">'+packHtml+'</div>'
+      + '<button class="sheet-leave" id="m-st-leave">收 工</button>';
+  }
+  function bindStoragePanel(){
+    var card=document.getElementById('modal-card')||$card;
+    card.querySelectorAll('[data-st-sel]').forEach(function(el){
+      el.onclick=function(){
+        var sp=el.getAttribute('data-st-sel').split(':');
+        var src=sp[0], id=sp[1];
+        if(src==='store'){ var st=state.flags.storage[storageCid]; var it=st?st.items[parseInt(id,10)]:null; if(it){ storageSel={src:'store',defId:itemKey(it),name:it.name,max:it.count||0}; } }
+        else { var pit=packFind(id); if(pit){ storageSel={src:'pack',defId:id,name:pit.name,max:pit.count||0}; } }
+        if(storageCid!=null) openModal('storage',{cid:storageCid});
+      };
+    });
+    card.querySelectorAll('[data-st-act]').forEach(function(el){
+      el.onclick=function(){
+        if(!storageSel || storageCid==null) return;
+        var act=el.getAttribute('data-st-act');
+        var n=parseInt(el.getAttribute('data-st-n'),10)||1;
+        var st=state.flags.storage[storageCid];
+        var max=(act==='take')? storageItemCount(st, storageSel.defId) : ((packFind(storageSel.defId)||{}).count||0);
+        n=Math.min(n, max);
+        if(n<=0){ toast('无物可取。'); return; }
+        if(act==='take') storageTake(storageCid, storageSel.defId, n);
+        else storagePut(storageCid, storageSel.defId, n);
+      };
+    });
+    var lv=document.getElementById('m-st-leave'); if(lv) lv.onclick=closeModal;
+  }
+  function renderRestPanel(){
+    var kind = (restState.kind||'ground');
+    var cfg = REST_KINDS[kind] || REST_KINDS.ground;
+    var wxFac = outdoorRestFactor(kind);
+    // 休息时长档位：1 / 3 / 6 时辰，恢复量随时长线性增长
+    var opts = [ {h:1, lb:'小憩 · 1 时辰'}, {h:3, lb:'安睡 · 3 时辰'}, {h:6, lb:'酣眠 · 6 时辰'} ];
+    var esR = effectiveStats();
+    function est(h){
+      return '精力+'+Math.round(esR.maxEnergy*cfg.en*h*wxFac)+'　气血+'+Math.round(esR.maxHp*cfg.hp*h*wxFac)
+        + (esR.maxMp>0?('　内力+'+Math.round(esR.maxMp*cfg.mp*h*wxFac)):'')
+        + '　饥渴+'+Math.round(100*cfg.fd*h*wxFac)+'%';
+    }
+    var h = '<h3 style="text-align:center;margin:0 0 6px;">'+cfg.name+' · 歇息</h3>'
+      + '<p class="tip">歇息推进时辰，恢复随长短而异；饥渴食水亦会流逝。'+est(1)+'。'
+      + (wxFac<1 ? '<br><span style="color:#b8893a;">〔'+((WEATHERS[state.weather]||{}).n||'')+'〕野外无遮蔽，歇息恢复打折。</span>' : '')
+      + '</p>';
+    opts.forEach(function(o){
+      h += '<button class="sheet-btn" style="margin:6px 0;" data-rest="'+o.h+'">'+o.lb+'<br><span style="font-size:12px;opacity:.75;">'+est(o.h)+'</span></button>';
+    });
+    h += '<button class="sheet-leave" id="m-rest-leave">收 工</button>';
+    return h;
+  }
+  function bindRestPanel(){
+    $card.querySelectorAll('[data-rest]').forEach(function(b){
+      b.onclick=function(){ doRest(parseInt(b.getAttribute('data-rest'),10)||1); };
+    });
+    var lv=document.getElementById('m-rest-leave'); if(lv) lv.onclick=closeModal;
+    var ck=document.getElementById('m-rest-cook'); if(ck) ck.onclick=function(){ closeModal(); openModal('craft',{bench:'kitchen'}); };
+  }
+  // 执行自由时长休息：推进时间并按要求恢复（野外天候差时打折，见 outdoorRestFactor）
+  function doRest(hours){
+    var kind = restState.kind || 'ground';
+    var cfg = REST_KINDS[kind] || REST_KINDS.ground;
+    var wxFac = outdoorRestFactor(kind);
+    var esR = effectiveStats();
+    advanceTime(hours);
+    var hpGain = Math.round(esR.maxHp*cfg.hp*hours*wxFac);
+    var mpGain = esR.maxMp>0 ? Math.round(esR.maxMp*cfg.mp*hours*wxFac) : 0;
+    var enGain = Math.round(esR.maxEnergy*cfg.en*hours*wxFac);
+    state.hp = Math.min(esR.maxHp, (state.hp||0)+hpGain);
+    if(state.mp>0) state.mp = Math.min(esR.maxMp, (state.mp||0)+mpGain);
+    state.energy = Math.min(state.maxEnergy, (state.energy||0)+enGain);
+    state.food = Math.min(state.maxFood, (state.food||0)+Math.round(state.maxFood*cfg.fd*hours*wxFac));
+    state.drink = Math.min(state.maxDrink, (state.drink||0)+Math.round(state.maxDrink*cfg.dr*hours*wxFac));
+    if(state.defeated){ state.defeated=false; }
+    save(state); renderStatus();
+    log('你在'+cfg.name+'歇了'+hours+'个时辰——气血内力精力渐复，饥渴亦有所解。'+(wxFac<1?'（惜'+((WEATHERS[state.weather]||{}).n||'')+'，无遮蔽处歇息吃力，恢复打了折扣。）':''),'good');
+    closeModal();
+    var _ambush = false;
+    var _rroom = G.ROOMS[state.room];
+    if(_rroom && _rroom.isField && kind!=='ground'){
+      _ambush = maybeFieldAmbush(_rroom);   // 凶兽未清剿的野地扎营（无论露宿或支帐围火）醒转皆可能遭袭
+    }
+    if(!_ambush) buildActions(G.ROOMS[state.room]);
+  }
+  // 城市格放置物定位（v20260825b）：城市网格内放置物带 {cell:{x,y}}，按格隔离，不再全城共享；
+  // 旧存档无格坐标的放置物视为位于城心格，保证不"消失"。
+  function placedCellTag(roomId){
+    var cp=state.flags && state.flags.cityPos;
+    if(!cp || !isCityGrid(roomId) || cp.cid!==roomId) return null;
+    return {x:cp.x, y:cp.y};
+  }
+  function placedInCell(p, roomId, tag){
+    if(!tag) return true;                       // 非城市房间：全部在当前房间可见
+    var c=p.cell;
+    if(!c){                                     // 旧存档无格数据 → 归城心格
+      var m=genCityGrid(roomId); if(!m) return true;
+      var s=m.size; c={x:Math.floor(s/2), y:Math.floor(s/2)};
+    }
+    return c.x===tag.x && c.y===tag.y;
+  }
+
+  // 玩家放置物 → 场景物件（统一映射，城市/野外/建筑内部房间共用）
+  function placedFeature(p){
+    if(p.bp){
+      var bp = LF.BUILD[p.bp] || {};
+      if(p.done){
+        return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.doneName||'建筑'}, 14), name:bp.doneName||'建筑', desc:bp.desc||'', actions:buildDoneActions(bp.key||p.key, bp)};
+      }
+      return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.siteName||'营造中'}, 14), name:bp.siteName||'营造中', desc:bp.desc||'', actions:buildSiteActions(bp.key||p.key)};
+    }
+    var defId = p.defId || PLACE_KEY_DEF[p.key];
+    var pl = ((LF.ITEMS[defId]||{}).place) || {};
+    var acts = PLACE_ACTIONS[pl.actions] || function(){ return []; };
+    return {type:'feature', key:pl.key||p.key, icon:itemIconHTML({name:pl.name||'未知物'}, 14), name:pl.name||'未知物', desc:pl.desc||'', actions:acts};
+  }
+  // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
+  function roomObjs(roomId, opts){
+    // 建筑内部房间：interior/子区域的物件 + 子区域跳转 + 玩家在房内放置物 → 场景按钮
+    // （返回街道/返回正堂统一收进底部移动罗盘，见 renderMoveBar 的 isBldRoom 分支，避免重复）
+    if(isBldRoom(roomId)){
+      var _f=bldForRoom(roomId), _out=[];
+      if(_f){
+        (_f.ar.objs||[]).forEach(function(o,i){
+          _out.push({type:'feature', key:'bldo_'+roomId+'_'+i, icon:o.icon, name:o.name, desc:o.desc, actions:bldActsFilter(o.acts)});
+        });
+        (_f.ar.areas||[]).forEach(function(a){
+          _out.push({type:'feature', key:'blda_'+roomId+'_'+a.key, icon:'🚪', name:a.label||a.key, desc:'', direct:true, actions:[{label:a.label||a.key, icon:'🚪', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key+'@'+a.key)}]});
+        });
+        if(!_f.ar.isRoot){
+          _out.push({type:'feature', key:'bldup_'+roomId, icon:'⬅', name:'返回'+(_f.b.rootName||_f.b.name), desc:'', direct:true, actions:[{label:'返回'+(_f.b.rootName||_f.b.name), icon:'⬅', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key)}]});
+        }
+        _out.push({type:'feature', key:'bldout_'+roomId, icon:'🚪', name:'返回街道', desc:'', direct:true, actions:[{label:'走出此处，回到街巷', icon:'🚪', fn:function(){ leaveBldRoom(); }}]});
+      }
+      // 玩家在房内放置的物件（帐篷/篝火…）：按本房间 id 隔离，进店/进房后也保留可见（v20260825c）
+      var _placed=(state.placed && state.placed[roomId]) || [];
+      _placed.forEach(function(p){ var _o=placedFeature(p); if(_o) _out.push(_o); });
+      return _out;
+    }
+    var base = ROOM_OBJECTS[roomId] || [];
+    var placed = (state.placed && state.placed[roomId]) || [];
+    var _cellTag = placedCellTag(roomId);
+    var dyn = placed.filter(function(p){ return placedInCell(p, roomId, _cellTag); }).map(placedFeature);
+    // 放置物覆盖同 key 的静态 feature（如收起的工作台摆放后，静态木工台不再重复显示）
+    var dynKeys={}; dyn.forEach(function(o){ dynKeys[o.key]=1; });
+    // placedOnly：仅渲染玩家放置物（城市网格等由 cell 动作/左栏 NPC 承担场景内容，屏蔽旧版静态 ROOM_OBJECTS 条目）
+    var filteredBase = opts && opts.placedOnly ? [] : base.filter(function(o){ return !(o.type==='feature' && dynKeys[o.key]); });
+    return filteredBase.concat(dyn);
+  }
+  function placeInspect(){
+    if(!packInspect || packInspect.kind!=='pack') return;
+    var idx=packInspect.idx; var it=state.pack[idx];
+    if(!it) return;
+    var _tag=placedCellTag(state.room);   // 城市网格：放置物归当前格（cell），跨格隔离
+    // 图纸类：依图在房中营造建筑（多阶段、需填充材料）
+    var bpId = (LF.ITEMS[it.defId]||{}).blueprint;
+    if(bpId){
+      var bp = LF.BUILD[bpId] || {};
+      state.placed = state.placed || {};
+      state.placed[state.room] = state.placed[state.room] || [];
+      if(state.placed[state.room].some(function(o){ return o.bp===bpId && placedInCell(o, state.room, _tag); })){ toast('此处已在营造'+(bp.siteName||'该建筑')+'。'); return; }
+      if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
+      state.placed[state.room].push({key:bp.key, defId:it.defId, bp:bpId, stage:0, got:{}, cell:_tag});
+      packInspect=null;
+      afterPackChange();
+      log('你展开'+it.name+'，依图在'+curRoom().name+'勘定地基，开工营造。','sys');
+      if(currentModalKind==='pack'){ var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+      return;
+    }
+    var pl = (it && (it.place || ((LF.ITEMS[it.defId]||{}).place))) || null;
+    if(!(it.placeable || pl)) return;
+    state.placed = state.placed || {};
+    state.placed[state.room] = state.placed[state.room] || [];
+    if(state.placed[state.room].some(function(o){ return o.key===pl.key && placedInCell(o, state.room, _tag); })){ toast('此处已支有'+pl.name+'。'); return; }
+    if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
+    state.placed[state.room].push({key:pl.key, defId:it.defId, cell:_tag});
+    packInspect=null;
+    afterPackChange();
+    log('你支起'+pl.name+'，安置于'+curRoom().name+'。','sys');
+    if(currentModalKind==='pack'){ var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+  }
+  function packUpPlaced(key){
+    state.placed = state.placed || {};
+    var arr = state.placed[state.room];
+    var _tag=placedCellTag(state.room);
+    if(!arr || !arr.some(function(o){ return o.key===key && placedInCell(o, state.room, _tag); })){ toast('此处并无此物可收。'); return; }
+    var p=null;
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===key && placedInCell(arr[i], state.room, _tag)){ p=arr[i]; arr.splice(i,1); break; } }
+    var defId = p.defId || PLACE_KEY_DEF[p.key];
+    var ok = packAdd(defId, 1);
+    if(!ok){ if(p) arr.push(p); toast('行囊已满，无法收起。'); return; }
+    packInspect=null;
+    afterPackChange();
+    log('你收起'+((LF.ITEMS[defId]||{}).name||'此物')+'，收进行囊。','sys');
+    if(currentModalKind==='pack'){ var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+  }
+  // ===== 文字图标：印章式，按分类配色 =====
+  function itemIconHTML(it, px){
+    var n = (it && (it.name || it.defId)) || '';
+    var cat = (it && it.cat) || '';
+    px = px || 16;
+    return '<span class="ic-txt ic-cat" data-cat="'+cat+'" style="font-size:'+px+'px;"><b>'+n+'</b></span>';
+  }
+  // ===== 营造系统：蓝图 → 工地 → 填充材料 → 分阶搭建 → 落成 =====
+  // 工地/建筑在 placed 中以 { key, defId, bp, stage, got, done } 存储（见 roomObjs 渲染）
+  function findPlacedBp(siteKey){
+    var arr = (state.placed && state.placed[state.room]) || [];
+    var _tag=placedCellTag(state.room);
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey && placedInCell(arr[i], state.room, _tag)) return arr[i]; }
+    return null;
+  }
+  function buildSiteActions(siteKey){
+    return [
+      {label:'查看进度', icon:'📋', fn:function(){ inspectBuildSite(siteKey); }},
+      {label:'填充材料', icon:'🧺', fn:function(){ openModal('build', {site:siteKey}); }},
+      {label:'搭建', icon:'🔨', fn:function(){ buildStage(siteKey); }}
+    ];
+  }
+  function buildDoneActions(siteKey, bp){
+    var acts = [];
+    if(bp.done === 'forge'){
+      acts.push({label:'炉膛…', icon:'🔥', fn:function(){ openForgePanel(siteKey); }});
+      acts.push({label:'打造…', icon:'⚒️', fn:function(){ openModal('craft', {bench:'forge'}); }});
+    }
+    // 蓝图含 interior 时：建成后可步入，成为可进出的独立房间（左下 NPC + 上方交互物件）
+    if(bp.interior && bp.interior.length){
+      acts.push({label:'进·'+(bp.doneName||'屋内'), icon:itemIconHTML({name:bp.doneName||'屋内'},13), fn:function(){
+        var _p=findPlacedBp(siteKey); if(_p) enterBldRoom('site_'+siteKey, {kind:'room', room:state.room, bp:_p.bp});
+      }});
+    }
+    acts.push({label:'端详', icon:'👁', fn:function(){ log('〔'+bp.doneName+'〕'+(bp.desc||''), 'sys'); }});
+    return acts;
+  }
+  function inspectBuildSite(siteKey){
+    var p = findPlacedBp(siteKey); if(!p) return;
+    var bp = LF.BUILD[p.bp]; if(!bp) return;
+    var stages = bp.stages || [];
+    if(p.done){ log('〔'+bp.doneName+'〕'+bp.desc, 'good'); return; }
+    var stage = stages[p.stage];
+    if(!stage){ log('〔'+bp.siteName+'〕工事已完，只待收尾落成。', 'sys'); return; }
+    var parts = [];
+    for(var k in stage.need){
+      var it = LF.ITEMS[k] || {};
+      parts.push((it.name||k)+' '+(p.got[k]||0)+'/'+stage.need[k]);
+    }
+    var next = stages[p.stage+1] ? '；完成后将进行「'+stages[p.stage+1].name+'」' : '；此为最后一程，搭建完毕即可落成';
+    log('〔'+bp.siteName+'·第'+(p.stage+1)+'/'+stages.length+'阶·'+stage.name+'〕所需：'+parts.join('、')+next, 'sys');
+  }
+  function buildAddMat(siteKey, matId){
+    var p = findPlacedBp(siteKey); if(!p) return;
+    var bp = LF.BUILD[p.bp]; if(!bp || p.done) return;
+    var stage = (bp.stages||[])[p.stage]; if(!stage) return;
+    var need = stage.need[matId]; if(!need) return;
+    if((p.got[matId]||0) >= need){ toast('该材料已填满此阶段所需。'); return; }
+    var cur = packFind(matId);
+    if(!cur || (cur.count||0) < 1){ toast('行囊中无'+(LF.ITEMS[matId]||{}).name+'。'); return; }
+    if(state.energy<=0){ toast('精力已尽，先休整恢复再行填充。'); return; }
+    advanceTime(1);
+    state.energy=Math.max(0,state.energy-1);
+    packConsume(matId, 1);
+    p.got[matId] = (p.got[matId]||0) + 1;
+    save(state); afterPackChange();
+    var matName=(LF.ITEMS[matId]||{}).name || matId;
+    log('你填入'+matName+'×1，'+stage.name+'更近一步。','env');
+    buildState.msg = '已填入 '+matName+'×1，'+stage.name+'更近一步。';
+    if(currentModalKind==='build') openModal('build', {site:siteKey});
+  }
+  function buildStage(siteKey){
+    var p = findPlacedBp(siteKey); if(!p) return;
+    var bp = LF.BUILD[p.bp]; if(!bp) return;
+    var stages = bp.stages || [];
+    if(p.done){ toast(bp.doneName+'已然落成。'); return; }
+    var stage = stages[p.stage];
+    if(!stage){ p.done = true; save(state); afterPackChange(); log('工事收尾，'+bp.doneName+'落成！','good'); buildActions(G.ROOMS[state.room]); return; }
+    for(var k in stage.need){ if((p.got[k]||0) < stage.need[k]){ toast('「'+stage.name+'」材料未齐，无法搭建。'); return; } }
+    if(state.energy<=0){ toast('精力已尽，先休整恢复再行搭建。'); return; }
+    advanceTime(1);
+    state.energy=Math.max(0,state.energy-2);
+    p.stage++;
+    save(state); afterPackChange();
+    if(p.stage >= stages.length){
+      p.done = true;
+      log('你抟土垒石、架木为炉——'+bp.doneName+'终告落成！','good');
+    } else {
+      log('你完成了「'+stage.name+'」，工事推进至「'+stages[p.stage].name+'」。','env');
+    }
+    buildActions(G.ROOMS[state.room]);
+  }
+  // 休息面板
+  var restState = { kind: 'ground' };
+  // 营造面板
+  var buildState = { site:null, msg:'' };
+  function buildMatRows(siteKey){
+    var p = findPlacedBp(siteKey); if(!p) return '<p class="tip">此处并无营造工地。</p>';
+    var bp = LF.BUILD[p.bp]; if(!bp) return '<p class="tip">未知图纸。</p>';
+    if(p.done) return '<p class="tip">'+bp.doneName+'已然落成。'+(bp.desc||'')+'</p>';
+    var stages = bp.stages || [];
+    var stage = stages[p.stage];
+    if(!stage) return '<p class="tip">工事已完，只待收尾——去工地「搭建」即可落成。</p>';
+    var html = '<p class="tip">营造进度：'+p.stage+' / '+stages.length+'　当前·<b>'+stage.name+'</b></p>';
+    for(var k in stage.need){
+      var it = LF.ITEMS[k] || {};
+      var have = p.got[k] || 0;
+      var need = stage.need[k];
+      var packN = (packFind(k)||{count:0}).count;
+      var done = have >= need;
+      html += '<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'
+        + '<span>'+itemIconHTML(it, 18)+'</span>'
+        + '<span style="opacity:.8;flex:1;">'+have+' / '+need+'　·　行囊'+packN+'</span>'
+        + (done ? '<span style="color:#8fce8f;">已备齐</span>' : '<button class="btn-mini" data-site="'+siteKey+'" data-mat="'+k+'">填充</button>')
+        + '</div>';
+    }
+    return html;
+  }
+  function renderBuildPanel(){
+    var p = findPlacedBp(buildState.site);
+    var bp = p ? (LF.BUILD[p.bp]||{}) : {};
+    var icon = p && p.done ? itemIconHTML({name:bp.doneName||'建筑'},13) : itemIconHTML({name:bp.siteName||'营造中'},13);
+    var name = p && p.done ? (bp.doneName||'建筑') : (bp.siteName||'营造中');
+    var msg = buildState.msg; buildState.msg='';
+    return '<h3 style="text-align:center;margin:0 0 4px;">'+itemIconHTML({name:name}, 18)+'</h3>'
+      + (msg ? '<div class="build-msg">'+msg+'</div>' : '')
+      + buildMatRows(buildState.site)
+      + '<button class="sheet-leave" id="m-leave">收 工</button>';
+  }
+  function bindBuildPanel(){
+    $card.querySelectorAll('[data-mat]').forEach(function(b){
+      b.onclick=function(){ buildAddMat(b.getAttribute('data-site'), b.getAttribute('data-mat')); };
+    });
+    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
+  }
+  // 采石崖：采石料（每日限次，与采药一致）
+  function mineStone(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    state.buildCount = state.buildCount || {};
+    var k = state.room + '@' + state.day;
+    if((state.buildCount[k]||0) >= 3){ toast('此处今日已采过三回，崖壁渐薄，明日再来。'); return; }
+    advanceTime(1);
+    state.buildCount[k] = (state.buildCount[k]||0) + 1;
+    var hasIronAxe = !!packFind('tiefu');
+    if(hasIronAxe) consumeTool('tiefu',1);
+    var n = hasIronAxe ? 2 : 1;
+    packAdd('shitiao', n);
+    // 崖壁偶露铁矿：采石有一定概率连铁矿石一并剥落
+    var ores = 0;
+    if(Math.random() < 0.35){ ores = hasIronAxe ? 2 : 1; packAdd('tiekuangshi', ores); }
+    afterPackChange();
+    log('你抡'+(hasIronAxe?'铁斧凿石':'镐凿石')+'，哐哐数声，剥下石料×'+n+(ores?('，兼得铁矿石×'+ores):'')+'。','env');
+  }
+
+  // 伐木场：伐木取材（每日限次，仿采石崖）
+  function cutWood(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    if(!exert('伐木')) return;
+    state.buildCount = state.buildCount || {};
+    var k = 'wood_' + state.room + '@' + state.day;
+    if((state.buildCount[k]||0) >= 3){ toast('今日采伐已足三回，林子需养，明日再来。'); return; }
+    state.buildCount[k] = (state.buildCount[k]||0) + 1;
+    advanceTime(1);
+    var hasAxe = !!packFind('tiefu') || !!packFind('futou');
+    var n = hasAxe ? 2 : 1;
+    packAdd('mucai', n);
+    afterPackChange();
+    log('你'+(hasAxe?'挥斧斫木':'徒手折枝')+'，哢哢数声，得木材×'+n+'。','env');
+    openModal('building');
+  }
+  // 砖窑：烧砖（每日限次，耗柴火/石料，仿采石崖）
+  function fireBrick(){
+    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
+    if(!exert('烧砖')) return;
+    state.buildCount = state.buildCount || {};
+    var k = 'brick_' + state.room + '@' + state.day;
+    if((state.buildCount[k]||0) >= 3){ toast('今日窑火已足三窑，歇火养窑，明日再烧。'); return; }
+    state.buildCount[k] = (state.buildCount[k]||0) + 1;
+    advanceTime(1);
+    var hasFuel = !!packFind('mucai');
+    var n = hasFuel ? 2 : 1;
+    if(hasFuel) packConsume('mucai', 1);
+    packAdd('zhuan', n);
+    afterPackChange();
+    log('你添柴鼓风，窑火映红脸膛，出砖×'+n+(hasFuel?'（耗木材×1为薪）':'（无薪，砖质稍逊）')+'。','env');
+    openModal('building');
+  }
+  // 残破木箱：一次性拾取「冶炼工坊图」
+
+  function openBuildCrate(){
+    state.flags = state.flags || {};
+    if(state.flags.buildCrateGot){ toast('木箱已然空了。'); return; }
+    state.flags.buildCrateGot = true;
+    packAdd('tuzhi_yeolian', 1);
+    afterPackChange();
+    log('你拨开草垛，旧木箱里静静躺着一卷泛黄的《冶炼工坊图》。','good');
+    buildActions(G.ROOMS[state.room]);
+  }
+  // ===== 冶炼工坊：炉膛（铁矿石 + 木材燃料 → 分时辰烧制 → 铁料）=====
+  var forgeState = { site:null, msg:'' };
+  function findForge(siteKey){
+    var arr = (state.placed && state.placed[state.room]) || [];
+    var _tag=placedCellTag(state.room);
+    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey && placedInCell(arr[i], state.room, _tag)) return arr[i]; }
+    return null;
+  }
+  // 炉膛状态存于 placed 对象上：p.forge = { ore, wood, burn, prog, need, out }
+  //   ore 已投铁矿石 / wood 已投木材 / burn 是否在烧 / prog 当前烧制进度 / need 总需时辰 / out 已炼铁料待取
+  function ensureForgeState(p){
+    if(!p.forge) p.forge = { ore:0, wood:0, burn:false, prog:0, need:0, out:0 };
+    return p.forge;
+  }
+  function openForgePanel(siteKey){
+    openModal('forge', {site:siteKey});
+  }
+  function renderForgePanel(){
+    var p = findForge(forgeState.site); if(!p) return '<p class="tip">炉膛已不存在。</p>';
+    var bp = LF.BUILD[p.bp] || {};
+    var f = ensureForgeState(p);
+    var row = function(k,v){ return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>'; };
+    var pct = f.need>0 ? Math.min(100, Math.round(f.prog/f.need*100)) : 0;
+    var bar = f.burn
+      ? '<div class="forge-bar"><i style="width:'+pct+'%"></i></div><div class="forge-pct">烧制中 '+pct+'%'+(f.prog)+'/'+(f.need)+' 时辰</div>'
+      : (f.prog>0 ? '<div class="forge-bar"><i style="width:'+pct+'%"></i></div><div class="forge-pct">熄火 · 进度 '+pct+'%</div>' : '<p class="tip">炉膛尚冷，投料后点火。</p>');
+    var msg = forgeState.msg; forgeState.msg='';
+    var h = '<h3 style="text-align:center;margin:0 0 4px;">冶炼炉膛</h3>'
+      + (msg ? '<div class="build-msg">'+msg+'</div>' : '')
+      + row('铁矿石', f.ore)
+      + row('木材', f.wood)
+      + row('已炼铁料', f.out)
+      + bar
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:10px 0;">'
+      + '<button class="btn-mini" data-forge="ore">投铁矿石×1</button>'
+      + '<button class="btn-mini" data-forge="wood">投木材×1</button>'
+      + (f.burn ? '' : '<button class="btn-mini" data-forge="fire">点火烧制</button>')
+      + (f.out>0 ? '<button class="btn-mini" data-forge="take">收取铁料</button>' : '')
+      + '</div>'
+      + '<p class="tip">每块铁矿石需 2 时辰烧炼、耗 2 木材；可在任意行动推进时辰时持续烧制。</p>'
+      + '<button class="sheet-leave" id="m-forge-leave">收 工</button>';
+    return h;
+  }
+  function bindForgePanel(){
+    $card.querySelectorAll('[data-forge]').forEach(function(b){
+      b.onclick=function(){ forgeAct(b.getAttribute('data-forge')); };
+    });
+    var lv=document.getElementById('m-forge-leave'); if(lv) lv.onclick=closeModal;
+  }
+  function forgeAct(act){
+    var p = findForge(forgeState.site); if(!p) return;
+    var f = ensureForgeState(p);
+    if(act==='ore'){
+      var cur = packFind('tiekuangshi');
+      if(!cur || (cur.count||0) < 1){ toast('行囊中无铁矿石。'); return; }
+      if(state.energy<=0){ toast('精力已尽，先休整恢复再行添料。'); return; }
+      packConsume('tiekuangshi', 1);
+      f.ore++;
+      forgeState.msg = '已投铁矿石×1。';
+      save(state); afterPackChange();
+    } else if(act==='wood'){
+      var w = packFind('mucai');
+      if(!w || (w.count||0) < 1){ toast('行囊中无木材。'); return; }
+      if(state.energy<=0){ toast('精力已尽，先休整恢复再行添柴。'); return; }
+      packConsume('mucai', 1);
+      f.wood++;
+      forgeState.msg = '已投木材×1。';
+      save(state); afterPackChange();
+    } else if(act==='fire'){
+      if(f.burn){ toast('炉火正旺。'); return; }
+      if(f.ore<1){ toast('炉中无铁矿石。'); return; }
+      if(f.wood<1){ toast('炉中无木材，添柴方可点火。'); return; }
+      f.burn = true;
+      f.prog = 0;
+      f.need = f.ore*2;   // 每块矿石需 2 时辰烧炼
+      forgeState.msg = '你引火点燃炉膛，炉火渐旺……';
+      log('你引火点燃炉膛，风箱鼓动，炉火渐旺——铁矿石在烈焰中缓缓融化。','env');
+      save(state);
+    } else if(act==='take'){
+      if(f.out<1){ toast('炉中尚无炼成铁料。'); return; }
+      var got = packAdd('tiekuai', f.out);
+      if(!got){ toast('行囊已满，先腾出空位。'); return; }
+      log('你钳出铁料×'+f.out+'，趁热打制成块。','good');
+      f.out = 0;
+      save(state); afterPackChange();
+    }
+    openModal('forge', {site:forgeState.site});
+  }
+  // 烧制推进：任意行动推进时辰时调用（在 advanceTime 内 hook）
+  function tickForge(n){
+    if(!state.placed) return;
+    var roomIds = Object.keys(state.placed);
+    for(var r=0; r<roomIds.length; r++){
+      var arr = state.placed[roomIds[r]];
+      if(!arr) continue;
+      for(var i=0; i<arr.length; i++){
+        var p = arr[i];
+        if(!p || !p.forge || !p.forge.burn) continue;
+        var f = p.forge;
+        var step = Math.min(n, f.need - f.prog);
+        f.prog += step;
+        var woodCost = step;
+        f.wood = Math.max(0, f.wood - woodCost);
+        if(f.wood<=0 && f.prog < f.need){ f.burn=false; }   // 燃料耗尽熄火
+        if(f.prog >= f.need){
+          f.out += f.ore;      // 全部矿石炼成铁料
+          f.ore = 0; f.prog = 0; f.need = 0; f.burn = false;
+        }
+      }
+    }
+  }
+  // 货郎交易系统已抽离到 shared/shop.js（LF.createShop 工厂），注入 index.html 内部依赖
+  var Shop = LF.createShop({
+    getState: function(){ return state; },
+    getCard: function(){ return document.getElementById('modal-card'); },
+    packAdd: packAdd, afterPackChange: afterPackChange, save: save, toast: toast,
+    itemIconHTML: itemIconHTML, packIsStackable: packIsStackable, packFind: packFind, packFirstEmpty: packFirstEmpty,
+    storageGet: storeGet, storagePut: storePutFromPack, storageTake: storeTakeToPack, storageSort: storeSort, storageSwap: storeSwap,
+    positionFloat: positionFloat, closeModal: closeModal
+  });
+  function openLearn(){
+    clearActions();
+    log('【修炼】案上摊开武学谱录，你凝神参悟，耗「潜能」以窥门径：','title');
+    var MA=G.MARTIAL_ARTS, LINES=MA.LINES;
+    var order=Object.keys(LINES).sort(function(a,b){return LINES[a].order-LINES[b].order;});
+    order.forEach(function(lid){
+      var line=LINES[lid];
+      var list=[];
+      for(var k in MA){ var a=MA[k]; if(a&&a.id&&a.line===lid&&a.type!=='technique') list.push(a); }
+      if(!list.length) return;
+      var head=document.createElement('div'); head.className='learn-line';
+      head.innerHTML='<span class="ll-name">'+line.name+'</span><span class="ll-lv">艺线 Lv.'+(state.lines[lid]||0)+'</span>';
+      $actions.appendChild(head);
+      list.forEach(function(a){
+        var owned=state.learnedMartial.indexOf(a.id)>=0;
+        var rlm=(state.realm[a.id]||0);
+        var rname=G.MARTIAL_ARTS.REALMS[rlm];
+        var potCost=a.type==='ultimate'?50 : 20 + a.learn.lineMin*8 + Math.floor(a.beat/10);
+        var lockLine=(state.lines[lid]||0) < a.learn.lineMin;
+        var b=document.createElement('button'); b.className='act wide';
+        b.title=a.desc+'（当前境界：'+rname+'）';
+        if(owned){ b.innerHTML='✓ '+a.name+'（'+rname+'）'; b.disabled=true; }
+        else if(lockLine){ b.innerHTML='🔒 '+a.name+'（'+line.name+'艺线需 Lv.'+a.learn.lineMin+'）'; b.disabled=true; }
+        else{
+          b.innerHTML='› '+a.name+(a.type==='ultimate'?' · 绝技':'')+'（耗潜能 '+potCost+'）';
+          b.onclick=function(){
+            if(state.pot<potCost){ log('潜能不足，难窥'+a.name+'门径。可多去历练积攒潜能。','sys'); return; }
+            state.pot-=potCost; state.learnedMartial.push(a.id);
+            state.lines[lid]=Math.min(20,(state.lines[lid]||0)+1);
+            log('【习得】'+a.name+'！'+a.desc,'good');
+            clearActions(); buildActions(curRoom()); save(state); renderStatus();
+          };
+        }
+        $actions.appendChild(b);
+      });
+    });
+    // 发力技巧（可嵌任意武学，单独成组）
+    var techs=MA.getTechniques();
+    if(techs.length){
+      var th=document.createElement('div'); th.className='learn-line';
+      th.innerHTML='<span class="ll-name">发力技巧</span><span class="ll-lv">装配增威</span>';
+      $actions.appendChild(th);
+      techs.forEach(function(a){
+        var equipped=state.equippedForce.indexOf(a.id)>=0;
+        var potCost=20 + a.learn.lineMin*8;
+        var lockLine=(state.lines[a.line]||0) < a.learn.lineMin;
+        var b=document.createElement('button'); b.className='act wide';
+        b.title=a.desc;
+        if(equipped){ b.innerHTML='✓ '+a.name+'（已装配）'; b.disabled=true; }
+        else if(lockLine){ b.innerHTML='🔒 '+a.name+'（'+LINES[a.line].name+'艺线需 Lv.'+a.learn.lineMin+'）'; b.disabled=true; }
+        else{
+          b.innerHTML='› '+a.name+'（耗潜能 '+potCost+'）';
+          b.onclick=function(){
+            if(state.pot<potCost){ log('潜能不足，难通'+a.name+'。','sys'); return; }
+            state.pot-=potCost; state.equippedForce.push(a.id);
+            log('【装配】'+a.name+'！'+a.desc,'good');
+            clearActions(); buildActions(curRoom()); save(state); renderStatus();
+          };
+        }
+        $actions.appendChild(b);
+      });
+    }
+    addBtn('返回营中', function(){ buildActions(curRoom()); });
+  }
+
+  // ===== 随机事件（含打斗氛围） =====
+  function runEvent(ev){
+    if(!ev) return;
+    clearActions(); advanceTime(1);
+    log('— '+ev.title+' —','title');
+    log(ev.text,'env');
+    if(/劫掠|剿匪|驱赶|受命|巡山|溃兵/.test(ev.title+ev.text))
+      log('刀光乍起，你与对方缠斗数合，招式凌厉，各展所能。','combat');
+    ev.choices.forEach(function(ch){
+      var b=document.createElement('button'); b.className='act wide';
+      b.innerHTML='› '+ch.text+(ch.cost?('<span class="tip">耗银'+(ch.cost.gold||0)+'</span>'):'');
+      b.onclick=function(){
+        if(ch.cost){
+          if(state.gold<(ch.cost.gold||0)){ log('银两不足，难以行事。','sys'); return; }
+          state.gold-=(ch.cost.gold||0);
+        }
+        if(/驱赶|剿匪|受命|巡山|挺身/.test(ch.text)) log('你提气凝神，一招逼退对手！','combat');
+        applyEffect(ch.effect||{});
+        log(ch.result,'env');
+        // P3 善恶双轴：按 choice.moral 累积（互不抵消）
+        if(ch.moral==='chivalry'){ addChivalry(1); log('〔侠义 +1〕','good'); }
+        else if(ch.moral==='notoriety'){ addNotoriety(1); log('〔凶名 +1〕','sys'); }
+        buildActions(curRoom()); save(state); renderStatus();
+      };
+      $actions.appendChild(b);
+    });
+    addBtn('返回营中', function(){ buildActions(curRoom()); });
+  }
+
+  // ===== 底部弹窗 =====
+  function skillTags(){
+    var MA=G.MARTIAL_ARTS;
+    var all=state.learnedMartial.concat(state.equippedForce);
+    if(!all.length) return '<span style="color:var(--ink-faint)">尚无</span>';
+    return all.map(function(id){
+      var a=MA.get(id);
+      return '<span'+(a&&a.type==='technique'?' class="force"':'')+'>'+(a?a.name:id)+(a&&a.type==='technique'?'◆':'')+'</span>';
+    }).join('');
+  }
+  function row(k,v){return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>';}
+  // ===================== 格子制行囊核心（v0.6） =====================
+  // 背包基础容量（无背包装备时）；背包装备槽（equipment.bag）可额外增加
+  var BASE_PACK = 6;
+  function packMax(st){
+    st = st || state;
+    var m = BASE_PACK;
+    if(st && st.equipment){ for(var k in st.equipment){ var eq=st.equipment[k]; if(eq && eq.packSpace) m += eq.packSpace; } }
+    return m;
+  }
+  // 装备/卸下背包装备后，按容量重排行囊数组长度（仅增长；缩容且装不下时保留原状以免丢物）
+  function packResize(){
+    var max=packMax();
+    var items=state.pack.filter(function(x){ return x; });
+    if(items.length>max){ toast('卸下背包后容量不足，物品暂留原处。'); return; }
+    while(state.pack.length<max) state.pack.push(null);
+    if(state.pack.length>max){ var a=new Array(max).fill(null), k=0; for(var i=0;i<state.pack.length;i++){ if(state.pack[i]) a[k++]=state.pack[i]; } state.pack=a; }
+  }
+  function packEnsure(st){
+    if(!st.equipment) st.equipment={};
+    LF.ITEMS.SLOT_KEYS.forEach(function(k){ if(!(k in st.equipment)) st.equipment[k]=null; });
+    var max = packMax(st);
+    if(!Array.isArray(st.pack)){ st.pack=new Array(max).fill(null); }
+    else {
+      var items = st.pack.filter(function(x){ return x; });
+      if(items.length>max) items=items.slice(0,max);   // 容量缩小时丢弃溢出（保留前 max 件）
+      var a=new Array(max).fill(null);
+      for(var i=0;i<items.length;i++) a[i]=items[i];
+      st.pack=a;
+    }
+    if(st.equipment.armor){ st.equipment.cloth=st.equipment.armor; delete st.equipment.armor; }
+    if(st.equipment.mount){ st.equipment.belt=st.equipment.mount; delete st.equipment.mount; }
+    if(Array.isArray(st.items)){ st.items.forEach(function(it){
+        var k=itemKey(it);
+        if(k && it.cat!=='装备'){ for(var i=0;i<st.pack.length;i++){ var c=st.pack[i]; if(c && itemKey(c)===k && c.cat!=='装备'){ c.count=(c.count||1)+(it.count||1); return; } } }
+        var e=st.pack.indexOf(null); if(e<0) e=st.pack.length; st.pack[e]=it;
+      }); st.items=null; }
+  }
+  function itemKey(it){ return it ? (it.defId || it.id) : null; }
+  function packIsStackable(it){ return it && it.cat!=='装备' && !it.maxDur; }
+  function packFirstEmpty(){ for(var i=0;i<state.pack.length;i++){ if(!state.pack[i]) return i; } return -1; }
+  function packAdd(itemOrDefId, count){
+    var it; if(typeof itemOrDefId==='string'){ it=LF.ITEMS.makeItem(itemOrDefId, count||1); }
+    else { it=itemOrDefId; if(count) it.count=(it.count||1)+count; }
+    if(!it) return false;
+    if(packIsStackable(it)){
+      var k=itemKey(it);
+      for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)===k && c.cat!=='装备'){ c.count=(c.count||1)+(it.count||1); return true; } }
+    }
+    var e=packFirstEmpty();
+    if(e<0 && state.pack.length<packMax()){ while(state.pack.length<packMax()) state.pack.push(null); e=packFirstEmpty(); }   // 防御：数组短于容量时先补齐再判定
+    if(e<0){ toast('行囊已满，拾取失败。'); return false; }
+    state.pack[e]=it; return true;
+  }
+  function packConsume(defId, n){
+    n=n||1; var rem=n;
+    for(var i=0;i<state.pack.length && rem>0;i++){ var c=state.pack[i]; if(c && itemKey(c)===defId && c.cat!=='装备'){ var take=Math.min(rem, c.count||1); c.count-=take; rem-=take; if(c.count<=0) state.pack[i]=null; } }
+    return rem===0;
+  }
+  function packFind(defId){ if(!state || !state.pack) return null; for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)===defId) return c; } return null; }
+  function packList(){ var o=[]; for(var i=0;i<state.pack.length;i++){ if(state.pack[i]) o.push(state.pack[i]); } return o; }
+
+  function packGet(loc){ return loc.kind==='pack' ? state.pack[loc.idx] : state.equipment[loc.slot]; }
+  function packSet(loc,val){ if(loc.kind==='pack') state.pack[loc.idx]=val; else state.equipment[loc.slot]=val; }
+  function locEq(a,b){ return a.kind===b.kind && (a.kind==='pack' ? a.idx===b.idx : a.slot===b.slot); }
+
+  function afterPackChange(){ clampHp(); packResize(); if(typeof save==='function') save(state); renderStatus(); if(typeof refreshPackGridLight==='function' && currentModalKind==='pack') refreshPackGridLight(); if(typeof refreshPackEquipLight==='function' && currentModalKind==='pack') refreshPackEquipLight(); if(combatMode===null && !state.dead) buildActions(G.ROOMS[state.room]); }
+
+  function movePackItem(from,to){
+    if(locEq(from,to)) return;
+    if(from.kind==='pack' && to.kind==='pack'){
+      var s=state.pack[from.idx], d=state.pack[to.idx];
+      state.pack[to.idx]=s; state.pack[from.idx]=d; afterPackChange(); return;
+    }
+    if(from.kind==='pack' && to.kind==='equip'){
+      var it=state.pack[from.idx];
+      if(!it || it.cat!=='装备' || it.slot!==to.slot){ toast('该物不可装备于「'+LF.ITEMS.SLOTS[to.slot].label+'」。'); return; }
+      var old=state.equipment[to.slot];
+      state.equipment[to.slot]=it; state.pack[from.idx]=old;
+      toast('已装备「'+it.name+'」。'); afterPackChange(); return;
+    }
+    if(from.kind==='equip' && to.kind==='pack'){ unequipToPack(from.slot, to.idx); return; }
+  }
+  function equipFromPackTo(idx,slot){ movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); }
+  function placeFromPackTo(idx){ if(idx==null || !state.pack[idx]) return; packInspect={kind:'pack',idx:idx}; placeInspect(); }
+  // 行囊内拖拽排序：仅轻量刷新网格，保留滚动条位置、避免整窗重渲染卡顿
+  function swapPackCells(a,b){
+    if(locEq(a,b)) return;
+    var s=state.pack[a.idx], d=state.pack[b.idx];
+    state.pack[b.idx]=s; state.pack[a.idx]=d;
+    if(typeof save==='function') save(state);
+    renderStatus();
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var sc=card.querySelector('.pack-scroll'); var grid=sc&&sc.querySelector('.pack-grid');
+    if(sc && grid){ grid.innerHTML=renderPackGrid(); if(typeof bindPackInteractions==='function') bindPackInteractions(card); }
+  }
+  function refreshPackGridLight(){   // 仅重渲行囊格子，保留滚动位置（避免装备/使用/丢弃后滚动条复位）
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var sc=card.querySelector('.pack-scroll'); var grid=sc&&sc.querySelector('.pack-grid');
+    if(sc && grid){ grid.innerHTML=renderPackGrid(); if(typeof bindPackInteractions==='function') bindPackInteractions(card); }
+  }
+  // 装备/卸下后仅重渲装备栏（人形+装备槽+背包槽）与战力属性，保留滚动位置，实时反馈装备变化
+  function refreshPackEquipLight(){
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var fig=card.querySelector('.equip-figure');
+    if(fig){ var w=document.createElement('div'); w.innerHTML=renderEquipFigure(); var nf=w.firstElementChild; if(nf) fig.replaceWith(nf); }
+    var st=card.querySelector('#packLeftStats');
+    if(st){ var w2=document.createElement('div'); w2.innerHTML=renderEquipStats(); var ns=w2.firstElementChild; if(ns) st.replaceWith(ns); }
+    if(typeof bindPackInteractions==='function') bindPackInteractions(card);
+  }
+  function unequipToPack(slot,toIdx){
+    var eq=state.equipment[slot]; if(!eq) return;
+    // 卸下会缩减容量（如背囊/腰包提供 packSpace），若卸下后装不下则禁止，避免丢物或状态不一致
+    if(eq.packSpace){
+      var maxAfter = packMax() - eq.packSpace;
+      var cnt = state.pack.filter(function(x){ return x; }).length;
+      if(cnt > maxAfter){ toast('卸下后背囊空间不足，无法卸下「'+eq.name+'」。'); return; }
+    }
+    if(toIdx!=null && !state.pack[toIdx]){ state.pack[toIdx]=eq; state.equipment[slot]=null; }
+    else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法卸下。'); return; } state.pack[e]=eq; state.equipment[slot]=null; }
+    toast('已卸下「'+eq.name+'」。'); afterPackChange();
+  }
+  // 双击格子：快速装备 / 快速使用
+  function quickUseFromPack(idx){
+    var it=state.pack[idx]; if(!it) return;
+    if(it.cat==='装备' && it.slot){ equipFromPackTo(idx, it.slot); }
+    else { usePackItem(idx); }
+  }
+  function usePackItem(idx){
+    var it=state.pack[idx]; if(!it) return;
+    if(it.cat==='装备'){ toast('装备需拖至装备栏，不可直接使用。'); return; }
+    if(it.effect){
+      if(it.effect.hp){ state.hp=Math.min(state.maxHp, state.hp+(it.effect.hp||0)); toast('伤势略缓（+'+(it.effect.hp||0)+'）。'); }
+      if(it.effect.mp){ state.mp=Math.min(state.maxMp, state.mp+(it.effect.mp||0)); toast('内息稍复（+'+(it.effect.mp||0)+'）。'); }
+      if(it.effect.food){ state.food=Math.min(100,(state.food||0)+(it.effect.food||0)); toast('腹中稍暖（+'+(it.effect.food||0)+'）。'); }
+      if(it.effect.drink){ state.drink=Math.min(100,(state.drink||0)+(it.effect.drink||0)); toast('喉间得润（+'+(it.effect.drink||0)+'）。'); }
+    } else if(it.maxDur){ toast('「'+it.name+'」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
+    else { toast('此物暂无可施用之效。'); return; }
+    it.count--; if(it.count<=0) state.pack[idx]=null;
+    afterPackChange();
+  }
+  function discardPackItem(idx){
+    var it=state.pack[idx]; if(!it) return;
+    state.pack[idx]=null; toast('已丢弃「'+it.name+'」。'); afterPackChange();
+  }
+  function packAutoSort(){
+    var items=packList();
+    var map={}; items.forEach(function(it){ if(it.cat!=='装备'){ var key=it.defId; if(!map[key]) map[key]={item:it}; else map[key].item.count+=(it.count||1); } });
+    var equipItems=items.filter(function(it){ return it.cat==='装备'; });
+    var merged=Object.keys(map).map(function(k){ return map[k].item; });
+    var out=merged.concat(equipItems);
+    for(var i=0;i<state.pack.length;i++) state.pack[i]=null;
+    out.forEach(function(it,i){ state.pack[i]=it; });
+    toast('行囊已整理。'); afterPackChange();
+  }
+
+  var packInspect=null;
+  function inspCls(loc){ return (packInspect && locEq(packInspect,loc))?' pcell-insp':''; }
+  function renderPackGrid(){
+    var grid='';
+    for(var i=0;i<state.pack.length;i++){
+      var it=state.pack[i];
+      if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
+      var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
+      var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
+      grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
+            + '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'
+            + cnt + qb + '</div>';
+    }
+    return grid;
+  }
+  // 装备栏图（人形 + 六装备槽 + 背包槽）：独立成函数，供 renderPack 与装备后实时刷新复用
+  function renderEquipFigure(){
+    var sil = '<svg class="equip-sil" viewBox="0 0 124 130" preserveAspectRatio="xMidYMid meet">'
+      + '<g fill="rgba(186,160,220,.2)" stroke="rgba(200,172,236,.75)" stroke-width="1.6">'
+      + '<circle cx="62" cy="22" r="19"/>'
+      + '<rect x="44" y="43" width="36" height="47" rx="15"/>'
+      + '<rect x="28" y="48" width="10" height="28" rx="5"/>'
+      + '<rect x="86" y="48" width="10" height="28" rx="5"/>'
+      + '<rect x="48" y="88" width="12" height="18" rx="6"/>'
+      + '<rect x="64" y="88" width="12" height="18" rx="6"/>'
+      + '</g></svg>';
+    var eqHtml='', bagSlot='';
+    LF.ITEMS.SLOT_KEYS.forEach(function(slot){
+      if(slot==='bag') return;            // 背包槽独立于六装备槽，单独放在人形下方
+      var eq=state.equipment[slot], sl=LF.ITEMS.SLOTS[slot];
+      var insCls=(packInspect && packInspect.kind==='equip' && packInspect.slot===slot)?' pcell-insp':'';
+      var badge = '';
+      if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
+      var durBar='';
+      if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
+      var inner = eq
+        ? '<div class="ep-name">'+eq.name+'</div>'
+        : '<div class="ep-ph">'+sl.label+'</div>';
+      eqHtml += '<div class="equipslot ep-'+slot+insCls+'" data-loc="equip:'+slot+'">'+inner+badge+durBar+'</div>';
+    });
+    // 背包槽（bag）：人形下方独立渲染
+    (function(){
+      var eq=state.equipment.bag, sl=LF.ITEMS.SLOTS.bag;
+      var insCls=(packInspect && packInspect.kind==='equip' && packInspect.slot==='bag')?' pcell-insp':'';
+      var badge='';
+      if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
+      var durBar='';
+      if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
+      var inner=eq?'<div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph">'+sl.label+'</div>';
+      bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag">'+inner+badge+durBar+'</div>';
+    })();
+    eqHtml = sil + eqHtml;
+    return '<div class="equip-figure">'+eqHtml+bagSlot+'</div>';
+  }
+  function renderPack(){
+    var grid='';
+    for(var i=0;i<state.pack.length;i++){
+      var it=state.pack[i];
+      if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
+      var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
+      var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
+      grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
+            + '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'
+            + cnt + qb + '</div>';
+    }
+    return '<div class="pack-wrap">'
+      + '<div class="pack-head"><span class="pack-title">行 囊</span></div>'
+      + '<div class="pack-main">'
+      +   '<div class="pack-left"><div class="pack-left-title">装 备</div>'+renderEquipFigure()+renderEquipStats()+'</div>'
+      +   '<div class="pack-right"><div class="pack-right-title">物 品</div>'
+      +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
+      + '<button class="btn" '+(canDiscard()?'':'disabled')+' onclick="LFUI.discardInspect()">丢弃</button>'
+      + '<span class="pack-hint">点按物品查看 · 点空白处关闭</span>'
+      + '<span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span>'
+      + '<span class="pack-gold">银两 '+state.gold+'</span></div>'
+      + '</div>';
+  }
+  function renderEquipStats(){
+    var s = (typeof effectiveStats==='function') ? effectiveStats() : state;
+    function row(label, val){ return '<div class="ps-row"><span>'+label+'</span><b>'+(val==null?'—':val)+'</b></div>'; }
+    var collapsed = ((window.LF && LF.UISPEC && LF.UISPEC.isMobile()) || (window.innerWidth && window.innerWidth<=560)) ? ' collapsed' : '';
+    return '<div class="pack-left-stats'+collapsed+'" id="packLeftStats">'
+      + '<div class="ps-h" onclick="LFUI.toggleStats()" role="button" tabindex="0">属 性 <span class="ps-caret">▾</span></div>'
+      + '<div class="ps-body">'
+      + row('攻击', s.atk||0)
+      + row('防御', s.def||0)
+      + row('身法', s.spd||0)
+      + row('气血', s.maxHp||0)
+      + (s.maxMp>0? row('内力', s.maxMp||0):'')
+      + '</div></div>';
+  }
+  // 物品详情面板：单击物品后展示属性 / 耐久 / 使用效果 / 描述
+  // 行囊属性浮框：与战利品栏同一套 .loot-info 浅色纸 + .li-* 内容；操作按钮放末尾，避免挤压文字
+  function renderPackInspect(){
+    if(!packInspect) return '<div class="li-name">行囊</div><div class="li-line">点选物品，可查看其属性、耐久与使用之效。</div>';
+    var it = packGet(packInspect);
+    if(!it){ packInspect=null; return '<div class="li-name">行囊</div><div class="li-line">点选物品，可查看其属性、耐久与使用之效。</div>'; }
+    var q = LF.ITEMS.QMAP[it.quality] || {name:'凡品',color:'#9a948a'};
+    var qname = it.qualityName || q.name;
+    var h='<div class="li-name">'+itemIconHTML(it,15)+' '+it.name+'</div>';
+    h+='<div class="li-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+qname):'')+(it.count>1?(' · ×'+it.count):'')+'</div>';
+    if(it.cat==='装备'){
+      var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
+      var parts=[];
+      fields.forEach(function(f){ var v=it[f[0]]||0; if(v) parts.push(f[1]+' +'+v); });
+      if(parts.length) h+='<div class="li-line">'+parts.join(' · ')+'</div>';
+      if(it.packSpace) h+='<div class="li-line">空间 +'+it.packSpace+'</div>';
+    }
+    if(it.maxDur){ h+='<div class="li-line">耐久 '+it.dur+' / '+it.maxDur+'</div>'; }
+    if(it.effect){
+      var e=it.effect, t=[];
+      if(e.hp) t.push('疗伤 +'+e.hp);
+      if(e.mp) t.push('复内 +'+e.mp);
+      if(e.food) t.push('充饥 +'+e.food);
+      if(e.drink) t.push('解渴 +'+e.drink);
+      if(e.dmg) t.push('伤害 +'+e.dmg);
+      if(t.length) h+='<div class="li-line">'+t.join(' · ')+'</div>';
+    }
+    if(it.desc) h+='<div class="li-line" style="opacity:.85">'+it.desc+'</div>';
+    if(it.cat==='装备') h+=compareEquip(it);
+    // 操作按钮统一置于末尾
+    var acts='';
+    if(packInspect.kind==='equip') acts+='<button class="li-act" onclick="LFUI.unequipInspect()">卸 下</button>';
+    else {
+      if(it.cat==='装备') acts+='<button class="li-act" onclick="LFUI.equipInspect()">装 备</button>';
+      if(it.effect) acts+='<button class="li-act" onclick="LFUI.useInspect()">使 用</button>';
+      var canPlace=it.placeable||(LF.ITEMS[it.defId]||{}).placeable||(LF.ITEMS[it.defId]||{}).place;
+      var isBlueprint=!!(LF.ITEMS[it.defId]||{}).blueprint;
+      if(canPlace||isBlueprint) acts+='<button class="li-act" onclick="LFUI.placeInspect()">'+(isBlueprint?'依 图':'放 置')+'</button>';
+    }
+    if(acts) h+='<div class="li-acts">'+acts+'</div>';
+    return h;
+  }
+  function parseLoc(s){ if(!s) return null; var p=s.split(':'); if(p[0]==='pack') return {kind:'pack',idx:parseInt(p[1],10)}; if(p[0]==='equip') return {kind:'equip',slot:p[1]}; return null; }
+  // 公共浮框定位：跟随 cell，空间不足翻到上方，避免破坏布局（货郎/行囊共用）
+  function positionFloat(box, cell){
+    var vw=window.innerWidth, vh=window.innerHeight, m=8;
+    var bw=box.offsetWidth||150, bh=box.offsetHeight||120;
+    if(!cell){ box.style.left='50%'; box.style.top=''; box.style.bottom=m+'px'; box.style.transform='translateX(-50%)'; return; }
+    var r=cell.getBoundingClientRect();
+    var left=r.left+r.width/2-bw/2; left=Math.max(m, Math.min(left, vw-bw-m));
+    var top=r.bottom+m; if(top+bh>vh-m) top=r.top-bh-m; if(top<m) top=m;
+    box.style.left=left+'px'; box.style.top=top+'px'; box.style.bottom=''; box.style.transform='';
+  }
+  // 将行囊浮层详情框定位到被选中格子旁边（与战利品栏同一套视觉）
+  function showPackFloat(){
+    if(!packInspect) return;
+    var f=document.getElementById('pack-float');
+    if(!f){ f=document.createElement('div'); f.className='loot-info'; f.id='pack-float'; document.body.appendChild(f); }
+    f.innerHTML=renderPackInspect(); f.style.display='block';
+    var a=document.querySelector('.pcell-insp'); if(!a){ f.style.display='none'; return; }
+    var ar=a.getBoundingClientRect();
+    var cw=ar.width; if(cw) f.style.width=Math.max(88,Math.min(184,Math.round(cw)))+'px';
+    positionFloat(f, a);
+  }
+  var packLastClick={t:0, loc:null};
+  function bindPackInteractions(){
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var cells=card.querySelectorAll('[data-loc]');
+    cells.forEach(function(el){
+      el.onclick=function(){
+        if(el.__dragMoved){ el.__dragMoved=false; return; }
+        var key=el.getAttribute('data-loc'); var loc=parseLoc(key); if(!loc) return;
+        var now=Date.now();
+        if(packLastClick.loc===key && now-packLastClick.t<320){ packLastClick.t=0; quickUseFromPack(loc.idx); return; }  // 双击：快速装备/使用
+        packLastClick={t:now, loc:key};
+        var it=packGet(loc);
+        if(!it){ packInspect=null; var f=document.getElementById('pack-float'); if(f) f.style.display='none'; return; }  // 空位：仅收起浮框
+        packInspect=loc;
+        card.querySelectorAll('.pcell-insp').forEach(function(c){ c.classList.remove('pcell-insp'); });   // 仅更新高亮，不重渲染面板，避免列表滚动复位
+        el.classList.add('pcell-insp');
+        showPackFloat();
+      };
+    });
+    cells.forEach(function(el){
+      el.setAttribute('draggable','true');
+      el.ondragstart=function(e){
+        var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)){ e.preventDefault(); return; }
+        el.__from=loc; var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
+        e.dataTransfer.setData('text/plain', el.getAttribute('data-loc'));
+      };
+      el.ondragover=function(e){ e.preventDefault(); };
+      el.ondrop=function(e){
+        e.preventDefault();
+        var to=parseLoc(el.getAttribute('data-loc')); if(!to) return;
+        var from=el.__from || parseLoc(e.dataTransfer.getData('text/plain'));
+        if(from){ movePackItem(from,to); packInspect=null; var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+      };
+    });
+    var dragging=null, ghost=null, sx=0, sy=0, moved=false, srcEl=null;
+    cells.forEach(function(el){
+      el.onpointerdown=function(e){
+        if(e.pointerType==='mouse') return;
+        var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)) return;
+        dragging=loc; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
+        var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';   // 触屏拖拽起点立即隐藏行囊浮框
+        packInspect=null;
+      };
+    });
+    card.onpointermove=function(e){
+      if(!dragging) return;
+      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
+      if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; document.body.appendChild(ghost); }
+      ghost.textContent=(packGet(dragging)||{}).name||'';
+      ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
+    };
+    function endDrag(e, cancelled){
+      var from=dragging; dragging=null;
+      if(ghost){ ghost.remove(); ghost=null; }
+      if(!from || !moved || cancelled){ return; }
+      var tgt=document.elementFromPoint(e.clientX,e.clientY);
+      while(tgt && tgt!==card && !tgt.getAttribute('data-loc')) tgt=tgt.parentNode;
+      var to=parseLoc(tgt?tgt.getAttribute('data-loc'):null);
+      if(to) swapPackCells(from,to);
+    }
+    card.onpointerup=function(e){ endDrag(e,false); };
+    card.onpointercancel=function(e){ endDrag(e,true); };
+    // 点空白处关闭属性详情
+    card.onclick=function(e){
+      if(e.target.closest('[data-loc]')) return;   // 点物品格：由格子自身处理
+      if(e.target.closest('button')) return;        // 点按钮：不关闭
+      if(e.target.closest('#pack-float')) return;   // 点在浮层内：保持显示
+      var f=document.getElementById('pack-float'); if(f) f.style.display='none';  // 点空白仅收起浮框，不重渲染
+    };
+  }
+  // 详情面板操作
+  function useInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; usePackItem(idx); if(!state.pack[idx]){ packInspect=null; var f=document.getElementById('pack-float'); if(f) f.style.display='none'; return; } showPackFloat(); }
+  function discardInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; packInspect=null; discardPackItem(idx); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+  function canDiscard(){ return !!(packInspect && packInspect.kind==='pack'); }
+  function packHighlightReplaced(idx){   // 装备/卸下后，自动滚到并高亮被换下的背包物品
+    setTimeout(function(){
+      var card=document.getElementById('modal-card'); if(!card) return;
+      var rc=card.querySelector('.packcell[data-loc="pack:'+idx+'"]'); if(!rc) return;
+      rc.scrollIntoView({block:'nearest',behavior:'smooth'});
+      rc.classList.add('pcell-rep');
+      setTimeout(function(){ if(rc) rc.classList.remove('pcell-rep'); }, 1400);
+    }, 60);
+  }
+  function equipInspect(){ if(!packInspect||packInspect.kind!=='pack') return; var idx=packInspect.idx; var it=state.pack[idx]; if(!it||it.cat!=='装备') return; var slot=it.slot; if(!slot){ toast('此物无可装备之处。'); return; } var old=state.equipment[slot]; movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); packInspect={kind:'equip',slot:slot}; showPackFloat(); if(old) packHighlightReplaced(idx); }
+  function unequipInspect(){ if(!packInspect||packInspect.kind!=='equip') return; var slot=packInspect.slot; var eq=state.equipment[slot]; unequipToPack(slot); var repIdx=-1; if(eq){ for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===eq){ repIdx=i; packInspect={kind:'pack',idx:i}; break; } } } else packInspect=null; showPackFloat(); if(repIdx>=0) packHighlightReplaced(repIdx); }
+  function closeInspect(){ packInspect=null; refreshPackGridLight(); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+  function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
+  window.LFUI = { usePackItem:usePackItem, discardPackItem:discardPackItem, packAutoSort:packAutoSort, equipFromPackTo:equipFromPackTo, placeFromPackTo:placeFromPackTo,
+    useInspect:useInspect, discardInspect:discardInspect, equipInspect:equipInspect, unequipInspect:unequipInspect, closeInspect:closeInspect, toggleStats:toggleStats, placeInspect:placeInspect,
+    storeTake:storeTakeToPack, storePut:storePutFromPack, storeUse:storeUseItem, storeEquip:storeEquipItem, storeSort:storeSort, renderShopPanel:Shop.renderShopPanel, bindShopPanel:Shop.bindShopPanel, addBuyPending:Shop.addBuyPending, addSellPending:Shop.addSellPending, removeBuyPending:Shop.removeBuyPending, removeSellPending:Shop.removeSellPending, confirmTrade:Shop.confirmTrade,
+    dismissCompanion:dismissCompanion };
+  // 滚动/缩放时收起货郎与行囊浮框，避免遮挡（与战利品栏一致；只注册一次）
+  window.addEventListener('scroll', function(e){
+    if(e.target && e.target.closest && e.target.closest('#pack-float,#shop-float,.loot-info')) return;  // 浮框自身滚动不收起
+    var a=document.getElementById('shop-float'); if(a) a.style.display='none';
+    var b=document.getElementById('pack-float'); if(b) b.style.display='none';
+  }, true);
+  window.addEventListener('resize', function(){ var a=document.getElementById('shop-float'); if(a) a.style.display='none'; var b=document.getElementById('pack-float'); if(b) b.style.display='none'; });
+
+  // 行囊装备面板（P1 完整）
+  function useItemOutside(defId){
+    // 行囊里直接“使用”物品（非战斗，疗伤/补内/进食）
+    var idx=-1;
+    for(var i=0;i<state.pack.length;i++){ if(state.pack[i] && state.pack[i].defId===defId){ idx=i; break; } }
+    if(idx>=0) usePackItem(idx);
+  }
+
+  // ===== 开场渐进式 UI 揭示（空白 → 文字 → 选项 → 逐一点亮功能） =====
+  var ONB_LAYERS=['status','loctab','actions','lower','dock','npc'];
+  function applyOnboard(){
+    if(!state.flags || !state.flags.onb || state.flags.onb.done){
+      document.body.classList.remove('onb');
+      ONB_LAYERS.forEach(function(l){ document.body.classList.remove('reveal-'+l); });
+      return;
+    }
+    var rv=state.flags.onb.reveal||[];
+    document.body.classList.add('onb');
+    ONB_LAYERS.forEach(function(l){ if(rv.indexOf(l)>=0) document.body.classList.add('reveal-'+l); else document.body.classList.remove('reveal-'+l); });
+  }
+  function onbReveal(layer){
+    if(!state.flags) state.flags={}; if(!state.flags.onb) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
+    if(!state.flags.onb.reveal) state.flags.onb.reveal=[];   // 老存档/新造存档可能缺 reveal 数组
+    if(state.flags.onb.reveal.indexOf(layer)<0) state.flags.onb.reveal.push(layer);
+    applyOnboard(); save(state);
+  }
+  function highlightOnb(layer){
+    var id = layer==='status' ? 'status' : (layer==='dock' ? 'dock' : layer==='npc' ? 'npc-list' : layer==='loctab' ? 'loc-tab' : 'lower');
+    var el=document.getElementById(id);
+    if(!el) return;
+    el.classList.add('onb-glow');
+    setTimeout(function(){ el.classList.remove('onb-glow'); }, 4200);
+  }
+  // ===== 新手目标引导：根据当前进度显示「当前该做什么」并高亮对应按钮/NPC =====
+  function onbGoalClear(){
+    var g=document.getElementById('onb-goal'); if(g) g.classList.add('hidden');
+    var hl=document.querySelectorAll('.onb-goal-hl'); for(var i=0;i<hl.length;i++) hl[i].classList.remove('onb-goal-hl');
+  }
+  function onbGoalStep(){
+    var f=state.flags||{}, onb=f.onb; if(!onb||onb.done) return null;
+    var labored=!!onb.labored, surveyed=!!onb.surveyed;
+    if(!labored) return {text:'担石劳作，先熟悉营中苦役（点下方「担石劳作」）', sel:'#actions .act[data-act="labor_yard"]'};
+    if(!surveyed) return {text:'环顾劳役场，看清几处去路（点「环顾四周」）', sel:'#actions .act[data-act="survey_yard"]'};
+    if(!(f.route && f.route.crypt)) return {text:'去找讲古的周听涛，探听出营门道（劳役场·周听涛）', sel:'#npc-list .nl-item[data-k="zhoutingtao"]'};
+    if(!(f.task && f.task.signal)) return {text:'去囚室（西）与默叔对上暗号', sel:'#npc-list .nl-item[data-k="moshu"]'};
+    // 已对暗号：去任一枢纽决断出营（塌墙根北 / 岗哨南）
+    var sel=null;
+    if(document.querySelector('#actions .act[data-act="wall_choose"]')) sel='#actions .act[data-act="wall_choose"]';
+    else if(document.querySelector('#actions .act[data-act="gate_choose"]')) sel='#actions .act[data-act="gate_choose"]';
+    return {text:'塌墙根（北）或岗哨（南）皆可决断出营——点「决断出营」（也可先去别处探访更多门道）', sel:sel};
+  }
+  function onbGoal(){
+    if(!state.flags || !state.flags.onb || state.flags.onb.done){ onbGoalClear(); return; }
+    var s=onbGoalStep(); if(!s){ onbGoalClear(); return; }
+    var g=document.getElementById('onb-goal');
+    if(g){ g.classList.remove('hidden'); g.innerHTML='<span class="og-ic">➤</span>〔当前目标〕'+s.text; }
+    var hl=document.querySelectorAll('.onb-goal-hl'); for(var i=0;i<hl.length;i++) hl[i].classList.remove('onb-goal-hl');
+    if(s.sel){ var el=document.querySelector(s.sel); if(el){ el.classList.add('onb-goal-hl'); if(el.scrollIntoView) try{ el.scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){} } }
+  }
+  // （旧 showOnboardChoices / removeOnboardChoices 已废弃：开场改为与老乞丐对话驱动）
+  function tutAsk(prompt, options){
+    removeTutChoices();
+    var app=document.getElementById('app'), lower=document.getElementById('lower');
+    if(!app||!lower) return;
+    var box=document.createElement('div'); box.id='tut-choices'; box.className='onb-choices';
+    box.innerHTML='<div class="onb-prompt">'+(prompt||'')+'</div>';
+    options.forEach(function(o){
+      var b=document.createElement('button'); b.className='onb-btn'; b.textContent=o.label;
+      b.onclick=function(){ removeTutChoices(); o.fn(); };
+      box.appendChild(b);
+    });
+    app.insertBefore(box, lower);
+  }
+  function removeTutChoices(){ var b=document.getElementById('tut-choices'); if(b&&b.parentNode) b.parentNode.removeChild(b); }
+  // ===== 触发引擎：数据驱动的「场景首访剧本」与「事件触发」 =====
+  // 触发器分两类：
+  //   hook:'onEnter'  进入房间时评估（首访剧本）
+  //   hook:'onTalk'   与 NPC 交谈时评估（交互剧本）
+  // 事件触发器 cond 支持：时间(time) + 地点(room/roomIn/notRoom) + 地点是否有某 NPC(hasNpc)
+  //   + NPC 好感/属性(npcFavor) + 玩家自身属性(player) + 旗帜(flags) 的整合判断；
+  // 效果(steps)支持：narrate / sys / log / reveal / highlight / npcTalk / moveGate(可锁退路)
+  //   / clearGate / event / combat / setFlag / removeNpc / branch / graduate。
+  // 数据见 shared/story/triggers.js（开场燕山链即首条剧本，亦可作事件触发模板）。
+  function getPath(o,p){ var ks=String(p).split('.'),c=o; for(var i=0;i<ks.length;i++){ if(c==null) return undefined; c=c[ks[i]]; } return c; }
+  function setPath(o,p,v){ var ks=String(p).split('.'),c=o; for(var i=0;i<ks.length-1;i++){ if(c[ks[i]]==null) c[ks[i]]={}; c=c[ks[i]]; } c[ks[ks.length-1]]=v; }
+  function isDay(){ var h=state.time%12; return h>=3 && h<=9; }
+  // ── 招牌联动：当前店铺字号（如「福兴杂货铺」→「福兴」），供掌柜台词自称「福兴号」；无招牌时回退建筑名 ──
+  function bldZihao(){
+    var ent=state.flags&&state.flags.bldEnt;
+    var b=ent&&BUILDINGS[ent.key];
+    if(!b && ent && ent.bp) b=LF.BUILD[ent.bp]||null;
+    var sign=ent&&ent.sign;
+    if(!sign) return (b&&(b.doneName||b.name))||'本店';
+    var zh=sign.replace(/(药铺|布庄|食肆|杂货铺|营造所|酒楼|染坊|糕点铺|钱庄|铁匠铺|武馆|镖局|茶楼|赌馆|马行|书肆|香烛店|铺|馆|坊|店|行|肆|庄|楼)$/,'');
+    return zh? zh+'号' : sign;
+  }
+  // ── 营业时间：act.when 过滤建筑内动作——day=卯~酉(昼) / night=戌~丑(夜) / morn=卯辰(清晨) / dusk=酉戌(黄昏)；缺省恒显示 ──
+  function bldActOk(a){
+    var w=a&&a.when; if(!w) return true;
+    var h=state.time%12;
+    if(w==='day') return h>=3 && h<=9;
+    if(w==='night') return h>=10 || h<=1;
+    if(w==='morn') return h===3 || h===4;
+    if(w==='dusk') return h===9 || h===10;
+    return true;
+  }
+  function bldActsFilter(acts){ if(typeof acts==='function') return acts; return (acts||[]).filter(bldActOk); }
+  function resolveTpl(s){ if(typeof s!=='string') return s; return s.replace(/\{\{name\}\}/g, (state.name||'无名客')); }
+  function testCond(c){
+    if(!c) return true;
+    if(c.room && c.room!==state.room) return false;
+    if(c.roomIn && c.roomIn.indexOf(state.room)<0) return false;
+    if(c.notRoom && c.notRoom.indexOf(state.room)>=0) return false;
+    if(c.notFlag && getPath(state,c.notFlag)) return false;
+    if(c.hasNpc){ var np=(G.ROOMS[state.room]&&G.ROOMS[state.room].npcs)||[]; if(np.indexOf(c.hasNpc)<0) return false; }
+    if(c.npcFavor){ var f=(state.npcFavor&&state.npcFavor[c.npcFavor.key])||0; if(c.npcFavor.min!=null&&f<c.npcFavor.min) return false; if(c.npcFavor.max!=null&&f>c.npcFavor.max) return false; }
+    if(c.player){ for(var k in c.player){ var nd=c.player[k], v=getPath(state,k)||0; if(nd.min!=null&&v<nd.min) return false; if(nd.max!=null&&v>nd.max) return false; } }
+    if(c.flags){ for(var p in c.flags){ if(!!getPath(state,p)!==!!c.flags[p]) return false; } }
+    if(c.time){ if(c.time.day===true && !isDay()) return false; if(c.time.day===false && isDay()) return false; if(c.time.phases && c.time.phases.indexOf(state.time%12)<0) return false; }
+    return true;
+  }
+  function applySet(set, npcKey){
+    if(!set) return;
+    for(var k in set){
+      if(k==='favor'){ if(!state.npcFavor) state.npcFavor={}; state.npcFavor[npcKey]=(state.npcFavor[npcKey]||0)+set[k]; }
+      else { setPath(state, k, set[k]); }
+    }
+  }
+  function markDone(tr){ if(tr.once!==false){ if(!state.flags) state.flags={}; state.flags['trg.'+tr.id]=true; } }
+  function isDone(tr){ return tr.once!==false && !!(state.flags && state.flags['trg.'+tr.id]); }
+  function runSteps(arr, idx, done){
+    if(!arr || idx>=arr.length){ if(done) done(); return; }
+    runStep(arr[idx], function(){ runSteps(arr, idx+1, done); });
+  }
+  function runStep(step, next){
+    switch(step.t){
+      case 'narrate': {
+        var lines = step.lines || (step.room && G.ROOMS[step.room] && G.ROOMS[step.room].desc) || [];
+        logScene(lines.map(function(d){ return {t:d, c:'env'}; }), 800, next);
+        break;
+      }
+      case 'sys': log(step.text,'sys'); next(); break;
+      case 'log': log(resolveTpl(step.text), step.cls||'npc', step.npc); next(); break;
+      case 'reveal': onbReveal(step.layer); if(step.highlight) highlightOnb(step.layer); next(); break;
+      case 'highlight': highlightOnb(step.layer); next(); break;
+      case 'npcTalk': {
+        var npcName = (G.DIALOGUES.npcs[step.npc]&&G.DIALOGUES.npcs[step.npc].name)||step.npc;
+        var asks = (step.asks||[]).map(function(a){
+          return { label: resolveTpl(a.label), fn: function(){
+            applySet(a.set, step.npc);
+            onbGoal();   // 对话选项推进旗标后立即刷新「当前目标」引导（v20260907f）
+            (a.reveal||[]).forEach(function(l){ onbReveal(l); });
+            if(a.highlight){ (Array.isArray(a.highlight)?a.highlight:[a.highlight]).forEach(function(l){ highlightOnb(l); }); }
+            if(a.say) log(resolveTpl(a.say));   // say 为混合叙事（含主角动作+老乞丐台词），不附加「老乞丐：」前缀以免不通顺
+            save(state);
+            if(a.then && a.then.length){ runSteps(a.then, 0, next); } else { next(); }
+          }};
+        });
+        tutAsk(resolveTpl(step.prompt), asks);
+        break;   // 等待玩家选择，选择后才 next()
+      }
+      case 'moveGate': {
+        // fromChain 仅燕山链用过，链已弃用；此处保留通用门禁（fwd/back/lockBack），用于苦役营越狱等剧情
+        if(step.fromChain){
+          state.moveGate=null;
+        } else {
+          state.moveGate={ fwd:step.fwd, back:step.back, lockBack:!!step.lockBack, hint:step.hint };
+        }
+        renderMoveBar(G.ROOMS[state.room]);   // 门禁变化即时刷新罗盘（如问名后解锁前进）
+        next();
+        break;
+      }
+      case 'clearGate': state.moveGate=null; renderMoveBar(G.ROOMS[state.room]); next(); break;
+      case 'event': { var ev=findEvent(step.id); if(ev) runEvent(ev); next(); break; }
+      case 'combat': {
+        startCombat(step.enemy, {tutorial: !!step.tutorial});
+        break;  // 战斗异步，后续步骤待战斗结束再续（开场战斗为链尾，无需续）
+      }
+      case 'setFlag': setPath(state, step.path, step.value); save(state); next(); break;
+      case 'grant': {
+        if(step.gold){ state.gold=Math.max(0,(state.gold||0)+step.gold); }
+        if(step.rep){ addReputation(step.rep); }
+        if(step.items && step.items.length){ step.items.forEach(function(it){ packAdd({defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat, count:it.count||1, effect:it.effect}); }); }
+        save(state); renderStatus(); next(); break;
+      }
+      case 'removeNpc': { var rn=G.ROOMS[state.room].npcs, i=rn?rn.indexOf(step.key):-1; if(i>=0) rn.splice(i,1); next(); break; }
+      case 'branch': { var ok = step.if ? testCond(step.if) : true; runSteps(ok?(step.then||[]):(step.else||[]), 0, next); break; }
+      case 'graduate': graduate(); next(); break;
+      default: next();
+    }
+  }
+  function runTrigger(tr){
+    runSteps(tr.steps||[], 0, function(){ markDone(tr); save(state); });
+  }
+  function checkTriggers(ctx){
+    var handled=false, list=(window.LF&&window.LF.TRIGGERS)||(G&&G.TRIGGERS)||[];
+    for(var i=0;i<list.length;i++){
+      var tr=list[i];
+      if(tr.hook && tr.hook!==ctx.hook) continue;
+      if(isDone(tr)) continue;
+      if(tr.room && tr.room!==ctx.room) continue;
+      if(tr.npc && tr.npc!==ctx.npc) continue;
+      if(tr.roomIn && tr.roomIn.indexOf(ctx.room)<0) continue;
+      if(tr.cond && !testCond(tr.cond)) continue;
+      tr._npc = ctx.npc || tr.npc;
+      runTrigger(tr);
+      handled=true;
+      if(ctx.hook==='onTalk') break;   // 交谈类一次即可
+    }
+    onbGoal();   // 旗标可能随触发改变，刷新「当前目标」与高亮
+    return handled;
+  }
+  function graduate(){
+    if(state.flags && state.flags.onb) state.flags.onb.done=true;   // 教学链毕业：解锁 NPC 的观察/攻击等完整菜单
+    document.body.classList.remove('onb');
+    ONB_LAYERS.forEach(function(l){ document.body.classList.remove('reveal-'+l); });
+    state.moveGate=null;
+    renderMoveBar(G.ROOMS[state.room]); renderNpcList();
+  }
+
+  // ===== 苦役营·越狱逃脱枢纽（v20260902a）=====
+  // camp_wall「决断出营·墙根」与 camp_gate「决断出营·岗哨」共用此枢纽：
+  // 仅列出当前已解锁（flag/物品前置满足）的路线，玩家择一逃脱。
+  var ROUTE_INFO = {
+    crypt:   { name: '密道线',       where: 'camp_wall', flavor: '你按默叔所授暗号拨开乱砖，塌墙根下一道幽深暗道赫然在目。七拐八绕，头顶人声渐远，你钻出了营墙。' },
+    tunnel:  { name: '挖地道线',     where: 'camp_wall', flavor: '你抡起镐锄，在矿道那头刨了数夜，土松墙薄——哗啦一声，地道通了。你猫腰钻出，泥一身却自由了。' },
+    rope:    { name: '攀绳翻墙线',   where: 'camp_wall', flavor: '你将苏娘搓的绳甩上墙头，借力一荡，翻过碎瓷密布的墙脊，落在外头草丛里。' },
+    drain:   { name: '水渠夜遁线',   where: 'camp_wall', flavor: '子时换岗，你循吴算盘所指水道，顺暗渠摸黑漂出墙根，水声盖住了一切动静。' },
+    drug:    { name: '内应下药业',   where: 'camp_gate', flavor: '你趁伙房不备，将林娘的迷药下进粥锅。不多时官差东倒西歪睡死，你大摇大摆混出门去。' },
+    riot:    { name: '趁乱暴动线',   where: 'camp_gate', flavor: '换岗那阵你夺了赵虎腰牌，秦九霄一声断喝，囚徒们哄然而起——你趁乱杀开一条血路冲出岗哨。' },
+    wooden:  { name: '伪造木牍线',   where: 'camp_gate', flavor: '你举着陈简刻的木牍路引，岗哨官差懒得细看，一挥手放你过了正门。' },
+    bribe:   { name: '收买犬卒线',   where: 'camp_gate', flavor: '你塞出一把银钱，犬舍/粮囤的看守眯眼揣了，装作没瞧见——你从便门溜出了营墙。' },
+    assault: { name: '劫狱强攻线',   where: 'camp_gate', flavor: '木人桩上练出的拳脚今朝见真章：你硬闯岗哨，拳脚翻飞，把拦路的官差尽数放倒，杀出了这苦役营！' }
+  };
+  function escapeAvail(route){
+    var f=state.flags||{}, p=state.pack||[];
+    switch(route){
+      case 'crypt':   return !!(f.route && f.route.crypt) && !!(f.task && f.task.signal);
+      case 'tunnel':  return !!(f.route && f.route.tunnel) && !!packFind('pickaxe');
+      case 'rope':    return !!packFind('rope');
+      case 'drain':   return !!(f.route && f.route.drain);
+      case 'drug':    return !!(f.route && f.route.drug) && !!packFind('sleep_drug');
+      case 'riot':    return !!(f.route && f.route.riot);
+      case 'wooden':  return !!packFind('wooden_pass');
+      case 'bribe':   return (state.gold||0) >= 30;
+      case 'assault': return (state.level||1) >= 3 || !!(f.route && f.route.dummy_done);
+    }
+    return false;
+  }
+  function escapeLockHint(route){
+    var f=state.flags||{};
+    switch(route){
+      case 'crypt':   return '（未解锁：需周听涛授密道线索 + 囚室与默叔对暗号）';
+      case 'tunnel':  return '（未解锁：需苟三授挖地道线索 + 取得镐锄）';
+      case 'rope':    return '（未解锁：需苏娘搓绳）';
+      case 'drain':   return '（未解锁：需吴算/石四授水渠夜遁线索）';
+      case 'drug':    return '（未解锁：需鲁大/林娘配迷药 + 取得迷药）';
+      case 'riot':    return '（未解锁：需秦九霄授趁乱暴动线索）';
+      case 'wooden':  return '（未解锁：需陈简伪造木牍路引）';
+      case 'bribe':   return '（未解锁：需银两≥30，可收买犬卒/粮官）';
+      case 'assault': return '（未解锁：需战力达标——练武场练至等级≥3，或戳通木人桩）';
+    }
+    return '（未解锁）';
+  }
+  function openEscapeHub(room){
+    if(document.getElementById('tut-choices')) return;
+    if(state.flags && state.flags.onb && state.flags.onb.done){ log('你已逃出苦役营，不必再决断。','sys'); return; }
+    var routes = room==='camp_wall' ? ['crypt','tunnel','rope','drain'] : ['drug','riot','wooden','bribe','assault'];
+    var opts=[];
+    var anyOpen=false;
+    routes.forEach(function(r){
+      var info=ROUTE_INFO[r];
+      if(escapeAvail(r)){
+        anyOpen=true;
+        opts.push({ label: '〔'+info.name+'〕就此出营', fn: function(){ doEscape(r, room); } });
+      } else {
+        opts.push({ label: '〔'+info.name+'〕'+escapeLockHint(r), fn: function(){ log('这条路子还未备妥——'+escapeLockHint(r)+'。', 'sys'); } });
+      }
+    });
+    opts.push({ label: '再想想，先不逃', fn: function(){ log('你压下心头去意，先回营中再探探门道。','sys'); } });
+    var title = room==='camp_wall' ? '塌墙根下，你盘算着出营的法子——' : '岗哨咽喉，你思量着强出营墙的法子——';
+    if(!anyOpen) title += '（眼下尚无门路，去与营中众人多攀谈，或备齐所需之物）';
+    tutAsk(title, opts);
+  }
+  function doEscape(route, room){
+    if(route==='riot' || route==='assault'){
+      // 战斗路线：先与官差一战（教学战斗状态机；胜/被老乞丐救场均置 tcDone），战后由 exitCombatToRoom 钩子毕业
+      if(!state.flags.route) state.flags.route={};
+      state.flags.route._pending = route; save(state);
+      log('你决意走「'+ROUTE_INFO[route].name+'」——营中官差横矛拦来！','combat');
+      startCombat('camp_guard', { tutorial: true });
+      return;
+    }
+    finishEscape(route);
+  }
+  function finishEscape(route){
+    if(state.flags.route) state.flags.route._pending=null;
+    if(route==='riot' && !packFind('guard_tally')) packAdd('guard_tally',1);
+    if(route==='bribe'){ state.gold=Math.max(0,(state.gold||0)-30); }   // 收买犬卒：扣 30 银（叙事闭环，银钱开道）
+    if(state.flags.onb) state.flags.onb.done=true;
+    state.moveGate=null;
+    graduate();
+    log('〔'+ROUTE_INFO[route].name+'·逃脱〕'+ROUTE_INFO[route].flavor,'env');
+    log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。','sys');
+    save(state);
+    moveToOutside();
+  }
+  function moveToOutside(){
+    state.room='lindao'; state.moveGate=null; save(state);
+    renderRoom('lindao', true);
+  }
+  // 进场钩子：交由触发引擎评估（首访剧本 / 锁退路 / 逃脱等）
+  function onbRoomEnter(room){
+    checkTriggers({hook:'onEnter', room: room.id});
+  }
+  // 脚本化引导战斗：乌桓游骑拦路，老乞丐逐步教学（攻/教拳/受伤给药/挡路撤退）
+  function renderEquipPanel(){
+    var slots=['weapon','armor','trinket','mount'];
+    var slotName={weapon:'兵刃',armor:'护甲',trinket:'饰品',mount:'坐骑'};
+    var h='<div class="row"><span>已装备</span></div><div class="equip-slots">';
+    slots.forEach(function(sl){
+      var eq=state.equipment[sl];
+      if(eq){
+        h+='<div class="eq-slot" data-slot="'+sl+'">'+
+           '<span class="eq-dot" style="background:'+eq.color+'"></span>'+
+           '<span class="eq-nm" style="color:'+eq.color+'">'+eq.name+'</span>'+
+           '<span class="eq-st">'+LF.ITEMS.statText(eq)+'</span>'+
+           '<span class="eq-dur">'+eq.dur+'/'+eq.maxDur+'</span>'+
+           '<span class="eq-x">卸下</span></div>';
+      } else {
+        h+='<div class="eq-slot empty">'+slotName[sl]+'：—</div>';
+      }
+    });
+    h+='</div>';
+    return h;
+  }
+  // ===== 捏人 / 开场序章 =====
+  function initCreateState(){
+    var attr={}; ATTR_DEFS.forEach(function(a){ attr[a.k]=5; }); // 四维初始皆 5
+    createState={ name:'', attr:attr, pool:CREATE_FREE, skip:false };
+  }
+  // 资质壳已移除，加点直接作用于四维 attr
+  function beginCreate(slot){
+    pendingSlot=slot||0;
+    initCreateState();
+    openModal('create');
+  }
+  function renderCreateHTML(){
+    if(!createState) initCreateState();
+    var R=G.ATTR_RATIO;
+    var attrRows=ATTR_DEFS.map(function(a){
+      var v=createState.attr[a.k];
+      var combat = a.k==='hp'? v*R.hp : a.k==='atk'? v*R.atk : a.k==='def'? v*R.def : v*R.spd;
+      var disMin=(v<=ATTR_MIN), disMax=(v>=ATTR_MAX || createState.pool<=0);
+      return '<div class="ap-row">'+
+        '<span class="ap-name">'+a.n+'<i>'+a.t+'</i></span>'+
+        '<div class="ap-ctrl">'+
+          '<button class="ap-btn" data-act="dec" data-k="'+a.k+'"'+(disMin?' disabled':'')+'>−</button>'+
+          '<b class="ap-val">'+v+'</b>'+
+          '<button class="ap-btn" data-act="inc" data-k="'+a.k+'"'+(disMax?' disabled':'')+'>＋</button>'+
+        '</div></div>';
+    }).join('');
+    return '<h3>落 笔 · 捏 人</h3>'+
+      '<div class="cr-field"><label>姓名</label><input id="cr-name" class="cr-input" maxlength="8" placeholder="无名客"></div>'+
+      '<div class="cr-sec"><div class="cr-sec-t">四 维 配 点<span class="cr-pool">可分配 <b id="cr-pool">'+createState.pool+'</b> 点（每维 1–'+ATTR_MAX+'，初始皆 5）</span></div><div class="ap-list">'+attrRows+'</div></div>'+
+      '<p class="tip">四维直接决定即时战力：气血主血量、攻击主伤害、防御主减伤、身法主速度先手。内力为习武之人通内功心法后所得，开局不开放。</p>'+
+      '<label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用 · 直接抵达建造测试场）</label>'+
+      '<div class="cr-actions"><button class="close" id="cr-go">踏 入 江 湖</button></div>';
+  }
+  // 仅更新加点数值/按钮/战力，避免每次点击整体重建弹窗（手机卡顿根因）
+  function updateCreateUI(){
+    var poolEl=document.getElementById('cr-pool'); if(poolEl) poolEl.textContent=createState.pool;
+    var R=G.ATTR_RATIO;
+    $card.querySelectorAll('.ap-row').forEach(function(row){
+      var incBtn=row.querySelector('[data-act="inc"]');
+      var k=incBtn? incBtn.getAttribute('data-k'):null; if(!k) return;
+      var v=createState.attr[k];
+      var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=v;
+      var combat = k==='hp'? v*R.hp : k==='atk'? v*R.atk : k==='def'? v*R.def : v*R.spd;
+      var def=ATTR_DEFS.filter(function(a){return a.k===k;})[0];
+      var iEl=row.querySelector('.ap-name i'); if(iEl) iEl.textContent=def.t;
+      if(incBtn) incBtn.disabled=(v>=ATTR_MAX || createState.pool<=0);
+      var decBtn=row.querySelector('[data-act="dec"]'); if(decBtn) decBtn.disabled=(v<=ATTR_MIN);
+    });
+  }
+  function bindCreate(){
+    var nameEl=document.getElementById('cr-name');
+    if(nameEl){ nameEl.value=createState.name||''; nameEl.oninput=function(){ createState.name=nameEl.value; }; }
+    $card.querySelectorAll('.ap-btn').forEach(function(b){
+      b.onclick=function(){
+        var k=b.getAttribute('data-k'), act=b.getAttribute('data-act');
+        if(act==='inc'){ if(createState.pool>0 && createState.attr[k]<ATTR_MAX){ createState.attr[k]++; createState.pool--; } }
+        else { if(createState.attr[k]>ATTR_MIN){ createState.attr[k]--; createState.pool++; } }
+        updateCreateUI();
+      };
+    });
+    var skipEl=document.getElementById('cr-skip');
+    if(skipEl){ skipEl.checked=!!createState.skip; skipEl.onchange=function(){ createState.skip=!!skipEl.checked; }; }
+    var go=document.getElementById('cr-go'); if(go) go.onclick=confirmCreate;
+  }
+  function attrAllocHTML(){
+    if(!state.attr) state.attr={hp:5,atk:5,def:5,spd:5};
+    var R=G.ATTR_RATIO, fp=(state.freePoints||0);
+    return ATTR_DEFS.map(function(a){
+      var v=state.attr[a.k];
+      var disMax=(fp<=0);   // 游戏内加点无上限（v20260907f），仅受自由点约束；捏人面板仍限 1–20
+      return '<div class="ap-row">'+
+        '<span class="ap-name">'+a.n+'<i>'+a.t+'</i></span>'+
+        '<div class="ap-ctrl">'+
+          '<b class="ap-val">'+v+'</b>'+
+          '<button class="ap-btn" data-act="attr-inc" data-k="'+a.k+'"'+(disMax?' disabled':'')+'>＋</button>'+
+        '</div></div>';
+    }).join('')+
+    '<div class="ap-foot">可分配自由点：<b>'+(state.freePoints||0)+'</b>（未分配的点保留，可随时再开面板加点）</div>'+
+    '<button class="ap-confirm" data-act="attr-confirm">确认</button>';
+  }
+  function confirmAttr(){
+    G.recalcBase(state); clampHp();
+    if(typeof save==='function') save(state);
+    state.pendingLevel=false;
+    closeModal(); renderStatus();
+    if((state.freePoints||0)>0) toast('加点已保存，尚有 '+(state.freePoints||0)+' 点未分配，可再开面板加点');
+    else toast('加点已保存');
+  }
+  /** 游戏内属性分配：仅刷新数值/自由点/禁用态，不重建弹窗（手机连点不卡） */
+  function updateAttrAllocUI(){
+    if(!$card) return;
+    var R=G.ATTR_RATIO, fp=(state.freePoints||0);
+    $card.querySelectorAll('.ap-row').forEach(function(row){
+      var incBtn=row.querySelector('[data-act="attr-inc"]');
+      var k=incBtn?incBtn.getAttribute('data-k'):null; if(!k) return;
+      var v=state.attr[k];
+      var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=v;
+      if(incBtn) incBtn.disabled=(fp<=0);
+    });
+    var fpEl=$card.querySelector('.ap-foot b'); if(fpEl) fpEl.textContent=fp;
+  }
+  /** 游戏内属性分配：仅刷新数值/自由点/禁用态，不重建弹窗（手机连点不卡） */
+  function updateAttrAllocUI(){
+    if(!$card) return;
+    var fp=(state.freePoints||0);
+    $card.querySelectorAll('.ap-row').forEach(function(row){
+      var incBtn=row.querySelector('[data-act="attr-inc"]');
+      var k=incBtn?incBtn.getAttribute('data-k'):null; if(!k) return;
+      var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=state.attr[k];
+      if(incBtn) incBtn.disabled=(fp<=0);
+    });
+    var fpEl=$card.querySelector('.ap-foot b'); if(fpEl) fpEl.textContent=fp;
+  }
+  function bindAttrAlloc(){
+    if(!$card) return;
+    $card.querySelectorAll('[data-act="attr-inc"]').forEach(function(b){
+      b.onclick=function(){
+        var k=b.getAttribute('data-k');
+        if((state.freePoints||0)>0){
+          state.attr[k]++; state.freePoints=(state.freePoints||0)-1;
+          G.recalcBase(state); clampHp();
+          if(typeof save==='function') save(state);
+          updateAttrAllocUI();   // 仅刷新数值/自由点，不再重建弹窗（修手机连点卡顿，v20260907f）
+          renderStatus();
+        }
+      };
+    });
+    var cf=$card.querySelector('[data-act="attr-confirm"]');
+    if(cf) cf.onclick=confirmAttr;
+  }
+  function confirmCreate(){
+    var name=(createState.name||'').trim()||'无名客';
+    var attr={}; ATTR_DEFS.forEach(function(a){ attr[a.k]=createState.attr[a.k]; });
+    var save=G.defaultSave();
+    save.name=name;
+    save.attr=attr;          // 四维（含分配后的数值）
+    save.freePoints=createState.pool;   // 捏人未分配完的点转为入局后自由属性点，避免白丢
+    save.origin=null;
+    // 跳过新手教程（测试用）：直接抵达洛阳（朱雀大街），并标记教学已完成、补发一包金疮药；
+    // 同时打通主线门控（力斩华雄 + 洛阳凯旋）以避免被卡门。
+    if(createState.skip){
+      save.room='luoyang';
+      save.spawnRoom='luoyang';
+      save.quest=save.quest||{};
+      save.quest.hua_xiong=true;
+      save.quest.luoyang=true;
+      save.flags=save.flags||{};
+      // 注意：tcTutorial 必须为 false（且 tcDone 为 true），否则 tutCombatActive() 会走旧的半手动战斗分支（已废弃），绕开 DQ 团体战斗
+      save.flags.onb={ started:true, done:true, named:true, tcDone:true, tcTutorial:false, packGiven:true,
+        personality:null, favor:0, reveal:['status','loctab','actions','npc','lower','dock'], talked:{},
+        tcTried:{atk:true,def:true}, tcUsedItem:true, tcMsgs:{attack:true,defend:true,pack:true,use:true,finish:true} };
+      save.items=save.items||[];
+      if(!save.items.some(function(it){ return it.id==='jinchuang'; })) save.items.push({id:'jinchuang',name:'金疮药',count:2,cat:'药剂',effect:{hp:120}});
+    }
+    // 初始同伴：随行的「周仓」（演示队伍作战；每场战斗满血入场，见 startCombat）
+    save.party=[{
+      id:'zhoucang', name:'周仓',
+      hp:170, maxHp:170, mp:24, maxMp:24,
+      atk:17, def:10, spd:16,
+      element:'金',
+      learnedMartial:['beng_quan'],
+      realm:{}, equippedForce:[],
+      critRate:0.04, hitRate:0.92
+    }];
+    pendingSave=save;
+    // 落笔入世 → 直接踏入江湖，进入第一段开场引导剧情（不再弹序幕框）
+    var tt=document.getElementById('title'); if(tt) tt.classList.add('hidden');
+    enterGame(pendingSave, pendingSlot); closeModal();
+    pendingSave=null;
+  }
+  var currentModalKind=null;
+  // ══ 建筑物内部交互系统（v20260824e）══
+  // 药铺/布庄/食肆/杂货/营造所 皆为「可进入的屋舍」：进入后与内部 NPC、功能物件交互，取代原一键式空泛交互
+  var BUILDINGS = {
+    yaofu: {
+      name:'济世药铺', icon:'🧪', sub:'门悬药葫芦，柜列百草，药香盈室',
+      interior: [
+        { kind:'npc', name:'坐堂大夫', icon:'👴', desc:'须发皆白的老郎中，悬壶济世，深谙岐黄。', acts:[
+          { label:'问诊', icon:'💬', fn:function(){
+              var s='老大夫搭上你的脉门，沉吟片刻。';
+              if(packFind('jinchuang')) s+='「你带有金疮药，若金创未愈，可让老夫为你敷上。」';
+              else if(packFind('caoyao')) s+='「身有草药几味，可取药炉炼作金疮药，便于外敷。」';
+              else s+='「伤药无多，且往药柜翻检药斗，或市集采买些草药罢。」';
+              log(s,'sys'); openModal('building'); } },
+          { label:'施治·敷金疮药', icon:'🩹', fn:function(){
+              var idx=-1; for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)==='jinchuang'){ idx=i; break; } }
+              if(idx<0){ toast('你身上并无金疮药，须先备药。'); return; }
+              usePackItem(idx);
+              log('老大夫就着灯火为你敷药包扎，创处一阵清凉，血止痛缓。','sys');
+              openModal('building'); } }
+        ]},
+        { kind:'npc', name:'抓药药商', icon:'🧑‍💼', desc:'柜后司药的伙计，算盘拨得噼啪响。', acts:[
+          { label:'采买药材', icon:'🪙', fn:function(){ openModal('shop', {shop:'doctor'}); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('药商笑道：「客官有所不知，'+bldZihao()+'的药草须得依方配伍，单味可不成气候。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'药柜', icon:'🗄️', desc:'百格药斗，分门别类贮着各色药材。', acts:[
+          { label:'翻检药斗', icon:'🤲', fn:function(){ if(!exert('翻检')) return; if(packAdd('caoyao',1)) log('你于药斗中取得一束草药，收入行囊。','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'捣药罐', icon:'⚗️', desc:'青石药臼，捣药之声笃笃。', acts:[
+          { label:'捣制药草', icon:'🥄', fn:function(){ if(!packFind('caoyao')){ toast('行囊里没有可捣的草药。'); return; } if(!exert('捣药')) return; packConsume('caoyao',1); packAdd('yaofen',1); log('你将草药投入臼中，捣作细粉，清香扑鼻。','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'药炉', icon:'🔥', desc:'炭火熊熊的炼药炉，丹火不熄。', acts:[
+          { label:'炼制金疮药', icon:'🧪', fn:function(){ if(!packFind('caoyao')){ toast('炼药需先有草药，去药柜翻检罢。'); return; } if(!exert('炼药')) return; packConsume('caoyao',1); packAdd('jinchuang',1); log('炉火淬炼，草药凝作一瓶金疮药。','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'炼药台', icon:'⚗️', desc:'青玉案几，用以合药配伍。', acts:[
+          { label:'合炼汤药', icon:'🍵', fn:function(){ if(!packFind('jinchuang')||!packFind('yaofen')){ toast('需备金疮药与草药粉各一，方可合炼。'); return; } if(!exert('合药')) return; packConsume('jinchuang',1); packConsume('yaofen',1); packAdd('tangyao',1); log('金疮药合草药粉，于台上熬炼成一碗汤药。','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'熬药壶', icon:'🫖', desc:'小炭炉上坐着药壶，咕嘟作响。', acts:[
+          { label:'熬制汤药', icon:'🍲', fn:function(){ if(!hasCount('caoyao',2)){ toast('熬汤药须草药两味，药柜可取。'); return; } if(!exert('熬药')) return; packConsume('caoyao',2); packAdd('tangyao',1); log('文火慢熬，草药化作一碗温补汤药。','sys'); openModal('building'); } }
+        ]}
+      ],
+    subAreas:[{key:'yaofu_hou',label:'入后堂'},{key:'yaofu_lou',label:'上二楼'}],
+    areas:{
+      yaofu_hou:{ name:'后堂', icon:'🚪', desc:'库房碾坊，药香沉静，学徒正晾药帘。', npcs:[
+        { name:'药铺学徒', icon:'🧑', desc:'束发少年，忙着称量药材。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('学徒道：「师父说，这药性有寒热温凉，配错了要出人命的。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'晒药匾', icon:'🟫', desc:'竹匾里铺着切好的饮片，日头下泛香。', acts:[
+          { label:'翻动饮片', icon:'🤲', fn:function(){ if(!exert('翻药')) return; log('你帮着翻了翻药匾，饮片匀称，香气更盛。','sys'); } }
+        ]}
+      ], areas:[] },
+      yaofu_lou:{ name:'二楼客房', icon:'🪜', desc:'雅静客房，偶有宿疾老者在此静养。', npcs:[
+        { name:'宿疾老者', icon:'🧓', desc:'面色青白，久病未愈的乡绅。', acts:[
+          { label:'探问', icon:'💬', fn:function(){ log('老者咳嗽两声：「老朽这咳疾缠身半载，怕是熬不过这个冬天喽……」','sys'); } }
+        ]}
+      ], objs:[], areas:[] }
+    },
+    },
+    buzhuang: {
+      name:'锦绣布庄', icon:'🧵', sub:'机杼声声，绫罗满架',
+      interior: [
+        { kind:'npc', name:'布庄掌柜', icon:'🧑‍💼', desc:'精明的中年掌柜，掌中算盘不离。', acts:[
+          { label:'置办衣甲', icon:'🛡️', fn:function(){ if(!exert('置办衣甲')) return; state.def=(state.def||0)+2; log('掌柜取来新裁战袍加身，护体更坚（防御+2）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜道：「客官这身行头该换换了，刀枪无眼，甲胄要紧。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'织机', icon:'🪡', desc:'木织机一架，织娘投梭走线。', acts:[
+          { label:'看织娘织锦', icon:'👀', fn:function(){ log('你驻足看织娘投梭，经纬交织，渐成云锦一段。','sys'); openModal('building'); } }
+        ]}
+      ],
+    subAreas:[{key:'bz_hou',label:'入后库'}],
+    areas:{
+      bz_hou:{ name:'后库', icon:'🚪', desc:'布匹成堆，裁缝在此赶制衣甲。', npcs:[
+        { name:'裁缝', icon:'🧵', desc:'指尖生茧的老裁缝。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('裁缝道：「甲靠生漆浸过才硬，布要双股绞才牢。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'布料架', icon:'🧶', desc:'架上绫罗绢帛与各色粗布。', acts:[
+          { label:'翻看布料', icon:'👀', fn:function(){ log('你拂过架上布匹，粗布结实、绸缎滑手。','sys'); } }
+        ]}
+      ], areas:[] }
+    },
+    },
+    shishi: {
+      name:'悦来食肆', icon:'🍜', sub:'灶火正旺，酒旗招展',
+      interior: [
+        { kind:'npc', name:'食肆掌柜', icon:'🧑‍🍳', desc:'围着油渍围裙的胖掌柜，嗓门洪亮。', acts:[
+          { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; state.food=state.maxFood; state.drink=Math.max(state.drink, Math.round((state.maxDrink||0)*0.6)); log('热汤面饼下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜抹着桌子：「客官慢用，'+bldZihao()+'的热汤管够！」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'灶台', icon:'🔥', desc:'大灶一口，汤锅翻滚。', acts:[
+          { label:'讨碗热汤', icon:'🥣', fn:function(){ if(!exert('讨汤')) return; state.food=Math.min(state.maxFood,(state.food||0)+10); log('灶上舀得一碗热汤，下肚暖意融融。','sys'); renderStatus(); openModal('building'); } }
+        ]}
+      ],
+    rootName:'大堂',
+    rootExtraNpcs:[
+      { name:'店小二', icon:'🧑', desc:'端盘擦桌、招呼客人的伶俐小伙。', acts:[
+        { label:'唤小二添茶', icon:'🍵', fn:function(){ if(!exert('唤小二')) return; log('小二拎壶过来给你满上热茶，笑道：「客官慢用！」','sys'); } },
+        { label:'打听消息', icon:'💬', fn:function(){ log('小二压低声音：「楼上有几位商贾在谈军粮买卖，听着蹊跷……」','sys'); } }
+      ]},
+      { name:'酒客', icon:'🧑‍🦱', desc:'踞案独酌的过路客。', acts:[
+        { label:'攀谈', icon:'💬', fn:function(){ log('酒客咂口酒：「如今天下不靖，这酒钱都涨了三成喽。」','sys'); } }
+      ]}
+    ],
+    subAreas:[{key:'ss_houchu',label:'入后厨'},{key:'ss_ersou',label:'上二楼'},{key:'ss_houyuan',label:'去后院'}],
+    areas:{
+      ss_houchu:{ name:'后厨', icon:'🍳', desc:'灶火熊熊，油烟与香气交织。', npcs:[
+        { name:'厨子', icon:'👨‍🍳', desc:'满面油光的大厨，掌勺不停。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('厨子擦汗：「客官要吃些甚么？今儿有现成的热汤面。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'菜案', icon:'🔪', desc:'案上码着时蔬鲜肉。', acts:[
+          { label:'翻看食材', icon:'👀', fn:function(){ log('案上青菜水灵、肉脯鲜红，后厨井井有条。','sys'); } }
+        ]}
+      ], areas:[] },
+      ss_ersou:{ name:'二楼雅座', icon:'🪜', desc:'临窗雅座，商旅据案高谈。', npcs:[
+        { name:'行商', icon:'🧑‍💼', desc:'踞坐雅间的贩货客。', acts:[
+          { label:'攀谈', icon:'💬', fn:function(){ log('行商道：「北地战马紧俏，南货却贱，倒腾一趟利市三倍。」','sys'); } }
+        ]},
+        { name:'醉汉', icon:'🥴', desc:'伏案酣睡的醉客。', acts:[
+          { label:'推醒', icon:'✋', fn:function(){ log('你推了推醉汉，他嘟囔两句又睡了过去。','sys'); } }
+        ]}
+      ], objs:[], areas:[{key:'ss_yajian',label:'进雅间'}] },
+      ss_yajian:{ name:'雅间', icon:'🚪', desc:'屏帘半掩的私密雅间。', npcs:[
+        { name:'密谈客', icon:'🕴️', desc:'压低嗓音的两个陌生人。', acts:[
+          { label:'偷听', icon:'👂', fn:function(){ if(!exert('屏息偷听')) return; log('你贴近屏帘，隐约听见「……约在子时，城西……」便再无声。','sys'); } }
+        ]}
+      ], objs:[], areas:[] },
+      ss_houyuan:{ name:'后院', icon:'🌿', desc:'静谧后院，水井与马厩所在。', npcs:[
+        { name:'马夫', icon:'🧑‍🌾', desc:'喂马的粗豪汉子。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('马夫道：「好马得喂饱豆料，跑长途才不掉链子。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'水井', icon:'⛲', desc:'后院老井，井水清冽。', acts:[
+          { label:'打水', icon:'🪣', fn:function(){ if(!exert('打水')) return; state.drink=Math.min(state.maxDrink,(state.drink||0)+8); log('你摇轱辘打上一桶井水，灌了几口，燥意全消（饮水+8）。','sys'); renderStatus(); } }
+        ]}
+      ], areas:[] }
+    },
+    },
+    zahuo: {
+      name:'万丰杂货', icon:'🏪', sub:'针头线脑，百货杂陈',
+      interior: [
+        { kind:'npc', name:'杂货掌柜', icon:'🧑‍💼', desc:'眯眼算账的老朝奉。', acts:[
+          { label:'采买补给', icon:'🛒', fn:function(){ if(!exert('采买补给')) return; state.drink=state.maxDrink; log('水囊火折尽数补齐，长途无虞（饮水补满）。','good'); renderStatus(); openModal('building'); } },
+          { label:'采办物料', icon:'🪵', fn:function(){ openModal('shop', {shop:'build_pedlar'}); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('朝奉道：「客官要寻甚稀罕物？'+bldZihao()+'虽小，货路却宽，或能凑办。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'货架', icon:'📦', desc:'靠墙货架，瓶罐竹篾杂列。', acts:[
+          { label:'翻看货品', icon:'👀', fn:function(){ log('你拂过架上尘土，瓶罐间多是油烛绳结之类。','sys'); openModal('building'); } }
+        ]}
+      ],
+    subAreas:[{key:'zh_ku',label:'入库房'}],
+    areas:{
+      zh_ku:{ name:'库房', icon:'📦', desc:'堆满筐篓杂货的后库。', npcs:[
+        { name:'伙计', icon:'🧑', desc:'蹲着捆扎货物的小伙计。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('伙计道：「客官要的稀罕物，得翻箱倒柜寻寻。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'杂物堆', icon:'📦', desc:'墙角摞着竹篾油烛之类。', acts:[
+          { label:'翻检', icon:'👀', fn:function(){ if(!exert('翻检')) return; log('你翻了翻杂物堆，瓶罐间多是油烛绳结。','sys'); } }
+        ]}
+      ], areas:[] }
+    },
+    },
+    gongzao: {
+      name:'营造所', icon:'🔨', sub:'匠作萃聚，砖石木料山积',
+      interior: [
+        { kind:'npc', name:'匠作师傅', icon:'👷', desc:'满手老茧的老匠人，督着营造。', acts:[
+          { label:'问营造', icon:'💬', fn:function(){ log('匠师指点：「城池以建设度为凭——夯土、立木、砌砖、设栅，四事皆备，外郭自当拓开。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'夯土基', icon:'🟫', desc:'夯实墙基的夯具。', acts:[
+          { label:'夯土筑基', icon:'🔨', fn:function(){ if(!exert('夯土')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('你持夯具将墙基一层层砸实，城垣渐起（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'木作台', icon:'🪚', desc:'刨削木料的工作台。', acts:[
+          { label:'木作立架', icon:'🪵', fn:function(){ if(!exert('木作')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('木作台上锯刨声声，梁架立起（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'砖窑', icon:'🧱', desc:'窑火正红的砖窑。', acts:[
+          { label:'烧砖砌墙', icon:'🧱', fn:function(){ if(!exert('砌砖')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('砖窑出砖，垒砌围墙，城郭更见齐整（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'立栅', icon:'🪵', desc:'削木为栅的栅栏架。', acts:[
+          { label:'立栅设防', icon:'🚧', fn:function(){ if(!exert('立栅')) return; setCityDev(state.room, cityDevOf(state.room)+2); advanceTime(1); log('削木立栅，周遭设防，外圈渐辟为民居街市（建设度 '+cityDevOf(state.room)+'）。','sys'); renderRoom(state.room,true); openModal('building'); } }
+        ]}
+      ],
+    subAreas:[{key:'gz_liao',label:'入料场'}],
+    areas:{
+      gz_liao:{ name:'料场', icon:'🪵', desc:'木料石料堆积如山的场院。', npcs:[
+        { name:'料场匠人', icon:'🧑‍🔧', desc:'监看料场的副匠。', acts:[
+          { label:'闲谈', icon:'💬', fn:function(){ log('匠人道：「好料出好活，这粱木得选三年的杉木才扛得住。」','sys'); } }
+        ]}
+      ], objs:[
+        { name:'木料堆', icon:'🪵', desc:'成捆的原木与板材。', acts:[
+          { label:'翻看木料', icon:'👀', fn:function(){ if(!exert('翻看')) return; log('你拨弄木料，杉木轻韧、松木结实，各有所用。','sys'); } }
+        ]},
+        { name:'石料堆', icon:'🪨', desc:'青石条与碎石。', acts:[
+          { label:'搬弄石料', icon:'🏋️', fn:function(){ if(!exert('搬弄')) return; log('你掂了掂石条，分量十足，正合砌基。','sys'); } }
+        ]}
+      ], areas:[] }
+    },
+    },
+    // ── 商铺类型池扩充（v20260825e）：酒楼/染坊/糕点铺/钱庄/铁匠铺/武馆/镖局/茶楼/赌馆/马行/书肆/香烛店 ──
+    jiulou: {
+      name:'醉仙楼', icon:'🍶', sub:'朱阁临街，酒旗高挑，烹羊宰牛且为乐',
+      interior: [
+        { kind:'npc', name:'酒楼掌柜', icon:'🧑‍🍳', desc:'胖掌柜笑面迎客，算盘珠响。', acts:[
+          { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; state.food=state.maxFood; state.drink=Math.max(state.drink, Math.round((state.maxDrink||0)*0.7)); log('热馔醇酿下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜道：「客官可知，这壶中物最误事，也最解忧。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'npc', name:'店小二', icon:'🧑', desc:'穿梭席间的伶俐伙计。', acts:[
+          { label:'唤小二添酒', icon:'🍶', fn:function(){ if(!exert('唤小二')) return; log('小二拎壶过来满上：「客官慢用，今儿有上好的黍酒！」','sys'); } },
+          { label:'打听消息', icon:'💬', fn:function(){ log('小二压低嗓门：「楼上那位将军，半夜还在与人对弈，神色忡忡……」','sys'); } }
+        ]},
+        { kind:'obj', name:'酒瓮', icon:'🏺', desc:'墙角摞着几口酒瓮，泥封沁香。', acts:[
+          { label:'打一壶酒', icon:'🍶', fn:function(){ if(!exert('打酒')) return; if(packAdd('jiu',1)) log('你打了壶黍酒，酒香扑鼻，或可御寒壮行。','sys'); openModal('building'); } }
+        ]}
+      ],
+      subAreas:[{key:'jl_erlou',label:'上二楼'}],
+      areas:{
+        jl_erlou:{ name:'二楼雅座', icon:'🪜', desc:'临窗雅座，说书声起。', npcs:[
+          { name:'说书人', icon:'🗣️', desc:'醒木一拍，正说得唾沫横飞。', acts:[
+            { label:'听说书', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('说书人拍案：「温酒斩华雄，杯酒尚温，青龙刀已落——好不痛快！」满堂喝彩。','sys'); } },
+            { label:'打赏', icon:'🪙', fn:function(){ log('你掷下几文，说书人拱手：「谢赏！再听一段三英战吕布？」','sys'); } }
+          ]}
+        ], objs:[], areas:[] }
+      }
+    },
+    ranfang: {
+      name:'彩云染坊', icon:'🎨', sub:'青红皂白诸色入缸，布帛如染春山',
+      interior: [
+        { kind:'npc', name:'染匠', icon:'🧑‍🎨', desc:'满臂染渍的老师傅。', acts:[
+          { label:'染布', icon:'🎨', fn:function(){ if(!exert('染布')) return; log('你将素绢投入染缸，绞出时已是青碧如水。','sys'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('染匠道：「'+bldZihao()+'的靛青得发酵七日，急不得；色不正，是火候没到。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'染缸', icon:'🪣', desc:'数口大缸，色水幽深。', acts:[
+          { label:'翻看染缸', icon:'👀', fn:function(){ log('缸中靛蓝、茜红、栀子黄，各色沉浮。','sys'); } }
+        ]}
+      ],
+      subAreas:[{key:'rf_liang',label:'去晾布场'}],
+      areas:{
+        rf_liang:{ name:'晾布场', icon:'🌿', desc:'竹竿上高高低低晾着彩布，风过如旗。', npcs:[], objs:[
+          { name:'晾布竿', icon:'🧵', desc:'随风轻摆的湿布。', acts:[
+            { label:'翻动布料', icon:'🤲', fn:function(){ if(!exert('翻布')) return; log('你帮着翻了翻晾布，色已半干，香气清浅。','sys'); } }
+          ]
+        }], areas:[] }
+      }
+    },
+    gaodian: {
+      name:'稻香糕点铺', icon:'🍰', sub:'蒸笼腾腾，蜜香满街',
+      interior: [
+        { kind:'npc', name:'糕点娘', icon:'👩‍🍳', desc:'系着围裙、笑靥如花的少妇。', acts:[
+          { label:'买糕点', icon:'🍪', fn:function(){ if(!exert('买糕点')) return; state.food=Math.min(state.maxFood,(state.food||0)+12); log('你称了斤许蜜糕胡饼，粮草稍济（粮草+12）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('糕点娘道：「客官尝尝这杏仁酥，是家翁从长安学来的方子——咱'+bldZihao()+'就靠这手艺立足。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'蒸笼', icon:'🥟', desc:'竹蒸笼叠得老高，热气直冒。', acts:[
+          { label:'掀笼看货', icon:'👀', fn:function(){ log('笼中米糕雪白、枣泥酥红，香气扑鼻。','sys'); } }
+        ]}
+      ]
+    },
+    qianzhuang: {
+      name:'汇通钱庄', icon:'🪙', sub:'高柜台、铁栅栏，金银出纳叮当',
+      interior: [
+        { kind:'npc', name:'钱庄掌柜', icon:'🧓', desc:'戴玳瑁镜、拨算盘的老朝奉。', acts:[
+          { label:'兑换金银', icon:'🪙', fn:function(){ log('掌柜将银锭秤了又秤，开出庄票一张：「客官收好，凭票通兑。」','sys'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('老朝奉低声：「'+bldZihao()+'是本城老字号，钱在手里不如粮在仓——兵荒马乱的，客官当心。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'钱柜', icon:'🗄️', desc:'沉重的铁柜，锁孔幽深。', acts:[
+          { label:'打量钱柜', icon:'👀', fn:function(){ log('钱柜纹丝不动，想是极沉；账房先生瞪了你一眼。','sys'); } }
+        ]}
+      ]
+    },
+    tiejiang: {
+      name:'打铁营', icon:'⚒️', sub:'风箱呼啸，铁花四溅',
+      interior: [
+        { kind:'npc', name:'铁匠', icon:'🧔', desc:'赤膊壮汉，臂有刺青，锤不离手。', acts:[
+          { label:'打制兵器', icon:'⚔', fn:function(){ if(!exert('打铁')) return; state.atk=(state.atk||0)+2; log('铁匠为你打就一柄厚背刀，寒光逼人（攻击+2）。','good'); renderStatus(); openModal('building'); } },
+          { label:'修整甲胄', icon:'🛡️', fn:function(){ if(!exert('修甲')) return; state.def=(state.def||0)+2; log('铁匠敲敲打打，将你甲胄补得严丝合缝（防御+2）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('铁匠抹汗：「好钢需千锤——'+bldZihao()+'的招牌也是这么熬出来的。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'熔炉', icon:'🔥', desc:'炉膛通红，炭火噼啪。', acts:[
+          { label:'看打铁', icon:'👀', fn:function(){ if(!exert('看打铁')) return; log('你看着铁匠抡锤，火星溅起如萤，一柄剑坯渐成。','sys'); } }
+        ]}
+      ],
+      subAreas:[{key:'tj_liao',label:'入料场'}],
+      areas:{
+        tj_liao:{ name:'料场', icon:'🪨', desc:'矿石铁锭堆积。', npcs:[], objs:[
+          { name:'铁料堆', icon:'⛏️', desc:'生铁与精钢。', acts:[
+            { label:'翻看铁料', icon:'👀', fn:function(){ log('精钢泛青、生铁灰暗，好刃须好铁。','sys'); } }
+          ]
+        }], areas:[] }
+      }
+    },
+    wuguan: {
+      name:'振武馆', icon:'🥋', sub:'演武场上刀枪剑戟，喝声不绝',
+      interior: [
+        { kind:'npc', name:'教头', icon:'🥋', desc:'精神矍铄的枪棒教头。', acts:[
+          { label:'习武演武', icon:'⚔', fn:function(){ if(!exert('习武')) return; state.atk=(state.atk||0)+1; log('教头指点你一招「进步撩阴」，身手精进（攻击+1）。','good'); renderStatus(); openModal('building'); } },
+          { label:'请教门道', icon:'💬', fn:function(){ log('教头道：「军中枪法贵直，江湖刀法贵变——客官既到'+bldZihao()+'，习哪一路？」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'木人桩', icon:'🪵', desc:'遍体钉痕的木桩。', acts:[
+          { label:'练上几式', icon:'🥊', fn:function(){ if(!exert('练武')) return; log('你对木人桩拆了几招，拳风呼呼，筋骨舒展。','sys'); } }
+        ]}
+      ]
+    },
+    biaoju: {
+      name:'威远镖局', icon:'🛡️', sub:'镖旗猎猎，趟子手往来如梭',
+      interior: [
+        { kind:'npc', name:'镖头', icon:'🧗', desc:'腰挎朴刀、眼神锐利的汉子。', acts:[
+          { label:'接谈镖务', icon:'💬', fn:function(){ log('镖头打量你：「'+bldZihao()+'这趟镖走荆州，路上不太平，客官可要同行？」','sys'); openModal('building'); } },
+          { label:'打听行程', icon:'👂', fn:function(){ log('镖头压低声音：「前头官道有流寇，绕道走河津稳妥些。」','sys'); } }
+        ]},
+        { kind:'obj', name:'镖旗', icon:'🚩', desc:'绣着「威远」二字的镖旗。', acts:[
+          { label:'端详镖旗', icon:'👀', fn:function(){ log('镖旗被摩挲得发亮，想是走过不少路。','sys'); } }
+        ]}
+      ]
+    },
+    chalou: {
+      name:'听雨茶楼', icon:'🍵', sub:'竹炉汤沸，茶烟袅袅',
+      interior: [
+        { kind:'npc', name:'茶博士', icon:'🧑', desc:'提壶续水的老茶倌。', acts:[
+          { label:'上茶', icon:'🍵', fn:function(){ if(!exert('上茶')) return; state.drink=Math.min(state.maxDrink,(state.drink||0)+10); log('一盏清茶入喉，润喉解乏（饮水+10）。','good'); renderStatus(); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('茶博士道：「'+bldZihao()+'这壶中茶如人生，头苦二甘三回甜——客官细品。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'npc', name:'说书先生', icon:'🗣️', desc:'醒木轻敲，正讲三分天下。', acts:[
+          { label:'听说书', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('说书先生：「且说那赤壁一把火，烧得北船樯橹灰飞烟灭……」满座唏嘘。','sys'); } },
+          { label:'打听消息', icon:'💬', fn:function(){ log('你递过茶钱，先生低声：「听闻江东欲结亲，事有不谐……」','sys'); } }
+        ]}
+      ]
+    },
+    duguang: {
+      name:'快活赌坊', icon:'🎲', sub:'骰声铿锵，吆喝连天',
+      interior: [
+        { kind:'npc', name:'赌徒', icon:'🎲', desc:'眼发红、袖藏骰的精瘦汉。', acts:[
+          { label:'掷骰一博', icon:'🎲', danger:true, fn:function(){ if(!exert('赌博')) return; var win=Math.random()<0.5; log(win?'你押中点数，赢得几贯，眉开眼笑。':'你手气不济，输了几文，懊恼不已。','sys'); openModal('building'); } },
+          { label:'豪赌一场', icon:'🎲', danger:true, when:'night', fn:function(){ if(!exert('豪赌')) return; if(state.gold<20){ log('赌徒乜斜你一眼：「囊中羞涩，也敢进这夜局？」','sys'); return; } var win=Math.random()<0.45; if(win){ state.gold+=30; log('入夜赌局灯火如昼，你押上重注，骰子落定——通吃！银两 +30（当前 '+state.gold+'）。','good'); } else { state.gold-=30; log('入夜赌局灯火如昼，你押上重注，骰子翻落——血本无归，银两 -30（当前 '+state.gold+'）。','bad'); } openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ var h=state.time%12; log(h>=10||h<=1 ? '赌徒压低声：「客官来得正是时候，入夜的局子才够味——敢不敢玩把大的？」' : '赌徒嘿嘿一笑：「'+bldZihao()+'白日小赌怡情，入夜才有大场面——十赌九输，可偏有人想着那一赢。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'骰盆', icon:'🥏', desc:'青瓷骰盆，六子乱滚。', acts:[
+          { label:'看人下注', icon:'👀', fn:function(){ log('盆边围了三两人，吆五喝六，热闹非常。','sys'); } }
+        ]}
+      ]
+    },
+    maxing: {
+      name:'千里马行', icon:'🐴', sub:'马嘶声声，料豆满槽',
+      interior: [
+        { kind:'npc', name:'马贩', icon:'🧑‍🌾', desc:'络腮胡、懂马性的老行家。', acts:[
+          { label:'相马买马', icon:'🐴', fn:function(){ if(!exert('相马')) return; if(packAdd('horse',1)) log('你相中一匹栗色川马，蹄声如鼓，正堪长途。','good'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('马贩道：「西凉马骏，幽州马韧，南马矮而温——'+bldZihao()+'走南闯北，各有所用。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'马厩', icon:'🐎', desc:'并排马槽，料豆清香。', acts:[
+          { label:'喂马', icon:'🌾', fn:function(){ if(!exert('喂马')) return; log('你添了把料豆，马儿打响鼻，蹭了蹭你手心。','sys'); } }
+        ]}
+      ]
+    },
+    shudian: {
+      name:'翰墨书肆', icon:'📜', sub:'竹简累累，韦编盈架（纸贵简行，仍以简为主）',
+      interior: [
+        { kind:'npc', name:'书生', icon:'🧑‍🎓', desc:'青衫落拓、指染墨痕的儒生。', acts:[
+          { label:'购简抄书', icon:'📜', fn:function(){ if(!exert('购书')) return; if(packAdd('zhujian',1)) log('你购得几卷竹简，或为兵法，或为诗赋，沉甸甸压肩。','sys'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ log('书生叹：「蔡侯纸虽已出世，价昂而难得，寻常仍用竹简——'+bldZihao()+'架上，韦编三绝，非虚言也。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'简牍架', icon:'📚', desc:'架上竹简层层，麻绳编缀。', acts:[
+          { label:'翻看简牍', icon:'👀', fn:function(){ if(!exert('翻简')) return; log('你抽出一卷，墨迹古拙，辨得「兵马未动，粮草先行」八字。','sys'); } }
+        ]}
+      ]
+    },
+    xiangzhu: {
+      name:'宝馨香烛店', icon:'🕯️', sub:'香烟缭绕，烛影摇红',
+      interior: [
+        { kind:'npc', name:'香铺掌柜', icon:'🧓', desc:'面容慈和的香铺东家。', acts:[
+          { label:'请香烛', icon:'🕯️', when:'morn', fn:function(){ if(!exert('请香')) return; if(packAdd('xiang',1)) log('晨光初透，掌柜捧出今晨新卷的头香：「'+bldZihao()+'晨起开张，头炷香最灵——客官有缘，请了这炷，心诚则灵。」','good'); openModal('building'); } },
+          { label:'闲谈', icon:'💬', fn:function(){ var h=state.time%12; log(h===3||h===4 ? '掌柜合十道：「晨光初透，正是开张时——'+bldZihao()+'的头香最灵，客官请一炷？」' : '掌柜合十道：「小店卯时开张、过午歇业——'+bldZihao()+'的规矩，客官记牢了，莫扑空。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'香案', icon:'🕯️', desc:'供着神主，香炉余烬。', acts:[
+          { label:'上香', icon:'🙏', fn:function(){ if(!exert('上香')) return; log('你拈香三拜，青烟袅袅，心头稍静。','sys'); } }
+        ]}
+      ]
+    }
+  };
+
+  // ══ 建筑内部＝可进入房间（v20260825）══
+  // 房间 id 约定：__bld__<key>（正堂）/ __bld__<key>@<areaKey>（子区域）
+  // key = BUILDINGS 键（yaofu…）或 site_<siteKey>（玩家放置建筑）；进入后为独立房间场景，而非弹窗
+  function isBldRoom(rid){ return !!(rid && rid.indexOf('__bld__')===0); }
+  function bldForRoom(rid){
+    var m=(rid||'').match(/^__bld__(.+?)(?:@(.+))?$/); if(!m) return null;
+    var key=m[1], areaKey=m[2];
+    var b=BUILDINGS[key];
+    if(!b && state && state.flags && state.flags.bldEnt && state.flags.bldEnt.key===key){
+      var _bp=LF.BUILD[state.flags.bldEnt.bp];
+      if(_bp) b={ name:_bp.doneName||'屋舍', icon:itemIconHTML({name:_bp.doneName||'屋舍'},13), sub:_bp.desc||'', interior:_bp.interior||[], rootName:_bp.rootName, rootExtraNpcs:_bp.rootExtraNpcs, rootExtraObjs:_bp.rootExtraObjs, subAreas:_bp.subAreas, areas:_bp.areas };
+    }
+    if(!b) return null;
+    var ar;
+    if(!areaKey){
+      var npcs=(b.interior||[]).filter(function(e){return e.kind==='npc';});
+      if(b.rootExtraNpcs) npcs=npcs.concat(b.rootExtraNpcs);
+      var objs=(b.interior||[]).filter(function(e){return e.kind==='obj';});
+      if(b.rootExtraObjs) objs=objs.concat(b.rootExtraObjs);
+      ar={ name:((state&&state.flags&&state.flags.bldEnt&&state.flags.bldEnt.sign)||b.rootName||b.name), icon:b.icon, desc:b.sub, npcs:npcs, objs:objs, areas:(b.subAreas||[]), isRoot:true };
+    } else {
+      ar=b.areas && b.areas[areaKey] || null;
+      if(!ar) return null;
+      ar={ name:ar.name, icon:ar.icon||'进', desc:ar.desc, npcs:ar.npcs||[], objs:ar.objs||[], areas:ar.areas||[], isRoot:false };
+    }
+    return { id:rid, key:key, areaKey:areaKey, b:b, ar:ar };
+  }
+  function bldRoom(rid){
+    var f=bldForRoom(rid); if(!f) return null;
+    return { id:rid, name:f.ar.name, icon:f.ar.icon, desc:[f.ar.desc||''], bldKey:f.key, isBld:true };
+  }
+  function enterBldRoom(key, back, sign){
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    if(!state.flags) state.flags={};
+    state.flags.bldEnt={ key:key, back:back||null, bp:(back&&back.bp)||null, sign:(sign||null) };
+    closeModal();
+    renderRoom('__bld__'+key, true);
+  }
+  function bldMove(tid){
+    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    advanceTime(1);
+    log('你移步前行，景物为之一变……','sys');
+    renderRoom(tid);
+  }
+  function leaveBldRoom(){
+    var ent=state.flags && state.flags.bldEnt;
+    var back=ent && ent.back;
+    delete state.flags.bldEnt;
+    if(back && back.kind==='city'){
+      state.flags.cityPos={cid:back.cid,x:back.x,y:back.y};
+      renderRoom(back.cid);
+    } else {
+      renderRoom((back && back.room) || 'camp_yard');
+    }
+  }
+  function hasCount(defId,n){ var c=packFind(defId); return c && (c.count||1)>=n; }
+  function bldCurArea(b){
+    var key=buildingState.area||'root';
+    if(key==='root' || !b.areas || !b.areas[key]){
+      var npcs=(b.interior||[]).filter(function(e){return e.kind==='npc';});
+      if(b.rootExtraNpcs) npcs=npcs.concat(b.rootExtraNpcs);
+      var objs=(b.interior||[]).filter(function(e){return e.kind==='obj';});
+      if(b.rootExtraObjs) objs=objs.concat(b.rootExtraObjs);
+      return { name:(b.rootName||b.name), icon:b.icon, desc:b.sub, npcs:npcs, objs:objs, areas:(b.subAreas||[]), isRoot:true };
+    }
+    return b.areas[key];
+  }
+  function bldDef(){
+    if(!buildingState) return null;
+    // 玩家营造的蓝图建筑：用 LF.BUILD[蓝图id] 的动态 interior 临时构造屋舍定义
+    if(buildingState.bp){
+      var bp=LF.BUILD[buildingState.bp]; if(!bp) return null;
+      return { name:bp.doneName||'屋舍', icon:itemIconHTML({name:bp.doneName||'屋舍'},13), sub:bp.desc||'',
+        interior:bp.interior||[], rootName:bp.rootName, subAreas:bp.subAreas, areas:bp.areas,
+        rootExtraNpcs:bp.rootExtraNpcs, rootExtraObjs:bp.rootExtraObjs };
+    }
+    return BUILDINGS[buildingState.building] || null;
+  }
+  function renderBuildingPanel(){
+    var b=bldDef();
+    if(!b) return '<div class="empty">此处并无屋舍。</div>';
+    var area=bldCurArea(b);
+    if(buildingState.sel!=null){
+      var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
+      var e=list[buildingState.sel];
+      if(!e){ buildingState.sel=null; return renderBuildingPanel(); }
+      var h='<div class="bld-crumb">'+b.icon+((state&&state.flags&&state.flags.bldEnt&&state.flags.bldEnt.sign)||b.name)+' › '+area.name+'</div>';
+      h+='<div class="bld-detail">';
+      h+='<div class="bld-d-head">'+e.icon+' '+e.name+' <span class="bld-ent-ki">'+(buildingState.selKind==='obj'?'物件':'人物')+'</span></div>';
+      h+='<div class="bld-d-desc">'+e.desc+'</div>';
+      h+='<div class="bld-acts">';
+      bldActsFilter(e.acts).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
+      h+='</div><button class="btn bld-back" data-back="1">返 回</button>';
+      h+='</div>';
+      return h;
+    }
+    var h='<div class="bld-crumb">'+b.icon+' '+((state&&state.flags&&state.flags.bldEnt&&state.flags.bldEnt.sign)||b.name)+'</div>';
+    h+='<h3>'+area.icon+' '+area.name+'</h3>';
+    h+='<div class="bld-sub">'+area.desc+'</div>';
+    h+='<div class="bld-list">';
+    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
+    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
+    h+='</div>';
+    if(area.areas && area.areas.length){
+      h+='<div class="bld-areas">';
+      area.areas.forEach(function(a){ h+='<button class="btn bld-area" data-area="'+a.key+'">'+a.label+'</button>'; });
+      h+='</div>';
+    }
+    // 注：建筑内无方向罗盘，退出统一由房间底部「返回街巷/返回正堂」按钮（move-bar）完成，故弹窗不再重复放置导航按钮，避免繁琐
+    return h;
+  }
+  function bindBuildingPanel(){
+    var b=bldDef();
+    if(!b) return;
+    var area=bldCurArea(b);
+    if(buildingState.sel!=null){
+      var list=(buildingState.selKind==='obj')? area.objs : area.npcs;
+      var e=list[buildingState.sel];
+      if(e){
+        $card.querySelectorAll('.bld-act').forEach(function(el){
+          el.onclick=function(){ var a=bldActsFilter(e.acts)[+el.getAttribute('data-ai')]; if(a&&a.fn){ a.fn(); if(currentModalKind==='building') openModal('building'); } };
+        });
+      }
+      var back=$card.querySelector('.bld-back'); if(back) back.onclick=function(){ buildingState.sel=null; openModal('building'); };
+      return;
+    }
+    $card.querySelectorAll('.bld-ent').forEach(function(el){
+      el.onclick=function(){ buildingState.selKind=el.getAttribute('data-kind'); buildingState.sel=+el.getAttribute('data-i'); openModal('building'); };
+    });
+    $card.querySelectorAll('.bld-area').forEach(function(el){
+      el.onclick=function(){ if(buildingState.stack) buildingState.stack.push(buildingState.area); buildingState.area=el.getAttribute('data-area'); buildingState.sel=null; openModal('building'); };
+    });
+    var up=$card.querySelector('.bld-up'); if(up) up.onclick=function(){ if(buildingState.stack && buildingState.stack.length) buildingState.area=buildingState.stack.pop(); else buildingState.area='root'; buildingState.sel=null; openModal('building'); };
+    var exit=$card.querySelector('.bld-exit'); if(exit) exit.onclick=function(){ closeModal(); };
+  }
+
+  function openModal(kind, opts){
+    if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
+    currentModalKind=kind;
+    var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
+    var _sf=document.getElementById('shop-float'); if(_sf) _sf.style.display='none';
+    if(state && state.dead){ die(); return; }
+    // 打开任何弹窗时先移除战斗红光氛围，防止满血/非战斗画面泛红
+    var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
+    if(kind==='dev'){ renderDev(); return; }
+   try{
+    var modalOpts=opts||{};
+    // 捏人时隐藏标题页，并给弹窗不透明水墨背景，避免背景停留在标题页
+    var tt=document.getElementById('title');
+    if(tt){ if(kind==='create') tt.classList.add('hidden'); else if(!state) tt.classList.remove('hidden'); }
+    $modal.classList.toggle('modal-create-bg', kind==='create');
+    var h='';
+    if(kind==='char'){
+      var es=effectiveStats();
+      h='<h3>角 色</h3>'+
+        (function(){
+          var need=(state.level>=G.CONSTANTS.MAX_LEVEL)?0:G.BALANCE.expNeed(state.level);
+          if(!need) return row('等级','LV.'+state.level+' · 圆满')
+            + '<div class="exp-bar"><i style="width:100%"></i></div>';
+          var pct=Math.max(0,Math.min(100,Math.round(state.exp/need*100)));
+          return row('等级','LV.'+state.level)
+            + '<div class="row exp-sub"><span>修为</span><span>'+state.exp+' / '+need+'</span></div>'
+            + '<div class="exp-bar"><i style="width:'+pct+'%"></i></div>';
+        })()+
+        row('气血',state.hp+' / '+es.maxHp)+
+        (es.maxMp>0? row('内力',state.mp+' / '+es.maxMp):'')+
+        row('精力',state.energy+' / '+state.maxEnergy)+
+        row('食物',state.food+' / '+state.maxFood)+
+        row('饮水',state.drink+' / '+state.maxDrink)+
+        row('潜能',state.pot)+
+        row('侠义',state.chivalry)+
+        row('凶名',state.notoriety)+
+        row('风评',moralTitle())+
+        row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
+        row('自由属性点',(state.freePoints||0))+
+        '<div class="row"><span>四维（点击 ± 加点）</span></div><div class="ap-list">'+attrAllocHTML()+'</div>'+
+        row('当前所处',curRoom().name)+
+        '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
+        '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
+    } else if(kind==='pack'){
+      h=renderPack();
+    } else if(kind==='party'){
+      h=renderPartyPanel();
+    } else if(kind==='quest'){
+      h=renderObjectives();
+    } else if(kind==='map'){
+      if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
+        h=buildCityMapTabsHTML(modalOpts._scope==='world');   // 城内：布防图 ↔ 山河志 双页签（scope=world 默认山河志）
+      } else if(G.ROOMS[state.room] && G.ROOMS[state.room].isField){
+        h=buildFieldMapTabsHTML(modalOpts._scope==='world');   // 野外：郊野图 ↔ 山河志 双页签
+      } else {
+        h=buildStrategicMapHTML({});
+      }
+    } else if(kind==='clock'){
+      var R=41; // 时辰标签半径（百分比）
+      var clkLabels='';
+      SHICHEN.forEach(function(name,i){
+        var ang=(i*30-90)*Math.PI/180;     // 子时居顶，顺时针排布
+        var x=50+R*Math.cos(ang), y=50+R*Math.sin(ang);
+        var cur=(i===state.time%12);
+        clkLabels+='<span class="clk-lab'+(cur?' cur':'')+'" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%">'+name.replace('时','')+'</span>';
+      });
+      var handAng=(state.clock/1440)*360-90;   // 指针随当日分钟转动
+      var isDay=((state.time%12)>=3 && (state.time%12)<=9);  // 卯~酉为昼
+      var c=deriveCalendar();
+      var era=(state.eraName||'光和')+(c.eraYear===1?'元年':c.eraYear+'年');
+      var w=WEATHERS[state.weather]||WEATHERS[0];
+      var hh=String(Math.floor(state.clock/60)).padStart(2,'0');
+      var mm=String(state.clock%60).padStart(2,'0');
+      h='<h3>时 辰 钟</h3>'+
+        '<div class="clk-dial '+(isDay?'day':'night')+'">'+
+          clkLabels+
+          '<div class="clk-hand" style="transform:translate(-50%,-100%) rotate('+handAng.toFixed(1)+'deg)"></div>'+
+          '<div class="clk-center">'+
+            '<div class="clk-t">'+hh+':'+mm+'</div>'+
+            '<div class="clk-s">'+SHICHEN[state.time%12]+'</div>'+
+            '<div class="clk-e">'+(isDay?'☀':'🌙')+' '+era+'</div>'+
+            '<div class="clk-e">'+c.monthName+'月'+c.dayName+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="clk-meta">'+
+          '<div class="clk-row"><span>天候</span><b>'+w.ic+' '+w.n+'</b></div>'+
+          '<div class="clk-row"><span>农历</span><b>'+era+c.monthName+'月'+c.dayName+'</b></div>'+
+          '<div class="clk-row"><span>公历</span><b>公元'+c.adYear+'年 '+c.gregMonth+'月'+c.gregDay+'日 · 星期'+c.wk+'</b></div>'+
+        '</div>'+
+        '<p class="tip">子时居顶（夜半），午时居底（正午）；卯时朝阳在东、酉时落日于西。</p>';
+    } else if(kind==='create'){
+      if(!createState) initCreateState();
+      h=renderCreateHTML();
+    } else if(kind==='newgame'){
+      h=renderSlotsHTML('new');
+    } else if(kind==='load'){
+      h=renderSlotsHTML('load');
+    } else if(kind==='codex'){
+      h=renderCodex();
+    } else if(kind==='settings'){
+      h=renderSettings(modalOpts);
+    } else if(kind==='credit'){
+      h=renderCredit();
+    } else if(kind==='craft'){
+      if(opts && opts.bench) craftState.bench = opts.bench;
+      h=renderCraftPanel();
+    } else if(kind==='shop'){
+      h=Shop.openShop(opts && opts.shop);
+    } else if(kind==='build'){
+      if(opts && opts.site) buildState.site = opts.site;
+      h=renderBuildPanel();
+    } else if(kind==='storage'){ storageCid=(opts&&opts.cid)?opts.cid:state.room; h=Shop.openShop(storageCid,'storage');
+    } else if(kind==='rest'){
+      if(opts && opts.kind) restState.kind = opts.kind;
+      h=renderRestPanel();
+    } else if(kind==='forge'){
+      if(opts && opts.site) forgeState.site = opts.site;
+      h=renderForgePanel();
+    } else if(kind==='citystat'){
+      h=renderCityStat(opts && opts.cid ? opts.cid : state.room);
+    } else if(kind==='citybuild'){
+      if(opts && opts.cid!=null) cityBuildState.cid=opts.cid;
+      if(opts && opts.x!=null) cityBuildState.x=opts.x;
+      if(opts && opts.y!=null) cityBuildState.y=opts.y;
+      h=renderCityBuildPanel();
+    } else if(kind==='building'){
+      // 已在建筑房间内：acts 中的 openModal('building') 用作场景刷新，不再弹窗
+      if(state && state.room && isBldRoom(state.room)){
+        closeModal();
+        renderRoom(state.room, true);
+        return;
+      }
+      if(opts && (opts.building || opts.bp)){
+        var _bpd=(opts.bp ? (LF.BUILD[opts.bp]||null) : null);
+        buildingState = { building:(opts.building || (_bpd? '__bp_'+_bpd.key : 'yaofu')), bp:(opts.bp||null), cid:opts.cid, x:opts.x, y:opts.y, area:'root', stack:[], sel:null };
+      }
+      if(!buildingState || !buildingState.area){ buildingState={building:'yaofu', bp:null, area:'root', stack:[], sel:null}; }
+      h=renderBuildingPanel();
+    } else if(kind==='edict'){
+      h=renderEdict();
+    } else if(kind==='factionMap'){
+      h=renderFactionMap();
+    } else if(kind==='sect'){
+      h=renderSectPanel();
+    }
+    $card.innerHTML=h;
+    $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage');
+    if(kind==='create') bindCreate();
+    if(kind==='char') bindAttrAlloc();
+    if(kind==='pack'){ bindPackInteractions(); }
+    if(kind==='craft'){ bindCraftPanel(); }
+    if(kind==='shop'){ Shop.bindShopPanel(); }
+    if(kind==='build'){ bindBuildPanel(); }
+    if(kind==='storage'){ Shop.bindShopPanel(); }
+    if(kind==='rest'){ bindRestPanel(); }
+    if(kind==='forge'){ bindForgePanel(); }
+    if(kind==='building'){ bindBuildingPanel(); }
+    if(kind==='citybuild'){ bindCityBuildPanel(); }
+    if(kind==='sect'){ bindSectPanel(); }
+    if(kind==='quest'){ bindQuestPanel(); }
+    $modal.classList.remove('hidden');
+    var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
+    var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};
+    // 设置标签页切换
+    $card.querySelectorAll('.set-tabs button').forEach(function(b){ b.onclick=function(){ var t=b.getAttribute('data-tab'); $card.querySelectorAll('.set-tabs button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); $card.querySelectorAll('.set-panel').forEach(function(p){ p.classList.toggle('hidden', p.getAttribute('data-panel')!==t); }); tick(); }; });
+    // 择档面板交互
+    $card.querySelectorAll('.slot[data-slot]').forEach(function(el){
+      el.onclick=function(e){
+        // 若点击的是确认层按钮，由下方独立绑定处理，不冒泡到 slot
+        if(e.target.closest('.sl-confirm')) return;
+        var slot=parseInt(el.getAttribute('data-slot'),10);
+        var mode=el.getAttribute('data-mode');
+        // 点任意档时先收回其它已展开的「是否覆盖」确认层（同一时刻只允许一个展开）
+        var slots=el.parentNode ? el.parentNode.querySelectorAll('.slot.on-confirm') : [];
+        for(var si=0; si<slots.length; si++){ if(slots[si]!==el) slots[si].classList.remove('on-confirm'); }
+        if(mode==='new'){
+          if(slotExists(slot)){
+            // 显示行内确认层（替代浏览器 confirm，避免沙箱/拦截导致无反应）
+            el.classList.add('on-confirm');
+            return;
+          }
+          beginCreate(slot);
+        } else {
+          if(!slotExists(slot)){ toast('此卷尚空，无可续之缘'); return; }
+          enterGame(rawSlot(slot), slot); closeModal();
+        }
+      };
+    });
+    // 覆写确认层按钮
+    $card.querySelectorAll('.sl-confirm button[data-action]').forEach(function(btn){
+      btn.onclick=function(e){
+        e.stopPropagation();
+        var slot=parseInt(btn.getAttribute('data-slot'),10);
+        var act=btn.getAttribute('data-action');
+        if(act==='overwrite'){
+          // 覆写 = 在该卷重建新角色，仍须走捏人→序章→入局流程
+          beginCreate(slot);
+        } else {
+          var slotEl=btn.closest('.slot');
+          if(slotEl) slotEl.classList.remove('on-confirm');
+        }
+      };
+    });
+    // 设置面板交互（标签页内容）
+    var rng=document.getElementById('rng-speed'); if(rng) rng.oninput=function(){ settings.textSpeed=parseInt(rng.value,10); saveSettings(); var _v=document.getElementById('spd-val'); if(_v) _v.textContent=lfSpeedLabel(settings.textSpeed); };
+    var fx=document.getElementById('seg-fx'); if(fx) fx.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.titleFx=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); fx.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); tick(520); applyTitleFx(); toast('标题特效·'+(settings.titleFx?'开':'关')); }; });
+    var snd=document.getElementById('seg-snd'); if(snd) snd.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ settings.sound=!!parseInt(b.getAttribute('data-v'),10); saveSettings(); snd.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); if(settings.sound) tick(700); toast('音效·'+(settings.sound?'开':'关')); }; });
+    var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
+    if(kind==='map'){
+      if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
+        if(initMapTabs()) initMapCity({});          // 页签绑定 + 布防图默认页交互
+        else initMapCity({});
+      } else if(G.ROOMS[state.room] && G.ROOMS[state.room].isField){
+        initMapTabs();                              // 野外：页签绑定；world 页首次切到才初始化战略图（focusYou 居中郊野）
+      } else {
+        initStrategicMapInGame({ focusYou:true });   // 山河志打开默认居中「此身所在」（v20260905j）
+      }
+    }
+    // 装备面板交互
+    $card.querySelectorAll('.eq-slot[data-slot]').forEach(function(el){
+      el.onclick=function(){ unequip(el.getAttribute('data-slot')); };
+    });
+    $card.querySelectorAll('.eq-item[data-id]').forEach(function(el){
+      el.onclick=function(){ equipItem(el.getAttribute('data-id')); };
+    });
+   }catch(err){
+     $card.innerHTML='<h3>界面出错</h3><p class="tip">'+String((err&&err.message)||err)+'</p>';
+     $modal.classList.remove('hidden');
+     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+   }
+  }
+
+  // ===== 战略地图（D3 矢量 · 三国州郡）=====
+  function buildStrategicMapHTML(opts){
+    opts=opts||{};
+    var title = opts.pickSpawn ? '选择出生点' : '山河志 · 战略地图';
+    var tip = opts.pickSpawn
+      ? '与山河志同一张地图：点圆点=城池、方点=关隘/野地/副本。点击任一点即设为出生点并立即传送（城市出生落在城门）。'
+      : '拖拽平移 · 滚轮缩放 · 点击城池前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」；点右下 ◎ 可回到所在处。';
+    return '<h3>'+title+'</h3>'+
+      '<div id="strategic-map-container"></div>'+
+      '<p class="tip">'+tip+'</p>';
+  }
+  // 解析「此身所在」的地图标记：
+  //   城内/城格 → 城点；城内建筑 → 所属城；specialGeo 手写锚点房 → 该地理点
+  function smYouMark(){
+    if(!state || !state.room) return null;
+    var rid=state.room;
+    if(isBldRoom(rid)){
+      var back=state.flags && state.flags.bldEnt && state.flags.bldEnt.back;
+      if(back && back.kind==='city' && back.cid){
+        var _bc=(LF.CITIES||{})[back.cid];
+        if(_bc && _bc.pos) return {type:'you', pos:_bc.pos, cid:back.cid, label:'此身所在 · '+_bc.name};
+      }
+      return null;
+    }
+    var c=(LF.CITIES||{})[rid];
+    if(c && c.pos) return {type:'you', pos:c.pos, cid:rid, label:'此身所在 · '+c.name};
+    var sg=((LF.MAP&&LF.MAP.specialGeo)||{})[rid];
+    if(sg && sg.pos) return {type:'you', pos:sg.pos, cid:rid, label:'此身所在 · '+sg.name};
+    // 郊野行军格：按「母城 → 外邻各点均值」线性插值打点，表明正行于哪片郊野
+    var _cr=G.ROOMS[rid];
+    if(_cr && _cr.isField && _cr.fieldId){
+      var _fp=(LF.PLACES||{})[_cr.fieldId]||{};
+      var _par=_fp.parent;
+      var _cpos=null;
+      if((LF.CITIES||{})[_par] && LF.CITIES[_par].pos) _cpos=LF.CITIES[_par].pos;
+      else if((LF.PLACES||{})[_par] && LF.PLACES[_par].pos) _cpos=LF.PLACES[_par].pos;
+      var _fmeta=((LF.Travel&&LF.Travel.fields)||{})[_cr.fieldId]||{};
+      // v20260907d：多段郊野链的中段 neighbors 是指向「下一程入口房」的虚拟邻点（无真实经纬）。
+      // 沿链递归到末段，收集真实邻城/邻地点的坐标作为外端点；endStage 用于按「段序+段内进度」全局插值，
+      // 使中段「此身所在」打点不再从战略图消失，且位置沿母城→外端点连续推进。
+      var _posList=[], _endStage=_fmeta.stage||0;
+      (function walk(m){
+        ((m.neighbors)||[]).forEach(function(n){
+          var _p=((LF.CITIES&&LF.CITIES[n.nid]&&LF.CITIES[n.nid].pos)?LF.CITIES[n.nid].pos
+                :((LF.PLACES&&LF.PLACES[n.nid]&&LF.PLACES[n.nid].pos)?LF.PLACES[n.nid].pos:null));
+          if(_p){ _posList.push(_p); return; }
+          var _nr=G.ROOMS[n.nid], _ff=_nr&&_nr.fieldId;
+          if(_ff && LF.Travel && LF.Travel.fields && LF.Travel.fields[_ff]){
+            var _nx=LF.Travel.fields[_ff];
+            if((_nx.stage||0)>_endStage) _endStage=_nx.stage||0;
+            if(_endStage<=8) walk(_nx);
+          }
+        });
+      })(_fmeta);
+      if(_cpos && _posList.length){
+        var _g=_fp.gateDir||'东';
+        var _geo=LF.Travel.fieldGeometry(_fp.size||4,_g);
+        var _near=(_g==='东'||_g==='西')?_geo.nearCol:_geo.nearRow;
+        var _ax=(_g==='东'||_g==='西')?_cr.fc:_cr.fr;
+        var _den=(_fp.size||4)-1;
+        var _t=(_den<=0)?0.5:(((_g==='东'||_g==='南')?(_ax-_near):(_near-_ax))/_den);
+        _t=Math.max(0,Math.min(1,_t));
+        var _s=_fmeta.stage||0, _glb=(_s+_t)/(_endStage+1);
+        var _ox=0,_oy=0; _posList.forEach(function(p){ _ox+=p[0]; _oy+=p[1]; });
+        _ox/=_posList.length; _oy/=_posList.length;
+        return {type:'you', pos:[_cpos[0]+(_ox-_cpos[0])*_glb, _cpos[1]+(_oy-_cpos[1])*_glb],
+                cid:_cr.fieldId, label:'此身所在 · '+((_fp.name)||'郊野')};
+      }
+    }
+    return null;
+  }
+  // 主线/任务目标打点（后续支线目标可在此追加）
+  function smGoalMarks(){
+    var marks=[];
+    if(state && state.quest && state.quest.luoyang){
+      var lc=(LF.CITIES||{}).luoyang;
+      if(lc && lc.pos) marks.push({type:'goal', pos:lc.pos, cid:'luoyang', label:'目标 · 赴洛阳'});
+    }
+    return marks;
+  }
+  function strategicMapMarks(){
+    var out=[];
+    var y=smYouMark(); if(y) out.push(y);
+    smGoalMarks().forEach(function(x){ out.push(x); });
+    return out;
+  }
+  function initStrategicMapInGame(opts){
+    opts=opts||{};
+    var container=document.getElementById('strategic-map-container');
+    if(!container) return;
+    if(!window.LF || !LF.initStrategicMap){
+      container.innerHTML='<div class="strategic-loading">战略地图加载中...</div>';
+      return;
+    }
+    var marks=strategicMapMarks();
+    // 选出生点模式
+    if(opts.pickSpawn){
+      LF.initStrategicMap(container, {
+        marks: marks,
+        onCityClick: function(city){
+          if(!city || !city.id) return;
+          state.spawnRoom=city.id;
+          log('【调试】出生点已设为：'+city.name+'。','good');
+          closeModal(); renderRoom(city.id); save(state);
+        }
+      });
+    } else {
+      // 正常模式：点击城市传送；focusYou=true 时首屏自动居中「此身所在」（v20260905j）
+      LF.initStrategicMap(container, {
+        marks: marks,
+        focusYou: !!opts.focusYou,
+        onCityClick: function(city){
+          if(!city || !city.id) return;
+          placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);
+        }
+      });
+    }
+  }
+
+  function closeModal(){
+    if(state && state.dead){ die(); return; }
+    // 捏人进行中（state 尚未建立）禁止中途收起，否则会露出标题屏并丢失进度
+    if(currentModalKind==='create' && !state){ return; }
+    var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
+    var _sf=document.getElementById('shop-float'); if(_sf) _sf.style.display='none';
+    $modal.classList.add('hidden');
+    if(currentModalKind==='shop') Shop.restoreTradePending();   // 关店归还寄售真物，避免退出后丢失
+    currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
+  }
+  $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
+  var $modalX=document.getElementById('modal-x');
+  if($modalX){ $modalX.addEventListener('click',function(e){e.stopPropagation();closeModal();}); }
+  document.querySelectorAll('#dock button').forEach(function(b){
+    b.onclick=function(){
+      var m=b.getAttribute('data-modal');
+      if(m==='rest'){ dockRest(); return; }
+      if(m==='survey'){ dockSurvey(); return; }
+      openModal(m);
+    };
+  });
+  // 方向 Tab 栏：出行（罗盘）/ 探查（整合进枢纽区，dock 已移除探查）
+  document.querySelectorAll('#move-tabs .mv-tab').forEach(function(t){
+    t.onclick=function(){
+      var tab=t.getAttribute('data-tab');
+      document.querySelectorAll('#move-tabs .mv-tab').forEach(function(x){x.classList.remove('active');});
+      t.classList.add('active');
+      if(tab==='scout'){ dockSurvey(); }   // 探查：脉冲高亮出口 / 记录环境
+    };
+  });
+  function dockSurvey(){
+    if(state.defeated){ dockRest(); return; }
+    var bar=document.getElementById('move-bar');
+    if(bar && bar.classList.contains('has-exits')){
+      // 有出口：脉冲高亮移动条，提示出口所在
+      bar.classList.add('pulse');
+      setTimeout(function(){ bar.classList.remove('pulse'); }, 2400);
+      bar.scrollIntoView({behavior:'smooth', block:'center'});
+    } else {
+      // 无出口房间：重新记录环境描述
+      var room=G.ROOMS[state.room]||bldRoom(state.room);
+      var find=room&&room.find||'你凝神四望，周遭风物尽收眼底。';
+      log(find,'investigate');
+      toast('已探明周遭');
+    }
+  }
+  function dockRest(){
+    if(combatMode){ toast('战斗中无法歇息'); return; }
+    if(state.dead){ die(); return; }
+    openRestModal('ground');
+  }
+  // ===== 调试台（测试用：直赋声望/武学等，真正获取途径后续接入） =====
+  function handleDev(act){
+    var MA=G.MARTIAL_ARTS;
+    if(act==='rep+5'){ addReputation(5); }
+    else if(act==='rep20'){ state.reputation=20; log('【声望】已设为 20（'+repTitle(20)+'）','good'); }
+    else if(act==='rep100'){ state.reputation=100; log('【声望】已设为 100（'+repTitle(100)+'）','good'); }
+    else if(act==='rep0'){ state.reputation=0; log('【声望】已清零','sys'); }
+    else if(act.indexOf('skill:')===0){
+      var id=act.slice(6); var a=MA.get(id);
+      var i=state.learnedMartial.indexOf(id);
+      if(i>=0){ state.learnedMartial.splice(i,1); log('移除招式：'+(a?a.name:id),'sys'); }
+      else { state.learnedMartial.push(id); log('习得招式：'+(a?a.name:id),'good'); }
+    }
+    else if(act.indexOf('force:')===0){
+      var fid=act.slice(6); var fa=MA.get(fid);
+      var fi=state.equippedForce.indexOf(fid);
+      if(fi>=0){ state.equippedForce.splice(fi,1); log('卸下发力技巧：'+(fa?fa.name:fid),'sys'); }
+      else { state.equippedForce.push(fid); log('装配发力技巧：'+(fa?fa.name:fid),'good'); }
+    }
+    else if(act==='allmartial'){
+      var got=0;
+      for(var k in MA){ var a=MA[k]; if(!a||!a.id) continue;
+        if(a.type==='technique'){ if(state.equippedForce.indexOf(a.id)<0){ state.equippedForce.push(a.id); got++; } }
+        else { if(state.learnedMartial.indexOf(a.id)<0){ state.learnedMartial.push(a.id); got++; } }
+      }
+      log('【满配】已习得全部招式并装配全部发力技巧（新增 '+got+' 项）','good');
+    }
+    else if(act==='lines+5'){
+      for(var l in state.lines) state.lines[l]=Math.min(20, state.lines[l]+5);
+      log('【艺线】全部武器艺线 +5（上限20）','good');
+    }
+    else if(act==='realm+1'){
+      var n=0;
+      state.learnedMartial.forEach(function(id){
+        var a=MA.get(id); if(a&&a.type!=='technique'){ state.realm[id]=Math.min(6,(state.realm[id]||0)+1); n++; }
+      });
+      log('【境界】已学招式境界全部 +1（'+n+' 式）。突破效果现已生效：伤害/暴击/破甲/连击随境界提升。','good');
+    }
+    else if(act==='maxlv'){
+      state.level=G.CONSTANTS.MAX_LEVEL; state.hp=state.maxHp; state.mp=state.maxMp;
+      log('【速填】等级设为 '+state.level+'，状态回满','good');
+    }
+    else if(act==='pot+200'){ state.pot+=200; log('【速填】潜能 +200（当前 '+state.pot+'）','good'); }
+    else if(act==='gold+500'){ state.gold+=500; log('【速填】银两 +500（当前 '+state.gold+'）','good'); }
+    else if(act==='full'){ var esF=effectiveStats(); state.hp=esF.maxHp; state.mp=esF.maxMp; state.energy=state.maxEnergy; state.food=state.maxFood; state.drink=state.maxDrink; log('【速填】气血/内力/精力/饥渴 全满','good'); }
+    else if(act==='mkgear'){ var eq=LF.ITEMS.rollEquip(3); packAdd(LF.ITEMS.equipToPackItem(eq)); save(state); renderDev(); toast('夺得 '+eq.name); }
+    // ── 等级 / 身份势力 / 城市 调试（v20260827）──
+    else if(act==='xp+200'){ addXp(200); }
+    else if(act==='dev-capture'){
+      state.faction=state.faction||'义军';
+      var cp=state.flags.cityPos; if(!cp || !isCityGrid(cp.cid)){ toast('你不在城中（立于中枢方能占城）'); return; }
+      var cid=cp.cid;
+      if(isCaptured(cid)){ toast('「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」已是你的领地'); return; }
+      if(!state.flags.cityOwner) state.flags.cityOwner={};
+      state.ruledCities=state.ruledCities||[];
+      state.flags.cityOwner[cid]=state.faction;
+      if(state.ruledCities.indexOf(cid)<0) state.ruledCities.push(cid);
+      var _tier=(LF.CITIES[cid]||{}).tier||'xian';
+      var _tt=_tier==='capital'?'君主':_tier==='zhou'?'州牧':'太守';
+      if(LF.TITLES.indexOf(_tt)>LF.TITLES.indexOf(state.title)) state.title=_tt;
+      log('【调试】已占领「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」，授官「'+state.title+'」','good');
+      renderStatus();
+    }
+    else if(act==='dev-release'){
+      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
+      var cid=cp.cid;
+      state.flags.cityOwner[cid]=cityDefaultOwner(cid);
+      state.ruledCities=state.ruledCities||[];
+      var _idx=state.ruledCities.indexOf(cid); if(_idx>=0) state.ruledCities.splice(_idx,1);
+      var _best='游侠';
+      state.ruledCities.forEach(function(rc){ var t=(LF.CITIES[rc]||{}).tier||'xian'; var tt=t==='capital'?'君主':t==='zhou'?'州牧':'太守'; if(LF.TITLES.indexOf(tt)>LF.TITLES.indexOf(_best)) _best=tt; });
+      state.title=_best;
+      log('【调试】已释放「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」','sys');
+      renderStatus();
+    }
+    else if(act==='dev-citydev'){
+      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
+      if(!state.flags.cityDev) state.flags.cityDev={};
+      state.flags.cityDev[cp.cid]=Math.min(100,(state.flags.cityDev[cp.cid]||0)+20);
+      log('【调试】'+cp.cid+' 建设度→'+(state.flags.cityDev[cp.cid]),'good');
+    }
+    else if(act==='dev-burn'){
+      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
+      burnCells(cp.cid,3);
+      log('【调试】'+cp.cid+' 焚城（随机3格）','sys');
+    }
+    // ── P3 善恶双轴调试 ──
+    else if(act==='cha+10'){ state.chivalry+=10; log('【调试】侠义 +10（当前 '+state.chivalry+'）','good'); }
+    else if(act==='not+10'){ state.notoriety+=10; log('【调试】凶名 +10（当前 '+state.notoriety+'）','good'); }
+    else if(act==='moral0'){ state.chivalry=0; state.notoriety=0; state.flags.usurper_seen=false; log('【调试】善恶双轴清零','sys'); }
+    else if(act==='spawnNow'){
+      if(!state.spawnRoom){ toast('尚未设置出生点'); return; }
+      closeModal();
+      renderRoom(state.spawnRoom);
+      var _sn=((LF.CITIES||{})[state.spawnRoom]?LF.CITIES[state.spawnRoom].name
+        :((((LF.MAP&&LF.MAP.specialGeo)||{})[state.spawnRoom]||G.ROOMS[state.spawnRoom]||{}).name||state.spawnRoom));
+      log('已传送到出生点：'+_sn,'good');
+    }
+  }
+  function renderDev(){
+    var MA=G.MARTIAL_ARTS;
+    state.faction=state.faction||'义军';
+    var rep=state.reputation, fp=(state.freePoints||0);
+    var facOpts=Object.keys(LF.FACTIONS).map(function(f){
+      var val=(f==='player')?'义军':f;  // 玩家势力在存档中以 '义军' 存储，下拉值与之对齐
+      return '<option value="'+val+'"'+(val===state.faction?' selected':'')+'>'+LF.FACTIONS[f].name+'</option>';
+    }).join('');
+    var titleOpts=LF.TITLES.map(function(t){
+      return '<option value="'+t+'"'+(t===state.title?' selected':'')+'>'+t+'</option>';
+    }).join('');
+    var cityName=(state.flags.cityPos && LF.CITIES[state.flags.cityPos.cid])?LF.CITIES[state.flags.cityPos.cid].name:(state.flags.cityPos?state.flags.cityPos.cid:'不在城');
+    // 出生点名解析：城市 / 手写特殊锚点 / 程序生成地点房 三种来源兼容
+    function spawnNameOf(s){
+      if(!s) return '未设置';
+      if((LF.CITIES||{})[s]) return LF.CITIES[s].name+'（城）';
+      var _sg=((LF.MAP&&LF.MAP.specialGeo)||{})[s]; if(_sg) return _sg.name;
+      var _r=G.ROOMS[s]; if(_r&&_r.name) return _r.name;
+      return s;
+    }
+    var h='<h3>🛠 调 试 台 <span class="dev-sub">v'+LF.CONSTANTS.VERSION+'</span></h3>';
+    // 出生点（最常用 → 置顶）
+    h+='<div class="dev-sec"><div class="dev-h">出生点（当前：'+spawnNameOf(state.spawnRoom)+'）</div><div class="dev-btns">'+
+       '<button class="dev wide" data-act="setspawn">🗺 地图选出生点</button>'+
+       '<button class="dev wide" data-act="spawnNow">⤵ 传送至出生点</button></div>'+
+       '<p class="dev-tip">新档开局落点。城市出生落在城门，点击后立即传送验证。默认洛阳。</p></div>';
+    // 资源
+    h+='<div class="dev-sec"><div class="dev-h">资源（声望 '+rep+' · 银两 '+state.gold+' · 潜能 '+state.pot+' · 自由点 '+fp+'）</div><div class="dev-btns">'+
+       '<button class="dev" data-act="rep+5">声望+5</button><button class="dev" data-act="rep100">声望=100</button>'+
+       '<button class="dev" data-act="gold+500">银两+500</button><button class="dev" data-act="pot+200">潜能+200</button>'+
+       '<button class="dev" data-act="xp+200">经验+200</button><button class="dev" data-act="full">回满状态</button></div></div>';
+    // 善恶
+    h+='<div class="dev-sec"><div class="dev-h">善恶双轴（侠义 '+state.chivalry+' · 凶名 '+state.notoriety+' · '+moralTitle()+'）</div><div class="dev-btns">'+
+       '<button class="dev" data-act="cha+10">侠义+10</button><button class="dev" data-act="not+10">凶名+10</button><button class="dev" data-act="moral0">清零</button></div></div>';
+    // 身份 / 势力（含名城占领、官职）
+    h+='<div class="dev-sec"><div class="dev-h">身份 / 势力（当前：'+factionName(state.faction)+' · '+state.title+'）</div>'+
+       '<div class="dev-btns"><select id="dev-fac" class="dev-sel">'+facOpts+'</select><select id="dev-title" class="dev-sel">'+titleOpts+'</select></div>'+
+       '<div class="dev-btns"><button class="dev" data-act="dev-capture">占领所在城</button><button class="dev" data-act="dev-release">释放所在城</button></div></div>';
+    // 武学
+    h+='<div class="dev-sec"><div class="dev-h">武学招式（点击 学/弃）</div><div class="dev-btns">';
+    for(var k in MA){ var a=MA[k]; if(!a||!a.id||a.type==='technique') continue;
+      var owned=state.learnedMartial.indexOf(a.id)>=0;
+      h+='<button class="dev'+(owned?' on':'')+'" data-act="skill:'+a.id+'">'+(owned?'✓ ':'+ ')+a.name+'</button>';
+    }
+    h+='</div></div>';
+    h+='<div class="dev-sec"><div class="dev-h">发力技巧（点击 装配/卸下）</div><div class="dev-btns">';
+    for(var k2 in MA){ var a2=MA[k2]; if(!a2||!a2.id||a2.type!=='technique') continue;
+      var on=state.equippedForce.indexOf(a2.id)>=0;
+      h+='<button class="dev'+(on?' on':'')+'" data-act="force:'+a2.id+'">'+(on?'✓ ':'+ ')+a2.name+'</button>';
+    }
+    h+='</div><div class="dev-btns"><button class="dev wide" data-act="allmartial">⚡ 一键满配武学</button></div></div>';
+    // 突破
+    h+='<div class="dev-sec"><div class="dev-h">艺线 / 境界（突破增强战力）</div><div class="dev-btns">'+
+       '<button class="dev" data-act="lines+5">全艺线+5</button><button class="dev" data-act="realm+1">全境界+1</button></div></div>';
+    // 角色速填
+    h+='<div class="dev-sec"><div class="dev-h">角色速填</div><div class="dev-btns">'+
+       '<button class="dev" data-act="maxlv">满级(设等级)</button><button class="dev" data-act="mkgear">掉件装备</button></div></div>';
+    // 城市
+    h+='<div class="dev-sec"><div class="dev-h">城市（当前：'+cityName+'）</div><div class="dev-btns">'+
+       '<button class="dev" data-act="dev-citydev">建设+20</button><button class="dev" data-act="dev-burn">焚城(随机3格)</button></div></div>';
+    h+='<button class="close" id="m-close">收 起</button>';
+    $card.innerHTML=h;
+    $modal.classList.remove('hidden');
+    $card.querySelectorAll('[data-act]').forEach(function(btn){
+      btn.onclick=function(){
+        var a=btn.getAttribute('data-act');
+        if(a==='setspawn'){ openSpawnMap(); return; }
+        handleDev(a); save(state); renderStatus();
+        if(currentModalKind!=='char') renderDev();
+      };
+    });
+    var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+    var fsel=document.getElementById('dev-fac'); if(fsel){ fsel.onchange=function(){ state.faction=fsel.value; log('【调试】势力→'+factionName(state.faction),'sys'); renderStatus(); renderDev(); }; }
+    var tsel=document.getElementById('dev-title'); if(tsel){ tsel.onchange=function(){ state.title=tsel.value; renderStatus(); renderDev(); }; }
+  }
+
+  // ===== 调试：大地图选出生点 =====
+  // 与主地图同一套 D3 战略图（61 城 + 野外/关隘/副本全点位），点击任意点即设为出生点并传送
+  function openSpawnMap(){
+    if(state.dead){ die(); return; }
+    var h=buildStrategicMapHTML({pickSpawn:true});
+    $card.innerHTML=h+'<button class="close" id="m-close">取 消</button>';
+    $modal.classList.remove('hidden');
+    currentModalKind='map';   // 与山河志一致，便于关闭/刷新逻辑复用
+    var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
+    initStrategicMapInGame({pickSpawn:true});
+  }
+  function toast(msg){ if(settings.sound) tick(480); $toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},1400); }
+
+  // ── 全局桥接（v20260825b）：shared/data/build.js 等数据文件中的交互回调在全局作用域
+  //    解析 openModal/log/exert/packFind…，需将游戏内部函数暴露到 window，否则建筑内面板（如铁砧打造）打开报 ReferenceError
+  window.openModal=openModal; window.closeModal=closeModal; window.log=log; window.toast=toast;
+  window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
+  // ── 全局桥接（v20260827j）：shared/story/rooms.js 等外部脚本的工厂闭包在全局作用域解析引擎函数，
+  //    缺一即报 ReferenceError（真实浏览器严格词法作用域）。全部补齐：移动/交互/战斗/招募/渲染。
+  window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction;
+  window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
+  window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;
+  window.startCombat=startCombat;
+  // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，
+  //    engine.js 及其拆分文件以裸名 state 访问（=window.state），rooms.js 等外部脚本以 window.state 只读访问。
+  //    注意：此处【不要】再用 getter 包装——旧版 IIFE 闭包内的 var state 已在重构时移除，
+  //    遗留 getter 的 `return state` 会解析回 window.state 自身，造成无限递归（进入游戏即崩溃）。
+  //    （如确需桥接只读访问，请用 Object.defineProperty(window,'state',{get:()=>G_State,set:v=>{G_State=v;},configurable:true}) 之类显式背衬变量，而非裸名递归。）
+  // ── 调试桥（城市营造系统，回归脚本用）：暴露只读/推进函数，不影响正常游戏 ──
+  window.DBG=window.DBG||{};
+  window.DBG.city={ startCityBuild:startCityBuild, cityBuildMat:cityBuildMat, cityBuildExert:cityBuildExert,
+    cityCellInst:cityCellInst, setCityCell:setCityCell, cellDisplayType:cellDisplayType, canEnterCell:canEnterCell,
+    tickBuildOrders:tickBuildOrders, collectRents:collectRents, buildOrderById:buildOrderById,
+    cityBuildBpList:cityBuildBpList, cityGridSize:cityGridSize, ensureCityState:ensureCityState,
+    state:function(){ return state; }, save:save };
+
+  // HTML 注入辅助（战斗卡片用）
+  function logHTML(html, cls){
+    var p=document.createElement('p');
+    p.className='narr '+(cls||'env');
+    p.innerHTML=html;
+    $narr.appendChild(p);
+    var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
+  }
+
+  // 纯文本 log（不包裹 narr CSS 动画，用于战斗行间动态插入）
+  function logText(text, cls){
+    var p=document.createElement('p');
+    p.className='narr '+(cls||'sys');
+    p.textContent=text;
+    $narr.appendChild(p);
+    var sc=document.getElementById('scene'); sc.scrollTop=sc.scrollHeight;
+    return p;
+  }
+
+  // ── 战斗动态效果辅助 ──
+  // 取得受击锚点（敌人卡 / 玩家状态区）
+  function combatAnchor(side, idx){
+    // DQ 队伍战斗：优先按 data-i 精确定位多单位卡片（飘字/受击动画挂到正确的敌人/队友）
+    if(idx!=null){
+      var sideCls = side==='enemy' ? 'dq-enemy' : 'dq-ally';
+      var dq = document.querySelectorAll('.dq-unit.'+sideCls);
+      for(var i=0;i<dq.length;i++){ if(dq[i].getAttribute('data-i')===String(idx)) return dq[i]; }
+      return dq.length ? dq[dq.length-1] : null;
+    }
+    var sel = side==='enemy' ? '#scene .c-enemy' : '#scene .c-player';
+    var list = document.querySelectorAll(sel);
+    return list.length ? list[list.length-1] : null;
+  }
+  // 给锚点加一次性动画 class
+  function flashAnchor(side, cls, ms, idx){
+    var a=combatAnchor(side, idx); if(!a) return;
+    var toks=String(cls).split(/\s+/).filter(Boolean);
+    toks.forEach(function(t){ a.classList.remove(t); });
+    void a.offsetWidth;
+    toks.forEach(function(t){ a.classList.add(t); });
+    setTimeout(function(){ toks.forEach(function(t){ a.classList.remove(t); }); }, ms||500);
+  }
+  // 伤害飘字：挂到承受方卡上方，浮起淡出
+  function floatDamage(dmg, side, crit, idx){
+    var a=combatAnchor(side, idx); if(!a) return;
+    var f=document.createElement('div');
+    f.className='dmg-float side-'+side+(crit?' crit':'');
+    f.textContent='-'+dmg;
+    a.appendChild(f);
+    setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 900);
+  }
+  // 漂浮文字标签（闪避/格挡等）
+  function floatLabel(side, txt, kind, idx){
+    var a=combatAnchor(side, idx); if(!a) return;
+    var f=document.createElement('div');
+    f.className='dmg-float label-'+kind+' side-'+side;
+    f.textContent=txt;
+    a.appendChild(f);
+    setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 900);
+  }
+  // 暴击金红爆裂粒子
+  function critBurst(side, idx){
+    var a=combatAnchor(side, idx); if(!a) return;
+    var b=document.createElement('div'); b.className='crit-burst side-'+side; a.appendChild(b);
+    setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 620);
+  }
+  // 受击：红闪 + 后仰
+  function flashHit(side, crit, idx){ flashAnchor(side, crit?'hit hit-crit':'hit', 560, idx); }
+  // 攻击武器字 / 受击印记 挂载到状态卡（随机微偏移，避免重叠）
+  var ATK_GLYPH={fist:'拳',sword:'剑',blade:'刀',spear:'枪',staff:'棍',hammer:'锤',whip:'鞭',fire:'焰'};
+  function combatAnchorAppend(side, html, cls, life, idx){
+    var a=combatAnchor(side, idx); if(!a) return null;
+    var el=document.createElement('div'); el.className=cls; el.innerHTML=html;
+    var rx=(Math.random()*46-23), ry=(Math.random()*28-14);
+    el.style.left='calc(50% + '+rx+'px)';
+    el.style.top='calc(46% + '+ry+'px)';
+    a.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, life||760);
+    return el;
+  }
+  // 攻击方"冒出武器"字（拳/剑/刀…）
+  function popWeapon(side, line){ combatAnchorAppend(side, ATK_GLYPH[line]||'击', 'wpop', 640); }
+  // 受击方差异化印记：拳印/剑痕/刀影…，kind 可叠加 wound(伤痕)/bandage(绷带)
+  // 图像化管线：每种武学一张专属图，放到 IMPACT_IMAGES 即可生效；未配置的武器线回退 CSS 闷痕
+  // fist: AI 生成的写实皮下淤青拳印（已去白底/去水印），multiply 正片叠底融入卡面
+  var IMPACT_IMAGES = { fist: 'assets/impacts/fist_clean.png' };
+  function floatImpact(side, line, kind, idx){
+    line = line || 'fist';
+    var kindCls = (kind && kind!=='hit') ? ' imp-'+kind : '';
+    var life = kind==='wound' ? 1200 : (kind==='bandage' ? 1000 : 760);
+    var img = IMPACT_IMAGES[line];
+    if(img){
+      var a=combatAnchor(side, idx); if(!a) return null;
+      var el=document.createElement('img');
+      el.className='impact is-img imp-'+line+kindCls; el.src=img; el.alt='';
+      var rx=(Math.random()*46-23), ry=(Math.random()*28-14);
+      el.style.left='calc(50% + '+rx+'px)';
+      el.style.top='calc(46% + '+ry+'px)';
+      a.appendChild(el);
+      setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, life);
+      return el;
+    }
+    combatAnchorAppend(side, '', 'impact noimg imp-'+line+kindCls, life, idx);
+  }
+  // 格挡：蓝盾光
+  function flashBlock(side, idx){ flashAnchor(side, 'block', 620, idx); }
+  // 闪避：灰字"闪" + 抖动
+  function showDodge(side, idx){
+    floatLabel(side, '闪', 'dodge', idx);
+    flashAnchor(side, 'dodge', 420, idx);
+  }
+  // 受击/暴击震屏
+  function shakeScene(){
+    var sc=document.getElementById('scene'); if(!sc) return;
+    sc.classList.remove('shake'); void sc.offsetWidth; sc.classList.add('shake');
+    setTimeout(function(){ sc.classList.remove('shake'); }, 340);
+  }
+  // 战斗日志：分类样式 + 类型图标 + 暴击/受击/格挡/闪避差异化特写
+  var COMBAT_ICON={
+    player_atk:'⚔', enemy_atk:'🗡', buff:'⬆', debuff:'☣',
+    dot:'☠', counter:'⚡', heal:'✚', system:'·'
+  };
+  // 敌人立绘（emoji 大图标，按 id 映射；缺省回退 👤）
+  var ENEMY_PORTRAIT={
+    bandit:'🥷', bandit_chief:'👹', yellow_turban:'🛡️', hua_xiong:'⚔️',
+    dummy:'🪵', heishan_zei:'🔥', heishan_zhu:'👺',
+    hungry_refugee:'🥺', stray_dog:'🐕', deserter:'💂'
+  };
+  var PLAYER_PORTRAIT='🧍';
+
+  // ── 立绘：分层 SVG 武将（替代 emoji 小图标）──
+  // 每个敌人按配色/武器区分；玩家为主角携长枪。facing 控制对峙朝向。
+  var PORTRAIT_CFG={
+    bandit:{body:'#4a5568',trim:'#2d3748',cape:'#2b6cb0',weapon:'sword'},
+    bandit_chief:{body:'#553c2b',trim:'#3b2a1d',cape:'#9b2c2c',weapon:'axe'},
+    yellow_turban:{body:'#6b6b3a',trim:'#4a4a26',cape:'#b7791f',weapon:'shield'},
+    hua_xiong:{body:'#742a2a',trim:'#4a1a1a',cape:'#c53030',weapon:'blade'},
+    dummy:{body:'#8a6d3b',trim:'#5c4a26',cape:'#6b4f2a',weapon:'none'},
+    heishan_zei:{body:'#3a2e2e',trim:'#241c1c',cape:'#dd6b20',weapon:'axe'},
+    heishan_zhu:{body:'#2d1b1b',trim:'#1a0f0f',cape:'#9b2c2c',weapon:'blade'},
+    hungry_refugee:{body:'#718096',trim:'#4a5568',cape:'#a0aec0',weapon:'none'},
+    stray_dog:{body:'#8b5a2b',trim:'#5c3a1c',cape:'#744210',weapon:'none',small:true},
+    deserter:{body:'#4a5568',trim:'#2d3748',cape:'#3182ce',weapon:'spear'},
+    _player:{body:'#1a365d',trim:'#0bc5ea',cape:'#ecc94b',weapon:'spear'}
+  };
+  function weaponSvg(type, color){
+    switch(type){
+      case 'sword': return '<path class="p-weapon" d="M70 62 L106 30" stroke="'+color+'" stroke-width="5" stroke-linecap="round"/>';
+      case 'spear': return '<line class="p-weapon" x1="72" y1="64" x2="114" y2="40" stroke="'+color+'" stroke-width="5" stroke-linecap="round"/><path d="M114 40 l9 -5 -6 10 z" fill="'+color+'"/>';
+      case 'axe': return '<line class="p-weapon" x1="72" y1="64" x2="110" y2="42" stroke="'+color+'" stroke-width="5"/><path d="M110 42 q16 -3 13 13 q-13 3 -13 -13z" fill="'+color+'"/>';
+      case 'blade': return '<path class="p-weapon" d="M70 60 Q102 42 112 24 Q104 46 70 66 Z" fill="'+color+'"/>';
+      case 'shield': return '<path class="p-weapon" d="M72 56 q17 0 17 19 q0 17 -17 23 q-17 -6 -17 -23 q0 -19 17 -19z" fill="'+color+'"/>';
+      default: return '';
+    }
+  }
+  function buildPortrait(side, id){
+    var cfg=(side==='player')?PORTRAIT_CFG._player:(PORTRAIT_CFG[id]||PORTRAIT_CFG.bandit);
+    var facing=(side==='player')?1:-1;
+    var w=weaponSvg(cfg.weapon, cfg.trim);
+    var s=cfg.small?0.8:1;
+    return '<svg class="pt-svg" viewBox="0 0 120 160">'
+      +'<g transform="translate(60 0) scale('+(facing*s)+' 1) translate(-60 0)">'
+      +'<ellipse class="p-shadow" cx="60" cy="153" rx="32" ry="6" fill="rgba(0,0,0,.18)"/>'
+      +'<g class="p-body">'
+      +'<path class="p-leg" d="M50 96 L46 150 L56 150 L60 104 Z" fill="'+cfg.trim+'"/>'
+      +'<path class="p-leg" d="M70 96 L74 150 L64 150 L60 104 Z" fill="'+cfg.trim+'"/>'
+      +'<path class="p-cape" d="M44 62 L28 126 Q44 132 52 112 Z" fill="'+cfg.cape+'" opacity=".92"/>'
+      +'<path class="p-torso" d="M42 58 Q60 50 78 58 L74 102 Q60 110 46 102 Z" fill="'+cfg.body+'"/>'
+      +'<circle class="p-head" cx="60" cy="40" r="16" fill="#f1d3a8"/>'
+      +'<path class="p-helm" d="M44 41 Q60 15 76 41 L72 37 Q60 25 48 37 Z" fill="'+cfg.trim+'"/>'
+      +'<path class="p-helm" d="M60 22 L60 15" stroke="'+cfg.cape+'" stroke-width="3" stroke-linecap="round"/>'
+      +w
+      +'</g></g></svg>';
+  }
+  // 出招前摇：攻击方身体前倾（一次性动画）
+  function markAttack(side){
+    var a=combatAnchor(side); if(!a) return;
+    a.classList.remove('attacking'); void a.offsetWidth; a.classList.add('attacking');
+    setTimeout(function(){ a.classList.remove('attacking'); }, 520);
+  }
+  // 暴击特写：场景暗角 + 轻微推近（一次性）
+  function markSceneCrit(){
+    var sc=document.getElementById('scene'); if(!sc) return;
+    sc.classList.remove('crit-moment'); void sc.offsetWidth; sc.classList.add('crit-moment');
+    setTimeout(function(){ sc.classList.remove('crit-moment'); }, 560);
+  }
+  // 武侠「斬」印章：暴击 / 斩将时盖下
+  function flashSeal(ch){
+    var s=document.createElement('div'); s.className='combat-seal'; s.textContent=ch||'斬';
+    document.body.appendChild(s); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 900);
+  }
+
+  // ── V5：轻量音效（Web Audio 合成，零外部资源）──
+  var SFX=(function(){
+    var ctx=null, enabled = true;   // 默认开；载入存档后由 syncSfxFromState() 同步
+    function ac(){
+      if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ctx=null; } }
+      if(ctx && ctx.state==='suspended'){ try{ ctx.resume(); }catch(e){} }
+      return ctx;
+    }
+    function tone(freq,dur,type,vol,delay){
+      var c=ac(); if(!c) return;
+      var t=c.currentTime+(delay||0);
+      var o=c.createOscillator(), g=c.createGain();
+      o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(vol||0.2,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t+dur+0.03);
+    }
+    return {
+      setEnabled:function(v){ enabled=v; },
+      isEnabled:function(){ return enabled; },
+      swing:function(){ if(!enabled) return; tone(520,0.10,'triangle',0.10); tone(760,0.07,'sine',0.05,0.02); },
+      hit:function(){ if(!enabled) return; tone(150,0.16,'sine',0.22); tone(85,0.20,'square',0.10,0.01); },
+      crit:function(){ if(!enabled) return; tone(900,0.10,'square',0.16); tone(1320,0.12,'sine',0.10,0.03); },
+      win:function(){ if(!enabled) return; [523,659,784,1047].forEach(function(f,i){ tone(f,0.42,'triangle',0.16,i*0.12); }); },
+      lose:function(){ if(!enabled) return; [392,330,262,196].forEach(function(f,i){ tone(f,0.5,'sine',0.16,i*0.14); }); }
+    };
+  })();
+
+  function logCombat(entry){
+    var text=entry.text||''; var cls=entry.type||'sys';
+    var crit=/暴击/.test(text);
+    if(crit) cls+=' crit';
+    if(entry.type==='player_atk'){ markAttack('player'); }
+    else if(entry.type==='enemy_atk'){ markAttack('enemy'); }
+    var el=logText(text, cls);
+    var ico=COMBAT_ICON[entry.type];
+    if(ico && !crit){ el.classList.add('ico'); el.setAttribute('data-ico', ico); }
+
+    // 目标侧（承受方）：谁在挨这一下
+    var side=null;
+    if(entry.type==='player_atk') side='enemy';
+    else if(entry.type==='enemy_atk') side='player';
+    else if(entry.type==='counter') side='enemy';
+    else if(entry.type==='dot') side=(entry.side==='enemy'?'enemy':'player');
+
+    if(/闪过|未命中/.test(text) && side){
+      showDodge(side);                              // 闪避：灰字 + 抖动
+    } else if(/格挡/.test(text)){
+      var bs = /^你/.test(text) ? 'player' : 'enemy'; // 谁在格挡
+      flashBlock(bs); floatLabel(bs,'格挡','block');  // 格挡：蓝盾光
+    } else if(entry.dmg && entry.dmg>0 && side){
+      floatDamage(entry.dmg, side, crit);           // 伤害飘字
+      flashHit(side, crit);                          // 受击红闪/后仰
+      floatImpact(side, entry.atkLine, 'hit');       // 受击差异化印记（拳印/剑痕/刀影…）
+      // 重伤：高频受击叠加"伤痕"裂迹
+      if(crit || entry.dmg>=20) floatImpact(side, entry.atkLine, 'wound');
+      // 濒危：低血时随机缠上"绷带"
+      var maxHp = side==='enemy' ? ((G.CombatEngine.state.enemies[0]||{}).maxHp||0) : effectiveStats().maxHp;
+      var curHp = side==='enemy' ? entry.eHp : entry.pHp;
+      if(maxHp && curHp!=null && curHp/maxHp < 0.3 && Math.random()<0.45) floatImpact(side, entry.atkLine, 'bandage');
+      if(crit){ critBurst(side); markSceneCrit(); flashSeal('斬'); }   // 暴击金红爆裂粒子 + 场景特写 + 武侠斩印
+    }
+    if(crit || (entry.dmg && entry.dmg>=25)) shakeScene();
+    // V5：音效
+    if(entry.type==='player_atk' || entry.type==='enemy_atk'){
+      if(crit) SFX.crit();
+      else { SFX.swing(); setTimeout(function(){ SFX.hit(); }, 110); }
+    } else if((entry.type==='counter' || entry.type==='dot') && entry.dmg){
+      SFX.hit();
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  //  战 斗 系 统（v0.2 半手动回合制 + 节拍 + 战意）
+  // ═══════════════════════════════════════════
+  var combatMode=null;  // null | 'manual'（DQ 战斗进行中）
+
+  /** 计算含装备+艺线加成的有效属性（P1 装备 / P2 艺线：攻/命中/暴击/内力/身法） */
+  function effectiveStats(){
+    var atk=state.atk, def=state.def, maxHp=state.maxHp, maxMp=state.maxMp, maxEnergy=state.maxEnergy, maxFood=state.maxFood, maxDrink=state.maxDrink, spd=state.spd;
+    LF.ITEMS.SLOT_KEYS.forEach(function(sl){
+      var eq=state.equipment[sl]; if(!eq) return;
+      atk+=(eq.atk||0); def+=(eq.def||0); maxHp+=(eq.hp||0); maxMp+=(eq.mp||0); spd+=(eq.spd||0);
+    });
+    // ── P2：艺线等级加成 ──
+    var lineAtk=0, lineCrit=0, lineHit=0, lineMp=0, lineSpd=0;
+    for(var l in state.lines){
+      var lv=state.lines[l]||0;
+      lineAtk += lv*0.6;
+      lineCrit += lv*0.003;
+      lineHit += lv*0.002;
+      if(l==='internal') lineMp += lv*1;   // 内功线 → 内力上限
+      if(l==='light')    lineSpd += lv*0.3; // 轻功线 → 身法
+    }
+    atk += lineAtk;
+    maxMp += lineMp;
+    spd += lineSpd;
+    var hitRate = Math.min(0.99, 0.92 + lineHit);
+    var critRate = Math.min(0.35, lineCrit);
+    return {atk:atk,def:def,maxHp:maxHp,maxMp:maxMp,maxEnergy:maxEnergy,maxFood:maxFood,maxDrink:maxDrink,spd:spd,hitRate:hitRate,critRate:critRate};
+  }
+  function clampHp(){ var mx=effectiveStats().maxHp; if(state.hp>mx) state.hp=mx; }
+  // 每场战斗结束（胜/败/逃）已装备耐久 -1，耗尽则损毁
+  function decayEquipment(){
+    var broken=[];
+    LF.ITEMS.SLOT_KEYS.forEach(function(sl){
+      var eq=state.equipment[sl]; if(!eq) return;
+      if(typeof eq.dur!=='number') return;   // 期初装具无耐久，不损耗
+      eq.dur-=1;
+      if(eq.dur<=0){ state.equipment[sl]=null; broken.push(eq.name); }
+    });
+    if(broken.length) log('【装备】'+broken.join('、')+' 耐久已尽，损毁弃之。','sys');
+    clampHp();
+  }
+  // 装备/卸下
+  function equipItem(id){
+    var idx=-1;
+    for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && c.cat==='装备' && c.defId===id){ idx=i; break; } }
+    if(idx<0) return;
+    var eq=state.pack[idx]; equipFromPackTo(idx, eq.slot);
+  }
+  function unequip(slot){ unequipToPack(slot); }
+
+  /** 开始战斗 */
+  function startCombat(enemyId, opt){
+    opt=opt||{};
+    // 校验敌人 id：无效则给出提示并中止，避免进入战斗后在 init 中崩溃
+    if(typeof enemyId==='string') enemyId=[enemyId];
+    var valid=(enemyId||[]).filter(function(id){ return G.ENEMIES && !!G.ENEMIES[id]; });
+    if(!valid.length){ log('〔系统〕此处并无可战之敌，刀兵无从施展。','sys'); return; }
+    var themeId = valid[0];
+    enemyId = valid;
+    // 注意：引导/教学状态统一存于 state.flags.onb（历史代码曾误用未定义的 state.onb，已统一修正）
+    if(opt.tutorial && state.flags.onb && !state.flags.onb.tcDone){
+      state.flags.onb.tcTutorial=true; state.flags.onb.tcDone=false; state.flags.onb.packGiven=false;
+      state.flags.onb.tcTried={atk:false,def:false};
+      state.flags.onb.tcMsgs={attack:false,defend:false,pack:false,use:false,finish:false};
+    }
+    var appEl=document.getElementById('app'); if(appEl) appEl.classList.add('in-combat');
+    document.body.classList.add('in-combat');   // 用于盖过 body.onb.reveal-* 的显示规则，战斗时隐藏 NPC/移动区
+    collapseObjPanel();           // 关闭可能开着的 NPC/对象面板，避免压在战场上
+    if(opt.tutorial && state.flags.onb && !state.flags.onb.tcDone) document.body.classList.add('tut-combat');
+    var es=effectiveStats();
+    var pstate=Object.assign({}, state, {
+      atk:es.atk, def:es.def, maxHp:es.maxHp, maxMp:es.maxMp, spd:es.spd,
+      hitRate:es.hitRate, critRate:es.critRate
+    });
+    // 组队作战：主角 + 同伴（state.party）。每场战斗同伴满血入场
+    var party=[pstate];
+    (state.party||[]).forEach(function(c){ if(c) party.push(Object.assign({}, c, { hp:c.maxHp })); });
+    var r=G.CombatEngine.init(party, enemyId);
+    if(r.error){ log(r.error,'sys'); return; }
+    // 战力缩放（v20260905d：改为作用于「本场战斗单位」，不再污染全局 ENEMIES 数据——
+    // 旧实现直接改 getEnemy() 返回的共享敌人定义，城门焚毁会把 city_guard 永久削弱且多次叠加）：
+    //   guardMul  → 城门被焚（不免疫火烧）守军战力下降
+    //   fieldLvl  → 郊野凶兽按等阶强化（1~3 阶：每级气血/攻/防约 +25%、速度约 +12%）
+    var _mulF = (opt.guardMul && opt.guardMul<1) ? opt.guardMul : ((opt.fieldLvl&&opt.fieldLvl>1) ? (1+0.25*(opt.fieldLvl-1)) : null);
+    if(_mulF){
+      var _mulS = (opt.fieldLvl&&opt.fieldLvl>1) ? (1+0.12*(opt.fieldLvl-1)) : null;
+      var _es=(G.CombatEngine.state && G.CombatEngine.state.enemies)||[];
+      _es.forEach(function(_e){
+        _e.hp=_e.maxHp=Math.max(1,Math.round((_e.maxHp||1)*_mulF));
+        _e.atk=Math.max(1,Math.round((_e.atk||0)*_mulF));
+        _e.def=Math.max(1,Math.round((_e.def||0)*_mulF));
+        if(_mulS) _e.spd=Math.max(1,Math.round((_e.spd||10)*_mulS));
+      });
+    }
+    // V3：战场氛围（按敌人定主题背景）
+    var SCENE_THEME={ bandit:'camp', bandit_chief:'camp', heishan_zei:'camp', heishan_zhu:'fort',
+      yellow_turban:'altar', hua_xiong:'snow', stray_dog:'wild', hungry_refugee:'wild',
+      deserter:'wild', wuhuan_scout:'wild', city_guard:'fort', dummy:'train' };
+    var sceneEl=document.getElementById('scene');
+    if(sceneEl){ sceneEl.dataset.bg = SCENE_THEME[themeId] || 'plain'; sceneEl.classList.remove('bg-danger'); }
+    state.energy=Math.max(0,state.energy-5);   // 应战耗精力
+    $narr.innerHTML='';
+    flushNarr();                 // 丢弃旧场景残留文字，避免串场
+    var enemy=G.CombatEngine.getEnemy();
+    log('──── 狭路相逢 ────','combat');
+    log((enemy.title?('「'+enemy.title+'」'):'')+enemy.name+' 拦住去路！','title');
+    // 卡牌战斗系统已移除，统一走 DQ 风格队伍回合制（常规战斗 / 教学战均走此路）
+    combatMode='manual';
+    dqInitCombat();   // DQ 风格：列阵 + 逐人下令 + 攻击选目标 + 敌群齐出
+  }
+
+  /** 开场教学战斗是否激活 */
+  function tutCombatActive(){ return !!(state.flags.onb && state.flags.onb.tcTutorial && !state.flags.onb.tcDone); }
+  /** 老乞丐扔来行囊：给金疮药 + 点亮行囊 + 解锁道具按钮 */
+  function tutThrowPack(){
+    if(!state.flags.onb) return;
+    if(state.flags.onb.packGiven) return;   // 防重复发放
+    state.flags.onb.packGiven=true;
+    packAdd('jinchuang',1);   // 老乞丐赠金疮药（已堆叠则 +1）
+    onbReveal('dock'); highlightOnb('dock'); save(state); renderStatus();
+    log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤（下头「道具」已点亮）。','env');
+    save(state);
+  }
+
+  /** 当前教学步骤：'attack'|'defend'|'item'|'finish'（非教学返回 null） */
+  function tutStep(){
+    if(!tutCombatActive()) return null;
+    var t=state.flags.onb;
+    return !t.tcTried.atk ? 'attack' : (!t.tcTried.def ? 'defend' : (!t.tcUsedItem ? 'item' : 'finish'));
+  }
+
+  /**
+   * 开场教学战：脚本化演出（复用 DQ 战斗卡渲染）。
+   * 设计：主角出手多为虚招（打在空气），真正重创官差的是老乞丐的「无名掌法」；
+   * 主角只会被刀芒锐气擦伤——由此自然引出「行囊/金疮药」教学，将剧情、引导、系统功能合而为一。
+   */
+  function tutCombatAct(actionId){
+    var eng=G.CombatEngine, st=eng.state;
+    var enemy=st.enemies[0], p=st.playerUnits[0];
+    var expect=tutStep();   // 当前应当练习的步骤（严格状态机，杜绝乱序导致的死循环）
+    if(actionId!=='attack' && actionId!=='defend') return;  // 教学战只处理攻/防（道具走 dqOpenItems）
+
+    // 点错按钮：老乞丐温和纠正，不推进、不扣血、敌人不死 —— 永远只能靠"当前高亮的那一步"前进
+    if(expect==='attack' && actionId!=='attack'){
+      log('「别急——先点〔攻击〕，试试你的拳脚！」','npc','老乞丐'); return;
+    }
+    if(expect==='defend' && actionId!=='defend'){
+      log('「攻击你会了，这回试试〔防御〕——看敌势，借力卸力！」','npc','老乞丐'); return;
+    }
+    if(expect==='item'){
+      log('「先用〔道具〕取金疮药，治你臂上刀伤——疗伤也是功夫！」','npc','老乞丐'); return;
+    }
+    if(expect==='finish' && actionId!=='attack'){
+      log('「攻防皆会、伤也疗了——再点〔攻击〕，送他上路！」','npc','老乞丐'); return;
+    }
+
+    // ── 点对了：按步骤演出 ──
+    if(actionId==='defend'){
+      state.flags.onb.tcTried.def=true;
+      log('你依言横臂护住要害。老乞丐掌风一引，将官差的刀势荡开，顺势一掌印在他马腹——','env');
+      log('「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
+      enemy.hp=Math.max(1, enemy.hp-40);
+    } else {   // attack
+      if(expect==='attack'){   // 首击完整演出
+        state.flags.onb.tcTried.atk=true;
+        log('你摆开架势强装镇静，随手一拳却打在空气——官差跃马挥刀，迎面劈下！','env');
+        log('老乞丐无名掌法暴起，劲气错身而过，顺手拽你衣领躲过杀招；刀芒锐气擦过，在你臂上划开一道血口。','env');
+        enemy.hp=Math.max(1, enemy.hp-120);
+        p.hp=Math.max(1, p.hp-22); state.hp=p.hp;     // 刀芒锐气砍伤
+        if(!state.flags.onb.packGiven) tutThrowPack();  // 受伤后老乞丐甩出行囊 → 解锁「道具」教学
+      } else {   // expect==='finish' 收尾击杀
+        log('老乞丐无名掌法再起，掌力如潮，一掌正印在官差胸口，将他连人带马震退数丈！','env');
+        enemy.hp=0;
+      }
+    }
+    dqRenderCard();   // 同步 DQ 卡面血条
+    save(state);
+    if(enemy.hp<=0){ st.result='win'; endCombat('win'); return; }
+    dqRenderRound();
+  }
+
+  // ── DQ 风格队伍战斗（常规/教学战斗共用）：列阵卡 + 逐人下令 ──
+  var dqCardEl=null;
+  var dqOrders=[];        // 本回合各队员指令 {unit, actionId, targetIdx}
+  var dqCursor=0;         // 正在下令的队员序号（按存活队伍顺序）
+  var dqBusy=false;       // 结算动画进行中，禁止重复操作
+  // 胜负结算特写覆盖层
+  function playCombatFx(kind){
+    var fx=document.createElement('div');
+    fx.className='combat-fx '+kind;
+    var w=document.createElement('div'); w.className='fx-word';
+    w.textContent= kind==='win'?'胜':'败';
+    fx.appendChild(w);
+    if(kind==='win'){
+      for(var i=0;i<16;i++){
+        var s=document.createElement('span'); s.className='fx-spark';
+        s.style.left=(Math.random()*100)+'%';
+        s.style.animationDelay=(Math.random()*0.6).toFixed(2)+'s';
+        s.style.animationDuration=(1.0+Math.random()*0.6).toFixed(2)+'s';
+        fx.appendChild(s);
+      }
+    } else {
+      var c=document.createElement('div'); c.className='fx-crack'; fx.appendChild(c);
+    }
+    document.body.appendChild(fx);
+    setTimeout(function(){ if(fx.parentNode) fx.parentNode.removeChild(fx); }, kind==='win'?1300:1650);
+  }
+
+  // ===================== DQ 风格队伍回合制（常规/教学战斗共用）=====================
+  // 传统勇者斗恶龙式：敌群在右、我方在左列阵；逐名队员下令（攻击需选目标 / 防御 / 道具 / 撤退）；
+  // 全员出招后，敌群依序反击。简化掉五行克制提示、战意连击等花哨显示，只保留清晰血条与意图。
+
+  /** 进入 DQ 战斗：建卡 + 预告敌意 + 渲染列阵 + 开首回合 */
+  function dqInitCombat(){
+    dqResetRage();   // 新战斗重置"狂怒转阶段"演出标记
+    dqCardEl=document.getElementById('dq-combat-card');
+    if(!dqCardEl){ dqCardEl=document.createElement('div'); dqCardEl.id='dq-combat-card'; dqCardEl.className='combat-card dq-combat-card'; var _sc=document.getElementById('scene'); if(_sc) _sc.appendChild(dqCardEl); }
+    if(!dqCardEl._skipBound){ dqCardEl._skipBound=true;   // 点击战斗卡 = 演出快进（跳过当前段等待，连点加速过场）
+      dqCardEl.addEventListener('click', function(e){
+        if(e.target && e.target.closest && e.target.closest('button, a')) return;
+        if(dqPlaySkip) dqPlaySkip();
+      });
+    }
+    G.CombatEngine.peekEnemyIntents();
+    dqRenderCard();
+    log('〔行动顺序条：蓝=我方指令，红=敌方意图，数字为出手节奏（越小越快）〕','sys');
+    setTimeout(function(){ dqRenderRound(); }, 400);
+  }
+
+  /** 渲染列阵（敌人 + 我方，含血量/意图） */
+  function dqRenderCard(){
+    if(!dqCardEl) return;
+    var st=G.CombatEngine.getStatus();
+    // 同名敌人追加 甲乙丙… 区分（预计算一次，避免死亡分支重复计数）
+    var nameCount={}, orderSeen={}, enemyLabels={};
+    st.enemies.forEach(function(e){ nameCount[e.name]=(nameCount[e.name]||0)+1; });
+    st.enemies.forEach(function(e){ orderSeen[e.name]=(orderSeen[e.name]||0)+1; var n=orderSeen[e.name];
+      enemyLabels[e.idx]= nameCount[e.name]>1 ? (e.name + ['甲','乙','丙','丁','戊','己'][n-1]) : e.name; });
+    function hpBar(u){ var pct=Math.max(0,Math.round(u.hp/u.maxHp*100)); var cls=pct>50?'dq-hp':pct>25?'dq-hp-warn':'dq-hp-danger'; return '<div class="dq-hpbar"><span class="dq-hpfill '+cls+'" style="width:'+pct+'%"></span></div><div class="dq-hpv">'+Math.max(0,u.hp)+' / '+u.maxHp+'</div>'; }
+    function debuffs(u){ var s=''; (u.dots||[]).forEach(function(d){ s+='<span class="dq-debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+'</span>'; }); return s; }
+
+    var html='<div class="dq-field">';
+    html+='<div id="dq-orderbar" class="dq-orderbar" aria-label="行动顺序"></div>';
+    html+='<div class="dq-side dq-enemies">';
+    st.enemies.forEach(function(e){
+      if(e.hp<=0){ html+='<div class="dq-unit dq-enemy dead"><div class="dq-uname">'+enemyLabels[e.idx]+'</div><div class="dq-dead">已败</div></div>'; return; }
+      var intent = e.intent ? (e.intent==='defend'?'摆出防御架势':('欲施「'+(e.intent.name||'普攻')+'」')) : '';
+      html+='<div class="dq-unit dq-enemy" data-i="'+e.idx+'">'+
+        '<div class="dq-uname">'+enemyLabels[e.idx]+'</div>'+ hpBar(e)+
+        (intent?'<div class="dq-intent'+(e.intent!=='defend'&&e.intent.dmgMul>=1.5?' heavy':'')+'">'+(e.intent!=='defend'&&e.intent.dmgMul>=1.5?'⚠ ':'')+intent+'</div>':'')+
+        debuffs(e)+'</div>';
+    });
+    html+='</div>';
+    html+='<div class="dq-side dq-party">';
+    st.playerUnits.forEach(function(u){
+      html+='<div class="dq-unit dq-ally'+(u.hp<=0?' dead':'')+'" data-i="'+u.idx+'">'+
+        '<div class="dq-uname">'+u.name+(u.idx===0?'（你）':'')+'</div>'+ hpBar(u)+ debuffs(u)+'</div>';
+    });
+    html+='</div>';
+    html+='<div class="dq-round">—— 第 '+st.round+' 回合 ——</div>';
+    html+='</div>';
+    dqCardEl.innerHTML=html;
+    dqRenderOrderBar();
+  }
+
+  /** P0-1 行动顺序条：渲染本回合行动序列（我方指令序→敌方意图序），beat 徽标 = 出手节奏 */
+  function dqRenderOrderBar(){
+    var el=document.getElementById('dq-orderbar');
+    if(!el) return;
+    var eng=G.CombatEngine.state;
+    if(!eng) return;
+    var cells=[];
+    // ── 我方段：存活队员按 dqOrders 指令序（未下令显示待定，当前光标单位加亮框） ──
+    var cursorUnit=null;
+    if(dqCursor!=null){
+      var liveUnits=eng.playerUnits.filter(function(u){ return u.hp>0; });
+      cursorUnit=liveUnits[dqCursor];
+    }
+    eng.playerUnits.forEach(function(u){
+      if(u.hp<=0) return;
+      var o=null;
+      for(var i=0;i<dqOrders.length;i++){ if(dqOrders[i].unit===u){ o=dqOrders[i]; break; } }
+      var label, beat=null;
+      if(o){
+        if(o.actionId==='defend'){ label='防御'; beat=30; }
+        else if(o.actionId==='item'){ label='用道具'; beat=25; }
+        else { var a=u.artMap[o.actionId]||u.artMap['beng_quan']; label=(a&&a.name)||'普攻'; beat=(a&&a.beat)||null; }
+      } else { label='待定'; }
+      var cls='p'+(o?'':' wait')+(u===cursorUnit?' cur':'');
+      cells.push('<span class="dq-order-step '+cls+'"><span class="ob-name">'+(u.idx===0?'你':u.name)+'</span><span class="ob-act">'+(o?label:'待下令')+'</span>'+(beat?beatBadge(beat):'')+'</span>');
+    });
+    cells.push('<span class="dq-order-div">▼ 敌方行动</span>');
+    // ── 敌方段：存活敌人按已预告意图（蓄力重招标红） ──
+    eng.enemies.forEach(function(e){
+      if(e.hp<=0) return;
+      var act=e.intent;
+      var label, beat=null, heavy=false, done=false;
+      if(act==='defend'){ label='防御'; beat=30; done=true; }
+      else if(act && typeof act==='object'){ label='「'+(act.name||'普攻')+'」'; beat=act.beat||null; heavy=(act.dmgMul||0)>=1.5; done=true; }
+      else { label='待定'; }
+      var cls='e'+(done?'':' wait')+(heavy?' heavy':'');
+      cells.push('<span class="dq-order-step '+cls+'"><span class="ob-name">'+e.name+'</span><span class="ob-act">'+(done?label:'待意图')+'</span>'+(beat?beatBadge(beat):'')+(heavy?'<span class="ob-beat slow">重</span>':'')+'</span>');
+    });
+    el.innerHTML=cells.join('<span class="dq-order-arrow">→</span>');
+  }
+  function beatBadge(b){
+    var cls=b<=20?'fast':(b<=30?'mid':'slow');
+    var label=b<=20?'快':(b<=30?'中':'慢');
+    return '<span class="ob-beat '+cls+'">'+label+b+'</span>';
+  }
+
+  /** 开场：清空本回合指令、预告敌意、进入首名队员下令 */
+  function dqRenderRound(){
+    if(dqBusy) return;
+    dqOrders=[]; dqCursor=0;
+    G.CombatEngine.peekEnemyIntents();
+    dqRenderCard();
+    setTimeout(dqNextCommand, 200);
+  }
+
+  /** 轮到当前队员下令（必须用引擎真实单位对象：带 artIds/artMap，getStatus 副本不含） */
+  function dqNextCommand(){
+    var units=G.CombatEngine.state.playerUnits.filter(function(u){ return u.hp>0; });
+    if(dqCursor>=units.length){ dqResolveRound(); return; }
+    dqRenderCommands(units[dqCursor]);
+  }
+
+  /** 显示某队员命令菜单（DQ 四选项；教学战接入 tutCombatAct 脚本演出 + 分步引导高亮） */
+  function dqRenderCommands(unit){
+    var ra=document.getElementById('actions'); if(!ra) return;
+    ra.innerHTML='';
+    var tut=tutCombatActive();
+    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent=(unit.idx===0?'你':unit.name)+' 的回合'+(tut?'〔教学演练中〕':''); ra.appendChild(tip);
+    var step=tut?tutStep():null;
+    // 教学引导文案（剧情与引导合一）：攻击 → 防御 → 道具 → 收尾
+    if(tut){
+      var stT=G.CombatEngine.state;
+      // 受伤即由老乞丐扔出行囊（首击时已在 tutCombatAct 内抛出，此处兜底）
+      if(!state.flags.onb.packGiven && (stT.playerUnits[0].hp < stT.playerUnits[0].maxHp || (state.flags.onb.tcTried.atk && state.flags.onb.tcTried.def))){
+        tutThrowPack();
+      }
+      if(step==='attack'){ if(!state.flags.onb.tcMsgs.attack){ log('「先点亮的〔攻击〕，挫他锐气！」','npc','老乞丐'); state.flags.onb.tcMsgs.attack=true; } }
+      else if(step==='defend'){ if(!state.flags.onb.tcMsgs.defend){ log('「再点〔防御〕——看敌势，借力卸力，莫硬接！」','npc','老乞丐'); state.flags.onb.tcMsgs.defend=true; } }
+      else if(step==='item'){ if(!state.flags.onb.tcMsgs.use){ log('「点〔道具〕，取金疮药治你臂上刀伤！」','npc','老乞丐'); state.flags.onb.tcMsgs.use=true; } }
+      else { if(!state.flags.onb.tcMsgs.finish){ log('「好生养着。再点〔攻击〕，送这乌桓斥候上路！」','npc','老乞丐'); state.flags.onb.tcMsgs.finish=true; } }
+    }
+    function btn(label, fn, cls){ var b=document.createElement('button'); b.className='act cb-menu'+(cls?' '+cls:''); b.classList.remove('locked'); b.textContent=label; b.onclick=fn; ra.appendChild(b); }
+    btn('攻击', function(){ if(tut){ tutCombatAct('attack'); return; } dqShowTargets(unit); }, tut&&(step==='attack'||step==='finish')?'onb-glow':null);
+    btn('防御', function(){ if(tut){ tutCombatAct('defend'); return; } dqOrders.push({unit:unit, actionId:'defend'}); dqAdvance(); }, tut&&step==='defend'?'onb-glow':null);
+    // 教学：老乞丐赠行囊前不显示「道具」，避免提前绕过关卡；正常战恒显示
+    if(!(tut && !state.flags.onb.packGiven)) btn('道具', function(){ dqOpenItems(unit); }, tut&&step==='item'?'onb-glow':'item');
+    var fleePct = 78;
+    try { fleePct = Math.max(20, Math.min(95, Math.round(G.CombatEngine.fleeChance()*100))); } catch(_e) {}
+    btn('撤退·' + fleePct + '%', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','老乞丐'); return; } dqTryFlee(unit); }, 'flee');
+    // 武学：选择已学招式（连线已有的 G.MARTIAL_ARTS，使之在战斗里真正可用）
+    if(!tut && unit.artIds.length){
+      btn('武学', function(){ dqShowArts(unit); }, 'skill');
+    }
+  }
+
+  /** 武学：列出该队员已学招式，选后进入目标选择 */
+  function dqShowArts(unit){
+    var ra=document.getElementById('actions'); if(!ra) return;
+    ra.innerHTML='';
+    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='选择武学'; ra.appendChild(tip);
+    (unit.artIds||[]).forEach(function(aid){
+      var a=G.MARTIAL_ARTS.get(aid); if(!a) return;
+      var b=document.createElement('button'); b.className='act cb-menu skill';
+      b.textContent=a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':''));
+      b.onclick=function(){ dqShowTargets(unit, aid); };
+      ra.appendChild(b);
+    });
+    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
+  }
+
+  /** 攻击：选择目标敌人（forcedAid 指定招式，缺省用 beng_quan） */
+  function dqShowTargets(unit, forcedAid){
+    var ra=document.getElementById('actions'); if(!ra) return;
+    ra.innerHTML='';
+    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='选择攻击目标'; ra.appendChild(tip);
+    var st=G.CombatEngine.getStatus();
+    var aid = forcedAid || (unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan'));
+    st.enemies.forEach(function(e){
+      if(e.hp<=0) return;
+      var b=document.createElement('button'); b.className='act cb-menu'; b.textContent=e.name+(st.enemies.filter(function(x){return x.name===e.name;}).length>1?(' '+(['甲','乙','丙','丁','戊'][e.idx]||(e.idx+1))):'');
+      b.onclick=function(){ dqOrders.push({unit:unit, actionId:aid, targetIdx:e.idx}); dqAdvance(); }; ra.appendChild(b);
+    });
+    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
+  }
+
+  /** 道具：给该队员使用恢复类道具 / 暗器（即时结算，占用该队员本回合） */
+  function dqOpenItems(unit){
+    var ra=document.getElementById('actions'); if(!ra) return;
+    if(tutCombatActive()){
+      var _stp=tutStep();
+      if(_stp!=='item'){
+        log('「先按眼下点亮的练——' + (_stp==='attack'?'先点〔攻击〕，试试拳脚！':(_stp==='defend'?'先练〔防御〕，借力卸力！':'攻防皆会、伤也疗了——点〔攻击〕送他上路！')) + '」','npc','老乞丐');
+        dqRenderCommands(unit); return;
+      }
+    }
+    var usables=packList().filter(function(it){ return it.effect && (it.effect.hp||it.effect.mp||it.effect.dmg); });
+    if(!usables.length){ log('〔行囊空空，无物可用。〕','sys'); dqRenderCommands(unit); return; }
+    ra.innerHTML='';
+    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='给 '+(unit.idx===0?'你':unit.name)+' 使用'; ra.appendChild(tip);
+    usables.forEach(function(it){
+      var b=document.createElement('button'); b.className='act cb-menu item'; b.textContent=it.name+(it.count>1?(' ×'+it.count):'');
+      b.onclick=function(){
+        var st=G.CombatEngine.state;
+        if(it.effect.dmg){   // 暗器：直接伤当前存活的首名敌人
+          var tgt=st.enemies.filter(function(x){ return x.hp>0; })[0];
+          if(!tgt){ log('敌阵已无活口。','sys'); dqRenderCommands(unit); return; }
+          var d=it.effect.dmg;
+          tgt.hp=Math.max(0, tgt.hp-d);
+          dqConsumeItem(it.defId);
+          dqOrders.push({unit:unit, actionId:'item'});
+          log((unit.idx===0?'你':unit.name)+'抖手发出「'+it.name+'」，重创'+tgt.name+' '+d+' 点！','player');
+          dqRenderCard();
+          if(st.enemies.every(function(x){ return x.hp<=0; })){ st.result='win'; dqFinish(); return; }  // 暗器毙敌立即结算
+          if(tutCombatActive()){ state.flags.onb.tcUsedItem=true; save(state); dqRenderRound(); return; }
+          dqAdvance(); return;
+        }
+        var before=unit.hp;
+        unit.hp=Math.min(unit.maxHp, unit.hp+(it.effect.hp||0));
+        unit.mp=Math.min(unit.maxMp, unit.mp+(it.effect.mp||0));
+        if(unit.idx===0){ state.hp=unit.hp; state.mp=unit.mp; }
+        dqConsumeItem(it.defId);
+        dqOrders.push({unit:unit, actionId:'item'});   // 占用该队员本次行动
+        log((unit.idx===0?'你':unit.name)+'使用'+it.name+'，回复 '+Math.max(0,unit.hp-before)+' 气血。','good');
+        if(tutCombatActive()){ state.flags.onb.tcUsedItem=true; save(state); dqRenderRound(); return; }  // 教学：不走引擎回合，直接进入下一引导步
+        dqRenderCard(); dqAdvance();
+      };
+      ra.appendChild(b);
+    });
+    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
+  }
+  function dqConsumeItem(defId){
+    for(var i=0;i<state.pack.length;i++){ if(state.pack[i] && state.pack[i].defId===defId){ state.pack[i].count--; if(state.pack[i].count<=0) state.pack[i]=null; break; } }
+  }
+
+  /** 撤退：全队尝试脱身（主角判定） */
+  function dqTryFlee(unit){
+    var r=G.CombatEngine.tryFlee();
+    log(r.text,'sys');
+    if(r.success){ endCombat('fled'); return; }
+    if(r.log) r.log.forEach(function(e){ log(e.text,e.type||'sys'); });
+    var st=G.CombatEngine.getStatus();
+    if(st.result){ endCombat(st.result); return; }
+    if(st.playerUnits[0].hp<=0){ endCombat('lose'); return; }
+    log('敌军围困，脱身不得！','sys');
+    dqAdvance();   // 逃跑失败，该队员本回合作废
+  }
+
+  /** 推进到下一名队员 */
+  function dqAdvance(){ dqCursor++; dqRenderOrderBar(); dqNextCommand(); }
+
+  /** 全员下令完毕：结算 玩家阶段 → 敌方阶段 → 下一回合 */
+  function dqResolveRound(){
+    dqBusy=true; clearActions();
+    var pLog=G.CombatEngine.runPlayerPhase(dqOrders);
+    dqPlayLog(pLog, function(){
+      if(G.CombatEngine.state.result){ dqFinish(); return; }
+      var eLog=G.CombatEngine.runEnemyPhase();
+      dqPlayLog(eLog, function(){
+        if(G.CombatEngine.state.result){ dqFinish(); return; }
+        dqBusy=false; dqOrders=[]; dqCursor=0; dqRenderRound();
+      });
+    });
+  }
+
+  /** 逐条回放战斗日志：直接写入叙事层并刷新列阵（不受打字锁影响）。
+   *  点击战斗卡可立即结束当前段等待（连点加速过场）；演出结束自动清除钩子。 */
+  var dqPlaySkip=null;
+  function dqPlayLog(log, done){
+    var i=0, timer=null;
+    function step(){
+      if(i>=log.length){ dqPlaySkip=null; if(done) done(); return; }
+      var e=log[i++];
+      dqPush(e.text);
+      dqRenderCard();                // 先刷新列阵（含最新血量/意图），再挂飘字/受击特效，避免重建卡片清掉刚挂上的特效
+      dqFx(e);                       // DQ 战斗表现层：飘字/受击/暴击/克制/狂怒演出（v20260831r）
+      var d=(e.type==='player_atk'||e.type==='enemy_atk')?520:(e.type==='counter'||e.type==='dot')?420:300;
+      timer=setTimeout(step, d);
+    }
+    dqPlaySkip=function(){ if(timer){ clearTimeout(timer); timer=null; } step(); };
+    step();
+  }
+  // ── DQ 战斗表现层（v20260831r）：每条引擎日志回放时驱动飘字/受击/暴击/克制/狂怒演出 ──
+  // 引擎日志已带 tgtSide/tgtIdx（多敌定位），配合 .dq-unit[data-i] 把特效挂到正确单位卡片。
+  var dqRageFired={};   // 记录本场已触发过"狂怒"转阶段演出的敌人（idx:true）
+  function dqResetRage(){ dqRageFired={}; }
+  function dqFx(entry){
+    var text=entry.text||'';
+    var crit=entry.crit || /暴击/.test(text);
+    var side=entry.tgtSide, idx=entry.tgtIdx;
+    if(!side){   // 旧路径 fallback：按日志类型推断承受方
+      if(entry.type==='player_atk') side='enemy';
+      else if(entry.type==='enemy_atk') side='player';
+      else if(entry.type==='counter') side='enemy';
+      else if(entry.type==='dot') side=(entry.side==='enemy'?'enemy':'player');
+    }
+    if(/闪过|未命中/.test(text) && side){ showDodge(side, idx); }
+    else if(/格挡/.test(text)){
+      var bs=(side==='player'||/^你/.test(text))?'player':'enemy';
+      flashBlock(bs, idx); floatLabel(bs,'格挡','block', idx);
+    }
+    else if(entry.dmg && entry.dmg>0 && side){
+      floatDamage(entry.dmg, side, crit, idx);           // 伤害飘字（暴击放大变红）
+      flashHit(side, crit, idx);                          // 受击红闪/后仰
+      floatImpact(side, entry.atkLine||'fist', 'hit', idx); // 拳印/剑痕/刀影…
+      if(crit || entry.dmg>=20) floatImpact(side, entry.atkLine||'fist', 'wound', idx);
+      var es=G.CombatEngine.state.enemies||[];
+      var maxHp = side==='enemy' ? ((es[idx]||{}).maxHp||0) : effectiveStats().maxHp;
+      var curHp = side==='enemy' ? ((es[idx]||{}).hp) : (entry.pHp!=null?entry.pHp:0);
+      if(maxHp && curHp!=null && curHp/maxHp<0.3 && Math.random()<0.45) floatImpact(side, entry.atkLine||'fist', 'bandage', idx);
+      if(crit){ critBurst(side, idx); markSceneCrit(); flashSeal('斬'); }  // 暴击爆裂 + 场景特写 + 斩印
+      // 五行克制标签（挂在承受方卡片）
+      if(entry.attrType==='counter') floatLabel(side,'克制','counter', idx);
+      else if(entry.attrType==='countered') floatLabel(side,'被克','countered', idx);
+      // ── Boss 转阶段：敌方血量首破 40%（狂怒阈值）→ 屏红 + 「狂」印章 + 震屏 ──
+      if(side==='enemy' && !dqRageFired[idx]){
+        var eu=es[idx];
+        if(eu && eu.maxHp>0 && eu.hp>0 && eu.hp/eu.maxHp<0.4){
+          dqRageFired[idx]=true;
+          var sc=document.getElementById('scene');
+          if(sc){ sc.classList.remove('bg-danger'); void sc.offsetWidth; sc.classList.add('bg-danger'); }
+          flashSeal('狂'); markSceneCrit(); shakeScene(); SFX.crit();
+          log('「'+eu.name+'」双目赤红，陷入狂怒！','sys');
+        }
+      }
+    }
+    if(crit || (entry.dmg && entry.dmg>=25)) shakeScene();
+    // 音效
+    if(entry.type==='player_atk' || entry.type==='enemy_atk'){
+      if(crit) SFX.crit();
+      else { SFX.swing(); setTimeout(function(){ SFX.hit(); }, 110); }
+    } else if((entry.type==='counter'||entry.type==='dot') && entry.dmg){ SFX.hit(); }
+  }
+
+  function dqPush(text){
+    if(!$narr) return;
+    var p=document.createElement('div'); p.className='cb-line'; p.textContent=text; $narr.appendChild(p);
+    var sc=document.getElementById('scene'); if(sc) sc.scrollTop=sc.scrollHeight;
+  }
+
+  /** 战斗结束收尾（解叙事锁、清场由 endCombat 处理） */
+  function dqFinish(){
+    dqBusy=false; flushNarr(); clearActions();
+    endCombat(G.CombatEngine.state.result==='win'?'win':'lose');
+  }
+
+  /** 战斗结束 */
+  function endCombat(result){
+    if(combatMode===null) return;   // 防止重复调用（如快速连点）
+    combatMode=null;
+    dqPlaySkip=null;                // 战斗结束，清除演出快进钩子
+    // 注意：保留 in-combat（含 #lower/#dock 隐藏）直到结算面板被「确认」关闭，
+    // 这样方向罗盘不会在战后提前浮现、暗示玩家优先离开场景
+    var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.dataset.bg=''; sceneEl.classList.remove('bg-danger'); }
+    clearActions();                  // 清除战斗按钮，防止残留可点击
+    if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断重复结算
+    // 开场教学战斗：战败/逃跑由老乞丐救场，避免新手卡死（仍算教学完成）
+    var tutC = state.flags.onb && state.flags.onb.tcTutorial && !state.flags.onb.tcDone;
+    if(tutC && result!=='win'){
+      if(result==='lose'){ state.hp = effectiveStats().maxHp; log('老乞丐枯手一拂，将你从刀下拽回：「这刀老夫替你挡了！」','env'); }
+      else { log('「罢了，先撤一步，拳脚日后再练。」','npc','老乞丐'); }
+      state.flags.onb.tcDone=true; state.flags.onb.tcTutorial=false; state.defeated=false;
+      log('〔教学演练结束——往后真打可没这般好运，记得用药、看敌意。〕','sys');
+      save(state); renderStatus();
+      if(dqCardEl){ dqCardEl.classList.add('settle-win'); }
+      playCombatFx('win');
+      showCombatSettlement({result:'win', title:'演 练 结 束', sub:'老乞丐出手相救，化险为夷。',
+        lines:[{text:'教学演练完成——往后真打可没这般好运。'}]}, exitCombatToRoom);
+      return;
+    }
+    // ── 攻城战（易主/火战）特殊处理（v20260824d）──
+    if(pendingSiegeCid){
+      var sc=pendingSiegeCid; pendingSiegeCid=null;
+      if(result==='fled'){
+        log('你鸣金收兵，撤出战场，「'+(((LF.CITIES||{})[sc]||{}).name||'城')+'」暂未易主。','sys');
+      } else if(result==='win'){
+        siegeWin(sc);
+      } else {
+        siegeLose(sc);
+      }
+      var _fx=(result==='win'?'win':(result==='lose'?'lose':''));
+      if(dqCardEl) dqCardEl.classList.add(result==='win'?'settle-win':(result==='lose'?'settle-lose':''));
+      playCombatFx(_fx);
+      var cityName=(((LF.CITIES||{})[sc]||{}).name||'城');
+      save(state); renderStatus();
+      showCombatSettlement({result:result, enemyName:cityName,
+        lines: result==='win' ? [{text:'「'+cityName+'」已收入麾下。'}]
+             : result==='fled' ? [{text:'鸣金收兵，「'+cityName+'」暂未易主。'}]
+             : [{text:'兵败如山倒，「'+cityName+'」未能取下。'}]},
+        function(){ if(currentModalKind==='map') openModal('map'); exitCombatToRoom(); });
+      return;
+    }
+    var st=G.CombatEngine.getStatus();
+    var enemy=G.CombatEngine.getEnemy();
+    // 终局先用真实状态同步战斗卡（避免最后一击致负/致死时卡面停留在上一回合血量）
+    if(dqCardEl) dqRenderCard();
+
+    // 更新玩家状态
+    state.hp=st.playerUnits[0].hp;
+    state.mp=st.playerUnits[0].mp;
+    maybeStarve();   // 战后结算饥馁（食物/饮水耗尽则扣血）
+    decayEquipment(); // 战后装备耐久衰减
+
+    if(result==='win'){
+      if(tutCombatActive()){
+        state.flags.onb.tcDone=true; state.flags.onb.tcTutorial=false;
+        if(state.learnedMartial.indexOf('wu_ming_quan')<0) state.learnedMartial.push('wu_ming_quan');
+        log('老乞丐枯手翻飞，所示武功极高深，残敌尽数被震退、溃不成军！','env');
+        log('「这便是「无名拳法」——拳贵直、劲贵整，记着了？」','npc','老乞丐');
+        log('【习得】无名拳法！（已收入武学，可在「角色」查看）','good');
+        log('朝你一努嘴：「前头便是去路——点下头「移动」，随老夫往下头去便是。」','npc','老乞丐');
+        log('你喘匀了气，打量这猎棚：棚角堆着干茅与兽骨，灶台余烬未熄，外头东北风卷着雪沫子，一下下扑打篷布。老乞丐已替你望风，只催你动身。','env');
+        log('〔教学演练结束——往后真打可没这般好运，记着用药、看清敌意。〕','sys');
+        renderStatus(); save(state);
+      }
+      // 多敌：聚合全部敌人的掉落与经验（RREP/主线进度仍按首敌处理）
+      var enemyDatas=G.CombatEngine.getAllEnemyData();
+      var drop={ gold:0, pot:0, items:[], equip:null };
+      var expGain=0;
+      enemyDatas.forEach(function(ed){
+        var d=G.CombatEngine.getDrop(ed);
+        drop.gold+=d.gold; drop.pot+=d.pot;
+        d.items.forEach(function(it){ drop.items.push(it); });
+        if(!drop.equip && d.equip) drop.equip=d.equip;
+        expGain+=enemyExp(ed);
+      });
+      state.gold+=drop.gold;
+      state.pot+=drop.pot;
+      addXp(expGain);
+      // ── 掉落收集：先放入「战利品」列表，由「搜打撤」窗口决定拾取/丢弃（不自动入库，避免背包被静默塞满）──
+      var summary={ result:'win', enemyName:enemy.name, expGain:expGain, gold:drop.gold, pot:drop.pot, loot:[], lines:[] };
+      if(tutCombatActive()) summary.lines.push({text:'【习得】无名拳法！已收入武学。'});
+      drop.items.forEach(function(it){
+        summary.loot.push(LF.ITEMS.makeItem(it.id, 1) || {defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat||'道具', count:1, effect:it.effect});
+      });
+      // ── 装备掉落（P1 完整）──
+      if(drop.equip){
+        summary.loot.push(LF.ITEMS.equipToPackItem(drop.equip));
+      }
+
+      // ── 声望 / 主线进度（P4 真实获取途径，替代调试台直赋）──
+      var RREP={bandit:2,bandit_chief:4,yellow_turban:5,hua_xiong:20,dummy:0,heishan_zei:2,heishan_zhu:12};
+      if(RREP[enemy.id]) addReputation(RREP[enemy.id]);
+      if(enemy.id==='bandit'||enemy.id==='bandit_chief'||enemy.id==='heishan_zei'||enemy.id==='heishan_zhu') state.quest.bandit++;
+      else if(enemy.id==='yellow_turban') state.quest.turban++;
+      else if(enemy.id==='hua_xiong'){
+        state.quest.hua_xiong=true; state.quest.luoyang=true;
+        log('【主线】力斩华雄！洛阳之门已为你敞开，可自「颍川主营」赴洛阳。','good');
+        summary.lines.push({text:'【主线】力斩华雄！洛阳之门已开。'});
+      }
+      else if(enemy.id==='heishan_zhu'){
+        log('【剿匪】黑山寨主张燕授首！聚义厅群龙无首，余众溃散——此寨已平。','good');
+        summary.lines.push({text:'【剿匪】黑山寨主张燕授首，此寨已平。'});
+      }
+      if(RREP[enemy.id]) summary.repText=RREP[enemy.id];
+
+      // ── 支线B：林径猎户寻药篓——胜野狼后交还药篓，猎户赠谢礼（v20260831t）──
+      if(enemy.id==='wild_wolf' && state.flags && state.flags.wz_liehu && !state.flags.wz_liehu_done){
+        state.flags.wz_liehu_done=true;
+        state.gold+=15;
+        addReputation(2);
+        packAdd('caoyao',3);
+        packAdd('roubao',1);
+        log('你拎着药篓走出林来。猎户接过药篓，喜极：「寻回来了！」硬塞给你草药三把、肉包一只与一串铜钱，又指了条采药捷径。','npc','受伤猎户');
+        summary.lines.push({text:'【支线·寻药篓】猎户得药，赠你谢礼（草药×3、肉包×1、银两+15）。'});
+      }
+
+      // ── P2：艺线经验由战斗出手累积，满则升级 ──
+      var gains=G.CombatEngine.getLineGains()||[];
+      if(gains.length){
+        var expMap={};
+        gains.forEach(function(g){ if(!g.line) return; expMap[g.line]=(expMap[g.line]||0)+(g.crit?8:5); });
+        var LINES=G.MARTIAL_ARTS.LINES, upMsgs=[];
+        for(var l in expMap){
+          state.lineExp[l]=(state.lineExp[l]||0)+expMap[l];
+          var lv=state.lines[l]||0, need=(lv+1)*40;
+          while(lv<20 && state.lineExp[l]>=need){
+            state.lineExp[l]-=need; lv++;
+            upMsgs.push(LINES[l].name+'艺线 Lv.'+lv);
+            need=(lv+1)*40;
+          }
+          state.lines[l]=lv;
+        }
+        if(upMsgs.length) log('【武学精进】'+upMsgs.join('、')+' 突破！攻防随之精进。','good');
+        if(upMsgs.length) summary.lines.push({text:'【武学精进】'+upMsgs.join('、')+' 突破！'});
+      }
+
+      // ── 郊野战果归档：胜则按格+野怪id 记清剿（防反复刷同一批伏兽/野兽）──
+      var _froom = G.ROOMS[state.room];
+      if(_froom && _froom.isField && enemyDatas && enemyDatas.length){
+        var _cf0 = state.flags.fieldClearedMon;
+        if(!_cf0) _cf0 = state.flags.fieldClearedMon = {};
+        var _crow = _cf0[state.room];
+        if(!_crow) _crow = _cf0[state.room] = {};
+        enemyDatas.forEach(function(ed){ if(ed && ed.id) _crow[ed.id] = 1; });
+      }
+
+      if(dqCardEl) dqCardEl.classList.add('settle-win');
+      playCombatFx('win');
+      SFX.win();
+      toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
+      showCombatSettlement(summary, exitCombatToRoom);
+    } else if(result==='lose'){
+      state.hp=1;
+      state.defeated=true;   // 战败标记：封锁一切行动直到休整恢复
+      if(dqCardEl) dqCardEl.classList.add('settle-lose');
+      playCombatFx('lose');
+      SFX.lose();
+      toast('败北！气血仅余1点');
+      showCombatSettlement({result:'lose', enemyName:enemy.name,
+        lines:[{text:'重伤倒地，气若游丝——须先「休整」恢复，方可再动。'}]}, exitCombatToRoom);
+    } else if(result==='fled'){
+      log('你已脱离战斗，回到原地。','sys');
+      toast('已脱离战斗');
+      showCombatSettlement({result:'fled', enemyName:enemy.name,
+        lines:[{text:'你已脱离战斗，回到原地。'}]}, exitCombatToRoom);
+    } else {
+      log('两败俱伤，战斗未分胜负，各自收兵。','sys');
+      toast('战斗未分胜负');
+      showCombatSettlement({result:'fled', enemyName:enemy.name,
+        lines:[{text:'两败俱伤，战斗未分胜负，各自收兵。'}]}, exitCombatToRoom);
+    }
+
+    save(state); renderStatus();
+  }
+
+  // 退出战斗结算、回到正常场景（同时解除 in-combat，让方向罗盘等恢复正常显示）
+  function exitCombatToRoom(){
+    var appEl=document.getElementById('app'); if(appEl) appEl.classList.remove('in-combat');
+    document.body.classList.remove('in-combat');
+    document.body.classList.remove('tut-combat');
+    if(dqCardEl && dqCardEl.parentNode){ dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
+    // 苦役营·岗哨战斗路线（暴动/劫狱强攻）：教学战斗胜/被救场后自动毕业逃脱
+    if(state.flags && state.flags.route && state.flags.route._pending && state.flags.onb && state.flags.onb.tcDone && !state.flags.onb.done){
+      var rp=state.flags.route._pending;
+      finishEscape(rp); return;
+    }
+    renderRoom(state.room, true);
+  }
+
+  // 战利品「搜打撤」窗口：左战利品 / 右行囊，点物品看属性、拖动取舍、拾取全部
+  function mountLootPanes(host, lootArr){
+    host.classList.add('cs-panes-host');
+    var lastReplaced=null;   // 装备替换后高亮的背包格
+    host.innerHTML=
+      '<div class="cs-panes-tip">拖到右侧行囊＝拾取；拖到左侧＝暂存（确认后未取走的战利品将被放弃）。点物品看属性，可装备/使用。</div>'+
+      '<div class="cs-panes">'+
+        '<div class="cs-pane loot"><div class="cs-pane-h">战 利 品</div><div class="cs-grid" id="lp-loot"></div><button id="lp-takeall" class="loot-act take">拾 取 全 部</button></div>'+
+        '<div class="cs-pane"><div class="cs-pane-h">行 囊</div><div class="cs-grid" id="lp-bag"></div><button id="lp-sort" class="loot-act">整 理 背 包</button></div>'+
+      '</div>'+
+      '<div class="cs-org-cap" id="lp-cap"></div>'+
+      '<div class="loot-info" id="lp-info" style="display:none;"></div>';
+    var sel=null, ghost=null, dragSrc=null, startX=0, startY=0, moved=false, lastTap={t:0,key:null};
+    function rerender(){
+      var lg=document.getElementById('lp-loot'); if(!lg) return;
+      var bg=document.getElementById('lp-bag');
+      var lgh='', lc=0;
+      for(var li=0; li<lootArr.length; li++){
+        var it=lootArr[li];
+        if(it){
+          lc++;
+          lgh+='<div class="packcell'+(sel&&sel.pane==='loot'&&sel.idx===li?' sel':'')+'" data-pane="loot" data-idx="'+li+'">'+
+            '<div class="pcell-ic">'+itemIconHTML(it,15)+'</div>'+(it.count>1?'<span class="pcell-cnt">'+it.count+'</span>':'')+'</div>';
+        } else {
+          lgh+='<div class="packcell pcell-empty" data-pane="loot" data-idx="'+li+'"></div>';
+        }
+      }
+      lg.innerHTML=lgh;
+      var bgh='', bcap=Math.max(state.pack.length, packMax());
+      for(var bi=0; bi<bcap; bi++){
+        var bit=state.pack[bi];
+        if(!bit){ bgh+='<div class="packcell pcell-empty" data-pane="bag" data-idx="'+bi+'"></div>'; continue; }
+        var rep = lastReplaced && lastReplaced.pane==='bag' && lastReplaced.idx===bi;
+        bgh+='<div class="packcell'+(sel&&sel.pane==='bag'&&sel.idx===bi?' sel':'')+(rep?' just-rep':'')+'" data-pane="bag" data-idx="'+bi+'">'+
+          '<div class="pcell-ic">'+itemIconHTML(bit,15)+'</div>'+(bit.count>1?'<span class="pcell-cnt">'+bit.count+'</span>':'')+'</div>';
+      }
+      bg.innerHTML=bgh;
+      var cap=document.getElementById('lp-cap'); if(cap) cap.textContent='战利品 '+lc+' 件 · 行囊 '+packList().length+' / '+packMax();
+      wire();
+    }
+    function wire(){
+      Array.prototype.forEach.call(host.querySelectorAll('.packcell'), function(c){ c.addEventListener('pointerdown', onDown); });
+    }
+    function onDown(e){
+      var c=e.currentTarget;
+      if(c.classList.contains('pcell-empty')) return;   // 空格不是拖拽源（交给滚动）
+      e.preventDefault();
+      hideInfo(); sel=null; c.classList.add('dragging');
+      dragSrc={pane:c.getAttribute('data-pane'), idx:parseInt(c.getAttribute('data-idx'),10)};
+      startX=e.clientX; startY=e.clientY; moved=false;
+      try{ c.setPointerCapture(e.pointerId); }catch(_){}
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    }
+    function onMove(e){
+      if(!dragSrc) return;
+      if(!moved && (Math.abs(e.clientX-startX)>6||Math.abs(e.clientY-startY)>6)){
+        moved=true;
+        var it = dragSrc.pane==='loot'?lootArr[dragSrc.idx]:state.pack[dragSrc.idx];
+        makeGhost(it, e);
+      }
+      if(ghost){ ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px'; hlDrop(e); }
+    }
+    function onUp(e){
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      if(ghost){ ghost.parentNode.removeChild(ghost); ghost=null; }
+      clearHl();
+      var dc=host.querySelector('.packcell.dragging'); if(dc) dc.classList.remove('dragging');   // 不论是否移动都清除淡化，避免源格卡在变淡态
+      if(moved){ var tgt=cellAt(e.clientX,e.clientY); if(tgt) doMove(dragSrc,tgt); }
+      else { onTap(dragSrc); }
+      dragSrc=null;
+    }
+    function cellAt(x,y){
+      var el=document.elementFromPoint(x,y);
+      var cell=null, pane=null;
+      while(el && el!==document.body){
+        if(!cell && el.classList && el.classList.contains('packcell'))
+          cell={pane:el.getAttribute('data-pane'), idx:parseInt(el.getAttribute('data-idx'),10)};
+        if(!pane && el.classList && el.classList.contains('cs-pane')) pane=el.classList.contains('loot')?'loot':'bag';
+        el=el.parentNode;
+      }
+      if(cell) return cell;                       // 落在具体格子 → 按该格
+      return pane?{pane:pane, idx:null}:null;     // 落在面板空白处 → 落对方栏首位
+    }
+    function firstEmpty(){ if(state.pack.length<packMax()){ while(state.pack.length<packMax()) state.pack.push(null); } for(var i=0;i<state.pack.length;i++) if(!state.pack[i]) return i; return -1; }   // 先补齐到容量再找空位，避免数组短于容量时误报满
+    function firstLootEmpty(){ for(var i=0;i<lootArr.length;i++){ if(!lootArr[i]) return i; } return lootArr.length; }   // 满则追加（战利品栏不限数量）
+    function sameStack(a,b){ if(!a||!b||a.cat==='装备'||b.cat==='装备'||a.maxDur||b.maxDur) return false; var ka=a.defId||a.id, kb=b.defId||b.id; return !!ka && ka===kb; }   // 仅同 defId 非装备可堆叠
+    function doMove(src,tgt){
+      // 同格 = 不操作（避免物品消失）
+      if(src.pane===tgt.pane && tgt.idx!=null && src.idx===tgt.idx) return;
+      // 背包→背包 空白背景 = 不操作
+      if(src.pane==='bag' && tgt.pane==='bag' && tgt.idx==null) return;
+      // 战利品→战利品 空白背景 = 不操作（临时背包内，保持原位）
+      if(src.pane==='loot' && tgt.pane==='loot' && tgt.idx==null) return;
+
+      if(src.pane==='loot' && tgt.pane==='bag'){
+        var it=lootArr[src.idx]; if(!it) return;
+        var bi=(tgt.idx==null)?firstEmpty():tgt.idx; if(bi<0){ toast('行囊已满'); return; }   // 背包满
+        var occ=state.pack[bi];
+        if(sameStack(occ,it)){ occ.count=(occ.count||1)+(it.count||1); lootArr[src.idx]=null; }   // 同物自动堆叠
+        else { lootArr[src.idx]= occ ? occ : null; state.pack[bi]=it; }   // 换出物回填战利品（临时背包，确认后才结算）
+      } else if(src.pane==='bag' && tgt.pane==='loot'){
+        var bit=state.pack[src.idx]; if(!bit) return;
+        var slot=(tgt.idx==null)?firstLootEmpty():tgt.idx; var occL=lootArr[slot];
+        if(sameStack(occL,bit)){ occL.count=(occL.count||1)+(bit.count||1); state.pack[src.idx]=null; }   // 同物堆叠
+        else { state.pack[src.idx]= occL || null; lootArr[slot]=bit; }
+      } else if(src.pane==='bag' && tgt.pane==='bag'){
+        var bit2=state.pack[src.idx]; if(!bit2) return;
+        var occ2=state.pack[tgt.idx];
+        if(sameStack(occ2,bit2)){ occ2.count=(occ2.count||1)+(bit2.count||1); state.pack[src.idx]=null; }   // 同物堆叠
+        else { state.pack[tgt.idx]=bit2; state.pack[src.idx]= occ2 || null; }   // 交换
+      } else if(src.pane==='loot' && tgt.pane==='loot' && src.idx!==tgt.idx){
+        var a=lootArr[src.idx], b=lootArr[tgt.idx];
+        if(sameStack(a,b)){ b.count=(b.count||1)+(a.count||1); lootArr[src.idx]=null; }   // 同物堆叠
+        else { lootArr[src.idx]=b; lootArr[tgt.idx]=a; }
+      }
+      // 规整行囊：稀疏 undefined 填成 null，并补齐到容量上限（不重排索引，避免拖拽后错位）
+      (function(){ var max=packMax(); for(var i=0;i<state.pack.length;i++){ if(state.pack[i]===undefined) state.pack[i]=null; } while(state.pack.length<max) state.pack.push(null); })();
+      sel=null; hideInfo(); renderStatus(); rerender();
+    }
+    function onTap(src){
+      var key=src.pane+':'+src.idx, now=Date.now();
+      if(lastTap.key===key && now-lastTap.t<320){ lastTap.t=0; quickLootGrab(src); return; }  // 双击：快速装备/使用
+      lastTap={t:now, key:key};
+      var cur = sel && sel.pane===src.pane && sel.idx===src.idx;
+      if(cur){ sel=null; hideInfo(); host.querySelectorAll('.packcell.sel').forEach(function(c){ c.classList.remove('sel'); }); return; }  // 再点同格：取消选中
+      sel={pane:src.pane, idx:src.idx};
+      host.querySelectorAll('.packcell.sel').forEach(function(c){ c.classList.remove('sel'); });   // 仅更新高亮，不重渲染，避免滚动复位
+      var cell=host.querySelector('.packcell[data-pane="'+src.pane+'"][data-idx="'+src.idx+'"]'); if(cell) cell.classList.add('sel');
+      var it = src.pane==='loot'?lootArr[src.idx]:state.pack[src.idx];
+      showInfo(it);
+    }
+    function quickLootGrab(src){
+      var it=src.pane==='loot'?lootArr[src.idx]:state.pack[src.idx]; if(!it) return;
+      if(it.cat==='装备' && it.slot){
+        var oldEq=state.equipment[it.slot];
+        if(src.pane==='loot') lootArr[src.idx]=null; else state.pack[src.idx]=oldEq||null;
+        state.equipment[it.slot]=it;
+        if(oldEq){ var ri=state.pack.indexOf(oldEq); if(ri>=0) lastReplaced={pane:'bag',idx:ri}; }
+        toast('装备「'+it.name+'」'+(oldEq?'，卸下「'+oldEq.name+'」':''));
+      } else if(it.effect || it.cat==='丹药' || it.cat==='兵粮'){
+        var useIdx;
+        if(src.pane==='loot'){ var e=firstEmpty(); if(e<0){ toast('行囊已满'); return; } lootArr[src.idx]=null; state.pack[e]=it; useIdx=e; }
+        else useIdx=src.idx;
+        usePackItem(useIdx);
+      }
+      save(state); renderStatus(); rerender(); hideInfo();
+      if(lastReplaced){ var rc=host.querySelector('.packcell[data-pane="bag"][data-idx="'+lastReplaced.idx+'"]'); if(rc) rc.scrollIntoView({block:'nearest',behavior:'smooth'}); setTimeout(function(){ lastReplaced=null; rerender(); },1300); }
+    }
+    function showInfo(it){
+      var box=document.getElementById('lp-info'); if(!box) return;
+      box.innerHTML = lootInfoHTML(it) + liActionsHTML(it); box.style.display='block';
+      Array.prototype.forEach.call(box.querySelectorAll('.li-act'), function(b){
+        b.onclick=function(e){ e.stopPropagation(); actOn(it, b.getAttribute('data-act')); };
+      });
+      var infoCell = host.querySelector('.packcell.sel');   // 浮框宽度=被点击格子实际宽度，保持与「未选中时」格子一样大
+      if(infoCell){ var cw=infoCell.getBoundingClientRect().width; if(cw) box.style.width=Math.max(88, Math.min(184, Math.round(cw)))+'px'; }
+      positionInfo(box, infoCell);
+    }
+    function liActionsHTML(it){
+      var h='<div class="li-acts">';
+      if(it.cat==='装备') h+='<button class="li-act" data-act="equip">装 备</button>';
+      if(it.effect || it.cat==='丹药' || it.cat==='兵粮') h+='<button class="li-act" data-act="use">使 用</button>';
+      h+='</div>';
+      return h;
+    }
+    function actOn(it, act){
+      if(act==='equip'){
+        var oldEq = it.slot ? state.equipment[it.slot] : null;
+        var idx = (sel.pane==='loot') ? firstEmpty() : sel.idx;
+        if(idx<0){ toast('行囊已满，无法装备'); return; }
+        if(sel.pane==='loot'){ var occ=state.pack[idx]; lootArr[sel.idx]=occ||null; state.pack[idx]=it; }
+        equipFromPackTo(idx, it.slot);
+        if(oldEq){ var ri=state.pack.indexOf(oldEq); if(ri>=0){ lastReplaced={pane:'bag', idx:ri}; } }   // 高亮被换下的装备
+      } else {
+        var idx2 = (sel.pane==='loot') ? firstEmpty() : sel.idx;
+        if(idx2<0){ toast('行囊已满，无法使用'); return; }
+        if(sel.pane==='loot'){ var occ2=state.pack[idx2]; lootArr[sel.idx]=occ2||null; state.pack[idx2]=it; }
+        usePackItem(idx2);
+      }
+      save(state); renderStatus(); rerender(); hideInfo();
+      if(lastReplaced){ var rc=host.querySelector('.packcell[data-pane="bag"][data-idx="'+lastReplaced.idx+'"]'); if(rc) rc.scrollIntoView({block:'nearest', behavior:'smooth'}); }   // 被换下装备若不在视野内自动滚到
+      if(lastReplaced) setTimeout(function(){ lastReplaced=null; rerender(); }, 1300);
+    }
+    // 悬浮弹层：跟随所点格子定位，空间不足自动翻到格子上方，避免破坏网格布局
+    function positionInfo(box, cell){
+      var vw=window.innerWidth, vh=window.innerHeight, m=8;
+      var bw=box.offsetWidth||150, bh=box.offsetHeight||120;
+      if(!cell){ box.style.left='50%'; box.style.top=''; box.style.bottom=m+'px'; box.style.transform='translateX(-50%)'; return; }
+      var r=cell.getBoundingClientRect();
+      var left=r.left+r.width/2-bw/2; left=Math.max(m, Math.min(left, vw-bw-m));
+      var top=r.bottom+m;
+      if(top+bh > vh-m){ top=r.top-bh-m; }   // 下方放不下 → 翻到格子上方
+      if(top < m) top=m;
+      box.style.left=left+'px'; box.style.top=top+'px'; box.style.bottom=''; box.style.transform='';
+    }
+    function relayout(){ var box=document.getElementById('lp-info'); if(box && box.style.display==='block') hideInfo(); }   // 滚动/缩放即收起弹层，避免遮挡
+    window.addEventListener('scroll', relayout, true);
+    window.addEventListener('resize', relayout);
+    host.addEventListener('pointerdown', function(e){   // 点空白区域收起弹层（不重渲染、不复位滚动）
+      if(e.target.closest('.packcell') || e.target.closest('.loot-info')) return;
+      hideInfo();
+    }, true);
+    function hideInfo(){ var box=document.getElementById('lp-info'); if(box){ box.style.display='none'; box.innerHTML=''; } }
+    function makeGhost(it,e){
+      ghost=document.createElement('div'); ghost.className='loot-ghost';
+      ghost.innerHTML = it?itemIconHTML(it,28):'📦';
+      ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
+      document.body.appendChild(ghost);
+    }
+    function hlDrop(e){
+      clearHl();
+      var el=document.elementFromPoint(e.clientX,e.clientY);
+      while(el && el!==document.body && !(el.classList&&el.classList.contains('packcell'))) el=el.parentNode;
+      if(el && el.classList && el.classList.contains('packcell')) el.classList.add('drop-ok');
+    }
+    function clearHl(){ Array.prototype.forEach.call(host.querySelectorAll('.drop-ok'), function(c){ c.classList.remove('drop-ok'); }); }
+    function organizePack(){
+      var prio={'装备':0,'丹药':1,'兵粮':2,'材料':3,'杂物':4};
+      var real=state.pack.filter(function(x){return x;});
+      real.sort(function(a,b){ var pa=prio[a.cat]!=null?prio[a.cat]:9, pb=prio[b.cat]!=null?prio[b.cat]:9; if(pa!==pb) return pa-pb; return (a.name||'').localeCompare(b.name||''); });
+      // 整理时合并同 defId 堆叠（sameStack 判定：排除装备/耐久物，杜绝 undefined===undefined 误判导致不同物品错堆）
+      for(var i=0;i<real.length;i++){
+        if(!real[i]) continue;
+        for(var j=i+1;j<real.length;j++){
+          if(real[j] && sameStack(real[i], real[j])){ real[i].count=(real[i].count||1)+(real[j].count||1); real[j]=null; }
+        }
+      }
+      state.pack=real.filter(function(x){return x;});
+      packResize();   // 整理后数组可能短于容量，补齐到 packMax，避免 UI 出现"幽灵空位"而 packAdd 误判行囊已满
+      save(state); renderStatus(); sel=null; hideInfo(); rerender();
+    }
+    var ta=document.getElementById('lp-takeall');
+    if(ta) ta.onclick=function(){
+      for(var i=0;i<lootArr.length;i++){ if(lootArr[i] && packAdd(lootArr[i])) lootArr[i]=null; }
+      sel=null; hideInfo(); renderStatus(); rerender();
+    };
+    var sb=document.getElementById('lp-sort');
+    if(sb) sb.onclick=function(){ organizePack(); };
+    rerender();
+  }
+
+  // 独立战利品窗口（宝箱等非战斗场景）：标题 + 左右对照 + 确认
+  function openLootWindow(loot, opts){
+    var onConfirm=opts.onConfirm||exitCombatToRoom;
+    var ov=document.getElementById('loot-win'); if(ov&&ov.parentNode) ov.parentNode.removeChild(ov);
+    ov=document.createElement('div'); ov.id='loot-win'; ov.className='loot-win';
+    ov.innerHTML='<div class="loot-card">'+
+      (opts.title?'<div class="cs-title">'+opts.title+'</div>':'')+
+      (opts.sub?'<div class="cs-sub">'+opts.sub+'</div>':'')+
+      '<div id="lp-host"></div>'+
+      '<button id="lp-ok" class="act cb-menu primary" style="width:100%;margin-top:10px;min-height:48px;font-size:16px;letter-spacing:3px;">确 认</button>'+
+      '</div>';
+    (document.getElementById('app')||document.body).appendChild(ov);
+    mountLootPanes(document.getElementById('lp-host'), loot);
+    var ok=document.getElementById('lp-ok');
+    if(ok) ok.onclick=function(){
+      if(loot.some(function(x){return x;}) && !ok.dataset.armed){ ok.dataset.armed='1'; ok.textContent='战利品未取完 · 再点确认放弃'; return; }   // 二次确认防误弃
+      save(state); renderStatus(); if(ov.parentNode) ov.parentNode.removeChild(ov); onConfirm();
+    };
+  }
+
+  // 物品属性信息（战利品窗口点选时显示）
+  function compareEquip(it){
+    if(!it || it.cat!=='装备' || !it.slot) return '';
+    var cur=state.equipment[it.slot];
+    if(!cur) return '<div class="li-cmp good">当前未装备此部位 · 可直接穿戴</div>';
+    var keys=[['atk','攻'],['def','防'],['spd','速'],['hp','气血']];
+    var parts=[];
+    keys.forEach(function(k){ var d=(it[k[0]]||0)-(cur[k[0]]||0); if(d!==0) parts.push((d>0?'▲ ':'▼ ')+k[1]+(d>0?' +':' ')+d); });
+    if(!parts.length) return '<div class="li-cmp">与当前「'+cur.name+'」属性相同</div>';
+    var sumAfter=(it.atk||0)+(it.def||0)+(it.spd||0)+(it.hp||0);
+    var sumCur=(cur.atk||0)+(cur.def||0)+(cur.spd||0)+(cur.hp||0);
+    var good = sumAfter>sumCur;
+    return '<div class="li-cmp '+(good?'good':'bad')+'">对比「'+cur.name+'」：'+parts.join(' · ')+'</div>';
+  }
+  function lootInfoHTML(it){
+    if(!it) return '';
+    var h='<div class="li-name">'+itemIconHTML(it,16)+' '+it.name+'</div>';
+    h+='<div class="li-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+it.qualityName):'')+'</div>';
+    var lines=[];
+    if(it.atk) lines.push('攻 +'+it.atk);
+    if(it.def) lines.push('防 +'+it.def);
+    if(it.spd) lines.push('速 +'+it.spd);
+    if(it.hp) lines.push('气血 +'+it.hp);
+    if(it.effect){
+      var e=it.effect,t=[];
+      if(e.heal) t.push('回复气血 '+e.heal);
+      if(e.hp) t.push('回复气血 '+e.hp);
+      if(e.dmg) t.push('伤害 '+e.dmg);
+      if(e.atk) t.push('攻 +'+e.atk);
+      if(e.buff) t.push('施加增益');
+      if(t.length) lines.push(t.join(' / '));
+    }
+    if(lines.length) h+='<div class="li-line">'+lines.join(' · ')+'</div>';
+    if(it.cat==='装备') h+=compareEquip(it);
+    return h;
+  }
+
+  // 战斗结算面板：战后弹出，展示战果 + 「搜打撤」战利品窗口（背包无论满否都出现）
+  function showCombatSettlement(summary, onConfirm){
+    onConfirm = onConfirm || exitCombatToRoom;
+    var ov=document.getElementById('combat-settle');
+    if(ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    ov=document.createElement('div'); ov.id='combat-settle';
+    ov.className='cs-overlay '+(summary.result==='lose'?'lose':(summary.result==='fled'?'fled':'win'));
+    var titleText = summary.title || (summary.result==='win'?'✦ 大 胜 ✦':(summary.result==='lose'?'✘ 战 败':'⤺ 撤 退'));
+    var sub = summary.sub || (summary.enemyName ? ('「'+summary.enemyName+'」'+(summary.result==='win'?'败于你手':(summary.result==='lose'?'将你击溃':'已被甩在身后'))) : '');
+    var fixed='';
+    if(summary.expGain) fixed+='<span class="cs-rew">⚔ 修为 +'+summary.expGain+'</span>';
+    if(summary.gold) fixed+='<span class="cs-rew">💰 银两 +'+summary.gold+'</span>';
+    if(summary.pot) fixed+='<span class="cs-rew">✦ 潜能 +'+summary.pot+'</span>';
+    if(summary.repText) fixed+='<span class="cs-rew">🏴 声望 +'+summary.repText+'</span>';
+    var linesHTML='';
+    (summary.lines||[]).forEach(function(ln){ linesHTML+='<div class="cs-row ln">'+ln.text+'</div>'; });
+    var hasLoot = !!(summary.loot && summary.loot.length);
+    ov.innerHTML=
+      '<div class="cs-card">'+
+        '<div class="cs-title">'+titleText+'</div>'+
+        (sub?'<div class="cs-sub">'+sub+'</div>':'')+
+        '<div class="cs-rewards">'+fixed+'</div>'+
+        (linesHTML?'<div class="cs-lines">'+linesHTML+'</div>':'')+
+        (hasLoot?'<div id="cs-loot-host"></div>':'')+
+        '<button id="cs-confirm" class="act cb-menu primary">确认'+(hasLoot?'拾取并返回':'')+'</button>'+
+      '</div>';
+    (document.getElementById('app')||document.body).appendChild(ov);
+    if(hasLoot) mountLootPanes(document.getElementById('cs-loot-host'), summary.loot);
+    var cs=document.getElementById('cs-confirm');
+    if(cs) cs.onclick=function(){
+      if(hasLoot && summary.loot.some(function(x){return x;}) && !cs.dataset.armed){
+        cs.dataset.armed='1'; cs.textContent='战利品未取完 · 再点确认放弃'; return;   // 二次确认防误弃
+      }
+      save(state); renderStatus();   // 背包变动已入库；左栏残留＝放弃
+      if(ov.parentNode) ov.parentNode.removeChild(ov);
+      onConfirm();
+    };
+  }
+
+
+  // ===== 存档时间戳（仅用于读档续命，不再结算任何离线/放置收益）=====
+
+
+  // ===== 序幕 =====
+  var _pro=(G&&G.DIALOGUES&&G.DIALOGUES.prologue)||[]; if(_pro.forEach){ _pro.forEach(function(l){log(l,'env');}); }
+  log('— 颍川起兵 —','title');
+  bindTitle();
+  (function(){
+    var el=document.querySelector('.tt-scroll-body');
+    if(el){
+      var parts=el.textContent.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+      var html='';
+      for(var k=0;k<6;k++){
+        for(var i=0;i<parts.length;i++){
+          var rot=(Math.random()*6-3).toFixed(2);
+          var dy=(Math.random()*26-13).toFixed(1);
+          var maxh=(48+Math.random()*120).toFixed(0);
+          html+='<span style="display:block;max-height:'+maxh+'px;transform:rotate('+rot+'deg) translateY('+dy+'px)">'+parts[i]+'</span>';
+        }
+      }
+      el.innerHTML=html;
+    }
+  })();
+  // 墨滴随机晕染：在经文上随机滴落、晕开挡字、缓缓淡化，过会儿另处再滴
+  (function(){
+    var box=document.querySelector('.tt-inkblot');
+    if(box){
+      function drip(){
+        var b=document.createElement('i');
+        var x=(Math.random()*84+8).toFixed(1);
+        var y=(Math.random()*44+6).toFixed(1);              // 集中上半屏(6%~50%)
+        var sv=(12+Math.random()*20);                       // 基础尺寸(vmax)
+        b.style.left=x+'%';b.style.top=y+'%';
+        b.style.width=sv+'vmax';b.style.height=sv+'vmax';
+        // 每次随机选一种墨纹滤镜 + 随机模糊，墨形各不相同
+        var fid='inkBleed'+((Math.random()*4)|0);
+        b.style.filter='url(#'+fid+') blur('+(1+Math.random()*1.5).toFixed(1)+'px)';
+        box.appendChild(b);
+        // 墨晕原地晕开淡出，无任何位移
+        var r0=(Math.random()*14-5).toFixed(1);
+        var dur=(14000+Math.random()*6000);                 // 14~20s，更缓
+        // 边生长边淡化：极淡墨色、缓慢呼吸，贴合传统墨晕
+        var a=b.animate([
+          {transform:'translate(-50%,-50%) scale(.6) rotate('+r0+'deg)',opacity:0},
+          {transform:'translate(-50%,-50%) scale(.76) rotate('+r0+'deg)',opacity:.5,offset:.12},
+          {transform:'translate(-50%,-50%) scale(.9) rotate('+r0+'deg)',opacity:.36,offset:.45},
+          {transform:'translate(-50%,-50%) scale(1) rotate('+r0+'deg)',opacity:.16,offset:.78},
+          {transform:'translate(-50%,-50%) scale(1.05) rotate('+r0+'deg)',opacity:0}
+        ],{duration:dur,easing:'ease-in-out',fill:'forwards'});
+        a.onfinish=function(){ if(b.parentNode) b.parentNode.removeChild(b); };
+      }
+      drip();
+      setInterval(function(){ drip(); if(Math.random()<.25) drip(); },4200);
+    }
+  })();
+  showTitle();
+  (function(){ var ld=document.getElementById('loader'); if(ld){ setTimeout(function(){ ld.classList.add('hidden'); }, 320); } })();   // 加载页淡出
+
+  window.addEventListener('beforeunload',function(){ if(state){ state.lastSeen=Date.now(); save(state); } });
+  }catch(e){
+    var pre=document.createElement('pre');
+    pre.style.cssText='padding:24px;color:#c00;background:#fff;white-space:pre-wrap;font-size:13px;line-height:1.6';
+    pre.textContent=e.stack || e.message || String(e);
+    try{ pre.textContent+=' [诊断] G='+(typeof G)+' SharedGame='+(window.LF&&typeof window.LF.SharedGame)+' LF.DIALOGUES='+(window.LF&&typeof window.LF.DIALOGUES)+' G.DIALOGUES='+(G&&typeof G.DIALOGUES)+' G.SECTS='+(G&&typeof G.SECTS)+' G.ROOMS='+(G&&typeof G.ROOMS)+' LF.CONSTANTS='+(window.LF&&typeof window.LF.CONSTANTS); }catch(_){}
+    document.body.innerHTML='';
+    document.body.appendChild(pre);
+  }
+
+  // ── 城市房间由 cities.js 程序合成（rooms.js 不再手写）；山河志州治节点由 cities.js+coords 自动派生 ──
+  function registerCityRooms(){
+    var C = LF.CITIES || {};
+    for(var cid in C){
+      var c = C[cid];
+      if(!c || !c.grid) continue;
+      if(G.ROOMS[cid]) continue;
+      G.ROOMS[cid] = {
+        id:cid, name:c.name,
+        desc:(c.blurb || [c.desc || c.name]),
+        find:(c.blurbFind || ''),
+        exits:{}, npcs:[],
+        items:(c.groundItems || []),
+        actions:(c.rootActs || [{id:'rest',label:'城中休整',group:'行动',tip:'寻一处馆驿安歇，气血内力尽复'}]),
+        isCity:true
+      };
+    }
+  }
+  registerCityRooms();
+
+  // ── 行军系统：按路网在相邻地点间生成「郊野」骨架，再连出入口（须先有 genCityGrid 等游戏函数）──
+  if(LF.Travel){
+    LF.Travel.setGateDirs(availableGateDirs);
+    LF.Travel.build();
+  }
+
+  // ── 统一地点房间生成（Place 系统）：城市以外类型(fort/pass/landmark/dungeon/story/field...)由 gen/rooms.js 造房注入 G.ROOMS ──
+  function registerPlaceRooms(){
+    var P = LF.PLACES || {};
+    for(var pid in P){
+      var p = P[pid];
+      if(!p || p.kind==='city') continue;          // 城市已由 registerCityRooms 处理
+      if(G.ROOMS[pid]) continue;                    // 已有手写/生成则跳过
+      var rooms = (LF.genPlaceRooms ? LF.genPlaceRooms(pid) : null) || {};
+      for(var rid in rooms){ if(!G.ROOMS[rid]) G.ROOMS[rid] = rooms[rid]; }
+      // 副本入口：在 entry 地点房挂一条北向出口，连通地表↔秘谷
+      if(p.kind==='dungeon' && p.entry && G.ROOMS[p.entry]){
+        var er = G.ROOMS[p.entry]; if(!er.exits) er.exits = {};
+        if(!er.exits['北']) er.exits['北'] = pid + '@entrance';
+      }
+    }
+  }
+  registerPlaceRooms();
+  if(LF.Travel) LF.Travel.link();   // 郊野网格造好后，连 近边入口↔母城 / 远边出口↔邻点
+
+})();
+
