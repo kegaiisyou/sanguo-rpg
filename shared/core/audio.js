@@ -97,11 +97,12 @@
 
   function unlock() {
     var c = ensureCtx();
-    if (c && c.state === 'suspended') c.resume();
+    if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
     if (!buffers.bgm && !loading.bgm) preloadAll();
   }
-  document.addEventListener('touchstart', unlock, { once: true, passive: true });
-  document.addEventListener('click', unlock, { once: true });
+  document.addEventListener('touchstart', unlock, { passive: true });
+  document.addEventListener('click', unlock);
+  document.addEventListener('keydown', unlock);
   if (document.readyState === 'complete') preloadAll();
   else window.addEventListener('load', preloadAll);
 
@@ -167,8 +168,11 @@
   }
   function doStartBgm() {
     if (bgmPlaying || !enabled) return;
+    var c = ensureCtx();
+    if (!c) return;
+    if (c.state === 'suspended') { c.resume().catch(function(){}); }
     try {
-      bgmSrc = ctx.createBufferSource();
+      bgmSrc = c.createBufferSource();
       bgmSrc.buffer = buffers.bgm;
       bgmSrc.loop = true;
       bgmSrc.connect(bgmGain);
