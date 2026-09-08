@@ -1,54 +1,80 @@
-// 乱世烽火 · 音频系统（v20260909b）
-// 优先播放 assets/audio/ 下的真实音频文件，加载失败时回退到 Web Audio 合成
+// 乱世烽火 · 音频系统（v20260909c）
+// 音效用 Web Audio API 预解码到内存，播放零延迟；BGM 用 HTML5 Audio 循环
 (function (global) {
   'use strict';
   var enabled = true;
   var bgmVolume = 0.35;
   var sfxVolume = 0.6;
+  var ctx = null;
+  var sfxGain = null;
+  var buffers = {};   // 解码后的 AudioBuffer
+  var loading = {};   // 正在加载的 Promise
   var bgmAudio = null;
   var bgmPlaying = false;
 
-  // 音频文件映射
-  var AUDIO_FILES = {
-    bgm: 'assets/audio/bgm_main.wav',
+  var SFX_FILES = {
     click: 'assets/audio/sfx_click.wav',
     coin: 'assets/audio/sfx_coin.wav',
     attack: 'assets/audio/sfx_attack.wav'
   };
-  var cache = {};
-  var failed = {};
+  var BGM_FILE = 'assets/audio/bgm_main.wav';
 
-  function loadAudio(key) {
-    if (cache[key]) return cache[key];
-    if (failed[key]) return null;
+  function ensureCtx() {
+    if (ctx) return ctx;
     try {
-      var a = new Audio(AUDIO_FILES[key]);
-      a.preload = 'auto';
-      a.addEventListener('error', function () { failed[key] = true; cache[key] = null; });
-      cache[key] = a;
-      return a;
-    } catch (e) { failed[key] = true; return null; }
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      sfxGain = ctx.createGain();
+      sfxGain.gain.value = sfxVolume;
+      sfxGain.connect(ctx.destination);
+    } catch (e) { ctx = null; }
+    return ctx;
   }
 
-  function playFile(key, vol) {
-    if (!enabled) return;
-    var src = loadAudio(key);
-    if (!src) return false;
+  // 预加载并解码音效
+  function preloadSfx() {
+    var c = ensureCtx();
+    if (!c) return;
+    Object.keys(SFX_FILES).forEach(function (key) {
+      if (buffers[key] || loading[key]) return;
+      loading[key] = fetch(SFX_FILES[key])
+        .then(function (r) { return r.arrayBuffer(); })
+        .then(function (buf) { return c.decodeAudioData(buf); })
+        .then(function (audioBuf) { buffers[key] = audioBuf; })
+        .catch(function () { buffers[key] = null; })
+        .finally(function () { delete loading[key]; });
+    });
+  }
+
+  // 播放解码后的音效（零延迟）
+  function playBuffer(key) {
+    if (!enabled) return false;
+    var c = ensureCtx();
+    if (!c || !buffers[key]) return false;
     try {
-      var a = src.cloneNode();
-      a.volume = (vol != null ? vol : sfxVolume);
-      a.play().catch(function () { failed[key] = true; });
+      var src = c.createBufferSource();
+      src.buffer = buffers[key];
+      var g = c.createGain();
+      g.gain.value = 1;
+      src.connect(g);
+      g.connect(sfxGain);
+      src.start(0);
       return true;
     } catch (e) { return false; }
   }
 
-  // ── Web Audio 合成 fallback ──
-  var ctx = null;
-  function ensureCtx() {
-    if (ctx) return ctx;
-    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ctx = null; }
-    return ctx;
+  // 解锁 AudioContext（浏览器自动播放策略）
+  function unlock() {
+    var c = ensureCtx();
+    if (c && c.state === 'suspended') c.resume();
+    if (!buffers.click && !loading.click) preloadSfx();
   }
+  document.addEventListener('touchstart', unlock, { once: true, passive: true });
+  document.addEventListener('click', unlock, { once: true });
+  // 页面加载后开始预加载
+  if (document.readyState === 'complete') preloadSfx();
+  else window.addEventListener('load', preloadSfx);
+
+  // ── 代码合成 fallback ──
   function tone(freq, dur, type, vol) {
     if (!enabled) return;
     var c = ensureCtx(); if (!c) return;
@@ -58,7 +84,7 @@
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vol || 0.2, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    osc.connect(g); g.connect(c.destination);
+    osc.connect(g); g.connect(sfxGain || c.destination);
     osc.start(t); osc.stop(t + dur + 0.05);
   }
   function noise(dur, vol, freq) {
@@ -71,24 +97,19 @@
     var src = c.createBufferSource(); src.buffer = buf;
     var f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq || 800;
     var g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+    src.connect(f); f.connect(g); g.connect(sfxGain || c.destination); src.start(t);
   }
 
-  // 解锁 AudioContext
-  function unlock() { var c = ensureCtx(); if (c && c.state === 'suspended') c.resume(); }
-  document.addEventListener('touchstart', unlock, { once: true, passive: true });
-  document.addEventListener('click', unlock, { once: true });
-
-  // ── 音效函数（优先文件，失败则合成）──
-  function sfxClick() { if (!playFile('click')) tone(880, 0.05, 'square', 0.1); }
-  function sfxCoin() { if (!playFile('coin')) { tone(988, 0.06, 'square', 0.1); setTimeout(function () { tone(1319, 0.1, 'square', 0.1); }, 50); } }
+  // ── 音效函数 ──
+  function sfxClick() { if (!playBuffer('click')) tone(880, 0.05, 'square', 0.1); }
+  function sfxCoin() { if (!playBuffer('coin')) { tone(988, 0.06, 'square', 0.1); setTimeout(function () { tone(1319, 0.1, 'square', 0.1); }, 50); } }
   function sfxConfirm() { tone(523, 0.08, 'triangle', 0.15); setTimeout(function () { tone(659, 0.1, 'triangle', 0.15); }, 60); setTimeout(function () { tone(784, 0.12, 'triangle', 0.15); }, 120); }
   function sfxCancel() { tone(440, 0.08, 'triangle', 0.12); setTimeout(function () { tone(330, 0.12, 'triangle', 0.12); }, 70); }
   function sfxOpen() { tone(392, 0.1, 'sine', 0.1); setTimeout(function () { tone(523, 0.12, 'sine', 0.1); }, 50); }
   function sfxClose() { tone(523, 0.08, 'sine', 0.08); setTimeout(function () { tone(392, 0.1, 'sine', 0.08); }, 50); }
   function sfxError() { tone(200, 0.15, 'sawtooth', 0.12); }
   function sfxLevelup() { [523, 659, 784, 1047].forEach(function (f, i) { setTimeout(function () { tone(f, 0.15, 'triangle', 0.15); }, i * 80); }); }
-  function sfxAttack() { if (!playFile('attack')) { noise(0.15, 0.2, 800); tone(180, 0.1, 'sawtooth', 0.08); } }
+  function sfxAttack() { if (!playBuffer('attack')) { noise(0.15, 0.2, 800); tone(180, 0.1, 'sawtooth', 0.08); } }
   function sfxHit() { noise(0.12, 0.3, 400); tone(120, 0.08, 'sine', 0.2); }
   function sfxCrit() { noise(0.2, 0.35, 2000); tone(880, 0.15, 'square', 0.12); setTimeout(function () { tone(1200, 0.1, 'square', 0.08); }, 50); }
   function sfxMiss() { noise(0.2, 0.12, 3000); }
@@ -98,20 +119,16 @@
   function sfxVictory() { [523, 659, 784, 1047, 1319].forEach(function (f, i) { setTimeout(function () { tone(f, 0.2, 'triangle', 0.15); }, i * 100); }); }
   function sfxDefeat() { [440, 392, 349, 294, 262].forEach(function (f, i) { setTimeout(function () { tone(f, 0.25, 'sine', 0.12); }, i * 120); }); }
 
-  // ── BGM ──
+  // ── BGM（HTML5 Audio 循环）──
   function startBgm() {
     if (bgmPlaying) return;
-    var src = loadAudio('bgm');
-    if (src && !failed.bgm) {
-      try {
-        bgmAudio = src.cloneNode();
-        bgmAudio.loop = true;
-        bgmAudio.volume = bgmVolume;
-        bgmAudio.play().then(function () { bgmPlaying = true; }).catch(function () { failed.bgm = true; bgmAudio = null; });
-        return;
-      } catch (e) { failed.bgm = true; }
-    }
-    // fallback: 不播放合成BGM（太奇怪），静默
+    try {
+      bgmAudio = new Audio(BGM_FILE);
+      bgmAudio.loop = true;
+      bgmAudio.volume = bgmVolume;
+      bgmAudio.preload = 'auto';
+      bgmAudio.play().then(function () { bgmPlaying = true; }).catch(function () { bgmAudio = null; });
+    } catch (e) { bgmAudio = null; }
   }
   function stopBgm() {
     bgmPlaying = false;
@@ -126,6 +143,7 @@
   }
   function setSfxVolume(v) {
     sfxVolume = Math.max(0, Math.min(1, v));
+    if (sfxGain) sfxGain.gain.value = sfxVolume;
     try { localStorage.setItem('sanguo_sfx_vol', sfxVolume); } catch (e) { }
   }
   function setEnabled(on) {
@@ -145,7 +163,7 @@
   }
   loadPrefs();
 
-  // ── 全局桥接（兼容 engine.js 中的 SFX.swing/hit/crit/win/lose 调用）──
+  // ── 全局桥接 ──
   global.SFX = {
     setEnabled: setEnabled,
     isEnabled: function () { return enabled; },
