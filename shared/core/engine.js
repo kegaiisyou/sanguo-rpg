@@ -5093,19 +5093,6 @@
     cityBuildBpList:cityBuildBpList, cityGridSize:cityGridSize, ensureCityState:ensureCityState,
     state:function(){ return state; }, save:save };
 
-  // ── 全局 UI 点击音效（v20260909a）：事件委托，按钮/可点击元素点击时播放短促音 ──
-  document.addEventListener('click', function(e){
-    try{
-      var t=e.target;
-      while(t && t!==document.body){
-        if(t.tagName==='BUTTON' || t.classList && (t.classList.contains('ap-btn')||t.classList.contains('slot')||t.classList.contains('pack-cell')||t.classList.contains('action-btn')||t.classList.contains('move-btn'))){
-          SFX.click(); break;
-        }
-        t=t.parentNode;
-      }
-    }catch(err){}
-  }, true);
-
   // HTML 注入辅助（战斗卡片用）
 
   // ═══════════════════════════════════════════
