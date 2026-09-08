@@ -1542,7 +1542,7 @@
   .cr-field label{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:4px;color:var(--seal);min-width:48px;}
   .cr-input{flex:1;font-family:"STKaiti","KaiTi",serif;font-size:17px;letter-spacing:2px;padding:6px 10px;border:1px solid var(--btn-line);border-radius:8px;background:var(--btn);color:var(--ink);outline:none;transition:border-color .16s,background .16s;}
   /* 捏人 · 跳过新手教程（测试用） */
-  .cr-skip{display:flex;align-items:center;gap:8px;margin:10px 0 2px;padding:7px 12px;border:1px dashed #8a6f3e;border-radius:8px;background:rgba(163,29,29,.06);color:#c9b48a;font-size:12.5px;cursor:pointer;user-select:none;}
+  .cr-skip{display:flex;align-items:center;gap:8px;margin:10px 0 2px;padding:7px 12px;border:1px dashed #a88a4e;border-radius:8px;background:rgba(163,29,29,.1);color:#ecd9a8;font-size:12.5px;cursor:pointer;user-select:none;}
   .cr-skip input{width:15px;height:15px;accent-color:var(--seal);cursor:pointer;}
   .cr-input:focus{border-color:rgba(158,59,46,.55);background:rgba(158,59,46,.06);}
   .cr-input::placeholder{color:var(--ink-faint);}

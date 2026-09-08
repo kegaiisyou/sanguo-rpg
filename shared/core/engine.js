@@ -4594,16 +4594,14 @@
     }).join('');
     return '<div class="cr-head">'+
         '<span class="cr-head-line"></span>'+
-        '<h3 class="cr-title">入 世 · 立 传</h3>'+
+        '<h3 class="cr-title">新 建 人 物</h3>'+
         '<span class="cr-head-line"></span>'+
       '</div>'+
-      '<div class="cr-subtitle">—— 汉末乱世，群雄并起，且留名于青史 ——</div>'+
       '<div class="cr-field"><label>姓 名</label><input id="cr-name" class="cr-input" maxlength="8" placeholder="无名客"></div>'+
       '<div class="cr-sec">'+
         '<div class="cr-sec-t">四 维 赋 点<span class="cr-pool">余 <b id="cr-pool">'+createState.pool+'</b> 点</span></div>'+
         '<div class="ap-list">'+attrRows+'</div>'+
       '</div>'+
-      '<p class="cr-tip">气血主血量、攻击主伤害、防御主减伤、身法主速度先手。每点换算：气血+'+R.hp+' · 攻击+'+R.atk+' · 防御+'+R.def+' · 身法+'+R.spd+'</p>'+
       '<label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用）</label>'+
       '<div class="cr-actions"><button class="cr-go" id="cr-go">踏 入 江 湖</button></div>';
   }
