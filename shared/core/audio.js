@@ -42,7 +42,6 @@
       .then(function (r) { return r.arrayBuffer(); })
       .then(function (buf) { return c.decodeAudioData(buf); })
       .then(function (audioBuf) {
-        if (key === 'bgm') audioBuf = makeLoopable(audioBuf, c, 2.5);  // BGM做2.5秒交叉淡入淡出
         buffers[key] = audioBuf;
       })
       .catch(function () { buffers[key] = null; })
@@ -169,20 +168,30 @@
   function doStartBgm() {
     if (bgmPlaying || !enabled) return;
     var c = ensureCtx();
-    if (!c) return;
+    if (!c || !buffers.bgm) return;
     if (c.state === 'suspended') { c.resume().catch(function(){}); }
     try {
       bgmSrc = c.createBufferSource();
       bgmSrc.buffer = buffers.bgm;
-      bgmSrc.loop = true;
+      bgmSrc.loop = false;  // 不循环，播完后静默几秒再重播
       bgmSrc.connect(bgmGain);
+      bgmSrc.onended = function() {
+        if (!bgmPlaying) return;
+        bgmSrc = null;
+        // 静默BGM_SILENCE秒后重新播放
+        bgmSilenceTimer = setTimeout(function() {
+          bgmSilenceTimer = null;
+          if (bgmPlaying && enabled) doStartBgm();
+        }, BGM_SILENCE * 1000);
+      };
       bgmSrc.start(0);
       bgmPlaying = true;
     } catch (e) { bgmSrc = null; }
   }
   function stopBgm() {
     bgmPlaying = false;
-    if (bgmSrc) { try { bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
+    if (bgmSilenceTimer) { clearTimeout(bgmSilenceTimer); bgmSilenceTimer = null; }
+    if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
   }
 
   // ── 音量控制 ──
