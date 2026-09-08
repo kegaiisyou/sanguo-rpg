@@ -1546,6 +1546,9 @@
   .cr-skip input{width:15px;height:15px;accent-color:var(--seal);cursor:pointer;}
   .cr-input:focus{border-color:rgba(158,59,46,.55);background:rgba(158,59,46,.06);}
   .cr-input::placeholder{color:var(--ink-faint);}
+  .cr-rand{width:38px;height:38px;border-radius:10px;border:1px solid var(--btn-line);background:var(--btn);color:var(--seal);font-size:18px;cursor:pointer;transition:background .12s,transform .1s;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent;}
+  .cr-rand:hover{background:rgba(158,59,46,.14);border-color:rgba(158,59,46,.5);}
+  .cr-rand:active{transform:scale(.9) rotate(-20deg);}
   .cr-sec{margin:0 0 4px;padding:12px 14px;border:1px solid var(--panel-line);border-radius:10px;background:rgba(0,0,0,.08);}
   .cr-sec-t{font-family:"STKaiti","KaiTi",serif;font-size:15px;letter-spacing:3px;color:var(--seal);margin-bottom:10px;display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-bottom:7px;border-bottom:1px solid var(--panel-line);}
   .cr-pool{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:12px;letter-spacing:0;color:var(--ink-soft);}
@@ -1568,7 +1571,9 @@
   .ap-btn:hover:not(:disabled){background:rgba(158,59,46,.14);border-color:rgba(158,59,46,.5);}
   .ap-btn:active:not(:disabled){transform:scale(.92);}
   .ap-btn:disabled{opacity:.3;cursor:default;}
-  .ap-val{font-family:"STKaiti","KaiTi",serif;font-size:20px;font-weight:700;color:var(--ink);min-width:28px;text-align:center;}
+  .ap-val{font-family:"STKaiti","KaiTi",serif;font-size:20px;font-weight:700;color:var(--ink);min-width:28px;text-align:center;transition:color .15s;}
+  .ap-val.ap-val-pop{animation:apValPop .35s cubic-bezier(.2,.9,.3,1.4) both;}
+  @keyframes apValPop{0%{transform:scale(1);color:var(--ink);}40%{transform:scale(1.45);color:var(--seal);text-shadow:0 0 8px rgba(158,59,46,.5);}100%{transform:scale(1);color:var(--ink);text-shadow:none;}}
   .ap-foot{margin-top:8px;font-size:12px;color:var(--ink-faint);}
   .ap-foot b{color:var(--seal);}
   .ap-confirm{margin-top:10px;width:100%;padding:11px 0;font-size:15px;border:1px solid rgba(158,59,46,.55);border-radius:12px;background:rgba(158,59,46,.14);color:var(--seal);cursor:pointer;font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;}
