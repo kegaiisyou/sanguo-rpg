@@ -41,9 +41,40 @@
     loading[key] = fetch(FILES[key])
       .then(function (r) { return r.arrayBuffer(); })
       .then(function (buf) { return c.decodeAudioData(buf); })
-      .then(function (audioBuf) { buffers[key] = audioBuf; })
+      .then(function (audioBuf) {
+        if (key === 'bgm') audioBuf = makeLoopable(audioBuf, c, 2.5);  // BGM做2.5秒交叉淡入淡出
+        buffers[key] = audioBuf;
+      })
       .catch(function () { buffers[key] = null; })
       .finally(function () { delete loading[key]; });
+  }
+
+  // 交叉淡入淡出：把结尾N秒和开头N秒混合，使循环点平滑过渡
+  function makeLoopable(buf, ctx, fadeSec) {
+    try {
+      var sr = buf.sampleRate;
+      var fade = Math.floor(sr * fadeSec);
+      var len = buf.length;
+      if (len < fade * 4) return buf;  // 太短不处理
+      var newLen = len - fade;
+      var newBuf = ctx.createBuffer(buf.numberOfChannels, newLen, sr);
+      for (var ch = 0; ch < buf.numberOfChannels; ch++) {
+        var src = buf.getChannelData(ch);
+        var dst = newBuf.getChannelData(ch);
+        // 前半部分直接复制（0 到 newLen-fade）
+        var straightEnd = newLen - fade;
+        for (var i = 0; i < straightEnd; i++) dst[i] = src[i];
+        // 交叉区域：结尾淡出 + 开头淡入，加权混合
+        for (var j = 0; j < fade; j++) {
+          var t = j / fade;  // 0→1
+          var outIdx = straightEnd + j;
+          var tailIdx = (len - fade) + j;  // 原始结尾
+          var headIdx = j;                   // 原始开头
+          dst[outIdx] = src[tailIdx] * (1 - t) + src[headIdx] * t;
+        }
+      }
+      return newBuf;
+    } catch (e) { return buf; }
   }
 
   function preloadAll() {
