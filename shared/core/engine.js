@@ -32,6 +32,70 @@
       clearSave = Save.clearSave, slotMeta = Save.slotMeta, normalize = Save.normalize;
   Save.migrateOld();
 
+  // 调试台：从 dev.js 工厂注入引擎依赖（handleDev/renderDev 不再读 window 裸全局）
+  var Dev = LF.createDev({
+    G: G, LF: LF,
+    getState: function () { return state; },
+    getCard: function () { return $card; },
+    getModal: function () { return $modal; },
+    getCurrentModalKind: function () { return currentModalKind; },
+    addReputation: addReputation, repTitle: repTitle, log: log, addXp: addXp,
+    isCityGrid: isCityGrid, isCaptured: isCaptured, cityDefaultOwner: cityDefaultOwner,
+    burnCells: burnCells, effectiveStats: effectiveStats, closeModal: closeModal,
+    renderRoom: renderRoom, openSpawnMap: openSpawnMap, moralTitle: moralTitle,
+    factionName: factionName, renderStatus: renderStatus, toast: toast,
+    packAdd: packAdd, save: save
+  });
+  var handleDev = Dev.handleDev, renderDev = Dev.renderDev;
+
+  // 触发引擎：从 triggers.js 工厂注入引擎依赖（checkTriggers/graduate 不再读 window 裸全局）
+  var Triggers = LF.createTriggers({
+    G: G,
+    getState: function () { return state; },
+    getTriggers: function () { return (window.LF && window.LF.TRIGGERS) || (G && G.TRIGGERS) || []; },
+    log: log, logScene: logScene,
+    onbReveal: onbReveal, highlightOnb: highlightOnb, onbGoal: onbGoal,
+    tutAsk: tutAsk, findEvent: findEvent, runEvent: runEvent,
+    startCombat: startCombat, addReputation: addReputation,
+    packAdd: packAdd, save: save, renderStatus: renderStatus,
+    renderMoveBar: renderMoveBar, renderNpcList: renderNpcList,
+    getOnbLayers: function () { return ONB_LAYERS; }
+  });
+  var checkTriggers = Triggers.checkTriggers, graduate = Triggers.graduate;
+
+  // 城市网格系统：从 city.js 工厂注入引擎依赖（BUILDINGS/NPC_GEN 在引擎中后定义，用 getter 惰性取值）
+  var City = LF.createCity({
+    G: G,
+    getState: function () { return state; },
+    LF: LF,
+    getBUILDINGS: function () { return BUILDINGS; },
+    getNPC_GEN: function () { return NPC_GEN; },
+    log: log
+  });
+  var cityProfile = City.cityProfile, cityLine = City.cityLine,
+      cityGates = City.cityGates, cityGateDirs = City.cityGateDirs,
+      CELL_META = City.CELL_META, CELL_DESC = City.CELL_DESC,
+      ensureCityState = City.ensureCityState,
+      cityTierLv = City.cityTierLv, cityGridSize = City.cityGridSize, cityLevelName = City.cityLevelName,
+      CITY_LV_SIZE = City.CITY_LV_SIZE, CITY_LV_NAME = City.CITY_LV_NAME,
+      cityDevOf = City.cityDevOf, cityOwnerOf = City.cityOwnerOf, cityDefaultOwner = City.cityDefaultOwner,
+      isCaptured = City.isCaptured, cityBurnedMap = City.cityBurnedMap,
+      burnedGates = City.burnedGates, siegeGuardMul = City.siegeGuardMul, setCityDev = City.setCityDev,
+      playerFaction = City.playerFaction, centerTypeOf = City.centerTypeOf, devRadius = City.devRadius, baseDisplayType = City.baseDisplayType,
+      cityCellInst = City.cityCellInst, setCityCell = City.setCityCell, nextBuildOrderId = City.nextBuildOrderId,
+      buildOrderById = City.buildOrderById, activeBuildOrder = City.activeBuildOrder,
+      cellDisplayType = City.cellDisplayType, canEnterCell = City.canEnterCell,
+      burnCells = City.burnCells, siegeWin = City.siegeWin, siegeLose = City.siegeLose,
+      cellDisplayName = City.cellDisplayName, seededRand = City.seededRand, isCityGrid = City.isCityGrid,
+      genCityGrid = City.genCityGrid, cityCellDesc = City.cityCellDesc,
+      cityCellNpcs = City.cityCellNpcs, cityCellActs = City.cityCellActs,
+      registerCityRooms = City.registerCityRooms;
+
+  // 建筑内部交互状态 / 围城待结算（引擎本地可变状态，供城内营造面板与围城逻辑使用；
+  // 原属「城市网格系统」区块但仅被引擎侧的营造 UI / 围城流程消费，故留于引擎）
+  var buildingState = null;
+  var pendingSiegeCid = null;
+
   // ===== 捏人 / 开场序章 =====
   // 四维属性（直接对应战斗数值，无资质壳；每点换算见 G.ATTR_RATIO）
   var ATTR_DEFS=[
@@ -1058,23 +1122,6 @@
 
   // ===== 城市系统：数据驱动派生（数据 shared/data/cities.js） =====
   // 进入城市房间时按人口/治安/商业参数生成城郭概况、人物与可行动作，免去为每城手写房间
-  function cityProfile(cid){
-    var c=(LF.CITIES||{})[cid]; if(!c) return null;
-    var tier = c.pop>=85?'巨邑': c.pop>=70?'大城': c.pop>=55?'州城': c.pop>=40?'县城':'边邑';
-    var popDesc = c.pop>=85?'户口百万': c.pop>=70?'户口数十万': c.pop>=55?'户口数万': c.pop>=40?'户口数千':'人口稀少';
-    var orderDesc = c.order>=70?'路不拾遗': c.order>=55?'夜不闭户': c.order>=40?'盗匪出没':'兵荒马乱';
-    var comDesc = c.commerce>=70?'商贾云集': c.commerce>=55?'市井兴旺': c.commerce>=40?'买卖尚可':'市面萧条';
-    var agriDesc = (c.agri>=70?'沃野千里': c.agri>=55?'田畴丰美': c.agri>=40?'耕耨寻常':'地瘠人稀');
-    var ctypeDesc = ({plain:'平原城',mountain:'山城',port:'港口城',fort:'城寨'})[c.ctype||'plain'];
-    var gates = cityGates(c);
-    return {c:c, tier:tier, tierDesc:tier, popDesc:popDesc, orderDesc:orderDesc, comDesc:comDesc, agriDesc:agriDesc, ctypeDesc:ctypeDesc, gates:gates};
-  }
-  function cityLine(cid){
-    var p=cityProfile(cid); if(!p) return '';
-    var _s='〔'+p.c.name+'·'+p.c.state+'·城况〕'+p.tierDesc+'｜'+p.popDesc+'｜'+p.orderDesc+'｜'+p.comDesc+'｜农:'+p.agriDesc+'｜'+p.ctypeDesc;
-    if(isCaptured(cid)) _s+='｜〔'+cityOwnerOf(cid)+'所占〕';   // 势力易主后显示占领势力
-    return _s;
-  }
   // 城况面板（v20260825d）：参数 + 城型 + 城门 + 市集清单
   function renderCityStat(cid){
     var p=cityProfile(cid); if(!p) return '<h3>城 况</h3><p class="empty">暂无此城数据。</p>';
@@ -1262,163 +1309,6 @@
     out.push({id:'city_upgrade', label:'兴修城垣', icon:'🧱', tip:'拓建城池，提升城市等级（耗砖石木）'});
     return out;
   }
-  // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
-  // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
-  var GRID_VER='20260825f';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
-  // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
-  function cityGates(c){
-    var ct=c.ctype||'plain';
-    if(ct==='fort') return Math.max(1, Math.min(3, 1+Math.floor((c.wall||0)/40)));
-    if(ct==='mountain') return Math.max(1, Math.min(2, 1+Math.floor((c.wall||0)/55)));
-    if(ct==='port') return Math.max(2, Math.min(3, 2+Math.floor((c.commerce||0)/50)));
-    if(ct==='shuizhai') return Math.max(1, Math.min(3, 1+Math.floor((c.wall||0)/45)));  // 水寨：水上营垒，依水寨墙高开 1~3 门
-    return 4;
-  }
-  // —— 城门方向·路网自适应（v20260905k）——
-  // 旧版固定取「默认方位序的前 nG 个」开门：山城/寨城单门往往开在无路的一侧，
-  // 门格虽在、郊野却无人可通 → 晋阳/武威/上庸「有入无出」、交趾「有出无入」等孤城软锁。
-  // 现改为：在四方位里枚举 nG 个开门的组合，选择「郊野远边能真连到的路网邻居」
-  // （网格城权重 2、其它地点 1）总数最多的方向集；得分相同则维持城型默认序
-  // （即原本已最优的城零变化）。与 genCityGrid 门洞格 / availableGateDirs 同源。
-  var CITY_GATE_ORDER={ plain:['北','东','南','西'], mountain:['北','西','南','东'],
-                        fort:['北','南','西','东'], port:['北','东','南','西'],
-                        shuizhai:['北','东','南','西'] };
-  var CITY_GATE_DIRS_CACHE={};
-  function cityGateDirs(cid){
-    if(CITY_GATE_DIRS_CACHE[cid]) return CITY_GATE_DIRS_CACHE[cid];
-    var c=(LF.CITIES||{})[cid];
-    // v20260907i：城市配置 gateDirs 强制开门方向（如苦役营仅开南门）；其余城市仍走路网自适应
-    if(c && c.gateDirs && c.gateDirs.length){ var _gd=c.gateDirs.slice(); CITY_GATE_DIRS_CACHE[cid]=_gd; return _gd; }
-    var ord=CITY_GATE_ORDER[(c&&c.ctype)||'plain']||['北','东','南','西'];
-    var out=ord.slice(0,4);
-    if(c && c.grid){
-      var nG=cityGates(c);
-      var DIRV={'北':[0,-1],'南':[0,1],'东':[1,0],'西':[-1,0]};
-      var nbs=(((LF.ROADS||{}).adj||{})[cid]||[]).map(function(e){
-        var np=(LF.PLACES||{})[e.to];
-        if(!np||!np.pos||np.pos.length!==2) return null;
-        var la=(c.pos[1]||0)*Math.PI/180;
-        return { v:[(np.pos[0]-c.pos[0])*Math.cos(la), -(np.pos[1]-c.pos[1])],
-                 city: !!((LF.CITIES[e.to]||{}).grid) };
-      }).filter(Boolean);
-      if(nbs.length){
-        function angFrom(d,v){
-          var dv=DIRV[d], va=Math.atan2(v[1],v[0]), da=Math.atan2(dv[1],dv[0]);
-          var a=Math.abs(va-da); if(a>Math.PI) a=2*Math.PI-a; return a;
-        }
-        // 复刻 travel.js 的分组语义：先归最近「朝外」门，无朝外门才归最近门（后归不产生出野口）
-        function pick(gdirs, v){
-          var facing=[], all=[];
-          gdirs.forEach(function(d){ var dv=DIRV[d]; if(v[0]*dv[0]+v[1]*dv[1]>0) facing.push(d); all.push(d); });
-          var pool=facing.length?facing:all, best=pool[0], ba=1e9;
-          pool.forEach(function(d){ var a=angFrom(d,v); if(a<ba){ ba=a; best=d; } });
-          return { d:best, face:!!facing.length };
-        }
-        function score(set){
-          var by={}; set.forEach(function(d){ by[d]=[]; });
-          nbs.forEach(function(nb){ by[pick(set, nb.v).d].push(nb); });
-          var s=0;
-          set.forEach(function(d){
-            by[d].forEach(function(nb){ if(pick(set, nb.v).face) s += nb.city?2:1; });
-          });
-          return s;
-        }
-        function affinity(set){
-          var a=0; set.forEach(function(d){ a += 4 - ord.indexOf(d); }); return a;
-        }
-        // v20260907c：剔除「无正向邻点」的虚门，避免开出「有门无路」的城门（罗盘出不去）。
-        // 仅从「确有正向邻点」的可用方向中枚举开门组合（数量取 min(城型门数, 可用方向数)）。
-        var usable = ord.filter(function(d){
-          return nbs.some(function(nb){ return pick([d], nb.v).face; });
-        });
-        if(!usable.length) usable = ord.slice(0,4);   // 极端：无邻点（不应发生），退回默认四门
-        var k = Math.min(nG, usable.length);
-        var bestSet=null, bestSc=-1, bestAf=-1;
-        for(var mask=0; mask<(1<<usable.length); mask++){
-          var bits=0; for(var b=0;b<usable.length;b++) if(mask&(1<<b)) bits++;
-          if(bits!==k) continue;
-          var set=[];
-          for(var i=0;i<usable.length;i++) if(mask&(1<<i)) set.push(usable[i]);
-          var sc=score(set), af=affinity(set);
-          if(sc>bestSc || (sc===bestSc && af>bestAf)){ bestSc=sc; bestAf=af; bestSet=set; }
-        }
-        out = bestSet || usable.slice(0, k);
-      }
-    }
-    CITY_GATE_DIRS_CACHE[cid]=out;
-    return out;
-  }
-  var CELL_META={
-    palace:{i:'🏯',nm:'皇宫'}, gov:{i:'🏛',nm:'衙署'},
-    plaza:{i:'🏛',nm:'城中广场'}, gate:{i:'🚪',nm:'城门'},
-    market:{i:'🛒',nm:'市集'}, home:{i:'🏠',nm:'民宅'}, barracks:{i:'⚔',nm:'军营'},
-    farm:{i:'🌾',nm:'农庄'}, prison:{i:'⛓',nm:'牢房'}, mine:{i:'⛏',nm:'矿坑'}, kitchen:{i:'🍚',nm:'伙房'}, command:{i:'🚩',nm:'中军帐'}, warehouse:{i:'📦',nm:'仓库'}, drill:{i:'🥋',nm:'演武场'}, sentry:{i:'🏮',nm:'岗哨'}, empty:{i:'🟫',nm:'空地'}, ruin:{i:'🔥',nm:'焦土'},
-    site:{i:'🚧',nm:'工地'}
-  };
-  var CELL_DESC={
-    palace:'宫阙巍峨，金瓦耀日，甲士环侍，天子所居之地，气象森严。',
-    gov:'衙署高敞，匾额肃然，郡守（县令）于此听讼断案、发号施令。',
-    plaza:'城中广场四达，旌旗在望，商旅往来如织。',
-    gate:'城门巍峨，匾额森然，出城可重返山河。',
-    market:'市列珠玑，铺肆连绵——药铺、布庄、食肆、杂货各据一隅。',
-    home:'寻常民宅，檐下晾着布衣，孩童探头张望。',
-    barracks:'军营肃整，旌甲林立，校尉按剑而立。',
-    farm:'阡陌纵横，农人扶犁，仓廪所系，民食之源。',
-    prison:'牢房阴森，铁栏纵横，镣铐叮当，囚徒或坐或卧。',
-    mine:'矿坑幽深，镐痕遍布，碎石堆旁搁着铁镐木筐。',
-    kitchen:'伙房烟火气浓，大锅沸汤，案板上堆着粗粮野菜。',
-    command:'中军帐高悬旌旗，案上摊着舆图军报，主将居中而坐。',
-    warehouse:'仓库厚门粗锁，粮袋木料堆垛齐整，仓吏执册清点。',
-    drill:'演武场平整开阔，木桩兵器林立，兵卒汗流浃背操练不休。',
-    sentry:'营门岗哨，哨兵按刀而立，日夜查验进出之人。',
-    empty:'一片空地，瓦砾草莽，尚待营建。',
-    ruin:'焦土未冷，断壁残垣，劫后萧索。',
-    unbuilt:'城郭未及营建，草莽瓦砾，尚无居人。',
-    site:'建材成堆、工匠往来，工事未完，暂不可入。'
-  };
-  // ══ 城市盛衰 / 归属系统（v20260824d）══
-  // 建设度(dev)决定建成半径：随盛衰扩建/降级；焦土(ruin)由战火标记；归属(owner)易主则中枢变帅府/行辕
-  var pendingSiegeCid=null;
-  var buildingState=null;   // 建筑内部交互状态：{building, cid, x, y, ent}
-  function ensureCityState(cid){
-    var c=(LF.CITIES||{})[cid]||{};
-    if(!state.flags.cityDev) state.flags.cityDev={};
-    if(state.flags.cityDev[cid]==null) state.flags.cityDev[cid]=Math.min(100, 35+Math.round((c.pop||50)*0.6));
-    if(!state.flags.cityOwner) state.flags.cityOwner={};
-    if(state.flags.cityOwner[cid]==null) state.flags.cityOwner[cid]=cityDefaultOwner(cid);
-    if(!state.flags.cityBurned) state.flags.cityBurned={};
-    if(!state.flags.cityBurned[cid]) state.flags.cityBurned[cid]={};
-    if(!state.flags.cityBroken) state.flags.cityBroken={};
-    if(!state.flags.cityBroken[cid]) state.flags.cityBroken[cid]={};
-    if(!state.flags.cityLevel) state.flags.cityLevel={};
-    if(state.flags.cityLevel[cid]==null){
-      var _t=(LF.CITIES||{})[cid]||{};
-      state.flags.cityLevel[cid]= (_t.tier==='capital')?7 : (_t.tier==='zhou')?4 : (_t.tier==='xian')?3 : (_t.grid>=9?7:_t.grid>=7?4:_t.grid>=5?3:_t.grid>=3?1:0);
-    } else if(state.flags.cityLevel[cid]===0){ var _g2=(LF.CITIES||{})[cid]||{}; if(_g2.grid>=3 && _g2.grid<5 && _g2.tier!=='xian' && _g2.tier!=='zhou' && _g2.tier!=='capital'){ state.flags.cityLevel[cid]=1; } }
-    // 城市营造覆盖层（第3步）：cityCells[cid]["x,y"]=CellInst{type,level,shops,owner,built,buildOrderId}
-    if(!state.flags.cityCells) state.flags.cityCells={};
-    if(!state.flags.cityCells[cid]) state.flags.cityCells[cid]={};
-    // 统一工单：宏观（requester:npcId，tick 按天推进）与微观（requester:'player'，现场 exert 推进）共用
-    if(!state.flags.buildOrders) state.flags.buildOrders={};
-    if(!state.flags.buildOrderSeq) state.flags.buildOrderSeq=0;
-  }
-  // ══ 城市等级动态系统（v20260826c）══
-  // 等级 0..7 平滑对应 grid 2..9（每次升级仅 +1 圈）：村/镇/乡/县城/郡城/府城/州城/都城
-  var CITY_LV_SIZE=[2,3,4,5,6,7,8,9];
-  var CITY_LV_NAME=['村','镇','乡','县城','郡城','府城','州城','都城'];
-  function cityTierLv(cid){
-    var cl=state.flags.cityLevel && state.flags.cityLevel[cid];
-    if(cl!=null) return cl;
-    var c=(LF.CITIES||{})[cid]||{};
-    if(c.tier==='capital') return 7;
-    if(c.tier==='zhou') return 4;
-    if(c.tier==='xian') return 3;
-    var g=c.grid||5;
-    return (g>=9?7:g>=7?4:g>=5?3:g>=3?1:0);
-  }
-  function cityGridSize(cid){ return CITY_LV_SIZE[cityTierLv(cid)]||3; }
-  function cityLevelName(cid){ return CITY_LV_NAME[cityTierLv(cid)]||'城'; }
-  // 玩家微观升级：校验材料并提升城市等级（宏观委派版由 BuildOrder 在第3步接管，此处为即时路径）
   function tryUpgradeCity(cid){
     ensureCityState(cid);
     var lv=state.flags.cityLevel[cid];
@@ -1442,282 +1332,6 @@
     if(lv<=0) return;
     state.flags.cityLevel[cid]=lv-1;
     log((CITY_LV_NAME[lv]||'城')+'遭劫，城垣崩颓，降为'+(CITY_LV_NAME[lv-1]||'城')+'，民户流散。','sys');
-  }
-  function cityDevOf(cid){ ensureCityState(cid); return state.flags.cityDev[cid]; }
-  function cityOwnerOf(cid){ ensureCityState(cid); return state.flags.cityOwner[cid]; }
-  function cityDefaultOwner(cid){
-    var c=(LF.CITIES||{})[cid]||{};
-    return ((LF.CITY_OWNER||{})[cid])||c.owner||'汉';
-  }
-  function isCaptured(cid){ return cityOwnerOf(cid)!==cityDefaultOwner(cid); }
-  function cityBurnedMap(cid){ ensureCityState(cid); return state.flags.cityBurned[cid]; }
-  // 注：道路等级 / 断路修缮系统已于 v20260827 移除；城市格只保留真实地点（市集/军营/官署…），道路作为可通行空地。
-  function burnedGates(cid){
-    var m=genCityGrid(cid); if(!m) return 0;
-    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2), bm=cityBurnedMap(cid), n=0;
-    [[cx,0],[0,cy],[size-1,cy],[cx,size-1]].forEach(function(p){ if(bm[p[0]+','+p[1]]) n++; });
-    return n;
-  }
-  // 每座被焚城门使守军战力减 8%（最多三成）——城门不免疫火烧，焚毁自有其代价
-  function siegeGuardMul(cid){ var n=burnedGates(cid); return n? Math.max(0.7,1-0.08*n):1; }
-  function setCityDev(cid,v){ if(!state.flags.cityDev) state.flags.cityDev={}; state.flags.cityDev[cid]=Math.max(0,Math.min(100,v)); }
-  function playerFaction(){ return state.faction || '义军'; }
-  function centerTypeOf(cid){ var m=genCityGrid(cid); if(!m) return 'gov'; var c=Math.floor(m.size/2); return m.cells[c][c]; }
-  function devRadius(dev,size){
-    var R=Math.floor(size/2);
-    if(dev>=85) return R;
-    if(dev>=65) return Math.max(1,Math.round(R*0.8));
-    if(dev>=45) return Math.max(1,Math.round(R*0.6));
-    if(dev>=25) return Math.max(1,Math.round(R*0.4));
-    return 1;
-  }
-  function baseDisplayType(cid,x,y){
-    var m=genCityGrid(cid); if(!m) return 'empty';
-    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
-    if(x===cx&&y===cy) return m.cells[y][x];
-    if(x===cx || y===cy){            // 中轴大街（含城门）恒为可通行：保证出城必经城门、且城门始终可达
-      var t=m.cells[y][x];
-      if(t==='unbuilt') t='empty';
-      return t;
-    }
-    var R=devRadius(cityDevOf(cid),size);
-    if(Math.max(Math.abs(x-cx),Math.abs(y-cy))>R) return 'unbuilt';
-    return m.cells[y][x];
-  }
-  // ══ 城市营造覆盖层（第3步：BuildOrder + cityCells 四层叠加）══
-  // cityCells[cid]["x,y"]=CellInst{type,level,shops,owner,built,buildOrderId}
-  // 四层叠加：掘断(broken) > 覆盖层(override：已建→type / 施工中→site) > 焦土(ruin) > 底层(baseDisplayType)
-  function cityCellInst(cid,x,y){
-    ensureCityState(cid);
-    return (state.flags.cityCells[cid]||{})[x+','+y]||null;
-  }
-  function setCityCell(cid,x,y,inst){
-    ensureCityState(cid);
-    var k=x+','+y;
-    if(inst) state.flags.cityCells[cid][k]=inst; else delete state.flags.cityCells[cid][k];
-  }
-  function nextBuildOrderId(){
-    state.flags.buildOrderSeq=(state.flags.buildOrderSeq||0)+1;
-    return 'bo'+state.flags.buildOrderSeq;
-  }
-  function buildOrderById(id){ return (state.flags.buildOrders||{})[id]||null; }
-  function activeBuildOrder(cid,x,y){
-    var inst=cityCellInst(cid,x,y);
-    if(!inst||!inst.buildOrderId) return null;
-    return buildOrderById(inst.buildOrderId);
-  }
-  function cellDisplayType(cid,x,y){
-    var inst=cityCellInst(cid,x,y);
-    if(inst) return inst.built ? inst.type : 'site';        // 覆盖层：已建显示建筑、施工中显示工地
-    var t=baseDisplayType(cid,x,y);
-    if(t==='unbuilt') return t;
-    if(t==='gate') return t;                                // 城门另有守军减益
-    if(cityBurnedMap(cid)[x+','+y]) return 'ruin';
-    return t;
-  }
-  function canEnterCell(cid,x,y){ var t=cellDisplayType(cid,x,y); return t!=='ruin' && t!=='unbuilt' && t!=='site'; }
-  function burnCells(cid,n){
-    var m=genCityGrid(cid); if(!m) return;
-    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
-    var bm=cityBurnedMap(cid);
-    var cp=state.flags.cityPos||{};
-    var cand=[];
-    for(var y=0;y<size;y++) for(var x=0;x<size;x++){
-      if(x===cx&&y===cy) continue;
-      if(cp.cid===cid && cp.x===x && cp.y===y) continue;
-      var t=baseDisplayType(cid,x,y);
-      if(t==='unbuilt') continue;
-      if(bm[x+','+y]) continue;
-      cand.push(x+','+y);
-    }
-    for(var i=cand.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var tmp=cand[i]; cand[i]=cand[j]; cand[j]=tmp; }
-    for(var k=0;k<n&&k<cand.length;k++) bm[cand[k]]=true;
-  }
-  function siegeWin(cid){
-    state.flags.cityOwner=state.flags.cityOwner||{};
-    state.flags.cityOwner[cid]=playerFaction();
-    // ── v20260826g 身份系统：占城即得 tier 对应官职（取更高者）──
-    var _tier=((LF.CITIES||{})[cid]||{}).tier||'xian';
-    var _gained=_tier==='capital'?'君主':_tier==='zhou'?'州牧':'太守';
-    if((LF.TITLES||[]).indexOf(state.title) < (LF.TITLES||[]).indexOf(_gained)) state.title=_gained;
-    if(state.ruledCities.indexOf(cid)<0) state.ruledCities.push(cid);
-    setCityDev(cid, cityDevOf(cid)+18);
-    var ct=centerTypeOf(cid);
-    var cnm=((LF.CITIES||{})[cid]||{}).name||'城';
-    log('〔克城〕守军溃散，「'+cnm+'」易帜——中枢改立「'+cellDisplayName(cid,ct)+'」，'+playerFaction()+' 据此城！','combat');
-    log('战后稍歇，外郭营建更见起色，可容更多百姓居止。','sys');
-  }
-  function siegeLose(cid){
-    setCityDev(cid, cityDevOf(cid)-28);
-    burnCells(cid, 3+Math.floor(Math.random()*3));
-    state.hp=1; state.defeated=true;
-    var cnm=((LF.CITIES||{})[cid]||{}).name||'城';
-    log('〔败退〕攻城失利，守军反扑，「'+cnm+'」城中数处火起，化作焦土焦垣。','combat');
-    log('你力竭倒地，须先「休整」恢复，方可再动。','sys');
-  }
-  // 行政中心按城市等级显示不同名称：都城→皇宫，州城→州衙，县城→城主府；势力易主后变帅府/行辕
-  function cellDisplayName(cid,t){
-    if(t==='unbuilt') return '未营建';
-    if(t==='site') return '工地';
-    if(t==='gov'){
-      if(isCaptured(cid)) return '行辕';
-      var _c=(LF.CITIES||{})[cid]||{};
-      var _tier=_c.tier || (_c.grid>=9?'capital':_c.grid>=7?'zhou':'xian');
-      if(_tier==='zhou') return '州衙';
-      if(_tier==='xian') return '城主府';
-      return '衙署';
-    }
-    if(t==='palace'){
-      if(isCaptured(cid)) return '帅府';
-      return CELL_META.palace.nm;
-    }
-    return CELL_META[t]? CELL_META[t].nm : t;
-  }
-  function seededRand(seed){
-    var h=2166136261; for(var i=0;i<seed.length;i++){ h^=seed.charCodeAt(i); h=Math.imul(h,16777619); }
-    var s=h>>>0;
-    return function(){ s|=0; s=s+0x6D2B79F5|0; var t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
-  }
-  function isCityGrid(rid){ var c=(LF.CITIES||{})[rid]; return !!(c && c.grid); }
-  function genCityGrid(cid){
-    var c=(LF.CITIES||{})[cid]; if(!c||!c.grid) return null;
-    var _lv=cityTierLv(cid);
-    var _myVer=GRID_VER+'@'+_lv+((c.gateDirs||[]).join(','))+((c.layoutGrid||[]).map(function(r){return r.join('');}).join('|'));
-    if(state.flags.cityGrid && state.flags.cityGrid[cid] && state.flags.cityGrid[cid].ver===_myVer) return state.flags.cityGrid[cid];
-    var size=cityGridSize(cid), rnd=seededRand(cid+'_grid_'+_lv);
-    var cx=Math.floor(size/2), cy=Math.floor(size/2);
-    var tier=c.tier || (c.grid>=9?'capital':c.grid>=7?'zhou':'xian');
-    var centerType=(tier==='capital') ? 'palace' : 'gov';   // 都城中央为皇宫，其余为衙门/城主府
-    // 城门方向为路网自适应（v20260905k，见 cityGateDirs），门洞格与 availableGateDirs 同源
-    var nG = cityGates(c);
-    var gateSides = cityGateDirs(cid), gateSet={};
-    gateSides.forEach(function(_d){
-      var _gx=(_d==='东')?size-1:((_d==='西')?0:cx);
-      var _gy=(_d==='南')?size-1:((_d==='北')?0:cy);
-      gateSet[_gx+','+_gy]=1;
-    });
-    var g=[];
-    for(var y=0;y<size;y++){ var row=[];
-      for(var x=0;x<size;x++){
-        var t;
-        if(c.layoutGrid){ t=(c.layoutGrid[y]&&c.layoutGrid[y][x])||'empty'; }
-        else if(x===cx && y===cy) t=centerType;
-        else if(gateSet[x+','+y]) t='gate';
-        else {
-          if(c.layout==='empty'){ t='empty'; }
-          else {
-          var roll=rnd();
-          if(roll<0.20) t='market';
-          else if(roll<0.46) t='home';
-          else if(roll<0.58) t='barracks';
-          else if(roll<0.68) t='farm';
-          else if(roll<0.78) t='empty';
-          else t='empty';
-          }
-          if(t==='market' && c.commerce<55 && rnd()<0.5) t='home';
-          if(t==='barracks' && c.wall<60 && rnd()<0.5) t='empty';
-        }
-        row.push(t);
-      }
-      g.push(row);
-    }
-    // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
-    var markets={};
-    var MK = (typeof LF!=='undefined' && LF.MARKETS);
-    var mktPool=['yaofu','buzhuang','shishi','zahuo','gongzao','jiulou','ranfang','gaodian','qianzhuang','tiejiang','wuguan','biaoju','chalou','duguang','maxing','shudian','xiangzhu'];
-    for(var my=0;my<size;my++) for(var mx=0;mx<size;mx++){
-      if(g[my][mx]!=='market') continue;
-      var dx=mx-cx, dy=my-cy, dir='中';
-      if(Math.abs(dx)>=Math.abs(dy)) dir = dx>0?'东':(dx<0?'西':'中');
-      else dir = dy<0?'北':(dy>0?'南':'中');
-      var mrnd=seededRand(cid+'_mkt_'+mx+'_'+my);
-      var nShop=Math.max(2, Math.min((tier==='capital'?5:tier==='zhou'?4:3), 2+Math.floor((c.commerce||0)/30)));
-      var taken={}, takenKey={}, shops=[];
-      for(var si=0;si<nShop;si++){
-        var mk, _t=0;
-        do { mk = mktPool[Math.floor(mrnd()*mktPool.length)]; _t++; } while(takenKey[mk]>=2 && _t<24);  // 同类最多 2 家，保证市场内商铺多样
-        takenKey[mk]=(takenKey[mk]||0)+1;
-        var sg = MK ? MK.sign(mk, mrnd, taken) : ((BUILDINGS[mk]&&BUILDINGS[mk].name)||mk);
-        shops.push({key:mk, sign:sg});
-      }
-      var nm = MK ? MK.marketName(cid, dir, shops[0].key, mrnd) : (dir+'市');
-      markets[mx+','+my]={ name:nm, dir:dir, shops:shops };
-    }
-    state.flags.cityGrid=state.flags.cityGrid||{};
-    state.flags.cityGrid[cid]={ver:_myVer, size:size, cells:g, markets:markets, gates:nG};
-    return state.flags.cityGrid[cid];
-  }
-  function cityCellDesc(cid,x,y){
-    var m=genCityGrid(cid); if(!m) return [];
-    var t=cellDisplayType(cid,x,y), meta=CELL_META[t]||CELL_META.empty;
-    var d='〔城内·'+meta.nm+'〕'+(CELL_DESC[t]||'');
-    if(t==='gate'){
-      if(cityBurnedMap(cid)[x+','+y]) d+=' 城门曾遭战火，焦痕犹在。';
-    }
-    if(t==='site'){
-      var _inst=cityCellInst(cid,x,y);
-      var _o=_inst&&_inst.buildOrderId?buildOrderById(_inst.buildOrderId):null;
-      var _bp=_o?LF.BUILD[_o.blueprintId]:null;
-      if(_o&&_bp){
-        var _stage=(_bp.stages||[])[_o.stageIndex];
-        d+=' 正在营造「'+(_bp.doneName||'新筑')+'」，当前工段「'+(_stage?_stage.name:'收尾')+'」。';
-      }
-    }
-    return [d];
-  }
-    function cityCellNpcs(cid,x,y){
-    var m=genCityGrid(cid); if(!m) return [];
-    var p=cityProfile(cid); if(!p) return [];
-    var c=(LF.CITIES||{})[cid]||{};
-    var gen = NPC_GEN[ cellDisplayType(cid,x,y) ] || NPC_GEN.common;
-    return gen(cid,x,y,c, c.name||'此城', m);
-  }
-  function cityCellActs(cid,x,y){
-    var m=genCityGrid(cid); if(!m) return [];
-    var dt=cellDisplayType(cid,x,y), t=dt, p=cityProfile(cid), out=[];
-    var bm=cityBurnedMap(cid);
-    var burnt=!!bm[x+','+y];
-    var size=m.size, cx=Math.floor(size/2), cy=Math.floor(size/2);
-    // 营造入口（第3步）：工地可继续营造；空地可择蓝图开工（已建格升级留待后续）
-    var inst=cityCellInst(cid,x,y);
-    if(inst && !inst.built){
-      out.push({id:'city_build', label:'继续营造', icon:'🚧', tip:'回到工地，投料营造，工成则此格落成新筑', data:{cid:cid,x:x,y:y}});
-    } else if(!inst && dt==='empty'){
-      out.push({id:'city_build', label:'营造新筑', icon:'🏗️', tip:'择空地依图纸营造建筑（民宅/市集/农庄/军营/土路）', data:{cid:cid,x:x,y:y}});
-    }
-    // ── 苦役营新格型互动（v20260907j）──
-    if(t==='prison'){ out.push({id:'prison_view', label:'查勘牢房', icon:'⛓', tip:'查看牢中囚徒，或提审问话'}); }
-    if(t==='mine'){ out.push({id:'mine_dig', label:'开凿矿料', icon:'⛏', tip:'挥镐采掘，可得石料'}); }
-    if(t==='kitchen'){ out.push({id:'kitchen_cook', label:'生火造饭', icon:'🍚', tip:'于伙房埋锅造饭，稍歇精神'}); }
-    if(t==='command'){ out.push({id:'command_talk', label:'中军议事', icon:'🚩', tip:'入帐议事，览军情城务'}); }
-    if(t==='warehouse'){ out.push({id:'warehouse_view', label:'进入仓库', icon:'📦', tip:'入库存取物资，存粮木料皆在此'}); }
-    if(t==='drill'){ out.push({id:'drill_train', label:'操练武艺', icon:'🥋', tip:'于演武场挥汗操练，拳脚渐稳'}); }
-    if(t==='sentry'){ out.push({id:'sentry_look', label:'瞭望岗哨', icon:'🏮', tip:'登岗瞭望，查看来往行踪'}); }
-    if(t==='barracks'){ out.push({id:'recruit', label:'募兵操练', tip:'入营招募兵卒'}); out.push({id:'siege', label:'起兵略地', danger:true, tip:'起兵夺城，胜则易帜、败则遭火'}); }
-    if(t==='market'){
-      // 商街店铺 = 场景交互物品：以本市场商铺清单（含程序生成招牌）渲染（进·字号 等），不再占用 NPC 列表
-      var mkt = m.markets && m.markets[x+','+y];
-      if(mkt){
-        mkt.shops.forEach(function(sh){
-          var bd=BUILDINGS[sh.key]; if(!bd) return;
-          out.push({id:'enter_building', label:'进·'+sh.sign, icon:bd.icon, tip:'步入'+sh.sign+'——'+(bd.sub||'入内一观'), data:{building:sh.key, sign:sh.sign, mkt:mkt.name}});
-        });
-      } else {
-        // 兜底（旧档无市场数据）：沿用全局五店
-        ['yaofu','buzhuang','shishi','zahuo','gongzao'].forEach(function(k){
-          var bd=BUILDINGS[k]; if(!bd) return;
-          out.push({id:'enter_building', label:'进·'+bd.name, icon:bd.icon, tip:'步入'+bd.name+'——'+(bd.sub||'入内一观'), data:{building:k}});
-        });
-      }
-    }
-    // v20260905h：出城统一走移动罗盘——立于城门格时，罗盘自动出现朝外的「出城」方向。
-    // 不再提供「出城门」场景按钮；任意格可用「前往城门」自动寻路抵门（不出城），到门后由罗盘定向踏出。
-    if(t!=='gate') out.push({id:'leave_auto', label:'前往城门', icon:'🚪', tip:'自动沿可通行道路行至最近城门；出城请在城门看罗盘，朝外方向踏出'});
-    // ── 政令台（v20260826g 身份系统）：立于中枢且此城归你所统，方能发号 ──
-    if(x===cx && y===cy && cityOwnerOf(cid)===playerFaction()){
-      out.push({id:'edict', label:'政令台', icon:'📜', tip:'于此发号政令：征税、安民、观天下大势'});
-    }
-    return out;
   }
   // ══ 城市营造（第3步：微观现场建造，BuildOrder 驱动）══
   // 现场「营造」→ 择蓝图开工 → 逐阶段投料 + 营造(exert) → 落成写 cityCells 覆盖层
@@ -4888,18 +4502,10 @@
     app.insertBefore(box, lower);
   }
   function removeTutChoices(){ var b=document.getElementById('tut-choices'); if(b&&b.parentNode) b.parentNode.removeChild(b); }
-  // ===== 触发引擎：数据驱动的「场景首访剧本」与「事件触发」 =====
-  // 触发器分两类：
-  //   hook:'onEnter'  进入房间时评估（首访剧本）
-  //   hook:'onTalk'   与 NPC 交谈时评估（交互剧本）
-  // 事件触发器 cond 支持：时间(time) + 地点(room/roomIn/notRoom) + 地点是否有某 NPC(hasNpc)
-  //   + NPC 好感/属性(npcFavor) + 玩家自身属性(player) + 旗帜(flags) 的整合判断；
-  // 效果(steps)支持：narrate / sys / log / reveal / highlight / npcTalk / moveGate(可锁退路)
-  //   / clearGate / event / combat / setFlag / removeNpc / branch / graduate。
-  // 数据见 shared/story/triggers.js（开场燕山链即首条剧本，亦可作事件触发模板）。
-  function getPath(o,p){ var ks=String(p).split('.'),c=o; for(var i=0;i<ks.length;i++){ if(c==null) return undefined; c=c[ks[i]]; } return c; }
-  function setPath(o,p,v){ var ks=String(p).split('.'),c=o; for(var i=0;i<ks.length-1;i++){ if(c[ks[i]]==null) c[ks[i]]={}; c=c[ks[i]]; } c[ks[ks.length-1]]=v; }
-  function isDay(){ var h=state.time%12; return h>=3 && h<=9; }
+  // [moved → shared/core/triggers.js] 触发引擎：数据驱动的「场景首访剧本」与「事件触发」。
+  //   LF.createTriggers(ctx) 暴露 checkTriggers / graduate；getPath/setPath/isDay/resolveTpl/
+  //   testCond/applySet/markDone/isDone/runSteps/runStep/runTrigger 一并抽离。
+  // ── 以下 bldZihao / bldActOk / bldActsFilter 为建筑/掌柜辅助（被建筑弹窗复用，非触发引擎本体）──
   // ── 招牌联动：当前店铺字号（如「福兴杂货铺」→「福兴」），供掌柜台词自称「福兴号」；无招牌时回退建筑名 ──
   function bldZihao(){
     var ent=state.flags&&state.flags.bldEnt;
@@ -4921,118 +4527,6 @@
     return true;
   }
   function bldActsFilter(acts){ if(typeof acts==='function') return acts; return (acts||[]).filter(bldActOk); }
-  function resolveTpl(s){ if(typeof s!=='string') return s; return s.replace(/\{\{name\}\}/g, (state.name||'无名客')); }
-  function testCond(c){
-    if(!c) return true;
-    if(c.room && c.room!==state.room) return false;
-    if(c.roomIn && c.roomIn.indexOf(state.room)<0) return false;
-    if(c.notRoom && c.notRoom.indexOf(state.room)>=0) return false;
-    if(c.notFlag && getPath(state,c.notFlag)) return false;
-    if(c.hasNpc){ var np=(G.ROOMS[state.room]&&G.ROOMS[state.room].npcs)||[]; if(np.indexOf(c.hasNpc)<0) return false; }
-    if(c.npcFavor){ var f=(state.npcFavor&&state.npcFavor[c.npcFavor.key])||0; if(c.npcFavor.min!=null&&f<c.npcFavor.min) return false; if(c.npcFavor.max!=null&&f>c.npcFavor.max) return false; }
-    if(c.player){ for(var k in c.player){ var nd=c.player[k], v=getPath(state,k)||0; if(nd.min!=null&&v<nd.min) return false; if(nd.max!=null&&v>nd.max) return false; } }
-    if(c.flags){ for(var p in c.flags){ if(!!getPath(state,p)!==!!c.flags[p]) return false; } }
-    if(c.time){ if(c.time.day===true && !isDay()) return false; if(c.time.day===false && isDay()) return false; if(c.time.phases && c.time.phases.indexOf(state.time%12)<0) return false; }
-    return true;
-  }
-  function applySet(set, npcKey){
-    if(!set) return;
-    for(var k in set){
-      if(k==='favor'){ if(!state.npcFavor) state.npcFavor={}; state.npcFavor[npcKey]=(state.npcFavor[npcKey]||0)+set[k]; }
-      else { setPath(state, k, set[k]); }
-    }
-  }
-  function markDone(tr){ if(tr.once!==false){ if(!state.flags) state.flags={}; state.flags['trg.'+tr.id]=true; } }
-  function isDone(tr){ return tr.once!==false && !!(state.flags && state.flags['trg.'+tr.id]); }
-  function runSteps(arr, idx, done){
-    if(!arr || idx>=arr.length){ if(done) done(); return; }
-    runStep(arr[idx], function(){ runSteps(arr, idx+1, done); });
-  }
-  function runStep(step, next){
-    switch(step.t){
-      case 'narrate': {
-        var lines = step.lines || (step.room && G.ROOMS[step.room] && G.ROOMS[step.room].desc) || [];
-        logScene(lines.map(function(d){ return {t:d, c:'env'}; }), 800, next);
-        break;
-      }
-      case 'sys': log(step.text,'sys'); next(); break;
-      case 'log': log(resolveTpl(step.text), step.cls||'npc', step.npc); next(); break;
-      case 'reveal': onbReveal(step.layer); if(step.highlight) highlightOnb(step.layer); next(); break;
-      case 'highlight': highlightOnb(step.layer); next(); break;
-      case 'npcTalk': {
-        var npcName = (G.DIALOGUES.npcs[step.npc]&&G.DIALOGUES.npcs[step.npc].name)||step.npc;
-        var asks = (step.asks||[]).map(function(a){
-          return { label: resolveTpl(a.label), fn: function(){
-            applySet(a.set, step.npc);
-            onbGoal();   // 对话选项推进旗标后立即刷新「当前目标」引导（v20260907f）
-            (a.reveal||[]).forEach(function(l){ onbReveal(l); });
-            if(a.highlight){ (Array.isArray(a.highlight)?a.highlight:[a.highlight]).forEach(function(l){ highlightOnb(l); }); }
-            if(a.say) log(resolveTpl(a.say));   // say 为混合叙事（含主角动作+老乞丐台词），不附加「老乞丐：」前缀以免不通顺
-            save(state);
-            if(a.then && a.then.length){ runSteps(a.then, 0, next); } else { next(); }
-          }};
-        });
-        tutAsk(resolveTpl(step.prompt), asks);
-        break;   // 等待玩家选择，选择后才 next()
-      }
-      case 'moveGate': {
-        // fromChain 仅燕山链用过，链已弃用；此处保留通用门禁（fwd/back/lockBack），用于苦役营越狱等剧情
-        if(step.fromChain){
-          state.moveGate=null;
-        } else {
-          state.moveGate={ fwd:step.fwd, back:step.back, lockBack:!!step.lockBack, hint:step.hint };
-        }
-        renderMoveBar(G.ROOMS[state.room]);   // 门禁变化即时刷新罗盘（如问名后解锁前进）
-        next();
-        break;
-      }
-      case 'clearGate': state.moveGate=null; renderMoveBar(G.ROOMS[state.room]); next(); break;
-      case 'event': { var ev=findEvent(step.id); if(ev) runEvent(ev); next(); break; }
-      case 'combat': {
-        startCombat(step.enemy, {tutorial: !!step.tutorial});
-        break;  // 战斗异步，后续步骤待战斗结束再续（开场战斗为链尾，无需续）
-      }
-      case 'setFlag': setPath(state, step.path, step.value); save(state); next(); break;
-      case 'grant': {
-        if(step.gold){ state.gold=Math.max(0,(state.gold||0)+step.gold); }
-        if(step.rep){ addReputation(step.rep); }
-        if(step.items && step.items.length){ step.items.forEach(function(it){ packAdd({defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat, count:it.count||1, effect:it.effect}); }); }
-        save(state); renderStatus(); next(); break;
-      }
-      case 'removeNpc': { var rn=G.ROOMS[state.room].npcs, i=rn?rn.indexOf(step.key):-1; if(i>=0) rn.splice(i,1); next(); break; }
-      case 'branch': { var ok = step.if ? testCond(step.if) : true; runSteps(ok?(step.then||[]):(step.else||[]), 0, next); break; }
-      case 'graduate': graduate(); next(); break;
-      default: next();
-    }
-  }
-  function runTrigger(tr){
-    runSteps(tr.steps||[], 0, function(){ markDone(tr); save(state); });
-  }
-  function checkTriggers(ctx){
-    var handled=false, list=(window.LF&&window.LF.TRIGGERS)||(G&&G.TRIGGERS)||[];
-    for(var i=0;i<list.length;i++){
-      var tr=list[i];
-      if(tr.hook && tr.hook!==ctx.hook) continue;
-      if(isDone(tr)) continue;
-      if(tr.room && tr.room!==ctx.room) continue;
-      if(tr.npc && tr.npc!==ctx.npc) continue;
-      if(tr.roomIn && tr.roomIn.indexOf(ctx.room)<0) continue;
-      if(tr.cond && !testCond(tr.cond)) continue;
-      tr._npc = ctx.npc || tr.npc;
-      runTrigger(tr);
-      handled=true;
-      if(ctx.hook==='onTalk') break;   // 交谈类一次即可
-    }
-    onbGoal();   // 旗标可能随触发改变，刷新「当前目标」与高亮
-    return handled;
-  }
-  function graduate(){
-    if(state.flags && state.flags.onb) state.flags.onb.done=true;   // 教学链毕业：解锁 NPC 的观察/攻击等完整菜单
-    document.body.classList.remove('onb');
-    ONB_LAYERS.forEach(function(l){ document.body.classList.remove('reveal-'+l); });
-    state.moveGate=null;
-    renderMoveBar(G.ROOMS[state.room]); renderNpcList();
-  }
 
   // ===== 苦役营·越狱逃脱枢纽（v20260902a）=====
   // camp_wall「决断出营·墙根」与 camp_gate「决断出营·岗哨」共用此枢纽：
@@ -5184,17 +4678,17 @@
       '<div class="cr-actions"><button class="close" id="cr-go">踏 入 江 湖</button></div>';
   }
   // 仅更新加点数值/按钮/战力，避免每次点击整体重建弹窗（手机卡顿根因）
+  // 四维定义映射（避免每次 updateCreateUI 都 filter 遍历）
+  var ATTR_DEF_MAP={}; ATTR_DEFS.forEach(function(a){ ATTR_DEF_MAP[a.k]=a; });
   function updateCreateUI(){
     var poolEl=document.getElementById('cr-pool'); if(poolEl) poolEl.textContent=createState.pool;
-    var R=G.ATTR_RATIO;
     $card.querySelectorAll('.ap-row').forEach(function(row){
       var incBtn=row.querySelector('[data-act="inc"]');
       var k=incBtn? incBtn.getAttribute('data-k'):null; if(!k) return;
       var v=createState.attr[k];
       var valEl=row.querySelector('.ap-val'); if(valEl) valEl.textContent=v;
-      var combat = k==='hp'? v*R.hp : k==='atk'? v*R.atk : k==='def'? v*R.def : v*R.spd;
-      var def=ATTR_DEFS.filter(function(a){return a.k===k;})[0];
-      var iEl=row.querySelector('.ap-name i'); if(iEl) iEl.textContent=def.t;
+      var def=ATTR_DEF_MAP[k];
+      var iEl=row.querySelector('.ap-name i'); if(iEl && def) iEl.textContent=def.t;
       if(incBtn) incBtn.disabled=(v>=ATTR_MAX || createState.pool<=0);
       var decBtn=row.querySelector('[data-act="dec"]'); if(decBtn) decBtn.disabled=(v<=ATTR_MIN);
     });
@@ -5202,12 +4696,15 @@
   function bindCreate(){
     var nameEl=document.getElementById('cr-name');
     if(nameEl){ nameEl.value=createState.name||''; nameEl.oninput=function(){ createState.name=nameEl.value; }; }
+    var createTimer=null;
     $card.querySelectorAll('.ap-btn').forEach(function(b){
       b.onclick=function(){
         var k=b.getAttribute('data-k'), act=b.getAttribute('data-act');
         if(act==='inc'){ if(createState.pool>0 && createState.attr[k]<ATTR_MAX){ createState.attr[k]++; createState.pool--; } }
         else { if(createState.attr[k]>ATTR_MIN){ createState.attr[k]--; createState.pool++; } }
-        updateCreateUI();
+        // setTimeout 合并：连点时只重绘一次（setTimeout 后台也能执行，比 rAF 可靠；v20260908g）
+        if(createTimer) clearTimeout(createTimer);
+        createTimer=setTimeout(function(){ updateCreateUI(); createTimer=null; }, 0);
       };
     });
     var skipEl=document.getElementById('cr-skip');
@@ -5253,7 +4750,7 @@
   }
   function bindAttrAlloc(){
     if(!$card) return;
-    var statusRaf=null;
+    var statusTimer=null;
     $card.querySelectorAll('[data-act="attr-inc"]').forEach(function(b){
       b.onclick=function(){
         var k=b.getAttribute('data-k');
@@ -5261,9 +4758,9 @@
           state.attr[k]++; state.freePoints=(state.freePoints||0)-1;
           G.recalcBase(state); clampHp();
           updateAttrAllocUI();
-          // 状态栏用 rAF 合并，连点时只重绘一次（修手机连点卡顿，v20260908e）
-          if(statusRaf) cancelAnimationFrame(statusRaf);
-          statusRaf=requestAnimationFrame(function(){ renderStatus(); statusRaf=null; });
+          // 状态栏用 setTimeout 合并，连点时只重绘一次（setTimeout 后台也能执行；v20260908g）
+          if(statusTimer) clearTimeout(statusTimer);
+          statusTimer=setTimeout(function(){ renderStatus(); statusTimer=null; }, 0);
         }
       };
     });
@@ -6226,181 +5723,6 @@
     if(state.dead){ die(); return; }
     openRestModal('ground');
   }
-  // ===== 调试台（测试用：直赋声望/武学等，真正获取途径后续接入） =====
-  function handleDev(act){
-    var MA=G.MARTIAL_ARTS;
-    if(act==='rep+5'){ addReputation(5); }
-    else if(act==='rep20'){ state.reputation=20; log('【声望】已设为 20（'+repTitle(20)+'）','good'); }
-    else if(act==='rep100'){ state.reputation=100; log('【声望】已设为 100（'+repTitle(100)+'）','good'); }
-    else if(act==='rep0'){ state.reputation=0; log('【声望】已清零','sys'); }
-    else if(act.indexOf('skill:')===0){
-      var id=act.slice(6); var a=MA.get(id);
-      var i=state.learnedMartial.indexOf(id);
-      if(i>=0){ state.learnedMartial.splice(i,1); log('移除招式：'+(a?a.name:id),'sys'); }
-      else { state.learnedMartial.push(id); log('习得招式：'+(a?a.name:id),'good'); }
-    }
-    else if(act.indexOf('force:')===0){
-      var fid=act.slice(6); var fa=MA.get(fid);
-      var fi=state.equippedForce.indexOf(fid);
-      if(fi>=0){ state.equippedForce.splice(fi,1); log('卸下发力技巧：'+(fa?fa.name:fid),'sys'); }
-      else { state.equippedForce.push(fid); log('装配发力技巧：'+(fa?fa.name:fid),'good'); }
-    }
-    else if(act==='allmartial'){
-      var got=0;
-      for(var k in MA){ var a=MA[k]; if(!a||!a.id) continue;
-        if(a.type==='technique'){ if(state.equippedForce.indexOf(a.id)<0){ state.equippedForce.push(a.id); got++; } }
-        else { if(state.learnedMartial.indexOf(a.id)<0){ state.learnedMartial.push(a.id); got++; } }
-      }
-      log('【满配】已习得全部招式并装配全部发力技巧（新增 '+got+' 项）','good');
-    }
-    else if(act==='lines+5'){
-      for(var l in state.lines) state.lines[l]=Math.min(20, state.lines[l]+5);
-      log('【艺线】全部武器艺线 +5（上限20）','good');
-    }
-    else if(act==='realm+1'){
-      var n=0;
-      state.learnedMartial.forEach(function(id){
-        var a=MA.get(id); if(a&&a.type!=='technique'){ state.realm[id]=Math.min(6,(state.realm[id]||0)+1); n++; }
-      });
-      log('【境界】已学招式境界全部 +1（'+n+' 式）。突破效果现已生效：伤害/暴击/破甲/连击随境界提升。','good');
-    }
-    else if(act==='maxlv'){
-      state.level=G.CONSTANTS.MAX_LEVEL; state.hp=state.maxHp; state.mp=state.maxMp;
-      log('【速填】等级设为 '+state.level+'，状态回满','good');
-    }
-    else if(act==='pot+200'){ state.pot+=200; log('【速填】潜能 +200（当前 '+state.pot+'）','good'); }
-    else if(act==='gold+500'){ state.gold+=500; log('【速填】银两 +500（当前 '+state.gold+'）','good'); }
-    else if(act==='full'){ var esF=effectiveStats(); state.hp=esF.maxHp; state.mp=esF.maxMp; state.energy=state.maxEnergy; state.food=state.maxFood; state.drink=state.maxDrink; log('【速填】气血/内力/精力/饥渴 全满','good'); }
-    else if(act==='mkgear'){ var eq=LF.ITEMS.rollEquip(3); packAdd(LF.ITEMS.equipToPackItem(eq)); save(state); renderDev(); toast('夺得 '+eq.name); }
-    // ── 等级 / 身份势力 / 城市 调试（v20260827）──
-    else if(act==='xp+200'){ addXp(200); }
-    else if(act==='dev-capture'){
-      state.faction=state.faction||'义军';
-      var cp=state.flags.cityPos; if(!cp || !isCityGrid(cp.cid)){ toast('你不在城中（立于中枢方能占城）'); return; }
-      var cid=cp.cid;
-      if(isCaptured(cid)){ toast('「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」已是你的领地'); return; }
-      if(!state.flags.cityOwner) state.flags.cityOwner={};
-      state.ruledCities=state.ruledCities||[];
-      state.flags.cityOwner[cid]=state.faction;
-      if(state.ruledCities.indexOf(cid)<0) state.ruledCities.push(cid);
-      var _tier=(LF.CITIES[cid]||{}).tier||'xian';
-      var _tt=_tier==='capital'?'君主':_tier==='zhou'?'州牧':'太守';
-      if(LF.TITLES.indexOf(_tt)>LF.TITLES.indexOf(state.title)) state.title=_tt;
-      log('【调试】已占领「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」，授官「'+state.title+'」','good');
-      renderStatus();
-    }
-    else if(act==='dev-release'){
-      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
-      var cid=cp.cid;
-      state.flags.cityOwner[cid]=cityDefaultOwner(cid);
-      state.ruledCities=state.ruledCities||[];
-      var _idx=state.ruledCities.indexOf(cid); if(_idx>=0) state.ruledCities.splice(_idx,1);
-      var _best='游侠';
-      state.ruledCities.forEach(function(rc){ var t=(LF.CITIES[rc]||{}).tier||'xian'; var tt=t==='capital'?'君主':t==='zhou'?'州牧':'太守'; if(LF.TITLES.indexOf(tt)>LF.TITLES.indexOf(_best)) _best=tt; });
-      state.title=_best;
-      log('【调试】已释放「'+(LF.CITIES[cid]?LF.CITIES[cid].name:cid)+'」','sys');
-      renderStatus();
-    }
-    else if(act==='dev-citydev'){
-      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
-      if(!state.flags.cityDev) state.flags.cityDev={};
-      state.flags.cityDev[cp.cid]=Math.min(100,(state.flags.cityDev[cp.cid]||0)+20);
-      log('【调试】'+cp.cid+' 建设度→'+(state.flags.cityDev[cp.cid]),'good');
-    }
-    else if(act==='dev-burn'){
-      var cp=state.flags.cityPos; if(!cp){ toast('你不在城中'); return; }
-      burnCells(cp.cid,3);
-      log('【调试】'+cp.cid+' 焚城（随机3格）','sys');
-    }
-    // ── P3 善恶双轴调试 ──
-    else if(act==='cha+10'){ state.chivalry+=10; log('【调试】侠义 +10（当前 '+state.chivalry+'）','good'); }
-    else if(act==='not+10'){ state.notoriety+=10; log('【调试】凶名 +10（当前 '+state.notoriety+'）','good'); }
-    else if(act==='moral0'){ state.chivalry=0; state.notoriety=0; state.flags.usurper_seen=false; log('【调试】善恶双轴清零','sys'); }
-    else if(act==='spawnNow'){
-      if(!state.spawnRoom){ toast('尚未设置出生点'); return; }
-      closeModal();
-      renderRoom(state.spawnRoom);
-      var _sn=((LF.CITIES||{})[state.spawnRoom]?LF.CITIES[state.spawnRoom].name
-        :((((LF.MAP&&LF.MAP.specialGeo)||{})[state.spawnRoom]||G.ROOMS[state.spawnRoom]||{}).name||state.spawnRoom));
-      log('已传送到出生点：'+_sn,'good');
-    }
-  }
-  function renderDev(){
-    var MA=G.MARTIAL_ARTS;
-    state.faction=state.faction||'义军';
-    var rep=state.reputation, fp=(state.freePoints||0);
-    var facOpts=Object.keys(LF.FACTIONS).map(function(f){
-      var val=(f==='player')?'义军':f;  // 玩家势力在存档中以 '义军' 存储，下拉值与之对齐
-      return '<option value="'+val+'"'+(val===state.faction?' selected':'')+'>'+LF.FACTIONS[f].name+'</option>';
-    }).join('');
-    var titleOpts=LF.TITLES.map(function(t){
-      return '<option value="'+t+'"'+(t===state.title?' selected':'')+'>'+t+'</option>';
-    }).join('');
-    var cityName=(state.flags.cityPos && LF.CITIES[state.flags.cityPos.cid])?LF.CITIES[state.flags.cityPos.cid].name:(state.flags.cityPos?state.flags.cityPos.cid:'不在城');
-    // 出生点名解析：城市 / 手写特殊锚点 / 程序生成地点房 三种来源兼容
-    function spawnNameOf(s){
-      if(!s) return '未设置';
-      if((LF.CITIES||{})[s]) return LF.CITIES[s].name+'（城）';
-      var _sg=((LF.MAP&&LF.MAP.specialGeo)||{})[s]; if(_sg) return _sg.name;
-      var _r=G.ROOMS[s]; if(_r&&_r.name) return _r.name;
-      return s;
-    }
-    var h='<h3>🛠 调 试 台 <span class="dev-sub">v'+LF.CONSTANTS.VERSION+'</span></h3>';
-    // 出生点（最常用 → 置顶）
-    h+='<div class="dev-sec"><div class="dev-h">出生点（当前：'+spawnNameOf(state.spawnRoom)+'）</div><div class="dev-btns">'+
-       '<button class="dev wide" data-act="setspawn">🗺 地图选出生点</button>'+
-       '<button class="dev wide" data-act="spawnNow">⤵ 传送至出生点</button></div>'+
-       '<p class="dev-tip">新档开局落点。城市出生落在城门，点击后立即传送验证。默认洛阳。</p></div>';
-    // 资源
-    h+='<div class="dev-sec"><div class="dev-h">资源（声望 '+rep+' · 银两 '+state.gold+' · 潜能 '+state.pot+' · 自由点 '+fp+'）</div><div class="dev-btns">'+
-       '<button class="dev" data-act="rep+5">声望+5</button><button class="dev" data-act="rep100">声望=100</button>'+
-       '<button class="dev" data-act="gold+500">银两+500</button><button class="dev" data-act="pot+200">潜能+200</button>'+
-       '<button class="dev" data-act="xp+200">经验+200</button><button class="dev" data-act="full">回满状态</button></div></div>';
-    // 善恶
-    h+='<div class="dev-sec"><div class="dev-h">善恶双轴（侠义 '+state.chivalry+' · 凶名 '+state.notoriety+' · '+moralTitle()+'）</div><div class="dev-btns">'+
-       '<button class="dev" data-act="cha+10">侠义+10</button><button class="dev" data-act="not+10">凶名+10</button><button class="dev" data-act="moral0">清零</button></div></div>';
-    // 身份 / 势力（含名城占领、官职）
-    h+='<div class="dev-sec"><div class="dev-h">身份 / 势力（当前：'+factionName(state.faction)+' · '+state.title+'）</div>'+
-       '<div class="dev-btns"><select id="dev-fac" class="dev-sel">'+facOpts+'</select><select id="dev-title" class="dev-sel">'+titleOpts+'</select></div>'+
-       '<div class="dev-btns"><button class="dev" data-act="dev-capture">占领所在城</button><button class="dev" data-act="dev-release">释放所在城</button></div></div>';
-    // 武学
-    h+='<div class="dev-sec"><div class="dev-h">武学招式（点击 学/弃）</div><div class="dev-btns">';
-    for(var k in MA){ var a=MA[k]; if(!a||!a.id||a.type==='technique') continue;
-      var owned=state.learnedMartial.indexOf(a.id)>=0;
-      h+='<button class="dev'+(owned?' on':'')+'" data-act="skill:'+a.id+'">'+(owned?'✓ ':'+ ')+a.name+'</button>';
-    }
-    h+='</div></div>';
-    h+='<div class="dev-sec"><div class="dev-h">发力技巧（点击 装配/卸下）</div><div class="dev-btns">';
-    for(var k2 in MA){ var a2=MA[k2]; if(!a2||!a2.id||a2.type!=='technique') continue;
-      var on=state.equippedForce.indexOf(a2.id)>=0;
-      h+='<button class="dev'+(on?' on':'')+'" data-act="force:'+a2.id+'">'+(on?'✓ ':'+ ')+a2.name+'</button>';
-    }
-    h+='</div><div class="dev-btns"><button class="dev wide" data-act="allmartial">⚡ 一键满配武学</button></div></div>';
-    // 突破
-    h+='<div class="dev-sec"><div class="dev-h">艺线 / 境界（突破增强战力）</div><div class="dev-btns">'+
-       '<button class="dev" data-act="lines+5">全艺线+5</button><button class="dev" data-act="realm+1">全境界+1</button></div></div>';
-    // 角色速填
-    h+='<div class="dev-sec"><div class="dev-h">角色速填</div><div class="dev-btns">'+
-       '<button class="dev" data-act="maxlv">满级(设等级)</button><button class="dev" data-act="mkgear">掉件装备</button></div></div>';
-    // 城市
-    h+='<div class="dev-sec"><div class="dev-h">城市（当前：'+cityName+'）</div><div class="dev-btns">'+
-       '<button class="dev" data-act="dev-citydev">建设+20</button><button class="dev" data-act="dev-burn">焚城(随机3格)</button></div></div>';
-    h+='<button class="close" id="m-close">收 起</button>';
-    $card.innerHTML=h;
-    $modal.classList.remove('hidden');
-    $card.querySelectorAll('[data-act]').forEach(function(btn){
-      btn.onclick=function(){
-        var a=btn.getAttribute('data-act');
-        if(a==='setspawn'){ openSpawnMap(); return; }
-        handleDev(a); save(state); renderStatus();
-        if(currentModalKind!=='char') renderDev();
-      };
-    });
-    var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
-    var fsel=document.getElementById('dev-fac'); if(fsel){ fsel.onchange=function(){ state.faction=fsel.value; log('【调试】势力→'+factionName(state.faction),'sys'); renderStatus(); renderDev(); }; }
-    var tsel=document.getElementById('dev-title'); if(tsel){ tsel.onchange=function(){ state.title=tsel.value; renderStatus(); renderDev(); }; }
-  }
-
   // ===== 调试：大地图选出生点 =====
   // 与主地图同一套 D3 战略图（61 城 + 野外/关隘/副本全点位），点击任意点即设为出生点并传送
   function openSpawnMap(){
@@ -7857,23 +7179,6 @@
   }
 
   // ── 城市房间由 cities.js 程序合成（rooms.js 不再手写）；山河志州治节点由 cities.js+coords 自动派生 ──
-  function registerCityRooms(){
-    var C = LF.CITIES || {};
-    for(var cid in C){
-      var c = C[cid];
-      if(!c || !c.grid) continue;
-      if(G.ROOMS[cid]) continue;
-      G.ROOMS[cid] = {
-        id:cid, name:c.name,
-        desc:(c.blurb || [c.desc || c.name]),
-        find:(c.blurbFind || ''),
-        exits:{}, npcs:[],
-        items:(c.groundItems || []),
-        actions:(c.rootActs || [{id:'rest',label:'城中休整',group:'行动',tip:'寻一处馆驿安歇，气血内力尽复'}]),
-        isCity:true
-      };
-    }
-  }
   registerCityRooms();
 
   // ── 行军系统：按路网在相邻地点间生成「郊野」骨架，再连出入口（须先有 genCityGrid 等游戏函数）──
