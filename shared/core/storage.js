@@ -10,7 +10,8 @@
     var getStorageCid = ctx.getStorageCid;
     var LF = ctx.LF, itemIconHTML = ctx.itemIconHTML, ensureCityState = ctx.ensureCityState;
     var itemKey = ctx.itemKey, packIsStackable = ctx.packIsStackable, packFind = ctx.packFind,
-        packConsume = ctx.packConsume, packAdd = ctx.packAdd, packMax = ctx.packMax, packList = ctx.packList, packGet = ctx.packGet;
+        packConsume = ctx.packConsume, packAdd = ctx.packAdd, packFirstEmpty = ctx.packFirstEmpty,
+        packMax = ctx.packMax, packList = ctx.packList, packGet = ctx.packGet;
     var usePackItem = ctx.usePackItem, equipFromPackTo = ctx.equipFromPackTo;
     var toast = ctx.toast, save = ctx.save, log = ctx.log, afterPackChange = ctx.afterPackChange;
     var getCard = ctx.getCard, getCurrentModalKind = ctx.getCurrentModalKind;
