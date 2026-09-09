@@ -132,11 +132,22 @@
   function sfxVictory() { [523, 659, 784, 1047, 1319].forEach(function (f, i) { setTimeout(function () { tone(f, 0.2, 'triangle', 0.15); }, i * 100); }); }
   function sfxDefeat() { [440, 392, 349, 294, 262].forEach(function (f, i) { setTimeout(function () { tone(f, 0.25, 'sine', 0.12); }, i * 120); }); }
 
-  // ── BGM（多首切换 + 播放-静默-重播）──
+  // ── BGM（多首切换 + 播放-静默-重播，定时器控制，不依赖onended）──
+  var BGM_DURATION = 20;   // 每首曲子20秒
+  var BGM_SILENCE = 5;     // 曲间静默5秒
+  var bgmState = 'stopped'; // 'playing' | 'silence' | 'stopped'
+  var bgmPlayTimer = null;  // 播放时长定时器
+  var bgmSilenceTimer = null; // 静默定时器
+
   function getCurrentBgm() { return BGM_TRACKS[currentBgmIdx]; }
 
+  function clearBgmTimers() {
+    if (bgmPlayTimer) { clearTimeout(bgmPlayTimer); bgmPlayTimer = null; }
+    if (bgmSilenceTimer) { clearTimeout(bgmSilenceTimer); bgmSilenceTimer = null; }
+  }
+
   function startBgm() {
-    if (bgmPlaying) return;
+    if (bgmState === 'playing') return;
     var c = ensureCtx();
     if (!c) return;
     if (c.state === 'suspended') { c.resume().catch(function(){}); }
@@ -144,7 +155,7 @@
     if (!buffers[track.id]) {
       if (!loading[track.id]) loadBuffer(track.id, track.file);
       var check = setInterval(function () {
-        if (buffers[track.id]) { clearInterval(check); if (!bgmPlaying) doStartBgm(); }
+        if (buffers[track.id]) { clearInterval(check); if (bgmState !== 'playing') doStartBgm(); }
         else if (buffers[track.id] === null) clearInterval(check);
       }, 200);
       return;
@@ -153,35 +164,46 @@
   }
 
   function doStartBgm() {
-    if (bgmPlaying || !enabled) return;
+    if (bgmState === 'playing' || !enabled) return;
     var c = ensureCtx();
     if (!c) return;
     if (c.state === 'suspended') { c.resume().catch(function(){}); }
     var track = getCurrentBgm();
     if (!buffers[track.id]) return;
+    clearBgmTimers();
     try {
+      // 停止旧的source
+      if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
       bgmSrc = c.createBufferSource();
       bgmSrc.buffer = buffers[track.id];
       bgmSrc.loop = false;
+      bgmSrc.onended = null; // 不依赖onended，用定时器控制
       bgmSrc.connect(bgmGain);
-      bgmSrc.onended = function() {
-        // 只有正常播放结束才启动静默重播；被stopBgm停止时bgmPlaying已为false
-        if (!bgmPlaying) return;
-        bgmSrc = null;
-        // 静默BGM_SILENCE秒后重新播放当前曲目
-        bgmSilenceTimer = setTimeout(function() {
-          bgmSilenceTimer = null;
-          if (bgmPlaying && enabled) doStartBgm();
-        }, BGM_SILENCE * 1000);
-      };
       bgmSrc.start(0);
-      bgmPlaying = true;
-    } catch (e) { bgmSrc = null; }
+      bgmState = 'playing';
+      // 20秒后停止播放，进入静默
+      bgmPlayTimer = setTimeout(function() {
+        bgmPlayTimer = null;
+        enterSilence();
+      }, BGM_DURATION * 1000);
+    } catch (e) { bgmSrc = null; bgmState = 'stopped'; }
+  }
+
+  function enterSilence() {
+    if (bgmState !== 'playing') return;
+    // 停止当前播放
+    if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
+    bgmState = 'silence';
+    // 静默5秒后重新播放
+    bgmSilenceTimer = setTimeout(function() {
+      bgmSilenceTimer = null;
+      if (enabled && bgmState === 'silence') doStartBgm();
+    }, BGM_SILENCE * 1000);
   }
 
   function stopBgm() {
-    bgmPlaying = false;
-    if (bgmSilenceTimer) { clearTimeout(bgmSilenceTimer); bgmSilenceTimer = null; }
+    bgmState = 'stopped';
+    clearBgmTimers();
     if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
   }
 
@@ -189,36 +211,39 @@
     if (idx < 0 || idx >= BGM_TRACKS.length) return;
     currentBgmIdx = idx;
     try { localStorage.setItem('sanguo_bgm_track', idx); } catch (e) { }
-    // 确保AudioContext在运行（切后台后可能被挂起）
+    // 确保AudioContext在运行
     var c = ensureCtx();
     if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
-    // 如果正在播放，停止当前曲目并立即播放新曲目
-    if (bgmPlaying) {
-      stopBgm();
-      startBgm();
-    }
+    // 不管当前什么状态，停止后立即播放新曲目
+    stopBgm();
+    startBgm();
   }
 
-  // BGM健康监控（v20260909r）：每3秒检查，如果应该播放但实际没在播放，自动恢复
+  // BGM健康监控（v20260909s）：每2秒检查状态一致性
   var bgmWatchTimer = setInterval(function() {
-    if (!enabled || !bgmPlaying) return;
+    if (!enabled) return;
+    if (bgmState === 'stopped') return;
     var c = ensureCtx();
     if (!c) return;
     // AudioContext被挂起则恢复
     if (c.state === 'suspended') { c.resume().catch(function(){}); }
-    // 如果bgmSrc为null且没有静默定时器，说明意外中断了，重新播放
-    if (!bgmSrc && !bgmSilenceTimer) {
+    // 状态是playing但没有source也没有播放定时器 → 意外中断，恢复播放
+    if (bgmState === 'playing' && !bgmSrc && !bgmPlayTimer) {
       doStartBgm();
     }
-  }, 3000);
+    // 状态是silence但没有静默定时器 → 意外中断，恢复播放
+    if (bgmState === 'silence' && !bgmSilenceTimer) {
+      doStartBgm();
+    }
+  }, 2000);
 
-  // 页面切回前台时主动恢复BGM（v20260909r）
+  // 页面切回前台时主动恢复BGM（v20260909s）
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') {
       var c = ensureCtx();
       if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
-      // 如果BGM应该在播放但实际没在播放，立即恢复
-      if (enabled && bgmPlaying && !bgmSrc && !bgmSilenceTimer) {
+      // 如果BGM应该在播放/静默但状态异常，立即恢复
+      if (enabled && bgmState !== 'stopped' && !bgmSrc && !bgmPlayTimer && !bgmSilenceTimer) {
         setTimeout(function(){ doStartBgm(); }, 100);
       }
     }
@@ -289,7 +314,7 @@
     setBgmTrack: setBgmTrack,
     getBgmTracks: getBgmTracks,
     getCurrentBgmIdx: getCurrentBgmIdx,
-    isBgmPlaying: function () { return bgmPlaying; },
+    isBgmPlaying: function () { return bgmState !== 'stopped'; },
     unlock: unlock
   };
 })(typeof window !== 'undefined' ? window : globalThis);
