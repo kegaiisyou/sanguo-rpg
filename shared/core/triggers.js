@@ -40,7 +40,7 @@ window.LF = window.LF || {};
       return s.replace(/\{\{name\}\}/g, (getState().name || '无名客'));
     }
 
-    function testCond(c) {
+    function testCond(c, env) {
       var state = getState();
       if (!c) return true;
       if (c.room && c.room !== state.room) return false;
@@ -123,7 +123,7 @@ window.LF = window.LF || {};
           startCombat(step.enemy, { tutorial: !!step.tutorial });
           break;  // 战斗异步，后续步骤待战斗结束再续（开场战斗为链尾，无需续）
         }
-        case 'setFlag': setPath(state, step.path, step.value); save(state); next(); break;
+        case 'setFlag': { if (step.increment) { var cur = getPath(state, step.path) || 0; setPath(state, step.path, cur + (step.value || 1)); } else { setPath(state, step.path, step.value); } save(state); next(); break; }
         case 'grant': {
           if (step.gold) { state.gold = Math.max(0, (state.gold || 0) + step.gold); }
           if (step.rep) { addReputation(step.rep); }
@@ -131,6 +131,7 @@ window.LF = window.LF || {};
           save(state); renderStatus(); next(); break;
         }
         case 'removeNpc': { var rn = G.ROOMS[state.room].npcs, i = rn ? rn.indexOf(step.key) : -1; if (i >= 0) rn.splice(i, 1); next(); break; }
+        case 'exp': { state.exp = (state.exp || 0) + (step.amount || 0); log('修为 +' + (step.amount || 0), 'good'); renderStatus(); save(state); next(); break; }
         case 'branch': { var ok = step.if ? testCond(step.if) : true; runSteps(ok ? (step.then || []) : (step.else || []), 0, next); break; }
         case 'graduate': graduate(); next(); break;
         default: next();
@@ -148,7 +149,7 @@ window.LF = window.LF || {};
         if (tr.room && tr.room !== env.room) continue;
         if (tr.npc && tr.npc !== env.npc) continue;
         if (tr.roomIn && tr.roomIn.indexOf(env.room) < 0) continue;
-        if (tr.cond && !testCond(tr.cond)) continue;
+        if (tr.cond && !testCond(tr.cond, env)) continue;
         tr._npc = env.npc || tr.npc;
         runTrigger(tr);
         handled = true;

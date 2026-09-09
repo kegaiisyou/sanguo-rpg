@@ -374,6 +374,61 @@
     steps: [ { event: 'ev_kaixuan_decree' } ]
   });
 
+  // ════════════════ 苦役营·新手支线：采石充仓（v20260909w） ════════════════
+  // 接任务：与仓吏对话，受托采石料
+  TRIGGERS.push({
+    id: 'kyl_stone_accept', hook: 'onTalk', npc: 'storeman_kuyilao', once: true,
+    cond: { notFlag: 'flags.task.stone_started' },
+    steps: [
+      { t: 'npcTalk', npc: 'storeman_kuyilao',
+        prompt: '仓吏见你过来，搁下笔册叹道：「营中营建正缺石料，矿坑那头采得慢。你若肯去矿坑凿些青石来交予我，上头必有赏赐——五块便够，多了也记你功劳。」',
+        asks: [
+          { label: '〔应下〕我去矿坑采来。',
+            set: { 'flags.task.stone_started': true },
+            say: '仓吏点头：「好！矿坑在仓库北边，挥镐便能凿下青石。采够五块拿来与我，赏你一个小囊，装东西也方便些。」〔任务：采石充仓——去矿坑采五块石料，给予仓吏。〕' },
+          { label: '〔婉拒〕我再想想。',
+            say: '仓吏摆摆手：「不急，何时想通了再来找我。」' }
+        ] }
+    ]
+  });
+  // 任务进行中：再次对话提示进度
+  TRIGGERS.push({
+    id: 'kyl_stone_progress', hook: 'onTalk', npc: 'storeman_kuyilao', once: false,
+    cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
+    steps: [
+      { t: 'log', cls: 'npc', text: '〔仓吏〕「石料采得如何了？矿坑在北边，挥镐便得。凑够五块拿来与我。」' }
+    ]
+  });
+  // 交任务：给予石料给仓吏，累计5块完成
+  TRIGGERS.push({
+    id: 'kyl_stone_give', hook: 'onGive', npc: 'storeman_kuyilao', item: 'shitiao', once: false,
+    cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
+    steps: [
+      { t: 'setFlag', path: 'flags.task.stone_count', value: 1, increment: true },
+      { t: 'branch',
+        if: { player: { 'flags.task.stone_count': { min: 5 } } },
+        then: [
+          { t: 'setFlag', path: 'flags.task.stone_done', value: true },
+          { t: 'log', cls: 'npc', text: '〔仓吏〕「五块石料齐了！好汉子，做事利落。这小囊你拿去，往后装东西也方便些。」' },
+          { t: 'grant', items: [ { id: 'xiaonang', name: '小囊', icon: '👝', cat: '装备', count: 1 } ] },
+          { t: 'exp', amount: 30 },
+          { t: 'log', cls: 'good', text: '〔任务完成·采石充仓〕获得 小囊（行囊+6）· 修为 +30' }
+        ],
+        else: [
+          { t: 'log', cls: 'npc', text: '〔仓吏〕收下石料，在册上记了一笔：「还差几块，继续去采。」' }
+        ]
+      }
+    ]
+  });
+  // 任务完成后对话
+  TRIGGERS.push({
+    id: 'kyl_stone_done', hook: 'onTalk', npc: 'storeman_kuyilao', once: false,
+    cond: { flags: { 'flags.task.stone_done': true } },
+    steps: [
+      { t: 'log', cls: 'npc', text: '〔仓吏〕「石料已收妥，营中营建又快了几分。你若还想帮忙，营里各处都缺人手——农庄、伙房、演武场，尽可去转转。」' }
+    ]
+  });
+
   LF.TRIGGERS = TRIGGERS;
   if (LF.SharedGame) LF.SharedGame.TRIGGERS = TRIGGERS;
   if (typeof module !== 'undefined' && module.exports) module.exports = TRIGGERS;
