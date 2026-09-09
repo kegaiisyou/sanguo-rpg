@@ -115,6 +115,29 @@ window.LF = window.LF || {};
       farm: { i: '🌾', nm: '农庄' }, prison: { i: '⛓', nm: '牢房' }, mine: { i: '⛏', nm: '矿坑' }, kitchen: { i: '🍚', nm: '伙房' }, command: { i: '🚩', nm: '中军帐' }, warehouse: { i: '📦', nm: '仓库' }, drill: { i: '🥋', nm: '演武场' }, sentry: { i: '🏮', nm: '岗哨' }, empty: { i: '🟫', nm: '空地' }, ruin: { i: '🔥', nm: '焦土' },
       site: { i: '🚧', nm: '工地' }
     };
+    // ── 苦役营教程·具名名册覆盖（v20260909p）──
+    // 生成城内部按网格坐标注入具名 NPC / 场景动作，使新手教程可在真实城市里展开。
+    var TUTORIAL_CITY_NPCS = {
+      kuyilao: {
+        '1,1': ['laotou', 'zhoutingtao', 'qin_jiuxiao'],  // 中军场院（劳役场）
+        '1,0': ['moshu'],                                  // 囚室
+        '2,1': ['chen_jian', 'wu_suan', 'zheng_gang'],     // 仓库（仓吏由 warehouse() 自动生成）
+        '2,0': ['shi_si', 'gou_san'],                      // 矿坑
+        '0,1': ['lin_niang'],                              // 伙房
+        '0,0': ['sun_lao'],                                // 农田
+        '1,2': ['zhao_hu', 'qian_biao', 'sun_meng', 'fu_sheng'], // 岗哨/南门
+        '2,2': ['han_tie', 'su_niang']                     // 演武场
+      }
+    };
+    var TUTORIAL_CITY_ACTS = {
+      kuyilao: {
+        '1,1': [{ id: 'labor_yard', label: '担石劳作', tip: '按狱卒吩咐扛石运土——熟悉劳作，点亮状态栏。' },
+                { id: 'survey_yard', label: '环顾四周', tip: '勘察劳役场，看清几处去路。' }],
+        '2,1': [{ id: 'survey_warehouse', label: '翻找仓库', tip: '墙角倚着闲镐锄，竹木随手可取。' }],
+        '1,2': [{ id: 'wall_choose', label: '决断出营·墙根', tip: '于塌墙根（南门）盘算出营法子。' }],
+        '2,2': [{ id: 'train_dummy', label: '戳木人桩', tip: '演武场木人桩练拳脚，战力达标可强突。' }]
+      }
+    };
     var CELL_DESC = {
       palace: '宫阙巍峨，金瓦耀日，甲士环侍，天子所居之地，气象森严。',
       gov: '衙署高敞，匾额肃然，郡守（县令）于此听讼断案、发号施令。',
@@ -437,7 +460,15 @@ window.LF = window.LF || {};
       var p = cityProfile(cid); if (!p) return [];
       var c = (LF.CITIES || {})[cid] || {};
       var gen = getNPC_GEN()[cellDisplayType(cid, x, y)] || getNPC_GEN().common;
-      return gen(cid, x, y, c, c.name || '此城', m);
+      var list = gen(cid, x, y, c, c.name || '此城', m);
+      // 教程/具名名册（v20260909p）：按格注入具名 NPC
+      var ros = (TUTORIAL_CITY_NPCS[cid] && TUTORIAL_CITY_NPCS[cid][x + ',' + y]) || [];
+      for (var ri = 0; ri < ros.length; ri++) {
+        var rk = ros[ri];
+        var rd = (G.DIALOGUES && G.DIALOGUES.npcs && G.DIALOGUES.npcs[rk]) || {};
+        list.push({ o: { key: rk, name: rd.name || rk, icon: rd.icon || '👤', desc: rd.desc || '' }, acts: [] });
+      }
+      return list;
     }
     function cityCellActs(cid, x, y) {
       var m = genCityGrid(cid); if (!m) return [];
@@ -484,6 +515,9 @@ window.LF = window.LF || {};
       if (x === cx && y === cy && cityOwnerOf(cid) === playerFaction()) {
         out.push({ id: 'edict', label: '政令台', icon: '📜', tip: '于此发号政令：征税、安民、观天下大势' });
       }
+      // 教程/具名 动作名册（按格注入；v20260909p）
+      var _tacts = (TUTORIAL_CITY_ACTS[cid] && TUTORIAL_CITY_ACTS[cid][x + ',' + y]) || [];
+      for (var ti = 0; ti < _tacts.length; ti++) out.push(_tacts[ti]);
       return out;
     }
     // ── 城市房间由 cities.js 程序合成（rooms.js 不再手写）；山河志州治节点由 cities.js+coords 自动派生 ──

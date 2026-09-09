@@ -157,6 +157,17 @@ window.LF = window.LF || {};
         if (tr.npc && tr.npc !== env.npc) continue;
         if (tr.item && (!env.item || (env.item.defId || env.item.id) !== tr.item)) continue;  // 仅匹配指定物品（v20260910g 修复：石料任务不会被其他赠物累计）
         if (tr.roomIn && tr.roomIn.indexOf(env.room) < 0) continue;
+        // 单元格/格型作用域（v20260909p）：生成城市内部同一房间下按网格坐标定位触发
+        if (tr.cell) {
+          var _cp = getState().flags && getState().flags.cityPos;
+          if (!_cp || _cp.cid !== env.room || _cp.x !== tr.cell[0] || _cp.y !== tr.cell[1]) continue;
+        }
+        if (tr.cellType) {
+          var _cp2 = getState().flags && getState().flags.cityPos;
+          if (!_cp2 || _cp2.cid !== env.room) continue;
+          var _c2 = (LF.Core && LF.Core.city);
+          if (!_c2 || _c2.cellDisplayType(env.room, _cp2.x, _cp2.y) !== tr.cellType) continue;
+        }
         if (tr.cond && !testCond(tr.cond, env)) continue;
         tr._npc = env.npc || tr.npc;
         runTrigger(tr, env);

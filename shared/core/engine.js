@@ -360,7 +360,7 @@
   function mapKind(rid){
     var k=mapData().kinds && mapData().kinds[rid];
     if(k) return k;
-    if(rid==='camp_yard' || rid==='camp_cell' || rid==='camp_wall') return 'tutorial';
+    if(rid==='camp_yard' || rid==='camp_cell' || rid==='camp_wall' || rid==='kuyilao') return 'tutorial';
     if(/^ji_heishan_/.test(rid)) return 'dungeon';
     if(/^ji_/.test(rid) || /^yuyang_/.test(rid)) return 'city';
     return 'wild';
@@ -1277,7 +1277,7 @@
       }
     }
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
-    var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell');
+    var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell' || rid==='kuyilao');
     if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
@@ -2481,6 +2481,10 @@
   // 从城门经郊野出城（罗盘点「出城」按钮或城门外向移动触发）
   function leaveViaGate(dir){
     var cp=state.flags.cityPos; if(!cp||cp.cid!==state.room){ toast('须先立于城门。'); return; }
+    // 教学未毕业：苦役营（kuyilao）各出口被看死，须先探得门道、再赴南门决断出营
+    if (state.room === 'kuyilao' && !(state.flags && state.flags.onb && state.flags.onb.done)) {
+      toast('塌墙根未松动，官差看死各处出口。先回营中寻周先生问计、去囚室探默叔暗号，再赴南门决断出营。'); return;
+    }
     var _fid = (LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][dir]) || null;
     var target = _fid ? ((LF.PLACES && LF.PLACES[_fid] && LF.PLACES[_fid].entryRoom) || _fid) : null;
     if(!target){ toast('此门暂无通途。'); return; }
@@ -3072,7 +3076,7 @@
       // ─── 教程：劳作 / 塌墙根决断 ───
       case 'labor_yard':
         if(!exert('担石劳作')) return;
-        if(!checkTriggers({hook:'onCustom', room:'camp_yard'}))
+        if(!checkTriggers({hook:'onCustom', room: state.room}))
           log('你又扛起乱石，汗如雨下。苦役营的日夜，漫长得没有尽头。','sys');
         break;
       case 'survey_yard':
@@ -3082,7 +3086,7 @@
         break;
       case 'wall_choose':
         if(!exert('勘察墙根')) return;
-        openEscapeHub('camp_wall');
+        openEscapeHub(isCityGrid(state.room) ? 'kuyilao' : 'camp_wall');
         break;
       case 'gate_choose':
         if(!exert('决断出营')) return;
@@ -3099,7 +3103,7 @@
         break;
       case 'survey_warehouse':
         if(!exert('翻找仓库')) return;
-        if(!checkTriggers({hook:'onCustom', room:'camp_warehouse'}))
+        if(!checkTriggers({hook:'onCustom', room: state.room}))
           log('你翻找仓库：墙角倚着几把闲镐锄，竹木随手可取。若能趁郑刚打盹取一柄，挖地道线（路线2）便有了家伙。','sys');
         break;
       case 'survey_mine':
@@ -3794,7 +3798,7 @@
   function openEscapeHub(room){
     if(document.getElementById('tut-choices')) return;
     if(state.flags && state.flags.onb && state.flags.onb.done){ log('你已逃出苦役营，不必再决断。','sys'); return; }
-    var routes = room==='camp_wall' ? ['crypt','tunnel','rope','drain'] : ['drug','riot','wooden','bribe','assault'];
+    var routes = (room==='camp_wall' || room==='kuyilao') ? ['crypt','tunnel','rope','drain'] : ['drug','riot','wooden','bribe','assault'];
     var opts=[];
     var anyOpen=false;
     routes.forEach(function(r){
@@ -3807,7 +3811,7 @@
       }
     });
     opts.push({ label: '再想想，先不逃', fn: function(){ log('你压下心头去意，先回营中再探探门道。','sys'); } });
-    var title = room==='camp_wall' ? '塌墙根下，你盘算着出营的法子——' : '岗哨咽喉，你思量着强出营墙的法子——';
+    var title = (room==='camp_wall' || room==='kuyilao') ? '塌墙根下，你盘算着出营的法子——' : '岗哨咽喉，你思量着强出营墙的法子——';
     if(!anyOpen) title += '（眼下尚无门路，去与营中众人多攀谈，或备齐所需之物）';
     tutAsk(title, opts);
   }

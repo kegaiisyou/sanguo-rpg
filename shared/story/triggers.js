@@ -26,7 +26,7 @@
   //    此处一次性点亮交互界面（NPC / 行动 / 下方区），并由官差牢头在叙事里喝令去担石——
   //    改用「叙事旁白」而非模态弹窗，避免手机端进场即被弹窗打断；玩家落座即可直接点「担石劳作」开玩。
   TRIGGERS.push({
-    id: 'camp_opening', hook: 'onEnter', room: 'camp_yard', once: true,
+    id: 'camp_opening', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: true,
     steps: [
       { t: 'reveal', layer: 'npc' },
       { t: 'reveal', layer: 'lower' },
@@ -37,7 +37,7 @@
 
   // 2.2) 首次担石劳作：记一次劳作体验，并顺带点亮状态栏 + 位置页签（自然的「干完活才看自身状态」时刻）
   TRIGGERS.push({
-    id: 'labor_first', hook: 'onCustom', room: 'camp_yard', once: true,
+    id: 'labor_first', hook: 'onCustom', room: 'kuyilao', cell: [1,1], once: true,
     cond: { notFlag: 'flags.onb.labored' },
     steps: [
       { t: 'log', cls: 'sys', text: '你扛起乱石，肩头火辣。日头毒辣，囚徒如蚁，狱卒皮鞭声在身后炸响——这便是苦役营的日夜。' },
@@ -49,7 +49,7 @@
 
   // 2.5) 环顾四周（勘察劳役场）：揭示去路，自然引导（不明示去向，留玩家自由探索）
   TRIGGERS.push({
-    id: 'survey_yard', hook: 'onCustom', room: 'camp_yard', once: true,
+    id: 'survey_yard', hook: 'onCustom', room: 'kuyilao', cell: [1,1], once: true,
     cond: { flags: { 'flags.onb.labored': true }, notFlag: 'flags.onb.surveyed' },
     steps: [
       { t: 'log', cls: 'sys', text: '你环顾劳役场：西边塌了半截的墙根，藤蔓爬墙——那是营墙的缺口，风里带着外面的草木腥气；东南角一道低矮门洞，通向囚室，里头囚徒横七竖八。狱卒往来，各处出口皆被看死，唯有那塌墙根透着几分松动。' },
@@ -60,7 +60,7 @@
 
   // 3) 周听涛·取信授密道线（玩家自由回到周听涛、且已劳作+勘察后，他自然接话给出线索）
   TRIGGERS.push({
-    id: 'zt_crypt', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_yard', once: true,
+    id: 'zt_crypt', hook: 'onTalk', npc: 'zhoutingtao', room: 'kuyilao', cell: [1,1], once: true,
     cond: { flags: { 'flags.onb.labored': true, 'flags.onb.surveyed': true }, notFlag: 'flags.route.crypt' },
     steps: [
       { t: 'npcTalk', npc: 'zhoutingtao',
@@ -84,13 +84,13 @@
   // 修复：wall_gate 设的是全局 state.moveGate（fwd=camp_yard），离场后若不清，
   // 会残留在出生点，把「西→塌墙根」也锁死（西门目标不是 camp_yard → blocked），导致无法再西去。
   TRIGGERS.push({
-    id: 'yard_clear_gate', hook: 'onEnter', room: 'camp_yard', once: false,
+    id: 'yard_clear_gate', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
     steps: [ { t: 'clearGate' } ]
   });
 
   // 5) 囚室·默叔示意暗号（逃逸前置：在囚室对上暗号，再赴塌墙根决断）
   TRIGGERS.push({
-    id: 'moshu_signal', hook: 'onTalk', npc: 'moshu', room: 'camp_cell', once: true,
+    id: 'moshu_signal', hook: 'onTalk', npc: 'moshu', room: 'kuyilao', cell: [1,0], once: true,
     cond: { flags: { 'flags.route.crypt': true }, notFlag: 'flags.task.signal' },
     steps: [
       { t: 'npcTalk', npc: 'moshu',
@@ -163,7 +163,7 @@
 
   // 支线C · 苦役营·塌墙根「墙外接应」：教学毕业后回访福生，白檀屯接应送补给
   TRIGGERS.push({
-    id: 'wz_fusheng', hook: 'onTalk', npc: 'fu_sheng', room: 'camp_wall', once: false,
+    id: 'wz_fusheng', hook: 'onTalk', npc: 'fu_sheng', room: 'kuyilao', cell: [1,2], once: false,
     cond: { flags: { 'flags.onb.done': true }, notFlag: 'flags.wz_fusheng_done' },
     steps: [
       { t: 'npcTalk', npc: 'fu_sheng',
@@ -187,7 +187,7 @@
 
   // — 路线2 挖地道：苟三授 route.tunnel（镐锄自行于仓库/矿坑取） —
   TRIGGERS.push({
-    id: 'gou_tunnel', hook: 'onTalk', npc: 'gou_san', room: 'camp_mine', once: false,
+    id: 'gou_tunnel', hook: 'onTalk', npc: 'gou_san', room: 'kuyilao', cell: [2,0], once: false,
     cond: { notFlag: 'flags.route.tunnel' },
     steps: [
       { t: 'npcTalk', npc: 'gou_san',
@@ -201,7 +201,7 @@
 
   // — 路线8 水渠夜遁：吴算（知水道走向）授 route.drain —
   TRIGGERS.push({
-    id: 'wu_drain', hook: 'onTalk', npc: 'wu_suan', room: 'camp_warehouse', once: false,
+    id: 'wu_drain', hook: 'onTalk', npc: 'wu_suan', room: 'kuyilao', cell: [2,1], once: false,
     cond: { notFlag: 'flags.route.drain' },
     steps: [
       { t: 'npcTalk', npc: 'wu_suan',
@@ -215,7 +215,7 @@
 
   // — 路线8 辅助：石四指矿道暗渠 —
   TRIGGERS.push({
-    id: 'shi_drain', hook: 'onTalk', npc: 'shi_si', room: 'camp_mine', once: false,
+    id: 'shi_drain', hook: 'onTalk', npc: 'shi_si', room: 'kuyilao', cell: [2,0], once: false,
     cond: { notFlag: 'flags.task.drain_hint' },
     steps: [
       { t: 'npcTalk', npc: 'shi_si',
@@ -229,7 +229,7 @@
 
   // — 路线3 下迷药：林娘配 sleep_drug 并授 route.drug（鲁大仅提示） —
   TRIGGERS.push({
-    id: 'lin_drug', hook: 'onTalk', npc: 'lin_niang', room: 'camp_kitchen', once: false,
+    id: 'lin_drug', hook: 'onTalk', npc: 'lin_niang', room: 'kuyilao', cell: [0,1], once: false,
     cond: { notFlag: 'flags.route.drug' },
     steps: [
       { t: 'npcTalk', npc: 'lin_niang',
@@ -246,7 +246,7 @@
 
   // — 路线4 趁乱暴动：秦九霄授 route.riot（夺赵虎腰牌） —
   TRIGGERS.push({
-    id: 'qin_riot', hook: 'onTalk', npc: 'qin_jiuxiao', room: 'camp_yard', once: false,
+    id: 'qin_riot', hook: 'onTalk', npc: 'qin_jiuxiao', room: 'kuyilao', cell: [1,1], once: false,
     cond: { notFlag: 'flags.route.riot' },
     steps: [
       { t: 'npcTalk', npc: 'qin_jiuxiao',
@@ -260,7 +260,7 @@
 
   // — 路线5 伪造木牍：陈简刻 wooden_pass（营中竹木随手取） —
   TRIGGERS.push({
-    id: 'chen_wooden', hook: 'onTalk', npc: 'chen_jian', room: 'camp_warehouse', once: false,
+    id: 'chen_wooden', hook: 'onTalk', npc: 'chen_jian', room: 'kuyilao', cell: [2,1], once: false,
     cond: { notFlag: 'flags.task.wooden' },
     steps: [
       { t: 'npcTalk', npc: 'chen_jian',
@@ -277,7 +277,7 @@
 
   // — 路线7 攀绳翻墙：苏娘搓 rope（韩铁指点） —
   TRIGGERS.push({
-    id: 'su_rope', hook: 'onTalk', npc: 'su_niang', room: 'camp_wall', once: false,
+    id: 'su_rope', hook: 'onTalk', npc: 'su_niang', room: 'kuyilao', cell: [2,2], once: false,
     cond: { notFlag: 'flags.task.rope' },
     steps: [
       { t: 'npcTalk', npc: 'su_niang',
@@ -294,7 +294,7 @@
 
   // — 路线9 劫狱强攻：韩铁明示「木人桩练级后可硬闯」 —
   TRIGGERS.push({
-    id: 'han_assault', hook: 'onTalk', npc: 'han_tie', room: 'camp_training', once: false,
+    id: 'han_assault', hook: 'onTalk', npc: 'han_tie', room: 'kuyilao', cell: [2,2], once: false,
     cond: { notFlag: 'flags.task.assault_hint' },
     steps: [
       { t: 'npcTalk', npc: 'han_tie',
@@ -308,7 +308,7 @@
 
   // — 仓库拾镐锄（路线2 必需物；郑刚/墙角闲镐） —
   TRIGGERS.push({
-    id: 'wh_pickaxe', hook: 'onCustom', room: 'camp_warehouse', once: true,
+    id: 'wh_pickaxe', hook: 'onCustom', room: 'kuyilao', cell: [2,1], once: true,
     cond: { notFlag: 'flags.task.pickaxe' },
     steps: [
       { t: 'log', cls: 'sys', text: '你趁郑刚打盹，从墙角摸起一把闲镐锄——沉甸甸正趁手。〔已得镐锄：挖地道线（路线2）可成。〕' },
@@ -319,7 +319,7 @@
 
   // — 信息中心：孙老首谈点明全部路线（提示向） —
   TRIGGERS.push({
-    id: 'sun_routes', hook: 'onTalk', npc: 'sun_lao', room: 'camp_farm', once: false,
+    id: 'sun_routes', hook: 'onTalk', npc: 'sun_lao', room: 'kuyilao', cell: [0,0], once: false,
     cond: { notFlag: 'flags.task.sun_hint' },
     steps: [
       { t: 'npcTalk', npc: 'sun_lao',
@@ -377,7 +377,7 @@
   // ════════════════ 苦役营·新手支线：采石充仓（v20260909w） ════════════════
   // 接任务：与仓吏对话，受托采石料
   TRIGGERS.push({
-    id: 'kyl_stone_accept', hook: 'onTalk', npc: 'storeman_kuyilao', once: true,
+    id: 'kyl_stone_accept', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: true,
     cond: { notFlag: 'flags.task.stone_started' },
     steps: [
       { t: 'npcTalk', npc: 'storeman_kuyilao',
@@ -393,7 +393,7 @@
   });
   // 任务进行中：再次对话提示进度
   TRIGGERS.push({
-    id: 'kyl_stone_progress', hook: 'onTalk', npc: 'storeman_kuyilao', once: false,
+    id: 'kyl_stone_progress', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: false,
     cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
     steps: [
       { t: 'log', cls: 'npc', text: '〔仓吏〕「石料采得如何了？矿坑在北边，挥镐便得。凑够五块拿来与我。」' }
@@ -401,7 +401,7 @@
   });
   // 交任务：给予石料给仓吏，累计5块完成（按实际给予数量累计）
   TRIGGERS.push({
-    id: 'kyl_stone_give', hook: 'onGive', npc: 'storeman_kuyilao', item: 'shitiao', once: false,
+    id: 'kyl_stone_give', hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], item: 'shitiao', once: false,
     cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
     steps: [
       { t: 'setFlag', path: 'flags.task.stone_count', increment: true, incrementByEnv: 'qty' },
@@ -422,7 +422,7 @@
   });
   // 任务完成后对话
   TRIGGERS.push({
-    id: 'kyl_stone_done', hook: 'onTalk', npc: 'storeman_kuyilao', once: false,
+    id: 'kyl_stone_done', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: false,
     cond: { flags: { 'flags.task.stone_done': true } },
     steps: [
       { t: 'log', cls: 'npc', text: '〔仓吏〕「石料已收妥，营中营建又快了几分。你若还想帮忙，营里各处都缺人手——农庄、伙房、演武场，尽可去转转。」' }

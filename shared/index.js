@@ -33,9 +33,9 @@
       repExp: 0,                     // 声望经验累计（后续真实途径用，先留字段）
       gold: 200,
       skills: ['basic_fist'],
-      room: 'camp_yard',             // 当前所处房间（默认出生点：苦役营·劳役场，开场教学密道线入口）
-      spawnRoom: 'camp_yard',        // 玩家出生点（调试台可改；新局/重置后落点）
-      flags: {},
+      room: 'kuyilao',               // 当前所处房间（默认出生点：程序生成·苦役营，开场教学密道线入口）
+      spawnRoom: 'kuyilao',          // 玩家出生点（调试台可改；新局/重置后落点）
+      flags: { cityPos: { cid: 'kuyilao', x: 1, y: 1 } },  // 出生落在苦役营·中军场院(1,1)
       npcFavor: {},                     // NPC 好感度表（keyed by npc id），供触发引擎复合判断
       lastSeen: Date.now(),
       time: 4,                       // 时辰索引（0子..4辰..11亥）；辰时=7:00-8:59
