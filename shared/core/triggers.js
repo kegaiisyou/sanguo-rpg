@@ -73,9 +73,9 @@ window.LF = window.LF || {};
       return tr.once !== false && !!(state.flags && state.flags['trg.' + tr.id]);
     }
 
-    function runSteps(arr, idx, done) {
+    function runSteps(arr, idx, done, env) {
       if (!arr || idx >= arr.length) { if (done) done(); return; }
-      runStep(arr[idx], function () { runSteps(arr, idx + 1, done); });
+      runStep(arr[idx], function () { runSteps(arr, idx + 1, done, env); });
     }
     function runStep(step, next, env) {
       var state = getState();
@@ -144,8 +144,8 @@ window.LF = window.LF || {};
         default: next();
       }
     }
-    function runTrigger(tr) {
-      runSteps(tr.steps || [], 0, function () { markDone(tr); save(getState()); });
+    function runTrigger(tr, env) {
+      runSteps(tr.steps || [], 0, function () { markDone(tr); save(getState()); }, env);
     }
     function checkTriggers(env) {
       var handled = false, list = getTriggers();
@@ -158,7 +158,7 @@ window.LF = window.LF || {};
         if (tr.roomIn && tr.roomIn.indexOf(env.room) < 0) continue;
         if (tr.cond && !testCond(tr.cond, env)) continue;
         tr._npc = env.npc || tr.npc;
-        runTrigger(tr);
+        runTrigger(tr, env);
         handled = true;
         if (env.hook === 'onTalk') break;   // 交谈类一次即可
       }
