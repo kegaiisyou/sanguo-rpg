@@ -75,7 +75,7 @@ window.LF = window.LF || {};
 
     function runSteps(arr, idx, done, env) {
       if (!arr || idx >= arr.length) { if (done) done(); return; }
-      runStep(arr[idx], function () { runSteps(arr, idx + 1, done, env); });
+      runStep(arr[idx], function () { runSteps(arr, idx + 1, done, env); }, env);
     }
     function runStep(step, next, env) {
       var state = getState();
@@ -155,6 +155,7 @@ window.LF = window.LF || {};
         if (isDone(tr)) continue;
         if (tr.room && tr.room !== env.room) continue;
         if (tr.npc && tr.npc !== env.npc) continue;
+        if (tr.item && (!env.item || (env.item.defId || env.item.id) !== tr.item)) continue;  // 仅匹配指定物品（v20260910g 修复：石料任务不会被其他赠物累计）
         if (tr.roomIn && tr.roomIn.indexOf(env.room) < 0) continue;
         if (tr.cond && !testCond(tr.cond, env)) continue;
         tr._npc = env.npc || tr.npc;

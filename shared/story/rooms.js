@@ -169,8 +169,8 @@
         '西': 'camp_kennel',
         '北': 'camp_mine'
       },
-      find: '仓库堆镐锄绳索竹木；陈简校字，吴算盘打算盘。〔西〕回犬舍（西）；〔北〕矿坑（北）。此处竹木可取。',
-      npcs: [ 'chen_jian', 'wu_suan', 'zheng_gang' ],
+      find: '仓库堆镐锄绳索竹木；陈简校字，吴算盘打算盘；仓吏执册清点料数。〔西〕回犬舍（西）；〔北〕矿坑（北）。此处竹木可取。',
+      npcs: [ 'chen_jian', 'wu_suan', 'zheng_gang', 'storeman_kuyilao' ],
       items: [],
       actions: [
         {
