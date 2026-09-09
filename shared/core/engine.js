@@ -1055,10 +1055,12 @@
   function renderObjectives(){
     var quests = (state.quests && state.quests.length) ? state.quests : [];
     var done = (state.questsDone && state.questsDone.length) ? state.questsDone : [];
+    var career = (LF.OBJECTIVES) ? LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(state)}; }) : [];
     var h='<h3>任 务 日 志</h3>'+
       '<div class="quest-tabs">'+
         '<button class="qtab active" data-t="active" onclick="switchQuestTab(\'active\')">进行中</button>'+
         '<button class="qtab" data-t="done" onclick="switchQuestTab(\'done\')">已完成'+(done.length?('（'+done.length+'）'):'')+'</button>'+
+        '<button class="qtab" data-t="career" onclick="switchQuestTab(\'career\')">志业</button>'+
       '</div>'+
       '<div class="quest-pane" id="qp-active">';
     if(!quests.length){
@@ -1073,6 +1075,12 @@
       h+='<div class="obj-done">';
       done.forEach(function(q){ h+='<span class="obj-d">✓ '+q.title+'</span>'; });
       h+='</div>';
+    }
+    h+='</div><div class="quest-pane" id="qp-career" style="display:none">';
+    if(!career.length){
+      h+='<p class="tip q-empty">暂无功业可记。</p>';
+    } else {
+      career.forEach(function(x){ h+=objCardHTML(x); });
     }
     h+='</div>';
     return h;
@@ -1154,9 +1162,10 @@
   window.switchQuestTab=function(t){
     var card=document.getElementById('modal-card'); if(!card) return;
     var btns=card.querySelectorAll('.qtab'); for(var i=0;i<btns.length;i++){ btns[i].classList.toggle('active', btns[i].getAttribute('data-t')===t); }
-    var pa=document.getElementById('qp-active'), pd=document.getElementById('qp-done');
+    var pa=document.getElementById('qp-active'), pd=document.getElementById('qp-done'), pc=document.getElementById('qp-career');
     if(pa) pa.style.display = t==='active'?'':'none';
     if(pd) pd.style.display = t==='done'?'':'none';
+    if(pc) pc.style.display = t==='career'?'':'none';
   };
   function bindQuestPanel(){
     document.querySelectorAll('.obj-track[data-quest]').forEach(function(b){
