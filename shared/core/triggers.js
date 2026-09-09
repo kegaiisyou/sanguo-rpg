@@ -22,7 +22,8 @@ window.LF = window.LF || {};
         startCombat = dep.startCombat, addReputation = dep.addReputation,
         packAdd = dep.packAdd, save = dep.save, renderStatus = dep.renderStatus,
         renderMoveBar = dep.renderMoveBar, renderNpcList = dep.renderNpcList,
-        addXp = dep.addXp;
+        addXp = dep.addXp,
+        acceptQuest = dep.acceptQuest, completeQuest = dep.completeQuest;
 
     function getPath(o, p) {
       var ks = String(p).split('.'), c = o;
@@ -141,6 +142,8 @@ window.LF = window.LF || {};
         case 'exp': { if (addXp) { addXp(step.amount || 0); } else { state.exp = (state.exp || 0) + (step.amount || 0); } renderStatus(); save(state); next(); break; }
         case 'branch': { var ok = step.if ? testCond(step.if, env) : true; runSteps(ok ? (step.then || []) : (step.else || []), 0, next, env); break; }
         case 'graduate': graduate(); next(); break;
+        case 'acceptQuest': if (acceptQuest) acceptQuest(step.id); next(); break;
+        case 'completeQuest': if (completeQuest) completeQuest(step.id); next(); break;
         default: next();
       }
     }

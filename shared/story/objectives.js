@@ -74,7 +74,20 @@
     }
   ];
 
+  // 接取式任务定义（任务日志「进行中/已完成」）：need 用物品 id+数量，进度由背包实时派生；
+  // 接取/完成由触发器 acceptQuest / completeQuest 步骤驱动，面板初始空白，接到任务才出现。
+  var QUEST_DEFS = {
+    stone: {
+      id: 'stone', title: '采石充仓', type: 'side',
+      hint: '去矿坑凿取青石，凑足五块后给予仓吏（仓库）。',
+      need: [ { item: 'shitiao', name: '石料', icon: '🪨', count: 5 } ],
+      submit: { npc: '仓吏', room: 'camp_warehouse' },
+      reward: '便携腰包（行囊+4）· 修为+30'
+    }
+  };
+
   global.LF = global.LF || {};
   global.LF.OBJECTIVES = OBJECTIVES;
+  global.LF.QUEST_DEFS = QUEST_DEFS;
   if (typeof module !== 'undefined' && module.exports) module.exports = OBJECTIVES;
 })(typeof window !== 'undefined' ? window : globalThis);

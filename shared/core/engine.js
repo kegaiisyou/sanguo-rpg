@@ -85,6 +85,7 @@
     packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save, renderStatus: renderStatus,
     renderMoveBar: renderMoveBar, renderNpcList: renderNpcList,
     addXp: function () { return addXp.apply(null, arguments); },
+    acceptQuest: acceptQuest, completeQuest: completeQuest,
     getOnbLayers: function () { return ONB_LAYERS; }
   });
   var checkTriggers = Triggers.checkTriggers, graduate = Triggers.graduate;
@@ -773,13 +774,23 @@
       '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>';
     var qtr=document.getElementById('quest-track');
     if(qtr){
-      var tq=state.trackingQuest, to=null;
-      if(tq){ for(var _qi=0;_qi<LF.OBJECTIVES.length;_qi++){ if(LF.OBJECTIVES[_qi].id===tq){ to=LF.OBJECTIVES[_qi]; break; } } }
+      var tq=state.trackingQuest, to=null, qd=null;
+      if(tq){
+        for(var _qi=0;_qi<LF.OBJECTIVES.length;_qi++){ if(LF.OBJECTIVES[_qi].id===tq){ to=LF.OBJECTIVES[_qi]; break; } }
+        if(!to && state.quests){ for(var _qj=0;_qj<state.quests.length;_qj++){ if(state.quests[_qj].id===tq){ qd=state.quests[_qj]; break; } } }
+      }
       if(to){
         var _qdone=to.check(state);
         qtr.style.display='';
         qtr.innerHTML='<span class="qt-ic">📜</span>追踪 · <b>'+to.title+'</b><span class="qt-prog">'+(_qdone?'已达成 ✓':to.prog(state))+'</span><button class="qt-clear" type="button">✕</button>';
         var _qb=qtr.querySelector('.qt-clear'); if(_qb){ _qb.onclick=function(){ state.trackingQuest=null; renderStatus(); }; }
+      } else if(qd){
+        var _pt = (qd.need && qd.need.length)
+          ? qd.need.map(function(nd){ return nd.name+' '+Math.min(packCount(nd.item),nd.count)+'/'+nd.count; }).join('  ')
+          : (qd.submit ? ('提交 · '+qd.submit.npc) : '');
+        qtr.style.display='';
+        qtr.innerHTML='<span class="qt-ic">📜</span>追踪 · <b>'+qd.title+'</b><span class="qt-prog">'+_pt+'</span><button class="qt-clear" type="button">✕</button>';
+        var _qb2=qtr.querySelector('.qt-clear'); if(_qb2){ _qb2.onclick=function(){ state.trackingQuest=null; renderStatus(); }; }
       } else { qtr.style.display='none'; }
     }
   }
@@ -1040,28 +1051,30 @@
   // ===== P0：志向（目标追踪）+ 门派加入 UX =====
   var QORDER={white:0,green:1,blue:2,purple:3,orange:4};
   function objBestEquip(s){ var b={q:0,name:''}; if(s.equipment){ Object.keys(s.equipment).forEach(function(k){ var it=s.equipment[k]; if(it&&it.quality!=null){ var q=QORDER[it.quality]; if(q!=null&&q>b.q){b.q=q;b.name=it.name;} } }); } return b; }
+  // 任务日志：接取式任务「进行中 / 已完成」分页；初始空白，接到任务才出现
   function renderObjectives(){
-    if(!LF.OBJECTIVES) return '<h3>任 务</h3><p class="tip">数据未载入。</p>';
-    var arr=LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(state)}; });
-    var groups=[ {key:'main',name:'主 线',ic:'⚔'}, {key:'side',name:'支 线',ic:'🏮'}, {key:'trial',name:'修 行',ic:'📖'} ];
+    var quests = (state.quests && state.quests.length) ? state.quests : [];
+    var done = (state.questsDone && state.questsDone.length) ? state.questsDone : [];
     var h='<h3>任 务 日 志</h3>'+
-      '<p class="tip">乱世无师，唯志可引。达成任务即记功领赏；点「追踪」可将目标钉在顶栏，随时查看进度。</p>';
-    var hasActive=false;
-    groups.forEach(function(g){
-      var items=arr.filter(function(x){ return !x.done && (x.o.type||'side')===g.key; });
-      if(!items.length) return;
-      hasActive=true;
-      h+='<div class="obj-group"><div class="obj-group-title">'+g.ic+' '+g.name+'</div><div class="obj-list">';
-      items.forEach(function(x){ h+=objCardHTML(x); });
-      h+='</div></div>';
-    });
-    if(!hasActive){ h+='<p class="tip" style="color:#7fce8f;">诸事已了，江湖路远，自去纵横罢。</p>'; }
-    var done=arr.filter(function(x){return x.done;});
-    if(done.length){
-      h+='<div class="obj-done-title">已达成（'+done.length+'）</div><div class="obj-done">';
-      done.forEach(function(x){ h+='<span class="obj-d">✓ '+x.o.title+'</span>'; });
+      '<div class="quest-tabs">'+
+        '<button class="qtab active" data-t="active" onclick="switchQuestTab(\'active\')">进行中</button>'+
+        '<button class="qtab" data-t="done" onclick="switchQuestTab(\'done\')">已完成'+(done.length?('（'+done.length+'）'):'')+'</button>'+
+      '</div>'+
+      '<div class="quest-pane" id="qp-active">';
+    if(!quests.length){
+      h+='<p class="tip q-empty">暂无进行中的任务。与营中众人攀谈，或留意高亮提示，即可接取任务。</p>';
+    } else {
+      quests.forEach(function(q){ h+=questCardHTML(q); });
+    }
+    h+='</div><div class="quest-pane" id="qp-done" style="display:none">';
+    if(!done.length){
+      h+='<p class="tip q-empty">尚无已完成的任务。</p>';
+    } else {
+      h+='<div class="obj-done">';
+      done.forEach(function(q){ h+='<span class="obj-d">✓ '+q.title+'</span>'; });
       h+='</div>';
     }
+    h+='</div>';
     return h;
   }
   function objCardHTML(x){
@@ -1092,8 +1105,59 @@
   }
   function questTitle(qid){
     if(LF.OBJECTIVES){ for(var i=0;i<LF.OBJECTIVES.length;i++){ if(LF.OBJECTIVES[i].id===qid) return LF.OBJECTIVES[i].title; } }
+    if(state.quests){ for(var i=0;i<state.quests.length;i++){ if(state.quests[i].id===qid) return state.quests[i].title; } }
     return qid;
   }
+  function packCount(id){
+    if(!state.pack) return 0; var n=0;
+    for(var i=0;i<state.pack.length;i++){ var it=state.pack[i]; if(it && (it.defId||it.id)===id) n+=(it.count||1); }
+    return n;
+  }
+  function acceptQuest(id){
+    state.quests=state.quests||[]; if(state.quests.some(function(q){return q.id===id;})) return;
+    var def=LF.QUEST_DEFS && LF.QUEST_DEFS[id]; if(!def) return;
+    state.quests.push(JSON.parse(JSON.stringify(def)));
+    save(state); renderStatus();
+  }
+  function completeQuest(id){
+    state.quests=state.quests||[];
+    var i=state.quests.findIndex(function(q){return q.id===id;}); if(i<0) return;
+    var q=state.quests.splice(i,1)[0];
+    state.questsDone=state.questsDone||[];
+    state.questsDone.push({id:q.id,title:q.title,type:q.type,reward:q.reward});
+    if(state.trackingQuest===id) state.trackingQuest=null;
+    save(state); renderStatus();
+  }
+  function questCardHTML(q){
+    var tn={main:'主线',side:'支线',trial:'修行'}[q.type]||'任务';
+    var cls={main:'t-main',side:'t-side',trial:'t-trial'}[q.type]||'t-side';
+    var h='<div class="obj '+cls+'">'+
+      '<div class="obj-head"><span class="obj-tag '+cls+'">'+tn+'</span><span class="obj-t">'+q.title+'</span></div>'+
+      '<div class="obj-h">'+q.hint+'</div>';
+    if(q.need && q.need.length){
+      h+='<div class="q-need">';
+      q.need.forEach(function(nd){
+        var have=packCount(nd.item), ok=have>=nd.count;
+        h+='<div class="q-need-row'+(ok?' done':'')+'">'+
+           '<span class="q-ic">'+(nd.icon||'')+'</span>'+
+           '<span class="q-nm">'+nd.name+'</span>'+
+           '<span class="q-cnt">'+Math.min(have,nd.count)+' / '+nd.count+'</span></div>';
+      });
+      h+='</div>';
+    }
+    if(q.submit){ var _rn=(G.ROOMS[q.submit.room]&&G.ROOMS[q.submit.room].name)||''; h+='<div class="q-submit">📍 提交 · '+q.submit.npc+(_rn?('（'+_rn+'）'):'')+'</div>'; }
+    if(q.reward){ h+='<div class="obj-reward">奖励 · '+q.reward+'</div>'; }
+    var tracking=state.trackingQuest===q.id;
+    h+='<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div>';
+    return h;
+  }
+  window.switchQuestTab=function(t){
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var btns=card.querySelectorAll('.qtab'); for(var i=0;i<btns.length;i++){ btns[i].classList.toggle('active', btns[i].getAttribute('data-t')===t); }
+    var pa=document.getElementById('qp-active'), pd=document.getElementById('qp-done');
+    if(pa) pa.style.display = t==='active'?'':'none';
+    if(pd) pd.style.display = t==='done'?'':'none';
+  };
   function bindQuestPanel(){
     document.querySelectorAll('.obj-track[data-quest]').forEach(function(b){
       b.onclick=function(){

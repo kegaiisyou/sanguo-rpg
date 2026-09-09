@@ -440,6 +440,20 @@
   .obj-reward{font-size:12px;color:#7fce8f;margin-top:4px;}
   .obj-track{margin-top:7px;font-size:12px;padding:4px 14px;border:1px solid var(--btn-line);border-radius:14px;background:var(--btn);color:var(--seal);cursor:pointer;}
   .obj-track.on{border-color:rgba(184,134,11,.6);color:#b8860b;background:rgba(184,134,11,.08);}
+  /* 任务日志：进行中/已完成 标签页 + 接取式任务卡 */
+  .quest-tabs{display:flex;gap:8px;margin:2px 0 10px;}
+  .qtab{font-size:13px;padding:5px 16px;border:1px solid var(--btn-line);border-radius:14px;background:var(--btn);color:var(--ink-soft);cursor:pointer;}
+  .qtab.active{color:#b8860b;border-color:rgba(184,134,11,.6);background:rgba(184,134,11,.1);font-weight:600;}
+  .quest-pane{display:flex;flex-direction:column;gap:10px;}
+  .q-empty{color:var(--ink-faint);}
+  .q-need{margin-top:6px;display:flex;flex-direction:column;gap:4px;}
+  .q-need-row{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .q-need-row .q-ic{font-size:15px;}
+  .q-need-row .q-nm{color:var(--ink);}
+  .q-need-row .q-cnt{margin-left:auto;color:#8a6a2e;font-variant-numeric:tabular-nums;}
+  .q-need-row.done .q-cnt{color:#7fce8f;}
+  .q-need-row.done .q-nm{color:#7fce8f;}
+  .q-submit{font-size:12px;color:var(--seal);margin-top:5px;}
   .quest-track{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);background:linear-gradient(90deg,rgba(184,134,11,.14),rgba(184,134,11,.05));border-bottom:1px solid rgba(184,134,11,.25);padding:4px 10px;}
   .quest-track b{font-family:"STKaiti","KaiTi",serif;color:#b8860b;}
   .quest-track .qt-prog{color:var(--ink-faint);}

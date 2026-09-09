@@ -52,6 +52,9 @@ window.LF = window.LF || {};
           delete state.flags.task;
           delete state.flags['trg.kyl_stone_accept'];
         }
+        if (state.quests) { var _si = state.quests.findIndex(function (q) { return q.id === 'stone'; }); if (_si >= 0) state.quests.splice(_si, 1); }
+        if (state.questsDone) { var _di = state.questsDone.findIndex(function (q) { return q.id === 'stone'; }); if (_di >= 0) state.questsDone.splice(_di, 1); }
+        if (state.trackingQuest === 'stone') state.trackingQuest = null;
         // 关闭可能残留的对话选项面板
         var tut = document.getElementById('tut-choices');
         if (tut) tut.remove();

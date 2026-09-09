@@ -375,7 +375,8 @@
         asks: [
           { label: '〔应下〕我去矿坑采来。',
             set: { 'flags.task.stone_started': true },
-            say: '仓吏点头：「好！矿坑在仓库北边，挥镐便能凿下青石。采够五块拿来与我，赏你一个便携腰包，系在腰上装东西也方便些。」〔任务：采石充仓——去矿坑采五块石料，给予仓吏。〕' },
+            say: '仓吏点头：「好！矿坑在仓库北边，挥镐便能凿下青石。采够五块拿来与我，赏你一个便携腰包，系在腰上装东西也方便些。」〔任务：采石充仓——去矿坑采五块石料，给予仓吏。〕',
+            then: [ { t: 'acceptQuest', id: 'stone' } ] },
           { label: '〔婉拒〕我再想想。',
             say: '仓吏摆摆手：「不急，何时想通了再来找我。」' }
         ] }
@@ -399,6 +400,7 @@
         if: { player: { 'flags.task.stone_count': { min: 5 } } },
         then: [
           { t: 'setFlag', path: 'flags.task.stone_done', value: true },
+          { t: 'completeQuest', id: 'stone' },
           { t: 'log', cls: 'npc', text: '〔仓吏〕「五块石料齐了！好汉子，做事利落。这腰包你拿去，系在腰上，往后装东西也方便些。」' },
           { t: 'grant', items: [ { id: 'yaobao', name: '便携腰包', icon: '👝', cat: '装备', count: 1 } ] },
           { t: 'exp', amount: 30 },
