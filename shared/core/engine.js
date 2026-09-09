@@ -2099,6 +2099,7 @@
     openModal('give', {npc: o});
   }
   var giveSelectedIdx = null;
+  var giveQty = 1;
   function renderGivePanel(npc){
     if(!npc) return '<h3>给 予</h3><p>未指定对象。</p>';
     var grid='';
@@ -2110,59 +2111,84 @@
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       var sel = (giveSelectedIdx===i)?' give-selected':'';
-      grid += '<div class="packcell give-item'+sel+'" data-give-idx="'+i+'" title="'+it.name+'">'
+      grid += '<div class="packcell give-item'+sel+'" data-give-idx="'+i+'">'
             + '<div class="pcell-ic">'+(it.icon||'📦')+'</div>'
             + '<div class="give-item-name">'+it.name+'</div>'
             + cnt + qb + '</div>';
     }
     // 右侧详情
-    var detail = '<div class="li-name">选择物品</div><div class="li-line">点选左侧物品，可查看详情并确认赠予。</div>';
+    var detailHTML = '<div class="give-empty-tip">← 点选左侧物品</div>';
+    var qtyHTML = '';
+    var confirmHTML = '';
     if(giveSelectedIdx!=null && state.pack[giveSelectedIdx]){
       var it = state.pack[giveSelectedIdx];
-      var q = LF.ITEMS.QMAP[it.quality] || {name:'凡品',color:'#9a948a'};
-      detail = '<div class="li-name">'+(it.icon||'📦')+' '+it.name+'</div>';
-      detail += '<div class="li-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+it.qualityName):'')+(it.count>1?(' · ×'+it.count):'')+'</div>';
+      var maxQty = it.count || 1;
+      if(giveQty > maxQty) giveQty = maxQty;
+      if(giveQty < 1) giveQty = 1;
+      detailHTML = '<div class="give-d-name">'+(it.icon||'📦')+' '+it.name+'</div>';
+      detailHTML += '<div class="give-d-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+it.qualityName):'')+(maxQty>1?(' · 持有'+maxQty):'')+'</div>';
       if(it.cat==='装备'){
         var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
         var parts=[];
         fields.forEach(function(f){ var v=it[f[0]]||0; if(v) parts.push(f[1]+' +'+v); });
-        if(parts.length) detail+='<div class="li-line">'+parts.join(' · ')+'</div>';
+        if(parts.length) detailHTML+='<div class="give-d-line">'+parts.join(' · ')+'</div>';
       }
-      if(it.desc) detail+='<div class="li-line">'+it.desc+'</div>';
-      var estFavor = calcGiveFavor(it);
-      detail+='<div class="li-line" style="color:#8a6a3a;">预计好感 +'+estFavor+'</div>';
+      if(it.desc) detailHTML+='<div class="give-d-line give-d-desc">'+it.desc+'</div>';
+      var estFavor = calcGiveFavor(it) * giveQty;
+      detailHTML+='<div class="give-d-favor">预计好感 +'+estFavor+'</div>';
+      // 数量选择（仅堆叠物品）
+      if(maxQty > 1){
+        qtyHTML = '<div class="give-qty-row">'
+          + '<span>赠予数量</span>'
+          + '<button class="give-qty-btn" id="give-qty-minus">−</button>'
+          + '<span class="give-qty-num" id="give-qty-num">'+giveQty+'</span>'
+          + '<button class="give-qty-btn" id="give-qty-plus">+</button>'
+          + '<button class="give-qty-all" id="give-qty-all">全部</button>'
+          + '</div>';
+      }
+      confirmHTML = '<button class="give-confirm-btn" id="give-confirm">确认赠予 ×'+giveQty+'</button>';
     }
-    return '<h3>赠 与 · '+npc.name+'</h3>'
-      + '<div class="give-layout">'
+    return '<div class="give-panel">'
+      + '<div class="give-head"><span>赠 与</span><span class="give-head-npc">'+npc.name+'</span></div>'
+      + '<div class="give-body">'
       +   '<div class="give-left">'
-      +     '<div class="pack-left-title">行 囊</div>'
-      +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
-      +     (hasItem?'':'<p class="tip" style="text-align:center;color:#8a7a5a;">行囊空空，无物可赠。</p>')
+      +     '<div class="give-col-title">行 囊</div>'
+      +     '<div class="pack-scroll give-grid-scroll"><div class="pack-grid">'+grid+'</div></div>'
+      +     (hasItem?'':'<div class="give-empty">行囊空空，无物可赠。</div>')
       +   '</div>'
       +   '<div class="give-right">'
-      +     '<div class="pack-left-title">详 情</div>'
-      +     '<div class="loot-info give-detail">'+detail+'</div>'
-      +     (giveSelectedIdx!=null?'<button class="btn give-confirm" id="give-confirm">确认赠予</button>':'')
+      +     '<div class="give-col-title">详 情</div>'
+      +     '<div class="give-detail-box">'+detailHTML+'</div>'
+      +     qtyHTML
       +   '</div>'
       + '</div>'
-      + '<button class="sheet-leave" id="give-cancel">取 消</button>';
+      + '<div class="give-foot">'
+      +   confirmHTML
+      +   '<button class="give-cancel-btn" id="give-cancel">取 消</button>'
+      + '</div>'
+      + '</div>';
   }
-  function giveItemToNpc(packIdx){
+  function giveItemToNpc(packIdx, qty){
     if(!giveNpc || !giveNpc.key) return;
     var it = state.pack[packIdx];
     if(!it) return;
+    var n = qty || 1;
+    var maxQty = it.count || 1;
+    if(n > maxQty) n = maxQty;
     var npcKey = giveNpc.key;
     var npcName = giveNpc.name;
-    // 从行囊移除物品
-    if(it.count && it.count>1){ it.count--; } else { state.pack[packIdx]=null; }
-    // 先检查 onGive 触发器（任务条件）
-    var triggered = checkTriggers({hook:'onGive', npc:npcKey, room:state.room, item:it});
+    // 从行囊移除物品（批量）
+    if(it.count && it.count > n){ it.count -= n; } else { state.pack[packIdx]=null; }
+    // 先检查 onGive 触发器（任务条件）—— 逐件触发以支持累计计数
+    var triggered = false;
+    for(var gi=0; gi<n; gi++){
+      if(checkTriggers({hook:'onGive', npc:npcKey, room:state.room, item:it})) triggered = true;
+    }
     if(!triggered){
-      // 没有特殊触发，根据物品价值增减好感
-      var favor = calcGiveFavor(it);
+      // 没有特殊触发，根据物品价值增减好感（批量）
+      var favor = calcGiveFavor(it) * n;
       if(!state.npcFavor) state.npcFavor = {};
       state.npcFavor[npcKey] = (state.npcFavor[npcKey]||0) + favor;
-      // NPC反馈
       var react = giveReaction(npcName, it, favor);
       log(react, 'npc', npcName);
       if(favor>0) log('〔'+npcName+'·好感 +'+favor+'〕','good');
@@ -2171,6 +2197,7 @@
     save(state);
     renderNpcList();
     giveSelectedIdx = null;
+    giveQty = 1;
     // 刷新给予面板
     if(currentModalKind==='give'){
       var card=document.getElementById('modal-card');
@@ -2212,18 +2239,46 @@
       el.onclick=function(){
         var idx=parseInt(el.getAttribute('data-give-idx'),10);
         giveSelectedIdx = idx;
-        // 刷新面板
+        giveQty = 1;
         var card=document.getElementById('modal-card');
         if(card) card.innerHTML = renderGivePanel(giveNpc);
         bindGivePanel();
       };
     });
+    var minus=document.getElementById('give-qty-minus');
+    if(minus) minus.onclick=function(){
+      if(giveQty>1){ giveQty--; refreshGiveDetail(); }
+    };
+    var plus=document.getElementById('give-qty-plus');
+    if(plus) plus.onclick=function(){
+      var it = state.pack[giveSelectedIdx];
+      var maxQty = it ? (it.count||1) : 1;
+      if(giveQty<maxQty){ giveQty++; refreshGiveDetail(); }
+    };
+    var all=document.getElementById('give-qty-all');
+    if(all) all.onclick=function(){
+      var it = state.pack[giveSelectedIdx];
+      giveQty = it ? (it.count||1) : 1;
+      refreshGiveDetail();
+    };
     var confirm=document.getElementById('give-confirm');
     if(confirm) confirm.onclick=function(){
-      if(giveSelectedIdx!=null) giveItemToNpc(giveSelectedIdx);
+      if(giveSelectedIdx!=null) giveItemToNpc(giveSelectedIdx, giveQty);
     };
     var cancel=document.getElementById('give-cancel');
     if(cancel) cancel.onclick=closeModal;
+    // 点击遮罩层关闭
+    var modal=document.getElementById('modal');
+    if(modal){
+      modal.onclick=function(e){
+        if(e.target===modal) closeModal();
+      };
+    }
+  }
+  function refreshGiveDetail(){
+    var card=document.getElementById('modal-card');
+    if(card) card.innerHTML = renderGivePanel(giveNpc);
+    bindGivePanel();
   }
   // ===== NPC 标准操作列：交谈 / 观察 / 给予 / 攻击 + 对象自带动作 =====
   function buildNpcActions(o){
@@ -3824,6 +3879,7 @@
     var tt=document.getElementById('title');
     if(tt){ if(kind==='create') tt.classList.add('hidden'); else if(!state) tt.classList.remove('hidden'); }
     $modal.classList.toggle('modal-create-bg', kind==='create');
+    $modal.classList.toggle('give-modal', kind==='give');
     var h='';
     if(kind==='char'){
       var es=effectiveStats();
@@ -3958,6 +4014,7 @@
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage' || kind==='give');
+    $card.classList.toggle('give-card', kind==='give');
     // 捏人界面隐藏右上角 X 按钮（不可中途退出，v20260908j）
     var mx=document.getElementById('modal-x'); if(mx) mx.style.visibility=(kind==='create')?'hidden':'visible';
     if(kind==='create') bindCreate();
