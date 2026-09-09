@@ -50,8 +50,12 @@ window.LF = window.LF || {};
       else if (act === 'resetStone') {
         if (state.flags) {
           delete state.flags.task;
+          delete state.flags['trg.kyl_stone_accept'];
         }
-        ctx.log('【调试】已重置采石充仓任务', 'sys');
+        // 关闭可能残留的对话选项面板
+        var tut = document.getElementById('tut-choices');
+        if (tut) tut.remove();
+        ctx.log('【调试】已重置采石充仓任务（含接任务标记）', 'sys');
       }
       else if (act === 'time+1') {
         state.time = (state.time + 1) % 12;

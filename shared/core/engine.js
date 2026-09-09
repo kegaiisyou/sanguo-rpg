@@ -2899,7 +2899,8 @@
 
   // ===== NPC 对话 =====
   function talk(k){
-    if(document.getElementById('tut-choices')) return;   // 选项面板开启中，避免 npcTalk 重复叠加触发/重复结算
+    var tut=document.getElementById('tut-choices');
+    if(tut){ tut.remove(); }   // 关闭残留的对话选项面板，避免无法再次对话
     if(checkTriggers({hook:'onTalk', npc:k, room: state.room})) return;
   var n=G.DIALOGUES.npcs[k];
   if(!n) return;
