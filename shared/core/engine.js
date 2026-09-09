@@ -3883,8 +3883,10 @@
     // BGM/SFX 音量滑块（v20260909a）
     var rngBgm=document.getElementById('rng-bgm'); if(rngBgm){ rngBgm.oninput=function(){ var v=parseInt(this.value,10); document.getElementById('bgm-val').textContent=v+'%'; settings.bgmVol=v; saveSettings(); try{ SFX.setBgmVolume(v/100); if(v>0 && !SFX.isBgmPlaying()) SFX.startBgm(); if(v===0) SFX.stopBgm(); }catch(e){} }; }
     var rngSfx=document.getElementById('rng-sfx'); if(rngSfx){ rngSfx.oninput=function(){ var v=parseInt(this.value,10); document.getElementById('sfx-val').textContent=v+'%'; settings.sfxVol=v; saveSettings(); try{ SFX.setSfxVolume(v/100); SFX.click(); }catch(e){} }; }
-    // BGM曲目选择（v20260909i）
-    var bgmTrackSeg=document.getElementById('seg-bgm-track'); if(bgmTrackSeg){ bgmTrackSeg.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ var idx=parseInt(b.getAttribute('data-idx'),10); try{ SFX.setBgmTrack(idx); bgmTrackSeg.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); toast('曲目·'+b.textContent.trim()); }catch(e){} }; }); }
+    // BGM曲目选择（v20260909i，修复v20260909q：切换时确保BGM播放）
+    var bgmTrackSeg=document.getElementById('seg-bgm-track'); if(bgmTrackSeg){ bgmTrackSeg.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ var idx=parseInt(b.getAttribute('data-idx'),10); try{ SFX.setBgmTrack(idx); bgmTrackSeg.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); // 确保BGM在播放（如果之前中断了）
+        if(!SFX.isBgmPlaying()){ SFX.startBgm(); }
+        toast('曲目·'+b.textContent.trim()); }catch(e){} }; }); }
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
     if(kind==='map'){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
