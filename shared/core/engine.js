@@ -1940,6 +1940,10 @@
       if(ce.enter){ enters.push(ce); continue; }   // 建筑入口单独渲染，不计入人物列表
       if(seen[ce.o.key]) continue;
       if(rec[ce.o.key]) continue;
+      // 城市NPC也走标准操作列（交谈/观察/给予/攻击），自定义动作追加在后
+      var stdActs = buildNpcActions(ce.o);
+      var customActs = (ce.acts||[]).filter(function(a){ return !/交谈|观察|给予|攻击/.test(a.label||''); });
+      ce.acts = stdActs.concat(customActs);
       items.push(ce);
     }
     if(!items.length && !enters.length){ box.innerHTML='<div class="nl-empty">此处无人</div>'; return; }
