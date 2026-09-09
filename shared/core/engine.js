@@ -2127,11 +2127,15 @@
       if(giveQty > maxQty) giveQty = maxQty;
       if(giveQty < 1) giveQty = 1;
       detailHTML = '<div class="give-d-name">'+(it.icon||'📦')+' '+it.name+'</div>';
-      detailHTML += '<div class="give-d-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+it.qualityName):'')+(maxQty>1?(' · 持有'+maxQty):'')+'</div>';
+      // 类型 + 槽位 + 品质 + 持有数量
+      var slotLabel = (it.slot && LF.ITEMS && LF.ITEMS.SLOTS && LF.ITEMS.SLOTS[it.slot]) ? LF.ITEMS.SLOTS[it.slot].label : '';
+      var catText = (it.cat||'道具') + (slotLabel?(' · '+slotLabel):'') + (it.qualityName?(' · '+it.qualityName):'') + (maxQty>1?(' · 持有'+maxQty):'');
+      detailHTML += '<div class="give-d-cat">'+catText+'</div>';
       if(it.cat==='装备'){
         var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
         var parts=[];
         fields.forEach(function(f){ var v=it[f[0]]||0; if(v) parts.push(f[1]+' +'+v); });
+        if(it.packSpace) parts.push('行囊 +'+it.packSpace);
         if(parts.length) detailHTML+='<div class="give-d-line">'+parts.join(' · ')+'</div>';
       }
       if(it.desc) detailHTML+='<div class="give-d-line give-d-desc">'+it.desc+'</div>';
@@ -2180,11 +2184,8 @@
     var npcName = giveNpc.name;
     // 从行囊移除物品（批量）
     if(it.count && it.count > n){ it.count -= n; } else { state.pack[packIdx]=null; }
-    // 先检查 onGive 触发器（任务条件）—— 逐件触发以支持累计计数
-    var triggered = false;
-    for(var gi=0; gi<n; gi++){
-      if(checkTriggers({hook:'onGive', npc:npcKey, room:state.room, item:it})) triggered = true;
-    }
+    // 检查 onGive 触发器（任务条件）—— 批量给予只触发一次，避免重复对话
+    var triggered = checkTriggers({hook:'onGive', npc:npcKey, room:state.room, item:it});
     if(!triggered){
       // 没有特殊触发，根据物品价值增减好感（批量）
       var favor = calcGiveFavor(it) * n;

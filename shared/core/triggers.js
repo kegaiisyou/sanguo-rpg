@@ -128,7 +128,13 @@ window.LF = window.LF || {};
         case 'grant': {
           if (step.gold) { state.gold = Math.max(0, (state.gold || 0) + step.gold); }
           if (step.rep) { addReputation(step.rep); }
-          if (step.items && step.items.length) { step.items.forEach(function (it) { packAdd({ defId: it.id, name: it.name, icon: (it.icon || '📦'), cat: it.cat, count: it.count || 1, effect: it.effect }); }); }
+          if (step.items && step.items.length) { step.items.forEach(function (it) {
+            if (it.id && LF.ITEMS && LF.ITEMS.DEFS && LF.ITEMS.DEFS[it.id]) {
+              packAdd(it.id, it.count || 1);
+            } else {
+              packAdd({ defId: it.id, name: it.name, icon: (it.icon || '📦'), cat: it.cat, count: it.count || 1, effect: it.effect });
+            }
+          }); }
           save(state); renderStatus(); next(); break;
         }
         case 'removeNpc': { var rn = G.ROOMS[state.room].npcs, i = rn ? rn.indexOf(step.key) : -1; if (i >= 0) rn.splice(i, 1); next(); break; }
