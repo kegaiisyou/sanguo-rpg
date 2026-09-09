@@ -8,18 +8,20 @@
   var ctx = null;
   var sfxGain = null;
   var bgmGain = null;
+  var bgmFadeGain = null;  // 淡入淡出用的gain节点
   var bgmSrc = null;
   var bgmSilenceTimer = null;
-  var BGM_SILENCE = 15;  // 两首曲子之间静默15秒
+  var BGM_SILENCE = 5;     // 不循环曲目之间静默5秒
+  var BGM_FADE = 1.5;      // 淡入淡出时长1.5秒
   var bgmPlaying = false;
   var currentBgmIdx = 0;
 
-  // BGM列表
+  // BGM列表：loop=true的直接循环播放，loop=false的淡入淡出+静默重播
   var BGM_TRACKS = [
-    { id: 'main', name: '柔情·江湖儿女', file: 'assets/audio/bgm_main.wav' },
-    { id: 'xiao', name: '苍凉·寒山孤影', file: 'assets/audio/bgm_xiao.wav' },
-    { id: 'dizi', name: '明快·策马江湖', file: 'assets/audio/bgm_dizi.wav' },
-    { id: 'guqin', name: '沉静·夜泊枫桥', file: 'assets/audio/bgm_guqin.wav' }
+    { id: 'main',  name: '柔情·江湖儿女', file: 'assets/audio/bgm_main.wav',  loop: false },
+    { id: 'xiao',  name: '苍凉·寒山孤影', file: 'assets/audio/bgm_xiao.wav',  loop: true  },
+    { id: 'dizi',  name: '明快·策马江湖', file: 'assets/audio/bgm_dizi.wav',  loop: true  },
+    { id: 'guqin', name: '沉静·夜泊枫桥', file: 'assets/audio/bgm_guqin.wav', loop: true  }
   ];
 
   var SFX_FILES = {
@@ -41,6 +43,9 @@
       bgmGain = ctx.createGain();
       bgmGain.gain.value = bgmVolume;
       bgmGain.connect(ctx.destination);
+      bgmFadeGain = ctx.createGain();
+      bgmFadeGain.gain.value = 1;
+      bgmFadeGain.connect(bgmGain);
     } catch (e) { ctx = null; }
     return ctx;
   }
@@ -132,17 +137,18 @@
   function sfxVictory() { [523, 659, 784, 1047, 1319].forEach(function (f, i) { setTimeout(function () { tone(f, 0.2, 'triangle', 0.15); }, i * 100); }); }
   function sfxDefeat() { [440, 392, 349, 294, 262].forEach(function (f, i) { setTimeout(function () { tone(f, 0.25, 'sine', 0.12); }, i * 120); }); }
 
-  // ── BGM（多首切换 + 播放-静默-重播，定时器控制，不依赖onended）──
-  var BGM_DURATION = 20;   // 每首曲子20秒
-  var BGM_SILENCE = 5;     // 曲间静默5秒
+  // ── BGM（多首切换；循环曲目直接loop，非循环曲目淡入淡出+静默重播）──
+  var BGM_DURATION = 20;   // 非循环曲目时长20秒
   var bgmState = 'stopped'; // 'playing' | 'silence' | 'stopped'
-  var bgmPlayTimer = null;  // 播放时长定时器
+  var bgmPlayTimer = null;  // 非循环曲目：播放时长定时器
+  var bgmFadeTimer = null;  // 非循环曲目：淡出定时器
   var bgmSilenceTimer = null; // 静默定时器
 
   function getCurrentBgm() { return BGM_TRACKS[currentBgmIdx]; }
 
   function clearBgmTimers() {
     if (bgmPlayTimer) { clearTimeout(bgmPlayTimer); bgmPlayTimer = null; }
+    if (bgmFadeTimer) { clearTimeout(bgmFadeTimer); bgmFadeTimer = null; }
     if (bgmSilenceTimer) { clearTimeout(bgmSilenceTimer); bgmSilenceTimer = null; }
   }
 
@@ -174,24 +180,55 @@
     try {
       // 停止旧的source
       if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
+      // 重置淡入淡出gain
+      if (bgmFadeGain) {
+        bgmFadeGain.gain.cancelScheduledValues(c.currentTime);
+        bgmFadeGain.gain.value = track.loop ? 1 : 0;
+      }
       bgmSrc = c.createBufferSource();
       bgmSrc.buffer = buffers[track.id];
-      bgmSrc.loop = false;
-      bgmSrc.onended = null; // 不依赖onended，用定时器控制
-      bgmSrc.connect(bgmGain);
+      bgmSrc.loop = !!track.loop;
+      bgmSrc.onended = null;
+      bgmSrc.connect(bgmFadeGain || bgmGain);
       bgmSrc.start(0);
       bgmState = 'playing';
-      // 20秒后停止播放，进入静默
-      bgmPlayTimer = setTimeout(function() {
-        bgmPlayTimer = null;
-        enterSilence();
-      }, BGM_DURATION * 1000);
+
+      if (track.loop) {
+        // 循环曲目：直接loop播放，不需要定时器
+        // 淡入一下避免突兀
+        if (bgmFadeGain) {
+          bgmFadeGain.gain.setValueAtTime(0, c.currentTime);
+          bgmFadeGain.gain.linearRampToValueAtTime(1, c.currentTime + BGM_FADE);
+        }
+      } else {
+        // 非循环曲目（柔情）：淡入1.5秒 → 播放 → 结束前1.5秒淡出 → 静默5秒 → 重播
+        var dur = BGM_DURATION;
+        // 淡入
+        if (bgmFadeGain) {
+          bgmFadeGain.gain.setValueAtTime(0, c.currentTime);
+          bgmFadeGain.gain.linearRampToValueAtTime(1, c.currentTime + BGM_FADE);
+        }
+        // 结束前1.5秒开始淡出
+        bgmFadeTimer = setTimeout(function() {
+          bgmFadeTimer = null;
+          var cc = ensureCtx();
+          if (cc && bgmFadeGain && bgmState === 'playing') {
+            bgmFadeGain.gain.cancelScheduledValues(cc.currentTime);
+            bgmFadeGain.gain.setValueAtTime(bgmFadeGain.gain.value, cc.currentTime);
+            bgmFadeGain.gain.linearRampToValueAtTime(0, cc.currentTime + BGM_FADE);
+          }
+        }, (dur - BGM_FADE) * 1000);
+        // 20秒后停止，进入静默
+        bgmPlayTimer = setTimeout(function() {
+          bgmPlayTimer = null;
+          enterSilence();
+        }, dur * 1000);
+      }
     } catch (e) { bgmSrc = null; bgmState = 'stopped'; }
   }
 
   function enterSilence() {
     if (bgmState !== 'playing') return;
-    // 停止当前播放
     if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
     bgmState = 'silence';
     // 静默5秒后重新播放
@@ -205,44 +242,45 @@
     bgmState = 'stopped';
     clearBgmTimers();
     if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
+    if (bgmFadeGain) {
+      var c = ensureCtx();
+      if (c) bgmFadeGain.gain.cancelScheduledValues(c.currentTime);
+    }
   }
 
   function setBgmTrack(idx) {
     if (idx < 0 || idx >= BGM_TRACKS.length) return;
     currentBgmIdx = idx;
     try { localStorage.setItem('sanguo_bgm_track', idx); } catch (e) { }
-    // 确保AudioContext在运行
     var c = ensureCtx();
     if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
-    // 不管当前什么状态，停止后立即播放新曲目
     stopBgm();
     startBgm();
   }
 
-  // BGM健康监控（v20260909s）：每2秒检查状态一致性
+  // BGM健康监控（v20260909t）：每2秒检查状态一致性
   var bgmWatchTimer = setInterval(function() {
     if (!enabled) return;
     if (bgmState === 'stopped') return;
     var c = ensureCtx();
     if (!c) return;
-    // AudioContext被挂起则恢复
     if (c.state === 'suspended') { c.resume().catch(function(){}); }
-    // 状态是playing但没有source也没有播放定时器 → 意外中断，恢复播放
-    if (bgmState === 'playing' && !bgmSrc && !bgmPlayTimer) {
+    var track = getCurrentBgm();
+    // playing态但没有source → 意外中断，恢复
+    if (bgmState === 'playing' && !bgmSrc) {
       doStartBgm();
     }
-    // 状态是silence但没有静默定时器 → 意外中断，恢复播放
+    // silence态但没有静默定时器 → 意外中断，恢复
     if (bgmState === 'silence' && !bgmSilenceTimer) {
       doStartBgm();
     }
   }, 2000);
 
-  // 页面切回前台时主动恢复BGM（v20260909s）
+  // 页面切回前台时主动恢复BGM
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') {
       var c = ensureCtx();
       if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
-      // 如果BGM应该在播放/静默但状态异常，立即恢复
       if (enabled && bgmState !== 'stopped' && !bgmSrc && !bgmPlayTimer && !bgmSilenceTimer) {
         setTimeout(function(){ doStartBgm(); }, 100);
       }
