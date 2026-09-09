@@ -139,6 +139,7 @@
     if (bgmPlaying) return;
     var c = ensureCtx();
     if (!c) return;
+    if (c.state === 'suspended') { c.resume().catch(function(){}); }
     var track = getCurrentBgm();
     if (!buffers[track.id]) {
       if (!loading[track.id]) loadBuffer(track.id, track.file);
@@ -188,14 +189,17 @@
     if (idx < 0 || idx >= BGM_TRACKS.length) return;
     currentBgmIdx = idx;
     try { localStorage.setItem('sanguo_bgm_track', idx); } catch (e) { }
-    // 如果正在播放，停止当前曲目并立即播放新曲目（修复v20260909q：不要手动设bgmPlaying）
+    // 确保AudioContext在运行（切后台后可能被挂起）
+    var c = ensureCtx();
+    if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
+    // 如果正在播放，停止当前曲目并立即播放新曲目
     if (bgmPlaying) {
       stopBgm();
       startBgm();
     }
   }
 
-  // BGM健康监控（v20260909q）：每5秒检查，如果应该播放但实际没在播放，自动恢复
+  // BGM健康监控（v20260909r）：每3秒检查，如果应该播放但实际没在播放，自动恢复
   var bgmWatchTimer = setInterval(function() {
     if (!enabled || !bgmPlaying) return;
     var c = ensureCtx();
@@ -206,7 +210,19 @@
     if (!bgmSrc && !bgmSilenceTimer) {
       doStartBgm();
     }
-  }, 5000);
+  }, 3000);
+
+  // 页面切回前台时主动恢复BGM（v20260909r）
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      var c = ensureCtx();
+      if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
+      // 如果BGM应该在播放但实际没在播放，立即恢复
+      if (enabled && bgmPlaying && !bgmSrc && !bgmSilenceTimer) {
+        setTimeout(function(){ doStartBgm(); }, 100);
+      }
+    }
+  });
 
   function getBgmTracks() { return BGM_TRACKS.map(function(t, i){ return {idx: i, id: t.id, name: t.name}; }); }
   function getCurrentBgmIdx() { return currentBgmIdx; }

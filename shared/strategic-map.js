@@ -306,13 +306,6 @@
           <button data-ov="none" title="无底色">无</button>
         </div>
       </div>
-      <div class="strategic-legend">
-        <div class="row"><span class="swatch" style="background:#c14b12;border-radius:50%"></span>关隘</div>
-        <div class="row"><span class="swatch" style="background:#b8860b;border-radius:50%"></span>名胜/古战场</div>
-        <div class="row"><span class="swatch" style="background:#6a2f8f;border-radius:50%"></span>副本入口</div>
-        <div class="row"><span class="swatch" style="background:#55703c;border-radius:50%"></span>野地/集镇</div>
-        <div class="row"><span class="swatch" style="background:#9c7a3a;width:16px;height:3px;border-radius:2px;display:inline-block"></span>道路（红色=险）</div>
-      </div>
       <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>
     `;
     container.appendChild(ui);
