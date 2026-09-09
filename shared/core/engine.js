@@ -3095,7 +3095,7 @@
       case 'train_dummy':
         if(!exert('戳木人桩')) return;
         if(state.flags.route) state.flags.route.dummy_done=true; save(state);
-        startCombat('camp_dummy');
+        startCombat('camp_dummy', { tutorial: true });   // 木人桩即战斗教学场：首次为引导演练，练成后转为普通对练
         break;
       case 'survey_kitchen':
         if(!exert('打量伙房')) return;
@@ -3114,8 +3114,9 @@
       case 'spar_bandit': if(!exert('应战')) return; startCombat('bandit'); break;
       case 'spar_chief':  if(!exert('应战')) return; startCombat('bandit_chief'); break;
       case 'spar_turban': if(!exert('应战')) return; startCombat('yellow_turban'); break;
-      // ─── 新战斗：木人桩 / 黑山寨 ───
+      // ─── 新战斗：木人桩 / 犬舍野犬 / 黑山寨 ───
       case 'spar_dummy': if(!exert('应战')) return; startCombat('dummy'); break;
+      case 'spar_dog': if(!exert('逗弄野犬')) return; startCombat('stray_dog'); break;   // 犬舍练手：弱敌，专练「撤退」
       case 'spar_heishan_zei': if(!exert('应战')) return; startCombat('heishan_zei'); break;
       case 'spar_heishan_zhu': if(!exert('应战')) return; startCombat('heishan_zhu'); break;
       case 'battle_hua_xiong':
@@ -3817,11 +3818,11 @@
   }
   function doEscape(route, room){
     if(route==='riot' || route==='assault'){
-      // 战斗路线：先与官差一战（教学战斗状态机；胜/被老乞丐救场均置 tcDone），战后由 exitCombatToRoom 钩子毕业
+      // 战斗路线：先与官差一战（普通战斗；胜负/撤退后由 exitCombatToRoom 钩子毕业，不再依赖教学 tcDone）
       if(!state.flags.route) state.flags.route={};
       state.flags.route._pending = route; save(state);
       log('你决意走「'+ROUTE_INFO[route].name+'」——营中官差横矛拦来！','combat');
-      startCombat('camp_guard', { tutorial: true });
+      startCombat('camp_guard');
       return;
     }
     finishEscape(route);
@@ -3846,7 +3847,7 @@
   function onbRoomEnter(room){
     checkTriggers({hook:'onEnter', room: room.id});
   }
-  // 脚本化引导战斗：乌桓游骑拦路，老乞丐逐步教学（攻/教拳/受伤给药/挡路撤退）
+  // 脚本化引导战斗（现迁移至练武场·木人桩，由韩铁逐步教学：攻击/防御/道具/撤退）
   function renderEquipPanel(){
     var slots=['weapon','armor','trinket','mount'];
     var slotName={weapon:'兵刃',armor:'护甲',trinket:'饰品',mount:'坐骑'};

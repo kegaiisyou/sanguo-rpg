@@ -320,14 +320,14 @@
 
   /** 开场教学战斗是否激活 */
   function tutCombatActive(){ return !!(getState().flags.onb && getState().flags.onb.tcTutorial && !getState().flags.onb.tcDone); }
-  /** 老乞丐扔来行囊：给金疮药 + 点亮行囊 + 解锁道具按钮 */
+  /** 韩铁扔来行囊：给金疮药 + 点亮行囊 + 解锁道具按钮 */
   function tutThrowPack(){
     if(!getState().flags.onb) return;
     if(getState().flags.onb.packGiven) return;   // 防重复发放
     getState().flags.onb.packGiven=true;
-    packAdd('jinchuang',1);   // 老乞丐赠金疮药（已堆叠则 +1）
+    packAdd('jinchuang',1);   // 韩铁赠金疮药（已堆叠则 +1）
     onbReveal('dock'); highlightOnb('dock'); save(getState()); renderStatus();
-    log('老乞丐：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤（下头「道具」已点亮）。','env');
+    log('韩铁：「接住！」抛来一只行囊——里头有瓶金疮药，以备疗伤（下头「道具」已点亮）。','env');
     save(getState());
   }
 
@@ -340,8 +340,8 @@
 
   /**
    * 开场教学战：脚本化演出（复用 DQ 战斗卡渲染）。
-   * 设计：主角出手多为虚招（打在空气），真正重创官差的是老乞丐的「无名掌法」；
-   * 主角只会被刀芒锐气擦伤——由此自然引出「行囊/金疮药」教学，将剧情、引导、系统功能合而为一。
+   * 设计：主角出手多为虚招（打在空气），真正发力的是韩教头的拳脚；
+   * 主角只会在韩铁虚晃时被蹭破胳膊——由此自然引出「行囊/金疮药」教学，将剧情、引导、系统功能合而为一。
    */
   function tutCombatAct(actionId){
     var eng=G.CombatEngine, st=eng.state;
@@ -349,36 +349,36 @@
     var expect=tutStep();   // 当前应当练习的步骤（严格状态机，杜绝乱序导致的死循环）
     if(actionId!=='attack' && actionId!=='defend') return;  // 教学战只处理攻/防（道具走 dqOpenItems）
 
-    // 点错按钮：老乞丐温和纠正，不推进、不扣血、敌人不死 —— 永远只能靠"当前高亮的那一步"前进
+    // 点错按钮：韩铁温和纠正，不推进、不扣血、敌人不死 —— 永远只能靠"当前高亮的那一步"前进
     if(expect==='attack' && actionId!=='attack'){
-      log('「别急——先点〔攻击〕，试试你的拳脚！」','npc','老乞丐'); return;
+      log('「别急——先点〔攻击〕，试试你的拳脚！」','npc','韩铁'); return;
     }
     if(expect==='defend' && actionId!=='defend'){
-      log('「攻击你会了，这回试试〔防御〕——看敌势，借力卸力！」','npc','老乞丐'); return;
+      log('「攻击你会了，这回试试〔防御〕——看敌势，借力卸力！」','npc','韩铁'); return;
     }
     if(expect==='item'){
-      log('「先用〔道具〕取金疮药，治你臂上刀伤——疗伤也是功夫！」','npc','老乞丐'); return;
+      log('「先用〔道具〕取金疮药，治你臂上擦伤——疗伤也是功夫！」','npc','韩铁'); return;
     }
     if(expect==='finish' && actionId!=='attack'){
-      log('「攻防皆会、伤也疗了——再点〔攻击〕，送他上路！」','npc','老乞丐'); return;
+      log('「攻防皆会、伤也疗了——再点〔攻击〕，送这木人桩散架！」','npc','韩铁'); return;
     }
 
     // ── 点对了：按步骤演出 ──
     if(actionId==='defend'){
       getState().flags.onb.tcTried.def=true;
-      log('你依言横臂护住要害。老乞丐掌风一引，将官差的刀势荡开，顺势一掌印在他马腹——','env');
-      log('「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','老乞丐');
+      log('你依言横臂护住要害。韩铁拳风一引，将木人桩的来势荡开，顺势一掌印在桩身——','env');
+      log('「这便是「防」字诀——先看敌势，再借力卸力，莫硬接！」','npc','韩铁');
       enemy.hp=Math.max(1, enemy.hp-40);
     } else {   // attack
       if(expect==='attack'){   // 首击完整演出
         getState().flags.onb.tcTried.atk=true;
-        log('你摆开架势强装镇静，随手一拳却打在空气——官差跃马挥刀，迎面劈下！','env');
-        log('老乞丐无名掌法暴起，劲气错身而过，顺手拽你衣领躲过杀招；刀芒锐气擦过，在你臂上划开一道血口。','env');
+        log('你摆开架势强装镇静，随手一拳却打在空气——韩铁虚晃一招，拳风蹭过，在你胳膊上划开一道血口。','env');
+        log('韩铁收势一笑：「蹭破点皮，正好试试金疮药。」','npc','韩铁');
         enemy.hp=Math.max(1, enemy.hp-120);
-        p.hp=Math.max(1, p.hp-22); getState().hp=p.hp;     // 刀芒锐气砍伤
-        if(!getState().flags.onb.packGiven) tutThrowPack();  // 受伤后老乞丐甩出行囊 → 解锁「道具」教学
+        p.hp=Math.max(1, p.hp-22); getState().hp=p.hp;     // 蹭伤
+        if(!getState().flags.onb.packGiven) tutThrowPack();  // 受伤后韩铁甩出行囊 → 解锁「道具」教学
       } else {   // expect==='finish' 收尾击杀
-        log('老乞丐无名掌法再起，掌力如潮，一掌正印在官差胸口，将他连人带马震退数丈！','env');
+        log('韩铁拳脚再起，一记崩拳正印在木人桩心口，桩身木屑横飞、应声而裂！','env');
         enemy.hp=0;
       }
     }
@@ -544,23 +544,23 @@
     // 教学引导文案（剧情与引导合一）：攻击 → 防御 → 道具 → 收尾
     if(tut){
       var stT=G.CombatEngine.state;
-      // 受伤即由老乞丐扔出行囊（首击时已在 tutCombatAct 内抛出，此处兜底）
+      // 受伤即由韩铁扔出行囊（首击时已在 tutCombatAct 内抛出，此处兜底）
       if(!getState().flags.onb.packGiven && (stT.playerUnits[0].hp < stT.playerUnits[0].maxHp || (getState().flags.onb.tcTried.atk && getState().flags.onb.tcTried.def))){
         tutThrowPack();
       }
-      if(step==='attack'){ if(!getState().flags.onb.tcMsgs.attack){ log('「先点亮的〔攻击〕，挫他锐气！」','npc','老乞丐'); getState().flags.onb.tcMsgs.attack=true; } }
-      else if(step==='defend'){ if(!getState().flags.onb.tcMsgs.defend){ log('「再点〔防御〕——看敌势，借力卸力，莫硬接！」','npc','老乞丐'); getState().flags.onb.tcMsgs.defend=true; } }
-      else if(step==='item'){ if(!getState().flags.onb.tcMsgs.use){ log('「点〔道具〕，取金疮药治你臂上刀伤！」','npc','老乞丐'); getState().flags.onb.tcMsgs.use=true; } }
-      else { if(!getState().flags.onb.tcMsgs.finish){ log('「好生养着。再点〔攻击〕，送这乌桓斥候上路！」','npc','老乞丐'); getState().flags.onb.tcMsgs.finish=true; } }
+      if(step==='attack'){ if(!getState().flags.onb.tcMsgs.attack){ log('「先点亮的〔攻击〕，挫它一阵！」','npc','韩铁'); getState().flags.onb.tcMsgs.attack=true; } }
+      else if(step==='defend'){ if(!getState().flags.onb.tcMsgs.defend){ log('「再点〔防御〕——看敌势，借力卸力，莫硬接！」','npc','韩铁'); getState().flags.onb.tcMsgs.defend=true; } }
+      else if(step==='item'){ if(!getState().flags.onb.tcMsgs.use){ log('「点〔道具〕，取金疮药治你臂上擦伤！」','npc','韩铁'); getState().flags.onb.tcMsgs.use=true; } }
+      else { if(!getState().flags.onb.tcMsgs.finish){ log('「好生养着。再点〔攻击〕，送这木人桩散架！」','npc','韩铁'); getState().flags.onb.tcMsgs.finish=true; } }
     }
     function btn(label, fn, cls){ var b=document.createElement('button'); b.className='act cb-menu'+(cls?' '+cls:''); b.classList.remove('locked'); b.textContent=label; b.onclick=fn; ra.appendChild(b); }
     btn('攻击', function(){ if(tut){ tutCombatAct('attack'); return; } dqShowTargets(unit); }, tut&&(step==='attack'||step==='finish')?'onb-glow':null);
     btn('防御', function(){ if(tut){ tutCombatAct('defend'); return; } dqOrders.push({unit:unit, actionId:'defend'}); dqAdvance(); }, tut&&step==='defend'?'onb-glow':null);
-    // 教学：老乞丐赠行囊前不显示「道具」，避免提前绕过关卡；正常战恒显示
+    // 教学：韩铁赠行囊前不显示「道具」，避免提前绕过关卡；正常战恒显示
     if(!(tut && !getState().flags.onb.packGiven)) btn('道具', function(){ dqOpenItems(unit); }, tut&&step==='item'?'onb-glow':'item');
     var fleePct = 78;
     try { fleePct = Math.max(20, Math.min(95, Math.round(G.CombatEngine.fleeChance()*100))); } catch(_e) {}
-    btn('撤退·' + fleePct + '%', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','老乞丐'); return; } dqTryFlee(unit); }, 'flee');
+    btn('撤退·' + fleePct + '%', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','韩铁'); return; } dqTryFlee(unit); }, 'flee');
     // 武学：选择已学招式（连线已有的 G.MARTIAL_ARTS，使之在战斗里真正可用）
     if(!tut && unit.artIds.length){
       btn('武学', function(){ dqShowArts(unit); }, 'skill');
@@ -603,7 +603,7 @@
     if(tutCombatActive()){
       var _stp=tutStep();
       if(_stp!=='item'){
-        log('「先按眼下点亮的练——' + (_stp==='attack'?'先点〔攻击〕，试试拳脚！':(_stp==='defend'?'先练〔防御〕，借力卸力！':'攻防皆会、伤也疗了——点〔攻击〕送他上路！')) + '」','npc','老乞丐');
+        log('「先按眼下点亮的练——' + (_stp==='attack'?'先点〔攻击〕，试试拳脚！':(_stp==='defend'?'先练〔防御〕，借力卸力！':'攻防皆会、伤也疗了——点〔攻击〕送它散架！')) + '」','npc','韩铁');
         dqRenderCommands(unit); return;
       }
     }
@@ -767,17 +767,17 @@
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.dataset.bg=''; sceneEl.classList.remove('bg-danger'); }
     clearActions();                  // 清除战斗按钮，防止残留可点击
     if(G.CombatEngine && G.CombatEngine.state){ G.CombatEngine.state.result='ended'; } // 标记引擎已结束，阻断重复结算
-    // 开场教学战斗：战败/逃跑由老乞丐救场，避免新手卡死（仍算教学完成）
+    // 开场教学战斗：战败/逃跑由韩铁护航，避免新手卡死（仍算教学完成）
     var tutC = getState().flags.onb && getState().flags.onb.tcTutorial && !getState().flags.onb.tcDone;
     if(tutC && result!=='win'){
-      if(result==='lose'){ getState().hp = effectiveStats().maxHp; log('老乞丐枯手一拂，将你从刀下拽回：「这刀老夫替你挡了！」','env'); }
-      else { log('「罢了，先撤一步，拳脚日后再练。」','npc','老乞丐'); }
+      if(result==='lose'){ getState().hp = effectiveStats().maxHp; log('韩铁伸手一扶，将你从桩影里拽起：「莫慌，演练罢了——拳脚慢慢练。」','env'); }
+      else { log('「罢了，先歇着，拳脚日后再练。」','npc','韩铁'); }
       getState().flags.onb.tcDone=true; getState().flags.onb.tcTutorial=false; getState().defeated=false;
       log('〔教学演练结束——往后真打可没这般好运，记得用药、看敌意。〕','sys');
       save(getState()); renderStatus();
       if(getDqCardEl()){ getDqCardEl().classList.add('settle-win'); }
       playCombatFx('win');
-      showCombatSettlement({result:'win', title:'演 练 结 束', sub:'老乞丐出手相救，化险为夷。',
+      showCombatSettlement({result:'win', title:'演 练 结 束', sub:'韩铁出手相护，化险为夷。',
         lines:[{text:'教学演练完成——往后真打可没这般好运。'}]}, exitCombatToRoom);
       return;
     }
@@ -818,12 +818,11 @@
       if(tutCombatActive()){
         getState().flags.onb.tcDone=true; getState().flags.onb.tcTutorial=false;
         if(getState().learnedMartial.indexOf('wu_ming_quan')<0) getState().learnedMartial.push('wu_ming_quan');
-        log('老乞丐枯手翻飞，所示武功极高深，残敌尽数被震退、溃不成军！','env');
-        log('「这便是「无名拳法」——拳贵直、劲贵整，记着了？」','npc','老乞丐');
-        log('【习得】无名拳法！（已收入武学，可在「角色」查看）','good');
-        log('朝你一努嘴：「前头便是去路——点下头「移动」，随老夫往下头去便是。」','npc','老乞丐');
-        log('你喘匀了气，打量这猎棚：棚角堆着干茅与兽骨，灶台余烬未熄，外头东北风卷着雪沫子，一下下扑打篷布。老乞丐已替你望风，只催你动身。','env');
-        log('〔教学演练结束——往后真打可没这般好运，记着用药、看清敌意。〕','sys');
+        log('韩铁拳脚翻飞，所示武功极高深，木人桩应声散架、木屑横飞！','env');
+        log('「这便是「演武拳」——拳贵直、劲贵整，记着了？」','npc','韩铁');
+        log('【习得】演武拳！（已收入武学，可在「角色」查看）','good');
+        log('韩铁拍拍手上的木屑：「拳脚练成了！往后真打——岗哨那边，老子陪你干一票。先去犬舍逗逗那几条恶犬，试试真格的；记着，打不过就〔撤退〕，那也是本事。」','npc','韩铁');
+        log('〔教学演练结束——往后真打可没这般好运，记着用药、看清敌意、该撤就撤。〕','sys');
         renderStatus(); save(getState());
       }
       // 多敌：聚合全部敌人的掉落与经验（RREP/主线进度仍按首敌处理）
@@ -842,7 +841,7 @@
       addXp(expGain);
       // ── 掉落收集：先放入「战利品」列表，由「搜打撤」窗口决定拾取/丢弃（不自动入库，避免背包被静默塞满）──
       var summary={ result:'win', enemyName:enemy.name, expGain:expGain, gold:drop.gold, pot:drop.pot, loot:[], lines:[] };
-      if(tutCombatActive()) summary.lines.push({text:'【习得】无名拳法！已收入武学。'});
+      if(tutCombatActive()) summary.lines.push({text:'【习得】演武拳！已收入武学。'});
       drop.items.forEach(function(it){
         summary.loot.push(LF.ITEMS.makeItem(it.id, 1) || {defId:it.id, name:it.name, icon:(it.icon||'📦'), cat:it.cat||'道具', count:1, effect:it.effect});
       });
@@ -943,8 +942,8 @@
     document.body.classList.remove('in-combat');
     document.body.classList.remove('tut-combat');
     if(getDqCardEl() && getDqCardEl().parentNode){ getDqCardEl().parentNode.removeChild(getDqCardEl()); setDqCardEl(null); }
-    // 苦役营·岗哨战斗路线（暴动/劫狱强攻）：教学战斗胜/被救场后自动毕业逃脱
-    if(getState().flags && getState().flags.route && getState().flags.route._pending && getState().flags.onb && getState().flags.onb.tcDone && !getState().flags.onb.done){
+    // 苦役营·岗哨战斗路线（暴动/劫狱强攻）：胜/被救场后自动毕业逃脱（不再依赖教学 tcDone，跳过训练亦可直接强突）
+    if(getState().flags && getState().flags.route && getState().flags.route._pending && getState().flags.onb && !getState().flags.onb.done){
       var rp=getState().flags.route._pending;
       finishEscape(rp); return;
     }

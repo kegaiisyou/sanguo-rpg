@@ -156,7 +156,13 @@
       find: '犬舍腥臊，恶犬拴铁链；冯二打盹，马彪怕狗。〔南〕回农田（南）；〔东〕仓库（东）。犬舍后门通营外。',
       npcs: [ 'feng_er', 'ma_biao' ],
       items: [],
-      actions: []
+      actions: [
+        {
+          id: 'spar_dog',
+          label: '逗弄野犬',
+          tip: '犬舍那几条恶犬性子烈——跟它们练练手，专试「撤退」。'
+        }
+      ]
     },
     camp_warehouse: {
       id: 'camp_warehouse',
@@ -315,8 +321,7 @@
       },
       find: '野径蜿蜒，北望林木幽深，山寨旗影隐约。〔北〕黑山寨（北）。',
       npcs: [
-        'liehu',
-        'mu_changfeng'
+        'liehu'
       ],
       items: [],
       actions: []

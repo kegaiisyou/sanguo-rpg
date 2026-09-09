@@ -107,17 +107,8 @@
   // （玩家点「决断出营·墙根」→ 弹出已解锁路线的抉择；统一在 doEscape() 内毕业。）
 
 
-  // 6) 逃出苦役营（onb.done 毕业）后·首次进入林径：乌桓游骑拦路，老乞丐开场教学战
-  //    教学战由 startCombat(...,{tutorial:true}) 激活 tutCombat 脚本演出（攻/防/道具分步引导，
-  //    老乞丐帮打 + 受伤赠金疮药），胜/败/逃均由老乞丐救场收尾并置 tcDone。
-  TRIGGERS.push({
-    id: 'tut_combat_lindao', hook: 'onEnter', room: 'lindao', once: true,
-    cond: { flags: { 'flags.onb.done': true }, notFlag: 'flags.onb.tcDone' },
-    steps: [
-      { t: 'log', cls: 'combat', text: '你钻出营墙，沿林径向北疾行——忽闻脚步声急，一名营中官差持矛追来，拦住去路！' },
-      { t: 'combat', enemy: 'camp_guard', tutorial: true }
-    ]
-  });
+  // 6) 〔已移除〕原「逃出苦役营后·林径乌桓游骑拦路」的开场教学战，现已迁移至练武场·木人桩
+  //    （train_dummy 触发 tutCombat 引导演练），出营不再强制触发战斗。
 
   // ════════════════ 支线：三则（v20260831t）════════════════
   // 支线A · 黑山寨·后寨「井底货」：被掳货郎吴六——放人得药(侠) / 敲诈得银(凶)
@@ -306,6 +297,20 @@
     ]
   });
 
+  // — 木人桩系列·二：练成后韩铁点拨去犬舍逗野犬，专练「撤退」 —
+  TRIGGERS.push({
+    id: 'han_spar_dog', hook: 'onTalk', npc: 'han_tie', room: 'kuyilao', cell: [2,2], once: false,
+    cond: { flags: { 'flags.onb.tcDone': true }, notFlag: 'flags.task.dog_hint' },
+    steps: [
+      { t: 'npcTalk', npc: 'han_tie',
+        prompt: '韩铁一拍你肩：「木人桩是死物，真打还得会『撤』。犬舍那几条恶犬性子烈，你且去逗逗它们——打不过就〔撤退〕，那也是真本事。」',
+        asks: [
+          { label: '〔领命〕去犬舍会会恶犬', set: { 'flags.task.dog_hint': true },
+            say: '韩铁咧嘴：「犬舍在东边——记住，〔撤退〕不是逃，是留得青山。撤得利落，比硬拼更见功夫。」〔木人桩系列·二：犬舍逗野犬，练「撤退」。〕' }
+        ] }
+    ]
+  });
+
   // — 仓库拾镐锄（路线2 必需物；郑刚/墙角闲镐） —
   TRIGGERS.push({
     id: 'wh_pickaxe', hook: 'onCustom', room: 'kuyilao', cell: [2,1], once: true,
@@ -332,7 +337,7 @@
   });
 
   // — 岗哨逃脱（暴动/劫狱强攻）的战后毕业，由 index.html 的 exitCombatToRoom 钩子处理 —
-  //   （教学战斗胜/被老乞丐救场后 tcDone，检测到 flags.route._pending 即 finishEscape）
+  //   （岗哨战斗路线胜/撤退后，exitCombatToRoom 检测到 flags.route._pending 即 finishEscape）
 
   // — 毕业引导：首入开放世界，逐步点亮全部核心系统（行囊/角色/战斗/武学/交易/地图/历法/善恶） —
   TRIGGERS.push({
@@ -346,26 +351,11 @@
       { t: 'sys', text: '· 点开「角色」面板：查看修为、战力、善恶声望（凶名/义声）。声望将左右世人待你之态度。' },
       { t: 'sys', text: '· 点开「武学」：研习招式、内功（内力将随门派/心法开启）。战斗中以「攻击/防御/道具/撤退」四式应敌。' },
       { t: 'sys', text: '· 寻见「货郎」可交易买卖；点「山河志」地图纵览州郡；点顶上「时辰」可知历法天候——皆是你闯荡的凭仗。' },
-      { t: 'log', cls: 'good', text: '（提示：此后每遇新系统，皆有高亮引路。先往白檀军屯投穆长风旧识，安顿身心，再做打算。）' }
+      { t: 'log', cls: 'good', text: '（提示：此后每遇新系统，皆有高亮引路。先往林径寻那挑担的行脚货郎，或北去白檀军屯安顿身心，再做打算。）' }
     ]
   });
 
-  // — 外应接应线（路线10）：毕业首访林径，穆长风接应指白檀 —
-  TRIGGERS.push({
-    id: 'mt_contact', hook: 'onTalk', npc: 'mu_changfeng', room: 'lindao', once: false,
-    cond: { flags: { 'flags.onb.done': true }, notFlag: 'flags.task.contact' },
-    steps: [
-      { t: 'npcTalk', npc: 'mu_changfeng',
-        prompt: '穆长风眯眼打量你：「你这后生，竟真从苦役营钻出来了？白檀军屯的叔伯们同老夫有旧——你既出得来，便投他们去。」',
-        asks: [
-          { label: '〔拜谢〕愿往白檀投奔', set: { 'flags.task.contact': true },
-            then: [
-              { t: 'grant', gold: 15, rep: 2, items: [{ id: 'roubao', name: '肉包子', icon: '🥟', cat: '食饵', count: 2 }, { id: 'jiu', name: '黍酒', icon: '🍶', cat: '食饵', count: 1 }] },
-              { t: 'log', cls: 'good', text: '穆长风将干粮袋塞给你：「肉包两只、黍酒一壶，还有盘缠。北边庄子遭了雪灾，正缺人手——去吧，江湖路远。」〔外应接应线（路线10）已成：白檀军屯在望。〕' }
-            ] }
-        ] }
-    ]
-  });
+  // — 〔已移除〕原外应接应线（路线10·穆长风/老乞丐）整体删除；出营后的接应由林径行脚货郎与白檀军屯承接。 —
 
 
   TRIGGERS.push({
