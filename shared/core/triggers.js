@@ -21,7 +21,8 @@ window.LF = window.LF || {};
         tutAsk = dep.tutAsk, findEvent = dep.findEvent, runEvent = dep.runEvent,
         startCombat = dep.startCombat, addReputation = dep.addReputation,
         packAdd = dep.packAdd, save = dep.save, renderStatus = dep.renderStatus,
-        renderMoveBar = dep.renderMoveBar, renderNpcList = dep.renderNpcList;
+        renderMoveBar = dep.renderMoveBar, renderNpcList = dep.renderNpcList,
+        addXp = dep.addXp;
 
     function getPath(o, p) {
       var ks = String(p).split('.'), c = o;
@@ -131,7 +132,7 @@ window.LF = window.LF || {};
           save(state); renderStatus(); next(); break;
         }
         case 'removeNpc': { var rn = G.ROOMS[state.room].npcs, i = rn ? rn.indexOf(step.key) : -1; if (i >= 0) rn.splice(i, 1); next(); break; }
-        case 'exp': { state.exp = (state.exp || 0) + (step.amount || 0); log('修为 +' + (step.amount || 0), 'good'); renderStatus(); save(state); next(); break; }
+        case 'exp': { if (addXp) { addXp(step.amount || 0); } else { state.exp = (state.exp || 0) + (step.amount || 0); } renderStatus(); save(state); next(); break; }
         case 'branch': { var ok = step.if ? testCond(step.if) : true; runSteps(ok ? (step.then || []) : (step.else || []), 0, next); break; }
         case 'graduate': graduate(); next(); break;
         default: next();

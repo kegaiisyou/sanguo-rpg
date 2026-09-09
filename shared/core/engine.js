@@ -84,6 +84,7 @@
     // packAdd 同上：Inventory 在 L123 才赋值，闭包延迟引用
     packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save, renderStatus: renderStatus,
     renderMoveBar: renderMoveBar, renderNpcList: renderNpcList,
+    addXp: function () { return addXp.apply(null, arguments); },
     getOnbLayers: function () { return ONB_LAYERS; }
   });
   var checkTriggers = Triggers.checkTriggers, graduate = Triggers.graduate;
