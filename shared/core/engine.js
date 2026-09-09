@@ -808,7 +808,7 @@
       state.hp=state.maxHp;state.mp=state.maxMp;             // 破境气血内力尽复
       log('【破境】修为精进！已至 LV.'+state.level+'，获得 1 点自由属性点（余 '+(state.freePoints||0)+'）。气血尽复。','good');
     }
-    if((state.freePoints||0)>0 && combatMode===null){ try{ openModal('char'); }catch(e){} }
+    if((state.freePoints||0)>0 && combatMode===null){ try{ openModal('levelup'); }catch(e){} }
   }
   function applyEffect(e){
     e=e||{}; var got=[];
@@ -3870,6 +3870,26 @@
   var currentModalKind=null;
 
   // [moved → shared/core/building.js] 可进入建筑：BUILDINGS 数据表与进出楼房间逻辑（isBldRoom/bldForRoom/bldRoom/enterBldRoom/bldMove/leaveBldRoom/hasCount）
+  // 升级小弹窗：替代「直接弹出角色面板」，给玩家「去加点 / 忽略」的选择
+  function renderLevelup(){
+    var lvl=state.level;
+    var pts=state.freePoints||0;
+    var maxed=lvl>=G.CONSTANTS.MAX_LEVEL;
+    var banner=maxed?'功 行 圆 满':'破 境';
+    var sub=maxed? ('修为已臻圆满（LV.'+lvl+'），尚有 '+pts+' 点自由属性点待分配。')
+                 : ('已破境至 LV.'+lvl+'，获得 '+pts+' 点自由属性点。');
+    return '<div class="levelup-pop">'+
+      '<div class="lu-banner">'+banner+'</div>'+
+      '<div class="lu-lv">LV.'+lvl+'</div>'+
+      '<div class="lu-sub">'+sub+'</div>'+
+      '<p class="tip">自由属性点可随时在角色面板分配，不必此刻决定；选「忽略」后，点状态栏或「角色」仍可回来加点。</p>'+
+      '<div class="lu-btns">'+
+        '<button class="btn lu-go" onclick="openModal(\'char\')">去加点</button>'+
+        '<button class="btn lu-skip" onclick="closeModal()">忽略</button>'+
+      '</div>'+
+    '</div>';
+  }
+
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
@@ -3878,7 +3898,7 @@
     if(state && state.dead){ die(); return; }
     // 打开任何弹窗时先移除战斗红光氛围，防止满血/非战斗画面泛红
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
-    if(kind!=='dev'){ try{ SFX.open(); }catch(e){} }   // 弹窗打开音效（v20260909a）
+    if(kind!=='dev'){ try{ (kind==='levelup'?SFX.levelup():SFX.open()); }catch(e){} }   // 弹窗打开音效（levelup 用升阶音）
     if(kind==='dev'){ renderDev(); return; }
    try{
     var modalOpts=opts||{};
@@ -3915,6 +3935,8 @@
         row('当前所处',curRoom().name)+
         '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
         '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
+    } else if(kind==='levelup'){
+      h=renderLevelup();
     } else if(kind==='pack'){
       h=renderPack();
     } else if(kind==='give'){
@@ -4022,6 +4044,7 @@
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage' || kind==='give');
     $card.classList.toggle('give-card', kind==='give');
+    $card.classList.toggle('levelup-card', kind==='levelup');
     // 捏人界面隐藏右上角 X 按钮（不可中途退出，v20260908j）
     var mx=document.getElementById('modal-x'); if(mx) mx.style.visibility=(kind==='create')?'hidden':'visible';
     if(kind==='create') bindCreate();

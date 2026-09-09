@@ -490,6 +490,19 @@
   .modal-x:hover{background:#7d241d;transform:rotate(90deg);}
   /* 捏人专用不透明水墨背景：打开捏人时隐藏标题页，弹窗自带背景，不再透出标题 */
   #modal.modal-create-bg{ background:radial-gradient(120% 80% at 50% 18%,#2c2418 0%,#1b160f 60%,#100c08 100%); }
+
+  /* 升级小弹窗（替代直接弹出角色面板，给「去加点/忽略」选择） */
+  #modal-card.levelup-card{ max-width:320px; }
+  .levelup-pop{ text-align:center; padding:6px 4px 2px; }
+  .levelup-pop .lu-banner{ font-size:13px; letter-spacing:3px; color:#b8893a; }
+  .levelup-pop .lu-lv{ font-size:42px; font-weight:700; color:var(--seal); margin:2px 0 4px; text-shadow:0 2px 0 rgba(0,0,0,.25); }
+  .levelup-pop .lu-sub{ font-size:14px; color:var(--ink); margin-bottom:8px; line-height:1.6; }
+  .levelup-pop .lu-btns{ display:flex; gap:10px; margin-top:8px; }
+  .levelup-pop .lu-btns .btn{ flex:1; }
+  .levelup-pop .lu-go{ background:linear-gradient(180deg,#caa14e,#a9842f); color:#1c140a; border-color:#8a6a23; font-weight:600; }
+  .levelup-pop .lu-go:hover{ filter:brightness(1.06); }
+  .levelup-pop .lu-skip{ background:rgba(120,120,120,.16); border:1px solid rgba(120,120,120,.5); color:var(--ink-soft); }
+  .levelup-pop .lu-skip:hover{ background:rgba(120,120,120,.28); }
   @keyframes fade{from{opacity:0}to{opacity:1}}
   /* ===== 时辰钟表弹窗 ===== */
   .clk-dial{position:relative;width:min(70vw,248px);aspect-ratio:1/1;margin:12px auto 6px;border-radius:50%;
