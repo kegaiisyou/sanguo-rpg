@@ -77,7 +77,7 @@ window.LF = window.LF || {};
       if (!arr || idx >= arr.length) { if (done) done(); return; }
       runStep(arr[idx], function () { runSteps(arr, idx + 1, done); });
     }
-    function runStep(step, next) {
+    function runStep(step, next, env) {
       var state = getState();
       switch (step.t) {
         case 'narrate': {
@@ -100,7 +100,7 @@ window.LF = window.LF || {};
                 if (a.highlight) { (Array.isArray(a.highlight) ? a.highlight : [a.highlight]).forEach(function (l) { highlightOnb(l); }); }
                 if (a.say) log(resolveTpl(a.say));   // say 为混合叙事（含主角动作+老乞丐台词），不附加「老乞丐：」前缀以免不通顺
                 save(state);
-                if (a.then && a.then.length) { runSteps(a.then, 0, next); } else { next(); }
+                if (a.then && a.then.length) { runSteps(a.then, 0, next, env); } else { next(); }
               }
             };
           });
@@ -124,7 +124,7 @@ window.LF = window.LF || {};
           startCombat(step.enemy, { tutorial: !!step.tutorial });
           break;  // 战斗异步，后续步骤待战斗结束再续（开场战斗为链尾，无需续）
         }
-        case 'setFlag': { if (step.increment) { var cur = getPath(state, step.path) || 0; setPath(state, step.path, cur + (step.value || 1)); } else { setPath(state, step.path, step.value); } save(state); next(); break; }
+        case 'setFlag': { if (step.increment) { var cur = getPath(state, step.path) || 0; var inc = step.incrementByEnv ? (env && env[step.incrementByEnv] ? env[step.incrementByEnv] : 1) : (step.value || 1); setPath(state, step.path, cur + inc); } else { setPath(state, step.path, step.value); } save(state); next(); break; }
         case 'grant': {
           if (step.gold) { state.gold = Math.max(0, (state.gold || 0) + step.gold); }
           if (step.rep) { addReputation(step.rep); }
@@ -139,7 +139,7 @@ window.LF = window.LF || {};
         }
         case 'removeNpc': { var rn = G.ROOMS[state.room].npcs, i = rn ? rn.indexOf(step.key) : -1; if (i >= 0) rn.splice(i, 1); next(); break; }
         case 'exp': { if (addXp) { addXp(step.amount || 0); } else { state.exp = (state.exp || 0) + (step.amount || 0); } renderStatus(); save(state); next(); break; }
-        case 'branch': { var ok = step.if ? testCond(step.if) : true; runSteps(ok ? (step.then || []) : (step.else || []), 0, next); break; }
+        case 'branch': { var ok = step.if ? testCond(step.if, env) : true; runSteps(ok ? (step.then || []) : (step.else || []), 0, next, env); break; }
         case 'graduate': graduate(); next(); break;
         default: next();
       }

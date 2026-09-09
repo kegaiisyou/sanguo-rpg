@@ -2184,8 +2184,8 @@
     var npcName = giveNpc.name;
     // 从行囊移除物品（批量）
     if(it.count && it.count > n){ it.count -= n; } else { state.pack[packIdx]=null; }
-    // 检查 onGive 触发器（任务条件）—— 批量给予只触发一次，避免重复对话
-    var triggered = checkTriggers({hook:'onGive', npc:npcKey, room:state.room, item:it});
+    // 检查 onGive 触发器（任务条件）—— 传递给予数量 qty，支持累计计数
+    var triggered = checkTriggers({hook:'onGive', npc:npcKey, room:state.room, item:it, qty:n});
     if(!triggered){
       // 没有特殊触发，根据物品价值增减好感（批量）
       var favor = calcGiveFavor(it) * n;
