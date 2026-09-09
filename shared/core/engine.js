@@ -2094,6 +2094,7 @@
     giveNpc = o;
     openModal('give', {npc: o});
   }
+  var giveSelectedIdx = null;
   function renderGivePanel(npc){
     if(!npc) return '<h3>给 予</h3><p>未指定对象。</p>';
     var grid='';
@@ -2104,14 +2105,42 @@
       hasItem=true;
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
-      grid += '<div class="packcell give-item" data-give-idx="'+i+'" title="'+it.name+'">'
+      var sel = (giveSelectedIdx===i)?' give-selected':'';
+      grid += '<div class="packcell give-item'+sel+'" data-give-idx="'+i+'" title="'+it.name+'">'
             + '<div class="pcell-ic">'+(it.icon||'📦')+'</div>'
+            + '<div class="give-item-name">'+it.name+'</div>'
             + cnt + qb + '</div>';
     }
+    // 右侧详情
+    var detail = '<div class="li-name">选择物品</div><div class="li-line">点选左侧物品，可查看详情并确认赠予。</div>';
+    if(giveSelectedIdx!=null && state.pack[giveSelectedIdx]){
+      var it = state.pack[giveSelectedIdx];
+      var q = LF.ITEMS.QMAP[it.quality] || {name:'凡品',color:'#9a948a'};
+      detail = '<div class="li-name">'+(it.icon||'📦')+' '+it.name+'</div>';
+      detail += '<div class="li-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+it.qualityName):'')+(it.count>1?(' · ×'+it.count):'')+'</div>';
+      if(it.cat==='装备'){
+        var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
+        var parts=[];
+        fields.forEach(function(f){ var v=it[f[0]]||0; if(v) parts.push(f[1]+' +'+v); });
+        if(parts.length) detail+='<div class="li-line">'+parts.join(' · ')+'</div>';
+      }
+      if(it.desc) detail+='<div class="li-line">'+it.desc+'</div>';
+      var estFavor = calcGiveFavor(it);
+      detail+='<div class="li-line" style="color:#8a6a3a;">预计好感 +'+estFavor+'</div>';
+    }
     return '<h3>赠 与 · '+npc.name+'</h3>'
-      + '<p class="tip" style="margin:0 0 8px;">选一件行囊之物相赠——投其所好则好感渐增，所赠非所欲则不以为意。</p>'
-      + '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
-      + (hasItem?'':'<p class="tip" style="text-align:center;color:#8a7a5a;">行囊空空，无物可赠。</p>')
+      + '<div class="give-layout">'
+      +   '<div class="give-left">'
+      +     '<div class="pack-left-title">行 囊</div>'
+      +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
+      +     (hasItem?'':'<p class="tip" style="text-align:center;color:#8a7a5a;">行囊空空，无物可赠。</p>')
+      +   '</div>'
+      +   '<div class="give-right">'
+      +     '<div class="pack-left-title">详 情</div>'
+      +     '<div class="loot-info give-detail">'+detail+'</div>'
+      +     (giveSelectedIdx!=null?'<button class="btn give-confirm" id="give-confirm">确认赠予</button>':'')
+      +   '</div>'
+      + '</div>'
       + '<button class="sheet-leave" id="give-cancel">取 消</button>';
   }
   function giveItemToNpc(packIdx){
@@ -2137,6 +2166,7 @@
     }
     save(state);
     renderNpcList();
+    giveSelectedIdx = null;
     // 刷新给予面板
     if(currentModalKind==='give'){
       var card=document.getElementById('modal-card');
@@ -2177,9 +2207,17 @@
     document.querySelectorAll('.give-item').forEach(function(el){
       el.onclick=function(){
         var idx=parseInt(el.getAttribute('data-give-idx'),10);
-        giveItemToNpc(idx);
+        giveSelectedIdx = idx;
+        // 刷新面板
+        var card=document.getElementById('modal-card');
+        if(card) card.innerHTML = renderGivePanel(giveNpc);
+        bindGivePanel();
       };
     });
+    var confirm=document.getElementById('give-confirm');
+    if(confirm) confirm.onclick=function(){
+      if(giveSelectedIdx!=null) giveItemToNpc(giveSelectedIdx);
+    };
     var cancel=document.getElementById('give-cancel');
     if(cancel) cancel.onclick=closeModal;
   }
