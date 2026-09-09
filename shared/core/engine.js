@@ -25,6 +25,10 @@
   var WK = Core.WK;
   var WK_BASE = Core.WK_BASE;
 
+  // 音效桥：audio.js（在 engine.js 之前加载）将音频引擎挂到 window.SFX；
+  // 此处显式声明供 Combat 工厂 ctx（SFX: SFX）与引擎内裸名共用，消除隐式读 window 全局。
+  var SFX = (typeof window !== 'undefined' && window.SFX) || null;
+
   // 存档系统：从 save.js 工厂注入运行时上下文（不再读 window 裸全局）
   var Save = LF.createSave({ SLOTS: SLOTS, G: G, SHICHEN: SHICHEN, getCurSlot: function(){ return curSlot; } });
   var rawSlot = Save.rawSlot, saveToSlot = Save.saveToSlot, clearSlot = Save.clearSlot,
@@ -54,11 +58,16 @@
     getModal: function () { return $modal; },
     getCurrentModalKind: function () { return currentModalKind; },
     addReputation: addReputation, repTitle: repTitle, log: log, addXp: addXp,
-    isCityGrid: isCityGrid, isCaptured: isCaptured, cityDefaultOwner: cityDefaultOwner,
-    burnCells: burnCells, effectiveStats: effectiveStats, closeModal: closeModal,
+    // City(createCity 在 L82) / Inventory(createInventory 在 L116) 均晚于本工厂创建；
+    // 此处仅定义包装、调用时（用户点调试按钮）再取值 → 不固化 undefined（与 Equipment.L42 getter 同范式）
+    isCityGrid: function () { return isCityGrid.apply(null, arguments); },
+    isCaptured: function () { return isCaptured.apply(null, arguments); },
+    cityDefaultOwner: function () { return cityDefaultOwner.apply(null, arguments); },
+    burnCells: function () { return burnCells.apply(null, arguments); },
+    effectiveStats: effectiveStats, closeModal: closeModal,
     renderRoom: renderRoom, openSpawnMap: openSpawnMap, moralTitle: moralTitle,
     factionName: factionName, renderStatus: renderStatus, toast: toast,
-    packAdd: packAdd, save: save
+    packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save
   });
   var handleDev = Dev.handleDev, renderDev = Dev.renderDev;
 
@@ -70,8 +79,10 @@
     log: log, logScene: logScene,
     onbReveal: onbReveal, highlightOnb: highlightOnb, onbGoal: onbGoal,
     tutAsk: tutAsk, findEvent: findEvent, runEvent: runEvent,
-    startCombat: startCombat, addReputation: addReputation,
-    packAdd: packAdd, save: save, renderStatus: renderStatus,
+    // startCombat 来自 Combat 别名（L197 才赋值），本工厂先建 → 包装函数延迟引用（同 L75 packAdd 范式）
+    startCombat: function () { return Combat.startCombat.apply(null, arguments); }, addReputation: addReputation,
+    // packAdd 同上：Inventory 在 L123 才赋值，闭包延迟引用
+    packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save, renderStatus: renderStatus,
     renderMoveBar: renderMoveBar, renderNpcList: renderNpcList,
     getOnbLayers: function () { return ONB_LAYERS; }
   });
@@ -94,6 +105,8 @@
       CITY_LV_SIZE = City.CITY_LV_SIZE, CITY_LV_NAME = City.CITY_LV_NAME,
       cityDevOf = City.cityDevOf, cityOwnerOf = City.cityOwnerOf, cityDefaultOwner = City.cityDefaultOwner,
       isCaptured = City.isCaptured, cityBurnedMap = City.cityBurnedMap,
+      factionLabel = City.factionLabel, conquerCity = City.conquerCity,
+      chronicle = City.chronicle, chronicleList = City.chronicleList,
       burnedGates = City.burnedGates, siegeGuardMul = City.siegeGuardMul, setCityDev = City.setCityDev,
       playerFaction = City.playerFaction, centerTypeOf = City.centerTypeOf, devRadius = City.devRadius, baseDisplayType = City.baseDisplayType,
       cityCellInst = City.cityCellInst, setCityCell = City.setCityCell, nextBuildOrderId = City.nextBuildOrderId,
@@ -275,7 +288,30 @@
   });
   var initCreateState = CharCreate.initCreateState, beginCreate = CharCreate.beginCreate,
       renderCreateHTML = CharCreate.renderCreateHTML, bindCreate = CharCreate.bindCreate,
-      bindAttrAlloc = CharCreate.bindAttrAlloc;
+      bindAttrAlloc = CharCreate.bindAttrAlloc, attrAllocHTML = CharCreate.attrAllocHTML;
+  // 采集/制作/锻造资源加工链：从 crafting.js 工厂注入引擎依赖
+  // craftState/forgeState 留在引擎（openModal 的 craft/forge 分支直写其字段），模块经 getter 共享同一引用
+  var Crafting = LF.createCrafting({
+    getState: function () { return state; },
+    getCraftState: function () { return craftState; },
+    getForgeState: function () { return forgeState; },
+    getCard: function () { return $card; },
+    LF: LF, G: G,
+    packFind: packFind, packAdd: packAdd, packConsume: packConsume,
+    packIsStackable: packIsStackable, packFirstEmpty: packFirstEmpty, itemKey: itemKey,
+    itemIconHTML: itemIconHTML, placedCellTag: placedCellTag, placedInCell: placedInCell,
+    advanceTime: advanceTime, afterPackChange: afterPackChange, save: save,
+    log: log, toast: toast, openModal: openModal, closeModal: closeModal,
+    renderRoom: renderRoom, buildActions: buildActions, exert: exert
+  });
+  var gatherActs = Crafting.gatherActs, startGather = Crafting.startGather, doPickGather = Crafting.doPickGather,
+      chopTree = Crafting.chopTree, searchBench = Crafting.searchBench, pickupAxe = Crafting.pickupAxe,
+      consumeTool = Crafting.consumeTool, renderCraftPanel = Crafting.renderCraftPanel,
+      bindCraftPanel = Crafting.bindCraftPanel, doCraft = Crafting.doCraft,
+      mineStone = Crafting.mineStone, cutWood = Crafting.cutWood, fireBrick = Crafting.fireBrick,
+      openBuildCrate = Crafting.openBuildCrate, openForgePanel = Crafting.openForgePanel,
+      renderForgePanel = Crafting.renderForgePanel, bindForgePanel = Crafting.bindForgePanel,
+      forgeAct = Crafting.forgeAct, tickForge = Crafting.tickForge;
   // ===== 捏人 / 开场序章 =====
   // 四维属性（直接对应战斗数值，无资质壳；每点换算见 G.ATTR_RATIO）
   var createState=null;   // 捏人状态（openModal 读取）；四维常量与 pendingSlot/pendingSave 已移入 shared/core/charcreate.js
@@ -812,6 +848,7 @@
       state.day=(state.day||0)+crossings;
       syncCalendar();                        // 跨日 → 农历月日 / 年号年序随之推进
       if(Math.random()<0.55) state.weather=Math.floor(Math.random()*WEATHERS.length); // 新日易天候
+      warlordDayTick(crossings);             // 群雄逐鹿：NPC 势力自动攻伐（v20260909o）
     }
     state.food=Math.max(0,state.food-n);
     state.drink=Math.max(0,state.drink-n);
@@ -1598,10 +1635,175 @@
       h+='<div class="fm-desc">'+f.desc+'</div>';
       h+='</div>';
     });
-    h+='<div class="fm-foot">你治下：'+((state.ruledCities||[]).length)+' 城　｜　官职：'+(state.title||'游侠')+'　｜　势力：'+factionName(playerFaction())+'</div>';
+    var _cl = chronicleList().slice(0, 8);   // 群雄逐鹿 · 烽火递报（v20260909o）
+    if (_cl.length) {
+      h += '<div class="fm-war"><div class="fm-war-h">🗞 烽火递报 · 天下易帜</div>';
+      _cl.forEach(function (e) {
+        var _c = e.k === 'danger' ? '#d2694a' : (e.k === 'good' ? '#86b087' : (e.k === 'war' ? '#c9a45a' : '#b9ad92'));
+        h += '<div class="fm-war-i" style="color:' + _c + '"><span style="opacity:.6;">第' + e.d + '日</span>　' + escapeHtml(e.t) + '</div>';
+      });
+      h += '</div>';
+    }
+    h += '<div class="fm-foot">你治下：' + ((state.ruledCities || []).length) + ' 城　｜　官职：' + (state.title || '游侠') + '　｜　势力：' + factionName(playerFaction()) + '　｜　(攻城略地、诸侯互伐皆令版图易色)</div>';
     h+='</div>';
     return h;
   }
+  // ══ 群雄逐鹿 · NPC 势力互伐与事件攻伐（v20260909o）══
+  // 归属可动态变更的发动机：
+  //  · 唯一写入口 conquerCity（见 city.js）——玩家攻城(siegeWin)/NPC 互伐/事件攻伐全部汇流至此；
+  //  · 自动逐鹿：每次「过天」有低概率在相邻异势力城市间爆发一役，胜者易帜，写入天下大势大事记；
+  //  · 事件驱动：剧情/数据脚本可随时 window.warlordBattle(cid, attackerId, opts) 指定一场攻伐。
+  // 护栏（自动模式）：不攻都城(皇宫)/不灭有主势力的孤城/玩家立身之城不惊扰；
+  //                 事件层经 opts.allowCapital / allowLast / allowInside 可显式破局。
+  var WAR_ADJ_KM = 420;   // 邻接判距（两城城廓互为攻伐的方圆半径，公里）
+  var warAdjPairs = null;
+  function warKm(lng1, lat1, lng2, lat2) {
+    var R = 6371, dLng = (lng2 - lng1) * Math.PI / 180, dLat = (lat2 - lat1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+  function warCityAdjPairs() {
+    if (warAdjPairs) return warAdjPairs;
+    warAdjPairs = [];
+    var C = LF.CITIES || {}, ids = Object.keys(C);
+    for (var i = 0; i < ids.length; i++) for (var j = i + 1; j < ids.length; j++) {
+      var a = C[ids[i]], b = C[ids[j]];
+      if (!a.pos || !b.pos || a.pos.length < 2 || b.pos.length < 2) continue;
+      if (warKm(a.pos[0], a.pos[1], b.pos[0], b.pos[1]) <= WAR_ADJ_KM) warAdjPairs.push([ids[i], ids[j]]);
+    }
+    return warAdjPairs;
+  }
+  // 归属的「势力键」：玩家义旗归一为 player；其余保留数据键（未知键 = 地方群豪/无主）
+  function warOwnerKey(cid) { var o = cityOwnerOf(cid); return (o === '义军' || o === 'player') ? 'player' : o; }
+  function warIsLordKey(fid) { return !!(LF.FACTIONS && LF.FACTIONS[fid]) && fid !== 'han' && fid !== 'player'; }
+  function warFactionName(fid) {
+    if (fid === 'player') return factionName('player');
+    if (fid === 'han' || fid === '汉') return factionName('han');
+    var f = (LF.FACTIONS || {})[fid];
+    return f ? (f.name || fid) : (fid && fid !== 'none' ? '地方群豪' : '无主之地');
+  }
+  function warCityPower(cid) {
+    var c = (LF.CITIES || {})[cid] || {};
+    var dev = 0; try { dev = cityDevOf(cid); } catch (e) {}
+    return (c.wall || 40) * 1.2 + (c.pop || 40) * 0.6 + (c.commerce || 40) * 0.3 + dev * 0.06;
+  }
+  function warFactionTotal(fid) {
+    var sum = 0, C = LF.CITIES || {}, ids = Object.keys(C);
+    for (var i = 0; i < ids.length; i++) if (warOwnerKey(ids[i]) === fid) sum += warCityPower(ids[i]);
+    return sum;
+  }
+  function warFactionCityCount(fid) {
+    var n = 0, C = LF.CITIES || {}, ids = Object.keys(C);
+    for (var i = 0; i < ids.length; i++) if (warOwnerKey(ids[i]) === fid) n++;
+    return n;
+  }
+  function warInRoom(cid) { try { return !!state && state.room === cid; } catch (e) { return false; } }
+  // ── 战事执行：校验过后的单役结算；返回 {win, city, atk, def} 或 null ──
+  function runWarlordBattle(targetCid, attackerFid) {
+    if (!state || state.dead) return null;
+    var C = LF.CITIES || {}, tc = C[targetCid];
+    if (!tc) return null;
+    var city = tc.name || targetCid;
+    var defKey = warOwnerKey(targetCid);
+    var atk = warFactionTotal(attackerFid) * (0.28 + Math.random() * 0.16);   // 举国之力的一支偏师
+    var def = warCityPower(targetCid) * (1.4 + Math.random() * 0.2);          // 据城而守，一夫当关
+    var defReal = !!(LF.FACTIONS && LF.FACTIONS[defKey]);
+    if (defReal) def += warFactionTotal(defKey) * 0.1;                        // 邻郡/本州驰援之师
+    var atkRoll = atk * (0.85 + Math.random() * 0.3);
+    var win = atkRoll >= def;
+    if (Math.random() < 0.13) win = !win;                                     // 乱世无常，胜败难料
+    if (win) conquerCity(targetCid, attackerFid, -5);
+    return { win: win, city: city, atk: attackerFid, atkName: warFactionName(attackerFid), def: defKey, defName: warFactionName(defKey), wasPlayerCity: (defKey === 'player') };
+  }
+  function warChronicleEntry(r) {
+    if (!r || !r.win) return;
+    chronicle(r.atkName + '军攻取「' + r.city + '」（旧属' + r.defName + '），易帜改换门庭。', 'war');
+    if (r.wasPlayerCity) chronicle('噩耗：你治下「' + r.city + '」被' + r.atkName + '军攻陷！', 'danger');
+  }
+  // ── 事件/剧情接口：指定一场攻伐 ──
+  // 例：warlordBattle('luoyang','caocao') / warlordBattle('xuchang','dongzhuo',{allowLast:true})
+  // 返回 {ok:boolean, win?:boolean, reason?:string}；攻取成功即易帜并入大事记。
+  function warlordBattle(targetCid, attackerFid, opt) {
+    opt = opt || {};
+    var C = LF.CITIES || {};
+    var tc = C[targetCid];
+    if (!state || state.dead) return { ok: false, reason: '无可攻之人' };
+    if (!tc) return { ok: false, reason: '此城不在版图之内' };
+    if (!warIsLordKey(attackerFid)) return { ok: false, reason: '攻方须为一镇诸侯' };
+    var defKey = warOwnerKey(targetCid);
+    if (defKey === attackerFid) return { ok: false, reason: '同室不操戈' };
+    if (opt.allowCapital !== true && tc.tier === 'capital') return { ok: false, reason: '王都重地，非举事所能轻动' };
+    var defReal = !!(LF.FACTIONS && LF.FACTIONS[defKey]);
+    if (opt.allowLast !== true && defReal && defKey !== 'player' && warFactionCityCount(defKey) <= 1)
+      return { ok: false, reason: (warFactionName(defKey) + '仅余孤城，守军死志犹坚') };
+    if (opt.allowInside !== true && warInRoom(targetCid)) return { ok: false, reason: '你正身处此城，兵锋未至' };
+    var r = runWarlordBattle(targetCid, attackerFid);
+    if (!r) return { ok: false, reason: '战事未起' };
+    log((r.win ? '〔攻伐〕' + r.atkName + '军攻取「' + r.city + '」，' : '〔攻伐〕' + r.atkName + '军进兵「' + r.city + '」，守军力战拒之。'), r.wasPlayerCity ? 'combat' : 'sys');
+    if (r.win) {
+      warChronicleEntry(r);
+      if (r.wasPlayerCity) {
+        toast('🏴 噩耗：' + r.city + '失守！');
+        if (!state.ruledCities || !state.ruledCities.length)
+          log('你名下已无统辖之城——天下虽大，暂无可发号之地。', 'sys');
+      }
+      save(state);
+    }
+    return { ok: r.win, win: r.win, city: r.city, atk: attackerFid, def: r.def };
+  }
+  // ── 自动逐鹿：过天轮转 ──
+  // 频率约为「数日一役」，胜负均入大事记由「天下大势」公示；只惊扰玩家相关战事。
+  function warlordDayTick(crossings) {
+    if (!state || state.dead) return;
+    state.flags = state.flags || {};
+    var cool = (state.flags.warCool || 0) - (crossings || 1);
+    if (cool > 0) { state.flags.warCool = cool; return; }
+    state.flags.warCool = 1 + Math.floor(Math.random() * 3);   // 战后暂歇数日
+    if (Math.random() >= 0.45) return;                          // 半数日辰，干戈未动
+    var idsAll = Object.keys(LF.CITIES || {}), counts = {};
+    for (var x = 0; x < idsAll.length; x++) {   // 全域统计城数（顺带统一种子 flags.cityOwner）
+      var _k = warOwnerKey(idsAll[x]);
+      counts[_k] = (counts[_k] || 0) + 1;
+    }
+    var pairs = warCityAdjPairs(), cands = [];
+    for (var i = 0; i < pairs.length; i++) {
+      var a = pairs[i][0], b = pairs[i][1];
+      var ka = warOwnerKey(a), kb = warOwnerKey(b);
+      if (ka === kb) continue;
+      var ha = warIsLordKey(ka), hb = warIsLordKey(kb);
+      if (!ha && !hb) continue;                                  // 两侧皆非豪强 → 无人举兵
+      if (warInRoom(a) || warInRoom(b)) continue;                // 玩家立足之处，兵锋暂缓
+      var dirs = [];
+      if (ha) dirs.push({ atk: ka, tid: b });                    // a 之主人攻 b
+      if (hb) dirs.push({ atk: kb, tid: a });
+      for (var d = 0; d < dirs.length; d++) {
+        var tid = dirs[d].tid, tc = (LF.CITIES || {})[tid];
+        if (tc && tc.tier === 'capital') continue;               // 不攻都城（皇宫所在）
+        var tkey = warOwnerKey(tid);
+        var treal = !!(LF.FACTIONS && LF.FACTIONS[tkey]);
+        if (treal && tkey !== 'player' && (counts[tkey] || 0) <= 1) continue; // 不灭有主孤城
+        cands.push({ target: tid, atk: dirs[d].atk });
+      }
+    }
+    if (!cands.length) return;
+    var pick = cands[Math.floor(Math.random() * cands.length)];
+    var r = runWarlordBattle(pick.target, pick.atk);
+    if (r && r.win) {
+      warChronicleEntry(r);
+      if (r.wasPlayerCity) {
+        log('〔噩耗〕' + r.atkName + '军攻陷你治下「' + r.city + '」！', 'combat');
+        toast('🏴 噩耗：' + r.city + '失守！');
+        if (!state.ruledCities || !state.ruledCities.length)
+          log('你名下已无统辖之城——天下虽大，暂无可发号之地。', 'sys');
+      }
+      save(state);
+    } else if (r && r.wasPlayerCity) {
+      log('〔狼烟〕' + r.atkName + '军来犯你治下「' + r.city + '」，守军力战，未能破城。', 'sys');
+    }
+  }
+
   // ===== 山河图 · 城内网格视图（v20260824b）=====
   // 仅作城郭总览展示（地图不再承担移动职责），移动统一走下方方向键
   function buildActions(room, popExits){
@@ -2728,142 +2930,8 @@
     buildActions(curRoom()); save(state); renderStatus();
   }
 
-  // ===== 野外采药（北邙山林·草药丛） =====
-  // 状态机：点击「采集草药」→ 耗时 1 时辰，草丛变为「可拾取」；点击「拾取草药」入包，满则提示
-  function gatherActs(){
-    var g=state.gather;
-    if(g && g.room===state.room && g.phase==='ready'){
-      return [{label:'拾取草药', icon:'🌿', fn:function(){ doPickGather(); }}];
-    }
-    return [{label:'采集草药', icon:'🌿', fn:function(){ startGather(); }}];
-  }
-  function startGather(){
-    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
-    state.gatherCount = state.gatherCount || {};
-    var k = state.room + '@' + state.day;
-    if((state.gatherCount[k]||0) >= 3){ toast('此处今日已采过三回，草药渐稀，明日再来。'); return; }
-    advanceTime(1);                                   // 采撷耗约一个时辰
-    state.gatherCount[k] = (state.gatherCount[k]||0) + 1;
-    state.gather = { room: state.room, phase: 'ready' };
-    log('你蹲身拨开草叶，俯首采撷，忙活约一个时辰——草丛间已遗下可拾之药。','env');
-    renderRoom(state.room);                           // 重渲后按钮变为「拾取草药」
-  }
-  function doPickGather(){
-    if(!state.gather || state.gather.room!==state.room || state.gather.phase!=='ready') return;
-    var n = 2 + Math.floor(Math.random()*2);            // 得草药 2~3 株
-    var it = LF.ITEMS.makeItem('caoyao', n);
-    // 预判能否装入（与 packAdd 逻辑一致：可堆叠同物，或有空位）
-    var ok=false;
-    if(packIsStackable(it)){ var kk=itemKey(it); for(var i=0;i<state.pack.length;i++){ var c=state.pack[i]; if(c && itemKey(c)===kk && c.cat!=='装备'){ ok=true; break; } } }
-    if(!ok){ if(packFirstEmpty()>=0) ok=true; }
-    if(!ok){ toast('行囊已满，草药散落于地，无处安放——腾出空位再来拾取。'); return; }
-    packAdd(it);                                       // 此时必能装入
-    state.gather = null;
-    log('你拾起野草 '+n+' 株，收入行囊（可往「草庐/客栈」合成疗伤之物）。','good');
-    afterPackChange(); renderRoom(state.room);
-  }
-  // ===== 建造系统测试房间：采集(砍树) → 制作(木工台) 垂直切片 =====
-  function chopTree(){
-    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
-    var hasIronAxe = !!packFind('tiefu');
-    var withAxe = hasIronAxe || !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
-    advanceTime(1);
-    if(hasIronAxe) consumeTool('tiefu',1);
-    else if(withAxe) consumeTool('futou',1);
-    if(withAxe){
-      var n = hasIronAxe ? 2 : 1;
-      packAdd('mutou', n);
-      log('你抡'+(hasIronAxe?'铁':'锈')+'斧，咔咔几声，老树应声倒下，得木头×'+n+'。','env');
-    } else {
-      packAdd('xiaoshuzhi', 1);
-      log('你徒手折下几根细枝，捋得小树枝×1。若有把斧头，便能伐得粗实木头。','env');
-    }
-    afterPackChange();
-    buildActions(G.ROOMS[state.room]);   // 刷新场景物体（斧头/材料状态即时反映到菜单）
-  }
+  // [v20260909j] 野外采药 / 伐木 / 木工台采集制作逻辑已抽离 → shared/core/crafting.js
 
-  function searchBench(){
-    state.flags = state.flags || {};
-    if(state.flags.buildTestSearched){ toast('木工台已翻找过了。'); return; }
-    state.flags.buildTestSearched = true;
-    packAdd('mutou', 1);
-    afterPackChange();
-    log('你翻了翻木工台，台板下压着一根边角木头，顺手收了。','sys');
-    buildActions(G.ROOMS[state.room]);   // 仅刷新物体（移除「翻找」），不重播场景旁白
-  }
-
-  // 制作面板状态：记录当前工作台与选中品类（标签页）
-  var craftState = { bench:'bench', cat:null };
-  function buildCraftHTML(){
-    var recipes = (LF.RECIPES && LF.RECIPES[craftState.bench]) || [];
-    var DEFS = LF.ITEMS;
-    function cnt(id){ var it=packFind(id); return it?it.count:0; }
-    // 按 cat 分组（保持首次出现顺序）
-    var cats = [], idx = {};
-    recipes.forEach(function(r){ if(idx[r.cat]==null){ idx[r.cat]=cats.length; cats.push(r.cat); } });
-    if(!craftState.cat || cats.indexOf(craftState.cat)<0) craftState.cat = cats[0];
-    var activeCat = craftState.cat;
-    function rowHTML(r){
-      var can=r.in.every(function(x){ return cnt(x.id)>=x.n; });
-      var ins=r.in.map(function(x){ var d=DEFS[x.id]||{}; return itemIconHTML(d,16)+'×'+x.n+' <span style="opacity:.6">('+cnt(x.id)+')</span>'; }).join(' ＋ ');
-      var od=DEFS[r.out]||{};
-      var btn='<button class="sheet-btn" '+(can?'':'data-dis="1" style="opacity:.45;"')+' data-r="'+r.id+'">'+(can?'制 作':'材 料 不 足')+'</button>';
-      return '<div style="border:1px solid #6b5a3a;border-radius:8px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'+
-               '<div style="font-size:16px;margin-bottom:4px;">'+itemIconHTML(od,20)+' <b>'+od.name+'×'+r.outN+'</b></div>'+
-               '<div style="font-size:13px;color:#d8c9a8;margin-bottom:6px;">'+ins+'</div>'+
-               '<div style="font-size:12px;opacity:.6;margin-bottom:8px;">'+r.note+'</div>'+
-               btn+'</div>';
-    }
-    var tabHTML = cats.map(function(c){
-      var on = (c===activeCat) ? ' style="background:linear-gradient(180deg,#6e5a36,#4a3a22);color:#ffe9b8;border-color:#d8b46a;"' : '';
-      return '<button class="craft-tab" data-cat="'+c+'"'+on+'>'+c+'</button>';
-    }).join('');
-    var rows = recipes.filter(function(r){ return r.cat===activeCat; }).map(rowHTML).join('');
-    return '<h3 style="text-align:center;margin:0 0 4px;">🔨 木工台 · 制作</h3>'+
-           (cats.length>1 ? '<div class="craft-tabs" style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">'+tabHTML+'</div>' : '')+
-           '<p class="tip" style="text-align:center;margin:0 0 10px;">选一配方，将材料加工成形</p>'+
-           rows+
-           '<button class="sheet-leave" id="m-leave">收 工</button>';
-  }
-  function renderCraftPanel(){ return buildCraftHTML(); }
-  function bindCraftPanel(){
-    $card.querySelectorAll('.craft-tab').forEach(function(t){
-      t.onclick=function(){ craftState.cat = t.getAttribute('data-cat'); $card.innerHTML=buildCraftHTML(); bindCraftPanel(); };
-    });
-    $card.querySelectorAll('.sheet-btn[data-r]').forEach(function(b){
-      b.onclick=function(){ if(b.getAttribute('data-dis')) return; doCraft(b.getAttribute('data-r')); };
-    });
-    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
-  }
-  function doCraft(id){
-    var list = (LF.RECIPES && LF.RECIPES[craftState.bench]) || [];
-    var r=null; for(var i=0;i<list.length;i++){ if(list[i].id===id){ r=list[i]; break; } }
-    if(!r) return;
-    for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(LF.ITEMS[r.out]||{}).name); return; } }
-    r.in.forEach(function(x){ packConsume(x.id, x.n); });
-    packAdd(r.out, r.outN);
-    advanceTime(1);
-    afterPackChange();
-    log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
-    $card.innerHTML=buildCraftHTML(); bindCraftPanel();
-  }
-  function pickupAxe(){
-    if(packFind('futou')){ toast('你已有一把斧头了。'); return; }
-    packAdd('futou', 1);
-    afterPackChange();
-    log('你从墙角的工具堆里捡起一把锈迹斑斑的斧头，握在手里沉甸甸的。','sys');
-    buildActions(G.ROOMS[state.room]);   // 拾斧后刷新，使老树菜单即时变为「挥斧伐木」
-  }
-  // ===== 帐篷放置 + 货郎交易（建造系统测试房） =====
-  function consumeTool(defId, n){
-    for(var i=0;i<state.pack.length;i++){
-      var it=state.pack[i]; if(!it || it.defId!==defId || !it.maxDur) continue;
-      it.dur = (it.dur||0) - n;
-      if(it.dur<=0){ state.pack[i]=null; log('你的'+it.name+'耐久耗尽，咔嚓一声损毁了。','sys'); }
-      else if(it.dur<=2){ log(it.name+'已有些松垮（耐久 '+it.dur+'/'+it.maxDur+'），趁还能用多伐几根。','sys'); }
-      return;
-    }
-  }
   // ===== 通用可放置物品（模板驱动：物品定义 place 字段 → 场景对象） =====
   // 放置物动作表：place.actions 字符串 → 动作函数（物品数据外置，动作需在此注册）
   // 旧存档兼容：早期放置数据仅存 {key:'tent'}（无 defId），用此表回填物品
@@ -3225,180 +3293,11 @@
     });
     var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
   }
-  // 采石崖：采石料（每日限次，与采药一致）
-  function mineStone(){
-    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
-    state.buildCount = state.buildCount || {};
-    var k = state.room + '@' + state.day;
-    if((state.buildCount[k]||0) >= 3){ toast('此处今日已采过三回，崖壁渐薄，明日再来。'); return; }
-    advanceTime(1);
-    state.buildCount[k] = (state.buildCount[k]||0) + 1;
-    var hasIronAxe = !!packFind('tiefu');
-    if(hasIronAxe) consumeTool('tiefu',1);
-    var n = hasIronAxe ? 2 : 1;
-    packAdd('shitiao', n);
-    // 崖壁偶露铁矿：采石有一定概率连铁矿石一并剥落
-    var ores = 0;
-    if(Math.random() < 0.35){ ores = hasIronAxe ? 2 : 1; packAdd('tiekuangshi', ores); }
-    afterPackChange();
-    log('你抡'+(hasIronAxe?'铁斧凿石':'镐凿石')+'，哐哐数声，剥下石料×'+n+(ores?('，兼得铁矿石×'+ores):'')+'。','env');
-  }
-
-  // 伐木场：伐木取材（每日限次，仿采石崖）
-  function cutWood(){
-    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
-    if(!exert('伐木')) return;
-    state.buildCount = state.buildCount || {};
-    var k = 'wood_' + state.room + '@' + state.day;
-    if((state.buildCount[k]||0) >= 3){ toast('今日采伐已足三回，林子需养，明日再来。'); return; }
-    state.buildCount[k] = (state.buildCount[k]||0) + 1;
-    advanceTime(1);
-    var hasAxe = !!packFind('tiefu') || !!packFind('futou');
-    var n = hasAxe ? 2 : 1;
-    packAdd('mucai', n);
-    afterPackChange();
-    log('你'+(hasAxe?'挥斧斫木':'徒手折枝')+'，哢哢数声，得木材×'+n+'。','env');
-    openModal('building');
-  }
-  // 砖窑：烧砖（每日限次，耗柴火/石料，仿采石崖）
-  function fireBrick(){
-    if(state.defeated){ toast('重伤未愈，先调息恢复。'); return; }
-    if(!exert('烧砖')) return;
-    state.buildCount = state.buildCount || {};
-    var k = 'brick_' + state.room + '@' + state.day;
-    if((state.buildCount[k]||0) >= 3){ toast('今日窑火已足三窑，歇火养窑，明日再烧。'); return; }
-    state.buildCount[k] = (state.buildCount[k]||0) + 1;
-    advanceTime(1);
-    var hasFuel = !!packFind('mucai');
-    var n = hasFuel ? 2 : 1;
-    if(hasFuel) packConsume('mucai', 1);
-    packAdd('zhuan', n);
-    afterPackChange();
-    log('你添柴鼓风，窑火映红脸膛，出砖×'+n+(hasFuel?'（耗木材×1为薪）':'（无薪，砖质稍逊）')+'。','env');
-    openModal('building');
-  }
-  // 残破木箱：一次性拾取「冶炼工坊图」
-
-  function openBuildCrate(){
-    state.flags = state.flags || {};
-    if(state.flags.buildCrateGot){ toast('木箱已然空了。'); return; }
-    state.flags.buildCrateGot = true;
-    packAdd('tuzhi_yeolian', 1);
-    afterPackChange();
-    log('你拨开草垛，旧木箱里静静躺着一卷泛黄的《冶炼工坊图》。','good');
-    buildActions(G.ROOMS[state.room]);
-  }
-  // ===== 冶炼工坊：炉膛（铁矿石 + 木材燃料 → 分时辰烧制 → 铁料）=====
+  // [v20260909j] 采石崖 / 伐木场 / 砖窑 / 残箱功能已抽离 → shared/core/crafting.js
+  // ===== 制作/锻造面板状态（面板逻辑在 crafting.js；状态留引擎，openModal 的 craft/forge 分支直写字段）=====
+  var craftState = { bench:'bench', cat:null };
   var forgeState = { site:null, msg:'' };
-  function findForge(siteKey){
-    var arr = (state.placed && state.placed[state.room]) || [];
-    var _tag=placedCellTag(state.room);
-    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey && placedInCell(arr[i], state.room, _tag)) return arr[i]; }
-    return null;
-  }
-  // 炉膛状态存于 placed 对象上：p.forge = { ore, wood, burn, prog, need, out }
-  //   ore 已投铁矿石 / wood 已投木材 / burn 是否在烧 / prog 当前烧制进度 / need 总需时辰 / out 已炼铁料待取
-  function ensureForgeState(p){
-    if(!p.forge) p.forge = { ore:0, wood:0, burn:false, prog:0, need:0, out:0 };
-    return p.forge;
-  }
-  function openForgePanel(siteKey){
-    openModal('forge', {site:siteKey});
-  }
-  function renderForgePanel(){
-    var p = findForge(forgeState.site); if(!p) return '<p class="tip">炉膛已不存在。</p>';
-    var bp = LF.BUILD[p.bp] || {};
-    var f = ensureForgeState(p);
-    var row = function(k,v){ return '<div class="row"><span>'+k+'</span><span>'+v+'</span></div>'; };
-    var pct = f.need>0 ? Math.min(100, Math.round(f.prog/f.need*100)) : 0;
-    var bar = f.burn
-      ? '<div class="forge-bar"><i style="width:'+pct+'%"></i></div><div class="forge-pct">烧制中 '+pct+'%'+(f.prog)+'/'+(f.need)+' 时辰</div>'
-      : (f.prog>0 ? '<div class="forge-bar"><i style="width:'+pct+'%"></i></div><div class="forge-pct">熄火 · 进度 '+pct+'%</div>' : '<p class="tip">炉膛尚冷，投料后点火。</p>');
-    var msg = forgeState.msg; forgeState.msg='';
-    var h = '<h3 style="text-align:center;margin:0 0 4px;">冶炼炉膛</h3>'
-      + (msg ? '<div class="build-msg">'+msg+'</div>' : '')
-      + row('铁矿石', f.ore)
-      + row('木材', f.wood)
-      + row('已炼铁料', f.out)
-      + bar
-      + '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:10px 0;">'
-      + '<button class="btn-mini" data-forge="ore">投铁矿石×1</button>'
-      + '<button class="btn-mini" data-forge="wood">投木材×1</button>'
-      + (f.burn ? '' : '<button class="btn-mini" data-forge="fire">点火烧制</button>')
-      + (f.out>0 ? '<button class="btn-mini" data-forge="take">收取铁料</button>' : '')
-      + '</div>'
-      + '<p class="tip">每块铁矿石需 2 时辰烧炼、耗 2 木材；可在任意行动推进时辰时持续烧制。</p>'
-      + '<button class="sheet-leave" id="m-forge-leave">收 工</button>';
-    return h;
-  }
-  function bindForgePanel(){
-    $card.querySelectorAll('[data-forge]').forEach(function(b){
-      b.onclick=function(){ forgeAct(b.getAttribute('data-forge')); };
-    });
-    var lv=document.getElementById('m-forge-leave'); if(lv) lv.onclick=closeModal;
-  }
-  function forgeAct(act){
-    var p = findForge(forgeState.site); if(!p) return;
-    var f = ensureForgeState(p);
-    if(act==='ore'){
-      var cur = packFind('tiekuangshi');
-      if(!cur || (cur.count||0) < 1){ toast('行囊中无铁矿石。'); return; }
-      if(state.energy<=0){ toast('精力已尽，先休整恢复再行添料。'); return; }
-      packConsume('tiekuangshi', 1);
-      f.ore++;
-      forgeState.msg = '已投铁矿石×1。';
-      save(state); afterPackChange();
-    } else if(act==='wood'){
-      var w = packFind('mucai');
-      if(!w || (w.count||0) < 1){ toast('行囊中无木材。'); return; }
-      if(state.energy<=0){ toast('精力已尽，先休整恢复再行添柴。'); return; }
-      packConsume('mucai', 1);
-      f.wood++;
-      forgeState.msg = '已投木材×1。';
-      save(state); afterPackChange();
-    } else if(act==='fire'){
-      if(f.burn){ toast('炉火正旺。'); return; }
-      if(f.ore<1){ toast('炉中无铁矿石。'); return; }
-      if(f.wood<1){ toast('炉中无木材，添柴方可点火。'); return; }
-      f.burn = true;
-      f.prog = 0;
-      f.need = f.ore*2;   // 每块矿石需 2 时辰烧炼
-      forgeState.msg = '你引火点燃炉膛，炉火渐旺……';
-      log('你引火点燃炉膛，风箱鼓动，炉火渐旺——铁矿石在烈焰中缓缓融化。','env');
-      save(state);
-    } else if(act==='take'){
-      if(f.out<1){ toast('炉中尚无炼成铁料。'); return; }
-      var got = packAdd('tiekuai', f.out);
-      if(!got){ toast('行囊已满，先腾出空位。'); return; }
-      log('你钳出铁料×'+f.out+'，趁热打制成块。','good');
-      f.out = 0;
-      save(state); afterPackChange();
-    }
-    openModal('forge', {site:forgeState.site});
-  }
-  // 烧制推进：任意行动推进时辰时调用（在 advanceTime 内 hook）
-  function tickForge(n){
-    if(!state.placed) return;
-    var roomIds = Object.keys(state.placed);
-    for(var r=0; r<roomIds.length; r++){
-      var arr = state.placed[roomIds[r]];
-      if(!arr) continue;
-      for(var i=0; i<arr.length; i++){
-        var p = arr[i];
-        if(!p || !p.forge || !p.forge.burn) continue;
-        var f = p.forge;
-        var step = Math.min(n, f.need - f.prog);
-        f.prog += step;
-        var woodCost = step;
-        f.wood = Math.max(0, f.wood - woodCost);
-        if(f.wood<=0 && f.prog < f.need){ f.burn=false; }   // 燃料耗尽熄火
-        if(f.prog >= f.need){
-          f.out += f.ore;      // 全部矿石炼成铁料
-          f.ore = 0; f.prog = 0; f.need = 0; f.burn = false;
-        }
-      }
-    }
-  }
+  // [v20260909j] 炉膛交互与烧制推进逻辑已抽离 → shared/core/crafting.js（advanceTime 内的 tickForge 经引擎 var 别名调用）
   // 货郎交易系统已抽离到 shared/shop.js（LF.createShop 工厂），注入 index.html 内部依赖
   var Shop = LF.createShop({
     getState: function(){ return state; },
@@ -4086,6 +3985,8 @@
     smGoalMarks().forEach(function(x){ out.push(x); });
     return out;
   }
+  // 运行时归属读取器：让山河志城市点/详情随易主实时变色（v20260909o）
+  function strategicOwnerOf(cid){ try{ return cityOwnerOf(cid); }catch(e){ return null; } }
   function initStrategicMapInGame(opts){
     opts=opts||{};
     var container=document.getElementById('strategic-map-container');
@@ -4099,6 +4000,7 @@
     if(opts.pickSpawn){
       LF.initStrategicMap(container, {
         marks: marks,
+        ownerOf: strategicOwnerOf,
         onCityClick: function(city){
           if(!city || !city.id) return;
           state.spawnRoom=city.id;
@@ -4111,6 +4013,7 @@
       LF.initStrategicMap(container, {
         marks: marks,
         focusYou: !!opts.focusYou,
+        ownerOf: strategicOwnerOf,
         onCityClick: function(city){
           if(!city || !city.id) return;
           placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);
@@ -4194,6 +4097,10 @@
   window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
   window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;
   window.startCombat=startCombat;
+  // ── 全局桥接（v20260909o）：势力归属动态化接口，供剧情/事件脚本调用 ──
+  window.warlordBattle=warlordBattle;   // 指定一场攻伐：warlordBattle('luoyang','caocao',{allowCapital:true,allowLast:true,allowInside:true})
+  window.conquerCity=conquerCity;       // 底层直接易帜：conquerCity('城id','势力id',devDelta)（写归属+治下账目）
+  window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）
   // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，
   //    engine.js 及其拆分文件以裸名 state 访问（=window.state），rooms.js 等外部脚本以 window.state 只读访问。
   //    注意：此处【不要】再用 getter 包装——旧版 IIFE 闭包内的 var state 已在重构时移除，

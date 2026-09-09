@@ -12,6 +12,32 @@
     wu:   { label:'吴', fill:'rgba(220,40,40,0.92)',   stroke:'#3f2016', hover:'rgba(220,40,40,1.0)' },
     none: { label:'争', fill:'rgba(160,150,140,0.92)', stroke:'#34291c', hover:'rgba(130,120,110,0.85)' },
   };
+  // 色卡扩充（v20260909o）：对接游戏内 LF.FACTIONS 十势力 + 玩家义旗。
+  // 山河志城市点/点选详情的势力章随「运行时归属」(cityOwnerOf) 取色，易主即变色。
+  // 兼容映射：han/汉 → 汉室；player/义军 → 玩家义旗；新键沿用真实势力名(≤2字)。
+  function hexA(hex, a) {
+    var h = String(hex || '').replace('#', '');
+    if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+    if (h.length !== 6) return hex;
+    var n = parseInt(h, 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  (function extendFactionPalette() {
+    var REAL = (global.LF && global.LF.FACTIONS) || {};
+    var KEY_MAP = { han: 'han', dongzhuo: 'dongzhuo', yuanshao: 'yuanshao', caocao: 'caocao', sunce: 'sunce',
+      liubiao: 'liubiao', liuzhang: 'liuzhang', gongsun: 'gongsun', matang: 'matang',
+      player: 'player', '汉': 'han', '义军': 'player' };
+    Object.keys(KEY_MAP).forEach(function (k) {
+      if (FACTIONS[k]) return;
+      var f = REAL[KEY_MAP[k]] || {};
+      if (!f.color) return;
+      var nm = f.name || k;
+      var label = (k === 'player' || k === '义军') ? '义军' : ((k === 'han' || k === '汉') ? '汉室' : (nm.length > 2 ? nm.slice(0, 2) : nm));
+      FACTIONS[k] = { label: label, fill: hexA(f.color, 0.94), stroke: hexA(f.color, 1), hover: hexA(f.color, 1) };
+    });
+  })();
+  // 运行时归属读取器：由 initStrategicMap 的 opts.ownerOf 注入（engine 传 cityOwnerOf）
+  var cityOwnerOfLive = null;
 
   // 特殊地点（地理坐标真相源见 shared/data/map.js 的 LF.MAP.specialGeo，与势力图网格坐标 coords 同文件维护）
   const SPECIAL_LOCATIONS = Object.entries(global.LF.MAP.specialGeo || {}).map(([id, l]) => ({ id, ...l }));
@@ -211,7 +237,8 @@
     for (const cid in C) {
       const c = C[cid];
       if (!c || !c.pos || !c.pos.length) continue;
-      const owner = c.owner || 'none';
+      const liveOwner = (cityOwnerOfLive && typeof cityOwnerOfLive === 'function') ? cityOwnerOfLive(cid) : null;   // 运行时归属优先（v20260909o）
+      const owner = liveOwner || c.owner || 'none';
       const faction = FACTIONS[owner] ? owner : 'none';
       cities.push({
         id: cid,
@@ -234,6 +261,7 @@
   // opts: { onCityClick: function(city), onStateClick: function(state) }
   function initStrategicMap(container, opts) {
     opts = opts || {};
+    cityOwnerOfLive = (typeof opts.ownerOf === 'function') ? opts.ownerOf : null;   // 动态归属读取器（v20260909o）
 
     // 清理容器
     container.innerHTML = '';
@@ -554,6 +582,10 @@
 
         const dot = document.createElement('div');
         dot.className = 'strategic-city-dot' + (c.capital ? ' capital' : '');
+        {   // 城市点随「当前归属」上色（v20260909o）：易主则下次开启山河志时点色同步
+          const _fOwn = FACTIONS[c.owner] || FACTIONS.none;
+          if (_fOwn && _fOwn.fill) dot.style.background = _fOwn.fill;
+        }
 
         const nm = document.createElement('div');
         nm.className = 'strategic-city-name';

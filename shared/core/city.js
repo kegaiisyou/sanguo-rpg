@@ -188,6 +188,36 @@ window.LF = window.LF || {};
     }
     function isCaptured(cid) { return cityOwnerOf(cid) !== cityDefaultOwner(cid); }
     function cityBurnedMap(cid) { ensureCityState(cid); return S().flags.cityBurned[cid]; }
+    // 势力显示名（与 engine 侧 factionName 语义一致；此处仅供 cityLine/城内叙事使用，不依赖引擎函数）
+    function factionLabel(id) {
+      if (id === '义军' || id === 'player') return ((LF.FACTIONS || {}).player || {}).name || '义军';
+      if (id === '汉' || id === 'han') return ((LF.FACTIONS || {}).han || {}).name || '汉室';
+      var f = (LF.FACTIONS || {})[id]; return f ? (f.name || id) : id;
+    }
+    // ══ 群雄逐鹿 · 易帜核心（v20260909o）══
+    // 势力归属唯一写入口：玩家攻城(siegeWin)、NPC 互伐、事件攻伐统一走这里。
+    // 负责：写 flags.cityOwner + 玩家治下账目（ruledCities 增删）。
+    function conquerCity(cid, owner, devDelta) {
+      ensureCityState(cid);
+      var F = S().flags, old = F.cityOwner[cid];
+      if (old === owner) return { changed: false, old: old, owner: owner };
+      F.cityOwner[cid] = owner;
+      if (!S().ruledCities) S().ruledCities = [];
+      var pf = playerFaction();
+      var wasP = (old === pf), isP = (owner === pf);
+      if (isP) { if (S().ruledCities.indexOf(cid) < 0) S().ruledCities.push(cid); }
+      else if (wasP) { var ix = S().ruledCities.indexOf(cid); if (ix >= 0) S().ruledCities.splice(ix, 1); }
+      if (devDelta) setCityDev(cid, Math.max(0, Math.min(100, cityDevOf(cid) + devDelta)));
+      return { changed: true, old: old, owner: owner };
+    }
+    // 天下大势 · 大事记：存档 flags.chronicle（持久随档），新条目在前，至多保留 80 条
+    function chronicle(text, kind) {
+      var st = S(); st.flags = st.flags || {};
+      var arr = st.flags.chronicle || (st.flags.chronicle = []);
+      arr.unshift({ d: st.day || 0, t: String(text || ''), k: kind || 'war' });
+      if (arr.length > 80) arr.length = 80;
+    }
+    function chronicleList() { var f = S().flags; return (f && f.chronicle) || []; }
     // 注：道路等级 / 断路修缮系统已于 v20260827 移除；城市格只保留真实地点（市集/军营/官署…），道路作为可通行空地。
     function burnedGates(cid) {
       var m = genCityGrid(cid); if (!m) return 0;
@@ -272,17 +302,16 @@ window.LF = window.LF || {};
     }
     function siegeWin(cid) {
       var F = S().flags; F.cityOwner = F.cityOwner || {};
-      F.cityOwner[cid] = playerFaction();
       // ── v20260826g 身份系统：占城即得 tier 对应官职（取更高者）──
       var _tier = ((LF.CITIES || {})[cid] || {}).tier || 'xian';
       var _gained = _tier === 'capital' ? '君主' : _tier === 'zhou' ? '州牧' : '太守';
       if ((LF.TITLES || []).indexOf(S().title) < (LF.TITLES || []).indexOf(_gained)) S().title = _gained;
-      if (S().ruledCities.indexOf(cid) < 0) S().ruledCities.push(cid);
-      setCityDev(cid, cityDevOf(cid) + 18);
+      conquerCity(cid, playerFaction(), +18);   // 易帜核心：写归属 + 治下账目 + 建设提升
       var ct = centerTypeOf(cid);
       var cnm = ((LF.CITIES || {})[cid] || {}).name || '城';
-      log('〔克城〕守军溃散，「' + cnm + '」易帜——中枢改立「' + cellDisplayName(cid, ct) + '」，' + playerFaction() + ' 据此城！', 'combat');
+      log('〔克城〕守军溃散，「' + cnm + '」易帜——中枢改立「' + cellDisplayName(cid, ct) + '」，' + factionLabel(playerFaction()) + ' 据此城！', 'combat');
       log('战后稍歇，外郭营建更见起色，可容更多百姓居止。', 'sys');
+      chronicle('你率军攻克「' + cnm + '」，' + factionLabel(playerFaction()) + ' 易帜据城。', 'good');
     }
     function siegeLose(cid) {
       setCityDev(cid, cityDevOf(cid) - 28);
@@ -490,7 +519,7 @@ window.LF = window.LF || {};
     function cityLine(cid) {
       var p = cityProfile(cid); if (!p) return '';
       var _s = '〔' + p.c.name + '·' + p.c.state + '·城况〕' + p.tierDesc + '｜' + p.popDesc + '｜' + p.orderDesc + '｜' + p.comDesc + '｜农:' + p.agriDesc + '｜' + p.ctypeDesc;
-      if (isCaptured(cid)) _s += '｜〔' + cityOwnerOf(cid) + '所占〕';   // 势力易主后显示占领势力
+      if (isCaptured(cid)) _s += '｜〔' + factionLabel(cityOwnerOf(cid)) + '所占〕';   // 势力易主后显示占领势力
       return _s;
     }
 
@@ -503,6 +532,7 @@ window.LF = window.LF || {};
       CITY_LV_SIZE: CITY_LV_SIZE, CITY_LV_NAME: CITY_LV_NAME,
       cityDevOf: cityDevOf, cityOwnerOf: cityOwnerOf, cityDefaultOwner: cityDefaultOwner,
       isCaptured: isCaptured, cityBurnedMap: cityBurnedMap,
+      factionLabel: factionLabel, conquerCity: conquerCity, chronicle: chronicle, chronicleList: chronicleList,
       burnedGates: burnedGates, siegeGuardMul: siegeGuardMul, setCityDev: setCityDev,
       playerFaction: playerFaction, centerTypeOf: centerTypeOf, devRadius: devRadius, baseDisplayType: baseDisplayType,
       cityCellInst: cityCellInst, setCityCell: setCityCell, nextBuildOrderId: nextBuildOrderId,

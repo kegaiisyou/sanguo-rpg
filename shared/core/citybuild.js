@@ -119,10 +119,10 @@
       if (S().room === o.cid) renderRoom(o.cid, true);
       closeModal();
     }
-    // 持有图纸清单（用于营造面板提示）
+    // 持有图纸/简册清单（用于营造面板提示；图样物品以 blueprint 字段标识，v20260908 起 cat 已更名为「简册」）
     function heldTuzhiList() {
       var out = [];
-      (S().pack || []).forEach(function (it) { if (it && (LF_.ITEMS[it.defId] || {}).cat === '图纸') out.push(it); });
+      (S().pack || []).forEach(function (it) { if (it && (LF_.ITEMS[it.defId] || {}).blueprint) out.push(it); });
       return out;
     }
     // 营造面板 HTML（依城市格状态：空地候选 / 工地进度 / 已落成）

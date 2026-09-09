@@ -1,4 +1,4 @@
-// 乱世烽火 · 音频系统（v20260909e）
+// 乱世烽火 · 音频系统（v20260909j）
 // 全部用 Web Audio API 预解码到内存，音效零延迟，BGM 无缝循环
 (function (global) {
   'use strict';
@@ -12,6 +12,9 @@
   var buffers = {};
   var loading = {};
   var bgmPlaying = false;
+  // BGM 单曲播完后的静默间隔（秒）：留白数秒再重播，避免不间断循环过腻
+  var BGM_SILENCE = 6;
+  var bgmSilenceTimer = null;
 
   var FILES = {
     click: 'assets/audio/sfx_click.wav',

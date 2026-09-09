@@ -74,7 +74,8 @@ Object.keys(ITEMS.DEFS || {}).forEach(function (defId) {
   const d = ITEMS.DEFS[defId];
   if (!d.blueprint) return;
   check(!!BUILD[d.blueprint], '物品 ' + defId + ' 指向的蓝图 ' + d.blueprint + ' 存在于 LF.BUILD');
-  check((d.cat === '图纸'), '物品 ' + defId + ' 品类为「图纸」');
+  // v20260908 图样物品命名由「图纸」改为「简册」（竹简营造叙事）；两类皆可辨识为图样
+  check((d.cat === '图纸' || d.cat === '简册'), '物品 ' + defId + ' 品类为图样（图纸/简册）');
 });
 // 每张蓝图应至少有一个图纸物品指向它（避免死数据）；城市蓝图图纸道具于第4步挂接，暂免检
 bpIds.forEach(function (id) {

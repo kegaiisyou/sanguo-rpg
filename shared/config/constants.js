@@ -3,7 +3,7 @@
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260909i',
+    VERSION: '20260909o',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -28,12 +28,11 @@
     player:   { name: '义军',   color: '#3a3a3a', lord: '（你）', desc: '乱世之中，你拉起的一杆义旗' }
   };
 
-  // 城市初始归属（cid → 势力 id）；未列出者归入 'han'
+  // 城市初始归属（cid → 势力 id；键须与 LF.CITIES 一致）；未列出者归入 'han'
+  // v20260909n：剔除 8 个不在 CITIES 的旧地图残留 id（ji_guomen/yuyang_guomen/city/ye/changyi/linzi/fanyu/chang_an）
   global.LF.CITY_OWNER = {
-    ji_guomen: 'yuanshao', yuyang_guomen: 'yuanshao', luoyang: 'dongzhuo', city: 'caocao',
-    ye: 'yuanshao', changyi: 'caocao', xiapi: 'caocao', linzi: 'yuanshao',
-    xiangyang: 'liubiao', shouchun: 'caocao', chengdu: 'liuzhang', wuwei: 'matang',
-    jinyang: 'matang', fanyu: 'han', chang_an: 'dongzhuo', jianye: 'sunce',
+    luoyang: 'dongzhuo', xiapi: 'caocao', xiangyang: 'liubiao', shouchun: 'caocao',
+    chengdu: 'liuzhang', wuwei: 'matang', jinyang: 'matang', jianye: 'sunce',
     hanzhong: 'liuzhang', jiangling: 'liubiao', xiangping: 'gongsun', xuchang: 'han'
   };
 })(typeof window !== 'undefined' ? window : globalThis);
