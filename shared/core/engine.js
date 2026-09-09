@@ -2088,14 +2088,110 @@
     });
     return html;
   }
-  // ===== NPC 标准操作列：交谈 / 观察 / 攻击 + 对象自带动作 =====
+  // ===== NPC 给予物品（v20260909u）：选择行囊物品给予NPC，增减好感或触发任务 =====
+  var giveNpc = null;
+  function openGivePanel(o){
+    giveNpc = o;
+    openModal('give', {npc: o});
+  }
+  function renderGivePanel(npc){
+    if(!npc) return '<h3>给 予</h3><p>未指定对象。</p>';
+    var grid='';
+    var hasItem=false;
+    for(var i=0;i<state.pack.length;i++){
+      var it=state.pack[i];
+      if(!it){ grid += '<div class="packcell pcell-empty"></div>'; continue; }
+      hasItem=true;
+      var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
+      var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
+      grid += '<div class="packcell give-item" data-give-idx="'+i+'" title="'+it.name+'">'
+            + '<div class="pcell-ic">'+(it.icon||'📦')+'</div>'
+            + cnt + qb + '</div>';
+    }
+    return '<h3>赠 与 · '+npc.name+'</h3>'
+      + '<p class="tip" style="margin:0 0 8px;">选一件行囊之物相赠——投其所好则好感渐增，所赠非所欲则不以为意。</p>'
+      + '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
+      + (hasItem?'':'<p class="tip" style="text-align:center;color:#8a7a5a;">行囊空空，无物可赠。</p>')
+      + '<button class="sheet-leave" id="give-cancel">取 消</button>';
+  }
+  function giveItemToNpc(packIdx){
+    if(!giveNpc || !giveNpc.key) return;
+    var it = state.pack[packIdx];
+    if(!it) return;
+    var npcKey = giveNpc.key;
+    var npcName = giveNpc.name;
+    // 从行囊移除物品
+    if(it.count && it.count>1){ it.count--; } else { state.pack[packIdx]=null; }
+    // 先检查 onGive 触发器（任务条件）
+    var triggered = checkTriggers({hook:'onGive', npc:npcKey, room:state.room, item:it});
+    if(!triggered){
+      // 没有特殊触发，根据物品价值增减好感
+      var favor = calcGiveFavor(it);
+      if(!state.npcFavor) state.npcFavor = {};
+      state.npcFavor[npcKey] = (state.npcFavor[npcKey]||0) + favor;
+      // NPC反馈
+      var react = giveReaction(npcName, it, favor);
+      log(react, 'npc', npcName);
+      if(favor>0) log('〔'+npcName+'·好感 +'+favor+'〕','good');
+      else if(favor<0) log('〔'+npcName+'·好感 '+favor+'〕','bad');
+    }
+    save(state);
+    renderNpcList();
+    // 刷新给予面板
+    if(currentModalKind==='give'){
+      var card=document.getElementById('modal-card');
+      if(card) card.innerHTML = renderGivePanel(giveNpc);
+      bindGivePanel();
+    }
+  }
+  function calcGiveFavor(it){
+    // 根据物品类型/品质计算好感度变化
+    var cat = it.cat || '道具';
+    var base = 1;
+    if(cat==='装备'){
+      var qmult = {white:1, green:3, blue:6, purple:10, orange:15};
+      base = 3 + (qmult[it.quality]||1);
+    } else if(cat==='药剂'){
+      base = 5;
+    } else if(cat==='食饵'){
+      base = 2;
+    } else if(cat==='素材'){
+      base = 1;
+    } else if(cat==='简册'){
+      base = 8;
+    } else if(cat==='器具'){
+      base = 4;
+    }
+    // 贵重物品额外加成
+    if(it.price && it.price>=50) base += Math.floor(it.price/50);
+    return Math.min(30, base);
+  }
+  function giveReaction(npcName, it, favor){
+    if(favor>=15) return npcName+'双眼一亮，双手接过：「壮士厚赠，在下愧不敢当！此恩铭记于心。」';
+    if(favor>=8) return npcName+'面露喜色，接过物品：「多谢壮士，此物正中下怀。」';
+    if(favor>=3) return npcName+'点点头收下：「有心了。」';
+    if(favor>0) return npcName+'淡淡收下，未多言语。';
+    return npcName+'皱了皱眉，勉强收下：「此物……也罢。」';
+  }
+  function bindGivePanel(){
+    document.querySelectorAll('.give-item').forEach(function(el){
+      el.onclick=function(){
+        var idx=parseInt(el.getAttribute('data-give-idx'),10);
+        giveItemToNpc(idx);
+      };
+    });
+    var cancel=document.getElementById('give-cancel');
+    if(cancel) cancel.onclick=closeModal;
+  }
+  // ===== NPC 标准操作列：交谈 / 观察 / 给予 / 攻击 + 对象自带动作 =====
   function buildNpcActions(o){
     var acts=[];
     acts.push({label:'交谈', icon:'💬', fn:function(){ if(o.key) talk(o.key); }});
-    // 开场教学链（onb 未完成）期间：仅保留「交谈」，隐藏「观察」「攻击」，避免新手误触/无意义选项
+    // 开场教学链（onb 未完成）期间：仅保留「交谈」，隐藏「观察」「给予」「攻击」，避免新手误触/无意义选项
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     if(!onboarding){
       acts.push({label:'观察', icon:'👁', fn:function(){ observeNpc(o); }});
+      acts.push({label:'给予', icon:'🎁', fn:function(){ openGivePanel(o); }});
       var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
       acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
         if(dangerAct){ dangerAct.fn(); return; }
@@ -2106,7 +2202,7 @@
     }
     (o.actions||[]).forEach(function(a){
       if(a.danger) return;                       // 敌意动作已并入「攻击」
-      if(/交谈|观察/.test(a.label||'')) return;  // 去重标准项
+      if(/交谈|观察|给予/.test(a.label||'')) return;  // 去重标准项
       acts.push(a);
     });
     return acts;
@@ -3716,6 +3812,8 @@
         '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
     } else if(kind==='pack'){
       h=renderPack();
+    } else if(kind==='give'){
+      h=renderGivePanel(modalOpts.npc);
     } else if(kind==='party'){
       h=renderPartyPanel();
     } else if(kind==='quest'){
@@ -3817,12 +3915,13 @@
       h=renderSectPanel();
     }
     $card.innerHTML=h;
-    $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage');
+    $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage' || kind==='give');
     // 捏人界面隐藏右上角 X 按钮（不可中途退出，v20260908j）
     var mx=document.getElementById('modal-x'); if(mx) mx.style.visibility=(kind==='create')?'hidden':'visible';
     if(kind==='create') bindCreate();
     if(kind==='char') bindAttrAlloc();
     if(kind==='pack'){ bindPackInteractions(); }
+    if(kind==='give'){ bindGivePanel(); }
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ Shop.bindShopPanel(); }
     if(kind==='build'){ bindBuildPanel(); }
