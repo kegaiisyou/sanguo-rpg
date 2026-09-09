@@ -819,6 +819,7 @@
   .card .dev-sel{padding:8px 10px;font-size:13px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
   .dev-sub{font-size:11px;color:var(--ink-faint);font-weight:400;margin-left:6px;}
   .card .dev-tip{font-size:11px;color:var(--ink-faint);line-height:1.6;margin:6px 0 0;padding-left:10px;border-left:2px solid rgba(158,59,46,.35);}
+  .card .dev-input{padding:8px 10px;font-size:13px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;width:100px;}
 
   #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
     background:rgba(44,38,32,.9);color:#f4eee2;padding:9px 18px;border-radius:22px;font-size:13px;
