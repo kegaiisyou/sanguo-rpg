@@ -24,8 +24,32 @@
     var st=getState().flags.storage[cid];
     if(!st){
       st=getState().flags.storage[cid]={slots:30, items:[]};
-      var m=LF.ITEMS.makeItem('mucai',200); if(m) st.items.push(m);
-      var st2=LF.ITEMS.makeItem('shitiao',100); if(st2) st.items.push(st2);
+      // 苦役营仓库初始物资（v20260909i）：建材/工具/食物/药品/杂项
+      if(cid==='kuyilao'){
+        var campItems = [
+          {id:'mucai', count:200},   // 木材
+          {id:'shitiao', count:100}, // 石料
+          {id:'mutou', count:150},   // 木头
+          {id:'zhuan', count:80},    // 砖头
+          {id:'tiekuai', count:40},  // 铁料
+          {id:'zhuzi', count:60},    // 竹子
+          {id:'futou', count:5},     // 斧头
+          {id:'roubao', count:50},   // 肉包子
+          {id:'yeguo', count:30},    // 野果
+          {id:'shengrou', count:20}, // 生肉
+          {id:'jinchuang', count:20},// 金疮药
+          {id:'yaofen', count:30},   // 草药粉
+          {id:'caoyao', count:50},   // 草药
+          {id:'tangyao', count:8},   // 汤药
+          {id:'xiang', count:20},    // 线香
+          {id:'sleepmat', count:15}, // 草席
+          {id:'campfire', count:10}  // 篝火
+        ];
+        campItems.forEach(function(c){
+          var it=LF.ITEMS.makeItem(c.id, c.count);
+          if(it) st.items.push(it);
+        });
+      }
     }
     return st;
   }

@@ -1,5 +1,5 @@
-// 乱世烽火 · 音频系统（v20260909j）
-// 全部用 Web Audio API 预解码到内存，音效零延迟，BGM 无缝循环
+// 乱世烽火 · 音频系统（v20260909i）
+// 多首BGM切换 + 播放-静默-重播模式 + Web Audio API预解码零延迟
 (function (global) {
   'use strict';
   var enabled = true;
@@ -9,19 +9,27 @@
   var sfxGain = null;
   var bgmGain = null;
   var bgmSrc = null;
-  var buffers = {};
-  var loading = {};
-  var bgmPlaying = false;
-  // BGM 单曲播完后的静默间隔（秒）：留白数秒再重播，避免不间断循环过腻
-  var BGM_SILENCE = 6;
   var bgmSilenceTimer = null;
+  var BGM_SILENCE = 15;  // 两首曲子之间静默15秒
+  var bgmPlaying = false;
+  var currentBgmIdx = 0;
 
-  var FILES = {
+  // BGM列表
+  var BGM_TRACKS = [
+    { id: 'main', name: '柔情·江湖儿女', file: 'assets/audio/bgm_main.wav' },
+    { id: 'xiao', name: '苍凉·寒山孤影', file: 'assets/audio/bgm_xiao.wav' },
+    { id: 'dizi', name: '明快·策马江湖', file: 'assets/audio/bgm_dizi.wav' },
+    { id: 'guqin', name: '沉静·夜泊枫桥', file: 'assets/audio/bgm_guqin.wav' }
+  ];
+
+  var SFX_FILES = {
     click: 'assets/audio/sfx_click.wav',
     coin: 'assets/audio/sfx_coin.wav',
-    attack: 'assets/audio/sfx_attack.wav',
-    bgm: 'assets/audio/bgm_main.wav'
+    attack: 'assets/audio/sfx_attack.wav'
   };
+
+  var buffers = {};
+  var loading = {};
 
   function ensureCtx() {
     if (ctx) return ctx;
@@ -37,50 +45,21 @@
     return ctx;
   }
 
-  function loadBuffer(key) {
+  function loadBuffer(key, url) {
     if (buffers[key] !== undefined || loading[key]) return;
     var c = ensureCtx();
     if (!c) return;
-    loading[key] = fetch(FILES[key])
+    loading[key] = fetch(url)
       .then(function (r) { return r.arrayBuffer(); })
       .then(function (buf) { return c.decodeAudioData(buf); })
-      .then(function (audioBuf) {
-        buffers[key] = audioBuf;
-      })
+      .then(function (audioBuf) { buffers[key] = audioBuf; })
       .catch(function () { buffers[key] = null; })
       .finally(function () { delete loading[key]; });
   }
 
-  // 交叉淡入淡出：把结尾N秒和开头N秒混合，使循环点平滑过渡
-  function makeLoopable(buf, ctx, fadeSec) {
-    try {
-      var sr = buf.sampleRate;
-      var fade = Math.floor(sr * fadeSec);
-      var len = buf.length;
-      if (len < fade * 4) return buf;  // 太短不处理
-      var newLen = len - fade;
-      var newBuf = ctx.createBuffer(buf.numberOfChannels, newLen, sr);
-      for (var ch = 0; ch < buf.numberOfChannels; ch++) {
-        var src = buf.getChannelData(ch);
-        var dst = newBuf.getChannelData(ch);
-        // 前半部分直接复制（0 到 newLen-fade）
-        var straightEnd = newLen - fade;
-        for (var i = 0; i < straightEnd; i++) dst[i] = src[i];
-        // 交叉区域：结尾淡出 + 开头淡入，加权混合
-        for (var j = 0; j < fade; j++) {
-          var t = j / fade;  // 0→1
-          var outIdx = straightEnd + j;
-          var tailIdx = (len - fade) + j;  // 原始结尾
-          var headIdx = j;                   // 原始开头
-          dst[outIdx] = src[tailIdx] * (1 - t) + src[headIdx] * t;
-        }
-      }
-      return newBuf;
-    } catch (e) { return buf; }
-  }
-
   function preloadAll() {
-    Object.keys(FILES).forEach(loadBuffer);
+    Object.keys(SFX_FILES).forEach(function (k) { loadBuffer(k, SFX_FILES[k]); });
+    BGM_TRACKS.forEach(function (t) { loadBuffer(t.id, t.file); });
   }
 
   function playBuffer(key, gain) {
@@ -100,7 +79,7 @@
   function unlock() {
     var c = ensureCtx();
     if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
-    if (!buffers.bgm && !loading.bgm) preloadAll();
+    if (!buffers.main && !loading.main) preloadAll();
   }
   document.addEventListener('touchstart', unlock, { passive: true });
   document.addEventListener('click', unlock);
@@ -153,35 +132,41 @@
   function sfxVictory() { [523, 659, 784, 1047, 1319].forEach(function (f, i) { setTimeout(function () { tone(f, 0.2, 'triangle', 0.15); }, i * 100); }); }
   function sfxDefeat() { [440, 392, 349, 294, 262].forEach(function (f, i) { setTimeout(function () { tone(f, 0.25, 'sine', 0.12); }, i * 120); }); }
 
-  // ── BGM（Web Audio API 无缝循环）──
+  // ── BGM（多首切换 + 播放-静默-重播）──
+  function getCurrentBgm() { return BGM_TRACKS[currentBgmIdx]; }
+
   function startBgm() {
     if (bgmPlaying) return;
     var c = ensureCtx();
-    if (!c || !buffers.bgm) {
-      // 还没加载完，等加载完再播
-      if (!loading.bgm) loadBuffer('bgm');
+    if (!c) return;
+    var track = getCurrentBgm();
+    if (!buffers[track.id]) {
+      if (!loading[track.id]) loadBuffer(track.id, track.file);
       var check = setInterval(function () {
-        if (buffers.bgm) { clearInterval(check); if (!bgmPlaying) doStartBgm(); }
-        else if (buffers.bgm === null) clearInterval(check);
+        if (buffers[track.id]) { clearInterval(check); if (!bgmPlaying) doStartBgm(); }
+        else if (buffers[track.id] === null) clearInterval(check);
       }, 200);
       return;
     }
     doStartBgm();
   }
+
   function doStartBgm() {
     if (bgmPlaying || !enabled) return;
     var c = ensureCtx();
-    if (!c || !buffers.bgm) return;
+    if (!c) return;
     if (c.state === 'suspended') { c.resume().catch(function(){}); }
+    var track = getCurrentBgm();
+    if (!buffers[track.id]) return;
     try {
       bgmSrc = c.createBufferSource();
-      bgmSrc.buffer = buffers.bgm;
-      bgmSrc.loop = false;  // 不循环，播完后静默几秒再重播
+      bgmSrc.buffer = buffers[track.id];
+      bgmSrc.loop = false;
       bgmSrc.connect(bgmGain);
       bgmSrc.onended = function() {
         if (!bgmPlaying) return;
         bgmSrc = null;
-        // 静默BGM_SILENCE秒后重新播放
+        // 静默BGM_SILENCE秒后重新播放当前曲目
         bgmSilenceTimer = setTimeout(function() {
           bgmSilenceTimer = null;
           if (bgmPlaying && enabled) doStartBgm();
@@ -191,11 +176,27 @@
       bgmPlaying = true;
     } catch (e) { bgmSrc = null; }
   }
+
   function stopBgm() {
     bgmPlaying = false;
     if (bgmSilenceTimer) { clearTimeout(bgmSilenceTimer); bgmSilenceTimer = null; }
     if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
   }
+
+  function setBgmTrack(idx) {
+    if (idx < 0 || idx >= BGM_TRACKS.length) return;
+    currentBgmIdx = idx;
+    try { localStorage.setItem('sanguo_bgm_track', idx); } catch (e) { }
+    // 如果正在播放，切换到新曲目
+    if (bgmPlaying) {
+      stopBgm();
+      bgmPlaying = true;  // 保持播放状态
+      doStartBgm();
+    }
+  }
+
+  function getBgmTracks() { return BGM_TRACKS.map(function(t, i){ return {idx: i, id: t.id, name: t.name}; }); }
+  function getCurrentBgmIdx() { return currentBgmIdx; }
 
   // ── 音量控制 ──
   function setBgmVolume(v) {
@@ -218,9 +219,11 @@
       var b = localStorage.getItem('sanguo_bgm_vol');
       var s = localStorage.getItem('sanguo_sfx_vol');
       var e = localStorage.getItem('sanguo_audio_on');
+      var t = localStorage.getItem('sanguo_bgm_track');
       if (b != null) bgmVolume = parseFloat(b);
       if (s != null) sfxVolume = parseFloat(s);
       if (e != null) enabled = (e === '1');
+      if (t != null) currentBgmIdx = parseInt(t, 10) || 0;
     } catch (e2) { }
   }
   loadPrefs();
@@ -254,6 +257,9 @@
     stopBgm: stopBgm,
     setBgmVolume: setBgmVolume,
     setSfxVolume: setSfxVolume,
+    setBgmTrack: setBgmTrack,
+    getBgmTracks: getBgmTracks,
+    getCurrentBgmIdx: getCurrentBgmIdx,
     isBgmPlaying: function () { return bgmPlaying; },
     unlock: unlock
   };

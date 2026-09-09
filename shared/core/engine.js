@@ -993,7 +993,16 @@
       '<div class="set-row col"><span>音效音量</span>'+
         '<input type="range" class="lf-range" id="rng-sfx" min="0" max="100" step="5" value="'+Math.round((settings.sfxVol!=null?settings.sfxVol:60))+'">'+
         '<span class="spd-val" id="sfx-val">'+Math.round((settings.sfxVol!=null?settings.sfxVol:60))+'%</span></div>'+
-      '<p class="tip">五声音阶古风BGM循环；Web Audio 合成，零外部资源。</p>';
+      '<div class="set-row col"><span>曲目选择</span><div class="seg" id="seg-bgm-track" style="flex-wrap:wrap;">'+
+        (function(){
+          try {
+            var tracks = SFX.getBgmTracks();
+            var cur = SFX.getCurrentBgmIdx();
+            return tracks.map(function(t){ return '<button data-idx="'+t.idx+'" class="'+(t.idx===cur?'on':'')+'" style="margin:2px;font-size:11px;padding:4px 8px;">'+t.name+'</button>'; }).join('');
+          } catch(e) { return ''; }
+        })()+
+      '</div></div>'+
+      '<p class="tip">四首古风BGM可选，箫笛古琴各有意境；曲间静默15秒。</p>';
     var game='';
     if(!fromTitle){
       game+='<button class="close" id="m-save" style="margin-top:14px;">立即存档</button>';
@@ -3874,6 +3883,8 @@
     // BGM/SFX 音量滑块（v20260909a）
     var rngBgm=document.getElementById('rng-bgm'); if(rngBgm){ rngBgm.oninput=function(){ var v=parseInt(this.value,10); document.getElementById('bgm-val').textContent=v+'%'; settings.bgmVol=v; saveSettings(); try{ SFX.setBgmVolume(v/100); if(v>0 && !SFX.isBgmPlaying()) SFX.startBgm(); if(v===0) SFX.stopBgm(); }catch(e){} }; }
     var rngSfx=document.getElementById('rng-sfx'); if(rngSfx){ rngSfx.oninput=function(){ var v=parseInt(this.value,10); document.getElementById('sfx-val').textContent=v+'%'; settings.sfxVol=v; saveSettings(); try{ SFX.setSfxVolume(v/100); SFX.click(); }catch(e){} }; }
+    // BGM曲目选择（v20260909i）
+    var bgmTrackSeg=document.getElementById('seg-bgm-track'); if(bgmTrackSeg){ bgmTrackSeg.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ var idx=parseInt(b.getAttribute('data-idx'),10); try{ SFX.setBgmTrack(idx); bgmTrackSeg.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); toast('曲目·'+b.textContent.trim()); }catch(e){} }; }); }
     var cl=document.getElementById('m-clear'); if(cl)cl.onclick=function(){ if(!confirm('清除全部三档存档？此去不可复返。')) return; SLOTS.forEach(function(k,i){ clearSlot(i+1); }); toast('三档已清'); closeModal(); showTitle(); };
     if(kind==='map'){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
