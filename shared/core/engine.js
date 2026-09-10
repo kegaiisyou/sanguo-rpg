@@ -1349,13 +1349,7 @@
         state.flags.cityPos={cid:rid, x:__g[0], y:__g[1]};
       }
     }
-    // v20260910p：kuyilao 囚室格 (1,0) 自动入 camp_prison——直接见天字/地字六间子牢房，无按钮层
-    if (rid === 'kuyilao' && state.flags.cityPos && state.flags.cityPos.x === 1 && state.flags.cityPos.y === 0) {
-      state.room = 'camp_prison';
-      state.moveGate = null;
-      save(state);
-      return renderRoom('camp_prison', true);
-    }
+    // v20260910q：囚室格 (1,0) 不再跳独立房间——牢房即城格，面板显示六间子牢房(doors)，罗盘走网格邻居
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell' || rid==='kuyilao');
     if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
@@ -1366,6 +1360,10 @@
       var cityLineTxt=cityLine(rid);
       if(cityLineTxt) narr.push({t:cityLineTxt, c:'sys'});
       room.desc.forEach(function(d){ narr.push({t:shortScene(d), c:'env'}); });
+      if(isCityGrid(rid) && state.flags.cityPos){
+        var _cn=cellNarr(rid, state.flags.cityPos.x, state.flags.cityPos.y);
+        if(_cn) _cn.forEach(function(d){ narr.push({t:shortScene(d), c:'env'}); });
+      }
       if(room.items && room.items.length){
         narr.push({t:'〔地上之物〕', c:'sys'});
         room.items.forEach(function(it){ narr.push({t:'· '+it, c:'item'}); });
@@ -1930,7 +1928,9 @@
     }
     // 城市网格：当前格动作派生（取代旧出口/对象按钮）；移动改由底部方向键（currentRoomExits）负责
     if(isCityGrid(room.id)){
-      cityCellActs(room.id, (state.flags.cityPos?state.flags.cityPos.x:0), (state.flags.cityPos?state.flags.cityPos.y:0)).forEach(function(a){
+      var _cp=state.flags.cityPos;
+      renderCellInteriors(room.id, (_cp?_cp.x:0), (_cp?_cp.y:0));
+      cityCellActs(room.id, (_cp?_cp.x:0), (_cp?_cp.y:0)).forEach(function(a){
         var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
         var btn=mkAct('scene', a.icon||'·', a.label, function(e){
           // 进入某处（进·店铺/进·建筑）意图明确，单击直达，不再套「执 行」菜单
@@ -2064,6 +2064,29 @@
       var acts=(typeof o.actions==='function'? o.actions(): (o.actions||[])).filter(function(a){return !isSelfCare(a);});
       var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); });
     });
+  }
+  // 城格内部：面板中渲染「可进入子房间(doors)」与「不可进入交互物(objects)」
+  // 通用地图框架（v20260910q）：罗盘=大方位去别处；面板=地点内 rooms/items；NPC 单列
+  function renderCellInteriors(cid, x, y){
+    var data=cellInteriors(cid, x, y); if(!data) return;
+    var doors=(data.doors||[]);
+    if(doors.length){
+      var _grp={};
+      doors.forEach(function(d){ (_grp[d.group]=_grp[d.group]||[]).push(d); });
+      Object.keys(_grp).forEach(function(g){
+        var h=document.createElement('div'); h.className='grp'; h.textContent=g; $actions.appendChild(h);
+        _grp[g].forEach(function(d){
+          mkAct('door', d.icon||'🚪', d.label, function(){ renderRoom(d.target); });
+        });
+      });
+    }
+    var objs=(data.objects||[]);
+    if(objs.length){
+      var oh=document.createElement('div'); oh.className='grp'; oh.textContent='交互物品'; $actions.appendChild(oh);
+      objs.forEach(function(o){
+        var b=mkAct('obj', o.icon||'🔧', o.label, function(e){ toggleObjExpand(e, b, o, (o.acts||[])); });
+      });
+    }
   }
   // ===== NPC/物件：点击弹出右键式浮动菜单（贴合光标，无描述） =====
   var objPanelOpen=null;
@@ -2582,6 +2605,10 @@
       var nm=(LF.CITIES&&LF.CITIES[pid]&&LF.CITIES[pid].name) || (LF.PLACES&&LF.PLACES[pid]&&LF.PLACES[pid].name) || pid;
       return dir+'·入城('+nm+')';
     }
+    if(typeof tid==='string' && tid.indexOf('__cell__:')===0){
+      var _c=tid.split(':');
+      return '回'+cellDisplayName(_c[1], cellDisplayType(_c[1], +_c[2], +_c[3]));
+    }
     var r=G.ROOMS[tid];
     if(!r) return tid;
     // 郊野行军格：罗盘出口用语义分段名（近郭/初野/深野/远野），不再显示冗长全名
@@ -2595,6 +2622,12 @@
     // 郊野→城 哨兵出口：落到对应城门
     if(typeof tid==='string' && tid.indexOf('__gate__:')===0){
       var _p=tid.split(':'); arriveAtGate(_p[1], _p[2]); return;
+    }
+    // 子房间退回城格（经面板 doors 进入的子房间，其出口指向具体城格）：直接落格，不走 move 能耗
+    if(typeof tid==='string' && tid.indexOf('__cell__:')===0){
+      var _c=tid.split(':');
+      state.flags.cityPos={cid:_c[1], x:+_c[2], y:+_c[3]};
+      save(state); renderRoom(_c[1], true); return;
     }
     if(isCityGrid(state.room)){
       var _cp=state.flags.cityPos;
@@ -3026,12 +3059,7 @@
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
         enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
         break;
-      case 'leave_prison':
-        // v20260910p：退回中军帐 (1,1) 而非囚室格 (1,0)，避免 renderRoom 再次自动入 camp_prison 死循环
-        state.room='kuyilao';
-        state.flags.cityPos={cid:'kuyilao', x:1, y:1};
-        state.moveGate=null; save(state); renderRoom('kuyilao', true);
-        break;
+      // v20260910q：回营区按钮已取消——离开牢房走罗盘网格邻居（南·中军大帐等）
       case 'recruit':
         if(!exert('入营募兵')) return;
         state.flags.recruited=state.flags.recruited||{};
