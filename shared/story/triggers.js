@@ -60,7 +60,7 @@
 
   // 3) 周听涛·取信授密道线（玩家自由回到周听涛、且已劳作+勘察后，他自然接话给出线索）
   TRIGGERS.push({
-    id: 'zt_crypt', hook: 'onTalk', npc: 'zhoutingtao', room: '__bld__laoqu', once: true,
+    id: 'zt_crypt', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: true,
     cond: { flags: { 'flags.onb.labored': true, 'flags.onb.surveyed': true }, notFlag: 'flags.route.crypt' },
     steps: [
       { t: 'npcTalk', npc: 'zhoutingtao',
@@ -90,7 +90,7 @@
 
   // 5) 囚室·默叔示意暗号（逃逸前置：在囚室对上暗号，再赴塌墙根决断）
   TRIGGERS.push({
-    id: 'moshu_signal', hook: 'onTalk', npc: 'moshu', room: '__bld__laoqu', once: true,
+    id: 'moshu_signal', hook: 'onTalk', npc: 'moshu', room: 'camp_tz2', once: true,
     cond: { flags: { 'flags.route.crypt': true }, notFlag: 'flags.task.signal' },
     steps: [
       { t: 'npcTalk', npc: 'moshu',

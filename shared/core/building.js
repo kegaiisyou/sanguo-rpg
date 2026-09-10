@@ -21,7 +21,6 @@
     var getCombatMode = ctx.getCombatMode;
     var getCard = ctx.getCard, getCurrentModalKind = ctx.getCurrentModalKind;
     var openModal = ctx.openModal, closeModal = ctx.closeModal;
-    var talk = ctx.talk;
 
   function bldCurArea(b){
     var key=getBuildingState().area||'root';
@@ -161,50 +160,6 @@
         ]}
       ], objs:[], areas:[] }
     },
-    },
-    laoqu: {
-      name:'牢区', icon:'⛓', sub:'苦役营牢区，铁栅森然，天字、地字六间牢房列于两侧',
-      interior: [
-        { kind:'npc', name:'牢头', icon:'🛡️', desc:'挎刀牢头，目光如隼，踱步于栅廊之下。', acts:[
-          { label:'攀谈', icon:'💬', fn:function(){ log('牢头斜睨你：「新来的？少打歪主意——这几间栅里关的都是要犯，老实待着。」','sys'); openModal('building'); } }
-        ]},
-        { kind:'obj', name:'牢区栅廊', icon:'🚪', desc:'长巷两侧铁栅森然，风从栅缝钻过，带着潮气与远处草木腥。', acts:[
-          { label:'张望牢房', icon:'👀', fn:function(){ log('你顺着栅廊望去：东侧天字一号至三号，西侧地字一号至三号，各关着形形色色的囚徒。','sys'); openModal('building'); } }
-        ]}
-      ],
-      subAreas:[{key:'t1',label:'天字一号牢房'},{key:'t2',label:'天字二号牢房'},{key:'t3',label:'天字三号牢房'},{key:'d1',label:'地字一号牢房'},{key:'d2',label:'地字二号牢房'},{key:'d3',label:'地字三号牢房'}],
-      areas:{
-        t1:{ name:'天字一号牢房', icon:'⛓', desc:'栅内草荐发硬，墙角水渍蜿蜒。一名蓬头囚徒盘腿而坐，似在打盹，又似在听墙外的风。', npcs:[
-          { name:'周听涛', icon:'🧓', desc:'蓬头垢面的讲古囚徒，眼里却藏着三分清醒。', acts:[
-            { label:'交谈', icon:'💬', fn:function(){ talk('zhoutingtao'); } }
-          ]}
-        ], objs:[], areas:[] },
-        t2:{ name:'天字二号牢房', icon:'⛓', desc:'栅里缩着个哑老囚，指尖无意识地划动，像在记着什么。', npcs:[
-          { name:'默叔', icon:'🧓', desc:'哑老囚，据说替周听涛守着暗道口的暗号。', acts:[
-            { label:'交谈', icon:'💬', fn:function(){ talk('moshu'); } }
-          ]}
-        ], objs:[], areas:[] },
-        t3:{ name:'天字三号牢房', icon:'⛓', desc:'几名囚徒横七竖八躺着，鼾声与镣铐声交织。', npcs:[
-          { name:'囚徒甲', icon:'🧑', desc:'面黄肌瘦的老囚，缩在墙角。', acts:[
-            { label:'攀谈', icon:'💬', fn:function(){ log('老囚低声：「天字号的都是要犯，地字号才关咱们这些苦力。你这新来的，先学着活命要紧。」','sys'); openModal('building'); } }
-          ]}
-        ], objs:[], areas:[] },
-        d1:{ name:'地字一号牢房', icon:'⛓', desc:'地字号牢房逼仄，苦役们挤作一团。', npcs:[
-          { name:'病囚', icon:'🤒', desc:'面白咳嗽的囚徒，裹着破袄。', acts:[
-            { label:'探问', icon:'💬', fn:function(){ log('病囚咳了两声：「这营里，病了比死了还难受……你要出去，趁早。」','sys'); openModal('building'); } }
-          ]}
-        ], objs:[], areas:[] },
-        d2:{ name:'地字二号牢房', icon:'⛓', desc:'一名囚徒正就着冷水啃硬饼，见你望来，把饼往身后藏了藏。', npcs:[
-          { name:'藏饼囚', icon:'🧑', desc:'瘦骨嶙峋的年轻囚徒。', acts:[
-            { label:'攀谈', icon:'💬', fn:function(){ log('年轻囚徒：「别盯我的饼——这营里，一口粮就是一条命。」','sys'); openModal('building'); } }
-          ]}
-        ], objs:[], areas:[] },
-        d3:{ name:'地字三号牢房', icon:'⛓', desc:'栅角堆着几件破烂家什，一名老囚正用木条编着什么。', objs:[
-          { name:'草编', icon:'🧺', desc:'老囚手编的草绳草垫，聊胜于无。', acts:[
-            { label:'细看', icon:'👀', fn:function(){ log('你细看那草编——倒有几分门道，营里竹麻随处可取，搓绳翻墙倒使得上。','sys'); openModal('building'); } }
-          ]}
-        ], npcs:[], areas:[] }
-      }
     },
     buzhuang: {
       name:'锦绣布庄', icon:'🧵', sub:'机杼声声，绫罗满架',

@@ -252,7 +252,7 @@
     setCityDev: setCityDev, cityDevOf: cityDevOf, advanceTime: advanceTime, renderRoom: renderRoom,
     getCombatMode: function () { return combatMode; },
     getCard: function () { return $card; }, getCurrentModalKind: function () { return currentModalKind; },
-    openModal: openModal, closeModal: closeModal, talk: talk
+    openModal: openModal, closeModal: closeModal
   });
   var bldCurArea = Building.bldCurArea, bldDef = Building.bldDef,
       renderBuildingPanel = Building.renderBuildingPanel, bindBuildingPanel = Building.bindBuildingPanel,
@@ -1603,7 +1603,8 @@
   function cityActs(cid){
     var p=cityProfile(cid); if(!p) return [];
     var out=[];
-    out.push({id:'city_upgrade', label:'兴修城垣', icon:'🧱', tip:'拓建城池，提升城市等级（耗砖石木）'});
+    // 兴修城垣属「施工队 / 建造营房」类建筑之责，苦役营（营区中枢）不挂此钮（归城池自身营造系统）
+    if(cid!=='kuyilao') out.push({id:'city_upgrade', label:'兴修城垣', icon:'🧱', tip:'拓建城池，提升城市等级（耗砖石木）'});
     return out;
   }
   function tryUpgradeCity(cid){
@@ -3018,9 +3019,12 @@
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
         enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
         break;
-      case 'enter_laoqu':
-        if(!exert('踏入牢区')) return;
-        enterBldRoom('laoqu', {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:1), y:(state.flags.cityPos?state.flags.cityPos.y:1)});
+      case 'enter_prison':
+        if(!exert('踏入牢房')) return;
+        state.room='camp_prison'; state.moveGate=null; save(state); renderRoom('camp_prison', true);
+        break;
+      case 'leave_prison':
+        state.room='kuyilao'; state.moveGate=null; save(state); renderRoom('kuyilao', true);
         break;
       case 'recruit':
         if(!exert('入营募兵')) return;
@@ -3771,8 +3775,8 @@
     var labored=!!onb.labored, surveyed=!!onb.surveyed;
     if(!labored) return {text:'担石劳作，先熟悉营中苦役（点下方「担石劳作」）', sel:'#actions .act[data-act="labor_yard"]'};
     if(!surveyed) return {text:'环顾劳役场，看清几处去路（点「环顾四周」）', sel:'#actions .act[data-act="survey_yard"]'};
-    if(!(f.route && f.route.crypt)) return {text:'去牢区·天字一号牢房找讲古的周听涛，探听出营门道（点「进·牢区」）', sel:'#actions .act[data-act="enter_laoqu"]'};
-    if(!(f.task && f.task.signal)) return {text:'去牢区·天字二号牢房与默叔对上暗号', sel:'#actions .act[data-act="enter_laoqu"]'};
+    if(!(f.route && f.route.crypt)) return {text:'去牢房（囚室格·「进·牢房」）找讲古的周听涛，探听出营门道', sel:'#actions .act[data-act="enter_prison"]'};
+    if(!(f.task && f.task.signal)) return {text:'去牢房·天字二号牢房与默叔对上暗号', sel:'#actions .act[data-act="enter_prison"]'};
     // 已对暗号：去任一枢纽决断出营（塌墙根北 / 岗哨南）
     var sel=null;
     if(document.querySelector('#actions .act[data-act="wall_choose"]')) sel='#actions .act[data-act="wall_choose"]';
