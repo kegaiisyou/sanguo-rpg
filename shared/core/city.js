@@ -363,29 +363,6 @@ window.LF = window.LF || {};
       }
       return CELL_META[t] ? CELL_META[t].nm : t;
     }
-    // ═══ 城格内部：可进入子房间(doors) + 不可进入交互物(objects)（v20260910q 地图框架）═══
-    // 通用规则：罗盘=大方位去别处；面板=当前地点内的 rooms/items；NPC 单列。
-    var CELL_INTERIORS = {
-      'kuyilao|1,0': {
-        doors: [
-          { label: '天字一号', icon: '🚪', target: 'camp_tz1', group: '天字牢房' },
-          { label: '天字二号', icon: '🚪', target: 'camp_tz2', group: '天字牢房' },
-          { label: '天字三号', icon: '🚪', target: 'camp_tz3', group: '天字牢房' },
-          { label: '地字一号', icon: '🚪', target: 'camp_dz1', group: '地字牢房' },
-          { label: '地字二号', icon: '🚪', target: 'camp_dz2', group: '地字牢房' },
-          { label: '地字三号', icon: '🚪', target: 'camp_dz3', group: '地字牢房' }
-        ],
-        objects: []
-      }
-    };
-    function cellInteriors(cid, x, y){ return CELL_INTERIORS[cid + '|' + x + ',' + y] || null; }
-    var CELL_NARR = {
-      'kuyilao|1,0': [
-        '长巷两侧铁栅森然，风从栅缝钻过，带着潮气与远处草木腥。六间牢房分列东西——东侧天字一号至三号，西侧地字一号至三号。',
-        '你顺着栅廊望去，牢门皆虚掩或紧锁，囚徒们或坐或卧，目光却都朝着那几扇通往子牢房的门。'
-      ]
-    };
-    function cellNarr(cid, x, y){ return CELL_NARR[cid + '|' + x + ',' + y] || null; }
     function seededRand(seed) {
       var h = 2166136261; for (var i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
       var s = h >>> 0;
