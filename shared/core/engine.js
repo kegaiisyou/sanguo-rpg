@@ -3056,11 +3056,6 @@
         if(!isCityGrid(state.room)){ toast('此处非城池中枢，无处发号。'); break; }
         openModal('edict'); break;
       }
-      case 'prison_view': {
-        if(!exert('查勘牢房')) break;
-        log('牢房铁栏后，一名囚徒抬眼望你：「官爷…小的冤枉啊——不过是偷了半袋粟米。」','npc');
-        break;
-      }
       case 'mine_dig': {
         if(!exert('开凿矿料')) break;
         packAdd('shitiao', 1);

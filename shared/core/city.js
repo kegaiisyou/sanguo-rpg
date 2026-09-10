@@ -485,7 +485,7 @@ window.LF = window.LF || {};
         out.push({ id: 'city_build', label: '营造新筑', icon: '🏗️', tip: '择空地依图纸营造建筑（民宅/市集/农庄/军营/土路）', data: { cid: cid, x: x, y: y } });
       }
       // ── 苦役营新格型互动（v20260907j）──
-      if (t === 'prison') { out.push({ id: 'prison_view', label: '查勘牢房', icon: '⛓', tip: '查看牢中囚徒，或提审问话' }); }
+      // 牢房格入房改走房间模型（kuyilao 囚室格挂「进·牢房」→ camp_prison 见六间子牢房），原"查勘牢房"冗余入口已并入子房间对话
       if (t === 'mine') { out.push({ id: 'mine_dig', label: '开凿矿料', icon: '⛏', tip: '挥镐采掘，可得石料' }); }
       if (t === 'kitchen') { out.push({ id: 'kitchen_cook', label: '生火造饭', icon: '🍚', tip: '于伙房埋锅造饭，稍歇精神' }); }
       if (t === 'command') { out.push({ id: 'command_talk', label: '中军议事', icon: '🚩', tip: '入帐议事，览军情城务' }); }
