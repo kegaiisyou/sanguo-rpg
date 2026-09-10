@@ -261,6 +261,15 @@
       S().food = Math.max(0, S().food - 1); S().drink = Math.max(0, S().drink - 1);
       advanceTime(1);
       S().flags.cityPos = { cid: cid, x: x, y: y };
+      // v20260910p：kuyilao 囚室格 (1,0) 踏到即入 camp_prison——直接见天字/地字六间子牢房，无按钮层
+      if (cid === 'kuyilao' && x === 1 && y === 0) {
+        S().room = 'camp_prison';
+        S().moveGate = null;
+        save(S());
+        renderRoom('camp_prison', true);
+        if (CMK() === 'map') openModal('map');
+        return;
+      }
       if (ri) {
         log('你行至城门口，城门在望……', 'sys');
       } else {

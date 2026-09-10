@@ -1349,6 +1349,13 @@
         state.flags.cityPos={cid:rid, x:__g[0], y:__g[1]};
       }
     }
+    // v20260910p：kuyilao 囚室格 (1,0) 自动入 camp_prison——直接见天字/地字六间子牢房，无按钮层
+    if (rid === 'kuyilao' && state.flags.cityPos && state.flags.cityPos.x === 1 && state.flags.cityPos.y === 0) {
+      state.room = 'camp_prison';
+      state.moveGate = null;
+      save(state);
+      return renderRoom('camp_prison', true);
+    }
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell' || rid==='kuyilao');
     if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
@@ -3019,12 +3026,11 @@
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
         enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
         break;
-      case 'enter_prison':
-        if(!exert('踏入牢房')) return;
-        state.room='camp_prison'; state.moveGate=null; save(state); renderRoom('camp_prison', true);
-        break;
       case 'leave_prison':
-        state.room='kuyilao'; state.moveGate=null; save(state); renderRoom('kuyilao', true);
+        // v20260910p：退回中军帐 (1,1) 而非囚室格 (1,0)，避免 renderRoom 再次自动入 camp_prison 死循环
+        state.room='kuyilao';
+        state.flags.cityPos={cid:'kuyilao', x:1, y:1};
+        state.moveGate=null; save(state); renderRoom('kuyilao', true);
         break;
       case 'recruit':
         if(!exert('入营募兵')) return;
@@ -3770,8 +3776,8 @@
     var labored=!!onb.labored, surveyed=!!onb.surveyed;
     if(!labored) return {text:'担石劳作，先熟悉营中苦役（点下方「担石劳作」）', sel:'#actions .act[data-act="labor_yard"]'};
     if(!surveyed) return {text:'环顾劳役场，看清几处去路（点「环顾四周」）', sel:'#actions .act[data-act="survey_yard"]'};
-    if(!(f.route && f.route.crypt)) return {text:'去牢房（囚室格·「进·牢房」）找讲古的周听涛，探听出营门道', sel:'#actions .act[data-act="enter_prison"]'};
-    if(!(f.task && f.task.signal)) return {text:'去牢房·天字二号牢房与默叔对上暗号', sel:'#actions .act[data-act="enter_prison"]'};
+    if(!(f.route && f.route.crypt)) return {text:'走到牢房囚室格（踏到即入，天字一号牢房找讲古的周听涛），探听出营门道', sel:null};
+    if(!(f.task && f.task.signal)) return {text:'牢房·天字二号牢房与默叔对上暗号', sel:null};
     // 已对暗号：去任一枢纽决断出营（塌墙根北 / 岗哨南）
     var sel=null;
     if(document.querySelector('#actions .act[data-act="wall_choose"]')) sel='#actions .act[data-act="wall_choose"]';

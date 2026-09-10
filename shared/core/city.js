@@ -133,7 +133,7 @@ window.LF = window.LF || {};
       kuyilao: {
         '1,1': [{ id: 'labor_yard', label: '担石劳作', tip: '按狱卒吩咐扛石运土——熟悉劳作，点亮状态栏。' },
                 { id: 'survey_yard', label: '环顾四周', tip: '勘察劳役场，看清几处去路。' }],
-        '0,1': [{ id: 'enter_prison', label: '进·牢房', tip: '踏入牢房，天字、地字六间子牢房列于两侧。' }],
+        // 囚室格 (1,0) 不挂按钮——踏到即入 camp_prison（v20260910p）
         '2,1': [{ id: 'survey_warehouse', label: '翻找仓库', tip: '墙角倚着闲镐锄，竹木随手可取。' }],
         '1,2': [{ id: 'wall_choose', label: '决断出营·墙根', tip: '于塌墙根（南门）盘算出营法子。' }],
         '2,2': [{ id: 'train_dummy', label: '戳木人桩', tip: '演武场木人桩练拳脚，战力达标可强突。' }]
