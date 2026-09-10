@@ -546,6 +546,8 @@
     G.applySect(state);
     G.recalcBase(state);                      // 依据四维 attr + 门派加成 重算派生战力
     packEnsure(state);                     // 行囊/6 装备槽兼容与初始化（v0.6）
+    if(!packFind('shuidai')){ packAdd('shuidai',1); var _sd=packFind('shuidai'); if(_sd) _sd.water=8; }  // 开局随行水袋（向水槽添水用）
+    state.fixtures = state.fixtures || {};
     SFX.setEnabled(state.sfxOn!==false);   // 载入存档后同步音效开关
     try{ SFX.setBgmVolume((settings.bgmVol!=null?settings.bgmVol:35)/100); SFX.setSfxVolume((settings.sfxVol!=null?settings.sfxVol:60)/100); SFX.startBgm(); }catch(e){}       // 启动古风BGM（v20260909a）
     if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
@@ -2079,10 +2081,80 @@
         { label: '地字二号', icon: '🚪', target: 'camp_dz2', group: '地字牢房' },
         { label: '地字三号', icon: '🚪', target: 'camp_dz3', group: '地字牢房' }
       ],
-      objects: []
+      objects: [
+        { icon:'🪣', label:'水槽', acts:[
+          {label:'饮水', icon:'💧', fn:function(){ troughDrinkBy('kuyilao|1,0'); }},
+          {label:'添水', icon:'🪣', fn:function(){ troughFillBy('kuyilao|1,0'); }}
+        ]},
+        { icon:'🥁', label:'值更鼓', acts:[
+          {label:'击鼓', icon:'🥁', fn:function(){ drumStrikeBy('kuyilao|1,0|drum'); }}
+        ]}
+      ]
     }
   };
   function cellInteriors(cid, x, y){ return CELL_INTERIORS[cid + '|' + x + ',' + y] || null; }
+  // ═══ 苦役营牢房设施：水槽(容量+添水) / 值更鼓(击鼓)（v20260910s）═══
+  var TROUGH_CAP = 20;   // 水槽容量（饮水单位）；水不凭空生，满则溢
+  function fxGet(key){
+    state.fixtures = state.fixtures || {};
+    if(!state.fixtures[key]){
+      state.fixtures[key] = { water:0, strikes:0 };
+      if(key==='kuyilao|1,0') state.fixtures[key].water = 12;  // 牢中水槽初有半槽水，教学即饮
+    }
+    return state.fixtures[key];
+  }
+  // 饮槽中水：回复 饮，扣槽水（不凭空）
+  function troughDrinkBy(key){
+    var f=fxGet(key);
+    if(f.water<=0){ toast('水槽见了底，须先添水。'); return; }
+    var sip=Math.min(8, f.water);
+    f.water-=sip;
+    state.drink=Math.min(state.maxDrink, (state.drink||0)+sip);
+    log('你掬槽中水饮了几口，喉间干涸稍解（饮 +'+sip+'）。','good');
+    save(state); renderStatus();
+  }
+  // 以水袋向槽添水：容器水倒入，槽满则溢
+  function troughFillBy(key){
+    var f=fxGet(key);
+    if(f.water>=TROUGH_CAP){ toast('水槽已注满，添不下了。'); return; }
+    var bag=packFind('shuidai');
+    var bw=(bag && bag.water>0)? bag.water : 0;
+    if(!bag){ toast('须先得一只水袋，方能向槽中倾水（开局随行一只，或木工台制）。'); return; }
+    if(bw<=0){ toast('水袋空空——先去溪河取水再来添槽。'); return; }
+    var add=Math.min(bw, TROUGH_CAP-f.water);
+    f.water+=add; bag.water=bw-add;
+    log('你将水袋中 '+add+' 份水倾入槽中（槽 '+f.water+' / '+TROUGH_CAP+'）。','good');
+    save(state); renderStatus();
+  }
+  // 值更鼓：击鼓报更 + 提示距换岗；频繁击鼓惊动牢头（轻风险，不卡死）
+  function drumStrikeBy(key){
+    var sh=SHICHEN[state.time%12];
+    var f=fxGet(key);
+    f.strikes=(f.strikes||0)+1;
+    log('〔咚——〕你执槌击更鼓，声震牢廊。此刻乃「'+sh+'」。营中换岗向在戌时前后，鼓声太频，牢头必生疑。','sys');
+    if(f.strikes>3){ toast('鼓声连响，牢头在廊那头喝道：「作死！再敲仔细你狗腿！」'); }
+    save(state);
+  }
+  // 玩家放置的水槽（PLACE_ACTIONS）：水量存于放置条目 p.water
+  function shuicaoDrinkPlaced(p){
+    if((p.water||0)<=0){ toast('水槽见了底，须先添水。'); return; }
+    var sip=Math.min(8, p.water);
+    p.water-=sip;
+    state.drink=Math.min(state.maxDrink, (state.drink||0)+sip);
+    log('你掬槽中水饮了几口，喉间干涸稍解（饮 +'+sip+'）。','good');
+    save(state); renderStatus();
+  }
+  function shuicaoFillPlaced(p){
+    if((p.water||0)>=TROUGH_CAP){ toast('水槽已注满，添不下了。'); return; }
+    var bag=packFind('shuidai');
+    var bw=(bag && bag.water>0)? bag.water : 0;
+    if(!bag){ toast('须先得一只水袋，方能向槽中倾水（开局随行一只，或木工台制）。'); return; }
+    if(bw<=0){ toast('水袋空空——先去溪河取水再来添槽。'); return; }
+    var add=Math.min(bw, TROUGH_CAP-(p.water||0));
+    p.water=(p.water||0)+add; bag.water=bw-add;
+    log('你将水袋中 '+add+' 份水倾入槽中（槽 '+p.water+' / '+TROUGH_CAP+'）。','good');
+    save(state); renderStatus();
+  }
   var CELL_NARR = {
     'kuyilao|1,0': [
       '长巷两侧铁栅森然，风从栅缝钻过，带着潮气与远处草木腥。六间牢房分列东西——东侧天字一号至三号，西侧地字一号至三号。',
@@ -3288,6 +3360,13 @@
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('tent'); }}
       ];
     },
+    shuicao: function(p){
+      return [
+        {label:'饮水', icon:'💧', fn:function(){ shuicaoDrinkPlaced(p); }},
+        {label:'添水', icon:'🪣', fn:function(){ shuicaoFillPlaced(p); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('shuicao'); }}
+      ];
+    },
     p_bench: function(){
       return [
         {label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }},
@@ -3420,7 +3499,7 @@
     }
     var defId = p.defId || PLACE_KEY_DEF[p.key];
     var pl = ((LF.ITEMS[defId]||{}).place) || {};
-    var acts = PLACE_ACTIONS[pl.actions] || function(){ return []; };
+    var acts = (PLACE_ACTIONS[pl.actions] || function(){ return []; })(p);
     return {type:'feature', key:pl.key||p.key, icon:itemIconHTML({name:pl.name||'未知物'}, 14), name:pl.name||'未知物', desc:pl.desc||'', actions:acts};
   }
   // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
@@ -4474,6 +4553,7 @@
   window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
   window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;
   window.startCombat=startCombat;
+  window.openRestModal=openRestModal;   // 供 shared/story/rooms.js 等外部工厂闭包调用（草荐打盹等）
   // ── 全局桥接（v20260909o）：势力归属动态化接口，供剧情/事件脚本调用 ──
   window.warlordBattle=warlordBattle;   // 指定一场攻伐：warlordBattle('luoyang','caocao',{allowCapital:true,allowLast:true,allowInside:true})
   window.conquerCity=conquerCity;       // 底层直接易帜：conquerCity('城id','势力id',devDelta)（写归属+治下账目）

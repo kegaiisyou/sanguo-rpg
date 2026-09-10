@@ -81,6 +81,11 @@
     sleepmat:      { defId: 'sleepmat', name: '草席', icon: '🛏️', cat: '器具', placeable:true,
       place:{ key:'sleepmat', icon:'🛏️', name:'草席', desc:'一领草编卧席，铺地即可小睡养神', actions:'sleepmat' },
       desc: '轻便的草编卧席。于背包「放置」后铺地，可躺下小睡，回复气血内力。' },
+    shuicao:       { defId: 'shuicao', name: '水槽', icon: '🪣', cat: '器具', placeable:true,
+      place:{ key:'shuicao', icon:'🪣', name:'水槽', desc:'凿石为槽，蓄泉水以供饮濯；以他器倾注添水，槽满则溢', actions:'shuicao' },
+      desc: '凿石为槽，置于室中便可蓄水。槽中水不凭空生，须以盛水之器倾注添满；饮之可解喉间干涸。' },
+    shuidai:       { defId: 'shuidai', name: '水袋', icon: '💧', cat: '器具',
+      desc: '兽皮缝就的水囊，可盛清水随身。盛满后向水槽倾注，便能给水槽添水。', waterCap:10 },
     // —— 营造系统：建材与图纸 ——
     shitiao:        { defId: 'shitiao',       name: '石料', icon: '🪨', cat: '素材', desc: '采自岩壁的石块，夯基砌灶的硬底料。' },
     zhuan:          { defId: 'zhuan',         name: '砖头', icon: '🧱', cat: '素材', desc: '窑烧而成的土砖，垒砌围墙与炉体的规整块材。' },

@@ -18,6 +18,8 @@ LF.RECIPES = {
     { id:'fold_bench', cat:'器具类', name:'便携工作台', icon:'🔨', out:'gongzuotai', outN:1, in:[{id:'mucai', n:3}], note:'以规整木材攒成可折叠的工作台，随行随用' },
     { id:'campfire_kit', cat:'器具类', name:'篝火', icon:'🔥', out:'campfire', outN:1, in:[{id:'mutou', n:2},{id:'xiaoshuzhi', n:1}], note:'干柴捆扎成束，引火即燃，可取暖烘食' },
     { id:'sleep_mat', cat:'器具类', name:'草席', icon:'🛏️', out:'sleepmat', outN:1, in:[{id:'mucai', n:2}], note:'削竹为骨、编草为席，铺地可眠' },
+    { id:'make_trough', cat:'器具类', name:'水槽', icon:'🪣', out:'shuicao', outN:1, in:[{id:'mucai', n:2},{id:'shitiao', n:1}], note:'以木材为骨、石料为槽，凿石箍木成槽，可蓄水' },
+    { id:'make_waterbag', cat:'器具类', name:'水袋', icon:'💧', out:'shuidai', outN:1, in:[{id:'mucai', n:2}], note:'削竹为圈、缝皮为囊，制成可盛水随行的水袋' },
     { id:'brick_kiln', cat:'建筑类', name:'砖头', icon:'🧱', out:'zhuan', outN:1, in:[{id:'shitiao', n:2}], note:'石料入窑烧制成砖，规整耐用，垒砌炉体围墙' },
     { id:'make_ink', cat:'素材类', name:'墨', icon:'🖤', out:'mo', outN:1, in:[{id:'mutou',n:2}], note:'松木烧烟、和胶成墨，研磨后可书于简册（松烟墨）' },
     // —— 简册类（v20260908 建筑营造简册制作，东汉以竹简为主）——

@@ -390,7 +390,26 @@
           {label:'买卖', icon:'🛒', fn:function(){ openModal('shop', {shop:'field_trader'}); }},
           {label:'交谈', icon:'💬', fn:function(){ talk('lindao_trader'); }}
         ]}
-      ]
+      ],
+      // ═══ 苦役营·六间子牢房：各置草荐（可打盹，复用不耗）═══
+      camp_tz1: [ { type:'feature', key:'caojian_tz1', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
+        {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
+      ]} ],
+      camp_tz2: [ { type:'feature', key:'caojian_tz2', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
+        {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
+      ]} ],
+      camp_tz3: [ { type:'feature', key:'caojian_tz3', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
+        {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
+      ]} ],
+      camp_dz1: [ { type:'feature', key:'caojian_dz1', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
+        {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
+      ]} ],
+      camp_dz2: [ { type:'feature', key:'caojian_dz2', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
+        {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
+      ]} ],
+      camp_dz3: [ { type:'feature', key:'caojian_dz3', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
+        {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
+      ]} ],
     };
   }
   global.LF.buildRoomObjects = buildRoomObjects;
