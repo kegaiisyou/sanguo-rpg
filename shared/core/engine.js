@@ -903,7 +903,7 @@
   function showTitle(){
     state=null; curSlot=0; Core.state=state; Core.curSlot=curSlot;
     var app=document.getElementById('app'); if(app) app.classList.add('hidden');
-    var tt=document.getElementById('title'); if(tt) tt.classList.remove('hidden');
+    var tt=document.getElementById('title'); if(tt){ tt.classList.remove('hidden'); tt.classList.remove('frozen'); }
     applyTitleFx();
   }
   // 标题特效开关：关则隐藏水墨烟尘/墨晕层
@@ -1493,7 +1493,7 @@
       var vendor={name:'市井商贩', icon:'🛒', key:'mkt_'+cid, desc:'守着摊位的市井商贩'};
       items.push({o:vendor, acts:[
         {label:'问价', icon:'💰', fn:function(){ log('〔市井商贩〕「货是好货，价也公道，客官尽管挑。」','npc'); }},
-        {label:'闲谈', icon:'💬', fn:function(){ log('〔市井商贩〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }}
+        {label:'交谈', icon:'💬', fn:function(){ log('〔市井商贩〕'+mktSays[Math.floor(Math.random()*mktSays.length)],'npc'); }}
       ]});
       for(var mi=0;mi<2;mi++){ (function(idx){
         var o={name:'城中百姓', icon:'👤', key:'mktciv_'+cid+'_'+idx, desc:'往来商街采买的百姓'};
@@ -1545,7 +1545,7 @@
       var items=[];
       items.push({o:{name:'狱卒', icon:'⛓', key:'warden_'+cid, desc:'持钥看管的狱卒'}, acts:[
         {label:'提审', icon:'📜', fn:function(){ log('〔狱卒〕「这批苦役是上月从渔阳押来的，多是欠租逃役的汉子，壮实着呢。」','npc'); }},
-        {label:'闲谈', icon:'💬', fn:function(){ log('〔狱卒〕「牢里阴冷，夜里常有号子声——听惯了也就不怕了。」','npc'); }}
+        {label:'交谈', icon:'💬', fn:function(){ log('〔狱卒〕「牢里阴冷，夜里常有号子声——听惯了也就不怕了。」','npc'); }}
       ]});
       items.push({o:{name:'镣铐囚徒', icon:'⛓', key:'inmate_'+cid, desc:'缩在牢角、镣铐加身的囚徒'}, acts:[
         {label:'问话', icon:'💬', fn:function(){ log('〔囚徒〕「官爷，小的原是渔阳脚夫，只因欠了半石租米……若能脱困，愿为壮士牵马坠镫！」','npc'); }}
@@ -1564,7 +1564,7 @@
       var items=[];
       items.push({o:{name:'火头军', icon:'🍚', key:'cook_'+cid, desc:'掌勺的伙夫'}, acts:[
         {label:'讨碗热汤', icon:'🍲', fn:function(){ log('〔火头军〕「锅里有粟米糊糊，管够！吃饱了才有力气干活。」','npc'); }},
-        {label:'闲谈', icon:'💬', fn:function(){ log('〔火头军〕「伙房一日两顿，粗粮管饱——营里日子紧，可比牢里强。」','npc'); }}
+        {label:'交谈', icon:'💬', fn:function(){ log('〔火头军〕「伙房一日两顿，粗粮管饱——营里日子紧，可比牢里强。」','npc'); }}
       ]});
       return items;
     },
@@ -1572,7 +1572,7 @@
       var items=[];
       items.push({o:{name:'矿工', icon:'⛏', key:'miner_'+cid, desc:'挥镐采石的矿工'}, acts:[
         {label:'问石料', icon:'📜', fn:function(){ log('〔矿工〕「这矿坑出青石，营墙屋基都靠它。要石料？拿镐自己凿两下也行。」','npc'); }},
-        {label:'闲谈', icon:'💬', fn:function(){ log('〔矿工〕「北山那边还有铁矿脉，只是山高匪多，没人敢去。」','npc'); }}
+        {label:'交谈', icon:'💬', fn:function(){ log('〔矿工〕「北山那边还有铁矿脉，只是山高匪多，没人敢去。」','npc'); }}
       ]});
       return items;
     },
@@ -1580,7 +1580,7 @@
       var items=[];
       items.push({o:{name:'仓吏', icon:'📦', key:'storeman_'+cid, desc:'执册记账的仓吏'}, acts:[
         {label:'查账', icon:'📜', fn:function(){ log('〔仓吏〕「库中存粮十余车，木料砖石各若干——账目在此，壮士过目。」','npc'); }},
-        {label:'闲谈', icon:'💬', fn:function(){ log('〔仓吏〕「营里东西不多，胜在齐整。改日修仓拓库，还得再备料。」','npc'); }}
+        {label:'交谈', icon:'💬', fn:function(){ log('〔仓吏〕「营里东西不多，胜在齐整。改日修仓拓库，还得再备料。」','npc'); }}
       ]});
       return items;
     },
@@ -1588,7 +1588,7 @@
       var items=[];
       items.push({o:{name:'演武教头', icon:'🥋', key:'drillmaster_'+cid, desc:'演练兵卒的教头'}, acts:[
         {label:'讨教', icon:'🥊', fn:function(){ log('〔教头〕「拳脚无他，唯勤而已。日日演武，沙场方能活命。」','npc'); }},
-        {label:'闲谈', icon:'💬', fn:function(){ log('〔教头〕「营里新募的兵卒底子薄，先练站桩，再学厮杀。」','npc'); }}
+        {label:'交谈', icon:'💬', fn:function(){ log('〔教头〕「营里新募的兵卒底子薄，先练站桩，再学厮杀。」','npc'); }}
       ]});
       return items;
     },
@@ -2084,7 +2084,8 @@
       objects: [
         { icon:'🪣', label:'水槽', acts:[
           {label:'饮水', icon:'💧', fn:function(){ troughDrinkBy('kuyilao|1,0'); }},
-          {label:'添水', icon:'🪣', fn:function(){ troughFillBy('kuyilao|1,0'); }}
+          {label:'添水', icon:'🪣', fn:function(){ troughFillBy('kuyilao|1,0'); }},
+          {label:'装水入袋', icon:'💧', fn:function(){ troughDrawToBag('kuyilao|1,0'); }}
         ]},
         { icon:'🥁', label:'值更鼓', acts:[
           {label:'击鼓', icon:'🥁', fn:function(){ drumStrikeBy('kuyilao|1,0|drum'); }}
@@ -2153,6 +2154,30 @@
     var add=Math.min(bw, TROUGH_CAP-(p.water||0));
     p.water=(p.water||0)+add; bag.water=bw-add;
     log('你将水袋中 '+add+' 份水倾入槽中（槽 '+p.water+' / '+TROUGH_CAP+'）。','good');
+    save(state); renderStatus();
+  }
+  // 从水槽向水袋装水：槽水倒入水袋，受水袋容量( waterCap )限制（水袋可随身盛水，去别处再添槽）
+  function troughDrawToBag(key){
+    var f=fxGet(key);
+    if(f.water<=0){ toast('水槽空了，无水解渴。'); return; }
+    var bag=packFind('shuidai');
+    if(!bag){ toast('须先得一只水袋，方能从此槽中盛水（开局随行一只，或木工台制）。'); return; }
+    var cap=bag.waterCap||10, cur=(bag.water||0);
+    if(cur>=cap){ toast('水袋已满，盛不下了。'); return; }
+    var take=Math.min(f.water, cap-cur);
+    f.water-=take; bag.water=cur+take;
+    log('你以槽中水注满水袋（水袋 '+bag.water+' / '+cap+'）。','good');
+    save(state); renderStatus();
+  }
+  function shuicaoDrawToBag(p){
+    if((p.water||0)<=0){ toast('水槽空了，无水解渴。'); return; }
+    var bag=packFind('shuidai');
+    if(!bag){ toast('须先得一只水袋，方能从此槽中盛水（开局随行一只，或木工台制）。'); return; }
+    var cap=bag.waterCap||10, cur=(bag.water||0);
+    if(cur>=cap){ toast('水袋已满，盛不下了。'); return; }
+    var take=Math.min(p.water, cap-cur);
+    p.water=(p.water||0)-take; bag.water=cur+take;
+    log('你以槽中水注满水袋（水袋 '+bag.water+' / '+cap+'）。','good');
     save(state); renderStatus();
   }
   var CELL_NARR = {
@@ -3364,6 +3389,7 @@
       return [
         {label:'饮水', icon:'💧', fn:function(){ shuicaoDrinkPlaced(p); }},
         {label:'添水', icon:'🪣', fn:function(){ shuicaoFillPlaced(p); }},
+        {label:'装水入袋', icon:'💧', fn:function(){ shuicaoDrawToBag(p); }},
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('shuicao'); }}
       ];
     },
@@ -4108,6 +4134,7 @@
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
+    var _tt=document.getElementById('title'); if(_tt) _tt.classList.add('frozen');   // 冻结标题重绘，避免弹窗(择档等)卡顿
     var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
     var _sf=document.getElementById('shop-float'); if(_sf) _sf.style.display='none';
     if(state && state.dead){ die(); return; }
@@ -4479,6 +4506,7 @@
   }
 
   function closeModal(){
+    var _tt=document.getElementById('title'); if(_tt) _tt.classList.remove('frozen');
     if(state && state.dead){ die(); return; }
     // 捏人进行中（state 尚未建立）禁止中途收起，否则会露出标题屏并丢失进度
     if(currentModalKind==='create' && !state){ return; }

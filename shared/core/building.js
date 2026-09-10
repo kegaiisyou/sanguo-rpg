@@ -125,7 +125,7 @@
         ]},
         { kind:'npc', name:'抓药药商', icon:'🧑‍💼', desc:'柜后司药的伙计，算盘拨得噼啪响。', acts:[
           { label:'采买药材', icon:'🪙', fn:function(){ openModal('shop', {shop:'doctor'}); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('药商笑道：「客官有所不知，'+bldZihao()+'的药草须得依方配伍，单味可不成气候。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('药商笑道：「客官有所不知，'+bldZihao()+'的药草须得依方配伍，单味可不成气候。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'药柜', icon:'🗄️', desc:'百格药斗，分门别类贮着各色药材。', acts:[
           { label:'翻检药斗', icon:'🤲', fn:function(){ if(!exert('翻检')) return; if(packAdd('caoyao',1)) log('你于药斗中取得一束草药，收入行囊。','sys'); openModal('building'); } }
@@ -147,7 +147,7 @@
     areas:{
       yaofu_hou:{ name:'后堂', icon:'🚪', desc:'库房碾坊，药香沉静，学徒正晾药帘。', npcs:[
         { name:'药铺学徒', icon:'🧑', desc:'束发少年，忙着称量药材。', acts:[
-          { label:'闲谈', icon:'💬', fn:function(){ log('学徒道：「师父说，这药性有寒热温凉，配错了要出人命的。」','sys'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('学徒道：「师父说，这药性有寒热温凉，配错了要出人命的。」','sys'); } }
         ]}
       ], objs:[
         { name:'晒药匾', icon:'🟫', desc:'竹匾里铺着切好的饮片，日头下泛香。', acts:[
@@ -166,7 +166,7 @@
       interior: [
         { kind:'npc', name:'布庄掌柜', icon:'🧑‍💼', desc:'精明的中年掌柜，掌中算盘不离。', acts:[
           { label:'置办衣甲', icon:'🛡️', fn:function(){ if(!exert('置办衣甲')) return; S().def=(S().def||0)+2; log('掌柜取来新裁战袍加身，护体更坚（防御+2）。','good'); renderStatus(); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜道：「客官这身行头该换换了，刀枪无眼，甲胄要紧。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('掌柜道：「客官这身行头该换换了，刀枪无眼，甲胄要紧。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'织机', icon:'🪡', desc:'木织机一架，织娘投梭走线。', acts:[
           { label:'看织娘织锦', icon:'👀', fn:function(){ log('你驻足看织娘投梭，经纬交织，渐成云锦一段。','sys'); openModal('building'); } }
@@ -176,7 +176,7 @@
     areas:{
       bz_hou:{ name:'后库', icon:'🚪', desc:'布匹成堆，裁缝在此赶制衣甲。', npcs:[
         { name:'裁缝', icon:'🧵', desc:'指尖生茧的老裁缝。', acts:[
-          { label:'闲谈', icon:'💬', fn:function(){ log('裁缝道：「甲靠生漆浸过才硬，布要双股绞才牢。」','sys'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('裁缝道：「甲靠生漆浸过才硬，布要双股绞才牢。」','sys'); } }
         ]}
       ], objs:[
         { name:'布料架', icon:'🧶', desc:'架上绫罗绢帛与各色粗布。', acts:[
@@ -190,7 +190,7 @@
       interior: [
         { kind:'npc', name:'食肆掌柜', icon:'🧑‍🍳', desc:'围着油渍围裙的胖掌柜，嗓门洪亮。', acts:[
           { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; S().food=S().maxFood; S().drink=Math.max(S().drink, Math.round((S().maxDrink||0)*0.6)); log('热汤面饼下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜抹着桌子：「客官慢用，'+bldZihao()+'的热汤管够！」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('掌柜抹着桌子：「客官慢用，'+bldZihao()+'的热汤管够！」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'灶台', icon:'🔥', desc:'大灶一口，汤锅翻滚。', acts:[
           { label:'讨碗热汤', icon:'🥣', fn:function(){ if(!exert('讨汤')) return; S().food=Math.min(S().maxFood,(S().food||0)+10); log('灶上舀得一碗热汤，下肚暖意融融。','sys'); renderStatus(); openModal('building'); } }
@@ -210,7 +210,7 @@
     areas:{
       ss_houchu:{ name:'后厨', icon:'🍳', desc:'灶火熊熊，油烟与香气交织。', npcs:[
         { name:'厨子', icon:'👨‍🍳', desc:'满面油光的大厨，掌勺不停。', acts:[
-          { label:'闲谈', icon:'💬', fn:function(){ log('厨子擦汗：「客官要吃些甚么？今儿有现成的热汤面。」','sys'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('厨子擦汗：「客官要吃些甚么？今儿有现成的热汤面。」','sys'); } }
         ]}
       ], objs:[
         { name:'菜案', icon:'🔪', desc:'案上码着时蔬鲜肉。', acts:[
@@ -232,7 +232,7 @@
       ], objs:[], areas:[] },
       ss_houyuan:{ name:'后院', icon:'🌿', desc:'静谧后院，水井与马厩所在。', npcs:[
         { name:'马夫', icon:'🧑‍🌾', desc:'喂马的粗豪汉子。', acts:[
-          { label:'闲谈', icon:'💬', fn:function(){ log('马夫道：「好马得喂饱豆料，跑长途才不掉链子。」','sys'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('马夫道：「好马得喂饱豆料，跑长途才不掉链子。」','sys'); } }
         ]}
       ], objs:[
         { name:'水井', icon:'⛲', desc:'后院老井，井水清冽。', acts:[
@@ -247,7 +247,7 @@
         { kind:'npc', name:'杂货掌柜', icon:'🧑‍💼', desc:'眯眼算账的老朝奉。', acts:[
           { label:'采买补给', icon:'🛒', fn:function(){ if(!exert('采买补给')) return; S().drink=S().maxDrink; log('水囊火折尽数补齐，长途无虞（饮水补满）。','good'); renderStatus(); openModal('building'); } },
           { label:'采办物料', icon:'🪵', fn:function(){ openModal('shop', {shop:'build_pedlar'}); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('朝奉道：「客官要寻甚稀罕物？'+bldZihao()+'虽小，货路却宽，或能凑办。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('朝奉道：「客官要寻甚稀罕物？'+bldZihao()+'虽小，货路却宽，或能凑办。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'货架', icon:'📦', desc:'靠墙货架，瓶罐竹篾杂列。', acts:[
           { label:'翻看货品', icon:'👀', fn:function(){ log('你拂过架上尘土，瓶罐间多是油烛绳结之类。','sys'); openModal('building'); } }
@@ -257,7 +257,7 @@
     areas:{
       zh_ku:{ name:'库房', icon:'📦', desc:'堆满筐篓杂货的后库。', npcs:[
         { name:'伙计', icon:'🧑', desc:'蹲着捆扎货物的小伙计。', acts:[
-          { label:'闲谈', icon:'💬', fn:function(){ log('伙计道：「客官要的稀罕物，得翻箱倒柜寻寻。」','sys'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('伙计道：「客官要的稀罕物，得翻箱倒柜寻寻。」','sys'); } }
         ]}
       ], objs:[
         { name:'杂物堆', icon:'📦', desc:'墙角摞着竹篾油烛之类。', acts:[
@@ -289,7 +289,7 @@
     areas:{
       gz_liao:{ name:'料场', icon:'🪵', desc:'木料石料堆积如山的场院。', npcs:[
         { name:'料场匠人', icon:'🧑‍🔧', desc:'监看料场的副匠。', acts:[
-          { label:'闲谈', icon:'💬', fn:function(){ log('匠人道：「好料出好活，这粱木得选三年的杉木才扛得住。」','sys'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('匠人道：「好料出好活，这粱木得选三年的杉木才扛得住。」','sys'); } }
         ]}
       ], objs:[
         { name:'木料堆', icon:'🪵', desc:'成捆的原木与板材。', acts:[
@@ -307,7 +307,7 @@
       interior: [
         { kind:'npc', name:'酒楼掌柜', icon:'🧑‍🍳', desc:'胖掌柜笑面迎客，算盘珠响。', acts:[
           { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; S().food=S().maxFood; S().drink=Math.max(S().drink, Math.round((S().maxDrink||0)*0.7)); log('热馔醇酿下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('掌柜道：「客官可知，这壶中物最误事，也最解忧。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('掌柜道：「客官可知，这壶中物最误事，也最解忧。」','sys'); openModal('building'); } }
         ]},
         { kind:'npc', name:'店小二', icon:'🧑', desc:'穿梭席间的伶俐伙计。', acts:[
           { label:'唤小二添酒', icon:'🍶', fn:function(){ if(!exert('唤小二')) return; log('小二拎壶过来满上：「客官慢用，今儿有上好的黍酒！」','sys'); } },
@@ -332,7 +332,7 @@
       interior: [
         { kind:'npc', name:'染匠', icon:'🧑‍🎨', desc:'满臂染渍的老师傅。', acts:[
           { label:'染布', icon:'🎨', fn:function(){ if(!exert('染布')) return; log('你将素绢投入染缸，绞出时已是青碧如水。','sys'); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('染匠道：「'+bldZihao()+'的靛青得发酵七日，急不得；色不正，是火候没到。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('染匠道：「'+bldZihao()+'的靛青得发酵七日，急不得；色不正，是火候没到。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'染缸', icon:'🪣', desc:'数口大缸，色水幽深。', acts:[
           { label:'翻看染缸', icon:'👀', fn:function(){ log('缸中靛蓝、茜红、栀子黄，各色沉浮。','sys'); } }
@@ -352,7 +352,7 @@
       interior: [
         { kind:'npc', name:'糕点娘', icon:'👩‍🍳', desc:'系着围裙、笑靥如花的少妇。', acts:[
           { label:'买糕点', icon:'🍪', fn:function(){ if(!exert('买糕点')) return; S().food=Math.min(S().maxFood,(S().food||0)+12); log('你称了斤许蜜糕胡饼，粮草稍济（粮草+12）。','good'); renderStatus(); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('糕点娘道：「客官尝尝这杏仁酥，是家翁从长安学来的方子——咱'+bldZihao()+'就靠这手艺立足。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('糕点娘道：「客官尝尝这杏仁酥，是家翁从长安学来的方子——咱'+bldZihao()+'就靠这手艺立足。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'蒸笼', icon:'🥟', desc:'竹蒸笼叠得老高，热气直冒。', acts:[
           { label:'掀笼看货', icon:'👀', fn:function(){ log('笼中米糕雪白、枣泥酥红，香气扑鼻。','sys'); } }
@@ -364,7 +364,7 @@
       interior: [
         { kind:'npc', name:'钱庄掌柜', icon:'🧓', desc:'戴玳瑁镜、拨算盘的老朝奉。', acts:[
           { label:'兑换金银', icon:'🪙', fn:function(){ log('掌柜将银锭秤了又秤，开出庄票一张：「客官收好，凭票通兑。」','sys'); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('老朝奉低声：「'+bldZihao()+'是本城老字号，钱在手里不如粮在仓——兵荒马乱的，客官当心。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('老朝奉低声：「'+bldZihao()+'是本城老字号，钱在手里不如粮在仓——兵荒马乱的，客官当心。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'钱柜', icon:'🗄️', desc:'沉重的铁柜，锁孔幽深。', acts:[
           { label:'打量钱柜', icon:'👀', fn:function(){ log('钱柜纹丝不动，想是极沉；账房先生瞪了你一眼。','sys'); } }
@@ -377,7 +377,7 @@
         { kind:'npc', name:'铁匠', icon:'🧔', desc:'赤膊壮汉，臂有刺青，锤不离手。', acts:[
           { label:'打制兵器', icon:'⚔', fn:function(){ if(!exert('打铁')) return; S().atk=(S().atk||0)+2; log('铁匠为你打就一柄厚背刀，寒光逼人（攻击+2）。','good'); renderStatus(); openModal('building'); } },
           { label:'修整甲胄', icon:'🛡️', fn:function(){ if(!exert('修甲')) return; S().def=(S().def||0)+2; log('铁匠敲敲打打，将你甲胄补得严丝合缝（防御+2）。','good'); renderStatus(); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('铁匠抹汗：「好钢需千锤——'+bldZihao()+'的招牌也是这么熬出来的。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('铁匠抹汗：「好钢需千锤——'+bldZihao()+'的招牌也是这么熬出来的。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'熔炉', icon:'🔥', desc:'炉膛通红，炭火噼啪。', acts:[
           { label:'看打铁', icon:'👀', fn:function(){ if(!exert('看打铁')) return; log('你看着铁匠抡锤，火星溅起如萤，一柄剑坯渐成。','sys'); } }
@@ -421,7 +421,7 @@
       interior: [
         { kind:'npc', name:'茶博士', icon:'🧑', desc:'提壶续水的老茶倌。', acts:[
           { label:'上茶', icon:'🍵', fn:function(){ if(!exert('上茶')) return; S().drink=Math.min(S().maxDrink,(S().drink||0)+10); log('一盏清茶入喉，润喉解乏（饮水+10）。','good'); renderStatus(); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('茶博士道：「'+bldZihao()+'这壶中茶如人生，头苦二甘三回甜——客官细品。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('茶博士道：「'+bldZihao()+'这壶中茶如人生，头苦二甘三回甜——客官细品。」','sys'); openModal('building'); } }
         ]},
         { kind:'npc', name:'说书先生', icon:'🗣️', desc:'醒木轻敲，正讲三分天下。', acts:[
           { label:'听说书', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('说书先生：「且说那赤壁一把火，烧得北船樯橹灰飞烟灭……」满座唏嘘。','sys'); } },
@@ -435,7 +435,7 @@
         { kind:'npc', name:'赌徒', icon:'🎲', desc:'眼发红、袖藏骰的精瘦汉。', acts:[
           { label:'掷骰一博', icon:'🎲', danger:true, fn:function(){ if(!exert('赌博')) return; var win=Math.random()<0.5; log(win?'你押中点数，赢得几贯，眉开眼笑。':'你手气不济，输了几文，懊恼不已。','sys'); openModal('building'); } },
           { label:'豪赌一场', icon:'🎲', danger:true, when:'night', fn:function(){ if(!exert('豪赌')) return; if(S().gold<20){ log('赌徒乜斜你一眼：「囊中羞涩，也敢进这夜局？」','sys'); return; } var win=Math.random()<0.45; if(win){ S().gold+=30; log('入夜赌局灯火如昼，你押上重注，骰子落定——通吃！银两 +30（当前 '+S().gold+'）。','good'); } else { S().gold-=30; log('入夜赌局灯火如昼，你押上重注，骰子翻落——血本无归，银两 -30（当前 '+S().gold+'）。','bad'); } openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ var h=S().time%12; log(h>=10||h<=1 ? '赌徒压低声：「客官来得正是时候，入夜的局子才够味——敢不敢玩把大的？」' : '赌徒嘿嘿一笑：「'+bldZihao()+'白日小赌怡情，入夜才有大场面——十赌九输，可偏有人想着那一赢。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ var h=S().time%12; log(h>=10||h<=1 ? '赌徒压低声：「客官来得正是时候，入夜的局子才够味——敢不敢玩把大的？」' : '赌徒嘿嘿一笑：「'+bldZihao()+'白日小赌怡情，入夜才有大场面——十赌九输，可偏有人想着那一赢。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'骰盆', icon:'🥏', desc:'青瓷骰盆，六子乱滚。', acts:[
           { label:'看人下注', icon:'👀', fn:function(){ log('盆边围了三两人，吆五喝六，热闹非常。','sys'); } }
@@ -447,7 +447,7 @@
       interior: [
         { kind:'npc', name:'马贩', icon:'🧑‍🌾', desc:'络腮胡、懂马性的老行家。', acts:[
           { label:'相马买马', icon:'🐴', fn:function(){ if(!exert('相马')) return; if(packAdd('horse',1)) log('你相中一匹栗色川马，蹄声如鼓，正堪长途。','good'); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('马贩道：「西凉马骏，幽州马韧，南马矮而温——'+bldZihao()+'走南闯北，各有所用。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('马贩道：「西凉马骏，幽州马韧，南马矮而温——'+bldZihao()+'走南闯北，各有所用。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'马厩', icon:'🐎', desc:'并排马槽，料豆清香。', acts:[
           { label:'喂马', icon:'🌾', fn:function(){ if(!exert('喂马')) return; log('你添了把料豆，马儿打响鼻，蹭了蹭你手心。','sys'); } }
@@ -459,7 +459,7 @@
       interior: [
         { kind:'npc', name:'书生', icon:'🧑‍🎓', desc:'青衫落拓、指染墨痕的儒生。', acts:[
           { label:'购简抄书', icon:'📜', fn:function(){ if(!exert('购书')) return; if(packAdd('zhujian',1)) log('你购得几卷竹简，或为兵法，或为诗赋，沉甸甸压肩。','sys'); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ log('书生叹：「蔡侯纸虽已出世，价昂而难得，寻常仍用竹简——'+bldZihao()+'架上，韦编三绝，非虚言也。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ log('书生叹：「蔡侯纸虽已出世，价昂而难得，寻常仍用竹简——'+bldZihao()+'架上，韦编三绝，非虚言也。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'简牍架', icon:'📚', desc:'架上竹简层层，麻绳编缀。', acts:[
           { label:'翻看简牍', icon:'👀', fn:function(){ if(!exert('翻简')) return; log('你抽出一卷，墨迹古拙，辨得「兵马未动，粮草先行」八字。','sys'); } }
@@ -471,7 +471,7 @@
       interior: [
         { kind:'npc', name:'香铺掌柜', icon:'🧓', desc:'面容慈和的香铺东家。', acts:[
           { label:'请香烛', icon:'🕯️', when:'morn', fn:function(){ if(!exert('请香')) return; if(packAdd('xiang',1)) log('晨光初透，掌柜捧出今晨新卷的头香：「'+bldZihao()+'晨起开张，头炷香最灵——客官有缘，请了这炷，心诚则灵。」','good'); openModal('building'); } },
-          { label:'闲谈', icon:'💬', fn:function(){ var h=S().time%12; log(h===3||h===4 ? '掌柜合十道：「晨光初透，正是开张时——'+bldZihao()+'的头香最灵，客官请一炷？」' : '掌柜合十道：「小店卯时开张、过午歇业——'+bldZihao()+'的规矩，客官记牢了，莫扑空。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ var h=S().time%12; log(h===3||h===4 ? '掌柜合十道：「晨光初透，正是开张时——'+bldZihao()+'的头香最灵，客官请一炷？」' : '掌柜合十道：「小店卯时开张、过午歇业——'+bldZihao()+'的规矩，客官记牢了，莫扑空。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'香案', icon:'🕯️', desc:'供着神主，香炉余烬。', acts:[
           { label:'上香', icon:'🙏', fn:function(){ if(!exert('上香')) return; log('你拈香三拜，青烟袅袅，心头稍静。','sys'); } }

@@ -1566,6 +1566,8 @@
   .set-panel.hidden{display:none;}
   /* 标题特效关闭：隐藏烟尘/墨晕层 */
   #title.no-fx .tt-inkfx,#title.no-fx .tt-dust,#title.no-fx .tt-inkblot{display:none;}
+  /* 弹窗打开时冻结标题重绘：SVG 墨晕滤镜(feTurbulence)极耗 CPU，择档时尤显卡顿 */
+  #title.frozen .tt-inkfx,#title.frozen .tt-dust,#title.frozen .tt-inkblot{display:none;}
   /* 捏人 / 序章 —— 重排版 v20260908j */
   .cr-head{display:flex;align-items:center;gap:12px;margin-bottom:4px;}
   .cr-head-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(158,59,46,.45),transparent);}

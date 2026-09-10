@@ -116,10 +116,13 @@
       var pk = S().pack, it = pk[idx]; if (!it) return;
       if (it.cat === '装备') { toast('装备需拖至装备栏，不可直接使用。'); return; }
       if (it.effect) {
-        if (it.effect.hp) { S().hp = Math.min(S().maxHp, S().hp + (it.effect.hp || 0)); toast('伤势略缓（+' + (it.effect.hp || 0) + '）。'); }
-        if (it.effect.mp) { S().mp = Math.min(S().maxMp, S().mp + (it.effect.mp || 0)); toast('内息稍复（+' + (it.effect.mp || 0) + '）。'); }
-        if (it.effect.food) { S().food = Math.min(100, (S().food || 0) + (it.effect.food || 0)); toast('腹中稍暖（+' + (it.effect.food || 0) + '）。'); }
-        if (it.effect.drink) { S().drink = Math.min(100, (S().drink || 0) + (it.effect.drink || 0)); toast('喉间得润（+' + (it.effect.drink || 0) + '）。'); }
+        var e = it.effect, gain = 0, full = [], msgs = [];
+        if (e.hp) { if (S().hp >= S().maxHp) full.push('气血'); else { S().hp = Math.min(S().maxHp, S().hp + e.hp); gain++; msgs.push('伤势略缓（+' + e.hp + '）'); } }
+        if (e.mp) { if (S().mp >= S().maxMp) full.push('内息'); else { S().mp = Math.min(S().maxMp, S().mp + e.mp); gain++; msgs.push('内息稍复（+' + e.mp + '）'); } }
+        if (e.food) { if ((S().food || 0) >= 100) full.push('食'); else { S().food = Math.min(100, (S().food || 0) + e.food); gain++; msgs.push('腹中稍暖（+' + e.food + '）'); } }
+        if (e.drink) { if ((S().drink || 0) >= 100) full.push('饮'); else { S().drink = Math.min(100, (S().drink || 0) + e.drink); gain++; msgs.push('喉间得润（+' + e.drink + '）'); } }
+        if (gain === 0) { toast('「' + it.name + '」所滋补皆已满，留着吧。'); return; }   // 对应属性已满 → 拦截，防误点浪费
+        toast(msgs.join('；') + (full.length ? '（' + full.join('、') + '已满，未耗）' : ''));
       } else if (it.maxDur) { toast('「' + it.name + '」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
       else { toast('此物暂无可施用之效。'); return; }
       it.count--; if (it.count <= 0) pk[idx] = null;
