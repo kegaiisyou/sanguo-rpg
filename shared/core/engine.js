@@ -252,7 +252,7 @@
     setCityDev: setCityDev, cityDevOf: cityDevOf, advanceTime: advanceTime, renderRoom: renderRoom,
     getCombatMode: function () { return combatMode; },
     getCard: function () { return $card; }, getCurrentModalKind: function () { return currentModalKind; },
-    openModal: openModal, closeModal: closeModal
+    openModal: openModal, closeModal: closeModal, talk: talk
   });
   var bldCurArea = Building.bldCurArea, bldDef = Building.bldDef,
       renderBuildingPanel = Building.renderBuildingPanel, bindBuildingPanel = Building.bindBuildingPanel,
@@ -1599,11 +1599,10 @@
       return items;
     }
   };
-  // 城中可做之事：保留信息类「城况一览」，移除空泛的「逛市集/维持治安」互动（逛市集改由城内市集格进入，维持治安暂由剧情触发）
+  // 城中可做之事：城况一览已归山河图（点城池即看），城市视图不再常驻该钮；仅留「兴修城垣」
   function cityActs(cid){
     var p=cityProfile(cid); if(!p) return [];
     var out=[];
-    out.push({id:'city_stat', label:'城况一览', icon:'📊', tip:'查看本城参数、城型与市集'});
     out.push({id:'city_upgrade', label:'兴修城垣', icon:'🧱', tip:'拓建城池，提升城市等级（耗砖石木）'});
     return out;
   }
@@ -1931,10 +1930,10 @@
           toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts);
         });
       });
-      // 城市级动作（城况一览 / 逛市集）并入场景——非网格城在下方 cityActs 分支渲染，此处补回以免网格城缺漏；
-      // 这两个意图明确，单击直达，不再套「执 行」菜单
+      // 城市级动作并入场景——非网格城在下方 cityActs 分支渲染，此处补回以免网格城缺漏；
+      // 意图明确，单击直达，不再套「执 行」菜单
       cityActs(room.id).forEach(function(a){
-        if(a.id!=='city_stat' && a.id!=='market') return;
+        if(a.id!=='city_upgrade') return;
         mkAct('scene', a.icon||'·', a.label, function(e){ handleAction(a.id, a); });
       });
       // 玩家在城内营造的建筑 / 放置的设备，作为场景物件一并展示（按房间整体存储，城内各处皆可寻得）
@@ -3019,6 +3018,10 @@
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
         enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
         break;
+      case 'enter_laoqu':
+        if(!exert('踏入牢区')) return;
+        enterBldRoom('laoqu', {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:1), y:(state.flags.cityPos?state.flags.cityPos.y:1)});
+        break;
       case 'recruit':
         if(!exert('入营募兵')) return;
         state.flags.recruited=state.flags.recruited||{};
@@ -3768,8 +3771,8 @@
     var labored=!!onb.labored, surveyed=!!onb.surveyed;
     if(!labored) return {text:'担石劳作，先熟悉营中苦役（点下方「担石劳作」）', sel:'#actions .act[data-act="labor_yard"]'};
     if(!surveyed) return {text:'环顾劳役场，看清几处去路（点「环顾四周」）', sel:'#actions .act[data-act="survey_yard"]'};
-    if(!(f.route && f.route.crypt)) return {text:'去找讲古的周听涛，探听出营门道（劳役场·周听涛）', sel:'#npc-list .nl-item[data-k="zhoutingtao"]'};
-    if(!(f.task && f.task.signal)) return {text:'去囚室（西）与默叔对上暗号', sel:'#npc-list .nl-item[data-k="moshu"]'};
+    if(!(f.route && f.route.crypt)) return {text:'去牢区·天字一号牢房找讲古的周听涛，探听出营门道（点「进·牢区」）', sel:'#actions .act[data-act="enter_laoqu"]'};
+    if(!(f.task && f.task.signal)) return {text:'去牢区·天字二号牢房与默叔对上暗号', sel:'#actions .act[data-act="enter_laoqu"]'};
     // 已对暗号：去任一枢纽决断出营（塌墙根北 / 岗哨南）
     var sel=null;
     if(document.querySelector('#actions .act[data-act="wall_choose"]')) sel='#actions .act[data-act="wall_choose"]';

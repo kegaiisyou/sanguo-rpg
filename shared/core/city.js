@@ -119,8 +119,8 @@ window.LF = window.LF || {};
     // 生成城内部按网格坐标注入具名 NPC / 场景动作，使新手教程可在真实城市里展开。
     var TUTORIAL_CITY_NPCS = {
       kuyilao: {
-        '1,1': ['laotou', 'zhoutingtao', 'qin_jiuxiao'],  // 中军场院（劳役场）
-        '1,0': ['moshu'],                                  // 囚室
+        '1,1': ['laotou', 'qin_jiuxiao'],                 // 中军场院（劳役场）
+        '1,0': [],                                         // 囚室（默叔已迁入牢区·天字二号）
         '2,1': ['chen_jian', 'wu_suan', 'zheng_gang'],     // 仓库（仓吏由 warehouse() 自动生成）
         '2,0': ['shi_si', 'gou_san'],                      // 矿坑
         '0,1': ['lin_niang'],                              // 伙房
@@ -132,7 +132,8 @@ window.LF = window.LF || {};
     var TUTORIAL_CITY_ACTS = {
       kuyilao: {
         '1,1': [{ id: 'labor_yard', label: '担石劳作', tip: '按狱卒吩咐扛石运土——熟悉劳作，点亮状态栏。' },
-                { id: 'survey_yard', label: '环顾四周', tip: '勘察劳役场，看清几处去路。' }],
+                { id: 'survey_yard', label: '环顾四周', tip: '勘察劳役场，看清几处去路。' },
+                { id: 'enter_laoqu', label: '进·牢区', tip: '踏入牢区，天字、地字六间牢房列于两侧。' }],
         '2,1': [{ id: 'survey_warehouse', label: '翻找仓库', tip: '墙角倚着闲镐锄，竹木随手可取。' }],
         '1,2': [{ id: 'wall_choose', label: '决断出营·墙根', tip: '于塌墙根（南门）盘算出营法子。' }],
         '2,2': [{ id: 'train_dummy', label: '戳木人桩', tip: '演武场木人桩练拳脚，战力达标可强突。' }]
@@ -510,7 +511,7 @@ window.LF = window.LF || {};
       }
       // v20260905h：出城统一走移动罗盘——立于城门格时，罗盘自动出现朝外的「出城」方向。
       // 不再提供「出城门」场景按钮；任意格可用「前往城门」自动寻路抵门（不出城），到门后由罗盘定向踏出。
-      if (t !== 'gate') out.push({ id: 'leave_auto', label: '前往城门', icon: '🚪', tip: '自动沿可通行道路行至最近城门；出城请在城门看罗盘，朝外方向踏出' });
+      if (t !== 'gate') { /* 前往城门：归山河图/城门罗盘，城市视图不再常驻此钮 */ }
       // ── 政令台（v20260826g 身份系统）：立于中枢且此城归你所统，方能发号 ──
       if (x === cx && y === cy && cityOwnerOf(cid) === playerFaction()) {
         out.push({ id: 'edict', label: '政令台', icon: '📜', tip: '于此发号政令：征税、安民、观天下大势' });
