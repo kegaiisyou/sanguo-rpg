@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260911h`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260911j`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -1000,4 +1000,40 @@
 
 ---
 
-*最后更新：2026-09-11（§9.63 序章开场动画 · 更鼓时间节拍 · NPC 作息铺开 · 文案统一；版本 20260911g）*
+### §9.64 v20260911j（当前）：营规闭环（劳役 · 查房 · 时辰锁定）+ 序章动效重做
+
+两批改动合并在本次提交：**先补营中「规矩」的强制力（v20260911i），再修序章的观感（v20260911j）**。
+
+**A · 时辰锚定与冻结（v20260911i）**
+- **动机**：教学期「介绍时辰」之前时间已在流动 —— 玩家在牢里反复打盹就能把一天推过去，出牢时常常已是深夜。
+- **落地**：`engine.js · clockFlowing()` —— 教学期（`flags.onb.started && !done`）内未置 `onb.clockOn` 时 `advanceTime()` 直接返回（时钟冻结）；`laotou_corridor`「看那更鼓」选项内新增触发器步骤 `{t:'setTime',hour:3,clock:360}`（并在该剧本末尾幂等兜底），踏出牢门一律拨回**卯时清晨**。`doRest` 在时辰未启时补一句提示。
+
+**B · 对话悬挂即锁场（v20260911i）**
+- **动机**：对话时仍能走动，甚至用「边走边答」躲开鞭打。
+- **落地**：新增 `askPending` 与 `interactBusy()=narrActive()||askPending`；`tutAsk` 置真、`removeTutChoices` 置假；`syncActionLock()` 改判 `interactBusy()`，锁定选择器扩到 `#dock button, #move-tabs .mv-tab`；`move()` / `goRoomOnMap()` 入口加守卫。
+- **关键边界**：`.onb-choices`（选项面板本身）**刻意不入锁** —— 否则对话悬挂即死局（实测：锁住后仍能点选项，但走不动）。
+
+**C · 苦役任务闭环（v20260911i）**
+- **动机**：交互只有单个按钮，缺少「交谈 → 发布 → 接受/拒绝 → 进度 → 复命领赏」。
+- **落地**：`story/triggers.js · LABOR_QUESTS`（labor/farm/haul 三桩，各挂当值 NPC，如牛铁的担石、郑刚的运石）`forEach` 生成四条触发器 `kq_<key>_offer/_give/_prog/_done`；`objectives.js` 加 `camp_labor/camp_farm/camp_haul`；引擎加 `flagNum/addFlagNum/needHave`（把「活计趟数」与「物品需求」统一换算成已得量）+ `laborQuestTick()`（劳作即累加 `flags.task.<key>_cnt`）。
+- **婉拒不是死路**：`kq_*_offer` 的 `notFlag _started` 条件使其可反复追问，改主意即接。
+
+**D · 巡夜查房（v20260911i）**
+- **落地**：`curfewPatrol()` + 触发器钩子 `onPatrol`（`curfew_patrol` 剧本：更鼓声 → 牢头拦下 → 两选项均 `forceRoom([1,0])` + `hurt(15,favor-1)` + 记 `missCount`）。
+- **踩坑（本批最隐蔽的一处）**：初版把 `curfewPatrol` 挂在 `setTimeout(...,0)` 上「延后一帧」，但它总在「劳作/进格」动作里被叫起 —— 此刻动作自身的文案正在打字（`interactBusy()` 为真），一帧根本轮不到它，**巡夜几乎永远不触发**。改为 `requestCurfewPatrol()` 记「待评」+ `syncActionLock()` 在叙事彻底收尾（active 转假）时续评一次，自愈且无轮询。
+
+**E · 序章动效重做（v20260911j）**
+- **动机**：旧版把 `prShake` 挂在 `.pr-stage` 上，整幕（连文字一起）反复 translate+rotate，读字时像在抖。
+- **落地「静字动景」**：文字层只用 `opacity + clip-path + blur` 自上而下展开（`.pr-line` 不再有 translate），**所有运动交给背景** —— 暗角呼吸漂移 `.pr-vig`(prVig)、押解光影 `#prologue.pr-sway .pr-vig`(prSway)、铁栅投影横扫 `.pr-bars`(prBars，位移 62px 与条纹周期一致、无缝循环)、灯火扫过 `.pr-scan`(prScan)、墨晕光斑 `.pr-ink`(prInk)、浮尘、镣铐轻摆；金色题头 `pr-kicker` 加金光呼吸 `prGlow`（只变 text-shadow）；收尾白光时 `.pr-lines` 极轻推近（发生在整幕淡出的 0.9s 内，非阅读期位移）。
+- **排期**：铁栅 420ms 先入画 → 900ms 镣铐 + 光影摇动 → 收尾前 700ms 止景（`.pr-vig` 加 transition 平滑回落，不跳帧）。
+
+**验证**（jsdom 无头 harness，本批 61 项断言全通过、0 运行期错误）
+- `_verify_labor.js`（35 项）：时辰冻结 / 更鼓校准回卯时 / 任务卡 0→1→3 / 复命入已完成并给赏 / 婉拒后再接受 / 巡夜押回+三鞭 / 归牢不重复用刑 / 对话悬挂时罗盘锁定。
+- `_verify_prologue.js`（26 项）：静态契约（`.pr-stage` 上无任何 animation、无 `pr-shake` 残留、`pr-sway` 只作用于 `.pr-vig`、文字层三条规则均无 translate/rotate/scale）+ 运行期（亮幕布 → `#app` 隐藏 → 3 行文案含金字题头 → 420ms 铁栅 → 900ms 镣铐+pr-sway → 演毕隐藏、清空文案、交还界面）。
+- 注：jsdom 未实现 Web Animations API，需给 `Element.prototype.animate` 打桩（纯环境补丁，未改业务代码）。
+
+**版本**：`constants.js` VERSION → `20260911j`；`index.html` 的 `css/game.css` / `constants.js` / `core/engine.js` 缓存参数对齐 `?v=20260911j`（`story/objectives.js` / `story/triggers.js` / `core/triggers.js` 停在 `?v=20260911i`，本批未再改动；标题页 `.tt-ver` 同步 j）。
+
+---
+
+*最后更新：2026-09-11（§9.64 营规闭环 + 序章动效重做；版本 20260911j）*

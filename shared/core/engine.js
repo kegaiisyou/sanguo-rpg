@@ -86,6 +86,9 @@
     renderMoveBar: renderMoveBar, renderNpcList: renderNpcList,
     addXp: function () { return addXp.apply(null, arguments); },
     acceptQuest: acceptQuest, completeQuest: completeQuest,
+    // setTimeOfDay / forceRoom 定义在本文件后段（函数声明提升，包装引用更稳，同 packAdd 范式）
+    setTimeOfDay: function () { return setTimeOfDay.apply(null, arguments); },
+    forceRoom: function () { return forceRoom.apply(null, arguments); },
     getOnbLayers: function () { return ONB_LAYERS; }
   });
   var checkTriggers = Triggers.checkTriggers, graduate = Triggers.graduate;
@@ -538,11 +541,14 @@
 
 
 
-  // ===== 序章开场动画（P0 · v20260911g）=====
+  // ===== 序章开场动画（P0 · v20260911g；动效重做 v20260911j）=====
   // 独立于叙事区（#narr）的全屏幕布 #prologue（DOM 见 index.html，样式见 game.css）：
-  //   黑幕 → 三段文案逐行浮现（押解微晃 + 镣铐垂影 + 浮尘）→ 一记白光 → 淡出。
+  //   黑幕 → 三段文案逐行浮现 → 一记白光 → 淡出。
   // 演出期间界面 #app 是隐藏的，故「动画演完，角色才出现在牢里」；随后的 camp_opening 剧本接着开场。
   // 文案取自 G.DIALOGUES.prologue（第一行作金色小标题）。轻触幕布 / 点「跳过」立即收尾。
+  // ★ v20260911j「静字动景」：原先 prShake 挂在 .pr-stage 上，整幕连文字一起 translate+rotate，
+  //   读字时像在抖。现改为——所有运动交给背景层（pr-sway 只晃暗角光影，加上铁栅横扫 pr-bars、
+  //   灯火扫过 pr-scan、墨晕光斑 pr-ink、浮尘、链条轻摆），文字层只用 opacity+clip-path+blur 浮现。
   // settings.textSpeed<=0（文字演出设为「瞬（无动画）」）时整段跳过，直接进牢房。
   function playPrologue(onDone){
     var box=document.getElementById('prologue');
@@ -551,6 +557,7 @@
     if(!box || !lines.length || speed<=0){ if(onDone) onDone(); return; }
     var wrap=document.getElementById('pr-lines');
     var chains=document.getElementById('pr-chains');
+    var bars=document.getElementById('pr-bars');
     var flash=document.getElementById('pr-flash');
     var timers=[], done=false;
     function T(fn, ms){ timers.push(setTimeout(fn, ms)); }
@@ -558,7 +565,7 @@
     function finish(){
       if(done) return; done=true; clearAll();
       box.removeEventListener('click', finish);
-      box.classList.remove('pr-shake');
+      box.classList.remove('pr-sway');        // 止景：收尾时不再晃背景
       box.classList.add('pr-out');            // .pr-out 淡出（.9s），随后彻底隐藏并把界面交还 #app
       timers.push(setTimeout(function(){
         box.classList.add('hidden');
@@ -567,9 +574,10 @@
       }, 900));
     }
     // 复位（同一会话内读档可能重播）
-    box.classList.remove('hidden','pr-out','pr-shake');
+    box.classList.remove('hidden','pr-out','pr-sway');
     if(flash) flash.classList.remove('on');
     if(chains) chains.classList.remove('on');
+    if(bars) bars.classList.remove('on');
     if(wrap){
       wrap.innerHTML='';
       lines.forEach(function(t, i){
@@ -589,8 +597,9 @@
         t0 += Math.max(1400, Math.min(2600, String(lines[idx]||'').length*55)) + 600;
       })(els[i], i);
     }
-    T(function(){ if(chains) chains.classList.add('on'); box.classList.add('pr-shake'); }, 900);        // 镣铐入画 + 押解微晃
-    T(function(){ box.classList.remove('pr-shake'); }, Math.max(1600, t0-700));                       // 收尾前止晃
+    T(function(){ if(bars) bars.classList.add('on'); }, 420);                                         // 铁栅投影先入画（背景层）
+    T(function(){ if(chains) chains.classList.add('on'); box.classList.add('pr-sway'); }, 900);       // 镣铐入画 + 光影摇动（只晃景，不晃字）
+    T(function(){ box.classList.remove('pr-sway'); }, Math.max(1600, t0-700));                        // 收尾前止景
     T(function(){ if(flash) flash.classList.add('on'); try{ SFX.hit(); }catch(e){} }, t0);            // 一记更鼓般的闪光
     T(finish, t0+860);
   }
@@ -691,18 +700,29 @@
   var narrOngoing=false; // 是否正处于「连续叙事」中（保证逐行间隙按钮仍锁定）
   var narrToken=0;      // 场景叙事令牌：新场景使旧序列失效，杜绝旧文字混入新场景
   var lockObserver=null;
+  // 对话/抉择悬挂态（v20260911i）：tutAsk 弹出而玩家尚未选择时置真。
+  //   此前只锁「叙事中」，对话选项面板一挂起（narrOngoing 已成假）玩家就能点罗盘走人——
+  //   甚至趁牢头念「三鞭」时拔腿溜走躲掉鞭刑，剧本状态与场景随之错位。
+  var askPending=false;
   // 是否正处于「文字输出中」（打字 / 排队 / 连续叙事）
   function narrActive(){ return logBusy || (logQueue && logQueue.length>0) || narrOngoing; }
+  // 交互闸门（v20260911i）：叙事中 / 对话抉择悬挂中，一律不许走动、不许另开岔路
+  function interactBusy(){ return narrActive() || askPending; }
   // 文字输出中：锁定交互按钮（变灰不可点），输出完成或快进到底后自动解锁
   // 注：战斗中（combatMode 为真）不锁 #actions —— 战斗指令菜单由战斗逻辑自行管理，不应被叙事锁挡住
+  // 注：.onb-choices（对话选项）刻意不在锁范围内 —— 它是悬挂态下玩家唯一的出路，锁住即死局。
   function syncActionLock(){
-    var active=narrActive();
-    var sel='#move-bar button, #npc button, .npc-panel button, .obj-panel button, .onb-choices button';
+    var active=interactBusy();
+    var sel='#move-bar button, #npc button, .npc-panel button, .obj-panel button, #dock button, #move-tabs .mv-tab';
     if(!combatMode) sel+=', #actions button:not(.cb-menu)';
     var nodes=document.querySelectorAll(sel);
     for(var i=0;i<nodes.length;i++){ if(active) nodes[i].classList.add('locked'); else nodes[i].classList.remove('locked'); }
     var narr=document.getElementById('narr');
     if(narr) narr.classList.toggle('typing', active);
+    // 巡夜续评（v20260911i）：curfewPatrol 常在「劳作/进格」动作里被叫起，而此时动作自身的
+    //   文案正在打字（interactBusy 为真），只延后一帧根本轮不到它 —— 于是它挂起「待评」，
+    //   等这轮叙事彻底收尾（active 转假）时再评一次。见 curfewPatrol 内的 curfewWant。
+    if(!active && curfewWant){ curfewWant=false; setTimeout(function(){ try{ curfewPatrol(); }catch(e){} }, 0); }
   }
   // 新场景/战斗开始时，丢弃旧场景残留的排队文字与打字定时器，避免文案串场
   function flushNarr(){
@@ -871,7 +891,7 @@
         var _qb=qtr.querySelector('.qt-clear'); if(_qb){ _qb.onclick=function(){ state.trackingQuest=null; renderStatus(); }; }
       } else if(qd){
         var _pt = (qd.need && qd.need.length)
-          ? qd.need.map(function(nd){ return nd.name+' '+Math.min(packCount(nd.item),nd.count)+'/'+nd.count; }).join('  ')
+          ? qd.need.map(function(nd){ return nd.name+' '+Math.min(needHave(nd),nd.count)+'/'+nd.count; }).join('  ')
           : (qd.submit ? ('提交 · '+qd.submit.npc) : '');
         qtr.style.display='';
         qtr.innerHTML='<span class="qt-ic">📜</span>追踪 · <b>'+qd.title+'</b><span class="qt-prog">'+_pt+'</span><button class="qt-clear" type="button">✕</button>';
@@ -961,6 +981,68 @@
       o.messToday=0;         // 当日换饭次数重置
     }
   }
+  // 教学期时间是否流动（v20260911i）：牢头「介绍时辰」（clockOn）之前，牢中时辰一律冻结。
+  //   理由同设计：玩家可能不敲门、只在牢里反复打盹，若时间照走，日头就被睡过去了。
+  function clockFlowing(){
+    var o=onbF();
+    if(!o || !o.started || o.done) return true;   // 非教学 / 已脱籍：照常流动
+    return o.clockOn===true;                      // 教学期：须等「介绍时辰」走过，时钟才起步
+  }
+  // 时辰定点（教学「介绍时辰」专用，v20260911i）：把更鼓拨到指定时辰。
+  //   出牢门的那一刻统一拨回清晨——于是「踏出牢门」永远是白天，不会出现「出门即深夜」的荒谬。
+  function setTimeOfDay(h, clock){
+    state.time=(((h==null?3:h)|0)%12+12)%12;
+    if(clock!=null) state.clock=Math.max(0,Math.min(1439, clock|0));
+    applyTimeRoutines(); renderStatus(); save(state);
+  }
+  // 强制落位（押回牢房等，v20260911i）：不走能耗/门禁，直接把人放到某格。
+  function forceRoom(rid, cell){
+    if(!G.ROOMS[rid] && !isCityGrid(rid)) return;
+    if(cell && isCityGrid(rid)) state.flags.cityPos={cid:rid, x:cell[0], y:cell[1]};
+    state.room=rid; save(state);
+    closeModal();
+    renderRoom(rid, true);
+  }
+  // ═══ 巡夜查房（v20260911i · 营规闭环）═══
+  // 营规未脱者：戌时起若还在营中游荡而未回牢房，巡夜狱卒必来拿人 ——
+  //   押回牢房 + 三鞭 + 记一次逾时（次日口粮按罚例加倍）。
+  //   于是「不回牢点卯」再不是躲开鞭子的办法，只把这顿鞭子往后拖；想安稳，就得赶在戌时前回牢销名。
+  var CAMP_SAFE_CELL={x:1, y:0};        // 牢房格（回牢销名处）＝视为已归牢
+  function inCellNow(){
+    if(/^camp_[td]z\d/.test(state.room||'')) return true;      // 天字/地字号子牢房
+    if(state.room==='camp_cell') return true;
+    if(state.room==='kuyilao'){
+      var cp=state.flags && state.flags.cityPos;
+      if(cp && cp.x===CAMP_SAFE_CELL.x && cp.y===CAMP_SAFE_CELL.y) return true;
+    }
+    return false;
+  }
+  function inCampNow(){
+    if(state.room==='kuyilao') return true;
+    return /^camp_/.test(state.room||'');
+  }
+  var curfewWant=false;   // 有一次巡夜因「正在演出」而让路，待叙事收尾后由 syncActionLock 续评
+  // 叫起巡夜：先记「待评」，再延后一帧试一次；若彼时仍在叙事，curfewWant 会留着，等空闲再续。
+  function requestCurfewPatrol(){ curfewWant=true; setTimeout(function(){ try{ curfewPatrol(); }catch(e){} }, 0); }
+  function curfewPatrol(){
+    curfewWant=false;
+    if(!state || state.dead) return false;
+    if(combatMode!==null) return false;
+    if(interactBusy()){ curfewWant=true; return false; }   // 正在演出/答话：挂起「待评」，等这茬过去再来拿人
+    if(!onbBound()) return false;                    // 已脱籍 / 营规未立：管不着
+    if(!isCurfewHour()) return false;                // 未到落锁时辰（戌→寅）
+    var o=onbF();
+    if(inCellNow()){                                 // 已归牢：销掉今夜「拿过了」的印记，出格再犯照样拿
+      if(o.forcedNight){ o.forcedNight=null; save(state); }
+      return false;
+    }
+    if(o.forcedNight===state.day) return false;      // 今夜已拿过一次，不重复用刑
+    if(!inCampNow()) return false;                   // 人不在营中（营外/郊野）：营规够不着
+    var fired=checkTriggers({ hook:'onPatrol', room: state.room });
+    if(fired) o.forcedNight=state.day;
+    save(state);
+    return !!fired;
+  }
   // 劳役（时间闭环核心，v20260911h）：一次劳作 = 一个时辰 + 精力，并累积工分换「劳字木片」。
   //   于是营中一日有了预算：干得越多，越须按时回牢销名、去伙房换饭、寻处歇息。
   function laborTick(label){
@@ -981,10 +1063,28 @@
     renderStatus(); save(state);
     return true;
   }
+  // 营中苦役 → 任务进度（v20260911i）：接了哪桩活，干一次就记一次数，任务日志据此显示 N/3。
+  //   三桩苦役（场院担石 / 田间务农 / 仓库搬石）各自独立计数，互不冒充。
+  var LABOR_QUEST_ID={ labor_yard:'labor', farm_work:'farm', haul_stones:'haul' };
+  var LABOR_QUEST_DEF={ labor:'camp_labor', farm:'camp_farm', haul:'camp_haul' };
+  function laborQuestTick(kind){
+    var key=LABOR_QUEST_ID[kind]; if(!key) return;
+    var t=(state.flags && state.flags.task) || null;
+    if(!t || !t[key+'_started'] || t[key+'_done']) return;
+    addFlagNum('flags.task.'+key+'_cnt', 1);
+    var q=(LF.QUEST_DEFS||{})[LABOR_QUEST_DEF[key]];
+    var n=flagNum('flags.task.'+key+'_cnt');
+    var goal=(q && q.need && q.need[0] && q.need[0].count) || 3;
+    log('〔任务·'+((q&&q.title)||'营中苦役')+'〕'+n+' / '+goal+(n>=goal?' —— 够了，回去复命。':''), n>=goal?'good':'sys');
+    save(state); renderStatus();
+  }
 
   // ===== 时间与生存消耗 =====
   function advanceTime(n){
     n=n||1;
+    // 教学期「时辰未启」（牢头尚未介绍时辰）→ 时间一律冻结（v20260911i）：
+    //   免得玩家不敲门、只在牢里反复打盹，一觉一觉把日头睡过去，把「出门」睡成了深夜。
+    if(!clockFlowing()) return;
     var before=state.clock;
     var total=before + n*120;
     var crossings=Math.floor(total/1440);   // 跨子夜次数 = 经过的天数
@@ -1004,6 +1104,9 @@
     maybeStarve();
     tickForge(n);   // 炉膛随时辰持续推进
     tickBuildOrders(crossings);   // 城市营造工单：跨日推进宏观委派 + 结算每日市租（第3步）
+    // 查房（v20260911i）：此刻若已过戌时又在营中游荡，巡夜狱卒便来拿人。
+    //   动作自身的文案正在打字，故走 requestCurfewPatrol（记「待评」+ 叙事收尾后由 syncActionLock 续评）。
+    requestCurfewPatrol();
   }
   // 由累计天数回写年号年序 + 年号名（年号随公元年自动切换：184→中平，杜绝 184 仍显「光和」）
   function syncCalendar(){
@@ -1257,6 +1360,27 @@
     for(var i=0;i<state.pack.length;i++){ var it=state.pack[i]; if(it && (it.defId||it.id)===id) n+=(it.count||1); }
     return n;
   }
+  // 旗标计数（v20260911i）：营中苦役的进度不是「物品×N」，而是「活计趟数」——落在 state.flags.task.<key>_cnt。
+  //   flagNum 取值 / addFlagNum 累加；needHave 把「物品需求」与「旗标需求」统一换算成「已有多少」，
+  //   供状态栏追踪条与任务卡共用（need 项无 flag 时按背包实时派生，见 story/objectives.js）。
+  function flagNum(path){
+    var ks=String(path).split('.'), c=state;
+    for(var i=0;i<ks.length;i++){ if(c==null) return 0; c=c[ks[i]]; }
+    return (typeof c==='number')?c:(parseInt(c,10)||0);
+  }
+  function addFlagNum(path, n){
+    var ks=String(path).split('.'), c=state;
+    for(var i=0;i<ks.length-1;i++){ if(c[ks[i]]==null) c[ks[i]]={}; c=c[ks[i]]; }
+    var k=ks[ks.length-1];
+    c[k]=(parseInt(c[k],10)||0)+(n||1);
+    return c[k];
+  }
+  function needHave(nd){
+    if(!nd) return 0;
+    if(nd.flag) return flagNum(nd.flag);
+    if(nd.item) return packCount(nd.item);
+    return 0;
+  }
   function acceptQuest(id){
     state.quests=state.quests||[]; if(state.quests.some(function(q){return q.id===id;})) return;
     var def=LF.QUEST_DEFS && LF.QUEST_DEFS[id]; if(!def) return;
@@ -1281,7 +1405,7 @@
     if(q.need && q.need.length){
       h+='<div class="q-need">';
       q.need.forEach(function(nd){
-        var have=packCount(nd.item), ok=have>=nd.count;
+        var have=needHave(nd), ok=have>=nd.count;
         h+='<div class="q-need-row'+(ok?' done':'')+'">'+
            '<span class="q-ic">'+(nd.icon||'')+'</span>'+
            '<span class="q-nm">'+nd.name+'</span>'+
@@ -2924,6 +3048,7 @@
   // ===== 行走探索 =====
   function move(dir, tid){
     if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }   // 战斗进行中禁止移动
+    if(interactBusy()){ toast('先把话说完 / 先做决断，再动身。'); return; }   // 对话悬挂时不许挪窝（v20260911i）
     // 郊野→城 哨兵出口：落到对应城门
     if(typeof tid==='string' && tid.indexOf('__gate__:')===0){
       var _p=tid.split(':'); arriveAtGate(_p[1], _p[2]); return;
@@ -3290,6 +3415,7 @@
   function goRoomOnMap(rid){
     var r=G.ROOMS[rid]; if(!r) return;
     if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    if(interactBusy()){ toast('先把话说完 / 先做决断，再动身。'); return; }   // 山河志跳格同样受闸（v20260911i）
     if(!exert('远行')) return;
     state.energy=Math.max(0,state.energy-4);
     state.food=Math.max(0,state.food-1);
@@ -3499,6 +3625,7 @@
           haul_stones: ['搬石料',   '你扛着石料往返奔走，肩头磨得发烫，粗布上都浸了汗碱。']
         }[id];
         if(!laborTick(_lm[0])) break;
+        laborQuestTick(id);                                  // 任务进度：干了哪桩活，就记哪桩数（v20260911i）
         if(!checkTriggers({hook:'onCustom', room: state.room})) log(_lm[1],'sys');
         break;
       }
@@ -3739,7 +3866,8 @@
     state.drink = Math.min(state.maxDrink, (state.drink||0)+Math.round(state.maxDrink*cfg.dr*hours*wxFac));
     if(state.defeated){ state.defeated=false; }
     save(state); renderStatus();
-    log('你在'+cfg.name+'歇了'+hours+'个时辰——气血内力精力渐复，饥渴亦有所解。'+(wxFac<1?'（惜'+((WEATHERS[state.weather]||{}).n||'')+'，无遮蔽处歇息吃力，恢复打了折扣。）':''),'good');
+    log('你在'+cfg.name+'歇了'+hours+'个时辰——气血内力精力渐复，饥渴亦有所解。'+(wxFac<1?'（惜'+((WEATHERS[state.weather]||{}).n||'')+'，无遮蔽处歇息吃力，恢复打了折扣。）':'')
+      +(!clockFlowing()?'（牢中时辰未启，天光不动——外头还没到放风的时候，日头再睡也翻不了篇。）':''),'good');
     closeModal();
     var _ambush = false;
     var _rroom = G.ROOMS[state.room];
@@ -4215,8 +4343,13 @@
       box.appendChild(b);
     });
     app.insertBefore(box, lower);
+    askPending=true;        // 悬挂：锁罗盘 / 行动 / NPC / 面板，逼玩家把话答完（v20260911i）
+    syncActionLock();
   }
-  function removeTutChoices(){ var b=document.getElementById('tut-choices'); if(b&&b.parentNode) b.parentNode.removeChild(b); }
+  function removeTutChoices(){
+    var b=document.getElementById('tut-choices'); if(b&&b.parentNode) b.parentNode.removeChild(b);
+    askPending=false; syncActionLock();   // 收起即解锁（若叙事未完，syncActionLock 会按当前状态继续锁）
+  }
   // [moved → shared/core/triggers.js] 触发引擎：数据驱动的「场景首访剧本」与「事件触发」。
   //   LF.createTriggers(ctx) 暴露 checkTriggers / graduate；getPath/setPath/isDay/resolveTpl/
   //   testCond/applySet/markDone/isDone/runSteps/runStep/runTrigger 一并抽离。
@@ -4341,6 +4474,9 @@
   // 进场钩子：交由触发引擎评估（首访剧本 / 锁退路 / 逃脱等）
   function onbRoomEnter(room){
     checkTriggers({hook:'onEnter', room: room.id});
+    // 刚踏进一处，看看是否已过戌时（v20260911i）：营中夜游者，巡夜狱卒立时来拿。
+    //   不插进本格 onEnter 剧本中间，也让刚落位的叙事先把话说完 —— 由 requestCurfewPatrol 记「待评」。
+    requestCurfewPatrol();
   }
   // 脚本化引导战斗（现迁移至练武场·木人桩，由韩铁逐步教学：攻击/防御/道具/撤退）
   function renderEquipPanel(){
@@ -4771,6 +4907,7 @@
     try{ SFX.close(); }catch(e){}   // 弹窗关闭音效（v20260909a）
     if(currentModalKind==='shop') Shop.restoreTradePending();   // 关店归还寄售真物，避免退出后丢失
     currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
+    syncActionLock();        // 收起弹窗后重算交互锁（对话悬挂未答完则仍锁着，v20260911i）
   }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   var $modalX=document.getElementById('modal-x');

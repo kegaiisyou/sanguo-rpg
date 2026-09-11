@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>乱世烽火 · 水墨</title>
-<link rel="stylesheet" href="shared/css/game.css?v=20260911g" />
+<link rel="stylesheet" href="shared/css/game.css?v=20260911j" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -66,17 +66,22 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260911h</div>
+    <div class="tt-ver" id="tt-ver">v20260911j</div>
   </div>
 </div>
 
-<!-- 序章开场动画（P0 · v20260911g）：全屏水墨幕布，三段文案逐行浮现（押解微晃 + 镣铐垂影 + 浮尘），
+<!-- 序章开场动画（P0 · v20260911g；动效重做 v20260911j）：全屏水墨幕布，三段文案逐行浮现，
      收尾白光一闪、幕落，角色此时才「被推进牢房」（脚本见 core/engine.js · playPrologue）。
      独立于 #narr，故动画期间叙事区为空；轻触幕布或点「跳过」立即收尾。
+     ★ v20260911j：改为「静字动景」——所有运动放在背景层（暗角呼吸 / 押解光影 / 铁栅投影横扫
+       / 灯火扫过 / 墨晕光斑 / 浮尘 / 镣铐轻摆），文字只用 opacity + clip-path + blur 浮现，绝不位移。
      文字速度设为「瞬（无动画）」时整段跳过。 -->
 <div id="prologue" class="hidden" aria-hidden="true">
   <div class="pr-vig"></div>
   <div class="pr-grain"></div>
+  <div class="pr-ink"><i></i><i></i><i></i></div>
+  <div class="pr-bars" id="pr-bars"></div>
+  <div class="pr-scan"></div>
   <div class="pr-dust"><i></i><i></i><i></i><i></i><i></i><i></i></div>
   <div class="pr-chains" id="pr-chains"><i></i><i></i><i></i><i></i></div>
   <div class="pr-stage"><div class="pr-lines" id="pr-lines"></div></div>
@@ -126,16 +131,16 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260911h"></script>
+<script src="shared/config/constants.js?v=20260911j"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
 <script src="shared/story/skills.js?v=20260902a"></script>
-<script src="shared/story/objectives.js?v=20260911a"></script>
+<script src="shared/story/objectives.js?v=20260911i"></script>
 <script src="shared/story/events.js?v=20260902a"></script>
 <script src="shared/story/dialogues.js?v=20260911h"></script>
     <script src="shared/story/rooms.js?v=20260911h"></script>
-    <script src="shared/story/triggers.js?v=20260911h"></script>
+    <script src="shared/story/triggers.js?v=20260911i"></script>
     <script src="shared/data/martial.js?v=20260910j"></script>
 <script src="shared/data/enemies.js?v=20260902a"></script>
 <script src="shared/data/items.js?v=20260911h"></script>
@@ -160,7 +165,7 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/calendar.js?v=20260910w"></script>
   <script src="shared/core/save.js?v=20260910w"></script>
   <script src="shared/core/dev.js?v=20260910k"></script>
-  <script src="shared/core/triggers.js?v=20260911h"></script>
+  <script src="shared/core/triggers.js?v=20260911i"></script>
   <script src="shared/core/city.js?v=20260911h"></script>
   <script src="shared/core/inventory.js?v=20260910u"></script>
   <script src="shared/core/mapview.js?v=20260909h"></script>
@@ -173,6 +178,6 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/charcreate.js?v=20260909h"></script>
   <script src="shared/core/equipment.js?v=20260909i"></script>
   <script src="shared/core/crafting.js?v=20260909j"></script>
-  <script src="shared/core/engine.js?v=20260911h"></script>
+  <script src="shared/core/engine.js?v=20260911j"></script>
 </body>
 </html>

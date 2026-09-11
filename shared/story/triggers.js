@@ -67,16 +67,40 @@
   });
 
   // 2) 周听涛·说书人+相士底：初次交谈，自介并发布「寻吃食」任务
+  //    v20260911i：任务改为「当面取舍」——先由玩家应下（或婉拒），acceptQuest 才把它记进任务日志。
+  //    旧版是话还没问完就先替玩家接了任务（acceptQuest 排在 npcTalk 之前），等于剥夺了玩家的选择。
   TRIGGERS.push({
     id: 'zt_intro', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: true,
     cond: { notFlag: 'flags.task.zt_intro' },
     steps: [
-      { t: 'setFlag', path: 'flags.task.zt_intro', value: true },
-      { t: 'acceptQuest', id: 'zt_food' },
+      { t: 'setFlag', path: 'flags.task.zt_intro', value: true },   // 「谈过」≠「接下」，婉拒后由 zt_retry 再问
       { t: 'npcTalk', npc: 'zhoutingtao',
-        prompt: '尘埃稍落，你才看清栅里那人：蓬头垢面，满身碎布条与旧伤痕，眼神却清亮。他捋了捋乱发，拖长腔道：「某周听涛，可是天下间数一数二的相士——」忽又压低嗓子：「你这新来的，眼中被迷了尘，看不清人影，却瞒不过老夫的招子。你命数古怪，似一颗我看不透的变数。」',
+        prompt: '尘埃稍落，你才看清栅里那人：蓬头垢面，满身碎布条与旧伤痕，眼神却清亮。他捋了捋乱发，拖长腔道：「某周听涛，可是天下间数一数二的相士——」忽又压低嗓子：「你这新来的，眼中被迷了尘，看不清人影，却瞒不过老夫的招子。你命数古怪，似一颗我看不透的变数。」他屈指敲了敲栅栏：「老夫替人窥命数，向来要些酬劳——你且去营中寻些吃食来。待你寻来，老夫便替你把这道乱命，寻出一丝破解之法。如何，这桩差事，你应是不应？」',
         asks: [
-          { label: '〔请教先生〕', say: '周听涛敲了敲栅栏：「老夫替人窥命数，向来要些酬劳——你且去营中寻些吃食来。待你寻来，老夫便替你把这道乱命，寻出一丝破解之法。」〔任务：寻来吃食，交予周听涛。〕' }
+          { label: '〔应下〕好，我去寻些吃食来。',
+            set: { 'flags.task.zt_accepted': true },
+            say: '你点头应下。周听涛咧嘴一笑，露出豁牙：「痛快！〔寻吃食·破命数〕已替你记在册上了——常点下头「任务」看看进度，别把老夫的饼忘了。」',
+            then: [ { t: 'acceptQuest', id: 'zt_food' } ] },
+          { label: '〔婉拒〕我一个将死之人，不信什么命数。',
+            say: '周听涛也不恼，拖长腔笑了一声：「命数这东西，你信它时它才压你。也罢——几时想通了，几时再来寻老夫。」〔婉拒：任务未接，随时可回来应下。〕' }
+        ] }
+    ]
+  });
+
+  // 2.1) 婉拒之后再问一次：周听涛仍愿把差事交你，答应的那一刻才入任务日志
+  //    （旧版婉拒即断线；此处让「拒绝」是个真选项，而不是把路堵死）
+  TRIGGERS.push({
+    id: 'zt_retry', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: false,
+    cond: { flags: { 'flags.task.zt_intro': true }, notFlag: 'flags.task.zt_accepted' },
+    steps: [
+      { t: 'npcTalk', npc: 'zhoutingtao',
+        prompt: '周听涛斜靠栅栏，似笑非笑地看你，手里捏着根草茎：「如何，可想通透了？替老夫寻些吃食来——我便替你掐一掐这道乱命的头绪。」',
+        asks: [
+          { label: '〔应下〕我这就去寻。',
+            set: { 'flags.task.zt_accepted': true },
+            say: '「好，好。」周听涛搓了搓手，把草茎一折：「〔寻吃食·破命数〕记你册上了。伙房在营西，拿木片换得动吃食。」',
+            then: [ { t: 'acceptQuest', id: 'zt_food' } ] },
+          { label: '〔仍不〕再容我想想。', say: '「也罢，也罢。」他摆摆手，重新拖起长腔，讲他那些真真假假的三国。' }
         ] }
     ]
   });
@@ -86,7 +110,7 @@
   //   （旧版无条件拦截 → 每次对话都只重复「吃食还没寻来」，台词全被吞——v20260911f 修复）
   TRIGGERS.push({
     id: 'zt_food_deliver', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: false,
-    cond: { flags: { 'flags.task.zt_intro': true }, hasItem: 'fan', notFlag: 'flags.route.crypt' },
+    cond: { flags: { 'flags.task.zt_accepted': true }, hasItem: 'fan', notFlag: 'flags.route.crypt' },
     steps: [
       { t: 'npcTalk', npc: 'zhoutingtao',
         prompt: '你将从伙房换来的干粮递过去。周听涛眼睛一亮，也不客气，三两口扒了半张饼，这才正色道：「好，这桩吃食老夫领了——既食人之禄，便替你掐一掐这乱如麻的命数。」',
@@ -155,6 +179,11 @@
         prompt: '你刚迈出牢门，廊口便杵着个歪戴幞头的牢头，手里转着一串铁钥匙，眯眼打量你这身囚服，啧了一声。他抬下巴朝廊上那面蒙着旧皮的鼓一努：「瞧见那面更鼓没有？营里没有漏刻，全营的钟点，都靠它一槌一槌敲出来。别在廊下晃——去前头劳役场给老子干活，戌时前，你必须回这牢门销名。」',
         asks: [
           { label: '〔看那更鼓〕这鼓，怎么讲时辰？', then: [
+            // 统一拨回清晨卯时（v20260911i）：在这之前牢中时辰是冻结的（clockFlowing 为假），
+            // 玩家可能已在牢里反复打盹；就在「介绍时辰」这一槌上把更鼓校准——于是「踏出牢门」
+            // 永远是白天，绝不会出现「一出门就已经入夜」的荒谬。
+            { t: 'setTime', hour: 3, clock: 360 },
+            { t: 'log', cls: 'env', text: '（更鼓「咚」地一槌落到实处，廊外天光正好——卯时刚过，日头才爬上营墙。）' },
             { t: 'log', cls: 'npc', text: '牢头嗤笑：「一昼夜十二时辰，鼓声一回一换：卯时开牢放风，戌时鸣鼓闭门。过了戌时你还不回，按营规吃三鞭，门一落锁，你便蹲到明日。」' },
             { t: 'reveal', layer: 'status', highlight: true },
             { t: 'reveal', layer: 'loctab' },
@@ -167,6 +196,7 @@
           ] }
         ] },
       // 兜底（幂等）：即便玩家未点选项就离开，也确保门禁/时辰校准已生效，晚归判定不会失灵
+      { t: 'setTime', hour: 3, clock: 360 },   // 一并兜一次「拨回清晨」（v20260911i）
       { t: 'setFlag', path: 'flags.onb.clockOn', value: true },
       { t: 'setFlag', path: 'flags.onb.curfewSet', value: true },
       { t: 'setFlag', path: 'flags.onb.curfewHour', value: 10 },
@@ -538,6 +568,130 @@
     cond: { flags: { 'flags.task.stone_done': true } },
     steps: [
       { t: 'log', cls: 'npc', text: '〔仓吏〕「石料已收妥，营中营建又快了几分。你若还想帮忙，营里各处都缺人手——农庄、伙房、演武场，尽可去转转。」' }
+    ]
+  });
+
+  // ════════════════ 营中苦役·任务化（v20260911i） ════════════════
+  // 症结：营中「担石劳作 / 下地务农 / 搬石料」此前只是面板上的一个按钮 —— 点完吐一句旁白就完事，
+  //   没有交代、没有进度、更没有交付与赏，交互到此为止，营中一日也就没什么可盼的。
+  // 改造：三桩苦役各挂一位当值 NPC，走完整闭环 ——
+  //   交谈 → 发布 → 接受／婉拒 → 任务日志记 N/3（点「任务」可随时查）→ 干满 → 回头复命领赏。
+  //   进度取「活计计数」flags.task.<key>_cnt，由引擎 laborQuestTick() 随劳作累加（见 core/engine.js）。
+  // ⚠️ 两条约定：
+  //   ① 必须排在本文件 sun_routes 之后 —— 孙老先把「十条出路」讲完，再谈他田里的活计；
+  //   ② 不写 cell —— NPC 有时辰作息会挪格，而「能对谈」本身就意味着他正在本格
+  //      （talk 入口由 cityCellNpcs 按作息过滤过），写死 cell 反而会出现「人在这儿却交不上任务」。
+  var LABOR_QUESTS = [
+    { key: 'labor', npc: 'niu_tie', quest: 'camp_labor', need: 3, title: '担石充役',
+      offer: '牛铁把肩上石筐往地上一卸，憨憨地笑：「你也是被抓来顶役的？俺叫牛铁。今日管事的给俺加了担子，石方三趟压得俺直不起腰……你若肯替俺担三趟，俺把工分记你名下——俺这名儿是黑的，记了也白记。」',
+      yes: '你点头应下。牛铁眼睛一亮，忙不迭把石筐往你怀里推：「好兄弟！记着，是场上〔担石劳作〕，石堆那儿，三趟。」〔任务已接：担石充役〕',
+      no: '牛铁「哦」了一声，也不恼，扛起石筐自去了：「那……那俺自个儿担。」〔未接：担石充役〕',
+      prog: '牛铁抹着汗，嚅了嚅嘴：「还、还差几趟？俺也不敢催你……」',
+      give: '牛铁把一枚磨得发亮的「劳字木片」往你手里塞，憨声道：「给、给你。俺认数，三趟就是三趟。」',
+      after: '牛铁埋头码石，冲你憨憨一笑：「俺再担两趟就歇。」',
+      reward: '劳字木片×1 · 修为+25 · 牛铁好感+1',
+      items: [{ id: 'lao_pai', name: '劳字木片', icon: '🪵', cat: '货币', count: 1 }], xp: 25 },
+    { key: 'farm', npc: 'sun_lao', quest: 'camp_farm', need: 3, title: '代耕薄田',
+      offer: '田埂上的老驿丞孙老直起腰，捶着后背叹气：「老骨头不中用了。后生，你替老朽把那三垄地翻一翻——锄头问邻家借，翻完来寻我，我这有口吃的谢你。别嫌少，这营里肯替人出力的不多。」',
+      yes: '你接过话头应下。孙老笑起来，眼角褶子堆成一团：「好孩子。〔下地务农〕三垄，翻透了就成。」〔任务已接：代耕薄田〕',
+      no: '孙老摆摆手，也不勉强，重新蹲回田埂上吧嗒旱烟：「也罢，你自有你的打算。」〔未接：代耕薄田〕',
+      prog: '孙老拄着锄把，眯眼瞅你：「三垄可翻完了？土要翻透，别糊弄老骨头。」',
+      give: '孙老从怀里掏出半块干粮塞给你，又从垄边掐了把野菜：「拿着，垫垫肚子。这营里，肯替人出力的不多了。」',
+      after: '孙老蹲在田埂上剔牙，冲你笑了笑：「地翻得不错。往后有空，常来坐坐。」',
+      reward: '干粮×1 · 修为+25 · 孙老好感+1',
+      items: [{ id: 'fan', name: '干粮', icon: '🍙', cat: '食物', count: 1 }], xp: 25 },
+    { key: 'haul', npc: 'zheng_gang', quest: 'camp_haul', need: 3, title: '搬石入库',
+      offer: '仓库前的郑刚膀大腰圆，正把石料往垛上码，抬眼看你，眼珠一转：「生面孔？库房堆子赶不上用度，你替我搬三趟石料入库——搬完来寻我，我替你在牢头跟前说句话。怎么，干不干？」',
+      yes: '你撸起袖子应下。郑刚咧嘴：「爽快！〔搬石料〕三趟，一趟一记，少一趟都不算。」〔任务已接：搬石入库〕',
+      no: '郑刚哼了一声，扛起石料自去干活：「随你。反正累的不是俺。」〔未接：搬石入库〕',
+      prog: '郑刚头也不抬，石料压得肩头一沉：「三趟搬完没有？没搬完就上手，少废话。」',
+      give: '郑刚把肩上的石料卸下，从垛上抽出一枚「劳字木片」拍在你手里：「好力气。这枚工分你自己去兑，别说俺昧了你的。」',
+      after: '郑刚拍了拍手上的灰：「力气是好东西，别使歪了。」',
+      reward: '劳字木片×1 · 修为+25 · 郑刚好感+1',
+      items: [{ id: 'lao_pai', name: '劳字木片', icon: '🪵', cat: '货币', count: 1 }], xp: 25 }
+  ];
+  LABOR_QUESTS.forEach(function (q) {
+    var K = 'flags.task.' + q.key;
+    function flagObj(suffix, val) { var o = {}; o[K + suffix] = val; return o; }
+    function playerMin(suffix, n) { var o = {}; o[K + suffix] = { min: n }; return o; }
+    // ① 发布：接受 / 婉拒 —— 答应那一下才 acceptQuest 入任务日志
+    TRIGGERS.push({
+      id: 'kq_' + q.key + '_offer', hook: 'onTalk', npc: q.npc, room: 'kuyilao', once: false,
+      cond: { notFlag: K + '_started' },
+      steps: [
+        { t: 'npcTalk', npc: q.npc, prompt: q.offer,
+          asks: [
+            { label: '〔应下〕这活我接了。', set: flagObj('_started', true), say: q.yes,
+              then: [ { t: 'acceptQuest', id: q.quest } ] },
+            { label: '〔婉拒〕我另有打算。', say: q.no }
+          ] }
+      ]
+    });
+    // ② 复命领赏（须排在③前 —— onTalk 只跑第一条命中的，否则永远被进度提示截住）
+    TRIGGERS.push({
+      id: 'kq_' + q.key + '_give', hook: 'onTalk', npc: q.npc, room: 'kuyilao', once: false,
+      cond: { flags: flagObj('_started', true), notFlag: K + '_done' },
+      steps: [
+        { t: 'branch', if: { player: playerMin('_cnt', q.need) },
+          then: [
+            { t: 'setFlag', path: K + '_done', value: true },
+            { t: 'completeQuest', id: q.quest },
+            { t: 'log', cls: 'npc', text: q.give },
+            { t: 'grant', items: q.items },
+            { t: 'favor', npc: q.npc, amount: 1 },
+            { t: 'exp', amount: q.xp },
+            { t: 'log', cls: 'good', text: '〔任务完成·' + q.title + '〕' + q.reward }
+          ],
+          else: [ { t: 'log', cls: 'npc', text: q.prog } ] }
+      ]
+    });
+    // ③ 进行中：只报进度（干满即由②接管）
+    TRIGGERS.push({
+      id: 'kq_' + q.key + '_prog', hook: 'onTalk', npc: q.npc, room: 'kuyilao', once: false,
+      cond: { flags: flagObj('_started', true), notFlag: K + '_done' },
+      steps: [ { t: 'log', cls: 'npc', text: q.prog } ]
+    });
+    // ④ 了结之后
+    TRIGGERS.push({
+      id: 'kq_' + q.key + '_done', hook: 'onTalk', npc: q.npc, room: 'kuyilao', once: false,
+      cond: { flags: flagObj('_done', true) },
+      steps: [ { t: 'log', cls: 'npc', text: q.after } ]
+    });
+  });
+
+  // ════════════════ 巡夜查房·逾时不归的强制措施（v20260911i） ════════════════
+  // 症状：laotou_late 只在「玩家自己走回牢房」时才触发 —— 不进牢房，就永远没有鞭子。
+  //   于是「不回牢点卯」反倒成了躲开营规的办法，人可以整夜在外头浪。
+  // 对策（逃脱者2 式查房）：由引擎 curfewPatrol() 判定「戌时后仍在营中游荡而未归牢」，
+  //   以 onPatrol 钩子把巡夜狱卒叫来 —— 押回牢房格 + 三鞭 + 记一次逾时（次日口粮按罚例加倍）。
+  //   人在牢里则安全；一旦又溜出去，照样再拿（引擎侧在归牢时清掉「今夜抓过了」的印记）。
+  TRIGGERS.push({
+    id: 'curfew_patrol', hook: 'onPatrol', once: false,
+    cond: { flags: { 'flags.onb.curfewSet': true }, notFlag: 'flags.onb.done' },
+    steps: [
+      { t: 'log', cls: 'warn', text: '〔更鼓〕戌时鼓落，营门落锁，巡夜的灯笼一盏一盏移过来……' },
+      { t: 'npcTalk', npc: 'laotou',
+        prompt: '灯笼照住你的脸。巡夜狱卒把铁链往地上一顿，哗啦一响：「鼓都敲过几回了，还在这儿晃？营规第七条——戌时后不在牢里，视同脱逃！」',
+        asks: [
+          { label: '〔束手就擒〕……我随你回去。',
+            then: [
+              { t: 'setFlag', path: 'flags.onb.lateDone', value: true },   // 先记「已罚」，免得押回时 laotou_late 再罚一道
+              { t: 'setFlag', path: 'flags.onb.missCount', increment: true },
+              { t: 'forceRoom', room: 'kuyilao', cell: [1, 0] },
+              { t: 'hurt', amount: 15, favor: -1, favorNpc: 'laotou', fxText: '鞭！' },
+              { t: 'log', cls: 'sys', text: '一路拖回牢区，脊背上结结实实挨了三鞭，血齿间都是铁锈味。（气血 -15，牢头好感 -1）' },
+              { t: 'log', cls: 'order', text: '〔逾时不归〕牢头在册上记你一笔，明日口粮按罚例加倍。往后戌时前回牢销名——躲是躲不掉的，营规自会来拿人。' }
+            ] },
+          { label: '〔嘴硬〕我偏在外头站着，你能奈我何？',
+            then: [
+              { t: 'setFlag', path: 'flags.onb.lateDone', value: true },
+              { t: 'setFlag', path: 'flags.onb.missCount', increment: true },
+              { t: 'forceRoom', room: 'kuyilao', cell: [1, 0] },
+              { t: 'hurt', amount: 15, favor: -1, favorNpc: 'laotou', fxText: '鞭！' },
+              { t: 'log', cls: 'sys', text: '狱卒冷笑：「嘴硬的，都挨双份。」铁链一抖，仍把你拖走了。（气血 -15，牢头好感 -1）' },
+              { t: 'log', cls: 'order', text: '〔逾时不归〕你还是被押回了牢房格。硬话换不来情面——戌时前销名才是正经。' }
+            ] }
+        ] }
     ]
   });
 

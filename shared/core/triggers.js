@@ -164,6 +164,12 @@ window.LF = window.LF || {};
         case 'graduate': graduate(); next(); break;
         case 'acceptQuest': if (acceptQuest) acceptQuest(step.id); next(); break;
         case 'completeQuest': if (completeQuest) completeQuest(step.id); next(); break;
+        // 时辰定点（v20260911i）：教学「介绍时辰」时把更鼓拨回清晨，保证踏出牢门永远是白天
+        case 'setTime': if (dep.setTimeOfDay) dep.setTimeOfDay(step.hour, step.clock); next(); break;
+        // 强制落位（v20260911i）：巡夜查房押回牢房等处，不走能耗与门禁
+        case 'forceRoom': if (dep.forceRoom) dep.forceRoom(step.room, step.cell); next(); break;
+        // 好感（v20260911i）：复命领赏时加营中好感（NPC 态度由 state.npcFavor 驱动）
+        case 'favor': { var _fk = step.npc || (env && env.npc); if (!_fk) { next(); break; } if (!state.npcFavor) state.npcFavor = {}; state.npcFavor[_fk] = (state.npcFavor[_fk] || 0) + (step.amount || 1); save(state); next(); break; }
         case 'consume': {
           var _pk = state.pack || []; var _id = step.id, _n = step.n || 1, _did = false;
           for (var _k = 0; _k < _pk.length; _k++) { if (_pk[_k] && (_pk[_k].defId || _pk[_k].id) === _id) { var _c = _pk[_k].count || 1; if (_c > _n) { _pk[_k].count = _c - _n; } else { _pk.splice(_k, 1); } _did = true; break; } }
