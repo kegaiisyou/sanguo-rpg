@@ -7,7 +7,7 @@ window.LF = window.LF || {};
 (function(){
   LF.Core = LF.Core || {};
   var LUNAR_MONTHS=['正','二','三','四','五','六','七','八','九','十','冬','腊'];
-  var LUNAR_START={month:12, day:15};   // 游戏始于「光和元年·腊月十五」（示例锚定）
+  var LUNAR_START={month:12, day:15};   // 游戏始于「光和六年·腊月十五」（公元 183 年，黄巾前夜锚定）
   var WK=['日','一','二','三','四','五','六'];   // 星期（公历对照用，仅弹窗展示）
   var WK_BASE=5;                        // 腊月十五 = 星期五（示例锚定，保证对照可读）
   var WEATHERS=[
@@ -43,19 +43,44 @@ window.LF = window.LF || {};
     if(d>=21&&d<=29) return '廿'+cn[d-20];
     return '三十';
   }
+  // 纪元表（按公元年升序；start=该年号元年对应的公元年）。时序严格自东汉末至三国立。
+  // 光和六年(183) 开局；184 即中平元年（黄巾之乱）。deriveCalendar 据此自动切换年号，杜绝 184 后仍显「光和」。
+  var ERAS=[
+    {name:'光和', start:178},   // 光和元年=178 … 光和六年=183
+    {name:'中平', start:184},   // 中平元年=184（黄巾之乱）
+    {name:'初平', start:190},
+    {name:'兴平', start:194},
+    {name:'建安', start:196},   // 建安元年=196 … 建安二十五年=220
+    {name:'黄初', start:220}    // 三国：曹魏代汉；逾此后通用「黄初」展示（游戏难及）
+  ];
+  // 取公元年对应的年号名（最后一个 start<=adYear 者）
+  function eraNameOf(adYear){
+    var e=ERAS[0];
+    for(var i=0;i<ERAS.length;i++){ if(adYear>=ERAS[i].start) e=ERAS[i]; else break; }
+    return e.name;
+  }
+  // 取公元年在该年号内的序号（元年=1，如 184→中平元年=1）
+  function eraYearOf(adYear){
+    var e=ERAS[0];
+    for(var i=0;i<ERAS.length;i++){ if(adYear>=ERAS[i].start) e=ERAS[i]; else break; }
+    return adYear - e.start + 1;
+  }
   // 由累计天数派生农历月日 / 年号年序 / 公历对照 / 星期（确定性、可重算）
   function deriveCalendar(){
     var d=LF.Core.state.day||0;
-    var totalMonths=(LUNAR_START.month-1)+Math.floor(d/30);
+    var monthsElapsed=Math.floor(d/30);
+    var totalMonths=(LUNAR_START.month-1)+monthsElapsed;   // 腊月(12)起算，月相逐 30 天推进
     var month=(totalMonths%12)+1;
     var day=((LUNAR_START.day-1)+(d%30))%30+1;
-    var years=Math.floor(totalMonths/12);
+    var years=Math.floor(d/360);                 // 1 公元年 = 360 天（12 农历月）；年号年序据此推进
+    var adYear=183+years;                        // 光和六年(183)起算；满 360 天进 1 公元年（184=中平元年）
     return {
       month:month, day:day,
       monthName:LUNAR_MONTHS[month-1],
       dayName:lunarDayName(day),
-      eraYear:1+years,
-      adYear:178+years,
+      eraName:eraNameOf(adYear),
+      eraYear:eraYearOf(adYear),
+      adYear:adYear,
       wk:WK[(WK_BASE+d)%7],
       gregMonth:month, gregDay:day
     };
@@ -65,4 +90,5 @@ window.LF = window.LF || {};
   LF.Core.WK=WK; LF.Core.WK_BASE=WK_BASE; LF.Core.WEATHERS=WEATHERS; LF.Core.WX_EFF=WX_EFF;
   LF.Core.isDaytime=isDaytime; LF.Core.wxEff=wxEff; LF.Core.mapData=mapData;
   LF.Core.lunarDayName=lunarDayName; LF.Core.deriveCalendar=deriveCalendar;
+  LF.Core.ERAS=ERAS; LF.Core.eraNameOf=eraNameOf; LF.Core.eraYearOf=eraYearOf;
 })();

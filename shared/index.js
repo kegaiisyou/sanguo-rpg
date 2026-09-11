@@ -33,16 +33,16 @@
       repExp: 0,                     // 声望经验累计（后续真实途径用，先留字段）
       gold: 200,
       skills: ['basic_fist'],
-      room: 'kuyilao',               // 当前所处房间（默认出生点：程序生成·苦役营，开场教学密道线入口）
-      spawnRoom: 'kuyilao',          // 玩家出生点（调试台可改；新局/重置后落点）
+      room: 'camp_tz1',              // 当前所处房间（默认出生点：苦役营·天字一号牢房，开场教学由此展开）
+      spawnRoom: 'camp_tz1',         // 玩家出生点（调试台可改；新局/重置后落点）
       flags: { cityPos: { cid: 'kuyilao', x: 1, y: 1 } },  // 出生落在苦役营·中军场院(1,1)
       npcFavor: {},                     // NPC 好感度表（keyed by npc id），供触发引擎复合判断
       lastSeen: Date.now(),
       time: 4,                       // 时辰索引（0子..4辰..11亥）；辰时=7:00-8:59
       clock: 442,                    // 当日分钟数 0-1439，442 = 7:22（与 time=辰时 对齐）
-      eraName: '光和',               // 年号（游戏内恒定；年序由累计天数派生）
-      eraYear: 1,                    // 光和元年（1=元年，2=二年…），由 day 回写
-      adYear: 178,                   // 公元年（光和元年=公元178年），由 day 回写
+      eraName: '光和',               // 年号（由累计天数派生；184 自动切「中平」，见 calendar.js·ERAS）
+      eraYear: 6,                    // 光和六年（1=元年，2=二年…），由 day 回写
+      adYear: 183,                   // 公元年（光和六年=公元183年），由 day 回写
       day: 0,                        // 游戏内累计天数（跨子夜 +1，驱动农历月日与年号递进）
       weather: 0,                    // 天候索引（见 index.html · WEATHERS）
       // ─── v0.2 战斗系统新增 ───

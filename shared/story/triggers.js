@@ -22,16 +22,24 @@
 
   // ───────────────────────── 开场教学：苦役营·密道线 ─────────────────────────
 
-  // 1) 劳役场·进场：场景已由 enterRoom 自动播报（「醒来+劳役场」两句）。
-  //    此处一次性点亮交互界面（NPC / 行动 / 下方区），并由官差牢头在叙事里喝令去担石——
-  //    改用「叙事旁白」而非模态弹窗，避免手机端进场即被弹窗打断；玩家落座即可直接点「担石劳作」开玩。
+  // 1) 牢房·开场（P0 · v20260911g）：本触发器在【序章开场动画演毕、牢房渲染完成】后才评估。
+  //    动画本身由 core/engine.js · playPrologue() 在全屏 #prologue 幕布上演出（见 index.html / game.css）；
+  //    新档进入时 enterGame 先播动画，动画结束时才 renderRoom → 到这里正好是「角色已被推进牢房」。
+  //    此处只负责：点亮交互界面 → 铁链/尘土 → 周听涛开口 → 锁死牢门（叩门问答见 laotou_door）。
   TRIGGERS.push({
-    id: 'camp_opening', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: true,
+    id: 'camp_opening', hook: 'onEnter', room: 'camp_tz1', once: false,
+    // once:false：旧存档若遗留 trg.camp_cell_enter=true，仍会拦住补播；置 false 后仅由 prologueShown 旗标控制（只播一次）
+    cond: { notFlag: 'flags.onb.prologueShown' },
     steps: [
       { t: 'reveal', layer: 'npc' },
       { t: 'reveal', layer: 'lower' },
       { t: 'reveal', layer: 'actions' },
-      { t: 'log', cls: 'npc', text: '（一名狱卒踱到你跟前，踢了踢脚边碎石）新来的？少发愣——场中那些石头，今天归你搬。搬不满三车，晌饭就甭想。' }
+      { t: 'log', cls: 'sys', text: '铁链啷当，你被推进牢里，扬起的尘土呛得你睁不开眼。' },
+      { t: 'log', cls: 'env', text: '牢门在身后轰然合拢，镣铐沉沉坠着手脚。尘土自门缝墙隙里翻涌而起——栅外天光只剩一线。' },
+      { t: 'log', cls: 'npc', text: '栅里忽地响起一个拖长腔的嗓子：「话说天下大势，分久必合，合久必分，某夜观天象，大汉四百年气数将尽———欸，奇了怪了，你这新来的，变数多到我都看不清哇」' },
+      { t: 'log', cls: 'sys', text: '你被迷眼的尘土呛得睁不开，只觉栅外有人影晃动，却看不清是谁。〔左侧「对话」可寻那嗓音的主人；栅上「牢门」可叩问牢头（锁着时才能叩）。〕' },
+      { t: 'moveGate', fwd: '__locked__', hint: '牢门紧锁，须先与牢头说通，方可出牢。' },
+      { t: 'setFlag', path: 'flags.onb.prologueShown', value: true }
     ]
   });
 
@@ -58,17 +66,129 @@
     ]
   });
 
-  // 3) 周听涛·取信授密道线（玩家自由回到周听涛、且已劳作+勘察后，他自然接话给出线索）
+  // 2) 周听涛·说书人+相士底：初次交谈，自介并发布「寻吃食」任务
   TRIGGERS.push({
-    id: 'zt_crypt', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: true,
-    cond: { flags: { 'flags.onb.labored': true, 'flags.onb.surveyed': true }, notFlag: 'flags.route.crypt' },
+    id: 'zt_intro', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: true,
+    cond: { notFlag: 'flags.task.zt_intro' },
+    steps: [
+      { t: 'setFlag', path: 'flags.task.zt_intro', value: true },
+      { t: 'acceptQuest', id: 'zt_food' },
+      { t: 'npcTalk', npc: 'zhoutingtao',
+        prompt: '尘埃稍落，你才看清栅里那人：蓬头垢面，满身碎布条与旧伤痕，眼神却清亮。他捋了捋乱发，拖长腔道：「某周听涛，可是天下间数一数二的相士——」忽又压低嗓子：「你这新来的，眼中被迷了尘，看不清人影，却瞒不过老夫的招子。你命数古怪，似一颗我看不透的变数。」',
+        asks: [
+          { label: '〔请教先生〕', say: '周听涛敲了敲栅栏：「老夫替人窥命数，向来要些酬劳——你且去营中寻些吃食来。待你寻来，老夫便替你把这道乱命，寻出一丝破解之法。」〔任务：寻来吃食，交予周听涛。〕' }
+        ] }
+    ]
+  });
+
+  // 2.5) 周听涛·交吃食→破命数（接取「寻吃食」后，持干粮来交付，授密道线）
+  //   仅在身上确有「吃食(fan)」时才拦截对话；否则放行给普通 talk()，轮播周听涛的台词。
+  //   （旧版无条件拦截 → 每次对话都只重复「吃食还没寻来」，台词全被吞——v20260911f 修复）
+  TRIGGERS.push({
+    id: 'zt_food_deliver', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: false,
+    cond: { flags: { 'flags.task.zt_intro': true }, hasItem: 'fan', notFlag: 'flags.route.crypt' },
     steps: [
       { t: 'npcTalk', npc: 'zhoutingtao',
-        prompt: '你再凑近周听涛。他讲完一段，忽压低嗓子朝你挤眼：「你这新来的，不似旁人浑浑噩噩——石也担了，路也看清了。既如此，老夫便与你透个底。」',
+        prompt: '你将从伙房换来的干粮递过去。周听涛眼睛一亮，也不客气，三两口扒了半张饼，这才正色道：「好，这桩吃食老夫领了——既食人之禄，便替你掐一掐这乱如麻的命数。」',
         asks: [
-          { label: '〔倾听〕先生请讲。',
-            set: { 'flags.route.crypt': true },
-            say: '「老夫装疯这些日子，没白装。营后塌墙根下有暗道，默叔替我守着。你若信得过，夜里随我来——记着，塌墙根，寻默叔。」〔已得密道线索：先去东南囚室寻默叔对暗号，再赴西边塌墙根钻暗道。〕' }
+          { label: '〔静候先生掐算〕', set: { 'flags.route.crypt': true },
+            then: [
+              { t: 'consume', id: 'fan', n: 1 },
+              { t: 'completeQuest', id: 'zt_food' },
+              { t: 'setFlag', path: 'flags.task.zt_food_done', value: true },
+              { t: 'log', cls: 'good', text: '周听涛屈指掐算，半晌忽一笑：「果然……你这命格，乱中藏变。营后塌墙根下有暗道，默叔替老夫守着。夜里随我来——记着，塌墙根，寻默叔。」〔已得密道线索：先去囚室寻默叔对暗号，再赴塌墙根钻暗道。〕' }
+            ] }
+        ] }
+    ]
+  });
+
+  // 3) 牢门门禁：叩门→牢头问答，是才开门（moveGate 锁死全出口，开门即清）
+  //    v20260911g：开门此刻不再点亮顶栏——「顶上时辰」改在出牢后牢头指更鼓时一并介绍（见 laotou_corridor）。
+  TRIGGERS.push({
+    id: 'laotou_door', hook: 'onTalk', npc: 'laotou', room: 'camp_tz1', once: false,
+    cond: { notFlag: 'flags.onb.cellOpen' },
+    steps: [
+      { t: 'npcTalk', npc: 'laotou',
+        prompt: '你叩了叩牢门。栅外传来粗哑嗓门：「谁在那头敲？哦——新来的囚籍。少在里头装蒜，想通了没，要不要出来干活？」',
+        asks: [
+          { label: '想通了，求牢头放我出去干活', set: { 'flags.onb.cellOpen': true },
+            then: [
+              { t: 'clearGate' },
+              { t: 'log', cls: 'order', text: '牢头「咔哒」开了锁：「出来罢。去廊口候着，老子有话交代。」〔栅门开了，〔南〕可出牢房。〕' }
+            ] },
+          { label: '再想想，暂不出门', say: '牢头「呸」了一声：「不识抬举！想通透了再来敲。」栅外脚步声远了。〔牢门仍锁着。〕' }
+        ] }
+    ]
+  });
+
+  // 3.5) 牢头·出场后三话题（税赋/悲苦/天字一号疯子）
+  TRIGGERS.push({
+    id: 'laotou_topics', hook: 'onTalk', npc: 'laotou', roomIn: ['camp_tz1','kuyilao'], once: false,
+    cond: { flags: { 'flags.onb.cellOpen': true } },
+    steps: [
+      { t: 'npcTalk', npc: 'laotou',
+        prompt: '牢头抱着臂，斜眼打量你。',
+        asks: [
+          { label: '〔打听因何入营〕', say: '牢头嗤笑：「你当自己犯了什么大罪？呸，不过是交不起租赋，被衙役当壮丁抓来抵数。这年头，十室九空，税比刀狠。」' },
+          { label: '〔问外头光景〕', say: '牢头朝墙外啐了一口：「外面？也好不到哪去。蝗灾旱灾接连着来，太平道那帮人趁机蛊惑，到处都是饿殍。蹲在这营里，反倒落个温饱。」' },
+          { label: '〔问隔壁牢房〕', say: '牢头压低声：「隔壁天字一号那厮，天天自言自语，疯疯癫癫——你莫去招惹。前儿他还冲着墙比划，嘴里念叨『甲子』『苍天』的胡话，邪门得紧。」' }
+        ] }
+    ]
+  });
+
+  // 3.2) 走廊·更鼓与点卯（P1 · v20260911g）：出牢后首次到牢廊（城格 kuyilao 1,0）
+  //   —— 教程里「时间系统」的亮相节拍就在此处，顺序严格照设计走：
+  //       ① 牢头指着廊口那面「值更鼓」，喝你去前头干活、并交代「几点前必须回来」；
+  //       ② 说到鼓，顺势讲营里的时辰（十二时辰、卯时开牢、戌时闭门）；
+  //       ③ 这一刻才点亮顶部状态栏（顶上「时辰」）+ 位置页签，并高亮顶栏；
+  //       ④ clockOn 置位 = 时间正式开始流动（点卯/晚归判定随之生效）。
+  //   注：出门不再单发旁白（与牢头台词重复）——场景描写并入 npcTalk 提示词，一次讲完。
+  //   注：铺垫/收尾一律用 log（同步 next），勿用 narrate（会阻塞其后的 npcTalk，见 §9.61）。
+  TRIGGERS.push({
+    id: 'laotou_corridor', hook: 'onEnter', room: 'kuyilao', cell: [1, 0], once: true,
+    cond: { notFlag: 'flags.onb.curfewSet' },
+    steps: [
+      { t: 'reveal', layer: 'npc' },
+      { t: 'reveal', layer: 'lower' },
+      { t: 'reveal', layer: 'actions' },
+      { t: 'npcTalk', npc: 'laotou',
+        prompt: '你刚迈出牢门，廊口便杵着个歪戴幞头的牢头，手里转着一串铁钥匙，眯眼打量你这身囚服，啧了一声。他抬下巴朝廊上那面蒙着旧皮的鼓一努：「瞧见那面更鼓没有？营里没有漏刻，全营的钟点，都靠它一槌一槌敲出来。别在廊下晃——去前头劳役场给老子干活，戌时前，你必须回这牢门销名。」',
+        asks: [
+          { label: '〔看那更鼓〕这鼓，怎么讲时辰？', then: [
+            { t: 'log', cls: 'npc', text: '牢头嗤笑：「一昼夜十二时辰，鼓声一回一换：卯时开牢放风，戌时鸣鼓闭门。过了戌时你还不回，按营规吃三鞭，门一落锁，你便蹲到明日。」' },
+            { t: 'reveal', layer: 'status', highlight: true },
+            { t: 'reveal', layer: 'loctab' },
+            { t: 'log', cls: 'order', text: '〔时间系统〕顶上那一行便是「时辰」——点名、放风、点卯、晚归，皆以它为准；点它可展开钟表，日头与天候也在其上。' },
+            { t: 'log', cls: 'order', text: '〔门禁〕戌时（约晚七点）前须回牢销名，逾时受鞭刑。' },
+            { t: 'setFlag', path: 'flags.onb.clockOn', value: true },
+            { t: 'setFlag', path: 'flags.onb.curfewSet', value: true },
+            { t: 'setFlag', path: 'flags.onb.curfewHour', value: 10 },
+            { t: 'setFlag', path: 'flags.onb.curfewLabel', value: '戌时（约 19:00–21:00）' }
+          ] }
+        ] },
+      // 兜底（幂等）：即便玩家未点选项就离开，也确保门禁/时辰校准已生效，晚归判定不会失灵
+      { t: 'setFlag', path: 'flags.onb.clockOn', value: true },
+      { t: 'setFlag', path: 'flags.onb.curfewSet', value: true },
+      { t: 'setFlag', path: 'flags.onb.curfewHour', value: 10 },
+      { t: 'setFlag', path: 'flags.onb.curfewLabel', value: '戌时（约 19:00–21:00）' }
+    ]
+  });
+  // 3.3) 晚归·受刑（戌时后回牢：牢头好感-1、鞭打扣血，含文案+动画；离牢时重置以便每轮各罚一次）
+  //   注：铺垫用 log（同步 next）；勿用 narrate（见 3.2 注释）。
+  TRIGGERS.push({
+    id: 'laotou_late', hook: 'onEnter', room: 'camp_tz1', once: false,
+    cond: { flags: { 'flags.onb.curfewSet': true }, time: { day: false }, notFlag: 'flags.onb.lateDone' },
+    steps: [
+      { t: 'log', cls: 'env', text: '你摸黑蹭回牢门，栅外更鼓正敲——早过了戌时。' },
+      { t: 'npcTalk', npc: 'laotou',
+        prompt: '牢头脸一沉，灯笼照见你身上的囚服：「好小子，点卯的时辰早过了，还晓得回来？营规面前不讲情——三鞭，记着下回的钟点！」',
+        asks: [
+          { label: '〔咬牙受刑〕', then: [
+            { t: 'hurt', amount: 15, favor: -1, favorNpc: 'laotou', fxText: '鞭！' },
+            { t: 'log', cls: 'sys', text: '牢头亲自动手。你背上挨了三鞭，火辣辣地疼，血齿间都是铁锈味。（气血 -15，牢头好感 -1）' },
+            { t: 'log', cls: 'order', text: '〔门禁〕你已晚归受刑。明日戌时前务必回牢销名。' },
+            { t: 'setFlag', path: 'flags.onb.lateDone', value: true }
+          ] }
         ] }
     ]
   });

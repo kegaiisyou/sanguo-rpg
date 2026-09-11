@@ -538,6 +538,63 @@
 
 
 
+  // ===== 序章开场动画（P0 · v20260911g）=====
+  // 独立于叙事区（#narr）的全屏幕布 #prologue（DOM 见 index.html，样式见 game.css）：
+  //   黑幕 → 三段文案逐行浮现（押解微晃 + 镣铐垂影 + 浮尘）→ 一记白光 → 淡出。
+  // 演出期间界面 #app 是隐藏的，故「动画演完，角色才出现在牢里」；随后的 camp_opening 剧本接着开场。
+  // 文案取自 G.DIALOGUES.prologue（第一行作金色小标题）。轻触幕布 / 点「跳过」立即收尾。
+  // settings.textSpeed<=0（文字演出设为「瞬（无动画）」）时整段跳过，直接进牢房。
+  function playPrologue(onDone){
+    var box=document.getElementById('prologue');
+    var lines=((G && G.DIALOGUES && G.DIALOGUES.prologue) || []).slice();
+    var speed=(settings && settings.textSpeed!=null) ? settings.textSpeed : 55;
+    if(!box || !lines.length || speed<=0){ if(onDone) onDone(); return; }
+    var wrap=document.getElementById('pr-lines');
+    var chains=document.getElementById('pr-chains');
+    var flash=document.getElementById('pr-flash');
+    var timers=[], done=false;
+    function T(fn, ms){ timers.push(setTimeout(fn, ms)); }
+    function clearAll(){ for(var i=0;i<timers.length;i++){ clearTimeout(timers[i]); } timers=[]; }
+    function finish(){
+      if(done) return; done=true; clearAll();
+      box.removeEventListener('click', finish);
+      box.classList.remove('pr-shake');
+      box.classList.add('pr-out');            // .pr-out 淡出（.9s），随后彻底隐藏并把界面交还 #app
+      timers.push(setTimeout(function(){
+        box.classList.add('hidden');
+        if(wrap) wrap.innerHTML='';
+        if(onDone) onDone();
+      }, 900));
+    }
+    // 复位（同一会话内读档可能重播）
+    box.classList.remove('hidden','pr-out','pr-shake');
+    if(flash) flash.classList.remove('on');
+    if(chains) chains.classList.remove('on');
+    if(wrap){
+      wrap.innerHTML='';
+      lines.forEach(function(t, i){
+        var p=document.createElement('p');
+        p.className='pr-line '+(i===0?'pr-kicker':'pr-body');
+        p.textContent=String(t==null?'':t);
+        wrap.appendChild(p);
+      });
+    }
+    box.addEventListener('click', finish);
+    // 排期：逐行「浮现」，每行停留时长随字数走（1400–2600ms），保证小屏也读得完
+    var els=(wrap && wrap.childNodes) || [];
+    var t0=260;
+    for(var i=0;i<els.length;i++){
+      (function(el, idx){
+        T(function(){ el.classList.add('on'); }, t0);
+        t0 += Math.max(1400, Math.min(2600, String(lines[idx]||'').length*55)) + 600;
+      })(els[i], i);
+    }
+    T(function(){ if(chains) chains.classList.add('on'); box.classList.add('pr-shake'); }, 900);        // 镣铐入画 + 押解微晃
+    T(function(){ box.classList.remove('pr-shake'); }, Math.max(1600, t0-700));                       // 收尾前止晃
+    T(function(){ if(flash) flash.classList.add('on'); try{ SFX.hit(); }catch(e){} }, t0);            // 一记更鼓般的闪光
+    T(finish, t0+860);
+  }
+
   // [moved → shared/core/state.js]
   // 将一份存档数据载入为当前游戏状态并展卷
   function enterGame(data, slot){
@@ -552,17 +609,36 @@
     try{ SFX.setBgmVolume((settings.bgmVol!=null?settings.bgmVol:35)/100); SFX.setSfxVolume((settings.sfxVol!=null?settings.sfxVol:60)/100); SFX.startBgm(); }catch(e){}       // 启动古风BGM（v20260909a）
     if(!state.quest || typeof state.quest!=='object') state.quest={bandit:0,turban:0,hua_xiong:false,luoyang:false};
     $narr.innerHTML='';
+    // 序幕（P0 · v20260911g）：新档 / 未看过时，入局先演「开场动画」——全屏幕布 #prologue 逐行浮现时代文案
+    //   （文案见 shared/story/dialogues.js · prologue，演出见 playPrologue）。动画演毕才 renderRoom，
+    //   故角色是「被推进牢房」之后才出现在牢里的；紧接着由 camp_opening 剧本接开场（铁链/尘土/周听涛开口）。
+    // 记录旗标放顶层 state.flags.introShown——不可放 flags.onb.*，因教学入口 applyOnboard 会整块重置 onb。
+    var _playIntro = !(state.flags && state.flags.introShown);
+    if(_playIntro){ if(!state.flags) state.flags={}; state.flags.introShown=true; }
     renderStatus();
     // 开场渐进式 UI：新局落在教学入口时，先进入空白引导态（隐藏顶栏/DOCK/行动区/罗盘）
-    if((state.room==='camp_yard'||state.spawnRoom==='camp_yard') && !(state.flags && state.flags.onb && state.flags.onb.done)){
+    // v20260911f：默认新档现落在牢房（camp_tz1），故把教学子牢房一并纳入，确保 flags.onb 在首帧 renderRoom 前已建，
+    //   suppressNarr 才能对教学房间生效（否则牢房常规描写会插在序幕与「押入牢房」演出之间）。
+    var _onbSpawn = (state.room==='camp_yard'||state.spawnRoom==='camp_yard'||/^camp_[td]z\d$/.test(state.room||''));
+    if(_onbSpawn && !(state.flags && state.flags.onb && state.flags.onb.done)){
       if(!state.flags) state.flags={};
       if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
       applyOnboard();   // NPC 列表延后到开场剧本「点下方老乞丐」一步才 reveal，避免提前交互引发 bug
       toast('轻触叙事文字，可立即显示整段');
     }
-    renderRoom(state.room || state.spawnRoom || 'ji_guomen');
-    var app=document.getElementById('app'); if(app) app.classList.remove('hidden');
+    var app=document.getElementById('app');
     var tt=document.getElementById('title'); if(tt) tt.classList.add('hidden');
+    if(_playIntro){
+      // 序章动画期间先不露界面（幕布底下空着），演毕再显界面并渲染牢房 —— 「演完才出现在牢里」
+      if(app) app.classList.add('hidden');
+      playPrologue(function(){
+        if(app) app.classList.remove('hidden');
+        renderRoom(state.room || state.spawnRoom || 'ji_guomen');
+      });
+    } else {
+      if(app) app.classList.remove('hidden');
+      renderRoom(state.room || state.spawnRoom || 'ji_guomen');
+    }
   }
 
   var $status=document.getElementById('status');
@@ -688,6 +764,9 @@
     }
   }
   // 串行叙事：逐行依次输出，前一行打字完成后隔 gap 再播下一行，避免多行同时刷出眼花
+  // v20260911e：末行后【同步】收尾（onDone），不再挂尾随 setTimeout——该定时器在部分环境
+  //   会被节流/丢弃，导致 onDone（进而 onbRoomEnter / narrate 后续步骤）永不触发（表现为
+  //   序章不播、走廊点卯对话不出）。行间间隔仍用 gap。
   function logScene(lines, gap, onDone){
     gap = gap==null ? 150 : gap;
     var myToken = ++narrToken;          // 本段叙事获得令牌
@@ -696,7 +775,11 @@
       if(myToken!==narrToken){ if(narrOngoing){ narrOngoing=false; syncActionLock(); } return; } // 已被新场景取代，放弃旧叙事
       if(i>=lines.length){ narrOngoing=false; if(onDone) onDone(); syncActionLock(); return; }
       var l=lines[i];
-      log(l.t, l.c, l.n, function(){ setTimeout(function(){ play(i+1); }, gap); });
+      log(l.t, l.c, l.n, function(){
+        var ni=i+1;
+        if(ni>=lines.length){ play(ni); }                       // 末行：立即收尾
+        else { setTimeout(function(){ play(ni); }, gap); }      // 行间：间隔 gap
+      });
     })(0);
   }
 
@@ -850,6 +933,55 @@
   }
   function findEvent(id){ for(var i=0;i<G.EVENTS.length;i++) if(G.EVENTS[i].id===id) return G.EVENTS[i]; return null; }
 
+  // ══ 作息口径（v20260911h · P3）══════════════════════════════════════════════
+  // 「时辰 → 此时能做什么」的判定全部收敛到这一处，勿散落到各处：
+  //   劳作吃时辰(laborTick) / 伙房供饭(mess_hall) / 回牢销名(check_in) / 城门宵禁 / 客栈打尖 共用同一套口径。
+  //   state.time ∈ 0..11 = 子丑寅卯辰巳午未申酉戌亥；营中「一日」以卯时(3)开牢为始、寅时(2)为末。
+  var MESS_HOURS  = [3,4,6,7,9,10];    // 一日三餐各两个时辰：卯辰（朝食）· 午未（晌饭）· 酉戌（夜粥）
+  var DEAD_HOURS  = [11,0,1,2];        // 亥子丑寅：灶冷无食（伙房歇火）
+  var NIGHT_HOURS = [10,11,0,1,2];     // 戌时鸣鼓落锁起至次日寅时：城门宵禁 / 营中点卯逾期
+  var INN_FEE     = 8;                 // 客栈打尖房钱（两）
+  var LABOR_PER_WOOD = 3;              // 劳役工分：每 3 工换发 1 枚「劳字木片」
+  function hourNow(){ return (((state.time||0)%12)+12)%12; }
+  function hourLabel(h){ return SHICHEN[(((h==null?hourNow():h)%12)+12)%12]; }
+  function inHours(arr,h){ h=(((h==null?hourNow():h)%12)+12)%12; return arr.indexOf(h)>=0; }
+  function isMessHour(h){ return inHours(MESS_HOURS,h); }      // 饭点：灶上有热食
+  function isDeadHour(h){ return inHours(DEAD_HOURS,h); }      // 深夜：灶火已熄
+  function isCurfewHour(h){ return inHours(NIGHT_HOURS,h); }   // 落锁：城门闭 · 点卯逾期
+  function onbF(){ return (state.flags && state.flags.onb) || null; }
+  // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
+  function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
+  // 营中「一日」结算：跨子夜时清算点卯 —— 前一日没回牢销名即记一次旷役，次日口粮按罚例加倍
+  function onbDayTick(days){
+    var o=onbF(); if(!o || !o.curfewSet || o.done) return;
+    for(var i=0;i<days;i++){
+      if(!o.checkInDone) o.missCount=(o.missCount||0)+1;
+      o.checkInDone=false;   // 新的一日重新点卯
+      o.lateDone=false;      // 新的一日重开晚归判定
+      o.messToday=0;         // 当日换饭次数重置
+    }
+  }
+  // 劳役（时间闭环核心，v20260911h）：一次劳作 = 一个时辰 + 精力，并累积工分换「劳字木片」。
+  //   于是营中一日有了预算：干得越多，越须按时回牢销名、去伙房换饭、寻处歇息。
+  function laborTick(label){
+    if(!exert(label)) return false;
+    if(state.energy<6){ log('〔力竭〕你两臂发颤，连锹都握不稳了——先寻处歇一歇（席地打盹 / 营门歇脚）。','warn'); return false; }
+    state.energy=Math.max(0,state.energy-4);
+    advanceTime(1);
+    var o=onbF();
+    if(o && o.started && !o.done){
+      o.workCnt=(o.workCnt||0)+1;
+      if(o.workCnt % LABOR_PER_WOOD === 0){
+        packAdd('lao_pai', 1); afterPackChange();
+        log('〔记工〕狱卒验过你的石方，掷来一枚「劳字木片」（工分满 '+LABOR_PER_WOOD+'）——凭此可去伙房换饭。','good');
+      } else {
+        log('〔记工〕工分 '+o.workCnt+'/'+LABOR_PER_WOOD+'——干满 '+LABOR_PER_WOOD+' 工换一枚劳字木片。','sys');
+      }
+    }
+    renderStatus(); save(state);
+    return true;
+  }
+
   // ===== 时间与生存消耗 =====
   function advanceTime(n){
     n=n||1;
@@ -858,7 +990,9 @@
     var crossings=Math.floor(total/1440);   // 跨子夜次数 = 经过的天数
     state.time=(state.time+n)%12;
     state.clock=total%1440;                  // 每时辰 = 120 游戏分钟
+    applyTimeRoutines();                     // 时辰推移 → 驱动 NPC 作息流动（全城通用）
     if(crossings>0){
+      onbDayTick(crossings);                 // 营中「一日」结算：点卯 / 旷役（v20260911h · P3）
       state.day=(state.day||0)+crossings;
       syncCalendar();                        // 跨日 → 农历月日 / 年号年序随之推进
       if(Math.random()<0.55) state.weather=Math.floor(Math.random()*WEATHERS.length); // 新日易天候
@@ -871,10 +1005,10 @@
     tickForge(n);   // 炉膛随时辰持续推进
     tickBuildOrders(crossings);   // 城市营造工单：跨日推进宏观委派 + 结算每日市租（第3步）
   }
-  // 由累计天数回写年号年序（年号恒定「光和」，游戏内自洽）
+  // 由累计天数回写年号年序 + 年号名（年号随公元年自动切换：184→中平，杜绝 184 仍显「光和」）
   function syncCalendar(){
     var c=deriveCalendar();
-    state.eraYear=c.eraYear; state.adYear=c.adYear;
+    state.eraName=c.eraName; state.eraYear=c.eraYear; state.adYear=c.adYear;
   }
   // 饥饿过高：食物/饮水耗尽则持续侵蚀气血（硬性限制）；归零即殒落
   function maybeStarve(){
@@ -1353,7 +1487,8 @@
     }
     // v20260910q：囚室格 (1,0) 不再跳独立房间——牢房即城格，面板显示六间子牢房(doors)，罗盘走网格邻居
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
-    var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell' || rid==='kuyilao');
+    // 开场引导期间静默这些房间的常规旁白（改用剧本式叙事，避免与触发台词重复/信息过载）
+    var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell' || rid==='kuyilao' || /^camp_[td]z\d$/.test(rid));
     if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
@@ -1370,10 +1505,8 @@
         narr.push({t:'〔地上之物〕', c:'sys'});
         room.items.forEach(function(it){ narr.push({t:'· '+it, c:'item'}); });
       }
-      if(room.exits){
-        var exLines=Object.keys(room.exits).map(function(d){ return d+'·'+exitDisplayName(room.exits[d]); }).join('　');
-        if(exLines) narr.push({t:'〔出口〕 '+exLines, c:'exit'});
-      }
+      // v20260911f：取消「进场即罗列各出口」的旁白（〔出口〕南·... / 东·...）——过于冗长且与罗盘按钮重复。
+      // 可走方向一律以底部罗盘按钮 + 山河志呈现，不再逐条播报。
       if(room.isField) narr = narr.concat(fieldNarr(room));   // 郊野：资源/野兽/路人
       // 新房间自动探查：标记已探索，出口立即可用。
       // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「环顾四周 / 探查」在玩家主动行动时揭示。
@@ -1980,7 +2113,41 @@
     renderSelf(room);
   }
   // ===== 左侧 NPC 列表（地图左侧，点击弹出菜单）=====
+  // ===== NPC 时辰作息：按 LF.NPC_ROUTINES 在房间间挪动（教程 / 全城 / 任意地点通用）=====
+  // 数据表：LF.NPC_ROUTINES = { 角色key: { <时辰索引 0-11>: 房间id | [房间id...], _home: 房间id } }
+  //   · 时辰索引 = state.time % 12（0子 1丑 2寅 3卯 4辰 5巳 6午 7未 8申 9酉 10戌 11亥）
+  //   · 目标房可为：手写锚点房（camp_* 等）、程序生成的地点房（gen/rooms.js 注入 G.ROOMS 的城/镇/关/副本）、
+  //     或城市根房（registerCityRooms 注入的 G.ROOMS[cid] —— 落在城市根房上的角色在该城任一格都可见，
+  //     适合更夫、货郎、巡卒这类「满城都可能撞见」的人）。
+  //   · 未列出的时辰回 _home；目标房不存在则原地不动（安全退化，不会把角色塞进不存在的房）。
+  // 调用点：renderNpcList（每次重绘左侧列表）+ advanceTime（每次时辰推进）→ 读档后也会立刻回到当前时辰该在的位置。
+  // v20260911g 修复：旧版在内层循环里 `if(idx>=0){ if(rid===dest) break; splice }`，一旦先命中目标房就 break，
+  //   导致「同一角色残留于更早遍历到的其它房」的旧副本清不掉（分身）。现改为「先扫全表撤走所有非目标房，再落位」，
+  //   并支持一个时辰命中多个房间（值写成数组）。
+  function applyTimeRoutines(){
+    var R = (typeof LF !== 'undefined' && LF.NPC_ROUTINES) || null; if(!R || !state) return;
+    var h = (state.time || 0) % 12;
+    for (var id in R){
+      var rule = R[id]; if(!rule) continue;
+      var v = (rule[h] != null) ? rule[h] : rule._home;
+      if(v == null || v === '') continue;
+      var dests = (v instanceof Array) ? v : [v];
+      // ① 先撤：把所有「非本次目标」的房间里的该角色清掉（避免分身）
+      for (var rid in G.ROOMS){
+        if(dests.indexOf(rid) >= 0) continue;
+        var arr = G.ROOMS[rid].npcs; if(!arr) continue;
+        var idx = arr.indexOf(id);
+        if(idx >= 0) arr.splice(idx, 1);
+      }
+      // ② 再落：逐个目标房补位（去重）
+      for (var d=0; d<dests.length; d++){
+        var tgt = G.ROOMS[dests[d]];
+        if(tgt && tgt.npcs && tgt.npcs.indexOf(id) < 0) tgt.npcs.push(id);
+      }
+    }
+  }
   function renderNpcList(room){
+    applyTimeRoutines();
     if(!room && state.room) room=G.ROOMS[state.room]||bldRoom(state.room);
     var box=document.getElementById('npc-list'); if(!box) return;
     box.innerHTML=''; box.classList.remove('has');
@@ -2689,7 +2856,16 @@
     }
     return best;
   }
+  // 宵禁（v20260911h · P3 · 门禁）：戌时鸣鼓落锁起，至次日寅时，城门昼夜紧闭；
+  //   出不得城、也叫不开门——须待卯时启门，或于野外就地安营 / 在城中「投店打尖」。
+  //   苦役营（kuyilao）不受此判：营门另有囚籍规条（见 leaveViaGate 首段），免得与教学链打架。
+  function gateCurfew(cid){ return cid !== 'kuyilao' && isCurfewHour(); }
   function arriveAtGate(pid, dir){
+    if(gateCurfew(pid)){
+      log('〔门禁〕'+((LF.CITIES[pid]||{}).name||'城门')+'门紧闭——'+hourLabel()+'的夜鼓早已敲过。任你拍门，门内只回一句：「卯时再来。」','warn');
+      toast('城门已闭，今夜不得入城。可在城外就地安营（帐篷 / 篝火 / 草席）或席地打盹，待卯时再入。');
+      return;
+    }
     setOnBoat(false);   // 进城即上岸
     var gc=gateCellCoord(pid, dir);
     var m=genCityGrid(pid);
@@ -2710,6 +2886,12 @@
     // 教学未毕业：苦役营（kuyilao）各出口被看死，须先探得门道、再赴南门决断出营
     if (state.room === 'kuyilao' && !(state.flags && state.flags.onb && state.flags.onb.done)) {
       toast('塌墙根未松动，官差看死各处出口。先回营中寻周先生问计、去囚室探默叔暗号，再赴南门决断出营。'); return;
+    }
+    // 宵禁（v20260911h · P3 · 门禁）：夜里城门自内落锁，出不得城
+    if(gateCurfew(state.room)){
+      log('〔门禁〕夜鼓已过，'+((LF.CITIES[state.room]||{}).name||'城')+'门落锁。守卒按刀一横：「卯时启门，今夜谁也不许出城。」','warn');
+      toast('城门已闭（'+hourLabel()+'）——须待卯时启门。若城中无处安身，可去市集或城门内脚店「投店打尖」。');
+      return;
     }
     var _fid = (LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][dir]) || null;
     var target = _fid ? ((LF.PLACES && LF.PLACES[_fid] && LF.PLACES[_fid].entryRoom) || _fid) : null;
@@ -2756,7 +2938,9 @@
       var _cp=state.flags.cityPos;
       if(_cp && _cp.cid===state.room){
         var _ct=cellDisplayType(state.room, _cp.x, _cp.y);
-        if(_ct==='gate'){
+        // v20260911h：出城口与 currentRoomExits / leave_city 同口径 —— 城门格与岗哨格皆可出城
+        // （苦役营南门是 sentry 格，此前只认 gate 会落到网格移动分支 → 越界报「此处无路可去」）
+        if(_ct==='gate'||_ct==='sentry'){
           var _od=gateOutwardDir(state.room, _cp.x, _cp.y);
           if(_od===dir && LF.PLACE_GATES && LF.PLACE_GATES[state.room] && LF.PLACE_GATES[state.room][_od]){
             leaveViaGate(_od); return;
@@ -3214,7 +3398,7 @@
         openModal('edict'); break;
       }
       case 'mine_dig': {
-        if(!exert('开凿矿料')) break;
+        if(!laborTick('开凿矿料')) break;   // v20260911h：开凿同样吃一个时辰，并累工分换木片
         packAdd('shitiao', 1);
         log('你挥镐凿下数块青石（获得石料×1）。','sys');
         save(state); afterPackChange();
@@ -3222,7 +3406,8 @@
       }
       case 'kitchen_cook': {
         if(!exert('生火造饭')) break;
-        state.energy=Math.min((state.energyMax||100), state.energy+8);
+        // 修正：原写作 state.energyMax（无此字段）→ 恒回退 100，会把精力上限算错；应为 state.maxEnergy
+        state.energy=Math.min((state.maxEnergy||100), state.energy+8);
         log('伙房热气腾腾，你吃了一碗粗粮热汤，精力恢复少许。','sys');
         save(state);
         break;
@@ -3238,8 +3423,9 @@
       case 'drill_train': {
         if(!exert('操练武艺')) break;
         state.energy=Math.max(0,state.energy-3);
-        log('你在演武场挥汗操练，拳脚渐稳（精力-3）。','sys');
-        save(state);
+        advanceTime(1);   // v20260911h · P3：操练同样吃一个时辰
+        log('你在演武场挥汗操练了一个时辰，拳脚渐稳（精力-3）。','sys');
+        renderStatus(); save(state);
         break;
       }
       case 'sentry_look': {
@@ -3305,12 +3491,17 @@
         break;
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
-      // ─── 教程：劳作 / 塌墙根决断 ───
-      case 'labor_yard':
-        if(!exert('担石劳作')) return;
-        if(!checkTriggers({hook:'onCustom', room: state.room}))
-          log('你又扛起乱石，汗如雨下。苦役营的日夜，漫长得没有尽头。','sys');
+      // ─── 教程：劳作 / 塌墙根决断（v20260911h · P3：劳作吃时辰 —— 见 laborTick）───
+      case 'labor_yard': case 'farm_work': case 'haul_stones': {
+        var _lm = {
+          labor_yard:  ['担石劳作', '你又扛起乱石，汗如雨下。苦役营的日夜，漫长得没有尽头。'],
+          farm_work:   ['下地务农', '你扶犁翻垄，日头从东头挪到头顶，垄沟里尽是汗珠。'],
+          haul_stones: ['搬石料',   '你扛着石料往返奔走，肩头磨得发烫，粗布上都浸了汗碱。']
+        }[id];
+        if(!laborTick(_lm[0])) break;
+        if(!checkTriggers({hook:'onCustom', room: state.room})) log(_lm[1],'sys');
         break;
+      }
       case 'survey_yard':
         if(!exert('环顾四周')) return;
         if(!checkTriggers({hook:'onCustom', room: state.room}))
@@ -3342,6 +3533,66 @@
         if(!exert('勘察矿道')) return;
         log('你勘察矿道：向墙根延伸，石四说底下连着暗渠。若得吴算盘指水道走向，水渠夜遁线（路线8）便成了。','sys');
         break;
+
+      // ═══ P3 时间闭环（v20260911h）：伙房限时换饭 / 回牢销名 / 客栈打尖 ═══
+      // 这三件事把「已亮相的时辰」变成真正要照料的东西：吃、睡、点卯都得看更鼓。
+      case 'mess_hall': {
+        var _o = onbF();
+        if(!_o || !_o.started || _o.done){ toast('此处是营中伙房，非营中之人换不得饭。'); break; }
+        if(isDeadHour()){
+          log('〔伙房〕'+hourLabel()+'——灶火早熄，锅里只剩刷锅水。大勺隔着案板摆手：「明日卯时开灶；戌时前领夜粥，过了点自己饿着。」','warn');
+          break;
+        }
+        var _cost = 1 + ((_o.missCount||0) > 0 ? 1 : 0);         // 旷役补役：口粮按罚例加倍
+        var _pai = packFind('lao_pai'), _have = _pai ? (_pai.count || 1) : 0;
+        if(!_have){ log('〔伙房〕你手里没有「劳字木片」——去农田 / 矿坑 / 劳役场挣够工分再来。','warn'); break; }
+        if(_have < _cost){ log('〔伙房〕你名下有旷役未补，口粮按罚例加倍，须 '+_cost+' 枚木片（现有 '+_have+' 枚）。','warn'); break; }
+        packConsume('lao_pai', _cost); afterPackChange();
+        var _hot = isMessHour();
+        packAdd(_hot ? 'fan' : 'xizhou', 1); afterPackChange();
+        _o.messToday = (_o.messToday||0) + 1;
+        if(_hot) log('〔伙房〕'+hourLabel()+'正逢饭点：你把木片交上，大勺盛了一碗热饭热汤（劳字木片-'+_cost+' · 得干粮×1）。','good');
+        else log('〔伙房〕饭点已过，灶上只剩半锅冷粥——大勺还是给了你一瓢（劳字木片-'+_cost+' · 得稀粥×1）。','sys');
+        save(state);
+        break;
+      }
+      case 'check_in': {
+        var _o2 = onbF();
+        if(!_o2 || !_o2.curfewSet){ log('〔点卯〕营中尚无点卯之规，无人管你几时回牢。','sys'); break; }
+        if(_o2.done){ log('〔点卯〕你已脱籍出营，牢头摆手：「去罢，营规管不着你了。」','sys'); break; }
+        if(_o2.checkInDone){ log('〔点卯〕今日已销过名。牢头翻册摆手：「自去。」','sys'); break; }
+        if(isCurfewHour()){
+          if(_o2.lateDone){ log('〔点卯〕牢头斜眼一瞥：「今日迟了，鞭子也领过了。明日赶早。」','warn'); break; }
+          // 与 laotou_late 触发器同一套账（lateDone 互锁，两条路径不会重复受罚），且不至于打死人
+          _o2.lateDone = true; _o2.lateCount = (_o2.lateCount||0) + 1; _o2.missCount = (_o2.missCount||0) + 1;
+          var _dmg = Math.min(15, Math.max(0, state.hp - 1));
+          state.hp = Math.max(1, state.hp - _dmg);
+          _o2.favor = (_o2.favor||0) - 1;
+          log('〔点卯〕'+hourLabel()+'——鼓声早过戌时。牢头阴沉着脸点你的名：「迟了。」','warn');
+          log('你挨了三鞭（气血-'+_dmg+'），牢头记你一次晚归（营中好感-1）。明日口粮按罚例加倍。','combat');
+          renderStatus(); save(state);
+        } else {
+          _o2.checkInDone = true; _o2.favor = (_o2.favor||0) + 1;
+          log('〔点卯〕你赶在戌时前回牢廊销了名。牢头翻册点头：「'+hourLabel()+'，算你今日勤勉。」（营中好感+1）','good');
+          save(state);
+        }
+        break;
+      }
+      case 'inn_stay': {
+        if(!isCityGrid(state.room)){ toast('此处无店可投。'); break; }
+        if(state.gold < INN_FEE){ toast('囊中羞涩（房钱 '+INN_FEE+' 两），店家摇摇头不肯赊账。'); break; }
+        state.gold -= INN_FEE;
+        var _h = hourNow(), _to = (((3 - _h) % 12) + 12) % 12; if(_to === 0) _to = 12;   // 醒来即在卯时（启门 / 开牢之时）
+        var _wasNight = isCurfewHour(_h);
+        advanceTime(_to);
+        var _es2 = effectiveStats();
+        state.hp = _es2.maxHp; state.mp = _es2.maxMp; state.energy = state.maxEnergy;
+        state.food = state.maxFood; state.drink = state.maxDrink;
+        log('〔打尖〕你在'+((LF.CITIES[state.room]||{}).name||'城')+'的脚店要了间板房，热汤洗尘'+
+            (_wasNight ? '，听更鼓数到三' : '')+'，一觉睡到天明——醒来已是'+hourLabel()+'（房钱-'+INN_FEE+'两，气血内力尽复）。','good');
+        renderStatus(); renderRoom(state.room, true); save(state);
+        break;
+      }
       // ─── 战斗试炼 ───
       case 'spar_bandit': if(!exert('应战')) return; startCombat('bandit'); break;
       case 'spar_chief':  if(!exert('应战')) return; startCombat('bandit_chief'); break;
@@ -4073,11 +4324,15 @@
     if(route==='bribe'){ state.gold=Math.max(0,(state.gold||0)-30); }   // 收买犬卒：扣 30 银（叙事闭环，银钱开道）
     if(state.flags.onb) state.flags.onb.done=true;
     state.moveGate=null;
-    graduate();
+    save(state);
+    // v20260911h：出营三叙（脱籍 / 逃脱 / 教学完成）改在 moveToOutside() 之后输出。
+    //   renderRoom 开头的 flushNarr() 会丢弃「上一场景排队中/打字中」的文字，
+    //   旧序（先 log 再 moveToOutside）会把这三段全清掉，玩家看不到逃脱文案与出营引导。
+    graduate(true);          // 只做状态交接（移除 onb 界面/解锁菜单），脱籍文案延后统一输出
+    moveToOutside();
+    log('〔脱籍〕你已出营——点卯、晚归、口粮罚例一概不再管你；只是营中的钟点照旧，鼓声、作息、日头都不会为你停。','order');
     log('〔'+ROUTE_INFO[route].name+'·逃脱〕'+ROUTE_INFO[route].flavor,'env');
     log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。','sys');
-    save(state);
-    moveToOutside();
   }
   function moveToOutside(){
     state.room='lindao'; state.moveGate=null; save(state);
@@ -4578,6 +4833,7 @@
   // ── 全局桥接（v20260827j）：shared/story/rooms.js 等外部脚本的工厂闭包在全局作用域解析引擎函数，
   //    缺一即报 ReferenceError（真实浏览器严格词法作用域）。全部补齐：移动/交互/战斗/招募/渲染。
   window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction;
+  window.getState=function(){ return state; }; window.save=save;   // 供 shared/story/rooms.js 房间物件回调读写存档（getState 惰性取当前 state）
   window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
   window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;
   window.startCombat=startCombat;
@@ -4616,9 +4872,9 @@
   // ===== 存档时间戳（仅用于读档续命，不再结算任何离线/放置收益）=====
 
 
-  // ===== 序幕 =====
-  var _pro=(G&&G.DIALOGUES&&G.DIALOGUES.prologue)||[]; if(_pro.forEach){ _pro.forEach(function(l){log(l,'env');}); }
-  log('— 颍川起兵 —','title');
+  // ===== 标题屏 =====
+  // 序幕不再于此输出：此处是标题屏，叙事区被隐藏，且紧接着 enterGame 会清空它。
+  // 现改由 enterGame() 在入局时播报（见该函数内「序幕」段）。
   bindTitle();
   (function(){
     var el=document.querySelector('.tt-scroll-body');
@@ -4641,6 +4897,7 @@
     var box=document.querySelector('.tt-inkblot');
     if(box){
       function drip(){
+        var _tt=document.getElementById('title'); if(_tt&&_tt.classList.contains('frozen')) return; // 弹窗冻结时不再生成墨滴节点
         var b=document.createElement('i');
         var x=(Math.random()*84+8).toFixed(1);
         var y=(Math.random()*44+6).toFixed(1);              // 集中上半屏(6%~50%)

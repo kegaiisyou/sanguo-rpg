@@ -119,22 +119,29 @@ window.LF = window.LF || {};
     // 生成城内部按网格坐标注入具名 NPC / 场景动作，使新手教程可在真实城市里展开。
     var TUTORIAL_CITY_NPCS = {
       kuyilao: {
-        '1,1': ['laotou', 'qin_jiuxiao'],                 // 中军场院（劳役场）
+        // ⚠️ 登记格只表示「默认落脚点」；若该角色在 LF.NPC_ROUTINES_CITY.kuyilao 里有作息编排，
+        //    实际出现格由「当前时辰」决定（见下方 cityCellNpcs 的过滤逻辑 + rooms.js 的表）。
+        '1,1': ['laotou', 'qin_jiuxiao', 'niu_tie'],       // 中军场院（劳役场）
         '1,0': [],                                         // 囚室（默叔已迁入牢区·天字二号）
         '2,1': ['chen_jian', 'wu_suan', 'zheng_gang'],     // 仓库（仓吏由 warehouse() 自动生成）
         '2,0': ['shi_si', 'gou_san'],                      // 矿坑
-        '0,1': ['lin_niang'],                              // 伙房
-        '0,0': ['sun_lao'],                                // 农田
+        '0,1': ['lin_niang', 'lu_da'],                     // 伙房
+        '0,0': ['sun_lao', 'li_wang'],                     // 农田
         '1,2': ['zhao_hu', 'qian_biao', 'sun_meng', 'fu_sheng'], // 岗哨/南门
         '2,2': ['han_tie', 'su_niang']                     // 演武场
       }
     };
     var TUTORIAL_CITY_ACTS = {
       kuyilao: {
-        '1,1': [{ id: 'labor_yard', label: '担石劳作', tip: '按狱卒吩咐扛石运土——熟悉劳作，点亮状态栏。' },
+        '1,1': [{ id: 'labor_yard', label: '担石劳作', tip: '扛石运土一个时辰——累工分，满三工换一枚劳字木片。' },
                 { id: 'survey_yard', label: '环顾四周', tip: '勘察劳役场，看清几处去路。' }],
-        // 囚室格 (1,0) 不挂场景动作——六间子牢房走面板 doors（CELL_INTERIORS），罗盘走网格邻居
-        '2,1': [{ id: 'survey_warehouse', label: '翻找仓库', tip: '墙角倚着闲镐锄，竹木随手可取。' }],
+        // 囚室格 (1,0)：六间子牢房走面板 doors（CELL_INTERIORS）、罗盘走网格邻居；
+        // 格上只留一个「回牢销名」——它正是营中一日循环的收口（戌时前销名则记勤，逾时受鞭）
+        '1,0': [{ id: 'check_in', label: '回牢销名', tip: '戌时前回牢门向牢头销名；逾时按营规吃三鞭，次日口粮按罚例加倍。' }],
+        '2,1': [{ id: 'survey_warehouse', label: '翻找仓库', tip: '墙角倚着闲镐锄，竹木随手可取。' },
+                { id: 'haul_stones', label: '搬石料', tip: '往返扛石入库一个时辰——累工分，可换劳字木片。' }],
+        '0,0': [{ id: 'farm_work', label: '下地务农', tip: '扶犁翻垄一个时辰——累工分，可换劳字木片。' }],
+        '0,1': [{ id: 'mess_hall', label: '以木片换饭', tip: '交「劳字木片」换一份口粮；卯辰/午未/酉戌为饭点，深夜灶冷。' }],
         '1,2': [{ id: 'wall_choose', label: '决断出营·墙根', tip: '于塌墙根（南门）盘算出营法子。' }],
         '2,2': [{ id: 'train_dummy', label: '戳木人桩', tip: '演武场木人桩练拳脚，战力达标可强突。' }]
       }
@@ -463,7 +470,40 @@ window.LF = window.LF || {};
       var gen = getNPC_GEN()[cellDisplayType(cid, x, y)] || getNPC_GEN().common;
       var list = gen(cid, x, y, c, c.name || '此城', m);
       // 教程/具名名册（v20260909p）：按格注入具名 NPC
-      var ros = (TUTORIAL_CITY_NPCS[cid] && TUTORIAL_CITY_NPCS[cid][x + ',' + y]) || [];
+      var here = x + ',' + y;
+      var ros = (TUTORIAL_CITY_NPCS[cid] && TUTORIAL_CITY_NPCS[cid][here]) || [];
+      // 具名角色同样受「时辰作息」驱动（v20260911g · LF.NPC_ROUTINES_CITY，表见 story/rooms.js）：
+      // 与房间级 LF.NPC_ROUTINES 共用同一个真实时间源（state.time，十二时辰），故城内具名角色也会
+      // 按时辰在自己登记的几格间挪动。未编排的角色照旧只在自己登记的格出现。
+      var cityRules = (LF.NPC_ROUTINES_CITY || {})[cid] || null;
+      if (cityRules) {
+        var hour = ((S() || {}).time || 0) % 12;
+        var ruleDests = function (k) {
+          var rule = cityRules[k]; if (!rule) return null;
+          var v = (rule[hour] != null) ? rule[hour] : rule._home;
+          if (v == null || v === '') return null;
+          return (v instanceof Array) ? v : [v];
+        };
+        // ① 本格登记、但此刻已被作息挪走的 → 不露面
+        var kept = [];
+        for (var ki = 0; ki < ros.length; ki++) {
+          var kd = ruleDests(ros[ki]);
+          if (!kd || kd.indexOf(here) >= 0) kept.push(ros[ki]);
+        }
+        // ② 从「全城各格」里把此刻该在本格的角色补进来（跨格流动的关键：目的地可能不是它的登记格）
+        var roster = TUTORIAL_CITY_NPCS[cid] || {};
+        for (var cellKey in roster) {
+          if (cellKey === here) continue;
+          var arr0 = roster[cellKey] || [];
+          for (var ai = 0; ai < arr0.length; ai++) {
+            var k2 = arr0[ai];
+            if (kept.indexOf(k2) >= 0) continue;
+            var kd2 = ruleDests(k2);
+            if (kd2 && kd2.indexOf(here) >= 0) kept.push(k2);
+          }
+        }
+        ros = kept;
+      }
       for (var ri = 0; ri < ros.length; ri++) {
         var rk = ros[ri];
         var rd = (G.DIALOGUES && G.DIALOGUES.npcs && G.DIALOGUES.npcs[rk]) || {};
@@ -508,6 +548,13 @@ window.LF = window.LF || {};
             out.push({ id: 'enter_building', label: '进·' + bd.name, icon: bd.icon, tip: '步入' + bd.name + '——' + (bd.sub || '入内一观'), data: { building: k } });
           });
         }
+      }
+      // ── 客栈打尖（v20260911h · P3 · 宵禁配套）──
+      // 市集脚店与城门内车马店皆可投宿：付房钱，一觉睡到次日卯时（启门/开牢之时），气血内力尽复。
+      // 夜里城门落锁（见 engine.js · leaveViaGate/arriveAtGate），此钮便是「夜行客」的正解。
+      // 苦役营另论：营中只有营规，没有脚店——须回牢销名（cell 1,0），故不挂此钮。
+      if ((t === 'market' || t === 'gate') && cid !== 'kuyilao') {
+        out.push({ id: 'inn_stay', label: '投店打尖', icon: '🛏', tip: '要一间板房歇下：付房钱，一觉睡到次日卯时，气血内力尽复' });
       }
       // v20260905h：出城统一走移动罗盘——立于城门格时，罗盘自动出现朝外的「出城」方向。
       // 不再提供「出城门」场景按钮；任意格可用「前往城门」自动寻路抵门（不出城），到门后由罗盘定向踏出。

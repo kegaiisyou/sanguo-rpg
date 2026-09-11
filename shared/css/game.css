@@ -1501,7 +1501,7 @@
     line-height:1.85;letter-spacing:1px;column-gap:9px;
     color:#15100a;opacity:.11;
     text-shadow:0 0 6px rgba(20,15,8,.10);}
-  .tt-scroll-body span{margin:0 2px;will-change:transform;overflow:hidden;}
+  .tt-scroll-body span{margin:0 2px;overflow:hidden;}
   /* 分隔朱线 + 印记 */
   .tt-rule{display:flex;align-items:center;gap:11px;margin:24px 0 2px;color:#9c2b1e;font-size:11px;}
   .tt-rule::before,.tt-rule::after{content:'';height:1px;width:56px;}
@@ -1567,7 +1567,7 @@
   /* 标题特效关闭：隐藏烟尘/墨晕层 */
   #title.no-fx .tt-inkfx,#title.no-fx .tt-dust,#title.no-fx .tt-inkblot{display:none;}
   /* 弹窗打开时冻结标题重绘：SVG 墨晕滤镜(feTurbulence)极耗 CPU，择档时尤显卡顿 */
-  #title.frozen .tt-inkfx,#title.frozen .tt-dust,#title.frozen .tt-inkblot{display:none;}
+  #title.frozen .tt-inkfx,#title.frozen .tt-dust,#title.frozen .tt-inkblot,#title.frozen .tt-scroll{display:none;}
   /* 捏人 / 序章 —— 重排版 v20260908j */
   .cr-head{display:flex;align-items:center;gap:12px;margin-bottom:4px;}
   .cr-head-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(158,59,46,.45),transparent);}
@@ -1967,11 +1967,18 @@
     box-shadow:0 0 0 2px rgba(255,217,138,.9), 0 0 16px rgba(255,217,138,.55) !important; }
   @keyframes onbGoalPulse{ 0%,100%{ box-shadow:0 0 0 2px rgba(255,217,138,.9),0 0 14px rgba(255,217,138,.5); }
     50%{ box-shadow:0 0 0 3px rgba(255,217,138,1),0 0 22px rgba(255,217,138,.8); } }
-  .onb-choices{ display:flex; flex-direction:column; gap:8px; padding:12px 14px calc(14px + env(safe-area-inset-bottom)); background:rgba(20,16,10,.4); border-top:1px solid rgba(196,164,102,.3); }
-  .onb-prompt{ color:#cdb98c; font-size:12.5px; margin-bottom:2px; font-style:italic; }
-  .onb-btn{ background:linear-gradient(180deg,#4a3c24,#2e2415); color:#f0e2c0; border:1px solid #8a6f3e; border-radius:9px; padding:11px 12px; font-size:14px; text-align:left; cursor:pointer; line-height:1.35; }
-  .onb-btn:hover{ background:linear-gradient(180deg,#5a4a2e,#3a2e1c); }
+  /* 交谈/引导对话框（tutAsk）：统一为浅宣纸卡 + 深墨字，高对比、与全局面板一致（v20260911d 重做配色） */
+  .onb-choices{ display:flex; flex-direction:column; gap:8px; padding:14px 14px calc(16px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,rgba(255,253,248,.98),rgba(244,238,226,.98)); border-top:2px solid rgba(176,131,47,.55); box-shadow:0 -8px 22px rgba(40,26,8,.22); }
+  .onb-prompt{ color:var(--ink); font-size:14.5px; line-height:1.75; margin-bottom:4px; font-family:"STKaiti","KaiTi","Songti SC",serif; }
+  .onb-btn{ background:linear-gradient(180deg,#fbf6ea,#ece0c6); color:#3a2d1a; border:1px solid #b8893a; border-radius:9px; padding:12px 13px; font-size:14.5px; font-weight:600; text-align:left; cursor:pointer; line-height:1.4; box-shadow:0 1px 0 rgba(255,255,255,.7), 0 2px 6px rgba(40,26,8,.12); }
+  .onb-btn:hover{ background:linear-gradient(180deg,#fffdf6,#f6ecd6); border-color:var(--seal); }
   .onb-btn:active{ transform:translateY(1px); }
+  /* 刑罚·鞭打动效（v20260911e） */
+  @keyframes fxWhipShake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-9px) rotate(-.6deg)} 30%{transform:translateX(8px) rotate(.5deg)} 45%{transform:translateX(-7px)} 60%{transform:translateX(6px)} 75%{transform:translateX(-4px)} 90%{transform:translateX(2px)} }
+  @keyframes fxWhipFlash { 0%{box-shadow:inset 0 0 0 0 rgba(140,20,20,0)} 18%{box-shadow:inset 0 0 130px 12px rgba(150,24,24,.55)} 100%{box-shadow:inset 0 0 0 0 rgba(140,20,20,0)} }
+  .fx-whip{ animation:fxWhipShake .6s ease, fxWhipFlash .8s ease; }
+  .whip-float{ position:fixed; left:50%; top:38%; transform:translate(-50%,-50%); z-index:9999; font-family:"STKaiti","KaiTi",serif; font-size:66px; font-weight:900; color:#b01b1b; text-shadow:0 2px 0 #2a0a0a,0 0 18px rgba(176,27,27,.7); pointer-events:none; animation:whipFloat .95s ease forwards; }
+  @keyframes whipFloat { 0%{opacity:0; transform:translate(-50%,-28%) scale(.6)} 22%{opacity:1; transform:translate(-50%,-50%) scale(1.18)} 70%{opacity:1; transform:translate(-50%,-54%) scale(1)} 100%{opacity:0; transform:translate(-50%,-72%) scale(.9)} }
   /* 禁用移动端浏览器默认缩放手势（双指捏合 / 双击放大），避免影响游玩 */
   html, body{ touch-action:manipulation; -webkit-text-size-adjust:100%; }
   html{ -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
@@ -2108,3 +2115,78 @@
 .shop-gold{color:#5a3a0c;background:rgba(176,131,47,.22);border:1px solid rgba(140,100,30,.4);}
 .shop-pane-title{color:#7a5c22;}
 .shop-hint,.shop-cart-empty{color:#6f6456;}
+
+/* ============================================================================
+   序章开场动画（P0 · v20260911g）
+   独立于叙事区（#narr）的全屏水墨幕布：#prologue 覆盖全屏 → 三段文案逐行浮现
+   （押解微晃 + 镣铐垂影 + 浮尘）→ 白光一闪 → 淡出，再由 engine.js 渲染牢房。
+   即「动画演绎完，角色才出现在牢里」。轻触幕布或点「跳过」立即收尾。
+   文字速度设为「瞬（无动画）」时整段跳过（见 playPrologue）。
+   ============================================================================ */
+#prologue{ position:fixed; inset:0; z-index:200; overflow:hidden;
+  background:#0a0806; opacity:1; transition:opacity .9s ease; }
+#prologue.hidden{ display:none; }
+#prologue.pr-out{ opacity:0; pointer-events:none; }
+.pr-vig{ position:absolute; inset:0; pointer-events:none; background:
+  radial-gradient(120% 90% at 50% 45%, rgba(60,46,27,.55) 0%, rgba(12,10,7,.4) 55%, rgba(4,3,2,.97) 100%); }
+.pr-grain{ position:absolute; inset:-20%; opacity:.09; pointer-events:none;
+  background-image:radial-gradient(rgba(255,235,190,.55) 1px, transparent 1px);
+  background-size:3px 3px; animation:prGrain 3.6s steps(6) infinite; }
+@keyframes prGrain{
+  0%{transform:translate3d(0,0,0)} 25%{transform:translate3d(-6px,4px,0)}
+  50%{transform:translate3d(5px,-5px,0)} 75%{transform:translate3d(-4px,-3px,0)} 100%{transform:translate3d(0,0,0)} }
+/* 弥漫浮尘：从底向上升起，衬托牢中尘土的意象 */
+.pr-dust i{ position:absolute; bottom:-6%; width:3px; height:3px; border-radius:50%;
+  background:rgba(228,198,134,.6); filter:blur(.4px); animation:prDust linear infinite; }
+.pr-dust i:nth-child(1){ left:14%; animation-duration:11s; animation-delay:.2s;  }
+.pr-dust i:nth-child(2){ left:31%; animation-duration:14s; animation-delay:1.1s; width:2px; height:2px; }
+.pr-dust i:nth-child(3){ left:47%; animation-duration:12.5s; animation-delay:.6s; }
+.pr-dust i:nth-child(4){ left:63%; animation-duration:15s; animation-delay:2.0s; width:2px; height:2px; }
+.pr-dust i:nth-child(5){ left:78%; animation-duration:12s; animation-delay:1.6s; }
+.pr-dust i:nth-child(6){ left:90%; animation-duration:13.5s; animation-delay:3.0s; width:2px; height:2px; }
+@keyframes prDust{
+  0%{ transform:translateY(0) translateX(0); opacity:0; }
+  12%{ opacity:.75; } 80%{ opacity:.45; }
+  100%{ transform:translateY(-108dvh) translateX(26px); opacity:0; } }
+.pr-stage{ position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+  align-items:center; padding:0 26px calc(env(safe-area-inset-bottom) + 12px); text-align:center; }
+/* 押解感：整幕极轻微摇晃（动画中段启用） */
+#prologue.pr-shake .pr-stage{ animation:prShake .62s ease-in-out infinite; }
+@keyframes prShake{
+  0%,100%{ transform:translate3d(0,0,0) rotate(0); }
+  20%{ transform:translate3d(-3px,1px,0) rotate(-.22deg); }
+  45%{ transform:translate3d(3px,-2px,0) rotate(.22deg); }
+  70%{ transform:translate3d(-2px,2px,0) rotate(-.14deg); } }
+.pr-lines{ display:flex; flex-direction:column; gap:22px; width:100%; max-width:520px; }
+.pr-line{ margin:0; opacity:0; transform:translateY(14px); color:#e8dcc0;
+  transition:opacity 1.15s ease, transform 1.15s cubic-bezier(.22,.7,.3,1); }
+.pr-line.on{ opacity:1; transform:none; }
+.pr-line.pr-kicker{ font-family:"STKaiti","KaiTi","Songti SC",serif; font-size:21px; font-weight:700;
+  letter-spacing:6px; color:#e9c979; }
+.pr-line.pr-body{ font-family:"STKaiti","KaiTi","Songti SC",serif; font-size:15.5px;
+  letter-spacing:1.4px; line-height:1.95; color:#d9cdb2; }
+.pr-line.pr-body:last-child{ color:#c6b99e; }
+/* 镣铐垂影：两侧细铁链轻摆 */
+.pr-chains{ position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity 1.2s ease .2s; }
+.pr-chains.on{ opacity:.5; }
+.pr-chains i{ position:absolute; top:-6%; width:2px; border-radius:2px; transform-origin:top center;
+  background:linear-gradient(180deg,rgba(210,196,168,0),rgba(216,202,172,.9) 30%,rgba(210,196,168,0));
+  animation:prSwing 3.4s ease-in-out infinite; }
+.pr-chains i:nth-child(1){ left:7%;  height:66%; animation-delay:0s;   }
+.pr-chains i:nth-child(2){ left:23%; height:78%; animation-delay:.8s; }
+.pr-chains i:nth-child(3){ left:77%; height:72%; animation-delay:.4s; }
+.pr-chains i:nth-child(4){ left:93%; height:60%; animation-delay:1.1s; }
+@keyframes prSwing{ 0%,100%{ transform:rotate(-2.4deg); } 50%{ transform:rotate(2.4deg); } }
+/* 收尾白光：一记更鼓般的闪亮，接牢房 */
+.pr-flash{ position:absolute; inset:0; pointer-events:none; opacity:0; background:#f6ecd6; }
+.pr-flash.on{ animation:prFlash .95s ease-out forwards; }
+@keyframes prFlash{ 0%{ opacity:0; } 22%{ opacity:.9; } 100%{ opacity:0; } }
+.pr-skip{ position:absolute; right:16px; bottom:calc(18px + env(safe-area-inset-bottom));
+  padding:6px 12px; border:1px solid rgba(226,208,170,.28); border-radius:14px;
+  font-size:12.5px; letter-spacing:2px; color:rgba(226,208,170,.6); cursor:pointer;
+  animation:skipblink 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion:reduce){
+  #prologue.pr-shake .pr-stage{ animation:none; }
+  .pr-chains i,.pr-dust i,.pr-grain{ animation:none; }
+  .pr-line{ transition-duration:.25s; }
+}

@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260908c`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260911h`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -35,6 +35,7 @@
 | **清理·测试实体** | ✅ 完成 | ① 移除主营「操练场·木人桩」（`spar_dummy`→`enemies.dummy` 不可达死代码待清）；② 移除黑山寨聚义厅「【测试】多按钮演示」NPC（5 按钮排版演示）。两者测试使命已完，游戏内不再出现 | `index.html` `ROOM_OBJECTS`（camp / ji_heishan_zhai 房间） |
 | **时间锚点订正** | ✅ 完成 | 年号由「中平元年（184）」改为「**光和元年（178）**」，与 `GAME_DESIGN.md` 时间锚点（光和年间·乱象初显之世）一致；序章文案同步 `汉灵帝光和年间`；旧档缺年号补默认 `光和` | `shared/index.js`（eraName/adYear）、`index.html`（历法派生/normalize/状态栏/钟表兜底）、`shared/story/dialogues.js`（序章） |
 | **山河志·空间地图** | ✅ 完成 | 「山河」弹窗由竖排列表改为**按出口方位铺展的网格空间地图**：① 节点按 `MAP_COORDS`(col/row) 定位（北在上、东在右），连线表出口通达关系，当前所处红点高亮、通达之路实线加深、悬停显「〔通达〕方向·地名」；② 加**山河底色**（中原/洛阳/幽州区域色块 + 网格纹 + 羊皮纸底）、**距离刻度**（1 格 ≈ 60 里，随缩放实时变化）；③ **默认以当前所处为中心**、支持**任意拖拽平移**、**滚轮 / 双指缩放**（0.5×–3×）；④ 调试台「设置出生点」复用同一空间地图（点节点即设出生点并传送），修复旧列表样式丢失后的拥挤问题 | `index.html`（`MAP_COORDS`/`MAP_CELL`/`buildMapHTML`/`initMap`、`MAP_COORDS` 渲染、`.map-canvas/.map-viewport/.map-region/.map-scale` CSS） |
+| **时辰闭环 / 营规作息 / 宵禁打尖（P3）** | ✅ 完成 | 时辰真正作用于玩家一日循环：劳作吃 1 时辰+精力（满三工换「劳字木片」）、伙房按饭点供饭（非饭点稀粥、子丑寅深夜灶冷）、旷役次日口粮加倍、**戌前回牢销名（点卯）** 记勤 / 逾时吃鞭（气血-15 不致死）、`advanceTime` 跨子夜结算；作息表（`NPC_ROUTINES`）推广至涿县/渔阳等城；非苦役营城门 **戌→寅宵禁**（出不得城也叫不开门）、市集/城门格可「投店打尖」睡到卯时；脱籍出营后时间与作息照常流动、营规一概失效。验收见 `docs/P3_验收报告.md`（P3 断言 59 项 + 全链路回归 42 项全绿） | `shared/core/engine.js`（`MESS_HOURS/DEAD_HOURS/NIGHT_HOURS/INN_FEE/LABOR_PER_WOOD` + `hourNow/isMessHour/isCurfewHour/gateCurfew/onbDayTick/laborTick` + `mess_hall/check_in/inn_stay`）、`shared/core/triggers.js`（`graduate`）、`shared/core/city.js`（`TUTORIAL_CITY_ACTS.kuyilao`、投店打尖按钮）、`shared/story/rooms.js`+`dialogues.js`（打更人作息）、`shared/data/items.js`（`xizhou`） |
 | **P5 影门** | ⬜ 仅骨架 | 设计文档仅占位，代码未实现 | — |
 | **P6 家族兴衰** | ⬜ 仅骨架 | 设计文档仅占位，代码未实现 | — |
 | **标题屏 UI** | ✅ 完成 | 长江落日水墨标题屏：四入口（仗剑入世/拾卷续缘/览物志/整肃）；三档存档（lf_save_1~3，旧档 lf_save_v1 自动迁第一档）；死亡弹「殒落」回标题屏（可拾卷续缘或读档续命）；图鉴（武学/门派/贼寇名录）与设置标签页（画面/声音/游戏；标题页同款但无调试台）弹窗 | `index.html`（#title / openModal newgame·load·codex·settings / enterGame·showTitle / saveToSlot·slotMeta）、`shared/index.js` |
@@ -138,11 +139,30 @@
 
 ---
 
+## 五（续）、待实现清单（设计已定 · 文档领先 · 代码待落地）
+
+> **来源**：用户 2026-09-10 设计拍板（详见 `GAME_DESIGN.md` §0/§1.1/§1.4/§2/§11/§12）。
+> **现状**：文档已先行更新（开局年份→**光和六年/183**、门派候选池扩至 8 系、主角默认锁土著、时间手动+叙事快进、纪元切换列为必做）；代码**尚未落地**（当前仍 178/光和元年基线，前一轮改动已回退）。本表为接棒实现清单，落地时逐条勾除。
+
+| # | 待实现项 | 设计依据 | 代码落点（待改） | 备注 / 依赖 |
+|---|---------|---------|----------------|------------|
+| **T1** | 开局年份改为**光和六年（183）** | GAME_DESIGN §0/§1.1/§11 | `shared/core/calendar.js`（纪元基线 `eraYear:6`、`adYear:183`、`years=floor(d/360)`、新增 `ERAS` 纪元表）、`shared/index.js`（`defaultSave.eraYear:6`/`adYear:183`）、`shared/core/save.js`（迁移同改，1 年=360 天） | ✅ **已完成（20260910w）**：严格 1 公元年=360 天，满 360 天进 184 黄巾；与 T2 同批落地 |
+| **T2** | **纪元切换**：公元 184（满 360 天）时 `eraName` 由「光和」→「中平」 | GAME_DESIGN §1.1/§12·P7 | `shared/core/calendar.js`（`ERAS` 纪元表 + `eraNameOf/eraYearOf` 按公元年推导）、`syncCalendar`（engine.js，跨日刷新 `eraName`）、`shared/index.js`/`save.js`（存档纪元字段同源） | ✅ **已完成（20260910w）**：根治 P7「184 仍显光和」——`eraName` 现由 `deriveCalendar` 自动推导，184→中平、190→初平…；无需独立黄巾回调 |
+| **T3** | 可加入门派扩充至 **8 系候选池** | GAME_DESIGN §1.4 | `shared/index.js`（`canJoinSect`/`joinSect` 候选集：颍川义军/太平道/西凉军 + 新增 墨门/巴蜀暗器/南疆蛊毒/白马寺/弘农杨家）、`shared/data/sects.js`（若启用门派数据层） | 代码已落 3 方数据层 `joinSect`；5 系为「文档先行」待建模；UI 入派面板待接 `joinSect` |
+| **T4** | 主角模板：**默认锁土著草莽**，穿越/重生/天命系统 三类**后期解锁** | GAME_DESIGN §1.4/§2 | `index.html`（`confirmCreate` 捏人：剔除非土著模板入口，模板差异仅作开局调味 flag：起始属性微调/奇遇 flag/UI 任务奖励加成）、`shared/index.js`（`defaultSave` 模板字段） | 首版捏人仅「土著草莽」；其余模板为后期内容，不破坏东汉武侠沉浸 |
+| **T5** | 时间流速：**手动经历每时段**（春/夏/秋/冬）+ **叙事快进任务**（接取提示「此任务进行中会加快时间流速，玩家若介意可避开」+ 奖励更丰厚） | GAME_DESIGN §1.1 | `index.html`（`advanceTime` 改为仅任务驱动，移除自动流逝）、任务子系统（支线/主线加 `fastForward` 标记 = 接取提示 + 奖励倍率加成） | 时间由玩家手动推进；快进任务作时间补偿 |
+| **T6** | 弘农杨家·枪法世家（含**杨家枪法考据标注**） | GAME_DESIGN §1.4 考据栏 | 并入 T3 候选池；门派描述加注「杨家枪法为后世宋明评书层，与东汉弘农杨氏儒学门阀无史据关联，属时代化游戏抽象」 | 考据结论：**弘农杨氏 ≠ 杨家枪法**（前者东汉儒学门阀，后者北宋杨家将传说）；可选改为纯儒门谋略世家 |
+| **T7** | 版本号与缓存参数同步 | 全程 | `shared/config/constants.js`（`LF.CONSTANTS.VERSION` bump）+ `index.html` 相关 `<script ?v=>` 同步 | 落地 T1–T6 后统一 bump（此前 v20260910w 已回退至基线，届时恢复并进位） |
+
+> ⚠ **实现顺序建议**：T1+T2 必须同批（纪元表与年份是一体，分开会立刻出 184 年号 bug）；T3/T4/T5 各自独立，可在后续版本分期落地；T6 随 T3；T7 收尾统一 bump。
+
+---
+
 ## 六、当前可玩内容速览（玩点 + 流程）
 
 ### 6.1 游戏状态（v0.2.0）
-- 框架闭环自洽。手写场景房间（苦役营教学 11 间、黑山寨、颍川主营/城、北邙山林、溪畔草庐、洛阳、蓟城诸坊、北疆边塞[渔阳/白檀军屯/燕山]等）之上，另有 **Place 统一地点体系按 kind 造房**（关门瓮城/副本多层等，v20260904h 起，节点连通校验 80 房）；开局新增**捏人界面**（自输姓名 + 选出身禀赋 + 六维先天资质点配 15 点，基础 5 / 范围 1–10）与**序章开场叙事**（光和元年背景打字机演出），新档位点击即进入捏人→序章→入局
-- 时间：年号「**光和元年**（公元 178）」，农历 + 公历双轨 + 12 时辰，状态栏常驻古历 + 天候
+- 框架闭环自洽。手写场景房间（苦役营教学 11 间、黑山寨、颍川主营/城、北邙山林、溪畔草庐、洛阳、蓟城诸坊、北疆边塞[渔阳/白檀军屯/燕山]等）之上，另有 **Place 统一地点体系按 kind 造房**（关门瓮城/副本多层等，v20260904h 起，节点连通校验 80 房）；开局新增**捏人界面**（自输姓名 + 选出身禀赋 + 六维先天资质点配 15 点，基础 5 / 范围 1–10）与**序章开场叙事**（光和六年背景打字机演出），新档位点击即进入捏人→序章→入局
+- 时间：年号「**光和六年**（公元 183）」，农历 + 公历双轨 + 12 时辰，状态栏常驻古历 + 天候；公元 184（满 360 天游玩）自动切「中平」（纪元表见 `shared/core/calendar.js`）
 - 战斗：12 招式数据（9 招式 + 3 发力技巧，含绝技回马枪）+ 10 敌模板 + 4 AI + 华雄 Boss；半手动
 - 武学：13 艺线真招式研习 + 发力技巧装配，研习界面带门槛锁
 - 声望：8 档称号，华雄门控声望≥20
@@ -916,4 +936,68 @@
 
 ---
 
-*最后更新：2026-09-08（§9.52–9.60 顶栏精简 + 地图渲染数据驱动 + 行动顺序条 · 任务系统改造 · 山河志 9 城/水寨 · 出城多段郊野链+水路坐船 · 行商/休整/体验修复 · 苦役营镇级 3×3/南门/仓库系统/货郎化拖拽 UI · 建筑分级+12 新建筑 · 引擎模块化重构 shared/core/；版本 20260908c）*
+### §9.61 v20260911e：序章 / 点卯 / 晚归受刑 叙事链修复（`logScene` 末行同步收尾）
+
+- **症状**：新档入局后**序章不播**、牢廊首次「点卯」对话不出、晚归「受刑」事件不触发（旧档 `flags.onb.prologueShown` 恒为 undefined）。
+- **根因**：`shared/core/engine.js` 的 `logScene` 在**最后一行**输出后仍挂一个 `setTimeout` 收尾；该定时器在部分环境（jsdom / 移动端后台节流）被丢弃 → `onDone` 永不执行 → `onbRoomEnter` → `checkTriggers({hook:'onEnter'})` 被阻塞 → **整条 onEnter 触发器链（序章 / 点卯 / 晚归）全部失效**。
+- **修复**：
+  - `shared/core/engine.js`：`logScene` 末行改为**【同步】收尾**（不再挂尾随定时器），行间仍用 `gap` 间隔；避免依赖易被节流的尾随定时器。
+  - `shared/story/triggers.js`：`camp_cell_enter` 改 `once:false`，仅由 `flags.onb.prologueShown` 控制（旧档可补播一次序章）；`laotou_corridor` / `laotou_late` 的铺垫步骤由 `narrate` 改为 `log`（同步 next，勿阻塞其后的 `npcTalk`）。
+  - 清理本轮临时调试埋点（`__trgLog` / `ONBENTER` 日志）。
+- **验证**（jsdom 无头 harness `_debug_corridor.js`，`settings.textSpeed=0`）：序章 `prologueShown=true`；走廊点卯 `#tut-choices` 出现且 `curfewSet=true`；晚归受刑触发 —— 鞭打动效 `.fx-whip`/`.whip-float`、气血 100→85、牢头好感 0→-1、`lateDone=true`；**0 运行期错误**。
+- **版本**：`constants.js` VERSION → `20260911e`；`index.html` 的 `story/triggers.js`、`core/triggers.js`、`core/engine.js` 缓存参数对齐 `?v=20260911e`（`core/engine.js` 此前滞留在 `c`，本轮补齐）。
+
+---
+
+### §9.62 v20260911f：开场体验整修（序幕补上 · 系统级去掉出口罗列 · 周听涛台词恢复 · 文案去重）
+
+- **序幕补上**：`DIALOGUES.prologue` 原先在**脚本加载时**就被写进 `#narr`（此时是标题屏、且随后立刻被 `enterGame` 的 `$narr.innerHTML=''` 清空），玩家永远看不到 → 表现为「开头还是没有序幕」。改为 `enterGame()` **入局时**播报（新档/未看过；旗标 `flags.introShown`，不能用 `flags.onb.*`——教学入口 `applyOnboard` 会整块重置 onb）。文本同步改写为与当前开局一致（**光和六年 · 幽州渔阳 → 押往苦役营**），去掉旧的「颍川起兵」矛盾设定。
+- **系统级去掉「进场逐条罗列出口」**：`renderRoom` 不再 push `〔出口〕南·… 东·…`（`engine.js`）。可走方向一律由**底部罗盘按钮 + 山河志**呈现，不再逐条播报（过于冗长）。
+- **开场静默**：教学房间（`camp_yard` / `camp_cell` / `kuyilao` + 六间子牢房 `camp_[td]z\d`）在开场引导期间不再播常规房间描写（`suppressNarr`）；并把默认新档落点 `camp_tz1` 纳入「开场渐进式 UI」初始化，确保 `flags.onb` 在首帧 `renderRoom` 前已建立（否则牢房常规描写会插在序幕与「押入牢房」演出之间）。
+- **出牢门去重**：`laotou_corridor` 删去两句与牢头台词重复的铺垫旁白，**场景描写并入 `npcTalk` 提示词**一次讲完；选项回执缩短；门禁只保留一条 `〔门禁〕` 记录行。另把序幕的时代感慨与周听涛开场说书词改为「分久必合」一句，不再重复「大汉四百年·气数将尽」。
+- **周听涛台词恢复**：`zt_food_deliver` 原为**无条件拦截** `onTalk` → 接取「寻吃食」后每次对话都只重复「吃食还没寻来」，把 `lines[]` 里荆轲/专诸/聂政/豫让/高渐离等大段台词**全数吞掉**。改为 `cond.hasItem:'fan'` 才拦截（无干粮时放行给 `talk()` 轮播）；并删去与 `zt_intro` 自介重复的 `lines[6]`（改写为「易水风冷，蓟门霜重…」）。
+- **验证**（jsdom `_debug_corridor.js`，`textSpeed=0`）：序幕出现且 `introShown=true`；`#narr` 无 `〔出口〕`、无完全重复行；走廊点卯 `curfewSet=true`；晚归受刑（气血 100→85、好感 0→-1、鞭打动效、`lateDone=true`）；周听涛连点 5 次得 **5 条不同台词**、不再出现「吃食还没寻来」；**0 运行期错误**。
+- **版本**：`constants.js` VERSION → `20260911f`；`index.html` 的 `dialogues.js` / `story/triggers.js` / `core/engine.js` 缓存参数对齐 `?v=20260911f`。
+
+---
+
+### §9.63 v20260911g（当前）：序章开场动画 · 时间节拍 · NPC 作息铺开 · 文案统一
+
+分四拍落地（P0 → P1a → P1b → P2），主题是「**让开场先演、再让时间系统亮相、然后用作息把它跑起来**」。
+
+**P0 · 序章开场动画（从「字幕」变「幕布」）**
+- **动机**：旧版序章只是 `#narr` 里三行文字，与「押入牢房」的开场剧本挤在同一日志流里，分不清「听故事」与「已经在牢里」。
+- **落地**：新增全屏水墨幕布 `#prologue`（`index.html`）+ 全套样式（`shared/css/game.css` §序章开场动画）：黑幕 → 三段文案逐行浮现（押解微晃 `pr-shake` + 两侧镣铐垂影 `pr-chains` + 弥漫浮尘 `pr-dust`）→ 收尾白光一闪（`pr-flash`）→ 淡出。
+- **节拍器**：`shared/core/engine.js · playPrologue(onDone)`：按字数排期（每行停留 1400–2600ms，`String.length*55`），`settings.textSpeed<=0`（文字演出设「瞬」）整段跳过；轻触幕布 / 点「跳过」立即收尾。
+- **关键语义**：`enterGame` 在 `_playIntro` 时**先隐藏 `#app`**、播完动画才 `renderRoom` —— 即「**动画演完，角色才被推进牢里**」；序章文案不再进 `#narr`（`DIALOGUES.prologue` 只作幕布文案源）。
+- **文案**：`shared/story/dialogues.js` 的 `prologue` 改为「【汉灵帝光和六年】/ 是岁，朝纲日紊… / 乱世如炉，炼英雄亦炼枯骨…」三段（首行作金色小标题 `pr-kicker`）。
+
+**P1a · 时间节拍（「更鼓」= 时间系统的亮相点）**
+- **动机**：旧版把 `reveal-status`/`reveal-loctab` + `clockOn` 塞在「叩开牢门」那一刻，玩家还没出牢、也没人告诉他「时辰」是什么，顶栏就亮了。
+- **落地**（`shared/story/triggers.js`）：`laotou_door`（叩门）只做「开锁放行 + 一句指路」，**不再点亮顶栏、不再置 `clockOn`**；新顺序全部移到 `laotou_corridor`（出牢后首次踏进牢廊 `kuyilao` 城格 `[1,0]`）：
+  ① 牢头指着廊口那面**值更鼓**，喝去干活并交代「戌时前回牢销名」→ ② 选项〔看那更鼓〕讲营中时辰（十二时辰、卯时开牢、戌时闭门）→ ③ **此刻才** `reveal status(highlight)+loctab` + 记一条〔时间系统〕说明 → ④ `clockOn=true`（时间开始流动）。
+- 门禁三旗（`curfewSet`/`curfewHour=10`/`curfewLabel`）在 `then` 与步骤末尾**各写一次**（幂等兜底：玩家不点选项就离开也不会漏设）。
+
+**P1b · NPC 作息铺开（同一份时间源，两层机制）**
+- **表**（`shared/story/rooms.js`）：`LF.NPC_ROUTINES` 房间级（手写房 / `gen/rooms.js` 生成房 / **城市根房 id**——落在城市根房上的角色该城任一格可见）+ `LF.NPC_ROUTINES_CITY` 城格级（`kuyilao` 具名名册按「城 + 格坐标」流动）。值可写数组（一时辰多处）。
+- **铺开内容**：囚徒（白日下地→午后进矿→饭点涌伙房→入夜回牢）、伙夫（掌灶一日三顿、夜守粮囤）、**跨城样例**游侠刘磐（白日渔阳、入夜宿涿县）；城格级牢头（戌时回牢门口守夜）、郑刚（押石进矿 / 仓库 / 演武场）、牛铁、鲁大、李旺。
+- **引擎修复**（`shared/core/engine.js · applyTimeRoutines`）：旧版内层 `if(idx>=0){ if(rid===dest) break; splice }` 一旦先命中目标房就 `break`，导致该角色残留在更早遍历到的房里（**分身**）。改为「**先撤全表非目标房，再逐个目标房落位**」，并支持数组目标。
+- **城格过滤**（`shared/core/city.js · cityCellNpcs`）：新增 `ruleDests()`，把「本格登记但此刻被作息挪走」的滤掉、再从**全城各格**把「该来本格」的补进来（目的地可能不是它的登记格）。
+- **安全边界**：有「按格任务锚点」的角色**一律不排作息**，否则会把越狱路线任务挪走 —— 苟三/石四（矿坑）、吴算/陈简（仓库）、林娘（伙房）、秦九霄（场院）、孙老（农田）、韩铁/苏娘（演武场）、福生等；已在表头注释列明。
+
+**P2 · 文案统一**
+- 「木牌 / 一片木符」等混称统一为道具正式名 **「劳字木片」**（`shared/data/items.js` 的 desc + `dialogues.js` 伙夫台词 + `rooms.js` 两处劳作结算文案）；`dialogues.js` 牢头台词补上「戌时前不回牢销名」与门禁口径一致。
+
+**验证**（jsdom 无头 harness `_verify_p0p1.js`，51 项断言全通过，**0 运行期错误**）
+- 启动：`NPC_ROUTINES` / `NPC_ROUTINES_CITY` 就绪、`camp_opening` 已改名、`laotou_corridor` 为 `onEnter`+`cell[1,0]`。
+- P0：幕布出现、`#app` 期间隐藏、3 行文案 + 首行金字、`introShown=true`、动画期 `#narr` 为空；演毕幕布隐藏、界面显示、`#narr` 接上「铁链啷当…分久必合」、序章文案未混入、出生房 `camp_tz1`、牢门锁死、顶栏未亮。
+- ④：叩门出问答；选「再想想」牢门仍锁且顶栏不亮；选「想通了」`cellOpen=true`、`clockOn` 仍未置位、顶栏**仍不亮**。
+- P1a：出牢即触发牢头指更鼓；讲完更鼓后 `reveal-status`+`reveal-loctab` 点亮、`clockOn/curfewSet/curfewHour=10` 生效、`#narr` 出现〔时间系统〕。
+- P1b：巳时囚徒在伙房 / 戌时回牢（伙房已清，**无分身**）；酉时伙夫去粮囤；卯时刘磐在渔阳 / 未时转涿县且渔阳已清；城格级牢廊 `1,0` 戌时见牢头+牛铁、未时不见；矿坑 `2,0` 巳时见郑刚、戌时不见（任务锚点苟三/石四始终在岗）。
+- P2：全库无「木牌」残留、`lao_pai.name==='劳字木片'`、`prologue` 三段齐备。
+
+**版本**：`constants.js` VERSION → `20260911g`；`index.html` 的 `css/game.css` / `constants.js` / `dialogues.js` / `rooms.js` / `story/triggers.js` / `core/engine.js` / `core/city.js` / `data/items.js` 缓存参数对齐 `?v=20260911g`（标题页 `.tt-ver` 同步）。
+
+---
+
+*最后更新：2026-09-11（§9.63 序章开场动画 · 更鼓时间节拍 · NPC 作息铺开 · 文案统一；版本 20260911g）*

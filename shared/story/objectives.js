@@ -83,6 +83,13 @@
       need: [ { item: 'shitiao', name: '石料', icon: '🪨', count: 5 } ],
       submit: { npc: '仓吏', room: 'camp_warehouse' },
       reward: '便携腰包（行囊+4）· 修为+30'
+    },
+    zt_food: {
+      id: 'zt_food', title: '寻吃食·破命数', type: 'side',
+      hint: '周听涛要你寻来吃食，方肯替你窥探命数。劳役换得「劳字木片」，往伙房易食，再交予周听涛。',
+      need: [ { item: 'fan', name: '吃食', icon: '🍙', count: 1 } ],
+      submit: { npc: '周听涛', room: 'camp_tz1' },
+      reward: '密道线索 · 修为+20'
     }
   };
 

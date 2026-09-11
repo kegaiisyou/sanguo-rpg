@@ -27,7 +27,8 @@
       find: '劳役场黄土夯实，囚徒扛石运土。〔西〕囚室（西）；〔北〕塌墙根（北）；〔东〕农田（东）；〔南〕牢门岗哨（南）。',
       npcs: [
         'zhoutingtao',
-        'qin_jiuxiao'
+        'qin_jiuxiao',
+        'laotou'
       ],
       items: [],
       actions: [
@@ -394,6 +395,20 @@
       // ═══ 苦役营·六间子牢房：各置草荐（可打盹，复用不耗）═══
       camp_tz1: [ { type:'feature', key:'caojian_tz1', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
         {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
+      ]},
+      // 牢门：锁着时只能「叩门」请牢头（触发 laotou_door 开门）；开了之后变成出口，不再能闲聊（避免变成牢头 NPC）
+      { type:'feature', key:'cell_door', icon:'🚪', name:'牢门', desc:'厚重的木栅牢门，外头挂着一把铜锁；栅缝里透进一线天光。锁着时只能叩门请牢头，开了便可推门而出。', actions:[
+        { label:'叩门', icon:'✊', fn:function(){
+            var s = window.getState();
+            if (s.flags && s.flags.onb && s.flags.onb.cellOpen) { log('牢门已开着，栅外天光透入——不必再叩。', 'sys'); return; }
+            talk('laotou');
+          } },
+        { label:'推门而出', icon:'🚶', fn:function(){
+            var s = window.getState();
+            if (!(s.flags && s.flags.onb && s.flags.onb.cellOpen)) { log('牢门紧锁，须先叩门请牢头开锁。', 'sys'); return; }
+            if (s.flags.onb) s.flags.onb.lateDone = false; // 离牢：重置本轮晚归惩罚
+            window.move('南', '__cell__:kuyilao:1:0');
+          } }
       ]} ],
       camp_tz2: [ { type:'feature', key:'caojian_tz2', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
         {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
@@ -410,8 +425,72 @@
       camp_dz3: [ { type:'feature', key:'caojian_dz3', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
         {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
       ]} ],
+      camp_farm: [ { type:'feature', key:'farm_ridge', icon:'🌾', name:'田垄', desc:'被翻得稀烂的薄田，几垄蔫苗在日头下打卷', actions:[
+        {label:'借农具', icon:'🪓', fn:function(){ var S=getState(); if(!S) return; if(S.flags&&S.flags.onb&&S.flags.onb.farmTool){ log('你肩上还扛着借来的锄头呢。','sys'); return; } S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; S.flags.onb.farmTool=true; packAdd('chutu',1); log('你从田埂边拾了把木柄锄头，沉甸甸压在肩头。〔务农需先借农具〕','good'); save(S); }},
+        {label:'下地务农', icon:'🧺', fn:function(){ var S=getState(); if(!S) return; if(!packFind('chutu')){ log('没家伙怎么下地？先「借农具」去。','sys'); return; } if(!exert('务农')) return; S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; var n=(S.flags.onb.farmCnt||0)+1; S.flags.onb.farmCnt=n; log('你抡起锄头翻了一垄地，汗珠子砸进土里。〔进度 '+n+'/3〕','sys'); if(n>=3 && !S.flags.onb.farmDone){ S.flags.onb.farmDone=true; if(packAdd('lao_pai',1)) log('〔监工丢来一片木符〕你挣得「劳字木片」一枚，可往伙房易食。','good'); else log('（行囊已满，劳字木片未得）','sys'); } save(S); }}
+      ]} ],
+      camp_kitchen: [ { type:'feature', key:'kitchen_stove', icon:'🍲', name:'灶台', desc:'大灶上煮着能照见人影的稀粥，热气熏人', actions:[
+        {label:'以劳字木片换饭', icon:'🪵', fn:function(){ if(!packFind('lao_pai')){ log('你翻了翻行囊，没有「劳字木片」——先去扛活挣一块罢。','sys'); return; } packConsume('lao_pai',1); packAdd('fan',1); log('你将劳字木片递给伙夫，换得一枚粗粝饭团。〔干粮入包：可食用回食，或交予周听涛。〕','good'); }}
+      ]} ],
+      camp_store: [ { type:'feature', key:'store_stones', icon:'🪨', name:'石料堆', desc:'墙角垒着待运的青石，沉甸甸压手', actions:[
+        {label:'搬石料', icon:'💪', fn:function(){ var S=getState(); if(!S) return; if(!exert('搬石')) return; S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; var n=(S.flags.onb.storeCnt||0)+1; S.flags.onb.storeCnt=n; log('你扛起一块青石往仓里送，肩头火辣。〔进度 '+n+'/5〕','sys'); if(n>=5 && !S.flags.onb.storeDone){ S.flags.onb.storeDone=true; if(packAdd('lao_pai',1)) log('〔仓吏抛来一片木符〕你帮着运足五石，挣得「劳字木片」一枚。','good'); else log('（行囊已满，劳字木片未得）','sys'); } save(S); }}
+      ]} ]
     };
   }
+
+  // ═══ 苦役营·作息流动（全城通用：NPC 按真实时辰在房间间挪动）═══
+  ['camp_tz1','camp_tz2','camp_tz3','camp_dz1','camp_dz2','camp_dz3'].forEach(function(rid){
+    var r = ROOMS[rid]; if (!r || !r.actions) return;
+    r.actions.push({ type:'feature', key:'cell_scratch_'+rid, icon:'🧱', name:'牢栏刻痕', desc:'斑驳牢栏上似有前人指甲刻痕', actions:[
+      {label:'细看刻痕', icon:'🔍', fn:function(){ log('牢栏木隙里，前人指甲刻下几道深浅不一的划痕，依稀是「租」「税」「甲子」字样——这一营的囚徒，多半都因交不起赋税被抓，墙外「苍天已死，黄天当立」的童谣也早传开了。','sys'); }}
+    ]});
+  });
+
+  // ═══ NPC 时辰作息表（v20260911g：从「演示 2 条」铺开到全营 + 跨城样例）═══
+  // 共用同一套真实时间系统（state.time · 十二时辰：0子 1丑 2寅 3卯 4辰 5巳 6午 7未 8申 9酉 10戌 11亥）。
+  // 两层机制，同一份时间源：
+  //   ① LF.NPC_ROUTINES      房间级：按 G.ROOMS 的房 id 挪动。目标房可为手写房（camp_tz1…）、
+  //      程序生成的地点房（gen/rooms.js 注入的城/镇/关/副本）、或城市根房（城市 id）——
+  //      落在「城市根房」上的角色在该城任一格都可见（适合货郎、巡卒一类）。由 engine.js · applyTimeRoutines() 消费。
+  //   ② LF.NPC_ROUTINES_CITY 城格级：按「城市 + 格坐标」挪动。苦役营 kuyilao 的具名 NPC 是【按格登记】的
+  //      （见 core/city.js · TUTORIAL_CITY_NPCS），故用这一层；由 cityCellNpcs() 按当前时辰过滤名册。
+  // 值可为单个目标，也可写数组（同一时辰同时出现在多处，如「两地巡弋」）；未列出的时辰回 _home。
+  // ⚠️ 有「按格触发」的角色**不要**编排作息，否则会把越狱路线任务挪走：
+  //    苟三(2,0) 石四(2,0) 吴算(2,1) 陈简(2,1) 林娘(0,1) 秦九霄(1,1) 孙老(0,0) 韩铁(2,2) 苏娘(2,2) 福生(1,2)。
+  //    本表只排「无任务锚点」的角色。
+  global.LF.NPC_ROUTINES = {
+    // —— 苦役营·牢房区（camp_tz*/dz* 是真实可进的子牢房）——
+    // 囚徒：白日下地、午后进矿 → 饭点涌伙房 → 入夜回牢（与 camp_opening「戌时前回牢销名」对得上）
+    camp_prisoner: { 3:'camp_farm', 4:'camp_farm', 5:'camp_mine', 6:'camp_kitchen', 7:'camp_kitchen', 8:'camp_kitchen',
+                     9:'camp_mine', 10:'camp_tz3', 11:'camp_tz3', 0:'camp_tz3', 1:'camp_tz3', 2:'camp_tz3', _home:'camp_tz3' },
+    // 伙夫：掌灶一日三顿，夜里守粮囤
+    camp_cook:     { 3:'camp_kitchen', 4:'camp_kitchen', 5:'camp_kitchen', 6:'camp_kitchen', 7:'camp_kitchen', 8:'camp_kitchen',
+                     9:'camp_store', 10:'camp_store', 11:'camp_store', 0:'camp_store', 1:'camp_store', 2:'camp_store', _home:'camp_kitchen' },
+    // —— 跨城作息推广（v20260911h · P3）：作息表不止服务苦役营，天下各城的钟点同样在走 ——
+    // 游侠刘磐四方游走：白日渔阳（商旅辐辏、便于访友）→ 午后蓟城（州治，好手多）→ 入夜宿涿县（桃园故里、投店便宜）
+    liupan:        { 3:'yuyang', 4:'yuyang', 5:'yuyang', 6:'jicheng', 7:'jicheng', 8:'jicheng', 9:'zhuo',
+                     10:'zhuo', 11:'zhuo', 0:'zhuo', 1:'zhuo', 2:'zhuo', _home:'yuyang' },
+    // 打更人·老麻（本批新增的「作息型」角色，只靠本表存在）：白日替人跑腿（涿县），
+    //   入夜掌渔阳城里的更鼓——你夜里进不得城、或在城里没处落脚，第一个撞见的多半是他。
+    gengfu:        { 3:'zhuo', 4:'zhuo', 5:'zhuo', 6:'zhuo', 7:'zhuo', 8:'zhuo', 9:'zhuo',
+                     10:'yuyang', 11:'yuyang', 0:'yuyang', 1:'yuyang', 2:'yuyang', _home:'zhuo' }
+  };
+  // —— 城格级作息（苦役营教程城）：只排「无任务锚点」的具名角色 ——
+  global.LF.NPC_ROUTINES_CITY = {
+    kuyilao: {
+      // 牢头：白日在中军场院督工（1,1），戌时起回牢门口守夜（1,0）——与 laotou_corridor「戌时鸣鼓闭门」呼应
+      laotou:     { 10:'1,0', 11:'1,0', 0:'1,0', 1:'1,0', 2:'1,0', _home:'1,1' },
+      // 郑刚：白日守库房（2,1），辰巳押石进矿坑（2,0），申时赴演武场点验（2,2）
+      zheng_gang: { 3:'2,1', 4:'2,1', 5:'2,1', 6:'2,0', 7:'2,0', 8:'2,0', 9:'2,2', _home:'2,1' },
+      // 牛铁：白日场院扛活，入夜回牢
+      niu_tie:    { 10:'1,0', 11:'1,0', 0:'1,0', 1:'1,0', 2:'1,0', _home:'1,1' },
+      // 鲁大：掌灶，申时去粮囤领米
+      lu_da:      { 9:'2,1', _home:'0,1' },
+      // 李旺：农田躲活，饭点蹲伙房（劝人别逃的是他）
+      li_wang:    { 6:'0,1', 7:'0,1', 0:'0,1', 11:'0,1', _home:'0,0' }
+    }
+  };
+
   global.LF.buildRoomObjects = buildRoomObjects;
 
   global.LF.ROOMS = ROOMS;

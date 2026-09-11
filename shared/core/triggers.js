@@ -54,6 +54,7 @@ window.LF = window.LF || {};
       if (c.player) { for (var k in c.player) { var nd = c.player[k], v = getPath(state, k) || 0; if (nd.min != null && v < nd.min) return false; if (nd.max != null && v > nd.max) return false; } }
       if (c.flags) { for (var p in c.flags) { if (!!getPath(state, p) !== !!c.flags[p]) return false; } }
       if (c.time) { if (c.time.day === true && !isDay()) return false; if (c.time.day === false && isDay()) return false; if (c.time.phases && c.time.phases.indexOf(state.time % 12) < 0) return false; }
+      if (c.hasItem) { var _pk = state.pack || []; var _hit = false; for (var _h = 0; _h < _pk.length; _h++) { if (_pk[_h] && (_pk[_h].defId || _pk[_h].id) === c.hasItem) { _hit = true; break; } } if (!_hit) return false; }
       return true;
     }
 
@@ -140,10 +141,35 @@ window.LF = window.LF || {};
         }
         case 'removeNpc': { var rn = G.ROOMS[state.room].npcs, i = rn ? rn.indexOf(step.key) : -1; if (i >= 0) rn.splice(i, 1); next(); break; }
         case 'exp': { if (addXp) { addXp(step.amount || 0); } else { state.exp = (state.exp || 0) + (step.amount || 0); } renderStatus(); save(state); next(); break; }
+        // 刑罚·扣血（v20260911e）：reduce HP（下限 1，不死）、降好感、播放鞭打动效
+        case 'hurt': {
+          var dmg = step.amount || 15;
+          var st = getState();
+          var curHp = (st.hp == null) ? (st.maxHp || 100) : st.hp;
+          st.hp = Math.max(1, curHp - dmg);
+          if (step.favor && step.favorNpc) { if (!st.npcFavor) st.npcFavor = {}; st.npcFavor[step.favorNpc] = (st.npcFavor[step.favorNpc] || 0) + step.favor; }
+          renderStatus(); save(st);
+          if (step.fx !== false) {
+            var _sc = document.getElementById('scene') || document.getElementById('app') || document.body;
+            if (_sc) { _sc.classList.remove('fx-whip'); void _sc.offsetWidth; _sc.classList.add('fx-whip'); setTimeout(function(){ _sc.classList.remove('fx-whip'); }, 950); }
+            try {
+              var _fl = document.createElement('div'); _fl.className = 'whip-float'; _fl.textContent = step.fxText || '鞭！';
+              (document.getElementById('app') || document.body).appendChild(_fl);
+              setTimeout(function(){ if (_fl.parentNode) _fl.parentNode.removeChild(_fl); }, 980);
+            } catch (e) {}
+          }
+          next(); break;
+        }
         case 'branch': { var ok = step.if ? testCond(step.if, env) : true; runSteps(ok ? (step.then || []) : (step.else || []), 0, next, env); break; }
         case 'graduate': graduate(); next(); break;
         case 'acceptQuest': if (acceptQuest) acceptQuest(step.id); next(); break;
         case 'completeQuest': if (completeQuest) completeQuest(step.id); next(); break;
+        case 'consume': {
+          var _pk = state.pack || []; var _id = step.id, _n = step.n || 1, _did = false;
+          for (var _k = 0; _k < _pk.length; _k++) { if (_pk[_k] && (_pk[_k].defId || _pk[_k].id) === _id) { var _c = _pk[_k].count || 1; if (_c > _n) { _pk[_k].count = _c - _n; } else { _pk.splice(_k, 1); } _did = true; break; } }
+          if (!_did) log('（行囊中并无「' + _id + '」）', 'sys');
+          save(state); renderStatus(); next(); break;
+        }
         default: next();
       }
     }
@@ -180,8 +206,15 @@ window.LF = window.LF || {};
       onbGoal();   // 旗标可能随触发改变，刷新「当前目标」与高亮
       return handled;
     }
-    function graduate() {
+    function graduate(deferNote) {
       var state = getState();
+      // 毕业衔接（v20260911h · P3）：脱籍出营 —— 营规（点卯 / 晚归受罚 / 口粮罚例）自此失效，
+      //   但时间与作息照常流动（NPC 仍按时辰上下工、城门仍宵禁），世界不会为谁停下。
+      //   deferNote=true 时不在此报信：调用方会在 renderRoom 落位之后统一输出，
+      //   否则 renderRoom 开头的 flushNarr() 会把仍在排队中的这句清掉（玩家看不到）。
+      if (!deferNote && state.flags && state.flags.onb && !state.flags.onb.done) {
+        log('〔脱籍〕你已出营——点卯、晚归、口粮罚例一概不再管你；只是营中的钟点照旧，鼓声、作息、日头都不会为你停。', 'order');
+      }
       if (state.flags && state.flags.onb) state.flags.onb.done = true;   // 教学链毕业：解锁 NPC 的观察/攻击等完整菜单
       document.body.classList.remove('onb');
       getOnbLayers().forEach(function (l) { document.body.classList.remove('reveal-' + l); });

@@ -74,12 +74,15 @@ window.LF = window.LF || {};
       if (s.clock == null) s.clock = (SH_START[s.time % 12] * 60) + 22;
       if (s.day == null) s.day = 0;
       if (s.weather == null) s.weather = 0;         // 天候索引，缺省为「晴」
-      if (!s.eraName || typeof s.eraName !== 'string') s.eraName = '光和';  // 旧档缺年号则补默认
-      // 由 day 回写年号年序，保证旧档历法自洽
+      // 由 day 回写年号 / 年序 / 公元年（与 calendar.js·deriveCalendar 同源：1 公元年 = 360 天）
       var d = s.day || 0;
-      var tm = (12 - 1) + Math.floor(d / 30);          // 腊月(12)起算
-      s.eraYear = 1 + Math.floor(tm / 12);
-      s.adYear = 178 + Math.floor(tm / 12);
+      var adYear = 183 + Math.floor(d / 360);          // 光和六年(183)起算；满 360 天进 1 公元年
+      s.adYear = adYear;
+      // 年号名/年中序号随公元年自动切换（184→中平…），优先用 calendar.js 暴露的同源推导
+      var _en = (LF && LF.Core && LF.Core.eraNameOf) ? LF.Core.eraNameOf(adYear) : (adYear >= 184 ? '中平' : '光和');
+      var _es = (LF && LF.Core && LF.Core.eraYearOf) ? LF.Core.eraYearOf(adYear) : (adYear - (adYear >= 184 ? 184 : 178) + 1);
+      s.eraName = _en;
+      s.eraYear = _es;
       // 确保武器艺线所有 key 存在
       for (var l in def.lines) { if (s.lines[l] === undefined) s.lines[l] = 0; }
       // 确保艺线经验 key 存在（P2）

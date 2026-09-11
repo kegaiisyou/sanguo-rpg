@@ -57,6 +57,11 @@
     caiyaobiluo:    { defId: 'caiyaobiluo',    name: '采药背篓', icon: '🧺', cat: '装备', slot: 'bag', stats: {},       packSpace: 15, desc: '竹编背篓，采药山行尤便，可容十五。', quality: 'green' },
     // —— 腰带：防御型（与「便携腰包」互斥，体现「要容量还是要防御」的取舍）——
     shutong:        { defId: 'shutong',        name: '熟铜护腰', icon: '🪢', cat: '装备', slot: 'belt', stats: { def: 1 }, desc: '熟铜片缀就的护腰，堪挡一刀（防御 +1）。', quality: 'white' },
+    // —— 教程·苦役营经济物品（真实物品，占行囊一格）——
+    lao_pai:  { defId: 'lao_pai',  name: '劳字木片', icon: '🪵', cat: '凭证', desc: '劳役所发的木片，刻一「劳」字。可持往伙房易食，占行囊一格。' },
+    fan:      { defId: 'fan',      name: '干粮',     icon: '🍙', cat: '食饵', effect: { food: 25 }, desc: '粗粝饭团，啃下可充饥（回食物 25）。可交付 NPC。' },
+    xizhou:   { defId: 'xizhou',   name: '稀粥',     icon: '🥣', cat: '食饵', effect: { food: 12, drink: 12 }, desc: '误了饭点才捞着的半瓢冷粥，米粒可数，好歹暖了肚子（回食物 12、水 12）。' },
+    chutu:    { defId: 'chutu',    name: '锄头',     icon: '⛏️', cat: '工具', desc: '木柄锄头，务农开荒的趁手家伙。' },
     // —— 素材：野外采集所得 ——
     caoyao:         { defId: 'caoyao',         name: '草药',     icon: '🌿', cat: '素材', desc: '山野可入药的茎叶，多凑几味可合成疗伤之物。' },
     shengrou:       { defId: 'shengrou',       name: '生肉',     icon: '🥩', cat: '素材', desc: '猎获或劫掠所得的生肉，于篝火炊制可成一包肉脯干粮。' },
