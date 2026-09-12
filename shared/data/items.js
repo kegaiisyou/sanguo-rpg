@@ -188,6 +188,13 @@
       desc: '苏娘以竹麻搓制的绳。攀绳翻墙线（路线7）攀墙工具；结实耐用。' },
     guard_tally:{ defId: 'guard_tally', name: '腰牌', icon: '🪪', cat: '素材',
       desc: '赵虎的都伯腰牌，夺来可作暴动线（路线4）的信物；沾了血才到手。' },
+    // —— 囚服 / 镣铐（v20260912f）：主角开局仅有的两件行头 ——
+    //   囚服占「衣甲」槽、镣铐占「鞋履」槽，故开局的装备面板是有东西可看的
+    //   （行囊教学第一步就落在这里：先让玩家看清自己身上还剩什么，再谈别的）。
+    qiufu:     { defId: 'qiufu',     name: '囚服', icon: '🥋', cat: '装备', slot: 'cloth', stats: { def: 1 }, quality: 'white',
+      desc: '赭色粗麻囚衣，襟前烙着营中编号。遮体御寒尚可，说不上护身。' },
+    liaokao:   { defId: 'liaokao',   name: '镣铐', icon: '⛓️', cat: '装备', slot: 'shoe',  stats: {},          quality: 'white',
+      desc: '脚踝上一副生铁镣，走起路来哗啦作响。戴着它，跑是跑不快的。' },
     // —— 渔获（郊野水域垂钓所得；可充饥，亦可售与行商）——
     fish:       { defId: 'fish',       name: '鲜鱼', icon: '🐟', cat: '食饵', effect: { food: 25 },
       desc: '郊野河湖钓得的鲜鱼，去鳞剖腹下锅最鲜；久置则腥，宜尽早烹食。' },

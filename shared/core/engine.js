@@ -89,6 +89,8 @@
     // setTimeOfDay / forceRoom 定义在本文件后段（函数声明提升，包装引用更稳，同 packAdd 范式）
     setTimeOfDay: function () { return setTimeOfDay.apply(null, arguments); },
     forceRoom: function () { return forceRoom.apply(null, arguments); },
+    // 底部页签逐项解锁（v20260912f）：剧本写 { t:'unlockDock', key:'pack' } 即「介绍到这个页签才把它亮出来」
+    unlockDock: function () { return onbUnlockDock.apply(null, arguments); },
     getOnbLayers: function () { return ONB_LAYERS; }
   });
   var checkTriggers = Triggers.checkTriggers, graduate = Triggers.graduate;
@@ -633,7 +635,9 @@
     var _onbSpawn = (state.room==='camp_yard'||state.spawnRoom==='camp_yard'||/^camp_[td]z\d$/.test(state.room||''));
     if(_onbSpawn && !(state.flags && state.flags.onb && state.flags.onb.done)){
       if(!state.flags) state.flags={};
-      if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
+      // unlocked: [] —— 页签解锁表（v20260912f）。新局显式置空，才能与「旧存档无此字段」
+      //   区分开：前者按教学进度逐个点亮，后者（本机制之前开的档）一律视为全解锁。
+      if(!state.flags.onb || !state.flags.onb.started) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}, unlocked:[]};
       applyOnboard();   // NPC 列表延后到开场剧本「点下方老乞丐」一步才 reveal，避免提前交互引发 bug
     }
     var app=document.getElementById('app');
@@ -1106,15 +1110,17 @@
       if(o.workCnt % LABOR_PER_WOOD === 0){
         packAdd('lao_pai', 1);
         log('〔记工〕狱卒验过你的石方，掷来一枚「劳字木片」。','good');
-        // 背包引导（v20260911k）：教学期 #dock 一直藏着，玩家手里有了东西却无处可看，
-        //   「拿到了什么」这件小事反而成了迷。头一回拿到实物，正是行囊亮相的最自然时机 —— 顺手给点甜头。
+        // 「头一回挣到实物」的提示（v20260911k 起；v20260912f 调整）：
+        //   「行囊是什么」已在开篇牢房里教过，此处不再重复讲解，只做个「东西进了哪儿」的确认，
+        //   顺手把行囊页签再亮一记（让刚学会的页签立刻派上用场），并给点小甜头。
         if(!o.bagSeen){
           o.bagSeen=true;
-          onbReveal('dock'); highlightOnb('dock');
+          onbReveal('dock');
           packAdd('fan', 1);
           log('狱卒今日心情不坏，又扔来半张干粮：「拿着，别死在头一天。」','good');
-          log('〔行囊〕所得之物都收在行囊里——点下方「🎒 行囊」，可查看、装备与使用。','sys');
-          toast('点下方「🎒 行囊」，看看你得的东西');
+          log('〔入囊〕木片与干粮都收进了行囊——点下方「🎒 行囊」可查看、装备与使用。','sys');
+          try{ if(LF.Guide && LF.Guide.ping) LF.Guide.ping({dock:'pack'}); }catch(e){}
+          toast('行囊里多了东西');
         }
         afterPackChange();
       } else {
@@ -3136,7 +3142,10 @@
     exits.forEach(function(o){
       var tid=o.tid || (room.exits && room.exits[o.dir]);
       var g=DIR_GRID[o.dir]||[2,2];
-      var blocked = fwd && tid!==fwd;
+      // 门禁两种用法：fwd = 只许走这一个方向（剧情引导）；only = 方向白名单（v20260912f，
+      //   教学开场「只许往南去中军场院」——别处一格都去不得）。
+      var only = (gate && gate.only) || null;
+      var blocked = (fwd && tid!==fwd) || (only && only.length && only.indexOf(o.dir)<0);
       var b=document.createElement('button');
       b.className='mv-exit e-'+o.dir+(o.kind?(' '+o.kind):'')+(blocked?' mv-blocked':'');
       b.dataset.dir=o.dir;   // 语义锚点：供通用指引系统高亮「该往哪走」的方位键
@@ -4600,12 +4609,40 @@
     var rv=state.flags.onb.reveal||[];
     document.body.classList.add('onb');
     ONB_LAYERS.forEach(function(l){ if(rv.indexOf(l)>=0) document.body.classList.add('reveal-'+l); else document.body.classList.remove('reveal-'+l); });
+    applyDockUnlock();   // 底部页签除「整排揭示」外，还要按 flags.onb.unlocked 逐项放行
   }
   function onbReveal(layer){
     if(!state.flags) state.flags={}; if(!state.flags.onb) state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
     if(!state.flags.onb.reveal) state.flags.onb.reveal=[];   // 老存档/新造存档可能缺 reveal 数组
     if(state.flags.onb.reveal.indexOf(layer)<0) state.flags.onb.reveal.push(layer);
     applyOnboard(); save(state);
+  }
+  // ═══ 底部页签逐项解锁（v20260912f）═══
+  // 教学期 #dock 一旦揭示就是整排六个页签，玩家并不知道该点哪个；而「行囊」「任务」这两样
+  //   是新手最该先认识的，其余（角色/队伍/山河/设置）更该等提到时再出现。
+  // 机制：列表内页签默认不显示（CSS 见 game.css `body.onb #dock button` 一节），
+  //   只有进了 flags.onb.unlocked 的才加 .onb-on 亮出来。
+  // 一旦教学毕业（applyOnboard 移除 body.onb），该 CSS 失效 → 全部页签照常显示，正常游玩不受影响。
+  var ONB_DOCK_ALL=['char','pack','party','quest','map','settings'];
+  function applyDockUnlock(){
+    var onb=(state.flags && state.flags.onb) || null;
+    // 旧存档兼容（v20260912f）：本机制之前开的档没有 unlocked 字段，若按空表处理会把六个页签
+    //   全藏掉、老玩家直接卡死。故「字段缺失」一律视为全部已解锁 —— 渐进揭示只对新局生效。
+    var u=(onb && onb.unlocked) ? onb.unlocked : ONB_DOCK_ALL.slice();
+    var btns=document.querySelectorAll('#dock button');
+    for(var i=0;i<btns.length;i++){
+      var k=btns[i].getAttribute('data-modal');
+      if(ONB_DOCK_ALL.indexOf(k)<0){ btns[i].classList.add('onb-on'); continue; }  // 表外页签（日后新增）不参与管控，避免被静默藏掉
+      btns[i].classList.toggle('onb-on', u.indexOf(k)>=0);
+    }
+  }
+  function onbUnlockDock(key){
+    if(!state.flags) state.flags={};
+    var onb=state.flags.onb;
+    if(!onb) onb=state.flags.onb={started:true, personality:null, favor:0, reveal:[], tcDone:false, talked:{}};
+    if(!onb.unlocked) onb.unlocked=[];
+    (Array.isArray(key)?key:[key]).forEach(function(k){ if(k && onb.unlocked.indexOf(k)<0) onb.unlocked.push(k); });
+    onbReveal('dock');   // 首次解锁即把整排 dock 揭示出来（onbReveal 内部会调 applyOnboard → applyDockUnlock）
   }
   // ═══ 通用「指引」系统（v20260912a）═══
   // 把「高亮某个按钮 / NPC / 面板，并把它滚进视野」做成一套可复用的语义锚点，
@@ -4743,7 +4780,13 @@
   }
   function onbGoalStep(){
     var f=state.flags||{}, onb=f.onb; if(!onb||onb.done) return null;
-    // ① 尚未出牢：叩牢门请牢头开锁（牢门是 camp_tz1 的场景物件，锚点 cell_door）
+    // ⓪ 先认行囊（v20260912f）：主角此刻身上只剩一身囚服、一副镣铐 —— 头一件事就是学会
+    //    打开下方「行囊」看看自己有什么。系统介绍按「先行囊、后任务」的次序来，且
+    //    没介绍到的页签一律还藏着（见 onbUnlockDock / game.css），免得一上来六个页签糊脸。
+    if(!onb.packSeen) return {text:'点下方「🎒 行囊」，看看自己身上还剩些什么', targets:[{dock:'pack'}]};
+    // ① 已接下差事却还没看过任务面板：先学会看「任务」（与上面的行囊教学对称）
+    if(f.task && f.task.zt_accepted && !onb.questSeen) return {text:'点下方「📜 任务」，看看刚接下的差事记了些什么', targets:[{dock:'quest'}]};
+    // ② 尚未出牢：叩牢门请牢头开锁（牢门是 camp_tz1 的场景物件，锚点 cell_door）
     if(!onb.cellOpen) return {text:'走到牢门口的「牢门」，点「叩门」与牢头说通，方能出牢', targets:[{act:'cell_door'}]};
     // ② 场院两件事：劳作（顺带点亮状态栏/位置页签）→ 环顾（看清几处去路）
     if(!onb.labored)  return campGoto({act:'labor_yard'},  '点「担石劳作」，先熟悉营中苦役（满三工换一枚劳字木片）', '往中军场院去，点「担石劳作」干活', 1, 1);
@@ -5147,6 +5190,14 @@
     if(kind==='citybuild'){ bindCityBuildPanel(); }
     if(kind==='sect'){ bindSectPanel(); }
     if(kind==='quest'){ bindQuestPanel(); }
+    // v20260912f：教学期「打开行囊 / 打开任务」本身就是教学动作 —— 记下进度并推进目标指引，
+    //   否则玩家可能把这两个页签一直晾着，目标条还停在「点开看看」上。只在教学期记账，不影响正常游玩。
+    if(state && state.flags && state.flags.onb && !state.flags.onb.done){
+      var _onb=state.flags.onb, _onbCh=false;
+      if(kind==='pack'  && !_onb.packSeen ){ _onb.packSeen =true; _onbCh=true; }
+      if(kind==='quest' && !_onb.questSeen){ _onb.questSeen=true; _onbCh=true; }
+      if(_onbCh){ try{ save(state); }catch(e){} onbGoal(); }
+    }
     $modal.classList.remove('hidden');
     var sv=document.getElementById('m-save'); if(sv)sv.onclick=function(){save(state);toast('已存档');};
     var dv=document.getElementById('m-dev'); if(dv)dv.onclick=function(){openModal('dev');};

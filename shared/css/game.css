@@ -1987,6 +1987,11 @@
   body.onb.reveal-npc:not(.reveal-lower) #lower-body{ justify-content:flex-start; }  /* 单独老乞丐时靠左对齐，而非居中 */
   body.onb.reveal-lower #lower{ display:flex !important; }
   body.onb.reveal-dock #dock{ display:flex !important; }
+  /* v20260912f：dock 逐项解锁 —— 教学期只有「介绍过的」页签才亮（flags.onb.unlocked → .onb-on）。
+     揭示整排（reveal-dock）与放行单个页签是两件事，后者专治「一上来六个页签糊脸、不知道点哪个」。
+     教学毕业（body 去掉 .onb）后本节失效，页签照常全显 —— 不影响正常游玩。 */
+  body.onb #dock button{ display:none !important; }
+  body.onb #dock button.onb-on{ display:flex !important; }
   /* 战斗优先：盖过开场各 reveal 的显示（body.onb.reveal-* 同为 !important 且 specificity 相同，靠后置胜出），专注作战 */
   body.onb.in-combat #lower, body.onb.in-combat #npc-list, body.onb.in-combat #dock{ display:none !important; }
   body.onb.in-combat #actions{ display:flex !important; }
@@ -2014,6 +2019,11 @@
   .onb-prompt{ color:var(--ink); font-size:14.5px; line-height:1.75; margin-bottom:4px; font-family:"STKaiti","KaiTi","Songti SC",serif; }
   /* v20260911k：长台词已改为逐句进叙事区，面板不再留一行空白 */
   #tut-choices .onb-prompt:empty{ display:none; }
+  /* v20260912f：选项一多，面板就把叙事区挤没了，刚打出的台词被顶出视野（小屏尤甚）。
+     限高 + 面板内滚动：选项再多也留得住上面的话。 */
+  .onb-choices{ max-height:54dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .onb-choices::-webkit-scrollbar{ width:5px; }
+  .onb-choices::-webkit-scrollbar-thumb{ background:rgba(176,131,47,.45); border-radius:3px; }
   .onb-btn{ background:linear-gradient(180deg,#fbf6ea,#ece0c6); color:#3a2d1a; border:1px solid #b8893a; border-radius:9px; padding:12px 13px; font-size:14.5px; font-weight:600; text-align:left; cursor:pointer; line-height:1.4; box-shadow:0 1px 0 rgba(255,255,255,.7), 0 2px 6px rgba(40,26,8,.12); }
   .onb-btn:hover{ background:linear-gradient(180deg,#fffdf6,#f6ecd6); border-color:var(--seal); }
   .onb-btn:active{ transform:translateY(1px); }

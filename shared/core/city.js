@@ -115,27 +115,21 @@ window.LF = window.LF || {};
       farm: { i: '🌾', nm: '农庄' }, prison: { i: '⛓', nm: '牢房' }, mine: { i: '⛏', nm: '矿坑' }, kitchen: { i: '🍚', nm: '伙房' }, command: { i: '🚩', nm: '中军帐' }, warehouse: { i: '📦', nm: '仓库' }, drill: { i: '🥋', nm: '演武场' }, sentry: { i: '🏮', nm: '岗哨' }, empty: { i: '🟫', nm: '空地' }, ruin: { i: '🔥', nm: '焦土' },
       site: { i: '🚧', nm: '工地' }
     };
-    // ── 苦役营教程·具名名册覆盖（v20260909p）──
-    // 生成城内部按网格坐标注入具名 NPC / 场景动作，使新手教程可在真实城市里展开。
-    var TUTORIAL_CITY_NPCS = {
-      kuyilao: {
-        // ⚠️ 登记格只表示「默认落脚点」；若该角色在 LF.NPC_ROUTINES_CITY.kuyilao 里有作息编排，
-        //    实际出现格由「当前时辰」决定（见下方 cityCellNpcs 的过滤逻辑 + rooms.js 的表）。
-        '1,1': ['laotou', 'qin_jiuxiao', 'niu_tie'],       // 中军场院（劳役场）
-        // 囚室（默叔已迁入牢区·天字二号）。本格**不登记**固定角色 ——
-        //   牢头(laotou)与牛铁(niu_tie)是【按作息】过来的：登记在场院 (1,1)，
-        //   而 LF.NPC_ROUTINES_CITY.kuyilao 把戌~寅五个时辰排到 (1,0)；
-        //   教学期时辰冻结时按「戌·入夜」评估（见下方 cityCellNpcs）——玩家正是夜里被押进牢的，
-        //   于是牢门口有牢头、牢里有牛铁。更鼓一响回到卯时，两人便回场院上工。
-        '1,0': [],
-        '2,1': ['chen_jian', 'wu_suan', 'zheng_gang'],     // 仓库（仓吏由 warehouse() 自动生成）
-        '2,0': ['shi_si', 'gou_san'],                      // 矿坑
-        '0,1': ['lin_niang', 'lu_da'],                     // 伙房
-        '0,0': ['sun_lao', 'li_wang'],                     // 农田
-        '1,2': ['zhao_hu', 'qian_biao', 'sun_meng', 'fu_sheng'], // 岗哨/南门
-        '2,2': ['han_tie', 'su_niang']                     // 演武场
+    // ── 苦役营教程·具名名册（v20260909p；v20260912f 起由 LF.NPC_NAMED 派生）──
+    // 「谁在哪一格」与「什么时辰在哪一格」统一存在 data/npc_cards.js 的 LF.NPC_NAMED，
+    // 本处只按城归并成 { 'x,y': [id...] } —— 与程序 NPC 一样，加角色不必再改本文件。
+    // ⚠️ 登记格只表示「默认落脚点」；若该角色卡里有 routine，实际出现格由「当前时辰」决定
+    //    （见下方 cityCellNpcs 的过滤逻辑 + rooms.js 派生的 LF.NPC_ROUTINES_CITY）。
+    var TUTORIAL_CITY_NPCS = (function () {
+      var out = {}, named = (LF.NPC_NAMED || []);
+      for (var i = 0; i < named.length; i++) {
+        var c = named[i]; if (!c || !c.city || !c.cell) continue;
+        if (!out[c.city]) out[c.city] = {};
+        if (!out[c.city][c.cell]) out[c.city][c.cell] = [];
+        out[c.city][c.cell].push(c.id);
       }
-    };
+      return out;
+    })();
     var TUTORIAL_CITY_ACTS = {
       kuyilao: {
         '1,1': [{ id: 'labor_yard', label: '担石劳作', tip: '扛石运土一个时辰——累工分，满三工换一枚劳字木片。' },

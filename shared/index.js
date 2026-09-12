@@ -59,7 +59,12 @@
       party: [],                                    // 随从同伴（每场战斗满血入场，见 startCombat）
       pack: [],                                       // 开局行囊清空（v20260907f）：初始道具改由后续剧情/任务发放；基础容量仍为 6 格，可装备背包扩容
       equips: [],                                 // 兼容旧字段（已并入 pack，保留避免 undefined）
-      equipment: { hat:null, cloth:null, shoe:null, weapon:null, trinket:null, belt:null, bag:null }, // 六装备槽 + 背包槽
+      // 六装备槽 + 背包槽。开局身上只有一身【囚服】与一副【镣铐】——
+      //   序章「越狱」的处境就写在装备栏里；行囊教学第一步也正是先看这两件（v20260912f）。
+      equipment: {
+        hat:null, cloth:LF.ITEMS.makeItem('qiufu'), shoe:LF.ITEMS.makeItem('liaokao'),
+        weapon:null, trinket:null, belt:null, bag:null
+      },
       faction: '义军',                    // 玩家势力名（接住既有 state.faction；'义军' 起事）
       title: '游侠',                      // 官职：游侠→县令→太守→州牧→君主（占城即得 tier 对应官职）
       ruledCities: [],                    // 玩家统治的城 rid 列表（占城时追加）

@@ -92,8 +92,10 @@
     camp_tz1: { id: 'camp_tz1', name: '天字一号牢房',
       desc: ['栅内草荐发硬，墙角水渍蜿蜒。一名蓬头囚徒盘腿而坐，似在打盹，又似在听墙外的风。'],
       exits: { '南': '__cell__:kuyilao:1:0' },
-      find: '天字一号牢房：蓬头囚徒盘腿而坐，似醒似睡。〔南〕回牢房。',
-      npcs: ['zhoutingtao'], items: [], actions: [] },
+      find: '天字一号牢房：蓬头囚徒盘腿而坐，似醒似睡；栅外守着个牢头。〔南〕回牢房。',
+      // v20260912f：牢头登记在牢门口（1,0），玩家人在栅里时看不见他 —— 此处把「栅外的牢头」
+      //   一并列进牢房人物，玩家在牢里就能搭话（等价于点牢门的「叩门」），不必先猜人在哪。
+      npcs: ['zhoutingtao', 'laotou'], items: [], actions: [] },
     camp_tz2: { id: 'camp_tz2', name: '天字二号牢房',
       desc: ['栅里缩着个哑老囚，指尖无意识地划动，像在记着什么暗号。'],
       exits: { '南': '__cell__:kuyilao:1:0' },
@@ -475,21 +477,18 @@
     gengfu:        { 3:'zhuo', 4:'zhuo', 5:'zhuo', 6:'zhuo', 7:'zhuo', 8:'zhuo', 9:'zhuo',
                      10:'yuyang', 11:'yuyang', 0:'yuyang', 1:'yuyang', 2:'yuyang', _home:'zhuo' }
   };
-  // —— 城格级作息（苦役营教程城）：只排「无任务锚点」的具名角色 ——
-  global.LF.NPC_ROUTINES_CITY = {
-    kuyilao: {
-      // 牢头：白日在中军场院督工（1,1），戌时起回牢门口守夜（1,0）——与 laotou_corridor「戌时鸣鼓闭门」呼应
-      laotou:     { 10:'1,0', 11:'1,0', 0:'1,0', 1:'1,0', 2:'1,0', _home:'1,1' },
-      // 郑刚：白日守库房（2,1），辰巳押石进矿坑（2,0），申时赴演武场点验（2,2）
-      zheng_gang: { 3:'2,1', 4:'2,1', 5:'2,1', 6:'2,0', 7:'2,0', 8:'2,0', 9:'2,2', _home:'2,1' },
-      // 牛铁：白日场院扛活，入夜回牢
-      niu_tie:    { 10:'1,0', 11:'1,0', 0:'1,0', 1:'1,0', 2:'1,0', _home:'1,1' },
-      // 鲁大：掌灶，申时去粮囤领米
-      lu_da:      { 9:'2,1', _home:'0,1' },
-      // 李旺：农田躲活，饭点蹲伙房（劝人别逃的是他）
-      li_wang:    { 6:'0,1', 7:'0,1', 0:'0,1', 11:'0,1', _home:'0,0' }
+  // —— 城格级作息（苦役营教程城）：v20260912f 起改由 LF.NPC_NAMED 的卡派生 ——
+  // 以往这张表和 core/city.js 的登记格分头维护（同一个人要在两处对齐，最易出错、也最像「两套系统」）；
+  // 现在作息就写在 data/npc_cards.js 的卡里（routine 字段），这里只做归并。
+  global.LF.NPC_ROUTINES_CITY = (function () {
+    var out = {}, named = ((global.LF && global.LF.NPC_NAMED) || []);
+    for (var i = 0; i < named.length; i++) {
+      var c = named[i]; if (!c || !c.routine || !c.city) continue;
+      if (!out[c.city]) out[c.city] = {};
+      out[c.city][c.id] = c.routine;
     }
-  };
+    return out;
+  })();
 
   global.LF.buildRoomObjects = buildRoomObjects;
 

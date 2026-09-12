@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>乱世烽火 · 水墨</title>
-<link rel="stylesheet" href="shared/css/game.css?v=20260912d" />
+<link rel="stylesheet" href="shared/css/game.css?v=20260912f" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -66,7 +66,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260912e</div>
+    <div class="tt-ver" id="tt-ver">v20260912f</div>
   </div>
 </div>
 
@@ -131,7 +131,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260912e"></script>
+<script src="shared/config/constants.js?v=20260912f"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -139,18 +139,20 @@ window.onerror=function(msg,url,line,col,err){
 <script src="shared/story/objectives.js?v=20260911i"></script>
 <script src="shared/story/events.js?v=20260902a"></script>
 <script src="shared/story/dialogues.js?v=20260912a"></script>
-    <script src="shared/story/rooms.js?v=20260911k"></script>
-    <script src="shared/story/triggers.js?v=20260912a"></script>
+<!-- v20260912f：npc_cards.js 提到 rooms.js 之前 —— 具名 NPC 的摆位/作息统一存在这张人物表里，
+     rooms.js（作息表）与 core/city.js（名册）都要在加载期读它派生，顺序不能反。 -->
+<script src="shared/data/npc_cards.js?v=20260912f"></script>
+<script src="shared/story/rooms.js?v=20260912f"></script>
+    <script src="shared/story/triggers.js?v=20260912f"></script>
     <script src="shared/data/martial.js?v=20260910j"></script>
 <script src="shared/data/enemies.js?v=20260902a"></script>
-<script src="shared/data/items.js?v=20260912a"></script>
+<script src="shared/data/items.js?v=20260912f"></script>
     <script src="shared/data/recipes.js?v=20260910t"></script>
     <script src="shared/data/build.js?v=20260902a"></script>
     <script src="shared/data/shops.js?v=20260905a"></script>
     <script src="shared/shop.js?v=20260907d"></script>
     <script src="shared/data/map.js?v=20260910h"></script>
     <script src="shared/data/cities.js?v=20260912c"></script>
-    <script src="shared/data/npc_cards.js?v=20260912d"></script>
     <script src="shared/data/placeKinds.js?v=20260904m"></script>
     <script src="shared/data/places.js?v=20260912a"></script>
     <script src="shared/data/roads.js?v=20260904g"></script>
@@ -161,13 +163,13 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/strategic-map.js?v=20260912c"></script>
     <script src="shared/data/markets.js?v=20260902a"></script>
     <script src="shared/combat/engine.js?v=20260902a"></script>
-    <script src="shared/index.js?v=20260911a"></script>
+    <script src="shared/index.js?v=20260912f"></script>
   <script src="shared/core/state.js?v=20260908f"></script>
   <script src="shared/core/calendar.js?v=20260910w"></script>
   <script src="shared/core/save.js?v=20260910w"></script>
   <script src="shared/core/dev.js?v=20260910k"></script>
-  <script src="shared/core/triggers.js?v=20260912a"></script>
-  <script src="shared/core/city.js?v=20260912e"></script>
+  <script src="shared/core/triggers.js?v=20260912f"></script>
+  <script src="shared/core/city.js?v=20260912f"></script>
   <script src="shared/core/inventory.js?v=20260910u"></script>
   <script src="shared/core/mapview.js?v=20260909h"></script>
   <script src="shared/core/citybuild.js?v=20260910q"></script>
@@ -179,6 +181,6 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/charcreate.js?v=20260909h"></script>
   <script src="shared/core/equipment.js?v=20260909i"></script>
   <script src="shared/core/crafting.js?v=20260909j"></script>
-  <script src="shared/core/engine.js?v=20260912e"></script>
+  <script src="shared/core/engine.js?v=20260912f"></script>
 </body>
 </html>

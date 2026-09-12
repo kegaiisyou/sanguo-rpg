@@ -124,7 +124,8 @@ window.LF = window.LF || {};
           if (step.fromChain) {
             state.moveGate = null;
           } else {
-            state.moveGate = { fwd: step.fwd, back: step.back, lockBack: !!step.lockBack, hint: step.hint };
+            // only：方向白名单（v20260912f）—— 教学开场「只许往南去中军场院，别处一格都去不得」
+            state.moveGate = { fwd: step.fwd, back: step.back, lockBack: !!step.lockBack, hint: step.hint, only: step.only || null };
           }
           renderMoveBar(G.ROOMS[state.room]);   // 门禁变化即时刷新罗盘（如问名后解锁前进）
           next();
@@ -172,6 +173,8 @@ window.LF = window.LF || {};
         }
         case 'branch': { var ok = step.if ? testCond(step.if, env) : true; runSteps(ok ? (step.then || []) : (step.else || []), 0, next, env); break; }
         case 'graduate': graduate(); next(); break;
+        // 底部页签逐项解锁（v20260912f）：剧本写 { t:'unlockDock', key:'pack' } ——「介绍到这个页签才把它亮出来」
+        case 'unlockDock': if (dep.unlockDock) dep.unlockDock(step.key); next(); break;
         case 'acceptQuest': if (acceptQuest) acceptQuest(step.id); next(); break;
         case 'completeQuest': if (completeQuest) completeQuest(step.id); next(); break;
         // 时辰定点（v20260911i）：教学「介绍时辰」时把更鼓拨回清晨，保证踏出牢门永远是白天
