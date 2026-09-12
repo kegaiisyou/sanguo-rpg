@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>乱世烽火 · 水墨</title>
-<link rel="stylesheet" href="shared/css/game.css?v=20260912f" />
+<link rel="stylesheet" href="shared/css/game.css?v=20260912g" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -66,24 +66,28 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260912f</div>
+    <div class="tt-ver" id="tt-ver">v20260912h</div>
   </div>
 </div>
 
-<!-- 序章开场动画（P0 · v20260911g；动效重做 v20260911j）：全屏水墨幕布，三段文案逐行浮现，
-     收尾白光一闪、幕落，角色此时才「被推进牢房」（脚本见 core/engine.js · playPrologue）。
+<!-- 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷重做 v20260912i）：
+     全屏水墨幕布，复用标题页 title_bg.jpg 行军征战底图，三段文案逐行浮现，
+     收尾柔光一掠、幕落，角色此时才「被推进牢房」（脚本见 core/engine.js · playPrologue）。
      独立于 #narr，故动画期间叙事区为空；轻触幕布或点「跳过」立即收尾。
-     ★ v20260911j：改为「静字动景」——所有运动放在背景层（暗角呼吸 / 押解光影 / 铁栅投影横扫
-       / 灯火扫过 / 墨晕光斑 / 浮尘 / 镣铐轻摆），文字只用 opacity + clip-path + blur 浮现，绝不位移。
+     ★ v20260912i「水墨长卷」：删去旧版铁栅/镣铐/提灯等「牢狱写实」意象，改为——
+       行军征战底图(pr-bg) + 暗角呼吸(pr-vig) + 纸张颗粒(pr-grain) + 墨晕光斑(pr-ink)
+       + 山间云雾漂移(pr-mist) + 墨尘浮粒(pr-dust) + 卷轴上下渐隐(pr-scroll)；
+       文字层保持「静字」：只用 opacity + clip-path + blur 浮现，绝不位移。
+       收尾由旧版「白光一闪」改为柔和纸光一掠（prFlash 降强度），更合水墨调性。
      文字速度设为「瞬（无动画）」时整段跳过。 -->
 <div id="prologue" class="hidden" aria-hidden="true">
+  <div class="pr-bg"></div>
   <div class="pr-vig"></div>
   <div class="pr-grain"></div>
   <div class="pr-ink"><i></i><i></i><i></i></div>
-  <div class="pr-bars" id="pr-bars"></div>
-  <div class="pr-scan"></div>
+  <div class="pr-mist"><i></i><i></i></div>
   <div class="pr-dust"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-  <div class="pr-chains" id="pr-chains"><i></i><i></i><i></i><i></i></div>
+  <div class="pr-scroll"></div>
   <div class="pr-stage"><div class="pr-lines" id="pr-lines"></div></div>
   <div class="pr-flash" id="pr-flash"></div>
   <div class="pr-skip" id="pr-skip">轻触跳过 ▸</div>
@@ -96,6 +100,14 @@ window.onerror=function(msg,url,line,col,err){
   <main id="scene"><div id="narr"></div></main>
   <div id="onb-goal" class="onb-goal" hidden></div>
   <section id="actions"></section>
+  <!-- v20260912g 对话窗：NPC 名 + 他刚说的话 + 你的答话选项，同处一扇窗里自上而下排。
+       它在 #app 内参与布局（不是浮层），故绝不遮挡叙事区；收起后那些话仍留在叙事区可回看。
+       台词多、选项多时窗自身上限 46dvh 并在内部滚动，叙事区保底仍有半屏。 -->
+  <section id="dlg" class="hidden" aria-live="polite">
+    <div class="dlg-head"><span class="dlg-mark">❖</span><span id="dlg-name">交谈</span></div>
+    <div class="dlg-body" id="dlg-body"></div>
+    <div class="dlg-foot" id="dlg-foot"></div>
+  </section>
   <div id="lower">
     <div id="move-tabs">
       <div class="mv-tab active" data-tab="go">移动</div>
@@ -131,19 +143,19 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260912f"></script>
+<script src="shared/config/constants.js?v=20260912h"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
 <script src="shared/story/skills.js?v=20260902a"></script>
 <script src="shared/story/objectives.js?v=20260911i"></script>
 <script src="shared/story/events.js?v=20260902a"></script>
-<script src="shared/story/dialogues.js?v=20260912a"></script>
+<script src="shared/story/dialogues.js?v=20260912g"></script>
 <!-- v20260912f：npc_cards.js 提到 rooms.js 之前 —— 具名 NPC 的摆位/作息统一存在这张人物表里，
      rooms.js（作息表）与 core/city.js（名册）都要在加载期读它派生，顺序不能反。 -->
 <script src="shared/data/npc_cards.js?v=20260912f"></script>
-<script src="shared/story/rooms.js?v=20260912f"></script>
-    <script src="shared/story/triggers.js?v=20260912f"></script>
+<script src="shared/story/rooms.js?v=20260912g"></script>
+    <script src="shared/story/triggers.js?v=20260912g"></script>
     <script src="shared/data/martial.js?v=20260910j"></script>
 <script src="shared/data/enemies.js?v=20260902a"></script>
 <script src="shared/data/items.js?v=20260912f"></script>
@@ -168,7 +180,7 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/calendar.js?v=20260910w"></script>
   <script src="shared/core/save.js?v=20260910w"></script>
   <script src="shared/core/dev.js?v=20260910k"></script>
-  <script src="shared/core/triggers.js?v=20260912f"></script>
+  <script src="shared/core/triggers.js?v=20260912g"></script>
   <script src="shared/core/city.js?v=20260912f"></script>
   <script src="shared/core/inventory.js?v=20260910u"></script>
   <script src="shared/core/mapview.js?v=20260909h"></script>
@@ -181,6 +193,6 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/charcreate.js?v=20260909h"></script>
   <script src="shared/core/equipment.js?v=20260909i"></script>
   <script src="shared/core/crafting.js?v=20260909j"></script>
-  <script src="shared/core/engine.js?v=20260912f"></script>
+  <script src="shared/core/engine.js?v=20260912h"></script>
 </body>
 </html>

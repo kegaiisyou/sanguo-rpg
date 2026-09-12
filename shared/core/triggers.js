@@ -108,15 +108,11 @@ window.LF = window.LF || {};
               }
             };
           });
-          // v20260911k「一句话一口气」：长 prompt 不再整段糊在选项面板上（一大坨文字最劝退），
-          //   改由 log() 自动分句、逐句打进叙事区，最后一句打完才亮出选项；
-          //   短 prompt（≤30 字）仍留在面板，保持「一眼看到他在问什么」。
-          var _pr = resolveTpl(step.prompt || '');
-          if (_pr && _pr.replace(/\s/g, '').length > 30) {
-            log(_pr, 'npc', null, function () { tutAsk('', asks); });
-          } else {
-            tutAsk(_pr, asks);
-          }
+          // v20260912g：台词与问题不再分开处理 —— 过去长 prompt 会被拆句刷进叙事区、短 prompt 留在
+          //   选项面板上，于是「他说的话」和「你怎么答」分处上下两块，互相挤高度（小屏上话被选项顶掉）。
+          //   现在一律连人带话交给对话窗：窗里从上到下就是「谁说的 → 说了什么 → 你怎么答」，
+          //   一眼看得全，也不再有「话语在上一块、按钮在下头另一块」的错位。
+          tutAsk(resolveTpl(step.prompt || ''), asks, npcName);
           break;   // 等待玩家选择，选择后才 next()
         }
         case 'moveGate': {

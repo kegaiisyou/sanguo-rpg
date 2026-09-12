@@ -2019,8 +2019,37 @@
   .onb-prompt{ color:var(--ink); font-size:14.5px; line-height:1.75; margin-bottom:4px; font-family:"STKaiti","KaiTi","Songti SC",serif; }
   /* v20260911k：长台词已改为逐句进叙事区，面板不再留一行空白 */
   #tut-choices .onb-prompt:empty{ display:none; }
-  /* v20260912f：选项一多，面板就把叙事区挤没了，刚打出的台词被顶出视野（小屏尤甚）。
-     限高 + 面板内滚动：选项再多也留得住上面的话。 */
+  /* ═══ 对话窗（v20260912g）═══
+     过去「他说的话」在叙事区、「你怎么答」在下方 #tut-choices，两块互相挤高度：小屏上话被选项
+     顶出视野，选项一多还得在小面板里单独滚。现在合成一扇窗（#app 内的一段，参与布局、非浮层）：
+     说话人在顶、话与选项自上而下同窗排列 —— 话永远在选项上面，一眼看得全。
+     窗自身上限 46dvh 内部滚动，叙事区保底仍留大半屏；选项超过 4 条自动两列，越狱九条也放得下。 */
+  #dlg{
+    flex:0 1 auto; min-height:0; max-height:46dvh;
+    display:flex; flex-direction:column;
+    margin:0 8px 6px; padding:9px 11px;
+    border:1px solid rgba(176,131,47,.42); border-radius:13px;
+    background:linear-gradient(180deg,rgba(255,253,248,.985),rgba(246,240,228,.985));
+    box-shadow:0 -6px 20px -10px rgba(60,48,34,.45), inset 0 1px 0 rgba(255,255,255,.75);
+    animation:dlgIn .22s ease both;
+  }
+  #dlg.hidden{ display:none; }
+  @keyframes dlgIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  #dlg .dlg-head{ flex:0 0 auto; display:flex; align-items:center; gap:7px;
+    padding:1px 2px 7px; margin-bottom:7px; border-bottom:1px solid rgba(176,131,47,.26); }
+  #dlg .dlg-mark{ color:#b0832f; font-size:12px; line-height:1; }
+  #dlg #dlg-name{ font-family:"STKaiti","KaiTi",serif; font-weight:700; font-size:15px; color:#7a4a12; letter-spacing:1px; }
+  #dlg .dlg-body{ flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 2px; }
+  #dlg .dlg-body::-webkit-scrollbar{ width:4px; }
+  #dlg .dlg-body::-webkit-scrollbar-thumb{ background:rgba(176,131,47,.4); border-radius:3px; }
+  #dlg .dlg-say{ margin:0 0 8px; font-size:15.5px; line-height:1.8;
+    font-family:"STKaiti","KaiTi","Songti SC",serif; color:var(--ink); }
+  #dlg .dlg-say.mute{ color:#9c8a6d; letter-spacing:3px; }
+  #dlg .dlg-say .dlg-who{ color:#a8761f; font-weight:700; }
+  #dlg .dlg-foot{ flex:0 0 auto; display:flex; flex-direction:column; gap:7px; padding-top:2px; }
+  #dlg .dlg-foot.g2{ display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  #dlg .dlg-btn{ width:100%; }
+  /* 兜底：#dlg 缺失时仍用的旧面板（见 engine.js tutAsk ② ） */
   .onb-choices{ max-height:54dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .onb-choices::-webkit-scrollbar{ width:5px; }
   .onb-choices::-webkit-scrollbar-thumb{ background:rgba(176,131,47,.45); border-radius:3px; }
@@ -2171,15 +2200,14 @@
 .shop-hint,.shop-cart-empty{color:#6f6456;}
 
 /* ============================================================================
-   序章开场动画（P0 · v20260911g；动效重做 v20260911j）
-   独立于叙事区（#narr）的全屏水墨幕布：#prologue 覆盖全屏 → 三段文案逐行浮现
-   → 白光一闪 → 淡出，再由 engine.js 渲染牢房。
+   序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷重做 v20260912i）
+   独立于叙事区（#narr）的全屏水墨幕布：#prologue 覆盖全屏 → 行军征战底图
+   → 三段文案逐行浮现 → 柔和纸光一掠 → 淡出，再由 engine.js 渲染牢房。
    即「动画演绎完，角色才出现在牢里」。轻触幕布或点「跳过」立即收尾。
-   ★ v20260911j「静字动景」：文字绝不位移。
-     旧版把 prShake 挂在 .pr-stage 上，整幕（连文字一起）反复 translate+rotate —— 读字时像在抖。
-     现把全部运动交给背景层：
-       暗角呼吸漂移 .pr-vig(prVig) / 押解光影 pr-sway(prSway) / 铁栅投影横扫 .pr-bars(prBars)
-       / 灯火扫过 .pr-scan(prScan) / 墨晕光斑 .pr-ink(prInk) / 浮尘 .pr-dust(prDust) / 链条轻摆(prSwing)。
+   ★ v20260912i「水墨长卷」：删去旧版铁栅/镣铐/提灯等「牢狱写实」意象，与标题页同调——
+     底图复用 title_bg.jpg 行军征战水墨画（.pr-bg 盖全屏，慢漂移 + 押解缓移 pr-sway），
+     叠加暗角呼吸 .pr-vig(prVig) / 纸张颗粒 .pr-grain(prGrain) / 墨晕光斑 .pr-ink(prInk)
+     / 山间云雾漂移 .pr-mist(prMist) / 墨尘浮粒 .pr-dust(prDust) / 卷轴上下渐隐 .pr-scroll。
      .pr-lines / .pr-line 只用 opacity + clip-path + blur 浮现，永不用 translate/rotate 位移。
    文字速度设为「瞬（无动画）」时整段跳过（见 playPrologue）。
    ============================================================================ */
@@ -2187,57 +2215,64 @@
   background:#0a0806; opacity:1; transition:opacity .9s ease; }
 #prologue.hidden{ display:none; }
 #prologue.pr-out{ opacity:0; pointer-events:none; }
-/* 暗角：常亮呼吸（缩放/位移都封在这一层——它是模糊径向渐变，看得出「光影在动」但不会像文字那样抖） */
+/* 底图：复用标题页行军征战水墨画；罩层保证中央文字可读（四周压暗聚焦中央） */
+.pr-bg{ position:absolute; inset:-6%; pointer-events:none;
+  background:#0f0d09 url('../../assets/title_bg.jpg') center/cover no-repeat;
+  transform:scale(1.02); animation:prBgFloat 14s ease-in-out infinite; }
+.pr-bg::before{ content:''; position:absolute; inset:0;
+  background:
+    radial-gradient(125% 95% at 50% 44%, rgba(20,15,9,.18) 0%, rgba(14,11,7,.5) 58%, rgba(6,5,3,.92) 100%),
+    linear-gradient(180deg, rgba(8,6,4,.55), rgba(8,6,4,.15) 32%, rgba(8,6,4,.2) 68%, rgba(8,6,4,.6)); }
+.pr-bg::after{ content:''; position:absolute; inset:0;
+  background:radial-gradient(120% 95% at 50% 48%, rgba(0,0,0,0) 42%, rgba(8,6,3,.5) 100%); }
+@keyframes prBgFloat{
+  0%,100%{ transform:scale(1.02) translate3d(0,0,0); }
+  50%{ transform:scale(1.07) translate3d(-1%,-.7%,0); } }
+/* 押解感：动画中段启用，只晃底图（v20260911j 起不再碰文字层） */
+#prologue.pr-sway .pr-bg{ animation:prBgFloat 14s ease-in-out infinite, prSway 3s ease-in-out infinite; }
+@keyframes prSway{
+  0%,100%{ transform:translate3d(0,0,0) scale(1.03); }
+  30%{ transform:translate3d(.9%,-.6%,0) scale(1.035); }
+  65%{ transform:translate3d(-1%,.8%,0) scale(1.04); } }
+/* 暗角：常亮呼吸（独立径向渐变层，只增光影不动文字） */
 .pr-vig{ position:absolute; inset:-8%; pointer-events:none; background:
-  radial-gradient(120% 90% at 50% 45%, rgba(60,46,27,.55) 0%, rgba(12,10,7,.4) 55%, rgba(4,3,2,.97) 100%);
+  radial-gradient(120% 90% at 50% 45%, rgba(50,38,22,.42) 0%, rgba(12,10,7,.3) 55%, rgba(4,3,2,.94) 100%);
   transition:transform .8s ease, opacity .8s ease;   /* 收尾移除 prSway 时平滑回落，不跳帧 */
   animation:prVig 8.5s ease-in-out infinite; }
 @keyframes prVig{
-  0%,100%{ transform:scale(1.01) translate3d(0,0,0); opacity:.94; }
-  50%{ transform:scale(1.07) translate3d(-1.4%,-.9%,0); opacity:1; } }
-/* 押解感：动画中段启用，只晃背景光影（v20260911j 起不再碰文字层） */
-#prologue.pr-sway .pr-vig{ animation:prVig 8.5s ease-in-out infinite, prSway 3s ease-in-out infinite; }
-@keyframes prSway{
-  0%,100%{ transform:translate3d(0,0,0) scale(1.02); }
-  30%{ transform:translate3d(.9%,-.6%,0) scale(1.025); }
-  65%{ transform:translate3d(-1%,.8%,0) scale(1.03); } }
-.pr-grain{ position:absolute; inset:-20%; opacity:.09; pointer-events:none;
-  background-image:radial-gradient(rgba(255,235,190,.55) 1px, transparent 1px);
+  0%,100%{ transform:scale(1.01) translate3d(0,0,0); opacity:.9; }
+  50%{ transform:scale(1.06) translate3d(-1.2%,-.8%,0); opacity:1; } }
+/* 纸张颗粒：宣纸肌理般的细点，缓缓抖动 */
+.pr-grain{ position:absolute; inset:-20%; opacity:.08; pointer-events:none;
+  background-image:radial-gradient(rgba(255,235,190,.5) 1px, transparent 1px);
   background-size:3px 3px; animation:prGrain 3.6s steps(6) infinite; }
 @keyframes prGrain{
   0%{transform:translate3d(0,0,0)} 25%{transform:translate3d(-6px,4px,0)}
   50%{transform:translate3d(5px,-5px,0)} 75%{transform:translate3d(-4px,-3px,0)} 100%{transform:translate3d(0,0,0)} }
 /* 墨晕光斑：纸上墨韵般的中亮斑，缓缓洇开又散去（贴着暗角提亮画面中段，不与文字争位） */
 .pr-ink i{ position:absolute; border-radius:50%; pointer-events:none; opacity:0;
-  background:radial-gradient(circle, rgba(96,74,42,.34) 0%, rgba(64,48,26,.16) 46%, rgba(20,15,9,0) 72%);
+  background:radial-gradient(circle, rgba(112,86,48,.4) 0%, rgba(70,52,28,.18) 46%, rgba(20,15,9,0) 72%);
   animation:prInk 13s ease-in-out infinite; }
 .pr-ink i:nth-child(1){ left:-8%;   top:10%;     width:54vw; height:54vw; animation-delay:.3s; }
 .pr-ink i:nth-child(2){ right:-10%; bottom:4%;   width:62vw; height:62vw; animation-delay:2.6s; }
 .pr-ink i:nth-child(3){ left:24%;   bottom:-12%; width:46vw; height:46vw; animation-delay:5.1s; }
 @keyframes prInk{
   0%{ transform:scale(.6); opacity:0; }
-  20%{ opacity:.9; } 58%{ opacity:.55; }
+  20%{ opacity:.85; } 58%{ opacity:.5; }
   100%{ transform:scale(1.18) translate3d(2vw,-2.5vh,0); opacity:0; } }
-/* 铁栅投影：牢门栅影横过幕布缓缓右移（位移 62px 与条纹周期一致 → 无缝循环） */
-.pr-bars{ position:absolute; inset:-4% -14%; pointer-events:none; opacity:0;
-  transition:opacity 2.2s ease .3s;
-  background:repeating-linear-gradient(90deg, rgba(0,0,0,.62) 0 13px, rgba(0,0,0,0) 13px 62px);
-  -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.95), rgba(0,0,0,.22) 58%, rgba(0,0,0,0));
-  mask-image:linear-gradient(180deg, rgba(0,0,0,.95), rgba(0,0,0,.22) 58%, rgba(0,0,0,0));
-  animation:prBars 12s linear infinite; }
-.pr-bars.on{ opacity:.42; }
-@keyframes prBars{ from{ transform:translate3d(-62px,0,0); } to{ transform:translate3d(0,0,0); } }
-/* 灯火扫过：一道模糊暖光自上而下缓缓掠过，像牢外有人提灯走过 */
-.pr-scan{ position:absolute; left:-12%; right:-12%; height:32%; opacity:0; pointer-events:none;
-  background:radial-gradient(58% 100% at 50% 50%, rgba(233,201,121,.15), rgba(233,201,121,0) 72%);
-  filter:blur(7px); animation:prScan 9.5s ease-in-out infinite; }
-@keyframes prScan{
-  0%{ transform:translate3d(0,-45%,0); opacity:0; }
-  16%{ opacity:.95; } 64%{ opacity:.5; }
-  100%{ transform:translate3d(0,315%,0); opacity:0; } }
-/* 弥漫浮尘：从底向上升起，衬托牢中尘土的意象 */
+/* 山间云雾：两道淡霭横向漂移，如水墨画中的留白烟云 */
+.pr-mist i{ position:absolute; left:-20%; right:-20%; height:24%; pointer-events:none; opacity:0;
+  background:radial-gradient(60% 100% at 50% 50%, rgba(226,214,186,.16), rgba(226,214,186,0) 72%);
+  filter:blur(9px); animation:prMist 11s ease-in-out infinite; }
+.pr-mist i:nth-child(1){ top:22%; animation-delay:.4s; }
+.pr-mist i:nth-child(2){ bottom:14%; animation-delay:3.2s; height:18%; }
+@keyframes prMist{
+  0%{ transform:translate3d(-6%,0,0); opacity:0; }
+  22%{ opacity:.85; } 62%{ opacity:.4; }
+  100%{ transform:translate3d(6%,0,0); opacity:0; } }
+/* 墨尘浮粒：细碎微光如墨尘烟霭，自底向上升起 */
 .pr-dust i{ position:absolute; bottom:-6%; width:3px; height:3px; border-radius:50%;
-  background:rgba(228,198,134,.6); filter:blur(.4px); animation:prDust linear infinite; }
+  background:rgba(233,205,150,.55); filter:blur(.4px); animation:prDust linear infinite; }
 .pr-dust i:nth-child(1){ left:14%; animation-duration:11s; animation-delay:.2s;  }
 .pr-dust i:nth-child(2){ left:31%; animation-duration:14s; animation-delay:1.1s; width:2px; height:2px; }
 .pr-dust i:nth-child(3){ left:47%; animation-duration:12.5s; animation-delay:.6s; }
@@ -2246,50 +2281,50 @@
 .pr-dust i:nth-child(6){ left:90%; animation-duration:13.5s; animation-delay:3.0s; width:2px; height:2px; }
 @keyframes prDust{
   0%{ transform:translateY(0) translateX(0); opacity:0; }
-  12%{ opacity:.75; } 80%{ opacity:.45; }
+  12%{ opacity:.7; } 80%{ opacity:.4; }
   100%{ transform:translateY(-108dvh) translateX(26px); opacity:0; } }
+/* 卷轴上下渐隐：上下各一道墨染暗带，让画面如一幅缓缓展开的长卷 */
+.pr-scroll{ position:absolute; inset:0; pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(8,6,3,.92) 0%, rgba(8,6,3,.5) 7%, rgba(8,6,3,0) 16%),
+    linear-gradient(0deg, rgba(8,6,3,.92) 0%, rgba(8,6,3,.5) 7%, rgba(8,6,3,0) 16%); }
 .pr-stage{ position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
   align-items:center; padding:0 26px calc(env(safe-area-inset-bottom) + 12px); text-align:center; }
-/* 文字层：只用 opacity + clip-path + blur「自上而下展开」，绝不 translate/rotate（见文件头 v20260911j） */
+/* 文字层：只用 opacity + clip-path + blur「自上而下展开」，绝不 translate/rotate（见文件头） */
 .pr-lines{ display:flex; flex-direction:column; gap:22px; width:100%; max-width:520px;
   transition:transform .9s ease; }
-.pr-line{ margin:0; opacity:0; color:#e8dcc0; filter:blur(7px);
+.pr-line{ margin:0; opacity:0; color:#ece0c4; filter:blur(7px);
+  text-shadow:0 1px 3px rgba(0,0,0,.55), 0 0 14px rgba(0,0,0,.32);
   clip-path:inset(0 0 94% 0); -webkit-clip-path:inset(0 0 94% 0);
   transition:opacity 1s ease, filter .95s ease,
     clip-path 1.35s cubic-bezier(.22,.7,.3,1), -webkit-clip-path 1.35s cubic-bezier(.22,.7,.3,1); }
 .pr-line.on{ opacity:1; filter:blur(0); clip-path:inset(0 0 0 0); -webkit-clip-path:inset(0 0 0 0); }
 .pr-line.pr-kicker{ font-family:"STKaiti","KaiTi","Songti SC",serif; font-size:21px; font-weight:700;
-  letter-spacing:6px; color:#e9c979; }
+  letter-spacing:6px; color:#eed08a; }
 /* 金字题头：写完以后金光呼吸（只变 text-shadow，不动笔画位置） */
 .pr-line.pr-kicker.on{ animation:prGlow 3.6s ease-in-out infinite alternate; }
 @keyframes prGlow{
-  from{ text-shadow:0 0 6px rgba(233,201,121,.16), 0 0 16px rgba(233,201,121,.05); }
-  to{ text-shadow:0 0 11px rgba(233,201,121,.46), 0 0 30px rgba(233,201,121,.18); } }
+  from{ text-shadow:0 1px 3px rgba(0,0,0,.5), 0 0 6px rgba(238,208,138,.2), 0 0 16px rgba(238,208,138,.06); }
+  to{ text-shadow:0 1px 3px rgba(0,0,0,.5), 0 0 11px rgba(238,208,138,.5), 0 0 30px rgba(238,208,138,.2); } }
 .pr-line.pr-body{ font-family:"STKaiti","KaiTi","Songti SC",serif; font-size:15.5px;
-  letter-spacing:1.4px; line-height:1.95; color:#d9cdb2; }
-.pr-line.pr-body:last-child{ color:#c6b99e; }
-/* 镣铐垂影：两侧细铁链轻摆 */
-.pr-chains{ position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity 1.2s ease .2s; }
-.pr-chains.on{ opacity:.5; }
-.pr-chains i{ position:absolute; top:-6%; width:2px; border-radius:2px; transform-origin:top center;
-  background:linear-gradient(180deg,rgba(210,196,168,0),rgba(216,202,172,.9) 30%,rgba(210,196,168,0));
-  animation:prSwing 3.4s ease-in-out infinite; }
-.pr-chains i:nth-child(1){ left:7%;  height:66%; animation-delay:0s;   }
-.pr-chains i:nth-child(2){ left:23%; height:78%; animation-delay:.8s; }
-.pr-chains i:nth-child(3){ left:77%; height:72%; animation-delay:.4s; }
-.pr-chains i:nth-child(4){ left:93%; height:60%; animation-delay:1.1s; }
-@keyframes prSwing{ 0%,100%{ transform:rotate(-2.4deg); } 50%{ transform:rotate(2.4deg); } }
-/* 收尾白光：一记更鼓般的闪亮，接牢房；同时文字极轻「推近」——发生在整幕淡出的 .9s 里，非阅读期位移 */
-.pr-flash{ position:absolute; inset:0; pointer-events:none; opacity:0; background:#f6ecd6; }
+  letter-spacing:1.4px; line-height:1.95; color:#ded2b6; }
+.pr-line.pr-body:last-child{ color:#cbbd9f; }
+/* 收尾柔光：一记更鼓般的纸光轻掠，接牢房；文字极轻「推近」发生在整幕淡出的 .9s 里，非阅读期位移 */
+.pr-flash{ position:absolute; inset:0; pointer-events:none; opacity:0; background:#f4ead2; }
 .pr-flash.on{ animation:prFlash .95s ease-out forwards; }
-@keyframes prFlash{ 0%{ opacity:0; } 22%{ opacity:.9; } 100%{ opacity:0; } }
+@keyframes prFlash{ 0%{ opacity:0; } 22%{ opacity:.55; } 100%{ opacity:0; } }
 #prologue.pr-out .pr-lines{ transform:scale(1.045); }
 .pr-skip{ position:absolute; right:16px; bottom:calc(18px + env(safe-area-inset-bottom));
   padding:6px 12px; border:1px solid rgba(226,208,170,.28); border-radius:14px;
   font-size:12.5px; letter-spacing:2px; color:rgba(226,208,170,.6); cursor:pointer;
   animation:skipblink 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion:reduce){
-  .pr-vig,.pr-chains i,.pr-dust i,.pr-grain,.pr-bars,.pr-scan{ animation:none; }
+  .pr-bg,.pr-vig,.pr-mist i,.pr-dust i,.pr-grain,.pr-ink i{ animation:none; }
+  .pr-line{ transition-duration:.25s; filter:none; clip-path:none; -webkit-clip-path:none; }
+  .pr-line.pr-kicker.on{ animation:none; }
+  #prologue.pr-out .pr-lines{ transform:none; }
+}
+
   .pr-line{ transition-duration:.25s; filter:none; clip-path:none; -webkit-clip-path:none; }
   .pr-line.pr-kicker.on{ animation:none; }
   #prologue.pr-out .pr-lines{ transform:none; }
