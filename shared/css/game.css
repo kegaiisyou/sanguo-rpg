@@ -2019,14 +2019,16 @@
   .onb-prompt{ color:var(--ink); font-size:14.5px; line-height:1.75; margin-bottom:4px; font-family:"STKaiti","KaiTi","Songti SC",serif; }
   /* v20260911k：长台词已改为逐句进叙事区，面板不再留一行空白 */
   #tut-choices .onb-prompt:empty{ display:none; }
-  /* ═══ 对话帘（v20260912k）═══
-     v20260912g 那版「窗」是 #app 内的一段（参与布局）：开合时把叙事区、罗盘一起顶来顶去，
-     观感更像表单不像交谈。现改为**自底部升起的浮层**（position:fixed）：
+  /* ═══ 对话帘（v20260912l）═══
+     v20260912g 那版「窗」是 #app 内的一段（参与布局）：开合把叙事区、罗盘一起顶来顶去；
+     v20260912k 改成自底部升起的浮层（position:fixed）后观感对了，但玩家仍说「内容太多」：
+     他一段话整块堆在帘里，选项还被台词挤扁 —— 才两个选项也要滚、显示不全。这一版分头治：
+       · 一句一行、一句一句讲（engine 逐句落，帘里只留最近两句，超出的淡出）
+       · 选项区【永不压缩】flex:0 0 auto ＋ 预留两行高度（.has），四五条也一屏放得下
        头 = 朱砂名章 ＋ 名姓 ＋ 状态（一眼认出是谁在说话）
-       体 = 本次交谈的往来（他的每句 ＋ 你的每句），可上滚回看
-       足 = 带序号的答话选项（键盘 1-9 等价），超 4 条两列
-     帘只压暗背景（pointer-events 全拦：交谈中不许乱点，也顺手堵住「点状态栏开面板把对话挤没」），
-     帘自身上限 42dvh，叙事区保底仍留大半屏可读。 */
+       体 = 他正在讲的一两句（＋你的答话）
+       足 = 带序号的答话选项（键盘 1-9 等价），三条起两列
+     帘只压暗背景，自身上限 46dvh，叙事区保底仍留大半屏可读。 */
   #dlg-veil{ position:fixed; inset:0; z-index:59;
     background:radial-gradient(135% 95% at 50% 100%,rgba(30,22,14,.56),rgba(30,22,14,.32) 58%,rgba(30,22,14,.20));
     animation:dlgVeil .24s ease both; }
@@ -2034,7 +2036,7 @@
   @keyframes dlgVeil{ from{ opacity:0; } to{ opacity:1; } }
   #dlg{
     position:fixed; left:0; right:0; bottom:0; margin:0 auto; max-width:560px; z-index:60;
-    max-height:42dvh; display:flex; flex-direction:column; overflow:hidden;
+    max-height:46dvh; display:flex; flex-direction:column; overflow:hidden;
     padding:0 12px calc(9px + env(safe-area-inset-bottom));
     border-top:1px solid rgba(176,131,47,.55); border-radius:15px 15px 0 0;
     background:linear-gradient(180deg,rgba(255,253,248,.99),rgba(244,237,223,.99));
@@ -2042,7 +2044,7 @@
     animation:dlgIn .26s cubic-bezier(.2,.9,.28,1.03) both;
   }
   /* 选项多（>4 条，两列）时帘抬高一些，仍给叙事区留着上半屏 */
-  #dlg.many{ max-height:56dvh; }
+  #dlg.many{ max-height:62dvh; }
   #dlg.hidden{ display:none; }
   @keyframes dlgIn{ from{ opacity:0; transform:translateY(20px); } to{ opacity:1; transform:none; } }
   #dlg .dlg-head{ flex:0 0 auto; display:flex; align-items:center; gap:9px;
@@ -2060,9 +2062,12 @@
   #dlg .dlg-body{ flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 2px 2px; }
   #dlg .dlg-body::-webkit-scrollbar{ width:4px; }
   #dlg .dlg-body::-webkit-scrollbar-thumb{ background:rgba(176,131,47,.4); border-radius:3px; }
-  #dlg .dlg-say{ margin:0 0 9px; font-size:15.5px; line-height:1.8;
+  #dlg .dlg-say{ margin:0 0 8px; font-size:15.5px; line-height:1.75;
     font-family:"STKaiti","KaiTi","Songti SC",serif; color:var(--ink); animation:dlgSay .2s ease both; }
   @keyframes dlgSay{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+  /* 说过的那句退场（帘里只留最近两句，v20260912l）：淡出＋略上移，像话飘走 */
+  @keyframes dlgLeave{ from{ opacity:1; transform:none; } to{ opacity:0; transform:translateY(-5px); } }
+  #dlg .dlg-say.leave{ animation:dlgLeave .26s ease both; }
   #dlg .dlg-say.mute{ color:#9c8a6d; letter-spacing:3px; }
   #dlg .dlg-say .dlg-who{ color:#a8761f; font-weight:700; }
   /* 落字光标：一句一句往外蹦时缀在句尾（设「文字演出·瞬」时不出现） */
@@ -2072,9 +2077,15 @@
   #dlg .dlg-say.me{ margin-left:24%; padding:6px 10px; border-radius:11px 11px 3px 11px;
     background:rgba(176,131,47,.15); border:1px solid rgba(176,131,47,.3);
     font-size:14.5px; color:#5a4526; text-align:right; }
-  /* 选项区自己也能滚（越狱九条那种极端情况），免得从帘底溢出到圆角外面 */
-  #dlg .dlg-foot{ flex:0 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:7px; padding:9px 0 2px; }
+  /* 选项区：【强制不许压缩】flex:0 0 auto —— 这是「才两个选项也要滚」的根因所在：
+     帘一旦顶到 max-height，flex-shrink 会把这排按钮连同台词一起压缩，按钮就被截断了。
+     现在只有「体」（台词）会被压，选项永远整整齐齐摆完。 */
+  #dlg .dlg-foot{ flex:0 0 auto; overflow-y:auto; display:flex; flex-direction:column; gap:7px; padding:9px 0 2px; }
+  /* 预留两行的高度：两条与四五条一样摆得下，帘也不会在问句之间忽高忽低 */
+  #dlg .dlg-foot.has{ min-height:96px; }
   #dlg .dlg-foot.g2{ display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  /* 奇数条时最后一条横跨两列，别剩半格空着 */
+  #dlg .dlg-foot.g2 > .dlg-btn:last-child:nth-child(odd){ grid-column:1 / -1; }
   #dlg .dlg-btn{ width:100%; display:flex; align-items:flex-start; gap:8px; text-align:left; }
   #dlg .dlg-btn .ix{ flex:none; width:19px; height:19px; border-radius:50%; margin-top:1px;
     display:flex; align-items:center; justify-content:center;
@@ -2317,47 +2328,18 @@
   0%{ transform:translateY(0) translateX(0); opacity:0; }
   12%{ opacity:.7; } 80%{ opacity:.4; }
   100%{ transform:translateY(-108dvh) translateX(26px); opacity:0; } }
-/* 卷轴（v20260912j）：上下墨色轴杆 + 中央卷面，开卷时从中线向上下揭开 */
-.pr-roll{ position:absolute; inset:0; z-index:3; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; pointer-events:none; }
-/* 轴杆：墨色横杆 + 两端金色轴头（轴头为杆两端圆环，超出杆宽以形成把手感） */
-.pr-axle{ position:relative; z-index:2; height:16px; width:min(600px, 84vw); border-radius:8px;
-  background:linear-gradient(180deg,#3a2c1a,#241a10 45%,#120d07 70%,#2a1f12);
-  box-shadow:0 3px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,220,160,.14);
-  transition:transform 1.5s cubic-bezier(.22,.7,.3,1); }
-.pr-axle::before,.pr-axle::after{ content:''; position:absolute; top:50%; width:26px; height:26px;
-  border-radius:50%; transform:translateY(-50%);
-  background:radial-gradient(circle at 38% 32%, #f4dd9a, #b98a3c 58%, #6f4d1e);
-  box-shadow:0 2px 6px rgba(0,0,0,.5), inset 0 -1px 2px rgba(0,0,0,.4); }
-.pr-axle::before{ left:-13px; }
-.pr-axle::after{ right:-13px; }
-.pr-axle i{ position:absolute; top:50%; transform:translateY(-50%); border-radius:2px;
-  background:linear-gradient(90deg, transparent, rgba(240,210,140,.4), transparent); height:2px; }
-.pr-axle i:nth-child(1){ left:12%; right:12%; }
-.pr-axle i:nth-child(2){ left:26%; right:26%; top:calc(50% - 3px); height:1px; opacity:.5; }
-.pr-axle i:nth-child(3){ left:26%; right:26%; top:calc(50% + 2px); height:1px; opacity:.5; }
-/* 初始：两杆合于中线（微叠，呈闭合卷） */
-.pr-axle-top{ margin-bottom:-8px; }
-.pr-axle-bottom{ margin-top:-8px; }
-/* 开卷：上杆上移、下杆下移 */
-#prologue.pr-roll-open .pr-axle-top{ transform:translateY(calc(-48vh + 8px)); }
-#prologue.pr-roll-open .pr-axle-bottom{ transform:translateY(calc(48vh - 8px)); }
-/* 合卷：两杆合回中线（稍快） */
-#prologue.pr-roll-close .pr-axle-top{ transform:translateY(0); transition-duration:1.1s; }
-#prologue.pr-roll-close .pr-axle-bottom{ transform:translateY(0); transition-duration:1.1s; }
-/* 卷面：宣纸质感，clip-path 从中线向上下揭开（配合轴杆分启） */
-.pr-roll-face{ position:relative; z-index:1; width:min(600px, 86vw); padding:36px 28px 32px;
-  background:
-    radial-gradient(120% 100% at 50% 0%, rgba(255,244,216,.15), rgba(255,244,216,0) 46%),
-    linear-gradient(180deg, rgba(222,198,150,.13), rgba(196,170,122,.09) 50%, rgba(222,198,150,.13));
-  border-left:1px solid rgba(232,212,170,.14);
-  border-right:1px solid rgba(232,212,170,.14);
-  box-shadow:0 0 30px rgba(0,0,0,.35), inset 0 0 40px rgba(255,240,210,.05);
-  clip-path:inset(50% 0 50% 0); -webkit-clip-path:inset(50% 0 50% 0);
-  transition:clip-path 1.6s cubic-bezier(.22,.7,.3,1), -webkit-clip-path 1.6s cubic-bezier(.22,.7,.3,1);
-  pointer-events:none; }
-#prologue.pr-roll-open .pr-roll-face{ clip-path:inset(0 0 0 0); -webkit-clip-path:inset(0 0 0 0); }
-#prologue.pr-roll-close .pr-roll-face{ clip-path:inset(50% 0 50% 0); -webkit-clip-path:inset(50% 0 50% 0); transition-duration:1.1s; }
+/* 墨色显影层（v20260912l）：开场浓墨遮没画面，显影时 clip-path 圆自全屏缩至无，如潮水退去 */
+.pr-wash{ position:absolute; inset:0; z-index:2; pointer-events:none; background:#070605;
+  clip-path:circle(115% at 50% 46%); -webkit-clip-path:circle(115% at 50% 46%);
+  transition:clip-path 1.6s cubic-bezier(.55,.06,.28,.99), -webkit-clip-path 1.6s cubic-bezier(.55,.06,.28,.99),
+    opacity .9s ease; }
+/* 显影：墨色圆收缩至无，画面自四周露出、中央最后退净（潮水退去感） */
+#prologue.pr-wash-out .pr-wash{ clip-path:circle(0% at 50% 46%); -webkit-clip-path:circle(0% at 50% 46%); }
+/* 回卷：墨色圆自中心重新蔓延至覆盖全屏，画面隐入浓墨（收尾） */
+#prologue.pr-wash-in .pr-wash{ clip-path:circle(115% at 50% 46%); -webkit-clip-path:circle(115% at 50% 46%);
+  opacity:1; transition-duration:1.2s, 1.2s, .5s; }
+.pr-stage{ position:absolute; inset:0; z-index:4; display:flex; flex-direction:column; justify-content:center;
+  align-items:center; padding:0 26px calc(env(safe-area-inset-bottom) + 12px); text-align:center; }
 /* 文字层：只用 opacity + clip-path + blur「自上而下展开」，绝不 translate/rotate（见文件头） */
 .pr-lines{ display:flex; flex-direction:column; gap:22px; width:100%; max-width:520px;
   transition:transform .9s ease; }
@@ -2367,20 +2349,10 @@
   transition:opacity 1s ease, filter .95s ease,
     clip-path 1.35s cubic-bezier(.22,.7,.3,1), -webkit-clip-path 1.35s cubic-bezier(.22,.7,.3,1); }
 .pr-line.on{ opacity:1; filter:blur(0); clip-path:inset(0 0 0 0); -webkit-clip-path:inset(0 0 0 0); }
-.pr-line.pr-kicker{ position:relative; overflow:hidden; font-family:"STKaiti","KaiTi","Songti SC",serif; font-size:21px; font-weight:700;
-  letter-spacing:6px; color:#eed08a;
-  clip-path:inset(0 100% 0 0); -webkit-clip-path:inset(0 100% 0 0); }
-/* 笔锋光带：书写时一道鎏金光从左扫到右，似笔走龙蛇 */
-.pr-line.pr-kicker::after{ content:''; position:absolute; top:0; bottom:0; left:0; width:38%; pointer-events:none;
-  background:linear-gradient(90deg, transparent, rgba(248,226,160,.55), transparent);
-  transform:translateX(-140%); }
-/* 标题毛笔书写：.on 触发水平展开（1.4s）+ 笔锋扫过；写完金光呼吸（延迟至书写完成） */
-.pr-line.pr-kicker.on{ clip-path:inset(0 0 0 0); -webkit-clip-path:inset(0 0 0 0);
-  transition:clip-path 1.4s cubic-bezier(.4,0,.2,1), -webkit-clip-path 1.4s cubic-bezier(.4,0,.2,1),
-    opacity .5s ease, filter .5s ease;
-  animation:prGlow 3.6s ease-in-out 1.5s infinite alternate; }
-.pr-line.pr-kicker.on::after{ animation:prBrush 1.35s cubic-bezier(.4,0,.2,1) .1s forwards; }
-@keyframes prBrush{ from{ transform:translateX(-140%); } to{ transform:translateX(360%); } }
+.pr-line.pr-kicker{ font-family:"STKaiti","KaiTi","Songti SC",serif; font-size:21px; font-weight:700;
+  letter-spacing:6px; color:#eed08a; }
+/* 金色题头：显影中浮现，写完金光呼吸（只变 text-shadow，不动笔画位置） */
+.pr-line.pr-kicker.on{ animation:prGlow 3.6s ease-in-out 1.2s infinite alternate; }
 @keyframes prGlow{
   from{ text-shadow:0 1px 3px rgba(0,0,0,.5), 0 0 6px rgba(238,208,138,.2), 0 0 16px rgba(238,208,138,.06); }
   to{ text-shadow:0 1px 3px rgba(0,0,0,.5), 0 0 11px rgba(238,208,138,.5), 0 0 30px rgba(238,208,138,.2); } }
@@ -2398,11 +2370,9 @@
   animation:skipblink 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion:reduce){
   .pr-bg,.pr-vig,.pr-mist i,.pr-dust i,.pr-grain,.pr-ink i{ animation:none; }
-  .pr-axle{ transition:none; }
-  .pr-roll-face{ clip-path:none; -webkit-clip-path:none; }
+  .pr-wash{ transition:none; clip-path:circle(0% at 50% 46%); -webkit-clip-path:circle(0% at 50% 46%); }
   .pr-line{ transition-duration:.25s; filter:none; clip-path:none; -webkit-clip-path:none; }
   .pr-line.pr-kicker.on{ animation:none; }
-  .pr-line.pr-kicker.on::after{ animation:none; }
   #prologue.pr-out .pr-lines{ transform:none; }
 }
 

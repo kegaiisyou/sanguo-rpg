@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>乱世烽火 · 水墨</title>
-<link rel="stylesheet" href="shared/css/game.css?v=20260912k" />
+<link rel="stylesheet" href="shared/css/game.css?v=20260912l" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -66,7 +66,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260912k</div>
+    <div class="tt-ver" id="tt-ver">v20260912l</div>
   </div>
 </div>
 
@@ -78,6 +78,14 @@ window.onerror=function(msg,url,line,col,err){
      独立于 #narr，故动画期间叙事区为空；轻触幕布或点「跳过」立即收尾。
      文字层保持「静字」：只用 opacity + clip-path + blur 浮现，绝不位移。
      文字速度设为「瞬（无动画）」时整段跳过。 -->
+<!-- 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷 v20260912i；墨色显影 v20260912l）：
+     全屏水墨幕布，复用标题页 title_bg.jpg 行军征战底图；以「墨色显影」的方式演出——
+     开场浓墨几近遮没画面 → 墨色自中心如潮水退去（.pr-wash mask 圆洞渐扩）显影行军征战图
+     → 金色题头【汉灵帝光和六年】与正文在显影中逐行浮现 → 收尾墨色回卷（mask 收拢）再隐入浓墨
+     → 一记柔和纸光，幕落，角色此时才「被推进牢房」。
+     独立于 #narr，故动画期间叙事区为空；轻触幕布或点「跳过」立即收尾。
+     文字层保持「静字」：只用 opacity + clip-path + blur 浮现，绝不位移。
+     文字速度设为「瞬（无动画）」时整段跳过。 -->
 <div id="prologue" class="hidden" aria-hidden="true">
   <div class="pr-bg"></div>
   <div class="pr-vig"></div>
@@ -85,15 +93,11 @@ window.onerror=function(msg,url,line,col,err){
   <div class="pr-ink"><i></i><i></i><i></i></div>
   <div class="pr-mist"><i></i><i></i></div>
   <div class="pr-dust"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-  <div class="pr-roll" id="pr-roll">
-    <div class="pr-axle pr-axle-top"><i></i><i></i><i></i></div>
-    <div class="pr-roll-face"><div class="pr-lines" id="pr-lines"></div></div>
-    <div class="pr-axle pr-axle-bottom"><i></i><i></i><i></i></div>
-  </div>
+  <div class="pr-wash" id="pr-wash"></div>
+  <div class="pr-stage"><div class="pr-lines" id="pr-lines"></div></div>
   <div class="pr-flash" id="pr-flash"></div>
   <div class="pr-skip" id="pr-skip">轻触跳过 ▸</div>
 </div>
-
 <div id="app">
   <header id="status"></header>
   <div class="loc-tab" id="loc-tab"></div>
@@ -149,7 +153,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260912k"></script>
+<script src="shared/config/constants.js?v=20260912l"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -199,6 +203,6 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/charcreate.js?v=20260909h"></script>
   <script src="shared/core/equipment.js?v=20260909i"></script>
   <script src="shared/core/crafting.js?v=20260909j"></script>
-  <script src="shared/core/engine.js?v=20260912k"></script>
+  <script src="shared/core/engine.js?v=20260912l"></script>
 </body>
 </html>

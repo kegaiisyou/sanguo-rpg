@@ -556,6 +556,17 @@
   //   → 正文逐行浮现 → 合卷 pr-roll-close（face 收拢、杆合回中线）→ 淡出。
   // 文字层始终「静字」：只用 opacity + clip-path + blur 浮现，绝不 translate/rotate 位移。
   // settings.textSpeed<=0（文字演出设为「瞬（无动画）」）时整段跳过，直接进牢房。
+  // ===== 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷 v20260912i；墨色显影 v20260912l）=====
+  // 独立于叙事区（#narr）的全屏幕布 #prologue（DOM 见 index.html，样式见 game.css）：
+  //   浓墨遮罩 → 墨色自中心退去显影行军征战图 → 金色题头与正文逐行浮现 →
+  //   收尾墨色回卷 → 柔和纸光一掠 → 淡出。
+  // 演出期间界面 #app 是隐藏的，故「动画演完，角色才出现在牢里」；随后的 camp_opening 剧本接着开场。
+  // 文案取自 G.DIALOGUES.prologue（第一行作金色小标题）。轻触幕布 / 点「跳过」立即收尾。
+  // ★ v20260912l「墨色显影」：新增 .pr-wash 浓墨层（mask 径向渐变圆洞），开卷 .pr-wash-out 时
+  //   mask-size 由 20% 扩至 260%，墨色如潮水退去、画面自中心显影；收尾 .pr-wash-in 时 mask-size
+  //   收拢回 40% 且墨层不透明化，画面重新隐入浓墨。卷轴（pr-roll/轴杆/卷面）与毛笔书写已移除。
+  // 文字层始终「静字」：只用 opacity + clip-path + blur 浮现，绝不 translate/rotate 位移。
+  // settings.textSpeed<=0（文字演出设为「瞬（无动画）」）时整段跳过，直接进牢房。
   function playPrologue(onDone){
     var box=document.getElementById('prologue');
     var lines=((G && G.DIALOGUES && G.DIALOGUES.prologue) || []).slice();
@@ -569,17 +580,17 @@
     function finish(){
       if(done) return; done=true; clearAll();
       box.removeEventListener('click', finish);
-      box.classList.remove('pr-sway','pr-roll-open');     // 止景：收尾不再晃背景、不再维持开卷
-      box.classList.add('pr-roll-close','pr-out');        // 合卷 + 淡出（.9s），随后彻底隐藏并把界面交还 #app
+      box.classList.remove('pr-sway','pr-wash-out');       // 止景：收尾不再显影、不再晃背景
+      box.classList.add('pr-wash-in','pr-out');            // 墨色回卷 + 淡出（.9s），随后隐藏并把界面交还 #app
       timers.push(setTimeout(function(){
         box.classList.add('hidden');
-        box.classList.remove('pr-roll-close');
+        box.classList.remove('pr-wash-in');
         if(wrap) wrap.innerHTML='';
         if(onDone) onDone();
       }, 900));
     }
     // 复位（同一会话内读档可能重播）
-    box.classList.remove('hidden','pr-out','pr-sway','pr-roll-open','pr-roll-close');
+    box.classList.remove('hidden','pr-out','pr-sway','pr-wash-out','pr-wash-in');
     if(flash) flash.classList.remove('on');
     if(wrap){
       wrap.innerHTML='';
@@ -591,26 +602,25 @@
       });
     }
     box.addEventListener('click', finish);
-    // 排期：卷轴展开（1.6s）→ 标题书写（1.4s）→ 正文逐行浮现 → 合卷收尾
+    // 排期：墨色显影（2s）→ 题头浮现 → 正文逐行浮现 → 墨色回卷收尾
     var els=(wrap && wrap.childNodes) || [];
-    var t0=420;                                          // 开卷后文字才登场
-    T(function(){ box.classList.add('pr-roll-open'); }, 120);   // 开卷：轴杆分启、卷面揭开
-    T(function(){ box.classList.add('pr-sway'); }, 900);        // 押解缓移：中段起底图轻晃（只晃景，不晃字）
+    var t0=1700;                                          // 显影完成（120+1600）画面全露，文字才登场
+    T(function(){ box.classList.add('pr-wash-out'); }, 120);   // 显影：浓墨自中心退去
+    T(function(){ box.classList.add('pr-sway'); }, 1100);      // 押解缓移：显影后底图轻晃（只晃景，不晃字）
     for(var i=0;i<els.length;i++){
       (function(el, idx){
         T(function(){ el.classList.add('on'); }, t0);
         t0 += Math.max(1400, Math.min(2600, String(lines[idx]||'').length*55)) + 560;
       })(els[i], i);
     }
-    T(function(){ box.classList.remove('pr-sway'); }, Math.max(1600, t0-700));   // 收尾前止景
+    T(function(){ box.classList.remove('pr-sway'); }, Math.max(2000, t0-700));   // 收尾前止景
     T(function(){
-      box.classList.remove('pr-roll-open');
-      box.classList.add('pr-roll-close');                                        // 合卷：卷面收拢、轴杆合回
-    }, t0+140);
-    T(function(){ if(flash) flash.classList.add('on'); try{ SFX.hit(); }catch(e){} }, t0+420);  // 合卷中一记更鼓般的柔光
-    T(finish, t0+1100);
+      box.classList.remove('pr-wash-out');
+      box.classList.add('pr-wash-in');                                          // 回卷：墨色从四周拢回
+    }, t0+120);
+    T(function(){ if(flash) flash.classList.add('on'); try{ SFX.hit(); }catch(e){} }, t0+430);  // 回卷中一记更鼓般的柔光
+    T(finish, t0+1120);
   }
-
   // [moved → shared/core/state.js]
   // 将一份存档数据载入为当前游戏状态并展卷
   function enterGame(data, slot){
@@ -784,7 +794,9 @@
   //   人怎么说、字就怎么落。只有遇上长得离谱的单句（> SPEECH_HARD 字，多是无标点的环境描写）
   //   才退一步按软标点断一次，免得一行糊满整屏。
   var SPEECH_HARD=80;   // 单句超长兜底阈值（字）：仅防「一行占满全屏」，正常句子不受影响
-  function splitSpeech(text){
+  // deep=true（v20260912l 对话帘用）：连引号里的句子也断 —— 他一句一句讲，而不是把
+  //   一整段引语塞成一行。default=false 保持原样（叙事区打字机要整句引语一起走）。
+  function splitSpeech(text, deep){
     var s=String(text==null?'':text).trim();
     if(!s) return [];
     var SENT='。！？；…', OPEN='「『（【〔', TAIL='」』）】〕', SOFT='，、,.：:';
@@ -796,13 +808,14 @@
         dep = dep>0 ? dep-1 : 0;
         buf+=ch;
         // 收尾括号恰好收在一句的末标点之后（「……。」）→ 这一句到此为止
-        if(dep===0 && SENT.indexOf(buf.charAt(buf.length-2))>=0){ out.push(buf); buf=''; }
+        if(dep===0 && buf.length>=2 && SENT.indexOf(buf.charAt(buf.length-2))>=0){ out.push(buf); buf=''; }
         continue;
       }
       buf+=ch;
-      if(dep===0 && SENT.indexOf(ch)>=0){ out.push(buf); buf=''; }   // 括号/引号内部不算句末
+      if((deep || dep===0) && SENT.indexOf(ch)>=0){ out.push(buf); buf=''; }   // 括号/引号内部不算句末（deep 时算）
     }
     if(buf) out.push(buf);
+    if(deep) out=balanceSpeech(out, OPEN, TAIL);
     // 超长单句兜底：只在「这一行会糊满整屏」时才按软标点断一次
     var fin=[];
     out.forEach(function(seg){
@@ -816,6 +829,24 @@
       fin.push(seg.slice(0,cut)); fin.push(seg.slice(cut));
     });
     return fin.filter(function(x){ return String(x).replace(/\s/g,'').length>0; });
+  }
+  // 引号里断句的善后（v20260912l）：断在引号里，那一行就会「开着引号断掉」、闭引号孤零零落到末行。
+  // 这里给断在引号里的那句补上收尾符（让它自成一段），后头多出来的收尾符就地丢掉：
+  //   「甲。／乙」 → 「甲。」／乙      （而不是  「甲。／「乙」／」）
+  function balanceSpeech(list, OPEN, TAIL){
+    var out=[], owe=[];
+    for(var i=0;i<list.length;i++){
+      var seg=list[i], buf='';
+      for(var j=0;j<seg.length;j++){
+        var ch=seg.charAt(j);
+        if(OPEN.indexOf(ch)>=0){ owe.push(ch); buf+=ch; continue; }
+        if(TAIL.indexOf(ch)>=0){ if(owe.length){ owe.pop(); buf+=ch; } continue; }   // 没得配的就是前面补过的余数，丢掉
+        buf+=ch;
+      }
+      while(owe.length){ buf+=TAIL.charAt(OPEN.indexOf(owe.pop())); }   // 补上收尾符
+      if(buf) out.push(buf);
+    }
+    return out;
   }
   function log(text, cls, name, done){
     if(!$narr){ return; }
@@ -4615,7 +4646,7 @@
 
   // 行囊装备面板（P1 完整）
   function useItemOutside(defId){
-    // 行囊里直接“使用”物品（非战斗，疗伤/补内/进食）
+    // 行囊里直接"使用"物品（非战斗，疗伤/补内/进食）
     var idx=-1;
     for(var i=0;i<state.pack.length;i++){ if(state.pack[i] && state.pack[i].defId===defId){ idx=i; break; } }
     if(idx>=0) usePackItem(idx);
@@ -4888,6 +4919,22 @@
     $dlgState.className='dlg-state'+(ask?' ask':'');
   }
   function dlgScroll(){ if(dlgStick && $dlgBody){ try{ $dlgBody.scrollTop=$dlgBody.scrollHeight; }catch(e){} } }
+  // 帘里只留最近两句（v20260912l）：像真的在听人说话，而不是看一墙字幕。
+  // 超出的那条先淡出再移除 —— 直接删会「啪」地跳一下；.leave 的也算出列，免得连落两句时挤不掉。
+  function dlgTrim(){
+    if(!$dlgBody) return;
+    var ps=$dlgBody.querySelectorAll('.dlg-say:not(.leave)');
+    if(ps.length<=2) return;
+    var o=ps[0];
+    o.classList.add('leave');
+    setTimeout(function(){ if(o.parentNode) o.parentNode.removeChild(o); }, 260);
+  }
+  // 句与句之间留「讲完一句、喘口气」的顿：这句话若照叙事区打字机速度写出来要多久，就等多久
+  //（跟着设置里的「文字演出」走：调快了这里也快，设「瞬」则压根不走这条路）
+  function dlgPace(s){
+    var sp=(settings && settings.textSpeed>0) ? settings.textSpeed : 55;
+    return Math.max(400, Math.min(2400, String(s||'').replace(/\s/g,'').length*sp));
+  }
   // 往帘里落一条：who 非空时带「谁：」前缀；extra 传 'me' 即玩家自己的话（右对齐）
   function dlgNode(who, extra){
     var p=document.createElement('p'); p.className='dlg-say'+(extra?' '+extra:'');
@@ -4988,8 +5035,11 @@
       if(dlgTimer){ clearTimeout(dlgTimer); dlgTimer=null; }
       if(dlgSkip) dlgSkip();             // 上一句还没落完就接上了新话 —— 先把旧句一次落定
       var text=String(prompt==null?'':prompt);
-      // ① 选项先摆好（带序号，键盘 1-9 等价），但话没说完之前一律锁住；说完自动放开
-      $dlgFoot.className='dlg-foot'+(options.length>4?' g2':'');
+      // ① 选项先摆好（带序号，键盘 1-9 等价），但话没说完之前一律锁住；说完自动放开。
+      //    三条起就两列：四五条也就两三行。选项区还会「预留」两行的高度（.has 见 CSS），
+      //    所以两条与四五条一样摆得下。CSS 里 .dlg-foot 是 flex:0 0 auto —— 早前它会被
+      //    一大段台词挤扁，才出现「才两个选项也要滚、显示不全」，这里别再让它可压缩。
+      $dlgFoot.className='dlg-foot'+(options.length>1?' has':'')+(options.length>2?' g2':'');
       // 九条那种极端情况（两列也放不下）把帘抬高些；用 classList 增删，别重建 className（免得把 hidden 抖掉）
       if(options.length>4) $dlg.classList.add('many'); else $dlg.classList.remove('many');
       options.forEach(function(o,i){
@@ -5006,41 +5056,53 @@
         for(var i=0;i<btns.length;i++) btns[i].disabled=false;
         dlgState(options.length? '请择一' : '听他说', !!options.length);
       };
-      // ② 他说的话，按「句」一句一句往外蹦（v20260912j）——
-      //    splitSpeech 只认句末标点，绝不把一句话拦腰截断；每句落定后再来下一句，
-      //    像正常人讲话那样。落完最后一句再放开选项，玩家不会「话没听完就先答」。
-      //    等不及的话，点帘（或按 1-9）即把整句一次落定（与叙事区点字快进同一手感）。
-      //    文字演出设成「瞬（无动画）」时不再逐句等 —— 尊重 settings.textSpeed。
+      // ② 他「一句一句讲」（v20260912l）——
+      //    整段话不再一次性摊开：splitSpeech(text,true) 连引号里的句子也切（他一句一句说），
+      //    切出一句就落一句、**每句各自占一行**；句与句之间留出「讲完一句、喘口气」的顿，
+      //    顿的长短跟着设置里的「文字演出」走（0.4~2.4s）。帘里只留最近两句（dlgTrim），
+      //    像真的在听人讲话，而不是看一墙字幕。听完最后一句才放开选项；
+      //    等不及就点帘（或按 1-9）直接到这段话的末态。
+      //    文字演出设成「瞬（无动画）」时不摆架势，一段一次落完 —— 尊重 settings.textSpeed。
       if(text || !$dlgBody.children.length){
-        var segs=text?splitSpeech(text):['……'];
-        if(text) dlgTalk.push({who:who, text:text});   // 留痕用（整句，不分行）
-        var box=dlgNode(who, text?'':'mute'), say=box.say, cur=null;
-        var si=0, fin=false;
+        if(text) dlgTalk.push({who:who, text:text});   // 留痕用（整段）
+        var segs=text?splitSpeech(text, true):['……'];
+        var si=0, fin=false, cur=null;
         var dlgEnd=function(){
           if(fin) return; fin=true;
           if(cur && cur.parentNode) cur.parentNode.removeChild(cur);
           cur=null; dlgTypeTimer=null; dlgSkip=null;
           dlgScroll(); dlgRelease();
         };
-        var dlgLand=function(){
-          say.textContent+=segs[si++];
-          dlgScroll();
-          if(si<segs.length){ dlgTypeTimer=setTimeout(dlgLand, 280); }
-          else dlgEnd();
-        };
-        if(!(settings && settings.textSpeed>0)){       // 瞬：一次落全，连选项也不必等
-          say.textContent=text||'……';
-          dlgEnd();
-        } else {
+        // 落一整句：单独一行、整句一起出现（不再把整段堆进同一个段落）；
+        // 报名字只靠帘头那方名章 —— 每句前再缀一遍「牢头：」只是纯占地方；
+        // 光标只缀在正在讲的那句后面
+        var dlgLine=function(){
+          var s=segs[si++];
+          var box=dlgNode('', text?'':'mute');
+          box.say.textContent=s;
+          if(cur && cur.parentNode) cur.parentNode.removeChild(cur);
           cur=document.createElement('span'); cur.className='cur'; cur.textContent='▍';
           box.node.appendChild(cur);
+          dlgTrim(); dlgScroll();
+          return s;
+        };
+        if(!(settings && settings.textSpeed>0)){       // 瞬：一段一次落完
+          while(si<segs.length) dlgLine();
+          dlgEnd();
+        } else {
           dlgState('说话中…');
+          var dlgStep=function(){
+            var s=dlgLine();
+            if(si<segs.length) dlgTypeTimer=setTimeout(dlgStep, dlgPace(s));
+            else dlgEnd();
+          };
           dlgSkip=function(){
             if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
             if(si>=segs.length) return;
-            si=segs.length; say.textContent=text||'……'; dlgEnd();
+            while(si<segs.length) dlgLine();           // 一次到末态（帘里仍只留最近两句）
+            dlgEnd();
           };
-          dlgTypeTimer=setTimeout(dlgLand, 90);
+          dlgTypeTimer=setTimeout(dlgStep, 130);
         }
       } else { dlgRelease(); }
       dlgScroll();
