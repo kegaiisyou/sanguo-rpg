@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260911j`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260912c`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -1036,4 +1036,145 @@
 
 ---
 
-*最后更新：2026-09-11（§9.64 营规闭环 + 序章动效重做；版本 20260911j）*
+### §9.65 v20260911k（当前）：新手体验批次（牢中打盹 · 对话悬挂死锁 · 文案分句）
+
+**A · 牢中草荐打盹（先去掉一个假问题）**
+- 此前在牢里点草荐 → 弹的是「1 / 3 / 6 时辰」时长选择，问的还是「睡多久」；而教学期时辰本就冻结（`advanceTime` 直接返回），问了也是假的。
+- 改为 `cellNapScene()` 判定（时辰未启 + 人在牢里）→ 面板只给一个「就此睡去」，`doNap()` 随机 1~3 时辰，**只用来算恢复量、绝不报给玩家**；文案固定一句「你也不知睡了多久。牢里光线昏暗，分不清是黑夜还是白昼。」
+- 顺手删掉 `doRest` 里两处括注式机制旁白（「（牢中时辰未启，天光不动…）」「（…恢复打了折扣）」）。
+
+**B · 对话悬挂死锁（玩家反馈的「点 NPC 跳开对话 → 死循环」真根因）**
+三处叠加，缺一不可：
+1. `syncActionLock()` 的锁选择器写的是 `#npc button` / `.obj-panel button`，而真实 DOM 是 `#npc-list` 里的 `.nl-item`、浮动菜单里的 `.obj-menu button` —— **两个选择器都匹配不到任何元素，NPC 列表从未真正上过锁**；
+2. `initLockObserver` 观察的容器 id 也是 `'npc'`（根本不存在）；
+3. `talk()` 开头直接 `tut.remove()` 清残留面板 —— 只摘 DOM、不置 `askPending=false`，悬挂锁原样留在那里。
+于是「悬挂中 → 点另一个 NPC → 展开菜单 → 再开一段对话 → 旧剧本 next() 再也等不到回调 → 选项消失、所有按钮点不动」。
+修法：选择器与观察容器改对；`talk()` 改为「悬挂即拦 + `removeTutChoices()` 正规收尾 + 叙事未完则拦」；浮动菜单在创建时按当前闸门自行上锁（它挂在 body 上，不在观察范围）。
+
+**C · 牢房里该有谁**
+- 囚室格 (1,0) 原本由 `NPC_GEN.prison` 生成泛用的「狱卒 / 镣铐囚徒」，点一下只念句闲话；苦役营囚室已有具名角色，故 `cid==='kuyilao'` 时不再生成。
+- 牢头与牛铁**本来就在作息表里**（`NPC_ROUTINES_CITY.kuyilao`：戌~寅排到 (1,0)，白天 `_home` (1,1)）。玩家在牢中见不到他们，是因为教学期 `state.time` 停在卯时、作息照卯时算 —— 人都被排去上工了（用户问「他们是因为时间原因跑出去了吗」，答案是：是）。
+- 改为**教学期一律按「戌·入夜」评估作息**（玩家正是夜里被押进牢的）：牢门口有牢头、牢里有牛铁；更鼓一响回到卯时，两人回场院上工。注意这是"换个时辰评估"，不是"跳过作息" —— 后者会让一人同时占两格。
+
+**D · 首件实物与行囊引导**
+- 教学期 `#dock`（含「🎒 行囊」「任务」）一直藏着，玩家拿到劳字木片却无处可看；zt_intro 还让他"点下头任务看进度"，指的是个看不见的按钮。
+- 修：应下周听涛的差事后立刻 `reveal dock` + 高亮；首次拿到劳字木片时再补一轮「〔行囊〕所得之物都收在行囊里——点下方「🎒 行囊」…」，狱卒顺手给半张干粮（首件实物的甜头）+ toast。
+
+**E · 文案：一句一口气**
+- `log()` 前置 `splitSpeech()`：按「右引号/句末标点 → 逗号级 → 硬切」在 42 字内找断点，过短碎片并回上一句；切完仍走 log 队列串行打字 —— 引擎侧统一生效，全库长文案自动变短。
+- `npcTalk` 的长 prompt（>30 字）不再整段糊在选项面板上：改由 `log` 逐句打进叙事区，最后一句打完才亮出选项（面板 prompt 留空，CSS `:empty` 隐藏空行）；短 prompt 仍留面板。
+- 开场 `camp_opening` 手工瘦身（4 条长句 → 5 条短句），`survey_yard` / `labor_first` / `zt_intro` 同步精简。
+
+**验证**（jsdom 无头 harness，本批 102 项断言全通过、0 运行期错误）
+- 新增 `_verify_ux.js`（41 项）：分句（开场两处关键词已分离、>42 字自动切 ≥2 条）/ 打盹（无时长选择、文案固定、时辰不动）/ 悬挂锁（NPC 全锁、二次 talk 被拦且不偷偷写字、作答后解锁）/ 囚室角色（牢头+牛铁、无狱卒囚徒、不同时占两格、clockOn 后回场院）/ 首件实物（木片+干粮入包、dock 亮出、引导语）。
+- 回归：`_verify_labor.js` 35 项、`_verify_prologue.js` 26 项全过（其中两处断言因「长台词改走叙事区」同步改为「面板 + 叙事区」并检）。
+
+**版本**：`constants.js` VERSION → `20260911k`；`index.html` 中 css/game.css、config/constants.js、core/engine.js、core/triggers.js、core/city.js、story/rooms.js、story/triggers.js 七处 `?v` 对齐 k。
+
+---
+
+### §9.66 v20260912a（当前）：通用指引系统 · 开局首步修正 · 时代语汇规范
+
+**A · 通用指引系统 `LF.Guide`（可复用，不再写死选择器）**
+- 起因：新手目标高亮写死了 `#actions .act[data-act="labor_yard"]`，而 `data-act` 只在 `mkAct` 的**旧版分组 fallback 分支**里赋值；苦役营实际走的是**城市网格分支**（动作渲染共 4 条分支）→ 高亮**静默失效**，只剩一行文字在指路。
+- 修法：
+  1. `mkAct(group, icon, name, fn, extraCls, actId)` 新增第 6 参，四条动作分支 + `renderObjs` + doors + `renderSelf` 全部补传 `a.id` / `o.key` / `d.target`；罗盘按钮补 `data-dir`（NPC chip 本有 `data-k`、底部页签本有 `data-modal`）。
+  2. 新增 `Guide`（对外 `window.LF.Guide`）：
+     - **语义锚点**：`{act:'labor_yard'}` / `{npc:'laotou'}` / `{dock:'pack'}` / `{dir:'北'}` / `{layer:'status'}` / 裸选择器 / DOM 元素，可传数组。
+     - `focus(targets,{retry,scroll})`：先清旧再亮新；目标尚未渲染时**自动重试 6 轮 ×120ms**；把首个可见目标 `scrollIntoView`。
+     - `visible/exists`：面板被「逐步揭示」藏着时算不可见 —— 指引不会指向玩家当下看不见的东西。
+     - `ping`（= 旧 `highlightOnb`，一次性脉冲）、`goal/goalClear`（顶部「当前目标」横幅 + 高亮）、`clear`。
+  3. 剧本 `highlight` 步骤扩展：`{ t:'highlight', act:'labor_yard' }` / `{npc}` / `{dock}` / `{dir}`；旧 `{layer:'dock'}` 与 `reveal.highlight` 仍兼容。
+  4. CSS 新增中立类名 `.guide-hl`（与历史 `.onb-goal-hl` 共用脉冲样式），两个类同时挂。
+- 顺手修一处跨 realm 隐患：`Guide.els` 用 `Array.isArray` 而非 `instanceof Array`（iframe/沙箱里后者会把数组误判为单元素）。
+
+**B · 开局第一步不再指向「点不到的按钮」**
+- 旧 `onbGoalStep()` 第一步就是「担石劳作」，但新档出生在 `camp_tz1`（天字一号牢房）——这间房只有牢门/草荐/牢栏刻痕三件物件，**没有那个按钮**；而开场剧本 `camp_opening` 早已锁死四向出口，「叩牢门」才是唯一可行的第一步。首屏等于给了一条点不到的指引。
+- 改为：① 未出牢（`!onb.cellOpen`）→ 高亮 `{act:'cell_door'}`（牢门·叩门）；② 场院两件事改用 `atYard()` 动态判定 —— 按钮在本格就亮按钮，不在本格就改亮**罗盘北键**（「往北到中军场院…」）；③ 后续步骤（周听涛 / 默叔 / 决断出营）全部换成语义锚点。文案中「讲古的周听涛」→「相面的周听涛」。
+
+**C · 「轻触文字快进」提示终于能被玩家看到**
+- 旧版在 `enterGame` 里、**播序章之前** `toast`，而紧接着就把 `#app` 隐藏、幕布盖满全屏 → 提示只活 1.4s 且发生在叙事区不可见时；玩家看完动画回到牢房，这条全工程唯一的快进教学早已消失（等于没教）。
+- 改为 `_tipSkip()`：序章结束、`renderRoom` 之后 1.2s 才弹，时长放宽到 3.6s（`toast(msg, ms)` 新增可选时长参数）。
+
+**D · 时代语汇规范（诉求：游戏内不讲「东汉 / 三国」）**
+- 规范已写入 `GAME_DESIGN.md §1.1.2`：游戏内所有可见文本必须站在**光和六年（183）当世人**的认知里说话。禁用「三国/东汉/汉末/魏/蜀/吴（作国号）/曹魏/蜀汉/东吴」，改用「大汉/汉家/本朝/汉军/中原/益州/江东」；**相士可以看破天机但不能说破**；标题页、`docs/`、源码注释与内部数据键不受限。§十三 补「用词注」。
+- 落地改动：
+  - `cities.js`：**116 处**「曹魏 / 蜀汉 / 东吴 / 孙吴」→「汉军」；并修正后世定位的 `desc`（曹魏根本→河北雄镇、蜀汉都城→益州州治、颍水之畔曹魏新都→豫州沃壤、桃园结义之乡→涿水之滨、刘备曾驻→泗水之滨、曹操起兵地→平畴沃野）。内部 `owner` 键不动。
+  - `places.js`：名胜 `desc` 去掉未来事件（武侯星落→高阜临流、三顾始出→草庐数椽、凤雏殒命→坡陀险狭、孟德夜刃→孤宅临路、火攻破曹→赤壁危矶、绍操决战→黄河津渡）；`诸葛亮茅庐` → `隆中草庐`（`battle`/`plot` 内部键保留）。
+  - `building.js`：酒楼二楼与茶楼里的**说书人正在讲「温酒斩华雄」「三英战吕布」「赤壁」**（全都尚未发生）→ 改为「讲古先生」只讲**已发生**的旧事（光武昆阳、高祖入关、楚汉垓下），打听消息改为当世风闻；`exert` 键仍留 `听说书` 以免旧档计数失效。
+  - `dialogues.js`：周听涛**去掉说书人身份**（删 6 条荆轲/专诸/聂政/豫让/信陵君讲古台词），换成相士口吻 5 条（煞气 / 掐命 / 星象乱 / 天道忌言 / 讨吃食）；含「东汉」的那条小吃台词一并去掉；「汉末纸贵」→「如今纸贵」。
+  - `story/triggers.js`：开场首句「话说天下大势，分久必合，合久必分——」（说书腔 + 演义开篇）→ 相士腔「怪哉，怪哉——满天星斗里，竟寻不出你这一颗」；「讲他那些真真假假的三国」→「掐他那些没头没尾的卦」；「场中那讲古的蓬头囚徒」→「相面的」；「汉末纸贵」→「如今纸贵」。
+  - `strategic-map.js`：山河志势力封泥图例「魏 / 蜀 / 吴」→「河 / 益 / 江」（20×20 封泥固定单字，改用汉代既有地域称谓），内部键 `wei/shu/wu` 保留。
+  - `items.js`：「汉末纸贵，木牍最便」→「如今纸贵，木牍最便」。
+
+**E · 遗留（已记入 `GAME_DESIGN.md §1.1.2` 待办）**
+- 城市专名史料化：`建业`（229 年改名，汉时称秣陵/金陵）、`许昌`（196 年前称许县）等，须连动 cities / 路网 / 存档键，单独立项。
+- 山河志 `layer:'faction'` 仍是三国版图三分区（呈现已换字），宜改「汉室州郡 vs 割据势力」双轨。
+- `plot` 钩子（`sangu_maolu` / `pangtong_die` / `caocao_lvboshe`）指向未来事件，待改写为当世剧情。
+
+**验证**：新增 `_verify_guide.js` 19 项（含**语汇规范静态守卫**：扫描 `shared/**.js` 的非注释行，命中禁词即失败，可长期复用）；`_verify_ux.js`、`_verify_labor.js`、`_verify_prologue.js`、`test/index_html_syntax_check.js` 全部通过（其中 `_verify_ux.js` 一处断言随开场文案同步更新，`_verify_labor.js` 版本断言同步 a）。
+
+**版本**：`constants.js` VERSION → `20260912a`；`index.html` 中 css/game.css、config/constants.js、core/engine.js、core/triggers.js、core/building.js、story/dialogues.js、story/triggers.js、data/cities.js、data/items.js、data/places.js、strategic-map.js 共 11 处 `?v` 对齐 a（未改动的 core/city.js、story/rooms.js 保持 k）；标题页 `.tt-ver` 同步 a。
+
+---
+
+### §9.67 v20260912c（当前）：城市专名史料化 · 归属单点归一 · 山河志可复用分层系统
+
+落实 §9.66 E 的三条遗留中的前两条。
+
+**A · 城市专名史料化（原则：`id` 稳定、`name` 可变）**
+- 原则确立：城市 `id`（拼音）是存档 / 路网 / geojson / 势力表的**唯一关联键，永不因改名而变**；中文 `name` 只作显示，可随史料随时调整。
+- 9 个后世专名 → 光和年间专名（`shared/data/cities.js`）：
+  | id | 旧显示名 | 新显示名 | 依据 |
+  |----|----------|----------|------|
+  | `jianye` | 建业 | **秣陵** | 孙权 229 年方改秣陵为建业 |
+  | `xuchang` | 许昌 | **许县** | 曹操 196 年迎帝都许后方称许都/许昌 |
+  | `yongan` | 永安 | **鱼复** | 刘备 222 年改鱼复为永安（白帝城亦此期） |
+  | `qiaojun` | 谯郡 | **谯县** | 谯郡为曹魏析沛国所置 |
+  | `jianan` | 建安 | **东冶** | 建安郡为孙吴 260 年析会稽所置 |
+  | `jianning` | 建宁 | **滇池** | 建宁郡为诸葛亮南征后所改 |
+  | `nanhai` | 广州 | **番禺** | 「广州」为孙吴所置州名 |
+  | `changli` | 昌黎 | **柳城** | 昌黎郡迟至十六国始置 |
+  | `beiping` | 北平 | **土垠** | 汉无北平城，右北平郡治土垠县 |
+- 21 条 `desc` 去掉未来事件/后世定位（如「孙吴遣将」「刘备曾驻」「姜维故里」「孔融任北海相」），并修正 `beiping` 的 `comm`「右土垠郡」→「右北平郡」（块内替换的子串误伤）。
+- 新增 `LF.CITY_HIST`（`shared/config/constants.js`，23 条）：每条 `{ later, era, note }`，记后世叫法与沿革，供 tooltip / 文档 / 将来「史书模式」复用；其中「郡/国名作城名」（吴郡 / 会稽 / 汝南 / 琅琊 / 北海 / 河内…）与「通假字」（洛阳 / 雒阳）在 `note` 里明确标注为**刻意为之**。
+
+**B · 归属单点归一 `LF.OWNER_ALIAS` + `LF.ownerKeyOf`**
+- 病因：`cities.js` 的 `owner` 是**早期以三国版图命名**的遗留键（`wei` / `shu` / `wu` / `contested`，共 71 城），而 `LF.FACTIONS` 用**当世势力**键（`han` / `dongzhuo` / `caocao` / `sunce` / `liuzhang` / …）→ 字典不匹配，展示层查不到势力名与配色，山河志「势力」层 59 城直接把英文键当名字显示。
+- 修法：新增 `LF.OWNER_ALIAS`（`wei→han`、`shu→liuzhang`、`wu→sunce`、`contested→han`、`qunxiong→han`、`none/汉/汉室/朝廷/无主→han`）与**唯一读取入口** `LF.ownerKeyOf(cid, getLive)`（运行时归属 > `LF.CITY_OWNER` > 城市数据 `owner` > `han`，再过别名表）。数据本身与玩法判定不受影响。
+- 接入点：`strategic-map.js` 的 `buildCitiesFromGame()` 与郡面 `owner` 字段（面与点**同源**，永不打架）。
+
+**C · 山河志「可复用分层系统」`registerMapLayer`（本节重点）**
+- 一句话注册一个分层，按钮组与图例**自动出现**，渲染代码零改动：
+  ```js
+  LF.MapLayers.register({
+    id: 'famine', label: '灾情', title: '各郡收成/灾荒',
+    source: 'commandery',                       // 'commandery'(61 郡面) | 'faction'(4 片 dissolve 版图)
+    fillOf: p => (famine[p.id] || 'rgba(150,120,80,0.06)'),
+    legend: ctx => [{ color:'#b00', label:'绝收', count:7 }],   // ctx={cmd:[郡面props], fac:[版图面props]}
+    fillOpacity: (k, lod) => 1,                 // 可选：面层整体透明度（默认随缩放 LOD 淡入）
+    hidden: false,                              // true = 只供 API 用，不出按钮
+  });
+  LF.setMapLayer('famine');                     // 程序化切换（下次开图亦生效）
+  ```
+- 内置 5 层：`warlord`（**势力**，默认；按当世归属给郡面上色，`han`=汉室州郡 vs 各镇割据）/ `commandery`（郡，按郡 id 着色）/ `legacy`（版图，旧三国 dissolve 分区，恒显不随缩放淡出）/ `none`（无底色）/ `custom`（`hidden`，由 `LF.setMapOverlay({郡面id:颜色})` 驱动，供灾情/军情等运行时覆盖）。
+- 数据侧配套：`tools/fix_map_keys.js` 把 `map_regions.geojson` 郡面的 `id`/`name` 从**中文城名**换成**城市拼音 id**（原中文名存 `origName`），并重新生成 `map_regions.js`；此后中文专名再改也不会让地图失联。映射同时接受现行 `name`、`comm` 与 `CITY_HIST.later`（含去「郡/国/尹」后缀），**61/61 全部映射、0 未命中**。
+- UI：`strategic-overlay-ctrl` 由 `mapLayerList()` 动态生成按钮（`data-ov` = 分层 id），`syncLayerButtons()` 统一维护选中态与图例 DOM；图例位于左上手柄正下方，小屏收起时随 `.strategic-overlay-fab.compact:not(.open)` 一并隐藏。
+- 对外 API：`LF.MapLayers.{register,list,get,current,mode}`、`LF.setMapLayer(id)`；`LF.setMapOverlay` 保留。
+
+**D · 顺手修检查器两处失真（`test/cross_reference_check.js`）**
+- `城市势力归属` 规则改走 `LF.ownerKeyOf` + `LF.OWNER_ALIAS` 同一入口（原先的 `SHORT_OWNER` 短名表既不含 `wei/shu/wu/contested`，导致 **69 条假告警**，真错会被淹没）——现在归一后仍不在 `FACTIONS` 里的键才报。
+- `isDynamicRoom` 支持**城格子房协议 `__cell__:cid:x:y`**（冒号分隔，按城市 `grid` 判越界），消除 6 条假 ERROR；负例（越界 `9:0`、缺 `y`、`x` 非数、误用逗号、未知城）均能被抓出。
+
+**验证**
+- `_verify_maplayers.js`（jsdom + 真实 vendored d3）：按钮 `势力*/郡/版图/无`；图例「势力」= 汉室32 / 孙策12 / 刘璋9 / 曹操2 / 刘表2 / 马腾2 / 董卓1 / 公孙度1（合计 **61**，与 61 郡面吻合）；「版图」= 河/益/江/争；郡/无层图例自动隐藏；运行期 `register` 新层后 `refresh()` 按钮与图例自动出现；`setMapLayer` 正常、未知 id 返回 `false`；无 window 报错。
+- `_verify_citynames.js`：`CITY_HIST` 23 条全部命中真实城市、无后世专名残留；71 城全部已并入 `LF.PLACES`；归属**零残留键**（`wei/shu/wu/contested` 已全部归一）。
+- `_verify_cellproto.js`：`roomExists` 协议解析 10 例（含 5 个负例）全通过。
+- `test/cross_reference_check.js`：**15 条规则全绿（ERROR 0 / WARN 0）**；`test/index_html_syntax_check.js` 通过。
+- 临时校验脚本用后已删（`_verify_maplayers/_verify_citynames/_verify_cellproto`）。
+
+**版本**：`constants.js` VERSION → `20260912c`；`index.html` 中 `css/strategic-map.css`、`config/constants.js`、`data/cities.js`、`data/map_regions.js`、`strategic-map.js` 五处 `?v` 对齐 c（其余模块本批未改动，保持各自现值）。
+
+---
+
+*最后更新：2026-09-12（§9.67 城市专名史料化 · 归属单点归一 · 山河志可复用分层系统；版本 20260912c）*

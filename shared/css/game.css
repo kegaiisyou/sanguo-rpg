@@ -1744,6 +1744,47 @@
     .give-item-name{font-size:8px;}
     .give-panel{max-height:85vh;}
   }
+  /* ===== NPC 交谈面板（v20260912d）=====
+     城内生成 NPC 的「交谈」入口：身份 + 好感条 + 话题（问价/问农/问政/探问/查账/讨教…原各占一个按钮，
+     现统一收进此处）+ 事务（有副作用的行为）。见 core/engine.js · renderTalkPanel。 */
+  .talk-panel{display:flex;flex-direction:column;gap:10px;min-height:286px;}
+  .talk-head{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(196,164,102,.25);background:rgba(0,0,0,.15);}
+  .talk-av{width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center;font-size:20px;
+    border:1px solid rgba(196,164,102,.4);border-radius:50%;background:rgba(196,164,102,.08);}
+  .talk-id{flex:1;min-width:0;}
+  .talk-nm{font-family:KaiTi,STKaiti,serif;font-size:16px;font-weight:700;color:#e8d8b0;letter-spacing:2px;}
+  .talk-role{font-size:11px;color:#9c8b6a;margin-top:2px;}
+  .talk-fav{width:104px;flex:0 0 104px;text-align:right;}
+  .tf-bar{height:5px;border-radius:3px;background:rgba(0,0,0,.45);overflow:hidden;border:1px solid rgba(196,164,102,.25);}
+  .tf-bar i{display:block;height:100%;background:linear-gradient(90deg,#6b5a38,#c4a466);transition:width .25s;}
+  .tf-lb{font-size:11px;color:#9c8b6a;margin-top:3px;}
+  .talk-fav.f-good .tf-bar i,.talk-fav.f-best .tf-bar i{background:linear-gradient(90deg,#8a6b2e,#f0d48a);}
+  .talk-fav.f-bad .tf-bar i,.talk-fav.f-worst .tf-bar i{background:linear-gradient(90deg,#5a2626,#c46a6a);}
+  .talk-fav.f-ok .tf-lb{color:#c4a466;}
+  .talk-fav.f-best .tf-lb{color:#f0d48a;}
+  .talk-fav.f-bad .tf-lb,.talk-fav.f-worst .tf-lb{color:#c98a8a;}
+  .talk-line{margin:0 12px;padding:10px 12px;border-left:2px solid rgba(196,164,102,.45);background:rgba(196,164,102,.06);
+    font-family:KaiTi,STKaiti,serif;font-size:14px;line-height:1.8;color:#ddd0b4;min-height:56px;}
+  .talk-sec{font-size:11px;color:#8a7a5c;letter-spacing:3px;padding:0 12px;margin-top:2px;}
+  .talk-grid{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px;}
+  .talk-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;font-family:inherit;font-size:13px;
+    color:#d8c9a8;background:rgba(196,164,102,.08);border:1px solid rgba(196,164,102,.35);border-radius:4px;cursor:pointer;transition:.15s;}
+  .talk-btn:hover{background:rgba(196,164,102,.2);color:#f0e4c8;border-color:rgba(196,164,102,.6);}
+  .talk-btn:active{transform:translateY(1px);}
+  .talk-btn-act{border-color:rgba(140,180,150,.4);color:#bcd8c4;background:rgba(140,180,150,.08);}
+  .talk-btn-act:hover{background:rgba(140,180,150,.2);color:#dff0e4;}
+  .tb-ic{font-size:14px;}
+  .talk-foot{display:flex;gap:8px;padding:10px 12px;border-top:1px solid rgba(196,164,102,.2);margin-top:auto;}
+  .talk-foot-btn{flex:1;padding:9px 0;font-family:inherit;font-size:13px;color:#c4b494;background:rgba(0,0,0,.25);
+    border:1px solid rgba(196,164,102,.25);border-radius:4px;cursor:pointer;transition:.15s;}
+  .talk-foot-btn:hover{background:rgba(196,164,102,.15);color:#e8d8b0;}
+  @media (max-width:560px){
+    .talk-av{width:32px;height:32px;flex-basis:32px;font-size:17px;}
+    .talk-nm{font-size:14px;}
+    .talk-fav{width:84px;flex-basis:84px;}
+    .talk-line{font-size:13px;min-height:48px;}
+    .talk-btn{font-size:12px;padding:6px 10px;}
+  }
     .ic-txt[data-cat="器具"]{background:rgba(74,53,32,.65);border-color:rgba(53,37,21,.6);}
     .ic-txt[data-cat="简册"]{background:rgba(107,90,58,.6);border-color:rgba(85,69,37,.6);}
     .ic-txt[data-cat="道具"]{background:rgba(74,58,90,.6);border-color:rgba(53,37,69,.6);}
@@ -1962,14 +2003,17 @@
   .onb-goal[hidden]{ display:none; }
   /* 战斗时隐藏目标横幅（战斗指令另成体系，避免干扰） */
   #app.in-combat #onb-goal{ display:none; }
-  /* 当前目标高亮：持续金色脉冲，区别于一次性 onb-glow */
-  .onb-goal-hl{ animation:onbGoalPulse 1.4s ease-in-out infinite !important;
+  /* 当前目标高亮：持续金色脉冲，区别于一次性 onb-glow。
+     .guide-hl 是通用指引系统（LF.Guide）的中立类名，与历史类名 .onb-goal-hl 等价 —— 见 engine.js 的 Guide 系统 */
+  .onb-goal-hl, .guide-hl{ animation:onbGoalPulse 1.4s ease-in-out infinite !important;
     box-shadow:0 0 0 2px rgba(255,217,138,.9), 0 0 16px rgba(255,217,138,.55) !important; }
   @keyframes onbGoalPulse{ 0%,100%{ box-shadow:0 0 0 2px rgba(255,217,138,.9),0 0 14px rgba(255,217,138,.5); }
     50%{ box-shadow:0 0 0 3px rgba(255,217,138,1),0 0 22px rgba(255,217,138,.8); } }
   /* 交谈/引导对话框（tutAsk）：统一为浅宣纸卡 + 深墨字，高对比、与全局面板一致（v20260911d 重做配色） */
   .onb-choices{ display:flex; flex-direction:column; gap:8px; padding:14px 14px calc(16px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,rgba(255,253,248,.98),rgba(244,238,226,.98)); border-top:2px solid rgba(176,131,47,.55); box-shadow:0 -8px 22px rgba(40,26,8,.22); }
   .onb-prompt{ color:var(--ink); font-size:14.5px; line-height:1.75; margin-bottom:4px; font-family:"STKaiti","KaiTi","Songti SC",serif; }
+  /* v20260911k：长台词已改为逐句进叙事区，面板不再留一行空白 */
+  #tut-choices .onb-prompt:empty{ display:none; }
   .onb-btn{ background:linear-gradient(180deg,#fbf6ea,#ece0c6); color:#3a2d1a; border:1px solid #b8893a; border-radius:9px; padding:12px 13px; font-size:14.5px; font-weight:600; text-align:left; cursor:pointer; line-height:1.4; box-shadow:0 1px 0 rgba(255,255,255,.7), 0 2px 6px rgba(40,26,8,.12); }
   .onb-btn:hover{ background:linear-gradient(180deg,#fffdf6,#f6ecd6); border-color:var(--seal); }
   .onb-btn:active{ transform:translateY(1px); }

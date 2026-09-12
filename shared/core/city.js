@@ -14,11 +14,11 @@ window.LF = window.LF || {};
   //   LF            —— 数据：CITIES / ROADS / PLACES / CITY_OWNER / MARKETS / BUILD / TITLES
   //   BUILDINGS     —— 建筑定义（genCityGrid 招牌、cityCellActs 进店）
   //   log           —— 围城/克城叙事
-  //   NPC_GEN       —— 城内格 NPC 生成器
+  //   NPC_BUILD     —— 城内格 NPC 装配器（builder(cid,x,y)，数据见 data/npc_cards.js）
   LF.createCity = function (ctx) {
     var G = ctx.G;
     var LF = ctx.LF;
-    var getBUILDINGS = ctx.getBUILDINGS, getNPC_GEN = ctx.getNPC_GEN;
+    var getBUILDINGS = ctx.getBUILDINGS, getNPC_BUILD = ctx.getNPC_BUILD;
     var getState = ctx.getState, S = getState;
     var log = ctx.log;
 
@@ -122,7 +122,12 @@ window.LF = window.LF || {};
         // ⚠️ 登记格只表示「默认落脚点」；若该角色在 LF.NPC_ROUTINES_CITY.kuyilao 里有作息编排，
         //    实际出现格由「当前时辰」决定（见下方 cityCellNpcs 的过滤逻辑 + rooms.js 的表）。
         '1,1': ['laotou', 'qin_jiuxiao', 'niu_tie'],       // 中军场院（劳役场）
-        '1,0': [],                                         // 囚室（默叔已迁入牢区·天字二号）
+        // 囚室（默叔已迁入牢区·天字二号）。本格**不登记**固定角色 ——
+        //   牢头(laotou)与牛铁(niu_tie)是【按作息】过来的：登记在场院 (1,1)，
+        //   而 LF.NPC_ROUTINES_CITY.kuyilao 把戌~寅五个时辰排到 (1,0)；
+        //   教学期时辰冻结时按「戌·入夜」评估（见下方 cityCellNpcs）——玩家正是夜里被押进牢的，
+        //   于是牢门口有牢头、牢里有牛铁。更鼓一响回到卯时，两人便回场院上工。
+        '1,0': [],
         '2,1': ['chen_jian', 'wu_suan', 'zheng_gang'],     // 仓库（仓吏由 warehouse() 自动生成）
         '2,0': ['shi_si', 'gou_san'],                      // 矿坑
         '0,1': ['lin_niang', 'lu_da'],                     // 伙房
@@ -142,7 +147,9 @@ window.LF = window.LF || {};
                 { id: 'haul_stones', label: '搬石料', tip: '往返扛石入库一个时辰——累工分，可换劳字木片。' }],
         '0,0': [{ id: 'farm_work', label: '下地务农', tip: '扶犁翻垄一个时辰——累工分，可换劳字木片。' }],
         '0,1': [{ id: 'mess_hall', label: '以木片换饭', tip: '交「劳字木片」换一份口粮；卯辰/午未/酉戌为饭点，深夜灶冷。' }],
-        '1,2': [{ id: 'wall_choose', label: '决断出营·墙根', tip: '于塌墙根（南门）盘算出营法子。' }],
+        // 营南岗哨·出营枢纽：营中九条路都在此盘算（v20260912e 起列全，
+        //   此前只列墙根四条，另五条——下药/暴动/伪牍/收买/强攻——在游戏里没有任何入口）
+        '1,2': [{ id: 'wall_choose', label: '决断出营', tip: '盘算出营法子——密道、地道、攀绳、水渠、下药、暴动、伪牍、收买、强攻，九条路看备下了什么。' }],
         '2,2': [{ id: 'train_dummy', label: '戳木人桩', tip: '演武场木人桩练拳脚，战力达标可强突。' }]
       }
     };
@@ -467,8 +474,10 @@ window.LF = window.LF || {};
       var m = genCityGrid(cid); if (!m) return [];
       var p = cityProfile(cid); if (!p) return [];
       var c = (LF.CITIES || {})[cid] || {};
-      var gen = getNPC_GEN()[cellDisplayType(cid, x, y)] || getNPC_GEN().common;
-      var list = gen(cid, x, y, c, c.name || '此城', m);
+      // 程序 NPC 由引擎侧的「人设卡装配器」生成（v20260912d）：
+      //   格型 × 时辰 × 城况 → 具体的人物，含姓名、作息、行动轨迹与稳定唯一的 key。
+      var build = getNPC_BUILD();
+      var list = (typeof build === 'function') ? build(cid, x, y) : [];
       // 教程/具名名册（v20260909p）：按格注入具名 NPC
       var here = x + ',' + y;
       var ros = (TUTORIAL_CITY_NPCS[cid] && TUTORIAL_CITY_NPCS[cid][here]) || [];
@@ -478,6 +487,12 @@ window.LF = window.LF || {};
       var cityRules = (LF.NPC_ROUTINES_CITY || {})[cid] || null;
       if (cityRules) {
         var hour = ((S() || {}).time || 0) % 12;
+        // ⚠️ v20260911k：教学期（更鼓未启、时间整体冻结）作息一律按「戌·入夜」评估 ——
+        //   玩家是被夜里押进牢里的，牢头守在牢门口、牛铁在牢里翻来覆去，这才是这一夜该有的样子。
+        //   旧版照卯时算，两人都在场院上工，牢里空空荡荡（玩家问「他们是因为时间原因跑出去了吗」，
+        //   答案正是：是，被作息排走了）。注意这里只是换个时辰评估，不涉及双格登记。
+        var _o0 = ((S() || {}).flags || {}).onb;
+        if (_o0 && _o0.started && !_o0.done && !_o0.clockOn) hour = 10;
         var ruleDests = function (k) {
           var rule = cityRules[k]; if (!rule) return null;
           var v = (rule[hour] != null) ? rule[hour] : rule._home;

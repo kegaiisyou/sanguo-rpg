@@ -427,13 +427,13 @@
       ]} ],
       camp_farm: [ { type:'feature', key:'farm_ridge', icon:'🌾', name:'田垄', desc:'被翻得稀烂的薄田，几垄蔫苗在日头下打卷', actions:[
         {label:'借农具', icon:'🪓', fn:function(){ var S=getState(); if(!S) return; if(S.flags&&S.flags.onb&&S.flags.onb.farmTool){ log('你肩上还扛着借来的锄头呢。','sys'); return; } S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; S.flags.onb.farmTool=true; packAdd('chutu',1); log('你从田埂边拾了把木柄锄头，沉甸甸压在肩头。〔务农需先借农具〕','good'); save(S); }},
-        {label:'下地务农', icon:'🧺', fn:function(){ var S=getState(); if(!S) return; if(!packFind('chutu')){ log('没家伙怎么下地？先「借农具」去。','sys'); return; } if(!exert('务农')) return; S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; var n=(S.flags.onb.farmCnt||0)+1; S.flags.onb.farmCnt=n; log('你抡起锄头翻了一垄地，汗珠子砸进土里。〔进度 '+n+'/3〕','sys'); if(n>=3 && !S.flags.onb.farmDone){ S.flags.onb.farmDone=true; if(packAdd('lao_pai',1)) log('〔监工丢来一片木符〕你挣得「劳字木片」一枚，可往伙房易食。','good'); else log('（行囊已满，劳字木片未得）','sys'); } save(S); }}
+        {label:'下地务农', icon:'🧺', fn:function(){ var S=getState(); if(!S) return; if(!packFind('chutu')){ log('没家伙怎么下地？先「借农具」去。','sys'); return; } if(!exert('务农')) return; S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; var n=(S.flags.onb.farmCnt||0)+1; S.flags.onb.farmCnt=n; log('你抡起锄头翻了一垄地，汗珠子砸进土里。〔进度 '+n+'/3〕','sys'); if(n>=3 && !S.flags.onb.farmDone){ S.flags.onb.farmDone=true; if(packAdd('lao_pai',1)) log('〔监工丢来一片木符〕你挣得「劳字木片」一枚，可往伙房易食。','good'); else log('你手里腾不出地方——行囊塞得满满当当，木片没处搁。','sys'); } save(S); }}
       ]} ],
       camp_kitchen: [ { type:'feature', key:'kitchen_stove', icon:'🍲', name:'灶台', desc:'大灶上煮着能照见人影的稀粥，热气熏人', actions:[
         {label:'以劳字木片换饭', icon:'🪵', fn:function(){ if(!packFind('lao_pai')){ log('你翻了翻行囊，没有「劳字木片」——先去扛活挣一块罢。','sys'); return; } packConsume('lao_pai',1); packAdd('fan',1); log('你将劳字木片递给伙夫，换得一枚粗粝饭团。〔干粮入包：可食用回食，或交予周听涛。〕','good'); }}
       ]} ],
       camp_store: [ { type:'feature', key:'store_stones', icon:'🪨', name:'石料堆', desc:'墙角垒着待运的青石，沉甸甸压手', actions:[
-        {label:'搬石料', icon:'💪', fn:function(){ var S=getState(); if(!S) return; if(!exert('搬石')) return; S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; var n=(S.flags.onb.storeCnt||0)+1; S.flags.onb.storeCnt=n; log('你扛起一块青石往仓里送，肩头火辣。〔进度 '+n+'/5〕','sys'); if(n>=5 && !S.flags.onb.storeDone){ S.flags.onb.storeDone=true; if(packAdd('lao_pai',1)) log('〔仓吏抛来一片木符〕你帮着运足五石，挣得「劳字木片」一枚。','good'); else log('（行囊已满，劳字木片未得）','sys'); } save(S); }}
+        {label:'搬石料', icon:'💪', fn:function(){ var S=getState(); if(!S) return; if(!exert('搬石')) return; S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; var n=(S.flags.onb.storeCnt||0)+1; S.flags.onb.storeCnt=n; log('你扛起一块青石往仓里送，肩头火辣。〔进度 '+n+'/5〕','sys'); if(n>=5 && !S.flags.onb.storeDone){ S.flags.onb.storeDone=true; if(packAdd('lao_pai',1)) log('〔仓吏抛来一片木符〕你帮着运足五石，挣得「劳字木片」一枚。','good'); else log('你手里腾不出地方——行囊塞得满满当当，木片没处搁。','sys'); } save(S); }}
       ]} ]
     };
   }

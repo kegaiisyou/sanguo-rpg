@@ -6,10 +6,14 @@
   if(!global.LF) global.LF = {};
 
   // 势力配色（高饱和度，确保在游戏里清晰可见）
+  // v20260912a 用词规范：label 只用于 20×20 的封泥章与图例，固定单字，
+  //   且必须是**当世**的地域称谓 —— 旧版「魏/蜀/吴」是 220 年后的国号，游戏时代根本不存在。
+  //   内部键名 wei/shu/wu 保留（geojson faction 字段与配色沿用），仅呈现换字：
+  //   河（河北·中原） / 益（益州） / 江（江东，汉时已有此称） / 争（争夺之地）
   const FACTIONS = {
-    wei:  { label:'魏', fill:'rgba(80,130,220,0.92)',  stroke:'#1f2940', hover:'rgba(80,130,220,1.0)' },
-    shu:  { label:'蜀', fill:'rgba(0,200,50,0.92)',    stroke:'#223318', hover:'rgba(0,200,50,1.0)' },
-    wu:   { label:'吴', fill:'rgba(220,40,40,0.92)',   stroke:'#3f2016', hover:'rgba(220,40,40,1.0)' },
+    wei:  { label:'河', fill:'rgba(80,130,220,0.92)',  stroke:'#1f2940', hover:'rgba(80,130,220,1.0)' },
+    shu:  { label:'益', fill:'rgba(0,200,50,0.92)',    stroke:'#223318', hover:'rgba(0,200,50,1.0)' },
+    wu:   { label:'江', fill:'rgba(220,40,40,0.92)',   stroke:'#3f2016', hover:'rgba(220,40,40,1.0)' },
     none: { label:'争', fill:'rgba(160,150,140,0.92)', stroke:'#34291c', hover:'rgba(130,120,110,0.85)' },
   };
   // 色卡扩充（v20260909o）：对接游戏内 LF.FACTIONS 十势力 + 玩家义旗。
@@ -155,10 +159,41 @@
     return simp.concat([simp[0]]);
   }
 
-  // 地图填色 / overlay（势力范围、灾害示意、按郡着色等）
-  let overlayMode = 'faction';
+  // ═══ 地图「填色分层」系统（v20260912b，可复用）═══
+  // 一个分层 = 一句话说清「用哪一层几何、怎么上色、图例列什么」：
+  //   registerMapLayer({ id, label, title, source, fillOf, legend, fillOpacity, hidden })
+  //     id          稳定键（同时是按钮的 data-ov）
+  //     label       按钮短名（≤2 字最佳）；title 悬停提示
+  //     source      'commandery'（61 郡面，默认）| 'faction'（4 片 dissolve 版图面）
+  //     fillOf      (props) => css 颜色；props = { id, name, comm, state, owner, faction, desc }
+  //     legend      (ctx) => [{ color, label, count }] | null  —— 色块 + 名 + 数量
+  //                 ctx = { cmd:[郡面props], fac:[版图面props] }
+  //     fillOpacity (k, lod) => 0..1  面层整体透明度；默认随缩放 LOD 淡入
+  //     hidden      true 则只供 API 用、不出按钮
+  // 注册后按钮组与图例自动带上该层 —— 新增「灾情 / 军情 / 屯田 / 关税」等分层
+  //   只需再注册一条，无需改渲染代码。
+  let overlayMode = 'warlord';
   let customOverlay = null;
   let _applyOverlay = null;
+  let _legendCtx = { cmd: [], fac: [] };   // 当前渲染的面属性（供 legend 统计）
+  const MAP_LAYERS = {};
+  const MAP_LAYER_ORDER = [];
+  function registerMapLayer(def) {
+    if (!def || !def.id) return null;
+    if (!MAP_LAYERS[def.id]) MAP_LAYER_ORDER.push(def.id);
+    MAP_LAYERS[def.id] = def;
+    return def;
+  }
+  function mapLayerList() { return MAP_LAYER_ORDER.map(id => MAP_LAYERS[id]); }
+  function currentMapLayer() { return MAP_LAYERS[overlayMode] || MAP_LAYERS.warlord; }
+  // 势力配色/名号读取（当世键 han/dongzhuo/... 与 legacy 键 wei/shu/wu/contested 都有定义）
+  function factionOf(key) { return FACTIONS[key] || FACTIONS.none; }
+  function ownerFill(key) { return factionOf(key).fill; }
+  function ownerLabel(key) {
+    const real = (global.LF && global.LF.FACTIONS) || {};
+    return (real[key] && real[key].name) || factionOf(key).label || key;
+  }
+
   const FACTION_FILL = {
     wei:  'rgba(80,130,220,0.42)',
     shu:  'rgba(60,190,90,0.40)',
@@ -170,11 +205,53 @@
     let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
     return `hsla(${h},45%,55%,0.32)`;
   }
+
+  // 图例：按属主统计郡面数（默认层）
+  function legendByOwner() {
+    const tally = {};
+    _legendCtx.cmd.forEach(p => { const k = p.owner || 'han'; tally[k] = (tally[k] || 0) + 1; });
+    return Object.keys(tally).sort((a, b) => tally[b] - tally[a])
+      .map(k => ({ color: ownerFill(k), label: ownerLabel(k), count: tally[k] }));
+  }
+  // 图例：按旧版版图分区统计（legacy 层）
+  function legendByLegacy() {
+    const tally = {};
+    _legendCtx.fac.forEach(p => { const k = p.faction || 'none'; tally[k] = (tally[k] || 0) + 1; });
+    return Object.keys(tally).sort((a, b) => tally[b] - tally[a])
+      .map(k => ({ color: FACTION_FILL[k] || FACTION_FILL.none, label: factionOf(k).label, count: tally[k] }));
+  }
+
+  // ── 内置分层 ────────────────────────────────────────────────────────
+  // ① 势力（默认）：按**当世归属**给郡面上色 —— 汉室州郡 vs 各镇割据（易主即变色）
+  registerMapLayer({
+    id: 'warlord', label: '势力', title: '当世势力：汉室州郡 / 各镇割据',
+    source: 'commandery', fillOf: p => ownerFill(p.owner), legend: legendByOwner,
+  });
+  // ② 郡：按郡 id 着色（仅示意分区）
+  registerMapLayer({
+    id: 'commandery', label: '郡', title: '按郡着色（仅示意分区）',
+    source: 'commandery', fillOf: p => commanderyTint(p.id), legend: null,
+  });
+  // ③ 版图：旧三国 dissolve 分区（史料对照用，默认不选；恒显，不随缩放淡出）
+  registerMapLayer({
+    id: 'legacy', label: '版图', title: '旧版三国版图分区（史料对照）',
+    source: 'faction', fillOf: p => FACTION_FILL[p.faction] || FACTION_FILL.none,
+    legend: legendByLegacy, fillOpacity: () => 1,
+  });
+  // ④ 无底色
+  registerMapLayer({
+    id: 'none', label: '无', title: '无底色',
+    source: 'commandery', fillOf: () => 'rgba(150,120,80,0.06)', legend: null,
+  });
+  // ⑤ 自定义（LF.setMapOverlay 驱动；不出按钮）
+  registerMapLayer({
+    id: 'custom', label: '', title: '自定义填色', hidden: true,
+    source: 'commandery', fillOf: p => (customOverlay && customOverlay[p.id]) || 'rgba(150,120,80,0.06)', legend: null,
+  });
+
   function commanderyFill(p) {
-    if (overlayMode === 'custom') return (customOverlay && customOverlay[p.id]) || 'rgba(150,120,80,0.06)';
-    if (overlayMode === 'none') return 'rgba(150,120,80,0.06)';
-    if (overlayMode === 'commandery') return commanderyTint(p.id);
-    return FACTION_FILL[p.faction] || FACTION_FILL.none;
+    const L = currentMapLayer();
+    return L && L.fillOf ? L.fillOf(p) : 'rgba(150,120,80,0.06)';
   }
   // 河流（手绘墨线）
   const RIVERS = [
@@ -237,8 +314,12 @@
     for (const cid in C) {
       const c = C[cid];
       if (!c || !c.pos || !c.pos.length) continue;
-      const liveOwner = (cityOwnerOfLive && typeof cityOwnerOfLive === 'function') ? cityOwnerOfLive(cid) : null;   // 运行时归属优先（v20260909o）
-      const owner = liveOwner || c.owner || 'none';
+      // 归属统一过 LF.ownerKeyOf（v20260912b）：运行时归属（玩家占城）优先，其次 LF.CITY_OWNER，
+      //   最后城市数据的 owner —— 并把早期三国遗留键 wei/shu/wu/contested 归一为当世势力键
+      //   （han/liuzhang/sunce/…）。旧版直接用 c.owner，导致 59 城查不到势力名与配色。
+      const owner = (global.LF && global.LF.ownerKeyOf)
+        ? global.LF.ownerKeyOf(cid, cityOwnerOfLive)
+        : (((cityOwnerOfLive && typeof cityOwnerOfLive === 'function') ? cityOwnerOfLive(cid) : null) || c.owner || 'han');
       const faction = FACTIONS[owner] ? owner : 'none';
       cities.push({
         id: cid,
@@ -300,15 +381,53 @@
       </div>
       <div class="strategic-overlay-fab">
         <button class="strategic-overlay-toggle" title="展开/收起填色模式" aria-label="填色模式" aria-expanded="false"><svg class="sg-ov-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><svg class="sg-ov-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
-        <div class="strategic-overlay-ctrl">
-          <button data-ov="faction" class="active" title="势力范围">势力</button>
-          <button data-ov="commandery" title="按郡着色">郡</button>
-          <button data-ov="none" title="无底色">无</button>
-        </div>
+        <div class="strategic-overlay-ctrl"><!-- 分层按钮由 MAP_LAYERS 注册表动态生成 --></div>
       </div>
+      <div class="strategic-legend" id="sm-legend" style="display:none"></div>
       <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>
     `;
     container.appendChild(ui);
+
+    // ── 填色分层：按钮组 + 图例（全部由 MAP_LAYERS 注册表驱动）────────────
+    // 新增一个分层只需 registerMapLayer({...})，按钮与图例自动出现，无需改这里。
+    const overlayCtrl = ui.querySelector('.strategic-overlay-ctrl');
+    const legendEl = ui.querySelector('#sm-legend');
+    let _btnSig = '';
+    function buildLayerButtons() {
+      if (!overlayCtrl) return;
+      const list = mapLayerList().filter(L => L && !L.hidden);   // hidden 层只供 API 用，不出按钮
+      const sig = list.map(L => L.id).join(',');
+      if (sig === _btnSig) return;                               // 分层集合未变则不重建
+      _btnSig = sig;
+      overlayCtrl.innerHTML = '';
+      list.forEach(L => {
+        const b = document.createElement('button');
+        b.dataset.ov = L.id;
+        b.textContent = L.label || L.id;
+        if (L.title) b.title = L.title;
+        b.addEventListener('click', () => { if (_applyOverlay) _applyOverlay(L.id); });
+        overlayCtrl.appendChild(b);
+      });
+    }
+    // 同步按钮选中态 + 图例（切层/重渲后由 _applyOverlay 调用）
+    function syncLayerButtons() {
+      if (overlayCtrl) {
+        overlayCtrl.querySelectorAll('button').forEach(b => {
+          b.classList.toggle('active', b.dataset.ov === overlayMode);
+        });
+      }
+      if (!legendEl) return;
+      const L = currentMapLayer();
+      const items = (L && typeof L.legend === 'function') ? L.legend(_legendCtx) : null;
+      if (!items || !items.length) { legendEl.innerHTML = ''; legendEl.style.display = 'none'; return; }
+      legendEl.innerHTML = items.map(it =>
+        '<div class="row"><span class="swatch" style="background:' + it.color + '"></span>' +
+        '<span class="nm">' + it.label + '</span>' +
+        (it.count != null ? '<span class="ct">' + it.count + '</span>' : '') + '</div>'
+      ).join('');
+      legendEl.style.display = '';
+    }
+    buildLayerButtons();
 
     // 加载占位：先生成 DOM 让浏览器绘出提示，重量级同步绘图放到下一帧（见 loadRegions 回调），
     // 打开地图时第一眼是"加载中"而非白屏/卡顿。
@@ -410,19 +529,32 @@
       projection.fitExtent([[0, 0], [W, H]], rectFC);
       baseW = W; baseH = H;
 
+      // 郡面 ↔ 城市：按**稳定键（拼音城市 id）**关联（v20260912b）。
+      //   地图数据的 id/name 已由 tools/fix_map_keys.js 归一为城市拼音 id，中文显示名只从
+      //   LF.CITIES 实时取 —— 从此调整中文专名（建业→秣陵 等）不会再让地图失联。
+      const cityById = {};
+      cities.forEach(c => { cityById[c.id] = c; });
+      const cityOfProps = p => cityById[p.id] || cities.find(c => c.name === p.name) || null;
+
       // 构建郡 feature（直接用 dissolve 后的几何，d3 处理 Polygon/MultiPolygon）
       const cmdFeats = regionData.features.filter(f => f.properties.layer === 'commandery');
       const states = cmdFeats.map(f => {
-        const name = f.properties.name;
-        const city = cities.find(c => c.name === name);
-        const faction = (FACTIONS[f.properties.faction] ? f.properties.faction : (city && FACTIONS[city.owner] ? city.owner : 'none'));
-        const state = f.properties.state || (city ? city.state : '未知');
+        const p = f.properties;
+        const name = p.name;
+        const city = cityOfProps(p);
+        // 当世归属（供默认的「势力」分层上色）：来源与城市点完全一致，面与点永不打架
+        const owner = (global.LF && global.LF.ownerKeyOf)
+          ? global.LF.ownerKeyOf(p.id || name, cityOwnerOfLive)
+          : (city ? city.owner : 'han');
+        const faction = (FACTIONS[p.faction] ? p.faction : (city && FACTIONS[city.owner] ? city.owner : 'none'));
+        const state = p.state || (city ? city.state : '未知');
         const comm = city && city.comm ? city.comm : null;
         return {
-          id: f.properties.id || name,
+          id: p.id || name,
           name,
           comm,
           state,
+          owner,
           faction,
           desc: city ? city.desc : `${name}郡`,
           feature: f,
@@ -433,10 +565,12 @@
         type: 'FeatureCollection',
         features: states.map(s => ({
           type: 'Feature',
-          properties: { id: s.id, name: s.name, comm: s.comm, state: s.state, faction: s.faction, desc: s.desc },
+          properties: { id: s.id, name: s.name, comm: s.comm, state: s.state, owner: s.owner, faction: s.faction, desc: s.desc },
           geometry: s.feature.geometry,
         })),
       };
+      // 供分层图例统计（新增分层可在 legend() 里直接用 _legendCtx）
+      _legendCtx = { cmd: fc.features.map(f => f.properties), fac: [] };
 
       // 可缩放根层
       const root = svg.append('g').attr('id', 'sm-root');
@@ -456,6 +590,7 @@
       const provFeats = regionData.features.filter(f => f.properties.layer === 'province');
       const facFeats = regionData.features.filter(f => f.properties.layer === 'faction');
       const provinceFeatures = provFeats.map(f => ({ state: f.properties.state, feature: f }));
+      _legendCtx.fac = facFeats.map(f => f.properties);   // 供「版图」层图例统计
 
       // 势力填充层（已 dissolve，无重叠无双线 → 干净的势力范围图）
       factionFillLayer = root.append('g').attr('id', 'sm-faction-fill');
@@ -559,13 +694,20 @@
           .attr('opacity', isTrav ? 1 : st.opacity);
       });
 
+      // 应用某一分层：切换显示的面层、按层定义上色、同步按钮与图例。
+      //   全部分层来自 LF.MapLayers 注册表 —— 新增分层无需改这里。
       _applyOverlay = function(mode) {
-        overlayMode = mode || overlayMode;
-        const fac = overlayMode === 'faction';
-        factionFillLayer.style('display', fac ? null : 'none');
-        commanderyFillLayer.style('display', fac ? 'none' : null);
-        if (!fac) commanderyFillLayer.selectAll('path').attr('fill', d => commanderyFill(d.properties));
+        if (mode) overlayMode = mode;
+        const L = currentMapLayer();
+        const useFac = L && L.source === 'faction';
+        factionFillLayer.style('display', useFac ? null : 'none');
+        commanderyFillLayer.style('display', useFac ? 'none' : null);
+        if (useFac) factionFillLayer.selectAll('path').attr('fill', f => (L.fillOf ? L.fillOf(f.properties) : FACTION_FILL.none));
+        else commanderyFillLayer.selectAll('path').attr('fill', d => commanderyFill(d.properties));
+        buildLayerButtons();   // 分层集合可能在运行期变化（外部注册/refresh 重渲），按需重建按钮
+        if (typeof syncLayerButtons === 'function') syncLayerButtons();
       };
+      _applyOverlay(overlayMode);   // 首帧即按当前分层设定面层显隐与图例
 
       // 城市节点
       cityMarks = cities.map(c => {
@@ -868,7 +1010,7 @@
       // 对照史书为郡/国/尹等名号；非郡级区域（新野、夷洲 comm 为空）不设郡大标，仅以城点示之）
       commanderyLabelsDom = [];
       cmdFeats.forEach(f => {
-        const _city = cities.find(c => c.name === f.properties.name);
+        const _city = cityOfProps(f.properties);   // 稳定键关联（v20260912b）
         const comm = _city && _city.comm ? _city.comm : null;
         if (!comm) return;
         const el = document.createElement('div');
@@ -1024,9 +1166,12 @@
           // 州内保持干净无内部线：郡边界线层始终隐藏（"郡"填色模式仍显示色块）
           commanderyLayer.style('display', 'none');
         }
-        if (commanderyFillLayer) commanderyFillLayer.style('opacity', lod);
-        // 势力填充与郡同节奏淡入（远端只显示州描边，杜绝色块接缝造成的内部线）
-        if (factionFillLayer) factionFillLayer.style('opacity', lod);
+        // 填色层透明度：默认随 LOD 淡入（远端只留州描边，杜绝色块接缝的内部线）；
+        //   分层可用 fillOpacity(k, lod) 覆盖（如「版图」层恒显）。新增分层无需改这里。
+        const _curL = currentMapLayer();
+        const fillOp = (_curL && typeof _curL.fillOpacity === 'function') ? _curL.fillOpacity(k, lod) : lod;
+        if (commanderyFillLayer) commanderyFillLayer.style('opacity', fillOp);
+        if (factionFillLayer) factionFillLayer.style('opacity', fillOp);
         if (stateLabelsDom.length) stateLabelsDom.forEach(o => {
           o.el.style.opacity = String(1 - lod);
           // 远观等比缩小：k=1 基准 17px，k<1 时与地图同比例变小（与 k=1 布局重叠率恒定）
@@ -1205,14 +1350,8 @@
     applyCompact = () => { if (applyCompactZoom) applyCompactZoom(); if (applyCompactOverlay) applyCompactOverlay(); };
     applyCompact();
 
-    // 填色模式切换（势力范围 / 按郡 / 无）
-    ui.querySelectorAll('.strategic-overlay-ctrl button').forEach(b => {
-      b.addEventListener('click', () => {
-        ui.querySelectorAll('.strategic-overlay-ctrl button').forEach(x => x.classList.remove('active'));
-        b.classList.add('active');
-        if (_applyOverlay) _applyOverlay(b.dataset.ov);
-      });
-    });
+    // 填色模式切换：按钮已由 buildLayerButtons() 依 MAP_LAYERS 注册表生成并各自绑定 click；
+    // 选中态与图例统一由 syncLayerButtons() 维护（见 render 内 _applyOverlay）。
     // 对外 API：游戏可传入 {commanderyId:'rgba(...)'} 绘制灾害/自定义范围图
     global.LF.setMapOverlay = function(mapById) { customOverlay = mapById || null; if (_applyOverlay) _applyOverlay('custom'); };
 
@@ -1266,6 +1405,24 @@
     };
   }
 
+  // 分层系统对外接口（可复用）：任何模块都能注册新分层，按钮与图例自动带上。
+  //   LF.MapLayers.register({ id:'famine', label:'灾情', source:'commandery',
+  //                           fillOf: p => ..., legend: ctx => [...] })   —— 注册
+  //   LF.MapLayers.list() / get(id) / current()                        —— 查询
+  //   LF.setMapLayer('famine')                                         —— 切换（下次开图生效）
+  global.LF.MapLayers = {
+    register: registerMapLayer,
+    list: mapLayerList,
+    get: id => MAP_LAYERS[id] || null,
+    current: currentMapLayer,
+    mode: () => overlayMode,
+  };
+  global.LF.setMapLayer = function (id) {
+    if (!MAP_LAYERS[id]) return false;
+    overlayMode = id;
+    if (_applyOverlay) _applyOverlay(id);
+    return true;
+  };
   global.LF.initStrategicMap = initStrategicMap;
   global.LF.STRATEGIC_FACTIONS = FACTIONS;
 })(typeof window !== 'undefined' ? window : globalThis);

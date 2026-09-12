@@ -183,7 +183,7 @@
     sleep_drug: { defId: 'sleep_drug', name: '迷药', icon: '💤', cat: '药剂',
       desc: '林娘以蒙汗草配制的迷药。下迷药业（路线3）下于饭中，可放倒官差；不伤性命。' },
     wooden_pass: { defId: 'wooden_pass', name: '木牍路引', icon: '🪵', cat: '素材',
-      desc: '陈简以营中竹木伪造的路引木牍。伪造木牍线（路线5）混出门的凭证；汉末纸贵，木牍最便。' },
+      desc: '陈简以营中竹木伪造的路引木牍。伪造木牍线（路线5）混出门的凭证；如今纸贵，木牍最便。' },
     rope:      { defId: 'rope',      name: '绳', icon: '🪢', cat: '素材',
       desc: '苏娘以竹麻搓制的绳。攀绳翻墙线（路线7）攀墙工具；结实耐用。' },
     guard_tally:{ defId: 'guard_tally', name: '腰牌', icon: '🪪', cat: '素材',

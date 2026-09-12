@@ -27,21 +27,25 @@
       controls:[['luoyang','xuchang']],          // 洛阳↔许昌 必经此关(手工覆盖)
       roadType:'pass', desc:'司隶咽喉，洛阳东门锁钥' },
 
-    // 名胜：古战场 / 剧情钩子（五丈原·茅庐·落凤坡·吕伯奢宅·常山·赤壁·官渡）
+    // 名胜：古战场 / 剧情钩子（五丈原·隆中·落凤坡·吕伯奢宅·常山·赤壁·官渡）
+    // v20260912a 用词规范：地名可留（多为汉代既有地名），但 name/desc 不得叙述「尚未发生」的事——
+    //   旧 desc 的「武侯星落」「三顾始出」「凤雏殒命」「孟德夜刃」「火攻破曹」「绍操决战」全是后世视角，
+    //   而开场锚点是光和六年，这些战役/人物际遇都还没发生（见 GAME_DESIGN.md §1.1.2 用词规范）。
+    //   内部的 battle/plot 键保留不动，将来「玩家亲手打出来的历史」再由这些钩子接续。
     wuzhangyuan: { kind:'wild', name:'五丈原', state:'雍州', pos:[107.90,34.20],
-      battle:'wuzhang', isBattlefield:true, desc:'渭水南岸，武侯星落之处' },
-    maolu: { kind:'landmark', name:'诸葛亮茅庐', state:'荆州', pos:[112.10,32.00],
-      plot:'sangu_maolu', desc:'隆中草庐，三顾始出' },
+      battle:'wuzhang', isBattlefield:true, desc:'渭水南岸，高阜临流' },
+    maolu: { kind:'landmark', name:'隆中草庐', state:'荆州', pos:[112.10,32.00],
+      plot:'sangu_maolu', desc:'隆中山下，草庐数椽' },
     luofengpo: { kind:'landmark', name:'落凤坡', state:'益州', pos:[104.20,30.90],
-      plot:'pangtong_die', isBattlefield:true, desc:'雒城西南，凤雏殒命' },
+      plot:'pangtong_die', isBattlefield:true, desc:'雒城西南，坡陀险狭' },
     lvboshe: { kind:'wild', name:'吕伯奢宅', state:'司隶', pos:[113.95,34.60],
-      plot:'caocao_lvboshe', desc:'中牟道旁，孟德疑心夜刃' },
+      plot:'caocao_lvboshe', desc:'中牟道旁，孤宅临路' },
     changshan: { kind:'landmark', name:'常山', state:'冀州', pos:[114.60,38.10],
-      plot:null, desc:'赵子龙故里，真定之地' },
+      plot:null, desc:'真定之地，燕赵旧疆' },
     chibi: { kind:'landmark', name:'赤壁', state:'荆州', pos:[113.90,29.70],
-      battle:'chibi', isBattlefield:true, desc:'长江赤壁，火攻破曹' },
+      battle:'chibi', isBattlefield:true, desc:'大江之滨，赤壁危矶' },
     guandu: { kind:'landmark', name:'官渡', state:'司隶', pos:[113.90,34.80],
-      battle:'guandu', isBattlefield:true, desc:'黄河官渡，绍操决战' },
+      battle:'guandu', isBattlefield:true, desc:'黄河津渡，南北通衢' },
 
     // 副本：挂在某地点入口下(entry)，由生成器造多层刷怪房 + Boss 房
     luofeng_dungeon: { kind:'dungeon', name:'落凤坡秘谷', state:'益州', pos:[104.10,30.85],

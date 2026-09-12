@@ -118,10 +118,21 @@ const ROOM_STATIC = new Set([
   ...CITY_IDS,
   ...Object.keys((LF.MAP && LF.MAP.coords) || {})
 ]);
-// 动态房间模式：__bld__* 建筑内部房、{cid} 城市格子房
+// 动态房间模式：__bld__* 建筑内部房、__cell__:cid:x:y 城格子房、{cid} 城市格子房
 function isDynamicRoom(id) {
   if (typeof id !== 'string') return false;
   if (id.indexOf('__bld__') === 0) return true;
+  // 城格子房协议：__cell__:cid:x:y（从城格面板 doors 进入的子房间）。
+  // 格式由 engine.exitDisplayName / move 解析（split(':') 取 cid/x/y），必须**冒号**分隔。
+  if (id.indexOf('__cell__:') === 0) {
+    const p = id.split(':');
+    const c = (LF.CITIES || {})[p[1]];
+    if (!c) return false;
+    const x = Number(p[2]), y = Number(p[3]);
+    if (!isFinite(x) || !isFinite(y) || x < 0 || y < 0) return false;
+    const n = Number(c.grid) || 0;                 // grid = 城市网格边长
+    return n ? (x < n && y < n) : true;
+  }
   // 城市格子房：如 "ji_guomen_3_2" 之类（城市 id 前缀 + 数字格子）
   for (const cid of CITY_IDS) {
     if (id.startsWith(cid + '_')) return true;
@@ -419,29 +430,28 @@ RULES.push({
   }
 });
 
-// 5.13 城市归属势力 → 势力字典（cities.owner 短名 / CITY_OWNER 值）
+// 5.13 城市归属势力 → 势力字典（唯一入口 LF.ownerKeyOf / LF.OWNER_ALIAS）
 RULES.push({
   name: '城市势力归属',
   run(ctx) {
-    // cities.owner 使用短名（yuan/lu/liu/ma/kongrong/shixie/sun），FACTIONS 用全名。
-    // 常见短名 → 全名映射表：能映射的视为“有意为之”（不报），无法解析的才报。
-    const SHORT_OWNER = {
-      yuan: 'yuanshao', lu: 'lu', liu: 'liuzhang', ma: 'matang',
-      kongrong: 'kongrong', shixie: 'shixie', sun: 'sunce', gongsun: 'gongsun',
-      dongzhuo: 'dongzhuo', caocao: 'caocao', liubiao: 'liubiao', han: 'han'
-    };
+    // 归属读取的**唯一入口**是 LF.ownerKeyOf（运行时 > CITY_OWNER > cities.owner > 汉室，
+    // 再过 LF.OWNER_ALIAS 把早期三国遗留键 wei/shu/wu/contested 归一为当世势力键）。
+    // 本规则按同一入口校验，避免「数据合法、只是读法不同」产生的假告警；
+    // 归一后仍不在 FACTIONS 里的键才算真错（新增势力忘记补字典时会在此暴露）。
+    const OWNER_ALIAS = LF.OWNER_ALIAS || {};
+    const ownerKeyOf = typeof LF.ownerKeyOf === 'function' ? LF.ownerKeyOf : null;
     const cities = ctx.data.CITIES || {};
     const unknown = [];
     for (const cid of Object.keys(cities)) {
       const own = cities[cid].owner;
       if (!own) continue;
-      if (FACTIONS[own]) continue;                 // 全名直接命中
-      if (SHORT_OWNER[own] && FACTIONS[SHORT_OWNER[own]]) continue; // 短名命中
-      unknown.push(`${cid}→'${own}'`);
+      const key = ownerKeyOf ? ownerKeyOf(cid) : (OWNER_ALIAS[own] || own);
+      if (FACTIONS[key]) continue;                 // 归一后命中势力字典
+      unknown.push(`${cid}→'${own}'(归一为 '${key}')`);
     }
     if (unknown.length) {
       reportWarn('城市势力归属', 'CITIES.owner',
-        `以下城市 owner 无法映射到 FACTIONS 字典：${unknown.join('、')}`);
+        `以下城市 owner 归一后仍无法映射到 FACTIONS 字典：${unknown.join('、')}`);
     }
     for (const cid of Object.keys(CITY_OWNER)) {
       const v = CITY_OWNER[cid];

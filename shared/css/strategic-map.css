@@ -213,24 +213,32 @@
 }
 .strategic-map-ui > * { pointer-events: auto; }
 
-/* 图例 */
+/* 图例（左上手柄正下方；内容由 MAP_LAYERS 的 legend() 动态生成） */
 .strategic-legend {
   position: absolute;
-  right: 10px;
-  top: 10px;
+  left: 10px;
+  top: 44px;
+  min-width: 74px;
+  max-height: 62%;
+  overflow: hidden;
   background: rgba(231,220,192,0.88);
   border: 1px solid #b7a47a;
   border-radius: 6px;
-  padding: 8px 10px;
+  padding: 6px 9px;
   font-size: 12px;
-  line-height: 1.8;
+  line-height: 1.7;
   box-shadow: 2px 2px 8px rgba(60,44,20,.18);
+  pointer-events: none;   /* 纯信息层，不挡地图点击/拖拽 */
 }
 .strategic-legend .row { display: flex; align-items: center; gap: 6px; }
 .strategic-legend .swatch {
-  width: 14px; height: 14px; border-radius: 3px;
+  width: 13px; height: 13px; border-radius: 3px; flex: none;
   border: 1px solid rgba(0,0,0,0.3);
 }
+.strategic-legend .nm { flex: 1; color: #4a3a22; white-space: nowrap; }
+.strategic-legend .ct { color: #8a7455; font-size: 11px; min-width: 14px; text-align: right; }
+/* 小屏收起填色手柄时，图例一并隐藏（避免遮挡西北诸州） */
+.strategic-overlay-fab.compact:not(.open) ~ .strategic-legend { display: none !important; }
 
 /* 信息面板 */
 .strategic-info {

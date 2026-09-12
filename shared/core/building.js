@@ -319,10 +319,14 @@
       ],
       subAreas:[{key:'jl_erlou',label:'上二楼'}],
       areas:{
-        jl_erlou:{ name:'二楼雅座', icon:'🪜', desc:'临窗雅座，说书声起。', npcs:[
-          { name:'说书人', icon:'🗣️', desc:'醒木一拍，正说得唾沫横飞。', acts:[
-            { label:'听说书', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('说书人拍案：「温酒斩华雄，杯酒尚温，青龙刀已落——好不痛快！」满堂喝彩。','sys'); } },
-            { label:'打赏', icon:'🪙', fn:function(){ log('你掷下几文，说书人拱手：「谢赏！再听一段三英战吕布？」','sys'); } }
+        // v20260912a 用词规范：只讲「已经发生过的旧事」（光武中兴 / 高祖入关）。
+        //   旧版此处的说书人正在讲「温酒斩华雄」「三英战吕布」——对开场（光和六年）的世人而言，
+        //   这些不但没发生，连「三国」都还不存在（见 GAME_DESIGN.md §用词规范）。
+        //   exert 键仍沿用 '听说书'，避免旧存档的每日次数记录失效。
+        jl_erlou:{ name:'二楼雅座', icon:'🪜', desc:'临窗雅座，醒木声起。', npcs:[
+          { name:'讲古先生', icon:'🗣️', desc:'醒木一拍，正说得唾沫横飞。', acts:[
+            { label:'听讲古', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('讲古先生拍案：「光武当年起于白水，昆阳一战，四十万新军溃如崩山——这才是真龙的气象！」满堂喝彩。','sys'); } },
+            { label:'打赏', icon:'🪙', fn:function(){ log('你掷下几文，讲古先生拱手：「谢赏！再听一段高祖入关？」','sys'); } }
           ]}
         ], objs:[], areas:[] }
       }
@@ -423,9 +427,10 @@
           { label:'上茶', icon:'🍵', fn:function(){ if(!exert('上茶')) return; S().drink=Math.min(S().maxDrink,(S().drink||0)+10); log('一盏清茶入喉，润喉解乏（饮水+10）。','good'); renderStatus(); openModal('building'); } },
           { label:'交谈', icon:'💬', fn:function(){ log('茶博士道：「'+bldZihao()+'这壶中茶如人生，头苦二甘三回甜——客官细品。」','sys'); openModal('building'); } }
         ]},
-        { kind:'npc', name:'说书先生', icon:'🗣️', desc:'醒木轻敲，正讲三分天下。', acts:[
-          { label:'听说书', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('说书先生：「且说那赤壁一把火，烧得北船樯橹灰飞烟灭……」满座唏嘘。','sys'); } },
-          { label:'打听消息', icon:'💬', fn:function(){ log('你递过茶钱，先生低声：「听闻江东欲结亲，事有不谐……」','sys'); } }
+        // v20260912a 用词规范：同上 —— 不讲未发生的赤壁/结亲，改讲楚汉旧事与当世风闻。
+        { kind:'npc', name:'讲古先生', icon:'🗣️', desc:'醒木轻敲，正讲前朝旧事。', acts:[
+          { label:'听讲古', icon:'👂', fn:function(){ if(!exert('听说书')) return; log('讲古先生：「且说那楚汉相争，垓下一战——四面楚歌起，霸王别了虞姬，自刎乌江。」满座唏嘘。','sys'); } },
+          { label:'打听消息', icon:'💬', fn:function(){ log('你递过茶钱，先生低声：「听闻州里又要加征，衙前榜文贴了三日，人心不安哪……」','sys'); } }
         ]}
       ]
     },

@@ -90,7 +90,9 @@ window.LF = window.LF || {};
         case 'sys': log(step.text, 'sys'); next(); break;
         case 'log': log(resolveTpl(step.text), step.cls || 'npc', step.npc); next(); break;
         case 'reveal': onbReveal(step.layer); if (step.highlight) highlightOnb(step.layer); next(); break;
-        case 'highlight': highlightOnb(step.layer); next(); break;
+        // v20260912a：highlight 步骤除旧的 { layer:'dock' } 外，可直接用语义锚点：
+        //   { t:'highlight', act:'labor_yard' } / { npc:'laotou' } / { dock:'pack' } / { dir:'北' }
+        case 'highlight': highlightOnb(step.layer ? step.layer : step); next(); break;
         case 'npcTalk': {
           var npcName = (G.DIALOGUES.npcs[step.npc] && G.DIALOGUES.npcs[step.npc].name) || step.npc;
           var asks = (step.asks || []).map(function (a) {
@@ -106,7 +108,15 @@ window.LF = window.LF || {};
               }
             };
           });
-          tutAsk(resolveTpl(step.prompt), asks);
+          // v20260911k「一句话一口气」：长 prompt 不再整段糊在选项面板上（一大坨文字最劝退），
+          //   改由 log() 自动分句、逐句打进叙事区，最后一句打完才亮出选项；
+          //   短 prompt（≤30 字）仍留在面板，保持「一眼看到他在问什么」。
+          var _pr = resolveTpl(step.prompt || '');
+          if (_pr && _pr.replace(/\s/g, '').length > 30) {
+            log(_pr, 'npc', null, function () { tutAsk('', asks); });
+          } else {
+            tutAsk(_pr, asks);
+          }
           break;   // 等待玩家选择，选择后才 next()
         }
         case 'moveGate': {
