@@ -545,14 +545,16 @@
 
 
 
-  // ===== 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷重做 v20260912i）=====
+  // ===== 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷 v20260912i；卷轴书卷 v20260912j）=====
   // 独立于叙事区（#narr）的全屏幕布 #prologue（DOM 见 index.html，样式见 game.css）：
-  //   行军征战水墨底图 → 三段文案逐行浮现 → 柔和纸光一掠 → 淡出。
+  //   行军征战水墨底图 → 长卷展开（轴杆分启 + 卷面露出）→ 标题毛笔书写 → 正文逐行浮现
+  //   → 卷轴合拢 + 柔和纸光一掠 → 淡出。
   // 演出期间界面 #app 是隐藏的，故「动画演完，角色才出现在牢里」；随后的 camp_opening 剧本接着开场。
-  // 文案取自 G.DIALOGUES.prologue（第一行作金色小标题）。轻触幕布 / 点「跳过」立即收尾。
-  // ★ v20260912i「水墨长卷」：背景复用标题页 title_bg.jpg（.pr-bg），删去旧版铁栅/镣铐/提灯牢狱意象；
-  //   运动全部在背景层（底图缓移 pr-bg / 暗角呼吸 pr-vig / 墨晕光斑 pr-ink / 云雾漂移 pr-mist /
-  //   墨尘浮粒 pr-dust / 卷轴渐隐 pr-scroll），文字层只用 opacity+clip-path+blur 浮现，绝不位移。
+  // 文案取自 G.DIALOGUES.prologue（第一行作金色小标题，卷上毛笔书写）。轻触幕布 / 点「跳过」立即收尾。
+  // ★ v20260912j「卷轴书卷」：新增 .pr-roll 卷轴结构（上下轴杆 pr-axle-top/bottom + 卷面 pr-roll-face）：
+  //   开卷 pr-roll-open（杆分启、face 从中线向上下揭开）→ 标题书写 .pr-kicker.on（clip-path 水平展开 + 笔锋光带）
+  //   → 正文逐行浮现 → 合卷 pr-roll-close（face 收拢、杆合回中线）→ 淡出。
+  // 文字层始终「静字」：只用 opacity + clip-path + blur 浮现，绝不 translate/rotate 位移。
   // settings.textSpeed<=0（文字演出设为「瞬（无动画）」）时整段跳过，直接进牢房。
   function playPrologue(onDone){
     var box=document.getElementById('prologue');
@@ -567,16 +569,17 @@
     function finish(){
       if(done) return; done=true; clearAll();
       box.removeEventListener('click', finish);
-      box.classList.remove('pr-sway');        // 止景：收尾时不再晃背景
-      box.classList.add('pr-out');            // .pr-out 淡出（.9s），随后彻底隐藏并把界面交还 #app
+      box.classList.remove('pr-sway','pr-roll-open');     // 止景：收尾不再晃背景、不再维持开卷
+      box.classList.add('pr-roll-close','pr-out');        // 合卷 + 淡出（.9s），随后彻底隐藏并把界面交还 #app
       timers.push(setTimeout(function(){
         box.classList.add('hidden');
+        box.classList.remove('pr-roll-close');
         if(wrap) wrap.innerHTML='';
         if(onDone) onDone();
       }, 900));
     }
     // 复位（同一会话内读档可能重播）
-    box.classList.remove('hidden','pr-out','pr-sway');
+    box.classList.remove('hidden','pr-out','pr-sway','pr-roll-open','pr-roll-close');
     if(flash) flash.classList.remove('on');
     if(wrap){
       wrap.innerHTML='';
@@ -588,19 +591,24 @@
       });
     }
     box.addEventListener('click', finish);
-    // 排期：逐行「浮现」，每行停留时长随字数走（1400–2600ms），保证小屏也读得完
+    // 排期：卷轴展开（1.6s）→ 标题书写（1.4s）→ 正文逐行浮现 → 合卷收尾
     var els=(wrap && wrap.childNodes) || [];
-    var t0=260;
+    var t0=420;                                          // 开卷后文字才登场
+    T(function(){ box.classList.add('pr-roll-open'); }, 120);   // 开卷：轴杆分启、卷面揭开
+    T(function(){ box.classList.add('pr-sway'); }, 900);        // 押解缓移：中段起底图轻晃（只晃景，不晃字）
     for(var i=0;i<els.length;i++){
       (function(el, idx){
         T(function(){ el.classList.add('on'); }, t0);
-        t0 += Math.max(1400, Math.min(2600, String(lines[idx]||'').length*55)) + 600;
+        t0 += Math.max(1400, Math.min(2600, String(lines[idx]||'').length*55)) + 560;
       })(els[i], i);
     }
-    T(function(){ box.classList.add('pr-sway'); }, 900);                                             // 押解缓移：中段起底图轻晃（只晃景，不晃字）
-    T(function(){ box.classList.remove('pr-sway'); }, Math.max(1600, t0-700));                        // 收尾前止景
-    T(function(){ if(flash) flash.classList.add('on'); try{ SFX.hit(); }catch(e){} }, t0);            // 一记更鼓般的柔光
-    T(finish, t0+860);
+    T(function(){ box.classList.remove('pr-sway'); }, Math.max(1600, t0-700));   // 收尾前止景
+    T(function(){
+      box.classList.remove('pr-roll-open');
+      box.classList.add('pr-roll-close');                                        // 合卷：卷面收拢、轴杆合回
+    }, t0+140);
+    T(function(){ if(flash) flash.classList.add('on'); try{ SFX.hit(); }catch(e){} }, t0+420);  // 合卷中一记更鼓般的柔光
+    T(finish, t0+1100);
   }
 
   // [moved → shared/core/state.js]
@@ -4832,48 +4840,139 @@
     Guide.goal(s.text, s.targets);
   }
   // （旧 showOnboardChoices / removeOnboardChoices 已废弃：开场改为与老乞丐对话驱动）
-  // ═══ 对话窗（v20260912g）═══
-  // 玩家反馈两条：①选项弹出来正好把 NPC 刚说的话顶出视野；②选项一多就得在下头那块小面板里
-  //   单独滚动，看不全也不好点。根子是「话在上、选项在下」被拆成两块、还互相挤高度。
-  // 改法：把「谁在说 / 说了什么 / 怎么答」收进同一扇窗（#app 里的一段，参与布局、不是浮层，
-  //   因此不遮任何东西）：话在上、选项紧随其后，自上而下排；选项超过 4 条自动两列，
-  //   越狱九条路线也能一屏放下、不用滚。窗开着时叙事区照旧自动滚到底（scroll()），
-  //   所以「他说的每一句」都还在眼前；窗收起后那些话仍留在叙事区里可回看。
-  var $dlg=document.getElementById('dlg'), $dlgName=document.getElementById('dlg-name'),
+  // ═══ 对话帘（v20260912k）═══
+  // 演进：v20260912g 把「他说的话」与「你怎么答」并进同一扇窗（解决「话被选项顶出视野 / 选项要
+  //   单独滚」），但它是 #app 内的一段、参与布局 —— 玩家用下来的观感仍是「不像交谈」：
+  //   ①开合把叙事区与罗盘一起顶来顶去；②一换人/一收窗就清屏，说过的话再也找不回来；
+  //   ③选项是一排一模一样的全宽按钮，密得像在做题。
+  // 这一版做成**自底部升起的对话帘**：
+  //   · 浮层（position:fixed）：开合不动上面任何东西，底下的界面也不再被挤；
+  //   · 头＝朱砂名章＋名姓＋状态（谁在说、在说还是在等你答，一眼分明）；
+  //   · 体＝本次交谈的往来，含**你的答话**（右对齐浅金底），可上滚回看，手动上滚时不再被拽回底部；
+  //   · 足＝带序号的答话选项（键盘 1-9 等价），超 4 条两列；
+  //   · 收窗时整段交谈折进叙事区留痕（dlgEcho），说过的仍可回看。
+  var $dlg=document.getElementById('dlg'), $dlgVeil=document.getElementById('dlg-veil'),
+      $dlgName=document.getElementById('dlg-name'), $dlgSeal=document.getElementById('dlg-seal'),
+      $dlgState=document.getElementById('dlg-state'),
       $dlgBody=document.getElementById('dlg-body'), $dlgFoot=document.getElementById('dlg-foot');
-  var dlgCur='', dlgTimer=null, dlgOpen=false;
-  //   dlgCur = 当前窗里的说话人（用于判断是不是同一场对话）；dlgOpen = 窗是否开着
-  // ⚠️ v20260912h 修一处「窗永远不显形」的暗雷：开关窗必须走 classList，不能只设 $dlg.hidden 属性。
+  var dlgCur='', dlgTimer=null, dlgOpen=false, dlgTypeTimer=null, dlgSkip=null;
+  //   dlgCur = 当前帘里的说话人（判断是不是同一场对话）；dlgOpen = 帘是否开着
+  //   dlgTypeTimer / dlgSkip = 「一句一句往外蹦」的落字定时器与「一次落定」的跳过钩子
+  var dlgTalk=[];     // 本次交谈的往来 {who,text}：收窗时折进叙事区留痕
+  var dlgStick=true;  // 是否自动滚到底（玩家手动上滚回看时置假，别把人拽回来）
+  // ⚠️ v20260912j 修一处「窗永远不显形」的暗雷：开关窗必须走 classList，不能只设 $dlg.hidden 属性。
   //   #dlg 在 index.html 里出厂就带 class="hidden"，而 game.css 有大范围的 .hidden{display:none !important}
   //   —— !important 的权重大于 #dlg{display:flex}，只摘 hidden 属性、不摘 hidden 类，窗在真机上恒为
   //   display:none（jsdom 不加载外部样式表，看不出这个问题；真机一点「叩门」就是一片空白 + 全部按钮锁死）。
   //   全工程其余浮层（#modal / #prologue / #app）都是 classList 约定，这里与之对齐。
   function dlgShow(){
     if(!$dlg) return;
-    $dlg.classList.remove('hidden'); $dlg.hidden=false; dlgOpen=true;
+    $dlg.classList.remove('hidden'); $dlg.hidden=false;
+    if($dlgVeil){ $dlgVeil.classList.remove('hidden'); $dlgVeil.hidden=false; }
+    dlgOpen=true;
   }
   function dlgHide(){
     if(!$dlg) return;
-    $dlg.classList.add('hidden'); $dlg.hidden=true; dlgOpen=false;
+    $dlg.classList.add('hidden'); $dlg.hidden=true;
+    if($dlgVeil){ $dlgVeil.classList.add('hidden'); $dlgVeil.hidden=true; }
+    dlgOpen=false;
   }
+  // 名章取一个字：姓名取姓；「牢头/老乞丐/小卒」这类称呼去掉老大少小阿再取首字（牢/乞/卒）
+  function dlgSealOf(who){
+    var s=String(who||'').replace(/^[老少大阿]/, '').replace(/[·．.\s]/g, '');
+    return s ? s.charAt(0) : '择';
+  }
+  function dlgState(txt, ask){
+    if(!$dlgState) return;
+    $dlgState.textContent=txt||'';
+    $dlgState.className='dlg-state'+(ask?' ask':'');
+  }
+  function dlgScroll(){ if(dlgStick && $dlgBody){ try{ $dlgBody.scrollTop=$dlgBody.scrollHeight; }catch(e){} } }
+  // 往帘里落一条：who 非空时带「谁：」前缀；extra 传 'me' 即玩家自己的话（右对齐）
+  function dlgNode(who, extra){
+    var p=document.createElement('p'); p.className='dlg-say'+(extra?' '+extra:'');
+    var say;
+    if(extra==='me'){ say=p; }
+    else {
+      if(who){ var nm=document.createElement('span'); nm.className='dlg-who'; nm.textContent=who+'：'; p.appendChild(nm); }
+      say=document.createElement('span'); p.appendChild(say);
+    }
+    $dlgBody.appendChild(p);
+    return {node:p, say:say};
+  }
+  // 点帘 / 按快捷键 = 一次落定（同叙事区点字快进的手感）
+  function dlgTap(){ skipTypewriter(); if(dlgSkip) dlgSkip(); }
+  if($dlgVeil) $dlgVeil.addEventListener('click', dlgTap);
+  if($dlgBody) $dlgBody.addEventListener('click', dlgTap);
+  // 手动上滚回看时别再自动追底（贴近聊天软件的「贴底才跟随」）
+  if($dlgBody) $dlgBody.addEventListener('scroll', function(){
+    var gap=$dlgBody.scrollHeight-$dlgBody.scrollTop-$dlgBody.clientHeight;
+    dlgStick = gap<28;
+  });
+  // 答话快捷键：还在落字时按 1-9 / 空格 / 回车 / ↓ 都当「接着说」；落定后 1-9 直接选第几条
+  document.addEventListener('keydown', function(e){
+    if(!dlgOpen) return;
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    var t=e.target;
+    if(t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable)) return;
+    var k=e.key;
+    if(dlgSkip){
+      if(k===' ' || k==='Enter' || k==='Escape' || k==='ArrowDown' || (k>='1' && k<='9')){ e.preventDefault(); dlgSkip(); }
+      return;
+    }
+    if(k>='1' && k<='9' && $dlgFoot){
+      var bs=$dlgFoot.querySelectorAll('button'), b=bs[(+k)-1];
+      if(b && !b.disabled){ e.preventDefault(); b.click(); }
+    }
+  });
   function dlgClear(){
+    if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
+    dlgSkip=null; dlgStick=true;
     if($dlgBody) $dlgBody.innerHTML='';
     if($dlgFoot){ $dlgFoot.innerHTML=''; $dlgFoot.className='dlg-foot'; }
+    dlgState('');
   }
-  function dlgClose(){
+  // 玩家点了某条答话：先把自己的话落进记录（像聊天记录里的「我」），再收选项、走后续
+  function dlgPick(o, b){
+    if(b && b.disabled) return;
+    if(dlgSkip) dlgSkip();
+    var me=document.createElement('p'); me.className='dlg-say me'; me.textContent=o.label;
+    $dlgBody.appendChild(me);
+    dlgTalk.push({who:'你', text:o.label});
+    dlgStick=true; dlgScroll();
+    removeTutChoices();
+    if(o.fn) o.fn();
+  }
+  // 把这段交谈折进叙事区留痕：玩家刚在帘里逐句读过，不必再让打字机慢慢写一遍，直接落字
+  function dlgEcho(){
+    if(!dlgTalk.length || !$narr) return;
+    for(var i=0;i<dlgTalk.length;i++){
+      var it=dlgTalk[i], p=document.createElement('p');
+      p.className='narr '+(it.who==='你'?'said':'npc');
+      if(it.who){ var nm=document.createElement('span'); nm.className='nm'; nm.textContent=it.who+'：'; p.appendChild(nm); }
+      p.appendChild(document.createTextNode(it.text));
+      $narr.appendChild(p);
+    }
+    var sc=document.getElementById('scene'); if(sc) sc.scrollTop=sc.scrollHeight;
+  }
+  // echo=true：自然收尾（话说完也答完了）→ 留痕；换场景 / 开面板时收窗则不留，
+  //   免得刚换到新场景，上一处的旧话又被折进新场景的叙事里。
+  function dlgClose(echo){
     if(!$dlg) return;
     if(dlgTimer){ clearTimeout(dlgTimer); dlgTimer=null; }
+    if(echo) dlgEcho();
+    dlgTalk.length=0;
     dlgHide(); dlgCur=''; dlgClear();
   }
-  // 对话静下来（叙事打完、且没有挂起的问答）后稍候收窗 —— 给玩家读完最后一句的时间
+  // 对话静下来（叙事打完、且没有挂起的问答）后稍候收帘 —— 给玩家读完最后一句的时间
   function dlgSettle(){
     if(!$dlg || !dlgOpen) return;
     if(dlgTimer) clearTimeout(dlgTimer);
     dlgTimer=setTimeout(function(){
       dlgTimer=null;
       if(askPending || narrActive()) return;   // 又接上了新的话 / 新问题，就继续留着
-      dlgClose();
-    }, 1600);
+      dlgClose(true);
+    }, 1400);
   }
   function tutAsk(prompt, options, npcName){
     removeTutChoices();
@@ -4881,26 +4980,70 @@
     // ① 对话窗（#dlg 就位时一律走它）
     if($dlg){
       var who=(npcName==null)?'':String(npcName);
-      if(!dlgOpen || dlgCur!==who){      // 换了人（或刚开窗）→ 清屏重来；同一场对话则续着往下说
+      if(!dlgOpen || dlgCur!==who){      // 换了人（或刚开帘）→ 清屏重来；同一场对话则续着往下说
         dlgClear(); dlgShow(); dlgCur=who;
         if($dlgName) $dlgName.textContent=(who||'抉择');
+        if($dlgSeal) $dlgSeal.textContent=dlgSealOf(who);
       }
       if(dlgTimer){ clearTimeout(dlgTimer); dlgTimer=null; }
+      if(dlgSkip) dlgSkip();             // 上一句还没落完就接上了新话 —— 先把旧句一次落定
       var text=String(prompt==null?'':prompt);
-      if(text || !$dlgBody.children.length){
-        var p=document.createElement('p'); p.className='dlg-say';
-        if(who){ var nm=document.createElement('span'); nm.className='dlg-who'; nm.textContent=who+'：'; p.appendChild(nm); }
-        if(text){ p.appendChild(document.createTextNode(text)); }
-        else { p.classList.add('mute'); p.appendChild(document.createTextNode('……')); }
-        $dlgBody.appendChild(p);
-      }
+      // ① 选项先摆好（带序号，键盘 1-9 等价），但话没说完之前一律锁住；说完自动放开
       $dlgFoot.className='dlg-foot'+(options.length>4?' g2':'');
-      options.forEach(function(o){
-        var b=document.createElement('button'); b.className='onb-btn dlg-btn'; b.textContent=o.label;
-        b.onclick=function(){ removeTutChoices(); o.fn(); };
+      // 九条那种极端情况（两列也放不下）把帘抬高些；用 classList 增删，别重建 className（免得把 hidden 抖掉）
+      if(options.length>4) $dlg.classList.add('many'); else $dlg.classList.remove('many');
+      options.forEach(function(o,i){
+        var b=document.createElement('button'); b.type='button'; b.className='onb-btn dlg-btn';
+        var ix=document.createElement('span'); ix.className='ix'; ix.textContent=String(i+1);
+        var tx=document.createElement('span'); tx.textContent=o.label;
+        b.appendChild(ix); b.appendChild(tx);
+        b.onclick=function(){ dlgPick(o, b); };
+        b.disabled=!!text;
         $dlgFoot.appendChild(b);
       });
-      try{ $dlgBody.scrollTop=$dlgBody.scrollHeight; }catch(e){}
+      var btns=$dlgFoot.querySelectorAll('button');
+      var dlgRelease=function(){
+        for(var i=0;i<btns.length;i++) btns[i].disabled=false;
+        dlgState(options.length? '请择一' : '听他说', !!options.length);
+      };
+      // ② 他说的话，按「句」一句一句往外蹦（v20260912j）——
+      //    splitSpeech 只认句末标点，绝不把一句话拦腰截断；每句落定后再来下一句，
+      //    像正常人讲话那样。落完最后一句再放开选项，玩家不会「话没听完就先答」。
+      //    等不及的话，点帘（或按 1-9）即把整句一次落定（与叙事区点字快进同一手感）。
+      //    文字演出设成「瞬（无动画）」时不再逐句等 —— 尊重 settings.textSpeed。
+      if(text || !$dlgBody.children.length){
+        var segs=text?splitSpeech(text):['……'];
+        if(text) dlgTalk.push({who:who, text:text});   // 留痕用（整句，不分行）
+        var box=dlgNode(who, text?'':'mute'), say=box.say, cur=null;
+        var si=0, fin=false;
+        var dlgEnd=function(){
+          if(fin) return; fin=true;
+          if(cur && cur.parentNode) cur.parentNode.removeChild(cur);
+          cur=null; dlgTypeTimer=null; dlgSkip=null;
+          dlgScroll(); dlgRelease();
+        };
+        var dlgLand=function(){
+          say.textContent+=segs[si++];
+          dlgScroll();
+          if(si<segs.length){ dlgTypeTimer=setTimeout(dlgLand, 280); }
+          else dlgEnd();
+        };
+        if(!(settings && settings.textSpeed>0)){       // 瞬：一次落全，连选项也不必等
+          say.textContent=text||'……';
+          dlgEnd();
+        } else {
+          cur=document.createElement('span'); cur.className='cur'; cur.textContent='▍';
+          box.node.appendChild(cur);
+          dlgState('说话中…');
+          dlgSkip=function(){
+            if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
+            if(si>=segs.length) return;
+            si=segs.length; say.textContent=text||'……'; dlgEnd();
+          };
+          dlgTypeTimer=setTimeout(dlgLand, 90);
+        }
+      } else { dlgRelease(); }
+      dlgScroll();
       askPending=true;      // 悬挂：锁罗盘 / 行动 / NPC / 面板，逼玩家把话答完（v20260911i）
       syncActionLock();
       return;
@@ -4921,8 +5064,9 @@
   }
   function removeTutChoices(){
     var b=document.getElementById('tut-choices'); if(b&&b.parentNode) b.parentNode.removeChild(b);
-    // 只收选项、不收窗：玩家答完这一句，接着还有后续台词要落在同一扇窗里
+    // 只收选项、不收帘：玩家答完这一句，接着还有后续台词要落在同一扇帘里
     if($dlgFoot) $dlgFoot.innerHTML='';
+    dlgState('');
     askPending=false; syncActionLock();   // 收起即解锁（若叙事未完，syncActionLock 会按当前状态继续锁）
   }
   // [moved → shared/core/triggers.js] 触发引擎：数据驱动的「场景首访剧本」与「事件触发」。

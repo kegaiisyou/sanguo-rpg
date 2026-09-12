@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>乱世烽火 · 水墨</title>
-<link rel="stylesheet" href="shared/css/game.css?v=20260912g" />
+<link rel="stylesheet" href="shared/css/game.css?v=20260912k" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -66,19 +66,17 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20260912h</div>
+    <div class="tt-ver" id="tt-ver">v20260912k</div>
   </div>
 </div>
 
-<!-- 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷重做 v20260912i）：
-     全屏水墨幕布，复用标题页 title_bg.jpg 行军征战底图，三段文案逐行浮现，
-     收尾柔光一掠、幕落，角色此时才「被推进牢房」（脚本见 core/engine.js · playPrologue）。
+<!-- 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷 v20260912i；卷轴书卷 v20260912j）：
+     全屏水墨幕布，复用标题页 title_bg.jpg 行军征战底图；以「展开一卷长卷」的方式演出：
+     上下墨色轴杆先合于中线 → 缓缓展开露出卷面（.pr-roll）→ 卷上标题【汉灵帝光和六年】
+     以毛笔笔锋逐字书写（.pr-kicker clip-path 水平书写 + 笔锋光带）→ 正文逐行浮现 →
+     收尾卷轴合拢 + 柔和纸光一掠 → 幕落，角色此时才「被推进牢房」。
      独立于 #narr，故动画期间叙事区为空；轻触幕布或点「跳过」立即收尾。
-     ★ v20260912i「水墨长卷」：删去旧版铁栅/镣铐/提灯等「牢狱写实」意象，改为——
-       行军征战底图(pr-bg) + 暗角呼吸(pr-vig) + 纸张颗粒(pr-grain) + 墨晕光斑(pr-ink)
-       + 山间云雾漂移(pr-mist) + 墨尘浮粒(pr-dust) + 卷轴上下渐隐(pr-scroll)；
-       文字层保持「静字」：只用 opacity + clip-path + blur 浮现，绝不位移。
-       收尾由旧版「白光一闪」改为柔和纸光一掠（prFlash 降强度），更合水墨调性。
+     文字层保持「静字」：只用 opacity + clip-path + blur 浮现，绝不位移。
      文字速度设为「瞬（无动画）」时整段跳过。 -->
 <div id="prologue" class="hidden" aria-hidden="true">
   <div class="pr-bg"></div>
@@ -87,8 +85,11 @@ window.onerror=function(msg,url,line,col,err){
   <div class="pr-ink"><i></i><i></i><i></i></div>
   <div class="pr-mist"><i></i><i></i></div>
   <div class="pr-dust"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-  <div class="pr-scroll"></div>
-  <div class="pr-stage"><div class="pr-lines" id="pr-lines"></div></div>
+  <div class="pr-roll" id="pr-roll">
+    <div class="pr-axle pr-axle-top"><i></i><i></i><i></i></div>
+    <div class="pr-roll-face"><div class="pr-lines" id="pr-lines"></div></div>
+    <div class="pr-axle pr-axle-bottom"><i></i><i></i><i></i></div>
+  </div>
   <div class="pr-flash" id="pr-flash"></div>
   <div class="pr-skip" id="pr-skip">轻触跳过 ▸</div>
 </div>
@@ -100,11 +101,16 @@ window.onerror=function(msg,url,line,col,err){
   <main id="scene"><div id="narr"></div></main>
   <div id="onb-goal" class="onb-goal" hidden></div>
   <section id="actions"></section>
-  <!-- v20260912g 对话窗：NPC 名 + 他刚说的话 + 你的答话选项，同处一扇窗里自上而下排。
-       它在 #app 内参与布局（不是浮层），故绝不遮挡叙事区；收起后那些话仍留在叙事区可回看。
-       台词多、选项多时窗自身上限 46dvh 并在内部滚动，叙事区保底仍有半屏。 -->
+  <!-- v20260912k 对话帘：与 NPC 交谈时自底部升起的浮层（position:fixed，不参与 #app 布局，
+       故开合不再把叙事区/罗盘顶来顶去）。头＝朱砂名章＋名姓＋状态；体＝本次交谈的往来
+       （含你的答话，可上滚回看）；足＝带序号的答话选项（样式键盘 1-9 亦可）。
+       收起时整段交谈会折进叙事区留痕，仍可回看。帘只压暗背景、不遮挡上方叙事区。 -->
+  <div id="dlg-veil" class="hidden"></div>
   <section id="dlg" class="hidden" aria-live="polite">
-    <div class="dlg-head"><span class="dlg-mark">❖</span><span id="dlg-name">交谈</span></div>
+    <div class="dlg-head">
+      <span class="dlg-seal" id="dlg-seal">谈</span>
+      <span class="dlg-id"><span id="dlg-name">交谈</span><span class="dlg-state" id="dlg-state"></span></span>
+    </div>
     <div class="dlg-body" id="dlg-body"></div>
     <div class="dlg-foot" id="dlg-foot"></div>
   </section>
@@ -143,7 +149,7 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260912h"></script>
+<script src="shared/config/constants.js?v=20260912k"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
@@ -193,6 +199,6 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/charcreate.js?v=20260909h"></script>
   <script src="shared/core/equipment.js?v=20260909i"></script>
   <script src="shared/core/crafting.js?v=20260909j"></script>
-  <script src="shared/core/engine.js?v=20260912h"></script>
+  <script src="shared/core/engine.js?v=20260912k"></script>
 </body>
 </html>
