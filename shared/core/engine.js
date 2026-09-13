@@ -586,6 +586,12 @@
     if(!box || !lines.length || speed<=0){ if(onDone) onDone(); return; }
     var wrap=document.getElementById('pr-lines');
     var flash=document.getElementById('pr-flash');
+    // v20260912n：序章底图从 AI 同风格候选图中随机取一张（每次开局不同）
+    var bgEl=box.querySelector('.pr-bg');
+    if(bgEl){
+      var bgs=['assets/title_bg_alt1.jpg','assets/title_bg_alt2.jpg','assets/title_bg_alt3.jpg'];
+      bgEl.style.backgroundImage='url("'+bgs[Math.floor(Math.random()*bgs.length)]+'")';
+    }
     var timers=[], done=false;
     function T(fn, ms){ timers.push(setTimeout(fn, ms)); }
     function clearAll(){ for(var i=0;i<timers.length;i++){ clearTimeout(timers[i]); } timers=[]; }
@@ -622,7 +628,7 @@
         t0 += Math.max(1400, Math.min(2600, String(lines[idx]||'').length*55)) + 560;
       })(els[i], i);
     }
-    T(function(){ if(flash) flash.classList.add('on'); try{ SFX.hit(); }catch(e){} }, t0+300);   // 收尾一记更鼓般的柔光
+    T(function(){ try{ SFX.hit(); }catch(e){} }, t0+300);   // 收尾一记更鼓（声音保留；v20260912m 起去掉纸光闪动）
     T(finish, t0+800);
   }
   // [moved → shared/core/state.js]
