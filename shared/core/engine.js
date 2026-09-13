@@ -589,7 +589,7 @@
     // v20260912n：序章底图从 AI 同风格候选图中随机取一张（每次开局不同）
     var bgEl=box.querySelector('.pr-bg');
     if(bgEl){
-      var bgs=['assets/title_bg_alt1.jpg','assets/title_bg_alt2.jpg','assets/title_bg_alt3.jpg'];
+      var bgs=['assets/title_bg_alt1.jpg','assets/title_bg_alt2.jpg','assets/title_bg_alt3.jpg','assets/title_bg_alt4.jpg','assets/title_bg_alt5.jpg','assets/title_bg_alt6.jpg'];
       bgEl.style.backgroundImage='url("'+bgs[Math.floor(Math.random()*bgs.length)]+'")';
     }
     var timers=[], done=false;
@@ -5875,8 +5875,18 @@
       setInterval(function(){ drip(); if(Math.random()<.25) drip(); },4200);
     }
   })();
-  showTitle();
-  (function(){ var ld=document.getElementById('loader'); if(ld){ setTimeout(function(){ ld.classList.add('hidden'); }, 320); } })();   // 加载页淡出
+  // v20260912n：预加载序章候选底图，全部就绪（或至多等 2.5s）后再进标题页，
+  // 避免序章播放时首次加载底图造成卡顿；数组须与 playPrologue 的轮换池保持一致。
+  var _pbgs=['assets/title_bg_alt1.jpg','assets/title_bg_alt2.jpg','assets/title_bg_alt3.jpg','assets/title_bg_alt4.jpg','assets/title_bg_alt5.jpg','assets/title_bg_alt6.jpg'];
+  var _pbgDone=0, _pbgT0=Date.now();
+  _pbgs.forEach(function(_src){ var _im=new Image(); _im.onload=function(){ _pbgDone++; }; _im.onerror=function(){ _pbgDone++; }; _im.src=_src; });
+  (function _waitPbg(){
+    if(_pbgDone>=_pbgs.length || Date.now()-_pbgT0>2500){
+      showTitle();
+      var _ld=document.getElementById('loader');
+      if(_ld){ setTimeout(function(){ _ld.classList.add('hidden'); }, 340); }   // 标题页就绪后加载页淡出
+    } else { setTimeout(_waitPbg, 60); }
+  })();
 
   window.addEventListener('beforeunload',function(){ if(state){ state.lastSeen=Date.now(); save(state); } });
   }catch(e){
