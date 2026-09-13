@@ -1383,7 +1383,7 @@
           } catch(e) { return ''; }
         })()+
       '</div></div>'+
-      '<p class="tip">四首古风BGM可选，箫笛古琴各有意境；曲间静默15秒。</p>';
+      '<p class="tip">四首古风BGM可选，箫笛古琴各有意境；曲间静默5秒。</p>';
     var game='';
     if(!fromTitle){
       game+='<button class="close" id="m-save" style="margin-top:14px;">立即存档</button>';
@@ -3366,7 +3366,11 @@
     }
     if(typeof tid==='string' && tid.indexOf('__cell__:')===0){
       var _c=tid.split(':');
-      return '回'+cellDisplayName(_c[1], cellDisplayType(_c[1], +_c[2], +_c[3]));
+      var _t=cellDisplayType(_c[1], +_c[2], +_c[3]);
+      var _nm=cellDisplayName(_c[1], _t);
+      // v20260913c：prison 格在子牢房罗盘上显示「牢房走廊」，避免「回牢房」歧义（回哪间？）
+      if(_t==='prison') _nm='牢房走廊';
+      return '往'+_nm;
     }
     var r=G.ROOMS[tid];
     if(!r) return tid;
@@ -5031,7 +5035,7 @@
     if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
     dlgSkip=null; dlgStick=true;
     if($dlgBody) $dlgBody.innerHTML='';
-    if($dlgFoot){ $dlgFoot.innerHTML=''; $dlgFoot.className='dlg-foot'; }
+    if($dlgFoot){ $dlgFoot.innerHTML=''; $dlgFoot.className='dlg-foot'; $dlgFoot.style.display=''; }
     dlgState('');
   }
   // 玩家点了某条答话：先把自己的话落进记录（像聊天记录里的「我」），再收选项、走后续
@@ -5093,8 +5097,10 @@
         b.disabled=!!text;
         $dlgFoot.appendChild(b);
       });
+      if(text) $dlgFoot.style.display='none';   // v20260913c：话没说完先收起选项，说完再弹出（避免半灰不可点造成困惑）
       var btns=$dlgFoot.querySelectorAll('button');
       var dlgRelease=function(){
+        $dlgFoot.style.display='';
         for(var i=0;i<btns.length;i++) btns[i].disabled=false;
         dlgState(options.length? '请择一' : '听他说', !!options.length);
       };
