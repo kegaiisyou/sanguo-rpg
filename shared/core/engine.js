@@ -5000,14 +5000,30 @@
     removeTutChoices();
     if(o.fn) o.fn();
   }
-  // 把这段交谈折进叙事区留痕：玩家刚在帘里逐句读过，不必再让打字机慢慢写一遍，直接落字
+  // 留痕摘要：NPC 的话只取最后一段「」台词（核心结论），超 48 字截断；无引号的纯叙述取前 48 字。
+  // 玩家答话原本就短，原样保留。这样叙事区不会被整段对话刷屏，关键信息不丢。
+  function dlgDigest(text){
+    var s=String(text||''), core='';
+    var ms=s.match(/「([^」]+)」/g);
+    if(ms && ms.length){ core=ms[ms.length-1].replace(/[「」]/g,''); }
+    else { core=s; }
+    core=core.replace(/\s+/g,'');
+    if(core.length>48){
+      var cut=core.slice(0,48), bp=-1;
+      for(var pi=cut.length-1; pi>=0; pi--){ if('。！？；，、：'.indexOf(cut.charAt(pi))>=0){ bp=pi; break; } }
+      // 断在 48 字窗口内最后一个标点后（且别太靠前），避免把整句从中腰斩断
+      core = (bp>=24 ? cut.slice(0,bp+1) : cut)+'……';
+    }
+    return core;
+  }
+  // 把这段交谈折进叙事区留痕（摘要式）：玩家刚在帘里逐句读过，不必全文重放，只落要点
   function dlgEcho(){
     if(!dlgTalk.length || !$narr) return;
     for(var i=0;i<dlgTalk.length;i++){
       var it=dlgTalk[i], p=document.createElement('p');
       p.className='narr '+(it.who==='你'?'said':'npc');
       if(it.who){ var nm=document.createElement('span'); nm.className='nm'; nm.textContent=it.who+'：'; p.appendChild(nm); }
-      p.appendChild(document.createTextNode(it.text));
+      p.appendChild(document.createTextNode(it.who==='你' ? it.text : dlgDigest(it.text)));
       $narr.appendChild(p);
     }
     var sc=document.getElementById('scene'); if(sc) sc.scrollTop=sc.scrollHeight;
@@ -5100,17 +5116,17 @@
           while(si<segs.length) dlgLine();
           dlgEnd();
         } else {
+          // v20260913a：一句一出、玩家点一下才出下一句（点帘/空格/回车/↓/1-9 皆可）——
+          // 不再自动接下一句，阅读节奏完全由玩家自己把握。
           dlgState('说话中…');
           var dlgStep=function(){
-            var s=dlgLine();
-            if(si<segs.length) dlgTypeTimer=setTimeout(dlgStep, dlgPace(s));
-            else dlgEnd();
-          };
-          dlgSkip=function(){
-            if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
-            if(si>=segs.length) return;
-            while(si<segs.length) dlgLine();           // 一次到末态（帘里仍只留最近两句）
-            dlgEnd();
+            if(fin) return;
+            if(si>=segs.length){ dlgEnd(); return; }
+            dlgLine();
+            dlgSkip=function(){
+              if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
+              dlgStep();                       // 再点一下 → 出下一句
+            };
           };
           dlgTypeTimer=setTimeout(dlgStep, 130);
         }
