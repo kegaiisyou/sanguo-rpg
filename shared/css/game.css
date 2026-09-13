@@ -2069,6 +2069,10 @@
   @keyframes dlgLeave{ from{ opacity:1; transform:none; } to{ opacity:0; transform:translateY(-5px); } }
   #dlg .dlg-say.leave{ animation:dlgLeave .26s ease both; }
   #dlg .dlg-say.mute{ color:#9c8a6d; letter-spacing:3px; }
+  /* 帘里的「旁白 · 动作的回声」（v20260913c）：玩家的动作（〔睁眼看〕〔撑起身〕〔摸一摸身上〕）
+     与之回响 —— 比台词轻一档、靠一条细朱线缩进，一眼分得清「他说的话」与「发生在你身上的事」 */
+  #dlg .dlg-say.narr{ margin:0 0 8px 2px; padding-left:10px; border-left:2px solid rgba(176,131,47,.42);
+    font-size:14.5px; line-height:1.7; color:#6f5c3c; }
   #dlg .dlg-say .dlg-who{ color:#a8761f; font-weight:700; }
   /* 落字光标：一句一句往外蹦时缀在句尾（设「文字演出·瞬」时不出现） */
   #dlg .dlg-say .cur{ display:inline-block; width:6px; color:#b0832f; animation:dlgCur .9s steps(1) infinite; }

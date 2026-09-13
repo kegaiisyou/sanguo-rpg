@@ -78,7 +78,7 @@
     getTriggers: function () { return (window.LF && window.LF.TRIGGERS) || (G && G.TRIGGERS) || []; },
     log: log, logScene: logScene,
     onbReveal: onbReveal, highlightOnb: highlightOnb, onbGoal: onbGoal,
-    tutAsk: tutAsk, findEvent: findEvent, runEvent: runEvent,
+    tutAsk: tutAsk, dlgEcho: dlgEcho, fxBeat: fxBeat, findEvent: findEvent, runEvent: runEvent,
     // startCombat 来自 Combat 别名（L197 才赋值），本工厂先建 → 包装函数延迟引用（同 L75 packAdd 范式）
     startCombat: function () { return Combat.startCombat.apply(null, arguments); }, addReputation: addReputation,
     // packAdd 同上：Inventory 在 L123 才赋值，闭包延迟引用
@@ -4823,6 +4823,15 @@
   // 旧名保留：core/triggers.js 与 combat.js 以依赖注入方式持有它，签名向后兼容
   //   （字符串 layer 名 / 语义锚点对象 / 选择器 皆可）。
   function highlightOnb(target){ Guide.ping(target); }
+  // 场次体感（v20260913c）：剧本写 { t:'fx', shake:true, sfx:'close', buzz:24 } ——
+  //   画面震一下（复用战斗屏震 #scene.shake）/ 一声响（SFX.play）/ 手机颤一下（vibrate）。
+  //   开场那记「铁链啷当」配一记闷震，四个字才不只是四个字。
+  function fxBeat(o){
+    o=o||{};
+    if(o.shake){ try{ shakeScene(); }catch(e){} }
+    if(o.sfx){ try{ SFX.play(o.sfx); }catch(e){} }
+    if(o.buzz && typeof navigator!=='undefined' && navigator.vibrate){ try{ navigator.vibrate(o.buzz); }catch(e){} }
+  }
   // ===== 新手目标引导：根据当前进度显示「当前该做什么」并高亮对应按钮/NPC =====
   function onbGoalClear(){ Guide.goalClear(); }
   // 「该做什么」的唯一判定源：一律按「玩家此刻人在哪、下一步真该做什么」来给。
@@ -4844,6 +4853,10 @@
   }
   function onbGoalStep(){
     var f=state.flags||{}, onb=f.onb; if(!onb||onb.done) return null;
+    //    开场「醒」那几拍还没演完时【不给目标】（v20260913c）：此刻行囊页签尚未解锁（见 camp_opening
+    //    第三拍才 unlockDock），若目标条此刻就指着「点行囊」，等于叫玩家去点一个还不存在的按钮 ——
+    //    这正是「引导与界面不同步」的老毛病。开场这几拍由对话帘里的动作按钮牵着走，不需要第二条指引。
+    if(!onb.prologueShown) return null;
     // ⓪ 先认行囊（v20260912f）：主角此刻身上只剩一身囚服、一副镣铐 —— 头一件事就是学会
     //    打开下方「行囊」看看自己有什么。系统介绍按「先行囊、后任务」的次序来，且
     //    没介绍到的页签一律还藏着（见 onbUnlockDock / game.css），免得一上来六个页签糊脸。
@@ -4879,6 +4892,23 @@
     if(!state.flags || !state.flags.onb || state.flags.onb.done){ onbGoalClear(); return; }
     var s=onbGoalStep(); if(!s){ onbGoalClear(); return; }
     Guide.goal(s.text, s.targets);
+  }
+  // 「行囊」这一课的下半截（v20260913c）：开场「醒」三拍只把行囊【亮出来】并留一句
+  //   「点下方「🎒 行囊」细看」；真正的收尾 —— 栅外那嗓子开口、以及「叩牢门」的下一步 ——
+  //   要等玩家【真的开过行囊、又把它合上】才发生（closeModal 里回调到这里）。
+  //   为什么不在剧本里一次讲完：玩家若还没亲手看过行囊，此刻旁白就先替他把话说了，
+  //   又回到「被喂」而不是「在动」的老毛病；把话押到动作之后，字才落在玩家自己的操作上。
+  function onbAfterPack(){
+    var f=state&&state.flags, onb=f&&f.onb;
+    if(!onb || onb.done || !onb.prologueShown) return;   // 开场没演完 / 教学已结束，概不插话
+    if(!onb.packSeen || onb.packTold) return;            // 得是「真的开过」；且这段只讲一次
+    onb.packTold = true;
+    save(state);
+    // 栅外那嗓子——牢里还关着个相面的（顺手给方向：营北牢区）
+    log('栅外忽有一把嗓子拖长了腔，像在同谁自言自语：「某周听涛，天下数一数二的相士——观天象，断命数，从不曾走过眼……」声音不高，却一字一字往你耳朵里钻。', 'env');
+    // 下一件正事：叩牢门（牢门是 camp_tz1 的场景物件，锚点 cell_door；onbGoalStep ② 与之同源）
+    log('〔牢门〕铁栅在你身后合得死紧。要出去，须先与牢头说通 —— 走过去，点「叩门」。', 'order');
+    onbGoal();
   }
   // （旧 showOnboardChoices / removeOnboardChoices 已废弃：开场改为与老乞丐对话驱动）
   // ═══ 对话帘（v20260912k）═══
@@ -4944,6 +4974,21 @@
   function dlgPace(s){
     var sp=(settings && settings.textSpeed>0) ? settings.textSpeed : 55;
     return Math.max(400, Math.min(2400, String(s||'').replace(/\s/g,'').length*sp));
+  }
+  // 帘里补一句「旁白 · 动作的回声」（v20260913c）：不摆选项、不动悬挂锁 ——
+  //   玩家的动作（〔睁眼看〕〔撑起身〕〔摸一摸身上〕）先落成帘里一行小字，台词与问题接着往下走。
+  //   为什么落帘里而不落叙事区：此刻玩家正盯着帘，叙事区在帘后（还给帘压着），落那儿等于白落。
+  //   帘没开时（旧 DOM / 已收帘）退回叙事区，免得这一句凭空消失。
+  function dlgEcho(text){
+    var t=String(text==null?'':text).trim(); if(!t) return;
+    if($dlg && dlgOpen){
+      var box=dlgNode('', 'narr');
+      box.say.textContent=t;
+      dlgTrim(); dlgScroll();
+      syncActionLock();   // 重新起算「静下来就收帘」的计时：末句也读得完
+      return;
+    }
+    log(t, 'env');
   }
   // 往帘里落一条：who 非空时带「谁：」前缀；extra 传 'me' 即玩家自己的话（右对齐）
   function dlgNode(who, extra){
@@ -5703,8 +5748,10 @@
     $modal.classList.add('hidden');
     try{ SFX.close(); }catch(e){}   // 弹窗关闭音效（v20260909a）
     if(currentModalKind==='shop') Shop.restoreTradePending();   // 关店归还寄售真物，避免退出后丢失
+    var _closedKind=currentModalKind;   // v20260913c：收起前先记下关的是哪扇窗（行囊教学要接着往下讲）
     currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
     syncActionLock();        // 收起弹窗后重算交互锁（对话悬挂未答完则仍锁着，v20260911i）
+    if(_closedKind==='pack') onbAfterPack();   // 首次合上行囊 → 栅外那嗓子该开口了（见 onbAfterPack）
   }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   var $modalX=document.getElementById('modal-x');

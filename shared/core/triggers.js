@@ -18,7 +18,8 @@ window.LF = window.LF || {};
     var getState = dep.getState, getTriggers = dep.getTriggers, getOnbLayers = dep.getOnbLayers;
     var log = dep.log, logScene = dep.logScene,
         onbReveal = dep.onbReveal, highlightOnb = dep.highlightOnb, onbGoal = dep.onbGoal,
-        tutAsk = dep.tutAsk, findEvent = dep.findEvent, runEvent = dep.runEvent,
+        tutAsk = dep.tutAsk, dlgEcho = dep.dlgEcho, fxBeat = dep.fxBeat,
+        findEvent = dep.findEvent, runEvent = dep.runEvent,
         startCombat = dep.startCombat, addReputation = dep.addReputation,
         packAdd = dep.packAdd, save = dep.save, renderStatus = dep.renderStatus,
         renderMoveBar = dep.renderMoveBar, renderNpcList = dep.renderNpcList,
@@ -94,7 +95,10 @@ window.LF = window.LF || {};
         //   { t:'highlight', act:'labor_yard' } / { npc:'laotou' } / { dock:'pack' } / { dir:'北' }
         case 'highlight': highlightOnb(step.layer ? step.layer : step); next(); break;
         case 'npcTalk': {
-          var npcName = (G.DIALOGUES.npcs[step.npc] && G.DIALOGUES.npcs[step.npc].name) || step.npc;
+          // v20260913c：step.who —— 主角自己的动作与心事（开场「醒」那几拍）也要有个说话人：
+          //   帘头署「你」、名章换「你」，而不是一律挂在「抉择」上。
+          var npcName = step.who != null ? step.who
+            : ((G.DIALOGUES.npcs[step.npc] && G.DIALOGUES.npcs[step.npc].name) || step.npc);
           var asks = (step.asks || []).map(function (a) {
             return {
               label: resolveTpl(a.label), fn: function () {
@@ -102,7 +106,10 @@ window.LF = window.LF || {};
                 onbGoal();   // 对话选项推进旗标后立即刷新「当前目标」引导（v20260907f）
                 (a.reveal || []).forEach(function (l) { onbReveal(l); });
                 if (a.highlight) { (Array.isArray(a.highlight) ? a.highlight : [a.highlight]).forEach(function (l) { highlightOnb(l); }); }
-                if (a.say) log(resolveTpl(a.say));   // say 为混合叙事（含主角动作+老乞丐台词），不附加「老乞丐：」前缀以免不通顺
+                // say 为混合叙事（含主角动作+老乞丐台词），不附加「老乞丐：」前缀以免不通顺。
+                // v20260913c：sayTo:'dlg' → 这句是【动作的回声】，落进帘里（玩家此刻正看着帘），
+                //   不落叙事区 —— 叙事区在帘后，落那儿等于白落；同时避免同一句话出现两遍。
+                if (a.say) { if (a.sayTo === 'dlg' && dlgEcho) dlgEcho(resolveTpl(a.say)); else log(resolveTpl(a.say)); }
                 save(state);
                 if (a.then && a.then.length) { runSteps(a.then, 0, next, env); } else { next(); }
               }
@@ -169,6 +176,12 @@ window.LF = window.LF || {};
         }
         case 'branch': { var ok = step.if ? testCond(step.if, env) : true; runSteps(ok ? (step.then || []) : (step.else || []), 0, next, env); break; }
         case 'graduate': graduate(); next(); break;
+        // 场次体感（v20260913c）：{ t:'fx', shake:true, sfx:'close', buzz:24 } —— 屏震／音效／手机颤一下。
+        //   文字配着体感走，「铁链啷当」才不只是一句话。
+        case 'fx': if (fxBeat) fxBeat(step); next(); break;
+        // 立即按当前进度重刷「当前目标」引导（v20260913c）：开场把 prologueShown 落定后，
+        //   目标条要从「无」切到「点行囊」——onbGoal() 不在每次旗标变更时自动跑，需要脚本显式点一下。
+        case 'goal': if (onbGoal) onbGoal(); next(); break;
         // 底部页签逐项解锁（v20260912f）：剧本写 { t:'unlockDock', key:'pack' } ——「介绍到这个页签才把它亮出来」
         case 'unlockDock': if (dep.unlockDock) dep.unlockDock(step.key); next(); break;
         case 'acceptQuest': if (acceptQuest) acceptQuest(step.id); next(); break;
