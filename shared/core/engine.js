@@ -5000,40 +5000,11 @@
     removeTutChoices();
     if(o.fn) o.fn();
   }
-  // 留痕摘要：NPC 的话只取最后一段「」台词（核心结论），超 48 字截断；无引号的纯叙述取前 48 字。
-  // 玩家答话原本就短，原样保留。这样叙事区不会被整段对话刷屏，关键信息不丢。
-  function dlgDigest(text){
-    var s=String(text||''), core='';
-    var ms=s.match(/「([^」]+)」/g);
-    if(ms && ms.length){ core=ms[ms.length-1].replace(/[「」]/g,''); }
-    else { core=s; }
-    core=core.replace(/\s+/g,'');
-    if(core.length>48){
-      var cut=core.slice(0,48), bp=-1;
-      for(var pi=cut.length-1; pi>=0; pi--){ if('。！？；，、：'.indexOf(cut.charAt(pi))>=0){ bp=pi; break; } }
-      // 断在 48 字窗口内最后一个标点后（且别太靠前），避免把整句从中腰斩断
-      core = (bp>=24 ? cut.slice(0,bp+1) : cut)+'……';
-    }
-    return core;
-  }
-  // 把这段交谈折进叙事区留痕（摘要式）：玩家刚在帘里逐句读过，不必全文重放，只落要点
-  function dlgEcho(){
-    if(!dlgTalk.length || !$narr) return;
-    for(var i=0;i<dlgTalk.length;i++){
-      var it=dlgTalk[i], p=document.createElement('p');
-      p.className='narr '+(it.who==='你'?'said':'npc');
-      if(it.who){ var nm=document.createElement('span'); nm.className='nm'; nm.textContent=it.who+'：'; p.appendChild(nm); }
-      p.appendChild(document.createTextNode(it.who==='你' ? it.text : dlgDigest(it.text)));
-      $narr.appendChild(p);
-    }
-    var sc=document.getElementById('scene'); if(sc) sc.scrollTop=sc.scrollHeight;
-  }
-  // echo=true：自然收尾（话说完也答完了）→ 留痕；换场景 / 开面板时收窗则不留，
-  //   免得刚换到新场景，上一处的旧话又被折进新场景的叙事里。
+  // v20260913b：对话往来不再折进叙事区 —— NPC 台词与你的答话在帘里逐句读过即可，
+  // 叙事区只留对话落定的结果（如「〔寻吃食·破命数〕已替你记在册上了」），避免同一段话出现两遍。
   function dlgClose(echo){
     if(!$dlg) return;
     if(dlgTimer){ clearTimeout(dlgTimer); dlgTimer=null; }
-    if(echo) dlgEcho();
     dlgTalk.length=0;
     dlgHide(); dlgCur=''; dlgClear();
   }
