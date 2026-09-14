@@ -88,6 +88,16 @@
       ]
     },
 
+  // ═══ 锚点 · 苦役营·中军帐正帐（中军帐格 (1,1) 的子房，走面板 doors → CELL_INTERIORS，v20260914d）═══
+  //   进了帐才看得见舆图真迹与木牍箱。门槛在 planningEscape()——起了出营的心思，才该摸进主将的帐里。
+  //   注意：子房回格的出口串一律「冒号」分隔（__cell__:城:x:y），写成逗号会 NaN 崩 renderRoom。
+    camp_zhongjun: { id: 'camp_zhongjun', name: '中军帐·正帐',
+      desc: ['帐内幽暗，牛皮舆图摊满一案，令旗斜插架上，铜符压在牒上。主将不在，只有一个书吏伏案打盹。',
+             '帐角一只木箱半开，露出成叠的空白木牍与一方印泥。'],
+      exits: { '南': '__cell__:kuyilao:1:1' },
+      find: '中军帐·正帐：舆图、令旗、印信俱在，书吏伏案而眠。〔南〕出帐回场院。',
+      npcs: [], items: [], actions: [] },
+
   // ═══ 锚点 · 苦役营·六间子牢房（囚室格 (1,0) 即城格，六间子房走面板 doors → CELL_INTERIORS，v20260910q）═══
     camp_tz1: { id: 'camp_tz1', name: '天字一号牢房',
       desc: ['栅内草荐发硬，墙角水渍蜿蜒。一名蓬头囚徒盘腿而坐，似在打盹，又似在听墙外的风。'],
@@ -426,6 +436,18 @@
       ]} ],
       camp_dz3: [ { type:'feature', key:'caojian_dz3', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
         {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
+      ]} ],
+      // ═══ 苦役营·中军帐正帐：舆图真迹 / 木牍箱（v20260914d）═══
+      // 注意：rooms.js 的 IIFE 闭包里只能调「已挂到 window」的引擎函数，务必写 window. 前缀
+      //   （v20260910t 的踩坑：草荐的「打盹」漏了前缀，点了直接 ReferenceError）
+      camp_zhongjun: [ { type:'feature', key:'zj_yutu', icon:'🗺️', name:'牛皮舆图', desc:'摊满一案的营盘舆图，边角压着铜符', actions:[
+        {label:'默记路径', icon:'🗺️', fn:function(){ window.log('你俯身细看，把营墙的走向、岗哨的位置、墙根那道排水的暗渠一一记在心里——日后要走夜路，这些便是你的灯。','sys'); }}
+      ]},
+      { type:'feature', key:'zj_mudu', icon:'🪵', name:'木牍箱', desc:'半开的木箱，里头是空白木牍与一方印泥', actions:[
+        {label:'取一牍', icon:'🪵', fn:function(){ var S=window.getState(); if(!S) return;
+          if(window.packFind('blank_pass')){ window.log('箱里木牍多的是，可揣两枚在身上，反是累赘。','sys'); return; }
+          window.packAdd({defId:'blank_pass', count:1});   // 定义见 shared/data/items.js
+          window.log('你抽了一枚空白木牍塞进怀里——陈简那双手，能把这枚木片变成一张路引。','good'); window.save(S); }}
       ]} ],
       camp_farm: [ { type:'feature', key:'farm_ridge', icon:'🌾', name:'田垄', desc:'被翻得稀烂的薄田，几垄蔫苗在日头下打卷', actions:[
         {label:'借农具', icon:'🪓', fn:function(){ var S=getState(); if(!S) return; if(S.flags&&S.flags.onb&&S.flags.onb.farmTool){ log('你肩上还扛着借来的锄头呢。','sys'); return; } S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; S.flags.onb.farmTool=true; packAdd('chutu',1); log('你从田埂边拾了把木柄锄头，沉甸甸压在肩头。〔务农需先借农具〕','good'); save(S); }},

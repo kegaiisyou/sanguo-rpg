@@ -1251,21 +1251,11 @@
     });
     return true;
   }
-  // 营中苦役 → 任务进度（v20260911i）：接了哪桩活，干一次就记一次数，任务日志据此显示 N/3。
-  //   三桩苦役（场院担石 / 田间务农 / 仓库搬石）各自独立计数，互不冒充。
-  var LABOR_QUEST_ID={ labor_yard:'labor', farm_work:'farm', haul_stones:'haul' };
-  var LABOR_QUEST_DEF={ labor:'camp_labor', farm:'camp_farm', haul:'camp_haul' };
-  function laborQuestTick(kind){
-    var key=LABOR_QUEST_ID[kind]; if(!key) return;
-    var t=(state.flags && state.flags.task) || null;
-    if(!t || !t[key+'_started'] || t[key+'_done']) return;
-    addFlagNum('flags.task.'+key+'_cnt', 1);
-    var q=(LF.QUEST_DEFS||{})[LABOR_QUEST_DEF[key]];
-    var n=flagNum('flags.task.'+key+'_cnt');
-    var goal=(q && q.need && q.need[0] && q.need[0].count) || 3;
-    log('〔任务·'+((q&&q.title)||'营中苦役')+'〕'+n+' / '+goal+(n>=goal?' —— 够了，回去复命。':''), n>=goal?'good':'sys');
-    save(state); renderStatus();
-  }
+  // 营中苦役 → 任务进度（v20260911i 立，v20260914e 撤）。
+  //   原写法：点一下格上的劳作按钮就在 flags.task.<key>_cnt 上 +1，任务据此显示 N/3。
+  //   撤掉的缘由：差役改成「赴实地做工 → 交货」后，计数必须由做工那一刻来记（farmPick / oreStrike），
+  //   否则玩家在农田格点三下「下地务农」就能把「开垦薄田」交了差 —— 开垦与掐菜全被绕过去。
+  //   现在这三个按钮（担石/务农/搬石）只挣工分（laborTick），与差役彻底脱钩。
 
   // ===== 时间与生存消耗 =====
   function advanceTime(n){
@@ -2785,6 +2775,52 @@
           {label:'击鼓', icon:'🥁', fn:function(){ drumStrikeBy('kuyilao|1,0|drum'); }}
         ]}
       ]
+    },
+    // 中军帐(1,1)：与牢房(1,0)对称，但只管「逃出去」那一摊。教学期只露记工册与刁斗两件，
+    //   舆图 / 军报 / 兵器架 / 正帐一律挂在 planningEscape() 门槛后 —— 这一格要摆「担石劳作 / 环顾四周」
+    //   的引导，一上来摆满按钮会把引导锚点顶掉（沿用 v20260912f 起「没介绍到的先藏着」的做法）。
+    'kuyilao|1,1': {
+      doors: [
+        { label: '正帐', icon: '⛺', target: 'camp_zhongjun', group: '中军帐', show: planningEscape }
+      ],
+      objects: [
+        { icon:'📋', label:'记工木牌', acts:[
+          {label:'查工分', icon:'📋', fn:function(){ ledgerLook(); }},
+          {label:'看差役', icon:'📜', fn:function(){ jobBoard(); }}
+        ]},
+        { icon:'🥁', label:'铜刁斗', acts:[
+          {label:'击鼓', icon:'🥁', fn:function(){ diaodouStrike(); }}
+        ]},
+        { icon:'🗺️', label:'舆图沙盘', show: planningEscape, acts:[
+          {label:'细看舆图', icon:'🗺️', fn:function(){ yutuLook(); }}
+        ]},
+        { icon:'📜', label:'军报木牍', show: planningEscape, acts:[
+          {label:'翻看军报', icon:'📜', fn:function(){ junbaoLook(); }}
+        ]},
+        { icon:'⚔️', label:'兵器架', show: planningEscape, acts:[
+          {label:'取一件', icon:'⚔️', fn:function(){ rackTake(); }}
+        ]}
+      ]
+    },
+    // 农田（0,0）：接了「开垦薄田」才见着待垦的荒地；翻透三垄后，荒地换成菜畦。
+    //   未接活时一律不摆 —— 这一格本就有「下地务农」的自由劳作，再堆设施会把格上的引导顶掉。
+    'kuyilao|0,0': {
+      objects: [
+        { icon:'🌾', label:'待垦的薄田', show: function(){ return jobOpen('farm') && !farmTilled(); }, acts:[
+          {label:'开垦', icon:'⛏️', fn:function(){ farmTill(); }}
+        ]},
+        { icon:'🥬', label:'菜畦', show: function(){ return jobOpen('farm') && farmTilled(); }, acts:[
+          {label:'掐菜', icon:'🥬', fn:function(){ farmPick(); }}
+        ]}
+      ]
+    },
+    // 矿坑（2,0）：接了「凿石入库」才见着可凿的岩壁（石四、苟三是按格触发的越狱线人物，别抢他们的位）
+    'kuyilao|2,0': {
+      objects: [
+        { icon:'⛏️', label:'岩壁矿脉', show: function(){ return jobOpen('ore'); }, acts:[
+          {label:'凿石', icon:'⛏️', fn:function(){ oreStrike(); }}
+        ]}
+      ]
     }
   };
   function cellInteriors(cid, x, y){ return CELL_INTERIORS[cid + '|' + x + ',' + y] || null; }
@@ -2874,10 +2910,154 @@
     log('你以槽中水注满水袋（水袋 '+bag.water+' / '+cap+'）。','good');
     save(state); renderStatus();
   }
+  // ═══ 苦役营·中军帐设施（v20260914d）═══
+  // 与牢房(1,0)分工：牢房管「活下去」（水槽解渴 / 更鼓探时辰 / 草荐打盹），
+  //   中军帐管「逃出去」——记工册答「还欠几分工」，舆图军报给出营要用的虚实，兵器架刁斗是拿命去换的冒险。
+  // 牢头白日在场院督工、戌时起回牢门口守夜（见 data/npc_cards.js 的 routine）——器械动得动不得，就看他在不在。
+  function laotouOnYard(){
+    var t=state.time%12;
+    return !(t===10||t===11||t===0||t===1||t===2);
+  }
+  // 是否已起了出营的心思：中军帐的进阶设施自此才现形（教学期这一格要摆「担石劳作/环顾四周」的引导，
+  //   一上来多塞五个按钮会把引导锚点顶掉，故一律收在门槛后）
+  function planningEscape(){ return !!(state.flags && state.flags.route && state.flags.route.crypt); }
+  // 记工木牌：工分 / 木片 / 旷役 —— 营中规则的日常面，教学期也可点，且正答「干了半天攒了几分」
+  function ledgerLook(){
+    var o=onbF();
+    if(!o || !o.started || o.done){ log('〔记工册〕册上早没了你的名字——你已脱籍。','sys'); return; }
+    var cnt=o.workCnt||0, per=LABOR_PER_WOOD||3, need=per-(cnt%per);
+    var pai=packFind('lao_pai'), have=pai?(pai.count||1):0, miss=o.missCount||0;
+    log('〔记工册〕名下已记 '+cnt+' 工，手上有「劳字木片」'+have+' 枚；再干 '+need+' 工，可换下一枚。','sys');
+    if(miss>0) log('〔记工册〕另有旷役 '+miss+' 次未补——口粮按罚例加倍，销名逾时还要吃鞭。','warn');
+  }
+  // 刁斗：击鼓报更。中军帐的鼓是号令鼓，比牢房那面更鼓更招人（与 drumStrikeBy 对称）
+  function diaodouStrike(){
+    var f=fxGet('kuyilao|1,1|dou');
+    f.strikes=(f.strikes||0)+1;
+    log('〔当——〕你一槌敲在刁斗上，声震全营。此刻乃「'+SHICHEN[state.time%12]+'」。','sys');
+    if(laotouOnYard()) log('牢头隔着半个场院瞪过来：「敲你娘的丧钟！再敲，今夜的口粮没了。」','warn');
+    else log('夜深，鼓声荡开去，岗上戍卒探头骂了两句，又缩回去了。','sys');
+    if(f.strikes>3) toast('刁斗连响数通，营中已四下张望——再敲必惹祸上身。');
+    save(state);
+  }
+  // 舆图沙盘：营盘九格 + 换岗时辰 + 水渠走向（水渠夜遁线的由头）
+  function yutuLook(){
+    log('〔舆图〕营盘方方正正九格：北列农田、囚室、矿坑；中为伙房、中军帐、仓库；南列军营、岗哨、演武场。','sys');
+    log('〔舆图〕一道水渠自伙房那侧穿墙而出，通到墙外的河沟——图上只注了「排水」二字。','sys');
+    log('〔舆图〕换岗在戌时前后，鼓响三通；子时最松，岗上只余两人。','sys');
+  }
+  // 军报木牍：营中虚实（收买线的由头）
+  function junbaoLook(){
+    log('〔军报〕「渔阳戍卒二百，屯粮不足旬月。」「营中苦役三百余，逃者七，追回三。」','sys');
+    log('〔军报〕最末一牍墨迹未干：粮官贪杯，犬卒好赌——银钱到手，睁一只眼闭一只眼。','sys');
+  }
+  // 兵器架：白日动手吃一鞭；趁夜取械 → 开出「劫狱强攻线」的第三条前置（原只有等级≥3 / 戳通木人桩）
+  function rackTake(){
+    var o=onbF();
+    if(!o || !o.started || o.done){ toast('你已脱籍，营中器械与你无干。'); return; }
+    if(state.flags.route && state.flags.route.rack){ toast('你已藏下一件，贪多必失。'); return; }
+    if(laotouOnYard()){
+      log('你手刚搭上枪杆，背后一声暴喝：「作死！」牢头的鞭梢已抽在手背上，火辣辣一条血棱。','warn');
+      state.hp=Math.max(1,(state.hp==null?(state.maxHp||100):state.hp)-8);
+      renderStatus(); save(state);
+      return;
+    }
+    if(!exert('取械')) return;
+    if(!state.flags.route) state.flags.route={};
+    state.flags.route.rack=true;
+    log('〔得械〕你抽了一杆钝头枪，塞进塌墙根的乱砖底下——真要硬闯岗哨，手里总得有件家伙。','good');
+    save(state);
+  }
+  // ═══ 苦役营·差役牌（记工木牌的升级，v20260914e）═══
+  // 木牌只当「公告栏」：谁派、去哪干、交到谁手上，一望而知。
+  //   接活与交差仍走 LABOR_QUESTS 那套 talk 触发器 —— 不另起一套任务系统，省得两处对不上账。
+  // 差事本身要求「实地真有活可干」：接了活，目标格才长出可交互的设施（靠 CELL_INTERIORS 的 show 门槛）。
+  //   于是「点一下就完事」的担石退为自由劳作（挣工分用），差役才是要跑腿、要交货、要交到人手上的活。
+  var JOB_BOARD = [
+    { key:'farm', title:'开垦薄田', boss:'孙老', where:'农田（营北）', do:'领锄翻透三垄，再掐两捧野菜', to:'伙房 鲁大',
+      pay:'干粮×1 · 修为+25 · 孙老好感+1' },
+    { key:'ore',  title:'凿石入库', boss:'郑刚', where:'矿坑（营东北）', do:'就岩壁凿下青石五块', to:'仓库 郑刚',
+      pay:'劳字木片×1 · 修为+25 · 郑刚好感+1' }
+  ];
+  function jobFlag(key, suffix){ var t=(state.flags && state.flags.task)||{}; return t[key+suffix]; }
+  function jobOpen(key){ return !!jobFlag(key,'_started') && !jobFlag(key,'_done'); }
+  function jobBoard(){
+    log('〔差役牌〕营里的差事都钉在这块木牌上——谁派、去哪、交到谁手上，写得明白：','sys');
+    JOB_BOARD.forEach(function(j, i){
+      var tag = jobFlag(j.key,'_done') ? '（已了）' : (jobFlag(j.key,'_started') ? '（在办）' : '（可接）');
+      log('　'+(i+1)+'．〔'+j.title+'〕'+tag+'　派：'+j.boss+'　处：'+j.where+'　交：'+j.to+'　'+j.do,'sys');
+    });
+    log('〔差役牌〕想接哪桩，去寻派活的那位；做完了，把东西交到该交的人手上。','sys');
+  }
+
+  // ═══ 农田（0,0）：开垦 → 成畦 → 掐菜（v20260914e）═══
+  // 状态存 fixtures['kuyilao|0,0']：tilled 已翻垄数 / picked 已掐菜数（与牢房水槽同一套 fixtures 写法）
+  var FARM_LI = 3;                                   // 翻透三垄才算把这块荒地开出来
+  function farmFx(){ return fxGet('kuyilao|0,0'); }
+  function farmTilled(){ return (farmFx().tilled||0) >= FARM_LI; }
+  // 开垦：头一回由孙老递过锄头（"家伙给你"），此后每次一垄 = 一个时辰 + 4 精力
+  function farmTill(){
+    if(!jobOpen('farm')){ toast('孙老没托你翻这块地，贸然动土反招人疑。'); return; }
+    if(farmTilled()){ toast('三垄都已翻透，只等菜苗起身。'); return; }
+    var f=farmFx();
+    if(!packFind('chutu')){
+      packAdd({defId:'chutu', count:1});
+      log('孙老从田埂边摸出一把锄头递过来：「家伙给你。土要翻透，别糊弄老骨头。」（得「锄头」×1）','good');
+    }
+    if(!exert('开垦')) return;
+    busyAct('开垦·一个时辰', 1000, function(){
+      state.energy=Math.max(0, state.energy-4);
+      advanceTime(1);
+      f.tilled=(f.tilled||0)+1;
+      log('你抡锄翻过一垄，湿土翻开，草腥气扑了满脸。（已开 '+f.tilled+' / '+FARM_LI+' 垄）','env');
+      if(f.tilled>=FARM_LI) log('三垄翻透，土细如筛——过些时日便能掐菜了。','good');
+      save(state); renderStatus(); buildActions(curRoom());
+    });
+  }
+  // 掐菜：得「野菜」实物（可自啃、也可交伙房），每掐一次记一份任务进度
+  function farmPick(){
+    if(!jobOpen('farm')){ toast('这不是你该动的菜地。'); return; }
+    if(!farmTilled()){ toast('地还荒着，哪来的菜可掐。'); return; }
+    if(!exert('掐菜')) return;
+    busyAct('掐菜·一个时辰', 1000, function(){
+      state.energy=Math.max(0, state.energy-2);
+      advanceTime(1);
+      var n = 1 + (Math.random()<0.5 ? 1 : 0);
+      if(!packAdd('yecai', n)) return;
+      var f=farmFx(); f.picked=(f.picked||0)+n;
+      addFlagNum('flags.task.farm_cnt', n);
+      var have=flagNum('flags.task.farm_cnt');
+      log('你蹲身掐菜，泥腥气沾了满手——得「野菜」×'+n+'。（交伙房：'+Math.min(have,2)+' / 2）','good');
+      if(have>=2) log('够了——捧去伙房，交予掌灶的鲁大。','sys');
+      afterPackChange(); save(state); renderStatus();
+    });
+  }
+
+  // ═══ 矿坑（2,0）：凿石（v20260914e）═══
+  function oreStrike(){
+    if(!jobOpen('ore')){ toast('郑刚没点头，矿坑的石头动不得。'); return; }
+    if(!exert('凿石')) return;
+    busyAct('凿石·一个时辰', 1000, function(){
+      state.energy=Math.max(0, state.energy-4);
+      advanceTime(1);
+      var bonus = Math.random()<0.35;                // 三成夹带一缕铁矿
+      packAdd('shitiao', 1);
+      if(bonus) packAdd('tiekuangshi', 1);
+      addFlagNum('flags.task.ore_cnt', 1);
+      var have=flagNum('flags.task.ore_cnt');
+      log('你抡镐凿在岩缝上，崩下一块青石——得「石料」×1'+(bonus?'，石间还夹着一缕铁矿石。':'。')+'（交仓库：'+Math.min(have,5)+' / 5）','env');
+      if(have>=5) log('五块齐了——扛去仓库，交予郑刚。','sys');
+      afterPackChange(); save(state); renderStatus();
+    });
+  }
   var CELL_NARR = {
     'kuyilao|1,0': [
       '长巷两侧铁栅森然，风从栅缝钻过，带着潮气与远处草木腥。六间牢房分列东西——东侧天字一号至三号，西侧地字一号至三号。',
       '你顺着栅廊望去，牢门皆虚掩或紧锁，囚徒们或坐或卧，目光却都朝着那几扇通往子牢房的门。'
+    ],
+    'kuyilao|1,1': [
+      '中军帐扎在场院正中，旌旗高悬。帐前立着一块记工木牌，帐侧一架兵器，帐角搁着一口铜刁斗。',
+      '帐帘半卷，里头案上摊着舆图与一摞军报木牍。白日里牢头在此督工，人多眼杂——动手脚得挑时候。'
     ]
   };
   function cellNarr(cid, x, y){ return CELL_NARR[cid + '|' + x + ',' + y] || null; }
@@ -2886,7 +3066,8 @@
   // 通用地图框架（v20260910q）：罗盘=大方位去别处；面板=地点内 rooms/items；NPC 单列
   function renderCellInteriors(cid, x, y){
     var data=cellInteriors(cid, x, y); if(!data) return;
-    var doors=(data.doors||[]);
+    // v20260914d：doors / objects 支持 show() 门槛 —— 中军帐那些「起了出营心思后才该碰」的设施靠它收着
+    var doors=(data.doors||[]).filter(function(d){ return !d.show || d.show(); });
     if(doors.length){
       var _grp={};
       doors.forEach(function(d){ (_grp[d.group]=_grp[d.group]||[]).push(d); });
@@ -2897,7 +3078,7 @@
         });
       });
     }
-    var objs=(data.objects||[]);
+    var objs=(data.objects||[]).filter(function(o){ return !o.show || o.show(); });
     if(objs.length){
       var oh=document.createElement('div'); oh.className='grp'; oh.textContent='交互物品'; $actions.appendChild(oh);
       objs.forEach(function(o){
@@ -4086,7 +4267,8 @@
           haul_stones: ['搬石料',   '你扛着石料往返奔走，肩头磨得发烫，粗布上都浸了汗碱。']
         }[id];
         if(!laborTick(_lm[0])) break;
-        laborQuestTick(id);                                  // 任务进度：干了哪桩活，就记哪桩数（v20260911i）
+        // v20260914e：此处不再记差役进度（原 laborQuestTick）—— 进度改由做工那一刻记（farmPick / oreStrike），
+        //   免得玩家点「下地务农」三下便把「开垦薄田」交了差。这三个按钮如今只挣工分。
         if(!checkTriggers({hook:'onCustom', room: state.room})) log(_lm[1],'sys');
         break;
       }
@@ -5105,8 +5287,15 @@
     if(f.task && f.task.zt_accepted && !onb.questSeen) return {text:'点下方「📜 任务」，看看刚接下的差事记了些什么', targets:[{dock:'quest'}]};
     // ② 尚未出牢：叩牢门请牢头开锁（牢门是 camp_tz1 的场景物件，锚点 cell_door）
     if(!onb.cellOpen) return {text:'走到牢门口的「牢门」，点「叩门」与牢头说通，方能出牢', targets:[{act:'cell_door'}]};
-    // ② 场院两件事：劳作（顺带点亮状态栏/位置页签）→ 环顾（看清几处去路）
+    // ② 场院三件事：劳作（顺带点亮状态栏/位置页签）→ 照看自身 → 环顾（看清几处去路）
     if(!onb.labored)  return campGoto({act:'labor_yard'},  '点「担石劳作」，先熟悉营中苦役（满三工换一枚劳字木片）', '往中军场院去，点「担石劳作」干活', 1, 1);
+    // ②·五 刚扛完一工（v20260914c）：此刻「看自己」最有痛感 —— 精力气血是真掉了一截，
+    //   不是凭空叫人多看一眼面板。放在「环顾四周」之前：先看清自己还剩几分底子，再看清几处去路。
+    //   老档可能只解锁过 pack/quest、没有 char —— 先点亮再指，免得目标条指向一个被 CSS 藏着的按钮。
+    if(!onb.charSeen){
+      if(onb.unlocked && onb.unlocked.indexOf('char')<0) onbUnlockDock('char');
+      return {text:'点下方「🧭 角色」，看看扛完这一工还剩几分底子', targets:[{dock:'char'}]};
+    }
     if(!onb.surveyed) return campGoto({act:'survey_yard'}, '点「环顾四周」，看清场院几处去路', '往中军场院去，点「环顾四周」看清去路', 1, 1);
     // ③ 周听涛一脉：探问 → 寻一份吃食 → 交付。
     //    旧版从「探问」直接跳到「与默叔对暗号」，中间「这份吃食打哪来」整段没有交代：
@@ -5509,7 +5698,8 @@
       case 'riot':    return !!(f.route && f.route.riot);
       case 'wooden':  return !!packFind('wooden_pass');
       case 'bribe':   return (state.gold||0) >= 30;
-      case 'assault': return (state.level||1) >= 3 || !!(f.route && f.route.dummy_done);
+      // v20260914d：第三条前置 —— 趁夜在中军帐兵器架藏下一件家伙（flags.route.rack，见 rackTake）
+      case 'assault': return (state.level||1) >= 3 || !!(f.route && (f.route.dummy_done || f.route.rack));
     }
     return false;
   }
@@ -5524,7 +5714,7 @@
       case 'riot':    return '（未解锁：需秦九霄授趁乱暴动线索）';
       case 'wooden':  return '（未解锁：需陈简伪造木牍路引）';
       case 'bribe':   return '（未解锁：需银两≥30，可收买犬卒/粮官）';
-      case 'assault': return '（未解锁：需战力达标——练武场练至等级≥3，或戳通木人桩）';
+      case 'assault': return '（未解锁：需战力达标——练武场练至等级≥3、戳通木人桩，或趁夜在中军帐兵器架藏下一件家伙）';
     }
     return '（未解锁）';
   }
@@ -5842,6 +6032,8 @@
       var _onb=state.flags.onb, _onbCh=false;
       if(kind==='pack'  && !_onb.packSeen ){ _onb.packSeen =true; _onbCh=true; }
       if(kind==='quest' && !_onb.questSeen){ _onb.questSeen=true; _onbCh=true; }
+      // 「角色」这一课（v20260914c）：与行囊/任务同款 —— 真的开过才算学会，记账后目标条自动往下走
+      if(kind==='char'  && !_onb.charSeen ){ _onb.charSeen =true; _onbCh=true; }
       if(_onbCh){ try{ save(state); }catch(e){} onbGoal(); }
     }
     $modal.classList.remove('hidden');

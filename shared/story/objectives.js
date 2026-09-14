@@ -111,29 +111,24 @@
       submit: { npc: '周听涛', room: 'camp_tz1' },
       reward: '密道线索 · 修为+20'
     },
-    // ── 营中苦役三事（v20260911i）：把「面板上一个按钮就完事」的苦役任务化 ──
-    // 这三条与前两条不同：进度不是「物品×N」，而是「活计计数×N」（担石三趟 / 务农三垄 / 搬石三趟）。
-    // 缘由：营中劳作的产品是通用工分（劳字木片），拿它当任务物会把三条任务串成一团；
-    // 故改记「干了几趟活」——计数器 flags.task.<key>_cnt 由引擎 laborQuestTick() 在任务进行中累加，
-    // 取值/显示见 engine.js · needHave()（need 支持 flag 形式，是对本文件原「纯物品派生」原则的一处必要扩展）。
-    camp_labor: {
-      id: 'camp_labor', title: '担石充役', type: 'side',
-      hint: '牛铁托你替他把石方的份子担了——去场院「担石劳作」三趟，回头寻他复命。',
-      need: [ { flag: 'flags.task.labor_cnt', name: '担石趟数', icon: '🪨', count: 3 } ],
-      submit: { npc: '牛铁', room: 'kuyilao' },
-      reward: '劳字木片×1 · 修为+25 · 牛铁好感+1'
-    },
+    // ── 营中差役（v20260911i 立，v20260914e 改）：差事要「实地真有活可干」──
+    // v20260914e：担石 / 务农 / 搬石那三条「面板上一个按钮就完事」的差役，已退为自由劳作（只挣工分，
+    //   不再成其为差役）——点一下就完事，体验太薄。取而代之的两条要求跑腿 + 交货：
+    //   赴目标格的可交互设施做工（农田「开垦」→「掐菜」/ 矿坑「凿石」），再把实物交到收差人手上
+    //   （菜交伙房鲁大、石料交仓库郑刚）。派活与收活分人，正是营里各管一摊的样子。
+    // 进度仍是「活计计数×N」（flags.task.<key>_cnt），由引擎在做工那一刻累加（farmPick / oreStrike）；
+    //   取值/显示见 engine.js · needHave()（need 支持 flag 形式，是对本文件原「纯物品派生」原则的一处必要扩展）。
     camp_farm: {
-      id: 'camp_farm', title: '代耕薄田', type: 'side',
-      hint: '孙老年迈，托你替他把三垄薄田翻透——在农田「下地务农」三垄，回头寻他复命。',
-      need: [ { flag: 'flags.task.farm_cnt', name: '翻垄数', icon: '🌾', count: 3 } ],
-      submit: { npc: '孙老', room: 'kuyilao' },
+      id: 'camp_farm', title: '开垦薄田', type: 'side',
+      hint: '孙老托你翻透三垄薄田——赴农田「开垦」三垄，待菜起身再「掐菜」两捧，交予伙房掌灶的鲁大。',
+      need: [ { flag: 'flags.task.farm_cnt', name: '野菜', icon: '🥬', count: 2 } ],
+      submit: { npc: '鲁大', room: 'kuyilao' },
       reward: '干粮×1 · 修为+25 · 孙老好感+1'
     },
-    camp_haul: {
-      id: 'camp_haul', title: '搬石入库', type: 'side',
-      hint: '郑刚叫你替他搬石入库——在仓库「搬石料」三趟，回头寻他复命。',
-      need: [ { flag: 'flags.task.haul_cnt', name: '搬运趟数', icon: '🧱', count: 3 } ],
+    camp_ore: {
+      id: 'camp_ore', title: '凿石入库', type: 'side',
+      hint: '郑刚要石料起垛——赴矿坑「凿石」，凿下青石五块，扛回仓库交予郑刚。',
+      need: [ { flag: 'flags.task.ore_cnt', name: '石料', icon: '🪨', count: 5 } ],
       submit: { npc: '郑刚', room: 'kuyilao' },
       reward: '劳字木片×1 · 修为+25 · 郑刚好感+1'
     }

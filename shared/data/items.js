@@ -62,6 +62,7 @@
     fan:      { defId: 'fan',      name: '干粮',     icon: '🍙', cat: '食饵', effect: { food: 25 }, desc: '粗粝饭团，啃下可充饥（回食物 25）。可交付 NPC。' },
     xizhou:   { defId: 'xizhou',   name: '稀粥',     icon: '🥣', cat: '食饵', effect: { food: 12, drink: 12 }, desc: '误了饭点才捞着的半瓢冷粥，米粒可数，好歹暖了肚子（回食物 12、水 12）。' },
     chutu:    { defId: 'chutu',    name: '锄头',     icon: '⛏️', cat: '工具', desc: '木柄锄头，务农开荒的趁手家伙。' },
+    yecai:    { defId: 'yecai',    name: '野菜',     icon: '🥬', cat: '食饵', effect: { food: 6 }, desc: '薄田里掐下的菜蔬，带着泥腥气。生啃可略充饥，交到伙房能入锅。' },
     // —— 素材：野外采集所得 ——
     caoyao:         { defId: 'caoyao',         name: '草药',     icon: '🌿', cat: '素材', desc: '山野可入药的茎叶，多凑几味可合成疗伤之物。' },
     shengrou:       { defId: 'shengrou',       name: '生肉',     icon: '🥩', cat: '素材', desc: '猎获或劫掠所得的生肉，于篝火炊制可成一包肉脯干粮。' },
@@ -182,6 +183,8 @@
       desc: '矿坑偷取的镐锄。挖地道线（路线2）必需——抡起来刨土挖墙，耐久 8。' },
     sleep_drug: { defId: 'sleep_drug', name: '迷药', icon: '💤', cat: '药剂',
       desc: '林娘以蒙汗草配制的迷药。下迷药业（路线3）下于饭中，可放倒官差；不伤性命。' },
+    blank_pass:  { defId: 'blank_pass',  name: '空白木牍', icon: '🪵', cat: '素材',
+      desc: '中军帐文案房取来的空白木牍，未刻一字。可请人刻作路引——陈简那双手，能把这枚木片变成一张路引。' },
     wooden_pass: { defId: 'wooden_pass', name: '木牍路引', icon: '🪵', cat: '素材',
       desc: '陈简以营中竹木伪造的路引木牍。伪造木牍线（路线5）混出门的凭证；如今纸贵，木牍最便。' },
     rope:      { defId: 'rope',      name: '绳', icon: '🪢', cat: '素材',
