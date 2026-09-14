@@ -460,47 +460,79 @@
   .st-goal,.st-sect{cursor:pointer;}
   .st-goal:hover,.st-sect:hover{filter:brightness(1.15);}
   .obj-list{display:flex;flex-direction:column;gap:10px;margin:6px 0 2px;}
-  .obj{border:1px solid var(--btn-line);border-radius:10px;padding:9px 12px;background:var(--btn);}
-  .obj-t{font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--seal);font-weight:600;margin-bottom:3px;}
-  .obj-h{font-size:12.5px;color:var(--ink-faint);line-height:1.5;}
-  .obj-p{font-size:12px;color:#8a6a2e;margin-top:4px;}
   .obj-done-title{margin-top:12px;font-size:12px;color:var(--ink-faint);}
-  .obj-done{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;}
-  .obj-d{font-size:12px;color:#7fce8f;border:1px solid rgba(127,206,143,.4);border-radius:14px;padding:3px 10px;}
   .obj-group-title{font-family:"STKaiti","KaiTi",serif;font-size:14px;color:var(--seal);margin:10px 0 4px;font-weight:700;}
-  .obj-head{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
-  .obj-tag{font-size:11px;padding:1px 8px;border-radius:10px;color:#fff;flex:none;}
-  .obj-tag.t-main{background:#b8860b;} .obj-tag.t-side{background:#3a7d44;} .obj-tag.t-trial{background:#3a5f8a;}
-  .obj.t-main{border-color:rgba(184,134,11,.45);} .obj.t-side{border-color:rgba(58,125,68,.45);} .obj.t-trial{border-color:rgba(58,95,138,.45);}
-  .obj-bar{height:5px;background:rgba(0,0,0,.12);border-radius:3px;margin-top:6px;overflow:hidden;}
-  .obj-bar span{display:block;height:100%;background:linear-gradient(90deg,#c9a15a,#e0c07a);border-radius:3px;}
-  .obj-reward{font-size:12px;color:#7fce8f;margin-top:4px;}
-  .obj-track{margin-top:7px;font-size:12px;padding:4px 14px;border:1px solid var(--btn-line);border-radius:14px;background:var(--btn);color:var(--seal);cursor:pointer;}
-  .obj-track.on{border-color:rgba(184,134,11,.6);color:#b8860b;background:rgba(184,134,11,.08);}
+  .sect-open:active{background:rgba(184,134,11,.28);}
+
+  /* ===== 任务日志 · 卷宗风（v20260915a） ===== */
+  .q-title{display:flex;align-items:center;justify-content:center;gap:14px;margin:2px 0 12px;
+    font-family:"STKaiti","KaiTi",serif;font-size:19px;letter-spacing:12px;color:var(--seal);font-weight:700;text-indent:12px;}
+  .q-title::before,.q-title::after{content:"";flex:1;max-width:74px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(176,131,47,.6),transparent);}
+  .obj{position:relative;border:1px solid rgba(74,62,48,.16);border-left-width:3px;border-radius:7px;
+    padding:10px 12px 10px 14px;
+    background:linear-gradient(180deg,rgba(255,255,255,.74),rgba(248,243,230,.66));
+    box-shadow:0 2px 7px -4px rgba(60,48,34,.28);}
+  .obj.t-main{border-left-color:var(--seal);}
+  .obj.t-side{border-left-color:#3a7d44;}
+  .obj.t-trial{border-left-color:#3a5f8a;}
+  .obj-t{font-family:"STKaiti","KaiTi",serif;font-size:15.5px;color:var(--ink);font-weight:700;letter-spacing:1px;margin-bottom:3px;}
+  .obj-h{font-size:12.5px;color:var(--ink-soft);line-height:1.6;}
+  .obj-p{font-size:12px;color:#8a6a2e;margin-top:5px;font-variant-numeric:tabular-nums;}
+  .obj-done-title{margin-top:12px;font-size:12px;color:var(--ink-faint);}
+  .obj-done{display:flex;flex-direction:column;gap:7px;margin-top:4px;}
+  .obj-d{display:flex;align-items:center;gap:8px;font-size:13px;color:#4f9a58;border:1px solid rgba(79,154,88,.32);
+    border-radius:6px;padding:7px 12px;background:rgba(79,154,88,.05);letter-spacing:.5px;}
+  .obj-d::before{content:"✓";display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
+    border-radius:50%;background:rgba(79,154,88,.16);font-size:11px;color:#4f9a58;flex:none;line-height:1;}
+  .obj-group-title{font-family:"STKaiti","KaiTi",serif;font-size:14px;color:var(--seal);margin:10px 0 4px;font-weight:700;}
+  .obj-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .obj-tag{font-family:"STKaiti","KaiTi",serif;font-size:11.5px;padding:1px 8px;border-radius:3px;
+    color:#fff;flex:none;letter-spacing:2px;box-shadow:0 1px 3px rgba(0,0,0,.22);}
+  .obj-tag.t-main{background:linear-gradient(160deg,#c2503a,#8f2f22);}
+  .obj-tag.t-side{background:linear-gradient(160deg,#4d8f55,#2e6b38);}
+  .obj-tag.t-trial{background:linear-gradient(160deg,#4f7ba8,#31567f);}
+  .obj-bar{height:5px;background:rgba(60,48,34,.14);border-radius:3px;margin-top:7px;overflow:hidden;}
+  .obj-bar span{display:block;height:100%;border-radius:3px;}
+  .obj.t-main .obj-bar span{background:linear-gradient(90deg,#c0503a,#e0a05a);}
+  .obj.t-side .obj-bar span{background:linear-gradient(90deg,#3a7d44,#7fb98a);}
+  .obj.t-trial .obj-bar span{background:linear-gradient(90deg,#3a5f8a,#7ba3c8);}
+  .obj-reward{font-size:12px;color:var(--gold);margin-top:4px;}
+  .obj-acts{display:flex;gap:8px;margin-top:8px;}
+  .obj-acts .obj-goto,.obj-acts .obj-track{flex:1;justify-content:center;}
   /* 任务「指路」（v20260914a）：任务日志只说「做什么」，从不说「去哪儿」——这点亮去路的那一颗。
      点它：目标在本格 → 直接高亮并滚进视野；在隔壁 → 点亮罗盘上那个方位键；都不在 → 报出路名并亮「山河」。 */
-  .obj-goto{margin-top:7px;margin-right:6px;font-size:12px;padding:4px 14px;border:1px solid rgba(184,134,11,.5);
-    border-radius:14px;background:rgba(184,134,11,.08);color:#8a6a2e;cursor:pointer;}
-  .obj-goto:active{background:rgba(184,134,11,.28);}
+  .obj-goto{font-size:12px;padding:5px 8px;border:1px solid rgba(176,131,47,.55);border-radius:5px;
+    background:rgba(176,131,47,.1);color:#8a6a2e;cursor:pointer;display:flex;align-items:center;gap:4px;letter-spacing:1px;}
+  .obj-goto:active{background:rgba(176,131,47,.28);}
+  .obj-track{font-size:12px;padding:5px 8px;border:1px solid var(--seal);border-radius:5px;
+    background:rgba(158,59,46,.06);color:var(--seal);cursor:pointer;display:flex;align-items:center;gap:4px;letter-spacing:1px;}
+  .obj-track:hover{background:rgba(158,59,46,.12);}
+  .obj-track.on{border-color:var(--seal);color:#fff;background:linear-gradient(160deg,#c2503a,#8f2f22);}
   /* 门派入口（v20260914a）：志向「择木而栖」此前教玩家去点一个并不存在的入口，
      而全项目根本没有能打开门派面板的地方 —— 在角色面板补上这唯一一处。 */
   .sect-open{margin:6px 0 10px;width:100%;font-size:13px;padding:8px 14px;border-radius:10px;
     border:1px solid rgba(184,134,11,.5);background:rgba(184,134,11,.1);color:#8a6a2e;cursor:pointer;}
   .sect-open:active{background:rgba(184,134,11,.28);}
-  /* 任务日志：进行中/已完成 标签页 + 接取式任务卡 */
-  .quest-tabs{display:flex;gap:8px;margin:2px 0 10px;}
-  .qtab{font-size:13px;padding:5px 16px;border:1px solid var(--btn-line);border-radius:14px;background:var(--btn);color:var(--ink-soft);cursor:pointer;}
-  .qtab.active{color:#b8860b;border-color:rgba(184,134,11,.6);background:rgba(184,134,11,.1);font-weight:600;}
+  /* 任务日志：进行中/已完成/志业 签牌页签 */
+  .quest-tabs{display:flex;gap:4px;margin:2px 0 12px;border-bottom:1px solid rgba(74,62,48,.18);padding:0 2px;}
+  .qtab{flex:1;font-size:13px;padding:7px 0 6px;border:none;background:none;color:var(--ink-soft);
+    cursor:pointer;letter-spacing:3px;border-bottom:2px solid transparent;transition:.18s;
+    font-family:"STKaiti","KaiTi",serif;}
+  .qtab:hover{color:var(--seal);}
+  .qtab.active{color:var(--seal);font-weight:700;border-bottom-color:var(--seal);
+    text-shadow:0 0 14px rgba(158,59,46,.28);}
   .quest-pane{display:flex;flex-direction:column;gap:10px;}
-  .q-empty{color:var(--ink-faint);}
-  .q-need{margin-top:6px;display:flex;flex-direction:column;gap:4px;}
-  .q-need-row{display:flex;align-items:center;gap:8px;font-size:13px;}
-  .q-need-row .q-ic{font-size:15px;}
+  .q-empty{text-align:center;color:var(--ink-faint);padding:20px 8px;font-size:12.5px;letter-spacing:1px;line-height:1.7;}
+  .q-need{margin-top:7px;display:flex;flex-direction:column;gap:3px;border-top:1px dashed rgba(74,62,48,.2);padding-top:6px;}
+  .q-need-row{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+  .q-need-row .q-ic{font-size:14px;width:18px;text-align:center;flex:none;}
   .q-need-row .q-nm{color:var(--ink);}
   .q-need-row .q-cnt{margin-left:auto;color:#8a6a2e;font-variant-numeric:tabular-nums;}
-  .q-need-row.done .q-cnt{color:#7fce8f;}
-  .q-need-row.done .q-nm{color:#7fce8f;}
-  .q-submit{font-size:12px;color:var(--seal);margin-top:5px;}
+  .q-need-row.done .q-cnt{color:#4f9a58;}
+  .q-need-row.done .q-nm{color:#4f9a58;}
+  .q-need-row.done .q-cnt::before{content:"✓ ";color:#4f9a58;font-weight:700;}
+  .q-submit{font-size:12px;color:var(--seal);margin-top:6px;letter-spacing:.5px;}
   .quest-track{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);background:linear-gradient(90deg,rgba(184,134,11,.14),rgba(184,134,11,.05));border-bottom:1px solid rgba(184,134,11,.25);padding:4px 10px;}
   .quest-track b{font-family:"STKaiti","KaiTi",serif;color:#b8860b;}
   .quest-track .qt-prog{color:var(--ink-faint);}

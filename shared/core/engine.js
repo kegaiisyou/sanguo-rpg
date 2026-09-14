@@ -1486,7 +1486,7 @@
     var quests = (state.quests && state.quests.length) ? state.quests : [];
     var done = (state.questsDone && state.questsDone.length) ? state.questsDone : [];
     var career = (LF.OBJECTIVES) ? LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(state)}; }) : [];
-    var h='<h3>任 务 日 志</h3>'+
+    var h='<h3 class=\"q-title\">任 务 日 志</h3>'+
       '<div class="quest-tabs">'+
         '<button class="qtab active" data-t="active" onclick="switchQuestTab(\'active\')">进行中</button>'+
         '<button class="qtab" data-t="done" onclick="switchQuestTab(\'done\')">已完成'+(done.length?('（'+done.length+'）'):'')+'</button>'+
@@ -1503,7 +1503,7 @@
       h+='<p class="tip q-empty">尚无已完成的任务。</p>';
     } else {
       h+='<div class="obj-done">';
-      done.forEach(function(q){ h+='<span class="obj-d">✓ '+q.title+'</span>'; });
+      done.forEach(function(q){ h+='<span class="obj-d">'+q.title+'</span>'; });
       h+='</div>';
     }
     h+='</div><div class="quest-pane" id="qp-career" style="display:none">';
@@ -1538,8 +1538,8 @@
     }
     var tracking=state.trackingQuest===o.id;
     // 「指路」（v20260914a）：志业多半是长期倾向，只有数据里标了 o.at 的才给按钮 —— 没位置就不装模作样
-    r+=(x.done?'':gotoBtnHTML(o.at))+
-       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+o.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button>'+
+    r+='<div class="obj-acts">'+(x.done?'':gotoBtnHTML(o.at))+
+       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+o.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div>'+
        '</div>';
     return r;
   }
@@ -1610,8 +1610,8 @@
     if(q.reward){ h+='<div class="obj-reward">奖励 · '+q.reward+'</div>'; }
     var tracking=state.trackingQuest===q.id;
     // 接取式任务几乎都带 submit（去某房间找某人复命）——那是任务文字里最实在的一句「去哪儿」
-    h+=gotoBtnHTML(q.submit ? { room:q.submit.room, npc:q.submit.npc } : (q.at||null))+
-       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div>';
+    h+='<div class="obj-acts">'+gotoBtnHTML(q.submit ? { room:q.submit.room, npc:q.submit.npc } : (q.at||null))+
+       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div></div>';
     return h;
   }
   window.switchQuestTab=function(t){
@@ -2922,6 +2922,9 @@
     var cnt=o.workCnt||0, per=LABOR_PER_WOOD||3, need=per-(cnt%per);
     var pai=packFind('lao_pai'), have=pai?(pai.count||1):0, miss=o.missCount||0;
     log('〔记工册〕名下已记 '+cnt+' 工，手上有「劳字木片」'+have+' 枚；再干 '+need+' 工，可换下一枚。','sys');
+    // v20260914g：工分与木片的来路去处，此前全营没有一处写明（玩家挣到木片，却不知往哪使、该交给谁）。
+    //   记工册正是管这件事的地方，故让它把这条链答全：工分 → 木片 → 伙房换饭 → 交到人手上。
+    log('〔记工册〕木片是营里的钱：干活记工，满 '+per+' 工发一枚，拿它往营西伙房换饭；换来的干粮须交到人手上（点那人，选「给予」），空手说一句不算数。','sys');
     if(miss>0) log('〔记工册〕另有旷役 '+miss+' 次未补——口粮按罚例加倍，销名逾时还要吃鞭。','warn');
   }
   // 刁斗：击鼓报更。中军帐的鼓是号令鼓，比牢房那面更鼓更招人（与 drumStrikeBy 对称）
@@ -3009,6 +3012,9 @@
       else txt+='「'+j.word+'。」';
     });
     txt+='牌角另钉着一句：活要做出东西来，东西要送到人手上。空着手回来，不算交差。';
+    // v20260914g：木片（营里的口粮钱）此前没有一处交代来路去处，玩家挣到了也不知往哪使 —— 一并钉在牌上，
+    //   并与牌上这些「差役」划清：那是记工换饭的口粮，不是差役。
+    txt+='牌侧另有一行小字，是另一码事：干活记工，满 '+LABOR_PER_WOOD+' 工发一枚劳字木片，木片到营西伙房换饭——那是口粮，不是差役。';
     var opts=[];
     JOB_BOARD.forEach(function(j){
       if(jobFlag(j.key,'_started') || jobFlag(j.key,'_done')) return;
@@ -4323,7 +4329,7 @@
         }
         var _cost = 1 + ((_o.missCount||0) > 0 ? 1 : 0);         // 旷役补役：口粮按罚例加倍
         var _pai = packFind('lao_pai'), _have = _pai ? (_pai.count || 1) : 0;
-        if(!_have){ log('〔伙房〕你手里没有「劳字木片」——去农田 / 矿坑 / 劳役场挣够工分再来。','warn'); break; }
+        if(!_have){ log('〔伙房〕你手里没有「劳字木片」——去中军场院「担石劳作」，干满三工发一枚（农田下地、仓库搬石也记工分）。','warn'); break; }
         if(_have < _cost){ log('〔伙房〕你名下有旷役未补，口粮按罚例加倍，须 '+_cost+' 枚木片（现有 '+_have+' 枚）。','warn'); break; }
         packConsume('lao_pai', _cost); afterPackChange();
         var _hot = isMessHour();
@@ -5313,7 +5319,9 @@
       if(!tk.zt_accepted) return campGoto({npc:'zhoutingtao'},
         tk.zt_intro ? '再寻周听涛，把「寻一份吃食」的差事应下' : '回牢房·天字一号，寻那位相面的周听涛探问出营门道',
         tk.zt_intro ? '往南回牢区（营北），进天字一号牢房把差事应下' : goZT, 1, 0);
-      if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '把「吃食」交予周听涛，听他说破命数', '往南回牢区，把干粮交予周听涛', 1, 0);
+      // v20260914g：交付已改走「给予」（triggers.js zt_food_give）——这里也得照实说，
+      //   否则指引把人领到周听涛跟前，玩家却只在「交谈」里空耗（旧版交谈即自动交付，现已不再）。
+      if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '点周听涛、选「给予」，把干粮交到他手上', '往南回牢区，把干粮交予周听涛', 1, 0);
       // 手上有木片 → 去伙房换食；没有 → 回场院再挣一工（初次满三工还会顺带点亮行囊）
       if(packFind('lao_pai')) return campGoto({act:'mess_hall'}, '持「劳字木片」在伙房换一份吃食', '往伙房去，用「劳字木片」换一份吃食', 0, 1);
       return campGoto({act:'labor_yard'}, '周听涛要一份吃食——再「担石劳作」满三工，换一枚「劳字木片」', '往中军场院去「担石劳作」，满三工换一枚「劳字木片」', 1, 1);
