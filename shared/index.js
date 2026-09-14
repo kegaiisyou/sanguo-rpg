@@ -69,7 +69,13 @@
       title: '游侠',                      // 官职：游侠→县令→太守→州牧→君主（占城即得 tier 对应官职）
       ruledCities: [],                    // 玩家统治的城 rid 列表（占城时追加）
       tokens: [],                         // 持有信物 defId（权柄道具，预留）
-      quest: { bandit:0, turban:0, hua_xiong:false, luoyang:false }  // P4 主线进度计数
+      quest: { bandit:0, turban:0, hua_xiong:false, luoyang:false },  // P4 主线进度计数
+      // ─── v20260914a 新增 ───
+      // 回顾：近若干句「真正上过屏」的文案（地点/时刻/类别一并记下），供随时回看。
+      //   叙事区只往滚、对话帘收帘即清，此前滚过去的话就再也找不回来；只留最近 HIST_MAX 条防存档膨胀。
+      // 注：「郊野已识」标记记在 flags.fieldSeen（形状随格子数增长，被 fieldNarrFresh 懒建），
+      //   故不在此处预置 —— 免得同一件事有两个家。
+      logRing: []
     };
   }
 

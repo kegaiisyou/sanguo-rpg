@@ -259,7 +259,8 @@
     setCityDev: setCityDev, cityDevOf: cityDevOf, advanceTime: advanceTime, renderRoom: renderRoom,
     getCombatMode: function () { return combatMode; },
     getCard: function () { return $card; }, getCurrentModalKind: function () { return currentModalKind; },
-    openModal: openModal, closeModal: closeModal
+    openModal: openModal, closeModal: closeModal,
+    busyAct: busyAct   // 耗时动作进度条（v20260914a，见引擎 busyAct）
   });
   var bldCurArea = Building.bldCurArea, bldDef = Building.bldDef,
       renderBuildingPanel = Building.renderBuildingPanel, bindBuildingPanel = Building.bindBuildingPanel,
@@ -311,7 +312,8 @@
     itemIconHTML: itemIconHTML, placedCellTag: placedCellTag, placedInCell: placedInCell,
     advanceTime: advanceTime, afterPackChange: afterPackChange, save: save,
     log: log, toast: toast, openModal: openModal, closeModal: closeModal,
-    renderRoom: renderRoom, buildActions: buildActions, exert: exert
+    renderRoom: renderRoom, buildActions: buildActions, exert: exert,
+    busyAct: busyAct   // 耗时动作进度条（v20260914a，见引擎 busyAct）
   });
   var gatherActs = Crafting.gatherActs, startGather = Crafting.startGather, doPickGather = Crafting.doPickGather,
       chopTree = Crafting.chopTree, searchBench = Crafting.searchBench, pickupAxe = Crafting.pickupAxe,
@@ -688,8 +690,14 @@
   }
 
   var $status=document.getElementById('status');
-  $status.onclick=function(){ openModal('clock'); };   // 点击状态栏 → 时辰钟表
+  // 点击状态栏 → 时辰钟表；唯独右侧那颗「回顾」另开门路（v20260914a）
+  $status.onclick=function(e){
+    var t=e && e.target;
+    if(t && t.id==='st-log'){ openModal('log'); return; }
+    openModal('clock');
+  };
   var $narr=document.getElementById('narr');
+  var busyEl=document.getElementById('busy');   // 耗时动作进度条（v20260914a，见 busyAct）
   var $actions=document.getElementById('actions');
   var $modal=document.getElementById('modal');
   var $card=document.getElementById('modal-card');
@@ -741,10 +749,13 @@
   //   此前只锁「叙事中」，对话选项面板一挂起（narrOngoing 已成假）玩家就能点罗盘走人——
   //   甚至趁牢头念「三鞭」时拔腿溜走躲掉鞭刑，剧本状态与场景随之错位。
   var askPending=false;
+  // 耗时动作进行中（v20260914a）：见下方 busyAct —— 采集/伐木/劳作/营造这类动作的进度条期间为真。
+  var busyRunning=false;
+  var busyTimer=null;    // 进行中进度条的 setInterval 句柄（离局时须掐掉，见 busyCancel）
   // 是否正处于「文字输出中」（打字 / 排队 / 连续叙事）
   function narrActive(){ return logBusy || (logQueue && logQueue.length>0) || narrOngoing; }
-  // 交互闸门（v20260911i）：叙事中 / 对话抉择悬挂中，一律不许走动、不许另开岔路
-  function interactBusy(){ return narrActive() || askPending; }
+  // 交互闸门（v20260911i）：叙事中 / 对话抉择悬挂中 / 耗时动作进行中，一律不许走动、不许另开岔路
+  function interactBusy(){ return narrActive() || askPending || busyRunning; }
   // 文字输出中：锁定交互按钮（变灰不可点），输出完成或快进到底后自动解锁
   // 注：战斗中（combatMode 为真）不锁 #actions —— 战斗指令菜单由战斗逻辑自行管理，不应被叙事锁挡住
   // 注：.onb-choices（对话选项）刻意不在锁范围内 —— 它是悬挂态下玩家唯一的出路，锁住即死局。
@@ -769,8 +780,47 @@
     // 对话窗收尾（v20260912g）：话说完、也没有挂起的问题了 → 稍候收窗，把底部位置让回给罗盘/功能栏
     if(!active && !combatMode) dlgSettle();
   }
+  // ===== 耗时动作的「在做」呈现（v20260914a）=====
+  // 采集 / 伐木 / 采石 / 烧砖 / 制作 / 担石劳作 / 操练 / 城内营造……此前点一下就「已经做完了」，
+  //   只留一行结果，玩家没有「花了一个时辰」的分量感 —— 而这条链正是前期循环里最高频的动作。
+  // 这里给一个统一的短进度：亮出「在做什么」、条子走满、再落结果；期间锁住其它按钮
+  //   （busyRunning → interactBusy，与「文字输出中」共用同一把锁）。
+  // 与「文字演出」设置同调：设成「瞬（无动画）」时不做动画，直接执行原逻辑（尊重 settings.textSpeed）。
+  // 用法：把原函数体整段搬进 done 回调；守卫/校验（不足则 toast 返回）仍留在回调【之外】，
+  //   这样返回值语义、错误提示时序都不变，只有「生效」这一步被推迟到动画之后。
+  function busyAct(label, ms, done){
+    var d=done||function(){};
+    if(!busyEl || !(settings && settings.textSpeed>0)){ d(); return; }
+    var dur=Math.max(300, ms||1000), t0=Date.now();
+    busyEl.innerHTML='<span class="bs-nm">'+escapeHtml(label||'忙碌中')+'…</span>'+
+      '<span class="bs-track"><i class="bs-bar"></i></span>';
+    busyEl.classList.remove('hidden');
+    busyEl.setAttribute('aria-hidden','false');
+    busyRunning=true; syncActionLock();
+    var bar=busyEl.querySelector('.bs-bar');
+    busyTimer=setInterval(function(){
+      var k=Math.min(1,(Date.now()-t0)/dur);
+      if(bar) bar.style.width=(k*100).toFixed(0)+'%';
+      if(k>=1){ busyStopTimer(); busyHide(); d(); }
+    }, 40);
+  }
+  function busyHide(){
+    if(busyEl){ busyEl.classList.add('hidden'); busyEl.setAttribute('aria-hidden','true'); busyEl.innerHTML=''; }
+    if(busyRunning){ busyRunning=false; syncActionLock(); }
+  }
+  // 掐掉进行中的进度计时器（v20260914b）
+  //   为什么单有 busyHide 不够：它只收 UI 与那把锁，setInterval 仍在跑；计时走满照样回调 done()。
+  //   而「离局」那一刻 state 已被 showTitle 清空，done() 里的 advanceTime → clockFlowing → onbF()
+  //   要读 state.flags —— 于是定时器里抛一个没人接的 TypeError: Cannot read properties of null
+  //   （reading 'flags'）：轻则控制台炸、重则半路动作在死后/换局后落到别人头上。
+  //   故离局（showTitle）与殒落（die）一律用 busyCancel 把计时器一并掐掉，当次动作不再落地。
+  function busyStopTimer(){ if(busyTimer){ clearInterval(busyTimer); busyTimer=null; } }
+  function busyCancel(){ busyStopTimer(); busyHide(); }
   // 新场景/战斗开始时，丢弃旧场景残留的排队文字与打字定时器，避免文案串场
   function flushNarr(){
+    // 进度条只属于「当下这一格」：房间被换掉（读档/剧本强制移动/战斗开场）时一并收掉，
+    //   否则 busyRunning 这把锁会永远留在身上，全屏按钮再也点不动（v20260914a）
+    if(busyRunning) busyHide();
     narrToken++;                 // 使任何进行中的旧 logScene 序列失效
     logQueue.length=0;
     if(activeTyper && activeTyper.timer){ try{ clearTimeout(activeTyper.timer); }catch(e){} }
@@ -883,6 +933,7 @@
   // 真正执行单段打字（由 log 队列驱动）
   function logNow(text, cls, name, done){
     cls=cls||'env';
+    recHist(text, cls, name);   // 回顾：记「真正上屏的这句」（v20260914a）
     var p=document.createElement('p');
     p.className='narr '+cls;
     var sc=document.getElementById('scene');
@@ -993,7 +1044,9 @@
       '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
       '<span class="st-time">'+sh+'</span>'+
       '<span class="dot">·</span>'+
-      '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>';
+      '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>'+
+      // 回顾入口（v20260914a）：贴在状态栏最右侧，随手可及。点它为「回顾」，点状态栏其余处仍是「时辰钟表」。
+      '<span class="st-log" id="st-log" role="button" title="回顾：你听过、读过的每一句">回顾</span>';
     var qtr=document.getElementById('quest-track');
     if(qtr){
       var tq=state.trackingQuest, to=null, qd=null;
@@ -1163,34 +1216,39 @@
   // 劳役（时间闭环核心，v20260911h）：一次劳作 = 一个时辰 + 精力，并累积工分换「劳字木片」。
   //   于是营中一日有了预算：干得越多，越须按时回牢销名、去伙房换饭、寻处歇息。
   function laborTick(label){
+    // v20260914a：劳作是前期点得最多的动作（一次＝一个时辰＋4 点精力），
+    //   从前点一下就「已经干完了」。守卫照旧同步先过（不足则立刻提示、立刻返回 false），
+    //   只有「干完的那一刻」被推迟到进度条走满之后 —— 用动作的时长去换那一行的分量感。
     if(!exert(label)) return false;
     if(state.energy<6){ log('〔力竭〕你两臂发颤，连锹都握不稳了——先寻处歇一歇（席地打盹 / 营门歇脚）。','warn'); return false; }
-    state.energy=Math.max(0,state.energy-4);
-    advanceTime(1);
-    var o=onbF();
-    if(o && o.started && !o.done){
-      o.workCnt=(o.workCnt||0)+1;
-      if(o.workCnt % LABOR_PER_WOOD === 0){
-        packAdd('lao_pai', 1);
-        log('〔记工〕狱卒验过你的石方，掷来一枚「劳字木片」。','good');
-        // 「头一回挣到实物」的提示（v20260911k 起；v20260912f 调整）：
-        //   「行囊是什么」已在开篇牢房里教过，此处不再重复讲解，只做个「东西进了哪儿」的确认，
-        //   顺手把行囊页签再亮一记（让刚学会的页签立刻派上用场），并给点小甜头。
-        if(!o.bagSeen){
-          o.bagSeen=true;
-          onbReveal('dock');
-          packAdd('fan', 1);
-          log('狱卒今日心情不坏，又扔来半张干粮：「拿着，别死在头一天。」','good');
-          log('〔入囊〕木片与干粮都收进了行囊——点下方「🎒 行囊」可查看、装备与使用。','sys');
-          try{ if(LF.Guide && LF.Guide.ping) LF.Guide.ping({dock:'pack'}); }catch(e){}
-          toast('行囊里多了东西');
+    busyAct(String(label||'劳役')+'·一个时辰', 1000, function(){
+      state.energy=Math.max(0,state.energy-4);
+      advanceTime(1);
+      var o=onbF();
+      if(o && o.started && !o.done){
+        o.workCnt=(o.workCnt||0)+1;
+        if(o.workCnt % LABOR_PER_WOOD === 0){
+          packAdd('lao_pai', 1);
+          log('〔记工〕狱卒验过你的石方，掷来一枚「劳字木片」。','good');
+          // 「头一回挣到实物」的提示（v20260911k 起；v20260912f 调整）：
+          //   「行囊是什么」已在开篇牢房里教过，此处不再重复讲解，只做个「东西进了哪儿」的确认，
+          //   顺手把行囊页签再亮一记（让刚学会的页签立刻派上用场），并给点小甜头。
+          if(!o.bagSeen){
+            o.bagSeen=true;
+            onbReveal('dock');
+            packAdd('fan', 1);
+            log('狱卒今日心情不坏，又扔来半张干粮：「拿着，别死在头一天。」','good');
+            log('〔入囊〕木片与干粮都收进了行囊——点下方「🎒 行囊」可查看、装备与使用。','sys');
+            try{ if(LF.Guide && LF.Guide.ping) LF.Guide.ping({dock:'pack'}); }catch(e){}
+            toast('行囊里多了东西');
+          }
+          afterPackChange();
+        } else {
+          log('〔记工〕工分 '+o.workCnt+'/'+LABOR_PER_WOOD+'——干满 '+LABOR_PER_WOOD+' 工换一枚劳字木片。','sys');
         }
-        afterPackChange();
-      } else {
-        log('〔记工〕工分 '+o.workCnt+'/'+LABOR_PER_WOOD+'——干满 '+LABOR_PER_WOOD+' 工换一枚劳字木片。','sys');
       }
-    }
-    renderStatus(); save(state);
+      renderStatus(); save(state);
+    });
     return true;
   }
   // 营中苦役 → 任务进度（v20260911i）：接了哪桩活，干一次就记一次数，任务日志据此显示 N/3。
@@ -1258,16 +1316,29 @@
   function checkDeath(){ if(state && !state.dead && state.hp<=0){ die(); } }
   function die(){
     state.dead=true;   // 不落盘（save 对 hp<=0 跳过），回标题屏读档即回到死前存档
+    busyCancel();      // 万一死在耗时动作的半途：锁与计时器一并收起（v20260914a 摘锁；v20260914b 补掐计时器，免死后回调落定）
     $modal.classList.remove('hidden');
+    // v20260914a：把「死前状态已自动留存」这件事说明白，并让「读档续命」成为首选那一步。
+    //   死亡本来就不落盘（save 遇 hp<=0 直接跳过），所以读档必定回到死前那一刻、分毫不损；
+    //   旧版却要玩家先「回首頁」、再自己去档位里找回来，白白吓一跳。
     $card.innerHTML='<h3 style="color:#8a3b2e">⚔ 殒 落</h3>'+
-      '<p class="tip">气血已枯，魂归尘土——乱世如炉，谁记你姓名？<br>欲续前缘，且回首页拾卷重展。</p>'+
-      '<button class="close" id="m-home">回 首 页</button>'+
-      (curSlot? '<button class="close" id="m-load" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">读 档 续 命</button>':'');
+      '<p class="tip">气血已枯，魂归尘土——乱世如炉，谁记你姓名？</p>'+
+      (curSlot
+        ? '<p class="tip" style="margin-top:-4px;">倒下前的光景已自动留在卷中，拾卷即回身死之前，分毫无损。</p>'+
+          '<button class="close" id="m-load" style="background:linear-gradient(180deg,#fbf6ea,#ece0c6);color:#3a2d1a;border-color:#b8893a;font-weight:700;">读 档 续 命 · 回 到 死 前</button>'+
+          '<button class="close" id="m-home" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">回 首 页</button>'
+        : '<p class="tip" style="margin-top:-4px;">此局尚未落于卷中，只能回首页重开。</p>'+
+          '<button class="close" id="m-home">回 首 页</button>');
     var hm=document.getElementById('m-home'); if(hm)hm.onclick=function(){ closeModal(); showTitle(); };
     var ld=document.getElementById('m-load'); if(ld)ld.onclick=function(){ closeModal(); enterGame(rawSlot(curSlot), curSlot); };
   }
   // ===== 标题屏与子面板 =====
   function showTitle(){
+    // 离局（殒落 / 回首頁）时把「耗时动作进行中」那把锁摘掉：
+    //   否则回到标题再择档进局，interactBusy() 一直为真 → 全屏按钮点不动（v20260914a）
+    // v20260914b：连计时器一并掐掉 —— 只摘锁的话，走满时 done() 仍会在 state=null 上跑，
+    //   读 state.flags 抛 TypeError（详见 busyCancel）。
+    busyCancel();
     state=null; curSlot=0; Core.state=state; Core.curSlot=curSlot;
     var app=document.getElementById('app'); if(app) app.classList.add('hidden');
     var tt=document.getElementById('title'); if(tt){ tt.classList.remove('hidden'); tt.classList.remove('frozen'); }
@@ -1476,7 +1547,9 @@
       r+='<div class="obj-reward">奖励 · '+rw.join(' · ')+'</div>';
     }
     var tracking=state.trackingQuest===o.id;
-    r+='<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+o.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button>'+
+    // 「指路」（v20260914a）：志业多半是长期倾向，只有数据里标了 o.at 的才给按钮 —— 没位置就不装模作样
+    r+=(x.done?'':gotoBtnHTML(o.at))+
+       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+o.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button>'+
        '</div>';
     return r;
   }
@@ -1546,7 +1619,9 @@
     if(q.submit){ var _rn=(G.ROOMS[q.submit.room]&&G.ROOMS[q.submit.room].name)||''; h+='<div class="q-submit">📍 提交 · '+q.submit.npc+(_rn?('（'+_rn+'）'):'')+'</div>'; }
     if(q.reward){ h+='<div class="obj-reward">奖励 · '+q.reward+'</div>'; }
     var tracking=state.trackingQuest===q.id;
-    h+='<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div>';
+    // 接取式任务几乎都带 submit（去某房间找某人复命）——那是任务文字里最实在的一句「去哪儿」
+    h+=gotoBtnHTML(q.submit ? { room:q.submit.room, npc:q.submit.npc } : (q.at||null))+
+       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div>';
     return h;
   }
   window.switchQuestTab=function(t){
@@ -1558,6 +1633,14 @@
     if(pc) pc.style.display = t==='career'?'':'none';
   };
   function bindQuestPanel(){
+    // 「指路」（v20260914a）：点一下就把去路点亮 —— 不必再对着一行文字自己猜该往哪走
+    document.querySelectorAll('.obj-goto[data-goto]').forEach(function(b){
+      b.onclick=function(){
+        var at=null;
+        try{ at=JSON.parse(decodeURIComponent(b.getAttribute('data-goto'))); }catch(e){}
+        questGoto(at);
+      };
+    });
     document.querySelectorAll('.obj-track[data-quest]').forEach(function(b){
       b.onclick=function(){
         var qid=b.getAttribute('data-quest');
@@ -1762,7 +1845,9 @@
       }
       // v20260911f：取消「进场即罗列各出口」的旁白（〔出口〕南·... / 东·...）——过于冗长且与罗盘按钮重复。
       // 可走方向一律以底部罗盘按钮 + 山河志呈现，不再逐条播报。
-      if(room.isField) narr = narr.concat(fieldNarr(room));   // 郊野：资源/野兽/路人
+      // 郊野：资源/野兽/路人。v20260914a：走 fieldNarrFresh —— 同一格反复进出时，
+      //   〔途〕〔地利〕这类地貌情报不再每次重念一遍（详见 fieldNarrFresh）。
+      if(room.isField) narr = narr.concat(fieldNarrFresh(room, rid));
       // 新房间自动探查：标记已探索，出口立即可用。
       // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「环顾四周 / 探查」在玩家主动行动时揭示。
       if(!explored){
@@ -3503,14 +3588,20 @@
         } else {
           _txt='「'+(_fp.name||'野')+'」：向'+_back+'归「'+_pn+'」；其余方向似无通途，宜折返。';
         }
-        out.push({t:'〔途〕'+_txt, c:'sys'});
+        // k/s（v20260914a）：〔途〕是「地貌性」情报，同一格反复进出不必重念全文 ——
+        //   k='way' 是「已识」标记键，s 是再次进入时的压缩版（消费方见 fieldNarrFresh）。
+        var _brief = _here.length
+          ? ('「'+(_fp.name||'野')+'」归「'+_pn+'」，此格向'+_here.join('、')+'出野。')
+          : ('「'+(_fp.name||'野')+'」归「'+_pn+'」，来路向'+_back+'；出野须向'+_g+'至远野边。');
+        out.push({t:'〔途〕'+_txt, c:'sys', k:'way', s:'〔途·已识〕'+_brief});
       }
     }
     // 顶栏天候/昼夜提示（v20260905d）：让时间与天候对郊野的影响可见可感
     var _w=(WEATHERS[state.weather]||WEATHERS[0]);
     var _t=wxEff().tip;
     out.push({t:'〔天候〕'+_w.n+'·'+(isDaytime()?'昼':'夜')+(_t?('，'+_t):'，天色和朗，正宜赶路。'), c:'sys'});
-    if(room.resources && room.resources.length){ room.resources.forEach(function(r){ out.push({t:'〔地利〕此处有'+r.name+'（'+r.amt+'）可采。', c:'item'}); }); }
+    // 〔地利〕同理：初次说明「此处有何可采」，之后再进不必重念（场景动作栏里就列着「采集」，s:null 即二次进入后略过）
+    if(room.resources && room.resources.length){ room.resources.forEach(function(r){ out.push({t:'〔地利〕此处有'+r.name+'（'+r.amt+'）可采。', c:'item', k:'res:'+r.name, s:null}); }); }
     var mons=fieldMonstersLeft(room);
     if(mons.length){ mons.forEach(function(m){
       var _lv=(({1:'一',2:'二',3:'三'})[m.lvl||1]||'')+'阶';
@@ -3524,6 +3615,27 @@
     if(roomIsBoatRoute(room)) out.push(isOnBoat()
       ? {t:'〔水路〕烟波浩渺，你正乘舟渡江——沿岸码头渐近。', c:'sys'}
       : {t:'〔水路〕此处为津渡水路，须「乘船渡江」方可前行。', c:'warn'});
+    return out;
+  }
+  // 〔野外叙事的重复抑制〕（v20260914a）
+  //   旧版每走进一格郊野就把 fieldNarr 的九条一次铺开（按 55ms/字算约十三秒，不想读就得连点九下）——
+  //   可玩家在「砍柴 → 回城交货 → 再出城砍柴」这条链上，同一格一天要进好几次，每次都重读同样的地貌。
+  //   这里把条目分两类：
+  //     · 静态（带 k：〔途〕〔地利〕）——初次进场照全说；再次进场换成 s 的压缩版（〔地利〕s:null 即不再念）。
+  //     · 动态（不带 k：〔天候〕〔戒备〕〔路人〕〔营地〕〔水路〕）——每次照播，因为它们本来就随状态而变。
+  //   「这格已识」记在 state.flags.fieldSeen[roomId]（随存档走；一房一标记，体量极小）。
+  function fieldNarrFresh(room, rid){
+    var lines=fieldNarr(room);
+    if(!room || !room.isField) return lines;
+    if(!state.flags.fieldSeen) state.flags.fieldSeen={};
+    var first=!state.flags.fieldSeen[rid];
+    state.flags.fieldSeen[rid]=1;
+    if(first) return lines;
+    var out=[];
+    lines.forEach(function(e){
+      if(!e.k){ out.push(e); return; }              // 动态条目：照播
+      if(e.s) out.push({t:e.s, c:e.c, k:e.k, once:true});   // 静态条目：只留压缩版
+    });
     return out;
   }
   // ===== 渡口坐船（v20260907c）=====
@@ -3894,10 +4006,13 @@
       }
       case 'drill_train': {
         if(!exert('操练武艺')) break;
-        state.energy=Math.max(0,state.energy-3);
-        advanceTime(1);   // v20260911h · P3：操练同样吃一个时辰
-        log('你在演武场挥汗操练了一个时辰，拳脚渐稳（精力-3）。','sys');
-        renderStatus(); save(state);
+        // v20260914a：操练同样吃一个时辰，让进度条走完再落结果（守卫已同步过，返回值语义不变）
+        busyAct('演武场·操练一个时辰', 1000, function(){
+          state.energy=Math.max(0,state.energy-3);
+          advanceTime(1);   // v20260911h · P3：操练同样吃一个时辰
+          log('你在演武场挥汗操练了一个时辰，拳脚渐稳（精力-3）。','sys');
+          renderStatus(); save(state);
+        });
         break;
       }
       case 'sentry_look': {
@@ -4712,6 +4827,127 @@
     (Array.isArray(key)?key:[key]).forEach(function(k){ if(k && onb.unlocked.indexOf(k)<0) onb.unlocked.push(k); });
     onbReveal('dock');   // 首次解锁即把整排 dock 揭示出来（onbReveal 内部会调 applyOnboard → applyDockUnlock）
   }
+  // ═══ 回顾：把「上过屏的每一句」留下来（v20260914a）═══
+  // 叙事区只往滚、对话帘收帘即清（dlgTalk.length=0），于是「NPC 到底说了什么」
+  //   一旦滚过去就再也找不回来 —— 全项目此前没有任何历史/回顾入口。
+  //   这里记的是「真正落到屏上的那一句」（由 logNow / dlgLine 调用，不是入队时记），
+  //   所以玩家看到什么、回顾里就有什么；条目随存档走（state.logRing），中途退出回来仍在。
+  //   只留最近 HIST_MAX 条，避免存档无限膨胀。
+  var HIST_MAX=120;
+  function histStamp(){
+    try{
+      var hh=String(Math.floor(state.clock/60)).padStart(2,'0');
+      var mm=String(state.clock%60).padStart(2,'0');
+      return '第'+(((state.day||0)|0)+1)+'日 '+SHICHEN[state.time%12]+' '+hh+':'+mm;
+    }catch(e){ return ''; }
+  }
+  function histLoc(){
+    try{ var r=curRoom(); return (r&&r.name)||''; }catch(e){ return ''; }
+  }
+  // 记一条。同一句话连记两次（同一屏重复输出）不再重复入册。
+  function recHist(text, cls, who){
+    if(!state) return;
+    var t=String(text==null?'':text).replace(/\s+$/,'');
+    if(!t) return;
+    if(!Array.isArray(state.logRing)) state.logRing=[];
+    var r=state.logRing, last=r[r.length-1];
+    if(last && last.t===t && last.r===histLoc()) return;
+    r.push({t:t.slice(0,240), c:cls||'', n:who||'', s:histStamp(), r:histLoc()});
+    if(r.length>HIST_MAX) r.splice(0, r.length-HIST_MAX);
+  }
+  function renderLogPanel(){
+    var r=(state && state.logRing)||[];
+    var h='<h3>回 顾</h3>'+
+      '<p class="tip log-tip">你听过、读过的近 '+HIST_MAX+' 句都记在这里（旧句在上）。'+
+      '对话帘里的台词、营中的号令、野外的见闻，收帘之后仍可回来翻看。</p>';
+    if(!r.length) return h+'<p class="tip q-empty">尚无可回顾之事。</p>';
+    h+='<div class="log-pane">';
+    var lastLoc='', lastStamp='';
+    r.forEach(function(e){
+      if(e.r && e.r!==lastLoc){ lastLoc=e.r; lastStamp=''; h+='<div class="log-loc">◆ '+escapeHtml(e.r)+'</div>'; }
+      var stamp=(e.s&&e.s!==lastStamp)?('<span class="log-t">'+escapeHtml(e.s)+'</span>'):'';
+      lastStamp=e.s||lastStamp;
+      h+='<div class="log-line'+(e.c?(' c-'+e.c):'')+'">'+stamp+
+         (e.n?('<b>'+escapeHtml(e.n)+'：</b>'):'')+escapeHtml(e.t)+'</div>';
+    });
+    h+='</div><button class="close" id="m-leave">收 起</button>';
+    return h;
+  }
+  // ═══ 任务「指路」（v20260914a）═══
+  // 任务日志只说「做什么」（o.hint / q.hint 的文字），从不告诉玩家「去哪儿」——
+  //   而「我该去哪」正是这类网格文字 RPG 最高频的卡点，尤其摊开 70 城 441 格郊野之后。
+  // 这里把数据里【本来就有的】位置信息翻成一次指引，不新增任何内容负担：
+  //   接取式任务的 q.submit = {npc, room} 已是结构化数据（QUEST_DEFS 里五条全有），
+  //   志业可选用 o.at 标注（写法见下）；没有位置信息的就老实不显示按钮。
+  // 锚点写法（与 LF.Guide 同一套语义锚点）：
+  //   { room:'camp_tz1' }                   目标房间（隔壁 → 点亮罗盘方向键）
+  //   { npc:'周听涛' } / { act:'labor_yard' } 目标人物 / 动作按钮（须在本格）
+  //   { dock:'char' }                       目标底部页签
+  //   字符串视作 { room: 字符串 }。
+  function roomNameOf(rid){
+    if(!rid) return '';
+    if(G.ROOMS && G.ROOMS[rid] && G.ROOMS[rid].name) return G.ROOMS[rid].name;
+    if(LF.PLACES && LF.PLACES[rid] && LF.PLACES[rid].name) return LF.PLACES[rid].name;
+    if(LF.CITIES && LF.CITIES[rid] && LF.CITIES[rid].name) return LF.CITIES[rid].name;
+    return rid;
+  }
+  // 从当前房间的出口里找出通往目标房间的方位键（罗盘上那个键就是玩家要点的）
+  function dirToRoom(from, to){
+    if(!from || !to || from===to) return '';
+    var r=G.ROOMS && G.ROOMS[from]; if(!r || !r.exits) return '';
+    for(var d in r.exits){ if(r.exits[d]===to) return d; }
+    // 城门哨兵 / 城格串（__gate__:cid:dir、__cell__:cid:x:y）里包着的目标也认
+    for(var d2 in r.exits){
+      var t=r.exits[d2];
+      if(typeof t!=='string' || t.indexOf('__')!==0) continue;
+      var parts=t.split(':');
+      for(var i=1;i<parts.length;i++){ if(parts[i]===to) return d2; }
+    }
+    return '';
+  }
+  function gotoBtnHTML(at){
+    if(!at) return '';
+    var o=(typeof at==='string')?{room:at}:at;
+    var j; try{ j=JSON.stringify(o); }catch(e){ return ''; }
+    // 有可点亮的目标 → 「指路」；只有 at.why（这条路本就不在一处）→ 「问路」，老实说清该往哪走
+    var t=(o.act||o.npc||o.dock||o.room)?'在场景里点亮去路':'问路：这条该往哪走';
+    return '<button class="obj-goto" data-goto="'+encodeURIComponent(j)+'" type="button" title="'+t+'">指 路</button>';
+  }
+  // 一次指路：先在本格找，再指罗盘方向，实在不在此处就报出路名并亮「山河」。
+  function questGoto(at){
+    if(!at || !state) return;
+    if(typeof at==='string') at={room:at};
+    closeModal();
+    var anchors=[];
+    if(at.act) anchors.push({act:at.act});
+    if(at.npc) anchors.push({npc:at.npc});
+    if(at.dock) anchors.push({dock:at.dock});
+    // ① 目标就在当下这一格（人物 / 动作按钮 / 页签）→ 直接点亮并滚进视野
+    if(anchors.length && (!at.room || at.room===state.room)){
+      var ok=false;
+      try{ ok=Guide.exists(anchors); }catch(e){}
+      if(ok){
+        try{ Guide.focus(anchors); }catch(e){}
+        toast('就在眼前 · '+(at.npc||at.act||'此处'));
+        return;
+      }
+    }
+    // ② 目标在隔壁 → 点亮罗盘上那个方位的键（一步可达，最实用的一条）
+    if(at.room){
+      var dir=dirToRoom(state.room, at.room);
+      if(dir){
+        try{ Guide.focus([{dir:dir}]); }catch(e){}
+        toast('向'+dir+'去 · '+roomNameOf(at.room));
+        return;
+      }
+    }
+    // ③ 不在此处 → 报明去处，并把「山河」指出来（远行本该走山河志）
+    var nm=roomNameOf(at.room);
+    if(nm){ toast('「'+nm+'」不在此处——可点「山河」寻路前往'); }
+    else if(at.why){ toast(at.why); return; }   // 这条路本就不在一处：直接用数据里备好的「该往哪走」
+    else { toast('此事此地办不了，先看看别处有什么可做'); }
+    try{ Guide.ping({dock:'map'}); }catch(e){}
+  }
   // ═══ 通用「指引」系统（v20260912a）═══
   // 把「高亮某个按钮 / NPC / 面板，并把它滚进视野」做成一套可复用的语义锚点，
   // 让任何调用方（新手目标引导、剧本 highlight 步骤、后续新内容）都不必再写死
@@ -4973,12 +5209,9 @@
     o.classList.add('leave');
     setTimeout(function(){ if(o.parentNode) o.parentNode.removeChild(o); }, 260);
   }
-  // 句与句之间留「讲完一句、喘口气」的顿：这句话若照叙事区打字机速度写出来要多久，就等多久
-  //（跟着设置里的「文字演出」走：调快了这里也快，设「瞬」则压根不走这条路）
-  function dlgPace(s){
-    var sp=(settings && settings.textSpeed>0) ? settings.textSpeed : 55;
-    return Math.max(400, Math.min(2400, String(s||'').replace(/\s/g,'').length*sp));
-  }
+  // [已删 v20260914a] dlgPace(s) —— 早期「句间按字数估一个停顿」的定时器估值函数。
+  //   v20260913a 改成「一句一出、玩家点一下才出下一句」之后它就没有任何调用方了（全仓 0 引用），
+  //   留着会让人误以为帘的节奏还是自动算出来的。
   // 帘里补一句「旁白 · 动作的回声」（v20260913c）：不摆选项、不动悬挂锁 ——
   //   玩家的动作（〔睁眼看〕〔撑起身〕〔摸一摸身上〕）先落成帘里一行小字，台词与问题接着往下走。
   //   为什么落帘里而不落叙事区：此刻玩家正盯着帘，叙事区在帘后（还给帘压着），落那儿等于白落。
@@ -4988,6 +5221,7 @@
     if($dlg && dlgOpen){
       var box=dlgNode('', 'narr');
       box.say.textContent=t;
+      recHist(t, 'narr');   // 回顾也收下动作回声（v20260914a）
       dlgTrim(); dlgScroll();
       syncActionLock();   // 重新起算「静下来就收帘」的计时：末句也读得完
       return;
@@ -5006,10 +5240,33 @@
     $dlgBody.appendChild(p);
     return {node:p, say:say};
   }
-  // 点帘 / 按快捷键 = 一次落定（同叙事区点字快进的手感）
-  function dlgTap(){ skipTypewriter(); if(dlgSkip) dlgSkip(); }
+  // 点帘 = 一次落定（同叙事区点字快进的手感）；连点两下 = 这一整段话一次讲完（v20260914a）。
+  //   从前一段六句的独白要点六下才见得到选项 —— 逐句读是「想细看」的人要的，
+  //   连点略过是「已经知道他要说什么」的人要的，两条路并存，节奏仍由玩家自己定。
+  var DLG_COMBO_MS=450;
+  var dlgTapAt=0;
+  var dlgSkipAll=null;      // 逐句模式下由 tutAsk 挂上「整段落定」；瞬模式 / 已落定时为 null
+  function dlgTap(){
+    skipTypewriter();
+    if(!dlgSkip) return;
+    var now=Date.now();
+    if(dlgSkipAll && (now-dlgTapAt)<=DLG_COMBO_MS){
+      dlgTapAt=0;
+      var all=dlgSkipAll; all();      // 连点：整段落定并放开选项
+      return;
+    }
+    dlgTapAt=now;
+    dlgSkip();                        // 单点：出下一句
+  }
   if($dlgVeil) $dlgVeil.addEventListener('click', dlgTap);
   if($dlgBody) $dlgBody.addEventListener('click', dlgTap);
+  // ⚠️ index.html 有一条全局「防双击缩放」守卫：两次 touchend 相隔 ≤300ms 时会对第二下
+  //   preventDefault()，而 preventDefault 会把随之派生的 click 一并吞掉 —— 于是帘里的
+  //   「连点两下」在真机上永远等不到第二下（桌面端没有这个问题，故只在小屏真机可见）。
+  //   这里就地截住帘内的 touchend，让帘里的每一次轻触都照常产生 click。
+  //   stopPropagation 只作用于帘内（#dlg-veil 是 #dlg 的兄弟节点，两处都要挂），帘外的双击缩放保护照旧。
+  if($dlg)     $dlg.addEventListener('touchend', function(e){ e.stopPropagation(); }, {passive:true});
+  if($dlgVeil) $dlgVeil.addEventListener('touchend', function(e){ e.stopPropagation(); }, {passive:true});
   // 手动上滚回看时别再自动追底（贴近聊天软件的「贴底才跟随」）
   if($dlgBody) $dlgBody.addEventListener('scroll', function(){
     var gap=$dlgBody.scrollHeight-$dlgBody.scrollTop-$dlgBody.clientHeight;
@@ -5023,7 +5280,9 @@
     if(t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable)) return;
     var k=e.key;
     if(dlgSkip){
-      if(k===' ' || k==='Enter' || k==='Escape' || k==='ArrowDown' || (k>='1' && k<='9')){ e.preventDefault(); dlgSkip(); }
+      // 走 dlgTap 而非 dlgSkip：键盘也能「连按两下讲完本段」（与点帘同一套节奏）。
+      // e.repeat 排除长按自动重复 —— 否则按住空格不放会被当成连点，整段话一瞬略过。
+      if(k===' ' || k==='Enter' || k==='Escape' || k==='ArrowDown' || (k>='1' && k<='9')){ e.preventDefault(); if(!e.repeat) dlgTap(); }
       return;
     }
     if(k>='1' && k<='9' && $dlgFoot){
@@ -5033,7 +5292,8 @@
   });
   function dlgClear(){
     if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
-    dlgSkip=null; dlgStick=true;
+    dlgSkip=null; dlgSkipAll=null; dlgTapAt=0;   // 连点状态随帘一起清（v20260914a）
+    dlgStick=true;
     if($dlgBody) $dlgBody.innerHTML='';
     if($dlgFoot){ $dlgFoot.innerHTML=''; $dlgFoot.className='dlg-foot'; $dlgFoot.style.display=''; }
     dlgState('');
@@ -5045,13 +5305,18 @@
     var me=document.createElement('p'); me.className='dlg-say me'; me.textContent=o.label;
     $dlgBody.appendChild(me);
     dlgTalk.push({who:'你', text:o.label});
+    recHist(o.label, 'me', '你');   // 回顾里也留一句「你说了什么」（v20260914a）
     dlgStick=true; dlgScroll();
     removeTutChoices();
     if(o.fn) o.fn();
   }
   // v20260913b：对话往来不再折进叙事区 —— NPC 台词与你的答话在帘里逐句读过即可，
-  // 叙事区只留对话落定的结果（如「〔寻吃食·破命数〕已替你记在册上了」），避免同一段话出现两遍。
-  function dlgClose(echo){
+  //   叙事区只留对话落定的结果（如「〔寻吃食·破命数〕已替你记在册上了」），避免同一段话出现两遍。
+  // v20260914a：既然不再折进叙事区，说过的话就【只】落在「回顾」里（recHist 由 dlgLine/dlgPick/dlgEcho 记），
+  //   收帘时清空 dlgTalk 只影响「本场留痕」，历史已进 state.logRing，收帘后照样翻得到。
+  // 注：此处原有的 dlgClose(echo) 形参没人读，而注释还写着「整段交谈折进叙事区留痕（dlgEcho），
+  //   说过的仍可回看」—— 那句注释自 v20260913b 起就与实际行为相反，形参一并去掉（v20260914a）。
+  function dlgClose(){
     if(!$dlg) return;
     if(dlgTimer){ clearTimeout(dlgTimer); dlgTimer=null; }
     dlgTalk.length=0;
@@ -5064,7 +5329,7 @@
     dlgTimer=setTimeout(function(){
       dlgTimer=null;
       if(askPending || narrActive()) return;   // 又接上了新的话 / 新问题，就继续留着
-      dlgClose(true);
+      dlgClose();
     }, 1400);
   }
   function tutAsk(prompt, options, npcName){
@@ -5106,10 +5371,13 @@
       };
       // ② 他「一句一句讲」（v20260912l）——
       //    整段话不再一次性摊开：splitSpeech(text,true) 连引号里的句子也切（他一句一句说），
-      //    切出一句就落一句、**每句各自占一行**；句与句之间留出「讲完一句、喘口气」的顿，
-      //    顿的长短跟着设置里的「文字演出」走（0.4~2.4s）。帘里只留最近两句（dlgTrim），
-      //    像真的在听人讲话，而不是看一墙字幕。听完最后一句才放开选项；
-      //    等不及就点帘（或按 1-9）直接到这段话的末态。
+      //    切出一句就落一句、**每句各自占一行**。帘里只留最近两句（dlgTrim），
+      //    像真的在听人讲话，而不是看一墙字幕。听完最后一句才放开选项。
+      //    快慢三条出路（v20260914a 整理，此前注释还写着「句间按字数留 0.4~2.4s 的顿」，
+      //    那个 dlgPace 定时器已随 v20260913a 一起废掉）：
+      //      · 单点帘 / 空格 / 回车 / ↓ / 1-9  → 出下一句（逐句细读）
+      //      · 连点两下（450ms 内）            → 本段一次讲完，立刻放开选项（已知内容，不想等）
+      //      · 设置「文字演出」拉到 0（瞬）    → 压根不摆架势，一段一次落完
       //    文字演出设成「瞬（无动画）」时不摆架势，一段一次落完 —— 尊重 settings.textSpeed。
       if(text || !$dlgBody.children.length){
         if(text) dlgTalk.push({who:who, text:text});   // 留痕用（整段）
@@ -5119,6 +5387,7 @@
           if(fin) return; fin=true;
           if(cur && cur.parentNode) cur.parentNode.removeChild(cur);
           cur=null; dlgTypeTimer=null; dlgSkip=null;
+          dlgSkipAll=null; dlgTapAt=0;      // 落定后连点不再有效（v20260914a）
           dlgScroll(); dlgRelease();
         };
         // 落一整句：单独一行、整句一起出现（不再把整段堆进同一个段落）；
@@ -5128,6 +5397,7 @@
           var s=segs[si++];
           var box=dlgNode('', text?'':'mute');
           box.say.textContent=s;
+          recHist(s, 'dlg', who||'');   // 每落一句就记进回顾（v20260914a）
           if(cur && cur.parentNode) cur.parentNode.removeChild(cur);
           cur=document.createElement('span'); cur.className='cur'; cur.textContent='▍';
           box.node.appendChild(cur);
@@ -5140,7 +5410,10 @@
         } else {
           // v20260913a：一句一出、玩家点一下才出下一句（点帘/空格/回车/↓/1-9 皆可）——
           // 不再自动接下一句，阅读节奏完全由玩家自己把握。
-          dlgState('说话中…');
+          // v20260914a：再给一条更快的出路 —— 连点两下（450ms 内）＝ 本段一次讲完、立刻放开选项。
+          //   逐句读是「想细看」的人要的，连点略过是「已经知道他要说什么」的人要的，两者并存；
+          //   从前一段六句独白要点六下才见得到选项，那点手速纯属白耗。
+          dlgState(segs.length>1 ? '说话中…连点略过' : '说话中…');
           var dlgStep=function(){
             if(fin) return;
             if(si>=segs.length){ dlgEnd(); return; }
@@ -5149,6 +5422,12 @@
               if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
               dlgStep();                       // 再点一下 → 出下一句
             };
+          };
+          dlgSkipAll=function(){               // 连点两下：剩下的句子一次落完
+            if(fin) return;
+            if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
+            while(si<segs.length) dlgLine();
+            dlgEnd();
           };
           dlgTypeTimer=setTimeout(dlgStep, 130);
         }
@@ -5249,7 +5528,9 @@
     }
     return '（未解锁）';
   }
-  function openEscapeHub(room){
+  // v20260914a：九条路线不再一次全铺开（未解锁的那几条还要各带一句长注解，一屏十项、读半天），
+  //   改为「已备妥的直接列、未备妥的折成一笔」；想知道自己还差什么，再点开「细看还差什么」。
+  function openEscapeHub(room, expand){
     if(document.getElementById('tut-choices')) return;
     if(state.flags && state.flags.onb && state.flags.onb.done){ log('你已逃出苦役营，不必再决断。','sys'); return; }
     // 枢纽分流（v20260912e）：旧房间体系按「墙根 / 岗哨」各列一半；城内枢纽（kuyilao 城格）列全部九条。
@@ -5258,22 +5539,26 @@
     var WALL=['crypt','tunnel','rope','drain'], GATE=['drug','riot','wooden','bribe','assault'];
     var atWall = (room==='camp_wall'), atGate = (room==='camp_gate');
     var routes = atWall ? WALL : (atGate ? GATE : WALL.concat(GATE));
-    var opts=[];
-    var anyOpen=false;
-    routes.forEach(function(r){
-      var info=ROUTE_INFO[r];
-      if(escapeAvail(r)){
-        anyOpen=true;
-        opts.push({ label: '〔'+info.name+'〕就此出营', fn: function(){ doEscape(r, room); } });
-      } else {
-        opts.push({ label: '〔'+info.name+'〕'+escapeLockHint(r), fn: function(){ log('这条路子还未备妥——'+escapeLockHint(r)+'。', 'sys'); } });
-      }
+    var opts=[], open=[], locked=[];
+    routes.forEach(function(r){ (escapeAvail(r)?open:locked).push(r); });
+    open.forEach(function(r){
+      opts.push({ label: '〔'+ROUTE_INFO[r].name+'〕就此出营', fn: function(){ doEscape(r, room); } });
     });
+    if(expand){
+      locked.forEach(function(r){
+        opts.push({ label: '〔'+ROUTE_INFO[r].name+'〕'+escapeLockHint(r), fn: function(){ log('这条路子还未备妥——'+escapeLockHint(r)+'。', 'sys'); } });
+      });
+    } else if(locked.length){
+      opts.push({ label: (open.length ? ('另有 '+locked.length+' 条门路尚未备妥——细看还差什么')
+                                      : ('眼下 '+locked.length+' 条门路皆未备妥——细看还差什么')),
+        fn: function(){ openEscapeHub(room, true); } });
+    }
     opts.push({ label: '再想想，先不逃', fn: function(){ log('你压下心头去意，先回营中再探探门道。','sys'); } });
     var title = atWall ? '塌墙根下，你盘算着出营的法子——'
               : atGate ? '岗哨咽喉，你思量着强出营墙的法子——'
               : '营中处处是路，你盘算着出营的法子——';
-    if(!anyOpen) title += '（眼下尚无门路，去与营中众人多攀谈，或备齐所需之物）';
+    if(!open.length) title += '（眼下尚无门路，去与营中众人多攀谈，或备齐所需之物）';
+    else if(locked.length) title += '（已有 '+open.length+' 条备妥，另有 '+locked.length+' 条未成）';
     tutAsk(title, opts);
   }
   function doEscape(route, room){
@@ -5403,6 +5688,11 @@
         row('自由属性点',(state.freePoints||0))+
         '<div class="row"><span>四维（点击 ± 加点）</span></div><div class="ap-list">'+attrAllocHTML()+'</div>'+
         row('当前所处',curRoom().name)+
+        // 门派入口（v20260914a）：此前「择木而栖」这条志向教玩家「点状态栏『⚔ 门派』」，
+        //   而全项目【没有任何地方】能打开门派面板 —— openModal('sect') 只在入门成功后自调用一次，
+        //   等于这条志向在正常玩法下永远做不成。这里在角色面板补上唯一的入口，并顺带显示当前去向。
+        row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '散人（未入门派）')+
+        '<button class="sect-open" id="sect-open" type="button">⚔ '+(state.sect?'查看本门':'择一门派')+'</button>'+
         '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
         '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
     } else if(kind==='levelup'){
@@ -5512,6 +5802,8 @@
       h=renderFactionMap();
     } else if(kind==='sect'){
       h=renderSectPanel();
+    } else if(kind==='log'){
+      h=renderLogPanel();          // 回顾（v20260914a）：顶栏「回顾」/ 状态栏右侧那颗
     }
     $card.innerHTML=h;
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage' || kind==='give');
@@ -5520,7 +5812,12 @@
     // 捏人界面隐藏右上角 X 按钮（不可中途退出，v20260908j）
     var mx=document.getElementById('modal-x'); if(mx) mx.style.visibility=(kind==='create')?'hidden':'visible';
     if(kind==='create') bindCreate();
-    if(kind==='char') bindAttrAlloc();
+    if(kind==='char'){
+      bindAttrAlloc();
+      // 门派面板入口（v20260914a）：见 renderCharPanel 处注释 —— 这是全项目唯一能打开它的地方
+      var _sectOpen=document.getElementById('sect-open');
+      if(_sectOpen) _sectOpen.onclick=function(){ openModal('sect'); };
+    }
     if(kind==='pack'){ bindPackInteractions(); }
     if(kind==='give'){ bindGivePanel(); }
     if(kind==='talk'){ bindTalkPanel(); }
@@ -5534,6 +5831,11 @@
     if(kind==='citybuild'){ bindCityBuildPanel(); }
     if(kind==='sect'){ bindSectPanel(); }
     if(kind==='quest'){ bindQuestPanel(); }
+    // 回顾面板（v20260914a）：落位到最新一句（与叙事区同序：旧的在上、新的在下），并绑「收起」
+    if(kind==='log'){
+      var _lv=document.getElementById('m-leave'); if(_lv) _lv.onclick=function(){ closeModal(); };
+      try{ $card.scrollTop=$card.scrollHeight; }catch(e){}
+    }
     // v20260912f：教学期「打开行囊 / 打开任务」本身就是教学动作 —— 记下进度并推进目标指引，
     //   否则玩家可能把这两个页签一直晾着，目标条还停在「点开看看」上。只在教学期记账，不影响正常游玩。
     if(state && state.flags && state.flags.onb && !state.flags.onb.done){

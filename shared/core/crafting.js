@@ -26,6 +26,9 @@
     var advanceTime = ctx.advanceTime, afterPackChange = ctx.afterPackChange, save = ctx.save;
     var log = ctx.log, toast = ctx.toast, openModal = ctx.openModal, closeModal = ctx.closeModal,
         renderRoom = ctx.renderRoom, buildActions = ctx.buildActions, exert = ctx.exert;
+    // 耗时动作进度条（v20260914a）：采集/伐木/采石/伐木场/烧砖/制作都要耗掉一个时辰，
+    //   从前点一下就「已经做完了」，只剩一行结果。见引擎 busyAct —— 守卫留在回调之外、效果搬进回调之内。
+    var busyAct = ctx.busyAct || function(l, m, d){ (d || function(){})(); };
 
     // ===== 野外采药（北邙山林·草药丛） =====
     // 状态机：点击「采集草药」→ 耗时 1 时辰，草丛变为「可拾取」；点击「拾取草药」入包，满则提示
@@ -43,11 +46,13 @@
       st.gatherCount = st.gatherCount || {};
       var k = st.room + '@' + st.day;
       if((st.gatherCount[k]||0) >= 3){ toast('此处今日已采过三回，草药渐稀，明日再来。'); return; }
-      advanceTime(1);                                   // 采撷耗约一个时辰
-      st.gatherCount[k] = (st.gatherCount[k]||0) + 1;
-      st.gather = { room: st.room, phase: 'ready' };
-      log('你蹲身拨开草叶，俯首采撷，忙活约一个时辰——草丛间已遗下可拾之药。','env');
-      renderRoom(st.room);                           // 重渲后按钮变为「拾取草药」
+      busyAct('采撷草药·一个时辰', 950, function(){
+        advanceTime(1);                                   // 采撷耗约一个时辰
+        st.gatherCount[k] = (st.gatherCount[k]||0) + 1;
+        st.gather = { room: st.room, phase: 'ready' };
+        log('你蹲身拨开草叶，俯首采撷，忙活约一个时辰——草丛间已遗下可拾之药。','env');
+        renderRoom(st.room);                           // 重渲后按钮变为「拾取草药」
+      });
     }
     function doPickGather(){
       var st=S();
@@ -71,19 +76,21 @@
       if(st.defeated){ toast('重伤未愈，先调息恢复。'); return; }
       var hasIronAxe = !!packFind('tiefu');
       var withAxe = hasIronAxe || !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
-      advanceTime(1);
-      if(hasIronAxe) consumeTool('tiefu',1);
-      else if(withAxe) consumeTool('futou',1);
-      if(withAxe){
-        var n = hasIronAxe ? 2 : 1;
-        packAdd('mutou', n);
-        log('你抡'+(hasIronAxe?'铁':'锈')+'斧，咔咔几声，老树应声倒下，得木头×'+n+'。','env');
-      } else {
-        packAdd('xiaoshuzhi', 1);
-        log('你徒手折下几根细枝，捋得小树枝×1。若有把斧头，便能伐得粗实木头。','env');
-      }
-      afterPackChange();
-      buildActions(G.ROOMS[st.room]);   // 刷新场景物体（斧头/材料状态即时反映到菜单）
+      busyAct(withAxe ? '伐木·一个时辰' : '折枝·一个时辰', 950, function(){
+        advanceTime(1);
+        if(hasIronAxe) consumeTool('tiefu',1);
+        else if(withAxe) consumeTool('futou',1);
+        if(withAxe){
+          var n = hasIronAxe ? 2 : 1;
+          packAdd('mutou', n);
+          log('你抡'+(hasIronAxe?'铁':'锈')+'斧，咔咔几声，老树应声倒下，得木头×'+n+'。','env');
+        } else {
+          packAdd('xiaoshuzhi', 1);
+          log('你徒手折下几根细枝，捋得小树枝×1。若有把斧头，便能伐得粗实木头。','env');
+        }
+        afterPackChange();
+        buildActions(G.ROOMS[st.room]);   // 刷新场景物体（斧头/材料状态即时反映到菜单）
+      });
     }
 
     function searchBench(){
@@ -147,13 +154,15 @@
       var r=null; for(var i=0;i<list.length;i++){ if(list[i].id===id){ r=list[i]; break; } }
       if(!r) return;
       for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(LF.ITEMS[r.out]||{}).name); return; } }
-      r.in.forEach(function(x){ packConsume(x.id, x.n); });
-      packAdd(r.out, r.outN);
-      advanceTime(1);
-      afterPackChange();
-      log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
-      var card = getCard();
-      card.innerHTML=buildCraftHTML(); bindCraftPanel();
+      busyAct('木工劳作·一个时辰', 950, function(){
+        r.in.forEach(function(x){ packConsume(x.id, x.n); });
+        packAdd(r.out, r.outN);
+        advanceTime(1);
+        afterPackChange();
+        log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
+        var card = getCard();
+        card.innerHTML=buildCraftHTML(); bindCraftPanel();
+      });
     }
     function pickupAxe(){
       var st=S();
@@ -182,17 +191,19 @@
       st.buildCount = st.buildCount || {};
       var k = st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('此处今日已采过三回，崖壁渐薄，明日再来。'); return; }
-      advanceTime(1);
-      st.buildCount[k] = (st.buildCount[k]||0) + 1;
-      var hasIronAxe = !!packFind('tiefu');
-      if(hasIronAxe) consumeTool('tiefu',1);
-      var n = hasIronAxe ? 2 : 1;
-      packAdd('shitiao', n);
-      // 崖壁偶露铁矿：采石有一定概率连铁矿石一并剥落
-      var ores = 0;
-      if(Math.random() < 0.35){ ores = hasIronAxe ? 2 : 1; packAdd('tiekuangshi', ores); }
-      afterPackChange();
-      log('你抡'+(hasIronAxe?'铁斧凿石':'镐凿石')+'，哐哐数声，剥下石料×'+n+(ores?('，兼得铁矿石×'+ores):'')+'。','env');
+      busyAct('凿取石料·一个时辰', 950, function(){
+        advanceTime(1);
+        st.buildCount[k] = (st.buildCount[k]||0) + 1;
+        var hasIronAxe = !!packFind('tiefu');
+        if(hasIronAxe) consumeTool('tiefu',1);
+        var n = hasIronAxe ? 2 : 1;
+        packAdd('shitiao', n);
+        // 崖壁偶露铁矿：采石有一定概率连铁矿石一并剥落
+        var ores = 0;
+        if(Math.random() < 0.35){ ores = hasIronAxe ? 2 : 1; packAdd('tiekuangshi', ores); }
+        afterPackChange();
+        log('你抡'+(hasIronAxe?'铁斧凿石':'镐凿石')+'，哐哐数声，剥下石料×'+n+(ores?('，兼得铁矿石×'+ores):'')+'。','env');
+      });
     }
 
     // 伐木场：伐木取材（每日限次，仿采石崖）
@@ -203,14 +214,16 @@
       st.buildCount = st.buildCount || {};
       var k = 'wood_' + st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('今日采伐已足三回，林子需养，明日再来。'); return; }
-      st.buildCount[k] = (st.buildCount[k]||0) + 1;
-      advanceTime(1);
-      var hasAxe = !!packFind('tiefu') || !!packFind('futou');
-      var n = hasAxe ? 2 : 1;
-      packAdd('mucai', n);
-      afterPackChange();
-      log('你'+(hasAxe?'挥斧斫木':'徒手折枝')+'，哢哢数声，得木材×'+n+'。','env');
-      openModal('building');
+      busyAct('斫木取材·一个时辰', 950, function(){
+        st.buildCount[k] = (st.buildCount[k]||0) + 1;
+        advanceTime(1);
+        var hasAxe = !!packFind('tiefu') || !!packFind('futou');
+        var n = hasAxe ? 2 : 1;
+        packAdd('mucai', n);
+        afterPackChange();
+        log('你'+(hasAxe?'挥斧斫木':'徒手折枝')+'，哢哢数声，得木材×'+n+'。','env');
+        openModal('building');
+      });
     }
     // 砖窑：烧砖（每日限次，耗柴火/石料，仿采石崖）
     function fireBrick(){
@@ -220,15 +233,17 @@
       st.buildCount = st.buildCount || {};
       var k = 'brick_' + st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('今日窑火已足三窑，歇火养窑，明日再烧。'); return; }
-      st.buildCount[k] = (st.buildCount[k]||0) + 1;
-      advanceTime(1);
-      var hasFuel = !!packFind('mucai');
-      var n = hasFuel ? 2 : 1;
-      if(hasFuel) packConsume('mucai', 1);
-      packAdd('zhuan', n);
-      afterPackChange();
-      log('你添柴鼓风，窑火映红脸膛，出砖×'+n+(hasFuel?'（耗木材×1为薪）':'（无薪，砖质稍逊）')+'。','env');
-      openModal('building');
+      busyAct('添柴烧砖·一个时辰', 950, function(){
+        st.buildCount[k] = (st.buildCount[k]||0) + 1;
+        advanceTime(1);
+        var hasFuel = !!packFind('mucai');
+        var n = hasFuel ? 2 : 1;
+        if(hasFuel) packConsume('mucai', 1);
+        packAdd('zhuan', n);
+        afterPackChange();
+        log('你添柴鼓风，窑火映红脸膛，出砖×'+n+(hasFuel?'（耗木材×1为薪）':'（无薪，砖质稍逊）')+'。','env');
+        openModal('building');
+      });
     }
     // 残破木箱：一次性拾取「冶炼工坊图」
     function openBuildCrate(){

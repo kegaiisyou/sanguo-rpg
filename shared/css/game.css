@@ -71,6 +71,38 @@
   #status .st-time{color:var(--seal);font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
   #status .st-era{font-size:11.5px;color:#9a7b3a;font-family:"STKaiti","KaiTi",serif;}
   #status .st-wx{flex:none;font-size:12px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;white-space:nowrap;}
+  /* 回顾入口（v20260914a）：贴在状态栏最右，随手可及。
+     点它为「回顾」，点状态栏其余处仍是「时辰钟表」——分流写在引擎的 $status.onclick 里。 */
+  #status .st-log{flex:none;margin-left:auto;font-size:11.5px;letter-spacing:1px;
+    color:#8a6a2e;border:1px solid rgba(184,134,11,.42);border-radius:10px;
+    padding:1px 8px;background:rgba(184,134,11,.09);font-family:"STKaiti","KaiTi",serif;}
+  #status .st-log:active{background:rgba(184,134,11,.26);}
+  /* 回顾面板（v20260914a）：按「处所」分段、换一次时辰标一次时刻 —— 读来像一卷流水账 */
+  .log-tip{text-align:left;margin:-2px 0 8px;line-height:1.55;}
+  .log-pane{display:flex;flex-direction:column;}
+  .log-loc{margin:10px 0 4px;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;font-size:13px;
+    color:#b8860b;border-bottom:1px dashed rgba(184,134,11,.3);padding-bottom:3px;}
+  .log-loc:first-child{margin-top:0;}
+  .log-line{margin:3px 0;font-size:13px;line-height:1.62;color:var(--ink);word-break:break-word;}
+  .log-line .log-t{margin-right:6px;font-size:11px;color:var(--ink-faint);font-variant-numeric:tabular-nums;}
+  .log-line b{font-family:"STKaiti","KaiTi",serif;color:#8a6a2e;}
+  .log-line.c-sys{color:var(--seal);}
+  .log-line.c-warn{color:#a8442f;}
+  .log-line.c-good{color:#3f7a45;}
+  .log-line.c-item{color:#8a6a2e;}
+  .log-line.c-me{color:#5b6b8a;}
+  .log-line.c-narr{color:var(--ink-soft);}
+  /* 耗时动作进度（v20260914a）：贴叙事区顶端的短进度条，由引擎 busyAct 显隐。
+     采集/伐木/劳作/营造这类「吃一个时辰」的动作此前点一下就跳到结果，只剩一行字，没有分量感。 */
+  #busy{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 78px);
+    transform:translateX(-50%);z-index:58;width:min(78vw,320px);
+    display:flex;flex-direction:column;gap:5px;align-items:center;
+    padding:7px 14px;border-radius:12px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(28,20,12,.86),rgba(28,20,12,.76));
+    border:1px solid rgba(184,134,11,.42);box-shadow:0 6px 18px rgba(0,0,0,.3);}
+  #busy .bs-nm{font-size:12.5px;letter-spacing:1px;color:#e8d5a8;font-family:"STKaiti","KaiTi",serif;white-space:nowrap;}
+  #busy .bs-track{display:block;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.16);overflow:hidden;}
+  #busy .bs-bar{display:block;width:0%;height:100%;border-radius:2px;background:linear-gradient(90deg,#c9a15a,#e8cf96);}
   #status .st-hint{font-size:12px;opacity:.55;margin-left:1px;flex:none;}
   #status .st-gold{flex:none;font-size:12.5px;font-weight:700;color:#b0832f;background:rgba(176,131,47,.16);padding:1px 8px;border-radius:10px;margin-left:2px;white-space:nowrap;}
   /* 状态栏被「点亮」时的高亮（问名解锁瞬间） */
@@ -445,6 +477,16 @@
   .obj-reward{font-size:12px;color:#7fce8f;margin-top:4px;}
   .obj-track{margin-top:7px;font-size:12px;padding:4px 14px;border:1px solid var(--btn-line);border-radius:14px;background:var(--btn);color:var(--seal);cursor:pointer;}
   .obj-track.on{border-color:rgba(184,134,11,.6);color:#b8860b;background:rgba(184,134,11,.08);}
+  /* 任务「指路」（v20260914a）：任务日志只说「做什么」，从不说「去哪儿」——这点亮去路的那一颗。
+     点它：目标在本格 → 直接高亮并滚进视野；在隔壁 → 点亮罗盘上那个方位键；都不在 → 报出路名并亮「山河」。 */
+  .obj-goto{margin-top:7px;margin-right:6px;font-size:12px;padding:4px 14px;border:1px solid rgba(184,134,11,.5);
+    border-radius:14px;background:rgba(184,134,11,.08);color:#8a6a2e;cursor:pointer;}
+  .obj-goto:active{background:rgba(184,134,11,.28);}
+  /* 门派入口（v20260914a）：志向「择木而栖」此前教玩家去点一个并不存在的入口，
+     而全项目根本没有能打开门派面板的地方 —— 在角色面板补上这唯一一处。 */
+  .sect-open{margin:6px 0 10px;width:100%;font-size:13px;padding:8px 14px;border-radius:10px;
+    border:1px solid rgba(184,134,11,.5);background:rgba(184,134,11,.1);color:#8a6a2e;cursor:pointer;}
+  .sect-open:active{background:rgba(184,134,11,.28);}
   /* 任务日志：进行中/已完成 标签页 + 接取式任务卡 */
   .quest-tabs{display:flex;gap:8px;margin:2px 0 10px;}
   .qtab{font-size:13px;padding:5px 16px;border:1px solid var(--btn-line);border-radius:14px;background:var(--btn);color:var(--ink-soft);cursor:pointer;}

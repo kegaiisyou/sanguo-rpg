@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>乱世烽火 · 水墨</title>
-<link rel="stylesheet" href="shared/css/game.css?v=20260913d" />
+<link rel="stylesheet" href="shared/css/game.css?v=20260914a" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -95,12 +95,20 @@ window.onerror=function(msg,url,line,col,err){
   <div class="loc-tab" id="loc-tab"></div>
   <div id="quest-track" class="quest-track" style="display:none"></div>
   <main id="scene"><div id="narr"></div></main>
+  <!-- 耗时动作进度（v20260914a）：采集/伐木/采石/烧砖/制作/担石劳作/操练/夯土营造……
+       这类「吃一个时辰」的动作此前点一下就跳到结果，只留一行字，没有分量感。
+       这是一条贴着叙事区顶端的短进度（在做什么 + 条子走满），由引擎 busyAct 显隐；
+       显示期间 interactBusy() 为真，全屏按钮锁住，避免点到一半又开岔路。 -->
+  <div id="busy" class="hidden" aria-hidden="true"></div>
   <div id="onb-goal" class="onb-goal" hidden></div>
   <section id="actions"></section>
   <!-- v20260912k 对话帘：与 NPC 交谈时自底部升起的浮层（position:fixed，不参与 #app 布局，
        故开合不再把叙事区/罗盘顶来顶去）。头＝朱砂名章＋名姓＋状态；体＝本次交谈的往来
        （含你的答话，可上滚回看）；足＝带序号的答话选项（样式键盘 1-9 亦可）。
-       收起时整段交谈会折进叙事区留痕，仍可回看。帘只压暗背景、不遮挡上方叙事区。 -->
+       快慢三条出路（v20260914a）：单点＝出下一句｜连点两下＝整段一次讲完并放开选项｜
+       文字演出设「瞬」＝一段一次落完。帘只压暗背景、不遮挡上方叙事区。
+       注：v20260913b 起对话往来【不再】折进叙事区（避免同一段话出现两遍）；说过的话
+       改由 state.logRing 收进「回顾」（状态栏右侧那颗），收帘之后仍可翻看。 -->
   <div id="dlg-veil" class="hidden"></div>
   <section id="dlg" class="hidden" aria-live="polite">
     <div class="dlg-head">
@@ -145,12 +153,12 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260913d"></script>
+<script src="shared/config/constants.js?v=20260914b"></script>
 <script src="shared/config/ui-spec.js?v=20260902a"></script>
 <script src="shared/config/balance.js?v=20260902a"></script>
 <script src="shared/story/sects.js?v=20260902a"></script>
 <script src="shared/story/skills.js?v=20260902a"></script>
-<script src="shared/story/objectives.js?v=20260911i"></script>
+<script src="shared/story/objectives.js?v=20260914a"></script>
 <script src="shared/story/events.js?v=20260902a"></script>
 <script src="shared/story/dialogues.js?v=20260913b"></script>
 <!-- v20260912f：npc_cards.js 提到 rooms.js 之前 —— 具名 NPC 的摆位/作息统一存在这张人物表里，
@@ -177,7 +185,7 @@ window.onerror=function(msg,url,line,col,err){
     <script src="shared/strategic-map.js?v=20260912c"></script>
     <script src="shared/data/markets.js?v=20260902a"></script>
     <script src="shared/combat/engine.js?v=20260902a"></script>
-    <script src="shared/index.js?v=20260912f"></script>
+    <script src="shared/index.js?v=20260914a"></script>
   <script src="shared/core/state.js?v=20260908f"></script>
   <script src="shared/core/calendar.js?v=20260910w"></script>
   <script src="shared/core/save.js?v=20260910w"></script>
@@ -190,11 +198,11 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/audio.js?v=20260909j"></script>
   <script src="shared/core/combat.js?v=20260910j"></script>
   <script src="shared/core/pack.js?v=20260909h"></script>
-  <script src="shared/core/building.js?v=20260912a"></script>
+  <script src="shared/core/building.js?v=20260914a"></script>
   <script src="shared/core/storage.js?v=20260909h"></script>
   <script src="shared/core/charcreate.js?v=20260909h"></script>
   <script src="shared/core/equipment.js?v=20260909i"></script>
-  <script src="shared/core/crafting.js?v=20260909j"></script>
-  <script src="shared/core/engine.js?v=20260913d"></script>
+  <script src="shared/core/crafting.js?v=20260914a"></script>
+  <script src="shared/core/engine.js?v=20260914b"></script>
 </body>
 </html>

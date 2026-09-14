@@ -4,6 +4,16 @@
 // check(s) 返回是否已达成；prog(s) 返回进度文案；ratio(s) 返回 0~1 进度比例（可选，用于进度条）。
 // type: 'main'=主线 / 'side'=支线 / 'trial'=修行；reward: 达成奖励（xp/gold/rep）。
 // s 为玩家存档（运行时即 state）。
+//
+// at（v20260914a，可选）：任务卡上的「指路」锚点 —— 点一下就点亮去路，不必自己猜该往哪走。
+//   写法（引擎 questGoto / LF.Guide 同一套语义锚点，可混用）：
+//     { room:'camp_warehouse' }   目标房间：在隔壁 → 点亮罗盘方位键；不在 → 报出路名并亮「山河」
+//     { npc:'仓吏' }              目标人物（须在本格）
+//     { act:'learn_wu' }          目标场景动作按钮（须在本格）
+//     { dock:'char' }             目标底部页签
+//     { why:'……' }                这条路本就不在某一处：点「指路」直接把该往哪走说给你听
+//   没有 at 就不显示按钮 —— 宁可不给，也不给一个点不着的东西。
+//   接取式任务（QUEST_DEFS）不必写 at：引擎会自动用 submit={npc,room} 现成的位置信息。
 (function (global) {
   // 与 items.js QUALITY 对齐的品质排序
   var QORDER = { white: 0, green: 1, blue: 2, purple: 3, orange: 4 };
@@ -26,6 +36,9 @@
     {
       id: 'slay_foe', title: '初试身手', type: 'main', reward: { xp: 50 },
       hint: '于山林巡山、讨平盗匪游散，以验证所学武艺。',
+      // 讨匪发生在郊野山林（每格的「清剿·某某」是运行时按野怪生成的动作，没有稳定 id），
+      // 所以这条给的是「问路」而非「点亮」——点一下，它告诉你该往哪走。
+      at: { why: '巡山讨匪在郊野山林之间：循罗盘出城，走进程郊野格后点「清剿·某某」即可。' },
       check: function (s) { return (s.quest.bandit + s.quest.turban) > 0; },
       prog: function (s) { return '已讨匪 ' + (s.quest.bandit + s.quest.turban) + ' / 1 股'; },
       ratio: function (s) { return clamp1((s.quest.bandit + s.quest.turban) / 1); }
@@ -39,7 +52,11 @@
     },
     {
       id: 'join_sect', title: '择木而栖', type: 'trial', reward: { xp: 120 },
-      hint: '声望初立后，点状态栏「⚔ 门派」择一门派加入，得门风加成与传功。',
+      // v20260914a：原文写「点状态栏『⚔ 门派』」，但全项目没有任何地方能打开门派面板
+      //   （openModal('sect') 只在入门成功后自调用一次）——照着做只会白找一场。
+      //   已在「角色」面板补上唯一入口，此处把话改对它。
+      hint: '声望初立后，点下方「角色」页签，其中「⚔ 门派」可择一门派加入，得门风加成与传功。',
+      at: { dock: 'char' },
       check: function (s) { return !!s.sect; },
       prog: function (s) { return s.sect ? ('已属 ' + (global.LF.SECTS[s.sect] ? global.LF.SECTS[s.sect].name : s.sect)) : '尚未加入'; },
       ratio: function (s) { return s.sect ? 1 : 0; }
@@ -47,6 +64,9 @@
     {
       id: 'martial_growth', title: '武艺精进', type: 'trial', reward: { xp: 100 },
       hint: '于「武学」研习招式（消耗潜能），技艺日深。',
+      // 「研习武学」是真实存在的场景动作（data-act="learn_wu"），但只在主营 / 郡学宫一类房间出现；
+      //   在本格时点亮它，不在本格就直说该去哪儿 —— 两种情形都不至于让玩家干瞪眼。
+      at: { act: 'learn_wu', why: '「研习武学」只在主营、郡学宫一类的地方出现（且需有潜能）。' },
       check: function (s) { return s.learnedMartial.length >= 3; },
       prog: function (s) { return '已习 ' + s.learnedMartial.length + ' / 3 招'; },
       ratio: function (s) { return clamp1(s.learnedMartial.length / 3); }
