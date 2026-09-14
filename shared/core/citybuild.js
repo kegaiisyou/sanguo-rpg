@@ -259,7 +259,13 @@
       var eng = (ri ? 1 : 2);   // 经城门省力
       S().energy = Math.max(0, S().energy - eng);
       S().food = Math.max(0, S().food - 1); S().drink = Math.max(0, S().drink - 1);
-      advanceTime(1);
+      // v20260914f：城内走动「两格才算一个时辰」——
+      //   旧版相邻格一步即 advanceTime(1)：九格营里从场院去趟矿坑，来回小半日就没了，
+      //   真正要干的活反倒挤不进时辰里。改为累计走满两格才拨一个时辰（精力饮食仍按格扣），
+      //   省下的时辰留给干活、说话、赶饭点。计数器挂在 flags 上，重进游戏不至于错位。
+      var _w = (S().flags.cityWalk || 0) + 1;
+      if (_w >= 2) { _w = 0; advanceTime(1); }
+      S().flags.cityWalk = _w;
       S().flags.cityPos = { cid: cid, x: x, y: y };
       // v20260910q：囚室格 (1,0) 即城格，踏到直接渲染该格（面板六门 + 罗盘网格邻居），不再跳独立房间
       if (ri) {

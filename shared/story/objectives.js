@@ -99,7 +99,7 @@
   var QUEST_DEFS = {
     stone: {
       id: 'stone', title: '采石充仓', type: 'side',
-      hint: '去矿坑凿取青石，凑足五块后给予仓吏（仓库）。',
+      hint: '去营东北矿坑「开凿矿料」凿取青石，凑足五块后回仓库，点仓吏选「给予」，交到他手上。',
       need: [ { item: 'shitiao', name: '石料', icon: '🪨', count: 5 } ],
       submit: { npc: '仓吏', room: 'camp_warehouse' },
       reward: '便携腰包（行囊+4）· 修为+30'
@@ -116,21 +116,14 @@
     //   不再成其为差役）——点一下就完事，体验太薄。取而代之的两条要求跑腿 + 交货：
     //   赴目标格的可交互设施做工（农田「开垦」→「掐菜」/ 矿坑「凿石」），再把实物交到收差人手上
     //   （菜交伙房鲁大、石料交仓库郑刚）。派活与收活分人，正是营里各管一摊的样子。
-    // 进度仍是「活计计数×N」（flags.task.<key>_cnt），由引擎在做工那一刻累加（farmPick / oreStrike）；
+    // 进度直接看你交出去几份实物（need.item）—— 由 onGive 触发器累计（kyl_farm_give）；
     //   取值/显示见 engine.js · needHave()（need 支持 flag 形式，是对本文件原「纯物品派生」原则的一处必要扩展）。
     camp_farm: {
       id: 'camp_farm', title: '开垦薄田', type: 'side',
-      hint: '孙老托你翻透三垄薄田——赴农田「开垦」三垄，待菜起身再「掐菜」两捧，交予伙房掌灶的鲁大。',
-      need: [ { flag: 'flags.task.farm_cnt', name: '野菜', icon: '🥬', count: 2 } ],
+      hint: '赴营北农田「开垦」三垄，待菜起身再「掐菜」两捧——捧去伙房，点鲁大、选「给予」，把野菜交到他手上才算完。',
+      need: [ { item: 'yecai', name: '野菜', icon: '🥬', count: 2 } ],
       submit: { npc: '鲁大', room: 'kuyilao' },
       reward: '干粮×1 · 修为+25 · 孙老好感+1'
-    },
-    camp_ore: {
-      id: 'camp_ore', title: '凿石入库', type: 'side',
-      hint: '郑刚要石料起垛——赴矿坑「凿石」，凿下青石五块，扛回仓库交予郑刚。',
-      need: [ { flag: 'flags.task.ore_cnt', name: '石料', icon: '🪨', count: 5 } ],
-      submit: { npc: '郑刚', room: 'kuyilao' },
-      reward: '劳字木片×1 · 修为+25 · 郑刚好感+1'
     }
   };
 

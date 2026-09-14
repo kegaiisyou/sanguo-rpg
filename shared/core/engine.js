@@ -1253,7 +1253,7 @@
   }
   // 营中苦役 → 任务进度（v20260911i 立，v20260914e 撤）。
   //   原写法：点一下格上的劳作按钮就在 flags.task.<key>_cnt 上 +1，任务据此显示 N/3。
-  //   撤掉的缘由：差役改成「赴实地做工 → 交货」后，计数必须由做工那一刻来记（farmPick / oreStrike），
+  //   撤掉的缘由：差役改成「赴实地做工 → 交货」后，计数改由「交出去多少」来记（给予面板 → onGive 累计），
   //   否则玩家在农田格点三下「下地务农」就能把「开垦薄田」交了差 —— 开垦与掐菜全被绕过去。
   //   现在这三个按钮（担石/务农/搬石）只挣工分（laborTick），与差役彻底脱钩。
 
@@ -2813,15 +2813,9 @@
           {label:'掐菜', icon:'🥬', fn:function(){ farmPick(); }}
         ]}
       ]
-    },
-    // 矿坑（2,0）：接了「凿石入库」才见着可凿的岩壁（石四、苟三是按格触发的越狱线人物，别抢他们的位）
-    'kuyilao|2,0': {
-      objects: [
-        { icon:'⛏️', label:'岩壁矿脉', show: function(){ return jobOpen('ore'); }, acts:[
-          {label:'凿石', icon:'⛏️', fn:function(){ oreStrike(); }}
-        ]}
-      ]
     }
+    // 矿坑（2,0）【不摆设施】：该格是 mine 型，格上本就有「开凿矿料」出石料（city.js 格型动作）。
+    //   早前在此另摆一个「岩壁矿脉·凿石」，于是同一格里出现两个都出石料的按钮 —— 纯属重复，撤掉。
   };
   function cellInteriors(cid, x, y){ return CELL_INTERIORS[cid + '|' + x + ',' + y] || null; }
   // ═══ 苦役营牢房设施：水槽(容量+添水) / 值更鼓(击鼓)（v20260910s）═══
@@ -2945,6 +2939,16 @@
     log('〔舆图〕营盘方方正正九格：北列农田、囚室、矿坑；中为伙房、中军帐、仓库；南列军营、岗哨、演武场。','sys');
     log('〔舆图〕一道水渠自伙房那侧穿墙而出，通到墙外的河沟——图上只注了「排水」二字。','sys');
     log('〔舆图〕换岗在戌时前后，鼓响三通；子时最松，岗上只余两人。','sys');
+    // v20260914f：看过舆图，顺手把「山河」放行 —— 顺着一张营盘图，头一回晓得外头还有州郡。
+    //   解锁口径与别处一致（onbUnlockDock + Guide 高亮，见「角色」「行囊」的首次解锁）；
+    //   教学期这颗页签本是藏着的（body.onb），不这么做，玩家出了营才第一次见着山河志。
+    var o=onbF();
+    if(o && !o.done && (!o.unlocked || o.unlocked.indexOf('map')<0)){
+      onbUnlockDock('map');
+      log('你把图上那几条道记熟了，目光顺着营墙往外挪——墙外是渔阳，再往外是幽州，更远处还有十来个州。','sys');
+      log('〔山河〕点下方「🗺️ 山河」，可看这一带的州郡城池。眼下你还走不出去，先把路记在心里。','sys');
+      try{ if(LF.Guide && LF.Guide.ping) LF.Guide.ping({dock:'map'}); }catch(e){}
+    }
   }
   // 军报木牍：营中虚实（收买线的由头）
   function junbaoLook(){
@@ -2968,26 +2972,50 @@
     log('〔得械〕你抽了一杆钝头枪，塞进塌墙根的乱砖底下——真要硬闯岗哨，手里总得有件家伙。','good');
     save(state);
   }
-  // ═══ 苦役营·差役牌（记工木牌的升级，v20260914e）═══
-  // 木牌只当「公告栏」：谁派、去哪干、交到谁手上，一望而知。
-  //   接活与交差仍走 LABOR_QUESTS 那套 talk 触发器 —— 不另起一套任务系统，省得两处对不上账。
-  // 差事本身要求「实地真有活可干」：接了活，目标格才长出可交互的设施（靠 CELL_INTERIORS 的 show 门槛）。
-  //   于是「点一下就完事」的担石退为自由劳作（挣工分用），差役才是要跑腿、要交货、要交到人手上的活。
+  // ═══ 苦役营·差役牌（v20260914e 立，v20260914f 改）═══
+  // 木牌就是派活的地方：营里的差事全钉在上头 —— 谁要的、去哪干、做出来交到谁手上。
+  //   领活在此（摘木牍）→ 去那一格实地做工、做出实物 → 回头寻收差的那位，走给予面板把东西交出去（真扣行囊）。
+  //   交差判定挂在 onGive 触发器上（triggers.js kyl_farm_give / kyl_stone_give），不靠对话复命 ——
+  //   对话复命那一套是「空着手说一句就完事」，东西还躺在行囊里，算不得交差。
+  // 只留两条，且刻意不重样：田里出菜（交伙房）、矿里出石（交仓库）。
   var JOB_BOARD = [
-    { key:'farm', title:'开垦薄田', boss:'孙老', where:'农田（营北）', do:'领锄翻透三垄，再掐两捧野菜', to:'伙房 鲁大',
-      pay:'干粮×1 · 修为+25 · 孙老好感+1' },
-    { key:'ore',  title:'凿石入库', boss:'郑刚', where:'矿坑（营东北）', do:'就岩壁凿下青石五块', to:'仓库 郑刚',
-      pay:'劳字木片×1 · 修为+25 · 郑刚好感+1' }
+    { key:'farm', quest:'camp_farm', title:'开垦薄田',
+      word:'孙老要的：薄田三垄，翻透，掐两捧菜，交伙房鲁大',
+      take:'你把「开垦薄田」那片木牍摘了下来。',
+      tip:'去营北农田（那一格会多出「待垦的薄田」），翻透三垄、掐两捧野菜；再捧去伙房，点鲁大、选「给予」，把菜交到他手上。' },
+    { key:'stone', quest:'stone', title:'采石充仓',
+      word:'仓吏要的：矿坑凿青石五块，交仓库',
+      take:'你把「采石充仓」那片木牍摘了下来。',
+      tip:'去营东北矿坑，就格上「开凿矿料」凿够五块石料；扛回仓库，点仓吏、选「给予」，把石料交到他手上。' }
   ];
   function jobFlag(key, suffix){ var t=(state.flags && state.flags.task)||{}; return t[key+suffix]; }
   function jobOpen(key){ return !!jobFlag(key,'_started') && !jobFlag(key,'_done'); }
+  function jobTake(key){
+    var j=null; JOB_BOARD.forEach(function(x){ if(x.key===key) j=x; }); if(!j) return;
+    if(!state.flags) state.flags={};
+    if(!state.flags.task) state.flags.task={};
+    state.flags.task[key+'_started']=true;
+    acceptQuest(j.quest);
+    log(j.take,'sys');
+    log('〔差役〕'+j.tip,'sys');
+    save(state); buildActions(curRoom());
+  }
+  // 看差役牌：木牌上钉着几片木牍，牌角一枚铁钉 —— 摘下哪片，那桩活就落在你头上
   function jobBoard(){
-    log('〔差役牌〕营里的差事都钉在这块木牌上——谁派、去哪、交到谁手上，写得明白：','sys');
-    JOB_BOARD.forEach(function(j, i){
-      var tag = jobFlag(j.key,'_done') ? '（已了）' : (jobFlag(j.key,'_started') ? '（在办）' : '（可接）');
-      log('　'+(i+1)+'．〔'+j.title+'〕'+tag+'　派：'+j.boss+'　处：'+j.where+'　交：'+j.to+'　'+j.do,'sys');
+    var txt='木牌上钉着几片木牍，字是炭笔写的，笔画歪斜。';
+    JOB_BOARD.forEach(function(j){
+      if(jobFlag(j.key,'_done')) txt+='「'+j.word+'。」这片木牍翻过来扣着——已了。';
+      else if(jobFlag(j.key,'_started')) txt+='「'+j.word+'。」这片你已摘走。';
+      else txt+='「'+j.word+'。」';
     });
-    log('〔差役牌〕想接哪桩，去寻派活的那位；做完了，把东西交到该交的人手上。','sys');
+    txt+='牌角另钉着一句：活要做出东西来，东西要送到人手上。空着手回来，不算交差。';
+    var opts=[];
+    JOB_BOARD.forEach(function(j){
+      if(jobFlag(j.key,'_started') || jobFlag(j.key,'_done')) return;
+      opts.push({ label:'摘下「'+j.title+'」', fn:function(){ jobTake(j.key); } });
+    });
+    opts.push({ label:'把手缩回来', fn:function(){ log('你把手又揣回袖里——营里的活，接下了就没得反悔。','sys'); } });
+    tutAsk(txt, opts, '差役牌');
   }
 
   // ═══ 农田（0,0）：开垦 → 成畦 → 掐菜（v20260914e）═══
@@ -3014,7 +3042,8 @@
       save(state); renderStatus(); buildActions(curRoom());
     });
   }
-  // 掐菜：得「野菜」实物（可自啃、也可交伙房），每掐一次记一份任务进度
+  // 掐菜：得「野菜」实物（可自啃垫肚子，也可交伙房）。
+  //   不再记 flags 计数 —— 交了几捧，全看你在鲁大那儿「给予」出去几捧（判定见 triggers.js kyl_farm_give）。
   function farmPick(){
     if(!jobOpen('farm')){ toast('这不是你该动的菜地。'); return; }
     if(!farmTilled()){ toast('地还荒着，哪来的菜可掐。'); return; }
@@ -3025,28 +3054,7 @@
       var n = 1 + (Math.random()<0.5 ? 1 : 0);
       if(!packAdd('yecai', n)) return;
       var f=farmFx(); f.picked=(f.picked||0)+n;
-      addFlagNum('flags.task.farm_cnt', n);
-      var have=flagNum('flags.task.farm_cnt');
-      log('你蹲身掐菜，泥腥气沾了满手——得「野菜」×'+n+'。（交伙房：'+Math.min(have,2)+' / 2）','good');
-      if(have>=2) log('够了——捧去伙房，交予掌灶的鲁大。','sys');
-      afterPackChange(); save(state); renderStatus();
-    });
-  }
-
-  // ═══ 矿坑（2,0）：凿石（v20260914e）═══
-  function oreStrike(){
-    if(!jobOpen('ore')){ toast('郑刚没点头，矿坑的石头动不得。'); return; }
-    if(!exert('凿石')) return;
-    busyAct('凿石·一个时辰', 1000, function(){
-      state.energy=Math.max(0, state.energy-4);
-      advanceTime(1);
-      var bonus = Math.random()<0.35;                // 三成夹带一缕铁矿
-      packAdd('shitiao', 1);
-      if(bonus) packAdd('tiekuangshi', 1);
-      addFlagNum('flags.task.ore_cnt', 1);
-      var have=flagNum('flags.task.ore_cnt');
-      log('你抡镐凿在岩缝上，崩下一块青石——得「石料」×1'+(bonus?'，石间还夹着一缕铁矿石。':'。')+'（交仓库：'+Math.min(have,5)+' / 5）','env');
-      if(have>=5) log('五块齐了——扛去仓库，交予郑刚。','sys');
+      log('你蹲身掐菜，指甲缝里全是泥——得「野菜」×'+n+'。','good');
       afterPackChange(); save(state); renderStatus();
     });
   }
@@ -4267,7 +4275,7 @@
           haul_stones: ['搬石料',   '你扛着石料往返奔走，肩头磨得发烫，粗布上都浸了汗碱。']
         }[id];
         if(!laborTick(_lm[0])) break;
-        // v20260914e：此处不再记差役进度（原 laborQuestTick）—— 进度改由做工那一刻记（farmPick / oreStrike），
+        // v20260914e：此处不再记差役进度（原 laborQuestTick）—— 进度改由「交出去多少」来记（onGive 累计），
         //   免得玩家点「下地务农」三下便把「开垦薄田」交了差。这三个按钮如今只挣工分。
         if(!checkTriggers({hook:'onCustom', room: state.room})) log(_lm[1],'sys');
         break;

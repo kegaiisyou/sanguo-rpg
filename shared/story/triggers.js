@@ -587,7 +587,7 @@
     id: 'kyl_stone_progress', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: false,
     cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
     steps: [
-      { t: 'log', cls: 'npc', text: '〔仓吏〕「石料采得如何了？矿坑在北边，挥镐便得。凑够五块拿来与我。」' }
+      { t: 'log', cls: 'npc', text: '〔仓吏〕「石料凿得如何了？凿够了就交过来——点我，选「给予」，把石料择出来。五块，一块一记。」' }
     ]
   });
   // 交任务：给予石料给仓吏，累计5块完成（按实际给予数量累计）
@@ -621,12 +621,38 @@
     ]
   });
 
+  // ══════════ 苦役营·差役「开垦薄田」：交差 = 把野菜给予鲁大（v20260914f）═════════
+  // 与「采石充仓」同一套口径：东西从行囊里真扣掉（给予面板），按实际给出的数量累计，够了才发赏。
+  //   任务日志那边 need 记的就是「野菜×2」，与这里对得上（见 objectives.js camp_farm）。
+  // 不写 cell：鲁大有作息会挪格（申时去粮囤），写死会闹出「人在这儿却交不上」的怪事。
+  TRIGGERS.push({
+    id: 'kyl_farm_give', hook: 'onGive', npc: 'lu_da', room: 'kuyilao', item: 'yecai', once: false,
+    cond: { flags: { 'flags.task.farm_started': true }, notFlag: 'flags.task.farm_done' },
+    steps: [
+      { t: 'setFlag', path: 'flags.task.farm_count', increment: true, incrementByEnv: 'qty' },
+      { t: 'branch',
+        if: { player: { 'flags.task.farm_count': { min: 2 } } },
+        then: [
+          { t: 'setFlag', path: 'flags.task.farm_done', value: true },
+          { t: 'completeQuest', id: 'camp_farm' },
+          { t: 'log', cls: 'npc', text: '〔鲁大〕菜下了锅，热气腾起来。他舀半瓢稠的递过来：「孙老那块地，果然没白翻。往后菜多了，只管送来。」' },
+          { t: 'grant', items: [ { id: 'fan', name: '干粮', icon: '🍙', cat: '食物', count: 1 } ] },
+          { t: 'favor', npc: 'sun_lao', amount: 1 },
+          { t: 'exp', amount: 25 },
+          { t: 'log', cls: 'good', text: '〔任务完成·开垦薄田〕获得 干粮×1 · 修为+25 · 孙老好感+1' }
+        ],
+        else: [
+          { t: 'log', cls: 'npc', text: '〔鲁大〕接过菜往案上一摊：「这才多少。再掐些来，凑够两捧，我给锅里添一勺油花。」' }
+        ] }
+    ]
+  });
+
   // ════════════════ 营中苦役·任务化（v20260911i） ════════════════
   // 症结：营中「担石劳作 / 下地务农 / 搬石料」此前只是面板上的一个按钮 —— 点完吐一句旁白就完事，
   //   没有交代、没有进度、更没有交付与赏，交互到此为止，营中一日也就没什么可盼的。
   // 改造：三桩苦役各挂一位当值 NPC，走完整闭环 ——
   //   交谈 → 发布 → 接受／婉拒 → 任务日志记 N/3（点「任务」可随时查）→ 干满 → 回头复命领赏。
-  //   进度取「活计计数」flags.task.<key>_cnt —— 由引擎在「做工那一刻」累加（农田见 farmPick、矿坑见 oreStrike），
+  //   进度取「活计计数」flags.task.<key>_cnt —— 由给予面板在交出去那一刻累加（kyl_farm_give / kyl_stone_give），
   //   不再随格上的通用劳作按钮累加（v20260914e：那会让人点几下「下地务农」就把差事交了）。
   // ⚠️ 两条约定：
   //   ① 必须排在本文件 sun_routes 之后 —— 孙老先把「十条出路」讲完，再谈他田里的活计；
@@ -635,76 +661,34 @@
   // v20260914e：牛铁那条「担石充役」已退为自由劳作（场院〔担石劳作〕只挣工分，不再成其为差役）——
   //   它就一个按钮，点一下便完事，玩家使不上劲。留下的两桩差役都要求：赴实地做工 → 把东西交到人手上。
   //   派活与收活还特意分人：田是孙老派、伙房鲁大收（各管一摊，正是营里的样子）。
+  // v20260914f：派活统一收到中军帐那块「差役牌」上（engine.js JOB_BOARD）—— 木牌上摘木牍即领活，
+  //   去实地做出东西，再交给牌上写明的收差人。交差走给予面板（onGive），东西真从行囊里扣掉；
+  //   故此处的 onTalk 只管「催活」与「教他怎么交」，不再管发布与领赏（领赏见下方 kyl_farm_give）。
+  //   采石那桩不再另立一条：本就有「采石充仓」（kyl_stone_*），只是改由木牌发布，免得两条采石打架。
   var LABOR_QUESTS = [
-    { key: 'farm', npc: 'sun_lao', to: 'lu_da', quest: 'camp_farm', need: 2, title: '开垦薄田',
-      offer: '田埂上的老驿丞孙老直起腰，捶着后背叹气：「老骨头不中用了。后生，你替老朽把那三垄地翻一翻——锄头就搁田埂边，自个儿拿。翻透了，掐两捧嫩菜捧去伙房，交予掌灶的鲁大，就说是老朽叫你去的。他那儿有口热乎的谢你。别嫌少，这营里肯替人出力的不多。」',
-      yes: '你接过话头应下。孙老笑起来，眼角褶子堆成一团：「好孩子。先去〔开垦〕，三垄，翻透了才长得出菜；长出菜了再〔掐菜〕两捧。」〔任务已接：开垦薄田〕',
-      no: '孙老摆摆手，也不勉强，重新蹲回田埂上吧嗒旱烟：「也罢，你自有你的打算。」〔未接：开垦薄田〕',
-      prog: '孙老拄着锄把，眯眼瞅你：「地翻透了没有？菜掐了没有？别糊弄老骨头。」',
-      give: '鲁大接过那捧带泥的野菜，往案上一摊，咧嘴笑了：「孙老的人？成。这菜今夜下锅，伙房有口热汤。」他舀了半瓢热的，又塞给你一块干粮：「拿着，垫垫肚子。往后菜多了，只管送来。」',
-      after: '鲁大在灶前忙活，冲你扬了扬勺：「孙老那块地，往后就劳你多照看了。」',
-      reward: '干粮×1 · 修为+25 · 孙老好感+1',
-      items: [{ id: 'fan', name: '干粮', icon: '🍙', cat: '食物', count: 1 }], xp: 25 },
-    { key: 'ore', npc: 'zheng_gang', quest: 'camp_ore', need: 5, title: '凿石入库',
-      offer: '仓库前的郑刚膀大腰圆，正把石料往垛上码，抬眼看你，眼珠一转：「生面孔？库房堆子赶不上用度，矿坑那头又采得慢。你去矿坑，就岩壁凿五块青石回来交我——交齐了，我替你在牢头跟前说句话。怎么，干不干？」',
-      yes: '你撸起袖子应下。郑刚咧嘴：「爽快！矿坑在营东北，就岩壁〔凿石〕，五块，一块一记，少一块都不算。」〔任务已接：凿石入库〕',
-      no: '郑刚哼了一声，扛起石料自去干活：「随你。反正累的不是俺。」〔未接：凿石入库〕',
-      prog: '郑刚头也不抬，石料压得肩头一沉：「五块凿齐了没有？没齐就回矿坑去，少在这儿磨蹭。」',
-      give: '郑刚把石料一块块码上垛，数得清楚，末了抽出一枚「劳字木片」拍在你手里：「好力气。这枚工分你自己去兑，别说俺昧了你的。」',
-      after: '郑刚拍了拍手上的灰：「力气是好东西，别使歪了。」',
-      reward: '劳字木片×1 · 修为+25 · 郑刚好感+1',
-      items: [{ id: 'lao_pai', name: '劳字木片', icon: '🪵', cat: '货币', count: 1 }], xp: 25 }
+    { key: 'farm', npc: 'sun_lao', to: 'lu_da', quest: 'camp_farm', title: '开垦薄田', board: true,
+      prog: '孙老拄着锄把，眯眼瞅你：「地翻透了没有？翻透了就掐两捧菜，捧去伙房给鲁大——是交到他手上，不是跟他说一声。」',
+      progTo: '鲁大瞥了眼你怀里：「菜呢？掐了就递过来——点我，选「给予」，把菜择出来给我。空着手说干了活，不算数。」',
+      after: '鲁大在灶前忙活，冲你扬了扬勺：「孙老那块地，往后就劳你多照看了。」' }
   ];
   LABOR_QUESTS.forEach(function (q) {
     var K = 'flags.task.' + q.key;
     var TO = q.to || q.npc;             // 收差人（派活与收活未必同一个人：田是孙老派、伙房鲁大收）
     function flagObj(suffix, val) { var o = {}; o[K + suffix] = val; return o; }
-    function playerMin(suffix, n) { var o = {}; o[K + suffix] = { min: n }; return o; }
-    // ① 发布：接受 / 婉拒 —— 答应那一下才 acceptQuest 入任务日志
-    TRIGGERS.push({
-      id: 'kq_' + q.key + '_offer', hook: 'onTalk', npc: q.npc, room: 'kuyilao', once: false,
-      cond: { notFlag: K + '_started' },
-      steps: [
-        { t: 'npcTalk', npc: q.npc, prompt: q.offer,
-          asks: [
-            { label: '〔应下〕这活我接了。', set: flagObj('_started', true), say: q.yes,
-              then: [ { t: 'acceptQuest', id: q.quest } ] },
-            { label: '〔婉拒〕我另有打算。', say: q.no }
-          ] }
-      ]
-    });
-    // ② 复命领赏（须排在③前 —— onTalk 只跑第一条命中的，否则永远被进度提示截住）
-    //    交差挂在收差人（q.to）身上，不是派活人
+    // ① 发布：v20260914f 起不再由 NPC 对话发布 —— 差役牌上摘木牍即为领活（q.board）。
+    //   两处都能接，账就对不上了（木牌写「可接」、NPC 又问一遍），故此条整体撤掉。
+    // ② 收差人对话：不判完成，只催 + 教他怎么交 —— 真正的判定在 onGive（kyl_farm_give / kyl_stone_give）。
     TRIGGERS.push({
       id: 'kq_' + q.key + '_give', hook: 'onTalk', npc: TO, room: 'kuyilao', once: false,
       cond: { flags: flagObj('_started', true), notFlag: K + '_done' },
-      steps: [
-        { t: 'branch', if: { player: playerMin('_cnt', q.need) },
-          then: [
-            { t: 'setFlag', path: K + '_done', value: true },
-            { t: 'completeQuest', id: q.quest },
-            { t: 'log', cls: 'npc', text: q.give },
-            { t: 'grant', items: q.items },
-            { t: 'favor', npc: q.npc, amount: 1 },
-            { t: 'exp', amount: q.xp },
-            { t: 'log', cls: 'good', text: '〔任务完成·' + q.title + '〕' + q.reward }
-          ],
-          else: [ { t: 'log', cls: 'npc', text: q.prog } ] }
-      ]
+      steps: [ { t: 'log', cls: 'npc', text: q.progTo || q.prog } ]
     });
-    // ③ 进行中：只报进度（干满即由②接管）；收差人那边也报一句，免得玩家捧着东西去问却没人理
+    // ③ 派活人：只报进度
     TRIGGERS.push({
       id: 'kq_' + q.key + '_prog', hook: 'onTalk', npc: q.npc, room: 'kuyilao', once: false,
       cond: { flags: flagObj('_started', true), notFlag: K + '_done' },
       steps: [ { t: 'log', cls: 'npc', text: q.prog } ]
     });
-    if (TO !== q.npc) {
-      TRIGGERS.push({
-        id: 'kq_' + q.key + '_prog_to', hook: 'onTalk', npc: TO, room: 'kuyilao', once: false,
-        cond: { flags: flagObj('_started', true), notFlag: K + '_done' },
-        steps: [ { t: 'log', cls: 'npc', text: q.prog } ]
-      });
-    }
     // ④ 了结之后
     TRIGGERS.push({
       id: 'kq_' + q.key + '_done', hook: 'onTalk', npc: q.npc, room: 'kuyilao', once: false,
