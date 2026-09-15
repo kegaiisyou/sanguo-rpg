@@ -1158,7 +1158,7 @@
   //   为什么不记在「换饭」那一刻：换完揣着不吃等于没吃，这一条要教的正是「领了饭就吃下去」（饱食度）。
   LF.onEat = function(defId){
     var o=onbF(); if(!o || !o.started || o.done) return;
-    if(defId!=='fan' && defId!=='xizhou') return;
+    if(defId!=='fan' && defId!=='xizhou' && defId!=='douzhou') return;
     var t=state.flags && state.flags.task; if(!t || !t.mess_started || t.mess_done) return;
     var n=addFlagNum('flags.task.meal_cnt', 1);
     if(n>=2){
@@ -2872,10 +2872,16 @@
       ]
     },
     // 伙房（0,1）：灶边水缸 —— 「担水入灶」的落点（打水在囚室水槽，倾水在此处，两头一担挑起来）
+    //   v20260915g 另起一口「大灶」：田里种出的菜豆在此下锅 —— 不然种地就是「掐了菜、交了差」便完事，
+    //   产出没有第二个去处，农田这块内容也就悬空了。
     'kuyilao|0,1': {
       objects: [
         { icon:'🪣', label:'灶边水缸', show: function(){ return jobOpen('water'); }, acts:[
           {label:'倾水入缸', icon:'💧', fn:function(){ kitchenPour(); }}
+        ]},
+        { icon:'🍲', label:'大灶', show: function(){ return farmHas('dou',1) || farmHas('yecai',3); }, acts:[
+          {label:'煮豆粥（菽豆×1 · 水×2）', icon:'🥣', show: function(){ return farmHas('dou',1); }, fn:function(){ cookDouzhou(); }},
+          {label:'野菜入锅（野菜×3）', icon:'🥬', show: function(){ return farmHas('yecai',3); }, fn:function(){ cookYeCai(); }}
         ]}
       ]
     },
@@ -3249,6 +3255,35 @@
     });
   }
 
+  // ═══ 伙房大灶：把田里的产出煮成热食（v20260915g）═══
+  //   农田出菜豆、伙房出热食 —— 两头接上，「种地」才不只是掐两捧菜去交差。
+  //   热食也顶「灶上一口热饭」那桩例事（LF.onEat 已认豆粥），于是 田间 → 灶上 → 例事 自成一环。
+  //   一律【先加产出、后扣料】：行囊塞不下时料还攥在手里，不至于白扔一把豆子。
+  function cookDouzhou(){
+    if(!farmHas('dou',1)){ toast('没有菽豆——去田里种一茬，或拿别的东西与人换。'); return; }
+    var bag=packFind('shuidai');
+    if(!bag || (bag.water||0)<2){ toast('熬粥要水：水袋里不足两份（先去囚室那格的水槽点「装水入袋」）。'); return; }
+    if(!exert('煮豆粥')) return;
+    busyAct('煮豆粥', 1000, function(){
+      if(!packAdd('douzhou',1)){ toast('行囊塞不下——腾出一格再煮。'); return; }
+      packConsume('dou',1); bag.water=(bag.water||0)-2;
+      advanceTime(1);
+      log('你把菽豆下锅，添两瓢水，灶膛的火舌舔着锅底。不多时豆香漫开——得「豆粥」×1。（回食 22、水 6）','good');
+      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
+    });
+  }
+  // 野菜入锅：三捧野菜换一碗稀粥（菜太寡，鲁大添半勺杂粮）——复用既有的「稀粥」，不另立新物
+  function cookYeCai(){
+    if(!farmHas('yecai',3)){ toast('野菜不足三捧——大灶不值当为两片叶子生火。'); return; }
+    if(!exert('野菜入锅')) return;
+    busyAct('野菜入锅', 900, function(){
+      if(!packAdd('xizhou',1)){ toast('行囊塞不下——腾出一格再煮。'); return; }
+      packConsume('yecai',3);
+      advanceTime(1);
+      log('三捧野菜下了锅。鲁大舀半勺杂粮添进去：「菜太寡，得搭把米才压得住饥。」——得「稀粥」×1。','good');
+      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
+    });
+  }
   // ═══ 农田（0,0）：九畦（v20260915g）═══
   //   旧版只有「一块薄田」：翻三垄 → 掐菜，掐完还是那块地 —— 种地的人无从长进，
   //   浇水也只是多给一捧，看不出「照料」的分量。

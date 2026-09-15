@@ -42,6 +42,7 @@
         { id: 'caizi',        buy: 3,  sell: 1 },
         { id: 'douzhong',     buy: 6,  sell: 2 },
         { id: 'dou',          buy: 10, sell: 4 },
+        { id: 'douzhou',      buy: 14, sell: 5 },
         { id: 'yecai',        buy: 3,  sell: 1 },
         { id: 'fan',          buy: 5,  sell: 1 },
         { id: 'shutong',      buy: 28, sell: 10 },

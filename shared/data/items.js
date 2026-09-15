@@ -213,6 +213,9 @@
       desc: '菽豆的种子。生得慢些，收成却厚，也耐存放。' },
     dou:      { defId: 'dou',      name: '菽豆', icon: '🥜', cat: '食饵', price: 5, effect: { food: 14 },
       desc: '收下的菽豆。煮烂了能顶一顿，晒干了能存一冬，也能换几个钱。' },
+    // 伙房大灶的出品（v20260915g）：田里种出来的东西，得有个变成热食的去处
+    douzhou:  { defId: 'douzhou',  name: '豆粥', icon: '🥣', cat: '食饵', price: 8, effect: { food: 22, drink: 6 },
+      desc: '菽豆熬的稠粥，面上浮一层豆油。营里的稀粥照得见人影，这一碗照不见——顶饿，也顶一句想家。' },
     bumu:     { defId: 'bumu',     name: '粗布', icon: '🧵', cat: '素材', price: 6,
       desc: '半幅未漂的粗麻布。缝囊、包扎、蒙面都用得上——营里样样缺，出去了也缺。' }
   };
