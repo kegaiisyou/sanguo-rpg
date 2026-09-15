@@ -259,7 +259,9 @@
             { t: 'setFlag', path: 'flags.onb.clockOn', value: true },
             { t: 'setFlag', path: 'flags.onb.curfewSet', value: true },
             { t: 'setFlag', path: 'flags.onb.curfewHour', value: 10 },
-            { t: 'setFlag', path: 'flags.onb.curfewLabel', value: '戌时（约 19:00–21:00）' }
+            { t: 'setFlag', path: 'flags.onb.curfewLabel', value: '戌时（约 19:00–21:00）' },
+            // 牢头讲罢营规，顺手把「点卯应名」这桩例事挂上（acceptQuest 幂等，兜底段再挂一次无妨）
+            { t: 'acceptQuest', id: 'roll_call' }
           ] }
         ] },
       // 兜底（幂等）：即便玩家未点选项就离开，也确保门禁/时辰校准已生效，晚归判定不会失灵
@@ -268,6 +270,7 @@
       { t: 'setFlag', path: 'flags.onb.curfewSet', value: true },
       { t: 'setFlag', path: 'flags.onb.curfewHour', value: 10 },
       { t: 'setFlag', path: 'flags.onb.curfewLabel', value: '戌时（约 19:00–21:00）' },
+      { t: 'acceptQuest', id: 'roll_call' },
       // v20260912f：出牢头一件事就是去中军场院 —— 廊口这一段只放行〔南〕，
       //   农田、矿坑等方向此刻走不通（罗盘上按下去也只给一句提示）。
       //   到中军场院（cell 1,1）即由 yard_clear_gate 解除，恢复自由探索。

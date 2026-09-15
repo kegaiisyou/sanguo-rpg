@@ -125,6 +125,8 @@
         toast(msgs.join('；') + (full.length ? '（' + full.join('、') + '已满，未耗）' : ''));
       } else if (it.maxDur) { toast('「' + it.name + '」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
       else { toast('此物暂无可施用之效。'); return; }
+      // 进食钩子（v20260915d）：「灶上一口热饭」一类例事按「真的吃了什么」记账，由引擎 LF.onEat 接手
+      try { if (LF && LF.onEat) LF.onEat(it.defId, it.name); } catch (e) {}
       it.count--; if (it.count <= 0) pk[idx] = null;
       afterPackChange();
     }

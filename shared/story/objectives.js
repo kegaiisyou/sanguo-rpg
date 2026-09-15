@@ -126,6 +126,24 @@
       need: [ { item: 'yecai', name: '野菜', icon: '🥬', count: 2 } ],
       submit: { npc: '鲁大', room: 'kuyilao' },
       reward: '干粮×1 · 修为+25 · 孙老好感+1'
+    },
+    // ── 营中例事（v20260915d）：点卯与吃饭本是营规，只有罚没有赏，最招人嫌。 ──
+    //   把两件「每日都躲不掉的事」也钉上木牌：应卯记「勤」，记满了能销旷役；吃自己换来的饭，
+    //   吃满两顿给修为。规矩没变，只是做完有得拿 —— 玩家便不再觉得营里处处跟他作对。
+    //   进度走 flag 计数（flags.task.roll_cnt / meal_cnt），由引擎在应卯与进食时各记一笔。
+    roll_call: {
+      id: 'roll_call', title: '点卯应名', type: 'side',
+      hint: '卯、辰两个时辰（天亮开工那阵）赶到中军场院（挂记工木牌那一格），点「应卯点名」应一声——一日只应一次。连应三日：册上记满三笔「勤」，销一次旷役，另得干粮两张。',
+      need: [ { flag: 'flags.task.roll_cnt', name: '应卯', icon: '📋', count: 3 } ],
+      submit: { npc: '牢头', room: 'kuyilao' },
+      reward: '干粮×2 · 修为+30 · 销一次旷役'
+    },
+    mess_meal: {
+      id: 'mess_meal', title: '灶上一口热饭', type: 'side',
+      hint: '营西伙房以「劳字木片」换一份饭（卯辰 / 午未 / 酉戌是饭点，得热饭；过了点只剩冷粥），再点下方「🎒 行囊」里的干粮、选「使用」把它吃下去——吃满两顿。',
+      need: [ { flag: 'flags.task.meal_cnt', name: '进餐', icon: '🍚', count: 2 } ],
+      submit: { npc: '大勺', room: 'kuyilao' },
+      reward: '干粮×1 · 修为+20'
     }
   };
 

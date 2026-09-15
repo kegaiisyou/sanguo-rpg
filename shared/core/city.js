@@ -132,7 +132,8 @@ window.LF = window.LF || {};
     })();
     var TUTORIAL_CITY_ACTS = {
       kuyilao: {
-        '1,1': [{ id: 'labor_yard', label: '担石劳作', tip: '扛石运土一个时辰——累工分，满三工换一枚劳字木片。' },
+        '1,1': [{ id: 'roll_call', label: '应卯点名', tip: '卯、辰两个时辰校尉展册点名——应到记一笔「勤」，连应三日可销一次旷役。' },
+                { id: 'labor_yard', label: '担石劳作', tip: '扛石运土一个时辰——累工分，满三工换一枚劳字木片。' },
                 { id: 'survey_yard', label: '环顾四周', tip: '勘察劳役场，看清几处去路。' }],
         // 囚室格 (1,0)：六间子牢房走面板 doors（CELL_INTERIORS）、罗盘走网格邻居；
         // 格上只留一个「回牢销名」——它正是营中一日循环的收口（戌时前销名则记勤，逾时受鞭）

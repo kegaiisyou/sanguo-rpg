@@ -1130,6 +1130,7 @@
   var MESS_HOURS  = [3,4,6,7,9,10];    // 一日三餐各两个时辰：卯辰（朝食）· 午未（晌饭）· 酉戌（夜粥）
   var DEAD_HOURS  = [11,0,1,2];        // 亥子丑寅：灶冷无食（伙房歇火）
   var NIGHT_HOURS = [10,11,0,1,2];     // 戌时鸣鼓落锁起至次日寅时：城门宵禁 / 营中点卯逾期
+  var ROLL_HOURS  = [3,4];             // 卯辰：点卯应名（天亮开工那两个时辰，过时不到即缺勤）
   var INN_FEE     = 8;                 // 客栈打尖房钱（两）
   var LABOR_PER_WOOD = 3;              // 劳役工分：每 3 工换发 1 枚「劳字木片」
   function hourNow(){ return (((state.time||0)%12)+12)%12; }
@@ -1138,6 +1139,7 @@
   function isMessHour(h){ return inHours(MESS_HOURS,h); }      // 饭点：灶上有热食
   function isDeadHour(h){ return inHours(DEAD_HOURS,h); }      // 深夜：灶火已熄
   function isCurfewHour(h){ return inHours(NIGHT_HOURS,h); }   // 落锁：城门闭 · 点卯逾期
+  function isRollHour(h){ return inHours(ROLL_HOURS,h); }       // 点卯：卯辰应名（与「戌前销名」一开一收）
   function onbF(){ return (state.flags && state.flags.onb) || null; }
   // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
   function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
@@ -1146,11 +1148,29 @@
     var o=onbF(); if(!o || !o.curfewSet || o.done) return;
     for(var i=0;i<days;i++){
       if(!o.checkInDone) o.missCount=(o.missCount||0)+1;
-      o.checkInDone=false;   // 新的一日重新点卯
+      o.checkInDone=false;   // 新的一日重新点卯（戌前销名）
+      o.rollDone=false;      // 新的一日重新应卯（卯辰点名）
       o.lateDone=false;      // 新的一日重开晚归判定
       o.messToday=0;         // 当日换饭次数重置
     }
   }
+  // 进食记账（v20260915d）：「灶上一口热饭」按「真的吃了什么」计数 —— inventory.js 使用物品时回调此钩子。
+  //   为什么不记在「换饭」那一刻：换完揣着不吃等于没吃，这一条要教的正是「领了饭就吃下去」（饱食度）。
+  LF.onEat = function(defId){
+    var o=onbF(); if(!o || !o.started || o.done) return;
+    if(defId!=='fan' && defId!=='xizhou') return;
+    var t=state.flags && state.flags.task; if(!t || !t.mess_started || t.mess_done) return;
+    var n=addFlagNum('flags.task.meal_cnt', 1);
+    if(n>=2){
+      t.meal_done=true;
+      packAdd('fan',1); afterPackChange(); addXp(20);
+      log('〔伙房〕两顿热饭落肚，大勺又塞来一张干粮：「营里能活下来的，都是按时吃饭的。」（干粮×1 · 修为+20）','good');
+      completeQuest('mess_meal');
+    } else {
+      log('〔灶上一口热饭〕吃下一顿，还差 '+(2-n)+' 顿。','sys');
+    }
+    save(state); renderStatus();
+  };
   // 教学期时间是否流动（v20260911i）：牢头「介绍时辰」（clockOn）之前，牢中时辰一律冻结。
   //   理由同设计：玩家可能不敲门、只在牢里反复打盹，若时间照走，日头就被睡过去了。
   function clockFlowing(){
@@ -4374,7 +4394,40 @@
         _o.messToday = (_o.messToday||0) + 1;
         if(_hot) log('〔伙房〕'+hourLabel()+'正逢饭点：你把木片交上，大勺盛了一碗热饭热汤（劳字木片-'+_cost+' · 得干粮×1）。','good');
         else log('〔伙房〕饭点已过，灶上只剩半锅冷粥——大勺还是给了你一瓢（劳字木片-'+_cost+' · 得稀粥×1）。','sys');
+        // 头一回领饭 → 顺手把「灶上一口热饭」这桩例事挂上：领了不算，吃下去才算（进度记在 LF.onEat）
+        if(!(state.flags.task && state.flags.task.mess_started)){
+          state.flags=state.flags||{}; state.flags.task=state.flags.task||{};
+          state.flags.task.mess_started=true;
+          acceptQuest('mess_meal');
+          log('〔伙房〕大勺敲了敲锅沿：「领了饭就趁热吃——点下方「🎒 行囊」，选那张干粮，点「使用」。别揣着，凉了噎得慌。」','order');
+        }
         save(state);
+        break;
+      }
+      // 应卯点名（v20260915d）：与「回牢销名」一开一收。销名是罚（逾时三鞭），应卯是赏——
+      //   记一笔「勤」，记满三笔可销一次旷役。于是点卯不再是「躲不掉的规矩」，而是能挣回来的东西。
+      case 'roll_call': {
+        var _rr = onbF();
+        if(!_rr || !_rr.curfewSet || _rr.done){ log('〔点卯〕册上没有你的名字，应不得卯。','sys'); break; }
+        if(!isRollHour()){
+          log('〔点卯〕'+hourLabel()+'——校场空空，无人唱名。应卯只在卯、辰两个时辰（天亮开工那阵）。','warn');
+          break;
+        }
+        if(_rr.rollDone){ log('〔点卯〕今日已应过卯，校尉展册摆手：「自去干活。」','sys'); break; }
+        _rr.rollDone=true; _rr.rollDays=(_rr.rollDays||0)+1; _rr.favor=(_rr.favor||0)+1;
+        var _rc=addFlagNum('flags.task.roll_cnt', 1);
+        addXp(5);
+        log('〔点卯〕'+hourLabel()+'，校尉展册唱名，你应了一声。册上记你一笔「勤」（修为+5 · 营中好感+1）。','good');
+        if(_rc>=3 && !(state.flags.task && state.flags.task.roll_done)){
+          state.flags.task=state.flags.task||{}; state.flags.task.roll_done=true;
+          if((_rr.missCount||0)>0){ _rr.missCount=_rr.missCount-1; log('〔点卯〕牢头翻着册子哼了一声：「连应三日，记你一功——前头那笔旷役，勾了。」','good'); }
+          packAdd('fan',2); afterPackChange(); addXp(25);
+          log('〔点卯〕「勤」字记满三笔，大勺多匀了你两张干粮。（干粮×2 · 修为+25）','good');
+          completeQuest('roll_call');
+        } else {
+          log('〔点卯〕册上「勤」字已记 '+Math.min(_rc,3)+'/3 —— 记满三笔可销一次旷役，另得干粮两张。','sys');
+        }
+        save(state); renderStatus();
         break;
       }
       case 'check_in': {
