@@ -2991,6 +2991,42 @@
       take:'你把「采石充仓」那片木牍摘了下来。',
       tip:'去营东北矿坑，就格上「开凿矿料」凿够五块石料；扛回仓库，点仓吏、选「给予」，把石料交到他手上。' }
   ];
+  // 差役牌面板（v20260915b）：木牌上钉着几片木牍，摘一片领一桩活
+  function jobSeal(j){
+    if(jobFlag(j.key,'_done')) return '<span class="job-seal done">已了</span>';
+    if(jobFlag(j.key,'_started')) return '<span class="job-seal doing">已领</span>';
+    return '<span class="job-seal open">可领</span>';
+  }
+  function jobPlankHTML(j){
+    var done=jobFlag(j.key,'_done'), started=jobFlag(j.key,'_started');
+    var cls=done?' done':(started?' doing':' open');
+    var h='<div class="job-plank'+cls+'">'+
+      '<div class="job-plank-head">'+jobSeal(j)+'<span class="job-name">'+j.title+'</span></div>'+
+      '<div class="job-word">'+j.word+'</div>'+
+      '<div class="job-meta">'+j.tip+'</div>';
+    if(!done && !started){
+      h+='<button class="job-take" data-job="'+j.key+'" type="button">摘 下 木 牍 · 领 活</button>';
+    } else if(started && !done){
+      h+='<div class="job-doing">已摘此牍——按牌上所言去办。</div>';
+    } else {
+      h+='<div class="job-done-line">这片木牍已翻过来扣着——了了。</div>';
+    }
+    h+='</div>';
+    return h;
+  }
+  function renderJobBoard(){
+    var h='<h3 class="q-title">差 役 牌</h3>'+
+      '<p class="job-sub">营中差事全钉在这块木牌上：摘下一片木牍，那桩活便落在你头上。</p>'+
+      '<div class="job-board">'+JOB_BOARD.map(jobPlankHTML).join('')+'</div>'+
+      '<p class="job-note">牌角另钉着一句：活要做出东西来，东西要送到人手上。空着手回来，不算交差。</p>'+
+      '<p class="job-note sub">牌侧一行小字，是另一码事：干活记工，满 '+LABOR_PER_WOOD+' 工发一枚劳字木片，木片到营西伙房换饭——那是口粮，不是差役。</p>';
+    return h;
+  }
+  function bindJobBoard(){
+    document.querySelectorAll('.job-take[data-job]').forEach(function(b){
+      b.onclick=function(){ jobTake(b.getAttribute('data-job')); };
+    });
+  }
   function jobFlag(key, suffix){ var t=(state.flags && state.flags.task)||{}; return t[key+suffix]; }
   function jobOpen(key){ return !!jobFlag(key,'_started') && !jobFlag(key,'_done'); }
   function jobTake(key){
@@ -3002,26 +3038,11 @@
     log(j.take,'sys');
     log('〔差役〕'+j.tip,'sys');
     save(state); buildActions(curRoom());
+    if(currentModalKind==='job'){ openModal('job'); }
   }
-  // 看差役牌：木牌上钉着几片木牍，牌角一枚铁钉 —— 摘下哪片，那桩活就落在你头上
+  // 看差役牌（v20260915b）：从对话文字流改为木牍面板 —— 木牌质感 + 一片木牍一桩活
   function jobBoard(){
-    var txt='木牌上钉着几片木牍，字是炭笔写的，笔画歪斜。';
-    JOB_BOARD.forEach(function(j){
-      if(jobFlag(j.key,'_done')) txt+='「'+j.word+'。」这片木牍翻过来扣着——已了。';
-      else if(jobFlag(j.key,'_started')) txt+='「'+j.word+'。」这片你已摘走。';
-      else txt+='「'+j.word+'。」';
-    });
-    txt+='牌角另钉着一句：活要做出东西来，东西要送到人手上。空着手回来，不算交差。';
-    // v20260914g：木片（营里的口粮钱）此前没有一处交代来路去处，玩家挣到了也不知往哪使 —— 一并钉在牌上，
-    //   并与牌上这些「差役」划清：那是记工换饭的口粮，不是差役。
-    txt+='牌侧另有一行小字，是另一码事：干活记工，满 '+LABOR_PER_WOOD+' 工发一枚劳字木片，木片到营西伙房换饭——那是口粮，不是差役。';
-    var opts=[];
-    JOB_BOARD.forEach(function(j){
-      if(jobFlag(j.key,'_started') || jobFlag(j.key,'_done')) return;
-      opts.push({ label:'摘下「'+j.title+'」', fn:function(){ jobTake(j.key); } });
-    });
-    opts.push({ label:'把手缩回来', fn:function(){ log('你把手又揣回袖里——营里的活，接下了就没得反悔。','sys'); } });
-    tutAsk(txt, opts, '差役牌');
+    openModal('job');
   }
 
   // ═══ 农田（0,0）：开垦 → 成畦 → 掐菜（v20260914e）═══
@@ -5913,6 +5934,8 @@
       h=renderPartyPanel();
     } else if(kind==='quest'){
       h=renderObjectives();
+    } else if(kind==='job'){
+      h=renderJobBoard();
     } else if(kind==='map'){
       if(isCityGrid(state.room) && state.flags.cityPos && !modalOpts.forceWorld){
         h=buildCityMapTabsHTML(modalOpts._scope==='world');   // 城内：布防图 ↔ 山河志 双页签（scope=world 默认山河志）
@@ -6037,6 +6060,7 @@
     if(kind==='citybuild'){ bindCityBuildPanel(); }
     if(kind==='sect'){ bindSectPanel(); }
     if(kind==='quest'){ bindQuestPanel(); }
+    if(kind==='job'){ bindJobBoard(); }
     // 回顾面板（v20260914a）：落位到最新一句（与叙事区同序：旧的在上、新的在下），并绑「收起」
     if(kind==='log'){
       var _lv=document.getElementById('m-leave'); if(_lv) _lv.onclick=function(){ closeModal(); };
