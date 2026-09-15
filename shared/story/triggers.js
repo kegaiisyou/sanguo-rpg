@@ -123,7 +123,7 @@
         asks: [
           { label: '〔应下〕好，我去寻些吃食来。',
             set: { 'flags.task.zt_accepted': true },
-            say: '你点头应下。周听涛咧嘴一笑，露出豁牙：「痛快！〔寻吃食·破命数〕已替你记在册上了——常点下头「任务」看看进度，别把老夫的饼忘了。」',
+            say: '你点头应下。周听涛咧嘴一笑，露出豁牙：「痛快！〔寻吃食·破命数〕已替你记在册上了——常点下头「任务」看看进度，别把老夫的饼忘了。」随即又摆手：「记着，吃食要交到老夫手上（点老夫，选「给予」），空着手来跟老夫说话不算数。」',
             // v20260911k：既然让他「点下头任务看进度」，就得先把下方那排按钮亮出来 ——
             //   此前教学期 #dock 一直藏着，指引指向的是个看不见的按钮（体验断点）。
             then: [ { t: 'acceptQuest', id: 'zt_food' }, { t: 'unlockDock', key: 'quest' }, { t: 'reveal', layer: 'dock', highlight: true } ] },
@@ -144,31 +144,52 @@
         asks: [
           { label: '〔应下〕我这就去寻。',
             set: { 'flags.task.zt_accepted': true },
-            say: '「好，好。」周听涛搓了搓手，把草茎一折：「〔寻吃食·破命数〕记你册上了。伙房在营西，拿木片换得动吃食。」',
+            say: '「好，好。」周听涛搓了搓手，把草茎一折：「〔寻吃食·破命数〕记你册上了。营里不白给饭——去中军场院「担石劳作」，干满三工挣一枚劳字木片；再往营西伙房（有灶台那一格），拿木片换一份干粮。记着：吃食要交到老夫手上（点老夫，选「给予」），空着手来说话不算数。」',
             then: [ { t: 'acceptQuest', id: 'zt_food' }, { t: 'unlockDock', key: 'quest' }, { t: 'reveal', layer: 'dock', highlight: true } ] },
           { label: '〔仍不〕再容我想想。', say: '「也罢，也罢。」他摆摆手，重新闭上眼，掐他那些没头没尾的卦。' }
         ] }
     ]
   });
 
-  // 2.5) 周听涛·交吃食→破命数（接取「寻吃食」后，持干粮来交付，授密道线）
-  //   仅在身上确有「吃食(fan)」时才拦截对话；否则放行给普通 talk()，轮播周听涛的台词。
-  //   （旧版无条件拦截 → 每次对话都只重复「吃食还没寻来」，台词全被吞——v20260911f 修复）
+  // 2.5) 周听涛·交吃食→破命数（v20260914g 改：交付一律走「给予」，对话只管指路）
+  //   旧版：身上有干粮时点「交谈」即自动交付（consume fan）—— 玩家什么都没做，聊一句天就算交了差，
+  //     「给予」这套交付机制在这条线上始终用不上，于是这条任务给人的感受就是「不用提交、也不知找谁」。
+  //   现在：真交付挂在 zt_food_give（hook:'onGive'）—— 点周听涛、选「给予」、把干粮择出来，行囊真扣一件；
+  //     此处只按「当下手里有什么」指路：没木片 → 去挣；有木片 → 去换；有干粮 → 教他怎么递。
+  //     三条支路写在同一条触发器里（cond 无 notHasItem，故用 branch 嵌套判），免得多条 onTalk 互相打架。
   TRIGGERS.push({
     id: 'zt_food_deliver', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: false,
-    cond: { flags: { 'flags.task.zt_accepted': true }, hasItem: 'fan', notFlag: 'flags.route.crypt' },
+    cond: { flags: { 'flags.task.zt_accepted': true }, notFlag: 'flags.route.crypt' },
     steps: [
-      { t: 'npcTalk', npc: 'zhoutingtao',
-        prompt: '你将从伙房换来的干粮递过去。周听涛眼睛一亮，也不客气，三两口扒了半张饼，这才正色道：「好，这桩吃食老夫领了——既食人之禄，便替你掐一掐这乱如麻的命数。」',
-        asks: [
-          { label: '〔静候先生掐算〕', set: { 'flags.route.crypt': true },
+      { t: 'branch',
+        if: { hasItem: 'fan' },
+        then: [
+          { t: 'log', cls: 'npc', text: '〔周听涛〕眼巴巴瞅着你怀里那半张饼：「吃食在手了？莫叫老夫空欢喜——点老夫，选「给予」，把干粮择出来递过来。空手跟老夫说话，不算数。」' }
+        ],
+        else: [
+          { t: 'branch',
+            if: { hasItem: 'lao_pai' },
             then: [
-              { t: 'consume', id: 'fan', n: 1 },
-              { t: 'completeQuest', id: 'zt_food' },
-              { t: 'setFlag', path: 'flags.task.zt_food_done', value: true },
-              { t: 'log', cls: 'good', text: '周听涛屈指掐算，半晌忽一笑：「果然……你这命格，乱中藏变。营后塌墙根下有暗道，默叔替老夫守着。夜里随我来——记着，塌墙根，寻默叔。」〔已得密道线索：先去囚室寻默叔对暗号，再赴塌墙根钻暗道。〕' }
+              { t: 'log', cls: 'npc', text: '〔周听涛〕「木片有了？好。往营西伙房——有灶台那一格，把木片递上去换一份干粮；换来了，再送来与老夫。」' }
+            ],
+            else: [
+              { t: 'log', cls: 'npc', text: '〔周听涛〕「空着手来见老夫？营里不白给饭：去中军场院「担石劳作」，干满三工换一枚劳字木片；拿了木片，往营西伙房换干粮。老夫只认拿到手的东西。」' }
             ] }
         ] }
+    ]
+  });
+  // 2.6) 交付：把干粮「给予」周听涛 —— 东西已由引擎 giveItemToNpc 从行囊扣掉（先扣后触发），
+  //   此处只管认下这桩吃食、授密道线、结清任务。不写 consume（会二次扣除）。
+  TRIGGERS.push({
+    id: 'zt_food_give', hook: 'onGive', npc: 'zhoutingtao', room: 'camp_tz1', item: 'fan', once: false,
+    cond: { flags: { 'flags.task.zt_accepted': true }, notFlag: 'flags.route.crypt' },
+    steps: [
+      { t: 'log', cls: 'npc', text: '你将从伙房换来的干粮递过去。周听涛眼睛一亮，也不客气，三两口扒了半张饼，这才正色道：「好，这桩吃食老夫领了——既食人之禄，便替你掐一掐这乱如麻的命数。」' },
+      { t: 'setFlag', path: 'flags.route.crypt', value: true },
+      { t: 'completeQuest', id: 'zt_food' },
+      { t: 'setFlag', path: 'flags.task.zt_food_done', value: true },
+      { t: 'exp', amount: 20 },
+      { t: 'log', cls: 'good', text: '周听涛屈指掐算，半晌忽一笑：「果然……你这命格，乱中藏变。营后塌墙根下有暗道，默叔替老夫守着。夜里随我来——记着，塌墙根，寻默叔。」〔已得密道线索：先去囚室寻默叔对暗号，再赴塌墙根钻暗道。〕' }
     ]
   });
 
