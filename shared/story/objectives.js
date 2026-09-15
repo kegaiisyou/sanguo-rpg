@@ -189,7 +189,7 @@
       id: 'porridge_visit', title: '送粥探监', type: 'side',
       hint: '在伙房换一碗粥（过了饭点换到的正是粥），往地字二号牢房点那瘦少年、选「给予」递到他手上。',
       need: [ { flag: 'flags.task.porridge_cnt', name: '递粥', icon: '🥣', count: 1 } ],
-      submit: { npc: '林娘', room: 'kuyilao' },
+      submit: { npc: '阿禾', room: 'kuyilao' },
       reward: '修为+30 · 阿禾好感+2 · 水渠线索'
     },
     night_water: {
