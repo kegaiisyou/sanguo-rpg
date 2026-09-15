@@ -661,7 +661,7 @@
           { t: 'setFlag', path: 'flags.task.farm_done', value: true },
           { t: 'completeQuest', id: 'camp_farm' },
           { t: 'log', cls: 'npc', text: '〔鲁大〕菜下了锅，热气腾起来。他舀半瓢稠的递过来：「孙老那块地，果然没白翻。往后菜多了，只管送来。」' },
-          { t: 'grant', items: [ { id: 'fan', name: '干粮', icon: '🍙', cat: '食物', count: 1 } ] },
+          { t: 'grant', items: [ { id: 'fan', name: '干粮', icon: '🍙', cat: '食饵', count: 1 } ] },
           { t: 'favor', npc: 'sun_lao', amount: 1 },
           { t: 'exp', amount: 25 },
           { t: 'log', cls: 'good', text: '〔任务完成·开垦薄田〕获得 干粮×1 · 修为+25 · 孙老好感+1' }
@@ -742,7 +742,7 @@
   });
 
   // ══════════ 第三批·仓中翻找：翻出什么交什么，交回仓里才算完 ══════════
-  [['jiugao', '锈迹镐头'], ['shengzi', '一段麻绳'], ['bumu', '半幅粗布']].forEach(function (f) {
+  [['mucai', '木材'], ['rope', '绳'], ['bumu', '粗布']].forEach(function (f) {
     TRIGGERS.push({
       id: 'rummage_give_' + f[0], hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2, 1], item: f[0], once: false,
       cond: { flags: { 'flags.task.rummage_started': true }, notFlag: 'flags.task.rummage_done' },

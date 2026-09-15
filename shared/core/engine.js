@@ -2858,19 +2858,11 @@
         ]}
       ]
     },
-    // 农田（0,0）：接了「开垦薄田」才见着待垦的荒地；翻透三垄后，荒地换成菜畦。
+    // 农田（0,0）：接了「开垦薄田」才见着待垦的荒地；此后一畦一畦开出来（见 farmObjects）。
     //   未接活时一律不摆 —— 这一格本就有「下地务农」的自由劳作，再堆设施会把格上的引导顶掉。
-    'kuyilao|0,0': {
-      objects: [
-        { icon:'🌾', label:'待垦的薄田', show: function(){ return jobOpen('farm') && !farmTilled(); }, acts:[
-          {label:'开垦', icon:'⛏️', fn:function(){ farmTill(); }}
-        ]},
-        { icon:'🥬', label:'菜畦', show: function(){ return jobOpen('farm') && farmTilled(); }, acts:[
-          {label:'掐菜', icon:'🥬', fn:function(){ farmPick(); }},
-          {label:'挑水浇畦', icon:'💧', show: function(){ return !farmFx().wet; }, fn:function(){ farmWater(); }}
-        ]}
-      ]
-    },
+    //   v20260915g：畦的数目随开出进度变化，故不能在定义时就写死数组（此处常量尚未声明），
+    //   改由 cellInteriors 在【运行时】问 farmObjects() 要。
+    'kuyilao|0,0': { farmObjects: true },
     // 演武场（2,2）：犬舍单独一间子房（v20260915e）——木人桩留在格上（格型动作），
     //   逗犬进屋，两者隔开：先教打（桩），再教跑（犬）。门槛 = 木人桩已练成（tcDone）。
     'kuyilao|2,2': {
@@ -2906,7 +2898,13 @@
     // 矿坑（2,0）【不摆设施】：该格是 mine 型，格上本就有「开凿矿料」出石料（city.js 格型动作）。
     //   早前在此另摆一个「岩壁矿脉·凿石」，于是同一格里出现两个都出石料的按钮 —— 纯属重复，撤掉。
   };
-  function cellInteriors(cid, x, y){ return CELL_INTERIORS[cid + '|' + x + ',' + y] || null; }
+  function cellInteriors(cid, x, y){
+    var d = CELL_INTERIORS[cid + '|' + x + ',' + y] || null;
+    // v20260915g：农田的畦是「开一畦多一畦」，数目随进度变；且定义常量在文件更下方，
+    //   故此处运行时再生成（比在表里写死数组干净，也不受声明顺序所累）。
+    if(d && d.farmObjects) return { objects: farmObjects() };
+    return d;
+  }
   // ═══ 苦役营牢房设施：水槽(容量+添水) / 值更鼓(击鼓)（v20260910s）═══
   var TROUGH_CAP = 20;   // 水槽容量（饮水单位）；水不凭空生，满则溢
   function fxGet(key){
@@ -3081,7 +3079,7 @@
     { key:'farm', quest:'camp_farm', title:'开垦薄田',
       word:'孙老要的：薄田三垄，翻透，掐两捧菜，交伙房鲁大',
       take:'你把「开垦薄田」那片木牍摘了下来。',
-      tip:'去营北农田（那一格会多出「待垦的薄田」），翻透三垄、掐两捧野菜；再捧去伙房，点鲁大、选「给予」，把菜交到他手上。' },
+      tip:'去营北农田那格：翻三垄开出第一畦 → 播菜籽 → 约三时辰后采收。地是九畦的园子，开出几畦看你肯下多少工；浇过水的早熟，该收不收会枯。菜捧去伙房，点鲁大、选「给予」交到他手上。' },
     { key:'stone', quest:'stone', title:'采石充仓',
       word:'仓吏要的：矿坑凿青石五块，交仓库',
       take:'你把「采石充仓」那片木牍摘了下来。',
@@ -3233,83 +3231,218 @@
     });
   }
   // ═══ 仓中翻找（v20260915f）：麻袋堆后翻出一件旧物，交还仓吏 ══
-  var RUMMAGE_FINDS = [
-    { id:'jiugao',  name:'锈迹镐头', icon:'⛏️', cat:'素材' },
-    { id:'shengzi', name:'一段麻绳', icon:'🪢', cat:'素材' },
-    { id:'bumu',    name:'半幅粗布', icon:'🧵', cat:'素材' }
-  ];
+  // v20260915g：改为只翻【已登记】的通用物资。
+  //   原先图省事塞的是自造对象（jiugao/shengzi/bumu）：没进 items.js，于是商店/寄售这些
+  //   读 LF.ITEMS[defId] 的地方掉回英文 id（玩家眼中即「乱码」），且「一段麻绳」与既有的
+  //   rope（攀绳翻墙线）撞了车。凡能进背包的，必先在 items.js 登记、再引用。
+  var RUMMAGE_FINDS = ['mucai', 'rope', 'bumu'];
   function rummageStore(){
     if(!jobOpen('rummage')){ toast('仓里的东西不是你能乱翻的。'); return; }
     if(!exert('翻找旧物')) return;
     busyAct('翻找旧物', 1100, function(){
       advanceTime(1);
-      var f=RUMMAGE_FINDS[Math.floor(Math.random()*RUMMAGE_FINDS.length)];
-      if(!packAdd({defId:f.id,name:f.name,icon:f.icon,cat:f.cat,count:1})) return;
-      log('你在麻袋堆后头摸了半天，翻出一件旧物：'+f.icon+'「'+f.name+'」。仓吏说过，翻出什么都得交回仓里。','good');
+      var id=RUMMAGE_FINDS[Math.floor(Math.random()*RUMMAGE_FINDS.length)];
+      var def=(window.LF && LF.ITEMS && LF.ITEMS.DEFS) ? LF.ITEMS.DEFS[id] : null;
+      if(!packAdd(id,1)) return;
+      log('你在麻袋堆后头摸了半天，翻出一件旧物：'+(def?def.icon:'🔧')+'「'+(def?def.name:id)+'」。仓吏说过，翻出什么都得交回仓里。','good');
       afterPackChange(); save(state); renderStatus();
     });
   }
 
-  // ═══ 农田（0,0）：开垦 → 成畦 → 掐菜（v20260914e）═══
-  // 状态存 fixtures['kuyilao|0,0']：tilled 已翻垄数 / picked 已掐菜数（与牢房水槽同一套 fixtures 写法）
-  var FARM_LI = 3;                                   // 翻透三垄才算把这块荒地开出来
-  function farmFx(){ return fxGet('kuyilao|0,0'); }
-  function farmTilled(){ return (farmFx().tilled||0) >= FARM_LI; }
-  // 开垦：头一回由孙老递过锄头（"家伙给你"），此后每次一垄 = 一个时辰 + 4 精力
+  // ═══ 农田（0,0）：九畦（v20260915g）═══
+  //   旧版只有「一块薄田」：翻三垄 → 掐菜，掐完还是那块地 —— 种地的人无从长进，
+  //   浇水也只是多给一捧，看不出「照料」的分量。
+  //   新版把它做成九畦的园子：荒地要一垄一垄开出来（开到第几畦，看你肯下多少工）；
+  //   每畦各自走 翻 → 播 → 长 → 收 —— 长出什么，取决于你播了什么、浇没浇水、收得及不及时。
+  //   升级给的是【机制】不是数值：水渠（一桶浇遍）、编筐（多得一捧）、留种（收完必返籽）。
+  //   状态存 fixtures['kuyilao|0,0']：plots[] 每畦 / unlocked 已开出几畦 / up{} 升级 / li 当前畦已翻垄数
+  var FARM_MAX = 9;                    // 九畦到顶（再阔就是庄园，不是囚徒的园子了）
+  var FARM_LI  = 3;                    // 开一畦须翻三垄
+  var CROPS = {
+    yecai: { name:'野菜', icon:'🥬', grow:3, out:'yecai', yield:[1,2], seed:'caizi' },
+    dou:   { name:'菽豆', icon:'🥜', grow:6, out:'dou',   yield:[1,2], seed:'douzhong' }
+  };
+  function farmFx(){
+    var f=fxGet('kuyilao|0,0');
+    if(!f.plots){
+      f.plots=[]; for(var i=0;i<FARM_MAX;i++) f.plots.push({st:'wild'});
+      f.unlocked=0; f.up={}; f.li=0;
+      // 旧存档迁移：老版本只记「翻了几垄」，翻透的即算第一畦已开出来
+      if((f.tilled||0)>=FARM_LI){ f.plots[0].st='tilled'; f.unlocked=1; }
+    }
+    if(!f.up) f.up={};
+    return f;
+  }
+  function farmTilled(){ var f=farmFx(); return (f.unlocked||0)>0 || (f.tilled||0)>=FARM_LI; }
+  function farmHas(id,n){ var it=packFind(id); return !!(it && (it.count||0)>=n); }
+  // 一畦此刻的模样：wild 未开 / tilled 已翻 / growing 长着 / ripe 可收 / wither 枯了
+  function plotStage(p){
+    if(!p || p.st!=='sown') return p ? p.st : 'wild';
+    var c=CROPS[p.crop]||CROPS.yecai;
+    var need=Math.max(1, c.grow - (p.wet?1:0));        // 浇过水的早一个时辰熟
+    var past=state.time-(p.sownT||0);
+    if(past>=need) return 'ripe';
+    if(past>=c.grow*3) return 'wither';                // 该收不收，苗就荒死在畦里
+    return 'growing';
+  }
+  function plotLeft(p){
+    var c=CROPS[p.crop]||CROPS.yecai;
+    return Math.max(0, Math.max(1,c.grow-(p.wet?1:0)) - (state.time-(p.sownT||0)));
+  }
+  // 开垦：一次一垄，三垄开出一畦；头一回孙老递过锄头
   function farmTill(){
     if(!jobOpen('farm')){ toast('孙老没托你翻这块地，贸然动土反招人疑。'); return; }
-    if(farmTilled()){ toast('三垄都已翻透，只等菜苗起身。'); return; }
     var f=farmFx();
+    if((f.unlocked||0)>=FARM_MAX){ toast('九畦都开出来了——再开就该惊动牢头了。'); return; }
     if(!packFind('chutu')){
-      packAdd({defId:'chutu', count:1});
+      packAdd('chutu',1);
+      packAdd('caizi',2);   // 头一回下地，孙老连家伙带籽一并给——不然开了地也无从下手
       log('孙老从田埂边摸出一把锄头递过来：「家伙给你。土要翻透，别糊弄老骨头。」（得「锄头」×1）','good');
+      log('他又从怀里摸出个小布袋塞给你：「菜籽。撒下去，别贪多——头一茬能活一半，就算老天赏脸。」（得「菜籽」×2）','good');
     }
     if(!exert('开垦')) return;
     busyAct('开垦·一个时辰', 1000, function(){
       state.energy=Math.max(0, state.energy-4);
       advanceTime(1);
-      f.tilled=(f.tilled||0)+1;
-      log('你抡锄翻过一垄，湿土翻开，草腥气扑了满脸。（已开 '+f.tilled+' / '+FARM_LI+' 垄）','env');
-      if(f.tilled>=FARM_LI) log('三垄翻透，土细如筛——过些时日便能掐菜了。','good');
+      f.li=(f.li||0)+1; f.tilled=(f.tilled||0)+1;      // tilled 仅为旧存档/旧判定留的兼容计数
+      log('你抡锄翻过一垄，湿土翻开，草腥气扑了满脸。（第 '+((f.unlocked||0)+1)+' 畦：'+f.li+' / '+FARM_LI+' 垄）','env');
+      if(f.li>=FARM_LI){
+        f.plots[f.unlocked||0]={ st:'tilled' };
+        f.unlocked=(f.unlocked||0)+1; f.li=0;
+        log('三垄翻透，土细如筛——第 '+f.unlocked+' 畦开出来了。撒菜籽还是菽种，在你。','good');
+      }
       save(state); renderStatus(); buildActions(curRoom());
     });
   }
-  // 掐菜：得「野菜」实物（可自啃垫肚子，也可交伙房）。
-  //   不再记 flags 计数 —— 交了几捧，全看你在鲁大那儿「给予」出去几捧（判定见 triggers.js kyl_farm_give）。
-  function farmPick(){
-    if(!jobOpen('farm')){ toast('这不是你该动的菜地。'); return; }
-    if(!farmTilled()){ toast('地还荒着，哪来的菜可掐。'); return; }
-    if(!exert('掐菜')) return;
-    busyAct('掐菜·一个时辰', 1000, function(){
-      state.energy=Math.max(0, state.energy-2);
+  // 播种：一畦一份种子；菜籽长得快，菽豆长得慢却厚
+  function farmSow(i, key){
+    var f=farmFx(), p=f.plots[i]; if(!p) return;
+    var c=CROPS[key]; if(!c) return;
+    if(!farmHas(c.seed,1)){ toast('没有'+c.name+'的种子——向孙老讨，或拿收成自己留种。'); return; }
+    if(!exert('播种')) return;
+    busyAct('播种·'+c.name, 800, function(){
+      packConsume(c.seed,1);
       advanceTime(1);
-      var n = 1 + (Math.random()<0.5 ? 1 : 0);
-      var f=farmFx();
-      // 浇过水的畦厚实些，多得一捧；掐过这一茬，水也就尽了 —— 下一茬若要厚，得再挑水。
-      var wet=!!f.wet; if(wet){ n+=1; f.wet=false; }
-      if(!packAdd('yecai', n)) return;
-      f.picked=(f.picked||0)+n;
-      log('你蹲身掐菜，指甲缝里全是泥——得「野菜」×'+n+'。'+(wet?'（浇过水的果然厚实。）':''),'good');
-      afterPackChange(); save(state); renderStatus();
+      p.st='sown'; p.crop=key; p.sownT=state.time; p.wet=false;
+      log('你把'+c.name+'籽撒进第 '+(i+1)+' 畦，覆土踩实。约 '+c.grow+' 个时辰可收——浇过水则早一个时辰。','good');
+      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
     });
   }
-  // 挑水浇畦（v20260915f · 农田一期）：时间头一回变成「要照料的东西」。
-  //   为什么不按真实时辰长：教学期时钟是冻结的（clockFlowing 为假），种下去不会长；
-  //   故此处只记「浇过 / 没浇」——浇过的畦下一茬多一捧，掐过即尽。等脱籍后时钟流动，
-  //   再换成按畦上记的时辰计时（真生长）。先把「照料有回报」这层手感立起来。
-  function farmWater(){
-    if(!jobOpen('farm')){ toast('这不是你该管的菜地。'); return; }
-    if(!farmTilled()){ toast('地还荒着，浇也是白浇。'); return; }
+  // 浇水：寻常一次浇一畦；修了水渠则三份水浇遍所有长着的畦
+  function farmWater(i){
+    var f=farmFx();
     var bag=packFind('shuidai');
     if(!bag || (bag.water||0) < 3){ toast('水袋里不足三份水——先去囚室那格的水槽点「装水入袋」。'); return; }
+    var all=!!f.up.canal, targets=[];
+    for(var k=0;k<(f.unlocked||0);k++){ if(plotStage(f.plots[k])==='growing') targets.push(k); }
+    if(!all){ if(plotStage(f.plots[i])!=='growing'){ toast('这一畦此刻不缺水。'); return; } targets=[i]; }
+    if(!targets.length){ toast('眼下没有正长着的畦。'); return; }
     if(!exert('挑水浇畦')) return;
     busyAct('挑水浇畦', 900, function(){
       bag.water=(bag.water||0)-3;
       advanceTime(1);
-      var f=farmFx(); f.wet=true;
-      log('你挑了三份水把菜畦浇透，湿泥颜色转深——下一茬该起得厚些。','good');
+      for(var k=0;k<targets.length;k++) f.plots[targets[k]].wet=true;
+      log(all?('水渠一开，三份水顺着沟渗进 '+targets.length+' 畦——这就是修渠的好处。')
+             :('你把水浇进第 '+(i+1)+' 畦，湿泥颜色转深——这一茬能早熟一个时辰。'),'good');
       afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
     });
+  }
+  // 锄草：不催熟，只把时辰往前推一个，顺带让人不至于干等
+  function farmWeed(i){
+    var f=farmFx();
+    if(!exert('锄草')) return;
+    busyAct('锄草', 800, function(){
+      advanceTime(1);
+      state.energy=Math.max(0, state.energy-1);
+      log('你蹲在第 '+(i+1)+' 畦边拔草，草根带起的湿土凉丝丝的。（距可收约 '+plotLeft(f.plots[i])+' 个时辰）','env');
+      save(state); renderStatus(); buildActions(curRoom());
+    });
+  }
+  // 采收：得实物；浇过水 +1 捧；有编筐再 +1 捧；留种则返一份籽
+  function farmHarvest(i){
+    var f=farmFx(), p=f.plots[i]; if(!p) return;
+    var c=CROPS[p.crop]||CROPS.yecai;
+    if(!exert('采收')) return;
+    busyAct('采收·'+c.name, 900, function(){
+      advanceTime(1);
+      state.energy=Math.max(0, state.energy-2);
+      var n=c.yield[0]+Math.floor(Math.random()*(c.yield[1]-c.yield[0]+1));
+      if(p.wet) n+=1;                                  // 浇过水的厚实
+      if(f.up.basket) n+=1;                            // 编筐：兜住更多
+      if(!packAdd(c.out, n)) return;
+      f.picked=(f.picked||0)+n;
+      var back=false;
+      if(f.up.seedkeep || Math.random()<0.4){ if(packAdd(c.seed,1)) back=true; }
+      p.st='tilled'; p.crop=null; p.wet=false;
+      log('第 '+(i+1)+' 畦收得'+c.name+'×'+n+'。'+(back?'（留下一份籽，下一茬有着落。）':'')+(f.up.basket?'（筐编得好，多兜了一捧。）':''),'good');
+      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
+    });
+  }
+  // 铲枯苗：该收没收，苗荒死在畦里 —— 土还在，重头再来
+  function farmClear(i){
+    var f=farmFx(), p=f.plots[i]; if(!p) return;
+    if(!exert('铲除枯苗')) return;
+    busyAct('铲除枯苗', 700, function(){
+      advanceTime(1);
+      p.st='tilled'; p.crop=null; p.wet=false;
+      log('你把枯苗连根铲起，扔在田埂上晾着——土还在，重头再来。','env');
+      save(state); renderStatus(); buildActions(curRoom());
+    });
+  }
+  // 升级三件：给机制，不给数值（数值涨了只会让人更快做完，机制变了才会换一种做法）
+  var FARM_UP = {
+    canal:    { name:'水渠', icon:'🚰', cost:{ shitiao:3 }, need:{ shitiao:3 }, desc:'沿畦开一道小沟。此后三份水浇遍所有长着的畦，不必一畦一畦挑。' },
+    basket:   { name:'编筐', icon:'🧺', cost:{ rope:1 },    need:{ rope:1 },    desc:'请席翁编一只收菜的筐。此后每畦采收都多得一捧。' },
+    seedkeep: { name:'留种', icon:'🌱', cost:{ bumu:1 },    need:{ bumu:1 },    desc:'缝一只布口袋存籽。此后每收一畦，必留得一份种子。' }
+  };
+  function farmUpgrade(key){
+    var f=farmFx(), u=FARM_UP[key]; if(!u) return;
+    if(f.up[key]){ toast(u.name+'已经有了。'); return; }
+    for(var id in u.need){ if(!farmHas(id, u.need[id])){
+      var dn=(window.LF&&LF.ITEMS&&LF.ITEMS.DEFS&&LF.ITEMS.DEFS[id])?LF.ITEMS.DEFS[id].name:id;
+      toast('料不够：修'+u.name+'需「'+dn+'」×'+u.need[id]+'。'); return;
+    } }
+    if(!exert('修'+u.name)) return;
+    busyAct('修'+u.name, 1200, function(){
+      for(var id in u.need) packConsume(id, u.need[id]);
+      advanceTime(1);
+      f.up[key]=true;
+      log('〔农田·'+u.name+'〕'+u.desc,'good');
+      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
+    });
+  }
+  // 格上的设施：每畦按当前状态只显一条（故九畦最多九条），外加三处升级
+  function farmObjects(){
+    var arr=[], f=farmFx(), un=f.unlocked||0;
+    for(var _i=0;_i<FARM_MAX;_i++){
+      (function(i){
+        var nm='第 '+(i+1)+' 畦';
+        arr.push({ icon:'🌾', label:nm+'·荒地',
+          show:function(){ return jobOpen('farm') && i===farmFx().unlocked && farmFx().unlocked<FARM_MAX; },
+          acts:[{label:'开垦（翻三垄）', icon:'⛏️', fn:function(){ farmTill(); }}] });
+        arr.push({ icon:'🟫', label:nm+'·已翻',
+          show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='tilled'; },
+          acts:[{label:'播·野菜（菜籽×1）', icon:'🥬', fn:function(){ farmSow(i,'yecai'); }},
+                {label:'播·菽豆（菽种×1）', icon:'🥜', fn:function(){ farmSow(i,'dou'); }}] });
+        arr.push({ icon:'🌱', label:nm+'·长着',
+          show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='growing'; },
+          acts:[{label:'浇水（三份）', icon:'💧', show:function(){ return !farmFx().plots[i].wet; }, fn:function(){ farmWater(i); }},
+                {label:'锄草', icon:'🧹', fn:function(){ farmWeed(i); }}] });
+        arr.push({ icon:'🥬', label:nm+'·可收',
+          show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='ripe'; },
+          acts:[{label:'采收', icon:'🧺', fn:function(){ farmHarvest(i); }}] });
+        arr.push({ icon:'🥀', label:nm+'·枯了',
+          show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='wither'; },
+          acts:[{label:'铲除枯苗', icon:'🧹', fn:function(){ farmClear(i); }}] });
+      })(_i);
+    }
+    Object.keys(FARM_UP).forEach(function(key){
+      var u=FARM_UP[key];
+      arr.push({ icon:u.icon, label:'修'+u.name,
+        show:function(){ return jobOpen('farm') && !farmFx().up[key] && farmFx().unlocked>0; },
+        acts:[{label:'修'+u.name, icon:u.icon, fn:function(){ farmUpgrade(key); }}] });
+    });
+    return arr;
   }
   var CELL_NARR = {
     'kuyilao|1,0': [

@@ -202,7 +202,19 @@
     fish:       { defId: 'fish',       name: '鲜鱼', icon: '🐟', cat: '食饵', effect: { food: 25 },
       desc: '郊野河湖钓得的鲜鱼，去鳞剖腹下锅最鲜；久置则腥，宜尽早烹食。' },
     fish_dried: { defId: 'fish_dried', name: '咸鱼', icon: '🐟', cat: '食饵', price: 12, effect: { food: 18 },
-      desc: '盐渍风干的咸鱼，耐存不坏，行旅干粮之选，亦堪易米。' }
+      desc: '盐渍风干的咸鱼，耐存不坏，行旅干粮之选，亦堪易米。' },
+    // —— 农事（v20260915g）：种子与收成 ——
+    //   这几件是「任务物也是泛用物」的样板：教学里靠它们交差，出了营照样能吃、能卖、能留种。
+    //   此前图省事直接在代码里塞自造对象（不进这张表），结果在商店/寄售这些读 LF.ITEMS[defId]
+    //   的地方掉回英文 id —— 玩家看到的「乱码」就是从这儿来的。凡进背包的物，一律先在此登记。
+    caizi:    { defId: 'caizi',    name: '菜籽', icon: '🌱', cat: '素材', price: 2,
+      desc: '野菜结的籽。撒进翻透的畦里还能再长一茬——孙老说，肯留种的人才算种地的。' },
+    douzhong: { defId: 'douzhong', name: '菽种', icon: '🥜', cat: '素材', price: 4,
+      desc: '菽豆的种子。生得慢些，收成却厚，也耐存放。' },
+    dou:      { defId: 'dou',      name: '菽豆', icon: '🥜', cat: '食饵', price: 5, effect: { food: 14 },
+      desc: '收下的菽豆。煮烂了能顶一顿，晒干了能存一冬，也能换几个钱。' },
+    bumu:     { defId: 'bumu',     name: '粗布', icon: '🧵', cat: '素材', price: 6,
+      desc: '半幅未漂的粗麻布。缝囊、包扎、蒙面都用得上——营里样样缺，出去了也缺。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }

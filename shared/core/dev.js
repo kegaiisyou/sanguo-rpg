@@ -67,7 +67,9 @@ window.LF = window.LF || {};
       }
       else if (act === 'item_stone') { ctx.packAdd('shitiao', 10); ctx.log('【调试】获得石料×10', 'good'); }
       else if (act === 'item_wood') { ctx.packAdd('mucai', 10); ctx.log('【调试】获得木材×10', 'good'); }
-      else if (act === 'item_yao') { ctx.packAdd('jinchuangyao', 5); ctx.log('【调试】获得金疮药×5', 'good'); }
+      // v20260915g：原写作 jinchuangyao，items.js 里并无此 id（正确为 jinchuang）→ makeItem 返回 null，
+      //   调试按钮点了毫无反应。这也是「凡入包的物先查登记表」的道理。
+      else if (act === 'item_yao') { ctx.packAdd('jinchuang', 5); ctx.log('【调试】获得金疮药×5', 'good'); }
       else if (act === 'showFlags') {
         var flags = [];
         function walk(obj, prefix) {

@@ -33,6 +33,17 @@
         { id: 'tiefu',        buy: 70, sell: 28 },
         { id: 'tiema',        buy: 22, sell: 8 },
         { id: 'tiejian',      buy: 90, sell: 35 },
+        // —— 农事与杂项（v20260915g）：登记为「可交易」的泛用物 ——
+        //   任务物不等于一次性道具：菜蔬、种子、绳、布、锄头出了营照样有用，故一并上架。
+        //   （劳字木片 / 腰牌 / 路引 / 残页 不在其列：那是凭证与脏物，货郎不收。）
+        { id: 'rope',         buy: 10, sell: 4 },
+        { id: 'bumu',         buy: 8,  sell: 3 },
+        { id: 'chutu',        buy: 12, sell: 4 },
+        { id: 'caizi',        buy: 3,  sell: 1 },
+        { id: 'douzhong',     buy: 6,  sell: 2 },
+        { id: 'dou',          buy: 10, sell: 4 },
+        { id: 'yecai',        buy: 3,  sell: 1 },
+        { id: 'fan',          buy: 5,  sell: 1 },
         { id: 'shutong',      buy: 28, sell: 10 },
         { id: 'pibao',        buy: 50, sell: 20 },
         { id: 'caiyaobiluo',  buy: 45, sell: 18 },
