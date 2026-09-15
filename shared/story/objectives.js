@@ -101,7 +101,9 @@
       id: 'stone', title: '采石充仓', type: 'side',
       hint: '去营东北矿坑「开凿矿料」凿取青石，凑足五块后回仓库，点仓吏选「给予」，交到他手上。',
       need: [ { item: 'shitiao', name: '石料', icon: '🪨', count: 5 } ],
-      submit: { npc: '仓吏', room: 'camp_warehouse' },
+      // v20260916b：submit.room 对齐网格城 —— 仓吏在苦役营网格 (2,1)，旧值 camp_warehouse
+      //   使 questGoto 的「同城不同格报方位」分支（②·⑤）永远够不着，指路退化成「去山河」。
+      submit: { npc: '仓吏', room: 'kuyilao' },
       reward: '便携腰包（行囊+4）· 修为+30'
     },
     zt_food: {

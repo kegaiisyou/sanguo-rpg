@@ -1712,11 +1712,16 @@
       });
       h+='</div>';
     }
-    if(q.submit){ var _rn=(G.ROOMS[q.submit.room]&&G.ROOMS[q.submit.room].name)||''; h+='<div class="q-submit">📍 提交 · '+q.submit.npc+(_rn?('（'+_rn+'）'):'')+'</div>'; }
+    // v20260916b：submit 以最新 QUEST_DEFS 为准 —— 任务接取时深拷贝进存档（acceptQuest），
+    //   数据源后来修订过 submit.room（如 camp_warehouse → kuyilao）时，存档里那本是旧值，
+    //   指路/提交行会按旧房间走，白指去「山河」。渲染时用定义覆盖，旧档任务也指向新位置。
+    var _def2 = LF.QUEST_DEFS && LF.QUEST_DEFS[q.id];
+    var _submit = (_def2 && _def2.submit) || q.submit;
+    if(_submit){ var _rn2=(G.ROOMS[_submit.room]&&G.ROOMS[_submit.room].name)||''; h+='<div class="q-submit">📍 提交 · '+_submit.npc+(_rn2?('（'+_rn2+'）'):'')+'</div>'; }
     if(q.reward){ h+='<div class="obj-reward">奖励 · '+q.reward+'</div>'; }
     var tracking=state.trackingQuest===q.id;
     // 接取式任务几乎都带 submit（去某房间找某人复命）——那是任务文字里最实在的一句「去哪儿」
-    h+='<div class="obj-acts">'+gotoBtnHTML(q.submit ? { room:q.submit.room, npc:q.submit.npc } : (q.at||null))+
+    h+='<div class="obj-acts">'+gotoBtnHTML(_submit ? { room:_submit.room, npc:_submit.npc } : (q.at||null))+
        '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div></div>'+
       '</div>';
     return h;
