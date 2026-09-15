@@ -144,6 +144,15 @@
       need: [ { flag: 'flags.task.meal_cnt', name: '进餐', icon: '🍚', count: 2 } ],
       submit: { npc: '大勺', room: 'kuyilao' },
       reward: '干粮×1 · 修为+20'
+    },
+    // 犬舍试手（v20260915e）：韩铁教的是「打不过就撤」——所以结清条件是【成功撤退】，
+    //   把狗打死不算。教的是留得青山，不是逞凶。
+    dog_spar: {
+      id: 'dog_spar', title: '犬舍试手', type: 'side',
+      hint: '演武场（有木人桩那一格）东侧有间犬舍——进去点「逗弄野犬」，交手后按「撤退·xx%」脱身。撤得成才算本事；把狗打死不算。',
+      need: [ { flag: 'flags.task.dog_fled', name: '全身而退', icon: '🐕', count: 1 } ],
+      submit: { npc: '韩铁', room: 'kuyilao' },
+      reward: '修为+40 · 声望+2'
     }
   };
 

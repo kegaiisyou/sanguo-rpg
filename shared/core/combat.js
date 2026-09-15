@@ -924,6 +924,7 @@
     } else if(result==='fled'){
       log('你已脱离战斗，回到原地。','sys');
       toast('已脱离战斗');
+      try { if (LF.onCombatResult) LF.onCombatResult('fled', enemy); } catch(_e) {}   // 引擎侧结算钩子（犬舍试手等）
       showCombatSettlement({result:'fled', enemyName:enemy.name,
         lines:[{text:'你已脱离战斗，回到原地。'}]}, exitCombatToRoom);
     } else {

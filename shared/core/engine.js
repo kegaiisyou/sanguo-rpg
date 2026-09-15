@@ -1171,6 +1171,20 @@
     }
     save(state); renderStatus();
   };
+  // 战斗结算钩子（v20260915e）：由 core/combat.js 的 endCombat 回调（撤/胜/败）。
+  //   眼下只挂一条「犬舍试手」：韩铁教的是「打不过就撤」，故只有真撤出来（fled）才算数——
+  //   把狗打死不算，那教不会「留得青山」。
+  LF.onCombatResult = function(result, enemy){
+    if(result!=='fled') return;
+    if(!enemy || enemy.id!=='stray_dog') return;
+    var t=state.flags && state.flags.task; if(!t || !t.dog_try) return;
+    t.dog_try=false; t.dog_done=true;
+    addFlagNum('flags.task.dog_fled', 1);
+    addXp(40); addReputation(2);
+    log('〔犬舍试手〕你自犬牙底下抽身而退，韩铁在场外咧嘴：「撤得利落——记住，〔撤退〕不是逃，是留得青山。」（修为+40 · 声望+2）','good');
+    completeQuest('dog_spar');
+    save(state); renderStatus();
+  };
   // 教学期时间是否流动（v20260911i）：牢头「介绍时辰」（clockOn）之前，牢中时辰一律冻结。
   //   理由同设计：玩家可能不敲门、只在牢里反复打盹，若时间照走，日头就被睡过去了。
   function clockFlowing(){
@@ -2833,6 +2847,14 @@
           {label:'掐菜', icon:'🥬', fn:function(){ farmPick(); }}
         ]}
       ]
+    },
+    // 演武场（2,2）：犬舍单独一间子房（v20260915e）——木人桩留在格上（格型动作），
+    //   逗犬进屋，两者隔开：先教打（桩），再教跑（犬）。门槛 = 木人桩已练成（tcDone）。
+    'kuyilao|2,2': {
+      doors: [
+        { label:'犬舍', icon:'🐕', target:'camp_kennel', group:'演武场',
+          show: function(){ return !!(state.flags && state.flags.onb && state.flags.onb.tcDone); } }
+      ]
     }
     // 矿坑（2,0）【不摆设施】：该格是 mine 型，格上本就有「开凿矿料」出石料（city.js 格型动作）。
     //   早前在此另摆一个「岩壁矿脉·凿石」，于是同一格里出现两个都出石料的按钮 —— 纯属重复，撤掉。
@@ -4473,7 +4495,11 @@
       case 'spar_turban': if(!exert('应战')) return; startCombat('yellow_turban'); break;
       // ─── 新战斗：木人桩 / 犬舍野犬 / 黑山寨 ───
       case 'spar_dummy': if(!exert('应战')) return; startCombat('dummy'); break;
-      case 'spar_dog': if(!exert('逗弄野犬')) return; startCombat('stray_dog'); break;   // 犬舍练手：弱敌，专练「撤退」
+      case 'spar_dog':
+        if(!exert('逗弄野犬')) return;
+        // 记一笔「这次是来练撤的」，由 LF.onCombatResult 在撤离成功时结清（打死了不算）
+        if(state.flags && state.flags.task && state.flags.task.dog_started && !state.flags.task.dog_done) state.flags.task.dog_try=true;
+        startCombat('stray_dog'); break;   // 犬舍练手：弱敌，专练「撤退」
       case 'spar_heishan_zei': if(!exert('应战')) return; startCombat('heishan_zei'); break;
       case 'spar_heishan_zhu': if(!exert('应战')) return; startCombat('heishan_zhu'); break;
       case 'battle_hua_xiong':
