@@ -536,7 +536,10 @@ window.LF = window.LF || {};
       }
       // ── 苦役营新格型互动（v20260907j）──
       // 牢房格(prison)不再另挂入口：囚室格 (1,0) 即城格，六间子牢房走面板 doors（CELL_INTERIORS），罗盘走网格邻居（v20260910q）
-      if (t === 'mine') { out.push({ id: 'mine_dig', label: '开凿矿料', icon: '⛏', tip: '挥镐采掘，可得石料' }); }
+      if (t === 'mine') {
+        out.push({ id: 'mine_open', label: '露天矿脉', icon: '⛏', tip: '挥镐采掘，石堆岩缝、偶见铁砂玉脉（v20260915i 矿坑改版）' });
+        out.push({ id: 'mine_cave', label: '入矿洞', icon: '🕳', tip: '沿矿道下行——越深矿越好，也越耗精力；深处或有古碑藏兵' });
+      }
       if (t === 'kitchen') { out.push({ id: 'kitchen_cook', label: '生火造饭', icon: '🍚', tip: '于伙房埋锅造饭，稍歇精神' }); }
       if (t === 'command') { out.push({ id: 'command_talk', label: '中军议事', icon: '🚩', tip: '入帐议事，览军情城务' }); }
       if (t === 'warehouse') { out.push({ id: 'warehouse_view', label: '进入仓库', icon: '📦', tip: '入库存取物资，存粮木料皆在此' }); }

@@ -192,6 +192,8 @@ window.LF = window.LF || {};
         case 'forceRoom': if (dep.forceRoom) dep.forceRoom(step.room, step.cell); next(); break;
         // 好感（v20260911i）：复命领赏时加营中好感（NPC 态度由 state.npcFavor 驱动）
         case 'favor': { var _fk = step.npc || (env && env.npc); if (!_fk) { next(); break; } if (!state.npcFavor) state.npcFavor = {}; state.npcFavor[_fk] = (state.npcFavor[_fk] || 0) + (step.amount || 1); save(state); next(); break; }
+        // 镐头升级（v20260915i）：{ t:'pick', lv:2 } —— 任务/差役奖励青铜镐等直接升级，不进行囊
+        case 'pick': if (dep.upgradePick) { dep.upgradePick(step.lv || 0); } next(); break;
         case 'consume': {
           var _pk = state.pack || []; var _id = step.id, _n = step.n || 1, _did = false;
           for (var _k = 0; _k < _pk.length; _k++) { if (_pk[_k] && (_pk[_k].defId || _pk[_k].id) === _id) { var _c = _pk[_k].count || 1; if (_c > _n) { _pk[_k].count = _c - _n; } else { _pk.splice(_k, 1); } _did = true; break; } }

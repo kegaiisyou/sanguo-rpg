@@ -205,6 +205,21 @@
       need: [ { flag: 'flags.task.rummage_cnt', name: '交还仓里', icon: '🧺', count: 1 } ],
       submit: { npc: '仓吏', room: 'kuyilao' },
       reward: '修为+20 · 仓吏好感+1'
+    },
+    // ── 矿坑支线（v20260915i）：淘铜铸镐 / 老矿工遗愿 ──
+    mine_copper: {
+      id: 'mine_copper', title: '淘铜铸镐', type: 'side',
+      hint: '矿洞里三层往下有古铜脉——下矿洞，入第三层起寻「古铜脉」凿取铜矿；凑足四块回仓库，点仓吏、选「给予」，把铜矿交到他手上。',
+      need: [ { item: 'tongkuang', name: '铜矿', icon: '🟤', count: 4 } ],
+      submit: { npc: '仓吏', room: 'kuyilao' },
+      reward: '青铜镐 · 修为+30'
+    },
+    mine_bailian: {
+      id: 'mine_bailian', title: '老矿工的遗愿', type: 'side',
+      hint: '老矿工说矿洞深处刻着一碑百炼钢法。备好竹简与墨（削竹为简、松烟为墨），入矿洞下到第七层，寻「半截残碑」拓印铭文，再回来与老矿工说一声。',
+      need: [ { flag: 'flags.task.bailian_stele', name: '拓回残碑铭文', icon: '📜', count: 1 } ],
+      submit: { npc: '老矿工', room: 'kuyilao' },
+      reward: '修为+40 · 老矿工好感+1'
     }
   };
 

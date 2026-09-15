@@ -29,6 +29,7 @@
     // 耗时动作进度条（v20260914a）：采集/伐木/采石/伐木场/烧砖/制作都要耗掉一个时辰，
     //   从前点一下就「已经做完了」，只剩一行结果。见引擎 busyAct —— 守卫留在回调之外、效果搬进回调之内。
     var busyAct = ctx.busyAct || function(l, m, d){ (d || function(){})(); };
+    var upgradePick = ctx.upgradePick || function(){ };   // 镐头升级（engine 注入）
 
     // ===== 野外采药（北邙山林·草药丛） =====
     // 状态机：点击「采集草药」→ 耗时 1 时辰，草丛变为「可拾取」；点击「拾取草药」入包，满则提示
@@ -118,7 +119,15 @@
       function rowHTML(r){
         var can=r.in.every(function(x){ return cnt(x.id)>=x.n; });
         var ins=r.in.map(function(x){ var d=DEFS[x.id]||{}; return itemIconHTML(d,16)+'×'+x.n+' <span style="opacity:.6">('+cnt(x.id)+')</span>'; }).join(' ＋ ');
-        var od=DEFS[r.out]||{};
+        function outDesc(out){
+          if(typeof out==='string' && out.indexOf('pick:')===0){
+            var _lv = parseInt(out.slice(5),10)||0;
+            var _pd = (LF.PICKS||[])[_lv] || {};
+            return { icon:_pd.icon, name:_pd.name, n:1 };
+          }
+          return { icon:(DEFS[out]||{}).icon, name:(DEFS[out]||{}).name, n:1 };
+        }
+        var od=outDesc(r.out);
         var btn='<button class="sheet-btn" '+(can?'':'data-dis="1" style="opacity:.45;"')+' data-r="'+r.id+'">'+(can?'制 作':'材 料 不 足')+'</button>';
         return '<div style="border:1px solid #6b5a3a;border-radius:8px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'+
                  '<div style="font-size:16px;margin-bottom:4px;">'+itemIconHTML(od,20)+' <b>'+od.name+'×'+r.outN+'</b></div>'+
@@ -131,7 +140,8 @@
         return '<button class="craft-tab" data-cat="'+c+'"'+on+'>'+c+'</button>';
       }).join('');
       var rows = recipes.filter(function(r){ return r.cat===activeCat; }).map(rowHTML).join('');
-      return '<h3 style="text-align:center;margin:0 0 4px;">🔨 木工台 · 制作</h3>'+
+      var benchName = cs.bench === 'forge' ? '⛏ 铁匠炉 · 锻镐铸镐' : '🔨 木工台 · 制作';
+      return '<h3 style="text-align:center;margin:0 0 4px;">'+benchName+'</h3>'+
              (cats.length>1 ? '<div class="craft-tabs" style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">'+tabHTML+'</div>' : '')+
              '<p class="tip" style="text-align:center;margin:0 0 10px;">选一配方，将材料加工成形</p>'+
              rows+
@@ -156,10 +166,19 @@
       for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(LF.ITEMS[r.out]||{}).name); return; } }
       busyAct('木工劳作·一个时辰', 950, function(){
         r.in.forEach(function(x){ packConsume(x.id, x.n); });
-        packAdd(r.out, r.outN);
-        advanceTime(1);
-        afterPackChange();
-        log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
+        if(typeof r.out==='string' && r.out.indexOf('pick:')===0){
+          var _lv = parseInt(r.out.slice(5),10)||0;
+          var _pd = (LF.PICKS||[])[_lv] || {};
+          upgradePick(_lv);
+          advanceTime(1);
+          afterPackChange();
+          log('你于锻造台上锻出'+(_pd.name||'镐头')+'——锤音未落，新镐已在手。','sys');
+        } else {
+          packAdd(r.out, r.outN);
+          advanceTime(1);
+          afterPackChange();
+          log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
+        }
         var card = getCard();
         card.innerHTML=buildCraftHTML(); bindCraftPanel();
       });

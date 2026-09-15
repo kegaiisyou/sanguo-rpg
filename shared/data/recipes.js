@@ -40,12 +40,26 @@ LF.RECIPES = {
   forge: [
     { id:'forg_sword', cat:'兵刃类', name:'铁剑', icon:'⚔️', out:'tiejian', outN:1, in:[{id:'tiekuai', n:3},{id:'mutou', n:1}], note:'铁料入炉锻打，配上木柄，成一柄冷冽铁剑' },
     { id:'forg_axe', cat:'工具类', name:'铁斧', icon:'🪓', out:'tiefu', outN:1, in:[{id:'tiekuai', n:2},{id:'mucai', n:1}], note:'铁料锻斧，刃利耐磨损，伐木采石更趁手' },
-    { id:'forg_horse', cat:'杂类', name:'铁马掌', icon:'🧲', out:'tiema', outN:1, in:[{id:'tiekuai', n:1}], note:'余料锻成马蹄铁，可售与马市换银两' }
+    { id:'forg_horse', cat:'杂类', name:'铁马掌', icon:'🧲', out:'tiema', outN:1, in:[{id:'tiekuai', n:1}], note:'余料锻成马蹄铁，可售与马市换银两' },
+    // —— 镐头六级（v20260915i）：粗石镐不锻（监工发）；精致石镐起皆在此锻。out:'pick:N' 表示镐升到 N 级 ——
+    { id:'forg_pick1', cat:'镐头类', name:'精致石镐', icon:'🪨', out:'pick:1', outN:1,
+      in:[{id:'shitiao', n:5},{id:'mucai', n:3}], note:'选石开棱、柄切手——石镐里头的头一份' },
+    { id:'forg_pick2', cat:'镐头类', name:'青铜镐', icon:'🥉', out:'pick:2', outN:1,
+      in:[{id:'tongkuang', n:4},{id:'mucai', n:3}], note:'铜砂熔铸成头，能凿大石堆。营里也可寻市集或差役得之' },
+    { id:'forg_pick3', cat:'镐头类', name:'粗铁镐', icon:'⛏️', out:'pick:3', outN:1,
+      in:[{id:'tiekuangshi', n:4},{id:'mucai', n:4}], note:'铁料锻头，开铁砂堆的入门家什' },
+    { id:'forg_pick4', cat:'镐头类', name:'精致铁镐', icon:'⚒️', out:'pick:4', outN:1,
+      in:[{id:'tiekuangshi', n:8},{id:'mucai', n:6}], note:'细锻铁镐，尖而有弹——青玉脉也能开' },
+    { id:'forg_pick5', cat:'镐头类', name:'百炼钢镐', icon:'⚔️', out:'pick:5', outN:1,
+      in:[{id:'bailian_jian', n:1},{id:'tiekuangshi', n:12},{id:'jade', n:2},{id:'mutan', n:5}],
+      note:'依百炼钢简锻之：炒铁为料、千锤折叠——寻常镐比不得' }
   ],
   // 炊事灶（篝火 / 客栈 / 草庐 皆可调取）：素材 → 疗伤与干粮，打通生存闭环
   kitchen: [
     { id:'brew_jinchuang', cat:'疗伤类', name:'金疮药', icon:'🧪', out:'jinchuang', outN:1, in:[{id:'caoyao', n:2}], note:'两味草药捣敷，止血生肌——可疗外伤五十' },
-    { id:'cook_roubao', cat:'干粮类', name:'肉包子', icon:'🥟', out:'roubao', outN:1, in:[{id:'shengrou', n:1}], note:'生肉裹面炊熟成包——食+20 饮+5，解一时饥渴' }
+    { id:'cook_roubao', cat:'干粮类', name:'肉包子', icon:'🥟', out:'roubao', outN:1, in:[{id:'shengrou', n:1}], note:'生肉裹面炊熟成包——食+20 饮+5，解一时饥渴' },
+    // —— 烧炭（v20260915i）：木材入闷窑熏成木炭，无烟耐烧，铁匠炉最认 ——
+    { id:'make_mutan', cat:'燃料类', name:'木炭', icon:'⚫', out:'mutan', outN:1, in:[{id:'mucai', n:2}], note:'木材闷窑熏炭，去烟留热——锻钢的火候全在它' }
   ]
   // 后续工作台（矿炉 / 铁砧 / 织机 …）仅需在此追加对应 key 即可
 };

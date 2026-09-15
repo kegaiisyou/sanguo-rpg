@@ -216,8 +216,14 @@
     // 伙房大灶的出品（v20260915g）：田里种出来的东西，得有个变成热食的去处
     douzhou:  { defId: 'douzhou',  name: '豆粥', icon: '🥣', cat: '食饵', price: 8, effect: { food: 22, drink: 6 },
       desc: '菽豆熬的稠粥，面上浮一层豆油。营里的稀粥照得见人影，这一碗照不见——顶饿，也顶一句想家。' },
-    bumu:     { defId: 'bumu',     name: '粗布', icon: '🧵', cat: '素材', price: 6,
-      desc: '半幅未漂的粗麻布。缝囊、包扎、蒙面都用得上——营里样样缺，出去了也缺。' }
+
+    // —— 矿洞体系新资源 (v20260915i)：玄铁 / 木炭 / 百炼钢简 ——
+    xuatie:     { defId: 'xuatie',     name: '玄铁', icon: '🪨', cat: '素材', price: 120,
+      desc: '矿洞最深处采得的墨色铁母，沉逾寻常铁石。百炼成钢后锻器，锋锐无匹。' },
+    mutan:      { defId: 'mutan',      name: '木炭', icon: '⚫', cat: '素材', price: 4,
+      desc: '闷窑熏出的木炭，无烟耐烧。铁匠炉里最认它——火候稳，锻出的钢才匀。' },
+    bailian_jian:{ defId: 'bailian_jian', name: '百炼钢简', icon: '📜', cat: '凭证',
+      desc: '刻着百炼钢法的残简：炒钢为料、反复折叠锻打。持之往铁匠铺，可依简锻百炼钢镐。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
@@ -308,7 +314,54 @@
   // 将静态物品定义直接挂到 LF.ITEMS 上，使 LF.ITEMS['mutou'] 等直接可用（同时保留 LF.ITEMS.DEFS）
   for (var _dk in DEFS) { if (!( _dk in ITEMS)) ITEMS[_dk] = DEFS[_dk]; }
 
+  // —— 镐头等级表 LF.PICKS（v20260915i）——
+  // 镐头不进行囊，是玩家自身的等级：露天矿脉 / 矿洞全靠它衡量能凿什么、凿几下。
+  //   hits: 开采一类矿点需要的下数（-1 = 碰不得）；数字为按 lv 0..5 的敲击数
+  //   caveMax: 可下矿洞最深层数（进入每层时检查）
+  var PICKS = [
+    { id:'cushi_gao',    name:'粗石镐', icon:'🪨', lv:0, caveMax:2,
+      hits:{ gap:1, rock:3, big:-1, copper:-1, iron:-1, jade:-1, xuan:-1 },
+      desc:'碎石绑木柄的粗使家什，只能凿小石堆、矿洞浅层。监工随手丢来的。' },
+    { id:'jing_shi_gao', name:'精致石镐', icon:'⛏', lv:1, caveMax:3,
+      hits:{ gap:1, rock:2, big:-1, copper:2, iron:-1, jade:-1, xuan:-1 },
+      desc:'选石开棱、柄切手的石镐，磋小石两下一碎；已能开铜脉。' },
+    { id:'qingtong_gao', name:'青铜镐', icon:'🥉', lv:2, caveMax:4,
+      hits:{ gap:1, rock:2, big:3, copper:2, iron:-1, jade:-1, xuan:-1 },
+      desc:'青铜镐头，能凿大石堆。矿洞可下四层。' },
+    { id:'cu_tie_gao',   name:'粗铁镐', icon:'⛏️', lv:3, caveMax:6,
+      hits:{ gap:1, rock:2, big:2, copper:2, iron:3, jade:-1, xuan:-1 },
+      desc:'粗铁镐头，铁石开采入门工具。矿洞可下六层。' },
+    { id:'jing_tie_gao', name:'精致铁镐', icon:'⚒️', lv:4, caveMax:8,
+      hits:{ gap:1, rock:1, big:2, copper:2, iron:2, jade:2, xuan:-1 },
+      desc:'细锻铁镐，尖锐却有弹性：青玉脉也能开。矿洞可下八层。' },
+    { id:'bailian_gao',  name:'百炼钢镐', icon:'⚔️', lv:5, caveMax:9,
+      hits:{ gap:1, rock:1, big:1, copper:1, iron:1, jade:1, xuan:2 },
+      desc:'按百炼钢法锻就的神器，天下几把。玄铁矿脉也凿得，矿洞全层可下。' }
+  ];
+  // 每类矿点能凿的镐门槛（最低 lv）
+  var PICK_GATE = { gap:0, rock:0, big:2, copper:1, iron:3, jade:4, xuan:5 };
+  // 矿点名称 / 收获
+  var MINE_SPOT = {
+    gap:   { name:'岩缝', icon:'△', out:'mucai',  outN:1, w:1,
+             desc:'岩壁封境缝隙，里头塞着柴木。' },
+    rock:  { name:'石堆', icon:'◆', out:'shitiao', outN:1, w:5,
+             desc:'块石堆积。' },
+    big:   { name:'大石堆', icon:'◇', out:'shitiao', outN:2, w:2, crit:'tiekuangshi', critPct:0.1,
+             desc:'半人高的大石堆，里头好东西多。' },
+    copper:{ name:'古铜脉', icon:'◆', out:'tongkuang', outN:1, w:1,
+             desc:'矿壁渗出的青绿铜粒。' },
+    iron:  { name:'铁砂堆', icon:'◆', out:'tiekuangshi', outN:1, w:1,
+             desc:'磁石糊的铁砂粒子，散着铁腥味。' },
+    jade:  { name:'青玉脉', icon:'◈', out:'jade', outN:1, w:1, limit:2,
+             desc:'声光外溢的玉脉，一闪即逝——只容几镐。' },
+    xuan:  { name:'玄铁矿脉', icon:'◈', out:'xuatie', outN:1, w:1,
+             desc:'墨色铁母，沉。百炼钢镐才斫得动。' }
+  };
+
   global.LF = global.LF || {};
+  global.LF.PICKS = PICKS;
+  global.LF.PICK_GATE = PICK_GATE;
+  global.LF.MINE_SPOT = MINE_SPOT;
   global.LF.ITEMS = ITEMS;
   if (typeof module !== 'undefined' && module.exports) module.exports = ITEMS;
 })(typeof window !== 'undefined' ? window : globalThis);
