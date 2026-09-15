@@ -819,26 +819,40 @@
     cond: { flags: { 'flags.onb.curfewSet': true }, notFlag: 'flags.onb.done' },
     steps: [
       { t: 'log', cls: 'warn', text: '〔更鼓〕戌时鼓落，营门落锁，巡夜的灯笼一盏一盏移过来……' },
-      { t: 'npcTalk', npc: 'laotou',
-        prompt: '灯笼照住你的脸。巡夜狱卒把铁链往地上一顿，哗啦一响：「鼓都敲过几回了，还在这儿晃？营规第七条——戌时后不在牢里，视同脱逃！」',
-        asks: [
-          { label: '〔束手就擒〕……我随你回去。',
-            then: [
-              { t: 'setFlag', path: 'flags.onb.lateDone', value: true },   // 先记「已罚」，免得押回时 laotou_late 再罚一道
-              { t: 'setFlag', path: 'flags.onb.missCount', increment: true },
-              { t: 'forceRoom', room: 'kuyilao', cell: [1, 0] },
-              { t: 'hurt', amount: 15, favor: -1, favorNpc: 'laotou', fxText: '鞭！' },
-              { t: 'log', cls: 'sys', text: '一路拖回牢区，脊背上结结实实挨了三鞭，血齿间都是铁锈味。（气血 -15，牢头好感 -1）' },
-              { t: 'log', cls: 'order', text: '〔逾时不归〕牢头在册上记你一笔，明日口粮按罚例加倍。往后戌时前回牢销名——躲是躲不掉的，营规自会来拿人。' }
-            ] },
-          { label: '〔嘴硬〕我偏在外头站着，你能奈我何？',
-            then: [
-              { t: 'setFlag', path: 'flags.onb.lateDone', value: true },
-              { t: 'setFlag', path: 'flags.onb.missCount', increment: true },
-              { t: 'forceRoom', room: 'kuyilao', cell: [1, 0] },
-              { t: 'hurt', amount: 15, favor: -1, favorNpc: 'laotou', fxText: '鞭！' },
-              { t: 'log', cls: 'sys', text: '狱卒冷笑：「嘴硬的，都挨双份。」铁链一抖，仍把你拖走了。（气血 -15，牢头好感 -1）' },
-              { t: 'log', cls: 'order', text: '〔逾时不归〕你还是被押回了牢房格。硬话换不来情面——戌时前销名才是正经。' }
+      { t: 'branch',
+        if: { player: { 'flags.onb.missCount': { max: 0 } } },
+        then: [
+          // 初犯（v20260916a）：说教为主，押回不鞭、不记过 —— 把「戌时前销名」的规矩讲清楚，
+          //   别让新手第一回被灯笼吓着就挨三鞭 + 次日口粮加倍（那挫败感太硬）。
+          { t: 'setFlag', path: 'flags.onb.lateDone', value: true },   // 仍记「已罚」，免得押回时 laotou_late 再罚一道
+          { t: 'forceRoom', room: 'kuyilao', cell: [1, 0] },
+          { t: 'setFlag', path: 'flags.onb.curfewFirstWarn', value: true },
+          { t: 'log', cls: 'npc', text: '〔牢头〕灯笼照住你的脸。牢头皱着眉打量你两眼：「头一回，念你初犯——这顿鞭子先记在账上。营规第七条：戌时后须在牢里。下回再撞见，可就是三鞭加罚粮了。回去！」' },
+          { t: 'log', cls: 'sys', text: '你被押回了牢房格。脊背没挨鞭子，但牢头那双眼你记住了——戌时前回牢销名，才是正理。' }
+        ],
+        else: [
+          // 再犯：原三鞭版（押回 + 三鞭 + 记逾时 + 次日口粮加倍）
+          { t: 'npcTalk', npc: 'laotou',
+            prompt: '灯笼照住你的脸。巡夜狱卒把铁链往地上一顿，哗啦一响：「鼓都敲过几回了，还在这儿晃？营规第七条——戌时后不在牢里，视同脱逃！」',
+            asks: [
+              { label: '〔束手就擒〕……我随你回去。',
+                then: [
+                  { t: 'setFlag', path: 'flags.onb.lateDone', value: true },   // 先记「已罚」，免得押回时 laotou_late 再罚一道
+                  { t: 'setFlag', path: 'flags.onb.missCount', increment: true },
+                  { t: 'forceRoom', room: 'kuyilao', cell: [1, 0] },
+                  { t: 'hurt', amount: 15, favor: -1, favorNpc: 'laotou', fxText: '鞭！' },
+                  { t: 'log', cls: 'sys', text: '一路拖回牢区，脊背上结结实实挨了三鞭，血齿间都是铁锈味。（气血 -15，牢头好感 -1）' },
+                  { t: 'log', cls: 'order', text: '〔逾时不归〕牢头在册上记你一笔，明日口粮按罚例加倍。往后戌时前回牢销名——躲是躲不掉的，营规自会来拿人。' }
+                ] },
+              { label: '〔嘴硬〕我偏在外头站着，你能奈我何？',
+                then: [
+                  { t: 'setFlag', path: 'flags.onb.lateDone', value: true },
+                  { t: 'setFlag', path: 'flags.onb.missCount', increment: true },
+                  { t: 'forceRoom', room: 'kuyilao', cell: [1, 0] },
+                  { t: 'hurt', amount: 15, favor: -1, favorNpc: 'laotou', fxText: '鞭！' },
+                  { t: 'log', cls: 'sys', text: '狱卒冷笑：「嘴硬的，都挨双份。」铁链一抖，仍把你拖走了。（气血 -15，牢头好感 -1）' },
+                  { t: 'log', cls: 'order', text: '〔逾时不归〕你还是被押回了牢房格。硬话换不来情面——戌时前销名才是正经。' }
+                ] }
             ] }
         ] }
     ]

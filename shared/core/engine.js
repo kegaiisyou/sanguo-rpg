@@ -1063,11 +1063,14 @@
     var c=deriveCalendar();
     var era=(state.eraName||'光和')+(c.eraYear===1?'元年':c.eraYear+'年');
     var w=WEATHERS[state.weather]||WEATHERS[0];
+    // 宵禁时段变红（v20260916a）：酉戌亥子丑寅在营中时，时辰标红——把「快回牢」写进一眼能看见的地方
+    var lateInCamp = !!(state.flags && state.flags.onb && !state.flags.onb.done)
+      && inCampNow() && (state.time>=9 || state.time<=2);
     $status.innerHTML=
       '<span class="who" title="'+state.name+'">'+state.name+'</span>'+
       '<span class="dot">·</span>'+
       '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
-      '<span class="st-time">'+sh+'</span>'+
+      '<span class="st-time'+(lateInCamp?' st-time-night':'')+'" title="'+(lateInCamp?'戌时落锁，营规要拿人':sh)+'">'+sh+'</span>'+
       '<span class="dot">·</span>'+
       '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>'+
       // 回顾入口（v20260914a）：贴在状态栏最右侧，随手可及。点它为「回顾」，点状态栏其余处仍是「时辰钟表」。
@@ -1359,7 +1362,19 @@
     tickBuildOrders(crossings);   // 城市营造工单：跨日推进宏观委派 + 结算每日市租（第3步）
     // 查房（v20260911i）：此刻若已过戌时又在营中游荡，巡夜狱卒便来拿人。
     //   动作自身的文案正在打字，故走 requestCurfewPatrol（记「待评」+ 叙事收尾后由 syncActionLock 续评）。
+    curfewWarn();
     requestCurfewPatrol();
+  }
+  // 酉时入夜预警（v20260916a）：劳作/赶路推进时辰后若到酉时且仍在营中，先提醒一句
+  //   「戌时落锁」——把「天黑会被抓」的悬念提前给玩家，而不是等巡夜灯笼怼脸。
+  function curfewWarn(){
+    if(!onbBound()) return;              // 已脱籍 / 营规未立：不必提醒
+    if(state.time!==9) return;           // 酉时（十二时辰下标 9）才是预警窗口
+    if(!inCampNow()) return;
+    var o=onbF();
+    if(o.curfewWarnDay===state.day) return;   // 当日只提醒一次
+    o.curfewWarnDay=state.day;
+    log('〔天色将晚〕酉时过半，日头西沉——戌时营门落锁，记得回牢房销名。','warn');
   }
   // 由累计天数回写年号年序 + 年号名（年号随公元年自动切换：184→中平，杜绝 184 仍显「光和」）
   function syncCalendar(){
@@ -4221,7 +4236,10 @@
     state.food=Math.max(0,state.food-1);
     state.drink=Math.max(0,state.drink-1);
     advanceTime(1);
-    log('你朝'+dir+'方行去，沿途景物渐换……'+(_extra?('（'+((WEATHERS[state.weather]||{}).n||'')+'中行路，分外耗费气力。）'):''),'sys');
+    // v20260916b：与城内同理——不带新信息的话就不往文本栏写。郊野每格都刷「沿途景物渐换」，
+    //   走一趟能把半屏顶掉，而那句「景物渐换」玩家早从场景描述里看到了。
+    //   只留真正要紧的一句：天候额外耗力（玩家据此决定要不要冒雨赶路、要不要先扎营）。
+    if(_extra) log('（'+((WEATHERS[state.weather]||{}).n||'')+'中行路，分外耗费气力。）','warn');
     var _gone=state.room;
     renderRoom(tid);
     // 自动上岸：抵达陆地（城或非水路郊野）即离舟，整段水路只需乘一次船
@@ -5679,8 +5697,19 @@
     if(anchors.length && (!at.room || at.room===state.room)){
       var ok=false;
       try{ ok=Guide.exists(anchors); }catch(e){}
+      // 锚点写的是显示名（'仓吏'/'鲁大'），而 nl-item 的 data-k 是 NPC 实例 key
+      //   （storeman@kuyilao:2,1#0）——语义锚点匹配不到时，按显示名在人物列表里兜底（v20260916a）
+      if(!ok && at.npc){
+        var _nm=at.npc, _chips=document.querySelectorAll('#npc-list .nl-item');
+        for(var _ii=0;_ii<_chips.length;_ii++){
+          if(_chips[_ii].textContent.indexOf(_nm)>=0){
+            var _k=_chips[_ii].getAttribute('data-k');
+            if(_k){ try{ Guide.focus([{npc:_k}]); ok=true; }catch(e){} }
+            break;
+          }
+        }
+      }
       if(ok){
-        try{ Guide.focus(anchors); }catch(e){}
         toast('就在眼前 · '+(at.npc||at.act||'此处'));
         return;
       }
@@ -5694,12 +5723,48 @@
         return;
       }
     }
+    // ②·⑤ 同城不同格：提交人在城里别处（仓吏在仓库格）→ 报出该往哪边走（v20260916a）
+    if(at.room && at.room===state.room && isCityGrid(state.room) && at.npc){
+      var _cell=cityNpcCellPos(at.npc, state.room);
+      var _cp2=state.flags && state.flags.cityPos;
+      if(_cell && _cp2 && _cp2.cid===state.room){
+        var _dx=_cell[0]-_cp2.x, _dy=_cell[1]-_cp2.y;
+        var _w=(_dy<0?'北':(_dy>0?'南':''))+(_dx>0?'东':(_dx<0?'西':''));
+        if(!_w){ toast('「'+at.npc+'」就在这一格。'); return; }
+        toast('「'+at.npc+'」在'+_w+'边的格子里——顺着罗盘一格一格走过去。');
+        return;
+      }
+    }
     // ③ 不在此处 → 报明去处，并把「山河」指出来（远行本该走山河志）
     var nm=roomNameOf(at.room);
     if(nm){ toast('「'+nm+'」不在此处——可点「山河」寻路前往'); }
     else if(at.why){ toast(at.why); return; }   // 这条路本就不在一处：直接用数据里备好的「该往哪走」
     else { toast('此事此地办不了，先看看别处有什么可做'); }
     try{ Guide.ping({dock:'map'}); }catch(e){}
+  }
+  // 城格 NPC 所在格：具名 NPC 看 NPC_NAMED 的 cell；程序 NPC 由 kinds→城市 layoutGrid/cells 推导（v20260916a）
+  function cityNpcCellPos(name, cid){
+    if(!name) return null;
+    var named=LF.NPC_NAMED||[];
+    for(var i=0;i<named.length;i++){
+      var nc=named[i];
+      if(nc.city!==cid || !nc.cell) continue;
+      var dlg=G.DIALOGUES && G.DIALOGUES.npcs && G.DIALOGUES.npcs[nc.id];
+      if(dlg && dlg.name===name){ var p=nc.cell.split(','); return [+p[0], +p[1]]; }
+    }
+    var cards=LF.NPC_CARDS||[];
+    for(var j=0;j<cards.length;j++){
+      var c2=cards[j];
+      if(!c2.role || c2.role!==name || !(c2.kinds && c2.kinds.length)) continue;
+      var grid=genCityGrid(cid);
+      if(grid && grid.cells){
+        var _cells=grid.cells, _sz=grid.size||_cells.length;
+        for(var y=0;y<_sz;y++) for(var x=0;x<_sz;x++){
+          if(_cells[y] && _cells[y][x]===c2.kinds[0]) return [x,y];
+        }
+      }
+    }
+    return null;
   }
   // ═══ 通用「指引」系统（v20260912a）═══
   // 把「高亮某个按钮 / NPC / 面板，并把它滚进视野」做成一套可复用的语义锚点，
