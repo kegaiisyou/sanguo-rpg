@@ -1664,12 +1664,28 @@
     if(state.trackingQuest===id) state.trackingQuest=null;
     save(state); renderStatus();
   }
+  // 进行中任务卡（折叠式 v20260915k）：一行标签+标题+进度+箭头，点开才见
+  //   提示/材料/提交人/奖励/按钮 —— 任务一多，一眼扫过去全是标题，不再被长文字刷屏。
   function questCardHTML(q){
     var tn={main:'主线',side:'支线',trial:'修行'}[q.type]||'任务';
     var cls={main:'t-main',side:'t-side',trial:'t-trial'}[q.type]||'t-side';
-    var h='<div class="obj '+cls+'">'+
-      '<div class="obj-head"><span class="obj-tag '+cls+'">'+tn+'</span><span class="obj-t">'+q.title+'</span></div>'+
-      '<div class="obj-h">'+q.hint+'</div>';
+    var progTxt='';
+    if(q.need && q.need.length){
+      var doneN=0;
+      q.need.forEach(function(nd){ if(needHave(nd)>=nd.count) doneN++; });
+      progTxt='<span class="q-prog">'+doneN+'/'+q.need.length+'</span>';
+    } else {
+      progTxt='<span class="q-prog">…</span>';
+    }
+    var h='<div class="obj '+cls+' obj-col" data-quest="'+q.id+'">'+
+      '<div class="obj-head">'+
+        '<span class="obj-tag '+cls+'">'+tn+'</span>'+
+        '<span class="obj-t">'+q.title+'</span>'+
+        progTxt+
+        '<span class="obj-arrow">▸</span>'+
+      '</div>'+
+      '<div class="obj-more">';
+    if(q.hint){ h+='<div class="obj-h">'+q.hint+'</div>'; }
     if(q.need && q.need.length){
       h+='<div class="q-need">';
       q.need.forEach(function(nd){
@@ -1686,7 +1702,8 @@
     var tracking=state.trackingQuest===q.id;
     // 接取式任务几乎都带 submit（去某房间找某人复命）——那是任务文字里最实在的一句「去哪儿」
     h+='<div class="obj-acts">'+gotoBtnHTML(q.submit ? { room:q.submit.room, npc:q.submit.npc } : (q.at||null))+
-       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div></div>';
+       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div></div>'+
+      '</div>';
     return h;
   }
   window.switchQuestTab=function(t){
@@ -1698,6 +1715,15 @@
     if(pc) pc.style.display = t==='career'?'':'none';
   };
   function bindQuestPanel(){
+    // 折叠展开（v20260915k）：点任务卡头部展开/收起详情；内部按钮点击不冒泡
+    document.querySelectorAll('.obj-col .obj-head').forEach(function(hd){
+      hd.onclick=function(e){
+        if(e.target.closest('.obj-track')||e.target.closest('.obj-goto')) return;
+        var card=hd.parentNode;
+        card.classList.toggle('open');
+        var ar=hd.querySelector('.obj-arrow'); if(ar) ar.textContent=(card.classList.contains('open')?'▾':'▸');
+      };
+    });
     // 「指路」（v20260914a）：点一下就把去路点亮 —— 不必再对着一行文字自己猜该往哪走
     document.querySelectorAll('.obj-goto[data-goto]').forEach(function(b){
       b.onclick=function(){

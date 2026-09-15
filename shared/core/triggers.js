@@ -212,32 +212,52 @@ window.LF = window.LF || {};
     //   触发器永不命中】：掐了菜交不到伙房鲁大手上、凿了石料交不到仓吏、韩铁也不提犬舍 ——
     //   任务全卡在最后一步。故一律取「@ 之前的卡 id」比对（普通房间的 NPC key 本就无 @，不受影响）。
     function npcBase(k){ return String(k==null?'':k).split('@')[0]; }
+    // 判定「弹窗对话类」触发：steps 首步是 npcTalk（闲聊/展示，可反复点开再聊）
+    function isDialogLike(tr){
+      return !!(tr.steps && tr.steps[0] && tr.steps[0].t === 'npcTalk');
+    }
     function checkTriggers(env) {
       var handled = false, list = getTriggers();
-      for (var i = 0; i < list.length; i++) {
+      function matchAt(i){
         var tr = list[i];
-        if (tr.hook && tr.hook !== env.hook) continue;
-        if (isDone(tr)) continue;
-        if (tr.room && tr.room !== env.room) continue;
-        if (tr.npc && npcBase(tr.npc) !== npcBase(env.npc)) continue;
-        if (tr.item && (!env.item || (env.item.defId || env.item.id) !== tr.item)) continue;  // 仅匹配指定物品（v20260910g 修复：石料任务不会被其他赠物累计）
-        if (tr.roomIn && tr.roomIn.indexOf(env.room) < 0) continue;
+        if (tr.hook && tr.hook !== env.hook) return false;
+        if (isDone(tr)) return false;
+        if (tr.room && tr.room !== env.room) return false;
+        if (tr.npc && npcBase(tr.npc) !== npcBase(env.npc)) return false;
+        if (tr.item && (!env.item || (env.item.defId || env.item.id) !== tr.item)) return false;  // 仅匹配指定物品（v20260910g 修复：石料任务不会被其他赠物累计）
+        if (tr.roomIn && tr.roomIn.indexOf(env.room) < 0) return false;
         // 单元格/格型作用域（v20260909p）：生成城市内部同一房间下按网格坐标定位触发
         if (tr.cell) {
           var _cp = getState().flags && getState().flags.cityPos;
-          if (!_cp || _cp.cid !== env.room || _cp.x !== tr.cell[0] || _cp.y !== tr.cell[1]) continue;
+          if (!_cp || _cp.cid !== env.room || _cp.x !== tr.cell[0] || _cp.y !== tr.cell[1]) return false;
         }
         if (tr.cellType) {
           var _cp2 = getState().flags && getState().flags.cityPos;
-          if (!_cp2 || _cp2.cid !== env.room) continue;
+          if (!_cp2 || _cp2.cid !== env.room) return false;
           var _c2 = (LF.Core && LF.Core.city);
-          if (!_c2 || _c2.cellDisplayType(env.room, _cp2.x, _cp2.y) !== tr.cellType) continue;
+          if (!_c2 || _c2.cellDisplayType(env.room, _cp2.x, _cp2.y) !== tr.cellType) return false;
         }
-        if (tr.cond && !testCond(tr.cond, env)) continue;
-        tr._npc = env.npc || tr.npc;
-        runTrigger(tr, env);
-        handled = true;
-        if (env.hook === 'onTalk') break;   // 交谈类一次即可
+        if (tr.cond && !testCond(tr.cond, env)) return false;
+        return true;
+      }
+      function fire(tr){ tr._npc = env.npc || tr.npc; runTrigger(tr, env); handled = true; }
+      if (env.hook === 'onTalk') {
+        // 交谈两轮匹配（v20260915k）：任务/剧情推进类（log 直发，不弹窗）优先，
+        //   npcTalk 闲聊弹窗类次之。此前 once:false 的闲聊触发（牢头三话题、孙老路线图等）
+        //   长年挂在匹配首位且不标记完成，onTalk 只命中第一个 —— 任务对话（传话给牢头、
+        //   向孙老领差事）永远轮不到，差役全卡在最后一步。
+        for (var pass = 0; pass < 2 && !handled; pass++) {
+          for (var i = 0; i < list.length; i++) {
+            if (!matchAt(i)) continue;
+            var dialogLike = isDialogLike(list[i]);
+            if (pass === 0 && dialogLike) continue;   // 第一轮：只接非弹窗（任务推进）
+            if (pass === 1 && !dialogLike) continue;  // 第二轮：只接弹窗闲聊
+            fire(list[i]);
+            break;
+          }
+        }
+      } else {
+        for (var j = 0; j < list.length; j++) { if (matchAt(j)) fire(list[j]); }
       }
       onbGoal();   // 旗标可能随触发改变，刷新「当前目标」与高亮
       return handled;

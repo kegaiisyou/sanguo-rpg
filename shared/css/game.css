@@ -2506,3 +2506,14 @@
   opacity:0; transition:opacity .22s ease; box-shadow:0 3px 12px rgba(0,0,0,.55); }
 .modal-fb.show{ opacity:1; }
 @media (max-width:480px){ .modal-fb{ font-size:12px; top:6px; max-width:90%; } }
+
+/* ══ 任务卡折叠式（v20260915k）：默认只露一行标题，点击展开详情 ══ */
+.obj-col{ cursor:pointer; }
+.obj-col .obj-head{ align-items:center; gap:7px; }
+.obj-col .obj-head .obj-t{ flex:1; min-width:0; }
+.obj-prog{ font-size:11px; color:#9a7b3a; background:rgba(176,131,47,.12); border:1px solid rgba(176,131,47,.35);
+  border-radius:9px; padding:1px 7px; font-family:'STKaiti','KaiTi',serif; flex:none; }
+.obj-arrow{ font-size:11px; color:#9a7b3a; flex:none; transition:transform .18s ease; }
+.obj-col.open .obj-arrow{ transform:rotate(90deg); }
+.obj-col .obj-more{ display:none; }
+.obj-col.open .obj-more{ display:block; }
