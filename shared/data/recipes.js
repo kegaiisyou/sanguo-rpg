@@ -41,6 +41,9 @@ LF.RECIPES = {
     { id:'forg_sword', cat:'兵刃类', name:'铁剑', icon:'⚔️', out:'tiejian', outN:1, in:[{id:'tiekuai', n:3},{id:'mutou', n:1}], note:'铁料入炉锻打，配上木柄，成一柄冷冽铁剑' },
     { id:'forg_axe', cat:'工具类', name:'铁斧', icon:'🪓', out:'tiefu', outN:1, in:[{id:'tiekuai', n:2},{id:'mucai', n:1}], note:'铁料锻斧，刃利耐磨损，伐木采石更趁手' },
     { id:'forg_horse', cat:'杂类', name:'铁马掌', icon:'🧲', out:'tiema', outN:1, in:[{id:'tiekuai', n:1}], note:'余料锻成马蹄铁，可售与马市换银两' },
+    // —— 矿洞下行（v20260915j）：木梯每下一层一挂（削木为柱、绑石为阶，锻台顺手做得）——
+    { id:'forg_ladder', cat:'工具类', name:'木梯', icon:'🪜', out:'muti', outN:1,
+      in:[{id:'mucai', n:3},{id:'shitiao', n:2}], note:'削木为柱、绑石为阶——矿道下行，一挂一挂地备着' },
     // —— 镐头六级（v20260915i）：粗石镐不锻（监工发）；精致石镐起皆在此锻。out:'pick:N' 表示镐升到 N 级 ——
     { id:'forg_pick1', cat:'镐头类', name:'精致石镐', icon:'🪨', out:'pick:1', outN:1,
       in:[{id:'shitiao', n:5},{id:'mucai', n:3}], note:'选石开棱、柄切手——石镐里头的头一份' },

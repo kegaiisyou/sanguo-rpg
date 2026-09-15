@@ -223,7 +223,10 @@
     mutan:      { defId: 'mutan',      name: '木炭', icon: '⚫', cat: '素材', price: 4,
       desc: '闷窑熏出的木炭，无烟耐烧。铁匠炉里最认它——火候稳，锻出的钢才匀。' },
     bailian_jian:{ defId: 'bailian_jian', name: '百炼钢简', icon: '📜', cat: '凭证',
-      desc: '刻着百炼钢法的残简：炒钢为料、反复折叠锻打。持之往铁匠铺，可依简锻百炼钢镐。' }
+      desc: '刻着百炼钢法的残简：炒钢为料、反复折叠锻打。持之往铁匠铺，可依简锻百炼钢镐。' },
+    // 矿洞下行（v20260915j）：每下一层须架一挂木梯（铁匠炉制：木材×3+石料×2）
+    muti:       { defId: 'muti',       name: '木梯', icon: '🪜', cat: '工具', price: 8,
+      desc: '削木为柱、绑石为阶的短梯。矿道陡崖深不见底，有它才下得去。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }

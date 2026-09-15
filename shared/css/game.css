@@ -2496,3 +2496,13 @@
 .mine-cell.lock .mc-h{ color:#d08a6a; }
 .mine-cell:not(.dead):not(.lock):hover{ border-color:#d8b46a; background:linear-gradient(180deg,#5a4a30,#3d2f1e); }
 @media (max-width:480px){ .mine-grid{ grid-template-columns:repeat(4,1fr); gap:4px; } .mine-cell{ min-height:56px; padding:6px 1px; } .mine-cell .mc-ic{ font-size:16px; } .mine-cell .mc-n{ font-size:10px; } .mine-cell .mc-h{ font-size:9px; } }
+
+/* ══ 弹窗顶部反馈条（v20260915j）：操作结果浮显，避免被面板遮挡 ══ */
+#modal-card{ position:relative; }
+.modal-fb{ position:absolute; left:50%; top:8px; transform:translateX(-50%); z-index:60;
+  background:rgba(24,17,10,.94); border:1px solid #d8b46a; border-radius:8px; color:#ffe9b8;
+  font-size:12.5px; line-height:1.45; padding:6px 13px; max-width:88%; box-sizing:border-box;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none;
+  opacity:0; transition:opacity .22s ease; box-shadow:0 3px 12px rgba(0,0,0,.55); }
+.modal-fb.show{ opacity:1; }
+@media (max-width:480px){ .modal-fb{ font-size:12px; top:6px; max-width:90%; } }

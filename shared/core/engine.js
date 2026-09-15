@@ -911,8 +911,30 @@
     }
     return out;
   }
+  // 面板反馈浮条（v20260915j）：弹窗开着时，操作日志若只落在叙事区会被面板挡住，
+  //   玩家点「凿矿/存取/买卖」看不到结果。这里把每条 log 同时浮显到当前弹窗顶部，
+  //   统一解决采矿、仓库、货郎、锻造等一切面板的反馈遮挡问题。
+  function fbShow(txt){
+    if(!$modal || $modal.classList.contains('hidden')) return;
+    if(!$card) return;
+    var fb=document.getElementById('modal-fb');
+    if(!fb){ injectModalFb(); fb=document.getElementById('modal-fb'); }
+    if(!fb) return;
+    fb.textContent=String(txt==null?'':txt);
+    fb.classList.add('show');
+    if(window.__fbTimer) clearTimeout(window.__fbTimer);
+    window.__fbTimer=setTimeout(function(){ fb.classList.remove('show'); }, 2800);
+  }
+  function injectModalFb(){
+    var holder=$card ? ($card.parentNode || $card) : null;
+    if(!holder) return;
+    if(holder.querySelector('#modal-fb')) return;
+    var fb=document.createElement('div'); fb.id='modal-fb'; fb.className='modal-fb';
+    holder.insertBefore(fb, $card);
+  }
   function log(text, cls, name, done){
     if(!$narr){ return; }
+    fbShow(text);
     var parts=splitSpeech(text);
     if(parts.length>1){
       for(var i=0;i<parts.length-1;i++) logRaw(parts[i], cls, name, null);
@@ -6451,7 +6473,7 @@
   }
 
   // ═══ 矿洞（分层 1-9）═══
-  function caveState(){ var st=state; if(!st.cave) st.cave={ floor:1, points:null, pity:0, guarantee:false, eventDone:false }; return st.cave; }
+  function caveState(){ var st=state; if(!st.cave) st.cave={ floor:1, points:null, pity:0, guarantee:false, eventDone:false, downDug:false }; return st.cave; }
   function rareForFloor(floor){
     if(floor>=9) return 'xuan';
     if(floor>=7) return 'jade';
@@ -6478,7 +6500,7 @@
     var n=3+Math.floor(Math.random()*3);
     var spots=[];
     for(var i=0;i<n;i++){ spots.push({ t:pool[Math.floor(Math.random()*pool.length)], alive:true, hp:null, clicks:0 }); }
-    c.floor=floor; c.points=spots; c.pity=0; c.guarantee=false; c.eventDone=false;
+    c.floor=floor; c.points=spots; c.pity=0; c.guarantee=false; c.eventDone=false; c.downDug=false;
     save(state);
   }
   function renderCavePanel(){
@@ -6509,8 +6531,16 @@
     if(c.floor===9 && !st.flags.mine_armory){
       h+='<div style="text-align:center;margin:8px 0;"><button class="btn-mini" id="m-armory">⚔ 前朝藏兵洞</button></div>';
     }
+    if(c.floor>=9){
+      h+='<p class="tip" style="text-align:center;">已是第九层，再无下路。</p>';
+    } else if(!c.downDug){
+      h+='<div style="text-align:center;margin:10px 0;"><button class="btn-mini" id="m-cave-dig">⬇ 探查下路（松动的岩壁）</button></div>';
+      h+='<p class="tip" style="text-align:center;">矿道并非处处通底——寻一处松动的岩壁凿开，方有下行之路；每下一层耗一挂木梯。</p>';
+    } else {
+      h+='<div style="text-align:center;margin:10px 0;"><button class="btn-mini" id="m-cave-down">⬇ 架木梯下行</button></div>';
+      h+='<p class="tip" style="text-align:center;">下路已通——峭壁陡滑，须架一挂木梯方能下行（木梯：木材×3+石料×2，铁匠炉制得）。</p>';
+    }
     h+='<div style="display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap;">'+
-        '<button class="btn-mini" id="m-cave-down">↓ 再下一层（耗精力 8）</button>'+
         '<button class="btn-mini" id="m-cave-up">↑ 收工上撤</button></div>';
     h+='<p class="tip" style="text-align:center;">越深矿越好，也越耗精力（每镐 '+(5+c.floor)+' 点）；连凿八镐不见好料，下一镐必出稀罕。</p>';
     h+='<button class="sheet-leave" id="m-leave">收 工</button>';
@@ -6523,6 +6553,7 @@
     });
     var st=document.getElementById('m-stele'); if(st) st.onclick=steleRead;
     var ar=document.getElementById('m-armory'); if(ar) ar.onclick=armoryEnter;
+    var dg=document.getElementById('m-cave-dig'); if(dg) dg.onclick=caveDig;
     var dn=document.getElementById('m-cave-down'); if(dn) dn.onclick=caveDown;
     var up=document.getElementById('m-cave-up'); if(up) up.onclick=function(){ closeModal(); log('你沿矿道拾级而上，重见天光。','env'); };
     var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
@@ -6580,19 +6611,52 @@
     else if(r<0.42){ log('一群蝙蝠扑棱棱掠过，惊得你心头一紧——好在没伤着人。','env'); }
     else if(r<0.54){ state.gold=(state.gold||0)+10; log('镐头磕到个硬物——拨开浮土，是半瓮前朝旧钱（银两+10）。','good'); }
   }
+  // 探查下路（v20260915j）：每层先凿开松动的岩壁，方有下行之路；挖开时若带着木梯，顺手架梯直下
+  function caveDig(){
+    var c=caveState();
+    if(c.floor>=9){ toast('已是第九层，再无下路。'); return; }
+    if(c.downDug) return;
+    if(!exert('探查下路')) return;
+    busyAct('凿开松动岩壁', 800, function(){
+      state.energy=Math.max(0,state.energy-6);
+      advanceTime(1);
+      c.downDug=true;
+      var hasLadder=(packFind('muti')||{count:0}).count>=1;
+      if(hasLadder){
+        var next=c.floor+1;
+        var pd=pickDef();
+        if((pd.caveMax||2) < next){
+          log('下路挖通了——但再往下，岩壁硬得凿之不动，换把好镐再来。','warn');
+        } else {
+          packConsume('muti',1);
+          state.energy=Math.max(0,state.energy-8);
+          genCaveFloor(next);
+          log('你凿开松动的岩壁，架上木梯向深处攀去——已至第 '+next+' 层。','good');
+        }
+      } else {
+        log('你凿开松动的岩壁，底下透出黑黢黢的深洞——峭壁陡滑，须一挂木梯方能下行（木梯：木材×3+石料×2，铁匠炉制得）。','sys');
+      }
+      save(state); afterPackChange();
+      $card.innerHTML = renderCavePanel(); bindCavePanel();
+    });
+  }
+  // 架木梯下行（v20260915j）：下路挖通后，须耗一挂木梯才能再下一层
   function caveDown(){
     var c=caveState();
     var next=c.floor+1;
     if(next>9){ toast('已是第九层，再无下路。'); return; }
+    if(!c.downDug){ toast('下路尚未挖通——先探查并凿开松动的岩壁。'); return; }
+    if((packFind('muti')||{count:0}).count<1){ toast('须一挂木梯方能下行——木梯以木材×3+石料×2，在铁匠炉制得。'); return; }
     var pd=pickDef();
     if((pd.caveMax||2) < next){ toast('再往下，岩壁硬得凿之不动——换把好镐再来。'); return; }
     if(!exert('下行')) return;
-    busyAct('向深处下行', 700, function(){
+    busyAct('架梯下行', 700, function(){
+      packConsume('muti',1);
       state.energy=Math.max(0,state.energy-8);
       advanceTime(1);
       genCaveFloor(next);
-      log('你沿矿道下行，越走越暗——已至第 '+next+' 层。','env');
-      save(state);
+      log('你架上木梯，一级级向深处攀去——已至第 '+next+' 层。','env');
+      save(state); afterPackChange();
       $card.innerHTML = renderCavePanel(); bindCavePanel();
     });
   }
@@ -6795,6 +6859,7 @@
       h=renderLogPanel();          // 回顾（v20260914a）：顶栏「回顾」/ 状态栏右侧那颗
     }
     $card.innerHTML=h;
+    injectModalFb();   // v20260915j：每扇窗都带顶部反馈条（操作结果不再被面板挡死）
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage' || kind==='give');
     $card.classList.toggle('give-card', kind==='give');
     $card.classList.toggle('levelup-card', kind==='levelup');
