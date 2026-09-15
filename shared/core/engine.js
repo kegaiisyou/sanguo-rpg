@@ -3421,14 +3421,30 @@
     bindGivePanel();
   }
   // ===== NPC 标准操作列：交谈 / 观察 / 给予 / 攻击 + 对象自带动作 =====
+  // 教学期是否放行「给予」（v20260915c）：交付类差事如今只认「给予」——zt_food 的结清挂在
+  //   triggers.js 的 zt_food_give（hook:'onGive'），「交谈」里已不再自动交付。若连这颗按钮一起
+  //   屏蔽，玩家攥着干粮站在周听涛跟前却交不出去，教学链当场断死。故：教学期仅当
+  //   「此人正是收件人 + 差事已应下 + 手里确有那份东西 + 尚未结清」时，才放出这一颗按钮。
+  function onbGiveUnlocked(o){
+    var f=state.flags||{}, t=f.task||{}, onb=f.onb;
+    if(!onb || onb.done) return true;              // 已脱籍：照旧全开
+    if(!o || o.key!=='zhoutingtao') return false;  // 教学期只有这一桩要交货
+    if(!t.zt_accepted) return false;               // 差事尚未应下，无货可交
+    if(f.route && f.route.crypt) return false;     // 密道已得，这桩差事已了
+    return !!packFind('fan');                      // 手里得真有那份吃食
+  }
   function buildNpcActions(o){
     var acts=[];
     acts.push({label:'交谈', icon:'💬', fn:function(){ if(o.key) talk(o.key); }});
-    // 开场教学链（onb 未完成）期间：仅保留「交谈」，隐藏「观察」「给予」「攻击」，避免新手误触/无意义选项
+    // 开场教学链（onb 未完成）期间：仅保留「交谈」，隐藏「观察」「攻击」，避免新手误触/无意义选项
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     if(!onboarding){
       acts.push({label:'观察', icon:'👁', fn:function(){ observeNpc(o); }});
+    }
+    if(onbGiveUnlocked(o)){
       acts.push({label:'给予', icon:'🎁', fn:function(){ openGivePanel(o); }});
+    }
+    if(!onboarding){
       var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
       acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
         if(dangerAct){ dangerAct.fn(); return; }
