@@ -204,6 +204,12 @@ window.LF = window.LF || {};
     function runTrigger(tr, env) {
       runSteps(tr.steps || [], 0, function () { markDone(tr); save(getState()); }, env);
     }
+    // NPC key 归一化（v20260915f）—— 一处真 bug 的根子：
+    //   城格 NPC 的实例 key 由 engine.js npcMake 拼成「卡id@城id:x,y#序号」（如 lu_da@kuyilao:0,1#0），
+    //   而剧本里写的是卡 id（'lu_da'）。此前按全等比较，于是【城里所有 NPC 的 onTalk / onGive
+    //   触发器永不命中】：掐了菜交不到伙房鲁大手上、凿了石料交不到仓吏、韩铁也不提犬舍 ——
+    //   任务全卡在最后一步。故一律取「@ 之前的卡 id」比对（普通房间的 NPC key 本就无 @，不受影响）。
+    function npcBase(k){ return String(k==null?'':k).split('@')[0]; }
     function checkTriggers(env) {
       var handled = false, list = getTriggers();
       for (var i = 0; i < list.length; i++) {
@@ -211,7 +217,7 @@ window.LF = window.LF || {};
         if (tr.hook && tr.hook !== env.hook) continue;
         if (isDone(tr)) continue;
         if (tr.room && tr.room !== env.room) continue;
-        if (tr.npc && tr.npc !== env.npc) continue;
+        if (tr.npc && npcBase(tr.npc) !== npcBase(env.npc)) continue;
         if (tr.item && (!env.item || (env.item.defId || env.item.id) !== tr.item)) continue;  // 仅匹配指定物品（v20260910g 修复：石料任务不会被其他赠物累计）
         if (tr.roomIn && tr.roomIn.indexOf(env.room) < 0) continue;
         // 单元格/格型作用域（v20260909p）：生成城市内部同一房间下按网格坐标定位触发

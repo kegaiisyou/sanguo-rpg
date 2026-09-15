@@ -672,6 +672,92 @@
     ]
   });
 
+  // ══════════ 第二批·捎句话（v20260915f）：孙老 → 牢头 → 回孙老 ══════════
+  //   三句话跑三趟，卖的是脚力。话本身轻（一个「补」字），跑这一趟人才知道营里的门道。
+  //   不写 cell：孙老、牢头都有作息会挪格，写死会闹出「人在这儿却交不上话」。
+  TRIGGERS.push({
+    id: 'errand_from_sun', hook: 'onTalk', npc: 'sun_lao', room: 'kuyilao', once: false,
+    cond: { flags: { 'flags.task.errand_started': true }, notFlag: 'flags.task.errand_got' },
+    steps: [
+      { t: 'log', cls: 'npc', text: '孙老把烟锅在鞋底一磕：「劳你捎句话——就问牢头，北墙那段塌了几日的口子，今夜补不补。别多说，也别少说。」' },
+      { t: 'setFlag', path: 'flags.task.errand_got', value: true },
+      { t: 'setFlag', path: 'flags.task.errand_cnt', increment: true },
+      { t: 'log', cls: 'sys', text: '〔捎句话〕记下了——往中军场院寻牢头，把这句话带到。' }
+    ]
+  });
+  TRIGGERS.push({
+    id: 'errand_to_laotou', hook: 'onTalk', npc: 'laotou', room: 'kuyilao', once: false,
+    cond: { flags: { 'flags.task.errand_got': true }, notFlag: 'flags.task.errand_told' },
+    steps: [
+      { t: 'log', cls: 'npc', text: '你把孙老那句话带到。牢头眼皮都不抬：「补。今夜就补。」（他把话头一收）「……这话，是谁问的？」' },
+      { t: 'setFlag', path: 'flags.task.errand_told', value: true },
+      { t: 'setFlag', path: 'flags.task.errand_cnt', increment: true },
+      { t: 'log', cls: 'sys', text: '〔捎句话〕话已带到——回去与孙老回一声。' }
+    ]
+  });
+  TRIGGERS.push({
+    id: 'errand_back_sun', hook: 'onTalk', npc: 'sun_lao', room: 'kuyilao', once: false,
+    cond: { flags: { 'flags.task.errand_told': true }, notFlag: 'flags.task.errand_done' },
+    steps: [
+      { t: 'log', cls: 'npc', text: '你回了他一个字：「补。」孙老眯着眼听完，半晌才道：「一个字，够老朽听一宿了——那口子补上，明晚便少一条路。」' },
+      { t: 'setFlag', path: 'flags.task.errand_done', value: true },
+      { t: 'setFlag', path: 'flags.task.errand_cnt', value: 2 },
+      { t: 'completeQuest', id: 'errand_word' },
+      { t: 'favor', npc: 'sun_lao', amount: 1 },
+      { t: 'exp', amount: 25 },
+      { t: 'log', cls: 'good', text: '〔任务完成·捎句话〕修为+25 · 孙老好感+1' }
+    ]
+  });
+
+  // ══════════ 第二批·瞭望换岗：登楼看过，回来报与秦九霄 ══════════
+  TRIGGERS.push({
+    id: 'watch_report', hook: 'onTalk', npc: 'qin_jiuxiao', room: 'kuyilao', once: false,
+    cond: { flags: { 'flags.task.watch_started': true, 'flags.task.watch_seen': true }, notFlag: 'flags.task.watch_done' },
+    steps: [
+      { t: 'log', cls: 'npc', text: '秦九霄听完你说的时辰，指节在膝上敲了两下：「换岗那阵，门洞下最乱——要动手，就在那一刻。早一刻人没散，晚一刻锁已经落了。」' },
+      { t: 'setFlag', path: 'flags.task.watch_cnt', value: 1 },
+      { t: 'setFlag', path: 'flags.task.watch_done', value: true },
+      { t: 'completeQuest', id: 'watch_shift' },
+      { t: 'exp', amount: 30 },
+      { t: 'log', cls: 'good', text: '〔任务完成·瞭望换岗〕修为+30 · 记下了出营的那条缝' }
+    ]
+  });
+
+  // ══════════ 第三批·送粥探监：把粥递到阿禾手上（地字二号）══════════
+  //   先前只知道他藏饼；等粥递过去，才知道那半块饼是留给山下瞎眼妹妹的 —— 
+  //   这条线换来的不是赏，是暗渠的入口（水渠夜遁·路线8）。
+  TRIGGERS.push({
+    id: 'dz_porridge_give', hook: 'onGive', npc: 'a_he', room: 'camp_dz2', item: 'xizhou', once: false,
+    cond: { flags: { 'flags.task.porridge_started': true }, notFlag: 'flags.task.porridge_done' },
+    steps: [
+      { t: 'setFlag', path: 'flags.task.porridge_cnt', increment: true },
+      { t: 'setFlag', path: 'flags.task.porridge_done', value: true },
+      { t: 'completeQuest', id: 'porridge_visit' },
+      { t: 'favor', npc: 'a_he', amount: 2 },
+      { t: 'exp', amount: 30 },
+      { t: 'log', cls: 'npc', text: '〔阿禾〕双手接过碗，先没喝——他把碗往怀里揣了揣，才小口抿着。半晌抬头：「……我妹两天没吃东西了。你若真要出去，我告诉你暗渠从哪儿下：营墙根往东数第七块砖，底下是空的。」' },
+      { t: 'setFlag', path: 'flags.route.crypt', value: true },
+      { t: 'log', cls: 'good', text: '〔任务完成·送粥探监〕修为+30 · 阿禾好感+2 · 得了暗渠的入口（水渠夜遁线可成）' }
+    ]
+  });
+
+  // ══════════ 第三批·仓中翻找：翻出什么交什么，交回仓里才算完 ══════════
+  [['jiugao', '锈迹镐头'], ['shengzi', '一段麻绳'], ['bumu', '半幅粗布']].forEach(function (f) {
+    TRIGGERS.push({
+      id: 'rummage_give_' + f[0], hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2, 1], item: f[0], once: false,
+      cond: { flags: { 'flags.task.rummage_started': true }, notFlag: 'flags.task.rummage_done' },
+      steps: [
+        { t: 'setFlag', path: 'flags.task.rummage_cnt', increment: true },
+        { t: 'setFlag', path: 'flags.task.rummage_done', value: true },
+        { t: 'completeQuest', id: 'store_rummage' },
+        { t: 'favor', npc: 'storeman_kuyilao', amount: 1 },
+        { t: 'exp', amount: 20 },
+        { t: 'log', cls: 'npc', text: '〔仓吏〕接过「' + f[1] + '」掂了掂：「翻出来的东西也肯交回来——仓里缺的不是物件，是这样的人。」' },
+        { t: 'log', cls: 'good', text: '〔任务完成·仓中翻找〕修为+20 · 仓吏好感+1' }
+      ]
+    });
+  });
+
   // ════════════════ 营中苦役·任务化（v20260911i） ════════════════
   // 症结：营中「担石劳作 / 下地务农 / 搬石料」此前只是面板上的一个按钮 —— 点完吐一句旁白就完事，
   //   没有交代、没有进度、更没有交付与赏，交互到此为止，营中一日也就没什么可盼的。

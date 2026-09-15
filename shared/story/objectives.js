@@ -153,6 +153,58 @@
       need: [ { flag: 'flags.task.dog_fled', name: '全身而退', icon: '🐕', count: 1 } ],
       submit: { npc: '韩铁', room: 'kuyilao' },
       reward: '修为+40 · 声望+2'
+    },
+    // ── 第二批（v20260915f）：四桩「要跑腿」的差事 ──
+    //   与「做出实物交上去」的田/矿不同，这四桩卖的是脚力与眼力：水、话、时辰、拳脚。
+    water_cook: {
+      id: 'water_cook', title: '担水入灶', type: 'side',
+      hint: '囚室那格的水槽点「装水入袋」打满水 → 往伙房那格点「灶边水缸」倾进去，两趟。',
+      need: [ { flag: 'flags.task.water_cnt', name: '担水', icon: '🪣', count: 2 } ],
+      submit: { npc: '鲁大', room: 'kuyilao' },
+      reward: '干粮×1 · 修为+20 · 鲁大好感+1'
+    },
+    dummy_train: {
+      id: 'dummy_train', title: '木人试艺', type: 'side',
+      hint: '演武场那格戳木人桩，打赢三回——撤了不算，得把它戳倒。',
+      need: [ { flag: 'flags.task.dummy_cnt', name: '戳倒木人', icon: '🪵', count: 3 } ],
+      submit: { npc: '韩铁', room: 'kuyilao' },
+      reward: '修为+35 · 韩铁好感+1'
+    },
+    errand_word: {
+      id: 'errand_word', title: '捎句话', type: 'side',
+      hint: '去农田问孙老要捎什么话 → 往中军场院寻牢头带到 → 回来与孙老回一声。',
+      need: [ { flag: 'flags.task.errand_cnt', name: '传话', icon: '💬', count: 2 } ],
+      submit: { npc: '孙老', room: 'kuyilao' },
+      reward: '修为+25 · 孙老好感+1'
+    },
+    watch_shift: {
+      id: 'watch_shift', title: '瞭望换岗', type: 'side',
+      hint: '岗哨那格点「登楼瞭望」记下换岗在几时，再回来与秦九霄说一声。',
+      need: [ { flag: 'flags.task.watch_cnt', name: '报知时辰', icon: '🗼', count: 1 } ],
+      submit: { npc: '秦九霄', room: 'kuyilao' },
+      reward: '修为+30 · 出营线索'
+    },
+    // ── 第三批（v20260915f）：地字号那三间的差事 ──
+    porridge_visit: {
+      id: 'porridge_visit', title: '送粥探监', type: 'side',
+      hint: '在伙房换一碗粥（过了饭点换到的正是粥），往地字二号牢房点那瘦少年、选「给予」递到他手上。',
+      need: [ { flag: 'flags.task.porridge_cnt', name: '递粥', icon: '🥣', count: 1 } ],
+      submit: { npc: '林娘', room: 'kuyilao' },
+      reward: '修为+30 · 阿禾好感+2 · 水渠线索'
+    },
+    night_water: {
+      id: 'night_water', title: '夜半添水', type: 'side',
+      hint: '往囚室那格的水槽点「添水」，把槽水注满——添满即了，水不够就多打几袋。',
+      need: [ { flag: 'flags.task.nightwater_cnt', name: '槽水注满', icon: '💧', count: 1 } ],
+      submit: { npc: '崔九', room: 'kuyilao' },
+      reward: '修为+20 · 地字号好感+1'
+    },
+    store_rummage: {
+      id: 'store_rummage', title: '仓中翻找', type: 'side',
+      hint: '仓库那格点「翻找旧物」，翻出什么算什么；再点仓吏、选「给予」交到他手上。',
+      need: [ { flag: 'flags.task.rummage_cnt', name: '交还仓里', icon: '🧺', count: 1 } ],
+      submit: { npc: '仓吏', room: 'kuyilao' },
+      reward: '修为+20 · 仓吏好感+1'
     }
   };
 

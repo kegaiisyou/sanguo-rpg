@@ -1175,8 +1175,24 @@
   //   眼下只挂一条「犬舍试手」：韩铁教的是「打不过就撤」，故只有真撤出来（fled）才算数——
   //   把狗打死不算，那教不会「留得青山」。
   LF.onCombatResult = function(result, enemy){
+    if(!enemy) return;
+    // 木人试艺（v20260915f）：桩是死物，练的是「打得倒」——故只认打赢，撤了不计。
+    if(result==='win' && enemy.id==='dummy'){
+      var d=state.flags && state.flags.task;
+      if(d && d.dummy_pending){
+        d.dummy_pending=false;
+        var dn=jobTick('dummy');
+        log('木人桩「咚」地仰倒，绳扣绷得吱呀作响。（已戳倒 '+dn+' / 3 回）','good');
+        if(dn>=3){
+          log('〔差役了结·木人试艺〕韩铁终于点头：「手上有了准头。往后这桩，你自个儿练去。」（修为+35 · 韩铁好感+1）','good');
+          state.npcFavor=state.npcFavor||{}; state.npcFavor['han_tie']=(state.npcFavor['han_tie']||0)+1;
+          jobSettle('dummy','dummy_train',35,0);
+        } else { save(state); renderStatus(); }
+      }
+      return;
+    }
     if(result!=='fled') return;
-    if(!enemy || enemy.id!=='stray_dog') return;
+    if(enemy.id!=='stray_dog') return;
     var t=state.flags && state.flags.task; if(!t || !t.dog_try) return;
     t.dog_try=false; t.dog_done=true;
     addFlagNum('flags.task.dog_fled', 1);
@@ -2044,7 +2060,13 @@
     { min: -29, name: '戒备', cls: 'f-bad' },
     { min: -9999, name: '仇视', cls: 'f-worst' }
   ];
-  function npcFavor(key) { return (key && state.npcFavor && state.npcFavor[key]) || 0; }
+  // 好感读取兼容两种键（v20260915f）：任务脚本写卡 id（'sun_lao'）、给予面板写实例 key
+  //   （'sun_lao@kuyilao:0,0#0'）。若各按各的键读，加了的好感在人物面板上看不出来 —— 故回退一次。
+  function npcFavor(key) {
+    if(!key || !state.npcFavor) return 0;
+    if(state.npcFavor[key] != null) return state.npcFavor[key];
+    return state.npcFavor[String(key).split('@')[0]] || 0;
+  }
   function npcFavorTier(v) { for (var i = 0; i < FAVOR_TIERS.length; i++) { if (v >= FAVOR_TIERS[i].min) return FAVOR_TIERS[i]; } return FAVOR_TIERS[FAVOR_TIERS.length - 1]; }
   function addNpcFavor(key, n) {
     if (!key || !n) return 0;
@@ -2844,7 +2866,8 @@
           {label:'开垦', icon:'⛏️', fn:function(){ farmTill(); }}
         ]},
         { icon:'🥬', label:'菜畦', show: function(){ return jobOpen('farm') && farmTilled(); }, acts:[
-          {label:'掐菜', icon:'🥬', fn:function(){ farmPick(); }}
+          {label:'掐菜', icon:'🥬', fn:function(){ farmPick(); }},
+          {label:'挑水浇畦', icon:'💧', show: function(){ return !farmFx().wet; }, fn:function(){ farmWater(); }}
         ]}
       ]
     },
@@ -2854,6 +2877,30 @@
       doors: [
         { label:'犬舍', icon:'🐕', target:'camp_kennel', group:'演武场',
           show: function(){ return !!(state.flags && state.flags.onb && state.flags.onb.tcDone); } }
+      ]
+    },
+    // 伙房（0,1）：灶边水缸 —— 「担水入灶」的落点（打水在囚室水槽，倾水在此处，两头一担挑起来）
+    'kuyilao|0,1': {
+      objects: [
+        { icon:'🪣', label:'灶边水缸', show: function(){ return jobOpen('water'); }, acts:[
+          {label:'倾水入缸', icon:'💧', fn:function(){ kitchenPour(); }}
+        ]}
+      ]
+    },
+    // 岗哨（1,2）：望楼 —— 「瞭望换岗」的落点（看的是时辰：换岗那一刻门洞最乱，正是出营的缝隙）
+    'kuyilao|1,2': {
+      objects: [
+        { icon:'🗼', label:'望楼', show: function(){ return jobOpen('watch'); }, acts:[
+          {label:'登楼瞭望', icon:'👁️', fn:function(){ watchLook(); }}
+        ]}
+      ]
+    },
+    // 仓库（2,1）：麻袋堆 —— 「仓中翻找」的落点（翻出什么是随机的，交回仓里才是了结）
+    'kuyilao|2,1': {
+      objects: [
+        { icon:'🧺', label:'麻袋堆', show: function(){ return jobOpen('rummage'); }, acts:[
+          {label:'翻找旧物', icon:'🔍', fn:function(){ rummageStore(); }}
+        ]}
       ]
     }
     // 矿坑（2,0）【不摆设施】：该格是 mine 型，格上本就有「开凿矿料」出石料（city.js 格型动作）。
@@ -2891,6 +2938,13 @@
     var add=Math.min(bw, TROUGH_CAP-f.water);
     f.water+=add; bag.water=bw-add;
     log('你将水袋中 '+add+' 份水倾入槽中（槽 '+f.water+' / '+TROUGH_CAP+'）。','good');
+    // 夜半添水（v20260915f）：注满即了 —— 这一槽水，够地字号那几位润到天亮。
+    if(f.water>=TROUGH_CAP && jobOpen('nightwater') && !jobFlag('nightwater','_done')){
+      jobTick('nightwater');
+      log('槽水终于漫到沿口。栅后有人哑着嗓子道了句谢——夜半这一槽，是替人解的渴。（修为+20 · 崔九好感+1）','good');
+      state.npcFavor=state.npcFavor||{}; state.npcFavor['cui_jiu']=(state.npcFavor['cui_jiu']||0)+1;
+      jobSettle('nightwater','night_water',20,0);
+    }
     save(state); renderStatus();
   }
   // 值更鼓：击鼓报更 + 提示距换岗；频繁击鼓惊动牢头（轻风险，不卡死）
@@ -3031,7 +3085,39 @@
     { key:'stone', quest:'stone', title:'采石充仓',
       word:'仓吏要的：矿坑凿青石五块，交仓库',
       take:'你把「采石充仓」那片木牍摘了下来。',
-      tip:'去营东北矿坑，就格上「开凿矿料」凿够五块石料；扛回仓库，点仓吏、选「给予」，把石料交到他手上。' }
+      tip:'去营东北矿坑，就格上「开凿矿料」凿够五块石料；扛回仓库，点仓吏、选「给予」，把石料交到他手上。' },
+    // v20260915f：第二批 —— 四桩「要跑腿、要使唤东西」的差事。
+    //   与田里出菜、矿里出石的区别在：不产实物，产的是「跑这一趟」本身（水、话、时辰、拳脚）。
+    { key:'water', quest:'water_cook', title:'担水入灶',
+      word:'鲁大要的：囚室水槽打两袋水，倾进伙房灶边水缸',
+      take:'你把「担水入灶」那片木牍摘了下来。',
+      tip:'去囚室（牢房那格）水槽点「装水入袋」打满，再往伙房那格点「灶边水缸」倾进去——两趟。' },
+    { key:'dummy', quest:'dummy_train', title:'木人试艺',
+      word:'韩铁要的：演武场木人桩，戳倒三回',
+      take:'你把「木人试艺」那片木牍摘了下来。',
+      tip:'去演武场（有木人桩那格）戳木人桩，打赢三回——跑掉不算，得把它戳倒。' },
+    { key:'errand', quest:'errand_word', title:'捎句话',
+      word:'孙老托的：带一句话给牢头，再回来回他个话',
+      take:'你把「捎句话」那片木牍摘了下来。',
+      tip:'去农田找孙老，问他要捎什么话 → 往中军场院寻牢头把话带到 → 回来与孙老回一声。' },
+    { key:'watch', quest:'watch_shift', title:'瞭望换岗',
+      word:'秦九霄要的：岗哨望楼看一回换岗，回来报时辰',
+      take:'你把「瞭望换岗」那片木牍摘了下来。',
+      tip:'去营东北岗哨那格点「登楼瞭望」记下换岗在几时，再回来与秦九霄说一声。' },
+    // v20260915f：第三批 —— 地字号那三间的差事（送粥 / 添水 / 翻找）。
+    //   前两桩是「给人递点东西」：一碗粥、一槽水，东西轻，落到人身上才重。
+    { key:'porridge', quest:'porridge_visit', title:'送粥探监',
+      word:'林娘托的：地字二号那个藏饼的少年，送一碗粥过去',
+      take:'你把「送粥探监」那片木牍摘了下来。',
+      tip:'先在伙房换一碗粥（过了饭点换到的正是粥），再往地字二号牢房，点那瘦少年、选「给予」，把粥递到他手上。' },
+    { key:'nightwater', quest:'night_water', title:'夜半添水',
+      word:'囚友求的：牢房那槽水快见底了，添满它',
+      take:'你把「夜半添水」那片木牍摘了下来。',
+      tip:'往囚室那格的水槽点「添水」，把槽水注满——添满即了（水不够就多打几袋）。' },
+    { key:'rummage', quest:'store_rummage', title:'仓中翻找',
+      word:'仓吏要的：仓库翻出一件旧物，交还仓里',
+      take:'你把「仓中翻找」那片木牍摘了下来。',
+      tip:'去仓库那格点「翻找旧物」，翻出什么算什么；再点仓吏、选「给予」，把东西交到他手上。' }
   ];
   // 差役牌面板（v20260915b）：木牌上钉着几片木牍，摘一片领一桩活
   function jobSeal(j){
@@ -3086,6 +3172,83 @@
   function jobBoard(){
     openModal('job');
   }
+  // ═══ 差役记账（v20260915f）═══
+  // 牌上摘牍只是接活；做一次记一笔（jobTick），够了翻牍发赏（jobSettle）。
+  //   各处只管调这两个，不必各自拼 flags 路径 —— 也免得「记了数却忘了翻牍」这类漏账。
+  function jobTick(key, n){
+    if(!state.flags) state.flags={};
+    if(!state.flags.task) state.flags.task={};
+    var k=key+'_cnt'; state.flags.task[k]=(state.flags.task[k]||0)+(n||1);
+    return state.flags.task[k];
+  }
+  function jobSettle(key, questId, exp, rep){
+    if(!state.flags) state.flags={};
+    if(!state.flags.task) state.flags.task={};
+    state.flags.task[key+'_done']=true;
+    if(questId) completeQuest(questId);
+    if(exp) addXp(exp);
+    if(rep) addReputation(rep);
+    save(state); renderStatus();
+  }
+  // ═══ 担水入灶（v20260915f）：囚室水槽打水 → 伙房灶边水缸倾进去 ══
+  //   水是营里的硬通货（解渴 / 添槽 / 和泥都靠它）。这一趟的意义在「两头跑」：
+  //   打水在一处、用场在另一处，营里的日子本就是这么串起来的。
+  var WATER_PER_TRIP = 5;                       // 倾一袋入缸：满五份水才算一趟
+  function kitchenPour(){
+    if(!jobOpen('water')){ toast('没人使唤你担水，别在灶前碍事。'); return; }
+    var bag=packFind('shuidai');
+    if(!bag || !(bag.water>0)){ toast('水袋空空——先去囚室那格的水槽点「装水入袋」。'); return; }
+    if(!exert('担水入灶')) return;
+    busyAct('倾水入缸', 900, function(){
+      var pour=Math.min(WATER_PER_TRIP, bag.water);
+      bag.water-=pour;
+      advanceTime(1);
+      var n=jobTick('water');
+      log('你把水袋里 '+pour+' 份水倾进灶边那口大缸，缸沿浮起一层浮沫。（已担 '+n+' / 2 趟）','good');
+      if(n>=2){
+        log('〔差役了结·担水入灶〕鲁大舀了半瓢稠的递来：「水担得勤，锅里的食便稠些——往后这缸，就归你管了。」（干粮×1 · 修为+20 · 鲁大好感+1）','good');
+        packAdd('fan',1); afterPackChange();
+        state.npcFavor=state.npcFavor||{}; state.npcFavor['lu_da']=(state.npcFavor['lu_da']||0)+1;
+        jobSettle('water','water_cook',20,0);
+      } else { save(state); renderStatus(); }
+      buildActions(curRoom());
+    });
+  }
+  // ═══ 瞭望换岗（v20260915f）：岗哨登楼看一回，记下换岗在几时，回来报与秦九霄 ══
+  //   看的是「时辰」——换岗那一刻门洞最乱，这条缝隙正是出营的本钱。
+  var WATCH_HOUR = 10;                          // 戌时前后换岗（与更鼓那套口径一致）
+  function watchLook(){
+    if(!jobOpen('watch')){ toast('无令不得登楼——守卒的横眼正盯着你。'); return; }
+    if(!exert('登楼瞭望')) return;
+    busyAct('登楼瞭望', 1000, function(){
+      advanceTime(1);
+      var h=state.time%12, sh=SHICHEN[h];
+      var d=Math.abs(h-WATCH_HOUR), near=(d<=1 || d>=11);
+      state.flags=state.flags||{}; state.flags.task=state.flags.task||{};
+      state.flags.task.watch_seen=sh;
+      log('你伏在望楼垛口看了半晌：此刻'+sh+'，'+(near?'正撞上换岗——两班守卒在门洞下交割腰牌，乱了一阵。':'岗上的兵交班还早，只听得见风穿过箭楼。'),'env');
+      if(near) log('〔记下了〕换岗就在'+sh+'前后——这一刻门洞下最乱，是条缝。','good');
+      else log('（换岗在戌时前后，那时候再来一趟，才看得出门道。）','sys');
+      save(state); renderStatus();
+    });
+  }
+  // ═══ 仓中翻找（v20260915f）：麻袋堆后翻出一件旧物，交还仓吏 ══
+  var RUMMAGE_FINDS = [
+    { id:'jiugao',  name:'锈迹镐头', icon:'⛏️', cat:'素材' },
+    { id:'shengzi', name:'一段麻绳', icon:'🪢', cat:'素材' },
+    { id:'bumu',    name:'半幅粗布', icon:'🧵', cat:'素材' }
+  ];
+  function rummageStore(){
+    if(!jobOpen('rummage')){ toast('仓里的东西不是你能乱翻的。'); return; }
+    if(!exert('翻找旧物')) return;
+    busyAct('翻找旧物', 1100, function(){
+      advanceTime(1);
+      var f=RUMMAGE_FINDS[Math.floor(Math.random()*RUMMAGE_FINDS.length)];
+      if(!packAdd({defId:f.id,name:f.name,icon:f.icon,cat:f.cat,count:1})) return;
+      log('你在麻袋堆后头摸了半天，翻出一件旧物：'+f.icon+'「'+f.name+'」。仓吏说过，翻出什么都得交回仓里。','good');
+      afterPackChange(); save(state); renderStatus();
+    });
+  }
 
   // ═══ 农田（0,0）：开垦 → 成畦 → 掐菜（v20260914e）═══
   // 状态存 fixtures['kuyilao|0,0']：tilled 已翻垄数 / picked 已掐菜数（与牢房水槽同一套 fixtures 写法）
@@ -3121,10 +3284,31 @@
       state.energy=Math.max(0, state.energy-2);
       advanceTime(1);
       var n = 1 + (Math.random()<0.5 ? 1 : 0);
+      var f=farmFx();
+      // 浇过水的畦厚实些，多得一捧；掐过这一茬，水也就尽了 —— 下一茬若要厚，得再挑水。
+      var wet=!!f.wet; if(wet){ n+=1; f.wet=false; }
       if(!packAdd('yecai', n)) return;
-      var f=farmFx(); f.picked=(f.picked||0)+n;
-      log('你蹲身掐菜，指甲缝里全是泥——得「野菜」×'+n+'。','good');
+      f.picked=(f.picked||0)+n;
+      log('你蹲身掐菜，指甲缝里全是泥——得「野菜」×'+n+'。'+(wet?'（浇过水的果然厚实。）':''),'good');
       afterPackChange(); save(state); renderStatus();
+    });
+  }
+  // 挑水浇畦（v20260915f · 农田一期）：时间头一回变成「要照料的东西」。
+  //   为什么不按真实时辰长：教学期时钟是冻结的（clockFlowing 为假），种下去不会长；
+  //   故此处只记「浇过 / 没浇」——浇过的畦下一茬多一捧，掐过即尽。等脱籍后时钟流动，
+  //   再换成按畦上记的时辰计时（真生长）。先把「照料有回报」这层手感立起来。
+  function farmWater(){
+    if(!jobOpen('farm')){ toast('这不是你该管的菜地。'); return; }
+    if(!farmTilled()){ toast('地还荒着，浇也是白浇。'); return; }
+    var bag=packFind('shuidai');
+    if(!bag || (bag.water||0) < 3){ toast('水袋里不足三份水——先去囚室那格的水槽点「装水入袋」。'); return; }
+    if(!exert('挑水浇畦')) return;
+    busyAct('挑水浇畦', 900, function(){
+      bag.water=(bag.water||0)-3;
+      advanceTime(1);
+      var f=farmFx(); f.wet=true;
+      log('你挑了三份水把菜畦浇透，湿泥颜色转深——下一茬该起得厚些。','good');
+      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
     });
   }
   var CELL_NARR = {
@@ -3173,6 +3357,7 @@
   function openObjMenu(e, o, acts){
     var panel=document.createElement('div'); panel.className='obj-menu';
     (acts||[]).forEach(function(a){
+      if(a.show && !a.show()) return;   // v20260915f：动作级门槛（如浇过的菜畦不再显「挑水浇畦」）
       if(a.sep){ var s=document.createElement('div'); s.className='op-sep'; panel.appendChild(s); return; }
       var b=document.createElement('button');
       b.className='op-btn'+(a.danger?' danger':'')+(a.icon?' has-ic':'');
@@ -4494,7 +4679,11 @@
       case 'spar_chief':  if(!exert('应战')) return; startCombat('bandit_chief'); break;
       case 'spar_turban': if(!exert('应战')) return; startCombat('yellow_turban'); break;
       // ─── 新战斗：木人桩 / 犬舍野犬 / 黑山寨 ───
-      case 'spar_dummy': if(!exert('应战')) return; startCombat('dummy'); break;
+      case 'spar_dummy':
+        if(!exert('应战')) return;
+        // 记一笔「这次是领了差事的」，由 LF.onCombatResult 在打赢时结清（撤了不算）
+        if(state.flags && state.flags.task && state.flags.task.dummy_started && !state.flags.task.dummy_done) state.flags.task.dummy_pending=true;
+        startCombat('dummy'); break;
       case 'spar_dog':
         if(!exert('逗弄野犬')) return;
         // 记一笔「这次是来练撤的」，由 LF.onCombatResult 在撤离成功时结清（打死了不算）
