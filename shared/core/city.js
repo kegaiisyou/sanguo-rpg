@@ -137,7 +137,7 @@ window.LF = window.LF || {};
         '1,1': [{ id: 'labor_yard', label: '担石劳作', tip: '扛石运土一个时辰——累工分，满三工换一枚劳字木片。' },
                 { id: 'survey_yard', label: '环顾四周', tip: '勘察劳役场，看清几处去路。' }],
         // 囚室格 (1,0)：六间子牢房走面板 doors（CELL_INTERIORS）、罗盘走网格邻居；
-        //   格上不再放「回牢销名」按钮——戌时前踏进牢房格即自动销名（autoOnbRoutines）
+        //   格上不再放「回牢销名」按钮——午后牢头回牢后踏进牢房格即自动销名（autoOnbRoutines）
         '1,0': [],
         '2,1': [{ id: 'survey_warehouse', label: '翻找仓库', tip: '墙角倚着闲镐锄，竹木随手可取。' },
                 { id: 'haul_stones', label: '搬石料', tip: '往返扛石入库一个时辰——累工分，可换劳字木片。' }],

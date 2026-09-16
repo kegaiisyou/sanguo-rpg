@@ -135,7 +135,7 @@
     //   进度走 flag 计数（flags.task.roll_cnt / meal_cnt），由引擎在应卯与进食时各记一笔。
     roll_call: {
       id: 'roll_call', title: '点卯应名', type: 'side',
-      hint: '卯、辰两个时辰（天亮开工那阵）赶到中军场院（挂记工木牌那一格），点「应卯点名」应一声——一日只应一次。连应三日：册上记满三笔「勤」，销一次旷役，另得干粮两张。',
+      hint: '卯时到午时（天亮到晌午）赶到中军场院（挂记工木牌那一格），点「应卯点名」应一声——一日只应一次。连应三日：册上记满三笔「勤」，销一次旷役，另得干粮两张。',
       need: [ { flag: 'flags.task.roll_cnt', name: '应卯', icon: '📋', count: 3 } ],
       submit: { npc: '牢头', room: 'kuyilao' },
       reward: '干粮×2 · 修为+30 · 销一次旷役'

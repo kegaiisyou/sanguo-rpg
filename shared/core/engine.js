@@ -1201,7 +1201,7 @@
   var MESS_HOURS  = [3,4,6,7,9,10];    // 一日三餐各两个时辰：卯辰（朝食）· 午未（晌饭）· 酉戌（夜粥）
   var DEAD_HOURS  = [11,0,1,2];        // 亥子丑寅：灶冷无食（伙房歇火）
   var NIGHT_HOURS = [10,11,0,1,2];     // 戌时鸣鼓落锁起至次日寅时：城门宵禁 / 营中点卯逾期
-  var ROLL_HOURS  = [3,4];             // 卯辰：点卯应名（天亮开工那两个时辰，过时不到即缺勤）
+  var ROLL_HOURS  = [3,4,5,6];          // 卯辰巳午：点卯应名（天亮开工到晌午，过午不候——v20260916h 放宽）
   var INN_FEE     = 8;                 // 客栈打尖房钱（两）
   var LABOR_PER_WOOD = 3;              // 劳役工分：每 3 工换发 1 枚「劳字木片」
   function hourNow(){ return (((state.time||0)%12)+12)%12; }
@@ -1210,7 +1210,7 @@
   function isMessHour(h){ return inHours(MESS_HOURS,h); }      // 饭点：灶上有热食
   function isDeadHour(h){ return inHours(DEAD_HOURS,h); }      // 深夜：灶火已熄
   function isCurfewHour(h){ return inHours(NIGHT_HOURS,h); }   // 落锁：城门闭 · 点卯逾期
-  function isRollHour(h){ return inHours(ROLL_HOURS,h); }       // 点卯：卯辰应名（与「戌前销名」一开一收）
+  function isRollHour(h){ return inHours(ROLL_HOURS,h); }       // 点卯：卯至午应名（与「午后销名」一开一收）
   function onbF(){ return (state.flags && state.flags.onb) || null; }
   // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
   function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
@@ -1247,10 +1247,11 @@
         o.favor=(o.favor||0)-1;
         log('〔旷役〕'+hourLabel()+'结算：昨日未回牢销名，记旷役一次——'+(hadFood?'口粮被扣了一份（饱食-8）· ':'口粮本已见底，记你一笔「饿着也是活该」· ')+'牢头好感-1。','warn');
       }
-      o.checkInDone=false;   // 新的一日重新点卯（戌前销名）
-      o.rollDone=false;      // 新的一日重新应卯（卯辰点名）
+      o.checkInDone=false;   // 新的一日重新点卯（午后销名）
+      o.rollDone=false;      // 新的一日重新应卯（卯至午点名）
       o.rollMissWarned=false; // v20260916f：「未应卯」提示新的一日重新计
       o.checkWarned=false;    // v20260916g：「牢头不在」提示新的一日重新计
+      o.rollWarnDay=undefined; // v20260916h：「卯时提醒」新的一日重新计
       o.lateDone=false;      // 新的一日重开晚归判定
       o.messToday=0;         // 当日换饭次数重置
     }
@@ -1278,12 +1279,13 @@
     save(state); renderStatus();
     return true;
   }
-  // 自动营规（v20260916e→g）：保留「规定时间 + 指定区域」的玩法，省去手动按按钮——
-  //   卯/辰时辰踏入中军场院(1,1)且牢头在场即自动应卯；
-  //   牢头戌时起回牢门口守夜（10..2 在牢房格(1,0)），此刻踏入牢房格且当日已应卯（rollDone）才自动销名。
+  // 自动营规（v20260916e→h）：保留「规定时间 + 指定区域」的玩法，省去手动按按钮——
+  //   卯至午时辰踏入中军场院(1,1)且牢头在场即自动应卯；
+  //   牢头未时(7)起回牢门口（7..2 在牢房格(1,0)），此刻踏入牢房格且当日已应卯（rollDone）才自动销名。
   //   v20260916f 加前置：先应卯、后销名——没应卯，牢头不给落销名的字（提示后仍可去补应卯）。
-  //   v20260916g 加在场：销名须「牢头在牢门口」（他戌时起才回牢守夜，白日在中军督工，不在就不销名，
-  //     只提示一次）；应卯同理须牢头在中军场院（卯辰他本就在，加了判定更稳）。
+  //   v20260916g 加在场：销名须「牢头在牢门口」（他未时起才回牢守夜，卯至午在中军督工，不在就不销名，
+  //     只提示一次）；应卯同理须牢头在中军场院（卯至午他本就在，加了判定更稳）。
+  //   v20260916h 放宽：应卯扩到午时（过午不候）；牢头午时后回牢，销名随之提前到午后。
   //   按钮已从城格动作移除（city.js），玩家「到场即办」，无需再点。
   //   只服务「营规未脱」的玩家（脱籍后不再受约束）。
   //   触发点：① advanceTime 时辰推进后；② move/goCell 落格后（见 move 内调用）。
@@ -1293,7 +1295,7 @@
     var cp=state.flags.cityPos;
     if(!cp || cp.cid!=='kuyilao') return;          // 人在营中网格才谈得上应卯/销名
     if(isRollHour() && cp.x===1 && cp.y===1 && !o.rollDone && wardenHere('1,1')){
-      doRollCall(true);                             // 卯/辰 + 中军场院 + 牢头在场：自动应名记「勤」
+      doRollCall(true);                             // 卯至午 + 中军场院 + 牢头在场：自动应名记「勤」
     }
     if(cp.x===1 && cp.y===0 && !o.checkInDone){
       if(o.rollDone && wardenHere('1,0')){
@@ -1303,11 +1305,11 @@
       } else if(!o.rollDone && !o.rollMissWarned){
         o.rollMissWarned=true;                       // 当日只提示一次，免得每次踏进牢房都刷
         save(state);
-        log('〔点卯·未应〕你踏进牢房，牢头翻册皱眉：「今日卯时不见你来应名，这销名的字，我不能给你落。」（先去中军场院应卯，再回来销名）','warn');
+        log('〔点卯·未应〕你踏进牢房，牢头翻册皱眉：「今日不见你来应名，这销名的字，我不能给你落。」（先去中军场院应卯，再回来销名）','warn');
       } else if(o.rollDone && !wardenHere('1,0') && !o.checkWarned){
-        o.checkWarned=true;                          // v20260916g：牢头白日不在牢门口，销名等他戌时回牢再办
+        o.checkWarned=true;                          // v20260916h：牢头卯至午在中军督工，销名等他午后回牢再办
         save(state);
-        log('〔点卯·销名〕你回了牢房，可牢头白日在中军场院督工，此刻不在此处——销名的字，须等他戌时回牢门口再落。','sys');
+        log('〔点卯·销名〕你回了牢房，可牢头此刻还在中军场院督工——销名的字，须等他午后回牢门口再落。','sys');
       }
     }
   }
@@ -1493,6 +1495,7 @@
     // 查房（v20260911i）：此刻若已过戌时又在营中游荡，巡夜狱卒便来拿人。
     //   动作自身的文案正在打字，故走 requestCurfewPatrol（记「待评」+ 叙事收尾后由 syncActionLock 续评）。
     curfewWarn();
+    rollWarn();        // v20260916h：卯时应卯提醒（对称酉时预警）
     requestCurfewPatrol();
   }
   // 酉时入夜预警（v20260916a）：劳作/赶路推进时辰后若到酉时且仍在营中，先提醒一句
@@ -1505,6 +1508,17 @@
     if(o.curfewWarnDay===state.day) return;   // 当日只提醒一次
     o.curfewWarnDay=state.day;
     log('〔天色将晚〕酉时过半，日头西沉——戌时营门落锁，记得回牢房销名。','warn');
+  }
+  // 卯时应卯提醒（v20260916h，对称酉时预警）：卯时一到若还没应名，先提一句——
+  //   「应卯」窗口虽是卯至午四个时辰，但多数玩家头几天根本不知道时辰这回事，先亮个路标。
+  function rollWarn(){
+    if(!onbBound()) return;
+    if(state.time!==3) return;              // 卯时（十二时辰下标 3）是应卯窗口开头
+    if(!inCampNow()) return;
+    var o=onbF();
+    if(o.rollWarnDay===state.day) return;   // 当日只提醒一次
+    o.rollWarnDay=state.day;
+    log('〔天色将明〕卯时了，牢头在中军场院点名——记得去应一声，过午不候。','warn');
   }
   // 由累计天数回写年号年序 + 年号名（年号随公元年自动切换：184→中平，杜绝 184 仍显「光和」）
   function syncCalendar(){
