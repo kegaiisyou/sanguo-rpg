@@ -939,19 +939,31 @@
     }
     return out;
   }
-  // 面板反馈浮条（v20260915j）：弹窗开着时，操作日志若只落在叙事区会被面板挡住，
+  // 面板反馈浮条（v20260915j→v20260916d）：弹窗开着时，操作日志若只落在叙事区会被面板挡住，
   //   玩家点「凿矿/存取/买卖」看不到结果。这里把每条 log 同时浮显到当前弹窗顶部，
   //   统一解决采矿、仓库、货郎、锻造等一切面板的反馈遮挡问题。
-  function fbShow(txt){
+  //   v20260916d 增强：
+  //     ① 对话文本（cls='npc'）不再镜像——聊天窗口内已显示原话，长文本镜像只添乱；
+  //     ② 多行显示（pre-wrap），不再单行截断成「只看到开头」；
+  //     ③ 时长按文本长度自适应（短反馈 2.6s，长反馈最长 6s）；
+  //     ④ 密集反馈（上一条还很短）拼接显示，避免连续操作只看得见最后一条。
+  function fbShow(txt, cls){
     if(!$modal || $modal.classList.contains('hidden')) return;
+    if(cls==='npc' || cls==='talk') return;
     if(!$card) return;
     var fb=document.getElementById('modal-fb');
     if(!fb){ injectModalFb(); fb=document.getElementById('modal-fb'); }
     if(!fb) return;
-    fb.textContent=String(txt==null?'':txt);
+    var s=String(txt==null?'':txt);
+    var prev=fb.textContent||'';
+    if(window.__fbTimer && prev && prev!==s && prev.length<40 && s.length<56){
+      s=prev+'　'+s;   // 上一条还在展示且很短 → 拼接，连点几下也能看到前因后果
+    }
+    fb.textContent=s;
     fb.classList.add('show');
     if(window.__fbTimer) clearTimeout(window.__fbTimer);
-    window.__fbTimer=setTimeout(function(){ fb.classList.remove('show'); }, 2800);
+    window.__fbTimer=setTimeout(function(){ fb.classList.remove('show'); window.__fbTimer=null; },
+      Math.min(6000, Math.max(2600, 1400+String(s).length*70)));
   }
   function injectModalFb(){
     var holder=$card ? ($card.parentNode || $card) : null;
@@ -962,7 +974,7 @@
   }
   function log(text, cls, name, done){
     if(!$narr){ return; }
-    fbShow(text);
+    fbShow(text, cls);
     var parts=splitSpeech(text);
     if(parts.length>1){
       for(var i=0;i<parts.length-1;i++) logRaw(parts[i], cls, name, null);
@@ -7008,7 +7020,20 @@
     var c=document.getElementById('m-close'); if(c)c.onclick=closeModal;
     initStrategicMapInGame({pickSpawn:true});
   }
-  function toast(msg, ms){ if(settings.sound) tick(480); $toast.textContent=msg;$toast.classList.add('show');setTimeout(function(){$toast.classList.remove('show');},ms||1400); }
+  // 全局小提示（v20260916d 强化，v20260916d 修正）：多行 + 时长随文本长度自适应
+  //   旧版单行 1.4s 固定：长提示只看得见开头。
+  //   修正说明：初版加了「队列」，但队列靠嵌套 setTimeout 驱动——一旦某个定时器被
+  //   环境丢弃（后台/自动化标签页节流），队列会整体卡死、后续提示永不显示。改为
+  //   「重置式」：每次调用直接显示最新一条并刷新计时，无队列、无链式定时器，永不死锁。
+  var _toastTimer=null;
+  function toast(msg, ms, cls){
+    if(settings.sound) tick(480);
+    $toast.textContent=String(msg==null?'':msg);
+    $toast.className='show '+(cls||'');
+    if(_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer=setTimeout(function(){ $toast.classList.remove('show'); _toastTimer=null; },
+      ms||Math.min(4200, Math.max(1700, 900+String(msg).length*80)));
+  }
 
   // ── 全局桥接（v20260825b）：shared/data/build.js 等数据文件中的交互回调在全局作用域
   //    解析 openModal/log/exert/packFind…，需将游戏内部函数暴露到 window，否则建筑内面板（如铁砧打造）打开报 ReferenceError

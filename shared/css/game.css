@@ -593,11 +593,15 @@
   .levelup-pop .lu-lv{ font-size:42px; font-weight:700; color:var(--seal); margin:2px 0 4px; text-shadow:0 2px 0 rgba(0,0,0,.25); }
   .levelup-pop .lu-sub{ font-size:14px; color:var(--ink); margin-bottom:8px; line-height:1.6; }
   .levelup-pop .lu-btns{ display:flex; gap:10px; margin-top:8px; }
-  .levelup-pop .lu-btns .btn{ flex:1; }
-  .levelup-pop .lu-go{ background:linear-gradient(180deg,#caa14e,#a9842f); color:#1c140a; border-color:#8a6a23; font-weight:600; }
-  .levelup-pop .lu-go:hover{ filter:brightness(1.06); }
-  .levelup-pop .lu-skip{ background:rgba(120,120,120,.16); border:1px solid rgba(120,120,120,.5); color:var(--ink-soft); }
-  .levelup-pop .lu-skip:hover{ background:rgba(120,120,120,.28); }
+  /* v20260916c：按钮样式与全游戏主按钮统一（深褐金底·米色字·描边圆角）——旧版「去加点」是金亮底深字、
+     与其余确认钮反差过大，「忽略」灰底也过浅，一眼看去不像同族按钮。 */
+  .levelup-pop .lu-btns .btn{ flex:1; padding:8px 4px; font-size:13px; font-family:"STKaiti","KaiTi",serif; letter-spacing:2px;
+    background:linear-gradient(180deg,#5a4a2e,#3a2e1c); color:#f0e2c0; border:1px solid #8a6f3e; border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,235,190,.14); cursor:pointer; transition:.15s; }
+  .levelup-pop .lu-btns .btn:hover{ background:linear-gradient(180deg,#6e5a36,#4a3a22); border-color:#a8842f; }
+  .levelup-pop .lu-btns .btn:active{ transform:translateY(1px); }
+  .levelup-pop .lu-btns .lu-skip{ background:rgba(90,74,46,.45); border-color:#6a5530; color:#e8d9b8; }
+  .levelup-pop .lu-btns .lu-skip:hover{ background:rgba(110,90,54,.65); border-color:#a8842f; }
   @keyframes fade{from{opacity:0}to{opacity:1}}
   /* ===== 时辰钟表弹窗 ===== */
   .clk-dial{position:relative;width:min(70vw,248px);aspect-ratio:1/1;margin:12px auto 6px;border-radius:50%;
@@ -930,8 +934,9 @@
   .card .dev-input{padding:8px 10px;font-size:13px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;width:100px;}
 
   #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
-    background:rgba(44,38,32,.9);color:#f4eee2;padding:9px 18px;border-radius:22px;font-size:13px;
-    opacity:0;pointer-events:none;transition:.3s;z-index:200;}
+    background:rgba(44,38,32,.92);color:#f4eee2;padding:10px 20px;border-radius:10px;font-size:13px;
+    line-height:1.5;max-width:86vw;box-sizing:border-box;white-space:pre-wrap;word-break:break-word;
+    border:1px solid rgba(216,180,106,.55);opacity:0;pointer-events:none;transition:.3s;z-index:200;}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   /* ===== 战斗 UI（方案A：敌我左右两张紧凑卡片） ===== */
@@ -2501,13 +2506,13 @@
 
 /* ══ 弹窗顶部反馈条（v20260915j）：操作结果浮显，避免被面板遮挡 ══ */
 #modal-card{ position:relative; }
-.modal-fb{ position:absolute; left:50%; top:8px; transform:translateX(-50%); z-index:60;
+.modal-fb{ position:absolute; left:50%; top:8px; transform:translateX(-50%); z-index:88;
   background:rgba(24,17,10,.94); border:1px solid #d8b46a; border-radius:8px; color:#ffe9b8;
-  font-size:12.5px; line-height:1.45; padding:6px 13px; max-width:88%; box-sizing:border-box;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none;
-  opacity:0; transition:opacity .22s ease; box-shadow:0 3px 12px rgba(0,0,0,.55); }
+  font-size:12.5px; line-height:1.5; padding:7px 14px; max-width:90%; box-sizing:border-box;
+  white-space:pre-wrap; word-break:break-word; max-height:76px; overflow-y:auto;
+  pointer-events:none; opacity:0; transition:opacity .22s ease; box-shadow:0 3px 12px rgba(0,0,0,.55); }
 .modal-fb.show{ opacity:1; }
-@media (max-width:480px){ .modal-fb{ font-size:12px; top:6px; max-width:90%; } }
+@media (max-width:480px){ .modal-fb{ font-size:12px; top:6px; max-width:92%; max-height:84px; } }
 
 /* ══ 任务卡折叠式（v20260915k）：默认只露一行标题，点击展开详情 ══ */
 .obj-col{ cursor:pointer; }
