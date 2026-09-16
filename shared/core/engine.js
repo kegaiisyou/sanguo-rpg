@@ -3030,6 +3030,9 @@
       tip:'入矿洞下到第三层起，寻「古铜脉」凿取铜矿（粗石镐凿不动，先换精致石镐或青铜镐）——凑足四块回仓库，点仓吏、选「给予」，把铜矿交到他手上。' }
   ];
   // 差役牌面板（v20260915b）：木牌上钉着几片木牍，摘一片领一桩活
+  // v20260916h：木牍改「缩略 → 点击展开」——默认只露状态印与活名，一屏能多排几片；
+  //   点活名那行展开全部（一句话、指引、操作），再点收起。摘牍后刚领的那片自动展开。
+  var lastJobTaken=null;
   function jobSeal(j){
     if(jobFlag(j.key,'_done')) return '<span class="job-seal done">已了</span>';
     if(jobFlag(j.key,'_started')) return '<span class="job-seal doing">已领</span>';
@@ -3038,18 +3041,25 @@
   function jobPlankHTML(j){
     var done=jobFlag(j.key,'_done'), started=jobFlag(j.key,'_started');
     var cls=done?' done':(started?' doing':' open');
-    var h='<div class="job-plank'+cls+'">'+
-      '<div class="job-plank-head">'+jobSeal(j)+'<span class="job-name">'+j.title+'</span></div>'+
-      '<div class="job-word">'+j.word+'</div>'+
-      '<div class="job-meta">'+j.tip+'</div>';
+    var expand=(j.key===lastJobTaken)?' expand':'';
+    var act;
     if(!done && !started){
-      h+='<button class="job-take" data-job="'+j.key+'" type="button">摘 下 木 牍 · 领 活</button>';
+      act='<button class="job-take" data-job="'+j.key+'" type="button">摘 下 木 牍 · 领 活</button>';
     } else if(started && !done){
-      h+='<div class="job-doing">已摘此牍——按牌上所言去办。</div>';
+      act='<div class="job-doing">已摘此牍——按牌上所言去办。</div>';
     } else {
-      h+='<div class="job-done-line">这片木牍已翻过来扣着——了了。</div>';
+      act='<div class="job-done-line">这片木牍已翻过来扣着——了了。</div>';
     }
-    h+='</div>';
+    var h='<div class="job-plank'+cls+expand+'">'+
+      '<div class="job-plank-head job-toggle" data-job="'+j.key+'" role="button" tabindex="0">'+
+        jobSeal(j)+'<span class="job-name">'+j.title+'</span><span class="job-fold">▾</span>'+
+      '</div>'+
+      '<div class="job-body">'+
+        '<div class="job-word">'+j.word+'</div>'+
+        '<div class="job-meta">'+j.tip+'</div>'+
+        act+
+      '</div>'+
+    '</div>';
     return h;
   }
   function renderJobBoard(){
@@ -3061,6 +3071,12 @@
     return h;
   }
   function bindJobBoard(){
+    document.querySelectorAll('.job-toggle[data-job]').forEach(function(h){
+      h.onclick=function(){
+        var plank=h.parentNode;
+        plank.classList.toggle('expand');
+      };
+    });
     document.querySelectorAll('.job-take[data-job]').forEach(function(b){
       b.onclick=function(){ jobTake(b.getAttribute('data-job')); };
     });
@@ -3073,6 +3089,7 @@
     if(!state.flags.task) state.flags.task={};
     state.flags.task[key+'_started']=true;
     acceptQuest(j.quest);
+    lastJobTaken=key;                          // v20260916h：重渲染后刚领的木牍默认展开
     log(j.take,'sys');
     log('〔差役〕'+j.tip,'sys');
     save(state); buildActions(curRoom());

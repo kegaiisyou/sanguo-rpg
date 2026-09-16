@@ -1,9 +1,9 @@
-// 乱世烽火 · 全局常量（共享数据层）
+﻿// 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260916h',
+    VERSION: '20260916i',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -94,3 +94,4 @@
     xiaopei:  { later: '小沛', era: '东汉末', note: '小沛即沛县之别称（以别于沛国治相县），汉末已有此呼' }
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+

@@ -2469,7 +2469,14 @@
   .job-plank::before{content:"⬤";position:absolute;top:6px;right:9px;font-size:7px;color:#3a2512;
     text-shadow:0 1px 0 rgba(255,220,170,.35);line-height:1;}
   .job-plank.done{opacity:.62;filter:grayscale(.55);}
-  .job-plank-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+  .job-plank-head{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+  .job-plank-head:hover .job-name{color:#f0d9a8;}
+  .job-fold{margin-left:auto;font-size:11px;color:#c9ab7e;transition:transform .2s;}
+  .job-plank.expand .job-fold{transform:rotate(180deg);}
+  /* v20260916h：木牍缩略→点击展开——默认只露状态印与活名，点开才见全貌 */
+  .job-body{display:none;}
+  .job-plank.expand .job-body{display:block;}
+  .job-plank.expand .job-plank-head{margin-bottom:5px;}
   .job-seal{font-family:"STKaiti","KaiTi",serif;font-size:11px;padding:1px 8px;border-radius:3px;
     color:#fff;letter-spacing:2px;flex:none;box-shadow:0 1px 3px rgba(0,0,0,.3);}
   .job-seal.open{background:linear-gradient(160deg,#c2503a,#8f2f22);}
