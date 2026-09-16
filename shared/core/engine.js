@@ -1222,18 +1222,35 @@
     if(!cp || cp.cid!=='kuyilao' || cp.x!==1 || cp.y!==0) return false;
     return CELL_LOCK_HOURS.indexOf(hourNow())>=0;
   }
-  // 营中「一日」结算：跨子夜时清算点卯 —— 前一日没回牢销名即记一次旷役，次日口粮按罚例加倍
-  // v20260916e：应卯/销名自动（到点+到场），但「逾时不销名」的旷役照旧——
-  //   玩家若戌时前没回牢房，跨日仍记旷役（这正是「规定时间到指定区域」的意义）。
+  // 牢头此刻落脚格（v20260916g）：作息表在 data/npc_cards.js 的 routine（10,11,0,1,2 守牢门口，余时中军场院）。
+  //   应卯/销名都要「牢头在场」才办——营规是他掌着的，他不在，谁给你落销名的字？
+  function wardenCell(){
+    var rr=(LF.NPC_ROUTINES_CITY||{}).kuyilao||{};
+    var r=rr.laotou||{};
+    var h=hourNow();
+    return (r[h]!=null)? r[h] : r._home;
+  }
+  function wardenHere(xy){ return wardenCell()===xy; }
+  // 营中「一日」结算：跨子夜时清算点卯 —— 前一日没回牢销名即记一次旷役。
+  // v20260916g：旷役改即时罚（跨日即扣口粮与好感），不再「次日口粮按罚例加倍」那种延迟账——
+  //   玩家当场看到后果，也免得记两笔（查房一笔、跨日一笔）来回勾销。
   function onbDayTick(days){
     var o=onbF(); if(!o || !o.curfewSet || o.done) return;
     for(var i=0;i<days;i++){
       // v20260916e：查房（curfew_patrol）已当场记过旷役的（lateDone=true），跨日不重复记——
       //   否则一次晚归会记两笔旷役（查房一笔 + 跨日一笔）。
-      if(!o.checkInDone && !o.lateDone) o.missCount=(o.missCount||0)+1;
+      if(!o.checkInDone && !o.lateDone){
+        o.missCount=(o.missCount||0)+1;
+        // v20260916g：旷役即时罚——扣一份口粮（饱食-8）+ 牢头好感-1；没粮可扣就罚好感
+        var hadFood=(state.food||0)>0;
+        state.food=Math.max(0,(state.food||0)-8);
+        o.favor=(o.favor||0)-1;
+        log('〔旷役〕'+hourLabel()+'结算：昨日未回牢销名，记旷役一次——'+(hadFood?'口粮被扣了一份（饱食-8）· ':'口粮本已见底，记你一笔「饿着也是活该」· ')+'牢头好感-1。','warn');
+      }
       o.checkInDone=false;   // 新的一日重新点卯（戌前销名）
       o.rollDone=false;      // 新的一日重新应卯（卯辰点名）
       o.rollMissWarned=false; // v20260916f：「未应卯」提示新的一日重新计
+      o.checkWarned=false;    // v20260916g：「牢头不在」提示新的一日重新计
       o.lateDone=false;      // 新的一日重开晚归判定
       o.messToday=0;         // 当日换饭次数重置
     }
@@ -1261,9 +1278,12 @@
     save(state); renderStatus();
     return true;
   }
-  // 自动营规（v20260916e→f）：保留「规定时间 + 指定区域」的玩法，省去手动按按钮——
-  //   卯/辰时辰踏入中军场院(1,1)即自动应卯；戌时前（0..9）踏入牢房格(1,0)且当日已应卯（rollDone）才自动销名。
+  // 自动营规（v20260916e→g）：保留「规定时间 + 指定区域」的玩法，省去手动按按钮——
+  //   卯/辰时辰踏入中军场院(1,1)且牢头在场即自动应卯；
+  //   牢头戌时起回牢门口守夜（10..2 在牢房格(1,0)），此刻踏入牢房格且当日已应卯（rollDone）才自动销名。
   //   v20260916f 加前置：先应卯、后销名——没应卯，牢头不给落销名的字（提示后仍可去补应卯）。
+  //   v20260916g 加在场：销名须「牢头在牢门口」（他戌时起才回牢守夜，白日在中军督工，不在就不销名，
+  //     只提示一次）；应卯同理须牢头在中军场院（卯辰他本就在，加了判定更稳）。
   //   按钮已从城格动作移除（city.js），玩家「到场即办」，无需再点。
   //   只服务「营规未脱」的玩家（脱籍后不再受约束）。
   //   触发点：① advanceTime 时辰推进后；② move/goCell 落格后（见 move 内调用）。
@@ -1272,18 +1292,22 @@
     var o=onbF(); if(!o) return;
     var cp=state.flags.cityPos;
     if(!cp || cp.cid!=='kuyilao') return;          // 人在营中网格才谈得上应卯/销名
-    if(isRollHour() && cp.x===1 && cp.y===1 && !o.rollDone){
-      doRollCall(true);                             // 卯/辰 + 中军场院：自动应名记「勤」
+    if(isRollHour() && cp.x===1 && cp.y===1 && !o.rollDone && wardenHere('1,1')){
+      doRollCall(true);                             // 卯/辰 + 中军场院 + 牢头在场：自动应名记「勤」
     }
-    if(state.time<=9 && cp.x===1 && cp.y===0 && !o.checkInDone){
-      if(o.rollDone){
-        o.checkInDone=true; o.favor=(o.favor||0)+1; // 戌时前 + 牢房格 + 已应卯：自动销名记勤
+    if(cp.x===1 && cp.y===0 && !o.checkInDone){
+      if(o.rollDone && wardenHere('1,0')){
+        o.checkInDone=true; o.favor=(o.favor||0)+1; // 牢房格 + 已应卯 + 牢头在牢门口：自动销名记勤
         log('〔点卯·自动〕你回到牢房，牢头翻册点头：「'+hourLabel()+'，算你今日勤勉。」（营中好感+1）','good');
         save(state); renderStatus();
-      } else if(!o.rollMissWarned){
+      } else if(!o.rollDone && !o.rollMissWarned){
         o.rollMissWarned=true;                       // 当日只提示一次，免得每次踏进牢房都刷
         save(state);
         log('〔点卯·未应〕你踏进牢房，牢头翻册皱眉：「今日卯时不见你来应名，这销名的字，我不能给你落。」（先去中军场院应卯，再回来销名）','warn');
+      } else if(o.rollDone && !wardenHere('1,0') && !o.checkWarned){
+        o.checkWarned=true;                          // v20260916g：牢头白日不在牢门口，销名等他戌时回牢再办
+        save(state);
+        log('〔点卯·销名〕你回了牢房，可牢头白日在中军场院督工，此刻不在此处——销名的字，须等他戌时回牢门口再落。','sys');
       }
     }
   }
@@ -2692,8 +2716,8 @@
           {label:'添水', icon:'🪣', fn:function(){ troughFillBy('kuyilao|1,0'); }},
           {label:'装水入袋', icon:'💧', fn:function(){ troughDrawToBag('kuyilao|1,0'); }}
         ]},
-        { icon:'🥁', label:'值更鼓', acts:[
-          {label:'击鼓', icon:'🥁', fn:function(){ drumStrikeBy('kuyilao|1,0|drum'); }}
+        { icon:'⏳', label:'铜壶漏刻', acts:[
+          {label:'观漏', icon:'⏳', fn:function(){ loukeLook(); }}
         ]}
       ]
     },
@@ -2816,13 +2840,11 @@
     }
     save(state); renderStatus();
   }
-  // 值更鼓：击鼓报更 + 提示距换岗；频繁击鼓惊动牢头（轻风险，不卡死）
-  function drumStrikeBy(key){
+  // 铜壶漏刻（v20260916g）：牢房里那面「值更鼓」换成漏刻——营中钟点从「靠鼓敲」改为「靠漏走」，
+  //   与中军帐刁斗不再撞车（一个是滴答观时、一个是槌击报更）。观漏无声无险，只答时辰与换岗。
+  function loukeLook(){
     var sh=SHICHEN[state.time%12];
-    var f=fxGet(key);
-    f.strikes=(f.strikes||0)+1;
-    log('〔咚——〕你执槌击更鼓，声震牢廊。此刻乃「'+sh+'」。营中换岗向在戌时前后，鼓声太频，牢头必生疑。','sys');
-    if(f.strikes>3){ toast('鼓声连响，牢头在廊那头喝道：「作死！再敲仔细你狗腿！」'); }
+    log('〔滴答〕你凑近铜壶漏刻，铜壶承水，漏箭浮沉，刻度正指「'+sh+'」。营中换岗向在戌时前后，漏尽更敲。','sys');
     save(state);
   }
   // 玩家放置的水槽（PLACE_ACTIONS）：水量存于放置条目 p.water
@@ -2890,15 +2912,15 @@
     // v20260914g：工分与木片的来路去处，此前全营没有一处写明（玩家挣到木片，却不知往哪使、该交给谁）。
     //   记工册正是管这件事的地方，故让它把这条链答全：工分 → 木片 → 伙房换饭 → 交到人手上。
     log('〔记工册〕木片是营里的钱：干活记工，满 '+per+' 工发一枚，拿它往营西伙房换饭；换来的干粮须交到人手上（点那人，选「给予」），空手说一句不算数。','sys');
-    if(miss>0) log('〔记工册〕另有旷役 '+miss+' 次未补——口粮按罚例加倍，销名逾时还要吃鞭。','warn');
+    if(miss>0) log('〔记工册〕名下另有旷役 '+miss+' 次——每记一次，当日便扣一份口粮、惹牢头一顿脸色。','warn');
   }
-  // 刁斗：击鼓报更。中军帐的鼓是号令鼓，比牢房那面更鼓更招人（与 drumStrikeBy 对称）
+  // 刁斗：击鼓报更。中军帐的鼓是号令鼓，比牢房那口漏刻更招人（与 loukeLook 对称）
   function diaodouStrike(){
     var f=fxGet('kuyilao|1,1|dou');
     f.strikes=(f.strikes||0)+1;
     log('〔当——〕你一槌敲在刁斗上，声震全营。此刻乃「'+SHICHEN[state.time%12]+'」。','sys');
     if(laotouOnYard()) log('牢头隔着半个场院瞪过来：「敲你娘的丧钟！再敲，今夜的口粮没了。」','warn');
-    else log('夜深，鼓声荡开去，岗上戍卒探头骂了两句，又缩回去了。','sys');
+    else log('夜深，刁斗声荡开去，岗上戍卒探头骂了两句，又缩回去了。','sys');
     if(f.strikes>3) toast('刁斗连响数通，营中已四下张望——再敲必惹祸上身。');
     save(state);
   }
@@ -4669,10 +4691,11 @@
           log('〔伙房〕'+hourLabel()+'——灶火早熄，锅里只剩刷锅水。大勺隔着案板摆手：「明日卯时开灶；戌时前领夜粥，过了点自己饿着。」','warn');
           break;
         }
-        var _cost = 1 + ((_o.missCount||0) > 0 ? 1 : 0);         // 旷役补役：口粮按罚例加倍
+        // v20260916g：旷役已改跨日即时罚（扣口粮+好感），此处不再有「按罚例加倍」的延迟账——换饭恒定一枚木片
+        var _cost = 1;
         var _pai = packFind('lao_pai'), _have = _pai ? (_pai.count || 1) : 0;
         if(!_have){ log('〔伙房〕你手里没有「劳字木片」——去中军场院「担石劳作」，干满三工发一枚（农田下地、仓库搬石也记工分）。','warn'); break; }
-        if(_have < _cost){ log('〔伙房〕你名下有旷役未补，口粮按罚例加倍，须 '+_cost+' 枚木片（现有 '+_have+' 枚）。','warn'); break; }
+        if(_have < _cost){ log('〔伙房〕换一份饭要 '+_cost+' 枚劳字木片（现有 '+_have+' 枚）。','warn'); break; }
         packConsume('lao_pai', _cost); afterPackChange();
         var _hot = isMessHour();
         packAdd(_hot ? 'fan' : 'xizhou', 1); afterPackChange();
@@ -4713,8 +4736,8 @@
           var _dmg = Math.min(15, Math.max(0, state.hp - 1));
           state.hp = Math.max(1, state.hp - _dmg);
           _o2.favor = (_o2.favor||0) - 1;
-          log('〔点卯〕'+hourLabel()+'——鼓声早过戌时。牢头阴沉着脸点你的名：「迟了。」','warn');
-          log('你挨了三鞭（气血-'+_dmg+'），牢头记你一次晚归（营中好感-1）。明日口粮按罚例加倍。','combat');
+          log('〔点卯〕'+hourLabel()+'——牢头阴沉着脸点你的名：「迟了。」','warn');
+          log('你挨了三鞭（气血-'+_dmg+'），牢头记你一次晚归（营中好感-1）。','combat');
           renderStatus(); save(state);
         } else {
           _o2.checkInDone = true; _o2.favor = (_o2.favor||0) + 1;

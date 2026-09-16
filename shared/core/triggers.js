@@ -49,7 +49,11 @@ window.LF = window.LF || {};
       if (c.room && c.room !== state.room) return false;
       if (c.roomIn && c.roomIn.indexOf(state.room) < 0) return false;
       if (c.notRoom && c.notRoom.indexOf(state.room) >= 0) return false;
-      if (c.notFlag && getPath(state, c.notFlag)) return false;
+      // v20260916g：notFlag 支持数组（多个「不得为真」的旗标），用于「已销名不再罚晚归」这类双条件
+      if (c.notFlag) {
+        var _nf = c.notFlag instanceof Array ? c.notFlag : [c.notFlag];
+        for (var _ni = 0; _ni < _nf.length; _ni++) { if (getPath(state, _nf[_ni])) return false; }
+      }
       if (c.hasNpc) { var np = (G.ROOMS[state.room] && G.ROOMS[state.room].npcs) || []; if (np.indexOf(c.hasNpc) < 0) return false; }
       if (c.npcFavor) { var f = (state.npcFavor && state.npcFavor[c.npcFavor.key]) || 0; if (c.npcFavor.min != null && f < c.npcFavor.min) return false; if (c.npcFavor.max != null && f > c.npcFavor.max) return false; }
       if (c.player) { for (var k in c.player) { var nd = c.player[k], v = getPath(state, k) || 0; if (nd.min != null && v < nd.min) return false; if (nd.max != null && v > nd.max) return false; } }

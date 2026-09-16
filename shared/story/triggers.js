@@ -243,15 +243,15 @@
       { t: 'reveal', layer: 'lower' },
       { t: 'reveal', layer: 'actions' },
       { t: 'npcTalk', npc: 'laotou',
-        prompt: '廊口杵着个歪戴幞头的牢头，手里转着一串铁钥匙，眯眼打量你这身囚服，啧了一声：「别在廊下晃——去前头劳役场干活。瞧见那面更鼓没有？营里没有漏刻，全营的钟点都靠它敲。戌时前，你必须回这牢门销名。」',
+        prompt: '廊口杵着个歪戴幞头的牢头，手里转着一串铁钥匙，眯眼打量你这身囚服，啧了一声：「别在廊下晃——去前头劳役场干活。瞧见那口铜壶漏刻没有？营里没有日晷，黑天白日全凭它滴答报辰。戌时前回牢过夜——夜里牢头在牢门口，给你落销名的字。」',
         asks: [
-          { label: '〔看那更鼓〕这鼓，怎么讲时辰？', then: [
+          { label: '〔看那漏刻〕这漏，怎么讲时辰？', then: [
             // 统一拨回清晨卯时（v20260911i）：在这之前牢中时辰是冻结的（clockFlowing 为假），
-            // 玩家可能已在牢里反复打盹；就在「介绍时辰」这一槌上把更鼓校准——于是「踏出牢门」
+            // 玩家可能已在牢里反复打盹；就在「介绍时辰」这一槌上把漏刻校准——于是「踏出牢门」
             // 永远是白天，绝不会出现「一出门就已经入夜」的荒谬。
             { t: 'setTime', hour: 3, clock: 360 },
-            { t: 'log', cls: 'env', text: '（更鼓「咚」地一槌落到实处，廊外天光正好——卯时刚过，日头才爬上营墙。）' },
-            { t: 'log', cls: 'npc', text: '牢头嗤笑：「一昼夜十二时辰，鼓声一回一换：卯时开牢放风，戌时鸣鼓闭门。过了戌时你还不回，按营规吃三鞭，门一落锁，你便蹲到明日。」' },
+            { t: 'log', cls: 'env', text: '（漏刻滴答走水，漏箭浮到卯位，廊外天光正好——卯时刚过，日头才爬上营墙。）' },
+            { t: 'log', cls: 'npc', text: '牢头嗤笑：「一昼夜十二时辰，漏刻走一格换一辰：卯时开牢放风，戌时鸣鼓闭门。过了戌时你还不回，按营规吃三鞭，门一落锁，你便蹲到明日。」' },
             { t: 'reveal', layer: 'status', highlight: true },
             { t: 'reveal', layer: 'loctab' },
             { t: 'log', cls: 'order', text: '〔时间系统〕顶上那一行便是「时辰」——点名、放风、点卯、晚归，皆以它为准；点它可展开钟表，日头与天候也在其上。' },
@@ -278,12 +278,14 @@
     ]
   });
   // 3.3) 晚归·受刑（戌时后回牢：牢头好感-1、鞭打扣血，含文案+动画；离牢时重置以便每轮各罚一次）
+  //   v20260916g：销名改「牢头守夜时自动落账」（autoOnbRoutines，牢头 10..2 在牢门口）——
+  //     已销名的玩家（checkInDone）戌时后回牢属合规过夜，不再挨鞭；只有「没销上名」的晚归才受刑。
   //   注：铺垫用 log（同步 next）；勿用 narrate（见 3.2 注释）。
   TRIGGERS.push({
     id: 'laotou_late', hook: 'onEnter', room: 'camp_tz1', once: false,
-    cond: { flags: { 'flags.onb.curfewSet': true }, time: { day: false }, notFlag: 'flags.onb.lateDone' },
+    cond: { flags: { 'flags.onb.curfewSet': true }, time: { day: false }, notFlag: ['flags.onb.lateDone', 'flags.onb.checkInDone'] },
     steps: [
-      { t: 'log', cls: 'env', text: '你摸黑蹭回牢门，栅外更鼓正敲——早过了戌时。' },
+      { t: 'log', cls: 'env', text: '你摸黑蹭回牢门，栅外刁斗正敲——早过了戌时。' },
       { t: 'npcTalk', npc: 'laotou',
         prompt: '牢头脸一沉，灯笼照见你身上的囚服：「好小子，点卯的时辰早过了，还晓得回来？营规面前不讲情——三鞭，记着下回的钟点！」',
         asks: [
@@ -310,6 +312,21 @@
   TRIGGERS.push({
     id: 'yard_clear_gate', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
     steps: [ { t: 'clearGate' } ]
+  });
+
+  // 4.6) 营规两条·引导弹窗（v20260916g）：出牢廊头一回到中军场院，把「应卯/销名」的规矩当面讲清——
+  //   「卯辰到中军应名、戌时前回牢过夜、夜里牢头落销名、逾时扣口粮记旷役」——
+  //   玩家还没开始按营规过日子，先立个明白账（弹窗必须点掉，比日志醒目）。
+  TRIGGERS.push({
+    id: 'onb_rule_guide', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: true,
+    cond: { flags: { 'flags.onb.curfewSet': true } },
+    steps: [
+      { t: 'npcTalk', npc: 'laotou',
+        prompt: '牢头背着手踱到场院当中，回头瞥你一眼：「营里两条规矩，你记牢了——头一条，卯时、辰时到中军场院应名，牢头在这儿点卯，过时不候；第二条，戌时前回牢过夜，夜里牢头回牢门口守着，给你落销名的字。两条都办妥，这一日才算全须全尾；哪一条误了，扣口粮、记旷役，册子上都记着。」',
+        asks: [
+          { label: '〔记下了〕卯辰到中军应名，戌时前回牢过夜。' }
+        ] }
+    ]
   });
 
   // 5) 囚室·默叔示意暗号（逃逸前置：在囚室对上暗号，再赴塌墙根决断）
