@@ -626,7 +626,10 @@
         then: [
           { t: 'setFlag', path: 'flags.task.stone_done', value: true },
           { t: 'completeQuest', id: 'stone' },
-          { t: 'log', cls: 'npc', text: '〔仓吏〕「五块石料齐了！好汉子，做事利落。这腰包你拿去，系在腰上，往后装东西也方便些。」' },
+          // v20260916f：同 farm——交差回报改对话窗，结算 log 在对话关掉后才出，对话不会被顶掉
+          { t: 'npcTalk', npc: 'storeman_kuyilao',
+            prompt: '五块石料齐了！好汉子，做事利落。这腰包你拿去，系在腰上，往后装东西也方便些。',
+            asks: [ { label: '〔收下〕多谢仓吏。' } ] },
           { t: 'grant', items: [ { id: 'yaobao', name: '便携腰包', icon: '👝', cat: '装备', count: 1 } ] },
           { t: 'exp', amount: 30 },
           { t: 'log', cls: 'good', text: '〔任务完成·采石充仓〕获得 便携腰包（行囊+4）· 修为 +30' }
@@ -660,7 +663,11 @@
         then: [
           { t: 'setFlag', path: 'flags.task.farm_done', value: true },
           { t: 'completeQuest', id: 'camp_farm' },
-          { t: 'log', cls: 'npc', text: '〔鲁大〕菜下了锅，热气腾起来。他舀半瓢稠的递过来：「孙老那块地，果然没白翻。往后菜多了，只管送来。」' },
+          // v20260916f：交菜的回报改成对话窗（npcTalk）——旧版是 log，结算一刷屏，
+          //   鲁大的话就被顶出视野，玩家总觉得「对话被跳过」。弹窗必须点掉，对话不会再错过。
+          { t: 'npcTalk', npc: 'lu_da',
+            prompt: '菜下了锅，热气腾起来。他舀半瓢稠的递过来：「孙老那块地，果然没白翻。往后菜多了，只管送来。」',
+            asks: [ { label: '〔应下〕好，往后菜熟了便送来。' } ] },
           { t: 'grant', items: [ { id: 'fan', name: '干粮', icon: '🍙', cat: '食饵', count: 1 } ] },
           { t: 'favor', npc: 'sun_lao', amount: 1 },
           { t: 'exp', amount: 25 },
@@ -780,7 +787,9 @@
     { key: 'farm', npc: 'sun_lao', to: 'lu_da', quest: 'camp_farm', title: '开垦薄田', board: true,
       prog: '孙老拄着锄把，眯眼瞅你：「地翻透了没有？翻透了就掐两捧菜，捧去伙房给鲁大——是交到他手上，不是跟他说一声。」',
       progTo: '鲁大瞥了眼你怀里：「菜呢？掐了就递过来——点我，选「给予」，把菜择出来给我。空着手说干了活，不算数。」',
-      after: '鲁大在灶前忙活，冲你扬了扬勺：「孙老那块地，往后就劳你多照看了。」' }
+      // v20260916f：after 挂在派活人（孙老）的 onTalk 上 —— 旧文案写的是收差人鲁大的话，
+      //   于是「送完菜去找孙老聊天」弹出的是鲁大台词（角色错位）。改为孙老自己的了结话。
+      after: '孙老拄着锄把，看着你直点头：「菜送到了鲁大手上，老朽都听说了——那块地往后归你照看，收成自己留着。」' }
   ];
   LABOR_QUESTS.forEach(function (q) {
     var K = 'flags.task.' + q.key;

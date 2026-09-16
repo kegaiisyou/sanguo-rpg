@@ -1214,6 +1214,14 @@
   function onbF(){ return (state.flags && state.flags.onb) || null; }
   // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
   function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
+  // 牢房落锁（v20260916f）：戌亥子丑寅卯（约晚8点至次日早6点）牢门上闩——
+  //   人在囚室格(1,0)便出不得门，须等卯时过后（辰时起）开锁。
+  var CELL_LOCK_HOURS=[10,11,0,1,2,3];
+  function cellLockedHere(){
+    var cp=state.flags && state.flags.cityPos;
+    if(!cp || cp.cid!=='kuyilao' || cp.x!==1 || cp.y!==0) return false;
+    return CELL_LOCK_HOURS.indexOf(hourNow())>=0;
+  }
   // 营中「一日」结算：跨子夜时清算点卯 —— 前一日没回牢销名即记一次旷役，次日口粮按罚例加倍
   // v20260916e：应卯/销名自动（到点+到场），但「逾时不销名」的旷役照旧——
   //   玩家若戌时前没回牢房，跨日仍记旷役（这正是「规定时间到指定区域」的意义）。
@@ -1225,6 +1233,7 @@
       if(!o.checkInDone && !o.lateDone) o.missCount=(o.missCount||0)+1;
       o.checkInDone=false;   // 新的一日重新点卯（戌前销名）
       o.rollDone=false;      // 新的一日重新应卯（卯辰点名）
+      o.rollMissWarned=false; // v20260916f：「未应卯」提示新的一日重新计
       o.lateDone=false;      // 新的一日重开晚归判定
       o.messToday=0;         // 当日换饭次数重置
     }
@@ -1252,8 +1261,9 @@
     save(state); renderStatus();
     return true;
   }
-  // 自动营规（v20260916e）：保留「规定时间 + 指定区域」的玩法，省去手动按按钮——
-  //   卯/辰时辰踏入中军场院(1,1)即自动应卯；戌时前（0..9）踏入牢房格(1,0)即自动销名。
+  // 自动营规（v20260916e→f）：保留「规定时间 + 指定区域」的玩法，省去手动按按钮——
+  //   卯/辰时辰踏入中军场院(1,1)即自动应卯；戌时前（0..9）踏入牢房格(1,0)且当日已应卯（rollDone）才自动销名。
+  //   v20260916f 加前置：先应卯、后销名——没应卯，牢头不给落销名的字（提示后仍可去补应卯）。
   //   按钮已从城格动作移除（city.js），玩家「到场即办」，无需再点。
   //   只服务「营规未脱」的玩家（脱籍后不再受约束）。
   //   触发点：① advanceTime 时辰推进后；② move/goCell 落格后（见 move 内调用）。
@@ -1266,9 +1276,15 @@
       doRollCall(true);                             // 卯/辰 + 中军场院：自动应名记「勤」
     }
     if(state.time<=9 && cp.x===1 && cp.y===0 && !o.checkInDone){
-      o.checkInDone=true; o.favor=(o.favor||0)+1;   // 戌时前 + 牢房格：自动销名记勤
-      log('〔点卯·自动〕你回到牢房，牢头翻册点头：「'+hourLabel()+'，算你今日勤勉。」（营中好感+1）','good');
-      save(state); renderStatus();
+      if(o.rollDone){
+        o.checkInDone=true; o.favor=(o.favor||0)+1; // 戌时前 + 牢房格 + 已应卯：自动销名记勤
+        log('〔点卯·自动〕你回到牢房，牢头翻册点头：「'+hourLabel()+'，算你今日勤勉。」（营中好感+1）','good');
+        save(state); renderStatus();
+      } else if(!o.rollMissWarned){
+        o.rollMissWarned=true;                       // 当日只提示一次，免得每次踏进牢房都刷
+        save(state);
+        log('〔点卯·未应〕你踏进牢房，牢头翻册皱眉：「今日卯时不见你来应名，这销名的字，我不能给你落。」（先去中军场院应卯，再回来销名）','warn');
+      }
     }
   }
   // 进食记账（v20260915d）：「灶上一口热饭」按「真的吃了什么」计数 —— inventory.js 使用物品时回调此钩子。
@@ -3996,6 +4012,12 @@
       if(dm){
         var _m=genCityGrid(state.room);
         if(!_cp||!_m){ toast('此处无路可去。'); return; }
+        // v20260916f：牢房落锁——戌亥子丑寅卯（约晚8点至早6点）牢门上闩，囚室出不得。
+        //   守的是「戌时前回牢」的规矩：回得早，白天照常进出；拖到锁门，就只能等卯时开锁。
+        if(cellLockedHere()){
+          toast('〔牢门落锁〕'+hourLabel()+'，牢门上着粗铁闩，从里头推不动——要到卯时方开。今夜你出不得这囚室。');
+          return;
+        }
         var nx=_cp.x+dm[0], ny=_cp.y+dm[1];
         if(nx>=0&&nx<_m.size&&ny>=0&&ny<_m.size && canEnterCell(state.room,nx,ny)){
           goCell(state.room, nx, ny);
