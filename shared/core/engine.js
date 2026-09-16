@@ -1215,14 +1215,60 @@
   // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
   function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
   // 营中「一日」结算：跨子夜时清算点卯 —— 前一日没回牢销名即记一次旷役，次日口粮按罚例加倍
+  // v20260916e：应卯/销名自动（到点+到场），但「逾时不销名」的旷役照旧——
+  //   玩家若戌时前没回牢房，跨日仍记旷役（这正是「规定时间到指定区域」的意义）。
   function onbDayTick(days){
     var o=onbF(); if(!o || !o.curfewSet || o.done) return;
     for(var i=0;i<days;i++){
-      if(!o.checkInDone) o.missCount=(o.missCount||0)+1;
+      // v20260916e：查房（curfew_patrol）已当场记过旷役的（lateDone=true），跨日不重复记——
+      //   否则一次晚归会记两笔旷役（查房一笔 + 跨日一笔）。
+      if(!o.checkInDone && !o.lateDone) o.missCount=(o.missCount||0)+1;
       o.checkInDone=false;   // 新的一日重新点卯（戌前销名）
       o.rollDone=false;      // 新的一日重新应卯（卯辰点名）
       o.lateDone=false;      // 新的一日重开晚归判定
       o.messToday=0;         // 当日换饭次数重置
+    }
+  }
+  // 应卯点名本体（v20260916e 抽为可复用）：手动（handleAction）与自动（时辰推移）共用一套账。
+  //   auto=true 时文案带「自动」标记——让玩家知道是营规替他应了名，而非凭空多事。
+  function doRollCall(auto){
+    var _rr = onbF();
+    if(!_rr || !_rr.curfewSet || _rr.done) return false;
+    if(!isRollHour()) return false;
+    if(_rr.rollDone) return false;
+    _rr.rollDone=true; _rr.rollDays=(_rr.rollDays||0)+1; _rr.favor=(_rr.favor||0)+1;
+    var _rc=addFlagNum('flags.task.roll_cnt', 1);
+    addXp(5);
+    log((auto?'〔点卯·自动〕':'〔点卯〕')+hourLabel()+'，校尉展册唱名，你应了一声。册上记你一笔「勤」（修为+5 · 营中好感+1）。','good');
+    if(_rc>=3 && !(state.flags.task && state.flags.task.roll_done)){
+      state.flags.task=state.flags.task||{}; state.flags.task.roll_done=true;
+      if((_rr.missCount||0)>0){ _rr.missCount=_rr.missCount-1; log((auto?'〔点卯·自动〕':'〔点卯〕')+'牢头翻着册子哼了一声：「连应三日，记你一功——前头那笔旷役，勾了。」','good'); }
+      packAdd('fan',2); afterPackChange(); addXp(25);
+      log((auto?'〔点卯·自动〕':'〔点卯〕')+'「勤」字记满三笔，大勺多匀了你两张干粮。（干粮×2 · 修为+25）','good');
+      completeQuest('roll_call');
+    } else {
+      log((auto?'〔点卯·自动〕':'〔点卯〕')+'册上「勤」字已记 '+Math.min(_rc,3)+'/3 —— 记满三笔可销一次旷役，另得干粮两张。','sys');
+    }
+    save(state); renderStatus();
+    return true;
+  }
+  // 自动营规（v20260916e）：保留「规定时间 + 指定区域」的玩法，省去手动按按钮——
+  //   卯/辰时辰踏入中军场院(1,1)即自动应卯；戌时前（0..9）踏入牢房格(1,0)即自动销名。
+  //   按钮已从城格动作移除（city.js），玩家「到场即办」，无需再点。
+  //   只服务「营规未脱」的玩家（脱籍后不再受约束）。
+  //   触发点：① advanceTime 时辰推进后；② move/goCell 落格后（见 move 内调用）。
+  function autoOnbRoutines(){
+    if(!onbBound()) return;
+    var o=onbF(); if(!o) return;
+    var cp=state.flags.cityPos;
+    if(!cp || cp.cid!=='kuyilao') return;          // 人在营中网格才谈得上应卯/销名
+    if(isRollHour() && cp.x===1 && cp.y===1 && !o.rollDone){
+      doRollCall(true);                             // 卯/辰 + 中军场院：自动应名记「勤」
+    }
+    if(state.time<=9 && cp.x===1 && cp.y===0 && !o.checkInDone){
+      o.checkInDone=true; o.favor=(o.favor||0)+1;   // 戌时前 + 牢房格：自动销名记勤
+      log('〔点卯·自动〕你回到牢房，牢头翻册点头：「'+hourLabel()+'，算你今日勤勉。」（营中好感+1）','good');
+      save(state); renderStatus();
     }
   }
   // 进食记账（v20260915d）：「灶上一口热饭」按「真的吃了什么」计数 —— inventory.js 使用物品时回调此钩子。
@@ -1389,6 +1435,7 @@
     var crossings=Math.floor(total/1440);   // 跨子夜次数 = 经过的天数
     state.time=(state.time+n)%12;
     state.clock=total%1440;                  // 每时辰 = 120 游戏分钟
+    autoOnbRoutines();                       // v20260916e：卯辰自动应卯 / 戌时自动销名（简化新手流程）
     applyTimeRoutines();                     // 时辰推移 → 驱动 NPC 作息流动（全城通用）
     if(crossings>0){
       onbDayTick(crossings);                 // 营中「一日」结算：点卯 / 旷役（v20260911h · P3）
@@ -3928,7 +3975,9 @@
     if(typeof tid==='string' && tid.indexOf('__cell__:')===0){
       var _c=tid.split(':');
       state.flags.cityPos={cid:_c[1], x:+_c[2], y:+_c[3]};
-      save(state); renderRoom(_c[1], true); return;
+      save(state); renderRoom(_c[1], true);
+      autoOnbRoutines();   // v20260916e：子房间退回城格同样触发自动应卯/销名（如从牢房内部出来即自动销名）
+      return;
     }
     if(isCityGrid(state.room)){
       var _cp=state.flags.cityPos;
@@ -3950,6 +3999,7 @@
         var nx=_cp.x+dm[0], ny=_cp.y+dm[1];
         if(nx>=0&&nx<_m.size&&ny>=0&&ny<_m.size && canEnterCell(state.room,nx,ny)){
           goCell(state.room, nx, ny);
+          autoOnbRoutines();   // v20260916e：落格即触发自动应卯/销名（走进中军自动应卯、走进牢房自动销名）
           return;
         }
       }
@@ -4617,8 +4667,7 @@
         save(state);
         break;
       }
-      // 应卯点名（v20260915d）：与「回牢销名」一开一收。销名是罚（逾时三鞭），应卯是赏——
-      //   记一笔「勤」，记满三笔可销一次旷役。于是点卯不再是「躲不掉的规矩」，而是能挣回来的东西。
+      // 应卯点名（v20260915d→v20260916e）：营规已自动应名（autoOnbRoutines），此处按钮保留为手动补应。
       case 'roll_call': {
         var _rr = onbF();
         if(!_rr || !_rr.curfewSet || _rr.done){ log('〔点卯〕册上没有你的名字，应不得卯。','sys'); break; }
@@ -4627,20 +4676,7 @@
           break;
         }
         if(_rr.rollDone){ log('〔点卯〕今日已应过卯，校尉展册摆手：「自去干活。」','sys'); break; }
-        _rr.rollDone=true; _rr.rollDays=(_rr.rollDays||0)+1; _rr.favor=(_rr.favor||0)+1;
-        var _rc=addFlagNum('flags.task.roll_cnt', 1);
-        addXp(5);
-        log('〔点卯〕'+hourLabel()+'，校尉展册唱名，你应了一声。册上记你一笔「勤」（修为+5 · 营中好感+1）。','good');
-        if(_rc>=3 && !(state.flags.task && state.flags.task.roll_done)){
-          state.flags.task=state.flags.task||{}; state.flags.task.roll_done=true;
-          if((_rr.missCount||0)>0){ _rr.missCount=_rr.missCount-1; log('〔点卯〕牢头翻着册子哼了一声：「连应三日，记你一功——前头那笔旷役，勾了。」','good'); }
-          packAdd('fan',2); afterPackChange(); addXp(25);
-          log('〔点卯〕「勤」字记满三笔，大勺多匀了你两张干粮。（干粮×2 · 修为+25）','good');
-          completeQuest('roll_call');
-        } else {
-          log('〔点卯〕册上「勤」字已记 '+Math.min(_rc,3)+'/3 —— 记满三笔可销一次旷役，另得干粮两张。','sys');
-        }
-        save(state); renderStatus();
+        doRollCall(false);
         break;
       }
       case 'check_in': {
