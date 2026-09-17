@@ -72,7 +72,7 @@
       var cur = packFind(matId);
       if (!cur || (cur.count || 0) < 1) { toast('行囊中无' + (LF_.ITEMS[matId] || {}).name + '。'); return; }
       if (S().energy <= 0) { toast('精力已尽，先休整恢复再行填充。'); return; }
-      advanceMinutes(30);
+      advanceMinutes(60);
       S().energy = Math.max(0, S().energy - 1);
       packConsume(matId, 1);
       o.matsPaid[matId] = (o.matsPaid[matId] || 0) + 1;
@@ -89,7 +89,7 @@
       for (var mk in stage.need) { if ((o.matsPaid[mk] || 0) < stage.need[mk]) { toast('「' + stage.name + '」材料未齐，无法营造。'); return; } }
       if (S().energy <= 0) { toast('精力已尽，先休整恢复再行营造。'); return; }
       if (!exert('营造')) return;
-      advanceMinutes(30);
+      advanceMinutes(60);
       S().energy = Math.max(0, S().energy - 2);
       o.laborPaid = (o.laborPaid || 0) + 1;
       var needLabor = (bp.labor || 2);

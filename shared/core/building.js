@@ -21,7 +21,7 @@
     var getCombatMode = ctx.getCombatMode;
     var getCard = ctx.getCard, getCurrentModalKind = ctx.getCurrentModalKind;
     var openModal = ctx.openModal, closeModal = ctx.closeModal;
-    // 耗时动作进度条（v20260914a）：夯土/木作/砌砖/立栅各吃一个时辰，从前点一下就直接跳结果。
+    // 耗时动作进度条（v20260917c）：夯土/木作/砌砖/立栅各吃半个时辰（60 分钟），从前点一下就直接跳结果。
     //   见引擎 busyAct —— 守卫（exert 不足即拒）留在回调之外，效果搬进回调之内。
     var busyAct = ctx.busyAct || function(l, m, d){ (d || function(){})(); };
 
@@ -277,19 +277,19 @@
         ]},
         { kind:'obj', name:'夯土基', icon:'🟫', desc:'夯实墙基的夯具。', acts:[
           { label:'夯土筑基', icon:'🔨', fn:function(){ if(!exert('夯土')) return;
-            busyAct('夯土筑基·一刻', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(30); log('你持夯具将墙基一层层砸实，城垣渐起（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
+            busyAct('夯土筑基·半个时辰', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(60); log('你持夯具将墙基一层层砸实，城垣渐起（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
         ]},
         { kind:'obj', name:'木作台', icon:'🪚', desc:'刨削木料的工作台。', acts:[
           { label:'木作立架', icon:'🪵', fn:function(){ if(!exert('木作')) return;
-            busyAct('木作立架·一刻', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(30); log('木作台上锯刨声声，梁架立起（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
+            busyAct('木作立架·半个时辰', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(60); log('木作台上锯刨声声，梁架立起（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
         ]},
         { kind:'obj', name:'砖窑', icon:'🧱', desc:'窑火正红的砖窑。', acts:[
           { label:'烧砖砌墙', icon:'🧱', fn:function(){ if(!exert('砌砖')) return;
-            busyAct('烧砖砌墙·一刻', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(30); log('砖窑出砖，垒砌围墙，城郭更见齐整（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
+            busyAct('烧砖砌墙·半个时辰', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(60); log('砖窑出砖，垒砌围墙，城郭更见齐整（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
         ]},
         { kind:'obj', name:'立栅', icon:'🪵', desc:'削木为栅的栅栏架。', acts:[
           { label:'立栅设防', icon:'🚧', fn:function(){ if(!exert('立栅')) return;
-            busyAct('立栅设防·一刻', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(30); log('削木立栅，周遭设防，外圈渐辟为民居街市（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
+            busyAct('立栅设防·半个时辰', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(60); log('削木立栅，周遭设防，外圈渐辟为民居街市（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
         ]}
       ],
     subAreas:[{key:'gz_liao',label:'入料场'}],

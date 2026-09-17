@@ -26,7 +26,7 @@
     var advanceTime = ctx.advanceTime, afterPackChange = ctx.afterPackChange, save = ctx.save;
     var log = ctx.log, toast = ctx.toast, openModal = ctx.openModal, closeModal = ctx.closeModal,
         renderRoom = ctx.renderRoom, buildActions = ctx.buildActions, exert = ctx.exert;
-    // 耗时动作进度条（v20260914a）：采集/伐木/采石/伐木场/烧砖/制作都要耗掉一个时辰，
+    // 耗时动作进度条（v20260917c）：采集/伐木/采石/烧砖/制作均耗半个时辰（60 分钟）；营内劳作/差役/农事/营造同。
     //   从前点一下就「已经做完了」，只剩一行结果。见引擎 busyAct —— 守卫留在回调之外、效果搬进回调之内。
     var busyAct = ctx.busyAct || function(l, m, d){ (d || function(){})(); };
     var upgradePick = ctx.upgradePick || function(){ };   // 镐头升级（engine 注入）
@@ -47,11 +47,11 @@
       st.gatherCount = st.gatherCount || {};
       var k = st.room + '@' + st.day;
       if((st.gatherCount[k]||0) >= 3){ toast('此处今日已采过三回，草药渐稀，明日再来。'); return; }
-      busyAct('采撷草药·一刻', 950, function(){
-        advanceMinutes(30);                                   // 采撷耗约一个时辰
+      busyAct('采撷草药·半个时辰', 950, function(){
+        advanceMinutes(60);                                   // 采撷耗半个时辰
         st.gatherCount[k] = (st.gatherCount[k]||0) + 1;
         st.gather = { room: st.room, phase: 'ready' };
-        log('你蹲身拨开草叶，俯首采撷，忙活约一个时辰——草丛间已遗下可拾之药。','env');
+        log('你蹲身拨开草叶，俯首采撷，忙活约半个时辰——草丛间已遗下可拾之药。','env');
         renderRoom(st.room);                           // 重渲后按钮变为「拾取草药」
       });
     }
@@ -77,8 +77,8 @@
       if(st.defeated){ toast('重伤未愈，先调息恢复。'); return; }
       var hasIronAxe = !!packFind('tiefu');
       var withAxe = hasIronAxe || !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
-      busyAct(withAxe ? '伐木·一刻' : '折枝·一刻', 950, function(){
-        advanceMinutes(30);
+      busyAct(withAxe ? '伐木·半个时辰' : '折枝·半个时辰', 950, function(){
+        advanceMinutes(60);
         if(hasIronAxe) consumeTool('tiefu',1);
         else if(withAxe) consumeTool('futou',1);
         if(withAxe){
@@ -164,18 +164,18 @@
       var r=null; for(var i=0;i<list.length;i++){ if(list[i].id===id){ r=list[i]; break; } }
       if(!r) return;
       for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(LF.ITEMS[r.out]||{}).name); return; } }
-      busyAct('木工劳作·一个时辰', 950, function(){
+      busyAct('木工劳作·半个时辰', 950, function(){
         r.in.forEach(function(x){ packConsume(x.id, x.n); });
         if(typeof r.out==='string' && r.out.indexOf('pick:')===0){
           var _lv = parseInt(r.out.slice(5),10)||0;
           var _pd = (LF.PICKS||[])[_lv] || {};
           upgradePick(_lv);
-          advanceMinutes(30);
+          advanceMinutes(60);
           afterPackChange();
           log('你于锻造台上锻出'+(_pd.name||'镐头')+'——锤音未落，新镐已在手。','sys');
         } else {
           packAdd(r.out, r.outN);
-          advanceMinutes(30);
+          advanceMinutes(60);
           afterPackChange();
           log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
         }
@@ -210,8 +210,8 @@
       st.buildCount = st.buildCount || {};
       var k = st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('此处今日已采过三回，崖壁渐薄，明日再来。'); return; }
-      busyAct('凿取石料·一刻', 950, function(){
-        advanceMinutes(30);
+      busyAct('凿取石料·半个时辰', 950, function(){
+        advanceMinutes(60);
         st.buildCount[k] = (st.buildCount[k]||0) + 1;
         var hasIronAxe = !!packFind('tiefu');
         if(hasIronAxe) consumeTool('tiefu',1);
@@ -233,9 +233,9 @@
       st.buildCount = st.buildCount || {};
       var k = 'wood_' + st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('今日采伐已足三回，林子需养，明日再来。'); return; }
-      busyAct('斫木取材·一刻', 950, function(){
+      busyAct('斫木取材·半个时辰', 950, function(){
         st.buildCount[k] = (st.buildCount[k]||0) + 1;
-        advanceMinutes(30);
+        advanceMinutes(60);
         var hasAxe = !!packFind('tiefu') || !!packFind('futou');
         var n = hasAxe ? 2 : 1;
         packAdd('mucai', n);
@@ -252,9 +252,9 @@
       st.buildCount = st.buildCount || {};
       var k = 'brick_' + st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('今日窑火已足三窑，歇火养窑，明日再烧。'); return; }
-      busyAct('添柴烧砖·一刻', 950, function(){
+      busyAct('添柴烧砖·半个时辰', 950, function(){
         st.buildCount[k] = (st.buildCount[k]||0) + 1;
-        advanceMinutes(30);
+        advanceMinutes(60);
         var hasFuel = !!packFind('mucai');
         var n = hasFuel ? 2 : 1;
         if(hasFuel) packConsume('mucai', 1);

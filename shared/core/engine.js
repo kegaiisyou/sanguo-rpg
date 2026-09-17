@@ -813,7 +813,7 @@
   }
   // ===== 耗时动作的「在做」呈现（v20260914a）=====
   // 采集 / 伐木 / 采石 / 烧砖 / 制作 / 担石劳作 / 操练 / 城内营造……此前点一下就「已经做完了」，
-  //   只留一行结果，玩家没有「花了一个时辰」的分量感 —— 而这条链正是前期循环里最高频的动作。
+  //   只留一行结果，玩家没有「花了半个时辰」的分量感 —— 而这条链正是前期循环里最高频的动作。
   // 这里给一个统一的短进度：亮出「在做什么」、条子走满、再落结果；期间锁住其它按钮
   //   （busyRunning → interactBusy，与「文字输出中」共用同一把锁）。
   // 与「文字演出」设置同调：设成「瞬（无动画）」时不做动画，直接执行原逻辑（尊重 settings.textSpeed）。
@@ -1423,17 +1423,17 @@
     save(state);
     return !!fired;
   }
-  // 劳役（时间闭环核心，v20260911h）：一次劳作 = 一个时辰 + 精力，并累积工分换「劳字木片」。
+  // 劳役（时间闭环核心，v20260911h）：一次劳作 = 半个时辰（60 分钟）+ 精力，并累积工分换「劳字木片」。
   //   于是营中一日有了预算：干得越多，越须按时回牢销名、去伙房换饭、寻处歇息。
   function laborTick(label){
-    // v20260914a：劳作是前期点得最多的动作（一次＝一个时辰＋4 点精力），
+    // v20260917c：劳作一次＝半个时辰（60 分钟）＋4 点精力，
     //   从前点一下就「已经干完了」。守卫照旧同步先过（不足则立刻提示、立刻返回 false），
     //   只有「干完的那一刻」被推迟到进度条走满之后 —— 用动作的时长去换那一行的分量感。
     if(!exert(label)) return false;
     if(state.energy<6){ log('〔力竭〕你两臂发颤，连锹都握不稳了——先寻处歇一歇（席地打盹 / 营门歇脚）。','warn'); return false; }
-    busyAct(String(label||'劳役')+'·一个时辰', 1000, function(){
+    busyAct(String(label||'劳役')+'·半个时辰', 1000, function(){
       state.energy=Math.max(0,state.energy-4);
-      advanceMinutes(30);
+      advanceMinutes(60);
       var o=onbF();
       if(o && o.started && !o.done){
         o.workCnt=(o.workCnt||0)+1;
@@ -3150,7 +3150,7 @@
     busyAct('倾水入缸', 900, function(){
       var pour=Math.min(WATER_PER_TRIP, bag.water);
       bag.water-=pour;
-      advanceMinutes(30);
+      advanceMinutes(60);
       var n=jobTick('water');
       log('你把水袋里 '+pour+' 份水倾进灶边那口大缸，缸沿浮起一层浮沫。（已担 '+n+' / 2 趟）','good');
       if(n>=2){
@@ -3169,7 +3169,7 @@
     if(!jobOpen('watch')){ toast('无令不得登楼——守卒的横眼正盯着你。'); return; }
     if(!exert('登楼瞭望')) return;
     busyAct('登楼瞭望', 1000, function(){
-      advanceMinutes(30);
+      advanceMinutes(60);
       var h=state.time%12, sh=SHICHEN[h];
       var d=Math.abs(h-WATCH_HOUR), near=(d<=1 || d>=11);
       state.flags=state.flags||{}; state.flags.task=state.flags.task||{};
@@ -3190,7 +3190,7 @@
     if(!jobOpen('rummage')){ toast('仓里的东西不是你能乱翻的。'); return; }
     if(!exert('翻找旧物')) return;
     busyAct('翻找旧物', 1100, function(){
-      advanceMinutes(30);
+      advanceMinutes(60);
       var id=RUMMAGE_FINDS[Math.floor(Math.random()*RUMMAGE_FINDS.length)];
       var def=(window.LF && LF.ITEMS && LF.ITEMS.DEFS) ? LF.ITEMS.DEFS[id] : null;
       if(!packAdd(id,1)) return;
@@ -3211,7 +3211,7 @@
     busyAct('煮豆粥', 1000, function(){
       if(!packAdd('douzhou',1)){ toast('行囊塞不下——腾出一格再煮。'); return; }
       packConsume('dou',1); bag.water=(bag.water||0)-2;
-      advanceMinutes(30);
+      advanceMinutes(60);
       log('你把菽豆下锅，添两瓢水，灶膛的火舌舔着锅底。不多时豆香漫开——得「豆粥」×1。（回食 22、水 6）','good');
       afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
     });
@@ -3223,7 +3223,7 @@
     busyAct('野菜入锅', 900, function(){
       if(!packAdd('xizhou',1)){ toast('行囊塞不下——腾出一格再煮。'); return; }
       packConsume('yecai',3);
-      advanceMinutes(30);
+      advanceMinutes(60);
       log('三捧野菜下了锅。鲁大舀半勺杂粮添进去：「菜太寡，得搭把米才压得住饥。」——得「稀粥」×1。','good');
       afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
     });
@@ -3280,9 +3280,9 @@
       log('他又从怀里摸出个小布袋塞给你：「菜籽。撒下去，别贪多——头一茬能活一半，就算老天赏脸。」（得「菜籽」×2）','good');
     }
     if(!exert('开垦')) return;
-    busyAct('开垦·一个时辰', 1000, function(){
+    busyAct('开垦·半个时辰', 1000, function(){
       state.energy=Math.max(0, state.energy-4);
-      advanceMinutes(30);
+      advanceMinutes(60);
       f.li=(f.li||0)+1; f.tilled=(f.tilled||0)+1;      // tilled 仅为旧存档/旧判定留的兼容计数
       log('你抡锄翻过一垄，湿土翻开，草腥气扑了满脸。（第 '+((f.unlocked||0)+1)+' 畦：'+f.li+' / '+FARM_LI+' 垄）','env');
       if(f.li>=FARM_LI){
@@ -3301,7 +3301,7 @@
     if(!exert('播种')) return;
     busyAct('播种·'+c.name, 800, function(){
       packConsume(c.seed,1);
-      advanceMinutes(30);
+      advanceMinutes(60);
       p.st='sown'; p.crop=key; p.sownT=state.time; p.wet=false;
       log('你把'+c.name+'籽撒进第 '+(i+1)+' 畦，覆土踩实。约 '+c.grow+' 个时辰可收——浇过水则早一个时辰。','good');
       afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
@@ -3319,7 +3319,7 @@
     if(!exert('挑水浇畦')) return;
     busyAct('挑水浇畦', 900, function(){
       bag.water=(bag.water||0)-3;
-      advanceMinutes(30);
+      advanceMinutes(60);
       for(var k=0;k<targets.length;k++) f.plots[targets[k]].wet=true;
       log(all?('水渠一开，三份水顺着沟渗进 '+targets.length+' 畦——这就是修渠的好处。')
              :('你把水浇进第 '+(i+1)+' 畦，湿泥颜色转深——这一茬能早熟一个时辰。'),'good');
@@ -3331,7 +3331,7 @@
     var f=farmFx();
     if(!exert('锄草')) return;
     busyAct('锄草', 800, function(){
-      advanceMinutes(30);
+      advanceMinutes(60);
       state.energy=Math.max(0, state.energy-1);
       log('你蹲在第 '+(i+1)+' 畦边拔草，草根带起的湿土凉丝丝的。（距可收约 '+plotLeft(f.plots[i])+' 个时辰）','env');
       save(state); renderStatus(); buildActions(curRoom());
@@ -3343,7 +3343,7 @@
     var c=CROPS[p.crop]||CROPS.yecai;
     if(!exert('采收')) return;
     busyAct('采收·'+c.name, 900, function(){
-      advanceMinutes(30);
+      advanceMinutes(60);
       state.energy=Math.max(0, state.energy-2);
       var n=c.yield[0]+Math.floor(Math.random()*(c.yield[1]-c.yield[0]+1));
       if(p.wet) n+=1;                                  // 浇过水的厚实
@@ -3362,7 +3362,7 @@
     var f=farmFx(), p=f.plots[i]; if(!p) return;
     if(!exert('铲除枯苗')) return;
     busyAct('铲除枯苗', 700, function(){
-      advanceMinutes(30);
+      advanceMinutes(60);
       p.st='tilled'; p.crop=null; p.wet=false;
       log('你把枯苗连根铲起，扔在田埂上晾着——土还在，重头再来。','env');
       save(state); renderStatus(); buildActions(curRoom());
@@ -3384,7 +3384,7 @@
     if(!exert('修'+u.name)) return;
     busyAct('修'+u.name, 1200, function(){
       for(var id in u.need) packConsume(id, u.need[id]);
-      advanceMinutes(30);
+      advanceMinutes(60);
       f.up[key]=true;
       log('〔农田·'+u.name+'〕'+u.desc,'good');
       afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
@@ -4620,11 +4620,11 @@
       }
       case 'drill_train': {
         if(!exert('操练武艺')) break;
-        // v20260914a：操练同样吃一个时辰，让进度条走完再落结果（守卫已同步过，返回值语义不变）
-        busyAct('演武场·操练一个时辰', 1000, function(){
+        // v20260917c：操练吃一刻（30 分钟），让进度条走完再落结果（守卫已同步过，返回值语义不变）
+        busyAct('演武场·操练一刻', 1000, function(){
           state.energy=Math.max(0,state.energy-3);
           advanceMinutes(30);   // v20260917b：操练一次 30 分钟（原 1 时辰过重）
-          log('你在演武场挥汗操练了一个时辰，拳脚渐稳（精力-3）。','sys');
+          log('你在演武场挥汗操练了一刻，拳脚渐稳（精力-3）。','sys');
           renderStatus(); save(state);
         });
         break;
@@ -5193,7 +5193,7 @@
     var cur = packFind(matId);
     if(!cur || (cur.count||0) < 1){ toast('行囊中无'+(LF.ITEMS[matId]||{}).name+'。'); return; }
     if(state.energy<=0){ toast('精力已尽，先休整恢复再行填充。'); return; }
-    advanceMinutes(30);
+    advanceMinutes(60);
     state.energy=Math.max(0,state.energy-1);
     packConsume(matId, 1);
     p.got[matId] = (p.got[matId]||0) + 1;
@@ -5212,7 +5212,7 @@
     if(!stage){ p.done = true; save(state); afterPackChange(); log('工事收尾，'+bp.doneName+'落成！','good'); buildActions(G.ROOMS[state.room]); return; }
     for(var k in stage.need){ if((p.got[k]||0) < stage.need[k]){ toast('「'+stage.name+'」材料未齐，无法搭建。'); return; } }
     if(state.energy<=0){ toast('精力已尽，先休整恢复再行搭建。'); return; }
-    advanceMinutes(30);
+    advanceMinutes(60);
     state.energy=Math.max(0,state.energy-2);
     p.stage++;
     save(state); afterPackChange();
@@ -6407,7 +6407,7 @@
     }
     h+='</div>';
     h+='<div style="text-align:center;margin:8px 0;"><button class="btn-mini" id="m-forge-pick">🔨 锻镐铸镐</button></div>';
-    h+='<p class="tip" style="text-align:center;">每凿一镐耗一个时辰与精力；采尽一轮，矿脉自行刷新。铁砂、青玉等好料，凭镐而取。</p>';
+    h+='<p class="tip" style="text-align:center;">每凿一镐耗一刻与精力；采尽一轮，矿脉自行刷新。铁砂、青玉等好料，凭镐而取。</p>';
     h+='<button class="sheet-leave" id="m-leave">收 工</button>';
     return h;
   }
