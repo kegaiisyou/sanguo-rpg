@@ -47,8 +47,8 @@
       st.gatherCount = st.gatherCount || {};
       var k = st.room + '@' + st.day;
       if((st.gatherCount[k]||0) >= 3){ toast('此处今日已采过三回，草药渐稀，明日再来。'); return; }
-      busyAct('采撷草药·一个时辰', 950, function(){
-        advanceTime(1);                                   // 采撷耗约一个时辰
+      busyAct('采撷草药·一刻', 950, function(){
+        advanceMinutes(30);                                   // 采撷耗约一个时辰
         st.gatherCount[k] = (st.gatherCount[k]||0) + 1;
         st.gather = { room: st.room, phase: 'ready' };
         log('你蹲身拨开草叶，俯首采撷，忙活约一个时辰——草丛间已遗下可拾之药。','env');
@@ -77,8 +77,8 @@
       if(st.defeated){ toast('重伤未愈，先调息恢复。'); return; }
       var hasIronAxe = !!packFind('tiefu');
       var withAxe = hasIronAxe || !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
-      busyAct(withAxe ? '伐木·一个时辰' : '折枝·一个时辰', 950, function(){
-        advanceTime(1);
+      busyAct(withAxe ? '伐木·一刻' : '折枝·一刻', 950, function(){
+        advanceMinutes(30);
         if(hasIronAxe) consumeTool('tiefu',1);
         else if(withAxe) consumeTool('futou',1);
         if(withAxe){
@@ -170,12 +170,12 @@
           var _lv = parseInt(r.out.slice(5),10)||0;
           var _pd = (LF.PICKS||[])[_lv] || {};
           upgradePick(_lv);
-          advanceTime(1);
+          advanceMinutes(30);
           afterPackChange();
           log('你于锻造台上锻出'+(_pd.name||'镐头')+'——锤音未落，新镐已在手。','sys');
         } else {
           packAdd(r.out, r.outN);
-          advanceTime(1);
+          advanceMinutes(30);
           afterPackChange();
           log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
         }
@@ -210,8 +210,8 @@
       st.buildCount = st.buildCount || {};
       var k = st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('此处今日已采过三回，崖壁渐薄，明日再来。'); return; }
-      busyAct('凿取石料·一个时辰', 950, function(){
-        advanceTime(1);
+      busyAct('凿取石料·一刻', 950, function(){
+        advanceMinutes(30);
         st.buildCount[k] = (st.buildCount[k]||0) + 1;
         var hasIronAxe = !!packFind('tiefu');
         if(hasIronAxe) consumeTool('tiefu',1);
@@ -233,9 +233,9 @@
       st.buildCount = st.buildCount || {};
       var k = 'wood_' + st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('今日采伐已足三回，林子需养，明日再来。'); return; }
-      busyAct('斫木取材·一个时辰', 950, function(){
+      busyAct('斫木取材·一刻', 950, function(){
         st.buildCount[k] = (st.buildCount[k]||0) + 1;
-        advanceTime(1);
+        advanceMinutes(30);
         var hasAxe = !!packFind('tiefu') || !!packFind('futou');
         var n = hasAxe ? 2 : 1;
         packAdd('mucai', n);
@@ -252,9 +252,9 @@
       st.buildCount = st.buildCount || {};
       var k = 'brick_' + st.room + '@' + st.day;
       if((st.buildCount[k]||0) >= 3){ toast('今日窑火已足三窑，歇火养窑，明日再烧。'); return; }
-      busyAct('添柴烧砖·一个时辰', 950, function(){
+      busyAct('添柴烧砖·一刻', 950, function(){
         st.buildCount[k] = (st.buildCount[k]||0) + 1;
-        advanceTime(1);
+        advanceMinutes(30);
         var hasFuel = !!packFind('mucai');
         var n = hasFuel ? 2 : 1;
         if(hasFuel) packConsume('mucai', 1);

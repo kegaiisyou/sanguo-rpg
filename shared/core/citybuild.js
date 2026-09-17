@@ -14,7 +14,7 @@
         nextBuildOrderId = ctx.nextBuildOrderId, buildOrderById = ctx.buildOrderById, activeBuildOrder = ctx.activeBuildOrder,
         packFind = ctx.packFind, packConsume = ctx.packConsume, afterPackChange = ctx.afterPackChange,
         toast = ctx.toast, log = ctx.log, save = ctx.save, openModal = ctx.openModal, closeModal = ctx.closeModal,
-        advanceTime = ctx.advanceTime, exert = ctx.exert, renderRoom = ctx.renderRoom, itemIconHTML = ctx.itemIconHTML,
+        advanceTime = ctx.advanceTime, advanceMinutes = ctx.advanceMinutes, exert = ctx.exert, renderRoom = ctx.renderRoom, itemIconHTML = ctx.itemIconHTML,
         npcBuildSpeed = ctx.npcBuildSpeed;
 
     // 候选蓝图：依当前格类型过滤城市类图纸（v20260826）
@@ -72,7 +72,7 @@
       var cur = packFind(matId);
       if (!cur || (cur.count || 0) < 1) { toast('行囊中无' + (LF_.ITEMS[matId] || {}).name + '。'); return; }
       if (S().energy <= 0) { toast('精力已尽，先休整恢复再行填充。'); return; }
-      advanceTime(1);
+      advanceMinutes(30);
       S().energy = Math.max(0, S().energy - 1);
       packConsume(matId, 1);
       o.matsPaid[matId] = (o.matsPaid[matId] || 0) + 1;
@@ -89,7 +89,7 @@
       for (var mk in stage.need) { if ((o.matsPaid[mk] || 0) < stage.need[mk]) { toast('「' + stage.name + '」材料未齐，无法营造。'); return; } }
       if (S().energy <= 0) { toast('精力已尽，先休整恢复再行营造。'); return; }
       if (!exert('营造')) return;
-      advanceTime(1);
+      advanceMinutes(30);
       S().energy = Math.max(0, S().energy - 2);
       o.laborPaid = (o.laborPaid || 0) + 1;
       var needLabor = (bp.labor || 2);
@@ -259,13 +259,10 @@
       var eng = (ri ? 1 : 2);   // 经城门省力
       S().energy = Math.max(0, S().energy - eng);
       S().food = Math.max(0, S().food - 1); S().drink = Math.max(0, S().drink - 1);
-      // v20260914f：城内走动「两格才算一个时辰」——
-      //   旧版相邻格一步即 advanceTime(1)：九格营里从场院去趟矿坑，来回小半日就没了，
-      //   真正要干的活反倒挤不进时辰里。改为累计走满两格才拨一个时辰（精力饮食仍按格扣），
-      //   省下的时辰留给干活、说话、赶饭点。计数器挂在 flags 上，重进游戏不至于错位。
-      var _w = (S().flags.cityWalk || 0) + 1;
-      if (_w >= 2) { _w = 0; advanceTime(1); }
-      S().flags.cityWalk = _w;
+      // v20260917b：城内移动统一 10 分钟/格（分钟制时间表）。
+      //   旧版「走满两格才拨 1 时辰」（=60 分钟/格，v20260914f）仍是整时辰跳，营里跑一趟场院→矿坑就小半日；
+      //   现在 3×3 营内对角线最多 30 分钟，跑腿有真实感又不挤占干活时辰。精力饮食仍按格扣。
+      advanceMinutes(10);
       S().flags.cityPos = { cid: cid, x: x, y: y };
       // v20260916b：城内走动不再往文本栏写「景物渐换」——
       //   一句话若不带新信息（去哪、出了什么事），就只是把渲染区已经给出的东西重复一遍：
