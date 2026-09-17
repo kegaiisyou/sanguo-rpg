@@ -1214,9 +1214,10 @@
   function onbF(){ return (state.flags && state.flags.onb) || null; }
   // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
   function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
-  // 牢房落锁（v20260916f）：戌亥子丑寅卯（约晚8点至次日早6点）牢门上闩——
-  //   人在囚室格(1,0)便出不得门，须等卯时过后（辰时起）开锁。
-  var CELL_LOCK_HOURS=[10,11,0,1,2,3];
+  // 牢房落锁（v20260917a）：戌亥子丑寅（约晚8点至次日早5点）牢门上闩，卯时开锁放风——
+  //   牢头卯时出门去中军点卯，牢门也同时敞开（与营规「卯时开牢放风」一致），
+  //   否则会出现「牢头已在中军、牢门还锁着」的矛盾；人在囚室格(1,0)在锁门时段出不得门。
+  var CELL_LOCK_HOURS=[10,11,0,1,2];
   function cellLockedHere(){
     var cp=state.flags && state.flags.cityPos;
     if(!cp || cp.cid!=='kuyilao' || cp.x!==1 || cp.y!==0) return false;
@@ -5820,7 +5821,7 @@
     onb.packTold = true;
     save(state);
     // 栅外那嗓子——牢里还关着个相面的（顺手给方向：营北牢区）
-    log('栅外忽有一把嗓子拖长了腔，像在同谁自言自语：「某周听涛，天下数一数二的相士——观天象，断命数，从不曾走过眼……」声音不高，却一字一字往你耳朵里钻。', 'env');
+    log('栅外忽有一把嗓子拖长了腔，像在同谁自言自语：「某周听涛，天下数一数二的相士——观天象，断命数，从不曾走过眼……」', 'env');
     // 下一件正事：叩牢门（牢门是 camp_tz1 的场景物件，锚点 cell_door；onbGoalStep ② 与之同源）
     log('〔牢门〕铁栅在你身后合得死紧。要出去，须先与牢头说通 —— 走过去，点「叩门」。', 'order');
     onbGoal();
