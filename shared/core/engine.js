@@ -3259,14 +3259,20 @@
     if(!p || p.st!=='sown') return p ? p.st : 'wild';
     var c=CROPS[p.crop]||CROPS.yecai;
     var need=Math.max(1, c.grow - (p.wet?1:0));        // 浇过水的早一个时辰熟
-    var past=state.time-(p.sownT||0);
+    var past=plantPast(p);
+    if(past>=c.grow*3) return 'wither';                // 该收不收，苗就荒死在畦里（须在 ripe 之前判：熟过头=荒死）
     if(past>=need) return 'ripe';
-    if(past>=c.grow*3) return 'wither';                // 该收不收，苗就荒死在畦里
     return 'growing';
   }
   function plotLeft(p){
     var c=CROPS[p.crop]||CROPS.yecai;
-    return Math.max(0, Math.max(1,c.grow-(p.wet?1:0)) - (state.time-(p.sownT||0)));
+    return Math.max(0, Math.max(1,c.grow-(p.wet?1:0)) - plantPast(p));
+  }
+  // 播种以来已过的时辰数（绝对口径：天数×12 + 时辰差，跨子夜不回绕；旧档无 sownDay 按当日 0 起）
+  function plantPast(p){
+    var sd = (p && p.sownDay!=null) ? p.sownDay : state.day;
+    var st = p && (p.sownT||0);
+    return (state.day - sd) * 12 + (state.time - st);
   }
   // 开垦：一次一垄，三垄开出一畦；头一回孙老递过锄头
   function farmTill(){
@@ -3302,7 +3308,7 @@
     busyAct('播种·'+c.name, 800, function(){
       packConsume(c.seed,1);
       advanceMinutes(60);
-      p.st='sown'; p.crop=key; p.sownT=state.time; p.wet=false;
+      p.st='sown'; p.crop=key; p.sownT=state.time; p.sownDay=state.day; p.wet=false;
       log('你把'+c.name+'籽撒进第 '+(i+1)+' 畦，覆土踩实。约 '+c.grow+' 个时辰可收——浇过水则早一个时辰。','good');
       afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
     });

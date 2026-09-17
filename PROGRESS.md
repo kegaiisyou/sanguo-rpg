@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260917c`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260917d`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 
@@ -17,7 +17,7 @@
 
 | 设计项 | 状态 | 实际落地 | 代码落点 |
 |--------|------|----------|----------|
-| **分钟级时间表** | ✅ v20260917c | 时间引擎改分钟制：`advanceMinutes(min)`（跨满120分钟进位 `state.time`）；城内移动 10分/格、进出子房间 5分、入/出城门统一 10分、郊野 30分/格、劳作/差役/农事/挖矿/制作/营造 30分、取水5分、造饭10分；交谈/交易/仓库/给予/查看免费；生存消耗按跨辰步进（每120分钟-1食-1水-2精力，速率不变）；修复时辰边界换算（子时跨午夜、卯时自clock=300起）；完整时间表见 `GAME_DESIGN.md §1.1.1a`（v20260917c 劳作/差役/农事/制作/营造 30→60 分钟、挖矿保持 30） | `engine.advanceMinutes/advanceTime`、`citybuild.goCell`、`crafting/building` 各动作点、`GAME_DESIGN.md` |
+| **分钟级时间表** | ✅ v20260917d | 时间引擎改分钟制：`advanceMinutes(min)`（跨满120分钟进位 `state.time`）；城内移动 10分/格、进出子房间 5分、入/出城门统一 10分、郊野 30分/格、劳作/差役/农事/挖矿/制作/营造 30分、取水5分、造饭10分；交谈/交易/仓库/给予/查看免费；生存消耗按跨辰步进（每120分钟-1食-1水-2精力，速率不变）；修复时辰边界换算（子时跨午夜、卯时自clock=300起）；完整时间表见 `GAME_DESIGN.md §1.1.1a`（v20260917c 劳作/差役/农事/制作/营造 30→60 分钟、挖矿保持 30；v20260917d 修复作物生长跨天重置与荒死判定） | `engine.advanceMinutes/advanceTime`、`citybuild.goCell`、`crafting/building` 各动作点、`GAME_DESIGN.md` |
 | **P0 战斗系统** | ✅ 完成 | 半手动 + 伤害公式（**百分比减伤模型**：`减伤率=min(0.8, 防御战力×1%)`，防御换算×4，抗数值膨胀）+ Buff/Debuff + 华雄 Boss；13 招 + 5 敌 + 4 AI | `shared/combat/engine.js`、`shared/data/martial.js`、`shared/data/enemies.js`、`index.html` 战斗 UI |
 | **P1 背包（子集）** | ✅ 完成 | `items` 字段 + 掉落堆叠入库 + 行囊展示（`skillTags` 同屏展示武学） | `shared/index.js` `defaultSave().items`、`index.html` 行囊弹窗 |
 | **P2 武学合一（最小版）** | ✅ 完成 | 研习界面接 `learnedMartial`，按 13 艺线分组 + 门槛锁 + 学招涨艺线；行囊/任务显示真招式；发力技巧可装配 | `index.html` `openLearn()`、`skillTags()`、`shared/data/martial.js`（MARTIAL_ARTS） |
