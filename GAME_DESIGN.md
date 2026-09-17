@@ -41,6 +41,7 @@
 | 伙房限时供饭 | 饭点 **卯辰 / 午未 / 酉戌**（`MESS_HOURS`）以木片换干粮；非饭点只给稀粥；**子丑寅灶冷**（`DEAD_HOURS`）不供 | `engine.mess_hall` |
 | 旷役罚例 | 未按时销名记「旷役」，**当场扣一份口粮（饱食-8）+ 牢头好感-1**（v20260916g 起即时罚，无延迟账） | `onbDayTick()` |
 | 应卯点名 | **卯至午**（`ROLL_HOURS=[3,4,5,6]`）到中军场院、牢头在场即自动应名记「勤」；连应三日销旷役、得干粮两张 | `engine.autoOnbRoutines → doRollCall` |
+| 体验修复（v20260917e） | ①教学目标方向词与高亮统一（`campDirTo` 现算，不再写死「往南」）；②应卯唱名者统一为「牢头」；③新档查工册区分「未录名/已脱籍」；④叩门开锁时牢头顺口预告「戌时前回牢过夜」 | `engine.onbGoalStep/campGoto`、`engine.doRollCall`、`engine.ledgerLook`、`triggers.laotou_door` |
 | 回牢销名 | **午后牢头回牢门口（7..2）**，踏进牢房格且已应卯即自动销名（营中好感+1）；戌时（`NIGHT_HOURS`）后仍在营中游荡吃查房：初犯说教押回、再犯三鞭+记旷役；已销名者晚归合规不挨鞭 | `engine.autoOnbRoutines` + `curfew_patrol` |
 | 一日结算 | `advanceTime` 跨子夜时清点卯/饭点标记并结算旷役 | `engine.onbDayTick(days)` |
 | 作息推广 | NPC 按**时辰表**在城中上下工（`NPC_ROUTINES`），如打更人「老麻」白日涿县、夜间渔阳 | `shared/story/rooms.js` + `NPC_ROUTINES` |

@@ -1267,7 +1267,7 @@
     _rr.rollDone=true; _rr.rollDays=(_rr.rollDays||0)+1; _rr.favor=(_rr.favor||0)+1;
     var _rc=addFlagNum('flags.task.roll_cnt', 1);
     addXp(5);
-    log((auto?'〔点卯·自动〕':'〔点卯〕')+hourLabel()+'，校尉展册唱名，你应了一声。册上记你一笔「勤」（修为+5 · 营中好感+1）。','good');
+    log((auto?'〔点卯·自动〕':'〔点卯〕')+hourLabel()+'，牢头展册唱名，你应了一声。册上记你一笔「勤」（修为+5 · 营中好感+1）。','good');
     if(_rc>=3 && !(state.flags.task && state.flags.task.roll_done)){
       state.flags.task=state.flags.task||{}; state.flags.task.roll_done=true;
       if((_rr.missCount||0)>0){ _rr.missCount=_rr.missCount-1; log((auto?'〔点卯·自动〕':'〔点卯〕')+'牢头翻着册子哼了一声：「连应三日，记你一功——前头那笔旷役，勾了。」','good'); }
@@ -2940,7 +2940,8 @@
   // 记工木牌：工分 / 木片 / 旷役 —— 营中规则的日常面，教学期也可点，且正答「干了半天攒了几分」
   function ledgerLook(){
     var o=onbF();
-    if(!o || !o.started || o.done){ log('〔记工册〕册上早没了你的名字——你已脱籍。','sys'); return; }
+    if(!o || !o.started){ log('〔记工册〕工册上还没有你的名字——你是新押入的囚徒，待牢头录名后，才有工分可查。','sys'); return; }
+    if(o.done){ log('〔记工册〕册上早没了你的名字——你已脱籍。','sys'); return; }
     var cnt=o.workCnt||0, per=LABOR_PER_WOOD||3, need=per-(cnt%per);
     var pai=packFind('lao_pai'), have=pai?(pai.count||1):0, miss=o.missCount||0;
     log('〔记工册〕名下已记 '+cnt+' 工，手上有「劳字木片」'+have+' 枚；再干 '+need+' 工，可换下一枚。','sys');
@@ -4778,10 +4779,10 @@
         var _rr = onbF();
         if(!_rr || !_rr.curfewSet || _rr.done){ log('〔点卯〕册上没有你的名字，应不得卯。','sys'); break; }
         if(!isRollHour()){
-          log('〔点卯〕'+hourLabel()+'——校场空空，无人唱名。应卯只在卯、辰两个时辰（天亮开工那阵）。','warn');
+          log('〔点卯〕'+hourLabel()+'——此刻无人唱名。应卯在卯至午（天亮开工到晌午，过午不候）。','warn');
           break;
         }
-        if(_rr.rollDone){ log('〔点卯〕今日已应过卯，校尉展册摆手：「自去干活。」','sys'); break; }
+        if(_rr.rollDone){ log('〔点卯〕今日已应过卯，牢头展册摆手：「自去干活。」','sys'); break; }
         doRollCall(false);
         break;
       }
@@ -5815,19 +5816,19 @@
     //    旧版从「探问」直接跳到「与默叔对暗号」，中间「这份吃食打哪来」整段没有交代：
     //    玩家接下差事回头再找周听涛，只因囊中无干粮而被普通交谈放行，于是反复听他说天象、无路可走（v20260912e 补）。
     if(!(f.route && f.route.crypt)){
-      var tk=f.task||{}, goZT='往南回牢区（营北），进天字一号牢房寻周听涛';
+      var tk=f.task||{}, goZT='往北回牢区（营北），进天字一号牢房寻周听涛';
       if(!tk.zt_accepted) return campGoto({npc:'zhoutingtao'},
         tk.zt_intro ? '再寻周听涛，把「寻一份吃食」的差事应下' : '回牢房·天字一号，寻那位相面的周听涛探问出营门道',
-        tk.zt_intro ? '往南回牢区（营北），进天字一号牢房把差事应下' : goZT, 1, 0);
+        tk.zt_intro ? '往北回牢区（营北），进天字一号牢房把差事应下' : goZT, 1, 0);
       // v20260914g：交付已改走「给予」（triggers.js zt_food_give）——这里也得照实说，
       //   否则指引把人领到周听涛跟前，玩家却只在「交谈」里空耗（旧版交谈即自动交付，现已不再）。
-      if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '点周听涛、选「给予」，把干粮交到他手上', '往南回牢区，把干粮交予周听涛', 1, 0);
+      if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '点周听涛、选「给予」，把干粮交到他手上', '往北回牢区，把干粮交予周听涛', 1, 0);
       // 手上有木片 → 去伙房换食；没有 → 回场院再挣一工（初次满三工还会顺带点亮行囊）
       if(packFind('lao_pai')) return campGoto({act:'mess_hall'}, '持「劳字木片」在伙房换一份吃食', '往伙房去，用「劳字木片」换一份吃食', 0, 1);
       return campGoto({act:'labor_yard'}, '周听涛要一份吃食——再「担石劳作」满三工，换一枚「劳字木片」', '往中军场院去「担石劳作」，满三工换一枚「劳字木片」', 1, 1);
     }
     // ④ 默叔：天字二号牢房对暗号
-    if(!(f.task && f.task.signal)) return campGoto({npc:'moshu'}, '牢房·天字二号，与默叔对上暗号', '往南回牢区（营北），进天字二号牢房与默叔对暗号', 1, 0);
+    if(!(f.task && f.task.signal)) return campGoto({npc:'moshu'}, '牢房·天字二号，与默叔对上暗号', '往北回牢区（营北），进天字二号牢房与默叔对暗号', 1, 0);
     // ⑤ 已对暗号：营中九条路皆在「决断出营」里候着（能走哪条，看备下了什么）
     if(Guide.exists({act:'wall_choose'})) return {text:'点「决断出营」，择一条路走出去（也可先去别处探访更多门道）', targets:[{act:'wall_choose'}]};
     if(Guide.exists({act:'gate_choose'})) return {text:'点「决断出营」，择一条路走出去（也可先去别处探访更多门道）', targets:[{act:'gate_choose'}]};
