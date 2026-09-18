@@ -1537,8 +1537,9 @@
       // 朔日结算（v20260918g）：跨月 → 治下纳赋 + 群雄内政 + 势力存亡 + 统一终局（叠在耗时辰模型上）
       var _cal = deriveCalendar();
       var _mk = _cal.adYear * 12 + _cal.month;
-      if (state.flags._monthKey != null && _mk !== state.flags._monthKey) onMonthTick(_cal);
-      state.flags._monthKey = _mk;
+      var _newMonth = (state.flags._monthKey != null && _mk !== state.flags._monthKey);
+      state.flags._monthKey = _mk;   // 先写入新月键：朔日结算内的外交到期清算须用新值（否则盟约多生效一个月）
+      if (_newMonth) onMonthTick(_cal);
     tickForge(crossedHours);   // 炉膛随时辰持续推进（未跨辰不动，避免 0.25 时辰的小数进度）
     tickBuildOrders(crossings);   // 城市营造工单：跨日推进宏观委派 + 结算每日市租（第3步）
     // 查房（v20260911i）：此刻若已过戌时又在营中游荡，巡夜狱卒便来拿人。
@@ -2361,7 +2362,7 @@
     var p=0.30 + rep/200*0.5 + (roleFavorMul()-1)*0.4 - Math.min(0.5, power/120);
     p=Math.max(0.05, Math.min(0.95, p));
     if(Math.random()<p){
-      conquerCity(cid,'player',+6);
+      conquerCity(cid, playerFaction(), +6);   // 与攻城同源：owner 用 playerFaction()（'义军'），否则 ruledCities 不更新、招降之城不入治下
       chronicle('你遣说客劝降「'+c.name+'」，守将倒戈，不血刃而下。','good');
       log('〔招降〕'+c.name+'守将归降，城池易帜。','good'); toast('🏳 '+c.name+'归降');
     } else {

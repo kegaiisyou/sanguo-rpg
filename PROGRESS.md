@@ -1205,3 +1205,25 @@
 ---
 
 *最后更新：2026-09-18（§9.68 战略系统实机测试 · 前往此城断线修复；版本 20260918a）*
+
+---
+
+## §9.69 战略功能实测（外交·职种·月份结算）· 修 2 处结算 bug（v20260918i）
+
+**背景**：用户要求继续测试战略功能（远程 v20260918g/h：月份结算/势力AI/玩家职种分化/外交议和结盟招降）。Playwright 实机全链路验证。
+
+**测试结果（全部通过）**
+- **职种分化**：捏人「立身之道」三选一（游侠/将才/相才）→ `state.role` 落地；政令台/天下大势均显示「职种：⚔ 将才」等；相才 econMul=1.35 使月度纳赋高于游侠（实测生效）。
+- **外交**：政令台「🏴 大势」→ 各势力「🕊 外交」：议和（💰50+声望10→休战3月）、结盟（💰200+声望30→同盟9月）边界拒绝与成功路径均正确（钱/声望不足有 toast，成功扣金、写入 `flags.diplo`）；招降概率（声望/角色/城防加成），成功「🏳 洛阳归降」、失败「守将不从」，toast/chronicle 正常。
+- **月份结算（朔日）**：跨月触发 onMonthTick：治下纳赋（`monthlyYield`，按 roleEconMul 加成）、NPC 势力内政（7 势力 gold/troops 每月增长）、势力存亡判定（`scanFactionSurvival`，0 城势力 chronicle「土崩瓦解」）、统一终局（`checkUnify`：玩家有城且群雄尽灭 → `flags.unified` + toast「🏆 天下一统！」+ chronicle）。
+- **外交到期清算**：到期（until≤新月键）删除恢复敌对，未到期保留——修复后回归正确。
+
+**修复 2 处 bug**
+1. **外交盟约多生效一个月**：`diploExpire()` 在 `onMonthTick` 内读 `flags._monthKey`，但该键在结算后才写入新月值 → 到期清算永远晚一月（休战3月实际4月）。修复：跨月触发处**先写新月键再调 onMonthTick**（engine.js advanceMinutes）。
+2. **招降之城不入治下**：`diploSue` 调 `conquerCity(cid,'player')` 写死 `'player'`，与 `playerFaction()`（默认「义军」）键不一致 → `isP` 判否 → `ruledCities` 不更新 → 招降之城无月度纳赋、不计官职。修复：与攻城路径同源，改传 `playerFaction()`（实测归降后 `ruledCities=['luoyang']`、`cityOwner='义军'`）。
+
+**版本**：`constants.js` VERSION → `20260918i`；`index.html` `.tt-ver` → v20260918i、`core/engine.js` 引用 `?v=20260918i`。已 commit + push。
+
+---
+
+*最后更新：2026-09-18（§9.69 战略功能实测 · 外交到期与招降归属 2 处结算 bug 修复；版本 20260918i）*
