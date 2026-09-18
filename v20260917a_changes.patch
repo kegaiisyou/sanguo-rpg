@@ -1,0 +1,99 @@
+diff --git a/index.html b/index.html
+index f0a0c52..867db15 100644
+--- a/index.html
++++ b/index.html
+@@ -7,7 +7,7 @@
+ <meta http-equiv="Pragma" content="no-cache">
+ <meta http-equiv="Expires" content="0">
+ <title>乱世烽火 · 水墨</title>
+-<link rel="stylesheet" href="shared/css/game.css?v=20260916i" />
++<link rel="stylesheet" href="shared/css/game.css?v=20260917a" />
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+@@ -153,20 +153,20 @@ window.onerror=function(msg,url,line,col,err){
+       </div>
+     </div></div></div>
+ 
+-<script src="shared/config/constants.js?v=20260916i"></script>
++<script src="shared/config/constants.js?v=20260917a"></script>
+ <script src="shared/config/ui-spec.js?v=20260902a"></script>
+ <script src="shared/config/balance.js?v=20260902a"></script>
+ <script src="shared/story/sects.js?v=20260902a"></script>
+ <script src="shared/story/skills.js?v=20260902a"></script>
+-<script src="shared/story/objectives.js?v=20260916i"></script>
++<script src="shared/story/objectives.js?v=20260917a"></script>
+ <script src="shared/story/events.js?v=20260902a"></script>
+-<script src="shared/story/dialogues.js?v=20260916i"></script>
++<script src="shared/story/dialogues.js?v=20260917a"></script>
+ <!-- v20260912f：npc_cards.js 提到 rooms.js 之前 —— 具名 NPC 的摆位/作息统一存在这张人物表里，
+      rooms.js（作息表）与 core/city.js（名册）都要在加载期读它派生，顺序不能反。 -->
+-<script src="shared/data/npc_cards.js?v=20260916i"></script>
++<script src="shared/data/npc_cards.js?v=20260917a"></script>
+ <script src="shared/data/personas.js?v=20260916d"></script>
+ <script src="shared/story/rooms.js?v=20260915h"></script>
+-    <script src="shared/story/triggers.js?v=20260916i"></script>
++    <script src="shared/story/triggers.js?v=20260917a"></script>
+     <script src="shared/data/martial.js?v=20260910j"></script>
+ <script src="shared/data/enemies.js?v=20260902a"></script>
+ <script src="shared/data/items.js?v=20260915j"></script>
+@@ -191,8 +191,8 @@ window.onerror=function(msg,url,line,col,err){
+   <script src="shared/core/calendar.js?v=20260910w"></script>
+   <script src="shared/core/save.js?v=20260910w"></script>
+   <script src="shared/core/dev.js?v=20260910k"></script>
+-  <script src="shared/core/triggers.js?v=20260916i"></script>
+-  <script src="shared/core/city.js?v=20260916i"></script>
++  <script src="shared/core/triggers.js?v=20260917a"></script>
++  <script src="shared/core/city.js?v=20260917a"></script>
+ <script src="shared/core/npc.js?v=20260916c"></script>
+   <script src="shared/core/inventory.js?v=20260910u"></script>
+   <script src="shared/core/mapview.js?v=20260909h"></script>
+@@ -205,7 +205,7 @@ window.onerror=function(msg,url,line,col,err){
+   <script src="shared/core/charcreate.js?v=20260909h"></script>
+   <script src="shared/core/equipment.js?v=20260909i"></script>
+   <script src="shared/core/crafting.js?v=20260915i"></script>
+-  <script src="shared/core/engine.js?v=20260916i"></script>
++  <script src="shared/core/engine.js?v=20260917a"></script>
+ </body>
+ </html>
+ 
+diff --git a/shared/core/engine.js b/shared/core/engine.js
+index 4b31043..de4430c 100644
+--- a/shared/core/engine.js
++++ b/shared/core/engine.js
+@@ -1214,9 +1214,10 @@
+   function onbF(){ return (state.flags && state.flags.onb) || null; }
+   // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
+   function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
+-  // 牢房落锁（v20260916f）：戌亥子丑寅卯（约晚8点至次日早6点）牢门上闩——
+-  //   人在囚室格(1,0)便出不得门，须等卯时过后（辰时起）开锁。
+-  var CELL_LOCK_HOURS=[10,11,0,1,2,3];
++  // 牢房落锁（v20260917a）：戌亥子丑寅（约晚8点至次日早5点）牢门上闩，卯时开锁放风——
++  //   牢头卯时出门去中军点卯，牢门也同时敞开（与营规「卯时开牢放风」一致），
++  //   否则会出现「牢头已在中军、牢门还锁着」的矛盾；人在囚室格(1,0)在锁门时段出不得门。
++  var CELL_LOCK_HOURS=[10,11,0,1,2];
+   function cellLockedHere(){
+     var cp=state.flags && state.flags.cityPos;
+     if(!cp || cp.cid!=='kuyilao' || cp.x!==1 || cp.y!==0) return false;
+@@ -5820,7 +5821,7 @@
+     onb.packTold = true;
+     save(state);
+     // 栅外那嗓子——牢里还关着个相面的（顺手给方向：营北牢区）
+-    log('栅外忽有一把嗓子拖长了腔，像在同谁自言自语：「某周听涛，天下数一数二的相士——观天象，断命数，从不曾走过眼……」声音不高，却一字一字往你耳朵里钻。', 'env');
++    log('栅外忽有一把嗓子拖长了腔，像在同谁自言自语：「某周听涛，天下数一数二的相士——观天象，断命数，从不曾走过眼……」', 'env');
+     // 下一件正事：叩牢门（牢门是 camp_tz1 的场景物件，锚点 cell_door；onbGoalStep ② 与之同源）
+     log('〔牢门〕铁栅在你身后合得死紧。要出去，须先与牢头说通 —— 走过去，点「叩门」。', 'order');
+     onbGoal();
+diff --git a/shared/story/triggers.js b/shared/story/triggers.js
+index 0d2f839..2fe8db1 100644
+--- a/shared/story/triggers.js
++++ b/shared/story/triggers.js
+@@ -245,7 +245,7 @@
+       { t: 'npcTalk', npc: 'laotou',
+         prompt: '廊口杵着个歪戴幞头的牢头，手里转着一串铁钥匙，眯眼打量你这身囚服，啧了一声：「别在廊下晃——去前头劳役场干活。瞧见那口铜壶漏刻没有？营里没有日晷，黑天白日全凭它滴答报辰。午后牢头回牢门口守着，戌时前你回牢过夜，销名的字就落给你。」',
+         asks: [
+-          { label: '〔看那漏刻〕这漏，怎么讲时辰？', then: [
++          { label: '〔记下了〕午后回牢销名，戌时前归牢过夜。', then: [
+             // 统一拨回清晨卯时（v20260911i）：在这之前牢中时辰是冻结的（clockFlowing 为假），
+             // 玩家可能已在牢里反复打盹；就在「介绍时辰」这一槌上把漏刻校准——于是「踏出牢门」
+             // 永远是白天，绝不会出现「一出门就已经入夜」的荒谬。

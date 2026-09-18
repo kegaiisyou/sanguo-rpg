@@ -7323,7 +7323,7 @@
         }
       });
     } else {
-      // 正常模式：点击城市传送；focusYou=true 时首屏自动居中「此身所在」（v20260905j）
+      // 正常模式：点击城市点=显示详情（placeInfo）；点详情面板「前往此城」= goRoomOnMap 传送（v20260918a 接线）
       LF.initStrategicMap(container, {
         marks: marks,
         focusYou: !!opts.focusYou,
@@ -7331,6 +7331,10 @@
         onCityClick: function(city){
           if(!city || !city.id) return;
           placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);
+        },
+        onCityGo: function(city){
+          if(!city || !city.id) return;
+          goRoomOnMap(city.id);
         }
       });
     }

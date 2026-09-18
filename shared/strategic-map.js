@@ -1274,7 +1274,9 @@
       if (goBtn) {
         goBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (opts.onCityClick) opts.onCityClick({ id: roomId, name: p.name, kind: p.kind, state: p.state, desc: p.desc, owner: p.owner, isPlace: true });
+          // 前往回调优先（引擎 goRoomOnMap 传送）；无回调时退回详情展示
+          if (opts.onCityGo) opts.onCityGo({ id: roomId, name: p.name, kind: p.kind, state: p.state, desc: p.desc, owner: p.owner, isPlace: true });
+          else if (opts.onCityClick) opts.onCityClick({ id: roomId, name: p.name, kind: p.kind, state: p.state, desc: p.desc, owner: p.owner, isPlace: true });
         });
       }
     }
@@ -1297,7 +1299,9 @@
       if (goBtn) {
         goBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (opts.onCityClick) opts.onCityClick(c);
+          // 前往回调优先（引擎 goRoomOnMap 传送）；无回调时退回详情展示
+          if (opts.onCityGo) opts.onCityGo(c);
+          else if (opts.onCityClick) opts.onCityClick(c);
         });
       }
     }
