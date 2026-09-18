@@ -2531,3 +2531,19 @@
 .obj-col.open .obj-arrow{ transform:rotate(90deg); }
 .obj-col .obj-more{ display:none; }
 .obj-col.open .obj-more{ display:block; }
+
+/* 职种分化 / 外交面板 (v20260918h) */
+.role-list{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+.role-btn{flex:1;text-align:left;padding:10px 12px;border:1px solid var(--panel-line);border-radius:9px;background:rgba(0,0,0,.06);color:var(--ink);cursor:pointer;transition:.15s;}
+.role-btn b{display:block;font-size:15px;letter-spacing:2px;}
+.role-btn i{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.role-btn.on{border-color:var(--seal);background:rgba(138,58,42,.16);box-shadow:0 0 0 2px rgba(138,58,42,.25) inset;}
+.dip-box{padding:4px 2px;}
+.dip-h{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:2px;color:var(--seal);margin-bottom:8px;}
+.dip-sub{font-size:13px;color:var(--ink);margin-bottom:10px;}
+.dip-sub b{color:var(--seal);}
+.dip-acts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.dip-cities-h{font-size:12px;color:var(--muted);margin:6px 0;}
+.dip-cities{display:flex;gap:6px;flex-wrap:wrap;}
+.dip-cur{font-size:13px;color:#86b087;margin:4px 0;}
+.dip-foot{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;border-top:1px solid var(--panel-line);padding-top:8px;}

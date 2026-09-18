@@ -8,6 +8,13 @@
   //   气血 ×20 → 气血上限；攻击 ×3 → 攻击；防御 ×4 → 防御（配合减伤模型防膨胀）；身法 ×4 → 身法
   var ATTR_RATIO = { hp:20, atk:3, def:4, spd:4 };   // 防御×4：每点防御属性换算 4 点防御战力（配合减伤模型防膨胀）
 
+  // ══ 职种分化（v20260918h）══ 玩家立身之道：游侠 / 将才 / 相才
+  var ROLE_DEFS = {
+    youxia: { key:'youxia', name:'游侠', icon:'🗡', atkMul:1.0,  econMul:1.0,  favorMul:1.2, note:'江湖散人，进退由心；声望易得，同袍愿随。' },
+    jiang:  { key:'jiang',  name:'将才', icon:'⚔', atkMul:1.25, econMul:1.0,  favorMul:1.0, note:'行伍出身，攻城野战如虎添翼。' },
+    xiang:  { key:'xiang',  name:'相才', icon:'📜', atkMul:1.0,  econMul:1.35, favorMul:1.1, note:'治郡有方，府库殷实、民力倍增。' }
+  };
+  LF.ROLE_DEFS = ROLE_DEFS;   // 暴露给引擎与捏人模块
   // 默认存档：开局【无门派】——主角以"江湖散人 / 游侠"身份起事；
   //   门派（颍川义军 / 太平道 / 西凉军）为【中后期可选补充玩法】，满足条件后方可主动加入（见 joinSect）
   function defaultSave() {
@@ -67,6 +74,7 @@
       },
       faction: '义军',                    // 玩家势力名（接住既有 state.faction；'义军' 起事）
       title: '游侠',                      // 官职：游侠→县令→太守→州牧→君主（占城即得 tier 对应官职）
+      role: 'youxia',                    // 立身之道：游侠/将才/相才（v20260918h 职种分化）
       ruledCities: [],                    // 玩家统治的城 rid 列表（占城时追加）
       tokens: [],                         // 持有信物 defId（权柄道具，预留）
       quest: { bandit:0, turban:0, hua_xiong:false, luoyang:false },  // P4 主线进度计数
@@ -163,6 +171,7 @@
     ENEMIES: LF.ENEMIES,
     ITEMS: LF.ITEMS,
     CombatEngine: LF.CombatEngine,
+    ROLE_DEFS: ROLE_DEFS,
     defaultSave: defaultSave,
     applySect: applySect,
     canJoinSect: canJoinSect,

@@ -2299,6 +2299,107 @@
     if(inst && inst.buildOrderId){ var o=buildOrderById(inst.buildOrderId); if(o){ var bp=LF.BUILD[o.blueprintId]||{}; return bp.siteName||'工地'; } }
     return '工地';
   }
+  // ══ 战略层 · 玩家职种分化（v20260918h）══
+  var ROLE_DEFS = (LF.ROLE_DEFS || {
+    youxia:{key:'youxia',name:'游侠',icon:'🗡',atkMul:1.0,econMul:1.0,favorMul:1.2,note:'江湖散人，进退由心'},
+    jiang:{key:'jiang',name:'将才',icon:'⚔',atkMul:1.25,econMul:1.0,favorMul:1.0,note:'攻城野战如虎添翼'},
+    xiang:{key:'xiang',name:'相才',icon:'📜',atkMul:1.0,econMul:1.35,favorMul:1.1,note:'府库殷实、民力倍增'}
+  });
+  function roleDef(){ return ROLE_DEFS[(state&&state.role)||'youxia'] || ROLE_DEFS.youxia; }
+  function roleAtkMul(){ return roleDef().atkMul || 1; }
+  function roleEconMul(){ return roleDef().econMul || 1; }
+  function roleFavorMul(){ return roleDef().favorMul || 1; }
+  // ══ 玩家外交系统（v20260918h）══
+  function diploGet(fid){ return (state.flags.diplo && state.flags.diplo[fid]) || null; }
+  function diploStatus(fid){ var d=diploGet(fid); return d? d.status : 'war'; }
+  function diploActive(fid){ var d=diploGet(fid); return !!(d && d.status!=='war' && d.until > (state.flags._monthKey||0)); }
+  function diploTruceBetween(ka,kb){
+    if(ka==='player' && kb!=='player' && kb!=='han') return diploActive(kb);
+    if(kb==='player' && ka!=='player' && ka!=='han') return diploActive(ka);
+    return false;
+  }
+  function diploExpire(){
+    if(!state || !state.flags || !state.flags.diplo) return;
+    var mk=state.flags._monthKey||0;
+    Object.keys(state.flags.diplo).forEach(function(fid){
+      var d=state.flags.diplo[fid];
+      if(d.status!=='war' && d.until<=mk){
+        delete state.flags.diplo[fid];
+        log('〔外交〕你与'+warFactionName(fid)+'的盟约期满，刀兵再起。','sys');
+      }
+    });
+  }
+  function diploPropose(fid, kind){
+    if(!state||state.dead) return;
+    if(fid==='player'||fid==='han'){ toast('汉室与己方，无须此道。'); return; }
+    var f=(LF.FACTIONS||{})[fid]; if(!f){ toast('此势力已不复存在。'); return; }
+    if(diploStatus(fid)==='alliance'){ toast('已与'+f.name+'结盟。'); return; }
+    var mk=(state.flags._monthKey||0);
+    if(kind==='truce'){
+      if((state.gold||0)<50){ toast('府库空虚，无金缔和。'); return; }
+      if((state.reputation||0)<10){ toast('声名不彰，对方不屑言和。'); return; }
+      state.gold-=50; state.flags.diplo=state.flags.diplo||{};
+      state.flags.diplo[fid]={status:'truce',until:mk+3};
+      log('〔外交〕你遣使与'+f.name+'议定休战，三月之内兵戈不兴。','good'); toast('🤝 与'+f.name+'休战');
+    } else if(kind==='alliance'){
+      if((state.gold||0)<200){ toast('盟金不足（需💰200）。'); return; }
+      if((state.reputation||0)<30){ toast('威望不足（需声望30），无人肯盟。'); return; }
+      state.gold-=200; state.flags.diplo=state.flags.diplo||{};
+      state.flags.diplo[fid]={status:'alliance',until:mk+9};
+      log('〔外交〕你与'+f.name+'义结金兰，共抗天下。','good'); toast('🤝 与'+f.name+'结盟');
+    }
+    save(state); openModal('factionMap');
+  }
+  function diploSue(cid){
+    if(!state||state.dead) return;
+    var C=LF.CITIES||{}, c=C[cid]; if(!c) return;
+    var defKey=warOwnerKey(cid);
+    if(defKey==='player'){ toast('此城已为你所治。'); return; }
+    if(!LF.FACTIONS[defKey]){ toast('此城为无主/地方群豪，直取可也。'); return; }
+    var power=warCityPower(cid);
+    var rep=(state.reputation||0);
+    var p=0.30 + rep/200*0.5 + (roleFavorMul()-1)*0.4 - Math.min(0.5, power/120);
+    p=Math.max(0.05, Math.min(0.95, p));
+    if(Math.random()<p){
+      conquerCity(cid,'player',+6);
+      chronicle('你遣说客劝降「'+c.name+'」，守将倒戈，不血刃而下。','good');
+      log('〔招降〕'+c.name+'守将归降，城池易帜。','good'); toast('🏳 '+c.name+'归降');
+    } else {
+      log('〔招降〕'+c.name+'守将不从，城头箭如雨下，说客狼狈而归。','sys'); toast(c.name+'守将不从');
+    }
+    save(state); openModal('factionMap');
+  }
+  function renderDiplomacy(fid){
+    var f=(LF.FACTIONS||{})[fid]; if(!f) return '';
+    var st=diploStatus(fid);
+    var stTxt={war:'敌对',truce:'休战',alliance:'同盟',vassal:'附庸'}[st]||'敌对';
+    var d=diploGet(fid), until=(d&&d.until)||0, mk=(state.flags._monthKey||0);
+    var h='<div class="dip-box">';
+    h+='<div class="dip-h">🕊 与 '+f.name+' 之邦交</div>';
+    h+='<div class="dip-sub">现状：<b>'+stTxt+'</b>'+(st!=='war'&&until>mk?('（约至第'+Math.round(until*30)+'日）'):'')+'</div>';
+    h+='<div class="dip-acts">';
+    if(st==='war'){
+      h+='<button class="btn" onclick="diploPropose(\''+fid+'\',\'truce\')">🤝 议和<br><span class="sub">💰50·声望10·休战3月</span></button>';
+      h+='<button class="btn" onclick="diploPropose(\''+fid+'\',\'alliance\')">🤝 结盟<br><span class="sub">💰200·声望30·休战9月</span></button>';
+    } else {
+      h+='<div class="dip-cur">当前已'+stTxt+'，刀兵暂歇。</div>';
+    }
+    h+='</div>';
+    var ids=Object.keys(LF.CITIES||{}).filter(function(cc){ return warOwnerKey(cc)===fid; });
+    if(ids.length){
+      h+='<div class="dip-cities-h">说降其城（不战而下）：</div><div class="dip-cities">';
+      ids.forEach(function(cc){ var c2=(LF.CITIES||{})[cc]||{}; h+='<button class="btn sm" onclick="diploSue(\''+cc+'\')">🏳 '+c2.name+'</button>'; });
+      h+='</div>';
+    }
+    h+='<div class="dip-foot">金帛动人心，威望服诸侯；说客一去，不战屈人之兵。</div>';
+    h+='</div>';
+    return h;
+  }
+  function openDiplomacy(fid){
+    if(!state) return;
+    state.flags._dipFid=fid;
+    openModal('diplomacy');
+  }
   // ── 身份 / 势力系统（v20260826g）：政令台 + 势力图 ──
   function factionName(id){
     if(id==='义军'||id==='player') return (LF.FACTIONS&&LF.FACTIONS.player)?LF.FACTIONS.player.name:'义军';
@@ -2346,7 +2447,7 @@
     var h='';
     h+='<div class="edict-box">';
     h+='<div class="edict-h">📜 '+c.name+' · 政令台</div>';
-    h+='<div class="edict-sub">官职：'+(state.title||'游侠')+'　｜　势力：'+factionName(playerFaction())+'　｜　治安：'+ord+'</div>';
+    h+='<div class="edict-sub">官职：'+(state.title||'游侠')+'　｜　势力：'+factionName(playerFaction())+'　｜　职种：'+roleDef().icon+' '+roleDef().name+'　｜　治安：'+ord+'</div>';
     h+='<div class="edict-acts">';
     h+='<button class="btn" onclick="civilEdict(\'tax\')">💰 征税<br><span class="sub">'+taxTip+'</span></button>';
     h+='<button class="btn" onclick="civilEdict(\'pacify\')">🤝 安民<br><span class="sub">耗💰20，治安+6</span></button>';
@@ -2373,7 +2474,7 @@
       var g=groups[fid]; if(!g) return;
       var f=(LF.FACTIONS||{})[fid]||{name:fid, color:'#888', desc:''};
       h+='<div class="fm-row">';
-      h+='<div class="fm-lord"><span class="fm-dot" style="background:'+f.color+'"></span><b>'+f.name+'</b>'+(f.lord?'　<small>主君 '+f.lord+'</small>':'')+'</div>';
+      h+='<div class="fm-lord"><span class="fm-dot" style="background:'+f.color+'"></span><b>'+f.name+'</b>'+(f.lord?'　<small>主君 '+f.lord+'</small>':'')+(fid!=='player'&&fid!=='han'?'　<button class="btn sm" onclick="openDiplomacy(\''+fid+'\')">🕊 外交</button>':'')+'</div>';
       h+='<div class="fm-cities">'+g.cities.join('、')+'</div>';
       h+='<div class="fm-desc">'+f.desc+'</div>';
       h+='</div>';
@@ -2387,7 +2488,7 @@
       });
       h += '</div>';
     }
-    h += '<div class="fm-foot">你治下：' + ((state.ruledCities || []).length) + ' 城　｜　官职：' + (state.title || '游侠') + '　｜　势力：' + factionName(playerFaction()) + '　｜　(攻城略地、诸侯互伐皆令版图易色)</div>';
+    h += '<div class="fm-foot">你治下：' + ((state.ruledCities || []).length) + ' 城　｜　官职：' + (state.title || '游侠') + '　｜　职种：'+roleDef().icon+' '+roleDef().name+'　｜　势力：' + factionName(playerFaction()) + '　｜　(攻城略地、诸侯互伐皆令版图易色)</div>';
     h+='</div>';
     return h;
   }
@@ -2453,6 +2554,7 @@
     var city = tc.name || targetCid;
     var defKey = warOwnerKey(targetCid);
     var atk = warFactionTotal(attackerFid) * (0.28 + Math.random() * 0.16);   // 举国之力的一支偏师
+    if (attackerFid === 'player') atk *= roleAtkMul();   // 职种：将才攻势更盛（v20260918h）
     var def = warCityPower(targetCid) * (1.4 + Math.random() * 0.2);          // 据城而守，一夫当关
     var defReal = !!(LF.FACTIONS && LF.FACTIONS[defKey]);
     if (defReal) def += warFactionTotal(defKey) * 0.1;                        // 邻郡/本州驰援之师
@@ -2519,6 +2621,7 @@
       if (ka === kb) continue;
       var ha = warIsLordKey(ka), hb = warIsLordKey(kb);
       if (!ha && !hb) continue;                                  // 两侧皆非豪强 → 无人举兵
+      if (diploTruceBetween(ka, kb)) continue;                   // 外交：休战/同盟期间不互攻（v20260918h）
       if (warInRoom(a) || warInRoom(b)) continue;                // 玩家立足之处，兵锋暂缓
       var dirs = [];
       if (ha) dirs.push({ atk: ka, tid: b });                    // a 之主人攻 b
@@ -2560,6 +2663,7 @@
     monthlyYield();
     factionDomesticAI();
     scanFactionSurvival();
+    diploExpire();            // 外交盟约到期清算（v20260918h）
     checkUnify();
     if ((cal.month % 3) === 1) {
       var rk = (state.flags.factionPowerRank || []);
@@ -2575,7 +2679,8 @@
     if (!rc || !rc.length) return;
     var dev = state.flags.cityDev || {};
     var total = 0;
-    rc.forEach(function (cid) { total += Math.round((dev[cid] || 0) * 0.6); });
+        var em = roleEconMul();
+    rc.forEach(function (cid) { total += Math.round((dev[cid] || 0) * 0.6 * em); });
     if (total > 0) {
       state.gold = (state.gold || 0) + total;
       log('〔府库〕治下 ' + rc.length + ' 城纳赋，得银 ' + total + ' 两。', 'sys');
@@ -2609,6 +2714,13 @@
     });
     rank.sort(function (a, b) { return b.power - a.power; });
     F.factionPowerRank = rank;
+    // 玩家治下城：随月发展（战乱城停滞），受相才加成（v20260918h）
+    (state.ruledCities||[]).forEach(function(cid){
+      if (F.factionWarHit[cid]) return;
+      var c=C[cid]||{}, g=(0.3+(((c.agri||40)+(c.commerce||40))/200)*0.9)*roleEconMul();
+      var before=cityDevOf(cid), after=Math.min(100,before+g);
+      if(after>before) setCityDev(cid,after);
+    });
     F.factionWarHit = {};
   }
   function scanFactionSurvival() {
@@ -6974,7 +7086,7 @@
       h=renderFactionMap();
     } else if(kind==='sect'){
       h=renderSectPanel();
-    } else if(kind==='log'){
+    } else if(kind==='diplomacy'){ h=renderDiplomacy(state.flags._dipFid)||''; } else if(kind==='log'){
       h=renderLogPanel();          // 回顾（v20260914a）：顶栏「回顾」/ 状态栏右侧那颗
     }
     $card.innerHTML=h;
@@ -7323,7 +7435,8 @@
   if(window.LF) window.LF.Guide=Guide;
   // ── 全局桥接（v20260909o）：势力归属动态化接口，供剧情/事件脚本调用 ──
   window.warlordBattle=warlordBattle;   // 指定一场攻伐：warlordBattle('luoyang','caocao',{allowCapital:true,allowLast:true,allowInside:true})
-  window.conquerCity=conquerCity;       // 底层直接易帜：conquerCity('城id','势力id',devDelta)（写归属+治下账目）
+  window.conquerCity=conquerCity;
+  window.diploPropose=diploPropose; window.diploSue=diploSue; window.openDiplomacy=openDiplomacy;   // 外交系统入口（v20260918h）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）
   // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，
   //    engine.js 及其拆分文件以裸名 state 访问（=window.state），rooms.js 等外部脚本以 window.state 只读访问。

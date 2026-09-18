@@ -27,7 +27,7 @@
   // ===== 捏人 / 开场序章 =====
   function initCreateState(){
     var attr={}; ATTR_DEFS.forEach(function(a){ attr[a.k]=5; }); // 四维初始皆 5
-    setCreateState({ name:'', attr:attr, pool:CREATE_FREE, skip:false });
+    setCreateState({ name:'', attr:attr, pool:CREATE_FREE, skip:false, role:'youxia' });
   }
   // 资质壳已移除，加点直接作用于四维 attr
   function beginCreate(slot){
@@ -72,7 +72,7 @@
         '<div class="cr-sec-t">四 维 赋 点<span class="cr-pool">余 <b id="cr-pool">'+getCreateState().pool+'</b> 点</span></div>'+
         '<div class="ap-list">'+attrRows+'</div>'+
       '</div>'+
-      '<label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用）</label>'+
+      '<div class="cr-sec"><div class="cr-sec-t">立 身 之 道<span class="cr-pool">择一以定方略</span></div><div class="role-list"><button type="button" class="role-btn" data-role="youxia"><b>🗡 游侠</b><i>江湖散人，进退由心；声望易得，同袍愿随。</i></button><button type="button" class="role-btn" data-role="jiang"><b>⚔ 将才</b><i>行伍出身，攻城野战如虎添翼。</i></button><button type="button" class="role-btn" data-role="xiang"><b>📜 相才</b><i>治郡有方，府库殷实、民力倍增。</i></button></div></div><label class="cr-skip"><input type="checkbox" id="cr-skip"> 跳过新手教程（测试用）</label>'+
       '<div class="cr-actions"><button class="cr-go" id="cr-go">踏 入 江 湖</button></div>';
   }
   // 仅更新加点数值/按钮/战力，避免每次点击整体重建弹窗（手机卡顿根因）
@@ -91,7 +91,8 @@
       var decBtn=row.querySelector('[data-act="dec"]'); if(decBtn) decBtn.disabled=(v<=ATTR_MIN);
     });
   }
-  function bindCreate(){
+    function updateRoleUI(){ if(!getCard()) return; getCard().querySelectorAll('.role-btn').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-role')===getCreateState().role); }); }
+function bindCreate(){
     var nameEl=document.getElementById('cr-name');
     if(nameEl){ nameEl.value=getCreateState().name||''; nameEl.oninput=function(){ getCreateState().name=nameEl.value; }; }
     // 随机取名按钮（v20260908k）
@@ -113,6 +114,7 @@
     });
     var skipEl=document.getElementById('cr-skip');
     if(skipEl){ skipEl.checked=!!getCreateState().skip; skipEl.onchange=function(){ getCreateState().skip=!!skipEl.checked; }; }
+    getCard().querySelectorAll('.role-btn').forEach(function(b){ b.onclick=function(){ getCreateState().role=b.getAttribute('data-role'); updateRoleUI(); }; });
     var go=document.getElementById('cr-go'); if(go) go.onclick=confirmCreate;
   }
   function attrAllocHTML(){
@@ -178,6 +180,7 @@
     save.name=name;
     save.attr=attr;          // 四维（含分配后的数值）
     save.freePoints=getCreateState().pool;   // 捏人未分配完的点转为入局后自由属性点，避免白丢
+    save.role=getCreateState().role||'youxia';   // 立身之道（v20260918h 职种分化）
     save.origin=null;
     // 跳过新手教程（测试用）：直接抵达洛阳（朱雀大街），并标记教学已完成、补发一包金疮药；
     // 同时打通主线门控（力斩华雄 + 洛阳凯旋）以避免被卡门。
