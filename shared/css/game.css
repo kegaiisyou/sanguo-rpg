@@ -1579,7 +1579,7 @@
     writing-mode:vertical-rl;
     font-family:"Ma Shan Zheng","Zhi Mang Xing","STKaiti","KaiTi",serif;
     font-size:clamp(16px,2.15vw,24px);
-    line-height:1.85;letter-spacing:1px;column-gap:9px;
+    line-height:1.85;letter-spacing:1px;column-gap:9px;word-break:keep-all;
     color:#15100a;opacity:.16;
     text-shadow:0 0 6px rgba(20,15,8,.10);}
   .tt-scroll-body span{margin:0 2px;overflow:hidden;}
