@@ -1211,7 +1211,7 @@
   function isDeadHour(h){ return inHours(DEAD_HOURS,h); }      // 深夜：灶火已熄
   function isCurfewHour(h){ return inHours(NIGHT_HOURS,h); }   // 落锁：城门闭 · 点卯逾期
   function isRollHour(h){ return inHours(ROLL_HOURS,h); }       // 点卯：卯至午应名（与「午后销名」一开一收）
-  function onbF(){ return (state.flags && state.flags.onb) || null; }
+  function onbF(){ return (state && state.flags && state.flags.onb) || null; }
   // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
   function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
   // 牢房落锁（v20260917a）：戌亥子丑寅（约晚8点至次日早5点）牢门上闩，卯时开锁放风——
@@ -1506,6 +1506,7 @@
     advanceMinutes(n*120);          // 休息等整时辰动作委托分钟制（1 时辰=120 分钟）
   }
   function advanceMinutes(min){
+    if(!state) return;
     min = Math.max(0, (min|0)||0);
     if(!clockFlowing()) return;     // 教学期「时辰未启」→ 时间一律冻结（同旧版）
     var before = state.clock || 0;
@@ -7442,6 +7443,7 @@
   window.warlordBattle=warlordBattle;   // 指定一场攻伐：warlordBattle('luoyang','caocao',{allowCapital:true,allowLast:true,allowInside:true})
   window.conquerCity=conquerCity;
   window.diploPropose=diploPropose; window.diploSue=diploSue; window.openDiplomacy=openDiplomacy;   // 外交系统入口（v20260918h）
+  window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）
   // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，
   //    engine.js 及其拆分文件以裸名 state 访问（=window.state），rooms.js 等外部脚本以 window.state 只读访问。
@@ -7533,7 +7535,7 @@
   _pbgs.forEach(function(_src){ var _im=new Image(); _im.onload=function(){ _pbgDone++; }; _im.onerror=function(){ _pbgDone++; }; _im.src=_src; });
   (function _waitPbg(){
     if(_pbgDone>=_pbgs.length || Date.now()-_pbgT0>2500){
-      showTitle();
+      if(!state || !state.room) showTitle();   // 已进游戏则不再强回首頁（v20260918i 竞态修复）
       var _ld=document.getElementById('loader');
       if(_ld){ setTimeout(function(){ _ld.classList.add('hidden'); }, 340); }   // 标题页就绪后加载页淡出
     } else { setTimeout(_waitPbg, 60); }
