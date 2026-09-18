@@ -211,7 +211,7 @@ function bindCreate(){
     pendingSave=save;
     // 落笔入世 → 直接踏入江湖，进入第一段开场引导剧情（不再弹序幕框）
     var tt=document.getElementById('title'); if(tt) tt.classList.add('hidden');
-    enterGame(pendingSave, pendingSlot); closeModal();
+    enterGame(pendingSave, pendingSlot, true); closeModal();
     pendingSave=null;
   }
 

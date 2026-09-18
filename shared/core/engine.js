@@ -666,7 +666,7 @@
   }
   // [moved → shared/core/state.js]
   // 将一份存档数据载入为当前游戏状态并展卷
-  function enterGame(data, slot){
+  function enterGame(data, slot, isNew){
     curSlot=slot||0;
     Core.state = state = normalize(data || G.defaultSave());
     G.applySect(state);
@@ -682,7 +682,7 @@
     //   （文案见 shared/story/dialogues.js · prologue，演出见 playPrologue）。动画演毕才 renderRoom，
     //   故角色是「被推进牢房」之后才出现在牢里的；紧接着由 camp_opening 剧本接开场（铁链/尘土/周听涛开口）。
     // 记录旗标放顶层 state.flags.introShown——不可放 flags.onb.*，因教学入口 applyOnboard 会整块重置 onb。
-    var _playIntro = !(state.flags && state.flags.introShown);
+    var _playIntro = !!isNew;   // 序章仅开新游戏播放；读档一律跳过（避免旧存档/残留幕布导致每次读档重播开场）
     if(_playIntro){ if(!state.flags) state.flags={}; state.flags.introShown=true; }
     renderStatus();
     // 开场渐进式 UI：新局落在教学入口时，先进入空白引导态（隐藏顶栏/DOCK/行动区/罗盘）
@@ -714,6 +714,7 @@
         _tipSkip();
       });
     } else {
+      var _pr=document.getElementById('prologue'); if(_pr) _pr.classList.add('hidden');   // 防御：读档时显式隐藏上一局残留的序章幕布
       if(app) app.classList.remove('hidden');
       renderRoom(state.room || state.spawnRoom || 'ji_guomen');
       _tipSkip();
