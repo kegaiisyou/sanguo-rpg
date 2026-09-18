@@ -1534,6 +1534,11 @@
       if(Math.random()<0.55) state.weather=Math.floor(Math.random()*WEATHERS.length); // 新日易天候
       warlordDayTick(crossings);             // 群雄逐鹿：NPC 势力自动攻伐（v20260909o）
     }
+      // 朔日结算（v20260918g）：跨月 → 治下纳赋 + 群雄内政 + 势力存亡 + 统一终局（叠在耗时辰模型上）
+      var _cal = deriveCalendar();
+      var _mk = _cal.adYear * 12 + _cal.month;
+      if (state.flags._monthKey != null && _mk !== state.flags._monthKey) onMonthTick(_cal);
+      state.flags._monthKey = _mk;
     tickForge(crossedHours);   // 炉膛随时辰持续推进（未跨辰不动，避免 0.25 时辰的小数进度）
     tickBuildOrders(crossings);   // 城市营造工单：跨日推进宏观委派 + 结算每日市租（第3步）
     // 查房（v20260911i）：此刻若已过戌时又在营中游荡，巡夜狱卒便来拿人。
@@ -2440,7 +2445,9 @@
   function warInRoom(cid) { try { return !!state && state.room === cid; } catch (e) { return false; } }
   // ── 战事执行：校验过后的单役结算；返回 {win, city, atk, def} 或 null ──
   function runWarlordBattle(targetCid, attackerFid) {
-    if (!state || state.dead) return null;
+    if (!state || state.dead) return null;    if (!state.flags.factionWarHit) state.flags.factionWarHit = {};
+    state.flags.factionWarHit[targetCid] = true;   // 兵锋所及，民生凋敝（当月不发展）
+
     var C = LF.CITIES || {}, tc = C[targetCid];
     if (!tc) return null;
     var city = tc.name || targetCid;
@@ -2542,6 +2549,101 @@
     }
   }
 
+  // ══ 战略层 · 朔日结算（v20260918g）══
+  // 叠在现有「耗时辰」连续模型之上：不改用命令书，只在每月边界自动结算一次，
+  // 让时间真正按月推进——治下纳赋、群雄内政、势力存亡、天下一统都挂在月结上。
+  // 月度边界由日历派生（1 农历月 = 30 天）判定；首月只记锚点不结算，避免开局即算。
+  function onMonthTick(cal) {
+    if (!state || state.dead) return;
+    var ym = cal.eraName + cal.eraYear + '年·' + cal.monthName + '月';
+    log('〔朔日〕' + ym + '——时序更迭，天下大势暗流涌动。', 'sys');
+    monthlyYield();
+    factionDomesticAI();
+    scanFactionSurvival();
+    checkUnify();
+    if ((cal.month % 3) === 1) {
+      var rk = (state.flags.factionPowerRank || []);
+      if (rk.length) {
+        var top = rk.slice(0, 3).map(function (r) { return r.name + '(' + r.cities + '城)'; }).join('、');
+        log('〔大势〕群雄之势——' + top + ' 渐成气候。', 'sys');
+      }
+    }
+    if (typeof save === 'function') save(state);
+  }
+  function monthlyYield() {
+    var rc = state.ruledCities;
+    if (!rc || !rc.length) return;
+    var dev = state.flags.cityDev || {};
+    var total = 0;
+    rc.forEach(function (cid) { total += Math.round((dev[cid] || 0) * 0.6); });
+    if (total > 0) {
+      state.gold = (state.gold || 0) + total;
+      log('〔府库〕治下 ' + rc.length + ' 城纳赋，得银 ' + total + ' 两。', 'sys');
+    }
+  }
+  function factionDomesticAI() {
+    if (!state || state.dead) return;
+    var F = state.flags; F.factionAssets = F.factionAssets || {}; F.factionWarHit = F.factionWarHit || {};
+    var C = LF.CITIES || {}, byFaction = {};
+    Object.keys(C).forEach(function (cid) {
+      var k = warOwnerKey(cid);
+      if (k === 'han' || k === 'player') return;
+      (byFaction[k] = byFaction[k] || []).push(cid);
+    });
+    var rank = [];
+    Object.keys(byFaction).forEach(function (fid) {
+      if (!warIsLordKey(fid)) return;
+      var cities = byFaction[fid], asset = F.factionAssets[fid] = F.factionAssets[fid] || { gold: 300, troops: 0 };
+      var grown = 0;
+      cities.forEach(function (cid) {
+        var c = C[cid] || {};
+        var g = F.factionWarHit[cid] ? 0 : (0.3 + (((c.agri || 40) + (c.commerce || 40)) / 200) * 0.9);
+        var before = cityDevOf(cid);
+        var after = Math.min(100, before + g);
+        if (after > before) { setCityDev(cid, after); grown += (after - before); }
+        asset.gold = (asset.gold || 0) + Math.round(before * 0.04 + ((c.agri || 40) + (c.commerce || 40)) * 0.12);
+      });
+      asset.troops = (asset.troops || 0) + Math.round(grown * 4 + cities.length * 3);
+      asset.cities = cities.length;
+      rank.push({ fid: fid, name: warFactionName(fid), power: warFactionTotal(fid), cities: cities.length });
+    });
+    rank.sort(function (a, b) { return b.power - a.power; });
+    F.factionPowerRank = rank;
+    F.factionWarHit = {};
+  }
+  function scanFactionSurvival() {
+    var F = state.flags; F.factionDead = F.factionDead || {}; F.factionEverHeld = F.factionEverHeld || {};
+    var counts = {};
+    Object.keys(LF.CITIES || {}).forEach(function (c) { var k = warOwnerKey(c); counts[k] = (counts[k] || 0) + 1; });
+    Object.keys(LF.FACTIONS || {}).forEach(function (fid) {
+      if (fid === 'han' || fid === 'player') return;
+      var n = counts[fid] || 0;
+      if (n > 0) { F.factionEverHeld[fid] = true; F.factionDead[fid] = false; }
+      else if (F.factionEverHeld[fid] && !F.factionDead[fid]) {
+        F.factionDead[fid] = true;
+        var nm = (LF.FACTIONS[fid] || {}).name || fid;
+        chronicle(nm + '势力土崩瓦解，退出群雄之争。', 'fall');
+        log('〔大势〕' + nm + '势力土崩瓦解，自此退出群雄之争。', 'sys');
+      }
+    });
+  }
+  function checkUnify() {
+    if (state.flags.unified) return;
+    var counts = {};
+    Object.keys(LF.CITIES || {}).forEach(function (c) { var k = warOwnerKey(c); counts[k] = (counts[k] || 0) + 1; });
+    var aliveReal = 0;
+    Object.keys(LF.FACTIONS || {}).forEach(function (fid) {
+      if (fid === 'han' || fid === 'player') return;
+      if ((counts[fid] || 0) > 0) aliveReal++;
+    });
+    if ((counts['player'] || 0) > 0 && aliveReal === 0) {
+      state.flags.unified = true;
+      var nm = (LF.FACTIONS.player || {}).name || '义军';
+      chronicle(nm + '扫平群雄，海内归心，天下一统！', 'unify');
+      log('〔天下一统〕历经百战，你终扫平群雄、海内归心——乱世至此落幕。', 'good');
+      toast('🏆 天下一统！');
+    }
+  }
   // ===== 山河图 · 城内网格视图（v20260824b）=====
   // 仅作城郭总览展示（地图不再承担移动职责），移动统一走下方方向键
   function buildActions(room, popExits){

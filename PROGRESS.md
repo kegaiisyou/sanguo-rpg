@@ -1,7 +1,7 @@
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。
-> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260917e`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
+> **用户可见版本**：`LF.CONSTANTS.VERSION`（当前 `20260918e`，见 `shared/config/constants.js`），每次迭代/内容改动后 bump，并同步 `index.html` 中对应 `<script src="...?v=...">` 缓存参数。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version`（当前 `0.2.0`），仅用于存档兼容/迁移，与显示版本无关，切勿改动。
 > 主端：网页 H5 `index.html`，唯一数据源：`shared/`。
 

@@ -91,6 +91,13 @@
       check: function (s) { return (s.ruledCities && s.ruledCities.length >= 1); },
       prog: function (s) { return '已据城 ' + (s.ruledCities ? s.ruledCities.length : 0) + ' / 1'; },
       ratio: function (s) { return (s.ruledCities && s.ruledCities.length >= 1) ? 1 : 0; }
+    },
+    {
+      id: 'unify', title: '扫平群雄', type: 'main', reward: { xp: 2000, gold: 2000, rep: 30 },
+      hint: '挥师四方，攻取群雄城池，令天下再无与你分庭抗礼之势，海内归一。',
+      check: function (s) { return !!(s.flags && s.flags.unified); },
+      prog: function (s) { return (s.flags && s.flags.unified) ? '已一统四海' : '扫平其余群雄（势力尽数灭亡）'; },
+      ratio: function (s) { return (s.flags && s.flags.unified) ? 1 : 0; }
     }
   ];
 

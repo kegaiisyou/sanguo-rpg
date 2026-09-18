@@ -233,7 +233,9 @@ window.LF = window.LF || {};
     // 负责：写 flags.cityOwner + 玩家治下账目（ruledCities 增删）。
     function conquerCity(cid, owner, devDelta) {
       ensureCityState(cid);
-      var F = S().flags, old = F.cityOwner[cid];
+      var F = S().flags, old = F.cityOwner[cid];      if (!F.factionWarHit) F.factionWarHit = {};
+      F.factionWarHit[cid] = true;   // 易帜之城必经兵燹（v20260918g：战乱当月经略停滞）
+
       if (old === owner) return { changed: false, old: old, owner: owner };
       F.cityOwner[cid] = owner;
       if (!S().ruledCities) S().ruledCities = [];

@@ -1,5 +1,7 @@
 # 乱世烽火 · 项目整理与三端统一规范
 
+> ⚠️ **文档状态（已过时 · 历史参考）**：本文档是早期「三端（H5 / 微信小游戏 / 微信小程序）统一」规划。当前仓库**仅剩网页 H5 单端**（`index.html` + `shared/`），`wechat-game/`、`wechat-miniprogram/`、`backup/`、`web/` 目录均**已不存在**，文中相关引用为历史残留、不再适用。最新落地状态以 `PROGRESS.md` 与 `README.md` 为准；本文件保留作架构决策历史参考。
+>
 > 本文档是**项目管理规范**，不执行任何删除/移动/编辑。所有清理动作由你按文末「手动执行清单」自行完成。
 > 配套可运行的参考脚本思路见第 4 节（仅作命令示例，未执行）。
 >
@@ -81,20 +83,28 @@
 
 ```
 shared/                      ← 唯一数据源（文字剧情 + 数值配置，均为 .js UMD 模块）
+  core/
+    state.js                运行时状态与设置容器（须最先加载）
+    calendar.js             历法/天候（农历/公历/12时辰/8天候）
+    engine.js               主端引擎主体（战斗/移动/UI/渲染，最后加载）
+    city.js / inventory.js / mapview.js / citybuild.js / save.js / dev.js / triggers.js   子系统模块
+  strategic-map.js          山河志 D3 战略图（州/郡/城/势力分层 + 两级 LOD）
   story/
     rooms.js                房间/出口/NPC/actions（营/城/林/溪/洛阳/蓟城/北疆边塞…）
-    events.js               随机事件文本（探索/奇遇/抉择分支，当前 8 占位）
+    events.js               随机事件文本（探索/奇遇/抉择分支）
     dialogues.js            NPC 对话与任务文本
+    objectives.js           任务指路/目标锚点
   data/
+    cities.js / roads.js / places.js   城市/路网/地点（Place 统一地点体系）
     martial.js              武学树（MARTIAL_ARTS：招式/绝技/发力技巧 + 13 艺线）
     enemies.js              敌人模板（含掉落表）
-    items.js                物品/装备定义
+    items.js / build.js / recipes.js   物品/装备、营造蓝图、配方
   config/
     constants.js            全局常量（GAME_NAME/VERSION/MAX_LEVEL 等）
-  index.js                  聚合导出（浏览器 window.LF / Node·微信端 module.exports）
+  index.js                  聚合导出（浏览器 window.LF / Node module.exports）
 index.html                  ← H5 主端（单文件，禁缩放/下拉；直接引用 shared/，未拆 web/）
 ```
-> 说明：早期计划把 H5 拆为 `web/` 模块化（game.js / storage.js），且 `shared/story` 用 `.json`；但当前实际为**单文件 `index.html`** 直接引用 `shared/`，`shared/story` 下是 `.js`。功能自洽，结构差异属实现选择，后续可再规范化。
+> 说明：当前实际为**单文件 `index.html`** 直接引用 `shared/`，`shared/story` 下是 `.js`。引擎已按子系统拆分到 `shared/core/`，战略图独立为 `shared/strategic-map.js`，地点数据拆分为 `cities/roads/places`。早期规划的 `web/` 模块化拆分与微信端（小游戏/小程序）均**已放弃**，不再建设。
 
 ### 3.2 共享数据层应包含（文字路线）
 
@@ -206,18 +216,21 @@ Get-ChildItem *.html | Get-FileHash -Algorithm MD5 | Group-Object Hash | Where-O
 
 ```
 乱世烽火/
-├── index.html              # H5 入口（禁缩放/下拉，见第 8 节）或重定向至 web/
-├── web/                    # [规划·未建] H5 主端模块化代码（game.js / storage.js）；当前仍用单文件 index.html 直接引用 shared/
+├── index.html              # H5 入口（禁缩放/下拉，见第 8 节），直接引用 shared/
 ├── shared/                 # [已落地] 唯一数据源：文字剧情 + 数值配置（.js UMD）
-├── wechat-miniprogram/     # 后期分发端（套壳或重写文字 UI，引用 shared/）
-├── wechat-game/            # 后期分发端（复用 shared/ 文字，表现层暂搁置）
-├── assets/                 # 美术/音频共用（文字路线下可大幅精简）
-├── backup/                 # 历史版本（禁删）
-├── PROJECT_GUIDE.md        # 本规范
-├── GAME_DESIGN.md          # 改为第 5 节统一设定
-├── 版本管理手册.md          # 改名统一为"乱世烽火"，修正仓库描述
-└── 一键部署*.bat / deploy*.ps1  # 部署体系保留
+│   ├── core/               # 引擎子系统（state/calendar/engine/city/inventory/mapview/citybuild/save/dev/triggers）
+│   ├── story/              # 房间/事件/对话/任务（rooms/events/dialogues/objectives）
+│   ├── data/               # 城市/路网/地点/武学/敌人/物品/营造/配方
+│   ├── config/             # 全局常量（constants.js）
+│   └── strategic-map.js    # 山河志 D3 战略图
+├── assets/                 # 美术/音频共用
+├── docs/                   # 专项设计文档
+├── scripts/ / test/ / tools/   # 生成器/校验/工具脚本
+├── PROJECT_GUIDE.md        # 本规范（历史：早期三端规划）
+├── GAME_DESIGN.md          # 玩法设计基线
+└── PROGRESS.md             # 进度/设计对照（权威落地状态）
 ```
+> 注：早期规划的 `web/`（H5 模块化拆分）、`wechat-miniprogram/`、`wechat-game/`、`backup/` 目录**均已不存在**，本文档其余处对它们的引用为历史残留。
 
 ### 6.2 版本号规则（沿用既有，保持不变）
 
