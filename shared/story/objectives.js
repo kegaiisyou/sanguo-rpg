@@ -194,6 +194,20 @@
       submit: { npc: '阿禾', room: 'kuyilao' },
       reward: '修为+30 · 阿禾好感+2 · 水渠线索'
     },
+    ahe_wood: {
+      id: 'ahe_wood', title: '阿禾·寻木材', type: 'side',
+      hint: '阿禾想在墙角刨个窝遮风。往仓库或伐木处寻些木材（🟫），回地字二号牢房点阿禾、选「给予」递过去。',
+      need: [ { flag: 'flags.task.ahe_wood_done', name: '递木材', icon: '🟫', count: 1 } ],
+      submit: { npc: '阿禾', room: 'kuyilao' },
+      reward: '修为+25 · 阿禾好感+2'
+    },
+    ahe_stone: {
+      id: 'ahe_stone', title: '阿禾·寻石料', type: 'side',
+      hint: '木材到手，阿禾还要石料凿镐。往矿坑或担石场寻石料（🪨），回地字二号牢房点阿禾、选「给予」递过去。',
+      need: [ { flag: 'flags.task.ahe_stone_done', name: '递石料', icon: '🪨', count: 1 } ],
+      submit: { npc: '阿禾', room: 'kuyilao' },
+      reward: '修为+30 · 阿禾好感+2'
+    },
     night_water: {
       id: 'night_water', title: '夜半添水', type: 'side',
       hint: '往囚室那格的水槽点「添水」，把槽水注满——添满即了，水不够就多打几袋。',

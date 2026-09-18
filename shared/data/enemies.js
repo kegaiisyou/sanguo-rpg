@@ -44,6 +44,20 @@
       ai: 'defensive',
       drop: { gold: [0, 0], pot: [0, 0], table: [], equip: { tier: 0, chance: 0 } }
     },
+    // 苦役营岗哨·默叔线拦路 boss（coup.moshu 分支）：认死理，错就错到底
+    diyunzhou: {
+      id: 'diyunzhou', name: '岗哨·狄云舟', title: '苦役营哨官',
+      element: '金',
+      hp: 380, atk: 27, def: 17, spd: 21,
+      skills: [
+        { id: 'sentinel_thrust', name: '拦路矛', beat: 30, dmgMul: 1.1, desc: '长矛直刺，封死去路' },
+        { id: 'sentinel_sweep', name: '横扫千军', beat: 38, dmgMul: 1.25, desc: '旋身横扫，势如铁壁' },
+        { id: 'sentinel_roar', name: '厉喝压阵', beat: 20, dmgMul: 0, desc: '断喝一声，士气自振',
+          eff: { selfBuff: { atk: 4, turns: 3 } } }
+      ],
+      ai: 'boss',
+      drop: { gold: [10, 25], pot: [4, 10], table: [], equip: { tier: 1, chance: 25 } }
+    },
 
     // ─── 中等敌人 ───
     bandit_chief: {
@@ -79,6 +93,20 @@
       ai: 'defensive',
       drop: { gold: [60, 120], pot: [20, 40],
         table: [{ item: 'talisman_scrap', name: '残符', weight: 5 }], equip: { tier: 3, chance: 65 } }
+    },
+    // 太平道·北墙截杀（coup.officer_letter 分支）：伏在北墙缺口外的游哨
+    yth_intercept: {
+      id: 'yth_intercept', name: '太平道·截杀游哨', title: '北墙伏兵',
+      element: '火',
+      hp: 340, atk: 26, def: 16, spd: 23,
+      skills: [
+        { id: 'yth_ember', name: '符箓·炎', beat: 32, dmgMul: 1.1, desc: '符纸化火扑面',
+          attr: { wu: '火' }, eff: { burnChance: 0.35, burnDmg: 5, burnTurns: 3 } },
+        { id: 'yth_ambush', name: '伏击刺', beat: 26, dmgMul: 1.0, desc: '自暗处突刺',
+          eff: { slowChance: 0.3, slowTurns: 2 } }
+      ],
+      ai: 'aggressive',
+      drop: { gold: [8, 20], pot: [4, 10], table: [], equip: { tier: 1, chance: 20 } }
     },
 
     // ─── Boss：华雄 ───

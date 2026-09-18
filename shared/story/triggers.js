@@ -765,6 +765,211 @@
     ]
   });
 
+  // ══════════ 第三批·阿禾讨物链：木材 → 石料（默叔支路前置）══════════
+  //   阿禾要木材、再要石料，想悄悄在墙角刨个窝——这些材料日后被牢头搜出，成为第4日夺营的导火索。
+  //   注意：此链只涨「阿禾」好感；默叔好感改由「挡灾同担」事件（moshu_harass）单独结算，
+  //   以免「只帮阿禾就能刷默叔」稀释了共患难的分量。
+  TRIGGERS.push({
+    id: 'ahe_wood_intro', hook: 'onTalk', npc: 'a_he', room: 'camp_dz2', once: false,
+    cond: { flags: { 'flags.task.porridge_done': true }, notFlag: 'flags.task.ahe_wood_done' },
+    steps: [
+      { t: 'npcTalk', npc: 'a_he',
+        prompt: '阿禾把空碗往怀里一揣，压低声：「……劳烦你再替我寻些木材来。我想在墙角刨个窝——夜里风大，妹子若来寻我，也有个遮风处。」',
+        asks: [
+          { label: '〔应下〕我去找木材', set: { 'flags.task.ahe_wood_started': true },
+            say: '阿禾点点头，从破袄里摸出半截炭条，在墙角划了个浅浅的圈：「就这儿。木材不拘多少，凑一把就成。」' }
+        ] }
+    ]
+  });
+  TRIGGERS.push({
+    id: 'ahe_wood_give', hook: 'onGive', npc: 'a_he', room: 'camp_dz2', item: 'mucai', once: false,
+    cond: { flags: { 'flags.task.ahe_wood_started': true }, notFlag: 'flags.task.ahe_wood_done' },
+    steps: [
+      { t: 'setFlag', path: 'flags.task.ahe_wood_done', value: true },
+      { t: 'completeQuest', id: 'ahe_wood' },
+      { t: 'favor', npc: 'a_he', amount: 2 },
+      { t: 'exp', amount: 25 },
+      { t: 'log', cls: 'npc', text: '〔阿禾〕接过木材，喉头动了动：「……我记着你这份情。等出去了，我教你认山里的草药。」' },
+      { t: 'log', cls: 'good', text: '〔任务完成·寻木材〕修为+25 · 阿禾好感+2' }
+    ]
+  });
+  TRIGGERS.push({
+    id: 'ahe_stone_intro', hook: 'onTalk', npc: 'a_he', room: 'camp_dz2', once: false,
+    cond: { flags: { 'flags.task.ahe_wood_done': true }, notFlag: 'flags.task.ahe_stone_done' },
+    steps: [
+      { t: 'npcTalk', npc: 'a_he',
+        prompt: '阿禾搓了搓手：「木材有了……还差样硬物。你若能弄来石头，我凿把镐——墙根是夯土的，有镐才刨得动。」',
+        asks: [
+          { label: '〔应下〕我去寻石料', set: { 'flags.task.ahe_stone_started': true },
+            say: '阿禾眼睛亮了亮：「矿坑、担石场都有碎石。劳你再跑一趟。」' }
+        ] }
+    ]
+  });
+  TRIGGERS.push({
+    id: 'ahe_stone_give', hook: 'onGive', npc: 'a_he', room: 'camp_dz2', item: 'shitiao', once: false,
+    cond: { flags: { 'flags.task.ahe_stone_started': true }, notFlag: 'flags.task.ahe_stone_done' },
+    steps: [
+      { t: 'setFlag', path: 'flags.task.ahe_stone_done', value: true },
+      { t: 'completeQuest', id: 'ahe_stone' },
+      { t: 'favor', npc: 'a_he', amount: 2 },
+      { t: 'exp', amount: 30 },
+      { t: 'log', cls: 'npc', text: '〔阿禾〕接过石料，指节攥得发白，眼里却亮得怕人：「够了……够凿把镐了。今夜我就动手。」' },
+      { t: 'log', cls: 'good', text: '〔任务完成·寻石料〕修为+30 · 阿禾好感+2' }
+    ]
+  });
+
+  // ══════════ 默叔·挡灾同担（丙·替牢头刁难时扛下 → 好感+1）══════════
+  //   默叔哑且缄口，寻常交谈给不了好感（dialogues.js 只配了 lines，无 topic）。
+  //   他的好感只在此「共患难」一刻结算：牢头踹门刁难，你替他扛下——哑者认的是替他挨的那一下。
+  //   本触发 once:true，是玩家与默叔关系里唯一一次涨好感的机会；选「别管」则默叔好感恒定 0，
+  //   第4日夺营会落入 minor_ahe / minor 支路（设计意图：没共过患难，便不被墨家支线接纳）。
+  TRIGGERS.push({
+    id: 'moshu_harass', hook: 'onTalk', npc: 'moshu', room: 'camp_tz2', once: true,
+    steps: [
+      { t: 'log', cls: 'warn', text: '你正要同默叔打手势，牢门忽被人一脚踹开——牢头提着钥匙串进来，目光扫过默叔膝上那只未完工的木鸢，冷笑：「老哑巴，今日夯墙的活计你少了一截，是想挨鞭是不是？」' },
+      { t: 'npcTalk', npc: 'moshu',
+        prompt: '默叔缓缓把木鸢往身后藏，却并不躲。他抬眼看了你一下，又垂下——那眼神不是求你救，是怕你惹祸上身。',
+        asks: [
+          { label: '〔替他扛〕「那活计是我叫他歇的，冲我来」',
+            then: [
+              { t: 'favor', npc: 'moshu', amount: 1 },
+              { t: 'hurt', amount: 8, favor: -1, favorNpc: 'laotou', fxText: '牢头一推' },
+              { t: 'setFlag', path: 'flags.moshu.shielded', value: true },
+              { t: 'log', cls: 'npc', text: '你迎上去把话揽下。牢头眯眼，反手把你搡了个趔趄：「牙尖嘴利！记你一笔。」默叔怔住，望着你挨那一下，指节攥了又松——他第一次，朝你弯了弯眼角。' },
+              { t: 'log', cls: 'good', text: '〔默叔好感 +1〕他记下了你这一挡。' }
+            ] },
+          { label: '〔别管〕退到栅边，不作声',
+            then: [
+              { t: 'log', cls: 'sys', text: '你没作声。牢头骂骂咧咧，拖着默叔去补那截夯墙的活；默叔回头瞥你一眼，眼神淡了下去。' }
+            ] }
+        ] }
+    ]
+  });
+
+  // ══════════ 夺营裁决器（第4日·共享起爆点）══════════
+  //   太平道于第4日夺营；玩家此前的积累（密道/军官/阿禾默叔牵绊）决定走哪条分支。
+  //   本切片只做「裁决 + 占位」，各分支的电影化大段（崔九牺牲、狄云舟对决等）留待后续切片接入 flags.coup.branch。
+  //   优先级（自上而下）：tunnel_early(密道先逃) > officer_letter(送信搬救兵) > moshu(默叔线) > minor_ahe > minor(兜底)
+  //   触发点沿用现状：第4日（player.day>=3）踏入中军场院(camp_yard) 且已出牢(cellOpen) 时裁决一次。
+  TRIGGERS.push({
+    id: 'coup_resolver', hook: 'onEnter', room: 'camp_yard', once: false,
+    cond: { flags: { 'flags.onb.cellOpen': true }, player: { day: { min: 3 } }, notFlag: 'flags.coup.done' },
+    steps: [
+      { t: 'setFlag', path: 'flags.coup.done', value: true },
+      { t: 'log', cls: 'warn', text: '〔夺营·起爆〕第4日，营中骤变——太平道的旗号已暗里插遍岗哨。你此前的经营，决定这一夜通向何处。' },
+      { t: 'branch',
+        if: { flags: { 'flags.route.tunnel': true } },
+        then: [
+          { t: 'setFlag', path: 'flags.coup.branch', value: 'tunnel_early' },
+          { t: 'log', cls: 'warn', text: '〔夺营·密道先逃〕你早通了矿坑地道——混乱中猫腰钻进坑道，比谁都先出了营。（最简逃生线）' }
+        ],
+        else: [ { t: 'branch',
+          if: { flags: { 'flags.route.crypt': true } },
+          then: [
+            { t: 'setFlag', path: 'flags.coup.branch', value: 'tunnel_early' },
+            { t: 'log', cls: 'warn', text: '〔夺营·密道先逃〕塌墙根暗道你早探明——趁乱一头扎进，最先脱身。（最简逃生线）' }
+          ],
+          else: [ { t: 'branch',
+            if: { flags: { 'flags.route.drain': true } },
+            then: [
+              { t: 'setFlag', path: 'flags.coup.branch', value: 'tunnel_early' },
+              { t: 'log', cls: 'warn', text: '〔夺营·密道先逃〕水渠夜遁的道你早摸熟——顺渠漂出，乱兵追之不及。（最简逃生线）' }
+            ],
+            else: [ { t: 'branch',
+              if: { npcFavor: { key: 'han_tie', min: 2 } },
+              then: [
+                { t: 'setFlag', path: 'flags.coup.branch', value: 'officer_letter' },
+                { t: 'log', cls: 'warn', text: '〔夺营·送信搬救兵〕韩铁信你，密令你趁乱出营送信搬救兵。你成了这营里最后一封活信——' }
+              ],
+              else: [ { t: 'branch',
+                if: { npcFavor: { key: 'a_he', min: 2 } },
+                then: [ { t: 'branch',
+                  if: { npcFavor: { key: 'moshu', min: 1 } },
+                  then: [
+                    { t: 'setFlag', path: 'flags.coup.branch', value: 'moshu' },
+                    { t: 'log', cls: 'warn', text: '〔夺营·默叔线〕你与阿禾、默叔的牵绊，让这一夜通向墨家支路——' }
+                  ],
+                  else: [
+                    { t: 'setFlag', path: 'flags.coup.branch', value: 'minor_ahe' },
+                    { t: 'log', cls: 'warn', text: '〔夺营·轻版〕你与阿禾有些交情，默叔却未认你。阿禾拉你逃，大段从简。' }
+                  ]
+                } ],
+                else: [
+                  { t: 'setFlag', path: 'flags.coup.branch', value: 'minor' },
+                  { t: 'log', cls: 'warn', text: '〔夺营·孤身〕你孤身一人，被乱局裹挟。（最简逃生 / 短暂被俘 待接入）' }
+                ]
+              } ]
+            } ]
+          } ]
+        } ]
+      }
+    ]
+  });
+
+  // ══════════ 默叔线·电影化大段（coup.moshu 分支，第4日夺营接续演出）══════════
+  //   触发条件：coup_resolver 在同一次踏入中军场院时已置 branch='moshu'；本触发器顺次接续（checkTriggers 顺序同步触发）。
+  //   流程：牢头搜洞+石镐 → 崔九替死 → 默叔出手 → 岗哨狄云舟拦路(战斗) → 逃出（收尾在 engine.onCombatResult）。
+  TRIGGERS.push({
+    id: 'coup_moshu_scene', hook: 'onEnter', room: 'camp_yard', once: false,
+    cond: { flags: { 'flags.coup.branch': 'moshu' }, notFlag: 'flags.coup.moshu_escaped' },
+    steps: [
+      { t: 'log', cls: 'warn', text: '卯时三刻，号角骤起——太平道的旗已插上粮仓。火光里，牢头领着两名官差踹进牢区；他鼻翼翕动，循着新翻的土腥，从墙角刨出阿禾那口洞，又从草堆里抄出那把石镐。' },
+      { t: 'log', cls: 'combat', text: '「好啊——私通外贼、图谋不轨！」牢头一声唿哨，铁链已套上阿禾的脖颈。「这洞、这镐，是谁的主意？」' },
+      { t: 'log', cls: 'npc', text: '你正要开口，崔九却已跨前半步，把你们三个挡在身后。这沉默的什长只盯着牢头：「洞是我挖的，镐是我藏的。要拿，拿我。」' },
+      { t: 'log', cls: 'env', text: '牢头狞笑，腰刀照准崔九劈下。崔九不避不让——他侧身将你往默叔那边一推，那一刀结结实实嵌进肩胛。血溅上土墙，他却没有倒，只回头看你一眼。' },
+      { t: 'log', cls: 'good', text: '〔崔九〕「……老子带出去的兵，夜里得睡得着。」他笑着，却再没松开那攥紧的铁链。' },
+      { t: 'setFlag', path: 'flags.coup.cui_jiu_dead', value: true },
+      { t: 'log', cls: 'combat', text: '默叔眼底第一次有了杀意。他袖中机括「咔」地弹开，一截墨家短弩的寒光抵在牢头咽喉——牢头与官差轰然倒地。他一把拽起你与阿禾，朝塌墙根的暗道疾去。' },
+      { t: 'log', cls: 'env', text: '你们钻出暗道，迎面却是岗哨通明的火把。狄云舟横矛立在那里，甲胄映着火光，像是早料到有人从此处钻出。' },
+      { t: 'npcTalk', npc: 'diyunzhou',
+        prompt: '狄云舟将长矛一顿，矛尖点地：「站住。这营里少一个囚犯，我项上人头就得落地。你，留下。」',
+        asks: [
+          { label: '〔应战〕夺矛而走', then: [ { t: 'combat', enemy: 'diyunzhou' } ] },
+          { label: '〔偕默叔齐上〕并肩破围', then: [ { t: 'combat', enemy: 'diyunzhou' } ] }
+        ]
+      }
+    ]
+  });
+
+  // ══════════ 韩铁线·送信搬救兵（coup.officer_letter 分支，第4日夺营接续演出）══════════
+  //   触发条件：coup_resolver 在同一次踏入中军场院时已置 branch='officer_letter'；本触发器顺次接续。
+  //   流程：韩铁托密令 → 北墙水沟缺口 → 太平道伏兵截杀(战斗) → 揣信出营（收尾在 engine.onCombatResult）。
+  TRIGGERS.push({
+    id: 'coup_officer_letter_scene', hook: 'onEnter', room: 'camp_yard', once: false,
+    cond: { flags: { 'flags.coup.branch': 'officer_letter' }, notFlag: 'flags.coup.officer_letter_escaped' },
+    steps: [
+      { t: 'log', cls: 'warn', text: '火光里，韩铁一把揪住你，将一封蜡封密令塞进你掌心：「拿着——营要乱了，这是活路，也是韩某的脸面。」' },
+      { t: 'npcTalk', npc: 'han_tie',
+        prompt: '韩铁压低嗓：「出北墙，把这信交给白檀屯的穆老——他能搬来救兵。这营里活着的信，就剩你一封。别让韩某死不瞑目。」',
+        asks: [ { label: '〔接令〕将密令贴胸揣好', then: [] } ] },
+      { t: 'setFlag', path: 'flags.coup.letter_in_hand', value: true },
+      { t: 'log', cls: 'env', text: '你猫腰避开乱兵，沿墙根摸到北墙水沟缺口。土腥混着火药味，远处杀声渐密。' },
+      { t: 'log', cls: 'combat', text: '缺口外影影绰绰——一队太平道贼兵早伏在那儿，见你形迹便扑将上来：「活口不留！」' },
+      { t: 'combat', enemy: 'yth_intercept' }
+    ]
+  });
+
+  // ══════════ 韩铁线收尾·白檀屯救兵（coup.officer_letter 后续）══════════
+  //   触发：揣信逃出后落到林径（lindao）接应点；仅 officer_letter 分支（letter_in_hand）命中。
+  //   流程：穆老信使认出密令 → 交付 → 救兵出发 → 边军支线种子（mu_lao 好感）+ 首尾呼应韩铁。
+  TRIGGERS.push({
+    id: 'coup_reinforcements_scene', hook: 'onEnter', room: 'lindao', once: false,
+    cond: { flags: { 'flags.coup.letter_in_hand': true }, notFlag: 'flags.coup.reinforcements_done' },
+    steps: [
+      { t: 'log', cls: 'env', text: '林径口，一个独眼老卒牵着空马候在岔道，见你怀中那封蜡封密令的形制，眼睛一亮，迎上前来。' },
+      { t: 'npcTalk', npc: 'mu_lao',
+        prompt: '独眼老卒抱拳：「白檀屯穆老遣某在此候着。韩教头临行前便吩咐：活着的信一到，救兵即刻拔营。把信予我，穆老的人马今夜便踏平那座牢笼。」',
+        asks: [ { label: '〔交付〕将密令递过', then: [
+          { t: 'setFlag', path: 'flags.coup.reinforcements_done', value: true },
+          { t: 'log', cls: 'good', text: '你递出密令。老卒就着月色验讫，翻身上马，疾驰而去——马蹄声里，是韩铁没能等到的那支兵。' },
+          { t: 'log', cls: 'order', text: '〔边军支线·起〕穆老记下了你这封活信的人情。北疆白檀屯，自此与你有了牵连。' },
+          { t: 'favor', npc: 'mu_lao', amount: 1 },
+          { t: 'exp', amount: 60 },
+          { t: 'log', cls: 'sys', text: '〔夺营线·收束〕韩铁把活路给了你，自己留在了营里。信到，救兵必至——他流的那点血，没有白流。' }
+        ] } ] }
+    ]
+  });
+
   // ══════════ 第三批·仓中翻找：翻出什么交什么，交回仓里才算完 ══════════
   [['mucai', '木材'], ['rope', '绳'], ['bumu', '粗布']].forEach(function (f) {
     TRIGGERS.push({

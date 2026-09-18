@@ -1336,6 +1336,32 @@
   //   把狗打死不算，那教不会「留得青山」。
   LF.onCombatResult = function(result, enemy){
     if(!enemy) return;
+    // 默叔线·狄云舟拦路收尾（coup.moshu 分支）：胜或退皆算出营，统一毕业搬运；败亡交战斗系统处置。
+    if (enemy.id === 'diyunzhou' && state.flags && state.flags.coup && state.flags.coup.branch === 'moshu' && !state.flags.coup.moshu_escaped) {
+      if (result === 'lose') return;
+      state.flags.coup.moshu_escaped = true;
+      if (state.flags.onb) state.flags.onb.done = true;
+      state.moveGate = null; save(state);
+      graduate(true);
+      moveToOutside();
+      log('〔脱籍〕你已出营——点卯、晚归、口粮罚例一概不再管你；只是营中的钟点照旧，鼓声、作息、日头都不会为你停。', 'order');
+      log('〔墨家支路·逃脱〕默叔在前开路，你们翻过营墙那一刻，远处火光正吞没牢区。崔九替你挡下的那一刀，换来这一条活路。', 'env');
+      log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。', 'sys');
+      return;
+    }
+    // 韩铁线·北墙截杀收尾（coup.officer_letter 分支）：胜或退皆算出营，密令在手；败亡交战斗系统处置。
+    if (enemy.id === 'yth_intercept' && state.flags && state.flags.coup && state.flags.coup.branch === 'officer_letter' && !state.flags.coup.officer_letter_escaped) {
+      if (result === 'lose') return;
+      state.flags.coup.officer_letter_escaped = true;
+      if (state.flags.onb) state.flags.onb.done = true;
+      state.moveGate = null; save(state);
+      graduate(true);
+      moveToOutside();
+      log('〔脱籍〕你已出营——点卯、晚归、口粮罚例一概不再管你；只是营中的钟点照旧，鼓声、作息、日头都不会为你停。', 'order');
+      log('〔送信·墨家支路〕你揣着韩铁的密令翻出营墙，身后是吞没牢区的火光。信还在，人还在——白檀屯的救兵，便有指望。', 'env');
+      log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。', 'sys');
+      return;
+    }
     // 木人试艺（v20260915f）：桩是死物，练的是「打得倒」——故只认打赢，撤了不计。
     if(result==='win' && enemy.id==='dummy'){
       var d=state.flags && state.flags.task;
