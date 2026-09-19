@@ -22,6 +22,7 @@
     var shuicaoDrinkPlaced = ctx.shuicaoDrinkPlaced;
     var shuicaoFillPlaced = ctx.shuicaoFillPlaced;
     var toast = ctx.toast;
+    var getCombatMode = ctx.getCombatMode;
 
   function actRest(){
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
@@ -97,7 +98,7 @@
   }
   // 打开自由时长休息面板（设施决定效率；战败只能就地打盹）
   function openRestModal(kind){
-    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
+    if(getCombatMode()!==null){ toast('正与敌缠斗，先应敌！'); return; }
     if(S().dead){ die(); return; }
     if(S().defeated && kind!=='ground'){ toast('你重伤未愈，动弹不得，只能席地打盹。'); kind='ground'; }
     openModal('rest', {kind:kind});

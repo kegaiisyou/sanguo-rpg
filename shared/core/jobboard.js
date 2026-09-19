@@ -2,7 +2,8 @@
 (function (global) {
   global.LF = global.LF || {};
   global.LF.createJobboard = function (ctx) {
-    var getState = ctx.getState, S = getState;
+    var getState = ctx.getState
+    var getCurrentModalKind = ctx.getCurrentModalKind, S = getState;
     var LF = ctx.LF;
     var getJOB_BOARD = ctx.JOB_BOARD;
     var acceptQuest = ctx.acceptQuest;
@@ -76,7 +77,7 @@
     log(j.take,'sys');
     log('〔差役〕'+j.tip,'sys');
     save(S()); buildActions(curRoom());
-    if(currentModalKind==='job'){ openModal('job'); }
+    if(getCurrentModalKind()==='job'){ openModal('job'); }
   }
   // 看差役牌（v20260915b）：从对话文字流改为木牍面板 —— 木牌质感 + 一片木牍一桩活
   function jobBoard(){

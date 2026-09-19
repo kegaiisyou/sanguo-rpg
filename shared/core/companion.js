@@ -2,7 +2,8 @@
 (function (global) {
   global.LF = global.LF || {};
   global.LF.createCompanion = function (ctx) {
-    var getState = ctx.getState, S = getState;
+    var getState = ctx.getState
+    var getCurrentModalKind = ctx.getCurrentModalKind, S = getState;
     var LF = ctx.LF;
     var G = ctx.G;
     var buildActions = ctx.buildActions;
@@ -36,7 +37,7 @@
     S().party.splice(idx,1);
     for(var k in COMPANION_DEFS){ if(COMPANION_DEFS[k].id===id && S().flags && S().flags.recruited){ delete S().flags.recruited[k]; } }
     save(S());
-    if(currentModalKind==='party') openModal('party');
+    if(getCurrentModalKind()==='party') openModal('party');
     log(c.name+'与你拱手作别，转身没入人海。','sys');
     toast(c.name+' 已离队。');
   }
@@ -173,7 +174,7 @@
     giveSelectedIdx = null;
     giveQty = 1;
     // 刷新给予面板
-    if(currentModalKind==='give'){
+    if(getCurrentModalKind()==='give'){
       var card=document.getElementById('modal-card');
       if(card) card.innerHTML = renderGivePanel(giveNpc);
       bindGivePanel();

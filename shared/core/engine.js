@@ -76,7 +76,8 @@
     G: G,
     getState: function () { return state; },
     getTriggers: function () { return (window.LF && window.LF.TRIGGERS) || (G && G.TRIGGERS) || []; },
-    log: log, logScene: logScene,
+    // log/logScene 解构自 Narr（L373），本工厂先建 → 包装函数延迟引用（同下方 packAdd 范式）
+    log: function () { return log.apply(null, arguments); }, logScene: function () { return logScene.apply(null, arguments); },
     onbReveal: onbReveal, highlightOnb: highlightOnb, onbGoal: onbGoal,
     tutAsk: tutAsk, dlgEcho: dlgEcho, fxBeat: fxBeat, findEvent: findEvent, runEvent: runEvent,
     // startCombat 来自 Combat 别名（L197 才赋值），本工厂先建 → 包装函数延迟引用（同 L75 packAdd 范式）
@@ -200,7 +201,7 @@
   // 展示型面板簇（v20260919j）：图鉴 / 设置 / 致谢 / 志向标题 / 回顾 / 破境
   // 可变绑定一律 getter：HIST_MAX 声明在 L4125，晚于此处插入点，直接取值会捕获 undefined。
   var Panels = LF.createPanels({
-    getState: getState,
+    getState: function(){ return state; },   // 惰性取当前 state（重构后 window.getState 定义在 L4683，此处不能引用未声明变量）
     getSettings: function(){ return settings; },
     getHistMax: function(){ return HIST_MAX; },
     G: G,
@@ -251,6 +252,7 @@
       shuicaoDrinkPlaced: shuicaoDrinkPlaced,
       shuicaoFillPlaced: shuicaoFillPlaced,
       toast: toast,
+      getCombatMode: function () { return combatMode; },
   });
   var PLACE_ACTIONS = Rest.PLACE_ACTIONS, PLACE_KEY_DEF = Rest.PLACE_KEY_DEF, REST_KINDS = Rest.REST_KINDS, WX_REST = Rest.WX_REST, actRest = Rest.actRest;
   var bindRestPanel = Rest.bindRestPanel, cellNapScene = Rest.cellNapScene, doNap = Rest.doNap, doRest = Rest.doRest, openRestModal = Rest.openRestModal;
@@ -307,6 +309,7 @@
       log: log,
       openModal: openModal,
       renderStatus: renderStatus,
+      getCurrentModalKind: function () { return currentModalKind; },
   });
   var bindJobBoard = Jobboard.bindJobBoard, jobBoard = Jobboard.jobBoard, jobFlag = Jobboard.jobFlag, jobOpen = Jobboard.jobOpen, jobPlankHTML = Jobboard.jobPlankHTML;
   var jobSeal = Jobboard.jobSeal, jobSettle = Jobboard.jobSettle, jobTake = Jobboard.jobTake, jobTick = Jobboard.jobTick, lastJobTaken = Jobboard.lastJobTaken;
@@ -370,7 +373,7 @@
       syncActionLock = Narr.syncActionLock, busyAct = Narr.busyAct, busyHide = Narr.busyHide, busyStopTimer = Narr.busyStopTimer,
       busyCancel = Narr.busyCancel, flushNarr = Narr.flushNarr, initLockObserver = Narr.initLockObserver,
       splitSpeech = Narr.splitSpeech, balanceSpeech = Narr.balanceSpeech, fbShow = Narr.fbShow, injectModalFb = Narr.injectModalFb,
-      log = Narr.log, logRaw = Narr.logRaw, pumpLog = Narr.pumpLog, logNow = Narr.logNow, logScene = Narr.logScene;
+      log = Narr.log, logRaw = Narr.logRaw, pumpLog = Narr.pumpLog, logNow = Narr.logNow, logScene = Narr.logScene, invalidateScene = Narr.invalidateScene;
   // 模块 progression（从 engine.js 拆分）
   var Progression = LF.createProgression({
       getState: function () { return state; },
@@ -412,7 +415,8 @@
   }
   // 模块 schedule（从 engine.js 拆分）
   var Schedule = LF.createSchedule({
-      getState: function () { return state; }
+      getState: function () { return state; },
+      SHICHEN: SHICHEN
   });
   var hourNow = Schedule.hourNow, hourLabel = Schedule.hourLabel, inHours = Schedule.inHours,
       isMessHour = Schedule.isMessHour, isDeadHour = Schedule.isDeadHour, isCurfewHour = Schedule.isCurfewHour,
@@ -1329,7 +1333,7 @@
   }
   function renderRoom(rid, silent){
     var room=G.ROOMS[rid]||bldRoom(rid); if(!room) return;
-    narrToken++;                 // 新场景：使任何残留的旧叙事序列失效
+    invalidateScene();            // 新场景：使任何残留的旧叙事序列失效
     dlgClose();                  // 换场景即收对话窗（v20260912g）：上一位的话，说完就到此为止
     state.room=rid;
     if(isCityGrid(rid)){

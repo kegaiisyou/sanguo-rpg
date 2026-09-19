@@ -5,6 +5,7 @@
   global.LF = global.LF || {};
   global.LF.createSchedule = function (ctx) {
     var getState = ctx.getState, S = getState;
+  var SHICHEN = ctx.SHICHEN;
   // ══ 作息口径（v20260911h · P3）══════════════════════════════════════════════
   // 「时辰 → 此时能做什么」的判定全部收敛到这一处，勿散落到各处：
   //   劳作吃时辰(laborTick) / 伙房供饭(mess_hall) / 回牢销名(check_in) / 城门宵禁 / 客栈打尖 共用同一套口径。

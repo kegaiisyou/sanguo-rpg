@@ -318,8 +318,10 @@
       });
     })(0);
   }
+  // 场景失效：新场景（换房）使任何进行中的旧叙事序列作废（原 engine.js 内联的 narrToken++ 拆出）
+  function invalidateScene(){ narrToken++; }
     return {
-      typeInto, skipTypewriter, narrActive, interactBusy, syncActionLock, busyAct, busyHide, busyStopTimer, busyCancel, flushNarr, initLockObserver, splitSpeech, balanceSpeech, fbShow, injectModalFb, log, logRaw, pumpLog, logNow, logScene
+      typeInto, skipTypewriter, narrActive, interactBusy, syncActionLock, busyAct, busyHide, busyStopTimer, busyCancel, flushNarr, initLockObserver, splitSpeech, balanceSpeech, fbShow, injectModalFb, log, logRaw, pumpLog, logNow, logScene, invalidateScene
     };
   };
 })(typeof window !== 'undefined' ? window : global);
