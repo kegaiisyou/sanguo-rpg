@@ -153,60 +153,83 @@ window.onerror=function(msg,url,line,col,err){
       </div>
     </div></div></div>
 
-<script src="shared/config/constants.js?v=20260918k"></script>
-<script src="shared/config/ui-spec.js?v=20260902a"></script>
-<script src="shared/config/balance.js?v=20260902a"></script>
-<script src="shared/story/sects.js?v=20260902a"></script>
-<script src="shared/story/skills.js?v=20260902a"></script>
-<script src="shared/story/objectives.js?v=20260918g"></script>
-<script src="shared/story/events.js?v=20260902a"></script>
-<script src="shared/story/dialogues.js?v=20260918c"></script>
+<script src="shared/config/constants.js?v=20260919j" defer></script>
+<script src="shared/config/ui-spec.js?v=20260902a" defer></script>
+<script src="shared/config/balance.js?v=20260902a" defer></script>
+<script src="shared/story/sects.js?v=20260902a" defer></script>
+<script src="shared/story/skills.js?v=20260902a" defer></script>
+<script src="shared/story/objectives.js?v=20260918g" defer></script>
+<script src="shared/story/events.js?v=20260902a" defer></script>
+<script src="shared/story/dialogues.js?v=20260918c" defer></script>
 <!-- v20260912f：npc_cards.js 提到 rooms.js 之前 —— 具名 NPC 的摆位/作息统一存在这张人物表里，
      rooms.js（作息表）与 core/city.js（名册）都要在加载期读它派生，顺序不能反。 -->
-<script src="shared/data/npc_cards.js?v=20260917a"></script>
-<script src="shared/data/personas.js?v=20260916d"></script>
-<script src="shared/story/rooms.js?v=20260915h"></script>
-    <script src="shared/story/triggers.js?v=20260918c"></script>
-    <script src="shared/data/martial.js?v=20260910j"></script>
-<script src="shared/data/enemies.js?v=20260918c"></script>
-<script src="shared/data/items.js?v=20260915j"></script>
-    <script src="shared/data/recipes.js?v=20260915j"></script>
-    <script src="shared/data/build.js?v=20260902a"></script>
-    <script src="shared/data/shops.js?v=20260905a"></script>
-    <script src="shared/shop.js?v=20260907d"></script>
-    <script src="shared/data/map.js?v=20260910h"></script>
-    <script src="shared/data/cities.js?v=20260912c"></script>
-    <script src="shared/data/placeKinds.js?v=20260904m"></script>
-    <script src="shared/data/places.js?v=20260912a"></script>
-    <script src="shared/data/roads.js?v=20260904g"></script>
-    <script src="shared/systems/travel.js?v=20260907d"></script>
-    <script src="shared/gen/rooms.js?v=20260907a"></script>
-    <script src="shared/vendor/d3.min.js?v=20260902b"></script>
-    <script src="shared/data/map_regions.js?v=20260912c"></script>
-    <script src="shared/strategic-map.js?v=20260918h"></script>
-    <script src="shared/data/markets.js?v=20260902a"></script>
-    <script src="shared/combat/engine.js?v=20260902a"></script>
-    <script src="shared/index.js?v=20260918h"></script>
-  <script src="shared/core/state.js?v=20260908f"></script>
-  <script src="shared/core/calendar.js?v=20260910w"></script>
-  <script src="shared/core/save.js?v=20260910w"></script>
-  <script src="shared/core/dev.js?v=20260910k"></script>
-  <script src="shared/core/triggers.js?v=20260917a"></script>
-  <script src="shared/core/city.js?v=20260918g"></script>
-<script src="shared/core/npc.js?v=20260916c"></script>
-  <script src="shared/core/inventory.js?v=20260910u"></script>
-  <script src="shared/core/mapview.js?v=20260909h"></script>
-  <script src="shared/core/citybuild.js?v=20260916b"></script>
-  <script src="shared/core/audio.js?v=20260909j"></script>
-  <script src="shared/core/combat.js?v=20260910j"></script>
-  <script src="shared/core/pack.js?v=20260909h"></script>
-  <script src="shared/core/building.js?v=20260915h"></script>
-  <script src="shared/core/storage.js?v=20260909h"></script>
-  <script src="shared/core/charcreate.js?v=20260918h"></script>
-  <script src="shared/core/equipment.js?v=20260909i"></script>
-  <script src="shared/core/crafting.js?v=20260915i"></script>
-  <script src="shared/core/strategy.js?v=20260918k"></script>
-  <script src="shared/core/engine.js?v=20260918k"></script>
+<script src="shared/data/npc_cards.js?v=20260917a" defer></script>
+<script src="shared/data/personas.js?v=20260916d" defer></script>
+<script src="shared/story/rooms.js?v=20260915h" defer></script>
+    <script src="shared/story/triggers.js?v=20260918c" defer></script>
+    <script src="shared/data/martial.js?v=20260910j" defer></script>
+<script src="shared/data/enemies.js?v=20260918c" defer></script>
+<script src="shared/data/items.js?v=20260915j" defer></script>
+    <script src="shared/data/recipes.js?v=20260915j" defer></script>
+    <script src="shared/data/build.js?v=20260902a" defer></script>
+    <script src="shared/data/shops.js?v=20260905a" defer></script>
+    <script src="shared/shop.js?v=20260907d" defer></script>
+    <script src="shared/data/map.js?v=20260910h" defer></script>
+    <script src="shared/data/cities.js?v=20260912c" defer></script>
+    <script src="shared/data/placeKinds.js?v=20260904m" defer></script>
+    <script src="shared/data/places.js?v=20260912a" defer></script>
+    <script src="shared/data/roads.js?v=20260904g" defer></script>
+    <script src="shared/systems/travel.js?v=20260907d" defer></script>
+    <script src="shared/gen/rooms.js?v=20260907a" defer></script>
+    <script>
+      // 战略地图资源清单（v20260919f 起懒加载）：仅在首次开图时由 engine.ensureStrategicMap 注入。
+      // 版本号随对应文件走，文件有改动时务必同步此处（与旧 <script ?v> 同等纪律）。
+      window.__MAP_ASSETS = {
+        d3: 'shared/vendor/d3.min.js?v=20260902b',
+        regions: 'shared/data/map_regions.js?v=20260912c',
+        sm: 'shared/strategic-map.js?v=20260918h'
+      };
+    </script>
+    <script src="shared/data/markets.js?v=20260902a" defer></script>
+    <script src="shared/combat/engine.js?v=20260902a" defer></script>
+    <script src="shared/index.js?v=20260918h" defer></script>
+  <script src="shared/core/state.js?v=20260908f" defer></script>
+  <script src="shared/core/calendar.js?v=20260910w" defer></script>
+  <script src="shared/core/save.js?v=20260910w" defer></script>
+  <script src="shared/core/dev.js?v=20260910k" defer></script>
+  <script src="shared/core/triggers.js?v=20260917a" defer></script>
+  <script src="shared/core/city.js?v=20260918g" defer></script>
+<script src="shared/core/npc.js?v=20260916c" defer></script>
+  <script src="shared/core/inventory.js?v=20260910u" defer></script>
+  <script src="shared/core/mapview.js?v=20260909h" defer></script>
+  <script src="shared/core/citybuild.js?v=20260916b" defer></script>
+  <script src="shared/core/audio.js?v=20260909j" defer></script>
+  <script src="shared/core/combat.js?v=20260910j" defer></script>
+  <script src="shared/core/pack.js?v=20260909h" defer></script>
+  <script src="shared/core/building.js?v=20260915h" defer></script>
+  <script src="shared/core/storage.js?v=20260909h" defer></script>
+  <script src="shared/core/charcreate.js?v=20260918h" defer></script>
+  <script src="shared/core/equipment.js?v=20260909i" defer></script>
+  <script src="shared/core/crafting.js?v=20260915i" defer></script>
+  <script src="shared/core/strategy.js?v=20260918k" defer></script>
+  <script src="shared/core/companion.js?v=20260918l" defer></script>
+  <script src="shared/core/rest.js?v=20260918l" defer></script>
+  <script src="shared/core/mine.js?v=20260918l" defer></script>
+  <script src="shared/core/jobboard.js?v=20260918l" defer></script>
+  <script src="shared/core/farm.js?v=20260918l" defer></script>
+  <script src="shared/core/quest.js?v=20260919a" defer></script>
+  <script src="shared/core/mapking.js?v=20260919a" defer></script>
+  <script src="shared/core/learn.js?v=20260919a" defer></script>
+  <script src="shared/core/escape.js?v=20260919a" defer></script>
+  <script src="shared/core/narr.js?v=20260919b" defer></script>
+  <script src="shared/core/progression.js?v=20260919c" defer></script>
+  <script src="shared/core/statusbar.js?v=20260919f" defer></script>
+  <script src="shared/core/schedule.js?v=20260919d" defer></script>
+  <script src="shared/core/field.js?v=20260919g" defer></script>
+  <script src="shared/core/sect.js?v=20260919h" defer></script>
+  <script src="shared/core/panels.js?v=20260919j" defer></script>
+  <script src="shared/core/prologue.js?v=20260919j" defer></script>
+  <script src="shared/core/engine.js?v=20260919j" defer></script>
 </body>
 </html>
 

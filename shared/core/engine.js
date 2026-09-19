@@ -127,6 +127,297 @@
       genCityGrid = City.genCityGrid, cityCellDesc = City.cityCellDesc,
       cityCellNpcs = City.cityCellNpcs, cityCellActs = City.cityCellActs,
       registerCityRooms = City.registerCityRooms;
+// 模块 farm（从 engine.js 拆分）
+  var Farm = LF.createFarm({
+      getState: function () { return state; },
+      LF: LF,
+      CROPS: CROPS,
+      advanceMinutes: advanceMinutes,
+      afterPackChange: afterPackChange,
+      buildActions: buildActions,
+      busyAct: busyAct,
+      curRoom: curRoom,
+      exert: exert,
+      fxGet: fxGet,
+      log: log,
+      renderStatus: renderStatus,
+      toast: toast,
+      jobOpen: function () { return jobOpen; },
+  });
+  var CROPS = Farm.CROPS, FARM_LI = Farm.FARM_LI, FARM_MAX = Farm.FARM_MAX, FARM_UP = Farm.FARM_UP, farmClear = Farm.farmClear;
+  var farmFx = Farm.farmFx, farmHarvest = Farm.farmHarvest, farmHas = Farm.farmHas, farmObjects = Farm.farmObjects, farmSow = Farm.farmSow;
+  var farmTill = Farm.farmTill, farmTilled = Farm.farmTilled, farmUpgrade = Farm.farmUpgrade, farmWater = Farm.farmWater, farmWeed = Farm.farmWeed;
+  var plantPast = Farm.plantPast, plotLeft = Farm.plotLeft, plotStage = Farm.plotStage;
+  // 模块 field（从 engine.js 拆分）
+  var Field = LF.createField({
+    getState: function () { return state; },
+    LF: LF,
+    G: G,
+    log: log,
+    toast: toast,
+    wxEff: wxEff,
+    isDaytime: isDaytime,
+    WEATHERS: WEATHERS,
+    effectiveStats: effectiveStats,
+    advanceMinutes: advanceMinutes,
+    afterPackChange: afterPackChange,
+    buildActions: buildActions,
+    mkAct: mkAct,
+    openModal: openModal,
+    closeModal: closeModal,
+    save: save,
+    renderStatus: renderStatus,
+    toggleObjExpand: toggleObjExpand,
+    placedCellTag: placedCellTag,
+    placedInCell: placedInCell,
+    packUpPlaced: packUpPlaced,
+    openRestModal: function () { return openRestModal; },
+    startCombat: function () { return startCombat; },
+    packAdd: function () { return packAdd; },
+    packFind: function () { return packFind; },
+    packConsume: function () { return packConsume; },
+    getCombatMode: function () { return combatMode; }
+  });
+  var fieldMonstersLeft = Field.fieldMonstersLeft, fieldNarr = Field.fieldNarr, fieldNarrFresh = Field.fieldNarrFresh,
+      fieldMetaOf = Field.fieldMetaOf, roomIsBoatRoute = Field.roomIsBoatRoute, isOnBoat = Field.isOnBoat, setOnBoat = Field.setOnBoat,
+      boatBoardAct = Field.boatBoardAct, fieldActions = Field.fieldActions, gatherField = Field.gatherField, fieldHasWater = Field.fieldHasWater,
+      fishField = Field.fishField, huntFieldBeast = Field.huntFieldBeast, talkFieldNpc = Field.talkFieldNpc, fieldPlacedCamps = Field.fieldPlacedCamps,
+      carriedCampGear = Field.carriedCampGear, placeFieldGear = Field.placeFieldGear, addFieldCamp = Field.addFieldCamp, campInField = Field.campInField,
+      maybeFieldAmbush = Field.maybeFieldAmbush;
+
+  // 模块 rest（从 engine.js 拆分）
+  // 模块 sect（从 engine.js 拆分）
+  var Sect = LF.createSect({
+    getState: function () { return state; },
+    G: G,
+    log: log,
+    toast: toast,
+    openModal: openModal,
+    renderStatus: renderStatus
+  });
+  var sectBonusText = Sect.sectBonusText, sectReqText = Sect.sectReqText, renderSectPanel = Sect.renderSectPanel, bindSectPanel = Sect.bindSectPanel;
+
+  // 展示型面板簇（v20260919j）：图鉴 / 设置 / 致谢 / 志向标题 / 回顾 / 破境
+  // 可变绑定一律 getter：HIST_MAX 声明在 L4125，晚于此处插入点，直接取值会捕获 undefined。
+  var Panels = LF.createPanels({
+    getState: getState,
+    getSettings: function(){ return settings; },
+    getHistMax: function(){ return HIST_MAX; },
+    G: G,
+    LF: LF,
+    SFX: SFX,
+    lfSpeedLabel: lfSpeedLabel,
+    row: row,
+    escapeHtml: escapeHtml,
+    cityProfile: cityProfile, genCityGrid: genCityGrid,
+    cellDisplayType: cellDisplayType, availableGateDirs: availableGateDirs,
+    cityLevelName: cityLevelName, cityGridSize: cityGridSize,
+    cityDevOf: cityDevOf,
+  });
+  var renderCodex = Panels.renderCodex,
+      renderSettings = Panels.renderSettings,
+      renderCredit = Panels.renderCredit,
+      topObjectiveText = Panels.topObjectiveText,
+      renderLogPanel = Panels.renderLogPanel,
+      renderLevelup = Panels.renderLevelup,
+      renderCityStat = Panels.renderCityStat;
+
+  // 序章开场动画（v20260919j）：全屏幕布 #prologue 的一次性演出，演完回调 onDone
+  var Prologue = LF.createPrologue({
+    getSettings: function(){ return settings; },
+    G: G,
+    SFX: SFX
+  });
+  var playPrologue = Prologue.playPrologue;
+
+  var Rest = LF.createRest({
+      getState: function () { return state; },
+      LF: LF,
+      G: G,
+      REST_KINDS: REST_KINDS,
+      advanceTime: advanceTime,
+      buildActions: buildActions,
+      clearActions: clearActions,
+      clockFlowing: clockFlowing,
+      closeModal: closeModal,
+      curRoom: curRoom,
+      die: die,
+      inCellNow: inCellNow,
+      log: log,
+      maybeFieldAmbush: maybeFieldAmbush,
+      packUpPlaced: packUpPlaced,
+      renderStatus: renderStatus,
+      shuicaoDrawToBag: shuicaoDrawToBag,
+      shuicaoDrinkPlaced: shuicaoDrinkPlaced,
+      shuicaoFillPlaced: shuicaoFillPlaced,
+      toast: toast,
+  });
+  var PLACE_ACTIONS = Rest.PLACE_ACTIONS, PLACE_KEY_DEF = Rest.PLACE_KEY_DEF, REST_KINDS = Rest.REST_KINDS, WX_REST = Rest.WX_REST, actRest = Rest.actRest;
+  var bindRestPanel = Rest.bindRestPanel, cellNapScene = Rest.cellNapScene, doNap = Rest.doNap, doRest = Rest.doRest, openRestModal = Rest.openRestModal;
+  var outdoorRestFactor = Rest.outdoorRestFactor, renderRestPanel = Rest.renderRestPanel, storageCid = Rest.storageCid;
+  // 模块 companion（从 engine.js 拆分）
+  var Companion = LF.createCompanion({
+      getState: function () { return state; },
+      LF: LF,
+      G: G,
+      buildActions: buildActions,
+      closeModal: closeModal,
+      log: log,
+      npcAttitude: npcAttitude,
+      renderNpcList: renderNpcList,
+      row: row,
+      talk: talk,
+      toast: toast,
+  });
+  var DIR_ARROW = Companion.DIR_ARROW, DIR_GRID = Companion.DIR_GRID, bindGivePanel = Companion.bindGivePanel, buildNpcActions = Companion.buildNpcActions, calcGiveFavor = Companion.calcGiveFavor;
+  var dismissCompanion = Companion.dismissCompanion, giveItemToNpc = Companion.giveItemToNpc, giveNpc = Companion.giveNpc, giveQty = Companion.giveQty, giveReaction = Companion.giveReaction;
+  var giveSelectedIdx = Companion.giveSelectedIdx, observeNpc = Companion.observeNpc, onbGiveUnlocked = Companion.onbGiveUnlocked, openGivePanel = Companion.openGivePanel, recruitCompanion = Companion.recruitCompanion;
+  var refreshGiveDetail = Companion.refreshGiveDetail, renderGivePanel = Companion.renderGivePanel, renderPartyPanel = Companion.renderPartyPanel;
+  // 模块 mine（从 engine.js 拆分）
+  var Mine = LF.createMine({
+      getState: function () { return state; },
+      LF: LF,
+      RECIPES: LF.RECIPES,
+      advanceMinutes: advanceMinutes,
+      afterPackChange: afterPackChange,
+      busyAct: busyAct,
+      closeModal: closeModal,
+      exert: exert,
+      log: log,
+      openModal: openModal,
+      renderStatus: renderStatus,
+      toast: toast,
+  });
+  var armoryEnter = Mine.armoryEnter, bindCavePanel = Mine.bindCavePanel, bindMinePanel = Mine.bindMinePanel, caveDig = Mine.caveDig, caveDown = Mine.caveDown;
+  var caveFloorDesc = Mine.caveFloorDesc, caveHit = Mine.caveHit, caveState = Mine.caveState, genCaveFloor = Mine.genCaveFloor, genOpenMine = Mine.genOpenMine;
+  var mineHit = Mine.mineHit, mineState = Mine.mineState, pickDef = Mine.pickDef, pickHitsNow = Mine.pickHitsNow, pickLv = Mine.pickLv;
+  var rareForFloor = Mine.rareForFloor, renderCavePanel = Mine.renderCavePanel, renderMinePanel = Mine.renderMinePanel, rollCaveEvent = Mine.rollCaveEvent, steleRead = Mine.steleRead;
+  var upgradePick = Mine.upgradePick;
+  // 模块 jobboard（从 engine.js 拆分）
+  var Jobboard = LF.createJobboard({
+      getState: function () { return state; },
+      LF: LF,
+      JOB_BOARD: function () { return JOB_BOARD; },
+      acceptQuest: acceptQuest,
+      addReputation: addReputation,
+      addXp: addXp,
+      buildActions: buildActions,
+      completeQuest: completeQuest,
+      curRoom: curRoom,
+      log: log,
+      openModal: openModal,
+      renderStatus: renderStatus,
+  });
+  var bindJobBoard = Jobboard.bindJobBoard, jobBoard = Jobboard.jobBoard, jobFlag = Jobboard.jobFlag, jobOpen = Jobboard.jobOpen, jobPlankHTML = Jobboard.jobPlankHTML;
+  var jobSeal = Jobboard.jobSeal, jobSettle = Jobboard.jobSettle, jobTake = Jobboard.jobTake, jobTick = Jobboard.jobTick, lastJobTaken = Jobboard.lastJobTaken;
+  var renderJobBoard = Jobboard.renderJobBoard;
+  // 模块 quest（从 engine.js 拆分）
+  var Quest = LF.createQuest({
+      getState: function () { return state; },
+      LF: LF, G: G,
+      getGuide: function () { return LF.Guide; },
+      dirToRoom: dirToRoom, roomNameOf: roomNameOf, isCityGrid: isCityGrid, genCityGrid: genCityGrid,
+      toast: toast, closeModal: closeModal, openModal: openModal, save: save, log: log,
+      renderStatus: renderStatus, addXp: addXp, addReputation: addReputation
+  });
+  var QORDER = Quest.QORDER, objBestEquip = Quest.objBestEquip, renderObjectives = Quest.renderObjectives, objCardHTML = Quest.objCardHTML,
+      questTitle = Quest.questTitle, packCount = Quest.packCount, flagNum = Quest.flagNum, addFlagNum = Quest.addFlagNum,
+      needHave = Quest.needHave, acceptQuest = Quest.acceptQuest, completeQuest = Quest.completeQuest, questCardHTML = Quest.questCardHTML,
+      switchQuestTab = Quest.switchQuestTab, bindQuestPanel = Quest.bindQuestPanel, checkQuestRewards = Quest.checkQuestRewards,
+      gotoBtnHTML = Quest.gotoBtnHTML, questGoto = Quest.questGoto, cityNpcCellPos = Quest.cityNpcCellPos;
+  // 模块 mapking（从 engine.js 拆分）
+  var MapKing = LF.createMapKing({
+      getState: function () { return state; },
+      LF: LF, G: G, mapData: mapData,
+      resolveMapCoords: resolveMapCoords, mapKind: mapKind, curRoom: curRoom,
+      closeModal: closeModal, renderRoom: renderRoom, save: save, mapNodeInfo: mapNodeInfo
+  });
+  var buildMapKingHTML = MapKing.buildMapKingHTML, initMapKing = MapKing.initMapKing;
+  // 模块 learn（从 engine.js 拆分）
+  var Learn = LF.createLearn({
+      getState: function () { return state; },
+      LF: LF, G: G,
+      clearActions: clearActions, buildActions: buildActions, curRoom: curRoom,
+      save: save, renderStatus: renderStatus, addBtn: addBtn, log: log,
+      getActions: function () { return $actions; }
+  });
+  var openLearn = Learn.openLearn;
+  // 模块 escape（从 engine.js 拆分）
+  var Escape = LF.createEscape({
+      getState: function () { return state; },
+      getRouteInfo: function () { return ROUTE_INFO; },
+      getEscapeAvail: function () { return escapeAvail; },
+      getEscapeLockHint: function () { return escapeLockHint; },
+      getDoEscape: function () { return doEscape; },
+      getTutAsk: function () { return tutAsk; },
+      log: log
+  });
+  var openEscapeHub = Escape.openEscapeHub;
+  // 模块 narr（从 engine.js 拆分）
+  var Narr = LF.createNarr({
+      getState: function () { return state; },
+      getSettings: function () { return settings; },
+      getAskPending: function () { return askPending; },
+      getCombatMode: function () { return combatMode; },
+      getCurfewWant: function () { return curfewWant; },
+      setCurfewWant: function (v) { curfewWant = v; },
+      getDlgSettle: function () { return dlgSettle; },
+      getEscapeHtml: function () { return escapeHtml; },
+      getRecHist: function () { return recHist; },
+      getCurfewPatrol: function () { return curfewPatrol; }
+  });
+  var typeInto = Narr.typeInto, skipTypewriter = Narr.skipTypewriter, narrActive = Narr.narrActive, interactBusy = Narr.interactBusy,
+      syncActionLock = Narr.syncActionLock, busyAct = Narr.busyAct, busyHide = Narr.busyHide, busyStopTimer = Narr.busyStopTimer,
+      busyCancel = Narr.busyCancel, flushNarr = Narr.flushNarr, initLockObserver = Narr.initLockObserver,
+      splitSpeech = Narr.splitSpeech, balanceSpeech = Narr.balanceSpeech, fbShow = Narr.fbShow, injectModalFb = Narr.injectModalFb,
+      log = Narr.log, logRaw = Narr.logRaw, pumpLog = Narr.pumpLog, logNow = Narr.logNow, logScene = Narr.logScene;
+  // 模块 progression（从 engine.js 拆分）
+  var Progression = LF.createProgression({
+      getState: function () { return state; },
+      getLog: function () { return log; },
+      getCombatMode: function () { return combatMode; },
+      getOpenModal: function () { return openModal; },
+      getClampHp: function () { return clampHp; },
+      getG: function () { return G; },
+      getPackAdd: function () { return packAdd; }
+  });
+  var moralLabel = Progression.moralLabel, moralTitle = Progression.moralTitle,
+      addChivalry = Progression.addChivalry, addNotoriety = Progression.addNotoriety,
+      afterMoral = Progression.afterMoral, repTitle = Progression.repTitle,
+      addReputation = Progression.addReputation, enemyExp = Progression.enemyExp,
+      addXp = Progression.addXp, applyEffect = Progression.applyEffect, findEvent = Progression.findEvent;
+  // 模块 statusbar（从 engine.js 拆分）
+  var Statusbar = LF.createStatusbar({
+      getState: function () { return state; },
+      getCheckQuestRewards: function () { return checkQuestRewards; },
+      getDeriveCalendar: function () { return deriveCalendar; },
+      getInCampNow: function () { return inCampNow; },
+      getCellDisplayName: function () { return cellDisplayName; },
+      getGenCityGrid: function () { return genCityGrid; },
+      getIsCityGrid: function () { return isCityGrid; },
+      getNeedHave: function () { return needHave; }
+  });
+  // 展示层合并调度（v20260919e）：renderStatus 被 100+ 处调用，纯展示、可合并——
+  // 同一帧内的多次调用仅触发一次真实 DOM 重建，避免动作/时间推进链里反复 innerHTML 重排。
+  var _sbRenderStatus = Statusbar.renderStatus, renderLocTab = Statusbar.renderLocTab;
+  var _rsScheduled = false;
+  function renderStatus(){
+    if (_rsScheduled) return;
+    _rsScheduled = true;
+    (window.requestAnimationFrame || function(f){ setTimeout(f, 16); })(function(){
+      _rsScheduled = false;
+      if (!state) return;                       // 离局/换局后 state 可能已清空，跳过本帧
+      try { _sbRenderStatus(); } catch (e) {}
+    });
+  }
+  // 模块 schedule（从 engine.js 拆分）
+  var Schedule = LF.createSchedule({
+      getState: function () { return state; }
+  });
+  var hourNow = Schedule.hourNow, hourLabel = Schedule.hourLabel, inHours = Schedule.inHours,
+      isMessHour = Schedule.isMessHour, isDeadHour = Schedule.isDeadHour, isCurfewHour = Schedule.isCurfewHour,
+      isRollHour = Schedule.isRollHour, onbF = Schedule.onbF, onbBound = Schedule.onbBound,
+      cellLockedHere = Schedule.cellLockedHere, wardenCell = Schedule.wardenCell, wardenHere = Schedule.wardenHere;
   // 战略层（外交/战争/朔日结算）：从 engine.js 拆分（v20260918k）
   var Strategy = LF.createStrategy({
     getState: function () { return state; },
@@ -203,7 +494,6 @@
       renderCityBuildProgress = CityBuild.renderCityBuildProgress, renderCityBuildDone = CityBuild.renderCityBuildDone,
       bindCityBuildPanel = CityBuild.bindCityBuildPanel, tickBuildOrders = CityBuild.tickBuildOrders,
       commitBuildOrder = CityBuild.commitBuildOrder, collectRents = CityBuild.collectRents, goCell = CityBuild.goCell;
-
 
   // 战斗系统：从 combat.js 工厂注入引擎依赖
   var Combat = LF.createCombat({
@@ -427,260 +717,10 @@
   var MAP_KIND_LABEL={ city:'城镇', wild:'野外', dungeon:'贼巢', fort:'军屯', tutorial:'教学', town:'村镇', camp:'营地' };
   // 山河志空间地图 HTML（main 查看 / 调试选出生点 共用；数据驱动 shared/data/map.js）
   // v20260822ar：三国群英传式大地图 —— 纯方位节点，间隔拉开（KING_CELL=110px）；SVG 示意河流（黄河/长江）+ 二次贝塞尔道路；节点无图标、无图例、不显示教学关卡；支持缩放（data-bx/by 基准坐标 + .mk-bg scale）。
-  function buildMapKingHTML(opts){
-    opts=opts||{};
-    var coords=resolveMapCoords();
-    var keys=Object.keys(G.ROOMS).filter(function(rid){return coords[rid] && !(G.ROOMS[rid].isField);});
-    var KC=110, PAD=46;
-    var minc=Infinity,maxc=-Infinity,minr=Infinity,maxr=-Infinity;
-    keys.forEach(function(rid){var c=coords[rid];
-      if(c[0]<minc)minc=c[0]; if(c[0]>maxc)maxc=c[0]; if(c[1]<minr)minr=c[1]; if(c[1]>maxr)maxr=c[1];
-    });
-    var W=(maxc-minc+1)*KC+PAD*2, H=(maxr-minr+1)*KC+PAD*2;
-    function px(c){ return PAD+(c[0]-minc)*KC; }
-    function py(c){ return PAD+(c[1]-minr)*KC; }
-    // 区域淡底色（山水区块感，取自 regions 数据，随间距放大）
-    var rg='';
-    (mapData().regions||[]).forEach(function(r){
-      var rr=Math.max(30, Math.round(r.r*KC/46));
-      rg+='<div class="mk-region" style="left:'+(px(r.center)-rr)+'px;top:'+(py(r.center)-rr)+'px;width:'+(rr*2)+'px;height:'+(rr*2)+'px;background:'+(r.c||'rgba(140,160,120,.35)')+'"></div>';
-    });
-    // ── SVG 层：示意河流 + 道路连线（都在 .mk-bg 内，随缩放整体 scale，矢量不模糊）──
-    var svg='<svg class="mk-lines" width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg">';
-    var MK_RIVERS=[
-      {name:'黄河',w:4,pts:[[.02,.55],[.10,.48],[.20,.52],[.30,.40],[.42,.46],[.54,.33],[.66,.38],[.78,.28],[.98,.22]]},
-      {name:'长江',w:3,pts:[[.02,.92],[.14,.84],[.28,.88],[.42,.80],[.56,.86],[.70,.76],[.84,.82],[.98,.72]]}
-    ];
-    function smoothRiver(pts){ // 中点二次贝塞尔平滑成蜿蜒河线
-      var d='M'+(pts[0][0]*W).toFixed(1)+' '+(pts[0][1]*H).toFixed(1);
-      for(var i=1;i<pts.length-1;i++){
-        var xc=(((pts[i][0]+pts[i+1][0])/2)*W).toFixed(1), yc=(((pts[i][1]+pts[i+1][1])/2)*H).toFixed(1);
-        d+=' Q'+(pts[i][0]*W).toFixed(1)+' '+(pts[i][1]*H).toFixed(1)+' '+xc+' '+yc;
-      }
-      var lp=pts[pts.length-1];
-      d+=' L'+(lp[0]*W).toFixed(1)+' '+(lp[1]*H).toFixed(1);
-      return d;
-    }
-    MK_RIVERS.forEach(function(rv,idx){
-      svg+='<path class="mk-river'+(idx>0?' r2':'')+'" d="'+smoothRiver(rv.pts)+'"/>';
-      var mp=rv.pts[Math.floor(rv.pts.length/2)];
-      svg+='<text class="mk-river-t" x="'+(mp[0]*W).toFixed(1)+'" y="'+(mp[1]*H).toFixed(1)+'">'+rv.name+'</text>';
-    });
-    var seen={}, lines='';
-    function mkPath(c,t){ // 二次贝塞尔曲线：路自然弯曲（弯向由坐标奇偶决定，避免同向堆叠）
-      var x1=px(c), y1=py(c), x2=px(t), y2=py(t), dx=x2-x1, dy=y2-y1;
-      var mx=(x1+x2)/2, my=(y1+y2)/2;
-      var off=Math.min(26, Math.max(14, Math.sqrt(dx*dx+dy*dy)*0.2));
-      var s=((c[0]+c[1])&1)?1:-1, cx, cy;
-      if(Math.abs(dx)>=Math.abs(dy)){ cx=mx; cy=my+off*s; }
-      else { cx=mx+off*s; cy=my; }
-      return 'M '+x1+' '+y1+' Q '+Math.round(cx)+' '+Math.round(cy)+' '+x2+' '+y2;
-    }
-    keys.forEach(function(rid){
-      var c=coords[rid], ex=G.ROOMS[rid].exits||{};
-      Object.keys(ex).forEach(function(dir){
-        var tid=ex[dir]; if(!coords[tid]) return;
-        var k=[rid,tid].sort().join('|'); if(seen[k]) return; seen[k]=1;
-        var reach=(rid===state.room||tid===state.room);
-        lines+='<path class="mk-road'+(reach?' on':'')+'" d="'+mkPath(c,coords[tid])+'"/>';
-      });
-    });
-    svg+=lines+'</svg>';
-    // 房间节点（纯文字，无 icon；data-bx/by 存基准像素坐标，缩放时按比例重排保证文字清晰）
-    var pins='';
-    keys.forEach(function(rid){
-      var r=G.ROOMS[rid], kind=mapKind(rid);
-      if(kind==='tutorial') return; // 教学关卡不在大地图显示
-      var cur=(rid===state.room), spawn=(opts.pickSpawn&&rid===state.spawnRoom);
-      var bx=Math.round(px(coords[rid])), by=Math.round(py(coords[rid]));
-      pins+='<div class="mk-pin'+(cur?' cur':'')+'"'+(opts.pickSpawn?' data-spawn="'+rid+'"':' data-rid="'+rid+'"')+
-        ' data-bx="'+bx+'" data-by="'+by+'" title="'+r.name+'" style="left:'+bx+'px;top:'+by+'px">'+
-        (spawn?'<span class="mk-spawn">★</span>':'')+
-        '<span class="mk-nm">'+r.name+'</span></div>';
-    });
-    var title=opts.pickSpawn?'🗺 设置出生点':'山 河 志';
-    var tip=opts.pickSpawn
-      ? '点击一处地点设为出生点，并立即传送至此（已自动存档）。当前出生点：'+(G.ROOMS[state.spawnRoom]?G.ROOMS[state.spawnRoom].name:state.spawnRoom)
-      : '单指拖动查看疆域，双指缩放（按钮/Ctrl+滚轮亦可）。点击任一去处前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」；已去之处无需再远行。';
-    return '<h3>'+title+'</h3>'+
-      '<div class="map-king"><div class="map-king-canvas" style="width:'+W+'px;height:'+H+'px">'+
-        '<div class="mk-bg">'+rg+svg+'</div>'+pins+'</div></div>'+
-      '<div class="mk-bar"><div class="mk-zoom">'+
-        '<button id="mk-zoom-out" title="缩小">−</button>'+
-        '<button id="mk-zoom-in" title="放大">＋</button>'+
-        '<button id="mk-zoom-1" title="恢复原始大小">1:1</button></div>'+
-        '<button class="mk-recenter" id="mk-recenter">⌖ 回到当前位置</button></div>'+
-      '<p class="tip">'+tip+'</p>';
-  }
-  function initMapKing(opts){
-    opts=opts||{};
-    var wrap=document.querySelector('#modal-card .map-king'); if(!wrap) return;
-    var canvas=wrap.querySelector('.map-king-canvas');
-    var bg=wrap.querySelector('.mk-bg');
-    var W0=canvas.offsetWidth, H0=canvas.offsetHeight;
-    var SC=1, MIN=0.45, MAX=2.2;
-    var baseFs=(document.documentElement.clientWidth<=560)?11.5:12;
-    function applyScale(){ // 背景层 scale(矢量不模糊)，节点用 left/top/fontSize 重排（文字清晰）
-      canvas.style.width=Math.round(W0*SC)+'px';
-      canvas.style.height=Math.round(H0*SC)+'px';
-      if(bg) bg.style.transform='scale('+SC+')';
-      var fs=Math.max(7, Math.min(16, baseFs*SC));
-      wrap.querySelectorAll('.mk-pin').forEach(function(p){
-        p.style.left=Math.round(+p.getAttribute('data-bx')*SC)+'px';
-        p.style.top=Math.round(+p.getAttribute('data-by')*SC)+'px';
-        var nm=p.querySelector('.mk-nm'); if(nm) nm.style.fontSize=fs+'px';
-      });
-    }
-    function setScale(ns,avx,avy){ // 以容器内 (avx,avy) 为锚缩放，保持锚点内容不动
-      if(ns<MIN) ns=MIN; if(ns>MAX) ns=MAX;
-      if(ns===SC) return;
-      var ax=(avx!=null)?avx:wrap.clientWidth/2;
-      var ay=(avy!=null)?avy:wrap.clientHeight/2;
-      var cx=(wrap.scrollLeft+ax)/SC, cy=(wrap.scrollTop+ay)/SC;
-      SC=ns; applyScale();
-      wrap.scrollLeft=cx*SC-ax; wrap.scrollTop=cy*SC-ay;
-    }
-    if(opts.pickSpawn){
-      wrap.querySelectorAll('[data-spawn]').forEach(function(el){
-        el.addEventListener('click', function(){
-          var rid=el.getAttribute('data-spawn');
-          state.spawnRoom=rid;
-          log('【调试】出生点已设为：'+G.ROOMS[rid].name+'。','good');
-          closeModal(); renderRoom(rid); save(state);
-        });
-      });
-    } else {
-      wrap.querySelectorAll('[data-rid]').forEach(function(el){
-        el.addEventListener('click', function(){
-          mapNodeInfo(el.getAttribute('data-rid'));
-        });
-      });
-    }
-    // 缩放：按钮 / Ctrl+滚轮 / 双指捏合（单指拖动交给原生滚动）
-    var zin=document.getElementById('mk-zoom-in'), zout=document.getElementById('mk-zoom-out'), z1=document.getElementById('mk-zoom-1');
-    if(zin) zin.addEventListener('click', function(){ setScale(SC*1.25); });
-    if(zout) zout.addEventListener('click', function(){ setScale(SC*0.8); });
-    if(z1) z1.addEventListener('click', function(){ setScale(1); });
-    wrap.addEventListener('wheel', function(e){
-      if(e.ctrlKey){
-        e.preventDefault();
-        var r=wrap.getBoundingClientRect();
-        setScale(SC*(e.deltaY<0?1.12:0.89), e.clientX-r.left, e.clientY-r.top);
-      }
-    }, {passive:false});
-    var ts=null;
-    function tdist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
-    wrap.addEventListener('touchstart', function(e){
-      ts=(e.touches.length===2)?{d:tdist(e.touches), s:SC}:null;
-    }, {passive:true});
-    wrap.addEventListener('touchmove', function(e){
-      if(ts&&e.touches.length===2){
-        e.preventDefault();
-        var r=wrap.getBoundingClientRect();
-        var mx=(e.touches[0].clientX+e.touches[1].clientX)/2, my=(e.touches[0].clientY+e.touches[1].clientY)/2;
-        setScale(ts.s*tdist(e.touches)/ts.d, mx-r.left, my-r.top);
-      }
-    }, {passive:false});
-    wrap.addEventListener('touchend', function(){ ts=null; });
-    var rb=document.getElementById('mk-recenter');
-    if(rb) rb.addEventListener('click', function(){
-      var cur=wrap.querySelector('.mk-pin.cur')||wrap.querySelector('.mk-pin');
-      if(cur) cur.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
-    });
-    // 初始定位到当前房间（居中）
-    var init=wrap.querySelector('.mk-pin.cur')||wrap.querySelector('.mk-pin');
-    if(init){ wrap.scrollLeft=Math.max(0, init.offsetLeft-wrap.clientWidth/2); wrap.scrollTop=Math.max(0, init.offsetTop-wrap.clientHeight/2); }
-  }
+// [moved -> shared/core/mapking.js]
   // [moved → shared/core/calendar.js]
 
-
-
-  // ===== 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷 v20260912i；卷轴书卷 v20260912j）=====
-  // 独立于叙事区（#narr）的全屏幕布 #prologue（DOM 见 index.html，样式见 game.css）：
-  //   行军征战水墨底图 → 长卷展开（轴杆分启 + 卷面露出）→ 标题毛笔书写 → 正文逐行浮现
-  //   → 卷轴合拢 + 柔和纸光一掠 → 淡出。
-  // 演出期间界面 #app 是隐藏的，故「动画演完，角色才出现在牢里」；随后的 camp_opening 剧本接着开场。
-  // 文案取自 G.DIALOGUES.prologue（第一行作金色小标题，卷上毛笔书写）。轻触幕布 / 点「跳过」立即收尾。
-  // ★ v20260912j「卷轴书卷」：新增 .pr-roll 卷轴结构（上下轴杆 pr-axle-top/bottom + 卷面 pr-roll-face）：
-  //   开卷 pr-roll-open（杆分启、face 从中线向上下揭开）→ 标题书写 .pr-kicker.on（clip-path 水平展开 + 笔锋光带）
-  //   → 正文逐行浮现 → 合卷 pr-roll-close（face 收拢、杆合回中线）→ 淡出。
-  // 文字层始终「静字」：只用 opacity + clip-path + blur 浮现，绝不 translate/rotate 位移。
-  // settings.textSpeed<=0（文字演出设为「瞬（无动画）」）时整段跳过，直接进牢房。
-  // ===== 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷 v20260912i；墨色显影 v20260912l）=====
-  // 独立于叙事区（#narr）的全屏幕布 #prologue（DOM 见 index.html，样式见 game.css）：
-  //   浓墨遮罩 → 墨色自中心退去显影行军征战图 → 金色题头与正文逐行浮现 →
-  //   收尾墨色回卷 → 柔和纸光一掠 → 淡出。
-  // 演出期间界面 #app 是隐藏的，故「动画演完，角色才出现在牢里」；随后的 camp_opening 剧本接着开场。
-  // 文案取自 G.DIALOGUES.prologue（第一行作金色小标题）。轻触幕布 / 点「跳过」立即收尾。
-  // ★ v20260912l「墨色显影」：新增 .pr-wash 浓墨层（mask 径向渐变圆洞），开卷 .pr-wash-out 时
-  //   mask-size 由 20% 扩至 260%，墨色如潮水退去、画面自中心显影；收尾 .pr-wash-in 时 mask-size
-  //   收拢回 40% 且墨层不透明化，画面重新隐入浓墨。卷轴（pr-roll/轴杆/卷面）与毛笔书写已移除。
-  // 文字层始终「静字」：只用 opacity + clip-path + blur 浮现，绝不 translate/rotate 位移。
-  // settings.textSpeed<=0（文字演出设为「瞬（无动画）」）时整段跳过，直接进牢房。
-  // ===== 序章开场动画（P0 · v20260911g；动效重做 v20260911j；水墨长卷 v20260912i；长镜头运镜 v20260912m）=====
-  // 独立于叙事区（#narr）的全屏幕布 #prologue（DOM 见 index.html，样式见 game.css）：
-  //   黑幕揭开 → 行军征战图（底图长镜头运镜）→ 题头与正文如墨迹洇开逐行浮现 →
-  //   柔和纸光一掠 → 淡出。
-  // 演出期间界面 #app 是隐藏的，故「动画演完，角色才出现在牢里」；随后的 camp_opening 剧本接着开场。
-  // 文案取自 G.DIALOGUES.prologue（第一行作金色小标题）。轻触幕布 / 点「跳过」立即收尾。
-  // ★ v20260912m「长镜头运镜」：删去卷轴（pr-roll）与墨色显影（pr-wash-out/in 圆形 clip）两类
-  //   「元素动效」，改为电影摄影语言——.pr-wash 仅作开场黑幕（opacity 整体淡出揭开，非圆形）；
-  //   .pr-bg 以 26s 慢速推进横移（prPan）模拟镜头在长卷上游走；文字 .pr-line 去掉 clip-path，
-  //   只用 opacity+blur 墨迹洇开（模糊→清晰）；云雾/墨尘/光斑/暗角呼吸继续营造氛围。
-  // 文字层始终「静字」：只用 opacity + blur 浮现，绝不 translate/rotate 位移。
-  // settings.textSpeed<=0（文字演出设为「瞬（无动画）」）时整段跳过，直接进牢房。
-  function playPrologue(onDone){
-    var box=document.getElementById('prologue');
-    var lines=((G && G.DIALOGUES && G.DIALOGUES.prologue) || []).slice();
-    var speed=(settings && settings.textSpeed!=null) ? settings.textSpeed : 55;
-    if(!box || !lines.length || speed<=0){ if(onDone) onDone(); return; }
-    var wrap=document.getElementById('pr-lines');
-    var flash=document.getElementById('pr-flash');
-    // v20260912n：序章底图从 AI 同风格候选图中随机取一张（每次开局不同）
-    var bgEl=box.querySelector('.pr-bg');
-    if(bgEl){
-      var bgs=['assets/title_bg_alt1.jpg','assets/title_bg_alt2.jpg','assets/title_bg_alt3.jpg','assets/title_bg_alt4.jpg','assets/title_bg_alt5.jpg','assets/title_bg_alt6.jpg'];
-      bgEl.style.backgroundImage='url("'+bgs[Math.floor(Math.random()*bgs.length)]+'")';
-    }
-    var timers=[], done=false;
-    function T(fn, ms){ timers.push(setTimeout(fn, ms)); }
-    function clearAll(){ for(var i=0;i<timers.length;i++){ clearTimeout(timers[i]); } timers=[]; }
-    function finish(){
-      if(done) return; done=true; clearAll();
-      box.removeEventListener('click', finish);
-      box.classList.add('pr-out');            // 淡出（.9s），随后彻底隐藏并把界面交还 #app
-      timers.push(setTimeout(function(){
-        box.classList.add('hidden');
-        if(wrap) wrap.innerHTML='';
-        if(onDone) onDone();
-      }, 900));
-    }
-    // 复位（同一会话内读档可能重播）
-    box.classList.remove('hidden','pr-out','pr-wash-out');
-    if(flash) flash.classList.remove('on');
-    if(wrap){
-      wrap.innerHTML='';
-      lines.forEach(function(t, i){
-        var p=document.createElement('p');
-        p.className='pr-line '+(i===0?'pr-kicker':'pr-body');
-        p.textContent=String(t==null?'':t);
-        wrap.appendChild(p);
-      });
-    }
-    box.addEventListener('click', finish);
-    // 排期：黑幕揭开（1.8s）→ 题头浮现 → 正文逐行浮现（底图全程长镜头运镜）
-    var els=(wrap && wrap.childNodes) || [];
-    var t0=1600;                                           // 黑幕揭开近完成，文字才登场
-    T(function(){ box.classList.add('pr-wash-out'); }, 120);   // 黑幕淡出揭开，露出行军征战图
-    for(var i=0;i<els.length;i++){
-      (function(el, idx){
-        T(function(){ el.classList.add('on'); }, t0);
-        t0 += Math.max(1400, Math.min(2600, String(lines[idx]||'').length*55)) + 560;
-      })(els[i], i);
-    }
-    T(function(){ try{ SFX.hit(); }catch(e){} }, t0+300);   // 收尾一记更鼓（声音保留；v20260912m 起去掉纸光闪动）
-    T(finish, t0+800);
-  }
+  // [moved -> shared/core/prologue.js]
   // [moved → shared/core/state.js]
   // 将一份存档数据载入为当前游戏状态并展卷
   function enterGame(data, slot, isNew){
@@ -754,502 +794,19 @@
 
   function curRoom(){ return G.ROOMS[state.room] || bldRoom(state.room) || G.ROOMS.camp_yard; }
 
-  // ===== 文字叙事窗 =====
-  // 轻触快进：仅立即显示「当前正在打字」的那一段；两次快进至少间隔 300ms，防误触连跳多段
-  var activeTyper=null, lastSkipAt=0;
-  function typeInto(node, text, delay, done, onstep){
-    var i=0, finished=false, timer=null;
-    function finish(){
-      if(finished) return; finished=true;
-      if(timer){ clearTimeout(timer); timer=null; }
-      node.textContent=text;
-      if(onstep) onstep();
-      if(activeTyper && activeTyper.fn===finish) activeTyper=null;
-      if(done) done();
-    }
-    activeTyper={ fn: finish };
-    (function step(){
-      if(finished) return;
-      node.textContent=text.slice(0,i);
-      if(onstep) onstep();
-      if(i<text.length){ i++; timer=setTimeout(step, delay); }
-      else finish();
-    })();
-  }
-  function skipTypewriter(){
-    if(!activeTyper) return;
-    var now=Date.now();
-    if(now-lastSkipAt<300) return;   // 防误触：两次快进至少间隔 300ms
-    lastSkipAt=now;
-    var fn=activeTyper.fn; activeTyper=null; fn();
-  }
-  // 快进：仅点击「叙事区文字」才生效；点中任何按钮/控件（移动罗盘、对话选项、行动区、NPC 列表）一律不触发，避免误触跳过剧情
-  (function(){ var _sc=document.getElementById('scene'); if(_sc) _sc.addEventListener('click', function(e){
-    if(e.target && e.target.closest) { var hit=e.target.closest('button, a, .onb-choices, .mv-exit, .mv-bar, .dock, .npc-list'); if(hit) return; }
-    skipTypewriter();
-  }); })();
-  // 串行输出队列：所有叙事段落入队，一次只打字一段；前段完成(或快进)后才出下一段，
-  // 从根本上杜绝「好几行一起刷出」让玩家措手不及
-  var logQueue=[], logBusy=false;
-  var narrOngoing=false; // 是否正处于「连续叙事」中（保证逐行间隙按钮仍锁定）
-  var narrToken=0;      // 场景叙事令牌：新场景使旧序列失效，杜绝旧文字混入新场景
-  var lockObserver=null;
-  // 对话/抉择悬挂态（v20260911i）：tutAsk 弹出而玩家尚未选择时置真。
-  //   此前只锁「叙事中」，对话选项面板一挂起（narrOngoing 已成假）玩家就能点罗盘走人——
-  //   甚至趁牢头念「三鞭」时拔腿溜走躲掉鞭刑，剧本状态与场景随之错位。
-  var askPending=false;
-  // 耗时动作进行中（v20260914a）：见下方 busyAct —— 采集/伐木/劳作/营造这类动作的进度条期间为真。
-  var busyRunning=false;
-  var busyTimer=null;    // 进行中进度条的 setInterval 句柄（离局时须掐掉，见 busyCancel）
-  // 是否正处于「文字输出中」（打字 / 排队 / 连续叙事）
-  function narrActive(){ return logBusy || (logQueue && logQueue.length>0) || narrOngoing; }
-  // 交互闸门（v20260911i）：叙事中 / 对话抉择悬挂中 / 耗时动作进行中，一律不许走动、不许另开岔路
-  function interactBusy(){ return narrActive() || askPending || busyRunning; }
-  // 文字输出中：锁定交互按钮（变灰不可点），输出完成或快进到底后自动解锁
-  // 注：战斗中（combatMode 为真）不锁 #actions —— 战斗指令菜单由战斗逻辑自行管理，不应被叙事锁挡住
-  // 注：.onb-choices（对话选项）刻意不在锁范围内 —— 它是悬挂态下玩家唯一的出路，锁住即死局。
-  // ⚠️ v20260911k 修一处「静默失效的选择器」：旧版写的是 `#npc button` 与 `.obj-panel button`，
-  //   而实际 DOM 是 <aside id="npc-list"> 里的 <button class="nl-item">、浮动菜单 <div class="obj-menu"> 里的
-  //   <button class="op-btn"> —— 两个选择器都匹配不到任何元素，等于「NPC 列表从未上过锁」。
-  //   后果：对话悬挂（askPending）时点另一个 NPC，仍能展开菜单、再开一段对话；tutAsk 会顶掉旧面板，
-  //   旧剧本的 next() 从此无人回调 —— 剧情链与锁状态双双悬挂（表现为选项消失、所有按钮点不动，
-  //   即玩家反馈的「强制对话时点他们跳开对话，引发死循环」）。
-  function syncActionLock(){
-    var active=interactBusy();
-    var sel='#move-bar button, #npc-list button, .obj-menu button, #dock button, #move-tabs .mv-tab';
-    if(!combatMode) sel+=', #actions button:not(.cb-menu)';
-    var nodes=document.querySelectorAll(sel);
-    for(var i=0;i<nodes.length;i++){ if(active) nodes[i].classList.add('locked'); else nodes[i].classList.remove('locked'); }
-    var narr=document.getElementById('narr');
-    if(narr) narr.classList.toggle('typing', active);
-    // 巡夜续评（v20260911i）：curfewPatrol 常在「劳作/进格」动作里被叫起，而此时动作自身的
-    //   文案正在打字（interactBusy 为真），只延后一帧根本轮不到它 —— 于是它挂起「待评」，
-    //   等这轮叙事彻底收尾（active 转假）时再评一次。见 curfewPatrol 内的 curfewWant。
-    if(!active && curfewWant){ curfewWant=false; setTimeout(function(){ try{ curfewPatrol(); }catch(e){} }, 0); }
-    // 对话窗收尾（v20260912g）：话说完、也没有挂起的问题了 → 稍候收窗，把底部位置让回给罗盘/功能栏
-    if(!active && !combatMode) dlgSettle();
-  }
-  // ===== 耗时动作的「在做」呈现（v20260914a）=====
-  // 采集 / 伐木 / 采石 / 烧砖 / 制作 / 担石劳作 / 操练 / 城内营造……此前点一下就「已经做完了」，
-  //   只留一行结果，玩家没有「花了半个时辰」的分量感 —— 而这条链正是前期循环里最高频的动作。
-  // 这里给一个统一的短进度：亮出「在做什么」、条子走满、再落结果；期间锁住其它按钮
-  //   （busyRunning → interactBusy，与「文字输出中」共用同一把锁）。
-  // 与「文字演出」设置同调：设成「瞬（无动画）」时不做动画，直接执行原逻辑（尊重 settings.textSpeed）。
-  // 用法：把原函数体整段搬进 done 回调；守卫/校验（不足则 toast 返回）仍留在回调【之外】，
-  //   这样返回值语义、错误提示时序都不变，只有「生效」这一步被推迟到动画之后。
-  function busyAct(label, ms, done){
-    var d=done||function(){};
-    if(!busyEl || !(settings && settings.textSpeed>0)){ d(); return; }
-    var dur=Math.max(300, ms||1000), t0=Date.now();
-    busyEl.innerHTML='<span class="bs-nm">'+escapeHtml(label||'忙碌中')+'…</span>'+
-      '<span class="bs-track"><i class="bs-bar"></i></span>';
-    busyEl.classList.remove('hidden');
-    busyEl.setAttribute('aria-hidden','false');
-    busyRunning=true; syncActionLock();
-    var bar=busyEl.querySelector('.bs-bar');
-    busyTimer=setInterval(function(){
-      var k=Math.min(1,(Date.now()-t0)/dur);
-      if(bar) bar.style.width=(k*100).toFixed(0)+'%';
-      if(k>=1){ busyStopTimer(); busyHide(); d(); }
-    }, 40);
-  }
-  function busyHide(){
-    if(busyEl){ busyEl.classList.add('hidden'); busyEl.setAttribute('aria-hidden','true'); busyEl.innerHTML=''; }
-    if(busyRunning){ busyRunning=false; syncActionLock(); }
-  }
-  // 掐掉进行中的进度计时器（v20260914b）
-  //   为什么单有 busyHide 不够：它只收 UI 与那把锁，setInterval 仍在跑；计时走满照样回调 done()。
-  //   而「离局」那一刻 state 已被 showTitle 清空，done() 里的 advanceTime → clockFlowing → onbF()
-  //   要读 state.flags —— 于是定时器里抛一个没人接的 TypeError: Cannot read properties of null
-  //   （reading 'flags'）：轻则控制台炸、重则半路动作在死后/换局后落到别人头上。
-  //   故离局（showTitle）与殒落（die）一律用 busyCancel 把计时器一并掐掉，当次动作不再落地。
-  function busyStopTimer(){ if(busyTimer){ clearInterval(busyTimer); busyTimer=null; } }
-  function busyCancel(){ busyStopTimer(); busyHide(); }
-  // 新场景/战斗开始时，丢弃旧场景残留的排队文字与打字定时器，避免文案串场
-  function flushNarr(){
-    // 进度条只属于「当下这一格」：房间被换掉（读档/剧本强制移动/战斗开场）时一并收掉，
-    //   否则 busyRunning 这把锁会永远留在身上，全屏按钮再也点不动（v20260914a）
-    if(busyRunning) busyHide();
-    narrToken++;                 // 使任何进行中的旧 logScene 序列失效
-    logQueue.length=0;
-    if(activeTyper && activeTyper.timer){ try{ clearTimeout(activeTyper.timer); }catch(e){} }
-    activeTyper=null;
-    logBusy=false;
-    narrOngoing=false;
-    syncActionLock();
-  }
-  function initLockObserver(){
-    if(lockObserver) return;
-    lockObserver=new MutationObserver(function(muts){
-      if(!narrActive()) return;
-      if(combatMode) return;   // 战斗中由 DQ 逻辑自行管理 #actions，不在此处上锁（syncActionLock 也不再解锁，需保持一致）
-      muts.forEach(function(m){
-        m.addedNodes.forEach(function(n){
-          if(n.nodeType!==1) return;
-          var bs=(n.matches && n.matches('button:not(.cb-menu)')) ? [n] : (n.querySelectorAll?n.querySelectorAll('button:not(.cb-menu)'):[]);
-          for(var i=0;i<bs.length;i++) bs[i].classList.add('locked');
-        });
-      });
-    });
-    // v20260911k：容器 id 是 npc-list（旧版写 'npc' 不存在），NPC 列表按钮此前根本不在观察范围内
-    ['actions','move-bar','npc-list'].forEach(function(id){ var el=document.getElementById(id); if(el) lockObserver.observe(el,{childList:true,subtree:true}); });
-  }
-  initLockObserver();
-  // ═══ 长文案分句（v20260911k 引入；v20260912g 改「按句」而非「按字数」）═══
-  // v20260911k 是按字数硬切（42 字一刀、切不动再退逗号），本意是「别一口气讲一大段」，
-  //   可玩家读到的是：一句话被拦腰截断、从半句起蹦出下一句 —— 像机器人在念稿，不像人说话。
-  // 现改为**只在「一句说完」处断行**：句号/问号/叹号/分号/省略号 才算收尾，逗号永不断句；
-  //   引号、括号内的标点（「……。」）也不算收尾，整句一口气落完。于是每行都是一个完整的句子，
-  //   人怎么说、字就怎么落。只有遇上长得离谱的单句（> SPEECH_HARD 字，多是无标点的环境描写）
-  //   才退一步按软标点断一次，免得一行糊满整屏。
-  var SPEECH_HARD=80;   // 单句超长兜底阈值（字）：仅防「一行占满全屏」，正常句子不受影响
-  // deep=true（v20260912l 对话帘用）：连引号里的句子也断 —— 他一句一句讲，而不是把
-  //   一整段引语塞成一行。default=false 保持原样（叙事区打字机要整句引语一起走）。
-  function splitSpeech(text, deep){
-    var s=String(text==null?'':text).trim();
-    if(!s) return [];
-    var SENT='。！？；…', OPEN='「『（【〔', TAIL='」』）】〕', SOFT='，、,.：:';
-    var out=[], buf='', dep=0;
-    for(var i=0;i<s.length;i++){
-      var ch=s.charAt(i);
-      if(OPEN.indexOf(ch)>=0){ dep++; buf+=ch; continue; }
-      if(TAIL.indexOf(ch)>=0){
-        dep = dep>0 ? dep-1 : 0;
-        buf+=ch;
-        // 收尾括号恰好收在一句的末标点之后（「……。」）→ 这一句到此为止
-        if(dep===0 && buf.length>=2 && SENT.indexOf(buf.charAt(buf.length-2))>=0){ out.push(buf); buf=''; }
-        continue;
-      }
-      buf+=ch;
-      if((deep || dep===0) && SENT.indexOf(ch)>=0){ out.push(buf); buf=''; }   // 括号/引号内部不算句末（deep 时算）
-    }
-    if(buf) out.push(buf);
-    if(deep) out=balanceSpeech(out, OPEN, TAIL);
-    // 超长单句兜底：只在「这一行会糊满整屏」时才按软标点断一次
-    var fin=[];
-    out.forEach(function(seg){
-      if(seg.replace(/\s/g,'').length<=SPEECH_HARD){ fin.push(seg); return; }
-      var cut=-1;
-      for(var j=0;j<seg.length;j++){
-        if(SOFT.indexOf(seg.charAt(j))<0) continue;
-        if(seg.slice(0,j+1).replace(/\s/g,'').length>=SPEECH_HARD*0.6){ cut=j+1; break; }
-      }
-      if(cut<=0 || cut>=seg.length){ fin.push(seg); return; }
-      fin.push(seg.slice(0,cut)); fin.push(seg.slice(cut));
-    });
-    return fin.filter(function(x){ return String(x).replace(/\s/g,'').length>0; });
-  }
-  // 引号里断句的善后（v20260912l）：断在引号里，那一行就会「开着引号断掉」、闭引号孤零零落到末行。
-  // 这里给断在引号里的那句补上收尾符（让它自成一段），后头多出来的收尾符就地丢掉：
-  //   「甲。／乙」 → 「甲。」／乙      （而不是  「甲。／「乙」／」）
-  function balanceSpeech(list, OPEN, TAIL){
-    var out=[], owe=[];
-    for(var i=0;i<list.length;i++){
-      var seg=list[i], buf='';
-      for(var j=0;j<seg.length;j++){
-        var ch=seg.charAt(j);
-        if(OPEN.indexOf(ch)>=0){ owe.push(ch); buf+=ch; continue; }
-        if(TAIL.indexOf(ch)>=0){ if(owe.length){ owe.pop(); buf+=ch; } continue; }   // 没得配的就是前面补过的余数，丢掉
-        buf+=ch;
-      }
-      while(owe.length){ buf+=TAIL.charAt(OPEN.indexOf(owe.pop())); }   // 补上收尾符
-      if(buf) out.push(buf);
-    }
-    return out;
-  }
-  // 面板反馈浮条（v20260915j→v20260916d）：弹窗开着时，操作日志若只落在叙事区会被面板挡住，
-  //   玩家点「凿矿/存取/买卖」看不到结果。这里把每条 log 同时浮显到当前弹窗顶部，
-  //   统一解决采矿、仓库、货郎、锻造等一切面板的反馈遮挡问题。
-  //   v20260916d 增强：
-  //     ① 对话文本（cls='npc'）不再镜像——聊天窗口内已显示原话，长文本镜像只添乱；
-  //     ② 多行显示（pre-wrap），不再单行截断成「只看到开头」；
-  //     ③ 时长按文本长度自适应（短反馈 2.6s，长反馈最长 6s）；
-  //     ④ 密集反馈（上一条还很短）拼接显示，避免连续操作只看得见最后一条。
-  function fbShow(txt, cls){
-    if(!$modal || $modal.classList.contains('hidden')) return;
-    if(cls==='npc' || cls==='talk') return;
-    if(!$card) return;
-    var fb=document.getElementById('modal-fb');
-    if(!fb){ injectModalFb(); fb=document.getElementById('modal-fb'); }
-    if(!fb) return;
-    var s=String(txt==null?'':txt);
-    var prev=fb.textContent||'';
-    if(window.__fbTimer && prev && prev!==s && prev.length<40 && s.length<56){
-      s=prev+'　'+s;   // 上一条还在展示且很短 → 拼接，连点几下也能看到前因后果
-    }
-    fb.textContent=s;
-    fb.classList.add('show');
-    if(window.__fbTimer) clearTimeout(window.__fbTimer);
-    window.__fbTimer=setTimeout(function(){ fb.classList.remove('show'); window.__fbTimer=null; },
-      Math.min(6000, Math.max(2600, 1400+String(s).length*70)));
-  }
-  function injectModalFb(){
-    var holder=$card ? ($card.parentNode || $card) : null;
-    if(!holder) return;
-    if(holder.querySelector('#modal-fb')) return;
-    var fb=document.createElement('div'); fb.id='modal-fb'; fb.className='modal-fb';
-    holder.insertBefore(fb, $card);
-  }
-  function log(text, cls, name, done){
-    if(!$narr){ return; }
-    fbShow(text, cls);
-    var parts=splitSpeech(text);
-    if(parts.length>1){
-      for(var i=0;i<parts.length-1;i++) logRaw(parts[i], cls, name, null);
-      logRaw(parts[parts.length-1], cls, name, done);
-      return;
-    }
-    logRaw(parts.length?parts[0]:text, cls, name, done);
-  }
-  function logRaw(text, cls, name, done){
-    logQueue.push({text:String(text==null?'':text), cls:cls, name:name, done:done});
-    syncActionLock();           // 开始输出即锁定按钮（防「文案未完就点下一处」）
-    if(!logBusy) pumpLog();
-  }
-  function pumpLog(){
-    if(logBusy) return;
-    var item=logQueue.shift();
-    if(!item){ return; }
-    logBusy=true;
-    logNow(item.text, item.cls, item.name, function(){ logBusy=false; if(item.done) item.done(); syncActionLock(); pumpLog(); });
-  }
-  // 真正执行单段打字（由 log 队列驱动）
-  function logNow(text, cls, name, done){
-    cls=cls||'env';
-    recHist(text, cls, name);   // 回顾：记「真正上屏的这句」（v20260914a）
-    var p=document.createElement('p');
-    p.className='narr '+cls;
-    var sc=document.getElementById('scene');
-    function scroll(){ if(sc) sc.scrollTop=sc.scrollHeight; }
-    function finish(){ if(done) done(); }
-    var delay = settings.textSpeed>0 ? settings.textSpeed : 0;
-    if(cls==='npc' && name){
-      var s=document.createElement('span'); s.className='nm'; s.textContent=name+'：'; p.appendChild(s);
-      var tn=document.createTextNode(''); p.appendChild(tn); $narr.appendChild(p);
-      if(delay<=0){ tn.textContent=text; scroll(); finish(); }
-      else { p.classList.add('typing'); typeInto(tn, text, delay, function(){ p.classList.remove('typing'); scroll(); finish(); }, scroll); }
-    } else {
-      var tn2=document.createTextNode(''); p.appendChild(tn2); $narr.appendChild(p);
-      if(delay<=0){ tn2.textContent=text; scroll(); finish(); }
-      else { p.classList.add('typing'); typeInto(tn2, text, delay, function(){ p.classList.remove('typing'); scroll(); finish(); }, scroll); }
-    }
-  }
-  // 串行叙事：逐行依次输出，前一行打字完成后隔 gap 再播下一行，避免多行同时刷出眼花
-  // v20260911e：末行后【同步】收尾（onDone），不再挂尾随 setTimeout——该定时器在部分环境
-  //   会被节流/丢弃，导致 onDone（进而 onbRoomEnter / narrate 后续步骤）永不触发（表现为
-  //   序章不播、走廊点卯对话不出）。行间间隔仍用 gap。
-  function logScene(lines, gap, onDone){
-    gap = gap==null ? 150 : gap;
-    var myToken = ++narrToken;          // 本段叙事获得令牌
-    narrOngoing=true; syncActionLock(); // 连续叙事期间保持按钮锁定
-    (function play(i){
-      if(myToken!==narrToken){ if(narrOngoing){ narrOngoing=false; syncActionLock(); } return; } // 已被新场景取代，放弃旧叙事
-      if(i>=lines.length){ narrOngoing=false; if(onDone) onDone(); syncActionLock(); return; }
-      var l=lines[i];
-      log(l.t, l.c, l.n, function(){
-        var ni=i+1;
-        if(ni>=lines.length){ play(ni); }                       // 末行：立即收尾
-        else { setTimeout(function(){ play(ni); }, gap); }      // 行间：间隔 gap
-      });
-    })(0);
-  }
+  var askPending=false;  // [保留：对话悬挂态属对话子系统，由 tutAsk 与 ~15 个引擎函数共有，不随叙事模块迁出]
+  // [moved -> shared/core/narr.js]
 
   // ===== 状态栏（两行：身份 + 数值条） =====
   // P3 善恶双轨：侠义/凶名独立双轴，互不抵消
-  function moralLabel(){
-    var c=state.chivalry, n=state.notoriety;
-    if(c>0 && n>0) return '侠'+c+'·凶'+n;
-    if(c>0) return '侠'+c;
-    if(n>0) return '凶'+n;
-    return '中立';
-  }
-  // 风评称号（基于双轴阈值，见 GAME_DESIGN 4.2）
-  function moralTitle(){
-    var c=state.chivalry, n=state.notoriety;
-    if(c>=40 && n>=40) return '亦正亦邪·枭雄';
-    if(c>=30 && n>=30) return '正邪莫测';
-    if(c>=30) return '清流义士';
-    if(n>=30) return '绿林枭雄';
-    if(c>=10 && n>=10) return '正邪交织';
-    if(c>=10) return '侠义新秀';
-    if(n>=10) return '初露凶名';
-    return '无名之辈';
-  }
-  // 双轴累积 + 阈值解锁提示（P3）
-  function addChivalry(v){
-    var b=state.chivalry; state.chivalry=Math.max(0,state.chivalry+(v||1));
-    afterMoral('chivalry', b, state.chivalry);
-  }
-  function addNotoriety(v){
-    var b=state.notoriety; state.notoriety=Math.max(0,state.notoriety+(v||1));
-    afterMoral('notoriety', b, state.notoriety);
-  }
-  function afterMoral(axis, before, after){
-    if(axis==='chivalry'){
-      if(before<30 && after>=30) log('【风评】侠义值达 30！清流名士敬重，可接「侠义委托」。','good');
-      if(before<40 && after>=40) log('【风评】侠义值达 40！','good');
-    } else {
-      if(before<30 && after>=30) log('【风评】凶名值达 30！影门与绿林亲近，可接「高阶悬赏」。','good');
-      if(before<40 && after>=40) log('【风评】凶名值达 40！','good');
-    }
-    if(state.chivalry>=40 && state.notoriety>=40 && !state.flags.usurper_seen){
-      state.flags.usurper_seen=true;
-      log('【风评】侠义凶名俱达 40——亦正亦邪·枭雄 之路为你敞开！','good');
-    }
-  }
-  // 声望框架：0-100，称号区间见 GAME_DESIGN 4.1（P4 起由胜战真实获取；调试台内置常驻，可直赋测试）
-  function repTitle(rep){
-    if(rep>=95) return '一代宗师';
-    if(rep>=85) return '名扬天下';
-    if(rep>=70) return '威震一方';
-    if(rep>=55) return '名动一方';
-    if(rep>=40) return '江湖新秀';
-    if(rep>=25) return '小有名气';
-    if(rep>=10) return '初入江湖';
-    return '无名小卒';
-  }
-  function addReputation(n){
-    var old=state.reputation;
-    state.reputation=Math.max(0,Math.min(100,state.reputation+n));
-    log('【声望】'+(state.reputation-old>=0?'+':'')+(state.reputation-old)+'（当前 '+state.reputation+' · '+repTitle(state.reputation)+'）','good');
-  }
-  function renderStatus(){
-    checkQuestRewards();
-    var sh=SHICHEN[state.time%12];
-    var hh=String(Math.floor(state.clock/60)).padStart(2,'0');
-    var mm=String(state.clock%60).padStart(2,'0');
-    var c=deriveCalendar();
-    var era=(state.eraName||'光和')+(c.eraYear===1?'元年':c.eraYear+'年');
-    var w=WEATHERS[state.weather]||WEATHERS[0];
-    // 宵禁时段变红（v20260916a）：酉戌亥子丑寅在营中时，时辰标红——把「快回牢」写进一眼能看见的地方
-    var lateInCamp = !!(state.flags && state.flags.onb && !state.flags.onb.done)
-      && inCampNow() && (state.time>=9 || state.time<=2);
-    $status.innerHTML=
-      '<span class="who" title="'+state.name+'">'+state.name+'</span>'+
-      '<span class="dot">·</span>'+
-      '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
-      '<span class="st-time'+(lateInCamp?' st-time-night':'')+'" title="'+(lateInCamp?'戌时落锁，营规要拿人':sh)+'">'+sh+'</span>'+
-      '<span class="dot">·</span>'+
-      '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>'+
-      // 回顾入口（v20260914a）：贴在状态栏最右侧，随手可及。点它为「回顾」，点状态栏其余处仍是「时辰钟表」。
-      '<span class="st-log" id="st-log" role="button" title="回顾：你听过、读过的每一句">回顾</span>';
-    var qtr=document.getElementById('quest-track');
-    if(qtr){
-      var tq=state.trackingQuest, to=null, qd=null;
-      if(tq){
-        for(var _qi=0;_qi<LF.OBJECTIVES.length;_qi++){ if(LF.OBJECTIVES[_qi].id===tq){ to=LF.OBJECTIVES[_qi]; break; } }
-        if(!to && state.quests){ for(var _qj=0;_qj<state.quests.length;_qj++){ if(state.quests[_qj].id===tq){ qd=state.quests[_qj]; break; } } }
-      }
-      if(to){
-        var _qdone=to.check(state);
-        qtr.style.display='';
-        qtr.innerHTML='<span class="qt-ic">📜</span>追踪 · <b>'+to.title+'</b><span class="qt-prog">'+(_qdone?'已达成 ✓':to.prog(state))+'</span><button class="qt-clear" type="button">✕</button>';
-        var _qb=qtr.querySelector('.qt-clear'); if(_qb){ _qb.onclick=function(){ state.trackingQuest=null; renderStatus(); }; }
-      } else if(qd){
-        var _pt = (qd.need && qd.need.length)
-          ? qd.need.map(function(nd){ return nd.name+' '+Math.min(needHave(nd),nd.count)+'/'+nd.count; }).join('  ')
-          : (qd.submit ? ('提交 · '+qd.submit.npc) : '');
-        qtr.style.display='';
-        qtr.innerHTML='<span class="qt-ic">📜</span>追踪 · <b>'+qd.title+'</b><span class="qt-prog">'+_pt+'</span><button class="qt-clear" type="button">✕</button>';
-        var _qb2=qtr.querySelector('.qt-clear'); if(_qb2){ _qb2.onclick=function(){ state.trackingQuest=null; renderStatus(); }; }
-      } else { qtr.style.display='none'; }
-    }
-  }
-  function renderLocTab(room){
-    var loc=room.name||'';
-    if(isCityGrid(room.id) && state.flags.cityPos){
-      var _m=genCityGrid(room.id);
-      if(_m){ var _ct=_m.cells[state.flags.cityPos.y][state.flags.cityPos.x]; loc+=' · '+cellDisplayName(room.id,_ct); }
-    }
-    var t=document.getElementById('loc-tab'); if(t) t.textContent=loc;
-  }
+  // [moved -> shared/core/progression.js] 善恶双轴/声望 mutator
 
-  // ===== 升级 / 效果结算 =====
-  // 敌人修为经验：依敌方气血与攻击估算（设计 4.7：修为经验来自战斗结算）
-  function enemyExp(en){
-    if(!en || en.id==='dummy') return 0;
-    return Math.max(1, Math.round((en.hp + en.atk*4) / 10));
-  }
-  // 升级：每级获得 1 点自由属性点（加点见角色面板 attrAllocHTML）
-  // v20260916c：弹窗只在「本轮真的破境」时开 —— 旧版只要 freePoints>0 就弹（应卯+5 修为不升级也弹），
-  //   且弹窗文案把「已有自由点」说成「获得」，玩家以为白捡属性点。levelupGained 记本轮新增点供文案使用。
-  function addXp(n){
-    if(!state.attr) state.attr={hp:5,atk:5,def:5,spd:5};
-    state.exp+=n;
-    var _lv0=state.level, _gained=0;
-    while(state.exp>=G.BALANCE.expNeed(state.level) && state.level<G.CONSTANTS.MAX_LEVEL){
-      state.exp-=G.BALANCE.expNeed(state.level); state.level++; _gained++;
-      state.freePoints=(state.freePoints||0)+1;              // 每升一级获得 1 点自由属性点
-      state.hp=state.maxHp;state.mp=state.maxMp;             // 破境气血内力尽复
-      log('【破境】修为精进！已至 LV.'+state.level+'，获得 1 点自由属性点（余 '+(state.freePoints||0)+'）。气血尽复。','good');
-    }
-    if(_gained>0 && combatMode===null){ state.levelupGained=_gained; try{ openModal('levelup'); }catch(e){} }
-  }
-  function applyEffect(e){
-    e=e||{}; var got=[];
-    if(e.xp){addXp(e.xp);got.push('修为+'+e.xp);}
-    if(e.gold){state.gold=Math.max(0,state.gold+e.gold);got.push('银两'+(e.gold>0?'+':'')+e.gold);}
-    if(e.atk){ if(!state.flatBonus) state.flatBonus={hp:0,atk:0,def:0,spd:0}; state.flatBonus.atk+=e.atk; got.push('攻+'+e.atk); }
-    if(e.def){ if(!state.flatBonus) state.flatBonus={hp:0,atk:0,def:0,spd:0}; state.flatBonus.def+=e.def; got.push('防+'+e.def); }
-    if(e.maxMp){state.maxMp+=e.maxMp;state.mp+=e.maxMp;got.push('内力上限+'+e.maxMp);}
-    if(e.mp==='full'){state.mp=state.maxMp;} else if(e.mp){state.mp=Math.min(state.maxMp,state.mp+e.mp);}
-    if(e.hp==='full'){state.hp=state.maxHp;got.push('气血尽复');} else if(e.hp){state.hp=Math.min(state.maxHp,state.hp+e.hp);got.push('气血+'+e.hp);}
-    if(e.flag)state.flags[e.flag]=true;
-    if(e.reputation){addReputation(e.reputation);}
-    else if(e.rep){addReputation(e.rep);}
-    // 永久战力加成（atk/def）经 flatBonus 累加后，必须重算派生战力方能生效
-    if(e.atk || e.def){ G.recalcBase(state); clampHp(); }
-    if(e.give){
-      var arr=Array.isArray(e.give)?e.give:[e.give];
-      arr.forEach(function(g){
-        var defId=g.defId||g, n=g.n||1;
-        var it=LF.ITEMS.makeItem(defId, n);
-        if(packAdd(it)) got.push((it.name||defId)+'×'+n);
-        else got.push('（行囊已满，'+defId+'未得）');
-      });
-    }
-    if(got.length) log('【收获】'+got.join('，')+'。','good');
-  }
-  function findEvent(id){ for(var i=0;i<G.EVENTS.length;i++) if(G.EVENTS[i].id===id) return G.EVENTS[i]; return null; }
+  // [moved -> shared/core/statusbar.js] 状态栏渲染 renderStatus/renderLocTab
 
-  // ══ 作息口径（v20260911h · P3）══════════════════════════════════════════════
-  // 「时辰 → 此时能做什么」的判定全部收敛到这一处，勿散落到各处：
-  //   劳作吃时辰(laborTick) / 伙房供饭(mess_hall) / 回牢销名(check_in) / 城门宵禁 / 客栈打尖 共用同一套口径。
-  //   state.time ∈ 0..11 = 子丑寅卯辰巳午未申酉戌亥；营中「一日」以卯时(3)开牢为始、寅时(2)为末。
-  var MESS_HOURS  = [3,4,6,7,9,10];    // 一日三餐各两个时辰：卯辰（朝食）· 午未（晌饭）· 酉戌（夜粥）
-  var DEAD_HOURS  = [11,0,1,2];        // 亥子丑寅：灶冷无食（伙房歇火）
-  var NIGHT_HOURS = [10,11,0,1,2];     // 戌时鸣鼓落锁起至次日寅时：城门宵禁 / 营中点卯逾期
-  var ROLL_HOURS  = [3,4,5,6];          // 卯辰巳午：点卯应名（天亮开工到晌午，过午不候——v20260916h 放宽）
-  var INN_FEE     = 8;                 // 客栈打尖房钱（两）
-  var LABOR_PER_WOOD = 3;              // 劳役工分：每 3 工换发 1 枚「劳字木片」
-  function hourNow(){ return (((state.time||0)%12)+12)%12; }
-  function hourLabel(h){ return SHICHEN[(((h==null?hourNow():h)%12)+12)%12]; }
-  function inHours(arr,h){ h=(((h==null?hourNow():h)%12)+12)%12; return arr.indexOf(h)>=0; }
-  function isMessHour(h){ return inHours(MESS_HOURS,h); }      // 饭点：灶上有热食
-  function isDeadHour(h){ return inHours(DEAD_HOURS,h); }      // 深夜：灶火已熄
-  function isCurfewHour(h){ return inHours(NIGHT_HOURS,h); }   // 落锁：城门闭 · 点卯逾期
-  function isRollHour(h){ return inHours(ROLL_HOURS,h); }       // 点卯：卯至午应名（与「午后销名」一开一收）
-  function onbF(){ return (state && state.flags && state.flags.onb) || null; }
-  // 营规未脱（未毕业）时才受点卯约束；毕业即脱籍，营规不再管你（但时间与作息照常流动）
-  function onbBound(){ var o=onbF(); return !!(o && o.started && o.curfewSet && !o.done); }
-  // 牢房落锁（v20260917a）：戌亥子丑寅（约晚8点至次日早5点）牢门上闩，卯时开锁放风——
-  //   牢头卯时出门去中军点卯，牢门也同时敞开（与营规「卯时开牢放风」一致），
-  //   否则会出现「牢头已在中军、牢门还锁着」的矛盾；人在囚室格(1,0)在锁门时段出不得门。
-  var CELL_LOCK_HOURS=[10,11,0,1,2];
-  function cellLockedHere(){
-    var cp=state.flags && state.flags.cityPos;
-    if(!cp || cp.cid!=='kuyilao' || cp.x!==1 || cp.y!==0) return false;
-    return CELL_LOCK_HOURS.indexOf(hourNow())>=0;
-  }
-  // 牢头此刻落脚格（v20260916g）：作息表在 data/npc_cards.js 的 routine（10,11,0,1,2 守牢门口，余时中军场院）。
-  //   应卯/销名都要「牢头在场」才办——营规是他掌着的，他不在，谁给你落销名的字？
-  function wardenCell(){
-    var rr=(LF.NPC_ROUTINES_CITY||{}).kuyilao||{};
-    var r=rr.laotou||{};
-    var h=hourNow();
-    return (r[h]!=null)? r[h] : r._home;
-  }
-  function wardenHere(xy){ return wardenCell()===xy; }
+  // [moved -> shared/core/progression.js] 升级/效果结算
+
+  // [moved -> shared/core/schedule.js] 作息/营规口径判定纯函数
+
   // 营中「一日」结算：跨子夜时清算点卯 —— 前一日没回牢销名即记一次旷役。
   // v20260916g：旷役改即时罚（跨日即扣口粮与好感），不再「次日口粮按罚例加倍」那种延迟账——
   //   玩家当场看到后果，也免得记两笔（查房一笔、跨日一笔）来回勾销。
@@ -1636,6 +1193,7 @@
     var app=document.getElementById('app'); if(app) app.classList.add('hidden');
     var tt=document.getElementById('title'); if(tt){ tt.classList.remove('hidden'); tt.classList.remove('frozen'); }
     applyTitleFx();
+    if(window.startTitleDrip) window.startTitleDrip();   // 回标题页（殒落/清档/启动）重启墨滴；进局后已由 drip() 可见性判断停掉
   }
   // 标题特效开关：关则隐藏水墨烟尘/墨晕层
   function applyTitleFx(){
@@ -1691,363 +1249,10 @@
     }
     return '<h3>'+title+'</h3><p class="tip">'+intro+'</p><div class="slot-row">'+rows+'</div>';
   }
-  // 图鉴：览物志
-  function renderCodex(){
-    var known={}; if(state&&state.learnedMartial) state.learnedMartial.forEach(function(id){known[id]=1;});
-    var byLine={};
-    Object.keys(G.MARTIAL_ARTS||{}).forEach(function(id){
-      var m=G.MARTIAL_ARTS[id]; if(!m||!m.line) return;
-      (byLine[m.line]=byLine[m.line]||[]).push({name:m.name,on:!!known[id]});
-    });
-    var h='<h3>览 物 志</h3><p class="tip">江湖风物，已历者标朱。</p>';
-    h+='<div class="codex-sec"><h4>武 学（十三艺线）</h4><div class="codex-grid">';
-    Object.keys(byLine).forEach(function(line){
-      byLine[line].forEach(function(it){ h+='<span class="codex-chip'+(it.on?' on':'')+'">'+it.name+'</span>'; });
-    });
-    h+='</div></div>';
-    h+='<div class="codex-sec"><h4>门 派</h4><div class="codex-grid">';
-    Object.keys(G.SECTS||{}).forEach(function(k){ h+='<span class="codex-chip">'+G.SECTS[k].name+'</span>'; });
-    h+='</div></div>';
-    if(G.ENEMIES){
-      h+='<div class="codex-sec"><h4>贼 寇 名 录</h4><div class="codex-grid">';
-      Object.keys(G.ENEMIES).forEach(function(k){ var e=G.ENEMIES[k]; if(e&&e.name) h+='<span class="codex-chip">'+e.name+'</span>'; });
-      h+='</div></div>';
-    }
-    return h;
-  }
-  // 设置：标签页（画面 / 声音 / 游戏）；fromTitle 时不含调试台
-  function renderSettings(opts){
-    opts=opts||{};
-    var fromTitle=!!opts.fromTitle;
-    var ts=settings.textSpeed;
-    var gfx=
-      '<div class="set-row col"><span>文字演出（越大越慢）</span>'+
-        '<input type="range" class="lf-range" id="rng-speed" min="0" max="100" step="5" value="'+ts+'">'+
-        '<span class="spd-val" id="spd-val">'+lfSpeedLabel(ts)+'</span></div>'+
-      '<div class="set-row"><span>标题特效</span><div class="seg" id="seg-fx">'+
-        '<button data-v="1" class="'+(settings.titleFx!==false?'on':'')+'">开</button>'+
-        '<button data-v="0" class="'+(settings.titleFx===false?'on':'')+'">关</button></div></div>'+
-      '<p class="tip">水墨烟尘与墨晕动画；喧嚣可关，长夜更静。</p>';
-    var snd=
-      '<div class="set-row"><span>音效</span><div class="seg" id="seg-snd">'+
-        '<button data-v="1" class="'+(settings.sound?'on':'')+'">开</button>'+
-        '<button data-v="0" class="'+(!settings.sound?'on':'')+'">关</button></div></div>'+
-      '<div class="set-row col"><span>背景音乐</span>'+
-        '<input type="range" class="lf-range" id="rng-bgm" min="0" max="100" step="5" value="'+Math.round((settings.bgmVol!=null?settings.bgmVol:35))+'">'+
-        '<span class="spd-val" id="bgm-val">'+Math.round((settings.bgmVol!=null?settings.bgmVol:35))+'%</span></div>'+
-      '<div class="set-row col"><span>音效音量</span>'+
-        '<input type="range" class="lf-range" id="rng-sfx" min="0" max="100" step="5" value="'+Math.round((settings.sfxVol!=null?settings.sfxVol:60))+'">'+
-        '<span class="spd-val" id="sfx-val">'+Math.round((settings.sfxVol!=null?settings.sfxVol:60))+'%</span></div>'+
-      '<div class="set-row col"><span>曲目选择</span><div class="seg" id="seg-bgm-track" style="flex-wrap:wrap;">'+
-        (function(){
-          try {
-            var tracks = SFX.getBgmTracks();
-            var cur = SFX.getCurrentBgmIdx();
-            return tracks.map(function(t){ return '<button data-idx="'+t.idx+'" class="'+(t.idx===cur?'on':'')+'" style="margin:2px;font-size:11px;padding:4px 8px;">'+t.name+'</button>'; }).join('');
-          } catch(e) { return ''; }
-        })()+
-      '</div></div>'+
-      '<p class="tip">四首古风BGM可选，箫笛古琴各有意境；曲间静默5秒。</p>';
-    var game='';
-    if(!fromTitle){
-      game+='<button class="close" id="m-save" style="margin-top:14px;">立即存档</button>';
-    }
-    game+='<button class="close" id="m-clear" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清除全部存档</button>';
-    if(!fromTitle){
-      game+='<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台</button>';
-    }
-    game+='<p class="tip">设定已存，演武时遵循。</p>'+
-      '<p class="tip">当前版本 v'+LF.CONSTANTS.VERSION+'</p>';
-    return '<h3>设 置</h3>'+
-      '<div class="set-tabs">'+
-        '<button data-tab="gfx" class="on">画面</button>'+
-        '<button data-tab="snd">声音</button>'+
-        '<button data-tab="game">游戏</button>'+
-      '</div>'+
-      '<div class="set-panel" data-panel="gfx">'+gfx+'</div>'+
-      '<div class="set-panel hidden" data-panel="snd">'+snd+'</div>'+
-      '<div class="set-panel hidden" data-panel="game">'+game+'</div>';
-  }
-  // 开发人员名单：群英同撰
-  function renderCredit(){
-    return '<h3>群 英 同 撰</h3>'+
-      '<p class="tip">此作由一人独力编撰，赖 AI 襄助而成。勒名于左，以志其事。</p>'+
-      row('总 撰','一只大鸽子')+
-      row('执 笔','一只大鸽子')+
-      row('程 式','一只大鸽子')+
-      row('绘 事','一只大鸽子')+
-      row('校 勘','一只大鸽子')+
-      row('音 律','一只大鸽子')+
-      row('协 力','CodeBuddy（AI 协作）')+
-      '<p class="tip">一人一灯，江湖路远。若遇同好，可续刻其名。</p>';
-  }
-  // ===== P0：志向（目标追踪）+ 门派加入 UX =====
-  var QORDER={white:0,green:1,blue:2,purple:3,orange:4};
-  function objBestEquip(s){ var b={q:0,name:''}; if(s.equipment){ Object.keys(s.equipment).forEach(function(k){ var it=s.equipment[k]; if(it&&it.quality!=null){ var q=QORDER[it.quality]; if(q!=null&&q>b.q){b.q=q;b.name=it.name;} } }); } return b; }
-  // 任务日志：接取式任务「进行中 / 已完成」分页；初始空白，接到任务才出现
-  function renderObjectives(){
-    var quests = (state.quests && state.quests.length) ? state.quests : [];
-    var done = (state.questsDone && state.questsDone.length) ? state.questsDone : [];
-    var career = (LF.OBJECTIVES) ? LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(state)}; }) : [];
-    var h='<h3 class=\"q-title\">任 务 日 志</h3>'+
-      '<div class="quest-tabs">'+
-        '<button class="qtab active" data-t="active" onclick="switchQuestTab(\'active\')">进行中</button>'+
-        '<button class="qtab" data-t="done" onclick="switchQuestTab(\'done\')">已完成'+(done.length?('（'+done.length+'）'):'')+'</button>'+
-        '<button class="qtab" data-t="career" onclick="switchQuestTab(\'career\')">志业</button>'+
-      '</div>'+
-      '<div class="quest-pane" id="qp-active">';
-    if(!quests.length){
-      h+='<p class="tip q-empty">暂无进行中的任务。与营中众人攀谈，或留意高亮提示，即可接取任务。</p>';
-    } else {
-      quests.forEach(function(q){ h+=questCardHTML(q); });
-    }
-    h+='</div><div class="quest-pane" id="qp-done" style="display:none">';
-    if(!done.length){
-      h+='<p class="tip q-empty">尚无已完成的任务。</p>';
-    } else {
-      h+='<div class="obj-done">';
-      done.forEach(function(q){ h+='<span class="obj-d">'+q.title+'</span>'; });
-      h+='</div>';
-    }
-    h+='</div><div class="quest-pane" id="qp-career" style="display:none">';
-    if(!career.length){
-      h+='<p class="tip q-empty">暂无功业可记。</p>';
-    } else {
-      career.forEach(function(x){ h+=objCardHTML(x); });
-    }
-    h+='</div>';
-    return h;
-  }
-  function objCardHTML(x){
-    var o=x.o;
-    var tn={main:'主线',side:'支线',trial:'修行'}[o.type]||'任务';
-    var cls=o.type==='main'?'t-main':(o.type==='trial'?'t-trial':'t-side');
-    var r='<div class="obj '+cls+'">'+
-      '<div class="obj-head"><span class="obj-tag '+cls+'">'+tn+'</span><span class="obj-t">'+o.title+'</span></div>'+
-      '<div class="obj-h">'+o.hint+'</div>';
-    if(typeof o.ratio==='function'){
-      var rt=Math.max(0,Math.min(1,o.ratio(state)||0));
-      r+='<div class="obj-bar"><span style="width:'+Math.round(rt*100)+'%"></span></div>'+
-         '<div class="obj-p">'+o.prog(state)+'</div>';
-    } else {
-      r+='<div class="obj-p">进度 · '+o.prog(state)+'</div>';
-    }
-    if(o.reward){
-      var rw=[];
-      if(o.reward.xp) rw.push('修为+'+o.reward.xp);
-      if(o.reward.gold) rw.push('银两+'+o.reward.gold);
-      if(o.reward.rep) rw.push('声望+'+o.reward.rep);
-      r+='<div class="obj-reward">奖励 · '+rw.join(' · ')+'</div>';
-    }
-    var tracking=state.trackingQuest===o.id;
-    // 「指路」（v20260914a）：志业多半是长期倾向，只有数据里标了 o.at 的才给按钮 —— 没位置就不装模作样
-    r+='<div class="obj-acts">'+(x.done?'':gotoBtnHTML(o.at))+
-       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+o.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div>'+
-       '</div>';
-    return r;
-  }
-  function questTitle(qid){
-    if(LF.OBJECTIVES){ for(var i=0;i<LF.OBJECTIVES.length;i++){ if(LF.OBJECTIVES[i].id===qid) return LF.OBJECTIVES[i].title; } }
-    if(state.quests){ for(var i=0;i<state.quests.length;i++){ if(state.quests[i].id===qid) return state.quests[i].title; } }
-    return qid;
-  }
-  function packCount(id){
-    if(!state.pack) return 0; var n=0;
-    for(var i=0;i<state.pack.length;i++){ var it=state.pack[i]; if(it && (it.defId||it.id)===id) n+=(it.count||1); }
-    return n;
-  }
-  // 旗标计数（v20260911i）：营中苦役的进度不是「物品×N」，而是「活计趟数」——落在 state.flags.task.<key>_cnt。
-  //   flagNum 取值 / addFlagNum 累加；needHave 把「物品需求」与「旗标需求」统一换算成「已有多少」，
-  //   供状态栏追踪条与任务卡共用（need 项无 flag 时按背包实时派生，见 story/objectives.js）。
-  function flagNum(path){
-    var ks=String(path).split('.'), c=state;
-    for(var i=0;i<ks.length;i++){ if(c==null) return 0; c=c[ks[i]]; }
-    return (typeof c==='number')?c:(parseInt(c,10)||0);
-  }
-  function addFlagNum(path, n){
-    var ks=String(path).split('.'), c=state;
-    for(var i=0;i<ks.length-1;i++){ if(c[ks[i]]==null) c[ks[i]]={}; c=c[ks[i]]; }
-    var k=ks[ks.length-1];
-    c[k]=(parseInt(c[k],10)||0)+(n||1);
-    return c[k];
-  }
-  function needHave(nd){
-    if(!nd) return 0;
-    if(nd.flag) return flagNum(nd.flag);
-    if(nd.item) return packCount(nd.item);
-    return 0;
-  }
-  function acceptQuest(id){
-    state.quests=state.quests||[]; if(state.quests.some(function(q){return q.id===id;})) return;
-    var def=LF.QUEST_DEFS && LF.QUEST_DEFS[id]; if(!def) return;
-    state.quests.push(JSON.parse(JSON.stringify(def)));
-    save(state); renderStatus();
-  }
-  function completeQuest(id){
-    state.quests=state.quests||[];
-    var i=state.quests.findIndex(function(q){return q.id===id;}); if(i<0) return;
-    var q=state.quests.splice(i,1)[0];
-    state.questsDone=state.questsDone||[];
-    state.questsDone.push({id:q.id,title:q.title,type:q.type,reward:q.reward});
-    if(state.trackingQuest===id) state.trackingQuest=null;
-    save(state); renderStatus();
-  }
-  // 进行中任务卡（折叠式 v20260915k）：一行标签+标题+进度+箭头，点开才见
-  //   提示/材料/提交人/奖励/按钮 —— 任务一多，一眼扫过去全是标题，不再被长文字刷屏。
-  function questCardHTML(q){
-    var tn={main:'主线',side:'支线',trial:'修行'}[q.type]||'任务';
-    var cls={main:'t-main',side:'t-side',trial:'t-trial'}[q.type]||'t-side';
-    var progTxt='';
-    if(q.need && q.need.length){
-      var doneN=0;
-      q.need.forEach(function(nd){ if(needHave(nd)>=nd.count) doneN++; });
-      progTxt='<span class="q-prog">'+doneN+'/'+q.need.length+'</span>';
-    } else {
-      progTxt='<span class="q-prog">…</span>';
-    }
-    var h='<div class="obj '+cls+' obj-col" data-quest="'+q.id+'">'+
-      '<div class="obj-head">'+
-        '<span class="obj-tag '+cls+'">'+tn+'</span>'+
-        '<span class="obj-t">'+q.title+'</span>'+
-        progTxt+
-        '<span class="obj-arrow">▸</span>'+
-      '</div>'+
-      '<div class="obj-more">';
-    if(q.hint){ h+='<div class="obj-h">'+q.hint+'</div>'; }
-    if(q.need && q.need.length){
-      h+='<div class="q-need">';
-      q.need.forEach(function(nd){
-        var have=needHave(nd), ok=have>=nd.count;
-        h+='<div class="q-need-row'+(ok?' done':'')+'">'+
-           '<span class="q-ic">'+(nd.icon||'')+'</span>'+
-           '<span class="q-nm">'+nd.name+'</span>'+
-           '<span class="q-cnt">'+Math.min(have,nd.count)+' / '+nd.count+'</span></div>';
-      });
-      h+='</div>';
-    }
-    // v20260916b：submit 以最新 QUEST_DEFS 为准 —— 任务接取时深拷贝进存档（acceptQuest），
-    //   数据源后来修订过 submit.room（如 camp_warehouse → kuyilao）时，存档里那本是旧值，
-    //   指路/提交行会按旧房间走，白指去「山河」。渲染时用定义覆盖，旧档任务也指向新位置。
-    var _def2 = LF.QUEST_DEFS && LF.QUEST_DEFS[q.id];
-    var _submit = (_def2 && _def2.submit) || q.submit;
-    if(_submit){ var _rn2=(G.ROOMS[_submit.room]&&G.ROOMS[_submit.room].name)||''; h+='<div class="q-submit">📍 提交 · '+_submit.npc+(_rn2?('（'+_rn2+'）'):'')+'</div>'; }
-    if(q.reward){ h+='<div class="obj-reward">奖励 · '+q.reward+'</div>'; }
-    var tracking=state.trackingQuest===q.id;
-    // 接取式任务几乎都带 submit（去某房间找某人复命）——那是任务文字里最实在的一句「去哪儿」
-    h+='<div class="obj-acts">'+gotoBtnHTML(_submit ? { room:_submit.room, npc:_submit.npc } : (q.at||null))+
-       '<button class="obj-track'+(tracking?' on':'')+'" data-quest="'+q.id+'" type="button">'+(tracking?'追踪中 ✓':'追 踪')+'</button></div></div>'+
-      '</div>';
-    return h;
-  }
-  window.switchQuestTab=function(t){
-    var card=document.getElementById('modal-card'); if(!card) return;
-    var btns=card.querySelectorAll('.qtab'); for(var i=0;i<btns.length;i++){ btns[i].classList.toggle('active', btns[i].getAttribute('data-t')===t); }
-    var pa=document.getElementById('qp-active'), pd=document.getElementById('qp-done'), pc=document.getElementById('qp-career');
-    if(pa) pa.style.display = t==='active'?'':'none';
-    if(pd) pd.style.display = t==='done'?'':'none';
-    if(pc) pc.style.display = t==='career'?'':'none';
-  };
-  function bindQuestPanel(){
-    // 折叠展开（v20260915k）：点任务卡头部展开/收起详情；内部按钮点击不冒泡
-    document.querySelectorAll('.obj-col .obj-head').forEach(function(hd){
-      hd.onclick=function(e){
-        if(e.target.closest('.obj-track')||e.target.closest('.obj-goto')) return;
-        var card=hd.parentNode;
-        card.classList.toggle('open');
-        var ar=hd.querySelector('.obj-arrow'); if(ar) ar.textContent=(card.classList.contains('open')?'▾':'▸');
-      };
-    });
-    // 「指路」（v20260914a）：点一下就把去路点亮 —— 不必再对着一行文字自己猜该往哪走
-    document.querySelectorAll('.obj-goto[data-goto]').forEach(function(b){
-      b.onclick=function(){
-        var at=null;
-        try{ at=JSON.parse(decodeURIComponent(b.getAttribute('data-goto'))); }catch(e){}
-        questGoto(at);
-      };
-    });
-    document.querySelectorAll('.obj-track[data-quest]').forEach(function(b){
-      b.onclick=function(){
-        var qid=b.getAttribute('data-quest');
-        if(state.trackingQuest===qid){ state.trackingQuest=null; toast('已取消追踪'); }
-        else { state.trackingQuest=qid; toast('已追踪「'+questTitle(qid)+'」，目标显示在顶栏'); }
-        renderStatus();
-        openModal('quest');
-      };
-    });
-  }
-  function checkQuestRewards(){
-    if(!state || !LF.OBJECTIVES) return;
-    state.questRewards=state.questRewards||{};
-    var got=[];
-    LF.OBJECTIVES.forEach(function(o){
-      if(state.questRewards[o.id]) return;
-      if(o.check(state)){
-        state.questRewards[o.id]=true;
-        if(o.reward){
-          if(o.reward.xp){ addXp(o.reward.xp); got.push('修为+'+o.reward.xp); }
-          if(o.reward.gold){ state.gold=(state.gold||0)+o.reward.gold; got.push('银两+'+o.reward.gold); }
-          if(o.reward.rep){ addReputation(o.reward.rep); got.push('声望+'+o.reward.rep); }
-        }
-        got.push('任务「'+o.title+'」');
-      }
-    });
-    if(got.length) log('【任务达成】'+got.join('，')+'。','good');
-  }
-
-  function sectBonusText(b){
-    if(!b) return '';
-    var m={atk:'攻',def:'防',maxHp:'气血',maxMp:'内力',spd:'身法'};
-    var p=[]; Object.keys(b).forEach(function(k){ if(b[k]) p.push('+'+b[k]+' '+m[k]); });
-    return p.join(' · ');
-  }
-  function sectReqText(d){
-    var u=d.unlock||{}, p=[];
-    if(u.reputation) p.push('江湖声望≥'+u.reputation);
-    if(u.level) p.push('等级≥'+u.level);
-    if(u.flag) p.push('需先触发「'+(({met_zhangjiao:'张角之遇'})[u.flag]||u.flag)+'」');
-    return p.length?p.join(' · '):'无门槛';
-  }
-  function renderSectPanel(){
-    if(!G.SECTS) return '<h3>门 派</h3><p class="tip">数据未载入。</p>';
-    var h='<h3>门 派</h3>'+
-      '<p class="tip">门派为「中后期可选玩法」：声望初立后方可主动加入，得门风加成与传功。已入者不可更易。</p>'+
-      '<div class="sect-list">';
-    Object.keys(G.SECTS).forEach(function(id){
-      var d=G.SECTS[id], joined=state.sect===id, can=G.canJoinSect(state,id);
-      h+='<div class="sect'+(joined?' on':'')+'">'+
-        '<div class="sect-name">'+d.name+'<span class="sect-fac">'+d.faction+'</span></div>'+
-        '<div class="sect-desc">'+d.style+'</div>'+
-        '<div class="sect-bonus">门风加成 · '+sectBonusText(d.bonus)+'</div>'+
-        '<div class="sect-skill">传功 · '+((d.martials||[]).join('、'))+'</div>'+
-        '<div class="sect-req">加入条件 · '+sectReqText(d)+'</div>'+
-        (joined?'<div class="sect-joined">✓ 已身属此派</div>'
-               :(can.ok?'<button class="sect-join" data-sect="'+id+'">加 入 此 派</button>'
-                       :'<button class="sect-join" disabled title="'+can.reason+'">未达条件</button>'))+
-        '</div>';
-    });
-    h+='</div>';
-    return h;
-  }
-  function bindSectPanel(){
-    document.querySelectorAll('.sect-join[data-sect]').forEach(function(b){
-      if(b.disabled) return;
-      b.onclick=function(){
-        var id=b.getAttribute('data-sect');
-        if(state.sect){ toast('你已身属「'+G.SECTS[state.sect].name+'」'); return; }
-        var r=G.canJoinSect(state,id);
-        if(!r.ok){ toast(r.reason); return; }
-        G.joinSect(state,id);
-        log('你拜入「'+G.SECTS[id].name+'」，得传功心法。','good');
-        toast('已加入「'+G.SECTS[id].name+'」');
-        openModal('sect'); renderStatus();
-      };
-    });
-  }
-  function topObjectiveText(){
-    if(!LF.OBJECTIVES) return '志向';
-    for(var i=0;i<LF.OBJECTIVES.length;i++){ if(!LF.OBJECTIVES[i].check(state)) return LF.OBJECTIVES[i].title; }
-    return '诸事已了';
-  }
+  // [moved -> shared/core/panels.js]
+  // [moved -> shared/core/panels.js]
+  // [moved -> shared/core/panels.js]
+// [moved -> shared/core/quest.js]
   function bindTitle(){
     var tv=document.getElementById('tt-ver'); if(tv) tv.textContent='v'+LF.CONSTANTS.VERSION;
     var ts=document.getElementById('t-start'); if(ts) ts.onclick=function(){ openModal('newgame'); };
@@ -2112,8 +1317,6 @@
     }
     $actions.appendChild(b);
   }
-
-
 
   // ===== 房间渲染 =====
   var explored=false;        // 当前房间是否已探查（调查四周后解锁「去处」）
@@ -2217,68 +1420,13 @@
   // ===== 场景对象配置：每个房间的可交互元素（人物/建筑/家具/出口） =====
   var ROOM_OBJECTS = (LF.buildRoomObjects ? LF.buildRoomObjects() : {});
 
-
   // 研习武学仅限特定房间（主营/郡学宫）
   var LEARN_ROOMS={};
   function roomCanLearn(rid){ return !!LEARN_ROOMS[rid]; }
 
   // ===== 城市系统：数据驱动派生（数据 shared/data/cities.js） =====
   // 进入城市房间时按人口/治安/商业参数生成城郭概况、人物与可行动作，免去为每城手写房间
-  // 城况面板（v20260825d）：参数 + 城型 + 城门 + 市集清单
-  function renderCityStat(cid){
-    var p=cityProfile(cid); if(!p) return '<h3>城 况</h3><p class="empty">暂无此城数据。</p>';
-    var m=genCityGrid(cid);
-    var mkHtml='';
-    if(m && m.markets){
-      var seen={}, list=[], total=0;
-      for(var k in m.markets){
-        total++;
-        var mk=m.markets[k];
-        var _xy=k.split(',');
-        // 仅统计已营建、当前可见的市集（与城内地图一致：开发度半径外/遭战火者不计入），避免面板虚报
-        if(cellDisplayType(cid, +_xy[0], +_xy[1])!=='market') continue;
-        if(!seen[mk.name]){ seen[mk.name]=1; list.push(mk); }
-      }
-      if(list.length){
-        var _tip = (total>list.length) ? ('，另有 '+(total-list.length)+' 处位于未营建/焦土区，待营建或修缮后开放') : '';
-        mkHtml='<div class="row"><span>市集（已营建 '+list.length+' 处'+_tip+'）</span></div><div class="city-mk">';
-        list.forEach(function(mk){
-          var shops=mk.shops.map(function(s){ return s.sign; }).join('、');
-          mkHtml+='<div class="mk-i">🏯 <b>'+mk.name+'</b>：'+shops+'</div>';
-        });
-        mkHtml+='</div>';
-      }
-    }
-    // 在建营造工单（第3步）：列出本城所有「building」状态的 BuildOrder
-    var boHtml='';
-    var _bo=state.flags.buildOrders;
-    if(_bo){
-      var boList=[];
-      for(var _bid in _bo){ var _o=_bo[_bid]; if(_o && _o.cid===cid && _o.status==='building') boList.push(_o); }
-      if(boList.length){
-        boHtml='<div class="row"><span>营造工事（'+boList.length+' 处）</span></div><div class="city-mk">';
-        boList.forEach(function(_o){
-          var _bp=LF.BUILD[_o.blueprintId]||{};
-          var _st=(_bp.stages||[]).length;
-          boHtml+='<div class="mk-i">🚧 <b>'+(_bp.doneName||'新筑')+'</b>：阶段 '+Math.min((_o.stageIndex||0)+1,_st)+' / '+_st+'　人力 '+(_o.laborPaid||0)+'/'+(_o.laborNeeded||(_bp.labor||2))+'</div>';
-        });
-        boHtml+='</div>';
-      }
-    }
-    return '<h3>城 况 · '+p.c.name+'</h3>'+
-      row('行政', p.tierDesc)+
-      row('城型', p.ctypeDesc)+
-      row('城门', (availableGateDirs(cid)||[]).length+' 座')+
-      row('城级', cityLevelName(cid)+'（'+cityGridSize(cid)+'×'+cityGridSize(cid)+' 格，建设度 '+cityDevOf(cid)+'）')+
-      row('人口', p.popDesc)+
-      row('治安', p.orderDesc)+
-      row('商业', p.comDesc)+
-      row('农业', p.agriDesc)+
-      row('城防', (p.c.wall>=60?'高垒深沟': p.c.wall>=45?'城墙完固': p.c.wall>=30?'城垣可守':'防守疏懈'))+
-      (mkHtml? mkHtml : '')+
-      (boHtml? boHtml : '')+
-      '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。城内空地可点格「营造」筑新宅新市。</p>';
-  }
+  // [moved -> shared/core/panels.js]
   // 城中可做之事：城况一览已归山河图（点城池即看），城市视图不再常驻该钮；仅留「兴修城垣」
   function cityActs(cid){
     var p=cityProfile(cid); if(!p) return [];
@@ -2868,90 +2016,13 @@
   // v20260916h：木牍改「缩略 → 点击展开」——默认只露状态印与活名，一屏能多排几片；
   //   点活名那行展开全部（一句话、指引、操作），再点收起。摘牍后刚领的那片自动展开。
   var lastJobTaken=null;
-  function jobSeal(j){
-    if(jobFlag(j.key,'_done')) return '<span class="job-seal done">已了</span>';
-    if(jobFlag(j.key,'_started')) return '<span class="job-seal doing">已领</span>';
-    return '<span class="job-seal open">可领</span>';
-  }
-  function jobPlankHTML(j){
-    var done=jobFlag(j.key,'_done'), started=jobFlag(j.key,'_started');
-    var cls=done?' done':(started?' doing':' open');
-    var expand=(j.key===lastJobTaken)?' expand':'';
-    var act;
-    if(!done && !started){
-      act='<button class="job-take" data-job="'+j.key+'" type="button">摘 下 木 牍 · 领 活</button>';
-    } else if(started && !done){
-      act='<div class="job-doing">已摘此牍——按牌上所言去办。</div>';
-    } else {
-      act='<div class="job-done-line">这片木牍已翻过来扣着——了了。</div>';
-    }
-    var h='<div class="job-plank'+cls+expand+'">'+
-      '<div class="job-plank-head job-toggle" data-job="'+j.key+'" role="button" tabindex="0">'+
-        jobSeal(j)+'<span class="job-name">'+j.title+'</span><span class="job-fold">▾</span>'+
-      '</div>'+
-      '<div class="job-body">'+
-        '<div class="job-word">'+j.word+'</div>'+
-        '<div class="job-meta">'+j.tip+'</div>'+
-        act+
-      '</div>'+
-    '</div>';
-    return h;
-  }
-  function renderJobBoard(){
-    var h='<h3 class="q-title">差 役 牌</h3>'+
-      '<p class="job-sub">营中差事全钉在这块木牌上：摘下一片木牍，那桩活便落在你头上。</p>'+
-      '<div class="job-board">'+JOB_BOARD.map(jobPlankHTML).join('')+'</div>'+
-      '<p class="job-note">牌角另钉着一句：活要做出东西来，东西要送到人手上。空着手回来，不算交差。</p>'+
-      '<p class="job-note sub">牌侧一行小字，是另一码事：干活记工，满 '+LABOR_PER_WOOD+' 工发一枚劳字木片，木片到营西伙房换饭——那是口粮，不是差役。</p>';
-    return h;
-  }
-  function bindJobBoard(){
-    document.querySelectorAll('.job-toggle[data-job]').forEach(function(h){
-      h.onclick=function(){
-        var plank=h.parentNode;
-        plank.classList.toggle('expand');
-      };
-    });
-    document.querySelectorAll('.job-take[data-job]').forEach(function(b){
-      b.onclick=function(){ jobTake(b.getAttribute('data-job')); };
-    });
-  }
-  function jobFlag(key, suffix){ var t=(state.flags && state.flags.task)||{}; return t[key+suffix]; }
-  function jobOpen(key){ return !!jobFlag(key,'_started') && !jobFlag(key,'_done'); }
-  function jobTake(key){
-    var j=null; JOB_BOARD.forEach(function(x){ if(x.key===key) j=x; }); if(!j) return;
-    if(!state.flags) state.flags={};
-    if(!state.flags.task) state.flags.task={};
-    state.flags.task[key+'_started']=true;
-    acceptQuest(j.quest);
-    lastJobTaken=key;                          // v20260916h：重渲染后刚领的木牍默认展开
-    log(j.take,'sys');
-    log('〔差役〕'+j.tip,'sys');
-    save(state); buildActions(curRoom());
-    if(currentModalKind==='job'){ openModal('job'); }
-  }
+
   // 看差役牌（v20260915b）：从对话文字流改为木牍面板 —— 木牌质感 + 一片木牍一桩活
-  function jobBoard(){
-    openModal('job');
-  }
+
   // ═══ 差役记账（v20260915f）═══
   // 牌上摘牍只是接活；做一次记一笔（jobTick），够了翻牍发赏（jobSettle）。
   //   各处只管调这两个，不必各自拼 flags 路径 —— 也免得「记了数却忘了翻牍」这类漏账。
-  function jobTick(key, n){
-    if(!state.flags) state.flags={};
-    if(!state.flags.task) state.flags.task={};
-    var k=key+'_cnt'; state.flags.task[k]=(state.flags.task[k]||0)+(n||1);
-    return state.flags.task[k];
-  }
-  function jobSettle(key, questId, exp, rep){
-    if(!state.flags) state.flags={};
-    if(!state.flags.task) state.flags.task={};
-    state.flags.task[key+'_done']=true;
-    if(questId) completeQuest(questId);
-    if(exp) addXp(exp);
-    if(rep) addReputation(rep);
-    save(state); renderStatus();
-  }
+
   // ═══ 担水入灶（v20260915f）：囚室水槽打水 → 伙房灶边水缸倾进去 ══
   //   水是营里的硬通货（解渴 / 添槽 / 和泥都靠它）。这一趟的意义在「两头跑」：
   //   打水在一处、用场在另一处，营里的日子本就是这么串起来的。
@@ -3055,194 +2126,32 @@
     yecai: { name:'野菜', icon:'🥬', grow:3, out:'yecai', yield:[1,2], seed:'caizi' },
     dou:   { name:'菽豆', icon:'🥜', grow:6, out:'dou',   yield:[1,2], seed:'douzhong' }
   };
-  function farmFx(){
-    var f=fxGet('kuyilao|0,0');
-    if(!f.plots){
-      f.plots=[]; for(var i=0;i<FARM_MAX;i++) f.plots.push({st:'wild'});
-      f.unlocked=0; f.up={}; f.li=0;
-      // 旧存档迁移：老版本只记「翻了几垄」，翻透的即算第一畦已开出来
-      if((f.tilled||0)>=FARM_LI){ f.plots[0].st='tilled'; f.unlocked=1; }
-    }
-    if(!f.up) f.up={};
-    return f;
-  }
-  function farmTilled(){ var f=farmFx(); return (f.unlocked||0)>0 || (f.tilled||0)>=FARM_LI; }
-  function farmHas(id,n){ var it=packFind(id); return !!(it && (it.count||0)>=n); }
+
   // 一畦此刻的模样：wild 未开 / tilled 已翻 / growing 长着 / ripe 可收 / wither 枯了
-  function plotStage(p){
-    if(!p || p.st!=='sown') return p ? p.st : 'wild';
-    var c=CROPS[p.crop]||CROPS.yecai;
-    var need=Math.max(1, c.grow - (p.wet?1:0));        // 浇过水的早一个时辰熟
-    var past=plantPast(p);
-    if(past>=c.grow*3) return 'wither';                // 该收不收，苗就荒死在畦里（须在 ripe 之前判：熟过头=荒死）
-    if(past>=need) return 'ripe';
-    return 'growing';
-  }
-  function plotLeft(p){
-    var c=CROPS[p.crop]||CROPS.yecai;
-    return Math.max(0, Math.max(1,c.grow-(p.wet?1:0)) - plantPast(p));
-  }
+
   // 播种以来已过的时辰数（绝对口径：天数×12 + 时辰差，跨子夜不回绕；旧档无 sownDay 按当日 0 起）
-  function plantPast(p){
-    var sd = (p && p.sownDay!=null) ? p.sownDay : state.day;
-    var st = p && (p.sownT||0);
-    return (state.day - sd) * 12 + (state.time - st);
-  }
+
   // 开垦：一次一垄，三垄开出一畦；头一回孙老递过锄头
-  function farmTill(){
-    if(!jobOpen('farm')){ toast('孙老没托你翻这块地，贸然动土反招人疑。'); return; }
-    var f=farmFx();
-    if((f.unlocked||0)>=FARM_MAX){ toast('九畦都开出来了——再开就该惊动牢头了。'); return; }
-    if(!packFind('chutu')){
-      packAdd('chutu',1);
-      packAdd('caizi',2);   // 头一回下地，孙老连家伙带籽一并给——不然开了地也无从下手
-      log('孙老从田埂边摸出一把锄头递过来：「家伙给你。土要翻透，别糊弄老骨头。」（得「锄头」×1）','good');
-      log('他又从怀里摸出个小布袋塞给你：「菜籽。撒下去，别贪多——头一茬能活一半，就算老天赏脸。」（得「菜籽」×2）','good');
-    }
-    if(!exert('开垦')) return;
-    busyAct('开垦·半个时辰', 1000, function(){
-      state.energy=Math.max(0, state.energy-4);
-      advanceMinutes(60);
-      f.li=(f.li||0)+1; f.tilled=(f.tilled||0)+1;      // tilled 仅为旧存档/旧判定留的兼容计数
-      log('你抡锄翻过一垄，湿土翻开，草腥气扑了满脸。（第 '+((f.unlocked||0)+1)+' 畦：'+f.li+' / '+FARM_LI+' 垄）','env');
-      if(f.li>=FARM_LI){
-        f.plots[f.unlocked||0]={ st:'tilled' };
-        f.unlocked=(f.unlocked||0)+1; f.li=0;
-        log('三垄翻透，土细如筛——第 '+f.unlocked+' 畦开出来了。撒菜籽还是菽种，在你。','good');
-      }
-      save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
+
   // 播种：一畦一份种子；菜籽长得快，菽豆长得慢却厚
-  function farmSow(i, key){
-    var f=farmFx(), p=f.plots[i]; if(!p) return;
-    var c=CROPS[key]; if(!c) return;
-    if(!farmHas(c.seed,1)){ toast('没有'+c.name+'的种子——向孙老讨，或拿收成自己留种。'); return; }
-    if(!exert('播种')) return;
-    busyAct('播种·'+c.name, 800, function(){
-      packConsume(c.seed,1);
-      advanceMinutes(60);
-      p.st='sown'; p.crop=key; p.sownT=state.time; p.sownDay=state.day; p.wet=false;
-      log('你把'+c.name+'籽撒进第 '+(i+1)+' 畦，覆土踩实。约 '+c.grow+' 个时辰可收——浇过水则早一个时辰。','good');
-      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
+
   // 浇水：寻常一次浇一畦；修了水渠则三份水浇遍所有长着的畦
-  function farmWater(i){
-    var f=farmFx();
-    var bag=packFind('shuidai');
-    if(!bag || (bag.water||0) < 3){ toast('水袋里不足三份水——先去囚室那格的水槽点「装水入袋」。'); return; }
-    var all=!!f.up.canal, targets=[];
-    for(var k=0;k<(f.unlocked||0);k++){ if(plotStage(f.plots[k])==='growing') targets.push(k); }
-    if(!all){ if(plotStage(f.plots[i])!=='growing'){ toast('这一畦此刻不缺水。'); return; } targets=[i]; }
-    if(!targets.length){ toast('眼下没有正长着的畦。'); return; }
-    if(!exert('挑水浇畦')) return;
-    busyAct('挑水浇畦', 900, function(){
-      bag.water=(bag.water||0)-3;
-      advanceMinutes(60);
-      for(var k=0;k<targets.length;k++) f.plots[targets[k]].wet=true;
-      log(all?('水渠一开，三份水顺着沟渗进 '+targets.length+' 畦——这就是修渠的好处。')
-             :('你把水浇进第 '+(i+1)+' 畦，湿泥颜色转深——这一茬能早熟一个时辰。'),'good');
-      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
+
   // 锄草：不催熟，只把时辰往前推一个，顺带让人不至于干等
-  function farmWeed(i){
-    var f=farmFx();
-    if(!exert('锄草')) return;
-    busyAct('锄草', 800, function(){
-      advanceMinutes(60);
-      state.energy=Math.max(0, state.energy-1);
-      log('你蹲在第 '+(i+1)+' 畦边拔草，草根带起的湿土凉丝丝的。（距可收约 '+plotLeft(f.plots[i])+' 个时辰）','env');
-      save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
+
   // 采收：得实物；浇过水 +1 捧；有编筐再 +1 捧；留种则返一份籽
-  function farmHarvest(i){
-    var f=farmFx(), p=f.plots[i]; if(!p) return;
-    var c=CROPS[p.crop]||CROPS.yecai;
-    if(!exert('采收')) return;
-    busyAct('采收·'+c.name, 900, function(){
-      advanceMinutes(60);
-      state.energy=Math.max(0, state.energy-2);
-      var n=c.yield[0]+Math.floor(Math.random()*(c.yield[1]-c.yield[0]+1));
-      if(p.wet) n+=1;                                  // 浇过水的厚实
-      if(f.up.basket) n+=1;                            // 编筐：兜住更多
-      if(!packAdd(c.out, n)) return;
-      f.picked=(f.picked||0)+n;
-      var back=false;
-      if(f.up.seedkeep || Math.random()<0.4){ if(packAdd(c.seed,1)) back=true; }
-      p.st='tilled'; p.crop=null; p.wet=false;
-      log('第 '+(i+1)+' 畦收得'+c.name+'×'+n+'。'+(back?'（留下一份籽，下一茬有着落。）':'')+(f.up.basket?'（筐编得好，多兜了一捧。）':''),'good');
-      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
+
   // 铲枯苗：该收没收，苗荒死在畦里 —— 土还在，重头再来
-  function farmClear(i){
-    var f=farmFx(), p=f.plots[i]; if(!p) return;
-    if(!exert('铲除枯苗')) return;
-    busyAct('铲除枯苗', 700, function(){
-      advanceMinutes(60);
-      p.st='tilled'; p.crop=null; p.wet=false;
-      log('你把枯苗连根铲起，扔在田埂上晾着——土还在，重头再来。','env');
-      save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
+
   // 升级三件：给机制，不给数值（数值涨了只会让人更快做完，机制变了才会换一种做法）
   var FARM_UP = {
     canal:    { name:'水渠', icon:'🚰', cost:{ shitiao:3 }, need:{ shitiao:3 }, desc:'沿畦开一道小沟。此后三份水浇遍所有长着的畦，不必一畦一畦挑。' },
     basket:   { name:'编筐', icon:'🧺', cost:{ rope:1 },    need:{ rope:1 },    desc:'请席翁编一只收菜的筐。此后每畦采收都多得一捧。' },
     seedkeep: { name:'留种', icon:'🌱', cost:{ bumu:1 },    need:{ bumu:1 },    desc:'缝一只布口袋存籽。此后每收一畦，必留得一份种子。' }
   };
-  function farmUpgrade(key){
-    var f=farmFx(), u=FARM_UP[key]; if(!u) return;
-    if(f.up[key]){ toast(u.name+'已经有了。'); return; }
-    for(var id in u.need){ if(!farmHas(id, u.need[id])){
-      var dn=(window.LF&&LF.ITEMS&&LF.ITEMS.DEFS&&LF.ITEMS.DEFS[id])?LF.ITEMS.DEFS[id].name:id;
-      toast('料不够：修'+u.name+'需「'+dn+'」×'+u.need[id]+'。'); return;
-    } }
-    if(!exert('修'+u.name)) return;
-    busyAct('修'+u.name, 1200, function(){
-      for(var id in u.need) packConsume(id, u.need[id]);
-      advanceMinutes(60);
-      f.up[key]=true;
-      log('〔农田·'+u.name+'〕'+u.desc,'good');
-      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
+
   // 格上的设施：每畦按当前状态只显一条（故九畦最多九条），外加三处升级
-  function farmObjects(){
-    var arr=[], f=farmFx(), un=f.unlocked||0;
-    for(var _i=0;_i<FARM_MAX;_i++){
-      (function(i){
-        var nm='第 '+(i+1)+' 畦';
-        arr.push({ icon:'🌾', label:nm+'·荒地',
-          show:function(){ return jobOpen('farm') && i===farmFx().unlocked && farmFx().unlocked<FARM_MAX; },
-          acts:[{label:'开垦（翻三垄）', icon:'⛏️', fn:function(){ farmTill(); }}] });
-        arr.push({ icon:'🟫', label:nm+'·已翻',
-          show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='tilled'; },
-          acts:[{label:'播·野菜（菜籽×1）', icon:'🥬', fn:function(){ farmSow(i,'yecai'); }},
-                {label:'播·菽豆（菽种×1）', icon:'🥜', fn:function(){ farmSow(i,'dou'); }}] });
-        arr.push({ icon:'🌱', label:nm+'·长着',
-          show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='growing'; },
-          acts:[{label:'浇水（三份）', icon:'💧', show:function(){ return !farmFx().plots[i].wet; }, fn:function(){ farmWater(i); }},
-                {label:'锄草', icon:'🧹', fn:function(){ farmWeed(i); }}] });
-        arr.push({ icon:'🥬', label:nm+'·可收',
-          show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='ripe'; },
-          acts:[{label:'采收', icon:'🧺', fn:function(){ farmHarvest(i); }}] });
-        arr.push({ icon:'🥀', label:nm+'·枯了',
-          show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='wither'; },
-          acts:[{label:'铲除枯苗', icon:'🧹', fn:function(){ farmClear(i); }}] });
-      })(_i);
-    }
-    Object.keys(FARM_UP).forEach(function(key){
-      var u=FARM_UP[key];
-      arr.push({ icon:u.icon, label:'修'+u.name,
-        show:function(){ return jobOpen('farm') && !farmFx().up[key] && farmFx().unlocked>0; },
-        acts:[{label:'修'+u.name, icon:u.icon, fn:function(){ farmUpgrade(key); }}] });
-    });
-    return arr;
-  }
+
   var CELL_NARR = {
     'kuyilao|1,0': [
       '长巷两侧铁栅森然，风从栅缝钻过，带着潮气与远处草木腥。六间牢房分列东西——东侧天字一号至三号，西侧地字一号至三号。',
@@ -3339,331 +2248,19 @@
       desc:'使一口环首刀，为人豪爽，愿随你闯荡江湖。'
     }
   };
-  function recruitCompanion(key){
-    var c=COMPANION_DEFS[key]; if(!c){ toast('此人不可招入队中。'); return; }
-    if(!state.party) state.party=[];
-    if(state.party.some(function(m){ return m.id===c.id; })){ toast(c.name+'已在队中。'); return; }
-    state.party.push(Object.assign({}, c));
-    if(!state.flags) state.flags={};
-    if(!state.flags.recruited) state.flags.recruited={};
-    state.flags.recruited[key]=true;   // 标记已招募，NPC 从场景列表中隐去
-    save(state);
-    if(typeof buildActions==='function') buildActions(G.ROOMS[state.room]);
-    log(c.name+'抱拳道：「承蒙看得起，愿随壮士同生共死！」','good');
-    toast(c.name+' 加入队伍！');
-  }
-  function dismissCompanion(id){
-    if(!state.party) return;
-    var idx=-1;
-    for(var i=0;i<state.party.length;i++){ if(state.party[i].id===id){ idx=i; break; } }
-    if(idx<0) return;
-    var c=state.party[idx];
-    state.party.splice(idx,1);
-    for(var k in COMPANION_DEFS){ if(COMPANION_DEFS[k].id===id && state.flags && state.flags.recruited){ delete state.flags.recruited[k]; } }
-    save(state);
-    if(currentModalKind==='party') openModal('party');
-    log(c.name+'与你拱手作别，转身没入人海。','sys');
-    toast(c.name+' 已离队。');
-  }
-  function renderPartyPanel(){
-    var list=(state.party||[]);
-    var html='<h3>队 伍</h3>';
-    if(!list.length){
-      html+='<p class="tip">你孤身一人行走江湖。江湖儿女中自有可招募之人——留意 NPC 的「邀请入队」。</p>';
-    }
-    list.forEach(function(c){
-      var arts=(c.learnedMartial||[]).map(function(aid){ var a=G.MARTIAL_ARTS.get(aid); return '<span>'+(a?a.name:aid)+'</span>'; }).join('');
-      html+='<div style="border:1px solid #6b5a3a;border-radius:10px;padding:10px;margin:8px 0;background:rgba(0,0,0,.18);">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-        +   '<span style="font-weight:700;font-size:15px;">'+(c.name||'同伴')+'</span>'
-        +   '<button class="btn-mini" style="background:#7d241d;border-color:#a13a2c;" onclick="LFUI.dismissCompanion(\''+c.id+'\')">解散</button>'
-        + '</div>'
-        + row('气血', c.hp+' / '+c.maxHp)
-        + row('内力', (c.mp||0)+' / '+(c.maxMp||0))
-        + row('攻击', c.atk||0)
-        + row('防御', c.def||0)
-        + row('身法', c.spd||0)
-        + row('五行', c.element||'无')
-        + '<div class="row"><span>武学</span></div><div class="skills">'+(arts||'<span>未习武学</span>')+'</div>'
-        + '<p class="tip">'+((COMPANION_DEFS[c.id]||{}).desc||'每场战斗同伴满血入场，可随你一起出手。')+'</p>'
-        + '</div>';
-    });
-    return html;
-  }
+
   // ===== NPC 给予物品（v20260909u）：选择行囊物品给予NPC，增减好感或触发任务 =====
   var giveNpc = null;
-  function openGivePanel(o){
-    giveNpc = o;
-    openModal('give', {npc: o});
-  }
+
   var giveSelectedIdx = null;
   var giveQty = 1;
-  function renderGivePanel(npc){
-    if(!npc) return '<h3>给 予</h3><p>未指定对象。</p>';
-    var grid='';
-    var hasItem=false;
-    for(var i=0;i<state.pack.length;i++){
-      var it=state.pack[i];
-      if(!it){ grid += '<div class="packcell pcell-empty"></div>'; continue; }
-      hasItem=true;
-      var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
-      var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
-      var sel = (giveSelectedIdx===i)?' give-selected':'';
-      grid += '<div class="packcell give-item'+sel+'" data-give-idx="'+i+'">'
-            + '<div class="pcell-ic">'+(it.icon||'📦')+'</div>'
-            + '<div class="give-item-name">'+it.name+'</div>'
-            + cnt + qb + '</div>';
-    }
-    // 右侧详情
-    var detailHTML = '<div class="give-empty-tip">← 点选左侧物品</div>';
-    var qtyHTML = '';
-    var confirmHTML = '';
-    if(giveSelectedIdx!=null && state.pack[giveSelectedIdx]){
-      var it = state.pack[giveSelectedIdx];
-      var maxQty = it.count || 1;
-      if(giveQty > maxQty) giveQty = maxQty;
-      if(giveQty < 1) giveQty = 1;
-      detailHTML = '<div class="give-d-name">'+(it.icon||'📦')+' '+it.name+'</div>';
-      // 类型 + 槽位 + 品质 + 持有数量
-      var slotLabel = (it.slot && LF.ITEMS && LF.ITEMS.SLOTS && LF.ITEMS.SLOTS[it.slot]) ? LF.ITEMS.SLOTS[it.slot].label : '';
-      var catText = (it.cat||'道具') + (slotLabel?(' · '+slotLabel):'') + (it.qualityName?(' · '+it.qualityName):'') + (maxQty>1?(' · 持有'+maxQty):'');
-      detailHTML += '<div class="give-d-cat">'+catText+'</div>';
-      if(it.cat==='装备'){
-        var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
-        var parts=[];
-        fields.forEach(function(f){ var v=it[f[0]]||0; if(v) parts.push(f[1]+' +'+v); });
-        if(it.packSpace) parts.push('行囊 +'+it.packSpace);
-        if(parts.length) detailHTML+='<div class="give-d-line">'+parts.join(' · ')+'</div>';
-      }
-      if(it.desc) detailHTML+='<div class="give-d-line give-d-desc">'+it.desc+'</div>';
-      var estFavor = calcGiveFavor(it) * giveQty;
-      detailHTML+='<div class="give-d-favor">预计好感 +'+estFavor+'</div>';
-      // 数量选择（仅堆叠物品）
-      if(maxQty > 1){
-        qtyHTML = '<div class="give-qty-row">'
-          + '<span>赠予数量</span>'
-          + '<button class="give-qty-btn" id="give-qty-minus">−</button>'
-          + '<span class="give-qty-num" id="give-qty-num">'+giveQty+'</span>'
-          + '<button class="give-qty-btn" id="give-qty-plus">+</button>'
-          + '<button class="give-qty-all" id="give-qty-all">全部</button>'
-          + '</div>';
-      }
-      confirmHTML = '<button class="give-confirm-btn" id="give-confirm">确认赠予 ×'+giveQty+'</button>';
-    }
-    return '<div class="give-panel">'
-      + '<div class="give-head"><span>赠 与</span><span class="give-head-npc">'+npc.name+'</span></div>'
-      + '<div class="give-body">'
-      +   '<div class="give-left">'
-      +     '<div class="give-col-title">行 囊</div>'
-      +     '<div class="pack-scroll give-grid-scroll"><div class="pack-grid">'+grid+'</div></div>'
-      +     (hasItem?'':'<div class="give-empty">行囊空空，无物可赠。</div>')
-      +   '</div>'
-      +   '<div class="give-right">'
-      +     '<div class="give-col-title">详 情</div>'
-      +     '<div class="give-detail-box">'+detailHTML+'</div>'
-      +     qtyHTML
-      +   '</div>'
-      + '</div>'
-      + '<div class="give-foot">'
-      +   confirmHTML
-      +   '<button class="give-cancel-btn" id="give-cancel">取 消</button>'
-      + '</div>'
-      + '</div>';
-  }
-  function giveItemToNpc(packIdx, qty){
-    if(!giveNpc || !giveNpc.key) return;
-    var it = state.pack[packIdx];
-    if(!it) return;
-    var n = qty || 1;
-    var maxQty = it.count || 1;
-    if(n > maxQty) n = maxQty;
-    var npcKey = giveNpc.key;
-    var npcName = giveNpc.name;
-    // 从行囊移除物品（批量）
-    if(it.count && it.count > n){ it.count -= n; } else { state.pack[packIdx]=null; }
-    // 检查 onGive 触发器（任务条件）—— 传递给予数量 qty，支持累计计数
-    var triggered = checkTriggers({hook:'onGive', npc:npcKey, room:state.room, item:it, qty:n});
-    if(!triggered){
-      // 没有特殊触发，根据物品价值增减好感（批量）
-      var favor = calcGiveFavor(it) * n;
-      if(!state.npcFavor) state.npcFavor = {};
-      state.npcFavor[npcKey] = (state.npcFavor[npcKey]||0) + favor;
-      var react = giveReaction(npcName, it, favor);
-      log(react, 'npc', npcName);
-      if(favor>0) log('〔'+npcName+'·好感 +'+favor+'〕','good');
-      else if(favor<0) log('〔'+npcName+'·好感 '+favor+'〕','bad');
-    }
-    save(state);
-    renderNpcList();
-    giveSelectedIdx = null;
-    giveQty = 1;
-    // 刷新给予面板
-    if(currentModalKind==='give'){
-      var card=document.getElementById('modal-card');
-      if(card) card.innerHTML = renderGivePanel(giveNpc);
-      bindGivePanel();
-    }
-  }
-  function calcGiveFavor(it){
-    // 根据物品类型/品质计算好感度变化
-    var cat = it.cat || '道具';
-    var base = 1;
-    if(cat==='装备'){
-      var qmult = {white:1, green:3, blue:6, purple:10, orange:15};
-      base = 3 + (qmult[it.quality]||1);
-    } else if(cat==='药剂'){
-      base = 5;
-    } else if(cat==='食饵'){
-      base = 2;
-    } else if(cat==='素材'){
-      base = 1;
-    } else if(cat==='简册'){
-      base = 8;
-    } else if(cat==='器具'){
-      base = 4;
-    }
-    // 贵重物品额外加成
-    if(it.price && it.price>=50) base += Math.floor(it.price/50);
-    return Math.min(30, base);
-  }
-  function giveReaction(npcName, it, favor){
-    if(favor>=15) return npcName+'双眼一亮，双手接过：「壮士厚赠，在下愧不敢当！此恩铭记于心。」';
-    if(favor>=8) return npcName+'面露喜色，接过物品：「多谢壮士，此物正中下怀。」';
-    if(favor>=3) return npcName+'点点头收下：「有心了。」';
-    if(favor>0) return npcName+'淡淡收下，未多言语。';
-    return npcName+'皱了皱眉，勉强收下：「此物……也罢。」';
-  }
-  function bindGivePanel(){
-    document.querySelectorAll('.give-item').forEach(function(el){
-      el.onclick=function(){
-        var idx=parseInt(el.getAttribute('data-give-idx'),10);
-        giveSelectedIdx = idx;
-        giveQty = 1;
-        var card=document.getElementById('modal-card');
-        if(card) card.innerHTML = renderGivePanel(giveNpc);
-        bindGivePanel();
-      };
-    });
-    var minus=document.getElementById('give-qty-minus');
-    if(minus) minus.onclick=function(){
-      if(giveQty>1){ giveQty--; refreshGiveDetail(); }
-    };
-    var plus=document.getElementById('give-qty-plus');
-    if(plus) plus.onclick=function(){
-      var it = state.pack[giveSelectedIdx];
-      var maxQty = it ? (it.count||1) : 1;
-      if(giveQty<maxQty){ giveQty++; refreshGiveDetail(); }
-    };
-    var all=document.getElementById('give-qty-all');
-    if(all) all.onclick=function(){
-      var it = state.pack[giveSelectedIdx];
-      giveQty = it ? (it.count||1) : 1;
-      refreshGiveDetail();
-    };
-    var confirm=document.getElementById('give-confirm');
-    if(confirm) confirm.onclick=function(){
-      if(giveSelectedIdx!=null) giveItemToNpc(giveSelectedIdx, giveQty);
-    };
-    var cancel=document.getElementById('give-cancel');
-    if(cancel) cancel.onclick=closeModal;
-    // 点击遮罩层关闭
-    var modal=document.getElementById('modal');
-    if(modal){
-      modal.onclick=function(e){
-        if(e.target===modal) closeModal();
-      };
-    }
-  }
-  function refreshGiveDetail(){
-    var card=document.getElementById('modal-card');
-    if(card) card.innerHTML = renderGivePanel(giveNpc);
-    bindGivePanel();
-  }
+
   // ===== NPC 标准操作列：交谈 / 观察 / 给予 / 攻击 + 对象自带动作 =====
   // 教学期是否放行「给予」（v20260915c）：交付类差事如今只认「给予」——zt_food 的结清挂在
   //   triggers.js 的 zt_food_give（hook:'onGive'），「交谈」里已不再自动交付。若连这颗按钮一起
   //   屏蔽，玩家攥着干粮站在周听涛跟前却交不出去，教学链当场断死。故：教学期仅当
   //   「此人正是收件人 + 差事已应下 + 手里确有那份东西 + 尚未结清」时，才放出这一颗按钮。
-  function onbGiveUnlocked(o){
-    var f=state.flags||{}, t=f.task||{}, onb=f.onb;
-    if(!onb || onb.done) return true;              // 已脱籍：照旧全开
-    if(!o) return false;
-    // 教学链特例（v20260915c）：周听涛收干粮 —— 原判据原样保留
-    if(o.key==='zhoutingtao'){
-      if(!t.zt_accepted) return false;               // 差事尚未应下，无货可交
-      if(f.route && f.route.crypt) return false;     // 密道已得，这桩差事已了
-      return !!packFind('fan');                      // 手里得真有那份吃食
-    }
-    // 泛化（v20260915k）：教学期凡「未结差事的收件人 + 手里确有需要的实物」也放行给予
-    //   —— 仓吏收石料/旧物/铜矿、鲁大收野菜……操作菜单直接露出「给予」，
-    //   不必先点「交谈」钻进对话面板底栏才能交差（那一步绕得太深，玩家容易以为交不了）。
-    //   匹配口径与任务日志一致：q.submit.npc 是显示名/身份（'仓吏'/'鲁大'）。
-    //   具名 NPC 的名字就是显示名（鲁大/孙老…）；程序 NPC（storeman 卡生成）名字是随机人名
-    //   （丁大牛…），显示身份在 role 字段（'仓吏'）——两者都认。
-    var quests=state.quests||[];
-    for(var i=0;i<quests.length;i++){
-      var q=quests[i];
-      if(!q || !q.submit) continue;
-      if(q.submit.npc!==o.name && q.submit.npc!==o.role) continue;
-      var needItem=(q.need||[]).some(function(nd){ return nd.item && packFind(nd.item); });
-      if(needItem) return true;
-    }
-    return false;
-  }
-  function buildNpcActions(o){
-    var acts=[];
-    acts.push({label:'交谈', icon:'💬', fn:function(){ if(o.key) talk(o.key); }});
-    // 开场教学链（onb 未完成）期间：仅保留「交谈」，隐藏「观察」「攻击」，避免新手误触/无意义选项
-    var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
-    if(!onboarding){
-      acts.push({label:'观察', icon:'👁', fn:function(){ observeNpc(o); }});
-    }
-    if(onbGiveUnlocked(o)){
-      acts.push({label:'给予', icon:'🎁', fn:function(){ openGivePanel(o); }});
-    }
-    if(!onboarding){
-      var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
-      acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
-        if(dangerAct){ dangerAct.fn(); return; }
-        var eid = (G.ENEMIES && G.ENEMIES[o.key]) ? o.key : (NPC_COMBAT_MAP[o.key] || null);
-        if(eid && G.ENEMIES[eid]){ startCombat(eid); return; }
-        log('〔'+o.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys');
-      }});
-    }
-    (o.actions||[]).forEach(function(a){
-      if(a.danger) return;                       // 敌意动作已并入「攻击」
-      if(/交谈|观察|给予/.test(a.label||'')) return;  // 去重标准项
-      acts.push(a);
-    });
-    return acts;
-  }
-  function observeNpc(o){
-    var key=o.key, parts=[];
-    if(o.desc) parts.push(o.desc);
-    if(key && G.DIALOGUES.npcs[key]) parts.push('当前态度：'+npcAttitude(key));
-    else if(key && NPC_BY_KEY[key]){
-      // 程序 NPC：显示身份与「你与他」的交情（每个 NPC 一本账，见 npcFavor）
-      if(o.role) parts.push('身份：'+o.role);
-      var _fv=npcFavor(key);
-      parts.push('与你的交情：'+npcFavorTier(_fv).name+(state.npcFavor&&state.npcFavor[key]?'（'+(_fv>0?'+':'')+_fv+'）':''));
-    }
-    // 掉落预览：NPC 对应敌人模板有掉落表时，展示可能掉落的物资/装备（战前情报）
-    var eid = (G.ENEMIES && G.ENEMIES[key]) ? key : ((NPC_COMBAT_MAP[key]||[])[0] || null);
-    if(eid && G.ENEMIES[eid] && G.ENEMIES[eid].drop){
-      var d=G.ENEMIES[eid].drop, dr=[];
-      if(d.gold && d.gold[1]>0) dr.push('银两'+d.gold[0]+'~'+d.gold[1]);
-      if(d.pot && d.pot[1]>0) dr.push('粮草'+d.pot[0]+'~'+d.pot[1]);
-      (d.table||[]).forEach(function(t){ dr.push(t.name+'（'+(t.weight||0)+'%）'); });
-      if(d.equip && d.equip.chance>0){
-        var QR={0:['凡品','良品'],1:['凡品','精良'],2:['良品','珍稀'],3:['精良','神兵'],4:['珍稀','神兵']};
-        var rng=QR[d.equip.tier]||['',''];
-        dr.push((rng[0]?rng[0]+'~'+rng[1]+'装备':'装备')+'（'+(d.equip.chance||0)+'%）');
-      }
-      if(dr.length) parts.push('可能掉落：'+dr.join('、'));
-    }
-    if(!parts.length) parts.push('你凝神打量，未见异常。');
-    log('〔观察·'+o.name+'〕'+parts.join('；')+'。','sys');
-  }
+
   // ===== 常驻移动区：Dock 上方方向罗盘（位置即方位，永远可见） =====
   var DIR_ARROW={'北':'↑','南':'↓','东':'→','西':'←','东北':'↗','西北':'↖','东南':'↘','西南':'↙'};
   // 方向 → 罗盘 3×3 网格坐标 [行,列]（上北下南左西右东）
@@ -3954,316 +2551,6 @@
       if(_left.length) log('你起身离营——'+_left.map(function(f){return f.name;}).join('、')+'留在原地（折返仍可寻回，亦可作来日途中歇脚）。','sys');
     }
   }
-  // ===== 郊野内容（资源 / 野兽 / 路人）=====
-  // 此格仍存的野怪：玩家战后按格+野怪id 记录清剿（flags.fieldClearedMon），防反复刷同一批
-  function fieldMonstersLeft(room){
-    if(!room || !room.isField || !(room.monsters && room.monsters.length)) return [];
-    var cleared = state.flags && state.flags.fieldClearedMon && state.flags.fieldClearedMon[room.id];
-    var fled    = state.flags && state.flags.fieldFledMon    && state.flags.fieldFledMon[room.id];
-    return room.monsters.filter(function(m){
-      return !(cleared && cleared[m.id]) && !(fled && fled[m.id]);
-    });
-  }
-  function fieldNarr(room){
-    var out=[];
-    // 方位与去向（v20260905f）：回城方向 + 出野可通何处，行军不再「盲走」
-    var _fid=room.fieldId;
-    if(_fid){
-      var _fp=(LF.PLACES||{})[_fid]||{};
-      var _fmeta=((LF.Travel&&LF.Travel.fields)||{})[_fid]||{};
-      var _par=_fp.parent||_fmeta.place;
-      if(_par){
-        var _pn=((LF.CITIES||{})[_par]&&LF.CITIES[_par].name)?LF.CITIES[_par].name:((LF.PLACES||{})[_par]?LF.PLACES[_par].name:_par);
-        var _g=_fp.gateDir||'东';
-        var _back=({'北':'南','南':'北','东':'西','西':'东','东北':'西南','西南':'东北','西北':'东南','东南':'西北'})[_g]||'';
-        // v20260905o 修复：原「出野」提示用整片郊野的 gateDir+neighbors，但出野出口只存在于远野边特定格、
-        // 且每格仅通一个邻城（travel.js:310 cell.exits[dir]=tgt），导致提示「向北出野可至X」与罗盘（按当前格 exits）不一致。
-        // 改为：优先以「当前格实际出野出口」播报；当前格无出野出口时，引导向 gateDir 深入至远野边格再出野。
-        var _here=[];
-        if(room.exits){
-          for(var _d in room.exits){
-            var _t=room.exits[_d];
-            if(typeof _t==='string' && _t.indexOf('__gate__:')===0){
-              var _nid=_t.split(':')[1];
-              if(_nid && _nid!==_par){   // 排除回母城哨兵，仅列真正出野至邻城的出口
-                var _nn=((LF.CITIES||{})[_nid]&&LF.CITIES[_nid].name)?LF.CITIES[_nid].name:((LF.PLACES||{})[_nid]?LF.PLACES[_nid].name:_nid);
-                if(_nn) _here.push(_d+'至'+_nn);
-              }
-            }
-          }
-        }
-        var _outs=[], _nxt=null;
-        ((_fmeta.neighbors)||[]).forEach(function(n){
-          var _nm=((LF.CITIES||{})[n.nid]&&LF.CITIES[n.nid].name)?LF.CITIES[n.nid].name:((LF.PLACES||{})[n.nid]?LF.PLACES[n.nid].name:null);
-          if(_nm){ _outs.push(_nm); return; }
-          // 多段郊野链（v20260907d）：中段的「邻居」实为下一程入口房（fld_x@r_c），按其 fieldId 取名，
-          // 避免把 fld_xxx_南_2@1_2 这类房间 id 原文打进提示文案
-          var _nr=G.ROOMS[n.nid], _ff=_nr&&_nr.fieldId;
-          if(_ff && LF.PLACES[_ff] && LF.PLACES[_ff].name) _nxt=LF.PLACES[_ff].name;
-        });
-        var _txt;
-        if(_here.length){
-          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；此格向'+_here.join('、')+'（出野）。';
-        } else if(_outs.length){
-          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'深入至远野边格可出野（可至 '+_outs.join(' / ')+'）。';
-        } else if(_nxt){
-          _txt='「'+(_fp.name||'野')+'」：来路向'+_back+'，归「'+_pn+'」；向'+_g+'深入至远野边格即入『'+_nxt+'』，再行数程当可出野。';
-        } else {
-          _txt='「'+(_fp.name||'野')+'」：向'+_back+'归「'+_pn+'」；其余方向似无通途，宜折返。';
-        }
-        // k/s（v20260914a）：〔途〕是「地貌性」情报，同一格反复进出不必重念全文 ——
-        //   k='way' 是「已识」标记键，s 是再次进入时的压缩版（消费方见 fieldNarrFresh）。
-        var _brief = _here.length
-          ? ('「'+(_fp.name||'野')+'」归「'+_pn+'」，此格向'+_here.join('、')+'出野。')
-          : ('「'+(_fp.name||'野')+'」归「'+_pn+'」，来路向'+_back+'；出野须向'+_g+'至远野边。');
-        out.push({t:'〔途〕'+_txt, c:'sys', k:'way', s:'〔途·已识〕'+_brief});
-      }
-    }
-    // 顶栏天候/昼夜提示（v20260905d）：让时间与天候对郊野的影响可见可感
-    var _w=(WEATHERS[state.weather]||WEATHERS[0]);
-    var _t=wxEff().tip;
-    out.push({t:'〔天候〕'+_w.n+'·'+(isDaytime()?'昼':'夜')+(_t?('，'+_t):'，天色和朗，正宜赶路。'), c:'sys'});
-    // 〔地利〕同理：初次说明「此处有何可采」，之后再进不必重念（场景动作栏里就列着「采集」，s:null 即二次进入后略过）
-    if(room.resources && room.resources.length){ room.resources.forEach(function(r){ out.push({t:'〔地利〕此处有'+r.name+'（'+r.amt+'）可采。', c:'item', k:'res:'+r.name, s:null}); }); }
-    var mons=fieldMonstersLeft(room);
-    if(mons.length){ mons.forEach(function(m){
-      var _lv=(({1:'一',2:'二',3:'三'})[m.lvl||1]||'')+'阶';
-      if(m.aggr==='hostile') out.push({t:'〔戒备〕'+m.name+'（'+_lv+'）逡巡于此，见你便露凶光。', c:'combat'});
-      else if(m.aggr==='neutral') out.push({t:'〔野兽〕'+m.name+'（'+_lv+'）在林间徘徊，似不主动袭人。', c:'sys'});
-      else out.push({t:'〔走兽〕'+m.name+'（'+_lv+'）见人便窜入草丛。', c:'sys'});
-    }); }
-    if(room.fieldNpcs && room.fieldNpcs.length){ room.fieldNpcs.forEach(function(n){ out.push({t:'〔路人〕'+n.name+'在此歇脚。', c:'sys'}); }); }
-    var fcamps=fieldPlacedCamps(room);
-    if(fcamps.length) out.push({t:'〔营地〕此处已支有'+fcamps.map(function(f){return f.name;}).join('、')+'，可就近安歇或收起带走。', c:'good'});
-    if(roomIsBoatRoute(room)) out.push(isOnBoat()
-      ? {t:'〔水路〕烟波浩渺，你正乘舟渡江——沿岸码头渐近。', c:'sys'}
-      : {t:'〔水路〕此处为津渡水路，须「乘船渡江」方可前行。', c:'warn'});
-    return out;
-  }
-  // 〔野外叙事的重复抑制〕（v20260914a）
-  //   旧版每走进一格郊野就把 fieldNarr 的九条一次铺开（按 55ms/字算约十三秒，不想读就得连点九下）——
-  //   可玩家在「砍柴 → 回城交货 → 再出城砍柴」这条链上，同一格一天要进好几次，每次都重读同样的地貌。
-  //   这里把条目分两类：
-  //     · 静态（带 k：〔途〕〔地利〕）——初次进场照全说；再次进场换成 s 的压缩版（〔地利〕s:null 即不再念）。
-  //     · 动态（不带 k：〔天候〕〔戒备〕〔路人〕〔营地〕〔水路〕）——每次照播，因为它们本来就随状态而变。
-  //   「这格已识」记在 state.flags.fieldSeen[roomId]（随存档走；一房一标记，体量极小）。
-  function fieldNarrFresh(room, rid){
-    var lines=fieldNarr(room);
-    if(!room || !room.isField) return lines;
-    if(!state.flags.fieldSeen) state.flags.fieldSeen={};
-    var first=!state.flags.fieldSeen[rid];
-    state.flags.fieldSeen[rid]=1;
-    if(first) return lines;
-    var out=[];
-    lines.forEach(function(e){
-      if(!e.k){ out.push(e); return; }              // 动态条目：照播
-      if(e.s) out.push({t:e.s, c:e.c, k:e.k, once:true});   // 静态条目：只留压缩版
-    });
-    return out;
-  }
-  // ===== 渡口坐船（v20260907c）=====
-  // 水路郊野（isBoatRoute，多为 port/shuizhai 起点的多段链）须乘船方可通过：
-  // 玩家进入水路郊野后须先「乘船渡江」，无舟无银则只能借无主小筏（保证不卡死）。
-  // 一旦登上陆地（城或非水路郊野）即自动上岸，整段水路只需乘一次船。
-  var BOAT_FEE = 12;   // 渡资（银两）；持有扁舟则免
-  function fieldMetaOf(room){ var fid=room&&room.fieldId; return fid?((LF.Travel&&LF.Travel.fields)||{})[fid]||((LF.PLACES||{})[fid]||{}):{}; }
-  function roomIsBoatRoute(room){ return !!(room && room.isField && fieldMetaOf(room).isBoatRoute); }
-  function isOnBoat(){ return !!(state.flags && state.flags.onBoat); }
-  function setOnBoat(v){ state.flags=state.flags||{}; state.flags.onBoat=!!v; }
-  function boatBoardAct(){
-    if(isOnBoat()){ toast('你已在舟中。'); return; }
-    if(packFind('zhou')){ setOnBoat(true); log('你解缆登舟，扁舟轻荡，准备渡江。','good'); }
-    else if((state.gold||0) >= BOAT_FEE){ state.gold-=BOAT_FEE; setOnBoat(true); log('你付了渡资 '+BOAT_FEE+' 银，登上渡船，船夫撑篙离岸。','good'); }
-    else { setOnBoat(true); log('渡口无舟可雇，你寻得一只无主小筏，亲自撑篙渡江。','sys'); }
-    buildActions(G.ROOMS[state.room]); renderStatus();
-  }
-  function fieldActions(room){
-    // 水路郊野：须乘船方可通过（已在舟中则显示已乘，未乘则给出「乘船渡江」）
-    if(roomIsBoatRoute(room)){
-      if(isOnBoat()) mkAct('scene','⛵','已乘舟（渡江中）', function(){ toast('你正在舟中渡江，向岸边行去即可上岸。'); });
-      else mkAct('scene','🚣','乘船渡江', boatBoardAct);
-    }
-    if(room.resources && room.resources.length){
-      room.resources.forEach(function(res){ mkAct('scene','🌿','采'+res.name, function(){ gatherField(room, res); }); });
-    }
-    fieldMonstersLeft(room).forEach(function(m){
-      if(m.aggr==='hostile') mkAct('scene','⚔','清剿·'+m.name, function(){ startCombat([m.id], {fieldLvl:m.lvl}); });
-      else if(m.aggr==='neutral') mkAct('scene','⚔','挑战'+m.name, function(){ startCombat([m.id], {fieldLvl:m.lvl}); });
-      else if(m.aggr==='flee') mkAct('scene','🏹','猎取·'+m.name, function(){ huntFieldBeast(room, m); });
-    });
-    if(room.fieldNpcs && room.fieldNpcs.length){
-      room.fieldNpcs.forEach(function(n){ mkAct('scene','💬','与'+n.name+'交谈', function(){ talkFieldNpc(room, n); }); });
-    }
-    if(fieldHasWater(room)) mkAct('scene','🎣','垂钓', function(){ fishField(room); });
-    addFieldCamp(room);
-  }
-  function gatherField(room, res){
-    if(!state.flags.fieldGathered) state.flags.fieldGathered={};
-    if(state.flags.fieldGathered[room.id] && state.flags.fieldGathered[room.id].indexOf(res.type)>=0){ toast(res.name+'已被采尽。'); return; }
-    var did = (res.item) || null;
-    if(!did || !LF.ITEMS[did]){ toast(res.name+'暂无可采（物产缺失）。'); return; }
-    if(!packAdd(did, 1)) return;   // 行囊满则由 packAdd 提示，此格不标记采尽，可回头再采
-    state.flags.fieldGathered[room.id]=state.flags.fieldGathered[room.id]||[];
-    state.flags.fieldGathered[room.id].push(res.type);
-    log('你俯身采得'+LF.ITEMS[did].name+'一份，收进行囊。','good');
-    save(state); buildActions(G.ROOMS[state.room]);
-  }
-  // 水域垂钓（v20260907a）：郊野含水域格即可下钩，钓得鲜鱼/咸鱼入包；单格单局限 4 获，鱼惊则稍后再来
-  function fieldHasWater(room){
-    var fid=room && room.fieldId; if(!fid) return false;
-    var fp=(LF.PLACES||{})[fid]||{}; var size=fp.size||4;
-    for(var r=0;r<size;r++) for(var c=0;c<size;c++){
-      var rm=G.ROOMS[LF.Travel.roomId(fid,r,c)];
-      if(rm && rm.water) return true;
-    }
-    return false;
-  }
-  function fishField(room){
-    if(!fieldHasWater(room)){ toast('此处无水，无从下钩。'); return; }
-    state.flags.fieldFished=state.flags.fieldFished||{};
-    var n=(state.flags.fieldFished[room.id]||0);
-    if(n>=4){ toast('此间水域鱼已受惊，稍后再来方有所得。'); return; }
-    var did=(Math.random()<0.7)?'fish':'fish_dried';
-    var amt=1+Math.floor(Math.random()*3);
-    if(!packAdd(did, amt)) return;
-    state.flags.fieldFished[room.id]=n+1;
-    log('你抛竿静候，须臾竿弯——钓得'+LF.ITEMS[did].name+'×'+amt+'，收入行囊。','good');
-    save(state); buildActions(G.ROOMS[state.room]);
-  }
-  // 猎取惊兽（aggr==='flee'，如野彘）：屏息潜行接近；成则入战（胜者照常清剿+掉落），
-  // 败则惊走——按格+野怪id 记 flags.fieldFledMon，此后本格不再现身（存档持久）。
-  function huntFieldBeast(room, m){
-    if(state.defeated){ toast('你重伤在身，追不动猎物。'); return; }
-    var es=effectiveStats ? effectiveStats() : null;
-    var spd=(es && es.spd!=null) ? es.spd : ((state.spd||10));
-    // 潜行成功率 = 身手基础 − 兽阶警觉 + 天候掩行 − 夜间野兽警觉
-    var _wx=wxEff();
-    var p=0.60 + Math.max(0, spd-20)*0.006 - ((m.lvl||1)-1)*0.06 + (_wx.hunt||0) - (isDaytime()?0:0.05);
-    p=Math.min(0.85, Math.max(0.30, p));
-    log('你屏息蹑足，借草木掩身缓缓向'+m.name+'靠拢……'+(isDaytime()?'':'（夜色深沉，蹑步愈轻。）'),'sys');
-    if(Math.random() < p){
-      log(m.name+'惊觉回首，獠牙尽露与你搏斗起来！','combat');
-      startCombat([m.id], {fieldLvl:m.lvl});
-      return;
-    }
-    if(!state.flags.fieldFledMon) state.flags.fieldFledMon={};
-    var row=state.flags.fieldFledMon[room.id]; if(!row) row=state.flags.fieldFledMon[room.id]={};
-    row[m.id]=1;
-    save(state);
-    log(m.name+'耳聪目明，趁你尚未及身便蹬地窜入密林深处，转瞬没了踪影。','sys');
-    buildActions(G.ROOMS[state.room]);
-  }
-  function talkFieldNpc(room, n){
-    if(n.type==='trader'){
-      log('行商卸下担子：「壮士远来，荒野中正少个歇脚处——干粮伤药、柴薪卧席，小老儿都备了些，价好商量。」','sys');
-      openModal('shop', { shop:'field_trader' });
-      return;
-    }
-    if(n.type==='refugee'){
-      var rt = (Math.random() < 0.5)
-        ? '小老儿逃难至此，腹中空空，只盼太平…' + ((room && room.monsters && room.monsters.length)? '那边林子里似有歹人出没，将军路过当心。' : '将军若往南行，听说道上有商队结伴，或能捎您一程。')
-        : '前路不太平，行路切记贴身藏好干粮饮水。';
-      log('流民拱手叹道：「将军行行好——'+rt+'」','sys');
-      return;
-    }
-    log('路人朝你点了点头，继续赶路。','sys');
-  }
-  // ===== 郊野营地（v20260905b）：帐篷/篝火/草席在野外格可支设、可收起、可按设施安歇 =====
-  // 复用既有 state.placed[房间id] 放置物机制：野外格房间独立隔离；设施 key（物品 place.key）→ REST_KINDS
-  var PLACE_CAMP_KIND = { campfire:'campfire', sleepmat:'sleepmat', tent:'tent' };
-  var FIELD_CAMP_REST = { tent:'安歇…', campfire:'烤火取暖…', sleepmat:'躺下小睡…' };
-  // 本格已支设的营地设施（含图标/名称/对应休息档位；按 帐篷>篝火>草席 排序）
-  function fieldPlacedCamps(room){
-    if(!room || !room.id) return [];
-    var arr=(state.placed && state.placed[room.id]) || [];
-    var order={tent:0, campfire:1, sleepmat:2}, out=[];
-    arr.forEach(function(p){
-      var k=PLACE_CAMP_KIND[p && p.key]; if(!k) return;
-      var d=LF.ITEMS[p.defId] || {}; var pl=d.place || {};
-      out.push({ key:p.key, kind:k, name:pl.name || d.name || p.key, icon:pl.icon || '⛺', order:order[k] });
-    });
-    out.sort(function(a,b){ return a.order-b.order; });
-    return out;
-  }
-  // 行囊中可支设且本格尚未支设的营地器具（每类一例；行商处亦贩此等物）
-  function carriedCampGear(room){
-    if(!state.pack) return [];
-    var placed={}; fieldPlacedCamps(room).forEach(function(f){ placed[f.key]=1; });
-    var seen={}, out=[];
-    state.pack.forEach(function(it){
-      if(!it) return;
-      var d=LF.ITEMS[it.defId]; if(!d || !d.place) return;
-      var k=PLACE_CAMP_KIND[d.place.key]; if(!k || seen[d.place.key]) return;
-      if(placed[d.place.key]) return;
-      seen[d.place.key]=1;
-      out.push({ key:d.place.key, defId:it.defId, kind:k, name:d.name, icon:d.place.icon || '⛺' });
-    });
-    return out;
-  }
-  // 支设某器具入本格（行囊扣除一件；随即按该档位打开安歇面板）
-  function placeFieldGear(room, g){
-    if(state.defeated){ toast('你重伤动弹不得，先就地打盹吧。'); openRestModal('ground'); return; }
-    var tag=placedCellTag(room.id);
-    state.placed=state.placed || {}; state.placed[room.id]=state.placed[room.id] || [];
-    if(state.placed[room.id].some(function(o){ return o.key===g.key && placedInCell(o, room.id, tag); })){ toast('此处已支有'+g.name+'。'); return; }
-    var cur=packFind(g.defId);
-    if(!cur || (cur.count||1)<1){ toast('行囊中已无'+g.name+'。'); return; }
-    packConsume(g.defId, 1);
-    state.placed[room.id].push({ key:g.key, defId:g.defId, cell:tag });
-    log('你卸下行囊，支起'+g.name+'。','good');
-    afterPackChange();          // 存档 + 刷新行囊与场景（支设后场景按钮即切换为设施）
-    openRestModal(g.kind);
-  }
-  // 郊野格场景的营地按钮组：
-  //   已有支设设施 → 设施按钮（安歇…/收起带走），不再重复「扎营休整」；
-  //   行囊有器具   → 「布设·X」按钮 + 兜底「扎营休整」（露宿）；
-  //   否则         → 仅「扎营休整」。
-  function addFieldCamp(room){
-    var facs=fieldPlacedCamps(room);
-    if(facs.length){
-      facs.forEach(function(f){
-        var b=mkAct('scene', f.icon, f.name, function(e){
-          toggleObjExpand(e, b, {name:f.name, desc:'本格营地设施'}, [
-            {label: (FIELD_CAMP_REST[f.kind] || '安歇…'), icon:'💤', fn:function(){ openRestModal(f.kind); }},
-            {label:'收起带走', icon:'📦', fn:function(){ packUpPlaced(f.key); }}
-          ]);
-        });
-      });
-      return;
-    }
-    var carry=carriedCampGear(room);
-    carry.forEach(function(g){
-      mkAct('scene', g.icon, '布设·'+g.name, function(){ placeFieldGear(room, g); });
-    });
-    mkAct('scene','⛺','扎营休整', function(){ campInField(room); });
-  }
-  // 野外扎营（无设施兜底）：效率低于帐/席/篝火；格内仍有凶兽时，露宿醒转可能遭夜袭（见 doRest）
-  function campInField(room){
-    if(state.defeated){ toast('你重伤动弹不得，只能席地打盹。'); openRestModal('ground'); return; }
-    var host=fieldMonstersLeft(room).filter(function(m){ return m.aggr==='hostile'; });
-    if(host.length){
-      log('〔警觉〕此格仍有'+host.map(function(m){return m.name;}).join('、')+'逡巡——荒野露宿恐遭夜袭！','combat');
-    }
-    openRestModal('wild');
-  }
-  function maybeFieldAmbush(room){
-    if(state.defeated || combatMode!==null) return false;
-    var hostiles=fieldMonstersLeft(room).filter(function(m){ return m.aggr==='hostile'; });
-    if(!hostiles.length) return false;
-    // 拦路/夜袭概率 = 55% 基准 + 天候掩蔽修正 + 入夜加成（雾雨夜里更难提防），clamp 至 [0.2,0.9]
-    var _ch=0.55 + (wxEff().amb||0) + (isDaytime()?0:0.12);
-    _ch=Math.max(0.2, Math.min(0.9, _ch));
-    if(Math.random() < _ch){
-      var ids=hostiles.map(function(m){ return m.id; });
-      var ml=1; hostiles.forEach(function(m){ if((m.lvl||1)>ml) ml=m.lvl||1; });
-      var label=hostiles.map(function(m){ return m.name; }).join('、');
-      log('〔警觉〕'+label+(isDaytime()?('趁'+((WEATHERS[state.weather]||{}).n||'')+'天色'):'趁夜色')+'扑出，拦住去路！','combat');
-      startCombat(ids, {fieldLvl:ml});
-      return true;
-    }
-    return false;
-  }
-
   // ===== 山河志 / RPG 地图 = 参考（点击仅显示信息，不作移动）=====
   function placeInfo(id, name, kind, st, desc, owner, isPlace){
     name = name || (LF.CITIES&&LF.CITIES[id]&&LF.CITIES[id].name) || (LF.PLACES&&LF.PLACES[id]&&LF.PLACES[id].name) || id;
@@ -4663,16 +2950,6 @@
         move('南','luoyang'); break;
     }
   }
-  function actRest(){
-    var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
-    clearActions();
-    var esR=effectiveStats();
-    state.hp=esR.maxHp; state.mp=esR.maxMp; state.energy=state.maxEnergy;
-    state.food=state.maxFood; state.drink=state.maxDrink;
-    if(state.defeated){ state.defeated=false; log('你缓缓起身，伤势渐愈，气力渐复……','good'); }
-    else { log('你就地调息，闭目养神片刻——气血、内力、精力皆复，饥渴亦消。','env'); }
-    buildActions(curRoom()); save(state); renderStatus();
-  }
 
   // [v20260909j] 野外采药 / 伐木 / 木工台采集制作逻辑已抽离 → shared/core/crafting.js
 
@@ -4729,118 +3006,21 @@
     4:{campfire:0.5,  sleepmat:0.6, wild:0.55, ground:0.5},   // 大雨：露天皆难安身
     5:{campfire:0.8,  sleepmat:0.8, wild:0.75, ground:0.7}    // 雪：天寒，无蔽风雪者折扣
   };
-  function outdoorRestFactor(kind){
-    if(kind==='tent') return 1;
-    var _r=G.ROOMS[state.room]; if(!_r || !_r.isField) return 1;
-    var _t=WX_REST[state.weather]; if(!_t) return 1;
-    return (_t[kind]!=null) ? _t[kind] : 1;
-  }
+
   // 打开自由时长休息面板（设施决定效率；战败只能就地打盹）
-  function openRestModal(kind){
-    if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); return; }
-    if(state.dead){ die(); return; }
-    if(state.defeated && kind!=='ground'){ toast('你重伤未愈，动弹不得，只能席地打盹。'); kind='ground'; }
-    openModal('rest', {kind:kind});
-  }
+
   // ══ 仓库系统（v20260907k）：城中仓库 30 格，可存可取；苦役营初始存有木料石料 ══
   var storageCid=null;   // 当前仓库所在城（openModal 写入）；storageSel 已随仓库簇移入 shared/core/storage.js
   // 牢中打盹场景（v20260911k）：时辰尚未启用（教学期）且人在牢里时，
   //   「歇几个时辰」这套问法本身就是个假问题 —— 更鼓还没开始走，玩家也答不上来。
   //   故改为一键「就此睡去」，睡多久由天定（见 doNap），醒来只知天光未变。
-  function cellNapScene(){
-    if(clockFlowing()) return false;                          // 时辰已在流动：照常走「歇息」面板
-    if((restState.kind||'ground')==='ground') return false;    // 席地打盹（战败/野外）不走这一套
-    if(inCellNow()) return true;                              // 牢房格 / 天字地字号子牢房
-    return state.room==='camp_cell';
-  }
-  function renderRestPanel(){
-    var kind = (restState.kind||'ground');
-    var cfg = REST_KINDS[kind] || REST_KINDS.ground;
-    var wxFac = outdoorRestFactor(kind);
-    if(cellNapScene()){
-      // 不打时长牌、不报恢复量：玩家此刻只知道「睡了」，不该知道睡了几个时辰
-      return '<h3 style="text-align:center;margin:0 0 6px;">草荐 · 打盹</h3>'
-        + '<p class="tip">草荐又硬又潮，翻身便窸窣作响。四下里黑得沉，也听不见更鼓——只管合眼睡去。</p>'
-        + '<button class="sheet-btn" style="margin:6px 0;" id="m-rest-nap">就此睡去</button>'
-        + '<button class="sheet-leave" id="m-rest-leave">收 工</button>';
-    }
-    // 休息时长档位：1 / 3 / 6 时辰，恢复量随时长线性增长
-    var opts = [ {h:1, lb:'小憩 · 1 时辰'}, {h:3, lb:'安睡 · 3 时辰'}, {h:6, lb:'酣眠 · 6 时辰'} ];
-    var esR = effectiveStats();
-    function est(h){
-      return '精力+'+Math.round(esR.maxEnergy*cfg.en*h*wxFac)+'　气血+'+Math.round(esR.maxHp*cfg.hp*h*wxFac)
-        + (esR.maxMp>0?('　内力+'+Math.round(esR.maxMp*cfg.mp*h*wxFac)):'')
-        + '　饥渴+'+Math.round(100*cfg.fd*h*wxFac)+'%';
-    }
-    var h = '<h3 style="text-align:center;margin:0 0 6px;">'+cfg.name+' · 歇息</h3>'
-      + '<p class="tip">歇息推进时辰，恢复随长短而异；饥渴食水亦会流逝。'+est(1)+'。'
-      + (wxFac<1 ? '<br><span style="color:#b8893a;">〔'+((WEATHERS[state.weather]||{}).n||'')+'〕野外无遮蔽，歇息恢复打折。</span>' : '')
-      + '</p>';
-    opts.forEach(function(o){
-      h += '<button class="sheet-btn" style="margin:6px 0;" data-rest="'+o.h+'">'+o.lb+'<br><span style="font-size:12px;opacity:.75;">'+est(o.h)+'</span></button>';
-    });
-    h += '<button class="sheet-leave" id="m-rest-leave">收 工</button>';
-    return h;
-  }
-  function bindRestPanel(){
-    $card.querySelectorAll('[data-rest]').forEach(function(b){
-      b.onclick=function(){ doRest(parseInt(b.getAttribute('data-rest'),10)||1); };
-    });
-    var np=document.getElementById('m-rest-nap'); if(np) np.onclick=function(){ doNap(); };
-    var lv=document.getElementById('m-rest-leave'); if(lv) lv.onclick=closeModal;
-    var ck=document.getElementById('m-rest-cook'); if(ck) ck.onclick=function(){ closeModal(); openModal('craft',{bench:'kitchen'}); };
-  }
+
   // 执行自由时长休息：推进时间并按要求恢复（野外天候差时打折，见 outdoorRestFactor）
-  function doRest(hours){
-    var kind = restState.kind || 'ground';
-    var cfg = REST_KINDS[kind] || REST_KINDS.ground;
-    var wxFac = outdoorRestFactor(kind);
-    var esR = effectiveStats();
-    advanceTime(hours);
-    var hpGain = Math.round(esR.maxHp*cfg.hp*hours*wxFac);
-    var mpGain = esR.maxMp>0 ? Math.round(esR.maxMp*cfg.mp*hours*wxFac) : 0;
-    var enGain = Math.round(esR.maxEnergy*cfg.en*hours*wxFac);
-    state.hp = Math.min(esR.maxHp, (state.hp||0)+hpGain);
-    if(state.mp>0) state.mp = Math.min(esR.maxMp, (state.mp||0)+mpGain);
-    state.energy = Math.min(state.maxEnergy, (state.energy||0)+enGain);
-    state.food = Math.min(state.maxFood, (state.food||0)+Math.round(state.maxFood*cfg.fd*hours*wxFac));
-    state.drink = Math.min(state.maxDrink, (state.drink||0)+Math.round(state.maxDrink*cfg.dr*hours*wxFac));
-    if(state.defeated){ state.defeated=false; }
-    save(state); renderStatus();
-    // v20260911k：去掉括号里那串「时辰未启／恢复折扣」的机制旁白 —— 睡前要的是一句交代，不是结算说明
-    log('你在'+cfg.name+'歇了'+hours+'个时辰，气血、内力与精力渐复，饥渴也解了些。'
-      +(wxFac<1?('（'+((WEATHERS[state.weather]||{}).n||'')+'天，无遮蔽处歇息费力，恢复打了折扣。）'):''),'good');
-    closeModal();
-    var _ambush = false;
-    var _rroom = G.ROOMS[state.room];
-    if(_rroom && _rroom.isField && kind!=='ground'){
-      _ambush = maybeFieldAmbush(_rroom);   // 凶兽未清剿的野地扎营（无论露宿或支帐围火）醒转皆可能遭袭
-    }
-    if(!_ambush) buildActions(G.ROOMS[state.room]);
-  }
+
   // 牢中一觉（v20260911k）：老师傅口中那句「也不知道睡了多久」——
   //   时长随机 1~3 时辰，只用来自算恢复量，绝不报给玩家；时辰未启时时钟本就冻结，
   //   醒来仍是那一线昏暗天光，昼夜不分（正是文案要传达的处境）。
-  function doNap(){
-    var kind = restState.kind || 'sleepmat';
-    var cfg = REST_KINDS[kind] || REST_KINDS.ground;
-    var wxFac = outdoorRestFactor(kind);
-    var esR = effectiveStats();
-    var hours = 1 + Math.floor(Math.random()*3);
-    var hpGain = Math.round(esR.maxHp*cfg.hp*hours*wxFac);
-    var mpGain = esR.maxMp>0 ? Math.round(esR.maxMp*cfg.mp*hours*wxFac) : 0;
-    var enGain = Math.round(esR.maxEnergy*cfg.en*hours*wxFac);
-    state.hp = Math.min(esR.maxHp, (state.hp||0)+hpGain);
-    if(state.mp>0) state.mp = Math.min(esR.maxMp, (state.mp||0)+mpGain);
-    state.energy = Math.min(state.maxEnergy, (state.energy||0)+enGain);
-    state.food = Math.min(state.maxFood, (state.food||0)+Math.round(state.maxFood*cfg.fd*hours*wxFac));
-    state.drink = Math.min(state.maxDrink, (state.drink||0)+Math.round(state.maxDrink*cfg.dr*hours*wxFac));
-    if(state.defeated){ state.defeated=false; }
-    save(state); renderStatus();
-    log('你也不知睡了多久。牢里光线昏暗，分不清是黑夜还是白昼。','good');
-    closeModal();
-    buildActions(G.ROOMS[state.room]);
-  }
+
   // 城市格放置物定位（v20260825b）：城市网格内放置物带 {cell:{x,y}}，按格隔离，不再全城共享；
   // 旧存档无格坐标的放置物视为位于城心格，保证不"消失"。
   function placedCellTag(roomId){
@@ -5101,71 +3281,7 @@
     storageGet: storeGet, storagePut: storePutFromPack, storageTake: storeTakeToPack, storageSort: storeSort, storageSwap: storeSwap,
     positionFloat: positionFloat, closeModal: closeModal
   });
-  function openLearn(){
-    clearActions();
-    log('【修炼】案上摊开武学谱录，你凝神参悟，耗「潜能」以窥门径：','title');
-    var MA=G.MARTIAL_ARTS, LINES=MA.LINES;
-    var order=Object.keys(LINES).sort(function(a,b){return LINES[a].order-LINES[b].order;});
-    order.forEach(function(lid){
-      var line=LINES[lid];
-      var list=[];
-      for(var k in MA){ var a=MA[k]; if(a&&a.id&&a.line===lid&&a.type!=='technique') list.push(a); }
-      if(!list.length) return;
-      var head=document.createElement('div'); head.className='learn-line';
-      head.innerHTML='<span class="ll-name">'+line.name+'</span><span class="ll-lv">艺线 Lv.'+(state.lines[lid]||0)+'</span>';
-      $actions.appendChild(head);
-      list.forEach(function(a){
-        var owned=state.learnedMartial.indexOf(a.id)>=0;
-        var rlm=(state.realm[a.id]||0);
-        var rname=G.MARTIAL_ARTS.REALMS[rlm];
-        var potCost=a.type==='ultimate'?50 : 20 + a.learn.lineMin*8 + Math.floor(a.beat/10);
-        var lockLine=(state.lines[lid]||0) < a.learn.lineMin;
-        var b=document.createElement('button'); b.className='act wide';
-        b.title=a.desc+'（当前境界：'+rname+'）';
-        if(owned){ b.innerHTML='✓ '+a.name+'（'+rname+'）'; b.disabled=true; }
-        else if(lockLine){ b.innerHTML='🔒 '+a.name+'（'+line.name+'艺线需 Lv.'+a.learn.lineMin+'）'; b.disabled=true; }
-        else{
-          b.innerHTML='› '+a.name+(a.type==='ultimate'?' · 绝技':'')+'（耗潜能 '+potCost+'）';
-          b.onclick=function(){
-            if(state.pot<potCost){ log('潜能不足，难窥'+a.name+'门径。可多去历练积攒潜能。','sys'); return; }
-            state.pot-=potCost; state.learnedMartial.push(a.id);
-            state.lines[lid]=Math.min(20,(state.lines[lid]||0)+1);
-            log('【习得】'+a.name+'！'+a.desc,'good');
-            clearActions(); buildActions(curRoom()); save(state); renderStatus();
-          };
-        }
-        $actions.appendChild(b);
-      });
-    });
-    // 发力技巧（可嵌任意武学，单独成组）
-    var techs=MA.getTechniques();
-    if(techs.length){
-      var th=document.createElement('div'); th.className='learn-line';
-      th.innerHTML='<span class="ll-name">发力技巧</span><span class="ll-lv">装配增威</span>';
-      $actions.appendChild(th);
-      techs.forEach(function(a){
-        var equipped=state.equippedForce.indexOf(a.id)>=0;
-        var potCost=20 + a.learn.lineMin*8;
-        var lockLine=(state.lines[a.line]||0) < a.learn.lineMin;
-        var b=document.createElement('button'); b.className='act wide';
-        b.title=a.desc;
-        if(equipped){ b.innerHTML='✓ '+a.name+'（已装配）'; b.disabled=true; }
-        else if(lockLine){ b.innerHTML='🔒 '+a.name+'（'+LINES[a.line].name+'艺线需 Lv.'+a.learn.lineMin+'）'; b.disabled=true; }
-        else{
-          b.innerHTML='› '+a.name+'（耗潜能 '+potCost+'）';
-          b.onclick=function(){
-            if(state.pot<potCost){ log('潜能不足，难通'+a.name+'。','sys'); return; }
-            state.pot-=potCost; state.equippedForce.push(a.id);
-            log('【装配】'+a.name+'！'+a.desc,'good');
-            clearActions(); buildActions(curRoom()); save(state); renderStatus();
-          };
-        }
-        $actions.appendChild(b);
-      });
-    }
-    addBtn('返回营中', function(){ buildActions(curRoom()); });
-  }
-
+// [moved -> shared/core/learn.js]
   // ===== 随机事件（含打斗氛围） =====
   function runEvent(ev){
     if(!ev) return;
@@ -5318,24 +3434,7 @@
     r.push({t:t.slice(0,240), c:cls||'', n:who||'', s:histStamp(), r:histLoc()});
     if(r.length>HIST_MAX) r.splice(0, r.length-HIST_MAX);
   }
-  function renderLogPanel(){
-    var r=(state && state.logRing)||[];
-    var h='<h3>回 顾</h3>'+
-      '<p class="tip log-tip">你听过、读过的近 '+HIST_MAX+' 句都记在这里（旧句在上）。'+
-      '对话帘里的台词、营中的号令、野外的见闻，收帘之后仍可回来翻看。</p>';
-    if(!r.length) return h+'<p class="tip q-empty">尚无可回顾之事。</p>';
-    h+='<div class="log-pane">';
-    var lastLoc='', lastStamp='';
-    r.forEach(function(e){
-      if(e.r && e.r!==lastLoc){ lastLoc=e.r; lastStamp=''; h+='<div class="log-loc">◆ '+escapeHtml(e.r)+'</div>'; }
-      var stamp=(e.s&&e.s!==lastStamp)?('<span class="log-t">'+escapeHtml(e.s)+'</span>'):'';
-      lastStamp=e.s||lastStamp;
-      h+='<div class="log-line'+(e.c?(' c-'+e.c):'')+'">'+stamp+
-         (e.n?('<b>'+escapeHtml(e.n)+'：</b>'):'')+escapeHtml(e.t)+'</div>';
-    });
-    h+='</div><button class="close" id="m-leave">收 起</button>';
-    return h;
-  }
+  // [moved -> shared/core/panels.js]
   // ═══ 任务「指路」（v20260914a）═══
   // 任务日志只说「做什么」（o.hint / q.hint 的文字），从不告诉玩家「去哪儿」——
   //   而「我该去哪」正是这类网格文字 RPG 最高频的卡点，尤其摊开 70 城 441 格郊野之后。
@@ -5368,96 +3467,7 @@
     }
     return '';
   }
-  function gotoBtnHTML(at){
-    if(!at) return '';
-    var o=(typeof at==='string')?{room:at}:at;
-    var j; try{ j=JSON.stringify(o); }catch(e){ return ''; }
-    // 有可点亮的目标 → 「指路」；只有 at.why（这条路本就不在一处）→ 「问路」，老实说清该往哪走
-    var t=(o.act||o.npc||o.dock||o.room)?'在场景里点亮去路':'问路：这条该往哪走';
-    return '<button class="obj-goto" data-goto="'+encodeURIComponent(j)+'" type="button" title="'+t+'">指 路</button>';
-  }
-  // 一次指路：先在本格找，再指罗盘方向，实在不在此处就报出路名并亮「山河」。
-  function questGoto(at){
-    if(!at || !state) return;
-    if(typeof at==='string') at={room:at};
-    closeModal();
-    var anchors=[];
-    if(at.act) anchors.push({act:at.act});
-    if(at.npc) anchors.push({npc:at.npc});
-    if(at.dock) anchors.push({dock:at.dock});
-    // ① 目标就在当下这一格（人物 / 动作按钮 / 页签）→ 直接点亮并滚进视野
-    if(anchors.length && (!at.room || at.room===state.room)){
-      var ok=false;
-      try{ ok=Guide.exists(anchors); }catch(e){}
-      // 锚点写的是显示名（'仓吏'/'鲁大'），而 nl-item 的 data-k 是 NPC 实例 key
-      //   （storeman@kuyilao:2,1#0）——语义锚点匹配不到时，按显示名在人物列表里兜底（v20260916a）
-      if(!ok && at.npc){
-        var _nm=at.npc, _chips=document.querySelectorAll('#npc-list .nl-item');
-        for(var _ii=0;_ii<_chips.length;_ii++){
-          if(_chips[_ii].textContent.indexOf(_nm)>=0){
-            var _k=_chips[_ii].getAttribute('data-k');
-            if(_k){ try{ Guide.focus([{npc:_k}]); ok=true; }catch(e){} }
-            break;
-          }
-        }
-      }
-      if(ok){
-        toast('就在眼前 · '+(at.npc||at.act||'此处'));
-        return;
-      }
-    }
-    // ② 目标在隔壁 → 点亮罗盘上那个方位的键（一步可达，最实用的一条）
-    if(at.room){
-      var dir=dirToRoom(state.room, at.room);
-      if(dir){
-        try{ Guide.focus([{dir:dir}]); }catch(e){}
-        toast('向'+dir+'去 · '+roomNameOf(at.room));
-        return;
-      }
-    }
-    // ②·⑤ 同城不同格：提交人在城里别处（仓吏在仓库格）→ 报出该往哪边走（v20260916a）
-    if(at.room && at.room===state.room && isCityGrid(state.room) && at.npc){
-      var _cell=cityNpcCellPos(at.npc, state.room);
-      var _cp2=state.flags && state.flags.cityPos;
-      if(_cell && _cp2 && _cp2.cid===state.room){
-        var _dx=_cell[0]-_cp2.x, _dy=_cell[1]-_cp2.y;
-        var _w=(_dy<0?'北':(_dy>0?'南':''))+(_dx>0?'东':(_dx<0?'西':''));
-        if(!_w){ toast('「'+at.npc+'」就在这一格。'); return; }
-        toast('「'+at.npc+'」在'+_w+'边的格子里——顺着罗盘一格一格走过去。');
-        return;
-      }
-    }
-    // ③ 不在此处 → 报明去处，并把「山河」指出来（远行本该走山河志）
-    var nm=roomNameOf(at.room);
-    if(nm){ toast('「'+nm+'」不在此处——可点「山河」寻路前往'); }
-    else if(at.why){ toast(at.why); return; }   // 这条路本就不在一处：直接用数据里备好的「该往哪走」
-    else { toast('此事此地办不了，先看看别处有什么可做'); }
-    try{ Guide.ping({dock:'map'}); }catch(e){}
-  }
-  // 城格 NPC 所在格：具名 NPC 看 NPC_NAMED 的 cell；程序 NPC 由 kinds→城市 layoutGrid/cells 推导（v20260916a）
-  function cityNpcCellPos(name, cid){
-    if(!name) return null;
-    var named=LF.NPC_NAMED||[];
-    for(var i=0;i<named.length;i++){
-      var nc=named[i];
-      if(nc.city!==cid || !nc.cell) continue;
-      var dlg=G.DIALOGUES && G.DIALOGUES.npcs && G.DIALOGUES.npcs[nc.id];
-      if(dlg && dlg.name===name){ var p=nc.cell.split(','); return [+p[0], +p[1]]; }
-    }
-    var cards=LF.NPC_CARDS||[];
-    for(var j=0;j<cards.length;j++){
-      var c2=cards[j];
-      if(!c2.role || c2.role!==name || !(c2.kinds && c2.kinds.length)) continue;
-      var grid=genCityGrid(cid);
-      if(grid && grid.cells){
-        var _cells=grid.cells, _sz=grid.size||_cells.length;
-        for(var y=0;y<_sz;y++) for(var x=0;x<_sz;x++){
-          if(_cells[y] && _cells[y][x]===c2.kinds[0]) return [x,y];
-        }
-      }
-    }
-    return null;
-  }
+// [moved -> shared/core/quest.js]
   // ═══ 通用「指引」系统（v20260912a）═══
   // 把「高亮某个按钮 / NPC / 面板，并把它滚进视野」做成一套可复用的语义锚点，
   // 让任何调用方（新手目标引导、剧本 highlight 步骤、后续新内容）都不必再写死
@@ -6050,37 +4060,7 @@
   }
   // v20260914a：九条路线不再一次全铺开（未解锁的那几条还要各带一句长注解，一屏十项、读半天），
   //   改为「已备妥的直接列、未备妥的折成一笔」；想知道自己还差什么，再点开「细看还差什么」。
-  function openEscapeHub(room, expand){
-    if(document.getElementById('tut-choices')) return;
-    if(state.flags && state.flags.onb && state.flags.onb.done){ log('你已逃出苦役营，不必再决断。','sys'); return; }
-    // 枢纽分流（v20260912e）：旧房间体系按「墙根 / 岗哨」各列一半；城内枢纽（kuyilao 城格）列全部九条。
-    //   两半合起来才是完整的「十越狱路线」——此前城内只列到墙根四条，下药/暴动/木牍/收买/强攻那五条
-    //   在游戏里【没有任何入口】：(1,2) 格只注入了 wall_choose，而 gate_choose 全项目根本不存在，等于白写。
-    var WALL=['crypt','tunnel','rope','drain'], GATE=['drug','riot','wooden','bribe','assault'];
-    var atWall = (room==='camp_wall'), atGate = (room==='camp_gate');
-    var routes = atWall ? WALL : (atGate ? GATE : WALL.concat(GATE));
-    var opts=[], open=[], locked=[];
-    routes.forEach(function(r){ (escapeAvail(r)?open:locked).push(r); });
-    open.forEach(function(r){
-      opts.push({ label: '〔'+ROUTE_INFO[r].name+'〕就此出营', fn: function(){ doEscape(r, room); } });
-    });
-    if(expand){
-      locked.forEach(function(r){
-        opts.push({ label: '〔'+ROUTE_INFO[r].name+'〕'+escapeLockHint(r), fn: function(){ log('这条路子还未备妥——'+escapeLockHint(r)+'。', 'sys'); } });
-      });
-    } else if(locked.length){
-      opts.push({ label: (open.length ? ('另有 '+locked.length+' 条门路尚未备妥——细看还差什么')
-                                      : ('眼下 '+locked.length+' 条门路皆未备妥——细看还差什么')),
-        fn: function(){ openEscapeHub(room, true); } });
-    }
-    opts.push({ label: '再想想，先不逃', fn: function(){ log('你压下心头去意，先回营中再探探门道。','sys'); } });
-    var title = atWall ? '塌墙根下，你盘算着出营的法子——'
-              : atGate ? '岗哨咽喉，你思量着强出营墙的法子——'
-              : '营中处处是路，你盘算着出营的法子——';
-    if(!open.length) title += '（眼下尚无门路，去与营中众人多攀谈，或备齐所需之物）';
-    else if(locked.length) title += '（已有 '+open.length+' 条备妥，另有 '+locked.length+' 条未成）';
-    tutAsk(title, opts);
-  }
+// [moved -> shared/core/escape.js]
   function doEscape(route, room){
     if(route==='riot' || route==='assault'){
       // 战斗路线：先与官差一战（普通战斗；胜负/撤退后由 exitCombatToRoom 钩子毕业，不再依赖教学 tcDone）
@@ -6143,356 +4123,21 @@
   var currentModalKind=null;
 
   // [moved → shared/core/building.js] 可进入建筑：BUILDINGS 数据表与进出楼房间逻辑（isBldRoom/bldForRoom/bldRoom/enterBldRoom/bldMove/leaveBldRoom/hasCount）
-  // 升级小弹窗：替代「直接弹出角色面板」，给玩家「去加点 / 忽略」的选择
-  function renderLevelup(){
-    var lvl=state.level;
-    var pts=state.freePoints||0;
-    // v20260916c：本轮实际新增点数（addXp 记录）；旧版文案把「已有自由点」全算成「获得」，误导玩家
-    var gained=state.levelupGained||0;
-    state.levelupGained=0;   // 读取即清，防止下次打开残留
-    var maxed=lvl>=G.CONSTANTS.MAX_LEVEL;
-    var banner=maxed?'功 行 圆 满':'破 境';
-    var sub=maxed? ('修为已臻圆满（LV.'+lvl+'），尚有 '+pts+' 点自由属性点待分配。')
-                 : ('破境至 LV.'+lvl+'，获得 '+gained+' 点自由属性点（现有 '+pts+' 点待分配）。');
-    return '<div class="levelup-pop">'+
-      '<div class="lu-banner">'+banner+'</div>'+
-      '<div class="lu-lv">LV.'+lvl+'</div>'+
-      '<div class="lu-sub">'+sub+'</div>'+
-      '<p class="tip">自由属性点可随时在角色面板分配，不必此刻决定；选「忽略」后，点状态栏或「角色」仍可回来加点。</p>'+
-      '<div class="lu-btns">'+
-        '<button class="btn lu-go" onclick="openModal(\'char\')">去加点</button>'+
-        '<button class="btn lu-skip" onclick="closeModal()">忽略</button>'+
-      '</div>'+
-    '</div>';
-  }
 
   // ══════════ 矿坑体系（v20260915i）：露天矿脉 + 分层矿洞 + 镐头六级 ══════════
   // 镐头不进行囊，是玩家自身的等级（state.flags.pick，0=粗石镐 … 5=百炼钢镐）：
   //   露天矿脉与矿洞全靠它衡量能凿什么、凿几下；升级走铁匠炉（RECIPES.forge 的 pick:N 配方）、
   //   市集（青铜镐）、或差役奖励（淘铜铸镐）。
-  function pickLv(){ return (state.flags && state.flags.pick) || 0; }
-  function pickDef(lv){
-    lv = (lv==null) ? pickLv() : lv;
-    return (LF.PICKS || [])[lv] || { name:'粗石镐', icon:'🪨', lv:0, desc:'', caveMax:2 };
-  }
-  function upgradePick(lv){
-    var cur = pickLv();
-    if (lv <= cur) return false;            // 镐只升不降
-    if (lv > 5) lv = 5;
-    var pd = pickDef(lv);
-    state.flags.pick = lv;
-    save(state); renderStatus();
-    log('你换上了'+pd.name+'——'+(pd.desc || ''),'good');
-    return true;
-  }
+
   // 按当前镐算「凿某类矿点需几镐」（-1 = 镐不够，刃会弹开）
-  function pickHitsNow(t){
-    var h = ((LF.PICKS||[])[pickLv()]||{}).hits || {};
-    return (h[t] == null) ? -1 : h[t];
-  }
-  function mineState(){ var st=state; if(!st.mine) st.mine={ spots:null, used:false }; return st.mine; }
 
   // ═══ 露天矿脉 ═══
-  function genOpenMine(){
-    var m = mineState();
-    var pool=[];
-    function push(t,w){ for(var i=0;i<w;i++) pool.push(t); }
-    push('gap',2); push('rock',7); push('big',2); push('iron',2); push('jade',1);
-    var spots=[];
-    for(var i=0;i<16;i++){
-      var t=pool[Math.floor(Math.random()*pool.length)];
-      spots.push({ t:t, alive:true, hp:null, clicks:0 });
-    }
-    m.spots=spots; m.used=false;
-  }
-  function renderMinePanel(){
-    var m=mineState();
-    if(!m.spots || !m.spots.length){ genOpenMine(); }
-    var pd=pickDef();
-    var h='<h3 style="text-align:center;margin:0 0 6px;">⛏ 露天矿脉</h3>';
-    h+='<div class="mine-head">'+(pd.icon||'🪨')+' 手中镐：<b>'+pd.name+'</b></div>';
-    h+='<div class="mine-tip">'+(pd.desc||'')+'</div>';
-    h+='<div class="mine-grid">';
-    for(var i=0;i<m.spots.length;i++){
-      var sp=m.spots[i];
-      var ms=LF.MINE_SPOT[sp.t];
-      var lock=(pickLv()<LF.PICK_GATE[sp.t]);
-      var hits=pickHitsNow(sp.t);
-      var hp=(sp.hp==null?hits:sp.hp);
-      h+='<button class="mine-cell'+(sp.alive?'':' dead')+(lock?' lock':'')+'" data-mi="'+i+'">'+
-          '<span class="mc-ic">'+ms.icon+'</span>'+
-          '<span class="mc-n">'+ms.name+'</span>'+
-          (sp.alive?('<span class="mc-h">'+(lock?'镐不足':(hp>0?('余 '+hp+' 镐'):'已尽'))+'</span>'):'<span class="mc-h">采尽</span>')+
-         '</button>';
-    }
-    h+='</div>';
-    h+='<div style="text-align:center;margin:8px 0;"><button class="btn-mini" id="m-forge-pick">🔨 锻镐铸镐</button></div>';
-    h+='<p class="tip" style="text-align:center;">每凿一镐耗一刻与精力；采尽一轮，矿脉自行刷新。铁砂、青玉等好料，凭镐而取。</p>';
-    h+='<button class="sheet-leave" id="m-leave">收 工</button>';
-    return h;
-  }
-  function bindMinePanel(){
-    var card=$card;
-    card.querySelectorAll('.mine-cell[data-mi]').forEach(function(b){
-      b.onclick=function(){ mineHit(parseInt(b.getAttribute('data-mi'),10)); };
-    });
-    var fp=document.getElementById('m-forge-pick');
-    if(fp) fp.onclick=function(){ openModal('craft',{bench:'forge'}); };
-    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
-  }
-  function mineHit(idx){
-    var m=mineState();
-    if(!m.spots || !m.spots[idx]) return;
-    var sp=m.spots[idx];
-    if(!sp.alive) return;
-    var t=sp.t, ms=LF.MINE_SPOT[t];
-    if(pickLv()<LF.PICK_GATE[t]){ toast('镐刃弹开——这'+ms.name+'，得换把好镐才凿得动。'); return; }
-    if(!exert('开凿矿料')) return;
-    if(state.energy<4){ log('〔力竭〕你两臂发颤，连镐都握不稳了。','warn'); return; }
-    busyAct('开凿矿料·一镐', 650, function(){
-      state.energy=Math.max(0,state.energy-4);
-      advanceMinutes(30);
-      var hits=pickHitsNow(t);
-      if(sp.hp==null) sp.hp=hits; else if(sp.hp>hits) sp.hp=hits;
-      sp.hp--;
-      var gone=false;
-      if(t==='jade'){ sp.clicks=(sp.clicks||0)+1; if(sp.hp>0 && sp.clicks>=LF.MINE_SPOT.jade.limit) gone=true; }
-      if(sp.hp<=0 || gone){
-        sp.alive=false;
-        if(gone){ log('青玉脉光华一闪，没入岩壁——你只抢到一瞬，没凿透。','sys'); }
-        else {
-          packAdd(ms.out, ms.outN);
-          var extra='';
-          if(ms.crit && Math.random()<ms.critPct){ packAdd(ms.crit,1); extra='，兼得'+LF.ITEMS[ms.crit].name+'×1'; }
-          log('你凿穿了'+ms.name+'，得'+LF.ITEMS[ms.out].name+'×'+ms.outN+extra+'。','good');
-        }
-      } else {
-        log('你一镐凿下，'+ms.name+'碎了些许（余 '+sp.hp+' 镐）。','env');
-      }
-      var left=m.spots.filter(function(x){return x.alive;}).length;
-      if(left===0){ genOpenMine(); log('矿脉采尽，山壁簌簌落土——新一层矿脉露了出来。','sys'); }
-      save(state); afterPackChange();
-      $card.innerHTML = renderMinePanel(); bindMinePanel();
-    });
-  }
 
   // ═══ 矿洞（分层 1-9）═══
-  function caveState(){ var st=state; if(!st.cave) st.cave={ floor:1, points:null, pity:0, guarantee:false, eventDone:false, downDug:false }; return st.cave; }
-  function rareForFloor(floor){
-    if(floor>=9) return 'xuan';
-    if(floor>=7) return 'jade';
-    if(floor>=5) return 'iron';
-    return 'copper';
-  }
-  function caveFloorDesc(floor){
-    if(floor<=2) return '浅层：碎石杂陈，岩缝里夹着柴木。';
-    if(floor===3||floor===4) return '中层：石壁渐硬，岩壁上沁出青绿——古铜脉在此。';
-    if(floor===5||floor===6) return '深处：铁砂成堆，隐隐有磁石吸着镐头。';
-    if(floor===7||floor===8) return '幽深：壁上玉光点点，传说有人在此刻过字。';
-    return '最底：墨色铁母沉在岩心，阴风自更深处灌来。';
-  }
-  function genCaveFloor(floor){
-    var c=caveState();
-    var pool=[];
-    function push(t,w){ for(var i=0;i<w;i++) pool.push(t); }
-    if(floor<=2){ push('rock',6); push('gap',2); }
-    else if(floor===3){ push('rock',4); push('gap',1); push('big',2); push('copper',3); }
-    else if(floor===4){ push('rock',3); push('big',2); push('copper',3); push('iron',2); }
-    else if(floor===5||floor===6){ push('big',3); push('copper',2); push('iron',4); }
-    else if(floor===7||floor===8){ push('big',2); push('iron',3); push('jade',3); }
-    else { push('xuan',2); push('jade',2); push('iron',2); }
-    var n=3+Math.floor(Math.random()*3);
-    var spots=[];
-    for(var i=0;i<n;i++){ spots.push({ t:pool[Math.floor(Math.random()*pool.length)], alive:true, hp:null, clicks:0 }); }
-    c.floor=floor; c.points=spots; c.pity=0; c.guarantee=false; c.eventDone=false; c.downDug=false;
-    save(state);
-  }
-  function renderCavePanel(){
-    var c=caveState();
-    if(!c.points || !c.points.length){ genCaveFloor(c.floor||1); }
-    var pd=pickDef();
-    var h='<h3 style="text-align:center;margin:0 0 6px;">🕳 矿洞 · 第 '+c.floor+' 层</h3>';
-    h+='<div class="mine-head">'+(pd.icon||'🪨')+' 手中镐：<b>'+pd.name+'</b> · 最深可下 '+pd.caveMax+' 层</div>';
-    h+='<div class="cave-vein">'+caveFloorDesc(c.floor)+'</div>';
-    h+='<div class="mine-grid">';
-    for(var i=0;i<c.points.length;i++){
-      var sp=c.points[i];
-      var ms=LF.MINE_SPOT[sp.t];
-      var lock=(pickLv()<LF.PICK_GATE[sp.t]);
-      var hits=pickHitsNow(sp.t);
-      var hp=(sp.hp==null?hits:sp.hp);
-      h+='<button class="mine-cell'+(sp.alive?'':' dead')+(lock?' lock':'')+'" data-ci="'+i+'">'+
-          '<span class="mc-ic">'+ms.icon+'</span>'+
-          '<span class="mc-n">'+ms.name+'</span>'+
-          (sp.alive?('<span class="mc-h">'+(lock?'镐不足':(hp>0?('余 '+hp+' 镐'):'已尽'))+'</span>'):'<span class="mc-h">采尽</span>')+
-         '</button>';
-    }
-    h+='</div>';
-    var st=state;
-    if(c.floor>=7 && c.floor<=8 && !st.flags.task.bailian_stele && !st.flags.mine_stele){
-      h+='<div style="text-align:center;margin:8px 0;"><button class="btn-mini" id="m-stele">🪦 研读残碑</button></div>';
-    }
-    if(c.floor===9 && !st.flags.mine_armory){
-      h+='<div style="text-align:center;margin:8px 0;"><button class="btn-mini" id="m-armory">⚔ 前朝藏兵洞</button></div>';
-    }
-    if(c.floor>=9){
-      h+='<p class="tip" style="text-align:center;">已是第九层，再无下路。</p>';
-    } else if(!c.downDug){
-      h+='<div style="text-align:center;margin:10px 0;"><button class="btn-mini" id="m-cave-dig">⬇ 探查下路（松动的岩壁）</button></div>';
-      h+='<p class="tip" style="text-align:center;">矿道并非处处通底——寻一处松动的岩壁凿开，方有下行之路；每下一层耗一挂木梯。</p>';
-    } else {
-      h+='<div style="text-align:center;margin:10px 0;"><button class="btn-mini" id="m-cave-down">⬇ 架木梯下行</button></div>';
-      h+='<p class="tip" style="text-align:center;">下路已通——峭壁陡滑，须架一挂木梯方能下行（木梯：木材×3+石料×2，铁匠炉制得）。</p>';
-    }
-    h+='<div style="display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap;">'+
-        '<button class="btn-mini" id="m-cave-up">↑ 收工上撤</button></div>';
-    h+='<p class="tip" style="text-align:center;">越深矿越好，也越耗精力（每镐 '+(5+c.floor)+' 点）；连凿八镐不见好料，下一镐必出稀罕。</p>';
-    h+='<button class="sheet-leave" id="m-leave">收 工</button>';
-    return h;
-  }
-  function bindCavePanel(){
-    var card=$card;
-    card.querySelectorAll('.mine-cell[data-ci]').forEach(function(b){
-      b.onclick=function(){ caveHit(parseInt(b.getAttribute('data-ci'),10)); };
-    });
-    var st=document.getElementById('m-stele'); if(st) st.onclick=steleRead;
-    var ar=document.getElementById('m-armory'); if(ar) ar.onclick=armoryEnter;
-    var dg=document.getElementById('m-cave-dig'); if(dg) dg.onclick=caveDig;
-    var dn=document.getElementById('m-cave-down'); if(dn) dn.onclick=caveDown;
-    var up=document.getElementById('m-cave-up'); if(up) up.onclick=function(){ closeModal(); log('你沿矿道拾级而上，重见天光。','env'); };
-    var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
-  }
-  function caveHit(idx){
-    var c=caveState();
-    if(!c.points || !c.points[idx]) return;
-    var sp=c.points[idx];
-    if(!sp.alive) return;
-    var t=sp.t, ms=LF.MINE_SPOT[t];
-    if(pickLv()<LF.PICK_GATE[t]){ toast('镐刃弹开——这'+ms.name+'，得换把好镐才凿得动。'); return; }
-    if(!exert('凿矿')) return;
-    if(state.energy < 5+c.floor){ log('〔力竭〕矿道深邃，你气力不济——先收工回去歇歇。','warn'); return; }
-    busyAct('凿矿·一镐', 650, function(){
-      state.energy=Math.max(0,state.energy-(5+c.floor));
-      advanceMinutes(30);
-      if(!c.eventDone){ c.eventDone=true; rollCaveEvent(c); }
-      var hits=pickHitsNow(t);
-      if(sp.hp==null) sp.hp=hits; else if(sp.hp>hits) sp.hp=hits;
-      sp.hp--;
-      var done=(sp.hp<=0), gone=false;
-      if(t==='jade'){ sp.clicks=(sp.clicks||0)+1; if(!done && sp.clicks>=LF.MINE_SPOT.jade.limit){ done=true; gone=true; } }
-      if(done){
-        sp.alive=false;
-        if(gone){ log('青玉脉光华一闪，没入岩壁——没凿透。','sys'); }
-        else {
-          var isRare=(t==='copper'||t==='iron'||t==='jade'||t==='xuan');
-          var out=ms.out, outN=ms.outN, rar=false;
-          if(!isRare && c.guarantee){
-            var rt=rareForFloor(c.floor), rms=LF.MINE_SPOT[rt];
-            out=rms.out; outN=rms.outN; rar=true;
-            log('矿壁深处闪出一道'+rms.name+'的异色——这一镐凿出好东西！','good');
-          }
-          packAdd(out,outN);
-          log('你凿穿了'+ms.name+'，得'+LF.ITEMS[out].name+'×'+outN+'。','good');
-          if(isRare||rar){ c.pity=0; c.guarantee=false; }
-          else {
-            c.pity++;
-            if(c.pity>=8){ c.guarantee=true; c.pity=0; log('连凿数镐不见好料——矿壁深处透出一线异色，下一镐必出稀罕。','sys'); }
-          }
-        }
-      } else {
-        c.pity++;
-        if(c.pity>=8 && !c.guarantee){ c.guarantee=true; c.pity=0; log('连凿数镐不见好料——矿壁深处透出一线异色，下一镐必出稀罕。','sys'); }
-        log('你一镐凿下，'+ms.name+'碎了些许（余 '+sp.hp+' 镐）。','env');
-      }
-      save(state); afterPackChange();
-      $card.innerHTML = renderCavePanel(); bindCavePanel();
-    });
-  }
-  function rollCaveEvent(c){
-    var r=Math.random();
-    if(r<0.14){ state.energy=Math.max(0,state.energy-10); log('头顶簌簌落土，一小段矿道塌了下来——你连滚带爬避开，耗去不少气力（精力-10）。','warn'); }
-    else if(r<0.28){ state.energy=Math.min(state.maxEnergy||100,state.energy+10); log('岩壁缝隙渗出清泉，你掬了几捧，精神一振（精力+10）。','env'); }
-    else if(r<0.42){ log('一群蝙蝠扑棱棱掠过，惊得你心头一紧——好在没伤着人。','env'); }
-    else if(r<0.54){ state.gold=(state.gold||0)+10; log('镐头磕到个硬物——拨开浮土，是半瓮前朝旧钱（银两+10）。','good'); }
-  }
+
   // 探查下路（v20260915j）：每层先凿开松动的岩壁，方有下行之路；挖开时若带着木梯，顺手架梯直下
-  function caveDig(){
-    var c=caveState();
-    if(c.floor>=9){ toast('已是第九层，再无下路。'); return; }
-    if(c.downDug) return;
-    if(!exert('探查下路')) return;
-    busyAct('凿开松动岩壁', 800, function(){
-      state.energy=Math.max(0,state.energy-6);
-      advanceMinutes(30);
-      c.downDug=true;
-      var hasLadder=(packFind('muti')||{count:0}).count>=1;
-      if(hasLadder){
-        var next=c.floor+1;
-        var pd=pickDef();
-        if((pd.caveMax||2) < next){
-          log('下路挖通了——但再往下，岩壁硬得凿之不动，换把好镐再来。','warn');
-        } else {
-          packConsume('muti',1);
-          state.energy=Math.max(0,state.energy-8);
-          genCaveFloor(next);
-          log('你凿开松动的岩壁，架上木梯向深处攀去——已至第 '+next+' 层。','good');
-        }
-      } else {
-        log('你凿开松动的岩壁，底下透出黑黢黢的深洞——峭壁陡滑，须一挂木梯方能下行（木梯：木材×3+石料×2，铁匠炉制得）。','sys');
-      }
-      save(state); afterPackChange();
-      $card.innerHTML = renderCavePanel(); bindCavePanel();
-    });
-  }
+
   // 架木梯下行（v20260915j）：下路挖通后，须耗一挂木梯才能再下一层
-  function caveDown(){
-    var c=caveState();
-    var next=c.floor+1;
-    if(next>9){ toast('已是第九层，再无下路。'); return; }
-    if(!c.downDug){ toast('下路尚未挖通——先探查并凿开松动的岩壁。'); return; }
-    if((packFind('muti')||{count:0}).count<1){ toast('须一挂木梯方能下行——木梯以木材×3+石料×2，在铁匠炉制得。'); return; }
-    var pd=pickDef();
-    if((pd.caveMax||2) < next){ toast('再往下，岩壁硬得凿之不动——换把好镐再来。'); return; }
-    if(!exert('下行')) return;
-    busyAct('架梯下行', 700, function(){
-      packConsume('muti',1);
-      state.energy=Math.max(0,state.energy-8);
-      advanceMinutes(30);
-      genCaveFloor(next);
-      log('你架上木梯，一级级向深处攀去——已至第 '+next+' 层。','env');
-      save(state); afterPackChange();
-      $card.innerHTML = renderCavePanel(); bindCavePanel();
-    });
-  }
-  function steleRead(){
-    var st=state;
-    if(st.flags.task.bailian_stele || st.flags.mine_stele){ toast('碑文已拓过了。'); return; }
-    if((packFind('zhuzi')||{count:0}).count<1 || (packFind('mo')||{count:0}).count<1){
-      toast('拓碑需备竹与墨（削竹为简、松烟为墨）。'); return;
-    }
-    packConsume('zhuzi',1); packConsume('mo',1);
-    packAdd('bailian_jian',1);
-    st.flags.task.bailian_stele=true; st.flags.mine_stele=true;
-    log('你研墨展简，把残碑上的铭文一笔一画拓了下来——「以炒铁为料，折叠锻打……千锤乃成」，正是百炼钢法。','good');
-    log('〔得百炼钢简〕持之往铁匠铺，可依简锻百炼钢镐。','sys');
-    save(state); afterPackChange();
-    $card.innerHTML = renderCavePanel(); bindCavePanel();
-  }
-  function armoryEnter(){
-    var st=state;
-    if(st.flags.mine_armory){ toast('藏兵洞已搜过了。'); return; }
-    st.flags.mine_armory=true;
-    if(!packFind('bailian_jian')){
-      packAdd('bailian_jian',1);
-      log('你推开半掩的石门，里头是前朝旧卒的藏兵洞——角落里一具枯骨旁，散着几片刻字铁简。','env');
-      log('拾起细看，竟是百炼钢法残简！〔得百炼钢简〕','good');
-    } else {
-      packAdd('xuatie',2); st.gold=(st.gold||0)+20;
-      log('藏兵洞里再翻不出新物——只在墙根刨出两块沉甸甸的墨色铁母（玄铁×2·银两+20）。','good');
-    }
-    save(state); afterPackChange();
-    $card.innerHTML = renderCavePanel(); bindCavePanel();
-  }
 
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
@@ -6874,47 +4519,80 @@
   }
   // 运行时归属读取器：让山河志城市点/详情随易主实时变色（v20260909o）
   function strategicOwnerOf(cid){ try{ return cityOwnerOf(cid); }catch(e){ return null; } }
+  // 战略地图懒加载（v20260919f）：d3 / map_regions / strategic-map 三件套体积大（d3 ~280KB），
+  // 仅在首次开图时才注入，避免首屏下载/解析这些用户可能永远用不到的资源。
+  // 资源 URL 清单放在 index.html 的 window.__MAP_ASSETS（版本号随对应文件走，便于统一 bump）。
+  var _mapReady=null;
+  function ensureStrategicMap(){
+    if(_mapReady) return _mapReady;
+    _mapReady=new Promise(function(resolve, reject){
+      var A=window.__MAP_ASSETS;
+      if(A && window.d3 && window.LF && LF.REGIONS && LF.initStrategicMap){ resolve(); return; }
+      function load(src){
+        return new Promise(function(res, rej){
+          var s=document.createElement('script'); s.src=src; s.async=true;
+          s.onload=function(){ res(); };
+          s.onerror=function(){ rej(new Error('地图资源加载失败: '+src)); };
+          document.head.appendChild(s);
+        });
+      }
+      var chain=Promise.resolve();
+      if(!A || !window.d3) chain=chain.then(function(){ return load(A?A.d3:'shared/vendor/d3.min.js'); });
+      if(!A || !(window.LF && LF.REGIONS)) chain=chain.then(function(){ return load(A?A.regions:'shared/data/map_regions.js'); });
+      if(!A || !(window.LF && LF.initStrategicMap)) chain=chain.then(function(){ return load(A?A.sm:'shared/strategic-map.js'); });
+      chain.then(resolve, reject);
+    });
+    return _mapReady;
+  }
   function initStrategicMapInGame(opts){
     opts=opts||{};
     var container=document.getElementById('strategic-map-container');
     if(!container) return;
-    if(!window.LF || !LF.initStrategicMap){
-      container.innerHTML='<div class="strategic-loading">战略地图加载中...</div>';
-      return;
+    function render(){
+      var marks=strategicMapMarks();
+      // 选出生点模式
+      if(opts.pickSpawn){
+        LF.initStrategicMap(container, {
+          marks: marks,
+          ownerOf: strategicOwnerOf,
+          onCityClick: function(city){
+            if(!city || !city.id) return;
+            state.spawnRoom=city.id;
+            log('【调试】出生点已设为：'+city.name+'。','good');
+            closeModal(); renderRoom(city.id); save(state);
+          }
+        });
+      } else {
+        // 正常模式：点击城市点=显示详情（placeInfo）；点详情面板「前往此城」= goRoomOnMap 传送（v20260918a 接线）
+        LF.initStrategicMap(container, {
+          marks: marks,
+          focusYou: !!opts.focusYou,
+          ownerOf: strategicOwnerOf,
+          onCityClick: function(city){
+            if(!city || !city.id) return;
+            placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);
+          },
+          onCityGo: function(city){
+            if(!city || !city.id) return;
+            goRoomOnMap(city.id);
+          }
+        });
+      }
     }
-    var marks=strategicMapMarks();
-    // 选出生点模式
-    if(opts.pickSpawn){
-      LF.initStrategicMap(container, {
-        marks: marks,
-        ownerOf: strategicOwnerOf,
-        onCityClick: function(city){
-          if(!city || !city.id) return;
-          state.spawnRoom=city.id;
-          log('【调试】出生点已设为：'+city.name+'。','good');
-          closeModal(); renderRoom(city.id); save(state);
-        }
-      });
-    } else {
-      // 正常模式：点击城市点=显示详情（placeInfo）；点详情面板「前往此城」= goRoomOnMap 传送（v20260918a 接线）
-      LF.initStrategicMap(container, {
-        marks: marks,
-        focusYou: !!opts.focusYou,
-        ownerOf: strategicOwnerOf,
-        onCityClick: function(city){
-          if(!city || !city.id) return;
-          placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);
-        },
-        onCityGo: function(city){
-          if(!city || !city.id) return;
-          goRoomOnMap(city.id);
-        }
-      });
+    if(window.LF && LF.initStrategicMap && window.d3 && LF.REGIONS){
+      render(); return;
     }
+    container.innerHTML='<div class="strategic-loading">战略地图加载中...</div>';
+    ensureStrategicMap().then(function(){
+      if(window.LF && LF.initStrategicMap && window.d3 && LF.REGIONS) render();
+      else container.innerHTML='<div class="strategic-loading">战略地图加载失败，请刷新重试</div>';
+    }).catch(function(){
+      container.innerHTML='<div class="strategic-loading">战略地图加载失败，请刷新重试</div>';
+    });
   }
 
   function closeModal(){
-    var _tt=document.getElementById('title'); if(_tt) _tt.classList.remove('frozen');
+    var _tt=document.getElementById('title'); if(_tt){ _tt.classList.remove('frozen'); if(!_tt.classList.contains('hidden') && window.startTitleDrip) window.startTitleDrip(); }
     if(state && state.dead){ die(); return; }
     // 捏人进行中（state 尚未建立）禁止中途收起，否则会露出标题屏并丢失进度
     if(currentModalKind==='create' && !state){ return; }
@@ -7041,10 +4719,7 @@
   function clampHp(){ var mx=effectiveStats().maxHp; if(state.hp>mx) state.hp=mx; }
   // [moved → shared/core/equipment.js] 战后耐久衰减 decayEquipment / 穿卸 equipItem / unequip
 
-
-
   // ===== 存档时间戳（仅用于读档续命，不再结算任何离线/放置收益）=====
-
 
   // ===== 标题屏 =====
   // 序幕不再于此输出：此处是标题屏，叙事区被隐藏，且紧接着 enterGame 会清空它。
@@ -7071,7 +4746,11 @@
     var box=document.querySelector('.tt-inkblot');
     if(box){
       function drip(){
-        var _tt=document.getElementById('title'); if(_tt&&_tt.classList.contains('frozen')) return; // 弹窗冻结时不再生成墨滴节点
+        var _tt=document.getElementById('title');
+        if(!_tt || _tt.classList.contains('frozen') || _tt.classList.contains('hidden') || _tt.style.display==='none'){
+          if(_dripTimer){ clearInterval(_dripTimer); _dripTimer=null; }   // 弹窗冻结或标题不可见（进局后 display:none）时停掉永久定时器
+          return;                                                         // 避免隐藏标题里持续造墨滴 DOM 节点 + WAAPI 动画
+        }
         var b=document.createElement('i');
         var x=(Math.random()*84+8).toFixed(1);
         var y=(Math.random()*44+6).toFixed(1);              // 集中上半屏(6%~50%)
@@ -7095,8 +4774,11 @@
         ],{duration:dur,easing:'ease-in-out',fill:'forwards'});
         a.onfinish=function(){ if(b.parentNode) b.parentNode.removeChild(b); };
       }
-      drip();
-      setInterval(function(){ drip(); if(Math.random()<.25) drip(); },4200);
+      var _dripTimer=null;
+      // 进局/隐藏标题后 drip() 内可见性判断会停掉该永久定时器；回标题页（showTitle）或关闭回到可见标题（closeModal）时再启。
+      window.startTitleDrip=function(){ if(_dripTimer) return; drip(); _dripTimer=setInterval(function(){ drip(); if(Math.random()<.25) drip(); },4200); };
+      window.stopTitleDrip=function(){ if(_dripTimer){ clearInterval(_dripTimer); _dripTimer=null; } };
+      window.startTitleDrip();
     }
   })();
   // v20260912n：预加载序章候选底图，全部就绪（或至多等 2.5s）后再进标题页，
