@@ -282,6 +282,8 @@
       npcAttitude: npcAttitude,
       renderNpcList: renderNpcList,
       row: row,
+      // save：首次解锁「给予」置位 onb.giveUnlocked 时落盘（v20260920g）
+      save: function () { return save.apply(null, arguments); },
       talk: talk,
       toast: toast,
   });

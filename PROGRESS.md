@@ -1259,3 +1259,17 @@
 **验证**：全量冒烟 21 面板/5750 房间/9 城格全绿；event 步骤触发 ev_merchant 正常；rest/learn/dev/jobboard/quests 面板全 ok；送粥（xizhou→水渠线索 crypt）+ 寻木材（mucai→ahe_wood_done+favor2）Playwright 实测通过；ERRLOG 空。
 
 **版本**：`constants.js` VERSION → `20260920f`；`index.html` `.tt-ver` → v20260920f；`engine/rest/jobboard/learn/objectives` 缓存号统一 `?v=20260920f`。
+
+## §9.72 给予按钮「首次放行后常显」+ 功能介绍（v20260920g）
+
+**背景**：玩家反馈"好几个提交都有问题"（送粥/送菜/寻材…）——教学期给予按钮的放行条件太苛刻（收件人+有货才露出），且 flag 型 need 曾导致交不了。与其逐条打补丁，采纳用户方案：**玩家第一次出现「给予」按钮之后，就不再隐藏，并顺带出功能介绍**。
+
+**实现**：
+1. `onbGiveUnlocked` 增加 `if(onb.giveUnlocked) return true;`——教学期一旦解锁即常显；首次放行仍走原判据（周听涛特例 / 泛化收件人+有货），保证解锁时机自然。
+2. `buildNpcActions` 放行时首次置位 `onb.giveUnlocked`（save 落盘）并调用 `introGive()`——toast+日志双通道一次性介绍「给予」用途（交付差事/博取好感）。
+3. engine `createCompanion` 补 `save` 注入（此前 companion.js 无 save，置位无法落盘）。
+4. 给错对象安全：`giveItemToNpc` 无任务匹配时按物品价值增减好感并有反应台词，不会吞物品——常显后误给也无害。
+
+**验证**（Playwright 实测）：教学期周听涛（有干粮+已接任务）→ 给予按钮出现且 `onb.giveUnlocked=true`；随后教学期鲁大（无匹配任务/物品）→ 给予按钮常显；给错对象无报错；ERRLOG 空。
+
+**版本**：`constants.js` VERSION → `20260920g`；`index.html` `.tt-ver` → v20260920g；`engine/companion` 缓存号 `?v=20260920g`。

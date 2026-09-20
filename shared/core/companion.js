@@ -13,6 +13,7 @@
     var npcAttitude = ctx.npcAttitude;
     var renderNpcList = ctx.renderNpcList;
     var row = ctx.row;
+    var save = ctx.save;
     var talk = ctx.talk;
     var toast = ctx.toast;
 
@@ -261,9 +262,15 @@
   //   triggers.js 的 zt_food_give（hook:'onGive'），「交谈」里已不再自动交付。若连这颗按钮一起
   //   屏蔽，玩家攥着干粮站在周听涛跟前却交不出去，教学链当场断死。故：教学期仅当
   //   「此人正是收件人 + 差事已应下 + 手里确有那份东西 + 尚未结清」时，才放出这一颗按钮。
+  // v20260920g：反复出现「拿到东西却交不了」的反馈（送粥/送菜/寻材…）——根因多为 need 写成
+  //   flag 型、泛化放行只认 item。与其继续逐条打补丁，改为「首次放行后常显」：第一次出现
+  //   「给予」按钮即解锁，之后教学期内对所有 NPC 常显（onb.giveUnlocked 存档置位），并顺带
+  //   弹出一次功能介绍（introGive）。给错对象也无害：giveItemToNpc 无任务匹配时按物品价值
+  //   增减好感并有反馈，不会吞物品。
   function onbGiveUnlocked(o){
     var f=S().flags||{}, t=f.task||{}, onb=f.onb;
     if(!onb || onb.done) return true;              // 已脱籍：照旧全开
+    if(onb.giveUnlocked) return true;              // 教学期已解锁「给予」→ 常显
     if(!o) return false;
     // 教学链特例（v20260915c）：周听涛收干粮 —— 原判据原样保留
     if(o.key==='zhoutingtao'){
@@ -287,6 +294,13 @@
     }
     return false;
   }
+  // 「给予」首次解锁的功能介绍（v20260920g）：只弹一次，toast + 日志双通道
+  function introGive(){
+    try{
+      toast('【给予】解锁：把行囊里的东西递到对方手中——可交付差事，也能博取好感。');
+      log('【给予】你学会了把东西递给别人：选中对方点「给予」，挑一件物品递过去。若是差事要的东西，当场结清；平日赠物也能增减交情。','sys');
+    }catch(e){}
+  }
   function buildNpcActions(o){
     var acts=[];
     acts.push({label:'交谈', icon:'💬', fn:function(){ if(o.key) talk(o.key); }});
@@ -296,6 +310,9 @@
       acts.push({label:'观察', icon:'👁', fn:function(){ observeNpc(o); }});
     }
     if(onbGiveUnlocked(o)){
+      // v20260920g：首次放行即置位 onb.giveUnlocked（后续教学期常显）并弹功能介绍
+      var _onb=S().flags&&S().flags.onb;
+      if(_onb && !_onb.done && !_onb.giveUnlocked){ _onb.giveUnlocked=true; save(S()); introGive(); }
       acts.push({label:'给予', icon:'🎁', fn:function(){ openGivePanel(o); }});
     }
     if(!onboarding){
