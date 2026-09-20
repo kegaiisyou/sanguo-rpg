@@ -1273,3 +1273,21 @@
 **验证**（Playwright 实测）：教学期周听涛（有干粮+已接任务）→ 给予按钮出现且 `onb.giveUnlocked=true`；随后教学期鲁大（无匹配任务/物品）→ 给予按钮常显；给错对象无报错；ERRLOG 空。
 
 **版本**：`constants.js` VERSION → `20260920g`；`index.html` `.tt-ver` → v20260920g；`engine/companion` 缓存号 `?v=20260920g`。
+
+## §9.73 苦役营「无脑劳作」玩法改造（v20260920h）
+
+**背景**：用户点名——"把担石/务农等直接按交互按钮就完成的任务去掉，替换成需要提交材料、使用工具、对场景物品完成操作；浇水要用水壶；翻找仓库要做得有意思。不希望每个任务都这么敷衍。"
+
+**现状核查**：浇水其实已要水袋（v20260920e 水井打水）、翻地已要锄头（孙老首翻给）。真正敷衍的三处：担石劳作/搬石料/下地务农（原地 laborTick 记工）+ 仓中翻找（点一下随机出货）。
+
+**改造**：
+1. **担石劳作→搬运闭环**：场院新场景物「乱石堆·装担」（半时辰，挂 `flags.task.stoneCarrying` 负重）→ 仓库新场景物「卸料台·卸料入仓」（记 1 工 + 得石料×2 + 取消负重）。空卸拦截（无负重提示先去装担）；装担后负重拦劳作入口防刷。教学引导改两步（先装担、扛上肩再指去卸料）；首次卸料置 `onb.labored`。
+2. **下地务农**：删无脑按钮；开垦（开畦）/播种/浇水/收成四个真实操作各记 1 工分（farm.js 注入 ctx.onbWork）。工分满 3 发木片机制照旧。
+3. **仓中翻找→三点位**：仓库三处可翻点位（麻袋堆/木箱/货架）各管各掉落池；翻过即翻空（当日不再出、隔天刷新 `rummageEmptied[spot]=day`）；接「仓中翻找」时随机指定目标物（`flags.task.rummage_target`，仓吏点名）；触发链只认目标件结活，翻到别的可留可交（走好感增减不吞物品）。
+4. **格按钮清理**：TUTORIAL_CITY_ACTS 移除 labor_yard/haul_stones/farm_work/survey_warehouse 四处原地按钮（场景物承接，objects 支持 actId 供教学引导锚定）；handleAction 三合一改转发 stoneLoad/stoneUnload。
+
+**附带修复重大 bug——storeman NPC 交付全断**：程序 NPC 生成 key 为 `storeman@kuyilao:2,1#0`，触发链匹配 `npcBase`（剥 @ 后='storeman'），而触发链写死 `npc:'storeman_kuyilao'` → 永不匹配 → 「采石充仓 / 淘铜铸镐 / 仓中翻找」三个仓吏差役交付全部失效（物品被收走、任务不结、无反馈）。8 处触发匹配字段统一改 `npc:'storeman'`（steps 内 npcTalk 对话索引保留不动）。
+
+**验证**（Playwright 实测，全绿）：装担→carrying=true；卸料→workCnt+1、石料×2、labored=true；空卸拦截不记工；接 rummage 随机指定目标；翻三处各出货、同天重复翻拦截；交目标物→rummage_done、任务移除；采石充仓交满 5 块→stone_done、奖励；农事开垦/播种/浇灌各 +1 工分；全程无 pageerror。
+
+**版本**：constants.js VERSION → `20260920h`；index.html `.tt-ver` → v20260920h；engine/companion/farm/city/jobboard/triggers/rooms 缓存号 `?v=20260920h`。

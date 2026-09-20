@@ -13,6 +13,7 @@
     var exert = ctx.exert;
     var fxGet = ctx.fxGet;
     var log = ctx.log;
+    var onbWork = ctx.onbWork;      // v20260920h：真实农事操作（翻/播/浇/收）各记 1 工分
     var renderStatus = ctx.renderStatus;
     var toast = ctx.toast;
     var jobOpen = ctx.jobOpen;
@@ -84,6 +85,7 @@
         f.plots[f.unlocked||0]={ st:'tilled' };
         f.unlocked=(f.unlocked||0)+1; f.li=0;
         log('三垄翻透，土细如筛——第 '+f.unlocked+' 畦开出来了。撒菜籽还是菽种，在你。','good');
+        if(onbWork) onbWork();        // v20260920h：开出一畦记 1 工分
       }
       save(S()); renderStatus(); buildActions(curRoom());
     });
@@ -99,6 +101,7 @@
       advanceMinutes(60);
       p.st='sown'; p.crop=key; p.sownT=S().time; p.sownDay=S().day; p.wet=false;
       log('你把'+c.name+'籽撒进第 '+(i+1)+' 畦，覆土踩实。约 '+c.grow+' 个时辰可收——浇过水则早一个时辰。','good');
+      if(onbWork) onbWork();        // v20260920h：播完一畦记 1 工分
       afterPackChange(); save(S()); renderStatus(); buildActions(curRoom());
     });
   }
@@ -118,6 +121,7 @@
       for(var k=0;k<targets.length;k++) f.plots[targets[k]].wet=true;
       log(all?('水渠一开，三份水顺着沟渗进 '+targets.length+' 畦——这就是修渠的好处。')
              :('你把水浇进第 '+(i+1)+' 畦，湿泥颜色转深——这一茬能早熟一个时辰。'),'good');
+      if(onbWork) onbWork();        // v20260920h：浇完记 1 工分
       afterPackChange(); save(S()); renderStatus(); buildActions(curRoom());
     });
   }
@@ -149,6 +153,7 @@
       if(f.up.seedkeep || Math.random()<0.4){ if(packAdd(c.seed,1)) back=true; }
       p.st='tilled'; p.crop=null; p.wet=false;
       log('第 '+(i+1)+' 畦收得'+c.name+'×'+n+'。'+(back?'（留下一份籽，下一茬有着落。）':'')+(f.up.basket?'（筐编得好，多兜了一捧。）':''),'good');
+      if(onbWork) onbWork();        // v20260920h：收成一畦记 1 工分
       afterPackChange(); save(S()); renderStatus(); buildActions(curRoom());
     });
   }

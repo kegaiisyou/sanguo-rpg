@@ -75,6 +75,14 @@
     if(!S().flags) S().flags={};
     if(!S().flags.task) S().flags.task={};
     S().flags.task[key+'_started']=true;
+    // v20260920h：仓中翻找 —— 接活时随机指定目标物（仓吏点名要哪件，翻到它交回才算完）
+    if(key==='rummage'){
+      var _pool=['mucai','rope','bumu'];
+      S().flags.task.rummage_target=_pool[Math.floor(Math.random()*_pool.length)];
+      var _its=(window.LF&&LF.ITEMS&&LF.ITEMS.DEFS)||{};
+      var _nm=(_its[S().flags.task.rummage_target]||{}).name||S().flags.task.rummage_target;
+      log('〔仓中翻找〕仓吏说仓里缺「'+_nm+'」——去仓库翻三处，翻到它交到他手上。','sys');
+    }
     acceptQuest(j.quest);
     lastJobTaken=key;                          // v20260916h：重渲染后刚领的木牍默认展开
     log(j.take,'sys');

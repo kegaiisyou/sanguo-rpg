@@ -612,7 +612,7 @@
   // ════════════════ 苦役营·新手支线：采石充仓（v20260909w） ════════════════
   // 接任务：与仓吏对话，受托采石料
   TRIGGERS.push({
-    id: 'kyl_stone_accept', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: true,
+    id: 'kyl_stone_accept', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', cell: [2,1], once: true,
     cond: { notFlag: 'flags.task.stone_started' },
     steps: [
       { t: 'npcTalk', npc: 'storeman_kuyilao',
@@ -629,7 +629,7 @@
   });
   // 任务进行中：再次对话提示进度
   TRIGGERS.push({
-    id: 'kyl_stone_progress', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: false,
+    id: 'kyl_stone_progress', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', cell: [2,1], once: false,
     cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
     steps: [
       { t: 'log', cls: 'npc', text: '〔仓吏〕「石料凿得如何了？凿够了就交过来——点我，选「给予」，把石料择出来。五块，一块一记。」' }
@@ -637,7 +637,7 @@
   });
   // 交任务：给予石料给仓吏，累计5块完成（按实际给予数量累计）
   TRIGGERS.push({
-    id: 'kyl_stone_give', hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], item: 'shitiao', once: false,
+    id: 'kyl_stone_give', hook: 'onGive', npc: 'storeman', room: 'kuyilao', cell: [2,1], item: 'shitiao', once: false,
     cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
     steps: [
       { t: 'setFlag', path: 'flags.task.stone_count', increment: true, incrementByEnv: 'qty' },
@@ -662,7 +662,7 @@
   });
   // 任务完成后对话
   TRIGGERS.push({
-    id: 'kyl_stone_done', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: false,
+    id: 'kyl_stone_done', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', cell: [2,1], once: false,
     cond: { flags: { 'flags.task.stone_done': true } },
     steps: [
       { t: 'log', cls: 'npc', text: '〔仓吏〕「石料已收妥，营中营建又快了几分。你若还想帮忙，营里各处都缺人手——农庄、伙房、演武场，尽可去转转。」' }
@@ -975,11 +975,13 @@
     ]
   });
 
-  // ══════════ 第三批·仓中翻找：翻出什么交什么，交回仓里才算完 ══════════
+  // ══════════ 第三批·仓中翻找：翻出仓吏点名的那件，交回仓里才算完（v20260920h） ══════════
+  //   接活时随机指定目标物（flags.task.rummage_target），此处只认目标件结活；
+  //   翻到别的可留可交（交非目标件走好感增减，不会吞东西）。
   [['mucai', '木材'], ['rope', '绳'], ['bumu', '粗布']].forEach(function (f) {
     TRIGGERS.push({
-      id: 'rummage_give_' + f[0], hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2, 1], item: f[0], once: false,
-      cond: { flags: { 'flags.task.rummage_started': true }, notFlag: 'flags.task.rummage_done' },
+      id: 'rummage_give_' + f[0], hook: 'onGive', npc: 'storeman', room: 'kuyilao', cell: [2, 1], item: f[0], once: false,
+      cond: { flags: { 'flags.task.rummage_started': true, 'flags.task.rummage_target': f[0] }, notFlag: 'flags.task.rummage_done' },
       steps: [
         { t: 'setFlag', path: 'flags.task.rummage_cnt', increment: true },
         { t: 'setFlag', path: 'flags.task.rummage_done', value: true },
@@ -1098,7 +1100,7 @@
   // 「淘铜铸镐」走差役牌（engine.js JOB_BOARD 的 copper）：摘木牍领活 → 矿洞三层以下凿铜矿 →
   //   回仓库交仓吏。真交付挂在 onGive（kyl_copper_give）——东西真扣，满四块结清。
   TRIGGERS.push({
-    id: 'kyl_copper_give', hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', item: 'tongkuang', once: false,
+    id: 'kyl_copper_give', hook: 'onGive', npc: 'storeman', room: 'kuyilao', item: 'tongkuang', once: false,
     cond: { flags: { 'flags.task.copper_started': true }, notFlag: 'flags.task.copper_done' },
     steps: [
       { t: 'setFlag', path: 'flags.task.copper_count', increment: true, incrementByEnv: 'qty' },
@@ -1117,12 +1119,12 @@
     ]
   });
   TRIGGERS.push({
-    id: 'kq_copper_prog', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', once: false,
+    id: 'kq_copper_prog', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', once: false,
     cond: { flags: { 'flags.task.copper_started': true }, notFlag: 'flags.task.copper_done' },
     steps: [ { t: 'log', cls: 'npc', text: '〔仓吏〕「铜矿凿得如何了？凿够了就交过来——点我，选「给予」，把铜矿择出来。四块，一块一记。」' } ]
   });
   TRIGGERS.push({
-    id: 'kq_copper_done', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', once: false,
+    id: 'kq_copper_done', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', once: false,
     cond: { flags: { 'flags.task.copper_done': true } },
     steps: [ { t: 'log', cls: 'npc', text: '〔仓吏〕「铜矿已入库，营里打壶铸镐都有了料。往后矿里再有稀罕货，也先拿来我看。」' } ]
   });

@@ -151,6 +151,8 @@
       exert: exert,
       fxGet: fxGet,
       log: function () { return log.apply(null, arguments); },
+      // onbWork：农事操作（翻/播/浇/收）各记 1 工分（v20260920h）
+      onbWork: function () { return onbWork.apply(null, arguments); },
       renderStatus: renderStatus,
       toast: toast,
       jobOpen: function () { return jobOpen; },
@@ -1065,32 +1067,69 @@
     busyAct(String(label||'劳役')+'·半个时辰', 1000, function(){
       state.energy=Math.max(0,state.energy-4);
       advanceMinutes(60);
-      var o=onbF();
-      if(o && o.started && !o.done){
-        o.workCnt=(o.workCnt||0)+1;
-        if(o.workCnt % LABOR_PER_WOOD === 0){
-          packAdd('lao_pai', 1);
-          log('〔记工〕狱卒验过你的石方，掷来一枚「劳字木片」。','good');
-          // 「头一回挣到实物」的提示（v20260911k 起；v20260912f 调整）：
-          //   「行囊是什么」已在开篇牢房里教过，此处不再重复讲解，只做个「东西进了哪儿」的确认，
-          //   顺手把行囊页签再亮一记（让刚学会的页签立刻派上用场），并给点小甜头。
-          if(!o.bagSeen){
-            o.bagSeen=true;
-            onbReveal('dock');
-            packAdd('fan', 1);
-            log('狱卒今日心情不坏，又扔来半张干粮：「拿着，别死在头一天。」','good');
-            log('〔入囊〕木片与干粮都收进了行囊——点下方「🎒 行囊」可查看、装备与使用。','sys');
-            try{ if(LF.Guide && LF.Guide.ping) LF.Guide.ping({dock:'pack'}); }catch(e){}
-            toast('行囊里多了东西');
-          }
-          afterPackChange();
-        } else {
-          log('〔记工〕工分 '+o.workCnt+'/'+LABOR_PER_WOOD+'——干满 '+LABOR_PER_WOOD+' 工换一枚劳字木片。','sys');
-        }
-      }
+      onbWork();
       renderStatus(); save(state);
     });
     return true;
+  }
+  // 记 1 工分（v20260920h 自 laborTick 抽出）：满 LABOR_PER_WOOD 工发一枚「劳字木片」。
+  //   供「担石卸料 / 农事操作（翻地、播种、浇水、收成）」等有实感的劳作共同调用——
+  //   不再让「点一下按钮」凭空记工。
+  function onbWork(){
+    var o=onbF();
+    if(!o || !o.started || o.done) return;
+    o.workCnt=(o.workCnt||0)+1;
+    if(o.workCnt % LABOR_PER_WOOD === 0){
+      packAdd('lao_pai', 1);
+      log('〔记工〕狱卒验过你的石方，掷来一枚「劳字木片」。','good');
+      // 「头一回挣到实物」的提示（v20260911k 起；v20260912f 调整）：
+      //   「行囊是什么」已在开篇牢房里教过，此处不再重复讲解，只做个「东西进了哪儿」的确认，
+      //   顺手把行囊页签再亮一记（让刚学会的页签立刻派上用场），并给点小甜头。
+      if(!o.bagSeen){
+        o.bagSeen=true;
+        onbReveal('dock');
+        packAdd('fan', 1);
+        log('狱卒今日心情不坏，又扔来半张干粮：「拿着，别死在头一天。」','good');
+        log('〔入囊〕木片与干粮都收进了行囊——点下方「🎒 行囊」可查看、装备与使用。','sys');
+        try{ if(LF.Guide && LF.Guide.ping) LF.Guide.ping({dock:'pack'}); }catch(e){}
+        toast('行囊里多了东西');
+      }
+      afterPackChange();
+    } else {
+      log('〔记工〕工分 '+o.workCnt+'/'+LABOR_PER_WOOD+'——干满 '+LABOR_PER_WOOD+' 工换一枚劳字木片。','sys');
+    }
+    renderStatus(); save(state);
+  }
+  // ═══ 担石搬运闭环（v20260920h）：场院乱石堆「装担」→ 负重 → 仓库卸料台「卸料入仓」记一工 ═══
+  //   从前「点一下担石劳作」凭空记工，如今一担石真要人扛过去——装担、卸料两段操作 + 跨格搬运，
+  //   负重时腾不开手（stoneCarrying 判定拦在劳作入口，防连点刷工分）。
+  function stoneCarrying(){ var f=state.flags||{}, t=f.task||{}; return !!t.stoneCarrying; }
+  function stoneLoad(){
+    if(stoneCarrying()){ toast('肩上已压着一担石料——先送去仓库「卸料台」卸下。'); return; }
+    if(!exert('装起一担乱石')) return;
+    if(state.energy<6){ log('〔力竭〕你两臂发颤，连扁担都扛不稳了——先寻处歇一歇。','warn'); return; }
+    busyAct('装担·半个时辰', 1000, function(){
+      state.energy=Math.max(0,state.energy-4);
+      advanceMinutes(60);
+      state.flags.task.stoneCarrying=true;
+      log('你把乱石码进藤筐，扁担压上肩头——身上多了一担石。送去仓库那格「卸料台」卸下，才算记一工。','good');
+      save(state); renderStatus(); buildActions(curRoom());
+    });
+  }
+  function stoneUnload(){
+    if(!stoneCarrying()){ toast('肩上没有石担——先去场院「乱石堆」装一担。'); return; }
+    if(!exert('卸料入仓')) return;
+    busyAct('卸料·半个时辰', 1000, function(){
+      state.energy=Math.max(0,state.energy-4);
+      advanceMinutes(60);
+      state.flags.task.stoneCarrying=false;
+      packAdd('shitiao',2);
+      var o=onbF();
+      if(o && o.started && !o.done && !o.labored) o.labored=true;   // 教学：卸下第一担即算「熟悉苦役」
+      onbWork();   // 记 1 工分（满 3 工发木片）
+      log('你把石料卸进仓角，掸掸肩头的灰——得「石料」×2 入囊。','good');
+      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
+    });
   }
   // 营中苦役 → 任务进度（v20260911i 立，v20260914e 撤）。
   //   原写法：点一下格上的劳作按钮就在 flags.task.<key>_cnt 上 +1，任务据此显示 N/3。
@@ -1752,6 +1791,10 @@
         { label: '正帐', icon: '⛺', target: 'camp_zhongjun', group: '中军帐', show: planningEscape }
       ],
       objects: [
+        // v20260920h：担石劳作改「装担→卸料」闭环 —— 乱石堆在场院装担，送到仓库卸料台才记一工
+        { icon:'🪨', label:'乱石堆', actId:'labor_yard', acts:[
+          {label:'装担', icon:'🪨', fn:function(){ stoneLoad(); }}
+        ]},
         { icon:'📋', label:'记工木牌', acts:[
           {label:'查工分', icon:'📋', fn:function(){ ledgerLook(); }},
           {label:'看差役', icon:'📜', fn:function(){ jobBoard(); }}
@@ -1805,11 +1848,22 @@
         ]}
       ]
     },
-    // 仓库（2,1）：麻袋堆 —— 「仓中翻找」的落点（翻出什么是随机的，交回仓里才是了结）
+    // 仓库（2,1）：卸料台 + 三翻找点位（v20260920h）
+    //   担石搬运闭环的落点：场院装担 → 此处「卸料入仓」记工；卸料台无负重时不放行。
+    //   仓中翻找改三点位：麻袋堆/木箱/货架各管各的掉落池、翻空后隔天刷新；任务随机指定目标物。
     'kuyilao|2,1': {
       objects: [
-        { icon:'🧺', label:'麻袋堆', show: function(){ return jobOpen('rummage'); }, acts:[
-          {label:'翻找旧物', icon:'🔍', fn:function(){ rummageStore(); }}
+        { icon:'⛏️', label:'卸料台', actId:'haul_stones', acts:[
+          {label:'卸料入仓', icon:'🪨', fn:function(){ stoneUnload(); }}
+        ]},
+        { icon:'🧺', label:'麻袋堆', actId:'rummage_sack', acts:[
+          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('sack'); }}
+        ]},
+        { icon:'📦', label:'木箱', actId:'rummage_box', acts:[
+          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('box'); }}
+        ]},
+        { icon:'🪜', label:'货架', actId:'rummage_shelf', acts:[
+          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('shelf'); }}
         ]}
       ]
     }
@@ -2058,9 +2112,9 @@
       take:'你把「夜半添水」那片木牍摘了下来。',
       tip:'往囚室那格的水槽点「添水」，把槽水注满——添满即了（水不够就多打几袋）。' },
     { key:'rummage', quest:'store_rummage', title:'仓中翻找',
-      word:'仓吏要的：仓库翻出一件旧物，交还仓里',
+      word:'仓吏要的：仓库翻出一件指定的旧物，交还仓里',
       take:'你把「仓中翻找」那片木牍摘了下来。',
-      tip:'去仓库那格点「翻找旧物」，翻出什么算什么；再点仓吏、选「给予」，把东西交到他手上。' },
+      tip:'去仓库那格，翻「麻袋堆 / 木箱 / 货架」三处（各管各的货，翻过即空、隔天再来）——翻到仓吏点名要的那件，点仓吏、选「给予」交到他手上。' },
     // v20260915i：矿坑改版差役——铜矿出自矿洞三层以下（青铜镐的三条来路之一：制作 / 市集 / 差役）
     { key:'copper', quest:'mine_copper', title:'淘铜铸镐',
       word:'仓吏要的：矿洞三层以下古铜脉，凿铜矿四块，交仓库',
@@ -2120,22 +2174,41 @@
       save(state); renderStatus();
     });
   }
-  // ═══ 仓中翻找（v20260915f）：麻袋堆后翻出一件旧物，交还仓吏 ══
-  // v20260915g：改为只翻【已登记】的通用物资。
-  //   原先图省事塞的是自造对象（jiugao/shengzi/bumu）：没进 items.js，于是商店/寄售这些
-  //   读 LF.ITEMS[defId] 的地方掉回英文 id（玩家眼中即「乱码」），且「一段麻绳」与既有的
-  //   rope（攀绳翻墙线）撞了车。凡能进背包的，必先在 items.js 登记、再引用。
-  var RUMMAGE_FINDS = ['mucai', 'rope', 'bumu'];
-  function rummageStore(){
+  // ═══ 仓中翻找（v20260915f 立；v20260920h 改三点位）═══
+  //   从前的「点一下随机出货」改成：仓库里三处可翻的点位（麻袋堆/木箱/货架），各管各的掉落池；
+  //   翻过即翻空，当日不再出（隔天刷新）；接「仓中翻找」差事时仓吏随机指定目标物（flags.task.rummage_target），
+  //   翻到目标物交回才算完 —— 翻到别的可留可交（给仓吏则按物品价值换好感，不会吞东西）。
+  // v20260915g：只翻【已登记】的通用物资——凡能进背包的，必先在 items.js 登记、再引用。
+  var RUMMAGE_SPOTS = {
+    sack:  { label:'麻袋堆', pool:[['bumu',0.5],['rope',0.3],['mucai',0.2]] },
+    box:   { label:'木箱',   pool:[['mucai',0.5],['rope',0.3],['shitiao',0.2]] },
+    shelf: { label:'货架',   pool:[['mucai',0.4],['bumu',0.4],['rope',0.2]] }
+  };
+  function rummageTarget(){ var t=state.flags.task||{}; return t.rummage_target||null; }
+  function rummageFind(spot){
+    var def=RUMMAGE_SPOTS[spot]; if(!def) return;
     if(!jobOpen('rummage')){ toast('仓里的东西不是你能乱翻的。'); return; }
-    if(!exert('翻找旧物')) return;
-    busyAct('翻找旧物', 1100, function(){
+    var t=state.flags.task||{};
+    var em=t.rummageEmptied||(t.rummageEmptied={});
+    if(em[spot]===state.day){ toast(def.label+'已经翻空了——过一夜再来，或去别的堆翻翻。'); return; }
+    if(!exert('翻找'+def.label)) return;
+    busyAct('翻找'+def.label, 1000, function(){
       advanceMinutes(60);
-      var id=RUMMAGE_FINDS[Math.floor(Math.random()*RUMMAGE_FINDS.length)];
-      var def=(window.LF && LF.ITEMS && LF.ITEMS.DEFS) ? LF.ITEMS.DEFS[id] : null;
-      if(!packAdd(id,1)) return;
-      log('你在麻袋堆后头摸了半天，翻出一件旧物：'+(def?def.icon:'🔧')+'「'+(def?def.name:id)+'」。仓吏说过，翻出什么都得交回仓里。','good');
-      afterPackChange(); save(state); renderStatus();
+      var r=Math.random(), id=null, acc=0;
+      for(var i=0;i<def.pool.length;i++){ acc+=def.pool[i][1]; if(r<acc){ id=def.pool[i][0]; break; } }
+      if(!id) id=def.pool[0][0];
+      if(!packAdd(id,1)){ toast('行囊塞不下——腾出一格再来翻。'); return; }
+      em[spot]=state.day;                 // 翻空：当日不再出，隔天刷新
+      var tgt=rummageTarget();
+      var its=window.LF && LF.ITEMS && LF.ITEMS.DEFS ? LF.ITEMS.DEFS : {};
+      var itd=its[id]||{};
+      var hit = tgt && tgt===id;
+      var msg='你在'+def.label+'里摸出'+(itd.icon||'🔧')+'「'+(itd.name||id)+'」';
+      if(hit) msg+='——正是仓吏要的那件！回去点仓吏、选「给予」交到他手上。';
+      else if(tgt) msg+='（仓吏要的是「'+((its[tgt]||{}).name||tgt)+'」，这件的他不收；留着或另递。）';
+      else msg+='。';
+      log(msg,'good');
+      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
     });
   }
 
@@ -2239,7 +2312,8 @@
     if(objs.length){
       var oh=document.createElement('div'); oh.className='grp'; oh.textContent='交互物品'; $actions.appendChild(oh);
       objs.forEach(function(o){
-        var b=mkAct('obj', o.icon||'🔧', o.label, function(e){ toggleObjExpand(e, b, o, (o.acts||[])); });
+        // v20260920h：objects 支持 actId —— 教学引导锚点（#actions .act[data-act=...]）能指到场景物件动作上
+        var b=mkAct('obj', o.icon||'🔧', o.label, function(e){ toggleObjExpand(e, b, o, (o.acts||[])); }, null, o.actId);
       });
     }
   }
@@ -2855,18 +2929,10 @@
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
       // ─── 教程：劳作 / 塌墙根决断（v20260911h · P3：劳作吃时辰 —— 见 laborTick）───
-      case 'labor_yard': case 'farm_work': case 'haul_stones': {
-        var _lm = {
-          labor_yard:  ['担石劳作', '你又扛起乱石，汗如雨下。苦役营的日夜，漫长得没有尽头。'],
-          farm_work:   ['下地务农', '你扶犁翻垄，日头从东头挪到头顶，垄沟里尽是汗珠。'],
-          haul_stones: ['搬石料',   '你扛着石料往返奔走，肩头磨得发烫，粗布上都浸了汗碱。']
-        }[id];
-        if(!laborTick(_lm[0])) break;
-        // v20260914e：此处不再记差役进度（原 laborQuestTick）—— 进度改由「交出去多少」来记（onGive 累计），
-        //   免得玩家点「下地务农」三下便把「开垦薄田」交了差。这三个按钮如今只挣工分。
-        if(!checkTriggers({hook:'onCustom', room: state.room})) log(_lm[1],'sys');
-        break;
-      }
+      // v20260920h：担石劳作改搬运闭环 —— 按钮已由「乱石堆·装担」「卸料台·卸料入仓」承接，
+      //   此处只作兜底转发；「下地务农」无脑按钮已删除（农事工分改由真实操作记取）。
+      case 'labor_yard': { stoneLoad(); break; }
+      case 'haul_stones': { stoneUnload(); break; }
       case 'survey_yard':
         if(!exert('环顾四周')) return;
         if(!checkTriggers({hook:'onCustom', room: state.room}))
@@ -2892,7 +2958,7 @@
       case 'survey_warehouse':
         if(!exert('翻找仓库')) return;
         if(!checkTriggers({hook:'onCustom', room: state.room}))
-          log('你翻找仓库：墙角倚着几把闲镐锄，竹木随手可取。若能趁郑刚打盹取一柄，挖地道线（路线2）便有了家伙。','sys');
+          log('仓库里麻袋堆、木箱、货架三处堆着旧物——翻哪一处，看你要找什么；翻过即空，隔天再来。','sys');
         break;
       case 'survey_mine':
         if(!exert('勘察矿道')) return;
@@ -3681,7 +3747,12 @@
     // ② 尚未出牢：叩牢门请牢头开锁（牢门是 camp_tz1 的场景物件，锚点 cell_door）
     if(!onb.cellOpen) return {text:'走到牢门口的「牢门」，点「叩门」与牢头说通，方能出牢', targets:[{act:'cell_door'}]};
     // ② 场院三件事：劳作（顺带点亮状态栏/位置页签）→ 照看自身 → 环顾（看清几处去路）
-    if(!onb.labored)  return campGoto({act:'labor_yard'},  '点「担石劳作」，先熟悉营中苦役（满三工换一枚劳字木片）', '往中军场院去，点「担石劳作」干活', 1, 1);
+    // v20260920h：担石劳作改「装担→卸料」两步 —— 引导跟着分两拍：先装担，扛上肩再指去仓库卸。
+    if(!onb.labored){
+      if(stoneCarrying())
+        return campGoto({act:'haul_stones'}, '到仓库「卸料台」把石料卸下——卸完这一担才记一工', '往仓库去，点「卸料台」把肩上的石料卸下', 2, 1);
+      return campGoto({act:'labor_yard'}, '点场院「乱石堆」·装担，再送去仓库卸下（满三工换一枚劳字木片）', '往中军场院去，点「乱石堆」装一担', 1, 1);
+    }
     // ②·五 刚扛完一工（v20260914c）：此刻「看自己」最有痛感 —— 精力气血是真掉了一截，
     //   不是凭空叫人多看一眼面板。放在「环顾四周」之前：先看清自己还剩几分底子，再看清几处去路。
     //   老档可能只解锁过 pack/quest、没有 char —— 先点亮再指，免得目标条指向一个被 CSS 藏着的按钮。
@@ -3703,7 +3774,7 @@
       if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '点周听涛、选「给予」，把干粮交到他手上', '往北回牢区，把干粮交予周听涛', 1, 0);
       // 手上有木片 → 去伙房换食；没有 → 回场院再挣一工（初次满三工还会顺带点亮行囊）
       if(packFind('lao_pai')) return campGoto({act:'mess_hall'}, '持「劳字木片」在伙房换一份吃食', '往伙房去，用「劳字木片」换一份吃食', 0, 1);
-      return campGoto({act:'labor_yard'}, '周听涛要一份吃食——再「担石劳作」满三工，换一枚「劳字木片」', '往中军场院去「担石劳作」，满三工换一枚「劳字木片」', 1, 1);
+      return campGoto({act:'labor_yard'}, '周听涛要一份吃食——去场院「乱石堆」装担、送到仓库卸料，满三工换一枚「劳字木片」', '往中军场院去「乱石堆」装担，挣满三工换一枚「劳字木片」', 1, 1);
     }
     // ④ 默叔：天字二号牢房对暗号
     if(!(f.task && f.task.signal)) return campGoto({npc:'moshu'}, '牢房·天字二号，与默叔对上暗号', '往北回牢区（营北），进天字二号牢房与默叔对暗号', 1, 0);

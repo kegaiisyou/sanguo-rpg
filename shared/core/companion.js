@@ -278,9 +278,12 @@
       if(f.route && f.route.crypt) return false;     // 密道已得，这桩差事已了
       return !!packFind('fan');                      // 手里得真有那份吃食
     }
-    // 泛化（v20260915k）：教学期凡「未结差事的收件人 + 手里确有需要的实物」也放行给予
+    // 泛化（v20260915k；v20260920h 扩 flag 型）：教学期凡「未结差事的收件人」也放行给予
     //   —— 仓吏收石料/旧物/铜矿、鲁大收野菜……操作菜单直接露出「给予」，
     //   不必先点「交谈」钻进对话面板底栏才能交差（那一步绕得太深，玩家容易以为交不了）。
+    //   item 型（要交实物）：手里得有那份东西才放行；flag 型（交还仓里/槽水注满/传话…）：
+    //   任务还在日志里即放行——把东西递过去，由触发链判定够不够数。给错对象无害
+    //   （giveItemToNpc 无匹配时按物品价值增减好感，不吞物品）。
     //   匹配口径与任务日志一致：q.submit.npc 是显示名/身份（'仓吏'/'鲁大'）。
     //   具名 NPC 的名字就是显示名（鲁大/孙老…）；程序 NPC（storeman 卡生成）名字是随机人名
     //   （丁大牛…），显示身份在 role 字段（'仓吏'）——两者都认。
@@ -289,8 +292,10 @@
       var q=quests[i];
       if(!q || !q.submit) continue;
       if(q.submit.npc!==o.name && q.submit.npc!==o.role) continue;
-      var needItem=(q.need||[]).some(function(nd){ return nd.item && packFind(nd.item); });
-      if(needItem) return true;
+      var nds=q.need||[];
+      var needsItem=nds.some(function(nd){ return nd.item && packFind(nd.item); });
+      if(needsItem) return true;
+      if(!nds.some(function(nd){ return nd.item; })) return true;   // flag 型：任务未结即放行
     }
     return false;
   }
