@@ -1,6 +1,6 @@
 // 状态栏渲染（从 engine.js 拆分）
 // renderStatus / renderLocTab：顶部身份 + 数值条 + 追踪任务 + 时辰天气；场景名（城格坐标→显示名）渲染。
-// 引擎可变状态走 S()；SHICHEN/WEATHERS/LF.OBJECTIVES 为全局常量/命名空间，直接引用。
+// 引擎可变状态走 S()；SHICHEN/WEATHERS 经 ctx 注入（重构后不再裸引用全局）；LF.OBJECTIVES 为命名空间。
 (function (global) {
   global.LF = global.LF || {};
   global.LF.createStatusbar = function (ctx) {
@@ -12,6 +12,8 @@
     var getGenCityGrid = ctx.getGenCityGrid;
     var getIsCityGrid = ctx.getIsCityGrid;
     var getNeedHave = ctx.getNeedHave;
+    var SHICHEN = ctx.SHICHEN;
+    var WEATHERS = ctx.WEATHERS;
     var $statusEl = document.getElementById('status');
   // v20260919e：LF.OBJECTIVES 是静态常量表，renderStatus 每帧扫一遍太浪费——
   // 懒建一次 id→目标 映射（兼容数据晚于本模块加载的情况），O(1) 查询。

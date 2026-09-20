@@ -400,7 +400,9 @@
       getCellDisplayName: function () { return cellDisplayName; },
       getGenCityGrid: function () { return genCityGrid; },
       getIsCityGrid: function () { return isCityGrid; },
-      getNeedHave: function () { return needHave; }
+      getNeedHave: function () { return needHave; },
+      SHICHEN: SHICHEN,
+      WEATHERS: WEATHERS
   });
   // 展示层合并调度（v20260919e）：renderStatus 被 100+ 处调用，纯展示、可合并——
   // 同一帧内的多次调用仅触发一次真实 DOM 重建，避免动作/时间推进链里反复 innerHTML 重排。
