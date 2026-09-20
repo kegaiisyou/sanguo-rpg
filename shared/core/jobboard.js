@@ -4,7 +4,9 @@
   global.LF.createJobboard = function (ctx) {
     var getState = ctx.getState
     var getCurrentModalKind = ctx.getCurrentModalKind, S = getState;
-    var LABOR_PER_WOOD = ctx.LABOR_PER_WOOD;
+    // LABOR_PER_WOOD 由引擎经 getter 注入（engine L432 才赋值，惰性取值）
+    var _LPW = ctx.LABOR_PER_WOOD;
+    var LABOR_PER_WOOD = (typeof _LPW === 'function') ? _LPW() : _LPW;
     var LF = ctx.LF;
     var getJOB_BOARD = ctx.JOB_BOARD;
     var acceptQuest = ctx.acceptQuest;

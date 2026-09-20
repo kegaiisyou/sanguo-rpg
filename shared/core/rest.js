@@ -23,6 +23,7 @@
     var shuicaoFillPlaced = ctx.shuicaoFillPlaced;
     var toast = ctx.toast;
     var getCombatMode = ctx.getCombatMode;
+    var effectiveStats = ctx.effectiveStats;   // 重构后曾裸引用全局 → ReferenceError，改经 ctx 注入（engine 惰性包装）
 
   function actRest(){
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }

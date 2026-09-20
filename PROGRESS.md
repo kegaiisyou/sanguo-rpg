@@ -1241,3 +1241,21 @@
 6. 取水文案统一指向「农田水井「打水」」（原「水槽装水入袋」「溪河取水」说法作废）。
 
 **版本**：`constants.js` VERSION → `20260920e`；`index.html` `.tt-ver` → v20260920e；`engine/companion/farm/triggers/objectives/items` 缓存号统一 `?v=20260920e`。
+
+## §9.71 系统性断链排查（v20260920f）：5 处前向裸传 + 送粥/寻材任务 need 修正
+
+**背景**：用户要求"重构还有哪些没有连接上的，测试一下并给连接"。先写静态扫描（无 acorn/esprima，按逗号拆 ctx 顶层键值 + 行号比对），再 Playwright 全量冒烟（21 面板 / 5750 房间 / 9 城格 / 触发步骤类型 case 覆盖 / 任务-NPC-物品交叉引用）。
+
+**抓到并修复 6 处断链**（全部为「工厂创建早于被传标识符赋值」→ 裸传固化 undefined，调用时静默跳过或报错）：
+1. `createDev`（L54）`moralTitle`（L392 才解构）/`factionName`（L445）→ 惰性包装 → 调试台渲染恢复。
+2. `createTriggers`（L78）`findEvent`（L396）/`addReputation`（L395）→ 惰性包装 → 触发器 `event` 步骤 / 声望结算接上。
+3. `createJobboard`（L304）`LABOR_PER_WOOD`（L432 才解构）→ 常量 getter + jobboard.js 解构惰性求值 → 记工满 3 工发木片恢复（此前 `%undefined`=NaN 静默失效，v20260920d 只修了 engine 侧裸引用，jobboard 闭包仍断）。
+4. `createQuest`（L324）`log`（L381）/`addXp`（L396）/`addReputation`（L395）→ 惰性包装 → 任务日志与结算接上。
+5. `createLearn`（L346）`log` → 惰性包装 → `openLearn` 不再报「log is not a function」。
+6. `createRest`（L237）缺 `effectiveStats` 注入 → engine 补惰性包装 + rest.js 解构 → `actRest` 不再 ReferenceError。
+
+**送粥探监交不了**（用户实测）：`porridge_visit` 是真给物任务（onGive item:'xizhou'），但 need 误写成 flag → 教学期泛化给子（onbGiveUnlocked 只查 item）不放行。同类 `ahe_wood`/`ahe_stone` 一并修正为 item 型 need（mucai/shitiao）。任务日志同步显示实物。
+
+**验证**：全量冒烟 21 面板/5750 房间/9 城格全绿；event 步骤触发 ev_merchant 正常；rest/learn/dev/jobboard/quests 面板全 ok；送粥（xizhou→水渠线索 crypt）+ 寻木材（mucai→ahe_wood_done+favor2）Playwright 实测通过；ERRLOG 空。
+
+**版本**：`constants.js` VERSION → `20260920f`；`index.html` `.tt-ver` → v20260920f；`engine/rest/jobboard/learn/objectives` 缓存号统一 `?v=20260920f`。

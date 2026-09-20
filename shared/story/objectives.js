@@ -152,7 +152,7 @@
       id: 'mess_meal', title: '灶上一口热饭', type: 'side',
       hint: '营西伙房以「劳字木片」换一份饭（卯辰 / 午未 / 酉戌是饭点，得热饭；过了点只剩冷粥），再点下方「🎒 行囊」里的干粮、选「使用」把它吃下去——吃满两顿。',
       need: [ { flag: 'flags.task.meal_cnt', name: '进餐', icon: '🍚', count: 2 } ],
-      submit: { npc: '大勺', room: 'kuyilao' },
+      submit: { npc: '鲁大', room: 'kuyilao' },
       reward: '干粮×1 · 修为+20'
     },
     // 犬舍试手（v20260915e）：韩铁教的是「打不过就撤」——所以结清条件是【成功撤退】，
@@ -198,21 +198,21 @@
     porridge_visit: {
       id: 'porridge_visit', title: '送粥探监', type: 'side',
       hint: '在伙房换一碗粥（过了饭点换到的正是粥），往地字二号牢房点那瘦少年、选「给予」递到他手上。',
-      need: [ { flag: 'flags.task.porridge_cnt', name: '递粥', icon: '🥣', count: 1 } ],
+      need: [ { item: 'xizhou', name: '稀粥', icon: '🥣', count: 1 } ],
       submit: { npc: '阿禾', room: 'kuyilao' },
       reward: '修为+30 · 阿禾好感+2 · 水渠线索'
     },
     ahe_wood: {
       id: 'ahe_wood', title: '阿禾·寻木材', type: 'side',
       hint: '阿禾想在墙角刨个窝遮风。往仓库或伐木处寻些木材（🟫），回地字二号牢房点阿禾、选「给予」递过去。',
-      need: [ { flag: 'flags.task.ahe_wood_done', name: '递木材', icon: '🟫', count: 1 } ],
+      need: [ { item: 'mucai', name: '木材', icon: '🟫', count: 1 } ],
       submit: { npc: '阿禾', room: 'kuyilao' },
       reward: '修为+25 · 阿禾好感+2'
     },
     ahe_stone: {
       id: 'ahe_stone', title: '阿禾·寻石料', type: 'side',
       hint: '木材到手，阿禾还要石料凿镐。往矿坑或担石场寻石料（🪨），回地字二号牢房点阿禾、选「给予」递过去。',
-      need: [ { flag: 'flags.task.ahe_stone_done', name: '递石料', icon: '🪨', count: 1 } ],
+      need: [ { item: 'shitiao', name: '石料', icon: '🪨', count: 1 } ],
       submit: { npc: '阿禾', room: 'kuyilao' },
       reward: '修为+30 · 阿禾好感+2'
     },

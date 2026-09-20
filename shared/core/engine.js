@@ -68,8 +68,11 @@
     cityDefaultOwner: function () { return cityDefaultOwner.apply(null, arguments); },
     burnCells: function () { return burnCells.apply(null, arguments); },
     effectiveStats: effectiveStats, closeModal: closeModal,
-    renderRoom: renderRoom, openSpawnMap: openSpawnMap, moralTitle: moralTitle,
-    factionName: factionName, renderStatus: renderStatus, toast: toast,
+    renderRoom: renderRoom, openSpawnMap: openSpawnMap,
+    // moralTitle/factionName 由 Progression/Strategy 晚定义（L392/L445）→ 惰性包装（同上方 isCityGrid 范式）
+    moralTitle: function () { return moralTitle.apply(null, arguments); },
+    factionName: function () { return factionName.apply(null, arguments); },
+    renderStatus: renderStatus, toast: toast,
     packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save
   });
   var handleDev = Dev.handleDev, renderDev = Dev.renderDev;
@@ -82,9 +85,13 @@
     // log/logScene 解构自 Narr（L373），本工厂先建 → 包装函数延迟引用（同下方 packAdd 范式）
     log: function () { return log.apply(null, arguments); }, logScene: function () { return logScene.apply(null, arguments); },
     onbReveal: onbReveal, highlightOnb: highlightOnb, onbGoal: onbGoal,
-    tutAsk: tutAsk, dlgEcho: dlgEcho, fxBeat: fxBeat, findEvent: findEvent, runEvent: runEvent,
+    tutAsk: tutAsk, dlgEcho: dlgEcho, fxBeat: fxBeat,
+    // findEvent（L396 才从 Progression 解构）/ addReputation（L395）均晚于本工厂 → 惰性包装
+    findEvent: function () { return findEvent.apply(null, arguments); },
+    runEvent: runEvent,
     // startCombat 来自 Combat 别名（L197 才赋值），本工厂先建 → 包装函数延迟引用（同 L75 packAdd 范式）
-    startCombat: function () { return Combat.startCombat.apply(null, arguments); }, addReputation: addReputation,
+    startCombat: function () { return Combat.startCombat.apply(null, arguments); },
+    addReputation: function () { return addReputation.apply(null, arguments); },
     // packAdd 同上：Inventory 在 L123 才赋值，闭包延迟引用
     packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save, renderStatus: renderStatus,
     renderMoveBar: renderMoveBar, renderNpcList: renderNpcList,
@@ -246,6 +253,8 @@
       closeModal: closeModal,
       curRoom: curRoom,
       die: die,
+      // effectiveStats（L49 已定义）—— 供 actRest 结算休整恢复值（重构后 rest.js 闭包裸引用断链）
+      effectiveStats: function () { return effectiveStats.apply(null, arguments); },
       inCellNow: inCellNow,
       log: function () { return log.apply(null, arguments); },
       maybeFieldAmbush: maybeFieldAmbush,
@@ -315,7 +324,8 @@
       openModal: openModal,
       renderStatus: renderStatus,
       getCurrentModalKind: function () { return currentModalKind; },
-      LABOR_PER_WOOD: LABOR_PER_WOOD
+      // LABOR_PER_WOOD 由 Schedule 晚定义（L432）→ 常量 getter（jobboard.js 解构处惰性取值）
+      LABOR_PER_WOOD: function () { return LABOR_PER_WOOD; }
   });
   var bindJobBoard = Jobboard.bindJobBoard, jobBoard = Jobboard.jobBoard, jobFlag = Jobboard.jobFlag, jobOpen = Jobboard.jobOpen, jobPlankHTML = Jobboard.jobPlankHTML;
   var jobSeal = Jobboard.jobSeal, jobSettle = Jobboard.jobSettle, jobTake = Jobboard.jobTake, jobTick = Jobboard.jobTick, lastJobTaken = Jobboard.lastJobTaken;
@@ -326,8 +336,12 @@
       LF: LF, G: G,
       getGuide: function () { return LF.Guide; },
       dirToRoom: dirToRoom, roomNameOf: roomNameOf, isCityGrid: isCityGrid, genCityGrid: genCityGrid,
-      toast: toast, closeModal: closeModal, openModal: openModal, save: save, log: log,
-      renderStatus: renderStatus, addXp: addXp, addReputation: addReputation
+      toast: toast, closeModal: closeModal, openModal: openModal, save: save,
+      // log（L381）/ addXp（L396）/ addReputation（L395）晚于本工厂 → 惰性包装
+      log: function () { return log.apply(null, arguments); },
+      renderStatus: renderStatus,
+      addXp: function () { return addXp.apply(null, arguments); },
+      addReputation: function () { return addReputation.apply(null, arguments); }
   });
   var QORDER = Quest.QORDER, objBestEquip = Quest.objBestEquip, renderObjectives = Quest.renderObjectives, objCardHTML = Quest.objCardHTML,
       questTitle = Quest.questTitle, packCount = Quest.packCount, flagNum = Quest.flagNum, addFlagNum = Quest.addFlagNum,
@@ -347,7 +361,9 @@
       getState: function () { return state; },
       LF: LF, G: G,
       clearActions: clearActions, buildActions: buildActions, curRoom: curRoom,
-      save: save, renderStatus: renderStatus, addBtn: addBtn, log: log,
+      save: save, renderStatus: renderStatus, addBtn: addBtn,
+      // log 由 Narr 在 L381 才解构 → 惰性包装（裸传会固化 undefined → openLearn 报「log is not a function」）
+      log: function () { return log.apply(null, arguments); },
       getActions: function () { return $actions; }
   });
   var openLearn = Learn.openLearn;
