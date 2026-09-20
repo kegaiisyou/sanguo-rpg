@@ -47,7 +47,8 @@
     return {
       hourNow: hourNow, hourLabel: hourLabel, inHours: inHours,
       isMessHour: isMessHour, isDeadHour: isDeadHour, isCurfewHour: isCurfewHour, isRollHour: isRollHour,
-      onbF: onbF, onbBound: onbBound, cellLockedHere: cellLockedHere, wardenCell: wardenCell, wardenHere: wardenHere
+      onbF: onbF, onbBound: onbBound, cellLockedHere: cellLockedHere, wardenCell: wardenCell, wardenHere: wardenHere,
+      LABOR_PER_WOOD: LABOR_PER_WOOD, INN_FEE: INN_FEE
     };
   };
 })(typeof window !== 'undefined' ? window : global);

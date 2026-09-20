@@ -313,6 +313,7 @@
       openModal: openModal,
       renderStatus: renderStatus,
       getCurrentModalKind: function () { return currentModalKind; },
+      LABOR_PER_WOOD: LABOR_PER_WOOD
   });
   var bindJobBoard = Jobboard.bindJobBoard, jobBoard = Jobboard.jobBoard, jobFlag = Jobboard.jobFlag, jobOpen = Jobboard.jobOpen, jobPlankHTML = Jobboard.jobPlankHTML;
   var jobSeal = Jobboard.jobSeal, jobSettle = Jobboard.jobSettle, jobTake = Jobboard.jobTake, jobTick = Jobboard.jobTick, lastJobTaken = Jobboard.lastJobTaken;
@@ -425,7 +426,8 @@
   var hourNow = Schedule.hourNow, hourLabel = Schedule.hourLabel, inHours = Schedule.inHours,
       isMessHour = Schedule.isMessHour, isDeadHour = Schedule.isDeadHour, isCurfewHour = Schedule.isCurfewHour,
       isRollHour = Schedule.isRollHour, onbF = Schedule.onbF, onbBound = Schedule.onbBound,
-      cellLockedHere = Schedule.cellLockedHere, wardenCell = Schedule.wardenCell, wardenHere = Schedule.wardenHere;
+      cellLockedHere = Schedule.cellLockedHere, wardenCell = Schedule.wardenCell, wardenHere = Schedule.wardenHere,
+      LABOR_PER_WOOD = Schedule.LABOR_PER_WOOD, INN_FEE = Schedule.INN_FEE;
   // 战略层（外交/战争/朔日结算）：从 engine.js 拆分（v20260918k）
   var Strategy = LF.createStrategy({
     getState: function () { return state; },

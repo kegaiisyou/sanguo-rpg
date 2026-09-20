@@ -4,6 +4,7 @@
   global.LF.createJobboard = function (ctx) {
     var getState = ctx.getState
     var getCurrentModalKind = ctx.getCurrentModalKind, S = getState;
+    var LABOR_PER_WOOD = ctx.LABOR_PER_WOOD;
     var LF = ctx.LF;
     var getJOB_BOARD = ctx.JOB_BOARD;
     var acceptQuest = ctx.acceptQuest;

@@ -261,6 +261,8 @@
             { t: 'setFlag', path: 'flags.onb.curfewHour', value: 10 },
             { t: 'setFlag', path: 'flags.onb.curfewLabel', value: '戌时（约 19:00–21:00）' },
             // 牢头讲罢营规，顺手把「点卯应名」这桩例事挂上（acceptQuest 幂等，兜底段再挂一次无妨）
+            // v20260920d：有任务就该亮任务栏——页签随第一桩任务出现而激活（此前要等周听涛才亮，属疏漏）
+            { t: 'unlockDock', key: 'quest' },
             { t: 'acceptQuest', id: 'roll_call' }
           ] }
         ] },
@@ -270,6 +272,7 @@
       { t: 'setFlag', path: 'flags.onb.curfewSet', value: true },
       { t: 'setFlag', path: 'flags.onb.curfewHour', value: 10 },
       { t: 'setFlag', path: 'flags.onb.curfewLabel', value: '戌时（约 19:00–21:00）' },
+      { t: 'unlockDock', key: 'quest' },
       { t: 'acceptQuest', id: 'roll_call' },
       // v20260912f：出牢头一件事就是去中军场院 —— 廊口这一段只放行〔南〕，
       //   农田、矿坑等方向此刻走不通（罗盘上按下去也只给一句提示）。
