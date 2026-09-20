@@ -7,6 +7,7 @@
     var LF = ctx.LF;
     var G = ctx.G;
     var buildActions = ctx.buildActions;
+    var checkTriggers = ctx.checkTriggers;
     var closeModal = ctx.closeModal;
     var log = ctx.log;
     var npcAttitude = ctx.npcAttitude;

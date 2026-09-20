@@ -287,6 +287,7 @@
     if (d.placeable) it.placeable = true;   // 可放置/支起类（如帐篷）
     if (d.place) it.place = d.place;        // 放置模板：放置后生成的场景对象定义
     if (d.blueprint) it.blueprint = d.blueprint; // 图纸类：依图在房中营造建筑
+    if (d.waterCap) it.waterCap = d.waterCap;    // 水袋等容器：可盛量（v20260920e 补——此前 makeItem 丢了此字段）
     if (d.cat === '装备') {
       it.slot = d.slot; it.quality = d.quality || 'white';
       it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;

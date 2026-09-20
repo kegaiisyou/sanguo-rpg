@@ -1227,3 +1227,17 @@
 ---
 
 *最后更新：2026-09-18（§9.69 战略功能实测 · 外交到期与招降归属 2 处结算 bug 修复；版本 20260918i）*
+
+## §9.70 重构回归修复链完结 · 周听涛给予 / 水井水袋 / 夜半添水（v20260920e）
+
+**背景**：v20260919j 大重构（engine.js 拆 17 个 core 模块）后多轮回归。本轮收尾三件事：① 周听涛给予干粮报错（`checkTriggers is not defined`）；② 夜半添水死局（营地无任何取水点）；③ 水袋不应开局自带（改任务奖励 + 后续任务引导）。
+
+**修复（全部 Playwright 实机验证）**：
+1. **companion.js 注入 `checkTriggers`（+`getCurrentModalKind`）**——v20260919j 重构后 companion.js 闭包裸引用全局，`onGive` 触发时 ReferenceError → 静默吞掉，给予后任务不结算。engine.js `createCompanion` ctx 补传惰性包装。验证：周听涛收干粮 → `flags.route.crypt=true`、`zt_food_done=true`、干粮扣除、无报错。
+2. **农田水井**（`kuyilao|0,0`）：`cellInteriors` 对 farmObjects 格合并追加「水井」——打水（水袋灌满，需有水袋）、掬饮（饮+8）、浇灌（复用 farmWater）。井水取之不竭，只费 5 分钟。
+3. **水袋不再开局随行**（engine.js enterGame 删下发）；改由「开垦薄田」奖励（kyl_farm_give 追加 `grant shuidai`）。验证：交付 2 份野菜 → 对话窗应答 → 水袋×1（waterCap 10）+ 干粮×1 + 任务完成。
+4. **makeItem 保留 `waterCap`**（此前白名单复制丢失该字段）。
+5. **夜半添水闭环**：水井打水 → 囚室水槽添水（初始 12/20 → 一袋 10 注满）→ `nightwater` 完成（修为+20 · 崔九好感+1）。
+6. 取水文案统一指向「农田水井「打水」」（原「水槽装水入袋」「溪河取水」说法作废）。
+
+**版本**：`constants.js` VERSION → `20260920e`；`index.html` `.tt-ver` → v20260920e；`engine/companion/farm/triggers/objectives/items` 缓存号统一 `?v=20260920e`。

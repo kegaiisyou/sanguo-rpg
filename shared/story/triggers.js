@@ -689,9 +689,11 @@
             prompt: '菜下了锅，热气腾起来。他舀半瓢稠的递过来：「孙老那块地，果然没白翻。往后菜多了，只管送来。」',
             asks: [ { label: '〔应下〕好，往后菜熟了便送来。' } ] },
           { t: 'grant', items: [ { id: 'fan', name: '干粮', icon: '🍙', cat: '食饵', count: 1 } ] },
+          // v20260920e：开垦薄田顺手送一只水袋——农田水井打水、浇畦、夜半添槽都靠它。
+          { t: 'grant', items: [ { id: 'shuidai', name: '水袋', icon: '💧', cat: '器用', count: 1, waterCap: 10 } ] },
           { t: 'favor', npc: 'sun_lao', amount: 1 },
           { t: 'exp', amount: 25 },
-          { t: 'log', cls: 'good', text: '〔任务完成·开垦薄田〕获得 干粮×1 · 修为+25 · 孙老好感+1' }
+          { t: 'log', cls: 'good', text: '〔任务完成·开垦薄田〕获得 干粮×1 · 水袋×1 · 修为+25 · 孙老好感+1' }
         ],
         else: [
           { t: 'log', cls: 'npc', text: '〔鲁大〕接过菜往案上一摊：「这才多少。再掐些来，凑够两捧，我给锅里添一勺油花。」' }

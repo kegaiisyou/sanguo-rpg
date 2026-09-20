@@ -263,9 +263,11 @@
   // 模块 companion（从 engine.js 拆分）
   var Companion = LF.createCompanion({
       getState: function () { return state; },
+      getCurrentModalKind: function () { return currentModalKind; },
       LF: LF,
       G: G,
       buildActions: buildActions,
+      checkTriggers: function () { return checkTriggers.apply(null, arguments); },
       closeModal: closeModal,
       log: function () { return log.apply(null, arguments); },
       npcAttitude: npcAttitude,
@@ -739,7 +741,7 @@
     G.applySect(state);
     G.recalcBase(state);                      // 依据四维 attr + 门派加成 重算派生战力
     packEnsure(state);                     // 行囊/6 装备槽兼容与初始化（v0.6）
-    if(!packFind('shuidai')){ packAdd('shuidai',1); var _sd=packFind('shuidai'); if(_sd) _sd.water=8; }  // 开局随行水袋（向水槽添水用）
+    // v20260920e：水袋不再开局随行 —— 改由「开垦薄田」奖励，引导去农田水井打水（见 camp_farm / well*）
     state.fixtures = state.fixtures || {};
     SFX.setEnabled(state.sfxOn!==false);   // 载入存档后同步音效开关
     try{ SFX.setBgmVolume((settings.bgmVol!=null?settings.bgmVol:35)/100); SFX.setSfxVolume((settings.sfxVol!=null?settings.sfxVol:60)/100); SFX.startBgm(); }catch(e){}       // 启动古风BGM（v20260909a）
@@ -1800,8 +1802,33 @@
     var d = CELL_INTERIORS[cid + '|' + x + ',' + y] || null;
     // v20260915g：农田的畦是「开一畦多一畦」，数目随进度变；且定义常量在文件更下方，
     //   故此处运行时再生成（比在表里写死数组干净，也不受声明顺序所累）。
-    if(d && d.farmObjects) return { objects: farmObjects() };
+    // v20260920e：农田格另起一口「水井」——打水装袋 / 掬饮 / 浇灌，与畦同格摆（合并，不互顶）。
+    if(d && d.farmObjects) return { objects: farmObjects().concat([wellObject()]) };
     return d;
+  }
+  // ═══ 农田水井（v20260920e）：夜半添水 / 浇畦的水源。井水取之不竭，只费工夫，不凭空。 ═══
+  function wellObject(){
+    return { icon:'⛲', label:'水井', acts:[
+      { label:'打水', icon:'🪣', fn:function(){ wellDrawToBag(); } },
+      { label:'掬饮', icon:'💧', fn:function(){ wellDrink(); } },
+      { label:'浇灌', icon:'🌱', fn:function(){ farmWater(0); } }
+    ]};
+  }
+  function wellDrawToBag(){
+    var bag=packFind('shuidai');
+    if(!bag){ toast('没有水袋，捧不起这井水——开垦薄田能得一只。'); return; }
+    var cap=bag.waterCap||10;
+    if((bag.water||0)>=cap){ toast('水袋已是满的。'); return; }
+    bag.water=cap;
+    advanceMinutes(5);
+    log('你摇起井绳，汲满一袋清冽井水（水袋 '+cap+' / '+cap+'）。','good');
+    save(state); renderStatus();
+  }
+  function wellDrink(){
+    state.drink=Math.min(state.maxDrink, (state.drink||0)+8);
+    advanceMinutes(5);
+    log('你扒着井沿掬了几口水，凉意直透喉底（饮 +8）。','good');
+    save(state); renderStatus();
   }
   // ═══ 苦役营牢房设施：水槽(容量+添水) / 值更鼓(击鼓)（v20260910s）═══
   var TROUGH_CAP = 20;   // 水槽容量（饮水单位）；水不凭空生，满则溢
@@ -1830,8 +1857,8 @@
     if(f.water>=TROUGH_CAP){ toast('水槽已注满，添不下了。'); return; }
     var bag=packFind('shuidai');
     var bw=(bag && bag.water>0)? bag.water : 0;
-    if(!bag){ toast('须先得一只水袋，方能向槽中倾水（开局随行一只，或木工台制）。'); return; }
-    if(bw<=0){ toast('水袋空空——先去溪河取水再来添槽。'); return; }
+    if(!bag){ toast('须先得一只水袋，方能向槽中倾水（开垦薄田可得，农田水井打水装袋）。'); return; }
+    if(bw<=0){ toast('水袋空空——先去农田那格的水井「打水」再来添槽。'); return; }
     var add=Math.min(bw, TROUGH_CAP-f.water);
     f.water+=add; bag.water=bw-add;
     advanceMinutes(5);   // v20260917b：添水 5 分钟
@@ -1865,8 +1892,8 @@
     if((p.water||0)>=TROUGH_CAP){ toast('水槽已注满，添不下了。'); return; }
     var bag=packFind('shuidai');
     var bw=(bag && bag.water>0)? bag.water : 0;
-    if(!bag){ toast('须先得一只水袋，方能向槽中倾水（开局随行一只，或木工台制）。'); return; }
-    if(bw<=0){ toast('水袋空空——先去溪河取水再来添槽。'); return; }
+    if(!bag){ toast('须先得一只水袋，方能向槽中倾水（开垦薄田可得，农田水井打水装袋）。'); return; }
+    if(bw<=0){ toast('水袋空空——先去农田那格的水井「打水」再来添槽。'); return; }
     var add=Math.min(bw, TROUGH_CAP-(p.water||0));
     p.water=(p.water||0)+add; bag.water=bw-add;
     log('你将水袋中 '+add+' 份水倾入槽中（槽 '+p.water+' / '+TROUGH_CAP+'）。','good');
@@ -1877,7 +1904,7 @@
     var f=fxGet(key);
     if(f.water<=0){ toast('水槽空了，无水解渴。'); return; }
     var bag=packFind('shuidai');
-    if(!bag){ toast('须先得一只水袋，方能从此槽中盛水（开局随行一只，或木工台制）。'); return; }
+    if(!bag){ toast('须先得一只水袋，方能从此槽中盛水（开垦薄田可得，农田水井打水装袋）。'); return; }
     var cap=bag.waterCap||10, cur=(bag.water||0);
     if(cur>=cap){ toast('水袋已满，盛不下了。'); return; }
     var take=Math.min(f.water, cap-cur);
@@ -1889,7 +1916,7 @@
   function shuicaoDrawToBag(p){
     if((p.water||0)<=0){ toast('水槽空了，无水解渴。'); return; }
     var bag=packFind('shuidai');
-    if(!bag){ toast('须先得一只水袋，方能从此槽中盛水（开局随行一只，或木工台制）。'); return; }
+    if(!bag){ toast('须先得一只水袋，方能从此槽中盛水（开垦薄田可得，农田水井打水装袋）。'); return; }
     var cap=bag.waterCap||10, cur=(bag.water||0);
     if(cur>=cap){ toast('水袋已满，盛不下了。'); return; }
     var take=Math.min(p.water, cap-cur);
@@ -1989,7 +2016,7 @@
     { key:'water', quest:'water_cook', title:'担水入灶',
       word:'鲁大要的：囚室水槽打两袋水，倾进伙房灶边水缸',
       take:'你把「担水入灶」那片木牍摘了下来。',
-      tip:'去囚室（牢房那格）水槽点「装水入袋」打满，再往伙房那格点「灶边水缸」倾进去——两趟。' },
+      tip:'去农田那格的水井「打水」装满水袋，再往伙房那格点「灶边水缸」倾进去——两趟。' },
     { key:'dummy', quest:'dummy_train', title:'木人试艺',
       word:'韩铁要的：演武场木人桩，戳倒三回',
       take:'你把「木人试艺」那片木牍摘了下来。',
@@ -2040,7 +2067,7 @@
   function kitchenPour(){
     if(!jobOpen('water')){ toast('没人使唤你担水，别在灶前碍事。'); return; }
     var bag=packFind('shuidai');
-    if(!bag || !(bag.water>0)){ toast('水袋空空——先去囚室那格的水槽点「装水入袋」。'); return; }
+    if(!bag || !(bag.water>0)){ toast('水袋空空——先去农田那格的水井「打水」装袋。'); return; }
     if(!exert('担水入灶')) return;
     busyAct('倾水入缸', 900, function(){
       var pour=Math.min(WATER_PER_TRIP, bag.water);
@@ -2101,7 +2128,7 @@
   function cookDouzhou(){
     if(!farmHas('dou',1)){ toast('没有菽豆——去田里种一茬，或拿别的东西与人换。'); return; }
     var bag=packFind('shuidai');
-    if(!bag || (bag.water||0)<2){ toast('熬粥要水：水袋里不足两份（先去囚室那格的水槽点「装水入袋」）。'); return; }
+    if(!bag || (bag.water||0)<2){ toast('熬粥要水：水袋里不足两份（先去农田那格的水井「打水」装袋）。'); return; }
     if(!exert('煮豆粥')) return;
     busyAct('煮豆粥', 1000, function(){
       if(!packAdd('douzhou',1)){ toast('行囊塞不下——腾出一格再煮。'); return; }

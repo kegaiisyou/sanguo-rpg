@@ -106,7 +106,7 @@
   function farmWater(i){
     var f=farmFx();
     var bag=packFind('shuidai');
-    if(!bag || (bag.water||0) < 3){ toast('水袋里不足三份水——先去囚室那格的水槽点「装水入袋」。'); return; }
+    if(!bag || (bag.water||0) < 3){ toast('水袋里不足三份水——先去农田那格的水井「打水」装袋。'); return; }
     var all=!!f.up.canal, targets=[];
     for(var k=0;k<(f.unlocked||0);k++){ if(plotStage(f.plots[k])==='growing') targets.push(k); }
     if(!all){ if(plotStage(f.plots[i])!=='growing'){ toast('这一畦此刻不缺水。'); return; } targets=[i]; }
