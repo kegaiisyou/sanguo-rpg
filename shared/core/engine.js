@@ -42,7 +42,7 @@
   var Equipment = LF.createEquipment({
     getState: function () { return state; },
     LF: LF,
-    clampHp: clampHp, log: log,
+    clampHp: clampHp, log: function () { return log.apply(null, arguments); },
     packMovePackItem: function () { return movePackItem; },
     packUnequipToPack: function () { return unequipToPack; }
   });
@@ -57,7 +57,10 @@
     getCard: function () { return $card; },
     getModal: function () { return $modal; },
     getCurrentModalKind: function () { return currentModalKind; },
-    addReputation: addReputation, repTitle: repTitle, log: log, addXp: addXp,
+    addReputation: function () { return addReputation.apply(null, arguments); },
+    repTitle: function () { return repTitle.apply(null, arguments); },
+    log: function () { return log.apply(null, arguments); },
+    addXp: function () { return addXp.apply(null, arguments); },
     // City(createCity 在 L82) / Inventory(createInventory 在 L116) 均晚于本工厂创建；
     // 此处仅定义包装、调用时（用户点调试按钮）再取值 → 不固化 undefined（与 Equipment.L42 getter 同范式）
     isCityGrid: function () { return isCityGrid.apply(null, arguments); },
@@ -86,7 +89,8 @@
     packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save, renderStatus: renderStatus,
     renderMoveBar: renderMoveBar, renderNpcList: renderNpcList,
     addXp: function () { return addXp.apply(null, arguments); },
-    acceptQuest: acceptQuest, completeQuest: completeQuest,
+    acceptQuest: function () { return acceptQuest.apply(null, arguments); },
+    completeQuest: function () { return completeQuest.apply(null, arguments); },
     upgradePick: function () { return upgradePick.apply(null, arguments); },
     // setTimeOfDay / forceRoom 定义在本文件后段（函数声明提升，包装引用更稳，同 packAdd 范式）
     setTimeOfDay: function () { return setTimeOfDay.apply(null, arguments); },
@@ -106,8 +110,7 @@
     LF: LF,
     getBUILDINGS: function () { return BUILDINGS; },
     getNPC_BUILD: function () { return buildCityCellNpcs; },
-    log: log
-  });
+    log: function () { return log.apply(null, arguments); }  });
   var cityProfile = City.cityProfile, cityLine = City.cityLine,
       cityGates = City.cityGates, cityGateDirs = City.cityGateDirs,
       CELL_META = City.CELL_META, CELL_DESC = City.CELL_DESC,
@@ -132,15 +135,15 @@
   var Farm = LF.createFarm({
       getState: function () { return state; },
       LF: LF,
-      CROPS: CROPS,
+      CROPS: function () { return CROPS.apply(null, arguments); },
       advanceMinutes: advanceMinutes,
       afterPackChange: afterPackChange,
       buildActions: buildActions,
-      busyAct: busyAct,
+      busyAct: function () { return busyAct.apply(null, arguments); },
       curRoom: curRoom,
       exert: exert,
       fxGet: fxGet,
-      log: log,
+      log: function () { return log.apply(null, arguments); },
       renderStatus: renderStatus,
       toast: toast,
       jobOpen: function () { return jobOpen; },
@@ -154,7 +157,7 @@
     getState: function () { return state; },
     LF: LF,
     G: G,
-    log: log,
+    log: function () { return log.apply(null, arguments); },
     toast: toast,
     wxEff: wxEff,
     isDaytime: isDaytime,
@@ -191,7 +194,7 @@
   var Sect = LF.createSect({
     getState: function () { return state; },
     G: G,
-    log: log,
+    log: function () { return log.apply(null, arguments); },
     toast: toast,
     openModal: openModal,
     renderStatus: renderStatus
@@ -235,7 +238,7 @@
       getState: function () { return state; },
       LF: LF,
       G: G,
-      REST_KINDS: REST_KINDS,
+      REST_KINDS: function () { return REST_KINDS.apply(null, arguments); },
       advanceTime: advanceTime,
       buildActions: buildActions,
       clearActions: clearActions,
@@ -244,7 +247,7 @@
       curRoom: curRoom,
       die: die,
       inCellNow: inCellNow,
-      log: log,
+      log: function () { return log.apply(null, arguments); },
       maybeFieldAmbush: maybeFieldAmbush,
       packUpPlaced: packUpPlaced,
       renderStatus: renderStatus,
@@ -264,7 +267,7 @@
       G: G,
       buildActions: buildActions,
       closeModal: closeModal,
-      log: log,
+      log: function () { return log.apply(null, arguments); },
       npcAttitude: npcAttitude,
       renderNpcList: renderNpcList,
       row: row,
@@ -282,10 +285,10 @@
       RECIPES: LF.RECIPES,
       advanceMinutes: advanceMinutes,
       afterPackChange: afterPackChange,
-      busyAct: busyAct,
+      busyAct: function () { return busyAct.apply(null, arguments); },
       closeModal: closeModal,
       exert: exert,
-      log: log,
+      log: function () { return log.apply(null, arguments); },
       openModal: openModal,
       renderStatus: renderStatus,
       toast: toast,
@@ -300,13 +303,13 @@
       getState: function () { return state; },
       LF: LF,
       JOB_BOARD: function () { return JOB_BOARD; },
-      acceptQuest: acceptQuest,
-      addReputation: addReputation,
-      addXp: addXp,
+      acceptQuest: function () { return acceptQuest.apply(null, arguments); },
+      addReputation: function () { return addReputation.apply(null, arguments); },
+      addXp: function () { return addXp.apply(null, arguments); },
       buildActions: buildActions,
-      completeQuest: completeQuest,
+      completeQuest: function () { return completeQuest.apply(null, arguments); },
       curRoom: curRoom,
-      log: log,
+      log: function () { return log.apply(null, arguments); },
       openModal: openModal,
       renderStatus: renderStatus,
       getCurrentModalKind: function () { return currentModalKind; },
@@ -353,8 +356,7 @@
       getEscapeLockHint: function () { return escapeLockHint; },
       getDoEscape: function () { return doEscape; },
       getTutAsk: function () { return tutAsk; },
-      log: log
-  });
+      log: function () { return log.apply(null, arguments); }  });
   var openEscapeHub = Escape.openEscapeHub;
   // 模块 narr（从 engine.js 拆分）
   var Narr = LF.createNarr({
