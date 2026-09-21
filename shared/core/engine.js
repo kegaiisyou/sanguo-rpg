@@ -458,7 +458,9 @@
     conquerCity: conquerCity, playerFaction: playerFaction,
     cityOwnerOf: cityOwnerOf, cityDevOf: cityDevOf, setCityDev: setCityDev, isCityGrid: isCityGrid,
     chronicle: chronicle, chronicleList: chronicleList, escapeHtml: escapeHtml,
-    roleAtkMul: roleAtkMul, roleEconMul: roleEconMul, roleFavorMul: roleFavorMul, roleDef: roleDef
+    roleAtkMul: roleAtkMul, roleEconMul: roleEconMul, roleFavorMul: roleFavorMul, roleDef: roleDef,
+    getArmyTroops: function () { return Army.armyCount(); },
+    startDefendBattle: function (cid, fid) { return War.startDefendBattle(cid, fid); }
   });
   var diploGet = Strategy.diploGet, diploStatus = Strategy.diploStatus, diploActive = Strategy.diploActive, diploTruceBetween = Strategy.diploTruceBetween,
       diploExpire = Strategy.diploExpire, diploPropose = Strategy.diploPropose, diploSue = Strategy.diploSue, renderDiplomacy = Strategy.renderDiplomacy, openDiplomacy = Strategy.openDiplomacy,
@@ -466,7 +468,7 @@
       warKm = Strategy.warKm, warCityAdjPairs = Strategy.warCityAdjPairs, warOwnerKey = Strategy.warOwnerKey, warIsLordKey = Strategy.warIsLordKey, warFactionName = Strategy.warFactionName,
       warCityPower = Strategy.warCityPower, warFactionTotal = Strategy.warFactionTotal, warFactionCityCount = Strategy.warFactionCityCount, warInRoom = Strategy.warInRoom,
       runWarlordBattle = Strategy.runWarlordBattle, warChronicleEntry = Strategy.warChronicleEntry, warlordBattle = Strategy.warlordBattle, warlordDayTick = Strategy.warlordDayTick,
-      onMonthTick = Strategy.onMonthTick, monthlyYield = Strategy.monthlyYield, factionDomesticAI = Strategy.factionDomesticAI, scanFactionSurvival = Strategy.scanFactionSurvival, checkUnify = Strategy.checkUnify;
+      onMonthTick = Strategy.onMonthTick, monthlyYield = Strategy.monthlyYield, factionDomesticAI = Strategy.factionDomesticAI, scanFactionSurvival = Strategy.scanFactionSurvival, checkUnify = Strategy.checkUnify, factionTroops = Strategy.factionTroops;
 
   // 建筑内部交互状态 / 围城待结算（引擎本地可变状态，供城内营造面板与围城逻辑使用；
   // 原属「城市网格系统」区块但仅被引擎侧的营造 UI / 围城流程消费，故留于引擎）
@@ -537,6 +539,9 @@
     setDqCardEl: function (v) { dqCardEl = v; },
     getPendingSiegeCid: function () { return pendingSiegeCid; },
     setPendingSiegeCid: function (v) { pendingSiegeCid = v; },
+    getPendingArmyBattle: function () { return pendingArmyBattle; },
+    armyRoundHook: function (orders) { return War.armyRoundHook(orders); },
+    armyBattleEnd: function (result) { return War.armyBattleEnd(result); },
     getNarr: function () { return $narr; },
     G: G, SFX: SFX, LF: LF,
     effectiveStats: effectiveStats, clampHp: clampHp, decayEquipment: decayEquipment,
@@ -567,6 +572,47 @@
       exitCombatToRoom = Combat.exitCombatToRoom, mountLootPanes = Combat.mountLootPanes,
       openLootWindow = Combat.openLootWindow, compareEquip = Combat.compareEquip,
       lootInfoHTML = Combat.lootInfoHTML, showCombatSettlement = Combat.showCombatSettlement;
+
+  // ══ 军队 / 战术战斗（v20260921a）：营级单位 + 三阵位军令 + 攻城/守城/野战 ══
+  // pendingArmyBattle：本场军队作战的编排上下文（分段、援军、夜袭等），由 War 读写
+  var pendingArmyBattle = null;
+  var Army = LF.createArmy({
+    getState: function () { return state; },
+    getCurrentModalKind: function () { return currentModalKind; },
+    LF: LF, G: G,
+    log: log, toast: toast, save: save, renderStatus: renderStatus, renderRoom: renderRoom,
+    openModal: openModal, closeModal: closeModal,
+    itemIconHTML: itemIconHTML, escapeHtml: escapeHtml,
+    packAdd: packAdd, packConsume: packConsume, packFind: packFind, packList: packList,
+    afterPackChange: afterPackChange,
+    cityDevOf: cityDevOf, isCityGrid: isCityGrid,
+    roleAtkMul: roleAtkMul, roleDef: roleDef,
+    exert: exert, advanceTime: advanceTime
+  });
+  var War = LF.createWar({
+    getState: function () { return state; },
+    LF: LF, G: G,
+    log: log, toast: toast, save: save, renderStatus: renderStatus, renderRoom: renderRoom,
+    openModal: openModal, closeModal: closeModal, escapeHtml: escapeHtml,
+    exert: exert, advanceTime: advanceTime,
+    startCombat: startCombat, showCombatSettlement: showCombatSettlement,
+    conquerCity: conquerCity, playerFaction: playerFaction, cityDevOf: cityDevOf,
+    isCityGrid: isCityGrid, roleAtkMul: roleAtkMul,
+    Army: Army,
+    getPendingArmyBattle: function () { return pendingArmyBattle; },
+    setPendingArmyBattle: function (v) { pendingArmyBattle = v; }
+  });
+  var armyRecruit = Army.armyRecruit, armyDisband = Army.armyDisband, armySetRank = Army.armySetRank,
+      armyDeposit = Army.armyDeposit, armyWithdraw = Army.armyWithdraw, armyBuyGrain = Army.armyBuyGrain,
+      armyDeploy = Army.armyDeploy, armyCamp = Army.armyCamp, armyScout = Army.armyScout, armyAmbush = Army.armyAmbush,
+      tickArmyDay = Army.tickArmyDay, armyActive = Army.armyActive, armyCount = Army.armyCount,
+      armyPower = Army.armyPower, armyUpkeep = Army.armyUpkeep, armyMoraleAdd = Army.armyMoraleAdd,
+      buildArmyPlayerUnits = Army.buildArmyPlayerUnits, settleArmyLoss = Army.settleArmyLoss,
+      renderArmyPanel = Army.renderArmyPanel, bindArmyPanel = Army.bindArmyPanel,
+      openArmyDeposit = Army.openArmyDeposit, openArmyDeploy = Army.openArmyDeploy,
+      startSiegeBattle = War.startSiegeBattle, openSiegePrep = War.openSiegePrep,
+      startDefendBattle = War.startDefendBattle, startFieldBattle = War.startFieldBattle,
+      warToggleTroop = War.warToggleTroop, warLaunch = War.warLaunch, tryAmbush = War.tryAmbush;
   // NPC 装配器与交谈面板（v20260916c）：从 engine.js 切出，见 shared/core/npc.js。
   // 排在 Combat 之后（敌意卡「挑战」用 startCombat）、Pack 之前；city.js 经 getNPC_BUILD 延迟取装配器，
   // 故 City（更早建）不会因 NPC 后建而拿到空值。
@@ -1178,6 +1224,8 @@
       syncCalendar();                        // 跨日 → 农历月日 / 年号年序随之推进
       if(Math.random()<0.55) state.weather=Math.floor(Math.random()*WEATHERS.length); // 新日易天候
       warlordDayTick(crossings);             // 群雄逐鹿：NPC 势力自动攻伐（v20260909o）
+      tickArmyDay(crossings);                // 军务：行军推进 + 军粮消耗 + 断粮掉士气（v20260921a）
+      tryAmbush();                           // 设伏：郊野候敌，敌至则先手（v20260921a）
     }
       // 朔日结算（v20260918g）：跨月 → 治下纳赋 + 群雄内政 + 势力存亡 + 统一终局（叠在耗时辰模型上）
       var _cal = deriveCalendar();
@@ -2794,9 +2842,14 @@
         if(!exert('入营募兵')) return;
         state.flags.recruited=state.flags.recruited||{};
         var rk=state.room+'_sol';
-        if(state.flags.recruited[rk]){ log('此城军营已拨卒于你，无需再募。','sys'); break; }
-        state.flags.recruited[rk]=true;
-        log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
+        if(!state.flags.recruited[rk]){
+          state.flags.recruited[rk]=true;
+          log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
+        }
+        openModal('army');   // 军队视图：募兵 / 整编 / 辎重 / 调兵（v20260921a）
+        break;
+      case 'army_manage':
+        openModal('army');   // 治军：军队视图（募兵 / 整编 / 辎重 / 调兵）
         break;
       case 'leave_city': {
         // v20260905i：入口仅剩城内布防图「返回山河志（出城）」按钮；语义分层——
@@ -2921,6 +2974,10 @@
       case 'siege':
         if(!exert('起兵略地')) return;
         if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
+        if(typeof armyActive==='function' && armyActive()){   // 已成军 → 战前编成 + 三段攻城（v20260921a）
+          openSiegePrep(state.room);
+          break;
+        }
         pendingSiegeCid=state.room;
         var _bg=burnedGates(state.room);
         if(_bg>0) log('城门焚毁未修，守军凭残垣据守，士气涣散！','sys');
@@ -4325,6 +4382,9 @@
       h=renderGivePanel(modalOpts.npc);
     } else if(kind==='talk'){
       h=renderTalkPanel(modalOpts.npc);
+    } else if(kind==='army'){
+      h=renderArmyPanel();
+      setTimeout(function(){ bindArmyPanel(); },0);
     } else if(kind==='party'){
       h=renderPartyPanel();
     } else if(kind==='quest'){
@@ -4818,6 +4878,13 @@
   window.warlordBattle=warlordBattle;   // 指定一场攻伐：warlordBattle('luoyang','caocao',{allowCapital:true,allowLast:true,allowInside:true})
   window.conquerCity=conquerCity;
   window.diploPropose=diploPropose; window.diploSue=diploSue; window.openDiplomacy=openDiplomacy;   // 外交系统入口（v20260918h）
+  // 军队系统入口（v20260921a）：面板内联 onclick 走 window 桥接（与 talk/openModal 同款）
+  window.armyRecruit=armyRecruit; window.armyDisband=armyDisband; window.armySetRank=armySetRank;
+  window.armyDeposit=armyDeposit; window.armyWithdraw=armyWithdraw; window.armyBuyGrain=armyBuyGrain;
+  window.armyDeploy=armyDeploy; window.armyCamp=armyCamp; window.armyScout=armyScout; window.armyAmbush=armyAmbush;
+  window.openArmyDeposit=openArmyDeposit; window.openArmyDeploy=openArmyDeploy;
+  window.openSiegePrep=openSiegePrep; window.warToggleTroop=warToggleTroop; window.warLaunch=warLaunch;
+  window.startDefendBattle=startDefendBattle; window.startFieldBattle=startFieldBattle;
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）
   // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，

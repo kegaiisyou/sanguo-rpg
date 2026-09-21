@@ -367,9 +367,10 @@
   // ⚠️ 有「按格触发」的角色**不要**编排 routine，否则会把越狱路线任务挪走：
   //    苟三 / 石四 / 吴算 / 陈简 / 林娘 / 秦九霄 / 孙老 / 韩铁 / 苏娘 / 福生 一律不排。
   global.LF.NPC_NAMED = [];
-  (function namedCity(city, list) {
+  function namedCity(city, list) {
     list.forEach(function (c) { if (!c.city) c.city = city; global.LF.NPC_NAMED.push(c); });
-  })('kuyilao', [
+  }
+  namedCity('kuyilao', [
     // —— 中军场院（劳役场 1,1）——
     { id: 'laotou',      cell: '1,1', routine: { 7:'1,0', 8:'1,0', 9:'1,0', 10:'1,0', 11:'1,0', 0:'1,0', 1:'1,0', 2:'1,0', _home:'1,1' } },  // 牢头：卯至午场院督工，未时(7)起回牢门口守着落销名（v20260916h 提前）
     { id: 'qin_jiuxiao', cell: '1,1' },   // 秦九霄（越狱路线4·暴动，按格触发 → 不排作息）
@@ -398,6 +399,42 @@
     { id: 'su_niang',    cell: '2,2' }    // 苏娘（按格触发 → 不排作息）
   ]);
   // 按城取具名名册（core/city.js 与 story/rooms.js 派生名册 / 作息表时共用，避免各写一份）
+  namedCity('luoyang', [
+    { id: 'luoyang_elder', cell: '0,0' }
+  ]);
+  namedCity('changan', [
+    { id: 'changan_merchant', cell: '0,0' }
+  ]);
+  namedCity('chengdu', [
+    { id: 'chengdu_artisan', cell: '0,0' }
+  ]);
+  namedCity('xuchang', [
+    { id: 'xuchang_farmer', cell: '0,0' }
+  ]);
+  namedCity('yecheng', [
+    { id: 'yecheng_scholar', cell: '0,0' }
+  ]);
+  namedCity('jinyang', [
+    { id: 'jinyang_smith', cell: '0,0' }
+  ]);
+  namedCity('jicheng', [
+    { id: 'jicheng_warden', cell: '0,0' }
+  ]);
+  namedCity('jianye', [
+    { id: 'jianye_merchant', cell: '0,0' }
+  ]);
+  namedCity('xiapi', [
+    { id: 'xiapi_fisher', cell: '0,0' }
+  ]);
+  namedCity('xiangyang', [
+    { id: 'xiangyang_angler', cell: '0,0' }
+  ]);
+  namedCity('jiangling', [
+    { id: 'jiangling_boatman', cell: '0,0' }
+  ]);
+  namedCity('shouchun', [
+    { id: 'shouchun_keeper', cell: '0,0' }
+  ]);
   global.LF.npcNamedByCity = function (city) {
     return (global.LF.NPC_NAMED || []).filter(function (c) { return c && c.city === city; });
   };

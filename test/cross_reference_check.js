@@ -45,6 +45,7 @@ const LOAD_FILES = [
   'shared/data/martial.js',
   'shared/data/enemies.js',
   'shared/data/items.js',
+  'shared/data/troops.js',
   'shared/data/recipes.js',
   'shared/data/build.js',
   'shared/data/shops.js',
@@ -103,6 +104,9 @@ const BUILD_IDS = new Set(Object.keys(LF.BUILD || {}));            // 蓝图 key
 const SHOP_IDS = new Set(Object.keys(LF.SHOPS || {}));             // 商店 key
 const RECIPE_BENCH_IDS = new Set(Object.keys(LF.RECIPES || {}));   // 配方台 key
 const CITY_IDS = new Set(Object.keys(LF.CITIES || {}));            // 城市 id
+const TROOP_IDS = new Set(Object.keys(LF.TROOPS || {}));           // 兵科 key（v20260921a）
+const ARMY_RANK_IDS = new Set(Object.keys(LF.ARMY_RANKS || {}));   // 阵位 key
+const ARMY_ORDER_IDS = new Set(Object.keys(LF.ARMY_ORDERS || {})); // 军令 key
 const EVENT_IDS = new Set((LF.EVENTS || []).map(e => e.id));       // 事件 id
 const TRIGGER_IDS = new Set((LF.TRIGGERS || []).map(t => t.id));   // 触发器 id
 const FACTIONS = LF.FACTIONS || {};                                // 势力字典（挂 LF 顶层）
@@ -466,6 +470,47 @@ RULES.push({
       if (!CITY_IDS.has(cid)) {
         reportWarn('城市势力归属', `CITY_OWNER[${cid}]`, `城市 id '${cid}' 不在 CITIES（可能为旧数据残留）`);
       }
+    }
+  }
+});
+
+// 5.15 兵科 / 阵位 / 军令（v20260921a 军队系统）
+RULES.push({
+  name: '兵科阵位军令',
+  run(ctx) {
+    const T = ctx.data.TROOPS || {};
+    const R = ctx.data.ARMY_RANKS || {};
+    const RO = (LF.ARMY_RANK_ORDER || []);
+    for (const k of Object.keys(T)) {
+      const d = T[k];
+      if (d.id !== k) reportErr('兵科阵位军令', `兵科 ${k}`, `id 字段 '${d.id}' 与键名不一致`);
+      // slot 是「兵种类别」(步/远/骑/械/辅)，须经 LF.TROOP_RANKS 映射到阵位
+      const TR = (ctx.data.TROOP_RANKS || {})[d.slot];
+      if (!TR) reportErr('兵科阵位军令', `兵科 ${k}`, `兵种类别 '${d.slot}' 未在 LF.TROOP_RANKS 定义`);
+      else {
+        if (!R[TR.def]) reportErr('兵科阵位军令', `TROOP_RANKS['${d.slot}']`, `默认阵位 '${TR.def}' 未在 LF.ARMY_RANKS 定义`);
+        (TR.allow || []).forEach((r) => {
+          if (!R[r]) reportErr('兵科阵位军令', `TROOP_RANKS['${d.slot}'].allow`, `阵位 '${r}' 未在 LF.ARMY_RANKS 定义`);
+        });
+        if ((TR.allow || []).indexOf(TR.def) < 0) reportErr('兵科阵位军令', `TROOP_RANKS['${d.slot}']`, `默认阵位 '${TR.def}' 不在 allow 列表内`);
+      }
+      ['atk', 'def', 'hp', 'spd', 'cost'].forEach((f) => {
+        if (typeof d[f] !== 'number') reportErr('兵科阵位军令', `兵科 ${k}`, `字段 ${f} 缺失或非数值`);
+      });
+    }
+    RO.forEach((r) => { if (!R[r]) reportErr('兵科阵位军令', 'ARMY_RANK_ORDER', `阵位 '${r}' 未在 LF.ARMY_RANKS 定义`); });
+    Object.keys(R).forEach((r) => { if (RO.indexOf(r) < 0) reportWarn('兵科阵位军令', 'ARMY_RANKS', `阵位 '${r}' 未列入 ARMY_RANK_ORDER（不会参与排序）`); });
+    const O = ctx.data.ARMY_ORDERS || {};
+    for (const k of Object.keys(O)) {
+      const o = O[k];
+      if (o.rank && !R[o.rank]) reportErr('兵科阵位军令', `军令 ${k}`, `所属阵位 '${o.rank}' 未在 LF.ARMY_RANKS 定义`);
+    }
+    // 源码里对兵种的硬编码引用：TROOPS['xxx'] / TROOPS.xxx
+    const re = /\b(?:LF\.)?TROOPS\s*(?:\.\s*([A-Za-z_]\w*)|\(\s*\)\s*\[\s*['"]([A-Za-z_]\w*)['"]\s*\]|\[\s*['"]([A-Za-z_]\w*)['"]\s*\])/g;
+    let m;
+    while ((m = re.exec(ctx.sharedSrc))) {
+      const id = m[1] || m[2] || m[3];
+      if (!TROOP_IDS.has(id)) reportErr('兵科阵位军令', '源码 TROOPS 引用', `兵科 '${id}' 未在 LF.TROOPS 定义`);
     }
   }
 });

@@ -2547,3 +2547,55 @@
 .dip-cities{display:flex;gap:6px;flex-wrap:wrap;}
 .dip-cur{font-size:13px;color:#86b087;margin:4px 0;}
 .dip-foot{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;border-top:1px solid var(--panel-line);padding-top:8px;}
+/* ══════════════════════════════════════════════════════════
+   军队 / 治军 / 战前编成（v20260921a）· 水墨金 · 羊皮纸
+   ══════════════════════════════════════════════════════════ */
+.am-head{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:8px 0 6px;}
+.am-stat{display:flex;justify-content:space-between;align-items:baseline;padding:5px 8px;border:1px solid rgba(184,137,58,.28);border-radius:6px;background:linear-gradient(180deg,rgba(42,31,16,.85),rgba(26,18,6,.75));}
+.am-stat span{font-size:12px;color:#a89370;letter-spacing:.05em;}
+.am-stat b{font-size:14px;color:#f0e4c8;font-weight:600;}
+.am-mbar{height:6px;margin:0 0 8px;border-radius:3px;background:rgba(26,18,6,.9);border:1px solid rgba(184,137,58,.22);overflow:hidden;}
+.am-mbar i{display:block;height:100%;border-radius:3px;transition:width .45s ease,background .45s ease;box-shadow:0 0 6px rgba(255,210,104,.35);}
+.am-march{margin:0 0 8px;padding:5px 8px;font-size:12px;line-height:1.7;color:#c8b78f;border-left:2px solid rgba(184,137,58,.55);background:rgba(42,31,16,.5);border-radius:0 5px 5px 0;}
+.am-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:6px 0 10px;}
+.am-empty{grid-column:1/-1;padding:14px 10px;text-align:center;font-size:12px;color:#8a7959;border:1px dashed rgba(184,137,58,.3);border-radius:6px;}
+.am-cell{padding:8px 9px;border:1px solid rgba(184,137,58,.3);border-radius:7px;background:linear-gradient(180deg,rgba(46,34,17,.8),rgba(24,17,6,.8));transition:border-color .25s,transform .25s,box-shadow .25s;}
+.am-cell:hover{border-color:rgba(255,210,104,.6);transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.4);}
+.am-ctop{display:flex;justify-content:space-between;align-items:center;gap:6px;}
+.am-ctop b{font-size:14px;color:#ffd268;font-weight:600;letter-spacing:.04em;}
+.am-rank{font-size:11px;padding:1px 6px;border-radius:9px;color:#f0e4c8;background:rgba(184,137,58,.22);border:1px solid rgba(184,137,58,.4);white-space:nowrap;}
+.am-cnum{margin:4px 0 3px;font-size:16px;color:#f0e4c8;font-weight:600;}
+.am-cdesc{font-size:11px;line-height:1.6;color:#8a7959;}
+.am-cops{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.am-logi{margin:4px 0 10px;padding:8px 9px;border:1px solid rgba(184,137,58,.28);border-radius:7px;background:rgba(26,18,6,.6);}
+.am-lhead{font-size:12px;color:#c8b78f;margin-bottom:6px;letter-spacing:.05em;}
+.am-lgrid{display:flex;flex-wrap:wrap;gap:6px;min-height:40px;}
+.am-lgrid .packcell{cursor:pointer;transition:transform .2s,box-shadow .2s;}
+.am-lgrid .packcell:hover{transform:translateY(-2px);box-shadow:0 3px 10px rgba(0,0,0,.45);}
+.am-lops,.am-ops{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.am-ops{margin-top:10px;padding-top:10px;border-top:1px solid rgba(184,137,58,.22);}
+.am-deploy{max-height:46vh;overflow-y:auto;overscroll-behavior:contain;}
+.am-drow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(184,137,58,.16);}
+.am-drow:hover{background:rgba(184,137,58,.08);}
+.am-dkm{font-size:11px;color:#8a7959;}
+/* 战前编成 */
+.wp-target{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid rgba(184,137,58,.35);border-radius:7px;background:linear-gradient(180deg,rgba(46,34,17,.85),rgba(26,18,6,.8));}
+.wp-target b{font-size:16px;color:#ffd268;letter-spacing:.06em;}
+.wp-target span{font-size:12px;color:#a89370;}
+.wp-note{margin:8px 0;padding:7px 9px;font-size:12px;line-height:1.8;color:#c8b78f;border-left:2px solid rgba(192,57,43,.5);background:rgba(42,31,16,.5);border-radius:0 5px 5px 0;}
+.wp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:7px;margin:6px 0 10px;}
+.wp-cell{padding:7px 8px;border:1px solid rgba(255,210,104,.45);border-radius:7px;background:linear-gradient(180deg,rgba(58,43,20,.85),rgba(26,18,6,.8));cursor:pointer;transition:transform .2s,box-shadow .2s,opacity .2s;}
+.wp-cell:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.45);}
+.wp-cell.off{opacity:.45;border-color:rgba(138,121,89,.4);background:rgba(26,18,6,.6);}
+.wp-ctop{display:flex;justify-content:space-between;align-items:center;gap:5px;font-size:13px;color:#f0e4c8;}
+.wp-ctop b{color:#ffd268;font-weight:600;}
+.wp-cnum{margin-top:4px;font-size:12px;color:#c8b78f;}
+.wp-foot{display:flex;flex-wrap:wrap;gap:10px;padding:7px 9px;font-size:12px;color:#c8b78f;border:1px solid rgba(184,137,58,.28);border-radius:6px;background:rgba(26,18,6,.6);}
+.wp-foot.warn{border-color:rgba(192,57,43,.55);color:#e8b0a4;background:rgba(60,20,12,.35);}
+.wp-ops{display:flex;gap:8px;margin-top:12px;}
+.wp-ops .btn{min-width:96px;justify-content:center;}
+@media (max-width:420px){
+  .am-head{grid-template-columns:1fr;}
+  .am-grid,.wp-grid{grid-template-columns:1fr 1fr;}
+  .am-cops .btn,.am-lops .btn,.am-ops .btn,.wp-ops .btn{min-height:44px;}
+}

@@ -107,6 +107,10 @@
       var artIds = (ps.learnedMartial || []).slice();
       if (artIds.indexOf('beng_quan') === -1) artIds.push('beng_quan');   // 保证至少能用崩拳
       var artMap = {};
+      // 军队：营级单位自带「军令」（伪武学），不查 MARTIAL_ARTS，避免被过滤为空
+      if(ps._artMap && Object.keys(ps._artMap).length){
+        for(var _ok in ps._artMap) artMap[_ok] = ps._artMap[_ok];
+      }
       artIds.forEach(function(aid) {
         var built = self._buildArt(aid, (ps.realm && ps.realm[aid]) || 0);
         if (built) artMap[aid] = built;
@@ -118,7 +122,7 @@
           if (pa && pa.attr && pa.attr.wu) { pElem = pa.attr.wu; break; }
         }
       }
-      return {
+      var out = {
         idx: idx,
         name: ps.name || ('同伴' + (idx + 1)),
         hp: ps.hp, maxHp: ps.maxHp,
@@ -136,6 +140,11 @@
         dodgeNext: false,
         forceEff: Object.assign({}, forceEff, { critRate: (forceEff.critRate || 0) + (ps.critRate || 0) })
       };
+      // 军队：营级单位附加字段透传（阵位 / 士气 / 兵力 / 溃散标记）
+      ['isTroop','troopType','rank','guard','morale','count','routed'].forEach(function(_k){
+        if(ps[_k] !== undefined) out[_k] = ps[_k];
+      });
+      return out;
     },
 
     // ── P2：解析境界突破描述文本 → 结构化数值加成 ──
@@ -484,6 +493,9 @@
     _pickPlayerTarget: function() {
       var ps = this.state.playerUnits.filter(function(u){ return u.hp > 0; });
       if (!ps.length) return null;
+      // 军队作战：前军（guard）主动吸火——阵位的战术意义所在；前军尽没后才轮及主角与后军
+      var _gs = ps.filter(function(u){ return u.guard; });
+      if (_gs.length && _gs.length < ps.length) ps = _gs;
       if (Math.random() < 0.35) {
         var w = ps[0];
         ps.forEach(function(u){ if (u.hp / u.maxHp < w.hp / w.maxHp) w = u; });

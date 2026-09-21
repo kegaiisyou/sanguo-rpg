@@ -5,6 +5,7 @@
         getCombatMode = ctx.getCombatMode, setCombatMode = ctx.setCombatMode,
         getDqCardEl = ctx.getDqCardEl, setDqCardEl = ctx.setDqCardEl,
         getPendingSiegeCid = ctx.getPendingSiegeCid, setPendingSiegeCid = ctx.setPendingSiegeCid,
+        getPendingArmyBattle = ctx.getPendingArmyBattle,
         getNarr = ctx.getNarr,
         G = ctx.G, SFX = ctx.SFX, LF = ctx.LF,
         effectiveStats = ctx.effectiveStats, clampHp = ctx.clampHp, decayEquipment = ctx.decayEquipment,
@@ -284,8 +285,20 @@
     // 组队作战：主角 + 同伴（getState().party）。每场战斗同伴满血入场
     var party=[pstate];
     (getState().party||[]).forEach(function(c){ if(c) party.push(Object.assign({}, c, { hp:c.maxHp })); });
+    // 军队作战：营级单位（自带军令 artMap）并入我方序列
+    if(opt.armyUnits && opt.armyUnits.length){
+      opt.armyUnits.forEach(function(u){ party.push(u); });
+    }
     var r=G.CombatEngine.init(party, enemyId);
     if(r.error){ log(r.error,'sys'); return; }
+    // 军队作战：守军/攻方士气初始化（营级单位 hp 归零不判主角死亡，由 War 依兵力回扣结算）
+    if(opt.armyUnits && opt.armyUnits.length && G.CombatEngine.state){
+      var _ast=G.CombatEngine.state;
+      (_ast.enemies||[]).forEach(function(e,i){
+        var _aed=(_ast.enemyDatas||[])[i]||{};
+        if(e.morale==null) e.morale = (_aed.morale!=null?_aed.morale:80);
+      });
+    }
     // 战力缩放（v20260905d：改为作用于「本场战斗单位」，不再污染全局 ENEMIES 数据——
     // 旧实现直接改 getEnemy() 返回的共享敌人定义，城门焚毁会把 city_guard 永久削弱且多次叠加）：
     //   guardMul  → 城门被焚（不免疫火烧）守军战力下降
@@ -563,7 +576,7 @@
     btn('撤退·' + fleePct + '%', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','韩铁'); return; } dqTryFlee(unit); }, 'flee');
     // 武学：选择已学招式（连线已有的 G.MARTIAL_ARTS，使之在战斗里真正可用）
     if(!tut && unit.artIds.length){
-      btn('武学', function(){ dqShowArts(unit); }, 'skill');
+      btn(unit.isTroop?'军令':'武学', function(){ dqShowArts(unit); }, 'skill');
     }
   }
 
@@ -573,9 +586,12 @@
     ra.innerHTML='';
     var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='选择武学'; ra.appendChild(tip);
     (unit.artIds||[]).forEach(function(aid){
-      var a=G.MARTIAL_ARTS.get(aid); if(!a) return;
+      var a = unit.isTroop ? (unit.artMap && unit.artMap[aid]) : G.MARTIAL_ARTS.get(aid);
+      if(!a) return;
       var b=document.createElement('button'); b.className='act cb-menu skill';
-      b.textContent=a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':''));
+      b.textContent = unit.isTroop
+        ? (a.name + '〔军令〕')
+        : (a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':'')));
       b.onclick=function(){ dqShowTargets(unit, aid); };
       ra.appendChild(b);
     });
@@ -666,6 +682,7 @@
   function dqResolveRound(){
     dqBusy=true; clearActions();
     var pLog=G.CombatEngine.runPlayerPhase(dqOrders);
+    if(ctx.armyRoundHook) ctx.armyRoundHook(dqOrders);   // 军队：军令副作用（士气/自损）·冲散·援军到场
     dqPlayLog(pLog, function(){
       if(G.CombatEngine.state.result){ dqFinish(); return; }
       var eLog=G.CombatEngine.runEnemyPhase();
@@ -779,6 +796,14 @@
       playCombatFx('win');
       showCombatSettlement({result:'win', title:'演 练 结 束', sub:'韩铁出手相护，化险为夷。',
         lines:[{text:'教学演练完成——往后真打可没这般好运。'}]}, exitCombatToRoom);
+      return;
+    }
+    // ── 军队作战（攻城 / 守城 / 野战）：交由 War 编排结算（分段推进 · 兵力回扣 · 易帜）──
+    if(getPendingArmyBattle && getPendingArmyBattle()){
+      save(getState()); renderStatus();
+      if(getDqCardEl()) getDqCardEl().classList.add(result==='win'?'settle-win':(result==='lose'?'settle-lose':''));
+      playCombatFx(result==='win'?'win':(result==='lose'?'lose':''));
+      if(ctx.armyBattleEnd) ctx.armyBattleEnd(result);
       return;
     }
     // ── 攻城战（易主/火战）特殊处理（v20260824d）──

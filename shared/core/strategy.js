@@ -156,6 +156,7 @@
     h+='<button class="btn" onclick="civilEdict(\'tax\')">💰 征税<br><span class="sub">'+taxTip+'</span></button>';
     h+='<button class="btn" onclick="civilEdict(\'pacify\')">🤝 安民<br><span class="sub">耗💰20，治安+6</span></button>';
     h+='<button class="btn" onclick="openModal(\'factionMap\')">🏴 大势<br><span class="sub">观天下势力</span></button>';
+    h+='<button class="btn" onclick="openModal(\'army\')">🛡 治军<br><span class="sub">募兵编成·辎重调遣</span></button>';
     h+='</div>';
     h+='<div class="edict-foot">立于中枢、城归你所统，方能发号。占城即得官职，聚财养士。</div>';
     h+='</div>';
@@ -248,6 +249,11 @@
     return n;
   }
   function warInRoom(cid) { try { return !!S() && S().room === cid; } catch (e) { return false; } }
+  // 势力兵力：玩家读军队系统，NPC 读 factionAssets（v20260921a）——「养兵」自此真的影响天下大势
+  function factionTroops(fid) {
+    if (fid === 'player') { try { return ctx.getArmyTroops ? ctx.getArmyTroops() : 0; } catch (e) { return 0; } }
+    return ((S().flags.factionAssets || {})[fid] || {}).troops || 0;
+  }
   // ── 战事执行：校验过后的单役结算；返回 {win, city, atk, def} 或 null ──
   function runWarlordBattle(targetCid, attackerFid) {
     if (!S() || S().dead) return null;    if (!S().flags.factionWarHit) S().flags.factionWarHit = {};
@@ -257,9 +263,11 @@
     if (!tc) return null;
     var city = tc.name || targetCid;
     var defKey = warOwnerKey(targetCid);
-    var atk = warFactionTotal(attackerFid) * (0.28 + Math.random() * 0.16);   // 举国之力的一支偏师
+    var atkT = factionTroops(attackerFid);                                     // 兵在册，势自盛（v20260921a）
+    var defT = factionTroops(defKey);
+    var atk = (warFactionTotal(attackerFid) + atkT * 2.2) * (0.28 + Math.random() * 0.16);   // 举国之力的一支偏师
     if (attackerFid === 'player') atk *= roleAtkMul();   // 职种：将才攻势更盛（v20260918h）
-    var def = warCityPower(targetCid) * (1.4 + Math.random() * 0.2);          // 据城而守，一夫当关
+    var def = (warCityPower(targetCid) + defT * 1.1) * (1.4 + Math.random() * 0.2);          // 据城而守，一夫当关
     var defReal = !!(LF.FACTIONS && LF.FACTIONS[defKey]);
     if (defReal) def += warFactionTotal(defKey) * 0.1;                        // 邻郡/本州驰援之师
     var atkRoll = atk * (0.85 + Math.random() * 0.3);
@@ -318,7 +326,7 @@
       var _k = warOwnerKey(idsAll[x]);
       counts[_k] = (counts[_k] || 0) + 1;
     }
-    var pairs = warCityAdjPairs(), cands = [];
+    var pairs = warCityAdjPairs(), cands = [], defendCands = [];
     for (var i = 0; i < pairs.length; i++) {
       var a = pairs[i][0], b = pairs[i][1];
       var ka = warOwnerKey(a), kb = warOwnerKey(b);
@@ -326,7 +334,14 @@
       var ha = warIsLordKey(ka), hb = warIsLordKey(kb);
       if (!ha && !hb) continue;                                  // 两侧皆非豪强 → 无人举兵
       if (diploTruceBetween(ka, kb)) continue;                   // 外交：休战/同盟期间不互攻（v20260918h）
-      if (warInRoom(a) || warInRoom(b)) continue;                // 玩家立足之处，兵锋暂缓
+      if (warInRoom(a) || warInRoom(b)) {                        // 玩家立足之处，兵锋暂缓
+        var _pc = warInRoom(a) ? a : b;                          // 但若所指正是你治下之城 → 升格为「守城战」
+        if (warOwnerKey(_pc) === 'player') {
+          var _att = warInRoom(a) ? kb : ka;
+          if (warIsLordKey(_att)) defendCands.push({ target: _pc, atk: _att });
+        }
+        continue;
+      }
       var dirs = [];
       if (ha) dirs.push({ atk: ka, tid: b });                    // a 之主人攻 b
       if (hb) dirs.push({ atk: kb, tid: a });
@@ -338,6 +353,17 @@
         if (treal && tkey !== 'player' && (counts[tkey] || 0) <= 1) continue; // 不灭有主孤城
         cands.push({ target: tid, atk: dirs[d].atk });
       }
+    }
+    // 玩家亲历的守城战 → 走战术战斗；无军可用则退回后台掷骰（v20260921a）
+    if (defendCands.length) {
+      var dpick = defendCands[Math.floor(Math.random() * defendCands.length)];
+      var dok = false;
+      try { dok = !!(ctx.startDefendBattle && ctx.startDefendBattle(dpick.target, dpick.atk)); } catch (e) { dok = false; }
+      if (!dok) {
+        var dr = runWarlordBattle(dpick.target, dpick.atk);
+        if (dr) { warChronicleEntry(dr); if (dr.wasPlayerCity && !dr.win) log('〔狼烟〕' + dr.atkName + '军来犯你治下「' + dr.city + '」，守军力战，未能破城。', 'sys'); }
+      }
+      S().flags.warCool = 2; save(S()); return;
     }
     if (!cands.length) return;
     var pick = cands[Math.floor(Math.random() * cands.length)];
@@ -413,9 +439,18 @@
         asset.gold = (asset.gold || 0) + Math.round(before * 0.04 + ((c.agri || 40) + (c.commerce || 40)) * 0.12);
       });
       asset.troops = (asset.troops || 0) + Math.round(grown * 4 + cities.length * 3);
+      // 群雄亦募兵：府库充盈则以银募卒，兵力自此成为攻伐的真实筹码（v20260921a）
+      if ((asset.gold || 0) > 400 && (asset.troops || 0) < cities.length * 240) {
+        var buy = Math.min(Math.floor(((asset.gold || 0) - 300) / 8), 80);
+        if (buy > 0) { asset.gold = (asset.gold || 0) - buy * 8; asset.troops = (asset.troops || 0) + buy; }
+      }
       asset.cities = cities.length;
       rank.push({ fid: fid, name: warFactionName(fid), power: warFactionTotal(fid), cities: cities.length });
     });
+    // 玩家兵力并入势力资产，供攻伐结算与天下大势读取（v20260921a）
+    var _pa = F.factionAssets['player'] = F.factionAssets['player'] || { gold: 0, troops: 0 };
+    _pa.troops = factionTroops('player');
+    _pa.cities = (S().ruledCities || []).length;
     rank.sort(function (a, b) { return b.power - a.power; });
     F.factionPowerRank = rank;
     // 玩家治下城：随月发展（战乱城停滞），受相才加成（v20260918h）
@@ -464,6 +499,7 @@
       diploGet: diploGet, diploStatus: diploStatus, diploActive: diploActive, diploTruceBetween: diploTruceBetween,
       diploExpire: diploExpire, diploPropose: diploPropose, diploSue: diploSue, renderDiplomacy: renderDiplomacy, openDiplomacy: openDiplomacy,
       factionName: factionName, factionColor: factionColor, civilEdict: civilEdict, renderEdict: renderEdict, renderFactionMap: renderFactionMap,
+      factionTroops: factionTroops,
       warKm: warKm, warCityAdjPairs: warCityAdjPairs, warOwnerKey: warOwnerKey, warIsLordKey: warIsLordKey, warFactionName: warFactionName,
       warCityPower: warCityPower, warFactionTotal: warFactionTotal, warFactionCityCount: warFactionCityCount, warInRoom: warInRoom,
       runWarlordBattle: runWarlordBattle, warChronicleEntry: warChronicleEntry, warlordBattle: warlordBattle, warlordDayTick: warlordDayTick,
