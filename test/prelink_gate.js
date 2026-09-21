@@ -32,6 +32,19 @@ const dom = new JSDOM(html, {
   url: 'file://' + ROOT + '/',
   virtualConsole: vc,
   pretendToBeVisual: true,
+  // jsdom 未实现 Web Animations API：引擎标题屏 drip 动画 b.animate 会抛错，
+  // 中断引擎初始化并把 #modal 替换为错误页，导致新游戏流程无法启动。
+  // 此处打最小可用 Animation 桩，仅供测试环境（不影响真实浏览器）。
+  beforeParse(window) {
+    if (window.Element && !window.Element.prototype.animate) {
+      window.Element.prototype.animate = function () {
+        var a = { finished: Promise.resolve(), cancel: function(){}, play: function(){}, pause: function(){}, finish: function(){}, onfinish: null, oncancel: null };
+        Object.defineProperty(a, 'currentTime', { get: function(){return 0;}, set: function(){} });
+        Object.defineProperty(a, 'playState', { get: function(){return 'finished';} });
+        return a;
+      };
+    }
+  },
 });
 const w = dom.window;
 w.addEventListener('error', e => errors.push('window.error: ' + (e.error && e.error.stack ? e.error.stack : e.message)));
@@ -79,7 +92,8 @@ function boot() {
         if (go) go.click();
       }
     }
-    bootedGame = !!(typeof w.getState === 'function' && w.getState());
+    // state 由 state.js 暴露为 LF.Core.state（window 上无裸名 state / getState）
+    bootedGame = !!(w.LF && w.LF.Core && w.LF.Core.state);
     if (typeof w.advanceMinutes === 'function') w.advanceMinutes(1440 * 3);
     else if (typeof w.advanceTime === 'function') w.advanceTime(3);
     for (const kind of PANEL_KINDS) {
