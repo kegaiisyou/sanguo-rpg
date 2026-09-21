@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "jsdom": "^22.1.0"
+  },
+  "scripts": {
+    "test": "node test/syntax_check_all.js && node test/cross_reference_check.js && node test/prelink_gate.js",
+    "gate": "node test/syntax_check_all.js && node test/cross_reference_check.js && node test/prelink_gate.js"
   }
 }
