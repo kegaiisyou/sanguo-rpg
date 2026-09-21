@@ -54,13 +54,21 @@
     return function(k, fb){ return (p[k] !== undefined ? p[k] : (d[k] !== undefined ? d[k] : fb)); };
   }
 
+  // P0.2：每城专属货品/风物，注入进城 find（数据驱动，无 DOM 依赖）
+  function cityFlavorFind(p){
+    var s = '';
+    if (p.goods && p.goods.length) s += ' 特产：' + p.goods.map(function(g){ return g.name; }).join('、') + '。';
+    if (p.landmarks && p.landmarks.length) s += ' 风物：' + p.landmarks.map(function(l){ return l.name; }).join('、') + '。';
+    return s;
+  }
+
   var GEN = {
     // 城市：与 registerCityRooms 完全兼容（内部走 isCityGrid，不依赖 exits）
     city: function(p){
       var r = room(p.id, p.name, {
         kind: 'city',
         desc: (p.blurb || [p.desc || p.name]),
-        find: (p.blurbFind || ''),
+        find: ((p.blurbFind || '') + cityFlavorFind(p)),
         actions: (p.rootActs || [{ id:'rest', label:'城中休整', group:'行动', tip:'寻一处馆驿安歇，气血内力尽复' }])
       });
       r.isCity = true;
