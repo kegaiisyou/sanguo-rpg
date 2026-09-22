@@ -15,6 +15,7 @@
     var cityDevOf = ctx.cityDevOf, isCityGrid = ctx.isCityGrid;
     var roleAtkMul = ctx.roleAtkMul, roleDef = ctx.roleDef;
     var exert = ctx.exert, advanceTime = ctx.advanceTime;
+    var commandBonus = ctx.commandBonus || function () { return 1; };
 
     // ══ 数据基座 ══
     function TROOPS() { return (LF.TROOPS) || {}; }
@@ -58,7 +59,7 @@
         var d = T[t.type]; if (!d) return;
         p += ((d.atk || 0) * 1.0 + (d.def || 0) * 0.7 + (d.hp || 0) * 0.05) * (t.count || 0);
       });
-      return Math.round(p * moraleMul());
+      return Math.round(p * moraleMul() * commandBonus());
     }
     function logisticsCap() {
       var a = ensureArmy(); if (!a) return 8;
@@ -86,6 +87,12 @@
     }
 
     // ══ 募兵 / 解散 / 整编 ══
+    function recruitCity() {   // 玩家当前所在城（用于军营募兵）
+      var st = S(); if (!st) return null;
+      if (isCityGrid && isCityGrid(st.room)) return st.room;
+      if (st.flags && st.flags.cityPos && st.flags.cityPos.cid) return st.flags.cityPos.cid;
+      return null;
+    }
     function cityManpool(cid) {
       var c = (LF.CITIES || {})[cid] || {};
       return Math.max(5, Math.round((c.pop || 40) * 2));
@@ -362,7 +369,7 @@
         if (filter && filter.indexOf(t.type) < 0) return;
         var rank = t.rank || rankDefault(t.type);
         var maxHp = Math.max(1, Math.round((d.hp || 10) * n));
-        var atk = Math.max(1, Math.round((d.atk || 1) * n * mm * (opt.atkMul || 1)));
+        var atk = Math.max(1, Math.round((d.atk || 1) * n * mm * (opt.atkMul || 1) * commandBonus()));
         var def = Math.max(0, Math.round((d.def || 1) * n));
         var u = {
           name: d.name + '营',
@@ -457,6 +464,27 @@
         h += '</div></div>';
       });
       h += '</div>';
+      // 募兵（仅当置身城中军营；兵源按城人口、受兵力上限与府库所限）
+      var rc = recruitCity();
+      var rgold = Math.round((S() || {}).gold || 0);
+      if (rc) {
+        var rcName = (((LF.CITIES || {})[rc] || {}).name || rc);
+        h += '<div class="am-recruit"><div class="am-rhead">募兵 · ' + esc(rcName) + '军营（兵源余 ' + recruitLeft(rc) + ' · 府库 ' + rgold + ' 两）</div><div class="am-rgrid">';
+        var RT = TROOPS();
+        Object.keys(RT).forEach(function (type) {
+          var d = RT[type]; if (!d) return;
+          var rc0 = recruitCost(type, 1);
+          h += '<div class="am-rrow"><div class="am-rname"><b>' + esc(d.name) + '</b><span class="am-rdesc">' + esc(d.desc) + '</span></div>';
+          h += '<div class="am-rcost">' + rc0 + ' 两/人</div><div class="am-rops">';
+          h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',30)">募30</button>';
+          h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',80)">募80</button>';
+          h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',9999)">募满</button>';
+          h += '</div></div>';
+        });
+        h += '</div></div>';
+      } else {
+        h += '<div class="am-empty">须置身城中军营，方能募兵整军。</div>';
+      }
       // 辎重
       var lcap = logisticsCap();
       h += '<div class="am-logi"><div class="am-lhead">辎重（' + logiUsed() + '/' + lcap + '）· 军粮 ' + Math.round(a.logistics.grain || 0) + ' 石</div><div class="am-lgrid">';

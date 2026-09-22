@@ -45,7 +45,10 @@ const LOAD_FILES = [
   'shared/data/martial.js',
   'shared/data/enemies.js',
   'shared/data/items.js',
+  'shared/data/npc_cards.js',
   'shared/data/troops.js',
+  'shared/data/personas.js',
+  'shared/data/officers.js',
   'shared/data/recipes.js',
   'shared/data/build.js',
   'shared/data/shops.js',
@@ -115,6 +118,11 @@ const CITY_OWNER = LF.CITY_OWNER || {};                            // 城市归�
 // NPC 权威集合 = 对话 NPC ∪ 敌人（敌人也是可交互 NPC）∪ 已知随从
 const DIALOGUE_NPC_IDS = new Set(Object.keys((LF.DIALOGUES && LF.DIALOGUES.npcs) || {}));
 const NPC_IDS = new Set([...DIALOGUE_NPC_IDS, ...ENEMY_IDS]);
+// 程序生成 NPC 的「基础 key」（如 storeman：仓吏卡 personal:true）——触发器 t.npc 用基础 key
+// （运行期剥 @ 后匹配），但对话/房间用其具名实例（storeman_kuyilao）。把这些 personal 卡 id 视作
+// 合法 NPC，消解 10 条 storeman 触发器的误报 WARN（运行时匹配已在 PROGRESS.md 修复）。
+const PERSONAL_NPC_IDS = new Set((LF.NPC_CARDS || []).filter(c => c && c.personal && c.id).map(c => c.id));
+for (const id of PERSONAL_NPC_IDS) NPC_IDS.add(id);
 // 房间级 NPC（rooms.js 的 npcs 数组）：触发器常引用其中定义的 NPC，并入权威集以消解误报
 for (const rid of Object.keys(LF.ROOMS || {})) {
   ((LF.ROOMS[rid] || {}).npcs || []).forEach(id => NPC_IDS.add(id));
@@ -608,6 +616,20 @@ const ctxData = {
   indexSrc,
   reportErr, reportWarn, report
 };
+RULES.push({
+  name: '武将引用',
+  run(ctx) {
+    if (!LF.PERSONA || !LF.PERSONA.listRegistered) return;
+    const valid = new Set(['han','dongzhuo','yuanshao','caocao','sunce','liubiao','liuzhang','gongsun','matang','player','在野']);
+    const bad = [];
+    LF.PERSONA.listRegistered().forEach(function (o) {
+      if (o.home && !CITY_IDS.has(o.home)) bad.push(o.name + ' home=' + o.home + ' 非有效城');
+      if (o.faction && !valid.has(o.faction)) bad.push(o.name + ' faction=' + o.faction + ' 非有效势力');
+    });
+    if (bad.length) reportErr('武将引用', 'officers.js', bad.join('；'));
+  }
+});
+
 console.log('===== 乱世烽火 · 数据交叉引用校验 =====');
 console.log(`版本 ${LF.CONSTANTS.VERSION} | 物品 ${ITEM_IDS.size} / 武学 ${MARTIAL_IDS.size} / 敌人 ${ENEMY_IDS.size} / 房间(静态) ${ROOM_STATIC.size} / 城市 ${CITY_IDS.size} / 蓝图 ${BUILD_IDS.size} / 商店 ${SHOP_IDS.size} / 配方台 ${RECIPE_BENCH_IDS.size} / 事件 ${EVENT_IDS.size} / 触发器 ${TRIGGER_IDS.size} / NPC ${NPC_IDS.size}\n`);
 

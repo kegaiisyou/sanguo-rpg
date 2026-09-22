@@ -46,11 +46,18 @@ window.LF = window.LF || {};
     }
 
     // 旧存档缺字段则补默认，保证兼容（v0.1 → v0.2 迁移）
+    function cloneDef(v) {   // 深拷贝默认子对象，杜绝「缺字段时按引用共享 defaultSave」的串档隐患（army/flags 等顶层对象）
+      if (v === null || typeof v !== 'object') return v;
+      if (Array.isArray(v)) return v.slice();
+      var o = {};
+      for (var kk in v) o[kk] = cloneDef(v[kk]);
+      return o;
+    }
     function normalize(s) {
       var def = G.defaultSave();
       // 顶层字段补全
       for (var k in def) {
-        if (s[k] === undefined) s[k] = def[k];
+        if (s[k] === undefined) s[k] = cloneDef(def[k]);
         // 深拷贝嵌套对象，防止引用污染
         if (typeof def[k] === 'object' && def[k] && !Array.isArray(def[k]) && k !== 'flags') {
           if (typeof s[k] !== 'object' || !s[k] || Array.isArray(s[k])) s[k] = {};
@@ -63,6 +70,7 @@ window.LF = window.LF || {};
       if (!Array.isArray(s.skills)) s.skills = def.skills.slice();
       if (!Array.isArray(s.items)) s.items = [];
       if (!Array.isArray(s.equips)) s.equips = [];
+      if (!Array.isArray(s.officers)) s.officers = [];   // 武将名册（v20260921b）：旧档缺字段补空数组，避免引用默认共享数组
       if (!s.equipment || typeof s.equipment !== 'object') s.equipment = { weapon: null, armor: null, trinket: null, mount: null };
       ['weapon', 'armor', 'trinket', 'mount'].forEach(function (sl) { if (s.equipment[sl] === undefined) s.equipment[sl] = null; });
       // 旧存档没有 spd 则给默认

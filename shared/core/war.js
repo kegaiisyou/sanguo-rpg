@@ -9,10 +9,11 @@
     var openModal = ctx.openModal, closeModal = ctx.closeModal;
     var escapeHtml = ctx.escapeHtml, exert = ctx.exert, advanceTime = ctx.advanceTime;
     var startCombat = ctx.startCombat, showCombatSettlement = ctx.showCombatSettlement;
-    var conquerCity = ctx.conquerCity, playerFaction = ctx.playerFaction, cityDevOf = ctx.cityDevOf;
+    var conquerCity = ctx.conquerCity, playerFaction = ctx.playerFaction, cityDevOf = ctx.cityDevOf, cityOwnerOf = ctx.cityOwnerOf;
     var isCityGrid = ctx.isCityGrid, roleAtkMul = ctx.roleAtkMul;
     var Army = ctx.Army;               // 军队工厂实例
     var getPendingArmyBattle = ctx.getPendingArmyBattle, setPendingArmyBattle = ctx.setPendingArmyBattle;
+    var Officers = ctx.Officers || null;
 
     var SEGS = [
       { key: 'gate', name: '城门', mark: '〔破门〕', desc: '护城河下，门楼之前——云梯未稳，矢石如雨。' },
@@ -78,7 +79,17 @@
         out.push(applyOrders(mkUnit('屋脊弓手', Math.round(n * 0.25), P.nu, { rank: 'rear', guard: false, morale: 75 }), 'rear'));
       } else {
         out.push(applyOrders(mkUnit('府衙亲兵', Math.round(n * 0.4), P.dun, { rank: 'front', morale: 80 }), 'front'));
-        out.push(applyOrders(mkUnit(tag + '守将', Math.max(8, Math.round(n * 0.22)), P.jiang, { rank: 'mid', morale: 90, critRate: 0.12, atkMul: 1.1 }), 'mid'));
+        var jiangPer = P.jiang, jiangName = tag + '守将', jiangMorale = 90, jiangAtkMul = 1.1;
+        var gc = (Officers && Officers.garrisonCommander) ? Officers.garrisonCommander(cid) : null;
+        if (gc) {
+          var cb = Officers.officerCombat(gc.id);
+          if (cb) {
+            jiangPer = cb; jiangName = gc.name + '（守将）';
+            jiangMorale = 90 + Math.min(10, Math.round((gc.stats.tong || 50) / 10));
+            jiangAtkMul = 1.1 + Math.min(0.4, (gc.stats.tong || 50) / 200);
+          }
+        }
+        out.push(applyOrders(mkUnit(jiangName, Math.max(8, Math.round(n * 0.22)), jiangPer, { rank: 'mid', morale: jiangMorale, critRate: 0.12, atkMul: jiangAtkMul }), 'mid'));
       }
       return out;
     }
@@ -323,6 +334,7 @@
       var cname = (((LF.CITIES || {})[cid] || {}).name || '此城');
       if (result === 'win') {
         Army.armyMoraleAdd(10, '城破之功，');
+        if (Officers && cityOwnerOf) { var dk = cityOwnerOf(cid); if (dk && dk !== 'player' && dk !== 'none') Officers.captureFrom(dk, cid); }
         showCombatSettlement && showCombatSettlement({
           result: 'win', enemyName: cname, title: '城 破', sub: '〔易帜〕', lines: lines
         }, function () { conquerCity(cid, playerFaction ? playerFaction() : 'player', -5); renderRoom(); save(S()); });

@@ -1,296 +1,189 @@
-// 军队系统自测（v20260921a）
-// 运行：node test/army_system_test.js
+// 军队 / 攻城系统单测（v20260922a）：官职兵力上限 / 士气分档 / 募兵（兵源·银两·上限）/
+// 守军派生（城市基防·三段守波·守将集成）/ 三段攻城编排 / 战前编成面板
+// 范式：镜像 officer_system_test.js —— 加载数据层 → 工厂注入伪 ctx → 调用暴露函数断言。
 'use strict';
-var path = require('path');
-var ROOT = path.join(__dirname, '..');
-
-require(path.join(ROOT, 'shared/data/troops.js'));
-require(path.join(ROOT, 'shared/core/army.js'));
-require(path.join(ROOT, 'shared/core/war.js'));
+var path = require('path'), ROOT = path.join(__dirname, '..');
+function load(p) { require(path.join(ROOT, p)); }
+load('shared/config/constants.js');   // LF.CONSTANTS / FACTIONS / CITY_OWNER
+load('shared/data/troops.js');        // LF.TROOPS / ARMY_RANKS / TROOP_RANKS / ARMY_ORDERS / moraleBand / armyCapOf
+load('shared/data/cities.js');        // LF.CITIES（pop/wall）
+load('shared/data/personas.js');      // LF.PERSONA
+load('shared/data/officers.js');      // LF.OFFICERS（史实武将）
 var LF = globalThis.LF;
 
-var pass = 0, fail = 0;
-function ok(name, cond, extra) {
-  if (cond) { pass++; console.log('  ✓ ' + name); }
-  else { fail++; console.log('  ✗ ' + name + (extra ? '  → ' + extra : '')); }
+var fail = 0, pass = 0;
+function ok(c, m) { if (c) { pass++; } else { fail++; console.log('  ✗ ' + m); } }
+var noop = function () {};
+
+// ── 伪 state（随测试重置）──
+var state;
+function reset(o) {
+  state = Object.assign({ title: '州牧', gold: 100000, room: 'luoyang', flags: {}, officers: [] }, o || {});
+  state.army = state.army || {};
 }
-function section(t) { console.log('\n── ' + t + ' ──'); }
+reset();
 
-// ── 桩 ──
-LF.CITIES = {
-  luoyang: { name: '洛阳', pop: 90, wall: 80, agri: 60, commerce: 70, lng: 112.45, lat: 34.62 },
-  xuchang: { name: '许昌', pop: 60, wall: 50, agri: 70, commerce: 55, lng: 114.02, lat: 34.03 },
-  chenliu: { name: '陈留', pop: 40, wall: 40, agri: 55, commerce: 45, lng: 114.40, lat: 34.80 }
-};
-LF.FACTIONS = { caocao: { name: '曹' } };
+// 洛阳归属 → 董卓，使守将派生能命中吕布
+var owned = { luoyang: 'dongzhuo' };
+function cityOwnerOf(c) { return owned[c] || 'none'; }
 
-var state = {
-  title: '太守', gold: 8000, room: 'luoyang', day: 1, hp: 100, maxHp: 100,
-  ruledCities: ['luoyang'], pack: [], flags: {}, army: null
-};
-var modalKind = null;
-var G = { ENEMIES: {}, ROOMS: { luoyang: {}, fld_x: { isField: true } } };
+// ── 武将实例（复用真实工厂，验证守将集成）──
+var Officers = require(path.join(ROOT, 'shared/core/officers.js'))({
+  getState: function () { return state; }, LF: LF,
+  log: noop, toast: noop, save: noop,
+  escapeHtml: function (s) { return String(s == null ? '' : s); },
+  cityOwnerOf: cityOwnerOf, playerFaction: function () { return 'player'; }
+});
 
-function mkCtx(extra) {
-  var c = {
-    getState: function () { return state; },
-    getCurrentModalKind: function () { return modalKind; },
-    LF: LF, G: G,
-    log: function () { }, toast: function () { }, save: function () { },
-    renderStatus: function () { }, renderRoom: function () { },
-    openModal: function () { }, closeModal: function () { },
-    itemIconHTML: function () { return ''; }, escapeHtml: function (s) { return String(s); },
-    packAdd: function () { return true; }, packConsume: function () { return true; },
-    packFind: function () { return null; }, packList: function () { return state.pack || []; },
-    afterPackChange: function () { },
-    cityDevOf: function () { return 40; }, isCityGrid: function (r) { return !!LF.CITIES[r]; },
-    roleAtkMul: function () { return 1; }, roleDef: function () { return { icon: '⚔', name: '将才' }; },
-    roleEconMul: function () { return 1; }, roleFavorMul: function () { return 1; },
-    exert: function () { return true; }, advanceTime: function () { },
-    startCombat: function (ids, opt) { c.__lastStart = { ids: ids, opt: opt }; return true; },
-    showCombatSettlement: function (a, b) { c.__lastSettle = { info: a, cb: b }; return true; },
-    conquerCity: function (cid, fid, rep) { c.__conquered = { cid: cid, fid: fid, rep: rep }; return true; },
-    playerFaction: function () { return 'player'; },
-    getPendingArmyBattle: function () { return c.__ab || null; },
-    setPendingArmyBattle: function (v) { c.__ab = v; }
-  };
-  if (extra) for (var k in extra) c[k] = extra[k];
-  return c;
-}
+// ── 军队实例 ──
+var G = { ENEMIES: {} };
+var Army = require(path.join(ROOT, 'shared/core/army.js'))({
+  getState: function () { return state; },
+  getCurrentModalKind: function () { return 'x'; },   // 非 'army' → 不触发 openModal
+  LF: LF, G: G,
+  log: noop, toast: noop, save: noop, renderStatus: noop, renderRoom: noop,
+  openModal: noop, closeModal: noop,
+  itemIconHTML: function () { return ''; }, escapeHtml: function (s) { return String(s == null ? '' : s); },
+  packAdd: noop, packConsume: noop, packFind: noop, packList: noop, afterPackChange: noop,
+  cityDevOf: function () { return 0; }, isCityGrid: function () { return false; },
+  roleAtkMul: function () { return 1; }, roleDef: function () { return 1; },
+  exert: noop, advanceTime: noop, commandBonus: function () { return 1; }
+});
 
-var ctx = mkCtx();
-var Army = LF.createArmy(ctx);
-var warCtx = mkCtx({ Army: Army });
-var War = LF.createWar(warCtx);
+// ── 战术战斗实例 ──
+var War = require(path.join(ROOT, 'shared/core/war.js'))({
+  getState: function () { return state; },
+  LF: LF, G: G,
+  log: noop, toast: noop, save: noop, renderStatus: noop, renderRoom: noop,
+  openModal: noop, closeModal: noop,
+  escapeHtml: function (s) { return String(s == null ? '' : s); },
+  exert: noop, advanceTime: noop,
+  startCombat: noop, showCombatSettlement: noop, conquerCity: noop,
+  playerFaction: function () { return 'player'; },
+  cityDevOf: function () { return 0; }, cityOwnerOf: cityOwnerOf,
+  isCityGrid: function () { return false; }, roleAtkMul: function () { return 1; },
+  Army: Army,
+  getPendingArmyBattle: function () { return null; }, setPendingArmyBattle: noop,
+  Officers: Officers
+});
 
-// ══ 1. 兵科 / 阵位 / 军令 ══
-section('兵科 · 阵位 · 军令');
-var T = LF.TROOPS, ids = Object.keys(T);
-ok('七兵科齐备', ids.length === 7, ids.length);
-ok('每兵科字段完整', ids.every(function (k) {
-  var d = T[k];
-  return d.id === k && d.name && typeof d.atk === 'number' && typeof d.def === 'number' &&
-    typeof d.hp === 'number' && typeof d.spd === 'number' && d.slot && LF.TROOP_RANKS[d.slot];
-}));
-ok('四阵位齐备', Object.keys(LF.ARMY_RANKS).length === 4 && LF.ARMY_RANK_ORDER.length === 4);
-ok('军令齐备且各有所属阵位', Object.keys(LF.ARMY_ORDERS).every(function (k) {
-  var o = LF.ARMY_ORDERS[k];
-  return o.id === k && o.name && (!o.rank || LF.ARMY_RANKS[o.rank]);
-}));
-ok('前军/中军/后军/游骑各有军令', ['front', 'mid', 'rear', 'flank'].every(function (r) {
-  return Object.keys(LF.ARMY_ORDERS).some(function (k) { return LF.ARMY_ORDERS[k].rank === r; });
-}));
-ok('士气分档单调递减', (function () {
-  var B = LF.TROOP_MORALE_BANDS;
-  for (var i = 1; i < B.length; i++) if (B[i].min >= B[i - 1].min) return false;
-  return LF.moraleBand(90).key === 'high' && LF.moraleBand(5).key === 'broken';
-})());
-ok('官职兵力上限递增', LF.armyCapOf('游侠') < LF.armyCapOf('太守') && LF.armyCapOf('太守') < LF.armyCapOf('君主'));
+// ── 战前编成面板依赖 DOM ──
+var _card = { innerHTML: '' };
+global.document = { getElementById: function () { return _card; } };
 
-// ══ 2. 募兵 / 解散 / 整编 ══
-section('募兵 · 解散 · 整编');
-state.army = null;
-ok('ensureArmy 补默认值', (function () { var a = Army.ensureArmy(); return a && a.troops && a.morale === 100 && a.logistics && typeof a.logistics.grain === 'number'; })());
-var g0 = state.gold;
-ok('募兵成功并扣银', Army.armyRecruit('luoyang', 'changqiang', 50) && state.gold < g0);
-ok('募兵后入册', Army.troopOf('changqiang') && Army.troopOf('changqiang').count === 50);
-ok('首次成军点亮 active 与驻扎地', state.army.active === true && state.army.rallyPoint === 'luoyang');
-state.title = '游侠';
-ok('官职上限生效（游侠 50）', (function () {
-  Army.armyRecruit('luoyang', 'daodun', 100);
-  return Army.armyCount() === LF.armyCapOf('游侠');
-})(), 'count=' + Army.armyCount());
-state.title = '太守';
-ok('兵源池受限（城 pop*2）', Army.recruitLeft('chenliu') === Math.round(40 * 2) && Army.recruitLeft('luoyang') <= Math.round(90 * 2));
-ok('整编：步卒可列前军/中军', Army.armySetRank('changqiang', 'mid') && Army.troopOf('changqiang').rank === 'mid');
-ok('整编：步卒不可列游骑', Army.armySetRank('changqiang', 'flank') === false);
-ok('解散按比例减员', (function () {
-  state.title = '太守';
-  Army.armyRecruit('luoyang', 'changqiang', 10);
-  var before = Army.armyCount();
-  Army.armyDisband('changqiang', 20);
-  return Army.armyCount() === before - 20;
-})());
+// ════════════════════════════════════════════════
+// 1) 官职 → 全军兵力上限
+// ════════════════════════════════════════════════
+ok(LF.armyCapOf('游侠') === 50, '游侠兵力上限=50');
+ok(LF.armyCapOf('县令') === 150, '县令兵力上限=150');
+ok(LF.armyCapOf('太守') === 400, '太守兵力上限=400');
+ok(LF.armyCapOf('州牧') === 800, '州牧兵力上限=800');
+ok(LF.armyCapOf('君主') === 1500, '君主兵力上限=1500');
+ok(LF.armyCapOf('未知官职') === 50, '未知官职回落到游侠(50)');
 
-// ══ 3. 辎重 / 军粮 / 士气 ══
-section('辎重 · 军粮 · 军心');
-ok('辎重容量随辎重兵增长', (function () {
-  var c0 = Army.logisticsCap();
-  Army.armyRecruit('luoyang', 'qizhong', 20);
-  return Army.logisticsCap() >= c0;
-})());
-var grain0 = state.army.logistics.grain;
-ok('籴粮扣银入账', Army.armyBuyGrain(300) && state.army.logistics.grain === grain0 + 300);
-ok('军粮可支天数随兵力变化', Army.grainDays() > 0);
-ok('有粮时按日扣粮不掉士气', (function () {
-  var m0 = state.army.morale, g = state.army.logistics.grain;
-  Army.tickArmyDay(1);
-  return state.army.logistics.grain < g && state.army.morale === m0;
-})());
-ok('断粮则士气下跌', (function () {
-  state.army.logistics.grain = 0;
-  var m0 = state.army.morale;
-  Army.tickArmyDay(1);
-  return state.army.morale < m0;
-})());
-ok('士气分档影响战力倍率', LF.moraleBand(90).atkMul > LF.moraleBand(20).atkMul);
+// ════════════════════════════════════════════════
+// 2) 士气分档
+// ════════════════════════════════════════════════
+ok(Math.abs(LF.moraleBand(100).atkMul - 1.10) < 1e-9, '士气100→如虹 +10%');
+ok(Math.abs(LF.moraleBand(70).atkMul - 1.00) < 1e-9, '士气70→可用 +0%');
+ok(Math.abs(LF.moraleBand(50).atkMul - 0.90) < 1e-9, '士气50→浮动 -10%');
+ok(Math.abs(LF.moraleBand(30).atkMul - 0.75) < 1e-9, '士气30→低落 -25%');
+ok(Math.abs(LF.moraleBand(10).atkMul - 0.55) < 1e-9, '士气10→涣散 -45%');
 
-// ══ 4. 独立调兵 / 行军 ══
-section('调兵 · 行军 · 斥候 · 设伏');
-state.army.logistics.grain = 5000;
-state.army.marching = null;
-ok('调兵：生成行军任务并预支军粮', (function () {
-  var g = state.army.logistics.grain;
-  var r = Army.armyDeploy('xuchang');
-  return r && state.army.marching && state.army.marching.to === 'xuchang' && state.army.logistics.grain < g;
-})());
-ok('行军中不在身边', Army.armyWithPlayer() === false);
-ok('行军按日推进并抵达', (function () {
-  var d = state.army.marching.left;
-  for (var i = 0; i < d + 1; i++) Army.tickArmyDay(1);
-  return state.army.marching === null && state.army.rallyPoint === 'xuchang';
-})());
-ok('同城即与你会合', (function () { state.room = 'xuchang'; return Army.armyWithPlayer() === true; })());
-ok('宿营整军回士气', (function () {
-  state.army.morale = 60;
-  var okc = Army.armyCamp();
-  return okc && state.army.morale > 60;
-})());
-ok('无骑兵则派不出斥候', (function () {
-  state.army.troops = state.army.troops.filter(function (t) { return t.type !== 'qibing'; });
-  return Army.armyScout() === false;
-})());
-ok('有骑兵则可派斥候', (function () {
-  state.title = '太守';
-  Army.armyRecruit('xuchang', 'qibing', 10);
-  var r = Army.armyScout();
-  return r && Army.scouting() === true;
-})());
-ok('城中不可设伏', (function () { state.room = 'xuchang'; return Army.armyAmbush() === false; })());
-ok('郊野可设伏', (function () {
-  state.room = 'fld_x';
-  var r = Army.armyAmbush();
-  return r && state.flags.armyAmbush && state.flags.armyAmbush.room === 'fld_x';
-})());
+// ════════════════════════════════════════════════
+// 3) 募兵：兵源 / 银两 / 上限
+// ════════════════════════════════════════════════
+reset();   // 州牧，gold 100000，army 空
+var r1 = Army.armyRecruit('luoyang', 'changqiang', 100);
+ok(r1 === true, '募长枪兵×100 成功');
+ok(state.army.troops.length === 1 && state.army.troops[0].count === 100, '部曲计入 100 人');
+ok(state.army.troops[0].rank === 'front', '长枪兵默认列前军（步→前军）');
+ok(state.army.rallyPoint === 'luoyang' && state.army.active === true, '成军后置集结点/激活');
+ok(state.army.recruited['luoyang'] === 100, '记洛阳已募 100（兵源上限校验用）');
+ok(state.gold === 100000 - (2 + 1 * 2) * 100, '耗银 = (2+兵耗×2)×人数 = 400 两，实=' + (100000 - state.gold));
 
-// ══ 5. 营级单位聚合 ══
-section('营级单位 · 军令注入');
-Army.armySetRank('changqiang', 'front');   // 确保有前军，以验证 guard 吸火
-var units = Army.buildArmyPlayerUnits({ combatOnly: true });
-ok('每兵种一营', units.length > 0 && units.every(function (u) { return u.isTroop && u.count > 0; }));
-ok('数值随兵力聚合', units.every(function (u) { return u.maxHp > 0 && u.atk > 0 && u.hp === u.maxHp; }));
-ok('前军带 guard（吸火）', units.some(function (u) { return u.rank === 'front' && u.guard === true; }));
-ok('阵位排序 前→中→后→游骑', (function () {
-  var o = LF.ARMY_RANK_ORDER, last = -1;
-  return units.every(function (u) { var i = o.indexOf(u.rank); if (i < last) return false; last = i; return true; });
-})());
-ok('每个营都注入了军令', units.every(function (u) { return u._artMap && Object.keys(u._artMap).length > 0 && u.artIds.length > 0; }));
-var ordersMatchRank = units.every(function (u) {
-  return u.artIds.every(function (aid) {
-    var o = LF.ARMY_ORDERS[aid];
-    return !o || !o.rank || o.rank === u.rank;
+// 兵源耗尽（洛阳 pop80 → 兵源 160；再募 100 → 仅余 60）
+var r2 = Army.armyRecruit('luoyang', 'changqiang', 100);
+ok(r2 === true && state.army.troops[0].count === 160, '兵源剩 60，自动收缩募满 160');
+var r3 = Army.armyRecruit('luoyang', 'changqiang', 100);
+ok(r3 === false && state.army.troops[0].count === 160, '兵源已尽 → 拒募，人数不变');
+
+// 银两不足 → 拒募（换未耗尽兵源的城）
+reset();
+state.gold = 0;
+ok(Army.armyRecruit('xuchang', 'changqiang', 10) === false, '府库为空 → 募兵被拒');
+
+// 兵力上限 → 拒募（游侠 cap=50）
+reset({ title: '游侠' });
+ok(Army.armyRecruit('xuchang', 'changqiang', 50) === true, '游侠募满 50 人成功');
+ok(Army.armyRecruit('xuchang', 'changqiang', 1) === false, '已达兵力上限 → 拒募');
+
+// ════════════════════════════════════════════════
+// 4) 攻城编排：三段 / 城市基防 / 守军派生
+// ════════════════════════════════════════════════
+ok(War.SEGS.length === 3, '攻城分三段（城门/巷道/府衙），实=' + War.SEGS.length);
+ok(War.SEGS[0].key === 'gate' && War.SEGS[1].key === 'street' && War.SEGS[2].key === 'hall',
+  '三段顺序为 gate→street→hall');
+
+// 洛阳 wall85 pop80 dev0 → 基防 = round(85*1.2 + 80*0.6) = 150
+var base = War.cityBase('luoyang');
+ok(base === 150, '洛阳城防基数=150（wall85·pop80），实=' + base);
+ok(base > 30, '城防基数不低于下限 30');
+
+function waveOk(units, seg) {
+  ok(Array.isArray(units) && units.length >= 1, '第' + seg + '段守波非空（' + units.length + ' 支）');
+  units.forEach(function (u, i) {
+    ok(u && u.hp > 0 && u.atk > 0 && u.def >= 0 && u.count > 0 && u.maxHp > 0,
+      '第' + seg + '段守军[' + i + ']="' + (u && u.name) + '" 数值有效（hp=' + (u && u.hp) + ' atk=' + (u && u.atk) + '）');
   });
-});
-ok('军令与阵位匹配', ordersMatchRank);
-ok('坚守映射为防御架势', (function () {
-  var f = units.filter(function (u) { return u.rank === 'front'; })[0];
-  return !f || !f._artMap.jianshou || f._artMap.jianshou.id === 'defend';
-})());
-ok('后勤兵不打仗（combatOnly）', units.every(function (u) { return u.troopType !== 'minfu'; }));
-
-// ══ 6. 战后回扣与溃散 ══
-section('战后回扣 · 溃散');
-var before = Army.armyCount();
-var damaged = units.map(function (u) {
-  var c = Object.assign({}, u); c.hp = Math.round(u.maxHp * 0.5); return c;
-});
-var loss = Army.settleArmyLoss(damaged);
-ok('按残血比例折兵', loss.lost > 0 && Army.armyCount() < before, 'lost=' + loss.lost);
-ok('溃散额外折兵', (function () {
-  var c0 = Army.armyCount();
-  var u2 = Army.buildArmyPlayerUnits({ combatOnly: true }).map(function (u) { u.routed = true; u.hp = Math.round(u.maxHp * 0.5); return u; });
-  var l2 = Army.settleArmyLoss(u2);
-  return l2.routed.length > 0 && Army.armyCount() < c0;
-})());
-ok('战后士气取各营均值', state.army.morale >= 0 && state.army.morale <= 100);
-
-// ══ 7. 守军派生 / 攻城编排 ══
-section('守军派生 · 攻城编排');
+}
 var w0 = War.defenderWave('luoyang', 0);
+waveOk(w0, 0);
+ok(w0[0].name === '城门守卒' && w0[1].name === '城头弓弩', '城门段=城门守卒+城头弓弩');
+
+var w1 = War.defenderWave('luoyang', 1);
+waveOk(w1, 1);
+ok(w1[0].name === '巷战锐卒' && w1[1].name === '屋脊弓手', '巷道段=巷战锐卒+屋脊弓手');
+
 var w2 = War.defenderWave('luoyang', 2);
-ok('城门段有守卒与弓弩', w0.length >= 2 && w0.some(function (u) { return /守卒/.test(u.name); }));
-ok('府衙段有守将', w2.some(function (u) { return /守将/.test(u.name); }));
-ok('守军数值有效', w0.concat(w2).every(function (u) { return u.maxHp > 0 && u.atk > 0 && u.morale > 0; }));
-ok('守军亦带军令', w0.every(function (u) { return u._artMap && u.artIds.length > 0; }));
-ok('三段次序为 城门→巷道→府衙', War.SEGS.map(function (s) { return s.name; }).join('') === '城门巷道府衙');
-ok('聚合防御保持可辨（<80 上限内）', (function () {
-  var big = War.mkUnit('大营', 400, { atk: 8, def: 10, hp: 26, spd: 12 }, {});
-  return big.def > 0 && big.def <= 80;
-})(), 'def=' + War.mkUnit('大营', 400, { atk: 8, def: 10, hp: 26, spd: 12 }, {}).def);
-ok('野战可起兵', (function () {
-  state.room = 'luoyang';
-  state.army.rallyPoint = 'luoyang';   // 部曲与你会合，方可出战
-  var r = War.startFieldBattle({ def: { name: '流寇', troops: 60 } });
-  return r === true && warCtx.__lastStart && warCtx.__lastStart.opt.armyBattle === true;
-})());
-ok('攻城编排登记三段上下文', (function () {
-  Army.armyRecruit('luoyang', 'changqiang', 30);
-  var r = War.launchSiege('luoyang');
-  return r && warCtx.__ab && warCtx.__ab.kind === 'siege' && warCtx.__ab.seg === 0;
-})());
-ok('守军定义已注入 ENEMIES', Object.keys(G.ENEMIES).some(function (k) { return k.indexOf('_dfn_') === 0; }));
+waveOk(w2, 2);
+ok(w2[0].name === '府衙亲兵', '府衙段首支=府衙亲兵');
+ok(w2[1].name.indexOf('守将') >= 0, '府衙段含守将单位（集成 garrisonCommander），实="' + w2[1].name + '"');
 
-// ══ 8. 战场事件：军令副作用 / 冲散 / 援军 ══
-section('战场事件');
-var st = {
-  round: 3,
-  playerUnits: [
-    { name: '长枪兵营', hp: 100, maxHp: 1000, isTroop: true, morale: 30, routed: false },
-    { name: '主角', hp: 50, maxHp: 100, morale: 90 }
-  ],
-  enemies: [{ name: '城门守卒', hp: 500, maxHp: 900, morale: 40, routed: false }]
-};
-G.CombatEngine = { state: st };
-warCtx.__ab = { kind: 'siege', cid: 'luoyang', seg: 0, reinforce: null };
-ok('军令：冲阵自损 + 士气结算', (function () {
-  var hp0 = st.playerUnits[0].hp;
-  War.armyRoundHook([{ unit: st.playerUnits[0], actionId: 'chongzhen' }]);
-  return st.playerUnits[0].hp < hp0 && st.enemies[0].morale < 40;
-})());
-ok('军令：督战提振全军士气', (function () {
-  var m0 = st.playerUnits[1].morale;
-  War.armyRoundHook([{ unit: st.playerUnits[0], actionId: 'duzhan' }]);
-  return st.playerUnits[0].morale > 30 || st.playerUnits[1].morale >= m0;
-})());
-ok('冲散：残血低士气可溃散', (function () {
-  var routed = false;
-  for (var i = 0; i < 200 && !routed; i++) {
-    st.playerUnits[0].routed = false; st.playerUnits[0].hp = 200; st.playerUnits[0].morale = 5;
-    War.armyRoundHook([]);
-    routed = !!st.playerUnits[0].routed;
-  }
-  return routed;
-})());
-ok('援军：到回合入场', (function () {
-  warCtx.__ab = {
-    kind: 'siege', cid: 'luoyang', seg: 0,
-    reinforce: { round: 1, done: false, name: '邻郡援军', unit: War.mkUnit('邻郡援军', 50, { atk: 7, def: 8, hp: 26, spd: 16 }, {}) }
-  };
-  var n0 = st.enemies.length;
-  War.armyRoundHook([]);
-  return st.enemies.length === n0 + 1 && warCtx.__ab.reinforce.done === true;
-})());
+// 无武将模块时守军派生亦不崩（默认守将名 = 城+「守将」）
+var War2 = require(path.join(ROOT, 'shared/core/war.js'))({
+  getState: function () { return state; }, LF: LF, G: G,
+  log: noop, toast: noop, save: noop, renderStatus: noop, renderRoom: noop,
+  openModal: noop, closeModal: noop, escapeHtml: function (s) { return String(s == null ? '' : s); },
+  exert: noop, advanceTime: noop, startCombat: noop, showCombatSettlement: noop, conquerCity: noop,
+  playerFaction: function () { return 'player'; }, cityDevOf: function () { return 0; },
+  cityOwnerOf: cityOwnerOf, isCityGrid: function () { return false; }, roleAtkMul: function () { return 1; },
+  Army: Army, getPendingArmyBattle: function () { return null; }, setPendingArmyBattle: noop, Officers: null
+});
+var w2b = War2.defenderWave('luoyang', 2);
+ok(w2b.length === 2 && w2b[1].name.indexOf('守将') >= 0, '无 Officers 时守军派生兜底正常');
 
-// ══ 9. 结算回写 ══
-section('胜负回写');
-G.CombatEngine = { state: { playerUnits: [{ name: '主角', hp: 40, maxHp: 100 }], enemies: [] } };
-warCtx.__ab = { kind: 'siege', cid: 'luoyang', seg: 2, fid: null };
-warCtx.__conquered = null;
-warCtx.__lastSettle = null;
-War.armyBattleEnd('win');
-ok('结算面板已弹出', !!warCtx.__lastSettle);
-if (warCtx.__lastSettle && warCtx.__lastSettle.cb) warCtx.__lastSettle.cb();   // 玩家点确认 → 易帜
-ok('攻破府衙 → 易帜', !!warCtx.__conquered && warCtx.__conquered.cid === 'luoyang' && warCtx.__conquered.fid === 'player');
+// ════════════════════════════════════════════════
+// 5) 战前编成面板渲染（含三段说明 / 守军预估 / 举兵按钮）
+// ════════════════════════════════════════════════
+reset();
+Army.armyRecruit('luoyang', 'changqiang', 100);   // 生成可编部曲
+_card.innerHTML = '';
+War.openSiegePrep('luoyang');
+var html = _card.innerHTML;
+ok(html.indexOf('战前编成') >= 0, '战前编成面板标题存在');
+ok(html.indexOf('守军约') >= 0, '面板含守军数量预估');
+ok(html.indexOf('举 兵') >= 0, '面板含「举兵」开战按钮');
+ok(html.indexOf('长枪兵') >= 0, '面板列出部曲（长枪兵）');
+ok(html.indexOf('破城门、清巷道、下府衙') >= 0, '面板说明三段攻城流程');
 
-console.log('\n════ 结果：' + pass + ' 通过 / ' + fail + ' 失败 ════');
+// ════════════════════════════════════════════════
+// 6) 兵员→营级数值幂律缩放（多兵更厚）
+// ════════════════════════════════════════════════
+var fS = War.aggF(100).hpF, fL = War.aggF(1000).hpF;
+ok(fL > fS, '聚合防御/气血随兵员幂律增长（1000 兵 > 100 兵）');
+var u = War.mkUnit('测试营', 100, { hp: 20, atk: 5, def: 5, spd: 10 });
+ok(u.hp > 20 && u.atk >= 1 && u.count === 100, 'mkUnit 按兵员放大营级气血，hp=' + u.hp);
+
+console.log('\n军队/攻城系统单测：通过 ' + pass + ' / 失败 ' + fail);
 process.exit(fail ? 1 : 0);

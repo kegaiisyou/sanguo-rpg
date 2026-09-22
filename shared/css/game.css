@@ -2561,6 +2561,15 @@
 .am-empty{grid-column:1/-1;padding:14px 10px;text-align:center;font-size:12px;color:#8a7959;border:1px dashed rgba(184,137,58,.3);border-radius:6px;}
 .am-cell{padding:8px 9px;border:1px solid rgba(184,137,58,.3);border-radius:7px;background:linear-gradient(180deg,rgba(46,34,17,.8),rgba(24,17,6,.8));transition:border-color .25s,transform .25s,box-shadow .25s;}
 .am-cell:hover{border-color:rgba(255,210,104,.6);transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.4);}
+.am-recruit{margin:6px 0 10px;padding:8px 9px;border:1px solid rgba(184,137,58,.32);border-radius:7px;background:linear-gradient(180deg,rgba(46,34,17,.55),rgba(24,17,6,.45));}
+.am-rhead{font-size:12px;color:#c8b78f;margin-bottom:6px;}
+.am-rgrid{display:grid;grid-template-columns:1fr;gap:6px;}
+.am-rrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 6px;border:1px solid rgba(184,137,58,.22);border-radius:6px;background:rgba(42,31,16,.5);}
+.am-rname{display:flex;flex-direction:column;min-width:120px;flex:1;}
+.am-rname b{color:#f0d9a8;font-size:13px;}
+.am-rdesc{font-size:11px;color:#9c8a68;line-height:1.4;}
+.am-rcost{font-size:11px;color:#b89a5e;white-space:nowrap;}
+.am-rops{display:flex;gap:4px;margin-left:auto;}
 .am-ctop{display:flex;justify-content:space-between;align-items:center;gap:6px;}
 .am-ctop b{font-size:14px;color:#ffd268;font-weight:600;letter-spacing:.04em;}
 .am-rank{font-size:11px;padding:1px 6px;border-radius:9px;color:#f0e4c8;background:rgba(184,137,58,.22);border:1px solid rgba(184,137,58,.4);white-space:nowrap;}
@@ -2594,6 +2603,38 @@
 .wp-foot.warn{border-color:rgba(192,57,43,.55);color:#e8b0a4;background:rgba(60,20,12,.35);}
 .wp-ops{display:flex;gap:8px;margin-top:12px;}
 .wp-ops .btn{min-width:96px;justify-content:center;}
+
+/* ════════════════════════════════════════════════
+   武将系统（v20260921b）· 水墨金 · 羊皮纸
+   ════════════════════════════════════════════════ */
+.of-head{font-size:12px;color:#c8b78f;margin:2px 0 8px;letter-spacing:.04em;line-height:1.7;}
+.of-head b{color:#ffd268;font-weight:600;}
+.of-ops{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.of-empty{padding:16px 12px;text-align:center;font-size:12px;color:#8a7959;border:1px dashed rgba(184,137,58,.32);border-radius:7px;line-height:1.8;}
+.of-list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;}
+.of-row{padding:9px 10px;border:1px solid rgba(184,137,58,.3);border-radius:8px;background:linear-gradient(180deg,rgba(46,34,17,.82),rgba(24,17,6,.82));transition:border-color .25s,box-shadow .25s,transform .25s;}
+.of-row:hover{border-color:rgba(255,210,104,.55);box-shadow:0 4px 16px rgba(0,0,0,.42);}
+.of-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.of-top b{font-size:15px;color:#ffd268;font-weight:600;letter-spacing:.05em;}
+.of-title{font-size:11px;color:#a89370;font-style:italic;}
+.of-tag{margin-left:auto;font-size:11px;padding:1px 8px;border-radius:9px;white-space:nowrap;}
+.of-tag.free{color:#8a7959;background:rgba(184,137,58,.12);border:1px solid rgba(184,137,58,.28);}
+.of-tag.cmd{color:#1a1206;background:linear-gradient(180deg,#ffd268,#b8893a);border:1px solid #ffd268;font-weight:600;}
+.of-tag.gov{color:#f0e4c8;background:rgba(63,125,74,.3);border:1px solid rgba(63,125,74,.6);}
+.of-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:7px;}
+.of-s{display:flex;align-items:center;gap:3px;font-size:10px;color:#a89370;}
+.of-s i{font-style:normal;width:16px;text-align:center;padding:1px 0;border-radius:3px;font-size:10px;color:#1a1206;background:#8a7959;}
+.of-s i.t-high{background:linear-gradient(180deg,#ffd268,#b8893a);}
+.of-s i.t-mid{background:#8a7959;}
+.of-s i.t-low{background:#9a5a3a;}
+.of-s i.t-none{background:#4a4030;}
+.of-s b{height:5px;flex:1;background:linear-gradient(90deg,#b8893a,#ffd268);border-radius:3px;box-shadow:inset 0 0 0 1px rgba(184,137,58,.2);}
+.of-s em{font-style:normal;min-width:18px;text-align:right;color:#f0e4c8;}
+.of-acts{display:flex;flex-wrap:wrap;gap:5px;}
+.of-note{font-size:11px;color:#8a7959;margin:0 0 8px;line-height:1.7;}
+.of-chance{margin-left:auto;font-size:11px;color:#3f7d4a;}
+.of-acts .btn{min-height:34px;}
+
 @media (max-width:420px){
   .am-head{grid-template-columns:1fr;}
   .am-grid,.wp-grid{grid-template-columns:1fr 1fr;}

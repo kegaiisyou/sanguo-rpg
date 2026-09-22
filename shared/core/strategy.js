@@ -13,6 +13,7 @@
     var cityOwnerOf = ctx.cityOwnerOf, cityDevOf = ctx.cityDevOf, setCityDev = ctx.setCityDev, isCityGrid = ctx.isCityGrid;
     var chronicle = ctx.chronicle, chronicleList = ctx.chronicleList, escapeHtml = ctx.escapeHtml;
     var roleAtkMul = ctx.roleAtkMul, roleEconMul = ctx.roleEconMul, roleFavorMul = ctx.roleFavorMul, roleDef = ctx.roleDef;
+    var Officers = ctx.Officers || null;
   // ══ 玩家外交系统（v20260918h）══
   function diploGet(fid){ return (S().flags.diplo && S().flags.diplo[fid]) || null; }
   function diploStatus(fid){ var d=diploGet(fid); return d? d.status : 'war'; }
@@ -158,6 +159,7 @@
     h+='<button class="btn" onclick="openModal(\'factionMap\')">🏴 大势<br><span class="sub">观天下势力</span></button>';
     h+='<button class="btn" onclick="openModal(\'army\')">🛡 治军<br><span class="sub">募兵编成·辎重调遣</span></button>';
     h+='</div>';
+    h+='<button class="btn" onclick="openOfficerPanel()">🎖 武将<br><span class="sub">登庸·郡守·主将</span></button>';
     h+='<div class="edict-foot">立于中枢、城归你所统，方能发号。占城即得官职，聚财养士。</div>';
     h+='</div>';
     return h;
@@ -265,9 +267,9 @@
     var defKey = warOwnerKey(targetCid);
     var atkT = factionTroops(attackerFid);                                     // 兵在册，势自盛（v20260921a）
     var defT = factionTroops(defKey);
-    var atk = (warFactionTotal(attackerFid) + atkT * 2.2) * (0.28 + Math.random() * 0.16);   // 举国之力的一支偏师
+    var atk = (warFactionTotal(attackerFid) + atkT * 2.2) * (0.6 + Math.random() * 0.2);   // 举国之力的一支偏师
     if (attackerFid === 'player') atk *= roleAtkMul();   // 职种：将才攻势更盛（v20260918h）
-    var def = (warCityPower(targetCid) + defT * 1.1) * (1.4 + Math.random() * 0.2);          // 据城而守，一夫当关
+    var def = (warCityPower(targetCid) + defT * 1.1) * (1.1 + Math.random() * 0.2);          // 据城而守，一夫当关
     var defReal = !!(LF.FACTIONS && LF.FACTIONS[defKey]);
     if (defReal) def += warFactionTotal(defKey) * 0.1;                        // 邻郡/本州驰援之师
     var atkRoll = atk * (0.85 + Math.random() * 0.3);
@@ -432,7 +434,7 @@
       var grown = 0;
       cities.forEach(function (cid) {
         var c = C[cid] || {};
-        var g = F.factionWarHit[cid] ? 0 : (0.3 + (((c.agri || 40) + (c.commerce || 40)) / 200) * 0.9);
+        var g = F.factionWarHit[cid] ? 0 : (0.3 + (((c.agri || 40) + (c.commerce || 40)) / 200) * 0.9) * (Officers ? Officers.garrisonCivilBonus(cid) : 1);
         var before = cityDevOf(cid);
         var after = Math.min(100, before + g);
         if (after > before) { setCityDev(cid, after); grown += (after - before); }
@@ -456,7 +458,7 @@
     // 玩家治下城：随月发展（战乱城停滞），受相才加成（v20260918h）
     (S().ruledCities||[]).forEach(function(cid){
       if (F.factionWarHit[cid]) return;
-      var c=C[cid]||{}, g=(0.3+(((c.agri||40)+(c.commerce||40))/200)*0.9)*roleEconMul();
+      var c=C[cid]||{}, g=(0.3+(((c.agri||40)+(c.commerce||40))/200)*0.9)*roleEconMul()*(Officers?Officers.civilBonus(cid):1);
       var before=cityDevOf(cid), after=Math.min(100,before+g);
       if(after>before) setCityDev(cid,after);
     });

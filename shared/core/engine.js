@@ -460,7 +460,8 @@
     chronicle: chronicle, chronicleList: chronicleList, escapeHtml: escapeHtml,
     roleAtkMul: roleAtkMul, roleEconMul: roleEconMul, roleFavorMul: roleFavorMul, roleDef: roleDef,
     getArmyTroops: function () { return Army.armyCount(); },
-    startDefendBattle: function (cid, fid) { return War.startDefendBattle(cid, fid); }
+    startDefendBattle: function (cid, fid) { return War.startDefendBattle(cid, fid); },
+    Officers: Officers
   });
   var diploGet = Strategy.diploGet, diploStatus = Strategy.diploStatus, diploActive = Strategy.diploActive, diploTruceBetween = Strategy.diploTruceBetween,
       diploExpire = Strategy.diploExpire, diploPropose = Strategy.diploPropose, diploSue = Strategy.diploSue, renderDiplomacy = Strategy.renderDiplomacy, openDiplomacy = Strategy.openDiplomacy,
@@ -576,6 +577,11 @@
   // ══ 军队 / 战术战斗（v20260921a）：营级单位 + 三阵位军令 + 攻城/守城/野战 ══
   // pendingArmyBattle：本场军队作战的编排上下文（分段、援军、夜袭等），由 War 读写
   var pendingArmyBattle = null;
+  var Officers = LF.createOfficers({
+    getState: function () { return state; }, LF: LF,
+    log: log, toast: toast, save: save, escapeHtml: escapeHtml,
+    cityOwnerOf: cityOwnerOf, playerFaction: playerFaction
+  });
   var Army = LF.createArmy({
     getState: function () { return state; },
     getCurrentModalKind: function () { return currentModalKind; },
@@ -587,7 +593,8 @@
     afterPackChange: afterPackChange,
     cityDevOf: cityDevOf, isCityGrid: isCityGrid,
     roleAtkMul: roleAtkMul, roleDef: roleDef,
-    exert: exert, advanceTime: advanceTime
+    exert: exert, advanceTime: advanceTime,
+    commandBonus: function () { return Officers.commandBonus(); }
   });
   var War = LF.createWar({
     getState: function () { return state; },
@@ -600,7 +607,8 @@
     isCityGrid: isCityGrid, roleAtkMul: roleAtkMul,
     Army: Army,
     getPendingArmyBattle: function () { return pendingArmyBattle; },
-    setPendingArmyBattle: function (v) { pendingArmyBattle = v; }
+    setPendingArmyBattle: function (v) { pendingArmyBattle = v; },
+    Officers: Officers
   });
   var armyRecruit = Army.armyRecruit, armyDisband = Army.armyDisband, armySetRank = Army.armySetRank,
       armyDeposit = Army.armyDeposit, armyWithdraw = Army.armyWithdraw, armyBuyGrain = Army.armyBuyGrain,
@@ -613,6 +621,9 @@
       startSiegeBattle = War.startSiegeBattle, openSiegePrep = War.openSiegePrep,
       startDefendBattle = War.startDefendBattle, startFieldBattle = War.startFieldBattle,
       warToggleTroop = War.warToggleTroop, warLaunch = War.warLaunch, tryAmbush = War.tryAmbush;
+  var officerRecruit = Officers.recruit, officerAppoint = Officers.appoint, officerDismiss = Officers.dismiss,
+      renderOfficerPanel = Officers.renderOfficerPanel, renderSearchPanel = Officers.renderSearchPanel,
+      openOfficerPanel = Officers.openOfficerPanel, openSearchPanel = Officers.openSearchPanel;
   // NPC 装配器与交谈面板（v20260916c）：从 engine.js 切出，见 shared/core/npc.js。
   // 排在 Combat 之后（敌意卡「挑战」用 startCombat）、Pack 之前；city.js 经 getNPC_BUILD 延迟取装配器，
   // 故 City（更早建）不会因 NPC 后建而拿到空值。
@@ -2840,13 +2851,7 @@
       // v20260910q：回营区按钮已取消——离开牢房走罗盘网格邻居（南·中军大帐等）
       case 'recruit':
         if(!exert('入营募兵')) return;
-        state.flags.recruited=state.flags.recruited||{};
-        var rk=state.room+'_sol';
-        if(!state.flags.recruited[rk]){
-          state.flags.recruited[rk]=true;
-          log('你于'+((LF.CITIES[state.room]||{}).name||'城中')+'军营募得兵卒一名，编入行伍。','sys');
-        }
-        openModal('army');   // 军队视图：募兵 / 整编 / 辎重 / 调兵（v20260921a）
+        openModal('army');   // 军营：面板内「募兵」区块按兵科/兵源/府库募兵（v20260922b）
         break;
       case 'army_manage':
         openModal('army');   // 治军：军队视图（募兵 / 整编 / 辎重 / 调兵）
@@ -4385,6 +4390,12 @@
     } else if(kind==='army'){
       h=renderArmyPanel();
       setTimeout(function(){ bindArmyPanel(); },0);
+    }
+    else if(kind==='officers'){
+      h=renderOfficerPanel();
+    }
+    else if(kind==='officerSearch'){
+      h=renderSearchPanel();
     } else if(kind==='party'){
       h=renderPartyPanel();
     } else if(kind==='quest'){
@@ -4885,7 +4896,9 @@
   window.openArmyDeposit=openArmyDeposit; window.openArmyDeploy=openArmyDeploy;
   window.openSiegePrep=openSiegePrep; window.warToggleTroop=warToggleTroop; window.warLaunch=warLaunch;
   window.startDefendBattle=startDefendBattle; window.startFieldBattle=startFieldBattle;
+  window.openOfficerPanel=openOfficerPanel; window.openSearchPanel=openSearchPanel; window.recruitOfficer=officerRecruit; window.appointOfficer=officerAppoint; window.dismissOfficer=officerDismiss;
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
+  window.enterGame=enterGame;   // 调试/自动化游玩桥接（供 playtest harness 开局，与 advanceTime 同款）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）
   // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，
   //    engine.js 及其拆分文件以裸名 state 访问（=window.state），rooms.js 等外部脚本以 window.state 只读访问。
