@@ -5,6 +5,65 @@
 //   · home 必须是 LF.CITIES 中存在的 cid（校验见 test/cross_reference_check.js 的「武将引用」规则）。
 (function (global) {
   if (!global.LF || !LF.PERSONA) { console.error('[officers] 需先加载 personas.js'); return; }
+  // ── 武将特技目录（三国志10 式）──
+  // cat: 战/智/政/魅；eff 为量化效果（atkMul 攻倍率·defMul 防倍率·spdAdd 机动·crit 暴击·devMul 治域产出·recruit 登庸·loyalty 忠诚点）；flag 为定性特技。
+  var OFFICER_SKILLS = [
+    { id:'shenjiang', name:'神将', cat:'战', desc:'临阵若神，全军攻势大进。', eff:{ atkMul:0.15 } },
+    { id:'mengzhe', name:'猛者', cat:'战', desc:'悍不畏死，易挫敌锐气。', eff:{ crit:0.12, atkMul:0.05 } },
+    { id:'feijiang', name:'飞将', cat:'战', desc:'驰突如飞，机动与冲阵俱佳。', eff:{ spdAdd:6, atkMul:0.08 } },
+    { id:'longdan', name:'龙胆', cat:'战', desc:'胆气绝伦，攻守兼资。', eff:{ atkMul:0.07, defMul:0.07 } },
+    { id:'wusheng', name:'武圣', cat:'战', desc:'万人敌，威风凛凛。', eff:{ atkMul:0.12 } },
+    { id:'xiaoyong', name:'骁勇', cat:'战', desc:'勇冠三军，先登陷阵。', eff:{ atkMul:0.08 } },
+    { id:'yongjiang', name:'勇将', cat:'战', desc:'身先士卒，所向披靡。', eff:{ atkMul:0.06 } },
+    { id:'luanwu', name:'乱舞', cat:'战', desc:'纵横厮杀，势如卷席。', eff:{ atkMul:0.10 } },
+    { id:'jianxiong', name:'奸雄', cat:'战', desc:'雄才大略，挟势而行。', eff:{ atkMul:0.10 } },
+    { id:'huwei', name:'虎卫', cat:'战', desc:'骁锐宿卫，护主周严。', eff:{ defMul:0.12 } },
+    { id:'shanbao', name:'善守', cat:'战', desc:'据城死守，壁垒森严。', eff:{ defMul:0.10 } },
+    { id:'qibing', name:'奇兵', cat:'战', desc:'出敌不意，邀击要害。', eff:{ atkMul:0.06, spdAdd:3 } },
+    { id:'guimou', name:'鬼谋', cat:'智', desc:'算无遗策，料敌于先。', eff:{ defMul:0.10 } },
+    { id:'wolong', name:'卧龙', cat:'智', desc:'经纬天地，安邦定国。', eff:{ defMul:0.15 } },
+    { id:'fenghu', name:'凤雏', cat:'智', desc:'才略宏深，奇正相生。', eff:{ defMul:0.12 } },
+    { id:'huogong', name:'火攻', cat:'智', desc:'烈焰焚敌，摧破营垒。', eff:{ atkMul:0.10 } },
+    { id:'fanji', name:'反计', cat:'智', desc:'识破诡谋，反施其术。', eff:{ flag:'反计' } },
+    { id:'chenzhuo', name:'沉着', cat:'智', desc:'临变不乱，军心自固。', eff:{ flag:'沉着' } },
+    { id:'baichu', name:'百出', cat:'智', desc:'奇计纷呈，变化莫测。', eff:{ flag:'百出' } },
+    { id:'zhenxing', name:'治军', cat:'智', desc:'部勒严整，敌难蹈隙。', eff:{ defMul:0.06 } },
+    { id:'tuntian', name:'屯田', cat:'政', desc:'且耕且战，足食足兵。', eff:{ devMul:0.20 } },
+    { id:'shangcai', name:'商才', cat:'政', desc:'通商惠工，府库充盈。', eff:{ devMul:0.20 } },
+    { id:'gongshen', name:'工神', cat:'政', desc:'巧思营缮，器备精良。', eff:{ devMul:0.20 } },
+    { id:'nengli', name:'能吏', cat:'政', desc:'综理庶务，兴利除弊。', eff:{ devMul:0.12 } },
+    { id:'renwang', name:'人望', cat:'魅', desc:'德声远播，豪杰归心。', eff:{ recruit:0.15 } },
+    { id:'mingwang', name:'名望', cat:'魅', desc:'誉满天下，从者如云。', eff:{ recruit:0.10, loyalty:10 } },
+    { id:'jiaohua', name:'教化', cat:'魅', desc:'移风易俗，人心悦附。', eff:{ loyalty:15 } },
+    { id:'lunke', name:'论客', cat:'魅', desc:'舌灿莲花，折冲樽俎。', eff:{ flag:'论客' } },
+    { id:'yizhe', name:'医者', cat:'魅', desc:'精于岐黄，疗伤起殒。', eff:{ flag:'医者' } },
+    { id:'xinyi', name:'信义', cat:'魅', desc:'一诺千金，士卒用命。', eff:{ loyalty:8 } }
+  ];
+  global.LF.OFFICER_SKILLS = OFFICER_SKILLS;
+  // 名将显式特技映射（其余按五维自动派生）
+  var HERO_SKILLS = {
+    dong_zhuo:['jianxiong','nengli'], lv_bu:['feijiang','luanwu','mengzhe'], li_ru:['guimou'],
+    hua_xiong:['xiaoyong'], guo_si:['yongjiang'], li_jue:['yongjiang'],
+    cao_cao:['jianxiong','renwang','shangcai'], xun_yu:['guimou','nengli'], guo_jia:['guimou','baichu'],
+    dian_wei:['huwei'], xu_chu:['huwei'], xiahou_dun:['yongjiang','shanbao'], zhang_liao:['xiaoyong','qibing'],
+    cao_ren:['shanbao'],
+    sun_ce:['xiaoyong','renwang'], zhou_yu:['huogong','guimou','baichu'], taishi_ci:['xiaoyong','xinyi'],
+    huang_gai:['huogong','shanbao'],
+    liu_biao:['nengli','tuntian'], huang_zhong:['yongjiang','luanwu'], wei_yan:['qibing'], kuai_yue:['guimou','nengli'],
+    fa_zheng:['guimou','baichu'], zhang_song:['guimou'], yan_yan:['yongjiang'], zhang_ren:['yongjiang','xinyi'],
+    gongsun_du:['nengli'], liu_zhang:['gongshen','nengli'], ma_teng:['xiaoyong'], ma_chao:['xiaoyong','feijiang'], ma_dai:['xiaoyong'],
+    han_sui:['mengzhe'], yuan_shao:['mingwang'], tian_feng:['guimou','chenzhuo'], ju_shou:['guimou','zhenxing'],
+    yan_liang:['yongjiang','shenjiang'], wen_chou:['yongjiang'], huangfu_song:['shanbao','guimou'],
+    zhu_jun:['shanbao'], lu_zhi:['nengli','mingwang','tuntian'],
+    liu_bei:['renwang','jiaohua','mingwang'], guan_yu:['wusheng','yongjiang'], zhang_fei:['mengzhe','luanwu'],
+    zhao_yun:['longdan','yongjiang'], zhuge_liang:['wolong','huogong','baichu','fanji'],
+    xu_shu:['guimou'], pang_tong:['fenghu','baichu'], jiang_wei:['longdan','guimou']
+  };
+  function autoSkills(c) {
+    var s = c.stats || {}; var best = 'wu', arr = ['wu','zhi','tong','zheng','mei'];
+    arr.forEach(function (k) { if ((s[k] || 0) > (s[best] || 0)) best = k; });
+    return { wu:['xiaoyong'], zhi:['guimou'], tong:['zhenxing'], zheng:['nengli'], mei:['renwang'] }[best];
+  }
   var R = [
     // ═══ 董卓 ═══
     { id:'dong_zhuo', name:'董卓', title:'太师', faction:'dongzhuo', home:'luoyang', loyalty:70,
@@ -128,7 +187,7 @@
   ];
   // 去重（同名 id 仅保留首条）
   var seen = {}, clean = [];
-  R.forEach(function (c) { if (!seen[c.id]) { seen[c.id] = 1; clean.push(c); } });
+  R.forEach(function (c) { if (!seen[c.id]) { seen[c.id] = 1; c.skills = HERO_SKILLS[c.id] || autoSkills(c); clean.push(c); } });
   var res = LF.PERSONA.register(clean);
   if (global.console && res.bad && res.bad.length) console.warn('[officers] 录入失败 ' + res.bad.length + ' 条：', res.bad);
   if (typeof module !== 'undefined' && module.exports) module.exports = res;

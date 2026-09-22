@@ -11,6 +11,9 @@
     var log = ctx.log, toast = ctx.toast, save = ctx.save;
     var cityOwnerOf = ctx.cityOwnerOf, playerFaction = ctx.playerFaction;
     var escapeHtml = ctx.escapeHtml || function (s) { return String(s == null ? '' : s); };
+    var SKILL_MAP = {}; (LF.OFFICER_SKILLS || []).forEach(function (s) { SKILL_MAP[s.id] = s; });
+    function idsOf(t) { return (t && t.skills) ? t.skills : []; }
+    function sumEff(ids, key) { var s = 0; (ids || []).forEach(function (id) { var d = SKILL_MAP[id]; if (d && d.eff && typeof d.eff[key] === 'number') s += d.eff[key]; }); return s; }
 
     // ── 索引：模板 id → 武将；驻城 → 武将列表 ──
     var _byId = null, _byCity = null;
@@ -56,23 +59,31 @@
       var t = template(id); if (!t) return null;
       var s = t.stats, p = LF.PERSONA.powerOf(s);
       var scale = Math.max(0.75, Math.min(2.4, p / 95));
-      return { atk: Math.round(13 * scale), def: Math.round(11 * scale * 0.95), hp: Math.round(40 * scale), spd: Math.round(14 + s.wu * 0.06) };
+      var ids = idsOf(t);
+      var atkMul = 1 + sumEff(ids, 'atkMul');
+      var defMul = 1 + sumEff(ids, 'defMul');
+      var spdAdd = sumEff(ids, 'spdAdd');
+      var crit = sumEff(ids, 'crit');
+      return { atk: Math.round(13 * scale * atkMul), def: Math.round(11 * scale * 0.95 * defMul), hp: Math.round(40 * scale), spd: Math.round(14 + s.wu * 0.06 + spdAdd), crit: crit };
     }
 
     // ── 加成 ──
     function commandBonus() {
       var c = commander(); if (!c) return 1;
-      return 1 + (c.stats.tong || 0) / 100 * 0.5;     // 统率 100 → 战力 +50%
+      var base = 1 + (c.stats.tong || 0) / 100 * 0.5;  // 统率 100 → 战力 +50%
+      var atk = 1 + sumEff(idsOf(template(c.id)), 'atkMul');
+      return base * atk;
     }
     function civilBonus(cid) {
       var g = governorOf(cid); if (!g) return 1;
-      return 1 + (g.stats.zheng || 0) / 100 * 0.6;    // 政务 100 → 治域成长 +60%
+      var ids = idsOf(template(g.id));
+      return 1 + (g.stats.zheng || 0) / 100 * 0.6 + sumEff(ids, 'devMul');  // 政务 + 特技(屯田/商才/工神/能吏)
     }
     function garrisonCivilBonus(cid) {
       var g = garrisonOf(cid); if (!g.length) return 1;
-      var best = 0;
-      g.forEach(function (t) { best = Math.max(best, t.stats.zheng || 0); });
-      return 1 + best / 100 * 0.4;
+      var best = 0, bestZheng = 0;
+      g.forEach(function (t) { var ids = idsOf(t); best = Math.max(best, sumEff(ids, 'devMul')); bestZheng = Math.max(bestZheng, t.stats.zheng || 0); });
+      return 1 + bestZheng / 100 * 0.4 + best;
     }
 
     // ── 登庸 / 搜索 ──
@@ -94,14 +105,18 @@
       var mei = (t.stats && t.stats.mei) || 50;
       var loy = t.loyalty || 50;
       var p = 0.30 + rep / 300 + mei / 500 + (100 - loy) / 400;
-      return Math.max(0.08, Math.min(0.95, p));
+      var recAdd = 0;
+      roster().forEach(function (o) { recAdd = Math.max(recAdd, sumEff(idsOf(template(o.id)), 'recruit')); });  // 人望/名望
+      return Math.max(0.08, Math.min(0.95, p + recAdd));
     }
     function recruit(id) {
       var t = template(id); if (!t) { toast('查无此人。'); return { ok: false, msg: '查无此人' }; }
       if (getInst(id)) { toast(t.name + '已在麾下。'); return { ok: false, msg: '已在麾下' }; }
       var p = recruitChance(t);
       if (Math.random() < p) {
-        var inst = { id: t.id, name: t.name, stats: t.stats, assignment: null, loyalty: Math.round((t.loyalty || 50) * 0.6 + 20), faction: 'player' };
+        var loyBonus = 0;
+        roster().forEach(function (o) { loyBonus = Math.max(loyBonus, sumEff(idsOf(template(o.id)), 'loyalty')); });  // 名望/教化
+        var inst = { id: t.id, name: t.name, stats: t.stats, assignment: null, loyalty: Math.round((t.loyalty || 50) * 0.6 + 20 + loyBonus), faction: 'player' };
         roster().push(inst);
         log('〔登庸〕' + t.name + '感公诚意，慨然来投，自此麾下又添一良佐。', 'good');
         toast('🤝 ' + t.name + ' 来投');
@@ -177,6 +192,15 @@
 
     // ── 武将面板 ──
     function esc(s) { return escapeHtml(s == null ? '' : s); }
+    var SKILL_CAT_COLOR = { 战:'#c0392b', 智:'#2c6fb0', 政:'#2e8b57', 魅:'#8e44ad' };
+    function skillTagsHTML(ids) {
+      if (!ids || !ids.length) return '';
+      return '<span class="of-skills">' + ids.map(function (id) {
+        var d = SKILL_MAP[id]; if (!d) return '';
+        var c = SKILL_CAT_COLOR[d.cat] || '#888';
+        return '<i style="border:1px solid ' + c + ';color:' + c + ';background:rgba(0,0,0,.18);border-radius:10px;padding:1px 7px;margin-left:5px;font-style:normal;font-size:11px;" title="' + esc(d.name) + '：' + esc(d.desc) + '">' + esc(d.name) + '</i>';
+      }).join('') + '</span>';
+    }
     function tierCls(v) { var t = LF.PERSONA.tierOf(v); return t ? t.cls : 't-mid'; }
     function statBars(stats) {
       var K = ['wu', 'zhi', 'tong', 'zheng', 'mei'], N = { wu: '武', zhi: '智', tong: '统', zheng: '政', mei: '魅' };
@@ -205,7 +229,7 @@
         h += '<div class="of-list">';
         list.forEach(function (o) {
           h += '<div class="of-row">';
-          h += '<div class="of-top"><b>' + esc(o.name) + '</b><span class="of-title">' + esc((template(o.id) || {}).title || '') + '</span>' + assignTag(o) + '</div>';
+          h += '<div class="of-top"><b>' + esc(o.name) + '</b><span class="of-title">' + esc((template(o.id) || {}).title || '') + '</span>' + assignTag(o) + skillTagsHTML(idsOf(template(o.id))) + '</div>';
           h += statBars(o.stats);
           h += '<div class="of-acts">';
           if (!(o.assignment && o.assignment.type === 'commander')) h += '<button class="btn sm" onclick="window.appointOfficer(\'' + o.id + '\',\'commander\')">任主将</button>';
@@ -220,7 +244,7 @@
         });
         h += '</div>';
       }
-      h += '<p class="hint">主将以「统率」增益全军战力；太守以「政务」增益治下城池的月度成长。任将须立于该城方能委以太守之职。</p>';
+      h += '<p class="hint">主将以「统率」增益全军战力；太守以「政务」增益治下城池的月度成长。任将须立于该城方能委以太守之职。　武将特技（红·战／蓝·智／绿·政／紫·魅）悬停可见其效：如「神将」增攻、「屯田」增垦、「人望」易募。</p>';
       return h;
     }
     function renderSearchPanel() {
@@ -235,7 +259,7 @@
         list.forEach(function (t) {
           var p = Math.round(recruitChance(t) * 100);
           h += '<div class="of-row">';
-          h += '<div class="of-top"><b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-chance">登庸率 ' + p + '%</span></div>';
+          h += '<div class="of-top"><b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-chance">登庸率 ' + p + '%</span>' + skillTagsHTML(t.skills) + '</div>';
           h += statBars(t.stats);
           h += '<div class="of-acts"><button class="btn sm" onclick="window.recruitOfficer(\'' + t.id + '\')">登庸</button></div>';
           h += '</div>';
