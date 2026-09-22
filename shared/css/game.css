@@ -2640,3 +2640,17 @@
   .am-grid,.wp-grid{grid-template-columns:1fr 1fr;}
   .am-cops .btn,.am-lops .btn,.am-ops .btn,.wp-ops .btn{min-height:44px;}
 }
+
+/* v20260922e：武将总览三页签 / 群雄栏 / 城池守将 */
+.of-tabs { display:flex; gap:6px; margin:4px 0 10px; }
+.of-tab { flex:1; padding:7px 0; border:1px solid #6b5530; background:#2a2113; color:#cdbb8e; border-radius:6px; cursor:pointer; font-size:14px; }
+.of-tab.on { background:#7a5a22; color:#fff3d6; border-color:#caa24a; }
+.of-group { margin:10px 0; border:1px solid #3a2f1a; border-radius:8px; overflow:hidden; }
+.of-ghead { background:#241c10; padding:6px 10px; font-weight:bold; color:#e7c98a; }
+.of-fac { display:inline-block; margin-left:8px; padding:1px 7px; border:1px solid #5a6b8c; color:#9fb6e0; border-radius:10px; font-size:11px; }
+.of-loc { color:#9a8a66; font-size:12px; }
+.cg-row { padding:6px 10px 2px; border-bottom:1px dashed #322817; }
+.cg-row:last-child { border-bottom:none; }
+.cg-title { margin:0 8px; color:#b8a47a; font-size:12px; }
+.cg-fac { padding:1px 7px; border:1px solid #5a6b8c; color:#9fb6e0; border-radius:10px; font-size:11px; }
+.city-garr { margin:2px 0 6px; }

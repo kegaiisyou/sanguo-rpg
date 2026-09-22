@@ -157,7 +157,7 @@
     h+='<button class="btn" onclick="civilEdict(\'tax\')">💰 征税<br><span class="sub">'+taxTip+'</span></button>';
     h+='<button class="btn" onclick="civilEdict(\'pacify\')">🤝 安民<br><span class="sub">耗💰20，治安+6</span></button>';
     h+='<button class="btn" onclick="openModal(\'factionMap\')">🏴 大势<br><span class="sub">观天下势力</span></button>';
-    h+='<button class="btn" onclick="openModal(\'army\')">🛡 治军<br><span class="sub">募兵编成·辎重调遣</span></button>';
+    h+='<button class="btn" onclick="openModal(\'army\')">🛡 治军<br><span class="sub">点兵编成·辎重调遣</span></button>';
     h+='</div>';
     h+='<button class="btn" onclick="openOfficerPanel()">🎖 武将<br><span class="sub">登庸·郡守·主将</span></button>';
     h+='<div class="edict-foot">立于中枢、城归你所统，方能发号。占城即得官职，聚财养士。</div>';

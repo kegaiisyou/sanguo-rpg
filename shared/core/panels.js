@@ -211,7 +211,9 @@
             boHtml+='</div>';
           }
         }
+        var garrHtml = (LF.Officers ? LF.Officers.renderCityGarrison(cid) : '');
         return '<h3>城 况 · '+p.c.name+'</h3>'+
+
           row('行政', p.tierDesc)+
           row('城型', p.ctypeDesc)+
           row('城门', (availableGateDirs(cid)||[]).length+' 座')+
@@ -223,6 +225,7 @@
           row('城防', (p.c.wall>=60?'高垒深沟': p.c.wall>=45?'城墙完固': p.c.wall>=30?'城垣可守':'防守疏懈'))+
           (mkHtml? mkHtml : '')+
           (boHtml? boHtml : '')+
+          (garrHtml? garrHtml : '')+
           '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。城内空地可点格「营造」筑新宅新市。</p>';
       }
 

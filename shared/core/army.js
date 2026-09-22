@@ -87,11 +87,13 @@
     }
 
     // ══ 募兵 / 解散 / 整编 ══
-    function recruitCity() {   // 玩家当前所在城（用于军营募兵）
+    function recruitCity() {   // 仅当身在本方军营（barracks）方可募兵——征兵须有营垒，不能城里随处抓壮丁
       var st = S(); if (!st) return null;
-      if (isCityGrid && isCityGrid(st.room)) return st.room;
-      if (st.flags && st.flags.cityPos && st.flags.cityPos.cid) return st.flags.cityPos.cid;
-      return null;
+      var cp = st.flags && st.flags.cityPos;
+      if (!cp || !cp.cid) return null;
+      if (typeof cellDisplayType === 'function' && cellDisplayType(cp.cid, cp.x, cp.y) !== 'barracks') return null;
+      if (typeof cityOwnerOf === 'function' && typeof playerFaction === 'function' && cityOwnerOf(cp.cid) !== playerFaction()) return null;
+      return cp.cid;
     }
     function cityManpool(cid) {
       var c = (LF.CITIES || {})[cid] || {};
@@ -106,6 +108,7 @@
       return Math.round((2 + (d.cost || 1) * 2) * n);
     }
     function armyRecruit(cid, type, n) {
+      if (recruitCity() !== cid) { toast('须置身城中军营，方能募兵。'); return false; }
       n = Math.max(1, (n | 0) || 1);
       var d = TROOPS()[type];
       if (!d) { toast('无此兵科。'); return false; }

@@ -14,6 +14,7 @@
     var SKILL_MAP = {}; (LF.OFFICER_SKILLS || []).forEach(function (s) { SKILL_MAP[s.id] = s; });
     function idsOf(t) { return (t && t.skills) ? t.skills : []; }
     function sumEff(ids, key) { var s = 0; (ids || []).forEach(function (id) { var d = SKILL_MAP[id]; if (d && d.eff && typeof d.eff[key] === 'number') s += d.eff[key]; }); return s; }
+    var officerTab = 'roster';
 
     // ── 索引：模板 id → 武将；驻城 → 武将列表 ──
     var _byId = null, _byCity = null;
@@ -222,7 +223,7 @@
       var cmd = commander();
       var h = '<h3>武 将</h3>';
       h += '<div class="of-head">麾下 <b>' + list.length + '</b> 员' + (cmd ? '　|　主将：<b>' + esc(cmd.name) + '</b>（统率' + (cmd.stats.tong || 0) + '，战力 +' + Math.round((commandBonus() - 1) * 100) + '%）' : '　|　未设主将') + '</div>';
-      h += '<div class="of-ops"><button class="btn sm" onclick="window.openSearchPanel()">🔍 寻访人才</button></div>';
+      h += '<div class="of-ops"><button class="btn sm" onclick="window.openOfficerTab(\'search\')">🔍 寻访人才</button></div>';
       if (!list.length) {
         h += '<div class="of-empty">帐下尚无僚佐。可往城中「寻访人才」，延揽天下英雄；克城之时，败军之将亦或来归。</div>';
       } else {
@@ -269,8 +270,57 @@
       h += '<p class="hint">在野之士籍贯各异，近者先见。克城之时，败军之将亦或束手来归。</p>';
       return h;
     }
-    function openOfficerPanel() { if (typeof openModal === 'function') openModal('officers'); }
-    function openSearchPanel() { if (typeof openModal === 'function') openModal('officerSearch'); }
+    function renderOfficerHub() {
+      var tabs = [['roster', '麾下'], ['search', '寻访'], ['factions', '群雄']];
+      var h = '<div class="of-tabs">';
+      tabs.forEach(function (t) {
+        h += '<button class="of-tab' + (officerTab === t[0] ? ' on' : '') + '" onclick="window.openOfficerTab(\'' + t[0] + '\')">' + t[1] + '</button>';
+      });
+      h += '</div>';
+      if (officerTab === 'search') h += renderSearchPanel();
+      else if (officerTab === 'factions') h += renderFactionsPanel();
+      else h += renderOfficerPanel();
+      return h;
+    }
+    function renderFactionsPanel() {
+      var all = (LF.PERSONA && LF.PERSONA.listRegistered) ? LF.PERSONA.listRegistered() : [];
+      var groups = {};
+      all.forEach(function (t) { if (t.faction === 'player') return; (groups[t.faction] = groups[t.faction] || []).push(t); });
+      function facName(f) { var F = (LF.FACTIONS || {})[f]; return (F && F.name) || f; }
+      var h = '<h3>群雄 · 天下武将</h3>';
+      h += '<div class="of-note">列天下群雄麾下之将——知其名，方知敌友。克城可俘其守将，乱世任才。</div>';
+      var order = Object.keys(groups);
+      if (!order.length) h += '<div class="of-empty">暂无群雄录。</div>';
+      order.forEach(function (f) {
+        var list = groups[f];
+        h += '<div class="of-group"><div class="of-ghead">⚑ ' + esc(facName(f)) + '（' + list.length + ' 员）</div><div class="of-list">';
+        list.forEach(function (t) {
+          var cn = (((LF.CITIES || {})[t.home] || {}).name) || t.home || '野';
+          h += '<div class="of-row">';
+          h += '<div class="of-top"><b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-fac">' + esc(facName(f)) + '</span>' + skillTagsHTML(t.skills) + '</div>';
+          h += statBars(t.stats);
+          h += '<div class="of-acts"><span class="of-loc">驻 ' + esc(cn) + '</span></div>';
+          h += '</div>';
+        });
+        h += '</div></div>';
+      });
+      return h;
+    }
+    function renderCityGarrison(cid) {
+      var list = garrisonOf(cid); if (!list.length) return '';
+      function facName(f) { var F = (LF.FACTIONS || {})[f]; return (F && F.name) || f; }
+      var h = '<div class="row"><span>守将（' + list.length + ' 员）</span></div><div class="city-garr">';
+      list.forEach(function (t) {
+        var cn = (((LF.CITIES || {})[t.home] || {}).name) || t.home || '野';
+        h += '<div class="cg-row"><b>' + esc(t.name) + '</b><span class="cg-title">' + esc(t.title || '') + '</span><span class="cg-fac">' + esc(facName(t.faction)) + '</span>' + skillTagsHTML(t.skills) + '</div>';
+        h += statBars(t.stats);
+      });
+      h += '</div>';
+      return h;
+    }
+    function openOfficerTab(t) { officerTab = t; if (typeof openModal === 'function') openModal('officers'); }
+    function openOfficerPanel() { officerTab = 'roster'; if (typeof openModal === 'function') openModal('officers'); }
+    function openSearchPanel() { officerTab = 'search'; if (typeof openModal === 'function') openModal('officers'); }
 
     return {
       template: template, garrisonOf: garrisonOf, garrisonCommander: garrisonCommander, officerCombat: officerCombat,
@@ -278,8 +328,8 @@
       roster: roster, get: getInst, commander: commander, governorOf: governorOf,
       recruitableHere: recruitableHere, recruitChance: recruitChance, recruit: recruit,
       appoint: appoint, dismiss: dismiss, captureFrom: captureFrom,
-      renderOfficerPanel: renderOfficerPanel, renderSearchPanel: renderSearchPanel,
-      openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel
+      renderOfficerPanel: renderOfficerPanel, renderSearchPanel: renderSearchPanel, renderOfficerHub: renderOfficerHub, renderFactionsPanel: renderFactionsPanel, renderCityGarrison: renderCityGarrison,
+      openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel, openOfficerTab: openOfficerTab
     };
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.createOfficers;
