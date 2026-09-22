@@ -65,6 +65,7 @@
     var rep=(S().reputation||0);
     var p=0.30 + rep/200*0.5 + (roleFavorMul()-1)*0.4 - Math.min(0.5, power/120);
     p=Math.max(0.05, Math.min(0.95, p));
+    if (S().flags && S().flags._debateEdge) p += S().flags._debateEdge;
     if(Math.random()<p){
       conquerCity(cid, playerFaction(), +6);   // 与攻城同源：owner 用 playerFaction()（'义军'），否则 ruledCities 不更新、招降之城不入治下
       chronicle('你遣说客劝降「'+c.name+'」，守将倒戈，不血刃而下。','good');
@@ -86,6 +87,7 @@
     if(st==='war'){
       h+='<button class="btn" onclick="diploPropose(\''+fid+'\',\'truce\')">🤝 议和<br><span class="sub">💰50·声望10·休战3月</span></button>';
       h+='<button class="btn" onclick="diploPropose(\''+fid+'\',\'alliance\')">🤝 结盟<br><span class="sub">💰200·声望30·休战9月</span></button>';
+      h+='<button class="btn" onclick="openDebate(\''+fid+'\')">🗣 舌战<br><span class="sub">折服其谋士</span></button>';
     } else {
       h+='<div class="dip-cur">当前已'+stTxt+'，刀兵暂歇。</div>';
     }
@@ -276,6 +278,7 @@
     var win = atkRoll >= def;
     if (Math.random() < 0.13) win = !win;                                     // 乱世无常，胜败难料
     if (win) conquerCity(targetCid, attackerFid, -5);
+
     return { win: win, city: city, atk: attackerFid, atkName: warFactionName(attackerFid), def: defKey, defName: warFactionName(defKey), wasPlayerCity: (defKey === 'player') };
   }
   function warChronicleEntry(r) {
@@ -397,6 +400,7 @@
     scanFactionSurvival();
     diploExpire();            // 外交盟约到期清算（v20260918h）
     checkUnify();
+    fireMonthlyEvents(cal);
     if ((cal.month % 3) === 1) {
       var rk = (S().flags.factionPowerRank || []);
       if (rk.length) {
@@ -497,6 +501,57 @@
       toast('🏆 天下一统！');
     }
   }
+  // ── 事件 / 剧本（v20260922f）──
+  var EVENTS = [
+    { id:'refugee', title:'流民归附', w:3, cond:function(){ return (S().ruledCities||[]).length>0; },
+      text:'连年征战，中原板荡。一队衣衫褴褛的流民叩城请附，愿充营伍、垦荒屯田。将军纳否？',
+      choices:[ { label:'纳其入籍（募卒 +30）', act:function(){ if(window.levyTroops) window.levyTroops(30); log('〔事件〕流民归附，得壮丁三十充入行伍。','good'); } },
+                { label:'婉拒（治安 +5）', act:function(){ var co=S().flags.cityOrder||{}; var cid=(S().ruledCities||[])[0]; if(cid){ co[cid]=Math.min(100,(co[cid]!=null?co[cid]:50)+5); S().flags.cityOrder=co; } log('〔事件〕流民散去，城中稍安。','sys'); } } ] },
+    { id:'harvest', title:'五谷丰登', w:2, cond:function(){ return true; },
+      text:'风调雨顺，治下田畴大熟。府库与仓廪俱实，军民称庆。',
+      choices:[ { label:'开仓赈济（声望 +8，银 +40）', act:function(){ S().reputation=(S().reputation||0)+8; S().gold=(S().gold||0)+40; log('〔事件〕丰年赈济，声望渐隆。','good'); } },
+                { label:'充实府库（银 +80）', act:function(){ S().gold=(S().gold||0)+80; log('〔事件〕岁入丰盈，府库盈实。','good'); } } ] },
+    { id:'yellowturban', title:'黄巾余党', w:2, cond:function(){ return (S().ruledCities||[]).length>0; },
+      text:'黄巾残部流窜乡里，劫掠村寨。或剿或抚，全在将军一念。',
+      choices:[ { label:'发兵剿之（银 +30，治安 -4）', act:function(){ S().gold=(S().gold||0)+30; var co=S().flags.cityOrder||{}; var cid=(S().ruledCities||[])[0]; if(cid){ co[cid]=Math.max(0,(co[cid]!=null?co[cid]:50)-4); S().flags.cityOrder=co; } log('〔事件〕剿平黄巾余党，地方稍靖。','good'); } },
+                { label:'招抚收编（募卒 +20）', act:function(){ if(window.levyTroops) window.levyTroops(20); log('〔事件〕黄巾受抚，得卒二十。','sys'); } } ] },
+    { id:'scholar', title:'名士来投', w:1, cond:function(){ return LF.Officers && LF.Officers.wildTalents && LF.Officers.wildTalents().length>0; },
+      text:'有隐逸名士闻将军仁声，遣使来询出处。若以礼相聘，或可罗致麾下。',
+      choices:[ { label:'三顾相邀（尝试登庸）', act:function(){ var w=LF.Officers.wildTalents(); if(w.length) LF.Officers.recruit(w[0].id); log('〔事件〕礼聘名士，传为美谈。','good'); } },
+                { label:'礼送出境（银 +10）', act:function(){ S().gold=(S().gold||0)+10; log('〔事件〕名士远遁，将军怅然。','sys'); } } ] },
+    { id:'plague', title:'时疫流行', w:1, cond:function(){ return (S().ruledCities||[]).length>0; },
+      text:'时疫起於闾巷，老弱多殁。医者束手，百姓惶惶。',
+      choices:[ { label:'设医局赈药（银 -40，治安 +6）', act:function(){ S().gold=Math.max(0,(S().gold||0)-40); var co=S().flags.cityOrder||{}; var cid=(S().ruledCities||[])[0]; if(cid){ co[cid]=Math.min(100,(co[cid]!=null?co[cid]:50)+6); S().flags.cityOrder=co; } log('〔事件〕施医赈药，疫情得缓。','sys'); } },
+                { label:'听天由命（治安 -8）', act:function(){ var co=S().flags.cityOrder||{}; var cid=(S().ruledCities||[])[0]; if(cid){ co[cid]=Math.max(0,(co[cid]!=null?co[cid]:50)-8); S().flags.cityOrder=co; } log('〔事件〕疫疠蔓延，民多怨嗟。','warn'); } } ] }
+  ];
+  var _pendingEvent = null;
+  function fireMonthlyEvents(cal) {
+    if (!S() || S().dead) return;
+    var pool = EVENTS.filter(function (e) { try { return e.cond(); } catch (ex) { return false; } });
+    if (!pool.length) return;
+    if (Math.random() > 0.55) return;
+    var sum = 0; pool.forEach(function (e) { sum += (e.w || 1); });
+    var r = Math.random() * sum, acc = 0, pick = pool[0];
+    for (var i = 0; i < pool.length; i++) { acc += (pool[i].w || 1); if (r <= acc) { pick = pool[i]; break; } }
+    _pendingEvent = pick;
+    if (typeof openModal === 'function') openModal('event');
+  }
+  function renderEvent() {
+    var e = _pendingEvent; if (!e) return '';
+    var h = '<div class="ev-box"><div class="ev-h">⚑ ' + escapeHtml(e.title) + '</div>';
+    h += '<div class="ev-body">' + escapeHtml(e.text) + '</div><div class="ev-acts">';
+    (e.choices || []).forEach(function (c, i) { h += '<button class="btn" onclick="chooseEvent(' + i + ')">' + escapeHtml(c.label) + '</button>'; });
+    h += '</div></div>';
+    return h;
+  }
+  function chooseEvent(i) {
+    var e = _pendingEvent; if (!e || !e.choices[i]) return;
+    try { e.choices[i].act(); } catch (ex) { log('〔事件〕处置有误：' + ex, 'warn'); }
+    _pendingEvent = null;
+    if (window.closeModal) window.closeModal();
+    save(S());
+  }
+
     return {
       diploGet: diploGet, diploStatus: diploStatus, diploActive: diploActive, diploTruceBetween: diploTruceBetween,
       diploExpire: diploExpire, diploPropose: diploPropose, diploSue: diploSue, renderDiplomacy: renderDiplomacy, openDiplomacy: openDiplomacy,
@@ -505,7 +560,8 @@
       warKm: warKm, warCityAdjPairs: warCityAdjPairs, warOwnerKey: warOwnerKey, warIsLordKey: warIsLordKey, warFactionName: warFactionName,
       warCityPower: warCityPower, warFactionTotal: warFactionTotal, warFactionCityCount: warFactionCityCount, warInRoom: warInRoom,
       runWarlordBattle: runWarlordBattle, warChronicleEntry: warChronicleEntry, warlordBattle: warlordBattle, warlordDayTick: warlordDayTick,
-      onMonthTick: onMonthTick, monthlyYield: monthlyYield, factionDomesticAI: factionDomesticAI, scanFactionSurvival: scanFactionSurvival, checkUnify: checkUnify
+      onMonthTick: onMonthTick, monthlyYield: monthlyYield, factionDomesticAI: factionDomesticAI, scanFactionSurvival: scanFactionSurvival, checkUnify: checkUnify,
+      fireMonthlyEvents: fireMonthlyEvents, renderEvent: renderEvent, chooseEvent: chooseEvent
     };
   };
 })(typeof window !== 'undefined' ? window : global);

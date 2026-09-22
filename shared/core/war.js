@@ -243,10 +243,11 @@
       var ab = {
         kind: opt.kind || 'field', cid: opt.cid || null, seg: opt.seg || 0,
         reinforce: opt.reinforce || null, night: !!opt.night, ambush: !!opt.ambush,
-        fid: opt.fid || null, def: opt.def || null
+        fid: opt.fid || null, def: opt.def || null, duelWin: !!opt.duelWin
       };
       if (setPendingArmyBattle) setPendingArmyBattle(ab);
       var units = ourUnits({ atkMul: opt.atkMul });
+      if (LF.Officers && LF.Officers.battleSynergy) { var _syn = LF.Officers.battleSynergy(); if (_syn > 0) units.forEach(function (u) { u.morale = Math.max(0, Math.min(100, (u.morale || 75) + _syn * 100)); }); }
       if (!units.length) { toast('你身边并无可战之兵。'); if (setPendingArmyBattle) setPendingArmyBattle(null); return false; }
       startCombat(enemyIds, { armyBattle: true, armyUnits: units });
       // 战斗初始化是异步（setTimeout 400ms）的，事件效果在 init 之后兑现
@@ -255,6 +256,7 @@
         if (ab.night) maybeNight();
         var st = G.CombatEngine && G.CombatEngine.state;
         if (st) {
+          if (ab.duelWin) st.enemyUnits.forEach(function (u) { u.morale = Math.max(0, (u.morale || 70) - 25); });
           log('〔列阵〕' + units.map(function (u) { return (LF.ARMY_RANKS[u.rank] || {}).name + '·' + u.name; }).join('，') + '。', 'sys');
           if (ab.reinforce) log('〔警讯〕狼烟未起——若战事胶着，' + ab.reinforce.name + '将于第 ' + ab.reinforce.round + ' 回合驰至。', 'warn');
         }
@@ -282,10 +284,23 @@
         var ru = applyOrders(mkUnit('邻郡援军', Math.round(cityBase(cid) * 0.3), { atk: 7, def: 8, hp: 26, spd: 16 }, { rank: 'flank', guard: false, morale: 82 }), 'flank');
         rf = { unit: ru, round: 3, done: false, name: ru.name };
       }
-      return beginBattle(ids, {
-        kind: 'siege', cid: cid, seg: 0, reinforce: rf,
-        atkMul: (roleAtkMul ? roleAtkMul() : 1)
-      });
+      var doBattle = function (win) {
+        return beginBattle(ids, {
+          kind: 'siege', cid: cid, seg: 0, reinforce: rf,
+          atkMul: (roleAtkMul ? roleAtkMul() : 1), duelWin: !!win
+        });
+      };
+      if (owner && owner !== 'player' && LF.Officers && LF.Officers.garrisonOf && typeof openModal === 'function') {
+        var g = LF.Officers.garrisonOf(cid).filter(function (t) { return t.faction && t.faction !== '在野' && t.faction !== 'player'; });
+        var best = null;
+        g.forEach(function (t) {
+          var all = (LF.PERSONA && LF.PERSONA.listRegistered) ? LF.PERSONA.listRegistered() : [];
+          var tm = null; for (var i = 0; i < all.length; i++) { if (all[i].id === t.id) { tm = all[i]; break; } }
+          if (tm && (!best || (tm.stats.wu || 0) > (best.stats.wu || 0))) best = tm;
+        });
+        if (best) { window.__duel = { enemyId: best.id, cid: cid, proceed: doBattle }; openModal('duel'); return true; }
+      }
+      return doBattle(false);
     }
     function carryUnits() {
       var st = G.CombatEngine && G.CombatEngine.state;

@@ -87,6 +87,65 @@
       return 1 + bestZheng / 100 * 0.4 + best;
     }
 
+    // ── 相性 / 关系网（v20260922f）──
+    // 结义（sworn）：同组武将同阵营互勉；宿敌（enemy）：键方对值方心存芥蒂，同阵营相疑。
+    var RELATIONS = {
+      sworn: [['liu_bei', 'guan_yu', 'zhang_fei'], ['sun_ce', 'zhou_yu'], ['liu_bei', 'zhao_yun']],
+      enemy: { 'lv_bu': ['liu_bei', 'guan_yu', 'zhang_fei'], 'dong_zhuo': ['liu_bei', 'guan_yu', 'zhang_fei'] }
+    };
+    function swornBrothers(id) {
+      var out = [];
+      (RELATIONS.sworn || []).forEach(function (g) { if (g.indexOf(id) >= 0) g.forEach(function (x) { if (x !== id) out.push(x); }); });
+      return out;
+    }
+    function enemyOf(id) { return (RELATIONS.enemy && RELATIONS.enemy[id]) || []; }
+    function affOf(t) {
+      if (!t) return 75;
+      if (typeof t.aff === 'number') return t.aff;
+      var h = 0; for (var i = 0; i < (t.id || '').length; i++) h = (h * 31 + (t.id.charCodeAt(i) || 0)) % 150;
+      return 30 + h;
+    }
+    // 每月忠诚浮动：结义同阵营互勉(+)、宿敌同阵营相疑(-)、主君魅力牵引向中位
+    function loyaltyTick() {
+      var list = ensure(); if (!list || !list.length) return;
+      var ids = list.map(function (o) { return o.id; });
+      var lordMei = (typeof roleFavorMul === 'function') ? Math.round(45 + (roleFavorMul() - 1) * 120) : 55;
+      list.forEach(function (o) {
+        var t = template(o.id) || {}, aff = affOf(t);
+        var sworn = swornBrothers(o.id).filter(function (b) { return ids.indexOf(b) >= 0; }).length;
+        var foe = enemyOf(o.id).filter(function (b) { return ids.indexOf(b) >= 0; }).length;
+        var target = lordMei + (aff - 75) * 0.2 + sworn * 8 - foe * 10;
+        var cur = o.loyalty || 50;
+        o.loyalty = Math.max(0, Math.min(100, Math.round(cur + (target - cur) * 0.25 + (Math.random() * 6 - 3))));
+      });
+      save(S());
+    }
+    // 主将若有结义兄弟在册，全军临战默契：士气/战力小幅提升
+    function battleSynergy() {
+      var c = commander(); if (!c) return 0;
+      var ids = roster().map(function (o) { return o.id; });
+      var sworn = swornBrothers(c.id).filter(function (b) { return ids.indexOf(b) >= 0; }).length;
+      return sworn * 0.04;
+    }
+    // 太守对府库月度纳赋的增益（政务 + 魅力）
+    function taxBonus() {
+      var rc = (S().ruledCities) || []; if (!rc.length) return 1;
+      var tot = 0;
+      rc.forEach(function (cid) { var g = governorOf(cid); if (g) tot += (g.stats.zheng || 0) / 100 * 0.25 + (g.stats.mei || 0) / 100 * 0.15; });
+      return Math.max(1, 1 + tot);
+    }
+    // 太守对所在城治安的月度增益
+    function orderBonus(cid) {
+      var g = governorOf(cid); if (!g) return 0;
+      return Math.round((g.stats.zheng || 0) / 100 * 6);
+    }
+    // 任命太守若有「屯田」特技，提升该城农业；「商才」提升商业（月度）
+    function yieldBonus(cid) {
+      var g = governorOf(cid); if (!g) return { agri: 0, com: 0 };
+      var ids = idsOf(template(g.id));
+      return { agri: sumEff(ids, 'farmMul'), com: sumEff(ids, 'tradeMul') };
+    }
+
     // ── 登庸 / 搜索 ──
     function dist(a, b) {
       var A = (LF.CITIES || {})[a], B = (LF.CITIES || {})[b];
@@ -324,7 +383,7 @@
 
     return {
       template: template, garrisonOf: garrisonOf, garrisonCommander: garrisonCommander, officerCombat: officerCombat,
-      commandBonus: commandBonus, civilBonus: civilBonus, garrisonCivilBonus: garrisonCivilBonus,
+      commandBonus: commandBonus, civilBonus: civilBonus, garrisonCivilBonus: garrisonCivilBonus, swornBrothers: swornBrothers, enemyOf: enemyOf, affOf: affOf, loyaltyTick: loyaltyTick, battleSynergy: battleSynergy, taxBonus: taxBonus, orderBonus: orderBonus, yieldBonus: yieldBonus,
       roster: roster, get: getInst, commander: commander, governorOf: governorOf,
       recruitableHere: recruitableHere, recruitChance: recruitChance, recruit: recruit,
       appoint: appoint, dismiss: dismiss, captureFrom: captureFrom,

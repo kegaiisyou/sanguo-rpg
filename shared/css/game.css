@@ -2654,3 +2654,17 @@
 .cg-title { margin:0 8px; color:#b8a47a; font-size:12px; }
 .cg-fac { padding:1px 7px; border:1px solid #5a6b8c; color:#9fb6e0; border-radius:10px; font-size:11px; }
 .city-garr { margin:2px 0 6px; }
+
+/* v20260922f：事件 / 单挑 / 舌战 模态 */
+.ev-box, .du-box { padding:10px 12px; }
+.ev-h, .du-h { font-weight:bold; color:#e7c98a; margin-bottom:6px; font-size:15px; }
+.ev-body { color:#d8c9a4; line-height:1.6; margin-bottom:8px; }
+.ev-acts, .du-acts { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.du-sub { color:#b8a47a; font-size:12px; margin-bottom:6px; }
+.du-mom { color:#c9a45a; margin:4px 0; }
+.du-r { color:#9fb6e0; font-size:12px; padding:2px 0; }
+.du-res { padding:8px; border-radius:6px; margin:6px 0; }
+.du-res.win { background:rgba(60,120,60,.25); color:#bfe6bf; }
+.du-res.lose { background:rgba(140,60,60,.25); color:#e6bfbf; }
+.du-list { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+.du-list .btn.on { background:#7a5a22; border-color:#caa24a; }

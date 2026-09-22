@@ -464,7 +464,7 @@
     Officers: Officers
   });
   var diploGet = Strategy.diploGet, diploStatus = Strategy.diploStatus, diploActive = Strategy.diploActive, diploTruceBetween = Strategy.diploTruceBetween,
-      diploExpire = Strategy.diploExpire, diploPropose = Strategy.diploPropose, diploSue = Strategy.diploSue, renderDiplomacy = Strategy.renderDiplomacy, openDiplomacy = Strategy.openDiplomacy,
+      diploExpire = Strategy.diploExpire, diploPropose = Strategy.diploPropose, diploSue = Strategy.diploSue, renderDiplomacy = Strategy.renderDiplomacy, openDiplomacy = Strategy.openDiplomacy, fireMonthlyEvents = Strategy.fireMonthlyEvents, renderEvent = Strategy.renderEvent, chooseEvent = Strategy.chooseEvent,
       factionName = Strategy.factionName, factionColor = Strategy.factionColor, civilEdict = Strategy.civilEdict, renderEdict = Strategy.renderEdict, renderFactionMap = Strategy.renderFactionMap,
       warKm = Strategy.warKm, warCityAdjPairs = Strategy.warCityAdjPairs, warOwnerKey = Strategy.warOwnerKey, warIsLordKey = Strategy.warIsLordKey, warFactionName = Strategy.warFactionName,
       warCityPower = Strategy.warCityPower, warFactionTotal = Strategy.warFactionTotal, warFactionCityCount = Strategy.warFactionCityCount, warInRoom = Strategy.warInRoom,
@@ -4502,7 +4502,7 @@
       h=renderFactionMap();
     } else if(kind==='sect'){
       h=renderSectPanel();
-    } else if(kind==='diplomacy'){ h=renderDiplomacy(state.flags._dipFid)||''; } else if(kind==='log'){
+    } else if(kind==='diplomacy'){ h=renderDiplomacy(state.flags._dipFid)||''; } else if(kind==='event'){ h=renderEvent(); } else if(kind==='duel'){ h=renderDuel(); } else if(kind==='debate'){ h=renderDebate(); } else if(kind==='log'){
       h=renderLogPanel();          // 回顾（v20260914a）：顶栏「回顾」/ 状态栏右侧那颗
     }
     $card.innerHTML=h;
@@ -4873,6 +4873,104 @@
 
   // ── 全局桥接（v20260825b）：shared/data/build.js 等数据文件中的交互回调在全局作用域
   //    解析 openModal/log/exert/packFind…，需将游戏内部函数暴露到 window，否则建筑内面板（如铁砧打造）打开报 ReferenceError
+  // ── 单挑 / 舌战 / 安全募兵（v20260922f）──
+  function _tpl(id) { var all = (LF.PERSONA && LF.PERSONA.listRegistered) ? LF.PERSONA.listRegistered() : []; for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i]; return null; }
+  function _duelSkill(id) { var t = _tpl(id); if (!t) return 0; var s = 0; (t.skills || []).forEach(function (k) { if (['骁勇', '猛者', '斗将', '悍勇'].indexOf(k) >= 0) s += 6; }); return s; }
+  function _debateSkill(id) { var t = _tpl(id); if (!t) return 0; var s = 0; (t.skills || []).forEach(function (k) { if (['论客', '反计', '智将', '沉着'].indexOf(k) >= 0) s += 6; }); return s; }
+  function renderDuel() {
+    var d = window.__duel; if (!d) return '';
+    var e = _tpl(d.enemyId) || { name: '敌将', stats: { wu: 60 } };
+    var st = S(); var du = (st.flags._duel) || { phase: 'pick', pickId: null, rounds: [], momentum: 0, win: false };
+    if (du.phase === 'done') {
+      var h = '<div class="du-box"><div class="du-h">⚔ 单挑 · ' + escapeHtml((_tpl(du.pickId) || {}).name || '我将') + ' vs ' + escapeHtml(e.name) + '</div>';
+      h += '<div class="du-res ' + (du.win ? 'win' : 'lose') + '">' + (du.win ? '单挑得胜！敌将败走，其军士气大挫。' : '单挑失利，我将受挫，然军心未乱。') + '</div>';
+      h += '<div class="du-acts"><button class="btn primary" onclick="duelGo()">继续开战</button><button class="btn" onclick="duelSkip()">免战收兵</button></div></div>';
+      return h;
+    }
+    if (du.phase === 'fight') {
+      var h = '<div class="du-box"><div class="du-h">⚔ 单挑 · ' + escapeHtml((_tpl(du.pickId) || {}).name || '我将') + ' vs ' + escapeHtml(e.name) + '</div>';
+      h += '<div class="du-mom">气势：' + Math.round(du.momentum) + '</div>';
+      (du.rounds || []).forEach(function (r, i) { h += '<div class="du-r">第' + (i + 1) + '合·' + r.txt + '</div>'; });
+      if ((du.rounds || []).length < 3) {
+        h += '<div class="du-acts"><button class="btn" onclick="duelRound(\'突进\')">突进</button><button class="btn" onclick="duelRound(\'守势\')">守势</button><button class="btn" onclick="duelRound(\'奇袭\')">奇袭</button></div>';
+      }
+      return h;
+    }
+    // 选将
+    var h = '<div class="du-box"><div class="du-h">⚔ 阵前单挑</div><div class="du-sub">敌将 ' + escapeHtml(e.name) + '（武 ' + (e.stats.wu || 0) + '）叫阵，可遣将出战。</div><div class="du-list">';
+    (st.officers || []).forEach(function (o) {
+      var t = _tpl(o.id) || {}; var on = du.pickId === o.id ? ' on' : '';
+      h += '<button class="btn sm' + on + '" onclick="duelPick(\'' + o.id + '\')">' + escapeHtml(o.name) + '　武 ' + (t.stats ? t.stats.wu : 0) + '</button>';
+    });
+    h += '</div><div class="du-acts"><button class="btn primary" onclick="duelStart()">发起单挑</button><button class="btn" onclick="duelSkip()">免战</button></div></div>';
+    return h;
+  }
+  function duelPick(id) { var st = S(); st.flags._duel = st.flags._duel || {}; st.flags._duel.pickId = id; openModal('duel'); }
+  function duelStart() {
+    var d = window.__duel; if (!d) return; var st = S();
+    var pickId = (st.flags._duel && st.flags._duel.pickId);
+    if (!pickId && (st.officers || []).length) { var best = null; (st.officers || []).forEach(function (o) { var t = _tpl(o.id); if (t && (!best || (t.stats.wu || 0) > (best.stats.wu || 0))) best = t; }); pickId = best ? best.id : null; }
+    st.flags._duel = { phase: 'fight', pickId: pickId, rounds: [], momentum: 0, win: false };
+    openModal('duel');
+  }
+  function duelRound(choice) {
+    var d = window.__duel; if (!d) return; var st = S(); var du = st.flags._duel; if (!du || du.phase !== 'fight') return;
+    var me = _tpl(du.pickId) || { stats: { wu: 50 } }, en = _tpl(d.enemyId) || { stats: { wu: 60 } };
+    var map = { '突进': 'a', '守势': 'b', '奇袭': 'c' }, beats = { a: 'b', b: 'c', c: 'a' };
+    var ec = ['突进', '守势', '奇袭'][Math.floor(Math.random() * 3)];
+    var pc = map[choice], pe = map[ec], rw = 0;
+    if (beats[pc] === pe) rw = 1; else if (beats[pe] === pc) rw = -1;
+    var mm = rw * 16 + ((me.stats.wu || 0) - (en.stats.wu || 0)) / 8 + (_duelSkill(du.pickId) - _duelSkill(d.enemyId));
+    du.momentum += mm;
+    var txt = '我「' + choice + '」敌「' + ec + '」——' + (rw > 0 ? '占先' : rw < 0 ? '受挫' : '相持');
+    du.rounds.push({ txt: txt });
+    if (du.rounds.length >= 3) { du.phase = 'done'; du.win = du.momentum > 0; }
+    openModal('duel');
+  }
+  function duelGo() { var d = window.__duel; S().flags._duel = null; window.__duel = null; if (d && d.proceed) d.proceed(true); else closeModal(); }
+  function duelSkip() { var d = window.__duel; S().flags._duel = null; window.__duel = null; if (d && d.proceed) d.proceed(false); else closeModal(); }
+  function renderDebate() {
+    var d = window.__debate; if (!d) return '';
+    var f = (LF.FACTIONS || {})[d.fid] || {}; var st = S(); var db = st.flags._debate || { phase: 'fight', rounds: [], momentum: 0, win: false };
+    if (db.phase === 'done') {
+      return '<div class="du-box"><div class="du-h">🗣 舌战 · 与 ' + escapeHtml(f.name) + ' 之谋士</div><div class="du-res ' + (db.win ? 'win' : 'lose') + '">' + (db.win ? '辞锋压人，敌谋士语塞，说降之机大畅。' : '舌战不利，未能折服对方。') + '</div><div class="du-acts"><button class="btn primary" onclick="debateGo()">继续</button></div></div>';
+    }
+    var h = '<div class="du-box"><div class="du-h">🗣 舌战 · 与 ' + escapeHtml(f.name) + ' 之谋士</div>';
+    h += '<div class="du-mom">辞锋：' + Math.round(db.momentum) + '</div>';
+    (db.rounds || []).forEach(function (r, i) { h += '<div class="du-r">第' + (i + 1) + '合·' + r.txt + '</div>'; });
+    if ((db.rounds || []).length < 3) h += '<div class="du-acts"><button class="btn" onclick="debateRound(\'立论\')">立论</button><button class="btn" onclick="debateRound(\'驳斥\')">驳斥</button><button class="btn" onclick="debateRound(\'诡辩\')">诡辩</button></div>';
+    return h;
+  }
+  function debateRound(choice) {
+    var d = window.__debate; if (!d) return; var st = S(); var db = st.flags._debate; if (!db || db.phase !== 'fight') return;
+    var me = _tpl((st.pc && st.pc.officerId) || (st.officers && st.officers[0] && st.officers[0].id)) || { stats: { zhi: 60 } };
+    var en = _tpl(d.enemyId) || { stats: { zhi: 60 } };
+    var map = { '立论': 'a', '驳斥': 'b', '诡辩': 'c' }, beats = { a: 'b', b: 'c', c: 'a' };
+    var ec = ['立论', '驳斥', '诡辩'][Math.floor(Math.random() * 3)];
+    var pc = map[choice], pe = map[ec], rw = 0;
+    if (beats[pc] === pe) rw = 1; else if (beats[pe] === pc) rw = -1;
+    var mm = rw * 16 + ((me.stats.zhi || 0) - (en.stats.zhi || 0)) / 8 + (_debateSkill(me.id || (st.officers && st.officers[0] && st.officers[0].id)) - _debateSkill(d.enemyId));
+    db.momentum += mm;
+    db.rounds.push({ txt: '我「' + choice + '」敌「' + ec + '」——' + (rw > 0 ? '占先' : rw < 0 ? '受挫' : '相持') });
+    if (db.rounds.length >= 3) { db.phase = 'done'; db.win = db.momentum > 0; st.flags._debateEdge = db.win ? 0.2 : 0; }
+    openModal('debate');
+  }
+  function debateGo() { var d = window.__debate; S().flags._debate = null; window.__debate = null; closeModal(); }
+  function openDebate(fid) {
+    var f = (LF.FACTIONS || {})[fid]; if (!f) return;
+    var lordId = f.lord; if (!lordId) { toast('此势力主君无名，无可舌战。'); return; }
+    window.__debate = { fid: fid, enemyId: lordId };
+    S().flags._debate = { phase: 'fight', rounds: [], momentum: 0, win: false };
+    openModal('debate');
+  }
+  function levyTroops(n) {
+    var a = Army.ensureArmy(); if (!a) return;
+    n = Math.max(1, n | 0);
+    var t = null; (a.troops || []).forEach(function (x) { if (x && x.type === 'bu') t = x; });
+    if (t) t.count = (t.count || 0) + n; else { a.troops = a.troops || []; a.troops.push({ type: 'bu', count: n, rank: 'front', xp: 0 }); }
+    if (!a.active) { a.active = true; a.rallyPoint = (S().ruledCities || [])[0]; }
+    save(S()); renderStatus();
+  }
   window.openModal=openModal; window.closeModal=closeModal; window.log=log; window.toast=toast;
   window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
   // ── 全局桥接（v20260827j）：shared/story/rooms.js 等外部脚本的工厂闭包在全局作用域解析引擎函数，
@@ -4890,6 +4988,7 @@
   window.warlordBattle=warlordBattle;   // 指定一场攻伐：warlordBattle('luoyang','caocao',{allowCapital:true,allowLast:true,allowInside:true})
   window.conquerCity=conquerCity;
   window.diploPropose=diploPropose; window.diploSue=diploSue; window.openDiplomacy=openDiplomacy;   // 外交系统入口（v20260918h）
+  window.chooseEvent=chooseEvent; window.duelPick=duelPick; window.duelStart=duelStart; window.duelRound=duelRound; window.duelGo=duelGo; window.duelSkip=duelSkip; window.openDebate=openDebate; window.debateRound=debateRound; window.debateGo=debateGo; window.levyTroops=levyTroops;
   // 军队系统入口（v20260921a）：面板内联 onclick 走 window 桥接（与 talk/openModal 同款）
   window.armyRecruit=armyRecruit; window.armyDisband=armyDisband; window.armySetRank=armySetRank;
   window.armyDeposit=armyDeposit; window.armyWithdraw=armyWithdraw; window.armyBuyGrain=armyBuyGrain;
