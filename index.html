@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -7,10 +7,11 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>乱世烽火 · 水墨</title>
-<link rel="stylesheet" href="shared/css/game.css?v=20260922f" />
+<link rel="stylesheet" href="shared/css/game.css?v=20260923ui" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="shared/css/strategic-map.css?v=20260912c" />
 </head>
 <body>
@@ -128,12 +129,12 @@ window.onerror=function(msg,url,line,col,err){
     </div>
   </div>
   <nav id="dock">
-    <button data-modal="char"><span class="ic">🧭</span>角色</button>
-    <button data-modal="pack"><span class="ic">🎒</span>行囊</button>
-    <button data-modal="army"><span class="ic">🛡</span>军队</button>
-    <button data-modal="quest"><span class="ic">📜</span>任务</button>
-    <button data-modal="map"><span class="ic">🗺️</span>山河</button>
-    <button data-modal="settings"><span class="ic">⚙️</span>设置</button>
+    <button data-modal="char"><img class="ic" src="shared/img/ic-char.png" alt="角色">角色</button>
+    <button data-modal="pack"><img class="ic" src="shared/img/ic-pack.png" alt="行囊">行囊</button>
+    <button data-modal="army"><img class="ic" src="shared/img/ic-army.png" alt="军队">军队</button>
+    <button data-modal="quest"><img class="ic" src="shared/img/ic-quest.png" alt="任务">任务</button>
+    <button data-modal="map"><img class="ic" src="shared/img/ic-map.png" alt="山河">山河</button>
+    <button data-modal="settings"><img class="ic" src="shared/img/ic-set.png" alt="设置">设置</button>
   </nav>
 </div>
 
@@ -165,7 +166,7 @@ window.onerror=function(msg,url,line,col,err){
      rooms.js（作息表）与 core/city.js（名册）都要在加载期读它派生，顺序不能反。 -->
 <script src="shared/data/npc_cards.js?v=20260921b" defer></script>
 <script src="shared/data/personas.js?v=20260916d" defer></script>
-<script src="shared/data/officers.js?v=20260922e" defer></script>   <!-- 史实武将数据（v20260922d） -->
+<script src="shared/data/officers.js?v=20260922e" defer></script>   <!-- 史实武将数据（v20260923ui） -->
 <script src="shared/story/rooms.js?v=20260920h" defer></script>
     <script src="shared/story/triggers.js?v=20260920h" defer></script>
     <script src="shared/data/martial.js?v=20260910j" defer></script>
@@ -208,7 +209,7 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/audio.js?v=20260909j" defer></script>
   <script src="shared/core/combat.js?v=20260921b" defer></script>
   <script src="shared/core/army.js?v=20260922e" defer></script>   <!-- 军队核心（v20260922a） -->
-<script src="shared/core/officers.js?v=20260922f" defer></script>   <!-- 武将系统（v20260922d） -->
+<script src="shared/core/officers.js?v=20260922f" defer></script>   <!-- 武将系统（v20260923ui） -->
   <script src="shared/core/war.js?v=20260922f" defer></script>    <!-- 战术战斗编排（v20260922a） -->
   <script src="shared/core/pack.js?v=20260909h" defer></script>
   <script src="shared/core/building.js?v=20260915h" defer></script>
@@ -237,6 +238,7 @@ window.onerror=function(msg,url,line,col,err){
   <script src="shared/core/engine.js?v=20260922f" defer></script>
 </body>
 </html>
+
 
 
 

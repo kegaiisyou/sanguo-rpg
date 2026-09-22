@@ -37,7 +37,7 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;height:100dvh;overflow:hidden;overscroll-behavior:none;}
   body{
-    font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+    font-family:"LXGW WenKai","LXGW WenKai Screen","STKaiti","KaiTi","Songti SC","PingFang SC",sans-serif;
     color:var(--ink);
     background:
       radial-gradient(120% 80% at 50% -10%, #fbf7ee 0%, var(--paper) 45%, var(--paper2) 100%);
@@ -225,7 +225,7 @@
   .act.primary{background:rgba(158,59,46,.14);border-color:rgba(158,59,46,.45);color:var(--seal);font-weight:600;}
   /* 场景对象：小按钮只显示图标 + 标题，描述移入弹窗 */
   .act.obj-btn{flex-direction:column;gap:3px;padding:8px 6px;font-size:12.5px;line-height:1.2;}
-  .act.obj-btn .ob-ic{font-size:20px;line-height:1;}
+  .act.obj-btn .ob-ic{font-size:20px;line-height:1;filter:grayscale(.32) sepia(.5) saturate(1.45) hue-rotate(-8deg);opacity:.94;}
   .act.obj-btn .ob-nm{font-size:12.5px;color:var(--ink);}
   /* 分组标题（此前无样式，现统一样式） */
   .grp{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:4px;
@@ -299,7 +299,7 @@
   /* 建筑内部区域导航（v20260824f） */
   #modal-card .bld-crumb{font-size:12px;color:#9a7b3a;margin:-6px 0 8px;text-align:center;letter-spacing:.5px;}
   #modal-card .bld-ent.bld-npc{background:rgba(122,86,46,.10);border-color:rgba(176,131,47,.45);}
-  #modal-card .bld-ent.bld-obj{background:rgba(70,110,140,.10);border-color:rgba(90,140,170,.45);}
+  #modal-card .bld-ent.bld-obj{background:rgba(63,95,122,.10);border-color:rgba(63,95,122,.45);}
   #modal-card .bld-ent::after{margin-left:auto;font-size:10px;color:#fff;background:rgba(120,120,120,.5);
     border-radius:5px;padding:0 5px;}
   #modal-card .bld-ent.bld-npc::after{content:'谈';}
@@ -347,7 +347,7 @@
   .mv-exit .mv-nm{font-size:10.5px;color:var(--ink);line-height:1.1;text-align:center;max-width:80px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* 轻功方向：青色虚线 */
-  .mv-exit.leap{background:rgba(74,144,160,.10);border-style:dashed;border-color:rgba(74,144,160,.55);}
+  .mv-exit.leap{background:rgba(63,95,122,.10);border-style:dashed;border-color:rgba(63,95,122,.55);}
   .mv-exit.leap .mv-arrow{color:#2f7d8c;}
   /* 坐骑方向：金辉 */
   .mv-exit.mount{background:rgba(176,131,47,.20);border-color:rgba(176,131,47,.72);}
@@ -483,10 +483,10 @@
   .obj-p{font-size:12px;color:#8a6a2e;margin-top:5px;font-variant-numeric:tabular-nums;}
   .obj-done-title{margin-top:12px;font-size:12px;color:var(--ink-faint);}
   .obj-done{display:flex;flex-direction:column;gap:7px;margin-top:4px;}
-  .obj-d{display:flex;align-items:center;gap:8px;font-size:13px;color:#4f9a58;border:1px solid rgba(79,154,88,.32);
-    border-radius:6px;padding:7px 12px;background:rgba(79,154,88,.05);letter-spacing:.5px;}
+  .obj-d{display:flex;align-items:center;gap:8px;font-size:13px;color:#8a6d1f;border:1px solid rgba(176,131,47,.32);
+    border-radius:6px;padding:7px 12px;background:rgba(176,131,47,.05);letter-spacing:.5px;}
   .obj-d::before{content:"✓";display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
-    border-radius:50%;background:rgba(79,154,88,.16);font-size:11px;color:#4f9a58;flex:none;line-height:1;}
+    border-radius:50%;background:rgba(176,131,47,.16);font-size:11px;color:#8a6d1f;flex:none;line-height:1;}
   .obj-group-title{font-family:"STKaiti","KaiTi",serif;font-size:14px;color:var(--seal);margin:10px 0 4px;font-weight:700;}
   .obj-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
   .obj-tag{font-family:"STKaiti","KaiTi",serif;font-size:11.5px;padding:1px 8px;border-radius:3px;
@@ -531,9 +531,9 @@
   .q-need-row .q-ic{font-size:14px;width:18px;text-align:center;flex:none;}
   .q-need-row .q-nm{color:var(--ink);}
   .q-need-row .q-cnt{margin-left:auto;color:#8a6a2e;font-variant-numeric:tabular-nums;}
-  .q-need-row.done .q-cnt{color:#4f9a58;}
-  .q-need-row.done .q-nm{color:#4f9a58;}
-  .q-need-row.done .q-cnt::before{content:"✓ ";color:#4f9a58;font-weight:700;}
+  .q-need-row.done .q-cnt{color:#8a6d1f;}
+  .q-need-row.done .q-nm{color:#8a6d1f;}
+  .q-need-row.done .q-cnt::before{content:"✓ ";color:#8a6d1f;font-weight:700;}
   .q-submit{font-size:12px;color:var(--seal);margin-top:6px;letter-spacing:.5px;}
   .quest-track{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);background:linear-gradient(90deg,rgba(184,134,11,.14),rgba(184,134,11,.05));border-bottom:1px solid rgba(184,134,11,.25);padding:4px 10px;}
   .quest-track b{font-family:"STKaiti","KaiTi",serif;color:#b8860b;}
@@ -541,7 +541,7 @@
   .quest-track .qt-clear{margin-left:auto;background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:12px;padding:2px 6px;}
   .sect-list{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
   .sect{border:1px solid var(--btn-line);border-radius:12px;padding:12px 14px;background:var(--btn);}
-  .sect.on{border-color:rgba(127,206,143,.5);}
+  .sect.on{border-color:rgba(176,131,47,.55);}
   .sect-name{font-family:"STKaiti","KaiTi",serif;font-size:16px;color:var(--seal);font-weight:700;}
   .sect-fac{font-size:11px;color:var(--ink-faint);font-weight:400;margin-left:6px;}
   .sect-desc{font-size:12.5px;color:var(--ink-faint);line-height:1.55;margin:5px 0;}
@@ -562,11 +562,11 @@
   }
   #dock button{
     flex:1;padding:10px 4px 12px;background:none;border:none;cursor:pointer;
-    color:var(--ink-soft);font-size:11.5px;letter-spacing:1px;
+    color:var(--ink);font-size:12.5px;letter-spacing:1px;
     display:flex;flex-direction:column;align-items:center;gap:4px;transition:.18s;
-    font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+    font-family:"LXGW WenKai","STKaiti","KaiTi",serif;
   }
-  #dock button .ic{font-size:19px;line-height:1;}
+  #dock button .ic{width:22px;height:22px;object-fit:contain;mix-blend-mode:multiply;filter:drop-shadow(0 1px 1px rgba(60,48,34,.18));}
   #dock button:hover{color:var(--seal);}
   #dock button:active{transform:scale(.94);}
   #dock button.rest{color:var(--seal);}
@@ -609,7 +609,7 @@
     border:2px solid rgba(176,131,47,.5);
     box-shadow:inset 0 0 28px rgba(176,131,47,.18),0 6px 20px rgba(60,48,34,.18);}
   .clk-dial.night{background:radial-gradient(circle at 50% 42%,#2c3454,#171d31);
-    border-color:rgba(120,150,210,.5);box-shadow:inset 0 0 32px rgba(15,25,55,.6),0 6px 20px rgba(10,15,30,.45);}
+    border-color:rgba(63,95,122,.5);box-shadow:inset 0 0 32px rgba(20,30,40,.6),0 6px 20px rgba(10,15,30,.45);}
   .clk-lab{position:absolute;font-size:12px;font-family:"STKaiti","KaiTi",serif;color:#6e4f17;font-weight:700;
     transform:translate(-50%,-50%);}
   .clk-dial.night .clk-lab{color:#cdd6f0;}
@@ -631,7 +631,7 @@
     padding:6px 10px;border-radius:9px;background:rgba(176,131,47,.08);border:1px solid rgba(176,131,47,.22);}
   .clk-row span{font-size:11px;letter-spacing:2px;color:#9a7b3a;font-family:"STKaiti","KaiTi",serif;}
   .clk-row b{font-size:13px;color:var(--ink);font-family:"STKaiti","KaiTi",serif;font-weight:700;text-align:right;}
-  .clk-dial.night ~ .clk-meta .clk-row{background:rgba(120,150,210,.1);border-color:rgba(120,150,210,.28);}
+  .clk-dial.night ~ .clk-meta .clk-row{background:rgba(63,95,122,.1);border-color:rgba(63,95,122,.28);}
   .clk-dial.night ~ .clk-meta .clk-row span{color:#9fb0d8;}
   .clk-dial.night ~ .clk-meta .clk-row b{color:#eef2ff;}
   .card{
@@ -774,7 +774,7 @@
   .mk-lines{position:absolute;left:0;top:0;pointer-events:none;}
   .mk-lines .mk-river{fill:none;stroke:rgba(70,120,175,.62);stroke-width:9;stroke-linecap:round;opacity:.85;}
   .mk-lines .mk-river.r2{stroke-width:5.5;}
-  .mk-lines .mk-river-t{font-family:"STKaiti","KaiTi",serif;font-size:15px;letter-spacing:4px;fill:rgba(70,115,170,.85);pointer-events:none;}
+  .mk-lines .mk-river-t{font-family:"STKaiti","KaiTi",serif;font-size:15px;letter-spacing:4px;fill:rgba(62,107,134,.85);pointer-events:none;}
   .mk-lines .mk-road{fill:none;stroke:rgba(122,92,44,.5);stroke-width:2;stroke-linecap:round;}
   .mk-lines .mk-road.on{stroke:rgba(158,59,46,.82);stroke-width:2.8;stroke-dasharray:8 6;animation:mkFlow 1.5s linear infinite;}
   @keyframes mkFlow{to{stroke-dashoffset:-14;}}
@@ -829,15 +829,15 @@
     border-color:#f3cf85;box-shadow:0 0 10px rgba(255,205,110,.35);}
   .map-tab-body.hidden{display:none;}
   .mc-cell.mf{background:rgba(58,74,52,.30);border-color:rgba(170,200,140,.28);}
-  .mc-cell.mf-entry{border-color:#7fb0ff;box-shadow:0 0 0 2px rgba(127,176,255,.45);}
+  .mc-cell.mf-entry{border-color:#b0832f;box-shadow:0 0 0 2px rgba(176,131,47,.45);}
   .mc-cell.mf-cityout{border-color:#e8b04a;box-shadow:0 0 0 2px rgba(232,176,74,.5);}
   ul.mf-exits{margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--ink-faint);line-height:1.6;}
   ul.mf-exits li{margin:1px 0;}
   /* ── 三级地图 · 州域层（lv0：东汉十三州轮廓）── */
   .map-rivers{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .12s;}
-  .map-rivers .mp-river{fill:none;stroke:rgba(70,110,170,.30);stroke-width:2.5;stroke-linecap:round;}
+  .map-rivers .mp-river{fill:none;stroke:rgba(62,107,134,.30);stroke-width:2.5;stroke-linecap:round;}
   .map-rivers .mp-river-t{font-family:"STKaiti","KaiTi",serif;font-size:14px;letter-spacing:3px;
-    fill:rgba(70,110,170,.55);pointer-events:none;}
+    fill:rgba(62,107,134,.55);pointer-events:none;}
   .map-rivers .mp-sea{font-family:"STKaiti","KaiTi",serif;font-size:16px;letter-spacing:8px;
     fill:rgba(94,72,42,.30);pointer-events:none;text-anchor:middle;}
   .map-region{pointer-events:none;}
@@ -945,7 +945,7 @@
   .c-enemy,.c-player{margin:0;min-width:0;flex:0 0 auto;width:46%;max-width:290px;display:flex;flex-direction:column;position:relative;overflow:visible;
     border-radius:13px;padding:9px 11px;border:1px solid;}
   .c-enemy{border-color:rgba(158,59,46,.22);background:linear-gradient(180deg,rgba(158,59,46,.08),rgba(158,59,46,.02));}
-  .c-player{border-color:rgba(26,54,93,.22);background:linear-gradient(180deg,rgba(26,54,93,.08),rgba(26,54,93,.02));}
+  .c-player{border-color:rgba(74,62,48,.28);background:linear-gradient(180deg,rgba(255,253,248,.94),rgba(250,247,240,.62));}
   .c-enemy .ec-head,.c-player .cp-head{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
   /* 敌人头像框（预留位：后续制作统一风格人物肖像，当前以文字字代） */
   .c-enemy .ec-fig{flex:0 0 auto;width:34px;height:34px;border-radius:8px;
@@ -975,14 +975,14 @@
   .c-enemy .ec-intent.threat-normal{color:#7a5d2e;background:rgba(192,118,42,.08);}
   .c-enemy .ec-intent.threat-heavy{color:#a03030;background:rgba(160,48,48,.1);
     animation:intentPulse 1s ease-in-out infinite;}
-  .c-enemy .ec-intent.threat-defend{color:#2f5f8f;background:rgba(47,95,143,.08);}
+  .c-enemy .ec-intent.threat-defend{color:#3f5f7a;background:rgba(63,95,122,.08);}
   @keyframes intentPulse{0%,100%{box-shadow:0 0 0 0 rgba(160,48,48,.25);}50%{box-shadow:0 0 0 4px rgba(160,48,48,0);}}
   /* 玩家头像框（预留位：后续制作统一风格人物肖像，当前以文字字代） */
   .c-player .ec-fig-p{flex:0 0 auto;width:34px;height:34px;align-self:center;
     display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(circle at 50% 35%,rgba(26,54,93,.12),rgba(26,54,93,.02));
-    border:1px dashed rgba(26,54,93,.35);border-radius:8px;
-    font-family:"STKaiti","KaiTi",serif;font-size:15px;font-weight:700;color:#1f3d6b;
+    background:radial-gradient(circle at 50% 35%,rgba(63,95,122,.12),rgba(63,95,122,.02));
+    border:1px dashed rgba(63,95,122,.35);border-radius:8px;
+    font-family:"STKaiti","KaiTi",serif;font-size:15px;font-weight:700;color:#3f5f7a;
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);}
   /* 玩家状态区（增益/减益） */
   .c-player .cp-status{flex-basis:100%;display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
@@ -1116,12 +1116,12 @@
     100%{transform:translate(-50%,-50%) scale(1) rotate(-18deg);opacity:.85;}
   }
   .c-enemy.block, .c-player.block, .dq-enemy.block, .dq-ally.block{animation:blockFlash .6s ease;}
-  @keyframes blockFlash{0%,100%{box-shadow:0 0 0 0 rgba(47,95,143,0);}30%{box-shadow:0 0 0 3px rgba(47,95,143,.55),0 0 16px rgba(47,95,143,.4);}}
+  @keyframes blockFlash{0%,100%{box-shadow:0 0 0 0 rgba(63,95,122,0);}30%{box-shadow:0 0 0 3px rgba(63,95,122,.55),0 0 16px rgba(63,95,122,.4);}}
   .c-enemy.dodge, .c-player.dodge, .dq-enemy.dodge, .dq-ally.dodge{animation:dodgeShake .4s ease;}
   @keyframes dodgeShake{0%,100%{transform:translateX(0);}20%{transform:translateX(6px);}50%{transform:translateX(-5px);}80%{transform:translateX(3px);}}
   /* 漂浮标签：闪避(灰)/格挡(蓝) */
   .dmg-float.label-dodge{color:#9a9a9a;font-size:18px;}
-  .dmg-float.label-block{color:#2f5f8f;font-size:18px;text-shadow:0 0 6px rgba(47,95,143,.5);}
+  .dmg-float.label-block{color:#3f5f7a;font-size:18px;text-shadow:0 0 6px rgba(63,95,122,.5);}
   .dmg-float.label-counter{color:#b7791f;font-size:19px;text-shadow:0 0 8px rgba(183,121,31,.7);}
   .dmg-float.label-countered{color:#6b7280;font-size:17px;text-shadow:0 1px 2px rgba(255,255,255,.7);}
   /* 玩家侧效果落在卡左下，避免与敌方(右上)重叠 */
@@ -1181,8 +1181,8 @@
     animation:intentPulse 1s ease-in-out infinite;}
 
   /* ── V5：战意技能芯片 ── */
-  .mart-chip.rage{color:#7a3fb0;border-color:rgba(122,63,176,.45);background:rgba(122,63,176,.07);}
-  .mart-chip.rage:hover{background:rgba(122,63,176,.16);}
+  .mart-chip.rage{color:#9e3b2e;border-color:rgba(158,59,46,.45);background:rgba(158,59,46,.07);}
+  .mart-chip.rage:hover{background:rgba(158,59,46,.16);}
 
   /* ── V6：出招微动画（clash）── */
   #combat-card.clash .ec-fig,#combat-card.clash .ec-fig-p{animation:clashPop .3s ease;}
@@ -1218,11 +1218,11 @@
   .dq-unit{flex:1 1 130px;max-width:200px;position:relative;overflow:visible;background:rgba(255,255,255,.7);border:1px solid rgba(60,40,30,.18);
     border-radius:10px;padding:7px 9px;box-shadow:0 2px 6px rgba(60,40,30,.05);}
   .dq-enemy{border-color:rgba(192,39,26,.3);background:linear-gradient(180deg,rgba(252,240,238,.85),rgba(255,250,248,.9));}
-  .dq-ally{border-color:rgba(31,61,107,.3);background:linear-gradient(180deg,rgba(238,244,252,.85),rgba(250,252,255,.9));}
+  .dq-ally{border-color:rgba(63,95,122,.3);background:linear-gradient(180deg,rgba(250,248,240,.9),rgba(255,253,248,.9));}
   .dq-unit.dead{filter:grayscale(.8);opacity:.5;}
   .dq-uname{font-family:"STKaiti","KaiTi",serif;font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:4px;color:var(--ink);}
   .dq-enemy .dq-uname{color:var(--seal);}
-  .dq-ally .dq-uname{color:#1f3d6b;}
+  .dq-ally .dq-uname{color:#3f5f7a;}
   .dq-dead{font-size:12px;color:var(--ink-faint);font-style:italic;}
   .dq-hpbar{height:9px;background:rgba(60,40,30,.14);border-radius:6px;overflow:hidden;margin:2px 0;}
   .dq-hpfill{display:block;height:100%;background:#4f9d69;border-radius:6px;transition:width .35s ease;}
@@ -1231,7 +1231,7 @@
   .dq-hpv{font-size:11px;color:var(--ink-faint);letter-spacing:1px;}
   .dq-intent{font-size:11.5px;color:#9a5b1a;margin-top:3px;font-family:"STKaiti","KaiTi",serif;}
   .dq-intent.heavy{color:#c0271a;font-weight:700;}
-  .dq-debuff{display:inline-block;font-size:10.5px;color:#7a4ea8;background:rgba(122,78,168,.12);
+  .dq-debuff{display:inline-block;font-size:10.5px;color:#6b4a2f;background:rgba(107,74,47,.12);
     border-radius:5px;padding:0 4px;margin:2px 3px 0 0;}
   .dq-round{text-align:center;font-size:12px;color:var(--ink-faint);letter-spacing:3px;margin-top:6px;
     font-family:"STKaiti","KaiTi",serif;}
@@ -1240,7 +1240,7 @@
     background:rgba(60,40,30,.06);border:1px solid rgba(60,40,30,.14);border-radius:10px;}
   .dq-order-step{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 8px;border-radius:7px;white-space:nowrap;
     box-shadow:0 1px 3px rgba(60,40,30,.08);}
-  .dq-order-step.p{background:rgba(31,61,107,.1);color:#1f3d6b;border:1px solid rgba(31,61,107,.28);}
+  .dq-order-step.p{background:rgba(63,95,122,.1);color:#3f5f7a;border:1px solid rgba(63,95,122,.28);}
   .dq-order-step.e{background:rgba(192,39,26,.08);color:#9a1f14;border:1px solid rgba(192,39,26,.28);}
   .dq-order-step.wait{opacity:.5;font-style:italic;}
   .dq-order-step.heavy{background:rgba(192,39,26,.18);border-color:rgba(192,39,26,.55);}
@@ -1248,7 +1248,7 @@
   .dq-order-step .ob-name{font-family:"STKaiti","KaiTi",serif;font-weight:700;}
   .dq-order-step .ob-act{opacity:.88;}
   .dq-order-step .ob-beat{font-size:10px;font-weight:700;padding:0 4px;border-radius:6px;background:rgba(60,40,30,.14);}
-  .dq-order-step .ob-beat.fast{background:rgba(79,157,105,.22);color:#2e6b41;}
+  .dq-order-step .ob-beat.fast{background:rgba(176,131,47,.22);color:#8a6d1f;}
   .dq-order-step .ob-beat.mid{background:rgba(211,154,43,.2);color:#8a6512;}
   .dq-order-step .ob-beat.slow{background:rgba(192,39,26,.18);color:#9a1f14;}
   .dq-order-arrow{color:var(--ink-faint);font-size:11px;flex:0 0 auto;}
@@ -1276,7 +1276,7 @@
   .c-enemy .ec-elem{font-size:11px;color:var(--ink-faint);}
   .c-player .cp-plaque{display:block;font-size:11.5px;color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;margin:1px 0 4px;}
   .c-player .cp-id{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1 1 auto;}
-  .c-player .cp-name{font-size:16px;font-weight:700;color:#1f3d6b;font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;}
+  .c-player .cp-name{font-size:16px;font-weight:700;color:#3f5f7a;font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;}
   /* 出招时整卡微动（替代原 SVG 前倾前摇） */
   /* 出招时整卡微动已迁移至上方差异化 animation */
   /* 武侠「斬」印章特效 */
@@ -1732,9 +1732,9 @@
   /* 卡通矮小人形 */
   .equip-figure{position:relative;width:124px;height:104px;margin:0 auto;flex:0 0 auto;}
   .equip-sil{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.35;}
-  .equipslot{position:absolute;width:56px;min-height:22px;background:rgba(22,14,32,.62);border:1px solid rgba(186,160,220,.55);border-radius:7px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:2px;box-sizing:border-box;overflow:hidden;}
+  .equipslot{position:absolute;width:56px;min-height:22px;background:rgba(74,62,48,.06);border:1px solid rgba(74,62,48,.35);border-radius:7px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:2px;box-sizing:border-box;overflow:hidden;}
   .equipslot.pcell-sel{background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.85);}
-  .equipslot.pcell-insp{background:rgba(70,142,168,.42);box-shadow:inset 0 0 0 2px rgba(135,206,232,.85);}
+  .equipslot.pcell-insp{background:rgba(63,95,122,.28);box-shadow:inset 0 0 0 2px rgba(63,95,122,.55);}
   .ep-name{font-size:11.5px;color:#f7e9c8;font-weight:600;line-height:1.15;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.55);}
   .ep-ph{font-size:10px;color:#cdb8ee;letter-spacing:1px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
   /* 装备格品质角标 + 耐久条 */
@@ -1749,9 +1749,9 @@
   .ep-belt{left:2px;top:50px;width:56px;}
   .ep-shoe{left:2px;top:74px;width:120px;}
   /* 背包槽：与 weapon 同列上方，虚线金边以区分 */
-  .ep-bagflow{position:absolute;left:64px;top:50px;width:58px;min-height:22px;background:rgba(22,14,32,.62);border:1px dashed rgba(216,180,106,.7);}
+  .ep-bagflow{position:absolute;left:64px;top:50px;width:58px;min-height:22px;background:rgba(74,62,48,.06);border:1px dashed rgba(216,180,106,.7);}
   .ep-bagflow .ep-name{font-size:10.5px;line-height:1.1;}
-  .ep-bagflow.pcell-insp{background:rgba(70,142,168,.42);box-shadow:inset 0 0 0 2px rgba(135,206,232,.85);}
+  .ep-bagflow.pcell-insp{background:rgba(63,95,122,.28);box-shadow:inset 0 0 0 2px rgba(63,95,122,.55);}
   .ep-bagflow .ep-qbadge{top:3px;right:3px;}
   /* 右：物品栏（金调面板 + 明显滚动条） */
   .pack-right{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;
@@ -1777,10 +1777,10 @@
   /* 文字图标：以物品名排版替代 emoji（整字/2字/2+2两排/前词+缩小） */
   .ic-txt{display:inline-block;max-width:100%;line-height:1.2;text-align:center;font-weight:700;letter-spacing:.01em;color:#f4e6c2;text-shadow:0 1px 2px rgba(0,0,0,.6);font-style:normal;white-space:normal;overflow-wrap:anywhere;word-break:break-word;padding:2px 5px;border-radius:4px;border:1px solid rgba(0,0,0,.3);background:rgba(42,42,42,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.2);font-family:KaiTi,STKaiti,serif;margin:0 auto;}
     .ic-txt b{font-weight:700;font-family:inherit;}
-    .ic-txt[data-cat="装备"]{background:rgba(43,58,74,.65);border-color:rgba(26,37,48,.6);}
-    .ic-txt[data-cat="药剂"]{background:rgba(58,90,74,.65);border-color:rgba(42,64,53,.6);}
+    .ic-txt[data-cat="装备"]{background:rgba(58,48,38,.72);border-color:rgba(44,38,32,.6);}
+    .ic-txt[data-cat="药剂"]{background:rgba(63,95,122,.6);border-color:rgba(44,66,84,.6);}
     .ic-txt[data-cat="食饵"]{background:rgba(139,90,43,.6);border-color:rgba(107,69,32,.6);}
-    .ic-txt[data-cat="素材"]{background:rgba(42,42,42,.6);border-color:rgba(26,26,26,.6);}
+    .ic-txt[data-cat="素材"]{background:rgba(58,48,38,.7);border-color:rgba(44,38,32,.6);}
   /* ===== NPC 给予面板（v20260909y 重设计） ===== */
   #modal.give-modal #modal-card{height:80vh;max-height:560px;display:flex;flex-direction:column;}
   #modal.give-modal #modal-card .give-panel{flex:1;display:flex;flex-direction:column;min-height:0;}
@@ -1876,7 +1876,7 @@
   .forge-bar i{display:block;height:100%;background:linear-gradient(90deg,#c0392b,#e67e22);transition:width .3s ease;}
   .forge-pct{font-size:12px;color:#f4e6c2;opacity:.85;text-align:center;}
   .pcell-sel{position:relative;background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.9);z-index:1;}
-  .pcell-insp{position:relative;background:rgba(70,142,168,.42);box-shadow:inset 0 0 0 2px rgba(135,206,232,.9);z-index:1;}
+  .pcell-insp{position:relative;background:rgba(63,95,122,.28);box-shadow:inset 0 0 0 2px rgba(135,206,232,.9);z-index:1;}
   .shop-good.pcell-sel{background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.9);}
   /* ===== 商店（货郎）双栏：左货品 / 右行囊 ===== */
   .shop-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
