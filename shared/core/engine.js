@@ -597,6 +597,16 @@
     commandBonus: function () { return Officers.commandBonus(); }
   });
   LF.Officers = Officers;
+  // 角色大厅（v20260923r）：主角 / 随从 / 武将 一览切换，原神式角色页
+  var CharHall = LF.createCharHall({
+    getState: function () { return state; }, LF: LF, G: G,
+    openModal: openModal, closeModal: closeModal,
+    log: log, toast: toast, save: save, renderStatus: renderStatus,
+    escapeHtml: escapeHtml, row: row,
+    Officers: Officers,
+    packList: packList, packAdd: packAdd, afterPackChange: afterPackChange,
+    mainDetailHTML: mainCharDetailHTML, bindMainDetail: bindMainCharDetail
+  });
   var War = LF.createWar({
     getState: function () { return state; },
     LF: LF, G: G,
@@ -4328,6 +4338,44 @@
 
   // 架木梯下行（v20260915j）：下路挖通后，须耗一挂木梯才能再下一层
 
+  // ═══ 角色大厅 · 主角详情（v20260923r）═══
+  // 原 openModal('char') 的内容抽成独立函数，供 CharHall 在角色大厅内渲染主角页。
+  function mainCharDetailHTML(){
+    var es=effectiveStats();
+    return '<h3>角 色 · '+(state.name||'无名客')+'</h3>'+
+      (function(){
+        var need=(state.level>=G.CONSTANTS.MAX_LEVEL)?0:G.BALANCE.expNeed(state.level);
+        if(!need) return row('等级','LV.'+state.level+' · 圆满')
+          + '<div class="exp-bar"><i style="width:100%"></i></div>';
+        var pct=Math.max(0,Math.min(100,Math.round(state.exp/need*100)));
+        return row('等级','LV.'+state.level)
+          + '<div class="row exp-sub"><span>修为</span><span>'+state.exp+' / '+need+'</span></div>'
+          + '<div class="exp-bar"><i style="width:'+pct+'%"></i></div>';
+      })()+
+      row('气血',state.hp+' / '+es.maxHp)+
+      (es.maxMp>0? row('内力',state.mp+' / '+es.maxMp):'')+
+      row('精力',state.energy+' / '+state.maxEnergy)+
+      row('食物',state.food+' / '+state.maxFood)+
+      row('饮水',state.drink+' / '+state.maxDrink)+
+      row('潜能',state.pot)+
+      row('侠义',state.chivalry)+
+      row('凶名',state.notoriety)+
+      row('风评',moralTitle())+
+      row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
+      row('自由属性点',(state.freePoints||0))+
+      '<div class="row"><span>四维（点击 ± 加点）</span></div><div class="ap-list">'+attrAllocHTML()+'</div>'+
+      row('当前所处',curRoom().name)+
+      row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '散人（未入门派）')+
+      '<button class="sect-open" id="sect-open" type="button">⚔ '+(state.sect?'查看本门':'择一门派')+'</button>'+
+      '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
+      '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
+  }
+  function bindMainCharDetail(){
+    bindAttrAlloc();
+    var _sectOpen=document.getElementById('sect-open');
+    if(_sectOpen) _sectOpen.onclick=function(){ openModal('sect'); };
+  }
+
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
@@ -4349,37 +4397,7 @@
     $modal.classList.toggle('give-modal', kind==='give');
     var h='';
     if(kind==='char'){
-      var es=effectiveStats();
-      h='<h3>角 色</h3>'+
-        (function(){
-          var need=(state.level>=G.CONSTANTS.MAX_LEVEL)?0:G.BALANCE.expNeed(state.level);
-          if(!need) return row('等级','LV.'+state.level+' · 圆满')
-            + '<div class="exp-bar"><i style="width:100%"></i></div>';
-          var pct=Math.max(0,Math.min(100,Math.round(state.exp/need*100)));
-          return row('等级','LV.'+state.level)
-            + '<div class="row exp-sub"><span>修为</span><span>'+state.exp+' / '+need+'</span></div>'
-            + '<div class="exp-bar"><i style="width:'+pct+'%"></i></div>';
-        })()+
-        row('气血',state.hp+' / '+es.maxHp)+
-        (es.maxMp>0? row('内力',state.mp+' / '+es.maxMp):'')+
-        row('精力',state.energy+' / '+state.maxEnergy)+
-        row('食物',state.food+' / '+state.maxFood)+
-        row('饮水',state.drink+' / '+state.maxDrink)+
-        row('潜能',state.pot)+
-        row('侠义',state.chivalry)+
-        row('凶名',state.notoriety)+
-        row('风评',moralTitle())+
-        row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
-        row('自由属性点',(state.freePoints||0))+
-        '<div class="row"><span>四维（点击 ± 加点）</span></div><div class="ap-list">'+attrAllocHTML()+'</div>'+
-        row('当前所处',curRoom().name)+
-        // 门派入口（v20260914a）：此前「择木而栖」这条志向教玩家「点状态栏『⚔ 门派』」，
-        //   而全项目【没有任何地方】能打开门派面板 —— openModal('sect') 只在入门成功后自调用一次，
-        //   等于这条志向在正常玩法下永远做不成。这里在角色面板补上唯一的入口，并顺带显示当前去向。
-        row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '散人（未入门派）')+
-        '<button class="sect-open" id="sect-open" type="button">⚔ '+(state.sect?'查看本门':'择一门派')+'</button>'+
-        '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
-        '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
+      h=CharHall.renderCharHall();
     } else if(kind==='levelup'){
       h=renderLevelup();
     } else if(kind==='pack'){
@@ -4514,10 +4532,7 @@
     var mx=document.getElementById('modal-x'); if(mx) mx.style.visibility=(kind==='create')?'hidden':'visible';
     if(kind==='create') bindCreate();
     if(kind==='char'){
-      bindAttrAlloc();
-      // 门派面板入口（v20260914a）：见 renderCharPanel 处注释 —— 这是全项目唯一能打开它的地方
-      var _sectOpen=document.getElementById('sect-open');
-      if(_sectOpen) _sectOpen.onclick=function(){ openModal('sect'); };
+      CharHall.bindCharHall();
     }
     if(kind==='pack'){ bindPackInteractions(); }
     if(kind==='give'){ bindGivePanel(); }

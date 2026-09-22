@@ -368,6 +368,7 @@
   global.LF.PICKS = PICKS;
   global.LF.PICK_GATE = PICK_GATE;
   global.LF.MINE_SPOT = MINE_SPOT;
+  global.LF.SLOTS = SLOTS;
   global.LF.ITEMS = ITEMS;
   if (typeof module !== 'undefined' && module.exports) module.exports = ITEMS;
 })(typeof window !== 'undefined' ? window : globalThis);

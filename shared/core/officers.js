@@ -252,7 +252,7 @@
 
     // ── 武将面板 ──
     function esc(s) { return escapeHtml(s == null ? '' : s); }
-    var SKILL_CAT_COLOR = { 战:'#c0392b', 智:'#2c6fb0', 政:'#2e8b57', 魅:'#8e44ad' };
+    var SKILL_CAT_COLOR = { 战:'#9e3b2e', 智:'#3f5f7a', 政:'#7a6a2e', 魅:'#8a5a3a' };
     function skillTagsHTML(ids) {
       if (!ids || !ids.length) return '';
       return '<span class="of-skills">' + ids.map(function (id) {
@@ -385,6 +385,7 @@
       template: template, garrisonOf: garrisonOf, garrisonCommander: garrisonCommander, officerCombat: officerCombat,
       commandBonus: commandBonus, civilBonus: civilBonus, garrisonCivilBonus: garrisonCivilBonus, swornBrothers: swornBrothers, enemyOf: enemyOf, affOf: affOf, loyaltyTick: loyaltyTick, battleSynergy: battleSynergy, taxBonus: taxBonus, orderBonus: orderBonus, yieldBonus: yieldBonus,
       roster: roster, get: getInst, commander: commander, governorOf: governorOf,
+      idsOf: idsOf, template: template, statBars: statBars, skillTagsHTML: skillTagsHTML, tierCls: tierCls, assignTag: assignTag,
       recruitableHere: recruitableHere, recruitChance: recruitChance, recruit: recruit,
       appoint: appoint, dismiss: dismiss, captureFrom: captureFrom,
       renderOfficerPanel: renderOfficerPanel, renderSearchPanel: renderSearchPanel, renderOfficerHub: renderOfficerHub, renderFactionsPanel: renderFactionsPanel, renderCityGarrison: renderCityGarrison,
