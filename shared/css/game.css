@@ -555,34 +555,31 @@
   /* ===== 底部常驻功能栏（全局面板入口，与上下文按钮再分级） ===== */
   #dock{
     flex:0 0 auto;display:flex;
-    border-top:2px solid var(--panel-line);
-    box-shadow:0 -6px 14px -10px rgba(60,48,34,.20);
-    background:linear-gradient(0deg,rgba(240,233,220,.98),rgba(248,243,233,.85));
+    border-top:1px solid rgba(184,137,58,.55);
+    box-shadow:0 -6px 16px -8px rgba(0,0,0,.55);
+    background:linear-gradient(0deg,#1c150c 0%,#2b2011 100%);
     backdrop-filter:blur(6px);
   }
   #dock button{
-    flex:1;padding:9px 4px 11px;background:none;border:none;cursor:pointer;
-    color:var(--ink);font-size:12.5px;letter-spacing:1px;
+    flex:1;padding:8px 4px 10px;background:none;border:none;cursor:pointer;
+    color:#cbb894;font-size:12.5px;letter-spacing:1px;
     display:flex;flex-direction:column;align-items:center;gap:5px;transition:.18s;
     font-family:"LXGW WenKai","STKaiti","KaiTi",serif;
   }
-  /* 印章式 dock 图标（v20260924a）：朱砂方印 + 单字，与角色大厅印章占位同族 */
+  /* 鎏金铜刻图标卡（v20260924c）：深墨底同色嵌入 + 金线，米哈游/三国志质感 */
   #dock button .ic{
-    width:30px;height:30px;border-radius:8px;flex:none;
+    width:36px;height:36px;border-radius:9px;flex:none;overflow:hidden;
     display:flex;align-items:center;justify-content:center;
-    font-family:"STKaiti","KaiTi","LXGW WenKai",serif;font-size:17px;font-weight:700;letter-spacing:0;line-height:1;
-    color:#f7ead0;background:linear-gradient(160deg,#b5362e,#8c2620);
-    border:1px solid rgba(255,210,104,.55);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 1px 3px rgba(60,48,34,.28);
-    transform:rotate(-3deg);transition:.18s;
-    user-select:none;
+    background:#241c10;border:1px solid rgba(184,137,58,.38);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 2px 4px rgba(0,0,0,.45);
+    transition:.18s;
   }
-  #dock button:hover{color:var(--seal);}
-  #dock button:hover .ic{ background:linear-gradient(160deg,#caa24a,#7a5a22);color:#241c10;border-color:#caa24a;transform:rotate(0deg) scale(1.05); }
+  #dock button .ic img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.02);}
+  #dock button:hover{color:#ffd98a;}
+  #dock button:hover .ic{border-color:rgba(255,210,104,.75);box-shadow:0 0 9px rgba(255,200,90,.35);}
   #dock button:active{transform:scale(.94);}
-  #dock button:active .ic{transform:scale(.9);}
-  #dock button.rest{color:var(--seal);}
-  #dock button.rest .ic{ background:linear-gradient(160deg,#caa24a,#7a5a22);color:#241c10;border-color:#caa24a; }
+  #dock button.rest{color:#ffd98a;}
+  #dock button.rest .ic{border-color:#ffd268;box-shadow:0 0 12px rgba(255,200,90,.55);}
 
   /* ===== 弹窗 ===== */
   #modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
@@ -1579,8 +1576,8 @@
     /* ── 底部 UI 手机适配：防止窄屏折成两排 ── */
     /* 系统栏 6 按钮强制一行，缩字号/内距防溢出 */
     #dock{flex-wrap:nowrap;}
-    #dock button{flex:1 1 0;min-width:0;padding:8px 1px 9px;font-size:10px;letter-spacing:0;gap:3px;}
-    #dock button .ic{width:26px;height:26px;font-size:15px;border-radius:7px;}
+    #dock button{flex:1 1 0;min-width:0;padding:7px 1px 8px;font-size:10px;letter-spacing:0;gap:3px;}
+    #dock button .ic{width:30px;height:30px;border-radius:8px;}
 
     /* 常驻移动罗盘缩放，避免溢出挤压 */
     .move-bar{width:min(100% - 10px, 276px);padding:9px;gap:5px;}
