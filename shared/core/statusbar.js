@@ -43,7 +43,8 @@
       '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
       '<span class="st-time'+(lateInCamp?' st-time-night':'')+'" title="'+(lateInCamp?'戌时落锁，营规要拿人':sh)+'">'+sh+'</span>'+
       '<span class="dot">·</span>'+
-      '<span class="st-wx" title="'+w.n+'">'+w.ic+w.n+'</span>'+
+      // v20260924u：天气图标换 AI 小图（未映射回退 emoji）
+      '<span class="st-wx" title="'+w.n+'">'+(window.UI_Icons?UI_Icons.icon(w.ic,w.n):(w.ic+w.n))+'</span>'+
       // 回顾入口（v20260914a）：贴在状态栏最右侧，随手可及。点它为「回顾」，点状态栏其余处仍是「时辰钟表」。
       '<span class="st-log" id="st-log" role="button" title="回顾：你听过、读过的每一句">回顾</span>';
     var qtr=document.getElementById('quest-track');

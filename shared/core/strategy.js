@@ -421,6 +421,7 @@
       S().gold = (S().gold || 0) + total;
       log('〔府库〕治下 ' + rc.length + ' 城纳赋，得银 ' + total + ' 两。', 'sys');
     }
+    if (Officers && Officers.facilitiesMonthlyYield) Officers.facilitiesMonthlyYield();
   }
   function factionDomesticAI() {
     if (!S() || S().dead) return;

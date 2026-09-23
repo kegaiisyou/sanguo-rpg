@@ -10,6 +10,9 @@
     var LF = ctx.LF;
     var log = ctx.log, toast = ctx.toast, save = ctx.save;
     var cityOwnerOf = ctx.cityOwnerOf, playerFaction = ctx.playerFaction;
+    var openModal = ctx.openModal || function () {};
+    var getCurrentModalKind = ctx.getCurrentModalKind || function () { return ''; };
+    var armyCount = ctx.armyCount || function () { return 120; };
     var escapeHtml = ctx.escapeHtml || function (s) { return String(s == null ? '' : s); };
     var SKILL_MAP = {}; (LF.OFFICER_SKILLS || []).forEach(function (s) { SKILL_MAP[s.id] = s; });
     function idsOf(t) { return (t && t.skills) ? t.skills : []; }
@@ -228,6 +231,118 @@
       return true;
     }
 
+    // ── 设施派遣层（v20260924j）：遣武将监理城邑设施，依才具与民夫/士卒按月批量产出 ──
+    function statName(k) { return ({ wu: '武', zhi: '智', tong: '统', zheng: '政', mei: '魅' })[k] || k; }
+    function facKeyOf(f) { return f.cid + '|' + f.ftype + '|' + f.slot; }
+    function facLabor(fkey) {
+      var st = S(); if (!st) return 0;
+      st.flags.facilityLabor = st.flags.facilityLabor || {};
+      return st.flags.facilityLabor[fkey] || 0;
+    }
+    function facTroops(fkey) {
+      var st = S(); if (!st) return 0;
+      st.flags.facilityTroops = st.flags.facilityTroops || {};
+      return st.flags.facilityTroops[fkey] || 0;
+    }
+    function stewardOf(fkey) {
+      var list = roster();
+      for (var i = 0; i < list.length; i++) if (list[i].assignment && list[i].assignment.type === 'steward' && list[i].assignment.fkey === fkey) return list[i];
+      return null;
+    }
+    function trooplimit() { return (typeof armyCount === 'function') ? Math.max(0, armyCount()) : 120; }
+    function facilityOutput(fkey) {
+      var p = (fkey || '').split('|'); var cid = p[0], ftype = p[1];
+      var T = (LF.FACILITY_TYPES || {})[ftype]; if (!T) return null;
+      var o = stewardOf(fkey);
+      var statMul = 1, skill = 0;
+      if (o) { var t = template(o.id); statMul = 1 + (o.stats[T.stat] || 0) / 100 * 0.85; skill = sumEff(idsOf(t), T.skill); }
+      var lab = facLabor(fkey), labMul = 1 + lab / 100;
+      var tr = facTroops(fkey), trMul = 1 + tr / 160;
+      var amount = Math.round(T.base * statMul * (1 + skill) * labMul * trMul);
+      return { type: ftype, res: T.res, resName: T.resName, icon: T.icon, name: T.name, amount: amount, officer: o, statMul: statMul, skill: skill, labor: lab, laborCap: T.laborCap, troops: tr, troopCap: trooplimit(), stat: T.stat, desc: T.desc };
+    }
+    function dispatchAssign(fkey, oid) {
+      var o = getInst(oid); if (!o) { toast('麾下无此人。'); return false; }
+      if (o.assignment && o.assignment.type === 'steward' && o.assignment.fkey === fkey) { o.assignment = null; }
+      else {
+        roster().forEach(function (x) { if (x !== o && x.assignment && x.assignment.type === 'steward' && x.assignment.fkey === fkey) x.assignment = null; });
+        o.assignment = { type: 'steward', cid: fkey.split('|')[0], fkey: fkey };
+        var st = S(); st.flags.facilityLabor = st.flags.facilityLabor || {};
+        if (!st.flags.facilityLabor[fkey]) st.flags.facilityLabor[fkey] = 20;
+      }
+      log('〔派遣〕' + o.name + ' 受命监理 ' + ((facilityOutput(fkey) || {}).name || '设施') + '，民力得其所用。', 'sys');
+      save(S());
+      if (typeof openModal === 'function' && getCurrentModalKind && getCurrentModalKind() === 'officers') openModal('officers');
+      return true;
+    }
+    function dispatchRemove(fkey) {
+      var o = stewardOf(fkey); if (!o) return false;
+      o.assignment = null;
+      log('〔召回〕' + o.name + ' 自设施解任归营。', 'sys'); save(S());
+      if (typeof openModal === 'function' && getCurrentModalKind && getCurrentModalKind() === 'officers') openModal('officers');
+      return true;
+    }
+    function dispatchLabor(fkey, d) {
+      var st = S(); st.flags.facilityLabor = st.flags.facilityLabor || {};
+      var cap = ((LF.FACILITY_TYPES || {})[(fkey.split('|')[1])] || {}).laborCap || 60;
+      var cur = Math.max(0, Math.min(cap, (st.flags.facilityLabor[fkey] || 0) + d));
+      st.flags.facilityLabor[fkey] = cur; save(S());
+      if (typeof openModal === 'function' && getCurrentModalKind && getCurrentModalKind() === 'officers') openModal('officers');
+    }
+    function dispatchTroops(fkey, d) {
+      var st = S(); st.flags.facilityTroops = st.flags.facilityTroops || {};
+      var cap = trooplimit();
+      var cur = Math.max(0, Math.min(cap, (st.flags.facilityTroops[fkey] || 0) + d));
+      st.flags.facilityTroops[fkey] = cur; save(S());
+      if (typeof openModal === 'function' && getCurrentModalKind && getCurrentModalKind() === 'officers') openModal('officers');
+    }
+    function facilitiesMonthlyYield() {
+      var rc = (S().ruledCities) || []; if (!rc.length) return;
+      var res = S().res = S().res || { grain: 0, iron: 0, kit: 0 };
+      var tot = { grain: 0, iron: 0, kit: 0, gold: 0 };
+      rc.forEach(function (cid) {
+        var slots = (LF.facilitySlotsOf ? LF.facilitySlotsOf(cid) : []) || [];
+        slots.forEach(function (s) {
+          var o = facilityOutput(facKeyOf(s));
+          if (o && o.amount > 0) tot[o.res] += o.amount;
+        });
+      });
+      res.grain += tot.grain; res.iron += tot.iron; res.kit += tot.kit; S().gold = (S().gold || 0) + tot.gold;
+      var pts = []; if (tot.grain) pts.push('粮 ' + tot.grain); if (tot.iron) pts.push('铁 ' + tot.iron); if (tot.kit) pts.push('器械 ' + tot.kit); if (tot.gold) pts.push('银 ' + tot.gold);
+      if (pts.length) log('〔营生〕麾下设施岁入：' + pts.join('、') + '。', 'sys');
+    }
+    function renderDispatchPanel() {
+      var rc = (S().ruledCities) || [];
+      var res = S().res || { grain: 0, iron: 0, kit: 0 };
+      var h = '<h3>设施派遣</h3>';
+      h += '<div class="of-note">库藏：🌾粮 ' + (res.grain || 0) + ' · ⛏️铁 ' + (res.iron || 0) + ' · 🔨械 ' + (res.kit || 0) + ' · 💰银 ' + (S().gold || 0) + '</div>';
+      h += '<div class="of-note">遣一员文官武将监理城邑设施，依其才具与所调拨之民夫、士卒，按月批量产出粮草、铁料、器械、钱帛。此乱世治生之术也。</div>';
+      if (!rc.length) { h += '<div class="of-empty">尚未据有城池，无设施可遣。先取一城，方能课民兴利。</div>'; return h; }
+      rc.forEach(function (cid) {
+        var c = (LF.CITIES || {})[cid] || {};
+        h += '<div class="of-group"><div class="of-ghead">🏯 ' + esc(c.name || cid) + '</div><div class="of-list">';
+        var slots = (LF.facilitySlotsOf ? LF.facilitySlotsOf(cid) : []) || [];
+        if (!slots.length) h += '<div class="of-empty">此城暂无可用设施。</div>';
+        slots.forEach(function (s) {
+          var fk = facKeyOf(s), safe = fk.replace(/\|/g, '_'), o = facilityOutput(fk);
+          h += '<div class="of-row fac-row">';
+          h += '<div class="of-top"><b>' + esc(o.icon) + ' ' + esc(o.name) + '</b>' + (o.officer ? '<span class="of-tag stew">' + esc(o.officer.name) + ' 监理</span>' : '<span class="of-tag free">未遣</span>') + '</div>';
+          h += '<div class="fac-ctl">民夫 ' + o.labor + '/' + o.laborCap + '　<button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',-5)">−</button><button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',5)">＋</button>　士卒 ' + o.troops + '/' + o.troopCap + '　<button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',-10)">−</button><button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',10)">＋</button></div>';
+          var pct = Math.round(o.statMul * 100) / 100;
+          h += '<div class="fac-out">月出：<b>' + o.amount + ' ' + esc(o.resName) + '</b>' + (o.officer ? '（' + statName(o.stat) + '×' + pct + (o.skill ? (' ＋技' + Math.round(o.skill * 100) + '%') : '') + '）' : '（未遣官，仅赖民力）') + '</div>';
+          var avail = roster().filter(function (x) { return !x.assignment || (x.assignment.type === 'steward' && x.assignment.fkey === fk); });
+          h += '<div class="fac-assign"><select id="facsel_' + safe + '" class="fac-sel"><option value="">— 选员监理 —</option>';
+          avail.forEach(function (x) { h += '<option value="' + x.id + '">' + esc(x.name) + '（' + statName(o.stat) + (x.stats[o.stat] || 0) + '）</option>'; });
+          h += '</select><button class="btn sm" onclick="window.dispatchAssign(\'' + fk + '\',document.getElementById(\'facsel_' + safe + '\').value)">派遣</button>';
+          if (o.officer) h += '<button class="btn sm danger" onclick="window.dispatchRemove(\'' + fk + '\')">召回</button>';
+          h += '</div></div>';
+        });
+        h += '</div></div>';
+      });
+      h += '<p class="hint">民夫取自城邑丁口，士卒取自你麾下兵马（调拨不损战力，仅增益营生）。武将以「政务/魅力/智略」与特技（屯田/商才/工神）增益产出；高「武」者监工亦能使役夫効命。</p>';
+      return h;
+    }
+
     // ── 克城俘获 ──
     function captureFrom(defKey, cid) {
       if (!defKey || defKey === 'player' || defKey === 'none') return [];
@@ -274,6 +389,7 @@
     function assignTag(o) {
       if (!o.assignment) return '<span class="of-tag free">在野未任</span>';
       if (o.assignment.type === 'commander') return '<span class="of-tag cmd">主将</span>';
+      if (o.assignment.type === 'steward') { var _fn = (facilityOutput(o.assignment.fkey) || {}).name || '设施'; return '<span class="of-tag stew">监理·' + esc(_fn) + '</span>'; }
       var cn = (((LF.CITIES || {})[o.assignment.cid] || {}).name || o.assignment.cid);
       return '<span class="of-tag gov">太守·' + esc(cn) + '</span>';
     }
@@ -330,13 +446,14 @@
       return h;
     }
     function renderOfficerHub() {
-      var tabs = [['roster', '麾下'], ['search', '寻访'], ['factions', '群雄']];
+      var tabs = [['roster', '麾下'], ['search', '寻访'], ['dispatch', '派遣'], ['factions', '群雄']];
       var h = '<div class="of-tabs">';
       tabs.forEach(function (t) {
         h += '<button class="of-tab' + (officerTab === t[0] ? ' on' : '') + '" onclick="window.openOfficerTab(\'' + t[0] + '\')">' + t[1] + '</button>';
       });
       h += '</div>';
       if (officerTab === 'search') h += renderSearchPanel();
+      else if (officerTab === 'dispatch') h += renderDispatchPanel();
       else if (officerTab === 'factions') h += renderFactionsPanel();
       else h += renderOfficerPanel();
       return h;
@@ -389,7 +506,8 @@
       recruitableHere: recruitableHere, recruitChance: recruitChance, recruit: recruit,
       appoint: appoint, dismiss: dismiss, captureFrom: captureFrom,
       renderOfficerPanel: renderOfficerPanel, renderSearchPanel: renderSearchPanel, renderOfficerHub: renderOfficerHub, renderFactionsPanel: renderFactionsPanel, renderCityGarrison: renderCityGarrison,
-      openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel, openOfficerTab: openOfficerTab
+      openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel, openOfficerTab: openOfficerTab,
+      renderDispatchPanel: renderDispatchPanel, dispatchAssign: dispatchAssign, dispatchRemove: dispatchRemove, dispatchLabor: dispatchLabor, dispatchTroops: dispatchTroops, facilitiesMonthlyYield: facilitiesMonthlyYield, facilityOutput: facilityOutput
     };
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.createOfficers;

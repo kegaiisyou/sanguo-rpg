@@ -580,7 +580,9 @@
   var Officers = LF.createOfficers({
     getState: function () { return state; }, LF: LF,
     log: log, toast: toast, save: save, escapeHtml: escapeHtml,
-    cityOwnerOf: cityOwnerOf, playerFaction: playerFaction
+    cityOwnerOf: cityOwnerOf, playerFaction: playerFaction,
+    openModal: openModal, getCurrentModalKind: function () { return currentModalKind; },
+    armyCount: function () { return Army.armyCount(); }
   });
   var Army = LF.createArmy({
     getState: function () { return state; },
@@ -634,7 +636,9 @@
       warToggleTroop = War.warToggleTroop, warLaunch = War.warLaunch, tryAmbush = War.tryAmbush;
   var officerRecruit = Officers.recruit, officerAppoint = Officers.appoint, officerDismiss = Officers.dismiss,
       renderOfficerPanel = Officers.renderOfficerPanel, renderSearchPanel = Officers.renderSearchPanel,
-      openOfficerPanel = Officers.openOfficerPanel, openSearchPanel = Officers.openSearchPanel, renderOfficerHub = Officers.renderOfficerHub;
+      openOfficerPanel = Officers.openOfficerPanel, openSearchPanel = Officers.openSearchPanel, renderOfficerHub = Officers.renderOfficerHub,
+      renderDispatchPanel = Officers.renderDispatchPanel, dispatchAssign = Officers.dispatchAssign, dispatchRemove = Officers.dispatchRemove,
+      dispatchLabor = Officers.dispatchLabor, dispatchTroops = Officers.dispatchTroops, facilitiesMonthlyYield = Officers.facilitiesMonthlyYield;
   // NPC 装配器与交谈面板（v20260916c）：从 engine.js 切出，见 shared/core/npc.js。
   // 排在 Combat 之后（敌意卡「挑战」用 startCombat）、Pack 之前；city.js 经 getNPC_BUILD 延迟取装配器，
   // 故 City（更早建）不会因 NPC 后建而拿到空值。
@@ -1792,7 +1796,9 @@
     var hd=document.createElement('div'); hd.className='nl-hd'; hd.textContent='此处人物'; box.appendChild(hd);
     items.forEach(function(it){
       var chip=document.createElement('button'); chip.className='nl-item';
-      chip.innerHTML='<span class="nl-ic">'+(it.o.icon||'👤')+'</span><span class="nl-nm">'+it.o.name+'</span>';
+      // v20260924u：NPC 名称命中头像映射则显示圆形头像，否则回退图标
+      var _ava = (window.UI_Icons && it.o.name) ? UI_Icons.avatar(it.o.name) : (it.o.icon||'👤');
+      chip.innerHTML='<span class="nl-ic">'+_ava+'</span><span class="nl-nm">'+it.o.name+'</span>';
       if(it.o.key) chip.dataset.k=it.o.key;   // 供新手目标引导高亮定位
       chip.onclick=function(e){ toggleObjExpand(e, chip, it.o, it.acts); };
       box.appendChild(chip);
@@ -1800,7 +1806,10 @@
     enters.forEach(function(it){
       var b=BUILDINGS[it.enter.building];
       var chip=document.createElement('button'); chip.className='nl-item nl-bld';
-      chip.innerHTML='<span class="nl-ic">'+(b?b.icon:'🏠')+'</span><span class="nl-nm">'+(b?b.name:it.enter.building)+'</span>';
+      // v20260924u：建筑入口换图（回退 emoji）
+      var _ic=(b?b.icon:'🏠');
+      var _pic=(window.UI_Icons)? UI_Icons.icon(_ic, b?b.name:it.enter.building) : _ic;
+      chip.innerHTML='<span class="nl-ic">'+_pic+'</span><span class="nl-nm">'+(b?b.name:it.enter.building)+'</span>';
       chip.onclick=function(){ enterBldRoom(it.enter.building, {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}); };
       box.appendChild(chip);
     });
@@ -1816,7 +1825,8 @@
   function mkAct(group, icon, name, fn, extraCls, actId){
     var b=document.createElement('button');
     b.className='act obj-btn g-'+group+(extraCls?(' '+extraCls):'');
-    b.innerHTML='<span class="ob-ic">'+(icon||'·')+'</span><span class="ob-nm">'+name+'</span>';
+    // v20260924u：场景按钮图标经 UI_Icons 换为 AI 小图（无映射回退 emoji）
+    b.innerHTML='<span class="ob-ic">'+(window.UI_Icons?UI_Icons.icon(icon,name):(icon||'·'))+'</span><span class="ob-nm">'+name+'</span>';
     if(actId) b.dataset.act=actId;
     b.onclick=function(e){ fn(e); }; $actions.appendChild(b);
     return b;
@@ -5022,6 +5032,7 @@
   window.openSiegePrep=openSiegePrep; window.warToggleTroop=warToggleTroop; window.warLaunch=warLaunch;
   window.startDefendBattle=startDefendBattle; window.startFieldBattle=startFieldBattle;
   window.openOfficerPanel=openOfficerPanel; window.openSearchPanel=openSearchPanel; window.recruitOfficer=officerRecruit; window.appointOfficer=officerAppoint; window.dismissOfficer=officerDismiss; window.openOfficerTab=Officers.openOfficerTab;
+  window.dispatchAssign=dispatchAssign; window.dispatchRemove=dispatchRemove; window.dispatchLabor=dispatchLabor; window.dispatchTroops=dispatchTroops;
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.enterGame=enterGame;   // 调试/自动化游玩桥接（供 playtest harness 开局，与 advanceTime 同款）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）

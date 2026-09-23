@@ -67,17 +67,23 @@
   #status .who{font-size:14px;color:var(--ink);font-weight:700;font-family:"STKaiti","KaiTi","Songti SC",serif;letter-spacing:1px;
     flex:0 0 auto;white-space:nowrap;}
   #status .dot{color:var(--ink-faint);}
-  #status .st-clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);font-family:"STKaiti","KaiTi",serif;letter-spacing:.5px;}
+  #status .st-clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);font-family:"STKaiti","KaiTi",serif;letter-spacing:.5px;font-size:13.5px;}
   #status .st-time{color:var(--seal);font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
   /* 宵禁时段（v20260916a）：酉戌亥子丑寅在营中时辰标红，一眼提醒「快回牢销名」 */
   #status .st-time.st-time-night{color:#d9503a;font-weight:700;text-shadow:0 0 6px rgba(217,80,58,.35);}
   #status .st-era{font-size:11.5px;color:#9a7b3a;font-family:"STKaiti","KaiTi",serif;}
   #status .st-wx{flex:none;font-size:12px;color:#6e4f17;font-family:"STKaiti","KaiTi",serif;white-space:nowrap;}
+  /* v20260924u：天气小图标 */
+  #status .st-wx img.ui-pic{width:15px;height:15px;object-fit:cover;border-radius:3px;
+    vertical-align:-2px;margin-right:3px;background:#f3ecdd;border:1px solid rgba(110,79,23,.22);}
   /* 回顾入口（v20260914a）：贴在状态栏最右，随手可及。
      点它为「回顾」，点状态栏其余处仍是「时辰钟表」——分流写在引擎的 $status.onclick 里。 */
   #status .st-log{flex:none;margin-left:auto;font-size:11.5px;letter-spacing:1px;
     color:#8a6a2e;border:1px solid rgba(184,134,11,.42);border-radius:10px;
     padding:1px 8px;background:rgba(184,134,11,.09);font-family:"STKaiti","KaiTi",serif;}
+  /* v20260924u：回顾钮前添一方小印 */
+  #status .st-log::before{content:'';display:inline-block;width:6px;height:6px;transform:rotate(45deg);
+    border:1px solid #9e3b2e;border-radius:1px;margin-right:5px;vertical-align:1px;opacity:.75;}
   #status .st-log:active{background:rgba(184,134,11,.26);}
   /* 回顾面板（v20260914a）：按「处所」分段、换一次时辰标一次时刻 —— 读来像一卷流水账 */
   .log-tip{text-align:left;margin:-2px 0 8px;line-height:1.55;}
@@ -131,7 +137,9 @@
     box-shadow:0 -7px 14px -9px rgba(60,48,34,.35);
     z-index:3;
   }
-  .loc-tab::before{content:'📍';font-size:13px;line-height:1;}
+  /* v20260924u：📍 换成一枚小方印，去 emoji、添古意 */
+  .loc-tab::before{content:'';width:9px;height:9px;flex:none;transform:rotate(45deg);
+    border:1.5px solid #9e3b2e;border-radius:1.5px;background:rgba(158,59,46,.10);}
   /* ===== 中部文字叙事窗 ===== */
   #scene{
     flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
@@ -226,6 +234,10 @@
   /* 场景对象：小按钮只显示图标 + 标题，描述移入弹窗 */
   .act.obj-btn{flex-direction:column;gap:3px;padding:8px 6px;font-size:12.5px;line-height:1.2;}
   .act.obj-btn .ob-ic{font-size:20px;line-height:1;filter:grayscale(.32) sepia(.5) saturate(1.45) hue-rotate(-8deg);opacity:.94;}
+  /* v20260924u：AI 图标（墨黛蓝成图，不再套 emoji 旧化滤镜） */
+  .act.obj-btn .ob-ic img.ui-pic{width:24px;height:24px;object-fit:cover;border-radius:4px;
+    filter:none;opacity:1;display:block;margin:0 auto;background:#f3ecdd;
+    border:1px solid rgba(110,79,23,.20);}
   .act.obj-btn .ob-nm{font-size:12.5px;color:var(--ink);}
   /* 分组标题（此前无样式，现统一样式） */
   .grp{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:4px;
@@ -275,6 +287,11 @@
   .nl-item:hover{background:rgba(176,131,47,.15);border-color:rgba(176,131,47,.55);}
   .nl-item:active{transform:scale(.97);}
   .nl-item .nl-ic{font-size:14px;flex:none;}
+  /* v20260924u：NPC 圆形头像 / 物件方形小卡 */
+  .nl-item .nl-ic img.ui-ava{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block;
+    background:#f3ecdd;border:1px solid rgba(110,79,23,.28);}
+  .nl-item .nl-ic img.ui-pic{width:24px;height:24px;object-fit:cover;border-radius:4px;display:block;
+    background:#f3ecdd;border:1px solid rgba(110,79,23,.22);}
   .nl-item .nl-nm{line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* 可进入的建筑入口 chips，区别于一般人物 */
   .nl-item.nl-bld{background:rgba(122,86,46,.16);border-color:rgba(176,131,47,.6);}
