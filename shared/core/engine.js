@@ -4376,9 +4376,18 @@
     if(_sectOpen) _sectOpen.onclick=function(){ openModal('sect'); };
   }
 
+  // dock 选中态（v20260924h）：打开对应面板时高亮底部页签（朱砂卡+指示条），关窗/开非页签窗则清除
+  function setDockRest(kind){
+    var _map={char:1,pack:1,army:1,quest:1,map:1,settings:1};
+    document.querySelectorAll('#dock button').forEach(function(b){
+      if(kind && _map[kind] && b.getAttribute('data-modal')===kind) b.classList.add('rest');
+      else b.classList.remove('rest');
+    });
+  }
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
+    setDockRest(kind);   // 底部页签选中态跟随（v20260924h）
     dlgClose();   // 开面板即收对话窗（v20260912g）：底部位置让给面板，别两套东西叠着
     var _tt=document.getElementById('title'); if(_tt) _tt.classList.add('frozen');   // 冻结标题重绘，避免弹窗(择档等)卡顿
     var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
@@ -4816,6 +4825,7 @@
     if(currentModalKind==='shop') Shop.restoreTradePending();   // 关店归还寄售真物，避免退出后丢失
     var _closedKind=currentModalKind;   // v20260913c：收起前先记下关的是哪扇窗（行囊教学要接着往下讲）
     currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
+    setDockRest(null);       // 收起面板清底部页签选中态（v20260924h）
     syncActionLock();        // 收起弹窗后重算交互锁（对话悬挂未答完则仍锁着，v20260911i）
     if(_closedKind==='pack') onbAfterPack();   // 首次合上行囊 → 栅外那嗓子该开口了（见 onbAfterPack）
   }

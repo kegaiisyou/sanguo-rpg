@@ -554,33 +554,51 @@
 
   /* ===== 底部常驻功能栏（全局面板入口，与上下文按钮再分级） ===== */
   #dock{
-    flex:0 0 auto;display:flex;
-    border-top:2px solid rgba(176,131,47,.45);
-    box-shadow:0 -6px 14px -10px rgba(60,48,34,.20);
-    background:linear-gradient(0deg,#f6f0e0 0%,#fdf9ef 100%);
+    flex:0 0 auto;display:flex;position:relative;
+    border-top:1.5px solid rgba(176,131,47,.55);
+    box-shadow:0 1px 0 rgba(158,59,46,.10),0 -6px 14px -10px rgba(60,48,34,.20);
+    background:
+      radial-gradient(circle at 18% 120%, rgba(158,59,46,.05), transparent 42%),
+      radial-gradient(circle at 82% 120%, rgba(176,131,47,.08), transparent 40%),
+      linear-gradient(0deg,#f6f0e0 0%,#fdf9ef 100%);
     backdrop-filter:blur(6px);
   }
   #dock button{
     flex:1;padding:8px 4px 10px;background:none;border:none;cursor:pointer;
     color:var(--ink);font-size:12.5px;letter-spacing:1px;
     display:flex;flex-direction:column;align-items:center;gap:5px;transition:.18s;
-    font-family:"LXGW WenKai","STKaiti","KaiTi",serif;
+    font-family:"LXGW WenKai","STKaiti","KaiTi",serif;position:relative;
   }
-  /* 符号化图标卡（v20260924f）：白卡细描边 + 墨黛蓝单色符号，绝区零/明日方舟式直白辨识 */
+  /* 符号化图标卡（v20260924h）：白卡细描边 + 墨黛蓝单色符号，宣纸微斑驳 + 左上提亮 */
   #dock button .ic{
     width:40px;height:40px;border-radius:12px;flex:none;overflow:hidden;
     display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(180deg,#fffef9 0%,#f6f0e0 100%);
+    background:
+      radial-gradient(circle at 30% 22%, rgba(255,255,255,.55), transparent 55%),
+      radial-gradient(circle at 78% 88%, rgba(176,131,47,.08), transparent 48%),
+      linear-gradient(180deg,#fffef9 0%,#f6f0e0 100%);
     border:1.5px solid rgba(74,62,48,.18);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 2px 5px rgba(60,48,34,.12);
     transition:.18s;
   }
-  #dock button .ic img{width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:multiply;transform:scale(1.03);}
+  #dock button .ic img{width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:multiply;transform:scale(1.03);transition:.18s;}
   #dock button:hover{color:var(--seal);}
-  #dock button:hover .ic{border-color:rgba(158,59,46,.45);transform:translateY(-1px);box-shadow:0 3px 8px rgba(158,59,46,.12);}
+  #dock button:hover .ic{border-color:rgba(158,59,46,.45);transform:translateY(-2px);box-shadow:0 3px 8px rgba(158,59,46,.12);}
+  #dock button:hover .ic img{transform:scale(1.07);}
   #dock button:active{transform:scale(.94);}
   #dock button.rest{color:var(--seal);}
-  #dock button.rest .ic{border-color:var(--seal);background:linear-gradient(180deg,#fdf3ea 0%,#f6e6d2 100%);box-shadow:0 0 0 1.5px rgba(158,59,46,.14),0 3px 8px rgba(158,59,46,.14);}
+  #dock button.rest .ic{border-color:var(--seal);background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,.6), transparent 55%),
+    radial-gradient(circle at 78% 88%, rgba(158,59,46,.12), transparent 48%),
+    linear-gradient(180deg,#fdf3ea 0%,#f6e6d2 100%);
+    box-shadow:0 0 0 1.5px rgba(158,59,46,.14),0 3px 8px rgba(158,59,46,.14);}
+  #dock button.rest .ic img{transform:scale(1.05);}
+  /* 选中态底部朱砂指示条（手游式） */
+  #dock button.rest::after{
+    content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+    width:16px;height:3px;border-radius:2px;background:var(--seal);
+    box-shadow:0 1px 2px rgba(158,59,46,.3);
+  }
 
   /* ===== 弹窗 ===== */
   #modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
@@ -1579,6 +1597,7 @@
     #dock{flex-wrap:nowrap;}
     #dock button{flex:1 1 0;min-width:0;padding:7px 1px 8px;font-size:10px;letter-spacing:0;gap:3px;}
     #dock button .ic{width:34px;height:34px;border-radius:10px;}
+    #dock button.rest::after{width:12px;height:2.5px;bottom:2px;}
 
     /* 常驻移动罗盘缩放，避免溢出挤压 */
     .move-bar{width:min(100% - 10px, 276px);padding:9px;gap:5px;}
