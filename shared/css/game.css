@@ -566,21 +566,21 @@
     display:flex;flex-direction:column;align-items:center;gap:5px;transition:.18s;
     font-family:"LXGW WenKai","STKaiti","KaiTi",serif;
   }
-  /* 金刻图标卡（v20260924d）：浅宣纸卡 + 金描边 + 图片融色（白底消失、金刻浮现） */
+  /* 淡彩Q版图标卡（v20260924e）：白底圆角 + 淡描边 + 融色，清新灵动可爱 */
   #dock button .ic{
-    width:38px;height:38px;border-radius:10px;flex:none;overflow:hidden;
+    width:38px;height:38px;border-radius:11px;flex:none;overflow:hidden;
     display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(180deg,#fffdf6 0%,#f2ead6 100%);
-    border:1.5px solid rgba(176,131,47,.55);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 5px rgba(60,48,34,.22);
+    background:linear-gradient(180deg,#fffef9 0%,#f7f1e2 100%);
+    border:1.5px solid rgba(107,74,47,.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 2px 5px rgba(60,48,34,.14);
     transition:.18s;
   }
   #dock button .ic img{width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:multiply;transform:scale(1.03);}
   #dock button:hover{color:var(--seal);}
-  #dock button:hover .ic{border-color:rgba(158,59,46,.65);box-shadow:0 0 0 1px rgba(158,59,46,.12),0 2px 6px rgba(60,48,34,.25);}
+  #dock button:hover .ic{border-color:rgba(158,59,46,.5);transform:translateY(-1px);box-shadow:0 3px 8px rgba(158,59,46,.14);}
   #dock button:active{transform:scale(.94);}
   #dock button.rest{color:var(--seal);}
-  #dock button.rest .ic{border-color:var(--seal);box-shadow:0 0 0 1.5px rgba(158,59,46,.18),0 3px 8px rgba(158,59,46,.20);}
+  #dock button.rest .ic{border-color:var(--seal);background:linear-gradient(180deg,#fdf3ea 0%,#f6e6d2 100%);box-shadow:0 0 0 1.5px rgba(158,59,46,.16),0 3px 8px rgba(158,59,46,.16);}
 
   /* ===== 弹窗 ===== */
   #modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
