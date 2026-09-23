@@ -1301,3 +1301,12 @@
 - 配色加深（改字色不改背景，浅底浅字加深/深底浅字提亮）：--ink-faint #a99e8c→#7a6c56（2.1→4.4:1，全局受益）；#9a7b3a→#6e4f17（14 处）；#9c8a64→#6e5a3c（4 处）；#8a6a2e→#6e4f17（10 处）；#a05a1e→#7a3c10；#a89870→#6e5238（give 详情）；.give-head-npc/.give-col-title/.give-cancel-btn:hover #c4a466→#8a5a2a；.give-qty-all/.talk-fav.f-ok .tf-lb #c4a466→#d8b878；strategic-map.css 图例 #8a7455→#6e5238。
 - 验证：Playwright 完整流程（捏人→序章问答→牢房→草荐→"就此睡去"→hp/energy 恢复）无 pageerror；矿洞面板正常；pack/char/quest/shop/storage/forge/job/log/map/settings 11 面板全量无报错；主界面文字清晰截图确认。
 - 版本：constants VERSION + tt-ver + 改动模块缓存号（core/engine.js、rest.js、mine.js、game.css、strategic-map.css）统一 v20260924w。
+
+## §9.76 v20260924x 角色面板/行囊装备栏低对比文字加深（2026-09-24）
+- 背景：用户反馈"角色面板各项数值看不清、行囊装备栏看不清的字"（线上 v20260924i，经 v20260924w 后仍有遗留浅底浅字）。
+- 根因：u/i 版 UI 回调浅暖宣纸底（方向 B），但部分组件仍沿用深底配色字色 → 浅底浅字：
+  1. 角色面板随从/武将详情（.ch-detail，浅底）：.row #c8b78f→#6e5a3c；.row span:last-child #f0e4c8→#3a2e22（加粗）；head h3 #ffd268→#8a5a22；sub #a89370→#7a6a48；skills span #e7c98a→#7a5a20；tip #8a7959→#6e5a3c。
+  2. 行囊装备栏人形装备槽（.ep-name/.ep-ph，浅底）：.ep-name #f7e9c8→#3a2e22（去深阴影）；.ep-ph #cdb8ee→#7a6a48。
+- 已排查非问题区：主角面板 .card .row（var(--ink) 深字）✓；加点区 .ap-*（var(--ink)）✓；行囊格子 .packcell（物品有深色底块 .ic-txt/数量徽章深底）✓；装备信息区 .pack-left-stats（深紫底深底浅字）✓；军队 am-*（深底）✓；对话窗 talk-*（历史已验证）。
+- 验证：Playwright 实机截图——主角面板（等级/修为/气血/精力/食物/饮水/潜能/侠义/凶名/风评/声望/自由属性点/加点区）全清晰；随从周仓面板（气血/内力/攻击/防御/身法/五行/武学崩拳）全清晰；注入装备（木剑/青缸）后行囊装备名清晰。全程无 pageerror。
+- 版本：constants VERSION + tt-ver + game.css 缓存号统一 v20260924x。
