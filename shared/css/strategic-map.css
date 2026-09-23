@@ -236,7 +236,7 @@
   border: 1px solid rgba(0,0,0,0.3);
 }
 .strategic-legend .nm { flex: 1; color: #4a3a22; white-space: nowrap; }
-.strategic-legend .ct { color: #8a7455; font-size: 11px; min-width: 14px; text-align: right; }
+.strategic-legend .ct { color: #6e5238; font-size: 11px; min-width: 14px; text-align: right; }
 /* 小屏收起填色手柄时，图例一并隐藏（避免遮挡西北诸州） */
 .strategic-overlay-fab.compact:not(.open) ~ .strategic-legend { display: none !important; }
 

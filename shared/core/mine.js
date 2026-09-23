@@ -14,6 +14,7 @@
     var openModal = ctx.openModal;
     var renderStatus = ctx.renderStatus;
     var toast = ctx.toast;
+    var $card = ctx.getCard ? ctx.getCard() : document.getElementById('modal-card');   // v20260924w：闭包裸引用 $card → 开矿洞即炸，经 ctx 取 modal 容器
 
   // ══════════ 矿坑体系（v20260915i）：露天矿脉 + 分层矿洞 + 镐头六级 ══════════
   // 镐头不进行囊，是玩家自身的等级（S().flags.pick，0=粗石镐 … 5=百炼钢镐）：

@@ -24,6 +24,8 @@
     var toast = ctx.toast;
     var getCombatMode = ctx.getCombatMode;
     var effectiveStats = ctx.effectiveStats;   // 重构后曾裸引用全局 → ReferenceError，改经 ctx 注入（engine 惰性包装）
+    var restState = (ctx.restState ? (ctx.restState() || { kind: 'ground' }) : { kind: 'ground' });   // v20260924w：经 ctx 取 engine 同一对象（调用时未赋值则兜底）
+    var $card = ctx.getCard ? ctx.getCard() : document.getElementById('modal-card');   // v20260924w：bindRestPanel 裸引用 $card → 睡觉再炸，经 ctx 取 modal 容器
 
   function actRest(){
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }

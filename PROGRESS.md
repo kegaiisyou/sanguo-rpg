@@ -1291,3 +1291,13 @@
 **验证**（Playwright 实测，全绿）：装担→carrying=true；卸料→workCnt+1、石料×2、labored=true；空卸拦截不记工；接 rummage 随机指定目标；翻三处各出货、同天重复翻拦截；交目标物→rummage_done、任务移除；采石充仓交满 5 块→stone_done、奖励；农事开垦/播种/浇灌各 +1 工分；全程无 pageerror。
 
 **版本**：constants.js VERSION → `20260920h`；index.html `.tt-ver` → v20260920h；engine/companion/farm/city/jobboard/triggers/rooms 缓存号 `?v=20260920h`。
+
+## §9.75 v20260924w 修复线上 v20260924i 睡觉报错 + 全局配色加深（2026-09-24）
+- 背景：用户手机端线上（kegaiisyou.github.io，v20260924i）牢房睡觉触发"界面出错"；多处文本与浅暖宣纸底对比度不足看不清。以远端 v20260924u（含 i 全部代码）为基准修复。
+- 睡觉断链修复（三处）：
+  1. rest.js 闭包裸引用 restState/$card（createRest 未注入）→ engine createRest 传参加 `restState:function(){return restState;}` + `getCard:function(){return document.getElementById('modal-card');}`；rest.js 解构 `var restState=(ctx.restState?(ctx.restState()||{kind:'ground'}):{kind:'ground'})` + `var $card=ctx.getCard?...`。
+  2. engine `var restState={kind:'ground'}` 原在 L3432（createRest L246 之后）→ 上移到 createRest 前（真对象，kind 同步）；原位置仅留 `var restState;` 声明防 var 提升覆盖。修复前 ctx.restState() 返回 undefined → 面板报 "Cannot read properties of undefined (reading 'kind')"。
+  3. mine.js 闭包裸引用 $card（8 处）→ engine createMine 传参加 getCard 惰性；mine.js 解构 $card。
+- 配色加深（改字色不改背景，浅底浅字加深/深底浅字提亮）：--ink-faint #a99e8c→#7a6c56（2.1→4.4:1，全局受益）；#9a7b3a→#6e4f17（14 处）；#9c8a64→#6e5a3c（4 处）；#8a6a2e→#6e4f17（10 处）；#a05a1e→#7a3c10；#a89870→#6e5238（give 详情）；.give-head-npc/.give-col-title/.give-cancel-btn:hover #c4a466→#8a5a2a；.give-qty-all/.talk-fav.f-ok .tf-lb #c4a466→#d8b878；strategic-map.css 图例 #8a7455→#6e5238。
+- 验证：Playwright 完整流程（捏人→序章问答→牢房→草荐→"就此睡去"→hp/energy 恢复）无 pageerror；矿洞面板正常；pack/char/quest/shop/storage/forge/job/log/map/settings 11 面板全量无报错；主界面文字清晰截图确认。
+- 版本：constants VERSION + tt-ver + 改动模块缓存号（core/engine.js、rest.js、mine.js、game.css、strategic-map.css）统一 v20260924w。

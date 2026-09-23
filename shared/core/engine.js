@@ -243,6 +243,7 @@
   });
   var playPrologue = Prologue.playPrologue;
 
+  var restState = { kind: 'ground' };   // v20260924w：上移到 createRest 前——rest.js 经 ctx.restState() 取同一对象（kind 同步）
   var Rest = LF.createRest({
       getState: function () { return state; },
       LF: LF,
@@ -267,6 +268,8 @@
       shuicaoFillPlaced: shuicaoFillPlaced,
       toast: toast,
       getCombatMode: function () { return combatMode; },
+      restState: function () { return restState; },
+      getCard: function () { return document.getElementById('modal-card'); },
   });
   var PLACE_ACTIONS = Rest.PLACE_ACTIONS, PLACE_KEY_DEF = Rest.PLACE_KEY_DEF, REST_KINDS = Rest.REST_KINDS, WX_REST = Rest.WX_REST, actRest = Rest.actRest;
   var bindRestPanel = Rest.bindRestPanel, cellNapScene = Rest.cellNapScene, doNap = Rest.doNap, doRest = Rest.doRest, openRestModal = Rest.openRestModal;
@@ -307,6 +310,7 @@
       openModal: openModal,
       renderStatus: renderStatus,
       toast: toast,
+      getCard: function () { return document.getElementById('modal-card'); },
   });
   var armoryEnter = Mine.armoryEnter, bindCavePanel = Mine.bindCavePanel, bindMinePanel = Mine.bindMinePanel, caveDig = Mine.caveDig, caveDown = Mine.caveDown;
   var caveFloorDesc = Mine.caveFloorDesc, caveHit = Mine.caveHit, caveState = Mine.caveState, genCaveFloor = Mine.genCaveFloor, genOpenMine = Mine.genOpenMine;
@@ -3428,8 +3432,8 @@
     }
     buildActions(G.ROOMS[state.room]);
   }
-  // 休息面板
-  var restState = { kind: 'ground' };
+  // 休息面板（真对象在 createRest 前 L245 赋值；此处仅保留声明防 var 提升覆盖）
+  var restState;
   // 营造面板
   var buildState = { site:null, msg:'' };
   function buildMatRows(siteKey){
