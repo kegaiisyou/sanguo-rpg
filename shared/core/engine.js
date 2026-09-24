@@ -1561,9 +1561,9 @@
     FX_LAST_AT=now;
     var d=document.createElement('div');
     d.id='cityfx';
-    d.innerHTML='<div class="cfx-ink"></div><div class="cfx-name">'+name+'</div>';
+    d.innerHTML='<div class="cfx-ink"></div><div class="cfx-line t"></div><div class="cfx-line b"></div><div class="cfx-name">'+name+'</div>';
     (document.body||document.documentElement).appendChild(d);
-    setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 2400);
+    setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 2000);
   }
   // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 流寇）
   function maybeAmbush(room){
@@ -1820,7 +1820,7 @@
     items.forEach(function(it){
       var chip=document.createElement('button'); chip.className='nl-item';
       // v20260924u：NPC 名称命中头像映射则显示圆形头像，否则回退图标
-      var _ava = (window.UI_Icons && it.o.name) ? UI_Icons.avatar(it.o.name) : (it.o.icon||'👤');
+      var _ava = (window.UI_Icons && it.o.name) ? UI_Icons.avatar(it.o.name, it.o.role) : (it.o.icon||'👤');
       chip.innerHTML='<span class="nl-ic">'+_ava+'</span><span class="nl-nm">'+it.o.name+'</span>';
       if(it.o.key) chip.dataset.k=it.o.key;   // 供新手目标引导高亮定位
       chip.onclick=function(e){ toggleObjExpand(e, chip, it.o, it.acts); };
@@ -3422,7 +3422,8 @@
       return '<span class="ic-spr" data-cat="'+cat+'" style="width:'+w+'px;height:'+w+'px;background-image:url('+ICON_SPR.img+');background-position:'+c[0]+'% '+c[1]+'%;background-size:400% 400%;"></span>';
     }
     var em = (it && it.icon) ? it.icon : '';
-    return '<span class="ic-txt ic-cat" data-cat="'+cat+'" style="font-size:'+px+'px;">'+(em?em+' ':'')+'<b>'+n+'</b></span>';
+    var fs = Math.min(px, 16);
+    return '<span class="ic-txt ic-cat" data-cat="'+cat+'" style="font-size:'+fs+'px;">'+(em?em+' ':'')+'<b>'+n+'</b></span>';
   }
   // ===== 营造系统：蓝图 → 工地 → 填充材料 → 分阶搭建 → 落成 =====
   // 工地/建筑在 placed 中以 { key, defId, bp, stage, got, done } 存储（见 roomObjs 渲染）

@@ -81,7 +81,7 @@
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
-            + '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'
+            + '<div class="pcell-ic">'+itemIconHTML(it,30)+'</div>'
             + cnt + qb + '</div>';
     }
     return grid;
@@ -137,7 +137,7 @@
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
-            + '<div class="pcell-ic">'+itemIconHTML(it,13)+'</div>'
+            + '<div class="pcell-ic">'+itemIconHTML(it,30)+'</div>'
             + cnt + qb + '</div>';
     }
     return '<div class="pack-wrap">'

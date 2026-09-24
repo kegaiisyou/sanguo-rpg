@@ -36,14 +36,25 @@
     '赵虎':'npc-yuzu','官差':'npc-yuzu',
     '林娘':'npc-nongpo','苏娘':'npc-furen'
   };
+  // v20260924z9：程序生成 NPC 按「角色」套泛用模板头像（npc_cards.js 的 role 字段 → shared/img/npc-*.png）
+  var NPC_BY_ROLE={
+    '门吏':'npc-sentry','营门哨兵':'npc-sentry','营中校尉':'npc-sentry','兵卒':'npc-sentry',
+    '演武教头':'npc-sentry','值守主将':'npc-sentry','落单溃兵':'npc-sentry',
+    '狱卒':'npc-yuzu','镣铐囚徒':'npc-yuzu',
+    '脚夫':'npc-trader','坐商':'npc-trader','货郎':'npc-trader','乞儿':'npc-beggar',
+    '户主':'npc-nongfu','庄头':'npc-nongfu','百姓':'npc-nongfu',
+    '老妪':'npc-nongpo','说书人':'npc-scholar','主簿':'npc-scholar','宫门近臣':'npc-scholar',
+    '矿工':'npc-miner','火头军':'npc-chushi','仓吏':'npc-guanli'
+  };
   function icon(ic, name){
     var n = name && BY_NAME[name];
     if(n) return pic(n, 'ui-pic');
     if(ic && BY_EMOJI[ic]) return pic(BY_EMOJI[ic], 'ui-pic');
     return ic || '·';
   }
-  function avatar(name){
+  function avatar(name, role){
     if(name && NPC_BY_NAME[name]) return pic(NPC_BY_NAME[name], 'ui-ava');
+    if(role && NPC_BY_ROLE[role]) return pic(NPC_BY_ROLE[role], 'ui-ava');
     return '👤';
   }
   var _G = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' ? global : this);

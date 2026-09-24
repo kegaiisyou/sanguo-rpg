@@ -56,6 +56,7 @@
 
   /* ===== 顶部状态条：仅显示 名字 · 时辰 · 天气，名字完整不截断 ===== */
   #status{
+    position:sticky;top:0;z-index:60;
     flex:0 0 auto;display:flex;align-items:center;gap:8px;
     padding:7px 16px;cursor:pointer;
     border-bottom:1px solid var(--panel-line);
@@ -588,7 +589,8 @@
 
   /* ===== 底部常驻功能栏（全局面板入口，与上下文按钮再分级） ===== */
   #dock{
-    flex:0 0 auto;display:flex;position:relative;
+    position:sticky;bottom:0;z-index:60;
+    flex:0 0 auto;display:flex;
     border-top:1.5px solid rgba(176,131,47,.55);
     box-shadow:0 1px 0 rgba(158,59,46,.10),0 -6px 14px -10px rgba(60,48,34,.20);
     background:
@@ -1804,8 +1806,8 @@
   .pack-left-stats .ps-row{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;line-height:1.55;color:#d8c6f4;}
   .pack-left-stats .ps-row b{color:#fbeecb;font-weight:600;font-size:12.5px;text-shadow:0 1px 2px rgba(0,0,0,.5);}
   /* 卡通矮小人形 */
-  .equip-figure{position:relative;width:124px;height:104px;margin:0 auto;flex:0 0 auto;}
-  .equip-sil{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.35;}
+  .equip-figure{position:relative;width:150px;height:126px;margin:0 auto;flex:0 0 auto;}
+  .equip-sil{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.6;}
   .equipslot{position:absolute;width:56px;min-height:22px;background:rgba(74,62,48,.06);border:1px solid rgba(74,62,48,.35);border-radius:7px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:2px;box-sizing:border-box;overflow:hidden;}
   .equipslot.pcell-sel{background:rgba(232,184,86,.42);box-shadow:inset 0 0 0 2px rgba(255,215,138,.85);}
   .equipslot.pcell-insp{background:rgba(63,95,122,.28);box-shadow:inset 0 0 0 2px rgba(63,95,122,.55);}
@@ -2829,9 +2831,20 @@
   .ch-gear{grid-template-columns:repeat(3,1fr);gap:5px;}
 }
 
-/* v20260924z8：进城过场 —— 水墨晕开 + 城名浮现 */
+/* v20260924z9：进城过场 —— 亮宣纸底 + 朱红城名 + 上下金线（去压抑） */
 #cityfx{position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden;}
-#cityfx .cfx-ink{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%, rgba(246,238,218,.08) 0%, rgba(96,76,48,.82) 58%, rgba(34,24,12,.98) 100%);animation:cfxInk 1.5s ease-out both;}
-#cityfx .cfx-name{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);font-family:'Kaiti SC','STKaiti','KaiTi',serif;font-size:34px;letter-spacing:12px;color:#f6eed8;text-shadow:0 2px 10px rgba(0,0,0,.75);opacity:0;white-space:nowrap;animation:cfxName 2.2s ease both;}
+#cityfx .cfx-ink{position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 42%, #fffdf4 0%, #f7efdb 52%, #e9dcb8 100%);
+  animation:cfxInk .7s ease-out both;}
+#cityfx .cfx-name{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);
+  font-family:'STKaiti','KaiTi','Songti SC',serif;font-size:34px;letter-spacing:12px;
+  color:#7c2d12;text-shadow:0 1px 0 rgba(255,255,255,.7),0 2px 10px rgba(124,45,18,.22);
+  opacity:0;white-space:nowrap;animation:cfxName 1.9s ease both;}
+#cityfx .cfx-line{position:absolute;left:24%;right:24%;height:2px;border-radius:1px;
+  background:linear-gradient(90deg,transparent,#b8863b 30%,#c98f3f 70%,transparent);
+  animation:cfxLine .7s ease-out .18s both;}
+#cityfx .cfx-line.t{top:36%;}
+#cityfx .cfx-line.b{bottom:36%;}
 @keyframes cfxInk{from{opacity:0}to{opacity:1}}
-@keyframes cfxName{0%{opacity:0;transform:translate(-50%,-50%) scale(.9);}22%{opacity:1}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.03);}}
+@keyframes cfxName{0%{opacity:0;transform:translate(-50%,-50%) scale(.86);}18%{opacity:1;transform:translate(-50%,-50%) scale(1);}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.02);}}
+@keyframes cfxLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
