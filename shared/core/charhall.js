@@ -16,8 +16,11 @@
     var SLOTS = LF.SLOTS || {};
     var packList = ctx.packList, packAdd = ctx.packAdd;
     var afterPackChange = ctx.afterPackChange;
-    var mainDetailHTML = ctx.mainDetailHTML;    // 引擎侧主角详情（属性+加点+门派+武学）
-    var bindMainDetail = ctx.bindMainDetail;    // 引擎侧主角详情绑定
+    var mainCharStatHTML = ctx.mainCharStatHTML;    // 引擎侧主角分页：状态（属性+修为+门派）
+    var mainCharAllocHTML = ctx.mainCharAllocHTML;  // 加点（自由点+四维）
+    var mainCharEquipHTML = ctx.mainCharEquipHTML;  // 已装备一览
+    var mainCharSkillHTML = ctx.mainCharSkillHTML;  // 武学
+    var bindMainDetail = ctx.bindMainDetail;    // 引擎侧主角详情绑定（加点/门派）
     var sel = 'main';   // 选中 key：main / p:<id> / o:<id>
 
     function roster() {
@@ -67,39 +70,80 @@
       });
       return h + '</div>';
     }
+    // ── 页签框架（v20260924x 角色大厅分页）──
+    function tabBtn(k, n, on) {
+      return '<button type="button" class="ch-tab' + (on ? ' on' : '') + '" data-pg="' + k + '">' + n + '</button>';
+    }
+    function pgWrap(k, html, on) {
+      return '<div class="ch-pg" data-pg="' + k + '"' + (on ? '' : ' style="display:none"') + '>' + html + '</div>';
+    }
+    function tabsFrame(head, tabs, pages) {
+      var h = '<div class="ch-tabs">';
+      tabs.forEach(function (t, i) { h += tabBtn(t.k, t.n, i === 0); });
+      h += '</div><div class="ch-head">' + head + '</div>';
+      tabs.forEach(function (t, i) { h += pgWrap(t.k, pages[i], i === 0); });
+      return h;
+    }
     // ── 详情 ──
     function detailHTML() {
-      if (sel === 'main') return mainDetailHTML ? mainDetailHTML() : '<p class="of-empty">主角</p>';
+      if (sel === 'main') return mainTabsHTML();
       var inst = getInst(sel);
       if (!inst) return '<div class="of-empty">该角色已不在麾下。</div>';
-      if (sel.indexOf('p:') === 0) return partyDetail(inst);
-      return officerDetail(inst);
+      if (sel.indexOf('p:') === 0) return partyTabsHTML(inst);
+      return officerTabsHTML(inst);
     }
-    function partyDetail(c) {
-      var h = '<div class="ch-detail-head"><h3>随 从 · ' + escapeHtml(c.name) + '</h3><p class="ch-detail-sub">' + escapeHtml(c.title || c.role || '随行') + '</p></div>';
-      h += row('气血', (c.hp || 0) + ' / ' + (c.maxHp || 0)) + row('内力', (c.mp || 0) + ' / ' + (c.maxMp || 0));
-      h += row('攻击', c.atk || 0) + row('防御', c.def || 0) + row('身法', c.spd || 0);
-      h += row('五行', c.element || '无');
-      h += '<div class="row"><span>武学</span></div><div class="skills">' +
-        (c.learnedMartial || []).map(function (m) {
-          var a = (LF.MARTIAL_ARTS && LF.MARTIAL_ARTS.get) ? LF.MARTIAL_ARTS.get(m) : null;
-          return '<span class="sk-tag">' + escapeHtml(a ? a.name : m) + '</span>';
-        }).join('') +
-        '</div>';
-      return h;
+    function mainTabsHTML() {
+      var st = S();
+      var head = '<h3>角 色 · ' + escapeHtml(st.name || '无名客') + '</h3><p class="ch-detail-sub">' + escapeHtml('主 · LV.' + (st.level || 1)) + '</p>';
+      return tabsFrame(head,
+        [{ k: 'stat', n: '状态' }, { k: 'alloc', n: '加点' }, { k: 'equip', n: '装备' }, { k: 'skill', n: '技能' }],
+        [mainCharStatHTML ? mainCharStatHTML() : '', mainCharAllocHTML ? mainCharAllocHTML() : '',
+         mainCharEquipHTML ? mainCharEquipHTML() : '', mainCharSkillHTML ? mainCharSkillHTML() : '']);
     }
-    function officerDetail(o) {
+    function partyTabsHTML(c) {
+      var head = '<h3>随 从 · ' + escapeHtml(c.name) + '</h3><p class="ch-detail-sub">' + escapeHtml(c.title || c.role || '随行') + '</p>';
+      return tabsFrame(head,
+        [{ k: 'stat', n: '状态' }, { k: 'equip', n: '装备' }, { k: 'skill', n: '技能' }],
+        [partyStatHTML(c), partyEquipHTML(c), partySkillHTML(c)]);
+    }
+    function partyStatHTML(c) {
+      return row('气血', (c.hp || 0) + ' / ' + (c.maxHp || 0)) + row('内力', (c.mp || 0) + ' / ' + (c.maxMp || 0)) +
+        row('攻击', c.atk || 0) + row('防御', c.def || 0) + row('身法', c.spd || 0) + row('五行', c.element || '无');
+    }
+    function partyEquipHTML(c) {
+      return '<p class="tip">随从随主而行，暂不单配装备。</p>';
+    }
+    function partySkillHTML(c) {
+      var ms = c.learnedMartial || [];
+      if (!ms.length) return '<div class="row"><span>武学</span></div><p class="tip">尚未习得武学。</p>';
+      return '<div class="row"><span>武学</span></div><div class="skills">' + ms.map(function (m) {
+        var a = (LF.MARTIAL_ARTS && LF.MARTIAL_ARTS.get) ? LF.MARTIAL_ARTS.get(m) : null;
+        return '<span class="sk-tag">' + escapeHtml(a ? a.name : m) + '</span>';
+      }).join('') + '</div>';
+    }
+    function officerTabsHTML(o) {
       var t = Officers.template(o.id) || {};
+      var head = '<h3>武 将 · ' + escapeHtml(o.name) + '</h3><p class="ch-detail-sub">' + escapeHtml(t.title || '未授职') + '</p>';
+      return tabsFrame(head,
+        [{ k: 'stat', n: '状态' }, { k: 'wux', n: '五维' }, { k: 'equip', n: '装备' }, { k: 'skill', n: '特技' }],
+        [officerStatHTML(o), officerWuxHTML(o), officerEquipHTML(o), officerSkillHTML(o)]);
+    }
+    function officerStatHTML(o) {
+      return row('忠诚', o.loyalty != null ? o.loyalty + ' / 100' : '—') + row('所属', escFaction(o));
+    }
+    function officerWuxHTML(o) {
+      return '<div class="row"><span>五维</span></div>' + (Officers.statBars ? Officers.statBars(o.stats) : '<p class="tip">暂无五维。</p>');
+    }
+    function officerEquipHTML(o) {
       var gear = ensureGear(o);
-      var h = '<div class="ch-detail-head"><h3>武 将 · ' + escapeHtml(o.name) + '</h3><p class="ch-detail-sub">' + escapeHtml(t.title || '未授职') + '</p></div>';
-      h += row('忠诚', o.loyalty != null ? o.loyalty + ' / 100' : '—');
-      h += row('所属', escFaction(o));
-      h += '<div class="row"><span>五维</span></div>' + (Officers.statBars ? Officers.statBars(o.stats) : '');
+      return '<div class="row"><span>装备</span></div>' + gearHTML(o, gear) +
+        '<p class="tip">点空槽从行囊为武将取装，点已装位卸下归还行囊。武将装备暂不计入战斗数值（仅管理与展示）。</p>';
+    }
+    function officerSkillHTML(o) {
+      var t = Officers.template(o.id) || {};
       var skIds = Officers.idsOf ? Officers.idsOf(t) : [];
-      if (skIds.length) h += '<div class="row"><span>特技</span></div>' + (Officers.skillTagsHTML ? Officers.skillTagsHTML(skIds) : '');
-      h += '<div class="row"><span>装备</span></div>' + gearHTML(o, gear);
-      h += '<p class="tip">点空槽从行囊为武将取装，点已装位卸下归还行囊。武将装备暂不计入战斗数值（仅管理与展示）。</p>';
-      return h;
+      if (!skIds.length) return '<div class="row"><span>特技</span></div><p class="tip">暂无特技。</p>';
+      return '<div class="row"><span>特技</span></div>' + (Officers.skillTagsHTML ? Officers.skillTagsHTML(skIds) : '');
     }
     function escFaction(o) {
       var F = (LF.FACTIONS || {})[o.faction];
@@ -195,6 +239,15 @@
       if (!card) return;
       card.querySelectorAll('.ch-item').forEach(function (b) {
         b.onclick = function () { sel = b.getAttribute('data-key'); openModal('char'); };
+      });
+      // 页签切换（v20260924x）
+      card.querySelectorAll('.ch-tab').forEach(function (b) {
+        b.onclick = function () {
+          var pg = b.getAttribute('data-pg');
+          card.querySelectorAll('.ch-tab').forEach(function (x) { x.classList.toggle('on', x === b); });
+          card.querySelectorAll('.ch-pg').forEach(function (p) { p.style.display = (p.getAttribute('data-pg') === pg) ? '' : 'none'; });
+          if (typeof bindMainDetail === 'function') bindMainDetail();
+        };
       });
       card.querySelectorAll('.ch-gact[data-act="pick"]').forEach(function (b) {
         b.onclick = function () { var o = getInst(sel); if (o) pickEquip(o, b.getAttribute('data-slot')); };

@@ -611,7 +611,9 @@
     escapeHtml: escapeHtml, row: row,
     Officers: Officers,
     packList: packList, packAdd: packAdd, afterPackChange: afterPackChange,
-    mainDetailHTML: mainCharDetailHTML, bindMainDetail: bindMainCharDetail
+    mainCharStatHTML: mainCharStatHTML, mainCharAllocHTML: mainCharAllocHTML,
+    mainCharEquipHTML: mainCharEquipHTML, mainCharSkillHTML: mainCharSkillHTML,
+    bindMainDetail: bindMainCharDetail
   });
   var War = LF.createWar({
     getState: function () { return state; },
@@ -4354,9 +4356,10 @@
 
   // ═══ 角色大厅 · 主角详情（v20260923r）═══
   // 原 openModal('char') 的内容抽成独立函数，供 CharHall 在角色大厅内渲染主角页。
-  function mainCharDetailHTML(){
+  // ── 主角详情分页（v20260924x 角色大厅四页签：状态/加点/装备/技能）──
+  function mainCharStatHTML(){
     var es=effectiveStats();
-    return '<h3>角 色 · '+(state.name||'无名客')+'</h3>'+
+    var h='<h3>角 色 · '+(state.name||'无名客')+'</h3>'+
       (function(){
         var need=(state.level>=G.CONSTANTS.MAX_LEVEL)?0:G.BALANCE.expNeed(state.level);
         if(!need) return row('等级','LV.'+state.level+' · 圆满')
@@ -4376,13 +4379,41 @@
       row('凶名',state.notoriety)+
       row('风评',moralTitle())+
       row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
-      row('自由属性点',(state.freePoints||0))+
-      '<div class="row"><span>四维（点击 ± 加点）</span></div><div class="ap-list">'+attrAllocHTML()+'</div>'+
       row('当前所处',curRoom().name)+
       row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '散人（未入门派）')+
       '<button class="sect-open" id="sect-open" type="button">⚔ '+(state.sect?'查看本门':'择一门派')+'</button>'+
-      '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
-      '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复；每升一级获得 1 点自由属性点，可在此分配。</p>';
+      '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复。</p>';
+    return h;
+  }
+  function mainCharAllocHTML(){
+    return row('自由属性点',(state.freePoints||0))+
+      '<div class="row"><span>四维（点击 ＋ 加点）</span></div><div class="ap-list">'+attrAllocHTML()+'</div>'+
+      '<p class="tip">每升一级获得 1 点自由属性点，在此分配；未分配的点保留，可随时再开面板加点。</p>';
+  }
+  function mainCharEquipHTML(){
+    var eq=state.equipment||{}; var SL=LF.SLOTS||{};
+    var h='<div class="row"><span>已装备</span></div><div class="meq-list">';
+    Object.keys(SL).forEach(function(slot){
+      if(slot==='bag') return;
+      var it=eq[slot], s=SL[slot];
+      h+='<div class="meq-row"><span class="meq-slot">'+escapeHtml(s.label)+'</span>';
+      if(it){
+        var b='';
+        if(it.atk) b+=' 攻+'+it.atk;
+        if(it.def) b+=' 防+'+it.def;
+        if(it.spd) b+=' 身+'+it.spd;
+        h+='<span class="meq-name">'+escapeHtml(it.name)+'</span><span class="meq-bonus">'+(b?b:'已装备')+'</span>';
+      } else {
+        h+='<span class="meq-none">未装备</span>';
+      }
+      h+='</div>';
+    });
+    h+='</div><p class="tip">穿卸装备请前往行囊（背包）面板操作。</p>';
+    return h;
+  }
+  function mainCharSkillHTML(){
+    return '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
+      '<p class="tip">武学随行止与机缘习得；技击之术在战斗中自动施展。</p>';
   }
   function bindMainCharDetail(){
     bindAttrAlloc();

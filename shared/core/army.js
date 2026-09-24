@@ -426,14 +426,27 @@
       return '<div class="am-mbar"><i style="width:' + pct + '%;background:' + b.color + '"></i></div>';
     }
     function esc(s) { return escapeHtml ? escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s); }
+    // ── 军队面板四页签（v20260924x：概况/编成/募兵/辎重）──
+    function amTabBtn(k, n, on) {
+      return '<button type="button" class="am-tab' + (on ? ' on' : '') + '" data-pg="' + k + '">' + n + '</button>';
+    }
+    function amPg(k, html, on) {
+      return '<div class="am-pg" data-pg="' + k + '"' + (on ? '' : ' style="display:none"') + '>' + html + '</div>';
+    }
     function renderArmyPanel() {
       var a = ensureArmy();
       if (!a) return '<p class="hint">军务未启。</p>';
-      var T = TROOPS(), cap = armyCap(), cnt = armyCount();
+      var h = '<h3>军 队</h3><div class="am-tabs">';
+      var tabs = [{ k: 'ov', n: '概况' }, { k: 'fy', n: '编成' }, { k: 'mu', n: '募兵' }, { k: 'zz', n: '辎重' }];
+      tabs.forEach(function (t, i) { h += amTabBtn(t.k, t.n, i === 0); });
+      h += '</div>';
+      h += amPg('ov', armyOvHTML(a), true) + amPg('fy', armyFyHTML(a)) + amPg('mu', armyMuHTML(a)) + amPg('zz', armyZzHTML(a));
+      return h;
+    }
+    function armyOvHTML(a) {
+      var cap = armyCap(), cnt = armyCount();
       var band = LF.moraleBand(a.morale || 100);
-      var h = '';
-      h += '<h3>军 队</h3>';
-      h += '<div class="am-head">';
+      var h = '<div class="am-head">';
       h += '<div class="am-stat"><span>兵力</span><b>' + cnt + ' / ' + cap + '</b></div>';
       h += '<div class="am-stat"><span>战力</span><b>' + armyPower() + '</b></div>';
       h += '<div class="am-stat"><span>军粮</span><b>' + Math.round(a.logistics.grain || 0) + ' 石 · ' + grainDays().toFixed(1) + ' 日</b></div>';
@@ -445,8 +458,18 @@
         h += '<div class="am-march">📍 部曲所在：' + (a.rallyPoint ? esc((((LF.CITIES || {})[a.rallyPoint] || {}).name || a.rallyPoint)) : '随你同行') + (armyWithPlayer() ? '（与你同在）' : '（不在你身边）') + '</div>';
       }
       if (scouting()) h += '<div class="am-march">🐎 斥候已出，三日内知敌。</div>';
-      // 兵种网格
-      h += '<div class="am-grid">';
+      h += '<div class="am-ops">';
+      h += '<button class="btn sm" onclick="window.armyCamp()">宿营整军</button>';
+      h += '<button class="btn sm" onclick="window.armyScout()">派出斥候</button>';
+      h += '<button class="btn sm" onclick="window.armyAmbush()">就地设伏</button>';
+      h += '<button class="btn sm" onclick="window.openArmyDeploy()">调兵遣将</button>';
+      h += '</div>';
+      h += '<p class="hint">军令依阵位而别：前军可冲阵/坚守，中军压上/督战，后军齐射/掠阵，游骑包抄/断粮/追击。阵容既定，战阵之上每回合下的是军令，不是拳脚。</p>';
+      return h;
+    }
+    function armyFyHTML(a) {
+      var T = TROOPS();
+      var h = '<div class="am-grid">';
       if (!a.troops.length) {
         h += '<div class="am-empty">尚无部曲——可往城中军营募兵，或于政令台「治军」。</div>';
       }
@@ -467,30 +490,31 @@
         h += '</div></div>';
       });
       h += '</div>';
-      // 募兵（仅当置身城中军营；兵源按城人口、受兵力上限与府库所限）
+      return h;
+    }
+    function armyMuHTML(a) {
       var rc = recruitCity();
       var rgold = Math.round((S() || {}).gold || 0);
-      if (rc) {
-        var rcName = (((LF.CITIES || {})[rc] || {}).name || rc);
-        h += '<div class="am-recruit"><div class="am-rhead">募兵 · ' + esc(rcName) + '军营（兵源余 ' + recruitLeft(rc) + ' · 府库 ' + rgold + ' 两）</div><div class="am-rgrid">';
-        var RT = TROOPS();
-        Object.keys(RT).forEach(function (type) {
-          var d = RT[type]; if (!d) return;
-          var rc0 = recruitCost(type, 1);
-          h += '<div class="am-rrow"><div class="am-rname"><b>' + esc(d.name) + '</b><span class="am-rdesc">' + esc(d.desc) + '</span></div>';
-          h += '<div class="am-rcost">' + rc0 + ' 两/人</div><div class="am-rops">';
-          h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',30)">募30</button>';
-          h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',80)">募80</button>';
-          h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',9999)">募满</button>';
-          h += '</div></div>';
-        });
+      if (!rc) return '<div class="am-empty">须置身城中军营，方能募兵整军。</div>';
+      var rcName = (((LF.CITIES || {})[rc] || {}).name || rc);
+      var h = '<div class="am-recruit"><div class="am-rhead">募兵 · ' + esc(rcName) + '军营（兵源余 ' + recruitLeft(rc) + ' · 府库 ' + rgold + ' 两）</div><div class="am-rgrid">';
+      var RT = TROOPS();
+      Object.keys(RT).forEach(function (type) {
+        var d = RT[type]; if (!d) return;
+        var rc0 = recruitCost(type, 1);
+        h += '<div class="am-rrow"><div class="am-rname"><b>' + esc(d.name) + '</b><span class="am-rdesc">' + esc(d.desc) + '</span></div>';
+        h += '<div class="am-rcost">' + rc0 + ' 两/人</div><div class="am-rops">';
+        h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',30)">募30</button>';
+        h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',80)">募80</button>';
+        h += '<button class="btn sm" onclick="window.armyRecruit(\'' + rc + '\',\'' + type + '\',9999)">募满</button>';
         h += '</div></div>';
-      } else {
-        h += '<div class="am-empty">须置身城中军营，方能募兵整军。</div>';
-      }
-      // 辎重
+      });
+      h += '</div></div>';
+      return h;
+    }
+    function armyZzHTML(a) {
       var lcap = logisticsCap();
-      h += '<div class="am-logi"><div class="am-lhead">辎重（' + logiUsed() + '/' + lcap + '）· 军粮 ' + Math.round(a.logistics.grain || 0) + ' 石</div><div class="am-lgrid">';
+      var h = '<div class="am-logi"><div class="am-lhead">辎重（' + logiUsed() + '/' + lcap + '）· 军粮 ' + Math.round(a.logistics.grain || 0) + ' 石</div><div class="am-lgrid">';
       if (!a.logistics.items.length) h += '<div class="am-empty">辎重空空——可自囊中存入粮秣、箭矢、药材。</div>';
       a.logistics.items.forEach(function (it) {
         h += '<div class="packcell" title="' + esc(it.defId) + '">' + itemIconHTML(it.defId) + '<span class="pk-n">' + (it.count || 0) + '</span></div>';
@@ -500,14 +524,6 @@
       h += '<button class="btn sm" onclick="window.armyBuyGrain(200)">籴粮200石</button>';
       h += '<button class="btn sm" onclick="window.openArmyDeposit()">自囊中存入</button>';
       h += '</div></div>';
-      // 军务
-      h += '<div class="am-ops">';
-      h += '<button class="btn sm" onclick="window.armyCamp()">宿营整军</button>';
-      h += '<button class="btn sm" onclick="window.armyScout()">派出斥候</button>';
-      h += '<button class="btn sm" onclick="window.armyAmbush()">就地设伏</button>';
-      h += '<button class="btn sm" onclick="window.openArmyDeploy()">调兵遣将</button>';
-      h += '</div>';
-      h += '<p class="hint">军令依阵位而别：前军可冲阵/坚守，中军压上/督战，后军齐射/掠阵，游骑包抄/断粮/追击。阵容既定，战阵之上每回合下的是军令，不是拳脚。</p>';
       return h;
     }
     function openArmyDeposit() {

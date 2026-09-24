@@ -1310,3 +1310,15 @@
 - 已排查非问题区：主角面板 .card .row（var(--ink) 深字）✓；加点区 .ap-*（var(--ink)）✓；行囊格子 .packcell（物品有深色底块 .ic-txt/数量徽章深底）✓；装备信息区 .pack-left-stats（深紫底深底浅字）✓；军队 am-*（深底）✓；对话窗 talk-*（历史已验证）。
 - 验证：Playwright 实机截图——主角面板（等级/修为/气血/精力/食物/饮水/潜能/侠义/凶名/风评/声望/自由属性点/加点区）全清晰；随从周仓面板（气血/内力/攻击/防御/身法/五行/武学崩拳）全清晰；注入装备（木剑/青缸）后行囊装备名清晰。全程无 pageerror。
 - 版本：constants VERSION + tt-ver + game.css 缓存号统一 v20260924x。
+
+## §9.77 v20260924y 角色大厅/军队面板分页重构（2026-09-24）
+- 用户诉求：角色面板内容太多要下拉，要求状态/加点/装备/技能分页；军队面板同样分页。已确认方案后实施。
+- 角色大厅（charhall.js + engine.js）：
+  - 主角四页签：状态（等级/修为/气血/精力/食物/饮水/潜能/侠义/凶名/风评/声望/所处/门派）、加点（自由点+四维，打开即见）、装备（六槽已装备一览+提示去行囊穿卸）、技能（武学）。
+  - engine.js mainCharDetailHTML 拆为 mainCharStatHTML/mainCharAllocHTML/mainCharEquipHTML/mainCharSkillHTML；charhall ctx 注入四函数。
+  - 随从三页签：状态/装备（空态提示）/技能；武将四页签：状态（忠诚/所属）/五维/装备/特技。
+  - 页签切换保留位置；切页重绑 bindMainDetail（加点/门派）。
+- 军队（army.js）：renderArmyPanel 拆四页签：概况（兵力/战力/军粮/军心/行军/斥候+军务按钮）、编成（兵种网格）、募兵（仅城中军营）、辎重（存粮/取出/存入）。bindArmyPanel 加页签绑定+辎重取出绑定 bindArmyZz。
+- CSS：.ch-tabs/.am-tabs 古风页签（当前页朱砂渐变高亮）、.ch-head、.meq-* 主角装备一览样式；移动端页签横排可滑。
+- 验证：Playwright 实机——角色四页签切换（加点页点击生效 fp5→4/attr.hp5→6）、装备页六槽、技能页武学；随从三页签（周仓气血/内力/攻防/身法/五行）；军队四页签（概况/编成空态/募兵苦役营/辎重）；全程无 pageerror。截图确认页签 UI 清晰。
+- 版本：constants VERSION + tt-ver + charhall.js/engine.js/army.js/game.css 缓存号统一 v20260924y。
