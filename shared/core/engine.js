@@ -3383,11 +3383,26 @@
     if(currentModalKind==='pack'){ var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
   }
   // ===== 文字图标：印章式，按分类配色 =====
+  // v20260924z7：AI 生成古风物品图标（assets/icons/*.png，工笔水墨+圆形木徽章底）。
+  //   有图的物品用图（行囊格子/提示浮层直接显示），没有的仍走 emoji+名字 —— 逐步把 emoji 替换成图片素材。
+  var ICON_IMG = {
+    fan: 'assets/icons/fan.png',
+    xizhou: 'assets/icons/xizhou.png',
+    mucai: 'assets/icons/mucai.png',
+    shitiao: 'assets/icons/shitiao.png',
+    futou: 'assets/icons/futou.png',
+    tiekuangshi: 'assets/icons/tiekuangshi.png'
+  };
   function itemIconHTML(it, px){
     var n = (it && (it.name || it.defId)) || '';
     var cat = (it && it.cat) || '';
     px = px || 16;
-    return '<span class="ic-txt ic-cat" data-cat="'+cat+'" style="font-size:'+px+'px;"><b>'+n+'</b></span>';
+    if(it && ICON_IMG[it.defId]){
+      var w = Math.max(18, px + 10);
+      return '<span class="ic-pic" data-cat="'+cat+'"><img class="item-pic" src="'+ICON_IMG[it.defId]+'" alt="'+n+'" style="width:'+w+'px;height:'+w+'px;"></span>';
+    }
+    var em = (it && it.icon) ? it.icon : '';
+    return '<span class="ic-txt ic-cat" data-cat="'+cat+'" style="font-size:'+px+'px;">'+(em?em+' ':'')+'<b>'+n+'</b></span>';
   }
   // ===== 营造系统：蓝图 → 工地 → 填充材料 → 分阶搭建 → 落成 =====
   // 工地/建筑在 placed 中以 { key, defId, bp, stage, got, done } 存储（见 roomObjs 渲染）

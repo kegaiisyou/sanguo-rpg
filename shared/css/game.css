@@ -156,6 +156,10 @@
     padding:7px 0;background:rgba(176,131,47,.06);font-family:"STKaiti","KaiTi",serif;
   }
   #actions .more-wrap{display:contents;}
+  /* v20260924z7：AI 古风物品图标（圆形木徽章底） */
+  .item-pic{display:block;border-radius:50%;border:1px solid rgba(176,131,47,.45);object-fit:cover;
+    background:radial-gradient(circle at 50% 40%, #fdf9ef, #f2ead6);box-shadow:0 1px 3px rgba(60,48,34,.18);}
+  .ic-pic{display:inline-block;line-height:0;vertical-align:middle;}
   #scene::-webkit-scrollbar{width:0;}
   .narr{margin:0 0 12px;line-height:1.85;font-size:15.5px;
     font-family:"STKaiti","KaiTi","Songti SC",serif;
