@@ -1547,6 +1547,23 @@
       if(room.patrol && !silent && !onboarding) maybeAmbush(room);
       if(room.isField && !onboarding) maybeFieldAmbush(room);   // 郊野：主动野怪拦路
     });
+    // 进城过场（v20260924z8）：进入大城市瞬间全屏水墨晕开 + 城名浮现；小房间/村庄不播
+    if(!silent && cityProfile(rid) && FX_PREV_ROOM!==rid){
+      FX_PREV_ROOM=rid;
+      var _cn=(LF.CITIES && LF.CITIES[rid] && LF.CITIES[rid].name) || rid;
+      try{ playCityFX(_cn); }catch(e){}
+    }
+  }
+  var FX_PREV_ROOM='', FX_LAST_AT=0;
+  function playCityFX(name){
+    var now=Date.now();
+    if(now-FX_LAST_AT < 3500) return;   // 防抖：短时间内反复渲染不重复播
+    FX_LAST_AT=now;
+    var d=document.createElement('div');
+    d.id='cityfx';
+    d.innerHTML='<div class="cfx-ink"></div><div class="cfx-name">'+name+'</div>';
+    (document.body||document.documentElement).appendChild(d);
+    setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 2400);
   }
   // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 流寇）
   function maybeAmbush(room){
@@ -3385,21 +3402,24 @@
   // ===== 文字图标：印章式，按分类配色 =====
   // v20260924z7：AI 生成古风物品图标（assets/icons/*.png，工笔水墨+圆形木徽章底）。
   //   有图的物品用图（行囊格子/提示浮层直接显示），没有的仍走 emoji+名字 —— 逐步把 emoji 替换成图片素材。
-  var ICON_IMG = {
-    fan: 'assets/icons/fan.png',
-    xizhou: 'assets/icons/xizhou.png',
-    mucai: 'assets/icons/mucai.png',
-    shitiao: 'assets/icons/shitiao.png',
-    futou: 'assets/icons/futou.png',
-    tiekuangshi: 'assets/icons/tiekuangshi.png'
-  };
+  var ICON_SPR = { img: 'assets/icons/items.webp',
+    // v20260924z8：AI 古风物品图标统一拼成一张雪碧图（560x560，4x4 格），
+    //   一个请求加载全部 15 枚，background-position 百分比定位，杜绝逐图加载卡顿。
+    map: {
+      fan:'0 0', xizhou:'33.333 0', mucai:'66.667 0', shitiao:'100 0',
+      futou:'0 33.333', tiekuangshi:'33.333 33.333', roubao:'66.667 33.333', caoyao:'100 33.333',
+      yeguo:'0 66.667', mutou:'33.333 66.667', zhuzi:'66.667 66.667', tiekuai:'100 66.667',
+      rope:'0 100', bumu:'33.333 100', chutou:'66.667 100'
+    } };
+  var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){
     var n = (it && (it.name || it.defId)) || '';
     var cat = (it && it.cat) || '';
     px = px || 16;
-    if(it && ICON_IMG[it.defId]){
-      var w = Math.max(18, px + 10);
-      return '<span class="ic-pic" data-cat="'+cat+'"><img class="item-pic" src="'+ICON_IMG[it.defId]+'" alt="'+n+'" style="width:'+w+'px;height:'+w+'px;"></span>';
+    if(it && ICON_SPR.map[it.defId]){
+      var w = Math.max(20, px + 6);
+      var c = ICON_SPR.map[it.defId].split(' ');
+      return '<span class="ic-spr" data-cat="'+cat+'" style="width:'+w+'px;height:'+w+'px;background-image:url('+ICON_SPR.img+');background-position:'+c[0]+'% '+c[1]+'%;background-size:400% 400%;"></span>';
     }
     var em = (it && it.icon) ? it.icon : '';
     return '<span class="ic-txt ic-cat" data-cat="'+cat+'" style="font-size:'+px+'px;">'+(em?em+' ':'')+'<b>'+n+'</b></span>';

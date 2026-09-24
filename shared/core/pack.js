@@ -88,14 +88,18 @@
   }
   // 装备栏图（人形 + 六装备槽 + 背包槽）：独立成函数，供 renderPack 与装备后实时刷新复用
   function renderEquipFigure(){
+    // v20260924z8：人形剪影精修 —— 古风武将写意（发髻/交领衣袍/腰带/斜臂），赭石棕色调与整体美术统一
     var sil = '<svg class="equip-sil" viewBox="0 0 124 130" preserveAspectRatio="xMidYMid meet">'
-      + '<g fill="rgba(186,160,220,.2)" stroke="rgba(200,172,236,.75)" stroke-width="1.6">'
-      + '<circle cx="62" cy="22" r="19"/>'
-      + '<rect x="44" y="43" width="36" height="47" rx="15"/>'
-      + '<rect x="28" y="48" width="10" height="28" rx="5"/>'
-      + '<rect x="86" y="48" width="10" height="28" rx="5"/>'
-      + '<rect x="48" y="88" width="12" height="18" rx="6"/>'
-      + '<rect x="64" y="88" width="12" height="18" rx="6"/>'
+      + '<g fill="rgba(146,108,62,.16)" stroke="rgba(146,108,62,.72)" stroke-width="1.5">'
+      + '<circle cx="70" cy="7" r="7"/>'
+      + '<circle cx="62" cy="22" r="16"/>'
+      + '<path d="M47 40 h30 v32 q0 14 -7 20 h-16 q-7 -6 -7 -20 z"/>'
+      + '<path d="M50 44 h24 l-5 7 h-14 z" fill="rgba(146,108,62,.28)" stroke="none"/>'
+      + '<rect x="47" y="76" width="30" height="3" rx="1.5" fill="rgba(146,108,62,.4)" stroke="none"/>'
+      + '<rect x="28" y="47" width="9" height="26" rx="4.5" transform="rotate(20 32 60)"/>'
+      + '<rect x="87" y="47" width="9" height="26" rx="4.5" transform="rotate(-20 92 60)"/>'
+      + '<rect x="50" y="86" width="11" height="19" rx="5"/>'
+      + '<rect x="63" y="86" width="11" height="19" rx="5"/>'
       + '</g></svg>';
     var eqHtml='', bagSlot='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
