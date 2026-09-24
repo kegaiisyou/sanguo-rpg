@@ -3035,6 +3035,19 @@
         if(!exert('决断出营')) return;
         openEscapeHub('camp_gate');
         break;
+      case 'wood_cut':
+        // v20260924z3：柴林伐木 —— cutWood 原为死代码（无任何房间挂载），木料除仓库外没有营内稳定出处。
+        //   现在挂在柴林「老树」场景物上：每日限三回、耗时半个时辰、有斧得 2 材/无斧 1 材。
+        cutWood(); break;
+      case 'wood_cut_bare':
+        cutWood(); break;   // 无斧折枝与有斧伐木共用同一逻辑（cutWood 内部按有无斧头给 1/2 材）
+      case 'borrow_axe':
+        if(!packFind('futou') && !packFind('tiefu')){
+          packAdd('futou', 1);
+          log('你从斧架上取了把豁口锈斧，掂了掂——趁手是趁手，用完了记得还回去。','good');
+          save(state); afterPackChange();
+        } else { toast('你手里已有斧头。'); }
+        break;
       case 'train_dummy':
         if(!exert('戳木人桩')) return;
         // v20260924z2：计数不在此处 —— 胜利结算（jobTick('dummy')）才是官方口径，

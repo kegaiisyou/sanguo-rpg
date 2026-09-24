@@ -142,9 +142,10 @@
       exits: {
         '西': 'camp_yard',
         '南': 'camp_kitchen',
-        '北': 'camp_kennel'
+        '北': 'camp_kennel',
+        '东': 'camp_woodland'   // v20260924z3：薄田东首添一片柴林（伐木场），木料有了营内稳定的出处
       },
-      find: '薄田稀烂，囚徒锄地；老驿丞蹲田埂。〔西〕回劳役场（西）；〔南〕伙房（南）；〔北〕犬舍（北）。',
+      find: '薄田稀烂，囚徒锄地；老驿丞蹲田埂。〔西〕回劳役场（西）；〔南〕伙房（南）；〔北〕犬舍（北）；〔东〕柴林（东）。',
       npcs: [ 'sun_lao', 'niu_tie', 'liu_shi', 'wang_xi', 'zheng_gui' ],
       items: [],
       actions: []
@@ -208,6 +209,21 @@
           tip: '犬舍那几条恶犬性子烈——跟它们练练手，专试「撤退」。'
         }
       ]
+    },
+    camp_woodland: {
+      id: 'camp_woodland',
+      name: '苦役营·柴林',
+      desc: [
+        '营东墙根一片老林子，碗口粗的榆树、槐树挤挤挨挨，枝桠间漏下碎金似的日头。林边搁着一架磨得发亮的斧架。',
+        '柴林虽小，树却实诚——有斧伐木得实材，无斧折枝也能凑合。每日采伐有定数，林子要养。'
+      ],
+      exits: {
+        '南': 'camp_farm'
+      },
+      find: '柴林葱郁，老树环伺。〔南〕回薄田。老树可伐（有斧得材多，无斧折枝凑合），每日三回为限。',
+      npcs: [],
+      items: [],
+      actions: []
     },
     camp_warehouse: {
       id: 'camp_warehouse',
@@ -403,6 +419,16 @@
         {type:'npc', key:'lindao_trader', icon:'🧺', name:'行脚货郎', desc:'挑着担子歇脚的行商，扁担上挂满干粮伤药', actions:[
           {label:'买卖', icon:'🛒', fn:function(){ openModal('shop', {shop:'field_trader'}); }},
           {label:'交谈', icon:'💬', fn:function(){ talk('lindao_trader'); }}
+        ]}
+      ],
+      // ═══ 苦役营·柴林（伐木场，v20260924z3）：老树=伐木取材，斧架=借斧 ═══
+      camp_woodland: [
+        { type:'feature', key:'old_tree', icon:'🌳', name:'老树', desc:'碗口粗的榆树，树皮皴裂，枝干虬劲——砍了它，营里柴薪就有着落。', actions:[
+          { label:'挥斧伐木（半个时辰）', icon:'🪓', fn:function(){ window.handleAction('wood_cut'); } },
+          { label:'折枝凑合（半个时辰）', icon:'🌿', fn:function(){ window.handleAction('wood_cut_bare'); } }
+        ]},
+        { type:'feature', key:'axe_rack', icon:'🪓', name:'斧架', desc:'一架磨得发亮的旧斧架，插着两把豁口的锈斧——柴把头的家什，借了要还。', actions:[
+          { label:'借一把锈斧', icon:'🪓', fn:function(){ window.handleAction('borrow_axe'); } }
         ]}
       ],
       // ═══ 苦役营·六间子牢房：各置草荐（可打盹，复用不耗）═══

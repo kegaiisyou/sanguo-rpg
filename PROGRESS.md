@@ -1,9 +1,12 @@
-## §9.79 v20260924z2（周听涛恢复接取条件+木人三回合判定）
-- 周听涛 zt_food_give/zt_food_deliver：恢复「需已接取」（flags.task.zt_accepted）条件——用户要求差事须应下才认账，不放宽。
-  notFlag 由 route.crypt 改为 task.zt_food_done：若老档/异常态已置过密道线索旗标（crypt）但任务未结清，crypt 会永久拦死交付——改用完成标记判定，已应下+干粮在手即认，实测异常态（crypt=true）提交成功结清。
-- 木人试艺真 bug：木人桩 hp 9999 打不倒，dummy 任务只在战斗胜利（result==='win'）时 jobTick('dummy') 计数——胜利永不可能 → 任务卡死。
-  修复：dqResolveRound 敌人阶段后，dummy 敌人且 round>=3（交手满三回合）即强制按胜利结算（不要求击杀，本就不是用来杀的）；
-  train_dummy 动作移除上轮误加的 addFlagNum（双计），计数仍走胜利结算 jobTick 官方口径。
-- 木料获取确认：不止仓库——伐木场（需斧头 futou/tiefu，锈斧1/铁斧2，60分钟）+ 战斗掉落（mutou weight 30）+ 制作（wood_timber mutou→mucai）+ 仓库（初始 200 mucai + 150 mutou）。
-  无斧头只能折枝得小树枝（非木料）——若嫌初期木料紧，可选：新手引导提伐木处/仓库斧头显眼化。
-- 改动：shared/story/triggers.js、shared/core/combat.js、shared/core/engine.js、index.html（combat 缓存号 20260924z2）。
+## §9.80 v20260924z3（柴林伐木场 + 农田升级实体化）
+- 柴林（伐木场）落地：确认 cutWood 伐木逻辑原是死代码（代码在 crafting.js，全仓无任何房间挂载）→ 木料营内除仓库外无稳定出处。
+  - 新增独立房间 camp_woodland「苦役营·柴林」（仿犬舍小房间结构），薄田（camp_farm）加「东」出口进入。
+  - 场景物：老树（挥斧伐木/折枝凑合 → cutWood，每日限三回、耗时半个时辰、有斧 2 材/无斧 1 材）+ 斧架（借锈斧）。
+  - engine 新增 handleAction case：wood_cut / wood_cut_bare / borrow_axe。
+  - 实测：无斧伐木得 mucai×1、buildCount 限次生效、无报错。
+- 农田升级实体化：farmObjects 移除「修水渠/修编筐/修留种」一排无脑按钮，改挂实打实场景物件（开畦后才出现）：
+  - 水渠工地（石料×3）→ farmUpgrade('canal')
+  - 藤条堆（绳×1）→ farmUpgrade('basket')
+  - 针线笸箩（布帛×1）→ farmUpgrade('seedkeep')
+  - 手感与翻地/播种一致：点物件 → 菜单 → 动手。
+- 改动：shared/story/rooms.js（柴林房间+薄田东出口+ROOM_OBJECTS）、shared/core/engine.js（柴林动作 case）、shared/core/farm.js（实体物件）、版本号 20260924z3。

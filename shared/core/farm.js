@@ -215,12 +215,20 @@
           acts:[{label:'铲除枯苗', icon:'🧹', fn:function(){ farmClear(i); }}] });
       })(_i);
     }
-    Object.keys(FARM_UP).forEach(function(key){
-      var u=FARM_UP[key];
-      arr.push({ icon:u.icon, label:'修'+u.name,
-        show:function(){ return jobOpen('farm') && !farmFx().up[key] && farmFx().unlocked>0; },
-        acts:[{label:'修'+u.name, icon:u.icon, fn:function(){ farmUpgrade(key); }}] });
-    });
+    // v20260924z3：农田三处升级不再是一排「修水渠/修编筐/修留种」的无脑按钮——
+    //   改挂成实打实的场景物件（工地/料堆/笸箩），点物件再动手，跟翻地播种一个手感。
+    //   水渠：田埂豁口的工地，得先备足石料
+    arr.push({ icon:'🚰', label:'水渠工地',
+      show:function(){ return jobOpen('farm') && !farmFx().up.canal && farmFx().unlocked>0; },
+      acts:[{label:'修水渠（石料×3）', icon:'⛏️', fn:function(){ farmUpgrade('canal'); }}] });
+    // 编筐：田头一堆藤条与半只旧筐，请席翁编的筐得先有绳子
+    arr.push({ icon:'🧺', label:'藤条堆',
+      show:function(){ return jobOpen('farm') && !farmFx().up.basket && farmFx().unlocked>0; },
+      acts:[{label:'请席翁编筐（绳×1）', icon:'🧺', fn:function(){ farmUpgrade('basket'); }}] });
+    // 留种：檐下针线笸箩，缝一只布口袋存籽，得先有布帛
+    arr.push({ icon:'🪡', label:'针线笸箩',
+      show:function(){ return jobOpen('farm') && !farmFx().up.seedkeep && farmFx().unlocked>0; },
+      acts:[{label:'缝布囊存籽（布帛×1）', icon:'🌱', fn:function(){ farmUpgrade('seedkeep'); }}] });
     return arr;
   }
     return {
