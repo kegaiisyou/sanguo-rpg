@@ -159,7 +159,7 @@
   //     三条支路写在同一条触发器里（cond 无 notHasItem，故用 branch 嵌套判），免得多条 onTalk 互相打架。
   TRIGGERS.push({
     id: 'zt_food_deliver', hook: 'onTalk', npc: 'zhoutingtao', room: 'camp_tz1', once: false,
-    cond: { flags: { 'flags.task.zt_accepted': true }, notFlag: 'flags.route.crypt' },
+    cond: { flags: { 'flags.task.zt_accepted': true }, notFlag: 'flags.task.zt_food_done' },
     steps: [
       { t: 'branch',
         if: { hasItem: 'fan' },
@@ -182,9 +182,10 @@
   //   此处只管认下这桩吃食、授密道线、结清任务。不写 consume（会二次扣除）。
   TRIGGERS.push({
     id: 'zt_food_give', hook: 'onGive', npc: 'zhoutingtao', room: 'camp_tz1', item: 'fan', once: false,
-    // v20260924z：不再依赖 zt_accepted —— 玩家只要在天字一号牢房把干粮递到周听涛手上即结清。
-    //   此前若对话未点〔应下〕（zt_accepted 未置位），提交干粮无任何反应，玩家误以为 bug。
-    cond: { notFlag: 'flags.route.crypt' },
+    // v20260924z2：仍要求已接取（zt_accepted）—— 差事得先应下，交付才认账。
+    //   notFlag 用 zt_food_done 而非 route.crypt：若此前曾置过密道线索旗标（crypt）但任务未结清
+    //   （异常态/老档），crypt 会把它永久拦死——用完成标记判定，只要任务没结 + 已应下 + 干粮在手就给认。
+    cond: { flags: { 'flags.task.zt_accepted': true }, notFlag: 'flags.task.zt_food_done' },
     steps: [
       { t: 'log', cls: 'npc', text: '你将从伙房换来的干粮递过去。周听涛眼睛一亮，也不客气，三两口扒了半张饼，这才正色道：「好，这桩吃食老夫领了——既食人之禄，便替你掐一掐这乱如麻的命数。」' },
       { t: 'setFlag', path: 'flags.route.crypt', value: true },

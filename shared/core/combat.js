@@ -688,6 +688,15 @@
       var eLog=G.CombatEngine.runEnemyPhase();
       dqPlayLog(eLog, function(){
         if(G.CombatEngine.state.result){ dqFinish(); return; }
+        // v20260924z2：木人桩死物打不倒（hp 9999，本就不是用来击杀的）——
+        //   练的是「接得住招」：攻防交手满三回合（round 已整轮+1 至 3）即算练成，按胜利结算，
+        //   胜利结算里 jobTick('dummy') 才会给「木人试艺」差役计数。此前只能靠打赢，永无可能。
+        var _en=G.CombatEngine.getEnemy();
+        if(_en && _en.id==='dummy' && G.CombatEngine.state.round>=3){
+          log('你与木人桩拆了三合——桩身不倒，拳脚却已见章法。韩铁远远看着，点了下头。','combat');
+          G.CombatEngine.state.result='win';
+          dqFinish(); return;
+        }
         dqBusy=false; dqOrders=[]; dqCursor=0; dqRenderRound();
       });
     });
