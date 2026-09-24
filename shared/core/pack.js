@@ -89,7 +89,7 @@
   // 装备栏图（人形 + 六装备槽 + 背包槽）：独立成函数，供 renderPack 与装备后实时刷新复用
   function renderEquipFigure(){
     // v20260924z8：人形剪影精修 —— 古风武将写意（发髻/交领衣袍/腰带/斜臂），赭石棕色调与整体美术统一
-    var sil = '<img class="equip-bg" src="assets/equip/equip_bg_a.webp" alt="" crossorigin="anonymous">';
+    var sil = '<img class="equip-bg" src="assets/equip/equip_art_b.png" alt="" crossorigin="anonymous">';
     var eqHtml='', bagSlot='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
       if(slot==='bag') return;            // 背包槽独立于六装备槽，单独放在人形下方
@@ -149,7 +149,7 @@
   function renderEquipStats(){
     var s = (typeof effectiveStats==='function') ? effectiveStats() : getState();
     function row(label, val){ return '<div class="ps-row"><span>'+label+'</span><b>'+(val==null?'—':val)+'</b></div>'; }
-    var collapsed = ((window.LF && LF.UISPEC && LF.UISPEC.isMobile()) || (window.innerWidth && window.innerWidth<=560)) ? ' collapsed' : '';
+    var collapsed = '';
     return '<div class="pack-left-stats'+collapsed+'" id="packLeftStats">'
       + '<div class="ps-h" onclick="LFUI.toggleStats()" role="button" tabindex="0">属 性 <span class="ps-caret">▾</span></div>'
       + '<div class="ps-body">'

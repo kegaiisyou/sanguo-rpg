@@ -2867,3 +2867,31 @@
 .talk-inline .tl-name{ font-family:"STKaiti","KaiTi",serif; letter-spacing:.5px; }
 .talk-inline .tl-fv{ color:#bfa77f; font-size:11px; }
 .talk-inline .talk-grid{ padding-top:10px; }
+
+/* ===== 物品美术 & 装备栏视觉修正（20260924z15） ===== */
+
+/* 1) 物品美术图：填满格子、最大 48px 保细节、居中不溢出 */
+.item-pic48{width:100%;height:100%;max-width:48px;max-height:48px;object-fit:contain;display:block;margin:auto;}
+.packcell .pcell-ic{display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:3px;box-sizing:border-box;line-height:1;}
+
+/* 2) 弱化格子边框/背景，避免与物品图自带的圆形奖章边框重复抢视觉 */
+.packcell{background:rgba(0,0,0,.12);border:1px solid rgba(196,164,102,.12);border-radius:10px;padding:3px;}
+
+/* 3) 装备栏：左列放宽，改用人形剪影，槽位百分比定位随容器缩放 */
+.pack-left{flex:0 0 150px;padding:8px;gap:6px;}
+.equip-figure{width:100%;aspect-ratio:2/3;margin:0 auto;flex:0 0 auto;}
+.equip-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:.95;border-radius:10px;}
+.equipslot{min-width:auto;min-height:auto;width:auto;height:auto;background:rgba(250,245,232,.72);border:1px solid rgba(196,164,102,.45);backdrop-filter:blur(1px);border-radius:8px;padding:2px 4px;}
+.equip-figure .equipslot{border-width:1px;box-shadow:0 1px 3px rgba(60,48,34,.2);}
+.ep-hat{left:32%;top:2%;width:36%;height:10%;}
+.ep-trinket{left:66%;top:12%;width:30%;height:10%;}
+.ep-cloth{left:24%;top:22%;width:52%;height:24%;}
+.ep-weapon{left:4%;top:40%;width:24%;height:18%;}
+.ep-belt{left:30%;top:52%;width:40%;height:10%;}
+.ep-shoe{left:28%;top:78%;width:44%;height:12%;}
+.ep-bagflow{left:70%;top:64%;width:28%;height:13%;border-style:dashed;background:rgba(250,245,232,.55);}
+
+/* 移动端限制人形高度，避免属性面板被挤掉 */
+@media(max-width:560px){
+  .pack-left .equip-figure{transform:none;height:180px;width:auto;aspect-ratio:auto;}
+}
