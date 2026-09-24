@@ -285,6 +285,9 @@ window.LF = window.LF || {};
     function renderTalkActions(o) {
       var acts = document.getElementById('actions'); if (!acts) return;
       var tp = (o.card && o.card.topics) || [], ac = (o.card && o.card.acts) || [], h = '';
+      h += '<div class="talk-inline">';
+      h += '<div class="tl-head"><span class="tl-name">' + o.name + (o.role ? '·' + o.role : '') + '</span>'
+        + '<span class="tl-fv">' + npcFavorTier(o.key) + ' · 好感' + npcFavorPct(o.key) + '%</span></div>';
       h += '<div class="talk-grid">';
       for (var i = 0; i < tp.length; i++) h += '<button class="talk-btn" data-topic="' + tp[i].id + '"><span class="tb-ic">' + (tp[i].icon || '💬') + '</span><span class="tb-lb">' + tp[i].label + '</span></button>';
       for (var j = 0; j < ac.length; j++) h += '<button class="talk-btn talk-btn-act" data-topic-act="' + ac[j].id + '" title="' + (ac[j].tip || '') + '"><span class="tb-ic">' + (ac[j].icon || '·') + '</span><span class="tb-lb">' + ac[j].label + '</span></button>';
@@ -293,6 +296,7 @@ window.LF = window.LF || {};
         + '<button class="talk-foot-btn" id="talk-give">🎁 给予</button>'
         + '<button class="talk-foot-btn" id="talk-close">告 辞</button>'
         + '</div>';
+      h += '</div>';
       acts.innerHTML = h;
       acts.querySelectorAll('[data-topic]').forEach(function (btn) {
         btn.onclick = function () {
