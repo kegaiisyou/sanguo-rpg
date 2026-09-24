@@ -145,7 +145,9 @@
       +   '</div>'
       + '</div>'
       + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
-      + '<button class="btn" '+(canDiscard()?'':'disabled')+' onclick="LFUI.discardInspect()">丢弃</button>'
+      // v20260924z6：丢弃按钮不再用渲染时快照的 disabled —— 点选物品时面板不重渲染，按钮会永远停在
+      //   初始的禁用态（按了没反应）。改为始终可点，由 discardInspect 在未选中时给 toast 提示。
+      + '<button class="btn" onclick="LFUI.discardInspect()">丢弃</button>'
       + '<span class="pack-hint">点按物品查看 · 点空白处关闭</span>'
       + '<span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span>'
       + '<span class="pack-gold">银两 '+getState().gold+'</span></div>'
@@ -291,7 +293,11 @@
   }
   // 详情面板操作
   function useInspect(){ if(!getPackInspect()||getPackInspect().kind!=='pack') return; var idx=getPackInspect().idx; usePackItem(idx); if(!getState().pack[idx]){ setPackInspect(null); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; return; } showPackFloat(); }
-  function discardInspect(){ if(!getPackInspect()||getPackInspect().kind!=='pack') return; var idx=getPackInspect().idx; setPackInspect(null); discardPackItem(idx); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+  function discardInspect(){
+    if(!getPackInspect() || getPackInspect().kind!=='pack'){ toast('先点选一件行囊物品，再丢弃。'); return; }
+    var idx=getPackInspect().idx; setPackInspect(null); discardPackItem(idx);
+    var f=document.getElementById('pack-float'); if(f) f.style.display='none';
+  }
   function canDiscard(){ return !!(getPackInspect() && getPackInspect().kind==='pack'); }
   function packHighlightReplaced(idx){   // 装备/卸下后，自动滚到并高亮被换下的背包物品
     setTimeout(function(){
