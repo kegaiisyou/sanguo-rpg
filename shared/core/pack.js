@@ -88,9 +88,9 @@
   }
   // 装备栏图（人形 + 六装备槽 + 背包槽）：独立成函数，供 renderPack 与装备后实时刷新复用
   function renderEquipFigure(){
-    // v20260924z8：人形剪影精修 —— 古风武将写意（发髻/交领衣袍/腰带/斜臂），赭石棕色调与整体美术统一
-    var sil = '<img class="equip-bg" src="assets/equip/equip_art_b.png" alt="" crossorigin="anonymous">';
-    var eqHtml='', bagSlot='';
+    // v20260924z16：装备槽改为独立网格，人形仅作顶部小插图
+    var portrait = '<img class="equip-portrait" src="assets/equip/equip_art_b.png" alt="" crossorigin="anonymous">';
+    var eqHtml='<div class="equip-grid">', bagSlot='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
       if(slot==='bag') return;            // 背包槽独立于六装备槽，单独放在人形下方
       var eq=getState().equipment[slot], sl=LF.ITEMS.SLOTS[slot];
@@ -104,7 +104,7 @@
         : '<div class="ep-ph">'+sl.label+'</div>';
       eqHtml += '<div class="equipslot ep-'+slot+insCls+'" data-loc="equip:'+slot+'">'+inner+badge+durBar+'</div>';
     });
-    // 背包槽（bag）：人形下方独立渲染
+    // 背包槽（bag）：独立渲染于网格下方
     (function(){
       var eq=getState().equipment.bag, sl=LF.ITEMS.SLOTS.bag;
       var insCls=(getPackInspect() && getPackInspect().kind==='equip' && getPackInspect().slot==='bag')?' pcell-insp':'';
@@ -115,7 +115,7 @@
       var inner=eq?'<div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph">'+sl.label+'</div>';
       bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag">'+inner+badge+durBar+'</div>';
     })();
-    eqHtml = sil + eqHtml;
+    eqHtml += '</div>';
     return '<div class="equip-figure">'+eqHtml+bagSlot+'</div>';
   }
   function renderPack(){

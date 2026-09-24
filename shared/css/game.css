@@ -2895,3 +2895,11 @@
 @media(max-width:560px){
   .pack-left .equip-figure{transform:none;height:180px;width:auto;aspect-ratio:auto;}
 }
+
+/* ===== 装备栏修正（20260924z16）：槽位独立网格，人形仅作顶部小插图 ===== */
+.equip-figure{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;height:auto;aspect-ratio:auto;}
+.equip-portrait{width:70px;height:auto;max-height:90px;object-fit:contain;object-position:center top;opacity:.9;border-radius:8px;pointer-events:none;}
+.equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
+.equipslot{position:static;width:auto;height:auto;min-height:44px;background:rgba(250,245,232,.78);border:1px solid rgba(196,164,102,.45);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 2px;box-shadow:0 1px 3px rgba(60,48,34,.18);}
+.ep-shoe{grid-column:1/-1;}
+.ep-bagflow{position:static;width:auto;height:auto;min-height:44px;background:rgba(250,245,232,.55);border:1px dashed rgba(196,164,102,.55);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 2px;box-shadow:none;margin-top:0;}
