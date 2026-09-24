@@ -173,7 +173,7 @@
         var have = o.matsPaid[k] || 0, need = stage.need[k], packN = (packFind(k) || { count: 0 }).count;
         var done = have >= need;
         html += '<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">' +
-          '<span>' + itemIconHTML(it, 18) + '</span>' +
+          '<span>' + itemIconHTML(it, 42) + '</span>' +
           '<span style="opacity:.8;flex:1;">' + have + ' / ' + need + '　·　行囊' + packN + '</span>' +
           (done ? '<span style="color:#8fce8f;">已备齐</span>' : '<button class="btn-mini" data-order="' + o.id + '" data-mat="' + k + '">投 料</button>') +
           '</div>';

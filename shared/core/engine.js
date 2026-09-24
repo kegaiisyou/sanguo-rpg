@@ -1561,9 +1561,9 @@
     FX_LAST_AT=now;
     var d=document.createElement('div');
     d.id='cityfx';
-    d.innerHTML='<div class="cfx-ink"></div><div class="cfx-line t"></div><div class="cfx-line b"></div><div class="cfx-name">'+name+'</div>';
+    d.innerHTML='<div class="cfx-name">'+name+'</div><div class="cfx-line"></div>';
     (document.body||document.documentElement).appendChild(d);
-    setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 2000);
+    setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 1900);
   }
   // 巡山埋伏：进入巡逻山道有概率遇敌（山贼 / 流寇）
   function maybeAmbush(room){

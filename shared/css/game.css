@@ -187,16 +187,17 @@
   /* 三层视觉分级：叙事区(浅) → 按钮区(略深+上沿分隔) → 系统dock(再深) */
   #actions{
     flex:0 0 auto;
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(100px,1fr));
-    align-items:stretch;gap:8px;
+    display:flex;flex-wrap:nowrap;gap:8px;align-items:stretch;
     padding:10px 14px calc(10px + env(safe-area-inset-bottom));
     border-top:1px solid var(--panel-line);
     background:linear-gradient(0deg,rgba(244,238,227,.96),rgba(250,246,237,.55));
     box-shadow:0 -9px 18px -12px rgba(60,48,34,.24), inset 0 1px 0 rgba(255,255,255,.7);
-    max-height:50dvh;overflow-y:auto;
+    /* v20260924z10：场景物件保持一格高度，多了横向拖动，不再撑高页面顶出罗盘/dock */
+    overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+    scroll-snap-type:x proximity;
   }
-  #actions::-webkit-scrollbar{width:0;}
+  #actions .act{flex:0 0 auto;min-width:96px;max-width:130px;scroll-snap-align:start;}
+  #actions::-webkit-scrollbar{height:0;}
   .acts-label{grid-column:1/-1;text-align:center;font-size:11px;letter-spacing:5px;
     color:var(--ink-faint);font-family:"STKaiti","KaiTi",serif;opacity:.72;margin:1px 0 2px;}
   .obj-hint{grid-column:1/-1;text-align:center;font-size:12px;line-height:1.6;color:var(--ink-faint);
@@ -359,7 +360,8 @@
     grid-template-rows:repeat(3,auto);
     gap:6px;align-self:center;
     width:min(100% - 16px, 300px);
-    margin:2px 0 4px;padding:11px;
+    min-width:212px;              /* v20260924z10：罗盘不被左侧 NPC 栏挤压缩 */
+    margin:2px auto 4px;padding:11px;
     background:rgba(176,131,47,.06);border:1px solid rgba(176,131,47,.22);border-radius:18px;
     box-shadow:0 2px 10px rgba(60,48,34,.08);
   }
@@ -2831,20 +2833,14 @@
   .ch-gear{grid-template-columns:repeat(3,1fr);gap:5px;}
 }
 
-/* v20260924z9：进城过场 —— 亮宣纸底 + 朱红城名 + 上下金线（去压抑） */
-#cityfx{position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden;}
-#cityfx .cfx-ink{position:absolute;inset:0;
-  background:radial-gradient(circle at 50% 42%, #fffdf4 0%, #f7efdb 52%, #e9dcb8 100%);
-  animation:cfxInk .7s ease-out both;}
-#cityfx .cfx-name{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);
-  font-family:'STKaiti','KaiTi','Songti SC',serif;font-size:34px;letter-spacing:12px;
-  color:#7c2d12;text-shadow:0 1px 0 rgba(255,255,255,.7),0 2px 10px rgba(124,45,18,.22);
-  opacity:0;white-space:nowrap;animation:cfxName 1.9s ease both;}
-#cityfx .cfx-line{position:absolute;left:24%;right:24%;height:2px;border-radius:1px;
-  background:linear-gradient(90deg,transparent,#b8863b 30%,#c98f3f 70%,transparent);
-  animation:cfxLine .7s ease-out .18s both;}
-#cityfx .cfx-line.t{top:36%;}
-#cityfx .cfx-line.b{bottom:36%;}
-@keyframes cfxInk{from{opacity:0}to{opacity:1}}
-@keyframes cfxName{0%{opacity:0;transform:translate(-50%,-50%) scale(.86);}18%{opacity:1;transform:translate(-50%,-50%) scale(1);}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.02);}}
+/* v20260924z10：进城提示 —— 地区名淡化浮现（类 RPG 新地图提示，不遮屏不挡操作） */
+#cityfx{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:9999;pointer-events:none;
+  text-align:center;white-space:nowrap;}
+#cityfx .cfx-name{font-family:'STKaiti','KaiTi','Songti SC',serif;font-size:33px;letter-spacing:14px;
+  color:#7c2d12;text-shadow:0 1px 0 rgba(255,255,255,.8),0 2px 10px rgba(124,45,18,.25);
+  opacity:0;animation:cfxName 1.9s ease both;}
+#cityfx .cfx-line{width:150px;height:2px;margin:8px auto 0;border-radius:1px;
+  background:linear-gradient(90deg,transparent,#b8863b,transparent);
+  animation:cfxLine .6s ease-out .2s both;}
+@keyframes cfxName{0%{opacity:0;transform:translateY(7px);}16%{opacity:1;transform:translateY(0);}80%{opacity:1}100%{opacity:0;transform:translateY(-4px);}}
 @keyframes cfxLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}

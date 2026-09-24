@@ -81,7 +81,7 @@
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
-            + '<div class="pcell-ic">'+itemIconHTML(it,30)+'</div>'
+            + '<div class="pcell-ic">'+itemIconHTML(it,42)+'</div>'
             + cnt + qb + '</div>';
     }
     return grid;
@@ -91,15 +91,15 @@
     // v20260924z8：人形剪影精修 —— 古风武将写意（发髻/交领衣袍/腰带/斜臂），赭石棕色调与整体美术统一
     var sil = '<svg class="equip-sil" viewBox="0 0 124 130" preserveAspectRatio="xMidYMid meet">'
       + '<g fill="rgba(146,108,62,.16)" stroke="rgba(146,108,62,.72)" stroke-width="1.5">'
-      + '<circle cx="70" cy="7" r="7"/>'
+      + '<circle cx="70" cy="7" r="6"/>'
       + '<circle cx="62" cy="22" r="16"/>'
-      + '<path d="M47 40 h30 v32 q0 14 -7 20 h-16 q-7 -6 -7 -20 z"/>'
-      + '<path d="M50 44 h24 l-5 7 h-14 z" fill="rgba(146,108,62,.28)" stroke="none"/>'
-      + '<rect x="47" y="76" width="30" height="3" rx="1.5" fill="rgba(146,108,62,.4)" stroke="none"/>'
-      + '<rect x="28" y="47" width="9" height="26" rx="4.5" transform="rotate(20 32 60)"/>'
-      + '<rect x="87" y="47" width="9" height="26" rx="4.5" transform="rotate(-20 92 60)"/>'
-      + '<rect x="50" y="86" width="11" height="19" rx="5"/>'
-      + '<rect x="63" y="86" width="11" height="19" rx="5"/>'
+      + '<path d="M47 40 C43 42 40 46 40 51 L40 64 C40 76 46 86 62 86 C78 86 84 76 84 64 L84 51 C84 46 81 42 77 40 Z"/>'
+      + '<path d="M62 42 L51 56 M62 42 L73 56" fill="none" stroke-width="2" stroke-linejoin="round"/>'
+      + '<rect x="42" y="66" width="40" height="3" rx="1.5" fill="rgba(146,108,62,.4)" stroke="none"/>'
+      + '<path d="M40 51 C33 56 30 64 30 74 C30 78 34 81 37 78 C42 73 44 63 45 56 Z"/>'
+      + '<path d="M84 51 C91 56 94 64 94 74 C94 78 90 81 87 78 C82 73 80 63 79 56 Z"/>'
+      + '<path d="M50 86 C48 97 47 107 47 117 C47 121 50 124 53 124 L55 124 C56 111 57 100 58 91 Z"/>'
+      + '<path d="M74 86 C76 97 77 107 77 117 C77 121 74 124 71 124 L69 124 C68 111 67 100 66 91 Z"/>'
       + '</g></svg>';
     var eqHtml='', bagSlot='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
@@ -137,7 +137,7 @@
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
-            + '<div class="pcell-ic">'+itemIconHTML(it,30)+'</div>'
+            + '<div class="pcell-ic">'+itemIconHTML(it,42)+'</div>'
             + cnt + qb + '</div>';
     }
     return '<div class="pack-wrap">'
