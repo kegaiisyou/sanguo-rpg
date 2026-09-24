@@ -230,7 +230,7 @@
     ensureStorage(cid); var st=getState().flags.storage[cid];
     var cnm=(LF.CITIES[cid]||{}).name||'此城';
     var used=0; for(var i=0;i<st.items.length;i++) if(st.items[i]) used++;
-    var cbase='display:flex;align-items:center;justify-content:center;position:relative;width:46px;height:46px;margin:2px;border-radius:6px;font-size:12px;color:#3a3226;cursor:pointer;';
+    var cbase='display:flex;align-items:center;justify-content:center;position:relative;width:58px;height:58px;margin:2px;border-radius:8px;font-size:12px;color:#3a3226;cursor:pointer;';
     var cells='';
     for(var i=0;i<st.slots;i++){
       var it=st.items[i];
@@ -238,13 +238,13 @@
       else {
         var sel=(storageSel && storageSel.src==='store' && storageSel.defId===itemKey(it));
         var cnt=(it.count>1)?'<span style="position:absolute;right:2px;bottom:1px;font-size:10px;font-weight:700;color:#6b4a24;">'+it.count+'</span>':'';
-        cells+='<div data-st-sel="store:'+i+'" style="'+cbase+'background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(sel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(sel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';" title="'+it.name+'">'+itemIconHTML(it,12)+cnt+'</div>';
+        cells+='<div data-st-sel="store:'+i+'" style="'+cbase+'background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(sel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(sel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';" title="'+it.name+'">'+itemIconHTML(it,36)+cnt+'</div>';
       }
     }
     var packHtml='';
     for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(!pit||!packIsStackable(pit)) continue;
       var pk=itemKey(pit); var psel=(storageSel && storageSel.src==='pack' && storageSel.defId===pk);
-      packHtml+='<button data-st-sel="pack:'+pk+'" style="display:inline-flex;align-items:center;gap:4px;margin:2px;padding:6px 10px;border-radius:8px;font-size:13px;color:#3a3226;cursor:pointer;background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(psel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(psel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';">'+itemIconHTML(pit,12)+' '+pit.name+(pit.count>1?' ×'+pit.count:'')+'</button>';
+      packHtml+='<button data-st-sel="pack:'+pk+'" style="display:inline-flex;align-items:center;gap:4px;margin:2px;padding:6px 10px;border-radius:8px;font-size:13px;color:#3a3226;cursor:pointer;background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(psel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(psel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';">'+itemIconHTML(pit,30)+' '+pit.name+(pit.count>1?' ×'+pit.count:'')+'</button>';
     }
     if(!packHtml) packHtml='<div class="tip" style="margin:6px 0;">行囊空空，无物可存。</div>';
     var selHtml='<div class="tip" style="margin:8px 0 4px;color:#6b4a24;">点选上方格子取物，或点行囊物品存入。</div>';

@@ -1,8 +1,7 @@
-## §9.87 v20260924z10（美术体验批收尾：布巾矿工/图标48/人形重画/罗盘防压/横滑/进城提示）
-- ①矿工头像重画：否决现代安全帽版 → 青灰布巾包头、古铜面庞、粗麻短褐（nWpbfjKDHU 压 240 覆盖 npc-miner/sm_npc-miner）。
-- ②物品图标加大且统一：行囊/仓库格子 px 30/18 → 42（雪碧图 w=px+6 → 48px），大小不一的根因是不同面板 px 不同（行囊30/仓库18/战斗15）——大格子统一 48，战斗小格子保持小尺寸。
-- ③装备栏人形重画：弃矩形+斜臂方块感 → 流畅人体剪影（圆头/发髻/宽肩收腰躯干 path/交领/腰带/斜垂双臂/双腿 path），viewBox 124×130 不变，装备槽位定位不受影响。
-- ④罗盘防压缩：.move-bar min-width:212px + margin:0 auto，不再被左侧 NPC 栏挤窄；#actions 改 flex 横向滚动（场景物件一格高度、多了横拖），不再 grid 撑高页面顶出下部区域。
-- ⑤进城动画 → RPG 式地区名淡化：去掉全屏 ink 遮罩，仅中上部朱红大字城名 + 金线淡入淡出 1.9s，pointer-events:none 不挡操作。
-- 实测：进城动画 ink 已去除、actions flex nowrap 横滚、move-bar min-width 212px 生效、无 JS 报错。
-- 改动：engine.js/pack.js/citybuild.js/game.css/index.html/constants.js/shared/img 矿工头像，版本 20260924z10。
+## §9.88 v20260924z11（美术批：立绘底图/图标48无拉伸/仓库显眼/场景按钮紧凑）
+- ①装备栏立绘：弃 SVG 线条人形 → AI 生成武将全身立绘（水墨工笔、米黄宣纸底，A 握拳站姿主用/B 叉腰站姿备用）压 webp 16KB，装备栏左侧以画像底图呈现（object-fit:cover 顶部对齐，头在头槽位置），装备槽叠在上层。
+- ②物品图标解决拉伸与过小：根因是雪碧图格内留白 + 缩小显示。改法：从 items.webp 按内容边界裁出 15 张 → assets/icons/items48/（48px 内容充满、无拉伸），itemIconHTML 优先 <img item-pic48>，缺文件回退雪碧图。
+- ③仓库显眼：storage.js 仓库格子 46→58px、物品图标 12→36（渲染 42px），行囊侧按钮图标 12→30（36px）。
+- ④场景交互按钮紧凑：.act padding 9→7、字号 13.5→12.5、min-width 96→74，图标 30px、名字单行省略——留白收窄不占满。
+- 实测：行囊立绘 equip_art.webp、item-pic48 两张 48px、无 JS 报错。
+- 改动：pack.js/engine.js/storage.js/game.css/index.html/constants.js，新增 assets/equip/*.webp、assets/icons/items48/*.png（15），版本 20260924z11。

@@ -89,18 +89,7 @@
   // 装备栏图（人形 + 六装备槽 + 背包槽）：独立成函数，供 renderPack 与装备后实时刷新复用
   function renderEquipFigure(){
     // v20260924z8：人形剪影精修 —— 古风武将写意（发髻/交领衣袍/腰带/斜臂），赭石棕色调与整体美术统一
-    var sil = '<svg class="equip-sil" viewBox="0 0 124 130" preserveAspectRatio="xMidYMid meet">'
-      + '<g fill="rgba(146,108,62,.16)" stroke="rgba(146,108,62,.72)" stroke-width="1.5">'
-      + '<circle cx="70" cy="7" r="6"/>'
-      + '<circle cx="62" cy="22" r="16"/>'
-      + '<path d="M47 40 C43 42 40 46 40 51 L40 64 C40 76 46 86 62 86 C78 86 84 76 84 64 L84 51 C84 46 81 42 77 40 Z"/>'
-      + '<path d="M62 42 L51 56 M62 42 L73 56" fill="none" stroke-width="2" stroke-linejoin="round"/>'
-      + '<rect x="42" y="66" width="40" height="3" rx="1.5" fill="rgba(146,108,62,.4)" stroke="none"/>'
-      + '<path d="M40 51 C33 56 30 64 30 74 C30 78 34 81 37 78 C42 73 44 63 45 56 Z"/>'
-      + '<path d="M84 51 C91 56 94 64 94 74 C94 78 90 81 87 78 C82 73 80 63 79 56 Z"/>'
-      + '<path d="M50 86 C48 97 47 107 47 117 C47 121 50 124 53 124 L55 124 C56 111 57 100 58 91 Z"/>'
-      + '<path d="M74 86 C76 97 77 107 77 117 C77 121 74 124 71 124 L69 124 C68 111 67 100 66 91 Z"/>'
-      + '</g></svg>';
+    var sil = '<img class="equip-art" src="assets/equip/equip_art.webp" alt="" crossorigin="anonymous">';
     var eqHtml='', bagSlot='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
       if(slot==='bag') return;            // 背包槽独立于六装备槽，单独放在人形下方

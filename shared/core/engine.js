@@ -3418,8 +3418,8 @@
     px = px || 16;
     if(it && ICON_SPR.map[it.defId]){
       var w = Math.max(20, px + 6);
-      var c = ICON_SPR.map[it.defId].split(' ');
-      return '<span class="ic-spr" data-cat="'+cat+'" style="width:'+w+'px;height:'+w+'px;background-image:url('+ICON_SPR.img+');background-position:'+c[0]+'% '+c[1]+'%;background-size:400% 400%;"></span>';
+      /* v20260924z11：独立 48px 图标优先（无拉伸、内容充满），缺文件回退雪碧图 */
+      return '<img class="item-pic48" data-cat="'+cat+'" src="assets/icons/items48/'+it.defId+'.png" alt="'+(it.name||'')+'" style="width:'+w+'px;height:'+w+'px;object-fit:contain;" onerror="this.style.display=\'none\';">';
     }
     var em = (it && it.icon) ? it.icon : '';
     var fs = Math.min(px, 16);
