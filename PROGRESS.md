@@ -1,12 +1,7 @@
-## §9.80 v20260924z3（柴林伐木场 + 农田升级实体化）
-- 柴林（伐木场）落地：确认 cutWood 伐木逻辑原是死代码（代码在 crafting.js，全仓无任何房间挂载）→ 木料营内除仓库外无稳定出处。
-  - 新增独立房间 camp_woodland「苦役营·柴林」（仿犬舍小房间结构），薄田（camp_farm）加「东」出口进入。
-  - 场景物：老树（挥斧伐木/折枝凑合 → cutWood，每日限三回、耗时半个时辰、有斧 2 材/无斧 1 材）+ 斧架（借锈斧）。
-  - engine 新增 handleAction case：wood_cut / wood_cut_bare / borrow_axe。
-  - 实测：无斧伐木得 mucai×1、buildCount 限次生效、无报错。
-- 农田升级实体化：farmObjects 移除「修水渠/修编筐/修留种」一排无脑按钮，改挂实打实场景物件（开畦后才出现）：
-  - 水渠工地（石料×3）→ farmUpgrade('canal')
-  - 藤条堆（绳×1）→ farmUpgrade('basket')
-  - 针线笸箩（布帛×1）→ farmUpgrade('seedkeep')
-  - 手感与翻地/播种一致：点物件 → 菜单 → 动手。
-- 改动：shared/story/rooms.js（柴林房间+薄田东出口+ROOM_OBJECTS）、shared/core/engine.js（柴林动作 case）、shared/core/farm.js（实体物件）、版本号 20260924z3。
+## §9.81 v20260924z4（柴林入口补挂 + 交互物品收纳防遮挡）
+- 柴林（伐木场）入口修正：上一版入口只加在薄田房间（旧营区孤岛路），玩家种地实际在农田格（kuyilao 0,0）看不到。
+  现于农田格 cellInteriors 加常开子房门「柴林（伐木场）」（与务农同为自由劳作，不设任务门槛）。
+- 交互物品收纳（防物件挤没叙事窗）：城格 objects 超过 6 件先摆前 6 件 + 「更多交互（N）」按钮，
+  点击展开余下（展开仍受 #actions 限高滚动约束，展开后自动滚到可视区）；#scene 叙事窗加 min-height:30dvh 保底高度。
+- 实测：9 畦+3 升级+水井=13 件 → 折叠 7 项（前 6+更多）→ 展开 13 项全显、更多按钮消失、无报错。
+- 改动：shared/core/engine.js（农田格柴林门 + objects 收纳）、shared/css/game.css（#scene 保底 + .more-act 样式）、版本号 20260924z4。

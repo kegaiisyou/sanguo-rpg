@@ -1903,7 +1903,14 @@
     //   未接活时一律不摆 —— 这一格本就有「下地务农」的自由劳作，再堆设施会把格上的引导顶掉。
     //   v20260915g：畦的数目随开出进度变化，故不能在定义时就写死数组（此处常量尚未声明），
     //   改由 cellInteriors 在【运行时】问 farmObjects() 要。
-    'kuyilao|0,0': { farmObjects: true },
+    'kuyilao|0,0': {
+      farmObjects: true,
+      // v20260924z3：柴林（伐木场）从农田格直接进 —— 薄田东出口是旧营区房间的路，玩家种地都在这一格，
+      //   入口必须摆在看得见的地方。伐木与务农同为营内自由劳作，故此门常开、不设任务门槛。
+      doors: [
+        { label:'柴林（伐木场）', icon:'🌳', target:'camp_woodland', group:'农庄' }
+      ]
+    },
     // 演武场（2,2）：犬舍单独一间子房（v20260915e）——木人桩留在格上（格型动作），
     //   逗犬进屋，两者隔开：先教打（桩），再教跑（犬）。门槛 = 木人桩已练成（tcDone）。
     'kuyilao|2,2': {
@@ -2397,10 +2404,26 @@
     var objs=(data.objects||[]).filter(function(o){ return !o.show || o.show(); });
     if(objs.length){
       var oh=document.createElement('div'); oh.className='grp'; oh.textContent='交互物品'; $actions.appendChild(oh);
-      objs.forEach(function(o){
-        // v20260920h：objects 支持 actId —— 教学引导锚点（#actions .act[data-act=...]）能指到场景物件动作上
+      // v20260924z4：物件收纳 —— 一格物什太多（九畦+工地+井+NPC 物件）会撑高按钮区、把底下叙事窗挤没。
+      //   超过 6 件先只摆前 6 件，挂一个「更多（N）」按钮，点开才把余下的铺出来；展开仍受 #actions 限高滚动约束。
+      var OBJ_LIMIT=6;
+      var shown=objs.slice(0, OBJ_LIMIT), hidden=objs.slice(OBJ_LIMIT);
+      function mkObjBtn(o){
         var b=mkAct('obj', o.icon||'🔧', o.label, function(e){ toggleObjExpand(e, b, o, (o.acts||[])); }, null, o.actId);
-      });
+      }
+      shown.forEach(mkObjBtn);
+      if(hidden.length){
+        var more=document.createElement('button');
+        more.className='act more-act'; more.textContent='更多交互（'+hidden.length+'）';
+        more.onclick=function(){
+          var wrap=document.createElement('div'); wrap.className='more-wrap';
+          hidden.forEach(function(o){ mkObjBtn(o); });
+          more.parentNode.replaceChild(wrap, more);
+          // 展开后立刻滚动到可视区，别让新按钮掉到看不见的地方
+          if($actions.scrollTo) $actions.scrollTo({top:$actions.scrollHeight, behavior:'smooth'});
+        };
+        $actions.appendChild(more);
+      }
     }
   }
   // ===== NPC/物件：点击弹出右键式浮动菜单（贴合光标，无描述） =====

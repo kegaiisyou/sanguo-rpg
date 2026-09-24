@@ -146,7 +146,16 @@
     padding:18px 16px 6px;
     background:linear-gradient(180deg,rgba(255,253,248,.72),rgba(252,248,239,.5));
     border-top:1px solid rgba(176,131,47,.2);
+    /* v20260924z4：叙事窗保底高度 —— 物件再多（九畦+工地+井）也别把剧情文字挤得只剩一行 */
+    min-height:30dvh;
   }
+  /* v20260924z4：物件收纳按钮（更多交互）—— 与普通动作按钮同款手感 */
+  #actions .more-act{
+    grid-column:1/-1;text-align:center;letter-spacing:2px;font-size:13px;
+    color:var(--ink-soft);border:1px dashed rgba(176,131,47,.45);border-radius:9px;
+    padding:7px 0;background:rgba(176,131,47,.06);font-family:"STKaiti","KaiTi",serif;
+  }
+  #actions .more-wrap{display:contents;}
   #scene::-webkit-scrollbar{width:0;}
   .narr{margin:0 0 12px;line-height:1.85;font-size:15.5px;
     font-family:"STKaiti","KaiTi","Songti SC",serif;
