@@ -238,7 +238,7 @@
       else {
         var sel=(storageSel && storageSel.src==='store' && storageSel.defId===itemKey(it));
         var cnt=(it.count>1)?'<span style="position:absolute;right:2px;bottom:1px;font-size:10px;font-weight:700;color:#6b4a24;">'+it.count+'</span>':'';
-        cells+='<div data-st-sel="store:'+i+'" style="'+cbase+'background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(sel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(sel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';" title="'+it.name+'">'+itemIconHTML(it,36)+cnt+'</div>';
+        cells+='<div data-st-sel="store:'+i+'" style="'+cbase+'background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(sel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(sel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';" title="'+it.name+'">'+itemIconHTML(it,38)+cnt+'</div>';
       }
     }
     var packHtml='';

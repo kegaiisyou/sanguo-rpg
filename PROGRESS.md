@@ -1,7 +1,7 @@
-## §9.88 v20260924z11（美术批：立绘底图/图标48无拉伸/仓库显眼/场景按钮紧凑）
-- ①装备栏立绘：弃 SVG 线条人形 → AI 生成武将全身立绘（水墨工笔、米黄宣纸底，A 握拳站姿主用/B 叉腰站姿备用）压 webp 16KB，装备栏左侧以画像底图呈现（object-fit:cover 顶部对齐，头在头槽位置），装备槽叠在上层。
-- ②物品图标解决拉伸与过小：根因是雪碧图格内留白 + 缩小显示。改法：从 items.webp 按内容边界裁出 15 张 → assets/icons/items48/（48px 内容充满、无拉伸），itemIconHTML 优先 <img item-pic48>，缺文件回退雪碧图。
-- ③仓库显眼：storage.js 仓库格子 46→58px、物品图标 12→36（渲染 42px），行囊侧按钮图标 12→30（36px）。
-- ④场景交互按钮紧凑：.act padding 9→7、字号 13.5→12.5、min-width 96→74，图标 30px、名字单行省略——留白收窄不占满。
-- 实测：行囊立绘 equip_art.webp、item-pic48 两张 48px、无 JS 报错。
-- 改动：pack.js/engine.js/storage.js/game.css/index.html/constants.js，新增 assets/equip/*.webp、assets/icons/items48/*.png（15），版本 20260924z11。
+## §9.89 v20260924z12（美术批·截图实测校准：装备架背景/图标比例/槽位占满/dock风按钮）
+- 截图实测（560×1000 手机视口 2x）逐项校准：
+- ①装备栏：弃武将立绘（用户嫌大且不好看）→ AI 生成「兵器架」装饰背景（webp 5KB），半透明 opacity .42 + 底部米黄渐变，槽位文字加浅色描边保证清晰；装备槽占满适配——min-height 22→28、槽宽 56→60/62、行距拉开（hat/trinket/cloth/weapon/belt/shoe/bagflow 重新排布）、字号 11.5→12.5。
+- ②物品图标比例统一（圆形徽章 vs 方形格子冲突）：行囊格子 54px 配图标 42px（78% 居中不碰边）；仓库格子 58px 配图标 44px；战斗战利品列表图标 22→36px；货郎行囊侧 36px。
+- ③交互按钮 dock 融入风：.act 去边框（border:none）、图标 34px+阴影、名字小字在下方、hover 浅金圆角、按压缩放——不再是"按钮套框"感，与 dock 视觉统一。
+- 实测截图确认：装备架背景半透明可见、7 槽位文字清晰、物品格图标居中无溢出、场景按钮无边框框感、仓库格子 58px 行囊侧图标 44px 正常。
+- 改动：pack.js/storage.js/combat.js/game.css/index.html/constants.js，新增 assets/equip/equip_bg_a.webp（兵器架）/equip_bg_b.webp（甲胄架备用），版本 20260924z12。

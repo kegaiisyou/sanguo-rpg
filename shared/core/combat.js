@@ -1264,7 +1264,7 @@
   }
   function lootInfoHTML(it){
     if(!it) return '';
-    var h='<div class="li-name">'+itemIconHTML(it,16)+' '+it.name+'</div>';
+    var h='<div class="li-name">'+itemIconHTML(it,30)+' '+it.name+'</div>';
     h+='<div class="li-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+it.qualityName):'')+'</div>';
     var lines=[];
     if(it.atk) lines.push('攻 +'+it.atk);
