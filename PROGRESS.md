@@ -1,3 +1,10 @@
+## §9.78 v20260924z（任务链修复：周听涛/阿禾/仓库/木人计数）
+- 周听涛「寻吃食·破命数」（zt_food_give）：onGive 条件去掉对 flags.task.zt_accepted 的依赖——只要在天字一号牢房把干粮递到周听涛手上即结清。此前若对话未点〔应下〕（zt_accepted 未置位），提交干粮毫无反应，玩家误以为 bug。实测通过（不设 zt_accepted：crypt=true/zt_done=true/干粮扣除/无报错）。
+- 阿禾「寻木材/寻石料」（ahe_wood/ahe_stone）：〔应下〕分支补 acceptQuest——此前只置 started flag 未登记任务日志，任务栏看不到。与周听涛同机制，运行成立。
+- 苦役营仓库初始物资：新档加 野菜×40 + 菜籽×20；老档兼容——ensureStorage 检测已有仓库缺这两样则补齐（营中储备口粮/留种，伙房收菜差役可用）。
+- 木人试艺（dummy_train）硬 bug：全仓无任何地方递增 flags.task.dummy_cnt，need「戳倒木人 3 回」永远满足不了、任务栏卡死。train_dummy 动作补 addFlagNum 计数（戳一回 +1）。
+- 数值评估（未改，供确认）：木人=低难度（戳3下）；淘铜铸镐=中难度（需先锻精致石镐：石料5+木料3，矿洞三层凿4铜矿），前置门槛合理、无死循环（百炼钢镐已由配方 forg_pick5 解决，矿洞7-8层碑文拓百炼钢简）。
+- 改动：shared/story/triggers.js、shared/core/storage.js、shared/core/engine.js（dummy_cnt）、版本号 20260924z（constants.js + index.html 缓存号）。
 # 乱世烽火 · 进度 / 设计对照文档
 
 > 本文档跟踪「设计基线 `GAME_DESIGN.md`」与「实际落地代码」的对照关系，用于收尾盘点与后续开发接棒。

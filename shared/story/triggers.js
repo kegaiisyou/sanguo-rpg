@@ -182,7 +182,9 @@
   //   此处只管认下这桩吃食、授密道线、结清任务。不写 consume（会二次扣除）。
   TRIGGERS.push({
     id: 'zt_food_give', hook: 'onGive', npc: 'zhoutingtao', room: 'camp_tz1', item: 'fan', once: false,
-    cond: { flags: { 'flags.task.zt_accepted': true }, notFlag: 'flags.route.crypt' },
+    // v20260924z：不再依赖 zt_accepted —— 玩家只要在天字一号牢房把干粮递到周听涛手上即结清。
+    //   此前若对话未点〔应下〕（zt_accepted 未置位），提交干粮无任何反应，玩家误以为 bug。
+    cond: { notFlag: 'flags.route.crypt' },
     steps: [
       { t: 'log', cls: 'npc', text: '你将从伙房换来的干粮递过去。周听涛眼睛一亮，也不客气，三两口扒了半张饼，这才正色道：「好，这桩吃食老夫领了——既食人之禄，便替你掐一掐这乱如麻的命数。」' },
       { t: 'setFlag', path: 'flags.route.crypt', value: true },
@@ -782,6 +784,8 @@
         prompt: '阿禾把空碗往怀里一揣，压低声：「……劳烦你再替我寻些木材来。我想在墙角刨个窝——夜里风大，妹子若来寻我，也有个遮风处。」',
         asks: [
           { label: '〔应下〕我去找木材', set: { 'flags.task.ahe_wood_started': true },
+            // v20260924z：补 acceptQuest —— 此前应下只置 flag 未登记任务日志，玩家在任务栏看不到「寻木材」
+            then: [ { t: 'acceptQuest', id: 'ahe_wood' } ],
             say: '阿禾点点头，从破袄里摸出半截炭条，在墙角划了个浅浅的圈：「就这儿。木材不拘多少，凑一把就成。」' }
         ] }
     ]
@@ -806,6 +810,8 @@
         prompt: '阿禾搓了搓手：「木材有了……还差样硬物。你若能弄来石头，我凿把镐——墙根是夯土的，有镐才刨得动。」',
         asks: [
           { label: '〔应下〕我去寻石料', set: { 'flags.task.ahe_stone_started': true },
+            // v20260924z：补 acceptQuest（与 ahe_wood 同源问题）
+            then: [ { t: 'acceptQuest', id: 'ahe_stone' } ],
             say: '阿禾眼睛亮了亮：「矿坑、担石场都有碎石。劳你再跑一趟。」' }
         ] }
     ]

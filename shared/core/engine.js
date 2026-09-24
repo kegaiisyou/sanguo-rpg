@@ -3037,6 +3037,9 @@
         break;
       case 'train_dummy':
         if(!exert('戳木人桩')) return;
+        // v20260924z：木人任务计数 —— 此前全仓无任何地方递增 dummy_cnt，「木人试艺」差役
+        //   的 need（戳倒木人 3 回）永远满足不了，任务栏卡死。戳一回 +1，练成教学场即计一趟。
+        addFlagNum('flags.task.dummy_cnt', 1);
         if(state.flags.route) state.flags.route.dummy_done=true; save(state);
         startCombat('camp_dummy', { tutorial: true });   // 木人桩即战斗教学场：首次为引导演练，练成后转为普通对练
         break;

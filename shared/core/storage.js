@@ -40,6 +40,8 @@
           {id:'jinchuang', count:20},// 金疮药
           {id:'yaofen', count:30},   // 草药粉
           {id:'caoyao', count:50},   // 草药
+          {id:'yecai', count:40},    // 野菜（v20260924z：营中储备口粮，伙房鲁大收菜差役可用）
+          {id:'caizi', count:20},    // 菜籽（v20260924z：留种，农田开垦后可播种）
           {id:'tangyao', count:8},   // 汤药
           {id:'xiang', count:20},    // 线香
           {id:'sleepmat', count:15}, // 草席
@@ -48,6 +50,13 @@
         campItems.forEach(function(c){
           var it=LF.ITEMS.makeItem(c.id, c.count);
           if(it) st.items.push(it);
+        });
+      } else if(cid==='kuyilao'){
+        // v20260924z：老档兼容 —— 仓库已有存档时，若缺野菜/菜籽则补齐（营中储备口粮与留种）
+        var have={}; st.items.forEach(function(c){ if(c && itemKey(c)) have[itemKey(c)]=true; });
+        var extra=[ {id:'yecai', count:40}, {id:'caizi', count:20} ];
+        extra.forEach(function(c){
+          if(!have[c.id]){ var it=LF.ITEMS.makeItem(c.id, c.count); if(it) st.items.push(it); }
         });
       }
     }
