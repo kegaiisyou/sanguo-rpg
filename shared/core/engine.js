@@ -1968,7 +1968,9 @@
     // v20260915g：农田的畦是「开一畦多一畦」，数目随进度变；且定义常量在文件更下方，
     //   故此处运行时再生成（比在表里写死数组干净，也不受声明顺序所累）。
     // v20260920e：农田格另起一口「水井」——打水装袋 / 掬饮 / 浇灌，与畦同格摆（合并，不互顶）。
-    if(d && d.farmObjects) return { objects: farmObjects().concat([wellObject()]) };
+    // v20260924z5：农田格曾把 doors（柴林入口）一并吞掉——此处只拼 objects 就 return 了。
+    //   柴林门定义在 CELL_INTERIORS 里，必须原样带出，否则农庄格看不到伐木场入口。
+    if(d && d.farmObjects) return { doors: d.doors || [], objects: farmObjects().concat([wellObject()]) };
     return d;
   }
   // ═══ 农田水井（v20260920e）：夜半添水 / 浇畦的水源。井水取之不竭，只费工夫，不凭空。 ═══

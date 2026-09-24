@@ -1,7 +1,7 @@
-## §9.81 v20260924z4（柴林入口补挂 + 交互物品收纳防遮挡）
-- 柴林（伐木场）入口修正：上一版入口只加在薄田房间（旧营区孤岛路），玩家种地实际在农田格（kuyilao 0,0）看不到。
-  现于农田格 cellInteriors 加常开子房门「柴林（伐木场）」（与务农同为自由劳作，不设任务门槛）。
-- 交互物品收纳（防物件挤没叙事窗）：城格 objects 超过 6 件先摆前 6 件 + 「更多交互（N）」按钮，
-  点击展开余下（展开仍受 #actions 限高滚动约束，展开后自动滚到可视区）；#scene 叙事窗加 min-height:30dvh 保底高度。
-- 实测：9 畦+3 升级+水井=13 件 → 折叠 7 项（前 6+更多）→ 展开 13 项全显、更多按钮消失、无报错。
-- 改动：shared/core/engine.js（农田格柴林门 + objects 收纳）、shared/css/game.css（#scene 保底 + .more-act 样式）、版本号 20260924z4。
+## §9.82 v20260924z5（农田升级物件暂收 + 柴林门渲染修复）
+- 农田三处升级物件（水渠工地/藤条堆/针线笸箩）按用户要求全部暂时移除——农庄格太密太乱。
+  升级逻辑（farmUpgrade/up.canal/up.basket/up.seedkeep）原样保留，将来做进 NPC 或别处再挂回。
+- 顺带修一个真 bug：cellInteriors 对农田格只拼 objects 就 return，把 CELL_INTERIORS 里定义的柴林门（doors）吞掉了，
+  导致农庄格看不到伐木场入口。现改为 `{ doors: d.doors||[], objects: ... }` 原样带出。
+- 实测：农庄格 = 农庄组（柴林门）+ 交互物品组（畦+水井，无升级物件）；无报错。
+- 改动：shared/core/farm.js（移除升级物件）、shared/core/engine.js（cellInteriors 带出 doors）、版本号 20260924z5。
