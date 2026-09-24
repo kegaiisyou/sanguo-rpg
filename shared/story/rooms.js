@@ -11,92 +11,6 @@
   if(!global.LF) global.LF = {};
   var ROOMS = {
   // ═══ 锚点 · 苦役营（保留手写） ═══
-    camp_yard: {
-      id: 'camp_yard',
-      name: '苦役营·劳役场',
-      desc: [
-        '劳役场黄土夯实，烈日下囚徒们扛石运土，皮鞭声与喘息声交织。远处哨塔上戍卒眯眼张望。',
-        '场边木栅低矮，几名囚徒趁监工转身的间隙，低声交换着眼神——这里的人都想出去。'
-      ],
-      exits: {
-        '西': 'camp_cell',
-        '北': 'camp_wall',
-        '东': 'camp_farm',
-        '南': 'camp_gate'
-      },
-      find: '劳役场黄土夯实，囚徒扛石运土。〔西〕囚室（西）；〔北〕塌墙根（北）；〔东〕农田（东）；〔南〕牢门岗哨（南）。',
-      npcs: [
-        'zhoutingtao',
-        'qin_jiuxiao',
-        'laotou'
-      ],
-      items: [],
-      actions: [
-        {
-          id: 'labor_yard',
-          label: '乱石堆·装担',
-          tip: '在场院乱石堆装起一担，送去仓库卸料台卸下——卸完记一工。'
-        },
-        {
-          id: 'survey_yard',
-          label: '环顾四周',
-          tip: '勘察劳役场，看清几处去路。'
-        }
-      ]
-    },
-    camp_cell: {
-      id: 'camp_cell',
-      name: '苦役营·囚室',
-      desc: [
-        '囚室低矮潮湿，草荐发硬，墙角水渍蜿蜒。几名囚徒横七竖八地躺着，鼾声与镣铐声交织。',
-        '角落里缩着个哑老囚——据说是替周听涛守着什么暗道口的默叔。'
-      ],
-      exits: {
-        '东': 'camp_yard'
-      },
-      find: '囚室潮湿逼仄，草荐发硬；角落哑老囚默坐，指尖似在无意义地划动。〔东〕回劳役场（东）。',
-      npcs: [
-        'moshu',
-        'qian_sh'
-      ],
-      items: [],
-      actions: []
-    },
-    camp_wall: {
-      id: 'camp_wall',
-      name: '苦役营·塌墙根',
-      desc: [
-        '营墙在这段塌了半截，乱砖委地，藤蔓爬满。风从砖缝里钻过，带着外面草木的腥气。',
-        '墙根下三两囚徒各自盘算：有人搓绳，有人探渠——都是琢磨着怎么出去的。'
-      ],
-      exits: {
-        '东': 'camp_yard',
-        '北': 'lindao'
-      },
-      find: '塌墙根乱砖委地，藤蔓爬墙；墙根下囚徒各谋出路。〔东〕回劳役场（东）；〔北〕钻出墙外·白檀军屯（北）。',
-      npcs: [
-        'su_niang',
-        'fu_sheng'
-      ],
-      items: [],
-      actions: [
-        {
-          id: 'wall_choose',
-          label: '勘察塌墙根·决断出营',
-          tip: '你既探得密道，决断从何处出营。'
-        }
-      ]
-    },
-
-  // ═══ 锚点 · 苦役营·中军帐正帐（中军帐格 (1,1) 的子房，走面板 doors → CELL_INTERIORS，v20260914d）═══
-  //   进了帐才看得见舆图真迹与木牍箱。门槛在 planningEscape()——起了出营的心思，才该摸进主将的帐里。
-  //   注意：子房回格的出口串一律「冒号」分隔（__cell__:城:x:y），写成逗号会 NaN 崩 renderRoom。
-    camp_zhongjun: { id: 'camp_zhongjun', name: '中军帐·正帐',
-      desc: ['帐内幽暗，牛皮舆图摊满一案，令旗斜插架上，铜符压在牒上。主将不在，只有一个书吏伏案打盹。',
-             '帐角一只木箱半开，露出成叠的空白木牍与一方印泥。'],
-      exits: { '南': '__cell__:kuyilao:1:1' },
-      find: '中军帐·正帐：舆图、令旗、印信俱在，书吏伏案而眠。〔南〕出帐回场院。',
-      npcs: [], items: [], actions: [] },
 
   // ═══ 锚点 · 苦役营·六间子牢房（囚室格 (1,0) 即城格，六间子房走面板 doors → CELL_INTERIORS，v20260910q）═══
     camp_tz1: { id: 'camp_tz1', name: '天字一号牢房',
@@ -132,61 +46,6 @@
       find: '地字三号牢房：老囚手指翻飞，木条草茎在他手里自己就长成了器物。〔南〕回牢房。',
       npcs: [ 'xi_weng' ], items: [], actions: [] },
   // ═══ 锚点 · 苦役营（其余 8 间 · v20260902a 补全） ═══
-    camp_farm: {
-      id: 'camp_farm',
-      name: '苦役营·农田',
-      desc: [
-        '营墙外的薄田被囚徒们翻得稀烂，几垄蔫苗在日头下打卷。老驿丞蹲在田埂上吧嗒着旱烟，几个苦力正弯腰锄地。',
-        '憨牛扛着耙从你身边经过，憨憨一笑；角落里石头闷头刨土，喜子哼着小曲，一派苦中作乐的光景。'
-      ],
-      exits: {
-        '西': 'camp_yard',
-        '南': 'camp_kitchen',
-        '北': 'camp_kennel',
-        '东': 'camp_woodland'   // v20260924z3：薄田东首添一片柴林（伐木场），木料有了营内稳定的出处
-      },
-      find: '薄田稀烂，囚徒锄地；老驿丞蹲田埂。〔西〕回劳役场（西）；〔南〕伙房（南）；〔北〕犬舍（北）；〔东〕柴林（东）。',
-      npcs: [ 'sun_lao', 'niu_tie', 'liu_shi', 'wang_xi', 'zheng_gui' ],
-      items: [],
-      actions: []
-    },
-    camp_kitchen: {
-      id: 'camp_kitchen',
-      name: '苦役营·伙房',
-      desc: [
-        '伙房烟火气冲天，大灶上煮着能照见人影的稀粥。虎背熊腰的鲁大勺翻动铁锅，热气熏得他满脸油光。',
-        '墙角堆着几麻袋杂粮与药材，灶台下还塞着些瓶瓶罐罐——这便是全营的伙食与汤药出处。'
-      ],
-      exits: {
-        '北': 'camp_farm',
-        '东': 'camp_store'
-      },
-      find: '伙房煮粥，鲁大勺掌勺；墙角杂粮药材。〔北〕回农田（北）；〔东〕粮囤（东）。',
-      npcs: [ 'lu_da', 'lin_niang' ],
-      items: [],
-      actions: [
-        {
-          id: 'survey_kitchen',
-          label: '打量伙房',
-          tip: '看看灶台下的药材与粥锅，或能寻出什么门道。'
-        }
-      ]
-    },
-    camp_store: {
-      id: 'camp_store',
-      name: '苦役营·粮囤',
-      desc: [
-        '粮囤里麻袋垒得齐整，仓官黄主簿正拨着算盘，眼珠却不住往门外溜。逃荒来的旺儿缩在墙角，饿得直咽口水。',
-        '囤后有一道半掩的小门，似是运粮出入的便道——若打点得当，或能从此溜出。'
-      ],
-      exits: {
-        '西': 'camp_kitchen'
-      },
-      find: '粮囤麻袋齐整，黄主簿拨算盘；旺儿缩墙角。〔西〕回伙房（西）。囤后小门半掩。',
-      npcs: [ 'huang_er', 'li_wang' ],
-      items: [],
-      actions: []
-    },
     camp_kennel: {
       id: 'camp_kennel',
       name: '苦役营·犬舍',
@@ -207,109 +66,6 @@
           id: 'spar_dog',
           label: '逗弄野犬',
           tip: '犬舍那几条恶犬性子烈——跟它们练练手，专试「撤退」。'
-        }
-      ]
-    },
-    camp_woodland: {
-      id: 'camp_woodland',
-      name: '苦役营·柴林',
-      desc: [
-        '营东墙根一片老林子，碗口粗的榆树、槐树挤挤挨挨，枝桠间漏下碎金似的日头。林边搁着一架磨得发亮的斧架。',
-        '柴林虽小，树却实诚——有斧伐木得实材，无斧折枝也能凑合。每日采伐有定数，林子要养。'
-      ],
-      exits: {
-        '南': 'camp_farm'
-      },
-      find: '柴林葱郁，老树环伺。〔南〕回薄田。老树可伐（有斧得材多，无斧折枝凑合），每日三回为限。',
-      npcs: [],
-      items: [],
-      actions: []
-    },
-    camp_warehouse: {
-      id: 'camp_warehouse',
-      name: '苦役营·仓库',
-      desc: [
-        '仓库里堆着镐锄、绳索与竹木，刀笔吏陈简正借着天窗光校着什么，管账的吴算盘噼啪打着算盘。',
-        '此处竹木随手可取，正是伪造路引、搓绳攀墙的好去处；墙角还倚着几把闲着的镐锄。'
-      ],
-      exits: {
-        '西': 'camp_kennel',
-        '北': 'camp_mine'
-      },
-      find: '仓库堆镐锄绳索竹木；陈简校字，吴算盘打算盘；仓吏执册清点料数。〔西〕回犬舍（西）；〔北〕矿坑（北）。此处竹木可取。',
-      npcs: [ 'chen_jian', 'wu_suan', 'zheng_gang', 'storeman_kuyilao' ],
-      items: [],
-      actions: [
-        {
-          id: 'survey_warehouse',
-          label: '翻找仓库',
-          tip: '麻袋堆、木箱、货架三处可翻——各管各的货，翻过即空、隔天再来。'
-        }
-      ]
-    },
-    camp_mine: {
-      id: 'camp_mine',
-      name: '苦役营·矿坑',
-      desc: [
-        '矿坑幽深，煤尘呛人。矿奴石四拖着残腿在掌子面敲打，老囚徒苟三蹲在暗处，十指灵巧地拨弄着什么。',
-        '矿道向营墙根延伸，石四说底下连着一道暗渠——若顺渠摸黑，或能潜出墙外。'
-      ],
-      exits: {
-        '南': 'camp_warehouse',
-        '西': 'camp_training'
-      },
-      find: '矿坑幽深煤尘呛；石四敲矿，苟三蹲暗处。〔南〕回仓库（南）；〔西〕练武场（西）。矿道连暗渠。',
-      npcs: [ 'shi_si', 'gou_san' ],
-      items: [],
-      actions: [
-        {
-          id: 'survey_mine',
-          label: '勘察矿道',
-          tip: '矿道向墙根延伸，似有暗渠可潜出。'
-        }
-      ]
-    },
-    camp_training: {
-      id: 'camp_training',
-      name: '苦役营·练武场',
-      desc: [
-        '练武场列着木人桩，教头韩铁敞着衣襟，捶了捶沙袋般坚硬的胸膛。',
-        '「拳脚够硬，这营墙也拦不住你！」他斜眼打量你，「想出去？先在这桩上练出真章。」'
-      ],
-      exits: {
-        '东': 'camp_mine',
-        '北': 'camp_gate'
-      },
-      find: '练武场列木人桩，韩教头捶胸。〔东〕回矿坑（东）；〔北〕岗哨（北）。「拳脚硬亦可杀出。」',
-      npcs: [ 'han_tie' ],
-      items: [],
-      actions: [
-        {
-          id: 'train_dummy',
-          label: '戳木人桩',
-          tip: '在木人桩上练攻击/防御/用道具/撤退，熟悉战斗操作（不掉血）。'
-        }
-      ]
-    },
-    camp_gate: {
-      id: 'camp_gate',
-      name: '苦役营·牢门岗哨',
-      desc: [
-        '牢门岗哨是全营咽喉，都伯赵虎负手而立，副手钱彪盯梢最紧，伍长孙猛带班巡弋。',
-        '此处是营墙唯一的正门——强突、混出、收买、暴动，皆在此处见真章。'
-      ],
-      exits: {
-        '南': 'camp_yard',
-        '北': 'camp_training'
-      },
-      find: '岗哨咽喉，赵虎负手，钱彪盯梢，孙猛巡弋。〔南〕回劳役场（南）；〔北〕练武场（北）。正门在此。',
-      npcs: [ 'zhao_hu', 'qian_biao', 'sun_meng', 'li_heng', 'zhou_ba', 'wu_yong' ],
-      items: [],
-      actions: [
-        {
-          id: 'gate_choose',
-          label: '决断出营·岗哨',
-          tip: '你已探得数条门道，在此择一路强出营墙。'
         }
       ]
     },
@@ -421,16 +177,6 @@
           {label:'交谈', icon:'💬', fn:function(){ talk('lindao_trader'); }}
         ]}
       ],
-      // ═══ 苦役营·柴林（伐木场，v20260924z3）：老树=伐木取材，斧架=借斧 ═══
-      camp_woodland: [
-        { type:'feature', key:'old_tree', icon:'🌳', name:'老树', desc:'碗口粗的榆树，树皮皴裂，枝干虬劲——砍了它，营里柴薪就有着落。', actions:[
-          { label:'挥斧伐木（半个时辰）', icon:'🪓', fn:function(){ window.handleAction('wood_cut'); } },
-          { label:'折枝凑合（半个时辰）', icon:'🌿', fn:function(){ window.handleAction('wood_cut_bare'); } }
-        ]},
-        { type:'feature', key:'axe_rack', icon:'🪓', name:'斧架', desc:'一架磨得发亮的旧斧架，插着两把豁口的锈斧——柴把头的家什，借了要还。', actions:[
-          { label:'借一把锈斧', icon:'🪓', fn:function(){ window.handleAction('borrow_axe'); } }
-        ]}
-      ],
       // ═══ 苦役营·六间子牢房：各置草荐（可打盹，复用不耗）═══
       camp_tz1: [ { type:'feature', key:'caojian_tz1', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
         {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
@@ -464,28 +210,6 @@
       camp_dz3: [ { type:'feature', key:'caojian_dz3', icon:'🌾', name:'草荐', desc:'栅内草荐发硬，铺地可卧', actions:[
         {label:'打盹', icon:'🛏️', fn:function(){ window.openRestModal('sleepmat'); }}
       ]} ],
-      // ═══ 苦役营·中军帐正帐：舆图真迹 / 木牍箱（v20260914d）═══
-      // 注意：rooms.js 的 IIFE 闭包里只能调「已挂到 window」的引擎函数，务必写 window. 前缀
-      //   （v20260910t 的踩坑：草荐的「打盹」漏了前缀，点了直接 ReferenceError）
-      camp_zhongjun: [ { type:'feature', key:'zj_yutu', icon:'🗺️', name:'牛皮舆图', desc:'摊满一案的营盘舆图，边角压着铜符', actions:[
-        {label:'默记路径', icon:'🗺️', fn:function(){ window.log('你俯身细看，把营墙的走向、岗哨的位置、墙根那道排水的暗渠一一记在心里——日后要走夜路，这些便是你的灯。','sys'); }}
-      ]},
-      { type:'feature', key:'zj_mudu', icon:'🪵', name:'木牍箱', desc:'半开的木箱，里头是空白木牍与一方印泥', actions:[
-        {label:'取一牍', icon:'🪵', fn:function(){ var S=window.getState(); if(!S) return;
-          if(window.packFind('blank_pass')){ window.log('箱里木牍多的是，可揣两枚在身上，反是累赘。','sys'); return; }
-          window.packAdd({defId:'blank_pass', count:1});   // 定义见 shared/data/items.js
-          window.log('你抽了一枚空白木牍塞进怀里——陈简那双手，能把这枚木片变成一张路引。','good'); window.save(S); }}
-      ]} ],
-      camp_farm: [ { type:'feature', key:'farm_ridge', icon:'🌾', name:'田垄', desc:'被翻得稀烂的薄田，几垄蔫苗在日头下打卷', actions:[
-        {label:'借农具', icon:'🪓', fn:function(){ var S=getState(); if(!S) return; if(S.flags&&S.flags.onb&&S.flags.onb.farmTool){ log('你肩上还扛着借来的锄头呢。','sys'); return; } S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; S.flags.onb.farmTool=true; packAdd('chutu',1); log('你从田埂边拾了把木柄锄头，沉甸甸压在肩头。〔务农需先借农具〕','good'); save(S); }},
-        {label:'下地务农', icon:'🧺', fn:function(){ var S=getState(); if(!S) return; if(!packFind('chutu')){ log('没家伙怎么下地？先「借农具」去。','sys'); return; } if(!exert('务农')) return; S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; var n=(S.flags.onb.farmCnt||0)+1; S.flags.onb.farmCnt=n; log('你抡起锄头翻了一垄地，汗珠子砸进土里。〔工分 '+n+'/3：满三工挣一枚劳字木片〕','sys'); if(n>=3 && !S.flags.onb.farmDone){ S.flags.onb.farmDone=true; if(packAdd('lao_pai',1)) log('〔监工丢来一片木符〕你挣得「劳字木片」一枚——工分换的，往营西伙房换饭；与中军帐牌上那些差役是两码事。','good'); else log('你手里腾不出地方——行囊塞得满满当当，木片没处搁。','sys'); } save(S); }}
-      ]} ],
-      camp_kitchen: [ { type:'feature', key:'kitchen_stove', icon:'🍲', name:'灶台', desc:'大灶上煮着能照见人影的稀粥，热气熏人', actions:[
-        {label:'以劳字木片换饭', icon:'🪵', fn:function(){ if(!packFind('lao_pai')){ log('你翻了翻行囊，没有「劳字木片」——去中军场院「担石劳作」，干满三工才发一枚。','sys'); return; } packConsume('lao_pai',1); packAdd('fan',1); log('你将劳字木片递给伙夫，换得一枚粗粝饭团。〔干粮入包：可自啃充饥，也可交予周听涛——点他，选「给予」递到手上，空手说话不算数。〕','good'); }}
-      ]} ],
-      camp_store: [ { type:'feature', key:'store_stones', icon:'🪨', name:'石料堆', desc:'墙角垒着待运的青石，沉甸甸压手', actions:[
-        {label:'搬石料', icon:'💪', fn:function(){ var S=getState(); if(!S) return; if(!exert('搬石')) return; S.flags=S.flags||{}; S.flags.onb=S.flags.onb||{}; var n=(S.flags.onb.storeCnt||0)+1; S.flags.onb.storeCnt=n; log('你扛起一块青石往仓里送，肩头火辣。〔工分 '+n+'/5：满五工挣一枚劳字木片〕','sys'); if(n>=5 && !S.flags.onb.storeDone){ S.flags.onb.storeDone=true; if(packAdd('lao_pai',1)) log('〔仓吏抛来一片木符〕你帮着运足五石，挣得「劳字木片」一枚——工分换的，往营西伙房换饭；与中军帐牌上那些差役是两码事。','good'); else log('你手里腾不出地方——行囊塞得满满当当，木片没处搁。','sys'); } save(S); }}
-      ]} ]
     };
   }
 
@@ -512,13 +236,6 @@
   global.LF.NPC_ROUTINES = {
     // —— 苦役营·牢房区（camp_tz*/dz* 是真实可进的子牢房）——
     // 囚徒：白日下地、午后进矿 → 饭点涌伙房 → 入夜回牢（与 camp_opening「戌时前回牢销名」对得上）
-    camp_prisoner: { 3:'camp_farm', 4:'camp_farm', 5:'camp_mine', 6:'camp_kitchen', 7:'camp_kitchen', 8:'camp_kitchen',
-                     9:'camp_mine', 10:'camp_tz3', 11:'camp_tz3', 0:'camp_tz3', 1:'camp_tz3', 2:'camp_tz3', _home:'camp_tz3' },
-    // 伙夫：掌灶一日三顿，夜里守粮囤
-    camp_cook:     { 3:'camp_kitchen', 4:'camp_kitchen', 5:'camp_kitchen', 6:'camp_kitchen', 7:'camp_kitchen', 8:'camp_kitchen',
-                     9:'camp_store', 10:'camp_store', 11:'camp_store', 0:'camp_store', 1:'camp_store', 2:'camp_store', _home:'camp_kitchen' },
-    // —— 跨城作息推广（v20260911h · P3）：作息表不止服务苦役营，天下各城的钟点同样在走 ——
-    // 游侠刘磐四方游走：白日渔阳（商旅辐辏、便于访友）→ 午后蓟城（州治，好手多）→ 入夜宿涿县（桃园故里、投店便宜）
     liupan:        { 3:'yuyang', 4:'yuyang', 5:'yuyang', 6:'jicheng', 7:'jicheng', 8:'jicheng', 9:'zhuo',
                      10:'zhuo', 11:'zhuo', 0:'zhuo', 1:'zhuo', 2:'zhuo', _home:'yuyang' },
     // 打更人·老麻（本批新增的「作息型」角色，只靠本表存在）：白日替人跑腿（涿县），

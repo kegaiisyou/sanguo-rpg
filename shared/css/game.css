@@ -9,6 +9,14 @@
   .edict-acts .btn{display:flex;flex-direction:column;align-items:center;min-width:96px;padding:10px 8px;line-height:1.5;}
   .edict-acts .btn .sub{font-size:11px;color:rgba(40,32,24,.55);}
   .edict-foot{margin-top:12px;text-align:center;font-size:12px;color:rgba(40,32,24,.5);}
+  .edict-cmds{margin:6px 0 10px;border-top:1px dashed rgba(120,80,40,.25);padding-top:8px;}
+  .edict-cmd-h{font-size:12px;color:#6b3b2e;text-align:center;margin-bottom:6px;}
+  .edict-cmd{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap;}
+  .edict-cmd .edict-do{display:flex;flex-direction:column;align-items:center;min-width:104px;padding:8px 6px;line-height:1.4;}
+  .edict-cmd .edict-do .sub{font-size:10px;color:rgba(40,32,24,.55);}
+  .edict-del{flex:1;min-width:120px;padding:5px;border:1px solid rgba(120,80,40,.3);border-radius:6px;background:#fdf6e8;color:#3a2c1c;font-size:12px;}
+  .edict-pred{flex-basis:100%;font-size:11px;color:#5a7a4a;text-align:center;}
+
   .faction-map{max-width:520px;margin:0 auto;padding:6px 12px;}
   .fm-h{font-family:var(--serif,serif);font-size:20px;text-align:center;margin-bottom:10px;color:#6b3b2e;}
   .fm-row{border-bottom:1px solid rgba(40,32,24,.12);padding:8px 4px;}

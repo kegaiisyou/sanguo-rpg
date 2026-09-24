@@ -45,6 +45,7 @@
       '<span class="dot">·</span>'+
       // v20260924u：天气图标换 AI 小图（未映射回退 emoji）
       '<span class="st-wx" title="'+w.n+'">'+(window.UI_Icons?UI_Icons.icon(w.ic,w.n):(w.ic+w.n))+'</span>'+
+      '<span class="st-res" style="margin:0 8px;opacity:.92;white-space:nowrap" title="府库战备 · 农庄产粮 / 矿场产铁 / 工坊产械 / 商号产银">🌾'+(S().res?S().res.grain||0:0)+' · ⛏️'+(S().res?S().res.iron||0:0)+' · 🔨'+(S().res?S().res.kit||0:0)+' · 💰'+(S().gold||0)+'</span>'+
       // 回顾入口（v20260914a）：贴在状态栏最右侧，随手可及。点它为「回顾」，点状态栏其余处仍是「时辰钟表」。
       '<span class="st-log" id="st-log" role="button" title="回顾：你听过、读过的每一句">回顾</span>';
     var qtr=document.getElementById('quest-track');

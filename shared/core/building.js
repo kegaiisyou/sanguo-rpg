@@ -544,7 +544,7 @@
       S().flags.cityPos={cid:back.cid,x:back.x,y:back.y};
       renderRoom(back.cid);
     } else {
-      renderRoom((back && back.room) || 'camp_yard');
+      renderRoom((back && back.room) || 'kuyilao');
     }
   }
   function hasCount(defId,n){ var c=packFind(defId); return c && (c.count||1)>=n; }

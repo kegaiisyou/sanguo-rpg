@@ -15,7 +15,7 @@
 // 任何"被追击 / 护送 / 首次到访"剧情，只需增写一份数据即可复用同一引擎。
 //
 // 本稿切片：苦役营·密道线（单路线，其余 9 条路线待后续扩展）。
-// 出生点 = camp_yard（见 shared/index.js defaultSave）。
+// 出生点 = camp_tz1（见 shared/index.js defaultSave；苦役营现为 kuyilao 3×3 网格，camp_yard 旧房已删）。
 (function (global) {
   var LF = global.LF = global.LF || {};
   var TRIGGERS = [];
@@ -305,12 +305,6 @@
     ]
   });
 
-  // 3) 塌墙根·未逃脱前：封锁出口，只能退回劳役场（北门锁死，逼走密道抉择）
-  TRIGGERS.push({
-    id: 'wall_gate', hook: 'onEnter', room: 'camp_wall', once: false,
-    cond: { notFlag: 'flags.route.escaped_crypt' },
-    steps: [ { t: 'moveGate', fwd: 'camp_yard', hint: '塌墙根下空空荡荡，没有先生许可与默叔暗号，这道墙根你过不去。先回场上寻先生、再去囚室问默叔。' } ]
-  });
 
   // 4.5) 回到劳役场：解除塌墙根门禁
   // 修复：wall_gate 设的是全局 state.moveGate（fwd=camp_yard），离场后若不清，
@@ -862,9 +856,9 @@
   //   太平道于第4日夺营；玩家此前的积累（密道/军官/阿禾默叔牵绊）决定走哪条分支。
   //   本切片只做「裁决 + 占位」，各分支的电影化大段（崔九牺牲、狄云舟对决等）留待后续切片接入 flags.coup.branch。
   //   优先级（自上而下）：tunnel_early(密道先逃) > officer_letter(送信搬救兵) > moshu(默叔线) > minor_ahe > minor(兜底)
-  //   触发点沿用现状：第4日（player.day>=3）踏入中军场院(camp_yard) 且已出牢(cellOpen) 时裁决一次。
+  //   触发点沿用现状：第4日（player.day>=3）踏入网格中军场院(kuyilao 1,1) 且已出牢(cellOpen) 时裁决一次。
   TRIGGERS.push({
-    id: 'coup_resolver', hook: 'onEnter', room: 'camp_yard', once: false,
+    id: 'coup_resolver', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
     cond: { flags: { 'flags.onb.cellOpen': true }, player: { day: { min: 3 } }, notFlag: 'flags.coup.done' },
     steps: [
       { t: 'setFlag', path: 'flags.coup.done', value: true },
@@ -922,7 +916,7 @@
   //   触发条件：coup_resolver 在同一次踏入中军场院时已置 branch='moshu'；本触发器顺次接续（checkTriggers 顺序同步触发）。
   //   流程：牢头搜洞+石镐 → 崔九替死 → 默叔出手 → 岗哨狄云舟拦路(战斗) → 逃出（收尾在 engine.onCombatResult）。
   TRIGGERS.push({
-    id: 'coup_moshu_scene', hook: 'onEnter', room: 'camp_yard', once: false,
+    id: 'coup_moshu_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
     cond: { flags: { 'flags.coup.branch': 'moshu' }, notFlag: 'flags.coup.moshu_escaped' },
     steps: [
       { t: 'log', cls: 'warn', text: '卯时三刻，号角骤起——太平道的旗已插上粮仓。火光里，牢头领着两名官差踹进牢区；他鼻翼翕动，循着新翻的土腥，从墙角刨出阿禾那口洞，又从草堆里抄出那把石镐。' },
@@ -947,7 +941,7 @@
   //   触发条件：coup_resolver 在同一次踏入中军场院时已置 branch='officer_letter'；本触发器顺次接续。
   //   流程：韩铁托密令 → 北墙水沟缺口 → 太平道伏兵截杀(战斗) → 揣信出营（收尾在 engine.onCombatResult）。
   TRIGGERS.push({
-    id: 'coup_officer_letter_scene', hook: 'onEnter', room: 'camp_yard', once: false,
+    id: 'coup_officer_letter_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
     cond: { flags: { 'flags.coup.branch': 'officer_letter' }, notFlag: 'flags.coup.officer_letter_escaped' },
     steps: [
       { t: 'log', cls: 'warn', text: '火光里，韩铁一把揪住你，将一封蜡封密令塞进你掌心：「拿着——营要乱了，这是活路，也是韩某的脸面。」' },
