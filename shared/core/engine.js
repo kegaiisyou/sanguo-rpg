@@ -3415,7 +3415,19 @@
       // v20260924z18 新增 16 项装备（B 水墨批次：兵刃/衣甲/腰背包囊）
       zangbu_hat:'0 0', polan_stick:'0 0', yaobao:'0 0', hutou:'0 0', xiaonang:'0 0',
       shunang:'0 0', pibao:'0 0', caiyaobiluo:'0 0', shutong:'0 0', tiejian:'0 0',
-      shidao:'0 0', gumao:'0 0', mugong:'0 0', zhujia:'0 0', qiufu:'0 0', liaokao:'0 0'
+      shidao:'0 0', gumao:'0 0', mugong:'0 0', zhujia:'0 0', qiufu:'0 0', liaokao:'0 0',
+      // v20260924z19 补齐全部 51 项（素材/凭证/图谱/图纸/器具）
+      mutan:'0 0', maopi:'0 0', shepi:'0 0', shedan:'0 0', shengrou:'0 0', zhuan:'0 0', yan:'0 0',
+      xiang:'0 0', mo:'0 0', xiaoshuzhi:'0 0', jade:'0 0', tiema:'0 0', zhou:'0 0',
+      jianyixingzhuang:'0 0', blank_pass:'0 0', wooden_pass:'0 0', guard_tally:'0 0',
+      heishan_token:'0 0', war_horse_token:'0 0', lao_pai:'0 0', bailian_jian:'0 0',
+      blade_manual_frag:'0 0', halberd_manual_page:'0 0', talisman_scrap:'0 0', campfire:'0 0',
+      gongzuotai:'0 0', sleepmat:'0 0', horse:'0 0', ceshizhizhu:'0 0', shuicao:'0 0',
+      tuzhi_yeolian:'0 0', tuzhi_woodcamp:'0 0', tuzhi_yaolu:'0 0', tuzhi_house:'0 0',
+      tuzhi_market:'0 0', tuzhi_farm:'0 0', tuzhi_barracks:'0 0', tuzhi_blacksmith:'0 0',
+      tuzhi_tavern:'0 0', tuzhi_inn:'0 0', tuzhi_martialhall:'0 0', tuzhi_granary:'0 0',
+      tuzhi_watchtower:'0 0', tuzhi_arrowtower:'0 0', tuzhi_farmland:'0 0', tuzhi_well:'0 0',
+      tuzhi_pigpen:'0 0', tuzhi_gate:'0 0', tuzhi_training:'0 0'
     } };
   var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){
