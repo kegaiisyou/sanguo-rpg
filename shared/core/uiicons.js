@@ -59,7 +59,14 @@
     if(ic && BY_EMOJI[ic]) return pic(BY_EMOJI[ic], 'ui-pic');
     return ic || '·';
   }
+  // v20260924z20：史实武将专属头像（shared/img/npc-*.png，水墨胸像）
+  var HERO_BY_NAME={
+    '曹操':'npc-caocao','刘备':'npc-liubei','孙策':'npc-sunce','关羽':'npc-guanyu',
+    '张飞':'npc-zhangfei','赵云':'npc-zhaoyun','诸葛亮':'npc-zhugeliang','吕布':'npc-lvbu',
+    '董卓':'npc-dongzhuo','周瑜':'npc-zhouyu'
+  };
   function avatar(name, role){
+    if(name && HERO_BY_NAME[name]) return pic(HERO_BY_NAME[name], 'ui-ava');
     if(name && NPC_BY_NAME[name]) return pic(NPC_BY_NAME[name], 'ui-ava');
     if(role && NPC_BY_ROLE[role]) return pic(NPC_BY_ROLE[role], 'ui-ava');
     return '👤';
