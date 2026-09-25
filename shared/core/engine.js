@@ -3411,7 +3411,11 @@
       yecai:'0 0', jiu:'0 0', fish:'0 0', fish_dried:'0 0', dou:'0 0', douzhou:'0 0',
       zhujian:'0 0', caizi:'0 0', douzhong:'0 0', tongkuang:'0 0', yinkuang:'0 0', xuatie:'0 0',
       chutu:'0 0', tiefu:'0 0', pickaxe:'0 0', muti:'0 0', jinchuang:'0 0', yaofen:'0 0',
-      tangyao:'0 0', sleep_drug:'0 0', shuidai:'0 0'
+      tangyao:'0 0', sleep_drug:'0 0', shuidai:'0 0',
+      // v20260924z18 新增 16 项装备（B 水墨批次：兵刃/衣甲/腰背包囊）
+      zangbu_hat:'0 0', polan_stick:'0 0', yaobao:'0 0', hutou:'0 0', xiaonang:'0 0',
+      shunang:'0 0', pibao:'0 0', caiyaobiluo:'0 0', shutong:'0 0', tiejian:'0 0',
+      shidao:'0 0', gumao:'0 0', mugong:'0 0', zhujia:'0 0', qiufu:'0 0', liaokao:'0 0'
     } };
   var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){
