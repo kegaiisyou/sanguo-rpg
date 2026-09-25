@@ -121,20 +121,51 @@
       if (left <= 0) { toast('此城兵源已尽，征无可征。'); return false; }
       if (n > left) { n = left; toast('此城可征之兵仅余 ' + left + ' 人。'); }
       var cost = recruitCost(type, n), gold = S().gold || 0;
-      if (gold < cost) { toast('府库不足，募 ' + n + ' 名' + d.name + '需银 ' + cost + ' 两。'); return false; }
-      S().gold = gold - cost;
+      var res = S().res = S().res || { grain: 0, iron: 0, kit: 0 };
+      var fromRes = Math.min(n, res.grain || 0); res.grain -= fromRes;
+      var grainGold = Math.ceil((n - fromRes) / 12);   // 粮草不足部分以银籴（同籴粮比价）
+      var goldNeed = cost + grainGold;
+      if (gold < goldNeed) { toast('府库不足，募 ' + n + ' 名' + d.name + '需银 ' + goldNeed + ' 两' + (fromRes < n ? '（粮草仅足 ' + fromRes + '，余以银籴）' : '') + '。'); return false; }
+      S().gold = gold - goldNeed;
       a.recruited[cid] = (a.recruited[cid] || 0) + n;
       var t = troopOf(type);
       if (t) t.count = (t.count || 0) + n;
       else a.troops.push({ type: type, count: n, rank: rankDefault(type), xp: 0 });
       if (!a.active) { a.active = true; a.rallyPoint = cid; }
       a.morale = Math.max(0, Math.min(100, (a.morale || 100) - 1));
-      log('〔募兵〕于' + (((LF.CITIES || {})[cid] || {}).name || '城中') + '募得' + d.name + ' ' + n + ' 名，耗银 ' + cost + ' 两。', 'sys');
+      log('〔募兵〕于' + (((LF.CITIES || {})[cid] || {}).name || '城中') + '募得' + d.name + ' ' + n + ' 名，耗银 ' + goldNeed + ' 两' + (fromRes ? ('（粮草供 ' + fromRes + ' 名）') : '') + '。', 'sys');
       if (!a.rallyPoint) a.rallyPoint = cid;
       save(S()); renderStatus();
       if (getCurrentModalKind && getCurrentModalKind() === 'army') openModal('army');
       return true;
     }
+    // 按城募训士卒：忽略玩家站位，受城兵源/兵力上限/府库所限（供内政「练兵」命令调用）
+    function armyTrainAt(cid, type, n) {
+      n = Math.max(1, (n | 0) || 1);
+      var d = TROOPS()[type]; if (!d) return 0;
+      var a = ensureArmy(); if (!a) return 0;
+      var cap = armyCap(), cur = armyCount();
+      if (cur >= cap) return 0;
+      if (cur + n > cap) n = cap - cur;
+      if (n <= 0) return 0;
+      var left = cityManpool(cid) - (a.recruited[cid] || 0);
+      if (left <= 0) return 0;
+      if (n > left) n = left;
+      var cost = recruitCost(type, n), gold = S().gold || 0;
+      var res = S().res = S().res || { grain: 0, iron: 0, kit: 0 };
+      var fromRes = Math.min(n, res.grain || 0); res.grain -= fromRes;
+      var grainGold = Math.ceil((n - fromRes) / 12);
+      var goldNeed = cost + grainGold;
+      if (gold < goldNeed) { n = Math.max(0, Math.min(n, Math.floor(gold / (cost + grainGold)) || 0)); if (n <= 0) return 0; goldNeed = recruitCost(type, n) + Math.ceil((n - fromRes) / 12); }
+      S().gold = gold - goldNeed;
+      a.recruited[cid] = (a.recruited[cid] || 0) + n;
+      var t = troopOf(type);
+      if (t) t.count = (t.count || 0) + n;
+      else a.troops.push({ type: type, count: n, rank: rankDefault(type), xp: 0 });
+      if (!a.active) { a.active = true; a.rallyPoint = cid; }
+      return n;
+    }
+
     function armyDisband(type, n) {
       var t = troopOf(type); if (!t) return false;
       n = Math.max(1, (n | 0) || 1);
@@ -572,7 +603,7 @@
       ensureArmy: ensureArmy, armyCount: armyCount, armyCap: armyCap, armyPower: armyPower,
       armyUpkeep: armyUpkeep, armyActive: armyActive, armyHereCid: armyHereCid, armyWithPlayer: armyWithPlayer,
       troopOf: troopOf, recruitLeft: recruitLeft, recruitCost: recruitCost,
-      armyRecruit: armyRecruit, armyDisband: armyDisband, armySetRank: armySetRank, rankDefault: rankDefault, rankAllow: rankAllow,
+      armyRecruit: armyRecruit, armyTrainAt: armyTrainAt, armyDisband: armyDisband, armySetRank: armySetRank, rankDefault: rankDefault, rankAllow: rankAllow,
       armyDeposit: armyDeposit, armyWithdraw: armyWithdraw, armyBuyGrain: armyBuyGrain, grainDays: grainDays, logisticsCap: logisticsCap,
       armyMoraleAdd: armyMoraleAdd, tickArmyDay: tickArmyDay, moraleMul: moraleMul,
       armyDeploy: armyDeploy, armyCamp: armyCamp, armyScout: armyScout, armyAmbush: armyAmbush, scouting: scouting, cityKm: cityKm,

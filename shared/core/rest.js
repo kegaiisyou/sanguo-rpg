@@ -115,7 +115,7 @@
     if(clockFlowing()) return false;                          // 时辰已在流动：照常走「歇息」面板
     if((restState.kind||'ground')==='ground') return false;    // 席地打盹（战败/野外）不走这一套
     if(inCellNow()) return true;                              // 牢房格 / 天字地字号子牢房
-    return S().room==='camp_cell';
+    return false;
   }
   function renderRestPanel(){
     var kind = (restState.kind||'ground');

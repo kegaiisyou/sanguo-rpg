@@ -9,6 +9,14 @@
   .edict-acts .btn{display:flex;flex-direction:column;align-items:center;min-width:96px;padding:10px 8px;line-height:1.5;}
   .edict-acts .btn .sub{font-size:11px;color:rgba(40,32,24,.55);}
   .edict-foot{margin-top:12px;text-align:center;font-size:12px;color:rgba(40,32,24,.5);}
+  .edict-cmds{margin:6px 0 10px;border-top:1px dashed rgba(120,80,40,.25);padding-top:8px;}
+  .edict-cmd-h{font-size:12px;color:#6b3b2e;text-align:center;margin-bottom:6px;}
+  .edict-cmd{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap;}
+  .edict-cmd .edict-do{display:flex;flex-direction:column;align-items:center;min-width:104px;padding:8px 6px;line-height:1.4;}
+  .edict-cmd .edict-do .sub{font-size:10px;color:rgba(40,32,24,.55);}
+  .edict-del{flex:1;min-width:120px;padding:5px;border:1px solid rgba(120,80,40,.3);border-radius:6px;background:#fdf6e8;color:#3a2c1c;font-size:12px;}
+  .edict-pred{flex-basis:100%;font-size:11px;color:#5a7a4a;text-align:center;}
+
   .faction-map{max-width:520px;margin:0 auto;padding:6px 12px;}
   .fm-h{font-family:var(--serif,serif);font-size:20px;text-align:center;margin-bottom:10px;color:#6b3b2e;}
   .fm-row{border-bottom:1px solid rgba(40,32,24,.12);padding:8px 4px;}
@@ -2857,3 +2865,49 @@
   animation:cfxLine .6s ease-out .2s both;}
 @keyframes cfxName{0%{opacity:0;transform:translateY(7px);}16%{opacity:1;transform:translateY(0);}80%{opacity:1}100%{opacity:0;transform:translateY(-4px);}}
 @keyframes cfxLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* 内联交谈：轻量包裹层（v20260924z14 起） */
+.talk-inline{ display:flex; flex-direction:column; background:rgba(246,238,222,.06);
+  border:1px solid rgba(196,164,102,.28); border-radius:12px; overflow:hidden; margin:6px 8px; }
+.talk-inline .tl-head{ display:flex; align-items:center; justify-content:space-between;
+  padding:8px 12px; font-size:12px; color:#d9c39a; background:rgba(196,164,102,.08);
+  border-bottom:1px solid rgba(196,164,102,.18); }
+.talk-inline .tl-name{ font-family:"STKaiti","KaiTi",serif; letter-spacing:.5px; }
+.talk-inline .tl-fv{ color:#bfa77f; font-size:11px; }
+.talk-inline .talk-grid{ padding-top:10px; }
+
+/* ===== 物品美术 & 装备栏视觉修正（20260924z15） ===== */
+
+/* 1) 物品美术图：填满格子、最大 48px 保细节、居中不溢出 */
+.item-pic48{width:100%;height:100%;max-width:48px;max-height:48px;object-fit:contain;display:block;margin:auto;}
+.packcell .pcell-ic{display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:3px;box-sizing:border-box;line-height:1;}
+
+/* 2) 弱化格子边框/背景，避免与物品图自带的圆形奖章边框重复抢视觉 */
+.packcell{background:rgba(0,0,0,.12);border:1px solid rgba(196,164,102,.12);border-radius:10px;padding:3px;}
+
+/* 3) 装备栏：左列放宽，改用人形剪影，槽位百分比定位随容器缩放 */
+.pack-left{flex:0 0 150px;padding:8px;gap:6px;}
+.equip-figure{width:100%;aspect-ratio:2/3;margin:0 auto;flex:0 0 auto;}
+.equip-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:.95;border-radius:10px;}
+.equipslot{min-width:auto;min-height:auto;width:auto;height:auto;background:rgba(250,245,232,.72);border:1px solid rgba(196,164,102,.45);backdrop-filter:blur(1px);border-radius:8px;padding:2px 4px;}
+.equip-figure .equipslot{border-width:1px;box-shadow:0 1px 3px rgba(60,48,34,.2);}
+.ep-hat{left:32%;top:2%;width:36%;height:10%;}
+.ep-trinket{left:66%;top:12%;width:30%;height:10%;}
+.ep-cloth{left:24%;top:22%;width:52%;height:24%;}
+.ep-weapon{left:4%;top:40%;width:24%;height:18%;}
+.ep-belt{left:30%;top:52%;width:40%;height:10%;}
+.ep-shoe{left:28%;top:78%;width:44%;height:12%;}
+.ep-bagflow{left:70%;top:64%;width:28%;height:13%;border-style:dashed;background:rgba(250,245,232,.55);}
+
+/* 移动端限制人形高度，避免属性面板被挤掉 */
+@media(max-width:560px){
+  .pack-left .equip-figure{transform:none;height:180px;width:auto;aspect-ratio:auto;}
+}
+
+/* ===== 装备栏修正（20260924z16）：槽位独立网格，人形仅作顶部小插图 ===== */
+.equip-figure{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;height:auto;aspect-ratio:auto;}
+.equip-portrait{width:70px;height:auto;max-height:90px;object-fit:contain;object-position:center top;opacity:.9;border-radius:8px;pointer-events:none;}
+.equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
+.equipslot{position:static;width:auto;height:auto;min-height:44px;background:rgba(250,245,232,.78);border:1px solid rgba(196,164,102,.45);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 2px;box-shadow:0 1px 3px rgba(60,48,34,.18);}
+.ep-shoe{grid-column:1/-1;}
+.ep-bagflow{position:static;width:auto;height:auto;min-height:44px;background:rgba(250,245,232,.55);border:1px dashed rgba(196,164,102,.55);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 2px;box-shadow:none;margin-top:0;}

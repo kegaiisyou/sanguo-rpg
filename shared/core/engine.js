@@ -586,7 +586,8 @@
     log: log, toast: toast, save: save, escapeHtml: escapeHtml,
     cityOwnerOf: cityOwnerOf, playerFaction: playerFaction,
     openModal: openModal, getCurrentModalKind: function () { return currentModalKind; },
-    armyCount: function () { return Army.armyCount(); }
+    armyCount: function () { return Army.armyCount(); },
+    busyAct: function () { return busyAct.apply(null, arguments); }, advanceMinutes: advanceMinutes, renderStatus: renderStatus, isCityGrid: isCityGrid, armyTrainAt: function () { return Army.armyTrainAt.apply(null, arguments); }
   });
   var Army = LF.createArmy({
     getState: function () { return state; },
@@ -629,7 +630,7 @@
     setPendingArmyBattle: function (v) { pendingArmyBattle = v; },
     Officers: Officers
   });
-  var armyRecruit = Army.armyRecruit, armyDisband = Army.armyDisband, armySetRank = Army.armySetRank,
+  var armyRecruit = Army.armyRecruit, armyTrainAt = Army.armyTrainAt, armyDisband = Army.armyDisband, armySetRank = Army.armySetRank,
       armyDeposit = Army.armyDeposit, armyWithdraw = Army.armyWithdraw, armyBuyGrain = Army.armyBuyGrain,
       armyDeploy = Army.armyDeploy, armyCamp = Army.armyCamp, armyScout = Army.armyScout, armyAmbush = Army.armyAmbush,
       tickArmyDay = Army.tickArmyDay, armyActive = Army.armyActive, armyCount = Army.armyCount,
@@ -643,8 +644,9 @@
   var officerRecruit = Officers.recruit, officerAppoint = Officers.appoint, officerDismiss = Officers.dismiss,
       renderOfficerPanel = Officers.renderOfficerPanel, renderSearchPanel = Officers.renderSearchPanel,
       openOfficerPanel = Officers.openOfficerPanel, openSearchPanel = Officers.openSearchPanel, renderOfficerHub = Officers.renderOfficerHub,
-      renderDispatchPanel = Officers.renderDispatchPanel, dispatchAssign = Officers.dispatchAssign, dispatchRemove = Officers.dispatchRemove,
-      dispatchLabor = Officers.dispatchLabor, dispatchTroops = Officers.dispatchTroops, facilitiesMonthlyYield = Officers.facilitiesMonthlyYield;
+      dispatchAssign = Officers.dispatchAssign, dispatchRemove = Officers.dispatchRemove,
+      dispatchLabor = Officers.dispatchLabor, dispatchTroops = Officers.dispatchTroops, facilitiesMonthlyYield = Officers.facilitiesMonthlyYield,
+      civilCommand = Officers.civilCommand, delegateCommand = Officers.delegateCommand, undelegateCommand = Officers.undelegateCommand, monthlyAffairs = Officers.monthlyAffairs, renderEdictCommands = Officers.renderEdictCommands;
   // NPC 装配器与交谈面板（v20260916c）：从 engine.js 切出，见 shared/core/npc.js。
   // 排在 Combat 之后（敌意卡「挑战」用 startCombat）、Pack 之前；city.js 经 getNPC_BUILD 延迟取装配器，
   // 故 City（更早建）不会因 NPC 后建而拿到空值。
@@ -667,10 +669,8 @@
       npcSmallTalk = NPC.npcSmallTalk, npcHourOK = NPC.npcHourOK, npcCellPool = NPC.npcCellPool,
       npcCountOf = NPC.npcCountOf, npcEligible = NPC.npcEligible, npcSlotsHere = NPC.npcSlotsHere, npcMake = NPC.npcMake,
       npcHostileActs = NPC.npcHostileActs, buildCityCellNpcs = NPC.buildCityCellNpcs,
-      openTalkPanel = NPC.openTalkPanel, npcTopicOnce = NPC.npcTopicOnce, npcTalkPrefix = NPC.npcTalkPrefix,
+      talkInline = NPC.talkInline, npcTopicOnce = NPC.npcTopicOnce, npcTalkPrefix = NPC.npcTalkPrefix,
       npcSpeak = NPC.npcSpeak, NPC_ACT_IMPL = NPC.NPC_ACT_IMPL,
-      talkTopicBtns = NPC.talkTopicBtns, talkActBtns = NPC.talkActBtns, talkFavorHTML = NPC.talkFavorHTML,
-      renderTalkPanel = NPC.renderTalkPanel, talkSetLine = NPC.talkSetLine, bindTalkPanel = NPC.bindTalkPanel,
       getTalkNpc = NPC.getTalkNpc;
 
   // 行囊装备面板/交互：从 pack.js 工厂注入引擎依赖（置于 Combat 别名块之后，以便使用 compareEquip）
@@ -818,7 +818,7 @@
   function mapKind(rid){
     var k=mapData().kinds && mapData().kinds[rid];
     if(k) return k;
-    if(rid==='camp_yard' || rid==='camp_cell' || rid==='camp_wall' || rid==='kuyilao') return 'tutorial';
+    if(rid==='kuyilao' || /^camp_[td]z\d$/.test(rid)) return 'tutorial';
     if(/^ji_heishan_/.test(rid)) return 'dungeon';
     if(/^ji_/.test(rid) || /^yuyang_/.test(rid)) return 'city';
     return 'wild';
@@ -855,7 +855,7 @@
     // 开场渐进式 UI：新局落在教学入口时，先进入空白引导态（隐藏顶栏/DOCK/行动区/罗盘）
     // v20260911f：默认新档现落在牢房（camp_tz1），故把教学子牢房一并纳入，确保 flags.onb 在首帧 renderRoom 前已建，
     //   suppressNarr 才能对教学房间生效（否则牢房常规描写会插在序幕与「押入牢房」演出之间）。
-    var _onbSpawn = (state.room==='camp_yard'||state.spawnRoom==='camp_yard'||/^camp_[td]z\d$/.test(state.room||''));
+    var _onbSpawn = (/^camp_[td]z\d$/.test(state.room||''));
     if(_onbSpawn && !(state.flags && state.flags.onb && state.flags.onb.done)){
       if(!state.flags) state.flags={};
       // unlocked: [] —— 页签解锁表（v20260912f）。新局显式置空，才能与「旧存档无此字段」
@@ -902,7 +902,7 @@
   var $card=document.getElementById('modal-card');
   var $toast=document.getElementById('toast');
 
-  function curRoom(){ return G.ROOMS[state.room] || bldRoom(state.room) || G.ROOMS.camp_yard; }
+  function curRoom(){ return G.ROOMS[state.room] || bldRoom(state.room) || G.ROOMS.kuyilao; }
 
   var askPending=false;  // [保留：对话悬挂态属对话子系统，由 tutAsk 与 ~15 个引擎函数共有，不随叙事模块迁出]
   // [moved -> shared/core/narr.js]
@@ -1101,7 +1101,6 @@
   var CAMP_SAFE_CELL={x:1, y:0};        // 牢房格（回牢销名处）＝视为已归牢
   function inCellNow(){
     if(/^camp_[td]z\d/.test(state.room||'')) return true;      // 天字/地字号子牢房
-    if(state.room==='camp_cell') return true;
     if(state.room==='kuyilao'){
       var cp=state.flags && state.flags.cityPos;
       if(cp && cp.x===CAMP_SAFE_CELL.x && cp.y===CAMP_SAFE_CELL.y) return true;
@@ -1502,7 +1501,7 @@
     // v20260910q：囚室格 (1,0) 不再跳独立房间——牢房即城格，面板显示六间子牢房(doors)，罗盘走网格邻居
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     // 开场引导期间静默这些房间的常规旁白（改用剧本式叙事，避免与触发台词重复/信息过载）
-    var suppressNarr = onboarding && (rid==='camp_yard' || rid==='camp_cell' || rid==='kuyilao' || /^camp_[td]z\d$/.test(rid));
+    var suppressNarr = onboarding && (rid==='kuyilao' || /^camp_[td]z\d$/.test(rid));
     if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
@@ -1890,9 +1889,7 @@
     //   舆图 / 军报 / 兵器架 / 正帐一律挂在 planningEscape() 门槛后 —— 这一格要摆「担石劳作 / 环顾四周」
     //   的引导，一上来摆满按钮会把引导锚点顶掉（沿用 v20260912f 起「没介绍到的先藏着」的做法）。
     'kuyilao|1,1': {
-      doors: [
-        { label: '正帐', icon: '⛺', target: 'camp_zhongjun', group: '中军帐', show: planningEscape }
-      ],
+      doors: [],
       objects: [
         // v20260920h：担石劳作改「装担→卸料」闭环 —— 乱石堆在场院装担，送到仓库卸料台才记一工
         { icon:'🪨', label:'乱石堆', actId:'labor_yard', acts:[
@@ -2876,7 +2873,7 @@
     //   话题（问价/问农/问政/探问/查账/讨教…）都在面板里挑。
     //   旧版此处无条件 return —— 城内所有生成 NPC 的「交谈」点了都毫无反应（v20260912d 修）。
     var po=NPC_BY_KEY[k];
-    if(po) openTalkPanel(po);
+    if(po) talkInline(po);
     return;
   }
     var at=npcAttitude(k);
@@ -3424,7 +3421,7 @@
     if(it && ICON_SPR.map[it.defId]){
       var w = Math.max(20, px + 6);
       /* v20260924z11：独立 48px 图标优先（无拉伸、内容充满），缺文件回退雪碧图 */
-      return '<img class="item-pic48" data-cat="'+cat+'" src="assets/icons/items48/'+it.defId+'.png" alt="'+(it.name||'')+'" style="width:'+w+'px;height:'+w+'px;object-fit:contain;" onerror="this.style.display=\'none\';">';
+      return '<img class="item-pic48" data-cat="'+cat+'" src="assets/icons/items48/'+it.defId+'.png" alt="'+(it.name||'')+'" style="width:100%;height:100%;object-fit:contain;display:block;" onerror="this.style.display=\'none\';">';
     }
     var em = (it && it.icon) ? it.icon : '';
     var fs = Math.min(px, 16);
@@ -4539,8 +4536,6 @@
       h=renderPack();
     } else if(kind==='give'){
       h=renderGivePanel(modalOpts.npc);
-    } else if(kind==='talk'){
-      h=renderTalkPanel(modalOpts.npc);
     } else if(kind==='army'){
       h=renderArmyPanel();
       setTimeout(function(){ bindArmyPanel(); },0);
@@ -4671,7 +4666,6 @@
     }
     if(kind==='pack'){ bindPackInteractions(); }
     if(kind==='give'){ bindGivePanel(); }
-    if(kind==='talk'){ bindTalkPanel(); }
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ Shop.bindShopPanel(); }
     if(kind==='build'){ bindBuildPanel(); }
@@ -5149,6 +5143,7 @@
   window.startDefendBattle=startDefendBattle; window.startFieldBattle=startFieldBattle;
   window.openOfficerPanel=openOfficerPanel; window.openSearchPanel=openSearchPanel; window.recruitOfficer=officerRecruit; window.appointOfficer=officerAppoint; window.dismissOfficer=officerDismiss; window.openOfficerTab=Officers.openOfficerTab;
   window.dispatchAssign=dispatchAssign; window.dispatchRemove=dispatchRemove; window.dispatchLabor=dispatchLabor; window.dispatchTroops=dispatchTroops;
+  window.civilCommand=civilCommand; window.delegateCommand=delegateCommand; window.undelegateCommand=undelegateCommand;
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.enterGame=enterGame;   // 调试/自动化游玩桥接（供 playtest harness 开局，与 advanceTime 同款）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）

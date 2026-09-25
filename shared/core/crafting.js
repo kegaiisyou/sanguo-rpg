@@ -312,11 +312,13 @@
         + bar
         + '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:10px 0;">'
         + '<button class="btn-mini" data-forge="ore">投铁矿石×1</button>'
+        + (S().res && S().res.iron ? '<button class="btn-mini" data-forge="oreRes">投府库铁料×1（' + (S().res.iron||0) + '）</button>' : '')
         + '<button class="btn-mini" data-forge="wood">投木材×1</button>'
+        + (S().res && S().res.kit ? '<button class="btn-mini" data-forge="woodRes">投府库器械×1（代薪，' + (S().res.kit||0) + '）</button>' : '')
         + (f.burn ? '' : '<button class="btn-mini" data-forge="fire">点火烧制</button>')
         + (f.out>0 ? '<button class="btn-mini" data-forge="take">收取铁料</button>' : '')
         + '</div>'
-        + '<p class="tip">每块铁矿石需 2 时辰烧炼、耗 2 木材；可在任意行动推进时辰时持续烧制。</p>'
+        + '<p class="tip">每块铁矿石需 2 时辰烧炼、耗 2 木材；可在任意行动推进时辰时持续烧制。府库铁料（矿场产）可代铁矿石，府库器械（工坊产）可代薪。</p>'
         + '<button class="sheet-leave" id="m-forge-leave">收 工</button>';
       return h;
     }
@@ -333,20 +335,34 @@
       var p = findForge(fs.site); if(!p) return;
       var f = ensureForgeState(p);
       if(act==='ore'){
-        var cur = packFind('tiekuangshi');
-        if(!cur || (cur.count||0) < 1){ toast('行囊中无铁矿石。'); return; }
         if(st.energy<=0){ toast('精力已尽，先休整恢复再行添料。'); return; }
-        packConsume('tiekuangshi', 1);
+        var cur = packFind('tiekuangshi');
+        var r0 = st.res = st.res || { grain:0, iron:0, kit:0 };
+        if(cur && (cur.count||0) >= 1){ packConsume('tiekuangshi', 1); fs.msg = '已投铁矿石×1。'; }
+        else if((r0.iron||0) >= 1){ r0.iron -= 1; fs.msg = '已以府库铁料投炉×1。'; }
+        else { toast('行囊无铁矿石，府库亦无铁料。'); return; }
         f.ore++;
-        fs.msg = '已投铁矿石×1。';
+        save(st); afterPackChange();
+      } else if(act==='oreRes'){
+        if(st.energy<=0){ toast('精力已尽，先休整恢复。'); return; }
+        var r1 = st.res = st.res || { grain:0, iron:0, kit:0 };
+        if((r1.iron||0) < 1){ toast('府库无铁料。'); return; }
+        r1.iron -= 1; f.ore++; fs.msg = '已以府库铁料投炉×1。';
         save(st); afterPackChange();
       } else if(act==='wood'){
-        var w = packFind('mucai');
-        if(!w || (w.count||0) < 1){ toast('行囊中无木材。'); return; }
         if(st.energy<=0){ toast('精力已尽，先休整恢复再行添柴。'); return; }
-        packConsume('mucai', 1);
+        var w = packFind('mucai');
+        var r2 = st.res = st.res || { grain:0, iron:0, kit:0 };
+        if(w && (w.count||0) >= 1){ packConsume('mucai', 1); fs.msg = '已投木材×1。'; }
+        else if((r2.kit||0) >= 1){ r2.kit -= 1; fs.msg = '已以府库器械代薪投炉×1。'; }
+        else { toast('行囊无木材，府库亦无器械可代薪。'); return; }
         f.wood++;
-        fs.msg = '已投木材×1。';
+        save(st); afterPackChange();
+      } else if(act==='woodRes'){
+        if(st.energy<=0){ toast('精力已尽，先休整恢复。'); return; }
+        var r3 = st.res = st.res || { grain:0, iron:0, kit:0 };
+        if((r3.kit||0) < 1){ toast('府库无器械可代薪。'); return; }
+        r3.kit -= 1; f.wood++; fs.msg = '已以府库器械代薪投炉×1。';
         save(st); afterPackChange();
       } else if(act==='fire'){
         if(f.burn){ toast('炉火正旺。'); return; }

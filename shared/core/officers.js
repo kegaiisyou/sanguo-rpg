@@ -14,6 +14,11 @@
     var getCurrentModalKind = ctx.getCurrentModalKind || function () { return ''; };
     var armyCount = ctx.armyCount || function () { return 120; };
     var escapeHtml = ctx.escapeHtml || function (s) { return String(s == null ? '' : s); };
+    var busyAct = ctx.busyAct || function () {};
+    var advanceMinutes = ctx.advanceMinutes || function () {};
+    var renderStatus = ctx.renderStatus || function () {};
+    var isCityGrid = ctx.isCityGrid || function () { return false; };
+    var armyTrainAt = ctx.armyTrainAt || function () { return 0; };
     var SKILL_MAP = {}; (LF.OFFICER_SKILLS || []).forEach(function (s) { SKILL_MAP[s.id] = s; });
     function idsOf(t) { return (t && t.skills) ? t.skills : []; }
     function sumEff(ids, key) { var s = 0; (ids || []).forEach(function (id) { var d = SKILL_MAP[id]; if (d && d.eff && typeof d.eff[key] === 'number') s += d.eff[key]; }); return s; }
@@ -311,37 +316,6 @@
       var pts = []; if (tot.grain) pts.push('粮 ' + tot.grain); if (tot.iron) pts.push('铁 ' + tot.iron); if (tot.kit) pts.push('器械 ' + tot.kit); if (tot.gold) pts.push('银 ' + tot.gold);
       if (pts.length) log('〔营生〕麾下设施岁入：' + pts.join('、') + '。', 'sys');
     }
-    function renderDispatchPanel() {
-      var rc = (S().ruledCities) || [];
-      var res = S().res || { grain: 0, iron: 0, kit: 0 };
-      var h = '<h3>设施派遣</h3>';
-      h += '<div class="of-note">库藏：🌾粮 ' + (res.grain || 0) + ' · ⛏️铁 ' + (res.iron || 0) + ' · 🔨械 ' + (res.kit || 0) + ' · 💰银 ' + (S().gold || 0) + '</div>';
-      h += '<div class="of-note">遣一员文官武将监理城邑设施，依其才具与所调拨之民夫、士卒，按月批量产出粮草、铁料、器械、钱帛。此乱世治生之术也。</div>';
-      if (!rc.length) { h += '<div class="of-empty">尚未据有城池，无设施可遣。先取一城，方能课民兴利。</div>'; return h; }
-      rc.forEach(function (cid) {
-        var c = (LF.CITIES || {})[cid] || {};
-        h += '<div class="of-group"><div class="of-ghead">🏯 ' + esc(c.name || cid) + '</div><div class="of-list">';
-        var slots = (LF.facilitySlotsOf ? LF.facilitySlotsOf(cid) : []) || [];
-        if (!slots.length) h += '<div class="of-empty">此城暂无可用设施。</div>';
-        slots.forEach(function (s) {
-          var fk = facKeyOf(s), safe = fk.replace(/\|/g, '_'), o = facilityOutput(fk);
-          h += '<div class="of-row fac-row">';
-          h += '<div class="of-top"><b>' + esc(o.icon) + ' ' + esc(o.name) + '</b>' + (o.officer ? '<span class="of-tag stew">' + esc(o.officer.name) + ' 监理</span>' : '<span class="of-tag free">未遣</span>') + '</div>';
-          h += '<div class="fac-ctl">民夫 ' + o.labor + '/' + o.laborCap + '　<button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',-5)">−</button><button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',5)">＋</button>　士卒 ' + o.troops + '/' + o.troopCap + '　<button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',-10)">−</button><button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',10)">＋</button></div>';
-          var pct = Math.round(o.statMul * 100) / 100;
-          h += '<div class="fac-out">月出：<b>' + o.amount + ' ' + esc(o.resName) + '</b>' + (o.officer ? '（' + statName(o.stat) + '×' + pct + (o.skill ? (' ＋技' + Math.round(o.skill * 100) + '%') : '') + '）' : '（未遣官，仅赖民力）') + '</div>';
-          var avail = roster().filter(function (x) { return !x.assignment || (x.assignment.type === 'steward' && x.assignment.fkey === fk); });
-          h += '<div class="fac-assign"><select id="facsel_' + safe + '" class="fac-sel"><option value="">— 选员监理 —</option>';
-          avail.forEach(function (x) { h += '<option value="' + x.id + '">' + esc(x.name) + '（' + statName(o.stat) + (x.stats[o.stat] || 0) + '）</option>'; });
-          h += '</select><button class="btn sm" onclick="window.dispatchAssign(\'' + fk + '\',document.getElementById(\'facsel_' + safe + '\').value)">派遣</button>';
-          if (o.officer) h += '<button class="btn sm danger" onclick="window.dispatchRemove(\'' + fk + '\')">召回</button>';
-          h += '</div></div>';
-        });
-        h += '</div></div>';
-      });
-      h += '<p class="hint">民夫取自城邑丁口，士卒取自你麾下兵马（调拨不损战力，仅增益营生）。武将以「政务/魅力/智略」与特技（屯田/商才/工神）增益产出；高「武」者监工亦能使役夫効命。</p>';
-      return h;
-    }
 
     // ── 克城俘获 ──
     function captureFrom(defKey, cid) {
@@ -390,6 +364,7 @@
       if (!o.assignment) return '<span class="of-tag free">在野未任</span>';
       if (o.assignment.type === 'commander') return '<span class="of-tag cmd">主将</span>';
       if (o.assignment.type === 'steward') { var _fn = (facilityOutput(o.assignment.fkey) || {}).name || '设施'; return '<span class="of-tag stew">监理·' + esc(_fn) + '</span>'; }
+      if (o.assignment.type === 'edict') { return '<span class="of-tag stew">内政·' + esc(edictName(o.assignment.cmd)) + '</span>'; }
       var cn = (((LF.CITIES || {})[o.assignment.cid] || {}).name || o.assignment.cid);
       return '<span class="of-tag gov">太守·' + esc(cn) + '</span>';
     }
@@ -446,14 +421,13 @@
       return h;
     }
     function renderOfficerHub() {
-      var tabs = [['roster', '麾下'], ['search', '寻访'], ['dispatch', '派遣'], ['factions', '群雄']];
+      var tabs = [['roster', '麾下'], ['search', '寻访'], ['factions', '群雄']];
       var h = '<div class="of-tabs">';
       tabs.forEach(function (t) {
         h += '<button class="of-tab' + (officerTab === t[0] ? ' on' : '') + '" onclick="window.openOfficerTab(\'' + t[0] + '\')">' + t[1] + '</button>';
       });
       h += '</div>';
       if (officerTab === 'search') h += renderSearchPanel();
-      else if (officerTab === 'dispatch') h += renderDispatchPanel();
       else if (officerTab === 'factions') h += renderFactionsPanel();
       else h += renderOfficerPanel();
       return h;
@@ -498,6 +472,190 @@
     function openOfficerPanel() { officerTab = 'roster'; if (typeof openModal === 'function') openModal('officers'); }
     function openSearchPanel() { officerTab = 'search'; if (typeof openModal === 'function') openModal('officers'); }
 
+    // ── 内政命令（命令式委任内政，v20260924l）：玩家可亲自下令，或委任武将按月执行 ──
+    function playerEconMul() { var r = S() && S().role; return r === 'xiang' ? 1.35 : 1; }
+    function edictCmds() { return (LF.EDICT_COMMANDS) || {}; }
+    function edictName(k) { var C = edictCmds()[k]; return C ? C.name : k; }
+    function cityStatsOf(cid) {
+      var st = S(); if (!st) return {};
+      st.flags.cityStats = st.flags.cityStats || {};
+      return st.flags.cityStats[cid] || (st.flags.cityStats[cid] = {});
+    }
+    function addCityStat(cid, key, d) { var cs = cityStatsOf(cid); cs[key] = (cs[key] || 0) + d; }
+    function delegateeOf(cmdKey, cid) {
+      var list = roster();
+      for (var i = 0; i < list.length; i++) { var a = list[i].assignment; if (a && a.type === 'edict' && a.cmd === cmdKey && a.cid === cid) return list[i]; }
+      return null;
+    }
+    function facSlotsForCmd(cid, k) {
+      var C = edictCmds()[k]; if (!C || !C.res) return [];
+      var slots = (typeof LF.facilitySlotsOf === 'function') ? LF.facilitySlotsOf(cid) : [];
+      return slots.filter(function (s) { var T = (LF.FACILITY_TYPES || {})[s.ftype]; return T && T.res === C.res; });
+    }
+
+    function playerActor() {
+      var st = S(); if (!st) return null;
+      var base = 55, role = st.role;
+      var zheng = base + (role === 'xiang' ? 22 : (role === 'jiang' ? 6 : 0));
+      var mei = base + (role === 'youxia' ? 16 : (role === 'xiang' ? 10 : 0));
+      var zhi = base + (role === 'xiang' ? 14 : 0);
+      return { isPlayer: true, id: st.id, name: st.name || '\u4f60', stats: { wu: base, zhi: zhi, tong: base, zheng: zheng, mei: mei } };
+    }
+    function commandEffect(cmdKey, actor) {
+      var C = edictCmds()[cmdKey]; if (!C || !actor) return null;
+      var ids = idsOf(template(actor.id));
+      var statMul = 1 + (actor.stats[C.stat] || 0) / 100 * 0.85;
+      var skill = sumEff(ids, C.skill) || 0;
+      var amount = Math.round((C.base || 0) * statMul * (1 + skill));
+      if (actor.isPlayer && C.res) amount = Math.round(amount * playerEconMul());
+      return { key: cmdKey, C: C, kind: C.kind, trainType: C.trainType, amount: amount, res: C.res, statKey: C.statKey, statGain: C.statGain || 0, order: C.order || 0, skill: skill, statMul: statMul };
+    }
+    function edictResultText(eff) {
+      if (eff.C.kind === 'train') return '\u52df\u8bad ' + (eff.trainType || '\u6b65\u5175') + ' ' + eff.amount + ' \u540d';
+      if (eff.C.kind === 'recruit') return '\u6216\u5f97\u8d24\u624d\uff08\u4eb2\u884c\u5373\u8bd5\uff09';
+      if (eff.C.kind === 'explore') return '\u6216\u6709\u5947\u9047\u00b7\u5b9d\u7269';
+      var p = [];
+
+      if (eff.res === 'grain') p.push('\u5f97\u7cae ' + eff.amount);
+      else if (eff.res === 'gold') p.push('\u5f97\u94f6 ' + eff.amount + ' \u4e24');
+      else if (eff.res === 'iron') p.push('\u5f97\u94c1 ' + eff.amount);
+      else if (eff.res === 'kit') p.push('\u5f97\u5668\u68b0 ' + eff.amount);
+      if (eff.statKey === 'agri') p.push('\u5730\u529b +' + eff.statGain);
+      else if (eff.statKey === 'com') p.push('\u5e02\u6613 +' + eff.statGain);
+      else if (eff.statKey === 'defense') p.push('\u57ce\u9632 +' + eff.statGain);
+      if (eff.order) p.push('\u6cbb\u5b89 +' + eff.order);
+      return p.length ? p.join('\u3001') : '\u4e8b\u6bd5';
+    }
+    function cityName(cid) { return (((LF.CITIES || {})[cid] || {}).name || cid); }
+    function doExplore(cid, who) {
+      var c = cityName(cid), roll = Math.random(), opts = ['grain', 'iron', 'kit', 'gold'], k = opts[Math.floor(Math.random() * opts.length)], gain = 10 + Math.floor(Math.random() * 20);
+      if (roll < 0.5) {
+        if (k === 'gold') S().gold = (S().gold || 0) + gain;
+        else { S().res = S().res || { grain: 0, iron: 0, kit: 0 }; S().res[k] = (S().res[k] || 0) + gain; }
+        log('\u3014\u63a2\u7d22\u3015' + who + '\u4f7f\u4eba\u7d22\u5947\uff0c\u5f97' + ({ grain: '\u7cae', iron: '\u94c1', kit: '\u5668\u68b0', gold: '\u94f6' }[k]) + ' ' + gain + '\u3002', 'good');
+      } else if (roll < 0.78) {
+        var ks = ['agri', 'com', 'defense'], kk = ks[Math.floor(Math.random() * ks.length)], g2 = 1 + (Math.random() < 0.4 ? 1 : 0);
+        addCityStat(cid, kk, g2);
+        log('\u3014\u63a2\u7d22\u3015' + who + '\u8e0f\u52d8\u5730\u5229\uff0c' + ({ agri: '\u5730\u529b', com: '\u5e02\u6613', defense: '\u57ce\u9632' }[kk]) + ' +' + g2 + '\u3002', 'sys');
+      } else if (roll < 0.93) {
+        var list = recruitableHere(cid);
+        if (list.length) { var t = list[Math.floor(Math.random() * list.length)]; log('\u3014\u63a2\u7d22\u3015' + who + '\u63a2\u5f97 ' + t.name + ' \u9690\u4e8e' + c + '\u5468\u8fb9\uff0c\u53ef\u4e8e\u6b66\u5c06\u9762\u677f\u767b\u96c7\u3002', 'good'); }
+        else { addCityStat(cid, 'com', 1); log('\u3014\u63a2\u7d22\u3015' + who + '\u8bbf\u5f97\u5546\u8def\uff0c\u5e02\u6613\u5c0f\u8fdb\u3002', 'sys'); }
+      } else {
+        var g3 = 8 + Math.floor(Math.random() * 12); S().gold = (S().gold || 0) + g3;
+        log('\u3014\u63a2\u7d22\u3015' + who + '\u4e8e\u91ce\u5f97\u9057\u91d1 ' + g3 + ' \u4e24\u3002', 'good');
+      }
+      save(S());
+    }
+    function applyEdictToState(cid, eff, who) {
+      var st = S(); if (!st) return;
+      if (eff.C.kind === 'train') {
+        var got = armyTrainAt(cid, eff.trainType || '\u6b65\u5175', eff.amount);
+        if (got > 0) log('\u3014\u5185\u653f\u3015' + (who || '\u4f60') + '\u4e8e' + cityName(cid) + '\u7ec3\u5175\uff0c\u52df\u8bad ' + (eff.trainType || '\u6b65\u5175') + ' ' + got + ' \u540d\u3002', 'good');
+        else log('\u3014\u5185\u653f\u3015' + (who || '\u4f60') + '\u6b32\u4e8e' + cityName(cid) + '\u7ec3\u5175\uff0c\u7136\u5175\u6e90\u5df2\u5c3d\u6216\u5175\u529b\u5df2\u8fbe\u4e0a\u9650\u3002', 'sys');
+        return;
+      }
+      if (eff.C.kind === 'recruit') {
+        var list = recruitableHere(cid);
+        if (!list.length) { log('\u3014\u767b\u96c7\u3015' + cityName(cid) + '\u5883\u5185\u4e00\u65f6\u65e0\u53ef\u767b\u96c7\u4e4b\u58eb\u3002', 'sys'); return; }
+        var best = list[0], bp = -1;
+        list.forEach(function (t) { var pc = recruitChance(t); if (pc > bp) { bp = pc; best = t; } });
+        recruit(best.id);
+        return;
+      }
+      if (eff.C.kind === 'explore') { doExplore(cid, who || '\u4f60'); return; }
+      if (eff.res && eff.amount) {
+        if (eff.res === 'gold') st.gold = (st.gold || 0) + eff.amount;
+        else { st.res = st.res || { grain: 0, iron: 0, kit: 0 }; st.res[eff.res] = (st.res[eff.res] || 0) + eff.amount; }
+      }
+      if (eff.statKey && eff.statGain) addCityStat(cid, eff.statKey, eff.statGain);
+      if (eff.order) {
+        st.flags.cityOrder = st.flags.cityOrder || {};
+        var cur = (st.flags.cityOrder[cid] != null ? st.flags.cityOrder[cid] : ((LF.CITIES || {})[cid] || {}).order || 50);
+        st.flags.cityOrder[cid] = Math.min(100, Math.max(0, cur + eff.order));
+      }
+      log('\u3014\u5185\u653f\u3015' + (who || '\u4f60') + '\u884c' + edictName(eff.key) + '\uff0c' + edictResultText(eff) + '\u3002', 'good');
+    }
+
+    function civilCommand(cmdKey) {
+      var cid = S() && S().room;
+      if (!isCityGrid(cid)) { toast('\u9700\u7acb\u4e8e\u57ce\u4e2d\u65b9\u80fd\u53d1\u4ee4\u3002'); return; }
+      if (cityOwnerOf(cid) !== playerFaction()) { toast('\u4f60\u5e76\u975e\u6b64\u57ce\u4e4b\u4e3b\uff0c\u4f55\u8c08\u653f\u4ee4\uff1f'); return; }
+      var C = edictCmds()[cmdKey]; if (!C) return;
+      var actor = playerActor(); var eff = commandEffect(cmdKey, actor);
+      busyAct(C.icon + ' ' + C.name + '\u00b7\u534a\u4e2a\u65f6\u8fb0', 1000, function () {
+        applyEdictToState(cid, eff, '\u4f60');
+        advanceMinutes(120);
+        save(S()); renderStatus();
+        toast(C.icon + ' ' + C.name + '\uff1a' + edictResultText(eff));
+        if (getCurrentModalKind() === 'edict') openModal('edict');
+      });
+    }
+    function delegateCommand(cmdKey, oid) {
+      var cid = S() && S().room;
+      if (!isCityGrid(cid) || cityOwnerOf(cid) !== playerFaction()) { toast('\u9700\u7acb\u4e8e\u5df1\u65b9\u57ce\u6c60\u65b9\u80fd\u59d4\u4efb\u3002'); return false; }
+      if (!oid) {
+        roster().forEach(function (o) { var a = o.assignment; if (a && a.type === 'edict' && a.cmd === cmdKey && a.cid === cid) o.assignment = null; });
+      } else {
+        var o = getInst(oid); if (!o) { toast('\u9e4c\u4e0b\u65e0\u6b64\u4eba\u3002'); return false; }
+        roster().forEach(function (x) { if (x !== o && x.assignment && x.assignment.type === 'edict' && x.assignment.cmd === cmdKey && x.assignment.cid === cid) x.assignment = null; });
+        o.assignment = { type: 'edict', cmd: cmdKey, cid: cid };
+      }
+      save(S());
+      if (getCurrentModalKind() === 'edict') openModal('edict');
+      return true;
+    }
+    function undelegateCommand(cmdKey) { return delegateCommand(cmdKey, null); }
+    function monthlyAffairs() {
+      facilitiesMonthlyYield();
+      var list = roster();
+      list.forEach(function (o) {
+        var a = o.assignment; if (!a || a.type !== 'edict') return;
+        var eff = commandEffect(a.cmd, o); if (!eff) return;
+        applyEdictToState(a.cid, eff, o.name);
+      });
+    }
+    function renderEdictCommands(cid) {
+      if (!cid || cityOwnerOf(cid) !== playerFaction()) return '';
+      var h = '<div class="edict-cmds">';
+      h += '<div class="edict-cmd-h">\ud83d\udcdc \u5185\u653f\u547d\u4ee4\uff08\u4eb2\u884c\u8017\u65f6\u8fb0\uff1b\u6216\u59d4\u4efb\u9e4c\u4e0b\u6b66\u5c06\u6309\u6708\u7763\u529e\uff09</div>';
+      var cmds = edictCmds();
+      Object.keys(cmds).forEach(function (k) {
+        var C = cmds[k];
+        var eff = commandEffect(k, playerActor());
+        var fslots = facSlotsForCmd(cid, k);
+        h += '<div class="edict-cmd">';
+        h += '<button class="btn edict-do" onclick="civilCommand(\'' + k + '\')">' + C.icon + ' ' + C.name + '<br><span class="sub">' + C.cat + '\u00b7' + statName(C.stat) + (C.skill ? '\u00b7\u7279\u6280' : '') + '</span></button>';
+        if (fslots.length) {
+          h += '<div class="edict-fac">';
+          fslots.forEach(function (s) {
+            var fk = facKeyOf(s), safe = fk.replace(/\|/g, '_'), o = facilityOutput(fk);
+            h += '<div class="fac-row">';
+            h += '<div class="fac-top"><b>' + escapeHtml(o.icon) + ' ' + escapeHtml(o.name) + '</b>' + (o.officer ? '<span class="of-tag stew">' + escapeHtml(o.officer.name) + ' \u76d1\u7406</span>' : '<span class="of-tag free">\u672a\u9053</span>') + '</div>';
+            h += '<div class="fac-ctl">\u6c11\u592b ' + o.labor + '/' + o.laborCap + ' <button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',-5)">\u2212</button><button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',5)">\uff0b</button> \u58eb\u5341 ' + o.troops + '/' + o.troopCap + ' <button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',-10)">\u2212</button><button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',10)">\uff0b</button></div>';
+            h += '<div class="fac-out">\u6708\u51fa\uff1a<b>' + o.amount + ' ' + escapeHtml(o.resName) + '</b>' + (o.officer ? '（' + statName(o.stat) + '\u00d7' + (Math.round(o.statMul * 100) / 100) + (o.skill ? (' \uff0b\u6280' + Math.round(o.skill * 100) + '%') : '') + '\uff09' : '（\u672a\u9053\u5b98\uff0c\u4ec5\u8d56\u6c11\u529b\uff09') + '</div>';
+            var opts = '<option value="">\u2014 \u59d4\u4efb \u2014</option>';
+            if (o.officer) opts = '<option value="">\u2715 \u64a4\u59d4\u4efb\uff08\u73b0\u4efb\uff1a' + escapeHtml(o.officer.name) + '\uff09</option>';
+            roster().forEach(function (x) { if (x.assignment && x.assignment.type === 'steward' && x.assignment.fkey === fk) return; opts += '<option value="' + x.id + '">' + escapeHtml(x.name) + '\uff08' + statName(o.stat) + (x.stats[o.stat] || 0) + '\uff09</option>'; });
+            h += '<div class="fac-assign"><select id="facsel_' + safe + '" class="fac-sel">' + opts + '</select><button class="btn sm" onclick="window.dispatchAssign(\'' + fk + '\',document.getElementById(\'facsel_' + safe + '\').value)">\u6d3e\u9063</button>';
+            if (o.officer) h += '<button class="btn sm danger" onclick="window.dispatchRemove(\'' + fk + '\')">\u53ec\u56de</button>';
+            h += '</div></div>';
+          });
+          h += '</div>';
+        } else {
+          var dg = delegateeOf(k, cid);
+          var opts = '<option value="">\u2014 \u59d4\u4efb \u2014</option>';
+          if (dg) opts = '<option value="">\u2715 \u64a4\u59d4\u4efb\uff08\u73b0\u4efb\uff1a' + escapeHtml(dg.name) + '\uff09</option>';
+          roster().forEach(function (o) { var a = o.assignment; if (a && a.type === 'edict' && a.cmd === k && a.cid === cid) return; opts += '<option value="' + o.id + '">' + escapeHtml(o.name) + '\uff08' + statName(C.stat) + (o.stats[C.stat] || 0) + '\uff09</option>'; });
+          h += '<select class="edict-del" onchange="delegateCommand(\'' + k + '\', this.value)">' + opts + '</select>';
+          h += '<div class="edict-pred">' + (dg ? ('\u59d4\u4efb ' + escapeHtml(dg.name) + '\uff1a') : '\u4eb2\u884c\uff1a') + escapeHtml(edictResultText(eff)) + '</div>';
+        }
+        h += '</div>';
+      });
+      h += '</div>';
+      return h;
+    }
+
     return {
       template: template, garrisonOf: garrisonOf, garrisonCommander: garrisonCommander, officerCombat: officerCombat,
       commandBonus: commandBonus, civilBonus: civilBonus, garrisonCivilBonus: garrisonCivilBonus, swornBrothers: swornBrothers, enemyOf: enemyOf, affOf: affOf, loyaltyTick: loyaltyTick, battleSynergy: battleSynergy, taxBonus: taxBonus, orderBonus: orderBonus, yieldBonus: yieldBonus,
@@ -507,7 +665,7 @@
       appoint: appoint, dismiss: dismiss, captureFrom: captureFrom,
       renderOfficerPanel: renderOfficerPanel, renderSearchPanel: renderSearchPanel, renderOfficerHub: renderOfficerHub, renderFactionsPanel: renderFactionsPanel, renderCityGarrison: renderCityGarrison,
       openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel, openOfficerTab: openOfficerTab,
-      renderDispatchPanel: renderDispatchPanel, dispatchAssign: dispatchAssign, dispatchRemove: dispatchRemove, dispatchLabor: dispatchLabor, dispatchTroops: dispatchTroops, facilitiesMonthlyYield: facilitiesMonthlyYield, facilityOutput: facilityOutput
+      dispatchAssign: dispatchAssign, dispatchRemove: dispatchRemove, dispatchLabor: dispatchLabor, dispatchTroops: dispatchTroops, facilitiesMonthlyYield: facilitiesMonthlyYield, facilityOutput: facilityOutput, civilCommand: civilCommand, delegateCommand: delegateCommand, undelegateCommand: undelegateCommand, monthlyAffairs: monthlyAffairs, renderEdictCommands: renderEdictCommands
     };
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.createOfficers;

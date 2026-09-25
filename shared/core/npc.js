@@ -32,6 +32,7 @@ window.LF = window.LF || {};
     var startCombat = ctx.startCombat;
     var genCityGrid = ctx.genCityGrid, cellDisplayType = ctx.cellDisplayType, seededRand = ctx.seededRand;
     var getNPC_COMBAT_MAP = ctx.getNPC_COMBAT_MAP;
+    var renderRoom = ctx.renderRoom;
 
     // ══════════════════════════════════════════════════════════════════════════
     // 城市 NPC 装配器（v20260912d）—— 数据在 shared/data/npc_cards.js
@@ -229,13 +230,14 @@ window.LF = window.LF || {};
     //   本来各占一个按钮的内容统一收进「交谈」，作为话题呈现。
     // ══════════════════════════════════════════════════════════════════════════
     var talkNpc = null;
-    function openTalkPanel(o) {
+    function talkInline(o) {
       if (!o || !o.key) return;
       if (getAskPending()) { toast('先把眼前的话应了。'); return; }
       removeTutChoices();
       if (narrActive()) { toast('……且听他把话说完。'); return; }
       talkNpc = o;
-      openModal('talk', { npc: o });
+      npcSpeak(o, null);
+      renderTalkActions(o);
     }
     // 每天每话题首次聊起 +1 好感（闲聊不刷，防原地刷好感）
     function npcTopicOnce(o, topicId) {
@@ -280,80 +282,45 @@ window.LF = window.LF || {};
         return '「粮在囤里，壮士自己量。」';
       }
     };
-    function talkTopicBtns(o) {
-      var tp = o.card.topics || [], h = '';
-      for (var i = 0; i < tp.length; i++) {
-        h += '<button class="talk-btn" data-topic="' + tp[i].id + '">'
-          + '<span class="tb-ic">' + (tp[i].icon || '💬') + '</span><span class="tb-lb">' + tp[i].label + '</span></button>';
-      }
-      return h;
-    }
-    function talkActBtns(o) {
-      var ac = o.card.acts || [], h = '';
-      for (var i = 0; i < ac.length; i++) {
-        h += '<button class="talk-btn talk-btn-act" data-topic-act="' + ac[i].id + '" title="' + (ac[i].tip || '') + '">'
-          + '<span class="tb-ic">' + (ac[i].icon || '·') + '</span><span class="tb-lb">' + ac[i].label + '</span></button>';
-      }
-      return h;
-    }
-    function talkFavorHTML(o) {
-      var v = npcFavor(o.key), t = npcFavorTier(v);
-      return '<div class="talk-fav ' + t.cls + '">'
-        + '<div class="tf-bar"><i style="width:' + npcFavorPct(v) + '%"></i></div>'
-        + '<div class="tf-lb">' + t.name + ' · ' + (v > 0 ? '+' : '') + v + '</div></div>';
-    }
-    function renderTalkPanel(o) {
-      if (!o) return '<h3>交 谈</h3><p>未指定对象。</p>';
-      var topics = talkTopicBtns(o), acts = talkActBtns(o);
-      return '<div class="talk-panel">'
-        + '<div class="talk-head">'
-        +   '<span class="talk-av">' + (o.icon || '👤') + '</span>'
-        +   '<div class="talk-id"><div class="talk-nm">' + o.name + '</div>'
-        +     '<div class="talk-role">' + (o.role || '') + '</div></div>'
-        +   '<div class="talk-fav-wrap">' + talkFavorHTML(o) + '</div>'
-        + '</div>'
-        + '<div class="talk-line" id="talk-line">' + npcSmallTalk(o) + '</div>'
-        + (topics ? '<div class="talk-sec">话题</div><div class="talk-grid">' + topics + '</div>' : '')
-        + (acts ? '<div class="talk-sec">事务</div><div class="talk-grid">' + acts + '</div>' : '')
-        + '<div class="talk-foot">'
-        +   '<button class="talk-foot-btn" id="talk-observe">👁 观察</button>'
-        +   '<button class="talk-foot-btn" id="talk-give">🎁 给予</button>'
-        +   '<button class="talk-foot-btn" id="talk-close">告 辞</button>'
-        + '</div>'
+    function renderTalkActions(o) {
+      var acts = document.getElementById('actions'); if (!acts) return;
+      var tp = (o.card && o.card.topics) || [], ac = (o.card && o.card.acts) || [], h = '';
+      h += '<div class="talk-inline">';
+      h += '<div class="tl-head"><span class="tl-name">' + o.name + (o.role ? '·' + o.role : '') + '</span>'
+        + '<span class="tl-fv">' + npcFavorTier(o.key) + ' · 好感' + npcFavorPct(o.key) + '%</span></div>';
+      h += '<div class="talk-grid">';
+      for (var i = 0; i < tp.length; i++) h += '<button class="talk-btn" data-topic="' + tp[i].id + '"><span class="tb-ic">' + (tp[i].icon || '💬') + '</span><span class="tb-lb">' + tp[i].label + '</span></button>';
+      for (var j = 0; j < ac.length; j++) h += '<button class="talk-btn talk-btn-act" data-topic-act="' + ac[j].id + '" title="' + (ac[j].tip || '') + '"><span class="tb-ic">' + (ac[j].icon || '·') + '</span><span class="tb-lb">' + ac[j].label + '</span></button>';
+      h += '</div><div class="talk-foot">'
+        + '<button class="talk-foot-btn" id="talk-observe">👁 观察</button>'
+        + '<button class="talk-foot-btn" id="talk-give">🎁 给予</button>'
+        + '<button class="talk-foot-btn" id="talk-close">告 辞</button>'
         + '</div>';
-    }
-    function talkSetLine(txt) {
-      var el = document.getElementById('talk-line'); if (el) el.textContent = txt || '';
-      var box = document.querySelector('.talk-fav-wrap');
-      if (box && talkNpc) box.innerHTML = talkFavorHTML(talkNpc);
-    }
-    function bindTalkPanel() {
-      var o = talkNpc; if (!o) return;
-      var card = document.getElementById('modal-card'); if (!card) return;
-      card.querySelectorAll('[data-topic]').forEach(function (btn) {
+      h += '</div>';
+      acts.innerHTML = h;
+      acts.querySelectorAll('[data-topic]').forEach(function (btn) {
         btn.onclick = function () {
           var id = btn.getAttribute('data-topic');
           var t = (o.card.topics || []).filter(function (x) { return x.id === id; })[0];
-          talkSetLine(npcSpeak(o, t));
+          npcSpeak(o, t);
+          renderTalkActions(o);
         };
       });
-      card.querySelectorAll('[data-topic-act]').forEach(function (btn) {
+      acts.querySelectorAll('[data-topic-act]').forEach(function (btn) {
         btn.onclick = function () {
           var id = btn.getAttribute('data-topic-act');
           var a = (o.card.acts || []).filter(function (x) { return x.id === id; })[0];
           var impl = a && a.engine && NPC_ACT_IMPL[a.engine];
           var said = impl ? impl(o) : '';
           if (said === '' && !impl) { toast('此事此刻做不得。'); return; }
-          talkSetLine(said || npcSmallTalk(o));
-          renderStatus();
+          log(npcTalkPrefix(o) + (said || npcSmallTalk(o)), 'npc', o.name);
+          save(S()); renderStatus();
+          renderTalkActions(o);
         };
       });
-      var ob = document.getElementById('talk-observe');
-      if (ob) ob.onclick = function () { closeModal(); observeNpc(o); };
-      var gv = document.getElementById('talk-give');
-      if (gv) gv.onclick = function () { openGivePanel(o); };
-      var cl = document.getElementById('talk-close');
-      if (cl) cl.onclick = function () { closeModal(); log(npcTalkPrefix(o) + '你与之拱手作别。', 'sys'); };
+      var ob = document.getElementById('talk-observe'); if (ob) ob.onclick = function () { observeNpc(o); };
+      var gv = document.getElementById('talk-give'); if (gv) gv.onclick = function () { openGivePanel(o); };
+      var cl = document.getElementById('talk-close'); if (cl) cl.onclick = function () { talkNpc = null; log(npcTalkPrefix(o) + '你与之拱手作别。', 'sys'); renderRoom(S().room); };
     }
 
     return {
@@ -364,10 +331,8 @@ window.LF = window.LF || {};
       npcSmallTalk: npcSmallTalk, npcHourOK: npcHourOK, npcCellPool: npcCellPool,
       npcCountOf: npcCountOf, npcEligible: npcEligible, npcSlotsHere: npcSlotsHere, npcMake: npcMake,
       npcHostileActs: npcHostileActs, buildCityCellNpcs: buildCityCellNpcs,
-      openTalkPanel: openTalkPanel, npcTopicOnce: npcTopicOnce, npcTalkPrefix: npcTalkPrefix,
+      talkInline: talkInline, npcTopicOnce: npcTopicOnce, npcTalkPrefix: npcTalkPrefix,
       npcSpeak: npcSpeak, NPC_ACT_IMPL: NPC_ACT_IMPL,
-      talkTopicBtns: talkTopicBtns, talkActBtns: talkActBtns, talkFavorHTML: talkFavorHTML,
-      renderTalkPanel: renderTalkPanel, talkSetLine: talkSetLine, bindTalkPanel: bindTalkPanel,
       getTalkNpc: function () { return talkNpc; }
     };
   };
