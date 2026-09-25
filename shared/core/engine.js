@@ -3409,7 +3409,12 @@
       fan:'0 0', xizhou:'33.333 0', mucai:'66.667 0', shitiao:'100 0',
       futou:'0 33.333', tiekuangshi:'33.333 33.333', roubao:'66.667 33.333', caoyao:'100 33.333',
       yeguo:'0 66.667', mutou:'33.333 66.667', zhuzi:'66.667 66.667', tiekuai:'100 66.667',
-      rope:'0 100', bumu:'33.333 100', chutou:'66.667 100'
+      rope:'0 100', bumu:'33.333 100', chutou:'66.667 100',
+      // v20260924z12 新增 21 项（B 水墨批次：食饵/矿物/工具/药剂/竹简）——z11 起注册即直读 items48 独立图
+      yecai:'0 0', jiu:'0 0', fish:'0 0', fish_dried:'0 0', dou:'0 0', douzhou:'0 0',
+      zhujian:'0 0', caizi:'0 0', douzhong:'0 0', tongkuang:'0 0', yinkuang:'0 0', xuatie:'0 0',
+      chutu:'0 0', tiefu:'0 0', pickaxe:'0 0', muti:'0 0', jinchuang:'0 0', yaofen:'0 0',
+      tangyao:'0 0', sleep_drug:'0 0', shuidai:'0 0'
     } };
   var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){

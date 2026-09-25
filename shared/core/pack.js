@@ -89,7 +89,7 @@
   // 装备栏图（人形 + 六装备槽 + 背包槽）：独立成函数，供 renderPack 与装备后实时刷新复用
   function renderEquipFigure(){
     // v20260924z8：人形剪影精修 —— 古风武将写意（发髻/交领衣袍/腰带/斜臂），赭石棕色调与整体美术统一
-    var sil = '<img class="equip-bg" src="assets/equip/equip_bg_a.webp" alt="" crossorigin="anonymous">';
+    var sil = '<img class="equip-sil" src="assets/equip/equip_silu.png" alt="" crossorigin="anonymous"><div class="equip-fade"></div>';
     var eqHtml='', bagSlot='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
       if(slot==='bag') return;            // 背包槽独立于六装备槽，单独放在人形下方

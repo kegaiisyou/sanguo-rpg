@@ -17,7 +17,14 @@
     '水井':'icn-shuijing','乱石堆':'icn-luanshi','记工木牌':'icn-mumu','正帐':'icn-zhangpeng',
     '中军帐':'icn-zhangpeng','营帐':'icn-zhangpeng','矿坑':'icn-kuang','矿脉':'icn-kuang',
     '岩壁矿脉':'icn-kuang','矿洞':'icn-kuang','仓库':'icn-cangku','库房':'icn-cangku',
-    '进入仓库':'icn-cangku'
+    '进入仓库':'icn-cangku',
+    // v20260924z12：场景实体物 B 水墨套（assets/icons/scene48 → shared/img/sm_icn-*.png）
+    '灶台':'icn-zaotai','药柜':'icn-yaogui','捣药罐':'icn-daoyao','炼药台':'icn-liantiao',
+    '熬药壶':'icn-aoyao','药炉':'icn-yulu','木人桩':'icn-murenzhuang','木作台':'icn-muzuotai',
+    '砖窑':'icn-zhuanyao','熔炉':'icn-ronglu','铁料堆':'icn-tieliaodui','立栅':'icn-lizha',
+    '夯土基':'icn-hangtuji','简牍架':'icn-jandujia','香案':'icn-xiangan','钱柜':'icn-qianqui',
+    '酒瓮':'icn-jiuweng','蒸笼':'icn-zhenglong','菜案':'icn-caian','织机':'icn-zhiji',
+    '染缸':'icn-rangang','镖旗':'icn-biaoqi','马厩':'icn-majiu','骰盆':'icn-toupen'
   };
   // 通用 emoji → 图标（天气、门、常见物）
   var BY_EMOJI={
