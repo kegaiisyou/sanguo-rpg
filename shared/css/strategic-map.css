@@ -9,7 +9,17 @@
   overflow: hidden;
   border-radius: 10px;
   border: 1px solid rgba(120,90,40,.5);
-  background: #e7dcc0;
+  /* v20260927b：宣纸底 + 洒金麻点纹理（P2 美术深化，纯 CSS 多层渐变，零图片零成本） */
+  background:
+    radial-gradient(ellipse at 18% 12%, rgba(255,250,236,.55), transparent 58%),
+    radial-gradient(ellipse at 82% 88%, rgba(255,244,220,.42), transparent 52%),
+    radial-gradient(rgba(120,96,58,.05) 1px, transparent 1.2px),
+    radial-gradient(rgba(120,96,58,.04) 1px, transparent 1.2px),
+    repeating-linear-gradient(0deg, rgba(90,70,40,.016) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(90,70,40,.014) 0 1px, transparent 1px 4px),
+    #e7dcc0;
+  background-size: auto, auto, 7px 7px, 11px 11px, auto, auto, auto;
+  background-position: 0 0, 0 0, 0 0, 3px 5px, 0 0, 0 0, 0 0;
   touch-action: none;
   box-shadow: inset 0 0 40px rgba(40,30,15,.15);
 }
@@ -18,7 +28,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #e7dcc0;
+  background: transparent;
   touch-action: none;
 }
 
@@ -68,17 +78,18 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #7a1f1f;
-  border: 1.5px solid #2a1208;
-  box-shadow: 0 0 0 1.5px rgba(231,220,192,0.85);
-  opacity: 0.85;
+  /* v20260927b：朱砂水墨点——中心实、外缘墨晕（P2 美术深化） */
+  background: radial-gradient(circle, #8a2020 0 42%, rgba(138,32,32,.78) 58%, rgba(138,32,32,0) 74%);
+  border: none;
+  box-shadow: 0 0 0 1px rgba(42,18,8,.3), 0 1px 2px rgba(42,18,8,.28);
+  opacity: 0.9;
   transition: opacity .18s, transform .18s;
 }
 .strategic-city-dot.capital {
   width: 11px;
   height: 11px;
-  background: #b8860b;
-  border-color: #3a2a08;
+  background: radial-gradient(circle, #b8860b 0 42%, rgba(184,134,11,.78) 58%, rgba(184,134,11,0) 74%);
+  box-shadow: 0 0 0 1px rgba(58,42,8,.32), 0 1px 2px rgba(58,42,8,.28);
 }
 .strategic-city-name {
   position: absolute;
@@ -194,6 +205,25 @@
   text-shadow: 0 0 2px #fff6dd, 0 0 3px #fff6dd;
 }
 .g-goal .sg-pill {
+  background: rgba(138,32,32,0.92);
+  border-color: #5c1414;
+  color: #f6ead0;
+  font-weight: 700;
+}
+/* 治下之城：朱红「据」字方章（P1：据城任务成果上图） */
+.g-hold .sg-fig {
+  width: 20px;
+  height: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f6ead0;
+  background: #8a2020;
+  border: 1.5px solid #f6ead0;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(138,32,32,.5), 0 1px 3px rgba(60,20,20,.4);
+  font-family: "STKaiti","KaiTi","楷体",serif;
+}
+.g-hold .sg-pill {
   background: rgba(138,32,32,0.92);
   border-color: #5c1414;
   color: #f6ead0;
@@ -407,6 +437,243 @@
   font-size: 14px;
   color: #6b5a3c;
   z-index: 30;
+  font-family: "STKaiti","KaiTi","楷体",serif;
+}
+.strategic-loading::before {
+  content: '';
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(90,70,35,.18);
+  border-top-color: #6b5230;
+  animation: sm-ink-spin .9s linear infinite;
+}
+@keyframes sm-ink-spin { to { transform: rotate(360deg); } }
+
+/* 河流名字标签（P1 新增：黄河/长江/淮河/汉水） */
+.strategic-river-label {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  font-family: "STKaiti","KaiTi","楷体",serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3f6480;
+  letter-spacing: 2px;
+  text-shadow: 0 0 4px rgba(245,235,215,0.95), 0 0 2px rgba(245,235,215,0.9);
+  white-space: nowrap;
+  opacity: 0;
+  z-index: 3;
+}
+
+/* 寻踪（P1 新增）：搜索州郡/城池/关隘 */
+.strategic-search {
+  position: absolute;
+  right: 64px;
+  top: 10px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.strategic-search-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  color: #3a2c18;
+  background: rgba(235,224,198,0.92);
+  border: 1px solid #b7a47a;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 2px 2px 6px rgba(60,44,20,.18);
+}
+.strategic-search-btn svg { display: block; width: 22px; height: 22px; }
+.strategic-search-btn:active { transform: translateY(1px); }
+.strategic-search-panel {
+  margin-top: 6px;
+  width: 248px;
+  max-height: 300px;
+  background: rgba(240,231,208,0.97);
+  border: 1px solid #b7a47a;
+  border-radius: 8px;
+  box-shadow: 3px 3px 12px rgba(60,44,20,.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.strategic-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: none;
+  border-bottom: 1px solid #c9b67f;
+  background: transparent;
+  font-family: "STKaiti","KaiTi","楷体",serif;
+  font-size: 14px;
+  color: #2a1a0a;
+  outline: none;
+}
+.strategic-search-input::placeholder { color: #9a8a68; }
+.strategic-search-results {
+  overflow-y: auto;
+  max-height: 236px;
+}
+.strategic-search-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px dashed rgba(150,120,70,.25);
+}
+.strategic-search-item:hover { background: rgba(200,164,90,0.22); }
+.strategic-search-item .ss-type {
+  flex: none;
+  font-size: 10px;
+  color: #fff;
+  background: #8a6a3a;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: sans-serif;
+}
+.strategic-search-item .ss-name { font-family: "STKaiti","KaiTi","楷体",serif; font-size: 14px; font-weight: 700; color: #2a1a0a; }
+.strategic-search-item .ss-sub { flex: 1; text-align: right; font-size: 11px; color: #8a7a5c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.strategic-search-empty { padding: 12px; font-size: 12px; color: #8a7a5c; text-align: center; }
+
+/* 百科卡（P1 升级）：图鉴质感 */
+.strategic-info {
+  width: 268px;
+  background: rgba(240,231,208,0.96);
+  border: 1px solid #b7a47a;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(120,90,40,.18), 3px 3px 14px rgba(60,44,20,.28);
+}
+.strategic-info-h {
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+.strategic-info-title {
+  font-family: "STKaiti","KaiTi","楷体",serif;
+  font-size: 19px;
+  letter-spacing: 1px;
+  color: #241a08;
+}
+.strategic-info-h .seal {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+}
+.strategic-info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 5px;
+}
+.strategic-info-tags span {
+  font-size: 10.5px;
+  color: #6e5238;
+  border: 1px solid #c9b67f;
+  border-radius: 8px;
+  padding: 1px 7px;
+  background: rgba(255,250,235,0.6);
+}
+.strategic-info-b {
+  font-family: "STKaiti","KaiTi","楷体",serif;
+  font-size: 13px;
+  line-height: 1.75;
+  color: #4a3a22;
+  border-top: 1px dashed rgba(150,120,70,.4);
+  padding-top: 6px;
+}
+.strategic-info-meta {
+  margin-top: 5px;
+  font-size: 11px;
+  color: #8a6a3a;
+  letter-spacing: .5px;
+}
+/* v20260927d：百科卡实时图鉴 —— 名产 / 古迹 / 时评 行 */
+.strategic-info-goods, .strategic-info-lmk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  font-size: 11.5px;
+}
+.strategic-info-goods i, .strategic-info-lmk i {
+  font-style: normal;
+  font-size: 10px;
+  color: #8a5a28;
+  border: 1px solid rgba(138,90,40,.5);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-right: 2px;
+  background: rgba(255,250,235,.55);
+  letter-spacing: 1px;
+}
+.strategic-info-goods .sg-goods {
+  color: #6e3a10;
+  border: 1px solid rgba(160,110,50,.4);
+  border-radius: 7px;
+  padding: 1px 6px;
+  background: rgba(255,246,225,.5);
+  cursor: help;
+}
+.strategic-info-lmk .sg-lmk {
+  color: #3a5a5a;
+  border: 1px solid rgba(70,110,110,.35);
+  border-radius: 7px;
+  padding: 1px 6px;
+  background: rgba(235,246,244,.5);
+  cursor: help;
+}
+.strategic-info-verdict {
+  margin-top: 6px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #7a5a28;
+  font-family: "STKaiti","KaiTi","楷体",serif;
+  border-top: 1px dashed rgba(150,120,70,.35);
+  padding-top: 5px;
+}
+.strategic-info .go-btn {
+  display: inline-block;
+  margin-top: 9px;
+  padding: 5px 14px;
+  background: #8a2020;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-family: "STKaiti","KaiTi","楷体",serif;
+  letter-spacing: 1px;
+}
+.strategic-info .go-btn:hover { background: #a83030; }
+
+/* 关隘强化（P1）：虎牢关等名关——方形城门符号 + 醒目名字 */
+.strategic-city.place-loc.p-pass .strategic-city-dot,
+.strategic-city.place-loc.p-fort .strategic-city-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: #c14b12;
+  border: 1.5px solid #571c04;
+  box-shadow: inset 0 0 0 2px rgba(255,236,200,.35), 0 0 0 1.5px rgba(231,220,192,0.9);
+}
+.strategic-city.place-loc.p-pass .strategic-city-name,
+.strategic-city.place-loc.p-fort .strategic-city-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #8a3a08;
+  letter-spacing: 1px;
 }
 
 /* 野外地点/关卡/副本点位：方形色点（区别于城池圆点），与城点同节奏随缩放淡入 */

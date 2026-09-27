@@ -26290,6 +26290,15 @@ function bindCreate(){
       var lc=(LF.CITIES||{}).luoyang;
       if(lc && lc.pos) marks.push({type:'goal', pos:lc.pos, cid:'luoyang', label:'目标 · 赴洛阳'});
     }
+    // 治下之城（据城而定/扫平群雄的成果）：朱红「据」章
+    var held = state && state.ruledCities;
+    if(held && held.length){
+      var C=LF.CITIES||{};
+      held.forEach(function(cid){
+        var c=C[cid];
+        if(c && c.pos) marks.push({type:'hold', pos:c.pos, cid:cid, label:'据 · '+c.name});
+      });
+    }
     return marks;
   }
   function strategicMapMarks(){
@@ -26701,6 +26710,21 @@ function bindCreate(){
 
   // ── 城市房间由 cities.js 程序合成（rooms.js 不再手写）；山河志州治节点由 cities.js+coords 自动派生 ──
   registerCityRooms();
+
+  // ── 统一按压反馈（P1）：手机端点击震动 + 全局按压态。
+  //  按钮类（button/.btn/.act/.op-btn）按下时轻震 8ms；滑块/输入框不触发。
+  //  已有零散 :active 缩放保留，这里只补「无感→有感」的触觉层。
+  document.addEventListener('pointerdown', function(e){
+    try {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var hit = t.closest('button, .btn, .act, .op-btn, .mv-tab, .mv-exit, .sheet-btn, .obj-goto, .sect-open, .mart-chip');
+      if (!hit) return;
+      if (hit.disabled || hit.classList.contains('disabled')) return;
+      if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
+    } catch (err) {}
+  }, true);
 
   // ── 行军系统：按路网在相邻地点间生成「郊野」骨架，再连出入口（须先有 genCityGrid 等游戏函数）──
   if(LF.Travel){

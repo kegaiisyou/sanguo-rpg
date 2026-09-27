@@ -172,7 +172,7 @@
   //     hidden      true 则只供 API 用、不出按钮
   // 注册后按钮组与图例自动带上该层 —— 新增「灾情 / 军情 / 屯田 / 关税」等分层
   //   只需再注册一条，无需改渲染代码。
-  let overlayMode = 'warlord';
+  let overlayMode = 'commandery';   // 默认郡面填色：打开山河志即见郡国分区（可点「势力」一键切回当世归属）
   let customOverlay = null;
   let _applyOverlay = null;
   let _legendCtx = { cmd: [], fac: [] };   // 当前渲染的面属性（供 legend 统计）
@@ -195,15 +195,16 @@
   }
 
   const FACTION_FILL = {
-    wei:  'rgba(80,130,220,0.42)',
-    shu:  'rgba(60,190,90,0.40)',
-    wu:   'rgba(220,70,60,0.40)',
-    contested: 'rgba(220,170,40,0.42)',
-    none: 'rgba(160,150,140,0.26)',
+    wei:  'rgba(105,135,190,0.22)',
+    shu:  'rgba(100,160,110,0.20)',
+    wu:   'rgba(185,95,80,0.20)',
+    contested: 'rgba(200,160,90,0.22)',
+    none: 'rgba(150,140,125,0.15)',
   };
+  // v20260927b：降饱和、低对比的水墨淡彩（P2 美术深化）——旧值 hsla(h,45%,55%,.32) 色相浓、块面抢眼
   function commanderyTint(id) {
     let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
-    return `hsla(${h},45%,55%,0.32)`;
+    return `hsla(${h},24%,60%,0.16)`;
   }
 
   // 图例：按属主统计郡面数（默认层）
@@ -253,11 +254,12 @@
     const L = currentMapLayer();
     return L && L.fillOf ? L.fillOf(p) : 'rgba(150,120,80,0.06)';
   }
-  // 河流（手绘墨线）
+  // 河流（手绘墨线；坐标为近似示意，P1 标注：渲染墨线 + 名字标签）
   const RIVERS = [
     { name:'黄河', width:3.0, color:'#3f6480', pts:[[100,35],[102,36],[104,35.4],[106,35],[108,34.9],[110,35.1],[112,35],[114,35.6],[116,36.2],[118,38],[119.5,40]] },
     { name:'长江', width:3.6, color:'#3a5f7d', pts:[[100,32],[103,31],[106,30.5],[108,30],[110,30],[112,29.6],[114,29.5],[117,30],[119,31.4],[121,31.6]] },
     { name:'淮河', width:2.0, color:'#4a6b76', pts:[[108,33],[111,33],[114,33],[117,33],[119,32.8]] },
+    { name:'汉水', width:2.0, color:'#4a6b76', pts:[[107,33],[108.5,32.7],[110,32.4],[111.5,32.2],[112.2,32.0]] },
   ];
 
   // 道路样式：按类型着色（官道/山道/水道/关隘），风险越高越偏红（提示贼寇/战乱/难行）
@@ -332,6 +334,11 @@
         desc: c.desc || c.name,
         comm: c.comm != null ? c.comm : null, // 行政区名(郡/国/尹)，与城点显示名 name 解耦
         pos: c.pos, // [lng, lat]
+        // v20260927d：百科卡实时图鉴补传字段（名产/古迹/城况四维）
+        goods: c.goods || [],
+        landmarks: c.landmarks || [],
+        pop: c.pop, order: c.order, commerce: c.commerce, agri: c.agri,
+        wall: c.wall, garrison: c.garrison,
       });
     }
     return cities;
@@ -347,6 +354,7 @@
     // 清理容器
     container.innerHTML = '';
     container.classList.add('strategic-map-wrap');
+    let searchIndex = [];   // 寻踪索引（P1：州/郡/城/关 → 定位 + 百科卡）；render() 内填充
 
     // 创建结构
     const viewport = document.createElement('div');
@@ -384,6 +392,13 @@
         <div class="strategic-overlay-ctrl"><!-- 分层按钮由 MAP_LAYERS 注册表动态生成 --></div>
       </div>
       <div class="strategic-legend" id="sm-legend" style="display:none"></div>
+      <div class="strategic-search">
+        <button class="strategic-search-btn" id="sm-search-btn" title="寻踪：搜索州郡、城池、关隘" aria-label="搜索地点"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></button>
+        <div class="strategic-search-panel" id="sm-search-panel" style="display:none">
+          <input class="strategic-search-input" id="sm-search-input" placeholder="搜州郡、城池、关隘…" autocomplete="off" spellcheck="false" />
+          <div class="strategic-search-results" id="sm-search-results"></div>
+        </div>
+      </div>
       <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>
     `;
     container.appendChild(ui);
@@ -507,10 +522,17 @@
     let cityMarks = [];
     let placeMarks = [];      // 野外地点/关卡/副本点位（LF.PLACES 非 city 条目）
     let guideMarks = [];      // 引导标记：当前位置 / 目标打点
-  let officerMarks = [];     // 武将标记（v20260926b）：驻城武将落点
+    let officerMarks = [];     // 武将标记（v20260926b）：驻城武将落点
     let locateGuide = null;   // 「定位到我」动画入口
     let commanderyLabelsDom = [];
     let stateLabelsDom = [];
+    let riverLabelsDom = [];   // 河流名字标签（P1：黄河/长江/淮河/汉水标注）
+    let curK = 2.6;            // 当前缩放 k（applyTransform 更新；供碰撞优先级按 LOD 切换）
+    // 视角记忆（P1）：localStorage 保存/恢复用户缩放与平移（回访山河志不重找）
+    let _viewSaveT = null;
+    const VIEW_KEY = 'sg_map_view_v1';
+    function saveView(t) { try { if (!t) return; localStorage.setItem(VIEW_KEY, JSON.stringify({ x: t.x, y: t.y, k: t.k, ts: Date.now() })); } catch (e) {} }
+    function loadView() { try { const s = localStorage.getItem(VIEW_KEY); if (!s) return null; const o = JSON.parse(s); if (!o || !isFinite(o.k)) return null; return o; } catch (e) { return null; } }
     let provinceLayer = null;
     let commanderyLayer = null;
     let factionFillLayer = null;
@@ -695,6 +717,30 @@
           .attr('opacity', isTrav ? 1 : st.opacity);
       });
 
+      // 河流层（手绘墨线 + 名字标签，P1 新增标注；跟随 root 缩放，名字在 overlay 内跟随 transform）
+      const riverLayer = root.append('g').attr('id', 'sm-rivers').attr('pointer-events', 'none');
+      riverLabelsDom = [];
+      RIVERS.forEach(r => {
+        const pts = r.pts.map(c => projection(c)).filter(p => p && isFinite(p[0]) && isFinite(p[1]));
+        if (pts.length < 2) return;
+        const lineGen = d3.line().x(d => d[0]).y(d => d[1]);
+        riverLayer.append('path')
+          .attr('d', lineGen(pts))
+          .attr('fill', 'none')
+          .attr('stroke', r.color)
+          .attr('stroke-width', r.width)
+          .attr('stroke-linecap', 'round')
+          .attr('stroke-linejoin', 'round')
+          .attr('vector-effect', 'non-scaling-stroke')
+          .attr('opacity', 0.55);
+        const mid = pts[Math.floor(pts.length / 2)];
+        const el = document.createElement('div');
+        el.className = 'strategic-river-label';
+        el.textContent = r.name;
+        overlay.appendChild(el);
+        riverLabelsDom.push({ el, baseX: mid[0], baseY: mid[1] });
+      });
+
       // 应用某一分层：切换显示的面层、按层定义上色、同步按钮与图例。
       //   全部分层来自 LF.MapLayers 注册表 —— 新增分层无需改这里。
       _applyOverlay = function(mode) {
@@ -810,7 +856,29 @@
         return { el: wrap, dot, nm, base: projection(p.pos), p };
       });
 
-      // 武将标记（v20260926b）：驻城武将落点于地图，可点开详情
+      // 引导标记：当前位置(you) / 目标打点(goal)。由游戏层 opts.marks 传入，
+      // 只做纯视觉叠加（pointer-events:none），不遮挡下方城点的点击传送。
+      guideMarks = [];
+      (opts.marks || []).forEach(m => {
+        if (!m || !m.pos || !m.pos.length) return;
+        const p = projection(m.pos);
+        if (!p || !isFinite(p[0]) || !isFinite(p[1])) return;
+        const isGoal = m.type === 'goal';
+        const isHold = m.type === 'hold';
+        const wrap = document.createElement('div');
+        wrap.className = 'strategic-guide ' + (isGoal ? 'g-goal' : (isHold ? 'g-hold' : 'g-you'));
+        const fig = document.createElement('div');
+        fig.className = 'sg-fig';
+        fig.textContent = isGoal ? '⚑' : (isHold ? '据' : '');   // 目标 ◆ / 治下之城「据」/ 当前位置仅脉冲点
+        const pill = document.createElement('div');
+        pill.className = 'sg-pill';
+        pill.textContent = m.label || m.name || (isGoal ? '目标' : (isHold ? '治下' : '当前所在'));
+        wrap.appendChild(fig);
+        wrap.appendChild(pill);
+        overlay.appendChild(wrap);
+        guideMarks.push({ el: wrap, fig, pill, type: m.type || 'you', base: p });
+      });
+      // 武将标记（v20260926b）：驻城武将落点于地图，可点开详情（远程版移植）
       officerMarks = [];
       try {
         var _pl = (LF.PERSONA && LF.PERSONA.listRegistered) ? LF.PERSONA.listRegistered() : [];
@@ -842,27 +910,6 @@
         });
       } catch(e){}
 
-      // 引导标记：当前位置(you) / 目标打点(goal)。由游戏层 opts.marks 传入，
-      // 只做纯视觉叠加（pointer-events:none），不遮挡下方城点的点击传送。
-      guideMarks = [];
-      (opts.marks || []).forEach(m => {
-        if (!m || !m.pos || !m.pos.length) return;
-        const p = projection(m.pos);
-        if (!p || !isFinite(p[0]) || !isFinite(p[1])) return;
-        const isGoal = m.type === 'goal';
-        const wrap = document.createElement('div');
-        wrap.className = 'strategic-guide ' + (isGoal ? 'g-goal' : 'g-you');
-        const fig = document.createElement('div');
-        fig.className = 'sg-fig';
-        fig.textContent = isGoal ? '⚑' : '';
-        const pill = document.createElement('div');
-        pill.className = 'sg-pill';
-        pill.textContent = m.label || m.name || (isGoal ? '目标' : '当前所在');
-        wrap.appendChild(fig);
-        wrap.appendChild(pill);
-        overlay.appendChild(wrap);
-        guideMarks.push({ el: wrap, fig, pill, type: m.type || 'you', base: p });
-      });
       // 有引导标记时，底栏提示补一行读图说明
       if (guideMarks.length) {
         const hint = ui.querySelector('.strategic-hint');
@@ -870,6 +917,7 @@
           const parts = ['拖拽平移 · 滚轮缩放 · 点击城池前往'];
           if (guideMarks.some(o => o.type === 'you')) parts.push('◎ 你在此');
           if (guideMarks.some(o => o.type === 'goal')) parts.push('⚑ 目标');
+          if (guideMarks.some(o => o.type === 'hold')) parts.push('据 治下之城');
           hint.innerHTML = parts.join('　');
         }
       }
@@ -1039,6 +1087,51 @@
         stateLabelsDom.push({ el, name: stateName, baseX: c[0], baseY: c[1] });
       });
 
+      // ── 寻踪索引（P1：搜州/郡/城/关 → 定位 + 百科卡）──
+      searchIndex = [];
+      provFeats.forEach(f => {
+        const nm = f.properties.state;
+        const o = stateLabelsDom.find(x => x.name === nm);
+        if (!o) return;
+        const d = fc.features.find(x => x.properties.name === nm);
+        searchIndex.push({
+          type: '州', name: nm, sub: '十三州',
+          x: o.baseX, y: o.baseY,
+          show: () => { flyTo(o.baseX, o.baseY, 2.2); if (d) selectState({ properties: d.properties }); }
+        });
+      });
+      commanderyLabelsDom.forEach(o => {
+        const f2 = cmdFeats.find(ff => {
+          const _c = cityOfProps(ff.properties);
+          return _c && _c.comm === o.name;
+        });
+        const d2 = f2 ? fc.features.find(x => x.properties.name === f2.properties.name) : null;
+        searchIndex.push({
+          type: '郡', name: o.name, sub: (f2 ? f2.properties.state : ''),
+          x: o.baseX, y: o.baseY,
+          show: () => { flyTo(o.baseX, o.baseY, 3.2); if (d2) selectState({ properties: d2.properties }); }
+        });
+      });
+      cities.forEach(c => {
+        const m = cityMarks.find(x => x.city && x.city.id === c.id);
+        if (!m) return;
+        searchIndex.push({
+          type: '城', name: c.name, sub: [c.comm, c.state].filter(Boolean).join(' · '),
+          x: m.base[0], y: m.base[1],
+          show: () => { flyTo(m.base[0], m.base[1], 3.4); selectCity(c); }
+        });
+      });
+      PLACE_POINTS.forEach(({ id, p }) => {
+        const m = placeMarks.find(x => x.p && x.p.id === id);
+        if (!m) return;
+        const meta = PLACE_KIND_META[p.kind] || { label: '地点', color: '#55703c' };
+        searchIndex.push({
+          type: meta.label, name: p.name, sub: p.state || '',
+          x: m.base[0], y: m.base[1],
+          show: () => { flyTo(m.base[0], m.base[1], 3.4); selectPlace(p, meta, (p.kind === 'dungeon') ? id + '@entrance' : id); }
+        });
+      });
+
       // 郡名标签（投影质心定位，拉近时淡入；文案用与城点解耦的行政区名 comm，
       // 对照史书为郡/国/尹等名号；非郡级区域（新野、夷洲 comm 为空）不设郡大标，仅以城点示之）
       commanderyLabelsDom = [];
@@ -1143,6 +1236,46 @@
         }
       }
 
+      // ── 标签碰撞避让（P1-3）：州/郡/城/地点/引导标记统一排布 ──
+      // 优先级：引导=州名 > 郡名 > 城名/特殊点/地点。重叠时低优先级标签隐藏（点仍可点），
+      // 随缩放平移实时重算（rAF 节流）；LOD 已淡出的标签不参与占位。
+      let _collideRaf = 0;
+      function resolveLabelCollisions() {
+        if (_collideRaf) return;
+        _collideRaf = requestAnimationFrame(function () { _collideRaf = 0; runLabelCollision(); });
+      }
+      function runLabelCollision() {
+        const items = [];
+        const push = (el, pri) => { if (el) items.push({ el, pri }); };
+        // 动态优先级（P1 LOD 分级）：微观(k≥3.6)城名上位、郡名让位；中观郡名>关隘名>城名；
+        //   已按 LOD 淡出的标签 opacity≈0，下方会被直接隐藏，不占位。
+        const micro = curK >= 3.6;
+        guideMarks.forEach(o => push(o.pill, 3));
+        (stateLabelsDom || []).forEach(o => push(o.el, 3));
+        (commanderyLabelsDom || []).forEach(o => push(o.el, micro ? 1.5 : 2.4));
+        cityMarks.forEach(o => push(o.nm, micro ? 2.8 : 1.2));
+        specialMarks.forEach(o => push(o.nm, micro ? 2.8 : 1.2));
+        placeMarks.forEach(o => {
+          const named = o.p && (o.p.kind === 'pass' || o.p.kind === 'fort' || o.p.kind === 'landmark' || o.p.kind === 'dungeon');
+          push(o.nm, micro ? (named ? 2.6 : 2.4) : (named ? 2.2 : 1.1));
+        });
+        (riverLabelsDom || []).forEach(o => push(o.el, micro ? 2.0 : 1.6));
+        items.sort(function (a, b) { return b.pri - a.pri; });
+        const placed = [], M = 3;
+        items.forEach(function (it) {
+          const el = it.el;
+          const op = parseFloat(el.style.opacity || '1');
+          if (!isFinite(op) || op <= 0.02) { el.style.visibility = 'hidden'; return; }
+          const r = el.getBoundingClientRect();
+          if (r.width < 2 || r.height < 2) { el.style.visibility = 'hidden'; return; }
+          const clash = placed.some(function (p) {
+            return !(r.right <= p.l + M || r.left >= p.r - M || r.bottom <= p.t + M || r.top >= p.b - M);
+          });
+          if (clash) { el.style.visibility = 'hidden'; return; }
+          el.style.visibility = 'visible';
+          placed.push({ l: r.left, r: r.right, t: r.top, b: r.bottom });
+        });
+      }
       function positionOverlay(t) {
         const k = t.k;
         cityMarks.forEach(o => {
@@ -1161,10 +1294,6 @@
           o.el.style.left = (o.base[0] * k) + 'px';
           o.el.style.top = (o.base[1] * k) + 'px';
         });
-        officerMarks.forEach(o => {
-          o.el.style.left = (o.base[0] * k) + 'px';
-          o.el.style.top = (o.base[1] * k) + 'px';
-        });
         if (stateLabelsDom && stateLabelsDom.length) {
           stateLabelsDom.forEach(o => {
             o.el.style.left = (o.baseX * k) + 'px';
@@ -1177,6 +1306,19 @@
             o.el.style.top = (o.baseY * k) + 'px';
           });
         }
+        if (officerMarks && officerMarks.length) {
+          officerMarks.forEach(o => {
+            o.el.style.left = (o.base[0] * k) + 'px';
+            o.el.style.top = (o.base[1] * k) + 'px';
+          });
+        }
+        if (riverLabelsDom && riverLabelsDom.length) {
+          riverLabelsDom.forEach(o => {
+            o.el.style.left = (o.baseX * k) + 'px';
+            o.el.style.top = (o.baseY * k) + 'px';
+          });
+        }
+        resolveLabelCollisions();
       }
 
       // 应用变换 + 按缩放分级显隐
@@ -1189,10 +1331,12 @@
         const t = d3.zoomIdentity.translate(baseT.x + baseT.k * userT.x, baseT.y + baseT.k * userT.y).scale(k);
         root.attr('transform', `translate(${t.x},${t.y}) scale(${k})`);
         overlay.style.transform = `translate(${t.x}px,${t.y}px)`;
-        // 两级 LOD 交叉淡入淡出：
-        //   拉远(k<1.9) → 只州描边+州名（郡描边/郡名/城名为0）
-        //   拉近(k>3.4) → 州描边+州名淡出，郡描边+郡名+城名淡入
+        // 三级 LOD 交叉淡入淡出（P1 优化：按缩放分级显隐，杜绝"打开像星图"）：
+        //   宏观 k<1.9  → 只州描边+州名（郡/城/关尽隐，仅州廓）
+        //   中观 1.9~3.4 → 郡面填色+郡名+关隘点名淡入（城点出现但城名仍隐）
+        //   微观 k>3.4  → 城名/地点名淡入成为主体，州名淡出，郡名让位
         const lod = fade(k, 1.9, 3.4);
+        curK = k;
         if (provinceLayer) {
           const pop = 1 - lod;
           provinceLayer.style('opacity', pop);
@@ -1216,10 +1360,31 @@
           o.el.style.fontSize = fs.toFixed(1) + 'px';
           o.el.style.letterSpacing = (fs < 15 ? '1px' : fs < 18 ? '1.5px' : '2px');
         });
-        if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod); });
-        if (cityMarks.length) cityMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } });
-        if (specialMarks.length) specialMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
-        if (placeMarks.length) placeMarks.forEach(o => { const op = fade(k, 1.4, 3.0); if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; } if (o.nm) o.nm.style.opacity = String(op); });
+        // 郡名：中观淡入，微观让位给城名（k>4.4 起渐隐）
+        if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod * (1 - fade(k, 4.4, 5.4))); });
+        // 城点：中观起出现（可点）；城名：微观才淡入 —— 默认视野(k≈2.6)只见点不见名，郡名为主
+        if (cityMarks.length) cityMarks.forEach(o => {
+          const op = fade(k, 1.4, 3.0);
+          if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; }
+          if (o.nm) { o.nm.style.opacity = String(fade(k, 2.9, 4.0)); }
+        });
+        if (specialMarks.length) specialMarks.forEach(o => {
+          const op = fade(k, 1.4, 3.0);
+          if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; }
+          if (o.nm) o.nm.style.opacity = String(fade(k, 2.9, 4.0));
+        });
+        // 野外地点：关隘/副本等「名点」中观即显示名字（虎牢关这类名关默认视野可见）；
+        //   普通野地点名仍留到微观
+        if (placeMarks.length) placeMarks.forEach(o => {
+          const op = fade(k, 1.9, 3.2);
+          if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; }
+          if (o.nm) {
+            const named = (o.p && (o.p.kind === 'pass' || o.p.kind === 'fort' || o.p.kind === 'landmark' || o.p.kind === 'dungeon'));
+            o.nm.style.opacity = String(named ? fade(k, 1.9, 3.2) : fade(k, 2.9, 4.0));
+          }
+        });
+        // 河流名：中观淡入，始终浅淡不抢戏
+        if (riverLabelsDom.length) riverLabelsDom.forEach(o => { o.el.style.opacity = String(fade(k, 1.9, 3.2)); });
         // 引导标记任何缩放级别都保持可见（仅1~2枚，不产生干扰）
         guideMarks.forEach(o => { if (o.el) o.el.style.opacity = '1'; });
         positionOverlay(t);
@@ -1239,14 +1404,25 @@
 
       // 「定位到我」：把视图移到当前位置（无 you 标记时退回第一个目标）
       // instant=true 用于山河志「打开即居中」（首帧无需补间，避免开场晃动）
+      // v20260927b：视角记忆（P1）——打开时优先恢复上次缩放/位置（localStorage），无记忆才居中当前城
       locateGuide = function(instant) {
         const g = guideMarks.find(o => o.type === 'you') || guideMarks[0];
         if (!g || !W || !H) return;
-        const k = 2.6 / (baseT.k || 1);                 // 保持屏幕上约 2.6 倍缩放手感
+        const saved = loadView();
+        const defaultK = 2.6 / (baseT.k || 1);
+        const useK = (saved && saved.k > 0.4)
+          ? Math.min(8, Math.max(0.5, saved.k / (baseT.k || 1)))
+          : defaultK;
+        if (saved && isFinite(saved.x) && isFinite(saved.y)) {
+          currentTransform = d3.zoomIdentity.translate(saved.x, saved.y).scale(useK);
+          if (instant) svg.call(zoom.transform, currentTransform);
+          else svg.transition().duration(450).call(zoom.transform, currentTransform);
+          return;
+        }
         const target = baseT.invert([W / 2, H / 2]);    // 视口中心换算回渲染坐标系
-        const tx = target[0] - g.base[0] * k;
-        const ty = target[1] - g.base[1] * k;
-        currentTransform = d3.zoomIdentity.translate(tx, ty).scale(k);
+        const tx = target[0] - g.base[0] * useK;
+        const ty = target[1] - g.base[1] * useK;
+        currentTransform = d3.zoomIdentity.translate(tx, ty).scale(useK);
         if (instant) svg.call(zoom.transform, currentTransform);
         else svg.transition().duration(450).call(zoom.transform, currentTransform);
       };
@@ -1271,20 +1447,39 @@
       return `background:${f.stroke}`;
     }
 
+    // 百科卡（P1 升级）：州郡城池详情做成「图鉴」质感 —— 印章 + 楷书标题 + 金线 + 属性行
+    function infoCard(parts) {
+      const tagHtml = (parts.tags && parts.tags.length)
+        ? '<div class="strategic-info-tags">' + parts.tags.map(t => '<span>' + t + '</span>').join('') + '</div>' : '';
+      return `
+        <div class="strategic-info-h">
+          <span class="seal" style="background:${parts.sealBg}">${parts.sealText}</span>
+          <b class="strategic-info-title">${parts.title}</b>
+        </div>
+        ${tagHtml}
+        <div class="strategic-info-b">${parts.desc || ''}</div>
+        ${parts.extra || ''}
+        ${parts.meta ? '<div class="strategic-info-meta">' + parts.meta + '</div>' : ''}
+        ${parts.btn ? '<button class="go-btn" id="sm-go-btn">' + parts.btn + '</button>' : ''}
+      `;
+    }
+
     function selectState(d) {
       selectedId = d.properties.id;
       const f = FACTIONS[d.properties.faction] || FACTIONS.none;
       const title = d.properties.comm || d.properties.name;
       const hasCity = d.properties.comm && d.properties.comm !== d.properties.name;
-      info.innerHTML = `
-        <div class="strategic-info-h">
-          <span class="seal" style="${sealStyle(d.properties.faction)}">${f.label}</span>
-          ${title}
-        </div>
-        <div class="strategic-info-b">${d.properties.desc}<br/>
-          <span style="color:#8a6a3a;font-size:11px;">${d.properties.state || ''}${hasCity ? ' · 城址 ' + d.properties.name : ''}</span>
-        </div>
-      `;
+      const tags = [f.label];
+      if (d.properties.state) tags.push(d.properties.state);
+      if (d.properties.comm && d.properties.comm !== d.properties.name) tags.push('郡治 ' + d.properties.name);
+      info.innerHTML = infoCard({
+        sealBg: sealStyle(d.properties.faction).replace('background:', ''),
+        sealText: f.label,
+        title,
+        tags,
+        desc: d.properties.desc,
+        meta: (d.properties.state || '') + (hasCity ? ' · 城址 ' + d.properties.name : ''),
+      });
       info.classList.add('show');
     }
 
@@ -1295,16 +1490,14 @@
       if (p.isPass) sub.push('关隘要道');
       else if (p.isBattlefield) sub.push('古战场');
       if (p.kind === 'dungeon') sub.push('入口在山洞内，需达等级 ' + ((p.entryReq && p.entryReq.level) || 1));
-      info.innerHTML = `
-        <div class="strategic-info-h">
-          <span class="seal" style="background:${meta.color}">${meta.label.charAt(0)}</span>
-          ${p.name}
-        </div>
-        <div class="strategic-info-b">${p.desc || p.name}<br/>
-          <span style="color:#8a6a3a;font-size:11px;">${sub.filter(Boolean).join(' · ')}</span>
-        </div>
-        <button class="go-btn" id="sm-go-btn">${p.kind === 'dungeon' ? '前往副本入口' : '前往'}</button>
-      `;
+      info.innerHTML = infoCard({
+        sealBg: meta.color,
+        sealText: meta.label.charAt(0),
+        title: p.name,
+        tags: [meta.label].concat(sub),
+        desc: p.desc || p.name,
+        btn: p.kind === 'dungeon' ? '前往副本入口' : '前往',
+      });
       info.classList.add('show');
 
       const goBtn = info.querySelector('#sm-go-btn');
@@ -1319,17 +1512,36 @@
     }
 
     function selectCity(c) {
+      // v20260927d：百科卡实时图鉴 —— 势力印章/标签走实时归属（buildCitiesFromGame 已 ownerKeyOf 归一）；
+      // 城况四维按实时数值档位派生「州郡时评」，名产/古迹取自城市数据表。
       const f = FACTIONS[c.owner] || FACTIONS.none;
-      info.innerHTML = `
-        <div class="strategic-info-h">
-          <span class="seal" style="${sealStyle(c.owner)}">${f.label}</span>
-          ${c.name}${c.capital ? ' · 州治' : ''}
-        </div>
-        <div class="strategic-info-b">${c.desc || ''}<br/>
-          <span style="color:#8a6a3a;font-size:11px;">${[c.comm, c.state, c.grid ? c.grid + '×' + c.grid + '城内' : ''].filter(Boolean).join(' · ')}</span>
-        </div>
-        <button class="go-btn" id="sm-go-btn">前往此城</button>
-      `;
+      const tags = [];
+      if (c.capital) tags.push('州治');
+      if (c.comm) tags.push(c.comm);
+      if (c.state) tags.push(c.state);
+      // 实时城况徽章：户口/治安/商业/农桑（档位文字随数值实时变化）
+      const popD = c.pop >= 85 ? '户口百万' : c.pop >= 70 ? '户口数十万' : c.pop >= 55 ? '户口数万' : c.pop >= 40 ? '户口数千' : '人口稀少';
+      const ordD = c.order >= 70 ? '路不拾遗' : c.order >= 55 ? '夜不闭户' : c.order >= 40 ? '盗匪出没' : '兵荒马乱';
+      const comD = c.commerce >= 70 ? '商贾云集' : c.commerce >= 55 ? '市井兴旺' : c.commerce >= 40 ? '买卖尚可' : '市面萧条';
+      const agrD = c.agri >= 70 ? '沃野千里' : c.agri >= 55 ? '田畴丰美' : c.agri >= 40 ? '耕耨寻常' : '地瘠人稀';
+      const verdict = '时评 · ' + [popD, ordD, comD, agrD].join('，') + '。';
+      // 名产 / 古迹 标签组
+      const goodsLine = (c.goods && c.goods.length)
+        ? '<div class="strategic-info-goods"><i>名产</i>' + c.goods.map(g =>
+            '<span class="sg-goods" title="' + (g.note || '') + '">' + g.name + '</span>').join('') + '</div>' : '';
+      const lmkLine = (c.landmarks && c.landmarks.length)
+        ? '<div class="strategic-info-lmk"><i>古迹</i>' + c.landmarks.map(g =>
+            '<span class="sg-lmk" title="' + (g.note || '') + '">' + g.name + '</span>').join('') + '</div>' : '';
+      info.innerHTML = infoCard({
+        sealBg: sealStyle(c.owner).replace('background:', ''),
+        sealText: f.label,
+        title: c.name,
+        tags,
+        desc: c.desc || '',
+        extra: goodsLine + lmkLine + '<div class="strategic-info-verdict">' + verdict + '</div>',
+        meta: [c.comm, c.state, c.grid ? c.grid + '×' + c.grid + ' 城内' : ''].filter(Boolean).join(' · '),
+        btn: '前往此城',
+      });
       info.classList.add('show');
 
       const goBtn = info.querySelector('#sm-go-btn');
@@ -1353,6 +1565,8 @@
       .on('zoom', (e) => {
         currentTransform = e.transform;
         if (render._apply) render._apply(e.transform);
+        clearTimeout(_viewSaveT);
+        _viewSaveT = setTimeout(() => saveView(e.transform), 500);   // 视角记忆：防抖落盘
       });
     svg.call(zoom);
 
@@ -1380,7 +1594,10 @@
       if (toggle) toggle.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!fab.classList.contains('open')); });
       svgEl.addEventListener('pointerdown', () => { if (fab.classList.contains('open')) setOpen(false); });
       return () => {
-        const compact = ui.clientWidth < 540;
+        // 折叠判定：仅当「容器窄 且 触屏设备(粗指针)」才收成手柄（P1-5）
+        // 桌面(细指针)即使弹窗较窄也常显 定位/放大/缩小/复位，避免按钮被折叠成语义不明的 🔍
+        const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+        const compact = ui.clientWidth < 540 && coarse;
         fab.classList.toggle('compact', compact);
         if (!compact) fab.classList.remove('open');
         if (toggle) toggle.setAttribute('aria-expanded', fab.classList.contains('open'));
@@ -1401,6 +1618,63 @@
       selectedId = null;
       info.classList.remove('show');
     });
+
+    // ── 寻踪（P1）：搜索州郡/城池/关隘 → 飞往定位 + 弹出百科卡 ──
+    function flyTo(px, py, targetK) {
+      if (!isFinite(px) || !isFinite(py)) return;
+      const kk = (targetK || 3.2) / (baseT.k || 1);
+      const tc = baseT.invert([W / 2, H / 2]);
+      const tx = tc[0] - px * kk, ty = tc[1] - py * kk;
+      currentTransform = d3.zoomIdentity.translate(tx, ty).scale(kk);
+      svg.transition().duration(450).call(zoom.transform, currentTransform);
+    }
+    const searchBtn = ui.querySelector('#sm-search-btn');
+    const searchPanel = ui.querySelector('#sm-search-panel');
+    const searchInput = ui.querySelector('#sm-search-input');
+    const searchResults = ui.querySelector('#sm-search-results');
+    if (searchBtn && searchPanel && searchInput && searchResults) {
+      const closeSearch = (clear) => {
+        searchPanel.style.display = 'none';
+        if (clear) searchInput.value = '';
+        searchResults.innerHTML = '';
+      };
+      searchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (searchPanel.style.display === 'none') {
+          searchPanel.style.display = 'block';
+          searchInput.focus();
+          searchInput.dispatchEvent(new Event('input'));
+        } else closeSearch(true);
+      });
+      searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim();
+        searchResults.innerHTML = '';
+        if (!q) {
+          // 空输入：展示全部州的快捷入口（十二州一览）
+          const s9 = searchIndex.filter(x => x.type === '州').slice(0, 13);
+          s9.forEach(it => appendResult(it));
+          return;
+        }
+        const hits = searchIndex.filter(it => it.name.indexOf(q) >= 0 || (it.sub && it.sub.indexOf(q) >= 0));
+        hits.slice(0, 14).forEach(it => appendResult(it));
+        if (!hits.length) searchResults.innerHTML = '<div class="strategic-search-empty">未寻到此地…</div>';
+      });
+      function appendResult(it) {
+        const row = document.createElement('div');
+        row.className = 'strategic-search-item';
+        row.innerHTML = '<span class="ss-type">' + it.type + '</span><span class="ss-name">' + it.name + '</span><span class="ss-sub">' + (it.sub || '') + '</span>';
+        row.addEventListener('click', (e) => {
+          e.stopPropagation();
+          closeSearch(true);
+          if (it.show) { try { it.show(); } catch (err) { console.warn('寻踪', err); } }
+        });
+        searchResults.appendChild(row);
+      }
+      // 地图上拖拽/点击/缩放时收起搜索面板
+      svgEl.addEventListener('pointerdown', () => { if (searchPanel.style.display !== 'none') closeSearch(false); });
+      searchPanel.addEventListener('click', (e) => e.stopPropagation());
+      searchPanel.addEventListener('mousedown', (e) => e.stopPropagation());
+    }
 
     // 加载数据并渲染（渲染放下一帧：占位提示先被绘制，消除首次同步重绘造成的"卡住"感）
     const cities = buildCitiesFromGame();
