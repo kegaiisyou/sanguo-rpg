@@ -455,6 +455,11 @@ window.LF = window.LF || {};
         var nm = MK ? MK.marketName(cid, dir, shops[0].key, mrnd) : (dir + '市');
         markets[mx + ',' + my] = { name: nm, dir: dir, shops: shops };
       }
+      // ── 坊制子房间生成（v20260927）：进入城市生成网格时，就地为各坊格生成子房间（state 已就绪）──
+      for (var wy = 0; wy < size; wy++) for (var wx = 0; wx < size; wx++) {
+        var wt = g[wy][wx];
+        if (wt && ('' + wt).indexOf('ward_') === 0 && typeof window.buildWardCell === 'function') window.buildWardCell(cid, wx, wy, wt);
+      }
       F.cityGrid = F.cityGrid || {};
       F.cityGrid[cid] = { ver: _myVer, size: size, cells: g, markets: markets, gates: nG };
       return F.cityGrid[cid];

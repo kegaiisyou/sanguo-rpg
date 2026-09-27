@@ -5288,21 +5288,10 @@
     var doors = subs.map(function (s) { return { label: s.name, icon: s.icon, target: wardSubId(cid, x, y, s.k), group: s.group }; });
     CELL_INTERIORS[cid + '|' + x + ',' + y] = { doors: doors };
   }
-  function registerWardRooms() {
-    var C = LF.CITIES || {};
-    for (var cid in C) {
-      var c = C[cid]; if (!c || !c.grid) continue;
-      var m = genCityGrid(cid); if (!m) continue;
-      for (var y = 0; y < m.size; y++) for (var x = 0; x < m.size; x++) {
-        var t = m.cells[y][x];
-        if (t && ('' + t).indexOf('ward_') === 0) buildWardCell(cid, x, y, t);
-      }
-    }
-  }
+  window.buildWardCell = buildWardCell;   // 跨工厂闭包桥接：city.js(genCityGrid) 在生成网格后调用，那时 state 已就绪
 
   // ── 城市房间由 cities.js 程序合成（rooms.js 不再手写）；山河志州治节点由 cities.js+coords 自动派生 ──
   registerCityRooms();
-  registerWardRooms();
 
 
   // ── 统一按压反馈（P1）：手机端点击震动 + 全局按压态。
