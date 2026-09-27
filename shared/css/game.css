@@ -2972,3 +2972,176 @@
 .sect-quest{margin-top:6px;border-top:1px dashed rgba(255,255,255,.15);padding-top:6px;font-size:12px}
 .sect-quest .sq-desc{opacity:.85;margin-bottom:4px}
 .sect-claim{margin-top:4px}
+
+/* ══════════════════════════════════════════════════════════════
+   水墨 UI 统一增强（v20260927e）
+   目标：消除深紫/深黑/emoji 与宣纸面板的割裂，全界面统一为
+   「暖宣纸 + 墨线 + 朱砂印章」的浅色水墨体系。纯 CSS 覆盖层，
+   不改变任何 JS 逻辑与结构钩子。
+   ══════════════════════════════════════════════════════════════ */
+/* —— 行囊：左侧装备区弃深紫、与宣纸同源 —— */
+.pack-wrap .pack-left{background:transparent;}
+.pack-wrap .pack-left-title,
+.pack-wrap .pack-right-title{
+  font-family:"STKaiti","KaiTi",serif;font-size:13px;letter-spacing:6px;color:#5a4a32;
+  text-shadow:none;background:transparent;border:none;padding:2px 0;
+  display:flex;align-items:center;gap:6px;margin:0 auto 4px;}
+.pack-wrap .pack-left-title::before,.pack-wrap .pack-left-title::after,
+.pack-wrap .pack-right-title::before,.pack-wrap .pack-right-title::after{
+  content:'';flex:0 0 auto;width:14px;height:1px;background:rgba(158,59,46,.55);}
+.pack-wrap .pack-left-stats{
+  background:linear-gradient(180deg,#f7efdb,#efe5c9);
+  border:1px solid rgba(107,74,47,.32);border-radius:10px;box-shadow:none;}
+.pack-wrap .pack-left-stats .ps-h{color:#6b3b2e;border-bottom:1px dashed rgba(120,80,40,.28);}
+.pack-wrap .pack-left-stats .ps-row{color:#5a4a38;}
+.pack-wrap .pack-left-stats .ps-row b{color:#2c2620;}
+.pack-wrap .pack-left-stats.collapsed .ps-body{display:none;}
+/* —— 行囊：格子浅宣纸化（仅行囊内；战利品 cs-grid 深色场景不受影响） —— */
+.pack-wrap .packcell{
+  background:linear-gradient(165deg,#fdf8ea 0%,#f3ebd4 100%);
+  border:1px solid rgba(107,74,47,.34);border-radius:9px;
+  box-shadow:inset 0 1px 0 rgba(255,250,235,.9), 0 1px 2px rgba(90,70,40,.12);
+  color:#3a2c1c;}
+.pack-wrap .packcell.pcell-empty{
+  background:rgba(120,96,58,.05);border:1px dashed rgba(107,74,47,.28);
+  box-shadow:none;}
+.pack-wrap .packcell.sel{border-color:#9e3b2e;box-shadow:0 0 0 2px rgba(158,59,46,.35);}
+.pack-wrap .pcell-cnt{
+  position:absolute;right:2px;bottom:1px;min-width:16px;height:16px;padding:0 4px;
+  background:#9e3b2e;color:#f6ead0;font-size:10.5px;font-weight:700;
+  border-radius:8px 4px 8px 4px;display:flex;align-items:center;justify-content:center;
+  font-family:"STKaiti","KaiTi",serif;box-shadow:0 1px 2px rgba(90,30,20,.4);}
+.pack-wrap .pcell-qbadge{top:3px;right:3px;border:1px solid rgba(255,250,235,.8);}
+/* 装备槽（人形下方六格 + 背包槽）：浅宣纸卡 */
+.pack-wrap .equipslot{
+  background:linear-gradient(165deg,#fdf8ea,#f0e6cc);
+  border:1px solid rgba(107,74,47,.34);border-radius:9px;box-shadow:none;}
+.pack-wrap .ep-name{color:#3a2c1c;font-family:"STKaiti","KaiTi",serif;font-size:12px;}
+.pack-wrap .ep-ph{color:#8a7959;font-size:11px;letter-spacing:1px;}
+.pack-wrap .ep-qbadge{border:1px solid rgba(255,250,235,.85);}
+/* —— 行囊底部条 —— */
+.pack-wrap .pack-foot .btn{background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;
+  border:1px solid #8a6f3e;border-radius:8px;}
+.pack-wrap .pack-cap,.pack-wrap .pack-gold,.pack-wrap .pack-hint{color:#6e5a3c;}
+/* —— 政令台：匾额式标题 + 数据卡片 + 印章按钮 —— */
+.edict-box{max-width:480px;margin:0 auto;padding:6px 4px 2px;}
+.edict-box .edict-h{
+  font-family:"STKaiti","KaiTi",serif;font-size:22px;letter-spacing:10px;color:#6b3b2e;
+  text-align:center;margin:0 0 2px;padding:6px 0 8px;
+  background:linear-gradient(180deg,rgba(176,131,47,.10),transparent);
+  border-top:2px solid #9e3b2e;border-bottom:1px solid rgba(107,74,47,.30);}
+.edict-box .edict-sub{color:#5a4a38;font-size:13px;text-align:center;margin:8px auto 4px;line-height:1.7;}
+/* 政令台 · 身份与库藏：两行信息卡（官职/势力/职种/治安 + 粮铁械银） */
+.edict-box .edict-idgrid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 4px;}
+.edict-box .edict-idgrid .eig{
+  background:linear-gradient(180deg,#f9f1dc,#efe4c8);border:1px solid rgba(107,74,47,.30);
+  border-radius:9px;padding:6px 2px 5px;text-align:center;min-width:0;}
+.edict-box .edict-idgrid .eig b{display:block;font-size:13px;color:#2c2620;
+  font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.edict-box .edict-idgrid .eig span{display:block;font-size:10.5px;color:#8a7959;margin-bottom:2px;letter-spacing:2px;}
+.edict-box .edict-res4{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 4px;}
+.edict-box .edict-res4 .er4{
+  background:#fdf8ea;border:1px solid rgba(107,74,47,.30);border-radius:8px;
+  padding:5px 2px;text-align:center;min-width:0;}
+.edict-box .edict-res4 .er4 i{display:block;font-style:normal;font-size:10px;color:#8a7959;letter-spacing:2px;}
+.edict-box .edict-res4 .er4 b{display:block;font-size:14px;color:#3a2c1c;font-variant-numeric:tabular-nums;}
+.edict-box .edict-res4 .er4.r-gold b{color:#a06a1f;}
+/* 政令按钮：方形印章钮（两列），主操作朱砂、副操作墨色 */
+.edict-acts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0 6px;}
+.edict-acts .btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  min-height:56px;padding:8px 6px;line-height:1.45;border-radius:10px;cursor:pointer;
+  font-family:"STKaiti","KaiTi",serif;font-size:15px;letter-spacing:3px;color:#f6ead0;
+  background:linear-gradient(180deg,#5a4a2e,#382a16);border:1px solid #8a6f3e;
+  box-shadow:0 1px 3px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,235,190,.16);transition:.12s;}
+.edict-acts .btn:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);border-color:#a8842f;}
+.edict-acts .btn:active{transform:translateY(1px);}
+.edict-acts .btn .sub{font-size:11px;color:rgba(246,234,208,.72);letter-spacing:0;}
+.edict-acts .btn.edict-do{min-height:52px;font-size:14px;letter-spacing:2px;}
+.edict-box>button.btn{width:100%;margin-top:8px;min-height:46px;font-size:14px;letter-spacing:3px;
+  font-family:"STKaiti","KaiTi",serif;color:#f6ead0;
+  background:linear-gradient(180deg,#6b4a2a,#4a3018);border:1px solid #9a6a34;border-radius:10px;}
+.edict-box>button.btn:hover{background:linear-gradient(180deg,#7c5832,#5a3c20);}
+.edict-foot{margin-top:10px;text-align:center;font-size:12px;color:rgba(90,74,56,.6);
+  border-top:1px dashed rgba(120,80,40,.25);padding-top:8px;line-height:1.6;}
+/* 政令台 · 内政命令区：标题 + 命令按钮 + 设施卡浅色化 */
+.edict-cmds{margin:8px 0 4px;border-top:1px solid rgba(107,74,47,.26);padding-top:8px;}
+.edict-cmd-h{font-size:12px;color:#6b3b2e;text-align:center;margin-bottom:8px;letter-spacing:2px;
+  font-family:"STKaiti","KaiTi",serif;background:linear-gradient(90deg,transparent,rgba(176,131,47,.12),transparent);}
+.edict-cmd{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap;}
+.edict-cmd .edict-do{min-width:96px;min-height:46px;padding:7px 6px;line-height:1.4;border-radius:9px;
+  font-family:"STKaiti","KaiTi",serif;font-size:14px;letter-spacing:2px;color:#f6ead0;
+  background:linear-gradient(180deg,#5a4a2e,#382a16);border:1px solid #8a6f3e;}
+.edict-cmd .edict-do .sub{font-size:10px;color:rgba(246,234,208,.7);}
+.edict-del{flex:1;min-width:120px;padding:7px;border:1px solid rgba(107,74,47,.34);border-radius:8px;
+  background:#fdf8ea;color:#3a2c1c;font-size:12.5px;}
+.edict-pred{flex-basis:100%;font-size:11.5px;color:#5a7a4a;text-align:center;letter-spacing:.5px;}
+/* 政令台 · 设施管理卡（浅宣纸） */
+.edict-fac{flex-basis:100%;display:flex;flex-direction:column;gap:6px;margin-top:2px;}
+.fac-row{
+  background:linear-gradient(180deg,#f9f1dc,#efe4c8);border:1px solid rgba(107,74,47,.28);
+  border-radius:10px;padding:8px 10px;box-shadow:inset 0 1px 0 rgba(255,250,235,.8);}
+.fac-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#3a2c1c;}
+.fac-top b{font-family:"STKaiti","KaiTi",serif;font-size:14px;letter-spacing:1px;color:#2c2620;}
+.fac-ctl{font-size:12px;color:#5a4a38;display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:5px;}
+.fac-ctl .btn.xs{min-width:26px;height:24px;padding:0;font-size:13px;line-height:1;
+  background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:6px;}
+.fac-out{font-size:12px;color:#5a4a38;margin-top:3px;}
+.fac-out b{color:#2c2620;}
+.fac-bar{height:6px;background:rgba(120,96,58,.2);border-radius:4px;margin:5px 0 2px;overflow:hidden;}
+.fac-bar>i{display:block;height:100%;background:linear-gradient(90deg,#b8893a,#e8c46a);}
+.fac-log{font-size:11px;opacity:.75;line-height:1.5;margin-top:2px;color:#6e5a3c;}
+.fac-log span{display:block;}
+.fac-assign{display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap;}
+.fac-sel{flex:1;min-width:110px;padding:5px 6px;border:1px solid rgba(107,74,47,.34);border-radius:7px;
+  background:#fdf8ea;color:#3a2c1c;font-size:12px;}
+.fac-assign .btn.sm{min-height:26px;padding:3px 10px;font-size:12px;border-radius:7px;
+  background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;}
+.fac-assign .btn.sm.danger{background:linear-gradient(180deg,#7d3a2e,#5c2418);border-color:#a05a48;}
+/* —— 天下大势面板（fm-*）浅色统一 —— */
+.faction-map .fm-h{font-family:"STKaiti","KaiTi",serif;font-size:20px;letter-spacing:4px;color:#6b3b2e;
+  text-align:center;margin:0 0 12px;padding:8px 0;
+  background:linear-gradient(180deg,rgba(176,131,47,.10),transparent);
+  border-top:2px solid #9e3b2e;border-bottom:1px solid rgba(107,74,47,.28);}
+.fm-row{background:linear-gradient(180deg,#f9f1dc,#efe4c8);border:1px solid rgba(107,74,47,.28);
+  border-radius:10px;padding:8px 10px;margin:8px 0;}
+.fm-lord{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#2c2620;}
+.fm-lord b{font-family:"STKaiti","KaiTi",serif;font-size:15px;letter-spacing:1px;}
+.fm-lord small{color:#8a7959;}
+.fm-cities{font-size:12.5px;color:#5a4a38;line-height:1.7;margin-top:3px;}
+.fm-desc{font-size:11.5px;color:#8a7959;margin-top:3px;line-height:1.6;}
+.fm-lord .btn.sm{min-height:24px;padding:2px 9px;font-size:11.5px;border-radius:7px;
+  background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;}
+.fm-war{background:rgba(120,96,58,.07);border:1px dashed rgba(107,74,47,.28);border-radius:10px;
+  padding:8px 10px;margin:10px 0;}
+.fm-war-h{font-family:"STKaiti","KaiTi",serif;font-size:13px;color:#6b3b2e;letter-spacing:2px;margin-bottom:5px;}
+.fm-war-i{font-size:12px;line-height:1.8;}
+.fm-my{background:linear-gradient(180deg,#f7efdb,#eee3c6);border:1px solid rgba(107,74,47,.32);
+  border-radius:10px;padding:10px;margin-top:10px;}
+.fm-my-h{font-family:"STKaiti","KaiTi",serif;font-size:14px;color:#6b3b2e;letter-spacing:2px;margin-bottom:7px;}
+.fm-my-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px 12px;font-size:12.5px;color:#5a4a38;}
+.fm-my-grid b{color:#2c2620;}
+.fm-my-ops{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.fm-my-ops .btn.sm{flex:1 1 auto;min-width:104px;min-height:34px;font-size:12.5px;letter-spacing:2px;border-radius:8px;
+  background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;
+  font-family:"STKaiti","KaiTi",serif;}
+.fm-era{color:#8a7959;border:1px solid rgba(107,74,47,.3);background:rgba(255,250,235,.5);}
+/* —— 山河志百科卡：名产/古迹瓷片 + 时评引文（浅宣纸金线） —— */
+.strategic-info .strategic-info-goods,
+.strategic-info .strategic-info-lmk{
+  display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:5px 0;}
+.strategic-info .strategic-info-goods i,
+.strategic-info .strategic-info-lmk i{
+  font-style:normal;font-size:11px;color:#8a7959;letter-spacing:2px;margin-right:2px;
+  font-family:"STKaiti","KaiTi",serif;}
+.strategic-info .sg-goods,.strategic-info .sg-lmk{
+  display:inline-flex;align-items:center;padding:1px 7px;border-radius:999px;font-size:12px;
+  font-family:"STKaiti","KaiTi",serif;color:#3a2c1c;background:#f5e9c8;
+  border:1px solid rgba(158,59,46,.4);box-shadow:inset 0 1px 0 rgba(255,250,235,.7);}
+.strategic-info .sg-lmk{background:#ece3c6;border-color:rgba(63,125,94,.4);color:#33553f;}
+.strategic-info .strategic-info-verdict{
+  margin:6px 0 2px;padding:5px 8px;font-size:12px;color:#4a3a28;line-height:1.6;
+  background:linear-gradient(90deg,rgba(176,131,47,.12),transparent 70%);
+  border-left:3px solid #9e3b2e;border-radius:0 6px 6px 0;}

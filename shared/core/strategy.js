@@ -81,12 +81,12 @@
     var stTxt={war:'敌对',truce:'休战',alliance:'同盟',vassal:'附庸'}[st]||'敌对';
     var d=diploGet(fid), until=(d&&d.until)||0, mk=(S().flags._monthKey||0);
     var h='<div class="dip-box">';
-    h+='<div class="dip-h">🕊 与 '+f.name+' 之邦交</div>';
+    h+='<div class="dip-h">与 '+f.name+' 之邦交</div>';
     h+='<div class="dip-sub">现状：<b>'+stTxt+'</b>'+(st!=='war'&&until>mk?('（约至第'+Math.round(until*30)+'日）'):'')+'</div>';
     h+='<div class="dip-acts">';
     if(st==='war'){
-      h+='<button class="btn" onclick="diploPropose(\''+fid+'\',\'truce\')">🤝 议和<br><span class="sub">💰50·声望10·休战3月</span></button>';
-      h+='<button class="btn" onclick="diploPropose(\''+fid+'\',\'alliance\')">🤝 结盟<br><span class="sub">💰200·声望30·休战9月</span></button>';
+      h+='<button class="btn" onclick="diploPropose(\''+fid+'\',\'truce\')">议和<br><span class="sub">耗银50·声望10·休战3月</span></button>';
+      h+='<button class="btn" onclick="diploPropose(\''+fid+'\',\'alliance\')">结盟<br><span class="sub">耗银200·声望30·休战9月</span></button>';
       h+='<button class="btn" onclick="openDebate(\''+fid+'\')">🗣 舌战<br><span class="sub">折服其谋士</span></button>';
     } else {
       h+='<div class="dip-cur">当前已'+stTxt+'，刀兵暂歇。</div>';
@@ -150,22 +150,33 @@
     var c=(LF.CITIES||{})[cid]||{};
     var ord=(S().flags.cityOrder&&S().flags.cityOrder[cid]!=null)?S().flags.cityOrder[cid]:c.order;
     var taxReady=(S().flags.cityTax||{})[cid]!==S().day;
-    var taxTip=taxReady?('\u53ef\u5f81 \ud83d\udcb0'+(Math.round((c.pop+c.commerce)/12)+5)+' \u4e24'):'\u4eca\u65e5\u5df2\u5f81';
+    var taxTip=taxReady?('\u53ef\u5f81 '+(Math.round((c.pop+c.commerce)/12)+5)+' \u4e24'):'\u4eca\u65e5\u5df2\u5f81';
     var own=(cityOwnerOf(cid)===playerFaction());
     var res=S().res||{grain:0,iron:0,kit:0};
     var h='';
     h+='<div class="edict-box">';
-    h+='<div class="edict-h">\ud83d\udcdc '+c.name+' \u00b7 \u653f\u4ee4\u53f0</div>';
-    h+='<div class="edict-sub">\u5b98\u804c\uff1a'+(S().title||'\u6e38\u4fa0')+'\u3000\uff5c\u3000\u52bf\u529b\uff1a'+factionName(playerFaction())+'\u3000\uff5c\u3000\u804c\u79cd\uff1a'+roleDef().icon+' '+roleDef().name+'\u3000\uff5c\u3000\u6cbb\u5b89\uff1a'+ord+'</div>';
-    if(own) h+='<div class="edict-sub">\u5e93\u85cf\uff1a\ud83c\udf3e\u7cae '+(res.grain||0)+' \u00b7 \u269b\ufe0f\u94c1 '+(res.iron||0)+' \u00b7 \ud83d\udd28\u68b0 '+(res.kit||0)+' \u00b7 \ud83d\udcb0\u94f6 '+(S().gold||0)+'</div>';
+    h+='<div class="edict-h">'+c.name+' \u00b7 \u653f\u4ee4\u53f0</div>';
+    h+='<div class="edict-sub">'+('\u7acb\u57ce\u4e2d\u67a2\uff0c\u53d1\u53f7\u65bd\u4ee4\uff0c\u767e\u653f\u4e4b\u67a2\u3002')+'</div>';
+    h+='<div class="edict-idgrid">';
+    h+='<div class="eig"><span>\u5b98\u804c</span><b>'+(S().title||'\u6e38\u4fa0')+'</b></div>';
+    h+='<div class="eig"><span>\u52bf\u529b</span><b>'+factionName(playerFaction())+'</b></div>';
+    h+='<div class="eig"><span>\u804c\u79cd</span><b>'+roleDef().icon+' '+roleDef().name+'</b></div>';
+    h+='<div class="eig"><span>\u6cbb\u5b89</span><b>'+ord+'</b></div>';
+    h+='</div>';
+    if(own) h+='<div class="edict-res4">'
+      +'<div class="er4 r-grain"><i>\u7cae</i><b>'+(res.grain||0)+'</b></div>'
+      +'<div class="er4 r-iron"><i>\u94c1</i><b>'+(res.iron||0)+'</b></div>'
+      +'<div class="er4 r-kit"><i>\u68b0</i><b>'+(res.kit||0)+'</b></div>'
+      +'<div class="er4 r-gold"><i>\u94f6</i><b>'+(S().gold||0)+'</b></div>'
+      +'</div>';
     if(own && typeof renderEdictCommands==='function') h+=renderEdictCommands(cid);
     h+='<div class="edict-acts">';
-    h+='<button class="btn" onclick="civilEdict(\'tax\')">\ud83d\udcb0 \u5f81\u7a0e<br><span class="sub">'+taxTip+'</span></button>';
-    h+='<button class="btn" onclick="civilEdict(\'pacify\')">\ud83e\udd1d \u5b89\u6c11<br><span class="sub">\u8017\ud83d\udcb020\uff0c\u6cbb\u5b89+6</span></button>';
-    h+='<button class="btn" onclick="openModal(\'factionMap\')">\ud83c\udff4 \u5927\u52bf<br><span class="sub">\u89c2\u5929\u4e0b\u52bf\u529b</span></button>';
-    h+='<button class="btn" onclick="openModal(\'army\')">\ud83d\ude91 \u6cbb\u519b<br><span class="sub">\u70b9\u5175\u7f16\u6210\u00b7\u8f38\u91cd\u8c03\u9063</span></button>';
+    h+='<button class="btn" onclick="civilEdict(\'tax\')">\u7a0e \u5f81\u7a0e<br><span class="sub">'+taxTip+'</span></button>';
+    h+='<button class="btn" onclick="civilEdict(\'pacify\')">\u5b89 \u5b89\u6c11<br><span class="sub">\u8017\u94f620\uff0c\u6cbb\u5b89+6</span></button>';
+    h+='<button class="btn" onclick="openModal(\'factionMap\')">\u52bf \u5927\u52bf<br><span class="sub">\u89c2\u5929\u4e0b\u52bf\u529b</span></button>';
+    h+='<button class="btn" onclick="openModal(\'army\')">\u519b \u6cbb\u519b<br><span class="sub">\u70b9\u5175\u7f16\u6210\u00b7\u8f38\u91cd\u8c03\u9063</span></button>';
     h+='</div>';
-    h+='<button class="btn" onclick="openOfficerPanel()">\ud83c\udf96 \u6b66\u5c06<br><span class="sub">\u767b\u5eb8\u00b7\u90ed\u5b88\u00b7\u4e3b\u5c06</span></button>';
+    h+='<button class="btn" onclick="openOfficerPanel()">\u5c06 \u6b66\u5c06<br><span class="sub">\u767b\u5eb8\u00b7\u90ed\u5b88\u00b7\u4e3b\u5c06</span></button>';
     h+='<div class="edict-foot">\u7acb\u4e8e\u4e2d\u67a2\u3001\u57ce\u5f52\u4f60\u6240\u7edf\uff0c\u65b9\u80fd\u53d1\u53f7\u3002\u5360\u57ce\u5373\u5f97\u5b98\u804c\uff0c\u805a\u8d22\u517b\u58eb\u3002</div>';
     h+='</div>';
     return h;
@@ -183,19 +194,19 @@
     var order=['han','dongzhuo','yuanshao','caocao','sunce','liubiao','liuzhang','gongsun','matang','player'];
     var h='';
     h+='<div class="faction-map">';
-    h+='<div class="fm-h">🏴 天下大势 · 群雄割据　<span class="fm-era">'+(S().eraName||'光和')+(S().eraYear===1?'元年':S().eraYear+'年')+'</span></div>';
+    h+='<div class="fm-h">天下大势 · 群雄割据　<span class="fm-era">'+(S().eraName||'光和')+(S().eraYear===1?'元年':S().eraYear+'年')+'</span></div>';
     order.forEach(function(fid){
       var g=groups[fid]; if(!g) return;
       var f=(LF.FACTIONS||{})[fid]||{name:fid, color:'#888', desc:''};
       h+='<div class="fm-row">';
-      h+='<div class="fm-lord"><span class="fm-dot" style="background:'+f.color+'"></span><b>'+f.name+'</b>'+(f.lord?'　<small>主君 '+f.lord+'</small>':'')+(fid!=='player'&&fid!=='han'?'　<button class="btn sm" onclick="openDiplomacy(\''+fid+'\')">🕊 外交</button>':'')+'</div>';
+      h+='<div class="fm-lord"><span class="fm-dot" style="background:'+f.color+'"></span><b>'+f.name+'</b>'+(f.lord?'　<small>主君 '+f.lord+'</small>':'')+(fid!=='player'&&fid!=='han'?'　<button class="btn sm" onclick="openDiplomacy(\''+fid+'\')">外交</button>':'')+'</div>';
       h+='<div class="fm-cities">'+g.cities.join('、')+'</div>';
       h+='<div class="fm-desc">'+f.desc+'</div>';
       h+='</div>';
     });
     var _cl = chronicleList().slice(0, 8);   // 群雄逐鹿 · 烽火递报（v20260909o）
     if (_cl.length) {
-      h += '<div class="fm-war"><div class="fm-war-h">🗞 烽火递报 · 天下易帜</div>';
+      h += '<div class="fm-war"><div class="fm-war-h">烽火递报 · 天下易帜</div>';
       _cl.forEach(function (e) {
         var _c = e.k === 'danger' ? '#d2694a' : (e.k === 'good' ? '#86b087' : (e.k === 'war' ? '#c9a45a' : '#b9ad92'));
         h += '<div class="fm-war-i" style="color:' + _c + '"><span style="opacity:.6;">第' + e.d + '日</span>　' + escapeHtml(e.t) + '</div>';
@@ -206,7 +217,7 @@
     var _of=(Officers&&Officers.roster)?Officers.roster().length:0;
     var _pa=(S().flags.factionAssets&&S().flags.factionAssets.player)||{};
     h += '<div class="fm-my">';
-    h += '<div class="fm-my-h">⚑ 我方势力 · '+(factionName(playerFaction())||'义军')+'</div>';
+    h += '<div class="fm-my-h">我方势力 · '+(factionName(playerFaction())||'义军')+'</div>';
     h += '<div class="fm-my-grid">';
     h += '<span>年号 <b>'+(S().eraName||'光和')+(S().eraYear===1?'元年':S().eraYear+'年')+'</b></span>';
     h += '<span>官职 <b>'+(S().title||'游侠')+'</b></span>';
@@ -214,10 +225,10 @@
     h += '<span>治下 <b>'+_rc+'</b> 城</span>';
     h += '<span>麾下 <b>'+_of+'</b> 员武将</span>';
     h += '<span>兵力 <b>'+(_pa.troops||0)+'</b></span>';
-    h += '<span>府库 <b>💰'+(S().gold||0)+'</b></span>';
+    h += '<span>府库 <b>'+(S().gold||0)+'</b></span>';
     h += '<span>声望 <b>'+(S().reputation||0)+'</b></span>';
     h += '</div>';
-    h += '<div class="fm-my-ops"><button class="btn sm" onclick="openOfficerPanel()">📜 武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">🔄 刷新大势</button></div>';
+    h += '<div class="fm-my-ops"><button class="btn sm" onclick="openOfficerPanel()">武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">刷新大势</button></div>';
     h += '</div>';
     h+='</div>';
     return h;

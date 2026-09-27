@@ -620,19 +620,23 @@
 }
 .strategic-info-goods .sg-goods {
   color: #6e3a10;
-  border: 1px solid rgba(160,110,50,.4);
-  border-radius: 7px;
-  padding: 1px 6px;
-  background: rgba(255,246,225,.5);
+  border: 1px solid rgba(158,59,46,.42);
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: linear-gradient(180deg,#f7ecc9,#efdfae);
+  box-shadow: inset 0 1px 0 rgba(255,250,235,.75), 0 1px 2px rgba(120,90,40,.14);
   cursor: help;
+  font-family: "STKaiti","KaiTi",serif;
 }
 .strategic-info-lmk .sg-lmk {
-  color: #3a5a5a;
-  border: 1px solid rgba(70,110,110,.35);
-  border-radius: 7px;
-  padding: 1px 6px;
-  background: rgba(235,246,244,.5);
+  color: #33553f;
+  border: 1px solid rgba(63,125,94,.4);
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: linear-gradient(180deg,#e9efd8,#d9e4c0);
+  box-shadow: inset 0 1px 0 rgba(250,255,240,.7), 0 1px 2px rgba(90,110,70,.14);
   cursor: help;
+  font-family: "STKaiti","KaiTi",serif;
 }
 .strategic-info-verdict {
   margin-top: 6px;

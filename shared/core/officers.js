@@ -667,7 +667,7 @@
     function renderEdictCommands(cid) {
       if (!cid || cityOwnerOf(cid) !== playerFaction()) return '';
       var h = '<div class="edict-cmds">';
-      h += '<div class="edict-cmd-h">\ud83d\udcdc \u5185\u653f\u547d\u4ee4\uff08\u4eb2\u884c\u8017\u65f6\u8fb0\uff1b\u6216\u59d4\u4efb\u9e4c\u4e0b\u6b66\u5c06\u6309\u6708\u7763\u529e\uff09</div>';
+      h += '<div class="edict-cmd-h">\u5185\u653f\u547d\u4ee4\uff08\u4eb2\u884c\u8017\u65f6\u8fb0\uff1b\u6216\u59d4\u4efb\u9e4c\u4e0b\u6b66\u5c06\u6309\u6708\u7763\u529e\uff09</div>';
       var cmds = edictCmds();
       Object.keys(cmds).forEach(function (k) {
         var C = cmds[k];
