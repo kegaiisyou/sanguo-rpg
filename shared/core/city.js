@@ -24,7 +24,7 @@ window.LF = window.LF || {};
 
     // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
     // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
-    var GRID_VER = '20260825f';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
+    var GRID_VER = '20260927w';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
     // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
     function cityGates(c) {
       var ct = c.ctype || 'plain';
@@ -113,7 +113,9 @@ window.LF = window.LF || {};
       plaza: { i: '🏛', nm: '城中广场' }, gate: { i: '🚪', nm: '城门' },
       market: { i: '🛒', nm: '市集' }, home: { i: '🏠', nm: '民宅' }, barracks: { i: '⚔', nm: '军营' },
       farm: { i: '🌾', nm: '农庄' }, prison: { i: '⛓', nm: '牢房' }, mine: { i: '⛏', nm: '矿坑' }, kitchen: { i: '🍚', nm: '伙房' }, command: { i: '🚩', nm: '中军帐' }, warehouse: { i: '📦', nm: '仓库' }, drill: { i: '🥋', nm: '演武场' }, sentry: { i: '🏮', nm: '岗哨' }, empty: { i: '🟫', nm: '空地' }, ruin: { i: '🔥', nm: '焦土' },
-      site: { i: '🚧', nm: '工地' }
+      site: { i: '🚧', nm: '工地' },
+      ward_gov: { i: '🏛', nm: '官署坊' }, ward_mil: { i: '⚔', nm: '军坊' }, ward_resid: { i: '🏘', nm: '里坊' },
+      ward_market: { i: '🛒', nm: '市坊' }, ward_culture: { i: '📚', nm: '文教坊' }, ward_water: { i: '⚓', nm: '码头坊' }
     };
     // ── 苦役营教程·具名名册（v20260909p；v20260912f 起由 LF.NPC_NAMED 派生）──
     // 「谁在哪一格」与「什么时辰在哪一格」统一存在 data/npc_cards.js 的 LF.NPC_NAMED，
@@ -167,7 +169,13 @@ window.LF = window.LF || {};
       empty: '一片空地，瓦砾草莽，尚待营建。',
       ruin: '焦土未冷，断壁残垣，劫后萧索。',
       unbuilt: '城郭未及营建，草莽瓦砾，尚无居人。',
-      site: '建材成堆、工匠往来，工事未完，暂不可入。'
+      site: '建材成堆、工匠往来，工事未完，暂不可入。',
+      ward_gov: '官署坊内，廊庑森列——尚书台、廷尉、大鸿胪诸署分列其间，官吏穿梭。',
+      ward_mil: '军坊之中，将旗林立，各将府第环列，部曲屯驻。',
+      ward_resid: '里坊深巷，高墙朱户，世家宅邸比邻而居。',
+      ward_market: '市坊店铺连绵，行商坐贾，百货辐辏。',
+      ward_culture: '文教坊内，学宫弦歌、寺观香火，士子道徒各得其乐。',
+      ward_water: '码头坊畔，舟楫泊岸，商货起卸如流。'
     };
     // ══ 城市盛衰 / 归属系统（v20260824d）══
     // 建设度(dev)决定建成半径：随盛衰扩建/降级；焦土(ruin)由战火标记；归属(owner)易主则中枢变帅府/行辕
@@ -423,6 +431,8 @@ window.LF = window.LF || {};
         }
         g.push(row);
       }
+      // ── 坊制播种（v20260927）：在空地/民宅上落若干坊格，每坊含多间子房间（官署/里坊/军坊/市坊/文教/码头）──
+      seedWards(g, c, rnd, cx, cy, size);
       // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
       var markets = {};
       var MK = (typeof LF !== 'undefined' && LF.MARKETS);
@@ -448,6 +458,25 @@ window.LF = window.LF || {};
       F.cityGrid = F.cityGrid || {};
       F.cityGrid[cid] = { ver: _myVer, size: size, cells: g, markets: markets, gates: nG };
       return F.cityGrid[cid];
+    }
+    // ── 坊制播种（v20260927）：在城内空地/民宅上落坊格；优先取离中心近的格，确保在建设半径内可被进入 ──
+    function seedWards(g, c, rnd, cx, cy, size) {
+      var cand = [];
+      for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
+        if (x === cx && y === cy) continue;
+        var t = g[y][x];
+        if (t === 'empty' || t === 'home') cand.push([x, y]);
+      }
+      if (!cand.length) return;
+      cand.sort(function (a, b) { return (Math.abs(a[0] - cx) + Math.abs(a[1] - cy)) - (Math.abs(b[0] - cx) + Math.abs(b[1] - cy)); });
+      var ci = 0;
+      function place(kind) { if (ci >= cand.length) return; var p = cand[ci++]; g[p[1]][p[0]] = 'ward_' + kind; }
+      var dev = (c.dev != null ? c.dev : (c.pop || 0));
+      place('gov'); place('resid');
+      if ((c.wall || 0) >= 55 || (c.tier && c.tier !== 'xian')) place('mil');
+      if ((c.commerce || 0) >= 50) place('market');
+      if (dev >= 55 || (c.culture || 0) >= 50) place('culture');
+      if (c.ctype === 'port' || c.coastal) place('water');
     }
     function cityCellDesc(cid, x, y) {
       var m = genCityGrid(cid); if (!m) return [];

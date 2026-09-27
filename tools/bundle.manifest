@@ -21,6 +21,7 @@ shared/shop.js
 shared/data/map.js
 shared/data/cities.js
 shared/data/placeKinds.js
+shared/data/buildings.js
 shared/data/places.js
 shared/data/roads.js
 shared/systems/travel.js

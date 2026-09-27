@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 73   版本: 20260927a
+// 源文件数: 74   版本: 20260927b
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927a',
+    VERSION: '20260927b',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -7187,6 +7187,104 @@ LF.RECIPES = {
 })(typeof window !== 'undefined' ? window : globalThis);
 
 ;
+// ============ shared/data/buildings.js ============
+// shared/data/buildings.js
+// 建筑原型注册表 + 坊(ward)子房间定义 —— Phase 0 数据基石
+//
+// 设计评审结论（来自本轮）：
+//  1) 府邸/官署/军营 不占整格，做成"坊"格子里的子房间（汉末里坊制：坊是封闭居住/管理单元，内含多户）。
+//  2) 官署名用汉末（东汉）真实名称。隋唐的"大理寺/光禄寺/鸿胪寺"在汉分别为 廷尉/光禄勋/大鸿胪。
+//  3) 新增建筑/坊只加此表，不碰生成代码（数据驱动）。
+//  4) 将坊子房间只是"地图表现层"，指向已存在的 state.armies，不新建模拟层，避免复杂度爆炸。
+window.LF = window.LF || {};
+(function () {
+  var LF = window.LF;
+
+  // 建筑原型。tags: economy/culture/religion/military/water/gov/residential/travel
+  // tier: 生成门槛（城市 dev/culture/commerce/沿海 决定能否出现）
+  // reqs: { coastal, culture, commerce, ctype } 生成约束
+  // yield: 月度产出（接 facilityOutput 数学，单位同 state.res）
+  // npcRoles: 该建筑内可能刷的 NPC 角色
+  // isWard: true 表示这是一个"坊"格子，内部由 WARD_DEFS[kind].subGen 生成多个子房间
+  LF.BUILDING_ARCH = {
+    temple:   { key:'temple',   name:'寺观', tags:['culture','religion'], tier:1, reqs:{},                 yield:{},            npcRoles:['monk','pilgrim','oracle'] },
+    academy:  { key:'academy',  name:'学宫', tags:['culture','edu'],       tier:2, reqs:{culture:3},        yield:{},            npcRoles:['scholar','student','master'] },
+    guild:    { key:'guild',    name:'商会', tags:['economy','trade'],     tier:2, reqs:{commerce:4},       yield:{gold:8},      npcRoles:['merchant','broker','apprentice'] },
+    market:   { key:'market',   name:'市集', tags:['economy'],             tier:0, reqs:{},                 yield:{gold:4},      npcRoles:['vendor','peddler'] },
+    dock:     { key:'dock',     name:'码头', tags:['water','trade'],       tier:1, reqs:{coastal:true},     yield:{gold:6},      npcRoles:['sailor','porter','smuggler'] },
+    inn:      { key:'inn',      name:'驿站', tags:['economy','travel'],    tier:1, reqs:{},                 yield:{gold:2},      npcRoles:['innkeeper','traveler'] },
+    barracks: { key:'barracks', name:'军营', tags:['military'],            tier:1, reqs:{},                 yield:{},            npcRoles:['soldier','drillmaster'] },
+    storage:  { key:'storage',  name:'仓库', tags:['economy'],             tier:0, reqs:{},                 yield:{},            npcRoles:['storekeeper'] },
+  };
+
+  // 官署坊子房间：汉末（东汉）真实中央官署。note 标出与隋唐名的对应，便于文案校对。
+  // 来源：三公九卿制 + 尚书台（实权中枢）+ 御史台（监察）+ 大将军府/丞相府（军权中枢）。
+  LF.OFFICE_SUBROOMS = [
+    { key:'shangshu',  name:'尚书台', note:'中枢政务，实权所在（尚书令/尚书仆射）',            tags:['gov','power'] },
+    { key:'yushi',    name:'御史台', note:'监察百官（御史中丞）',                            tags:['gov','censor'] },
+    { key:'taichang', name:'太常',   note:'礼乐、宗庙、教育',                                tags:['gov','ritual'] },
+    { key:'guanglu',  name:'光禄勋', note:'宫禁侍卫与郎官（隋唐称光禄寺）',                  tags:['gov','guard'] },
+    { key:'weiwei',   name:'卫尉',   note:'宫门屯兵',                                        tags:['gov','guard'] },
+    { key:'taipu',    name:'太仆',   note:'车马、厩政',                                      tags:['gov','transport'] },
+    { key:'tingwei',  name:'廷尉',   note:'司法断狱（隋唐改称大理寺）',                      tags:['gov','justice'] },
+    { key:'dahonglu', name:'大鸿胪', note:'朝会宾客、蛮夷事务（隋唐称鸿胪寺）',              tags:['gov','ceremony'] },
+    { key:'zongzheng',name:'宗正',   note:'皇族宗室事务',                                    tags:['gov','clan'] },
+    { key:'dasinong', name:'大司农', note:'国家财政、盐铁、粮储',                            tags:['gov','finance'] },
+    { key:'shaofu',   name:'少府',   note:'皇室私库、尚方、织室',                            tags:['gov','imperial'] },
+    { key:'dajiang',  name:'大将军府', note:'军权中枢（如董卓、曹操任大将军）',              tags:['gov','military'] },
+  ];
+
+  // 坊定义：坊格子 -> 子房间生成策略。
+  //  subGen: mansions(驻城武将府邸) / offices(固定官署) / generals(将府→state.armies) /
+  //          shops(市坊商铺) / schools(文教) / docks(码头，仅沿海)
+  //  capacity: 该坊最多可见子房间数（超出归入通用房，防格子/列表爆炸）
+  LF.WARD_DEFS = {
+    resid:   { name:'里坊',   kind:'residential', capacity:6, subGen:'mansions',
+               note:'如"静安坊"内含 董府、诸葛府、姜维宅、庞统家 等子房间（按驻城武将名册生成）' },
+    gov:     { name:'官署坊', kind:'gov',         capacity:12, subGen:'offices',
+               note:'一格官署坊，内含尚书台、廷尉、大鸿胪……等子房间（LF.OFFICE_SUBROOMS）' },
+    mil:     { name:'军坊',   kind:'military',    capacity:8,  subGen:'generals',
+               note:'每将一府，府=本队军帐兼宅邸；子房间引用 state.armies[aid]（表现层，非新模拟）' },
+    market:  { name:'市坊',   kind:'economy',     capacity:8,  subGen:'shops',
+               note:'商铺、商会、货栈' },
+    culture: { name:'文教坊', kind:'culture',     capacity:5,  subGen:'schools',
+               note:'学宫、寺观、精舍' },
+    water:   { name:'码头坊', kind:'water',       capacity:5,  subGen:'docks',
+               note:'仅沿海 / ctype∈{port,shuizhai} 城生成' },
+  };
+
+  // 野外资源节点类型：复用 travel.js 的 RES 概念，落到具体节点地产出，可建专属据点。
+  //  build: 对应 build.js 蓝图 id（Phase 1 在 build.js 中新增这些节点专属蓝图）
+  //  rate: 月度基础产出（接 facilityOutput 数学）
+  LF.RES_NODE_TYPES = {
+    mine_iron:   { name:'铁矿脉', res:'iron',   build:'bp_minecamp', rate:6 },
+    mine_copper: { name:'铜矿脉', res:'copper', build:'bp_minecamp', rate:5 },
+    mine_silver: { name:'银矿脉', res:'silver', build:'bp_minecamp', rate:3 },
+    mine_jade:   { name:'玉矿',   res:'jade',   build:'bp_minecamp', rate:2 },
+    salt:        { name:'盐池',   res:'salt',   build:'bp_salt',     rate:5 },
+    forest:      { name:'林场',   res:'wood',   build:'bp_lumber',   rate:7 },
+    fishery:     { name:'渔场',   res:'fish',   build:'bp_fishery',  rate:6 },
+    herb:        { name:'药圃',   res:'herb',   build:'bp_herb',     rate:4 },
+  };
+
+  // 年代闸门：武将按历史事件/时间入场、投奔、升贬。
+  //  monthKey 格式同 state.cal（如 20703 = 建安十二年三月，依游戏内纪元换算）。
+  //  act: activate(入场) / defect(投奔他势) / promote(升) / demote(贬)
+  //  to: 落点城市 rid；quest: 触发的任务锚点（接 objectives 的 at）
+  //  注：运行时投奔/易主由 diploSue / conquerCity 触发 transfer，这里仅作初始编排。
+  LF.ERA_SCHEDULE = [
+    { gen:'zhuge_liang', at:'20701', act:'activate', to:'xiangyang', quest:'三顾茅庐' },
+    { gen:'simayi',      at:'20806', act:'activate', to:'luoyang'  },
+    { gen:'zhugeliang',  at:'22101', act:'promote',  to:'chengdu',  note:'丞相' },
+  ];
+
+  // 工厂入口（保持与现有 LF.createX(ctx) 范式一致，便于 engine 别名块接入）
+  LF.createBuildings = function (ctx) {
+    return LF.BUILDING_ARCH;
+  };
+})();
+
+;
 // ============ shared/data/places.js ============
 // 统一地点注册表（Place 系统单一真相源）
 // 现有城市从 LF.CITIES 自动并入(kind:'city'，沿用其 name/state/pos/owner/tier/grid)；
@@ -9877,7 +9975,7 @@ window.LF = window.LF || {};
 
     // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
     // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
-    var GRID_VER = '20260825f';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
+    var GRID_VER = '20260927w';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
     // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
     function cityGates(c) {
       var ct = c.ctype || 'plain';
@@ -9966,7 +10064,9 @@ window.LF = window.LF || {};
       plaza: { i: '🏛', nm: '城中广场' }, gate: { i: '🚪', nm: '城门' },
       market: { i: '🛒', nm: '市集' }, home: { i: '🏠', nm: '民宅' }, barracks: { i: '⚔', nm: '军营' },
       farm: { i: '🌾', nm: '农庄' }, prison: { i: '⛓', nm: '牢房' }, mine: { i: '⛏', nm: '矿坑' }, kitchen: { i: '🍚', nm: '伙房' }, command: { i: '🚩', nm: '中军帐' }, warehouse: { i: '📦', nm: '仓库' }, drill: { i: '🥋', nm: '演武场' }, sentry: { i: '🏮', nm: '岗哨' }, empty: { i: '🟫', nm: '空地' }, ruin: { i: '🔥', nm: '焦土' },
-      site: { i: '🚧', nm: '工地' }
+      site: { i: '🚧', nm: '工地' },
+      ward_gov: { i: '🏛', nm: '官署坊' }, ward_mil: { i: '⚔', nm: '军坊' }, ward_resid: { i: '🏘', nm: '里坊' },
+      ward_market: { i: '🛒', nm: '市坊' }, ward_culture: { i: '📚', nm: '文教坊' }, ward_water: { i: '⚓', nm: '码头坊' }
     };
     // ── 苦役营教程·具名名册（v20260909p；v20260912f 起由 LF.NPC_NAMED 派生）──
     // 「谁在哪一格」与「什么时辰在哪一格」统一存在 data/npc_cards.js 的 LF.NPC_NAMED，
@@ -10020,7 +10120,13 @@ window.LF = window.LF || {};
       empty: '一片空地，瓦砾草莽，尚待营建。',
       ruin: '焦土未冷，断壁残垣，劫后萧索。',
       unbuilt: '城郭未及营建，草莽瓦砾，尚无居人。',
-      site: '建材成堆、工匠往来，工事未完，暂不可入。'
+      site: '建材成堆、工匠往来，工事未完，暂不可入。',
+      ward_gov: '官署坊内，廊庑森列——尚书台、廷尉、大鸿胪诸署分列其间，官吏穿梭。',
+      ward_mil: '军坊之中，将旗林立，各将府第环列，部曲屯驻。',
+      ward_resid: '里坊深巷，高墙朱户，世家宅邸比邻而居。',
+      ward_market: '市坊店铺连绵，行商坐贾，百货辐辏。',
+      ward_culture: '文教坊内，学宫弦歌、寺观香火，士子道徒各得其乐。',
+      ward_water: '码头坊畔，舟楫泊岸，商货起卸如流。'
     };
     // ══ 城市盛衰 / 归属系统（v20260824d）══
     // 建设度(dev)决定建成半径：随盛衰扩建/降级；焦土(ruin)由战火标记；归属(owner)易主则中枢变帅府/行辕
@@ -10276,6 +10382,8 @@ window.LF = window.LF || {};
         }
         g.push(row);
       }
+      // ── 坊制播种（v20260927）：在空地/民宅上落若干坊格，每坊含多间子房间（官署/里坊/军坊/市坊/文教/码头）──
+      seedWards(g, c, rnd, cx, cy, size);
       // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
       var markets = {};
       var MK = (typeof LF !== 'undefined' && LF.MARKETS);
@@ -10301,6 +10409,25 @@ window.LF = window.LF || {};
       F.cityGrid = F.cityGrid || {};
       F.cityGrid[cid] = { ver: _myVer, size: size, cells: g, markets: markets, gates: nG };
       return F.cityGrid[cid];
+    }
+    // ── 坊制播种（v20260927）：在城内空地/民宅上落坊格；优先取离中心近的格，确保在建设半径内可被进入 ──
+    function seedWards(g, c, rnd, cx, cy, size) {
+      var cand = [];
+      for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
+        if (x === cx && y === cy) continue;
+        var t = g[y][x];
+        if (t === 'empty' || t === 'home') cand.push([x, y]);
+      }
+      if (!cand.length) return;
+      cand.sort(function (a, b) { return (Math.abs(a[0] - cx) + Math.abs(a[1] - cy)) - (Math.abs(b[0] - cx) + Math.abs(b[1] - cy)); });
+      var ci = 0;
+      function place(kind) { if (ci >= cand.length) return; var p = cand[ci++]; g[p[1]][p[0]] = 'ward_' + kind; }
+      var dev = (c.dev != null ? c.dev : (c.pop || 0));
+      place('gov'); place('resid');
+      if ((c.wall || 0) >= 55 || (c.tier && c.tier !== 'xian')) place('mil');
+      if ((c.commerce || 0) >= 50) place('market');
+      if (dev >= 55 || (c.culture || 0) >= 50) place('culture');
+      if (c.ctype === 'port' || c.coastal) place('water');
     }
     function cityCellDesc(cid, x, y) {
       var m = genCityGrid(cid); if (!m) return [];
@@ -26708,8 +26835,67 @@ function bindCreate(){
     document.body.appendChild(pre);
   }
 
+  // ── 坊制系统（v20260927）：每个 ward 城格展开多间子房间，点门牌入内、子房间南向出口回城格 ──
+  function officersInCity(cid) {
+    var list = [];
+    if (typeof Officers !== 'undefined' && Officers.garrisonOf) list = Officers.garrisonOf(cid) || [];
+    if ((!list || !list.length) && typeof state !== 'undefined' && state.officers) list = state.officers.filter(function (o) { return o && (o.home === cid || o.city === cid || (o.garrison && o.garrison === cid)); });
+    return list || [];
+  }
+  function wardSubId(cid, x, y, k) { return 'ward_' + cid + '_' + x + '_' + y + '_' + k; }
+  function buildWardCell(cid, x, y, t) {
+    var WARD = LF.WARD_DEFS || {}, OFF = LF.OFFICE_SUBROOMS || [];
+    var kind = ('' + t).slice('ward_'.length);
+    var def = WARD[kind]; if (!def) return;
+    var subs = [];
+    if (def.subGen === 'offices') {
+      OFF.forEach(function (o) { subs.push({ k: o.key, name: o.name, desc: [o.name + (o.note ? ('：' + o.note) : '')], icon: o.icon || '🏛', group: '官署' }); });
+    } else if (def.subGen === 'mansions') {
+      var gens = officersInCity(cid).slice(0, def.capacity || 6);
+      if (!gens.length) subs.push({ k: 'empty', name: '空置宅邸', desc: ['此坊尚无人居，院落寂然。'], icon: '🏠', group: '宅邸' });
+      gens.forEach(function (g) {
+        var honor = (g.gender === 'f') ? '宅' : '府';
+        subs.push({ k: g.id, name: (g.name || '某人') + honor, desc: [(g.name || '某') + '之' + honor + '。' + (g.title ? ('现任' + g.title + '。') : '')], icon: '🏠', group: '宅邸' });
+      });
+    } else if (def.subGen === 'generals') {
+      var amap = (typeof state !== 'undefined' && state.armies) || {};
+      officersInCity(cid).forEach(function (g) {
+        var has = amap[g.id] && amap[g.id].active;
+        subs.push({ k: 'a_' + g.id, name: (g.name || '某') + '府(军)', desc: [(g.name || '某') + '的军府，本队驻此。' + (has ? '旗下将士听调。' : '尚无常备部曲。')], icon: '⚔', group: '军府' });
+      });
+      if (!subs.length) subs.push({ k: 'empty', name: '空置军府', desc: ['军坊暂驻，将旗未立。'], icon: '⚔', group: '军府' });
+    } else if (def.subGen === 'shops') {
+      [['qianzhuang', '钱庄'], ['buzhuang', '布庄'], ['jiulou', '酒楼'], ['tiejiang', '铁匠铺'], ['yaofu', '药铺']].slice(0, def.capacity || 5).forEach(function (s) { subs.push({ k: s[0], name: s[1], desc: ['市坊之内，' + s[1] + '生意兴隆。'], icon: '🛒', group: '商铺' }); });
+    } else if (def.subGen === 'schools') {
+      subs.push({ k: 'xuegong', name: '学宫', desc: ['弦歌之声不绝，士子诵经。'], icon: '📚', group: '文教' });
+      subs.push({ k: 'siguan', name: '寺观', desc: ['香火缭绕，道徒诵经。'], icon: '⛩', group: '文教' });
+    } else if (def.subGen === 'docks') {
+      subs.push({ k: 'matou', name: '码头', desc: ['舟楫往来，商货云集。'], icon: '⚓', group: '水运' });
+      subs.push({ k: 'chuanwu', name: '船坞', desc: ['匠人修造楼船。'], icon: '🛠', group: '水运' });
+    }
+    subs.forEach(function (s) {
+      var id = wardSubId(cid, x, y, s.k);
+      G.ROOMS[id] = { id: id, name: s.name, desc: (s.desc && s.desc.length ? s.desc : ['']), find: '', exits: { '南': '__cell__:' + cid + ':' + x + ':' + y }, npcs: [], items: [], actions: [], _ward: true };
+    });
+    var doors = subs.map(function (s) { return { label: s.name, icon: s.icon, target: wardSubId(cid, x, y, s.k), group: s.group }; });
+    CELL_INTERIORS[cid + '|' + x + ',' + y] = { doors: doors };
+  }
+  function registerWardRooms() {
+    var C = LF.CITIES || {};
+    for (var cid in C) {
+      var c = C[cid]; if (!c || !c.grid) continue;
+      var m = genCityGrid(cid); if (!m) continue;
+      for (var y = 0; y < m.size; y++) for (var x = 0; x < m.size; x++) {
+        var t = m.cells[y][x];
+        if (t && ('' + t).indexOf('ward_') === 0) buildWardCell(cid, x, y, t);
+      }
+    }
+  }
+
   // ── 城市房间由 cities.js 程序合成（rooms.js 不再手写）；山河志州治节点由 cities.js+coords 自动派生 ──
   registerCityRooms();
+  registerWardRooms();
+
 
   // ── 统一按压反馈（P1）：手机端点击震动 + 全局按压态。
   //  按钮类（button/.btn/.act/.op-btn）按下时轻震 8ms；滑块/输入框不触发。

@@ -5243,8 +5243,67 @@
     document.body.appendChild(pre);
   }
 
+  // ── 坊制系统（v20260927）：每个 ward 城格展开多间子房间，点门牌入内、子房间南向出口回城格 ──
+  function officersInCity(cid) {
+    var list = [];
+    if (typeof Officers !== 'undefined' && Officers.garrisonOf) list = Officers.garrisonOf(cid) || [];
+    if ((!list || !list.length) && typeof state !== 'undefined' && state.officers) list = state.officers.filter(function (o) { return o && (o.home === cid || o.city === cid || (o.garrison && o.garrison === cid)); });
+    return list || [];
+  }
+  function wardSubId(cid, x, y, k) { return 'ward_' + cid + '_' + x + '_' + y + '_' + k; }
+  function buildWardCell(cid, x, y, t) {
+    var WARD = LF.WARD_DEFS || {}, OFF = LF.OFFICE_SUBROOMS || [];
+    var kind = ('' + t).slice('ward_'.length);
+    var def = WARD[kind]; if (!def) return;
+    var subs = [];
+    if (def.subGen === 'offices') {
+      OFF.forEach(function (o) { subs.push({ k: o.key, name: o.name, desc: [o.name + (o.note ? ('：' + o.note) : '')], icon: o.icon || '🏛', group: '官署' }); });
+    } else if (def.subGen === 'mansions') {
+      var gens = officersInCity(cid).slice(0, def.capacity || 6);
+      if (!gens.length) subs.push({ k: 'empty', name: '空置宅邸', desc: ['此坊尚无人居，院落寂然。'], icon: '🏠', group: '宅邸' });
+      gens.forEach(function (g) {
+        var honor = (g.gender === 'f') ? '宅' : '府';
+        subs.push({ k: g.id, name: (g.name || '某人') + honor, desc: [(g.name || '某') + '之' + honor + '。' + (g.title ? ('现任' + g.title + '。') : '')], icon: '🏠', group: '宅邸' });
+      });
+    } else if (def.subGen === 'generals') {
+      var amap = (typeof state !== 'undefined' && state.armies) || {};
+      officersInCity(cid).forEach(function (g) {
+        var has = amap[g.id] && amap[g.id].active;
+        subs.push({ k: 'a_' + g.id, name: (g.name || '某') + '府(军)', desc: [(g.name || '某') + '的军府，本队驻此。' + (has ? '旗下将士听调。' : '尚无常备部曲。')], icon: '⚔', group: '军府' });
+      });
+      if (!subs.length) subs.push({ k: 'empty', name: '空置军府', desc: ['军坊暂驻，将旗未立。'], icon: '⚔', group: '军府' });
+    } else if (def.subGen === 'shops') {
+      [['qianzhuang', '钱庄'], ['buzhuang', '布庄'], ['jiulou', '酒楼'], ['tiejiang', '铁匠铺'], ['yaofu', '药铺']].slice(0, def.capacity || 5).forEach(function (s) { subs.push({ k: s[0], name: s[1], desc: ['市坊之内，' + s[1] + '生意兴隆。'], icon: '🛒', group: '商铺' }); });
+    } else if (def.subGen === 'schools') {
+      subs.push({ k: 'xuegong', name: '学宫', desc: ['弦歌之声不绝，士子诵经。'], icon: '📚', group: '文教' });
+      subs.push({ k: 'siguan', name: '寺观', desc: ['香火缭绕，道徒诵经。'], icon: '⛩', group: '文教' });
+    } else if (def.subGen === 'docks') {
+      subs.push({ k: 'matou', name: '码头', desc: ['舟楫往来，商货云集。'], icon: '⚓', group: '水运' });
+      subs.push({ k: 'chuanwu', name: '船坞', desc: ['匠人修造楼船。'], icon: '🛠', group: '水运' });
+    }
+    subs.forEach(function (s) {
+      var id = wardSubId(cid, x, y, s.k);
+      G.ROOMS[id] = { id: id, name: s.name, desc: (s.desc && s.desc.length ? s.desc : ['']), find: '', exits: { '南': '__cell__:' + cid + ':' + x + ':' + y }, npcs: [], items: [], actions: [], _ward: true };
+    });
+    var doors = subs.map(function (s) { return { label: s.name, icon: s.icon, target: wardSubId(cid, x, y, s.k), group: s.group }; });
+    CELL_INTERIORS[cid + '|' + x + ',' + y] = { doors: doors };
+  }
+  function registerWardRooms() {
+    var C = LF.CITIES || {};
+    for (var cid in C) {
+      var c = C[cid]; if (!c || !c.grid) continue;
+      var m = genCityGrid(cid); if (!m) continue;
+      for (var y = 0; y < m.size; y++) for (var x = 0; x < m.size; x++) {
+        var t = m.cells[y][x];
+        if (t && ('' + t).indexOf('ward_') === 0) buildWardCell(cid, x, y, t);
+      }
+    }
+  }
+
   // ── 城市房间由 cities.js 程序合成（rooms.js 不再手写）；山河志州治节点由 cities.js+coords 自动派生 ──
   registerCityRooms();
+  registerWardRooms();
+
 
   // ── 统一按压反馈（P1）：手机端点击震动 + 全局按压态。
   //  按钮类（button/.btn/.act/.op-btn）按下时轻震 8ms；滑块/输入框不触发。
