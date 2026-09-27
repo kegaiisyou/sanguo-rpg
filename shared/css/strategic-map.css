@@ -251,24 +251,22 @@
   bottom: 34px;
   transform: translateX(-50%);
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;          /* v20260927j：两行自适应换行——8 个势力项不再横向溢出屏幕外选不中 */
   align-items: center;
-  gap: 0 6px;
+  gap: 3px 7px;
   max-width: 96%;
-  max-height: 30px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
+  max-height: 62px;         /* 两行高度，超出内部滚动（最多见 8 势力项两行） */
+  overflow-y: auto;
+  white-space: normal;
   background: rgba(231,220,192,0.94);
   border: 1px solid #b7a47a;
-  border-radius: 999px;
-  padding: 3px 10px;
+  border-radius: 10px;
+  padding: 5px 10px;
   font-size: 12px;
   line-height: 1.4;
   box-shadow: 2px 2px 8px rgba(60,44,20,.18);
-  /* v20260927j：图例可点选（势力聚合入口，P3）；隐藏滚动条但可横向滑动 */
+  /* v20260927j：图例可点选（势力聚合入口，P3） */
   pointer-events: auto;
-  touch-action: pan-x;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

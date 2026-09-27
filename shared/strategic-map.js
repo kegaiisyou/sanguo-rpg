@@ -815,7 +815,7 @@
       const stateLayer = root.append('g').attr('id', 'sm-states');
       statePaths = stateLayer.selectAll('path.main').data(fc.features).enter().append('path')
         .attr('class','main')
-        .attr('d', geoPath)
+        .attr('d', planarPath)   // v20260927j: 与面填充层同源 planarPath，避免 d3.geoPath 球面处理把环切成全图巨型子环(点任意处误命中永昌郡)
         .attr('fill', 'none')
         .attr('stroke', 'none')
         .attr('pointer-events','all')
