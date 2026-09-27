@@ -173,6 +173,29 @@
   // 注册后按钮组与图例自动带上该层 —— 新增「灾情 / 军情 / 屯田 / 关税」等分层
   //   只需再注册一条，无需改渲染代码。
   let overlayMode = 'commandery';   // 默认郡面填色：打开山河志即见郡国分区（可点「势力」一键切回当世归属）
+  // v20260927h：图层显示开关（筛选）——城徽/城名/州名/郡名/道路/河流/关隘野地可独立显隐，
+  //   解决信息过密、城徽叠加看不清；状态存 localStorage（sm-display-v2）
+  const DISPLAY_DEF = { city: 1, cityName: 1, state: 1, cmd: 1, road: 1, river: 1, place: 1 };
+  let displayState = {};
+  try {
+    const _saved = JSON.parse(localStorage.getItem('sm-display-v2') || '{}');
+    for (const k in DISPLAY_DEF) displayState[k] = _saved[k] == null ? DISPLAY_DEF[k] : (!!_saved[k] ? 1 : 0);
+  } catch (e) { displayState = Object.assign({}, DISPLAY_DEF); }
+  function saveDisplay() { try { localStorage.setItem('sm-display-v2', JSON.stringify(displayState)); } catch (e) {} }
+  // 开关即时生效：直接给地图容器挂/摘 .sm-hide-* 类（CSS display:none 硬隐藏），
+  //   不依赖地图实例闭包（跨作用域/多实例都可靠）；与 applyTransform 的 LOD 淡入互不冲突。
+  function applyDisplayToDom() {
+    const wraps = document.querySelectorAll('.strategic-map-wrap');
+    for (const k in DISPLAY_DEF) {
+      wraps.forEach(w => w.classList.toggle('sm-hide-' + k, !displayState[k]));
+    }
+  }
+  function setDisplay(k, on) {
+    if (!(k in DISPLAY_DEF)) return;
+    displayState[k] = on ? 1 : 0;
+    saveDisplay();
+    applyDisplayToDom();
+  }
   let customOverlay = null;
   let _applyOverlay = null;
   let _legendCtx = { cmd: [], fac: [] };   // 当前渲染的面属性（供 legend 统计）
@@ -466,6 +489,19 @@
         <div class="strategic-search-panel" id="sm-search-panel" style="display:none">
           <input class="strategic-search-input" id="sm-search-input" placeholder="搜州郡、城池、关隘…" autocomplete="off" spellcheck="false" />
           <div class="strategic-search-results" id="sm-search-results"></div>
+        </div>
+      </div>
+      <div class="strategic-display">
+        <button class="strategic-display-btn" id="sm-display-btn" title="显示设置：图层筛选开关" aria-label="显示设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+        <div class="strategic-display-panel" id="sm-display-panel" style="display:none">
+          <div class="sd-title">显示图层</div>
+          <label class="sd-row"><span>城池标记</span><input type="checkbox" data-sd="city" /></label>
+          <label class="sd-row"><span>城名文字</span><input type="checkbox" data-sd="cityName" /></label>
+          <label class="sd-row"><span>州名</span><input type="checkbox" data-sd="state" /></label>
+          <label class="sd-row"><span>郡名</span><input type="checkbox" data-sd="cmd" /></label>
+          <label class="sd-row"><span>道路</span><input type="checkbox" data-sd="road" /></label>
+          <label class="sd-row"><span>河流</span><input type="checkbox" data-sd="river" /></label>
+          <label class="sd-row"><span>关隘野地</span><input type="checkbox" data-sd="place" /></label>
         </div>
       </div>
       <div class="strategic-overlay-fab">
@@ -873,7 +909,8 @@
         wrap.setAttribute('data-cid', c.id);
 
         const dot = document.createElement('div');
-        dot.className = 'strategic-city-dot' + (c.capital ? ' capital' : '');
+        dot.className = 'strategic-city-dot' + (c.capital ? ' capital' : '')
+          + (c.tier === 'jun' ? ' t-jun' : c.tier === 'xian' ? ' t-xian' : '');
         {   // 城市点随「当前归属」上色（v20260909o）：易主则下次开启山河志时点色同步
           const _fOwn = FACTIONS[c.owner] || FACTIONS.none;
           if (_fOwn && _fOwn.fill) dot.style.background = _fOwn.fill;
@@ -1448,11 +1485,13 @@
         const lod = fade(k, 1.9, 3.4);
         curK = k;
         if (provinceLayer) {
-          const pop = 1 - lod;
+          const pop = (1 - lod) * (displayState.state ? 1 : 0);
           provinceLayer.style('opacity', pop);
         }
-        // 道路层与郡名同节奏淡入淡出（拉远随郡名一起消失，拉近清晰）
-        if (roadLayer) roadLayer.style('opacity', String(lod));
+        // 道路层与郡名同节奏淡入淡出（拉远随郡名一起消失，拉近清晰；可被「显示设置」关闭）
+        if (roadLayer) roadLayer.style('opacity', String(lod * (displayState.road ? 1 : 0)));
+        // 河流整体显隐（v20260927h：筛选开关）
+        if (riverLayer) riverLayer.style('opacity', String(displayState.river ? 1 : 0));
         if (commanderyLayer) {
           // 州内保持干净无内部线：郡边界线层始终隐藏（"郡"填色模式仍显示色块）
           commanderyLayer.style('display', 'none');
@@ -1470,31 +1509,34 @@
           o.el.style.fontSize = fs.toFixed(1) + 'px';
           o.el.style.letterSpacing = (fs < 15 ? '1px' : fs < 18 ? '1.5px' : '2px');
         });
-        // 郡名：中观淡入，微观让位给城名（k>4.4 起渐隐）
-        if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod * (1 - fade(k, 4.4, 5.4))); });
+        // 郡名：中观淡入，微观让位给城名（k>4.4 起渐隐；可被「显示设置」关闭）
+        if (commanderyLabelsDom.length) commanderyLabelsDom.forEach(o => { o.el.style.opacity = String(lod * (1 - fade(k, 4.4, 5.4)) * (displayState.cmd ? 1 : 0)); });
         // 城点：中观起出现（可点）；城名：微观才淡入 —— 默认视野(k≈2.6)只见点不见名，郡名为主
+        // v20260927h：城徽分级淡入（州治 1.4 / 郡治 1.7 / 县 2.0 起）——中观先见大城、县点拉近才现，
+        //   大幅缓解 61 城点密集叠加；「城池标记 / 城名文字」开关独立控制点与字
         if (cityMarks.length) cityMarks.forEach(o => {
-          const op = fade(k, 1.4, 3.0);
+          const tierStart = (o.city && o.city.tier === 'zhou') ? 1.4 : (o.city && o.city.tier === 'jun') ? 1.7 : 2.0;
+          const op = fade(k, tierStart, 3.0) * (displayState.city ? 1 : 0);
           if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; }
-          if (o.nm) { o.nm.style.opacity = String(fade(k, 2.9, 4.0)); }
+          if (o.nm) { o.nm.style.opacity = String(fade(k, 2.9, 4.0) * (displayState.cityName ? 1 : 0)); }
         });
         if (specialMarks.length) specialMarks.forEach(o => {
-          const op = fade(k, 1.4, 3.0);
+          const op = fade(k, 1.4, 3.0) * (displayState.city ? 1 : 0);
           if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; }
-          if (o.nm) o.nm.style.opacity = String(fade(k, 2.9, 4.0));
+          if (o.nm) o.nm.style.opacity = String(fade(k, 2.9, 4.0) * (displayState.cityName ? 1 : 0));
         });
         // 野外地点：关隘/副本等「名点」中观即显示名字（虎牢关这类名关默认视野可见）；
-        //   普通野地点名仍留到微观
+        //   普通野地点名仍留到微观；「关隘野地」开关整体控制
         if (placeMarks.length) placeMarks.forEach(o => {
-          const op = fade(k, 1.9, 3.2);
+          const op = fade(k, 1.9, 3.2) * (displayState.place ? 1 : 0);
           if (o.el) { o.el.style.opacity = String(op); o.el.style.pointerEvents = op > 0.05 ? 'auto' : 'none'; }
           if (o.nm) {
             const named = (o.p && (o.p.kind === 'pass' || o.p.kind === 'fort' || o.p.kind === 'landmark' || o.p.kind === 'dungeon'));
-            o.nm.style.opacity = String(named ? fade(k, 1.9, 3.2) : fade(k, 2.9, 4.0));
+            o.nm.style.opacity = String((named ? fade(k, 1.9, 3.2) : fade(k, 2.9, 4.0)) * (displayState.place ? 1 : 0));
           }
         });
-        // 河流名：中观淡入，始终浅淡不抢戏
-        if (riverLabelsDom.length) riverLabelsDom.forEach(o => { o.el.style.opacity = String(fade(k, 1.9, 3.2)); });
+        // 河流名：中观淡入，始终浅淡不抢戏；随「河流」开关一起隐藏
+        if (riverLabelsDom.length) riverLabelsDom.forEach(o => { o.el.style.opacity = String(fade(k, 1.9, 3.2) * (displayState.river ? 1 : 0)); });
         // 引导标记任何缩放级别都保持可见（仅1~2枚，不产生干扰）
         guideMarks.forEach(o => { if (o.el) o.el.style.opacity = '1'; });
         positionOverlay(t);
@@ -1743,6 +1785,26 @@
     const searchPanel = ui.querySelector('#sm-search-panel');
     const searchInput = ui.querySelector('#sm-search-input');
     const searchResults = ui.querySelector('#sm-search-results');
+    // ── 显示设置面板（v20260927h）：图层开关即时生效 ──
+    const dispBtn = ui.querySelector('#sm-display-btn');
+    const dispPanel = ui.querySelector('#sm-display-panel');
+    if (dispBtn && dispPanel) {
+      const dispChecks = dispPanel.querySelectorAll('input[data-sd]');
+      function syncDispChecks() {
+        dispChecks.forEach(c => { c.checked = !!displayState[c.getAttribute('data-sd')]; });
+      }
+      dispBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const show = dispPanel.style.display === 'none';
+        dispPanel.style.display = show ? 'block' : 'none';
+        if (show) syncDispChecks();
+      });
+      dispChecks.forEach(c => {
+        c.addEventListener('change', () => { setDisplay(c.getAttribute('data-sd'), c.checked); });
+      });
+      svgEl.addEventListener('pointerdown', () => { dispPanel.style.display = 'none'; });
+      syncDispChecks();
+    }
     if (searchBtn && searchPanel && searchInput && searchResults) {
       const closeSearch = (clear) => {
         searchPanel.style.display = 'none';
@@ -1794,6 +1856,7 @@
       const raf = global.requestAnimationFrame || ((fn) => setTimeout(fn, 16));
       raf(() => {
         render(regionData, cities);
+        applyDisplayToDom();   // v20260927h：首帧同步图层开关（display:none 硬隐藏）
         loading.remove();
         // v20260905j：山河志打开默认以「此身所在」居中（k≈2.6 中近视野），不再永远首览十三州全景
         if (opts.focusYou && locateGuide) {

@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 74   版本: 20260927g
+// 源文件数: 74   版本: 20260927h
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927g',
+    VERSION: '20260927h',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -5617,46 +5617,6 @@ LF.RECIPES = {
         { id: 'jinchuang', buy: 30, sell: 12 },
         { id: 'roubao',    buy: 8,  sell: 3  },
         { id: 'caoyao',    buy: 5,  sell: 2  }
-      ]
-    },
-    // ── 坊·市坊四号（v20260927e）：城内坊格「交易」按铺名开对应商号 ──
-    //   物品 id 均取自既有 ITEMS（与 build_pedlar/doctor 同源），不新造道具。
-    blacksmith: {
-      name: '铁匠铺',
-      items: [
-        { id: 'tiekuai', buy: 42, sell: 16 },
-        { id: 'tiejian', buy: 95, sell: 35 },
-        { id: 'tiefu',   buy: 74, sell: 28 },
-        { id: 'futou',   buy: 38, sell: 12 },
-        { id: 'tiema',   buy: 24, sell: 8  }
-      ]
-    },
-    tavern: {
-      name: '酒楼',
-      items: [
-        { id: 'fan',      buy: 6,  sell: 1 },
-        { id: 'jiu',      buy: 18, sell: 6 },
-        { id: 'roubao',   buy: 9,  sell: 3 },
-        { id: 'douzhou',  buy: 15, sell: 5 },
-        { id: 'shengrou', buy: 13, sell: 4 }
-      ]
-    },
-    cloth: {
-      name: '布庄',
-      items: [
-        { id: 'bumu',  buy: 9,  sell: 3 },
-        { id: 'rope',  buy: 11, sell: 4 },
-        { id: 'pibao', buy: 55, sell: 20 },
-        { id: 'maopi', buy: 0,  sell: 6 }
-      ]
-    },
-    bank: {
-      name: '钱庄',
-      items: [
-        { id: 'shutong',     buy: 30, sell: 10 },
-        { id: 'caiyaobiluo', buy: 48, sell: 18 },
-        { id: 'shepi',       buy: 0,  sell: 8  },
-        { id: 'shedan',      buy: 0,  sell: 10 }
       ]
     },
     // 郊野遇上的游方行商（v20260905a）：货随担走，货色少于城中，价略高；
@@ -24590,14 +24550,6 @@ function bindCreate(){
         break;
       // v20260910q：回营区按钮已取消——离开牢房走罗盘网格邻居（南·中军大帐等）
       case 'ward_view': {
-        // v20260927e：坊内三用 —— 市坊开对应商号、文教开求学面板、码头开问渡面板
-        if (a && a.kind === 'shops') {
-          var _sp = WARD_SHOP_IDS[a.gid] || null;
-          if (_sp && LF.SHOPS && LF.SHOPS[_sp]) { openModal('shop', { shop: _sp }); break; }
-          var _w0 = wardViewInfo(a); if (_w0) log(_w0, 'npc'); break;
-        }
-        if (a && a.kind === 'schools') { openModal('wardStudy', a); break; }
-        if (a && a.kind === 'docks')   { openModal('wardFerry', a); break; }
         var _wi = wardViewInfo(a);
         if (_wi) log(_wi, 'npc');
         break;
@@ -26255,10 +26207,6 @@ function bindCreate(){
       h=renderCraftPanel();
     } else if(kind==='shop'){
       h=Shop.openShop(opts && opts.shop);
-    } else if(kind==='wardStudy'){
-      h=renderWardStudy(opts);
-    } else if(kind==='wardFerry'){
-      h=renderWardFerry(opts);
     } else if(kind==='build'){
       if(opts && opts.site) buildState.site = opts.site;
       h=renderBuildPanel();
@@ -26313,8 +26261,6 @@ function bindCreate(){
     if(kind==='give'){ bindGivePanel(); }
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ Shop.bindShopPanel(); }
-    if(kind==='wardStudy'){ bindWardStudy(); }
-    if(kind==='wardFerry'){ bindWardFerry(); }
     if(kind==='build'){ bindBuildPanel(); }
     if(kind==='storage'){ Shop.bindShopPanel(); }
     if(kind==='rest'){ bindRestPanel(); }
@@ -26993,186 +26939,10 @@ function bindCreate(){
       if (k === 'generals') { var am = (typeof state !== 'undefined' && state.armies) ? state.armies[gid] : null; line += (am && am.active) ? ' 本队驻此，将士听调。' : ' 尚无常备部曲。'; }
       return line;
     }
-    if (k === 'shops') return nm + '：商贾云集，百货辐辏，可入内交易。';
-    if (k === 'schools') return nm + '：弦歌不绝，可求学问道、积攒修为。';
-    if (k === 'docks') return nm + '：舟楫往来，可问渡水运、修造扁舟。';
+    if (k === 'shops') return nm + '：商贾云集，百货辐辏，交易可通有无。（交易界面完善中）';
+    if (k === 'schools') return nm + '：弦歌不绝，可求学问道。（讲学界面完善中）';
+    if (k === 'docks') return nm + '：舟楫往来，可问渡水运。（水运界面完善中）';
     return nm + '。';
-  }
-
-  // ── 坊内三用（v20260927e）：市坊交易 / 文教求学 / 码头问渡 ──
-  //  gid 即 buildWardCell 里 subs[].k（qianzhuang/buzhuang/jiulou/tiejiang/yaofu、
-  //  xuegong/siguan、matou/chuanwu），据此分派到具体行为。
-  var WARD_SHOP_IDS = { qianzhuang:'bank', buzhuang:'cloth', jiulou:'tavern', tiejiang:'blacksmith', yaofu:'doctor' };
-  var wardPanel = null;      // 当前坊面板上下文（求学/问渡共用，仅会话内）
-  var BOAT_FARE = 12;        // 渡资（与 field.js 的 BOAT_FEE 同价）
-  var ZHOU_COST = 80;        // 船坞打造扁舟耗银
-
-  function wardStudyOpts(a){
-    if (a && a.gid === 'xuegong') return [
-      { m:'read',     label:'研读典籍', min:120, note:'修为 +4'  },
-      { m:'debate',   label:'辩经问难', min:90,  note:'声望 +2'  }
-    ];
-    return [
-      { m:'meditate', label:'静修问对', min:90, note:'修为 +3'  },
-      { m:'pray',     label:'焚香祈福', min:60, note:'精力 +12' }
-    ];
-  }
-  function wardStudyFind(a, m){
-    var r = null; wardStudyOpts(a).forEach(function(o){ if (o.m === m) r = o; }); return r;
-  }
-
-  function renderWardStudy(opts){
-    var a = opts || wardPanel || {};
-    wardPanel = a;
-    var isX = a.gid === 'xuegong';
-    var pot = (state && state.pot) || 0;
-    var rep = (state && state.reputation) || 0;
-    var ops = wardStudyOpts(a);
-    var h = '<div class="ward-panel">'+
-      '<h3 class="ward-h">' + (isX ? '📚 学宫 · 求学' : '⛩ 寺观 · 求学') + '</h3>'+
-      '<p class="tip">' + (isX ? '竹简罗列，经义在前，可披卷穷究，亦可与同窗辩难。' : '香烟缭绕，钟磬清心，可静修问对，亦可焚香默祷。') + '</p>'+
-      '<div class="ward-row"><span>当前修为</span><b>' + pot + '</b></div>'+
-      '<div class="ward-row"><span>当前声望</span><b>' + rep + '</b></div>'+
-      '<div class="ward-routes">'+
-      ops.map(function(o){
-        return '<div class="ward-route"><span>' + o.label + '</span><span class="wr-li">' + (o.min / 60).toFixed(1) + ' 时辰 · ' + o.note + '</span></div>';
-      }).join('')+
-      '</div>'+
-      '<div class="ward-acts">'+
-      ops.map(function(o){
-        return '<button class="btn ward-btn" id="ward-study-' + o.m + '" data-mode="' + o.m + '">' + o.label + '</button>';
-      }).join('')+
-      '</div>'+
-      '<p class="tip">修为日积月累，可在门派处换取传功与进境。</p>'+
-    '</div>';
-    return h;
-  }
-  function bindWardStudy(){
-    var card = document.getElementById('modal-card'); if (!card) return;
-    var bs = card.querySelectorAll('[id^="ward-study-"]');
-    for (var i = 0; i < bs.length; i++) {
-      (function(el){ el.onclick = function(){ wardStudyDo(el.getAttribute('data-mode')); }; })(bs[i]);
-    }
-  }
-  function wardStudyDo(mode){
-    var a = wardPanel || {};
-    var op = wardStudyFind(a, mode);
-    if (!op) return;
-    if (mode === 'pray') {
-      advanceMinutes(op.min);
-      var mx = (state.maxEnergy || 100), b0 = (state.energy || 0);
-      var add = Math.min(12, Math.max(0, mx - b0));
-      state.energy = Math.min(mx, b0 + 12);
-      log('你于寺观焚香默祷，神气稍复，精力 +' + add + '。', 'good');
-      toast('精力 +' + add);
-    } else {
-      if (!exert(op.label)) return;
-      state.energy = Math.max(0, (state.energy || 0) - 2);
-      advanceMinutes(op.min);
-      if (mode === 'debate') {
-        state.reputation = (state.reputation || 0) + 2;
-        log('你与同窗辩经问难，语惊四座，声望 +2。', 'good');
-        toast('声望 +2');
-      } else {
-        var g = (mode === 'read') ? 4 : 3;
-        state.pot = (state.pot || 0) + g;
-        log((mode === 'read' ? '你于学宫披卷苦读，经义渐明' : '你于寺观静修问对，心神澄澈') + '，修为 +' + g + '。', 'good');
-        toast('修为 +' + g);
-      }
-    }
-    try { save(state); } catch(e){}
-    closeModal();
-  }
-
-  // 问渡：码头可登舟/上岸，船坞可督造扁舟（此后渡水免渡资）
-  function wardHasZhou(){ return !!packFind('zhou'); }
-  // 通达水路：LF.ROADS 邻接中 type==='water'，或邻地本身是港城/水寨
-  function wardWaterRoutes(cid){
-    var out = [];
-    var adjT = (LF.ROADS && LF.ROADS.adj) || {};
-    var nb = adjT[cid] || [];
-    for (var i = 0; i < nb.length; i++) {
-      var e = nb[i]; if (!e) continue;
-      var tgt = e.to, ed = e.edge || {};
-      var city = (LF.CITIES && LF.CITIES[tgt]) || null;
-      var pl = (LF.PLACES && LF.PLACES[tgt]) || null;
-      var isW = (ed.type === 'water') || (city && (city.ctype === 'port' || city.ctype === 'shuizhai'));
-      if (!isW) continue;
-      var nm = (city && city.name) || (pl && pl.name) || tgt;
-      out.push({ id: tgt, name: nm, li: e.li || 0 });
-    }
-    out.sort(function(x, y){ return x.li - y.li; });
-    return out;
-  }
-  function renderWardFerry(opts){
-    var a = opts || wardPanel || {};
-    wardPanel = a;
-    var isDock = a.gid === 'matou';
-    var onBoat = !!(state && state.flags && state.flags.onBoat);
-    var h = '<div class="ward-panel">'+
-      '<h3 class="ward-h">' + (isDock ? '⚓ 码头 · 问渡' : '🛠 船坞 · 问渡') + '</h3>';
-    if (isDock) {
-      h += '<p class="tip">' + (onBoat ? '你已在舟中，向岸边行去即可上岸。' : '舟楫往来，商货云集——乘船须先登舟。') + '</p>'+
-        '<div class="ward-row"><span>渡资</span><b>' + BOAT_FARE + ' 两' + (wardHasZhou() ? '（持扁舟免渡资）' : '') + '</b></div>'+
-        '<div class="ward-row"><span>行囊扁舟</span><b>' + (wardHasZhou() ? '有' : '无') + '</b></div>'+
-        '<div class="ward-acts">'+
-          (onBoat ? '<button class="btn ward-btn" id="ward-ferry-ashore">上岸</button>'
-                  : '<button class="btn ward-btn" id="ward-ferry-board">登舟渡江</button>')+
-        '</div>';
-      var rt = wardWaterRoutes(a.cid || (state && state.room));
-      if (rt.length) {
-        h += '<div class="ward-row"><span>通达水路</span><b>' + rt.length + ' 处</b></div>'+
-          '<div class="ward-routes">' +
-          rt.map(function(r){
-            return '<div class="ward-route"><span>🚢 ' + r.name + '</span><span class="wr-li">' + r.li + ' 里</span></div>';
-          }).join('') +
-          '</div>';
-      } else {
-        h += '<div class="ward-empty">此处暂无通达水路，须循陆路而行。</div>';
-      }
-    } else {
-      h += '<p class="tip">匠人修造楼船。可就地督造一只扁舟，渡水之便从此随身。</p>'+
-        '<div class="ward-row"><span>打造耗银</span><b>' + ZHOU_COST + ' 两</b></div>'+
-        '<div class="ward-row"><span>行囊扁舟</span><b>' + (wardHasZhou() ? '已有' : '无') + '</b></div>'+
-        '<div class="ward-acts">'+
-          '<button class="btn ward-btn" id="ward-ferry-build"' + (wardHasZhou() ? ' disabled' : '') + '>' + (wardHasZhou() ? '扁舟尚在' : '打造扁舟') + '</button>'+
-        '</div>';
-    }
-    h += '<p class="tip">水路须乘舟方可通行；抵达陆地会自动上岸。</p>'+
-      '</div>';
-    return h;
-  }
-  function bindWardFerry(){
-    var bb = document.getElementById('ward-ferry-board');
-    if (bb) bb.onclick = function(){ wardFerryBoard(); };
-    var ba = document.getElementById('ward-ferry-ashore');
-    if (ba) ba.onclick = function(){ setOnBoat(false); log('你拢舟靠岸，踏回实地。', 'sys'); closeModal(); };
-    var bz = document.getElementById('ward-ferry-build');
-    if (bz) bz.onclick = function(){ wardFerryBuild(); };
-  }
-  function wardFerryBoard(){
-    if (typeof isOnBoat === 'function' && isOnBoat()) { toast('你已在舟中。'); closeModal(); return; }
-    if (wardHasZhou()) { setOnBoat(true); log('你解缆登舟，扁舟轻荡，准备渡江。', 'good'); closeModal(); return; }
-    if (((state && state.gold) || 0) >= BOAT_FARE) {
-      state.gold -= BOAT_FARE; setOnBoat(true);
-      log('你付了渡资 ' + BOAT_FARE + ' 银，登上渡船，船夫撑篙离岸。', 'good');
-      closeModal(); return;
-    }
-    setOnBoat(true);
-    log('渡口无舟可雇，你寻得一只无主小筏，亲自撑篙渡江。', 'sys');
-    closeModal();
-  }
-  function wardFerryBuild(){
-    if (wardHasZhou()) { toast('行囊中已有扁舟。'); closeModal(); return; }
-    if (((state && state.gold) || 0) < ZHOU_COST) { toast('打造扁舟需 ' + ZHOU_COST + ' 两，你银两不足。'); return; }
-    if (!exert('督造扁舟')) return;
-    state.gold -= ZHOU_COST;
-    state.energy = Math.max(0, (state.energy || 0) - 2);
-    packAdd('zhou', 1); afterPackChange();
-    log('你付银督造，匠人钉合木料，一只扁舟下水——此后渡水可免渡资。', 'good');
-    toast('得扁舟 ×1');
-    try { save(state); } catch(e){}
-    closeModal();
   }
 
   window.buildWardCell = buildWardCell;   // 跨工厂闭包桥接：city.js(genCityGrid) 在生成网格后调用，那时 state 已就绪
