@@ -483,44 +483,41 @@
     const ui = document.createElement('div');
     ui.className = 'strategic-map-ui';
     ui.innerHTML = `
-      <div class="strategic-topbar">
-      <div class="strategic-search">
-        <button class="strategic-search-btn" id="sm-search-btn" title="寻踪：搜索州郡、城池、关隘" aria-label="搜索地点"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></button>
-        <div class="strategic-search-panel" id="sm-search-panel" style="display:none">
-          <input class="strategic-search-input" id="sm-search-input" placeholder="搜州郡、城池、关隘…" autocomplete="off" spellcheck="false" />
-          <div class="strategic-search-results" id="sm-search-results"></div>
+      <!-- v20260927i：右上统一控制条 —— 搜索/图层筛选/填色分层/定位/缩放 归纳为单列，
+           参考 RTS/战略地图惯例；面板统一从右侧展开；图例移至底部横条，不再压地图标签 -->
+      <div class="strategic-controls">
+        <div class="strategic-search">
+          <button class="sc-btn" id="sm-search-btn" title="寻踪：搜索州郡、城池、关隘" aria-label="搜索地点"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></button>
+          <div class="strategic-search-panel" id="sm-search-panel" style="display:none">
+            <input class="strategic-search-input" id="sm-search-input" placeholder="搜州郡、城池、关隘…" autocomplete="off" spellcheck="false" />
+            <div class="strategic-search-results" id="sm-search-results"></div>
+          </div>
         </div>
-      </div>
-      <div class="strategic-display">
-        <button class="strategic-display-btn" id="sm-display-btn" title="显示设置：图层筛选开关" aria-label="显示设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
-        <div class="strategic-display-panel" id="sm-display-panel" style="display:none">
-          <div class="sd-title">显示图层</div>
-          <label class="sd-row"><span>城池标记</span><input type="checkbox" data-sd="city" /></label>
-          <label class="sd-row"><span>城名文字</span><input type="checkbox" data-sd="cityName" /></label>
-          <label class="sd-row"><span>州名</span><input type="checkbox" data-sd="state" /></label>
-          <label class="sd-row"><span>郡名</span><input type="checkbox" data-sd="cmd" /></label>
-          <label class="sd-row"><span>道路</span><input type="checkbox" data-sd="road" /></label>
-          <label class="sd-row"><span>河流</span><input type="checkbox" data-sd="river" /></label>
-          <label class="sd-row"><span>关隘野地</span><input type="checkbox" data-sd="place" /></label>
+        <div class="strategic-display">
+          <button class="sc-btn" id="sm-display-btn" title="显示设置：图层筛选开关" aria-label="显示设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+          <div class="strategic-display-panel" id="sm-display-panel" style="display:none">
+            <div class="sd-title">显示图层</div>
+            <label class="sd-row"><span>城池标记</span><input type="checkbox" data-sd="city" /></label>
+            <label class="sd-row"><span>城名文字</span><input type="checkbox" data-sd="cityName" /></label>
+            <label class="sd-row"><span>州名</span><input type="checkbox" data-sd="state" /></label>
+            <label class="sd-row"><span>郡名</span><input type="checkbox" data-sd="cmd" /></label>
+            <label class="sd-row"><span>道路</span><input type="checkbox" data-sd="road" /></label>
+            <label class="sd-row"><span>河流</span><input type="checkbox" data-sd="river" /></label>
+            <label class="sd-row"><span>关隘野地</span><input type="checkbox" data-sd="place" /></label>
+          </div>
         </div>
-      </div>
-      <div class="strategic-overlay-fab">
-        <button class="strategic-overlay-toggle" title="展开/收起填色模式" aria-label="填色模式" aria-expanded="false"><svg class="sg-ov-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><svg class="sg-ov-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
-        <div class="strategic-overlay-ctrl"><!-- 分层按钮由 MAP_LAYERS 注册表动态生成 --></div>
-      </div>
-    </div>
-      <div class="strategic-zoom-fab">
-        <div class="strategic-zoom-ctrl">
-          <button data-z="locate" title="定位到当前位置" aria-label="定位到当前位置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>
-          <button data-z="in" title="放大" aria-label="放大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-          <button data-z="out" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
-          <button data-z="reset" title="复位" aria-label="复位"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg></button>
+        <div class="strategic-overlay-fab">
+          <button class="strategic-overlay-toggle sc-btn" title="填色分层" aria-label="填色分层" aria-expanded="false"><svg class="sg-ov-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><svg class="sg-ov-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
+          <div class="strategic-overlay-ctrl"><!-- 分层按钮由 MAP_LAYERS 注册表动态生成 --></div>
         </div>
-        <button class="strategic-zoom-toggle" title="展开/收起缩放工具" aria-label="缩放工具" aria-expanded="false"><svg class="sg-zoom-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/><path d="M10.5 7.6v5.8M7.6 10.5h5.8"/></svg><svg class="sg-zoom-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
+        <button class="sc-btn" data-z="locate" title="定位到当前位置" aria-label="定位到当前位置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>
+        <button class="sc-btn" data-z="in" title="放大" aria-label="放大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="sc-btn" data-z="out" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+        <button class="sc-btn" data-z="reset" title="复位" aria-label="复位"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg></button>
       </div>
       <div class="strategic-info" id="sm-info">点击州郡或城池查看详情</div>
       <div class="strategic-legend" id="sm-legend" style="display:none"></div>
-      <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>    `;
+      <div class="strategic-hint">拖拽平移 · 双指缩放 · 点击城池前往</div>    `;
     container.appendChild(ui);
 
     // ── 填色分层：按钮组 + 图例（全部由 MAP_LAYERS 注册表驱动）────────────
@@ -556,9 +553,9 @@
       const items = (L && typeof L.legend === 'function') ? L.legend(_legendCtx) : null;
       if (!items || !items.length) { legendEl.innerHTML = ''; legendEl.style.display = 'none'; return; }
       legendEl.innerHTML = items.map(it =>
-        '<div class="row"><span class="swatch" style="background:' + it.color + '"></span>' +
+        '<span class="lg-item"><span class="swatch" style="background:' + it.color + '"></span>' +
         '<span class="nm">' + it.label + '</span>' +
-        (it.count != null ? '<span class="ct">' + it.count + '</span>' : '') + '</div>'
+        (it.count != null ? '<span class="ct">' + it.count + '</span>' : '') + '</span>'
       ).join('');
       legendEl.style.display = '';
     }
@@ -1061,7 +1058,7 @@
       if (guideMarks.length) {
         const hint = ui.querySelector('.strategic-hint');
         if (hint) {
-          const parts = ['拖拽平移 · 滚轮缩放 · 点击城池前往'];
+          const parts = ['拖拽平移 · 双指缩放 · 点击城池前往'];
           if (guideMarks.some(o => o.type === 'you')) parts.push('◎ 你在此');
           if (guideMarks.some(o => o.type === 'goal')) parts.push('⚑ 目标');
           if (guideMarks.some(o => o.type === 'hold')) parts.push('据 治下之城');
@@ -1723,7 +1720,7 @@
     svg.call(zoom);
 
     // 缩放按钮
-    ui.querySelectorAll('.strategic-zoom-ctrl button').forEach(b => {
+    ui.querySelectorAll('.strategic-controls [data-z]').forEach(b => {
       b.addEventListener('click', () => {
         const k = b.dataset.z;
         if (k === 'in') svg.transition().duration(200).call(zoom.scaleBy, 1.4);
@@ -1736,30 +1733,19 @@
     // 两组控制（缩放 / 填色模式）的收起式浮动组：小屏(容器宽<540)默认只露手柄，
     // 点开才展开按钮列；在图上拖拽/双指缩放时自动收起，避免持续遮挡并/司(左上)与扬州/交州(右下)。
     let applyCompact = null;
-    const bindFab = (fab, toggleSel) => {
-      if (!fab) return null;
-      const toggle = fab.querySelector(toggleSel);
-      const setOpen = (open) => {
-        fab.classList.toggle('open', open);
-        if (toggle) toggle.setAttribute('aria-expanded', open);
+    // v20260927i：控制条统一收纳后，分层/缩放不再用折叠 fab——
+    //   分层按钮：点 toggle 展开下拉列（open 类控制）；缩放四钮常显在控制条内。
+    const ovFab = ui.querySelector('.strategic-overlay-fab');
+    if (ovFab) {
+      const ovToggle = ovFab.querySelector('.strategic-overlay-toggle');
+      const setOvOpen = (open) => {
+        ovFab.classList.toggle('open', open);
+        if (ovToggle) ovToggle.setAttribute('aria-expanded', open);
       };
-      if (toggle) toggle.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!fab.classList.contains('open')); });
-      svgEl.addEventListener('pointerdown', () => { if (fab.classList.contains('open')) setOpen(false); });
-      return () => {
-        // 折叠判定：仅当「容器窄 且 触屏设备(粗指针)」才收成手柄（P1-5）
-        // 桌面(细指针)即使弹窗较窄也常显 定位/放大/缩小/复位，避免按钮被折叠成语义不明的 🔍
-        // v20260927e4：窄屏(<560)一律折叠成单钮下拉，不再依赖「触摸指针」判定——
-        //   8 个分层按钮在 390px 一排放不下会溢出屏幕（军事/行政区被挤出）
-        const compact = ui.clientWidth < 560;
-        fab.classList.toggle('compact', compact);
-        if (!compact) fab.classList.remove('open');
-        if (toggle) toggle.setAttribute('aria-expanded', fab.classList.contains('open'));
-      };
-    };
-    const applyCompactZoom = bindFab(ui.querySelector('.strategic-zoom-fab'), '.strategic-zoom-toggle');
-    const applyCompactOverlay = bindFab(ui.querySelector('.strategic-overlay-fab'), '.strategic-overlay-toggle');
-    applyCompact = () => { if (applyCompactZoom) applyCompactZoom(); if (applyCompactOverlay) applyCompactOverlay(); };
-    applyCompact();
+      if (ovToggle) ovToggle.addEventListener('click', (e) => { e.stopPropagation(); setOvOpen(!ovFab.classList.contains('open')); });
+      svgEl.addEventListener('pointerdown', () => { if (ovFab.classList.contains('open')) setOvOpen(false); });
+    }
+    applyCompact = () => {};
 
     // 填色模式切换：按钮已由 buildLayerButtons() 依 MAP_LAYERS 注册表生成并各自绑定 click；
     // 选中态与图例统一由 syncLayerButtons() 维护（见 render 内 _applyOverlay）。
@@ -1799,6 +1785,9 @@
         dispPanel.style.display = show ? 'block' : 'none';
         if (show) syncDispChecks();
       });
+      // v20260927i：面板自身拦截 pointerdown/click，勾选开关时不再冒泡触发 svg 的关闭逻辑
+      dispPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
+      dispPanel.addEventListener('click', (e) => e.stopPropagation());
       dispChecks.forEach(c => {
         c.addEventListener('change', () => { setDisplay(c.getAttribute('data-sd'), c.checked); });
       });

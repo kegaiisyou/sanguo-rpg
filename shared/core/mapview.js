@@ -59,8 +59,8 @@
     function buildCityMapTabsHTML(forceWorld) {
       var cityOn = !forceWorld, worldOn = !!forceWorld;
       return '<div class="map-tabs" id="map-tabs">' +
-        '<button type="button" class="mt-tab' + (cityOn ? ' on' : '') + '" data-tab="city">🏯 城内布防图</button>' +
-        '<button type="button" class="mt-tab' + (worldOn ? ' on' : '') + '" data-tab="world">🗺 山河志 · 十三州</button></div>' +
+        '<button type="button" class="mt-tab' + (cityOn ? ' on' : '') + '" data-tab="city">城内 · 布防</button>' +
+        '<button type="button" class="mt-tab' + (worldOn ? ' on' : '') + '" data-tab="world">天下 · 山河</button></div>' +
         '<div class="map-tab-body' + (cityOn ? '' : ' hidden') + '" data-body="city">' + buildMapCityHTML({}) + '</div>' +
         '<div class="map-tab-body' + (worldOn ? '' : ' hidden') + '" data-body="world">' +
         '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>' +

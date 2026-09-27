@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 74   版本: 20260927h
+// 源文件数: 74   版本: 20260927i
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927h',
+    VERSION: '20260927i',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -11249,8 +11249,8 @@ window.LF = window.LF || {};
     function buildCityMapTabsHTML(forceWorld) {
       var cityOn = !forceWorld, worldOn = !!forceWorld;
       return '<div class="map-tabs" id="map-tabs">' +
-        '<button type="button" class="mt-tab' + (cityOn ? ' on' : '') + '" data-tab="city">🏯 城内布防图</button>' +
-        '<button type="button" class="mt-tab' + (worldOn ? ' on' : '') + '" data-tab="world">🗺 山河志 · 十三州</button></div>' +
+        '<button type="button" class="mt-tab' + (cityOn ? ' on' : '') + '" data-tab="city">城内 · 布防</button>' +
+        '<button type="button" class="mt-tab' + (worldOn ? ' on' : '') + '" data-tab="world">天下 · 山河</button></div>' +
         '<div class="map-tab-body' + (cityOn ? '' : ' hidden') + '" data-body="city">' + buildMapCityHTML({}) + '</div>' +
         '<div class="map-tab-body' + (worldOn ? '' : ' hidden') + '" data-body="world">' +
         '<h3>山河志 · 战略地图</h3><div id="strategic-map-container"></div>' +

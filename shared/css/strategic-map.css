@@ -244,31 +244,35 @@
 .strategic-map-ui > * { pointer-events: auto; }
 
 /* 图例（左上手柄正下方；内容由 MAP_LAYERS 的 legend() 动态生成） */
+/* v20260927i 图例：底部横条（不再遮挡州郡/城名标签） */
 .strategic-legend {
   position: absolute;
-  left: 10px;
-  top: 44px;
-  min-width: 74px;
-  max-height: 62%;
-  overflow: hidden;
-  background: rgba(231,220,192,0.88);
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 3px 12px;
+  max-width: 94%;
+  background: rgba(231,220,192,0.92);
   border: 1px solid #b7a47a;
-  border-radius: 6px;
-  padding: 6px 9px;
+  border-radius: 999px;
+  padding: 4px 12px;
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.5;
   box-shadow: 2px 2px 8px rgba(60,44,20,.18);
   pointer-events: none;   /* 纯信息层，不挡地图点击/拖拽 */
 }
-.strategic-legend .row { display: flex; align-items: center; gap: 6px; }
+.strategic-legend .lg-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .strategic-legend .swatch {
-  width: 13px; height: 13px; border-radius: 3px; flex: none;
+  width: 12px; height: 12px; border-radius: 3px; flex: none;
   border: 1px solid rgba(0,0,0,0.3);
 }
-.strategic-legend .nm { flex: 1; color: #4a3a22; white-space: nowrap; }
-.strategic-legend .ct { color: #6e5238; font-size: 11px; min-width: 14px; text-align: right; }
-/* 小屏收起填色手柄时，图例一并隐藏（避免遮挡西北诸州） */
-.strategic-overlay-fab.compact:not(.open) ~ .strategic-legend { display: none !important; }
+.strategic-legend .nm { color: #4a3a22; }
+.strategic-legend .ct { color: #6e5238; font-size: 11px; margin-left: 2px; }
+
 
 /* 信息面板 */
 .strategic-info {
@@ -321,25 +325,19 @@
 }
 .strategic-info .go-btn:hover { background: #a83030; }
 
-/* 缩放控制（右下浮动组；小屏默认收成单个手柄，点开才是 4 钮列） */
-.strategic-zoom-fab {
+/* v20260927i 统一控制条：搜索/显示/分层/定位/缩放 归纳为右上单列（参考 RTS/战略地图惯例） */
+.strategic-controls {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
+  right: 8px;
+  top: 8px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 6px;
+  z-index: 30;
 }
-.strategic-zoom-ctrl {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.strategic-zoom-ctrl button,
-.strategic-zoom-toggle,
-.strategic-overlay-toggle {
-  width: 34px; height: 34px;
+.strategic-controls .sc-btn {
+  width: 42px; height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -347,70 +345,82 @@
   margin: 0;
   line-height: 1;
   color: #3a2c18;
-  background: rgba(235,224,198,0.92);
+  background: rgba(235,224,198,0.94);
   border: 1px solid #b7a47a;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  box-shadow: 2px 2px 6px rgba(60,44,20,.18);
+  box-shadow: 2px 2px 6px rgba(60,44,20,.2);
+  font-family: serif;
 }
-.strategic-zoom-ctrl button svg,
-.strategic-zoom-toggle svg,
-.strategic-overlay-toggle svg {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
-.strategic-zoom-ctrl button:active,
-.strategic-zoom-toggle:active,
-.strategic-overlay-toggle:active { transform: translateY(1px); }
+.strategic-controls .sc-btn svg { display: block; width: 20px; height: 20px; }
+.strategic-controls .sc-btn:active { transform: translateY(1px); }
 
-/* 手柄：宽屏隐藏；小屏展开收起时切换图标 */
-.strategic-zoom-toggle { display: none; }
-.strategic-zoom-toggle .sg-zoom-close { display: none; }
-
-/* 小屏（宽度 <540px 时由 JS 加 compact）：默认只露手柄 */
-.strategic-zoom-fab.compact .strategic-zoom-ctrl { display: none; }
-.strategic-zoom-fab.compact .strategic-zoom-toggle { display: flex; }
-.strategic-zoom-fab.compact.open .strategic-zoom-ctrl { display: flex; }
-.strategic-zoom-fab.compact.open .strategic-zoom-toggle .sg-zoom-open { display: none; }
-.strategic-zoom-fab.compact.open .strategic-zoom-toggle .sg-zoom-close { display: block; }
-
-/* 填色模式切换（左上浮动组；小屏默认收成单个手柄，点开才是按钮列） */
-.strategic-overlay-fab {
+/* 搜索：控制条内按钮，面板从左侧展开 */
+.strategic-search { position: relative; }
+.strategic-search-panel {
   position: absolute;
-  left: 10px;
-  top: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  right: 46px;
+  top: 0;
+  width: min(240px, 62vw);
+  background: rgba(240,231,208,0.97);
+  border: 1px solid #b7a47a;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 2px 2px 10px rgba(60,44,20,.24);
+  z-index: 31;
 }
+
+/* 显示设置：从控制条左侧展开 */
+.strategic-display { position: relative; }
+.strategic-display-panel {
+  position: absolute;
+  right: 46px;
+  top: 0;
+  width: 166px;
+  background: rgba(240,231,208,0.97);
+  border: 1px solid #b7a47a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 2px 2px 10px rgba(60,44,20,.24);
+  z-index: 31;
+}
+
+/* 分层：点 toggle 展开下拉列 */
+.strategic-overlay-fab { position: relative; }
 .strategic-overlay-ctrl {
-  display: flex;
-  gap: 4px;
+  position: absolute;
+  right: 46px;
+  top: 0;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 104px;
+  z-index: 31;
+  background: rgba(240,231,208,0.97);
+  border: 1px solid #b7a47a;
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: 2px 2px 10px rgba(60,44,20,.24);
 }
+.strategic-overlay-fab.open .strategic-overlay-ctrl { display: flex; }
+.strategic-overlay-fab.open .sg-ov-open { display: none; }
+.strategic-overlay-fab.open .sg-ov-close { display: block; }
 .strategic-overlay-ctrl button {
-  padding: 3px 9px;
-  font-size: 12px;
+  width: 100%;
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 13px;
   font-family: serif;
   color: #3a2c18;
-  background: rgba(235,224,198,0.92);
-  border: 1px solid #b7a47a;
+  background: transparent;
+  border: none;
   border-radius: 5px;
   cursor: pointer;
-  box-shadow: 2px 2px 6px rgba(60,44,20,.18);
+  white-space: nowrap;
 }
-.strategic-overlay-ctrl button.active { background: #c8a45a; border-color: #8a6c34; color: #2a1d0c; }
+.strategic-overlay-ctrl button.active { background: #c8a45a; color: #2a1d0c; }
 .strategic-overlay-ctrl button:active { transform: translateY(1px); }
 
-/* 左上手柄：宽屏隐藏；小屏展开收起时切换图标 */
-.strategic-overlay-toggle { display: none; }
-.strategic-overlay-toggle .sg-ov-close { display: none; }
-.strategic-overlay-fab.compact .strategic-overlay-ctrl { display: none; }
-.strategic-overlay-fab.compact .strategic-overlay-toggle { display: flex; }
-.strategic-overlay-fab.compact.open .strategic-overlay-ctrl { display: flex; }
-.strategic-overlay-fab.compact.open .strategic-overlay-toggle .sg-ov-open { display: none; }
-.strategic-overlay-fab.compact.open .strategic-overlay-toggle .sg-ov-close { display: block; }
 
 /* 提示 */
 .strategic-hint {
@@ -725,45 +735,6 @@
   .strategic-info-verdict{font-size:11px;}
 }
 
-/* ═══ v20260927e3：地图交互重排 + 河流/边界美术增强 ═══ */
-/* —— 顶部工具条：搜索（左）+ 分层（右），z 层高于地图 —— */
-.strategic-topbar{
-  position:absolute;left:8px;right:8px;top:8px;z-index:30;
-  display:flex;align-items:flex-start;justify-content:space-between;gap:6px;
-  pointer-events:none;}
-.strategic-topbar>*{pointer-events:auto;}
-/* 搜索：随 topbar 左置，面板下拉 */
-.strategic-topbar .strategic-search{position:static;flex:0 0 auto;}
-.strategic-topbar .strategic-search-btn{width:42px;height:42px;border-radius:7px;}
-.strategic-topbar .strategic-search-panel{
-  position:absolute;top:50px;left:8px;width:min(262px,78vw);z-index:33;
-  background:rgba(240,231,208,.98);border:1px solid #b7a47a;border-radius:8px;
-  box-shadow:0 4px 14px rgba(60,44,20,.25);}
-/* 分层：桌面常显横排；手机折叠为单钮 + 下拉列 */
-.strategic-overlay-fab{position:static;flex-direction:row;align-items:center;}
-.strategic-overlay-fab .strategic-overlay-ctrl{flex-direction:row;gap:4px;}
-.strategic-overlay-fab .strategic-overlay-toggle{display:none;}
-.strategic-overlay-fab.compact .strategic-overlay-toggle{display:flex;width:42px;height:42px;border-radius:7px;}
-.strategic-overlay-fab.compact .strategic-overlay-toggle .sg-ov-close{display:none;}
-.strategic-overlay-fab.compact.open .strategic-overlay-toggle .sg-ov-open{display:none;}
-.strategic-overlay-fab.compact.open .strategic-overlay-toggle .sg-ov-close{display:block;}
-.strategic-overlay-fab.compact:not(.open) .strategic-overlay-ctrl{display:none;}
-.strategic-overlay-fab.compact .strategic-overlay-ctrl{
-  position:absolute;top:50px;right:8px;flex-direction:column;gap:3px;z-index:32;
-  background:rgba(240,231,208,.97);border:1px solid #b7a47a;border-radius:8px;
-  padding:6px;box-shadow:0 4px 14px rgba(60,44,20,.25);}
-.strategic-overlay-ctrl button{padding:5px 11px;font-size:12px;}
-.strategic-overlay-ctrl button.active{background:#9e3b2e;border-color:#6b2318;color:#f6ead0;}
-/* —— 缩放工具条：右上角常显，竖排 42px 触控 —— */
-.strategic-zoom-fab{position:absolute;right:8px;top:56px;bottom:auto;z-index:29;}
-.strategic-zoom-fab .strategic-zoom-ctrl{flex-direction:column;gap:5px;}
-.strategic-zoom-fab .strategic-zoom-ctrl button{width:42px;height:42px;border-radius:7px;}
-.strategic-zoom-toggle{display:none;}
-.strategic-zoom-fab.compact .strategic-zoom-ctrl{display:flex;}
-/* —— 图例：置于工具条下方左侧（不再随 overlay-fab 联动隐藏） —— */
-.strategic-legend{position:absolute;left:8px;top:56px;z-index:28;
-  background:rgba(240,231,208,.94);border:1px solid #b7a47a;border-radius:8px;
-  padding:6px 9px;max-width:46vw;}
 /* —— 河流：双层描边 + 高光，水感层次 —— */
 .sm-river-base{stroke-linecap:round;stroke-linejoin:round;filter:blur(0.7px);}
 .sm-river-main{stroke-linecap:round;stroke-linejoin:round;}
