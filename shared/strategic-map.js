@@ -175,7 +175,7 @@
   let overlayMode = 'commandery';   // 默认郡面填色：打开山河志即见郡国分区（可点「势力」一键切回当世归属）
   // v20260927h：图层显示开关（筛选）——城徽/城名/州名/郡名/道路/河流/关隘野地可独立显隐，
   //   解决信息过密、城徽叠加看不清；状态存 localStorage（sm-display-v2）
-  const DISPLAY_DEF = { city: 1, cityName: 1, state: 1, cmd: 1, road: 1, river: 1, place: 1 };
+  const DISPLAY_DEF = { city: 1, cityName: 1, state: 1, cmd: 1, road: 1, river: 1, place: 1, fog: 0 };  // v20260927j：战争迷雾默认关
   let displayState = {};
   try {
     const _saved = JSON.parse(localStorage.getItem('sm-display-v2') || '{}');
@@ -187,7 +187,12 @@
   function applyDisplayToDom() {
     const wraps = document.querySelectorAll('.strategic-map-wrap');
     for (const k in DISPLAY_DEF) {
-      wraps.forEach(w => w.classList.toggle('sm-hide-' + k, !displayState[k]));
+      if (k === 'fog') {
+        // 战争迷雾：开启 = 挂 sm-hide-fog（未探明城点灰化淡出），与其余开关语义相反
+        wraps.forEach(w => w.classList.toggle('sm-hide-fog', !!displayState[k]));
+      } else {
+        wraps.forEach(w => w.classList.toggle('sm-hide-' + k, !displayState[k]));
+      }
     }
   }
   function setDisplay(k, on) {
@@ -198,6 +203,50 @@
   }
   let customOverlay = null;
   let _applyOverlay = null;
+
+  // ── v20260927j：P1 路线规划 + P2 战争迷雾 状态 ──
+  const VISITED_KEY = 'sm-visited-v1';
+  const ROUTE_KEY = 'sm-route-v1';
+  function loadVisited() { try { return JSON.parse(localStorage.getItem(VISITED_KEY) || '[]'); } catch (e) { return []; } }
+  function saveVisited(v) { try { localStorage.setItem(VISITED_KEY, JSON.stringify(v)); } catch (e) {} }
+  let visitedSet = new Set(loadVisited());
+  let routeMode = false;          // 路线规划模式开关
+  let routeCids = [];             // 路线途经城池（有序）
+  function loadRoute() { try { return JSON.parse(localStorage.getItem(ROUTE_KEY) || '[]'); } catch (e) { return []; } }
+  function saveRoute() { try { localStorage.setItem(ROUTE_KEY, JSON.stringify(routeCids)); } catch (e) {} }
+  function liveOwnerOf(id) {
+    // 实时归属（归一当世键）：flags.cityOwner 原始值过 OWNER_ALIAS，
+    // 与 buildCitiesFromGame 的 owner 口径一致；玩家占城实时演进
+    try {
+      const st = global.LF && global.LF.Core && global.LF.Core.state;
+      const co = st && st.flags && st.flags.cityOwner;
+      const raw = (co && co[id] != null) ? co[id] : null;
+      if (raw == null) return null;
+      const AL = (global.LF.OWNER_ALIAS) || {};
+      return AL[raw] || raw;
+    } catch (e) { return null; }
+  }
+  // 默认归属（无 live）：与 ownerKeyOf(cid, null) 同源（CITY_OWNER → cities.js → 汉室）
+  function defaultOwnerOf(id) {
+    try { return global.LF.ownerKeyOf ? global.LF.ownerKeyOf(id, null) : null; }
+    catch (e) { return null; }
+  }
+  // 焚毁判定：cityBurned 值可能为 {}（初始化占位），须有内容才算焚毁
+  function isBurnedOf(id) {
+    try {
+      const bm = burnedFlags()[id];
+      if (!bm) return false;
+      if (typeof bm === 'object') return Object.keys(bm).length > 0;
+      return !!bm;
+    } catch (e) { return false; }
+  }
+  function burnedFlags() {
+    // 焚毁城集合：state.flags.cityBurned（与游戏焚城事件同源，实时演进）
+    try {
+      const st = global.LF && global.LF.Core && global.LF.Core.state;
+      return (st && st.flags && st.flags.cityBurned) || {};
+    } catch (e) { return {}; }
+  }
   let _legendCtx = { cmd: [], fac: [] };   // 当前渲染的面属性（供 legend 统计）
   const MAP_LAYERS = {};
   const MAP_LAYER_ORDER = [];
@@ -235,7 +284,7 @@
     const tally = {};
     _legendCtx.cmd.forEach(p => { const k = p.owner || 'han'; tally[k] = (tally[k] || 0) + 1; });
     return Object.keys(tally).sort((a, b) => tally[b] - tally[a])
-      .map(k => ({ color: ownerFill(k), label: ownerLabel(k), count: tally[k] }));
+      .map(k => ({ color: ownerFill(k), label: ownerLabel(k), count: tally[k], owner: k }));
   }
   // 图例：按旧版版图分区统计（legacy 层）
   function legendByLegacy() {
@@ -353,6 +402,26 @@
       const m = {};
       arr.forEach(p => { const st = p.state || '未知'; m[st] = (m[st] || 0) + 1; });
       return Object.keys(m).map(st => ({ color: stateTint(st), label: st, count: m[st] }));
+    },
+  });
+
+  // ── v20260927j：战事层（攻克易主 / 焚毁动态，随游戏进程实时演进）──
+  registerMapLayer({
+    id: 'war', label: '战事', title: '攻克易主 / 焚毁动态（实时演进）',
+    source: 'commandery', fillOf: () => 'rgba(150,120,80,0.10)',
+    legend: function (ctx) {
+      const arr = (ctx && ctx.cmd) || [];
+      let ke = 0, fen = 0;
+      arr.forEach(p => {
+        const lo = liveOwnerOf(p.id);
+        const def = defaultOwnerOf(p.id);
+        if (lo && def && lo !== def) ke++;
+        if (isBurnedOf(p.id)) fen++;
+      });
+      const out = [];
+      if (ke) out.push({ color: 'rgba(168,52,40,0.95)', label: '攻克易主', count: ke });
+      if (fen) out.push({ color: 'rgba(96,96,102,0.95)', label: '焚毁', count: fen });
+      return out;
     },
   });
 
@@ -485,7 +554,9 @@
     ui.innerHTML = `
       <!-- v20260927i：右上统一控制条 —— 搜索/图层筛选/填色分层/定位/缩放 归纳为单列，
            参考 RTS/战略地图惯例；面板统一从右侧展开；图例移至底部横条，不再压地图标签 -->
-      <div class="strategic-controls">
+      <div class="strategic-controls" id="sm-controls">
+        <button class="sc-handle" id="sm-ctrl-handle" title="地图工具" aria-label="地图工具" aria-expanded="false"><svg class="sg-h-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg><svg class="sg-h-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <div class="strategic-controls-body">
         <div class="strategic-search">
           <button class="sc-btn" id="sm-search-btn" title="寻踪：搜索州郡、城池、关隘" aria-label="搜索地点"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></button>
           <div class="strategic-search-panel" id="sm-search-panel" style="display:none">
@@ -504,6 +575,7 @@
             <label class="sd-row"><span>道路</span><input type="checkbox" data-sd="road" /></label>
             <label class="sd-row"><span>河流</span><input type="checkbox" data-sd="river" /></label>
             <label class="sd-row"><span>关隘野地</span><input type="checkbox" data-sd="place" /></label>
+            <label class="sd-row"><span>战争迷雾</span><input type="checkbox" data-sd="fog" /></label>
           </div>
         </div>
         <div class="strategic-overlay-fab">
@@ -514,7 +586,11 @@
         <button class="sc-btn" data-z="in" title="放大" aria-label="放大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
         <button class="sc-btn" data-z="out" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
         <button class="sc-btn" data-z="reset" title="复位" aria-label="复位"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg></button>
+        <button class="sc-btn sm-route-btn" id="sm-route-btn" title="路线规划：连点城池规划行军路线" aria-label="路线规划"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19L9 12l3 4 4-8 4 5"/><circle cx="4" cy="19" r="1.6" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.6" fill="currentColor" stroke="none"/><circle cx="20" cy="13" r="1.6" fill="currentColor" stroke="none"/></svg></button>
+        </div>
       </div>
+      <div class="strategic-route-panel" id="sm-route-panel" style="display:none"></div>
+      <div class="strategic-faction-panel" id="sm-faction-panel" style="display:none"></div>
       <div class="strategic-info" id="sm-info">点击州郡或城池查看详情</div>
       <div class="strategic-legend" id="sm-legend" style="display:none"></div>
       <div class="strategic-hint">拖拽平移 · 双指缩放 · 点击城池前往</div>    `;
@@ -553,10 +629,18 @@
       const items = (L && typeof L.legend === 'function') ? L.legend(_legendCtx) : null;
       if (!items || !items.length) { legendEl.innerHTML = ''; legendEl.style.display = 'none'; return; }
       legendEl.innerHTML = items.map(it =>
-        '<span class="lg-item"><span class="swatch" style="background:' + it.color + '"></span>' +
+        '<span class="lg-item' + (it.owner ? ' lg-owner' : '') + '"' + (it.owner ? ' data-owner="' + it.owner + '"' : '') +
+        '><span class="swatch" style="background:' + it.color + '"></span>' +
         '<span class="nm">' + it.label + '</span>' +
         (it.count != null ? '<span class="ct">' + it.count + '</span>' : '') + '</span>'
       ).join('');
+      // v20260927j：P3 势力情报聚合 —— 势力图例项可点，弹出该势力一屏总览
+      legendEl.querySelectorAll('.lg-item[data-owner]').forEach(it => {
+        it.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (typeof openFactionPanel === 'function') openFactionPanel(it.getAttribute('data-owner'));
+        });
+      });
       legendEl.style.display = '';
     }
     buildLayerButtons();
@@ -724,6 +808,9 @@
       // 可缩放根层
       const root = svg.append('g').attr('id', 'sm-root');
 
+      // v20260927j：路线规划层（P1）——点选城池连成行军路线；绘制/统计函数提升到实例顶层（routeLayerG/routeProj）
+      const routeLayer = root.append('g').attr('id', 'sm-route');
+      routeLayerG = routeLayer; routeProj = projection; lastCities = cities;
       // 州郡填充（只保留可点击区域，郡边界线隐藏）
       const stateLayer = root.append('g').attr('id', 'sm-states');
       statePaths = stateLayer.selectAll('path.main').data(fc.features).enter().append('path')
@@ -894,16 +981,36 @@
         commanderyFillLayer.style('display', useFac ? 'none' : null);
         if (useFac) factionFillLayer.selectAll('path').attr('fill', f => (L.fillOf ? L.fillOf(f.properties) : FACTION_FILL.none));
         else commanderyFillLayer.selectAll('path').attr('fill', d => commanderyFill(d.properties));
+        // v20260927j：势力边界光晕（整层 drop-shadow，柔和描光）——只看当世势力分布时边界可辨
+        factionFillLayer.style('filter', useFac ? 'drop-shadow(0 0 2.5px rgba(60,45,25,0.38))' : 'none');
+        // v20260927j：战事标记（攻克易主「克」/ 焚毁「焚」）——仅战事层显示
+        const warOn = (mode === 'war');
+        cityMarks.forEach(m => { if (typeof applyWarBadge === 'function') applyWarBadge(m, warOn); });
         buildLayerButtons();   // 分层集合可能在运行期变化（外部注册/refresh 重渲），按需重建按钮
         if (typeof syncLayerButtons === 'function') syncLayerButtons();
       };
       _applyOverlay(overlayMode);   // 首帧即按当前分层设定面层显隐与图例
 
       // 城市节点
+      const youMark = (opts.marks || []).find(m => m && m.type === 'you');   // 此身所在（玩家当前城）
+      const youCid = youMark ? youMark.cid : null;
+      const burnMap = burnedFlags();   // 焚毁城集合（战事层数据源，实时演进）
+      // v20260927j：战事角标（攻克易主「克」/ 焚毁「焚」）——仅战事层激活时显示
+      function applyWarBadge(m, on) {
+        const c = m.city;
+        if (!on) { m.el.classList.remove('wke', 'wfen'); return; }
+        const liveKey = liveOwnerOf(c.id);
+        const defKey = defaultOwnerOf(c.id);
+        const changed = !!(liveKey && defKey && liveKey !== defKey);
+        if (changed) m.el.classList.add('wke');
+        else if (isBurnedOf(c.id)) m.el.classList.add('wfen');
+      }
       cityMarks = cities.map(c => {
         const wrap = document.createElement('div');
         wrap.className = 'strategic-city';
         wrap.setAttribute('data-cid', c.id);
+        // v20260927j：战争迷雾 —— 未探明（未点开过且非当前位置）城池淡出；开关见显示面板「战争迷雾」
+        wrap.classList.toggle('fog', !(visitedSet.has(c.id) || c.id === youCid));
 
         const dot = document.createElement('div');
         dot.className = 'strategic-city-dot' + (c.capital ? ' capital' : '')
@@ -922,6 +1029,9 @@
 
         wrap.addEventListener('click', (ev) => {
           ev.stopPropagation();
+          // 点开详情即探明（迷雾点亮 + 持久化）
+          if (!visitedSet.has(c.id)) { visitedSet.add(c.id); saveVisited([...visitedSet]); wrap.classList.remove('fog'); }
+          if (routeMode) return;   // v20260927j：规划模式只选点，不弹详情
           selectCity(c);
           if (opts.onCityClick) opts.onCityClick(c);
         });
@@ -1720,6 +1830,13 @@
     svg.call(zoom);
 
     // 缩放按钮
+    // v20260927j：路线规划 / 势力情报 顶层状态（须在下方事件绑定前初始化）
+    let routeLayerG = null, routeProj = null, lastCities = [];
+    const factionPanel = ui.querySelector('#sm-faction-panel');
+    const routePanel = ui.querySelector('#sm-route-panel');
+    const hintEl = ui.querySelector('.strategic-hint');
+    const DEFAULT_HINT = '拖拽平移 · 双指缩放 · 点击城池前往';
+
     ui.querySelectorAll('.strategic-controls [data-z]').forEach(b => {
       b.addEventListener('click', () => {
         const k = b.dataset.z;
@@ -1729,6 +1846,45 @@
         else svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
       });
     });
+    // ── v20260927j：路线规划按钮（P1）──
+    // v20260927j：控制条手柄展开/收起；点地图任意处自动收起（不常驻遮挡右上城池）
+    const ctrlBox = ui.querySelector('#sm-controls');
+    const ctrlHandle = ui.querySelector('#sm-ctrl-handle');
+    if (ctrlBox && ctrlHandle) {
+      ctrlHandle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        ctrlBox.classList.toggle('open');
+        ctrlHandle.setAttribute('aria-expanded', ctrlBox.classList.contains('open'));
+      });
+    }
+    const closeControls = () => { if (ctrlBox && ctrlBox.classList.contains('open')) ctrlBox.classList.remove('open'); };
+
+    const routeBtn = ui.querySelector('#sm-route-btn');
+    if (routeBtn && routePanel) {
+      routeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleRouteMode(); });
+      routePanel.addEventListener('pointerdown', (e) => e.stopPropagation());
+      routePanel.addEventListener('click', (e) => {
+        const t = e.target.closest('button'); if (!t || !t.dataset.a) return;
+        e.stopPropagation();
+        if (t.dataset.a === 'clear') { routeCids = []; saveRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); setHint(DEFAULT_HINT); routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); }
+        else if (t.dataset.a === 'done') { routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); setHint(DEFAULT_HINT); saveRoute(); updateRoutePanel(); }
+      });
+      // 规划模式下点城加入路线（城点 click 已 stopPropagation，此处经事件委托监听）
+      overlay.addEventListener('pointerup', (ev) => {
+        if (!routeMode) return;
+        const cw = ev.target.closest('.strategic-city');
+        if (!cw) return;
+        const cid = cw.getAttribute('data-cid');
+        if (!cid) return;
+        const c = cities.find(cc => cc.id === cid);
+        if (!c) return;
+        if (routeCids[routeCids.length - 1] === cid) return;   // 防连点重复
+        routeCids.push(cid);
+        saveRoute();
+        if (typeof drawRoute === 'function') drawRoute();
+        updateRoutePanel();
+      });
+    }
 
     // 两组控制（缩放 / 填色模式）的收起式浮动组：小屏(容器宽<540)默认只露手柄，
     // 点开才展开按钮列；在图上拖拽/双指缩放时自动收起，避免持续遮挡并/司(左上)与扬州/交州(右下)。
@@ -1743,7 +1899,7 @@
         if (ovToggle) ovToggle.setAttribute('aria-expanded', open);
       };
       if (ovToggle) ovToggle.addEventListener('click', (e) => { e.stopPropagation(); setOvOpen(!ovFab.classList.contains('open')); });
-      svgEl.addEventListener('pointerdown', () => { if (ovFab.classList.contains('open')) setOvOpen(false); });
+      svgEl.addEventListener('pointerdown', () => { if (ovFab.classList.contains('open')) setOvOpen(false); closeControls(); });
     }
     applyCompact = () => {};
 
@@ -1751,6 +1907,88 @@
     // 选中态与图例统一由 syncLayerButtons() 维护（见 render 内 _applyOverlay）。
     // 对外 API：游戏可传入 {commanderyId:'rgba(...)'} 绘制灾害/自定义范围图
     global.LF.setMapOverlay = function(mapById) { customOverlay = mapById || null; if (_applyOverlay) _applyOverlay('custom'); };
+
+    // ── v20260927j：P1 路线规划 / P3 势力情报 —— 顶层函数（render 内仅挂载数据）──
+    function setHint(t) { if (hintEl) hintEl.textContent = t; }
+    function drawRoute() {
+      if (!routeLayerG) return;
+      routeLayerG.selectAll('*').remove();
+      if (!routeCids.length) return;
+      const pts = routeCids.map(id => { const c = (lastCities || []).find(cc => cc.id === id); return c ? routeProj(c.pos) : null; }).filter(Boolean);
+      if (pts.length < 2) return;
+      const line = d3.line().curve(d3.curveCatmullRom.alpha(0.5));
+      routeLayerG.append('path').attr('d', line(pts)).attr('class', 'sm-route-line');
+      pts.forEach((p, i) => {
+        routeLayerG.append('circle').attr('cx', p[0]).attr('cy', p[1]).attr('r', 4.2).attr('class', 'sm-route-pt');
+        routeLayerG.append('text').attr('x', p[0] + 7).attr('y', p[1] - 7).attr('class', 'sm-route-idx').text(i + 1);
+      });
+    }
+    // 路线统计（估算口径：1°≈111km，1km≈2里；日行40里；日耗粮3）
+    function routeStats() {
+      const cs = routeCids.map(id => (lastCities || []).find(cc => cc.id === id)).filter(Boolean);
+      let li = 0;
+      for (let i = 1; i < cs.length; i++) {
+        const a = cs[i - 1].pos, b = cs[i].pos;
+        const km = (typeof d3.geoDistance === 'function') ? d3.geoDistance([a[0], a[1]], [b[0], b[1]]) * 6371 : 0;
+        li += km * 2;
+      }
+      const days = Math.max(1, Math.ceil(li / 40));
+      const food = days * 3;
+      const ord = cs.length ? Math.round(cs.reduce((s, c) => s + (c.order || 0), 0) / cs.length) : 0;
+      const band = ord >= 75 ? '安' : ord >= 50 ? '平' : '险';
+      return { n: cs.length, li: Math.round(li), days, food, ord, band };
+    }
+    function updateRoutePanel() {
+      if (!routePanel) return;
+      if (!routeCids.length) { routePanel.style.display = 'none'; return; }
+      const st = routeStats();
+      routePanel.innerHTML =
+        '<div class="rp-t">行军路线 · ' + st.n + ' 城</div>' +
+        '<div class="rp-s">约 <b>' + st.li + '</b> 里 · <b>' + st.days + '</b> 日 · 粮 <b>' + st.food + '</b> · 沿途治安 <b>' + st.band + '</b>(' + st.ord + ')</div>' +
+        '<div class="rp-b"><button data-a="done">完成</button><button data-a="clear">清除</button></div>';
+      routePanel.style.display = 'block';
+    }
+    function toggleRouteMode() {
+      routeMode = !routeMode;
+      const rb = ui.querySelector('#sm-route-btn');
+      if (rb) rb.classList.toggle('active', routeMode);
+      setHint(routeMode ? '路线规划：依次点击城池加入路线，完成后点「完成」' : DEFAULT_HINT);
+      if (!routeMode) updateRoutePanel();
+    }
+    function closeFactionPanel() { if (factionPanel) factionPanel.style.display = 'none'; }
+    function openFactionPanel(key) {
+      if (!factionPanel) return;
+      const f = factionOf(key);
+      const list = (lastCities || []).filter(c => c.owner === key);
+      if (!list.length) return;
+      const cap = list.find(c => c.capital) || list[0];
+      const gar = list.reduce((s, c) => s + (c.garrison || 0), 0);
+      const pop = list.reduce((s, c) => s + (c.pop || 0), 0);
+      const ord = Math.round(list.reduce((s, c) => s + (c.order || 0), 0) / list.length);
+      const burnMap2 = burnedFlags();
+      const ke = list.filter(c => {
+        const lo = liveOwnerOf(c.id);
+        const def = defaultOwnerOf(c.id);
+        return !!lo && !!def && lo !== def;
+      }).length;
+      const fen = list.filter(c => burnMap2[c.id]).length;
+      const top = list.slice(0, 6).map(c => '<li><b>' + c.name + '</b><i>' + (c.tier === 'zhou' ? '州治' : (c.tier === 'jun' ? '郡治' : '县')) + '</i>兵 ' + (c.garrison || 0) + ' · 治 ' + (c.order || 0) + '</li>').join('');
+      factionPanel.innerHTML =
+        '<div class="fp-h"><span class="fp-seal" style="background:' + (f.fill || '#777') + '">' + (f.label || key) + '</span>' +
+        '<span class="fp-name">' + ownerLabel(key) + '</span>' +
+        '<button class="fp-x" data-close="1" aria-label="关闭">✕</button></div>' +
+        '<div class="fp-stats">' +
+        '<div><b>' + list.length + '</b><i>城</i></div>' +
+        '<div><b>' + gar + '</b><i>总兵力</i></div>' +
+        '<div><b>' + pop + '</b><i>总人口</i></div>' +
+        '<div><b>' + ord + '</b><i>均治安</i></div></div>' +
+        ((ke || fen) ? '<div class="fp-dyn">动态：' + (ke ? '攻克易主 <b>' + ke + '</b> 城' : '') + (ke && fen ? ' · ' : '') + (fen ? '焚毁 <b>' + fen + '</b> 城' : '') + '</div>' : '') +
+        '<div class="fp-cap">治所：<b>' + (cap ? cap.name : '—') + '</b></div>' +
+        (top ? '<ul class="fp-cities">' + top + '</ul>' : '');
+      factionPanel.style.display = 'block';
+      factionPanel.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); closeFactionPanel(); }));
+    }
+
 
     // 点击空白
     svg.on('click', () => {
@@ -1846,6 +2084,9 @@
       raf(() => {
         render(regionData, cities);
         applyDisplayToDom();   // v20260927h：首帧同步图层开关（display:none 硬隐藏）
+        // v20260927j：恢复持久化路线（P1）——render 后回显路线与统计浮条
+        try { routeCids = loadRoute().filter(id => (lastCities || []).some(c => c.id === id)); } catch (e) { routeCids = []; }
+        if (routeCids.length) { try { drawRoute(); updateRoutePanel(); } catch (e) {} }
         loading.remove();
         // v20260905j：山河志打开默认以「此身所在」居中（k≈2.6 中近视野），不再永远首览十三州全景
         if (opts.focusYou && locateGuide) {

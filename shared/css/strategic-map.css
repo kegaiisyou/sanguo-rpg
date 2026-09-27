@@ -251,21 +251,41 @@
   bottom: 34px;
   transform: translateX(-50%);
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: center;
-  gap: 3px 12px;
-  max-width: 94%;
-  background: rgba(231,220,192,0.92);
+  gap: 0 6px;
+  max-width: 96%;
+  max-height: 30px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  background: rgba(231,220,192,0.94);
   border: 1px solid #b7a47a;
   border-radius: 999px;
-  padding: 4px 12px;
+  padding: 3px 10px;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.4;
   box-shadow: 2px 2px 8px rgba(60,44,20,.18);
-  pointer-events: none;   /* 纯信息层，不挡地图点击/拖拽 */
+  /* v20260927j：图例可点选（势力聚合入口，P3）；隐藏滚动条但可横向滑动 */
+  pointer-events: auto;
+  touch-action: pan-x;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-.strategic-legend .lg-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.strategic-legend::-webkit-scrollbar { height: 0; display: none; }
+.strategic-legend .lg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  padding: 2px 7px;
+  margin: 0 -3px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.strategic-legend .lg-item:active { background: rgba(176,131,47,.28); }
+.strategic-legend .lg-item.sm-lg-sel { background: rgba(176,131,47,.34); }
 .strategic-legend .swatch {
   width: 12px; height: 12px; border-radius: 3px; flex: none;
   border: 1px solid rgba(0,0,0,0.3);
@@ -328,7 +348,7 @@
 /* v20260927i 统一控制条：搜索/显示/分层/定位/缩放 归纳为右上单列（参考 RTS/战略地图惯例） */
 .strategic-controls {
   position: absolute;
-  right: 8px;
+  right: 6px;
   top: 8px;
   display: flex;
   flex-direction: column;
@@ -336,6 +356,29 @@
   gap: 6px;
   z-index: 30;
 }
+/* v20260927j：控制条收起为单手柄，展开时向左弹出按钮列（避免常驻遮挡右上城池）*/
+.strategic-controls .sc-handle {
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; margin: 0;
+  color: #3a2c18;
+  background: rgba(235,224,198,0.96);
+  border: 1px solid #b7a47a;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 2px 2px 6px rgba(60,44,20,.22);
+}
+.strategic-controls .sc-handle svg { width: 20px; height: 20px; display: block; }
+.strategic-controls .sg-h-close { display: none; }
+.strategic-controls.open .sg-h-open { display: none; }
+.strategic-controls.open .sg-h-close { display: block; }
+.strategic-controls-body { display: none; flex-direction: column; align-items: flex-end; gap: 6px; }
+.strategic-controls.open .strategic-controls-body { display: flex; }
+/* 分组：工具组（搜索/显示/分层）与视图组（定位/缩放）间距加大 */
+.strategic-controls > .strategic-overlay-fab { margin-bottom: 10px; }
+.strategic-controls > [data-z="locate"] { margin-top: 2px; }
+.strategic-controls .sc-btn { width: 40px; height: 40px; border-radius: 8px; }
+.strategic-controls .sc-btn svg { width: 19px; height: 19px; }
 .strategic-controls .sc-btn {
   width: 42px; height: 42px;
   display: flex;
@@ -394,14 +437,19 @@
   display: none;
   flex-direction: column;
   gap: 2px;
-  min-width: 104px;
+  min-width: 112px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
   z-index: 31;
   background: rgba(240,231,208,0.97);
   border: 1px solid #b7a47a;
   border-radius: 8px;
   padding: 5px;
   box-shadow: 2px 2px 10px rgba(60,44,20,.24);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+.strategic-overlay-ctrl::-webkit-scrollbar { width: 0; display: none; }
 .strategic-overlay-fab.open .strategic-overlay-ctrl { display: flex; }
 .strategic-overlay-fab.open .sg-ov-open { display: none; }
 .strategic-overlay-fab.open .sg-ov-close { display: block; }
@@ -421,6 +469,167 @@
 .strategic-overlay-ctrl button.active { background: #c8a45a; color: #2a1d0c; }
 .strategic-overlay-ctrl button:active { transform: translateY(1px); }
 
+
+/* ═══ v20260927j：P1 路线规划 / P2 迷雾·战事 / P3 势力情报 ═══ */
+/* 路线：连接线 + 途经点 + 序号 */
+.sm-route-line { fill: none; stroke: #8a2020; stroke-width: 2.2; stroke-dasharray: 7 4; stroke-linecap: round; opacity: .92; }
+.sm-route-pt { fill: #fff; stroke: #8a2020; stroke-width: 2; }
+.sm-route-idx { fill: #7a1d1d; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: rgba(246,235,210,.9); stroke-width: 2.4px; }
+#sm-route-btn.active { background: #c8a45a; border-color: #8a6c34; color: #2a1d0c; }
+
+/* 路线统计浮条（底部 hint 上方） */
+.strategic-route-panel {
+  position: absolute;
+  left: 50%;
+  top: 236px;             /* v20260927j：顶部居中，避免遮挡底部城池（荆扬交州）*/
+  transform: translateX(-50%);
+  max-width: 92%;
+  background: rgba(240,231,208,.97);
+  border: 1px solid #b7a47a;
+  border-radius: 10px;
+  padding: 7px 12px 6px;
+  box-shadow: 2px 2px 10px rgba(60,44,20,.28);
+  font-size: 12.5px;
+  line-height: 1.5;
+  z-index: 32;
+  text-align: center;
+}
+.strategic-route-panel .rp-t { font-weight: 700; color: #7a1d1d; }
+.strategic-route-panel .rp-s { color: #4a3a22; }
+.strategic-route-panel .rp-s b { color: #7a1d1d; }
+.strategic-route-panel .rp-b { margin-top: 4px; display: flex; gap: 8px; justify-content: center; }
+.strategic-route-panel .rp-b button {
+  padding: 3px 14px;
+  font-family: serif;
+  font-size: 12.5px;
+  color: #2a1d0c;
+  background: rgba(176,131,47,.22);
+  border: 1px solid #b7a47a;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.strategic-route-panel .rp-b button:active { background: #c8a45a; }
+
+/* ── P2 战争迷雾：未探明城池（非当前位置且未点开过）灰化淡出 ── */
+.sm-hide-fog .strategic-city.fog .strategic-city-dot,
+.sm-hide-fog .strategic-city.fog .strategic-city-name {
+  opacity: .14;
+  filter: grayscale(1);
+  transition: opacity .25s;
+}
+.sm-hide-fog .strategic-city.fog { pointer-events: auto; }   /* 迷雾城仍可点（点开即探明） */
+
+/* ── P2 战事标记：城点角标「克/焚」 ── */
+.strategic-city-dot { position: relative; }
+.strategic-city.wke .strategic-city-dot::after {
+  content: '克';
+  position: absolute;
+  right: -7px;
+  top: -7px;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: serif;
+  color: #fff;
+  background: #a23428;
+  border: 1px solid #6f1c12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-sizing: border-box;
+}
+.strategic-city.wfen .strategic-city-dot::after {
+  content: '焚';
+  position: absolute;
+  right: -7px;
+  top: -7px;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: serif;
+  color: #fff;
+  background: #6e6e74;
+  border: 1px solid #4a4a50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+/* ── P3 势力情报面板 ── */
+.strategic-faction-panel {
+  position: absolute;
+  left: 50%;
+  top: 96px;              /* v20260927j：顶部居中，避开右上控制条与底部浮条 */
+  transform: translateX(-50%);
+  width: min(300px, 88vw);
+  background: rgba(240,231,208,.98);
+  border: 1px solid #b7a47a;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 3px 3px 14px rgba(60,44,20,.3);
+  font-size: 12.5px;
+  color: #3a2c18;
+  z-index: 33;
+}
+.strategic-faction-panel .fp-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.strategic-faction-panel .fp-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 13px;
+  font-family: serif;
+  border: 1px solid rgba(0,0,0,.25);
+}
+.strategic-faction-panel .fp-name { font-size: 15px; font-weight: 700; flex: 1; }
+.strategic-faction-panel .fp-x {
+  padding: 2px 7px;
+  font-size: 13px;
+  color: #7a5a28;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.strategic-faction-panel .fp-stats { display: flex; gap: 4px; margin-bottom: 6px; }
+.strategic-faction-panel .fp-stats > div {
+  flex: 1;
+  text-align: center;
+  background: rgba(176,131,47,.13);
+  border-radius: 8px;
+  padding: 4px 2px;
+}
+.strategic-faction-panel .fp-stats b { display: block; font-size: 15px; color: #7a1d1d; }
+.strategic-faction-panel .fp-stats i { font-style: normal; font-size: 11px; color: #6e5238; }
+.strategic-faction-panel .fp-dyn {
+  background: rgba(168,52,40,.09);
+  border: 1px dashed rgba(168,52,40,.35);
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-bottom: 6px;
+  color: #6e3a30;
+}
+.strategic-faction-panel .fp-cap { margin-bottom: 4px; color: #4a3a22; }
+.strategic-faction-panel .fp-cities { margin: 0; padding: 0; list-style: none; max-height: 120px; overflow-y: auto; }
+.strategic-faction-panel .fp-cities li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 2px;
+  border-bottom: 1px dashed rgba(140,110,60,.25);
+  font-size: 12px;
+}
+.strategic-faction-panel .fp-cities li:last-child { border-bottom: none; }
+.strategic-faction-panel .fp-cities i { font-style: normal; color: #8a6c34; font-size: 11px; }
+.strategic-faction-panel .fp-cities li i:last-child { flex: 1; text-align: right; color: #6e5238; }
 
 /* 提示 */
 .strategic-hint {
