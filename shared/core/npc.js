@@ -282,26 +282,35 @@ window.LF = window.LF || {};
         return '「粮在囤里，壮士自己量。」';
       }
     };
+    // v20260924z17：交谈【不再】弹卡片。
+    //   旧版 .talk-inline 是一整块“头部(名/好感) + 可换行的按钮网格 + 底部三钮”的卡片，
+    //   塞进 #actions 之后把 #actions 撑成了两三行高 —— 下方的移动罗盘与 dock 被顶出屏幕，
+    //   而且不点“告辞”就一直挂着，看着像“残留的对话卡片”。
+    //   现在话题 / 事务 / 观察 / 给予 / 告辞一律摊成 #actions 横滑条里的一枚枚普通按钮
+    //   （与场景物件同一套 .act 视觉，#actions 单行横滑不撑高）。
+    //   NPC 名与好感本就在叙事行的〔名·职种、好感 +1〕里，无需再占一块头部。
     function renderTalkActions(o) {
       var acts = document.getElementById('actions'); if (!acts) return;
       var tp = (o.card && o.card.topics) || [], ac = (o.card && o.card.acts) || [], h = '';
-      h += '<div class="talk-inline">';
-      h += '<div class="tl-head"><span class="tl-name">' + o.name + (o.role ? '·' + o.role : '') + '</span>'
-        + '<span class="tl-fv">' + npcFavorTier(o.key) + ' · 好感' + npcFavorPct(o.key) + '%</span></div>';
-      h += '<div class="talk-grid">';
-      for (var i = 0; i < tp.length; i++) h += '<button class="talk-btn" data-topic="' + tp[i].id + '"><span class="tb-ic">' + (tp[i].icon || '💬') + '</span><span class="tb-lb">' + tp[i].label + '</span></button>';
-      for (var j = 0; j < ac.length; j++) h += '<button class="talk-btn talk-btn-act" data-topic-act="' + ac[j].id + '" title="' + (ac[j].tip || '') + '"><span class="tb-ic">' + (ac[j].icon || '·') + '</span><span class="tb-lb">' + ac[j].label + '</span></button>';
-      h += '</div><div class="talk-foot">'
-        + '<button class="talk-foot-btn" id="talk-observe">👁 观察</button>'
-        + '<button class="talk-foot-btn" id="talk-give">🎁 给予</button>'
-        + '<button class="talk-foot-btn" id="talk-close">告 辞</button>'
-        + '</div>';
-      h += '</div>';
+      function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+      for (var i = 0; i < tp.length; i++) {
+        h += '<button class="act obj-btn g-ren" data-topic="' + esc(tp[i].id) + '">'
+          + '<span class="ob-ic">' + (tp[i].icon || '\ud83d\udcac') + '</span>'
+          + '<span class="ob-nm">' + esc(tp[i].label) + '</span></button>';
+      }
+      for (var j = 0; j < ac.length; j++) {
+        h += '<button class="act obj-btn g-scene" data-topic-act="' + esc(ac[j].id) + '" title="' + esc(ac[j].tip || '') + '">'
+          + '<span class="ob-ic">' + (ac[j].icon || '\u00b7') + '</span>'
+          + '<span class="ob-nm">' + esc(ac[j].label) + '</span></button>';
+      }
+      h += '<button class="act obj-btn" id="talk-observe"><span class="ob-ic">\ud83d\udc41</span><span class="ob-nm">\u89c2\u5bdf</span></button>'
+        + '<button class="act obj-btn" id="talk-give"><span class="ob-ic">\ud83c\udf81</span><span class="ob-nm">\u7ed9\u4e88</span></button>'
+        + '<button class="act obj-btn g-exit" id="talk-close"><span class="ob-ic">\ud83d\ude4f</span><span class="ob-nm">\u544a\u8f9e</span></button>';
       acts.innerHTML = h;
       acts.querySelectorAll('[data-topic]').forEach(function (btn) {
         btn.onclick = function () {
           var id = btn.getAttribute('data-topic');
-          var t = (o.card.topics || []).filter(function (x) { return x.id === id; })[0];
+          var t = ((o.card && o.card.topics) || []).filter(function (x) { return x.id === id; })[0];
           npcSpeak(o, t);
           renderTalkActions(o);
         };
@@ -309,7 +318,7 @@ window.LF = window.LF || {};
       acts.querySelectorAll('[data-topic-act]').forEach(function (btn) {
         btn.onclick = function () {
           var id = btn.getAttribute('data-topic-act');
-          var a = (o.card.acts || []).filter(function (x) { return x.id === id; })[0];
+          var a = ((o.card && o.card.acts) || []).filter(function (x) { return x.id === id; })[0];
           var impl = a && a.engine && NPC_ACT_IMPL[a.engine];
           var said = impl ? impl(o) : '';
           if (said === '' && !impl) { toast('此事此刻做不得。'); return; }

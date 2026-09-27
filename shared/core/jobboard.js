@@ -4,9 +4,15 @@
   global.LF.createJobboard = function (ctx) {
     var getState = ctx.getState
     var getCurrentModalKind = ctx.getCurrentModalKind, S = getState;
-    // LABOR_PER_WOOD 由引擎经 getter 注入（engine L432 才赋值，惰性取值）
-    var _LPW = ctx.LABOR_PER_WOOD;
-    var LABOR_PER_WOOD = (typeof _LPW === 'function') ? _LPW() : _LPW;
+    // v20260924z17：LABOR_PER_WOOD 由引擎经 getter 注入，但引擎侧那个 var 要到 Schedule 别名块
+    //   （engine L456）才真正赋值，而本工厂建于 L321 —— 工厂创建时立即求值只能拿到 undefined，
+    //   差事牌上于是印着「满 undefined 工发一枚劳字木片」。
+    //   改成渲染时才求值，取不到就退回 schedule.js 的默认值 3。
+    function laborPerWood(){
+      var f = ctx.LABOR_PER_WOOD;
+      var v = (typeof f === 'function') ? f() : f;
+      return (typeof v === 'number' && v > 0) ? v : 3;
+    }
     var LF = ctx.LF;
     var getJOB_BOARD = ctx.JOB_BOARD;
     var acceptQuest = ctx.acceptQuest;
@@ -54,7 +60,7 @@
       '<p class="job-sub">营中差事全钉在这块木牌上：摘下一片木牍，那桩活便落在你头上。</p>'+
       '<div class="job-board">'+getJOB_BOARD().map(jobPlankHTML).join('')+'</div>'+
       '<p class="job-note">牌角另钉着一句：活要做出东西来，东西要送到人手上。空着手回来，不算交差。</p>'+
-      '<p class="job-note sub">牌侧一行小字，是另一码事：干活记工，满 '+LABOR_PER_WOOD+' 工发一枚劳字木片，木片到营西伙房换饭——那是口粮，不是差役。</p>';
+      '<p class="job-note sub">牌侧一行小字，是另一码事：干活记工，满 '+laborPerWood()+' 工发一枚劳字木片，木片到营西伙房换饭——那是口粮，不是差役。</p>';
     return h;
   }
   function bindJobBoard(){

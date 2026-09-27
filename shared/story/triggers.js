@@ -14,7 +14,7 @@
 //   removeNpc / branch / graduate
 // 任何"被追击 / 护送 / 首次到访"剧情，只需增写一份数据即可复用同一引擎。
 //
-// 本稿切片：苦役营·密道线（单路线，其余 9 条路线待后续扩展）。
+// 本稿切片：苦役营·夺营五分支（moshu/officer_letter/tunnel_early/minor_ahe/minor）均已补全完整演出与毕业收束（v20260926a）。
 // 出生点 = camp_tz1（见 shared/index.js defaultSave；苦役营现为 kuyilao 3×3 网格，camp_yard 旧房已删）。
 (function (global) {
   var LF = global.LF = global.LF || {};
@@ -344,8 +344,6 @@
     ]
   });
 
-  // 5.5) 塌墙根·密道决断（路线枢纽）：改由 index.html 的 openEscapeHub('camp_wall') 接手
-  // （玩家点「决断出营·墙根」→ 弹出已解锁路线的抉择；统一在 doEscape() 内毕业。）
 
 
   // 6) 〔已移除〕原「逃出苦役营后·林径乌桓游骑拦路」的开场教学战，现已迁移至练武场·木人桩
@@ -411,11 +409,6 @@
     ]
   });
 
-  // ════════════════ 苦役营·全量 10 越狱路线（v20260902a） ═════════════════
-  // 路线授予：各 NPC 对话 set 写入 flags.route.*；物品由对应触发 grant。
-  // 逃脱执行：camp_wall「决断出营·墙根」→ openEscapeHub('camp_wall')；
-  //          camp_gate「决断出营·岗哨」→ openEscapeHub('camp_gate')；
-  //          doEscape() 统一判定前置并 graduate。
 
   // — 路线2 挖地道：苟三授 route.tunnel（镐锄自行于仓库/矿坑取） —
   TRIGGERS.push({
@@ -459,85 +452,6 @@
     ]
   });
 
-  // — 路线3 下迷药：林娘配 sleep_drug 并授 route.drug（鲁大仅提示） —
-  TRIGGERS.push({
-    id: 'lin_drug', hook: 'onTalk', npc: 'lin_niang', room: 'kuyilao', cell: [0,1], once: false,
-    cond: { notFlag: 'flags.route.drug' },
-    steps: [
-      { t: 'npcTalk', npc: 'lin_niang',
-        prompt: '林娘拢着药草：「迷药药材我这里有——蒙汗草研碎下饭，官差睡死不觉。要下药业，我替你配一包。」',
-        asks: [
-          { label: '〔恳请〕劳烦配一包迷药', set: { 'flags.route.drug': true },
-            then: [
-              { t: 'grant', items: [{ id: 'sleep_drug', name: '迷药', icon: '💤', cat: '药剂', count: 1 }] },
-              { t: 'log', cls: 'good', text: '林娘将一包迷药塞入你怀中：「下在粥锅，官差睡到日上三竿。可这药只放倒人，伤天和，慎用。」〔已得迷药 + 下药业线索（路线3）：于岗哨下迷药。〕' }
-            ] }
-        ] }
-    ]
-  });
-
-  // — 路线4 趁乱暴动：秦九霄授 route.riot（夺赵虎腰牌） —
-  TRIGGERS.push({
-    id: 'qin_riot', hook: 'onTalk', npc: 'qin_jiuxiao', room: 'kuyilao', cell: [1,1], once: false,
-    cond: { notFlag: 'flags.route.riot' },
-    steps: [
-      { t: 'npcTalk', npc: 'qin_jiuxiao',
-        prompt: '秦九霄独臂撑地：「想活命，趁换岗那阵乱，夺了赵阎王的腰牌，带人冲出去！老子断臂前就是这么干的。」',
-        asks: [
-          { label: '〔应下〕夺腰牌，趁乱暴动', set: { 'flags.route.riot': true },
-            say: '秦九霄眼中凶光：「好胆！岗哨那处，待你得了腰牌，老子陪你干一票。」〔已得趁乱暴动线索（路线4）：于岗哨夺赵虎腰牌后暴动，需先与官差一战。〕' }
-        ] }
-    ]
-  });
-
-  // — 路线5 伪造木牍：陈简刻 wooden_pass（营中竹木随手取） —
-  TRIGGERS.push({
-    id: 'chen_wooden', hook: 'onTalk', npc: 'chen_jian', room: 'kuyilao', cell: [2,1], once: false,
-    cond: { notFlag: 'flags.task.wooden' },
-    steps: [
-      { t: 'npcTalk', npc: 'chen_jian',
-        prompt: '陈简借着天窗光：「伪造路引？这活老子在行。取块竹木来，刻上通关印信款式，混出门时举着它。」',
-        asks: [
-          { label: '〔取竹木〕烦陈简刻一牍', set: { 'flags.task.wooden': true },
-            then: [
-              { t: 'grant', items: [{ id: 'wooden_pass', name: '木牍路引', icon: '🪵', cat: '素材', count: 1 }] },
-              { t: 'log', cls: 'good', text: '陈简三两下刻好一枚木牍路引，塞给你：「如今纸贵，木牍最便。收好，混出门举着它，官差懒得细看。」〔已得木牍路引（路线5）：于岗哨出示混出。〕' }
-            ] }
-        ] }
-    ]
-  });
-
-  // — 路线7 攀绳翻墙：苏娘搓 rope（韩铁指点） —
-  TRIGGERS.push({
-    id: 'su_rope', hook: 'onTalk', npc: 'su_niang', room: 'kuyilao', cell: [2,2], once: false,
-    cond: { notFlag: 'flags.task.rope' },
-    steps: [
-      { t: 'npcTalk', npc: 'su_niang',
-        prompt: '苏娘指尖灵巧，正将布条绞成一股绳：「攀墙？得有绳。营里竹麻随处可取，我替你搓一条便是。」',
-        asks: [
-          { label: '〔拜托〕劳烦搓一条绳', set: { 'flags.task.rope': true },
-            then: [
-              { t: 'grant', items: [{ id: 'rope', name: '绳', icon: '🪢', cat: '素材', count: 1 }] },
-              { t: 'log', cls: 'good', text: '苏娘将搓好的绳绕在你腕上：「绳有了，翻墙时莫慌，墙头碎瓷割手。」〔已得绳（路线7）：于墙根攀绳翻墙。〕' }
-            ] }
-        ] }
-    ]
-  });
-
-  // — 路线9 劫狱强攻：韩铁明示「木人桩练级后可硬闯」 —
-  TRIGGERS.push({
-    id: 'han_assault', hook: 'onTalk', npc: 'han_tie', room: 'kuyilao', cell: [2,2], once: false,
-    cond: { notFlag: 'flags.task.assault_hint' },
-    steps: [
-      { t: 'npcTalk', npc: 'han_tie',
-        prompt: '韩铁捶胸：「拳脚够硬，这营墙也拦不住你！在桩上练出真章，岗哨强突——那叫一个痛快。」',
-        asks: [
-          { label: '〔受教〕先去戳木人桩', set: { 'flags.task.assault_hint': true },
-            say: '韩铁斜眼：「戳透了桩，老子准你岗哨强突。劫狱强攻最难最爽，战力到了才成。」〔劫狱强攻线（路线9）：木人桩练至战力达标（等级≥3 或击败木人桩若干），于岗哨杀出。〕' }
-        ] }
-    ]
-  });
-
   // — 木人桩系列·二：练成后韩铁点拨去犬舍逗野犬，专练「撤退」 —
   TRIGGERS.push({
     id: 'han_spar_dog', hook: 'onTalk', npc: 'han_tie', room: 'kuyilao', cell: [2,2], once: false,
@@ -553,34 +467,6 @@
     ]
   });
 
-  // — 仓库拾镐锄（路线2 必需物；郑刚/墙角闲镐） —
-  TRIGGERS.push({
-    id: 'wh_pickaxe', hook: 'onCustom', room: 'kuyilao', cell: [2,1], once: true,
-    cond: { notFlag: 'flags.task.pickaxe' },
-    steps: [
-      { t: 'log', cls: 'sys', text: '你趁郑刚打盹，从墙角摸起一把闲镐锄——沉甸甸正趁手。〔已得镐锄：挖地道线（路线2）可成。〕' },
-      { t: 'grant', items: [{ id: 'pickaxe', name: '镐锄', icon: '⛏️', cat: '素材', count: 1 }] },
-      { t: 'setFlag', path: 'flags.task.pickaxe', value: true }
-    ]
-  });
-
-  // — 信息中心：孙老首谈点明全部路线（提示向） —
-  TRIGGERS.push({
-    id: 'sun_routes', hook: 'onTalk', npc: 'sun_lao', room: 'kuyilao', cell: [0,0], once: false,
-    cond: { notFlag: 'flags.task.sun_hint' },
-    steps: [
-      { t: 'npcTalk', npc: 'sun_lao',
-        prompt: '孙老吧嗒旱烟：「这营里十条出路，老朽都听过——密道、地道、迷药、暴动、木牍、收买、攀绳、水渠、硬闯、外应。」',
-        asks: [
-          { label: '〔洗耳恭听〕各路找谁', set: { 'flags.task.sun_hint': true },
-            say: '孙老吐口烟：「周先生守暗道；苟三懂挖地道；鲁大下迷药；秦九霄要暴动；陈简刻木牍；犬舍粮囤可收买；苏娘搓绳攀墙；石四吴算通水渠；韩教头许你硬闯——看清自个儿斤两再决断。」〔已得路线全图：与对应 NPC 交谈即可解锁各线。〕' }
-        ] }
-    ]
-  });
-
-  // — 岗哨逃脱（暴动/劫狱强攻）的战后毕业，由 index.html 的 exitCombatToRoom 钩子处理 —
-  //   （岗哨战斗路线胜/撤退后，exitCombatToRoom 检测到 flags.route._pending 即 finishEscape）
-
   // — 毕业引导：首入开放世界，逐步点亮全部核心系统（行囊/角色/战斗/武学/交易/地图/历法/善恶） —
   TRIGGERS.push({
     id: 'camp_tour', hook: 'onEnter', room: 'lindao', once: false,
@@ -593,7 +479,10 @@
       { t: 'sys', text: '· 点开「角色」面板：查看修为、战力、善恶声望（凶名/义声）。声望将左右世人待你之态度。' },
       { t: 'sys', text: '· 点开「武学」：研习招式、内功（内力将随门派/心法开启）。战斗中以「攻击/防御/道具/撤退」四式应敌。' },
       { t: 'sys', text: '· 寻见「货郎」可交易买卖；点「山河志」地图纵览州郡；点顶上「时辰」可知历法天候——皆是你闯荡的凭仗。' },
-      { t: 'log', cls: 'good', text: '（提示：此后每遇新系统，皆有高亮引路。先往林径寻那挑担的行脚货郎，或北去白檀军屯安顿身心，再做打算。）' }
+      { t: 'log', cls: 'good', text: '（提示：此后每遇新系统，皆有高亮引路。先往林径寻那挑担的行脚货郎，或北去白檀军屯安顿身心，再做打算。）' },
+      { t: 'reveal', layer: 'map' },
+      { t: 'highlight', layer: 'map' },
+      { t: 'sys', text: '· 点下方「山河志」可纵览天下十三州郡、敌我城池与名将——你的战略宏图，自此展开。' }
     ]
   });
 
@@ -924,7 +813,6 @@
       { t: 'log', cls: 'npc', text: '你正要开口，崔九却已跨前半步，把你们三个挡在身后。这沉默的什长只盯着牢头：「洞是我挖的，镐是我藏的。要拿，拿我。」' },
       { t: 'log', cls: 'env', text: '牢头狞笑，腰刀照准崔九劈下。崔九不避不让——他侧身将你往默叔那边一推，那一刀结结实实嵌进肩胛。血溅上土墙，他却没有倒，只回头看你一眼。' },
       { t: 'log', cls: 'good', text: '〔崔九〕「……老子带出去的兵，夜里得睡得着。」他笑着，却再没松开那攥紧的铁链。' },
-      { t: 'setFlag', path: 'flags.coup.cui_jiu_dead', value: true },
       { t: 'log', cls: 'combat', text: '默叔眼底第一次有了杀意。他袖中机括「咔」地弹开，一截墨家短弩的寒光抵在牢头咽喉——牢头与官差轰然倒地。他一把拽起你与阿禾，朝塌墙根的暗道疾去。' },
       { t: 'log', cls: 'env', text: '你们钻出暗道，迎面却是岗哨通明的火把。狄云舟横矛立在那里，甲胄映着火光，像是早料到有人从此处钻出。' },
       { t: 'npcTalk', npc: 'diyunzhou',
@@ -1165,6 +1053,93 @@
     cond: { flags: { 'flags.task.bailian_done': true } },
     steps: [ { t: 'log', cls: 'npc', text: '（老矿工眯着眼，像在回味什么）「百炼钢……那是要拿命去锻的。你有那个心气，就下去吧。」' } ]
   });
+
+
+  // ════════════ 夺营·三条续作分支（v20260926a，完整剧情）════════════
+  // 决断出营枢纽已移除；第4日夺营成为唯一毕业出口。下列三分支此前仅置 flag 无后续，
+  // 现补全为含抉择/战斗/收尾的完整流程，胜或退皆经 engine.coupGraduate 统一毕业。
+
+  // 孙老暗流提示（替代原「十越狱路线全图」）：点明营中将变天，引导玩家熬过夺营
+  TRIGGERS.push({
+    id: 'sun_upheaval', hook: 'onTalk', npc: 'sun_lao', room: 'kuyilao', cell: [0,0], once: false,
+    cond: { notFlag: 'flags.task.sun_upheaval' },
+    steps: [
+      { t: 'npcTalk', npc: 'sun_lao',
+        prompt: '孙老吧嗒旱烟，忽然压低嗓门：「小子，老朽在这营里熬了十来年。近来不对劲——太平道的黄巾，悄悄往岗亭上插。上头还装不知道，可这风，是变天的前奏。」',
+        asks: [
+          { label: '〔凝神〕老丈的意思是……', set: { 'flags.task.sun_upheaval': true },
+            say: '孙老吐口烟：「意思是——安心做你的活，别瞎扑腾。等那场变故来了，寻个空子溜便是。这营墙，拦得住规矩，拦不住天意。」〔已得暗流提示：熬过这几日，营中自有变故，届时随势脱身。〕' }
+        ] }
+    ]
+  });
+
+  // 分支一 · 密道先逃（route.tunnel/crypt/drain 任一备妥）：钻早通好的暗道，途中救阿禾与否
+  TRIGGERS.push({
+    id: 'coup_tunnel_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
+    cond: { flags: { 'flags.coup.branch': 'tunnel_early' }, notFlag: 'flags.coup.tunnel_escaped' },
+    steps: [
+      { t: 'log', cls: 'warn', text: '〔夺营·密道先逃〕混乱一起，你猫腰钻进早通好的坑道。土腥扑鼻，头顶人声渐远——你比谁都先脱了身。' },
+      { t: 'npcTalk', npc: 'a_he',
+        prompt: '坑道半途，却见阿禾被两名官差逼在死角，正拼死挣脱。她望见你，眼里又是期盼又是惶急：「你……你能带我走吗？」',
+        asks: [
+          { label: '〔伸手〕拉阿禾一同钻出去',
+            then: [
+              { t: 'log', cls: 'combat', text: '你反手将阿禾拽进坑道，身后官差已追至，火把照得坑口通明！' },
+              { t: 'combat', enemy: 'camp_guard' }
+            ] },
+          { label: '〔咬牙〕此时顾不得旁人，独自钻出',
+            then: [
+              { t: 'log', cls: 'sys', text: '你别过脸，埋头钻进暗道深处。阿禾的呼声渐远，你不知她后来如何——只知自己先一步出了营。' },
+              { t: 'log', cls: 'combat', text: '坑口处一名巡夜官差似觉动静，持矛探入！' },
+              { t: 'combat', enemy: 'camp_guard' }
+            ] }
+        ] }
+    ]
+  });
+
+  // 分支二 · 阿禾线（a_he 好感≥2 但 moshu<1）：阿禾引你钻塌墙根缝，抉择护她或断后
+  TRIGGERS.push({
+    id: 'coup_ahe_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
+    cond: { flags: { 'flags.coup.branch': 'minor_ahe' }, notFlag: 'flags.coup.ahe_escaped' },
+    steps: [
+      { t: 'log', cls: 'warn', text: '〔夺营·阿禾线〕阿禾一把扯住你：「跟我来——我知道一处塌墙根的缝，能钻出去！」她眼里既有慌乱，也有一股你没见过的决然。' },
+      { t: 'npcTalk', npc: 'a_he',
+        prompt: '阿禾边跑边回头：「我哥还在东边粮囤……可这节骨眼，顾不得了。你、你肯陪我走吗？」她声音发颤，却攥紧了你的袖子。',
+        asks: [
+          { label: '〔并肩〕护着阿禾钻那道缝',
+            then: [
+              { t: 'log', cls: 'combat', text: '你们刚挤进塌墙根的缝，外头便追来两名太平道喽啰，刀光直劈阿禾后背！' },
+              { t: 'combat', enemy: 'camp_guard' }
+            ] },
+          { label: '〔推她先走〕「你先钻，我断后」',
+            then: [
+              { t: 'log', cls: 'sys', text: '你将阿禾推进缝里，自己返身挡住追兵。待缝隙那头传来她远去的脚步声，你才寻路另寻缺口。' },
+              { t: 'log', cls: 'combat', text: '一名官差从阴影里扑出，长矛直取你心口！' },
+              { t: 'combat', enemy: 'camp_guard' }
+            ] }
+        ] }
+    ]
+  });
+
+  // 分支三 · 孤身（无门道、无牵绊）：被俘，崔九暗中点拨，趁机脱身
+  TRIGGERS.push({
+    id: 'coup_minor_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
+    cond: { flags: { 'flags.coup.branch': 'minor' }, notFlag: 'flags.coup.minor_escaped' },
+    steps: [
+      { t: 'log', cls: 'warn', text: '〔夺营·孤身〕你孤身一人，被乱局裹挟。一名太平道卒认出你这囚籍，反手便将你按在粮囤后，喝令蹲下——你成了这营里又一名俘囚。' },
+      { t: 'npcTalk', npc: 'cui_jiu',
+        prompt: '昏暗里，却见崔九被人拖过。他瞥见你，竟咧嘴一笑，低声道：「别慌……这帮贼只顾夺库抢粮，营墙那头守备早空了。等他们一乱，你寻个空子溜。」',
+        asks: [
+          { label: '〔颔首〕记下了，静待时机',
+            then: [
+              { t: 'log', cls: 'env', text: '片刻后，营中火起、喊杀连天，看押的贼卒也去抢功。你趁机挣脱缚索，贴着墙根摸向空虚的营门。' },
+              { t: 'log', cls: 'combat', text: '一名回身查哨的贼卒撞见你，抡刀便砍！' },
+              { t: 'combat', enemy: 'camp_guard' }
+            ] }
+        ] }
+    ]
+  });
+
 
   LF.TRIGGERS = TRIGGERS;
   if (LF.SharedGame) LF.SharedGame.TRIGGERS = TRIGGERS;

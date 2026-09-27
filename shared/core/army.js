@@ -21,8 +21,15 @@
     function TROOPS() { return (LF.TROOPS) || {}; }
     function ensureArmy() {
       var st = S(); if (!st) return null;
-      var a = st.army;
-      if (!a || typeof a !== 'object') a = st.army = {};
+      st.armies = st.armies || {};
+      // 兼容旧档：把曾经的单一 st.army 迁移为「主力」军团
+      if (st.army && typeof st.army === 'object' && !Array.isArray(st.army) && !st.armies['main']) {
+        st.armies['main'] = st.army;
+      }
+      if (!st.armySel || !st.armies[st.armySel]) st.armySel = 'main';
+      var a = st.armies[st.armySel];
+      if (!a || typeof a !== 'object') a = st.armies[st.armySel] = {};
+      st.army = a;                                 // 保持 S().army 指向当前选中军团（兼容直接 S().army.x 访问）
       if (typeof a.active !== 'boolean') a.active = false;
       if (!Array.isArray(a.troops)) a.troops = [];
       if (!a.logistics || typeof a.logistics !== 'object') a.logistics = { items: [], cap: 8, grain: 0 };
@@ -33,6 +40,12 @@
       if (!a.recruited) a.recruited = {};          // cid → 已募人数（兵源上限）
       if (!a.marching) a.marching = null;          // {from,to,left,km}
       return a;
+    }
+    function troopsCountOf(a) { var n = 0; (a.troops || []).forEach(function (t) { if (t) n += (t.count || 0); }); return n; }
+    function upkeepOf(a) { var n = 0, T = TROOPS(); (a.troops || []).forEach(function (t) { var d = T[t.type]; n += (t.count || 0) * ((d && d.upkeep) || 1); }); return n; }
+    function moraleAddOf(a, v, why) {
+      var before = a.morale || 100; a.morale = Math.max(0, Math.min(100, before + v));
+      if (Math.abs(a.morale - before) >= 5) { var b = LF.moraleBand(a.morale); log('〔军心〕' + (why || '') + '士气' + (v > 0 ? '+' : '') + v + '，今为「' + b.name + '」。', v > 0 ? 'good' : 'sys'); }
     }
     function troopOf(type) {
       var t = ensureArmy() ? S().army.troops : [];
@@ -92,7 +105,12 @@
       var cp = st.flags && st.flags.cityPos;
       if (!cp || !cp.cid) return null;
       if (typeof cellDisplayType === 'function' && cellDisplayType(cp.cid, cp.x, cp.y) !== 'barracks') return null;
-      if (typeof cityOwnerOf === 'function' && typeof playerFaction === 'function' && cityOwnerOf(cp.cid) !== playerFaction()) return null;
+      // v20260924z17：归属比较要同时认 'player' 与 '义军' —— playerFaction() 取 S().faction（默认'义军'），
+      //   而招降得来的城写的是 'player'（strategy.js diploSue），两边写法不一，只比字面值会把自家城判成敌城。
+      if (typeof cityOwnerOf === 'function' && typeof playerFaction === 'function') {
+        var _own = cityOwnerOf(cp.cid), _me = playerFaction();
+        if (_own !== _me && !((_own === 'player' && _me === '义军') || (_own === '义军' && _me === 'player'))) return null;
+      }
       return cp.cid;
     }
     function cityManpool(cid) {
@@ -265,37 +283,70 @@
       }
     }
     function tickArmyDay(crossings) {
-      var a = ensureArmy();
-      if (!a || !armyCount()) return;
+      var st = S(); if (!st) return;
       crossings = Math.max(1, crossings || 1);
-      // 行军进度
+      var ids = Object.keys(st.armies || {});
+      ids.forEach(function (id) {
+        var a = st.armies[id];
+        if (!a || !a.troops || !a.troops.length) return;
+        tickOneArmy(a, crossings);
+      });
+      save(S());
+    }
+    function tickOneArmy(a, crossings) {
+      var own = function (cid) {
+        return (typeof cityOwnerOf === 'function' && typeof playerFaction === 'function') ? (cityOwnerOf(cid) === playerFaction()) : false;
+      };
       if (a.marching) {
+        var supplyLine = own(a.marching.from) || own(a.marching.to);
         a.marching.left -= crossings;
         if (a.marching.left <= 0) {
           var to = a.marching.to;
           a.rallyPoint = to; a.marching = null;
-          log('〔行军〕你的部曲抵达' + (((LF.CITIES || {})[to] || {}).name || '目的地') + '，扎营待命。', 'sys');
-        } else if (Math.random() < (scouting() ? 0.10 : 0.22)) {
-          // 行军途中遭遇：部曲自行应战（玩家不在队中），按比例折兵
-          var nl = Math.max(1, Math.round(armyCount() * (0.02 + Math.random() * 0.05)));
-          var _rem = nl;
-          a.troops.forEach(function (t) { if (_rem <= 0) return; var dd = Math.min(t.count || 0, _rem); t.count = (t.count || 0) - dd; _rem -= dd; });
-          a.troops = a.troops.filter(function (t) { return (t.count || 0) > 0; });
-          armyMoraleAdd(-6, '途中遇袭，');
-          log('〔遭遇〕你的部曲行至半途撞上' + (Math.random() < 0.5 ? '一伙剪径的流寇' : '别部游骑') + '，一场混战折了 ' + nl + ' 人。', 'danger');
+          log('〔行军〕一部曲抵达' + (((LF.CITIES || {})[to] || {}).name || '目的地') + '，扎营待命。', 'sys');
+        } else {
+          if (supplyLine && a.logistics.grain < upkeepOf(a) * 5) {
+            a.logistics.grain += Math.round(upkeepOf(a) * 4);
+            var sname = own(a.marching.from) ? (((LF.CITIES || {})[a.marching.from] || {}).name || '城寨') : (((LF.CITIES || {})[a.marching.to] || {}).name || '城寨');
+            log('〔补给〕行军依托' + sname + '，粮道不绝。', 'sys');
+          }
+          if (Math.random() < (scouting() ? 0.10 : 0.22)) {
+            // 行军途中遭遇：部曲自行应战（玩家不在队中），按比例折兵
+            var nl = Math.max(1, Math.round(troopsCountOf(a) * (0.02 + Math.random() * 0.05)));
+            var _rem = nl;
+            a.troops.forEach(function (t) { if (_rem <= 0) return; var dd = Math.min(t.count || 0, _rem); t.count = (t.count || 0) - dd; _rem -= dd; });
+            a.troops = a.troops.filter(function (t) { return (t.count || 0) > 0; });
+            moraleAddOf(a, -6, '途中遇袭，');
+            log('〔遭遇〕你的部曲行至半途撞上' + (Math.random() < 0.5 ? '一伙剪径的流寇' : '别部游骑') + '，一场混战折了 ' + nl + ' 人。', 'danger');
+          }
+        }
+      } else if (a.rallyPoint && own(a.rallyPoint)) {
+        // 驻守己方城：就食补给（补给线之「驻屯补给」）
+        var _up = upkeepOf(a);
+        if (a.logistics.grain < _up * 40) {
+          a.logistics.grain = Math.round(_up * 40);
+          log('〔补给〕驻' + (((LF.CITIES || {})[a.rallyPoint] || {}).name || '城') + '，部曲就食于民，军粮足 ' + Math.round(a.logistics.grain) + ' 石。', 'sys');
         }
       }
-      var need = armyUpkeep() * crossings * (a.marching ? 1.5 : 1);
+      var up = upkeepOf(a);
+      var need = up * crossings * (a.marching ? 1.5 : 1);
       var have = a.logistics.grain || 0;
       if (have >= need) {
         a.logistics.grain = Math.round((have - need) * 10) / 10;
       } else {
         var short = need - have;
         a.logistics.grain = 0;
-        armyMoraleAdd(-Math.min(20, Math.round(6 * Math.max(1, short / Math.max(1, need)) * crossings)), '军粮不继，');
+        moraleAddOf(a, -Math.min(20, Math.round(6 * Math.max(1, short / Math.max(1, need)) * crossings)), '军粮不继，');
         log('〔断粮〕军粮告罄（缺 ' + Math.round(short) + ' 石），士卒怨声载道。', 'danger');
+        if (short >= need * 0.8) {   // 严重断粮：逃兵溃散
+          var flee = Math.max(1, Math.round(troopsCountOf(a) * 0.03));
+          var _r = flee;
+          a.troops.forEach(function (t) { if (_r <= 0) return; var dd = Math.min(t.count || 0, _r); t.count = (t.count || 0) - dd; _r -= dd; });
+          a.troops = a.troops.filter(function (t) { return (t.count || 0) > 0; });
+          log('〔溃散〕缺粮日久，' + flee + ' 人散去。', 'danger');
+          if (!troopsCountOf(a)) { a.active = false; a.rallyPoint = null; }
+        }
       }
-      save(S());
     }
 
     // ══ 独立调兵 / 行军 ══
@@ -467,7 +518,9 @@
     function renderArmyPanel() {
       var a = ensureArmy();
       if (!a) return '<p class="hint">军务未启。</p>';
-      var h = '<h3>军 队</h3><div class="am-tabs">';
+      var h = '<h3>军 队</h3>';
+      h += armySwitchBar();
+      h += '<div class="am-tabs">';
       var tabs = [{ k: 'ov', n: '概况' }, { k: 'fy', n: '编成' }, { k: 'mu', n: '募兵' }, { k: 'zz', n: '辎重' }];
       tabs.forEach(function (t, i) { h += amTabBtn(t.k, t.n, i === 0); });
       h += '</div>';
@@ -583,6 +636,43 @@
       openModal('armyDeploy');
       var card = document.getElementById('modal-card'); if (card) card.innerHTML = h;
     }
+    function armySwitchBar() {
+      var st = S(); if (!st || !st.armies) return '';
+      var ids = Object.keys(st.armies);
+      if (ids.length <= 1) return '';
+      var h = '<div class="am-armies">';
+      ids.forEach(function (id) {
+        var aa = st.armies[id]; var sel = (id === st.armySel);
+        var label = (id === 'main') ? '主力' : id;
+        h += '<button type="button" class="am-army' + (sel ? ' on' : '') + '" onclick="window.armySwitch(\'' + id + '\')">' + esc(label) + ' · ' + troopsCountOf(aa) + '人</button>';
+      });
+      h += '<button type="button" class="am-army new" onclick="window.armyCreatePrompt()">＋新军团</button>';
+      h += '</div>';
+      return h;
+    }
+    function armySwitch(sel) {
+      var st = S(); if (!st || !st.armies || !st.armies[sel]) return;
+      st.armySel = sel; ensureArmy();
+      log('〔调遣〕转视「' + (sel === 'main' ? '主力' : sel) + '」。', 'sys');
+      save(S()); renderStatus();
+      openModal('army');
+    }
+    function armyCreatePrompt() {
+      var name = '';
+      if (typeof window !== 'undefined' && window.prompt) name = window.prompt('新军团名（留空则自动命名）：', '') || '';
+      armyCreate(name);
+    }
+    function armyCreate(name) {
+      var st = S(); if (!st) return;
+      st.armies = st.armies || {};
+      var n = Object.keys(st.armies).length + 1, id = 'army' + n;
+      while (st.armies[id]) id = 'army' + (++n);
+      st.armies[id] = { active: false, troops: [], logistics: { items: [], cap: 8, grain: 0 }, morale: 100, rallyPoint: null, recruited: {}, marching: null };
+      st.armySel = id; ensureArmy();
+      log('〔建军〕新立' + (name || ('偏师' + n)) + '（' + id + '），可往城中军营为其募兵。', 'sys');
+      save(S()); renderStatus();
+      openModal('army');
+    }
     function bindArmyPanel() {
       var box = document.getElementById('modal-card');
       if (!box) return;
@@ -608,8 +698,12 @@
       armyMoraleAdd: armyMoraleAdd, tickArmyDay: tickArmyDay, moraleMul: moraleMul,
       armyDeploy: armyDeploy, armyCamp: armyCamp, armyScout: armyScout, armyAmbush: armyAmbush, scouting: scouting, cityKm: cityKm,
       buildArmyPlayerUnits: buildArmyPlayerUnits, settleArmyLoss: settleArmyLoss, buildOrdersFor: buildOrdersFor,
-      renderArmyPanel: renderArmyPanel, bindArmyPanel: bindArmyPanel, openArmyDeposit: openArmyDeposit, openArmyDeploy: openArmyDeploy
+      renderArmyPanel: renderArmyPanel, bindArmyPanel: bindArmyPanel, openArmyDeposit: openArmyDeposit, openArmyDeploy: openArmyDeploy,
+      armySwitch: armySwitch, armyCreate: armyCreate, armyCreatePrompt: armyCreatePrompt, armySwitchBar: armySwitchBar
     };
+    if (typeof window !== 'undefined') {
+      window.armySwitch = armySwitch; window.armyCreate = armyCreate; window.armyCreatePrompt = armyCreatePrompt; window.armySwitchBar = armySwitchBar;
+    }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.createArmy;
 })(typeof window !== 'undefined' ? window : globalThis);

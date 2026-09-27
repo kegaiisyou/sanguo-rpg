@@ -426,6 +426,7 @@
       id: 'yang_qi_jue', name: '养气诀', line: 'internal', type: 'technique',
       beat: 0, cost: {}, dmgMul: 1.0,
       detach: true,
+      maxMp: 15,
       desc: '内息绵长，装配后暴击率+10%',
       eff: { critRate: 0.10 },
       learn: { lineMin: 0, wuxing: 0, neigong: 0 },
@@ -438,6 +439,7 @@
       id: 'xuan_yin_jue', name: '玄阴诀', line: 'internal', type: 'technique',
       beat: 0, cost: {}, dmgMul: 1.0,
       detach: true,
+      maxMp: 10,
       desc: '阴柔内劲透体，装配后破甲+20%',
       eff: { armorPen: 0.20 },
       learn: { lineMin: 2, wuxing: 0, neigong: 0 }
@@ -446,6 +448,7 @@
       id: 'hun_yuan_gong', name: '混元功', line: 'internal', type: 'technique',
       beat: 0, cost: {}, dmgMul: 1.0,
       detach: true,
+      maxMp: 15,
       desc: '混元护体，装配后受击反弹20%伤害',
       eff: { reflectDmg: 0.20 },
       learn: { lineMin: 3, wuxing: 0, neigong: 0 }

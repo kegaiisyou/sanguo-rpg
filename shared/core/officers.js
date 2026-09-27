@@ -23,6 +23,7 @@
     function idsOf(t) { return (t && t.skills) ? t.skills : []; }
     function sumEff(ids, key) { var s = 0; (ids || []).forEach(function (id) { var d = SKILL_MAP[id]; if (d && d.eff && typeof d.eff[key] === 'number') s += d.eff[key]; }); return s; }
     var officerTab = 'roster';
+    var officerDetailId = null;
 
     // ── 索引：模板 id → 武将；驻城 → 武将列表 ──
     var _byId = null, _byCity = null;
@@ -249,6 +250,13 @@
       st.flags.facilityTroops = st.flags.facilityTroops || {};
       return st.flags.facilityTroops[fkey] || 0;
     }
+    function facLogPush(fkey, msg) {
+      var st = S(); if (!st) return;
+      st.flags.facilityLog = st.flags.facilityLog || {};
+      var arr = st.flags.facilityLog[fkey] = st.flags.facilityLog[fkey] || [];
+      arr.push({ t: '第' + ((st.day||0) + 1) + '日', m: msg });
+      if (arr.length > 8) arr.shift();
+    }
     function stewardOf(fkey) {
       var list = roster();
       for (var i = 0; i < list.length; i++) if (list[i].assignment && list[i].assignment.type === 'steward' && list[i].assignment.fkey === fkey) return list[i];
@@ -264,7 +272,7 @@
       var lab = facLabor(fkey), labMul = 1 + lab / 100;
       var tr = facTroops(fkey), trMul = 1 + tr / 160;
       var amount = Math.round(T.base * statMul * (1 + skill) * labMul * trMul);
-      return { type: ftype, res: T.res, resName: T.resName, icon: T.icon, name: T.name, amount: amount, officer: o, statMul: statMul, skill: skill, labor: lab, laborCap: T.laborCap, troops: tr, troopCap: trooplimit(), stat: T.stat, desc: T.desc };
+      return { type: ftype, res: T.res, resName: T.resName, icon: T.icon, name: T.name, amount: amount, officer: o, statMul: statMul, skill: skill, labor: lab, laborCap: T.laborCap, troops: tr, troopCap: trooplimit(), stat: T.stat, desc: T.desc, progress: Math.min(1, ((S().day||0)%30)/30) };
     }
     function dispatchAssign(fkey, oid) {
       var o = getInst(oid); if (!o) { toast('麾下无此人。'); return false; }
@@ -272,6 +280,7 @@
       else {
         roster().forEach(function (x) { if (x !== o && x.assignment && x.assignment.type === 'steward' && x.assignment.fkey === fkey) x.assignment = null; });
         o.assignment = { type: 'steward', cid: fkey.split('|')[0], fkey: fkey };
+        facLogPush(fkey, '监理赴任：' + o.name);
         var st = S(); st.flags.facilityLabor = st.flags.facilityLabor || {};
         if (!st.flags.facilityLabor[fkey]) st.flags.facilityLabor[fkey] = 20;
       }
@@ -283,6 +292,7 @@
     function dispatchRemove(fkey) {
       var o = stewardOf(fkey); if (!o) return false;
       o.assignment = null;
+      facLogPush(fkey, '卸任归营：' + o.name);
       log('〔召回〕' + o.name + ' 自设施解任归营。', 'sys'); save(S());
       if (typeof openModal === 'function' && getCurrentModalKind && getCurrentModalKind() === 'officers') openModal('officers');
       return true;
@@ -292,6 +302,7 @@
       var cap = ((LF.FACILITY_TYPES || {})[(fkey.split('|')[1])] || {}).laborCap || 60;
       var cur = Math.max(0, Math.min(cap, (st.flags.facilityLabor[fkey] || 0) + d));
       st.flags.facilityLabor[fkey] = cur; save(S());
+      facLogPush(fkey, '民夫调为 ' + cur);
       if (typeof openModal === 'function' && getCurrentModalKind && getCurrentModalKind() === 'officers') openModal('officers');
     }
     function dispatchTroops(fkey, d) {
@@ -299,6 +310,7 @@
       var cap = trooplimit();
       var cur = Math.max(0, Math.min(cap, (st.flags.facilityTroops[fkey] || 0) + d));
       st.flags.facilityTroops[fkey] = cur; save(S());
+      facLogPush(fkey, '士卒调为 ' + cur);
       if (typeof openModal === 'function' && getCurrentModalKind && getCurrentModalKind() === 'officers') openModal('officers');
     }
     function facilitiesMonthlyYield() {
@@ -382,7 +394,8 @@
           h += '<div class="of-row">';
           h += '<div class="of-top"><b>' + esc(o.name) + '</b><span class="of-title">' + esc((template(o.id) || {}).title || '') + '</span>' + assignTag(o) + skillTagsHTML(idsOf(template(o.id))) + '</div>';
           h += statBars(o.stats);
-          h += '<div class="of-acts">';
+          h += '<div class="of-acts">'+
+          '<button class="btn sm" onclick="window.openOfficerDetail(\'' + o.id + '\')">详情</button>';
           if (!(o.assignment && o.assignment.type === 'commander')) h += '<button class="btn sm" onclick="window.appointOfficer(\'' + o.id + '\',\'commander\')">任主将</button>';
           else h += '<button class="btn sm" onclick="window.appointOfficer(\'' + o.id + '\',\'commander\')">解主将</button>';
           var here = S().room;
@@ -412,7 +425,7 @@
           h += '<div class="of-row">';
           h += '<div class="of-top"><b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-chance">登庸率 ' + p + '%</span>' + skillTagsHTML(t.skills) + '</div>';
           h += statBars(t.stats);
-          h += '<div class="of-acts"><button class="btn sm" onclick="window.recruitOfficer(\'' + t.id + '\')">登庸</button></div>';
+          h += '<div class="of-acts"><button class="btn sm" onclick="window.openOfficerDetail(\'' + t.id + '\')">详情</button><button class="btn sm" onclick="window.recruitOfficer(\'' + t.id + '\')">登庸</button></div>';
           h += '</div>';
         });
         h += '</div>';
@@ -421,6 +434,7 @@
       return h;
     }
     function renderOfficerHub() {
+      if (officerDetailId) return renderOfficerDetail(officerDetailId);
       var tabs = [['roster', '麾下'], ['search', '寻访'], ['factions', '群雄']];
       var h = '<div class="of-tabs">';
       tabs.forEach(function (t) {
@@ -449,7 +463,7 @@
           h += '<div class="of-row">';
           h += '<div class="of-top"><b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-fac">' + esc(facName(f)) + '</span>' + skillTagsHTML(t.skills) + '</div>';
           h += statBars(t.stats);
-          h += '<div class="of-acts"><span class="of-loc">驻 ' + esc(cn) + '</span></div>';
+          h += '<div class="of-acts"><span class="of-loc">驻 ' + esc(cn) + '</span><button class="btn sm" onclick="window.openOfficerDetail(\'' + t.id + '\')">详情</button></div>';
           h += '</div>';
         });
         h += '</div></div>';
@@ -468,8 +482,42 @@
       h += '</div>';
       return h;
     }
+    function facN(f){ var F=(LF.FACTIONS||{})[f]; return (F&&F.name)||f; }
+    function officerPortrait(o){
+      var fid=(o&&o.faction)||'none'; var F=(LF.FACTIONS||{})[fid]||{color:'#888'};
+      var col=F.color||'#888'; var initial=(o&&o.name)?o.name.charAt(0):'将';
+      var tt=(o&&o.title)?escapeHtml(o.title):'';
+      return '<svg class="of-portrait" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">'+
+        '<rect x="6" y="10" width="88" height="100" rx="8" fill="#1c130a" stroke="'+col+'" stroke-width="3"/>'+
+        '<circle cx="50" cy="42" r="22" fill="'+col+'" opacity="0.85"/>'+
+        '<text x="50" y="51" text-anchor="middle" font-size="26" fill="#0e0803" font-weight="bold">'+escapeHtml(initial)+'</text>'+
+        '<path d="M22 82 h56 v16 a8 8 0 0 1 -8 8 H30 a8 8 0 0 1 -8 -8 Z" fill="'+col+'" opacity="0.7"/>'+
+        '<text x="50" y="100" text-anchor="middle" font-size="11" fill="#f3e6c8">'+tt+'</text>'+
+        '</svg>';
+    }
+    function renderOfficerDetail(id){
+      var o=template(id); if(!o) return '<div class="of-empty">查无此将。</div>';
+      var t=template(id)||{};
+      var cidNow=(o.assignment&&o.assignment.cid)||o.home;
+      var cn=((LF.CITIES||{})[cidNow]||{}).name||cidNow||'野';
+      var fid=(o.faction)||'player'; var fn=facN(fid);
+      var h='<div class="of-detail">';
+      h+=officerPortrait(o);
+      h+='<div class="of-d-main">';
+      h+='<div class="of-d-top"><b>'+escapeHtml(o.name)+'</b><span class="of-title">'+escapeHtml(t.title||'')+'</span><span class="of-fac" style="color:'+((LF.FACTIONS||{})[fid]||{}).color+'">'+escapeHtml(fn)+'</span></div>';
+      h+='<div class="of-d-row">忠诚 <b>'+Math.round(o.loyalty||0)+'</b>　驻地 '+escapeHtml(cn)+'　'+assignTag(o)+'</div>';
+      h += (function(){ var _t=template(id)||{}; var _aff=affOf(_t); var _sw=swornBrothers(id)||[]; var _en=enemyOf(id)||[]; var _at=_aff>=75?'相投':(_aff>=50?'平淡':'相冲'); var _rh='<div class="of-d-rel">'; _rh+='<span>相性 <b>'+_aff+'</b> · '+_at+'</span>'; if(_sw.length)_rh+='<span>结义 '+_sw.map(function(x){return (template(x)||{}).name||x;}).join('、')+'</span>'; if(_en.length)_rh+='<span class="enemy">宿敌 '+_en.map(function(x){return (template(x)||{}).name||x;}).join('、')+'</span>'; _rh+='</div>'; return _rh; })();
+      h+=statBars(o.stats);
+      h+='<div class="of-d-skills">'+skillTagsHTML(idsOf(t))+'</div>';
+      if(t.bio) h+='<div class="of-d-bio">'+escapeHtml(t.bio)+'</div>';
+      h+='</div></div>';
+      h+='<div class="of-d-acts"><button class="btn sm" onclick="window.openOfficerPanel()">◀ 返回名册</button></div>';
+      return h;
+    }
+    function openOfficerDetail(id){ officerDetailId=id; if(typeof openModal==='function') openModal('officers'); }
+    window.openOfficerDetail = openOfficerDetail;
     function openOfficerTab(t) { officerTab = t; if (typeof openModal === 'function') openModal('officers'); }
-    function openOfficerPanel() { officerTab = 'roster'; if (typeof openModal === 'function') openModal('officers'); }
+    function openOfficerPanel() { officerDetailId = null; officerTab = 'roster'; if (typeof openModal === 'function') openModal('officers'); }
     function openSearchPanel() { officerTab = 'search'; if (typeof openModal === 'function') openModal('officers'); }
 
     // ── 内政命令（命令式委任内政，v20260924l）：玩家可亲自下令，或委任武将按月执行 ──
@@ -608,6 +656,7 @@
     function undelegateCommand(cmdKey) { return delegateCommand(cmdKey, null); }
     function monthlyAffairs() {
       facilitiesMonthlyYield();
+      if (typeof loyaltyTick === 'function') loyaltyTick();
       var list = roster();
       list.forEach(function (o) {
         var a = o.assignment; if (!a || a.type !== 'edict') return;
@@ -634,6 +683,10 @@
             h += '<div class="fac-top"><b>' + escapeHtml(o.icon) + ' ' + escapeHtml(o.name) + '</b>' + (o.officer ? '<span class="of-tag stew">' + escapeHtml(o.officer.name) + ' \u76d1\u7406</span>' : '<span class="of-tag free">\u672a\u9053</span>') + '</div>';
             h += '<div class="fac-ctl">\u6c11\u592b ' + o.labor + '/' + o.laborCap + ' <button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',-5)">\u2212</button><button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',5)">\uff0b</button> \u58eb\u5341 ' + o.troops + '/' + o.troopCap + ' <button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',-10)">\u2212</button><button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',10)">\uff0b</button></div>';
             h += '<div class="fac-out">\u6708\u51fa\uff1a<b>' + o.amount + ' ' + escapeHtml(o.resName) + '</b>' + (o.officer ? '（' + statName(o.stat) + '\u00d7' + (Math.round(o.statMul * 100) / 100) + (o.skill ? (' \uff0b\u6280' + Math.round(o.skill * 100) + '%') : '') + '\uff09' : '（\u672a\u9053\u5b98\uff0c\u4ec5\u8d56\u6c11\u529b\uff09') + '</div>';
+            var _prog = Math.round((o.progress||0)*100);
+            h += '<div class="fac-bar"><i style="width:'+_prog+'%"></i></div>';
+            var _flog = (S().flags.facilityLog && S().flags.facilityLog[fk]) || [];
+            if(_flog.length){ h += '<div class="fac-log">'; _flog.slice(-3).forEach(function(_e){ h += '<span>'+( _e.t||'')+' '+escapeHtml(_e.m||'')+'</span>'; }); h += '</div>'; }
             var opts = '<option value="">\u2014 \u59d4\u4efb \u2014</option>';
             if (o.officer) opts = '<option value="">\u2715 \u64a4\u59d4\u4efb\uff08\u73b0\u4efb\uff1a' + escapeHtml(o.officer.name) + '\uff09</option>';
             roster().forEach(function (x) { if (x.assignment && x.assignment.type === 'steward' && x.assignment.fkey === fk) return; opts += '<option value="' + x.id + '">' + escapeHtml(x.name) + '\uff08' + statName(o.stat) + (x.stats[o.stat] || 0) + '\uff09</option>'; });
@@ -664,7 +717,7 @@
       recruitableHere: recruitableHere, recruitChance: recruitChance, recruit: recruit,
       appoint: appoint, dismiss: dismiss, captureFrom: captureFrom,
       renderOfficerPanel: renderOfficerPanel, renderSearchPanel: renderSearchPanel, renderOfficerHub: renderOfficerHub, renderFactionsPanel: renderFactionsPanel, renderCityGarrison: renderCityGarrison,
-      openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel, openOfficerTab: openOfficerTab,
+      openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel, openOfficerTab: openOfficerTab, openOfficerDetail: openOfficerDetail, renderOfficerDetail: renderOfficerDetail, officerPortrait: officerPortrait,
       dispatchAssign: dispatchAssign, dispatchRemove: dispatchRemove, dispatchLabor: dispatchLabor, dispatchTroops: dispatchTroops, facilitiesMonthlyYield: facilitiesMonthlyYield, facilityOutput: facilityOutput, civilCommand: civilCommand, delegateCommand: delegateCommand, undelegateCommand: undelegateCommand, monthlyAffairs: monthlyAffairs, renderEdictCommands: renderEdictCommands
     };
   };

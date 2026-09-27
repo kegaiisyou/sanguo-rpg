@@ -24,7 +24,7 @@
       sect: null,                       // ⚠ 开局不属任何门派；中后期满足条件方可加入（joinSect）
       level: 1, exp: 0,
       hp: 100, maxHp: 100,
-      mp: 0, maxMp: 0,                  // 内力开局锁定 0，待后期通内功心法解锁
+      mp: 0, maxMp: 20,                  // 内力开局锁定 0，待后期通内功心法解锁
       atk: 15, def: 20, spd: 20,        // 派生战力（由 recalcBase 依据 attr+bonus 计算；spd 初值防未重算时 NaN）
       energy: 100, maxEnergy: 100,   // 精力：行动消耗，休整恢复
       food: 100, maxFood: 100,       // 食物：随行走/时间流失
@@ -165,7 +165,6 @@
   LF.SharedGame = {
     CONSTANTS: LF.CONSTANTS,
     SECTS: LF.SECTS,
-    SKILLS: LF.SKILLS,
     EVENTS: LF.EVENTS,
     DIALOGUES: LF.DIALOGUES,
     ROOMS: LF.ROOMS,

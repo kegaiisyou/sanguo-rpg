@@ -16,7 +16,7 @@
         itemIconHTML = ctx.itemIconHTML, usePackItem = ctx.usePackItem, equipFromPackTo = ctx.equipFromPackTo,
         onbReveal = ctx.onbReveal, highlightOnb = ctx.highlightOnb,
         maybeStarve = ctx.maybeStarve, siegeWin = ctx.siegeWin, siegeLose = ctx.siegeLose,
-        addXp = ctx.addXp, addReputation = ctx.addReputation, enemyExp = ctx.enemyExp, finishEscape = ctx.finishEscape;
+        addXp = ctx.addXp, addReputation = ctx.addReputation, enemyExp = ctx.enemyExp;
 
     // 战斗系统（v20260908n）：战斗FX + 战斗渲染 + DQ 回合制 + 战利品结算
     // 依赖经 ctx 注入；state/combatMode/dqCardEl/pendingSiegeCid 为引擎中后赋值或随运行变化的绑定，用 getter/setter 惰性取值。
@@ -977,11 +977,7 @@
     document.body.classList.remove('in-combat');
     document.body.classList.remove('tut-combat');
     if(getDqCardEl() && getDqCardEl().parentNode){ getDqCardEl().parentNode.removeChild(getDqCardEl()); setDqCardEl(null); }
-    // 苦役营·岗哨战斗路线（暴动/劫狱强攻）：胜/被救场后自动毕业逃脱（不再依赖教学 tcDone，跳过训练亦可直接强突）
-    if(getState().flags && getState().flags.route && getState().flags.route._pending && getState().flags.onb && !getState().flags.onb.done){
-      var rp=getState().flags.route._pending;
-      finishEscape(rp); return;
-    }
+    // v20260926a：旧「岗哨战斗路线战后自动毕业」已随决断出营枢纽一并移除（route._pending 不再写入）
     renderRoom(getState().room, true);
   }
 

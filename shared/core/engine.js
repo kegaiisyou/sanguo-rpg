@@ -375,16 +375,8 @@
       getActions: function () { return $actions; }
   });
   var openLearn = Learn.openLearn;
-  // 模块 escape（从 engine.js 拆分）
-  var Escape = LF.createEscape({
-      getState: function () { return state; },
-      getRouteInfo: function () { return ROUTE_INFO; },
-      getEscapeAvail: function () { return escapeAvail; },
-      getEscapeLockHint: function () { return escapeLockHint; },
-      getDoEscape: function () { return doEscape; },
-      getTutAsk: function () { return tutAsk; },
-      log: function () { return log.apply(null, arguments); }  });
-  var openEscapeHub = Escape.openEscapeHub;
+  // v20260926a：决断出营枢纽（escape.js / openEscapeHub / doEscape / ROUTE_INFO）已移除，
+  //   第4日夺营成为唯一毕业出口，详见 shared/story/triggers.js 的 coup_*_scene 分支。
   // 模块 narr（从 engine.js 拆分）
   var Narr = LF.createNarr({
       getState: function () { return state; },
@@ -465,7 +457,11 @@
     roleAtkMul: roleAtkMul, roleEconMul: roleEconMul, roleFavorMul: roleFavorMul, roleDef: roleDef,
     getArmyTroops: function () { return Army.armyCount(); },
     startDefendBattle: function (cid, fid) { return War.startDefendBattle(cid, fid); },
-    Officers: Officers
+    Officers: Officers,
+    // v20260924z17：strategy.js renderEdict() 里 `typeof renderEdictCommands==='function'`
+    //   恒为假 → 政令台少了整块「内政命令 + 武将委任」UI。Officers 工厂建于本工厂之后（L584），
+    //   故用惰性包装而非直接传引用。
+    renderEdictCommands: function () { return Officers.renderEdictCommands.apply(null, arguments); }
   });
   var diploGet = Strategy.diploGet, diploStatus = Strategy.diploStatus, diploActive = Strategy.diploActive, diploTruceBetween = Strategy.diploTruceBetween,
       diploExpire = Strategy.diploExpire, diploPropose = Strategy.diploPropose, diploSue = Strategy.diploSue, renderDiplomacy = Strategy.renderDiplomacy, openDiplomacy = Strategy.openDiplomacy, fireMonthlyEvents = Strategy.fireMonthlyEvents, renderEvent = Strategy.renderEvent, chooseEvent = Strategy.chooseEvent,
@@ -557,7 +553,7 @@
     itemIconHTML: itemIconHTML, usePackItem: usePackItem, equipFromPackTo: equipFromPackTo,
     onbReveal: onbReveal, highlightOnb: highlightOnb,
     maybeStarve: maybeStarve, siegeWin: siegeWin, siegeLose: siegeLose,
-    addXp: addXp, addReputation: addReputation, enemyExp: enemyExp, finishEscape: finishEscape
+    addXp: addXp, addReputation: addReputation, enemyExp: enemyExp
   });
   var logHTML = Combat.logHTML, logText = Combat.logText, combatAnchor = Combat.combatAnchor,
       flashAnchor = Combat.flashAnchor, floatDamage = Combat.floatDamage, floatLabel = Combat.floatLabel,
@@ -585,6 +581,9 @@
     getState: function () { return state; }, LF: LF,
     log: log, toast: toast, save: save, escapeHtml: escapeHtml,
     cityOwnerOf: cityOwnerOf, playerFaction: playerFaction,
+    // v20260924z17：officers.js 的登庸门槛 lordMei 用 roleFavorMul()（相才 ×1.1 → 门槛抬高），
+    //   缺注入就恒走兜底 55。roleFavorMul 是引擎函数声明，提升后可直接传引用。
+    roleFavorMul: roleFavorMul,
     openModal: openModal, getCurrentModalKind: function () { return currentModalKind; },
     armyCount: function () { return Army.armyCount(); },
     busyAct: function () { return busyAct.apply(null, arguments); }, advanceMinutes: advanceMinutes, renderStatus: renderStatus, isCityGrid: isCityGrid, armyTrainAt: function () { return Army.armyTrainAt.apply(null, arguments); }
@@ -601,6 +600,10 @@
     cityDevOf: cityDevOf, isCityGrid: isCityGrid,
     roleAtkMul: roleAtkMul, roleDef: roleDef,
     exert: exert, advanceTime: advanceTime,
+    // v20260924z17：army.js 的 recruitCity() 用这三项校验「身处本方军营方可募兵」，
+    //   但 ctx 里一直没注入 → 三个名字在 army.js 闭包里都是未声明标识符，typeof 保护让
+    //   两道 if 全部跳过，等于任何城格都能募兵（含敌城）。三者均为 City 别名 / 常量，早于此处定义。
+    cellDisplayType: cellDisplayType, cityOwnerOf: cityOwnerOf, playerFaction: playerFaction,
     commandBonus: function () { return Officers.commandBonus(); }
   });
   LF.Officers = Officers;
@@ -624,6 +627,9 @@
     exert: exert, advanceTime: advanceTime,
     startCombat: startCombat, showCombatSettlement: showCombatSettlement,
     conquerCity: conquerCity, playerFaction: playerFaction, cityDevOf: cityDevOf,
+    // v20260924z17：war.js 克城后要按「原归属」调 Officers.captureFrom 俘获守将，
+    //   缺 cityOwnerOf 注入时该分支恒假、俘获逻辑被静默废弃。
+    cityOwnerOf: cityOwnerOf,
     isCityGrid: isCityGrid, roleAtkMul: roleAtkMul,
     Army: Army,
     getPendingArmyBattle: function () { return pendingArmyBattle; },
@@ -643,7 +649,7 @@
       warToggleTroop = War.warToggleTroop, warLaunch = War.warLaunch, tryAmbush = War.tryAmbush;
   var officerRecruit = Officers.recruit, officerAppoint = Officers.appoint, officerDismiss = Officers.dismiss,
       renderOfficerPanel = Officers.renderOfficerPanel, renderSearchPanel = Officers.renderSearchPanel,
-      openOfficerPanel = Officers.openOfficerPanel, openSearchPanel = Officers.openSearchPanel, renderOfficerHub = Officers.renderOfficerHub,
+      openOfficerPanel = Officers.openOfficerPanel, openOfficerDetail = Officers.openOfficerDetail, openSearchPanel = Officers.openSearchPanel, renderOfficerHub = Officers.renderOfficerHub,
       dispatchAssign = Officers.dispatchAssign, dispatchRemove = Officers.dispatchRemove,
       dispatchLabor = Officers.dispatchLabor, dispatchTroops = Officers.dispatchTroops, facilitiesMonthlyYield = Officers.facilitiesMonthlyYield,
       civilCommand = Officers.civilCommand, delegateCommand = Officers.delegateCommand, undelegateCommand = Officers.undelegateCommand, monthlyAffairs = Officers.monthlyAffairs, renderEdictCommands = Officers.renderEdictCommands;
@@ -660,7 +666,11 @@
     observeNpc: observeNpc, openGivePanel: openGivePanel,
     startCombat: function (a, b) { return Combat.startCombat(a, b); },
     genCityGrid: genCityGrid, cellDisplayType: cellDisplayType, seededRand: seededRand,
-    getNPC_COMBAT_MAP: function () { return NPC_COMBAT_MAP; }
+    getNPC_COMBAT_MAP: function () { return NPC_COMBAT_MAP; },
+    // v20260924z17：交谈面板的「告辞」要重绘当前房间（npc.js 里 renderRoom(S().room)）。
+    //   此前 ctx 里没注入它 → 闭包里的 renderRoom 恒为 undefined → 点「告辞」抛
+    //   "renderRoom is not a function"。renderRoom 是函数声明（L1478），提升后此处可直接传引用。
+    renderRoom: renderRoom
   });
   var NPC_CARDS = NPC.NPC_CARDS, NPC_CARD_BY = NPC.NPC_CARD_BY, NPC_BY_KEY = NPC.NPC_BY_KEY,
       npcRegister = NPC.npcRegister, npcHour = NPC.npcHour, npcFill = NPC.npcFill, npcNameOf = NPC.npcNameOf,
@@ -1046,6 +1056,16 @@
       log('〔送信·墨家支路〕你揣着韩铁的密令翻出营墙，身后是吞没牢区的火光。信还在，人还在——白檀屯的救兵，便有指望。', 'env');
       log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。', 'sys');
       return;
+    }
+    // 新分支收尾（密道先逃救阿禾 / 阿禾线 / 孤身）：胜或退皆算出营，统一毕业
+    if (state.flags && state.flags.coup && !state.flags.coup.done) {
+      var _cb = state.flags.coup.branch;
+      if (enemy.id === 'camp_guard') {
+        if (result === 'lose') return;
+        if (_cb === 'tunnel_early') { coupGraduate('tunnel_escaped', 'tunnel_early'); return; }
+        if (_cb === 'minor_ahe')    { coupGraduate('ahe_escaped', 'minor_ahe'); return; }
+        if (_cb === 'minor')        { coupGraduate('minor_escaped', 'minor'); return; }
+      }
     }
     // 木人试艺（v20260915f）：桩是死物，练的是「打得倒」——故只认打赢，撤了不计。
     if(result==='win' && enemy.id==='dummy'){
@@ -2683,9 +2703,9 @@
   // 从城门经郊野出城（罗盘点「出城」按钮或城门外向移动触发）
   function leaveViaGate(dir){
     var cp=state.flags.cityPos; if(!cp||cp.cid!==state.room){ toast('须先立于城门。'); return; }
-    // 教学未毕业：苦役营（kuyilao）各出口被看死，须先探得门道、再赴南门决断出营
+    // 教学未毕业：苦役营（kuyilao）各出口被看死，须熬过夺营之变、随势脱身
     if (state.room === 'kuyilao' && !(state.flags && state.flags.onb && state.flags.onb.done)) {
-      toast('塌墙根未松动，官差看死各处出口。先回营中寻周先生问计、去囚室探默叔暗号，再赴南门决断出营。'); return;
+      toast('营门看死，官差盯得紧。且安心做活、熬过这几日——营中暗流，自有变故。'); return;
     }
     // 宵禁（v20260911h · P3 · 门禁）：夜里城门自内落锁，出不得城
     if(gateCurfew(state.room)){
@@ -3066,13 +3086,8 @@
         if(!checkTriggers({hook:'onCustom', room: state.room}))
           log('你又环顾了一圈劳役场，乱石、藤蔓、往来狱卒——一切如旧。','sys');
         break;
-      case 'wall_choose':
-        if(!exert('勘察墙根')) return;
-        openEscapeHub(isCityGrid(state.room) ? 'kuyilao' : 'camp_wall');
-        break;
-      case 'gate_choose':
-        if(!exert('决断出营')) return;
-        openEscapeHub('camp_gate');
+      case 'survey_south':
+        log('你立在南岗哨，远远望见营中旗号——太平道的黄巾竟已悄悄插上了几处岗亭。你心头一凛：这营里，要变天了。且安心做活，静待时机。', 'sys');
         break;
       case 'wood_cut':
         // v20260924z3：柴林伐木 —— cutWood 原为死代码（无任何房间挂载），木料除仓库外没有营内稳定出处。
@@ -3962,9 +3977,8 @@
     // ④ 默叔：天字二号牢房对暗号
     if(!(f.task && f.task.signal)) return campGoto({npc:'moshu'}, '牢房·天字二号，与默叔对上暗号', '往北回牢区（营北），进天字二号牢房与默叔对暗号', 1, 0);
     // ⑤ 已对暗号：营中九条路皆在「决断出营」里候着（能走哪条，看备下了什么）
-    if(Guide.exists({act:'wall_choose'})) return {text:'点「决断出营」，择一条路走出去（也可先去别处探访更多门道）', targets:[{act:'wall_choose'}]};
-    if(Guide.exists({act:'gate_choose'})) return {text:'点「决断出营」，择一条路走出去（也可先去别处探访更多门道）', targets:[{act:'gate_choose'}]};
-    return campGoto(null, '', '回营南岗哨点「决断出营」，择路出营', 1, 2);
+    if(Guide.exists({act:'survey_south'})) return {text:'南岗哨近来旗号有异——且安心做活、熬过这几日，静观其变。', targets:[{act:'survey_south'}]};
+    return campGoto(null, '', '营中暗流涌动，太平道的旗号近来扎眼。且安心做活、等待时机。', 1, 2);
   }
   function onbGoal(){
     if(!state.flags || !state.flags.onb || state.flags.onb.done){ onbGoalClear(); return; }
@@ -4322,81 +4336,25 @@
   }
   function bldActsFilter(acts){ if(typeof acts==='function') return acts; return (acts||[]).filter(bldActOk); }
 
-  // ===== 苦役营·越狱逃脱枢纽（v20260902a）=====
-  // camp_wall「决断出营·墙根」与 camp_gate「决断出营·岗哨」共用此枢纽：
-  // 仅列出当前已解锁（flag/物品前置满足）的路线，玩家择一逃脱。
-  var ROUTE_INFO = {
-    crypt:   { name: '密道线',       where: 'camp_wall', flavor: '你按默叔所授暗号拨开乱砖，塌墙根下一道幽深暗道赫然在目。七拐八绕，头顶人声渐远，你钻出了营墙。' },
-    tunnel:  { name: '挖地道线',     where: 'camp_wall', flavor: '你抡起镐锄，在矿道那头刨了数夜，土松墙薄——哗啦一声，地道通了。你猫腰钻出，泥一身却自由了。' },
-    rope:    { name: '攀绳翻墙线',   where: 'camp_wall', flavor: '你将苏娘搓的绳甩上墙头，借力一荡，翻过碎瓷密布的墙脊，落在外头草丛里。' },
-    drain:   { name: '水渠夜遁线',   where: 'camp_wall', flavor: '子时换岗，你循吴算盘所指水道，顺暗渠摸黑漂出墙根，水声盖住了一切动静。' },
-    drug:    { name: '内应下药业',   where: 'camp_gate', flavor: '你趁伙房不备，将林娘的迷药下进粥锅。不多时官差东倒西歪睡死，你大摇大摆混出门去。' },
-    riot:    { name: '趁乱暴动线',   where: 'camp_gate', flavor: '换岗那阵你夺了赵虎腰牌，秦九霄一声断喝，囚徒们哄然而起——你趁乱杀开一条血路冲出岗哨。' },
-    wooden:  { name: '伪造木牍线',   where: 'camp_gate', flavor: '你举着陈简刻的木牍路引，岗哨官差懒得细看，一挥手放你过了正门。' },
-    bribe:   { name: '收买犬卒线',   where: 'camp_gate', flavor: '你塞出一把银钱，犬舍/粮囤的看守眯眼揣了，装作没瞧见——你从便门溜出了营墙。' },
-    assault: { name: '劫狱强攻线',   where: 'camp_gate', flavor: '木人桩上练出的拳脚今朝见真章：你硬闯岗哨，拳脚翻飞，把拦路的官差尽数放倒，杀出了这苦役营！' }
+  // ===== 夺营分支统一毕业（v20260926a）=====
+  // 决断出营枢纽移除后，第4日夺营成为唯一毕业出口。各分支（密道先逃 / 阿禾线 / 孤身）
+  // 战斗或脱身收尾，统一在此毕业出营（与 moshu/officer_letter 分支的 inline 毕业等价）。
+  var COUP_FLAVOR = {
+    tunnel_early: '〔密道先逃·逃脱〕你早通的暗道今夜派上用场——混乱中猫腰钻进坑道，比谁都先出了营。身后是吞没牢区的火光，你头也不回。',
+    minor_ahe: '〔阿禾线·逃脱〕阿禾拽着你钻出塌墙根的暗道，她回头望了眼营中火光，眼里有泪光也有决然。这一夜，你们一同逃出了苦役营。',
+    minor: '〔孤身·逃脱〕乱局之中你寻得缝隙，趁守备空虚溜出营墙。身后营中火起，你不知那场夺营的结局，只知自己活了下来。'
   };
-  function escapeAvail(route){
-    var f=state.flags||{}, p=state.pack||[];
-    switch(route){
-      case 'crypt':   return !!(f.route && f.route.crypt) && !!(f.task && f.task.signal);
-      case 'tunnel':  return !!(f.route && f.route.tunnel) && !!packFind('pickaxe');
-      case 'rope':    return !!packFind('rope');
-      case 'drain':   return !!(f.route && f.route.drain);
-      case 'drug':    return !!(f.route && f.route.drug) && !!packFind('sleep_drug');
-      case 'riot':    return !!(f.route && f.route.riot);
-      case 'wooden':  return !!packFind('wooden_pass');
-      case 'bribe':   return (state.gold||0) >= 30;
-      // v20260914d：第三条前置 —— 趁夜在中军帐兵器架藏下一件家伙（flags.route.rack，见 rackTake）
-      case 'assault': return (state.level||1) >= 3 || !!(f.route && (f.route.dummy_done || f.route.rack));
-    }
-    return false;
-  }
-  function escapeLockHint(route){
-    var f=state.flags||{};
-    switch(route){
-      case 'crypt':   return '（未解锁：需周听涛授密道线索 + 囚室与默叔对暗号）';
-      case 'tunnel':  return '（未解锁：需苟三授挖地道线索 + 取得镐锄）';
-      case 'rope':    return '（未解锁：需苏娘搓绳）';
-      case 'drain':   return '（未解锁：需吴算/石四授水渠夜遁线索）';
-      case 'drug':    return '（未解锁：需鲁大/林娘配迷药 + 取得迷药）';
-      case 'riot':    return '（未解锁：需秦九霄授趁乱暴动线索）';
-      case 'wooden':  return '（未解锁：需陈简伪造木牍路引）';
-      case 'bribe':   return '（未解锁：需银两≥30，可收买犬卒/粮官）';
-      case 'assault': return '（未解锁：需战力达标——练武场练至等级≥3、戳通木人桩，或趁夜在中军帐兵器架藏下一件家伙）';
-    }
-    return '（未解锁）';
-  }
-  // v20260914a：九条路线不再一次全铺开（未解锁的那几条还要各带一句长注解，一屏十项、读半天），
-  //   改为「已备妥的直接列、未备妥的折成一笔」；想知道自己还差什么，再点开「细看还差什么」。
-// [moved -> shared/core/escape.js]
-  function doEscape(route, room){
-    if(route==='riot' || route==='assault'){
-      // 战斗路线：先与官差一战（普通战斗；胜负/撤退后由 exitCombatToRoom 钩子毕业，不再依赖教学 tcDone）
-      if(!state.flags.route) state.flags.route={};
-      state.flags.route._pending = route; save(state);
-      log('你决意走「'+ROUTE_INFO[route].name+'」——营中官差横矛拦来！','combat');
-      startCombat('camp_guard');
-      return;
-    }
-    finishEscape(route);
-  }
-  function finishEscape(route){
-    if(state.flags.route) state.flags.route._pending=null;
-    if(route==='riot' && !packFind('guard_tally')) packAdd('guard_tally',1);
-    if(route==='bribe'){ state.gold=Math.max(0,(state.gold||0)-30); }   // 收买犬卒：扣 30 银（叙事闭环，银钱开道）
+  function coupGraduate(escapedFlag, branch){
     if(state.flags.onb) state.flags.onb.done=true;
-    state.moveGate=null;
-    save(state);
-    // v20260911h：出营三叙（脱籍 / 逃脱 / 教学完成）改在 moveToOutside() 之后输出。
-    //   renderRoom 开头的 flushNarr() 会丢弃「上一场景排队中/打字中」的文字，
-    //   旧序（先 log 再 moveToOutside）会把这三段全清掉，玩家看不到逃脱文案与出营引导。
-    graduate(true);          // 只做状态交接（移除 onb 界面/解锁菜单），脱籍文案延后统一输出
+    if(state.flags.coup) state.flags.coup[escapedFlag]=true;
+    state.moveGate=null; save(state);
+    graduate(true);
     moveToOutside();
-    log('〔脱籍〕你已出营——点卯、晚归、口粮罚例一概不再管你；只是营中的钟点照旧，鼓声、作息、日头都不会为你停。','order');
-    log('〔'+ROUTE_INFO[route].name+'·逃脱〕'+ROUTE_INFO[route].flavor,'env');
-    log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。','sys');
+    log('〔脱籍〕你已出营——点卯、晚归、口粮罚例一概不再管你；只是营中的钟点照旧，鼓声、作息、日头都不会为你停。', 'order');
+    log(COUP_FLAVOR[branch] || '', 'env');
+    log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。', 'sys');
   }
+
   function moveToOutside(){
     state.room='lindao'; state.moveGate=null; save(state);
     renderRoom('lindao', true);
@@ -4475,7 +4433,7 @@
       row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
       row('当前所处',curRoom().name)+
       row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '散人（未入门派）')+
-      '<button class="sect-open" id="sect-open" type="button">⚔ '+(state.sect?'查看本门':'择一门派')+'</button>'+
+      (G.SECTS && state._sectUiReady ? '<button class="sect-open" id="sect-open" type="button">⚔ '+(state.sect?'查看本门':'择一门派')+'</button>' : '')+
       '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复。</p>';
     return h;
   }
@@ -5160,6 +5118,9 @@
   window.openOfficerPanel=openOfficerPanel; window.openSearchPanel=openSearchPanel; window.recruitOfficer=officerRecruit; window.appointOfficer=officerAppoint; window.dismissOfficer=officerDismiss; window.openOfficerTab=Officers.openOfficerTab;
   window.dispatchAssign=dispatchAssign; window.dispatchRemove=dispatchRemove; window.dispatchLabor=dispatchLabor; window.dispatchTroops=dispatchTroops;
   window.civilCommand=civilCommand; window.delegateCommand=delegateCommand; window.undelegateCommand=undelegateCommand;
+  // v20260924z17：strategy.js 的政令台按钮是内联 onclick="civilEdict('tax')"，在浏览器全局作用域解析；
+  //   函数只在引擎闭包里、没挂 window → 点「征税 / 安民」抛 "civilEdict is not defined"。
+  window.civilEdict=civilEdict;
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.enterGame=enterGame;   // 调试/自动化游玩桥接（供 playtest harness 开局，与 advanceTime 同款）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）

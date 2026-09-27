@@ -21,6 +21,24 @@
       if(u.flag) p.push('需先触发「'+(({met_zhangjiao:'张角之遇'})[u.flag]||u.flag)+'」');
       return p.length?p.join(' · '):'无门槛';
     }
+    function esc(s){ return (s==null?'':(''+s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+    var SECT_QUESTS = {
+      yingchuan: { desc:'剿匪安乡：累计讨平盗匪 3 起，传功长老授「颍川战法」。', check:function(s){return (s.quest&&s.quest.bandit||0)>=3;}, pot:30 },
+      taiping:   { desc:'太平福音：声望达 25，道众推你为香主，授《太平经》。', check:function(s){return (s.reputation||0)>=25;}, pot:30 },
+      xiliang:   { desc:'西凉铁骑：累计讨平盗匪 5 起，授西凉战法。', check:function(s){return (s.quest&&s.quest.bandit||0)>=5;}, pot:40 }
+    };
+    function sectQuestHTML(id){
+      var q=SECT_QUESTS[id]; if(!q) return '';
+      var done=(S().flags.sectQuestDone||{})[id];
+      var ok=q.check(S());
+      var h='<div class="sect-quest">';
+      h+='<div class="sq-desc">门派任务 · '+esc(q.desc)+'</div>';
+      if(done) h+='<div class="sq-done">✓ 传功已领</div>';
+      else if(ok) h+='<button class="sect-claim" data-sect="'+id+'">领取传功</button>';
+      else h+='<div class="sq-wait">（条件未足）</div>';
+      h+='</div>';
+      return h;
+    }
     function renderSectPanel(){
       if(!G.SECTS) return '<h3>门 派</h3><p class="tip">数据未载入。</p>';
       var h='<h3>门 派</h3>'+
@@ -34,7 +52,7 @@
           '<div class="sect-bonus">门风加成 · '+sectBonusText(d.bonus)+'</div>'+
           '<div class="sect-skill">传功 · '+((d.martials||[]).join('、'))+'</div>'+
           '<div class="sect-req">加入条件 · '+sectReqText(d)+'</div>'+
-          (joined?'<div class="sect-joined">✓ 已身属此派</div>'
+          (joined?('<div class="sect-joined">✓ 已身属此派</div>'+sectQuestHTML(id))
                  :(can.ok?'<button class="sect-join" data-sect="'+id+'">加 入 此 派</button>'
                          :'<button class="sect-join" disabled title="'+can.reason+'">未达条件</button>'))+
           '</div>';
@@ -53,6 +71,18 @@
           G.joinSect(S(),id);
           log('你拜入「'+G.SECTS[id].name+'」，得传功心法。','good');
           toast('已加入「'+G.SECTS[id].name+'」');
+          openModal('sect'); renderStatus();
+        };
+      });
+      document.querySelectorAll('.sect-claim[data-sect]').forEach(function(b){
+        b.onclick=function(){
+          var id=b.getAttribute('data-sect'); var q=SECT_QUESTS[id]; if(!q) return;
+          if((S().flags.sectQuestDone||{})[id]){ toast('传功已领。'); return; }
+          if(!q.check(S())){ toast('条件未足。'); return; }
+          S().flags.sectQuestDone=S().flags.sectQuestDone||{}; S().flags.sectQuestDone[id]=true;
+          S().pot=(S().pot||0)+q.pot;
+          log('你完成门派任务，得传功，修为 +'+q.pot+'。','good');
+          toast('传功已领，修为 +'+q.pot);
           openModal('sect'); renderStatus();
         };
       });

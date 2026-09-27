@@ -2209,13 +2209,16 @@
        体 = 他正在讲的一两句（＋你的答话）
        足 = 带序号的答话选项（键盘 1-9 等价），三条起两列
      帘只压暗背景，自身上限 46dvh，叙事区保底仍留大半屏可读。 */
-  #dlg-veil{ position:fixed; inset:0; z-index:59;
+  /* v20260924z17：原 z-index:59 / 60 与 #dock(60) 同级且 #dock 在 DOM 里更靠后，
+     底栏会盖在对话帘上 —— 苦役营里 NPC 触发的答话选项因此被 dock 挡住点不到。
+     提到 66/67：压过 #dock 与 #status，仍低于 #modal(70)。 */
+  #dlg-veil{ position:fixed; inset:0; z-index:66;
     background:radial-gradient(135% 95% at 50% 100%,rgba(30,22,14,.56),rgba(30,22,14,.32) 58%,rgba(30,22,14,.20));
     animation:dlgVeil .24s ease both; }
   #dlg-veil.hidden{ display:none; }
   @keyframes dlgVeil{ from{ opacity:0; } to{ opacity:1; } }
   #dlg{
-    position:fixed; left:0; right:0; bottom:0; margin:0 auto; max-width:560px; z-index:60;
+    position:fixed; left:0; right:0; bottom:0; margin:0 auto; max-width:560px; z-index:67;
     max-height:46dvh; display:flex; flex-direction:column; overflow:hidden;
     padding:0 12px calc(9px + env(safe-area-inset-bottom));
     border-top:1px solid rgba(176,131,47,.55); border-radius:15px 15px 0 0;
@@ -2866,15 +2869,9 @@
 @keyframes cfxName{0%{opacity:0;transform:translateY(7px);}16%{opacity:1;transform:translateY(0);}80%{opacity:1}100%{opacity:0;transform:translateY(-4px);}}
 @keyframes cfxLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 
-/* 内联交谈：轻量包裹层（v20260924z14 起） */
-.talk-inline{ display:flex; flex-direction:column; background:rgba(246,238,222,.06);
-  border:1px solid rgba(196,164,102,.28); border-radius:12px; overflow:hidden; margin:6px 8px; }
-.talk-inline .tl-head{ display:flex; align-items:center; justify-content:space-between;
-  padding:8px 12px; font-size:12px; color:#d9c39a; background:rgba(196,164,102,.08);
-  border-bottom:1px solid rgba(196,164,102,.18); }
-.talk-inline .tl-name{ font-family:"STKaiti","KaiTi",serif; letter-spacing:.5px; }
-.talk-inline .tl-fv{ color:#bfa77f; font-size:11px; }
-.talk-inline .talk-grid{ padding-top:10px; }
+/* v20260924z17：内联交谈卡片（.talk-inline）已移除——
+   它会把 #actions 撑高、将罗盘与 dock 顶出屏幕；
+   交谈按钮现在与场景物件同用 .act 横滑条。 */
 
 /* ===== 物品美术 & 装备栏视觉修正（20260924z15） ===== */
 
@@ -2911,3 +2908,38 @@
 .equipslot{position:static;width:auto;height:auto;min-height:44px;background:rgba(250,245,232,.78);border:1px solid rgba(196,164,102,.45);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 2px;box-shadow:0 1px 3px rgba(60,48,34,.18);}
 .ep-shoe{grid-column:1/-1;}
 .ep-bagflow{position:static;width:auto;height:auto;min-height:44px;background:rgba(250,245,232,.55);border:1px dashed rgba(196,164,102,.55);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 2px;box-shadow:none;margin-top:0;}
+
+/* ═══ 武将立绘 / 详情 / 地图武将标记 / 势力面板（v20260926b）═══ */
+.st-era{margin:0 8px;padding:1px 7px;border:1px solid #6b5a3a;border-radius:10px;font-size:12px;color:#f0d9a8;background:rgba(0,0,0,.25);white-space:nowrap;}
+.strategic-officer{position:absolute;transform:translate(-50%,-50%);cursor:pointer;}
+.strategic-officer .so-dot{width:18px;height:18px;border-radius:50%;background:#7a6a48;border:2px solid #2a1208;color:#f3e6c8;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.5);}
+.strategic-officer.mine .so-dot{background:#b8893a;border-color:#ffe0a0;}
+.of-portrait{width:96px;height:auto;max-height:115px;display:block;margin:0 auto 8px;border-radius:8px;}
+.of-detail{display:flex;gap:14px;align-items:flex-start;}
+.of-d-main{flex:1;min-width:0;}
+.of-d-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.of-d-top b{font-size:18px;color:#f3e6c8;}
+.of-d-top .of-title{font-size:13px;color:#c9b48a;}
+.of-d-top .of-fac{font-size:13px;}
+.of-d-row{font-size:13px;color:#d8c9a8;margin-bottom:8px;}
+.of-d-skills{margin:6px 0;}
+.of-d-bio{font-size:13px;line-height:1.6;color:#cdbf9c;background:rgba(0,0,0,.18);border-left:3px solid #6b5a3a;padding:8px 10px;border-radius:4px;margin-top:6px;}
+.of-d-acts{margin-top:10px;}
+.fm-era{margin-left:8px;padding:1px 8px;border:1px solid #6b5a3a;border-radius:10px;font-size:13px;color:#f0d9a8;background:rgba(0,0,0,.25);}
+.fm-my{background:linear-gradient(180deg,rgba(60,44,22,.5),rgba(30,22,12,.5));border:1px solid #6b5a3a;border-radius:10px;padding:12px;margin:10px 0;}
+.fm-my-h{font-size:15px;color:#f0d9a8;margin-bottom:8px;font-weight:bold;}
+.fm-my-grid{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:#d8c9a8;}
+.fm-my-grid b{color:#fff0cf;}
+.fm-my-ops{margin-top:10px;display:flex;gap:8px;}
+
+/* v20260926c 设施/武将/门派体感化 */
+.fac-bar{height:6px;background:rgba(0,0,0,.35);border-radius:4px;margin:4px 0 2px;overflow:hidden}
+.fac-bar>i{display:block;height:100%;background:linear-gradient(90deg,#b8893a,#e8c46a)}
+.fac-log{font-size:11px;opacity:.72;line-height:1.5;margin-top:2px}
+.fac-log span{display:block}
+.of-d-rel{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0;font-size:12px}
+.of-d-rel span{background:rgba(0,0,0,.22);border-radius:8px;padding:1px 8px}
+.of-d-rel .enemy{color:#d98a6a}
+.sect-quest{margin-top:6px;border-top:1px dashed rgba(255,255,255,.15);padding-top:6px;font-size:12px}
+.sect-quest .sq-desc{opacity:.85;margin-bottom:4px}
+.sect-claim{margin-top:4px}

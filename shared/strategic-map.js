@@ -507,6 +507,7 @@
     let cityMarks = [];
     let placeMarks = [];      // 野外地点/关卡/副本点位（LF.PLACES 非 city 条目）
     let guideMarks = [];      // 引导标记：当前位置 / 目标打点
+  let officerMarks = [];     // 武将标记（v20260926b）：驻城武将落点
     let locateGuide = null;   // 「定位到我」动画入口
     let commanderyLabelsDom = [];
     let stateLabelsDom = [];
@@ -808,6 +809,38 @@
         overlay.appendChild(wrap);
         return { el: wrap, dot, nm, base: projection(p.pos), p };
       });
+
+      // 武将标记（v20260926b）：驻城武将落点于地图，可点开详情
+      officerMarks = [];
+      try {
+        var _pl = (LF.PERSONA && LF.PERSONA.listRegistered) ? LF.PERSONA.listRegistered() : [];
+        var _cityPos = {}; cities.forEach(function(c){ _cityPos[c.id] = c.pos; });
+        var _st = (typeof LF!=='undefined' && LF.Core && LF.Core.state) ? LF.Core.state : null;
+        var _mine = (_st && _st.officers) ? _st.officers : [];
+        var _byCity = {};
+        _pl.forEach(function(o){
+          var cid = (o.assignment && o.assignment.cid) || o.home;
+          if (cid && _cityPos[cid]) (_byCity[cid] = _byCity[cid] || []).push(o);
+        });
+        Object.keys(_byCity).forEach(function(cid){
+          var list = _byCity[cid]; var base = projection(_cityPos[cid]);
+          list.slice(0,4).forEach(function(o, idx){
+            var wrap2 = document.createElement('div');
+            var isMine = _mine.some(function(x){ return x.id===o.id; });
+            wrap2.className = 'strategic-officer' + (isMine?' mine':'');
+            wrap2.setAttribute('data-of', o.id);
+            wrap2.style.zIndex = '6';
+            var dot2 = document.createElement('div');
+            dot2.className = 'so-dot';
+            dot2.textContent = (o.name ? o.name.charAt(0) : '将');
+            wrap2.appendChild(dot2);
+            var dx = (idx%2 ? 15 : -15), dy = (idx<2 ? -18 : 15);
+            wrap2.addEventListener('click', function(ev){ ev.stopPropagation(); if(window.openOfficerDetail) window.openOfficerDetail(o.id); });
+            overlay.appendChild(wrap2);
+            officerMarks.push({ el: wrap2, dot: dot2, base: [base[0]+dx, base[1]+dy] });
+          });
+        });
+      } catch(e){}
 
       // 引导标记：当前位置(you) / 目标打点(goal)。由游戏层 opts.marks 传入，
       // 只做纯视觉叠加（pointer-events:none），不遮挡下方城点的点击传送。
@@ -1125,6 +1158,10 @@
           o.el.style.top = (o.base[1] * k) + 'px';
         });
         placeMarks.forEach(o => {
+          o.el.style.left = (o.base[0] * k) + 'px';
+          o.el.style.top = (o.base[1] * k) + 'px';
+        });
+        officerMarks.forEach(o => {
           o.el.style.left = (o.base[0] * k) + 'px';
           o.el.style.top = (o.base[1] * k) + 'px';
         });

@@ -42,7 +42,9 @@
             if(S().pot<potCost){ log('潜能不足，难窥'+a.name+'门径。可多去历练积攒潜能。','sys'); return; }
             S().pot-=potCost; S().learnedMartial.push(a.id);
             S().lines[lid]=Math.min(20,(S().lines[lid]||0)+1);
-            log('【习得】'+a.name+'！'+a.desc,'good');
+            var _msg='【习得】'+a.name+'！'+a.desc;
+            if(a.maxMp){ var _li=S().learnedInternal=S().learnedInternal||[]; if(_li.indexOf(a.id)<0){ _li.push(a.id); S().maxMp=(S().maxMp||0)+a.maxMp; _msg+=' 内力上限+'+a.maxMp+'！'; } }
+            log(_msg,'good');
             clearActions(); buildActions(curRoom()); save(S()); renderStatus();
           };
         }
@@ -68,7 +70,10 @@
           b.onclick=function(){
             if(S().pot<potCost){ log('潜能不足，难通'+a.name+'。','sys'); return; }
             S().pot-=potCost; S().equippedForce.push(a.id);
-            log('【装配】'+a.name+'！'+a.desc,'good');
+            var _first=S().equippedForce.indexOf(a.id)<0;
+            var _msg='【装配】'+a.name+'！'+a.desc;
+            if(a.maxMp){ var _li=S().learnedInternal=S().learnedInternal||[]; if(_li.indexOf(a.id)<0){ _li.push(a.id); S().maxMp=(S().maxMp||0)+a.maxMp; _msg+=' 内力上限+'+a.maxMp+'！'; } }
+            log(_msg,'good');
             clearActions(); buildActions(curRoom()); save(S()); renderStatus();
           };
         }

@@ -183,7 +183,7 @@
     var order=['han','dongzhuo','yuanshao','caocao','sunce','liubiao','liuzhang','gongsun','matang','player'];
     var h='';
     h+='<div class="faction-map">';
-    h+='<div class="fm-h">🏴 天下大势 · 群雄割据</div>';
+    h+='<div class="fm-h">🏴 天下大势 · 群雄割据　<span class="fm-era">'+(S().eraName||'光和')+(S().eraYear===1?'元年':S().eraYear+'年')+'</span></div>';
     order.forEach(function(fid){
       var g=groups[fid]; if(!g) return;
       var f=(LF.FACTIONS||{})[fid]||{name:fid, color:'#888', desc:''};
@@ -202,7 +202,23 @@
       });
       h += '</div>';
     }
-    h += '<div class="fm-foot">你治下：' + ((S().ruledCities || []).length) + ' 城　｜　官职：' + (S().title || '游侠') + '　｜　职种：'+roleDef().icon+' '+roleDef().name+'　｜　势力：' + factionName(playerFaction()) + '　｜　(攻城略地、诸侯互伐皆令版图易色)</div>';
+    var _rc=(S().ruledCities||[]).length;
+    var _of=(Officers&&Officers.roster)?Officers.roster().length:0;
+    var _pa=(S().flags.factionAssets&&S().flags.factionAssets.player)||{};
+    h += '<div class="fm-my">';
+    h += '<div class="fm-my-h">⚑ 我方势力 · '+(factionName(playerFaction())||'义军')+'</div>';
+    h += '<div class="fm-my-grid">';
+    h += '<span>年号 <b>'+(S().eraName||'光和')+(S().eraYear===1?'元年':S().eraYear+'年')+'</b></span>';
+    h += '<span>官职 <b>'+(S().title||'游侠')+'</b></span>';
+    h += '<span>职种 '+roleDef().icon+' '+roleDef().name+'</span>';
+    h += '<span>治下 <b>'+_rc+'</b> 城</span>';
+    h += '<span>麾下 <b>'+_of+'</b> 员武将</span>';
+    h += '<span>兵力 <b>'+(_pa.troops||0)+'</b></span>';
+    h += '<span>府库 <b>💰'+(S().gold||0)+'</b></span>';
+    h += '<span>声望 <b>'+(S().reputation||0)+'</b></span>';
+    h += '</div>';
+    h += '<div class="fm-my-ops"><button class="btn sm" onclick="openOfficerPanel()">📜 武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">🔄 刷新大势</button></div>';
+    h += '</div>';
     h+='</div>';
     return h;
   }
@@ -406,6 +422,7 @@
     diploExpire();            // 外交盟约到期清算（v20260918h）
     checkUnify();
     fireMonthlyEvents(cal);
+    fireHistoricalEvents(cal);
     if ((cal.month % 3) === 1) {
       var rk = (S().flags.factionPowerRank || []);
       if (rk.length) {
@@ -530,6 +547,63 @@
       choices:[ { label:'设医局赈药（银 -40，治安 +6）', act:function(){ S().gold=Math.max(0,(S().gold||0)-40); var co=S().flags.cityOrder||{}; var cid=(S().ruledCities||[])[0]; if(cid){ co[cid]=Math.min(100,(co[cid]!=null?co[cid]:50)+6); S().flags.cityOrder=co; } log('〔事件〕施医赈药，疫情得缓。','sys'); } },
                 { label:'听天由命（治安 -8）', act:function(){ var co=S().flags.cityOrder||{}; var cid=(S().ruledCities||[])[0]; if(cid){ co[cid]=Math.max(0,(co[cid]!=null?co[cid]:50)-8); S().flags.cityOrder=co; } log('〔事件〕疫疠蔓延，民多怨嗟。','warn'); } } ] }
   ];
+  // ══ P7 · 历史事件判定（v20260926b）══
+  // 时间线事件：到达指定公元年触发一次，记入 flags.histEvents 防重复。
+  var HIST_EVENTS = [
+    { year:184, id:'huangjin', title:'黄巾之乱', once:true, flag:'huangjin',
+      text:'中平元年，张角倡太平道，三十六方一时俱起，州郡失守，京师震动。',
+      act:function(){ chronicle('中平元年，黄巾之乱起，八州并举，烽火连天。','war');
+        log('〔史·黄巾之乱〕张角举事，三十六方俱起，州郡响应。乱世至此大开。','warn');
+        toast('🏴 黄巾之乱爆发！'); },
+      choice:{ text:'黄巾蜂起，将军何以应之？',
+        choices:[
+          { label:'募义兵卫乡里（募卒 +40，治安 -6）', act:function(){ if(window.levyTroops) window.levyTroops(40); var co=S().flags.cityOrder||{}; var cid=(S().ruledCities||[])[0]; if(cid){co[cid]=Math.max(0,(co[cid]!=null?co[cid]:50)-6);S().flags.cityOrder=co;} log('〔应对〕你散家财、募义兵，乡里稍安。','good'); } },
+          { label:'闭城自守（治安 +8）', act:function(){ var co=S().flags.cityOrder||{}; var cid=(S().ruledCities||[])[0]; if(cid){co[cid]=Math.min(100,(co[cid]!=null?co[cid]:50)+8);S().flags.cityOrder=co;} log('〔应对〕你高垒深沟、闭城自守。','sys'); } }
+        ] } },
+    { year:189, id:'dongzhuo', title:'董卓乱政', once:true, flag:'dongzhuo',
+      text:'中平六年，董卓入京，废立天子，鸩杀少帝，劫持朝纲，焚烧雒阳，挟帝西迁长安。',
+      act:function(){ chronicle('董卓入京，废立天子，劫迁雒阳之民入关，天下切齿。','war');
+        log('〔史·董卓乱政〕董卓挟天子以令诸侯，雒阳焦土，海内同愤。','warn'); toast('🔥 董卓乱政'); } },
+    { year:190, id:'taodong', title:'群雄讨董', once:true, flag:'taodong',
+      text:'初平元年，关东州郡推袁绍为盟主，起兵讨董卓；虎牢鏖兵，诸侯各怀心思。',
+      act:function(){ chronicle('关东州郡会盟讨董，兵临虎牢，然诸侯离心，事终无成。','war');
+        log('〔史·群雄讨董〕十八路诸侯会盟，然各怀去就，虎牢一役终成虚声。','sys'); toast('⚔ 群雄讨董'); } },
+    { year:196, id:'xiandu', title:'迎帝都许', once:true, flag:'xiandu',
+      text:'建安元年，曹操迎献帝都许，挟天子以令不臣，霸业初定。',
+      act:function(){ chronicle('曹操迎天子都许，自此政由曹氏出。','good');
+        log('〔史·迎帝都许〕献帝徙许，汉室名器尽归曹公。','sys'); toast('🏛 迎帝都许');
+        if((S().ruledCities||[]).indexOf('xuchang')>=0){ S().reputation=(S().reputation||0)+15; log('〔大势〕你据许县，挟天子之资，声望大涨！','good'); } } },
+    { year:200, id:'guandu', title:'官渡之战', once:true, flag:'guandu',
+      text:'建安五年，官渡对峙，曹操以少胜多，焚乌巢之粟，袁绍自此不振。',
+      act:function(){ chronicle('官渡一战，曹公焚乌巢、破本初，北方遂定。','good');
+        log('〔史·官渡〕曹袁决战，强弱易势，北方归于一统之基。','sys'); toast('⚔ 官渡之战'); } },
+    { year:208, id:'chibi', title:'赤壁之战', once:true, flag:'chibi',
+      text:'建安十三年，赤壁焚舟，孙刘联军拒曹操于江表，鼎足之势渐成。',
+      act:function(){ chronicle('赤壁烈火，孙刘破曹，三分天下之势乃定。','good');
+        log('〔史·赤壁〕大江东去，樯橹灰飞烟灭，鼎足成矣。','sys'); toast('🔥 赤壁之战'); } },
+    { year:220, id:'huangchu', title:'曹丕代汉', once:true, flag:'huangchu',
+      text:'黄初元年，曹丕受禅，汉祚既终，魏室代兴。',
+      act:function(){ chronicle('曹丕践祚，汉鼎既迁，三国之名始正。','good');
+        log('〔史·曹丕代汉〕汉室既亡，魏鼎初立，年号由是入「黄初」。','sys'); toast('👑 曹丕代汉'); } }
+  ];
+  function fireHistoricalEvents(cal){
+    if(!S()||S().dead) return;
+    var f=S().flags; f.histEvents=f.histEvents||{}; f.eraEvents=f.eraEvents||{};
+    for(var i=0;i<HIST_EVENTS.length;i++){
+      var ev=HIST_EVENTS[i];
+      if(ev.year!==cal.adYear) continue;
+      if(f.histEvents[ev.id]) continue;
+      f.histEvents[ev.id]=cal.eraName+cal.eraYear+'年';
+      if(typeof ev.act==='function'){ try{ ev.act(); }catch(e){ log('〔史事〕推演有误：'+e,'warn'); } }
+      if(ev.flag) f.eraEvents[ev.flag]=true;
+      if(ev.choice && (S().ruledCities||[]).length>0){
+        _pendingEvent={ title:ev.title, text:ev.choice.text||ev.title, choices:ev.choice.choices };
+        if(typeof openModal==='function') openModal('event');
+        save(S()); return;
+      }
+      save(S()); return;
+    }
+  }
   var _pendingEvent = null;
   function fireMonthlyEvents(cal) {
     if (!S() || S().dead) return;
@@ -567,7 +641,7 @@
       warCityPower: warCityPower, warFactionTotal: warFactionTotal, warFactionCityCount: warFactionCityCount, warInRoom: warInRoom,
       runWarlordBattle: runWarlordBattle, warChronicleEntry: warChronicleEntry, warlordBattle: warlordBattle, warlordDayTick: warlordDayTick,
       onMonthTick: onMonthTick, monthlyYield: monthlyYield, factionDomesticAI: factionDomesticAI, scanFactionSurvival: scanFactionSurvival, checkUnify: checkUnify,
-      fireMonthlyEvents: fireMonthlyEvents, renderEvent: renderEvent, chooseEvent: chooseEvent
+      fireMonthlyEvents: fireMonthlyEvents, fireHistoricalEvents: fireHistoricalEvents, renderEvent: renderEvent, chooseEvent: chooseEvent
     };
   };
 })(typeof window !== 'undefined' ? window : global);

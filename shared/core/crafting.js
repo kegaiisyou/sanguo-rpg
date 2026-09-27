@@ -140,10 +140,18 @@
         return '<button class="craft-tab" data-cat="'+c+'"'+on+'>'+c+'</button>';
       }).join('');
       var rows = recipes.filter(function(r){ return r.cat===activeCat; }).map(rowHTML).join('');
-      var benchName = cs.bench === 'forge' ? '⛏ 铁匠炉 · 锻镐铸镐' : '🔨 木工台 · 制作';
+      var _benchMeta = {
+        bench: { name:'🔨 木工台', intro:'伐木解板、编席箍槽、墨书简册——开荒营建的根基。' },
+        forge: { name:'⛏ 铁匠炉', intro:'熔铁锻镐、铸兵打甲——矿料在此化为利器。' },
+        kitchen: { name:'🍳 炊事灶', intro:'采药疗伤、炊熟干粮——补给乃远行之本。' }
+      };
+      var bm = _benchMeta[cs.bench] || { name:(cs.bench||'工坊'), intro:'' };
+      var canN = recipes.filter(function(r){ return r.in.every(function(x){ return cnt(x.id)>=x.n; }); }).length;
+      var benchName = bm.name;
       return '<h3 style="text-align:center;margin:0 0 4px;">'+benchName+'</h3>'+
-             (cats.length>1 ? '<div class="craft-tabs" style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">'+tabHTML+'</div>' : '')+
-             '<p class="tip" style="text-align:center;margin:0 0 10px;">选一配方，将材料加工成形</p>'+
+             (bm.intro ? '<p class="tip" style="text-align:center;margin:0 0 8px;">'+bm.intro+'</p>' : '')+
+             (cats.length>1 ? '<div class="craft-tabs" style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;">'+tabHTML+'</div>' : '')+
+             '<p class="tip" style="text-align:center;margin:0 0 8px;opacity:.75;">已习配方 '+recipes.length+' 道 · 当前可制 '+canN+' 道</p>'+
              rows+
              '<button class="sheet-leave" id="m-leave">收 工</button>';
     }

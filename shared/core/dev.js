@@ -70,18 +70,8 @@ window.LF = window.LF || {};
       // v20260915g：原写作 jinchuangyao，items.js 里并无此 id（正确为 jinchuang）→ makeItem 返回 null，
       //   调试按钮点了毫无反应。这也是「凡入包的物先查登记表」的道理。
       else if (act === 'item_yao') { ctx.packAdd('jinchuang', 5); ctx.log('【调试】获得金疮药×5', 'good'); }
-      else if (act === 'showFlags') {
-        var flags = [];
-        function walk(obj, prefix) {
-          for (var k in obj) {
-            var v = obj[k];
-            if (v && typeof v === 'object' && !Array.isArray(v)) { walk(v, prefix + k + '.'); }
-            else if (v !== undefined && v !== null) { flags.push(prefix + k + ' = ' + JSON.stringify(v)); }
-          }
-        }
-        if (state.flags) walk(state.flags, '');
-        ctx.log('【当前旗标】\n' + (flags.length ? flags.join('\n') : '（无）'), 'sys');
-      }
+      // v20260924z17：原「查看当前旗标」按钮已移除 —— walk() 对 state.flags 做无保护的递归遍历，
+      //   旗标里一旦出现环引用（或嵌套极深）就会无限递归，点一下页面直接卡死。
     }
 
     function renderDev() {
@@ -129,8 +119,7 @@ window.LF = window.LF || {};
       // 4. 任务
       h += '<div class="dev-sec"><div class="dev-h">📜 任务调试</div><div class="dev-btns">' +
          '<button class="dev" data-act="skipOnb">跳过新手教程</button>' +
-         '<button class="dev" data-act="resetStone">重置采石任务</button>' +
-         '<button class="dev" data-act="showFlags">查看当前旗标</button></div></div>';
+         '<button class="dev" data-act="resetStone">重置采石任务</button></div></div>';
 
       // 5. 时间
       h += '<div class="dev-sec"><div class="dev-h">⏰ 时间（当前：' + (['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][state.time%12]) + '时）</div><div class="dev-btns">' +

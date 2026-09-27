@@ -41,7 +41,7 @@
       '<span class="who" title="'+S().name+'">'+S().name+'</span>'+
       '<span class="dot">·</span>'+
       '<span class="st-clock" id="st-clock">'+hh+':'+mm+'</span>'+
-      '<span class="st-time'+(lateInCamp?' st-time-night':'')+'" title="'+(lateInCamp?'戌时落锁，营规要拿人':sh)+'">'+sh+'</span>'+
+      '<span class="st-time'+(lateInCamp?' st-time-night':'')+'" title="'+(lateInCamp?'戌时落锁，营规要拿人':sh)+'">'+sh+'</span>'+'<span class="st-era" title="年号 · 时序">'+(S().eraName||'光和')+(c.eraYear===1?'元年':c.eraYear+'年')+'</span>'+
       '<span class="dot">·</span>'+
       // v20260924u：天气图标换 AI 小图（未映射回退 emoji）
       '<span class="st-wx" title="'+w.n+'">'+(window.UI_Icons?UI_Icons.icon(w.ic,w.n):(w.ic+w.n))+'</span>'+
