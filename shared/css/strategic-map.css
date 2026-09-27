@@ -724,3 +724,50 @@
   .strategic-info-b{font-size:12px;line-height:1.65;}
   .strategic-info-verdict{font-size:11px;}
 }
+
+/* ═══ v20260927e3：地图交互重排 + 河流/边界美术增强 ═══ */
+/* —— 顶部工具条：搜索（左）+ 分层（右），z 层高于地图 —— */
+.strategic-topbar{
+  position:absolute;left:8px;right:8px;top:8px;z-index:30;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:6px;
+  pointer-events:none;}
+.strategic-topbar>*{pointer-events:auto;}
+/* 搜索：随 topbar 左置，面板下拉 */
+.strategic-topbar .strategic-search{position:static;flex:0 0 auto;}
+.strategic-topbar .strategic-search-btn{width:42px;height:42px;border-radius:7px;}
+.strategic-topbar .strategic-search-panel{
+  position:absolute;top:50px;left:8px;width:min(262px,78vw);z-index:33;
+  background:rgba(240,231,208,.98);border:1px solid #b7a47a;border-radius:8px;
+  box-shadow:0 4px 14px rgba(60,44,20,.25);}
+/* 分层：桌面常显横排；手机折叠为单钮 + 下拉列 */
+.strategic-overlay-fab{position:static;flex-direction:row;align-items:center;}
+.strategic-overlay-fab .strategic-overlay-ctrl{flex-direction:row;gap:4px;}
+.strategic-overlay-fab .strategic-overlay-toggle{display:none;}
+.strategic-overlay-fab.compact .strategic-overlay-toggle{display:flex;width:42px;height:42px;border-radius:7px;}
+.strategic-overlay-fab.compact .strategic-overlay-toggle .sg-ov-close{display:none;}
+.strategic-overlay-fab.compact.open .strategic-overlay-toggle .sg-ov-open{display:none;}
+.strategic-overlay-fab.compact.open .strategic-overlay-toggle .sg-ov-close{display:block;}
+.strategic-overlay-fab.compact:not(.open) .strategic-overlay-ctrl{display:none;}
+.strategic-overlay-fab.compact .strategic-overlay-ctrl{
+  position:absolute;top:50px;right:8px;flex-direction:column;gap:3px;z-index:32;
+  background:rgba(240,231,208,.97);border:1px solid #b7a47a;border-radius:8px;
+  padding:6px;box-shadow:0 4px 14px rgba(60,44,20,.25);}
+.strategic-overlay-ctrl button{padding:5px 11px;font-size:12px;}
+.strategic-overlay-ctrl button.active{background:#9e3b2e;border-color:#6b2318;color:#f6ead0;}
+/* —— 缩放工具条：右上角常显，竖排 42px 触控 —— */
+.strategic-zoom-fab{position:absolute;right:8px;top:56px;bottom:auto;z-index:29;}
+.strategic-zoom-fab .strategic-zoom-ctrl{flex-direction:column;gap:5px;}
+.strategic-zoom-fab .strategic-zoom-ctrl button{width:42px;height:42px;border-radius:7px;}
+.strategic-zoom-toggle{display:none;}
+.strategic-zoom-fab.compact .strategic-zoom-ctrl{display:flex;}
+/* —— 图例：置于工具条下方左侧（不再随 overlay-fab 联动隐藏） —— */
+.strategic-legend{position:absolute;left:8px;top:56px;z-index:28;
+  background:rgba(240,231,208,.94);border:1px solid #b7a47a;border-radius:8px;
+  padding:6px 9px;max-width:46vw;}
+/* —— 河流：双层描边 + 高光，水感层次 —— */
+.sm-river-base{stroke-linecap:round;stroke-linejoin:round;filter:blur(0.7px);}
+.sm-river-main{stroke-linecap:round;stroke-linejoin:round;}
+.sm-river-glow{stroke-linecap:round;stroke-linejoin:round;}
+.strategic-river-label{
+  font-size:11px;color:#4a6b76;font-weight:600;letter-spacing:2px;
+  text-shadow:0 0 3px rgba(240,248,250,.9), 0 0 6px rgba(240,248,250,.7);}

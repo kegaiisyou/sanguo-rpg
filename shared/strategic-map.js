@@ -227,6 +227,8 @@
   registerMapLayer({
     id: 'warlord', label: '势力', title: '当世势力：汉室州郡 / 各镇割据',
     source: 'commandery', fillOf: p => ownerFill(p.owner), legend: legendByOwner,
+    // v20260927e3：整体一览（k<1.9）也显示势力色块——此前 fill 随 LOD 淡出，全览只见州描边
+    fillOpacity: (k) => (k < 1.9 ? 0.7 : 0.95),
   });
   // ② 郡：按郡 id 着色（仅示意分区）
   registerMapLayer({
@@ -248,6 +250,87 @@
   registerMapLayer({
     id: 'custom', label: '', title: '自定义填色', hidden: true,
     source: 'commandery', fillOf: p => (customOverlay && customOverlay[p.id]) || 'rgba(150,120,80,0.06)', legend: null,
+  });
+
+  // ── v20260927e3：实时要素分层（治安/农桑/军事/行政区）────────────────
+  //   数据与百科卡同源（LF.CITIES[p.id]），随月度成长、攻城易主实时演进；
+  //   打开山河志即取当前快照。填色按郡面 id（= 城市拼音 id）直接关联城市数据。
+  function cityOfCmd(p) { return (global.LF.CITIES || {})[p.id] || null; }
+  function tierFill(v, stops, def) {
+    if (v == null) return def || 'rgba(150,120,80,0.05)';
+    for (let i = 0; i < stops.length; i++) if (v >= stops[i].min) return stops[i].color;
+    return stops.length ? stops[stops.length - 1].color : (def || 'rgba(150,120,80,0.05)');
+  }
+  function tierLegend(pick, stops) {
+    return function (ctx) {
+      const arr = (ctx && ctx.cmd) || [];
+      const out = stops.map((st, i) => {
+        const nxt = (i === 0) ? Infinity : stops[i - 1].min;
+        return { color: st.color, label: st.label,
+          count: arr.filter(p => { const v = pick(p); return v != null && v >= st.min && v < nxt; }).length };
+      });
+      const miss = arr.filter(p => pick(p) == null).length;
+      if (miss) out.push({ color: 'rgba(150,120,80,0.12)', label: '无数据', count: miss });
+      return out;
+    };
+  }
+  const ORD_STOPS = [
+    { min: 85, color: 'rgba(63,125,94,0.46)', label: '路不拾遗' },
+    { min: 70, color: 'rgba(110,150,110,0.36)', label: '夜不闭户' },
+    { min: 55, color: 'rgba(150,140,80,0.30)', label: '治安尚可' },
+    { min: 40, color: 'rgba(190,120,70,0.32)', label: '盗匪出没' },
+    { min: 0,  color: 'rgba(170,80,60,0.38)', label: '兵荒马乱' },
+  ];
+  registerMapLayer({
+    id: 'order', label: '治安', title: '实时治安：路不拾遗 → 兵荒马乱',
+    source: 'commandery',
+    fillOf: p => tierFill(cityOfCmd(p) && cityOfCmd(p).order, ORD_STOPS),
+    legend: tierLegend(p => cityOfCmd(p) && cityOfCmd(p).order, ORD_STOPS),
+  });
+  const AGR_STOPS = [
+    { min: 80, color: 'rgba(90,140,80,0.44)', label: '沃野千里' },
+    { min: 60, color: 'rgba(130,160,90,0.34)', label: '田畴丰美' },
+    { min: 45, color: 'rgba(170,160,90,0.28)', label: '耕耨寻常' },
+    { min: 0,  color: 'rgba(190,150,90,0.34)', label: '地瘠人稀' },
+  ];
+  registerMapLayer({
+    id: 'agri', label: '农桑', title: '实时农桑：沃野千里 → 地瘠人稀',
+    source: 'commandery',
+    fillOf: p => tierFill(cityOfCmd(p) && cityOfCmd(p).agri, AGR_STOPS),
+    legend: tierLegend(p => cityOfCmd(p) && cityOfCmd(p).agri, AGR_STOPS),
+  });
+  const MIL_STOPS = [
+    { min: 80, color: 'rgba(150,80,50,0.44)', label: '坚城重镇' },
+    { min: 60, color: 'rgba(175,115,65,0.34)', label: '城防坚固' },
+    { min: 40, color: 'rgba(190,160,100,0.28)', label: '城防一般' },
+    { min: 0,  color: 'rgba(110,140,120,0.30)', label: '城防薄弱' },
+  ];
+  registerMapLayer({
+    id: 'mil', label: '军事', title: '实时城防：坚城重镇 → 城防薄弱',
+    source: 'commandery',
+    fillOf: p => tierFill(cityOfCmd(p) && cityOfCmd(p).wall, MIL_STOPS),
+    legend: tierLegend(p => cityOfCmd(p) && cityOfCmd(p).wall, MIL_STOPS),
+  });
+  const STATE_TINTS = [
+    'rgba(105,135,190,0.30)', 'rgba(100,160,110,0.28)', 'rgba(185,95,80,0.28)', 'rgba(200,160,90,0.28)',
+    'rgba(140,120,170,0.28)', 'rgba(90,150,160,0.28)', 'rgba(170,140,90,0.28)', 'rgba(120,110,80,0.28)',
+    'rgba(160,100,120,0.28)', 'rgba(110,160,140,0.28)', 'rgba(150,130,60,0.28)', 'rgba(80,120,160,0.28)',
+    'rgba(180,120,90,0.28)', 'rgba(120,90,140,0.28)',
+  ];
+  function stateTint(st) {
+    if (!st) return 'rgba(150,120,80,0.06)';
+    let h = 0; for (let i = 0; i < st.length; i++) h = (h * 31 + st.charCodeAt(i)) >>> 0;
+    return STATE_TINTS[h % STATE_TINTS.length];
+  }
+  registerMapLayer({
+    id: 'admin', label: '行政区', title: '按州（行政区）着色分区',
+    source: 'commandery', fillOf: p => stateTint(p.state),
+    legend: function (ctx) {
+      const arr = (ctx && ctx.cmd) || [];
+      const m = {};
+      arr.forEach(p => { const st = p.state || '未知'; m[st] = (m[st] || 0) + 1; });
+      return Object.keys(m).map(st => ({ color: stateTint(st), label: st, count: m[st] }));
+    },
   });
 
   function commanderyFill(p) {
@@ -377,7 +460,19 @@
     const ui = document.createElement('div');
     ui.className = 'strategic-map-ui';
     ui.innerHTML = `
-      <div class="strategic-info" id="sm-info">点击州郡或城池查看详情</div>
+      <div class="strategic-topbar">
+      <div class="strategic-search">
+        <button class="strategic-search-btn" id="sm-search-btn" title="寻踪：搜索州郡、城池、关隘" aria-label="搜索地点"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></button>
+        <div class="strategic-search-panel" id="sm-search-panel" style="display:none">
+          <input class="strategic-search-input" id="sm-search-input" placeholder="搜州郡、城池、关隘…" autocomplete="off" spellcheck="false" />
+          <div class="strategic-search-results" id="sm-search-results"></div>
+        </div>
+      </div>
+      <div class="strategic-overlay-fab">
+        <button class="strategic-overlay-toggle" title="展开/收起填色模式" aria-label="填色模式" aria-expanded="false"><svg class="sg-ov-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><svg class="sg-ov-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
+        <div class="strategic-overlay-ctrl"><!-- 分层按钮由 MAP_LAYERS 注册表动态生成 --></div>
+      </div>
+    </div>
       <div class="strategic-zoom-fab">
         <div class="strategic-zoom-ctrl">
           <button data-z="locate" title="定位到当前位置" aria-label="定位到当前位置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>
@@ -387,20 +482,9 @@
         </div>
         <button class="strategic-zoom-toggle" title="展开/收起缩放工具" aria-label="缩放工具" aria-expanded="false"><svg class="sg-zoom-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/><path d="M10.5 7.6v5.8M7.6 10.5h5.8"/></svg><svg class="sg-zoom-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
       </div>
-      <div class="strategic-overlay-fab">
-        <button class="strategic-overlay-toggle" title="展开/收起填色模式" aria-label="填色模式" aria-expanded="false"><svg class="sg-ov-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><svg class="sg-ov-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
-        <div class="strategic-overlay-ctrl"><!-- 分层按钮由 MAP_LAYERS 注册表动态生成 --></div>
-      </div>
+      <div class="strategic-info" id="sm-info">点击州郡或城池查看详情</div>
       <div class="strategic-legend" id="sm-legend" style="display:none"></div>
-      <div class="strategic-search">
-        <button class="strategic-search-btn" id="sm-search-btn" title="寻踪：搜索州郡、城池、关隘" aria-label="搜索地点"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></button>
-        <div class="strategic-search-panel" id="sm-search-panel" style="display:none">
-          <input class="strategic-search-input" id="sm-search-input" placeholder="搜州郡、城池、关隘…" autocomplete="off" spellcheck="false" />
-          <div class="strategic-search-results" id="sm-search-results"></div>
-        </div>
-      </div>
-      <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>
-    `;
+      <div class="strategic-hint">拖拽平移 · 滚轮缩放 · 点击城池前往</div>    `;
     container.appendChild(ui);
 
     // ── 填色分层：按钮组 + 图例（全部由 MAP_LAYERS 注册表驱动）────────────
@@ -471,6 +555,15 @@
         const p = projection(c);
         return p[0].toFixed(2) + ',' + p[1].toFixed(2);
       }).join('L') + 'Z').join(' ');
+    }
+    // v20260927e3：平滑路径（Catmull-Rom 细分后再投影），用于郡界——消除数据直角带来的僵硬折线
+    function smoothPlanarPath(geom) {
+      return geomRings(geom).map(r => {
+        const pr = r.map(c => projection(c)).filter(p => p && isFinite(p[0]) && isFinite(p[1]));
+        if (pr.length < 3) return '';
+        const sm = smoothClosedRing(pr, 3);
+        return 'M' + sm.map(c => c[0].toFixed(2) + ',' + c[1].toFixed(2)).join('L') + 'Z';
+      }).join(' ');
     }
     function ringCentroid(pts) {
       let a = 0, cx = 0, cy = 0;
@@ -636,11 +729,12 @@
       // 郡边界层（独立层级：不受 overlay 模式隐藏，与州边界交叉淡入淡出）
       const commanderyBorderLayer = root.append('g').attr('id', 'sm-cmd-border');
       commanderyBorderLayer.selectAll('path').data(fc.features).enter().append('path')
-        .attr('d', f => planarPath(f.geometry))
+        .attr('d', f => smoothPlanarPath(f.geometry))
         .attr('fill', 'none')
-        .attr('stroke', 'rgba(40,26,5,0.55)')
-        .attr('stroke-width', 0.6)
+        .attr('stroke', 'rgba(66,48,24,0.32)')
+        .attr('stroke-width', 0.5)
         .attr('stroke-linejoin', 'round')
+        .attr('stroke-linecap', 'round')
         .attr('vector-effect', 'non-scaling-stroke')
         .attr('pointer-events', 'none');
       commanderyLayer = commanderyBorderLayer;
@@ -723,14 +817,30 @@
       RIVERS.forEach(r => {
         const pts = r.pts.map(c => projection(c)).filter(p => p && isFinite(p[0]) && isFinite(p[1]));
         if (pts.length < 2) return;
-        const lineGen = d3.line().x(d => d[0]).y(d => d[1]);
+        // v20260927e3：河流双层描边（宽而淡的底 + 实主 + 中心高光）+ Catmull-Rom 平滑，消除折线感
+        const lineGen = d3.line().curve(d3.curveCatmullRom.alpha(0.5)).x(d => d[0]).y(d => d[1]);
         riverLayer.append('path')
+          .attr('class', 'sm-river-base')
+          .attr('d', lineGen(pts))
+          .attr('fill', 'none')
+          .attr('stroke', r.color)
+          .attr('stroke-width', r.width + 2.6)
+          .attr('vector-effect', 'non-scaling-stroke')
+          .attr('opacity', 0.18);
+        riverLayer.append('path')
+          .attr('class', 'sm-river-main')
           .attr('d', lineGen(pts))
           .attr('fill', 'none')
           .attr('stroke', r.color)
           .attr('stroke-width', r.width)
-          .attr('stroke-linecap', 'round')
-          .attr('stroke-linejoin', 'round')
+          .attr('vector-effect', 'non-scaling-stroke')
+          .attr('opacity', 0.82);
+        riverLayer.append('path')
+          .attr('class', 'sm-river-glow')
+          .attr('d', lineGen(pts))
+          .attr('fill', 'none')
+          .attr('stroke', '#d9e9f0')
+          .attr('stroke-width', Math.max(0.9, r.width * 0.3))
           .attr('vector-effect', 'non-scaling-stroke')
           .attr('opacity', 0.55);
         const mid = pts[Math.floor(pts.length / 2)];
@@ -1596,8 +1706,9 @@
       return () => {
         // 折叠判定：仅当「容器窄 且 触屏设备(粗指针)」才收成手柄（P1-5）
         // 桌面(细指针)即使弹窗较窄也常显 定位/放大/缩小/复位，避免按钮被折叠成语义不明的 🔍
-        const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
-        const compact = ui.clientWidth < 540 && coarse;
+        // v20260927e4：窄屏(<560)一律折叠成单钮下拉，不再依赖「触摸指针」判定——
+        //   8 个分层按钮在 390px 一排放不下会溢出屏幕（军事/行政区被挤出）
+        const compact = ui.clientWidth < 560;
         fab.classList.toggle('compact', compact);
         if (!compact) fab.classList.remove('open');
         if (toggle) toggle.setAttribute('aria-expanded', fab.classList.contains('open'));

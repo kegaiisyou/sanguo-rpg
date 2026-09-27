@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 74   版本: 20260927d
+// 源文件数: 74   版本: 20260927e
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927d',
+    VERSION: '20260927e',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -15747,9 +15747,11 @@ window.LF = window.LF || {};
       var durBar='';
       if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
       var inner = eq
-        ? '<div class="ep-name">'+eq.name+'</div>'
+        ? '<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>'
         : '<div class="ep-ph">'+sl.label+'</div>';
-      eqHtml += '<div class="equipslot ep-'+slot+insCls+'" data-loc="equip:'+slot+'">'+inner+badge+durBar+'</div>';
+      var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
+      var qs = qcol ? (' style="--qcol:'+qcol+'"') : '';
+      eqHtml += '<div class="equipslot ep-'+slot+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
     });
     // 背包槽（bag）：人形下方独立渲染
     (function(){
@@ -15759,8 +15761,10 @@ window.LF = window.LF || {};
       if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
       var durBar='';
       if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
-      var inner=eq?'<div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph">'+sl.label+'</div>';
-      bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag">'+inner+badge+durBar+'</div>';
+      var inner=eq?'<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph">'+sl.label+'</div>';
+      var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
+      var qs2=qcol ? (' style="--qcol:'+qcol+'"') : '';
+      bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag"'+qs2+'>'+inner+badge+durBar+'</div>';
     })();
     eqHtml = sil + eqHtml;
     // v20260927d：六槽与背包槽统一收入 .equip-grid 2 列网格（z16 已改网格语义 CSS，JS 此前未同步，

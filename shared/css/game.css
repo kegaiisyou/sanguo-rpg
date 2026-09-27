@@ -3154,16 +3154,41 @@
   .pack-wrap .pack-left{flex:0 0 160px;padding:8px 4px;}
   .pack-wrap .pack-left .equip-figure{width:100%;height:auto;transform:none;}
 }
-/* 2) 装备网格：人形剪影独立一行，槽位 2 列撑满（配合 JS .equip-grid 包裹） */
+/* 2) 装备栏重设计（v20260927e3）：人形 → 2 列槽位卡片，图标+名字分层，统一视觉秩序 */
 .pack-wrap .equip-figure .equip-silrow{
-  width:100%;height:46px;position:relative;flex:0 0 auto;margin-bottom:2px;}
+  width:100%;height:44px;position:relative;flex:0 0 auto;margin-bottom:3px;
+  border-bottom:1px dashed rgba(107,74,47,.22);}
 .pack-wrap .equip-figure .equip-silrow .equip-sil{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+  position:absolute;left:0;top:0;width:auto;height:100%;object-fit:contain;}
 .pack-wrap .equip-figure .equip-silrow .equip-fade{display:none;}
-.pack-wrap .equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;}
+.pack-wrap .equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;}
 .pack-wrap .equip-grid .ep-shoe{grid-column:1/-1;}
-/* 3) 装备名：3-4 字尽量完整显示（10.5px×4≈42px ≤ 槽内宽 ~69px） */
-.pack-wrap .ep-name{font-size:10.5px;line-height:1.12;letter-spacing:-.2px;}
+/* 槽位卡片：统一样式（图标上 / 名字下 / 品质边 / 耐久底） */
+.pack-wrap .equipslot{
+  min-height:52px;border-radius:10px;padding:4px 3px 3px;
+  background:linear-gradient(170deg,#fdf9ec 0%,#f2e8cf 100%);
+  border:1px solid rgba(107,74,47,.32);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  box-shadow:inset 0 1px 0 rgba(255,252,240,.8), 0 1px 2px rgba(90,70,40,.08);
+  transition:border-color .15s, transform .1s;}
+.pack-wrap .equipslot:active{transform:scale(.97);}
+.pack-wrap .equipslot.pcell-insp{border-color:#3f5f7a;box-shadow:inset 0 0 0 2px rgba(63,95,122,.4);}
+/* 品质：槽位左侧 3px 色条 */
+.pack-wrap .equipslot[data-q]::before{
+  content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;
+  background:var(--qcol,#9a948a);border-radius:0 2px 2px 0;opacity:.9;}
+.pack-wrap .ep-ic{
+  width:26px;height:26px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.pack-wrap .ep-ic .item-pic48{max-width:26px;max-height:26px;margin:auto;}
+.pack-wrap .ep-ic .ic-txt{font-size:11px;line-height:1;}
+.pack-wrap .ep-ic .ic-txt b{display:none;}
+/* 装备名：单行截断，清晰可读 */
+.pack-wrap .ep-name{
+  font-size:10.5px;line-height:1.1;color:#3a2c1c;font-family:"STKaiti","KaiTi",serif;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pack-wrap .ep-ph{font-size:9.5px;letter-spacing:1.5px;color:#8a7959;}
+/* 背包槽：同卡片，虚线金边区分 */
+.pack-wrap .ep-bagflow{border-style:dashed;border-color:rgba(216,180,106,.75);}
 /* 3) 人才表格：名字永不断行；标题/几率/技能整块换行而非逐字断行 */
 .of-top{flex-wrap:wrap;}
 .of-top b{white-space:nowrap;flex:none;}
