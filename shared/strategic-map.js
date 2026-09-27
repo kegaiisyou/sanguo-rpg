@@ -191,7 +191,8 @@
         // 战争迷雾：开启 = 挂 sm-hide-fog（未探明城点灰化淡出），与其余开关语义相反
         wraps.forEach(w => w.classList.toggle('sm-hide-fog', !!displayState[k]));
       } else {
-        wraps.forEach(w => w.classList.toggle('sm-hide-' + k, !displayState[k]));
+        // v20260927l：类名 toLowerCase 与 CSS 规则(.sm-hide-cityname 等)对齐——原 cityName 大写 N 匹配不上导致勾选视觉无效
+        wraps.forEach(w => w.classList.toggle('sm-hide-' + k.toLowerCase(), !displayState[k]));
       }
     }
   }
@@ -552,41 +553,53 @@
     const ui = document.createElement('div');
     ui.className = 'strategic-map-ui';
     ui.innerHTML = `
-      <!-- v20260927i：右上统一控制条 —— 搜索/图层筛选/填色分层/定位/缩放 归纳为单列，
-           参考 RTS/战略地图惯例；面板统一从右侧展开；图例移至底部横条，不再压地图标签 -->
+      <!-- v20260927l：控制条按钮 + 底部工具 Sheet —— 搜索/显示图层/填色分层 统一收进底部弹出面板
+           （方案 A Bottom Sheet：全宽不溢出、拇指可达；参考三国志战略版/率土之滨手机端惯例） -->
       <div class="strategic-controls" id="sm-controls">
         <button class="sc-handle" id="sm-ctrl-handle" title="地图工具" aria-label="地图工具" aria-expanded="false"><svg class="sg-h-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg><svg class="sg-h-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <div class="strategic-controls-body">
-        <div class="strategic-search">
-          <button class="sc-btn" id="sm-search-btn" title="寻踪：搜索州郡、城池、关隘" aria-label="搜索地点"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></button>
-          <div class="strategic-search-panel" id="sm-search-panel" style="display:none">
-            <input class="strategic-search-input" id="sm-search-input" placeholder="搜州郡、城池、关隘…" autocomplete="off" spellcheck="false" />
-            <div class="strategic-search-results" id="sm-search-results"></div>
-          </div>
-        </div>
-        <div class="strategic-display">
-          <button class="sc-btn" id="sm-display-btn" title="显示设置：图层筛选开关" aria-label="显示设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
-          <div class="strategic-display-panel" id="sm-display-panel" style="display:none">
-            <div class="sd-title">显示图层</div>
-            <label class="sd-row"><span>城池标记</span><input type="checkbox" data-sd="city" /></label>
-            <label class="sd-row"><span>城名文字</span><input type="checkbox" data-sd="cityName" /></label>
-            <label class="sd-row"><span>州名</span><input type="checkbox" data-sd="state" /></label>
-            <label class="sd-row"><span>郡名</span><input type="checkbox" data-sd="cmd" /></label>
-            <label class="sd-row"><span>道路</span><input type="checkbox" data-sd="road" /></label>
-            <label class="sd-row"><span>河流</span><input type="checkbox" data-sd="river" /></label>
-            <label class="sd-row"><span>关隘野地</span><input type="checkbox" data-sd="place" /></label>
-            <label class="sd-row"><span>战争迷雾</span><input type="checkbox" data-sd="fog" /></label>
-          </div>
-        </div>
-        <div class="strategic-overlay-fab">
-          <button class="strategic-overlay-toggle sc-btn" title="填色分层" aria-label="填色分层" aria-expanded="false"><svg class="sg-ov-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><svg class="sg-ov-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg></button>
-          <div class="strategic-overlay-ctrl"><!-- 分层按钮由 MAP_LAYERS 注册表动态生成 --></div>
-        </div>
+        <button class="sc-btn sm-open-tools" data-tool="search" id="sm-search-btn" title="寻踪：搜索州郡、城池、关隘" aria-label="搜索地点"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.3"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></button>
+        <button class="sc-btn sm-open-tools" data-tool="display" id="sm-display-btn" title="显示设置：图层筛选开关" aria-label="显示设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+        <button class="sc-btn sm-open-tools" data-tool="layer" id="sm-layer-btn" title="填色分层" aria-label="填色分层"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
         <button class="sc-btn" data-z="locate" title="定位到当前位置" aria-label="定位到当前位置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>
         <button class="sc-btn" data-z="in" title="放大" aria-label="放大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
         <button class="sc-btn" data-z="out" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
         <button class="sc-btn" data-z="reset" title="复位" aria-label="复位"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg></button>
         <button class="sc-btn sm-route-btn" id="sm-route-btn" title="路线规划：连点城池规划行军路线" aria-label="路线规划"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19L9 12l3 4 4-8 4 5"/><circle cx="4" cy="19" r="1.6" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.6" fill="currentColor" stroke="none"/><circle cx="20" cy="13" r="1.6" fill="currentColor" stroke="none"/></svg></button>
+        </div>
+      </div>
+      <!-- v20260927l：底部工具 Sheet（全宽 Bottom Sheet）-->
+      <div class="strategic-tools-sheet" id="sm-tools-sheet" style="display:none">
+        <div class="sts-head">
+          <div class="sts-tabs">
+            <button class="sts-tab on" data-stab="search">寻踪</button>
+            <button class="sts-tab" data-stab="display">显示图层</button>
+            <button class="sts-tab" data-stab="layer">填色分层</button>
+          </div>
+          <button class="sts-close" id="sm-sts-close" aria-label="收起">收起</button>
+        </div>
+        <div class="sts-body">
+          <div class="sts-pane" data-pane="search">
+            <input class="strategic-search-input" id="sm-search-input" placeholder="搜州郡、城池、关隘…" autocomplete="off" spellcheck="false" />
+            <div class="strategic-search-results" id="sm-search-results"></div>
+          </div>
+          <div class="sts-pane" data-pane="display" style="display:none" id="sm-display-panel">
+            <div class="sd-title">显示图层 · 点开关即时生效</div>
+            <div class="sts-switches">
+              <label class="sd-row"><span>城池标记</span><input type="checkbox" data-sd="city" /></label>
+              <label class="sd-row"><span>城名文字</span><input type="checkbox" data-sd="cityName" /></label>
+              <label class="sd-row"><span>州名</span><input type="checkbox" data-sd="state" /></label>
+              <label class="sd-row"><span>郡名</span><input type="checkbox" data-sd="cmd" /></label>
+              <label class="sd-row"><span>道路</span><input type="checkbox" data-sd="road" /></label>
+              <label class="sd-row"><span>河流</span><input type="checkbox" data-sd="river" /></label>
+              <label class="sd-row"><span>关隘野地</span><input type="checkbox" data-sd="place" /></label>
+              <label class="sd-row"><span>战争迷雾</span><input type="checkbox" data-sd="fog" /></label>
+            </div>
+          </div>
+          <div class="sts-pane" data-pane="layer" style="display:none">
+            <div class="sd-title">填色分层 · 点击切换全域着色</div>
+            <div class="strategic-overlay-ctrl"><!-- 分层按钮由 MAP_LAYERS 注册表动态生成 --></div>
+          </div>
         </div>
       </div>
       <div class="strategic-route-panel" id="sm-route-panel" style="display:none"></div>
@@ -1891,17 +1904,34 @@
     let applyCompact = null;
     // v20260927i：控制条统一收纳后，分层/缩放不再用折叠 fab——
     //   分层按钮：点 toggle 展开下拉列（open 类控制）；缩放四钮常显在控制条内。
-    const ovFab = ui.querySelector('.strategic-overlay-fab');
-    if (ovFab) {
-      const ovToggle = ovFab.querySelector('.strategic-overlay-toggle');
-      const setOvOpen = (open) => {
-        ovFab.classList.toggle('open', open);
-        if (ovToggle) ovToggle.setAttribute('aria-expanded', open);
-      };
-      if (ovToggle) ovToggle.addEventListener('click', (e) => { e.stopPropagation(); setOvOpen(!ovFab.classList.contains('open')); });
-      svgEl.addEventListener('pointerdown', () => { if (ovFab.classList.contains('open')) setOvOpen(false); closeControls(); });
-    }
+    svgEl.addEventListener('pointerdown', () => { closeControls(); closeSheet(); });
     applyCompact = () => {};
+
+    // ── v20260927l：底部工具 Sheet（方案 A Bottom Sheet）────────────────
+    // 搜索 / 显示图层 / 填色分层 统一收进全宽底部面板——手机端不再横向溢出、开关全部可勾选
+    const toolsSheet = ui.querySelector('#sm-tools-sheet');
+    const stsTabs = ui.querySelectorAll('.sts-tab');
+    const stsPanes = ui.querySelectorAll('.sts-pane');
+    function sheetTab(tab) {
+      stsTabs.forEach(b => b.classList.toggle('on', b.dataset.stab === tab));
+      stsPanes.forEach(p => { p.style.display = (p.dataset.pane === tab) ? 'block' : 'none'; });
+      if (tab === 'display' && typeof syncDispChecks === 'function') syncDispChecks();
+      if (tab === 'layer') {
+        if (typeof buildLayerButtons === 'function') buildLayerButtons();
+        if (typeof syncLayerButtons === 'function') syncLayerButtons();
+      }
+      if (tab === 'search' && searchInput) { searchInput.focus(); searchInput.dispatchEvent(new Event('input')); }
+    }
+    function openSheet(tab) {
+      if (!toolsSheet) return;
+      toolsSheet.style.display = 'block';
+      sheetTab(tab);
+    }
+    function closeSheet() { if (toolsSheet) toolsSheet.style.display = 'none'; }
+    stsTabs.forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); sheetTab(b.dataset.stab); }));
+    const stsClose = ui.querySelector('#sm-sts-close');
+    if (stsClose) stsClose.addEventListener('click', (e) => { e.stopPropagation(); closeSheet(); });
+    ui.querySelectorAll('.sm-open-tools').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); openSheet(b.dataset.tool); }));
 
     // 填色模式切换：按钮已由 buildLayerButtons() 依 MAP_LAYERS 注册表生成并各自绑定 click；
     // 选中态与图例统一由 syncLayerButtons() 维护（见 render 内 _applyOverlay）。
@@ -1994,6 +2024,7 @@
     svg.on('click', () => {
       selectedId = null;
       info.classList.remove('show');
+      closeSheet();
     });
 
     // ── 寻踪（P1）：搜索州郡/城池/关隘 → 飞往定位 + 弹出百科卡 ──
@@ -2006,10 +2037,9 @@
       svg.transition().duration(450).call(zoom.transform, currentTransform);
     }
     const searchBtn = ui.querySelector('#sm-search-btn');
-    const searchPanel = ui.querySelector('#sm-search-panel');
     const searchInput = ui.querySelector('#sm-search-input');
     const searchResults = ui.querySelector('#sm-search-results');
-    // ── 显示设置面板（v20260927h）：图层开关即时生效 ──
+    // ── 显示设置（v20260927h）：图层开关即时生效；开关本体收进底部 Sheet ──
     const dispBtn = ui.querySelector('#sm-display-btn');
     const dispPanel = ui.querySelector('#sm-display-panel');
     if (dispBtn && dispPanel) {
@@ -2017,35 +2047,22 @@
       function syncDispChecks() {
         dispChecks.forEach(c => { c.checked = !!displayState[c.getAttribute('data-sd')]; });
       }
-      dispBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const show = dispPanel.style.display === 'none';
-        dispPanel.style.display = show ? 'block' : 'none';
-        if (show) syncDispChecks();
-      });
-      // v20260927i：面板自身拦截 pointerdown/click，勾选开关时不再冒泡触发 svg 的关闭逻辑
+      // v20260927l：按钮只负责打开 Sheet（开合/收起由 Sheet 与地图空白点击统一管理）
+      dispBtn.addEventListener('click', (e) => { e.stopPropagation(); openSheet('display'); });
       dispPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
       dispPanel.addEventListener('click', (e) => e.stopPropagation());
       dispChecks.forEach(c => {
         c.addEventListener('change', () => { setDisplay(c.getAttribute('data-sd'), c.checked); });
       });
-      svgEl.addEventListener('pointerdown', () => { dispPanel.style.display = 'none'; });
       syncDispChecks();
     }
-    if (searchBtn && searchPanel && searchInput && searchResults) {
+    if (searchBtn && searchInput && searchResults) {
       const closeSearch = (clear) => {
-        searchPanel.style.display = 'none';
+        closeSheet();
         if (clear) searchInput.value = '';
         searchResults.innerHTML = '';
       };
-      searchBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (searchPanel.style.display === 'none') {
-          searchPanel.style.display = 'block';
-          searchInput.focus();
-          searchInput.dispatchEvent(new Event('input'));
-        } else closeSearch(true);
-      });
+      searchBtn.addEventListener('click', (e) => { e.stopPropagation(); openSheet('search'); });
       searchInput.addEventListener('input', () => {
         const q = searchInput.value.trim();
         searchResults.innerHTML = '';
@@ -2070,10 +2087,9 @@
         });
         searchResults.appendChild(row);
       }
-      // 地图上拖拽/点击/缩放时收起搜索面板
-      svgEl.addEventListener('pointerdown', () => { if (searchPanel.style.display !== 'none') closeSearch(false); });
-      searchPanel.addEventListener('click', (e) => e.stopPropagation());
-      searchPanel.addEventListener('mousedown', (e) => e.stopPropagation());
+      // 地图上拖拽/点击/缩放时收起 Sheet（pointerdown 已统一 closeSheet）
+      const resultsBox = ui.querySelector('.strategic-search-results');
+      if (resultsBox) { resultsBox.addEventListener('click', (e) => e.stopPropagation()); resultsBox.addEventListener('mousedown', (e) => e.stopPropagation()); }
     }
 
     // 加载数据并渲染（渲染放下一帧：占位提示先被绘制，消除首次同步重绘造成的"卡住"感）
