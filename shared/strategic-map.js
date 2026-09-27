@@ -1453,7 +1453,7 @@
         ? '<div class="strategic-info-tags">' + parts.tags.map(t => '<span>' + t + '</span>').join('') + '</div>' : '';
       return `
         <div class="strategic-info-h">
-          <span class="seal" style="background:${parts.sealBg}">${parts.sealText}</span>
+          <span class="seal${parts.sealText.length > 1 ? ' seal-x2' : ''}" style="background:${parts.sealBg}">${parts.sealText}</span>
           <b class="strategic-info-title">${parts.title}</b>
         </div>
         ${tagHtml}

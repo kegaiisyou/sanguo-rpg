@@ -116,7 +116,9 @@
       bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag">'+inner+badge+durBar+'</div>';
     })();
     eqHtml = sil + eqHtml;
-    return '<div class="equip-figure">'+eqHtml+bagSlot+'</div>';
+    // v20260927d：六槽与背包槽统一收入 .equip-grid 2 列网格（z16 已改网格语义 CSS，JS 此前未同步，
+    //   手机端槽位退化为竖排窄格、装备名被裁）。人形剪影独立一行作顶部小插图。
+    return '<div class="equip-figure"><div class="equip-silrow">'+sil+'</div><div class="equip-grid">'+eqHtml+bagSlot+'</div></div>';
   }
   function renderPack(){
     var grid='';

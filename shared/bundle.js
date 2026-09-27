@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 74   版本: 20260927c
+// 源文件数: 74   版本: 20260927d
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927c',
+    VERSION: '20260927d',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -15763,7 +15763,9 @@ window.LF = window.LF || {};
       bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag">'+inner+badge+durBar+'</div>';
     })();
     eqHtml = sil + eqHtml;
-    return '<div class="equip-figure">'+eqHtml+bagSlot+'</div>';
+    // v20260927d：六槽与背包槽统一收入 .equip-grid 2 列网格（z16 已改网格语义 CSS，JS 此前未同步，
+    //   手机端槽位退化为竖排窄格、装备名被裁）。人形剪影独立一行作顶部小插图。
+    return '<div class="equip-figure"><div class="equip-silrow">'+sil+'</div><div class="equip-grid">'+eqHtml+bagSlot+'</div></div>';
   }
   function renderPack(){
     var grid='';

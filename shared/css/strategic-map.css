@@ -703,3 +703,24 @@
 .strategic-city.place-loc.p-story .strategic-city-dot { background: #55703c; border-color: #1f2f0d; }
 
 
+
+/* v20260927e2：移动端排版修复 —— 防溢出 / 防断行 / 防遮挡 */
+/* 1) 势力印章：2 字压字号（seal-x2），文字永不溢出章面 */
+.strategic-info-h .seal{
+  flex:none;white-space:nowrap;overflow:hidden;box-sizing:border-box;
+  padding:1px 0;line-height:1.1;}
+.strategic-info-h .seal.seal-x2{font-size:9.5px;letter-spacing:0;}
+/* 2) 卡片标题：长名不撑破卡片（截断省略） */
+.strategic-info-h .strategic-info-title{
+  flex:1 1 auto;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+/* 3) 瓷片/标签：单行不溢出兜底 */
+.strategic-info .sg-goods,.strategic-info .sg-lmk,
+.strategic-info-tags span{
+  white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+/* 4) 手机端：卡片收窄，减少对地图的遮挡 */
+@media (max-width:560px){
+  .strategic-info{width:234px;left:8px;bottom:8px;}
+  .strategic-info-b{font-size:12px;line-height:1.65;}
+  .strategic-info-verdict{font-size:11px;}
+}
