@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 74   版本: 20260927f
+// 源文件数: 74   版本: 20260927g
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927e',
+    VERSION: '20260927g',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -27007,55 +27007,110 @@ function bindCreate(){
   var BOAT_FARE = 12;        // 渡资（与 field.js 的 BOAT_FEE 同价）
   var ZHOU_COST = 80;        // 船坞打造扁舟耗银
 
-  function wardStudyCost(a){ return (a && a.gid === 'xuegong') ? 120 : 90; }
-  function wardStudyGain(a){ return (a && a.gid === 'xuegong') ? 4 : 3; }
-  function wardStudyLabel(a){ return (a && a.gid === 'xuegong') ? '研读典籍' : '静修问对'; }
+  function wardStudyOpts(a){
+    if (a && a.gid === 'xuegong') return [
+      { m:'read',     label:'研读典籍', min:120, note:'修为 +4'  },
+      { m:'debate',   label:'辩经问难', min:90,  note:'声望 +2'  }
+    ];
+    return [
+      { m:'meditate', label:'静修问对', min:90, note:'修为 +3'  },
+      { m:'pray',     label:'焚香祈福', min:60, note:'精力 +12' }
+    ];
+  }
+  function wardStudyFind(a, m){
+    var r = null; wardStudyOpts(a).forEach(function(o){ if (o.m === m) r = o; }); return r;
+  }
 
   function renderWardStudy(opts){
     var a = opts || wardPanel || {};
     wardPanel = a;
     var isX = a.gid === 'xuegong';
     var pot = (state && state.pot) || 0;
-    var costH = (wardStudyCost(a) / 60).toFixed(1);
+    var rep = (state && state.reputation) || 0;
+    var ops = wardStudyOpts(a);
     var h = '<div class="ward-panel">'+
-      '<h3 class="ward-h">' + (isX ? '\U0001F4DA 学宫 · 求学' : '⛩ 寺观 · 求学') + '</h3>'+
-      '<p class="tip">' + (isX ? '竹简罗列，经义在前，可披卷穷究。' : '香烟缭绕，钟磬清心，可静修问对。') + '</p>'+
-      '<div class="ward-row"><span>耗时</span><b>约 ' + costH + ' 时辰</b></div>'+
-      '<div class="ward-row"><span>所得修为</span><b>+' + wardStudyGain(a) + '</b></div>'+
+      '<h3 class="ward-h">' + (isX ? '📚 学宫 · 求学' : '⛩ 寺观 · 求学') + '</h3>'+
+      '<p class="tip">' + (isX ? '竹简罗列，经义在前，可披卷穷究，亦可与同窗辩难。' : '香烟缭绕，钟磬清心，可静修问对，亦可焚香默祷。') + '</p>'+
       '<div class="ward-row"><span>当前修为</span><b>' + pot + '</b></div>'+
+      '<div class="ward-row"><span>当前声望</span><b>' + rep + '</b></div>'+
+      '<div class="ward-routes">'+
+      ops.map(function(o){
+        return '<div class="ward-route"><span>' + o.label + '</span><span class="wr-li">' + (o.min / 60).toFixed(1) + ' 时辰 · ' + o.note + '</span></div>';
+      }).join('')+
+      '</div>'+
       '<div class="ward-acts">'+
-        '<button class="btn ward-btn" id="ward-study-do">' + wardStudyLabel(a) + '</button>'+
+      ops.map(function(o){
+        return '<button class="btn ward-btn" id="ward-study-' + o.m + '" data-mode="' + o.m + '">' + o.label + '</button>';
+      }).join('')+
       '</div>'+
       '<p class="tip">修为日积月累，可在门派处换取传功与进境。</p>'+
     '</div>';
     return h;
   }
   function bindWardStudy(){
-    var b = document.getElementById('ward-study-do');
-    if (b) b.onclick = function(){ wardStudyDo(wardPanel); };
+    var card = document.getElementById('modal-card'); if (!card) return;
+    var bs = card.querySelectorAll('[id^="ward-study-"]');
+    for (var i = 0; i < bs.length; i++) {
+      (function(el){ el.onclick = function(){ wardStudyDo(el.getAttribute('data-mode')); }; })(bs[i]);
+    }
   }
-  function wardStudyDo(a){
-    if (!a) return;
-    var gain = wardStudyGain(a), cost = wardStudyCost(a), lbl = wardStudyLabel(a);
-    if (!exert(lbl)) return;
-    state.energy = Math.max(0, (state.energy || 0) - 2);
-    advanceMinutes(cost);
-    state.pot = (state.pot || 0) + gain;
-    log((a.gid === 'xuegong' ? '你于学宫披卷苦读，经义渐明' : '你于寺观静修问对，心神澄澈') + '，修为 +' + gain + '。', 'good');
-    toast('修为 +' + gain);
+  function wardStudyDo(mode){
+    var a = wardPanel || {};
+    var op = wardStudyFind(a, mode);
+    if (!op) return;
+    if (mode === 'pray') {
+      advanceMinutes(op.min);
+      var mx = (state.maxEnergy || 100), b0 = (state.energy || 0);
+      var add = Math.min(12, Math.max(0, mx - b0));
+      state.energy = Math.min(mx, b0 + 12);
+      log('你于寺观焚香默祷，神气稍复，精力 +' + add + '。', 'good');
+      toast('精力 +' + add);
+    } else {
+      if (!exert(op.label)) return;
+      state.energy = Math.max(0, (state.energy || 0) - 2);
+      advanceMinutes(op.min);
+      if (mode === 'debate') {
+        state.reputation = (state.reputation || 0) + 2;
+        log('你与同窗辩经问难，语惊四座，声望 +2。', 'good');
+        toast('声望 +2');
+      } else {
+        var g = (mode === 'read') ? 4 : 3;
+        state.pot = (state.pot || 0) + g;
+        log((mode === 'read' ? '你于学宫披卷苦读，经义渐明' : '你于寺观静修问对，心神澄澈') + '，修为 +' + g + '。', 'good');
+        toast('修为 +' + g);
+      }
+    }
     try { save(state); } catch(e){}
     closeModal();
   }
 
   // 问渡：码头可登舟/上岸，船坞可督造扁舟（此后渡水免渡资）
   function wardHasZhou(){ return !!packFind('zhou'); }
+  // 通达水路：LF.ROADS 邻接中 type==='water'，或邻地本身是港城/水寨
+  function wardWaterRoutes(cid){
+    var out = [];
+    var adjT = (LF.ROADS && LF.ROADS.adj) || {};
+    var nb = adjT[cid] || [];
+    for (var i = 0; i < nb.length; i++) {
+      var e = nb[i]; if (!e) continue;
+      var tgt = e.to, ed = e.edge || {};
+      var city = (LF.CITIES && LF.CITIES[tgt]) || null;
+      var pl = (LF.PLACES && LF.PLACES[tgt]) || null;
+      var isW = (ed.type === 'water') || (city && (city.ctype === 'port' || city.ctype === 'shuizhai'));
+      if (!isW) continue;
+      var nm = (city && city.name) || (pl && pl.name) || tgt;
+      out.push({ id: tgt, name: nm, li: e.li || 0 });
+    }
+    out.sort(function(x, y){ return x.li - y.li; });
+    return out;
+  }
   function renderWardFerry(opts){
     var a = opts || wardPanel || {};
     wardPanel = a;
     var isDock = a.gid === 'matou';
     var onBoat = !!(state && state.flags && state.flags.onBoat);
     var h = '<div class="ward-panel">'+
-      '<h3 class="ward-h">' + (isDock ? '⚓ 码头 · 问渡' : '\U0001F6E0 船坞 · 问渡') + '</h3>';
+      '<h3 class="ward-h">' + (isDock ? '⚓ 码头 · 问渡' : '🛠 船坞 · 问渡') + '</h3>';
     if (isDock) {
       h += '<p class="tip">' + (onBoat ? '你已在舟中，向岸边行去即可上岸。' : '舟楫往来，商货云集——乘船须先登舟。') + '</p>'+
         '<div class="ward-row"><span>渡资</span><b>' + BOAT_FARE + ' 两' + (wardHasZhou() ? '（持扁舟免渡资）' : '') + '</b></div>'+
@@ -27064,6 +27119,17 @@ function bindCreate(){
           (onBoat ? '<button class="btn ward-btn" id="ward-ferry-ashore">上岸</button>'
                   : '<button class="btn ward-btn" id="ward-ferry-board">登舟渡江</button>')+
         '</div>';
+      var rt = wardWaterRoutes(a.cid || (state && state.room));
+      if (rt.length) {
+        h += '<div class="ward-row"><span>通达水路</span><b>' + rt.length + ' 处</b></div>'+
+          '<div class="ward-routes">' +
+          rt.map(function(r){
+            return '<div class="ward-route"><span>🚢 ' + r.name + '</span><span class="wr-li">' + r.li + ' 里</span></div>';
+          }).join('') +
+          '</div>';
+      } else {
+        h += '<div class="ward-empty">此处暂无通达水路，须循陆路而行。</div>';
+      }
     } else {
       h += '<p class="tip">匠人修造楼船。可就地督造一只扁舟，渡水之便从此随身。</p>'+
         '<div class="ward-row"><span>打造耗银</span><b>' + ZHOU_COST + ' 两</b></div>'+
