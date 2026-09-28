@@ -143,7 +143,8 @@
       var _benchMeta = {
         bench: { name:'🔨 木工台', intro:'伐木解板、编席箍槽、墨书简册——开荒营建的根基。' },
         forge: { name:'⛏ 铁匠炉', intro:'熔铁锻镐、铸兵打甲——矿料在此化为利器。' },
-        kitchen: { name:'🍳 炊事灶', intro:'采药疗伤、炊熟干粮——补给乃远行之本。' }
+        kitchen: { name:'🍳 炊事灶', intro:'采药疗伤、炊熟干粮——补给乃远行之本。' },
+        clinic: { name:'⚗ 药庐配药台', intro:'名贵药材研末入药——配得上等伤药。' }
       };
       var bm = _benchMeta[cs.bench] || { name:(cs.bench||'工坊'), intro:'' };
       var canN = recipes.filter(function(r){ return r.in.every(function(x){ return cnt(x.id)>=x.n; }); }).length;

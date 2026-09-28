@@ -319,7 +319,16 @@
     renshen:    { defId: 'renshen',    name: '人参', icon: '🌿', cat: '素材', price: 80,
       desc: '百草之王，根如人形。吊气续命、大补元气，行商重金求之。' },
     lingzhi:    { defId: 'lingzhi',    name: '灵芝', icon: '🍄', cat: '素材', price: 70,
-      desc: '深山老木上的灵芝，菌盖如云。入药可延年，卖价不菲。' }
+      desc: '深山老木上的灵芝，菌盖如云。入药可延年，卖价不菲。' },
+    // —— 加工品（v20260928g）：配方产出 ——
+    jingtie:    { defId: 'jingtie',    name: '精铁', icon: '⚙️', cat: '素材', price: 60,
+      desc: '铁锭入炉、木炭猛火炼出的精钢，去渣存精——百炼成钢的胚子。' },
+    hongshao:   { defId: 'hongshao',   name: '红烧肉', icon: '🍖', cat: '菜肴', price: 16, effect: { food: 18, drink: 4 },
+      desc: '肥瘦相间，酱色油亮，入口即化的炖肉。' },
+    kaoji:      { defId: 'kaoji',      name: '烤鸡', icon: '🍗', cat: '菜肴', price: 14, effect: { food: 15, drink: 3 },
+      desc: '整鸡架火慢烤，皮脆肉嫩，撕开流汁。' },
+    kaoyang:    { defId: 'kaoyang',    name: '烤羊肉', icon: '🍢', cat: '菜肴', price: 18, effect: { food: 17, drink: 5 },
+      desc: '带骨羊肉串在火上翻烤，撒盐椒，膻香扑鼻。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }

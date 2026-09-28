@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 75   版本: 20260928e
+// 源文件数: 75   版本: 20260928g
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260928e',
+    VERSION: '20260928g',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -4852,7 +4852,16 @@
     renshen:    { defId: 'renshen',    name: '人参', icon: '🌿', cat: '素材', price: 80,
       desc: '百草之王，根如人形。吊气续命、大补元气，行商重金求之。' },
     lingzhi:    { defId: 'lingzhi',    name: '灵芝', icon: '🍄', cat: '素材', price: 70,
-      desc: '深山老木上的灵芝，菌盖如云。入药可延年，卖价不菲。' }
+      desc: '深山老木上的灵芝，菌盖如云。入药可延年，卖价不菲。' },
+    // —— 加工品（v20260928g）：配方产出 ——
+    jingtie:    { defId: 'jingtie',    name: '精铁', icon: '⚙️', cat: '素材', price: 60,
+      desc: '铁锭入炉、木炭猛火炼出的精钢，去渣存精——百炼成钢的胚子。' },
+    hongshao:   { defId: 'hongshao',   name: '红烧肉', icon: '🍖', cat: '菜肴', price: 16, effect: { food: 18, drink: 4 },
+      desc: '肥瘦相间，酱色油亮，入口即化的炖肉。' },
+    kaoji:      { defId: 'kaoji',      name: '烤鸡', icon: '🍗', cat: '菜肴', price: 14, effect: { food: 15, drink: 3 },
+      desc: '整鸡架火慢烤，皮脆肉嫩，撕开流汁。' },
+    kaoyang:    { defId: 'kaoyang',    name: '烤羊肉', icon: '🍢', cat: '菜肴', price: 18, effect: { food: 17, drink: 5 },
+      desc: '带骨羊肉串在火上翻烤，撒盐椒，膻香扑鼻。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
@@ -5056,14 +5065,26 @@ LF.RECIPES = {
       in:[{id:'tiekuangshi', n:8},{id:'mucai', n:6}], note:'细锻铁镐，尖而有弹——青玉脉也能开' },
     { id:'forg_pick5', cat:'镐头类', name:'百炼钢镐', icon:'⚔️', out:'pick:5', outN:1,
       in:[{id:'bailian_jian', n:1},{id:'tiekuangshi', n:12},{id:'jade', n:2},{id:'mutan', n:5}],
-      note:'依百炼钢简锻之：炒铁为料、千锤折叠——寻常镐比不得' }
+      note:'依百炼钢简锻之：炒铁为料、千锤折叠——寻常镐比不得' },
+    // —— 精铁（v20260928g）：铁锭+木炭 → 精铁，更高级器物的胚料 ——
+    { id:'forg_steel', cat:'精铁类', name:'精铁', icon:'⚙️', out:'jingtie', outN:1,
+      in:[{id:'tieding', n:1},{id:'mutan', n:2}], note:'铁锭入炉，木炭猛火鼓风，去渣存精——炼出一枚精铁' }
   ],
   // 炊事灶（篝火 / 客栈 / 草庐 皆可调取）：素材 → 疗伤与干粮，打通生存闭环
   kitchen: [
     { id:'brew_jinchuang', cat:'疗伤类', name:'金疮药', icon:'🧪', out:'jinchuang', outN:1, in:[{id:'caoyao', n:2}], note:'两味草药捣敷，止血生肌——可疗外伤五十' },
     { id:'cook_roubao', cat:'干粮类', name:'肉包子', icon:'🥟', out:'roubao', outN:1, in:[{id:'shengrou', n:1}], note:'生肉裹面炊熟成包——食+20 饮+5，解一时饥渴' },
     // —— 烧炭（v20260915i）：木材入闷窑熏成木炭，无烟耐烧，铁匠炉最认 ——
-    { id:'make_mutan', cat:'燃料类', name:'木炭', icon:'⚫', out:'mutan', outN:1, in:[{id:'mucai', n:2}], note:'木材闷窑熏炭，去烟留热——锻钢的火候全在它' }
+    { id:'make_mutan', cat:'燃料类', name:'木炭', icon:'⚫', out:'mutan', outN:1, in:[{id:'mucai', n:2}], note:'木材闷窑熏炭，去烟留热——锻钢的火候全在它' },
+    // —— 肉类入馔（v20260928g）：酒楼/食肆/篝火皆可烹 ——
+    { id:'cook_hongshao', cat:'菜肴类', name:'红烧肉', icon:'🍖', out:'hongshao', outN:1, in:[{id:'zhurou', n:1}], note:'猪肉切块，糖色酱油慢炖——食+18 饮+4' },
+    { id:'cook_kaoji', cat:'菜肴类', name:'烤鸡', icon:'🍗', out:'kaoji', outN:1, in:[{id:'jirou', n:1}], note:'整鸡架火慢烤，皮脆肉嫩——食+15 饮+3' },
+    { id:'cook_kaoyang', cat:'菜肴类', name:'烤羊肉', icon:'🍢', out:'kaoyang', outN:1, in:[{id:'yangrou', n:1}], note:'带骨羊肉翻烤，膻香扑鼻——食+17 饮+5' }
+  ],
+  // 药庐（药铺配药台，v20260928g）：名贵药材入药，制上等伤药
+  clinic: [
+    { id:'brew_renshen', cat:'滋补类', name:'人参金疮药', icon:'🧪', out:'jinchuang', outN:2, in:[{id:'renshen', n:1}], note:'人参研末入药，吊气止血——名贵药材制两瓶上等金疮药' },
+    { id:'brew_lingzhi', cat:'滋补类', name:'灵芝金疮药', icon:'🧪', out:'jinchuang', outN:2, in:[{id:'lingzhi', n:1}], note:'灵芝磨粉调和，生肌尤速——名贵药材制两瓶上等金疮药' }
   ]
   // 后续工作台（矿炉 / 铁砧 / 织机 …）仅需在此追加对应 key 即可
 };
@@ -5103,13 +5124,8 @@ LF.RECIPES = {
       ],
       done: 'forge',
       interior: [
-        { kind:'npc', name:'铁匠师傅', icon:'匠', desc:'围着皮围裙、抡锤如风的老师傅，通晓冶铁锻造。', acts:[
-          { label:'请教冶炼', icon:'话', fn:function(){ log('铁匠师傅瓮声道：「好铁要经千锤百炼——石中炼出铁锭，铁锭再锻成器物，不可急躁。」','sys'); openModal('building'); } },
-          { label:'请他熔石', icon:'火', fn:function(){
-              if(!packFind('tiekuangshi')){ toast('需有铁矿石，方能请师傅开炉熔炼。'); return; }
-              if(!exert('请师熔炼')) return;
-              packConsume('tiekuangshi',1); packAdd('tiekuai',1);
-              log('铁匠师傅投石入炉，风箱鼓动，火星四溅——取出一枚铁锭交予你。','sys'); openModal('building'); } }
+        { kind:'npc', name:'铁匠师傅', icon:'匠', desc:'围着皮围裙、抡锤如风的老师傅，通晓冶铁锻造。', shop:'blacksmith', acts:[
+          { label:'请教冶炼', icon:'话', fn:function(){ log('铁匠师傅瓮声道：「好铁要经千锤百炼——石中炼出铁锭，铁锭再锻成器物，不可急躁。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'冶炼炉膛', icon:'火', desc:'炉火正旺的冶炼炉，风箱呼呼作响。', acts:[
           { label:'熔石取铁', icon:'炼', fn:function(){
@@ -5423,7 +5439,19 @@ LF.RECIPES = {
           { label:'浇水施肥', icon:'💧', fn:function(){
               if(!exert('浇田')) return;
               log('你取水浇田，禾苗似乎更精神了些。','sys'); openModal('building'); } },
-          { label:'查看长势', icon:'👀', fn:function(){ log('你蹲下身查看禾苗长势——目前长势良好，再过些时日便可收获。','sys'); openModal('building'); } }
+          { label:'查看长势', icon:'👀', fn:function(){ log('你蹲下身查看禾苗长势——目前长势良好，再过些时日便可收获。','sys'); openModal('building'); } },
+          // v20260928g：种子接进农田产出——播种即收（简版春种秋收），四种种子对应四种作物
+          { label:'播种收成', icon:'🌾', fn:function(){
+              var seeds=[['maizhong','麦种','新麦','xiaomai'],['daozhong','稻种','稻米','dami'],['caizhong','菜种','青菜','qingcai'],['yaozhong','药种','草药','caoyao']];
+              for(var i=0;i<seeds.length;i++){
+                if(packFind(seeds[i][0])){
+                  if(!exert('耕作')) return;
+                  packConsume(seeds[i][0],1); packAdd(seeds[i][3],2);
+                  log('你将'+seeds[i][1]+'播入田垄，引水侍弄，转季收得'+seeds[i][2]+'×2。','good');
+                  openModal('building'); return;
+                }
+              }
+              toast('需有种子（麦种/稻种/菜种/药种）方可播种。'); openModal('building'); } }
         ]}
       ]
     },
@@ -5770,7 +5798,9 @@ LF.RECIPES = {
         { id: 'tieding', buy: 38, sell: 15 },
         { id: 'tiechan', buy: 24, sell: 8  },
         { id: 'liandao', buy: 20, sell: 7  },
-        { id: 'li',      buy: 42, sell: 15 }
+        { id: 'li',      buy: 42, sell: 15 },
+        // —— 新物品（v20260928g）：精铁 ——
+        { id: 'jingtie', buy: 80, sell: 30 }
       ]
     },
     tavern: {
@@ -5793,7 +5823,11 @@ LF.RECIPES = {
         { id: 'zhurou',   buy: 0,  sell: 4  },
         { id: 'yangrou',  buy: 0,  sell: 5  },
         { id: 'jirou',    buy: 0,  sell: 4  },
-        { id: 'niurou',   buy: 0,  sell: 6  }
+        { id: 'niurou',   buy: 0,  sell: 6  },
+        // —— 新物品（v20260928g）：烹制菜肴上架 ——
+        { id: 'hongshao', buy: 22, sell: 8  },
+        { id: 'kaoji',    buy: 18, sell: 6  },
+        { id: 'kaoyang',  buy: 24, sell: 9  }
       ]
     },
     cloth: {
@@ -10946,13 +10980,13 @@ window.LF = window.LF || {};
         if (mkt) {
           mkt.shops.forEach(function (sh) {
             var bd = getBUILDINGS()[sh.key]; if (!bd) return;
-            out.push({ id: 'enter_building', label: '进·' + sh.sign, icon: bd.icon, tip: '步入' + sh.sign + '——' + (bd.sub || '入内一观'), data: { building: sh.key, sign: sh.sign, mkt: mkt.name } });
+            out.push({ id: 'enter_building', label: sh.sign, icon: bd.icon, tip: '步入' + sh.sign + '——' + (bd.sub || '入内一观'), data: { building: sh.key, sign: sh.sign, mkt: mkt.name } });
           });
         } else {
           // 兜底（旧档无市场数据）：沿用全局五店
           ['yaofu', 'buzhuang', 'shishi', 'zahuo', 'gongzao'].forEach(function (k) {
             var bd = getBUILDINGS()[k]; if (!bd) return;
-            out.push({ id: 'enter_building', label: '进·' + bd.name, icon: bd.icon, tip: '步入' + bd.name + '——' + (bd.sub || '入内一观'), data: { building: k } });
+            out.push({ id: 'enter_building', label: bd.name, icon: bd.icon, tip: '步入' + bd.name + '——' + (bd.sub || '入内一观'), data: { building: k } });
           });
         }
       }
@@ -11268,9 +11302,11 @@ window.LF = window.LF || {};
       return out;
     }
     // ══════════════════════════════════════════════════════════════════════════
-    // 交谈面板：把「问价 / 问农 / 问政 / 探问 / 查账 / 讨教 …」这些
-    //   本来各占一个按钮的内容统一收进「交谈」，作为话题呈现。
     // ══════════════════════════════════════════════════════════════════════════
+    // 交谈面板：v20260928g 已整体移除——「问价 / 问农 / 问政 / 探问 / 查账 / 讨教」
+    //   这些话题按钮块（含「观察/给予/告辞」底部三钮）不再渲染，避免常驻按钮卡片
+    //   遮挡视线。交谈只说一句闲谈；观察/给予/攻击/交易等动作统一在 NPC 浮动菜单
+    //   （companion.js buildNpcActions / renderNpcList）里操作。
     var talkNpc = null;
     function talkInline(o) {
       if (!o || !o.key) return;
@@ -11279,7 +11315,6 @@ window.LF = window.LF || {};
       if (narrActive()) { toast('……且听他把话说完。'); return; }
       talkNpc = o;
       npcSpeak(o, null);
-      renderTalkActions(o);
     }
     // 每天每话题首次聊起 +1 好感（闲聊不刷，防原地刷好感）
     function npcTopicOnce(o, topicId) {
@@ -11328,51 +11363,9 @@ window.LF = window.LF || {};
     //   旧版 .talk-inline 是一整块“头部(名/好感) + 可换行的按钮网格 + 底部三钮”的卡片，
     //   塞进 #actions 之后把 #actions 撑成了两三行高 —— 下方的移动罗盘与 dock 被顶出屏幕，
     //   而且不点“告辞”就一直挂着，看着像“残留的对话卡片”。
-    //   现在话题 / 事务 / 观察 / 给予 / 告辞一律摊成 #actions 横滑条里的一枚枚普通按钮
-    //   （与场景物件同一套 .act 视觉，#actions 单行横滑不撑高）。
-    //   NPC 名与好感本就在叙事行的〔名·职种、好感 +1〕里，无需再占一块头部。
-    function renderTalkActions(o) {
-      var acts = document.getElementById('actions'); if (!acts) return;
-      var tp = (o.card && o.card.topics) || [], ac = (o.card && o.card.acts) || [], h = '';
-      function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-      for (var i = 0; i < tp.length; i++) {
-        h += '<button class="act obj-btn g-ren" data-topic="' + esc(tp[i].id) + '">'
-          + '<span class="ob-ic">' + (tp[i].icon || '\ud83d\udcac') + '</span>'
-          + '<span class="ob-nm">' + esc(tp[i].label) + '</span></button>';
-      }
-      for (var j = 0; j < ac.length; j++) {
-        h += '<button class="act obj-btn g-scene" data-topic-act="' + esc(ac[j].id) + '" title="' + esc(ac[j].tip || '') + '">'
-          + '<span class="ob-ic">' + (ac[j].icon || '\u00b7') + '</span>'
-          + '<span class="ob-nm">' + esc(ac[j].label) + '</span></button>';
-      }
-      h += '<button class="act obj-btn" id="talk-observe"><span class="ob-ic">\ud83d\udc41</span><span class="ob-nm">\u89c2\u5bdf</span></button>'
-        + '<button class="act obj-btn" id="talk-give"><span class="ob-ic">\ud83c\udf81</span><span class="ob-nm">\u7ed9\u4e88</span></button>'
-        + '<button class="act obj-btn g-exit" id="talk-close"><span class="ob-ic">\ud83d\ude4f</span><span class="ob-nm">\u544a\u8f9e</span></button>';
-      acts.innerHTML = h;
-      acts.querySelectorAll('[data-topic]').forEach(function (btn) {
-        btn.onclick = function () {
-          var id = btn.getAttribute('data-topic');
-          var t = ((o.card && o.card.topics) || []).filter(function (x) { return x.id === id; })[0];
-          npcSpeak(o, t);
-          renderTalkActions(o);
-        };
-      });
-      acts.querySelectorAll('[data-topic-act]').forEach(function (btn) {
-        btn.onclick = function () {
-          var id = btn.getAttribute('data-topic-act');
-          var a = ((o.card && o.card.acts) || []).filter(function (x) { return x.id === id; })[0];
-          var impl = a && a.engine && NPC_ACT_IMPL[a.engine];
-          var said = impl ? impl(o) : '';
-          if (said === '' && !impl) { toast('此事此刻做不得。'); return; }
-          log(npcTalkPrefix(o) + (said || npcSmallTalk(o)), 'npc', o.name);
-          save(S()); renderStatus();
-          renderTalkActions(o);
-        };
-      });
-      var ob = document.getElementById('talk-observe'); if (ob) ob.onclick = function () { observeNpc(o); };
-      var gv = document.getElementById('talk-give'); if (gv) gv.onclick = function () { openGivePanel(o); };
-      var cl = document.getElementById('talk-close'); if (cl) cl.onclick = function () { talkNpc = null; log(npcTalkPrefix(o) + '你与之拱手作别。', 'sys'); renderRoom(S().room); };
-    }
+    //   v20260928g：交谈面板（话题/事务/观察/给予/告辞按钮块）已整体移除——
+    //   交谈只说一句闲谈（log）；观察/给予/攻击/交易统一在 NPC 浮动菜单（buildNpcActions /
+    //   renderNpcList 标准动作列）。renderTalkActions 已删除，NPC_ACT_IMPL 事务入口随之下线。
 
     return {
       NPC_CARDS: NPC_CARDS, NPC_CARD_BY: NPC_CARD_BY, NPC_BY_KEY: NPC_BY_KEY,
@@ -16547,7 +16540,8 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     h+='<h3>'+_ci(area.icon)+' '+area.name+'</h3>';
     h+='<div class="bld-sub">'+area.desc+'</div>';
     h+='<div class="bld-list">';
-    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
+    // v20260928g：店铺 NPC 不再在本面板单独呈现（避免与左侧 NPC 列表两套系统并存）——
+    //   店内人物统一走左侧列表 + 浮动菜单（交谈/观察/给予/攻击/交易）。本面板只保留物件与子区域。
     (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
     h+='</div>';
     if(area.areas && area.areas.length){
@@ -16604,8 +16598,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
               log('老大夫就着灯火为你敷药包扎，创处一阵清凉，血止痛缓。','sys');
               openModal('building'); } }
         ]},
-        { kind:'npc', name:'抓药药商', icon:'🧑‍💼', desc:'柜后司药的伙计，算盘拨得噼啪响。', acts:[
-          { label:'采买药材', icon:'🪙', fn:function(){ openModal('shop', {shop:'doctor'}); } },
+        { kind:'npc', name:'抓药药商', icon:'🧑‍💼', desc:'柜后司药的伙计，算盘拨得噼啪响。', shop:'doctor', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('药商笑道：「客官有所不知，'+bldZihao()+'的药草须得依方配伍，单味可不成气候。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'药柜', icon:'🗄️', desc:'百格药斗，分门别类贮着各色药材。', acts:[
@@ -16618,7 +16611,8 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
           { label:'炼制金疮药', icon:'🧪', fn:function(){ if(!packFind('caoyao')){ toast('炼药需先有草药，去药柜翻检罢。'); return; } if(!exert('炼药')) return; packConsume('caoyao',1); packAdd('jinchuang',1); log('炉火淬炼，草药凝作一瓶金疮药。','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'炼药台', icon:'⚗️', desc:'青玉案几，用以合药配伍。', acts:[
-          { label:'合炼汤药', icon:'🍵', fn:function(){ if(!packFind('jinchuang')||!packFind('yaofen')){ toast('需备金疮药与草药粉各一，方可合炼。'); return; } if(!exert('合药')) return; packConsume('jinchuang',1); packConsume('yaofen',1); packAdd('tangyao',1); log('金疮药合草药粉，于台上熬炼成一碗汤药。','sys'); openModal('building'); } }
+          { label:'合炼汤药', icon:'🍵', fn:function(){ if(!packFind('jinchuang')||!packFind('yaofen')){ toast('需备金疮药与草药粉各一，方可合炼。'); return; } if(!exert('合药')) return; packConsume('jinchuang',1); packConsume('yaofen',1); packAdd('tangyao',1); log('金疮药合草药粉，于台上熬炼成一碗汤药。','sys'); openModal('building'); } },
+          { label:'依方配药', icon:'📜', fn:function(){ openModal('craft', {bench:'clinic'}); } }
         ]},
         { kind:'obj', name:'熬药壶', icon:'🫖', desc:'小炭炉上坐着药壶，咕嘟作响。', acts:[
           { label:'熬制汤药', icon:'🍲', fn:function(){ if(!hasCount('caoyao',2)){ toast('熬汤药须草药两味，药柜可取。'); return; } if(!exert('熬药')) return; packConsume('caoyao',2); packAdd('tangyao',1); log('文火慢熬，草药化作一碗温补汤药。','sys'); openModal('building'); } }
@@ -16645,8 +16639,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     buzhuang: {
       name:'锦绣布庄', icon:'🧵', sub:'机杼声声，绫罗满架',
       interior: [
-        { kind:'npc', name:'布庄掌柜', icon:'🧑‍💼', desc:'精明的中年掌柜，掌中算盘不离。', acts:[
-          { label:'置办衣甲', icon:'🛡️', fn:function(){ if(!exert('置办衣甲')) return; S().def=(S().def||0)+2; log('掌柜取来新裁战袍加身，护体更坚（防御+2）。','good'); renderStatus(); openModal('building'); } },
+        { kind:'npc', name:'布庄掌柜', icon:'🧑‍💼', desc:'精明的中年掌柜，掌中算盘不离。', shop:'cloth', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('掌柜道：「客官这身行头该换换了，刀枪无眼，甲胄要紧。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'织机', icon:'🪡', desc:'木织机一架，织娘投梭走线。', acts:[
@@ -16669,8 +16662,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     shishi: {
       name:'悦来食肆', icon:'🍜', sub:'灶火正旺，酒旗招展',
       interior: [
-        { kind:'npc', name:'食肆掌柜', icon:'🧑‍🍳', desc:'围着油渍围裙的胖掌柜，嗓门洪亮。', acts:[
-          { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; S().food=S().maxFood; S().drink=Math.max(S().drink, Math.round((S().maxDrink||0)*0.6)); log('热汤面饼下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
+        { kind:'npc', name:'食肆掌柜', icon:'🧑‍🍳', desc:'围着油渍围裙的胖掌柜，嗓门洪亮。', shop:'tavern', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('掌柜抹着桌子：「客官慢用，'+bldZihao()+'的热汤管够！」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'灶台', icon:'🔥', desc:'大灶一口，汤锅翻滚。', acts:[
@@ -16725,9 +16717,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     zahuo: {
       name:'万丰杂货', icon:'🏪', sub:'针头线脑，百货杂陈',
       interior: [
-        { kind:'npc', name:'杂货掌柜', icon:'🧑‍💼', desc:'眯眼算账的老朝奉。', acts:[
-          { label:'采买补给', icon:'🛒', fn:function(){ if(!exert('采买补给')) return; S().drink=S().maxDrink; log('水囊火折尽数补齐，长途无虞（饮水补满）。','good'); renderStatus(); openModal('building'); } },
-          { label:'采办物料', icon:'🪵', fn:function(){ openModal('shop', {shop:'build_pedlar'}); } },
+        { kind:'npc', name:'杂货掌柜', icon:'🧑‍💼', desc:'眯眼算账的老朝奉。', shop:'build_pedlar', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('朝奉道：「客官要寻甚稀罕物？'+bldZihao()+'虽小，货路却宽，或能凑办。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'货架', icon:'📦', desc:'靠墙货架，瓶罐竹篾杂列。', acts:[
@@ -16790,8 +16780,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     jiulou: {
       name:'醉仙楼', icon:'🍶', sub:'朱阁临街，酒旗高挑，烹羊宰牛且为乐',
       interior: [
-        { kind:'npc', name:'酒楼掌柜', icon:'🧑‍🍳', desc:'胖掌柜笑面迎客，算盘珠响。', acts:[
-          { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; S().food=S().maxFood; S().drink=Math.max(S().drink, Math.round((S().maxDrink||0)*0.7)); log('热馔醇酿下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
+        { kind:'npc', name:'酒楼掌柜', icon:'🧑‍🍳', desc:'胖掌柜笑面迎客，算盘珠响。', shop:'tavern', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('掌柜道：「客官可知，这壶中物最误事，也最解忧。」','sys'); openModal('building'); } }
         ]},
         { kind:'npc', name:'店小二', icon:'🧑', desc:'穿梭席间的伶俐伙计。', acts:[
@@ -17786,7 +17775,8 @@ function bindCreate(){
       var _benchMeta = {
         bench: { name:'🔨 木工台', intro:'伐木解板、编席箍槽、墨书简册——开荒营建的根基。' },
         forge: { name:'⛏ 铁匠炉', intro:'熔铁锻镐、铸兵打甲——矿料在此化为利器。' },
-        kitchen: { name:'🍳 炊事灶', intro:'采药疗伤、炊熟干粮——补给乃远行之本。' }
+        kitchen: { name:'🍳 炊事灶', intro:'采药疗伤、炊熟干粮——补给乃远行之本。' },
+        clinic: { name:'⚗ 药庐配药台', intro:'名贵药材研末入药——配得上等伤药。' }
       };
       var bm = _benchMeta[cs.bench] || { name:(cs.bench||'工坊'), intro:'' };
       var canN = recipes.filter(function(r){ return r.in.every(function(x){ return cnt(x.id)>=x.n; }); }).length;
@@ -24502,10 +24492,32 @@ function bindCreate(){
       }
     });
     // 建筑内部房间：以 interior/子区域 npcs 直接呈现（复用浮动菜单交互）
+    // v20260928g：店铺 NPC 并入统一 NPC 交互——标准动作列（交谈/观察/给予/攻击）
+    //   + 掌柜「交易」（e.shop 指定本店商店），自定义功能动作去重后追加；
+    //   不再用 building modal 那套独立的 bld-act 按钮（renderBuildingPanel 仅保留物件/子区域）。
     if(isBldRoom(room.id)){
       var _bf=bldForRoom(room.id);
       if(_bf) (_bf.ar.npcs||[]).forEach(function(e,i){
-        items.push({o:{name:e.name, icon:e.icon, key:'bldn_'+room.id+'_'+i, desc:e.desc}, acts:bldActsFilter(e.acts)});
+        var _o={name:e.name, icon:e.icon, key:'bldn_'+room.id+'_'+i, desc:e.desc};
+        var _acts=e.acts||[];
+        // 静态 acts 中的闲聊/打听 → 「交谈」；无则给一句通用小谈
+        var _chat=(function(){ for(var k=0;k<_acts.length;k++){ if(/交谈|攀谈|打听|闲聊|问询|请教/.test(_acts[k].label||'')) return _acts[k]; } return null; })();
+        var _bActs=[];
+        _bActs.push({label:'交谈', icon:'💬', fn:(function(c){ return function(){
+          if(c && typeof c.fn==='function'){ c.fn(); return; }
+          log('〔'+e.name+'〕'+(e.desc||'「……」'),'npc');
+        }; })(_chat)});
+        _bActs.push({label:'观察', icon:'👁', fn:function(){ observeNpc(_o); }});
+        if(onbGiveUnlocked(_o)) _bActs.push({label:'给予', icon:'🎁', fn:function(){ openGivePanel(_o); }});
+        _bActs.push({label:'攻击', icon:'⚔', danger:true, fn:function(){ log('〔'+e.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys'); }});
+        if(e.shop) _bActs.push({label:'交易', icon:'💰', fn:(function(sk){ return function(){ openModal('shop', {shop:sk}); }; })(e.shop)});
+        // 其余自定义功能动作（施治/捣药/听讲古等）去重标准项后追加
+        for(var k=0;k<_acts.length;k++){
+          var _a=_acts[k];
+          if(/交谈|攀谈|打听|闲聊|观察|给予|攻击|交易/.test(_a.label||'')) continue;
+          _bActs.push(_a);
+        }
+        items.push({o:_o, acts:_bActs});
       });
     }
     // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
@@ -25234,21 +25246,22 @@ function bindCreate(){
   function renderMoveBar(room){
     var bar=document.getElementById('move-bar'); if(!bar) return;
     bar.innerHTML=''; bar.classList.remove('pulse','has-exits');
-    // 建筑内部房间：方向罗盘无意义，改显示「退出该房间」按钮（v20260825c）
+    // 建筑内部房间：无方位概念，罗盘只在「南」位放一枚「返回」钮（v20260928g 罗盘化：
+    //   旧版单独渲染 mv-bld-exits 按钮条，与左侧场景按钮重复且非罗盘视觉；现统一为罗盘出口，
+    //   子区域入口仍在场景按钮（见 roomObjs bld 分支 blda_））
     if(isBldRoom(state.room)){
       bar.classList.add('has-exits');
       var _ctr=document.createElement('div'); _ctr.className='mv-center'; _ctr.textContent='你在此'; bar.appendChild(_ctr);
       var _f=bldForRoom(state.room);
-      var _wrap=document.createElement('div'); _wrap.className='mv-bld-exits';
-      if(_f && !_f.ar.isRoot){
-        var _up=document.createElement('button'); _up.className='mv-exit e-out';
-        _up.innerHTML='<span class="mv-arrow">⬅</span><span class="mv-nm">返回正堂</span>';
-        _up.onclick=function(){ bldMove('__bld__'+_f.key); }; _wrap.appendChild(_up);
-      }
-      var _go=document.createElement('button'); _go.className='mv-exit e-out';
-      _go.innerHTML='<span class="mv-arrow">🚪</span><span class="mv-nm">返回街巷</span>';
-      _go.onclick=function(){ leaveBldRoom(); }; _wrap.appendChild(_go);
-      bar.appendChild(_wrap);
+      var _isSub = _f && !_f.ar.isRoot;
+      var _lb = _isSub ? '返回正堂' : '返回街巷';
+      var _back = document.createElement('button');
+      _back.className='mv-exit e-out';
+      _back.dataset.dir='南';
+      var _g=DIR_GRID['南']; _back.style.gridRow=_g[0]; _back.style.gridColumn=_g[1];
+      _back.innerHTML='<span class="mv-arrow">↓</span><span class="mv-nm">'+_lb+'</span>';
+      _back.onclick = _isSub ? (function(){ bldMove('__bld__'+_f.key); }) : (function(){ leaveBldRoom(); });
+      bar.appendChild(_back);
       return;
     }
     var exits=currentRoomExits();
@@ -25581,11 +25594,11 @@ function bindCreate(){
     if(checkTriggers({hook:'onTalk', npc:k, room: state.room})) return;
   var n=G.DIALOGUES.npcs[k];
   if(!n){
-    // 程序生成的城市 NPC（key 形如 'vendor@luoyang:2,3#0'）：改为开「交谈面板」，
-    //   话题（问价/问农/问政/探问/查账/讨教…）都在面板里挑。
-    //   旧版此处无条件 return —— 城内所有生成 NPC 的「交谈」点了都毫无反应（v20260912d 修）。
+    // 程序生成的城市 NPC（key 形如 'vendor@luoyang:2,3#0'）：
+    //   v20260928g 交谈面板（话题按钮块）已整体移除 —— 交谈只说一句闲谈（log），
+    //   「观察 / 给予 / 攻击 / 交易」等动作统一在 NPC 浮动菜单里（buildNpcActions）。
     var po=NPC_BY_KEY[k];
-    if(po) talkInline(po);
+    if(po) npcSpeak(po, null);
     return;
   }
     var at=npcAttitude(k);
@@ -26049,10 +26062,9 @@ function bindCreate(){
         (_f.ar.areas||[]).forEach(function(a){
           _out.push({type:'feature', key:'blda_'+roomId+'_'+a.key, icon:'🚪', name:a.label||a.key, desc:'', direct:true, actions:[{label:a.label||a.key, icon:'🚪', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key+'@'+a.key)}]});
         });
-        if(!_f.ar.isRoot){
-          _out.push({type:'feature', key:'bldup_'+roomId, icon:'⬅', name:'返回'+(_f.b.rootName||_f.b.name), desc:'', direct:true, actions:[{label:'返回'+(_f.b.rootName||_f.b.name), icon:'⬅', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key)}]});
-        }
-        _out.push({type:'feature', key:'bldout_'+roomId, icon:'🚪', name:'返回街道', desc:'', direct:true, actions:[{label:'走出此处，回到街巷', icon:'🚪', fn:function(){ leaveBldRoom(); }}]});
+        // v20260928g：房间内出口（返回正堂/返回街道）不再设置场景交互按钮——
+        //   统一收进底部移动罗盘（renderMoveBar isBldRoom 分支的罗盘「南·返回」），
+        //   仅当房间内还有子区域时，子区域入口仍保留为场景按钮（上方 blda_）。
       }
       // 玩家在房内放置的物件（帐篷/篝火…）：按本房间 id 隔离，进店/进房后也保留可见（v20260825c）
       var _placed=(state.placed && state.placed[roomId]) || [];
@@ -26147,7 +26159,17 @@ function bindCreate(){
       tuzhi_market:'0 0', tuzhi_farm:'0 0', tuzhi_barracks:'0 0', tuzhi_blacksmith:'0 0',
       tuzhi_tavern:'0 0', tuzhi_inn:'0 0', tuzhi_martialhall:'0 0', tuzhi_granary:'0 0',
       tuzhi_watchtower:'0 0', tuzhi_arrowtower:'0 0', tuzhi_farmland:'0 0', tuzhi_well:'0 0',
-      tuzhi_pigpen:'0 0', tuzhi_gate:'0 0', tuzhi_training:'0 0'
+      tuzhi_pigpen:'0 0', tuzhi_gate:'0 0', tuzhi_training:'0 0',
+      // v20260928g：38 件新物品 + 4 件配方产出，统一注册直读 items48 独立图（'0 0' 占位）
+      jintiao:'0 0', yinding:'0 0', yupei:'0 0', shouzhuo:'0 0', zhenzhu:'0 0',
+      tieding:'0 0', shihui:'0 0', zhucai:'0 0', liandao:'0 0', tiechan:'0 0', li:'0 0', mutong:'0 0',
+      maizhong:'0 0', daozhong:'0 0', caizhong:'0 0', yaozhong:'0 0',
+      xiaomai:'0 0', qingcai:'0 0', mianfen:'0 0', dami:'0 0', you:'0 0', jiang:'0 0', bupi:'0 0',
+      jidan:'0 0', niunai:'0 0', yangmao:'0 0', pige:'0 0', fengmi:'0 0',
+      zhurou:'0 0', yangrou:'0 0', jirou:'0 0', niurou:'0 0',
+      xiaozhu:'0 0', xiaoyang:'0 0', xiaoji:'0 0', xiaoniu:'0 0',
+      renshen:'0 0', lingzhi:'0 0',
+      jingtie:'0 0', hongshao:'0 0', kaoji:'0 0', kaoyang:'0 0'
     } };
   var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){
@@ -27578,11 +27600,13 @@ function bindCreate(){
     var A=window.__MAP_ASSETS;
     if(A && window.d3 && window.LF && LF.REGIONS && LF.initStrategicMap){ _mapReady=Promise.resolve(); return _mapReady; }
     _mapReady=new Promise(function(resolve, reject){
-      var tasks=[];
-      if(!A || !window.d3) tasks.push(_loadMapAsset(A?A.d3:'shared/vendor/d3.min.js'));
-      if(!A || !(window.LF && LF.REGIONS)) tasks.push(_loadMapAsset(A?A.regions:'shared/data/map_regions.js'));
-      if(!A || !(window.LF && LF.initStrategicMap)) tasks.push(_loadMapAsset(A?A.sm:'shared/strategic-map.js'));
-      Promise.all(tasks).then(resolve, reject);
+      // v20260928g：d3/regions 先就绪，再加载 strategic-map —— 旧版 Promise.all 三件套并行，
+      //   无缓存时 strategic-map.js 先执行、内部顶层引用 d3 报 "d3 is not defined"（本地必现）。
+      var p1 = (!A || !window.d3) ? _loadMapAsset(A?A.d3:'shared/vendor/d3.min.js') : Promise.resolve();
+      var p2 = (!A || !(window.LF && LF.REGIONS)) ? _loadMapAsset(A?A.regions:'shared/data/map_regions.js') : Promise.resolve();
+      Promise.all([p1, p2]).then(function(){
+        if(!A || !(window.LF && LF.initStrategicMap)) return _loadMapAsset(A?A.sm:'shared/strategic-map.js');
+      }).then(resolve, reject);
     });
     return _mapReady;
   }

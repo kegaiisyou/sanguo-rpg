@@ -124,7 +124,9 @@
         { id: 'tieding', buy: 38, sell: 15 },
         { id: 'tiechan', buy: 24, sell: 8  },
         { id: 'liandao', buy: 20, sell: 7  },
-        { id: 'li',      buy: 42, sell: 15 }
+        { id: 'li',      buy: 42, sell: 15 },
+        // —— 新物品（v20260928g）：精铁 ——
+        { id: 'jingtie', buy: 80, sell: 30 }
       ]
     },
     tavern: {
@@ -147,7 +149,11 @@
         { id: 'zhurou',   buy: 0,  sell: 4  },
         { id: 'yangrou',  buy: 0,  sell: 5  },
         { id: 'jirou',    buy: 0,  sell: 4  },
-        { id: 'niurou',   buy: 0,  sell: 6  }
+        { id: 'niurou',   buy: 0,  sell: 6  },
+        // —— 新物品（v20260928g）：烹制菜肴上架 ——
+        { id: 'hongshao', buy: 22, sell: 8  },
+        { id: 'kaoji',    buy: 18, sell: 6  },
+        { id: 'kaoyang',  buy: 24, sell: 9  }
       ]
     },
     cloth: {

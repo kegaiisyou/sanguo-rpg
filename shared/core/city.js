@@ -680,13 +680,13 @@ window.LF = window.LF || {};
         if (mkt) {
           mkt.shops.forEach(function (sh) {
             var bd = getBUILDINGS()[sh.key]; if (!bd) return;
-            out.push({ id: 'enter_building', label: '进·' + sh.sign, icon: bd.icon, tip: '步入' + sh.sign + '——' + (bd.sub || '入内一观'), data: { building: sh.key, sign: sh.sign, mkt: mkt.name } });
+            out.push({ id: 'enter_building', label: sh.sign, icon: bd.icon, tip: '步入' + sh.sign + '——' + (bd.sub || '入内一观'), data: { building: sh.key, sign: sh.sign, mkt: mkt.name } });
           });
         } else {
           // 兜底（旧档无市场数据）：沿用全局五店
           ['yaofu', 'buzhuang', 'shishi', 'zahuo', 'gongzao'].forEach(function (k) {
             var bd = getBUILDINGS()[k]; if (!bd) return;
-            out.push({ id: 'enter_building', label: '进·' + bd.name, icon: bd.icon, tip: '步入' + bd.name + '——' + (bd.sub || '入内一观'), data: { building: k } });
+            out.push({ id: 'enter_building', label: bd.name, icon: bd.icon, tip: '步入' + bd.name + '——' + (bd.sub || '入内一观'), data: { building: k } });
           });
         }
       }

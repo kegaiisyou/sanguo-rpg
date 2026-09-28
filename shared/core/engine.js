@@ -1848,10 +1848,32 @@
       }
     });
     // 建筑内部房间：以 interior/子区域 npcs 直接呈现（复用浮动菜单交互）
+    // v20260928g：店铺 NPC 并入统一 NPC 交互——标准动作列（交谈/观察/给予/攻击）
+    //   + 掌柜「交易」（e.shop 指定本店商店），自定义功能动作去重后追加；
+    //   不再用 building modal 那套独立的 bld-act 按钮（renderBuildingPanel 仅保留物件/子区域）。
     if(isBldRoom(room.id)){
       var _bf=bldForRoom(room.id);
       if(_bf) (_bf.ar.npcs||[]).forEach(function(e,i){
-        items.push({o:{name:e.name, icon:e.icon, key:'bldn_'+room.id+'_'+i, desc:e.desc}, acts:bldActsFilter(e.acts)});
+        var _o={name:e.name, icon:e.icon, key:'bldn_'+room.id+'_'+i, desc:e.desc};
+        var _acts=e.acts||[];
+        // 静态 acts 中的闲聊/打听 → 「交谈」；无则给一句通用小谈
+        var _chat=(function(){ for(var k=0;k<_acts.length;k++){ if(/交谈|攀谈|打听|闲聊|问询|请教/.test(_acts[k].label||'')) return _acts[k]; } return null; })();
+        var _bActs=[];
+        _bActs.push({label:'交谈', icon:'💬', fn:(function(c){ return function(){
+          if(c && typeof c.fn==='function'){ c.fn(); return; }
+          log('〔'+e.name+'〕'+(e.desc||'「……」'),'npc');
+        }; })(_chat)});
+        _bActs.push({label:'观察', icon:'👁', fn:function(){ observeNpc(_o); }});
+        if(onbGiveUnlocked(_o)) _bActs.push({label:'给予', icon:'🎁', fn:function(){ openGivePanel(_o); }});
+        _bActs.push({label:'攻击', icon:'⚔', danger:true, fn:function(){ log('〔'+e.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys'); }});
+        if(e.shop) _bActs.push({label:'交易', icon:'💰', fn:(function(sk){ return function(){ openModal('shop', {shop:sk}); }; })(e.shop)});
+        // 其余自定义功能动作（施治/捣药/听讲古等）去重标准项后追加
+        for(var k=0;k<_acts.length;k++){
+          var _a=_acts[k];
+          if(/交谈|攀谈|打听|闲聊|观察|给予|攻击|交易/.test(_a.label||'')) continue;
+          _bActs.push(_a);
+        }
+        items.push({o:_o, acts:_bActs});
       });
     }
     // 城市系统：按人口/治安/商业参数派生城中人物（数据 shared/data/cities.js）
@@ -2580,21 +2602,22 @@
   function renderMoveBar(room){
     var bar=document.getElementById('move-bar'); if(!bar) return;
     bar.innerHTML=''; bar.classList.remove('pulse','has-exits');
-    // 建筑内部房间：方向罗盘无意义，改显示「退出该房间」按钮（v20260825c）
+    // 建筑内部房间：无方位概念，罗盘只在「南」位放一枚「返回」钮（v20260928g 罗盘化：
+    //   旧版单独渲染 mv-bld-exits 按钮条，与左侧场景按钮重复且非罗盘视觉；现统一为罗盘出口，
+    //   子区域入口仍在场景按钮（见 roomObjs bld 分支 blda_））
     if(isBldRoom(state.room)){
       bar.classList.add('has-exits');
       var _ctr=document.createElement('div'); _ctr.className='mv-center'; _ctr.textContent='你在此'; bar.appendChild(_ctr);
       var _f=bldForRoom(state.room);
-      var _wrap=document.createElement('div'); _wrap.className='mv-bld-exits';
-      if(_f && !_f.ar.isRoot){
-        var _up=document.createElement('button'); _up.className='mv-exit e-out';
-        _up.innerHTML='<span class="mv-arrow">⬅</span><span class="mv-nm">返回正堂</span>';
-        _up.onclick=function(){ bldMove('__bld__'+_f.key); }; _wrap.appendChild(_up);
-      }
-      var _go=document.createElement('button'); _go.className='mv-exit e-out';
-      _go.innerHTML='<span class="mv-arrow">🚪</span><span class="mv-nm">返回街巷</span>';
-      _go.onclick=function(){ leaveBldRoom(); }; _wrap.appendChild(_go);
-      bar.appendChild(_wrap);
+      var _isSub = _f && !_f.ar.isRoot;
+      var _lb = _isSub ? '返回正堂' : '返回街巷';
+      var _back = document.createElement('button');
+      _back.className='mv-exit e-out';
+      _back.dataset.dir='南';
+      var _g=DIR_GRID['南']; _back.style.gridRow=_g[0]; _back.style.gridColumn=_g[1];
+      _back.innerHTML='<span class="mv-arrow">↓</span><span class="mv-nm">'+_lb+'</span>';
+      _back.onclick = _isSub ? (function(){ bldMove('__bld__'+_f.key); }) : (function(){ leaveBldRoom(); });
+      bar.appendChild(_back);
       return;
     }
     var exits=currentRoomExits();
@@ -2927,11 +2950,11 @@
     if(checkTriggers({hook:'onTalk', npc:k, room: state.room})) return;
   var n=G.DIALOGUES.npcs[k];
   if(!n){
-    // 程序生成的城市 NPC（key 形如 'vendor@luoyang:2,3#0'）：改为开「交谈面板」，
-    //   话题（问价/问农/问政/探问/查账/讨教…）都在面板里挑。
-    //   旧版此处无条件 return —— 城内所有生成 NPC 的「交谈」点了都毫无反应（v20260912d 修）。
+    // 程序生成的城市 NPC（key 形如 'vendor@luoyang:2,3#0'）：
+    //   v20260928g 交谈面板（话题按钮块）已整体移除 —— 交谈只说一句闲谈（log），
+    //   「观察 / 给予 / 攻击 / 交易」等动作统一在 NPC 浮动菜单里（buildNpcActions）。
     var po=NPC_BY_KEY[k];
-    if(po) talkInline(po);
+    if(po) npcSpeak(po, null);
     return;
   }
     var at=npcAttitude(k);
@@ -3395,10 +3418,9 @@
         (_f.ar.areas||[]).forEach(function(a){
           _out.push({type:'feature', key:'blda_'+roomId+'_'+a.key, icon:'🚪', name:a.label||a.key, desc:'', direct:true, actions:[{label:a.label||a.key, icon:'🚪', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key+'@'+a.key)}]});
         });
-        if(!_f.ar.isRoot){
-          _out.push({type:'feature', key:'bldup_'+roomId, icon:'⬅', name:'返回'+(_f.b.rootName||_f.b.name), desc:'', direct:true, actions:[{label:'返回'+(_f.b.rootName||_f.b.name), icon:'⬅', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key)}]});
-        }
-        _out.push({type:'feature', key:'bldout_'+roomId, icon:'🚪', name:'返回街道', desc:'', direct:true, actions:[{label:'走出此处，回到街巷', icon:'🚪', fn:function(){ leaveBldRoom(); }}]});
+        // v20260928g：房间内出口（返回正堂/返回街道）不再设置场景交互按钮——
+        //   统一收进底部移动罗盘（renderMoveBar isBldRoom 分支的罗盘「南·返回」），
+        //   仅当房间内还有子区域时，子区域入口仍保留为场景按钮（上方 blda_）。
       }
       // 玩家在房内放置的物件（帐篷/篝火…）：按本房间 id 隔离，进店/进房后也保留可见（v20260825c）
       var _placed=(state.placed && state.placed[roomId]) || [];
@@ -3493,7 +3515,17 @@
       tuzhi_market:'0 0', tuzhi_farm:'0 0', tuzhi_barracks:'0 0', tuzhi_blacksmith:'0 0',
       tuzhi_tavern:'0 0', tuzhi_inn:'0 0', tuzhi_martialhall:'0 0', tuzhi_granary:'0 0',
       tuzhi_watchtower:'0 0', tuzhi_arrowtower:'0 0', tuzhi_farmland:'0 0', tuzhi_well:'0 0',
-      tuzhi_pigpen:'0 0', tuzhi_gate:'0 0', tuzhi_training:'0 0'
+      tuzhi_pigpen:'0 0', tuzhi_gate:'0 0', tuzhi_training:'0 0',
+      // v20260928g：38 件新物品 + 4 件配方产出，统一注册直读 items48 独立图（'0 0' 占位）
+      jintiao:'0 0', yinding:'0 0', yupei:'0 0', shouzhuo:'0 0', zhenzhu:'0 0',
+      tieding:'0 0', shihui:'0 0', zhucai:'0 0', liandao:'0 0', tiechan:'0 0', li:'0 0', mutong:'0 0',
+      maizhong:'0 0', daozhong:'0 0', caizhong:'0 0', yaozhong:'0 0',
+      xiaomai:'0 0', qingcai:'0 0', mianfen:'0 0', dami:'0 0', you:'0 0', jiang:'0 0', bupi:'0 0',
+      jidan:'0 0', niunai:'0 0', yangmao:'0 0', pige:'0 0', fengmi:'0 0',
+      zhurou:'0 0', yangrou:'0 0', jirou:'0 0', niurou:'0 0',
+      xiaozhu:'0 0', xiaoyang:'0 0', xiaoji:'0 0', xiaoniu:'0 0',
+      renshen:'0 0', lingzhi:'0 0',
+      jingtie:'0 0', hongshao:'0 0', kaoji:'0 0', kaoyang:'0 0'
     } };
   var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){
@@ -4924,11 +4956,13 @@
     var A=window.__MAP_ASSETS;
     if(A && window.d3 && window.LF && LF.REGIONS && LF.initStrategicMap){ _mapReady=Promise.resolve(); return _mapReady; }
     _mapReady=new Promise(function(resolve, reject){
-      var tasks=[];
-      if(!A || !window.d3) tasks.push(_loadMapAsset(A?A.d3:'shared/vendor/d3.min.js'));
-      if(!A || !(window.LF && LF.REGIONS)) tasks.push(_loadMapAsset(A?A.regions:'shared/data/map_regions.js'));
-      if(!A || !(window.LF && LF.initStrategicMap)) tasks.push(_loadMapAsset(A?A.sm:'shared/strategic-map.js'));
-      Promise.all(tasks).then(resolve, reject);
+      // v20260928g：d3/regions 先就绪，再加载 strategic-map —— 旧版 Promise.all 三件套并行，
+      //   无缓存时 strategic-map.js 先执行、内部顶层引用 d3 报 "d3 is not defined"（本地必现）。
+      var p1 = (!A || !window.d3) ? _loadMapAsset(A?A.d3:'shared/vendor/d3.min.js') : Promise.resolve();
+      var p2 = (!A || !(window.LF && LF.REGIONS)) ? _loadMapAsset(A?A.regions:'shared/data/map_regions.js') : Promise.resolve();
+      Promise.all([p1, p2]).then(function(){
+        if(!A || !(window.LF && LF.initStrategicMap)) return _loadMapAsset(A?A.sm:'shared/strategic-map.js');
+      }).then(resolve, reject);
     });
     return _mapReady;
   }

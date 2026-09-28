@@ -70,7 +70,8 @@
     h+='<h3>'+_ci(area.icon)+' '+area.name+'</h3>';
     h+='<div class="bld-sub">'+area.desc+'</div>';
     h+='<div class="bld-list">';
-    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
+    // v20260928g：店铺 NPC 不再在本面板单独呈现（避免与左侧 NPC 列表两套系统并存）——
+    //   店内人物统一走左侧列表 + 浮动菜单（交谈/观察/给予/攻击/交易）。本面板只保留物件与子区域。
     (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
     h+='</div>';
     if(area.areas && area.areas.length){
@@ -127,8 +128,7 @@
               log('老大夫就着灯火为你敷药包扎，创处一阵清凉，血止痛缓。','sys');
               openModal('building'); } }
         ]},
-        { kind:'npc', name:'抓药药商', icon:'🧑‍💼', desc:'柜后司药的伙计，算盘拨得噼啪响。', acts:[
-          { label:'采买药材', icon:'🪙', fn:function(){ openModal('shop', {shop:'doctor'}); } },
+        { kind:'npc', name:'抓药药商', icon:'🧑‍💼', desc:'柜后司药的伙计，算盘拨得噼啪响。', shop:'doctor', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('药商笑道：「客官有所不知，'+bldZihao()+'的药草须得依方配伍，单味可不成气候。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'药柜', icon:'🗄️', desc:'百格药斗，分门别类贮着各色药材。', acts:[
@@ -141,7 +141,8 @@
           { label:'炼制金疮药', icon:'🧪', fn:function(){ if(!packFind('caoyao')){ toast('炼药需先有草药，去药柜翻检罢。'); return; } if(!exert('炼药')) return; packConsume('caoyao',1); packAdd('jinchuang',1); log('炉火淬炼，草药凝作一瓶金疮药。','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'炼药台', icon:'⚗️', desc:'青玉案几，用以合药配伍。', acts:[
-          { label:'合炼汤药', icon:'🍵', fn:function(){ if(!packFind('jinchuang')||!packFind('yaofen')){ toast('需备金疮药与草药粉各一，方可合炼。'); return; } if(!exert('合药')) return; packConsume('jinchuang',1); packConsume('yaofen',1); packAdd('tangyao',1); log('金疮药合草药粉，于台上熬炼成一碗汤药。','sys'); openModal('building'); } }
+          { label:'合炼汤药', icon:'🍵', fn:function(){ if(!packFind('jinchuang')||!packFind('yaofen')){ toast('需备金疮药与草药粉各一，方可合炼。'); return; } if(!exert('合药')) return; packConsume('jinchuang',1); packConsume('yaofen',1); packAdd('tangyao',1); log('金疮药合草药粉，于台上熬炼成一碗汤药。','sys'); openModal('building'); } },
+          { label:'依方配药', icon:'📜', fn:function(){ openModal('craft', {bench:'clinic'}); } }
         ]},
         { kind:'obj', name:'熬药壶', icon:'🫖', desc:'小炭炉上坐着药壶，咕嘟作响。', acts:[
           { label:'熬制汤药', icon:'🍲', fn:function(){ if(!hasCount('caoyao',2)){ toast('熬汤药须草药两味，药柜可取。'); return; } if(!exert('熬药')) return; packConsume('caoyao',2); packAdd('tangyao',1); log('文火慢熬，草药化作一碗温补汤药。','sys'); openModal('building'); } }
@@ -168,8 +169,7 @@
     buzhuang: {
       name:'锦绣布庄', icon:'🧵', sub:'机杼声声，绫罗满架',
       interior: [
-        { kind:'npc', name:'布庄掌柜', icon:'🧑‍💼', desc:'精明的中年掌柜，掌中算盘不离。', acts:[
-          { label:'置办衣甲', icon:'🛡️', fn:function(){ if(!exert('置办衣甲')) return; S().def=(S().def||0)+2; log('掌柜取来新裁战袍加身，护体更坚（防御+2）。','good'); renderStatus(); openModal('building'); } },
+        { kind:'npc', name:'布庄掌柜', icon:'🧑‍💼', desc:'精明的中年掌柜，掌中算盘不离。', shop:'cloth', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('掌柜道：「客官这身行头该换换了，刀枪无眼，甲胄要紧。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'织机', icon:'🪡', desc:'木织机一架，织娘投梭走线。', acts:[
@@ -192,8 +192,7 @@
     shishi: {
       name:'悦来食肆', icon:'🍜', sub:'灶火正旺，酒旗招展',
       interior: [
-        { kind:'npc', name:'食肆掌柜', icon:'🧑‍🍳', desc:'围着油渍围裙的胖掌柜，嗓门洪亮。', acts:[
-          { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; S().food=S().maxFood; S().drink=Math.max(S().drink, Math.round((S().maxDrink||0)*0.6)); log('热汤面饼下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
+        { kind:'npc', name:'食肆掌柜', icon:'🧑‍🍳', desc:'围着油渍围裙的胖掌柜，嗓门洪亮。', shop:'tavern', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('掌柜抹着桌子：「客官慢用，'+bldZihao()+'的热汤管够！」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'灶台', icon:'🔥', desc:'大灶一口，汤锅翻滚。', acts:[
@@ -248,9 +247,7 @@
     zahuo: {
       name:'万丰杂货', icon:'🏪', sub:'针头线脑，百货杂陈',
       interior: [
-        { kind:'npc', name:'杂货掌柜', icon:'🧑‍💼', desc:'眯眼算账的老朝奉。', acts:[
-          { label:'采买补给', icon:'🛒', fn:function(){ if(!exert('采买补给')) return; S().drink=S().maxDrink; log('水囊火折尽数补齐，长途无虞（饮水补满）。','good'); renderStatus(); openModal('building'); } },
-          { label:'采办物料', icon:'🪵', fn:function(){ openModal('shop', {shop:'build_pedlar'}); } },
+        { kind:'npc', name:'杂货掌柜', icon:'🧑‍💼', desc:'眯眼算账的老朝奉。', shop:'build_pedlar', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('朝奉道：「客官要寻甚稀罕物？'+bldZihao()+'虽小，货路却宽，或能凑办。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'货架', icon:'📦', desc:'靠墙货架，瓶罐竹篾杂列。', acts:[
@@ -313,8 +310,7 @@
     jiulou: {
       name:'醉仙楼', icon:'🍶', sub:'朱阁临街，酒旗高挑，烹羊宰牛且为乐',
       interior: [
-        { kind:'npc', name:'酒楼掌柜', icon:'🧑‍🍳', desc:'胖掌柜笑面迎客，算盘珠响。', acts:[
-          { label:'打尖进食', icon:'🍲', fn:function(){ if(!exert('打尖进食')) return; S().food=S().maxFood; S().drink=Math.max(S().drink, Math.round((S().maxDrink||0)*0.7)); log('热馔醇酿下肚，饥渴尽消（粮草补满）。','good'); renderStatus(); openModal('building'); } },
+        { kind:'npc', name:'酒楼掌柜', icon:'🧑‍🍳', desc:'胖掌柜笑面迎客，算盘珠响。', shop:'tavern', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('掌柜道：「客官可知，这壶中物最误事，也最解忧。」','sys'); openModal('building'); } }
         ]},
         { kind:'npc', name:'店小二', icon:'🧑', desc:'穿梭席间的伶俐伙计。', acts:[
