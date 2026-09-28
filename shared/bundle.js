@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 74   版本: 20260927o
+// 源文件数: 74   版本: 20260927p
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927o',
+    VERSION: '20260927p',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -15773,13 +15773,11 @@ window.LF = window.LF || {};
     }
     return grid;
   }
-  // 装备栏图（人形 + 六装备槽 + 背包槽）：独立成函数，供 renderPack 与装备后实时刷新复用
+  // 装备栏（六装备槽 + 背包槽 + 属性）：v20260927p 重排为 2×4 对称网格——不再叠在人形剪影上（原 absolute 布局手机端竖排窄格变形、装备名被裁）
   function renderEquipFigure(){
-    // v20260924z8：人形剪影精修 —— 古风武将写意（发髻/交领衣袍/腰带/斜臂），赭石棕色调与整体美术统一
-    var sil = '<img class="equip-sil" src="assets/equip/equip_silu.png" alt="" crossorigin="anonymous"><div class="equip-fade"></div>';
     var eqHtml='', bagSlot='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
-      if(slot==='bag') return;            // 背包槽独立于六装备槽，单独放在人形下方
+      if(slot==='bag') return;            // 背包槽独立渲染（第 7 格）
       var eq=getState().equipment[slot], sl=LF.ITEMS.SLOTS[slot];
       var insCls=(getPackInspect() && getPackInspect().kind==='equip' && getPackInspect().slot===slot)?' pcell-insp':'';
       var badge = '';
@@ -15793,7 +15791,7 @@ window.LF = window.LF || {};
       var qs = qcol ? (' style="--qcol:'+qcol+'"') : '';
       eqHtml += '<div class="equipslot ep-'+slot+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
     });
-    // 背包槽（bag）：人形下方独立渲染
+    // 背包槽（bag）：第 7 格（虚线金边区分）
     (function(){
       var eq=getState().equipment.bag, sl=LF.ITEMS.SLOTS.bag;
       var insCls=(getPackInspect() && getPackInspect().kind==='equip' && getPackInspect().slot==='bag')?' pcell-insp':'';
@@ -15806,10 +15804,9 @@ window.LF = window.LF || {};
       var qs2=qcol ? (' style="--qcol:'+qcol+'"') : '';
       bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag"'+qs2+'>'+inner+badge+durBar+'</div>';
     })();
-    eqHtml = sil + eqHtml;
-    // v20260927d：六槽与背包槽统一收入 .equip-grid 2 列网格（z16 已改网格语义 CSS，JS 此前未同步，
-    //   手机端槽位退化为竖排窄格、装备名被裁）。人形剪影独立一行作顶部小插图。
-    return '<div class="equip-figure"><div class="equip-silrow">'+sil+'</div><div class="equip-grid">'+eqHtml+bagSlot+'</div></div>';
+    // 第 8 格「属性」：点击展开/收起下方属性面板（复用 toggleStats）
+    var attrCell = '<div class="equipslot ep-attrs" onclick="LFUI.toggleStats()" role="button" tabindex="0"><span class="ep-ph">属 性</span></div>';
+    return '<div class="equip-figure"><div class="equip-grid">'+eqHtml+bagSlot+attrCell+'</div></div>';
   }
   function renderPack(){
     var grid='';

@@ -3229,3 +3229,26 @@
 @media (max-width:480px){
   .ward-btn{flex:1 1 calc(50% - 8px);min-height:36px;font-size:12.5px;padding:7px 10px;}
 }
+
+.pack-foot{flex-wrap:wrap;}
+.pack-foot .btn{flex:0 0 auto;}
+.pack-foot .pack-hint{order:4;flex:0 0 100%;text-align:center;margin-top:4px;}
+.pack-foot .pack-cap,.pack-foot .pack-gold{margin-left:auto;}
+
+/* v20260927p：窄屏(<560px)装备区与物品区上下堆叠；物品标题防错位 */
+@media (max-width:560px){
+  .pack-main{flex-direction:column;gap:10px;}
+  .pack-left{flex:0 0 auto;width:100%;}
+  .pack-right{width:100%;min-width:0;}
+  .equip-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+  .equip-grid .equipslot{min-height:52px;}
+  .pack-right-title{white-space:nowrap;overflow:hidden;}
+}
+.pack-right-title{white-space:nowrap;}
+
+/* v20260927p：覆盖 z16 遗留的鞋履横跨（grid-column:1/-1 破坏 8 格对称）+ 强制窄屏 4 列 */
+.pack-wrap .equip-grid .ep-shoe{grid-column:auto;}
+.equip-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+@media (max-width:560px){
+  .equip-grid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:6px;}
+}
