@@ -301,8 +301,10 @@
   .obj-menu .op-btn.danger:hover{background:rgba(192,57,43,.12);border-color:rgba(192,57,43,.35);}
   .obj-menu .op-sep{height:1px;margin:3px 4px;background:rgba(176,131,47,.2);}
   /* ===== 常驻移动区：Dock 上方方向罗盘（位置即方位，洛阳在下·马市在右） ===== */
-  /* ===== 底部枢纽区：方向 Tab 栏 +（左：NPC 列表 ｜ 右：方向罗盘）===== */
-  #lower{flex:0 0 auto;display:flex;flex-direction:column;align-items:stretch;padding:0 8px 4px;}
+  /* ===== 底部枢纽区：方向 Tab 栏 +（左：NPC 列表 ｜ 右：方向罗盘）=====
+     v20260928f：dock 改 position:fixed 后脱离文档流，#lower 底部未避让，方向罗盘
+     最下一行（南行钮）与 NPC 列表底部被 dock 遮挡——补足与 dock 同高的底部留白。 */
+  #lower{flex:0 0 auto;display:flex;flex-direction:column;align-items:stretch;padding:0 8px calc(84px + env(safe-area-inset-bottom,0px));}
   #move-tabs{flex:0 0 auto;display:flex;gap:6px;justify-content:center;margin:1px 0 -1px;position:relative;z-index:2;}
   .mv-tab{flex:none;padding:5px 15px;border-radius:13px 13px 0 0;cursor:pointer;font-size:12px;
     font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;color:#6e4f17;
@@ -312,6 +314,10 @@
   .mv-tab:active{transform:translateY(1px);}
   .mv-tab.active{background:rgba(176,131,47,.2);color:#6e4f17;font-weight:700;box-shadow:0 -2px 8px -4px rgba(60,48,34,.4);}
   #lower-body{flex:0 0 auto;display:flex;gap:10px;align-items:center;justify-content:center;}
+  /* v20260928f：罗盘与 NPC 列表并排时 flex 收缩，避免窄屏水平溢出
+     （此前 move-bar 固定 width 276px + npc-list 116/142px 超出 390 屏，罗盘东/东南钮
+      与 NPC 列表左缘被裁出屏幕外） */
+  #npc-list.has + #move-bar{flex:1 1 auto;width:auto;max-width:276px;min-width:212px;}
   /* —— 左侧 NPC 列表：填补罗盘左侧空挡 —— */
   #npc-list{flex:0 0 116px;align-self:stretch;display:none;flex-direction:column;gap:6px;
     max-height:158px;overflow-y:auto;padding:8px 6px;border-radius:12px;
@@ -1678,6 +1684,8 @@
     #dock button{flex:1 1 0;min-width:0;padding:7px 1px 8px;font-size:10px;letter-spacing:0;gap:3px;}
     #dock button .ic{width:34px;height:34px;border-radius:10px;}
     #dock button.rest::after{width:12px;height:2.5px;bottom:2px;}
+    /* v20260928f：窄屏 dock 实测约 68px，避让值收紧到 72px（宽屏 84px 留白过大） */
+    #lower{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px));}
 
     /* 常驻移动罗盘缩放，避免溢出挤压 */
     .move-bar{width:min(100% - 10px, 276px);padding:9px;gap:5px;}
