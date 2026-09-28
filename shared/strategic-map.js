@@ -208,6 +208,7 @@
   // ── v20260927j：P1 路线规划 + P2 战争迷雾 状态 ──
   const VISITED_KEY = 'sm-visited-v1';
   const ROUTE_KEY = 'sm-route-v1';
+  const ROUTE_TIP_KEY = 'sm-route-tip-v1';   // v20260927m：首次引导标记
   function loadVisited() { try { return JSON.parse(localStorage.getItem(VISITED_KEY) || '[]'); } catch (e) { return []; } }
   function saveVisited(v) { try { localStorage.setItem(VISITED_KEY, JSON.stringify(v)); } catch (e) {} }
   let visitedSet = new Set(loadVisited());
@@ -603,6 +604,15 @@
         </div>
       </div>
       <div class="strategic-route-panel" id="sm-route-panel" style="display:none"></div>
+      <div class="strategic-route-guide" id="sm-route-guide" style="display:none">
+        <div class="rg-t">行军路线 · 三步规划</div>
+        <div class="rg-steps">
+          <div>① 点第一座城作为<b>起点</b></div>
+          <div>② 依次点击<b>途经城池</b></div>
+          <div>③ 点「完成」查看<b>里程 · 天数 · 耗粮</b></div>
+        </div>
+        <div class="rg-b"><button id="sm-rg-ok">知道了</button></div>
+      </div>
       <div class="strategic-faction-panel" id="sm-faction-panel" style="display:none"></div>
       <div class="strategic-info" id="sm-info">点击州郡或城池查看详情</div>
       <div class="strategic-legend" id="sm-legend" style="display:none"></div>
@@ -1847,6 +1857,7 @@
     let routeLayerG = null, routeProj = null, lastCities = [];
     const factionPanel = ui.querySelector('#sm-faction-panel');
     const routePanel = ui.querySelector('#sm-route-panel');
+    const routeGuide = ui.querySelector('#sm-route-guide');
     const hintEl = ui.querySelector('.strategic-hint');
     const DEFAULT_HINT = '拖拽平移 · 双指缩放 · 点击城池前往';
 
@@ -1873,14 +1884,25 @@
     const closeControls = () => { if (ctrlBox && ctrlBox.classList.contains('open')) ctrlBox.classList.remove('open'); };
 
     const routeBtn = ui.querySelector('#sm-route-btn');
+    const rgOk = ui.querySelector('#sm-rg-ok');
+    if (rgOk) rgOk.addEventListener('click', (e) => { e.stopPropagation(); hideRouteGuide(true); });
     if (routeBtn && routePanel) {
       routeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleRouteMode(); });
       routePanel.addEventListener('pointerdown', (e) => e.stopPropagation());
       routePanel.addEventListener('click', (e) => {
+        // v20260927m：途经城 × 删除
+        const delEl = e.target.closest('.rp-del');
+        if (delEl) {
+          e.stopPropagation();
+          const city = delEl.closest('.rp-city');
+          if (city && city.dataset.cid) removeRouteCity(city.dataset.cid);
+          return;
+        }
         const t = e.target.closest('button'); if (!t || !t.dataset.a) return;
         e.stopPropagation();
-        if (t.dataset.a === 'clear') { routeCids = []; saveRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); setHint(DEFAULT_HINT); routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); }
-        else if (t.dataset.a === 'done') { routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); setHint(DEFAULT_HINT); saveRoute(); updateRoutePanel(); }
+        if (t.dataset.a === 'undo') { if (routeCids.length) { routeCids.pop(); saveRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); setHint('已撤销上一点，可继续点击城池或再点「撤销」'); } }
+        else if (t.dataset.a === 'clear') { routeCids = []; saveRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); setHint(DEFAULT_HINT); routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); hideRouteGuide(true); }
+        else if (t.dataset.a === 'done') { routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); setHint(DEFAULT_HINT); saveRoute(); updateRoutePanel(); hideRouteGuide(true); }
       });
       // 规划模式下点城加入路线（城点 click 已 stopPropagation，此处经事件委托监听）
       overlay.addEventListener('pointerup', (ev) => {
@@ -1896,6 +1918,7 @@
         saveRoute();
         if (typeof drawRoute === 'function') drawRoute();
         updateRoutePanel();
+        if (routeCids.length >= 2) hideRouteGuide(true);   // 已学会两步，首次引导不再出现
       });
     }
 
@@ -1948,9 +1971,18 @@
       if (pts.length < 2) return;
       const line = d3.line().curve(d3.curveCatmullRom.alpha(0.5));
       routeLayerG.append('path').attr('d', line(pts)).attr('class', 'sm-route-line');
+      const ids = routeCids.filter(id => (lastCities || []).some(cc => cc.id === id));
       pts.forEach((p, i) => {
-        routeLayerG.append('circle').attr('cx', p[0]).attr('cy', p[1]).attr('r', 4.2).attr('class', 'sm-route-pt');
-        routeLayerG.append('text').attr('x', p[0] + 7).attr('y', p[1] - 7).attr('class', 'sm-route-idx').text(i + 1);
+        // v20260927m：P0 单点删除——先铺大热区命中层（规划模式下点击该点从路线移除）
+        routeLayerG.append('circle').attr('cx', p[0]).attr('cy', p[1]).attr('r', 15)
+          .attr('class', 'sm-route-hit').style('cursor', 'pointer')
+          .on('click', (e) => {
+            e.stopPropagation();
+            if (!routeMode) return;
+            removeRouteCity(ids[i]);
+          });
+        routeLayerG.append('circle').attr('cx', p[0]).attr('cy', p[1]).attr('r', 4.2).attr('class', 'sm-route-pt').style('pointer-events', 'none');
+        routeLayerG.append('text').attr('x', p[0] + 7).attr('y', p[1] - 7).attr('class', 'sm-route-idx').text(i + 1).style('pointer-events', 'none');
       });
     }
     // 路线统计（估算口径：1°≈111km，1km≈2里；日行40里；日耗粮3）
@@ -1968,14 +2000,41 @@
       const band = ord >= 75 ? '安' : ord >= 50 ? '平' : '险';
       return { n: cs.length, li: Math.round(li), days, food, ord, band };
     }
+    // v20260927m：P0 单点删除——移除路线中某座城，重绘并刷新统计
+    function removeRouteCity(cid) {
+      const idx = routeCids.indexOf(cid);
+      if (idx < 0) return;
+      routeCids.splice(idx, 1);
+      saveRoute();
+      if (typeof drawRoute === 'function') drawRoute();
+      updateRoutePanel();
+      if (routeMode && !routeCids.length) setHint('路线已清空，点击城池重新规划');
+    }
+    // v20260927m：P0 首次三步引导——只在第一次进入规划模式时出现，学会(≥2城)或点「知道了」后不再打扰
+    function maybeShowRouteGuide() {
+      if (!routeGuide) return;
+      let seen = false; try { seen = !!localStorage.getItem(ROUTE_TIP_KEY); } catch (e) {}
+      if (seen) return;
+      routeGuide.style.display = 'block';
+    }
+    function hideRouteGuide(markSeen) {
+      if (!routeGuide) return;
+      routeGuide.style.display = 'none';
+      if (markSeen) { try { localStorage.setItem(ROUTE_TIP_KEY, '1'); } catch (e) {} }
+    }
     function updateRoutePanel() {
       if (!routePanel) return;
       if (!routeCids.length) { routePanel.style.display = 'none'; return; }
       const st = routeStats();
+      // v20260927m：P0 途经城列表——浮条内直接点 × 删除该城（不依赖地图上被浮条遮挡的点热区）
+      const names = routeCids.map(id => { const c = (lastCities || []).find(cc => cc.id === id); return c ? c.name : ''; });
+      const list = names.map((nm, i) =>
+        '<span class="rp-city" data-cid="' + routeCids[i] + '">' + (i + 1) + '.' + nm + '<i class="rp-del" title="删除该城">×</i></span>').join('');
       routePanel.innerHTML =
         '<div class="rp-t">行军路线 · ' + st.n + ' 城</div>' +
+        (list ? '<div class="rp-cities">' + list + '</div>' : '') +
         '<div class="rp-s">约 <b>' + st.li + '</b> 里 · <b>' + st.days + '</b> 日 · 粮 <b>' + st.food + '</b> · 沿途治安 <b>' + st.band + '</b>(' + st.ord + ')</div>' +
-        '<div class="rp-b"><button data-a="done">完成</button><button data-a="clear">清除</button></div>';
+        '<div class="rp-b"><button data-a="undo">撤销</button><button data-a="done">完成</button><button data-a="clear">清除</button></div>';
       routePanel.style.display = 'block';
     }
     function toggleRouteMode() {
@@ -1983,6 +2042,7 @@
       const rb = ui.querySelector('#sm-route-btn');
       if (rb) rb.classList.toggle('active', routeMode);
       setHint(routeMode ? '路线规划：依次点击城池加入路线，完成后点「完成」' : DEFAULT_HINT);
+      if (routeMode) { maybeShowRouteGuide(); }
       if (!routeMode) updateRoutePanel();
     }
     function closeFactionPanel() { if (factionPanel) factionPanel.style.display = 'none'; }
