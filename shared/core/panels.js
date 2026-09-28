@@ -226,6 +226,7 @@
           (mkHtml? mkHtml : '')+
           (boHtml? boHtml : '')+
           (garrHtml? garrHtml : '')+
+          (function(){ var _pf=S().faction||'义军'; var _own=(typeof cityOwnerOf==='function' && cityOwnerOf(cid)===_pf); var _cap=(S().flags.factionCapital && S().flags.factionCapital[_pf]===cid); if(_own&&!_cap) return '<div class="row"><span>定都</span><button class="btn sm" onclick="window.declareCapital(\'+cid+\')">于此定都（中枢改建皇宫）</button></div>'; if(_own&&_cap) return '<div class="row"><span>都城</span><span>此城为本势力都城</span></div>'; return ''; })()+
           '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。城内空地可点格「营造」筑新宅新市。</p>';
       }
 

@@ -109,6 +109,11 @@
         else out.push({t:'〔走兽〕'+m.name+'（'+_lv+'）见人便窜入草丛。', c:'sys'});
       }); }
       if(room.fieldNpcs && room.fieldNpcs.length){ room.fieldNpcs.forEach(function(n){ out.push({t:'〔路人〕'+n.name+'在此歇脚。', c:'sys'}); }); }
+      // 郊野偶遇名将（v20260927k）：名将不只窝在城里——好武/嗜酒者会出门游猎于野
+      var _NAI = (typeof LF !== 'undefined') ? LF.NpcAi : null;
+      if(_NAI && typeof _NAI.famousInField === 'function'){
+        _NAI.famousInField(room).forEach(function(t){ out.push({ t:'〔偶遇〕'+_NAI.fieldLine(t), c:'good' }); });
+      }
       var fcamps=fieldPlacedCamps(room);
       if(fcamps.length) out.push({t:'〔营地〕此处已支有'+fcamps.map(function(f){return f.name;}).join('、')+'，可就近安歇或收起带走。', c:'good'});
       if(roomIsBoatRoute(room)) out.push(isOnBoat()
@@ -169,6 +174,13 @@
       });
       if(room.fieldNpcs && room.fieldNpcs.length){
         room.fieldNpcs.forEach(function(n){ mkAct('scene','💬','与'+n.name+'交谈', function(){ talkFieldNpc(room, n); }); });
+      }
+      // 郊野偶遇名将：可上前一会（v20260927k）
+      var _NAI2 = (typeof LF !== 'undefined') ? LF.NpcAi : null;
+      if(_NAI2 && typeof _NAI2.famousInField === 'function'){
+        _NAI2.famousInField(room).forEach(function(t){
+          mkAct('scene','🧑','会·'+t.name, function(){ log(_NAI2.fieldLine(t), 'good'); });
+        });
       }
       if(fieldHasWater(room)) mkAct('scene','🎣','垂钓', function(){ fishField(room); });
       addFieldCamp(room);
@@ -340,10 +352,104 @@
       return false;
     }
   
+    // ══ 副本（秘谷）与名胜 · 战场钩子（v20260927h）══
+    // 背景：gen/rooms.js 早已生成副本房间（kind:'dungeon'，带 spawns / loot / isBossRoom）与
+    // 名胜（kind:'landmark'/'wild'，带 plot / battle / isBattlefield），但这些数据此前【无人消费】——
+    // 秘谷里只有一间间空房和一句描述，既无敌人也无战利品。此处补上完整闭环：
+    //   副本：进入 → 〔戒备〕/〔首领〕 → 「清剿」入战 → 战后按房记 cleared → 「搜检残迹」领 loot
+    //   名胜：isBattlefield → 「凭吊古战场」；plot → 「探查往事」（记入见闻）
+    // 清剿标记与郊野同源（combat.js 战后归档写入 flags.dungeonCleared[roomId]）。
+    function dungeonCleared(rid) { var f = S().flags.dungeonCleared; return !!(f && f[rid]); }
+    function dungeonLooted(rid) { var f = S().flags.dungeonLooted; return !!(f && f[rid]); }
+    function dungeonMonstersLeft(room) {
+      if (!room || (room._kind || room.kind) !== 'dungeon') return [];
+      if (dungeonCleared(room.id)) return [];
+      return (room.spawns || []).filter(function (id) { return !!id; });
+    }
+    function dungeonNarr(room) {
+      var out = [];
+      if (!room) return out;
+      if ((room._kind || room.kind) === 'dungeon_entrance') {
+        out.push({ t: '〔洞口〕' + ((room.desc && room.desc[0]) ? room.desc[0] : '洞口幽深，寒气逼人。'), c: 'sys' });
+        return out;
+      }
+      if ((room._kind || room.kind) !== 'dungeon') return out;
+      if (dungeonCleared(room.id)) out.push({ t: '〔已清〕此处已肃清，唯余残迹狼藉。', c: 'sys' });
+      else if (room.isBossRoom) out.push({ t: '〔首领〕密室深处，首领环视——杀气逼人。', c: 'combat' });
+      else if ((room.spawns || []).length) out.push({ t: '〔戒备〕幽径漆黑，' + room.spawns.length + ' 道怪影幢幢，见你便露凶光。', c: 'combat' });
+      return out;
+    }
+    function dungeonLoot(room) {
+      var f = S().flags.dungeonLooted || (S().flags.dungeonLooted = {});
+      if (f[room.id]) { toast('残迹已搜检一空。'); return; }
+      var got = [], gold = 0;
+      (room.loot || []).forEach(function (x) {
+        if (typeof x === 'string' && x.indexOf('gold:') === 0) {
+          var g = parseInt(x.slice(5), 10) || 0;
+          if (g > 0) { gold += g; S().gold = (S().gold || 0) + g; }
+        } else if (x) {
+          if (packAdd(x, 1)) got.push(((LF.ITEMS || {})[x] || {}).name || x);
+        }
+      });
+      f[room.id] = 1; save(S());
+      var msg = [];
+      if (got.length) msg.push('得 ' + got.join('、'));
+      if (gold) msg.push('得银 ' + gold + ' 两');
+      log(msg.length ? ('你搜检残迹，' + msg.join('；') + '。') : '残迹中空无一物。', msg.length ? 'good' : 'sys');
+      buildActions(G.ROOMS[S().room]); renderStatus();
+    }
+    // 凭吊古战场（isBattlefield）：记入见闻，不再重复
+    function battlefieldMourn(room) {
+      var f = S().flags.battlefieldMourned || (S().flags.battlefieldMourned = {});
+      if (f[room.id]) { toast('此地你已凭吊过。'); return; }
+      f[room.id] = 1; save(S());
+      var bt = room.battle ? ('（' + room.battle + '之役）') : '';
+      log('你立于「' + (room.name || '古战场') + '」之上' + bt + '，遥想当年金戈铁马、矢石交坠，慨然良久。此间杀气未消，已记于见闻。', 'sys');
+      buildActions(G.ROOMS[S().room]);
+    }
+    // 探查往事（plot）：钩子记入见闻，供后续剧情系统消费
+    function plotHook(room) {
+      var f = S().flags.plotSeen || (S().flags.plotSeen = {});
+      var key = room.plot || room.id;
+      if (f[key]) { toast('此间往事你已查过，暂无新线索。'); return; }
+      f[key] = 1; save(S());
+      log('你细察碑碣残文、访诸野老——「' + (room.name || '此地') + '」的一段往事已记于见闻（线索：' + key + '）。', 'sys');
+      buildActions(G.ROOMS[S().room]);
+    }
+    function dungeonActions(room) {
+      if (!room) return;
+      if ((room._kind || room.kind) === 'dungeon') {
+        var left = dungeonMonstersLeft(room);
+        if (left.length) {
+          mkAct('scene', '⚔', room.isBossRoom ? '决战·首领' : '清剿·此处', function () {
+            startCombat(left, { fieldLvl: room.isBossRoom ? 3 : 1 });
+          });
+        } else if ((room.loot || []).length && !dungeonLooted(room.id)) {
+          mkAct('scene', '🎁', '搜检残迹', function () { dungeonLoot(room); });
+        } else {
+          mkAct('scene', '·', (room.loot || []).length ? '已搜检' : '此处已空', function () {
+            toast((room.loot || []).length ? '残迹已搜检一空。' : '此处已无他物。');
+          });
+        }
+      }
+      if (room.isBattlefield) mkAct('scene', '🕯', '凭吊古战场', function () { battlefieldMourn(room); });
+      if (room.plot) mkAct('scene', '📜', '探查往事', function () { plotHook(room); });
+    }
+    // 名胜 / 野地：单房，靠 isBattlefield / plot / battle 钩子给交互
+    function landmarkActions(room) {
+      if (!room) return;
+      if (room.isBattlefield) mkAct('scene', '🕯', '凭吊古战场', function () { battlefieldMourn(room); });
+      if (room.plot) mkAct('scene', '📜', '探查往事', function () { plotHook(room); });
+      if (!room.isBattlefield && !room.plot) mkAct('scene', '·', '观览风物', function () {
+        log('你驻足观览——' + ((room.desc && room.desc[0]) ? room.desc[0] : '风物依旧，引人凭吊。'), 'sys');
+      });
+    }
+
     return {
       fieldMonstersLeft, fieldNarr, fieldNarrFresh, fieldMetaOf, roomIsBoatRoute, isOnBoat, setOnBoat, boatBoardAct,
       fieldActions, gatherField, fieldHasWater, fishField, huntFieldBeast, talkFieldNpc, fieldPlacedCamps, carriedCampGear,
-      placeFieldGear, addFieldCamp, campInField, maybeFieldAmbush
+      placeFieldGear, addFieldCamp, campInField, maybeFieldAmbush,
+      dungeonActions, landmarkActions, dungeonNarr, dungeonMonstersLeft, dungeonLoot
     };
   };
 })(typeof window !== 'undefined' ? window : global);

@@ -196,7 +196,9 @@
       boatBoardAct = Field.boatBoardAct, fieldActions = Field.fieldActions, gatherField = Field.gatherField, fieldHasWater = Field.fieldHasWater,
       fishField = Field.fishField, huntFieldBeast = Field.huntFieldBeast, talkFieldNpc = Field.talkFieldNpc, fieldPlacedCamps = Field.fieldPlacedCamps,
       carriedCampGear = Field.carriedCampGear, placeFieldGear = Field.placeFieldGear, addFieldCamp = Field.addFieldCamp, campInField = Field.campInField,
-      maybeFieldAmbush = Field.maybeFieldAmbush;
+      maybeFieldAmbush = Field.maybeFieldAmbush,
+      dungeonActions = Field.dungeonActions, landmarkActions = Field.landmarkActions,
+      dungeonNarr = Field.dungeonNarr, dungeonMonstersLeft = Field.dungeonMonstersLeft;
 
   // 模块 rest（从 engine.js 拆分）
   // 模块 sect（从 engine.js 拆分）
@@ -659,6 +661,17 @@
       dispatchAssign = Officers.dispatchAssign, dispatchRemove = Officers.dispatchRemove,
       dispatchLabor = Officers.dispatchLabor, dispatchTroops = Officers.dispatchTroops, facilitiesMonthlyYield = Officers.facilitiesMonthlyYield,
       civilCommand = Officers.civilCommand, delegateCommand = Officers.delegateCommand, undelegateCommand = Officers.undelegateCommand, monthlyAffairs = Officers.monthlyAffairs, renderEdictCommands = Officers.renderEdictCommands;
+
+  // NPC 内驱力 / 位置 / 流动（v20260927j）：city.js 渲染场景时按 LF.NpcAi 询问「谁在这一格」
+  var NpcAi = LF.NpcAi = LF.createNpcAi({
+    getState: function () { return state; },
+    log: log, toast: toast, save: save,
+    recruit: function (id) { return officerRecruit(id); },
+    // 委托交付：查物 / 消耗 / 发奖（packFind 返回物品实例，计数取 .count||1）
+    packFind: packFind, packConsume: packConsume, packAdd: packAdd,
+    addRep: function (n) { return addReputation(n); },
+    addXp: function (n) { return addXp(n); }
+  });
   // NPC 装配器与交谈面板（v20260916c）：从 engine.js 切出，见 shared/core/npc.js。
   // 排在 Combat 之后（敌意卡「挑战」用 startCombat）、Pack 之前；city.js 经 getNPC_BUILD 延迟取装配器，
   // 故 City（更早建）不会因 NPC 后建而拿到空值。
@@ -852,6 +865,7 @@
   function enterGame(data, slot, isNew){
     curSlot=slot||0;
     Core.state = state = normalize(data || G.defaultSave());
+    prefetchStrategicMap();   // P0-①：进入游戏后空闲预取山河志三件套，开图秒开
     G.applySect(state);
     G.recalcBase(state);                      // 依据四维 attr + 门派加成 重算派生战力
     packEnsure(state);                     // 行囊/6 装备槽兼容与初始化（v0.6）
@@ -886,7 +900,8 @@
     //   等玩家看完动画回到牢房，这条唯一的打字快进教学早已消失（等于从未教过）。
     var _tipSkip=function(){
       if(!(_onbSpawn && !(state.flags && state.flags.onb && state.flags.onb.done))) return;
-      setTimeout(function(){ toast('轻触叙事文字，可立即显示整段', 3600); }, 1200);
+      // v20260927k：延迟触发提示时若玩家已打开面板，提示会盖住面板，故只在无面板时才显示。
+      setTimeout(function(){ if(!currentModalKind && !_tipBlocked) toast('轻触叙事文字，可立即显示整段', 3600, 'tutorial'); }, 1200);
     };
     if(_playIntro){
       // 序章动画期间先不露界面（幕布底下空着），演毕再显界面并渲染牢房 —— 「演完才出现在牢里」
@@ -1282,6 +1297,7 @@
       if(Math.random()<0.55) state.weather=Math.floor(Math.random()*WEATHERS.length); // 新日易天候
       warlordDayTick(crossings);             // 群雄逐鹿：NPC 势力自动攻伐（v20260909o）
       tickArmyDay(crossings);                // 军务：行军推进 + 军粮消耗 + 断粮掉士气（v20260921a）
+      if (NpcAi && NpcAi.tickDay) NpcAi.tickDay();   // 名将流动：按内驱力改易驻城（野心趋大城，好武趋边地）（v20260927j）
       tryAmbush();                           // 设伏：郊野候敌，敌至则先手（v20260921a）
     }
       // 朔日结算（v20260918g）：跨月 → 治下纳赋 + 群雄内政 + 势力存亡 + 统一终局（叠在耗时辰模型上）
@@ -1549,6 +1565,8 @@
       // 郊野：资源/野兽/路人。v20260914a：走 fieldNarrFresh —— 同一格反复进出时，
       //   〔途〕〔地利〕这类地貌情报不再每次重念一遍（详见 fieldNarrFresh）。
       if(room.isField) narr = narr.concat(fieldNarrFresh(room, rid));
+      // 副本 / 秘谷（v20260927h）：〔戒备〕〔首领〕〔已清〕——此前副本房间只有一句 desc，无任何敌情播报。
+      if((room._kind||room.kind) === 'dungeon' || (room._kind||room.kind) === 'dungeon_entrance') narr = narr.concat(dungeonNarr(room));
       // 新房间自动探查：标记已探索，出口立即可用。
       // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「环顾四周 / 探查」在玩家主动行动时揭示。
       if(!explored){
@@ -1692,6 +1710,20 @@
           toggleObjExpand(e, _btn, o, _acts);
         }, null, o.key);
       });
+      renderSelf(room);
+      return;
+    }
+    // 副本房间（v20260927h）：清剿 / 搜检战利品（秘谷多层，kind==='dungeon'）
+    if((room._kind||room.kind) === 'dungeon' || (room._kind||room.kind) === 'dungeon_entrance'){
+      dungeonActions(room);
+      if(room.exits && Object.keys(room.exits).length) renderMoveBar(room);
+      renderSelf(room);
+      return;
+    }
+    // 名胜 / 野地（v20260927h）：凭吊古战场（isBattlefield）/ 探查往事（plot）
+    if((room._kind||room.kind) === 'landmark' || (room._kind||room.kind) === 'wild'){
+      landmarkActions(room);
+      if(room.exits && Object.keys(room.exits).length) renderMoveBar(room);
       renderSelf(room);
       return;
     }
@@ -4407,6 +4439,7 @@
     return h;
   }
   var currentModalKind=null;
+  var _tipBlocked=false;   // v20260927k：若玩家在游戏初期就打开面板，阻断「轻触文字快进」教程提示
 
   // [moved → shared/core/building.js] 可进入建筑：BUILDINGS 数据表与进出楼房间逻辑（isBldRoom/bldForRoom/bldRoom/enterBldRoom/bldMove/leaveBldRoom/hasCount）
 
@@ -4430,8 +4463,8 @@
   // ── 主角详情分页（v20260924x 角色大厅四页签：状态/加点/装备/技能）──
   function mainCharStatHTML(){
     var es=effectiveStats();
-    var h='<h3>角 色 · '+(state.name||'无名客')+'</h3>'+
-      (function(){
+    // 标题已由 charhall.mainTabsHTML 的 head 渲染，这里不再重复（v20260927k 修复角色面板标题重复）
+    var h=(function(){
         var need=(state.level>=G.CONSTANTS.MAX_LEVEL)?0:G.BALANCE.expNeed(state.level);
         if(!need) return row('等级','LV.'+state.level+' · 圆满')
           + '<div class="exp-bar"><i style="width:100%"></i></div>';
@@ -4503,6 +4536,9 @@
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
+    _tipBlocked=true;   // 只要开过面板，就不再显示「轻触文字快进」提示
+    if(_toastTimer){ clearTimeout(_toastTimer); _toastTimer=null; }
+    if($toast) $toast.classList.remove('show');
     setDockRest(kind);   // 底部页签选中态跟随（v20260924h）
     dlgClose();   // 开面板即收对话窗（v20260912g）：底部位置让给面板，别两套东西叠着
     var _tt=document.getElementById('title'); if(_tt) _tt.classList.add('frozen');   // 冻结标题重绘，避免弹窗(择档等)卡顿
@@ -4873,26 +4909,36 @@
   // 仅在首次开图时才注入，避免首屏下载/解析这些用户可能永远用不到的资源。
   // 资源 URL 清单放在 index.html 的 window.__MAP_ASSETS（版本号随对应文件走，便于统一 bump）。
   var _mapReady=null;
+  function _loadMapAsset(src){
+    return new Promise(function(res, rej){
+      var s=document.createElement('script'); s.src=src; s.async=true;
+      s.onload=function(){ res(); };
+      s.onerror=function(){ rej(new Error('地图资源加载失败: '+src)); };
+      document.head.appendChild(s);
+    });
+  }
+  // P0-①：战略图三件套改为并行加载（原串行 chain：d3→regions→sm 顺序等待）
+  // 并行后首次开图等待从「三者之和」降到「最慢一项」，配合下方空闲预取即可秒开。
   function ensureStrategicMap(){
     if(_mapReady) return _mapReady;
+    var A=window.__MAP_ASSETS;
+    if(A && window.d3 && window.LF && LF.REGIONS && LF.initStrategicMap){ _mapReady=Promise.resolve(); return _mapReady; }
     _mapReady=new Promise(function(resolve, reject){
-      var A=window.__MAP_ASSETS;
-      if(A && window.d3 && window.LF && LF.REGIONS && LF.initStrategicMap){ resolve(); return; }
-      function load(src){
-        return new Promise(function(res, rej){
-          var s=document.createElement('script'); s.src=src; s.async=true;
-          s.onload=function(){ res(); };
-          s.onerror=function(){ rej(new Error('地图资源加载失败: '+src)); };
-          document.head.appendChild(s);
-        });
-      }
-      var chain=Promise.resolve();
-      if(!A || !window.d3) chain=chain.then(function(){ return load(A?A.d3:'shared/vendor/d3.min.js'); });
-      if(!A || !(window.LF && LF.REGIONS)) chain=chain.then(function(){ return load(A?A.regions:'shared/data/map_regions.js'); });
-      if(!A || !(window.LF && LF.initStrategicMap)) chain=chain.then(function(){ return load(A?A.sm:'shared/strategic-map.js'); });
-      chain.then(resolve, reject);
+      var tasks=[];
+      if(!A || !window.d3) tasks.push(_loadMapAsset(A?A.d3:'shared/vendor/d3.min.js'));
+      if(!A || !(window.LF && LF.REGIONS)) tasks.push(_loadMapAsset(A?A.regions:'shared/data/map_regions.js'));
+      if(!A || !(window.LF && LF.initStrategicMap)) tasks.push(_loadMapAsset(A?A.sm:'shared/strategic-map.js'));
+      Promise.all(tasks).then(resolve, reject);
     });
     return _mapReady;
+  }
+  // P0-①：进入游戏后利用浏览器空闲时段预取战略图三件套，使玩家点开山河志时资源已就绪（不阻塞首屏/序章）
+  function prefetchStrategicMap(){
+    try{
+      if(_mapReady) return;
+      var ric=window.requestIdleCallback||function(cb){ return setTimeout(cb, 1400); };
+      ric(function(){ ensureStrategicMap().catch(function(){}); }, {timeout:5000});
+    }catch(e){}
   }
   function initStrategicMapInGame(opts){
     opts=opts||{};
@@ -5080,8 +5126,8 @@
     if (du.rounds.length >= 3) { du.phase = 'done'; du.win = du.momentum > 0; }
     openModal('duel');
   }
-  function duelGo() { var d = window.__duel; S().flags._duel = null; window.__duel = null; if (d && d.proceed) d.proceed(true); else closeModal(); }
-  function duelSkip() { var d = window.__duel; S().flags._duel = null; window.__duel = null; if (d && d.proceed) d.proceed(false); else closeModal(); }
+  function duelGo() { var d = window.__duel; state.flags._duel = null; window.__duel = null; if (d && d.proceed) d.proceed(true); else closeModal(); }
+  function duelSkip() { var d = window.__duel; state.flags._duel = null; window.__duel = null; if (d && d.proceed) d.proceed(false); else closeModal(); }
   function renderDebate() {
     var d = window.__debate; if (!d) return '';
     var f = (LF.FACTIONS || {})[d.fid] || {}; var st = S(); var db = st.flags._debate || { phase: 'fight', rounds: [], momentum: 0, win: false };
@@ -5108,12 +5154,12 @@
     if (db.rounds.length >= 3) { db.phase = 'done'; db.win = db.momentum > 0; st.flags._debateEdge = db.win ? 0.2 : 0; }
     openModal('debate');
   }
-  function debateGo() { var d = window.__debate; S().flags._debate = null; window.__debate = null; closeModal(); }
+  function debateGo() { var d = window.__debate; state.flags._debate = null; window.__debate = null; closeModal(); }
   function openDebate(fid) {
     var f = (LF.FACTIONS || {})[fid]; if (!f) return;
     var lordId = f.lord; if (!lordId) { toast('此势力主君无名，无可舌战。'); return; }
     window.__debate = { fid: fid, enemyId: lordId };
-    S().flags._debate = { phase: 'fight', rounds: [], momentum: 0, win: false };
+    state.flags._debate = { phase: 'fight', rounds: [], momentum: 0, win: false };
     openModal('debate');
   }
   function levyTroops(n) {
@@ -5283,6 +5329,11 @@
     var subs = [];
     if (def.subGen === 'offices') {
       OFF.forEach(function (o) { subs.push({ k: o.key, gid: o.key, name: o.name, desc: [o.name + (o.note ? ('：' + o.note) : '')], icon: o.icon || '🏛', group: '官署' }); });
+      var _dyn = (state.flags.cityWards && state.flags.cityWards[cid]) || [];   // 已拜官而动态生成的府衙（如都督府）
+      _dyn.forEach(function (key) {
+        var o = (LF.OFFICE_DYN && LF.OFFICE_DYN[key]) || null;
+        if (o) subs.push({ k: 'off_' + key, gid: key, name: o.name, desc: [o.name + (o.note ? ('：' + o.note) : '')], icon: o.icon || '🏛', group: '官署', officeKey: key });
+      });
     } else if (def.subGen === 'mansions') {
       var gens = officersInCity(cid).slice(0, def.capacity || 6);
       if (!gens.length) subs.push({ k: 'empty', name: '空置宅邸', desc: ['此坊尚无人居，院落寂然。'], icon: '🏠', group: '宅邸' });
@@ -5308,7 +5359,7 @@
     }
     subs.forEach(function (s) {
       var id = wardSubId(cid, x, y, s.k);
-      var act = { id: 'ward_view', label: wardViewLabel(def.subGen, s), tip: '于' + s.name + '处置事', kind: def.subGen, nm: s.name, gid: (s.gid || null), cid: cid, x: x, y: y };
+      var act = { id: 'ward_view', label: wardViewLabel(def.subGen, s), tip: '于' + s.name + '处置事', kind: def.subGen, nm: s.name, gid: (s.gid || null), cid: cid, x: x, y: y, officeKey: (s.officeKey || null) };
       G.ROOMS[id] = { id: id, name: s.name, desc: (s.desc && s.desc.length ? s.desc : ['']), find: '', exits: { '南': '__cell__:' + cid + ':' + x + ':' + y }, npcs: [], items: [], actions: [act], _ward: true };
     });
     var doors = subs.map(function (s) { return { label: s.name, icon: s.icon, target: wardSubId(cid, x, y, s.k), group: s.group }; });
@@ -5335,7 +5386,15 @@
   function wardViewInfo(a) {
     if (!a) return null;
     var k = a.kind, nm = a.nm, gid = a.gid;
-    if (k === 'offices') return (nm + '：' + (WARD_OFFICE_DESC[gid] || '此处处理相关政务。'));
+    if (k === 'offices') {
+      var _info = ((LF.OFFICE_DESC && LF.OFFICE_DESC[gid]) || WARD_OFFICE_DESC[gid] || '此处处理相关政务。');
+      var _holder = (state.flags.centralOffice && state.flags.centralOffice[gid]);
+      var _line = nm + '：' + _info;
+      if (_holder) { var _h = findOfficer(_holder); _line += '（现任：' + (_h ? (_h.name || _holder) : _holder) + '）'; }
+      var _eff = (LF.OFFICE_EFFECT && LF.OFFICE_EFFECT[gid]);
+      if (_eff && _eff.desc) _line += ' ' + _eff.desc;
+      return _line;
+    }
     if (k === 'mansions' || k === 'generals') {
       var g = gid ? findOfficer(gid) : null;
       if (!g) return nm + '：门庭寂然，主人不在。';

@@ -44,6 +44,35 @@ window.LF = window.LF || {};
     { key:'dajiang',  name:'大将军府', note:'军权中枢（如董卓、曹操任大将军）',              tags:['gov','military'] },
   ];
 
+  // 中枢官职（可在官署坊动态生成办公建筑）：dudu/taiwei/situ/sikong 为 OFFICE_SUBROOMS 之外的「新增府衙」
+  LF.OFFICE_DYN = {
+    dudu:    { key:'dudu',    name:'都督府', note:'都督诸军、水陆征战',            tags:['gov','military'], icon:'🏯' },
+    taiwei:  { key:'taiwei',  name:'太尉府', note:'掌武事、统兵机宜',            tags:['gov','military'], icon:'⚔' },
+    situ:    { key:'situ',    name:'司徒府', note:'教化万民、掌徒众户籍',        tags:['gov','civil'],    icon:'📜' },
+    sikong:  { key:'sikong',  name:'司空府', note:'营建工程、水土沟洫',          tags:['gov','eng'],      icon:'🛠' }
+  };
+  // 官署简介（覆盖固定12 + 动态4），供官署坊内「问政」展示
+  LF.OFFICE_DESC = {
+    shangshu:'总揽政务、章奏出纳', yushi:'监察百官、弹劾不法', taichang:'宗庙礼仪、礼乐教化',
+    guanglu:'宫禁宿卫、郎官选授', weiwei:'宫门屯卫、徼巡京师', taipu:'舆马厩政、车驾牧养',
+    tingwei:'刑狱讼狱、典掌律令', dahonglu:'诸侯宾客、郊庙礼仪', zongzheng:'宗室属籍、皇亲亲疏',
+    dasinong:'田租赋税、国库钱谷', shaofu:'皇室私奉、工巧造作', dajiang:'总领戎政、节制诸军',
+    dudu:'都督诸军、水陆征战', taiwei:'掌武事、统兵机宜', situ:'教化万民、掌徒众户籍', sikong:'营建工程、水土沟洫'
+  };
+  // 办公建筑专属效果：tag 用于接入对应公式的乘子；mul 为该官职在位时的加成幅度（仅「已拜官」者计入）
+  LF.OFFICE_EFFECT = {
+    shangshu:{ tag:'gov', mul:0.15, desc:'每月治域增益，纳赋更丰。' },
+    dajiang: { tag:'mil', mul:0.15, desc:'该城整军更易，军团士气更盛。' },
+    dudu:    { tag:'mil', mul:0.10, desc:'行军耗时减、补给线更长。' },
+    dahonglu:{ tag:'dip', mul:0.15, desc:'外交成功率提升。' },
+    tingwei: { tag:'pub', mul:0.15, desc:'治安提升，民不乱。' },
+    dasinong:{ tag:'fin', mul:0.15, desc:'府库钱谷更充。' },
+    taiwei:  { tag:'mil', mul:0.10, desc:'武将忠诚更稳。' },
+    situ:    { tag:'gov', mul:0.10, desc:'人口繁庶、商业更盛。' },
+    sikong:  { tag:'eng', mul:0.15, desc:'营造速度提升。' },
+    yushi:   { tag:'gov', mul:0.10, desc:'百官勤政，效率提升。' }
+  };
+
   // 坊定义：坊格子 -> 子房间生成策略。
   //  subGen: mansions(驻城武将府邸) / offices(固定官署) / generals(将府→state.armies) /
   //          shops(市坊商铺) / schools(文教) / docks(码头，仅沿海)

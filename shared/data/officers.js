@@ -173,6 +173,9 @@
     { id:'guan_yu', name:'关羽', title:'别部司马', faction:'在野', home:'zhuo', loyalty:55,
       stats:{ wu:97, zhi:75, tong:95, zheng:70, mei:85 }, tags:['武圣','傲上'], bio:'髯长二尺，勇冠三军，千里独行。' },
     { id:'zhang_fei', name:'张飞', title:'别部司马', faction:'在野', home:'zhuo', loyalty:55,
+      // 显式内驱力（v20260927k）：小传无「酒」字，纯推导会把他判成纯好武（讨兵刃、站演武场）；
+      // 史实张飞嗜酒误事，故显式置 jiu 略高于 wu —— 他便落足市集酒肆，所求乃「讨一壶酒」。
+      drive:{ yi:35, xin:30, mian:25, cai:15, wu:85, jiu:90 },
       stats:{ wu:98, zhi:50, tong:92, zheng:40, mei:55 }, tags:['猛张飞','暴而无恩'], bio:'喝断当阳桥，义释严颜，万人之敌。' },
     { id:'zhao_yun', name:'赵云', title:'从骑', faction:'在野', home:'beiping', loyalty:50,
       stats:{ wu:96, zhi:72, tong:94, zheng:55, mei:85 }, tags:['常山赵子龙'], bio:'一身是胆，长坂坡七进七出。' },

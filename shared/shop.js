@@ -53,6 +53,68 @@
       if (n <= 99999999) { var v = (n / 10000).toFixed(n < 100000 ? 1 : 0); return (v.replace(/\.0$/, '')) + '万 两'; }
       var v2 = (n / 100000000).toFixed(n < 1000000000 ? 1 : 0); return (v2.replace(/\.0$/, '')) + '亿 两';
     }
+    // ── 钱庄：按城分账存取 + 异地汇兑（飞钱）（v20260927b）──
+    // 存银记在 flags.bank[cid]；本城存取无费，异地汇来按里程收「汇水」。
+    function bankBook() { var f = S().flags || (S().flags = {}); if (!f.bank) f.bank = {}; return f.bank; }
+    function bankCity() { var r = S().room; if (LF.CITIES && LF.CITIES[r]) return r; return shopStoreCid || r || null; }
+    function bankHere() { var c = bankCity(); return (c && bankBook()[c]) || 0; }
+    function bankLi(a, b) {
+      try { if (LF.ROADS && typeof LF.ROADS.li === 'function') return Math.max(0, Math.round(LF.ROADS.li(a, b) || 0)); } catch (e) { }
+      return 0;
+    }
+    function bankRate(fromC, toC) {   // 汇水：同城 0；500 里内 5%，每满 500 里 +5%，封顶 20%
+      if (!fromC || !toC || fromC === toC) return 0;
+      var li = bankLi(fromC, toC);
+      return Math.max(0.02, Math.min(0.20, Math.ceil(li / 500) * 0.05));
+    }
+    function bankBoxHTML() {
+      var cur = bankCity(), bk = bankBook();
+      var here = (cur && bk[cur]) || 0;
+      var nm = ((LF.CITIES || {})[cur] || {}).name || '本地';
+      var h = '<div class="bk-box">';
+      h += '<div class="bk-h">🏦 钱庄 · 存取汇兑</div>';
+      h += '<div class="bk-line">「' + nm + '」存银 <b>' + here + '</b> 两 · 随身 <b>' + (S().gold || 0) + '</b> 两</div>';
+      h += '<div class="bk-ops"><input class="bk-in" type="number" min="1" step="10" value="100" inputmode="numeric"><button class="btn sm" type="button" data-bk="dep">存 入</button><button class="btn sm" type="button" data-bk="draw">取 出</button></div>';
+      var oth = [];
+      for (var c in bk) { if (c !== cur && (bk[c] || 0) > 0) oth.push(c); }
+      if (oth.length) {
+        h += '<div class="bk-rem">异地存银（凭飞钱汇来，收汇水）：</div>';
+        oth.forEach(function (c) {
+          var amt = bk[c] || 0, rt = bankRate(c, cur), fee = Math.ceil(amt * rt);
+          h += '<div class="bk-row"><span class="bk-cn">' + (((LF.CITIES || {})[c] || {}).name || c) + ' · ' + amt + ' 两</span><span class="bk-fee">汇水 ' + Math.round(rt * 100) + '%（' + fee + ' 两）</span><button class="btn sm" type="button" data-bk="remit" data-cid="' + c + '">汇 来</button></div>';
+        });
+      }
+      h += '<div class="bk-tip">存银不生息，然身无长物，遇劫亦无所失；异地取银按里程收汇水（500 里内 5%，封顶 20%）。</div>';
+      h += '</div>';
+      return h;
+    }
+    function bankDo(kind, cid) {
+      var cur = bankCity(); if (!cur) { toast('此处不通汇兑。'); return; }
+      var inp = $card ? $card.querySelector('.bk-in') : null;
+      var n = Math.floor(Number(inp && inp.value) || 0);
+      var bk = bankBook();
+      if (kind === 'dep') {
+        if (n <= 0) { toast('请填存入数目。'); return; }
+        if (n > (S().gold || 0)) { toast('随身银两不足。'); return; }
+        S().gold -= n; bk[cur] = (bk[cur] || 0) + n;
+        if (typeof save === 'function') save(S()); toast('存入 ' + n + ' 两。');
+      } else if (kind === 'draw') {
+        var have = bk[cur] || 0;
+        if (!have) { toast('此地并无存银。'); return; }
+        if (n <= 0) { toast('请填取出数目。'); return; }
+        n = Math.min(n, have);
+        bk[cur] = have - n; S().gold = (S().gold || 0) + n;
+        if (typeof save === 'function') save(S()); toast('取出 ' + n + ' 两。');
+      } else if (kind === 'remit') {
+        var amt = bk[cid] || 0; if (!amt) { toast('彼处已无存银。'); return; }
+        var rt = bankRate(cid, cur), fee = Math.ceil(amt * rt), get = amt - fee;
+        bk[cid] = 0; S().gold = (S().gold || 0) + get;
+        if (typeof save === 'function') save(S());
+        toast('自' + (((LF.CITIES || {})[cid] || {}).name || '他城') + '汇来 ' + get + ' 两（汇水 ' + fee + ' 两）。');
+      } else { return; }
+      if (typeof renderTrade === 'function') renderTrade();
+    }
+
     // 行囊格 data-loc 形如 "pack:索引"（旧逻辑按 split(':')[1] 取索引，这里统一管理，避免后续改动再踩 NaN）
     function locIdx(loc) { if (loc == null) return -1; var p = String(loc).split(':'); return parseInt(p.length > 1 ? p[1] : p[0], 10); }
     // 行囊两格互换（持久化）
@@ -286,8 +348,10 @@
       var info = hasP
         ? ((bn ? ('将付 <b class="sf-pay">' + fmtPrice(bn) + '</b>') : '') + (bn && sn ? ' · ' : '') + (sn ? ('将收 <b class="sf-recv">' + fmtPrice(sn) + '</b>') : '') + (badge ? ' <span class="shop-badge">' + badge + '</span>' : ''))
         : '银两 ' + S().gold + ' 两 · 点选货品或行囊物品即可买卖';
+      var bankHtml = (shopMode === 'trade' && shopState === 'bank') ? bankBoxHTML() : '';
       return '<div class="shop-wrap">'
         + '<div class="shop-head"><span class="shop-title">💰 ' + shop.name + ' · 交易</span><span class="shop-gold">银两 ' + S().gold + ' 两</span></div>'
+        + bankHtml
         + '<div class="shop-main">'
         +   '<div class="shop-left"><div class="shop-pane-title">货郎的货</div><div class="shop-scroll"><div class="shop-goods-grid">' + goodsHTML + '</div></div></div>'
         +   '<div class="shop-right"><div class="shop-pane-title">你的行囊</div><div class="shop-scroll"><div class="pack-grid">' + grid + '</div></div></div>'
@@ -584,6 +648,10 @@
     function positionShopFloat(box, cell) { positionFloat(box, cell); }
     function bindShopPanel() {
       var card = document.getElementById('modal-card'); if (!card) return;
+      // 钱庄存取/汇兑按钮（v20260927b）
+      card.querySelectorAll('[data-bk]').forEach(function (b) {
+        b.onclick = function () { bankDo(b.getAttribute('data-bk'), b.getAttribute('data-cid')); };
+      });
       function clearSel(sel) { card.querySelectorAll(sel).forEach(function (c) { c.classList.remove('pcell-sel'); }); }
       // 仓库模式：左栏仓库格点选 / 拖拽
       card.querySelectorAll('[data-store]').forEach(function (el) {

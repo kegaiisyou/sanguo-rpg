@@ -36,7 +36,6 @@ const LOAD_FILES = [
   'shared/config/ui-spec.js',
   'shared/config/balance.js',
   'shared/story/sects.js',
-  'shared/story/skills.js',
   'shared/story/objectives.js',
   'shared/story/events.js',
   'shared/story/dialogues.js',

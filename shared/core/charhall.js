@@ -136,8 +136,15 @@
     }
     function officerEquipHTML(o) {
       var gear = ensureGear(o);
-      return '<div class="row"><span>装备</span></div>' + gearHTML(o, gear) +
-        '<p class="tip">点空槽从行囊为武将取装，点已装位卸下归还行囊。武将装备暂不计入战斗数值（仅管理与展示）。</p>';
+      var g = (Officers && Officers.gearStats) ? Officers.gearStats(o) : null;
+      var tip;
+      if (g && (g.atk || g.def || g.hp || g.spd)) {
+        tip = '<p class="tip">点空槽从行囊为武将取装，点已装位卸下归还行囊。</p>' +
+          '<p class="tip">临阵加成（已计入该将战斗数值）：攻 <b>+' + (g.atk || 0) + '</b> · 防 <b>+' + (g.def || 0) + '</b> · 气血 <b>+' + (g.hp || 0) + '</b> · 身法 <b>+' + (g.spd || 0) + '</b></p>';
+      } else {
+        tip = '<p class="tip">点空槽从行囊为武将取装，点已装位卸下归还行囊。装配后该将临阵攻防气血身法即刻提升。</p>';
+      }
+      return '<div class="row"><span>装备</span></div>' + gearHTML(o, gear) + tip;
     }
     function officerSkillHTML(o) {
       var t = Officers.template(o.id) || {};

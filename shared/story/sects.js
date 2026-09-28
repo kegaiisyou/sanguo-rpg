@@ -24,7 +24,7 @@
       faction: '汉室忠义 · 颍川士族',
       elem: '土',                         // 守土之象
       bonus: { atk: 2, def: 2, maxHp: 20 },
-      startingSkills: ['basic_fist'],
+      startingSkills: ['beng_quan'],
       martials: ['颍川战法（群战阵势）', '乡勇刀（守土刀法）', '结寨策（防御心法）'],
       grievance: [
         { target: '太平道', type: '敌对', desc: '流寇劫掠乡里，与义军势同水火，见则必战。' },
@@ -40,7 +40,7 @@
       faction: '黄天 · 底层秘教',
       elem: '水',                         // 符水之象
       bonus: { maxMp: 30, atk: 1 },
-      startingSkills: ['basic_fist', 'tu_na'],
+      startingSkills: ['beng_quan', 'yang_qi_jue'],
       martials: ['太平咒（符箓奇术）', '吐纳术（内功根基）', '太平力士诀（蛮力外功）'],
       grievance: [
         { target: '颍川义军', type: '敌对', desc: '义军保境剿流寇，两方相见分外眼红。' },
@@ -56,7 +56,7 @@
       faction: '凉州军阀 · 边军悍卒',
       elem: '金',                         // 锋金之象
       bonus: { atk: 4, maxHp: 40, def: 1 },
-      startingSkills: ['basic_fist'],
+      startingSkills: ['beng_quan'],
       martials: ['西凉刀法（悍勇劈砍）', '铁骑冲阵（骑战之术）', '凉州硬功（外门横练）'],
       grievance: [
         { target: '颍川义军', type: '戒备', desc: '义军守土，凉军拓边，立场相左，日后或兵戎相见。' },

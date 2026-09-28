@@ -677,6 +677,17 @@
       var box = document.getElementById('modal-card');
       if (!box) return;
       box.querySelectorAll('.packcell[data-w]').forEach(function () { });
+      // 页签切换（v20260927b）：概况/编成/募兵/辎重。旧版只绑了辎重格，四个页签点了无反应。
+      var _tb = box.querySelectorAll('.am-tab');
+      if (_tb.length) {
+        _tb.forEach(function (t) {
+          t.onclick = function () {
+            var pg = t.getAttribute('data-pg');
+            box.querySelectorAll('.am-tab').forEach(function (x) { x.classList.toggle('on', x === t); });
+            box.querySelectorAll('.am-pg').forEach(function (pn) { pn.style.display = (pn.getAttribute('data-pg') === pg) ? '' : 'none'; });
+          };
+        });
+      }
       // 辎重格 → 取出
       var lg = box.querySelector('.am-lgrid');
       if (lg) {

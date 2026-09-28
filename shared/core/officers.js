@@ -65,6 +65,20 @@
       return best;
     }
     // 守将单位数值（由五维派生，按战力缩放）
+    // 武将六槽装备合计（v20260927h）：读实例 gear（装备属性 item.stats{atk,def,hp,spd}，与主角同源）。
+    // 耐久耗尽的装备不生效；NPC 武将无 gear，故只有玩家为武将装配才受益。
+    function gearStats(inst) {
+      var sum = { atk: 0, def: 0, hp: 0, spd: 0 };
+      if (!inst || !inst.gear) return sum;
+      for (var slot in inst.gear) {
+        var it = inst.gear[slot]; if (!it) continue;
+        if (it.maxDur && it.dur != null && it.dur <= 0) continue;   // 破损不堪者不计
+        var st = it.stats || ((LF.ITEMS || {})[it.defId || it.id] || {}).stats;
+        if (!st) continue;
+        sum.atk += st.atk || 0; sum.def += st.def || 0; sum.hp += st.hp || 0; sum.spd += st.spd || 0;
+      }
+      return sum;
+    }
     function officerCombat(id) {
       var t = template(id); if (!t) return null;
       var s = t.stats, p = LF.PERSONA.powerOf(s);
@@ -74,7 +88,8 @@
       var defMul = 1 + sumEff(ids, 'defMul');
       var spdAdd = sumEff(ids, 'spdAdd');
       var crit = sumEff(ids, 'crit');
-      return { atk: Math.round(13 * scale * atkMul), def: Math.round(11 * scale * 0.95 * defMul), hp: Math.round(40 * scale), spd: Math.round(14 + s.wu * 0.06 + spdAdd), crit: crit };
+      var g = gearStats(getInst(id));   // 装备计入临阵数值（v20260927h）
+      return { atk: Math.round(13 * scale * atkMul) + g.atk, def: Math.round(11 * scale * 0.95 * defMul) + g.def, hp: Math.round(40 * scale) + g.hp, spd: Math.round(14 + s.wu * 0.06 + spdAdd) + g.spd, crit: crit, gear: g };
     }
 
     // ── 加成 ──
@@ -82,12 +97,12 @@
       var c = commander(); if (!c) return 1;
       var base = 1 + (c.stats.tong || 0) / 100 * 0.5;  // 统率 100 → 战力 +50%
       var atk = 1 + sumEff(idsOf(template(c.id)), 'atkMul');
-      return base * atk;
+      return base * atk * officeMul('mil');   // 军府（大将军/都督/太尉）在位 → 全军战力增益
     }
     function civilBonus(cid) {
       var g = governorOf(cid); if (!g) return 1;
       var ids = idsOf(template(g.id));
-      return 1 + (g.stats.zheng || 0) / 100 * 0.6 + sumEff(ids, 'devMul');  // 政务 + 特技(屯田/商才/工神/能吏)
+      return (1 + (g.stats.zheng || 0) / 100 * 0.6 + sumEff(ids, 'devMul')) * officeMul('gov');  // 台省（尚书/司徒/御史）在位 → 治域增益
     }
     function garrisonCivilBonus(cid) {
       var g = garrisonOf(cid); if (!g.length) return 1;
@@ -197,6 +212,30 @@
       return { ok: false, msg: '未肯来投' };
     }
 
+    // ── 中枢官职助手（v20260928a）──
+    function isCentralOffice(role) {
+      var keys = ['shangshu','yushi','taichang','guanglu','weiwei','taipu','tingwei','dahonglu','zongzheng','dasinong','shaofu','dajiang'];
+      if (keys.indexOf(role) >= 0) return true;
+      return !!(LF.OFFICE_DYN && LF.OFFICE_DYN[role]);
+    }
+    function officeName(role) {
+      var all = LF.OFFICE_SUBROOMS || [];
+      for (var i = 0; i < all.length; i++) if (all[i].key === role) return all[i].name;
+      var dyn = (LF.OFFICE_DYN || {})[role]; return dyn ? dyn.name : role;
+    }
+    function cityName(cid) { var c = (LF.CITIES || {})[cid] || {}; return c.name || cid; }
+    // 已拜官者按 tag 累积乘子（仅 centralOffice 中非空者计入）
+    function officeMul(tag) {
+      var eff = LF.OFFICE_EFFECT || {}, F = S().flags, co = (F && F.centralOffice) || {}, m = 1;
+      for (var k in co) { if (!co[k]) continue; var e = eff[k]; if (e && e.tag === tag) m *= (1 + (e.mul || 0)); }
+      return m;
+    }
+    function officeOptions() {
+      var opts = '', all = (LF.OFFICE_SUBROOMS || []);
+      all.forEach(function (o) { opts += '<option value="' + o.key + '">' + o.name + '</option>'; });
+      var dyn = LF.OFFICE_DYN || {}; for (var k in dyn) opts += '<option value="' + dyn[k].key + '">' + dyn[k].name + '</option>';
+      return opts;
+    }
     // ── 任命 / 遣散 ──
     function appoint(id, role, cid) {
       var o = getInst(id); if (!o) { toast('麾下无此人。'); return false; }
@@ -220,6 +259,27 @@
         o.assignment = { type: 'governor', cid: cid };
         log('〔任守〕以 ' + o.name + ' 守' + (((LF.CITIES || {})[cid] || {}).name || cid) + '，军民赖以安。', 'good');
         toast('🏯 ' + o.name + ' 任太守');
+      } else if (isCentralOffice(role)) {
+        var F = S().flags; if (!F.centralOffice) F.centralOffice = {};
+        var oname = officeName(role);
+        if (F.centralOffice[role] === id) {
+          F.centralOffice[role] = null;
+          log('〔解官〕' + o.name + ' 解去' + oname + '之印。', 'sys'); toast(o.name + ' 解' + oname);
+        } else {
+          F.centralOffice[role] = id;
+          var fid = playerFaction(), cap = (F.factionCapital && F.factionCapital[fid]) || null;
+          if (cap) {   // 只有动态府衙（OFFICE_DYN 中的 dudu/taiwei/situ/sikong）需写入官署坊；固定12官职恒在
+            if (LF.OFFICE_DYN && LF.OFFICE_DYN[role]) {
+              if (!F.cityWards) F.cityWards = {};
+              if (!F.cityWards[cap]) F.cityWards[cap] = [];
+              if (F.cityWards[cap].indexOf(role) < 0) F.cityWards[cap].push(role);
+            }
+            if (typeof window.rebuildWard === 'function') window.rebuildWard(cap);
+          }
+          log('〔拜官〕' + o.name + ' 拜 ' + oname + (cap ? '，开府于' + cityName(cap) : '') + '。', 'good');
+          toast('📜 ' + o.name + ' 拜' + oname);
+        }
+        save(S()); return true;
       } else { toast('未知任命。'); return false; }
       save(S());
       return true;
@@ -386,6 +446,7 @@
       var h = '<h3>武 将</h3>';
       h += '<div class="of-head">麾下 <b>' + list.length + '</b> 员' + (cmd ? '　|　主将：<b>' + esc(cmd.name) + '</b>（统率' + (cmd.stats.tong || 0) + '，战力 +' + Math.round((commandBonus() - 1) * 100) + '%）' : '　|　未设主将') + '</div>';
       h += '<div class="of-ops"><button class="btn sm" onclick="window.openOfficerTab(\'search\')">🔍 寻访人才</button></div>';
+      h += '<div class="of-ops"><label>中枢拜官：</label><select id="of_role" class="sel sm">' + officeOptions() + '</select><span class="hint">选官后于各将旁「拜官」即开府</span></div>';
       if (!list.length) {
         h += '<div class="of-empty">帐下尚无僚佐。可往城中「寻访人才」，延揽天下英雄；克城之时，败军之将亦或来归。</div>';
       } else {
@@ -403,7 +464,8 @@
           if (!(o.assignment && o.assignment.type === 'governor' && o.assignment.cid === here)) {
             if (ownHere) h += '<button class="btn sm" onclick="window.appointOfficer(\'' + o.id + '\',\'governor\',\'' + here + '\')">守' + esc((((LF.CITIES || {})[here] || {}).name || here)) + '</button>';
           } else h += '<button class="btn sm" onclick="window.appointOfficer(\'' + o.id + '\',\'governor\',\'' + here + '\')">解太守</button>';
-          h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + '\')">遣散</button>';
+                    h += '<button class="btn sm" onclick="window.appointOfficer(\'' + o.id + '\', document.getElementById(\'of_role\').value)">拜官</button>';
+h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + '\')">遣散</button>';
           h += '</div></div>';
         });
         h += '</div>';
@@ -710,12 +772,12 @@
     }
 
     return {
-      template: template, garrisonOf: garrisonOf, garrisonCommander: garrisonCommander, officerCombat: officerCombat,
+      template: template, garrisonOf: garrisonOf, garrisonCommander: garrisonCommander, officerCombat: officerCombat, gearStats: gearStats,
       commandBonus: commandBonus, civilBonus: civilBonus, garrisonCivilBonus: garrisonCivilBonus, swornBrothers: swornBrothers, enemyOf: enemyOf, affOf: affOf, loyaltyTick: loyaltyTick, battleSynergy: battleSynergy, taxBonus: taxBonus, orderBonus: orderBonus, yieldBonus: yieldBonus,
       roster: roster, get: getInst, commander: commander, governorOf: governorOf,
       idsOf: idsOf, template: template, statBars: statBars, skillTagsHTML: skillTagsHTML, tierCls: tierCls, assignTag: assignTag,
       recruitableHere: recruitableHere, recruitChance: recruitChance, recruit: recruit,
-      appoint: appoint, dismiss: dismiss, captureFrom: captureFrom,
+      appoint: appoint, dismiss: dismiss, captureFrom: captureFrom, officeMul: officeMul,
       renderOfficerPanel: renderOfficerPanel, renderSearchPanel: renderSearchPanel, renderOfficerHub: renderOfficerHub, renderFactionsPanel: renderFactionsPanel, renderCityGarrison: renderCityGarrison,
       openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel, openOfficerTab: openOfficerTab, openOfficerDetail: openOfficerDetail, renderOfficerDetail: renderOfficerDetail, officerPortrait: officerPortrait,
       dispatchAssign: dispatchAssign, dispatchRemove: dispatchRemove, dispatchLabor: dispatchLabor, dispatchTroops: dispatchTroops, facilitiesMonthlyYield: facilitiesMonthlyYield, facilityOutput: facilityOutput, civilCommand: civilCommand, delegateCommand: delegateCommand, undelegateCommand: undelegateCommand, monthlyAffairs: monthlyAffairs, renderEdictCommands: renderEdictCommands

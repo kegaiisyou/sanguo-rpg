@@ -32,3 +32,8 @@ reforig.png
 refp.png
 assets/map_ref.png
 assets/_ref_orig.png
+
+# 实机走查产物（截图 / 报告 json）
+_playtest/
+# 一次性冒烟调试脚本
+verify_smoke.js

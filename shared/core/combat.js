@@ -941,6 +941,12 @@
         enemyDatas.forEach(function(ed){ if(ed && ed.id) _crow[ed.id] = 1; });
       }
 
+      // ── 副本战果归档（v20260927h）：胜则整房记清剿，此后该房转「已清」并开放「搜检残迹」──
+      if(_froom && (_froom._kind || _froom.kind) === 'dungeon'){
+        var _dg0 = getState().flags.dungeonCleared || (getState().flags.dungeonCleared = {});
+        _dg0[getState().room] = 1;
+      }
+
       if(getDqCardEl()) getDqCardEl().classList.add('settle-win');
       playCombatFx('win');
       SFX.win();

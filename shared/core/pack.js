@@ -226,9 +226,23 @@
         if(el.__dragMoved){ el.__dragMoved=false; return; }
         var key=el.getAttribute('data-loc'); var loc=parseLoc(key); if(!loc) return;
         var now=Date.now();
-        if(packLastClick.loc===key && now-packLastClick.t<320){ packLastClick.t=0; quickUseFromPack(loc.idx); return; }  // 双击：快速装备/使用
+        var dbl=(packLastClick.loc===key && now-packLastClick.t<320);
         packLastClick={t:now, loc:key};
         var it=packGet(loc);
+        // P1 直穿卸：装备类单击即穿/卸，跳过中间层浮框（双击则查看属性/对比）
+        if(it && it.cat==='装备' && loc.kind==='pack' && it.slot){
+          if(dbl){ setPackInspect(loc); showPackFloat(); return; }
+          movePackItem({kind:'pack',idx:loc.idx},{kind:'equip',slot:it.slot});
+          refreshPackEquipLight(); refreshPackGridLight();
+          return;
+        }
+        if(it && loc.kind==='equip'){   // 装备栏已穿戴：单击直接卸下
+          if(dbl){ setPackInspect(loc); showPackFloat(); return; }
+          unequipToPack(loc.slot);
+          refreshPackEquipLight(); refreshPackGridLight();
+          return;
+        }
+        if(dbl){ quickUseFromPack(loc.idx); return; }   // 非装备双击：快速使用
         if(!it){ setPackInspect(null); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; return; }  // 空位：仅收起浮框
         setPackInspect(loc);
         card.querySelectorAll('.pcell-insp').forEach(function(c){ c.classList.remove('pcell-insp'); });   // 仅更新高亮，不重渲染面板，避免列表滚动复位

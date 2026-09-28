@@ -204,12 +204,68 @@ window.LF = window.LF || {};
       // 统一工单：宏观（requester:npcId，tick 按天推进）与微观（requester:'player'，现场 exert 推进）共用
       if (!F.buildOrders) F.buildOrders = {};
       if (!F.buildOrderSeq) F.buildOrderSeq = 0;
+      if (!F.factionCapital) F.factionCapital = {};
+      if (!F.cityDamage) F.cityDamage = {};
+      if (F.cityDamage[cid] == null) F.cityDamage[cid] = 0;
+      if (!F.cityWards) F.cityWards = {};
+      if (!F.cityWards[cid]) F.cityWards[cid] = [];
+      if (!F.centralOffice) F.centralOffice = {};
+      ensureFactionCapitals();
     }
+    // ══ 多都城 / 官署坊 / 损毁度（v20260928a）══
+    // 势力都城为动态概念：factionCapital[fid]=cid，都城中枢改建皇宫（palace）。
+    function ensureFactionCapitals() {
+      var F = S().flags; if (F._capInit) return; F._capInit = true;   // 先置位，避免 cityOwnerOf→ensureCityState 递归
+      if (!F.factionCapital) F.factionCapital = {};
+      var FACS = LF.FACTIONS || {};
+      Object.keys(FACS).forEach(function (fid) {
+        if (fid === 'han' || fid === 'none' || fid === 'player') return;
+        if (F.factionCapital[fid]) return;
+        var best = null, bestScore = -1;
+        for (var cid in LF.CITIES) {
+          var owner = ((LF.CITY_OWNER || {})[cid]) || ((LF.CITIES[cid] || {}).owner) || '汉';
+          if (owner !== fid) continue;
+          var c = LF.CITIES[cid]; var sc = (c.order || 0) * 10 + (c.grid || 0) + (c.pop || 0) * 0.1;
+          if (sc > bestScore) { bestScore = sc; best = cid; }
+        }
+        if (best) F.factionCapital[fid] = best;
+      });
+    }
+    function isCapital(cid) { var F = S().flags; return !!(F.factionCapital && F.factionCapital[cityOwnerOf(cid)] === cid); }
+    function capitalOf(fid) { var F = S().flags; return (F.factionCapital && F.factionCapital[fid]) || null; }
+    function cityDamageOf(cid) { ensureCityState(cid); return S().flags.cityDamage[cid] || 0; }
+    function setCityDamage(cid, v) { ensureCityState(cid); S().flags.cityDamage[cid] = Math.max(0, Math.min(100, Math.round(v))); }
+    function declareCapital(faction, cid) {
+      ensureCityState(cid);
+      var F = S().flags; F.factionCapital[faction] = cid;
+      if (F.cityGrid && F.cityGrid[cid]) delete F.cityGrid[cid];   // 触发网格按 palace 重建
+      rebuildWard(cid);
+      var cnm = ((LF.CITIES || {})[cid] || {}).name || cid;
+      log('〔定都〕' + factionLabel(faction) + ' 定都于「' + cnm + '」，中枢改建皇宫。', 'event');
+      chronicle(factionLabel(faction) + ' 定都「' + cnm + '」。', 'event');
+    }
+    // 重铺某城官署坊（读取 flags.cityWards 动态办公建筑）
+    function rebuildWard(cid) {
+      var _F = S().flags; if (_F.cityGrid && _F.cityGrid[cid]) delete _F.cityGrid[cid];  // 清缓存，强制按当前 cityWards 重烤官署坊
+      var m = genCityGrid(cid); if (!m) return;
+      for (var y = 0; y < m.size; y++) for (var x = 0; x < m.size; x++) {
+        if (('' + m.cells[y][x]) === 'ward_gov') { if (typeof window.buildWardCell === 'function') window.buildWardCell(cid, x, y, 'ward_gov'); return; }
+      }
+    }
+    window.rebuildWard = rebuildWard;
+    window.declareCapital = function (cid) {
+      var pf = playerFaction();
+      if (cityOwnerOf(cid) !== pf) { toast('此城非你治下，焉能定都？'); return; }
+      declareCapital(pf, cid); save(S());
+      if (typeof window.renderRoom === 'function') window.renderRoom();
+      else if (typeof window.openModal === 'function') window.openModal('city', { cid: cid });
+    };
     // ══ 城市等级动态系统（v20260826c）══
     // 等级 0..7 平滑对应 grid 2..9（每次升级仅 +1 圈）：村/镇/乡/县城/郡城/府城/州城/都城
     var CITY_LV_SIZE = [2, 3, 4, 5, 6, 7, 8, 9];
     var CITY_LV_NAME = ['村', '镇', '乡', '县城', '郡城', '府城', '州城', '都城'];
     function cityTierLv(cid) {
+      if (isCapital(cid)) return 7;   // 都城恒为最高级（与 palace 一致）
       var F = S().flags;
       var cl = F.cityLevel && F.cityLevel[cid];
       if (cl != null) return cl;
@@ -252,6 +308,14 @@ window.LF = window.LF || {};
       if (isP) { if (S().ruledCities.indexOf(cid) < 0) S().ruledCities.push(cid); }
       else if (wasP) { var ix = S().ruledCities.indexOf(cid); if (ix >= 0) S().ruledCities.splice(ix, 1); }
       if (devDelta) setCityDev(cid, Math.max(0, Math.min(100, cityDevOf(cid) + devDelta)));
+      // ── 官署坊 / 都城 继承逻辑（v20260928a）──
+      setCityDamage(cid, Math.min(100, cityDamageOf(cid) + 18));   // 克城必有劫火
+      if (!F.cityWards) F.cityWards = {};
+      if (cityDamageOf(cid) >= 50) F.cityWards[cid] = [];          // 焚毁过重则官署尽隳，需重整
+      if (F.factionCapital) { Object.keys(F.factionCapital).forEach(function (f) { if (F.factionCapital[f] === cid) delete F.factionCapital[f]; }); }
+      if (owner && owner !== '汉' && owner !== 'none' && owner !== 'player' && (!F.factionCapital || !F.factionCapital[owner])) F.factionCapital[owner] = cid;
+      if (F.cityGrid && F.cityGrid[cid]) delete F.cityGrid[cid];
+      rebuildWard(cid);
       return { changed: true, old: old, owner: owner };
     }
     // 天下大势 · 大事记：存档 flags.chronicle（持久随档），新条目在前，至多保留 80 条
@@ -343,6 +407,7 @@ window.LF = window.LF || {};
       }
       for (var i = cand.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var tmp = cand[i]; cand[i] = cand[j]; cand[j] = tmp; }
       for (var k = 0; k < n && k < cand.length; k++) bm[cand[k]] = true;
+      setCityDamage(cid, cityDamageOf(cid) + n * 4);
     }
     function siegeWin(cid) {
       var F = S().flags; F.cityOwner = F.cityOwner || {};
@@ -397,8 +462,7 @@ window.LF = window.LF || {};
       if (F.cityGrid && F.cityGrid[cid] && F.cityGrid[cid].ver === _myVer) return F.cityGrid[cid];
       var size = cityGridSize(cid), rnd = seededRand(cid + '_grid_' + _lv);
       var cx = Math.floor(size / 2), cy = Math.floor(size / 2);
-      var tier = c.tier || (c.grid >= 9 ? 'capital' : c.grid >= 7 ? 'zhou' : 'xian');
-      var centerType = (tier === 'capital') ? 'palace' : 'gov';   // 都城中央为皇宫，其余为衙门/城主府
+      var centerType = isCapital(cid) ? 'palace' : 'gov';   // 都城（势力定都）中央为皇宫，其余为衙门/城主府
       // 城门方向为路网自适应（v20260905k，见 cityGateDirs），门洞格与 availableGateDirs 同源
       var nG = cityGates(c);
       var gateSides = cityGateDirs(cid), gateSet = {};
@@ -444,7 +508,7 @@ window.LF = window.LF || {};
         if (Math.abs(dx) >= Math.abs(dy)) dir = dx > 0 ? '东' : (dx < 0 ? '西' : '中');
         else dir = dy < 0 ? '北' : (dy > 0 ? '南' : '中');
         var mrnd = seededRand(cid + '_mkt_' + mx + '_' + my);
-        var nShop = Math.max(2, Math.min((tier === 'capital' ? 5 : tier === 'zhou' ? 4 : 3), 2 + Math.floor((c.commerce || 0) / 30)));
+        var nShop = Math.max(2, Math.min((isCapital(cid) ? 5 : (c.tier === 'zhou' ? 4 : 3)), 2 + Math.floor((c.commerce || 0) / 30)));
         var taken = {}, takenKey = {}, shops = [];
         for (var si = 0; si < nShop; si++) {
           var mk, _t = 0;
@@ -555,6 +619,33 @@ window.LF = window.LF || {};
         var rk = ros[ri];
         var rd = (G.DIALOGUES && G.DIALOGUES.npcs && G.DIALOGUES.npcs[rk]) || {};
         list.push({ o: { key: rk, name: rd.name || rk, icon: rd.icon || '👤', desc: rd.desc || '' }, acts: [] });
+      }
+      // ── 地产：牙人（v20260927k）——里坊/市集可置业，房契可赠予求宅的名将 ──
+      var NAI2 = (typeof LF !== 'undefined') ? LF.NpcAi : null;
+      if (NAI2 && typeof NAI2.estateCard === 'function') {
+        try {
+          var _dt2 = cellDisplayType(cid, x, y);
+          if (_dt2 === 'resid' || _dt2 === 'market') list.push(NAI2.estateCard(cid));
+        } catch (e) { }
+      }
+      // ── 历史名将入城（v20260927j）──
+      // 原先名将只存在于名册面板（寻访/登庸），街道市井上永远撞不见一个——玩家自然觉得「没有 NPC」。
+      // 这里按 LF.NpcAi 的内驱力把他们落进具体格：好武者进演武场，嗜酒者入市集，野心者趋衙署中军。
+      // 落格由 NpcAi.wander 用稳定 hash 选定，同一人同一天只落一处，不会分身。
+      var NAI = (typeof LF !== 'undefined') ? LF.NpcAi : null;
+      if (NAI && typeof NAI.eachFamous === 'function') {
+        try {
+          var byType = {};
+          for (var gy = 0; gy < m.size; gy++) {
+            for (var gx = 0; gx < m.size; gx++) {
+              var gt = cellDisplayType(cid, gx, gy);
+              (byType[gt] = byType[gt] || []).push({ x: gx, y: gy });
+            }
+          }
+          NAI.eachFamous(cid, byType, function (t, pos) {
+            if (pos && pos.x === x && pos.y === y) list.push(NAI.cardOf(t));
+          });
+        } catch (e) { /* 名将从缺不影响市井常驻人物 */ }
       }
       return list;
     }
@@ -674,7 +765,9 @@ window.LF = window.LF || {};
       cellDisplayName: cellDisplayName, seededRand: seededRand, isCityGrid: isCityGrid,
       genCityGrid: genCityGrid, cityCellDesc: cityCellDesc,
       cityCellNpcs: cityCellNpcs, cityCellActs: cityCellActs,
-      registerCityRooms: registerCityRooms
+      registerCityRooms: registerCityRooms,
+      isCapital: isCapital, capitalOf: capitalOf, cityDamageOf: cityDamageOf,
+      declareCapital: declareCapital, rebuildWard: rebuildWard
     };
   };
 })();
