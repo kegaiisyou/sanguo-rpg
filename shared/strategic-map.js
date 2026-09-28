@@ -213,9 +213,24 @@
   function saveVisited(v) { try { localStorage.setItem(VISITED_KEY, JSON.stringify(v)); } catch (e) {} }
   let visitedSet = new Set(loadVisited());
   let routeMode = false;          // 路线规划模式开关
-  let routeCids = [];             // 路线途经城池（有序）
+  // v20260927n：P1 自动寻路——userPicked 记录玩家点过的城（起点+途经+终点，逐段 A* 展开），routeCids 为展开后的完整路径节点
+  let userPicked = [];
+  let routeCids = [];
   function loadRoute() { try { return JSON.parse(localStorage.getItem(ROUTE_KEY) || '[]'); } catch (e) { return []; } }
-  function saveRoute() { try { localStorage.setItem(ROUTE_KEY, JSON.stringify(routeCids)); } catch (e) {} }
+  function saveRoute() { try { localStorage.setItem(ROUTE_KEY, JSON.stringify(userPicked)); } catch (e) {} }
+  // 逐段 A*：起点→途经1→途经2→…→终点 每段沿官道算最短路径后拼接（LF.ROADS 内置路网/A*）
+  function expandRoute() {
+    if (!userPicked.length) { routeCids = []; return; }
+    if (userPicked.length === 1) { routeCids = userPicked.slice(); return; }
+    let full = [userPicked[0]];
+    for (let i = 1; i < userPicked.length; i++) {
+      let r = null;
+      try { r = (LF.ROADS && LF.ROADS.route) ? LF.ROADS.route(userPicked[i - 1], userPicked[i]) : null; } catch (e) {}
+      if (r && r.path && r.path.length > 1) full = full.concat(r.path.slice(1));
+      else full.push(userPicked[i]);   // 无路网(孤立城/关隘)退回直连
+    }
+    routeCids = full;
+  }
   function liveOwnerOf(id) {
     // 实时归属（归一当世键）：flags.cityOwner 原始值过 OWNER_ALIAS，
     // 与 buildCitiesFromGame 的 owner 口径一致；玩家占城实时演进
@@ -607,9 +622,9 @@
       <div class="strategic-route-guide" id="sm-route-guide" style="display:none">
         <div class="rg-t">行军路线 · 三步规划</div>
         <div class="rg-steps">
-          <div>① 点第一座城作为<b>起点</b></div>
-          <div>② 依次点击<b>途经城池</b></div>
-          <div>③ 点「完成」查看<b>里程 · 天数 · 耗粮</b></div>
+          <div>① 点第一座城为<b>起点</b></div>
+          <div>② 点第二座城<b>自动算路</b></div>
+          <div>③ 再点城可<b>途经</b> · 完成确认</div>
         </div>
         <div class="rg-b"><button id="sm-rg-ok">知道了</button></div>
       </div>
@@ -1900,25 +1915,43 @@
         }
         const t = e.target.closest('button'); if (!t || !t.dataset.a) return;
         e.stopPropagation();
-        if (t.dataset.a === 'undo') { if (routeCids.length) { routeCids.pop(); saveRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); setHint('已撤销上一点，可继续点击城池或再点「撤销」'); } }
-        else if (t.dataset.a === 'clear') { routeCids = []; saveRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); setHint(DEFAULT_HINT); routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); hideRouteGuide(true); }
+        if (t.dataset.a === 'undo') { if (userPicked.length > 1) { userPicked.pop(); saveRoute(); expandRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); setHint('已撤销终点，可继续点击城池或再点「撤销」'); } else if (userPicked.length === 1) { userPicked = []; routeCids = []; saveRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); setHint(DEFAULT_HINT); } }
+        else if (t.dataset.a === 'clear') { userPicked = []; routeCids = []; saveRoute(); if (typeof drawRoute === 'function') drawRoute(); updateRoutePanel(); setHint(DEFAULT_HINT); routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); hideRouteGuide(true); }
         else if (t.dataset.a === 'done') { routeMode = false; if (routeBtn) routeBtn.classList.remove('active'); setHint(DEFAULT_HINT); saveRoute(); updateRoutePanel(); hideRouteGuide(true); }
       });
       // 规划模式下点城加入路线（城点 click 已 stopPropagation，此处经事件委托监听）
-      overlay.addEventListener('pointerup', (ev) => {
+      // v20260927n：点击取「最近城点」——重叠/小热区/偏差点都能命中最近的城（radius 32px），DOM 命中作兜底
+      function findNearestCity(clientX, clientY, maxD) {
+        let best = null, bestD = maxD;
+        const dots = overlay.querySelectorAll('.strategic-city');
+        for (let i = 0; i < dots.length; i++) {
+          const rc = dots[i].getBoundingClientRect();   // 渲染位置（含地图平移/缩放）
+          const cx = rc.left + rc.width / 2, cy = rc.top + rc.height / 2;
+          const d = Math.hypot(cx - clientX, cy - clientY);
+          if (d < bestD) { bestD = d; best = dots[i]; }
+        }
+        return best;
+      }
+      // v20260927n：pointerup 监听挂在 viewport（svg/overlay 的共同父）——空白区点击(svg)与城点点击都能到达
+      viewport.addEventListener('pointerup', (ev) => {
         if (!routeMode) return;
-        const cw = ev.target.closest('.strategic-city');
-        if (!cw) return;
-        const cid = cw.getAttribute('data-cid');
+        let hitCity = findNearestCity(ev.clientX, ev.clientY, 32);
+        if (!hitCity && ev.target && ev.target.closest) {
+          const cw = ev.target.closest('.strategic-city');
+          if (cw) hitCity = cw;
+        }
+        if (!hitCity) return;
+        const cid = hitCity.getAttribute('data-cid');
         if (!cid) return;
         const c = cities.find(cc => cc.id === cid);
         if (!c) return;
-        if (routeCids[routeCids.length - 1] === cid) return;   // 防连点重复
-        routeCids.push(cid);
+        if (userPicked[userPicked.length - 1] === cid) return;   // 防连点重复
+        userPicked.push(cid);           // 第1城=起点；后续每城=途经/新终点 → 自动算路
         saveRoute();
+        expandRoute();
         if (typeof drawRoute === 'function') drawRoute();
         updateRoutePanel();
-        if (routeCids.length >= 2) hideRouteGuide(true);   // 已学会两步，首次引导不再出现
+        if (userPicked.length >= 2) hideRouteGuide(true);   // 已学会两步，首次引导不再出现
       });
     }
 
@@ -2002,13 +2035,14 @@
     }
     // v20260927m：P0 单点删除——移除路线中某座城，重绘并刷新统计
     function removeRouteCity(cid) {
-      const idx = routeCids.indexOf(cid);
-      if (idx < 0) return;
-      routeCids.splice(idx, 1);
+      const idx = userPicked.indexOf(cid);
+      if (idx < 0) { setHint('该城为自动算路的途经节点，删除请点浮条中的起点或终点'); return; }
+      userPicked.splice(idx, 1);
       saveRoute();
+      expandRoute();
       if (typeof drawRoute === 'function') drawRoute();
       updateRoutePanel();
-      if (routeMode && !routeCids.length) setHint('路线已清空，点击城池重新规划');
+      if (routeMode && !userPicked.length) setHint('路线已清空，点击城池重新规划');
     }
     // v20260927m：P0 首次三步引导——只在第一次进入规划模式时出现，学会(≥2城)或点「知道了」后不再打扰
     function maybeShowRouteGuide() {
@@ -2027,9 +2061,9 @@
       if (!routeCids.length) { routePanel.style.display = 'none'; return; }
       const st = routeStats();
       // v20260927m：P0 途经城列表——浮条内直接点 × 删除该城（不依赖地图上被浮条遮挡的点热区）
-      const names = routeCids.map(id => { const c = (lastCities || []).find(cc => cc.id === id); return c ? c.name : ''; });
+      const names = userPicked.map(id => { const c = (lastCities || []).find(cc => cc.id === id); return c ? c.name : ''; });
       const list = names.map((nm, i) =>
-        '<span class="rp-city" data-cid="' + routeCids[i] + '">' + (i + 1) + '.' + nm + '<i class="rp-del" title="删除该城">×</i></span>').join('');
+        '<span class="rp-city" data-cid="' + userPicked[i] + '">' + (i + 1) + '.' + nm + '<i class="rp-del" title="删除该城">×</i></span>').join('');
       routePanel.innerHTML =
         '<div class="rp-t">行军路线 · ' + st.n + ' 城</div>' +
         (list ? '<div class="rp-cities">' + list + '</div>' : '') +
@@ -2161,8 +2195,8 @@
         render(regionData, cities);
         applyDisplayToDom();   // v20260927h：首帧同步图层开关（display:none 硬隐藏）
         // v20260927j：恢复持久化路线（P1）——render 后回显路线与统计浮条
-        try { routeCids = loadRoute().filter(id => (lastCities || []).some(c => c.id === id)); } catch (e) { routeCids = []; }
-        if (routeCids.length) { try { drawRoute(); updateRoutePanel(); } catch (e) {} }
+        try { userPicked = loadRoute().filter(id => (lastCities || []).some(c => c.id === id)); } catch (e) { userPicked = []; }
+        if (userPicked.length) { try { expandRoute(); drawRoute(); updateRoutePanel(); } catch (e) {} }
         loading.remove();
         // v20260905j：山河志打开默认以「此身所在」居中（k≈2.6 中近视野），不再永远首览十三州全景
         if (opts.focusYou && locateGuide) {

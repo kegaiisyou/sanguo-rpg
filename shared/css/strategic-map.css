@@ -74,6 +74,16 @@
   cursor: pointer;
   z-index: 10;
 }
+/* v20260927n：城点点击热区扩大（视觉仍 8px，透明 ::before 承载命中）——手机端易点中 */
+.strategic-city::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: -18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
 .strategic-city-dot {
   width: 8px;
   height: 8px;
