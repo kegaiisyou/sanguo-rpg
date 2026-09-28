@@ -2038,6 +2038,10 @@
   .shop-good{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(216,180,106,.4);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;padding:2px;box-sizing:border-box;overflow:hidden;}
   .shop-good:active{transform:scale(.97);background:rgba(216,180,106,.12);}
   .shop-good .sg-icon{font-size:24px;line-height:1;pointer-events:none;margin-bottom:2px;}
+  /* v20260928h：商品图标区——水墨 PNG 或 emoji 统一占位，避免挤崩名字 */
+  .shop-good .sg-ic{min-height:32px;display:flex;align-items:center;justify-content:center;pointer-events:none;width:100%;flex-shrink:0;margin-bottom:1px;}
+  .shop-good .sg-ic .sg-pic48{width:32px;height:32px;object-fit:contain;display:block;}
+  .shop-good .sg-ic .sg-icon{font-size:24px;line-height:1;margin-bottom:0;}
   /* v20260822al：货品名按长度分级（sg-n2~sg-n6），字号交给 CSS（PC 与旧内联逐级一致，无回归） */
   .shop-good .sg-name{color:#f4e6c2;font-weight:600;pointer-events:none;max-width:100%;width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;word-break:break-word;padding:2px 3px 0;line-height:1.2;}
   .shop-good .sg-name.sg-n2{font-size:12px;} .shop-good .sg-name.sg-n3{font-size:11px;} .shop-good .sg-name.sg-n4{font-size:10px;} .shop-good .sg-name.sg-n5{font-size:9px;} .shop-good .sg-name.sg-n6{font-size:8.5px;}

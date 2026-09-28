@@ -14,6 +14,7 @@
     var save             = ctx.save;
     var toast            = ctx.toast;
     var itemIconHTML     = ctx.itemIconHTML;
+    var ICON_SPR         = ctx.ICON_SPR || null;
     var packIsStackable  = ctx.packIsStackable;
     var packFind         = ctx.packFind;
     var packFirstEmpty   = ctx.packFirstEmpty;
@@ -297,12 +298,23 @@
       // 左栏：按 leftSeq 统一顺序渲染（真货 data-shop + 待售 data-sellp/data-selluid），待售可插到任意位置、与真货任意换位
       ensureGoodsOrder();
       ensureLeftSeq();
+      // 商品图标：已注册水墨 PNG 的用图片，未注册的回落 emoji（与背包一致）
+      function sgIconHTML(d){
+        if(!d) return '';
+        var hasPic = false;
+        try { hasPic = !!(ICON_SPR && ICON_SPR.map && ICON_SPR.map[d.defId]); } catch(e){}
+        if(hasPic){
+          return '<img class="sg-pic48" src="assets/icons/items48/'+d.defId+'.png" alt="'+(d.name||'')+'" onerror="this.style.display=\'none\';">';
+        }
+        return '<span class="sg-icon">'+(d.icon||'')+'</span>';
+      }
       var goodsHTML = leftSeq.map(function (key) {
         if (key.charAt(0) === 'g') {
           var gid = key.slice(2);
           var r = findShopRec(gid); if (!r || !r.buy) return '';
           var d = DEFS[gid] || {}; var pc = buyPendingCount(gid);
           return '<div class="shop-good' + (S().gold >= r.buy ? '' : ' shop-bad') + (shopGoodSel === gid ? ' pcell-sel' : '') + '" data-shop="' + gid + '">'
+            + '<div class="sg-ic">' + sgIconHTML(d) + '</div>'
             + '<div class="sg-name ' + sgFontSize(d.name) + '">' + d.name + '</div>'
             + '<div class="sg-buy">买 ' + fmtPrice(r.buy) + '</div>'
             + (pc ? '<span class="pcell-tag pcell-buy">待付×' + pc + '</span>' : '')
@@ -311,6 +323,7 @@
         var si = sellIdxByUid(parseInt(key.slice(2), 10)); if (si < 0) return '';   // 失效项跳过（待售已被删除）
         var p = shopSellPending[si]; var d2 = DEFS[p.defId] || {};
         return '<div class="shop-good pcell-pending' + (shopSellSel === si ? ' pcell-sel' : '') + '" data-sellp="' + si + '" data-selluid="' + p.uid + '">'   // 不能带 pcell-sell 类：该类的 position:absolute 会让整格脱离网格、飘到容器外（"无法选中"的根因）
+          + '<div class="sg-ic">' + sgIconHTML(d2) + '</div>'
           + '<div class="sg-name ' + sgFontSize(d2.name) + '">' + d2.name + '</div>'
           + '<div class="sg-buy">+' + fmtPrice(p.price) + '</div>'
           + '<div class="sg-sellcnt">寄售 ' + p.count + ' 件</div>'

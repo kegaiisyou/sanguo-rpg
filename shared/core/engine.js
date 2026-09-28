@@ -3555,10 +3555,11 @@
     var n = (it && (it.name || it.defId)) || '';
     var cat = (it && it.cat) || '';
     px = px || 16;
-    if(it && ICON_SPR.map[it.defId]){
+    var _id = (it && (it.defId || it.id)) || '';
+    if(it && ICON_SPR.map[_id]){
       var w = Math.max(20, px + 6);
       /* v20260924z11：独立 48px 图标优先（无拉伸、内容充满），缺文件回退雪碧图 */
-      return '<img class="item-pic48" data-cat="'+cat+'" src="assets/icons/items48/'+it.defId+'.png" alt="'+(it.name||'')+'" style="width:100%;height:100%;object-fit:contain;display:block;" onerror="this.style.display=\'none\';">';
+      return '<img class="item-pic48" data-cat="'+cat+'" src="assets/icons/items48/'+_id+'.png" alt="'+(it.name||'')+'" style="width:100%;height:100%;object-fit:contain;display:block;" onerror="this.style.display=\'none\';">';
     }
     var em = (it && it.icon) ? it.icon : '';
     var fs = Math.min(px, 16);
@@ -3703,6 +3704,7 @@
     getCard: function(){ return document.getElementById('modal-card'); },
     packAdd: packAdd, afterPackChange: afterPackChange, save: save, toast: toast,
     itemIconHTML: itemIconHTML, packIsStackable: packIsStackable, packFind: packFind, packFirstEmpty: packFirstEmpty,
+    ICON_SPR: ICON_SPR,
     storageGet: storeGet, storagePut: storePutFromPack, storageTake: storeTakeToPack, storageSort: storeSort, storageSwap: storeSwap,
     positionFloat: positionFloat, closeModal: closeModal
   });
