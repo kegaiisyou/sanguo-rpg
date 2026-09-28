@@ -87,13 +87,23 @@
     'bld-sentry':'bld-sentry', 'bld-culture':'bld-culture', 'bld-water':'bld-water',
     'bld-ruin':'bld-ruin', 'bld-empty':'bld-empty', 'bld-barracks':'zhangpeng',
     'bld-command':'zhangpeng', 'bld-warehouse':'cangku', 'bld-mine':'kuang',
-    'bld-kitchen':'zaotai', 'bld-site':'hangtuji'
+    'bld-kitchen':'zaotai', 'bld-site':'hangtuji',
+    // —— 郊野：野怪 / 水域 / 路人（v20260927s）——
+    '🐗':'yezhu', '🐺':'lang', '⚔':'shanzei', '💧':'shuibo', '🌊':'shuibo', '💬':'luren',
+    '🏰':'bld-gate', '🐗️':'yezhu', '🐺️':'lang'
+  };
+  // 郊野资源格：item defId → items48 物品图（与背包图标一致）
+  var ITEM48 = {
+    'caoyao':'caoyao', 'tiekuangshi':'tiekuangshi', 'mutou':'mutou', 'yeguo':'yeguo',
+    'tongkuang':'tongkuang', 'yinkuang':'yinkuang', 'jade':'jade', 'yan':'yan'
   };
   function cellIcon(ic){
     if(!ic) return '·';
     var n = BLD[ic];
     if(!n){ var k2 = ic.replace(/\uFE0F/g, ''); if(k2 !== ic) n = BLD[k2]; }
     if(n) return '<img class="bld-pic" src="assets/icons/scene48/' + n + '.png" alt="" loading="lazy">';
+    var m = ITEM48[ic];
+    if(m) return '<img class="bld-pic" src="assets/icons/items48/' + m + '.png" alt="" loading="lazy">';
     return ic;
   }
   var _G = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' ? global : this);

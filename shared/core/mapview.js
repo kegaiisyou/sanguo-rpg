@@ -106,7 +106,7 @@
         var ic = '·', nm = '荒野', cls = 'mc-cell mf' + (isCur ? ' mc-cur' : '');
         if (isEntry) { ic = '🚪'; nm = '入' + parentName; cls += ' mf-entry'; }
         else if (cityNm) { ic = '🏰'; nm = '入' + cityNm + '·' + gd; cls += ' mf-cityout'; }
-        else if (cr.resources && cr.resources.length) { ic = '🌿'; nm = cr.resources[0].name; }
+        else if (cr.resources && cr.resources.length) { ic = cr.resources[0].item || '🌿'; nm = cr.resources[0].name; }
         else if (cr.monsters && cr.monsters.length) { var m0 = cr.monsters[0]; ic = (m0.aggr === 'flee' ? '🐗' : (m0.aggr === 'neutral' ? '🐺' : '⚔')); nm = m0.name; }
         else if (cr.water) { ic = cr.water.icon || '💧'; nm = cr.water.name; }
         else if (cr.fieldNpcs && cr.fieldNpcs.length) { ic = '💬'; nm = cr.fieldNpcs[0].name; }
