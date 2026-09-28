@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 74   版本: 20260927p
+// 源文件数: 74   版本: 20260927r
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927p',
+    VERSION: '20260927r',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -10099,14 +10099,15 @@ window.LF = window.LF || {};
       CITY_GATE_DIRS_CACHE[cid] = out;
       return out;
     }
+    // v20260927r：图标改为水墨 PNG 名（scene48 同风格），渲染经 UI_Icons.cellIcon 出图
     var CELL_META = {
-      palace: { i: '🏯', nm: '皇宫' }, gov: { i: '🏛', nm: '衙署' },
-      plaza: { i: '🏛', nm: '城中广场' }, gate: { i: '🚪', nm: '城门' },
-      market: { i: '🛒', nm: '市集' }, home: { i: '🏠', nm: '民宅' }, barracks: { i: '⚔', nm: '军营' },
-      farm: { i: '🌾', nm: '农庄' }, prison: { i: '⛓', nm: '牢房' }, mine: { i: '⛏', nm: '矿坑' }, kitchen: { i: '🍚', nm: '伙房' }, command: { i: '🚩', nm: '中军帐' }, warehouse: { i: '📦', nm: '仓库' }, drill: { i: '🥋', nm: '演武场' }, sentry: { i: '🏮', nm: '岗哨' }, empty: { i: '🟫', nm: '空地' }, ruin: { i: '🔥', nm: '焦土' },
-      site: { i: '🚧', nm: '工地' },
-      ward_gov: { i: '🏛', nm: '官署坊' }, ward_mil: { i: '⚔', nm: '军坊' }, ward_resid: { i: '🏘', nm: '里坊' },
-      ward_market: { i: '🛒', nm: '市坊' }, ward_culture: { i: '📚', nm: '文教坊' }, ward_water: { i: '⚓', nm: '码头坊' }
+      palace: { i: 'bld-palace', nm: '皇宫' }, gov: { i: 'bld-gov', nm: '衙署' },
+      plaza: { i: 'bld-plaza', nm: '城中广场' }, gate: { i: 'bld-gate', nm: '城门' },
+      market: { i: 'bld-market', nm: '市集' }, home: { i: 'bld-home', nm: '民宅' }, barracks: { i: 'bld-barracks', nm: '军营' },
+      farm: { i: 'bld-farm', nm: '农庄' }, prison: { i: 'bld-prison', nm: '牢房' }, mine: { i: 'bld-mine', nm: '矿坑' }, kitchen: { i: 'bld-kitchen', nm: '伙房' }, command: { i: 'bld-command', nm: '中军帐' }, warehouse: { i: 'bld-warehouse', nm: '仓库' }, drill: { i: 'bld-drill', nm: '演武场' }, sentry: { i: 'bld-sentry', nm: '岗哨' }, empty: { i: 'bld-empty', nm: '空地' }, ruin: { i: 'bld-ruin', nm: '焦土' },
+      site: { i: 'bld-site', nm: '工地' },
+      ward_gov: { i: 'bld-gov', nm: '官署坊' }, ward_mil: { i: 'bld-barracks', nm: '军坊' }, ward_resid: { i: 'bld-home', nm: '里坊' },
+      ward_market: { i: 'bld-market', nm: '市坊' }, ward_culture: { i: 'bld-culture', nm: '文教坊' }, ward_water: { i: 'bld-water', nm: '码头坊' }
     };
     // ── 苦役营教程·具名名册（v20260909p；v20260912f 起由 LF.NPC_NAMED 派生）──
     // 「谁在哪一格」与「什么时辰在哪一格」统一存在 data/npc_cards.js 的 LF.NPC_NAMED，
@@ -11222,7 +11223,7 @@ window.LF = window.LF || {};
       var cells = '';
       for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
         var t = cellDisplayType(cid, x, y), meta = CELL_META[t] || CELL_META.empty;
-        var ri = (t === 'gate') ? { gate: true, nm: '城门', ic: '🏛️', desc: '' } : null;
+        var ri = (t === 'gate') ? { gate: true, nm: '城门', ic: 'bld-gate', desc: '' } : null;
         var burnt = !!cityBurnedMap(cid)[x + ',' + y];
         var cur = (cp.x === x && cp.y === y);
         var adj = (Math.abs(cp.x - x) + Math.abs(cp.y - y)) === 1;
@@ -11235,7 +11236,7 @@ window.LF = window.LF || {};
         else _nm = cellDisplayName(cid, t);
         cells += '<div class="' + cls + '" data-x="' + x + '" data-y="' + y + '"' +
           ' style="left:' + (x * CELL) + 'px;top:' + (y * CELL) + 'px;width:' + CELL + 'px;height:' + CELL + 'px">' +
-          '<span class="mc-ic">' + (ri && !ri.gate ? ri.ic : meta.i) + '</span><span class="mc-nm">' + _nm + '</span></div>';
+          '<span class="mc-ic">' + (window.UI_Icons ? UI_Icons.cellIcon(ri && !ri.gate ? ri.ic : meta.i) : (ri && !ri.gate ? ri.ic : meta.i)) + '</span><span class="mc-nm">' + _nm + '</span></div>';
       }
       var curMetaName = cellDisplayName(cid, m.cells[cp.y][cp.x]);
       // v20260905j：移除「返回山河志（出城）」按钮——切山河志改走页签，出城仍须立于城门格经罗盘
@@ -11302,7 +11303,7 @@ window.LF = window.LF || {};
         else if (cr.fieldNpcs && cr.fieldNpcs.length) { ic = '💬'; nm = cr.fieldNpcs[0].name; }
         cells += '<div class="' + cls + '" data-x="' + c + '" data-y="' + r + '"' +
           ' style="left:' + (c * CELL) + 'px;top:' + (r * CELL) + 'px;width:' + CELL + 'px;height:' + CELL + 'px">' +
-          '<span class="mc-ic">' + ic + '</span><span class="mc-nm">' + nm + '</span></div>';
+          '<span class="mc-ic">' + (window.UI_Icons ? UI_Icons.cellIcon(ic) : ic) + '</span><span class="mc-nm">' + nm + '</span></div>';
       }
       var exits = '';
       (meta.neighbors || []).forEach(function (nb) {
@@ -11334,11 +11335,12 @@ window.LF = window.LF || {};
       var parentName = (cdef.name) || ((LF_.PLACES || {})[cid] && LF_.PLACES[cid].name) || cid;
       var near = (LF_.Travel.fields[fid] && LF_.Travel.fields[fid].neighbors) || [];
       function listHtml(map, fn) { var ks = Object.keys(map); if (!ks.length) return '<span style="opacity:.5">无</span>'; return ks.map(fn).join('　'); }
-      var resHtml = listHtml(res, function (k) { var o = res[k]; return (o.item && LF_.ITEMS[o.item] ? LF_.ITEMS[o.item].icon : '🌿') + ' ' + o.name + '×' + o.amt; });
-      var monHtml = listHtml(mon, function (k) { var m = mon[k]; var ic = m.aggr === 'flee' ? '🐗' : (m.aggr === 'neutral' ? '🐺' : '⚔'); return ic + ' ' + m.name + '×' + m.n; });
-      var npcHtml = listHtml(npc, function (k) { return '💬 ' + npc[k].name + '×' + npc[k].n; });
-      var watHtml = listHtml(wat, function (k) { var o = wat[k]; return (o.icon || '💧') + ' ' + o.name + '×' + o.n; });
-      var nearHtml = near.length ? near.map(function (nb) { var n = (LF_.PLACES[nb.nid] && LF_.PLACES[nb.nid].name) || nb.nid; return '🏯 ' + n + (nb.li ? ('（' + nb.li + '里）') : ''); }).join('　') : '（荒僻无邻）';
+      var _ci = function (e) { return (window.UI_Icons ? UI_Icons.cellIcon(e) : e); };
+      var resHtml = listHtml(res, function (k) { var o = res[k]; return _ci(o.item && LF_.ITEMS[o.item] ? LF_.ITEMS[o.item].icon : '🌿') + ' ' + o.name + '×' + o.amt; });
+      var monHtml = listHtml(mon, function (k) { var m = mon[k]; var ic = m.aggr === 'flee' ? '🐗' : (m.aggr === 'neutral' ? '🐺' : '⚔'); return _ci(ic) + ' ' + m.name + '×' + m.n; });
+      var npcHtml = listHtml(npc, function (k) { return _ci('💬') + ' ' + npc[k].name + '×' + npc[k].n; });
+      var watHtml = listHtml(wat, function (k) { var o = wat[k]; return _ci(o.icon || '💧') + ' ' + o.name + '×' + o.n; });
+      var nearHtml = near.length ? near.map(function (nb) { var n = (LF_.PLACES[nb.nid] && LF_.PLACES[nb.nid].name) || nb.nid; return _ci('🏯') + ' ' + n + (nb.li ? ('（' + nb.li + '里）') : ''); }).join('　') : '（荒僻无邻）';
       var rowStyle = 'display:flex;gap:8px;padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:13px;line-height:1.5;';
       var kStyle = 'flex:0 0 64px;color:#c8a45a;font-weight:600;';
       var vStyle = 'flex:1;color:#e8e0cf;';
@@ -16055,6 +16057,7 @@ window.LF = window.LF || {};
     return BUILDINGS[getBuildingState().building] || null;
   }
   function renderBuildingPanel(){
+    var _ci = function (e) { return (window.UI_Icons ? UI_Icons.cellIcon(e) : e); };
     var b=bldDef();
     if(!b) return '<div class="empty">此处并无屋舍。</div>';
     var area=bldCurArea(b);
@@ -16062,22 +16065,22 @@ window.LF = window.LF || {};
       var list=(getBuildingState().selKind==='obj')? area.objs : area.npcs;
       var e=list[getBuildingState().sel];
       if(!e){ getBuildingState().sel=null; return renderBuildingPanel(); }
-      var h='<div class="bld-crumb">'+b.icon+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+' › '+area.name+'</div>';
+      var h='<div class="bld-crumb">'+_ci(b.icon)+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+' › '+area.name+'</div>';
       h+='<div class="bld-detail">';
-      h+='<div class="bld-d-head">'+e.icon+' '+e.name+' <span class="bld-ent-ki">'+(getBuildingState().selKind==='obj'?'物件':'人物')+'</span></div>';
+      h+='<div class="bld-d-head">'+_ci(e.icon)+' '+e.name+' <span class="bld-ent-ki">'+(getBuildingState().selKind==='obj'?'物件':'人物')+'</span></div>';
       h+='<div class="bld-d-desc">'+e.desc+'</div>';
       h+='<div class="bld-acts">';
-      bldActsFilter(e.acts).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
+      bldActsFilter(e.acts).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+_ci(a.icon)+' '+a.label+'</button>'; });
       h+='</div><button class="btn bld-back" data-back="1">返 回</button>';
       h+='</div>';
       return h;
     }
-    var h='<div class="bld-crumb">'+b.icon+' '+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+'</div>';
-    h+='<h3>'+area.icon+' '+area.name+'</h3>';
+    var h='<div class="bld-crumb">'+_ci(b.icon)+' '+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+'</div>';
+    h+='<h3>'+_ci(area.icon)+' '+area.name+'</h3>';
     h+='<div class="bld-sub">'+area.desc+'</div>';
     h+='<div class="bld-list">';
-    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
-    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
+    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
+    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
     h+='</div>';
     if(area.areas && area.areas.length){
       h+='<div class="bld-areas">';
@@ -20604,8 +20607,33 @@ function bindCreate(){
     if(role && NPC_BY_ROLE[role]) return pic(NPC_BY_ROLE[role], 'ui-ava');
     return '👤';
   }
+  // ═══════════ v20260927r：布防图建筑图标（水墨 PNG，与 items48/scene48 同风格） ═══════════
+  // 建筑/城门等小格图标：emoji 或图标名 → assets/icons/scene48/*.png；未映射回退原样。
+  // scene48 已有资源直接复用：仓库=cangku 矿坑=kuang 伙房=zaotai 营帐/中军=zhangpeng
+  var BLD = {
+    '🏯':'bld-palace', '🏛':'bld-gov', '🚪':'bld-gate', '🛒':'bld-market',
+    '🏠':'bld-home', '🏘':'bld-home', '🌾':'bld-farm', '⛓':'laomen',
+    '⛏':'kuang', '🍚':'zaotai', '🚩':'zhangpeng', '📦':'cangku',
+    '🥋':'bld-drill', '🏮':'bld-sentry', '🟫':'bld-empty', '🔥':'bld-ruin',
+    '🚧':'hangtuji', '📚':'bld-culture', '⚓':'bld-water', '⚔':'zhangpeng',
+    // 图标名直通（CELL_META.i 已改 bld-* 名）
+    'bld-gate':'bld-gate', 'bld-palace':'bld-palace', 'bld-gov':'bld-gov',
+    'bld-plaza':'bld-plaza', 'bld-market':'bld-market', 'bld-home':'bld-home',
+    'bld-farm':'bld-farm', 'bld-prison':'laomen', 'bld-drill':'bld-drill',
+    'bld-sentry':'bld-sentry', 'bld-culture':'bld-culture', 'bld-water':'bld-water',
+    'bld-ruin':'bld-ruin', 'bld-empty':'bld-empty', 'bld-barracks':'zhangpeng',
+    'bld-command':'zhangpeng', 'bld-warehouse':'cangku', 'bld-mine':'kuang',
+    'bld-kitchen':'zaotai', 'bld-site':'hangtuji'
+  };
+  function cellIcon(ic){
+    if(!ic) return '·';
+    var n = BLD[ic];
+    if(!n){ var k2 = ic.replace(/\uFE0F/g, ''); if(k2 !== ic) n = BLD[k2]; }
+    if(n) return '<img class="bld-pic" src="assets/icons/scene48/' + n + '.png" alt="" loading="lazy">';
+    return ic;
+  }
   var _G = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' ? global : this);
-  _G.UI_Icons = { icon: icon, avatar: avatar };
+  _G.UI_Icons = { icon: icon, avatar: avatar, cellIcon: cellIcon };
 })();
 
 ;

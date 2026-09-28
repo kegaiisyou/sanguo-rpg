@@ -3252,3 +3252,19 @@
 @media (max-width:560px){
   .equip-grid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:6px;}
 }
+
+/* v20260927r：布防图建筑图标（水墨 PNG，128px scene48 同风格） */
+.bld-pic{width:1.35em;height:1.35em;object-fit:contain;object-position:center;vertical-align:middle;
+  background:#fff;border-radius:4px;box-shadow:0 0 0 1px rgba(146,108,62,.18),0 1px 3px rgba(60,48,34,.14);
+  display:inline-block;padding:1px;}
+.mc-cell .mc-ic .bld-pic{width:26px;height:26px;background:#fff;}
+.bld-act .bld-pic,.bld-ent-ic .bld-pic,.bld-d-head .bld-pic,.bld-crumb .bld-pic{width:1.2em;height:1.2em;}
+
+/* v20260927p：覆盖 z16 遗留的鞋履横跨（grid-column:1/-1 破坏 8 格对称）+ 强制窄屏 4 列 */
+.pack-wrap .equip-grid .ep-shoe{grid-column:auto;}
+.equip-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+@media (max-width:560px){
+  .equip-grid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:6px;}
+}
+
+/* v20260927q：SVG 水墨图标容器（布防图/建筑菜单/郊野图） */

@@ -71,6 +71,31 @@
     if(role && NPC_BY_ROLE[role]) return pic(NPC_BY_ROLE[role], 'ui-ava');
     return '👤';
   }
+  // ═══════════ v20260927r：布防图建筑图标（水墨 PNG，与 items48/scene48 同风格） ═══════════
+  // 建筑/城门等小格图标：emoji 或图标名 → assets/icons/scene48/*.png；未映射回退原样。
+  // scene48 已有资源直接复用：仓库=cangku 矿坑=kuang 伙房=zaotai 营帐/中军=zhangpeng
+  var BLD = {
+    '🏯':'bld-palace', '🏛':'bld-gov', '🚪':'bld-gate', '🛒':'bld-market',
+    '🏠':'bld-home', '🏘':'bld-home', '🌾':'bld-farm', '⛓':'laomen',
+    '⛏':'kuang', '🍚':'zaotai', '🚩':'zhangpeng', '📦':'cangku',
+    '🥋':'bld-drill', '🏮':'bld-sentry', '🟫':'bld-empty', '🔥':'bld-ruin',
+    '🚧':'hangtuji', '📚':'bld-culture', '⚓':'bld-water', '⚔':'zhangpeng',
+    // 图标名直通（CELL_META.i 已改 bld-* 名）
+    'bld-gate':'bld-gate', 'bld-palace':'bld-palace', 'bld-gov':'bld-gov',
+    'bld-plaza':'bld-plaza', 'bld-market':'bld-market', 'bld-home':'bld-home',
+    'bld-farm':'bld-farm', 'bld-prison':'laomen', 'bld-drill':'bld-drill',
+    'bld-sentry':'bld-sentry', 'bld-culture':'bld-culture', 'bld-water':'bld-water',
+    'bld-ruin':'bld-ruin', 'bld-empty':'bld-empty', 'bld-barracks':'zhangpeng',
+    'bld-command':'zhangpeng', 'bld-warehouse':'cangku', 'bld-mine':'kuang',
+    'bld-kitchen':'zaotai', 'bld-site':'hangtuji'
+  };
+  function cellIcon(ic){
+    if(!ic) return '·';
+    var n = BLD[ic];
+    if(!n){ var k2 = ic.replace(/\uFE0F/g, ''); if(k2 !== ic) n = BLD[k2]; }
+    if(n) return '<img class="bld-pic" src="assets/icons/scene48/' + n + '.png" alt="" loading="lazy">';
+    return ic;
+  }
   var _G = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' ? global : this);
-  _G.UI_Icons = { icon: icon, avatar: avatar };
+  _G.UI_Icons = { icon: icon, avatar: avatar, cellIcon: cellIcon };
 })();

@@ -32,7 +32,7 @@
       var cells = '';
       for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
         var t = cellDisplayType(cid, x, y), meta = CELL_META[t] || CELL_META.empty;
-        var ri = (t === 'gate') ? { gate: true, nm: '城门', ic: '🏛️', desc: '' } : null;
+        var ri = (t === 'gate') ? { gate: true, nm: '城门', ic: 'bld-gate', desc: '' } : null;
         var burnt = !!cityBurnedMap(cid)[x + ',' + y];
         var cur = (cp.x === x && cp.y === y);
         var adj = (Math.abs(cp.x - x) + Math.abs(cp.y - y)) === 1;
@@ -45,7 +45,7 @@
         else _nm = cellDisplayName(cid, t);
         cells += '<div class="' + cls + '" data-x="' + x + '" data-y="' + y + '"' +
           ' style="left:' + (x * CELL) + 'px;top:' + (y * CELL) + 'px;width:' + CELL + 'px;height:' + CELL + 'px">' +
-          '<span class="mc-ic">' + (ri && !ri.gate ? ri.ic : meta.i) + '</span><span class="mc-nm">' + _nm + '</span></div>';
+          '<span class="mc-ic">' + (window.UI_Icons ? UI_Icons.cellIcon(ri && !ri.gate ? ri.ic : meta.i) : (ri && !ri.gate ? ri.ic : meta.i)) + '</span><span class="mc-nm">' + _nm + '</span></div>';
       }
       var curMetaName = cellDisplayName(cid, m.cells[cp.y][cp.x]);
       // v20260905j：移除「返回山河志（出城）」按钮——切山河志改走页签，出城仍须立于城门格经罗盘
@@ -112,7 +112,7 @@
         else if (cr.fieldNpcs && cr.fieldNpcs.length) { ic = '💬'; nm = cr.fieldNpcs[0].name; }
         cells += '<div class="' + cls + '" data-x="' + c + '" data-y="' + r + '"' +
           ' style="left:' + (c * CELL) + 'px;top:' + (r * CELL) + 'px;width:' + CELL + 'px;height:' + CELL + 'px">' +
-          '<span class="mc-ic">' + ic + '</span><span class="mc-nm">' + nm + '</span></div>';
+          '<span class="mc-ic">' + (window.UI_Icons ? UI_Icons.cellIcon(ic) : ic) + '</span><span class="mc-nm">' + nm + '</span></div>';
       }
       var exits = '';
       (meta.neighbors || []).forEach(function (nb) {
@@ -144,11 +144,12 @@
       var parentName = (cdef.name) || ((LF_.PLACES || {})[cid] && LF_.PLACES[cid].name) || cid;
       var near = (LF_.Travel.fields[fid] && LF_.Travel.fields[fid].neighbors) || [];
       function listHtml(map, fn) { var ks = Object.keys(map); if (!ks.length) return '<span style="opacity:.5">无</span>'; return ks.map(fn).join('　'); }
-      var resHtml = listHtml(res, function (k) { var o = res[k]; return (o.item && LF_.ITEMS[o.item] ? LF_.ITEMS[o.item].icon : '🌿') + ' ' + o.name + '×' + o.amt; });
-      var monHtml = listHtml(mon, function (k) { var m = mon[k]; var ic = m.aggr === 'flee' ? '🐗' : (m.aggr === 'neutral' ? '🐺' : '⚔'); return ic + ' ' + m.name + '×' + m.n; });
-      var npcHtml = listHtml(npc, function (k) { return '💬 ' + npc[k].name + '×' + npc[k].n; });
-      var watHtml = listHtml(wat, function (k) { var o = wat[k]; return (o.icon || '💧') + ' ' + o.name + '×' + o.n; });
-      var nearHtml = near.length ? near.map(function (nb) { var n = (LF_.PLACES[nb.nid] && LF_.PLACES[nb.nid].name) || nb.nid; return '🏯 ' + n + (nb.li ? ('（' + nb.li + '里）') : ''); }).join('　') : '（荒僻无邻）';
+      var _ci = function (e) { return (window.UI_Icons ? UI_Icons.cellIcon(e) : e); };
+      var resHtml = listHtml(res, function (k) { var o = res[k]; return _ci(o.item && LF_.ITEMS[o.item] ? LF_.ITEMS[o.item].icon : '🌿') + ' ' + o.name + '×' + o.amt; });
+      var monHtml = listHtml(mon, function (k) { var m = mon[k]; var ic = m.aggr === 'flee' ? '🐗' : (m.aggr === 'neutral' ? '🐺' : '⚔'); return _ci(ic) + ' ' + m.name + '×' + m.n; });
+      var npcHtml = listHtml(npc, function (k) { return _ci('💬') + ' ' + npc[k].name + '×' + npc[k].n; });
+      var watHtml = listHtml(wat, function (k) { var o = wat[k]; return _ci(o.icon || '💧') + ' ' + o.name + '×' + o.n; });
+      var nearHtml = near.length ? near.map(function (nb) { var n = (LF_.PLACES[nb.nid] && LF_.PLACES[nb.nid].name) || nb.nid; return _ci('🏯') + ' ' + n + (nb.li ? ('（' + nb.li + '里）') : ''); }).join('　') : '（荒僻无邻）';
       var rowStyle = 'display:flex;gap:8px;padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:13px;line-height:1.5;';
       var kStyle = 'flex:0 0 64px;color:#c8a45a;font-weight:600;';
       var vStyle = 'flex:1;color:#e8e0cf;';

@@ -48,6 +48,7 @@
     return BUILDINGS[getBuildingState().building] || null;
   }
   function renderBuildingPanel(){
+    var _ci = function (e) { return (window.UI_Icons ? UI_Icons.cellIcon(e) : e); };
     var b=bldDef();
     if(!b) return '<div class="empty">此处并无屋舍。</div>';
     var area=bldCurArea(b);
@@ -55,22 +56,22 @@
       var list=(getBuildingState().selKind==='obj')? area.objs : area.npcs;
       var e=list[getBuildingState().sel];
       if(!e){ getBuildingState().sel=null; return renderBuildingPanel(); }
-      var h='<div class="bld-crumb">'+b.icon+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+' › '+area.name+'</div>';
+      var h='<div class="bld-crumb">'+_ci(b.icon)+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+' › '+area.name+'</div>';
       h+='<div class="bld-detail">';
-      h+='<div class="bld-d-head">'+e.icon+' '+e.name+' <span class="bld-ent-ki">'+(getBuildingState().selKind==='obj'?'物件':'人物')+'</span></div>';
+      h+='<div class="bld-d-head">'+_ci(e.icon)+' '+e.name+' <span class="bld-ent-ki">'+(getBuildingState().selKind==='obj'?'物件':'人物')+'</span></div>';
       h+='<div class="bld-d-desc">'+e.desc+'</div>';
       h+='<div class="bld-acts">';
-      bldActsFilter(e.acts).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+a.icon+' '+a.label+'</button>'; });
+      bldActsFilter(e.acts).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+_ci(a.icon)+' '+a.label+'</button>'; });
       h+='</div><button class="btn bld-back" data-back="1">返 回</button>';
       h+='</div>';
       return h;
     }
-    var h='<div class="bld-crumb">'+b.icon+' '+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+'</div>';
-    h+='<h3>'+area.icon+' '+area.name+'</h3>';
+    var h='<div class="bld-crumb">'+_ci(b.icon)+' '+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+'</div>';
+    h+='<h3>'+_ci(area.icon)+' '+area.name+'</h3>';
     h+='<div class="bld-sub">'+area.desc+'</div>';
     h+='<div class="bld-list">';
-    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
-    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+e.icon+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
+    (area.npcs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-npc" data-kind="npc" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">人物</span></div>'; });
+    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
     h+='</div>';
     if(area.areas && area.areas.length){
       h+='<div class="bld-areas">';

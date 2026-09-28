@@ -108,14 +108,15 @@ window.LF = window.LF || {};
       CITY_GATE_DIRS_CACHE[cid] = out;
       return out;
     }
+    // v20260927r：图标改为水墨 PNG 名（scene48 同风格），渲染经 UI_Icons.cellIcon 出图
     var CELL_META = {
-      palace: { i: '🏯', nm: '皇宫' }, gov: { i: '🏛', nm: '衙署' },
-      plaza: { i: '🏛', nm: '城中广场' }, gate: { i: '🚪', nm: '城门' },
-      market: { i: '🛒', nm: '市集' }, home: { i: '🏠', nm: '民宅' }, barracks: { i: '⚔', nm: '军营' },
-      farm: { i: '🌾', nm: '农庄' }, prison: { i: '⛓', nm: '牢房' }, mine: { i: '⛏', nm: '矿坑' }, kitchen: { i: '🍚', nm: '伙房' }, command: { i: '🚩', nm: '中军帐' }, warehouse: { i: '📦', nm: '仓库' }, drill: { i: '🥋', nm: '演武场' }, sentry: { i: '🏮', nm: '岗哨' }, empty: { i: '🟫', nm: '空地' }, ruin: { i: '🔥', nm: '焦土' },
-      site: { i: '🚧', nm: '工地' },
-      ward_gov: { i: '🏛', nm: '官署坊' }, ward_mil: { i: '⚔', nm: '军坊' }, ward_resid: { i: '🏘', nm: '里坊' },
-      ward_market: { i: '🛒', nm: '市坊' }, ward_culture: { i: '📚', nm: '文教坊' }, ward_water: { i: '⚓', nm: '码头坊' }
+      palace: { i: 'bld-palace', nm: '皇宫' }, gov: { i: 'bld-gov', nm: '衙署' },
+      plaza: { i: 'bld-plaza', nm: '城中广场' }, gate: { i: 'bld-gate', nm: '城门' },
+      market: { i: 'bld-market', nm: '市集' }, home: { i: 'bld-home', nm: '民宅' }, barracks: { i: 'bld-barracks', nm: '军营' },
+      farm: { i: 'bld-farm', nm: '农庄' }, prison: { i: 'bld-prison', nm: '牢房' }, mine: { i: 'bld-mine', nm: '矿坑' }, kitchen: { i: 'bld-kitchen', nm: '伙房' }, command: { i: 'bld-command', nm: '中军帐' }, warehouse: { i: 'bld-warehouse', nm: '仓库' }, drill: { i: 'bld-drill', nm: '演武场' }, sentry: { i: 'bld-sentry', nm: '岗哨' }, empty: { i: 'bld-empty', nm: '空地' }, ruin: { i: 'bld-ruin', nm: '焦土' },
+      site: { i: 'bld-site', nm: '工地' },
+      ward_gov: { i: 'bld-gov', nm: '官署坊' }, ward_mil: { i: 'bld-barracks', nm: '军坊' }, ward_resid: { i: 'bld-home', nm: '里坊' },
+      ward_market: { i: 'bld-market', nm: '市坊' }, ward_culture: { i: 'bld-culture', nm: '文教坊' }, ward_water: { i: 'bld-water', nm: '码头坊' }
     };
     // ── 苦役营教程·具名名册（v20260909p；v20260912f 起由 LF.NPC_NAMED 派生）──
     // 「谁在哪一格」与「什么时辰在哪一格」统一存在 data/npc_cards.js 的 LF.NPC_NAMED，
