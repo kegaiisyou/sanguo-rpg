@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 74   版本: 20260927n
+// 源文件数: 74   版本: 20260927o
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20260927n',
+    VERSION: '20260927o',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -18285,9 +18285,14 @@ function bindCreate(){
     var save = ctx.save;
     var talk = ctx.talk;
     var toast = ctx.toast;
+    var getNPC_COMBAT_MAP = ctx.getNPC_COMBAT_MAP;   // NPC→敌人映射走引擎 getter（NPC_COMBAT_MAP 在引擎闭包内，裸引用会 ReferenceError）
+    var getCOMPANION_DEFS = ctx.getCOMPANION_DEFS;
+    var getNPC_BY_KEY = ctx.getNPC_BY_KEY;
+    var getNpcFavor = ctx.getNpcFavor;
+    var getNpcFavorTier = ctx.getNpcFavorTier;
 
   function recruitCompanion(key){
-    var c=COMPANION_DEFS[key]; if(!c){ toast('此人不可招入队中。'); return; }
+    var c=getCOMPANION_DEFS()[key]; if(!c){ toast('此人不可招入队中。'); return; }
     if(!S().party) S().party=[];
     if(S().party.some(function(m){ return m.id===c.id; })){ toast(c.name+'已在队中。'); return; }
     S().party.push(Object.assign({}, c));
@@ -18306,7 +18311,7 @@ function bindCreate(){
     if(idx<0) return;
     var c=S().party[idx];
     S().party.splice(idx,1);
-    for(var k in COMPANION_DEFS){ if(COMPANION_DEFS[k].id===id && S().flags && S().flags.recruited){ delete S().flags.recruited[k]; } }
+    for(var k in getCOMPANION_DEFS()){ if(getCOMPANION_DEFS()[k].id===id && S().flags && S().flags.recruited){ delete S().flags.recruited[k]; } }
     save(S());
     if(getCurrentModalKind()==='party') openModal('party');
     log(c.name+'与你拱手作别，转身没入人海。','sys');
@@ -18332,7 +18337,7 @@ function bindCreate(){
         + row('身法', c.spd||0)
         + row('五行', c.element||'无')
         + '<div class="row"><span>武学</span></div><div class="skills">'+(arts||'<span>未习武学</span>')+'</div>'
-        + '<p class="tip">'+((COMPANION_DEFS[c.id]||{}).desc||'每场战斗同伴满血入场，可随你一起出手。')+'</p>'
+        + '<p class="tip">'+((getCOMPANION_DEFS()[c.id]||{}).desc||'每场战斗同伴满血入场，可随你一起出手。')+'</p>'
         + '</div>';
     });
     return html;
@@ -18593,7 +18598,7 @@ function bindCreate(){
       var dangerAct=(o.actions||[]).filter(function(a){return a.danger;})[0];
       acts.push({label:'攻击', icon:'⚔', danger:true, fn:function(){
         if(dangerAct){ dangerAct.fn(); return; }
-        var eid = (G.ENEMIES && G.ENEMIES[o.key]) ? o.key : (NPC_COMBAT_MAP[o.key] || null);
+        var eid = (G.ENEMIES && G.ENEMIES[o.key]) ? o.key : ((getNPC_COMBAT_MAP()[o.key]) || null);
         if(eid && G.ENEMIES[eid]){ startCombat(eid); return; }
         log('〔'+o.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys');
       }});
@@ -18609,14 +18614,14 @@ function bindCreate(){
     var key=o.key, parts=[];
     if(o.desc) parts.push(o.desc);
     if(key && G.DIALOGUES.npcs[key]) parts.push('当前态度：'+npcAttitude(key));
-    else if(key && NPC_BY_KEY[key]){
+    else if(key && getNPC_BY_KEY()[key]){
       // 程序 NPC：显示身份与「你与他」的交情（每个 NPC 一本账，见 npcFavor）
       if(o.role) parts.push('身份：'+o.role);
-      var _fv=npcFavor(key);
-      parts.push('与你的交情：'+npcFavorTier(_fv).name+(S().npcFavor&&S().npcFavor[key]?'（'+(_fv>0?'+':'')+_fv+'）':''));
+      var _fv=getNpcFavor()(key);
+      parts.push('与你的交情：'+getNpcFavorTier()(_fv).name+(S().npcFavor&&S().npcFavor[key]?'（'+(_fv>0?'+':'')+_fv+'）':''));
     }
     // 掉落预览：NPC 对应敌人模板有掉落表时，展示可能掉落的物资/装备（战前情报）
-    var eid = (G.ENEMIES && G.ENEMIES[key]) ? key : ((NPC_COMBAT_MAP[key]||[])[0] || null);
+    var eid = (G.ENEMIES && G.ENEMIES[key]) ? key : ((getNPC_COMBAT_MAP()[key]||[])[0] || null);
     if(eid && G.ENEMIES[eid] && G.ENEMIES[eid].drop){
       var d=G.ENEMIES[eid].drop, dr=[];
       if(d.gold && d.gold[1]>0) dr.push('银两'+d.gold[0]+'~'+d.gold[1]);
@@ -21945,6 +21950,12 @@ function bindCreate(){
       save: function () { return save.apply(null, arguments); },
       talk: talk,
       toast: toast,
+      // v20260927o：引擎闭包变量走 getter（var 提升后运行时取值正确；companion.js 独立 IIFE 裸引用会 ReferenceError）
+      getNPC_COMBAT_MAP: function () { return NPC_COMBAT_MAP; },
+      getCOMPANION_DEFS: function () { return COMPANION_DEFS; },
+      getNPC_BY_KEY: function () { return NPC_BY_KEY; },
+      getNpcFavor: function () { return npcFavor; },
+      getNpcFavorTier: function () { return npcFavorTier; },
   });
   var DIR_ARROW = Companion.DIR_ARROW, DIR_GRID = Companion.DIR_GRID, bindGivePanel = Companion.bindGivePanel, buildNpcActions = Companion.buildNpcActions, calcGiveFavor = Companion.calcGiveFavor;
   var dismissCompanion = Companion.dismissCompanion, giveItemToNpc = Companion.giveItemToNpc, giveNpc = Companion.giveNpc, giveQty = Companion.giveQty, giveReaction = Companion.giveReaction;

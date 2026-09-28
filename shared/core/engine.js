@@ -291,6 +291,12 @@
       save: function () { return save.apply(null, arguments); },
       talk: talk,
       toast: toast,
+      // v20260927o：引擎闭包变量走 getter（var 提升后运行时取值正确；companion.js 独立 IIFE 裸引用会 ReferenceError）
+      getNPC_COMBAT_MAP: function () { return NPC_COMBAT_MAP; },
+      getCOMPANION_DEFS: function () { return COMPANION_DEFS; },
+      getNPC_BY_KEY: function () { return NPC_BY_KEY; },
+      getNpcFavor: function () { return npcFavor; },
+      getNpcFavorTier: function () { return npcFavorTier; },
   });
   var DIR_ARROW = Companion.DIR_ARROW, DIR_GRID = Companion.DIR_GRID, bindGivePanel = Companion.bindGivePanel, buildNpcActions = Companion.buildNpcActions, calcGiveFavor = Companion.calcGiveFavor;
   var dismissCompanion = Companion.dismissCompanion, giveItemToNpc = Companion.giveItemToNpc, giveNpc = Companion.giveNpc, giveQty = Companion.giveQty, giveReaction = Companion.giveReaction;
