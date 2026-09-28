@@ -56,7 +56,45 @@
         { id: 'zhujian', buy: 8,  sell: 3  },
         { id: 'maopi',   buy: 0,  sell: 6  },
         { id: 'shedan',  buy: 0,  sell: 10 },
-        { id: 'shepi',   buy: 0,  sell: 8  }
+        { id: 'shepi',   buy: 0,  sell: 8  },
+        // —— 新物品（v20260927t）：农具 / 种子 / 作物 / 半成品 / 食材 / 畜牧 / 牲畜 / 建材 ——
+        { id: 'tieding',  buy: 35, sell: 14 },
+        { id: 'shihui',   buy: 6,  sell: 2  },
+        { id: 'zhucai',   buy: 8,  sell: 3  },
+        { id: 'liandao',  buy: 18, sell: 7  },
+        { id: 'tiechan',  buy: 22, sell: 8  },
+        { id: 'li',       buy: 40, sell: 15 },
+        { id: 'mutong',   buy: 10, sell: 4  },
+        { id: 'maizhong', buy: 4,  sell: 1  },
+        { id: 'daozhong', buy: 4,  sell: 1  },
+        { id: 'caizhong', buy: 3,  sell: 1  },
+        { id: 'yaozhong', buy: 5,  sell: 2  },
+        { id: 'xiaomai',  buy: 8,  sell: 3  },
+        { id: 'qingcai',  buy: 4,  sell: 1  },
+        { id: 'mianfen',  buy: 10, sell: 4  },
+        { id: 'dami',     buy: 12, sell: 4  },
+        { id: 'you',      buy: 14, sell: 5  },
+        { id: 'jiang',    buy: 8,  sell: 3  },
+        { id: 'bupi',     buy: 16, sell: 6  },
+        { id: 'jidan',    buy: 4,  sell: 1  },
+        { id: 'niunai',   buy: 6,  sell: 2  },
+        { id: 'yangmao',  buy: 10, sell: 4  },
+        { id: 'pige',     buy: 22, sell: 9  },
+        { id: 'fengmi',   buy: 18, sell: 7  },
+        { id: 'zhurou',   buy: 11, sell: 4  },
+        { id: 'yangrou',  buy: 14, sell: 5  },
+        { id: 'jirou',    buy: 10, sell: 4  },
+        { id: 'niurou',   buy: 17, sell: 6  },
+        { id: 'xiaozhu',  buy: 28, sell: 10 },
+        { id: 'xiaoyang', buy: 33, sell: 12 },
+        { id: 'xiaoji',   buy: 12, sell: 4  },
+        { id: 'xiaoniu',  buy: 65, sell: 24 },
+        // 财货仅收售（buy:0 不上架）：值钱之物，货郎担上收得，转手钱庄
+        { id: 'jintiao',  buy: 0,  sell: 60 },
+        { id: 'yinding',  buy: 0,  sell: 30 },
+        { id: 'yupei',    buy: 0,  sell: 45 },
+        { id: 'shouzhuo', buy: 0,  sell: 35 },
+        { id: 'zhenzhu',  buy: 0,  sell: 25 }
       ]
     },
     doctor: {
@@ -64,7 +102,12 @@
       items: [
         { id: 'jinchuang', buy: 30, sell: 12 },
         { id: 'roubao',    buy: 8,  sell: 3  },
-        { id: 'caoyao',    buy: 5,  sell: 2  }
+        { id: 'caoyao',    buy: 5,  sell: 2  },
+        // —— 新物品（v20260927t）：药种 / 名贵药材 ——
+        { id: 'caizhong',  buy: 4,  sell: 1  },
+        { id: 'yaozhong',  buy: 6,  sell: 2  },
+        { id: 'renshen',   buy: 95, sell: 30 },
+        { id: 'lingzhi',   buy: 85, sell: 25 }
       ]
     },
     // ── 坊·市坊四号（v20260927e）：城内坊格「交易」按铺名开对应商号 ──
@@ -76,7 +119,12 @@
         { id: 'tiejian', buy: 95, sell: 35 },
         { id: 'tiefu',   buy: 74, sell: 28 },
         { id: 'futou',   buy: 38, sell: 12 },
-        { id: 'tiema',   buy: 24, sell: 8  }
+        { id: 'tiema',   buy: 24, sell: 8  },
+        // —— 新物品（v20260927t）：铁锭 / 铁农具 ——
+        { id: 'tieding', buy: 38, sell: 15 },
+        { id: 'tiechan', buy: 24, sell: 8  },
+        { id: 'liandao', buy: 20, sell: 7  },
+        { id: 'li',      buy: 42, sell: 15 }
       ]
     },
     tavern: {
@@ -86,7 +134,20 @@
         { id: 'jiu',      buy: 18, sell: 6 },
         { id: 'roubao',   buy: 9,  sell: 3 },
         { id: 'douzhou',  buy: 15, sell: 5 },
-        { id: 'shengrou', buy: 13, sell: 4 }
+        { id: 'shengrou', buy: 13, sell: 4 },
+        // —— 新物品（v20260927t）：食材半成品上架 / 肉蛋奶收售 ——
+        { id: 'dami',     buy: 13, sell: 4 },
+        { id: 'mianfen',  buy: 11, sell: 4 },
+        { id: 'qingcai',  buy: 5,  sell: 1 },
+        { id: 'you',      buy: 16, sell: 5 },
+        { id: 'jiang',    buy: 9,  sell: 3 },
+        { id: 'jidan',    buy: 5,  sell: 1 },
+        { id: 'niunai',   buy: 7,  sell: 2 },
+        { id: 'fengmi',   buy: 20, sell: 7 },
+        { id: 'zhurou',   buy: 0,  sell: 4  },
+        { id: 'yangrou',  buy: 0,  sell: 5  },
+        { id: 'jirou',    buy: 0,  sell: 4  },
+        { id: 'niurou',   buy: 0,  sell: 6  }
       ]
     },
     cloth: {
@@ -95,7 +156,11 @@
         { id: 'bumu',  buy: 9,  sell: 3 },
         { id: 'rope',  buy: 11, sell: 4 },
         { id: 'pibao', buy: 55, sell: 20 },
-        { id: 'maopi', buy: 0,  sell: 6 }
+        { id: 'maopi', buy: 0,  sell: 6 },
+        // —— 新物品（v20260927t）：布匹 / 羊毛 / 皮革 ——
+        { id: 'bupi',    buy: 18, sell: 7  },
+        { id: 'yangmao', buy: 12, sell: 4  },
+        { id: 'pige',    buy: 24, sell: 9  }
       ]
     },
     bank: {
@@ -104,7 +169,15 @@
         { id: 'shutong',     buy: 30, sell: 10 },
         { id: 'caiyaobiluo', buy: 48, sell: 18 },
         { id: 'shepi',       buy: 0,  sell: 8  },
-        { id: 'shedan',      buy: 0,  sell: 10 }
+        { id: 'shedan',      buy: 0,  sell: 10 },
+        // —— 新物品（v20260927t）：钱庄专收财货，高价兑付 ——
+        { id: 'jintiao',  buy: 0, sell: 65 },
+        { id: 'yinding',  buy: 0, sell: 32 },
+        { id: 'yupei',    buy: 0, sell: 48 },
+        { id: 'shouzhuo', buy: 0, sell: 38 },
+        { id: 'zhenzhu',  buy: 0, sell: 28 },
+        { id: 'renshen',  buy: 0, sell: 35 },
+        { id: 'lingzhi',  buy: 0, sell: 28 }
       ]
     },
     // 郊野遇上的游方行商（v20260905a）：货随担走，货色少于城中，价略高；
@@ -128,7 +201,18 @@
         { id: 'maopi',       buy: 0,  sell: 6  },
         { id: 'shedan',      buy: 0,  sell: 10 },
         { id: 'shepi',       buy: 0,  sell: 8  },
-        { id: 'xiang',       buy: 0,  sell: 2  }
+        { id: 'xiang',       buy: 0,  sell: 2  },
+        // —— 新物品（v20260927t）：野外可得的蛋肉奶蜜 / 药材就地收售 ——
+        { id: 'jidan',      buy: 0, sell: 1 },
+        { id: 'niunai',     buy: 0, sell: 2 },
+        { id: 'yangmao',    buy: 0, sell: 4 },
+        { id: 'fengmi',     buy: 0, sell: 7 },
+        { id: 'zhurou',     buy: 0, sell: 4 },
+        { id: 'yangrou',    buy: 0, sell: 5 },
+        { id: 'jirou',      buy: 0, sell: 4 },
+        { id: 'niurou',     buy: 0, sell: 6 },
+        { id: 'renshen',    buy: 0, sell: 30 },
+        { id: 'lingzhi',    buy: 0, sell: 25 }
       ]
     }
   };
