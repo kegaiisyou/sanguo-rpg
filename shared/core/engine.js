@@ -1742,7 +1742,7 @@
         var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
         var btn=mkAct('scene', a.icon||'·', a.label, function(e){
           // 进入某处（进·店铺/进·建筑）意图明确，单击直达，不再套「执 行」菜单
-          if(a.id==='enter_building'){ handleAction(a.id,a); return; }
+          if(a.id==='enter_building'||a.id==='enter_house'){ handleAction(a.id,a); return; }
           toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts);
         }, null, a.id);
       });
@@ -1776,7 +1776,11 @@
     // fallback：旧版分组按钮（兼容无配置的房间；探查已由 dock 接管）
     (room.actions||[]).forEach(function(a){
       var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
-      var btn=mkAct('scene','·',a.label,function(e){ toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts); }, null, a.id);
+      var btn=mkAct('scene','·',a.label,function(e){
+        // 意图明确的房间动作（宅院布置/安歇）单击直达，不再套「执 行」菜单
+        if(a.id==='house_furn'||a.id==='house_rest'){ handleAction(a.id,a); return; }
+        toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts);
+      }, null, a.id);
     });
     if(room.exits && Object.keys(room.exits).length){
       // 有出口：日常移动交由 Dock 上方常驻移动条
@@ -2995,6 +2999,18 @@
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
         enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
         break;
+      // v20260928h：房产/家园（牙行购房契 → 民居进宅 → 布置家具）
+      case 'enter_house':
+        if(a && a.data && a.data.cid) enterHouse(a.data.cid);
+        break;
+      case 'house_furn':
+        openModal('housefurn', {cid:(a&&a.data?a.data.cid:state.room)});
+        break;
+      case 'house_rest':
+        if(!exert('宅中安歇')) return;
+        state.hp=state.maxHp; state.mp=state.maxMp; state.energy=state.maxEnergy; state.food=Math.min(100,(state.food||0)+20); state.drink=Math.min(100,(state.drink||0)+20);
+        save(state); log('回到自家卧房，卸甲宽衣，一觉酣眠——气血精神尽复。','good'); renderStatus();
+        break;
       // v20260910q：回营区按钮已取消——离开牢房走罗盘网格邻居（南·中军大帐等）
       case 'ward_view': {
         // v20260927e：坊内三用 —— 市坊开对应商号、文教开求学面板、码头开问渡面板
@@ -3525,7 +3541,14 @@
       zhurou:'0 0', yangrou:'0 0', jirou:'0 0', niurou:'0 0',
       xiaozhu:'0 0', xiaoyang:'0 0', xiaoji:'0 0', xiaoniu:'0 0',
       renshen:'0 0', lingzhi:'0 0',
-      jingtie:'0 0', hongshao:'0 0', kaoji:'0 0', kaoyang:'0 0'
+      jingtie:'0 0', hongshao:'0 0', kaoji:'0 0', kaoyang:'0 0',
+      // v20260928h：牙行房契 / 家具 / 马行
+      fangqi_luoyang:'0 0', fangqi_changan:'0 0', fangqi_yecheng:'0 0', fangqi_chengdu:'0 0',
+      fangqi_jianye:'0 0', fangqi_xiangyang:'0 0', fangqi_wuchang:'0 0', fangqi_puyang:'0 0',
+      fangqi_changsha:'0 0', fangqi_linzi:'0 0',
+      jiaju_chuang:'0 0', jiaju_zhuo:'0 0', jiaju_yi:'0 0', jiaju_gui:'0 0',
+      jiaju_deng:'0 0', jiaju_pingfeng:'0 0', jiaju_huaping:'0 0', jiaju_zihua:'0 0',
+      ma:'0 0', lu:'0 0', maan:'0 0', macao:'0 0'
     } };
   var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){
@@ -4565,6 +4588,7 @@
       else b.classList.remove('rest');
     });
   }
+  var currentModalOpts=null;   // v20260928h：最近一次 openModal 的 opts（供宅院布置等自定义面板读取）
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
@@ -4582,8 +4606,7 @@
     if(kind!=='dev'){ try{ (kind==='levelup'?SFX.levelup():SFX.open()); }catch(e){} }   // 弹窗打开音效（levelup 用升阶音）
     if(kind==='dev'){ renderDev(); return; }
    try{
-    var modalOpts=opts||{};
-    // 捏人时隐藏标题页，并给弹窗不透明水墨背景，避免背景停留在标题页
+    var modalOpts=opts||{}; currentModalOpts=modalOpts;   // v20260928h：供自定义面板（宅院布置）读取 opts    // 捏人时隐藏标题页，并给弹窗不透明水墨背景，避免背景停留在标题页
     var tt=document.getElementById('title');
     if(tt){ if(kind==='create') tt.classList.add('hidden'); else if(!state) tt.classList.remove('hidden'); }
     $modal.classList.toggle('modal-create-bg', kind==='create');
@@ -4675,6 +4698,8 @@
       h=renderCraftPanel();
     } else if(kind==='shop'){
       h=Shop.openShop(opts && opts.shop);
+    } else if(kind==='housefurn'){
+      h=renderHouseFurnPanel();
     } else if(kind==='wardStudy'){
       h=renderWardStudy(opts);
     } else if(kind==='wardFerry'){
@@ -4737,6 +4762,7 @@
     if(kind==='wardFerry'){ bindWardFerry(); }
     if(kind==='build'){ bindBuildPanel(); }
     if(kind==='storage'){ Shop.bindShopPanel(); }
+    if(kind==='housefurn'){ bindHouseFurnPanel(); }
     if(kind==='rest'){ bindRestPanel(); }
     if(kind==='forge'){ bindForgePanel(); }
     if(kind==='building'){ bindBuildingPanel(); }
@@ -5665,5 +5691,131 @@
   }
   registerPlaceRooms();
   if(LF.Travel) LF.Travel.link();   // 郊野网格造好后，连 近边入口↔母城 / 远边出口↔邻点
+
+  // ══ 房产/家园系统（v20260928h）：牙行购契 → 对应城民居落「宅院」→ 进宅布置家具 ══
+  var HOUSE_CITY_NAMES = {
+    luoyang:'洛阳', changan:'长安', yecheng:'邺城', chengdu:'成都', jianye:'建业',
+    xiangyang:'襄阳', wuchang:'武昌', puyang:'濮阳', changsha:'长沙', linzi:'临淄'
+  };
+  var HOUSE_GRID_W = 4, HOUSE_GRID_H = 3;   // 摆件 4×3 格
+  function houseFurnState(cid){
+    var F=state.flags; if(!F.houses) F.houses={};
+    if(!F.houses[cid]) F.houses[cid]={furn:{}};
+    if(!F.houses[cid].furn) F.houses[cid].furn={};
+    return F.houses[cid].furn;
+  }
+  // 房契 defId → 城市 id；非房契返回 null
+  function houseCidOf(fangqiId){
+    var m=(fangqiId||'').match(/^fangqi_(.+)$/); if(!m) return null;
+    return HOUSE_CITY_NAMES[m[1]] ? m[1] : null;
+  }
+  // 购买/持有房契时登记（shop.js 结算钩子调用）
+  function registerHouse(fangqiId){
+    var cid=houseCidOf(fangqiId); if(!cid) return false;
+    var F=state.flags; if(!F.houses) F.houses={};
+    if(F.houses[cid]){ toast('「'+HOUSE_CITY_NAMES[cid]+'」宅邸你已持有。'); return false; }
+    F.houses[cid]={furn:{}};
+    if(typeof save==='function') save(state);
+    toast('凭契立户——你在'+HOUSE_CITY_NAMES[cid]+'安了家，往该城民居可入宅院。','good');
+    return true;
+  }
+  // 进宅：动态生成宅院房间并切入
+  function enterHouse(cid){
+    if(!(state.flags.houses||{})[cid]){ toast('此处并无你的宅邸。'); return; }
+    var rid='__house_'+cid;
+    ensureHouseRoom(cid, rid);
+    renderRoom(rid);
+  }
+  function houseFurnListHTML(cid){
+    var furn=houseFurnState(cid), keys=Object.keys(furn), L=LF.ITEMS||LF.SharedGame;
+    var out=[];
+    keys.forEach(function(k){ var d=L.DEFS[furn[k]]; if(d) out.push(d.name); });
+    return out.length?('堂中摆着：'+out.join('、')+'。'):'堂屋空落落，尚待布置。';
+  }
+  function ensureHouseRoom(cid, rid){
+    if(G.ROOMS[rid]) return;
+    var nm=HOUSE_CITY_NAMES[cid]||cid;
+    G.ROOMS[rid]={
+      id: rid, name: nm+'宅院',
+      desc: ['檐下匾额新挂「'+nm+'×宅」，院中青砖墁地。', houseFurnListHTML(cid)],
+      find:'自家宅邸，进出自如。',
+      exits: { '南': cid },      // 南位出宅回城（保留进城时的原格）
+      npcs: [], items: [],
+      objs: (function(){ var furn=houseFurnState(cid), objs=[]; for(var k in furn){ var d=(LF.ITEMS||{}).DEFS[furn[k]]; if(d) objs.push({name:d.name, icon:d.icon||'🪑', desc:'你布置的'+d.name+',摆放齐整。'}); } return objs; })(),
+      actions: [
+        { id:'house_furn', label:'布置家具', icon:'🪑', tip:'取出行囊中的家具，摆进堂屋卧房（4×3 格位）', data:{cid:cid} },
+        { id:'house_rest', label:'宅中安歇', icon:'🛌', tip:'回自家卧房歇息，气血精神尽复', data:{cid:cid} }
+      ],
+      isHouse: true
+    };
+  }
+  // 布置家具面板：左=4×3 格位（已摆显示图），右=背包可摆家具，点选放置/取下
+  function bindHouseFurnPanel(){
+    var box=$card, sel=null;
+    box.querySelectorAll('.hf-bag').forEach(function(el){
+      el.onclick=function(){
+        var d=el.getAttribute('data-def'); if(!d) return;
+        sel=d;
+        box.querySelectorAll('.hf-bag').forEach(function(x){ x.classList.remove('sel'); });
+        el.classList.add('sel');
+        toast('已选「'+(((LF.ITEMS||{}).DEFS[d]||{}).name||d)+'」——点右侧格位摆放。','sys');
+      };
+    });
+    box.querySelectorAll('.hf-cell').forEach(function(el){
+      el.onclick=function(){
+        var cid=el.getAttribute('data-cid'), k=el.getAttribute('data-k');
+        var def=el.getAttribute('data-def')||sel;
+        housePlace(def, cid, k);
+      };
+    });
+  }
+  function renderHouseFurnPanel(){
+    var opts=modalOptsFor('housefurn')||{};
+    var cid=opts.cid||state.room; if(!HOUSE_CITY_NAMES[cid]) cid=null;
+    if(!cid) return '<h3>布置家具</h3><p class="tip">此处并非你的宅院。</p>';
+    var furn=houseFurnState(cid);
+    var DEFS=(LF.ITEMS||{}).DEFS||{};
+    // 左：格位
+    var cells='';
+    for(var y=0;y<HOUSE_GRID_H;y++){ for(var x=0;x<HOUSE_GRID_W;x++){
+      var k=x+','+y, d=furn[k]?DEFS[furn[k]]:null;
+      cells+='<div class="hf-cell'+(d?' filled':'')+'" data-cid="'+cid+'" data-k="'+k+'" data-def="'+(d?furn[k]:'')+'">'+
+        (d?itemIconHTML(d,18):'<span class="hf-empty">空</span>')+'</div>';
+    }}
+    // 右：背包家具（点选进入待摆状态）
+    var bag='';
+    (state.pack||[]).forEach(function(it,i){
+      if(!it) return; var d=DEFS[it.defId]; if(!d || d.cat!=='家具') return;
+      bag+='<div class="hf-bag" data-pack="'+i+'" data-def="'+it.defId+'">'+itemIconHTML(d,16)+'<b>'+d.name+'</b><i>×'+(it.count||1)+'</i></div>';
+    });
+    if(!bag) bag='<p class="tip">行囊中暂无家具——可往市集杂货铺采买床、桌、椅、柜等。</p>';
+    return '<h3>布置家具 · '+HOUSE_CITY_NAMES[cid]+'宅院</h3>'+
+      '<div class="hf-wrap"><div class="hf-grid">'+cells+'</div><div class="hf-bagbox"><div class="hf-bag-t">背包家具（点选后点格位放置）</div>'+bag+'</div></div>'+
+      '<p class="tip">点已摆格位可取下回囊；摆放齐整，宅院才像个家。</p>';
+  }
+  function modalOptsFor(){ return currentModalOpts||{}; }
+  // 放置/取下家具（面板点击回调，engine 全局 onHouseCellTap）
+  function housePlace(defId, cid, k){
+    var furn=houseFurnState(cid);
+    if(furn[k]){ // 取下回背包
+      var d=(LF.ITEMS||{}).DEFS[furn[k]];
+      packAdd(furn[k],1); delete furn[k];
+      if(typeof save==='function') save(state);
+      toast((d?d.name:'家具')+'已取下收进行囊。','sys');
+    } else if(defId){ // 放置（消耗背包 1 件）
+      var pk=state.pack, found=-1;
+      for(var i=0;i<pk.length;i++){ var it=pk[i]; if(it && it.defId===defId){ found=i; break; } }
+      if(found<0){ toast('行囊中没有该家具。'); return; }
+      var it=pk[found]; it.count=(it.count||1)-1; if(it.count<=0) pk[found]=null;
+      furn[k]=defId;
+      if(typeof save==='function') save(state);
+      toast('「'+(((LF.ITEMS||{}).DEFS[defId]||{}).name||defId)+'」已摆入宅院。','good');
+    }
+    openModal('housefurn',{cid:cid});
+    var rr=G.ROOMS['__house_'+cid]; if(rr) rr.desc=['檐下匾额新挂。', houseFurnListHTML(cid)];
+  }
+  // 暴露给引擎/面板
+  LF.House={ registerHouse:registerHouse, enterHouse:enterHouse, ensureHouseRoom:ensureHouseRoom,
+    houseCidOf:houseCidOf, houseFurnState:houseFurnState, housePlace:housePlace, HOUSE_GRID_W:HOUSE_GRID_W, HOUSE_GRID_H:HOUSE_GRID_H };
 
 })();

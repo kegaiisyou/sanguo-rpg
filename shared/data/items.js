@@ -328,7 +328,32 @@
     kaoji:      { defId: 'kaoji',      name: '烤鸡', icon: '🍗', cat: '菜肴', price: 14, effect: { food: 15, drink: 3 },
       desc: '整鸡架火慢烤，皮脆肉嫩，撕开流汁。' },
     kaoyang:    { defId: 'kaoyang',    name: '烤羊肉', icon: '🍢', cat: '菜肴', price: 18, effect: { food: 17, drink: 5 },
-      desc: '带骨羊肉串在火上翻烤，撒盐椒，膻香扑鼻。' }
+      desc: '带骨羊肉串在火上翻烤，撒盐椒，膻香扑鼻。' },
+    // ══ v20260928h · 牙行房契（主城各一，凭契置业）══
+    fangqi_luoyang:  { defId: 'fangqi_luoyang',  name: '洛阳民宅契', icon: '📜', cat: '契文', price: 120, desc: '牙行作保的洛阳宅契——凭契可入洛阳民居置业安居。' },
+    fangqi_changan:  { defId: 'fangqi_changan',  name: '长安民宅契', icon: '📜', cat: '契文', price: 110, desc: '牙行作保的长安宅契——凭契可入长安民居置业安居。' },
+    fangqi_yecheng:  { defId: 'fangqi_yecheng',  name: '邺城民宅契', icon: '📜', cat: '契文', price: 95,  desc: '牙行作保的邺城宅契——凭契可入邺城民居置业安居。' },
+    fangqi_chengdu:  { defId: 'fangqi_chengdu',  name: '成都民宅契', icon: '📜', cat: '契文', price: 90,  desc: '牙行作保的成都宅契——凭契可入成都民居置业安居。' },
+    fangqi_jianye:   { defId: 'fangqi_jianye',   name: '建业民宅契', icon: '📜', cat: '契文', price: 100, desc: '牙行作保的建业宅契——凭契可入建业民居置业安居。' },
+    fangqi_xiangyang:{ defId: 'fangqi_xiangyang',name: '襄阳民宅契', icon: '📜', cat: '契文', price: 88,  desc: '牙行作保的襄阳宅契——凭契可入襄阳民居置业安居。' },
+    fangqi_wuchang:  { defId: 'fangqi_wuchang',  name: '武昌民宅契', icon: '📜', cat: '契文', price: 92,  desc: '牙行作保的武昌宅契——凭契可入武昌民居置业安居。' },
+    fangqi_puyang:   { defId: 'fangqi_puyang',   name: '濮阳民宅契', icon: '📜', cat: '契文', price: 80,  desc: '牙行作保的濮阳宅契——凭契可入濮阳民居置业安居。' },
+    fangqi_changsha: { defId: 'fangqi_changsha',  name: '长沙民宅契', icon: '📜', cat: '契文', price: 75,  desc: '牙行作保的长沙宅契——凭契可入长沙民居置业安居。' },
+    fangqi_linzi:    { defId: 'fangqi_linzi',    name: '临淄民宅契', icon: '📜', cat: '契文', price: 85,  desc: '牙行作保的临淄宅契——凭契可入临淄民居置业安居。' },
+    // ══ v20260928h · 家具（布置宅院用）══
+    jiaju_chuang:   { defId: 'jiaju_chuang',   name: '花梨木床', icon: '🛏️', cat: '家具', price: 40, desc: '雕花卧榻，铺着新絮。宅中安歇，恢复更足。' },
+    jiaju_zhuo:     { defId: 'jiaju_zhuo',     name: '八仙桌',   icon: '🪑', cat: '家具', price: 26, desc: '四方木桌，待客议事皆宜。' },
+    jiaju_yi:       { defId: 'jiaju_yi',       name: '圈椅',     icon: '🪑', cat: '家具', price: 18, desc: '曲木圈椅，靠背趁手。' },
+    jiaju_gui:      { defId: 'jiaju_gui',      name: '衣箱柜',   icon: '🗄️', cat: '家具', price: 30, desc: '樟木大柜，衣物杂物尽可收纳。' },
+    jiaju_deng:     { defId: 'jiaju_deng',     name: '铜油灯',   icon: '🕯️', cat: '家具', price: 14, desc: '铜盏青油，夜读添亮。' },
+    jiaju_pingfeng: { defId: 'jiaju_pingfeng', name: '山水屏风', icon: '🖼️', cat: '家具', price: 48, desc: '绢面山水屏，堂前挡风，亦掩内室。' },
+    jiaju_huaping:  { defId: 'jiaju_huaping',  name: '青瓷花瓶', icon: '🏺', cat: '家具', price: 22, desc: '青釉瓷瓶，可插新折花枝。' },
+    jiaju_zihua:    { defId: 'jiaju_zihua',    name: '名家字画', icon: '🖌️', cat: '家具', price: 55, desc: '裱好的一轴字画，悬于堂上生色。' },
+    // ══ v20260928h · 马行（坐骑/鞍具/草料）══
+    ma:     { defId: 'ma',     name: '骏马', icon: '🐴', cat: '坐骑', price: 160, desc: '膘肥体壮的良驹，日行数百里。' },
+    lu:     { defId: 'lu',     name: '毛驴', icon: '🫏', cat: '坐骑', price: 60,  desc: '温顺毛驴，驮货代步皆宜。' },
+    maan:   { defId: 'maan',   name: '马鞍', icon: '🧎', cat: '鞍具', price: 30,  desc: '皮木马鞍，骑乘平稳不磨。' },
+    macao:  { defId: 'macao',  name: '马草', icon: '🌾', cat: '草料', price: 8,   desc: '干草料，喂马的日常口粮。' }
   };
 
   function ri(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }

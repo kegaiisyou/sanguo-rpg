@@ -218,7 +218,45 @@
         { id: 'jirou',      buy: 0, sell: 4 },
         { id: 'niurou',     buy: 0, sell: 6 },
         { id: 'renshen',    buy: 0, sell: 30 },
-        { id: 'lingzhi',    buy: 0, sell: 25 }
+        { id: 'lingzhi',    buy: 0, sell: 25 },
+        // —— 家具（v20260928h）：摆入宅院（床/桌/椅/柜）——
+        { id: 'jiaju_chuang', buy: 40, sell: 16 },
+        { id: 'jiaju_zhuo',   buy: 26, sell: 10 },
+        { id: 'jiaju_yi',     buy: 18, sell: 7  },
+        { id: 'jiaju_gui',    buy: 30, sell: 12 },
+        // —— 房契保底（v20260928h）：两都宅契亦有售（牙行为主，杂货为便）——
+        { id: 'fangqi_luoyang', buy: 120, sell: 60 },
+        { id: 'fangqi_changan', buy: 110, sell: 55 }
+      ]
+    },
+    // —— 马行（v20260928h）：坐骑/鞍具/草料上架，活畜高价收 ——
+    maxing: {
+      name: '马行',
+      items: [
+        { id: 'ma',      buy: 160, sell: 70 },
+        { id: 'lu',      buy: 60,  sell: 25 },
+        { id: 'maan',    buy: 30,  sell: 12 },
+        { id: 'macao',   buy: 8,   sell: 3  },
+        { id: 'xiaoniu', buy: 0,   sell: 35 },
+        { id: 'xiaozhu', buy: 0,   sell: 14 },
+        { id: 'xiaoyang',buy: 0,   sell: 18 },
+        { id: 'xiaoji',  buy: 0,   sell: 6  }
+      ]
+    },
+    // —— 牙行（v20260928h）：卖主城房契，凭契置业；旧宅亦可交还牙行 ——
+    yahang: {
+      name: '牙行',
+      items: [
+        { id: 'fangqi_luoyang',  buy: 120, sell: 60 },
+        { id: 'fangqi_changan',  buy: 110, sell: 55 },
+        { id: 'fangqi_jianye',   buy: 100, sell: 50 },
+        { id: 'fangqi_yecheng',  buy: 95,  sell: 48 },
+        { id: 'fangqi_wuchang',  buy: 92,  sell: 46 },
+        { id: 'fangqi_chengdu',  buy: 90,  sell: 45 },
+        { id: 'fangqi_xiangyang',buy: 88,  sell: 44 },
+        { id: 'fangqi_linzi',    buy: 85,  sell: 42 },
+        { id: 'fangqi_puyang',   buy: 80,  sell: 40 },
+        { id: 'fangqi_changsha', buy: 75,  sell: 38 }
       ]
     }
   };

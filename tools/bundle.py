@@ -20,7 +20,7 @@ MANIFEST = os.path.join(WS, 'tools', 'bundle.manifest')
 INDEX = os.path.join(WS, 'index.html')
 BUNDLE = os.path.join(WS, 'shared', 'bundle.js')
 CONSTANTS = os.path.join(WS, 'shared', 'config', 'constants.js')
-VERSION = '20260928g'
+VERSION = '20260928h'
 
 def read(p): return io.open(p, 'r', encoding='utf-8', newline='').read().replace('\r\n', '\n')
 def write(p, s): io.open(p, 'w', encoding='utf-8', newline='').write(s)
@@ -29,6 +29,37 @@ SRC_RE = re.compile(r'<script src="(shared/[^"]+?\.js)\?v=[^"]*"[^>]*></script>'
 
 def extract_from_index():
     return [m.group(1) for m in SRC_RE.finditer(read(INDEX))]
+
+def find_terser():
+    """探测可用 terser 模块路径：npm 全局 / 项目 tools/node_modules / 常见全局目录。"""
+    import shutil
+    cands = [
+        'terser',
+        os.path.expanduser('~/.npm-global/lib/node_modules/terser'),
+        os.path.expanduser('~/terser/node_modules/terser'),
+        '/tmp/node_modules/terser',
+        '/usr/local/lib/node_modules/terser',
+        os.path.join(WS, 'tools', 'node_modules', 'terser'),
+    ]
+    for c in cands:
+        try:
+            if c == 'terser':
+                if shutil.which('terser'):
+                    return 'terser'
+                # npm 全局 require 也常可用
+                r = subprocess.run(['node', '-e', "require('terser');console.log('ok')"],
+                                   capture_output=True, text=True)
+                if r.returncode == 0 and 'ok' in r.stdout:
+                    return 'terser'
+                continue
+            if os.path.isdir(c) and os.path.exists(os.path.join(c, 'package.json')):
+                r = subprocess.run(['node', '-e', "require('" + c + "');console.log('ok')"],
+                                   capture_output=True, text=True)
+                if r.returncode == 0 and 'ok' in r.stdout:
+                    return c
+        except Exception:
+            continue
+    return None
 
 def build_manifest(from_index=False):
     if from_index or not os.path.exists(MANIFEST):
@@ -65,7 +96,39 @@ def main():
              '// 源文件数: %d   版本: %s\n' % (len(srcs), VERSION)
     bundle = header + '\n;\n'.join(parts) + '\n'
     write(BUNDLE, bundle)
-    print('bundle.js: %d 文件, %d 字节' % (len(srcs), len(bundle)))
+
+    # 1.5) terser 压缩（v20260928h · 首屏提速）：纯拼接 1.7MB 手机下载/解析慢，
+    #       terser 后体积约减半。多路径探测，找不到 terser 则保留原文并警告（不阻断构建）。
+    terser_path = find_terser()
+    if terser_path:
+        comp = r'''
+const fs=require('fs');
+const t=require(process.argv[2]);
+const src=fs.readFileSync(0,'utf8');
+t.minify(src,{compress:{passes:2},mangle:true,format:{comments:false}}).then(r=>{
+  process.stdout.write(r.code);
+}).catch(e=>{ console.error('TERSER_FAIL:'+e.message); process.exit(2); });
+'''
+        comp_js = os.path.join(WS, 'tools', '.terser_run.js')
+        write(comp_js, comp)
+        try:
+            raw_size = len(bundle)
+            r = subprocess.run(['node', comp_js, terser_path], input=bundle.encode('utf-8'),
+                               capture_output=True, timeout=180)
+            if r.returncode == 0 and r.stdout:
+                bundle = r.stdout.decode('utf-8')
+                write(BUNDLE, bundle)
+                print('bundle.js: %d 文件, %d → %d 字节（terser 压缩 -%.1f%%）' % (
+                    len(srcs), raw_size, len(bundle), 100.0 * (1 - len(bundle) / float(raw_size))))
+            else:
+                print('WARN terser 压缩失败，保留原文：' + r.stderr.decode('utf-8', 'ignore')[:300])
+        finally:
+            try: os.remove(comp_js)
+            except Exception: pass
+    else:
+        print('WARN 未找到 terser，bundle 保持未压缩（体积约 1.7MB，首屏加载偏慢）。可 npm i -g terser 后重建。')
+
+    print('bundle.js: 最终 %d 字节' % len(bundle))
 
     # 2) 语法 + 顶层 let/const 冲突校验
     r = subprocess.run(['node', '--check', BUNDLE], capture_output=True, text=True)

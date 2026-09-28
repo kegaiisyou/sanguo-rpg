@@ -434,6 +434,7 @@ window.LF = window.LF || {};
     function cellDisplayName(cid, t) {
       if (t === 'unbuilt') return '未营建';
       if (t === 'site') return '工地';
+      if (t === 'home' && (S().flags.houses || {})[cid]) return '宅院';   // v20260928h：持契置业后，民居格显「宅院」
       if (t === 'gov') {
         if (isCaptured(cid)) return '行辕';
         var _c = (LF.CITIES || {})[cid] || {};
@@ -501,7 +502,7 @@ window.LF = window.LF || {};
       // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
       var markets = {};
       var MK = (typeof LF !== 'undefined' && LF.MARKETS);
-      var mktPool = ['yaofu', 'buzhuang', 'shishi', 'zahuo', 'gongzao', 'jiulou', 'ranfang', 'gaodian', 'qianzhuang', 'tiejiang', 'wuguan', 'biaoju', 'chalou', 'duguang', 'maxing', 'shudian', 'xiangzhu'];
+      var mktPool = ['yaofu', 'buzhuang', 'shishi', 'zahuo', 'gongzao', 'jiulou', 'ranfang', 'gaodian', 'qianzhuang', 'tiejiang', 'wuguan', 'biaoju', 'chalou', 'duguang', 'maxing', 'shudian', 'xiangzhu', 'yahang'];
       for (var my = 0; my < size; my++) for (var mx = 0; mx < size; mx++) {
         if (g[my][mx] !== 'market') continue;
         var dx = mx - cx, dy = my - cy, dir = '中';
@@ -661,6 +662,10 @@ window.LF = window.LF || {};
         out.push({ id: 'city_build', label: '继续营造', icon: '🚧', tip: '回到工地，投料营造，工成则此格落成新筑', data: { cid: cid, x: x, y: y } });
       } else if (!inst && dt === 'empty') {
         out.push({ id: 'city_build', label: '营造新筑', icon: '🏗️', tip: '择空地依图纸营造建筑（民宅/市集/农庄/军营/土路）', data: { cid: cid, x: x, y: y } });
+      }
+      // ── 房产入口（v20260928h）：持契置业后，民居格可入自家宅院 ──
+      if (dt === 'home' && (S().flags.houses || {})[cid]) {
+        out.push({ id: 'enter_house', label: '进入宅院', icon: '🏠', tip: '步入你在' + ((LF.CITIES || {})[cid] || { name: '此城' }).name + '的宅邸——堂屋、卧房、庭院由你布置', data: { cid: cid } });
       }
       // ── 苦役营新格型互动（v20260907j）──
       // 牢房格(prison)不再另挂入口：囚室格 (1,0) 即城格，六间子牢房走面板 doors（CELL_INTERIORS），罗盘走网格邻居（v20260910q）

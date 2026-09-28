@@ -454,12 +454,24 @@
     maxing: {
       name:'千里马行', icon:'🐴', sub:'马嘶声声，料豆满槽',
       interior: [
-        { kind:'npc', name:'马贩', icon:'🧑‍🌾', desc:'络腮胡、懂马性的老行家。', acts:[
-          { label:'相马买马', icon:'🐴', fn:function(){ if(!exert('相马')) return; if(packAdd('horse',1)) log('你相中一匹栗色川马，蹄声如鼓，正堪长途。','good'); openModal('building'); } },
+        { kind:'npc', name:'马贩', icon:'🧑‍🌾', desc:'络腮胡、懂马性的老行家。', shop:'maxing', acts:[
           { label:'交谈', icon:'💬', fn:function(){ log('马贩道：「西凉马骏，幽州马韧，南马矮而温——'+bldZihao()+'走南闯北，各有所用。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'马厩', icon:'🐎', desc:'并排马槽，料豆清香。', acts:[
           { label:'喂马', icon:'🌾', fn:function(){ if(!exert('喂马')) return; log('你添了把料豆，马儿打响鼻，蹭了蹭你手心。','sys'); } }
+        ]}
+      ]
+    },
+    // —— 牙行（v20260928h）：立契作保，卖主城房契 ——
+    yahang: {
+      name:'保康牙行', icon:'📜', sub:'契纸叠叠，作保立约，代客置业',
+      interior: [
+        { kind:'npc', name:'牙人', icon:'🧓', desc:'戴平顶巾的牙行经纪，袖里乾坤，契文张口就来。', shop:'yahang', acts:[
+          { label:'立契置业', icon:'📜', fn:function(){ log('牙人展开契纸：「凡主城宅邸，'+bldZihao()+'都可作保立契——客官买下一张，那城的民居便是你安身之处。」','sys'); openModal('building'); } },
+          { label:'交谈', icon:'💬', fn:function(){ log('牙人压低嗓门：「战乱年间，宅契反不如金银稳妥——不过有张契在手，走到哪城都不至于露宿。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'契柜', icon:'🗄️', desc:'满柜簿册契纸，按城分匣。', acts:[
+          { label:'翻看契册', icon:'👀', fn:function(){ log('你翻开册子，洛阳、长安、邺城、成都、建业诸宅皆有记录，契尾押着牙行朱印。','sys'); } }
         ]}
       ]
     },

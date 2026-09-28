@@ -468,6 +468,8 @@
       if (need > S().gold) { toast('银两不足，无法结算。'); return; }
       shopBuyPending.forEach(function (p) { var got = 0; for (var k = 0; k < p.count; k++) { if (packAdd(p.id, 1)) got++; else break; } S().gold -= p.price * got; if (got < p.count) toast('行囊空间不足，仅购入 ' + ((LF.ITEMS[p.id] || {}).name || p.id) + '×' + got); });
       shopSellPending.forEach(function (p) { S().gold += p.price * p.count; });
+      // v20260928h：购入房契（fangqi_*）→ 登记房产（该城民居可入宅院）
+      shopBuyPending.forEach(function (p) { try { if (LF.House && LF.House.registerHouse) LF.House.registerHouse(p.id); } catch (e) {} });
       var bn = shopBuyPending.map(function (p) { return ((LF.ITEMS[p.id] || {}).name || p.id) + '×' + p.count; }).join('、');
       var sn = shopSellPending.map(function (p) { return ((LF.ITEMS[p.defId] || {}).name || p.defId) + '×' + p.count; }).join('、');
       shopBuyPending = []; shopSellPending = [];
