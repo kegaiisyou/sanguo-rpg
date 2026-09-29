@@ -50,16 +50,22 @@
     return ctx;
   }
 
+  function altOf(u){ return u ? u.replace(/\.ogg$/i, '.mp3') : null; }   // 兼容兜底：不支持 OGG 的环境自动降级 MP3
   function loadBuffer(key, url) {
     if (buffers[key] !== undefined || loading[key]) return;
     var c = ensureCtx();
     if (!c) return;
-    loading[key] = fetch(url)
-      .then(function (r) { return r.arrayBuffer(); })
-      .then(function (buf) { return c.decodeAudioData(buf); })
-      .then(function (audioBuf) { buffers[key] = audioBuf; })
-      .catch(function () { buffers[key] = null; })
-      .finally(function () { delete loading[key]; });
+    var altUrl = altOf(url);
+    var tryOne = function (u) {
+      return fetch(u).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+        .then(function (buf) { return c.decodeAudioData(buf); })
+        .then(function (audioBuf) { buffers[key] = audioBuf; })
+        .catch(function () {
+          if (altUrl && u !== altUrl) return tryOne(altUrl);
+          buffers[key] = null;
+        });
+    };
+    loading[key] = tryOne(url).finally(function () { delete loading[key]; });
   }
 
   function preloadAll() {
