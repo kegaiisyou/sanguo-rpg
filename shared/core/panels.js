@@ -68,7 +68,7 @@
           '<button data-v="0" class="'+(SET().titleFx===false?'on':'')+'">关</button></div></div>'+
         '<p class="tip">水墨烟尘与墨晕动画；喧嚣可关，长夜更静。</p>';
       var snd=
-        '<div class="set-row"><span>音效</span><div class="seg" id="seg-snd">'+
+        '<div class="set-row"><span>声音（总开关）</span><div class="seg" id="seg-snd">'+
           '<button data-v="1" class="'+(SET().sound?'on':'')+'">开</button>'+
           '<button data-v="0" class="'+(!SET().sound?'on':'')+'">关</button></div></div>'+
         '<div class="set-row col"><span>背景音乐</span>'+
@@ -86,7 +86,7 @@
             } catch(e) { return ''; }
           })()+
         '</div></div>'+
-        '<p class="tip">四首古风BGM可选，箫笛古琴各有意境；曲间静默5秒。</p>';
+        '<p class="tip">四首古风BGM可选，箫笛古琴各有意境；主曲曲间稍歇自动续奏。背景音乐滑块调至0即静音。</p>';
       var game='';
       if(!fromTitle){
         game+='<button class="close" id="m-save" style="margin-top:14px;">立即存档</button>';

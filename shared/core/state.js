@@ -14,7 +14,7 @@ LF.Core = LF.Core || {};
   else if(settings.textSpeed===1) settings.textSpeed=22;   // 旧版「常」迁移
   else if(settings.textSpeed===2) settings.textSpeed=55;   // 旧版「缓」迁移
   // settings.textSpeed===0 保留为「瞬」；其余数值（已是毫秒）原样保留
-  if(typeof settings.sound!=='boolean') settings.sound=false;
+  if(typeof settings.sound!=='boolean') settings.sound=true;   // 声音总开关默认开（关=全静音含BGM）
   if(typeof settings.titleFx!=='boolean') settings.titleFx=true;
   function saveSettings(){ try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){} }
   function lfSpeedLabel(v){ return v<=0?'瞬（无动画）':(v+' ms / 字'); }
