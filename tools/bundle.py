@@ -20,7 +20,7 @@ MANIFEST = os.path.join(WS, 'tools', 'bundle.manifest')
 INDEX = os.path.join(WS, 'index.html')
 BUNDLE = os.path.join(WS, 'shared', 'bundle.js')
 CONSTANTS = os.path.join(WS, 'shared', 'config', 'constants.js')
-VERSION = '20260929c'
+VERSION = '20260929d'
 
 def read(p): return io.open(p, 'r', encoding='utf-8', newline='').read().replace('\r\n', '\n')
 def write(p, s): io.open(p, 'w', encoding='utf-8', newline='').write(s)
@@ -30,6 +30,37 @@ SRC_RE = re.compile(r'<script src="(shared/[^"]+?\.js)\?v=[^"]*"[^>]*></script>'
 def extract_from_index():
     return [m.group(1) for m in SRC_RE.finditer(read(INDEX))]
 
+def find_terser():
+    """探测可用 terser 模块路径：npm 全局 / 项目 tools/node_modules / 常见全局目录。"""
+    import shutil
+    cands = [
+        'terser',
+        os.path.expanduser('~/.npm-global/lib/node_modules/terser'),
+        os.path.expanduser('~/terser/node_modules/terser'),
+        '/tmp/node_modules/terser',
+        '/usr/local/lib/node_modules/terser',
+        os.path.join(WS, 'tools', 'node_modules', 'terser'),
+    ]
+    for c in cands:
+        try:
+            if c == 'terser':
+                if shutil.which('terser'):
+                    return 'terser'
+                # npm 全局 require 也常可用
+                r = subprocess.run(['node', '-e', "require('terser');console.log('ok')"],
+                                   capture_output=True, text=True)
+                if r.returncode == 0 and 'ok' in r.stdout:
+                    return 'terser'
+                continue
+            if os.path.isdir(c) and os.path.exists(os.path.join(c, 'package.json')):
+                r = subprocess.run(['node', '-e', "require('" + c + "');console.log('ok')"],
+                                   capture_output=True, text=True)
+                if r.returncode == 0 and 'ok' in r.stdout:
+                    return c
+        except Exception:
+            continue
+    return None
+
 def build_manifest(from_index=False):
     if from_index or not os.path.exists(MANIFEST):
         srcs = [s for s in extract_from_index() if not s.endswith('bundle.js')]
@@ -38,39 +69,6 @@ def build_manifest(from_index=False):
         print('manifest: 引导/同步了 %d 个源文件' % len(srcs))
         return srcs
     return [l.strip() for l in read(MANIFEST).splitlines() if l.strip()]
-
-def minify_bundle(src):
-    """P0-①：用 terser 压缩 bundle（去注释/空白/局部变量名）；失败则原样返回，保证构建不中断。"""
-    try:
-        node_src = (
-            "const fs=require('fs');\n"
-            "const terser=require('terser');\n"
-            "const src=fs.readFileSync(process.argv[2],'utf8');\n"
-            "terser.minify(src,{compress:{passes:2},mangle:true,format:{comments:/bundle\\.py|版本/}})\n"
-            " .then(function(r){ if(r.error){console.error('TERSER_ERR '+String(r.error));process.exit(2);} fs.writeFileSync(process.argv[3], r.code); })\n"
-            " .catch(function(e){ console.error('TERSER_FAIL '+String(e)); process.exit(3); });\n"
-        )
-        tmp = os.path.join(WS, 'tools', '_terser_min.js')
-        write(tmp, node_src)
-        raw = os.path.join(WS, 'tools', '_bundle_raw.js')
-        write(raw, src)
-        out = os.path.join(WS, 'tools', '_bundle_min.js')
-        r = subprocess.run(['node', tmp, raw, out], capture_output=True, text=True)
-        for f in (tmp, raw):
-            try: os.remove(f)
-            except OSError: pass
-        if r.returncode != 0:
-            print('  [warn] terser 压缩失败，保留未压缩版本（不影响功能）:', r.stderr.strip()[-300:])
-            try: os.remove(out)
-            except OSError: pass
-            return src
-        minified = read(out)
-        try: os.remove(out)
-        except OSError: pass
-        return minified
-    except Exception as e:
-        print('  [warn] terser 不可用，跳过压缩（不影响功能）:', e)
-        return src
 
 def main():
     from_index = '--from-index' in sys.argv
@@ -97,12 +95,42 @@ def main():
     header = '// 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。\n' \
              '// 源文件数: %d   版本: %s\n' % (len(srcs), VERSION)
     bundle = header + '\n;\n'.join(parts) + '\n'
-    raw_size = len(bundle)
-    bundle = minify_bundle(bundle)          # P0-① terser 压缩（失败则保留未压缩版）
     write(BUNDLE, bundle)
-    print('bundle.js: %d 文件, %d → %d 字节（terser 压缩）' % (len(srcs), raw_size, len(bundle)))
 
-    # 2) 语法 + 顶层 let/const 冲突校验（对压缩后文件）
+    # 1.5) terser 压缩（v20260928h · 首屏提速）：纯拼接 1.7MB 手机下载/解析慢，
+    #       terser 后体积约减半。多路径探测，找不到 terser 则保留原文并警告（不阻断构建）。
+    terser_path = find_terser()
+    if terser_path:
+        comp = r'''
+const fs=require('fs');
+const t=require(process.argv[2]);
+const src=fs.readFileSync(0,'utf8');
+t.minify(src,{compress:{passes:2},mangle:true,format:{comments:false}}).then(r=>{
+  process.stdout.write(r.code);
+}).catch(e=>{ console.error('TERSER_FAIL:'+e.message); process.exit(2); });
+'''
+        comp_js = os.path.join(WS, 'tools', '.terser_run.js')
+        write(comp_js, comp)
+        try:
+            raw_size = len(bundle)
+            r = subprocess.run(['node', comp_js, terser_path], input=bundle.encode('utf-8'),
+                               capture_output=True, timeout=180)
+            if r.returncode == 0 and r.stdout:
+                bundle = r.stdout.decode('utf-8')
+                write(BUNDLE, bundle)
+                print('bundle.js: %d 文件, %d → %d 字节（terser 压缩 -%.1f%%）' % (
+                    len(srcs), raw_size, len(bundle), 100.0 * (1 - len(bundle) / float(raw_size))))
+            else:
+                print('WARN terser 压缩失败，保留原文：' + r.stderr.decode('utf-8', 'ignore')[:300])
+        finally:
+            try: os.remove(comp_js)
+            except Exception: pass
+    else:
+        print('WARN 未找到 terser，bundle 保持未压缩（体积约 1.7MB，首屏加载偏慢）。可 npm i -g terser 后重建。')
+
+    print('bundle.js: 最终 %d 字节' % len(bundle))
+
+    # 2) 语法 + 顶层 let/const 冲突校验
     r = subprocess.run(['node', '--check', BUNDLE], capture_output=True, text=True)
     if r.returncode != 0:
         print('node --check 失败（多半是跨文件顶层 let/const 重名）：\n' + r.stderr)
@@ -124,7 +152,7 @@ def main():
     # 4) 改写 index.html：删掉 75 个独立标签，插入单 bundle 标签（放在 __MAP_ASSETS 内联脚本之后）
     s = read(INDEX)
     s = SRC_RE.sub('', s)                                   # 去独立 src 标签
-    s = re.sub(r'\s*<script src="shared/bundle\.js\?v=[^"]*"[^>]*></script>', '', s)  # 去旧 bundle（含 defer 属性）
+    s = re.sub(r'\s*<script src="shared/bundle\.js\?v=[^"]*"></script>', '', s)  # 去旧 bundle
     tag = '<script src="shared/bundle.js?v=%s" defer></script>' % VERSION
     m = re.search(r'(window\.__MAP_ASSETS\s*=\s*\{.*?</script>)', s, re.S)
     if m:

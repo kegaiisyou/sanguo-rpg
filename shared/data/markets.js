@@ -14,7 +14,7 @@
   // 交易物后缀：商铺类型 → 市名用字（承汉代“马市/羊市/药市”以货命名之俗）
   var TRADE_CHAR = { yaofu:'药', buzhuang:'布', shishi:'食', zahuo:'货', gongzao:'匠',
     jiulou:'酒', ranfang:'染', gaodian:'糕', qianzhuang:'钱', tiejiang:'铁', wuguan:'武',
-    biaoju:'镖', chalou:'茶', duguang:'赌', maxing:'马', shudian:'简', xiangzhu:'香' };
+    biaoju:'镖', chalou:'茶', duguang:'赌', maxing:'马', shudian:'简', xiangzhu:'香', yahang:'宅' };
 
   // 地理类名（可单一使用）。前段为史料实名，后段为 plausible 水陆地名（河/津/渡/桥/关），贴合“长龙河市”一类
   var GEO = ['柳市','直市','金市','交门市','孝里市','交道亭市','长龙河市','渭滨市','洛滨市','津门市','渡口市','桥头市','河市','城关市','陆河市','安阳市',
@@ -30,7 +30,7 @@
   // 行业字（按商铺类型）
   var HANGYE = { yaofu:'药铺', buzhuang:'布庄', shishi:'食肆', zahuo:'杂货铺', gongzao:'营造所',
     jiulou:'酒楼', ranfang:'染坊', gaodian:'糕点铺', qianzhuang:'钱庄', tiejiang:'铁匠铺', wuguan:'武馆',
-    biaoju:'镖局', chalou:'茶楼', duguang:'赌馆', maxing:'马行', shudian:'书肆', xiangzhu:'香烛店' };
+    biaoju:'镖局', chalou:'茶楼', duguang:'赌馆', maxing:'马行', shudian:'书肆', xiangzhu:'香烛店', yahang:'牙行' };
 
   function pick(arr, rnd){ return arr[Math.floor(rnd()*arr.length)]; }
 

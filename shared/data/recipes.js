@@ -59,14 +59,26 @@ LF.RECIPES = {
       in:[{id:'tiekuangshi', n:8},{id:'mucai', n:6}], note:'细锻铁镐，尖而有弹——青玉脉也能开' },
     { id:'forg_pick5', cat:'镐头类', name:'百炼钢镐', icon:'⚔️', out:'pick:5', outN:1,
       in:[{id:'bailian_jian', n:1},{id:'tiekuangshi', n:12},{id:'jade', n:2},{id:'mutan', n:5}],
-      note:'依百炼钢简锻之：炒铁为料、千锤折叠——寻常镐比不得' }
+      note:'依百炼钢简锻之：炒铁为料、千锤折叠——寻常镐比不得' },
+    // —— 精铁（v20260928g）：铁锭+木炭 → 精铁，更高级器物的胚料 ——
+    { id:'forg_steel', cat:'精铁类', name:'精铁', icon:'⚙️', out:'jingtie', outN:1,
+      in:[{id:'tieding', n:1},{id:'mutan', n:2}], note:'铁锭入炉，木炭猛火鼓风，去渣存精——炼出一枚精铁' }
   ],
   // 炊事灶（篝火 / 客栈 / 草庐 皆可调取）：素材 → 疗伤与干粮，打通生存闭环
   kitchen: [
     { id:'brew_jinchuang', cat:'疗伤类', name:'金疮药', icon:'🧪', out:'jinchuang', outN:1, in:[{id:'caoyao', n:2}], note:'两味草药捣敷，止血生肌——可疗外伤五十' },
     { id:'cook_roubao', cat:'干粮类', name:'肉包子', icon:'🥟', out:'roubao', outN:1, in:[{id:'shengrou', n:1}], note:'生肉裹面炊熟成包——食+20 饮+5，解一时饥渴' },
     // —— 烧炭（v20260915i）：木材入闷窑熏成木炭，无烟耐烧，铁匠炉最认 ——
-    { id:'make_mutan', cat:'燃料类', name:'木炭', icon:'⚫', out:'mutan', outN:1, in:[{id:'mucai', n:2}], note:'木材闷窑熏炭，去烟留热——锻钢的火候全在它' }
+    { id:'make_mutan', cat:'燃料类', name:'木炭', icon:'⚫', out:'mutan', outN:1, in:[{id:'mucai', n:2}], note:'木材闷窑熏炭，去烟留热——锻钢的火候全在它' },
+    // —— 肉类入馔（v20260928g）：酒楼/食肆/篝火皆可烹 ——
+    { id:'cook_hongshao', cat:'菜肴类', name:'红烧肉', icon:'🍖', out:'hongshao', outN:1, in:[{id:'zhurou', n:1}], note:'猪肉切块，糖色酱油慢炖——食+18 饮+4' },
+    { id:'cook_kaoji', cat:'菜肴类', name:'烤鸡', icon:'🍗', out:'kaoji', outN:1, in:[{id:'jirou', n:1}], note:'整鸡架火慢烤，皮脆肉嫩——食+15 饮+3' },
+    { id:'cook_kaoyang', cat:'菜肴类', name:'烤羊肉', icon:'🍢', out:'kaoyang', outN:1, in:[{id:'yangrou', n:1}], note:'带骨羊肉翻烤，膻香扑鼻——食+17 饮+5' }
+  ],
+  // 药庐（药铺配药台，v20260928g）：名贵药材入药，制上等伤药
+  clinic: [
+    { id:'brew_renshen', cat:'滋补类', name:'人参金疮药', icon:'🧪', out:'jinchuang', outN:2, in:[{id:'renshen', n:1}], note:'人参研末入药，吊气止血——名贵药材制两瓶上等金疮药' },
+    { id:'brew_lingzhi', cat:'滋补类', name:'灵芝金疮药', icon:'🧪', out:'jinchuang', outN:2, in:[{id:'lingzhi', n:1}], note:'灵芝磨粉调和，生肌尤速——名贵药材制两瓶上等金疮药' }
   ]
   // 后续工作台（矿炉 / 铁砧 / 织机 …）仅需在此追加对应 key 即可
 };

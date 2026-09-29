@@ -31,13 +31,8 @@
       ],
       done: 'forge',
       interior: [
-        { kind:'npc', name:'铁匠师傅', icon:'匠', desc:'围着皮围裙、抡锤如风的老师傅，通晓冶铁锻造。', acts:[
-          { label:'请教冶炼', icon:'话', fn:function(){ log('铁匠师傅瓮声道：「好铁要经千锤百炼——石中炼出铁锭，铁锭再锻成器物，不可急躁。」','sys'); openModal('building'); } },
-          { label:'请他熔石', icon:'火', fn:function(){
-              if(!packFind('tiekuangshi')){ toast('需有铁矿石，方能请师傅开炉熔炼。'); return; }
-              if(!exert('请师熔炼')) return;
-              packConsume('tiekuangshi',1); packAdd('tiekuai',1);
-              log('铁匠师傅投石入炉，风箱鼓动，火星四溅——取出一枚铁锭交予你。','sys'); openModal('building'); } }
+        { kind:'npc', name:'铁匠师傅', icon:'匠', desc:'围着皮围裙、抡锤如风的老师傅，通晓冶铁锻造。', shop:'blacksmith', acts:[
+          { label:'请教冶炼', icon:'话', fn:function(){ log('铁匠师傅瓮声道：「好铁要经千锤百炼——石中炼出铁锭，铁锭再锻成器物，不可急躁。」','sys'); openModal('building'); } }
         ]},
         { kind:'obj', name:'冶炼炉膛', icon:'火', desc:'炉火正旺的冶炼炉，风箱呼呼作响。', acts:[
           { label:'熔石取铁', icon:'炼', fn:function(){
@@ -351,7 +346,19 @@
           { label:'浇水施肥', icon:'💧', fn:function(){
               if(!exert('浇田')) return;
               log('你取水浇田，禾苗似乎更精神了些。','sys'); openModal('building'); } },
-          { label:'查看长势', icon:'👀', fn:function(){ log('你蹲下身查看禾苗长势——目前长势良好，再过些时日便可收获。','sys'); openModal('building'); } }
+          { label:'查看长势', icon:'👀', fn:function(){ log('你蹲下身查看禾苗长势——目前长势良好，再过些时日便可收获。','sys'); openModal('building'); } },
+          // v20260928g：种子接进农田产出——播种即收（简版春种秋收），四种种子对应四种作物
+          { label:'播种收成', icon:'🌾', fn:function(){
+              var seeds=[['maizhong','麦种','新麦','xiaomai'],['daozhong','稻种','稻米','dami'],['caizhong','菜种','青菜','qingcai'],['yaozhong','药种','草药','caoyao']];
+              for(var i=0;i<seeds.length;i++){
+                if(packFind(seeds[i][0])){
+                  if(!exert('耕作')) return;
+                  packConsume(seeds[i][0],1); packAdd(seeds[i][3],2);
+                  log('你将'+seeds[i][1]+'播入田垄，引水侍弄，转季收得'+seeds[i][2]+'×2。','good');
+                  openModal('building'); return;
+                }
+              }
+              toast('需有种子（麦种/稻种/菜种/药种）方可播种。'); openModal('building'); } }
         ]}
       ]
     },

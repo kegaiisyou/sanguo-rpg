@@ -226,9 +226,11 @@ window.LF = window.LF || {};
       return out;
     }
     // ══════════════════════════════════════════════════════════════════════════
-    // 交谈面板：把「问价 / 问农 / 问政 / 探问 / 查账 / 讨教 …」这些
-    //   本来各占一个按钮的内容统一收进「交谈」，作为话题呈现。
     // ══════════════════════════════════════════════════════════════════════════
+    // 交谈面板：v20260928g 已整体移除——「问价 / 问农 / 问政 / 探问 / 查账 / 讨教」
+    //   这些话题按钮块（含「观察/给予/告辞」底部三钮）不再渲染，避免常驻按钮卡片
+    //   遮挡视线。交谈只说一句闲谈；观察/给予/攻击/交易等动作统一在 NPC 浮动菜单
+    //   （companion.js buildNpcActions / renderNpcList）里操作。
     var talkNpc = null;
     function talkInline(o) {
       if (!o || !o.key) return;
@@ -237,7 +239,6 @@ window.LF = window.LF || {};
       if (narrActive()) { toast('……且听他把话说完。'); return; }
       talkNpc = o;
       npcSpeak(o, null);
-      renderTalkActions(o);
     }
     // 每天每话题首次聊起 +1 好感（闲聊不刷，防原地刷好感）
     function npcTopicOnce(o, topicId) {
@@ -286,51 +287,9 @@ window.LF = window.LF || {};
     //   旧版 .talk-inline 是一整块“头部(名/好感) + 可换行的按钮网格 + 底部三钮”的卡片，
     //   塞进 #actions 之后把 #actions 撑成了两三行高 —— 下方的移动罗盘与 dock 被顶出屏幕，
     //   而且不点“告辞”就一直挂着，看着像“残留的对话卡片”。
-    //   现在话题 / 事务 / 观察 / 给予 / 告辞一律摊成 #actions 横滑条里的一枚枚普通按钮
-    //   （与场景物件同一套 .act 视觉，#actions 单行横滑不撑高）。
-    //   NPC 名与好感本就在叙事行的〔名·职种、好感 +1〕里，无需再占一块头部。
-    function renderTalkActions(o) {
-      var acts = document.getElementById('actions'); if (!acts) return;
-      var tp = (o.card && o.card.topics) || [], ac = (o.card && o.card.acts) || [], h = '';
-      function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-      for (var i = 0; i < tp.length; i++) {
-        h += '<button class="act obj-btn g-ren" data-topic="' + esc(tp[i].id) + '">'
-          + '<span class="ob-ic">' + (tp[i].icon || '\ud83d\udcac') + '</span>'
-          + '<span class="ob-nm">' + esc(tp[i].label) + '</span></button>';
-      }
-      for (var j = 0; j < ac.length; j++) {
-        h += '<button class="act obj-btn g-scene" data-topic-act="' + esc(ac[j].id) + '" title="' + esc(ac[j].tip || '') + '">'
-          + '<span class="ob-ic">' + (ac[j].icon || '\u00b7') + '</span>'
-          + '<span class="ob-nm">' + esc(ac[j].label) + '</span></button>';
-      }
-      h += '<button class="act obj-btn" id="talk-observe"><span class="ob-ic">\ud83d\udc41</span><span class="ob-nm">\u89c2\u5bdf</span></button>'
-        + '<button class="act obj-btn" id="talk-give"><span class="ob-ic">\ud83c\udf81</span><span class="ob-nm">\u7ed9\u4e88</span></button>'
-        + '<button class="act obj-btn g-exit" id="talk-close"><span class="ob-ic">\ud83d\ude4f</span><span class="ob-nm">\u544a\u8f9e</span></button>';
-      acts.innerHTML = h;
-      acts.querySelectorAll('[data-topic]').forEach(function (btn) {
-        btn.onclick = function () {
-          var id = btn.getAttribute('data-topic');
-          var t = ((o.card && o.card.topics) || []).filter(function (x) { return x.id === id; })[0];
-          npcSpeak(o, t);
-          renderTalkActions(o);
-        };
-      });
-      acts.querySelectorAll('[data-topic-act]').forEach(function (btn) {
-        btn.onclick = function () {
-          var id = btn.getAttribute('data-topic-act');
-          var a = ((o.card && o.card.acts) || []).filter(function (x) { return x.id === id; })[0];
-          var impl = a && a.engine && NPC_ACT_IMPL[a.engine];
-          var said = impl ? impl(o) : '';
-          if (said === '' && !impl) { toast('此事此刻做不得。'); return; }
-          log(npcTalkPrefix(o) + (said || npcSmallTalk(o)), 'npc', o.name);
-          save(S()); renderStatus();
-          renderTalkActions(o);
-        };
-      });
-      var ob = document.getElementById('talk-observe'); if (ob) ob.onclick = function () { observeNpc(o); };
-      var gv = document.getElementById('talk-give'); if (gv) gv.onclick = function () { openGivePanel(o); };
-      var cl = document.getElementById('talk-close'); if (cl) cl.onclick = function () { talkNpc = null; log(npcTalkPrefix(o) + '你与之拱手作别。', 'sys'); renderRoom(S().room); };
-    }
+    //   v20260928g：交谈面板（话题/事务/观察/给予/告辞按钮块）已整体移除——
+    //   交谈只说一句闲谈（log）；观察/给予/攻击/交易统一在 NPC 浮动菜单（buildNpcActions /
+    //   renderNpcList 标准动作列）。renderTalkActions 已删除，NPC_ACT_IMPL 事务入口随之下线。
 
     return {
       NPC_CARDS: NPC_CARDS, NPC_CARD_BY: NPC_CARD_BY, NPC_BY_KEY: NPC_BY_KEY,
