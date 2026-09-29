@@ -718,6 +718,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     function undelegateCommand(cmdKey) { return delegateCommand(cmdKey, null); }
     function monthlyAffairs() {
       facilitiesMonthlyYield();
+      if (typeof cityShopMonthly === 'function') cityShopMonthly();
       if (typeof loyaltyTick === 'function') loyaltyTick();
       var list = roster();
       list.forEach(function (o) {

@@ -10,7 +10,7 @@
 //   desc      说明
 //   stages    [ { name:'阶段名', need:{ 材料defId:数量, ... } }, ... ]
 //   done      'forge' | ...  （建成后的功能动作标识，对应 LFUI/buildDoneActions 的处理）
-//   interior  建成后内部：可进入的独立房间（NPC + 交互物件），与店铺屋舍体验一致
+//   interior  建成后内部：统一指向 TEMPLATES[bp.shopId].interior（NPC + 交互物件），不再在此独立定义（P0+P1 规范，见 city-economy-p0p1.md）
 //   city:true 城市格营造（城内空地开工，落成后写入 cityCells）
 // }
 (function (global) {
@@ -444,4 +444,13 @@
     // 不列为可营造建筑（v20260826 起移除 bp_road，玩家无需单独建造道路）。
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = LF.BUILD;
+  // ── 城镇经营切片模板库（P0+P1 规范，见 brain/city-economy-p0p1.md）──
+  LF.TEMPLATES = LF.TEMPLATES || {};
+  // 内部交互仍由 BUILDINGS[shopId].interior 提供（单源迁移待全量铺开，R4：勿在 BUILDINGS 与 LF.BUILD 双写 interior）。
+  LF.TEMPLATES.yaofu = {
+    name: '药铺', icon: '⚕', kind: 'shop',
+    trade: { sells: ['yaofen'], buys: [], basePrice: 7 },
+    bench: 'alchemy', footBase: 18, unlocksAt: 1,
+    seedStock: { yaofen: 8 }
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

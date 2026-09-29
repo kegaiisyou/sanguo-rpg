@@ -13,8 +13,8 @@ window.LF = window.LF || {};
 LF.RECIPES = {
   // 木工台：T0 素材 → T1 木材
   bench: [
-    { id:'twig_timber', cat:'木材类', name:'木材', icon:'🟫', out:'mucai', outN:1, in:[{id:'xiaoshuzhi', n:2}], note:'细枝捆扎刨削成材（耗料较多）' },
-    { id:'wood_timber', cat:'木材类', name:'木材', icon:'🟫', out:'mucai', outN:1, in:[{id:'mutou', n:1}], note:'粗木直接解板成材（斧伐料更划算）' },
+    { id:'twig_timber', cat:'木材类', name:'木材', icon:'🟫', out:'mucai', outN:1, toolKey:'sawLv', in:[{id:'xiaoshuzhi', n:2}], note:'细枝捆扎刨削成材（耗料较多；有好锯可多出材）' },
+    { id:'wood_timber', cat:'木材类', name:'木材', icon:'🟫', out:'mucai', outN:1, toolKey:'sawLv', in:[{id:'mutou', n:1}], note:'粗木解板成材（斧伐料更划算；锯越好，一块料解得越多）' },
     { id:'fold_bench', cat:'器具类', name:'便携工作台', icon:'🔨', out:'gongzuotai', outN:1, in:[{id:'mucai', n:3}], note:'以规整木材攒成可折叠的工作台，随行随用' },
     { id:'campfire_kit', cat:'器具类', name:'篝火', icon:'🔥', out:'campfire', outN:1, in:[{id:'mutou', n:2},{id:'xiaoshuzhi', n:1}], note:'干柴捆扎成束，引火即燃，可取暖烘食' },
     { id:'sleep_mat', cat:'器具类', name:'草席', icon:'🛏️', out:'sleepmat', outN:1, in:[{id:'mucai', n:2}], note:'削竹为骨、编草为席，铺地可眠' },
@@ -35,6 +35,10 @@ LF.RECIPES = {
     { id:'tuzhi_pigpen', cat:'简册类', name:'猪圈简', icon:'📜', out:'tuzhi_pigpen', outN:1, in:[{id:'zhuzi',n:1},{id:'mo',n:1}], note:'削竹为简、墨书营造之法，依简可围栅置槽' },
     { id:'tuzhi_gate', cat:'简册类', name:'寨门简', icon:'📜', out:'tuzhi_gate', outN:1, in:[{id:'zhuzi',n:1},{id:'mo',n:1}], note:'削竹为简、墨书营造之法，依简可立门置闸' },
     { id:'tuzhi_training', cat:'简册类', name:'训练场简', icon:'📜', out:'tuzhi_training', outN:1, in:[{id:'zhuzi',n:1},{id:'mo',n:1}], note:'削竹为简、墨书营造之法，依简可整地设器' }
+  ],
+  // 城镇经营切片（P0+P1）：药铺炼炉（alchemy 台）
+  alchemy: [
+    { id:'mk_yaofen', cat:'药剂类', name:'草药粉', icon:'🌿', out:'yaofen', outN:1, in:[{id:'xiaoshuzhi', n:2}], note:'捣碎草药为粉，充作敷料（demo 配方）' }
   ],
   // 冶炼工坊：铁料 → 武器 / 工具
   forge: [

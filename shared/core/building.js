@@ -1,6 +1,6 @@
 // 可进入建筑系统：屋舍面板 + 建筑数据表 + 进出楼房间逻辑（v20260909h）
 // 从 engine.js 拆出：
-//  - BUILDINGS（建筑定义数据表：药铺/布庄/食肆/杂货/营造所/酒楼/染坊/糕点铺/钱庄/铁匠/武馆/镖局/茶楼/赌馆/马行/书肆/香烛店，与 city.js 共享）；
+//  - BUILDINGS（建筑定义数据表：药铺/布庄/食肆/杂货/营造所/酒楼/染坊/糕点铺/钱庄/铁匠/武馆/镖局/茶楼/赌馆/马行/书肆/香烛店）；内部交互统一经 TEMPLATES[shopId].interior 引用（P0+P1 规范，见 city-economy-p0p1.md），不再与 city.js 维护独立副本。
 //  - 进出楼房间逻辑：isBldRoom / bldForRoom / bldRoom / enterBldRoom / bldMove / leaveBldRoom / hasCount；
 //  - 建筑面板：bldCurArea / bldDef / renderBuildingPanel / bindBuildingPanel。
 // 依赖经 ctx 注入：getState/S（引擎读档/新建会重绑 state，须惰性取值）；getBuildingState（openModal 会整体重赋值，须 getter）；
@@ -274,23 +274,7 @@
       name:'营造所', icon:'🔨', sub:'匠作萃聚，砖石木料山积',
       interior: [
         { kind:'npc', name:'匠作师傅', icon:'👷', desc:'满手老茧的老匠人，督着营造。', acts:[
-          { label:'问营造', icon:'💬', fn:function(){ log('匠师指点：「城池以建设度为凭——夯土、立木、砌砖、设栅，四事皆备，外郭自当拓开。」','sys'); openModal('building'); } }
-        ]},
-        { kind:'obj', name:'夯土基', icon:'🟫', desc:'夯实墙基的夯具。', acts:[
-          { label:'夯土筑基', icon:'🔨', fn:function(){ if(!exert('夯土')) return;
-            busyAct('夯土筑基·半个时辰', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(60); log('你持夯具将墙基一层层砸实，城垣渐起（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
-        ]},
-        { kind:'obj', name:'木作台', icon:'🪚', desc:'刨削木料的工作台。', acts:[
-          { label:'木作立架', icon:'🪵', fn:function(){ if(!exert('木作')) return;
-            busyAct('木作立架·半个时辰', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(60); log('木作台上锯刨声声，梁架立起（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
-        ]},
-        { kind:'obj', name:'砖窑', icon:'🧱', desc:'窑火正红的砖窑。', acts:[
-          { label:'烧砖砌墙', icon:'🧱', fn:function(){ if(!exert('砌砖')) return;
-            busyAct('烧砖砌墙·半个时辰', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(60); log('砖窑出砖，垒砌围墙，城郭更见齐整（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
-        ]},
-        { kind:'obj', name:'立栅', icon:'🪵', desc:'削木为栅的栅栏架。', acts:[
-          { label:'立栅设防', icon:'🚧', fn:function(){ if(!exert('立栅')) return;
-            busyAct('立栅设防·半个时辰', 950, function(){ setCityDev(S().room, cityDevOf(S().room)+2); advanceMinutes(60); log('削木立栅，周遭设防，外圈渐辟为民居街市（建设度 '+cityDevOf(S().room)+'）。','sys'); renderRoom(S().room,true); openModal('building'); }); } }
+          { label:'问营造', icon:'💬', fn:function(){ log('匠师指点：「城池以城等为凭——城内空地择图纸破土，投料营造，外郭自当拓开（详见空地「营造新筑」）。」','sys'); openModal('building'); } }
         ]}
       ],
     subAreas:[{key:'gz_liao',label:'入料场'}],
@@ -309,7 +293,7 @@
       ], areas:[] }
     },
     },
-    // ── 商铺类型池扩充（v20260825e）：酒楼/染坊/糕点铺/钱庄/铁匠铺/武馆/镖局/茶楼/赌馆/马行/书肆/香烛店 ──
+    // ── 商铺类型池（全部并入 TEMPLATES[shopId] 统一模板，P0+P1 规范）：酒楼/染坊/糕点铺/钱庄/铁匠铺/武馆/镖局/茶楼/赌馆/马行/书肆/香烛店；内部交互单源，勿在 BUILDINGS 与 LF.BUILD 双写 ──
     jiulou: {
       name:'醉仙楼', icon:'🍶', sub:'朱阁临街，酒旗高挑，烹羊宰牛且为乐',
       interior: [

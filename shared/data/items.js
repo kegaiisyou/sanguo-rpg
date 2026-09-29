@@ -12,6 +12,7 @@
     weapon:  { label:'兵刃', icon:'⚔️' },
     trinket: { label:'饰品', icon:'💍' },
     belt:    { label:'腰带', icon:'🪢' },
+    tool:    { label:'工具', icon:'⛏️' },
     bag:     { label:'背包', icon:'👝' }
   };
   var SLOT_KEYS = Object.keys(SLOTS);
@@ -61,7 +62,7 @@
     lao_pai:  { defId: 'lao_pai',  name: '劳字木片', icon: '🪵', cat: '凭证', desc: '劳役所发的木片，刻一「劳」字。可持往伙房易食，占行囊一格。' },
     fan:      { defId: 'fan',      name: '干粮',     icon: '🍙', cat: '食饵', effect: { food: 25 }, desc: '粗粝饭团，啃下可充饥（回食物 25）。可交付 NPC。' },
     xizhou:   { defId: 'xizhou',   name: '稀粥',     icon: '🥣', cat: '食饵', effect: { food: 12, drink: 12 }, desc: '误了饭点才捞着的半瓢冷粥，米粒可数，好歹暖了肚子（回食物 12、水 12）。' },
-    chutu:    { defId: 'chutu',    name: '锄头',     icon: '⛏️', cat: '工具', desc: '木柄锄头，务农开荒的趁手家伙。' },
+    chutu:         { defId:'chutu', name:'木锄', icon:'⛏️', cat:'工具', slot:'tool', tool:true, hoeLv:0, maxDur:14, price:12, desc:'木柄木头的锄（锄之第一阶），务农开荒的趁手家伙。' },
     yecai:    { defId: 'yecai',    name: '野菜',     icon: '🥬', cat: '食饵', effect: { food: 6 }, desc: '薄田里掐下的菜蔬，带着泥腥气。生啃可略充饥，交到伙房能入锅。' },
     // —— 素材：野外采集所得 ——
     caoyao:         { defId: 'caoyao',         name: '草药',     icon: '🌿', cat: '素材', desc: '山野可入药的茎叶，多凑几味可合成疗伤之物。' },
@@ -74,7 +75,7 @@
     zhuzi:         { defId: 'zhuzi',   name: '竹子',   icon: '🎋', cat: '素材', desc: '伐自竹林的翠竹，破篾可编器，削制可作简册，亦为弓杆良材。' },
     mo:            { defId: 'mo',      name: '墨',     icon: '🖤', cat: '素材', desc: '松烟和胶制成的墨锭，研磨后可书于简册，字迹历久不褪。' },
     mucai:         { defId: 'mucai',   name: '木材',   icon: '🟫', cat: '素材', desc: '经木工台刨削而成的规整木料，修筑与打造的基材。' },
-    futou:         { defId: 'futou',   name: '斧头',   icon: '🪓', cat: '素材', tool:true, maxDur:5, desc: '伐木器具。持之伐木可得粗实木头；每伐一次耗耐久 1，耐久尽则损毁。亦可售与行商。' },
+    futou:         { defId:'futou', name:'石斧', icon:'🪓', cat:'工具', slot:'tool', tool:true, axeLv:0, maxDur:8, price:10, desc:'石刃木柄的粗斧（斧之第一阶），伐木可得木料；每伐一次耗耐久一，耐久尽则损毁。' },
     zhangpeng:     { defId: 'zhangpeng', name: '帐篷', icon: '⛺', cat: '器具', placeable:true,
       place:{ key:'tent', icon:'⛺', name:'帐篷', desc:'支起的行帐，可在此休整或收起', actions:'tent' },
       desc: '可携行的小帐。于背包「放置」后支起，房中即可「休息」「收起」。' },
@@ -145,8 +146,7 @@
     // —— 冶炼工坊产出（铁料加工链）——
     tiejian:  { defId: 'tiejian',  name: '铁剑', icon: '⚔️', cat: '装备', slot: 'weapon', stats: { atk: 8 }, quality: 'green',
       desc: '冶炼工坊打制的铁剑，刃口冷冽，远胜木棒。' },
-    tiefu:    { defId: 'tiefu',    name: '铁斧', icon: '🪓', cat: '素材', tool: true, maxDur: 15, price: 60,
-      desc: '铁铸斧头，伐木采石更为趁手（耐久 15）。' },
+    tiefu:         { defId:'tiefu', name:'铁斧', icon:'🪓', cat:'工具', slot:'tool', tool:true, axeLv:4, maxDur:38, price:150, desc:'精铁打造的斧（斧之第五阶），斧刃不卷，伐木如割。' },
     tiema:    { defId: 'tiema',    name: '铁马掌', icon: '🧲', cat: '素材', price: 15,
       desc: '打铁余料锻成的马蹄铁，可售与马市，亦或他途。' },
     // —— 显示测试专用：全属性加成的饰品 ——
@@ -179,8 +179,54 @@
     horse:     { defId: 'horse',     name: '川马', icon: '🐴', cat: '素材', price: 80,
       desc: '相中的栗色川马，蹄声如鼓，正堪长途，亦可售与马行。' },
     // —— 苦役营教程物品（v20260902a · 10 越狱路线获取物）——
-    pickaxe:   { defId: 'pickaxe',   name: '镐锄', icon: '⛏️', cat: '素材', tool: true, maxDur: 8,
-      desc: '矿坑偷取的镐锄。挖地道线（路线2）必需——抡起来刨土挖墙，耐久 8。' },
+    // —— 洛阳铲（v20260928f）：越狱「挖地道」线任务专用道具 ——
+    //   B 类：来路不正，货郎不收、市面买不着（noSell）。半筒瓦铲可带起整筒土样，
+    //   看土色便知底下是夯土还是虚坑——故独享 soilSample；digPower 2 = 一铲抵两铲。
+    luoyang_chan: { defId: 'luoyang_chan', name: '洛阳铲', icon: '🪓', cat: '凭证',
+      quest: true, taskOnly: true, noSell: true,
+      tool: true, maxDur: 8, digPower: 2, soilSample: true,
+      desc: '半筒瓦铲，铲头如瓦、木柄三尺——本是探土辨层的贼家伙，一铲下去带起整筒土样，看土色便知底下是夯土还是虚坑。此物来路不正：市面买不着，出了这档子事也没人肯收。挖地道线（路线二）离不得它，一铲抵两铲。' },
+    // —— 工具六系 × 六阶（v20260928e）：镐/斧/锄/镰/竿/锯，材料阶梯 粗石→精石→青铜→粗铁→精铁→百炼钢 ——
+    //   汉末冶铁：炒钢法与「百炼」之器已见于世，故以 石→铜→铁→百炼钢 为阶，与镐头六级同构。
+    //   工具占「工具」装备槽（单槽·手持一件），不占行囊格；行囊可携备用件随时换。
+    // —— 镐 ——
+    cushi_gao:     { defId:'cushi_gao', name:'粗石镐', icon:'🪨', cat:'工具', slot:'tool', tool:true, pickLv:0, maxDur:12, price:8, desc:'碎石绑木柄的粗使家什（镐之第一阶），只凿得小石堆，矿洞可下二层。' },
+    jing_shi_gao:  { defId:'jing_shi_gao', name:'精致石镐', icon:'⛏', cat:'工具', slot:'tool', tool:true, pickLv:1, maxDur:18, price:24, desc:'选石开棱、柄切手（镐之第二阶），磋小石两下一碎；已能开铜脉，矿洞可下三层。' },
+    qingtong_gao:  { defId:'qingtong_gao', name:'青铜镐', icon:'🥉', cat:'工具', slot:'tool', tool:true, pickLv:2, maxDur:26, price:55, desc:'青铜铸的镐头（镐之第三阶），能凿大石堆。矿洞可下四层。' },
+    cu_tie_gao:    { defId:'cu_tie_gao', name:'粗铁镐', icon:'⛏️', cat:'工具', slot:'tool', tool:true, pickLv:3, maxDur:36, price:110, desc:'粗铁锻的镐头（镐之第四阶），铁石开采的入门家什。矿洞可下六层。' },
+    jing_tie_gao:  { defId:'jing_tie_gao', name:'精致铁镐', icon:'⚒️', cat:'工具', slot:'tool', tool:true, pickLv:4, maxDur:48, price:220, desc:'细锻铁镐（镐之第五阶），尖锐却有弹性：青玉脉也凿得开。矿洞可下八层。' },
+    bailian_gao:   { defId:'bailian_gao', name:'百炼钢镐', icon:'⚔️', cat:'工具', slot:'tool', tool:true, pickLv:5, maxDur:64, price:480, desc:'按百炼钢法锻就的神器（镐之第六阶），天下没几把。玄铁矿脉也凿得，矿洞全层可下。' },
+    // —— 斧 ——
+    jingshi_fu:    { defId:'jingshi_fu', name:'精致石斧', icon:'🪓', cat:'工具', slot:'tool', tool:true, axeLv:1, maxDur:14, price:20, desc:'选石磨刃的斧（斧之第二阶），比粗斧省力些。' },
+    tongfu:        { defId:'tongfu', name:'青铜斧', icon:'🪓', cat:'工具', slot:'tool', tool:true, axeLv:2, maxDur:22, price:48, desc:'青铜铸刃的斧（斧之第三阶），碗口粗的树也斩得断。' },
+    cutie_fu:      { defId:'cutie_fu', name:'粗铁斧', icon:'🪓', cat:'工具', slot:'tool', tool:true, axeLv:3, maxDur:30, price:95, desc:'粗铁锻的斧（斧之第四阶），沉而有力。' },
+    bailian_fu:    { defId:'bailian_fu', name:'百炼钢斧', icon:'🪓', cat:'工具', slot:'tool', tool:true, axeLv:5, maxDur:52, price:300, desc:'百炼钢斧（斧之第六阶），巨木应声而倒。' },
+    // —— 锄 ——
+    jingmu_chu:    { defId:'jingmu_chu', name:'精致木锄', icon:'⛏️', cat:'工具', slot:'tool', tool:true, hoeLv:1, maxDur:20, price:22, desc:'削得趁手的木锄（锄之第二阶），翻土略快些。' },
+    tongchu:       { defId:'tongchu', name:'青铜锄', icon:'⛏️', cat:'工具', slot:'tool', tool:true, hoeLv:2, maxDur:26, price:50, desc:'青铜锄头的锄（锄之第三阶），硬土也啃得动。' },
+    cutie_chu:     { defId:'cutie_chu', name:'粗铁锄', icon:'⛏️', cat:'工具', slot:'tool', tool:true, hoeLv:3, maxDur:34, price:100, desc:'粗铁锄头（锄之第四阶），翻土起垄省力得多。' },
+    tiechu:        { defId:'tiechu', name:'铁锄', icon:'⛏️', cat:'工具', slot:'tool', tool:true, hoeLv:4, maxDur:42, price:160, desc:'精铁打的小锄（锄之第五阶），垄沟齐整。' },
+    bailian_chu:   { defId:'bailian_chu', name:'百炼钢锄', icon:'⛏️', cat:'工具', slot:'tool', tool:true, hoeLv:5, maxDur:58, price:320, desc:'百炼钢锄（锄之第六阶），入土如切腐。' },
+    // —— 镰 ——
+    jingshi_lian:  { defId:'jingshi_lian', name:'精致石镰', icon:'🌾', cat:'工具', slot:'tool', tool:true, sickleLv:1, maxDur:20, price:28, desc:'磨得锋利的石镰（镰之第二阶）。' },
+    tonglian:      { defId:'tonglian', name:'青铜镰', icon:'🌾', cat:'工具', slot:'tool', tool:true, sickleLv:2, maxDur:26, price:52, desc:'青铜小镰（镰之第三阶），一揽一大把。' },
+    cutie_lian:    { defId:'cutie_lian', name:'粗铁镰', icon:'🌾', cat:'工具', slot:'tool', tool:true, sickleLv:3, maxDur:34, price:100, desc:'粗铁镰（镰之第四阶），割稻如风。' },
+    tielian:       { defId:'tielian', name:'铁镰', icon:'🌾', cat:'工具', slot:'tool', tool:true, sickleLv:4, maxDur:42, price:155, desc:'精铁镰（镰之第五阶），刃薄而韧。' },
+    bailian_lian:  { defId:'bailian_lian', name:'百炼钢镰', icon:'🌾', cat:'工具', slot:'tool', tool:true, sickleLv:5, maxDur:56, price:300, desc:'百炼钢镰（镰之第六阶），刈草如剃。' },
+    // —— 竿 ——
+    diaogan:       { defId:'diaogan', name:'竹竿', icon:'🎣', cat:'工具', slot:'tool', tool:true, rodLv:0, maxDur:18, price:25, desc:'竹竿系线（竿之第一阶），临水垂钓的家什。' },
+    gugou_gan:     { defId:'gugou_gan', name:'骨钩竿', icon:'🎣', cat:'工具', slot:'tool', tool:true, rodLv:1, maxDur:24, price:40, desc:'骨钩细线（竿之第二阶），比竹竿稳当。' },
+    tonggou_gan:   { defId:'tonggou_gan', name:'铜钩竿', icon:'🎣', cat:'工具', slot:'tool', tool:true, rodLv:2, maxDur:30, price:70, desc:'铜钩竿（竿之第三阶），钩锐不易脱。' },
+    cutie_gan:     { defId:'cutie_gan', name:'粗铁竿', icon:'🎣', cat:'工具', slot:'tool', tool:true, rodLv:3, maxDur:36, price:120, desc:'粗铁竿（竿之第四阶），大鱼也拽得动。' },
+    tiegan:        { defId:'tiegan', name:'铁竿', icon:'🎣', cat:'工具', slot:'tool', tool:true, rodLv:4, maxDur:44, price:190, desc:'精铁竿（竿之第五阶），韧而不折。' },
+    bailian_gan:   { defId:'bailian_gan', name:'百炼钢竿', icon:'🎣', cat:'工具', slot:'tool', tool:true, rodLv:5, maxDur:58, price:340, desc:'百炼钢竿（竿之第六阶），钓得起江中大物。' },
+    // —— 锯 ——
+    mujv:          { defId:'mujv', name:'木锯', icon:'🪚', cat:'工具', slot:'tool', tool:true, sawLv:0, maxDur:16, price:30, desc:'石齿木锯（锯之第一阶），解板成材——原木非锯不成料。' },
+    jingshi_jv:    { defId:'jingshi_jv', name:'精致石锯', icon:'🪚', cat:'工具', slot:'tool', tool:true, sawLv:1, maxDur:22, price:45, desc:'磨利的石锯（锯之第二阶）。' },
+    tongjv:        { defId:'tongjv', name:'青铜锯', icon:'🪚', cat:'工具', slot:'tool', tool:true, sawLv:2, maxDur:28, price:75, desc:'青铜锯（锯之第三阶），锯齿不易崩。' },
+    cutie_jv:      { defId:'cutie_jv', name:'粗铁锯', icon:'🪚', cat:'工具', slot:'tool', tool:true, sawLv:3, maxDur:36, price:130, desc:'粗铁锯（锯之第四阶），解板快。' },
+    tiejv:         { defId:'tiejv', name:'铁锯', icon:'🪚', cat:'工具', slot:'tool', tool:true, sawLv:4, maxDur:44, price:200, desc:'精铁锯（锯之第五阶），锯缝平直。' },
+    bailian_jv:    { defId:'bailian_jv', name:'百炼钢锯', icon:'🪚', cat:'工具', slot:'tool', tool:true, sawLv:5, maxDur:58, price:360, desc:'百炼钢锯（锯之第六阶），原木应声而开。' },
     sleep_drug: { defId: 'sleep_drug', name: '迷药', icon: '💤', cat: '药剂',
       desc: '林娘以蒙汗草配制的迷药。下迷药业（路线3）下于饭中，可放倒官差；不伤性命。' },
     blank_pass:  { defId: 'blank_pass',  name: '空白木牍', icon: '🪵', cat: '素材',
@@ -253,9 +299,8 @@
     zhucai:     { defId: 'zhucai',     name: '竹材', icon: '🎋', cat: '素材', price: 6,
       desc: '剖削齐整的竹材，编器搭架、造箭为弓皆堪用。' },
     // —— 农具（v20260927s）：种田开垦的趁手家伙 ——
-    liandao:    { defId: 'liandao',    name: '镰刀', icon: '🌾', cat: '工具', price: 15,
-      desc: '弯月镰刀，割麦刈草最为利落。' },
-    tiechan:    { defId: 'tiechan',    name: '铁铲', icon: '⛏️', cat: '工具', price: 18,
+    liandao:       { defId:'liandao', name:'镰刀', icon:'🌾', cat:'工具', slot:'tool', tool:true, sickleLv:0, maxDur:16, price:18, desc:'弯月镰刀（镰之第一阶），割麦刈草最为利落。' },
+    tiechan:    { defId: 'tiechan', name: '铁铲', icon: '⛏️', cat: '工具', slot:'tool', tool:true, spadeLv:4, maxDur: 40, price: 90,
       desc: '铁头木柄的铲，翻土起畦、掘坑筑沟都好使。' },
     li:         { defId: 'li',         name: '木犁', icon: '🪵', cat: '工具', price: 35,
       desc: '曲辕铁铧的木犁，牛拽人扶，开荒破土的大件。' },
@@ -377,12 +422,19 @@
     var it = { defId: d.defId, name: d.name, icon: d.icon, cat: d.cat, desc: d.desc, count: count || 1 };
     if (d.effect) it.effect = JSON.parse(JSON.stringify(d.effect));
     if (d.maxDur) { it.maxDur = d.maxDur; it.dur = d.maxDur; }
+    // v20260928f：任务专用道具字段（洛阳铲等）——不可交易 / 挖掘效率 / 取土样
+    if (d.quest) it.quest = true;
+    if (d.taskOnly) it.taskOnly = true;
+    if (d.noSell) it.noSell = true;
+    if (d.digPower) it.digPower = d.digPower;
+    if (d.soilSample) it.soilSample = true;
     if (d.placeable) it.placeable = true;   // 可放置/支起类（如帐篷）
     if (d.place) it.place = d.place;        // 放置模板：放置后生成的场景对象定义
     if (d.blueprint) it.blueprint = d.blueprint; // 图纸类：依图在房中营造建筑
     if (d.waterCap) it.waterCap = d.waterCap;    // 水袋等容器：可盛量（v20260920e 补——此前 makeItem 丢了此字段）
-    if (d.cat === '装备') {
-      it.slot = d.slot; it.quality = d.quality || 'white';
+    // v20260928e：工具与装备同走装备链路（占「工具」槽，不占行囊格）
+    if (d.cat === '装备' || d.cat === '工具') {
+      it.slot = d.slot; it.quality = (d.cat === '工具') ? null : (d.quality || 'white');
       it.atk = 0; it.def = 0; it.hp = 0; it.mp = 0; it.spd = 0;
       if (d.stats) { for (var k in d.stats) { if (k in it) it[k] = d.stats[k]; } }
       if (d.packSpace) it.packSpace = d.packSpace;   // 背包装备槽：扩充行囊容量
@@ -456,7 +508,98 @@
   };
 
   global.LF = global.LF || {};
+  // v20260928e：镐等级 → 物品 id（镐已物品化，锻造 / 任务发镐走此表）
+  var GAO_BY_LV = ['cushi_gao','jing_shi_gao','qingtong_gao','cu_tie_gao','jing_tie_gao','bailian_gao'];
   global.LF.PICKS = PICKS;
+  global.LF.GAO_BY_LV = GAO_BY_LV;
+  // —— 工具阶位：采集效率与磨损（v20260928f）——
+  //   磨损概率随阶位递减：高阶工具更耐用（L0 每用必损，L5 三回才损一回）
+  var TOOL_WEAR = [1.00, 0.90, 0.80, 0.65, 0.50, 0.35];
+  //   伐木出材：基础根数 + 多得一根的概率
+  var AXE_YIELD = [1, 1, 2, 2, 3, 3];
+  var AXE_BONUS = [0, 0.20, 0, 0.25, 0, 0.40];
+  //   手持工具：优先「工具」装备槽；槽内无同系，则取行囊中该系最高阶（兼容旧习惯）
+  function heldTool(st, key){
+    var eq = (st && st.equipment) ? st.equipment.tool : null;
+    if (eq && eq.defId) {
+      var d = DEFS[eq.defId];
+      if (d && d[key] != null) return { item: eq, def: d, lv: d[key], equipped: true };
+    }
+    var best = null, pk = (st && st.pack) || [];
+    for (var i = 0; i < pk.length; i++) {
+      var p2 = pk[i]; if (!p2 || !p2.defId) continue;
+      var d2 = DEFS[p2.defId];
+      if (d2 && d2[key] != null && (!best || d2[key] > best.lv)) best = { item: p2, def: d2, lv: d2[key], equipped: false };
+    }
+    return best;
+  }
+  // 磨损：按阶位概率扣 1 点耐久（就地改写物品实例），返回本次是否磨损
+  // v20260928j：天候叠加——雨/雪等劣境提升磨损概率（冻土硬、湿木滑、矿壁濡、草秸韧）
+  function toolKeyOf(d){ if(!d) return null; var ks=['pickLv','axeLv','hoeLv','sickleLv','rodLv','sawLv'];
+    for(var i=0;i<ks.length;i++) if(d[ks[i]]!=null) return ks[i]; return null; }
+  function wearSitMul(st, held){
+    var W = st && st.weather, key = toolKeyOf(held && held.def); if(W==null || !key) return 1;
+    var mul = 1;
+    if(W===3 || W===4){ if(key==='axeLv') mul=1.4; else if(key==='hoeLv') mul=1.3;
+      else if(key==='sickleLv') mul=1.3; else if(key==='pickLv') mul=1.2; }
+    else if(W===5){ if(key==='hoeLv') mul=1.6; else if(key==='axeLv') mul=1.3;
+      else if(key==='sickleLv') mul=1.3; else mul=1.2; }
+    else if(W===7){ if(key==='hoeLv') mul=1.2; }
+    return mul;
+  }
+  // 给农事日志用的「劣境提示」：仅当倍率>1 时返回一句，否则 null
+  function wearSitNote(st, held){
+    var m = wearSitMul(st, held);
+    if(m>1) return '（天候劣境，'+(held&&held.def?held.def.name:'工具')+'磨损加剧）';
+    return null;
+  }
+  function wearTool(st, held){
+    if (!held || !held.item) return false;
+    var lv = held.lv || 0;
+    var pr = (TOOL_WEAR[lv] != null) ? TOOL_WEAR[lv] : 1;
+    pr = Math.min(1, pr * wearSitMul(st, held));
+    if (Math.random() >= pr) return false;
+    var it = held.item;
+    if (it.maxDur == null) return false;
+    it.dur = (it.dur == null ? it.maxDur : it.dur) - 1;
+    return true;
+  }
+  global.LF.TOOL_WEAR = TOOL_WEAR;
+  global.LF.AXE_YIELD = AXE_YIELD;
+  global.LF.AXE_BONUS = AXE_BONUS;
+  global.LF.heldTool = heldTool;
+  global.LF.wearTool = wearTool;
+  global.LF.wearSitMul = wearSitMul;
+  global.LF.wearSitNote = wearSitNote;
+  ITEMS.heldTool = heldTool; ITEMS.wearTool = wearTool;
+  // —— 工具用途说明（v20260928g）：让玩家点开工具即看见阶位差异 ——
+  var TOOL_USE = {
+    pickLv:   function(lv){ return '开矿：镐级 '+lv+'，对应矿脉逐级解锁（百炼钢镐可入玄铁矿）。'; },
+    axeLv:    function(lv){ var n=(AXE_YIELD&&AXE_YIELD[lv]!=null)?AXE_YIELD[lv]:1;
+                return '伐木：每斧得 '+n+' 根木'+(AXE_BONUS&&AXE_BONUS[lv]?('，约 '+Math.round(AXE_BONUS[lv]*100)+'% 多得一根'):'')+'；磨损率 '+Math.round((TOOL_WEAR&&TOOL_WEAR[lv]!=null?TOOL_WEAR[lv]:1)*100)+'%。'; },
+    hoeLv:    function(lv){ return '翻地：一锄翻 '+(1+Math.floor(lv/2))+' 垄（多翻的结转下畦）。'; },
+    sickleLv: function(lv){ return '收割：镰级 '+lv+'，每级多收一捧、脱粒更净、留种更易（徒手采收费力且脱粒不净）。'; },
+    rodLv:    function(lv){ return '垂钓：渔获量随级升、上品鱼概率更高；水域耐钓 '+(4+lv)+' 回。'; },
+    sawLv:    function(lv){ return '解板：每块料出木材 '+(1+Math.floor(lv/2))+'。'; }
+  };
+  function toolUseText(it){
+    if(!it || it.cat!=='工具') return null;
+    var d = (ITEMS[it.defId]||DEFS[it.defId]); if(!d) return null;
+    for(var _k in TOOL_USE){ if(d[_k]!=null) return TOOL_USE[_k](d[_k]); }
+    return null;
+  }
+  // —— 修理费用（v20260928g）：耐久缺口 → 铁料 + 手工银两，形成「采铁→炼铁→随身修」闭环 ——
+  //   每 3 点缺口耗 1 铁料（tiekuai）；每点缺口 2 两手工费。
+  function repairCost(it){
+    if(!it || it.maxDur==null) return null;
+    var dur = (it.dur==null ? it.maxDur : it.dur);
+    var gap = it.maxDur - dur;
+    if(gap<=0) return null;
+    return { gap:gap, mat:'tiekuai', matN:Math.max(1, Math.ceil(gap/3)), gold:gap*2 };
+  }
+  global.LF.TOOL_USE = TOOL_USE;
+  ITEMS.toolUseText = toolUseText;
+  global.LF.repairCost = repairCost;
   global.LF.PICK_GATE = PICK_GATE;
   global.LF.MINE_SPOT = MINE_SPOT;
   global.LF.SLOTS = SLOTS;

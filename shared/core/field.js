@@ -208,14 +208,23 @@
     }
     function fishField(room){
       if(!fieldHasWater(room)){ toast('此处无水，无从下钩。'); return; }
+      var st=S();
+      // v20260928f：按「竿」阶位分档——好竿钓得多、水域受惊上限更高、上品鱼概率更大
+      var held = (LF.heldTool && LF.heldTool(st, 'rodLv')) || null;
+      var lv = held ? (held.lv || 0) : -1;
       S().flags.fieldFished=S().flags.fieldFished||{};
       var n=(S().flags.fieldFished[room.id]||0);
-      if(n>=4){ toast('此间水域鱼已受惊，稍后再来方有所得。'); return; }
-      var did=(Math.random()<0.7)?'fish':'fish_dried';
-      var amt=1+Math.floor(Math.random()*3);
+      var cap=4+(lv>=0?lv:0);
+      if(n>=cap){ toast('此间水域鱼已受惊，稍后再来方有所得。'); return; }
+      var amt, fp;
+      if(lv<0){ amt=1; fp=0.15; }
+      else { amt=1+Math.floor(Math.random()*(1+Math.round(lv*0.6))); fp=0.45+lv*0.09; }
+      var did=(Math.random()<fp)?'fish':'fish_dried';
       if(!packAdd(did, amt)) return;
       S().flags.fieldFished[room.id]=n+1;
-      log('你抛竿静候，须臾竿弯——钓得'+LF.ITEMS[did].name+'×'+amt+'，收入行囊。','good');
+      if(held) LF.wearTool(st, held);
+      log((lv>=0 ? ('你持'+held.def.name+'抛竿静候，须臾竿弯') : '你卷起裤管下水摸鱼，折腾半晌')
+        +'——得'+LF.ITEMS[did].name+'×'+amt+'，收入行囊。','good');
       save(S()); buildActions(G.ROOMS[S().room]);
     }
     // 猎取惊兽（aggr==='flee'，如野彘）：屏息潜行接近；成则入战（胜者照常清剿+掉落），

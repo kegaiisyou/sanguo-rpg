@@ -69,7 +69,8 @@
     if(!jobOpen('farm')){ toast('孙老没托你翻这块地，贸然动土反招人疑。'); return; }
     var f=farmFx();
     if((f.unlocked||0)>=FARM_MAX){ toast('九畦都开出来了——再开就该惊动牢头了。'); return; }
-    if(!packFind('chutu')){
+    // v20260928f：工具已物品化——认「工具」槽或行囊中的锄（旧 packFind 只看行囊，装到槽上就找不着了）
+    if(!(LF.heldTool && LF.heldTool(S(), 'hoeLv'))){
       packAdd('chutu',1);
       packAdd('caizi',2);   // 头一回下地，孙老连家伙带籽一并给——不然开了地也无从下手
       log('孙老从田埂边摸出一把锄头递过来：「家伙给你。土要翻透，别糊弄老骨头。」（得「锄头」×1）','good');
@@ -77,14 +78,19 @@
     }
     if(!exert('开垦')) return;
     busyAct('开垦·半个时辰', 1000, function(){
-      S().energy=Math.max(0, S().energy-4);
+      var held = (LF.heldTool && LF.heldTool(S(), 'hoeLv')) || null;
+      var lv = held ? (held.lv || 0) : -1;
+      var li = 1 + (lv >= 0 ? Math.floor(lv/2) : 0);        // 好锄一抡翻数垄；徒手只一垄
+      S().energy=Math.max(0, S().energy-(4 + (lv<0?2:0)));  // 徒手刨土额外费力
       advanceMinutes(60);
-      f.li=(f.li||0)+1; f.tilled=(f.tilled||0)+1;      // tilled 仅为旧存档/旧判定留的兼容计数
-      log('你抡锄翻过一垄，湿土翻开，草腥气扑了满脸。（第 '+((f.unlocked||0)+1)+' 畦：'+f.li+' / '+FARM_LI+' 垄）','env');
+      if(held){ var _wn=LF.wearSitNote(S(),held); if(_wn) log(_wn,'warn'); LF.wearTool(S(), held); }
+      f.li=(f.li||0)+li; f.tilled=(f.tilled||0)+li;         // tilled 仅为旧存档/旧判定留的兼容计数
+      log('你抡'+(held?held.def.name:'手')+'翻过'+li+'垄，湿土翻开，草腥气扑了满脸。（第 '+((f.unlocked||0)+1)+' 畦：'+Math.min(f.li,FARM_LI)+' / '+FARM_LI+' 垄）','env');
       if(f.li>=FARM_LI){
+        var carry = f.li - FARM_LI;                          // 好锄多翻的垄结转下一畦，不白费
         f.plots[f.unlocked||0]={ st:'tilled' };
-        f.unlocked=(f.unlocked||0)+1; f.li=0;
-        log('三垄翻透，土细如筛——第 '+f.unlocked+' 畦开出来了。撒菜籽还是菽种，在你。','good');
+        f.unlocked=(f.unlocked||0)+1; f.li=carry;
+        log('三垄翻透，土细如筛——第 '+f.unlocked+' 畦开出来了。撒菜籽还是菽种，在你。'+(carry?('（余势未歇，顺手翻了下畦 '+carry+' 垄。）'):''),'good');
         if(onbWork) onbWork();        // v20260920h：开出一畦记 1 工分
       }
       save(S()); renderStatus(); buildActions(curRoom());
@@ -126,34 +132,55 @@
     });
   }
   // 锄草：不催熟，只把时辰往前推一个，顺带让人不至于干等
+    // 锄草：不催熟，只把时辰往前推一个，顺带让人不至于干等
+  // v20260928i：工具已物品化——认锄（hoeLv）；有锄则除草更利落、不费劲，并磨损锄
   function farmWeed(i){
     var f=farmFx();
     if(!exert('锄草')) return;
+    var held0=(LF.heldTool && LF.heldTool(S(),'hoeLv'))||null;
+    if(!held0 && !S().flags.hintedNoHoe){
+      S().flags.hintedNoHoe=true;
+      toast('徒手除草费劲——备一把锄头（货郎有售）除草更利落。');
+    }
     busyAct('锄草', 800, function(){
+      var held=(LF.heldTool && LF.heldTool(S(),'hoeLv'))||null;
       advanceMinutes(60);
-      S().energy=Math.max(0, S().energy-1);
-      log('你蹲在第 '+(i+1)+' 畦边拔草，草根带起的湿土凉丝丝的。（距可收约 '+plotLeft(f.plots[i])+' 个时辰）','env');
+      S().energy=Math.max(0, S().energy-(held?0:1));
+      log('你'+(held?('持'+held.def.name+'三两下刨去草根'):('蹲在第 '+(i+1)+' 畦边手拔'))+'，土腥气扑了满脸。（距可收约 '+plotLeft(f.plots[i])+' 个时辰）','env');
+      if(held){ var _wn=LF.wearSitNote(S(),held); if(_wn) log(_wn,'warn'); LF.wearTool(S(), held); }
       save(S()); renderStatus(); buildActions(curRoom());
     });
   }
   // 采收：得实物；浇过水 +1 捧；有编筐再 +1 捧；留种则返一份籽
+    // 采收：得实物；浇过水 +1 捧；有编筐再 +1 捧；留种则返一份籽
+  // v20260928h：工具已物品化——认「工具」槽或行囊中的镰（sickleLv）；有镰则脱粒更净、收得更多，并磨损镰
   function farmHarvest(i){
     var f=farmFx(), p=f.plots[i]; if(!p) return;
     var c=CROPS[p.crop]||CROPS.yecai;
     if(!exert('采收')) return;
+    var held0=(LF.heldTool && LF.heldTool(S(),'sickleLv'))||null;
+    if(!held0 && !S().flags.hintedNoSickle){
+      S().flags.hintedNoSickle=true;
+      toast('徒手采收费力且脱粒不净——备一把镰刀（货郎有售，或行囊里装上）收得更多。');
+    }
     busyAct('采收·'+c.name, 900, function(){
+      var held=(LF.heldTool && LF.heldTool(S(),'sickleLv'))||null;
+      if(held && held.item.dur!=null && held.item.dur<=0) toast('镰已卷刃，先去修再割更利落——此刻仍能凑合。');
       advanceMinutes(60);
       S().energy=Math.max(0, S().energy-2);
       var n=c.yield[0]+Math.floor(Math.random()*(c.yield[1]-c.yield[0]+1));
-      if(p.wet) n+=1;                                  // 浇过水的厚实
-      if(f.up.basket) n+=1;                            // 编筐：兜住更多
+      if(p.wet) n+=1;
+      if(f.up.basket) n+=1;
+      if(held) n+=1+Math.floor((held.lv||0)/2);
       if(!packAdd(c.out, n)) return;
       f.picked=(f.picked||0)+n;
       var back=false;
-      if(f.up.seedkeep || Math.random()<0.4){ if(packAdd(c.seed,1)) back=true; }
+      var keepP=held?0.55:0.4;
+      if(f.up.seedkeep || Math.random()<keepP){ if(packAdd(c.seed,1)) back=true; }
       p.st='tilled'; p.crop=null; p.wet=false;
-      log('第 '+(i+1)+' 畦收得'+c.name+'×'+n+'。'+(back?'（留下一份籽，下一茬有着落。）':'')+(f.up.basket?'（筐编得好，多兜了一捧。）':''),'good');
-      if(onbWork) onbWork();        // v20260920h：收成一畦记 1 工分
+      log('第 '+(i+1)+' 畦'+(held?('你持'+held.def.name+'贴垄刈过，谷穗应声而落'):'你蹲地手掰，费劲掐下')+'，收得'+c.name+'×'+n+'。'+(back?'（留下一份籽，下一茬有着落。）':'')+(f.up.basket?'（筐编得好，多兜了一捧。）':''),'good');
+      if(held){ var _wn=LF.wearSitNote(S(),held); if(_wn) log(_wn,'warn'); LF.wearTool(S(), held); }
+      if(onbWork) onbWork();
       afterPackChange(); save(S()); renderStatus(); buildActions(curRoom());
     });
   }
@@ -196,9 +223,12 @@
     for(var _i=0;_i<FARM_MAX;_i++){
       (function(i){
         var nm='第 '+(i+1)+' 畦';
+        // v20260928f：标签按手中锄的阶位显示「一锄几垄」，让玩家看见工具差异
+        var _hoe=(LF.heldTool && LF.heldTool(S(),'hoeLv'))||null;
+        var _li=1+(_hoe?Math.floor((_hoe.lv||0)/2):0);
         arr.push({ icon:'🌾', label:nm+'·荒地',
           show:function(){ return jobOpen('farm') && i===farmFx().unlocked && farmFx().unlocked<FARM_MAX; },
-          acts:[{label:'开垦（翻三垄）', icon:'⛏️', fn:function(){ farmTill(); }}] });
+          acts:[{label:'开垦（一锄'+_li+'垄）', icon:'⛏️', fn:function(){ farmTill(); }}] });
         arr.push({ icon:'🟫', label:nm+'·已翻',
           show:function(){ return jobOpen('farm') && i<farmFx().unlocked && plotStage(farmFx().plots[i])==='tilled'; },
           acts:[{label:'播·野菜（菜籽×1）', icon:'🥬', fn:function(){ farmSow(i,'yecai'); }},

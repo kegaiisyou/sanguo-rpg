@@ -7,7 +7,7 @@
   global.LF.createPack = function (ctx) {
     var getState = ctx.getState, S = getState;
     var LF = ctx.LF;
-    var toast = ctx.toast, save = ctx.save, renderStatus = ctx.renderStatus;
+    var toast = ctx.toast, save = ctx.save, renderStatus = ctx.renderStatus, log = ctx.log;
     var afterPackChange = ctx.afterPackChange, itemIconHTML = ctx.itemIconHTML;
     var effectiveStats = ctx.effectiveStats, compareEquip = ctx.compareEquip, positionFloat = ctx.positionFloat;
     var locEq = ctx.locEq, packMax = ctx.packMax, packFirstEmpty = ctx.packFirstEmpty,
@@ -23,7 +23,8 @@
     }
     if(from.kind==='pack' && to.kind==='equip'){
       var it=getState().pack[from.idx];
-      if(!it || it.cat!=='装备' || it.slot!==to.slot){ toast('该物不可装备于「'+LF.ITEMS.SLOTS[to.slot].label+'」。'); return; }
+      // v20260928e：工具（cat==='工具'）亦可装备于「工具」槽
+      if(!it || (it.cat!=='装备' && it.cat!=='工具') || it.slot!==to.slot){ toast('该物不可装备于「'+LF.ITEMS.SLOTS[to.slot].label+'」。'); return; }
       var old=getState().equipment[to.slot];
       getState().equipment[to.slot]=it; getState().pack[from.idx]=old;
       toast('已装备「'+it.name+'」。'); afterPackChange(); return;
@@ -190,10 +191,19 @@
       if(e.dmg) t.push('伤害 +'+e.dmg);
       if(t.length) h+='<div class="li-line">'+t.join(' · ')+'</div>';
     }
+    if(it.cat==='工具'){
+      var tu=(typeof LF.ITEMS.toolUseText==='function')?LF.ITEMS.toolUseText(it):null;
+      if(tu) h+='<div class="li-line" style="color:#9fe0ff">▸ '+tu+'</div>';
+    }
     if(it.desc) h+='<div class="li-line" style="opacity:.85">'+it.desc+'</div>';
     if(it.cat==='装备') h+=compareEquip(it);
     // 操作按钮统一置于末尾
     var acts='';
+    // v20260928g：耐久未满的装备/工具，给出修理入口与费用（铁料+银两）
+    if(it.maxDur && it.dur < it.maxDur){
+      var rc=(typeof LF.repairCost==='function')?LF.repairCost(it):null;
+      if(rc){ h+='<div class="li-line" style="opacity:.85">待修：铁料×'+rc.matN+' · 银两×'+rc.gold+'</div>'; acts+='<button class="li-act" onclick="LF.repairInspect()">修 理</button>'; }
+    }
     if(getPackInspect().kind==='equip') acts+='<button class="li-act" onclick="LFUI.unequipInspect()">卸 下</button>';
     else {
       if(it.cat==='装备') acts+='<button class="li-act" onclick="LFUI.equipInspect()">装 备</button>';
@@ -321,10 +331,31 @@
   function equipInspect(){ if(!getPackInspect()||getPackInspect().kind!=='pack') return; var idx=getPackInspect().idx; var it=getState().pack[idx]; if(!it||it.cat!=='装备') return; var slot=it.slot; if(!slot){ toast('此物无可装备之处。'); return; } var old=getState().equipment[slot]; movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); setPackInspect({kind:'equip',slot:slot}); showPackFloat(); if(old) packHighlightReplaced(idx); }
   function unequipInspect(){ if(!getPackInspect()||getPackInspect().kind!=='equip') return; var slot=getPackInspect().slot; var eq=getState().equipment[slot]; unequipToPack(slot); var repIdx=-1; if(eq){ for(var i=0;i<getState().pack.length;i++){ if(getState().pack[i]===eq){ repIdx=i; setPackInspect({kind:'pack',idx:i}); break; } } } else setPackInspect(null); showPackFloat(); if(repIdx>=0) packHighlightReplaced(repIdx); }
   function closeInspect(){ setPackInspect(null); refreshPackGridLight(); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+  // v20260928g：随身修理——消耗铁料(tiekuai)+银两，将物品耐久补满
+  function packCountOf(defId){ var n=0; S().pack.forEach(function(p){ if(p && p.defId===defId) n += (p.count||1); }); return n; }
+  function packTakeOf(defId, n){ for(var i=0;i<S().pack.length && n>0;i++){ var p=S().pack[i]; if(p && p.defId===defId){ var take=Math.min(n, p.count||1); p.count-=take; n-=take; if(p.count<=0){ S().pack.splice(i,1); i--; } } } }
+  function repairInspect(){
+    if(!getPackInspect()) return;
+    var it = packGet(getPackInspect());
+    if(!it || it.maxDur==null) return;
+    if(it.dur >= it.maxDur){ toast('此物完好，无需修理。'); return; }
+    var rc=(typeof LF.repairCost==='function')?LF.repairCost(it):null;
+    if(!rc) return;
+    var st=S();
+    if((st.gold||0) < rc.gold){ toast('银两不足，修不起（需 '+rc.gold+' 两）。'); return; }
+    if(packCountOf(rc.mat) < rc.matN){ toast('铁料不足，需铁料×'+rc.matN+'（采铁矿→冶炼炉炼料可得）。'); return; }
+    packTakeOf(rc.mat, rc.matN);
+    st.gold -= rc.gold;
+    it.dur = it.maxDur;
+    var nm = (LF.ITEMS[it.defId]||{}).name || it.name;
+    log('你请铁匠锻打修补，'+nm+'重又寒光凛凛——耗铁料×'+rc.matN+'、银两×'+rc.gold+'。','sys');
+    afterPackChange(); save(st); renderStatus(); showPackFloat();
+  }
+  LF.repairInspect = repairInspect;   // v20260928g：挂全局，按钮 onclick 调用（避免 terser 优化对象属性）
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
 
     return {
-      movePackItem: movePackItem, swapPackCells: swapPackCells, refreshPackGridLight: refreshPackGridLight, refreshPackEquipLight: refreshPackEquipLight, unequipToPack: unequipToPack, quickUseFromPack: quickUseFromPack, inspCls: inspCls, renderPackGrid: renderPackGrid, renderEquipFigure: renderEquipFigure, renderPack: renderPack, renderEquipStats: renderEquipStats, renderPackInspect: renderPackInspect, parseLoc: parseLoc, showPackFloat: showPackFloat, bindPackInteractions: bindPackInteractions, useInspect: useInspect, discardInspect: discardInspect, canDiscard: canDiscard, packHighlightReplaced: packHighlightReplaced, equipInspect: equipInspect, unequipInspect: unequipInspect, closeInspect: closeInspect, toggleStats: toggleStats,
+      movePackItem: movePackItem, swapPackCells: swapPackCells, refreshPackGridLight: refreshPackGridLight, refreshPackEquipLight: refreshPackEquipLight, unequipToPack: unequipToPack, quickUseFromPack: quickUseFromPack, inspCls: inspCls, renderPackGrid: renderPackGrid, renderEquipFigure: renderEquipFigure, renderPack: renderPack, renderEquipStats: renderEquipStats, renderPackInspect: renderPackInspect, parseLoc: parseLoc, showPackFloat: showPackFloat, bindPackInteractions: bindPackInteractions, useInspect: useInspect, discardInspect: discardInspect, canDiscard: canDiscard, packHighlightReplaced: packHighlightReplaced, equipInspect: equipInspect, unequipInspect: unequipInspect, closeInspect: closeInspect, repairInspect: repairInspect, toggleStats: toggleStats,
       getPackLastClick: function () { return packLastClick; }
     };
   };

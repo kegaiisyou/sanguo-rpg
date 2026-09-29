@@ -75,19 +75,20 @@
     function chopTree(){
       var st=S();
       if(st.defeated){ toast('重伤未愈，先调息恢复。'); return; }
-      var hasIronAxe = !!packFind('tiefu');
-      var withAxe = hasIronAxe || !!packFind('futou');   // 执行时实时判定，避免拾斧后菜单仍显示旧状态
-      busyAct(withAxe ? '伐木·半个时辰' : '折枝·半个时辰', 950, function(){
+      // v20260928f：按「斧」阶位分档出材——优先工具槽，槽内无则取行囊最高阶
+      var held = (LF.heldTool && LF.heldTool(st, 'axeLv')) || null;
+      busyAct(held ? '伐木·半个时辰' : '折枝·半个时辰', 950, function(){
         advanceMinutes(60);
-        if(hasIronAxe) consumeTool('tiefu',1);
-        else if(withAxe) consumeTool('futou',1);
-        if(withAxe){
-          var n = hasIronAxe ? 2 : 1;
+        if(held){
+          var lv = held.lv || 0;
+          var n = (LF.AXE_YIELD && LF.AXE_YIELD[lv] != null) ? LF.AXE_YIELD[lv] : 1;
+          if(Math.random() < ((LF.AXE_BONUS && LF.AXE_BONUS[lv]) || 0)) n += 1;
           packAdd('mutou', n);
-          log('你抡'+(hasIronAxe?'铁':'锈')+'斧，咔咔几声，老树应声倒下，得木头×'+n+'。','env');
+          var worn = (LF.wearTool && LF.wearTool(st, held)) || false;
+          log('你抡'+held.def.name+'，咔咔几声，老树应声倒下，得木头×'+n+'。'+(worn?'（斧刃微损）':''),'env');
         } else {
           packAdd('xiaoshuzhi', 1);
-          log('你徒手折下几根细枝，捋得小树枝×1。若有把斧头，便能伐得粗实木头。','env');
+          log('你徒手折下几根细枝，捋得小树枝×1。若手中有把斧，便能伐得粗实木头。','env');
         }
         afterPackChange();
         buildActions(G.ROOMS[st.room]);   // 刷新场景物体（斧头/材料状态即时反映到菜单）
@@ -166,12 +167,30 @@
       });
       var lv=document.getElementById('m-leave'); if(lv) lv.onclick=closeModal;
     }
+    // v20260928e：锻造台产出镐时 out 形如 'pick:3'，LF.ITEMS 查不到，需映射回镐名
+    function craftOutName(r){
+      if(typeof r.out==='string' && r.out.indexOf('pick:')===0){
+        var _lv2 = parseInt(r.out.slice(5),10)||0;
+        return ((LF.PICKS||[])[_lv2]||{}).name || '镐头';
+      }
+      return (LF.ITEMS[r.out]||{}).name || r.out;
+    }
+    // v20260928f：配方若声明 toolKey（解板用锯），按该系工具阶位加成产出（每 2 阶 +1）
+    function craftOutN(r){
+      var n = r.outN || 1;
+      if(!r.toolKey || !(LF.heldTool)) return n;
+      var th = LF.heldTool(S(), r.toolKey);
+      if(!th) return n;
+      n += Math.floor((th.lv || 0) / 2);
+      LF.wearTool(S(), th);
+      return n;
+    }
     function doCraft(id){
       var cs = getCraftState();
       var list = (LF.RECIPES && LF.RECIPES[cs.bench]) || [];
       var r=null; for(var i=0;i<list.length;i++){ if(list[i].id===id){ r=list[i]; break; } }
       if(!r) return;
-      for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+(LF.ITEMS[r.out]||{}).name); return; } }
+      for(var k=0;k<r.in.length;k++){ if((packFind(r.in[k].id)||{count:0}).count < r.in[k].n){ toast('材料不足，无法制作'+craftOutName(r)); return; } }
       busyAct('木工劳作·半个时辰', 950, function(){
         r.in.forEach(function(x){ packConsume(x.id, x.n); });
         if(typeof r.out==='string' && r.out.indexOf('pick:')===0){
@@ -180,12 +199,13 @@
           upgradePick(_lv);
           advanceMinutes(60);
           afterPackChange();
-          log('你于锻造台上锻出'+(_pd.name||'镐头')+'——锤音未落，新镐已在手。','sys');
+          log('你于锻造台上锻出'+(_pd.name||'镐头')+'——锤音未落，一把新镐成了。','sys');
         } else {
-          packAdd(r.out, r.outN);
+          var _n = craftOutN(r);
+          packAdd(r.out, _n);
           advanceMinutes(60);
           afterPackChange();
-          log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+r.outN+'。','sys');
+          log('你于木工台上劳作，制成'+(LF.ITEMS[r.out]||{}).name+'×'+_n+'。','sys');
         }
         var card = getCard();
         card.innerHTML=buildCraftHTML(); bindCraftPanel();

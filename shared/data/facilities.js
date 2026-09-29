@@ -1,5 +1,6 @@
 // 设施类型与派生（v20260924j）：派驻武将依才具与民夫/士卒按月批量产出
 // 纯数据层，随 shared/data/officers.js 之后、shared/core/officers.js 之前加载即可。
+// 注（P0+P1 规范）：FACILITY_TYPES 将并入 TEMPLATES 的 kind:'farm'|'resource' 业态，设施须挂到 cityCells tile，不再作抽象派生槽（见 city-economy-p0p1.md）。
 (function (global) {
   global.LF = global.LF || {};
   // 设施类型：res = 产出资源键；stat = 增益主属性；skill = 增益特技键；laborCap = 可调民夫上限

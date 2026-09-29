@@ -19,7 +19,7 @@
         { id: 'tuzhi_market', buy: 30, sell: 10 },
         { id: 'tuzhi_farm', buy: 20, sell: 7 },
         { id: 'tuzhi_barracks', buy: 36, sell: 12 },
-        { id: 'futou',       buy: 35, sell: 12 },
+        { id: 'futou',       buy: 16, sell: 4  },   // 石斧（斧L0）
         { id: 'zhangpeng',   buy: 60, sell: 25 },
         { id: 'gongzuotai',  buy: 40, sell: 15 },
         { id: 'campfire',    buy: 12, sell: 4  },
@@ -30,7 +30,7 @@
         { id: 'xiang',        buy: 6,  sell: 2 },
         { id: 'mucai',        buy: 20, sell: 8 },
         { id: 'tiekuai',      buy: 40, sell: 16 },
-        { id: 'tiefu',        buy: 70, sell: 28 },
+        { id: 'tiefu',        buy: 0,  sell: 60 },  // 铁斧（斧L4）：精铁之器，货郎不卖只收
         { id: 'tiema',        buy: 22, sell: 8 },
         { id: 'tiejian',      buy: 90, sell: 35 },
         // —— 农事与杂项（v20260915g）：登记为「可交易」的泛用物 ——
@@ -38,7 +38,7 @@
         //   （劳字木片 / 腰牌 / 路引 / 残页 不在其列：那是凭证与脏物，货郎不收。）
         { id: 'rope',         buy: 10, sell: 4 },
         { id: 'bumu',         buy: 8,  sell: 3 },
-        { id: 'chutu',        buy: 12, sell: 4 },
+        { id: 'chutu',        buy: 20, sell: 5  },  // 木锄（锄L0）
         { id: 'caizi',        buy: 3,  sell: 1 },
         { id: 'douzhong',     buy: 6,  sell: 2 },
         { id: 'dou',          buy: 10, sell: 4 },
@@ -56,7 +56,49 @@
         { id: 'zhujian', buy: 8,  sell: 3  },
         { id: 'maopi',   buy: 0,  sell: 6  },
         { id: 'shedan',  buy: 0,  sell: 10 },
-        { id: 'shepi',   buy: 0,  sell: 8  }
+        { id: 'shepi',   buy: 0,  sell: 8  },
+        // —— 工具六系 × 六阶（v20260928e）：镐/斧/锄/镰/竿/锯 ——
+        //   L0-L3 货郎常售；L4-L5 为精铁 / 百炼之器，货郎不卖只收（buy:0 = 仅可寄售）
+        // —— 镐 ——
+        { id: 'jing_shi_gao',buy: 40, sell: 10 },
+        { id: 'qingtong_gao',buy: 90, sell: 22 },
+        { id: 'cu_tie_gao',  buy: 180,sell: 44 },
+        { id: 'jing_tie_gao',buy: 0,  sell: 88 },
+        { id: 'bailian_gao', buy: 0,  sell: 190 },
+        // —— 斧 ——
+        { id: 'jingshi_fu',  buy: 32, sell: 8  },
+        { id: 'tongfu',      buy: 78, sell: 19 },
+        { id: 'cutie_fu',    buy: 155,sell: 38 },
+        { id: 'bailian_fu',  buy: 0,  sell: 120 },
+        // —— 锄 ——
+        { id: 'jingmu_chu',  buy: 36, sell: 9  },
+        { id: 'tongchu',     buy: 82, sell: 20 },
+        { id: 'cutie_chu',   buy: 165,sell: 40 },
+        { id: 'tiechu',      buy: 260,sell: 64 },
+        { id: 'bailian_chu', buy: 0,  sell: 130 },
+        // —— 镰 ——
+        { id: 'liandao',     buy: 30, sell: 7  },
+        { id: 'jingshi_lian',buy: 46, sell: 11 },
+        { id: 'tonglian',    buy: 85, sell: 21 },
+        { id: 'cutie_lian',  buy: 165,sell: 40 },
+        { id: 'tielian',     buy: 255,sell: 62 },
+        { id: 'bailian_lian',buy: 0,  sell: 120 },
+        // —— 竿 ——
+        { id: 'diaogan',     buy: 40, sell: 10 },
+        { id: 'gugou_gan',   buy: 65, sell: 16 },
+        { id: 'tonggou_gan', buy: 115,sell: 28 },
+        { id: 'cutie_gan',   buy: 195,sell: 48 },
+        { id: 'tiegan',      buy: 310,sell: 76 },
+        { id: 'bailian_gan', buy: 0,  sell: 140 },
+        // —— 锯 ——
+        { id: 'mujv',        buy: 48, sell: 12 },
+        { id: 'jingshi_jv',  buy: 72, sell: 18 },
+        { id: 'tongjv',      buy: 120,sell: 30 },
+        { id: 'cutie_jv',    buy: 210,sell: 52 },
+        { id: 'tiejv',       buy: 325,sell: 80 },
+        { id: 'bailian_jv',  buy: 0,  sell: 145 },
+        // —— 铲 ——
+        { id: 'tiechan',     buy: 145,sell: 36 }
       ]
     },
     doctor: {

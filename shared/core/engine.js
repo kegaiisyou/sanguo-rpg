@@ -117,7 +117,13 @@
     LF: LF,
     getBUILDINGS: function () { return BUILDINGS; },
     getNPC_BUILD: function () { return buildCityCellNpcs; },
-    log: function () { return log.apply(null, arguments); }  });
+    log: function () { return log.apply(null, arguments); },
+    packAdd: function () { return packAdd.apply(null, arguments); },
+    packFind: function () { return packFind.apply(null, arguments); },
+    packConsume: function () { return packConsume.apply(null, arguments); },
+    packList: function () { return packList.apply(null, arguments); },
+    afterPackChange: afterPackChange
+  });
   var cityProfile = City.cityProfile, cityLine = City.cityLine,
       cityGates = City.cityGates, cityGateDirs = City.cityGateDirs,
       CELL_META = City.CELL_META, CELL_DESC = City.CELL_DESC,
@@ -1656,7 +1662,7 @@
     for(var k2 in need){ packConsume(k2, need[k2]); }
     state.flags.cityLevel[cid]=lv+1;
     afterPackChange();
-    log('夯土累石，城垣拓建——'+(CITY_LV_NAME[lv+1]||'城')+'初成，新坊市渐辟（建设度 '+cityDevOf(cid)+'）。','sys');
+    log('夯土累石，城垣拓建——'+(CITY_LV_NAME[lv+1]||'城')+'初成，新坊市渐辟（城等 '+(((state.flags.cityLevel||{})[cid])||lv)+'）。','sys');
     if(state.room===cid) renderRoom(cid,true);
     openModal('citystat',{cid:cid});
   }
@@ -2718,10 +2724,10 @@
   //   苦役营（kuyilao）不受此判：营门另有囚籍规条（见 leaveViaGate 首段），免得与教学链打架。
   function gateCurfew(cid){ return cid !== 'kuyilao' && isCurfewHour(); }
   function arriveAtGate(pid, dir){
+    // 夜间门禁只限制“出城”(leaveViaGate)；回城投宿不受限，否则流落野外叫不开门、无法进城
     if(gateCurfew(pid)){
-      log('〔门禁〕'+((LF.CITIES[pid]||{}).name||'城门')+'门紧闭——'+hourLabel()+'的夜鼓早已敲过。任你拍门，门内只回一句：「卯时再来。」','warn');
-      toast('城门已闭，今夜不得入城。可在城外就地安营（帐篷 / 篝火 / 草席）或席地打盹，待卯时再入。');
-      return;
+      log('〔门禁〕'+((LF.CITIES[pid]||{}).name||'城门')+'夜鼓已歇——门内应声：「且入城安歇，卯时再出。」你推门入城。','sys');
+      toast('城门夜闭，但守卒见你露宿在外，破例放进城安歇。卯时前不得再出。');
     }
     setOnBoat(false);   // 进城即上岸
     var gc=gateCellCoord(pid, dir);
@@ -2972,6 +2978,12 @@
         if(a && a.data && a.data.building && !exert('步入店铺')) return;
         enterBldRoom((a&&a.data?a.data.building:'yaofu'), {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}, (a&&a.data?a.data.sign:null));
         break;
+      case 'buy_shop': if(window.buyShop) window.buyShop((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null)); break;
+      case 'shop_ledger': if(window.shopLedger) window.shopLedger((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null)); break;
+      case 'shop_upgrade': if(window.shopUpgrade) window.shopUpgrade((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null)); break;
+      case 'shop_workbench': if(window.shopWorkbench) window.shopWorkbench((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null)); break;
+      case 'buy_shop_staff': if(window.buyShop) window.buyShop((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null), true); break;
+      case 'shop_stock': if(window.shopStock) window.shopStock((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null)); break;
       // v20260910q：回营区按钮已取消——离开牢房走罗盘网格邻居（南·中军大帐等）
       case 'ward_view': {
         // v20260927e：坊内三用 —— 市坊开对应商号、文教开求学面板、码头开问渡面板
@@ -3476,7 +3488,7 @@
       // v20260924z12 新增 21 项（B 水墨批次：食饵/矿物/工具/药剂/竹简）——z11 起注册即直读 items48 独立图
       yecai:'0 0', jiu:'0 0', fish:'0 0', fish_dried:'0 0', dou:'0 0', douzhou:'0 0',
       zhujian:'0 0', caizi:'0 0', douzhong:'0 0', tongkuang:'0 0', yinkuang:'0 0', xuatie:'0 0',
-      chutu:'0 0', tiefu:'0 0', pickaxe:'0 0', muti:'0 0', jinchuang:'0 0', yaofen:'0 0',
+      chutu:'0 0', tiefu:'0 0', luoyang_chan:'0 0', muti:'0 0', jinchuang:'0 0', yaofen:'0 0',
       tangyao:'0 0', sleep_drug:'0 0', shuidai:'0 0',
       // v20260924z18 新增 16 项装备（B 水墨批次：兵刃/衣甲/腰背包囊）
       zangbu_hat:'0 0', polan_stick:'0 0', yaobao:'0 0', hutou:'0 0', xiaonang:'0 0',
@@ -4684,7 +4696,9 @@
     } else if(kind==='sect'){
       h=renderSectPanel();
     } else if(kind==='diplomacy'){ h=renderDiplomacy(state.flags._dipFid)||''; } else if(kind==='event'){ h=renderEvent(); } else if(kind==='duel'){ h=renderDuel(); } else if(kind==='debate'){ h=renderDebate(); } else if(kind==='log'){
-      h=renderLogPanel();          // 回顾（v20260914a）：顶栏「回顾」/ 状态栏右侧那颗
+      h=renderLogPanel();
+    } else if(kind==='shopstock'){
+      h=window.renderShopStock(opts);
     }
     $card.innerHTML=h;
     injectModalFb();   // v20260915j：每扇窗都带顶部反馈条（操作结果不再被面板挡死）
@@ -4711,6 +4725,7 @@
     if(kind==='citybuild'){ bindCityBuildPanel(); }
     if(kind==='sect'){ bindSectPanel(); }
     if(kind==='quest'){ bindQuestPanel(); }
+    if(kind==='shopstock'){ window.bindShopStockPanel(); }
     if(kind==='job'){ bindJobBoard(); }
     // 回顾面板（v20260914a）：落位到最新一句（与叙事区同序：旧的在上、新的在下），并绑「收起」
     if(kind==='log'){

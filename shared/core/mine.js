@@ -20,19 +20,39 @@
   // 镐头不进行囊，是玩家自身的等级（S().flags.pick，0=粗石镐 … 5=百炼钢镐）：
   //   露天矿脉与矿洞全靠它衡量能凿什么、凿几下；升级走铁匠炉（RECIPES.forge 的 pick:N 配方）、
   //   市集（青铜镐）、或差役奖励（淘铜铸镐）。
-  function pickLv(){ return (S().flags && S().flags.pick) || 0; }
-  function pickDef(lv){
-    lv = (lv==null) ? pickLv() : lv;
-    return (LF.PICKS || [])[lv] || { name:'粗石镐', icon:'🪨', lv:0, desc:'', caveMax:2 };
+  // v20260928e：镐已物品化——等级读「工具」槽所持之镐（单槽·手持一件，行囊可携备用件）
+  function pickItem(){
+    var eq = (S().equipment || {}).tool;
+    if(!eq) return null;
+    var d = (LF.ITEMS || {})[eq.defId];
+    return (d && d.pickLv != null) ? eq : null;
   }
+  function pickLv(){
+    var it = pickItem(); if(!it) return -1;      // -1 = 手中无镐（与 PICK_GATE 比较恒为不足）
+    var d = (LF.ITEMS||{})[it.defId];
+    return (d && d.pickLv != null) ? d.pickLv : 0;
+  }
+  function pickDef(lv){
+    if (lv==null) lv = pickLv();
+    if (lv < 0) return { name:'\uff08手中无镐\uff09', icon:'\u26CF', lv:-1, desc:'', caveMax:0 };
+    return (LF.PICKS||[])[lv] || { name:'粗石镐', icon:'\u26CF', lv:0, desc:'', caveMax:2 };
+  }
+  // 得镐（锻造 / 任务奖励）：优于手中则换装、旧镐回行囊；否则入行囊备用
   function upgradePick(lv){
-    var cur = pickLv();
-    if (lv <= cur) return false;            // 镐只升不降
-    if (lv > 5) lv = 5;
+    if (lv > 5) lv = 5; if (lv < 0) lv = 0;
+    var id = (LF.GAO_BY_LV||[])[lv]; if(!id) return false;
     var pd = pickDef(lv);
-    S().flags.pick = lv;
-    save(S()); renderStatus();
-    log('你换上了'+pd.name+'——'+(pd.desc || ''),'good');
+    if (lv > pickLv()) {
+      var old = (S().equipment||{}).tool;
+      if (old && typeof packAdd === 'function') packAdd(old.defId, 1);
+      S().equipment = S().equipment || {};
+      S().equipment.tool = (LF.ITEMS && LF.ITEMS.makeItem) ? LF.ITEMS.makeItem(id) : { defId:id, name:pd.name, cat:'工具', slot:'tool' };
+      save(S()); renderStatus();
+      log('你换上了'+pd.name+'\u2014\u2014'+(pd.desc || ''),'good');
+    } else {
+      if (typeof packAdd === 'function') packAdd(id, 1);
+      log('又得一把'+pd.name+'，收入行囊备用。','good');
+    }
     return true;
   }
   // 按当前镐算「凿某类矿点需几镐」（-1 = 镐不够，刃会弹开）
@@ -96,6 +116,7 @@
     var sp=m.spots[idx];
     if(!sp.alive) return;
     var t=sp.t, ms=LF.MINE_SPOT[t];
+    if(pickLv()<0){ toast('你手中并无镐——先到铁匠炉锻一把，或去市集买一把。'); return; }
     if(pickLv()<LF.PICK_GATE[t]){ toast('镐刃弹开——这'+ms.name+'，得换把好镐才凿得动。'); return; }
     if(!exert('开凿矿料')) return;
     if(S().energy<4){ log('〔力竭〕你两臂发颤，连镐都握不稳了。','warn'); return; }
@@ -218,6 +239,7 @@
     var sp=c.points[idx];
     if(!sp.alive) return;
     var t=sp.t, ms=LF.MINE_SPOT[t];
+    if(pickLv()<0){ toast('你手中并无镐——先到铁匠炉锻一把，或去市集买一把。'); return; }
     if(pickLv()<LF.PICK_GATE[t]){ toast('镐刃弹开——这'+ms.name+'，得换把好镐才凿得动。'); return; }
     if(!exert('凿矿')) return;
     if(S().energy < 5+c.floor){ log('〔力竭〕矿道深邃，你气力不济——先收工回去歇歇。','warn'); return; }

@@ -410,16 +410,16 @@
   });
 
 
-  // — 路线2 挖地道：苟三授 route.tunnel（镐锄自行于仓库/矿坑取） —
+  // — 路线2 挖地道：苟三授 route.tunnel（洛阳铲自行于仓库/矿坑取） —
   TRIGGERS.push({
     id: 'gou_tunnel', hook: 'onTalk', npc: 'gou_san', room: 'kuyilao', cell: [2,0], once: false,
     cond: { notFlag: 'flags.route.tunnel' },
     steps: [
       { t: 'npcTalk', npc: 'gou_san',
-        prompt: '苟三十指翻飞，朝矿道一努嘴：「想刨地道？矿坑那头连墙根，土松。镐锄么——仓库墙角倚着几把闲的，偷来便是。」',
+        prompt: '苟三十指翻飞，朝矿道一努嘴：「想刨地道？矿坑那头连墙根，土松。洛阳铲么——仓库墙角倚着几把闲的，偷来便是。」',
         asks: [
-          { label: '〔受教〕记下了，去寻镐锄', set: { 'flags.route.tunnel': true },
-            say: '苟三咧嘴：「镐锄到手，从矿道那头下铲——刨通了，地道线就成了。」〔已得挖地道线索：需自行取得镐锄（仓库/矿坑可拾）。〕' }
+          { label: '〔受教〕记下了，去寻洛阳铲', set: { 'flags.route.tunnel': true },
+            say: '苟三咧嘴：「洛阳铲到手，从矿道那头下铲——刨通了，地道线就成了。」〔已得挖地道线索：需自行取得洛阳铲（仓库/矿坑可拾）。〕' }
         ] }
     ]
   });

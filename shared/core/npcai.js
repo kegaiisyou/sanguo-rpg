@@ -177,6 +177,23 @@
 
     // ── 郊野偶遇：名将不只窝在城里，好武/嗜酒者会出门游猎 ──
     // room 为郊野房间；所属城 = LF.PLACES[fid].parent 或 LF.Travel.fields[fid].place（须确在 LF.CITIES 中）
+    // 每名将固定“出没”于其所属城郊野中的唯一一片（hash(tid+k) 最小者），避免整片野外交互都刷出同一人、像跟随玩家
+    var _haunt = {};
+    function hauntField(tid, pid) {
+      var key = tid + '@' + pid;
+      if (_haunt[key]) return _haunt[key];
+      var best = null, bestH = Infinity;
+      var P = LF.PLACES || {};
+      for (var k in P) {
+        var q = P[k];
+        if (q && q.kind === 'field' && q.parent === pid) {
+          var h = hash(tid + k);
+          if (h < bestH) { bestH = h; best = k; }
+        }
+      }
+      _haunt[key] = best;
+      return best;
+    }
     function famousInField(room) {
       var st = S(); if (!st || !room) return [];
       var fid = room.fieldId; if (!fid) return [];
@@ -192,7 +209,7 @@
         if (placeOf(t) !== pid) return;                     // 只在本城郊野出没
         var top = topDesire(t).key;
         var p = OUTP[top] || 0.15;
-        if (hash(t.id + fid) % 100 >= Math.round(p * 100)) return;   // 稳定命中：同一片野地总归是同一批人
+        if (hauntField(t.id, pid) !== fid) return;   // 仅固定出没的那一片郊野（消除“跟随式”重复偶遇）
         out.push(t);
       });
       return out.slice(0, 2);

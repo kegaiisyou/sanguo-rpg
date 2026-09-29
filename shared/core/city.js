@@ -21,6 +21,7 @@ window.LF = window.LF || {};
     var getBUILDINGS = ctx.getBUILDINGS, getNPC_BUILD = ctx.getNPC_BUILD;
     var getState = ctx.getState, S = getState;
     var log = ctx.log;
+    var packAdd = ctx.packAdd, packFind = ctx.packFind, packConsume = ctx.packConsume, packList = ctx.packList, afterPackChange = ctx.afterPackChange;
 
     // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
     // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
@@ -390,7 +391,7 @@ window.LF = window.LF || {};
       if (cityBurnedMap(cid)[x + ',' + y]) return 'ruin';
       return t;
     }
-    function canEnterCell(cid, x, y) { var t = cellDisplayType(cid, x, y); return t !== 'ruin' && t !== 'unbuilt' && t !== 'site'; }
+    function canEnterCell(cid, x, y) { var t = cellDisplayType(cid, x, y); return t !== 'ruin' && t !== 'unbuilt'; } // 施工中(site)允许进入：须立于工地才能继续营造
     function burnCells(cid, n) {
       var m = genCityGrid(cid); if (!m) return;
       var size = m.size, cx = Math.floor(size / 2), cy = Math.floor(size / 2);
@@ -497,7 +498,7 @@ window.LF = window.LF || {};
         g.push(row);
       }
       // ── 坊制播种（v20260927）：在空地/民宅上落若干坊格，每坊含多间子房间（官署/里坊/军坊/市坊/文教/码头）──
-      seedWards(g, c, rnd, cx, cy, size);
+      seedWards(g, c, rnd, cx, cy, size, cid);
       // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
       var markets = {};
       var MK = (typeof LF !== 'undefined' && LF.MARKETS);
@@ -520,7 +521,7 @@ window.LF = window.LF || {};
         var nm = MK ? MK.marketName(cid, dir, shops[0].key, mrnd) : (dir + '市');
         markets[mx + ',' + my] = { name: nm, dir: dir, shops: shops };
       }
-      // ── 坊制子房间生成（v20260927）：进入城市生成网格时，就地为各坊格生成子房间（state 已就绪）──
+      // ── 坊制子房间生成（v20260927，P0+P1 规范）：buildWardCell 仅把 OFFICE_DYN 注入对应 cityCells 实例；坊内部交互统一经 TEMPLATES[shopId].interior 解析，不再独立造房间对象 ──
       for (var wy = 0; wy < size; wy++) for (var wx = 0; wx < size; wx++) {
         var wt = g[wy][wx];
         if (wt && ('' + wt).indexOf('ward_') === 0 && typeof window.buildWardCell === 'function') window.buildWardCell(cid, wx, wy, wt);
@@ -530,7 +531,7 @@ window.LF = window.LF || {};
       return F.cityGrid[cid];
     }
     // ── 坊制播种（v20260927）：在城内空地/民宅上落坊格；优先取离中心近的格，确保在建设半径内可被进入 ──
-    function seedWards(g, c, rnd, cx, cy, size) {
+    function seedWards(g, c, rnd, cx, cy, size, cid) {
       var cand = [];
       for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
         if (x === cx && y === cy) continue;
@@ -541,7 +542,7 @@ window.LF = window.LF || {};
       cand.sort(function (a, b) { return (Math.abs(a[0] - cx) + Math.abs(a[1] - cy)) - (Math.abs(b[0] - cx) + Math.abs(b[1] - cy)); });
       var ci = 0;
       function place(kind) { if (ci >= cand.length) return; var p = cand[ci++]; g[p[1]][p[0]] = 'ward_' + kind; }
-      var dev = (c.dev != null ? c.dev : (c.pop || 0));
+      var dev = 35 + (cityTierLv(cid) || 0) * 12;  // P0+P1：坊制规模依 cityLevel（唯一规模轴），不再读静态 c.dev（见 city-economy-p0p1.md R1/R2）
       place('gov'); place('resid');
       if ((c.wall || 0) >= 55 || (c.tier && c.tier !== 'xian')) place('mil');
       if ((c.commerce || 0) >= 50) place('market');
@@ -649,6 +650,147 @@ window.LF = window.LF || {};
       }
       return list;
     }
+    // ── 城镇经营切片（P0+P1 规范 · 药铺垂直切片）──
+    function shopInst(cid, x, y, key){
+      var inst = cityCellInst(cid, x, y); if(!inst) return null;
+      inst.shops = inst.shops || {}; return inst.shops[key] || null;
+    }
+    function shopTpl(key){ return (LF.TEMPLATES && LF.TEMPLATES[key]) || null; }
+    function shopStockTotal(sh){ var s=0; for(var k in (sh.stock||{})) s+=(sh.stock[k]||0); return s; }
+    function shopAvgPrice(key){ var t=shopTpl(key); return (t&&t.trade&&t.trade.basePrice)||5; }
+    function shopFootfall(sh, cid){
+      var t=shopTpl(sh.shopId); if(!t) return 0;
+      var lv=(sh.level||1), ca=1+(cityTierLv(cid)||0)*0.05;
+      return Math.max(0, Math.round(t.footBase*(1+lv*0.12)*ca*(0.8+Math.random()*0.4)));
+    }
+    function shopDailySettle(sh, cid){
+      var foot=shopFootfall(sh, cid);
+      var sell=Math.min(foot, shopStockTotal(sh));
+      var t=shopTpl(sh.shopId);
+      if(t&&t.trade&&t.trade.sells){ var items=t.trade.sells, left=sell;
+        for(var i=0;i<items.length&&left>0;i++){ var it=items[i], have=(sh.stock[it]||0), d=Math.min(have,left); sh.stock[it]=have-d; left-=d; } }
+      var rev=sell*shopAvgPrice(sh.shopId);
+      sh.revenueDay=rev; sh.treasury+=rev; sh.footfall=foot;
+    }
+    function _shopSave(){ if(typeof window.saveGame==='function') window.saveGame(S()); }
+    function buyShop(cid, x, y, key, withStaff){
+      var inst=cityCellInst(cid,x,y)||{}; inst.type=inst.type||'market'; inst.shops=inst.shops||{};
+      if(inst.shops[key]&&inst.shops[key].owner==='player'){ if(window.toast) window.toast('这间铺子已是你的。'); return; }
+      var t=shopTpl(key);
+      var base=200*((inst.shops[key]&&inst.shops[key].level)||1);
+      var price=withStaff?Math.round(base*1.75):base;
+      if(S().gold<price){ if(window.toast) window.toast('盘下「'+key+'」需 '+price+' 两，你银两不足。'); return; }
+      S().gold-=price;
+      var seed=(t&&t.seedStock)||{};
+      var sh={ owner:'player', shopId:key, level:1, taxRate:0.05, staff:[], hire:{open:false,roles:[],pay:20},
+        stock:JSON.parse(JSON.stringify(seed)), treasury:0, footfall:0, revenueDay:0,
+        furniture:[{item:'木床',func:'rest'},{item:'货架',func:'shelf'},{item:'炼炉',func:'workbench:'+(t&&t.bench||'alchemy')}] };
+      if(withStaff){
+        sh.formerOwner={ name:'原店主', attitude:55 };
+        sh.staff=[{ name:'原店主', role:'clerk', pay:20 }];
+        sh.hire={ open:true, roles:['clerk'], pay:20 };
+      }
+      inst.shops[key]=sh;
+      setCityCell(cid,x,y,inst);
+      log('你盘下「'+(getBUILDINGS()[key]?getBUILDINGS()[key].name:key)+'」'+(withStaff?'，并留用原店主为伙计（连人盘下，他自会照看生意、按月支薪）':'，原店主携资离场')+'。','good');
+      _shopSave(); if(window.renderRoom) window.renderRoom(S().room,true);
+    }
+    function shopLedger(cid, x, y, key){
+      var sh=shopInst(cid,x,y,key); if(!sh||sh.owner!=='player'){ if(window.toast) window.toast('你尚未盘下此店。'); return; }
+      var stk=[]; for(var k in sh.stock){ if(sh.stock[k]>0) stk.push(k+':'+sh.stock[k]); }
+      log('〔'+(getBUILDINGS()[key]?getBUILDINGS()[key].name:key)+'〕等级'+sh.level+' 资金'+sh.treasury+' 今日客流'+sh.footfall+' 月营业额'+sh.revenueDay+' 库存['+(stk.join(' ')||'空')+']','sys');
+    }
+    function shopUpgrade(cid, x, y, key){
+      var inst=cityCellInst(cid,x,y); if(!inst||!inst.shops||!inst.shops[key]){ if(window.toast) window.toast('你尚未盘下此店。'); return; }
+      var sh=inst.shops[key]; var cost=150*sh.level;
+      if(S().gold<cost){ if(window.toast) window.toast('扩店需 '+cost+' 两，银两不足。'); return; }
+      S().gold-=cost; sh.level+=1; setCityCell(cid,x,y,inst);
+      log('「'+(getBUILDINGS()[key]?getBUILDINGS()[key].name:key)+'」扩至 '+sh.level+' 级，客流更盛。','good');
+      _shopSave(); if(window.renderRoom) window.renderRoom(S().room,true);
+    }
+    function shopWorkbench(cid, x, y, key){
+      var sh=shopInst(cid,x,y,key); if(!sh||sh.owner!=='player'){ if(window.toast) window.toast('你尚未盘下此店。'); return; }
+      var t=shopTpl(key); if(!t||!t.bench){ if(window.toast) window.toast('此店无作坊。'); return; }
+      if(window.openModal) window.openModal('craft',{bench:t.bench});
+    }
+    function cityShopMonthly(){
+      var cc=(S().flags&&S().flags.cityCells)||{};
+      for(var cid in cc){ var cells=cc[cid]; for(var k in cells){ var inst=cells[k];
+        if(!inst||!inst.shops) continue;
+        for(var key in inst.shops){ var sh=inst.shops[key]; if(sh.owner!=='player') continue;
+          var nm=(getBUILDINGS()[key]?getBUILDINGS()[key].name:key);
+          shopDailySettle(sh, cid);
+          if(sh.staff && sh.staff.length){  // 连人盘下：伙计自动补货 + 按月支薪
+            var t=shopTpl(key); if(t&&t.trade&&t.trade.sells){
+              for(var si=0;si<t.trade.sells.length;si++){ var it=t.trade.sells[si];
+                var cap=Math.round(((t.seedStock&&t.seedStock[it])||2)*(1+(sh.level||1)*0.1));
+                var lack=cap-(sh.stock[it]||0); if(lack>0) sh.stock[it]=(sh.stock[it]||0)+lack; } }
+            var wage=(sh.hire&&sh.hire.pay||20)*sh.staff.length;
+            sh.treasury=Math.max(0,(sh.treasury||0)-wage);
+          }
+          var tax=Math.round((sh.revenueDay||0)*(sh.taxRate||0.05));
+          S().gold+=tax;
+          if(tax>0) log('〔'+cid+'〕'+nm+' 本月纳商税 '+tax+' 两。','sys');
+        } } }
+      _shopSave();
+    }
+    window.buyShop=buyShop; window.shopLedger=shopLedger; window.shopUpgrade=shopUpgrade;
+    window.shopWorkbench=shopWorkbench; window.cityShopMonthly=cityShopMonthly;
+    var lastStockOpts=null;
+    function shopStock(cid, x, y, key){
+      if(window.openModal) window.openModal('shopstock', { cid: cid, x: x, y: y, key: key });
+    }
+    function renderShopStock(opts){
+      var cid=(opts&&opts.cid)||S().room, x=(opts&&opts.x)||0, y=(opts&&opts.y)||0, key=(opts&&opts.key);
+      lastStockOpts={ cid: cid, x: x, y: y, key: key };
+      var sh=shopInst(cid,x,y,key); if(!sh||sh.owner!=='player') return '<h3>货 架</h3><p class="tip">你尚未盘下此店。</p>';
+      var t=shopTpl(key); var sells=(t&&t.trade&&t.trade.sells)||[];
+      var nm=(getBUILDINGS()[key]?getBUILDINGS()[key].name:key);
+      var price=shopAvgPrice(key);
+      var shelfRows='', ks=Object.keys(sh.stock||{});
+      for(var i=0;i<ks.length;i++){ var id=ks[i], n=sh.stock[id]||0; if(n<=0) continue;
+        var d=(LF.ITEMS&&LF.ITEMS[id]), ic=(d&&d.icon)||'📦', nn=(d&&d.name)||id;
+        shelfRows+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #3a2a16;"><span style="font-size:18px;">'+ic+'</span><span style="flex:1;">'+nn+' ×'+n+'</span><span style="color:#caa15a;">'+price+'两</span><button class="act" data-stock-down="'+id+'">下架</button></div>';
+      }
+      if(!shelfRows) shelfRows='<div style="color:#9a8a6a;padding:6px 0;">（货架空空，去行囊里挑些货品上架吧）</div>';
+      var packRows='', pl=packList();
+      for(var j=0;j<pl.length;j++){ var it=pl[j]; if(!it) continue; var pid=it.defId||it.id; if(sells.indexOf(pid)<0) continue;
+        var d2=(LF.ITEMS&&LF.ITEMS[pid]), ic2=(d2&&d2.icon)||'📦', nn2=(d2&&d2.name)||pid, c2=it.count||1;
+        packRows+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #3a2a16;"><span style="font-size:18px;">'+ic2+'</span><span style="flex:1;">'+nn2+' ×'+c2+'</span><button class="act" data-stock-up="'+pid+'" data-max="'+c2+'">上架全部</button></div>';
+      }
+      if(!packRows) packRows='<div style="color:#9a8a6a;padding:6px 0;">（行囊里没有可在此店售卖的货品）</div>';
+      return '<h3>货 架 · '+nm+'</h3>'+
+        '<p class="tip">把行囊里可售的货品摆上货架，过客自会来买；也可把货取下收回行囊。单价 '+price+' 两。</p>'+
+        '<div style="margin:6px 0;"><h4 style="margin:8px 0 2px;color:#e8c98a;">货 架（在 售）</h4>'+shelfRows+'</div>'+
+        '<div style="margin:6px 0;"><h4 style="margin:8px 0 2px;color:#e8c98a;">行 囊 可 上 架</h4>'+packRows+'</div>';
+    }
+    function bindShopStockPanel(){
+      var card=document.getElementById('modal-card'); if(!card) return;
+      var o=lastStockOpts||{}, cid=o.cid, x=o.x, y=o.y, key=o.key;
+      card.querySelectorAll('[data-stock-up]').forEach(function(b){
+        b.onclick=function(){
+          var def=b.getAttribute('data-stock-up'); var it=packFind(def); if(!it) return;
+          var n=it.count||1;
+          if(!packConsume(def, n)){ if(window.toast) window.toast('上架失败。'); return; }
+          var sh=shopInst(cid,x,y,key); if(!sh){ if(window.toast) window.toast('店铺数据丢失。'); return; }
+          sh.stock[def]=(sh.stock[def]||0)+n;
+          afterPackChange(); _shopSave(); if(window.renderRoom) window.renderRoom(S().room,true);
+          if(window.openModal) window.openModal('shopstock', o);
+        };
+      });
+      card.querySelectorAll('[data-stock-down]').forEach(function(b){
+        b.onclick=function(){
+          var def=b.getAttribute('data-stock-down'); var sh=shopInst(cid,x,y,key); if(!sh) return;
+          var have=sh.stock[def]||0; if(have<=0) return;
+          if(!packAdd(def, have)){ if(window.toast) window.toast('行囊已满，取下失败。'); return; }
+          sh.stock[def]-=have; if(sh.stock[def]<=0) delete sh.stock[def];
+          afterPackChange(); _shopSave(); if(window.renderRoom) window.renderRoom(S().room,true);
+          if(window.openModal) window.openModal('shopstock', o);
+        };
+      });
+    }
+    window.shopStock=shopStock; window.renderShopStock=renderShopStock; window.bindShopStockPanel=bindShopStockPanel;
+
     function cityCellActs(cid, x, y) {
       var m = genCityGrid(cid); if (!m) return [];
       var dt = cellDisplayType(cid, x, y), t = dt, p = cityProfile(cid), out = [];
@@ -675,20 +817,28 @@ window.LF = window.LF || {};
       if (t === 'sentry') { out.push({ id: 'sentry_look', label: '瞭望岗哨', icon: '🏮', tip: '登岗瞭望，查看来往行踪' }); }
       if (t === 'barracks') { out.push({ id: 'recruit', label: '募兵操练', tip: '入营招募兵卒，点兵编成部曲（兵科／阵位／辎重／调兵）' }); out.push({ id: 'army_manage', label: '治军', icon: '🛡', tip: '点兵编成、料理辎重、调兵遣将（v20260921a）' }); out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '起兵夺城，胜则易帜、败则遭火' }); }
       if (t === 'market') {
-        // 商街店铺 = 场景交互物品：以本市场商铺清单（含程序生成招牌）渲染（进·字号 等），不再占用 NPC 列表
+        // 商街店铺 = 场景交互物品；P0+P1：玩家可盘下自营，城内经营切片（见 city-economy-p0p1.md）
         var mkt = m.markets && m.markets[x + ',' + y];
-        if (mkt) {
-          mkt.shops.forEach(function (sh) {
-            var bd = getBUILDINGS()[sh.key]; if (!bd) return;
-            out.push({ id: 'enter_building', label: '进·' + sh.sign, icon: bd.icon, tip: '步入' + sh.sign + '——' + (bd.sub || '入内一观'), data: { building: sh.key, sign: sh.sign, mkt: mkt.name } });
-          });
-        } else {
-          // 兜底（旧档无市场数据）：沿用全局五店
-          ['yaofu', 'buzhuang', 'shishi', 'zahuo', 'gongzao'].forEach(function (k) {
-            var bd = getBUILDINGS()[k]; if (!bd) return;
-            out.push({ id: 'enter_building', label: '进·' + bd.name, icon: bd.icon, tip: '步入' + bd.name + '——' + (bd.sub || '入内一观'), data: { building: k } });
-          });
-        }
+        var _shopKeys = mkt ? mkt.shops.map(function (s) { return s.key; }) : ['yaofu', 'buzhuang', 'shishi', 'zahuo', 'gongzao'];
+        _shopKeys.forEach(function (key) {
+          var bd = getBUILDINGS()[key]; if (!bd) return;
+          var _sign = mkt ? (mkt.shops.filter(function (s) { return s.key === key; })[0] || {}).sign : bd.name;
+          var _inst = cityCellInst(cid, x, y);
+          var _shop = (_inst && _inst.shops && _inst.shops[key]) || null;
+          var _owned = _shop && _shop.owner === 'player';
+          out.push({ id: 'enter_building', label: '进·' + _sign, icon: bd.icon, tip: '步入' + _sign + '——' + (bd.sub || '入内一观'),
+            data: { building: key, sign: _sign, mkt: mkt ? mkt.name : null } });
+          if (_owned) {
+            out.push({ id: 'shop_ledger', label: '查账·' + _sign, icon: '📒', tip: '查看本店库存/资金/等级/客流/月营业额', data: { cid: cid, x: x, y: y, key: key } });
+            if (LF.TEMPLATES && LF.TEMPLATES[key] && LF.TEMPLATES[key].bench)
+              out.push({ id: 'shop_workbench', label: '作坊·' + _sign, icon: '⚗️', tip: '于店内工作台制作货品（入库存）', data: { cid: cid, x: x, y: y, key: key } });
+            out.push({ id: 'shop_stock', label: '上架·' + _sign, icon: '📚', tip: '把行囊里的货品摆上货架（手动上架），过客自会来买', data: { cid: cid, x: x, y: y, key: key } });
+          out.push({ id: 'shop_upgrade', label: '扩店·' + _sign, icon: '⬆️', tip: '耗费金银扩充店铺，提升客流与可售货品', data: { cid: cid, x: x, y: y, key: key } });
+          } else {
+            out.push({ id: 'buy_shop', label: '盘下·' + _sign, icon: '💰', tip: '出资盘下此店（只买铺面，原店主离场）', data: { cid: cid, x: x, y: y, key: key } });
+          out.push({ id: 'buy_shop_staff', label: '连人盘下·' + _sign, icon: '🤝', tip: '盘下铺面并留用原店主为伙计（他自会照看生意、按月支薪）', data: { cid: cid, x: x, y: y, key: key } })
+          }
+        });
       }
       // ── 客栈打尖（v20260911h · P3 · 宵禁配套）──
       // 市集脚店与城门内车马店皆可投宿：付房钱，一觉睡到次日卯时（启门/开牢之时），气血内力尽复。
@@ -722,7 +872,7 @@ window.LF = window.LF || {};
           find: (c.blurbFind || ''),
           exits: {}, npcs: [],
           items: (c.groundItems || []),
-          actions: (c.rootActs || [{ id: 'rest', label: '城中休整', group: '行动', tip: '寻一处馆驿安歇，气血内力尽复' }]),
+          actions: (c.rootActs || []),
           isCity: true
         };
       }
