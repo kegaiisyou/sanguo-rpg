@@ -11,23 +11,23 @@
   var bgmFadeGain = null;  // 淡入淡出用的gain节点
   var bgmSrc = null;
   var bgmSilenceTimer = null;
-  var BGM_SILENCE = 5;     // 不循环曲目之间静默5秒
+  var BGM_SILENCE = 2;     // 不循环曲目之间静默5秒
   var BGM_FADE = 1.5;      // 淡入淡出时长1.5秒
   var bgmPlaying = false;
   var currentBgmIdx = 0;
 
   // BGM列表：loop=true的直接循环播放，loop=false的淡入淡出+静默重播
   var BGM_TRACKS = [
-    { id: 'main',  name: '柔情·江湖儿女', file: 'assets/audio/bgm_main.wav',  loop: false },
-    { id: 'xiao',  name: '苍凉·寒山孤影', file: 'assets/audio/bgm_xiao.wav',  loop: true  },
-    { id: 'dizi',  name: '明快·策马江湖', file: 'assets/audio/bgm_dizi.wav',  loop: true  },
-    { id: 'guqin', name: '沉静·夜泊枫桥', file: 'assets/audio/bgm_guqin.wav', loop: true  }
+    { id: 'main',  name: '柔情·江湖儿女', file: 'assets/audio/bgm_main.ogg',  loop: false },
+    { id: 'xiao',  name: '苍凉·寒山孤影', file: 'assets/audio/bgm_xiao.ogg',  loop: true  },
+    { id: 'dizi',  name: '明快·策马江湖', file: 'assets/audio/bgm_dizi.ogg',  loop: true  },
+    { id: 'guqin', name: '沉静·夜泊枫桥', file: 'assets/audio/bgm_guqin.ogg', loop: true  }
   ];
 
   var SFX_FILES = {
-    click: 'assets/audio/sfx_click.wav',
-    coin: 'assets/audio/sfx_coin.wav',
-    attack: 'assets/audio/sfx_attack.wav'
+    click: 'assets/audio/sfx_click.ogg',
+    coin: 'assets/audio/sfx_coin.ogg',
+    attack: 'assets/audio/sfx_attack.ogg'
   };
 
   var buffers = {};
