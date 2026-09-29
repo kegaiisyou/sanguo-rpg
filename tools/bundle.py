@@ -18,7 +18,7 @@ import io, os, re, subprocess, sys
 WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MANIFEST = os.path.join(WS, 'tools', 'bundle.manifest')
 INDEX = os.path.join(WS, 'index.html')
-VERSION = '20260929e'
+VERSION = '20260929f'
 BUNDLE = os.path.join(WS, 'shared', 'bundle.js')
 CONSTANTS = os.path.join(WS, 'shared', 'config', 'constants.js')
 

@@ -238,6 +238,81 @@
     }, BGM_SILENCE * 1000);
   }
 
+
+  // ── 氛围层（P2）：环境音垫底，跟随房间/时辰切换，战斗时随 BGM 一起压低 ──
+  var AMB_MAP = {
+    birds:  { id: 'amb_birds',  file: 'assets/audio/amb_birds.ogg' },
+    wind:   { id: 'amb_wind',   file: 'assets/audio/amb_wind.ogg' },
+    market: { id: 'amb_market', file: 'assets/audio/amb_market.ogg' },
+    night:  { id: 'amb_night',  file: 'assets/audio/amb_night.ogg' }
+  };
+  var ambSrc = null;
+  var ambGainNode = null;
+  var ambId = null;
+  var AMB_VOL = 0.5;
+  function ambIsNight(t){ var h=(t==null?8:t)%12; return h>=10 || h<=2; }
+  function ambFor(roomId, t){
+    if(ambIsNight(t)) return 'night';
+    var r=String(roomId||'');
+    if(/market|shiji|shu|jiuhua|jiulou/.test(r)) return 'market';
+    if(/wild|road|field|forest|mountain|valley|camp|village|miao|shanzhai|yishou/.test(r)) return 'birds';
+    return 'birds';
+  }
+  function startAmbient(id){
+    var c=ensureCtx(); if(!c||!enabled) return;
+    if(ambId===id) return;
+    ambId=id;
+    if(ambSrc){ try{ ambSrc.onended=null; ambSrc.stop(); ambSrc.disconnect(); }catch(e){} ambSrc=null; }
+    var track=AMB_MAP[id]; if(!track) return;
+    if(!buffers[track.id]){
+      if(!loading[track.id]) loadBuffer(track.id, track.file);
+      var chk=setInterval(function(){
+        if(buffers[track.id]){ clearInterval(chk); if(ambId===id) doStartAmbient(track); }
+        else if(buffers[track.id]===null) clearInterval(chk);
+      },250);
+      return;
+    }
+    doStartAmbient(track);
+  }
+  function doStartAmbient(track){
+    if(ambId!==track.id||!enabled) return;
+    var c=ensureCtx(); if(!c||!buffers[track.id]) return;
+    if(ambSrc){ try{ ambSrc.stop(); ambSrc.disconnect(); }catch(e){} ambSrc=null; }
+    if(!ambGainNode){
+      ambGainNode=c.createGain();
+      ambGainNode.gain.value=0;
+      ambGainNode.connect(c.destination);
+    }
+    ambSrc=c.createBufferSource();
+    ambSrc.buffer=buffers[track.id];
+    ambSrc.loop=true;
+    ambSrc.connect(ambGainNode);
+    ambSrc.start(0);
+    ambGainNode.gain.cancelScheduledValues(c.currentTime);
+    ambGainNode.gain.setValueAtTime(0, c.currentTime);
+    ambGainNode.gain.linearRampToValueAtTime(AMB_VOL, c.currentTime+BGM_FADE);
+  }
+  function stopAmbient(){
+    ambId=null;
+    var c=ensureCtx();
+    if(c&&ambGainNode){
+      ambGainNode.gain.cancelScheduledValues(c.currentTime);
+      ambGainNode.gain.linearRampToValueAtTime(0, c.currentTime+0.7);
+    }
+    setTimeout(function(){ if(ambSrc){ try{ ambSrc.stop(); ambSrc.disconnect(); }catch(e){} ambSrc=null; } },800);
+  }
+  function syncAmbient(roomId, t){
+    if(!enabled) return;
+    if(bgmState==='stopped'){ stopAmbient(); return; }
+    startAmbient(ambFor(roomId, t));
+  }
+  // 战斗时压低 BGM 与氛围（ducking）：战斗开始调 duckBgm(true)，结束调 false
+  function duckBgm(on){
+    var c=ensureCtx(); if(!c) return;
+    if(bgmGain){ bgmGain.gain.cancelScheduledValues(c.currentTime); bgmGain.gain.linearRampToValueAtTime(on?0.35:1, c.currentTime+0.3); }
+    if(ambGainNode){ ambGainNode.gain.cancelScheduledValues(c.currentTime); ambGainNode.gain.linearRampToValueAtTime(on?0.2:AMB_VOL, c.currentTime+0.3); }
+  }
+
   function stopBgm() {
     bgmState = 'stopped';
     clearBgmTimers();
@@ -246,6 +321,7 @@
       var c = ensureCtx();
       if (c) bgmFadeGain.gain.cancelScheduledValues(c.currentTime);
     }
+    stopAmbient();
   }
 
   function setBgmTrack(idx) {
@@ -347,6 +423,8 @@
     },
     startBgm: startBgm,
     stopBgm: stopBgm,
+    syncAmbient: syncAmbient,
+    duckBgm: duckBgm,
     setBgmVolume: setBgmVolume,
     setSfxVolume: setSfxVolume,
     setBgmTrack: setBgmTrack,
