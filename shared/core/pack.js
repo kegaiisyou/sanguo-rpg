@@ -145,7 +145,7 @@
       // v20260924z6：丢弃按钮不再用渲染时快照的 disabled —— 点选物品时面板不重渲染，按钮会永远停在
       //   初始的禁用态（按了没反应）。改为始终可点，由 discardInspect 在未选中时给 toast 提示。
       + '<button class="btn" onclick="LFUI.discardInspect()">丢弃</button>'
-      + '<span class="pack-hint">点按物品查看 · 点空白处关闭</span>'
+      + '<span class="pack-hint">单击查看 · 双击快捷装备/使用 · 点空白关闭</span>'
       + '<span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span>'
       + '<span class="pack-gold">银两 '+getState().gold+'</span></div>'
       + '</div>';
@@ -239,21 +239,14 @@
         var dbl=(packLastClick.loc===key && now-packLastClick.t<320);
         packLastClick={t:now, loc:key};
         var it=packGet(loc);
-        // P1 直穿卸：装备类单击即穿/卸，跳过中间层浮框（双击则查看属性/对比）
-        if(it && it.cat==='装备' && loc.kind==='pack' && it.slot){
-          if(dbl){ setPackInspect(loc); showPackFloat(); return; }
-          movePackItem({kind:'pack',idx:loc.idx},{kind:'equip',slot:it.slot});
-          refreshPackEquipLight(); refreshPackGridLight();
+        if(dbl){   // 双击 = 快捷动作（装备/卸下/使用），与常见 RPG 一致；单击只负责选中查看，绝不误触装备
+          if(it && it.cat==='装备' && loc.kind==='pack' && it.slot){ movePackItem({kind:'pack',idx:loc.idx},{kind:'equip',slot:it.slot}); refreshPackEquipLight(); refreshPackGridLight(); return; }
+          if(it && loc.kind==='equip'){ unequipToPack(loc.slot); refreshPackEquipLight(); refreshPackGridLight(); return; }
+          if(it && loc.kind==='pack'){ quickUseFromPack(loc.idx); return; }
           return;
         }
-        if(it && loc.kind==='equip'){   // 装备栏已穿戴：单击直接卸下
-          if(dbl){ setPackInspect(loc); showPackFloat(); return; }
-          unequipToPack(loc.slot);
-          refreshPackEquipLight(); refreshPackGridLight();
-          return;
-        }
-        if(dbl){ quickUseFromPack(loc.idx); return; }   // 非装备双击：快速使用
         if(!it){ setPackInspect(null); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; return; }  // 空位：仅收起浮框
+        // 单击 = 选中并查看详情；装备/卸下/使用/丢弃 均在详情浮层按钮里显式操作
         setPackInspect(loc);
         card.querySelectorAll('.pcell-insp').forEach(function(c){ c.classList.remove('pcell-insp'); });   // 仅更新高亮，不重渲染面板，避免列表滚动复位
         el.classList.add('pcell-insp');
