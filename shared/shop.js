@@ -373,6 +373,8 @@
         +   '<div class="sf-info">' + info + '</div>'
         +   '<div class="sf-acts">'
         +     '<button class="btn" id="m-leave">告 辞</button>'
+        +     (shopState === 'yahang' ? '<button class="btn" onclick="openBrokerHouse()">置业顾问·看宅院/购契</button>' : '')
+        +     (shopState === 'yahang' ? '<button class="btn" onclick="openModal(\'broker\',{kind:\'house\'})">置业顾问·看宅院/购契</button>' : '')
         +     '<button class="btn" id="pack-sort">整理行囊</button>'
         +     (hasP ? '<button class="btn" id="trade-clear">清空待结算</button>' : '')
         +     '<button class="btn btn-ok" id="trade-ok">' + (hasP ? '确认结算' : '结 算') + '</button>'

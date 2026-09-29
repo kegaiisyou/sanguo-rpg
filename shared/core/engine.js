@@ -3012,6 +3012,12 @@
       case 'shop_workbench': if(window.shopWorkbench) window.shopWorkbench((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null)); break;
       case 'buy_shop_staff': if(window.buyShop) window.buyShop((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null), true); break;
       case 'shop_stock': if(window.shopStock) window.shopStock((a&&a.data?a.data.cid:state.room),(a&&a.data?a.data.x:0),(a&&a.data?a.data.y:0),(a&&a.data?a.data.key:null)); break;
+      case 'shop_interact':
+        openModal('shopinteract', (a && a.data) ? a.data : {});
+        break;
+      case 'shop_furnish':
+        openModal('housefurn', { target:'shop', cid:(a&&a.data?a.data.cid:state.room), x:(a&&a.data?a.data.x:0), y:(a&&a.data?a.data.y:0), key:(a&&a.data?a.data.key:null) });
+        break;
       // v20260928h：房产/家园（牙行购房契 → 民居进宅 → 布置家具）
       case 'enter_house':
         if(a && a.data && a.data.cid) enterHouse(a.data.cid);
@@ -4760,6 +4766,10 @@
       h=renderLogPanel();
     } else if(kind==='shopstock'){
       h=window.renderShopStock(opts);
+    } else if(kind==='shopinteract'){
+      h=renderShopInteractPanel(opts);
+    } else if(kind==='broker'){
+      h=renderBrokerPanel(opts);
     }
     $card.innerHTML=h;
     injectModalFb();   // v20260915j：每扇窗都带顶部反馈条（操作结果不再被面板挡死）
@@ -4788,6 +4798,8 @@
     if(kind==='sect'){ bindSectPanel(); }
     if(kind==='quest'){ bindQuestPanel(); }
     if(kind==='shopstock'){ window.bindShopStockPanel(); }
+    if(kind==='shopinteract'){ bindShopInteractPanel(); }
+    if(kind==='broker'){ bindBrokerPanel(); }
     if(kind==='job'){ bindJobBoard(); }
     // 回顾面板（v20260914a）：落位到最新一句（与叙事区同序：旧的在上、新的在下），并绑「收起」
     if(kind==='log'){
@@ -5782,14 +5794,17 @@
     });
     box.querySelectorAll('.hf-cell').forEach(function(el){
       el.onclick=function(){
+        var target=el.getAttribute('data-target');
         var cid=el.getAttribute('data-cid'), k=el.getAttribute('data-k');
         var def=el.getAttribute('data-def')||sel;
-        housePlace(def, cid, k);
+        if(target==='shop'){ housePlaceShop(def, cid, parseInt(el.getAttribute('data-x'),10), parseInt(el.getAttribute('data-y'),10), el.getAttribute('data-key'), k); }
+        else housePlace(def, cid, k);
       };
     });
   }
   function renderHouseFurnPanel(){
     var opts=modalOptsFor('housefurn')||{};
+    if(opts.target==='shop') return renderShopFurnPanel(opts);
     var cid=opts.cid||state.room; if(!HOUSE_CITY_NAMES[cid]) cid=null;
     if(!cid) return '<h3>布置家具</h3><p class="tip">此处并非你的宅院。</p>';
     var furn=houseFurnState(cid);
@@ -5812,6 +5827,135 @@
       '<div class="hf-wrap"><div class="hf-grid">'+cells+'</div><div class="hf-bagbox"><div class="hf-bag-t">背包家具（点选后点格位放置）</div>'+bag+'</div></div>'+
       '<p class="tip">点已摆格位可取下回囊；摆放齐整，宅院才像个家。</p>';
   }
+  // ── 市集店铺：类 NPC 的交互列表（进入 / 盘下 / 自营管理）──
+  function renderShopInteractPanel(opts){
+    opts=opts||{};
+    var cid=opts.cid, x=opts.x, y=opts.y, key=opts.key;
+    var bd=(window.getBUILDINGS&&window.getBUILDINGS()[key])||{};
+    var sign=opts.sign||bd.name||key;
+    var sh=window.shopInst?window.shopInst(cid,x,y,key):null;
+    var owned=sh&&sh.owner==='player';
+    var rows='';
+    rows+='<button class="act" data-act="enter_building" data-building="'+key+'" data-sign="'+sign+'">进入店铺</button>';
+    if(owned){
+      rows+='<button class="act" data-act="shop_ledger" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">查 账（库存/资金/客流）</button>';
+      var t=window.shopTpl?window.shopTpl(key):null;
+      if(t&&t.bench) rows+='<button class="act" data-act="shop_workbench" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">作 坊（店内制作）</button>';
+      rows+='<button class="act" data-act="shop_stock" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">上 架（摆货上架）</button>';
+      rows+='<button class="act" data-act="shop_upgrade" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">扩 店（升等级）</button>';
+      rows+='<button class="act" data-act="shop_furnish" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">布 置（陈设家具）</button>';
+    } else {
+      rows+='<button class="act" data-act="broker_shop" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'" data-sign="'+sign+'">盘下此店（看铺面/带人与否）</button>';
+    }
+    return '<h3>「'+sign+'」</h3><p class="tip">'+(bd.sub||'掌柜含笑相迎，问客官想要点什么。')+'</p><div class="sf-acts-col">'+rows+'</div>';
+  }
+  function bindShopInteractPanel(){
+    var box=$card;
+    box.querySelectorAll('button[data-act]').forEach(function(b){
+      b.onclick=function(){
+        var act=b.getAttribute('data-act');
+        var d={};
+        ['cid','x','y','key','building','sign'].forEach(function(a){ var v=b.getAttribute('data-'+a); if(v!==null) d[a]=(a==='x'||a==='y')?parseInt(v,10):v; });
+        if(act==='broker_shop'){ closeModal(); openModal('broker',{kind:'shop',cid:d.cid,x:d.x,y:d.y,key:d.key,sign:d.sign}); return; }
+        closeModal();
+        if(window.handleAction) window.handleAction(act,{id:act,data:d});
+      };
+    });
+  }
+  // ── 牙行 / 盘下：带标价·格局·陈设·周边配套的经纪面板 ──
+  var SHOP_ROOMS = { yaofu:'前店后柜·两进', buzhuang:'前铺后坊·两进', shishi:'前堂后厨·两进', zahuo:'前店后库·一进', gongzao:'前铺后场·两进' };
+  function renderBrokerPanel(opts){
+    opts=opts||{};
+    if(opts.kind==='house') return renderHouseBrokerPanel(opts);
+    var cid=opts.cid, x=opts.x, y=opts.y, key=opts.key;
+    var bd=(window.getBUILDINGS&&window.getBUILDINGS()[key])||{};
+    var sign=opts.sign||bd.name||key;
+    var sh=window.shopInst?window.shopInst(cid,x,y,key):null;
+    if(sh&&sh.owner==='player'){ return '<h3>「'+sign+'」已是你的铺子</h3><p class="tip">回到市集点这间铺子的「交互」，可查账 / 作坊 / 上架 / 扩店 / 布置。</p>'; }
+    var lvl=(sh&&sh.level)||1, base=200*lvl, withStaff=Math.round(base*1.75);
+    var rooms=SHOP_ROOMS[key]||'前店后库·一进';
+    var fit=(sh&&sh.fitment)?sh.fitment:['木床（歇脚）','货架（陈列）','作台（营生）'];
+    var fitTxt=fit.map(function(f){return (typeof f==='string')?f:(f.item||f.name||'器物');}).join('、');
+    var nb=[], size=((LF.CITIES||{})[cid]||{}).grid||9;
+    for(var ny=0;ny<size;ny++){ for(var nx=0;nx<size;nx++){
+      if(nx===x&&ny===y) continue;
+      var inst=window.cityCellInst?window.cityCellInst(cid,nx,ny):null;
+      if(inst&&inst.type){ var b=(window.getBUILDINGS&&window.getBUILDINGS()[inst.type]); if(b&&b.name&&nb.indexOf(b.name)<0) nb.push(b.name); }
+    }}
+    var nbTxt=nb.length?nb.slice(0,6).join('、'):'（街口寥寥）';
+    return '<h3>盘下「'+sign+'」</h3>'
+      + '<div class="bk-info">'
+      + '<div><b>铺面</b>：'+bd.name+'（'+(bd.sub||'')+'）</div>'
+      + '<div><b>格局</b>：'+rooms+'</div>'
+      + '<div><b>现陈设</b>：'+fitTxt+'</div>'
+      + '<div><b>周边配套</b>：'+nbTxt+'</div>'
+      + '<div><b>等级</b>：'+lvl+'（扩店可升客流与货位）</div>'
+      + '</div>'
+      + '<p class="tip">盘下即自营：过客自来买货，月度结算纳商税；连人盘下留用原店主为伙计，他自会照看生意、按月支薪。</p>'
+      + '<div class="sf-acts">'
+      + '<button class="btn" data-broker="buy" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">盘下（不带人） '+base+' 两</button>'
+      + '<button class="btn btn-ok" data-broker="staff" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">连人盘下 '+withStaff+' 两</button>'
+      + '</div>';
+  }
+  function renderHouseBrokerPanel(opts){
+    var rows='';
+    for(var cid in HOUSE_CITY_NAMES){
+      var nm=HOUSE_CITY_NAMES[cid];
+      var rec=(LF.SHOPS.yahang.items.filter(function(it){return it.id==='fangqi_'+cid;})[0]||{});
+      var price=rec.buy||90;
+      var owned=(state.flags.houses||{})[cid];
+      var tier=((LF.CITIES||{})[cid]||{}).tier; var tn=tier==='capital'?'都城·繁华':'州城·殷实';
+      rows+='<div class="bk-house"><div><b>'+nm+'宅院</b>'+(owned?'（已置业）':'')+'</div>'
+        + '<div class="bk-sub">格局：正房厢房·三进院落 ｜ 陈设：空（可布置床/桌/柜/字画）｜ 周边：'+tn+'</div>'
+        + (owned?'<div class="tip">你已在此安家。</div>':'<button class="btn btn-ok" data-house-buy="'+cid+'">购契 '+price+' 两</button>')
+        + '</div>';
+    }
+    return '<h3>置业顾问 · 各城宅院</h3><p class="tip">凭契可入对应城民居置业、布置家具、宅中安歇。先看格局与周边，再出手。</p>'+rows;
+  }
+  function bindBrokerPanel(){
+    var box=$card;
+    box.querySelectorAll('button[data-broker]').forEach(function(b){
+      b.onclick=function(){
+        var mode=b.getAttribute('data-broker');
+        var d={cid:b.getAttribute('data-cid'),x:parseInt(b.getAttribute('data-x'),10),y:parseInt(b.getAttribute('data-y'),10),key:b.getAttribute('data-key')};
+        closeModal();
+        if(window.handleAction) window.handleAction(mode==='staff'?'buy_shop_staff':'buy_shop',{id:(mode==='staff'?'buy_shop_staff':'buy_shop'),data:d});
+      };
+    });
+    box.querySelectorAll('button[data-house-buy]').forEach(function(b){
+      b.onclick=function(){
+        var cid=b.getAttribute('data-house-buy'); closeModal();
+        packAdd('fangqi_'+cid,1);
+        toast('已购入「'+HOUSE_CITY_NAMES[cid]+'」宅契，往该城民居可置业安居。','good');
+        if(typeof save==='function') save(state);
+      };
+    });
+  }
+  // ── 店铺布置：复用宅院 4×3 格位，家具存于 sh.furniture ──
+  function renderShopFurnPanel(opts){
+    var cid=opts.cid,x=opts.x,y=opts.y,key=opts.key;
+    var sh=window.shopInst?window.shopInst(cid,x,y,key):null; if(!sh) return '<h3>布置</h3><p class="tip">你尚未盘下此店。</p>';
+    if(!sh.furniture||Array.isArray(sh.furniture)) sh.furniture={};
+    var DEFS=(LF.ITEMS||{}).DEFS||{};
+    var nm=(window.getBUILDINGS&&window.getBUILDINGS()[key])?window.getBUILDINGS()[key].name:key;
+    var cells='';
+    for(var gy=0;gy<HOUSE_GRID_H;gy++){ for(var gx=0;gx<HOUSE_GRID_W;gx++){
+      var k=gx+','+gy, d=sh.furniture[k]?DEFS[sh.furniture[k]]:null;
+      cells+='<div class="hf-cell'+(d?' filled':'')+'" data-target="shop" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'" data-k="'+k+'" data-def="'+(d?sh.furniture[k]:'')+'">'+(d?itemIconHTML(d,18):'<span class="hf-empty">空</span>')+'</div>';
+    }}
+    var bag='';
+    (state.pack||[]).forEach(function(it,i){ if(!it) return; var d=DEFS[it.defId]; if(!d||d.cat!=='家具') return; bag+='<div class="hf-bag" data-pack="'+i+'" data-def="'+it.defId+'">'+itemIconHTML(d,16)+'<b>'+d.name+'</b><i>×'+(it.count||1)+'</i></div>'; });
+    if(!bag) bag='<p class="tip">行囊中暂无家具——可往市集杂货铺采买床、桌、椅、柜等。</p>';
+    return '<h3>布置家具 · '+nm+'</h3>'+'<div class="hf-wrap"><div class="hf-grid">'+cells+'</div><div class="hf-bagbox"><div class="hf-bag-t">背包家具（点选后点格位放置）</div>'+bag+'</div></div>'+'<p class="tip">点已摆格位可取下回囊；摆齐了铺面才像个营生。</p>';
+  }
+  function housePlaceShop(defId,cid,x,y,key,k){
+    var sh=window.shopInst?window.shopInst(cid,x,y,key):null; if(!sh) return;
+    if(!sh.furniture||Array.isArray(sh.furniture)) sh.furniture={};
+    if(sh.furniture[k]){ var d=(LF.ITEMS||{}).DEFS[sh.furniture[k]]; packAdd(sh.furniture[k],1); delete sh.furniture[k]; if(typeof save==='function') save(state); toast((d?d.name:'家具')+'已取下收进行囊。','sys'); }
+    else if(defId){ var pk=state.pack,found=-1; for(var i=0;i<pk.length;i++){ if(pk[i]&&pk[i].defId===defId){ found=i; break; } } if(found<0){ toast('行囊里没有这件家具。'); return; } pk[found].count=(pk[found].count||1)-1; if(pk[found].count<=0) pk[found]=null; sh.furniture[k]=defId; if(typeof save==='function') save(state); toast('已摆好「'+(((LF.ITEMS||{}).DEFS[defId]||{}).name||defId)+'」。','sys'); }
+    closeModal(); openModal('housefurn',{target:'shop',cid:cid,x:x,y:y,key:key});
+  }
+  window.openBrokerHouse=function(){ openModal('broker',{kind:'house'}); };
   function modalOptsFor(){ return currentModalOpts||{}; }
   // 放置/取下家具（面板点击回调，engine 全局 onHouseCellTap）
   function housePlace(defId, cid, k){

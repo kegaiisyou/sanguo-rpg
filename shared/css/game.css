@@ -3299,6 +3299,22 @@
 @media (max-width:480px){ .bk-in{width:72px;} .bk-row{flex-wrap:wrap;} }
 
 /* ══ 宅院布置 · 家具摆放（v20260928h）══ */
+/* ══ 市集交互 / 经纪面板（v20260929e 补地基）══ */
+.bk-info{ margin:8px 0; padding:8px 10px; background:rgba(40,28,14,.5); border:1px solid #3a2a16; border-radius:8px; line-height:1.9; }
+.bk-info b{ color:#e8c98a; margin-right:4px; }
+.bk-house{ margin:8px 0; padding:8px 10px; background:rgba(40,28,14,.4); border:1px solid #3a2a16; border-radius:8px; }
+.bk-house b{ color:#e8c98a; }
+.bk-sub{ color:#b7a684; font-size:13px; margin:4px 0 8px; }
+.sf-acts-col{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.sf-acts-col .act{ width:100%; text-align:left; }
+/* ══ 市集交互 / 经纪面板（v20260929e 补地基）══ */
+.bk-info{ margin:8px 0; padding:8px 10px; background:rgba(40,28,14,.5); border:1px solid #3a2a16; border-radius:8px; line-height:1.9; }
+.bk-info b{ color:#e8c98a; margin-right:4px; }
+.bk-house{ margin:8px 0; padding:8px 10px; background:rgba(40,28,14,.4); border:1px solid #3a2a16; border-radius:8px; }
+.bk-house b{ color:#e8c98a; }
+.bk-sub{ color:#b7a684; font-size:13px; margin:4px 0 8px; }
+.sf-acts-col{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.sf-acts-col .act{ width:100%; text-align:left; }
 .hf-wrap{display:flex;gap:10px;flex-wrap:wrap;margin:8px 2px;}
 .hf-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;flex:1 1 168px;max-width:220px;}
 .hf-cell{aspect-ratio:1;border:1px solid rgba(107,90,58,.3);border-radius:8px;background:rgba(120,90,40,.05);display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:40px;overflow:hidden;}

@@ -675,7 +675,7 @@ window.LF = window.LF || {};
     }
     function _shopSave(){ if(typeof window.saveGame==='function') window.saveGame(S()); }
     function buyShop(cid, x, y, key, withStaff){
-      var inst=cityCellInst(cid,x,y)||{}; inst.type=inst.type||'market'; inst.shops=inst.shops||{};
+      var inst=cityCellInst(cid,x,y)||{}; inst.type=inst.type||'market'; inst.shops=inst.shops||{}; inst.built=true; // 盘下后保持"已建成"，否则 cellDisplayType 会判为工地
       if(inst.shops[key]&&inst.shops[key].owner==='player'){ if(window.toast) window.toast('这间铺子已是你的。'); return; }
       var t=shopTpl(key);
       var base=200*((inst.shops[key]&&inst.shops[key].level)||1);
@@ -685,7 +685,7 @@ window.LF = window.LF || {};
       var seed=(t&&t.seedStock)||{};
       var sh={ owner:'player', shopId:key, level:1, taxRate:0.05, staff:[], hire:{open:false,roles:[],pay:20},
         stock:JSON.parse(JSON.stringify(seed)), treasury:0, footfall:0, revenueDay:0,
-        furniture:[{item:'木床',func:'rest'},{item:'货架',func:'shelf'},{item:'炼炉',func:'workbench:'+(t&&t.bench||'alchemy')}] };
+        furniture:{}, fitment:['木床（歇脚）','货架（陈列）','作台（营生）'] };
       if(withStaff){
         sh.formerOwner={ name:'原店主', attitude:55 };
         sh.staff=[{ name:'原店主', role:'clerk', pay:20 }];
@@ -737,6 +737,9 @@ window.LF = window.LF || {};
     }
     window.buyShop=buyShop; window.shopLedger=shopLedger; window.shopUpgrade=shopUpgrade;
     window.shopWorkbench=shopWorkbench; window.cityShopMonthly=cityShopMonthly;
+    window.shopStock=shopStock; window.shopInst=shopInst; window.shopTpl=shopTpl;
+    window.cityCellInst=cityCellInst; window.setCityCell=setCityCell; window.getBUILDINGS=getBUILDINGS;
+    window.shopAvgPrice=shopAvgPrice; window.shopFootfall=shopFootfall;
     var lastStockOpts=null;
     function shopStock(cid, x, y, key){
       if(window.openModal) window.openModal('shopstock', { cid: cid, x: x, y: y, key: key });
@@ -822,26 +825,16 @@ window.LF = window.LF || {};
       if (t === 'sentry') { out.push({ id: 'sentry_look', label: '瞭望岗哨', icon: '🏮', tip: '登岗瞭望，查看来往行踪' }); }
       if (t === 'barracks') { out.push({ id: 'recruit', label: '募兵操练', tip: '入营招募兵卒，点兵编成部曲（兵科／阵位／辎重／调兵）' }); out.push({ id: 'army_manage', label: '治军', icon: '🛡', tip: '点兵编成、料理辎重、调兵遣将（v20260921a）' }); out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '起兵夺城，胜则易帜、败则遭火' }); }
       if (t === 'market') {
-        // 商街店铺 = 场景交互物品；P0+P1：玩家可盘下自营，城内经营切片（见 city-economy-p0p1.md）
+        // 商街店铺：每间只露一个「交互」钮，点开弹出类 NPC 的交接列表（进入/查看/盘下），避免整片按钮堆叠
         var mkt = m.markets && m.markets[x + ',' + y];
         if (mkt) {
           mkt.shops.forEach(function (sh) {
             var bd = getBUILDINGS()[sh.key]; if (!bd) return;
             var _sign = sh.sign;
-            out.push({ id: 'enter_building', label: _sign, icon: bd.icon, tip: '步入' + _sign + '——' + (bd.sub || '入内一观'), data: { building: sh.key, sign: _sign, mkt: mkt.name } });
+            // 修复：曾盘下却 inst.built 缺失 → 整格塌成工地；此处补建并落盘（兼容旧档）
             var _inst = cityCellInst(cid, x, y);
-            var _shop = (_inst && _inst.shops && _inst.shops[sh.key]) || null;
-            var _owned = _shop && _shop.owner === 'player';
-            if (_owned) {
-              out.push({ id: 'shop_ledger', label: '查账·' + _sign, icon: '📒', tip: '查看本店库存/资金/等级/客流/月营业额', data: { cid: cid, x: x, y: y, key: sh.key } });
-              if (LF.TEMPLATES && LF.TEMPLATES[sh.key] && LF.TEMPLATES[sh.key].bench)
-                out.push({ id: 'shop_workbench', label: '作坊·' + _sign, icon: '⚗️', tip: '于店内工作台制作货品（入库存）', data: { cid: cid, x: x, y: y, key: sh.key } });
-              out.push({ id: 'shop_stock', label: '上架·' + _sign, icon: '📚', tip: '把行囊里的货品摆上货架（手动上架），过客自会来买', data: { cid: cid, x: x, y: y, key: sh.key } });
-              out.push({ id: 'shop_upgrade', label: '扩店·' + _sign, icon: '⬆️', tip: '耗费金银扩充店铺，提升客流与可售货品', data: { cid: cid, x: x, y: y, key: sh.key } });
-            } else {
-              out.push({ id: 'buy_shop', label: '盘下·' + _sign, icon: '💰', tip: '出资盘下此店（只买铺面，原店主离场）', data: { cid: cid, x: x, y: y, key: sh.key } });
-              out.push({ id: 'buy_shop_staff', label: '连人盘下·' + _sign, icon: '🤝', tip: '盘下铺面并留用原店主为伙计（他自会照看生意、按月支薪）', data: { cid: cid, x: x, y: y, key: sh.key } });
-            }
+            if (_inst && _inst.shops && _inst.shops[sh.key] && !_inst.built) { _inst.built = true; setCityCell(cid, x, y, _inst); }
+            out.push({ id: 'shop_interact', label: _sign, icon: bd.icon, tip: '与「' + _sign + '」掌柜交接：进店 / 看铺面 / 盘下经营', data: { cid: cid, x: x, y: y, key: sh.key, sign: _sign, building: sh.key } });
           });
         } else {
           // 兜底（旧档无市场数据）：沿用全局五店
@@ -850,7 +843,6 @@ window.LF = window.LF || {};
             out.push({ id: 'enter_building', label: bd.name, icon: bd.icon, tip: '步入' + bd.name + '——' + (bd.sub || '入内一观'), data: { building: k } });
           });
         }
-
       }
       // ── 客栈打尖（v20260911h · P3 · 宵禁配套）──
       // 市集脚店与城门内车马店皆可投宿：付房钱，一觉睡到次日卯时（启门/开牢之时），气血内力尽复。
