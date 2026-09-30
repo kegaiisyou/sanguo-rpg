@@ -814,12 +814,38 @@
       { t: 'log', cls: 'env', text: '牢头狞笑，腰刀照准崔九劈下。崔九不避不让——他侧身将你往默叔那边一推，那一刀结结实实嵌进肩胛。血溅上土墙，他却没有倒，只回头看你一眼。' },
       { t: 'log', cls: 'good', text: '〔崔九〕「……老子带出去的兵，夜里得睡得着。」他笑着，却再没松开那攥紧的铁链。' },
       { t: 'log', cls: 'combat', text: '默叔眼底第一次有了杀意。他袖中机括「咔」地弹开，一截墨家短弩的寒光抵在牢头咽喉——牢头与官差轰然倒地。他一把拽起你与阿禾，朝塌墙根的暗道疾去。' },
+      { t: 'npcTalk', npc: 'moshu',
+        prompt: '暗道里湿滑逼仄，阿禾脚下一崴，险些栽进暗沟。默叔半拖半拽，在你耳边急促道：「这丫头腿软——你拿主意，这节骨眼上，顾谁？」',
+        asks: [
+          { label: '〔背起阿禾〕攥紧她手腕，扛上肩头', then: [
+            { t: 'setFlag', path: 'flags.coup.moshu_carry_ahe', value: true },
+            { t: 'log', cls: 'good', text: '你一把将阿禾拽上背。她轻得像片枯叶，却死死攥着你衣领：「……你别丢下我。」你没答，只把步子迈得更稳。' }
+          ] },
+          { label: '〔断后护叔〕把阿禾推给默叔，自己殿后', then: [
+            { t: 'setFlag', path: 'flags.coup.moshu_cover', value: true },
+            { t: 'log', cls: 'combat', text: '你将阿禾往默叔怀里一推，反手抄起地上半截断矛，殿在最后。暗道窄，追兵一次只容得一人钻进来——你正等着他。' }
+          ] }
+        ]
+      },
       { t: 'log', cls: 'env', text: '你们钻出暗道，迎面却是岗哨通明的火把。狄云舟横矛立在那里，甲胄映着火光，像是早料到有人从此处钻出。' },
       { t: 'npcTalk', npc: 'diyunzhou',
         prompt: '狄云舟将长矛一顿，矛尖点地：「站住。这营里少一个囚犯，我项上人头就得落地。你，留下。」',
         asks: [
-          { label: '〔应战〕夺矛而走', then: [ { t: 'combat', enemy: 'diyunzhou' } ] },
-          { label: '〔偕默叔齐上〕并肩破围', then: [ { t: 'combat', enemy: 'diyunzhou' } ] }
+          { label: '〔应战〕夺矛而走', then: [
+            { t: 'log', cls: 'combat', text: '你欺身抢进，一把攥住矛杆往前夺——狄云舟腕力惊人，却没防备你这不要命的抢法。' },
+            { t: 'combat', enemy: 'diyunzhou' }
+          ] },
+          { label: '〔偕默叔齐上〕并肩破围', then: [
+            { t: 'setFlag', path: 'flags.coup.moshu_flank', value: true },
+            { t: 'favor', npc: 'moshu', amount: 1 },
+            { t: 'log', cls: 'combat', text: '默叔与你交换一个眼色，短弩与断矛同时递出——两面夹击，狄云舟的矛势登时被绞住。' },
+            { t: 'combat', enemy: 'diyunzhou' }
+          ] },
+          { label: '〔佯败诱敌〕诈作不支，暗遁暗道', then: [
+            { t: 'setFlag', path: 'flags.coup.moshu_ruse', value: true },
+            { t: 'log', cls: 'combat', text: '你故意脚下一滑、踉跄后退，引得狄云舟挺矛直刺——就在矛尖及体的刹那，你偏身没入暗道阴影，留他一矛扎进虚处。' },
+            { t: 'combat', enemy: 'diyunzhou' }
+          ] }
         ]
       }
     ]
@@ -835,11 +861,31 @@
       { t: 'log', cls: 'warn', text: '火光里，韩铁一把揪住你，将一封蜡封密令塞进你掌心：「拿着——营要乱了，这是活路，也是韩某的脸面。」' },
       { t: 'npcTalk', npc: 'han_tie',
         prompt: '韩铁压低嗓：「出北墙，把这信交给白檀屯的穆老——他能搬来救兵。这营里活着的信，就剩你一封。别让韩某死不瞑目。」',
-        asks: [ { label: '〔接令〕将密令贴胸揣好', then: [] } ] },
-      { t: 'setFlag', path: 'flags.coup.letter_in_hand', value: true },
-      { t: 'log', cls: 'env', text: '你猫腰避开乱兵，沿墙根摸到北墙水沟缺口。土腥混着火药味，远处杀声渐密。' },
-      { t: 'log', cls: 'combat', text: '缺口外影影绰绰——一队太平道贼兵早伏在那儿，见你形迹便扑将上来：「活口不留！」' },
-      { t: 'combat', enemy: 'yth_intercept' }
+        asks: [
+          { label: '〔接令〕将密令贴胸揣好', then: [
+            { t: 'setFlag', path: 'flags.coup.letter_in_hand', value: true },
+            { t: 'log', cls: 'good', text: '你将蜡封密令贴肉藏进怀里。韩铁拍了拍你肩，转身没入火光——这一去，他再没回来。' }
+          ] },
+          { label: '〔问明接应〕先问清白檀屯虚实', then: [
+            { t: 'setFlag', path: 'flags.coup.letter_in_hand', value: true },
+            { t: 'setFlag', path: 'flags.coup.asked_mu', value: true },
+            { t: 'log', cls: 'npc', text: '你攥住他手腕：「白檀屯穆老，我怎知不是空头人情？」韩铁咧嘴：「穆老是我同乡老卒，他认这密令的火漆——你只管去，说『韩教头最后那封活信』，他必信。」' }
+          ] }
+        ] },
+      { t: 'log', cls: 'env', text: '你猫腰避开乱兵，沿墙根摸到北墙水沟缺口。土腥混着火药味，远处杀声渐密。〔暗号〕出了北墙，沿官道往北便是林径——穆老的人在岔道接应。' },
+      { t: 'npcTalk', who: 'you',
+        prompt: '北墙缺口外影影绰绰，一队太平道伏兵早已守在那里。你怎么过这道缺口？',
+        asks: [
+          { label: '〔潜行贴渠〕屏息溜过水沟', then: [
+            { t: 'setFlag', path: 'flags.coup.officer_letter_sneak', value: true },
+            { t: 'log', cls: 'combat', text: '你贴着水渠石壁挪步，枯枝却在脚下咔嚓一响——伏兵的火把猛地转过来：「有动静！」你已无路，只得挺身上前。' },
+            { t: 'combat', enemy: 'yth_intercept' }
+          ] },
+          { label: '〔强突〕一鼓作气冲过去', then: [
+            { t: 'log', cls: 'combat', text: '你低喝一声，撞开缺口的荆棘直冲出去——伏兵早有防备，长钩挠钩兜头落下。' },
+            { t: 'combat', enemy: 'yth_intercept' }
+          ] }
+        ] }
     ]
   });
 
@@ -853,14 +899,25 @@
       { t: 'log', cls: 'env', text: '林径口，一个独眼老卒牵着空马候在岔道，见你怀中那封蜡封密令的形制，眼睛一亮，迎上前来。' },
       { t: 'npcTalk', npc: 'mu_lao',
         prompt: '独眼老卒抱拳：「白檀屯穆老遣某在此候着。韩教头临行前便吩咐：活着的信一到，救兵即刻拔营。把信予我，穆老的人马今夜便踏平那座牢笼。」',
-        asks: [ { label: '〔交付〕将密令递过', then: [
-          { t: 'setFlag', path: 'flags.coup.reinforcements_done', value: true },
-          { t: 'log', cls: 'good', text: '你递出密令。老卒就着月色验讫，翻身上马，疾驰而去——马蹄声里，是韩铁没能等到的那支兵。' },
-          { t: 'log', cls: 'order', text: '〔边军支线·起〕穆老记下了你这封活信的人情。北疆白檀屯，自此与你有了牵连。' },
-          { t: 'favor', npc: 'mu_lao', amount: 1 },
-          { t: 'exp', amount: 60 },
-          { t: 'log', cls: 'sys', text: '〔夺营线·收束〕韩铁把活路给了你，自己留在了营里。信到，救兵必至——他流的那点血，没有白流。' }
-        ] } ] }
+        asks: [
+          { label: '〔交付密令〕将蜡封密令递过', then: [
+            { t: 'setFlag', path: 'flags.coup.reinforcements_done', value: true },
+            { t: 'log', cls: 'good', text: '你递出密令。老卒就着月色验讫，翻身上马，疾驰而去——马蹄声里，是韩铁没能等到的那支兵。' },
+            { t: 'log', cls: 'order', text: '〔边军支线·起〕穆老记下了你这封活信的人情。北疆白檀屯，自此与你有了牵连。' },
+            { t: 'favor', npc: 'mu_lao', amount: 1 },
+            { t: 'exp', amount: 60 },
+            { t: 'log', cls: 'sys', text: '〔夺营线·收束〕韩铁把活路给了你，自己留在了营里。信到，救兵必至——他流的那点血，没有白流。' }
+          ] },
+          { label: '〔先报韩铁近况〕「韩教头托我带一句话」', then: [
+            { t: 'setFlag', path: 'flags.coup.reinforcements_done', value: true },
+            { t: 'setFlag', path: 'flags.coup.told_han_tie', value: true },
+            { t: 'log', cls: 'npc', text: '你没先交令，只哑声道：「韩教头让我带话——他说白檀屯的兵，今夜必至；他自己在营里，断后。」老卒眼眶一红，猛地抱拳：「韩教头……某记下了。这封信，某替他送到。」' },
+            { t: 'log', cls: 'order', text: '〔边军支线·起〕穆老记下了韩铁与你的两重人情。北疆白檀屯，自此与你有了牵连。' },
+            { t: 'favor', npc: 'mu_lao', amount: 2 },
+            { t: 'exp', amount: 60 },
+            { t: 'log', cls: 'sys', text: '〔夺营线·收束〕韩铁把活路给了你，自己留在了营里。信到，救兵必至——他流的那点血，没有白流。' }
+          ] }
+        ] }
     ]
   });
 
