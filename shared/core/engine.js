@@ -3577,6 +3577,15 @@
       jiaju_deng:'0 0', jiaju_pingfeng:'0 0', jiaju_huaping:'0 0', jiaju_zihua:'0 0',
       ma:'0 0', lu:'0 0', maan:'0 0', macao:'0 0',
       // v20260930b：工具阶位链 + 洛阳铲 + 房契/商铺契 统一注册读独立图
+      // v20260930e：补齐剩余农具阶位（竿4-5阶/石铜斧/石铁铜锯/铜镰）
+      cutie_gan:'0 0',
+      tiegan:'0 0',
+      jingshi_fu:'0 0',
+      tongfu:'0 0',
+      jingshi_jv:'0 0',
+      tiejv:'0 0',
+      tongjv:'0 0',
+      tonglian:'0 0',
       jingmu_chu:'0 0',
       tongchu:'0 0',
       cutie_chu:'0 0',
