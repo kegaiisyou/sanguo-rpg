@@ -20,6 +20,9 @@ LF.RECIPES = {
     { id:'sleep_mat', cat:'器具类', name:'草席', icon:'🛏️', out:'sleepmat', outN:1, in:[{id:'mucai', n:2}], note:'削竹为骨、编草为席，铺地可眠' },
     { id:'make_trough', cat:'器具类', name:'水槽', icon:'🪣', out:'shuicao', outN:1, in:[{id:'mucai', n:2},{id:'shitiao', n:1}], note:'以木材为骨、石料为槽，凿石箍木成槽，可蓄水' },
     { id:'make_waterbag', cat:'器具类', name:'水袋', icon:'💧', out:'shuidai', outN:1, in:[{id:'mucai', n:2}], note:'削竹为圈、缝皮为囊，制成可盛水随行的水袋' },
+    { id:'mk_shelf_wood', cat:'器具类', name:'木货架', icon:'🪟', out:'shelf_wood', outN:1, in:[{id:'mucai', n:3}], note:'以规整木材钉就简易货架，可于铺面放置后陈列货物' },
+    { id:'mk_shelf_iron', cat:'器具类', name:'铁货架', icon:'🗄', out:'shelf_iron', outN:1, in:[{id:'mucai', n:4},{id:'tiekuai', n:2}], note:'铁骨木板，钉成结实货架，容量更大' },
+    { id:'mk_shelf_carved', cat:'器具类', name:'雕花货架', icon:'🗄', out:'shelf_carved', outN:1, in:[{id:'mucai', n:6},{id:'tiekuai', n:3}], note:'精料雕花，体面大货架' },
     { id:'brick_kiln', cat:'建筑类', name:'砖头', icon:'🧱', out:'zhuan', outN:1, in:[{id:'shitiao', n:2}], note:'石料入窑烧制成砖，规整耐用，垒砌炉体围墙' },
     { id:'make_ink', cat:'素材类', name:'墨', icon:'🖤', out:'mo', outN:1, in:[{id:'mutou',n:2}], note:'松木烧烟、和胶成墨，研磨后可书于简册（松烟墨）' },
     // —— 简册类（v20260908 建筑营造简册制作，东汉以竹简为主）——

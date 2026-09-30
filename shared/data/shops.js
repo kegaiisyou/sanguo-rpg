@@ -25,6 +25,9 @@
         { id: 'campfire',    buy: 12, sell: 4  },
         { id: 'sleepmat',    buy: 20, sell: 8  },
         { id: 'zhangtai',   buy: 120, sell: 40 },  // v20260930：账台（P0 经营入口物件，玩家购得后于自家铺面放置，点开即入经营总览）
+        { id: 'shelf_wood',   buy: 30,  sell: 12 },
+        { id: 'shelf_iron',   buy: 80,  sell: 32 },
+        { id: 'shelf_carved', buy: 200, sell: 80 },
         { id: 'ceshizhizhu', buy: 888, sell: 300 },
         // —— 扩充：食材 / 资材 / 铁料 / 兵器 / 行囊 ——
         { id: 'shengrou',     buy: 12, sell: 4 },

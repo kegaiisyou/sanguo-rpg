@@ -3360,3 +3360,11 @@
 .hf-bag b{flex:1;}
 .hf-bag i{font-style:normal;color:#8a5a2a;font-size:11.5px;}
 .hf-bag.sel{border-color:#a8782a;background:rgba(168,120,42,.14);}
+
+/* v20260930n：店内货架面板（F2） */
+.shelf-wrap{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+.shelf-col{flex:1;min-width:150px;}
+.shelf-t{font-size:13px;color:var(--c-text-dim,#9a948a);margin:4px 0 2px;}
+.packcell.empty{opacity:.35;}
+.sf-rename{display:flex;gap:6px;margin:8px 0;}
+.sf-rename .txt{flex:1;}

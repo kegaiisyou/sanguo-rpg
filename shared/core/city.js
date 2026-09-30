@@ -658,6 +658,19 @@ window.LF = window.LF || {};
       inst.shops = inst.shops || {}; return inst.shops[key] || null;
     }
     function shopTpl(key){ return (LF.TEMPLATES && LF.TEMPLATES[key]) || null; }
+    function setShopSign(cid, x, y, key, name){
+      name=(name||'').trim(); if(!name){ if(window.toast) window.toast('店名不可为空。'); return; }
+      if(name.length>12) name=name.slice(0,12);
+      var cg=S().flags.cityGrid&&S().flags.cityGrid[cid];
+      var cell=cg&&cg.markets&&cg.markets[x+','+y];
+      if(cell&&cell.shops){ cell.shops.forEach(function(s){ if(s.key===key) s.sign=name; }); }
+      var inst=cityCellInst(cid,x,y);
+      if(inst&&inst.shops&&inst.shops[key]) inst.shops[key].sign=name;
+      _shopSave();
+      if(window.renderRoom) window.renderRoom(S().room, true);
+      if(window.toast) window.toast('店名已改为「'+name+'」。');
+    }
+    window.setShopSign=setShopSign;
     function shopStockTotal(sh){ var s=0; for(var k in (sh.stock||{})) s+=(sh.stock[k]||0); return s; }
     function shopAvgPrice(key){ var t=shopTpl(key); return (t&&t.trade&&t.trade.basePrice)||5; }
     function shopFootfall(sh, cid){
