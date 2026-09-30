@@ -1745,7 +1745,7 @@
       var _cp=state.flags.cityPos;
       renderCellInteriors(room.id, (_cp?_cp.x:0), (_cp?_cp.y:0));
       cityCellActs(room.id, (_cp?_cp.x:0), (_cp?_cp.y:0)).forEach(function(a){
-        var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
+        var acts = (a.id==='shop_interact') ? shopCellActs(a.data) : [{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
         var btn=mkAct('scene', a.icon||'·', a.label, function(e){
           // 进入某处（进·店铺/进·建筑）意图明确，单击直达，不再套「执 行」菜单
           if(a.id==='enter_building'||a.id==='enter_house'||(G.ROOMS[room.id]&&G.ROOMS[room.id].isCity)){ handleAction(a.id,a); return; }
@@ -5936,6 +5936,35 @@
         if(window.handleAction) window.handleAction(act,{id:act,data:d});
       };
     });
+  }
+  // ── 牙行 / 盘下：带标价·格局·陈设·周边配套的经纪面板 ──
+  // 商街店铺格「单一按钮」点击后弹出的 NPC 式动作清单（进入 / 观察 / 盘下·经营）
+  // 与城内 NPC 交互一致（交谈/观察/给予/攻击），避免给交互列表堆多个按钮；盘下仅「可盘下建筑」且未盘下时出现
+  function shopCellActs(d){
+    d=d||{}; var cid=d.cid, x=d.x, y=d.y, key=d.key, sign=d.sign, bld=d.building;
+    var acts=[
+      {label:'进入', icon:'🚪', fn:function(){ handleAction('enter_building',{id:'enter_building',data:{building:bld, cid:cid, x:x, y:y, sign:sign}}); }},
+      {label:'观察', icon:'👁', fn:function(){ observeShop(cid, x, y, key, sign); }}
+    ];
+    var sh=window.shopInst?window.shopInst(cid, x, y, key):null;
+    if(sh && sh.owner==='player'){
+      acts.push({label:'经营', icon:'📊', fn:function(){ openModal('shopinteract',{cid:cid, x:x, y:y, key:key, sign:sign, building:bld}); }});
+    } else {
+      acts.push({label:'盘下', icon:'🔖', fn:function(){ openModal('broker',{kind:'shop', cid:cid, x:x, y:y, key:key, sign:sign}); }});
+    }
+    return acts;
+  }
+  function observeShop(cid, x, y, key, sign){
+    var t=window.shopTpl?window.shopTpl(key):null;
+    var sh=window.shopInst?window.shopInst(cid, x, y, key):null;
+    var nm=sign||(window.getBUILDINGS&&window.getBUILDINGS()[key]?getBUILDINGS()[key].name:key)||key;
+    var parts=['〔'+nm+'〕'];
+    if(t && t.trade && t.trade.sells){
+      var ns=t.trade.sells.map(function(id){ var d=LF.ITEMS&&LF.ITEMS[id]; return (d&&d.name)||id; });
+      parts.push('经营：'+ns.join('、'));
+    }
+    parts.push(sh && sh.owner==='player' ? '（已是你的铺子，点「经营」查账 / 上架 / 扩店 / 布置）' : '（可经牙行盘下此店，自营买卖、按月纳商税）');
+    log(parts.join('；'), 'npc');
   }
   // ── 牙行 / 盘下：带标价·格局·陈设·周边配套的经纪面板 ──
   var SHOP_ROOMS = { yaofu:'前店后柜·两进', buzhuang:'前铺后坊·两进', shishi:'前堂后厨·两进', zahuo:'前店后库·一进', gongzao:'前铺后场·两进' };

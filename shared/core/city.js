@@ -826,7 +826,7 @@ window.LF = window.LF || {};
       if (t === 'sentry') { out.push({ id: 'sentry_look', label: '瞭望岗哨', icon: '🏮', tip: '登岗瞭望，查看来往行踪' }); }
       if (t === 'barracks') { out.push({ id: 'recruit', label: '募兵操练', tip: '入营招募兵卒，点兵编成部曲（兵科／阵位／辎重／调兵）' }); out.push({ id: 'army_manage', label: '治军', icon: '🛡', tip: '点兵编成、料理辎重、调兵遣将（v20260921a）' }); out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '起兵夺城，胜则易帜、败则遭火' }); }
       if (t === 'market') {
-        // 商街店铺：主钮「直接进店」（顾客视角，单击直达，不弹选择面板）；盘下/经营降为次钮按需点开，不挡进门
+        // 商街店铺：每间一个按钮（店招），点击弹出 NPC 式动作清单（进入 / 观察 / 盘下·经营），不堆多个按钮
         var mkt = m.markets && m.markets[x + ',' + y];
         if (mkt) {
           mkt.shops.forEach(function (sh) {
@@ -835,11 +835,7 @@ window.LF = window.LF || {};
             // 修复：曾盘下却 inst.built 缺失 → 整格塌成工地；此处补建并落盘（兼容旧档）
             var _inst = cityCellInst(cid, x, y);
             if (_inst && _inst.shops && _inst.shops[sh.key] && !_inst.built) { _inst.built = true; setCityCell(cid, x, y, _inst); }
-            var _owned = _inst && _inst.shops && _inst.shops[sh.key] && _inst.shops[sh.key].owner === 'player';
-            // 主钮：直接进店（顾客视角），单击直达，不弹选择面板
-            out.push({ id: 'enter_building', label: _sign, icon: bd.icon, tip: '步入' + _sign + '——' + (bd.sub || '入内一观'), data: { building: sh.key, cid: cid, x: x, y: y, sign: _sign } });
-            // 次钮：盘下（未盘下）/ 经营（已盘下），非高频，按需点开，不再挡在进门路上
-            out.push({ id: 'shop_interact', label: (_owned ? '经营 · ' : '盘下 · ') + _sign, icon: '🔖', tip: _owned ? '查账 / 上架 / 扩店 / 布置' : '盘下此店，自营买卖', data: { cid: cid, x: x, y: y, key: sh.key, sign: _sign, building: sh.key } });
+            out.push({ id: 'shop_interact', label: _sign, icon: bd.icon, tip: '「' + _sign + '」——点开见进入 / 观察 / 盘下等动作', data: { cid: cid, x: x, y: y, key: sh.key, sign: _sign, building: sh.key } });
           });
         } else {
           // 兜底（旧档无市场数据）：沿用全局五店

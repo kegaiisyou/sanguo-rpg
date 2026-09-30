@@ -228,11 +228,13 @@ Get-ChildItem *.html | Get-FileHash -Algorithm MD5 | Group-Object Hash | Where-O
 ├── scripts/ / test/ / tools/   # 生成器/校验/工具脚本
 ├── PROJECT_GUIDE.md        # 本规范（历史：早期三端规划）
 ├── GAME_DESIGN.md          # 玩法设计基线
-└── PROGRESS.md             # 进度/设计对照（权威落地状态）
+└── PROGRESS.md             # 变更日志（按版本倒序）
 ```
 > 注：早期规划的 `web/`（H5 模块化拆分）、`wechat-miniprogram/`、`wechat-game/`、`backup/` 目录**均已不存在**，本文档其余处对它们的引用为历史残留。
 
-### 6.2 版本号规则（沿用既有，保持不变）
+### 6.2 版本号规则（⚠️ 已作废，以 `README.md`「开发规范」为准）
+
+> **作废说明**：本节原定「语义版本号 `v主.功.修`」，但代码实际采用**日期+字母制**（如 `20260930k`，见 `shared/config/constants.js` 的 `VERSION`），且每次迭代必须 bump 并重建 `bundle.js`、推送 GitHub。以 `README.md`「开发规范」一节为准，本节仅留作历史。
 
 `v主版本.功能版本.修正版本`；主版本重大架构变更、功能版本新增功能、修正版本修 bug。每次更新前先备份（用 `一键部署+备份.bat`）。
 

@@ -3,9 +3,20 @@
 ## 项目概述
 东汉末年 · 文字武侠 · 开放世界 RPG（三国背景作外包装），纯 HTML/CSS/JS 实现。单一数据源 `shared/`，H5 主端 `index.html` 直接引用。无微信端/小程序（历史三端方案已弃，仅留 H5 单端）。
 
-> **当前用户可见版本**：`LF.CONSTANTS.VERSION = 20260918e`（`shared/config/constants.js`，每次迭代后 bump 并同步 `index.html` 中对应 `<script ?v=>` 缓存参数）。
+> **当前用户可见版本**：`LF.CONSTANTS.VERSION`（见 `shared/config/constants.js`，**每次迭代必须 bump**——日期+字母制，如 `20260930k`；线上加载 `shared/bundle.js`，改源文件须连跑两次 `tools/bundle.py` 重建并同步 `index.html` 的 `?v=` 缓存参数）。
 > **存档 schema 版本**：`shared/index.js` 的 `defaultSave().version = '0.2.0'`，仅用于存档兼容/迁移，与显示版本无关，**切勿改动**。
-> 最新真实落地状态以 `PROGRESS.md`（进度/设计对照）为准；本文为可玩总览。
+> 落地状态以 `PROGRESS.md`（变更日志，按版本倒序）与本文档为准；开发规范见下方「开发规范」一节。
+
+## 开发规范（每次修改必须版本迭代 + 同步 + 上传 GitHub）
+
+> 强制约定：后续每次改动都遵守，防止「改了没发版 / 没同步 / 本地与线上不一致」的错位。
+
+1. **改代码必 bump 版本号**：`shared/config/constants.js` 的 `VERSION` 与 `tools/bundle.py` 的 `VERSION` 必须一致地 +1（**日期+字母制**，如 `20260930k` → `20260930l`）。**禁止语义版本号**（`v主.功.修`）——代码实际采用日期+字母制，`PROJECT_GUIDE.md` §6.2 的语义版本规则已作废。
+2. **改 `shared/*.js` 必重建 bundle**：连跑两次 `python tools/bundle.py`（terser 有二次压缩 bug，单次可能漏收改动）。线上加载的是 `shared/bundle.js`，不是单个源文件。
+3. **同步缓存参数**：`index.html` 中 `shared/bundle.js?v=...` 的 `?v=` 与 `VERSION` 保持一致，否则浏览器用旧缓存。
+4. **提交 + 上传**：`git add` 本次相关文件 → `git commit`（信息含版本号与摘要，如 `v20260930l：…`）→ `git push origin main`。
+5. **不提交调试残留**：`_repro_*.cjs`、`roomview_preview.html`、`_patch_*.py`、`serve_nocache.py` 等临时/调试文件不要 `git add`。
+6. **文档随改动同步**：本文档与 `PROGRESS.md` 的版本号、状态随改动更新；`PROJECT_GUIDE.md` 为历史文档（三端规划已弃），仅作架构参考。
 
 ---
 
@@ -49,6 +60,6 @@
 
 ## 📚 文档导航
 - `GAME_DESIGN.md`：玩法设计基线（世界观 / 系统 / 数值）
-- `PROGRESS.md`：进度/设计对照（权威落地状态，版本 `20260918e`）
+- `PROGRESS.md`：变更日志（按版本号倒序，如 §9.89 v20260924z12）；`PROJECT_GUIDE.md` 为历史文档（三端规划已弃，§6.2 版本规则作废）
 - `PROJECT_GUIDE.md`：**历史文档**——早期三端统一规划，现仅 H5 单端，其中 `wechat-*`/`backup`/`web` 引用已失效，仅供架构决策参考
 - `docs/`：专项设计（城市营造、身份势力架构、经济、武学技能树、物品登记册、P3 验收报告等）
