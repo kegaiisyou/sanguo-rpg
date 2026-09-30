@@ -203,6 +203,7 @@
       if (!pid || !(LF.CITIES || {})[pid]) return [];       // 只认城郊（非城地点下辖的野地不派名将）
       var OUTP = { wu: 0.50, jiu: 0.35, xin: 0.25, cai: 0.20, yi: 0.15, mian: 0.10 };
       var out = [];
+      var _ff = st.flags.fieldFame || (st.flags.fieldFame = {});
       personae().forEach(function (t) {
         if (!t || !t.id) return;
         if (taken(t)) return;
@@ -210,6 +211,10 @@
         var top = topDesire(t).key;
         var p = OUTP[top] || 0.15;
         if (hauntField(t.id, pid) !== fid) return;   // 仅固定出没的那一片郊野（消除“跟随式”重复偶遇）
+        var _fk = fid + ':' + t.id;
+        if (_ff[_fk]) return;                        // 今日已在此片郊野偶遇过，不再重复刷（消“每次移动都偶遇”）
+        if (Math.random() > p) return;               // 按内驱力概率决定是否出门游猎（非必现）
+        _ff[_fk] = 1;                                // 标记今日已遇
         out.push(t);
       });
       return out.slice(0, 2);
@@ -347,6 +352,7 @@
     //   ③ 非野心/好武者只就近流动（≤600 里），不再凭 hash 跳到天涯海角
     function tickDay() {
       var st = S(); if (!st) return 0;
+      if (st.flags) st.flags.fieldFame = {};   // 每日清零郊野偶遇标记，名将次日方可再次于野外出没
       var cities = LF.CITIES || {};
       var ids = Object.keys(cities);
       if (!ids.length) return 0;

@@ -25,7 +25,7 @@ window.LF = window.LF || {};
 
     // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
     // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
-    var GRID_VER = '20260927w';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建
+    var GRID_VER = '20260930c';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建（v20260930：移除冗余市坊 ward）
     // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
     function cityGates(c) {
       var ct = c.ctype || 'plain';
@@ -546,7 +546,8 @@ window.LF = window.LF || {};
       var dev = 35 + (cityTierLv(cid) || 0) * 12;  // P0+P1：坊制规模依 cityLevel（唯一规模轴），不再读静态 c.dev（见 city-economy-p0p1.md R1/R2）
       place('gov'); place('resid');
       if ((c.wall || 0) >= 55 || (c.tier && c.tier !== 'xian')) place('mil');
-      if ((c.commerce || 0) >= 50) place('market');
+      // v20260930：原 ward_market（市坊）不生成任何店铺、只剩空坊格，徒增“某某市 / 坊市重复”的困惑；
+      //   城内商铺本就由 market 单元格（东市/西市…）统一生成，故此处不再单独播种市坊。
       if (dev >= 55 || (c.culture || 0) >= 50) place('culture');
       if (c.ctype === 'port' || c.coastal) place('water');
     }

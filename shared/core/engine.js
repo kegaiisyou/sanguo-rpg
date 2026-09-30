@@ -1748,7 +1748,7 @@
         var acts=[{label:'执 行', fn:function(){ handleAction(a.id,a); }}];
         var btn=mkAct('scene', a.icon||'·', a.label, function(e){
           // 进入某处（进·店铺/进·建筑）意图明确，单击直达，不再套「执 行」菜单
-          if(a.id==='enter_building'||a.id==='enter_house'){ handleAction(a.id,a); return; }
+          if(a.id==='enter_building'||a.id==='enter_house'||(G.ROOMS[room.id]&&G.ROOMS[room.id].isCity)){ handleAction(a.id,a); return; }
           toggleObjExpand(e, btn, {name:a.label, desc:a.tip}, acts);
         }, null, a.id);
       });

@@ -238,6 +238,7 @@
         { id: 'yaofen',      buy: 20, sell: 7  },
         { id: 'campfire',    buy: 15, sell: 5  },
         { id: 'sleepmat',    buy: 24, sell: 8  },
+        { id: 'zhangtai',   buy: 120, sell: 40 },  // v20260930：账台（P0 经营入口物件，玩家购得后于自家铺面放置，点开即入经营总览）
         // —— 收售（buy:0 仅寄售不上架）：野外所得就地脱手 ——
         { id: 'caoyao',      buy: 0,  sell: 2  },
         { id: 'tiekuangshi', buy: 0,  sell: 6  },
