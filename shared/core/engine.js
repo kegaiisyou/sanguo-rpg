@@ -4684,6 +4684,7 @@
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
+    if(Narr && Narr.setNarrPaused) Narr.setNarrPaused(true);  // v20260930d：弹窗遮住叙事区，叙事暂停排队，关窗再续
     _tipBlocked=true;   // 只要开过面板，就不再显示「轻触文字快进」提示
     if(_toastTimer){ clearTimeout(_toastTimer); _toastTimer=null; }
     if($toast) $toast.classList.remove('show');
@@ -5163,6 +5164,7 @@
     if(currentModalKind==='shop') Shop.restoreTradePending();   // 关店归还寄售真物，避免退出后丢失
     var _closedKind=currentModalKind;   // v20260913c：收起前先记下关的是哪扇窗（行囊教学要接着往下讲）
     currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
+    if(Narr && Narr.setNarrPaused) Narr.setNarrPaused(false);  // v20260930d：关窗即续放积压的叙事段落
     setDockRest(null);       // 收起面板清底部页签选中态（v20260924h）
     syncActionLock();        // 收起弹窗后重算交互锁（对话悬挂未答完则仍锁着，v20260911i）
     if(_closedKind==='pack') onbAfterPack();   // 首次合上行囊 → 栅外那嗓子该开口了（见 onbAfterPack）

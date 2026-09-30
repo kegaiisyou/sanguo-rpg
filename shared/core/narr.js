@@ -57,6 +57,7 @@
   // 串行输出队列：所有叙事段落入队，一次只打字一段；前段完成(或快进)后才出下一段，
   // 从根本上杜绝「好几行一起刷出」让玩家措手不及
   var logQueue=[], logBusy=false;
+  var narrPaused=false;  // v20260930d：模态（结算/提交）打开时暂停叙事排队，关窗再续（避免文字被弹窗遮挡而漏看）
   var narrOngoing=false; // 是否正处于「连续叙事」中（保证逐行间隙按钮仍锁定）
   var narrToken=0;      // 场景叙事令牌：新场景使旧序列失效，杜绝旧文字混入新场景
   var lockObserver=null;
@@ -272,11 +273,17 @@
     if(!logBusy) pumpLog();
   }
   function pumpLog(){
-    if(logBusy) return;
+    if(logBusy || narrPaused) return;   // v20260930d：模态开着时不再取队首，积压段落留在队列，关窗后续放
     var item=logQueue.shift();
     if(!item){ return; }
     logBusy=true;
     logNow(item.text, item.cls, item.name, function(){ logBusy=false; if(item.done) item.done(); syncActionLock(); pumpLog(); });
+  }
+  // 模态开/关：开则冻结叙事（已在打的那一段会打完，后续段落排队等候）；关则立即续放积压段落
+  function setNarrPaused(v){
+    narrPaused=!!v;
+    if(!narrPaused && !logBusy) pumpLog();
+    syncActionLock();
   }
   // 真正执行单段打字（由 log 队列驱动）
   function logNow(text, cls, name, done){
@@ -321,7 +328,7 @@
   // 场景失效：新场景（换房）使任何进行中的旧叙事序列作废（原 engine.js 内联的 narrToken++ 拆出）
   function invalidateScene(){ narrToken++; }
     return {
-      typeInto, skipTypewriter, narrActive, interactBusy, syncActionLock, busyAct, busyHide, busyStopTimer, busyCancel, flushNarr, initLockObserver, splitSpeech, balanceSpeech, fbShow, injectModalFb, log, logRaw, pumpLog, logNow, logScene, invalidateScene
+      typeInto, skipTypewriter, narrActive, interactBusy, syncActionLock, busyAct, busyHide, busyStopTimer, busyCancel, flushNarr, initLockObserver, splitSpeech, balanceSpeech, fbShow, injectModalFb, log, logRaw, pumpLog, logNow, logScene, invalidateScene, setNarrPaused
     };
   };
 })(typeof window !== 'undefined' ? window : global);
