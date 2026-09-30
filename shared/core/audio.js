@@ -21,7 +21,8 @@
     { id: 'main',  name: '柔情·江湖儿女', file: 'assets/audio/bgm_main.ogg',  loop: false },
     { id: 'xiao',  name: '苍凉·寒山孤影', file: 'assets/audio/bgm_xiao.ogg',  loop: true  },
     { id: 'dizi',  name: '明快·策马江湖', file: 'assets/audio/bgm_dizi.ogg',  loop: true  },
-    { id: 'guqin', name: '沉静·夜泊枫桥', file: 'assets/audio/bgm_guqin.ogg', loop: true  }
+    { id: 'guqin', name: '沉静·夜泊枫桥', file: 'assets/audio/bgm_guqin.ogg', loop: true  },
+    { id: 'battle', name: '激昂·金戈铁马', file: 'assets/audio/bgm_battle.ogg', loop: true }
   ];
 
   var SFX_FILES = {
@@ -247,19 +248,26 @@
 
   // ── 氛围层（P2）：环境音垫底，跟随房间/时辰切换，战斗时随 BGM 一起压低 ──
   var AMB_MAP = {
-    birds:  { id: 'amb_birds',  file: 'assets/audio/amb_birds.ogg' },
-    wind:   { id: 'amb_wind',   file: 'assets/audio/amb_wind.ogg' },
-    market: { id: 'amb_market', file: 'assets/audio/amb_market.ogg' },
-    night:  { id: 'amb_night',  file: 'assets/audio/amb_night.ogg' }
+    birds:    { id: 'amb_birds',    file: 'assets/audio/amb_birds.ogg' },
+    wind:     { id: 'amb_wind',     file: 'assets/audio/amb_wind.ogg' },
+    market:   { id: 'amb_market',   file: 'assets/audio/amb_market.ogg' },
+    night:    { id: 'amb_night',    file: 'assets/audio/amb_night.ogg' },
+    rain:     { id: 'amb_rain',     file: 'assets/audio/amb_rain.ogg' },
+    teahouse: { id: 'amb_teahouse', file: 'assets/audio/amb_teahouse.ogg' }
   };
   var ambSrc = null;
   var ambGainNode = null;
   var ambId = null;
   var AMB_VOL = 0.5;
   function ambIsNight(t){ var h=(t==null?8:t)%12; return h>=10 || h<=2; }
-  function ambFor(roomId, t){
-    if(ambIsNight(t)) return 'night';
+  function ambFor(roomId, t, weather){
     var r=String(roomId||'');
+    // 茶馆（安静低语+茶具）优先于市声
+    if(/cha|tea|chashi|mingcha/.test(r)) return 'teahouse';
+    // 雨雪天气覆盖昼夜：雨夜要的是雨声（weather 为索引：3微雨 4大雨 5雪 7风）
+    if(weather===3||weather===4) return 'rain';
+    if(weather===5||weather===7) return 'wind';
+    if(ambIsNight(t)) return 'night';
     if(/market|shiji|shu|jiuhua|jiulou/.test(r)) return 'market';
     if(/wild|road|field|forest|mountain|valley|camp|village|miao|shanzhai|yishou/.test(r)) return 'birds';
     return 'birds';
@@ -307,16 +315,36 @@
     }
     setTimeout(function(){ if(ambSrc){ try{ ambSrc.stop(); ambSrc.disconnect(); }catch(e){} ambSrc=null; } },800);
   }
-  function syncAmbient(roomId, t){
+  function syncAmbient(roomId, t, weather){
     if(!enabled) return;
     if(bgmState==='stopped'){ stopAmbient(); return; }
-    startAmbient(ambFor(roomId, t));
+    startAmbient(ambFor(roomId, t, weather));
   }
-  // 战斗时压低 BGM 与氛围（ducking）：战斗开始调 duckBgm(true)，结束调 false
+  // 战斗时压低氛围层，并切换到战斗曲（v20260930a）：战斗开始 setCombatBgm(true)，结束调 false
   function duckBgm(on){
     var c=ensureCtx(); if(!c) return;
-    if(bgmGain){ bgmGain.gain.cancelScheduledValues(c.currentTime); bgmGain.gain.linearRampToValueAtTime(on?0.35:1, c.currentTime+0.3); }
     if(ambGainNode){ ambGainNode.gain.cancelScheduledValues(c.currentTime); ambGainNode.gain.linearRampToValueAtTime(on?0.2:AMB_VOL, c.currentTime+0.3); }
+  }
+  var preCombatBgmIdx = -1;
+  function switchBgmNoPersist(idx){
+    if(idx<0||idx>=BGM_TRACKS.length) return;
+    currentBgmIdx=idx;
+    var c=ensureCtx();
+    if(c&&c.state==='suspended'){ c.resume().catch(function(){}); }
+    stopBgm();
+    startBgm();
+  }
+  function setCombatBgm(on){
+    var battleIdx=-1;
+    for(var i=0;i<BGM_TRACKS.length;i++){ if(BGM_TRACKS[i].id==='battle'){ battleIdx=i; break; } }
+    if(on){
+      if(preCombatBgmIdx<0) preCombatBgmIdx=currentBgmIdx;
+      if(battleIdx>=0 && battleIdx!==currentBgmIdx) switchBgmNoPersist(battleIdx);
+      duckBgm(true);
+    } else {
+      duckBgm(false);
+      if(preCombatBgmIdx>=0){ switchBgmNoPersist(preCombatBgmIdx); preCombatBgmIdx=-1; }
+    }
   }
 
   function stopBgm() {
@@ -431,6 +459,7 @@
     stopBgm: stopBgm,
     syncAmbient: syncAmbient,
     duckBgm: duckBgm,
+    setCombatBgm: setCombatBgm,
     setBgmVolume: setBgmVolume,
     setSfxVolume: setSfxVolume,
     setBgmTrack: setBgmTrack,

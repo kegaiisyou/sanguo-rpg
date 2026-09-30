@@ -1525,7 +1525,7 @@
   }
   function renderRoom(rid, silent){
     var room=G.ROOMS[rid]||bldRoom(rid); if(!room) return;
-    try { if (window.SFX && SFX.syncAmbient) SFX.syncAmbient(rid, state.time); } catch(e){}  // P2：氛围随场景
+    try { if (window.SFX && SFX.syncAmbient) SFX.syncAmbient(rid, state.time, state.weather); } catch(e){}  // P2：氛围随场景·天候
     invalidateScene();            // 新场景：使任何残留的旧叙事序列失效
     dlgClose();                  // 换场景即收对话窗（v20260912g）：上一位的话，说完就到此为止
     state.room=rid;

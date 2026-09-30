@@ -261,7 +261,7 @@
   /** 开始战斗 */
   function startCombat(enemyId, opt){
     opt=opt||{};
-    try { if (window.SFX && SFX.duckBgm) SFX.duckBgm(true); } catch(e){}   // P2：开战压 BGM/氛围
+    try { if (window.SFX && SFX.setCombatBgm) SFX.setCombatBgm(true); else if (window.SFX && SFX.duckBgm) SFX.duckBgm(true); } catch(e){}   // P2/P3：开战切战曲+压氛围
 
     // 校验敌人 id：无效则给出提示并中止，避免进入战斗后在 init 中崩溃
     if(typeof enemyId==='string') enemyId=[enemyId];
@@ -787,7 +787,7 @@
 
   /** 战斗结束 */
   function endCombat(result){
-    try { if (window.SFX && SFX.duckBgm) SFX.duckBgm(false); } catch(e){}  // P2：战后恢复音量
+    try { if (window.SFX && SFX.setCombatBgm) SFX.setCombatBgm(false); else if (window.SFX && SFX.duckBgm) SFX.duckBgm(false); } catch(e){}  // P2/P3：战后恢复原曲
     if(getCombatMode()===null) return;   // 防止重复调用（如快速连点）
     setCombatMode(null);
     dqPlaySkip=null;                // 战斗结束，清除演出快进钩子
