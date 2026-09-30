@@ -116,6 +116,8 @@
         kind: 'landmark', plot: p.plot, battle: p.battle, isBattlefield: !!p.isBattlefield,
         desc: [ (p.desc || p.name) + '。', (p.isBattlefield ? '此地曾兵戈相见，杀气未消。' : '风物依旧，引人凭吊。') ],
         find: (p.desc || p.name),
+        exits: (p.exits || {}),
+        npcs: (p.npcs || []),
         actions: [{ id:'rest', label:'驻足凭吊', group:'行动', tip:'' }]
       });
       return pack(p.id, r);

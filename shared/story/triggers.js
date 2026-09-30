@@ -1149,6 +1149,12 @@
               { t: 'log', cls: 'sys', text: '你别过脸，埋头钻进暗道深处。阿禾的呼声渐远，你不知她后来如何——只知自己先一步出了营。' },
               { t: 'log', cls: 'combat', text: '坑口处一名巡夜官差似觉动静，持矛探入！' },
               { t: 'combat', enemy: 'camp_guard' }
+            ] },
+          { label: '〔周旋〕佯作降卒，混在乱兵里溜',
+            then: [
+              { t: 'setFlag', path: 'flags.coup.tunnel_ruse', value: true },
+              { t: 'log', cls: 'combat', text: '你顺势伏低，装作被裹挟的夫役，混在抢功的乱兵里往营门挪——趁人不备，一头扎进暗巷。' },
+              { t: 'combat', enemy: 'camp_guard' }
             ] }
         ] }
     ]
@@ -1173,6 +1179,12 @@
               { t: 'log', cls: 'sys', text: '你将阿禾推进缝里，自己返身挡住追兵。待缝隙那头传来她远去的脚步声，你才寻路另寻缺口。' },
               { t: 'log', cls: 'combat', text: '一名官差从阴影里扑出，长矛直取你心口！' },
               { t: 'combat', enemy: 'camp_guard' }
+            ] },
+          { label: '〔背负〕背起阿禾，趁乱强突',
+            then: [
+              { t: 'setFlag', path: 'flags.coup.ahe_carry', value: true },
+              { t: 'log', cls: 'combat', text: '你一把将阿禾负在背上，塌墙根的缝太窄，你侧身护住她，硬从追兵刀缝里挤出！' },
+              { t: 'combat', enemy: 'camp_guard' }
             ] }
         ] }
     ]
@@ -1191,6 +1203,18 @@
             then: [
               { t: 'log', cls: 'env', text: '片刻后，营中火起、喊杀连天，看押的贼卒也去抢功。你趁机挣脱缚索，贴着墙根摸向空虚的营门。' },
               { t: 'log', cls: 'combat', text: '一名回身查哨的贼卒撞见你，抡刀便砍！' },
+              { t: 'combat', enemy: 'camp_guard' }
+            ] },
+          { label: '〔佯降〕假意归顺，待贼不备夺路',
+            then: [
+              { t: 'setFlag', path: 'flags.coup.minor_feint', value: true },
+              { t: 'log', cls: 'combat', text: '你垂首应声，装作驯顺；待那贼卒转身抢功，你猛地挣断缚索，撞向空虚的营门！' },
+              { t: 'combat', enemy: 'camp_guard' }
+            ] },
+          { label: '〔强突〕不待崔九示意，径扑营门',
+            then: [
+              { t: 'setFlag', path: 'flags.coup.minor_rush', value: true },
+              { t: 'log', cls: 'combat', text: '你不等崔九发话，就地一滚挣开束缚，直扑那处无人把守的营门——守卒回身，长矛已到！' },
               { t: 'combat', enemy: 'camp_guard' }
             ] }
         ] }
