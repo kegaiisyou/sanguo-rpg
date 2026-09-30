@@ -545,7 +545,7 @@
         var sti = (typeof ctx.storageGet === 'function') ? ctx.storageGet(shopStoreCid) : null;
         if (shopStoreSel != null && sti && sti.items[shopStoreSel]) {
           var sit2 = sti.items[shopStoreSel]; var ic3 = itemIconHTML(sit2, 16);
-          var h3 = '<div class="li-name">' + ic3 + ' ' + sit2.name + '</div>';
+          var h3 = '<div class="li-name">' + sit2.name + '</div>';
           h3 += '<div class="li-cat">' + (sit2.cat || '道具') + (sit2.count > 1 ? (' · ×' + sit2.count) : '') + '</div>';
           if (statOf(sit2) && (statOf(sit2).atk || statOf(sit2).def || statOf(sit2).hp || statOf(sit2).spd)) h3 += '<div class="li-line">属性 攻+' + (statOf(sit2).atk || 0) + ' 防+' + (statOf(sit2).def || 0) + ' 血+' + (statOf(sit2).hp || 0) + ' 速+' + (statOf(sit2).spd || 0) + '</div>';
           if (sit2.maxDur) h3 += '<div class="li-line">耐久 ' + sit2.dur + '/' + sit2.maxDur + '</div>';
@@ -563,7 +563,7 @@
         }
         if (shopSel != null && S().pack[shopSel]) {
           var pit3 = S().pack[shopSel]; var ic4 = itemIconHTML(pit3, 16);
-          var h4 = '<div class="li-name">' + ic4 + ' ' + pit3.name + '</div>';
+          var h4 = '<div class="li-name">' + pit3.name + '</div>';
           h4 += '<div class="li-cat">' + (pit3.cat || '道具') + (pit3.count > 1 ? (' · ×' + pit3.count) : '') + '</div>';
           if (statOf(pit3) && (statOf(pit3).atk || statOf(pit3).def || statOf(pit3).hp || statOf(pit3).spd)) h4 += '<div class="li-line">属性 攻+' + (statOf(pit3).atk || 0) + ' 防+' + (statOf(pit3).def || 0) + ' 血+' + (statOf(pit3).hp || 0) + ' 速+' + (statOf(pit3).spd || 0) + '</div>';
           if (pit3.maxDur) h4 += '<div class="li-line">耐久 ' + pit3.dur + '/' + pit3.maxDur + '</div>';
@@ -588,7 +588,7 @@
           var def = LF.ITEMS[r.id] || {};
           var ic = def.icon ? ('<span style="font-size:15px;">' + def.icon + '</span> ') : '';
           var price = r.buy; var max = buyMaxNow(r.id);
-          var h = '<div class="li-name">' + ic + (def.name || r.id) + '</div>';
+          var h = '<div class="li-name">' + (def.name || r.id) + '</div>';
           h += '<div class="li-cat">' + (def.cat || '货') + '</div>';
           h += '<div class="li-line">买价 ' + fmtPrice(price) + (max > 0 ? (' · 最多 ' + max + ' 件') : '') + '</div>';
           if (def.desc) h += '<div class="li-line" style="opacity:.85">' + def.desc + '</div>';
@@ -602,14 +602,14 @@
         }
       }
       if (shopBuySel != null && shopBuyPending[shopBuySel]) { var bp = shopBuyPending[shopBuySel]; var d = LF.ITEMS[bp.id] || {};
-        return '<div class="li-name">' + ((d.icon ? ('<span style="font-size:15px;">' + d.icon + '</span> ') : '') + (d.name || bp.id)) + '</div>'
+        return '<div class="li-name">' + (d.name || bp.id) + '</div>'
           + '<div class="li-cat">待付购入</div>'
           + '<div class="li-line">将付 ' + fmtPrice(bp.price * bp.count) + '（' + bp.count + ' 件）</div>'
           + '<div class="li-line" style="opacity:.7">拖回左栏即取消</div>'
           + '<div class="li-acts"><button class="li-act" data-cancel="buy" data-ci="' + shopBuySel + '">取消</button></div>';
       }
       if (shopSellSel != null && shopSellPending[shopSellSel]) { var sp = shopSellPending[shopSellSel]; var sd = LF.ITEMS[sp.defId] || {};
-        return '<div class="li-name">' + ((sd.icon ? ('<span style="font-size:15px;">' + sd.icon + '</span> ') : '') + (sd.name || sp.defId)) + '</div>'
+        return '<div class="li-name">' + (sd.name || sp.defId) + '</div>'
           + '<div class="li-cat">寄售中</div>'
           + '<div class="li-line">将收 ' + fmtPrice(sp.price * sp.count) + '（' + sp.count + ' 件）</div>'
           + '<div class="li-line" style="opacity:.7">拖回右栏即取回</div>'
@@ -618,7 +618,7 @@
       if (shopSel == null || !S().pack[shopSel]) return '<div class="li-name">货郎</div><div class="li-line">点选左边货品或右边物品，可看售价与详情。</div>';
       var it = S().pack[shopSel]; var spr = shopSellPrice(it.defId);
       var ic = itemIconHTML(it, 16);
-      var h = '<div class="li-name">' + ic + ' ' + it.name + '</div>';
+      var h = '<div class="li-name">' + it.name + '</div>';
       h += '<div class="li-cat">' + (it.cat || '道具') + (it.count > 1 ? (' · ×' + it.count) : '') + '</div>';
       if (it.maxDur) h += '<div class="li-line">耐久 ' + it.dur + '/' + it.maxDur + '</div>';
       if (it.desc) h += '<div class="li-line" style="opacity:.85">' + it.desc + '</div>';

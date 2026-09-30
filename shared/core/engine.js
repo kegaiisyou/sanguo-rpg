@@ -1060,7 +1060,7 @@
     if(!enemy) return;
     // 默叔线·狄云舟拦路收尾（coup.moshu 分支）：胜或退皆算出营，统一毕业搬运；败亡交战斗系统处置。
     if (enemy.id === 'diyunzhou' && state.flags && state.flags.coup && state.flags.coup.branch === 'moshu' && !state.flags.coup.moshu_escaped) {
-      if (result === 'lose') return;
+      // v20260930：胜/退/败皆算出营；败亦置 escaped，杜绝战败读档后无限重触发
       state.flags.coup.moshu_escaped = true;
       if (state.flags.onb) state.flags.onb.done = true;
       state.moveGate = null; save(state);
@@ -1073,7 +1073,6 @@
     }
     // 韩铁线·北墙截杀收尾（coup.officer_letter 分支）：胜或退皆算出营，密令在手；败亡交战斗系统处置。
     if (enemy.id === 'yth_intercept' && state.flags && state.flags.coup && state.flags.coup.branch === 'officer_letter' && !state.flags.coup.officer_letter_escaped) {
-      if (result === 'lose') return;
       state.flags.coup.officer_letter_escaped = true;
       if (state.flags.onb) state.flags.onb.done = true;
       state.moveGate = null; save(state);
@@ -1085,14 +1084,14 @@
       return;
     }
     // 新分支收尾（密道先逃救阿禾 / 阿禾线 / 孤身）：胜或退皆算出营，统一毕业
-    if (state.flags && state.flags.coup && !state.flags.coup.done) {
+    // v20260930：原守卫 `!state.flags.coup.done` 在 coup_resolver 置 done 后即恒假，
+    //   导致这三支战斗胜利后永远走不到毕业、被 onEnter 反复重触发（对话→战斗→对话死循环）。
+    //   改为按各分支 escaped 旗标判定，且胜/退/败皆毕业，杜绝软锁与循环。
+    if (state.flags && state.flags.coup) {
       var _cb = state.flags.coup.branch;
-      if (enemy.id === 'camp_guard') {
-        if (result === 'lose') return;
-        if (_cb === 'tunnel_early') { coupGraduate('tunnel_escaped', 'tunnel_early'); return; }
-        if (_cb === 'minor_ahe')    { coupGraduate('ahe_escaped', 'minor_ahe'); return; }
-        if (_cb === 'minor')        { coupGraduate('minor_escaped', 'minor'); return; }
-      }
+      if (_cb === 'tunnel_early' && enemy.id === 'camp_guard' && !state.flags.coup.tunnel_escaped) { coupGraduate('tunnel_escaped', 'tunnel_early'); return; }
+      if (_cb === 'minor_ahe'    && enemy.id === 'camp_guard' && !state.flags.coup.ahe_escaped)    { coupGraduate('ahe_escaped', 'minor_ahe'); return; }
+      if (_cb === 'minor'        && enemy.id === 'camp_guard' && !state.flags.coup.minor_escaped)  { coupGraduate('minor_escaped', 'minor'); return; }
     }
     // 木人试艺（v20260915f）：桩是死物，练的是「打得倒」——故只认打赢，撤了不计。
     if(result==='win' && enemy.id==='dummy'){
@@ -3345,7 +3344,7 @@
   // ===== 通用可放置物品（模板驱动：物品定义 place 字段 → 场景对象） =====
   // 放置物动作表：place.actions 字符串 → 动作函数（物品数据外置，动作需在此注册）
   // 旧存档兼容：早期放置数据仅存 {key:'tent'}（无 defId），用此表回填物品
-  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai', campfire:'campfire', sleepmat:'sleepmat' };
+  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai', campfire:'campfire', sleepmat:'sleepmat', zhangtai:'zhangtai' };
   var PLACE_ACTIONS = {
     tent: function(){
       return [
@@ -3377,6 +3376,14 @@
       return [
         {label:'躺下小睡…', icon:'💤', fn:function(){ closeModal(); openRestModal('sleepmat'); }},
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('sleepmat'); }}
+      ];
+    },
+    // v20260930：账台（P0 经营入口）。玩家在自家铺面放置后，点之即入经营总览（上帝视角）。
+    //   因是玩家放置物，故只出现于自己的店，天然满足「别人店不显示」的约束。
+    manage_shop: function(p){
+      return [
+        {label:'经营总览…', icon:'📊', fn:function(){ closeModal(); openModal('shop_manage', {placed:p}); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('zhangtai'); }}
       ];
     }
   };
@@ -4611,6 +4618,33 @@
     });
   }
   var currentModalOpts=null;   // v20260928h：最近一次 openModal 的 opts（供宅院布置等自定义面板读取）
+  // ═══ 经营总览（P0 占位骨架 · v20260930）═══
+  // 账台物件（玩家在自家铺面放置）点开此面板：上帝视角模拟经营。
+  // 当前为占位骨架，后续接入进货/定价/雇人/装潢/账房（见 city-economy-p0p1.md）：
+  //   · 货品/定价/店员 → 接 citybuild/building 库存与 officers 委任；
+  //   · 装潢 → 纯视觉（招牌/壁纸/摆件），改 state.flags.bldEnt，不进数值；
+  //   · 账房 → 随 advanceTime 月度结算营收/客流/声誉。
+  function renderShopManagePanel(opts){
+    var _bld = (opts && opts.placed && opts.placed.defId) ? (LF.ITEMS[opts.placed.defId]||{}).name || opts.placed.defId : '本铺';
+    var _sec = [
+      ['货品', '进货品类、库存盘点（待接入 · citybuild 库存）'],
+      ['定价', '平价走量 / 高价厚利策略（待接入）'],
+      ['店员', '雇用 / 调换掌柜与伙计（待接入 · 复用 officers 委任）'],
+      ['装潢', '招牌 / 壁纸 / 摆件（纯视觉，待接入 · state.flags.bldEnt）'],
+      ['账房', '本月营收、客流、声望回顾（待接入 · 随 advanceTime 结算）']
+    ];
+    var h='<div class="shop-manage">';
+    h+='<div class="sm-head">📊 经营总览 · '+_bld+'</div>';
+    h+='<div class="sm-tip tip">〔占位骨架〕点账台即入东家视角。下列分区为后续接入项，暂以说明占位。</div>';
+    _sec.forEach(function(s){
+      h+='<div class="surface sm-sec"><div class="sm-sec-t">'+s[0]+'</div><div class="sm-sec-d">'+s[1]+'</div></div>';
+    });
+    h+='</div>';
+    return h;
+  }
+  function bindShopManagePanel(opts){
+    // P0：占位，暂无交互；关闭由模态 X 处理。后续在此绑定各分区按钮。
+  }
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
@@ -4720,6 +4754,8 @@
       h=renderCraftPanel();
     } else if(kind==='shop'){
       h=Shop.openShop(opts && opts.shop);
+    } else if(kind==='shop_manage'){
+      h=renderShopManagePanel(opts);
     } else if(kind==='housefurn'){
       h=renderHouseFurnPanel();
     } else if(kind==='wardStudy'){
@@ -4786,6 +4822,7 @@
     if(kind==='give'){ bindGivePanel(); }
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ Shop.bindShopPanel(); }
+    if(kind==='shop_manage'){ bindShopManagePanel(opts); }
     if(kind==='wardStudy'){ bindWardStudy(); }
     if(kind==='wardFerry'){ bindWardFerry(); }
     if(kind==='build'){ bindBuildPanel(); }

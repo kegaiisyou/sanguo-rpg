@@ -954,6 +954,9 @@
       playCombatFx('win');
       SFX.win();
       toast('胜！+'+drop.gold+'银 +'+drop.pot+'潜能');
+      // v20260930：此前 onCombatResult 仅在 fled 时回调，导致夺营等剧本战斗「胜/败」均不结算、
+      //   回房间后被 onEnter 反复重触发（对话→战斗→对话死循环）。胜/败亦回调，由引擎统一收束毕业。
+      try { if (LF.onCombatResult) LF.onCombatResult('win', enemy); } catch(_e) {}
       showCombatSettlement(summary, exitCombatToRoom);
     } else if(result==='lose'){
       getState().hp=1;
@@ -962,6 +965,8 @@
       playCombatFx('lose');
       SFX.lose();
       toast('败北！气血仅余1点');
+      // v20260930：败亦回调 onCombatResult（夺营等剧本战斗会置 escaped 并毕业，避免读档后无限重触发）
+      try { if (LF.onCombatResult) LF.onCombatResult('lose', enemy); } catch(_e) {}
       showCombatSettlement({result:'lose', enemyName:enemy.name,
         lines:[{text:'重伤倒地，气若游丝——须先「休整」恢复，方可再动。'}]}, exitCombatToRoom);
     } else if(result==='fled'){
@@ -1269,7 +1274,7 @@
   }
   function lootInfoHTML(it){
     if(!it) return '';
-    var h='<div class="li-name">'+itemIconHTML(it,30)+' '+it.name+'</div>';
+    var h='<div class="li-name">'+it.name+'</div>';
     h+='<div class="li-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+it.qualityName):'')+'</div>';
     var lines=[];
     if(it.atk) lines.push('攻 +'+it.atk);

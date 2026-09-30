@@ -70,6 +70,13 @@
     border:1px solid var(--btn-bd); border-radius:var(--r-btn); padding:6px 12px; cursor:pointer; transition:.14s; }
   .tab.active{ background:rgba(176,131,47,.22); color:#6e4f17; font-weight:700; box-shadow:0 -2px 8px -4px rgba(60,48,34,.4); }
   .surface{ background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--r-card); box-shadow:var(--shadow); }
+  /* 经营总览（P0 占位骨架 · v20260930）：复用 .surface，半透明 jade 绿描边呼应「东家视角」 */
+  .shop-manage{ padding:2px; }
+  .shop-manage .sm-head{ font-size:17px; font-weight:800; color:#5b7a52; padding:6px 4px 8px; letter-spacing:1px; }
+  .shop-manage .sm-tip{ margin:0 4px 10px; }
+  .shop-manage .sm-sec{ padding:12px 14px; margin:8px 4px; border-left:3px solid rgba(91,122,82,.5); }
+  .shop-manage .sm-sec-t{ font-weight:800; color:#6e4f17; margin-bottom:4px; }
+  .shop-manage .sm-sec-d{ font-size:13px; color:#7a6a52; line-height:1.5; }
 
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   /* P1 通用按钮按压反馈（兜底规则；各精细 :active 规则特异性更高、位置更靠后，优先生效不冲突） */
@@ -1489,13 +1496,13 @@
   .cs-pane.loot{background:rgba(176,131,47,.06);border-color:rgba(176,131,47,.28);}
   .cs-pane-h{font-size:12.5px;color:var(--ink-soft);letter-spacing:2px;margin-bottom:6px;font-family:"STKaiti","KaiTi",serif;}
   .cs-pane.loot .cs-pane-h{color:#9a6b1e;}
-  .cs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:240px;overflow:auto;padding:4px;align-content:start;grid-auto-rows:minmax(54px,auto);
+  .cs-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;max-height:240px;overflow:auto;padding:4px;align-content:start;
     scrollbar-width:thin;scrollbar-color:rgba(176,131,47,.55) rgba(0,0,0,.08);}
   .cs-grid::-webkit-scrollbar{width:12px;}
   .cs-grid::-webkit-scrollbar-track{background:rgba(0,0,0,.08);border-radius:var(--r-btn);}
   .cs-grid::-webkit-scrollbar-thumb{background:rgba(176,131,47,.55);border-radius:var(--r-btn);border:2px solid rgba(0,0,0,.06);}
   .cs-grid::-webkit-scrollbar-thumb:active{background:rgba(176,131,47,.8);}
-  .cs-grid .packcell{aspect-ratio:1/1;min-height:54px;min-width:0;cursor:pointer;transition:transform .1s,box-shadow .1s,border-color .1s;touch-action:none;user-select:none;}
+  .cs-grid .packcell{aspect-ratio:1/1;min-width:0;cursor:pointer;transition:transform .1s,box-shadow .1s,border-color .1s;touch-action:none;user-select:none;}
   .cs-grid .packcell:hover{transform:translateY(-1px);}
   .cs-grid .packcell.sel{border-color:var(--seal);box-shadow:0 0 0 2px rgba(158,59,46,.45);background:rgba(158,59,46,.07);}
   .cs-grid .packcell.drop-ok{border-color:var(--jade);box-shadow:0 0 0 2px rgba(63,125,94,.5);}
@@ -1503,7 +1510,7 @@
   .cs-grid .packcell.just-rep{border-color:var(--jade)!important;box-shadow:0 0 0 2px rgba(63,125,94,.65);animation:repPulse 1.2s ease-out;}
   .cs-grid .pcell-empty{opacity:.55;border-style:dashed;background:rgba(0,0,0,.16);touch-action:pan-y;}
   .cs-grid .packcell.dragging{opacity:.4;transform:scale(.94);}
-  .cs-grid .pcell-ic{padding:2px 4px 14px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;}
+  .cs-grid .pcell-ic{padding:1px 6px 12px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;}
   .cs-empty{font-size:12px;color:var(--ink-faint);padding:10px 0;text-align:center;}
   .cs-org-cap{font-size:12px;color:var(--ink-faint);margin:9px 0 5px;letter-spacing:1px;}
   .loot-ghost{position:fixed;z-index:300;pointer-events:none;transform:translate(-50%,-50%);font-size:26px;
@@ -1930,8 +1937,8 @@
   .pack-scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.22);border-radius:6px;}
   .pack-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#c8a05c,#8a6f3e);border-radius:6px;border:2px solid rgba(0,0,0,.22);}
   .pack-scroll::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#dab56e,#9a7a44);}
-  .pack-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;}
-  @media (max-width:560px){ /* UISPEC.BREAKPOINTS.MOBILE_MAX=560 */ .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;} }
+  .pack-grid,.cs-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;}
+  @media (max-width:560px){ /* UISPEC.BREAKPOINTS.MOBILE_MAX=560 */ .pack-grid,.cs-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;} }
   .packcell{position:relative;aspect-ratio:1/1;background:rgba(0,0,0,.18);border:1px solid rgba(196,164,102,.22);border-radius:var(--r-btn);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;touch-action:none;overflow:hidden;box-sizing:border-box;padding:3px 2px 1px;}
   .packcell.pcell-empty{touch-action:pan-y;}   /* 空格允许手指拖动滚动列表（物品格仍为 none 以便拖拽） */
   .pcell-rep{box-shadow:0 0 0 2px #e8c062,0 0 10px rgba(232,192,98,.55);border-color:#e8c062 !important;}   /* 装备换下物品高亮 */
@@ -1959,9 +1966,9 @@
   .give-right{flex:1;min-width:0;display:flex;flex-direction:column;}
   .give-col-title{font-family:KaiTi,STKaiti,serif;font-size:12px;letter-spacing:3px;color:#8a5a2a;margin-bottom:6px;text-align:center;}
   .give-grid-scroll{flex:1;overflow-y:auto;min-height:0;}
-  .give-grid-scroll .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+
   .give-item{padding:2px;}
-  .give-item .pcell-ic{padding:1px 2px 8px;font-size:18px;}
+  .give-item .pcell-ic{padding:1px 6px 12px;}
   .give-item-name{position:absolute;bottom:1px;left:0;right:0;font-size:9px;color:#e8d8b0;text-align:center;line-height:1.1;padding:0 2px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.8);}
   .packcell.give-selected{border-color:#e8c062;box-shadow:0 0 0 2px rgba(232,192,98,.5),inset 0 0 12px rgba(232,192,98,.15);background:rgba(232,192,98,.1);}
   .give-detail-box{flex:1;min-height:80px;background:rgba(0,0,0,.2);border:1px solid rgba(196,164,102,.2);border-radius:6px;padding:8px;overflow-y:auto;}
@@ -1987,7 +1994,7 @@
   @media (max-width:560px){
     .give-body{flex-direction:column;}
     .give-left{max-height:45%;}
-    .give-grid-scroll .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+
     .give-item-name{font-size:8px;}
     .give-panel{max-height:85vh;}
   }
@@ -2053,7 +2060,7 @@
   .shop-left,.shop-right{flex:1 1 0;display:flex;flex-direction:column;min-height:0;min-width:0;background:rgba(36,24,12,.30);border:1px solid rgba(196,164,102,.35);border-radius:var(--r-card);padding:6px;box-sizing:border-box;}
   .shop-stage{background:linear-gradient(180deg,rgba(120,90,50,.22),rgba(120,90,50,.06));border-color:rgba(216,170,90,.55);}
   .shop-stage.drop-hl,.shop-right.drop-hl,.shop-left.drop-hl{box-shadow:0 0 0 2px #ffd98a inset;background:rgba(216,180,106,.16);}
-  .shop-stage .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+
   .shop-left{background:linear-gradient(180deg,rgba(120,80,40,.22),rgba(120,80,40,.06));border-color:rgba(216,180,106,.55);}
   .shop-pane-title{flex:0 0 auto;text-align:center;font-size:12px;color:#d8c9a8;margin-bottom:6px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .shop-scroll{flex:1 1 auto;overflow-y:auto;min-height:0;padding-right:5px;scrollbar-width:thin;scrollbar-color:#b08d4f rgba(0,0,0,.22);}
@@ -2078,7 +2085,7 @@
   /* 换格/放置成功后的短暂脉冲反馈（深色主题） */
   @keyframes shopFlash{0%{box-shadow:0 0 0 3px rgba(95,208,160,.8);}100%{box-shadow:0 0 0 0 rgba(95,208,160,0);}}
   .packcell.just-moved{animation:shopFlash .7s ease-out;}
-  .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+
   .pcell-sell{position:absolute;left:3px;bottom:2px;font-size:10px;color:#ffd98a;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   .pcell-dur{position:absolute;left:3px;top:2px;font-size:10px;color:#9fd0e0;background:rgba(0,0,0,.55);border-radius:6px;padding:0 4px;pointer-events:none;}
   /* 待付/待售占位的取消按钮：放大命中区，确保小格内也能点中 */
@@ -2170,7 +2177,7 @@
     .sf-info{font-size:13.5px;}
     .shop-scroll{scrollbar-width:thin;scrollbar-color:#c8a05c rgba(0,0,0,.25);}
     .shop-goods-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
-    .shop-right .pack-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+
     /* v20260822al：手机去正方形锁高（防5字名+价格被裁），分级字号再微缩，价格固定小号不换行 */
     .shop-good{aspect-ratio:auto;min-height:52px;padding:4px 2px 3px;justify-content:center;}
     .shop-good .sg-icon{font-size:20px;margin-bottom:1px;}

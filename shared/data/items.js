@@ -91,6 +91,9 @@
     shuicao:       { defId: 'shuicao', name: '水槽', icon: '🪣', cat: '器具', placeable:true,
       place:{ key:'shuicao', icon:'🪣', name:'水槽', desc:'凿石为槽，蓄泉水以供饮濯；以他器倾注添水，槽满则溢', actions:'shuicao' },
       desc: '凿石为槽，置于室中便可蓄水。槽中水不凭空生，须以盛水之器倾注添满；饮之可解喉间干涸。' },
+    zhangtai:      { defId: 'zhangtai', name: '账台', icon: '📊', cat: '器具', placeable:true,
+      place:{ key:'zhangtai', icon:'📊', name:'账台', desc:'东家专用账台，可在此接管铺面经营（进货/定价/雇人/装潢）', actions:'manage_shop' },
+      desc: '一方东家账台。于自家铺面「放置」后支起，点之即入经营总览，俯瞰买卖盈亏。' },
     shuidai:       { defId: 'shuidai', name: '水袋', icon: '💧', cat: '器具',
       desc: '兽皮缝就的水囊，可盛清水随身。盛满后向水槽倾注，便能给水槽添水。', waterCap:10 },
     // —— 营造系统：建材与图纸 ——

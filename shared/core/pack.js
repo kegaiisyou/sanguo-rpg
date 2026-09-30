@@ -172,7 +172,7 @@
     if(!it){ setPackInspect(null); return '<div class="li-name">行囊</div><div class="li-line">点选物品，可查看其属性、耐久与使用之效。</div>'; }
     var q = LF.ITEMS.QMAP[it.quality] || {name:'凡品',color:'#9a948a'};
     var qname = it.qualityName || q.name;
-    var h='<div class="li-name">'+itemIconHTML(it,15)+' '+it.name+'</div>';
+    var h='<div class="li-name">'+it.name+'</div>';
     h+='<div class="li-cat">'+(it.cat||'道具')+(it.qualityName?(' · '+qname):'')+(it.count>1?(' · ×'+it.count):'')+'</div>';
     if(it.cat==='装备'){
       var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息'],['wuxing','悟性']];
@@ -282,7 +282,7 @@
       if(!dragging) return;
       if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
       if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; document.body.appendChild(ghost); }
-      ghost.textContent=(packGet(dragging)||{}).name||'';
+      var _it=packGet(dragging)||{}; ghost.textContent=_it.icon||_it.name||''; if(_it.icon) ghost.style.fontSize='22px';
       ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
     };
     function endDrag(e, cancelled){
