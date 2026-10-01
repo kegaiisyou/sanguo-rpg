@@ -77,6 +77,7 @@
     if (!amt || amt < 1) { e.result.textContent = '荷官瞥你一眼：「空手下注，是来寻开心的？」'; return; }
     if (amt > gold()) { e.result.textContent = '荷官冷笑：「囊中银两不够，也敢上桌？」（当前 ' + gold() + '）'; return; }
     betBig = big;
+    try { window.SFX && window.SFX.play('diceShake'); } catch (e2) {}
     e.big.disabled = true; e.small.disabled = true; e.amt.disabled = true;
     document.querySelectorAll('.gm-quick').forEach(function (q) { q.style.opacity = .4; });
     e.result.className = 'gm-result rolling';
@@ -116,8 +117,8 @@
     var stopDur = [850, 1450, 2000];
     var stAng = [0.4, 2.2, 4.0], spAng = [0.15, 2.9, 5.6];
     var spinTurns = [1.7, 2.2, 2.6];
-    e.d.forEach(function (d, i) { d.style.transition = 'none'; });
-    var t0 = performance.now(), done = 0;
+    e.d.forEach(function (d, i) { d.style.transition = 'none'; d.removeAttribute('data-face'); });
+    var t0 = performance.now(), done = 0, lastTick = 0;
     function frame(now) {
       var el = now - t0;
       for (var i = 0; i < 3; i++) {
@@ -127,13 +128,26 @@
           var ang = stAng[i] + (spAng[i] - stAng[i]) * kk;
           var x = R * Math.cos(ang), y = R * Math.sin(ang);
           var spin = kk * spinTurns[i] * 720;
-          d.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(1) rotateZ(' + spin + 'deg)';
+          // 跳动 + 翻滚压缩（scaleX 周期收窄=翻面感）+ 侧倾
+          var bounce = Math.sin(el / 92 + i * 2.1) * 7.5;
+          var wav = Math.sin(el / 118 + i * 1.1);
+          var sx = 0.3 + 0.7 * Math.abs(wav);
+          var tilt = (wav >= 0 ? 1 : -1) * (1 - Math.abs(wav)) * 14;
+          // 点数实时变化（骰子翻滚换面）
+          var nowFace = 1 + Math.floor(Math.abs(wav * 6)) % 6;
+          var cur = d.getAttribute('data-face');
+          if (cur !== String(nowFace)) { d.setAttribute('data-face', nowFace); d.innerHTML = diceHTML(nowFace); }
+          // 音效：骰子碰撞嗒嗒
+          var tick = Math.floor(el / 150);
+          if (tick !== lastTick && i === (tick % 3)) { lastTick = tick; try { window.SFX && window.SFX.play('diceTick'); } catch (e2) {} }
+          d.style.transform = 'translate(' + x.toFixed(1) + 'px,' + (y - bounce).toFixed(1) + 'px) scaleX(' + sx.toFixed(2) + ') scaleY(1.12) rotateZ(' + spin + 'deg) rotateZ(' + tilt + 'deg)';
         } else if (d.getAttribute('data-done') !== '1') {
           d.setAttribute('data-done', '1');
           var a = spAng[i];
           var x = R * Math.cos(a), y = R * Math.sin(a);
           var self = d, idx = i;
           // 弹跳落定：先弹起 → 回落归位，顶面揭晓点数（IIFE 传值，防闭包 var 作用域被后续帧覆盖）
+          try { window.SFX && window.SFX.play('diceLand'); } catch (e2) {}
           var tx = x.toFixed(1), ty = y.toFixed(1);
           d.style.transition = 'transform .11s ease-out';
           d.style.transform = 'translate(' + tx + 'px,' + (y - 10).toFixed(1) + 'px) scale(1) rotateZ(0deg)';
@@ -162,9 +176,9 @@
     var label = sum >= 11 ? '大' : '小';
     var z = function (n) { return ['零', '一', '二', '三', '四', '五', '六'][n] || n; };
     var msg;
-    if (bao) { s.gold -= amt; msg = '【豹子】三骰同面（' + faces[0] + '·' + faces[1] + '·' + faces[2] + '）——庄家通吃！银两 -' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result lose'; }
-    else if (win) { s.gold += amt; msg = '【' + label + '】' + z(faces[0]) + z(faces[1]) + z(faces[2]) + '，共 ' + sum + ' 点——' + (betBig ? '大' : '小') + '押中了，通吃赔付！银两 +' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result win'; }
-    else { s.gold -= amt; msg = '【' + label + '】' + z(faces[0]) + z(faces[1]) + z(faces[2]) + '，共 ' + sum + ' 点——庄家收骰，银两 -' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result lose'; }
+    if (bao) { s.gold -= amt; msg = '【豹子】三骰同面（' + faces[0] + '·' + faces[1] + '·' + faces[2] + '）——庄家通吃！银两 -' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result lose'; try { window.SFX && window.SFX.play('lose'); } catch (e2) {} }
+    else if (win) { s.gold += amt; msg = '【' + label + '】' + z(faces[0]) + z(faces[1]) + z(faces[2]) + '，共 ' + sum + ' 点——' + (betBig ? '大' : '小') + '押中了，通吃赔付！银两 +' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result win'; try { window.SFX && window.SFX.play('win'); } catch (e2) {} }
+    else { s.gold -= amt; msg = '【' + label + '】' + z(faces[0]) + z(faces[1]) + z(faces[2]) + '，共 ' + sum + ' 点——庄家收骰，银两 -' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result lose'; try { window.SFX && window.SFX.play('lose'); } catch (e2) {} }
     e.result.textContent = msg;
     e.gold.textContent = s.gold;
     e.big.classList.add('hidden'); e.small.classList.add('hidden'); e.again.classList.remove('hidden');

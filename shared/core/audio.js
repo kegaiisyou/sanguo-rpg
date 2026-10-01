@@ -451,8 +451,10 @@
     coin: sfxCoin,
     error: sfxError,
     levelup: sfxLevelup,
+
     play: function (name) {
-      var fn = { click: sfxClick, coin: sfxCoin, confirm: sfxConfirm, cancel: sfxCancel, open: sfxOpen, close: sfxClose, error: sfxError, levelup: sfxLevelup, attack: sfxAttack, hit: sfxHit, crit: sfxCrit, miss: sfxMiss, defend: sfxDefend, heal: sfxHeal, skill: sfxSkill, victory: sfxVictory, defeat: sfxDefeat }[name];
+      var fn = { click: sfxClick, coin: sfxCoin, confirm: sfxConfirm, cancel: sfxCancel, open: sfxOpen, close: sfxClose, error: sfxError, levelup: sfxLevelup, attack: sfxAttack, hit: sfxHit, crit: sfxCrit, miss: sfxMiss, defend: sfxDefend, heal: sfxHeal, skill: sfxSkill, victory: sfxVictory, defeat: sfxDefeat,
+        diceShake: sfxDiceShake, diceLand: sfxDiceLand, diceTick: sfxDiceTick, win: sfxWin, lose: sfxLose }[name];
       if (fn) fn();
     },
     startBgm: startBgm,
@@ -468,4 +470,52 @@
     isBgmPlaying: function () { return bgmState !== 'stopped'; },
     unlock: unlock
   };
+
+  // ── 赌坊骰子音效（Web Audio 代码合成，统一走 sfxGain 音量）──
+  function sfxDiceShake() {
+    var c = ensureCtx(); if (!c || !enabled) return;
+    var t = c.currentTime;
+    for (var i = 0; i < 9; i++) {
+      var t0 = t + i * (0.028 + Math.random() * 0.03);
+      var len = Math.floor(c.sampleRate * 0.03);
+      var buf = c.createBuffer(1, len, c.sampleRate);
+      var d = buf.getChannelData(0);
+      for (var j = 0; j < len; j++) d[j] = (Math.random() * 2 - 1) * (1 - j / len);
+      var src = c.createBufferSource(); src.buffer = buf;
+      var f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700 + Math.random() * 1600; f.Q.value = 2.2;
+      var g = c.createGain(); g.gain.value = 0.4;
+      src.connect(f); f.connect(g); g.connect(sfxGain);
+      src.start(t0);
+    }
+  }
+  function sfxDiceLand() {
+    var c = ensureCtx(); if (!c || !enabled) return;
+    var t = c.currentTime;
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = 'triangle'; o.frequency.value = 150 + Math.random() * 40;
+    g.gain.setValueAtTime(0.55, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+    o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t + 0.13);
+    var len = Math.floor(c.sampleRate * 0.018);
+    var buf = c.createBuffer(1, len, c.sampleRate);
+    var dd = buf.getChannelData(0);
+    for (var j = 0; j < len; j++) dd[j] = (Math.random() * 2 - 1) * (1 - j / len);
+    var src = c.createBufferSource(); src.buffer = buf;
+    var g2 = c.createGain(); g2.gain.value = 0.35;
+    src.connect(g2); g2.connect(sfxGain); src.start(t);
+  }
+  function sfxDiceTick() {
+    var c = ensureCtx(); if (!c || !enabled) return;
+    var t = c.currentTime;
+    var len = Math.floor(c.sampleRate * 0.012);
+    var buf = c.createBuffer(1, len, c.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var j = 0; j < len; j++) d[j] = (Math.random() * 2 - 1) * (1 - j / len);
+    var src = c.createBufferSource(); src.buffer = buf;
+    var f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2200;
+    var g = c.createGain(); g.gain.value = 0.22;
+    src.connect(f); f.connect(g); g.connect(sfxGain);
+    src.start(t);
+  }
+  function sfxWin() { try { sfxVictory(); sfxCoin(); } catch (e) {} }
+  function sfxLose() { try { sfxDefeat(); } catch (e) {} }
 })(typeof window !== 'undefined' ? window : globalThis);
