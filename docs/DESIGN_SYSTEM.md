@@ -51,7 +51,7 @@
 
 - 主面板结构：`modal-card` 内含 标题(匾额) + 主体（常见左右分栏：左装备/右物品，或左列表/右详情）。
 - 表面用 `.surface` 或既有 `.pack-left/.pack-right` 风格（紫调=装备、金调=物品），保持区分度。
-- 移动端（≤560px）网格降列（如 `.pack-grid` 5→3 列），点击热区≥44px。
+- 移动端无需硬降列——统一网格用 `repeat(auto-fill,minmax(60px,1fr))` 自适应列数（固定格宽，跨界面等像素，点击热区≥44px）。
 
 ## 5. 提交前自检清单（Review Checklist）
 
@@ -64,10 +64,10 @@
 
 ## 6. 物品格子与详情（统一规范，v20260929i 落地）
 
-所有"摆放物品的格子"界面——背包(`pack`)、战利品(`cs`)、仓库(`storage`)、给与(`give`)、工作台材料区（若有）——**必须**统一：
+所有"摆放物品的格子"界面——背包(`pack`)、战利品(`cs`)、仓库(`storage`)、给与(`give`)、交易界面货郎货物(`shop-goods-grid`)、工作台材料区（若有）——**必须**统一：
 
-- **网格类**：共用 `.pack-grid` 与 `.cs-grid`（二者现已等价）：桌面 `repeat(5,minmax(0,1fr))`、手机 `≤560px` 降为 `repeat(3,…)`、`gap:6px`。
-- **单元格**：统一 `.packcell`（正方形 `aspect-ratio:1/1`，金/深色表面随容器，点击热区≥44px）。**禁止**为某个格子再写独立的 `grid-template-columns` / `min-height` / 图标字号覆盖（v20260929i 已清理 `cs-grid` / `give-grid` / `shop-*` 的散落覆盖）。
+- **网格类**：共用 `.pack-grid` / `.cs-grid` / `.shop-goods-grid`（三者现已等价）：`repeat(auto-fill,minmax(60px,1fr))`、`gap:6px`——固定格宽，跨界面等像素，按容器宽度自动排布列数（桌面/手机同一规则，无需硬降列）。
+- **单元格**：统一 `.packcell`（正方形 `aspect-ratio:1/1`，金/深色表面随容器，点击热区≥44px）；交易货物单元格 `.shop-good` 同样正方形。**禁止**为某个格子再写独立的 `grid-template-columns` / `min-height` / 图标字号覆盖（v20260929i 清理 `cs-grid`/`give-grid` 散落覆盖，v20260930p 将最后遗漏的 `.shop-goods-grid` 3 列覆盖与移动端 `.shop-good` 长方形覆盖并入统一网格）。
 - **详情**：统一用 `.loot-info` 浮层 + `.li-*` 内容，布局一致。**`.li-name` 不再显示图标**——格子本身已显示缩略图标，重复图标删除；图标仅保留在"无缩略图"的场景（图鉴/codex）。
 - **拖动鬼影**：背包/战利品拖动时显示物品图标（`.pack-ghost` / `.loot-ghost`），**禁止**显示纯文字名（v20260929i 修背包回退成文字的 bug）。
 
