@@ -28,6 +28,9 @@
         { id: 'shelf_wood',   buy: 30,  sell: 12 },
         { id: 'shelf_iron',   buy: 80,  sell: 32 },
         { id: 'shelf_carved', buy: 200, sell: 80 },
+        { id: 'box_small',    buy: 8,   sell: 3  },
+        { id: 'box_wood',     buy: 24,  sell: 10 },
+        { id: 'box_cabinet',  buy: 60,  sell: 24 },
         { id: 'ceshizhizhu', buy: 888, sell: 300 },
         // —— 扩充：食材 / 资材 / 铁料 / 兵器 / 行囊 ——
         { id: 'shengrou',     buy: 12, sell: 4 },

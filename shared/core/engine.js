@@ -3389,12 +3389,10 @@
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('zhangtai'); }}
       ];
     },
-    shop_shelf: function(p){
+    container: function(p){
       return [
-        {label:'上架', icon:'📥', fn:function(){ closeModal(); openModal('shop_shelf', {placed:p, mode:'in'}); }},
-        {label:'下架', icon:'📤', fn:function(){ closeModal(); openModal('shop_shelf', {placed:p, mode:'out'}); }},
-        {label:'补货', icon:'🔁', fn:function(){ Shop.shelfRestock(p); }},
-        {label:'拾取', icon:'📦', fn:function(){ Shop.shelfPickup(p); }}
+        {label:'打开', icon:'📂', fn:function(){ closeModal(); openModal('container', {placed:p}); }},
+        {label:'收起', icon:'📦', fn:function(){ Shop.contPickup(p); }}
       ];
     }
   };
@@ -4815,7 +4813,7 @@
       if(opts && opts.site) buildState.site = opts.site;
       h=renderBuildPanel();
     } else if(kind==='storage'){ storageCid=(opts&&opts.cid)?opts.cid:state.room; h=Shop.openShop(storageCid,'storage');
-    } else if(kind==='shop_shelf'){ h=Shop.renderShelfPanel(opts);
+    } else if(kind==='container'){ h=Shop.renderContainerPanel(opts);
     } else if(kind==='rest'){
       if(opts && opts.kind) restState.kind = opts.kind;
       h=renderRestPanel();
@@ -4861,7 +4859,7 @@
     }
     $card.innerHTML=h;
     injectModalFb();   // v20260915j：每扇窗都带顶部反馈条（操作结果不再被面板挡死）
-    $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage' || kind==='give');
+    $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage' || kind==='give' || kind==='container');
     $card.classList.toggle('give-card', kind==='give');
     $card.classList.toggle('levelup-card', kind==='levelup');
     // 捏人界面隐藏右上角 X 按钮（不可中途退出，v20260908j）
@@ -4880,7 +4878,7 @@
     if(kind==='wardFerry'){ bindWardFerry(); }
     if(kind==='build'){ bindBuildPanel(); }
     if(kind==='storage'){ Shop.bindShopPanel(); }
-    if(kind==='shop_shelf'){ Shop.bindShelfPanel(opts.placed); }
+    if(kind==='container'){ Shop.bindContainerPanel(opts.placed); }
     if(kind==='housefurn'){ bindHouseFurnPanel(); }
     if(kind==='rest'){ bindRestPanel(); }
     if(kind==='forge'){ bindForgePanel(); }

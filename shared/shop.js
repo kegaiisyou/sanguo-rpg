@@ -968,58 +968,82 @@
       };
     });
   }
-  function shelfInit(p){ if(!p.shelf){ var d=window.LF.ITEMS[p.defId]||{}; p.shelf={ slots:d.shelfSlots||8, types:d.shelfTypes||4, items:[] }; } }
-  function shelfCount(p){ var n=0; (p.shelf.items||[]).forEach(function(it){ n+=it.n; }); return n; }
-  function shelfTypesUsed(p){ return (p.shelf.items||[]).length; }
-  function shelfRoom(p){ return p.shelf.slots - shelfCount(p); }
-  function shelfAdd(p, defId, n){
-    shelfInit(p);
-    var have=packFind(defId); if(have<=0){ toast('行囊里没有'+((window.LF.ITEMS[defId]||{}).name||'此物')+'。'); return; }
-    n=Math.min(n, have);
-    var ex=null; for(var i=0;i<p.shelf.items.length;i++){ if(p.shelf.items[i].id===defId){ ex=p.shelf.items[i]; break; } }
-    if(!ex && shelfTypesUsed(p)>=p.shelf.types){ toast('货架种类已满（'+p.shelf.types+' 类）。'); return; }
-    n=Math.min(n, shelfRoom(p)); if(n<=0){ toast('货架已塞满。'); return; }
+  // ── 放置容器（箱子/柜子/货架通用，v20260930q）：槽位数组存储，支持点击与拖拽双向搬运 ──
+  function contInit(p){
+    var d = window.LF.ITEMS[p.defId] || {};
+    var n = d.contSlots || d.shelfSlots || 4;
+    if(p.shelf && !p.cont){ // 旧货架数据迁移
+      var oi = (p.shelf.items||[]); var os = []; for(var k=0;k<n;k++){ os.push(oi[k] ? {id:oi[k].id, n:oi[k].n} : null); }
+      p.cont = { slots: os };
+    }
+    if(!p.cont || !p.cont.slots || p.cont.slots.length!==n){
+      var old = (p.cont && p.cont.slots) || []; var slots = [];
+      for(var i2=0;i2<n;i2++){ slots.push(old[i2] ? {id:old[i2].id, n:old[i2].n} : null); }
+      p.cont = { slots: slots };
+    }
+  }
+  function contCount(p){ var n=0; (p.cont.slots||[]).forEach(function(s){ if(s) n+=s.n; }); return n; }
+  function contRoom(p){ return (p.cont.slots?p.cont.slots.length:0) - contCount(p); }
+  function contPut(p, defId, n){
+    contInit(p);
+    var have = packFind(defId); if(have<=0){ toast('行囊里没有'+((window.LF.ITEMS[defId]||{}).name||'此物')+'。'); return; }
+    n = Math.min(n, have, contRoom(p)); if(n<=0){ toast('容器已塞满。'); return; }
     packConsume(defId, n);
-    if(ex) ex.n+=n; else p.shelf.items.push({id:defId, n:n});
-    afterPackChange(); refreshShelfPanel(p);
+    var i; for(i=0;i<p.cont.slots.length && n>0;i++){ var s=p.cont.slots[i]; if(s && s.id===defId){ s.n+=n; n=0; } }
+    if(n>0){ for(i=0;i<p.cont.slots.length;i++){ if(!p.cont.slots[i]){ p.cont.slots[i]={id:defId,n:n}; n=0; break; } } }
+    afterPackChange(); refreshContainerPanel(p);
   }
-  function shelfTake(p, idx, n){
-    shelfInit(p);
-    var it=p.shelf.items[idx]; if(!it||it.n<=0) return;
-    n=Math.min(n, it.n); var ok=packAdd(it.id, n); if(!ok){ toast('行囊已满。'); return; }
-    it.n-=n; if(it.n<=0) p.shelf.items.splice(idx,1);
-    afterPackChange(); refreshShelfPanel(p);
+  function contTake(p, idx, n){
+    contInit(p);
+    var s=p.cont.slots[idx]; if(!s||s.n<=0) return;
+    n=Math.min(n, s.n); var ok=packAdd(s.id, n); if(!ok){ toast('行囊已满。'); return; }
+    s.n-=n; if(s.n<=0) p.cont.slots[idx]=null;
+    afterPackChange(); refreshContainerPanel(p);
   }
-  function shelfRestock(p){
-    shelfInit(p);
-    (p.shelf.items||[]).slice().forEach(function(it){ var w=shelfRoom(p); if(w<=0) return; var have=packFind(it.id); if(have>0) shelfAdd(p, it.id, Math.min(have, w)); });
-    toast('已按架上现有种类从行囊补货。'); refreshShelfPanel(p);
+  function contPickup(p){
+    contInit(p);
+    (p.cont.slots||[]).forEach(function(s){ if(s&&s.n>0) packAdd(s.id, s.n); });
+    packUpPlaced(p.key); closeModal();
   }
-  function shelfPickup(p){
-    if(p.shelf && p.shelf.items){ p.shelf.items.forEach(function(it){ if(it.n>0) packAdd(it.id, it.n); }); }
-    packUpPlaced('shop_shelf');
+  function refreshContainerPanel(p){
+    var card=document.getElementById('modal-card');
+    if(card && getCurrentModalKind()==='container'){ card.innerHTML=renderContainerPanel({placed:p}); bindContainerPanel(p); }
   }
-  function refreshShelfPanel(p){ var card=document.getElementById('modal-card'); if(card && getCurrentModalKind()==='shop_shelf'){ card.innerHTML=renderShelfPanel({placed:p, mode:(window._shelfMode||'in')}); bindShelfPanel(p); } }
-  function renderShelfPanel(opts){
-    opts=opts||{};
-    var p=opts.placed; if(!p){ return '<p class="tip">货架数据缺失。</p>'; }
-    shelfInit(p); window._shelfMode = opts.mode||'in';
-    var d=window.LF.ITEMS[p.defId]||{}; var items=p.shelf.items||[]; var cells='';
-    for(var i=0;i<p.shelf.slots;i++){ var it=items[i];
-      if(it&&it.n>0){ cells+='<button class="packcell" data-sf-idx="'+i+'">'+itemIconHTML({name:((window.LF.ITEMS[it.id]||{}).name||'物')},16)+'<span class="pc-n">'+it.n+'</span></button>'; }
+  function renderContainerPanel(opts){
+    opts=opts||{}; var p=opts.placed; if(!p){ return '<p class="tip">容器数据缺失。</p>'; }
+    contInit(p);
+    var d=window.LF.ITEMS[p.defId]||{}; var slots=p.cont.slots||[]; var cells='';
+    for(var i=0;i<slots.length;i++){ var s=slots[i];
+      if(s&&s.n>0){ var dd=window.LF.ITEMS[s.id]||{}; cells+='<button class="packcell" draggable="true" data-c-idx="'+i+'">'+itemIconHTML({defId:s.id, name:dd.name||'物', icon:dd.icon||''},16)+'<span class="pc-n">'+s.n+'</span></button>'; }
       else { cells+='<div class="packcell empty"></div>'; } }
     var pk='';
-    (S().pack||[]).forEach(function(it, idx){ if(!it) return; pk+='<button class="packcell" data-pk-idx="'+idx+'">'+itemIconHTML(it,16)+'<span class="pc-n">'+(it.count||1)+'</span></button>'; });
+    (S().pack||[]).forEach(function(it, idx){ if(!it) return; pk+='<button class="packcell" draggable="true" data-pk-idx="'+idx+'">'+itemIconHTML(it,16)+'<span class="pc-n">'+(it.count||1)+'</span></button>'; });
     if(!pk) pk='<div class="packcell empty"></div>';
-    return '<h3>货架 · '+d.name+'</h3>'+
-      '<p class="tip">容量 '+p.shelf.slots+' 格 / 至多 '+p.shelf.types+' 类。点行囊物品→上架，点货架物品→下架（按住 Shift 单件操作）。</p>'+
-      '<div class="shelf-wrap"><div class="shelf-col"><div class="shelf-t">货架（'+shelfCount(p)+'/'+p.shelf.slots+'）</div><div class="pack-grid" id="shelf-grid">'+cells+'</div></div>'+
-      '<div class="shelf-col"><div class="shelf-t">行囊</div><div class="pack-grid" id="shelf-pack">'+pk+'</div></div></div>';
+    return '<h3>'+d.name+'</h3>'+
+      '<p class="tip">容量 '+slots.length+' 格。点行囊物→存入，点容器内物→取出（按住 Shift 单件操作）；亦可拖拽。点「收起」将箱内物收回行囊并收起容器。</p>'+
+      '<div class="shelf-wrap"><div class="shelf-col"><div class="shelf-t">容器（'+contCount(p)+'/'+slots.length+'）</div><div class="pack-grid" id="cont-grid">'+cells+'</div></div>'+
+      '<div class="shelf-col"><div class="shelf-t">行囊</div><div class="pack-grid" id="cont-pack">'+pk+'</div></div></div>'+
+      '<div class="sheet-row"><button class="btn" id="cont-pickup">收 起</button></div>';
   }
-  function bindShelfPanel(p){
+  function bindContainerPanel(p){
     var card=document.getElementById('modal-card'); if(!card) return;
-    card.querySelectorAll('[data-sf-idx]').forEach(function(b){ b.onclick=function(){ shelfTake(p, parseInt(b.getAttribute('data-sf-idx'),10), (window.event&&window.event.shiftKey?1:99)); }; });
-    card.querySelectorAll('[data-pk-idx]').forEach(function(b){ b.onclick=function(){ var idx=parseInt(b.getAttribute('data-pk-idx'),10); var it=S().pack[idx]; if(it) shelfAdd(p, it.defId, (window.event&&window.event.shiftKey?1:99)); }; });
+    var src=null;
+    card.querySelectorAll('[data-c-idx]').forEach(function(b){ b.onclick=function(e){ contTake(p, parseInt(b.getAttribute('data-c-idx'),10), (e&&e.shiftKey?1:999)); }; });
+    card.querySelectorAll('[data-pk-idx]').forEach(function(b){ b.onclick=function(e){ var idx=parseInt(b.getAttribute('data-pk-idx'),10); var it=S().pack[idx]; if(it) contPut(p, it.defId, (e&&e.shiftKey?1:999)); }; });
+    card.querySelectorAll('[data-pk-idx],[data-c-idx]').forEach(function(b){
+      b.ondragstart=function(e){ src={from:b.hasAttribute('data-pk-idx')?'pack':'cont', idx:parseInt(b.getAttribute('data-pk-idx')||b.getAttribute('data-c-idx'),10)}; if(e&&e.dataTransfer) e.dataTransfer.setData('text/plain','x'); if(e) e.stopPropagation(); };
+    });
+    function dropOn(target){
+      if(!src) return;
+      if(target==='cont' && src.from==='pack'){ var it=S().pack[src.idx]; if(it) contPut(p, it.defId, 999); }
+      else if(target==='pack' && src.from==='cont'){ contTake(p, src.idx, 999); }
+      src=null;
+    }
+    var cg=card.querySelector('#cont-grid'), cp=card.querySelector('#cont-pack');
+    [cg,cp].forEach(function(g){ if(g) g.ondragover=function(e){ if(e) e.preventDefault(); }; });
+    if(cg) cg.ondrop=function(e){ if(e) e.preventDefault(); dropOn('cont'); };
+    if(cp) cp.ondrop=function(e){ if(e) e.preventDefault(); dropOn('pack'); };
+    var pu=card.querySelector('#cont-pickup'); if(pu) pu.onclick=function(){ contPickup(p); };
   }
     return {
       openShop: openShop,
@@ -1034,17 +1058,15 @@
       // ── 模拟经营：经营面板 + 货架（抽离自 engine.js，v20260930o）──
       renderShopInteractPanel: renderShopInteractPanel,
       bindShopInteractPanel: bindShopInteractPanel,
-      shelfInit: shelfInit,
-      shelfCount: shelfCount,
-      shelfTypesUsed: shelfTypesUsed,
-      shelfRoom: shelfRoom,
-      shelfAdd: shelfAdd,
-      shelfTake: shelfTake,
-      shelfRestock: shelfRestock,
-      shelfPickup: shelfPickup,
-      refreshShelfPanel: refreshShelfPanel,
-      renderShelfPanel: renderShelfPanel,
-      bindShelfPanel: bindShelfPanel
+      contInit: contInit,
+      contCount: contCount,
+      contRoom: contRoom,
+      contPut: contPut,
+      contTake: contTake,
+      contPickup: contPickup,
+      renderContainerPanel: renderContainerPanel,
+      bindContainerPanel: bindContainerPanel,
+      refreshContainerPanel: refreshContainerPanel
     };
   };
 })(window);
