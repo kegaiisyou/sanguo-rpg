@@ -21,6 +21,10 @@
     var positionFloat    = ctx.positionFloat;
     var closeModal       = ctx.closeModal;
     var $card            = ctx.getCard();
+    var packConsume      = ctx.packConsume;
+    var openModal        = ctx.openModal;
+    var packUpPlaced     = ctx.packUpPlaced;
+    var getCurrentModalKind = ctx.getCurrentModalKind;
 
     // 当前 game state（动态获取，确保读档/新局后引用正确）
     function S() { return ctx.getState(); }
@@ -927,6 +931,96 @@
       return renderShopPanel();
     }
 
+  // ── 模拟经营：市集店铺经营面板（F1 改名）+ 店内货架系统（F2）── 抽离自 engine.js（v20260930o），降低主程序耦合
+  function renderShopInteractPanel(opts){
+    opts=opts||{};
+    var cid=opts.cid, x=opts.x, y=opts.y, key=opts.key;
+    var bd=(window.getBUILDINGS&&window.getBUILDINGS()[key])||{};
+    var sign=opts.sign||bd.name||key;
+    var sh=window.shopInst?window.shopInst(cid,x,y,key):null;
+    var owned=sh&&sh.owner==='player';
+    var rows='';
+    rows+='<button class="act" data-act="enter_building" data-building="'+key+'" data-sign="'+sign+'">进入店铺</button>';
+    if(owned){
+      rows+='<button class="act" data-act="shop_ledger" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">查 账（库存/资金/客流）</button>';
+      var t=window.shopTpl?window.shopTpl(key):null;
+      if(t&&t.bench) rows+='<button class="act" data-act="shop_workbench" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">作 坊（店内制作）</button>';
+      rows+='<button class="act" data-act="shop_stock" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">上 架（摆货上架）</button>';
+      rows+='<button class="act" data-act="shop_upgrade" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">扩 店（升等级）</button>';
+      rows+='<button class="act" data-act="shop_furnish" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">布 置（陈设家具）</button>';
+      rows+='<div class="sf-rename"><input id="rename-shop-input" class="txt" maxlength="12" value="'+sign+'"><button class="act" data-act="shop_rename" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'">改 名</button></div>';
+    } else {
+      rows+='<button class="act" data-act="broker_shop" data-cid="'+cid+'" data-x="'+x+'" data-y="'+y+'" data-key="'+key+'" data-sign="'+sign+'">盘下此店（看铺面/带人与否）</button>';
+    }
+    return '<h3>「'+sign+'」</h3><p class="tip">'+(bd.sub||'掌柜含笑相迎，问客官想要点什么。')+'</p><div class="sf-acts-col">'+rows+'</div>';
+  }
+  function bindShopInteractPanel(){
+    var box=$card;
+    box.querySelectorAll('button[data-act]').forEach(function(b){
+      b.onclick=function(){
+        var act=b.getAttribute('data-act');
+        var d={};
+        ['cid','x','y','key','building','sign'].forEach(function(a){ var v=b.getAttribute('data-'+a); if(v!==null) d[a]=(a==='x'||a==='y')?parseInt(v,10):v; });
+        if(act==='shop_rename'){ d.name=(document.getElementById('rename-shop-input')||{}).value||''; }
+        if(act==='broker_shop'){ closeModal(); openModal('broker',{kind:'shop',cid:d.cid,x:d.x,y:d.y,key:d.key,sign:d.sign}); return; }
+        closeModal();
+        if(window.handleAction) window.handleAction(act,{id:act,data:d});
+      };
+    });
+  }
+  function shelfInit(p){ if(!p.shelf){ var d=window.LF.ITEMS[p.defId]||{}; p.shelf={ slots:d.shelfSlots||8, types:d.shelfTypes||4, items:[] }; } }
+  function shelfCount(p){ var n=0; (p.shelf.items||[]).forEach(function(it){ n+=it.n; }); return n; }
+  function shelfTypesUsed(p){ return (p.shelf.items||[]).length; }
+  function shelfRoom(p){ return p.shelf.slots - shelfCount(p); }
+  function shelfAdd(p, defId, n){
+    shelfInit(p);
+    var have=packFind(defId); if(have<=0){ toast('行囊里没有'+((window.LF.ITEMS[defId]||{}).name||'此物')+'。'); return; }
+    n=Math.min(n, have);
+    var ex=null; for(var i=0;i<p.shelf.items.length;i++){ if(p.shelf.items[i].id===defId){ ex=p.shelf.items[i]; break; } }
+    if(!ex && shelfTypesUsed(p)>=p.shelf.types){ toast('货架种类已满（'+p.shelf.types+' 类）。'); return; }
+    n=Math.min(n, shelfRoom(p)); if(n<=0){ toast('货架已塞满。'); return; }
+    packConsume(defId, n);
+    if(ex) ex.n+=n; else p.shelf.items.push({id:defId, n:n});
+    afterPackChange(); refreshShelfPanel(p);
+  }
+  function shelfTake(p, idx, n){
+    shelfInit(p);
+    var it=p.shelf.items[idx]; if(!it||it.n<=0) return;
+    n=Math.min(n, it.n); var ok=packAdd(it.id, n); if(!ok){ toast('行囊已满。'); return; }
+    it.n-=n; if(it.n<=0) p.shelf.items.splice(idx,1);
+    afterPackChange(); refreshShelfPanel(p);
+  }
+  function shelfRestock(p){
+    shelfInit(p);
+    (p.shelf.items||[]).slice().forEach(function(it){ var w=shelfRoom(p); if(w<=0) return; var have=packFind(it.id); if(have>0) shelfAdd(p, it.id, Math.min(have, w)); });
+    toast('已按架上现有种类从行囊补货。'); refreshShelfPanel(p);
+  }
+  function shelfPickup(p){
+    if(p.shelf && p.shelf.items){ p.shelf.items.forEach(function(it){ if(it.n>0) packAdd(it.id, it.n); }); }
+    packUpPlaced('shop_shelf');
+  }
+  function refreshShelfPanel(p){ var card=document.getElementById('modal-card'); if(card && getCurrentModalKind()==='shop_shelf'){ card.innerHTML=renderShelfPanel({placed:p, mode:(window._shelfMode||'in')}); bindShelfPanel(p); } }
+  function renderShelfPanel(opts){
+    opts=opts||{};
+    var p=opts.placed; if(!p){ return '<p class="tip">货架数据缺失。</p>'; }
+    shelfInit(p); window._shelfMode = opts.mode||'in';
+    var d=window.LF.ITEMS[p.defId]||{}; var items=p.shelf.items||[]; var cells='';
+    for(var i=0;i<p.shelf.slots;i++){ var it=items[i];
+      if(it&&it.n>0){ cells+='<button class="packcell" data-sf-idx="'+i+'">'+itemIconHTML({name:((window.LF.ITEMS[it.id]||{}).name||'物')},16)+'<span class="pc-n">'+it.n+'</span></button>'; }
+      else { cells+='<div class="packcell empty"></div>'; } }
+    var pk='';
+    (S().pack||[]).forEach(function(it, idx){ if(!it) return; pk+='<button class="packcell" data-pk-idx="'+idx+'">'+itemIconHTML(it,16)+'<span class="pc-n">'+(it.count||1)+'</span></button>'; });
+    if(!pk) pk='<div class="packcell empty"></div>';
+    return '<h3>货架 · '+d.name+'</h3>'+
+      '<p class="tip">容量 '+p.shelf.slots+' 格 / 至多 '+p.shelf.types+' 类。点行囊物品→上架，点货架物品→下架（按住 Shift 单件操作）。</p>'+
+      '<div class="shelf-wrap"><div class="shelf-col"><div class="shelf-t">货架（'+shelfCount(p)+'/'+p.shelf.slots+'）</div><div class="pack-grid" id="shelf-grid">'+cells+'</div></div>'+
+      '<div class="shelf-col"><div class="shelf-t">行囊</div><div class="pack-grid" id="shelf-pack">'+pk+'</div></div></div>';
+  }
+  function bindShelfPanel(p){
+    var card=document.getElementById('modal-card'); if(!card) return;
+    card.querySelectorAll('[data-sf-idx]').forEach(function(b){ b.onclick=function(){ shelfTake(p, parseInt(b.getAttribute('data-sf-idx'),10), (window.event&&window.event.shiftKey?1:99)); }; });
+    card.querySelectorAll('[data-pk-idx]').forEach(function(b){ b.onclick=function(){ var idx=parseInt(b.getAttribute('data-pk-idx'),10); var it=S().pack[idx]; if(it) shelfAdd(p, it.defId, (window.event&&window.event.shiftKey?1:99)); }; });
+  }
     return {
       openShop: openShop,
       bindShopPanel: bindShopPanel,
@@ -936,7 +1030,21 @@
       removeBuyPending: removeBuyPending,
       removeSellPending: removeSellPending,
       confirmTrade: confirmTrade,
-      renderShopPanel: renderShopPanel
+      renderShopPanel: renderShopPanel,
+      // ── 模拟经营：经营面板 + 货架（抽离自 engine.js，v20260930o）──
+      renderShopInteractPanel: renderShopInteractPanel,
+      bindShopInteractPanel: bindShopInteractPanel,
+      shelfInit: shelfInit,
+      shelfCount: shelfCount,
+      shelfTypesUsed: shelfTypesUsed,
+      shelfRoom: shelfRoom,
+      shelfAdd: shelfAdd,
+      shelfTake: shelfTake,
+      shelfRestock: shelfRestock,
+      shelfPickup: shelfPickup,
+      refreshShelfPanel: refreshShelfPanel,
+      renderShelfPanel: renderShelfPanel,
+      bindShelfPanel: bindShelfPanel
     };
   };
 })(window);

@@ -66,3 +66,11 @@
 
 - **F1 店铺改名**：在经营页可改店名，改名后同步到该格市场的店招显示。
 - **F2 货架系统**：多级货架（木/铁/雕花）可自制（工作台）或货郎购买；可放背包/放置店内；点击店内货架弹 NPC 式菜单（上架/下架/补货/拾取）；上架窗口为限制格数的仓库式界面。详见实现提交记录。
+
+## 八、代码组织（已抽取，v20260930o）
+
+- 经营面板渲染（`renderShopInteractPanel` / `bindShopInteractPanel`）与店内货架系统（`renderShelfPanel` / `bindShelfPanel` / `shelfInit` / `shelfCount` / `shelfTypesUsed` / `shelfRoom` / `shelfAdd` / `shelfTake` / `shelfRestock` / `shelfPickup` / `refreshShelfPanel`）已从 `shared/core/engine.js` 抽取至 `shared/shop.js`（并入既有 `LF.createShop` 工厂）。
+- engine.js 现在只保留 `openModal` 分派与 `bind` 分派里对 `Shop.renderShopInteractPanel` / `Shop.renderShelfPanel` / `Shop.bindShopInteractPanel` / `Shop.bindShelfPanel` / `Shop.shelf*` 的调用；改名落库 `setShopSign` 保留在 `shared/core/city.js`。
+- 目的：模拟经营后续要叠顾客消费 / 多级加工 / 技艺树 / 跨城商队等大量改动，先抽离避免把 engine.js（中枢）越改越重、降低误伤主程序风险。
+- 模块范式遵循既有 `createShop`：`pack*` / `afterPackChange` / `toast` / `itemIconHTML` / `closeModal` / `openModal` / `packUpPlaced` / `getCurrentModalKind`（currentModalKind 用函数式 getter 注入，因其会被反复赋值）经 `ctx` 注入；`state` 改用 `S().pack`。
+
