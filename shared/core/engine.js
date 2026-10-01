@@ -4856,6 +4856,8 @@
       h=Shop.renderShopInteractPanel(opts);
     } else if(kind==='broker'){
       h=renderBrokerPanel(opts);
+    } else if(kind==='gamble'){
+      h=(window.LF && LF.Gamble) ? LF.Gamble.render() : '<h3>赌坊</h3><p class="tip">赌坊尚未开张。</p>';
     }
     $card.innerHTML=h;
     injectModalFb();   // v20260915j：每扇窗都带顶部反馈条（操作结果不再被面板挡死）
@@ -4873,6 +4875,7 @@
     if(kind==='craft'){ bindCraftPanel(); }
     if(kind==='shop'){ Shop.bindShopPanel(); }
     if(kind==='shop_manage'){ bindShopManagePanel(opts); }
+    if(kind==='gamble'){ if(window.LF && LF.Gamble){ setTimeout(function(){ LF.Gamble.bind(); },0); } }
     if(kind==='wardStudy'){ bindWardStudy(); }
     if(kind==='wardFerry'){ bindWardFerry(); }
     if(kind==='build'){ bindBuildPanel(); }

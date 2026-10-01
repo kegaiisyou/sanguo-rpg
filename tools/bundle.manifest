@@ -69,6 +69,7 @@ shared/core/statusbar.js
 shared/core/schedule.js
 shared/core/field.js
 shared/core/sect.js
+shared/core/gamble.js
 shared/core/panels.js
 shared/core/prologue.js
 shared/core/npcai.js

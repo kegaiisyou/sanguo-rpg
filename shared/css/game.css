@@ -3359,6 +3359,7 @@
 .hf-bag i{font-style:normal;color:#8a5a2a;font-size:11.5px;}
 .hf-bag.sel{border-color:#a8782a;background:rgba(168,120,42,.14);}
 
+<<<<<<< HEAD
 /* v20260930n：店内货架面板（F2） */
 .shelf-wrap{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
 .shelf-col{flex:1;min-width:150px;}
@@ -3366,3 +3367,40 @@
 .packcell.empty{opacity:.35;}
 .sf-rename{display:flex;gap:6px;margin:8px 0;}
 .sf-rename .txt{flex:1;}
+=======
+/* —— 快活赌坊 · 押大押小（v20261001a） —— */
+.gm-sub{ font-size:12px; }
+.gm-bank{ text-align:center; font-size:14px; margin:2px 0 8px; color:var(--ink-soft); }
+.gm-bank b{ color:#8a4b2d; font-size:16px; }
+.gm-stage{ display:flex; flex-direction:column; align-items:center; }
+.gm-bowl{ position:relative; width:190px; height:190px; border-radius:50%;
+  background:radial-gradient(circle at 50% 34%, #efe2c4 0%, #e0cdA4 30%, #b99a6b 62%, #7a5c34 88%, #5c4326 100%);
+  border:7px solid #4a3418; box-shadow: inset 0 -10px 18px rgba(60,40,15,.35), 0 3px 8px rgba(0,0,0,.18); }
+.gm-bowl-rim{ position:absolute; inset:7px; border-radius:50%; border:2px solid rgba(90,60,25,.35); }
+.gm-hand{ position:absolute; left:50%; top:-18px; width:72px; margin-left:-36px; z-index:6;
+  transform:translateY(0); opacity:0; transition:transform .8s ease-in, opacity .4s; pointer-events:none; }
+.gm-hand.in{ transform:translateY(118px); opacity:1; }
+.gm-hand.back{ transform:translateY(-30px); opacity:0; transition:transform .5s ease-out, opacity .4s; }
+.gm-hand span{ position:absolute; left:0; top:0; transition:opacity .15s; }
+.gm-hand-o{ opacity:0; }
+.gm-dice{ position:absolute; left:50%; top:50%; width:46px; height:46px; margin:-23px 0 0 -23px;
+  border-radius:9px; background:#fdf6e8; border:2px solid #3a2c1c; box-shadow:0 3px 5px rgba(0,0,0,.3);
+  display:none; z-index:5; }
+.gm-face{ position:absolute; inset:0; }
+.gm-dot{ position:absolute; width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%; background:#b03a2e; box-shadow:0 1px 1px rgba(0,0,0,.25); }
+.gm-result{ margin-top:10px; padding:7px 12px; min-height:30px; border-radius:10px; background:rgba(255,252,242,.9);
+  border:1px solid rgba(120,80,40,.3); color:var(--ink); font-size:13px; line-height:1.5; text-align:center; width:100%; box-sizing:border-box; }
+.gm-result.win{ background:linear-gradient(180deg, rgba(176,47,38,.14), rgba(176,47,38,.05)); border-color:rgba(176,47,38,.5); color:#8a2b1e; }
+.gm-result.lose{ background:linear-gradient(180deg, rgba(58,44,28,.16), rgba(58,44,28,.05)); border-color:rgba(58,44,28,.5); }
+.gm-result.rolling{ background:rgba(245,236,218,.8); }
+.gm-bet{ margin-top:10px; }
+.gm-amt-row{ display:flex; align-items:center; gap:6px; justify-content:center; margin-bottom:8px; }
+.gm-amt{ width:96px; padding:7px 8px; border:1px solid rgba(120,80,40,.4); border-radius:8px; background:#fdf6e8; color:#3a2c1c; font-size:14px; text-align:center; }
+.gm-quick{ padding:5px 10px; border:1px solid rgba(120,80,40,.35); border-radius:8px; background:rgba(255,250,238,.9); color:#6e4f17; font-size:12px; cursor:pointer; transition:transform .09s, background .12s; }
+.gm-quick:active{ transform:scale(.93); background:rgba(176,131,47,.2); }
+.gm-btns{ display:flex; gap:10px; justify-content:center; align-items:center; }
+.gm-big{ flex:1; max-width:130px; padding:12px 0; font-size:16px; letter-spacing:6px; }
+.gm-small{ flex:1; max-width:130px; padding:12px 0; font-size:16px; letter-spacing:6px; background:rgba(80,120,90,.14); border-color:rgba(60,110,80,.45); color:#2f5c43; }
+.gm-small:hover{ background:rgba(80,120,90,.24); }
+.gm-again{ flex:1; max-width:150px; padding:12px 0; font-size:14px; }
+>>>>>>> 7637cd0 (feat: 快活赌坊·押大押小掷骰小游戏 v20261001a)
