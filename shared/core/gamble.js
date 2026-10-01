@@ -7,21 +7,13 @@
   // CSS 3D 骰子：标准相对面布局 front=1, back=6, right=3, left=4, top=2, bottom=5
   var DOT_POS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
   var GP = { 1: [26, 26], 2: [50, 26], 3: [74, 26], 4: [26, 50], 5: [50, 50], 6: [74, 50], 7: [26, 74], 8: [50, 74], 9: [74, 74] };
-  var FACE_ROT = { 1: 'rotateY(0deg)', 2: 'rotateX(90deg)', 3: 'rotateY(90deg)', 4: 'rotateY(-90deg)', 5: 'rotateX(-90deg)', 6: 'rotateY(180deg)' };
-  var SHOW_ROT = { 1: 'rotateX(-90deg)', 2: 'rotateX(0deg)', 3: 'rotateZ(90deg)', 4: 'rotateZ(-90deg)', 5: 'rotateX(180deg)', 6: 'rotateX(90deg)' };
   function faceDots(n) {
     return (DOT_POS[n] || [5]).map(function (k) {
       var p = GP[k];
       return '<i class="gm-dot" style="left:' + p[0] + '%;top:' + p[1] + '%"></i>';
     }).join('');
   }
-  function cubeHTML() {
-    var h = '';
-    for (var n = 1; n <= 6; n++) {
-      h += '<div class="gm-face f' + n + '" style="' + FACE_ROT[n] + ' translateZ(28px)">' + faceDots(n) + '</div>';
-    }
-    return '<div class="gm-cube">' + h + '</div>';
-  }
+  function diceHTML(n) { return faceDots(n); }
   var IMG = 'shared/img/gamble/';
   function state() { return (window.LF && LF.Core) ? LF.Core.state : null; }
   function gold() { var s = state(); return s ? (s.gold || 0) : 0; }
@@ -33,9 +25,9 @@
       '<div class="gm-stage">' +
       '<div class="gm-bowl"><img class="gm-bowl-img" src="' + IMG + 'bowl.png" alt="陶碗">' +
       '<div class="gm-hand" id="gm-hand"><img class="gm-himg gm-hc" id="gm-hc" src="' + IMG + 'hand_closed.png" alt=""><img class="gm-himg gm-ho" id="gm-ho" src="' + IMG + 'hand_open.png" alt=""></div>' +
-      '<div class="gm-dice" id="gm-d1">' + cubeHTML() + '</div>' +
-      '<div class="gm-dice" id="gm-d2">' + cubeHTML() + '</div>' +
-      '<div class="gm-dice" id="gm-d3">' + cubeHTML() + '</div>' +
+      '<div class="gm-dice" id="gm-d1"></div>' +
+      '<div class="gm-dice" id="gm-d2"></div>' +
+      '<div class="gm-dice" id="gm-d3"></div>' +
       '</div>' +
       '<div class="gm-result" id="gm-result">掷骰定乾坤，押大押小，落子无悔</div></div>' +
       '<div class="gm-bet">' +
@@ -66,7 +58,7 @@
     e.hc.style.opacity = 1; e.ho.style.opacity = 0;
     e.d.forEach(function (d) {
       d.style.display = 'none'; d.style.transform = ''; d.style.transition = 'none';
-      var c = d.querySelector('.gm-cube'); if (c) c.style.transform = 'rotateX(0deg)';
+
     });
     e.result.textContent = '掷骰定乾坤，押大押小，落子无悔';
     e.result.className = 'gm-result';
@@ -107,7 +99,7 @@
         // ③ 骰子从掌心落到碗面：放大 + 3D 翻转（落下瞬间有立体感）
         e.d.forEach(function (d, i) {
           d.style.transition = 'transform .42s ease-in, opacity .3s';
-          d.style.transform = 'scale(1) rotateZ(' + (i * 60) + 'deg)';
+          d.style.transform = 'scale(1) rotateZ(' + (i * 55) + 'deg)';
         });
         window.setTimeout(function () {
           // ④ 手缩回
@@ -135,26 +127,23 @@
           var ang = stAng[i] + (spAng[i] - stAng[i]) * kk;
           var x = R * Math.cos(ang), y = R * Math.sin(ang);
           var spin = kk * spinTurns[i] * 720;
-          d.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(1)';
-          var c = d.querySelector('.gm-cube');
-          if (c) c.style.transform = 'rotateX(' + (Math.sin(el / 90 + i) * 14) + 'deg) rotateZ(' + spin + 'deg)';
+          d.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(1) rotateZ(' + spin + 'deg)';
         } else if (d.getAttribute('data-done') !== '1') {
           d.setAttribute('data-done', '1');
           var a = spAng[i];
           var x = R * Math.cos(a), y = R * Math.sin(a);
           var self = d, idx = i;
-          // 弹跳落定：先弹起 → 回落翻面（点数朝上）
+          // 弹跳落定：先弹起 → 回落归位，顶面揭晓点数（IIFE 传值，防闭包 var 作用域被后续帧覆盖）
+          var tx = x.toFixed(1), ty = y.toFixed(1);
           d.style.transition = 'transform .11s ease-out';
-          d.style.transform = 'translate(' + x.toFixed(1) + 'px,' + (y - 10).toFixed(1) + 'px) scale(1)';
-          window.setTimeout(function () {
-            self.style.transition = 'transform .3s cubic-bezier(.3,1.5,.4,1)';
-            self.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(1)';
-            var c = self.querySelector('.gm-cube');
-            if (c) {
-              c.style.transition = 'transform .34s cubic-bezier(.4,.1,.3,1)';
-              c.style.transform = SHOW_ROT[faces[idx]];
-            }
-          }, 115);
+          d.style.transform = 'translate(' + tx + 'px,' + (y - 10).toFixed(1) + 'px) scale(1) rotateZ(0deg)';
+          (function (fx, fy, el, face) {
+            window.setTimeout(function () {
+              el.style.transition = 'transform .3s cubic-bezier(.3,1.5,.4,1)';
+              el.style.transform = 'translate(' + fx + 'px,' + fy + 'px) scale(1) rotateZ(0deg)';
+              el.innerHTML = diceHTML(face);
+            }, 115);
+          })(tx, ty, self, faces[idx]);
           done++;
         }
       }
