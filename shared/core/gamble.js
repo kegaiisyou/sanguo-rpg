@@ -77,27 +77,58 @@
     for (var i = 0; i < faces.length; i++) {
       var f2 = faces[i];
       var isHot = settled && f2.n === hot;
-      var l = 0.58 + 0.42 * (f2.cz / half); // 动态光照：正对观察者越亮
-      var R = Math.round(252 * l + 186 * (1 - l)), G = Math.round(246 * l + 170 * (1 - l)), B = Math.round(229 * l + 140 * (1 - l));
-      ctx.beginPath();
-      var pp0 = proj(f2.pts[0], fov); ctx.moveTo(pp0[0] + cx, pp0[1] + cy);
-      for (var j = 1; j < 4; j++) { var pj = proj(f2.pts[j], fov); ctx.lineTo(pj[0] + cx, pj[1] + cy); }
-      ctx.closePath();
-      ctx.fillStyle = 'rgb(' + R + ',' + G + ',' + B + ')';
-      ctx.fill();
-      ctx.strokeStyle = isHot ? 'rgba(58,44,28,.95)' : 'rgba(58,44,28,.7)';
-      ctx.lineWidth = isHot ? 2 : 1.3;
-      ctx.stroke();
-      // 面上点数（随面旋转投影）；落定态：顶面点醒目、侧面点淡化
-      var dots = DOT_UV[f2.n];
-      for (var k = 0; k < dots.length; k++) {
-        var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
-        var pq = proj(Q, fov);
+      if (isHot) {
+        // 落定顶面：最亮宣纸 + 朱砂描边 → 一眼认出结算点数
         ctx.beginPath();
-        ctx.arc(pq[0] + cx, pq[1] + cy, Math.max(2, s * (isHot ? 0.105 : 0.078)), 0, 6.2832);
-        ctx.fillStyle = settled && !isHot ? 'rgba(168,51,42,.25)' : '#a8332a';
+        var pp0 = proj(f2.pts[0], fov); ctx.moveTo(pp0[0] + cx, pp0[1] + cy);
+        for (var j = 1; j < 4; j++) { var pj = proj(f2.pts[j], fov); ctx.lineTo(pj[0] + cx, pj[1] + cy); }
+        ctx.closePath();
+        ctx.fillStyle = 'rgb(255,251,240)';
         ctx.fill();
-        if (isHot) { ctx.strokeStyle = 'rgba(110,25,18,.5)'; ctx.lineWidth = 1.2; ctx.stroke(); }
+        ctx.strokeStyle = 'rgba(196,64,50,.95)';
+        ctx.lineWidth = 2.6;
+        ctx.stroke();
+        // 顶面点数：大红点 + 白描边，明显大于侧面
+        var dots = DOT_UV[f2.n];
+        for (var k = 0; k < dots.length; k++) {
+          var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
+          var pq = proj(Q, fov);
+          var rr = Math.max(3, s * 0.13);
+          ctx.beginPath();
+          ctx.arc(pq[0] + cx, pq[1] + cy, rr, 0, 6.2832);
+          ctx.fillStyle = '#c23a2c';
+          ctx.fill();
+          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = 'rgba(255,255,255,.95)';
+          ctx.stroke();
+        }
+      } else {
+        var l = (0.58 + 0.42 * (f2.cz / half)) * (settled ? 0.72 : 1); // 落定侧面整体压暗
+        var R = Math.round(252 * l + 186 * (1 - l)), G = Math.round(246 * l + 170 * (1 - l)), B = Math.round(229 * l + 140 * (1 - l));
+        ctx.beginPath();
+        var pp0 = proj(f2.pts[0], fov); ctx.moveTo(pp0[0] + cx, pp0[1] + cy);
+        for (var j = 1; j < 4; j++) { var pj = proj(f2.pts[j], fov); ctx.lineTo(pj[0] + cx, pj[1] + cy); }
+        ctx.closePath();
+        ctx.fillStyle = 'rgb(' + R + ',' + G + ',' + B + ')';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(58,44,28,.6)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        // 落定侧面不画点数；翻滚/过渡时侧面正常有点
+        if (!settled) {
+          var dots = DOT_UV[f2.n];
+          for (var k = 0; k < dots.length; k++) {
+            var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
+            var pq = proj(Q, fov);
+            ctx.beginPath();
+            ctx.arc(pq[0] + cx, pq[1] + cy, Math.max(2, s * 0.078), 0, 6.2832);
+            ctx.fillStyle = '#a8332a';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(110,25,18,.35)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
       }
     }
   }
