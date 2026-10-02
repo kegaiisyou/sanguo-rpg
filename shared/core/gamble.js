@@ -164,7 +164,7 @@
   ];
   function render() {
     return '<div class="gm-sign">快活赌坊<i>押大押小</i></div>' +
-      '<p class="tip gm-sub" id="gm-rule-tip">押大 11-17 点 · 押小 4-10 点 · 豹子依所选玩法结算 · 中者赔一赔一</p>' +
+      '<p class="tip gm-sub" id="gm-rule-tip">骰宝三骰：先选玩法，再押大押小；押中者赔一赔一</p>' +
       '<div class="gm-bank"><img class="gm-silver" src="' + IMG + 'silver.png" alt="银两"><b id="gm-gold">' + gold() + '</b></div>' +
       '<div class="gm-stage">' +
       '<div class="gm-tag hidden" id="gm-tag"></div>' +
@@ -183,7 +183,7 @@
       '<button class="gm-rule" data-rule="bao"><b>经典通吃</b><small>三骰同面 · 庄家通吃</small></button>' +
       '<button class="gm-rule" data-rule="nobao"><b>江湖无豹</b><small>三骰同面 · 计 3~18 点判大小</small></button>' +
       '</div>' +
-      '<p class="gm-rule-tip">押大 11-17 点 · 押小 4-10 点 · 豹子依所选玩法 · 中者赔一赔一</p>' +
+      '<p class="gm-rule-tip">选定玩法后即可下注 · 押中赔一赔一</p>' +
       '</div>' +
       '<div class="gm-bet hidden" id="gm-bet">' +
       '<div class="gm-amt-row"><input id="gm-amt" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric"></div>' +
@@ -378,9 +378,11 @@
         RULE = r.getAttribute('data-rule');
         document.querySelectorAll('.gm-rule').forEach(function (x) { x.classList.remove('on'); });
         r.classList.add('on');
-        var nm = RULE === 'bao' ? '经典通吃（豹子通吃）' : '江湖无豹（豹子按点数）';
+        var nm = RULE === 'bao' ? '经典通吃' : '江湖无豹';
         e.rules.classList.add('hidden'); e.bet.classList.remove('hidden');
-        e.result.textContent = '玩法选定：' + nm + '。押大 11-17 点，押小 4-10 点，中者赔一赔一。';
+        e.result.textContent = RULE === 'bao'
+          ? '玩法选定：经典通吃。三骰同面庄家通吃；押大 11-17 点，押小 4-10 点，赔一赔一。'
+          : '玩法选定：江湖无豹。豹子按点数计大小（111 算小、666 算大）；押大 11-17 点，押小 4-10 点，赔一赔一。';
         sfx('confirm');
       };
     });
@@ -396,7 +398,7 @@
     try { seen = parseInt(localStorage.getItem('sanguo_gamble_seen') || '0', 10); } catch (e3) { }
     if (!seen) {
       try { localStorage.setItem('sanguo_gamble_seen', '1'); } catch (e3) { }
-      e.result.textContent = '荷官：客官头回来？押大 11-17 点，押小 4-10 点，豹子按所选玩法结算——先选个玩法吧。';
+      e.result.textContent = '荷官：客官头回来？先选个玩法——经典通吃，三骰同面庄家通吃；江湖无豹，豹子按点数计大小。选定后再押大押小。';
       if (e.ruleTip) e.ruleTip.textContent = '首次游玩：先选玩法，再押大押小';
     }
     document.querySelectorAll('.gm-chip').forEach(function (q) {
