@@ -56,8 +56,9 @@
             pts[0][1] + (pts[1][1] - pts[0][1]) * u + (pts[3][1] - pts[0][1]) * v,
             pts[0][2] + (pts[1][2] - pts[0][2]) * u + (pts[3][2] - pts[0][2]) * v];
   }
-  // 画一颗骰子到 canvas：cx,cy 中心，rx/ry/rz 旋转，s 边长，fov 透视
-  function drawDice(cv, cx, cy, s, rx, ry, rz, fov) {
+  // 画一颗骰子到 canvas：cx,cy 中心，内层姿态 rx/ry/rz + 外层观察倾斜 TILT，s 边长，fov 透视
+  // settled=落定态：顶面（hot 点数面）点数放大加粗，侧面点数淡化 → 结算数字一目了然
+  function drawDice(cv, cx, cy, s, rx, ry, rz, fov, settled, hot) {
     var ctx = cv.getContext('2d');
     ctx.clearRect(0, 0, cv.width, cv.height);
     var half = s / 2;
@@ -65,16 +66,17 @@
     for (var fi = 0; fi < 6; fi++) {
       var F = FACES[fi];
       var pts = F.i.map(function (vi) {
-        return rot3([VERT[vi][0] * half, VERT[vi][1] * half, VERT[vi][2] * half], rx, ry, rz);
+        var p = rot3([VERT[vi][0] * half, VERT[vi][1] * half, VERT[vi][2] * half], rx, ry, rz);
+        return rot3(p, TILT_X, TILT_Y, 0); // 外层观察倾斜
       });
-      // 法线旋转后 z > 0 = 朝向观察者
-      var nc = rot3([F.nx * half, F.ny * half, F.nz * half], rx, ry, rz);
+      var nc = rot3(rot3([F.nx * half, F.ny * half, F.nz * half], rx, ry, rz), TILT_X, TILT_Y, 0);
       if (nc[2] <= 0) continue;
       faces.push({ pts: pts, n: F.n, cz: nc[2] });
     }
     faces.sort(function (a, b) { return a.cz - b.cz; });
     for (var i = 0; i < faces.length; i++) {
       var f2 = faces[i];
+      var isHot = settled && f2.n === hot;
       var l = 0.58 + 0.42 * (f2.cz / half); // 动态光照：正对观察者越亮
       var R = Math.round(252 * l + 186 * (1 - l)), G = Math.round(246 * l + 170 * (1 - l)), B = Math.round(229 * l + 140 * (1 - l));
       ctx.beginPath();
@@ -83,21 +85,19 @@
       ctx.closePath();
       ctx.fillStyle = 'rgb(' + R + ',' + G + ',' + B + ')';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(58,44,28,.8)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = isHot ? 'rgba(58,44,28,.95)' : 'rgba(58,44,28,.7)';
+      ctx.lineWidth = isHot ? 2 : 1.3;
       ctx.stroke();
-      // 面上点数（随面旋转投影）
+      // 面上点数（随面旋转投影）；落定态：顶面点醒目、侧面点淡化
       var dots = DOT_UV[f2.n];
       for (var k = 0; k < dots.length; k++) {
         var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
         var pq = proj(Q, fov);
         ctx.beginPath();
-        ctx.arc(pq[0] + cx, pq[1] + cy, Math.max(2, s * 0.078), 0, 6.2832);
-        ctx.fillStyle = '#a8332a';
+        ctx.arc(pq[0] + cx, pq[1] + cy, Math.max(2, s * (isHot ? 0.105 : 0.078)), 0, 6.2832);
+        ctx.fillStyle = settled && !isHot ? 'rgba(168,51,42,.25)' : '#a8332a';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(110,25,18,.35)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        if (isHot) { ctx.strokeStyle = 'rgba(110,25,18,.5)'; ctx.lineWidth = 1.2; ctx.stroke(); }
       }
     }
   }
@@ -136,6 +136,8 @@
     return els;
   }
   var phase = 0, amt = 0, betBig = false, faces = [0, 0, 0];
+  // 游戏启动即预载赌坊素材（碗/手），避免进入赌坊时卡顿
+  (function () { ['bowl', 'hand_closed', 'hand_open'].forEach(function (n) { var im = new Image(); im.src = IMG + n + '.png'; }); })();
 
   function resetUI() {
     var e = $();
@@ -234,19 +236,19 @@
     requestAnimationFrame(frame);
   }
 
-  // 立方体从翻滚态缓动到点数面朝上 + 倾斜展示角
+  // 立方体从翻滚态缓动：先把点数面翻到正上（内层姿态），外层观察倾斜固定不变
   function settleCube(cv, face, x, y, from) {
     var t0 = performance.now();
-    var tgt = FACE_UP[face];
-    var tx = tgt[0] + TILT_X, ty = tgt[1] + TILT_Y, tz = tgt[2];
+    var fu = FACE_UP[face];
+    var to = { rx: fu[0], ry: fu[1], rz: fu[2] };
     function norm(a, b) { var d = (a - b) % 6.2832; if (d > 3.1416) d -= 6.2832; if (d < -3.1416) d += 6.2832; return b + d; }
     function step(now) {
-      var k = Math.min(1, (now - t0) / 380);
+      var k = Math.min(1, (now - t0) / 400);
       var e = 1 - Math.pow(1 - k, 3);
-      var rx = from.rx + (norm(tx, from.rx) - from.rx) * e;
-      var ry = from.ry + (norm(ty, from.ry) - from.ry) * e;
-      var rz = norm(tz, 0) * e;
-      drawDice(cv, 30, 34, 46, rx, ry, rz, 120);
+      var rx = from.rx + (norm(to.rx, from.rx) - from.rx) * e;
+      var ry = from.ry + (norm(to.ry, from.ry) - from.ry) * e;
+      var rz = from.rz + (norm(to.rz, from.rz) - from.rz) * e;
+      drawDice(cv, 30, 34, 46, rx, ry, rz, 120, k >= 1, face);
       if (k < 1) requestAnimationFrame(step);
       else { // 落定：弹回原位
         var d = cv.parentElement;
