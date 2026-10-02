@@ -3440,6 +3440,16 @@
 	  background:linear-gradient(90deg, transparent, rgba(90,60,34,.28), transparent); }
 	/* 碗轻震 */
 	.gm-bowl.shake{ animation:gmShake .3s; }
+	/* 下注牌（动画时碗上方大字显示押注） */
+	.gm-tag{ margin:0 auto 4px; display:inline-block; padding:5px 22px; border-radius:20px;
+	  font-size:18px; font-weight:700; letter-spacing:4px; color:#fdf3d5;
+	  box-shadow:0 2px 6px rgba(60,40,15,.4); }
+	.gm-tag.big{ background:linear-gradient(180deg,#b8412f,#8a2b1e); border:2px solid #e6c07a; }
+	.gm-tag.small{ background:linear-gradient(180deg,#3f6b4f,#2c5340); border:2px solid #e6c07a; }
+	.gm-tag.hidden{ display:none; }
+	/* 押注确认滚动态更显眼 */
+	.gm-result.rolling{ border:1px solid rgba(120,80,40,.4); background:linear-gradient(180deg, rgba(120,80,40,.12), rgba(120,80,40,.05));
+	  font-weight:600; letter-spacing:1px; }
 	@keyframes gmShake{ 0%,100%{ transform:none; } 25%{ transform:translateY(-2px) rotate(.5deg); } 60%{ transform:translateY(1px) rotate(-.4deg); } }
 	/* 荷官头像浮签（右上角小头像，不抢碗的戏） */
 	.gm-dealer{ position:absolute; right:2px; top:2px; width:46px; height:46px; border-radius:50%;
@@ -3468,14 +3478,15 @@
 	  background:radial-gradient(circle at 34% 28%, #fdf4d6, #e9cf8f 55%, #c9a14e);
 	  box-shadow:0 2px 4px rgba(60,40,15,.4), inset 0 1px 0 rgba(255,240,190,.75), inset 0 -2px 3px rgba(90,60,20,.4);
 	  color:#4a3010; font-size:16px; font-weight:700; text-align:center; }
-	.gm-chip{ position:relative; width:50px; height:50px; border-radius:50%;
-	  background:radial-gradient(circle at 34% 28%, #f3d894, #caa14e 55%, #9c7428);
-	  border:3px solid #7a5a20; box-shadow:0 2px 4px rgba(60,40,15,.4), inset 0 1px 0 rgba(255,240,190,.7), inset 0 -2px 3px rgba(90,60,20,.5);
-	  color:#4a3010; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center;
+	.gm-chips{ justify-content:center; gap:9px; margin-top:2px; }
+	.gm-chip{ position:relative; width:42px; height:42px; border-radius:50%;
+	  background:radial-gradient(circle at 36% 30%, #f0dba4, #d5b569 60%, #ab8740);
+	  border:2px solid #8a6a32; box-shadow:0 1px 3px rgba(60,40,15,.3), inset 0 1px 0 rgba(255,240,190,.55);
+	  color:#4a3010; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center;
 	  cursor:pointer; transition:transform .09s, box-shadow .12s; }
-	.gm-chip::after{ content:''; position:absolute; inset:9px; border:2px dashed rgba(90,60,20,.5); border-radius:50%; }
-	.gm-chip:active{ transform:scale(.92); box-shadow:0 1px 2px rgba(60,40,15,.35); }
-	.gm-chip.gm-all{ width:58px; font-size:12px; }
+	.gm-chip::after{ content:''; position:absolute; inset:8px; border:1.5px dashed rgba(90,60,20,.38); border-radius:50%; }
+	.gm-chip:active{ transform:scale(.9); box-shadow:0 1px 2px rgba(60,40,15,.25); }
+	.gm-chip.gm-all{ width:46px; font-size:11px; }
 	/* 押大/押小 铜钱边 + 点数范围小字 */
 	.gm-big,.gm-small{ position:relative; border-radius:12px; border:2px solid #d9b45b;
 	  box-shadow:0 2px 5px rgba(60,40,15,.3), inset 0 1px 0 rgba(255,240,200,.35); padding:8px 14px; }

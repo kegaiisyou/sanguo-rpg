@@ -164,9 +164,10 @@
   ];
   function render() {
     return '<div class="gm-sign">快活赌坊<i>押大押小</i></div>' +
-      '<p class="tip gm-sub" id="gm-rule-tip">三骰落定：四至十为小，十一至十七为大，赔一赔一。开局先选玩法。</p>' +
+      '<p class="tip gm-sub" id="gm-rule-tip">押大 11-17 点 · 押小 4-10 点 · 豹子依所选玩法结算 · 中者赔一赔一</p>' +
       '<div class="gm-bank"><img class="gm-silver" src="' + IMG + 'silver.png" alt="银两"><b id="gm-gold">' + gold() + '</b></div>' +
       '<div class="gm-stage">' +
+      '<div class="gm-tag hidden" id="gm-tag"></div>' +
       '<div class="gm-bowl" id="gm-bowl"><div class="gm-mat"></div>' +
       '<img class="gm-dealer" id="gm-dealer" src="' + IMG + 'dealer.png" alt="荷官"><span class="gm-dealer-tag">荷官</span>' +
       '<img class="gm-bowl-img" src="' + IMG + 'bowl.png" alt="陶碗">' +
@@ -179,14 +180,14 @@
       '<div class="gm-rules" id="gm-rules">' +
       '<div class="gm-rule-head">先选玩法</div>' +
       '<div class="gm-rule-row">' +
-      '<button class="gm-rule" data-rule="bao"><b>经典通吃</b><small>豹子 · 庄家通吃</small></button>' +
-      '<button class="gm-rule" data-rule="nobao"><b>江湖无豹</b><small>豹子 · 按点数算大小</small></button>' +
+      '<button class="gm-rule" data-rule="bao"><b>经典通吃</b><small>三骰同面 · 庄家通吃</small></button>' +
+      '<button class="gm-rule" data-rule="nobao"><b>江湖无豹</b><small>三骰同面 · 计 3~18 点判大小</small></button>' +
       '</div>' +
-      '<p class="gm-rule-tip">押大 11-17 点 · 押小 4-10 点 · 中者赔一赔一</p>' +
+      '<p class="gm-rule-tip">押大 11-17 点 · 押小 4-10 点 · 豹子依所选玩法 · 中者赔一赔一</p>' +
       '</div>' +
       '<div class="gm-bet hidden" id="gm-bet">' +
-      '<div class="gm-amt-row"><input id="gm-amt" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric">' +
-      '<span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></div>' +
+      '<div class="gm-amt-row"><input id="gm-amt" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric"></div>' +
+      '<div class="gm-amt-row gm-chips"><span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></div>' +
       '<div class="gm-btns"><button class="btn gm-big" id="gm-big">押 大<small>11-17 点</small></button><button class="btn gm-small" id="gm-small">押 小<small>4-10 点</small></button>' +
       '<button class="btn btn-ghost gm-again hidden" id="gm-again">再来一局</button></div>' +
       '</div>';
@@ -203,7 +204,8 @@
       result: document.getElementById('gm-result'), big: document.getElementById('gm-big'),
       small: document.getElementById('gm-small'), again: document.getElementById('gm-again'),
       rules: document.getElementById('gm-rules'), bet: document.getElementById('gm-bet'),
-      dealer: document.getElementById('gm-dealer'), ruleTip: document.getElementById('gm-rule-tip')
+      dealer: document.getElementById('gm-dealer'), ruleTip: document.getElementById('gm-rule-tip'),
+      tag: document.getElementById('gm-tag')
     };
     return els;
   }
@@ -222,9 +224,10 @@
     e.cvs.forEach(function (c) { if (c) { c.getContext('2d').clearRect(0, 0, 60, 60); } });
     e.result.textContent = '掷骰定乾坤，押大押小，落子无悔';
     e.result.className = 'gm-result';
+    if (e.tag) e.tag.className = 'gm-tag hidden';
     e.big.classList.remove('hidden'); e.small.classList.remove('hidden'); e.again.classList.add('hidden');
     e.amt.disabled = false;
-    document.querySelectorAll('.gm-quick').forEach(function (q) { q.style.opacity = 1; });
+    document.querySelectorAll('.gm-chip').forEach(function (q) { q.style.opacity = 1; });
     e.big.disabled = false; e.small.disabled = false;
     phase = 0;
   }
@@ -240,9 +243,10 @@
     sfx('diceShake');
     if (e.gold) { e.gold.classList.remove('gm-gold-flash'); void e.gold.offsetWidth; e.gold.classList.add('gm-gold-flash'); }
     e.big.disabled = true; e.small.disabled = true; e.amt.disabled = true;
-    document.querySelectorAll('.gm-quick').forEach(function (q) { q.style.opacity = .4; });
+    document.querySelectorAll('.gm-chip').forEach(function (q) { q.style.opacity = .4; });
     e.result.className = 'gm-result rolling';
     e.result.textContent = betBig ? '押大 —— ' + amt + ' 两，天公作美！' : '押小 —— ' + amt + ' 两，地母开眼！';
+    if (e.tag) { e.tag.className = 'gm-tag ' + (betBig ? 'big' : 'small'); e.tag.textContent = (betBig ? '押 大' : '押 小') + ' · ' + amt + ' 两'; }
     phase = 1;
     faces = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
     e.hand.className = 'gm-hand in';
@@ -349,13 +353,14 @@
     var msg;
     if (bao) {
       if (RULE === 'bao') { s.gold -= amt; msg = '【豹子】三骰同面（' + faces[0] + '·' + faces[1] + '·' + faces[2] + '）——庄家通吃！银两 -' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result lose'; }
-      else if (win) { s.gold += amt; msg = '【豹子】三骰同面（' + faces[0] + '·' + faces[1] + '·' + faces[2] + '）共 ' + sum + ' 点——' + (betBig ? '大' : '小') + '押中了，通吃赔付！银两 +' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result win'; }
-      else { s.gold -= amt; msg = '【豹子】三骰同面（' + faces[0] + '·' + faces[1] + '·' + faces[2] + '）共 ' + sum + ' 点——' + (betBig ? '大' : '小') + '落空，庄家收骰，银两 -' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result lose'; }
+      else if (win) { s.gold += amt; msg = '【豹子】三骰同面（' + faces[0] + '·' + faces[1] + '·' + faces[2] + '）共 ' + sum + ' 点，豹子计' + label + '——' + (betBig ? '大' : '小') + '押中了，通吃赔付！银两 +' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result win'; }
+      else { s.gold -= amt; msg = '【豹子】三骰同面（' + faces[0] + '·' + faces[1] + '·' + faces[2] + '）共 ' + sum + ' 点，豹子计' + label + '——' + (betBig ? '大' : '小') + '落空，庄家收骰，银两 -' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result lose'; }
       sfx('bao');
     }
     else if (win) { s.gold += amt; msg = '【' + label + '】' + z(faces[0]) + z(faces[1]) + z(faces[2]) + '，共 ' + sum + ' 点' + baoTxt + '——' + (betBig ? '大' : '小') + '押中了，通吃赔付！银两 +' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result win'; sfx('win'); }
     else { s.gold -= amt; msg = '【' + label + '】' + z(faces[0]) + z(faces[1]) + z(faces[2]) + '，共 ' + sum + ' 点' + baoTxt + '——庄家收骰，银两 -' + amt + '（当前 ' + s.gold + '）'; e.result.className = 'gm-result lose'; sfx('lose'); }
     e.result.textContent = msg;
+    if (e.tag) e.tag.className = 'gm-tag hidden';
     e.gold.textContent = s.gold;
     e.big.classList.add('hidden'); e.small.classList.add('hidden'); e.again.classList.remove('hidden');
     phase = 0;
@@ -394,7 +399,7 @@
       e.result.textContent = '荷官：客官头回来？押大 11-17 点，押小 4-10 点，豹子按所选玩法结算——先选个玩法吧。';
       if (e.ruleTip) e.ruleTip.textContent = '首次游玩：先选玩法，再押大押小';
     }
-    document.querySelectorAll('.gm-quick').forEach(function (q) {
+    document.querySelectorAll('.gm-chip').forEach(function (q) {
       q.onclick = function () {
         if (phase !== 0) return;
         var v = q.getAttribute('data-q');
