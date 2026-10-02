@@ -542,27 +542,36 @@
     var c = ensureCtx(); if (!c || !enabled) return;
     ambGain = c.createGain(); ambGain.gain.value = 0;
     ambGain.connect(sfxGain || c.destination);
-    // 人群低语层：低通白噪持续铺底
+    // 人群低语层：低通白噪持续铺底（更明显）
     var n = c.createBufferSource(); n.buffer = makeNoiseBuf(c, 1.2); n.loop = true;
-    var f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 360; f.Q.value = 0.5;
+    var f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 430; f.Q.value = 0.55;
     n.connect(f); f.connect(ambGain); n.start();
+    // 低频酒馆嗡嗡（持续底噪，赌坊嘈杂感）
+    var hum = c.createOscillator(); hum.type = 'sine'; hum.frequency.value = 105;
+    var humG = c.createGain(); humG.gain.value = 0.16; humG.gain.setValueAtTime(0, c.currentTime); humG.gain.linearRampToValueAtTime(0.16, c.currentTime + 2.4);
+    hum.connect(humG); humG.connect(ambGain); hum.start();
     ambGain.gain.setValueAtTime(0, c.currentTime);
-    ambGain.gain.linearRampToValueAtTime(0.13, c.currentTime + 2);
-    // 稀疏骰声/铜钱叮：3.2~4.2s 随机一枚
+    ambGain.gain.linearRampToValueAtTime(0.24, c.currentTime + 2);
+    // 稀疏骰声/铜钱叮/杯盏碰响：2.6~3.4s 随机一枚（更密更响）
     ambTimer = setInterval(function () {
       if (!ambGain) return;
-      var t = c.currentTime;
-      if (Math.random() < 0.65) {
+      var t = c.currentTime, r = Math.random();
+      if (r < 0.62) { // 骰子轻响
         var s = c.createBufferSource(); s.buffer = makeNoiseBuf(c, 0.1);
-        var bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 800 + Math.random() * 700; bp.Q.value = 1.4;
-        var g = c.createGain(); g.gain.value = 0.045 + Math.random() * 0.04;
+        var bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 700 + Math.random() * 900; bp.Q.value = 1.6;
+        var g = c.createGain(); g.gain.value = 0.09 + Math.random() * 0.06;
         s.connect(bp); bp.connect(g); g.connect(ambGain); s.start(t);
-      } else {
-        var o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 2400 + Math.random() * 500;
-        var g2 = c.createGain(); g2.gain.setValueAtTime(0.028, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-        o.connect(g2); g2.connect(ambGain); o.start(t); o.stop(t + 0.2);
+      } else if (r < 0.86) { // 铜钱叮
+        var o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 2300 + Math.random() * 600;
+        var g2 = c.createGain(); g2.gain.setValueAtTime(0.055, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        o.connect(g2); g2.connect(ambGain); o.start(t); o.stop(t + 0.22);
+      } else { // 杯盏碰响（短促噪声+泛音）
+        var s2 = c.createBufferSource(); s2.buffer = makeNoiseBuf(c, 0.06);
+        var bp2 = c.createBiquadFilter(); bp2.type = 'highpass'; bp2.frequency.value = 1800;
+        var g3 = c.createGain(); g3.gain.value = 0.05;
+        s2.connect(bp2); bp2.connect(g3); g3.connect(ambGain); s2.start(t);
       }
-    }, 3700);
+    }, 3000);
   }
   function stopAmbient() {
     if (ambTimer) { clearInterval(ambTimer); ambTimer = null; }
