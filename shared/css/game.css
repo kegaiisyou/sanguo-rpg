@@ -3413,4 +3413,62 @@
 .gm-big{ flex:1; max-width:130px; padding:12px 0; font-size:16px; letter-spacing:6px; }
 .gm-small{ flex:1; max-width:130px; padding:12px 0; font-size:16px; letter-spacing:6px; background:rgba(80,120,90,.14); border-color:rgba(60,110,80,.45); color:#2f5c43; }
 .gm-small:hover{ background:rgba(80,120,90,.24); }
-.gm-again{ flex:1; max-width:150px; padding:12px 0; font-size:14px; }
+	.gm-again{ flex:1; max-width:150px; padding:12px 0; font-size:14px; }
+	/* ---- 赌坊美术升级 v20261001p ---- */
+	/* 匾额招牌 */
+	.gm-sign{ display:inline-block; position:relative; margin:0 auto 2px; padding:6px 24px 7px;
+	  background:linear-gradient(180deg,#93512c 0%,#6e3a1d 55%,#5a2f16 100%);
+	  border:2px solid #d9b45b; border-radius:6px; box-shadow:0 3px 8px rgba(60,40,15,.4), inset 0 1px 0 rgba(255,224,160,.45);
+	  color:#f7e8c8; font-size:19px; letter-spacing:8px; text-shadow:0 1px 2px rgba(0,0,0,.5); }
+	.gm-sign i{ display:block; font-style:normal; font-size:11px; letter-spacing:4px; color:#eccf90; opacity:.92; margin-top:2px; }
+	.gm-sign::before,.gm-sign::after{ content:''; position:absolute; top:-7px; width:16px; height:11px;
+	  background:linear-gradient(180deg,#a96a37,#7a4a28); border:1.5px solid #d9b45b; border-radius:3px; }
+	.gm-sign::before{ left:5px; } .gm-sign::after{ right:5px; }
+	/* 银两带银锭 */
+	.gm-bank{ display:flex; align-items:center; justify-content:center; gap:6px; }
+	.gm-silver{ width:18px; height:18px; filter:drop-shadow(0 1px 1px rgba(60,40,15,.3)); }
+	.gm-gold-flash{ animation:gmGold .5s; }
+	@keyframes gmGold{ 0%{ color:#c23a2c; transform:scale(1.18); } 100%{ color:#8a4b2d; transform:scale(1); } }
+	/* 桌垫（碗下麻布） */
+	.gm-bowl .gm-mat{ position:absolute; left:50%; bottom:-8px; width:262px; height:118px; transform:translateX(-50%);
+	  border-radius:50% 50% 10px 10px;
+	  background:
+	    repeating-linear-gradient(90deg, rgba(128,92,56,0) 0 6px, rgba(128,92,56,.08) 6px 7px),
+	    linear-gradient(180deg, rgba(146,108,68,.32), rgba(96,64,36,.4));
+	  box-shadow:0 2px 8px rgba(60,40,15,.18); z-index:0; }
+	.gm-bowl .gm-mat::after{ content:''; position:absolute; left:14%; right:14%; top:44%; height:1px;
+	  background:linear-gradient(90deg, transparent, rgba(90,60,34,.28), transparent); }
+	/* 碗轻震 */
+	.gm-bowl.shake{ animation:gmShake .3s; }
+	@keyframes gmShake{ 0%,100%{ transform:none; } 25%{ transform:translateY(-2px) rotate(.5deg); } 60%{ transform:translateY(1px) rotate(-.4deg); } }
+	/* 荷官立绘（右上角） */
+	.gm-dealer{ position:absolute; right:-4px; top:8px; width:74px; opacity:.95; z-index:4;
+	  filter:drop-shadow(0 2px 5px rgba(60,40,15,.3)); pointer-events:none; }
+	/* 筹码化押注（圆形铜钱） */
+	.gm-amt-row{ gap:7px; }
+	.gm-amt{ width:86px; padding:10px 4px; border:2px solid #7a5a20; border-radius:50%;
+	  background:radial-gradient(circle at 34% 28%, #fdf4d6, #e9cf8f 55%, #c9a14e);
+	  box-shadow:0 2px 4px rgba(60,40,15,.4), inset 0 1px 0 rgba(255,240,190,.75), inset 0 -2px 3px rgba(90,60,20,.4);
+	  color:#4a3010; font-size:16px; font-weight:700; text-align:center; }
+	.gm-chip{ position:relative; width:50px; height:50px; border-radius:50%;
+	  background:radial-gradient(circle at 34% 28%, #f3d894, #caa14e 55%, #9c7428);
+	  border:3px solid #7a5a20; box-shadow:0 2px 4px rgba(60,40,15,.4), inset 0 1px 0 rgba(255,240,190,.7), inset 0 -2px 3px rgba(90,60,20,.5);
+	  color:#4a3010; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center;
+	  cursor:pointer; transition:transform .09s, box-shadow .12s; }
+	.gm-chip::after{ content:''; position:absolute; inset:9px; border:2px dashed rgba(90,60,20,.5); border-radius:50%; }
+	.gm-chip:active{ transform:scale(.92); box-shadow:0 1px 2px rgba(60,40,15,.35); }
+	.gm-chip.gm-all{ width:58px; font-size:12px; }
+	/* 押大/押小 铜钱边 */
+	.gm-big,.gm-small{ position:relative; border-radius:12px; border:2px solid #d9b45b;
+	  box-shadow:0 2px 5px rgba(60,40,15,.3), inset 0 1px 0 rgba(255,240,200,.35); }
+	.gm-big{ background:linear-gradient(180deg,#b8412f,#8a2b1e); color:#fdf3d5; }
+	.gm-small{ background:linear-gradient(180deg,#3f6b4f,#2c5340); color:#e8f0e2; }
+	.gm-big::before,.gm-small::before,.gm-big::after,.gm-small::after{ content:'❖'; position:absolute; top:50%;
+	  transform:translateY(-50%); font-size:13px; opacity:.6; color:#f0d392; }
+	.gm-big::before,.gm-small::before{ left:9px; } .gm-big::after,.gm-small::after{ right:9px; }
+	/* 结算强化 */
+	.gm-result{ border:1px solid rgba(120,80,40,.28); }
+	.gm-result.win{ background:linear-gradient(180deg, rgba(204,156,64,.3), rgba(176,47,38,.12));
+	  border-color:rgba(176,47,38,.55); color:#8a2b1e; font-weight:700; animation:gmFlash .55s ease-out; }
+	.gm-result.lose{ background:linear-gradient(180deg, rgba(58,44,28,.22), rgba(58,44,28,.08)); border-color:rgba(58,44,28,.5); }
+	@keyframes gmFlash{ 0%{ opacity:.35; transform:scale(.95); } 100%{ opacity:1; transform:scale(1); } }

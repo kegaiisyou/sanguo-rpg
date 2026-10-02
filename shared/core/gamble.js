@@ -67,6 +67,17 @@
   }
   // 画一颗骰子到 canvas：cx,cy 中心，内层姿态 rx/ry/rz + 外层观察倾斜 TILT，s 边长，fov 透视
   // settled=落定态：顶面（hot 点数面）点数放大加粗，侧面点数淡化 → 结算数字一目了然
+  // 宣纸纹理（预生成一次，面填充后叠加淡噪点）
+  var PAPER = (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 24;
+    var g = c.getContext('2d'); g.fillStyle = '#f5ecd8'; g.fillRect(0, 0, 24, 24);
+    for (var i = 0; i < 70; i++) { g.fillStyle = 'rgba(120,90,50,' + (0.03 + Math.random() * 0.06) + ')'; g.fillRect(Math.random() * 24, Math.random() * 24, 1.2, 1.2); }
+    return c;
+  })();
+  function paperFill(ctx, cv, path, globalAlpha) {
+    var pat = cv._ppat || (cv._ppat = ctx.createPattern(PAPER, 'repeat'));
+    ctx.save(); ctx.globalAlpha = globalAlpha; ctx.fillStyle = pat; ctx.fill(); ctx.restore();
+  }
   function drawDice(cv, cx, cy, s, rx, ry, rz, fov, settled, hot) {
     var ctx = cv.getContext('2d');
     ctx.clearRect(0, 0, cv.width, cv.height);
@@ -96,7 +107,10 @@
         // 落定顶面：面本色最亮，无描边——靠亮度+大点数白描边区分（去黑色描边）
         ctx.fillStyle = shade(fc, 1);
         ctx.fill();
+        paperFill(ctx, cv, 1, .5);
         var dots = DOT_UV[f2.n];
+        ctx.save();
+        ctx.shadowColor = 'rgba(226,180,90,.8)'; ctx.shadowBlur = 7;
         for (var k = 0; k < dots.length; k++) {
           var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
           var pq = proj(Q, fov);
@@ -109,11 +123,13 @@
           ctx.strokeStyle = 'rgba(255,255,255,.95)';
           ctx.stroke();
         }
+        ctx.restore();
       } else {
         // 各面保持本色（轻微光照差异），落定侧面略暗但仍可见颜色
         var l = settled ? 0.82 : (f2.dep / (half * 3) > 0.5 ? 0.92 : 0.86);
         ctx.fillStyle = shade(fc, l);
         ctx.fill();
+        paperFill(ctx, cv, 1, .38);
         ctx.strokeStyle = 'rgba(58,44,28,.55)';
         ctx.lineWidth = 1.2;
         ctx.stroke();
@@ -138,11 +154,13 @@
   }
 
   function render() {
-    return '<h3>快活赌坊 · 押大押小</h3>' +
+    return '<div class="gm-sign">快活赌坊<i>押大押小</i></div>' +
       '<p class="tip gm-sub">三骰落定：四至十为小，十一至十七为大，赔一赔一；三骰同面，庄家通吃。</p>' +
-      '<div class="gm-bank">银两 <b id="gm-gold">' + gold() + '</b></div>' +
+      '<div class="gm-bank"><img class="gm-silver" src="' + IMG + 'silver.png" alt="银两"><b id="gm-gold">' + gold() + '</b></div>' +
       '<div class="gm-stage">' +
-      '<div class="gm-bowl"><img class="gm-bowl-img" src="' + IMG + 'bowl.png" alt="陶碗">' +
+      '<div class="gm-bowl" id="gm-bowl"><div class="gm-mat"></div>' +
+      '<img class="gm-dealer" src="' + IMG + 'dealer.png" alt="荷官">' +
+      '<img class="gm-bowl-img" src="' + IMG + 'bowl.png" alt="陶碗">' +
       '<div class="gm-hand" id="gm-hand"><img class="gm-himg gm-hc" id="gm-hc" src="' + IMG + 'hand_closed.png" alt=""><img class="gm-himg gm-ho" id="gm-ho" src="' + IMG + 'hand_open.png" alt=""></div>' +
       '<div class="gm-dice" id="gm-d1"><canvas class="gm-canvas" width="60" height="60"></canvas></div>' +
       '<div class="gm-dice" id="gm-d2"><canvas class="gm-canvas" width="60" height="60"></canvas></div>' +
@@ -151,7 +169,7 @@
       '<div class="gm-result" id="gm-result">掷骰定乾坤，押大押小，落子无悔</div></div>' +
       '<div class="gm-bet">' +
       '<div class="gm-amt-row"><input id="gm-amt" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric">' +
-      '<span class="gm-quick" data-q="10">10</span><span class="gm-quick" data-q="30">30</span><span class="gm-quick" data-q="50">50</span><span class="gm-quick" data-q="all">全押</span></div>' +
+      '<span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></div>' +
       '<div class="gm-btns"><button class="btn gm-big" id="gm-big">押 大</button><button class="btn gm-small" id="gm-small">押 小</button>' +
       '<button class="btn btn-ghost gm-again hidden" id="gm-again">再来一局</button></div>' +
       '</div>';
@@ -200,6 +218,7 @@
     if (amt > gold()) { e.result.textContent = '荷官冷笑：「囊中银两不够，也敢上桌？」（当前 ' + gold() + '）'; return; }
     betBig = big;
     sfx('diceShake');
+    if (e.gold) { e.gold.classList.remove('gm-gold-flash'); void e.gold.offsetWidth; e.gold.classList.add('gm-gold-flash'); }
     e.big.disabled = true; e.small.disabled = true; e.amt.disabled = true;
     document.querySelectorAll('.gm-quick').forEach(function (q) { q.style.opacity = .4; });
     e.result.className = 'gm-result rolling';
@@ -285,10 +304,12 @@
       var rz = from.rz + (norm(to.rz, from.rz) - from.rz) * e;
       drawDice(cv, 30, 30, 26, rx, ry, rz, 120, k >= 1, face);
       if (k < 1) requestAnimationFrame(step);
-      else { // 落定：弹回原位
+      else { // 落定：弹回原位 + 碗轻震
         var d = cv.parentElement;
         d.style.transition = 'transform .3s cubic-bezier(.3,1.5,.4,1)';
         d.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(1)';
+        var bowl = document.getElementById('gm-bowl');
+        if (bowl) { bowl.classList.remove('shake'); void bowl.offsetWidth; bowl.classList.add('shake'); }
       }
     }
     requestAnimationFrame(step);
