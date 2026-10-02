@@ -1,4 +1,4 @@
-// 乱世烽火 · 赌坊掷骰小游戏（v20261001h Canvas 真3D投影骰子）
+// 乱世烽火 · 赌坊掷骰小游戏（v20261003a Canvas 真3D投影骰子）
 // 入口：快活赌坊「押大押小」→ openModal('gamble')
 // 玩法：押注银两 → 押大/押小 → 水墨手入陶碗撒骰 → 骰子3D翻滚落定 → 和 4~10 小 / 11~17 大（1:1），豹子通吃
 // 渲染：Canvas 手绘 3D 立方体（旋转矩阵+透视投影+背面剔除+动态光照+面上点数随旋转投影）——非 DOM 纸片
@@ -164,7 +164,7 @@
   ];
   function render() {
     return '<div class="gm-sign">快活赌坊<i>骰宝赌桌</i><span class="gm-bank"><img class="gm-silver" src="' + IMG + 'silver.png" alt="银两"><b id="gm-gold">' + gold() + '</b></span></div>' +
-      '<p class="tip gm-sub" id="gm-rule-tip">骰宝三骰：先选玩法，再下注；押中者赔一赔一</p>' +
+      '<p class="tip gm-sub" id="gm-rule-tip">骰宝三骰：先选玩法，再下注（大/小二选一，可同押豹子·单偶·单点）；押中按各注赔率结算</p>' +
       '<div class="gm-stage">' +
       '<div class="gm-tag hidden" id="gm-tag"></div>' +
       '<div class="gm-bowl" id="gm-bowl"><div class="gm-mat"></div>' +
@@ -195,20 +195,20 @@
       '<button class="gm-rule" data-rule="nobao"><b>江湖无豹</b><small>豹子 · 计点数判大小</small></button>' +
       '<button class="gm-rule" data-rule="duel"><b>骰子对决</b><small>你摇 vs 荷官摇 · 1:1</small></button>' +
       '</div>' +
-      '<p class="gm-rule-tip">骰宝可同押多注（大小/豹子/奇偶/单点）· 对决与庄家比大小</p>' +
+      '<p class="gm-rule-tip">骰宝：大/小二选一，可另同押豹子·单偶·单点（各按赔率结算）· 骰子对决与荷官比大小</p>' +
       '</div>' +
       '<div class="gm-bet hidden" id="gm-bet">' +
       '<div class="gm-amt-row"><input id="gm-amt" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric"><span class="gm-chips">' +
       '<span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></span></div>' +
       '<button class="gm-modeswitch" id="gm-modeswitch">换玩法</button>' +
       '<div class="gm-bets">' +
-      '<div class="gm-bet-row"><span class="gm-betopt gm-bbig" data-b="big">押 大<small>11-17 点</small></span><span class="gm-betopt gm-bsmall" data-b="small">押 小<small>4-10 点</small></span></div>' +
+      '<div class="gm-bet-row"><span class="gm-betopt gm-bbig" data-b="big">押 大<small>11-17 点</small></span><span class="gm-betopt gm-bsmall" data-b="small">押 小<small>4-10 点</small></span><span class="gm-row-hint">大/小二选一</span></div>' +
       '<div class="gm-bet-row"><span class="gm-betopt gm-bbao" data-b="bao">押豹子<small>1 赔 24</small></span><span class="gm-betopt gm-bodd" data-b="odd">押 单<small>1:1</small></span><span class="gm-betopt gm-beven" data-b="even">押 偶<small>1:1</small></span></div>' +
-      '<div class="gm-bet-row gm-row-pts"><span class="gm-pts-t" id="gm-pts-t">押单点</span><span class="gm-pts-nums" id="gm-pts-nums"><span class="gm-betopt gm-pt" data-b="p1">1</span><span class="gm-betopt gm-pt" data-b="p2">2</span><span class="gm-betopt gm-pt" data-b="p3">3</span><span class="gm-betopt gm-pt" data-b="p4">4</span><span class="gm-betopt gm-pt" data-b="p5">5</span><span class="gm-betopt gm-pt" data-b="p6">6</span></span></div>' +
+      '<div class="gm-bet-row gm-row-pts"><span class="gm-pts-t" id="gm-pts-t">押单点<small>中 n 颗赔 n 倍 · 50 两起</small></span><span class="gm-pts-nums" id="gm-pts-nums"><span class="gm-betopt gm-pt" data-b="p1" title="押一点数：三骰中每出现一颗「1」即赔 1 倍注金（50 两起）">1</span><span class="gm-betopt gm-pt" data-b="p2" title="押一点数：三骰中每出现一颗「2」即赔 1 倍注金（50 两起）">2</span><span class="gm-betopt gm-pt" data-b="p3" title="押一点数：三骰中每出现一颗「3」即赔 1 倍注金（50 两起）">3</span><span class="gm-betopt gm-pt" data-b="p4" title="押一点数：三骰中每出现一颗「4」即赔 1 倍注金（50 两起）">4</span><span class="gm-betopt gm-pt" data-b="p5" title="押一点数：三骰中每出现一颗「5」即赔 1 倍注金（50 两起）">5</span><span class="gm-betopt gm-pt" data-b="p6" title="押一点数：三骰中每出现一颗「6」即赔 1 倍注金（50 两起）">6</span></span></div>' +
       '</div>' +
       '<div class="gm-btns"><button class="btn gm-go" id="gm-go">摇骰开盅</button>' +
       '<button class="btn btn-ghost gm-again hidden" id="gm-again">再来一局</button></div>' +
-      '<div class="gm-hist" id="gm-hist"><div class="gm-hist-head">本桌记录</div><div class="gm-hist-list" id="gm-hist-list"></div></div>' +
+      '<div class="gm-hist" id="gm-hist"><div class="gm-hist-head">本桌记录 ▾</div><div class="gm-hist-list" id="gm-hist-list"></div><div class="gm-hist-sum" id="gm-hist-sum"></div></div>' +
       '</div>' +
       '<div class="gm-duelbet hidden" id="gm-duelbet">' +
       '<div class="gm-amt-row"><input id="gm-amt2" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric"><span class="gm-chips">' +
@@ -467,7 +467,7 @@
   }
 
   // 本桌会话统计（关窗时汇总到文本输出框）
-  var sess = { rounds: 0, net: 0 };
+  var sess = { rounds: 0, net: 0, streak: 0 };
   function close() {
     if (sess.rounds > 0) {
       var s2 = state();
@@ -478,6 +478,14 @@
       if (window.log) { window.log(t, sess.net > 0 ? 'good' : (sess.net < 0 ? 'bad' : 'sys')); }
     }
     sess = { rounds: 0, net: 0 };
+  }
+
+  function updateHistSum() {
+    var el = document.getElementById('gm-hist-sum');
+    if (!el) return;
+    var cls = sess.net > 0 ? 'win' : (sess.net < 0 ? 'lose' : '');
+    el.className = 'gm-hist-sum ' + cls;
+    el.textContent = '本桌 ' + sess.rounds + ' 局 · 净 ' + (sess.net >= 0 ? '+' : '') + sess.net + ' 两 · 连胜 ' + sess.streak;
   }
 
   function finalize() {
@@ -518,10 +526,10 @@
       line.className = 'gm-hist-line ' + (delta > 0 ? 'win' : (delta < 0 ? 'lose' : 'tie'));
       line.textContent = amt + '两·' + faces[0] + faces[1] + faces[2] + ' ' + sum + '点 · ' + (delta > 0 ? '赢+' + delta : (delta < 0 ? '输' + delta : '平'));
       e.histList.appendChild(line);
-      while (e.histList.children.length > 8) e.histList.removeChild(e.histList.firstChild);
+      while (e.histList.children.length > 20) e.histList.removeChild(e.histList.firstChild);
       e.histList.scrollTop = e.histList.scrollHeight;
     }
-    sess.rounds++; sess.net += delta;
+    sess.rounds++; sess.net += delta; if (delta > 0) sess.streak++; else if (delta < 0) sess.streak = 0; updateHistSum();
     if (e.again) e.again.classList.remove('hidden');
     if (e.skip) e.skip.classList.add('hidden');
     if (e.go) { e.go.disabled = false; e.go.classList.add('hidden'); }
@@ -531,47 +539,52 @@
     phase = 0;
   }
 
-  // ── 骰子对决 ──
-  var DUEL_R = 16, DUEL_S = 18;
-  function duelSpin() {
+  // ── 骰子对决：你摇 → 荷官摇，两遍动画依次落定 ──
+  var DUEL_S = 18;
+  function duelHighlight(side) {
     var e = $();
-    var dur = [1300, 1500, 1700];
+    if (!e.duel) return;
+    var sides = e.duel.querySelectorAll('.gm-duel-side');
+    for (var i = 0; i < sides.length; i++) sides[i].classList.remove('active');
+    var node = e.duel.querySelector(side === 'p' ? '.gm-duel-side:first-child' : '.gm-duel-side:last-child');
+    if (node) node.classList.add('active');
+  }
+  function rollDuelSide(cvs, elsArr, faces, side, onDone) {
+    var e = $();
+    duelHighlight(side);
+    var dur = [1100, 1300, 1500];
     var t0 = performance.now();
     function frame(now) {
       if (phase !== 1) return;
       var el = now - t0;
       for (var i = 0; i < 3; i++) {
-        var cv = e.pc[i];
         var k = Math.min(1, el / dur[i]);
         var e2 = 1 - Math.pow(1 - k, 2.2);
-        drawDice(cv, 22, 22, DUEL_S, e2 * 1080 * (i + 1) * Math.PI / 180, e2 * 720 * Math.PI / 180, 0, 90);
-        e.p[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,' + (-Math.sin(el / 120 + i) * 5).toFixed(1) + 'px)';
-        e.p[i].style.opacity = 1;
+        drawDice(cvs[i], 22, 22, DUEL_S, e2 * 1080 * (i + 1) * Math.PI / 180, e2 * 720 * Math.PI / 180, 0, 90);
+        elsArr[i].style.opacity = 1;
+        elsArr[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,' + (-Math.sin(el / 120 + i) * 5).toFixed(1) + 'px)';
       }
-      if (el < 2400) requestAnimationFrame(frame);
+      if (el < dur[2] + 260) requestAnimationFrame(frame);
       else {
-        // 玩家骰落定到各自点数面（顶面朝上+金晕）
         for (var i = 0; i < 3; i++) {
-          var fu = FACE_UP[duelFaces.p[i]];
-          drawDice(e.pc[i], 22, 22, DUEL_S, fu[0], fu[1], fu[2], 90, true, duelFaces.p[i]);
+          var fu = FACE_UP[faces[i]];
+          drawDice(cvs[i], 22, 22, DUEL_S, fu[0], fu[1], fu[2], 90, true, faces[i]);
+          elsArr[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,0) scale(1)';
         }
         sfx('diceLand');
-        // 荷官骰依次亮出
-        for (var j = 0; j < 3; j++) { settleDuelDice(j, duelFaces.b[j], 300 + j * 380); }
-        window.setTimeout(duelFinalize, 2300);
+        if (onDone) onDone();
       }
     }
     requestAnimationFrame(frame);
   }
-  function settleDuelDice(idx, face, delay) {
-    window.setTimeout(function () {
-      var e = $();
-      var fu = FACE_UP[face];
-      drawDice(e.bc[idx], 22, 22, DUEL_S, fu[0], fu[1], fu[2], 90, true, face);
-      e.b[idx].style.opacity = 1;
-      e.b[idx].style.transform = 'translate(0,0) scale(1)';
-      sfx('diceTick');
-    }, delay);
+  function startDuelRoll() {
+    var e = $();
+    e.result.className = 'gm-result rolling';
+    e.result.textContent = '你摇三骰——' + (duelBet === 'self' ? '押你赢' : '押荷官赢') + ' ' + (parseInt(e.amt2.value, 10) || 30) + ' 两！';
+    rollDuelSide(e.pc, e.p, duelFaces.p, 'p', function () {
+      e.result.textContent = '荷官摇三骰——';
+      rollDuelSide(e.bc, e.b, duelFaces.b, 'b', function () { duelFinalize(); });
+    });
   }
   function duelFinalize() {
     var e = $(), s = state();
@@ -592,10 +605,10 @@
       line.className = 'gm-hist-line ' + (delta > 0 ? 'win' : (delta < 0 ? 'lose' : 'tie'));
       line.textContent = '对决 ' + pSum + ':' + bSum + ' · ' + (delta > 0 ? '赢+' + delta : (delta < 0 ? '输' + delta : '平局退注'));
       e.histList.appendChild(line);
-      while (e.histList.children.length > 8) e.histList.removeChild(e.histList.firstChild);
+      while (e.histList.children.length > 20) e.histList.removeChild(e.histList.firstChild);
       e.histList.scrollTop = e.histList.scrollHeight;
     }
-    sess.rounds++; sess.net += delta;
+    sess.rounds++; sess.net += delta; if (delta > 0) sess.streak++; else if (delta < 0) sess.streak = 0; updateHistSum();
     if (e.again2) e.again2.classList.remove('hidden');
     if (e.skip) e.skip.classList.add('hidden');
     if (e.go2) { e.go2.disabled = false; e.go2.classList.add('hidden'); }
@@ -616,9 +629,8 @@
     if (e.skip) e.skip.classList.remove('hidden');
     sfx('diceShake');
     e.result.className = 'gm-result rolling';
-    e.result.textContent = '对决开骰——' + (duelBet === 'self' ? '押你赢' : '押荷官赢') + ' ' + amt2 + ' 两！';
     phase = 1;
-    duelSpin();
+    startDuelRoll();
   }
 
   function bind() {
@@ -647,8 +659,8 @@
           if (e.bowl) e.bowl.classList.remove('hidden');
           resetUI();
           e.result.textContent = RULE === 'bao'
-            ? '玩法选定：经典通吃。豹子通吃；可同押大小/豹子/单偶/单点数，中者按各注赔率结算。'
-            : '玩法选定：江湖无豹。豹子按点数计大小；可同押大小/豹子/单偶/单点数。';
+            ? '玩法选定：经典通吃。豹子通吃；大/小二选一，可另同押豹子·单偶·单点数，中者按各注赔率结算。'
+            : '玩法选定：江湖无豹。豹子按点数计大小；大/小二选一，可另同押豹子·单偶·单点数。';
         }
         sfx('confirm');
       };
@@ -718,6 +730,7 @@
     e.skip.onclick = function () { if (RULE === 'duel') skipDuel(); else skip(); };
     e.again.onclick = function () { e.d.forEach(function (d) { d.removeAttribute('data-done'); }); resetUI(); };
     e.again2.onclick = function () { resetDuelUI(); };
+    updateHistSum();
     var histHead = document.querySelector('.gm-hist-head');
     if (histHead) {
       histHead.onclick = function () {

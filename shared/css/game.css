@@ -3559,3 +3559,12 @@
 .gm-modeswitch{ position:absolute; right:0; top:8px; padding:4px 10px; font-size:11px; letter-spacing:2px;
   border:1px solid rgba(120,80,40,.4); border-radius:999px; background:rgba(245,236,218,.95); color:#7a4a2a; cursor:pointer; }
 .gm-modeswitch:active{ transform:scale(.94); }
+
+/* ── 赌坊体验优化 v20261003a ── */
+.gm-row-hint{ font-size:10px; color:#9a6a3a; align-self:center; margin-left:4px; opacity:.85; letter-spacing:1px; }
+.gm-duel-side{ transition:transform .15s; }
+.gm-duel-side.active{ transform:scale(1.05); }
+.gm-duel-side.active .gm-duel-label{ background:linear-gradient(180deg,#b8893a,#8a5a22); color:#fff3d5; border-radius:8px; padding:1px 8px; box-shadow:0 0 8px rgba(226,180,90,.55); }
+.gm-hist-sum{ margin-top:4px; font-size:11px; letter-spacing:1px; color:#7a4a2a; border-top:1px dotted rgba(120,80,40,.3); padding-top:3px; }
+.gm-hist-sum.win{ color:#b03a2c; font-weight:700; }
+.gm-hist-sum.lose{ color:#4a5a44; font-weight:700; }
