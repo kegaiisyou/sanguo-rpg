@@ -93,12 +93,9 @@
       for (var j = 1; j < 4; j++) { var pj = proj(f2.pts[j], fov); ctx.lineTo(pj[0] + cx, pj[1] + cy); }
       ctx.closePath();
       if (isHot) {
-        // 落定顶面：面本色最亮 + 墨色粗描边（不再红色覆盖）——结算面最醒目
+        // 落定顶面：面本色最亮，无描边——靠亮度+大点数白描边区分（去黑色描边）
         ctx.fillStyle = shade(fc, 1);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(58,44,28,.95)';
-        ctx.lineWidth = 3;
-        ctx.stroke();
         var dots = DOT_UV[f2.n];
         for (var k = 0; k < dots.length; k++) {
           var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
