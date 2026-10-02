@@ -4,6 +4,14 @@
 // 渲染：Canvas 手绘 3D 立方体（旋转矩阵+透视投影+背面剔除+动态光照+面上点数随旋转投影）——非 DOM 纸片
 (function () {
   'use strict';
+  // 六面底色（水墨色系，翻滚/结算时各面颜色清晰可辨）
+  var FACE_COLOR = { 1: '#f5ead8', 2: '#fdf7e8', 3: '#ecd9b8', 4: '#dfe6d2', 5: '#e8d9d9', 6: '#dbe4ea' };
+  // 传统骰子点数配色：1 与 4 面用朱砂红点，2/3/5/6 面用墨色点
+  var DOT_COLOR = { 1: '#c23a2c', 2: '#3a2c1c', 3: '#3a2c1c', 4: '#c23a2c', 5: '#3a2c1c', 6: '#3a2c1c' };
+  function shade(hex, l) {
+    var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return 'rgb(' + Math.round(r * l) + ',' + Math.round(g * l) + ',' + Math.round(b * l) + ')';
+  }
   var IMG = 'shared/img/gamble/';
   function state() { return (window.LF && LF.Core) ? LF.Core.state : null; }
   function gold() { var s = state(); return s ? (s.gold || 0) : 0; }
@@ -78,18 +86,19 @@
     for (var i = 0; i < faces.length; i++) {
       var f2 = faces[i];
       var isHot = settled && f2.n === hot;
+      var fc = FACE_COLOR[f2.n] || '#f5ead8';
+      var dc = DOT_COLOR[f2.n] || '#3a2c1c';
+      ctx.beginPath();
+      var pp0 = proj(f2.pts[0], fov); ctx.moveTo(pp0[0] + cx, pp0[1] + cy);
+      for (var j = 1; j < 4; j++) { var pj = proj(f2.pts[j], fov); ctx.lineTo(pj[0] + cx, pj[1] + cy); }
+      ctx.closePath();
       if (isHot) {
-        // 落定顶面：最亮宣纸 + 朱砂描边 → 一眼认出结算点数
-        ctx.beginPath();
-        var pp0 = proj(f2.pts[0], fov); ctx.moveTo(pp0[0] + cx, pp0[1] + cy);
-        for (var j = 1; j < 4; j++) { var pj = proj(f2.pts[j], fov); ctx.lineTo(pj[0] + cx, pj[1] + cy); }
-        ctx.closePath();
-        ctx.fillStyle = 'rgb(255,251,240)';
+        // 落定顶面：面本色最亮 + 墨色粗描边（不再红色覆盖）——结算面最醒目
+        ctx.fillStyle = shade(fc, 1);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(196,64,50,.95)';
-        ctx.lineWidth = 2.6;
+        ctx.strokeStyle = 'rgba(58,44,28,.95)';
+        ctx.lineWidth = 3;
         ctx.stroke();
-        // 顶面点数：大红点 + 白描边，明显大于侧面
         var dots = DOT_UV[f2.n];
         for (var k = 0; k < dots.length; k++) {
           var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
@@ -97,38 +106,35 @@
           var rr = Math.max(3.2, s * 0.16);
           ctx.beginPath();
           ctx.arc(pq[0] + cx, pq[1] + cy, rr, 0, 6.2832);
-          ctx.fillStyle = '#c23a2c';
+          ctx.fillStyle = dc;
           ctx.fill();
-          ctx.lineWidth = 1.4;
+          ctx.lineWidth = 1.5;
           ctx.strokeStyle = 'rgba(255,255,255,.95)';
           ctx.stroke();
         }
       } else {
-        var l = (0.58 + 0.42 * (f2.cz / half)) * (settled ? 0.72 : 1); // 落定侧面整体压暗
-        var R = Math.round(252 * l + 186 * (1 - l)), G = Math.round(246 * l + 170 * (1 - l)), B = Math.round(229 * l + 140 * (1 - l));
-        ctx.beginPath();
-        var pp0 = proj(f2.pts[0], fov); ctx.moveTo(pp0[0] + cx, pp0[1] + cy);
-        for (var j = 1; j < 4; j++) { var pj = proj(f2.pts[j], fov); ctx.lineTo(pj[0] + cx, pj[1] + cy); }
-        ctx.closePath();
-        ctx.fillStyle = 'rgb(' + R + ',' + G + ',' + B + ')';
+        // 各面保持本色（轻微光照差异），落定侧面略暗但仍可见颜色
+        var l = settled ? 0.82 : (f2.dep / (half * 3) > 0.5 ? 0.92 : 0.86);
+        ctx.fillStyle = shade(fc, l);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(58,44,28,.6)';
+        ctx.strokeStyle = 'rgba(58,44,28,.55)';
         ctx.lineWidth = 1.2;
         ctx.stroke();
-        // 落定侧面不画点数；翻滚/过渡时侧面正常有点
-        if (!settled) {
-          var dots = DOT_UV[f2.n];
-          for (var k = 0; k < dots.length; k++) {
-            var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
-            var pq = proj(Q, fov);
-            ctx.beginPath();
-            ctx.arc(pq[0] + cx, pq[1] + cy, Math.max(2.2, s * 0.1), 0, 6.2832);
-            ctx.fillStyle = '#a8332a';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(110,25,18,.35)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
+        // 点数按面本色（红/黑）；落定侧面弱化点数，翻滚正常
+        var dots = DOT_UV[f2.n];
+        var da = settled ? 0.35 : 1;
+        for (var k = 0; k < dots.length; k++) {
+          var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
+          var pq = proj(Q, fov);
+          ctx.beginPath();
+          ctx.arc(pq[0] + cx, pq[1] + cy, Math.max(2.2, s * 0.1), 0, 6.2832);
+          ctx.globalAlpha = da;
+          ctx.fillStyle = dc;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = 'rgba(0,0,0,.18)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
         }
       }
     }
