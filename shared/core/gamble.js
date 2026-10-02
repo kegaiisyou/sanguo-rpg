@@ -163,9 +163,8 @@
     '豹子一出，庄家通吃——客官押大押小，全凭天意。'
   ];
   function render() {
-    return '<div class="gm-sign">快活赌坊<i>骰宝赌桌</i></div>' +
+    return '<div class="gm-sign">快活赌坊<i>骰宝赌桌</i><span class="gm-bank"><img class="gm-silver" src="' + IMG + 'silver.png" alt="银两"><b id="gm-gold">' + gold() + '</b></span></div>' +
       '<p class="tip gm-sub" id="gm-rule-tip">骰宝三骰：先选玩法，再下注；押中者赔一赔一</p>' +
-      '<div class="gm-bank"><img class="gm-silver" src="' + IMG + 'silver.png" alt="银两"><b id="gm-gold">' + gold() + '</b></div>' +
       '<div class="gm-stage">' +
       '<div class="gm-tag hidden" id="gm-tag"></div>' +
       '<div class="gm-bowl" id="gm-bowl"><div class="gm-mat"></div>' +
@@ -199,9 +198,9 @@
       '<p class="gm-rule-tip">骰宝可同押多注（大小/豹子/奇偶/单点）· 对决与庄家比大小</p>' +
       '</div>' +
       '<div class="gm-bet hidden" id="gm-bet">' +
-      '<div class="gm-amt-row"><input id="gm-amt" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric"></div>' +
-      '<div class="gm-amt-row gm-chips"><span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></div>' +
-      '<div class="gm-modeswitch"><button id="gm-modeswitch">换玩法</button></div>' +
+      '<div class="gm-amt-row"><input id="gm-amt" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric"><span class="gm-chips">' +
+      '<span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></span></div>' +
+      '<button class="gm-modeswitch" id="gm-modeswitch">换玩法</button>' +
       '<div class="gm-bets">' +
       '<div class="gm-bet-row"><span class="gm-betopt gm-bbig" data-b="big">押 大<small>11-17 点</small></span><span class="gm-betopt gm-bsmall" data-b="small">押 小<small>4-10 点</small></span></div>' +
       '<div class="gm-bet-row"><span class="gm-betopt gm-bbao" data-b="bao">押豹子<small>1 赔 24</small></span><span class="gm-betopt gm-bodd" data-b="odd">押 单<small>1:1</small></span><span class="gm-betopt gm-beven" data-b="even">押 偶<small>1:1</small></span></div>' +
@@ -212,9 +211,9 @@
       '<div class="gm-hist" id="gm-hist"><div class="gm-hist-head">本桌记录</div><div class="gm-hist-list" id="gm-hist-list"></div></div>' +
       '</div>' +
       '<div class="gm-duelbet hidden" id="gm-duelbet">' +
-      '<div class="gm-amt-row"><input id="gm-amt2" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric"></div>' +
-      '<div class="gm-amt-row gm-chips"><span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></div>' +
-      '<div class="gm-modeswitch"><button id="gm-modeswitch2">换玩法</button></div>' +
+      '<div class="gm-amt-row"><input id="gm-amt2" class="gm-amt" type="number" min="1" max="' + Math.max(gold(), 1) + '" value="30" inputmode="numeric"><span class="gm-chips">' +
+      '<span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></span></div>' +
+      '<button class="gm-modeswitch" id="gm-modeswitch2">换玩法</button>' +
       '<div class="gm-bets"><div class="gm-bet-row"><span class="gm-betopt gm-bself" data-b="self">押你赢<small>1:1</small></span><span class="gm-betopt gm-bbanker" data-b="banker">押荷官赢<small>1:1</small></span></div></div>' +
       '<div class="gm-btns"><button class="btn gm-go" id="gm-go2">摇骰对决</button>' +
       '<button class="btn btn-ghost gm-again hidden" id="gm-again2">再来一局</button></div>' +
@@ -538,18 +537,26 @@
       }
       if (el < 2400) requestAnimationFrame(frame);
       else {
-        // 玩家定 → 荷官依次亮出
-        for (var j = 0; j < 3; j++) { settleDuelDice(e.bc[j], duelFaces.b[j], 300 + j * 380); }
+        // 玩家骰落定到各自点数面（顶面朝上+金晕）
+        for (var i = 0; i < 3; i++) {
+          var fu = FACE_UP[duelFaces.p[i]];
+          drawDice(e.pc[i], 22, 22, DUEL_S, fu[0], fu[1], fu[2], 90, true, duelFaces.p[i]);
+        }
         sfx('diceLand');
-        window.setTimeout(duelFinalize, 2200);
+        // 荷官骰依次亮出
+        for (var j = 0; j < 3; j++) { settleDuelDice(j, duelFaces.b[j], 300 + j * 380); }
+        window.setTimeout(duelFinalize, 2300);
       }
     }
     requestAnimationFrame(frame);
   }
-  function settleDuelDice(cv, face, delay) {
+  function settleDuelDice(idx, face, delay) {
     window.setTimeout(function () {
+      var e = $();
       var fu = FACE_UP[face];
-      drawDice(cv, 22, 22, DUEL_S, fu[0], fu[1], fu[2], 90, true, face);
+      drawDice(e.bc[idx], 22, 22, DUEL_S, fu[0], fu[1], fu[2], 90, true, face);
+      e.b[idx].style.opacity = 1;
+      e.b[idx].style.transform = 'translate(0,0) scale(1)';
       sfx('diceTick');
     }, delay);
   }
@@ -589,7 +596,7 @@
     if (amt2 > gold()) { e.result.textContent = '荷官冷笑：「囊中银两不够，也敢对决？」（当前 ' + gold() + '）'; return; }
     for (var i = 0; i < 3; i++) { duelFaces.p[i] = 1 + Math.floor(Math.random() * 6); duelFaces.b[i] = 1 + Math.floor(Math.random() * 6); }
     e.p.forEach(function (d) { d.style.opacity = 1; d.style.transform = 'translate(0,0)'; });
-    e.b.forEach(function (d) { d.style.opacity = 1; });
+    e.b.forEach(function (d) { d.style.opacity = 0; });
     if (e.go2) e.go2.disabled = true;
     if (e.amt2) e.amt2.disabled = true;
     if (e.skip) e.skip.classList.remove('hidden');
@@ -611,6 +618,7 @@
         var rk = r.getAttribute('data-rule');
         document.querySelectorAll('.gm-rule').forEach(function (x) { x.classList.remove('on'); });
         r.classList.add('on');
+        if (e.ruleTip) e.ruleTip.style.display = 'none';
         if (rk === 'duel') {
           duelBet = 'self';
           RULE = 'duel';
@@ -677,6 +685,16 @@
     e.skip.onclick = function () { if (RULE === 'duel') skipDuel(); else skip(); };
     e.again.onclick = function () { e.d.forEach(function (d) { d.removeAttribute('data-done'); }); resetUI(); };
     e.again2.onclick = function () { resetDuelUI(); };
+    var histHead = document.querySelector('.gm-hist-head');
+    if (histHead) {
+      histHead.onclick = function () {
+        var l = document.getElementById('gm-hist-list');
+        if (!l) return;
+        var open = l.style.display === 'block';
+        l.style.display = open ? 'none' : 'block';
+        histHead.textContent = open ? '本桌记录 ▸' : '本桌记录 ▾';
+      };
+    }
     if (e.dealer) {
       e.dealer.onclick = function () {
         if (phase !== 0) { sfx('click'); return; }

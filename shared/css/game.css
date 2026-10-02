@@ -3486,18 +3486,18 @@
 	.gm-stage.skippable .gm-bowl{ filter:brightness(1.02); }
 	.gm-stage.skippable::after{ content:'轻点骰子可立即开盅'; display:block; text-align:center; font-size:10px; color:#8a6a42; letter-spacing:1px; margin-top:2px; }
 	/* 筹码化押注（圆形铜钱） */
-	.gm-amt-row{ gap:7px; }
-	.gm-amt{ width:86px; padding:10px 4px; border:2px solid #7a5a20; border-radius:50%;
+	.gm-amt-row{ gap:8px; margin-bottom:8px; }
+	.gm-amt{ width:64px; padding:7px 2px; border:2px solid #7a5a20; border-radius:999px;
 	  background:radial-gradient(circle at 34% 28%, #fdf4d6, #e9cf8f 55%, #c9a14e);
 	  box-shadow:0 2px 4px rgba(60,40,15,.4), inset 0 1px 0 rgba(255,240,190,.75), inset 0 -2px 3px rgba(90,60,20,.4);
-	  color:#4a3010; font-size:16px; font-weight:700; text-align:center; }
-	.gm-chips{ justify-content:center; gap:9px; margin-top:2px; }
-	.gm-chip{ position:relative; width:42px; height:42px; border-radius:50%;
+	  color:#4a3010; font-size:15px; font-weight:700; text-align:center; }
+	.gm-chips{ display:inline-flex; align-items:center; gap:6px; margin:0; }
+	.gm-chip{ position:relative; width:36px; height:36px; border-radius:50%;
 	  background:radial-gradient(circle at 36% 30%, #f0dba4, #d5b569 60%, #ab8740);
 	  border:2px solid #8a6a32; box-shadow:0 1px 3px rgba(60,40,15,.3), inset 0 1px 0 rgba(255,240,190,.55);
 	  color:#4a3010; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center;
 	  cursor:pointer; transition:transform .09s, box-shadow .12s; }
-	.gm-chip::after{ content:''; position:absolute; inset:8px; border:1.5px dashed rgba(90,60,20,.38); border-radius:50%; }
+	.gm-chip::after{ content:''; position:absolute; inset:6px; border:1.5px dashed rgba(90,60,20,.38); border-radius:50%; }
 	.gm-chip:active{ transform:scale(.9); box-shadow:0 1px 2px rgba(60,40,15,.25); }
 	.gm-chip.gm-all{ width:46px; font-size:11px; }
 	/* 押大/押小 铜钱边 + 点数范围小字 */
@@ -3552,7 +3552,7 @@
 .gm-duel-dice canvas{ display:block; width:44px; height:44px; filter:drop-shadow(0 2px 3px rgba(60,40,15,.3)); }
 .gm-duel-vs{ font-size:15px; font-weight:700; color:#8a4b2d; font-style:italic; letter-spacing:1px; text-shadow:0 1px 0 rgba(255,255,255,.5); }
 .gm-duelbet{ margin-top:10px; }
-.gm-modeswitch{ text-align:center; margin:0 0 6px; }
-.gm-modeswitch button{ padding:4px 14px; font-size:11px; letter-spacing:2px; border:1px solid rgba(120,80,40,.4);
-  border-radius:999px; background:rgba(245,236,218,.95); color:#7a4a2a; cursor:pointer; }
-.gm-modeswitch button:active{ transform:scale(.94); }
+.gm-bet,.gm-duelbet{ position:relative; }
+.gm-modeswitch{ position:absolute; right:0; top:8px; padding:4px 10px; font-size:11px; letter-spacing:2px;
+  border:1px solid rgba(120,80,40,.4); border-radius:999px; background:rgba(245,236,218,.95); color:#7a4a2a; cursor:pointer; }
+.gm-modeswitch:active{ transform:scale(.94); }
