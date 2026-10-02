@@ -234,6 +234,7 @@
       dealer: document.getElementById('gm-dealer'), ruleTip: document.getElementById('gm-rule-tip'),
       tag: document.getElementById('gm-tag'),
       stage: document.querySelector('.gm-stage'), histList: document.getElementById('gm-hist-list'),
+      bowl: document.getElementById('gm-bowl'),
       skip: document.getElementById('gm-skip'), go: document.getElementById('gm-go'),
       duel: document.getElementById('gm-duel'), duelbet: document.getElementById('gm-duelbet'),
       go2: document.getElementById('gm-go2'), again2: document.getElementById('gm-again2'),
@@ -249,7 +250,7 @@
   // 骰宝多注：size=大小注('big'/'small'/'')，bao/odd/even 可选，point=单点数(0 或 1-6)
   var bets = { size: '', bao: false, odd: false, even: false, point: 0 };
   // 对决：duelBet='self'/'banker'，duelFace=玩家/荷官骰面
-  var duelBet = 'self', duelFaces = { p: [0, 0, 0], b: [0, 0, 0] };
+  var duelBet = '', duelFaces = { p: [0, 0, 0], b: [0, 0, 0] };
   // 游戏启动即预载赌坊素材（碗/手），避免进入赌坊时卡顿
   (function () { ['bowl', 'hand_closed', 'hand_open'].forEach(function (n) { var im = new Image(); im.src = IMG + n + '.png'; }); })();
 
@@ -286,6 +287,11 @@
     if (e.go2) e.go2.classList.remove('hidden');
     e.amt2.disabled = false;
     document.querySelectorAll('.gm-betopt').forEach(function (x) { x.classList.remove('on'); });
+    // 再来一局保持上次押注选择（恢复高亮）
+    if (duelBet) {
+      var sel2 = document.querySelector('#gm-duelbet .gm-betopt[data-b="' + duelBet + '"]');
+      if (sel2) sel2.classList.add('on');
+    }
     phase = 0;
   }
 
@@ -593,6 +599,7 @@
     if (phase !== 0 || !s) return;
     var amt2 = parseInt(e.amt2.value, 10);
     if (!amt2 || amt2 < 1) { e.result.textContent = '荷官：「空手上桌，是来寻开心的？」'; return; }
+    if (!duelBet) { e.result.textContent = '荷官：「先押你赢，还是押荷官赢？」'; sfx('click'); return; }
     if (amt2 > gold()) { e.result.textContent = '荷官冷笑：「囊中银两不够，也敢对决？」（当前 ' + gold() + '）'; return; }
     for (var i = 0; i < 3; i++) { duelFaces.p[i] = 1 + Math.floor(Math.random() * 6); duelFaces.b[i] = 1 + Math.floor(Math.random() * 6); }
     e.p.forEach(function (d) { d.style.opacity = 1; d.style.transform = 'translate(0,0)'; });
@@ -620,7 +627,7 @@
         r.classList.add('on');
         if (e.ruleTip) e.ruleTip.style.display = 'none';
         if (rk === 'duel') {
-          duelBet = 'self';
+          duelBet = '';
           RULE = 'duel';
           e.rules.classList.add('hidden'); e.bet.classList.add('hidden'); e.duelbet.classList.remove('hidden');
           if (e.duel) e.duel.classList.remove('hidden');
