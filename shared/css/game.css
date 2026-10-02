@@ -3441,9 +3441,12 @@
 	/* 碗轻震 */
 	.gm-bowl.shake{ animation:gmShake .3s; }
 	@keyframes gmShake{ 0%,100%{ transform:none; } 25%{ transform:translateY(-2px) rotate(.5deg); } 60%{ transform:translateY(1px) rotate(-.4deg); } }
-	/* 荷官立绘（右上角） */
-	.gm-dealer{ position:absolute; right:-4px; top:8px; width:74px; opacity:.95; z-index:4;
-	  filter:drop-shadow(0 2px 5px rgba(60,40,15,.3)); pointer-events:none; }
+	/* 荷官头像浮签（右上角小头像，不抢碗的戏） */
+	.gm-dealer{ position:absolute; right:2px; top:2px; width:46px; height:46px; border-radius:50%;
+	  object-fit:cover; object-position:top center; z-index:5; opacity:.98; pointer-events:none;
+	  border:2px solid #d9b45b; box-shadow:0 2px 5px rgba(60,40,15,.35), inset 0 0 0 1px rgba(255,240,190,.4); }
+	.gm-dealer-tag{ position:absolute; right:4px; top:52px; z-index:5; font-size:10px; color:#f7e8c8; letter-spacing:2px;
+	  background:linear-gradient(180deg,#93512c,#6e3a1d); border:1px solid #d9b45b; border-radius:8px; padding:1px 6px; }
 	/* 筹码化押注（圆形铜钱） */
 	.gm-amt-row{ gap:7px; }
 	.gm-amt{ width:86px; padding:10px 4px; border:2px solid #7a5a20; border-radius:50%;

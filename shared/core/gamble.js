@@ -159,7 +159,7 @@
       '<div class="gm-bank"><img class="gm-silver" src="' + IMG + 'silver.png" alt="银两"><b id="gm-gold">' + gold() + '</b></div>' +
       '<div class="gm-stage">' +
       '<div class="gm-bowl" id="gm-bowl"><div class="gm-mat"></div>' +
-      '<img class="gm-dealer" src="' + IMG + 'dealer.png" alt="荷官">' +
+      '<img class="gm-dealer" src="' + IMG + 'dealer.png" alt="荷官"><span class="gm-dealer-tag">荷官</span>' +
       '<img class="gm-bowl-img" src="' + IMG + 'bowl.png" alt="陶碗">' +
       '<div class="gm-hand" id="gm-hand"><img class="gm-himg gm-hc" id="gm-hc" src="' + IMG + 'hand_closed.png" alt=""><img class="gm-himg gm-ho" id="gm-ho" src="' + IMG + 'hand_open.png" alt=""></div>' +
       '<div class="gm-dice" id="gm-d1"><canvas class="gm-canvas" width="60" height="60"></canvas></div>' +
