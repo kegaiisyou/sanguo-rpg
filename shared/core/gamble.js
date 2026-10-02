@@ -45,12 +45,12 @@
     1: [-Math.PI / 2, 0, 0], 2: [0, 0, 0], 3: [0, 0, Math.PI / 2],
     4: [0, 0, -Math.PI / 2], 5: [Math.PI, 0, 0], 6: [Math.PI / 2, 0, 0]
   };
-  // 观察倾斜角（正角=朝观察者方向倾斜，保证点数面可见且带立体侧棱）
-  var TILT_X = 24 * Math.PI / 180, TILT_Y = 30 * Math.PI / 180;
+  // 观察倾斜角：中等俯视——正交投影下顶面满尺寸最正（朝上），前/左窄侧棱保留立体
+  var TILT_X = 15 * Math.PI / 180, TILT_Y = 20 * Math.PI / 180;
 
+  // 正交（轴测）投影：不做近大远小缩放——点数面（顶面）满尺寸、不缩小不下沉，像🎲emoji一样一眼是顶面
   function proj(p, fov) {
-    var f = fov / (fov + 30 + p[2]);
-    return [p[0] * f, p[1] * f];
+    return [p[0], p[1]];
   }
   function facePoint(pts, u, v) {
     return [pts[0][0] + (pts[1][0] - pts[0][0]) * u + (pts[3][0] - pts[0][0]) * v,
