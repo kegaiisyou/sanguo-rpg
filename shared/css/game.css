@@ -3443,10 +3443,25 @@
 	@keyframes gmShake{ 0%,100%{ transform:none; } 25%{ transform:translateY(-2px) rotate(.5deg); } 60%{ transform:translateY(1px) rotate(-.4deg); } }
 	/* 荷官头像浮签（右上角小头像，不抢碗的戏） */
 	.gm-dealer{ position:absolute; right:2px; top:2px; width:46px; height:46px; border-radius:50%;
-	  object-fit:cover; object-position:top center; z-index:5; opacity:.98; pointer-events:none;
-	  border:2px solid #d9b45b; box-shadow:0 2px 5px rgba(60,40,15,.35), inset 0 0 0 1px rgba(255,240,190,.4); }
+	  object-fit:cover; object-position:top center; z-index:5; opacity:.98; pointer-events:auto; cursor:pointer;
+	  border:2px solid #d9b45b; box-shadow:0 2px 5px rgba(60,40,15,.35), inset 0 0 0 1px rgba(255,240,190,.4);
+	  transition:transform .12s; }
+	.gm-dealer:active{ transform:scale(.9); }
 	.gm-dealer-tag{ position:absolute; right:4px; top:52px; z-index:5; font-size:10px; color:#f7e8c8; letter-spacing:2px;
 	  background:linear-gradient(180deg,#93512c,#6e3a1d); border:1px solid #d9b45b; border-radius:8px; padding:1px 6px; }
+	/* 玩法选择面板 */
+	.gm-rules{ padding:10px 6px 4px; }
+	.gm-rule-head{ text-align:center; font-size:12px; color:#7a4a2a; letter-spacing:4px; margin-bottom:8px; }
+	.gm-rule-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+	.gm-rule{ flex:1 1 132px; max-width:160px; padding:10px 8px; border-radius:12px; cursor:pointer;
+	  background:linear-gradient(180deg,#f6ecd7,#e8d9b8); border:2px solid #b08a4e; color:#5a3a1a;
+	  box-shadow:0 2px 4px rgba(60,40,15,.25); transition:transform .1s, box-shadow .12s; text-align:center; }
+	.gm-rule b{ display:block; font-size:14px; letter-spacing:2px; color:#6e3a1d; }
+	.gm-rule small{ display:block; font-size:10px; color:#8a6a42; margin-top:3px; }
+	.gm-rule:active{ transform:scale(.94); }
+	.gm-rule.on{ border-color:#c23a2c; box-shadow:0 0 0 2px rgba(194,58,44,.25), 0 2px 5px rgba(60,40,15,.3); }
+	.gm-rule-tip{ text-align:center; font-size:11px; color:#8a6a42; margin:8px 0 2px; letter-spacing:1px; }
+	.gm-bet.hidden{ display:none; }
 	/* 筹码化押注（圆形铜钱） */
 	.gm-amt-row{ gap:7px; }
 	.gm-amt{ width:86px; padding:10px 4px; border:2px solid #7a5a20; border-radius:50%;
@@ -3461,9 +3476,11 @@
 	.gm-chip::after{ content:''; position:absolute; inset:9px; border:2px dashed rgba(90,60,20,.5); border-radius:50%; }
 	.gm-chip:active{ transform:scale(.92); box-shadow:0 1px 2px rgba(60,40,15,.35); }
 	.gm-chip.gm-all{ width:58px; font-size:12px; }
-	/* 押大/押小 铜钱边 */
+	/* 押大/押小 铜钱边 + 点数范围小字 */
 	.gm-big,.gm-small{ position:relative; border-radius:12px; border:2px solid #d9b45b;
-	  box-shadow:0 2px 5px rgba(60,40,15,.3), inset 0 1px 0 rgba(255,240,200,.35); }
+	  box-shadow:0 2px 5px rgba(60,40,15,.3), inset 0 1px 0 rgba(255,240,200,.35); padding:8px 14px; }
+	.gm-big small,.gm-small small{ display:block; font-size:10px; font-weight:400; opacity:.85; letter-spacing:0; margin-top:1px; }
+	.gm-big small{ color:#ffd9c2; } .gm-small small{ color:#cfe6d4; }
 	.gm-big{ background:linear-gradient(180deg,#b8412f,#8a2b1e); color:#fdf3d5; }
 	.gm-small{ background:linear-gradient(180deg,#3f6b4f,#2c5340); color:#e8f0e2; }
 	.gm-big::before,.gm-small::before,.gm-big::after,.gm-small::after{ content:'❖'; position:absolute; top:50%;

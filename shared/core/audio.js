@@ -454,7 +454,7 @@
 
     play: function (name) {
       var fn = { click: sfxClick, coin: sfxCoin, confirm: sfxConfirm, cancel: sfxCancel, open: sfxOpen, close: sfxClose, error: sfxError, levelup: sfxLevelup, attack: sfxAttack, hit: sfxHit, crit: sfxCrit, miss: sfxMiss, defend: sfxDefend, heal: sfxHeal, skill: sfxSkill, victory: sfxVictory, defeat: sfxDefeat,
-        diceShake: sfxDiceShake, diceLand: sfxDiceLand, diceTick: sfxDiceTick, win: sfxWin, lose: sfxLose }[name];
+        diceShake: sfxDiceShake, diceLand: sfxDiceLand, diceTick: sfxDiceTick, win: sfxWin, lose: sfxLose, bao: sfxBao }[name];
       if (fn) fn();
     },
     startBgm: startBgm,
@@ -515,6 +515,17 @@
     var g = c.createGain(); g.gain.value = 0.22;
     src.connect(f); f.connect(g); g.connect(sfxGain);
     src.start(t);
+  }
+    // 豹子通吃锣声（低鼓+铜锣，比普通胜利更响更戏剧）
+  function sfxBao() {
+    if (!ctxReady()) return;
+    var t = c.currentTime;
+    var g = c.createGain(); g.gain.value = 0.5; g.connect(sfxGain || c.destination);
+    var osc = c.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(392, t); osc.frequency.exponentialRampToValueAtTime(196, t + 0.7); osc.connect(g); osc.start(t); osc.stop(t + 0.8);
+    var o2 = c.createOscillator(); o2.type = 'triangle'; o2.frequency.setValueAtTime(523, t); o2.frequency.exponentialRampToValueAtTime(262, t + 0.6); o2.connect(g); o2.start(t); o2.stop(t + 0.7);
+    var n = c.createBufferSource(); n.buffer = noiseBuf(); var hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3200; n.connect(hp); hp.connect(g); n.start(t);
+    var o3 = c.createOscillator(); o3.type = 'square'; o3.frequency.value = 740; var g3 = c.createGain(); g3.gain.setValueAtTime(0.25, t); g3.gain.exponentialRampToValueAtTime(0.01, t + 0.35); o3.connect(g3); g3.connect(g); o3.start(t); o3.stop(t + 0.4);
+    g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.01, t + 1.1);
   }
   function sfxWin() { try { sfxVictory(); sfxCoin(); } catch (e) {} }
   function sfxLose() { try { sfxDefeat(); } catch (e) {} }

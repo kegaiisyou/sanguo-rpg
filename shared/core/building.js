@@ -426,12 +426,12 @@
       name:'快活赌坊', icon:'🎲', sub:'骰声铿锵，吆喝连天',
       interior: [
         { kind:'npc', name:'赌徒', icon:'🎲', desc:'眼发红、袖藏骰的精瘦汉。', acts:[
-          { label:'押大押小', icon:'🎲', fn:function(){ openModal('gamble'); } },
           { label:'掷骰一博', icon:'🎲', danger:true, fn:function(){ if(!exert('赌博')) return; var win=Math.random()<0.5; log(win?'你押中点数，赢得几贯，眉开眼笑。':'你手气不济，输了几文，懊恼不已。','sys'); openModal('building'); } },
           { label:'豪赌一场', icon:'🎲', danger:true, when:'night', fn:function(){ if(!exert('豪赌')) return; if(S().gold<20){ log('赌徒乜斜你一眼：「囊中羞涩，也敢进这夜局？」','sys'); return; } var win=Math.random()<0.45; if(win){ S().gold+=30; log('入夜赌局灯火如昼，你押上重注，骰子落定——通吃！银两 +30（当前 '+S().gold+'）。','good'); } else { S().gold-=30; log('入夜赌局灯火如昼，你押上重注，骰子翻落——血本无归，银两 -30（当前 '+S().gold+'）。','bad'); } openModal('building'); } },
           { label:'交谈', icon:'💬', fn:function(){ var h=S().time%12; log(h>=10||h<=1 ? '赌徒压低声：「客官来得正是时候，入夜的局子才够味——敢不敢玩把大的？」' : '赌徒嘿嘿一笑：「'+bldZihao()+'白日小赌怡情，入夜才有大场面——十赌九输，可偏有人想着那一赢。」','sys'); openModal('building'); } }
         ]},
-        { kind:'obj', name:'骰盆', icon:'🥏', desc:'青瓷骰盆，六子乱滚。', acts:[
+        { kind:'obj', name:'骰盆', icon:'🥏', desc:'青瓷骰盆，六子乱滚，桌边围着几双通红的眼。', acts:[
+          { label:'掷骰押注', icon:'🎲', fn:function(){ openModal('gamble'); } },
           { label:'看人下注', icon:'👀', fn:function(){ log('盆边围了三两人，吆五喝六，热闹非常。','sys'); } }
         ]}
       ]
