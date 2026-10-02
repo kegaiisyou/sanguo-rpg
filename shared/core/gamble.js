@@ -45,12 +45,12 @@
     1: [-Math.PI / 2, 0, 0], 2: [0, 0, 0], 3: [0, 0, Math.PI / 2],
     4: [0, 0, -Math.PI / 2], 5: [Math.PI, 0, 0], 6: [Math.PI / 2, 0, 0]
   };
-  // 观察倾斜角：中等俯视——正交投影下顶面满尺寸最正（朝上），前/左窄侧棱保留立体
-  var TILT_X = 15 * Math.PI / 180, TILT_Y = 20 * Math.PI / 180;
 
-  // 正交（轴测）投影：不做近大远小缩放——点数面（顶面）满尺寸、不缩小不下沉，像🎲emoji一样一眼是顶面
+
+  // 等轴测投影（isometric）：像🎲emoji——顶面呈完美菱形（点数在菱形里），前/右两侧面从菱形下方展开
+  // 规则：x轴↘30°、z轴↙30°、y轴垂直向上 → 玩家一眼即认「菱形=朝上的点数面」
   function proj(p, fov) {
-    return [p[0], p[1]];
+    return [(p[0] - p[2]) * 0.8660254, (p[0] + p[2]) * 0.5 - p[1]];
   }
   function facePoint(pts, u, v) {
     return [pts[0][0] + (pts[1][0] - pts[0][0]) * u + (pts[3][0] - pts[0][0]) * v,
@@ -67,14 +67,14 @@
     for (var fi = 0; fi < 6; fi++) {
       var F = FACES[fi];
       var pts = F.i.map(function (vi) {
-        var p = rot3([VERT[vi][0] * half, VERT[vi][1] * half, VERT[vi][2] * half], rx, ry, rz);
-        return rot3(p, TILT_X, TILT_Y, 0); // 外层观察倾斜
+        return rot3([VERT[vi][0] * half, VERT[vi][1] * half, VERT[vi][2] * half], rx, ry, rz);
       });
-      var nc = rot3(rot3([F.nx * half, F.ny * half, F.nz * half], rx, ry, rz), TILT_X, TILT_Y, 0);
-      if (nc[2] <= 0) continue;
-      faces.push({ pts: pts, n: F.n, cz: nc[2] });
+      var nc = rot3([F.nx * half, F.ny * half, F.nz * half], rx, ry, rz);
+      // 等轴测视线 (1,1,1)：法线与视线同向（和>0）才可见 → 顶面+前面+右面
+      if (nc[0] + nc[1] + nc[2] <= 0) continue;
+      faces.push({ pts: pts, n: F.n, dep: nc[0] + nc[1] + nc[2] });
     }
-    faces.sort(function (a, b) { return a.cz - b.cz; });
+    faces.sort(function (a, b) { return a.dep - b.dep; });
     for (var i = 0; i < faces.length; i++) {
       var f2 = faces[i];
       var isHot = settled && f2.n === hot;
@@ -94,7 +94,7 @@
         for (var k = 0; k < dots.length; k++) {
           var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
           var pq = proj(Q, fov);
-          var rr = Math.max(3, s * 0.13);
+          var rr = Math.max(3.2, s * 0.16);
           ctx.beginPath();
           ctx.arc(pq[0] + cx, pq[1] + cy, rr, 0, 6.2832);
           ctx.fillStyle = '#c23a2c';
@@ -122,7 +122,7 @@
             var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
             var pq = proj(Q, fov);
             ctx.beginPath();
-            ctx.arc(pq[0] + cx, pq[1] + cy, Math.max(2, s * 0.078), 0, 6.2832);
+            ctx.arc(pq[0] + cx, pq[1] + cy, Math.max(2.2, s * 0.1), 0, 6.2832);
             ctx.fillStyle = '#a8332a';
             ctx.fill();
             ctx.strokeStyle = 'rgba(110,25,18,.35)';
@@ -226,7 +226,7 @@
     }, 700);
   }
 
-  var R = 52;
+  var R = 48;
   function spin() {
     var e = $();
     var stopDur = [850, 1450, 2000];
@@ -245,7 +245,7 @@
           var bounce = Math.sin(el / 92 + i * 2.1) * 7;
           // Canvas 真 3D：绕 X/Y 高速翻滚（面上点数随旋转自然变化）
           lastAng[i] = { rx: spin * 0.7 * Math.PI / 180, ry: spin * Math.PI / 180, rz: 0 };
-          drawDice(cv, 30, 34, 46, lastAng[i].rx, lastAng[i].ry, 0, 120);
+          drawDice(cv, 30, 30, 26, lastAng[i].rx, lastAng[i].ry, 0, 120);
           var tick = Math.floor(el / 150);
           if (tick !== lastTick && i === (tick % 3)) { lastTick = tick; sfx('diceTick'); }
           d.style.transform = 'translate(' + x.toFixed(1) + 'px,' + (y - bounce).toFixed(1) + 'px) scale(1)';
@@ -268,7 +268,7 @@
     requestAnimationFrame(frame);
   }
 
-  // 立方体从翻滚态缓动：先把点数面翻到正上（内层姿态），外层观察倾斜固定不变
+  // 立方体从翻滚态缓动到「点数面朝上」——等轴测视角下即呈现完美菱形顶面（🎲图式）
   function settleCube(cv, face, x, y, from) {
     var t0 = performance.now();
     var fu = FACE_UP[face];
@@ -280,7 +280,7 @@
       var rx = from.rx + (norm(to.rx, from.rx) - from.rx) * e;
       var ry = from.ry + (norm(to.ry, from.ry) - from.ry) * e;
       var rz = from.rz + (norm(to.rz, from.rz) - from.rz) * e;
-      drawDice(cv, 30, 34, 46, rx, ry, rz, 120, k >= 1, face);
+      drawDice(cv, 30, 30, 26, rx, ry, rz, 120, k >= 1, face);
       if (k < 1) requestAnimationFrame(step);
       else { // 落定：弹回原位
         var d = cv.parentElement;
