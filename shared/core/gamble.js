@@ -190,6 +190,7 @@
       '<div class="gm-amt-row gm-chips"><span class="gm-chip" data-q="10">10</span><span class="gm-chip" data-q="30">30</span><span class="gm-chip" data-q="50">50</span><span class="gm-chip gm-all" data-q="all">全押</span></div>' +
       '<div class="gm-btns"><button class="btn gm-big" id="gm-big">押 大<small>11-17 点</small></button><button class="btn gm-small" id="gm-small">押 小<small>4-10 点</small></button>' +
       '<button class="btn btn-ghost gm-again hidden" id="gm-again">再来一局</button></div>' +
+      '<div class="gm-hist" id="gm-hist"><div class="gm-hist-head">本桌记录</div><div class="gm-hist-list" id="gm-hist-list"></div></div>' +
       '</div>';
   }
 
@@ -205,7 +206,8 @@
       small: document.getElementById('gm-small'), again: document.getElementById('gm-again'),
       rules: document.getElementById('gm-rules'), bet: document.getElementById('gm-bet'),
       dealer: document.getElementById('gm-dealer'), ruleTip: document.getElementById('gm-rule-tip'),
-      tag: document.getElementById('gm-tag')
+      tag: document.getElementById('gm-tag'),
+      stage: document.querySelector('.gm-stage'), histList: document.getElementById('gm-hist-list')
     };
     return els;
   }
@@ -251,7 +253,9 @@
     faces = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
     e.hand.className = 'gm-hand in';
     e.hc.style.opacity = 1;
+    if (e.stage) { e.stage.classList.add('skippable'); }
     window.setTimeout(function () {
+      if (phase !== 1) return;
       e.hc.style.opacity = 0; e.ho.style.opacity = 1;
       e.d.forEach(function (d) {
         d.style.display = 'block';
@@ -260,11 +264,13 @@
         d.style.opacity = 1;
       });
       window.setTimeout(function () {
+        if (phase !== 1) return;
         e.d.forEach(function (d, i) {
           d.style.transition = 'transform .4s ease-in, opacity .3s';
           d.style.transform = 'scale(1)';
         });
         window.setTimeout(function () {
+          if (phase !== 1) return;
           e.hand.className = 'gm-hand back';
           window.setTimeout(spin, 440);
         }, 440);
@@ -280,6 +286,7 @@
     var spinTurns = [1.7, 2.2, 2.6];
     var t0 = performance.now(), done = 0, lastTick = 0, lastAng = [{rx:0,ry:0,rz:0},{rx:0,ry:0,rz:0},{rx:0,ry:0,rz:0}];
     function frame(now) {
+      if (phase !== 1) return; // 被轻点跳过 → 停止翻滚
       var el = now - t0;
       for (var i = 0; i < 3; i++) {
         var d = e.d[i], cv = e.cvs[i];
@@ -339,6 +346,41 @@
     requestAnimationFrame(step);
   }
 
+  // 加速手势：动画期间轻点骰子区 → 骰子立即落定结算
+  function skip() {
+    var e = $();
+    if (phase !== 1) return;
+    phase = 2;
+    e.hand.className = 'gm-hand back';
+    if (e.stage) e.stage.classList.remove('skippable');
+    var sp = [4.0, 5.6, 1.2], k = [0, 1, 2];
+    e.d.forEach(function (d, i) {
+      d.style.display = 'block';
+      d.style.transition = 'none';
+      var x = R * Math.cos(sp[i]), y = R * Math.sin(sp[i]);
+      d.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(1)';
+      var cv = e.cvs[i];
+      var fu = FACE_UP[faces[i]];
+      drawDice(cv, 30, 30, 26, fu[0], fu[1], fu[2], 120, true, faces[i]);
+      sfx('diceLand');
+    });
+    window.setTimeout(function () { if (phase === 2) { phase = 3; finalize(); } }, 120);
+  }
+
+  // 本桌会话统计（关窗时汇总到文本输出框）
+  var sess = { rounds: 0, net: 0 };
+  function close() {
+    if (sess.rounds > 0) {
+      var s2 = state();
+      var t = '在快活赌坊共玩了 ' + sess.rounds + ' 局，';
+      if (sess.net > 0) t += '净赚 ' + sess.net + ' 两。';
+      else if (sess.net < 0) t += '输了 ' + (-sess.net) + ' 两。';
+      else t += '不赔不赚。';
+      if (window.log) { window.log(t, sess.net > 0 ? 'good' : (sess.net < 0 ? 'bad' : 'sys')); }
+    }
+    sess = { rounds: 0, net: 0 };
+  }
+
   function finalize() {
     var e = $(), s = state();
     phase = 3;
@@ -362,6 +404,17 @@
     e.result.textContent = msg;
     if (e.tag) e.tag.className = 'gm-tag hidden';
     e.gold.textContent = s.gold;
+    // 历史记录：一行「押注 · 点数 · 结果」
+    if (e.histList) {
+      var won = (msg.indexOf('通吃赔付') >= 0);
+      var line = document.createElement('div');
+      line.className = 'gm-hist-line ' + (won ? 'win' : 'lose');
+      line.textContent = (betBig ? '押大' : '押小') + amt + '两 · ' + faces[0] + faces[1] + faces[2] + ' 共' + sum + '点 · ' + (won ? '赢 +' + amt : '输 -' + amt);
+      e.histList.appendChild(line);
+      while (e.histList.children.length > 8) e.histList.removeChild(e.histList.firstChild);
+      e.histList.scrollTop = e.histList.scrollHeight;
+    }
+    sess.rounds++; sess.net += won ? amt : -amt;
     e.big.classList.add('hidden'); e.small.classList.add('hidden'); e.again.classList.remove('hidden');
     phase = 0;
   }
@@ -370,6 +423,11 @@
     els = null; // 弹窗每次打开会重建 DOM，必须重新获取
     var e = $();
     if (!e.big) return;
+    if (window.SFX && SFX.startAmbient) { try { SFX.startAmbient(); } catch (e5) { } } // 赌坊氛围音
+    if (e.stage) {
+      e.stage.onclick = function () { skip(); };
+      e.stage.classList.remove('skippable');
+    }
     e.big.onclick = function () { start(true); };
     e.small.onclick = function () { start(false); };
     e.again.onclick = function () { e.d.forEach(function (d) { d.removeAttribute('data-done'); }); resetUI(); };
@@ -413,5 +471,5 @@
   }
 
   window.LF = window.LF || {};
-  window.LF.Gamble = { render: render, bind: bind };
+  window.LF.Gamble = { render: render, bind: bind, close: close };
 })();

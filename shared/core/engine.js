@@ -5176,6 +5176,7 @@
     var _sf=document.getElementById('shop-float'); if(_sf) _sf.style.display='none';
     $modal.classList.add('hidden');
     try{ SFX.close(); }catch(e){}   // 弹窗关闭音效（v20260909a）
+    try{ if(window.SFX && SFX.stopAmbient) SFX.stopAmbient(); }catch(e3){}   // 停赌坊氛围音（v20261001u）
     if(currentModalKind==='shop') Shop.restoreTradePending();   // 关店归还寄售真物，避免退出后丢失
     var _closedKind=currentModalKind;   // v20260913c：收起前先记下关的是哪扇窗（行囊教学要接着往下讲）
     currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
@@ -5183,6 +5184,7 @@
     setDockRest(null);       // 收起面板清底部页签选中态（v20260924h）
     syncActionLock();        // 收起弹窗后重算交互锁（对话悬挂未答完则仍锁着，v20260911i）
     if(_closedKind==='pack') onbAfterPack();   // 首次合上行囊 → 栅外那嗓子该开口了（见 onbAfterPack）
+    if(_closedKind==='gamble' && window.LF && LF.Gamble && LF.Gamble.close){ try{ LF.Gamble.close(); }catch(e4){} }   // 赌坊会话汇总进文本输出框（v20261001u）
   }
   $modal.addEventListener('click',function(e){if(e.target===$modal)closeModal();});
   var $modalX=document.getElementById('modal-x');

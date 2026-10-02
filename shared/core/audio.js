@@ -112,6 +112,13 @@
     osc.connect(g); g.connect(sfxGain || c.destination);
     osc.start(t); osc.stop(t + dur + 0.05);
   }
+  // 生成一段随机噪声 buffer（供豹子锣声、赌坊氛围音共用）
+  function makeNoiseBuf(c, dur) {
+    var buf = c.createBuffer(1, Math.max(1, Math.floor(c.sampleRate * (dur || 0.25))), c.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return buf;
+  }
   function noise(dur, vol, freq) {
     if (!enabled) return;
     var c = ensureCtx(); if (!c) return;
@@ -452,6 +459,7 @@
     error: sfxError,
     levelup: sfxLevelup,
 
+    startAmbient: startAmbient, stopAmbient: stopAmbient,
     play: function (name) {
       var fn = { click: sfxClick, coin: sfxCoin, confirm: sfxConfirm, cancel: sfxCancel, open: sfxOpen, close: sfxClose, error: sfxError, levelup: sfxLevelup, attack: sfxAttack, hit: sfxHit, crit: sfxCrit, miss: sfxMiss, defend: sfxDefend, heal: sfxHeal, skill: sfxSkill, victory: sfxVictory, defeat: sfxDefeat,
         diceShake: sfxDiceShake, diceLand: sfxDiceLand, diceTick: sfxDiceTick, win: sfxWin, lose: sfxLose, bao: sfxBao }[name];
@@ -523,9 +531,43 @@
     var g = c.createGain(); g.gain.value = 0.5; g.connect(sfxGain || c.destination);
     var osc = c.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(392, t); osc.frequency.exponentialRampToValueAtTime(196, t + 0.7); osc.connect(g); osc.start(t); osc.stop(t + 0.8);
     var o2 = c.createOscillator(); o2.type = 'triangle'; o2.frequency.setValueAtTime(523, t); o2.frequency.exponentialRampToValueAtTime(262, t + 0.6); o2.connect(g); o2.start(t); o2.stop(t + 0.7);
-    var n = c.createBufferSource(); n.buffer = noiseBuf(); var hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3200; n.connect(hp); hp.connect(g); n.start(t);
+    var n = c.createBufferSource(); n.buffer = makeNoiseBuf(c, 0.25); var hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3200; n.connect(hp); hp.connect(g); n.start(t);
     var o3 = c.createOscillator(); o3.type = 'square'; o3.frequency.value = 740; var g3 = c.createGain(); g3.gain.setValueAtTime(0.25, t); g3.gain.exponentialRampToValueAtTime(0.01, t + 0.35); o3.connect(g3); g3.connect(g); o3.start(t); o3.stop(t + 0.4);
     g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.01, t + 1.1);
+  }
+  // ── 赌坊氛围音（进赌坊播放：低通人声低语 + 稀疏骰声/铜钱叮，关窗停止） ──
+  var ambGain = null, ambTimer = null;
+  function startAmbient() {
+    stopAmbient();
+    var c = ensureCtx(); if (!c || !enabled) return;
+    ambGain = c.createGain(); ambGain.gain.value = 0;
+    ambGain.connect(sfxGain || c.destination);
+    // 人群低语层：低通白噪持续铺底
+    var n = c.createBufferSource(); n.buffer = makeNoiseBuf(c, 1.2); n.loop = true;
+    var f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 360; f.Q.value = 0.5;
+    n.connect(f); f.connect(ambGain); n.start();
+    ambGain.gain.setValueAtTime(0, c.currentTime);
+    ambGain.gain.linearRampToValueAtTime(0.13, c.currentTime + 2);
+    // 稀疏骰声/铜钱叮：3.2~4.2s 随机一枚
+    ambTimer = setInterval(function () {
+      if (!ambGain) return;
+      var t = c.currentTime;
+      if (Math.random() < 0.65) {
+        var s = c.createBufferSource(); s.buffer = makeNoiseBuf(c, 0.1);
+        var bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 800 + Math.random() * 700; bp.Q.value = 1.4;
+        var g = c.createGain(); g.gain.value = 0.045 + Math.random() * 0.04;
+        s.connect(bp); bp.connect(g); g.connect(ambGain); s.start(t);
+      } else {
+        var o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 2400 + Math.random() * 500;
+        var g2 = c.createGain(); g2.gain.setValueAtTime(0.028, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        o.connect(g2); g2.connect(ambGain); o.start(t); o.stop(t + 0.2);
+      }
+    }, 3700);
+  }
+  function stopAmbient() {
+    if (ambTimer) { clearInterval(ambTimer); ambTimer = null; }
+    var g = ambGain; ambGain = null;
+    if (g && ctx) { try { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(g.gain.value, ctx.currentTime); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4); } catch (e) { } setTimeout(function () { try { g.disconnect(); } catch (e2) { } }, 550); }
   }
   function sfxWin() { try { sfxVictory(); sfxCoin(); } catch (e) {} }
   function sfxLose() { try { sfxDefeat(); } catch (e) {} }

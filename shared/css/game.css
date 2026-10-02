@@ -3474,6 +3474,17 @@
 	.gm-rule.on{ border-color:#c23a2c; box-shadow:0 0 0 2px rgba(194,58,44,.25), 0 2px 5px rgba(60,40,15,.3); }
 	.gm-rule-tip{ text-align:center; font-size:11px; color:#8a6a42; margin:8px 0 2px; letter-spacing:1px; }
 	.gm-bet.hidden{ display:none; }
+	/* 本桌历史记录 */
+	.gm-hist{ margin-top:8px; border-top:1px dashed rgba(120,80,40,.35); padding:6px 8px 2px; }
+	.gm-hist-head{ font-size:11px; color:#7a4a2a; letter-spacing:2px; margin-bottom:3px; }
+	.gm-hist-list{ max-height:92px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+	.gm-hist-line{ font-size:11px; line-height:1.7; padding:1px 0; }
+	.gm-hist-line.win{ color:#b03a2c; } .gm-hist-line.lose{ color:#4a5a44; }
+	.gm-hist-line::before{ content:'· '; opacity:.6; }
+	/* 可跳过提示 */
+	.gm-stage.skippable{ cursor:pointer; }
+	.gm-stage.skippable .gm-bowl{ filter:brightness(1.02); }
+	.gm-stage.skippable::after{ content:'轻点骰子可立即开盅'; display:block; text-align:center; font-size:10px; color:#8a6a42; letter-spacing:1px; margin-top:2px; }
 	/* 筹码化押注（圆形铜钱） */
 	.gm-amt-row{ gap:7px; }
 	.gm-amt{ width:86px; padding:10px 4px; border:2px solid #7a5a20; border-radius:50%;
