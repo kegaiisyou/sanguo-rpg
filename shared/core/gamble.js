@@ -45,7 +45,8 @@
     1: [-Math.PI / 2, 0, 0], 2: [0, 0, 0], 3: [0, 0, Math.PI / 2],
     4: [0, 0, -Math.PI / 2], 5: [Math.PI, 0, 0], 6: [Math.PI / 2, 0, 0]
   };
-  var TILT_X = -24 * Math.PI / 180, TILT_Y = -30 * Math.PI / 180;
+  // 观察倾斜角（正角=朝观察者方向倾斜，保证点数面可见且带立体侧棱）
+  var TILT_X = 24 * Math.PI / 180, TILT_Y = 30 * Math.PI / 180;
 
   function proj(p, fov) {
     var f = fov / (fov + 30 + p[2]);
