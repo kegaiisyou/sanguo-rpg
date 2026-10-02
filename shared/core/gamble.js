@@ -204,7 +204,7 @@
       '<div class="gm-bets">' +
       '<div class="gm-bet-row"><span class="gm-betopt gm-bbig" data-b="big">押 大<small>11-17 点</small></span><span class="gm-betopt gm-bsmall" data-b="small">押 小<small>4-10 点</small></span></div>' +
       '<div class="gm-bet-row"><span class="gm-betopt gm-bbao" data-b="bao">押豹子<small>1 赔 24</small></span><span class="gm-betopt gm-bodd" data-b="odd">押 单<small>1:1</small></span><span class="gm-betopt gm-beven" data-b="even">押 偶<small>1:1</small></span></div>' +
-      '<div class="gm-bet-row gm-row-pts"><span class="gm-pts-t">押单点</span><span class="gm-betopt gm-pt" data-b="p1">1</span><span class="gm-betopt gm-pt" data-b="p2">2</span><span class="gm-betopt gm-pt" data-b="p3">3</span><span class="gm-betopt gm-pt" data-b="p4">4</span><span class="gm-betopt gm-pt" data-b="p5">5</span><span class="gm-betopt gm-pt" data-b="p6">6</span></div>' +
+      '<div class="gm-bet-row gm-row-pts"><span class="gm-pts-t" id="gm-pts-t">押单点</span><span class="gm-pts-nums" id="gm-pts-nums"><span class="gm-betopt gm-pt" data-b="p1">1</span><span class="gm-betopt gm-pt" data-b="p2">2</span><span class="gm-betopt gm-pt" data-b="p3">3</span><span class="gm-betopt gm-pt" data-b="p4">4</span><span class="gm-betopt gm-pt" data-b="p5">5</span><span class="gm-betopt gm-pt" data-b="p6">6</span></span></div>' +
       '</div>' +
       '<div class="gm-btns"><button class="btn gm-go" id="gm-go">摇骰开盅</button>' +
       '<button class="btn btn-ghost gm-again hidden" id="gm-again">再来一局</button></div>' +
@@ -234,6 +234,7 @@
       dealer: document.getElementById('gm-dealer'), ruleTip: document.getElementById('gm-rule-tip'),
       tag: document.getElementById('gm-tag'),
       stage: document.querySelector('.gm-stage'), histList: document.getElementById('gm-hist-list'),
+      ptsT: document.getElementById('gm-pts-t'), ptsNums: document.getElementById('gm-pts-nums'),
       bowl: document.getElementById('gm-bowl'),
       skip: document.getElementById('gm-skip'), go: document.getElementById('gm-go'),
       duel: document.getElementById('gm-duel'), duelbet: document.getElementById('gm-duelbet'),
@@ -273,6 +274,8 @@
     document.querySelectorAll('.gm-chip').forEach(function (q) { q.style.opacity = 1; });
     bets = { size: '', bao: false, odd: false, even: false, point: 0 };
     document.querySelectorAll('.gm-betopt').forEach(function (x) { x.classList.remove('on'); });
+    if (e.ptsNums) e.ptsNums.style.display = 'none';
+    if (e.ptsT) e.ptsT.classList.remove('on');
     phase = 0;
   }
   function resetDuelUI() {
@@ -312,6 +315,7 @@
     if (!amt || amt < 1) { e.result.textContent = '荷官瞥你一眼：「空手下注，是来寻开心的？」'; return; }
     var cnt = betCount();
     if (!cnt) { e.result.textContent = '荷官：「客官先选个注——大小、豹子、单偶、单点数都行。」'; return; }
+    if (bets.point && amt < 50) { e.result.textContent = '荷官：「押单点数，五十两起。」'; sfx('click'); return; }
     if (amt * cnt > gold()) { e.result.textContent = '荷官冷笑：「囊中银两不够，也敢上桌？」（当前 ' + gold() + '）'; return; }
     sfx('diceShake');
     if (e.gold) { e.gold.classList.remove('gm-gold-flash'); void e.gold.offsetWidth; e.gold.classList.add('gm-gold-flash'); }
@@ -520,7 +524,10 @@
     sess.rounds++; sess.net += delta;
     if (e.again) e.again.classList.remove('hidden');
     if (e.skip) e.skip.classList.add('hidden');
-    if (e.go) { e.go.disabled = false; e.go.classList.remove('hidden'); }
+    if (e.go) { e.go.disabled = false; e.go.classList.add('hidden'); }
+    if (e.ptsNums) e.ptsNums.style.display = 'none';
+    if (e.ptsT) e.ptsT.classList.remove('on');
+    bets.point = 0;
     phase = 0;
   }
 
@@ -591,7 +598,7 @@
     sess.rounds++; sess.net += delta;
     if (e.again2) e.again2.classList.remove('hidden');
     if (e.skip) e.skip.classList.add('hidden');
-    if (e.go2) { e.go2.disabled = false; e.go2.classList.remove('hidden'); }
+    if (e.go2) { e.go2.disabled = false; e.go2.classList.add('hidden'); }
     phase = 0;
   }
   function startDuel() {
@@ -666,6 +673,25 @@
         sfx('click');
       };
     });
+    // 押单点：50 两起押；点选展开数字 1-6，再点收起并取消
+    if (e.ptsT) {
+      e.ptsT.onclick = function () {
+        if (phase !== 0) return;
+        if (e.ptsNums.style.display === 'flex') {
+          e.ptsNums.style.display = 'none';
+          e.ptsT.classList.remove('on');
+          bets.point = 0;
+          document.querySelectorAll('#gm-bet .gm-betopt.gm-pt').forEach(function (y) { y.classList.remove('on'); });
+          sfx('click');
+          return;
+        }
+        var amtN = parseInt(e.amt.value, 10) || 0;
+        if (amtN < 50) { e.result.textContent = '荷官：「押单点数，五十两起。」'; sfx('click'); return; }
+        e.ptsNums.style.display = 'flex';
+        e.ptsT.classList.add('on');
+        sfx('click');
+      };
+    }
     // 对决下注选择
     document.querySelectorAll('#gm-duelbet .gm-betopt').forEach(function (x) {
       x.onclick = function () {
