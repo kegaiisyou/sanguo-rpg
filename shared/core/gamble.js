@@ -592,7 +592,12 @@
       for (var i = 0; i < 3; i++) {
         var k = Math.min(1, el / dur[i]);
         var e2 = 1 - Math.pow(1 - k, 2.2);
-        drawDice(cvs[i], 25, 25, DUEL_S, e2 * 1080 * (i + 1) * Math.PI / 180, e2 * 720 * Math.PI / 180, 0, 90);
+        // 滚动终点收敛到最终姿态（不再回到整数圈初始面）→ 落定零跳变，骰子停住即结算面
+        var fui = FACE_UP[faces[i]];
+        drawDice(cvs[i], 25, 25, DUEL_S,
+          fui[0] + (1 - e2) * 2 * Math.PI * (i + 2),
+          fui[1] + (1 - e2) * 4 * Math.PI,
+          fui[2], 90);
         elsArr[i].style.opacity = 1;
         elsArr[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,' + (-Math.sin(el / 120 + i) * 5).toFixed(1) + 'px)';
       }
