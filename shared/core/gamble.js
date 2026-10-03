@@ -294,6 +294,19 @@
       var sel2 = document.querySelector('#gm-duelbet .gm-betopt[data-b="' + duelBet + '"]');
       if (sel2) sel2.classList.add('on');
     }
+    // 切到对决/再来一局：立即展示静止骰子（避免"空的"观感），点摇骰后从当前面滚到新面
+    var pv = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    var bv = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    for (var di = 0; di < 3; di++) {
+      var fup = FACE_UP[pv[di]];
+      drawDice(e.pc[di], 25, 25, DUEL_S, fup[0], fup[1], fup[2], 90, true, pv[di]);
+      e.p[di].style.opacity = 1;
+      e.p[di].style.transform = 'translate(' + (di * 26 - 26) + 'px,0) scale(1)';
+      var fub = FACE_UP[bv[di]];
+      drawDice(e.bc[di], 25, 25, DUEL_S, fub[0], fub[1], fub[2], 90, true, bv[di]);
+      e.b[di].style.opacity = 1;
+      e.b[di].style.transform = 'translate(' + (di * 26 - 26) + 'px,0) scale(1)';
+    }
     phase = 0;
   }
 
