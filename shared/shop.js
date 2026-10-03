@@ -986,24 +986,25 @@
   function contRoom(p){ return (p.cont.slots?p.cont.slots.length:0) - contCount(p); }
   function contPut(p, defId, n){
     contInit(p);
-    var have = packFind(defId); if(have<=0){ toast('行囊里没有'+((window.LF.ITEMS[defId]||{}).name||'此物')+'。'); return; }
+    var it = packFind(defId); var have = it ? (it.count||0) : 0;
+    if(have<=0){ toast('行囊里没有'+((window.LF.ITEMS[defId]||{}).name||'此物')+'。'); return; }
     n = Math.min(n, have, contRoom(p)); if(n<=0){ toast('容器已塞满。'); return; }
     packConsume(defId, n);
     var i; for(i=0;i<p.cont.slots.length && n>0;i++){ var s=p.cont.slots[i]; if(s && s.id===defId){ s.n+=n; n=0; } }
     if(n>0){ for(i=0;i<p.cont.slots.length;i++){ if(!p.cont.slots[i]){ p.cont.slots[i]={id:defId,n:n}; n=0; break; } } }
-    afterPackChange(); refreshContainerPanel(p);
+    save(getState()); afterPackChange(); refreshContainerPanel(p);
   }
   function contTake(p, idx, n){
     contInit(p);
     var s=p.cont.slots[idx]; if(!s||s.n<=0) return;
     n=Math.min(n, s.n); var ok=packAdd(s.id, n); if(!ok){ toast('行囊已满。'); return; }
     s.n-=n; if(s.n<=0) p.cont.slots[idx]=null;
-    afterPackChange(); refreshContainerPanel(p);
+    save(getState()); afterPackChange(); refreshContainerPanel(p);
   }
   function contPickup(p){
     contInit(p);
     (p.cont.slots||[]).forEach(function(s){ if(s&&s.n>0) packAdd(s.id, s.n); });
-    packUpPlaced(p.key); closeModal();
+    packUpPlaced(p.key); save(getState()); closeModal();
   }
   function refreshContainerPanel(p){
     var card=document.getElementById('modal-card');
