@@ -596,7 +596,7 @@
         elsArr[i].style.opacity = 1;
         elsArr[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,' + (-Math.sin(el / 120 + i) * 5).toFixed(1) + 'px)';
       }
-      if (el < dur[2] + 260) requestAnimationFrame(frame);
+      if (el < dur[2] + 60) requestAnimationFrame(frame);
       else {
         for (var i = 0; i < 3; i++) {
           var fu = FACE_UP[faces[i]];
