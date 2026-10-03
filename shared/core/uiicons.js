@@ -8,8 +8,9 @@
  *   UI_Icons.avatar(name)           —— NPC 头像（圆形，按人名匹配）
  * ═══════════════════════════════════════════════════════════════ */
 (function(){
+  var VER = (typeof LF !== 'undefined' && LF.CONSTANTS) ? LF.CONSTANTS.VERSION : '';
   function pic(name, cls){
-    return '<img class="'+cls+'" src="shared/img/sm_'+name+'.png" alt="" loading="lazy" draggable="false">';
+    return '<img class="'+cls+'" src="shared/img/sm_'+name+'.png?v='+VER+'" alt="" loading="lazy" draggable="false">';
   }
   // 按物件名精确映射（优先于 emoji，因同一 emoji 可能对应多物）
   var BY_NAME={
@@ -101,9 +102,9 @@
     if(!ic) return '·';
     var n = BLD[ic];
     if(!n){ var k2 = ic.replace(/\uFE0F/g, ''); if(k2 !== ic) n = BLD[k2]; }
-    if(n) return '<img class="bld-pic" src="assets/icons/scene48/' + n + '.png" alt="" loading="lazy">';
+    if(n) return '<img class="bld-pic" src="assets/icons/scene48/' + n + '.png?v=' + VER + '" alt="" loading="lazy">';
     var m = ITEM48[ic];
-    if(m) return '<img class="bld-pic" src="assets/icons/items48/' + m + '.png" alt="" loading="lazy">';
+    if(m) return '<img class="bld-pic" src="assets/icons/items48/' + m + '.png?v=' + VER + '" alt="" loading="lazy">';
     return ic;
   }
   var _G = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' ? global : this);
