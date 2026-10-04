@@ -180,12 +180,14 @@
       '<div class="gm-duel-side"><div class="gm-duel-label">玩家</div><div class="gm-duel-dice">' +
       '<div class="gm-dice" id="gm-p1"><canvas width="50" height="50"></canvas></div>' +
       '<div class="gm-dice" id="gm-p2"><canvas width="50" height="50"></canvas></div>' +
-      '<div class="gm-dice" id="gm-p3"><canvas width="50" height="50"></canvas></div></div></div>' +
+      '<div class="gm-dice" id="gm-p3"><canvas width="50" height="50"></canvas></div>' +
+      '<img class="gm-duel-bowl" src="' + IMG + 'bowl.png" alt="陶碗"></div></div>' +
       '<div class="gm-duel-vs">VS</div>' +
       '<div class="gm-duel-side gm-side-banker"><div class="gm-duel-label">荷官 <img class="gm-duel-dealer" src="' + IMG + 'dealer.png" alt="荷官"></div><div class="gm-duel-dice">' +
       '<div class="gm-dice" id="gm-b1"><canvas width="50" height="50"></canvas></div>' +
       '<div class="gm-dice" id="gm-b2"><canvas width="50" height="50"></canvas></div>' +
-      '<div class="gm-dice" id="gm-b3"><canvas width="50" height="50"></canvas></div></div></div>' +
+      '<div class="gm-dice" id="gm-b3"><canvas width="50" height="50"></canvas></div>' +
+      '<img class="gm-duel-bowl" src="' + IMG + 'bowl.png" alt="陶碗"></div></div>' +
       '</div>' +
       '<button class="gm-skip hidden" id="gm-skip">立即开盅 ▸</button>' +
       '<div class="gm-result" id="gm-result">掷骰定乾坤，押大押小，落子无悔</div>' +
