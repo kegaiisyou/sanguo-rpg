@@ -78,7 +78,7 @@
     var pat = cv._ppat || (cv._ppat = ctx.createPattern(PAPER, 'repeat'));
     ctx.save(); ctx.globalAlpha = globalAlpha; ctx.fillStyle = pat; ctx.fill(); ctx.restore();
   }
-  function drawDice(cv, cx, cy, s, rx, ry, rz, fov, settled, hot) {
+  function drawDice(cv, cx, cy, s, rx, ry, rz, fov, settled, hot, glow) {
     var ctx = cv.getContext('2d');
     ctx.clearRect(0, 0, cv.width, cv.height);
     var half = s / 2;
@@ -104,23 +104,24 @@
       for (var j = 1; j < 4; j++) { var pj = proj(f2.pts[j], fov); ctx.lineTo(pj[0] + cx, pj[1] + cy); }
       ctx.closePath();
       if (isHot) {
-        // 落定顶面：面本色最亮，无描边——靠亮度+大点数白描边区分（去黑色描边）
-        ctx.fillStyle = shade(fc, 1);
+        // 落定顶面高亮，强度按 glow 渐入(0~1)：亮度/点数/白描边/金晕全部插值 → 消除突变顿挫
+        var g = (typeof glow === 'number') ? glow : 1;
+        ctx.fillStyle = shade(fc, 0.82 + g * 0.18);
         ctx.fill();
-        paperFill(ctx, cv, 1, .5);
+        paperFill(ctx, cv, 1, .38 + g * .12);
         var dots = DOT_UV[f2.n];
         ctx.save();
-        ctx.shadowColor = 'rgba(226,180,90,.8)'; ctx.shadowBlur = 7;
+        if (g > 0.04) { ctx.shadowColor = 'rgba(226,180,90,.85)'; ctx.shadowBlur = 7 * g; }
         for (var k = 0; k < dots.length; k++) {
           var Q = facePoint(f2.pts, dots[k][0], dots[k][1]);
           var pq = proj(Q, fov);
-          var rr = Math.max(3.2, s * 0.16);
+          var rr = Math.max(2.2, s * 0.1 + g * (s * 0.16 - s * 0.1));
           ctx.beginPath();
           ctx.arc(pq[0] + cx, pq[1] + cy, rr, 0, 6.2832);
           ctx.fillStyle = dc;
           ctx.fill();
-          ctx.lineWidth = 1.5;
-          ctx.strokeStyle = 'rgba(255,255,255,.95)';
+          ctx.lineWidth = 1 + g * 0.5;
+          ctx.strokeStyle = 'rgba(255,255,255,' + (0.2 + g * 0.75).toFixed(2) + ')';
           ctx.stroke();
         }
         ctx.restore();
@@ -610,14 +611,19 @@
           elsArr[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,0) scale(1)';
         }
         sfx('diceLand');
-        // ② 120ms 后渐现结算高亮（消除"顿住/闪光"突变）
-        window.setTimeout(function () {
-          if (phase !== 1) return;
-          for (var i = 0; i < 3; i++) {
-            var fu = FACE_UP[faces[i]];
-            drawDice(cvs[i], 25, 25, DUEL_S, fu[0], fu[1], fu[2], 90, true, faces[i]);
-          }
-        }, 120);
+        // ② 三段渐现结算高亮（90→200→320ms，亮度/点数/光晕逐步增强）——落定后变化柔和缓慢
+        var glowSteps = [{ t: 90, g: 0.38 }, { t: 200, g: 0.72 }, { t: 320, g: 1 }];
+        for (var st = 0; st < glowSteps.length; st++) {
+          (function (tt, gg) {
+            window.setTimeout(function () {
+              if (phase !== 1) return;
+              for (var i = 0; i < 3; i++) {
+                var fu = FACE_UP[faces[i]];
+                drawDice(cvs[i], 25, 25, DUEL_S, fu[0], fu[1], fu[2], 90, true, faces[i], gg);
+              }
+            }, tt);
+          })(glowSteps[st].t, glowSteps[st].g);
+        }
         if (onDone) onDone();
       }
     }
