@@ -603,12 +603,21 @@
       }
       if (el < dur[2] + 60) requestAnimationFrame(frame);
       else {
+        // ① 先以普通样式停稳（与滚动末帧同姿态，点数已可见）→ 无高亮突变
         for (var i = 0; i < 3; i++) {
           var fu = FACE_UP[faces[i]];
-          drawDice(cvs[i], 25, 25, DUEL_S, fu[0], fu[1], fu[2], 90, true, faces[i]);
+          drawDice(cvs[i], 25, 25, DUEL_S, fu[0], fu[1], fu[2], 90, false, 0);
           elsArr[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,0) scale(1)';
         }
         sfx('diceLand');
+        // ② 120ms 后渐现结算高亮（消除"顿住/闪光"突变）
+        window.setTimeout(function () {
+          if (phase !== 1) return;
+          for (var i = 0; i < 3; i++) {
+            var fu = FACE_UP[faces[i]];
+            drawDice(cvs[i], 25, 25, DUEL_S, fu[0], fu[1], fu[2], 90, true, faces[i]);
+          }
+        }, 120);
         if (onDone) onDone();
       }
     }

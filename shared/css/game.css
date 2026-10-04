@@ -3549,7 +3549,7 @@
 .gm-go:disabled{ opacity:.55; }
 .gm-hist-line.tie{ color:#7a6a4a; }
 /* ── 骰子对决 ── */
-.gm-duel{ display:flex; align-items:center; justify-content:center; gap:6px; margin:6px 0 4px; }
+.gm-duel{ display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 4px; }
 .gm-duel-side{ display:flex; flex-direction:column; align-items:center; gap:6px;
   background:linear-gradient(180deg,rgba(248,240,222,.96),rgba(230,212,182,.78));
   border:1px solid rgba(120,80,40,.22); border-radius:12px; padding:6px 10px 8px;
@@ -3557,12 +3557,18 @@
 .gm-duel-label{ font-size:11px; letter-spacing:2px; color:#fff3d5; white-space:nowrap;
   background:linear-gradient(180deg,#b8893a,#8a5a22); padding:2px 10px; border-radius:999px;
   box-shadow:0 1px 2px rgba(60,40,15,.25); }
+.gm-duel-side:first-child{ border-color:rgba(176,58,44,.38); }
+.gm-duel-side:first-child .gm-duel-label{ background:linear-gradient(180deg,#c0433a,#8a2a1e); }
+.gm-duel-side:last-child{ border-color:rgba(90,66,30,.38); }
+.gm-duel-side:last-child .gm-duel-label{ background:linear-gradient(180deg,#8a6a3a,#5c4420); }
 .gm-duel-dice{ display:flex; gap:2px; }
 .gm-duel-dice .gm-dice{ display:block; position:relative; width:50px; height:50px; opacity:0; transition:opacity .18s; }
 .gm-duel-dice canvas{ display:block; width:50px; height:50px; filter:drop-shadow(0 2px 3px rgba(60,40,15,.3)); }
 .gm-duel-dealer{ width:30px; height:30px; object-fit:contain; vertical-align:-8px; margin-left:2px; }
-.gm-duel-vs{ font-size:16px; font-weight:800; color:#8a4b2d; font-style:italic; letter-spacing:1px;
-  text-shadow:0 1px 0 rgba(255,255,255,.55); padding:0 2px; }
+.gm-duel-vs{ width:30px; height:30px; line-height:30px; text-align:center; flex:none;
+  background:linear-gradient(180deg,#b03a2c,#8a2a1e); color:#ffe9c9; border-radius:50%;
+  font-size:12px; font-weight:800; letter-spacing:1px; font-style:italic;
+  box-shadow:0 2px 4px rgba(60,30,10,.32), inset 0 0 0 2px rgba(255,233,201,.28); }
 .gm-duelbet{ margin-top:10px; }
 .gm-bet,.gm-duelbet{ position:relative; }
 .gm-switch{ padding:8px 10px; font-size:12px; letter-spacing:2px;
