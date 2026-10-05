@@ -3549,10 +3549,10 @@
 .gm-go:disabled{ opacity:.55; }
 .gm-hist-line.tie{ color:#7a6a4a; }
 /* ── 骰子对决 ── */
-.gm-duel{ display:flex; align-items:center; justify-content:center; gap:14px; margin:6px 0 4px; }
-.gm-duel-side{ display:flex; flex-direction:column; align-items:center; gap:6px;
+.gm-duel{ display:flex; align-items:center; justify-content:center; gap:14px; margin:10px 0 12px; }
+.gm-duel-side{ display:flex; flex-direction:column; align-items:center; gap:8px;
   background:linear-gradient(180deg,rgba(248,240,222,.96),rgba(230,212,182,.78));
-  border:1px solid rgba(120,80,40,.22); border-radius:12px; padding:6px 10px 8px;
+  border:1px solid rgba(120,80,40,.22); border-radius:12px; padding:8px 12px 8px;
   box-shadow:0 2px 5px rgba(60,40,15,.14); }
 .gm-duel-label{ font-size:11px; letter-spacing:2px; color:#fff3d5; white-space:nowrap;
   background:linear-gradient(180deg,#b8893a,#8a5a22); padding:2px 10px; border-radius:999px;
@@ -3561,9 +3561,10 @@
 .gm-duel-side:first-child .gm-duel-label{ background:linear-gradient(180deg,#c0433a,#8a2a1e); }
 .gm-duel-side:last-child{ border-color:rgba(90,66,30,.45); background:linear-gradient(180deg,rgba(238,232,218,.97),rgba(216,206,182,.92)); }
 .gm-duel-side:last-child .gm-duel-label{ background:linear-gradient(180deg,#8a6a3a,#5c4420); }
-.gm-duel-dice{ position:relative; display:flex; gap:2px; }
-.gm-duel-dice .gm-dice{ position:relative; z-index:2; }
-.gm-duel-bowl{ position:absolute; left:50%; bottom:-6px; transform:translateX(-50%);
+/* 对决骰盅：骰子约束在碗口内，碗完整容纳于容器不溢出压字 */
+.gm-duel-dice{ position:relative; display:block; width:104px; height:112px; }
+.gm-duel-dice .gm-dice{ position:absolute; bottom:4px; left:50%; margin-left:-25px; z-index:2; }
+.gm-duel-bowl{ position:absolute; left:50%; bottom:0; transform:translateX(-50%);
   width:102px; height:auto; z-index:1; pointer-events:none;
   filter:drop-shadow(0 2px 3px rgba(60,40,15,.25)); }
 .gm-duel-dice .gm-dice{ display:block; position:relative; width:50px; height:50px; opacity:0; transition:opacity .18s; }
@@ -3576,7 +3577,7 @@
 .gm-duel-vs::before,.gm-duel-vs::after{ content:''; position:absolute; top:50%; width:14px; height:2px;
   background:rgba(176,58,44,.55); border-radius:2px; transform:translateY(-50%); }
 .gm-duel-vs::before{ left:-18px; } .gm-duel-vs::after{ right:-18px; }
-.gm-duelbet{ margin-top:10px; }
+.gm-duelbet{ margin-top:14px; }
 .gm-bet,.gm-duelbet{ position:relative; }
 .gm-switch{ padding:8px 10px; font-size:12px; letter-spacing:2px;
   border:1px solid rgba(120,80,40,.4); border-radius:999px; background:rgba(245,236,218,.95); color:#7a4a2a; cursor:pointer; white-space:nowrap; }

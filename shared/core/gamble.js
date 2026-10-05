@@ -304,11 +304,11 @@
       var fup = FACE_UP[pv[di]];
       drawDice(e.pc[di], 25, 25, DUEL_S, fup[0], fup[1], fup[2], 90, true, pv[di]);
       e.p[di].style.opacity = 1;
-      e.p[di].style.transform = 'translate(' + (di * 26 - 26) + 'px,0) scale(1)';
+      e.p[di].style.transform = 'translate(' + (di * 20 - 20) + 'px,0) scale(1)';
       var fub = FACE_UP[bv[di]];
       drawDice(e.bc[di], 25, 25, DUEL_S, fub[0], fub[1], fub[2], 90, true, bv[di]);
       e.b[di].style.opacity = 1;
-      e.b[di].style.transform = 'translate(' + (di * 26 - 26) + 'px,0) scale(1)';
+      e.b[di].style.transform = 'translate(' + (di * 20 - 20) + 'px,0) scale(1)';
     }
     phase = 0;
   }
@@ -602,7 +602,7 @@
           fui[1] + (1 - e2) * 4 * Math.PI,
           fui[2], 90);
         elsArr[i].style.opacity = 1;
-        elsArr[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,' + (-Math.sin(el / 120 + i) * 5).toFixed(1) + 'px)';
+        elsArr[i].style.transform = 'translate(' + (i * 20 - 20).toFixed(0) + 'px,' + (-Math.sin(el / 120 + i) * 2).toFixed(1) + 'px)';
       }
       if (el < dur[2] + 60) requestAnimationFrame(frame);
       else {
@@ -610,7 +610,7 @@
         for (var i = 0; i < 3; i++) {
           var fu = FACE_UP[faces[i]];
           drawDice(cvs[i], 25, 25, DUEL_S, fu[0], fu[1], fu[2], 90, false, 0);
-          elsArr[i].style.transform = 'translate(' + (i * 26 - 26).toFixed(0) + 'px,0) scale(1)';
+          elsArr[i].style.transform = 'translate(' + (i * 20 - 20).toFixed(0) + 'px,0) scale(1)';
         }
         sfx('diceLand');
         // ② 三段渐现结算高亮（90→200→320ms，亮度/点数/光晕逐步增强）——落定后变化柔和缓慢
