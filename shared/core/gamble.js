@@ -218,6 +218,7 @@
       '<div class="gm-bets"><div class="gm-bet-row"><span class="gm-betopt gm-bself" data-b="self">押你赢<small>1:1</small></span><span class="gm-betopt gm-bbanker" data-b="banker">押荷官赢<small>1:1</small></span></div></div>' +
       '<div class="gm-btns"><button class="btn btn-ghost gm-switch" id="gm-modeswitch2">换玩法</button><button class="btn gm-go" id="gm-go2">摇骰对决</button>' +
       '<button class="btn btn-ghost gm-again hidden" id="gm-again2">再来一局</button></div>' +
+      '<div class="gm-hist" id="gm-hist2"><div class="gm-hist-head" id="gm-hist-head2">本桌记录 ▾</div><div class="gm-hist-list" id="gm-hist-list2"></div><div class="gm-hist-sum" id="gm-hist-sum2"></div></div>' +
       '</div>';
   }
 
@@ -235,6 +236,7 @@
       dealer: document.getElementById('gm-dealer'), ruleTip: document.getElementById('gm-rule-tip'),
       tag: document.getElementById('gm-tag'),
       stage: document.querySelector('.gm-stage'), histList: document.getElementById('gm-hist-list'),
+      histList2: document.getElementById('gm-hist-list2'),
       ptsT: document.getElementById('gm-pts-t'), ptsNums: document.getElementById('gm-pts-nums'),
       bowl: document.getElementById('gm-bowl'),
       skip: document.getElementById('gm-skip'), go: document.getElementById('gm-go'),
@@ -516,11 +518,12 @@
   }
 
   function updateHistSum() {
-    var el = document.getElementById('gm-hist-sum');
-    if (!el) return;
     var cls = sess.net > 0 ? 'win' : (sess.net < 0 ? 'lose' : '');
-    el.className = 'gm-hist-sum ' + cls;
-    el.textContent = '本桌 ' + sess.rounds + ' 局 · 净 ' + (sess.net >= 0 ? '+' : '') + sess.net + ' 两 · 连胜 ' + sess.streak;
+    var txt = '本桌 ' + sess.rounds + ' 局 · 净 ' + (sess.net >= 0 ? '+' : '') + sess.net + ' 两 · 连胜 ' + sess.streak;
+    ['gm-hist-sum', 'gm-hist-sum2'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) { el.className = 'gm-hist-sum ' + cls; el.textContent = txt; }
+    });
   }
 
   function finalize() {
@@ -654,13 +657,13 @@
     e.result.textContent = msg;
     e.result.className = win ? 'gm-result win' : (delta < 0 ? 'gm-result lose' : 'gm-result');
     e.gold.textContent = s.gold;
-    if (e.histList) {
+    if (e.histList2) {
       var line = document.createElement('div');
       line.className = 'gm-hist-line ' + (delta > 0 ? 'win' : (delta < 0 ? 'lose' : 'tie'));
       line.textContent = '对决 ' + pSum + ':' + bSum + ' · ' + (delta > 0 ? '赢+' + delta : (delta < 0 ? '输' + delta : '平局退注'));
-      e.histList.appendChild(line);
-      while (e.histList.children.length > 20) e.histList.removeChild(e.histList.firstChild);
-      e.histList.scrollTop = e.histList.scrollHeight;
+      e.histList2.appendChild(line);
+      while (e.histList2.children.length > 20) e.histList2.removeChild(e.histList2.firstChild);
+      e.histList2.scrollTop = e.histList2.scrollHeight;
     }
     sess.rounds++; sess.net += delta; if (delta > 0) sess.streak++; else if (delta < 0) sess.streak = 0; updateHistSum();
     if (e.again2) e.again2.classList.remove('hidden');
@@ -788,16 +791,17 @@
     e.again.onclick = function () { e.d.forEach(function (d) { d.removeAttribute('data-done'); }); resetUI(); };
     e.again2.onclick = function () { resetDuelUI(); };
     updateHistSum();
-    var histHead = document.querySelector('.gm-hist-head');
-    if (histHead) {
-      histHead.onclick = function () {
-        var l = document.getElementById('gm-hist-list');
+    [['gm-hist-head', 'gm-hist-list'], ['gm-hist-head2', 'gm-hist-list2']].forEach(function (pr) {
+      var hd = document.getElementById(pr[0]);
+      if (!hd) return;
+      hd.onclick = function () {
+        var l = document.getElementById(pr[1]);
         if (!l) return;
         var open = l.style.display === 'block';
         l.style.display = open ? 'none' : 'block';
-        histHead.textContent = open ? '本桌记录 ▸' : '本桌记录 ▾';
+        hd.textContent = open ? '本桌记录 ▸' : '本桌记录 ▾';
       };
-    }
+    });
     if (e.dealer) {
       e.dealer.onclick = function () {
         if (phase !== 0) { sfx('click'); return; }

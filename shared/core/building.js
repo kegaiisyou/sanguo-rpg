@@ -425,14 +425,33 @@
     duguang: {
       name:'快活赌坊', icon:'🎲', sub:'骰声铿锵，吆喝连天',
       interior: [
+        { kind:'npc', name:'庄家', icon:'🎩', desc:'执骰盅、按筹码的赌坊庄家，目光如秤。', acts:[
+          { label:'上桌押注', icon:'🎲', fn:function(){ openModal('gamble'); } },
+          { label:'交谈', icon:'💬', fn:function(){ log('庄家拍着骰盅：「本坊童叟无欺，押大押小、押点数、与荷官对赌，规则都写在桌上——客官落座便知。」','sys'); openModal('building'); } }
+        ]},
         { kind:'npc', name:'赌徒', icon:'🎲', desc:'眼发红、袖藏骰的精瘦汉。', acts:[
-          { label:'掷骰一博', icon:'🎲', danger:true, fn:function(){ if(!exert('赌博')) return; var win=Math.random()<0.5; log(win?'你押中点数，赢得几贯，眉开眼笑。':'你手气不济，输了几文，懊恼不已。','sys'); openModal('building'); } },
-          { label:'豪赌一场', icon:'🎲', danger:true, when:'night', fn:function(){ if(!exert('豪赌')) return; if(S().gold<20){ log('赌徒乜斜你一眼：「囊中羞涩，也敢进这夜局？」','sys'); return; } var win=Math.random()<0.45; if(win){ S().gold+=30; log('入夜赌局灯火如昼，你押上重注，骰子落定——通吃！银两 +30（当前 '+S().gold+'）。','good'); } else { S().gold-=30; log('入夜赌局灯火如昼，你押上重注，骰子翻落——血本无归，银两 -30（当前 '+S().gold+'）。','bad'); } openModal('building'); } },
-          { label:'交谈', icon:'💬', fn:function(){ var h=S().time%12; log(h>=10||h<=1 ? '赌徒压低声：「客官来得正是时候，入夜的局子才够味——敢不敢玩把大的？」' : '赌徒嘿嘿一笑：「'+bldZihao()+'白日小赌怡情，入夜才有大场面——十赌九输，可偏有人想着那一赢。」','sys'); openModal('building'); } }
+          { label:'交谈', icon:'💬', fn:function(){ var h=S().time%12; log(h>=10||h<=1 ? '赌徒压低声：「入夜的局子才够味——庄家这桌骰子最公道，敢不敢上去搏一搏？」' : '赌徒嘿嘿一笑：「十赌九输，可偏有人想着那一赢。你若是手痒，那边桌上庄家正开盅呢。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'npc', name:'输红了眼的赌客', icon:'😤', desc:'攥着空荷包、额角冒汗的汉子。', acts:[
+          { label:'交谈', icon:'💬', fn:function(){ log('他一把抓住你衣袖，又颓然松开：「借、借我几文……不，不必了，输就输了，愿赌服输。你莫要恋战，这桌骰子吃人。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'npc', name:'酒保', icon:'🍶', desc:'肩搭布巾、穿梭于赌桌间递酒的小厮。', acts:[
+          { label:'要碗酒', icon:'🍶', fn:function(){ if(!exert('买酒')) return; if(S().gold<5){ log('酒保摆手：「客官，五文一碗的浊酒也赊不得——先赢了庄家再喝不迟。」','sys'); return; } S().gold-=5; log('酒保麻利舀了碗浊酒：「赌桌旁边，这碗酒最压惊。」银两 -5（当前 '+S().gold+'）。','sys'); openModal('building'); } },
+          { label:'交谈', icon:'💬', fn:function(){ log('酒保擦着碗：「这几日庄家手气正旺，连赢三夜——不过赌场风水，谁又说得准呢。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'npc', name:'看场', icon:'💪', desc:'抱臂立于门口、肌肉虬结的壮汉。', acts:[
+          { label:'交谈', icon:'💬', fn:function(){ log('看场瓮声瓮气：「赢钱收好，输钱别闹。本坊只管开桌，输赢各凭天命。」','sys'); openModal('building'); } }
+        ]},
+        { kind:'obj', name:'赌桌', icon:'🀄', desc:'铺着旧毡的赌桌，骰声与吆喝在此起彼落。', acts:[
+          { label:'上桌押注', icon:'🎲', fn:function(){ openModal('gamble'); } },
+          { label:'听人吆喝', icon:'👀', fn:function(){ log('「大！大！大！」「开——豹子通吃！」桌边喊声震耳，几双通红的眼死盯着骰盆。','sys'); } }
         ]},
         { kind:'obj', name:'骰盆', icon:'🥏', desc:'青瓷骰盆，六子乱滚，桌边围着几双通红的眼。', acts:[
           { label:'掷骰押注', icon:'🎲', fn:function(){ openModal('gamble'); } },
           { label:'看人下注', icon:'👀', fn:function(){ log('盆边围了三两人，吆五喝六，热闹非常。','sys'); } }
+        ]},
+        { kind:'obj', name:'红灯笼', icon:'🏮', desc:'檐下垂着两盏红灯笼，把赌坊照得亮如白昼。', acts:[
+          { label:'观灯', icon:'👀', fn:function(){ log('灯罩上写着「日进斗金」，烛火晃荡，把「金」字照得格外扎眼。','sys'); } }
         ]}
       ]
     },
