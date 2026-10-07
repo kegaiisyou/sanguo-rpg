@@ -384,18 +384,27 @@
   /* —— 建筑内部面板 —— */
   #modal-card .bld-sub{font-size:12px;color:#6e4f17;text-align:center;margin:-4px 0 12px;}
   #modal-card .bld-list{display:flex;flex-direction:column;gap:8px;}
-  #modal-card .bld-ent{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;cursor:pointer;
-    background:rgba(255,253,248,.92);border:1px solid rgba(176,131,47,.32);transition:.12s;}
-  #modal-card .bld-ent:hover{background:rgba(176,131,47,.16);border-color:rgba(176,131,47,.6);}
-  #modal-card .bld-ent-ic{font-size:20px;flex:none;}
-  #modal-card .bld-ent-nm{flex:1;font-size:14px;color:var(--ink);}
-  #modal-card .bld-ent-ki{font-size:10px;color:#6e4f17;border:1px solid rgba(176,131,47,.45);border-radius:5px;padding:1px 5px;}
+  #modal-card .bld-ent{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;
+    background:linear-gradient(160deg, rgba(120,80,40,.12), rgba(120,80,40,.04));
+    border:1px solid rgba(120,80,40,.16);box-shadow:0 1px 3px rgba(60,40,15,.08);
+    transition:transform .12s ease, box-shadow .12s ease, background .12s;}
+  #modal-card .bld-ent:hover{background:rgba(176,131,47,.14);border-color:rgba(176,131,47,.5);}
+  #modal-card .bld-ent:active{transform:scale(.97);}
+  #modal-card .bld-ent-ic{font-size:20px;flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    background:rgba(120,80,40,.12);border-radius:9px;}
+  #modal-card .bld-ent-nm{flex:1 1 72px;min-width:0;font-size:14px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #modal-card .bld-ent-d{flex:1.6 1 92px;min-width:0;font-size:11px;color:#9a7a4a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #modal-card .bld-ent-ki{font-size:10px;color:#6e4f17;border:1px solid rgba(176,131,47,.45);border-radius:5px;padding:1px 5px;flex:none;}
+  #modal-card .bld-ent-go{color:rgba(120,80,40,.5);font-size:15px;flex:none;}
   #modal-card .bld-detail{display:flex;flex-direction:column;gap:10px;}
   #modal-card .bld-d-head{font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  #modal-card .bld-d-ic{font-size:22px;flex:none;width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+    background:rgba(120,80,40,.12);border-radius:10px;}
   #modal-card .bld-d-desc{font-size:13px;line-height:1.7;color:var(--ink-soft);background:rgba(255,253,248,.66);
     border-left:3px solid rgba(176,131,47,.5);padding:8px 11px;border-radius:0 8px 8px 0;}
   #modal-card .bld-acts{display:flex;flex-direction:column;gap:8px;}
-  #modal-card .bld-act{width:100%;justify-content:flex-start;text-align:left;}
+  #modal-card .bld-act{width:100%;justify-content:flex-start;text-align:left;transition:transform .1s ease, box-shadow .1s ease;}
+  #modal-card .bld-act:active{transform:scale(.97);}
   #modal-card .bld-back{margin-top:4px;}
   /* 建筑内部区域导航（v20260824f） */
   #modal-card .bld-crumb{font-size:12px;color:#6e4f17;margin:-6px 0 8px;text-align:center;letter-spacing:.5px;}
@@ -408,8 +417,10 @@
   #modal-card .bld-areas{display:flex;flex-direction:column;gap:8px;margin-top:12px;
     border-top:1px dashed rgba(176,131,47,.4);padding-top:12px;}
   #modal-card .bld-area{width:100%;justify-content:flex-start;text-align:left;
-    background:rgba(176,131,47,.14);border:1px solid rgba(176,131,47,.5);}
+    background:linear-gradient(160deg, rgba(176,131,47,.16), rgba(255,250,240,.4));
+    border:1px solid rgba(176,131,47,.5);transition:transform .12s ease, background .12s;}
   #modal-card .bld-area:hover{background:rgba(176,131,47,.26);}
+  #modal-card .bld-area:active{transform:scale(.97);}
   #modal-card .bld-nav{display:flex;gap:8px;margin-top:14px;}
   #modal-card .bld-up{flex:1;background:rgba(120,120,120,.16);border:1px solid rgba(120,120,120,.5);}
   #modal-card .bld-exit{flex:1;background:rgba(140,70,60,.18);border:1px solid rgba(160,80,70,.6);}

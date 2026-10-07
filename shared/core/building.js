@@ -58,7 +58,7 @@
       if(!e){ getBuildingState().sel=null; return renderBuildingPanel(); }
       var h='<div class="bld-crumb">'+_ci(b.icon)+((getState()&&getState().flags&&getState().flags.bldEnt&&getState().flags.bldEnt.sign)||b.name)+' › '+area.name+'</div>';
       h+='<div class="bld-detail">';
-      h+='<div class="bld-d-head">'+_ci(e.icon)+' '+e.name+' <span class="bld-ent-ki">'+(getBuildingState().selKind==='obj'?'物件':'人物')+'</span></div>';
+      h+='<div class="bld-d-head"><span class="bld-d-ic">'+_ci(e.icon)+'</span>'+e.name+' <span class="bld-ent-ki">'+(getBuildingState().selKind==='obj'?'物件':'人物')+'</span></div>';
       h+='<div class="bld-d-desc">'+e.desc+'</div>';
       h+='<div class="bld-acts">';
       bldActsFilter(e.acts).forEach(function(a,ai){ h+='<button class="btn bld-act'+(a.danger?' danger':'')+'" data-ai="'+ai+'">'+_ci(a.icon)+' '+a.label+'</button>'; });
@@ -72,7 +72,7 @@
     h+='<div class="bld-list">';
     // v20260928g：店铺 NPC 不再在本面板单独呈现（避免与左侧 NPC 列表两套系统并存）——
     //   店内人物统一走左侧列表 + 浮动菜单（交谈/观察/给予/攻击/交易）。本面板只保留物件与子区域。
-    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-ki">物件</span></div>'; });
+    (area.objs||[]).forEach(function(e,i){ h+='<div class="bld-ent bld-obj" data-kind="obj" data-i="'+i+'"><span class="bld-ent-ic">'+_ci(e.icon)+'</span><span class="bld-ent-nm">'+e.name+'</span><span class="bld-ent-d">'+(e.desc||'')+'</span><span class="bld-ent-ki">物件</span><span class="bld-ent-go">›</span></div>'; });
     h+='</div>';
     if(area.areas && area.areas.length){
       h+='<div class="bld-areas">';
@@ -91,17 +91,17 @@
       var e=list[getBuildingState().sel];
       if(e){
         getCard().querySelectorAll('.bld-act').forEach(function(el){
-          el.onclick=function(){ var a=bldActsFilter(e.acts)[+el.getAttribute('data-ai')]; if(a&&a.fn){ a.fn(); if(getCurrentModalKind()==='building') openModal('building'); } };
+          el.onclick=function(){ if(window.SFX&&window.SFX.play) window.SFX.play('click'); var a=bldActsFilter(e.acts)[+el.getAttribute('data-ai')]; if(a&&a.fn){ a.fn(); if(getCurrentModalKind()==='building') openModal('building'); } };
         });
       }
       var back=getCard().querySelector('.bld-back'); if(back) back.onclick=function(){ getBuildingState().sel=null; openModal('building'); };
       return;
     }
     getCard().querySelectorAll('.bld-ent').forEach(function(el){
-      el.onclick=function(){ getBuildingState().selKind=el.getAttribute('data-kind'); getBuildingState().sel=+el.getAttribute('data-i'); openModal('building'); };
+      el.onclick=function(){ if(window.SFX&&window.SFX.play) window.SFX.play('click'); getBuildingState().selKind=el.getAttribute('data-kind'); getBuildingState().sel=+el.getAttribute('data-i'); openModal('building'); };
     });
     getCard().querySelectorAll('.bld-area').forEach(function(el){
-      el.onclick=function(){ if(getBuildingState().stack) getBuildingState().stack.push(getBuildingState().area); getBuildingState().area=el.getAttribute('data-area'); getBuildingState().sel=null; openModal('building'); };
+      el.onclick=function(){ if(window.SFX&&window.SFX.play) window.SFX.play('click'); if(getBuildingState().stack) getBuildingState().stack.push(getBuildingState().area); getBuildingState().area=el.getAttribute('data-area'); getBuildingState().sel=null; openModal('building'); };
     });
     var up=getCard().querySelector('.bld-up'); if(up) up.onclick=function(){ if(getBuildingState().stack && getBuildingState().stack.length) getBuildingState().area=getBuildingState().stack.pop(); else getBuildingState().area='root'; getBuildingState().sel=null; openModal('building'); };
     var exit=getCard().querySelector('.bld-exit'); if(exit) exit.onclick=function(){ closeModal(); };
