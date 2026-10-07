@@ -3915,7 +3915,7 @@
     getState: function(){ return state; },
     getCard: function(){ return document.getElementById('modal-card'); },
     packAdd: packAdd, afterPackChange: afterPackChange, save: save, toast: toast,
-    itemIconHTML: itemIconHTML, packIsStackable: packIsStackable, packFind: packFind, packFirstEmpty: packFirstEmpty,
+    itemIconHTML: itemIconHTML, packIsStackable: packIsStackable, packFind: packFind, packFirstEmpty: packFirstEmpty, packMax: packMax,
     ICON_SPR: ICON_SPR,
     storageGet: storeGet, storagePut: storePutFromPack, storageTake: storeTakeToPack, storageSort: storeSort, storageSwap: storeSwap,
     positionFloat: positionFloat, closeModal: closeModal,

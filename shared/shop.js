@@ -12,6 +12,7 @@
     var packAdd          = ctx.packAdd;
     var afterPackChange  = ctx.afterPackChange;
     var save             = ctx.save;
+    var packMax          = ctx.packMax;
     var toast            = ctx.toast;
     var itemIconHTML     = ctx.itemIconHTML;
     var ICON_SPR         = ctx.ICON_SPR || null;
