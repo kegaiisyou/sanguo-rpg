@@ -323,8 +323,8 @@
       else { cells+='<div class="packcell" data-st-idx="'+i+'">'+itemIconHTML(it,16)+'<span class="pc-n">'+(it.count||1)+'</span></div>'; }
     }
     var pk='';
-    for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(!pit) continue; pk+='<div class="packcell" data-pk-idx="'+i+'">'+itemIconHTML(pit,16)+'<span class="pc-n">'+(pit.count||1)+'</span></div>'; }
-    if(!pk) pk='<div class="packcell empty"></div>';
+    var _cap=packMax(); if(getState().pack.length>_cap)_cap=getState().pack.length;
+    for(var i=0;i<_cap;i++){ var pit=getState().pack[i]; if(!pit){ pk+='<div class="packcell empty" data-pk-idx="'+i+'"></div>'; continue; } pk+='<div class="packcell" data-pk-idx="'+i+'">'+itemIconHTML(pit,16)+'<span class="pc-n">'+(pit.count||1)+'</span></div>'; }
     return '<div class="shop-wrap">'
       + '<div class="shop-head"><span class="shop-title">🏯 仓库 · '+cnm+'</span><span class="shop-gold">'+used+' / '+st.slots+' 格</span></div>'
       + '<div class="shop-main">'

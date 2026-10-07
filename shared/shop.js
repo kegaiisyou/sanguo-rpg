@@ -338,7 +338,8 @@
       var grid = '';
       var cellBuy = {};
       shopBuyPending.forEach(function (p, bi) { if (p.cell != null && p.cell >= 0) cellBuy[p.cell] = bi; });
-      for (var i = 0; i < S().pack.length; i++) {
+      var _cap=packMax(); if(S().pack.length>_cap)_cap=S().pack.length;
+      for (var i = 0; i < _cap; i++) {
         var it = S().pack[i];
         if (it) {
           var cnt = (it.count > 1) ? ('<span class="pcell-cnt">' + it.count + '</span>') : '';
@@ -1081,8 +1082,8 @@
       if(s&&s.n>0){ var dd=window.LF.ITEMS[s.id]||{}; cells+='<div class="packcell" data-c-idx="'+i+'">'+itemIconHTML({defId:s.id,name:dd.name||'物',icon:dd.icon||''},16)+'<span class="pc-n">'+s.n+'</span></div>'; }
       else { cells+='<div class="packcell empty"></div>'; } }
     var pk='';
-    (S().pack||[]).forEach(function(it, idx){ if(!it) return; pk+='<div class="packcell" data-pk-idx="'+idx+'">'+itemIconHTML(it,16)+'<span class="pc-n">'+(it.count||1)+'</span></div>'; });
-    if(!pk) pk='<div class="packcell empty"></div>';
+    var _pk=(S().pack||[]); var _cap=packMax(); if(_pk.length>_cap)_cap=_pk.length;
+    for(var i=0;i<_cap;i++){ var pit=_pk[i]; if(!pit){ pk+='<div class="packcell empty" data-pk-idx="'+i+'"></div>'; continue; } pk+='<div class="packcell" data-pk-idx="'+i+'">'+itemIconHTML(pit,16)+'<span class="pc-n">'+(pit.count||1)+'</span></div>'; }
     var used=contCount(p);
     return '<div class="shop-wrap">'
       + '<div class="shop-head"><span class="shop-title">📦 '+(d.name||'容器')+'</span><span class="shop-gold">'+used+' / '+slots.length+' 格</span></div>'
