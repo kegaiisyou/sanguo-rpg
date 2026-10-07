@@ -226,74 +226,155 @@
     toast('已装备「'+it.name+'」。'+(old?('，原「'+old.name+'」退回仓库。'):''));
     save(getState()); afterPackChange();
   }
+  var stDragFrom = null;   // HTML5 拖拽来源
+  function storageRoom(cid){ ensureStorage(cid); var st=getState().flags.storage[cid]; var used=0; for(var i=0;i<st.items.length;i++) if(st.items[i]) used++; return st.slots-used; }
+  function stQtyRow(act){ var label=act==='take'?'取出':'存入'; return '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">'
+    + '<button class="li-act" data-cq="'+act+'" data-n="1">×1</button>'
+    + '<button class="li-act" data-cq="'+act+'" data-n="5">×5</button>'
+    + '<button class="li-act" data-cq="'+act+'" data-n="10">×10</button>'
+    + '<button class="li-act" data-cq="'+act+'" data-n="999">全部</button>'
+    + '<input id="st-qty-input" class="txt" type="number" min="1" value="1" style="width:46px;">'
+    + '<button class="li-act" data-cq="'+act+'" data-input="1">'+label+'</button>'
+    + '</div>'; }
+  function renderStorageInspect(cid){
+    if(!storageSel) return '';
+    var src=storageSel.src, idx=storageSel.idx, defId, count, d, isEquip=false, it=null;
+    if(src==='store'){ var st=getState().flags.storage[cid]; var sit=st&&st.items[idx]; if(!sit) return ''; defId=itemKey(sit); count=sit.count||1; d=LF.ITEMS[defId]||{}; it=sit; }
+    else { it=getState().pack[idx]; if(!it) return ''; defId=it.defId||it.id; count=it.count||1; d=LF.ITEMS[defId]||{}; isEquip=(it.cat==='装备'); }
+    var name = src==='store' ? it.name : (it.name||d.name||'物');
+    var h='<div class="li-name">'+name+'</div>';
+    h+='<div class="li-cat">'+(d.cat||'道具')+(count>1?(' · ×'+count):'')+'</div>';
+    if(src==='pack' && isEquip){
+      var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息']];
+      var parts=[]; fields.forEach(function(fl){ var v=it[fl[0]]||0; if(v) parts.push(fl[1]+' +'+v); });
+      if(parts.length) h+='<div class="li-line">'+parts.join(' · ')+'</div>';
+      if(it.packSpace) h+='<div class="li-line">空间 +'+it.packSpace+'</div>';
+    }
+    var dur = it.maxDur; if(dur){ var dv = src==='store' ? it.maxDur : it.dur; h+='<div class="li-line">耐久 '+(dv||0)+' / '+dur+'</div>'; }
+    if(d.price) h+='<div class="li-line">价值 '+d.price+' 两</div>';
+    if(d.effect){ var e=d.effect,t=[]; if(e.hp)t.push('疗伤 +'+e.hp); if(e.mp)t.push('复内 +'+e.mp); if(e.food)t.push('充饥 +'+e.food); if(e.drink)t.push('解渴 +'+e.drink); if(e.dmg)t.push('伤害 +'+e.dmg); if(t.length)h+='<div class="li-line">'+t.join(' · ')+'</div>'; }
+    if(d.desc) h+='<div class="li-line" style="opacity:.85">'+d.desc+'</div>';
+    var acts='';
+    if(src==='store'){
+      h+='<div class="li-line" style="opacity:.8">取出数量：</div>'+stQtyRow('take');
+      if(d.effect) acts+='<button class="li-act" data-st-act="use">使 用</button>';
+      acts+='<button class="li-act" data-st-act="equip">装 备</button>';
+      acts+='<button class="li-act" data-st-act="discard">丢 弃</button>';
+    } else {
+      if(!isEquip){
+        h+='<div class="li-line" style="opacity:.8">存入数量：</div>'+stQtyRow('put');
+        if(d.effect) acts+='<button class="li-act" data-st-act="use">使 用</button>';
+      } else { acts+='<button class="li-act" data-st-act="equip">装 备</button>'; }
+      acts+='<button class="li-act" data-st-act="discard">丢 弃</button>';
+    }
+    if(acts) h+='<div class="li-acts">'+acts+'</div>';
+    return h;
+  }
+  function showStorageFloat(cid, el){
+    if(!storageSel) return;
+    var f=document.getElementById('st-float');
+    if(!f){ f=document.createElement('div'); f.className='loot-info'; f.id='st-float'; document.body.appendChild(f); }
+    f.innerHTML=renderStorageInspect(cid);
+    f.querySelectorAll('[data-st-act]').forEach(function(b){ b.onclick=function(){ stAct(b.getAttribute('data-st-act')); }; });
+    f.querySelectorAll('[data-cq]').forEach(function(b){ b.onclick=function(){ var n=parseInt(b.getAttribute('data-n'),10); if(b.getAttribute('data-input')) stQtyInput(b.getAttribute('data-cq')); else stQty(b.getAttribute('data-cq'), n); }; });
+    f.style.display='block';
+    positionFloat(f, el);
+  }
+  function stReshowFloat(cid){
+    if(!storageSel) return; var sel=storageSel;
+    if(sel.src==='store'){ var st=getState().flags.storage[cid]; if(!st||!st.items[sel.idx]){ storageSel=null; var f=document.getElementById('st-float'); if(f) f.style.display='none'; return; } }
+    else { if(!getState().pack[sel.idx]){ storageSel=null; var f2=document.getElementById('st-float'); if(f2) f2.style.display='none'; return; } }
+    var el=sel.src==='store'?document.querySelector('#st-grid [data-st-idx="'+sel.idx+'"]'):document.querySelector('#st-pack [data-pk-idx="'+sel.idx+'"]');
+    if(el){ el.classList.add('pcell-insp'); showStorageFloat(cid, el); }
+  }
+  function refreshStoragePanel(cid){
+    var card=document.getElementById('modal-card');
+    if(card && getCurrentModalKind()==='storage'){ card.innerHTML=renderStoragePanel(cid); bindStoragePanel(); }
+  }
+  function storeDiscardItem(cid, si){
+    var st=getState().flags.storage[cid]; var it=st&&st.items[si]; if(!it) return;
+    if(!window.confirm('确定丢弃仓库中的「'+it.name+'×'+(it.count||1)+'」？此操作不可撤销。')) return;
+    st.items[si]=null; save(getState()); afterPackChange();
+  }
+  function stAct(kind){
+    if(!storageSel) return; var cid=getStorageCid(); if(cid==null) return;
+    if(kind==='use'){ if(storageSel.src==='store'){ storeUseItem(cid, storageSel.idx); } else { var pit=getState().pack[storageSel.idx]; if(pit){ LFUI.usePackItem(storageSel.idx); refreshStoragePanel(cid); stReshowFloat(cid); } } }
+    else if(kind==='equip'){ if(storageSel.src==='store'){ var st=getState().flags.storage[cid]; var it=st.items[storageSel.idx]; if(it&&it.slot) storeEquipItem(cid, storageSel.idx, it.slot); } else { var p2=getState().pack[storageSel.idx]; if(p2&&p2.slot) LFUI.equipFromPackTo(storageSel.idx, p2.slot); } refreshStoragePanel(cid); stReshowFloat(cid); }
+    else if(kind==='discard'){ if(storageSel.src==='store'){ storeDiscardItem(cid, storageSel.idx); } else { var p3=getState().pack[storageSel.idx]; if(p3 && window.confirm('确定丢弃「'+p3.name+'×'+(p3.count||1)+'」？此操作不可撤销。')){ LFUI.discardPackItem(storageSel.idx); } } refreshStoragePanel(cid); stReshowFloat(cid); }
+  }
+  function stQty(act, n){
+    if(!storageSel) return; var cid=getStorageCid(); if(cid==null) return;
+    if(act==='take'){ if(storageSel.src!=='store') return; var st=getState().flags.storage[cid]; var it=st.items[storageSel.idx]; if(!it) return; n=Math.min(n, it.count||0); if(n>0) storeTake(cid, itemKey(it), n); }
+    else { if(storageSel.src!=='pack') return; var pit=getState().pack[storageSel.idx]; if(!pit) return; n=Math.min(n, pit.count||0, storageRoom(cid)); if(n>0) storagePut(cid, pit.defId||pit.id, n); }
+  }
+  function stQtyInput(act){ if(!storageSel) return; var inp=document.getElementById('st-qty-input'); var n=inp?parseInt(inp.value,10):0; if(!n||n<1) n=1; stQty(act, n); }
+  function stTakeAll(cid){ ensureStorage(cid); var st=getState().flags.storage[cid]; for(var i=0;i<st.items.length;i++){ var it=st.items[i]; if(it){ storeTakeToPack(cid, i, it.count||0, null); } } refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
+  function stPutAll(cid){ ensureStorage(cid); for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(pit && packIsStackable(pit)) storePutFromPack(cid, i, pit.count||0, null); } refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
+  function stSort(cid){ ensureStorage(cid); storeSort(cid); if(LFUI && LFUI.packAutoSort) LFUI.packAutoSort(); save(getState()); afterPackChange(); refreshStoragePanel(cid); toast('已整理。'); }
   function renderStoragePanel(cid){
     ensureStorage(cid); var st=getState().flags.storage[cid];
+    storageSel=null;
+    var f=document.getElementById('st-float'); if(f) f.style.display='none';
     var cnm=(LF.CITIES[cid]||{}).name||'此城';
     var used=0; for(var i=0;i<st.items.length;i++) if(st.items[i]) used++;
-    var cbase='display:flex;align-items:center;justify-content:center;position:relative;width:58px;height:58px;margin:2px;border-radius:8px;font-size:12px;color:#3a3226;cursor:pointer;';
     var cells='';
-    for(var i=0;i<st.slots;i++){
-      var it=st.items[i];
-      if(!it){ cells+='<div style="'+cbase+'background:rgba(120,100,70,.08);border:1px dashed rgba(120,100,70,.25);"></div>'; }
-      else {
-        var sel=(storageSel && storageSel.src==='store' && storageSel.defId===itemKey(it));
-        var cnt=(it.count>1)?'<span style="position:absolute;right:2px;bottom:1px;font-size:10px;font-weight:700;color:#6b4a24;">'+it.count+'</span>':'';
-        cells+='<div data-st-sel="store:'+i+'" style="'+cbase+'background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(sel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(sel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';" title="'+it.name+'">'+itemIconHTML(it,38)+cnt+'</div>';
-      }
+    for(var i=0;i<st.slots;i++){ var it=st.items[i];
+      if(!it){ cells+='<div class="packcell empty"></div>'; }
+      else { cells+='<div class="packcell" data-st-idx="'+i+'">'+itemIconHTML(it,16)+'<span class="pc-n">'+(it.count||1)+'</span></div>'; }
     }
-    var packHtml='';
-    for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(!pit||!packIsStackable(pit)) continue;
-      var pk=itemKey(pit); var psel=(storageSel && storageSel.src==='pack' && storageSel.defId===pk);
-      packHtml+='<button data-st-sel="pack:'+pk+'" style="display:inline-flex;align-items:center;gap:4px;margin:2px;padding:6px 10px;border-radius:8px;font-size:13px;color:#3a3226;cursor:pointer;background:linear-gradient(180deg,#f7f0e2,#ece0c8);border:1px solid '+(psel?'#c8923a':'rgba(74,60,40,.28)')+';box-shadow:'+(psel?'0 0 0 2px rgba(200,146,58,.35)':'none')+';">'+itemIconHTML(pit,30)+' '+pit.name+(pit.count>1?' ×'+pit.count:'')+'</button>';
-    }
-    if(!packHtml) packHtml='<div class="tip" style="margin:6px 0;">行囊空空，无物可存。</div>';
-    var selHtml='<div class="tip" style="margin:8px 0 4px;color:#6b4a24;">点选上方格子取物，或点行囊物品存入。</div>';
-    if(storageSel && storageSel.defId){
-      var isStore=storageSel.src==='store';
-      var act=isStore?'取出':'存入';
-      var qs=[1,5,10,storageSel.max];
-      var btns='';
-      for(var qi=0;qi<qs.length;qi++){
-        var qv=qs[qi]; if(qi===3 && qv<=10) continue;
-        var lb=(qi===3)?'全部':'×'+qv;
-        btns+='<button data-st-act="'+(isStore?'take':'put')+'" data-st-n="'+qv+'" style="margin:3px;padding:8px 14px;border-radius:8px;font-size:14px;color:#f7f0e2;background:linear-gradient(180deg,#8a6a3c,#6b4a24);border:1px solid #5a3d1e;cursor:pointer;">'+lb+'</button>';
-      }
-      selHtml='<div style="margin:8px 0 4px;">已选：'+storageSel.name+'（'+(isStore?storageItemCount(getState().flags.storage[cid], storageSel.defId):((packFind(storageSel.defId)||{}).count||0))+'）　'+act+'：'+btns+'</div>';
-    }
-    return '<h3 style="text-align:center;margin:0 0 6px;">仓 库 · '+cnm+'</h3>'
-      + '<p class="tip" style="margin:0 0 6px;">容量 '+st.slots+' 格 · 已用 '+used+' 格。'+(cid==='kuyilao'?'初置木料石料，供营建之需。':'')+'</p>'
-      + '<div style="display:flex;flex-wrap:wrap;justify-content:center;">'+cells+'</div>'
-      + selHtml
-      + '<div style="margin:10px 0 4px;font-size:13px;font-weight:700;color:#6b4a24;">行囊</div>'
-      + '<div style="display:flex;flex-wrap:wrap;justify-content:center;">'+packHtml+'</div>'
-      + '<button class="sheet-leave" id="m-st-leave">收 工</button>';
+    var pk='';
+    for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(!pit) continue; pk+='<div class="packcell" data-pk-idx="'+i+'">'+itemIconHTML(pit,16)+'<span class="pc-n">'+(pit.count||1)+'</span></div>'; }
+    if(!pk) pk='<div class="packcell empty"></div>';
+    return '<div class="shop-wrap">'
+      + '<div class="shop-head"><span class="shop-title">🏯 仓库 · '+cnm+'</span><span class="shop-gold">'+used+' / '+st.slots+' 格</span></div>'
+      + '<div class="shop-main">'
+      +   '<div class="shop-left"><div class="shop-pane-title">仓库 · 点选取物</div><div class="shop-scroll"><div class="pack-grid" id="st-grid">'+cells+'</div></div></div>'
+      +   '<div class="shop-right"><div class="shop-pane-title">你的行囊 · 拖物到左栏即存入</div><div class="shop-scroll"><div class="pack-grid" id="st-pack">'+pk+'</div></div></div>'
+      + '</div>'
+      + '<div class="shop-foot"><div class="sf-acts">'
+      +   '<button class="btn" id="st-take-all">全部取出</button>'
+      +   '<button class="btn" id="st-put-all">全部收纳</button>'
+      +   '<button class="btn" id="st-sort">整 理</button>'
+      +   '<button class="btn" id="m-st-leave">收 工</button>'
+      + '</div></div></div>';
   }
   function bindStoragePanel(){
-    var card=document.getElementById('modal-card')||getCard();
-    card.querySelectorAll('[data-st-sel]').forEach(function(el){
-      el.onclick=function(){
-        var sp=el.getAttribute('data-st-sel').split(':');
-        var src=sp[0], id=sp[1];
-        if(src==='store'){ var st=getState().flags.storage[getStorageCid()]; var it=st?st.items[parseInt(id,10)]:null; if(it){ storageSel={src:'store',defId:itemKey(it),name:it.name,max:it.count||0}; } }
-        else { var pit=packFind(id); if(pit){ storageSel={src:'pack',defId:id,name:pit.name,max:pit.count||0}; } }
-        if(getStorageCid()!=null) openModal('storage',{cid:getStorageCid()});
+    var cid=getStorageCid(); if(cid==null) return;
+    var card=document.getElementById('modal-card'); if(!card) return;
+    var lastClick={t:0,key:null};
+    card.querySelectorAll('[data-st-idx],[data-pk-idx]').forEach(function(el){
+      var isStore=el.hasAttribute('data-st-idx');
+      var idx=parseInt(el.getAttribute(isStore?'data-st-idx':'data-pk-idx'),10);
+      el.onclick=function(e){
+        if(el.__dragMoved){ el.__dragMoved=false; return; }
+        var key=isStore?('store:'+idx):('pack:'+idx);
+        var now=Date.now(); var dbl=(lastClick.key===key && now-lastClick.t<320); lastClick={t:now,key:key};
+        if(dbl){ if(isStore){ var st=getState().flags.storage[cid]; var it=st.items[idx]; if(it) storeTake(cid, itemKey(it), it.count||0); } else { var pit=getState().pack[idx]; if(pit) storagePut(cid, pit.defId||pit.id, pit.count||0); } return; }
+        storageSel={src:isStore?'store':'pack', idx:idx};
+        card.querySelectorAll('.pcell-insp').forEach(function(c){ c.classList.remove('pcell-insp'); });
+        el.classList.add('pcell-insp');
+        showStorageFloat(cid, el);
       };
+      el.setAttribute('draggable','true');
+      el.ondragstart=function(e){ stDragFrom={src:isStore?'store':'pack', idx:idx}; var _f=document.getElementById('st-float'); if(_f) _f.style.display='none'; if(e&&e.dataTransfer) e.dataTransfer.setData('text/plain','x'); if(e) e.stopPropagation(); };
     });
-    card.querySelectorAll('[data-st-act]').forEach(function(el){
-      el.onclick=function(){
-        if(!storageSel || getStorageCid()==null) return;
-        var act=el.getAttribute('data-st-act');
-        var n=parseInt(el.getAttribute('data-st-n'),10)||1;
-        var st=getState().flags.storage[getStorageCid()];
-        var max=(act==='take')? storageItemCount(st, storageSel.defId) : ((packFind(storageSel.defId)||{}).count||0);
-        n=Math.min(n, max);
-        if(n<=0){ toast('无物可取。'); return; }
-        if(act==='take') storageTake(getStorageCid(), storageSel.defId, n);
-        else storagePut(getStorageCid(), storageSel.defId, n);
-      };
-    });
-    var lv=document.getElementById('m-st-leave'); if(lv) lv.onclick=closeModal;
+    var sg=card.querySelector('#st-grid'), spk=card.querySelector('#st-pack');
+    [sg,spk].forEach(function(g){ if(g) g.ondragover=function(e){ if(e) e.preventDefault(); }; });
+    if(sg) sg.ondrop=function(e){ if(e) e.preventDefault(); if(stDragFrom&&stDragFrom.src==='pack'){ var pit=getState().pack[stDragFrom.idx]; if(pit){ var to=null; var tcell=e.target.closest && e.target.closest('[data-st-idx]'); if(tcell) to=parseInt(tcell.getAttribute('data-st-idx'),10); storePutFromPack(cid, stDragFrom.idx, 999, to); refreshStoragePanel(cid); storageSel=null; var f=document.getElementById('st-float'); if(f) f.style.display='none'; } } stDragFrom=null; };
+    if(spk) spk.ondrop=function(e){ if(e) e.preventDefault(); if(stDragFrom&&stDragFrom.src==='store'){ var st=getState().flags.storage[cid]; var it=st.items[stDragFrom.idx]; if(it){ var to=null; var tcell=e.target.closest && e.target.closest('[data-pk-idx]'); if(tcell) to=parseInt(tcell.getAttribute('data-pk-idx'),10); storeTakeToPack(cid, stDragFrom.idx, it.count||0, to); refreshStoragePanel(cid); storageSel=null; var f=document.getElementById('st-float'); if(f) f.style.display='none'; } } stDragFrom=null; };
+    var pDrag=null, pGhost=null, pSX=0,pSY=0,pMoved=false,pSrcEl=null;
+    card.querySelectorAll('[data-st-idx],[data-pk-idx]').forEach(function(el){ el.onpointerdown=function(e){ if(e.pointerType==='mouse') return; var isStore=el.hasAttribute('data-st-idx'); pDrag={src:isStore?'store':'pack', idx:parseInt(el.getAttribute(isStore?'data-st-idx':'data-pk-idx'),10)}; pSrcEl=el; pMoved=false; el.__dragMoved=false; pSX=e.clientX; pSY=e.clientY; var _f=document.getElementById('st-float'); if(_f) _f.style.display='none'; }; });
+    card.onpointermove=function(e){ if(!pDrag) return; if(!pMoved){ if(Math.abs(e.clientX-pSX)<8 && Math.abs(e.clientY-pSY)<8) return; pMoved=true; if(pSrcEl) pSrcEl.__dragMoved=true; } if(!pGhost){ pGhost=document.createElement('div'); pGhost.className='pack-ghost'; document.body.appendChild(pGhost); } var id=pDrag.src==='store'?(getState().flags.storage[cid].items[pDrag.idx]?itemKey(getState().flags.storage[cid].items[pDrag.idx]):null):(getState().pack[pDrag.idx]?(getState().pack[pDrag.idx].defId||getState().pack[pDrag.idx].id):null); var dn=id?LF.ITEMS[id]:null; pGhost.textContent=dn?(dn.icon||''):''; pGhost.style.fontSize='22px'; };
+    function endPDrag(e, cancelled){ var from=pDrag; pDrag=null; if(pGhost){ pGhost.remove(); pGhost=null; } if(!from||!pMoved||cancelled) return; var tgt=document.elementFromPoint(e.clientX,e.clientY); while(tgt&&tgt!==card&&!tgt.id) tgt=tgt.parentNode; if(tgt&&tgt.id==='st-grid'&&from.src==='pack'){ var pit=getState().pack[from.idx]; if(pit) storePutFromPack(cid, from.idx, 999, null); } else if(tgt&&tgt.id==='st-pack'&&from.src==='store'){ var st=getState().flags.storage[cid]; var it=st.items[from.idx]; if(it) storeTakeToPack(cid, from.idx, it.count||0, null); } if(from){ refreshStoragePanel(cid); storageSel=null; var f=document.getElementById('st-float'); if(f) f.style.display='none'; } }
+    card.onpointerup=function(e){ endPDrag(e,false); };
+    card.onpointercancel=function(e){ endPDrag(e,true); };
+    card.onclick=function(e){ if(e.target.closest('[data-st-idx],[data-pk-idx]')) return; if(e.target.closest('button')) return; var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; };
+    var ta=card.querySelector('#st-take-all'); if(ta) ta.onclick=function(){ stTakeAll(cid); };
+    var pa=card.querySelector('#st-put-all'); if(pa) pa.onclick=function(){ stPutAll(cid); };
+    var so=card.querySelector('#st-sort'); if(so) so.onclick=function(){ stSort(cid); };
+    var lv=card.querySelector('#m-st-leave'); if(lv) lv.onclick=closeModal;
   }
+
 
     return {
       ensureStorage: ensureStorage, storageItemCount: storageItemCount, storageAdd: storageAdd, storagePut: storagePut, storageTake: storageTake, storeGet: storeGet, storePutFromPack: storePutFromPack, storeTakeToPack: storeTakeToPack, storeSwap: storeSwap, storeSort: storeSort, storeUseItem: storeUseItem, storeEquipItem: storeEquipItem, renderStoragePanel: renderStoragePanel, bindStoragePanel: bindStoragePanel

@@ -740,7 +740,7 @@
     setCityDev: setCityDev, cityDevOf: cityDevOf, advanceTime: advanceTime, renderRoom: renderRoom,
     getCombatMode: function () { return combatMode; },
     getCard: function () { return $card; }, getCurrentModalKind: function () { return currentModalKind; },
-    openModal: openModal, closeModal: closeModal,
+    openModal: openModal, closeModal: closeModal, positionFloat: positionFloat,
     busyAct: busyAct,  // 耗时动作进度条（v20260914a，见引擎 busyAct）
     upgradePick: upgradePick  // 镐头升级（v20260915i，矿坑体系：锻造台锻镐经此升镐级）
   });
@@ -4843,6 +4843,9 @@
     var _tt=document.getElementById('title'); if(_tt) _tt.classList.add('frozen');   // 冻结标题重绘，避免弹窗(择档等)卡顿
     var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
     var _sf=document.getElementById('shop-float'); if(_sf) _sf.style.display='none';
+    var _cf=document.getElementById('cont-float'); if(_cf) _cf.style.display='none';
+    var _stf=document.getElementById('st-float'); if(_stf) _stf.style.display='none';
+    if(window.contCloseCleanup) window.contCloseCleanup();
     if(state && state.dead){ die(); return; }
     // 打开任何弹窗时先移除战斗红光氛围，防止满血/非战斗画面泛红
     var sceneEl=document.getElementById('scene'); if(sceneEl){ sceneEl.classList.remove('bg-danger'); }
