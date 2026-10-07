@@ -25,7 +25,14 @@
     '砖窑':'icn-zhuanyao','熔炉':'icn-ronglu','铁料堆':'icn-tieliaodui','立栅':'icn-lizha',
     '夯土基':'icn-hangtuji','简牍架':'icn-jandujia','香案':'icn-xiangan','钱柜':'icn-qianqui',
     '酒瓮':'icn-jiuweng','蒸笼':'icn-zhenglong','菜案':'icn-caian','织机':'icn-zhiji',
-    '染缸':'icn-rangang','镖旗':'icn-biaoqi','马厩':'icn-majiu','骰盆':'icn-toupen'
+    '染缸':'icn-rangang','镖旗':'icn-biaoqi','马厩':'icn-majiu','骰盆':'icn-toupen',
+    // v20261007：18 店铺水墨招牌（shared/img/sm_shop-*.png）
+    '济世药铺':'shop-yaofu','锦绣布庄':'shop-buzhuang','悦来食肆':'shop-shishi',
+    '万丰杂货':'shop-zahuo','营造所':'shop-gongzao','醉仙楼':'shop-jiulou',
+    '彩云染坊':'shop-ranfang','稻香糕点铺':'shop-gaodian','汇通钱庄':'shop-qianzhuang',
+    '打铁营':'shop-tiejiang','振武馆':'shop-wuguan','威远镖局':'shop-biaoju',
+    '听雨茶楼':'shop-chalou','快活赌坊':'shop-duguang','千里马行':'shop-maxing',
+    '保康牙行':'shop-yahang','翰墨书肆':'shop-shudian','宝馨香烛店':'shop-xiangzhu'
   };
   // 通用 emoji → 图标（天气、门、常见物）
   var BY_EMOJI={

@@ -179,28 +179,131 @@
     tavern: {
       name: '酒楼',
       items: [
-        { id: 'fan',      buy: 6,  sell: 1 },
+        // v20261007：酒楼收敛为「酒+荤菜大菜」，平民快餐拆给食肆 canteen
         { id: 'jiu',      buy: 18, sell: 6 },
-        { id: 'roubao',   buy: 9,  sell: 3 },
-        { id: 'douzhou',  buy: 15, sell: 5 },
         { id: 'shengrou', buy: 13, sell: 4 },
-        // —— 新物品（v20260927t）：食材半成品上架 / 肉蛋奶收售 ——
+        { id: 'hongshao', buy: 22, sell: 8  },
+        { id: 'kaoji',    buy: 18, sell: 6  },
+        { id: 'kaoyang',  buy: 24, sell: 9  },
         { id: 'dami',     buy: 13, sell: 4 },
-        { id: 'mianfen',  buy: 11, sell: 4 },
-        { id: 'qingcai',  buy: 5,  sell: 1 },
         { id: 'you',      buy: 16, sell: 5 },
         { id: 'jiang',    buy: 9,  sell: 3 },
-        { id: 'jidan',    buy: 5,  sell: 1 },
-        { id: 'niunai',   buy: 7,  sell: 2 },
         { id: 'fengmi',   buy: 20, sell: 7 },
+        { id: 'niunai',   buy: 7,  sell: 2 },
         { id: 'zhurou',   buy: 0,  sell: 4  },
         { id: 'yangrou',  buy: 0,  sell: 5  },
         { id: 'jirou',    buy: 0,  sell: 4  },
-        { id: 'niurou',   buy: 0,  sell: 6  },
-        // —— 新物品（v20260928g）：烹制菜肴上架 ——
-        { id: 'hongshao', buy: 22, sell: 8  },
-        { id: 'kaoji',    buy: 18, sell: 6  },
-        { id: 'kaoyang',  buy: 24, sell: 9  }
+        { id: 'niurou',   buy: 0,  sell: 6  }
+      ]
+    },
+    // v20261007：店铺差异化交易——每家铺子交易 NPC 不同、货色各别（食肆/糕点/染坊/茶楼/书肆/香烛/营造/武馆/镖局）
+    canteen: {
+      name: '食肆',
+      items: [
+        { id: 'fan',      buy: 6,  sell: 1 },
+        { id: 'roubao',   buy: 9,  sell: 3 },
+        { id: 'douzhou',  buy: 15, sell: 5 },
+        { id: 'xizhou',   buy: 8,  sell: 2 },
+        { id: 'dami',     buy: 12, sell: 4 },
+        { id: 'mianfen',  buy: 10, sell: 4 },
+        { id: 'qingcai',  buy: 4,  sell: 1 },
+        { id: 'yecai',    buy: 3,  sell: 1 },
+        { id: 'jidan',    buy: 5,  sell: 1 }
+      ]
+    },
+    gaodian: {
+      name: '糕点铺',
+      items: [
+        { id: 'douzhou',  buy: 14, sell: 5 },
+        { id: 'dami',     buy: 12, sell: 4 },
+        { id: 'mianfen',  buy: 10, sell: 4 },
+        { id: 'fengmi',   buy: 18, sell: 7 },
+        { id: 'jidan',    buy: 5,  sell: 1 },
+        { id: 'niunai',   buy: 7,  sell: 2 },
+        { id: 'hongshao', buy: 22, sell: 8 },
+        { id: 'kaoji',    buy: 18, sell: 6 }
+      ]
+    },
+    dyer: {
+      name: '染坊',
+      items: [
+        { id: 'bumu',     buy: 9,  sell: 3 },
+        { id: 'bupi',     buy: 18, sell: 7 },
+        { id: 'yangmao',  buy: 12, sell: 4 },
+        { id: 'rope',     buy: 11, sell: 4 },
+        { id: 'pige',     buy: 24, sell: 9 },
+        { id: 'maopi',    buy: 0,  sell: 6 },
+        { id: 'shengrou', buy: 0,  sell: 4 }
+      ]
+    },
+    tea: {
+      name: '茶楼',
+      items: [
+        { id: 'chaye',    buy: 15, sell: 5 },
+        { id: 'douzhou',  buy: 14, sell: 5 },
+        { id: 'dami',     buy: 12, sell: 4 },
+        { id: 'fengmi',   buy: 18, sell: 7 },
+        { id: 'jidan',    buy: 5,  sell: 1 },
+        { id: 'niunai',   buy: 7,  sell: 2 }
+      ]
+    },
+    book: {
+      name: '书肆',
+      items: [
+        { id: 'zhujian',  buy: 8,  sell: 3 },
+        { id: 'bumu',     buy: 9,  sell: 3 },
+        { id: 'rope',     buy: 11, sell: 4 },
+        { id: 'zhuzi',    buy: 6,  sell: 2 },
+        { id: 'dou',      buy: 10, sell: 4 }
+      ]
+    },
+    incense: {
+      name: '香烛店',
+      items: [
+        { id: 'xiang',    buy: 6,  sell: 2 },
+        { id: 'you',      buy: 16, sell: 5 },
+        { id: 'zhuan',    buy: 18, sell: 7 }
+      ]
+    },
+    builder: {
+      name: '营造所',
+      items: [
+        { id: 'mutou',       buy: 8,  sell: 3 },
+        { id: 'shitiao',     buy: 10, sell: 4 },
+        { id: 'zhuan',       buy: 18, sell: 7 },
+        { id: 'mucai',       buy: 20, sell: 8 },
+        { id: 'tiekuangshi', buy: 14, sell: 6 },
+        { id: 'xiaoshuzhi',  buy: 3,  sell: 1 },
+        { id: 'tuzhi_house',    buy: 18, sell: 6 },
+        { id: 'tuzhi_farm',     buy: 20, sell: 7 },
+        { id: 'tuzhi_woodcamp', buy: 24, sell: 8 },
+        { id: 'tuzhi_yaolu',    buy: 24, sell: 8 },
+        { id: 'tuzhi_barracks', buy: 36, sell: 12 }
+      ]
+    },
+    martial: {
+      name: '武馆',
+      items: [
+        { id: 'shidao',   buy: 35, sell: 14 },
+        { id: 'gumao',    buy: 55, sell: 22 },
+        { id: 'mugong',   buy: 45, sell: 18 },
+        { id: 'tiejian',  buy: 95, sell: 35 },
+        { id: 'zhujia',   buy: 60, sell: 24 },
+        { id: 'futou',    buy: 38, sell: 12 },
+        { id: 'tiema',    buy: 24, sell: 8 }
+      ]
+    },
+    escort: {
+      name: '镖局',
+      items: [
+        { id: 'tiejian',  buy: 95, sell: 35 },
+        { id: 'tiema',    buy: 24, sell: 8 },
+        { id: 'zhujia',   buy: 60, sell: 24 },
+        { id: 'pibao',    buy: 55, sell: 20 },
+        { id: 'shidao',   buy: 35, sell: 14 },
+        { id: 'gumao',    buy: 55, sell: 22 },
+        { id: 'maopi',    buy: 0,  sell: 6 },
+        { id: 'shengrou', buy: 0,  sell: 4 }
       ]
     },
     cloth: {

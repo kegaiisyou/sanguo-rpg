@@ -68,6 +68,7 @@
     caoyao:         { defId: 'caoyao',         name: '草药',     icon: '🌿', cat: '素材', desc: '山野可入药的茎叶，多凑几味可合成疗伤之物。' },
     shengrou:       { defId: 'shengrou',       name: '生肉',     icon: '🥩', cat: '素材', desc: '猎获或劫掠所得的生肉，于篝火炊制可成一包肉脯干粮。' },
     xiang:          { defId: 'xiang',          name: '线香',     icon: '🕯️', cat: '素材', desc: '香烛店晨起请来的线香，心诚则灵，可敬神祈愿、趋吉避凶。' },
+    chaye:          { defId: 'chaye',          name: '茶叶',     icon: '🍵', cat: '素材', desc: '炒青晒制的散茶，沸水一冲，满室清香；茶楼案上待客的常物。' },
     yeguo:          { defId: 'yeguo',          name: '野果',     icon: '🍎', cat: '食饵', effect: { food: 8, drink: 3 }, desc: '道旁野树结的果子，涩中带甜，饥渴时聊可充饥解渴。' },
     // —— 建造/制造系统测试素材 ——
     xiaoshuzhi:    { defId: 'xiaoshuzhi', name: '小树枝', icon: '🍂', cat: '素材', desc: '徒手折下的细弱枝条，需于木工台加工方能成材。' },

@@ -3621,6 +3621,7 @@
       bailian_gan:'0 0',
       house_deed:'0 0',
       shop_deed:'0 0',
+      chaye:'0 0',
       // v20261007：补齐 items48 实存图标注册（交易/背包/货架同源显示，138 项）
       bailian_jian:'0 0',
       blank_pass:'0 0',
