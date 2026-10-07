@@ -5317,6 +5317,9 @@
     if(currentModalKind==='create' && !state){ return; }
     var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
     var _sf=document.getElementById('shop-float'); if(_sf) _sf.style.display='none';
+    var _stf2=document.getElementById('st-float'); if(_stf2) _stf2.style.display='none';
+    var _cf2=document.getElementById('cont-float'); if(_cf2) _cf2.style.display='none';
+    if(window.contCloseCleanup) window.contCloseCleanup();
     $modal.classList.add('hidden');
     try{ SFX.close(); }catch(e){}   // 弹窗关闭音效（v20260909a）
     try{ if(window.SFX && SFX.stopAmbient) SFX.stopAmbient(); }catch(e3){}   // 停赌坊氛围音（v20261001u）

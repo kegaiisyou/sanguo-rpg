@@ -974,13 +974,14 @@
   function contInit(p){
     var d = window.LF.ITEMS[p.defId] || {};
     var n = d.contSlots || d.shelfSlots || 4;
+    function toObj(s){ if(!s) return null; if(s.defId || s.name || s.icon) return s; return window.LF.ITEMS.makeItem(s.id||s.defId, s.n||s.count||1); }
     if(p.shelf && !p.cont){ // 旧货架数据迁移
-      var oi = (p.shelf.items||[]); var os = []; for(var k=0;k<n;k++){ os.push(oi[k] ? {id:oi[k].id, n:oi[k].n} : null); }
+      var oi = (p.shelf.items||[]); var os = []; for(var k=0;k<n;k++){ os.push(oi[k] ? toObj(oi[k]) : null); }
       p.cont = { slots: os };
     }
     if(!p.cont || !p.cont.slots || p.cont.slots.length!==n){
       var old = (p.cont && p.cont.slots) || []; var slots = [];
-      for(var i2=0;i2<n;i2++){ slots.push(old[i2] ? {id:old[i2].id, n:old[i2].n} : null); }
+      for(var i2=0;i2<n;i2++){ slots.push(toObj(old[i2])); }
       p.cont = { slots: slots };
     }
   }
@@ -996,25 +997,40 @@
   var contPlaced = null;     // 当前打开的容器 placed 对象（供全局处理器读取）
   var contSel = null;        // {side:'cont'|'pack', idx} 当前选中格
   var contDragFrom = null;   // HTML5 拖拽来源
-  function contCount(p){ var n=0; (p.cont.slots||[]).forEach(function(s){ if(s) n+=s.n; }); return n; }
+  function contCount(p){ var n=0; (p.cont.slots||[]).forEach(function(s){ if(s) n++; }); return n; }
   function contRoom(p){ return (p.cont.slots?p.cont.slots.length:0) - contCount(p); }
   function packCountOfDef(defId){ var n=0; (S().pack||[]).forEach(function(it){ if(it && (it.defId||it.id)===defId) n+=(it.count||1); }); return n; }
   function contPutCore(p, defId, n){
     contInit(p);
-    var it = packFind(defId); var have = it ? (it.count||0) : 0;
-    if(have<=0) return false;
-    n = Math.min(n, have, contRoom(p)); if(n<=0) return false;
-    if(it && it.cat==='装备'){ toast('装备请直接装备至身上，不可存入容器。'); return false; }
-    packConsume(defId, n);
-    var k; for(k=0;k<p.cont.slots.length && n>0;k++){ var s=p.cont.slots[k]; if(s && s.id===defId){ s.n+=n; n=0; } }
-    if(n>0){ for(k=0;k<p.cont.slots.length;k++){ if(!p.cont.slots[k]){ p.cont.slots[k]={id:defId,n:n}; n=0; break; } } }
+    var it = packFind(defId); if(!it) return false;
+    n = Math.min(n, it.count||0); if(n<=0) return false;
+    var stack = packIsStackable(it);
+    var slots = p.cont.slots; var moved = 0;
+    if(stack){
+      for(var k=0;k<slots.length && n>0;k++){ var s=slots[k]; if(s && (s.defId||s.id)===defId && packIsStackable(s)){ s.count=(s.count||1)+n; moved+=n; n=0; } }
+    }
+    for(var k2=0;k2<slots.length && n>0;k2++){
+      if(!slots[k2]){
+        if(stack){ slots[k2]=window.LF.ITEMS.makeItem(defId, n); moved+=n; n=0; }
+        else { var pidx=getState().pack.indexOf(it); if(pidx<0) break; slots[k2]=it; getState().pack[pidx]=null; moved+=(it.count||1); n=0; }
+      }
+    }
+    if(moved<=0) return false;
+    if(stack) packConsume(defId, moved);
     save(getState()); afterPackChange(); return true;
   }
   function contTakeCore(p, idx, n){
     contInit(p);
-    var s=p.cont.slots[idx]; if(!s||s.n<=0) return false;
-    n=Math.min(n, s.n); var ok=packAdd(s.id, n); if(!ok) return false;
-    s.n-=n; if(s.n<=0) p.cont.slots[idx]=null;
+    var s=p.cont.slots[idx]; if(!s) return false;
+    n=Math.min(n, s.count||1); if(n<=0) return false;
+    var stack=packIsStackable(s);
+    if(stack){
+      var ok=packAdd(s.defId||s.id, n); if(!ok) return false;
+      s.count-=n; if(s.count<=0) p.cont.slots[idx]=null;
+    } else {
+      var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法取出。'); return false; }
+      getState().pack[e]=s; p.cont.slots[idx]=null;
+    }
     save(getState()); afterPackChange(); return true;
   }
   function contPut(p, defId, n){ if(contPutCore(p, defId, n)) refreshContainerPanel(p); }
@@ -1033,14 +1049,14 @@
   }
   function contTakeAll(p){
     contInit(p);
-    (p.cont.slots||[]).forEach(function(s,idx){ if(s&&s.n>0) contTakeCore(p, idx, s.n); });
+    (p.cont.slots||[]).forEach(function(s,idx){ if(s&&(s.count||0)>0) contTakeCore(p, idx, s.count||1); });
     refreshContainerPanel(p);
     var f=document.getElementById('cont-float'); if(f) f.style.display='none'; contSel=null;
   }
   function contPutAll(p){
     contInit(p);
     for(var i=0;i<S().pack.length && contRoom(p)>0;i++){
-      var it=S().pack[i]; if(!it || it.cat==='装备') continue;
+      var it=S().pack[i]; if(!it || (it.count||0)<=0) continue;
       contPutCore(p, it.defId||it.id, it.count||1);
     }
     refreshContainerPanel(p);
@@ -1048,8 +1064,8 @@
   }
   function contUse(p, idx){   // 容器内直接使用（同仓库 storeUseItem）
     contInit(p);
-    var s=p.cont.slots[idx]; if(!s||s.n<=0) return;
-    var d=window.LF.ITEMS[s.id]||{};
+    var s=p.cont.slots[idx]; if(!s||(s.count||0)<=0) return;
+    var d=window.LF.ITEMS[s.defId||s.id]||{};
     if(d.cat==='装备'){ toast('装备需装备至身上，不可直接使用。'); return; }
     var msgs=[];
     if(d.effect){
@@ -1061,12 +1077,12 @@
       if(msgs.length) toast(msgs.join('；')); else { toast('「'+(d.name||'此物')+'」所滋补皆已满，留着吧。'); return; }
     } else if(d.maxDur){ toast('「'+(d.name||'此物')+'」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
     else { toast('此物暂无可施用之效。'); return; }
-    s.n--; if(s.n<=0) p.cont.slots[idx]=null;
+    s.count--; if(s.count<=0) p.cont.slots[idx]=null;
     save(getState()); afterPackChange(); refreshContainerPanel(p);
   }
   function contPickup(p){
     contInit(p);
-    (p.cont.slots||[]).forEach(function(s){ if(s&&s.n>0) packAdd(s.id, s.n); });
+    (p.cont.slots||[]).forEach(function(s,idx){ if(s&&(s.count||0)>0) contTakeCore(p, idx, s.count||1); });
     packUpPlaced(p.key); save(getState()); closeModal();
   }
   function refreshContainerPanel(p){
@@ -1080,7 +1096,7 @@
     var f=document.getElementById('cont-float'); if(f) f.style.display='none';
     var d=window.LF.ITEMS[p.defId]||{}; var slots=p.cont.slots||[]; var cells='';
     for(var i=0;i<slots.length;i++){ var s=slots[i];
-      if(s&&s.n>0){ var dd=window.LF.ITEMS[s.id]||{}; cells+='<div class="packcell" data-c-idx="'+i+'">'+itemIconHTML({defId:s.id,name:dd.name||'物',icon:dd.icon||''},16)+'<span class="pc-n">'+s.n+'</span></div>'; }
+      if(s){ cells+='<div class="packcell" data-c-idx="'+i+'">'+itemIconHTML(s,16)+'<span class="pc-n">'+(s.count||1)+'</span></div>'; }
       else { cells+='<div class="packcell empty"></div>'; } }
     var pk='';
     var _pk=(S().pack||[]); var _cap=packMax(); if(_pk.length>_cap)_cap=_pk.length;
@@ -1113,19 +1129,18 @@
   function renderContainerInspect(p){
     if(!contSel) return '';
     var side=contSel.side, idx=contSel.idx, defId, count, d, isEquip=false, it=null;
-    if(side==='cont'){ var s=p.cont.slots[idx]; if(!s) return ''; defId=s.id; count=s.n; d=window.LF.ITEMS[defId]||{}; }
+    if(side==='cont'){ var s=p.cont.slots[idx]; if(!s) return ''; it=s; defId=s.defId||s.id; count=s.count||1; d=window.LF.ITEMS[defId]||{}; isEquip=(s.cat==='装备'); }
     else { it=S().pack[idx]; if(!it) return ''; defId=it.defId||it.id; count=it.count||1; d=window.LF.ITEMS[defId]||{}; isEquip=(it.cat==='装备'); }
-    var name = side==='cont' ? (d.name||'物') : (it.name||d.name||'物');
+    var name = it.name||d.name||'物';
     var h='<div class="li-name">'+name+'</div>';
     h+='<div class="li-cat">'+(d.cat||'道具')+(count>1?(' · ×'+count):'')+'</div>';
-    if(side==='pack' && isEquip){
+    if(isEquip){
       var fields=[['atk','攻击'],['def','防御'],['spd','身法'],['hp','气血'],['mp','内息']];
       var parts=[]; fields.forEach(function(fl){ var v=it[fl[0]]||0; if(v) parts.push(fl[1]+' +'+v); });
       if(parts.length) h+='<div class="li-line">'+parts.join(' · ')+'</div>';
       if(it.packSpace) h+='<div class="li-line">空间 +'+it.packSpace+'</div>';
     }
-    var dur = side==='cont' ? d.maxDur : it.maxDur;
-    if(dur){ var dv = side==='cont' ? d.maxDur : it.dur; h+='<div class="li-line">耐久 '+(dv||0)+' / '+dur+'</div>'; }
+    var dur = it.maxDur; if(dur){ var dv = (it.dur!=null? it.dur : dur); h+='<div class="li-line">耐久 '+(dv||0)+' / '+dur+'</div>'; }
     if(d.effect){ var e=d.effect,t=[]; if(e.hp)t.push('疗伤 +'+e.hp); if(e.mp)t.push('复内 +'+e.mp); if(e.food)t.push('充饥 +'+e.food); if(e.drink)t.push('解渴 +'+e.drink); if(e.dmg)t.push('伤害 +'+e.dmg); if(t.length)h+='<div class="li-line">'+t.join(' · ')+'</div>'; }
     if(d.price) h+='<div class="li-line">价值 '+d.price+' 两</div>';
     if(d.desc) h+='<div class="li-line" style="opacity:.85">'+d.desc+'</div>';
@@ -1159,7 +1174,7 @@
   function contReshowFloat(p){
     if(!contSel) return;
     var sel=contSel;
-    if(sel.side==='cont'){ if(!p.cont.slots[sel.idx]||!p.cont.slots[sel.idx].n){ contSel=null; var f=document.getElementById('cont-float'); if(f) f.style.display='none'; return; } }
+    if(sel.side==='cont'){ var _cs=p.cont.slots[sel.idx]; if(!_cs||(_cs.count||0)<=0){ contSel=null; var f=document.getElementById('cont-float'); if(f) f.style.display='none'; return; } }
     else { if(!S().pack[sel.idx]){ contSel=null; var f2=document.getElementById('cont-float'); if(f2) f2.style.display='none'; return; } }
     var el = sel.side==='cont' ? document.querySelector('#cont-grid [data-c-idx="'+sel.idx+'"]') : document.querySelector('#cont-pack [data-pk-idx="'+sel.idx+'"]');
     if(el){ el.classList.add('pcell-insp'); showContainerFloat(p, el); }
@@ -1201,7 +1216,7 @@
       if(!pDrag) return;
       if(!pMoved){ if(Math.abs(e.clientX-pSX)<8 && Math.abs(e.clientY-pSY)<8) return; pMoved=true; if(pSrcEl) pSrcEl.__dragMoved=true; }
       if(!pGhost){ pGhost=document.createElement('div'); pGhost.className='pack-ghost'; document.body.appendChild(pGhost); }
-      var id = pDrag.side==='cont' ? (p.cont.slots[pDrag.idx]?p.cont.slots[pDrag.idx].id:null) : (S().pack[pDrag.idx]?(S().pack[pDrag.idx].defId||S().pack[pDrag.idx].id):null);
+      var id = pDrag.side==='cont' ? (p.cont.slots[pDrag.idx]?(p.cont.slots[pDrag.idx].defId||p.cont.slots[pDrag.idx].id):null) : (S().pack[pDrag.idx]?(S().pack[pDrag.idx].defId||S().pack[pDrag.idx].id):null);
       var dn = id?window.LF.ITEMS[id]:null;
       pGhost.textContent = dn?(dn.icon||''):''; pGhost.style.fontSize='22px';
     };
@@ -1233,7 +1248,7 @@
     } else if(kind==='equip'){
       var it2=S().pack[sel.idx]; if(it2&&it2.slot){ LFUI.equipFromPackTo(sel.idx, it2.slot); refreshContainerPanel(p); contReshowFloat(p); }
     } else if(kind==='discard'){
-      if(sel.side==='cont'){ var s=p.cont.slots[sel.idx]; if(s){ var nm=(window.LF.ITEMS[s.id]||{}).name||'物'; if(window.confirm('确定丢弃容器中的「'+nm+'×'+s.n+'」？此操作不可撤销。')){ p.cont.slots[sel.idx]=null; save(getState()); afterPackChange(); } } }
+      if(sel.side==='cont'){ var s=p.cont.slots[sel.idx]; if(s){ var nm=(window.LF.ITEMS[s.defId||s.id]||{}).name||'物'; if(window.confirm('确定丢弃容器中的「'+nm+'×'+(s.count||1)+'」？此操作不可撤销。')){ p.cont.slots[sel.idx]=null; save(getState()); afterPackChange(); } } }
       else { var it3=S().pack[sel.idx]; if(it3){ if(window.confirm('确定丢弃「'+it3.name+'×'+(it3.count||1)+'」？此操作不可撤销。')){ LFUI.discardPackItem(sel.idx); } } }
       refreshContainerPanel(p); contReshowFloat(p);
     }

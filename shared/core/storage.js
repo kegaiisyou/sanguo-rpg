@@ -82,22 +82,17 @@
   function storagePut(cid, defId, n){
     var it=packFind(defId);
     if(!it || (it.count||0)<n){ toast('行囊此物不足。'); return; }
-    if(!packIsStackable(it)){ toast('装备无法存入仓库。'); return; }
-    if(!storageAdd(cid, defId, n)) return;
-    packConsume(defId, n);
-    save(getState()); afterPackChange();
-    log('你将'+(LF.ITEMS[defId]?LF.ITEMS[defId].name:defId)+'×'+n+'存入仓库。','sys');
-    if(getCurrentModalKind()==='storage') openModal('storage',{cid:cid});
+    var packIdx=getState().pack.indexOf(it);
+    if(packIdx<0){ toast('行囊此物不足。'); return; }
+    if(!storePutFromPack(packIdx, n, cid, null)) return;
+    if(getCurrentModalKind()==='storage') refreshStoragePanel(cid);
   }
   function storageTake(cid, defId, n){
     ensureStorage(cid); var st=getState().flags.storage[cid];
-    if(storageItemCount(st, defId)<n){ toast('仓库此物不足。'); return; }
-    if(!packAdd(defId, n)){ toast('行囊已满，无法取出。'); return; }
-    var rem=n;
-    for(var i=0;i<st.items.length && rem>0;i++){ var c=st.items[i]; if(c && itemKey(c)===defId){ var take=Math.min(rem, c.count||0); c.count-=take; rem-=take; if(c.count<=0) st.items[i]=null; } }
-    save(getState()); afterPackChange();
-    log('你从仓库取出'+(LF.ITEMS[defId]?LF.ITEMS[defId].name:defId)+'×'+(n-rem)+'。','sys');
-    if(getCurrentModalKind()==='storage') openModal('storage',{cid:cid});
+    var si=-1; for(var i=0;i<st.items.length;i++){ var c=st.items[i]; if(c && itemKey(c)===defId){ si=i; break; } }
+    if(si<0){ toast('仓库此物不足。'); return; }
+    if(!storeTakeToPack(cid, si, n, null)) return;
+    if(getCurrentModalKind()==='storage') refreshStoragePanel(cid);
   }
   // ── 仓库模式（货郎同款交互）所需：格维度存取/换位/整理/使用/装备 ──
   function storeGet(cid){ return ensureStorage(cid); }
@@ -250,7 +245,7 @@
       if(parts.length) h+='<div class="li-line">'+parts.join(' · ')+'</div>';
       if(it.packSpace) h+='<div class="li-line">空间 +'+it.packSpace+'</div>';
     }
-    var dur = it.maxDur; if(dur){ var dv = src==='store' ? it.maxDur : it.dur; h+='<div class="li-line">耐久 '+(dv||0)+' / '+dur+'</div>'; }
+    var dur = it.maxDur; if(dur){ var dv = (it.dur!=null? it.dur : it.maxDur); h+='<div class="li-line">耐久 '+(dv||0)+' / '+dur+'</div>'; }
     if(d.price) h+='<div class="li-line">价值 '+d.price+' 两</div>';
     if(d.effect){ var e=d.effect,t=[]; if(e.hp)t.push('疗伤 +'+e.hp); if(e.mp)t.push('复内 +'+e.mp); if(e.food)t.push('充饥 +'+e.food); if(e.drink)t.push('解渴 +'+e.drink); if(e.dmg)t.push('伤害 +'+e.dmg); if(t.length)h+='<div class="li-line">'+t.join(' · ')+'</div>'; }
     if(d.desc) h+='<div class="li-line" style="opacity:.85">'+d.desc+'</div>';
@@ -309,7 +304,7 @@
   }
   function stQtyInput(act){ if(!storageSel) return; var inp=document.getElementById('st-qty-input'); var n=inp?parseInt(inp.value,10):0; if(!n||n<1) n=1; stQty(act, n); }
   function stTakeAll(cid){ ensureStorage(cid); var st=getState().flags.storage[cid]; for(var i=0;i<st.items.length;i++){ var it=st.items[i]; if(it){ storeTakeToPack(cid, i, it.count||0, null); } } refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
-  function stPutAll(cid){ ensureStorage(cid); for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(pit && packIsStackable(pit)) storePutFromPack(cid, i, pit.count||0, null); } refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
+  function stPutAll(cid){ ensureStorage(cid); for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(!pit || (pit.count||0)<=0) continue; storePutFromPack(i, pit.count||0, cid, null); } refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
   function stSort(cid){ ensureStorage(cid); storeSort(cid); if(LFUI && LFUI.packAutoSort) LFUI.packAutoSort(); save(getState()); afterPackChange(); refreshStoragePanel(cid); toast('已整理。'); }
   function renderStoragePanel(cid){
     ensureStorage(cid); var st=getState().flags.storage[cid];
@@ -360,7 +355,7 @@
     });
     var sg=card.querySelector('#st-grid'), spk=card.querySelector('#st-pack');
     [sg,spk].forEach(function(g){ if(g) g.ondragover=function(e){ if(e) e.preventDefault(); }; });
-    if(sg) sg.ondrop=function(e){ if(e) e.preventDefault(); if(stDragFrom&&stDragFrom.src==='pack'){ var pit=getState().pack[stDragFrom.idx]; if(pit){ var to=null; var tcell=e.target.closest && e.target.closest('[data-st-idx]'); if(tcell) to=parseInt(tcell.getAttribute('data-st-idx'),10); storePutFromPack(cid, stDragFrom.idx, 999, to); refreshStoragePanel(cid); storageSel=null; var f=document.getElementById('st-float'); if(f) f.style.display='none'; } } stDragFrom=null; };
+    if(sg) sg.ondrop=function(e){ if(e) e.preventDefault(); if(stDragFrom&&stDragFrom.src==='pack'){ var pit=getState().pack[stDragFrom.idx]; if(pit){ var to=null; var tcell=e.target.closest && e.target.closest('[data-st-idx]'); if(tcell) to=parseInt(tcell.getAttribute('data-st-idx'),10); storePutFromPack(stDragFrom.idx, 999, cid, to); refreshStoragePanel(cid); storageSel=null; var f=document.getElementById('st-float'); if(f) f.style.display='none'; } } stDragFrom=null; };
     if(spk) spk.ondrop=function(e){ if(e) e.preventDefault(); if(stDragFrom&&stDragFrom.src==='store'){ var st=getState().flags.storage[cid]; var it=st.items[stDragFrom.idx]; if(it){ var to=null; var tcell=e.target.closest && e.target.closest('[data-pk-idx]'); if(tcell) to=parseInt(tcell.getAttribute('data-pk-idx'),10); storeTakeToPack(cid, stDragFrom.idx, it.count||0, to); refreshStoragePanel(cid); storageSel=null; var f=document.getElementById('st-float'); if(f) f.style.display='none'; } } stDragFrom=null; };
     var pDrag=null, pGhost=null, pSX=0,pSY=0,pMoved=false,pSrcEl=null;
     card.querySelectorAll('[data-st-idx],[data-pk-idx]').forEach(function(el){ el.onpointerdown=function(e){ if(e.pointerType==='mouse') return; var isStore=el.hasAttribute('data-st-idx'); pDrag={src:isStore?'store':'pack', idx:parseInt(el.getAttribute(isStore?'data-st-idx':'data-pk-idx'),10)}; pSrcEl=el; pMoved=false; el.__dragMoved=false; pSX=e.clientX; pSY=e.clientY; var _f=document.getElementById('st-float'); if(_f) _f.style.display='none'; }; });
