@@ -76,7 +76,7 @@
   function inspCls(loc){ return (getPackInspect() && locEq(getPackInspect(),loc))?' pcell-insp':''; }
   function renderPackGrid(){
     var grid='';
-    for(var i=0;i<getState().pack.length;i++){
+    var _cap=packMax(); if(getState().pack.length>_cap)_cap=getState().pack.length; for(var i=0;i<_cap;i++){
       var it=getState().pack[i];
       if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
@@ -124,7 +124,7 @@
   }
   function renderPack(){
     var grid='';
-    for(var i=0;i<getState().pack.length;i++){
+    var _cap=packMax(); if(getState().pack.length>_cap)_cap=getState().pack.length; for(var i=0;i<_cap;i++){
       var it=getState().pack[i];
       if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
@@ -322,7 +322,7 @@
     }, 60);
   }
   function equipInspect(){ if(!getPackInspect()||getPackInspect().kind!=='pack') return; var idx=getPackInspect().idx; var it=getState().pack[idx]; if(!it||it.cat!=='装备') return; var slot=it.slot; if(!slot){ toast('此物无可装备之处。'); return; } var old=getState().equipment[slot]; movePackItem({kind:'pack',idx:idx},{kind:'equip',slot:slot}); setPackInspect({kind:'equip',slot:slot}); showPackFloat(); if(old) packHighlightReplaced(idx); }
-  function unequipInspect(){ if(!getPackInspect()||getPackInspect().kind!=='equip') return; var slot=getPackInspect().slot; var eq=getState().equipment[slot]; unequipToPack(slot); var repIdx=-1; if(eq){ for(var i=0;i<getState().pack.length;i++){ if(getState().pack[i]===eq){ repIdx=i; setPackInspect({kind:'pack',idx:i}); break; } } } else setPackInspect(null); showPackFloat(); if(repIdx>=0) packHighlightReplaced(repIdx); }
+  function unequipInspect(){ if(!getPackInspect()||getPackInspect().kind!=='equip') return; var slot=getPackInspect().slot; var eq=getState().equipment[slot]; unequipToPack(slot); var repIdx=-1; if(eq){ var _cap=packMax(); if(getState().pack.length>_cap)_cap=getState().pack.length; for(var i=0;i<_cap;i++){ if(getState().pack[i]===eq){ repIdx=i; setPackInspect({kind:'pack',idx:i}); break; } } } else setPackInspect(null); showPackFloat(); if(repIdx>=0) packHighlightReplaced(repIdx); }
   function closeInspect(){ setPackInspect(null); refreshPackGridLight(); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
   // v20260928g：随身修理——消耗铁料(tiekuai)+银两，将物品耐久补满
   function packCountOf(defId){ var n=0; S().pack.forEach(function(p){ if(p && p.defId===defId) n += (p.count||1); }); return n; }
