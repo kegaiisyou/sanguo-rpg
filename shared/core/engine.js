@@ -3622,6 +3622,33 @@
       house_deed:'0 0',
       shop_deed:'0 0',
       chaye:'0 0',
+      // v20261008c：药店六轴 26 件新物品补配图注册（药材10+药末+成药16，PNG 实存 items48）
+      anshui:'0 0',
+      baidu:'0 0',
+      banxia:'0 0',
+      bishu:'0 0',
+      bizhang:'0 0',
+      danggui:'0 0',
+      fenghan:'0 0',
+      fuling:'0 0',
+      fuzi:'0 0',
+      gancao:'0 0',
+      guizhi:'0 0',
+      huanglian:'0 0',
+      huoxuejiu:'0 0',
+      huxin:'0 0',
+      jiedu:'0 0',
+      jinchuangao:'0 0',
+      junyao:'0 0',
+      mahuang:'0 0',
+      qingliang:'0 0',
+      shangdeng:'0 0',
+      shentang:'0 0',
+      shigao:'0 0',
+      tishen:'0 0',
+      xingshen:'0 0',
+      yaomo:'0 0',
+      zhuangqi:'0 0',
       // v20261007：补齐 items48 实存图标注册（交易/背包/货架同源显示，138 项）
       bailian_jian:'0 0',
       blank_pass:'0 0',
@@ -3764,10 +3791,17 @@
     } };
   var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){
+    var _id = (it && (it.defId || it.id)) || '';
+    // v20261008c：条目精简（旧档/外部构造缺 name/icon）时用物品表回填，杜绝背包/仓库显示裸 ID
+    if (it && _id && !it.name) {
+      var _d = (LF.ITEMS && LF.ITEMS[_id]) || {};
+      if (_d.name) it.name = _d.name;
+      if (_d.icon) it.icon = _d.icon;
+      if (_d.cat) it.cat = _d.cat;
+    }
     var n = (it && (it.name || it.defId)) || '';
     var cat = (it && it.cat) || '';
     px = px || 16;
-    var _id = (it && (it.defId || it.id)) || '';
     if(it && ICON_SPR.map[_id]){
       var w = Math.max(20, px + 6);
       /* v20260924z11：独立 48px 图标优先（无拉伸、内容充满），缺文件回退雪碧图 */

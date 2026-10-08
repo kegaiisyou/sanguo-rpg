@@ -131,6 +131,19 @@
     function usePackItem(idx) {
       var pk = S().pack, it = pk[idx]; if (!it) return;
       if (it.cat === '装备') { toast('装备需拖至装备栏，不可直接使用。'); return; }
+      // v20261008c：生药有毒（半夏/附子）——不可生服，明确提示，不消耗
+      if (it.toxic || ((LF.ITEMS[itemKey(it)] || {}).toxic)) {
+        toast('「' + (it.name || '此物') + '」生品有毒，须依法炮制后方可入药，莫要生服。');
+        return;
+      }
+      // v20261008c：条目精简（旧档/外部构造缺 effect）时用物品表回填，保证使用生效
+      if (!it.effect) {
+        var _d0 = (LF.ITEMS && LF.ITEMS[itemKey(it)]) || {};
+        if (_d0.effect) it.effect = _d0.effect;
+        if (_d0.name && !it.name) it.name = _d0.name;
+        if (_d0.icon && !it.icon) it.icon = _d0.icon;
+        if (_d0.cat && !it.cat) it.cat = _d0.cat;
+      }
       if (it.effect) {
         var e = it.effect, gain = 0, full = [], msgs = [];
         if (e.hp) { if (S().hp >= S().maxHp) full.push('气血'); else { S().hp = Math.min(S().maxHp, S().hp + e.hp); gain++; msgs.push('伤势略缓（+' + e.hp + '）'); } }
