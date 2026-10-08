@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 76   版本: 20261007g
+// 源文件数: 78   版本: 20261007h
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20261007g',
+    VERSION: '20261007h',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -1319,6 +1319,39 @@
 })(typeof window !== 'undefined' ? window : globalThis);
 
 ;
+// ============ shared/data/custom_npcs.js ============
+// ═══════════════════════════════════════════════════════════════════════
+// 乱世烽火 · 玩家自建 NPC 数据文件（v20261007h）
+// ───────────────────────────────────────────────────────────────────────
+// 用法：
+//   1. 用 tools/officer_editor.html 可视化编辑 NPC → 导出代码
+//   2. 把导出的 { ... } 对象粘贴进下方 CUSTOM_NPC_CARDS 数组
+//   3. 游戏启动时 npc_cards.js 会自动合并（无需改主程序）
+//
+// NPC 卡字段说明（与 npc_cards.js 同构）：
+//   id       唯一标识
+//   kinds    出现格型数组（如 ['market','street']）
+//   icon     列表 emoji
+//   role     身份标签
+//   personal 是否起个人姓名（true 用姓名池）
+//   gender   'm' | 'f' | 'any'
+//   desc     观察描述（可用 {city} {state} 占位符）
+//   says     闲谈台词池
+//   avatar   头像文件名（shared/img/ 下，如 'npc-scholar'，可选）
+// ═══════════════════════════════════════════════════════════════════════
+(function (global) {
+  var CUSTOM_NPC_CARDS = [
+    // ── 示例：在此粘贴 tools/officer_editor.html 导出的 NPC 卡 ──
+    // { id:'my_npc', kinds:['street'], icon:'🎐', role:'异乡人', personal:true,
+    //   gender:'m', desc:'风尘仆仆的行商，谈吐间似有远方的故事。',
+    //   says:['这一路风沙，可算到了 {city}。'], avatar:'npc-trader' }
+  ];
+  global.LF = global.LF || {};
+  global.LF.CUSTOM_NPC_CARDS = CUSTOM_NPC_CARDS;
+  if (typeof module !== 'undefined' && module.exports) module.exports = CUSTOM_NPC_CARDS;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+;
 // ============ shared/data/npc_cards.js ============
 // ════════════════════════════════════════════════════════════════════════════
 // 城市程序 NPC「人设卡」—— 城内人物的单一真相源（v20260912d）
@@ -1666,6 +1699,12 @@
       cond: { orderBelow: 45 }   // 治安崩坏处才有溃兵游荡
     }
   ];
+
+  // v20261007h：合并玩家自建 NPC 卡（custom_npcs.js），支持 tools/officer_editor.html 创作
+  var _customCards = (global.LF && global.LF.CUSTOM_NPC_CARDS) || [];
+  if (_customCards.length) {
+    _customCards.forEach(function (c) { if (c && c.id) { global.LF.NPC_CARDS.push(c); } });
+  }
 
   // ════════════════════════════════════════════════════════════════════════════
   // 具名 NPC（剧情角色）名册 —— 与上面的「程序 NPC」同属一张人物表（v20260912f）
@@ -2026,6 +2065,41 @@
 })(typeof window !== 'undefined' ? window : globalThis);
 
 ;
+// ============ shared/data/custom_officers.js ============
+// ═══════════════════════════════════════════════════════════════════════
+// 乱世烽火 · 玩家自建武将数据文件（v20261007h）
+// ───────────────────────────────────────────────────────────────────────
+// 用法：
+//   1. 用 tools/officer_editor.html 可视化编辑武将 → 导出代码
+//   2. 把导出的 { ... } 对象粘贴进下方 CUSTOM_OFFICERS 数组
+//   3. 游戏启动时 officers.js 会自动合并进武将表（无需改主程序）
+//   4. 头像：填 avatar 字段（如 'npc-caocao'，或留空自动用泛用模板）
+//
+// 字段说明：
+//   id      唯一标识（小写字母数字下划线，勿与内置武将重复）
+//   name    姓名
+//   title   头衔/官职
+//   faction 势力 key（见下方 FACTION_KEYS）
+//   home    驻城 key（须为 CITIES 中存在者）
+//   loyalty 初始忠诚（0-100）
+//   stats   五维 { wu武勇 zhi智略 tong统率 zheng政务 mei魅力 } 各 1-100
+//   tags    特性标签数组
+//   bio     列传简介
+//   avatar  头像文件名（shared/img/ 下，不带前缀，如 'npc-caocao'）
+// ═══════════════════════════════════════════════════════════════════════
+(function (global) {
+  var CUSTOM_OFFICERS = [
+    // ── 示例：在此粘贴 tools/officer_editor.html 导出的武将对象 ──
+    // { id:'my_hero', name:'我的英雄', title:'义士', faction:'player', home:'zhuo',
+    //   loyalty:80, stats:{ wu:80, zhi:60, tong:70, zheng:50, mei:65 },
+    //   tags:['义士'], bio:'乱世中崛起的一介布衣。', avatar:'npc-wufu' }
+  ];
+  global.LF = global.LF || {};
+  global.LF.CUSTOM_OFFICERS = CUSTOM_OFFICERS;
+  if (typeof module !== 'undefined' && module.exports) module.exports = CUSTOM_OFFICERS;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+;
 // ============ shared/data/officers.js ============
 // 乱世烽火 · 史实武将数据层（v20260921b）
 // 在统一人物口径 LF.PERSONA 之上批量录入三国人物：五维 + 所属势力 + 驻城(home) + 初始忠诚。
@@ -2217,6 +2291,11 @@
     { id:'jiang_wei', name:'姜维', title:'中郎', faction:'在野', home:'hanzhong', loyalty:45,
       stats:{ wu:90, zhi:88, tong:90, zheng:60, mei:70 }, tags:['天水麒麟'], bio:'幼麟，后继承武侯之志。' },
   ];
+  // v20261007h：合并玩家自建武将（custom_officers.js / localStorage 注入），支持 tools/officer_editor.html 创作
+  var custom = (global.LF && global.LF.CUSTOM_OFFICERS) || [];
+  if (custom.length) {
+    custom.forEach(function (c) { if (c && c.id && c.name) { R.push(c); } });
+  }
   // 去重（同名 id 仅保留首条）
   var seen = {}, clean = [];
   R.forEach(function (c) { if (!seen[c.id]) { seen[c.id] = 1; c.skills = HERO_SKILLS[c.id] || autoSkills(c); clean.push(c); } });
@@ -16273,8 +16352,14 @@ window.LF = window.LF || {};
       } else {
         h += '<div class="of-list">';
         list.forEach(function (o) {
+          var _tp = template(o.id) || {};
+          var _ava = _tp.avatar ? ('shared/img/sm_' + _tp.avatar + '.png')
+            : (global.UI_Icons && _tp.name) ? null : null;
+          var _avaHTML = '';
+          if (_ava) _avaHTML = '<img class="of-ava" src="' + _ava + '" alt="">';
+          else if (global.UI_Icons) _avaHTML = UI_Icons.avatar(_tp.name, _tp.role || '');
           h += '<div class="of-row">';
-          h += '<div class="of-top"><b>' + esc(o.name) + '</b><span class="of-title">' + esc((template(o.id) || {}).title || '') + '</span>' + assignTag(o) + skillTagsHTML(idsOf(template(o.id))) + '</div>';
+          h += '<div class="of-top">' + _avaHTML + '<b>' + esc(o.name) + '</b><span class="of-title">' + esc(_tp.title || '') + '</span>' + assignTag(o) + skillTagsHTML(idsOf(_tp)) + '</div>';
           h += statBars(o.stats);
           h += '<div class="of-acts">'+
           '<button class="btn sm" onclick="window.openOfficerDetail(\'' + o.id + '\')">详情</button>';
@@ -16305,8 +16390,9 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
         h += '<div class="of-list">';
         list.forEach(function (t) {
           var p = Math.round(recruitChance(t) * 100);
+          var _avaHTML = (global.UI_Icons && t.name) ? UI_Icons.avatar(t.name, t.role || '') : '';
           h += '<div class="of-row">';
-          h += '<div class="of-top"><b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-chance">登庸率 ' + p + '%</span>' + skillTagsHTML(t.skills) + '</div>';
+          h += '<div class="of-top">' + _avaHTML + '<b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-chance">登庸率 ' + p + '%</span>' + skillTagsHTML(t.skills) + '</div>';
           h += statBars(t.stats);
           h += '<div class="of-acts"><button class="btn sm" onclick="window.openOfficerDetail(\'' + t.id + '\')">详情</button><button class="btn sm" onclick="window.recruitOfficer(\'' + t.id + '\')">登庸</button></div>';
           h += '</div>';

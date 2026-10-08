@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>乱世烽火 · 武将/NPC 制作台</title>
+<style>
+  :root{--bg:#17100a;--panel:#241a0e;--card:#2c2012;--line:#4a3category;--gold:#ffd268;--ink:#e8dcc0;--dim:#a89370;--red:#d98a6b;--r:8px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1200px 800px at 20% 0%,#2a1d10,#120b05 70%);color:var(--ink);font-family:"Noto Serif SC","Songti SC","SimSun",serif;min-height:100vh;padding:16px}
+  .wrap{max-width:1200px;margin:0 auto}
+  h1{color:var(--gold);font-size:22px;letter-spacing:.18em;text-align:center;margin-bottom:4px;text-shadow:0 0 18px rgba(255,210,104,.25)}
+  .sub{text-align:center;color:var(--dim);font-size:12px;margin-bottom:18px;letter-spacing:.08em}
+  .tabs{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+  .tab{padding:8px 22px;border:1px solid rgba(184,137,58,.4);border-radius:var(--r);background:rgba(44,32,18,.7);color:var(--dim);cursor:pointer;font-family:inherit;font-size:14px;letter-spacing:.1em}
+  .tab.on{color:#14100a;background:var(--gold);border-color:var(--gold)}
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:16px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid rgba(184,137,58,.32);border-radius:var(--r);padding:14px}
+  .panel h2{color:var(--gold);font-size:14px;letter-spacing:.1em;margin-bottom:12px;border-bottom:1px solid rgba(184,137,58,.25);padding-bottom:8px}
+  .list{display:flex;flex-direction:column;gap:6px;max-height:56vh;overflow-y:auto}
+  .li{padding:8px 10px;border:1px solid rgba(184,137,58,.25);border-radius:6px;background:var(--card);cursor:pointer;display:flex;align-items:center;gap:10px}
+  .li.on{border-color:var(--gold);box-shadow:0 0 0 1px rgba(255,210,104,.35)}
+  .li img{width:34px;height:34px;border-radius:50%;object-fit:cover}
+  .li .nm{font-size:14px;color:var(--ink)}
+  .li .tl{font-size:11px;color:var(--dim)}
+  .li .del{margin-left:auto;background:none;border:none;color:#d97a6b;font-size:16px;cursor:pointer;padding:2px 6px}
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
+  .form label.full{grid-column:1/-1}
+  .form input,.form select,.form textarea{background:#1c130a;border:1px solid rgba(184,137,58,.35);border-radius:6px;color:var(--ink);padding:7px 9px;font-family:inherit;font-size:13px}
+  .form textarea{min-height:58px;resize:vertical}
+  .form input:focus,.form select:focus,.form textarea:focus{outline:none;border-color:var(--gold)}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;grid-column:1/-1}
+  .stat label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dim);text-align:center}
+  .stat input[type=range]{width:100%}
+  .stat .val{color:var(--gold);font-size:15px}
+  .btns{display:flex;gap:8px;margin-top:14px;grid-column:1/-1;flex-wrap:wrap}
+  .btn{padding:9px 16px;border:1px solid rgba(255,210,104,.5);border-radius:var(--r);background:linear-gradient(180deg,rgba(255,210,104,.16),rgba(184,137,58,.1));color:var(--gold);cursor:pointer;font-family:inherit;font-size:13px;letter-spacing:.06em}
+  .btn:hover{background:linear-gradient(180deg,rgba(255,210,104,.3),rgba(184,137,58,.16))}
+  .btn.primary{background:var(--gold);color:#14100a;border-color:var(--gold)}
+  .btn.danger{border-color:rgba(217,122,107,.5);color:#d98a6b}
+  .out{margin-top:14px}
+  .out textarea{width:100%;min-height:180px;background:#0d0805;border:1px solid rgba(184,137,58,.3);border-radius:6px;color:#cfe3cf;font-family:ui-monospace,Consolas,monospace;font-size:12px;padding:10px;resize:vertical}
+  .tip{font-size:11px;color:var(--dim);line-height:1.7;margin-top:8px}
+  .preview{display:flex;gap:14px;align-items:center;margin-top:12px;padding:10px;border:1px dashed rgba(184,137,58,.4);border-radius:var(--r);background:rgba(20,13,6,.5)}
+  .preview img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--gold)}
+  .pv-name{color:var(--gold);font-size:17px;letter-spacing:.06em}
+  .pv-title{color:var(--dim);font-size:12px}
+  .pv-fac{font-size:11px;color:#8fc28a;margin-top:2px}
+  .pv-bars{display:flex;flex-direction:column;gap:3px;min-width:220px}
+  .pv-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)}
+  .pv-bar i{font-style:normal;width:14px;color:var(--gold)}
+  .pv-bar .fill{flex:1;height:6px;background:rgba(184,137,58,.2);border-radius:3px;overflow:hidden}
+  .pv-bar .fill b{display:block;height:100%;background:linear-gradient(90deg,#8f6a2c,#ffd268);border-radius:3px}
+  .pv-bar em{font-style:normal;width:26px;text-align:right;color:var(--ink)}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>乱 世 烽 火</h1>
+  <div class="sub">武 将 / N P C 制 作 台 · 玩家自建数据管理工具</div>
+  <div class="tabs">
+    <button class="tab on" id="tab-officer" onclick="switchTab('officer')">武 将 制 作</button>
+    <button class="tab" id="tab-npc" onclick="switchTab('npc')">N P C 制 作</button>
+  </div>
+
+  <div class="grid">
+    <!-- 左：列表 -->
+    <div class="panel">
+      <h2 id="list-title">武将名录</h2>
+      <div class="list" id="list"></div>
+      <div class="btns">
+        <button class="btn primary" onclick="newItem()">＋ 新建</button>
+        <button class="btn" onclick="exportAll()">导出全部</button>
+      </div>
+      <div class="tip">数据保存在浏览器本地（localStorage）。导出后可粘贴进 <b>shared/data/custom_officers.js</b> 或 <b>custom_npcs.js</b> 上线。</div>
+    </div>
+
+    <!-- 右：编辑 -->
+    <div class="panel">
+      <h2 id="edit-title">编辑武将</h2>
+      <div class="form" id="form">
+        <!-- 动态生成 -->
+      </div>
+      <div class="preview" id="preview"></div>
+      <div class="out">
+        <div class="tip">生成代码（单条，可复制）：</div>
+        <textarea id="out-code" readonly></textarea>
+        <div class="btns">
+          <button class="btn" onclick="copyCode()">复制代码</button>
+          <button class="btn primary" onclick="saveItem()">保存本条</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════ 数据源（内置，与游戏 shared/data 同构）══════════ */
+var FACTIONS = ['han','dongzhuo','yuanshao','caocao','sunce','liubiao','liuzhang','gongsun','matang','player','在野'];
+var FACTION_NAMES = { han:'汉室', dongzhuo:'董卓', yuanshao:'袁绍', caocao:'曹操', sunce:'孙策', liubiao:'刘表', liuzhang:'刘璋', gongsun:'公孙度', matang:'马腾', player:'义军（玩家）', '在野':'在野' };
+var CITIES = ['jicheng','beiping','zhuo','yuyang','kuyilao','xiangping','changli','yecheng','julu','ganling','nanpi','zhongshan','jinyang','shangdang','luoyang','hanei','hongnong','xuchang','qiaojun','runan','xiaopei','chenliu','puyang','jibei','xiapi','guangling','langya','beihai','pingyuan','changan','tianshui','jieting','chencang','anding','jincheng','wudu','wuwei','chengdu','hanzhong','yinping','yongan','jiangzhou','yongchang','yuexi','zangke','jianning','xiangyang','jiangling','dangyang','yiling','wancheng','changsha','wuling','guiyang','lingling','jiangxia','xinye','shangyong','jianye','wujun','kuaiji','lujiang','shouchun','hefei','yuzhang','jianan','yizhou','nanhai','jiaozhi','hepu'];
+var SKILLS = [
+  ['shenjiang','神将'],['mengzhe','猛者'],['feijiang','飞将'],['longdan','龙胆'],['wusheng','武圣'],['xiaoyong','骁勇'],['yongjiang','勇将'],['luanwu','乱舞'],['jianxiong','奸雄'],['huwei','虎卫'],['shanbao','善守'],['qibing','奇兵'],['guimou','鬼谋'],['wolong','卧龙'],['fenghu','凤雏'],['huogong','火攻'],['fanji','反计'],['chenzhuo','沉着'],['baichu','百出'],['zhenxing','治军'],['tuntian','屯田'],['shangcai','商才'],['gongshen','工神'],['nengli','能吏'],['renwang','人望'],['mingwang','名望'],['jiaohua','教化'],['lunke','论客'],['yizhe','医者'],['xinyi','信义']
+];
+var AVATARS = ['npc-caocao','npc-liubei','npc-sunce','npc-guanyu','npc-zhangfei','npc-zhaoyun','npc-zhugeliang','npc-lvbu','npc-dongzhuo','npc-zhouyu','npc-yuanshao','npc-machao','npc-dianwei','npc-xuchu','npc-zhangliao','npc-huangzhong','npc-taishici','npc-xunyu','npc-guojia','npc-pangtong','npc-sentry','npc-yuzu','npc-trader','npc-beggar','npc-nongfu','npc-nongpo','npc-scholar','npc-miner','npc-chushi','npc-guanli','npc-laozhe','npc-wenli','npc-wufu','npc-zhangfang','npc-furen'];
+var NPC_KINDS = ['gate','street','market','farm','workshop','temple','inn','tavern','guardhouse','mine','warehouse','mill','barracks','court'];
+
+var MODE = 'officer';
+var store = { officer: [], npc: [] };
+function load(){ try{ var s=localStorage.getItem('sg_custom'); if(s) store=JSON.parse(s); }catch(e){} if(!store.officer) store.officer=[]; if(!store.npc) store.npc=[]; }
+function save(){ localStorage.setItem('sg_custom', JSON.stringify(store)); }
+var cur = null; // 当前编辑索引
+
+function switchTab(m){ MODE=m; cur=null; document.getElementById('tab-officer').className='tab'+(m==='officer'?' on':''); document.getElementById('tab-npc').className='tab'+(m==='npc'?' on':''); document.getElementById('list-title').textContent = m==='officer'?'武将名录':'NPC 名录'; document.getElementById('edit-title').textContent = m==='officer'?'编辑武将':'编辑 NPC'; renderList(); renderForm(null); }
+
+function defaultOfficer(){ return { id:'', name:'', title:'', faction:'在野', home:'zhuo', loyalty:60, stats:{wu:50,zhi:50,tong:50,zheng:50,mei:50}, tags:'', bio:'', avatar:'' }; }
+function defaultNpc(){ return { id:'', role:'路人', kinds:['street'], icon:'👤', personal:true, gender:'m', desc:'', says:'', avatar:'' }; }
+
+function renderList(){
+  var arr = store[MODE]; var box=document.getElementById('list'); box.innerHTML='';
+  arr.forEach(function(it,i){
+    var d=document.createElement('div'); d.className='li'+(cur===i?' on':''); d.onclick=function(){ cur=i; renderList(); renderForm(it); };
+    var av = it.avatar ? '<img src="../shared/img/sm_'+it.avatar+'.png" onerror="this.style.display=\'none\'">' : '<img src="../shared/img/sm_npc-sentry.png" onerror="this.style.display=\'none\'">';
+    d.innerHTML = av + '<div><div class="nm">'+esc(it.name||it.id||'未命名')+'</div><div class="tl">'+esc(it.title||it.role||'')+'</div></div>' +
+      '<button class="del" onclick="event.stopPropagation();delItem('+i+')">✕</button>';
+    box.appendChild(d);
+  });
+  if(!arr.length) box.innerHTML='<div class="tip" style="padding:10px">暂无自建'+ (MODE==='officer'?'武将':'NPC') +'，点「＋ 新建」开始。</div>';
+}
+function delItem(i){ if(confirm('删除这条？')){ store[MODE].splice(i,1); save(); if(cur===i)cur=null; renderList(); renderForm(cur!=null?store[MODE][cur]:null); } }
+function newItem(){ cur=null; renderForm(MODE==='officer'?defaultOfficer():defaultNpc()); }
+
+function renderForm(it){
+  var f=document.getElementById('form');
+  if(!it){ f.innerHTML='<div class="tip">点左侧条目编辑，或「＋ 新建」。</div>'; document.getElementById('preview').innerHTML=''; document.getElementById('out-code').value=''; return; }
+  var h='';
+  if(MODE==='officer'){
+    h+='<label>ID（唯一标识）<input value="'+esc(it.id)+'" id="f-id" placeholder="my_hero"></label>';
+    h+='<label>姓名<input value="'+esc(it.name)+'" id="f-name" placeholder="我的英雄"></label>';
+    h+='<label>头衔<input value="'+esc(it.title)+'" id="f-title" placeholder="义士"></label>';
+    h+='<label>势力<select id="f-faction">'+FACTIONS.map(function(x){return '<option'+(it.faction===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select></label>';
+    h+='<label>驻城<select id="f-home">'+CITIES.map(function(x){return '<option'+(it.home===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select></label>';
+    h+='<label>忠诚（0-100）<input type="number" min="0" max="100" value="'+(it.loyalty||0)+'" id="f-loyalty"></label>';
+    h+='<label class="full">头像<select id="f-avatar"><option value="">（自动匹配/泛用）</option>'+AVATARS.map(function(a){return '<option'+(it.avatar===a?' selected':'')+'>'+a+'</option>';}).join('')+'</select></label>';
+    h+='<div class="stats">';
+    ['wu','zhi','tong','zheng','mei'].forEach(function(k){
+      var n={wu:'武勇',zhi:'智略',tong:'统率',zheng:'政务',mei:'魅力'}[k];
+      h+='<div class="stat"><label>'+n+'<input type="range" min="1" max="100" value="'+((it.stats&&it.stats[k])||50)+'" id="f-s-'+k+'" oninput="document.getElementById(\'fv-'+k+'\').textContent=this.value"><span class="val" id="fv-'+k+'">'+((it.stats&&it.stats[k])||50)+'</span></label></div>';
+    });
+    h+='</div>';
+    h+='<label class="full">特性标签（逗号分隔）<input value="'+esc(it.tags||'')+'" id="f-tags" placeholder="义士,豪侠"></label>';
+    h+='<label class="full">列传<input value="'+esc(it.bio||'')+'" id="f-bio" placeholder="乱世中崛起的一介布衣。"></label>';
+  } else {
+    h+='<label>ID（唯一标识）<input value="'+esc(it.id)+'" id="f-id" placeholder="my_npc"></label>';
+    h+='<label>身份标签<input value="'+esc(it.role)+'" id="f-role" placeholder="异乡人"></label>';
+    h+='<label>图标 emoji<input value="'+esc(it.icon)+'" id="f-icon" placeholder="🎐"></label>';
+    h+='<label>性别<select id="f-gender"><option'+(it.gender==='m'?' selected':'')+'>m</option><option'+(it.gender==='f'?' selected':'')+'>f</option><option'+(it.gender==='any'?' selected':'')+'>any</option></select></label>';
+    h+='<label>出现格型（逗号分隔）<input value="'+esc((it.kinds||[]).join(','))+'" id="f-kinds" placeholder="street,market"></label>';
+    h+='<label>头像<select id="f-avatar"><option value="">（默认）</option>'+AVATARS.map(function(a){return '<option'+(it.avatar===a?' selected':'')+'>'+a+'</option>';}).join('')+'</select></label>';
+    h+='<label class="full">观察描述<input value="'+esc(it.desc)+'" id="f-desc" placeholder="风尘仆仆的行商，谈吐间似有远方的故事。"></label>';
+    h+='<label class="full">闲谈台词（每行一条）<textarea id="f-says">'+esc((it.says||[]).join('\n'))+'</textarea></label>';
+  }
+  f.innerHTML=h;
+  renderPreview();
+}
+
+function renderPreview(){
+  var it = readForm(); var pv=document.getElementById('preview');
+  if(!it || !it.name && MODE==='officer' && !it.id){ pv.innerHTML=''; return; }
+  var av = it.avatar ? '<img src="../shared/img/sm_'+it.avatar+'.png" onerror="this.src=\'../shared/img/sm_npc-sentry.png\'">' : '<img src="../shared/img/sm_npc-sentry.png">';
+  var h='<div class="pv-left">'+av+'<div class="pv-name">'+esc(it.name||it.id||'')+'</div><div class="pv-title">'+esc(it.title||it.role||'')+'</div>'+(MODE==='officer'?'<div class="pv-fac">'+esc(FACTION_NAMES[it.faction]||it.faction)+'</div>':'')+'</div>';
+  if(MODE==='officer'){
+    h+='<div class="pv-bars">';
+    ['wu','zhi','tong','zheng','mei'].forEach(function(k){
+      var n={wu:'武',zhi:'智',tong:'统',zheng:'政',mei:'魅'}[k]; var v=it.stats?it.stats[k]:0;
+      h+='<div class="pv-bar"><i>'+n+'</i><div class="fill"><b style="width:'+Math.max(2,v)+'%"></b></div><em>'+v+'</em></div>';
+    });
+    h+='</div>';
+  }
+  pv.innerHTML=h;
+  genCode(it);
+}
+
+function readForm(){
+  var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
+  if(MODE==='officer'){
+    var it={ id:g('f-id'), name:g('f-name'), title:g('f-title'), faction:g('f-faction'), home:g('f-home'),
+      loyalty:parseInt(g('f-loyalty'))||0, avatar:g('f-avatar'),
+      stats:{ wu:parseInt(g('f-s-wu'))||0,zhi:parseInt(g('f-s-zhi'))||0,tong:parseInt(g('f-s-tong'))||0,zheng:parseInt(g('f-s-zheng'))||0,mei:parseInt(g('f-s-mei'))||0 },
+      tags:g('f-tags'), bio:g('f-bio') };
+    return it;
+  }
+  return { id:g('f-id'), role:g('f-role'), icon:g('f-icon'), gender:g('f-gender'), avatar:g('f-avatar'),
+    kinds:g('f-kinds').split(',').map(function(s){return s.trim();}).filter(Boolean),
+    desc:g('f-desc'), says:g('f-says').split('\n').filter(function(s){return s.trim();}) };
+}
+
+function genCode(it){
+  var out=document.getElementById('out-code');
+  if(MODE==='officer'){
+    var tags = it.tags?it.tags.split(',').map(function(s){return s.trim();}).filter(Boolean):[];
+    out.value = "{ id:'"+it.id+"', name:'"+it.name+"', title:'"+it.title+"', faction:'"+it.faction+"', home:'"+it.home+"',\n"+
+      "  loyalty:"+it.loyalty+", stats:{ wu:"+it.stats.wu+", zhi:"+it.stats.zhi+", tong:"+it.stats.tong+", zheng:"+it.stats.zheng+", mei:"+it.stats.mei+" },\n"+
+      "  tags:["+tags.map(function(t){return "'"+t+"'";}).join(',')+"], bio:'"+(it.bio||'')+"',"+(it.avatar?" avatar:'"+it.avatar+"'":'')+" }";
+  } else {
+    var kinds = (it.kinds||[]).map(function(k){return "'"+k+"'";}).join(',');
+    out.value = "{ id:'"+it.id+"', kinds:["+kinds+"], icon:'"+(it.icon||'👤')+"', role:'"+it.role+"', personal:true, gender:'"+it.gender+"',\n"+
+      "  desc:'"+(it.desc||'')+"', says:["+(it.says||[]).map(function(s){return "'"+s.replace(/'/g,"\\'")+"'";}).join(',')+"]"+(it.avatar?" , avatar:'"+it.avatar+"'":'')+" }";
+  }
+}
+
+function saveItem(){
+  var it=readForm();
+  if(!it.id){ alert('请先填写 ID（唯一标识）'); return; }
+  if(cur==null){ store[MODE].push(it); cur=store[MODE].length-1; }
+  else store[MODE][cur]=it;
+  save(); renderList(); renderForm(it);
+  alert('已保存到本地。可「导出全部」获取代码。');
+}
+function exportAll(){
+  var arr=store[MODE];
+  if(!arr.length){ alert('暂无数据'); return; }
+  var head = MODE==='officer'
+    ? '// 粘贴到 shared/data/custom_officers.js 的 CUSTOM_OFFICERS 数组内\nvar CUSTOM_OFFICERS = [\n'
+    : '// 粘贴到 shared/data/custom_npcs.js 的 CUSTOM_NPC_CARDS 数组内\nvar CUSTOM_NPC_CARDS = [\n';
+  var body = arr.map(function(it){ return '  '+genCode(it); }).join(',\n');
+  document.getElementById('out-code').value = head + body + '\n];';
+  document.getElementById('out-code').style.minHeight='300px';
+}
+function copyCode(){ var t=document.getElementById('out-code'); t.select(); document.execCommand('copy'); alert('已复制'); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* 表单实时预览 */
+document.addEventListener('input', function(e){ if(e.target.id && e.target.id.indexOf('f-')===0) renderPreview(); });
+document.addEventListener('change', function(e){ if(e.target.id && e.target.id.indexOf('f-')===0) renderPreview(); });
+
+load(); renderList(); renderForm(null);
+</script>
+</body>
+</html>

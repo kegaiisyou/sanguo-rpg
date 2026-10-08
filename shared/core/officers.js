@@ -452,8 +452,14 @@
       } else {
         h += '<div class="of-list">';
         list.forEach(function (o) {
+          var _tp = template(o.id) || {};
+          var _ava = _tp.avatar ? ('shared/img/sm_' + _tp.avatar + '.png')
+            : (global.UI_Icons && _tp.name) ? null : null;
+          var _avaHTML = '';
+          if (_ava) _avaHTML = '<img class="of-ava" src="' + _ava + '" alt="">';
+          else if (global.UI_Icons) _avaHTML = UI_Icons.avatar(_tp.name, _tp.role || '');
           h += '<div class="of-row">';
-          h += '<div class="of-top"><b>' + esc(o.name) + '</b><span class="of-title">' + esc((template(o.id) || {}).title || '') + '</span>' + assignTag(o) + skillTagsHTML(idsOf(template(o.id))) + '</div>';
+          h += '<div class="of-top">' + _avaHTML + '<b>' + esc(o.name) + '</b><span class="of-title">' + esc(_tp.title || '') + '</span>' + assignTag(o) + skillTagsHTML(idsOf(_tp)) + '</div>';
           h += statBars(o.stats);
           h += '<div class="of-acts">'+
           '<button class="btn sm" onclick="window.openOfficerDetail(\'' + o.id + '\')">详情</button>';
@@ -484,8 +490,9 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
         h += '<div class="of-list">';
         list.forEach(function (t) {
           var p = Math.round(recruitChance(t) * 100);
+          var _avaHTML = (global.UI_Icons && t.name) ? UI_Icons.avatar(t.name, t.role || '') : '';
           h += '<div class="of-row">';
-          h += '<div class="of-top"><b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-chance">登庸率 ' + p + '%</span>' + skillTagsHTML(t.skills) + '</div>';
+          h += '<div class="of-top">' + _avaHTML + '<b>' + esc(t.name) + '</b><span class="of-title">' + esc(t.title || '') + '</span><span class="of-chance">登庸率 ' + p + '%</span>' + skillTagsHTML(t.skills) + '</div>';
           h += statBars(t.stats);
           h += '<div class="of-acts"><button class="btn sm" onclick="window.openOfficerDetail(\'' + t.id + '\')">详情</button><button class="btn sm" onclick="window.recruitOfficer(\'' + t.id + '\')">登庸</button></div>';
           h += '</div>';

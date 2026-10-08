@@ -345,6 +345,12 @@
     }
   ];
 
+  // v20261007h：合并玩家自建 NPC 卡（custom_npcs.js），支持 tools/officer_editor.html 创作
+  var _customCards = (global.LF && global.LF.CUSTOM_NPC_CARDS) || [];
+  if (_customCards.length) {
+    _customCards.forEach(function (c) { if (c && c.id) { global.LF.NPC_CARDS.push(c); } });
+  }
+
   // ════════════════════════════════════════════════════════════════════════════
   // 具名 NPC（剧情角色）名册 —— 与上面的「程序 NPC」同属一张人物表（v20260912f）
   // ════════════════════════════════════════════════════════════════════════════

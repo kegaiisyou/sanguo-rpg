@@ -20,7 +20,7 @@ MANIFEST = os.path.join(WS, 'tools', 'bundle.manifest')
 INDEX = os.path.join(WS, 'index.html')
 BUNDLE = os.path.join(WS, 'shared', 'bundle.js')
 CONSTANTS = os.path.join(WS, 'shared', 'config', 'constants.js')
-VERSION = '20261007g'
+VERSION = '20261007h'
 
 def read(p): return io.open(p, 'r', encoding='utf-8', newline='').read().replace('\r\n', '\n')
 def write(p, s): io.open(p, 'w', encoding='utf-8', newline='').write(s)

@@ -188,6 +188,11 @@
     { id:'jiang_wei', name:'姜维', title:'中郎', faction:'在野', home:'hanzhong', loyalty:45,
       stats:{ wu:90, zhi:88, tong:90, zheng:60, mei:70 }, tags:['天水麒麟'], bio:'幼麟，后继承武侯之志。' },
   ];
+  // v20261007h：合并玩家自建武将（custom_officers.js / localStorage 注入），支持 tools/officer_editor.html 创作
+  var custom = (global.LF && global.LF.CUSTOM_OFFICERS) || [];
+  if (custom.length) {
+    custom.forEach(function (c) { if (c && c.id && c.name) { R.push(c); } });
+  }
   // 去重（同名 id 仅保留首条）
   var seen = {}, clean = [];
   R.forEach(function (c) { if (!seen[c.id]) { seen[c.id] = 1; c.skills = HERO_SKILLS[c.id] || autoSkills(c); clean.push(c); } });
