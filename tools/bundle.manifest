@@ -75,4 +75,5 @@ shared/core/gamble.js
 shared/core/panels.js
 shared/core/prologue.js
 shared/core/npcai.js
+shared/core/ward.js
 shared/core/engine.js
