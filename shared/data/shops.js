@@ -154,7 +154,40 @@
         { id: 'caizhong',  buy: 4,  sell: 1  },
         { id: 'yaozhong',  buy: 6,  sell: 2  },
         { id: 'renshen',   buy: 95, sell: 30 },
-        { id: 'lingzhi',   buy: 85, sell: 25 }
+        { id: 'lingzhi',   buy: 85, sell: 25 },
+        // —— v20261008b · 药材（四性五味，供配药 / 鉴药 / 问诊）——
+        { id: 'mahuang',   buy: 17, sell: 3  },
+        { id: 'guizhi',    buy: 19, sell: 4  },
+        { id: 'shigao',    buy: 22, sell: 4  },
+        { id: 'huanglian', buy: 43, sell: 8  },
+        { id: 'fuling',    buy: 22, sell: 4  },
+        { id: 'danggui',   buy: 53, sell: 10 },
+        { id: 'banxia',    buy: 38, sell: 7  },
+        { id: 'fuzi',      buy: 108,sell: 20 },
+        { id: 'gancao',    buy: 12, sell: 2  },
+        { id: 'chaye',     buy: 29, sell: 5  },
+        // —— 加工材料（半成品层）——
+        { id: 'yaomo',     buy: 24, sell: 5  },
+        { id: 'fengmi',    buy: 18, sell: 7  },
+        { id: 'jiu',       buy: 25, sell: 10 },
+        // —— v20261008b · 成药（六轴：A 解状态 / B 精力 / C 时令 / D 增益 / E 治疗 / F 军用）——
+        { id: 'tangyao',   buy: 84, sell: 38 },
+        { id: 'jiedu',     buy: 57, sell: 12 },
+        { id: 'qingliang', buy: 53, sell: 11 },
+        { id: 'xingshen',  buy: 48, sell: 10 },
+        { id: 'huoxuejiu', buy: 66, sell: 14 },
+        { id: 'tishen',    buy: 44, sell: 9  },
+        { id: 'shentang',  buy: 99, sell: 20 },
+        { id: 'zhuangqi',  buy: 77, sell: 16 },
+        { id: 'huxin',     buy: 132,sell: 27 },
+        { id: 'jinchuangao',buy: 75,sell: 15 },
+        { id: 'fenghan',   buy: 33, sell: 7  },
+        { id: 'bishu',     buy: 40, sell: 8  },
+        { id: 'bizhang',   buy: 62, sell: 13 },
+        { id: 'anshui',    buy: 53, sell: 11 },
+        { id: 'junyao',    buy: 44, sell: 9  },
+        { id: 'baidu',     buy: 132,sell: 27 },
+        { id: 'shangdeng', buy: 176,sell: 36 }
       ]
     },
     // ── 坊·市坊四号（v20260927e）：城内坊格「交易」按铺名开对应商号 ──

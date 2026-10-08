@@ -387,6 +387,31 @@
       desc: '百草之王，根如人形。吊气续命、大补元气，行商重金求之。' },
     lingzhi:    { defId: 'lingzhi',    name: '灵芝', icon: '🍄', cat: '素材', price: 70,
       desc: '深山老木上的灵芝，菌盖如云。入药可延年，卖价不菲。' },
+    // ── 药材（v20261008b · 药店体系）：四性五味，供配药 / 鉴药 / 问诊 ──
+    //   注：蜂蜜 fengmi（蜜丸基）、黍酒 jiu（酒基）已存在，直接复用为加工材料，不另建。
+    mahuang:    { defId: 'mahuang',    name: '麻黄',   icon: '🌾', cat: '素材', price: 7,
+      desc: '〔温·辛〕发汗解表，宣肺平喘——风寒汤、醒神汤之要药。' },
+    guizhi:     { defId: 'guizhi',     name: '桂枝',   icon: '🌿', cat: '素材', price: 8,
+      desc: '〔温·辛甘〕温通经脉，助阳化气——风寒汤、活血酒常用。' },
+    shigao:     { defId: 'shigao',     name: '石膏',   icon: '🪨', cat: '素材', price: 9,
+      desc: '〔寒·辛甘〕清热泻火，除烦止渴——清凉散、避暑丹之君药。' },
+    huanglian:  { defId: 'huanglian',  name: '黄连',   icon: '🌿', cat: '素材', price: 18,
+      desc: '〔寒·苦〕清热燥湿，泻火解毒——解毒丸、败毒散、避瘴丸之君药。' },
+    fuling:     { defId: 'fuling',     name: '茯苓',   icon: '🍄', cat: '素材', price: 9,
+      desc: '〔平·甘淡〕利水渗湿，健脾宁心——诸方常用的佐药。' },
+    danggui:    { defId: 'danggui',    name: '当归',   icon: '🌿', cat: '素材', price: 22,
+      desc: '〔温·辛甘〕补血活血，调经止痛——活血酒、金创膏之君药。' },
+    banxia:     { defId: 'banxia',     name: '半夏',   icon: '🥔', cat: '素材', price: 16,
+      desc: '〔温·辛〕燥湿化痰，降逆止呕。**生者有毒**，须依法炮制、火候到位方可入药。' },
+    fuzi:       { defId: 'fuzi',       name: '附子',   icon: '🌶️', cat: '素材', price: 45,
+      desc: '〔热·辛甘〕回阳救逆，补火助阳——壮气酒之君药。**大毒**，须以甘草为使解其毒。' },
+    gancao:     { defId: 'gancao',     name: '甘草',   icon: '🌿', cat: '素材', price: 5,
+      desc: '〔平·甘〕调和诸药，解百毒——使药之首，有毒之方几乎离不得它。' },
+    chaye:      { defId: 'chaye',      name: '茶叶',   icon: '🍃', cat: '素材', price: 12,
+      desc: '〔凉·苦甘〕提神醒脑，解腻消滞——提神散之君药，行旅赖以熬夜。' },
+    // ── 加工材料（半成品层）：药材炮制所得，丸散膏丹的底子 ──
+    yaomo:      { defId: 'yaomo',      name: '药末',   icon: '🧂', cat: '素材', price: 10,
+      desc: '药材碾罗过的细末，丸、散、膏皆以此为基。蜂蜜（fengmi）可炼蜜丸，黍酒（jiu）可浸药酒。' },
     // —— 加工品（v20260928g）：配方产出 ——
     jingtie:    { defId: 'jingtie',    name: '精铁', icon: '⚙️', cat: '素材', price: 60,
       desc: '铁锭入炉、木炭猛火炼出的精钢，去渣存精——百炼成钢的胚子。' },
@@ -396,6 +421,46 @@
       desc: '整鸡架火慢烤，皮脆肉嫩，撕开流汁。' },
     kaoyang:    { defId: 'kaoyang',    name: '烤羊肉', icon: '🍢', cat: '菜肴', price: 18, effect: { food: 17, drink: 5 },
       desc: '带骨羊肉串在火上翻烤，撒盐椒，膻香扑鼻。' },
+    // ══ v20261008b · 药店成药（六轴体系，见 docs/PHARMACY_BLUEPRINT.md §3.0）══
+    //   E 治疗 / A 解状态 / B 精力 / C 时令 / D 增益 / F 军用社交
+    //   注：A/C/D/F 轴的「解状态 / 免疫 / 增益」需战斗侧接入后生效，当前先按回血给即时反馈。
+    // ── A 轴 · 解状态 ──
+    jiedu:      { defId:'jiedu', name:'解毒丸', icon:'🧫', cat:'药剂', maxStack:20, price:26, effect:{ hp:15 },
+      desc:'黄连为君、茯苓为佐、甘草为使。〔解：毒〕——蝮蛇、毒虫之伤，服之可解。**须战斗侧接入后生效**。' },
+    qingliang:  { defId:'qingliang', name:'清凉散', icon:'❄️', cat:'药剂', maxStack:20, price:24, effect:{ hp:12 },
+      desc:'石膏为君、黄连为臣。〔解：灼烧〕——火攻、烫伤之苦，服之清凉。**须战斗侧接入后生效**。' },
+    xingshen:   { defId:'xingshen', name:'醒神汤', icon:'🌀', cat:'药剂', maxStack:20, price:22, effect:{ hp:10 },
+      desc:'麻黄为君、桂枝为臣。〔解：眩晕〕——震慑昏迷者，灌之即醒。**须战斗侧接入后生效**。' },
+    huoxuejiu:  { defId:'huoxuejiu', name:'活血酒', icon:'🍶', cat:'药剂', maxStack:15, price:30, effect:{ hp:20 },
+      desc:'当归为君、桂枝为臣，黍酒浸之。〔解：迟滞〕，兼治跌打瘀青。**须战斗侧接入后生效**。' },
+    // ── B 轴 · 补精力 ──
+    tishen:     { defId:'tishen', name:'提神散', icon:'🍃', cat:'药剂', maxStack:30, price:20, effect:{ energy:35 },
+      desc:'茶叶为君、茯苓为臣。精神一振，赶夜路、连轴劳作都撑得住——睡觉要花时辰，这味药是拿银两换时间。' },
+    shentang:   { defId:'shentang', name:'参汤', icon:'🥣', cat:'药剂', maxStack:12, price:45, effect:{ energy:50, hp:30 },
+      desc:'人参为君、当归为臣，慢火煨就。大补元气，既复精力又养气血——重伤初愈者最宜。' },
+    // ── D 轴 · 战前增益 ──
+    zhuangqi:   { defId:'zhuangqi', name:'壮气酒', icon:'🔥', cat:'药剂', maxStack:12, price:35, effect:{ hp:10 },
+      desc:'附子为君（大毒）、甘草为使解之，黍酒浸成。〔增益：攻 +5 · 3 回合〕——出门前嗑一味，胆气自壮。' },
+    huxin:      { defId:'huxin', name:'护心丸', icon:'🔴', cat:'药剂', maxStack:8, price:60, effect:{ hp:40 },
+      desc:'人参为君、茯苓为臣、灵芝为佐。〔护心：致命一击保一口气〕——绝境中留一线生机。' },
+    jinchuangao:{ defId:'jinchuangao', name:'金创膏', icon:'🩹', cat:'药剂', maxStack:20, price:34, effect:{ hp:70 },
+      desc:'当归为君、草药为臣、灵芝为佐。敷之止血生肌，〔减伤 20% · 3 回合〕——刀伤渗血，先敷这个。' },
+    // ── C 轴 · 时令防护 ──
+    fenghan:    { defId:'fenghan', name:'风寒汤', icon:'🫚', cat:'药剂', maxStack:20, price:15, effect:{ hp:20 },
+      desc:'桂枝为君、麻黄为臣。〔免疫：风寒 · 12 时辰〕——风雪天出行前喝一碗，主头热身痛。' },
+    bishu:      { defId:'bishu', name:'避暑丹', icon:'🧊', cat:'药剂', maxStack:20, price:18, effect:{ hp:15 },
+      desc:'石膏为君、茯苓为佐。〔免疫：中暑 · 12 时辰〕——暑月行军、燥热烦渴者宜服。' },
+    bizhang:    { defId:'bizhang', name:'避瘴丸', icon:'🌫️', cat:'药剂', maxStack:15, price:28, effect:{ hp:10 },
+      desc:'黄连为君、半夏为臣（有毒，火候须到位）。〔免疫：瘴气 · 12 时辰〕——南中瘴疠之地，不可不备。' },
+    anshui:     { defId:'anshui', name:'安神汤', icon:'🫖', cat:'药剂', maxStack:12, price:24, effect:{ hp:20 },
+      desc:'茯苓为君、灵芝为佐。〔歇息恢复 +30%〕——夜不能寐者服之，一觉到天明。' },
+    // ── F 轴 · 军用 / 社交 ──
+    junyao:     { defId:'junyao', name:'军中金疮药', icon:'⚔️', cat:'药剂', maxStack:60, price:20, effect:{ hp:40 },
+      desc:'粗料大批配就，不及上等精细，胜在管够。〔战后减员 -15%〕——三军必备的便宜货。' },
+    baidu:      { defId:'baidu', name:'败毒散', icon:'💊', cat:'药剂', maxStack:12, price:60, effect:{ hp:30 },
+      desc:'黄连为君、半夏为臣，茯苓甘草佐使。〔免疫：疫病〕，主时疫寒热——瘟疫一起，此药千金不易。' },
+    shangdeng:  { defId:'shangdeng', name:'上等伤药', icon:'🎁', cat:'药剂', maxStack:10, price:80, effect:{ hp:80 },
+      desc:'人参当归为君臣，灵芝佐之。包扎精细、药力醇厚——赠与负伤名将，是最体面的人情。' },
     // ══ v20260928h · 牙行房契（主城各一，凭契置业）══
     fangqi_luoyang:  { defId: 'fangqi_luoyang',  name: '洛阳民宅契', icon: '📜', cat: '契文', price: 120, desc: '牙行作保的洛阳宅契——凭契可入洛阳民居置业安居。' },
     fangqi_changan:  { defId: 'fangqi_changan',  name: '长安民宅契', icon: '📜', cat: '契文', price: 110, desc: '牙行作保的长安宅契——凭契可入长安民居置业安居。' },

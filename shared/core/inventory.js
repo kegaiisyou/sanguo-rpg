@@ -137,6 +137,8 @@
         if (e.mp) { if (S().mp >= S().maxMp) full.push('内息'); else { S().mp = Math.min(S().maxMp, S().mp + e.mp); gain++; msgs.push('内息稍复（+' + e.mp + '）'); } }
         if (e.food) { if ((S().food || 0) >= 100) full.push('食'); else { S().food = Math.min(100, (S().food || 0) + e.food); gain++; msgs.push('腹中稍暖（+' + e.food + '）'); } }
         if (e.drink) { if ((S().drink || 0) >= 100) full.push('饮'); else { S().drink = Math.min(100, (S().drink || 0) + e.drink); gain++; msgs.push('喉间得润（+' + e.drink + '）'); } }
+        // v20261008b：精力补给（B 轴提神药）—— 五维中此前唯一无补给的一项，只能靠睡觉
+        if (e.energy) { var mxEn = S().maxEnergy || 100; if ((S().energy || 0) >= mxEn) full.push('精力'); else { S().energy = Math.min(mxEn, (S().energy || 0) + e.energy); gain++; msgs.push('精神一振（+' + e.energy + '）'); } }
         if (gain === 0) { toast('「' + it.name + '」所滋补皆已满，留着吧。'); return; }   // 对应属性已满 → 拦截，防误点浪费
         toast(msgs.join('；') + (full.length ? '（' + full.join('、') + '已满，未耗）' : ''));
       } else if (it.maxDur) { toast('「' + it.name + '」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }

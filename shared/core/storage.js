@@ -216,6 +216,7 @@
       if(it.effect.mp){ getState().mp=Math.min(getState().maxMp, getState().mp+(it.effect.mp||0)); toast('内息稍复（+'+(it.effect.mp||0)+'）。'); }
       if(it.effect.food){ getState().food=Math.min(100,(getState().food||0)+(it.effect.food||0)); toast('腹中稍暖（+'+(it.effect.food||0)+'）。'); }
       if(it.effect.drink){ getState().drink=Math.min(100,(getState().drink||0)+(it.effect.drink||0)); toast('喉间得润（+'+(it.effect.drink||0)+'）。'); }
+      if(it.effect.energy){ var _mx=getState().maxEnergy||100; getState().energy=Math.min(_mx,(getState().energy||0)+(it.effect.energy||0)); toast('精神一振（+'+(it.effect.energy||0)+'）。'); }
     } else if(it.maxDur){ toast('「'+it.name+'」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
     else { toast('此物暂无可施用之效。'); return; }
     it.count--; if(it.count<=0) st.items[si]=null;
@@ -258,7 +259,7 @@
     var dur = it.maxDur; if(dur){ var dv = (it.dur!=null? it.dur : it.maxDur); h+='<div class="li-line">耐久 '+(dv||0)+' / '+dur+'</div>'; }
     if(!(d.cat==='装备'||d.maxDur)) h+='<div class="li-line" style="opacity:.85">同类可叠放 ×'+storageMaxStack(defId)+'</div>';
     if(d.price) h+='<div class="li-line">价值 '+d.price+' 两</div>';
-    if(d.effect){ var e=d.effect,t=[]; if(e.hp)t.push('疗伤 +'+e.hp); if(e.mp)t.push('复内 +'+e.mp); if(e.food)t.push('充饥 +'+e.food); if(e.drink)t.push('解渴 +'+e.drink); if(e.dmg)t.push('伤害 +'+e.dmg); if(t.length)h+='<div class="li-line">'+t.join(' · ')+'</div>'; }
+    if(d.effect){ var e=d.effect,t=[]; if(e.hp)t.push('疗伤 +'+e.hp); if(e.mp)t.push('复内 +'+e.mp); if(e.food)t.push('充饥 +'+e.food); if(e.drink)t.push('解渴 +'+e.drink); if(e.energy)t.push('精力 +'+e.energy); if(e.dmg)t.push('伤害 +'+e.dmg); if(t.length)h+='<div class="li-line">'+t.join(' · ')+'</div>'; }
     if(d.desc) h+='<div class="li-line" style="opacity:.85">'+d.desc+'</div>';
     var acts='';
     if(src==='store'){

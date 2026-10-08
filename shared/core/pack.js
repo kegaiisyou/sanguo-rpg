@@ -188,6 +188,7 @@
       if(e.mp) t.push('复内 +'+e.mp);
       if(e.food) t.push('充饥 +'+e.food);
       if(e.drink) t.push('解渴 +'+e.drink);
+      if(e.energy) t.push('精力 +'+e.energy);
       if(e.dmg) t.push('伤害 +'+e.dmg);
       if(t.length) h+='<div class="li-line">'+t.join(' · ')+'</div>';
     }
