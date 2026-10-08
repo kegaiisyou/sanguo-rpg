@@ -3513,7 +3513,14 @@
     if(!(it.placeable || pl)) return;
     state.placed = state.placed || {};
     state.placed[state.room] = state.placed[state.room] || [];
-    if(state.placed[state.room].some(function(o){ return o.key===pl.key && placedInCell(o, state.room, _tag); })){ toast('此处已支有'+pl.name+'。'); return; }
+    // v20261008c：货架三兄弟（木/铁/雕花）此前共用 key 'shop_shelf'，同房间/同格互相拦截，
+    //   造成"放了木架就放不了铁架"。冲突判定改为按具体物品（defId）——同种才互斥，
+    //   不同种（如木架+铁架、木架+柜子）可同房间/同格并置；旧存档无 defId 时按 key 回退。
+    if(state.placed[state.room].some(function(o){
+      if(!placedInCell(o, state.room, _tag)) return false;
+      var od = o.defId || PLACE_KEY_DEF[o.key];
+      return it.defId ? (od === it.defId) : (o.key === pl.key);
+    })){ toast('此处已支有'+pl.name+'，欲换新样须先收起旧物。'); return; }
     if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
     state.placed[state.room].push({key:pl.key, defId:it.defId, cell:_tag});
     packInspect=null;
