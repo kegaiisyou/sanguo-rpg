@@ -106,6 +106,10 @@
   }
   // ── 仓库模式（货郎同款交互）所需：格维度存取/换位/整理/使用/装备 ──
   function storeGet(cid){ return ensureStorage(cid); }
+  // v20261008d：批量模式标志——「全部取出 / 全部收纳」会循环调用本文件的存取函数，
+  //   旧版每格都 save()（全量序列化存档）+ afterPackChange()（重算并渲染），N 格 = N 次，明显卡顿。
+  //   批量期间置 _bulk>0，底层跳过即时存刷，由批量入口在末尾统一存一次并给一次汇总提示。
+  var _bulk=0;
   function storePutFromPack(packIdx, n, cid, toIdx){
     var it=getState().pack[packIdx]; if(!it || (it.count||0)<n){ toast('行囊此物不足。'); return false; }
     ensureStorage(cid); var st=getState().flags.storage[cid];
@@ -128,7 +132,7 @@
         if(getState().pack[packIdx]===null){ getState().pack[packIdx]=tmp; }
         else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，交换物无处安放。'); return false; } getState().pack[e]=tmp; }
       }
-      save(getState()); afterPackChange();
+      if(!_bulk){ save(getState()); afterPackChange(); }
       log('你将'+it.name+'×'+n+'存入仓库。','sys');
       return true;
     }
@@ -139,10 +143,10 @@
       if(n>1){ toast('装备一次存一件。'); return false; }
       var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
       if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
-      if(e<0){ toast('仓库已满，存不下了。'); return false; }
+      if(e<0){ if(!_bulk) toast('仓库已满，存不下了。'); return false; }
       st.items[e]=it; getState().pack[packIdx]=null;
     }
-    save(getState()); afterPackChange();
+    if(!_bulk){ save(getState()); afterPackChange(); }
     log('你将'+it.name+'×'+n+'存入仓库。','sys');
     return true;
   }
@@ -170,18 +174,18 @@
           else { toast('仓库已满，交换物无处安放。'); return false; }
         }
       }
-      save(getState()); afterPackChange();
+      if(!_bulk){ save(getState()); afterPackChange(); }
       log('你从仓库取出'+(it.name||'物')+(n>1?('×'+n):'')+'。','sys');
       return true;
     }
     if(stack){
-      if(!packAdd(it.defId, n)){ toast('行囊已满，无法取出。'); return false; }
+      if(!packAdd(it.defId, n)){ if(!_bulk) toast('行囊已满，无法取出。'); return false; }
       it.count=(it.count||0)-n; if(it.count<=0) st.items[si]=null;
     } else {
       if(toPackIdx!=null && toPackIdx>=0 && !getState().pack[toPackIdx]){ getState().pack[toPackIdx]=it; st.items[si]=null; }
       else { var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法取出。'); return false; } getState().pack[e]=it; st.items[si]=null; }
     }
-    save(getState()); afterPackChange();
+    if(!_bulk){ save(getState()); afterPackChange(); }
     log('你从仓库取出'+(it.name||'物')+(n>1?('×'+n):'')+'。','sys');
     return true;
   }
@@ -315,8 +319,20 @@
     else { if(storageSel.src!=='pack') return; var pit=getState().pack[storageSel.idx]; if(!pit) return; n=Math.min(n, pit.count||0, storageRoom(cid)); if(n>0) storagePut(cid, pit.defId||pit.id, n); }
   }
   function stQtyInput(act){ if(!storageSel) return; var inp=document.getElementById('st-qty-input'); var n=inp?parseInt(inp.value,10):0; if(!n||n<1) n=1; stQty(act, n); }
-  function stTakeAll(cid){ ensureStorage(cid); var st=getState().flags.storage[cid]; for(var i=0;i<st.items.length;i++){ var it=st.items[i]; if(it){ storeTakeToPack(cid, i, it.count||0, null); } } refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
-  function stPutAll(cid){ ensureStorage(cid); for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(!pit || (pit.count||0)<=0) continue; storePutFromPack(i, pit.count||0, cid, null); } refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
+  function stTakeAll(cid){ ensureStorage(cid); var st=getState().flags.storage[cid];
+    var ok=0, fail=0; _bulk++;
+    try{ for(var i=0;i<st.items.length;i++){ var it=st.items[i]; if(it){ if(storeTakeToPack(cid, i, it.count||0, null)) ok++; else fail++; } } }
+    finally{ _bulk--; }
+    save(getState()); afterPackChange();
+    if(ok||fail) toast(fail? ('取出 '+ok+' 格，'+fail+' 格因行囊已满未取出。') : ('取出 '+ok+' 格。'));
+    refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
+  function stPutAll(cid){ ensureStorage(cid);
+    var ok=0, fail=0; _bulk++;
+    try{ for(var i=0;i<getState().pack.length;i++){ var pit=getState().pack[i]; if(!pit || (pit.count||0)<=0) continue; if(storePutFromPack(i, pit.count||0, cid, null)) ok++; else fail++; } }
+    finally{ _bulk--; }
+    save(getState()); afterPackChange();
+    if(ok||fail) toast(fail? ('收纳 '+ok+' 格，'+fail+' 格因仓库已满未收纳。') : ('收纳 '+ok+' 格。'));
+    refreshStoragePanel(cid); var f=document.getElementById('st-float'); if(f) f.style.display='none'; storageSel=null; }
   function stSort(cid){ ensureStorage(cid); storeSort(cid); if(LFUI && LFUI.packAutoSort) LFUI.packAutoSort(); save(getState()); afterPackChange(); refreshStoragePanel(cid); toast('已整理。'); }
   function renderStoragePanel(cid){
     ensureStorage(cid); var st=getState().flags.storage[cid];

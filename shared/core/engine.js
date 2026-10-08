@@ -5654,13 +5654,20 @@
       window.startTitleDrip();
     }
   })();
-  // v20260912n：预加载序章候选底图，全部就绪（或至多等 2.5s）后再进标题页，
-  // 避免序章播放时首次加载底图造成卡顿；数组须与 playPrologue 的轮换池保持一致。
+  // v20261008d（首屏优化）：首屏改为只等「首页真正用的那一张」底图（title_bg.jpg，约 97KB）。
+  //   旧版要等 6 张序章候选图（title_bg_alt1~6，合计约 1.7MB）全部就绪或超时 2.5s 才 showTitle，
+  //   首页白屏久；而 alt 系列只有序章播放时才用得上（见 prologue.js 的 bgs 池）。
+  //   现：首屏只等 1 张、超时 1.2s；6 张 alt 改为空闲时预取，不再阻塞进局。
   var _pbgs=['assets/title_bg_alt1.jpg','assets/title_bg_alt2.jpg','assets/title_bg_alt3.jpg','assets/title_bg_alt4.jpg','assets/title_bg_alt5.jpg','assets/title_bg_alt6.jpg'];
   var _pbgDone=0, _pbgT0=Date.now();
-  _pbgs.forEach(function(_src){ var _im=new Image(); _im.onload=function(){ _pbgDone++; }; _im.onerror=function(){ _pbgDone++; }; _im.src=_src; });
+  // 首屏底图（与 game.css 的 #title 背景一致）
+  var _im0=new Image(); _im0.onload=function(){ _pbgDone++; }; _im0.onerror=function(){ _pbgDone++; }; _im0.src='assets/title_bg.jpg';
+  // 序章候选底图：空闲预取，不阻塞标题页
+  function _prefetchPbgs(){ _pbgs.forEach(function(_src){ var _im=new Image(); _im.src=_src; }); }
+  if(window.requestIdleCallback) { try{ window.requestIdleCallback(_prefetchPbgs,{timeout:8000}); }catch(e){ setTimeout(_prefetchPbgs,2500); } }
+  else setTimeout(_prefetchPbgs, 2500);
   (function _waitPbg(){
-    if(_pbgDone>=_pbgs.length || Date.now()-_pbgT0>2500){
+    if(_pbgDone>=1 || Date.now()-_pbgT0>1200){
       if(!state || !state.room) showTitle();   // 已进游戏则不再强回首頁（v20260918i 竞态修复）
       var _ld=document.getElementById('loader');
       if(_ld){ setTimeout(function(){ _ld.classList.add('hidden'); }, 340); }   // 标题页就绪后加载页淡出

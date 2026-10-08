@@ -1002,6 +1002,10 @@
   function contCount(p){ var n=0; (p.cont.slots||[]).forEach(function(s){ if(s) n++; }); return n; }
   function contRoom(p){ return (p.cont.slots?p.cont.slots.length:0) - contCount(p); }
   function packCountOfDef(defId){ var n=0; (S().pack||[]).forEach(function(it){ if(it && (it.defId||it.id)===defId) n+=(it.count||1); }); return n; }
+  // v20261008d：批量模式标志——「全部取出 / 全部收纳」循环调用 contPutCore/contTakeCore，
+  //   旧版每格一次 save()+afterPackChange()（全量存刷 + 重渲染），N 格 = N 次。
+  //   批量期间 _bulk>0 时底层只改数据不存刷，由批量入口末尾统一存一次并汇总提示。
+  var _bulk=0;
   function contPutCore(p, defId, n){
     contInit(p);
     var it = packFind(defId); if(!it) return false;
@@ -1020,7 +1024,8 @@
     if(moved<=0) return false;
     if(stack) packConsume(defId, moved);
     contMerge(p);
-    save(getState()); afterPackChange(); return true;
+    if(!_bulk){ save(getState()); afterPackChange(); }
+    return true;
   }
   function contTakeCore(p, idx, n){
     contInit(p);
@@ -1031,10 +1036,11 @@
       var ok=packAdd(s.defId||s.id, n); if(!ok) return false;
       s.count-=n; if(s.count<=0) p.cont.slots[idx]=null;
     } else {
-      var e=packFirstEmpty(); if(e<0){ toast('行囊已满，无法取出。'); return false; }
+      var e=packFirstEmpty(); if(e<0){ if(!_bulk) toast('行囊已满，无法取出。'); return false; }
       getState().pack[e]=s; p.cont.slots[idx]=null;
     }
-    save(getState()); afterPackChange(); return true;
+    if(!_bulk){ save(getState()); afterPackChange(); }
+    return true;
   }
   function contMerge(p){
     contInit(p); var slots=p.cont.slots;
@@ -1061,16 +1067,25 @@
   }
   function contTakeAll(p){
     contInit(p);
-    (p.cont.slots||[]).forEach(function(s,idx){ if(s&&(s.count||0)>0) contTakeCore(p, idx, s.count||1); });
+    var ok=0, fail=0; _bulk++;
+    try{ (p.cont.slots||[]).forEach(function(s,idx){ if(s&&(s.count||0)>0){ if(contTakeCore(p, idx, s.count||1)) ok++; else fail++; } }); }
+    finally{ _bulk--; }
+    save(getState()); afterPackChange();
+    if(ok||fail) toast(fail? ('取出 '+ok+' 格，'+fail+' 格因行囊已满未取出。') : ('取出 '+ok+' 格。'));
     refreshContainerPanel(p);
     var f=document.getElementById('cont-float'); if(f) f.style.display='none'; contSel=null;
   }
   function contPutAll(p){
     contInit(p);
-    for(var i=0;i<S().pack.length && contRoom(p)>0;i++){
-      var it=S().pack[i]; if(!it || (it.count||0)<=0) continue;
-      contPutCore(p, it.defId||it.id, it.count||1);
-    }
+    var ok=0, fail=0; _bulk++;
+    try{
+      for(var i=0;i<S().pack.length && contRoom(p)>0;i++){
+        var it=S().pack[i]; if(!it || (it.count||0)<=0) continue;
+        if(contPutCore(p, it.defId||it.id, it.count||1)) ok++; else fail++;
+      }
+    } finally{ _bulk--; }
+    save(getState()); afterPackChange();
+    if(ok||fail) toast(fail? ('收纳 '+ok+' 格，'+fail+' 格放不下。') : ('收纳 '+ok+' 格。'));
     refreshContainerPanel(p);
     var f=document.getElementById('cont-float'); if(f) f.style.display='none'; contSel=null;
   }
