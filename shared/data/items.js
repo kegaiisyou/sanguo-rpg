@@ -41,11 +41,11 @@
 
   // 静态物品定义（期初行囊 / 任务 / 商店）。defId 唯一键。
   var DEFS = {
-    jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
+    jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', maxStack: 30, effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
     zhou:        { defId: 'zhou',        name: '扁舟',   icon: '⛵', cat: '道具', desc: '一叶轻舟，江河可渡。行经水路郊野时持有此舟，渡口乘船不取分文。' },
     roubao:      { defId: 'roubao',      name: '肉包子', icon: '🥟', cat: '食饵', effect: { food: 20, drink: 5 },     desc: '热乎包子一只，啃下可充饥解渴。' },
     yaofen:      { defId: 'yaofen',      name: '草药粉', icon: '🌿', cat: '药剂', effect: { hp: 25 },                 desc: '捣碎的草药细粉，作敷料可缓伤痛。' },
-    tangyao:     { defId: 'tangyao',     name: '汤药',   icon: '🍵', cat: '药剂', effect: { hp: 130 },                desc: '慢火熬出的汤药，温养气血，重伤可复。' },
+    tangyao:     { defId: 'tangyao',     name: '汤药',   icon: '🍵', cat: '药剂', maxStack: 12, effect: { hp: 130 },                desc: '慢火熬出的汤药，温养气血，重伤可复。' },
     zangbu_hat:  { defId: 'zangbu_hat',  name: '脏布帽子', icon: '🧢', cat: '装备', slot: 'hat',    stats: {},        desc: '一顶灰扑扑的布帽，聊胜于无。', quality: 'white' },
     polan_stick: { defId: 'polan_stick', name: '破烂木棒', icon: '🪵', cat: '装备', slot: 'weapon', stats: { atk: 2 }, desc: '枯枝胡乱削成，挥之噗噗作响，聊备一格。', quality: 'white' },
     yaobao:  { defId: 'yaobao',  name: '便携腰包', icon: '👝', cat: '装备', slot: 'belt', stats: {}, packSpace: 4,  desc: '软皮小囊，系于腰间，多纳杂物四件。', quality: 'white' },
@@ -60,7 +60,7 @@
     shutong:        { defId: 'shutong',        name: '熟铜护腰', icon: '🪢', cat: '装备', slot: 'belt', stats: { def: 1 }, desc: '熟铜片缀就的护腰，堪挡一刀（防御 +1）。', quality: 'white' },
     // —— 教程·苦役营经济物品（真实物品，占行囊一格）——
     lao_pai:  { defId: 'lao_pai',  name: '劳字木片', icon: '🪵', cat: '凭证', desc: '劳役所发的木片，刻一「劳」字。可持往伙房易食，占行囊一格。' },
-    fan:      { defId: 'fan',      name: '干粮',     icon: '🍙', cat: '食饵', effect: { food: 25 }, desc: '粗粝饭团，啃下可充饥（回食物 25）。可交付 NPC。' },
+    fan:      { defId: 'fan',      name: '干粮',     icon: '🍙', cat: '食饵', maxStack: 50, effect: { food: 25 }, desc: '粗粝饭团，啃下可充饥（回食物 25）。可交付 NPC。' },
     xizhou:   { defId: 'xizhou',   name: '稀粥',     icon: '🥣', cat: '食饵', effect: { food: 12, drink: 12 }, desc: '误了饭点才捞着的半瓢冷粥，米粒可数，好歹暖了肚子（回食物 12、水 12）。' },
     chutu:         { defId:'chutu', name:'木锄', icon:'⛏️', cat:'工具', slot:'tool', tool:true, hoeLv:0, maxDur:14, price:12, desc:'木柄木头的锄（锄之第一阶），务农开荒的趁手家伙。' },
     yecai:    { defId: 'yecai',    name: '野菜',     icon: '🥬', cat: '食饵', effect: { food: 6 }, desc: '薄田里掐下的菜蔬，带着泥腥气。生啃可略充饥，交到伙房能入锅。' },
@@ -72,10 +72,10 @@
     yeguo:          { defId: 'yeguo',          name: '野果',     icon: '🍎', cat: '食饵', effect: { food: 8, drink: 3 }, desc: '道旁野树结的果子，涩中带甜，饥渴时聊可充饥解渴。' },
     // —— 建造/制造系统测试素材 ——
     xiaoshuzhi:    { defId: 'xiaoshuzhi', name: '小树枝', icon: '🍂', cat: '素材', desc: '徒手折下的细弱枝条，需于木工台加工方能成材。' },
-    mutou:         { defId: 'mutou',   name: '木头',   icon: '🪵', cat: '素材', desc: '粗伐的树干枝料，可于木工台加工成木材，亦能直接搭架。' },
+    mutou:         { defId: 'mutou',   name: '木头',   icon: '🪵', cat: '素材', maxStack: 99, desc: '粗伐的树干枝料，可于木工台加工成木材，亦能直接搭架。' },
     zhuzi:         { defId: 'zhuzi',   name: '竹子',   icon: '🎋', cat: '素材', desc: '伐自竹林的翠竹，破篾可编器，削制可作简册，亦为弓杆良材。' },
     mo:            { defId: 'mo',      name: '墨',     icon: '🖤', cat: '素材', desc: '松烟和胶制成的墨锭，研磨后可书于简册，字迹历久不褪。' },
-    mucai:         { defId: 'mucai',   name: '木材',   icon: '🟫', cat: '素材', desc: '经木工台刨削而成的规整木料，修筑与打造的基材。' },
+    mucai:         { defId: 'mucai',   name: '木材',   icon: '🟫', cat: '素材', maxStack: 99, desc: '经木工台刨削而成的规整木料，修筑与打造的基材。' },
     futou:         { defId:'futou', name:'石斧', icon:'🪓', cat:'工具', slot:'tool', tool:true, axeLv:0, maxDur:8, price:10, desc:'石刃木柄的粗斧（斧之第一阶），伐木可得木料；每伐一次耗耐久一，耐久尽则损毁。' },
     zhangpeng:     { defId: 'zhangpeng', name: '帐篷', icon: '⛺', cat: '器具', placeable:true,
       place:{ key:'tent', icon:'⛺', name:'帐篷', desc:'支起的行帐，可在此休整或收起', actions:'tent' },

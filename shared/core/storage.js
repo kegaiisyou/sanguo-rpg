@@ -66,18 +66,28 @@
     var n=0; for(var i=0;i<st.items.length;i++){ var c=st.items[i]; if(c && itemKey(c)===defId) n+=c.count||0; }
     return n;
   }
+  function storageMaxStack(defId){ var d=LF.ITEMS[defId]||{}; return d.maxStack||99; }
   function storageAdd(cid, itemOrDefId, count){
     ensureStorage(cid); var st=getState().flags.storage[cid];
-    var it=(typeof itemOrDefId==='string')? LF.ITEMS.makeItem(itemOrDefId, count||1) : itemOrDefId;
-    if(!it) return false;
-    if(packIsStackable(it)){
-      var k=itemKey(it);
-      for(var i=0;i<st.items.length;i++){ var c=st.items[i]; if(c && itemKey(c)===k && c.cat!=='装备'){ c.count=(c.count||1)+(it.count||1); return true; } }
+    var defId = (typeof itemOrDefId==='string') ? itemOrDefId : (itemOrDefId.defId||itemOrDefId.id);
+    var total = (typeof itemOrDefId==='string') ? (count||1) : ((itemOrDefId.count||1)+(count||0));
+    if(!defId) return false;
+    var d = LF.ITEMS[defId]||{}; var stackable = (d.cat!=='装备' && !d.maxDur); var cap = d.maxStack||99; var rem = total;
+    if(stackable){
+      for(var i=0;i<st.items.length && rem>0;i++){ var c=st.items[i]; if(c && itemKey(c)===defId && packIsStackable(c)){ var space=cap-(c.count||0); if(space>0){ var add=Math.min(space,rem); c.count+=add; rem-=add; } } }
+      while(rem>0){
+        var e=-1; for(var j=0;j<st.items.length;j++){ if(!st.items[j]){ e=j; break; } }
+        if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var j2=0;j2<st.items.length;j2++){ if(!st.items[j2]){ e=j2; break; } } }
+        if(e<0){ toast('仓库已满，存不下了。'); return false; }
+        var put=Math.min(cap,rem); st.items[e]=LF.ITEMS.makeItem(defId, put); rem-=put;
+      }
+      return true;
     }
-    var e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } }
-    if(e<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e=-1; for(var i=0;i<st.items.length;i++){ if(!st.items[i]){ e=i; break; } } }
-    if(e<0){ toast('仓库已满，存不下了。'); return false; }
-    st.items[e]=it; return true;
+    var e2=-1; for(var k=0;k<st.items.length;k++){ if(!st.items[k]){ e2=k; break; } }
+    if(e2<0 && st.items.length<st.slots){ while(st.items.length<st.slots) st.items.push(null); e2=-1; for(var k2=0;k2<st.items.length;k2++){ if(!st.items[k2]){ e2=k2; break; } } }
+    if(e2<0){ toast('仓库已满，存不下了。'); return false; }
+    st.items[e2] = (typeof itemOrDefId==='string') ? LF.ITEMS.makeItem(defId, total) : itemOrDefId;
+    return true;
   }
   function storagePut(cid, defId, n){
     var it=packFind(defId);
@@ -246,6 +256,7 @@
       if(it.packSpace) h+='<div class="li-line">空间 +'+it.packSpace+'</div>';
     }
     var dur = it.maxDur; if(dur){ var dv = (it.dur!=null? it.dur : it.maxDur); h+='<div class="li-line">耐久 '+(dv||0)+' / '+dur+'</div>'; }
+    if(!(d.cat==='装备'||d.maxDur)) h+='<div class="li-line" style="opacity:.85">同类可叠放 ×'+storageMaxStack(defId)+'</div>';
     if(d.price) h+='<div class="li-line">价值 '+d.price+' 两</div>';
     if(d.effect){ var e=d.effect,t=[]; if(e.hp)t.push('疗伤 +'+e.hp); if(e.mp)t.push('复内 +'+e.mp); if(e.food)t.push('充饥 +'+e.food); if(e.drink)t.push('解渴 +'+e.drink); if(e.dmg)t.push('伤害 +'+e.dmg); if(t.length)h+='<div class="li-line">'+t.join(' · ')+'</div>'; }
     if(d.desc) h+='<div class="li-line" style="opacity:.85">'+d.desc+'</div>';

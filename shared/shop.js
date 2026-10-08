@@ -971,6 +971,8 @@
     });
   }
   // ── 放置容器（箱子/柜子/货架通用，v20260930q）：槽位数组存储，支持点击与拖拽双向搬运 ──
+  var DEF_MAX_STACK = 99;
+  function maxStackOf(it){ var d=window.LF.ITEMS[(it&&(it.defId||it.id))||'']||{}; return d.maxStack||DEF_MAX_STACK; }
   function contInit(p){
     var d = window.LF.ITEMS[p.defId] || {};
     var n = d.contSlots || d.shelfSlots || 4;
@@ -1005,18 +1007,19 @@
     var it = packFind(defId); if(!it) return false;
     n = Math.min(n, it.count||0); if(n<=0) return false;
     var stack = packIsStackable(it);
-    var slots = p.cont.slots; var moved = 0;
+    var slots = p.cont.slots; var moved = 0; var cap = maxStackOf(it);
     if(stack){
-      for(var k=0;k<slots.length && n>0;k++){ var s=slots[k]; if(s && (s.defId||s.id)===defId && packIsStackable(s)){ s.count=(s.count||1)+n; moved+=n; n=0; } }
+      for(var k=0;k<slots.length && n>0;k++){ var s=slots[k]; if(s && (s.defId||s.id)===defId && packIsStackable(s)){ var space=cap-(s.count||0); if(space>0){ var add=Math.min(space,n); s.count+=add; moved+=add; n-=add; } } }
     }
     for(var k2=0;k2<slots.length && n>0;k2++){
       if(!slots[k2]){
-        if(stack){ slots[k2]=window.LF.ITEMS.makeItem(defId, n); moved+=n; n=0; }
+        if(stack){ var put=Math.min(cap,n); slots[k2]=window.LF.ITEMS.makeItem(defId, put); moved+=put; n-=put; }
         else { var pidx=getState().pack.indexOf(it); if(pidx<0) break; slots[k2]=it; getState().pack[pidx]=null; moved+=(it.count||1); n=0; }
       }
     }
     if(moved<=0) return false;
     if(stack) packConsume(defId, moved);
+    contMerge(p);
     save(getState()); afterPackChange(); return true;
   }
   function contTakeCore(p, idx, n){
@@ -1033,8 +1036,17 @@
     }
     save(getState()); afterPackChange(); return true;
   }
+  function contMerge(p){
+    contInit(p); var slots=p.cont.slots;
+    for(var i=0;i<slots.length;i++){ var a=slots[i]; if(!a||!packIsStackable(a)) continue;
+      var cap=maxStackOf(a);
+      for(var j=i+1;j<slots.length;j++){ var b=slots[j]; if(b && (b.defId||b.id)===(a.defId||a.id) && packIsStackable(b)){ var space=cap-(a.count||0); if(space>0){ var add=Math.min(space,b.count||0); a.count+=add; b.count-=add; if(b.count<=0) slots[j]=null; } } }
+    }
+    var kept=[]; for(var x=0;x<slots.length;x++){ if(slots[x]) kept.push(slots[x]); }
+    for(var y=0;y<slots.length;y++) slots[y]=(y<kept.length)?kept[y]:null;
+  }
   function contPut(p, defId, n){ if(contPutCore(p, defId, n)) refreshContainerPanel(p); }
-  function contTake(p, idx, n){ if(contTakeCore(p, idx, n)) refreshContainerPanel(p); }
+  function contTake(p, idx, n){ if(contTakeCore(p, idx, n)){ refreshContainerPanel(p); contReshowFloat(p); } }
   function contPutAllOf(p, defId){   // 行囊中该物可能分多堆叠：全部收进容器
     contInit(p);
     var total = packCountOfDef(defId), guard=0;
@@ -1141,6 +1153,7 @@
       if(it.packSpace) h+='<div class="li-line">空间 +'+it.packSpace+'</div>';
     }
     var dur = it.maxDur; if(dur){ var dv = (it.dur!=null? it.dur : dur); h+='<div class="li-line">耐久 '+(dv||0)+' / '+dur+'</div>'; }
+    if(packIsStackable(it)) h+='<div class="li-line" style="opacity:.85">同类可叠放 ×'+maxStackOf(it)+'</div>';
     if(d.effect){ var e=d.effect,t=[]; if(e.hp)t.push('疗伤 +'+e.hp); if(e.mp)t.push('复内 +'+e.mp); if(e.food)t.push('充饥 +'+e.food); if(e.drink)t.push('解渴 +'+e.drink); if(e.dmg)t.push('伤害 +'+e.dmg); if(t.length)h+='<div class="li-line">'+t.join(' · ')+'</div>'; }
     if(d.price) h+='<div class="li-line">价值 '+d.price+' 两</div>';
     if(d.desc) h+='<div class="li-line" style="opacity:.85">'+d.desc+'</div>';
@@ -1275,7 +1288,7 @@
   }
   window.contAct=contAct; window.contQty=contQty; window.contQtyInput=contQtyInput;
   window.contCloseCleanup=function(){ contPlaced=null; contSel=null; var f=document.getElementById('cont-float'); if(f) f.style.display='none'; };
-  function contSort(p){ contInit(p); var slots=p.cont.slots; var kept=[]; for(var i=0;i<slots.length;i++){ if(slots[i]) kept.push(slots[i]); } for(var i=0;i<slots.length;i++) slots[i]=(i<kept.length)?kept[i]:null; if(LFUI && LFUI.packAutoSort) LFUI.packAutoSort(); save(getState()); afterPackChange(); refreshContainerPanel(p); toast('已整理。'); }
+  function contSort(p){ contMerge(p); if(LFUI && LFUI.packAutoSort) LFUI.packAutoSort(); save(getState()); afterPackChange(); refreshContainerPanel(p); toast('已整理。'); }
     return {
       openShop: openShop,
       bindShopPanel: bindShopPanel,

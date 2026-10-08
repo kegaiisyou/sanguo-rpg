@@ -10,6 +10,7 @@
     var afterPackChange = ctx.afterPackChange;
 
     var BASE_PACK = 6;
+    var DEF_MAX_STACK = 99;
     function packMax(st) {
       st = st || S();
       var m = BASE_PACK;
@@ -69,21 +70,36 @@
       return -1;
     }
     function packAdd(itemOrDefId, count) {
-      var it;
-      if (typeof itemOrDefId === 'string') { it = LF.ITEMS.makeItem(itemOrDefId, count || 1); }
-      else { it = itemOrDefId; if (count) it.count = (it.count || 1) + count; }
-      if (!it) return false;
-      if (packIsStackable(it)) {
-        var k = itemKey(it), pk = S().pack;
-        for (var i = 0; i < pk.length; i++) {
-          var c = pk[i];
-          if (c && itemKey(c) === k && c.cat !== '装备') { c.count = (c.count || 1) + (it.count || 1); return true; }
+      var defId, baseCount;
+      if (typeof itemOrDefId === 'string') { defId = itemOrDefId; baseCount = count || 1; }
+      else { var o = itemOrDefId; defId = o.defId || o.id; baseCount = (o.count || 1) + (count || 0); }
+      if (!defId) return false;
+      var d = LF.ITEMS[defId] || {};
+      var pk = S().pack;
+      if (!packIsStackable({ cat: d.cat, maxDur: d.maxDur })) {
+        if (typeof itemOrDefId !== 'string') itemOrDefId.count = baseCount;
+        var e = packFirstEmpty();
+        if (e < 0 && pk.length < packMax()) { pk.push(null); e = packFirstEmpty(); }
+        if (e < 0) { toast('行囊已满，拾取失败。'); return false; }
+        pk[e] = (typeof itemOrDefId === 'string') ? LF.ITEMS.makeItem(defId, baseCount) : itemOrDefId;
+        return true;
+      }
+      var cap = d.maxStack || DEF_MAX_STACK, rem = baseCount;
+      for (var i = 0; i < pk.length && rem > 0; i++) {
+        var c = pk[i];
+        if (c && itemKey(c) === defId && packIsStackable(c)) {
+          var space = cap - (c.count || 0);
+          if (space > 0) { var add = Math.min(space, rem); c.count += add; rem -= add; }
         }
       }
-      var e = packFirstEmpty();
-      if (e < 0 && S().pack.length < packMax()) { while (S().pack.length < packMax()) S().pack.push(null); e = packFirstEmpty(); }   // 防御：数组短于容量时先补齐再判定
-      if (e < 0) { toast('行囊已满，拾取失败。'); return false; }
-      S().pack[e] = it; return true;
+      while (rem > 0) {
+        var e2 = packFirstEmpty();
+        if (e2 < 0 && pk.length < packMax()) { pk.push(null); e2 = packFirstEmpty(); }
+        if (e2 < 0) { toast('行囊已满，拾取失败。'); return false; }
+        var put = Math.min(cap, rem);
+        pk[e2] = LF.ITEMS.makeItem(defId, put); rem -= put;
+      }
+      return true;
     }
     function packConsume(defId, n) {
       n = n || 1; var rem = n, pk = S().pack;
