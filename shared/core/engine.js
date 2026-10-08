@@ -5291,6 +5291,10 @@
       var p1 = (!A || !window.d3) ? _loadMapAsset(A?A.d3:'shared/vendor/d3.min.js') : Promise.resolve();
       var p2 = (!A || !(window.LF && LF.REGIONS)) ? _loadMapAsset(A?A.regions:'shared/data/map_regions.js') : Promise.resolve();
       Promise.all([p1, p2]).then(function(){
+        // v20261008g：几何基础（LF.StratGeom）先就位，再加载 strategic-map
+        //   —— sm 顶层即执行 `var convexHull = SG.convexHull` 取别名，geo 未加载会静默取到 undefined。
+        if(A && !(window.LF && LF.StratGeom)) return _loadMapAsset(A.geo||'shared/strategic-geometry.js');
+      }).then(function(){
         if(!A || !(window.LF && LF.initStrategicMap)) return _loadMapAsset(A?A.sm:'shared/strategic-map.js');
       }).then(resolve, reject);
     });

@@ -189,10 +189,14 @@ window.onerror=function(msg,url,line,col,err){
       window.__MAP_ASSETS = {
         d3: 'shared/vendor/d3.min.js?v=20260902b',
         regions: 'shared/data/map_regions.js?v=20260912c',
-        sm: 'shared/strategic-map.js?v=20260928g'
+        // v20261008g：几何基础算法（纯函数，零依赖）——必须先于 sm 加载，sm 顶层即取其别名
+    geo: 'shared/strategic-geometry.js?v=20261008g',
+    sm: 'shared/strategic-map.js?v=20260928g'
       };
     </script>
-<script src="shared/bundle.js?v=20261008e" defer></script>
+<script src="shared/bundle.js?v=20261008g" defer></script>
+
+
 
 
 
