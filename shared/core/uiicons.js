@@ -71,7 +71,11 @@
   var HERO_BY_NAME={
     '曹操':'npc-caocao','刘备':'npc-liubei','孙策':'npc-sunce','关羽':'npc-guanyu',
     '张飞':'npc-zhangfei','赵云':'npc-zhaoyun','诸葛亮':'npc-zhugeliang','吕布':'npc-lvbu',
-    '董卓':'npc-dongzhuo','周瑜':'npc-zhouyu'
+    '董卓':'npc-dongzhuo','周瑜':'npc-zhouyu',
+    // v20260924z21 第二批：袁绍/马超/典韦/许褚/张辽/黄忠/太史慈/荀彧/郭嘉/庞统
+    '袁绍':'npc-yuanshao','马超':'npc-machao','典韦':'npc-dianwei','许褚':'npc-xuchu',
+    '张辽':'npc-zhangliao','黄忠':'npc-huangzhong','太史慈':'npc-taishici','荀彧':'npc-xunyu',
+    '郭嘉':'npc-guojia','庞统':'npc-pangtong'
   };
   function avatar(name, role){
     if(name && HERO_BY_NAME[name]) return pic(HERO_BY_NAME[name], 'ui-ava');
