@@ -14,6 +14,7 @@
         packList = ctx.packList, packGet = ctx.packGet,
         usePackItem = ctx.usePackItem, discardPackItem = ctx.discardPackItem;
     var getPackInspect = ctx.getPackInspect, setPackInspect = ctx.setPackInspect;
+    var packFilter = '';   // v20261008c：背包分类页签（''=全部 / cat 值=仅该类），仅影响物品区显示
 
   function movePackItem(from,to){
     if(locEq(from,to)) return;
@@ -78,7 +79,8 @@
     var grid='';
     var _cap=packMax(); if(getState().pack.length>_cap)_cap=getState().pack.length; for(var i=0;i<_cap;i++){
       var it=getState().pack[i];
-      if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
+      // v20261008c：分类页签筛选——不匹配类别的格渲染为空（保留格子索引与拖拽换位一致性）
+      if(!it || (packFilter && it.cat !== packFilter)){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
@@ -86,6 +88,28 @@
             + cnt + qb + '</div>';
     }
     return grid;
+  }
+  // v20261008c：背包分类页签栏（全部/素材/药剂/菜肴/器具/其他）
+  function renderPackTabs(){
+    var cats = [['','全 部'],['素材','素材'],['药剂','药剂'],['菜肴','菜肴'],['器具','器具'],['装备','装备'],['其他','其他']];
+    var h='<div class="pack-tabs" id="pack-tabs">';
+    cats.forEach(function(c){
+      var on = packFilter===c[0] ? ' on' : '';
+      h+='<button class="pack-tab'+on+'" data-cat="'+c[0]+'">'+c[1]+'</button>';
+    });
+    return h+'</div>';
+  }
+  function bindPackTabs(card){
+    var bar=card.querySelector('#pack-tabs'); if(!bar) return;
+    Array.prototype.forEach.call(bar.querySelectorAll('.pack-tab'), function(b){
+      b.onclick=function(){
+        packFilter=b.getAttribute('data-cat');
+        var sc=card.querySelector('.pack-scroll'); var grid=sc&&sc.querySelector('.pack-grid');
+        if(grid){ grid.innerHTML=renderPackGrid(); bindPackTabs(card); }
+        if(typeof bindPackInteractions==='function') bindPackInteractions(card);
+        setPackInspect(null); var f=document.getElementById('pack-float'); if(f) f.style.display='none';
+      };
+    });
   }
   // 装备栏（六装备槽 + 背包槽 + 属性）：v20260927p 重排为 2×4 对称网格——不再叠在人形剪影上（原 absolute 布局手机端竖排窄格变形、装备名被裁）
   function renderEquipFigure(){
@@ -100,7 +124,7 @@
       if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
       var inner = eq
         ? '<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>'
-        : '<div class="ep-ph">'+sl.label+'</div>';
+        : '<div class="ep-ph"><span class="ep-ic">'+(sl.icon||'')+'</span>'+sl.label+'</div>';
       var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
       var qs = qcol ? (' style="--qcol:'+qcol+'"') : '';
       eqHtml += '<div class="equipslot ep-'+slot+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
@@ -138,6 +162,7 @@
       + '<div class="pack-main">'
       +   '<div class="pack-left"><div class="pack-left-title">装 备</div>'+renderEquipFigure()+renderEquipStats()+'</div>'
       +   '<div class="pack-right"><div class="pack-right-title">物 品</div>'
+      +     renderPackTabs()
       +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
       +   '</div>'
       + '</div>'
@@ -231,6 +256,7 @@
   var packLastClick={t:0, loc:null};
   function bindPackInteractions(){
     var card=document.getElementById('modal-card'); if(!card) return;
+    bindPackTabs(card);
     var cells=card.querySelectorAll('[data-loc]');
     cells.forEach(function(el){
       el.onclick=function(){

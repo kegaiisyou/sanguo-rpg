@@ -288,15 +288,20 @@
             grid2 += '<div class="packcell pcell-empty" data-loc="pack:' + pi + '"></div>';
           }
         }
+        var stCap = st ? st.slots : 0;
+        var stPct = stCap ? Math.round(used2*100/stCap) : 0;
         return '<div class="shop-wrap">'
-          + '<div class="shop-head"><span class="shop-title">🏛 ' + stName + '</span><span class="shop-gold">' + used2 + ' / ' + (st ? st.slots : 0) + ' 格</span></div>'
+          + '<div class="shop-head"><span class="shop-title">🏛 ' + stName + '</span><span class="shop-gold">' + used2 + ' / ' + stCap + ' 格</span></div>'
+          + '<div class="shop-cap"><div class="shop-cap-bar"><i style="width:'+Math.min(100,stPct)+'%"></i></div><span class="shop-cap-n">'+stPct+'%</span></div>'
           + '<div class="shop-main">'
           + '<div class="shop-left"><div class="shop-pane-title">仓库 · 点选取物</div><div class="shop-scroll"><div class="pack-grid">' + sg2 + '</div></div></div>'
           + '<div class="shop-right"><div class="shop-pane-title">你的行囊 · 拖物到左栏即存入</div><div class="shop-scroll"><div class="pack-grid">' + grid2 + '</div></div></div>'
           + '</div>'
           + '<div class="shop-foot"><div class="sf-acts">'
+          + '<div class="sf-row">'
           + '<button class="btn" id="m-leave">收 工</button>'
           + '<button class="btn" id="pack-sort">整理仓库行囊</button>'
+          + '</div>'
           + '</div></div>'
           + '</div>';
       }
@@ -1129,17 +1134,26 @@
     var _pk=(S().pack||[]); var _cap=packMax(); if(_pk.length>_cap)_cap=_pk.length;
     for(var i=0;i<_cap;i++){ var pit=_pk[i]; if(!pit){ pk+='<div class="packcell empty" data-pk-idx="'+i+'"></div>'; continue; } pk+='<div class="packcell" data-pk-idx="'+i+'">'+itemIconHTML(pit,16)+'<span class="pc-n">'+(pit.count||1)+'</span></div>'; }
     var used=contCount(p);
+    var cap=slots.length;
+    // v20261008c：货架分层视觉——按容量定列数（8=4列×2行 / 16=4×4 / 24=4×6），强化"层板"心智
+    var capCls = cap>=24 ? 'cap24' : (cap>=16 ? 'cap16' : 'cap8');
+    var pct = cap ? Math.round(used*100/cap) : 0;
+    var barW = Math.min(100, pct);
+    var placeIc = (d.place && d.place.icon) ? d.place.icon : (d.icon||'📦');
     return '<div class="shop-wrap">'
-      + '<div class="shop-head"><span class="shop-title">📦 '+(d.name||'容器')+'</span><span class="shop-gold">'+used+' / '+slots.length+' 格</span></div>'
+      + '<div class="shop-head"><span class="shop-title">'+placeIc+' '+(d.name||'容器')+'</span><span class="shop-gold">'+used+' / '+cap+' 格</span></div>'
+      + '<div class="shop-cap"><div class="shop-cap-bar"><i style="width:'+barW+'%"></i></div><span class="shop-cap-n">'+pct+'%</span></div>'
       + '<div class="shop-main">'
-      +   '<div class="shop-left"><div class="shop-pane-title">容器 · 点选取物</div><div class="shop-scroll"><div class="pack-grid" id="cont-grid">'+cells+'</div></div></div>'
+      +   '<div class="shop-left"><div class="shop-pane-title">容器 · 点选取物</div><div class="shop-scroll"><div class="pack-grid cont-grid '+capCls+'" id="cont-grid">'+cells+'</div></div></div>'
       +   '<div class="shop-right"><div class="shop-pane-title">你的行囊 · 拖物到左栏即收纳</div><div class="shop-scroll"><div class="pack-grid" id="cont-pack">'+pk+'</div></div></div>'
       + '</div>'
       + '<div class="shop-foot"><div class="sf-acts">'
-      +   '<button class="btn" id="cont-take-all">全部取出</button>'
-      +   '<button class="btn" id="cont-put-all">全部收纳</button>'
-      +   '<button class="btn" id="cont-sort">整 理</button>'
-      +   '<button class="btn" id="cont-pickup">收 起</button>'
+      +   '<div class="sf-row">'
+      +     '<button class="btn" id="cont-take-all">全部取出</button>'
+      +     '<button class="btn" id="cont-put-all">全部收纳</button>'
+      +     '<button class="btn" id="cont-sort">整 理</button>'
+      +   '</div>'
+      +   '<button class="btn sf-main" id="cont-pickup">收 起 货 架</button>'
       + '</div></div></div>';
   }
   function qtyRow(act){
