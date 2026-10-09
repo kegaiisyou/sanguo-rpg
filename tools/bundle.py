@@ -20,12 +20,14 @@ MANIFEST = os.path.join(WS, 'tools', 'bundle.manifest')
 INDEX = os.path.join(WS, 'index.html')
 BUNDLE = os.path.join(WS, 'shared', 'bundle.js')
 CONSTANTS = os.path.join(WS, 'shared', 'config', 'constants.js')
-VERSION = '20261008g'
+VERSION = '20261008n'
 
 def read(p): return io.open(p, 'r', encoding='utf-8', newline='').read().replace('\r\n', '\n')
 def write(p, s): io.open(p, 'w', encoding='utf-8', newline='').write(s)
 
 SRC_RE = re.compile(r'<script src="(shared/[^"]+?\.js)\?v=[^"]*"[^>]*></script>')
+# 删除用：连标签所在行的尾随换行一并吃掉（否则每跑一次 bundle.py 就多留一个空行）；[^>]* 兼容 defer 等属性
+REMOVE_RE = re.compile(r'[ \t]*<script src="shared/[^"]+?\.js\?v=[^"]*"[^>]*></script>[ \t]*\r?\n?')
 
 def extract_from_index():
     return [m.group(1) for m in SRC_RE.finditer(read(INDEX))]
@@ -105,7 +107,7 @@ def main():
 const fs=require('fs');
 const t=require(process.argv[2]);
 const src=fs.readFileSync(0,'utf8');
-t.minify(src,{compress:{passes:2},mangle:true,format:{comments:false}}).then(r=>{
+t.minify(src,{compress:{passes:2, inline:false},mangle:true,format:{comments:false}}).then(r=>{
   process.stdout.write(r.code);
 }).catch(e=>{ console.error('TERSER_FAIL:'+e.message); process.exit(2); });
 '''
@@ -151,8 +153,8 @@ t.minify(src,{compress:{passes:2},mangle:true,format:{comments:false}}).then(r=>
 
     # 4) 改写 index.html：删掉 75 个独立标签，插入单 bundle 标签（放在 __MAP_ASSETS 内联脚本之后）
     s = read(INDEX)
-    s = SRC_RE.sub('', s)                                   # 去独立 src 标签
-    s = re.sub(r'\s*<script src="shared/bundle\.js\?v=[^"]*"></script>', '', s)  # 去旧 bundle
+    s = REMOVE_RE.sub('', s)                                # 去独立 src 标签(连尾随换行)
+    s = re.sub(r'[ \t]*<script src="shared/bundle\.js\?v=[^"]*"[^>]*></script>[ \t]*\r?\n?', '', s)  # 去旧 bundle(兼容 defer)
     tag = '<script src="shared/bundle.js?v=%s" defer></script>' % VERSION
     m = re.search(r'(window\.__MAP_ASSETS\s*=\s*\{.*?</script>)', s, re.S)
     if m:

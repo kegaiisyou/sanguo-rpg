@@ -28,6 +28,72 @@
   // 音效桥：audio.js（在 engine.js 之前加载）将音频引擎挂到 window.SFX；
   // 此处显式声明供 Combat 工厂 ctx（SFX: SFX）与引擎内裸名共用，消除隐式读 window 全局。
   var SFX = (typeof window !== 'undefined' && window.SFX) || null;
+  // 时间引擎：从 time.js 工厂注入（6 函数，全游戏唯一时钟；跨模块 tick 全部 getter 注入）
+  var Time = LF.createTime({
+    getState: function(){ return state; },
+    getClockFlowing: function(){ return clockFlowing; }, getAutoOnbRoutines: function(){ return autoOnbRoutines; },
+    getApplyTimeRoutines: function(){ return applyTimeRoutines; }, getOnbDayTick: function(){ return onbDayTick; },
+    getWarlordDayTick: function(){ return warlordDayTick; }, getTickArmyDay: function(){ return tickArmyDay; },
+    getNpcAi: function(){ return NpcAi; }, getTryAmbush: function(){ return tryAmbush; },
+    getDeriveCalendar: function(){ return deriveCalendar; }, getOnMonthTick: function(){ return onMonthTick; },
+    getTickForge: function(){ return tickForge; }, getTickBuildOrders: function(){ return tickBuildOrders; },
+    getRequestCurfewPatrol: function(){ return requestCurfewPatrol; }, getWeathers: function(){ return WEATHERS; },
+    getOnbF: function(){ return onbF; }, getOnbBound: function(){ return onbBound; },
+    getInCampNow: function(){ return inCampNow; }, getLog: function(){ return log; },
+    getCheckDeath: function(){ return checkDeath; }
+  });
+  var advanceTime = Time.advanceTime, advanceMinutes = Time.advanceMinutes,
+      curfewWarn = Time.curfewWarn, rollWarn = Time.rollWarn,
+      syncCalendar = Time.syncCalendar, maybeStarve = Time.maybeStarve;
+  // 放置/营造系统：从 construction.js 工厂注入（14 函数 + 4 数据不再留 engine.js 实体）
+  var Construction = LF.createConstruction({
+    LF: LF, G: G, itemIconHTML: itemIconHTML, getItemIconHTML: function(){ return itemIconHTML; },
+    getState: function(){ return state; }, getBuildState: function(){ return buildState; },
+    getcurrentModalKind: function(){ return currentModalKind; },
+    getPackInspect: function(){ return packInspect; }, setPackInspect: function(v){ packInspect = v; },
+    getRoomObjects: function(){ return ROOM_OBJECTS; }, getShop: function(){ return Shop; },
+    getCurRoom: function(){ return curRoom; }, getToast: function(){ return toast; }, getLog: function(){ return log; },
+    getAfterPackChange: function(){ return afterPackChange; }, getPackAdd: function(){ return packAdd; },
+    getPackFind: function(){ return packFind; }, getPackConsume: function(){ return packConsume; },
+    getOpenModal: function(){ return openModal; }, getOpenForgePanel: function(){ return openForgePanel; },
+    getEnterBldRoom: function(){ return enterBldRoom; }, getSave: function(){ return save; },
+    getAdvanceMinutes: function(){ return advanceMinutes; }, getBuildActions: function(){ return buildActions; },
+    getIsBldRoom: function(){ return isBldRoom; }, getIsCityGrid: function(){ return isCityGrid; },
+    getGenCityGrid: function(){ return genCityGrid; }, getBldForRoom: function(){ return bldForRoom; },
+    getBldActsFilter: function(){ return bldActsFilter; }, getBldMove: function(){ return bldMove; },
+    getCloseModal: function(){ return closeModal; }, getOpenRestModal: function(){ return openRestModal; },
+    getShuicaoDrinkPlaced: function(){ return shuicaoDrinkPlaced; }, getShuicaoFillPlaced: function(){ return shuicaoFillPlaced; },
+    getShuicaoDrawToBag: function(){ return shuicaoDrawToBag; }
+  });
+  var buildState = { site:null, msg:'' };
+  var PLACE_KEY_DEF = Construction.PLACE_KEY_DEF, PLACE_ACTIONS = Construction.PLACE_ACTIONS,
+      REST_KINDS = Construction.REST_KINDS, WX_REST = Construction.WX_REST,
+      placedCellTag = Construction.placedCellTag, placedInCell = Construction.placedInCell,
+      placedFeature = Construction.placedFeature, roomObjs = Construction.roomObjs,
+      placeInspect = Construction.placeInspect, packUpPlaced = Construction.packUpPlaced,
+      findPlacedBp = Construction.findPlacedBp, buildSiteActions = Construction.buildSiteActions,
+      buildDoneActions = Construction.buildDoneActions, inspectBuildSite = Construction.inspectBuildSite,
+      buildAddMat = Construction.buildAddMat, buildStage = Construction.buildStage;
+  // 顶部提示条：从 ui.js 工厂注入（toast 不再留 engine.js 实体）
+  var UI = LF.createUI({ getSettings: function(){ return settings; }, getTick: function(){ return tick; },
+    getToastEl: function(){ return document.getElementById('toast'); } });
+  var toast = UI.toast;
+  // 战略地图集成层：从 strategicMap.js 工厂注入（8 个函数不再留 engine.js 实体）
+  var StrategicMap = LF.createStrategicMap({
+    LF: LF, getState: function(){ return state; }, G: G,
+    getCurRoom: function(){ return curRoom; }, getIsBldRoom: function(){ return isBldRoom; },
+    getCityOwnerOf: function(){ return cityOwnerOf; }, getCloseModal: function(){ return closeModal; },
+    getRenderRoom: function(){ return renderRoom; }, getSave: function(){ return save; },
+    getLog: function(){ return log; }, getGoRoomOnMap: function(){ return goRoomOnMap; },
+    getPlaceInfo: function(){ return placeInfo; }
+  });
+  var buildStrategicMapHTML = StrategicMap.buildStrategicMapHTML, smYouMark = StrategicMap.smYouMark,
+      smGoalMarks = StrategicMap.smGoalMarks, strategicMapMarks = StrategicMap.strategicMapMarks,
+      strategicOwnerOf = StrategicMap.strategicOwnerOf, ensureStrategicMap = StrategicMap.ensureStrategicMap,
+      prefetchStrategicMap = StrategicMap.prefetchStrategicMap, initStrategicMapInGame = StrategicMap.initStrategicMapInGame;
+  // 图标系统：从 icons.js 工厂注入（itemIconHTML/ICON_SPR/ICON_IMG 不再留 engine.js 实体）
+  var Icons = LF.createIcons({ LF: LF });
+  var itemIconHTML = Icons.itemIconHTML, ICON_SPR = Icons.ICON_SPR, ICON_IMG = Icons.ICON_IMG;
 
   // 存档系统：从 save.js 工厂注入运行时上下文（不再读 window 裸全局）
   var Save = LF.createSave({ SLOTS: SLOTS, G: G, SHICHEN: SHICHEN, getCurSlot: function(){ return curSlot; } });
@@ -1267,96 +1333,6 @@
   //   于是城内移动 10 分钟/格、劳作 30 分钟/次、郊野 30 分钟/格都能落进同一套钟里；
   //   营规（应卯/销名/查房窗口）全部按整时辰判定，完全不受影响。
   //   生存消耗按「跨辰步进」扣（每跨一辰 -1 食 -1 水 -2 精力），速率与旧版完全一致。
-  function advanceTime(n){
-    n=n||1;
-    if(!clockFlowing()) return;
-    advanceMinutes(n*120);          // 休息等整时辰动作委托分钟制（1 时辰=120 分钟）
-  }
-  function advanceMinutes(min){
-    if(!state) return;
-    min = Math.max(0, (min|0)||0);
-    if(!clockFlowing()) return;     // 教学期「时辰未启」→ 时间一律冻结（同旧版）
-    var before = state.clock || 0;
-    var raw = before + min;
-    var crossings = Math.floor(raw/1440);                       // 跨子夜次数 = 经过的天数
-    // 时辰边界换算：0 点 = 子时中段（子时=23:00-01:00，横跨午夜），故时辰下标 = floor((clock+60)/120) % 12
-    //   （卯时自 clock=300 起、辰时自 420 起……）。此换算非单调（子时跨午夜时从 12 跳回 0），
-    //   故跨辰数 = 模后差值，为负（逆跨午夜）则 +12 归正；直接用 floor(clock/120) 或单调差值都会漏进位。
-    function _hourIdx(_c){ return Math.floor((_c+60)/120) % 12; }
-    var crossedHours = _hourIdx(raw) - _hourIdx(before);
-    if(crossedHours < 0) crossedHours += 12;
-    state.time = (state.time + crossedHours) % 12;
-    state.clock = raw % 1440;                                   // 每时辰 = 120 游戏分钟
-    autoOnbRoutines();                       // 卯辰自动应卯 / 戌时自动销名（简化新手流程）
-    applyTimeRoutines();                     // 时辰推移 → 驱动 NPC 作息流动（全城通用）
-    for(var i=0;i<crossedHours;i++){         // 生存消耗：每跨一辰扣一次（与旧版速率一致）
-      state.food=Math.max(0,(state.food||0)-1);
-      state.drink=Math.max(0,(state.drink||0)-1);
-      state.energy=Math.max(0,(state.energy||0)-2);
-    }
-    maybeStarve();
-    if(crossings>0){
-      onbDayTick(crossings);                 // 营中「一日」结算：点卯 / 旷役（v20260911h · P3）
-      state.day=(state.day||0)+crossings;
-      syncCalendar();                        // 跨日 → 农历月日 / 年号年序随之推进
-      if(Math.random()<0.55) state.weather=Math.floor(Math.random()*WEATHERS.length); // 新日易天候
-      warlordDayTick(crossings);             // 群雄逐鹿：NPC 势力自动攻伐（v20260909o）
-      tickArmyDay(crossings);                // 军务：行军推进 + 军粮消耗 + 断粮掉士气（v20260921a）
-      if (NpcAi && NpcAi.tickDay) NpcAi.tickDay();   // 名将流动：按内驱力改易驻城（野心趋大城，好武趋边地）（v20260927j）
-      tryAmbush();                           // 设伏：郊野候敌，敌至则先手（v20260921a）
-    }
-      // 朔日结算（v20260918g）：跨月 → 治下纳赋 + 群雄内政 + 势力存亡 + 统一终局（叠在耗时辰模型上）
-      var _cal = deriveCalendar();
-      var _mk = _cal.adYear * 12 + _cal.month;
-      var _newMonth = (state.flags._monthKey != null && _mk !== state.flags._monthKey);
-      state.flags._monthKey = _mk;   // 先写入新月键：朔日结算内的外交到期清算须用新值（否则盟约多生效一个月）
-      if (_newMonth) onMonthTick(_cal);
-    tickForge(crossedHours);   // 炉膛随时辰持续推进（未跨辰不动，避免 0.25 时辰的小数进度）
-    tickBuildOrders(crossings);   // 城市营造工单：跨日推进宏观委派 + 结算每日市租（第3步）
-    // 查房（v20260911i）：此刻若已过戌时又在营中游荡，巡夜狱卒便来拿人。
-    //   动作自身的文案正在打字，故走 requestCurfewPatrol（记「待评」+ 叙事收尾后由 syncActionLock 续评）。
-    curfewWarn();
-    rollWarn();        // v20260916h：卯时应卯提醒（对称酉时预警）
-    requestCurfewPatrol();
-  }
-  // 酉时入夜预警（v20260916a）：劳作/赶路推进时辰后若到酉时且仍在营中，先提醒一句
-  //   「戌时落锁」——把「天黑会被抓」的悬念提前给玩家，而不是等巡夜灯笼怼脸。
-  function curfewWarn(){
-    if(!onbBound()) return;              // 已脱籍 / 营规未立：不必提醒
-    if(state.time!==9) return;           // 酉时（十二时辰下标 9）才是预警窗口
-    if(!inCampNow()) return;
-    var o=onbF();
-    if(o.curfewWarnDay===state.day) return;   // 当日只提醒一次
-    o.curfewWarnDay=state.day;
-    log('〔天色将晚〕酉时过半，日头西沉——戌时营门落锁，记得回牢房销名。','warn');
-  }
-  // 卯时应卯提醒（v20260916h，对称酉时预警）：卯时一到若还没应名，先提一句——
-  //   「应卯」窗口虽是卯至午四个时辰，但多数玩家头几天根本不知道时辰这回事，先亮个路标。
-  function rollWarn(){
-    if(!onbBound()) return;
-    if(state.time!==3) return;              // 卯时（十二时辰下标 3）是应卯窗口开头
-    if(!inCampNow()) return;
-    var o=onbF();
-    if(o.rollWarnDay===state.day) return;   // 当日只提醒一次
-    o.rollWarnDay=state.day;
-    log('〔天色将明〕卯时了，牢头在中军场院点名——记得去应一声，过午不候。','warn');
-  }
-  // 由累计天数回写年号年序 + 年号名（年号随公元年自动切换：184→中平，杜绝 184 仍显「光和」）
-  function syncCalendar(){
-    var c=deriveCalendar();
-    state.eraName=c.eraName; state.eraYear=c.eraYear; state.adYear=c.adYear;
-  }
-  // 饥饿过高：食物/饮水耗尽则持续侵蚀气血（硬性限制）；归零即殒落
-  function maybeStarve(){
-    var dmg=0, msgs=[];
-    if(state.food<=0){ dmg+=6; msgs.push('腹中空虚'); }
-    if(state.drink<=0){ dmg+=4; msgs.push('喉间干涸'); }
-    if(dmg>0){
-      state.hp=Math.max(0,state.hp-dmg);
-      log('〔饥馁〕'+msgs.join('，')+'，气血-'+dmg+'。','combat');
-      checkDeath();
-    }
-  }
   // 死亡：气血归零 → 回标题屏（读档/重开）
   function checkDeath(){ if(state && !state.dead && state.hp<=0){ die(); } }
   function die(){
@@ -1472,10 +1448,6 @@
     var b=document.createElement('button');
     b.className='act '+(cls||''); b.textContent=label;
     b.onclick=fn; $actions.appendChild(b);
-  }
-  function prependActsLabel(){
-    var l=document.createElement('div'); l.className='acts-label';
-    l.textContent='· 可 行 之 事 ·'; $actions.appendChild(l);
   }
   // 点击弹出的操作面板：详情 + 选项 + 告辞（始终可退回菜单）
   function openSheet(o){
@@ -1697,7 +1669,6 @@
   function buildActions(room, popExits){
     if(!room) room=curRoom();
     clearActions();
-    grpCursor=null;
     renderNpcList(room);   // 左侧 NPC 列表（配置房间与兼容房间统一渲染，避免与下方按钮重复）
     // 战败封锁：仅可「席地打盹」恢复，场景其余按钮全部隐藏
     if(state.defeated){
@@ -1926,7 +1897,6 @@
       box.appendChild(chip);
     });
   }
-  var grpCursor=null;
   function isSelfCare(a){
     return (a.label==='研习武学') || /休整|歇|栖|借宿|调息/.test(a.label||'');
   }
@@ -1950,496 +1920,53 @@
       var btn=mkAct(group, o.icon, o.name, function(e){ toggleObjExpand(e, btn, o, acts); }, null, o.key);
     });
   }
-  // ═══ 城格内部：可进入子房间(doors) + 不可进入交互物(objects)（v20260910q 地图框架）═══
-  // 通用规则：罗盘=大方位去别处；面板=当前地点内的 rooms/items；NPC 单列。
-  // 放 engine.js 而非 city.js：city.js 的 helper 是 LF.createCity(ctx) 内部闭包，
-  // 需 return + 别名块才能被 engine 看见；这套只 engine 用，全局最省事。
-  var CELL_INTERIORS = {
-    'kuyilao|1,0': {
-      doors: [
-        { label: '天字一号', icon: '🚪', target: 'camp_tz1', group: '天字牢房' },
-        { label: '天字二号', icon: '🚪', target: 'camp_tz2', group: '天字牢房' },
-        { label: '天字三号', icon: '🚪', target: 'camp_tz3', group: '天字牢房' },
-        { label: '地字一号', icon: '🚪', target: 'camp_dz1', group: '地字牢房' },
-        { label: '地字二号', icon: '🚪', target: 'camp_dz2', group: '地字牢房' },
-        { label: '地字三号', icon: '🚪', target: 'camp_dz3', group: '地字牢房' }
-      ],
-      objects: [
-        { icon:'🪣', label:'水槽', acts:[
-          {label:'饮水', icon:'💧', fn:function(){ troughDrinkBy('kuyilao|1,0'); }},
-          {label:'添水', icon:'🪣', fn:function(){ troughFillBy('kuyilao|1,0'); }},
-          {label:'装水入袋', icon:'💧', fn:function(){ troughDrawToBag('kuyilao|1,0'); }}
-        ]},
-        { icon:'⏳', label:'铜壶漏刻', acts:[
-          {label:'观漏', icon:'⏳', fn:function(){ loukeLook(); }}
-        ]}
-      ]
-    },
-    // 中军帐(1,1)：与牢房(1,0)对称，但只管「逃出去」那一摊。教学期只露记工册与刁斗两件，
-    //   舆图 / 军报 / 兵器架 / 正帐一律挂在 planningEscape() 门槛后 —— 这一格要摆「担石劳作 / 环顾四周」
-    //   的引导，一上来摆满按钮会把引导锚点顶掉（沿用 v20260912f 起「没介绍到的先藏着」的做法）。
-    'kuyilao|1,1': {
-      doors: [],
-      objects: [
-        // v20260920h：担石劳作改「装担→卸料」闭环 —— 乱石堆在场院装担，送到仓库卸料台才记一工
-        { icon:'🪨', label:'乱石堆', actId:'labor_yard', acts:[
-          {label:'装担', icon:'🪨', fn:function(){ stoneLoad(); }}
-        ]},
-        { icon:'📋', label:'记工木牌', acts:[
-          {label:'查工分', icon:'📋', fn:function(){ ledgerLook(); }},
-          {label:'看差役', icon:'📜', fn:function(){ jobBoard(); }}
-        ]},
-        { icon:'🥁', label:'铜刁斗', acts:[
-          {label:'击鼓', icon:'🥁', fn:function(){ diaodouStrike(); }}
-        ]},
-        { icon:'🗺️', label:'舆图沙盘', show: planningEscape, acts:[
-          {label:'细看舆图', icon:'🗺️', fn:function(){ yutuLook(); }}
-        ]},
-        { icon:'📜', label:'军报木牍', show: planningEscape, acts:[
-          {label:'翻看军报', icon:'📜', fn:function(){ junbaoLook(); }}
-        ]},
-        { icon:'⚔️', label:'兵器架', show: planningEscape, acts:[
-          {label:'取一件', icon:'⚔️', fn:function(){ rackTake(); }}
-        ]}
-      ]
-    },
-    // 农田（0,0）：接了「开垦薄田」才见着待垦的荒地；此后一畦一畦开出来（见 farmObjects）。
-    //   未接活时一律不摆 —— 这一格本就有「下地务农」的自由劳作，再堆设施会把格上的引导顶掉。
-    //   v20260915g：畦的数目随开出进度变化，故不能在定义时就写死数组（此处常量尚未声明），
-    //   改由 cellInteriors 在【运行时】问 farmObjects() 要。
-    'kuyilao|0,0': {
-      farmObjects: true,
-      // v20260924z3：柴林（伐木场）从农田格直接进 —— 薄田东出口是旧营区房间的路，玩家种地都在这一格，
-      //   入口必须摆在看得见的地方。伐木与务农同为营内自由劳作，故此门常开、不设任务门槛。
-      doors: [
-        { label:'柴林（伐木场）', icon:'🌳', target:'camp_woodland', group:'农庄' }
-      ]
-    },
-    // 演武场（2,2）：犬舍单独一间子房（v20260915e）——木人桩留在格上（格型动作），
-    //   逗犬进屋，两者隔开：先教打（桩），再教跑（犬）。门槛 = 木人桩已练成（tcDone）。
-    'kuyilao|2,2': {
-      doors: [
-        { label:'犬舍', icon:'🐕', target:'camp_kennel', group:'演武场',
-          show: function(){ return !!(state.flags && state.flags.onb && state.flags.onb.tcDone); } }
-      ]
-    },
-    // 伙房（0,1）：灶边水缸 —— 「担水入灶」的落点（打水在囚室水槽，倾水在此处，两头一担挑起来）
-    //   v20260915g 另起一口「大灶」：田里种出的菜豆在此下锅 —— 不然种地就是「掐了菜、交了差」便完事，
-    //   产出没有第二个去处，农田这块内容也就悬空了。
-    'kuyilao|0,1': {
-      objects: [
-        { icon:'🪣', label:'灶边水缸', show: function(){ return jobOpen('water'); }, acts:[
-          {label:'倾水入缸', icon:'💧', fn:function(){ kitchenPour(); }}
-        ]},
-        { icon:'🍲', label:'大灶', show: function(){ return farmHas('dou',1) || farmHas('yecai',3); }, acts:[
-          {label:'煮豆粥（菽豆×1 · 水×2）', icon:'🥣', show: function(){ return farmHas('dou',1); }, fn:function(){ cookDouzhou(); }},
-          {label:'野菜入锅（野菜×3）', icon:'🥬', show: function(){ return farmHas('yecai',3); }, fn:function(){ cookYeCai(); }}
-        ]}
-      ]
-    },
-    // 岗哨（1,2）：望楼 —— 「瞭望换岗」的落点（看的是时辰：换岗那一刻门洞最乱，正是出营的缝隙）
-    'kuyilao|1,2': {
-      objects: [
-        { icon:'🗼', label:'望楼', show: function(){ return jobOpen('watch'); }, acts:[
-          {label:'登楼瞭望', icon:'👁️', fn:function(){ watchLook(); }}
-        ]}
-      ]
-    },
-    // 仓库（2,1）：卸料台 + 三翻找点位（v20260920h）
-    //   担石搬运闭环的落点：场院装担 → 此处「卸料入仓」记工；卸料台无负重时不放行。
-    //   仓中翻找改三点位：麻袋堆/木箱/货架各管各的掉落池、翻空后隔天刷新；任务随机指定目标物。
-    'kuyilao|2,1': {
-      objects: [
-        { icon:'⛏️', label:'卸料台', actId:'haul_stones', acts:[
-          {label:'卸料入仓', icon:'🪨', fn:function(){ stoneUnload(); }}
-        ]},
-        { icon:'🧺', label:'麻袋堆', actId:'rummage_sack', acts:[
-          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('sack'); }}
-        ]},
-        { icon:'📦', label:'木箱', actId:'rummage_box', acts:[
-          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('box'); }}
-        ]},
-        { icon:'🪜', label:'货架', actId:'rummage_shelf', acts:[
-          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('shelf'); }}
-        ]}
-      ]
-    }
-    // 矿坑（2,0）【不摆设施】：该格是 mine 型，格上本就有「开凿矿料」出石料（city.js 格型动作）。
-    //   早前在此另摆一个「岩壁矿脉·凿石」，于是同一格里出现两个都出石料的按钮 —— 纯属重复，撤掉。
-  };
-  function cellInteriors(cid, x, y){
-    var d = CELL_INTERIORS[cid + '|' + x + ',' + y] || null;
-    // v20260915g：农田的畦是「开一畦多一畦」，数目随进度变；且定义常量在文件更下方，
-    //   故此处运行时再生成（比在表里写死数组干净，也不受声明顺序所累）。
-    // v20260920e：农田格另起一口「水井」——打水装袋 / 掬饮 / 浇灌，与畦同格摆（合并，不互顶）。
-    // v20260924z5：农田格曾把 doors（柴林入口）一并吞掉——此处只拼 objects 就 return 了。
-    //   柴林门定义在 CELL_INTERIORS 里，必须原样带出，否则农庄格看不到伐木场入口。
-    if(d && d.farmObjects) return { doors: d.doors || [], objects: farmObjects().concat([wellObject()]) };
-    return d;
-  }
-  // ═══ 农田水井（v20260920e）：夜半添水 / 浇畦的水源。井水取之不竭，只费工夫，不凭空。 ═══
-  function wellObject(){
-    return { icon:'⛲', label:'水井', acts:[
-      { label:'打水', icon:'🪣', fn:function(){ wellDrawToBag(); } },
-      { label:'掬饮', icon:'💧', fn:function(){ wellDrink(); } },
-      { label:'浇灌', icon:'🌱', fn:function(){ farmWater(0); } }
-    ]};
-  }
-  function wellDrawToBag(){
-    var bag=packFind('shuidai');
-    if(!bag){ toast('没有水袋，捧不起这井水——开垦薄田能得一只。'); return; }
-    var cap=bag.waterCap||10;
-    if((bag.water||0)>=cap){ toast('水袋已是满的。'); return; }
-    bag.water=cap;
-    advanceMinutes(5);
-    log('你摇起井绳，汲满一袋清冽井水（水袋 '+cap+' / '+cap+'）。','good');
-    save(state); renderStatus();
-  }
-  function wellDrink(){
-    state.drink=Math.min(state.maxDrink, (state.drink||0)+8);
-    advanceMinutes(5);
-    log('你扒着井沿掬了几口水，凉意直透喉底（饮 +8）。','good');
-    save(state); renderStatus();
-  }
-  // ═══ 苦役营牢房设施：水槽(容量+添水) / 值更鼓(击鼓)（v20260910s）═══
-  var TROUGH_CAP = 20;   // 水槽容量（饮水单位）；水不凭空生，满则溢
+  // ═══ 房间互动物件 + 差役牌（抽出 → shared/core/objects.js, v20261008l）═══
   function fxGet(key){
     state.fixtures = state.fixtures || {};
     if(!state.fixtures[key]){
       state.fixtures[key] = { water:0, strikes:0 };
-      if(key==='kuyilao|1,0') state.fixtures[key].water = 12;  // 牢中水槽初有半槽水，教学即饮
+      if(key==='kuyilao|1,0') state.fixtures[key].water = 12;
     }
     return state.fixtures[key];
   }
-  // 饮槽中水：回复 饮，扣槽水（不凭空）
-  function troughDrinkBy(key){
-    var f=fxGet(key);
-    if(f.water<=0){ toast('水槽见了底，须先添水。'); return; }
-    var sip=Math.min(8, f.water);
-    f.water-=sip;
-    state.drink=Math.min(state.maxDrink, (state.drink||0)+sip);
-    advanceMinutes(5);   // v20260917b：饮水/取水 5 分钟
-    log('你掬槽中水饮了几口，喉间干涸稍解（饮 +'+sip+'）。','good');
-    save(state); renderStatus();
-  }
-  // 以水袋向槽添水：容器水倒入，槽满则溢
-  function troughFillBy(key){
-    var f=fxGet(key);
-    if(f.water>=TROUGH_CAP){ toast('水槽已注满，添不下了。'); return; }
-    var bag=packFind('shuidai');
-    var bw=(bag && bag.water>0)? bag.water : 0;
-    if(!bag){ toast('须先得一只水袋，方能向槽中倾水（开垦薄田可得，农田水井打水装袋）。'); return; }
-    if(bw<=0){ toast('水袋空空——先去农田那格的水井「打水」再来添槽。'); return; }
-    var add=Math.min(bw, TROUGH_CAP-f.water);
-    f.water+=add; bag.water=bw-add;
-    advanceMinutes(5);   // v20260917b：添水 5 分钟
-    log('你将水袋中 '+add+' 份水倾入槽中（槽 '+f.water+' / '+TROUGH_CAP+'）。','good');
-    // 夜半添水（v20260915f）：注满即了 —— 这一槽水，够地字号那几位润到天亮。
-    if(f.water>=TROUGH_CAP && jobOpen('nightwater') && !jobFlag('nightwater','_done')){
-      jobTick('nightwater');
-      log('槽水终于漫到沿口。栅后有人哑着嗓子道了句谢——夜半这一槽，是替人解的渴。（修为+20 · 崔九好感+1）','good');
-      state.npcFavor=state.npcFavor||{}; state.npcFavor['cui_jiu']=(state.npcFavor['cui_jiu']||0)+1;
-      jobSettle('nightwater','night_water',20,0);
-    }
-    save(state); renderStatus();
-  }
-  // 铜壶漏刻（v20260916g）：牢房里那面「值更鼓」换成漏刻——营中钟点从「靠鼓敲」改为「靠漏走」，
-  //   与中军帐刁斗不再撞车（一个是滴答观时、一个是槌击报更）。观漏无声无险，只答时辰与换岗。
-  function loukeLook(){
-    var sh=SHICHEN[state.time%12];
-    log('〔滴答〕你凑近铜壶漏刻，铜壶承水，漏箭浮沉，刻度正指「'+sh+'」。营中换岗向在戌时前后，漏尽更敲。','sys');
-    save(state);
-  }
-  // 玩家放置的水槽（PLACE_ACTIONS）：水量存于放置条目 p.water
-  function shuicaoDrinkPlaced(p){
-    if((p.water||0)<=0){ toast('水槽见了底，须先添水。'); return; }
-    var sip=Math.min(8, p.water);
-    p.water-=sip;
-    state.drink=Math.min(state.maxDrink, (state.drink||0)+sip);
-    log('你掬槽中水饮了几口，喉间干涸稍解（饮 +'+sip+'）。','good');
-    save(state); renderStatus();
-  }
-  function shuicaoFillPlaced(p){
-    if((p.water||0)>=TROUGH_CAP){ toast('水槽已注满，添不下了。'); return; }
-    var bag=packFind('shuidai');
-    var bw=(bag && bag.water>0)? bag.water : 0;
-    if(!bag){ toast('须先得一只水袋，方能向槽中倾水（开垦薄田可得，农田水井打水装袋）。'); return; }
-    if(bw<=0){ toast('水袋空空——先去农田那格的水井「打水」再来添槽。'); return; }
-    var add=Math.min(bw, TROUGH_CAP-(p.water||0));
-    p.water=(p.water||0)+add; bag.water=bw-add;
-    log('你将水袋中 '+add+' 份水倾入槽中（槽 '+p.water+' / '+TROUGH_CAP+'）。','good');
-    save(state); renderStatus();
-  }
-  // 从水槽向水袋装水：槽水倒入水袋，受水袋容量( waterCap )限制（水袋可随身盛水，去别处再添槽）
-  function troughDrawToBag(key){
-    var f=fxGet(key);
-    if(f.water<=0){ toast('水槽空了，无水解渴。'); return; }
-    var bag=packFind('shuidai');
-    if(!bag){ toast('须先得一只水袋，方能从此槽中盛水（开垦薄田可得，农田水井打水装袋）。'); return; }
-    var cap=bag.waterCap||10, cur=(bag.water||0);
-    if(cur>=cap){ toast('水袋已满，盛不下了。'); return; }
-    var take=Math.min(f.water, cap-cur);
-    f.water-=take; bag.water=cur+take;
-    advanceMinutes(5);   // v20260917b：取水/装水 5 分钟
-    log('你以槽中水注满水袋（水袋 '+bag.water+' / '+cap+'）。','good');
-    save(state); renderStatus();
-  }
-  function shuicaoDrawToBag(p){
-    if((p.water||0)<=0){ toast('水槽空了，无水解渴。'); return; }
-    var bag=packFind('shuidai');
-    if(!bag){ toast('须先得一只水袋，方能从此槽中盛水（开垦薄田可得，农田水井打水装袋）。'); return; }
-    var cap=bag.waterCap||10, cur=(bag.water||0);
-    if(cur>=cap){ toast('水袋已满，盛不下了。'); return; }
-    var take=Math.min(p.water, cap-cur);
-    p.water=(p.water||0)-take; bag.water=cur+take;
-    log('你以槽中水注满水袋（水袋 '+bag.water+' / '+cap+'）。','good');
-    save(state); renderStatus();
-  }
-  // ═══ 苦役营·中军帐设施（v20260914d）═══
-  // 与牢房(1,0)分工：牢房管「活下去」（水槽解渴 / 更鼓探时辰 / 草荐打盹），
-  //   中军帐管「逃出去」——记工册答「还欠几分工」，舆图军报给出营要用的虚实，兵器架刁斗是拿命去换的冒险。
-  // 牢头白日在场院督工、戌时起回牢门口守夜（见 data/npc_cards.js 的 routine）——器械动得动不得，就看他在不在。
-  function laotouOnYard(){
-    var t=state.time%12;
-    return !(t===10||t===11||t===0||t===1||t===2);
-  }
-  // 是否已起了出营的心思：中军帐的进阶设施自此才现形（教学期这一格要摆「担石劳作/环顾四周」的引导，
-  //   一上来多塞五个按钮会把引导锚点顶掉，故一律收在门槛后）
-  function planningEscape(){ return !!(state.flags && state.flags.route && state.flags.route.crypt); }
-  // 记工木牌：工分 / 木片 / 旷役 —— 营中规则的日常面，教学期也可点，且正答「干了半天攒了几分」
-  function ledgerLook(){
-    var o=onbF();
-    if(!o || !o.started){ log('〔记工册〕工册上还没有你的名字——你是新押入的囚徒，待牢头录名后，才有工分可查。','sys'); return; }
-    if(o.done){ log('〔记工册〕册上早没了你的名字——你已脱籍。','sys'); return; }
-    var cnt=o.workCnt||0, per=LABOR_PER_WOOD||3, need=per-(cnt%per);
-    var pai=packFind('lao_pai'), have=pai?(pai.count||1):0, miss=o.missCount||0;
-    log('〔记工册〕名下已记 '+cnt+' 工，手上有「劳字木片」'+have+' 枚；再干 '+need+' 工，可换下一枚。','sys');
-    // v20260914g：工分与木片的来路去处，此前全营没有一处写明（玩家挣到木片，却不知往哪使、该交给谁）。
-    //   记工册正是管这件事的地方，故让它把这条链答全：工分 → 木片 → 伙房换饭 → 交到人手上。
-    log('〔记工册〕木片是营里的钱：干活记工，满 '+per+' 工发一枚，拿它往营西伙房换饭；换来的干粮须交到人手上（点那人，选「给予」），空手说一句不算数。','sys');
-    if(miss>0) log('〔记工册〕名下另有旷役 '+miss+' 次——每记一次，当日便扣一份口粮、惹牢头一顿脸色。','warn');
-  }
-  // 刁斗：击鼓报更。中军帐的鼓是号令鼓，比牢房那口漏刻更招人（与 loukeLook 对称）
-  function diaodouStrike(){
-    var f=fxGet('kuyilao|1,1|dou');
-    f.strikes=(f.strikes||0)+1;
-    log('〔当——〕你一槌敲在刁斗上，声震全营。此刻乃「'+SHICHEN[state.time%12]+'」。','sys');
-    if(laotouOnYard()) log('牢头隔着半个场院瞪过来：「敲你娘的丧钟！再敲，今夜的口粮没了。」','warn');
-    else log('夜深，刁斗声荡开去，岗上戍卒探头骂了两句，又缩回去了。','sys');
-    if(f.strikes>3) toast('刁斗连响数通，营中已四下张望——再敲必惹祸上身。');
-    save(state);
-  }
-  // 舆图沙盘：营盘九格 + 换岗时辰 + 水渠走向（水渠夜遁线的由头）
-  function yutuLook(){
-    log('〔舆图〕营盘方方正正九格：北列农田、囚室、矿坑；中为伙房、中军帐、仓库；南列军营、岗哨、演武场。','sys');
-    log('〔舆图〕一道水渠自伙房那侧穿墙而出，通到墙外的河沟——图上只注了「排水」二字。','sys');
-    log('〔舆图〕换岗在戌时前后，鼓响三通；子时最松，岗上只余两人。','sys');
-    // v20260914f：看过舆图，顺手把「山河」放行 —— 顺着一张营盘图，头一回晓得外头还有州郡。
-    //   解锁口径与别处一致（onbUnlockDock + Guide 高亮，见「角色」「行囊」的首次解锁）；
-    //   教学期这颗页签本是藏着的（body.onb），不这么做，玩家出了营才第一次见着山河志。
-    var o=onbF();
-    if(o && !o.done && (!o.unlocked || o.unlocked.indexOf('map')<0)){
-      onbUnlockDock('map');
-      log('你把图上那几条道记熟了，目光顺着营墙往外挪——墙外是渔阳，再往外是幽州，更远处还有十来个州。','sys');
-      log('〔山河〕点下方「🗺️ 山河」，可看这一带的州郡城池。眼下你还走不出去，先把路记在心里。','sys');
-      try{ if(LF.Guide && LF.Guide.ping) LF.Guide.ping({dock:'map'}); }catch(e){}
-    }
-  }
-  // 军报木牍：营中虚实（收买线的由头）
-  function junbaoLook(){
-    log('〔军报〕「渔阳戍卒二百，屯粮不足旬月。」「营中苦役三百余，逃者七，追回三。」','sys');
-    log('〔军报〕最末一牍墨迹未干：粮官贪杯，犬卒好赌——银钱到手，睁一只眼闭一只眼。','sys');
-  }
-  // 兵器架：白日动手吃一鞭；趁夜取械 → 开出「劫狱强攻线」的第三条前置（原只有等级≥3 / 戳通木人桩）
-  function rackTake(){
-    var o=onbF();
-    if(!o || !o.started || o.done){ toast('你已脱籍，营中器械与你无干。'); return; }
-    if(state.flags.route && state.flags.route.rack){ toast('你已藏下一件，贪多必失。'); return; }
-    if(laotouOnYard()){
-      log('你手刚搭上枪杆，背后一声暴喝：「作死！」牢头的鞭梢已抽在手背上，火辣辣一条血棱。','warn');
-      state.hp=Math.max(1,(state.hp==null?(state.maxHp||100):state.hp)-8);
-      renderStatus(); save(state);
-      return;
-    }
-    if(!exert('取械')) return;
-    if(!state.flags.route) state.flags.route={};
-    state.flags.route.rack=true;
-    log('〔得械〕你抽了一杆钝头枪，塞进塌墙根的乱砖底下——真要硬闯岗哨，手里总得有件家伙。','good');
-    save(state);
-  }
-  // ═══ 苦役营·差役牌（v20260914e 立，v20260914f 改）═══
-  // 木牌就是派活的地方：营里的差事全钉在上头 —— 谁要的、去哪干、做出来交到谁手上。
-  //   领活在此（摘木牍）→ 去那一格实地做工、做出实物 → 回头寻收差的那位，走给予面板把东西交出去（真扣行囊）。
-  //   交差判定挂在 onGive 触发器上（triggers.js kyl_farm_give / kyl_stone_give），不靠对话复命 ——
-  //   对话复命那一套是「空着手说一句就完事」，东西还躺在行囊里，算不得交差。
-  // 只留两条，且刻意不重样：田里出菜（交伙房）、矿里出石（交仓库）。
-  var JOB_BOARD = [
-    { key:'farm', quest:'camp_farm', title:'开垦薄田',
-      word:'孙老要的：薄田三垄，翻透，掐两捧菜，交伙房鲁大',
-      take:'你把「开垦薄田」那片木牍摘了下来。',
-      tip:'去营北农田那格：翻三垄开出第一畦 → 播菜籽 → 约三时辰后采收。地是九畦的园子，开出几畦看你肯下多少工；浇过水的早熟，该收不收会枯。菜捧去伙房，点鲁大、选「给予」交到他手上。' },
-    { key:'stone', quest:'stone', title:'采石充仓',
-      word:'仓吏要的：矿坑凿青石五块，交仓库',
-      take:'你把「采石充仓」那片木牍摘了下来。',
-      tip:'去营东北矿坑，就格上「开凿矿料」凿够五块石料；扛回仓库，点仓吏、选「给予」，把石料交到他手上。' },
-    // v20260915f：第二批 —— 四桩「要跑腿、要使唤东西」的差事。
-    //   与田里出菜、矿里出石的区别在：不产实物，产的是「跑这一趟」本身（水、话、时辰、拳脚）。
-    { key:'water', quest:'water_cook', title:'担水入灶',
-      word:'鲁大要的：囚室水槽打两袋水，倾进伙房灶边水缸',
-      take:'你把「担水入灶」那片木牍摘了下来。',
-      tip:'去农田那格的水井「打水」装满水袋，再往伙房那格点「灶边水缸」倾进去——两趟。' },
-    { key:'dummy', quest:'dummy_train', title:'木人试艺',
-      word:'韩铁要的：演武场木人桩，戳倒三回',
-      take:'你把「木人试艺」那片木牍摘了下来。',
-      tip:'去演武场（有木人桩那格）戳木人桩，打赢三回——跑掉不算，得把它戳倒。' },
-    { key:'errand', quest:'errand_word', title:'捎句话',
-      word:'孙老托的：带一句话给牢头，再回来回他个话',
-      take:'你把「捎句话」那片木牍摘了下来。',
-      tip:'去农田找孙老，问他要捎什么话 → 往中军场院寻牢头把话带到 → 回来与孙老回一声。' },
-    { key:'watch', quest:'watch_shift', title:'瞭望换岗',
-      word:'秦九霄要的：岗哨望楼看一回换岗，回来报时辰',
-      take:'你把「瞭望换岗」那片木牍摘了下来。',
-      tip:'去营东北岗哨那格点「登楼瞭望」记下换岗在几时，再回来与秦九霄说一声。' },
-    // v20260915f：第三批 —— 地字号那三间的差事（送粥 / 添水 / 翻找）。
-    //   前两桩是「给人递点东西」：一碗粥、一槽水，东西轻，落到人身上才重。
-    { key:'porridge', quest:'porridge_visit', title:'送粥探监',
-      word:'林娘托的：地字二号那个藏饼的少年，送一碗粥过去',
-      take:'你把「送粥探监」那片木牍摘了下来。',
-      tip:'先在伙房换一碗粥（过了饭点换到的正是粥），再往地字二号牢房，点那瘦少年、选「给予」，把粥递到他手上。' },
-    { key:'nightwater', quest:'night_water', title:'夜半添水',
-      word:'囚友求的：牢房那槽水快见底了，添满它',
-      take:'你把「夜半添水」那片木牍摘了下来。',
-      tip:'往囚室那格的水槽点「添水」，把槽水注满——添满即了（水不够就多打几袋）。' },
-    { key:'rummage', quest:'store_rummage', title:'仓中翻找',
-      word:'仓吏要的：仓库翻出一件指定的旧物，交还仓里',
-      take:'你把「仓中翻找」那片木牍摘了下来。',
-      tip:'去仓库那格，翻「麻袋堆 / 木箱 / 货架」三处（各管各的货，翻过即空、隔天再来）——翻到仓吏点名要的那件，点仓吏、选「给予」交到他手上。' },
-    // v20260915i：矿坑改版差役——铜矿出自矿洞三层以下（青铜镐的三条来路之一：制作 / 市集 / 差役）
-    { key:'copper', quest:'mine_copper', title:'淘铜铸镐',
-      word:'仓吏要的：矿洞三层以下古铜脉，凿铜矿四块，交仓库',
-      take:'你把「淘铜铸镐」那片木牍摘了下来。',
-      tip:'入矿洞下到第三层起，寻「古铜脉」凿取铜矿（粗石镐凿不动，先换精致石镐或青铜镐）——凑足四块回仓库，点仓吏、选「给予」，把铜矿交到他手上。' }
-  ];
-  // 差役牌面板（v20260915b）：木牌上钉着几片木牍，摘一片领一桩活
-  // v20260916h：木牍改「缩略 → 点击展开」——默认只露状态印与活名，一屏能多排几片；
-  //   点活名那行展开全部（一句话、指引、操作），再点收起。摘牍后刚领的那片自动展开。
-  var lastJobTaken=null;
+  var OBJ = LF.createObjects({
+    getState: function () { return state; },
+    fxGet: fxGet,
+    toast: toast, log: log, save: save, renderStatus: renderStatus,
+    advanceMinutes: advanceMinutes, exert: exert, packFind: packFind, packAdd: packAdd,
+    afterPackChange: afterPackChange, packConsume: packConsume, buildActions: buildActions, curRoom: curRoom, busyAct: busyAct,
+    SHICHEN: SHICHEN, LABOR_PER_WOOD: LABOR_PER_WOOD,
+    jobOpen: jobOpen, jobFlag: jobFlag, jobTick: jobTick, jobSettle: jobSettle,
+    farmHas: farmHas, farmObjects: farmObjects, farmWater: farmWater,
+    stoneLoad: stoneLoad, stoneUnload: stoneUnload, onbF: onbF, onbUnlockDock: onbUnlockDock
+  });
+  var CELL_INTERIORS = OBJ.CELL_INTERIORS;
+  var JOB_BOARD = OBJ.JOB_BOARD;
+  var cellInteriors = OBJ.cellInteriors;
+  var wellObject = OBJ.wellObject;
+  var wellDrawToBag = OBJ.wellDrawToBag;
+  var wellDrink = OBJ.wellDrink;
+  var troughDrinkBy = OBJ.troughDrinkBy;
+  var troughFillBy = OBJ.troughFillBy;
+  var loukeLook = OBJ.loukeLook;
+  var shuicaoDrinkPlaced = OBJ.shuicaoDrinkPlaced;
+  var shuicaoFillPlaced = OBJ.shuicaoFillPlaced;
+  var troughDrawToBag = OBJ.troughDrawToBag;
+  var shuicaoDrawToBag = OBJ.shuicaoDrawToBag;
+  var laotouOnYard = OBJ.laotouOnYard;
+  var planningEscape = OBJ.planningEscape;
+  var ledgerLook = OBJ.ledgerLook;
+  var diaodouStrike = OBJ.diaodouStrike;
+  var yutuLook = OBJ.yutuLook;
+  var junbaoLook = OBJ.junbaoLook;
+  var rackTake = OBJ.rackTake;
+  var kitchenPour = OBJ.kitchenPour;
+  var watchLook = OBJ.watchLook;
+  var rummageFind = OBJ.rummageFind;
+  var cookDouzhou = OBJ.cookDouzhou;
+  var cookYeCai = OBJ.cookYeCai;
+  var rummageTarget = OBJ.rummageTarget;
 
-  // 看差役牌（v20260915b）：从对话文字流改为木牍面板 —— 木牌质感 + 一片木牍一桩活
-
-  // ═══ 差役记账（v20260915f）═══
-  // 牌上摘牍只是接活；做一次记一笔（jobTick），够了翻牍发赏（jobSettle）。
-  //   各处只管调这两个，不必各自拼 flags 路径 —— 也免得「记了数却忘了翻牍」这类漏账。
-
-  // ═══ 担水入灶（v20260915f）：囚室水槽打水 → 伙房灶边水缸倾进去 ══
-  //   水是营里的硬通货（解渴 / 添槽 / 和泥都靠它）。这一趟的意义在「两头跑」：
-  //   打水在一处、用场在另一处，营里的日子本就是这么串起来的。
-  var WATER_PER_TRIP = 5;                       // 倾一袋入缸：满五份水才算一趟
-  function kitchenPour(){
-    if(!jobOpen('water')){ toast('没人使唤你担水，别在灶前碍事。'); return; }
-    var bag=packFind('shuidai');
-    if(!bag || !(bag.water>0)){ toast('水袋空空——先去农田那格的水井「打水」装袋。'); return; }
-    if(!exert('担水入灶')) return;
-    busyAct('倾水入缸', 900, function(){
-      var pour=Math.min(WATER_PER_TRIP, bag.water);
-      bag.water-=pour;
-      advanceMinutes(60);
-      var n=jobTick('water');
-      log('你把水袋里 '+pour+' 份水倾进灶边那口大缸，缸沿浮起一层浮沫。（已担 '+n+' / 2 趟）','good');
-      if(n>=2){
-        log('〔差役了结·担水入灶〕鲁大舀了半瓢稠的递来：「水担得勤，锅里的食便稠些——往后这缸，就归你管了。」（干粮×1 · 修为+20 · 鲁大好感+1）','good');
-        packAdd('fan',1); afterPackChange();
-        state.npcFavor=state.npcFavor||{}; state.npcFavor['lu_da']=(state.npcFavor['lu_da']||0)+1;
-        jobSettle('water','water_cook',20,0);
-      } else { save(state); renderStatus(); }
-      buildActions(curRoom());
-    });
-  }
-  // ═══ 瞭望换岗（v20260915f）：岗哨登楼看一回，记下换岗在几时，回来报与秦九霄 ══
-  //   看的是「时辰」——换岗那一刻门洞最乱，这条缝隙正是出营的本钱。
-  var WATCH_HOUR = 10;                          // 戌时前后换岗（与更鼓那套口径一致）
-  function watchLook(){
-    if(!jobOpen('watch')){ toast('无令不得登楼——守卒的横眼正盯着你。'); return; }
-    if(!exert('登楼瞭望')) return;
-    busyAct('登楼瞭望', 1000, function(){
-      advanceMinutes(60);
-      var h=state.time%12, sh=SHICHEN[h];
-      var d=Math.abs(h-WATCH_HOUR), near=(d<=1 || d>=11);
-      state.flags=state.flags||{}; state.flags.task=state.flags.task||{};
-      state.flags.task.watch_seen=sh;
-      log('你伏在望楼垛口看了半晌：此刻'+sh+'，'+(near?'正撞上换岗——两班守卒在门洞下交割腰牌，乱了一阵。':'岗上的兵交班还早，只听得见风穿过箭楼。'),'env');
-      if(near) log('〔记下了〕换岗就在'+sh+'前后——这一刻门洞下最乱，是条缝。','good');
-      else log('（换岗在戌时前后，那时候再来一趟，才看得出门道。）','sys');
-      save(state); renderStatus();
-    });
-  }
-  // ═══ 仓中翻找（v20260915f 立；v20260920h 改三点位）═══
-  //   从前的「点一下随机出货」改成：仓库里三处可翻的点位（麻袋堆/木箱/货架），各管各的掉落池；
-  //   翻过即翻空，当日不再出（隔天刷新）；接「仓中翻找」差事时仓吏随机指定目标物（flags.task.rummage_target），
-  //   翻到目标物交回才算完 —— 翻到别的可留可交（给仓吏则按物品价值换好感，不会吞东西）。
-  // v20260915g：只翻【已登记】的通用物资——凡能进背包的，必先在 items.js 登记、再引用。
-  var RUMMAGE_SPOTS = {
-    sack:  { label:'麻袋堆', pool:[['bumu',0.5],['rope',0.3],['mucai',0.2]] },
-    box:   { label:'木箱',   pool:[['mucai',0.5],['rope',0.3],['shitiao',0.2]] },
-    shelf: { label:'货架',   pool:[['mucai',0.4],['bumu',0.4],['rope',0.2]] }
-  };
-  function rummageTarget(){ var t=state.flags.task||{}; return t.rummage_target||null; }
-  function rummageFind(spot){
-    var def=RUMMAGE_SPOTS[spot]; if(!def) return;
-    if(!jobOpen('rummage')){ toast('仓里的东西不是你能乱翻的。'); return; }
-    var t=state.flags.task||{};
-    var em=t.rummageEmptied||(t.rummageEmptied={});
-    if(em[spot]===state.day){ toast(def.label+'已经翻空了——过一夜再来，或去别的堆翻翻。'); return; }
-    if(!exert('翻找'+def.label)) return;
-    busyAct('翻找'+def.label, 1000, function(){
-      advanceMinutes(60);
-      var r=Math.random(), id=null, acc=0;
-      for(var i=0;i<def.pool.length;i++){ acc+=def.pool[i][1]; if(r<acc){ id=def.pool[i][0]; break; } }
-      if(!id) id=def.pool[0][0];
-      if(!packAdd(id,1)){ toast('行囊塞不下——腾出一格再来翻。'); return; }
-      em[spot]=state.day;                 // 翻空：当日不再出，隔天刷新
-      var tgt=rummageTarget();
-      var its=window.LF && LF.ITEMS && LF.ITEMS.DEFS ? LF.ITEMS.DEFS : {};
-      var itd=its[id]||{};
-      var hit = tgt && tgt===id;
-      var msg='你在'+def.label+'里摸出'+(itd.icon||'🔧')+'「'+(itd.name||id)+'」';
-      if(hit) msg+='——正是仓吏要的那件！回去点仓吏、选「给予」交到他手上。';
-      else if(tgt) msg+='（仓吏要的是「'+((its[tgt]||{}).name||tgt)+'」，这件的他不收；留着或另递。）';
-      else msg+='。';
-      log(msg,'good');
-      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
-
-  // ═══ 伙房大灶：把田里的产出煮成热食（v20260915g）═══
-  //   农田出菜豆、伙房出热食 —— 两头接上，「种地」才不只是掐两捧菜去交差。
-  //   热食也顶「灶上一口热饭」那桩例事（LF.onEat 已认豆粥），于是 田间 → 灶上 → 例事 自成一环。
-  //   一律【先加产出、后扣料】：行囊塞不下时料还攥在手里，不至于白扔一把豆子。
-  function cookDouzhou(){
-    if(!farmHas('dou',1)){ toast('没有菽豆——去田里种一茬，或拿别的东西与人换。'); return; }
-    var bag=packFind('shuidai');
-    if(!bag || (bag.water||0)<2){ toast('熬粥要水：水袋里不足两份（先去农田那格的水井「打水」装袋）。'); return; }
-    if(!exert('煮豆粥')) return;
-    busyAct('煮豆粥', 1000, function(){
-      if(!packAdd('douzhou',1)){ toast('行囊塞不下——腾出一格再煮。'); return; }
-      packConsume('dou',1); bag.water=(bag.water||0)-2;
-      advanceMinutes(60);
-      log('你把菽豆下锅，添两瓢水，灶膛的火舌舔着锅底。不多时豆香漫开——得「豆粥」×1。（回食 22、水 6）','good');
-      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
-  // 野菜入锅：三捧野菜换一碗稀粥（菜太寡，鲁大添半勺杂粮）——复用既有的「稀粥」，不另立新物
-  function cookYeCai(){
-    if(!farmHas('yecai',3)){ toast('野菜不足三捧——大灶不值当为两片叶子生火。'); return; }
-    if(!exert('野菜入锅')) return;
-    busyAct('野菜入锅', 900, function(){
-      if(!packAdd('xizhou',1)){ toast('行囊塞不下——腾出一格再煮。'); return; }
-      packConsume('yecai',3);
-      advanceMinutes(60);
-      log('三捧野菜下了锅。鲁大舀半勺杂粮添进去：「菜太寡，得搭把米才压得住饥。」——得「稀粥」×1。','good');
-      afterPackChange(); save(state); renderStatus(); buildActions(curRoom());
-    });
-  }
   // ═══ 农田（0,0）：九畦（v20260915g）═══
   //   旧版只有「一块薄田」：翻三垄 → 掐菜，掐完还是那块地 —— 种地的人无从长进，
   //   浇水也只是多给一捧，看不出「照料」的分量。
@@ -3344,591 +2871,6 @@
 
   // [v20260909j] 野外采药 / 伐木 / 木工台采集制作逻辑已抽离 → shared/core/crafting.js
 
-  // ===== 通用可放置物品（模板驱动：物品定义 place 字段 → 场景对象） =====
-  // 放置物动作表：place.actions 字符串 → 动作函数（物品数据外置，动作需在此注册）
-  // 旧存档兼容：早期放置数据仅存 {key:'tent'}（无 defId），用此表回填物品
-  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai', campfire:'campfire', sleepmat:'sleepmat', zhangtai:'zhangtai', shop_shelf:'shelf_wood' };
-  var PLACE_ACTIONS = {
-    tent: function(){
-      return [
-        {label:'休息…', icon:'🧘', fn:function(){ closeModal(); openRestModal('tent'); }},
-        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('tent'); }}
-      ];
-    },
-    shuicao: function(p){
-      return [
-        {label:'饮水', icon:'💧', fn:function(){ shuicaoDrinkPlaced(p); }},
-        {label:'添水', icon:'🪣', fn:function(){ shuicaoFillPlaced(p); }},
-        {label:'装水入袋', icon:'💧', fn:function(){ shuicaoDrawToBag(p); }},
-        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('shuicao'); }}
-      ];
-    },
-    p_bench: function(){
-      return [
-        {label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }},
-        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('p_bench'); }}
-      ];
-    },
-    campfire: function(){
-      return [
-        {label:'烤火取暖…', icon:'🔥', fn:function(){ closeModal(); openRestModal('campfire'); }},
-        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('campfire'); }}
-      ];
-    },
-    sleepmat: function(){
-      return [
-        {label:'躺下小睡…', icon:'💤', fn:function(){ closeModal(); openRestModal('sleepmat'); }},
-        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('sleepmat'); }}
-      ];
-    },
-    // v20260930：账台（P0 经营入口）。玩家在自家铺面放置后，点之即入经营总览（上帝视角）。
-    //   因是玩家放置物，故只出现于自己的店，天然满足「别人店不显示」的约束。
-    manage_shop: function(p){
-      return [
-        {label:'经营总览…', icon:'📊', fn:function(){ closeModal(); openModal('shop_manage', {placed:p}); }},
-        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('zhangtai'); }}
-      ];
-    },
-    container: function(p){
-      return [
-        {label:'打开', icon:'📂', fn:function(){ closeModal(); openModal('container', {placed:p}); }},
-        {label:'收起', icon:'📦', fn:function(){ Shop.contPickup(p); }}
-      ];
-    }
-  };
-  // 休息设施配置：不同设施恢复效率不同，休息时长可由玩家自选
-  var REST_KINDS = {
-    tent:     { name:'帐篷',   hp: 0.35, mp: 0.35, en: 0.40, fd: 0.30, dr: 0.30 }, // 帐篷：全恢复效率最高
-    sleepmat: { name:'草席',   hp: 0.22, mp: 0.22, en: 0.32, fd: 0.20, dr: 0.20 }, // 草席：中等
-    campfire: { name:'篝火',   hp: 0.10, mp: 0.10, en: 0.38, fd: 0.50, dr: 0.50 }, // 篝火：暖身解饥渴、精力恢复快
-    wild:     { name:'野外露宿', hp: 0.12, mp: 0.12, en: 0.30, fd: 0.16, dr: 0.16 }, // 荒野扎营：以地为席，聊胜于无
-    ground:   { name:'席地打盹', hp: 0.08, mp: 0.08, en: 0.22, fd: 0.12, dr: 0.12 }  // 就地：聊胜于无
-  };
-  // 天候对野外歇息效率的折扣（键=天候索引；无折扣项=1）。帐篷遮风挡雨不受天候影响；
-  // 城市/建筑内歇息同样不受影响（outdoorRestFactor 先判 isField）。
-  var WX_REST={
-    3:{campfire:0.85, sleepmat:0.9, wild:0.9,  ground:0.85},  // 微雨：略打折扣
-    4:{campfire:0.5,  sleepmat:0.6, wild:0.55, ground:0.5},   // 大雨：露天皆难安身
-    5:{campfire:0.8,  sleepmat:0.8, wild:0.75, ground:0.7}    // 雪：天寒，无蔽风雪者折扣
-  };
-
-  // 打开自由时长休息面板（设施决定效率；战败只能就地打盹）
-
-  // ══ 仓库系统（v20260907k）：城中仓库 30 格，可存可取；苦役营初始存有木料石料 ══
-  var storageCid=null;   // 当前仓库所在城（openModal 写入）；storageSel 已随仓库簇移入 shared/core/storage.js
-  // 牢中打盹场景（v20260911k）：时辰尚未启用（教学期）且人在牢里时，
-  //   「歇几个时辰」这套问法本身就是个假问题 —— 更鼓还没开始走，玩家也答不上来。
-  //   故改为一键「就此睡去」，睡多久由天定（见 doNap），醒来只知天光未变。
-
-  // 执行自由时长休息：推进时间并按要求恢复（野外天候差时打折，见 outdoorRestFactor）
-
-  // 牢中一觉（v20260911k）：老师傅口中那句「也不知道睡了多久」——
-  //   时长随机 1~3 时辰，只用来自算恢复量，绝不报给玩家；时辰未启时时钟本就冻结，
-  //   醒来仍是那一线昏暗天光，昼夜不分（正是文案要传达的处境）。
-
-  // 城市格放置物定位（v20260825b）：城市网格内放置物带 {cell:{x,y}}，按格隔离，不再全城共享；
-  // 旧存档无格坐标的放置物视为位于城心格，保证不"消失"。
-  function placedCellTag(roomId){
-    var cp=state.flags && state.flags.cityPos;
-    if(!cp || !isCityGrid(roomId) || cp.cid!==roomId) return null;
-    return {x:cp.x, y:cp.y};
-  }
-  function placedInCell(p, roomId, tag){
-    if(!tag) return true;                       // 非城市房间：全部在当前房间可见
-    var c=p.cell;
-    if(!c){                                     // 旧存档无格数据 → 归城心格
-      var m=genCityGrid(roomId); if(!m) return true;
-      var s=m.size; c={x:Math.floor(s/2), y:Math.floor(s/2)};
-    }
-    return c.x===tag.x && c.y===tag.y;
-  }
-
-  // 玩家放置物 → 场景物件（统一映射，城市/野外/建筑内部房间共用）
-  function placedFeature(p){
-    if(p.bp){
-      var bp = LF.BUILD[p.bp] || {};
-      if(p.done){
-        return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.doneName||'建筑'}, 14), name:bp.doneName||'建筑', desc:bp.desc||'', actions:buildDoneActions(bp.key||p.key, bp)};
-      }
-      return {type:'feature', key:bp.key||p.key, icon:itemIconHTML({name:bp.siteName||'营造中'}, 14), name:bp.siteName||'营造中', desc:bp.desc||'', actions:buildSiteActions(bp.key||p.key)};
-    }
-    var defId = p.defId || PLACE_KEY_DEF[p.key];
-    var pl = ((LF.ITEMS[defId]||{}).place) || {};
-    var acts = (PLACE_ACTIONS[pl.actions] || function(){ return []; })(p);
-    return {type:'feature', key:pl.key||p.key, icon:itemIconHTML({name:pl.name||'未知物'}, 14), name:pl.name||'未知物', desc:pl.desc||'', actions:acts};
-  }
-  // 合并静态 ROOM_OBJECTS 与玩家动态放置物，供场景/列表/出口统一读取
-  function roomObjs(roomId, opts){
-    // 建筑内部房间：interior/子区域的物件 + 子区域跳转 + 玩家在房内放置物 → 场景按钮
-    // （返回街道/返回正堂统一收进底部移动罗盘，见 renderMoveBar 的 isBldRoom 分支，避免重复）
-    if(isBldRoom(roomId)){
-      var _f=bldForRoom(roomId), _out=[];
-      if(_f){
-        (_f.ar.objs||[]).forEach(function(o,i){
-          _out.push({type:'feature', key:'bldo_'+roomId+'_'+i, icon:o.icon, name:o.name, desc:o.desc, actions:bldActsFilter(o.acts)});
-        });
-        (_f.ar.areas||[]).forEach(function(a){
-          _out.push({type:'feature', key:'blda_'+roomId+'_'+a.key, icon:'🚪', name:a.label||a.key, desc:'', direct:true, actions:[{label:a.label||a.key, icon:'🚪', fn:(function(tid){ return function(){ bldMove(tid); }; })('__bld__'+_f.key+'@'+a.key)}]});
-        });
-        // v20260928g：房间内出口（返回正堂/返回街道）不再设置场景交互按钮——
-        //   统一收进底部移动罗盘（renderMoveBar isBldRoom 分支的罗盘「南·返回」），
-        //   仅当房间内还有子区域时，子区域入口仍保留为场景按钮（上方 blda_）。
-      }
-      // 玩家在房内放置的物件（帐篷/篝火…）：按本房间 id 隔离，进店/进房后也保留可见（v20260825c）
-      var _placed=(state.placed && state.placed[roomId]) || [];
-      _placed.forEach(function(p){ var _o=placedFeature(p); if(_o) _out.push(_o); });
-      return _out;
-    }
-    var base = ROOM_OBJECTS[roomId] || [];
-    var placed = (state.placed && state.placed[roomId]) || [];
-    var _cellTag = placedCellTag(roomId);
-    var dyn = placed.filter(function(p){ return placedInCell(p, roomId, _cellTag); }).map(placedFeature);
-    // 放置物覆盖同 key 的静态 feature（如收起的工作台摆放后，静态木工台不再重复显示）
-    var dynKeys={}; dyn.forEach(function(o){ dynKeys[o.key]=1; });
-    // placedOnly：仅渲染玩家放置物（城市网格等由 cell 动作/左栏 NPC 承担场景内容，屏蔽旧版静态 ROOM_OBJECTS 条目）
-    var filteredBase = opts && opts.placedOnly ? [] : base.filter(function(o){ return !(o.type==='feature' && dynKeys[o.key]); });
-    return filteredBase.concat(dyn);
-  }
-  function placeInspect(){
-    if(!packInspect || packInspect.kind!=='pack') return;
-    var idx=packInspect.idx; var it=state.pack[idx];
-    if(!it) return;
-    var _tag=placedCellTag(state.room);   // 城市网格：放置物归当前格（cell），跨格隔离
-    // 图纸类：依图在房中营造建筑（多阶段、需填充材料）
-    var bpId = (LF.ITEMS[it.defId]||{}).blueprint;
-    if(bpId){
-      var bp = LF.BUILD[bpId] || {};
-      state.placed = state.placed || {};
-      state.placed[state.room] = state.placed[state.room] || [];
-      if(state.placed[state.room].some(function(o){ return o.bp===bpId && placedInCell(o, state.room, _tag); })){ toast('此处已在营造'+(bp.siteName||'该建筑')+'。'); return; }
-      if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
-      state.placed[state.room].push({key:bp.key, defId:it.defId, bp:bpId, stage:0, got:{}, cell:_tag});
-      packInspect=null;
-      afterPackChange();
-      log('你展开'+it.name+'，依图在'+curRoom().name+'勘定地基，开工营造。','sys');
-      if(currentModalKind==='pack'){ var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
-      return;
-    }
-    var pl = (it && (it.place || ((LF.ITEMS[it.defId]||{}).place))) || null;
-    if(!(it.placeable || pl)) return;
-    state.placed = state.placed || {};
-    state.placed[state.room] = state.placed[state.room] || [];
-    // v20261008c：货架三兄弟（木/铁/雕花）此前共用 key 'shop_shelf'，同房间/同格互相拦截，
-    //   造成"放了木架就放不了铁架"。冲突判定改为按具体物品（defId）——同种才互斥，
-    //   不同种（如木架+铁架、木架+柜子）可同房间/同格并置；旧存档无 defId 时按 key 回退。
-    if(state.placed[state.room].some(function(o){
-      if(!placedInCell(o, state.room, _tag)) return false;
-      var od = o.defId || PLACE_KEY_DEF[o.key];
-      return it.defId ? (od === it.defId) : (o.key === pl.key);
-    })){ toast('此处已支有'+pl.name+'，欲换新样须先收起旧物。'); return; }
-    if(it.count && it.count>1){ it.count--; } else { state.pack[idx]=null; }
-    state.placed[state.room].push({key:pl.key, defId:it.defId, cell:_tag});
-    packInspect=null;
-    afterPackChange();
-    log('你支起'+pl.name+'，安置于'+curRoom().name+'。','sys');
-    if(currentModalKind==='pack'){ var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
-  }
-  function packUpPlaced(key){
-    state.placed = state.placed || {};
-    var arr = state.placed[state.room];
-    var _tag=placedCellTag(state.room);
-    if(!arr || !arr.some(function(o){ return o.key===key && placedInCell(o, state.room, _tag); })){ toast('此处并无此物可收。'); return; }
-    var p=null;
-    for(var i=0;i<arr.length;i++){ if(arr[i].key===key && placedInCell(arr[i], state.room, _tag)){ p=arr[i]; arr.splice(i,1); break; } }
-    var defId = p.defId || PLACE_KEY_DEF[p.key];
-    var ok = packAdd(defId, 1);
-    if(!ok){ if(p) arr.push(p); toast('行囊已满，无法收起。'); return; }
-    packInspect=null;
-    afterPackChange();
-    log('你收起'+((LF.ITEMS[defId]||{}).name||'此物')+'，收进行囊。','sys');
-    if(currentModalKind==='pack'){ var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
-  }
-  // ===== 文字图标：印章式，按分类配色 =====
-  // v20260924z7：AI 生成古风物品图标（assets/icons/*.png，工笔水墨+圆形木徽章底）。
-  //   有图的物品用图（行囊格子/提示浮层直接显示），没有的仍走 emoji+名字 —— 逐步把 emoji 替换成图片素材。
-  var ICON_SPR = { img: 'assets/icons/items.webp',
-    // v20260924z8：AI 古风物品图标统一拼成一张雪碧图（560x560，4x4 格），
-    //   一个请求加载全部 15 枚，background-position 百分比定位，杜绝逐图加载卡顿。
-    map: {
-      fan:'0 0', xizhou:'33.333 0', mucai:'66.667 0', shitiao:'100 0',
-      futou:'0 33.333', tiekuangshi:'33.333 33.333', roubao:'66.667 33.333', caoyao:'100 33.333',
-      yeguo:'0 66.667', mutou:'33.333 66.667', zhuzi:'66.667 66.667', tiekuai:'100 66.667',
-      rope:'0 100', bumu:'33.333 100', chutou:'66.667 100',
-      // v20260924z12 新增 21 项（B 水墨批次：食饵/矿物/工具/药剂/竹简）——z11 起注册即直读 items48 独立图
-      yecai:'0 0', jiu:'0 0', fish:'0 0', fish_dried:'0 0', dou:'0 0', douzhou:'0 0',
-      zhujian:'0 0', caizi:'0 0', douzhong:'0 0', tongkuang:'0 0', yinkuang:'0 0', xuatie:'0 0',
-      chutu:'0 0', tiefu:'0 0', luoyang_chan:'0 0', muti:'0 0', jinchuang:'0 0', yaofen:'0 0',
-      tangyao:'0 0', sleep_drug:'0 0', shuidai:'0 0',
-      // v20260924z18 新增 16 项装备（B 水墨批次：兵刃/衣甲/腰背包囊）
-      zangbu_hat:'0 0', polan_stick:'0 0', yaobao:'0 0', hutou:'0 0', xiaonang:'0 0',
-      shunang:'0 0', pibao:'0 0', caiyaobiluo:'0 0', shutong:'0 0', tiejian:'0 0',
-      shidao:'0 0', gumao:'0 0', mugong:'0 0', zhujia:'0 0', qiufu:'0 0', liaokao:'0 0',
-      // v20260924z19 补齐全部 51 项（素材/凭证/图谱/图纸/器具）
-      mutan:'0 0', maopi:'0 0', shepi:'0 0', shedan:'0 0', shengrou:'0 0', zhuan:'0 0', yan:'0 0',
-      xiang:'0 0', mo:'0 0', xiaoshuzhi:'0 0', jade:'0 0', tiema:'0 0', zhou:'0 0',
-      jianyixingzhuang:'0 0', blank_pass:'0 0', wooden_pass:'0 0', guard_tally:'0 0',
-      heishan_token:'0 0', war_horse_token:'0 0', lao_pai:'0 0', bailian_jian:'0 0',
-      blade_manual_frag:'0 0', halberd_manual_page:'0 0', talisman_scrap:'0 0', campfire:'0 0',
-      gongzuotai:'0 0', sleepmat:'0 0', horse:'0 0', ceshizhizhu:'0 0', shuicao:'0 0',
-      tuzhi_yeolian:'0 0', tuzhi_woodcamp:'0 0', tuzhi_yaolu:'0 0', tuzhi_house:'0 0',
-      tuzhi_market:'0 0', tuzhi_farm:'0 0', tuzhi_barracks:'0 0', tuzhi_blacksmith:'0 0',
-      tuzhi_tavern:'0 0', tuzhi_inn:'0 0', tuzhi_martialhall:'0 0', tuzhi_granary:'0 0',
-      tuzhi_watchtower:'0 0', tuzhi_arrowtower:'0 0', tuzhi_farmland:'0 0', tuzhi_well:'0 0',
-      tuzhi_pigpen:'0 0', tuzhi_gate:'0 0', tuzhi_training:'0 0',
-      // v20260928g：38 件新物品 + 4 件配方产出，统一注册直读 items48 独立图（'0 0' 占位）
-      jintiao:'0 0', yinding:'0 0', yupei:'0 0', shouzhuo:'0 0', zhenzhu:'0 0',
-      tieding:'0 0', shihui:'0 0', zhucai:'0 0', liandao:'0 0', tiechan:'0 0', li:'0 0', mutong:'0 0',
-      maizhong:'0 0', daozhong:'0 0', caizhong:'0 0', yaozhong:'0 0',
-      xiaomai:'0 0', qingcai:'0 0', mianfen:'0 0', dami:'0 0', you:'0 0', jiang:'0 0', bupi:'0 0',
-      jidan:'0 0', niunai:'0 0', yangmao:'0 0', pige:'0 0', fengmi:'0 0',
-      zhurou:'0 0', yangrou:'0 0', jirou:'0 0', niurou:'0 0',
-      xiaozhu:'0 0', xiaoyang:'0 0', xiaoji:'0 0', xiaoniu:'0 0',
-      renshen:'0 0', lingzhi:'0 0',
-      jingtie:'0 0', hongshao:'0 0', kaoji:'0 0', kaoyang:'0 0',
-      // v20260928h：牙行房契 / 家具 / 马行
-      fangqi_luoyang:'0 0', fangqi_changan:'0 0', fangqi_yecheng:'0 0', fangqi_chengdu:'0 0',
-      fangqi_jianye:'0 0', fangqi_xiangyang:'0 0', fangqi_wuchang:'0 0', fangqi_puyang:'0 0',
-      fangqi_changsha:'0 0', fangqi_linzi:'0 0',
-      jiaju_chuang:'0 0', jiaju_zhuo:'0 0', jiaju_yi:'0 0', jiaju_gui:'0 0',
-      jiaju_deng:'0 0', jiaju_pingfeng:'0 0', jiaju_huaping:'0 0', jiaju_zihua:'0 0',
-      ma:'0 0', lu:'0 0', maan:'0 0', macao:'0 0',
-      // v20260930b：工具阶位链 + 洛阳铲 + 房契/商铺契 统一注册读独立图
-      // v20260930e：补齐剩余农具阶位（竿4-5阶/石铜斧/石铁铜锯/铜镰）
-      cutie_gan:'0 0',
-      tiegan:'0 0',
-      jingshi_fu:'0 0',
-      tongfu:'0 0',
-      jingshi_jv:'0 0',
-      tiejv:'0 0',
-      tongjv:'0 0',
-      tonglian:'0 0',
-      jingmu_chu:'0 0',
-      tongchu:'0 0',
-      cutie_chu:'0 0',
-      tiechu:'0 0',
-      bailian_chu:'0 0',
-      cushi_gao:'0 0',
-      jing_shi_gao:'0 0',
-      qingtong_gao:'0 0',
-      cu_tie_gao:'0 0',
-      jing_tie_gao:'0 0',
-      bailian_gao:'0 0',
-      cutie_fu:'0 0',
-      bailian_fu:'0 0',
-      mujv:'0 0',
-      cutie_jv:'0 0',
-      bailian_jv:'0 0',
-      jingshi_lian:'0 0',
-      tielian:'0 0',
-      cutie_lian:'0 0',
-      bailian_lian:'0 0',
-      diaogan:'0 0',
-      gugou_gan:'0 0',
-      tonggou_gan:'0 0',
-      bailian_gan:'0 0',
-      house_deed:'0 0',
-      shop_deed:'0 0',
-      chaye:'0 0',
-      // v20261008c：药店六轴 26 件新物品补配图注册（药材10+药末+成药16，PNG 实存 items48）
-      anshui:'0 0',
-      baidu:'0 0',
-      banxia:'0 0',
-      bishu:'0 0',
-      bizhang:'0 0',
-      danggui:'0 0',
-      fenghan:'0 0',
-      fuling:'0 0',
-      fuzi:'0 0',
-      gancao:'0 0',
-      guizhi:'0 0',
-      huanglian:'0 0',
-      huoxuejiu:'0 0',
-      huxin:'0 0',
-      jiedu:'0 0',
-      jinchuangao:'0 0',
-      junyao:'0 0',
-      mahuang:'0 0',
-      qingliang:'0 0',
-      shangdeng:'0 0',
-      shentang:'0 0',
-      shigao:'0 0',
-      tishen:'0 0',
-      xingshen:'0 0',
-      yaomo:'0 0',
-      zhuangqi:'0 0',
-      // v20261007：补齐 items48 实存图标注册（交易/背包/货架同源显示，138 项）
-      bailian_jian:'0 0',
-      blank_pass:'0 0',
-      bumu:'0 0',
-      bupi:'0 0',
-      caiyaobiluo:'0 0',
-      caizhong:'0 0',
-      caizi:'0 0',
-      campfire:'0 0',
-      caoyao:'0 0',
-      ceshizhizhu:'0 0',
-      chuang:'0 0',
-      chutou:'0 0',
-      dami:'0 0',
-      daozhong:'0 0',
-      deng:'0 0',
-      dou:'0 0',
-      douzhong:'0 0',
-      douzhou:'0 0',
-      fangqi_changan:'0 0',
-      fangqi_chengdu:'0 0',
-      fangqi_linzi:'0 0',
-      fangqi_puyang:'0 0',
-      fangqi_wuchang:'0 0',
-      fangqi_xiangyang:'0 0',
-      fangqi_yecheng:'0 0',
-      fengmi:'0 0',
-      fish:'0 0',
-      fish_dried:'0 0',
-      guard_tally:'0 0',
-      gui:'0 0',
-      gumao:'0 0',
-      halberd_manual_page:'0 0',
-      hongshao:'0 0',
-      horse:'0 0',
-      huaping:'0 0',
-      hutou:'0 0',
-      jade:'0 0',
-      jiaju_gui:'0 0',
-      jiaju_huaping:'0 0',
-      jiaju_pingfeng:'0 0',
-      jiaju_yi:'0 0',
-      jiaju_zhuo:'0 0',
-      jiaju_zihua:'0 0',
-      jiang:'0 0',
-      jinchuang:'0 0',
-      jirou:'0 0',
-      jiu:'0 0',
-      kaoji:'0 0',
-      kaoyang:'0 0',
-      lao_pai:'0 0',
-      li:'0 0',
-      liandao:'0 0',
-      liaokao:'0 0',
-      lingzhi:'0 0',
-      lu:'0 0',
-      luoyang_chan:'0 0',
-      maan:'0 0',
-      macao:'0 0',
-      maopi:'0 0',
-      mianfen:'0 0',
-      mo:'0 0',
-      mucai:'0 0',
-      mugong:'0 0',
-      muti:'0 0',
-      mutong:'0 0',
-      mutou:'0 0',
-      niunai:'0 0',
-      niurou:'0 0',
-      pibao:'0 0',
-      pickaxe:'0 0',
-      pige:'0 0',
-      pingfeng:'0 0',
-      polan_stick:'0 0',
-      qingcai:'0 0',
-      qiufu:'0 0',
-      roubao:'0 0',
-      shedan:'0 0',
-      shengrou:'0 0',
-      shepi:'0 0',
-      shihui:'0 0',
-      shitiao:'0 0',
-      shouzhuo:'0 0',
-      shuicao:'0 0',
-      shuidai:'0 0',
-      shutong:'0 0',
-      sleep_drug:'0 0',
-      sleepmat:'0 0',
-      talisman_scrap:'0 0',
-      tiechan:'0 0',
-      tiefu:'0 0',
-      tiejian:'0 0',
-      tiekuai:'0 0',
-      tiekuangshi:'0 0',
-      tiema:'0 0',
-      tongkuang:'0 0',
-      tuzhi_arrowtower:'0 0',
-      tuzhi_barracks:'0 0',
-      tuzhi_blacksmith:'0 0',
-      tuzhi_farm:'0 0',
-      tuzhi_farmland:'0 0',
-      tuzhi_gate:'0 0',
-      tuzhi_granary:'0 0',
-      tuzhi_house:'0 0',
-      tuzhi_inn:'0 0',
-      tuzhi_martialhall:'0 0',
-      tuzhi_training:'0 0',
-      tuzhi_well:'0 0',
-      tuzhi_woodcamp:'0 0',
-      tuzhi_yaolu:'0 0',
-      war_horse_token:'0 0',
-      wooden_pass:'0 0',
-      xiaoji:'0 0',
-      xiaonang:'0 0',
-      xiaoniu:'0 0',
-      xiaoshuzhi:'0 0',
-      xiaoyang:'0 0',
-      xizhou:'0 0',
-      xuatie:'0 0',
-      yan:'0 0',
-      yangmao:'0 0',
-      yangrou:'0 0',
-      yaobao:'0 0',
-      yaofen:'0 0',
-      yaozhong:'0 0',
-      yi:'0 0',
-      yinding:'0 0',
-      yinkuang:'0 0',
-      you:'0 0',
-      yupei:'0 0',
-      zhangpeng:'0 0',
-      zhenzhu:'0 0',
-      zhou:'0 0',
-      zhuan:'0 0',
-      zhucai:'0 0',
-      zhujia:'0 0',
-      zhuo:'0 0',
-      zhuzi:'0 0',
-      zihua:'0 0',
-    } };
-  var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
-  function itemIconHTML(it, px){
-    var _id = (it && (it.defId || it.id)) || '';
-    // v20261008c：条目精简（旧档/外部构造缺 name/icon）时用物品表回填，杜绝背包/仓库显示裸 ID
-    if (it && _id && !it.name) {
-      var _d = (LF.ITEMS && LF.ITEMS[_id]) || {};
-      if (_d.name) it.name = _d.name;
-      if (_d.icon) it.icon = _d.icon;
-      if (_d.cat) it.cat = _d.cat;
-    }
-    var n = (it && (it.name || it.defId)) || '';
-    var cat = (it && it.cat) || '';
-    px = px || 16;
-    if(it && ICON_SPR.map[_id]){
-      var w = Math.max(20, px + 6);
-      /* v20260924z11：独立 48px 图标优先（无拉伸、内容充满），缺文件回退雪碧图 */
-      return '<img class="item-pic48" data-cat="'+cat+'" src="assets/icons/items48/'+_id+'.png?v='+LF.CONSTANTS.VERSION+'" alt="'+(it.name||'')+'" style="width:100%;height:100%;object-fit:contain;display:block;" onerror="this.style.display=\'none\';">';
-    }
-    var em = (it && it.icon) ? it.icon : '';
-    var fs = Math.min(px, 16);
-    return '<span class="ic-txt ic-cat" data-cat="'+cat+'" style="font-size:'+fs+'px;">'+(em?em+' ':'')+'<b>'+n+'</b></span>';
-  }
-  // ===== 营造系统：蓝图 → 工地 → 填充材料 → 分阶搭建 → 落成 =====
-  // 工地/建筑在 placed 中以 { key, defId, bp, stage, got, done } 存储（见 roomObjs 渲染）
-  function findPlacedBp(siteKey){
-    var arr = (state.placed && state.placed[state.room]) || [];
-    var _tag=placedCellTag(state.room);
-    for(var i=0;i<arr.length;i++){ if(arr[i].key===siteKey && placedInCell(arr[i], state.room, _tag)) return arr[i]; }
-    return null;
-  }
-  function buildSiteActions(siteKey){
-    return [
-      {label:'查看进度', icon:'📋', fn:function(){ inspectBuildSite(siteKey); }},
-      {label:'填充材料', icon:'🧺', fn:function(){ openModal('build', {site:siteKey}); }},
-      {label:'搭建', icon:'🔨', fn:function(){ buildStage(siteKey); }}
-    ];
-  }
-  function buildDoneActions(siteKey, bp){
-    var acts = [];
-    if(bp.done === 'forge'){
-      acts.push({label:'炉膛…', icon:'🔥', fn:function(){ openForgePanel(siteKey); }});
-      acts.push({label:'打造…', icon:'⚒️', fn:function(){ openModal('craft', {bench:'forge'}); }});
-    }
-    // 蓝图含 interior 时：建成后可步入，成为可进出的独立房间（左下 NPC + 上方交互物件）
-    if(bp.interior && bp.interior.length){
-      acts.push({label:'进·'+(bp.doneName||'屋内'), icon:itemIconHTML({name:bp.doneName||'屋内'},13), fn:function(){
-        var _p=findPlacedBp(siteKey); if(_p) enterBldRoom('site_'+siteKey, {kind:'room', room:state.room, bp:_p.bp});
-      }});
-    }
-    acts.push({label:'端详', icon:'👁', fn:function(){ log('〔'+bp.doneName+'〕'+(bp.desc||''), 'sys'); }});
-    return acts;
-  }
-  function inspectBuildSite(siteKey){
-    var p = findPlacedBp(siteKey); if(!p) return;
-    var bp = LF.BUILD[p.bp]; if(!bp) return;
-    var stages = bp.stages || [];
-    if(p.done){ log('〔'+bp.doneName+'〕'+bp.desc, 'good'); return; }
-    var stage = stages[p.stage];
-    if(!stage){ log('〔'+bp.siteName+'〕工事已完，只待收尾落成。', 'sys'); return; }
-    var parts = [];
-    for(var k in stage.need){
-      var it = LF.ITEMS[k] || {};
-      parts.push((it.name||k)+' '+(p.got[k]||0)+'/'+stage.need[k]);
-    }
-    var next = stages[p.stage+1] ? '；完成后将进行「'+stages[p.stage+1].name+'」' : '；此为最后一程，搭建完毕即可落成';
-    log('〔'+bp.siteName+'·第'+(p.stage+1)+'/'+stages.length+'阶·'+stage.name+'〕所需：'+parts.join('、')+next, 'sys');
-  }
-  function buildAddMat(siteKey, matId){
-    var p = findPlacedBp(siteKey); if(!p) return;
-    var bp = LF.BUILD[p.bp]; if(!bp || p.done) return;
-    var stage = (bp.stages||[])[p.stage]; if(!stage) return;
-    var need = stage.need[matId]; if(!need) return;
-    if((p.got[matId]||0) >= need){ toast('该材料已填满此阶段所需。'); return; }
-    var cur = packFind(matId);
-    if(!cur || (cur.count||0) < 1){ toast('行囊中无'+(LF.ITEMS[matId]||{}).name+'。'); return; }
-    if(state.energy<=0){ toast('精力已尽，先休整恢复再行填充。'); return; }
-    advanceMinutes(60);
-    state.energy=Math.max(0,state.energy-1);
-    packConsume(matId, 1);
-    p.got[matId] = (p.got[matId]||0) + 1;
-    save(state); afterPackChange();
-    var matName=(LF.ITEMS[matId]||{}).name || matId;
-    log('你填入'+matName+'×1，'+stage.name+'更近一步。','env');
-    buildState.msg = '已填入 '+matName+'×1，'+stage.name+'更近一步。';
-    if(currentModalKind==='build') openModal('build', {site:siteKey});
-  }
-  function buildStage(siteKey){
-    var p = findPlacedBp(siteKey); if(!p) return;
-    var bp = LF.BUILD[p.bp]; if(!bp) return;
-    var stages = bp.stages || [];
-    if(p.done){ toast(bp.doneName+'已然落成。'); return; }
-    var stage = stages[p.stage];
-    if(!stage){ p.done = true; save(state); afterPackChange(); log('工事收尾，'+bp.doneName+'落成！','good'); buildActions(G.ROOMS[state.room]); return; }
-    for(var k in stage.need){ if((p.got[k]||0) < stage.need[k]){ toast('「'+stage.name+'」材料未齐，无法搭建。'); return; } }
-    if(state.energy<=0){ toast('精力已尽，先休整恢复再行搭建。'); return; }
-    advanceMinutes(60);
-    state.energy=Math.max(0,state.energy-2);
-    p.stage++;
-    save(state); afterPackChange();
-    if(p.stage >= stages.length){
-      p.done = true;
-      log('你抟土垒石、架木为炉——'+bp.doneName+'终告落成！','good');
-    } else {
-      log('你完成了「'+stage.name+'」，工事推进至「'+stages[p.stage].name+'」。','env');
-    }
-    buildActions(G.ROOMS[state.room]);
-  }
-  // 休息面板（真对象在 createRest 前 L245 赋值；此处仅保留声明防 var 提升覆盖）
-  var restState;
-  // 营造面板
-  var buildState = { site:null, msg:'' };
-  function buildMatRows(siteKey){
-    var p = findPlacedBp(siteKey); if(!p) return '<p class="tip">此处并无营造工地。</p>';
-    var bp = LF.BUILD[p.bp]; if(!bp) return '<p class="tip">未知图纸。</p>';
-    if(p.done) return '<p class="tip">'+bp.doneName+'已然落成。'+(bp.desc||'')+'</p>';
-    var stages = bp.stages || [];
-    var stage = stages[p.stage];
-    if(!stage) return '<p class="tip">工事已完，只待收尾——去工地「搭建」即可落成。</p>';
-    var html = '<p class="tip">营造进度：'+p.stage+' / '+stages.length+'　当前·<b>'+stage.name+'</b></p>';
-    for(var k in stage.need){
-      var it = LF.ITEMS[k] || {};
-      var have = p.got[k] || 0;
-      var need = stage.need[k];
-      var packN = (packFind(k)||{count:0}).count;
-      var done = have >= need;
-      html += '<div style="display:flex;align-items:center;gap:8px;border:1px solid #6b5a3a;border-radius:8px;padding:8px;margin:6px 0;background:rgba(0,0,0,.18);">'
-        + '<span>'+itemIconHTML(it, 18)+'</span>'
-        + '<span style="opacity:.8;flex:1;">'+have+' / '+need+'　·　行囊'+packN+'</span>'
-        + (done ? '<span style="color:#8fce8f;">已备齐</span>' : '<button class="btn-mini" data-site="'+siteKey+'" data-mat="'+k+'">填充</button>')
-        + '</div>';
-    }
-    return html;
-  }
   function renderBuildPanel(){
     var p = findPlacedBp(buildState.site);
     var bp = p ? (LF.BUILD[p.bp]||{}) : {};
@@ -4877,7 +3819,7 @@
     currentModalKind=kind;
     if(Narr && Narr.setNarrPaused) Narr.setNarrPaused(true);  // v20260930d：弹窗遮住叙事区，叙事暂停排队，关窗再续
     _tipBlocked=true;   // 只要开过面板，就不再显示「轻触文字快进」提示
-    if(_toastTimer){ clearTimeout(_toastTimer); _toastTimer=null; }
+    if($toast && $toast._toastTimer){ clearTimeout($toast._toastTimer); $toast._toastTimer=null; }
     if($toast) $toast.classList.remove('show');
     setDockRest(kind);   // 底部页签选中态跟随（v20260924h）
     dlgClose();   // 开面板即收对话窗（v20260912g）：底部位置让给面板，别两套东西叠着
@@ -5171,190 +4113,6 @@
   }
 
   // ===== 战略地图（D3 矢量 · 三国州郡）=====
-  function buildStrategicMapHTML(opts){
-    opts=opts||{};
-    var title = opts.pickSpawn ? '选择出生点' : '山河志 · 战略地图';
-    var tip = opts.pickSpawn
-      ? '与山河志同一张地图：点圆点=城池、方点=关隘/野地/副本。点击任一点即设为出生点并立即传送（城市出生落在城门）。'
-      : '拖拽平移 · 滚轮缩放 · 点击城池前往（体力-4 · 食物-1 · 饮水-1 · 时间+1刻）。当前位于「'+curRoom().name+'」；点右下 ◎ 可回到所在处。';
-    return '<h3>'+title+'</h3>'+
-      '<div id="strategic-map-container"></div>'+
-      '<p class="tip">'+tip+'</p>';
-  }
-  // 解析「此身所在」的地图标记：
-  //   城内/城格 → 城点；城内建筑 → 所属城；specialGeo 手写锚点房 → 该地理点
-  function smYouMark(){
-    if(!state || !state.room) return null;
-    var rid=state.room;
-    if(isBldRoom(rid)){
-      var back=state.flags && state.flags.bldEnt && state.flags.bldEnt.back;
-      if(back && back.kind==='city' && back.cid){
-        var _bc=(LF.CITIES||{})[back.cid];
-        if(_bc && _bc.pos) return {type:'you', pos:_bc.pos, cid:back.cid, label:'此身所在 · '+_bc.name};
-      }
-      return null;
-    }
-    var c=(LF.CITIES||{})[rid];
-    if(c && c.pos) return {type:'you', pos:c.pos, cid:rid, label:'此身所在 · '+c.name};
-    var sg=((LF.MAP&&LF.MAP.specialGeo)||{})[rid];
-    if(sg && sg.pos) return {type:'you', pos:sg.pos, cid:rid, label:'此身所在 · '+sg.name};
-    // 郊野行军格：按「母城 → 外邻各点均值」线性插值打点，表明正行于哪片郊野
-    var _cr=G.ROOMS[rid];
-    if(_cr && _cr.isField && _cr.fieldId){
-      var _fp=(LF.PLACES||{})[_cr.fieldId]||{};
-      var _par=_fp.parent;
-      var _cpos=null;
-      if((LF.CITIES||{})[_par] && LF.CITIES[_par].pos) _cpos=LF.CITIES[_par].pos;
-      else if((LF.PLACES||{})[_par] && LF.PLACES[_par].pos) _cpos=LF.PLACES[_par].pos;
-      var _fmeta=((LF.Travel&&LF.Travel.fields)||{})[_cr.fieldId]||{};
-      // v20260907d：多段郊野链的中段 neighbors 是指向「下一程入口房」的虚拟邻点（无真实经纬）。
-      // 沿链递归到末段，收集真实邻城/邻地点的坐标作为外端点；endStage 用于按「段序+段内进度」全局插值，
-      // 使中段「此身所在」打点不再从战略图消失，且位置沿母城→外端点连续推进。
-      var _posList=[], _endStage=_fmeta.stage||0;
-      (function walk(m){
-        ((m.neighbors)||[]).forEach(function(n){
-          var _p=((LF.CITIES&&LF.CITIES[n.nid]&&LF.CITIES[n.nid].pos)?LF.CITIES[n.nid].pos
-                :((LF.PLACES&&LF.PLACES[n.nid]&&LF.PLACES[n.nid].pos)?LF.PLACES[n.nid].pos:null));
-          if(_p){ _posList.push(_p); return; }
-          var _nr=G.ROOMS[n.nid], _ff=_nr&&_nr.fieldId;
-          if(_ff && LF.Travel && LF.Travel.fields && LF.Travel.fields[_ff]){
-            var _nx=LF.Travel.fields[_ff];
-            if((_nx.stage||0)>_endStage) _endStage=_nx.stage||0;
-            if(_endStage<=8) walk(_nx);
-          }
-        });
-      })(_fmeta);
-      if(_cpos && _posList.length){
-        var _g=_fp.gateDir||'东';
-        var _geo=LF.Travel.fieldGeometry(_fp.size||4,_g);
-        var _near=(_g==='东'||_g==='西')?_geo.nearCol:_geo.nearRow;
-        var _ax=(_g==='东'||_g==='西')?_cr.fc:_cr.fr;
-        var _den=(_fp.size||4)-1;
-        var _t=(_den<=0)?0.5:(((_g==='东'||_g==='南')?(_ax-_near):(_near-_ax))/_den);
-        _t=Math.max(0,Math.min(1,_t));
-        var _s=_fmeta.stage||0, _glb=(_s+_t)/(_endStage+1);
-        var _ox=0,_oy=0; _posList.forEach(function(p){ _ox+=p[0]; _oy+=p[1]; });
-        _ox/=_posList.length; _oy/=_posList.length;
-        return {type:'you', pos:[_cpos[0]+(_ox-_cpos[0])*_glb, _cpos[1]+(_oy-_cpos[1])*_glb],
-                cid:_cr.fieldId, label:'此身所在 · '+((_fp.name)||'郊野')};
-      }
-    }
-    return null;
-  }
-  // 主线/任务目标打点（后续支线目标可在此追加）
-  function smGoalMarks(){
-    var marks=[];
-    if(state && state.quest && state.quest.luoyang){
-      var lc=(LF.CITIES||{}).luoyang;
-      if(lc && lc.pos) marks.push({type:'goal', pos:lc.pos, cid:'luoyang', label:'目标 · 赴洛阳'});
-    }
-    // 治下之城（据城而定/扫平群雄的成果）：朱红「据」章
-    var held = state && state.ruledCities;
-    if(held && held.length){
-      var C=LF.CITIES||{};
-      held.forEach(function(cid){
-        var c=C[cid];
-        if(c && c.pos) marks.push({type:'hold', pos:c.pos, cid:cid, label:'据 · '+c.name});
-      });
-    }
-    return marks;
-  }
-  function strategicMapMarks(){
-    var out=[];
-    var y=smYouMark(); if(y) out.push(y);
-    smGoalMarks().forEach(function(x){ out.push(x); });
-    return out;
-  }
-  // 运行时归属读取器：让山河志城市点/详情随易主实时变色（v20260909o）
-  function strategicOwnerOf(cid){ try{ return cityOwnerOf(cid); }catch(e){ return null; } }
-  // 战略地图懒加载（v20260919f）：d3 / map_regions / strategic-map 三件套体积大（d3 ~280KB），
-  // 仅在首次开图时才注入，避免首屏下载/解析这些用户可能永远用不到的资源。
-  // 资源 URL 清单放在 index.html 的 window.__MAP_ASSETS（版本号随对应文件走，便于统一 bump）。
-  var _mapReady=null;
-  function _loadMapAsset(src){
-    return new Promise(function(res, rej){
-      var s=document.createElement('script'); s.src=src; s.async=true;
-      s.onload=function(){ res(); };
-      s.onerror=function(){ rej(new Error('地图资源加载失败: '+src)); };
-      document.head.appendChild(s);
-    });
-  }
-  // P0-①：战略图三件套改为并行加载（原串行 chain：d3→regions→sm 顺序等待）
-  // 并行后首次开图等待从「三者之和」降到「最慢一项」，配合下方空闲预取即可秒开。
-  function ensureStrategicMap(){
-    if(_mapReady) return _mapReady;
-    var A=window.__MAP_ASSETS;
-    if(A && window.d3 && window.LF && LF.REGIONS && LF.initStrategicMap){ _mapReady=Promise.resolve(); return _mapReady; }
-    _mapReady=new Promise(function(resolve, reject){
-      // v20260928g：d3/regions 先就绪，再加载 strategic-map —— 旧版 Promise.all 三件套并行，
-      //   无缓存时 strategic-map.js 先执行、内部顶层引用 d3 报 "d3 is not defined"（本地必现）。
-      var p1 = (!A || !window.d3) ? _loadMapAsset(A?A.d3:'shared/vendor/d3.min.js') : Promise.resolve();
-      var p2 = (!A || !(window.LF && LF.REGIONS)) ? _loadMapAsset(A?A.regions:'shared/data/map_regions.js') : Promise.resolve();
-      Promise.all([p1, p2]).then(function(){
-        // v20261008g：几何基础（LF.StratGeom）先就位，再加载 strategic-map
-        //   —— sm 顶层即执行 `var convexHull = SG.convexHull` 取别名，geo 未加载会静默取到 undefined。
-        if(A && !(window.LF && LF.StratGeom)) return _loadMapAsset(A.geo||'shared/strategic-geometry.js');
-      }).then(function(){
-        if(!A || !(window.LF && LF.initStrategicMap)) return _loadMapAsset(A?A.sm:'shared/strategic-map.js');
-      }).then(resolve, reject);
-    });
-    return _mapReady;
-  }
-  // P0-①：进入游戏后利用浏览器空闲时段预取战略图三件套，使玩家点开山河志时资源已就绪（不阻塞首屏/序章）
-  function prefetchStrategicMap(){
-    try{
-      if(_mapReady) return;
-      var ric=window.requestIdleCallback||function(cb){ return setTimeout(cb, 1400); };
-      ric(function(){ ensureStrategicMap().catch(function(){}); }, {timeout:5000});
-    }catch(e){}
-  }
-  function initStrategicMapInGame(opts){
-    opts=opts||{};
-    var container=document.getElementById('strategic-map-container');
-    if(!container) return;
-    function render(){
-      var marks=strategicMapMarks();
-      // 选出生点模式
-      if(opts.pickSpawn){
-        LF.initStrategicMap(container, {
-          marks: marks,
-          ownerOf: strategicOwnerOf,
-          onCityClick: function(city){
-            if(!city || !city.id) return;
-            state.spawnRoom=city.id;
-            log('【调试】出生点已设为：'+city.name+'。','good');
-            closeModal(); renderRoom(city.id); save(state);
-          }
-        });
-      } else {
-        // 正常模式：点击城市点=显示详情（placeInfo）；点详情面板「前往此城」= goRoomOnMap 传送（v20260918a 接线）
-        LF.initStrategicMap(container, {
-          marks: marks,
-          focusYou: !!opts.focusYou,
-          ownerOf: strategicOwnerOf,
-          onCityClick: function(city){
-            if(!city || !city.id) return;
-            placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);
-          },
-          onCityGo: function(city){
-            if(!city || !city.id) return;
-            goRoomOnMap(city.id);
-          }
-        });
-      }
-    }
-    if(window.LF && LF.initStrategicMap && window.d3 && LF.REGIONS){
-      render(); return;
-    }
-    container.innerHTML='<div class="strategic-loading">战略地图加载中...</div>';
-    ensureStrategicMap().then(function(){
-      if(window.LF && LF.initStrategicMap && window.d3 && LF.REGIONS) render();
-      else container.innerHTML='<div class="strategic-loading">战略地图加载失败，请刷新重试</div>';
-    }).catch(function(){
-      container.innerHTML='<div class="strategic-loading">战略地图加载失败，请刷新重试</div>';
-    });
-  }
-
   function closeModal(){
     var _tt=document.getElementById('title'); if(_tt){ _tt.classList.remove('frozen'); if(!_tt.classList.contains('hidden') && window.startTitleDrip) window.startTitleDrip(); }
     if(state && state.dead){ die(); return; }
@@ -5433,17 +4191,6 @@
   //   旧版单行 1.4s 固定：长提示只看得见开头。
   //   修正说明：初版加了「队列」，但队列靠嵌套 setTimeout 驱动——一旦某个定时器被
   //   环境丢弃（后台/自动化标签页节流），队列会整体卡死、后续提示永不显示。改为
-  //   「重置式」：每次调用直接显示最新一条并刷新计时，无队列、无链式定时器，永不死锁。
-  var _toastTimer=null;
-  function toast(msg, ms, cls){
-    if(settings.sound) tick(480);
-    $toast.textContent=String(msg==null?'':msg);
-    $toast.className='show '+(cls||'');
-    if(_toastTimer) clearTimeout(_toastTimer);
-    _toastTimer=setTimeout(function(){ $toast.classList.remove('show'); _toastTimer=null; },
-      ms||Math.min(4200, Math.max(1700, 900+String(msg).length*80)));
-  }
-
   // ── 全局桥接（v20260825b）：shared/data/build.js 等数据文件中的交互回调在全局作用域
   //    解析 openModal/log/exert/packFind…，需将游戏内部函数暴露到 window，否则建筑内面板（如铁砧打造）打开报 ReferenceError
   // ── 单挑 / 舌战 / 安全募兵（v20260922f）──
@@ -5576,7 +4323,8 @@
   //   函数只在引擎闭包里、没挂 window → 点「征税 / 安民」抛 "civilEdict is not defined"。
   window.civilEdict=civilEdict;
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
-  window.enterGame=enterGame;   // 调试/自动化游玩桥接（供 playtest harness 开局，与 advanceTime 同款）
+  window.enterGame=enterGame;  window.advanceMinutes = advanceMinutes; window.advanceTime = advanceTime;
+   // 调试/自动化游玩桥接（供 playtest harness 开局，与 advanceTime 同款）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）
   // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，
   //    engine.js 及其拆分文件以裸名 state 访问（=window.state），rooms.js 等外部脚本以 window.state 只读访问。

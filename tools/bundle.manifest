@@ -76,4 +76,10 @@ shared/core/panels.js
 shared/core/prologue.js
 shared/core/npcai.js
 shared/core/ward.js
+shared/core/icons.js
+shared/core/ui.js
+shared/core/strategicMap.js
+shared/core/construction.js
+shared/core/time.js
+shared/core/objects.js
 shared/core/engine.js
