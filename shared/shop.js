@@ -1004,6 +1004,7 @@
       positionFloat: positionFloat,
       save: save,
       toast: toast,
+      S: S
     });
     var bindContainerPanel = _cont.bindContainerPanel, contAct = _cont.contAct;
     var contCount = _cont.contCount, contInit = _cont.contInit, contMerge = _cont.contMerge;

@@ -13,7 +13,8 @@
         packAdd = ctx.packAdd, packConsume = ctx.packConsume, packFind = ctx.packFind,
         packFirstEmpty = ctx.packFirstEmpty, packIsStackable = ctx.packIsStackable,
         packMax = ctx.packMax, packUpPlaced = ctx.packUpPlaced,
-        positionFloat = ctx.positionFloat, save = ctx.save, toast = ctx.toast;
+        positionFloat = ctx.positionFloat, save = ctx.save, toast = ctx.toast,
+        S = ctx.S;   // 行囊 getter（shop.js 的 S()），本模块 32 处调用
 
   // ── 放置容器（箱子/柜子/货架通用，v20260930q）：槽位数组存储，支持点击与拖拽双向搬运 ──
   var DEF_MAX_STACK = 99;
@@ -63,13 +64,13 @@
     for(var k2=0;k2<slots.length && n>0;k2++){
       if(!slots[k2]){
         if(stack){ var put=Math.min(cap,n); slots[k2]=window.LF.ITEMS.makeItem(defId, put); moved+=put; n-=put; }
-        else { var pidx=getState().pack.indexOf(it); if(pidx<0) break; slots[k2]=it; getState().pack[pidx]=null; moved+=(it.count||1); n=0; }
+        else { var pidx=S().pack.indexOf(it); if(pidx<0) break; slots[k2]=it; S().pack[pidx]=null; moved+=(it.count||1); n=0; }
       }
     }
     if(moved<=0) return false;
     if(stack) packConsume(defId, moved);
     contMerge(p);
-    if(!_bulk){ save(getState()); afterPackChange(); }
+    if(!_bulk){ save(S()); afterPackChange(); }
     return true;
   }
   function contTakeCore(p, idx, n){
@@ -82,9 +83,9 @@
       s.count-=n; if(s.count<=0) p.cont.slots[idx]=null;
     } else {
       var e=packFirstEmpty(); if(e<0){ if(!_bulk) toast('行囊已满，无法取出。'); return false; }
-      getState().pack[e]=s; p.cont.slots[idx]=null;
+      S().pack[e]=s; p.cont.slots[idx]=null;
     }
-    if(!_bulk){ save(getState()); afterPackChange(); }
+    if(!_bulk){ save(S()); afterPackChange(); }
     return true;
   }
   function contMerge(p){
@@ -115,7 +116,7 @@
     var ok=0, fail=0; _bulk++;
     try{ (p.cont.slots||[]).forEach(function(s,idx){ if(s&&(s.count||0)>0){ if(contTakeCore(p, idx, s.count||1)) ok++; else fail++; } }); }
     finally{ _bulk--; }
-    save(getState()); afterPackChange();
+    save(S()); afterPackChange();
     if(ok||fail) toast(fail? ('取出 '+ok+' 格，'+fail+' 格因行囊已满未取出。') : ('取出 '+ok+' 格。'));
     refreshContainerPanel(p);
     var f=document.getElementById('cont-float'); if(f) f.style.display='none'; contSel=null;
@@ -129,7 +130,7 @@
         if(contPutCore(p, it.defId||it.id, it.count||1)) ok++; else fail++;
       }
     } finally{ _bulk--; }
-    save(getState()); afterPackChange();
+    save(S()); afterPackChange();
     if(ok||fail) toast(fail? ('收纳 '+ok+' 格，'+fail+' 格放不下。') : ('收纳 '+ok+' 格。'));
     refreshContainerPanel(p);
     var f=document.getElementById('cont-float'); if(f) f.style.display='none'; contSel=null;
@@ -150,12 +151,12 @@
     } else if(d.maxDur){ toast('「'+(d.name||'此物')+'」为器具，于对应劳作时自行消耗耐久，无需手动使用。'); return; }
     else { toast('此物暂无可施用之效。'); return; }
     s.count--; if(s.count<=0) p.cont.slots[idx]=null;
-    save(getState()); afterPackChange(); refreshContainerPanel(p);
+    save(S()); afterPackChange(); refreshContainerPanel(p);
   }
   function contPickup(p){
     contInit(p);
     (p.cont.slots||[]).forEach(function(s,idx){ if(s&&(s.count||0)>0) contTakeCore(p, idx, s.count||1); });
-    packUpPlaced(p.key); save(getState()); closeModal();
+    packUpPlaced(p.key); save(S()); closeModal();
   }
   function refreshContainerPanel(p){
     var card=document.getElementById('modal-card');
@@ -337,7 +338,7 @@
     } else if(kind==='equip'){
       var it2=S().pack[sel.idx]; if(it2&&it2.slot){ LFUI.equipFromPackTo(sel.idx, it2.slot); refreshContainerPanel(p); contReshowFloat(p); }
     } else if(kind==='discard'){
-      if(sel.side==='cont'){ var s=p.cont.slots[sel.idx]; if(s){ var nm=(window.LF.ITEMS[s.defId||s.id]||{}).name||'物'; if(window.confirm('确定丢弃容器中的「'+nm+'×'+(s.count||1)+'」？此操作不可撤销。')){ p.cont.slots[sel.idx]=null; save(getState()); afterPackChange(); } } }
+      if(sel.side==='cont'){ var s=p.cont.slots[sel.idx]; if(s){ var nm=(window.LF.ITEMS[s.defId||s.id]||{}).name||'物'; if(window.confirm('确定丢弃容器中的「'+nm+'×'+(s.count||1)+'」？此操作不可撤销。')){ p.cont.slots[sel.idx]=null; save(S()); afterPackChange(); } } }
       else { var it3=S().pack[sel.idx]; if(it3){ if(window.confirm('确定丢弃「'+it3.name+'×'+(it3.count||1)+'」？此操作不可撤销。')){ LFUI.discardPackItem(sel.idx); } } }
       refreshContainerPanel(p); contReshowFloat(p);
     }
@@ -364,7 +365,7 @@
   }
   window.contAct=contAct; window.contQty=contQty; window.contQtyInput=contQtyInput;
   window.contCloseCleanup=function(){ contPlaced=null; contSel=null; var f=document.getElementById('cont-float'); if(f) f.style.display='none'; };
-  function contSort(p){ contMerge(p); if(LFUI && LFUI.packAutoSort) LFUI.packAutoSort(); save(getState()); afterPackChange(); refreshContainerPanel(p); toast('已整理。'); }
+  function contSort(p){ contMerge(p); if(LFUI && LFUI.packAutoSort) LFUI.packAutoSort(); save(S()); afterPackChange(); refreshContainerPanel(p); toast('已整理。'); }
     return {
       maxStackOf: maxStackOf, packCountOfDef: packCountOfDef,
       contInit: contInit, contCount: contCount, contRoom: contRoom,
