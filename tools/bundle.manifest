@@ -39,6 +39,7 @@ shared/index.js
 shared/core/state.js
 shared/core/calendar.js
 shared/core/save.js
+shared/grinding.js
 shared/core/dev.js
 shared/core/triggers.js
 shared/core/city.js

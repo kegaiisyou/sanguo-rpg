@@ -70,6 +70,15 @@ window.LF = window.LF || {};
       // v20260915g：原写作 jinchuangyao，items.js 里并无此 id（正确为 jinchuang）→ makeItem 返回 null，
       //   调试按钮点了毫无反应。这也是「凡入包的物先查登记表」的道理。
       else if (act === 'item_yao') { ctx.packAdd('jinchuang', 5); ctx.log('【调试】获得金疮药×5', 'good'); }
+      else if (act === 'grind') {
+        // 捣药（A1 手感验证）：懒创建实例，复用调试台自身的 ctx
+        var _gr = LF.Grinding || (LF.Grinding = LF.createGrinding({
+          getState: getState, packAdd: ctx.packAdd, toast: ctx.toast,
+          log: ctx.log, save: ctx.save, renderStatus: ctx.renderStatus
+        }));
+        var _sel = document.getElementById('dev-grind-herb');
+        _gr.openGrind((_sel && _sel.value) || 'caoyao');
+      }
       // v20260924z17：原「查看当前旗标」按钮已移除 —— walk() 对 state.flags 做无保护的递归遍历，
       //   旗标里一旦出现环引用（或嵌套极深）就会无限递归，点一下页面直接卡死。
     }
@@ -130,6 +139,17 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="item_stone">石料×10</button>' +
          '<button class="dev" data-act="item_wood">木材×10</button>' +
          '<button class="dev" data-act="item_yao">金疮药×5</button></div></div>';
+
+      // 7. 制药（捣药手感验证）
+      h += '<div class="dev-sec"><div class="dev-h">🧪 制药调试</div><div class="dev-btns">'
+         + '<select id="dev-grind-herb" class="dev-input">'
+         + '<option value="caoyao">草药</option>'
+         + '<option value="renshen">人参</option>'
+         + '<option value="gancao">甘草</option>'
+         + '<option value="huanglian">黄连</option>'
+         + '</select>'
+         + '<button class="dev" data-act="grind">🥣 捣 药</button>'
+         + '</div></div>';
 
       h += '<button class="close" id="m-close">收 起</button>';
       $card.innerHTML = h;

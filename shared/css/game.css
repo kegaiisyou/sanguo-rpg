@@ -3638,3 +3638,41 @@
 .gm-hist-sum{ margin-top:4px; font-size:11px; letter-spacing:1px; color:#7a4a2a; border-top:1px dotted rgba(120,80,40,.3); padding-top:3px; }
 .gm-hist-sum.win{ color:#b03a2c; font-weight:700; }
 .gm-hist-sum.lose{ color:#4a5a44; font-weight:700; }
+
+  /* ===== 捣药（v20261008v）：药材入臼 · 节奏点击捣击 ===== */
+  .grind-win{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;
+    background:rgba(28,22,16,.55);backdrop-filter:blur(2px);padding:18px;animation:csFade .18s ease-out;}
+  .grind-card{width:min(92vw,400px);background:var(--paper);border:1px solid var(--panel-line);
+    border-radius:var(--r-card);box-shadow:var(--shadow);padding:14px 16px;text-align:center;color:var(--ink);}
+  .grind-title{font-size:16px;font-weight:700;letter-spacing:6px;color:var(--seal);}
+  .grind-sub{font-size:12px;color:var(--ink-soft);margin:4px 0 10px;}
+  .grind-mortar{position:relative;width:min(72vw,280px);height:min(72vw,280px);margin:0 auto;
+    border-radius:var(--r-pill);background:var(--panel);border:2px solid var(--panel-line);
+    box-shadow:inset 0 4px 14px var(--shadow);overflow:hidden;touch-action:manipulation;cursor:pointer;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
+  .grind-mortar.shake{animation:grindShake .16s ease-out;}
+  @keyframes grindShake{0%{transform:translate(0,0);}35%{transform:translate(-2px,2px);}
+    70%{transform:translate(2px,-1px);}100%{transform:none;}}
+  .grind-herb{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:var(--r-btn);
+    background:var(--gold);border:1px solid var(--btn-primary-bd);font-size:14px;line-height:24px;text-align:center;
+    transition:transform .12s ease, opacity .18s ease;}
+  .grind-herb.broken{transform:scale(.38);opacity:.22;}
+  .grind-pestle{position:absolute;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:var(--r-pill);
+    background:var(--btn-primary);pointer-events:none;animation:grindHit .22s ease-out forwards;}
+  @keyframes grindHit{from{transform:scale(1.55);opacity:.92;}to{transform:scale(.55);opacity:0;}}
+  .grind-chip{position:absolute;width:6px;height:6px;border-radius:var(--r-pill);background:var(--gold);
+    pointer-events:none;animation:grindChip .38s ease-out forwards;}
+  @keyframes grindChip{from{transform:translate(0,0);opacity:.9;}
+    to{transform:translate(var(--dx,0),var(--dy,0));opacity:0;}}
+  .grind-hud{display:flex;justify-content:space-around;margin-top:10px;font-size:12px;color:var(--ink-soft);}
+  .grind-hud b{color:var(--ink);font-size:13px;}
+  .grind-acts{display:flex;gap:var(--gp);margin-top:12px;}
+  .grind-acts .btn,.grind-acts .btn-ghost{flex:1;min-height:44px;}
+  .grind-tip{margin-top:8px;font-size:11px;color:var(--ink-faint);}
+  .grind-result{margin-top:12px;}
+  .grind-q{font-size:17px;font-weight:700;letter-spacing:2px;margin-bottom:8px;}
+  .grind-tab{width:100%;font-size:12px;color:var(--ink-soft);border-collapse:collapse;}
+  .grind-tab td{padding:4px 6px;border-bottom:1px dashed var(--panel-line);}
+  .grind-tab td:nth-child(2){text-align:center;color:var(--ink);}
+  .grind-tab td:nth-child(3){text-align:right;}
+
