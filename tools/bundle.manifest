@@ -11,6 +11,10 @@ shared/data/personas.js
 shared/data/custom_officers.js
 shared/data/officers.js
 shared/story/rooms.js
+shared/story/triggers_prologue.js
+shared/story/triggers_guide.js
+shared/story/triggers_coup.js
+shared/story/triggers_side.js
 shared/story/triggers.js
 shared/data/martial.js
 shared/data/enemies.js
