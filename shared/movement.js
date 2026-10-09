@@ -34,7 +34,7 @@
         save = ctx.save,
         cellLockedHere = ctx.cellLockedHere,
         goCell = ctx.goCell,
-        isOnBoat = ctx.isOnBoat, roomObjs = ctx.roomObjs;
+        isOnBoat = ctx.isOnBoat, roomObjs = ctx.roomObjs, fieldPlacedCamps = ctx.fieldPlacedCamps;
 
   // ===== 常驻移动区：Dock 上方方向罗盘（位置即方位，永远可见） =====
   var DIR_ARROW={'北':'↑','南':'↓','东':'→','西':'←','东北':'↗','西北':'↖','东南':'↘','西南':'↙'};

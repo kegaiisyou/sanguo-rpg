@@ -2164,7 +2164,8 @@
       cellLockedHere: function () { return cellLockedHere.apply(null, arguments); },
       goCell: function () { return goCell.apply(null, arguments); },
       isOnBoat: function () { return isOnBoat.apply(null, arguments); },
-      roomObjs: function () { return roomObjs.apply(null, arguments); }
+      roomObjs: function () { return roomObjs.apply(null, arguments); },
+      fieldPlacedCamps: function () { return fieldPlacedCamps.apply(null, arguments); }
     });
     var arriveAtGate = _mv.arriveAtGate;
     var availableGateDirs = _mv.availableGateDirs;
