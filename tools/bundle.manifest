@@ -89,4 +89,5 @@ shared/core/strategicMap.js
 shared/core/construction.js
 shared/core/time.js
 shared/core/objects.js
+shared/movement.js
 shared/core/engine.js
