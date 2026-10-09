@@ -1528,6 +1528,12 @@
     filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));opacity:.92;}
   .loot-info{position:fixed;z-index:80;min-width:88px;max-width:184px;max-height:min(28vh,calc(100vh - 32px));overflow-y:auto;background:var(--paper);border:1px solid rgba(60,40,30,.28);
     border-radius:var(--r-btn);padding:6px 7px;box-shadow:0 8px 24px rgba(40,28,16,.3);font-family:"STKaiti","KaiTi",serif;text-align:left;font-size:11px;overflow-wrap:break-word;word-break:break-word;}
+  /* v20261008g：浮框右上角关闭钮（手机端点外部经常误触格子，加显式 ✕） */
+  .lf-close{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:1px solid rgba(176,69,30,.6);background:rgba(176,69,30,.88);color:#fff;font-size:12px;line-height:17px;text-align:center;padding:0;cursor:pointer;z-index:6;}
+  .lf-close:active{transform:scale(.9);}
+  /* v20261008g：长按进入拖拽的预备反馈 + 拖拽期滚动锁（在手指移动前锁容器，浏览器不再抢手势） */
+  .packcell.drag-arm{transform:scale(1.10);box-shadow:0 0 0 2px rgba(232,184,86,.75),0 4px 12px rgba(0,0,0,.35);background:rgba(232,184,86,.18);z-index:6;border-color:#e8c87e;}
+  .drag-lock .pack-scroll,.drag-lock .shop-scroll,.drag-lock .cs-grid,.drag-lock .cs-panes{overflow:hidden!important;}
   .li-acts{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;background:#f8f2e4;padding-top:5px;border-top:1px solid rgba(60,40,30,.18);}   /* 不再 sticky：position:fixed 容器内 sticky 基准为视口底部，会让按钮“漏出”浮框外 */
   /* 数量步进器（货郎买卖批量）：− 数字 + */
   .li-qty{display:flex;align-items:center;gap:5px;margin-top:6px;}
@@ -2199,6 +2205,8 @@
     .shop-left,.shop-right{flex:1 1 0;min-width:0;max-height:56vh;min-height:0;}
     /* 手机端恢复货品/行囊格纵向滚动：原 touch-action:none 让长列表整片滑不动（只能从 5px 间隙滑）；放开为 pan-y 后纵向顺滑滚动，横向拖拽与轻点选中仍由 JS 接管，寄售/购买走浮框按钮不依赖拖拽 */
     .shop-good,.shop-right .packcell{touch-action:pan-y;}
+    /* v20261008g：背包物品区/容器左栏/战利品栏同样放开纵向滚动（此前漏改，导致这些列表只能从空格滑） */
+    .pack-right .packcell,.shop-left .packcell,.cs-grid .packcell{touch-action:pan-y;}
     .shop-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
     .shop-scroll::-webkit-scrollbar{width:14px;}
     .sf-acts .btn{min-width:88px;padding:12px 6px;font-size:14px;letter-spacing:2px;border-radius:10px;}

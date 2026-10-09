@@ -247,7 +247,13 @@
     if(!getPackInspect()) return;
     var f=document.getElementById('pack-float');
     if(!f){ f=document.createElement('div'); f.className='loot-info'; f.id='pack-float'; document.body.appendChild(f); }
-    f.innerHTML=renderPackInspect(); f.style.display='block';
+    f.innerHTML=renderPackInspect();
+    if(!f.querySelector('.lf-close')) {   // v20261008g：显式 ✕ 关闭（替代"点空白关闭"的隐式交互）
+      var _x=document.createElement('button'); _x.className='lf-close'; _x.textContent='✕'; _x.setAttribute('aria-label','关闭');
+      _x.onclick=function(ev){ ev.stopPropagation(); setPackInspect(null); f.style.display='none'; var c=document.querySelectorAll('.packcell.pcell-insp'); c.forEach(function(x){ x.classList.remove('pcell-insp'); }); };
+      f.appendChild(_x);
+    }
+    f.style.display='block';
     var a=document.querySelector('.pcell-insp'); if(!a){ f.style.display='none'; return; }
     var ar=a.getBoundingClientRect();
     var cw=ar.width; if(cw) f.style.width=Math.max(88,Math.min(184,Math.round(cw)))+'px';
@@ -273,6 +279,9 @@
           return;
         }
         if(!it){ setPackInspect(null); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; return; }  // 空位：仅收起浮框
+        // v20261008g：再次点击同一物品 = 切换关闭详情（手机端高频操作，减少"找空白格关闭"）
+        var cur=getPackInspect();
+        if(cur && cur.kind===loc.kind && cur.idx===loc.idx){ setPackInspect(null); var f2=document.getElementById('pack-float'); if(f2) f2.style.display='none'; el.classList.remove('pcell-insp'); return; }
         // 单击 = 选中并查看详情；装备/卸下/使用/丢弃 均在详情浮层按钮里显式操作
         setPackInspect(loc);
         card.querySelectorAll('.pcell-insp').forEach(function(c){ c.classList.remove('pcell-insp'); });   // 仅更新高亮，不重渲染面板，避免列表滚动复位

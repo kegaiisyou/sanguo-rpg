@@ -654,7 +654,13 @@
     function shopFloatShow(html, cell) {
       var f = document.getElementById('shop-float');
       if (!f) { f = document.createElement('div'); f.className = 'loot-info'; f.id = 'shop-float'; document.body.appendChild(f); }
-      f.innerHTML = html; f.style.display = 'block'; positionShopFloat(f, cell);
+      f.innerHTML = html;
+      if (!f.querySelector('.lf-close')) {   // v20261008g：显式 ✕ 关闭（手机端点空白易误触格子）
+        var _x = document.createElement('button'); _x.className = 'lf-close'; _x.textContent = '✕'; _x.setAttribute('aria-label', '关闭');
+        _x.onclick = function (ev) { ev.stopPropagation(); f.style.display = 'none'; shopSel = null; shopGoodSel = null; shopStoreSel = null; clearSel('.shop-right .packcell'); clearSel('[data-shop]'); clearSel('[data-sellp]'); clearSel('[data-store]'); };
+        f.appendChild(_x);
+      }
+      f.style.display = 'block'; positionShopFloat(f, cell);
       f.querySelectorAll('.li-step').forEach(function (b) { b.onclick = function () { var inp = f.querySelector('.li-qin'); if (!inp) return; var max = parseInt(inp.getAttribute('data-max'), 10) || 1; var v = parseInt(inp.value, 10) || 1; v = Math.max(1, Math.min(max, v + parseInt(b.getAttribute('data-step'), 10))); inp.value = v; }; });
       f.querySelectorAll('.li-qin').forEach(function (inp) { inp.oninput = function () { var max = parseInt(inp.getAttribute('data-max'), 10) || 1; var v = parseInt(inp.value, 10); if (isNaN(v) || v < 1) v = 1; if (v > max) v = max; inp.value = v; }; });
       f.querySelectorAll('[data-buygo]').forEach(function (b) { b.onclick = function () { var inp = f.querySelector('.li-qin'); var max = parseInt((inp && inp.getAttribute('data-max')) || '0', 10); var q = (b.getAttribute('data-buygo') === 'max') ? max : (parseInt(inp && inp.value, 10) || 1); addBuyPending(b.getAttribute('data-buyid'), q); }; });
@@ -780,13 +786,17 @@
         return { kind: 'sellp', payload: parseInt(el.getAttribute('data-selluid'), 10) };
       }
       function armDrag(di, el, e) { pending = { kind: di.kind, payload: di.payload, el: el, sx: e.clientX, sy: e.clientY, e0: e }; }
-      function beginDrag(e) {   // 进入拖拽：锁定 pointer + 临时关闭该格滚动，避免纵向拖被浏览器滚动抢走（pan-y 副作用）
+      function lockTouchMove(e){ if (dragging) e.preventDefault(); }   // v20261008g：拖拽激活期间禁止浏览器滚动（pan-y 格上滚动会吞掉 pointermove）
+      function beginDrag(e) {   // 进入拖拽：锁定滚动容器 + 长按预备反馈，避免纵向拖被浏览器滚动抢走（pan-y 副作用）
         if (!pending) return;
-        dragging = { kind: pending.kind, payload: pending.payload };
-        srcEl = pending.el; moved = false; pending.el.__dragMoved = false;
+       
+        dragging = { kind: pending.kind, payload: pending.payload };        srcEl = pending.el; moved = false; pending.el.__dragMoved = false;
         sx = pending.sx; sy = pending.sy;
         try { srcEl.setPointerCapture(e.pointerId); } catch (_) {}
         srcEl.style.touchAction = 'none';
+        srcEl.classList.add('drag-arm');   // v20261008g：长按预备视觉反馈（上浮+金框）
+        var _card = document.getElementById('modal-card'); if (_card) _card.classList.add('drag-lock');   // 锁滚动容器，浏览器不再抢手势
+        document.addEventListener('touchmove', lockTouchMove, { passive: false });
         pending = null;
         var _sf = document.getElementById('shop-float'); if (_sf) _sf.style.display = 'none';
       }
@@ -807,7 +817,7 @@
           if (Math.abs(e.clientX - pending.sx) > 10 || Math.abs(e.clientY - pending.sy) > 10) { clearTimeout(longTimer); longTimer = null; pending = null; return; }
         }
         if (!dragging) return;
-        if (!moved) { if (Math.abs(e.clientX - sx) < 8 && Math.abs(e.clientY - sy) < 8) return; moved = true; srcEl && (srcEl.__dragMoved = true); }
+        if (!moved) { if (Math.abs(e.clientX - sx) < 12 && Math.abs(e.clientY - sy) < 12) return; moved = true; srcEl && (srcEl.__dragMoved = true); }   // v20261008g：ghost 阈值 8→12px，防长按微颤误触发
         if (!ghost) { ghost = document.createElement('div'); ghost.className = 'pack-ghost'; document.body.appendChild(ghost); }
         var nm;
         if (dragging.kind === 'sell') nm = (S().pack[dragging.payload] || {}).name || '';
@@ -823,9 +833,12 @@
         if (cell && cell !== dropEl) { dropEl = cell; cell.classList.add('shop-drop'); }
       };
       function endDrag(e, cancelled) {
+       
         var d = dragging; dragging = null; if (ghost) { ghost.remove(); ghost = null; }
         if (dropEl) { dropEl.classList.remove('shop-drop'); dropEl = null; }
-        if (srcEl) { try { srcEl.style.touchAction = ''; } catch (_) {} }   // 还原滚动手势（恢复 pan-y）
+        document.removeEventListener('touchmove', lockTouchMove);
+        if (srcEl) { try { srcEl.style.touchAction = ''; } catch (_) {} srcEl.classList.remove('drag-arm'); }   // 还原滚动手势（恢复 pan-y）+ 收起长按反馈
+        var _card2 = document.getElementById('modal-card'); if (_card2) _card2.classList.remove('drag-lock');
         if (!d || !moved || cancelled) return;
         var L = card.querySelector('.shop-left'), R = card.querySelector('.shop-right');
         var isSt = (shopMode === 'storage');
@@ -1208,6 +1221,11 @@
     var f=document.getElementById('cont-float');
     if(!f){ f=document.createElement('div'); f.className='loot-info'; f.id='cont-float'; document.body.appendChild(f); }
     f.innerHTML=renderContainerInspect(p);
+    if(!f.querySelector('.lf-close')) {   // v20261008g：显式 ✕ 关闭
+      var _x=document.createElement('button'); _x.className='lf-close'; _x.textContent='✕'; _x.setAttribute('aria-label','关闭');
+      _x.onclick=function(ev){ ev.stopPropagation(); f.style.display='none'; contSel=null; var c=document.querySelectorAll('#cont-grid .pcell-insp,#cont-pack .pcell-insp'); c.forEach(function(x){ x.classList.remove('pcell-insp'); }); };
+      f.appendChild(_x);
+    }
     f.querySelectorAll('[data-cont-act]').forEach(function(b){ b.onclick=function(){ contAct(b.getAttribute('data-cont-act')); }; });
     f.querySelectorAll('[data-cq]').forEach(function(b){ b.onclick=function(){ var n=parseInt(b.getAttribute('data-n'),10); if(b.getAttribute('data-input')) contQtyInput(b.getAttribute('data-cq')); else contQty(b.getAttribute('data-cq'), n); }; });
     f.style.display='block';
@@ -1232,6 +1250,8 @@
         var key=isCont?('cont:'+idx):('pack:'+idx);
         var now=Date.now(); var dbl=(lastClick.key===key && now-lastClick.t<320); lastClick={t:now,key:key};
         if(dbl){ if(isCont) contTake(p, idx, 999); else { var it=S().pack[idx]; if(it) contPut(p, it.defId||it.id, 999); } return; }
+        // v20261008g：再次点击同一格 = 切换关闭详情
+        if(contSel && contSel.side===(isCont?'cont':'pack') && contSel.idx===idx){ contSel=null; var _f3=document.getElementById('cont-float'); if(_f3) _f3.style.display='none'; el.classList.remove('pcell-insp'); return; }
         contSel={side:isCont?'cont':'pack', idx:idx};
         card.querySelectorAll('.pcell-insp').forEach(function(c){ c.classList.remove('pcell-insp'); });
         el.classList.add('pcell-insp');

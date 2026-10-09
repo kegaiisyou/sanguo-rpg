@@ -1007,7 +1007,7 @@
       '</div>'+
       '<div class="cs-org-cap" id="lp-cap"></div>'+
       '<div class="loot-info" id="lp-info" style="display:none;"></div>';
-    var sel=null, ghost=null, dragSrc=null, startX=0, startY=0, moved=false, lastTap={t:0,key:null};
+    var sel=null, ghost=null, dragSrc=null, startX=0, startY=0, moved=false, lastTap={t:0,key:null}, lootTimer=null, lootTouchLock=null;   // v20261008g：长按拖拽计时器 + 滚动锁
     function rerender(){
       var lg=document.getElementById('lp-loot'); if(!lg) return;
       var bg=document.getElementById('lp-bag');
@@ -1042,16 +1042,27 @@
       var c=e.currentTarget;
       if(c.classList.contains('pcell-empty')) return;   // 空格不是拖拽源（交给滚动）
       e.preventDefault();
-      hideInfo(); sel=null; c.classList.add('dragging');
-      dragSrc={pane:c.getAttribute('data-pane'), idx:parseInt(c.getAttribute('data-idx'),10)};
+      hideInfo(); sel=null;
       startX=e.clientX; startY=e.clientY; moved=false;
-      try{ c.setPointerCapture(e.pointerId); }catch(_){}
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp);
+      // v20261008g：长按 150ms 进入拖拽（先按后拖），轻滑放行滚动——修复手机端"拖动总被滚动抢走/判定失败"
+      clearTimeout(lootTimer);
+      lootTimer=setTimeout(function(){
+        c.classList.add('dragging'); c.classList.add('drag-arm');
+        dragSrc={pane:c.getAttribute('data-pane'), idx:parseInt(c.getAttribute('data-idx'),10)};
+        try{ c.setPointerCapture(e.pointerId); }catch(_){}
+        host.classList.add('drag-lock');
+        if(!lootTouchLock){ lootTouchLock=function(ev){ if(dragSrc) ev.preventDefault(); }; document.addEventListener('touchmove', lootTouchLock, {passive:false}); }   // v20261008g：拖拽期禁浏览器滚动
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
+      }, 150);
     }
     function onMove(e){
-      if(!dragSrc) return;
-      if(!moved && (Math.abs(e.clientX-startX)>6||Math.abs(e.clientY-startY)>6)){
+      // 长按未到：手指已移动 → 取消长按，放行滚动
+      if(!dragSrc){
+        if(Math.abs(e.clientX-startX)>10||Math.abs(e.clientY-startY)>10){ clearTimeout(lootTimer); }
+        return;
+      }
+      if(!moved && (Math.abs(e.clientX-startX)>12||Math.abs(e.clientY-startY)>12)){
         moved=true;
         var it = dragSrc.pane==='loot'?lootArr[dragSrc.idx]:getState().pack[dragSrc.idx];
         makeGhost(it, e);
@@ -1059,13 +1070,17 @@
       if(ghost){ ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px'; hlDrop(e); }
     }
     function onUp(e){
+      clearTimeout(lootTimer);
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      if(lootTouchLock){ document.removeEventListener('touchmove', lootTouchLock); lootTouchLock=null; }
       if(ghost){ ghost.parentNode.removeChild(ghost); ghost=null; }
       clearHl();
       var dc=host.querySelector('.packcell.dragging'); if(dc) dc.classList.remove('dragging');   // 不论是否移动都清除淡化，避免源格卡在变淡态
+      var da=host.querySelector('.packcell.drag-arm'); if(da) da.classList.remove('drag-arm');
+      host.classList.remove('drag-lock');
       if(moved){ var tgt=cellAt(e.clientX,e.clientY); if(tgt) doMove(dragSrc,tgt); }
-      else { onTap(dragSrc); }
+      else if(dragSrc){ onTap(dragSrc); }
       dragSrc=null;
     }
     function cellAt(x,y){
