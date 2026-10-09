@@ -42,6 +42,7 @@ shared/core/inventory.js
 shared/core/mapview.js
 shared/core/citybuild.js
 shared/core/audio.js
+shared/combat-loot.js
 shared/core/combat.js
 shared/core/army.js
 shared/data/facilities.js
