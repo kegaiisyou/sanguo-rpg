@@ -23,6 +23,7 @@ shared/data/recipes.js
 shared/data/build.js
 shared/data/troops.js
 shared/data/shops.js
+shared/container.js
 shared/shop.js
 shared/data/map.js
 shared/data/cities.js
@@ -47,6 +48,7 @@ shared/core/mapview.js
 shared/core/citybuild.js
 shared/core/audio.js
 shared/combat-loot.js
+shared/combat-fx.js
 shared/core/combat.js
 shared/core/army.js
 shared/data/facilities.js
