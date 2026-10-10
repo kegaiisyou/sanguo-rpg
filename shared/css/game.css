@@ -3658,10 +3658,21 @@
     transition:transform .12s ease, opacity .18s ease;}
   .grind-herb-img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
   .grind-herb.broken{transform:scale(.38);opacity:.22;}
-  .grind-pestle{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;z-index:3;
-    background:url('../../assets/icons/grind/pestle.png') center/contain no-repeat;
-    pointer-events:none;animation:grindHit .22s ease-out forwards;}
-  @keyframes grindHit{from{transform:scale(1.55);opacity:.92;}to{transform:scale(.55);opacity:0;}}
+  .grind-herb.jolt{animation:grindJolt .18s ease-out;}
+  @keyframes grindJolt{0%{transform:scale(1);}40%{transform:scale(1.25) rotate(-10deg);}100%{transform:scale(1);}}
+  .grind-hd{position:absolute;right:1px;bottom:1px;display:flex;gap:2px;z-index:4;}
+  .grind-hd i{width:5px;height:5px;border-radius:50%;background:rgba(60,48,32,.75);box-shadow:0 0 0 1px rgba(255,255,255,.5);}
+  .grind-stick{position:absolute;left:calc(50% - 28px);top:calc(50% - 54px);width:56px;height:56px;z-index:3;
+    pointer-events:none;transition:transform .05s linear;will-change:transform;}
+  .grind-stick img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;
+    filter:drop-shadow(0 6px 6px rgba(40,28,14,.35));}
+  .grind-stick.strike{transition:transform .1s cubic-bezier(.55,0,.9,.45);}
+  .grind-stick.back{transition:transform .22s ease-out;}
+  .grind-power{display:flex;gap:5px;justify-content:center;align-items:center;margin:6px auto 2px;height:12px;}
+  .grind-power i{width:30px;height:7px;border-radius:4px;background:rgba(120,110,95,.22);transition:background .12s;}
+  .grind-power i.on1{background:#8FB7A4;}
+  .grind-power i.on2{background:var(--gold);}
+  .grind-power i.on3{background:var(--seal);}
   .grind-chip{position:absolute;width:6px;height:6px;border-radius:var(--r-pill);background:var(--gold);
     pointer-events:none;animation:grindChip .38s ease-out forwards;}
   @keyframes grindChip{from{transform:translate(0,0);opacity:.9;}
