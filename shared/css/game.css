@@ -3676,3 +3676,15 @@
   .grind-tab td:nth-child(2){text-align:center;color:var(--ink);}
   .grind-tab td:nth-child(3){text-align:right;}
 
+
+  /* ── 捣药·软判定版：波纹律动 + 可回收粉粒 ── */
+  .grind-ripple{position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:1;
+    box-shadow:inset 0 0 16px rgba(212,175,55,.16);animation:grPulse 1.25s ease-in-out infinite;}
+  .grind-ripple.hot{animation-duration:.8s;box-shadow:inset 0 0 22px rgba(212,175,55,.3);}
+  .grind-ripple.blaze{animation-duration:.55s;box-shadow:inset 0 0 28px rgba(190,70,60,.35);}
+  @keyframes grPulse{0%,100%{transform:scale(.985);opacity:.7;}
+    50%{transform:scale(1.015);opacity:1;}}
+  .grind-dust{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;z-index:3;
+    background:radial-gradient(circle,#f4dc9a 0%,#caa24a 55%,rgba(202,162,74,0) 72%);
+    box-shadow:0 0 6px rgba(202,162,74,.55);animation:grDust .45s ease-out forwards;}
+  @keyframes grDust{from{transform:scale(.5);opacity:0;}to{transform:scale(1.15);opacity:.95;}}
