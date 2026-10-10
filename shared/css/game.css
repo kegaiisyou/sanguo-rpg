@@ -3647,18 +3647,20 @@
   .grind-title{font-size:16px;font-weight:700;letter-spacing:6px;color:var(--seal);}
   .grind-sub{font-size:12px;color:var(--ink-soft);margin:4px 0 10px;}
   .grind-mortar{position:relative;width:min(72vw,280px);height:min(72vw,280px);margin:0 auto;
-    border-radius:var(--r-pill);background:var(--panel);border:2px solid var(--panel-line);
+    border-radius:var(--r-pill);
+    background:url('../../assets/icons/grind/mortar.png') center/contain no-repeat;
     box-shadow:inset 0 4px 14px var(--shadow);overflow:hidden;touch-action:manipulation;cursor:pointer;
     -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
   .grind-mortar.shake{animation:grindShake .16s ease-out;}
   @keyframes grindShake{0%{transform:translate(0,0);}35%{transform:translate(-2px,2px);}
     70%{transform:translate(2px,-1px);}100%{transform:none;}}
-  .grind-herb{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:var(--r-btn);
-    background:var(--gold);border:1px solid var(--btn-primary-bd);font-size:14px;line-height:24px;text-align:center;
+  .grind-herb{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;z-index:2;
     transition:transform .12s ease, opacity .18s ease;}
+  .grind-herb-img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
   .grind-herb.broken{transform:scale(.38);opacity:.22;}
-  .grind-pestle{position:absolute;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:var(--r-pill);
-    background:var(--btn-primary);pointer-events:none;animation:grindHit .22s ease-out forwards;}
+  .grind-pestle{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;z-index:3;
+    background:url('../../assets/icons/grind/pestle.png') center/contain no-repeat;
+    pointer-events:none;animation:grindHit .22s ease-out forwards;}
   @keyframes grindHit{from{transform:scale(1.55);opacity:.92;}to{transform:scale(.55);opacity:0;}}
   .grind-chip{position:absolute;width:6px;height:6px;border-radius:var(--r-pill);background:var(--gold);
     pointer-events:none;animation:grindChip .38s ease-out forwards;}

@@ -14,6 +14,16 @@
     var SPILL_R = 0.72;  // 臼沿判定半径比例
     var CW = 8000;       // 共鸣窗口：8秒内续捣碎 → 连击延续
 
+    // 水墨资产（assets/icons/grind/，白底抠图透明 PNG，同背包 items48 风格）
+    var HERB_ART = {
+      caoyao: 'assets/icons/items48/caoyao.png',
+      renshen: 'assets/icons/grind/renshen.png',
+      gancao: 'assets/icons/grind/gancao.png',
+      huanglian: 'assets/icons/grind/huanglian.png'
+    };
+    var MORTAR_ART = 'assets/icons/grind/mortar.png';
+    var PESTLE_ART = 'assets/icons/grind/pestle.png';
+
     var TIERS = [
       { q: 1, name: '凡品', color: 'var(--ink-soft)' },
       { q: 2, name: '良品', color: 'var(--gold)' },
@@ -37,6 +47,7 @@
       var it = (LF.ITEMS && LF.ITEMS[herbId]) || {};
       var name = it.name || '药材';
       var icon = it.icon || '🌿';
+      var herbArt = HERB_ART[herbId] || HERB_ART.caoyao;
 
       var ov = document.createElement('div');
       ov.id = 'grind-win';
@@ -80,7 +91,11 @@
         el.className = 'grind-herb';
         el.style.left = x + 'px';
         el.style.top = y + 'px';
-        el.textContent = icon;
+        var im = document.createElement('img');
+        im.className = 'grind-herb-img';
+        im.src = herbArt;
+        im.alt = '';
+        el.appendChild(im);
         mortar.appendChild(el);
         pieces.push({ el: el, x: x, y: y, broken: false });
       }
