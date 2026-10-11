@@ -140,13 +140,14 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="item_wood">木材×10</button>' +
          '<button class="dev" data-act="item_yao">金疮药×5</button></div></div>';
 
-      // 7. 制药（捣药手感验证）
+      // 7. 制药（捣药手感验证）：单味各捣 / 混捣·三味（合捣）
       h += '<div class="dev-sec"><div class="dev-h">🧪 制药调试</div><div class="dev-btns">'
          + '<select id="dev-grind-herb" class="dev-input">'
          + '<option value="caoyao">草药</option>'
          + '<option value="renshen">人参</option>'
          + '<option value="gancao">甘草</option>'
          + '<option value="huanglian">黄连</option>'
+         + '<option value="mix">混捣·三味（合捣）</option>'
          + '</select>'
          + '<button class="dev" data-act="grind">🥣 捣 药</button>'
          + '</div></div>';

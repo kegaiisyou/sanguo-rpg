@@ -3740,3 +3740,29 @@
   @keyframes grBurst{0%{box-shadow:inset 0 0 8px rgba(212,175,55,.3);}
     100%{box-shadow:inset 0 0 34px rgba(212,175,55,.55);}}
   .grind-fail{font-size:12px;font-weight:600;color:#b0452f;letter-spacing:1px;margin-left:6px;}
+
+  /* ── 捣药·合捣版：药性飘字 / 金药 / 顽石 / 药虫 / 杵速 ── */
+  .grind-num{position:absolute;z-index:6;font-size:13px;font-weight:700;pointer-events:none;
+    transform:translate(-50%,-100%);animation:grNum .9s ease-out forwards;text-shadow:0 1px 2px rgba(255,255,255,.6);}
+  @keyframes grNum{0%{opacity:0;transform:translate(-50%,-60%);}25%{opacity:1;}
+    100%{opacity:0;transform:translate(-50%,-170%);}}
+  .grind-sp-gold img{filter:drop-shadow(0 0 6px rgba(201,161,58,.9));}
+  .grind-sp-gold::after{content:'';position:absolute;inset:-6px;border-radius:50%;z-index:-1;
+    background:radial-gradient(circle,rgba(201,161,58,.5),transparent 70%);
+    animation:grGold 1.1s ease-in-out infinite;}
+  @keyframes grGold{0%,100%{opacity:.55;transform:scale(1);}50%{opacity:.95;transform:scale(1.12);}}
+  .grind-sp-stone>span:first-child{display:block;width:30px;height:26px;border-radius:6px;
+    background:radial-gradient(circle at 32% 28%,#8a8a94,#4a4a54 62%,#33333c);
+    box-shadow:inset 0 -3px 5px rgba(0,0,0,.35),0 2px 3px rgba(20,14,8,.35);
+    position:relative;}
+  .grind-sp-stone>span:first-child::before,.grind-sp-stone>span:first-child::after{
+    content:'';position:absolute;background:rgba(0,0,0,.28);border-radius:2px;}
+  .grind-sp-stone>span:first-child::before{left:6px;top:8px;width:14px;height:2px;transform:rotate(-24deg);}
+  .grind-sp-stone>span:first-child::after{left:9px;top:14px;width:9px;height:2px;transform:rotate(18deg);}
+  .grind-sp-bug>span:first-child{display:block;width:20px;height:13px;border-radius:50% 50% 46% 46%;
+    background:radial-gradient(circle at 35% 30%,#7a5a3a,#4a3626);
+    position:relative;box-shadow:0 1px 2px rgba(20,14,8,.3);}
+  .grind-sp-bug>span:first-child::before{content:'';position:absolute;left:-4px;top:2px;width:5px;height:5px;border-radius:50%;background:#3a2a1c;}
+  .grind-sp-bug>span:first-child::after{content:'';position:absolute;right:-4px;top:2px;width:5px;height:5px;border-radius:50%;background:#3a2a1c;}
+  .grind-stick.spd.fall{transition:transform .11s cubic-bezier(.55,0,.9,.35);}
+  .grind-stick.spd.bounce{transition:transform .07s ease-out;}
