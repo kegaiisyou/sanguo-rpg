@@ -3641,32 +3641,53 @@
 
   /* ===== 捣药（v20261008v）：药材入臼 · 节奏点击捣击 ===== */
   .grind-win{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;
-    background:rgba(28,22,16,.55);backdrop-filter:blur(2px);padding:18px;animation:csFade .18s ease-out;}
-  .grind-card{width:min(92vw,400px);background:var(--paper);border:1px solid var(--panel-line);
-    border-radius:var(--r-card);box-shadow:var(--shadow);padding:14px 16px;text-align:center;color:var(--ink);}
-  .grind-title{font-size:16px;font-weight:700;letter-spacing:6px;color:var(--seal);}
-  .grind-sub{font-size:12px;color:var(--ink-soft);margin:4px 0 10px;}
+    background:radial-gradient(ellipse at 50% 30%, rgba(84,64,40,.5), rgba(24,18,12,.78));
+    padding:18px;animation:csFade .18s ease-out;}
+  .grind-card{width:min(92vw,400px);
+    background:
+      repeating-linear-gradient(90deg, rgba(150,110,60,.06) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(0deg, rgba(120,90,50,.05) 0 2px, transparent 2px 7px),
+      linear-gradient(180deg,#e3d2ac,#cdb690);
+    border:1px solid rgba(90,66,38,.55);border-radius:10px;
+    box-shadow:0 14px 30px rgba(20,14,8,.45), inset 0 1px 0 rgba(255,255,255,.35);
+    padding:14px 16px;text-align:center;color:var(--ink);}
+  .grind-title{font-size:17px;font-weight:700;letter-spacing:8px;color:#5a3d1e;
+    display:flex;align-items:center;justify-content:center;gap:8px;}
+  .grind-seal{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+    border-radius:5px;background:#b0452f;color:#f3e7cf;font-size:13px;font-weight:700;letter-spacing:0;
+    box-shadow:0 2px 4px rgba(120,40,25,.4);}
+  .grind-sub{font-size:12px;color:var(--ink-soft);margin:4px 0 8px;}
+  .grind-time{position:relative;height:9px;border-radius:5px;background:rgba(90,70,40,.22);
+    margin:2px auto 10px;overflow:visible;width:100%;}
+  .grind-timebar{height:100%;border-radius:5px;width:100%;
+    background:linear-gradient(90deg,#7a9b6a,#c9a13a);transition:width .1s linear;}
+  .grind-timebar.low{background:linear-gradient(90deg,#b0452f,#d98a5a);animation:grTimeFlash .5s steps(2) infinite;}
+  @keyframes grTimeFlash{50%{opacity:.55;}}
+  .grind-time span{position:absolute;right:-4px;top:-13px;font-size:11px;color:#8a5a2a;font-weight:700;}
   .grind-mortar{position:relative;width:min(72vw,280px);height:min(72vw,280px);margin:0 auto;
     border-radius:var(--r-pill);
     background:url('../../assets/icons/grind/mortar.png') center/contain no-repeat;
-    box-shadow:inset 0 4px 14px var(--shadow);overflow:hidden;touch-action:manipulation;cursor:pointer;
+    box-shadow:inset 0 6px 18px rgba(50,35,18,.35);overflow:hidden;touch-action:manipulation;cursor:pointer;
     -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
   .grind-mortar.shake{animation:grindShake .16s ease-out;}
   @keyframes grindShake{0%{transform:translate(0,0);}35%{transform:translate(-2px,2px);}
     70%{transform:translate(2px,-1px);}100%{transform:none;}}
-  .grind-herb{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;z-index:2;
+  .grind-mortar.sink{transform:translateY(2.5px);transition:transform .06s ease-in;}
+  .grind-herb{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;z-index:2;
     transition:transform .12s ease, opacity .18s ease;}
-  .grind-herb-img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
-  .grind-herb.broken{transform:scale(.38);opacity:.22;}
+  .grind-herb-img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;
+    filter:drop-shadow(0 2px 3px rgba(40,28,14,.3));}
+  .grind-herb.crush{transform:scale(1.3,.62);}
   .grind-herb.jolt{animation:grindJolt .18s ease-out;}
-  @keyframes grindJolt{0%{transform:scale(1);}40%{transform:scale(1.25) rotate(-10deg);}100%{transform:scale(1);}}
+  @keyframes grindJolt{0%{transform:scale(1);}40%{transform:scale(1.3) rotate(-12deg);}100%{transform:scale(1);}}
   .grind-hd{position:absolute;right:1px;bottom:1px;display:flex;gap:2px;z-index:4;}
-  .grind-hd i{width:5px;height:5px;border-radius:50%;background:rgba(60,48,32,.75);box-shadow:0 0 0 1px rgba(255,255,255,.5);}
-  .grind-stick{position:absolute;left:calc(50% - 28px);top:calc(50% - 54px);width:56px;height:56px;z-index:3;
+  .grind-hd i{width:6px;height:6px;border-radius:50%;background:rgba(60,48,32,.8);box-shadow:0 0 0 1px rgba(255,255,255,.55);}
+  .grind-stick{position:absolute;left:calc(50% - 30px);top:calc(50% - 58px);width:60px;height:60px;z-index:3;
     pointer-events:none;transition:transform .05s linear;will-change:transform;}
   .grind-stick img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;
-    filter:drop-shadow(0 6px 6px rgba(40,28,14,.35));}
-  .grind-stick.strike{transition:transform .1s cubic-bezier(.55,0,.9,.45);}
+    filter:drop-shadow(0 8px 8px rgba(30,20,10,.45));}
+  .grind-stick.fall{transition:transform .14s cubic-bezier(.55,0,.9,.35);}
+  .grind-stick.bounce{transition:transform .09s ease-out;}
   .grind-stick.back{transition:transform .22s ease-out;}
   .grind-power{display:flex;gap:5px;justify-content:center;align-items:center;margin:6px auto 2px;height:12px;}
   .grind-power i{width:30px;height:7px;border-radius:4px;background:rgba(120,110,95,.22);transition:background .12s;}
@@ -3701,3 +3722,21 @@
     background:radial-gradient(circle,#f4dc9a 0%,#caa24a 55%,rgba(202,162,74,0) 72%);
     box-shadow:0 0 6px rgba(202,162,74,.55);animation:grDust .45s ease-out forwards;}
   @keyframes grDust{from{transform:scale(.5);opacity:0;}to{transform:scale(1.15);opacity:.95;}}
+
+  /* ── 捣药·杵操控版：爆裂碎片 / 药粉雾 / 渣迹 / 冲击波 ── */
+  .grind-frag{position:absolute;width:8px;height:8px;border-radius:2px;z-index:4;pointer-events:none;
+    box-shadow:inset 0 0 2px rgba(0,0,0,.25);animation:grindFrag .55s cubic-bezier(.3,.1,.6,1) forwards;}
+  @keyframes grindFrag{
+    0%{transform:translate(0,0) rotate(0);opacity:1;}
+    45%{transform:translate(var(--fx,0),-26px) rotate(var(--fr,0deg));opacity:1;}
+    100%{transform:translate(calc(var(--fx,0)*1.7),30px) rotate(var(--fr2,0deg));opacity:0;}}
+  .grind-puff{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;z-index:4;
+    pointer-events:none;background:radial-gradient(circle,rgba(168,140,95,.55),rgba(168,140,95,0) 70%);
+    animation:grindPuff .9s ease-out forwards;}
+  @keyframes grindPuff{from{transform:scale(.35);opacity:.9;}to{transform:scale(2.6);opacity:0;}}
+  .grind-residue{position:absolute;width:16px;height:7px;margin:-3px 0 0 -8px;border-radius:50%;z-index:2;
+    pointer-events:none;background:radial-gradient(ellipse,rgba(110,90,60,.5),rgba(110,90,60,0) 70%);}
+  .grind-ripple.burst{animation:grBurst .3s ease-out;}
+  @keyframes grBurst{0%{box-shadow:inset 0 0 8px rgba(212,175,55,.3);}
+    100%{box-shadow:inset 0 0 34px rgba(212,175,55,.55);}}
+  .grind-fail{font-size:12px;font-weight:600;color:#b0452f;letter-spacing:1px;margin-left:6px;}
