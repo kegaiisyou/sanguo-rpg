@@ -100,9 +100,9 @@
       var pieces = [];
       for (var i = 0; i < N; i++) {
         var a = Math.random() * Math.PI * 2;
-        var r = Math.sqrt(Math.random()) * R * 0.78;
+        var r = Math.sqrt(Math.random()) * R * 0.55;
         var x = R + Math.cos(a) * r;
-        var y = R + Math.sin(a) * r * 0.4;
+        var y = R + Math.sin(a) * r * 0.45;
         var el = document.createElement('div');
         el.className = 'grind-herb';
         el.style.left = x + 'px';
