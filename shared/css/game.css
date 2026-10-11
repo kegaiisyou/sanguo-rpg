@@ -3766,3 +3766,39 @@
   .grind-sp-bug>span:first-child::after{content:'';position:absolute;right:-4px;top:2px;width:5px;height:5px;border-radius:50%;background:#3a2a1c;}
   .grind-stick.spd.fall{transition:transform .11s cubic-bezier(.55,0,.9,.35);}
   .grind-stick.spd.bounce{transition:transform .07s ease-out;}
+
+  /* ── 捣药·净制挑杂（鬼谷八荒式）：漂浮杂质与好药 ── */
+  .grind-timebar.cln{background:linear-gradient(90deg,#5f8f7a,#3f8f5f);}
+  .grind-cln{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;z-index:5;
+    display:flex;align-items:center;justify-content:center;pointer-events:none;
+    animation:grClnFloat .8s ease-in-out infinite alternate;}
+  @keyframes grClnFloat{from{transform:translateY(0) rotate(0deg);}to{transform:translateY(-5px) rotate(3deg);}}
+  .grind-cln img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(40,28,14,.35));}
+  .grind-cln>span{display:block;width:26px;height:26px;position:relative;}
+  /* 杂质：石子 */
+  .grind-cln-stone>span{border-radius:50% 44% 48% 52%;background:radial-gradient(circle at 34% 30%,#9a9aa6,#56565f 64%,#3a3a42);
+    box-shadow:inset 0 -3px 4px rgba(0,0,0,.35);}
+  /* 杂质：土块 */
+  .grind-cln-dirt>span{border-radius:6px;background:radial-gradient(circle at 40% 32%,#b08a5a,#8a6a3e);
+    box-shadow:inset 0 -3px 4px rgba(0,0,0,.28);}
+  .grind-cln-dirt>span::before{content:'';position:absolute;inset:4px 8px;border-radius:4px;
+    background:repeating-linear-gradient(90deg,rgba(80,60,30,.25) 0 2px,transparent 2px 5px);}
+  /* 杂质：枯叶 */
+  .grind-cln-leaf>span{width:24px;height:16px;border-radius:70% 30% 60% 40%;transform:rotate(18deg);
+    background:radial-gradient(circle at 30% 30%,#c9a25a,#9a7a3e 70%);}
+  .grind-cln-leaf>span::before{content:'';position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:#6a5426;}
+  /* 杂质：碎石 */
+  .grind-cln-rock>span{border-radius:4px 6px 5px 8px;background:radial-gradient(circle at 36% 30%,#b8b8c2,#6a6a74);
+    box-shadow:inset 0 -2px 3px rgba(0,0,0,.3);}
+  /* 杂质：劣药（虫蛀叶） */
+  .grind-cln-bad>span{border-radius:50% 42% 50% 46%;background:radial-gradient(circle at 34% 30%,#8a7a5a,#5a4e38 70%);
+    box-shadow:inset 0 0 6px rgba(40,30,18,.5);}
+  .grind-cln-bad>span::before,.grind-cln-bad>span::after{content:'';position:absolute;width:4px;height:4px;border-radius:50%;
+    background:#2e2a20;box-shadow:0 0 0 1px rgba(255,255,255,.35);}
+  .grind-cln-bad>span::before{left:5px;top:7px;}
+  .grind-cln-bad>span::after{right:5px;bottom:6px;}
+  .grind-cln.cln-out{animation:grClnOut .22s ease-out forwards;}
+  @keyframes grClnOut{to{transform:scale(1.5);opacity:0;}}
+  .grind-cln.cln-err{animation:grClnErr .22s ease-out forwards;}
+  @keyframes grClnErr{0%{transform:scale(1);}40%{transform:scale(1.35) rotate(-14deg);}
+    100%{transform:scale(.6) rotate(20deg);opacity:0;filter:grayscale(1) brightness(.8);}}
