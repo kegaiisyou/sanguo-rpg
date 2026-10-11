@@ -108,8 +108,9 @@
       var $time = ov.querySelector('#gr-time');
       var $tip = ov.querySelector('#gr-tip');
 
-      // 药材：椭圆带撒布约束在臼窝口内；特殊药材金药/顽石/药虫以小概率替换
+      // 药材：约束在臼窝口内（窝口视觉中心偏上 CY≈0.62R，椭圆带 rx0.34 / ry0.12）
       var R = mortar.clientWidth / 2 || 140;
+      var CY = R * 0.62, RX = R * 0.34, RY = R * 0.12;
       var specials = { gold: 0.10, stone: 0.10, bug: 0.10 };
       var spUsed = {};
       function rollSpecial() {
@@ -122,9 +123,9 @@
       for (var i = 0; i < N; i++) {
         var kind = kinds[i];
         var a = Math.random() * Math.PI * 2;
-        var r = Math.sqrt(Math.random()) * R * 0.55;
-        var x = R + Math.cos(a) * r;
-        var y = R + Math.sin(a) * r * 0.45;
+        var r = Math.sqrt(Math.random());
+        var x = R + Math.cos(a) * r * RX;
+        var y = CY + Math.sin(a) * r * RY;
         var sp = rollSpecial();
         var el = document.createElement('div');
         el.className = 'grind-herb' + (sp ? (' grind-sp-' + sp) : '');
@@ -151,17 +152,17 @@
           special: sp, hp: (sp === 'stone' ? 2 : 1), mover: null
         });
       }
-      // 药虫游走
+      // 药虫游走（窝口内缓慢爬行）
       for (var bi = 0; bi < pieces.length; bi++) {
         (function (p) {
           if (p.special !== 'bug') return;
           p.mover = setInterval(function () {
             if (p.broken || done) return;
-            p.x = Math.max(18, Math.min(R * 2 - 18, p.x + (Math.random() - 0.5) * 26));
-            p.y = Math.max(R * 0.4, Math.min(R * 1.6, p.y + (Math.random() - 0.5) * 12));
+            p.x = Math.max(R - RX, Math.min(R + RX, p.x + (Math.random() - 0.5) * 14));
+            p.y = Math.max(CY - RY, Math.min(CY + RY, p.y + (Math.random() - 0.5) * 6));
             p.el.style.left = p.x + 'px';
             p.el.style.top = p.y + 'px';
-          }, 170);
+          }, 240);
         })(pieces[bi]);
       }
 
@@ -181,8 +182,8 @@
           var r = Math.floor(Math.random() * (si + 1)), tmp = types[si]; types[si] = types[r]; types[r] = tmp;
         }
         for (var qi = 0; qi < types.length; qi++) {
-          var a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random()) * R * 0.62;
-          var x = R + Math.cos(a) * rr, y = R + Math.sin(a) * rr * 0.5;
+          var a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random());
+          var x = R + Math.cos(a) * rr * RX * 1.25, y = CY - 6 + Math.sin(a) * rr * RY * 2.2;
           var el = document.createElement('div');
           el.className = 'grind-cln grind-cln-' + (types[qi].t === 'imp' ? types[qi].kind : 'good');
           el.style.left = x + 'px';
@@ -202,11 +203,11 @@
         for (var bi2 = 0; bi2 < cleanPieces.length; bi2++) (function (p) {
           p.mover = setInterval(function () {
             if (p.gone) return;
-            p.x = Math.max(14, Math.min(R * 2 - 14, p.x + (Math.random() - 0.5) * 22));
-            p.y = Math.max(R * 0.35, Math.min(R * 1.65, p.y + (Math.random() - 0.5) * 10));
+            p.x = Math.max(R - RX * 1.25, Math.min(R + RX * 1.25, p.x + (Math.random() - 0.5) * 10));
+            p.y = Math.max(CY - 6 - RY * 2.2, Math.min(CY - 6 + RY * 2.2, p.y + (Math.random() - 0.5) * 5));
             p.el.style.left = p.x + 'px';
             p.el.style.top = p.y + 'px';
-          }, 170);
+          }, 240);
         })(cleanPieces[bi2]);
       }
       function cleanTap(px, py) {
@@ -399,7 +400,7 @@
 
       // 砸下判定
       function strike(px, power) {
-        var cy = R;
+        var cy = CY;
         for (var di = dusts.length - 1; di >= 0; di--) {
           var d2 = Math.sqrt((dusts[di].x - px) * (dusts[di].x - px) + (dusts[di].y - cy) * (dusts[di].y - cy));
           if (d2 <= hitR) {
