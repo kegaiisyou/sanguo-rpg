@@ -66,7 +66,7 @@
       }
       var subGrind = mix ? '人参·甘草·黄连 合捣 · 20 秒内全部捣成粉'
                     : (HERB_ICON[herbId] + ' ' + HERB_NAME[herbId] + ' 各捣 · 20 秒内全部捣成粉');
-      var sub = '净制挑杂 · 挑出杂质，勿误伤好药（6 秒）';
+      var sub = '净制挑杂 · 挑出杂质，勿误伤好药（5 秒）';
 
       var ov = document.createElement('div');
       ov.id = 'grind-win';
@@ -110,7 +110,7 @@
 
       // 药材：约束在臼窝口内（窝口视觉中心偏上 CY≈0.62R，椭圆带 rx0.34 / ry0.12）
       var R = mortar.clientWidth / 2 || 140;
-      var CY = R * 0.62, RX = R * 0.34, RY = R * 0.12;
+      var CY = R * 0.62, RX = R * 0.42, RY = R * 0.16;
       var specials = { gold: 0.10, stone: 0.10, bug: 0.10 };
       var spUsed = {};
       function rollSpecial() {
@@ -166,13 +166,13 @@
         })(pieces[bi]);
       }
 
-      // 净制挑杂（鬼谷八荒式）：捣前 6 秒，臼上漂浮 5 杂质 + 3 好药，点杂挑出/点好药误伤
-      var CLN_T = 6000, CLN_IMP = 5, CLN_GOOD = 3;
+      // 净制挑杂（鬼谷八荒式）：捣前 5 秒，臼上漂浮 4 杂质 + 2 好药，点杂挑出/点好药误伤
+      var CLN_T = 5000, CLN_IMP = 4, CLN_GOOD = 2;
       var phase = 'clean', cleanGood = 0, cleanBad = 0, cleanLeft = CLN_IMP, cleanTimer = null, cleanT = CLN_T;
       var cleanPieces = [];
       function makeClean() {
         var types = [];
-        var impKinds = ['stone', 'dirt', 'leaf', 'rock', 'bad'];
+        var impKinds = ['stone', 'dirt', 'leaf', 'rock'];
         for (var ci = 0; ci < CLN_IMP; ci++) types.push({ t: 'imp', kind: impKinds[ci] });
         var gk = [];
         if (mix) gk = ['renshen', 'gancao', 'huanglian'];
@@ -203,11 +203,11 @@
         for (var bi2 = 0; bi2 < cleanPieces.length; bi2++) (function (p) {
           p.mover = setInterval(function () {
             if (p.gone) return;
-            p.x = Math.max(R - RX * 1.25, Math.min(R + RX * 1.25, p.x + (Math.random() - 0.5) * 10));
-            p.y = Math.max(CY - 6 - RY * 2.2, Math.min(CY - 6 + RY * 2.2, p.y + (Math.random() - 0.5) * 5));
+            p.x = Math.max(R - RX * 1.25, Math.min(R + RX * 1.25, p.x + (Math.random() - 0.5) * 8));
+            p.y = Math.max(CY - 6 - RY * 2.2, Math.min(CY - 6 + RY * 2.2, p.y + (Math.random() - 0.5) * 3));
             p.el.style.left = p.x + 'px';
             p.el.style.top = p.y + 'px';
-          }, 240);
+          }, 300);
         })(cleanPieces[bi2]);
       }
       function cleanTap(px, py) {
@@ -252,7 +252,7 @@
       function startClean() {
         makeClean();
         $timebar.classList.add('cln');
-        $time.textContent = '6.0';
+        $time.textContent = '5.0';
         $timebar.style.width = '100%';
         cleanT = CLN_T;
         cleanTimer = setInterval(function () {
