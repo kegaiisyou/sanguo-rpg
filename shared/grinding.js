@@ -24,6 +24,13 @@
   LF.GRIND_RX = GRIND_RX;
   LF.GRIND_RX_UNLOCK = { fang_jinchuangao: 'jinchuangao', fang_xumingdan: 'xumingdan' };
 
+  // ── 预加载（v20261015b）：bundle 载入即预热捣药全部图片，进界面秒显、不再白屏等待 ──
+  ['assets/icons/grind/mortar.png', 'assets/icons/grind/pestle.png',
+   'assets/icons/grind/renshen.png', 'assets/icons/grind/gancao.png',
+   'assets/icons/grind/huanglian.png'].forEach(function (u) {
+    try { var _pi = new Image(); _pi.src = u; } catch (e) { }
+  });
+
   LF.createGrinding = function (ctx) {
     var getState = ctx.getState, packAdd = ctx.packAdd, toast = ctx.toast,
         log = ctx.log, save = ctx.save, renderStatus = ctx.renderStatus;
@@ -141,6 +148,7 @@
         im.className = 'grind-herb-img';
         im.src = HERB_ART[kind];
         im.alt = '';
+        im.onload = function () { this.classList.add('loaded'); };
         el.appendChild(im);
         var hdEl = document.createElement('span');
         hdEl.className = 'grind-hd';
@@ -174,6 +182,7 @@
             im.className = 'grind-herb-img';
             im.src = HERB_ART[types[qi].kind];
             im.alt = '';
+            im.onload = function () { this.classList.add('loaded'); };
             el.appendChild(im);
           } else {
             el.appendChild(document.createElement('span'));
