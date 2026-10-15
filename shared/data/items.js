@@ -407,6 +407,17 @@
       desc: '〔热·辛甘〕回阳救逆，补火助阳——壮气酒之君药。大毒，须以甘草为使解其毒，不可生服。' },
     gancao:     { defId: 'gancao',     name: '甘草',   icon: '🌿', cat: '素材', price: 5,
       desc: '〔平·甘〕调和诸药，解百毒——使药之首，有毒之方几乎离不得它。' },
+    // ── 捣药配方成药（v20261015a · 捣药小游戏产出）──
+    xingjunsan: { defId: 'xingjunsan', name: '行军散', icon: '💊', cat: '药剂', maxStack: 30, price: 24, effect: { hp: 40 },
+      desc: '黄连为君、甘草为臣，捣罗成散。清热燥湿——行军风餐露宿，腹痛吐泻之备。' },
+    xingshensan:{ defId: 'xingshensan', name: '醒神散', icon: '🌀', cat: '药剂', maxStack: 30, price: 30, effect: { mp: 40 },
+      desc: '人参提气、黄连清心，捣罗为散。开窍醒神——久战力竭，服之内息复振。' },
+    xumingdan:  { defId: 'xumingdan',  name: '续命丹', icon: '🔴', cat: '药剂', maxStack: 20, price: 90, effect: { hp: 150 },
+      desc: '人参甘草为臣、黄连为佐，合捣成丹。重伤濒危时含服，可续一口气。' },
+    fang_jinchuangao: { defId: 'fang_jinchuangao', name: '金创膏药方', icon: '📜', cat: '配方', price: 60,
+      desc: '药铺售卖的秘方。研读后习得「金创膏」炼制之法。' },
+    fang_xumingdan:   { defId: 'fang_xumingdan',   name: '续命丹药方', icon: '📜', cat: '配方', price: 110,
+      desc: '药铺售卖的秘方。研读后习得「续命丹」炼制之法。' },
     chaye:      { defId: 'chaye',      name: '茶叶',   icon: '🍃', cat: '素材', price: 12,
       desc: '〔凉·苦甘〕提神醒脑，解腻消滞——提神散之君药，行旅赖以熬夜。' },
     // ── 加工材料（半成品层）：药材炮制所得，丸散膏丹的底子 ──

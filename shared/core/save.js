@@ -66,6 +66,7 @@ window.LF = window.LF || {};
       }
       // 数组字段补默认
       if (!Array.isArray(s.learnedMartial)) s.learnedMartial = def.learnedMartial.slice();
+      if (!Array.isArray(s.learnedRx)) s.learnedRx = def.learnedRx.slice();
       if (!Array.isArray(s.equippedForce)) s.equippedForce = [];
       if (!Array.isArray(s.skills)) s.skills = def.skills.slice();
       if (!Array.isArray(s.items)) s.items = [];

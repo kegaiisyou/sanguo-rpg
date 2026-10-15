@@ -187,7 +187,10 @@
         { id: 'anshui',    buy: 53, sell: 11 },
         { id: 'junyao',    buy: 44, sell: 9  },
         { id: 'baidu',     buy: 132,sell: 27 },
-        { id: 'shangdeng', buy: 176,sell: 36 }
+        { id: 'shangdeng', buy: 176,sell: 36 },
+        // —— v20261015a · 捣药配方卷轴（研读习得药方，详见捣药）——
+        { id: 'fang_jinchuangao', buy: 95, sell: 20 },
+        { id: 'fang_xumingdan',   buy: 165,sell: 30 }
       ]
     },
     // ── 坊·市坊四号（v20260927e）：城内坊格「交易」按铺名开对应商号 ──

@@ -1,43 +1,49 @@
-// 乱世烽火 · 捣药 v20261012a（合捣版）
-// 古法：丸散"有各捣者，有合捣者"，过筛后更合于臼中共捣数百过，视其色理和同为佳。
-// 玩法：单味各捣 / 三味混捣；按住=举杵瞄准（横移+蓄力轻中重），松手=弧线自由落体砸下+反震；
-//       力量≥硬度才碎；力量过重则药性流失（精准匹配=100药性，重一档70，重两档40）；
-//       连击5杵速加快、8落点扩大、10药香满溢+3秒；特殊药材：金药+2药末/顽石耐捣/药虫游走；
-//       20秒限时，限时内捣完按覆盖/药性保持/共鸣评级，超时凡品药性流失。
+// 乱世烽火 · 捣药 v20261015a（配方驱动版）
+// 古法：炮制首重净制（拣选去杂），次则合捣（孙思邈"有各捣者有合捣者"），末以筛罗成剂。
+// 玩法三工序：净选(5s 点杂) → 捣研(点击式：点哪株杵砸哪株；按住=蓄力调轻重) → 成剂(配方凑齐收药)
+// 药性：力量==硬度 = 100（恰好）；过重一档 70、两档 40（流失）；过轻弹起不碎。
+//   点击（<150ms）= 自动力恰好硬度，新手直接点也能中；长按蓄力可追求 100 或冒流失风险。
+// 配方：LF.GRIND_RX 静态表；已学存 learnedRx（初始三味）；进阶由配方卷轴习得（背包研读）。
 (function (global) {
   var LF = global.LF || (global.LF = {});
+
+  // ── 静态配方表（供背包卷轴研读与店铺挂载读取）──
+  // need 按"每份"计；开炉投料 = need 各味 ×2 份
+  var GRIND_RX = {
+    jinchuang:   { name: '金疮药', icon: '🧪', out: 'jinchuang',  outN: 2, need: { gancao: 2, renshen: 1 },
+      desc: '甘草粉×2·人参粉×1 → 疗外伤 50。止血生肌，江湖常备。' },
+    xingjunsan:  { name: '行军散', icon: '💊', out: 'xingjunsan', outN: 2, need: { huanglian: 2, gancao: 1 },
+      desc: '黄连粉×2·甘草粉×1 → 清湿热·回复 40。行军风餐露宿之备。' },
+    xingshensan: { name: '醒神散', icon: '🌀', out: 'xingshensan', outN: 2, need: { renshen: 2, huanglian: 1 },
+      desc: '人参粉×2·黄连粉×1 → 回复内力 40。久战力竭，服之内息复振。' },
+    jinchuangao: { name: '金创膏', icon: '🩹', out: 'jinchuangao', outN: 1, need: { gancao: 3, renshen: 2 },
+      desc: '甘草粉×3·人参粉×2 → 疗外伤 70。厚涂创口，愈合如新。', unlock: 'fang_jinchuangao' },
+    xumingdan:   { name: '续命丹', icon: '🔴', out: 'xumingdan',  outN: 1, need: { renshen: 2, gancao: 2, huanglian: 2 },
+      desc: '三味各 2 粉 → 续命 150。重伤濒危，含服续命。', unlock: 'fang_xumingdan' }
+  };
+  LF.GRIND_RX = GRIND_RX;
+  LF.GRIND_RX_UNLOCK = { fang_jinchuangao: 'jinchuangao', fang_xumingdan: 'xumingdan' };
 
   LF.createGrinding = function (ctx) {
     var getState = ctx.getState, packAdd = ctx.packAdd, toast = ctx.toast,
         log = ctx.log, save = ctx.save, renderStatus = ctx.renderStatus;
 
-    var N = 12;          // 药材块数
-    var HIT = 50;        // 基础命中半径（px）
-    var SPILL_R = 0.72;  // 臼沿判定半径比例
-    var CW = 5000;       // 连击窗口
-    var P1 = 160, P2 = 520;  // 蓄力段位切换
-    var LIMIT = 20000;   // 限时 20 秒
-    var MIX = [['renshen', 4], ['gancao', 4], ['huanglian', 4]]; // 混捣·三味
+    var HIT = 42;          // 药材命中半径（56px 药材）
+    var P1 = 160, P2 = 520; // 蓄力段位
+    var LIMIT = 20000;     // 捣研限时 20 秒
+    var CLN_T = 5000, CLN_IMP = 4, CLN_GOOD = 2; // 净选：5 秒 · 4 杂质 + 2 好药
 
-    // 水墨资产
     var HERB_ART = {
-      caoyao: 'assets/icons/items48/caoyao.png',
       renshen: 'assets/icons/grind/renshen.png',
       gancao: 'assets/icons/grind/gancao.png',
       huanglian: 'assets/icons/grind/huanglian.png'
     };
     var MORTAR_ART = 'assets/icons/grind/mortar.png';
     var PESTLE_ART = 'assets/icons/grind/pestle.png';
-    var HERB_HD = { caoyao: 1, renshen: 1, gancao: 2, huanglian: 3 };
-    var HERB_NAME = { caoyao: '草药', renshen: '人参', gancao: '甘草', huanglian: '黄连' };
-    var HERB_ICON = { caoyao: '🌿', renshen: '🌱', gancao: '🌾', huanglian: '🌸' };
-    var HERB_LEAF = { caoyao: '#7d8f5a', renshen: '#8a9a4a', gancao: '#7f9454', huanglian: '#9a7b3f' }; // 碎片主色
-
-    var TIERS = [
-      { q: 1, name: '凡品', color: 'var(--ink-soft)' },
-      { q: 2, name: '良品', color: 'var(--gold)' },
-      { q: 3, name: '珍品', color: 'var(--seal)' }
-    ];
+    var HERB_HD = { renshen: 1, gancao: 2, huanglian: 3 };
+    var HERB_NAME = { renshen: '人参', gancao: '甘草', huanglian: '黄连' };
+    var HERB_LEAF = { renshen: '#8a9a4a', gancao: '#7f9454', huanglian: '#9a7b3f' };  // 碎片
+    var HERB_PILE = { renshen: 'rgba(138,154,74,.78)', gancao: 'rgba(127,148,84,.82)', huanglian: 'rgba(154,123,63,.84)' }; // 粉堆
 
     function sfx(name) {
       try { if (window.SFX && window.SFX.play) window.SFX.play(name); } catch (e) { }
@@ -51,22 +57,22 @@
       if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
     }
 
-    function openGrind(herbId, opts) {
-      herbId = herbId || 'caoyao';
+    function openGrind(recipeId, opts) {
       opts = opts || {};
-      close();
+      var rx = GRIND_RX[recipeId];
+      if (!rx) { toast('无此药方。'); return; }
+      var learned = (getState().learnedRx || []);
+      if (learned.indexOf(recipeId) < 0) { toast('尚未习得「' + rx.name + '」药方。'); return; }
 
-      var mix = (herbId === 'mix');
+      // 投料：need 各味 ×2 份 → 株数组
       var kinds = [];
-      if (mix) {
-        for (var mi = 0; mi < MIX.length; mi++)
-          for (var mc = 0; mc < MIX[mi][1]; mc++) kinds.push(MIX[mi][0]);
-      } else {
-        for (var sc = 0; sc < N; sc++) kinds.push(herbId);
-      }
-      var subGrind = mix ? '人参·甘草·黄连 合捣 · 20 秒内全部捣成粉'
-                    : (HERB_ICON[herbId] + ' ' + HERB_NAME[herbId] + ' 各捣 · 20 秒内全部捣成粉');
-      var sub = '净制挑杂 · 挑出杂质，勿误伤好药（5 秒）';
+      Object.keys(rx.need).forEach(function (k) {
+        for (var i = 0; i < rx.need[k] * 2; i++) kinds.push(k);
+      });
+      var N = kinds.length;
+      var needShown = Object.keys(rx.need).map(function (k) {
+        return HERB_NAME[k] + '粉 ' + (rx.need[k] * 2);
+      }).join(' · ');
 
       var ov = document.createElement('div');
       ov.id = 'grind-win';
@@ -74,22 +80,28 @@
       ov.innerHTML =
         '<div class="grind-card">' +
           '<div class="grind-title">捣 药<span class="grind-seal">捣</span></div>' +
-          '<div class="grind-sub">' + sub + '</div>' +
-          '<div class="grind-time" id="gr-timewrap"><div class="grind-timebar" id="gr-timebar"></div><span id="gr-time">20</span></div>' +
+          '<div class="grind-rx" id="gr-rxbar">' +
+            '<button class="grind-rxbook" id="gr-rxbook">药方簿</button>' +
+            '<div class="grind-rxinfo">' +
+              '<b id="gr-rxname">' + rx.icon + ' ' + rx.name + '</b>' +
+              '<span id="gr-rxneed">' + needShown + '</span>' +
+            '</div>' +
+            '<button class="grind-make" id="gr-make" disabled>成 剂</button>' +
+          '</div>' +
+          '<div class="grind-sub" id="gr-sub"></div>' +
+          '<div class="grind-time" id="gr-timewrap"><div class="grind-timebar" id="gr-timebar"></div><span id="gr-time"></span></div>' +
           '<div class="grind-mortar" id="gr-mortar">' +
             '<div class="grind-ripple" id="gr-ripple"></div>' +
             '<div class="grind-stick" id="gr-stick"><img src="' + PESTLE_ART + '" alt=""></div>' +
           '</div>' +
           '<div class="grind-power" id="gr-power"><i></i><i></i><i></i></div>' +
           '<div class="grind-hud">' +
-            '<span>捣碎 <b id="gr-cov">0/' + N + '</b></span>' +
             '<span>药性 <b id="gr-keep">100%</b></span>' +
-            '<span>共鸣 <b id="gr-combo">0</b></span>' +
-            '<span>溅出 <b id="gr-spill">0</b></span>' +
+            '<span>捣碎 <b id="gr-cov">0/' + N + '</b></span>' +
+            '<span>时间 <b id="gr-tl">20</b></span>' +
           '</div>' +
           '<div class="grind-acts">' +
             '<button class="btn" id="gr-done">收 手</button>' +
-            '<button class="btn-ghost" id="gr-auto">自动捣</button>' +
           '</div>' +
           '<div class="grind-tip" id="gr-tip">点击杂质挑出 · 点到好药会误伤药性</div>' +
         '</div>';
@@ -97,28 +109,23 @@
 
       var mortar = ov.querySelector('#gr-mortar');
       var stick = ov.querySelector('#gr-stick');
-      var $sub = ov.querySelector('.grind-sub');
+      var $sub = ov.querySelector('#gr-sub');
+      var $rxneed = ov.querySelector('#gr-rxneed');
       var $cov = ov.querySelector('#gr-cov');
       var $keep = ov.querySelector('#gr-keep');
-      var $combo = ov.querySelector('#gr-combo');
-      var $spill = ov.querySelector('#gr-spill');
+      var $tl = ov.querySelector('#gr-tl');
       var $ripple = ov.querySelector('#gr-ripple');
       var $power = ov.querySelectorAll('#gr-power i');
       var $timebar = ov.querySelector('#gr-timebar');
       var $time = ov.querySelector('#gr-time');
       var $tip = ov.querySelector('#gr-tip');
+      var $make = ov.querySelector('#gr-make');
+      var $rxbook = ov.querySelector('#gr-rxbook');
 
-      // 药材：约束在臼窝口内（窝口视觉中心偏上 CY≈0.62R，椭圆带 rx0.34 / ry0.12）
       var R = mortar.clientWidth / 2 || 140;
       var CY = R * 0.62, RX = R * 0.42, RY = R * 0.16;
-      var specials = { gold: 0.10, stone: 0.10, bug: 0.10 };
-      var spUsed = {};
-      function rollSpecial() {
-        for (var k in specials) {
-          if (!spUsed[k] && Math.random() < specials[k]) { spUsed[k] = true; return k; }
-        }
-        return null;
-      }
+
+      // ── 捣研药材：配方投料，约束在臼窝口内 ──
       var pieces = [];
       for (var i = 0; i < N; i++) {
         var kind = kinds[i];
@@ -126,60 +133,34 @@
         var r = Math.sqrt(Math.random());
         var x = R + Math.cos(a) * r * RX;
         var y = CY + Math.sin(a) * r * RY;
-        var sp = rollSpecial();
         var el = document.createElement('div');
-        el.className = 'grind-herb' + (sp ? (' grind-sp-' + sp) : '');
+        el.className = 'grind-herb';
         el.style.left = x + 'px';
         el.style.top = y + 'px';
-        if (sp === 'stone' || sp === 'bug') {
-          el.appendChild(document.createElement('span')); // 顽石/药虫本体由 CSS 绘制
-        } else {
-          var im = document.createElement('img');
-          im.className = 'grind-herb-img';
-          im.src = HERB_ART[kind];
-          im.alt = '';
-          el.appendChild(im);
-        }
+        var im = document.createElement('img');
+        im.className = 'grind-herb-img';
+        im.src = HERB_ART[kind];
+        im.alt = '';
+        el.appendChild(im);
         var hdEl = document.createElement('span');
         hdEl.className = 'grind-hd';
-        var hd = sp === 'stone' ? 4 : (sp === 'gold' ? 3 : HERB_HD[kind]);
-        for (var k = 0; k < hd; k++) hdEl.appendChild(document.createElement('i'));
+        for (var k = 0; k < HERB_HD[kind]; k++) hdEl.appendChild(document.createElement('i'));
         el.appendChild(hdEl);
         mortar.appendChild(el);
-        pieces.push({
-          el: el, kind: kind, x: x, y: y, broken: false,
-          hd: hd, potency: (sp === 'stone' ? 50 : 100),
-          special: sp, hp: (sp === 'stone' ? 2 : 1), mover: null
-        });
-      }
-      // 药虫游走（窝口内缓慢爬行）
-      for (var bi = 0; bi < pieces.length; bi++) {
-        (function (p) {
-          if (p.special !== 'bug') return;
-          p.mover = setInterval(function () {
-            if (p.broken || done) return;
-            p.x = Math.max(R - RX, Math.min(R + RX, p.x + (Math.random() - 0.5) * 14));
-            p.y = Math.max(CY - RY, Math.min(CY + RY, p.y + (Math.random() - 0.5) * 6));
-            p.el.style.left = p.x + 'px';
-            p.el.style.top = p.y + 'px';
-          }, 240);
-        })(pieces[bi]);
+        pieces.push({ el: el, kind: kind, x: x, y: y, broken: false, hd: HERB_HD[kind] });
       }
 
-      // 净制挑杂（鬼谷八荒式）：捣前 5 秒，臼上漂浮 4 杂质 + 2 好药，点杂挑出/点好药误伤
-      var CLN_T = 5000, CLN_IMP = 4, CLN_GOOD = 2;
+      // ── 净选：捣前 5 秒，臼上漂浮 4 杂质 + 2 好药（好药取配方所需）──
       var phase = 'clean', cleanGood = 0, cleanBad = 0, cleanLeft = CLN_IMP, cleanTimer = null, cleanT = CLN_T;
       var cleanPieces = [];
       function makeClean() {
         var types = [];
         var impKinds = ['stone', 'dirt', 'leaf', 'rock'];
         for (var ci = 0; ci < CLN_IMP; ci++) types.push({ t: 'imp', kind: impKinds[ci] });
-        var gk = [];
-        if (mix) gk = ['renshen', 'gancao', 'huanglian'];
-        else for (var gi = 0; gi < CLN_GOOD; gi++) gk.push(herbId);
-        for (var gj = 0; gj < CLN_GOOD; gj++) types.push({ t: 'good', kind: gk[gj] });
+        var gk = Object.keys(rx.need);
+        for (var gj = 0; gj < CLN_GOOD; gj++) types.push({ t: 'good', kind: gk[gj % gk.length] });
         for (var si = types.length - 1; si > 0; si--) {
-          var r = Math.floor(Math.random() * (si + 1)), tmp = types[si]; types[si] = types[r]; types[r] = tmp;
+          var r2 = Math.floor(Math.random() * (si + 1)), tmp = types[si]; types[si] = types[r2]; types[r2] = tmp;
         }
         for (var qi = 0; qi < types.length; qi++) {
           var a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random());
@@ -244,13 +225,14 @@
         }
         cleanPieces = [];
         $timebar.classList.remove('cln');
-        $sub.textContent = subGrind;
-        $tip.textContent = '按住举杵 · 松手砸下；力量=硬度最养药性，过重流失，连击10药香满溢+3秒';
+        $sub.textContent = rx.icon + ' ' + rx.name + ' · ' + needShown + '（20 秒内捣成粉）';
+        $tip.textContent = '点哪株砸哪株：轻点=恰好力道；按住蓄力可加重（过重会流失药性）';
         $time.textContent = '20';
         startTimer();
       }
       function startClean() {
         makeClean();
+        $sub.textContent = '净制挑杂 · 挑出杂质，勿误伤好药（5 秒）';
         $timebar.classList.add('cln');
         $time.textContent = '5.0';
         $timebar.style.width = '100%';
@@ -259,45 +241,27 @@
           if (done) return;
           cleanT -= 100;
           if (cleanT < 0) cleanT = 0;
-          var pct = cleanT / CLN_T;
-          $timebar.style.width = (pct * 100) + '%';
+          $timebar.style.width = (cleanT / CLN_T * 100) + '%';
           $time.textContent = (cleanT / 1000).toFixed(1);
           if (cleanT <= 0 || cleanLeft <= 0) startGrindPhase();
         }, 100);
       }
 
-      var broken = 0, spill = 0, miss = 0, combo = 0, maxCombo = 0, lastBreakT = 0, done = false;
-      var keepSum = 0, goldGot = 0;
-      var dusts = [];
-      var aiming = false, downT = 0, lastX = R, liftT = 0, liftTimer = null, timer = null, timeLeft = LIMIT;
-      var hitR = HIT;
+      // ── 捣研 ──
+      var broken = 0, done = false, keepSum = 0;
+      var cnt = {};          // 各味已碎粉计数
+      Object.keys(rx.need).forEach(function (k) { cnt[k] = 0; });
+      var pileSum = 0;
+      var aiming = false, downT = 0, liftT = 0, liftTimer = null, target = null;
+      var timer = null, timeLeft = LIMIT;
 
       function powerUi(p) {
         for (var i = 0; i < 3; i++) $power[i].className = (i < p) ? ('on' + p) : '';
       }
-
-      function comboUi() {
-        $combo.textContent = combo;
-        $ripple.className = 'grind-ripple' + (combo >= 8 ? ' blaze' : (combo >= 5 ? ' hot' : ''));
-        if (combo >= 8 && hitR === HIT) {
-          hitR = 64;
-          floatText(R, R * 0.9, '落点扩大', '#d9a13a');
-          sfx('levelup');
-        }
-        if (combo >= 5 && combo % 5 === 0) sfx('levelup');
-        if (combo >= 10 && combo % 10 === 0) {
-          timeLeft = Math.min(LIMIT, timeLeft + 3000);
-          floatText(R, R * 0.8, '药香满溢 +3秒', '#3f8f5f');
-          sfx('win');
-        }
-      }
-
       function hud() {
         $cov.textContent = broken + '/' + N;
         $keep.textContent = Math.round(keepSum / (N * 100) * 100) + '%';
-        $spill.textContent = spill;
       }
-
       function floatText(x, y, txt, color) {
         var d = document.createElement('div');
         d.className = 'grind-num';
@@ -308,85 +272,16 @@
         mortar.appendChild(d);
         (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 900); })(d);
       }
-
       function powerOf(t) { return t < P1 ? 1 : (t < P2 ? 2 : 3); }
-
       function stickLift(x) {
         var cx = R, maxX = R * 0.78;
         var dx = Math.max(-maxX, Math.min(maxX, x - cx));
         var p = powerOf(liftT);
         var lift = [26, 52, 78][p - 1];
-        var rot = dx / maxX * 14;
         stick.classList.remove('fall', 'bounce', 'back');
-        stick.style.transform = 'translate(' + dx + 'px,-' + lift + 'px) rotate(' + rot + 'deg)';
+        stick.style.transform = 'translate(' + dx + 'px,-' + lift + 'px) rotate(0deg)';
         powerUi(p);
       }
-
-      // 药材爆裂：压扁 → 碎片飞散 + 药粉雾 → 留渣 + 药性飘字
-      function explode(p, keep) {
-        var cx = p.x, cy = p.y;
-        var leaf = HERB_LEAF[p.kind] || '#9a7b3f';
-        if (p.special === 'gold') leaf = '#c9a13a';
-        p.el.classList.add('crush');
-        var im = p.el.querySelector('.grind-herb-img');
-        if (im) im.style.opacity = '.3';
-        setTimeout(function () {
-          if (!p.el.parentNode) return;
-          p.el.parentNode.removeChild(p.el);
-          var n = 8 + Math.floor(Math.random() * 3);
-          for (var i = 0; i < n; i++) {
-            var f = document.createElement('div');
-            f.className = 'grind-frag';
-            f.style.left = cx + 'px';
-            f.style.top = cy + 'px';
-            f.style.background = leaf;
-            var fx = (Math.random() - 0.5) * 110;
-            var fr = (Math.random() - 0.5) * 540;
-            f.style.setProperty('--fx', fx + 'px');
-            f.style.setProperty('--fr', fr + 'deg');
-            f.style.setProperty('--fr2', (fr + (Math.random() - 0.5) * 300) + 'deg');
-            mortar.appendChild(f);
-            (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 580); })(f);
-          }
-          var pf = document.createElement('div');
-          pf.className = 'grind-puff';
-          pf.style.left = cx + 'px';
-          pf.style.top = cy + 'px';
-          mortar.appendChild(pf);
-          (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 950); })(pf);
-          var rs = document.createElement('div');
-          rs.className = 'grind-residue';
-          rs.style.left = cx + 'px';
-          rs.style.top = cy + 'px';
-          mortar.appendChild(rs);
-        }, 90);
-        var col = keep >= 100 ? '#3f8f5f' : (keep >= 70 ? '#d9a13a' : '#b0452f');
-        floatText(cx, cy - 10, '+' + keep, col);
-      }
-
-      function chips(x, y) {
-        for (var i = 0; i < 4; i++) {
-          var c = document.createElement('div');
-          c.className = 'grind-chip';
-          c.style.left = x + 'px';
-          c.style.top = y + 'px';
-          var dx = (Math.random() - 0.5) * 40, dy = (Math.random() - 0.5) * 40;
-          c.style.setProperty('--dx', dx + 'px');
-          c.style.setProperty('--dy', dy + 'px');
-          mortar.appendChild(c);
-          (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 380); })(c);
-        }
-      }
-
-      function dropDust(x, y) {
-        var d = document.createElement('div');
-        d.className = 'grind-dust';
-        d.style.left = x + 'px';
-        d.style.top = y + 'px';
-        mortar.appendChild(d);
-        dusts.push({ x: x, y: y, el: d });
-      }
-
       function impact() {
         mortar.classList.add('sink');
         setTimeout(function () { mortar.classList.remove('sink'); }, 110);
@@ -397,175 +292,120 @@
         void $ripple.offsetWidth;
         $ripple.classList.add('burst');
       }
-
-      // 砸下判定
-      function strike(px, power) {
-        var cy = CY;
-        for (var di = dusts.length - 1; di >= 0; di--) {
-          var d2 = Math.sqrt((dusts[di].x - px) * (dusts[di].x - px) + (dusts[di].y - cy) * (dusts[di].y - cy));
-          if (d2 <= hitR) {
-            if (dusts[di].el.parentNode) dusts[di].el.parentNode.removeChild(dusts[di].el);
-            dusts.splice(di, 1);
-            if (spill > 0) spill--;
-            sfx('coin');
-            hud();
-            return;
+      function explode(p, keep) {
+        var cx = p.x, cy = p.y;
+        var leaf = HERB_LEAF[p.kind] || '#9a7b3f';
+        p.el.classList.add('crush');
+        var im = p.el.querySelector('.grind-herb-img');
+        if (im) im.style.opacity = '.25';
+        setTimeout(function () {
+          if (!p.el.parentNode) return;
+          p.el.parentNode.removeChild(p.el);
+          var n = 8 + Math.floor(Math.random() * 3);
+          for (var i = 0; i < n; i++) {
+            var f = document.createElement('div');
+            f.className = 'grind-frag';
+            f.style.left = cx + 'px';
+            f.style.top = cy + 'px';
+            f.style.background = leaf;
+            var dx = (Math.random() - 0.5) * 90, dy = -(20 + Math.random() * 55);
+            f.style.setProperty('--dx', dx + 'px');
+            f.style.setProperty('--dy', dy + 'px');
+            mortar.appendChild(f);
+            (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 430); })(f);
           }
+          // 粉堆留在臼里（成剂原料，看得见的进度）
+          var pl = document.createElement('div');
+          pl.className = 'grind-pile';
+          pl.style.left = cx + 'px';
+          pl.style.top = cy + 'px';
+          pl.style.background = HERB_PILE[p.kind];
+          mortar.appendChild(pl);
+        }, 60);
+      }
+      function rxUi() {
+        var parts = Object.keys(rx.need).map(function (k) {
+          return HERB_NAME[k] + '粉 ' + cnt[k] + '/' + (rx.need[k] * 2);
+        });
+        $rxneed.textContent = parts.join(' · ');
+      }
+      function checkMake() {
+        if (broken >= N) {
+          $make.disabled = false;
+          $make.classList.add('on');
+          $tip.textContent = '药粉齐备，点「成剂」收药！';
+          sfx('confirm');
         }
-
-        var hits = [];
-        for (var i = 0; i < pieces.length; i++) {
-          var p = pieces[i];
-          if (p.broken) continue;
-          var d = Math.sqrt((p.x - px) * (p.x - px) + (p.y - cy) * (p.y - cy));
-          if (d <= hitR) hits.push(p);
-        }
-
-        var distC = Math.abs(px - R);
-        if (hits.length === 0) {
-          if (distC > R * SPILL_R) {
-            spill++;
-            dropDust(px, cy);
-            sfx('error');
-            buzz(20);
-          } else {
-            miss++;
-            sfx('miss');
-          }
-        } else {
-          var broke = 0, nowKeep = 0;
-          for (var j = 0; j < hits.length; j++) {
-            var h = hits[j];
-            if (h.special === 'stone') {
-              if (power >= 3) {
-                h.hp--;
-                h.el.classList.remove('jolt');
-                void h.el.offsetWidth;
-                h.el.classList.add('jolt');
-                if (h.hp <= 0) { h.broken = true; broken++; broke++; explode(h, h.potency); nowKeep += h.potency; }
-                else { miss++; }
-              } else { miss++; }
-            } else if (power >= h.hd) {
-              var keep = (power === h.hd) ? 100 : Math.max(40, 100 - (power - h.hd) * 30);
-              h.broken = true;
-              broken++;
-              broke++;
-              explode(h, keep);
-              nowKeep += keep;
-              if (h.special === 'gold') goldGot += 2;
-              if (power > h.hd + 1) { spill++; dropDust(h.x, h.y); sfx('error'); }
-            } else {
-              h.el.classList.remove('jolt');
-              void h.el.offsetWidth;
-              h.el.classList.add('jolt');
-              miss++;
-            }
-          }
-          keepSum += nowKeep;
-          var now = Date.now();
-          if (broke >= 2) {
-            combo = (lastBreakT && now - lastBreakT <= CW) ? combo + 1 : 1;
-            lastBreakT = now;
-            if (combo > maxCombo) maxCombo = combo;
-          } else if (broke >= 1) {
-            lastBreakT = now;
-          }
-          sfx(power >= 3 ? 'thud' : 'hit');
-          if (broke >= 1) buzz(power >= 3 ? [28, 22, 28] : 14);
-          comboUi();
-          chips(px, cy);
-        }
-
-        impact();
-        hud();
-        if (broken >= N) setTimeout(function () { settle('done'); }, 320);
       }
 
-      // 杵砸落物理：fall(弧线下落) → bounce(反震) → back(回位)；连击5以上加快
+      // 砸下判定：锁定目标株（点击哪株砸哪株）
+      function strike(px, power) {
+        if (!target) return;
+        var h = target;
+        target = null;
+        if (h.broken) return;
+        var keep;
+        if (power >= h.hd) {
+          keep = (power === h.hd) ? 100 : Math.max(40, 100 - (power - h.hd) * 30);
+          h.broken = true;
+          broken++;
+          explode(h, keep);
+          keepSum += keep;
+          cnt[h.kind]++;
+          rxUi();
+          floatText(h.x, h.y - 10, '+' + keep, keep >= 100 ? '#3f8f5f' : (keep >= 70 ? '#d9a13a' : '#b0452f'));
+        } else {
+          // 过轻：药材弹起
+          h.el.classList.remove('jolt');
+          void h.el.offsetWidth;
+          h.el.classList.add('jolt');
+          floatText(h.x, h.y - 10, '太轻', '#9aa0a6');
+          sfx('miss');
+        }
+        impact();
+        hud();
+        if (broken >= N) {
+          setTimeout(function () { if (!done) checkMake(); }, 260);
+        }
+      }
       function stickStrike(px, power) {
         var cx = R, maxX = R * 0.78;
         var dx = Math.max(-maxX, Math.min(maxX, px - cx));
-        var spd = combo >= 5;
-        stick.classList.toggle('spd', spd);
         stick.classList.remove('back');
         stick.classList.add('fall');
         stick.style.transform = 'translate(' + dx + 'px,0) rotate(0deg)';
-        var tFall = spd ? 110 : 145, tBounce = spd ? 70 : 95;
         setTimeout(function () {
           stick.classList.remove('fall');
           stick.classList.add('bounce');
-          stick.style.transform = 'translate(' + dx + 'px,-10px) rotate(' + (dx / maxX * 4) + 'deg)';
+          stick.style.transform = 'translate(' + dx + 'px,-10px) rotate(0deg)';
           setTimeout(function () {
             stick.classList.remove('bounce');
             stick.classList.add('back');
             stick.style.transform = 'translate(0,0) rotate(0deg)';
-          }, tBounce);
-        }, tFall);
+          }, 90);
+        }, 130);
       }
 
       function settle(mode) {
         if (done) return;
         done = true;
         if (timer) clearInterval(timer);
-        for (var i = 0; i < pieces.length; i++)
-          if (pieces[i].mover) clearInterval(pieces[i].mover);
-        var cover = broken / N;
+        // 结算：净制加成 + 药性保持
         var keepPct = keepSum / (N * 100);
         var cleanPct = cleanGood / CLN_IMP;
-        var keepAdj = (cleanPct >= 0.8 ? 0.08 : (cleanPct < 0.6 ? -0.08 : 0)) - cleanBad * 0.025;
+        var keepAdj = (cleanPct >= 0.75 ? 0.05 : (cleanPct < 0.5 ? -0.05 : 0)) - cleanBad * 0.025;
         var keepFinal = Math.max(0, Math.min(1, keepPct + keepAdj));
-        var pct = timeLeft / LIMIT;
-        var t, n, clean = (spill <= 1);
-        var recipe = mix && cover >= 1 && keepFinal >= 0.75; // 合捣出上品
-        if (mode === 'done' && pct >= 0.4 && maxCombo >= 5 && cover >= 0.95 && keepFinal >= 0.85) { t = TIERS[2]; n = 2; }
-        else if (mode === 'done' && (keepFinal >= 0.85 || (pct >= 0.2 && keepFinal >= 0.6) || (maxCombo >= 5 && cover >= 0.9))) { t = TIERS[1]; n = 1; }
-        else { t = TIERS[0]; n = 1; }
-        if (recipe) n += 1;
-        if (goldGot > 0) n += goldGot;
-
-        var rows = [
-          ['捣碎覆盖', Math.round(cover * 100) + '%', broken + '/' + N + ' 块'],
-          ['药性保持', Math.round(keepFinal * 100) + '%', '力量过重会流失'],
-          ['净制挑杂', cleanGood + '/' + CLN_IMP, cleanBad > 0 ? '误伤好药 ' + cleanBad + ' 株' : '无误伤'],
-          ['最大共鸣', maxCombo + '', '连击10药香满溢'],
-          ['剩余药性', (mode === 'done' ? '余 ' + Math.round(pct * 100) + '%' : '已流失'), mode === 'done' ? '限时内捣完' : '超时未竟'],
-          ['溅出损耗', spill + '', '重砸/点偏所致'],
-        ];
-        if (goldGot > 0) rows.push(['金药', '×' + goldGot, '碎金药 +' + goldGot + ' 药末']);
-        if (recipe) rows.push(['合捣', '出上品', '覆盖满·药性≥75% +1']);
-        rows.push(['合计', t.name + ' ×' + n, clean ? '· 澄净' : '· 出末']);
-        var html = '<div class="grind-result">' +
-          '<div class="grind-q" style="color:' + t.color + '">〔' + t.name + '〕药末 ×' + n +
-            (mode === 'timeout' ? '<span class="grind-fail">（药性流失）</span>' : (clean ? '（澄净）' : '')) + '</div>' +
-          '<table class="grind-tab">';
-        rows.forEach(function (r) {
-          html += '<tr><td>' + r[0] + '</td><td><b>' + r[1] + '</b></td><td>' + r[2] + '</td></tr>';
-        });
-        html += '</table></div>';
-
-        var card = ov.querySelector('.grind-card');
-        card.insertAdjacentHTML('beforeend', html +
-          '<div class="grind-acts">' +
-            '<button class="btn" id="gr-take">收 取</button>' +
-            '<button class="btn-ghost" id="gr-again">再捣一炉</button>' +
-          '</div>');
-        var act = ov.querySelector('.grind-acts');
-        if (act) act.parentNode.removeChild(act);
-        if (t.q >= 3) sfx('win');
-        else if (t.q >= 2) sfx('confirm');
-        else sfx('cancel');
-        ov.querySelector('#gr-take').onclick = function () {
-          packAdd('yaomo', n);
-          if (log) log('〔捣药〕' + (mix ? '合捣' : HERB_NAME[herbId]) + '捣作药末×' + n + '（' + t.name + '，覆盖' + Math.round(cover * 100) + '%，药性' + Math.round(keepPct * 100) + '%，共鸣' + maxCombo + '）', t.q >= 2 ? 'good' : 'sys');
-          if (save) save(getState());
-          if (renderStatus) renderStatus();
-          if (toast) toast('收得药末 ×' + n + '（' + t.name + '）');
-          close();
-        };
-        ov.querySelector('#gr-again').onclick = function () {
-          close();
-          openGrind(herbId, opts);
-        };
+        var good = mode === 'done' && broken >= N && keepFinal >= 0.85;
+        var got = broken >= N ? rx.outN : 0;
+        if (got > 0) packAdd(rx.out, got);
+        var line = '〔捣药〕' + rx.name + (good ? '（良品）' : '') + ' ×' + got +
+          '（覆盖' + Math.round(broken / N * 100) + '%，药性' + Math.round(keepFinal * 100) + '%，净制' + cleanGood + '/' + CLN_IMP + '）';
+        if (log) log(line, good ? 'good' : (got > 0 ? 'sys' : 'warn'));
+        if (save) save(getState());
+        if (renderStatus) renderStatus();
+        if (got > 0) toast('收得 ' + rx.name + (good ? '（良品）' : '') + ' ×' + got);
+        else toast('药粉未成，一无所获……');
+        close();
       }
 
       function startTimer() {
@@ -573,11 +413,19 @@
           if (done) return;
           timeLeft -= 100;
           if (timeLeft < 0) timeLeft = 0;
-          var pct = timeLeft / LIMIT;
-          $timebar.style.width = (pct * 100) + '%';
-          $timebar.classList.toggle('low', pct <= 0.25);
+          $timebar.style.width = (timeLeft / LIMIT * 100) + '%';
+          $timebar.classList.toggle('low', timeLeft / LIMIT <= 0.25);
           $time.textContent = (timeLeft / 1000).toFixed(1);
-          if (timeLeft <= 0) settle('timeout');
+          $tl.textContent = Math.ceil(timeLeft / 1000);
+          if (timeLeft <= 0) {
+            if (broken >= N) {
+              $tip.textContent = '药粉齐备，点「成剂」收药！';
+              checkMake();
+            } else {
+              toast('火候已过，药性散尽……');
+              settle('timeout');
+            }
+          }
         }, 100);
       }
 
@@ -587,57 +435,50 @@
         var rect = mortar.getBoundingClientRect();
         var px = e.clientX - rect.left, py = e.clientY - rect.top;
         if (phase === 'clean') { cleanTap(px, py); return; }
+        // 点击式：找最近未碎株锁定
+        var best = null, bd = HIT;
+        for (var i = 0; i < pieces.length; i++) {
+          var p = pieces[i];
+          if (p.broken) continue;
+          var d = Math.sqrt((p.x - px) * (p.x - px) + (p.y - py) * (p.y - py));
+          if (d <= bd) { bd = d; best = p; }
+        }
+        if (!best) return;
+        target = best;
         aiming = true;
         downT = Date.now();
         liftT = 0;
-        lastX = px;
-        stickLift(px);
+        stickLift(best.x);
         if (liftTimer) clearInterval(liftTimer);
         liftTimer = setInterval(function () {
           if (!aiming) return;
           liftT = Date.now() - downT;
-          stickLift(lastX);
+          stickLift(best.x);
         }, 100);
       }
-
-      function onMove(e) {
-        if (!aiming || done) return;
-        e.preventDefault();
-        var rect = mortar.getBoundingClientRect();
-        lastX = e.clientX - rect.left;
-        liftT = Date.now() - downT;
-        stickLift(lastX);
-      }
-
       function onUp(e) {
         if (!aiming || done) return;
         aiming = false;
         if (liftTimer) { clearInterval(liftTimer); liftTimer = null; }
-        var power = powerOf(Date.now() - downT);
-        var rect = mortar.getBoundingClientRect();
-        var px = (e.clientX != null ? e.clientX : (lastX + rect.left)) - rect.left;
-        stickStrike(px, power);
-        strike(px, power);
-        powerUi(0);
+        var hold = Date.now() - downT;
+        var power = hold < 150 ? (target ? target.hd : 2) : powerOf(hold); // 轻点=自动力恰好硬度
+        var tx = target ? target.x : R;
+        stickStrike(tx, power);
+        strike(tx, power);
       }
-
-      mortar.addEventListener('pointerdown', onDown);
-      mortar.addEventListener('pointermove', onMove);
-      mortar.addEventListener('pointerup', onUp);
-      mortar.addEventListener('pointercancel', onUp);
 
       ov.querySelector('#gr-done').onclick = function () {
         if (phase === 'clean') { startGrindPhase(); return; }
-        settle('done');
+        if (broken >= N) { settle('done'); return; }
+        settle('quit');
       };
-      ov.querySelector('#gr-auto').onclick = function () {
-        if (log) log('〔捣药〕交由药工代捣，出凡品药末。', 'sys');
-        packAdd('yaomo', 1);
-        if (save) save(getState());
-        if (renderStatus) renderStatus();
-        if (toast) toast('药工代捣，得药末 ×1（凡品）');
-        close();
+      $make.onclick = function () {
+        if (broken >= N) settle('done');
       };
+      $rxbook.onclick = function () { openRxBook(recipeId); };
+      mortar.addEventListener('pointerdown', onDown);
+      mortar.addEventListener('pointerup', onUp);
+      mortar.addEventListener('pointercancel', onUp);
       ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
 
       hud();
@@ -645,7 +486,46 @@
       startClean();
     }
 
-    return { openGrind: openGrind, closeGrind: close };
+    // ── 药方簿：已学可切换 / 未学灰显（药铺有售）──
+    function openRxBook(cur) {
+      var old = document.getElementById('grind-rxbook-win');
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+      var learned = (getState().learnedRx || []);
+      var ov = document.createElement('div');
+      ov.id = 'grind-rxbook-win';
+      ov.className = 'grind-rxbook-win';
+      var rows = '';
+      Object.keys(GRIND_RX).forEach(function (rid) {
+        var r = GRIND_RX[rid];
+        var has = learned.indexOf(rid) >= 0;
+        rows += '<div class="rxb-row' + (has ? '' : ' lock') + (rid === cur ? ' cur' : '') + '" data-rid="' + rid + '">' +
+          '<span class="rxb-ic">' + r.icon + '</span>' +
+          '<div class="rxb-info"><b>' + r.name + '</b><span>' + (has ? r.desc : '未习得 · 药铺有售') + '</span></div>' +
+          (has ? '<button class="rxb-use">用此方</button>' : '<span class="rxb-lock">🔒</span>') +
+        '</div>';
+      });
+      ov.innerHTML =
+        '<div class="grind-rxbook-card">' +
+          '<div class="grind-title">药方簿<span class="grind-seal">方</span></div>' +
+          '<div class="rxb-list">' + rows + '</div>' +
+          '<div class="grind-acts"><button class="btn" data-close="1">关 闭</button></div>' +
+        '</div>';
+      document.body.appendChild(ov);
+      ov.querySelectorAll('.rxb-use').forEach(function (b) {
+        b.onclick = function () {
+          var rid = b.closest('.rxb-row').getAttribute('data-rid');
+          close();
+          ov.parentNode && ov.parentNode.removeChild(ov);
+          openGrind(rid);
+        };
+      });
+      ov.querySelector('[data-close="1"]').onclick = function () {
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+      };
+      ov.addEventListener('click', function (e) { if (e.target === ov) { if (ov.parentNode) ov.parentNode.removeChild(ov); } });
+    }
+
+    return { openGrind: openGrind, closeGrind: close, openRxBook: openRxBook };
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = LF.createGrinding;
