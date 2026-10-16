@@ -130,7 +130,8 @@
       var $rxbook = ov.querySelector('#gr-rxbook');
 
       var R = mortar.clientWidth / 2 || 140;
-      var CY = R * 0.62, RX = R * 0.42, RY = R * 0.16;
+      // v20261015c：高俯视大圆口臼 → 药材铺满整个圆面（不再挤在窄椭圆窝口里）
+      var CY = R * 0.5, RX = R * 0.52, RY = R * 0.52;
 
       // ── 捣研药材：配方投料，约束在臼窝口内 ──
       var pieces = [];
@@ -172,7 +173,7 @@
         }
         for (var qi = 0; qi < types.length; qi++) {
           var a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random());
-          var x = R + Math.cos(a) * rr * RX * 1.25, y = CY - 6 + Math.sin(a) * rr * RY * 2.2;
+          var x = R + Math.cos(a) * rr * RX * 1.08, y = CY + Math.sin(a) * rr * RY * 1.08;
           var el = document.createElement('div');
           el.className = 'grind-cln grind-cln-' + (types[qi].t === 'imp' ? types[qi].kind : 'good');
           el.style.left = x + 'px';
@@ -193,8 +194,8 @@
         for (var bi2 = 0; bi2 < cleanPieces.length; bi2++) (function (p) {
           p.mover = setInterval(function () {
             if (p.gone) return;
-            p.x = Math.max(R - RX * 1.25, Math.min(R + RX * 1.25, p.x + (Math.random() - 0.5) * 8));
-            p.y = Math.max(CY - 6 - RY * 2.2, Math.min(CY - 6 + RY * 2.2, p.y + (Math.random() - 0.5) * 3));
+            p.x = Math.max(R - RX * 1.08, Math.min(R + RX * 1.08, p.x + (Math.random() - 0.5) * 8));
+            p.y = Math.max(CY - RY * 1.08, Math.min(CY + RY * 1.08, p.y + (Math.random() - 0.5) * 3));
             p.el.style.left = p.x + 'px';
             p.el.style.top = p.y + 'px';
           }, 300);
@@ -282,13 +283,14 @@
         (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 900); })(d);
       }
       function powerOf(t) { return t < P1 ? 1 : (t < P2 ? 2 : 3); }
-      function stickLift(x) {
-        var cx = R, maxX = R * 0.78;
+      function stickLift(x, y) {
+        var cx = R, cy = CY, maxX = R * 0.78, maxY = R * 0.62;
         var dx = Math.max(-maxX, Math.min(maxX, x - cx));
+        var dy = Math.max(-maxY, Math.min(maxY, y - cy));
         var p = powerOf(liftT);
         var lift = [26, 52, 78][p - 1];
         stick.classList.remove('fall', 'bounce', 'back');
-        stick.style.transform = 'translate(' + dx + 'px,-' + lift + 'px) rotate(0deg)';
+        stick.style.transform = 'translate(' + dx + 'px,' + (dy - lift) + 'px) rotate(0deg)';
         powerUi(p);
       }
       function impact() {
@@ -377,16 +379,17 @@
           setTimeout(function () { if (!done) checkMake(); }, 260);
         }
       }
-      function stickStrike(px, power) {
-        var cx = R, maxX = R * 0.78;
+      function stickStrike(px, py, power) {
+        var cx = R, cy = CY, maxX = R * 0.78, maxY = R * 0.62;
         var dx = Math.max(-maxX, Math.min(maxX, px - cx));
+        var dy = Math.max(-maxY, Math.min(maxY, py - cy));
         stick.classList.remove('back');
         stick.classList.add('fall');
-        stick.style.transform = 'translate(' + dx + 'px,0) rotate(0deg)';
+        stick.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(0deg)';
         setTimeout(function () {
           stick.classList.remove('fall');
           stick.classList.add('bounce');
-          stick.style.transform = 'translate(' + dx + 'px,-10px) rotate(0deg)';
+          stick.style.transform = 'translate(' + dx + 'px,' + (dy - 10) + 'px) rotate(0deg)';
           setTimeout(function () {
             stick.classList.remove('bounce');
             stick.classList.add('back');
@@ -457,12 +460,12 @@
         aiming = true;
         downT = Date.now();
         liftT = 0;
-        stickLift(best.x);
+        stickLift(best.x, best.y);
         if (liftTimer) clearInterval(liftTimer);
         liftTimer = setInterval(function () {
           if (!aiming) return;
           liftT = Date.now() - downT;
-          stickLift(best.x);
+          stickLift(best.x, best.y);
         }, 100);
       }
       function onUp(e) {
@@ -471,8 +474,8 @@
         if (liftTimer) { clearInterval(liftTimer); liftTimer = null; }
         var hold = Date.now() - downT;
         var power = hold < 150 ? (target ? target.hd : 2) : powerOf(hold); // 轻点=自动力恰好硬度
-        var tx = target ? target.x : R;
-        stickStrike(tx, power);
+        var tx = target ? target.x : R, ty = target ? target.y : CY;
+        stickStrike(tx, ty, power);
         strike(tx, power);
       }
 
