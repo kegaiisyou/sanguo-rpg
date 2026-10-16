@@ -98,10 +98,10 @@
           '<div class="grind-sub" id="gr-sub"></div>' +
           '<div class="grind-time" id="gr-timewrap"><div class="grind-timebar" id="gr-timebar"></div><span id="gr-time"></span></div>' +
           '<div class="grind-mortar" id="gr-mortar">' +
+            '<div class="grind-ring" id="gr-ring"></div>' +
             '<div class="grind-ripple" id="gr-ripple"></div>' +
             '<div class="grind-stick" id="gr-stick"><img src="' + PESTLE_ART + '" alt=""></div>' +
           '</div>' +
-          '<div class="grind-power" id="gr-power"><i></i><i></i><i></i></div>' +
           '<div class="grind-hud">' +
             '<span>药性 <b id="gr-keep">100%</b></span>' +
             '<span>捣碎 <b id="gr-cov">0/' + N + '</b></span>' +
@@ -122,7 +122,7 @@
       var $keep = ov.querySelector('#gr-keep');
       var $tl = ov.querySelector('#gr-tl');
       var $ripple = ov.querySelector('#gr-ripple');
-      var $power = ov.querySelectorAll('#gr-power i');
+      var $ring = ov.querySelector('#gr-ring');
       var $timebar = ov.querySelector('#gr-timebar');
       var $time = ov.querySelector('#gr-time');
       var $tip = ov.querySelector('#gr-tip');
@@ -201,6 +201,23 @@
           }, 300);
         })(cleanPieces[bi2]);
       }
+      function inkBurst(x, y, color) {
+        // v20261015e：点击碎裂成小墨点飞散
+        for (var i = 0; i < 6; i++) {
+          var d = document.createElement('div');
+          d.className = 'grind-ink';
+          var ang = Math.random() * Math.PI * 2, dist = 14 + Math.random() * 22;
+          d.style.left = x + 'px';
+          d.style.top = y + 'px';
+          d.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+          d.style.setProperty('--dy', Math.sin(ang) * dist + 'px');
+          d.style.background = color;
+          d.style.width = (4 + Math.random() * 5) + 'px';
+          d.style.height = d.style.width;
+          mortar.appendChild(d);
+          (function (e) { setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 430); })(d);
+        }
+      }
       function cleanTap(px, py) {
         for (var i = 0; i < cleanPieces.length; i++) {
           var p = cleanPieces[i];
@@ -215,10 +232,12 @@
             if (p.t === 'imp') {
               cleanGood++; cleanLeft--;
               sfx('hit'); buzz(12);
+              inkBurst(p.x, p.y, 'rgba(70,58,40,.85)');
               floatText(p.x, p.y - 6, '挑出', '#3f8f5f');
             } else {
               cleanBad++;
               sfx('error'); buzz(25);
+              inkBurst(p.x, p.y, 'rgba(138,122,90,.9)');
               floatText(p.x, p.y - 6, '误伤 -30', '#b0452f');
             }
             return;
@@ -266,7 +285,8 @@
       var timer = null, timeLeft = LIMIT;
 
       function powerUi(p) {
-        for (var i = 0; i < 3; i++) $power[i].className = (i < p) ? ('on' + p) : '';
+        // v20261015e：墨晕环硬度（臼底扩散水墨涟漪，3档染朱砂）
+        $ring.className = 'grind-ring' + (p > 0 ? ' on' + p : '');
       }
       function hud() {
         $cov.textContent = broken + '/' + N;

@@ -3693,19 +3693,26 @@
   .grind-stick.bounce{transition:transform .09s ease-out;}
   .grind-stick.back{transition:transform .22s ease-out;}
   /* v20261015c：硬度显示改水墨墨尺（竖向三段，蓄力越久墨越浓，3档染朱砂警示） */
-  .grind-power{position:relative;width:18px;height:58px;margin:4px auto 0;display:flex;
-    flex-direction:column-reverse;justify-content:flex-start;align-items:center;}
-  .grind-power::before{content:'';position:absolute;left:50%;top:-3px;bottom:-3px;width:12px;
-    margin-left:-6px;border-radius:7px;background:rgba(96,76,48,.12);
-    border:1px solid rgba(96,76,48,.28);box-shadow:inset 0 2px 5px rgba(60,45,25,.18);}
-  .grind-power::after{content:'力';position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);
-    font-size:10px;color:var(--ink-faint);letter-spacing:1px;}
-  .grind-power i{position:relative;width:10px;height:15px;border-radius:4px;margin:1.5px 0;
-    background:rgba(120,110,95,.15);transition:background .15s, box-shadow .15s;}
-  .grind-power i.on1{background:linear-gradient(180deg,#c9c4b8,#a9a396);}
-  .grind-power i.on2{background:linear-gradient(180deg,#90897c,#6d685c);}
-  .grind-power i.on3{background:linear-gradient(180deg,#5d574c,#413d35);
-    box-shadow:0 0 0 1px rgba(190,70,45,.5),0 0 9px rgba(190,70,45,.45);}
+  /* v20261015e：硬度=臼底墨晕环（蓄力扩散水墨涟漪，3档染朱砂） */
+  .grind-ring{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;
+    border-radius:50%;pointer-events:none;opacity:0;z-index:1;
+    transition:width .12s ease,height .12s ease,margin .12s ease,opacity .15s ease,
+      box-shadow .15s ease,border-color .15s ease,border-width .15s ease;}
+  .grind-ring.on1{opacity:.6;border:2px solid rgba(70,58,44,.4);
+    box-shadow:0 0 16px 6px rgba(70,58,44,.18), inset 0 0 12px rgba(70,58,44,.14);}
+  .grind-ring.on2{opacity:.85;width:72px;height:72px;margin:-36px 0 0 -36px;
+    border:3px solid rgba(50,42,32,.62);
+    box-shadow:0 0 26px 11px rgba(50,42,32,.28), inset 0 0 18px rgba(50,42,32,.22);}
+  .grind-ring.on3{opacity:1;width:102px;height:102px;margin:-51px 0 0 -51px;
+    border:4px solid rgba(190,70,45,.78);
+    animation:grindRingPulse .5s ease-in-out infinite alternate;}
+  @keyframes grindRingPulse{
+    from{box-shadow:0 0 30px 13px rgba(190,70,45,.32), inset 0 0 20px rgba(190,70,45,.24);}
+    to{box-shadow:0 0 42px 19px rgba(190,70,45,.42), inset 0 0 28px rgba(190,70,45,.32);}}
+  .grind-ink{position:absolute;border-radius:50%;pointer-events:none;z-index:6;
+    animation:grindInk .4s ease-out forwards;box-shadow:0 1px 2px rgba(40,30,15,.25);}
+  @keyframes grindInk{from{transform:translate(0,0);opacity:.95;}
+    to{transform:translate(var(--dx,0),var(--dy,0)) scale(.6);opacity:0;}}
   .grind-chip{position:absolute;width:6px;height:6px;border-radius:var(--r-pill);background:var(--gold);
     pointer-events:none;animation:grindChip .38s ease-out forwards;}
   @keyframes grindChip{from{transform:translate(0,0);opacity:.9;}
