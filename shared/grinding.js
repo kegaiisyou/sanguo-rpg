@@ -130,8 +130,8 @@
       var $rxbook = ov.querySelector('#gr-rxbook');
 
       var R = mortar.clientWidth / 2 || 140;
-      // v20261015c：高俯视大圆口臼 → 药材铺满整个圆面（不再挤在窄椭圆窝口里）
-      var CY = R * 0.5, RX = R * 0.52, RY = R * 0.52;
+      // v20261015d：俯视臼圆心=容器中心(R)，修正 CY 少乘半径导致药材整体偏上飘出臼口
+      var CY = R, RX = R * 0.52, RY = R * 0.52;
 
       // ── 捣研药材：配方投料，约束在臼窝口内 ──
       var pieces = [];
