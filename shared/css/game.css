@@ -1100,6 +1100,8 @@
   .dev-sub{font-size:11px;color:var(--ink-faint);font-weight:400;margin-left:6px;}
   .card .dev-tip{font-size:11px;color:var(--ink-faint);line-height:1.6;margin:6px 0 0;padding-left:10px;border-left:2px solid rgba(158,59,46,.35);}
   .card .dev-input{padding:8px 10px;font-size:13px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;width:100px;}
+  /* v20261017d · 演武场敌人属性小字 */
+  .card .dev-attr{font-size:10.5px;color:var(--ink-faint);margin-left:6px;letter-spacing:.5px;}
 
   #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
     background:rgba(44,38,32,.92);color:#f4eee2;padding:10px 20px;border-radius:10px;font-size:13px;

@@ -9,6 +9,19 @@ window.LF = window.LF || {};
     var getState = ctx.getState, getCard = ctx.getCard, getModal = ctx.getModal,
         getCurrentModalKind = ctx.getCurrentModalKind;
 
+    // v20261017d · 演武场：调试台视图切换（'main' 调试台 / 'arena' 敌人清单）
+    var devView = 'main';
+    // 主要敌人分组清单（id 取自 shared/data/enemies.js）
+    var ARENA_GROUPS = [
+      { name: '🥋 教学 · 苦役营', ids: ['camp_dummy', 'camp_guard', 'diyunzhou'] },
+      { name: '⛰ 山贼匪类', ids: ['bandit', 'bandit_chief', 'heishan_zei', 'heishan_zhu'] },
+      { name: '✊ 太平道', ids: ['yellow_turban', 'yth_intercept'] },
+      { name: '⚔ 官军 · 名将', ids: ['city_guard', 'hua_xiong'] },
+      { name: '🐾 郊野猛兽', ids: ['stray_dog', 'hungry_refugee', 'deserter', 'wild_wolf', 'wild_boar',
+        'venom_snake', 'black_bear', 'goshawk', 'python', 'snow_wolf', 'mad_bull', 'wolf_pack', 'tiger'] },
+      { name: '🌟 试炼', ids: ['dummy', 'lucky_star'] }
+    ];
+
     function handleDev(act) {
       var MA = G.MARTIAL_ARTS;
       var state = getState();
@@ -79,6 +92,18 @@ window.LF = window.LF || {};
         }));
         _gr.openGrindBench('city', { shopOwner: true });
       }
+      // v20261017d · 演武场：进清单 / 返回 / 点敌开战
+      else if (act === 'arena') { devView = 'arena'; renderDev(); }
+      else if (act === 'arena_back') { devView = 'main'; renderDev(); }
+      else if (act.indexOf('arena_') === 0) {
+        var _eid = act.slice(6);
+        if (!(G.ENEMIES || {})[_eid]) { ctx.toast('查无此敌：' + _eid); return; }
+        ctx.closeModal();
+        document.body.classList.remove('in-combat');   // 清可能残留的战斗态
+        var _app = document.getElementById('app'); if (_app) _app.classList.remove('in-combat');
+        ctx.log('【演武场】迎战：' + (G.ENEMIES[_eid].title ? '「' + G.ENEMIES[_eid].title + '」' : '') + G.ENEMIES[_eid].name, 'good');
+        ctx.startCombat(_eid);
+      }
       // v20260924z17：原「查看当前旗标」按钮已移除 —— walk() 对 state.flags 做无保护的递归遍历，
       //   旗标里一旦出现环引用（或嵌套极深）就会无限递归，点一下页面直接卡死。
     }
@@ -87,6 +112,9 @@ window.LF = window.LF || {};
       var state = getState();
       var $card = getCard(), $modal = getModal();
       state.faction = state.faction || '义军';
+
+      // v20261017d · 演武场视图
+      if (devView === 'arena') { renderArena(); return; }
 
       function spawnNameOf(s) {
         if (!s) return '未设置';
@@ -152,18 +180,15 @@ window.LF = window.LF || {};
          + '<button class="dev" data-act="grind">🥣 捣 药</button>'
          + '</div></div>';
 
+      // 8. 演武场（v20261017d）
+      h += '<div class="dev-sec"><div class="dev-h">⚔ 战斗调试</div><div class="dev-btns">'
+         + '<button class="dev wide" data-act="arena">🥋 进入演武场 · 选敌试战</button>'
+         + '</div></div>';
+
       h += '<button class="close" id="m-close">收 起</button>';
       $card.innerHTML = h;
       $modal.classList.remove('hidden');
-
-      $card.querySelectorAll('[data-act]').forEach(function (btn) {
-        btn.onclick = function () {
-          var a = btn.getAttribute('data-act');
-          if (a === 'setspawn') { ctx.openSpawnMap(); return; }
-          handleDev(a); ctx.save(state); ctx.renderStatus();
-          if (getCurrentModalKind() !== 'char') renderDev();
-        };
-      });
+      bindActs($card);
 
       // 经验值精确获得
       var xpBtn = document.getElementById('dev-xp-btn');
@@ -179,6 +204,44 @@ window.LF = window.LF || {};
       };
 
       var c = document.getElementById('m-close'); if (c) c.onclick = ctx.closeModal;
+    }
+
+    // v20261017d · 演武场：敌人分组清单，点选即战（属性 hp/攻/防/速）
+    function renderArena() {
+      var state = getState();
+      var $card = getCard(), $modal = getModal();
+      var h = '<h3>⚔ 演 武 场 <span class="dev-sub">选敌即战 · 血/攻/防/速</span></h3>';
+      ARENA_GROUPS.forEach(function (g) {
+        var items = g.ids.filter(function (id) { return (G.ENEMIES || {})[id]; });
+        if (!items.length) return;
+        h += '<div class="dev-sec"><div class="dev-h">' + g.name + '</div><div class="dev-btns">';
+        items.forEach(function (id) {
+          var e = G.ENEMIES[id];
+          h += '<button class="dev" data-act="arena_' + id + '" title="' + (e.title || '') + '">' + e.name
+             + '<span class="dev-attr">' + (e.hp || 0) + '·' + (e.atk || 0) + '·' + (e.def || 0) + '·' + (e.spd || 0) + '</span></button>';
+        });
+        h += '</div></div>';
+      });
+      h += '<div class="dev-sec" style="border-top:none;margin-top:4px;padding-top:0;"><div class="dev-btns">'
+         + '<button class="dev wide" data-act="arena_back">← 返回调试台</button></div></div>';
+      h += '<button class="close" id="m-close">收 起</button>';
+      $card.innerHTML = h;
+      $modal.classList.remove('hidden');
+      bindActs($card);
+      var c = document.getElementById('m-close'); if (c) c.onclick = ctx.closeModal;
+    }
+
+    // 统一按钮绑定：演武场开战类动作直接分发并中止后续渲染
+    function bindActs($card) {
+      $card.querySelectorAll('[data-act]').forEach(function (btn) {
+        btn.onclick = function () {
+          var a = btn.getAttribute('data-act');
+          if (a === 'setspawn') { ctx.openSpawnMap(); return; }
+          if (a.indexOf('arena_') === 0 && a !== 'arena_back') { handleDev(a); return; }
+          handleDev(a); ctx.save(getState()); ctx.renderStatus();
+          if (getCurrentModalKind() !== 'char') renderDev();
+        };
+      });
     }
 
     return { handleDev: handleDev, renderDev: renderDev };

@@ -139,7 +139,9 @@
     moralTitle: function () { return moralTitle.apply(null, arguments); },
     factionName: function () { return factionName.apply(null, arguments); },
     renderStatus: renderStatus, toast: toast,
-    packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save
+    packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save,
+    // v20261017d · 演武场：Combat 在 L614 才创建 → 延迟引用（同上方 packAdd 范式）
+    startCombat: function () { return Combat.startCombat.apply(null, arguments); }
   });
   var handleDev = Dev.handleDev, renderDev = Dev.renderDev;
 
