@@ -872,6 +872,14 @@
       openBuildCrate = Crafting.openBuildCrate, openForgePanel = Crafting.openForgePanel,
       renderForgePanel = Crafting.renderForgePanel, bindForgePanel = Crafting.bindForgePanel,
       forgeAct = Crafting.forgeAct, tickForge = Crafting.tickForge;
+  // 捣药（制药小游戏）：引擎级单例（v20261017b 正式化）——药铺配药台/家中捣药台共用
+  var Grinding = LF.createGrinding({
+    getState: function () { return state; },
+    LF: LF,
+    packAdd: packAdd, packConsume: packConsume, packFind: packFind,
+    toast: toast, log: log, save: save, renderStatus: renderStatus
+  });
+  LF.Grinding = Grinding;
   // ===== 捏人 / 开场序章 =====
   // 四维属性（直接对应战斗数值，无资质壳；每点换算见 G.ATTR_RATIO）
   var createState=null;   // 捏人状态（openModal 读取）；四维常量与 pendingSlot/pendingSave 已移入 shared/core/charcreate.js

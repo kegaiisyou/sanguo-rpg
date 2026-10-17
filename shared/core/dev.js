@@ -71,13 +71,13 @@ window.LF = window.LF || {};
       //   调试按钮点了毫无反应。这也是「凡入包的物先查登记表」的道理。
       else if (act === 'item_yao') { ctx.packAdd('jinchuang', 5); ctx.log('【调试】获得金疮药×5', 'good'); }
       else if (act === 'grind') {
-        // 捣药（A1 手感验证）：懒创建实例，复用调试台自身的 ctx
+        // 捣药（v20261017b 正式化）：调试台直接打开配药台工作台（等价店主视角）
         var _gr = LF.Grinding || (LF.Grinding = LF.createGrinding({
-          getState: getState, packAdd: ctx.packAdd, toast: ctx.toast,
+          getState: getState, packAdd: ctx.packAdd, packConsume: ctx.packConsume,
+          packFind: ctx.packFind, toast: ctx.toast,
           log: ctx.log, save: ctx.save, renderStatus: ctx.renderStatus
         }));
-        var _sel = document.getElementById('dev-grind-herb');
-        _gr.openGrind((_sel && _sel.value) || 'caoyao');
+        _gr.openGrindBench('city', { shopOwner: true });
       }
       // v20260924z17：原「查看当前旗标」按钮已移除 —— walk() 对 state.flags 做无保护的递归遍历，
       //   旗标里一旦出现环引用（或嵌套极深）就会无限递归，点一下页面直接卡死。

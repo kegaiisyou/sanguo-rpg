@@ -8,18 +8,20 @@
   var LF = global.LF || (global.LF = {});
 
   // ── 静态配方表（供背包卷轴研读与店铺挂载读取）──
-  // need 按"每份"计；开炉投料 = need 各味 ×2 份
+  // need 按"每份"计；开炉投料 = need 各味 ×2 株；开炉消耗背包药材 = need 各味单位（1 单位=2 株）。
+  // v20261017b 数值平衡：前期一律单产物（outN=1，便于核算）；自制成本 ≤ 商店价（自制有利可图）；
+  //   一炉多瓶留给后期"制药科技树"解锁（见 docs/PHARMACY_BENCH.md）。人参仅进"商店无售"的续命丹。
   var GRIND_RX = {
-    jinchuang:   { name: '金疮药', icon: '🧪', out: 'jinchuang',  outN: 2, need: { gancao: 2, renshen: 1 },
-      desc: '甘草粉×2·人参粉×1 → 疗外伤 50。止血生肌，江湖常备。' },
-    xingjunsan:  { name: '行军散', icon: '💊', out: 'xingjunsan', outN: 2, need: { huanglian: 2, gancao: 1 },
-      desc: '黄连粉×2·甘草粉×1 → 清湿热·回复 40。行军风餐露宿之备。' },
-    xingshensan: { name: '醒神散', icon: '🌀', out: 'xingshensan', outN: 2, need: { renshen: 2, huanglian: 1 },
-      desc: '人参粉×2·黄连粉×1 → 回复内力 40。久战力竭，服之内息复振。' },
-    jinchuangao: { name: '金创膏', icon: '🩹', out: 'jinchuangao', outN: 1, need: { gancao: 3, renshen: 2 },
-      desc: '甘草粉×3·人参粉×2 → 疗外伤 70。厚涂创口，愈合如新。', unlock: 'fang_jinchuangao' },
-    xumingdan:   { name: '续命丹', icon: '🔴', out: 'xumingdan',  outN: 1, need: { renshen: 2, gancao: 2, huanglian: 2 },
-      desc: '三味各 2 粉 → 续命 150。重伤濒危，含服续命。', unlock: 'fang_xumingdan' }
+    jinchuang:   { name: '金疮药', icon: '🧪', out: 'jinchuang',  outN: 1, need: { gancao: 3 },
+      desc: '甘草粉×3 → 疗外伤 50 ×1。止血生肌，江湖常备。' },
+    xingjunsan:  { name: '行军散', icon: '💊', out: 'xingjunsan', outN: 1, need: { gancao: 2 },
+      desc: '甘草粉×2 → 清湿热·回复 40 ×1。行军风餐露宿之备。' },
+    xingshensan: { name: '醒神散', icon: '🌀', out: 'xingshensan', outN: 1, need: { huanglian: 1, gancao: 1 },
+      desc: '黄连粉×1·甘草粉×1 → 回复内力 40 ×1。久战力竭，服之内息复振。' },
+    jinchuangao: { name: '金创膏', icon: '🩹', out: 'jinchuangao', outN: 1, need: { gancao: 3 },
+      desc: '甘草粉×3 → 疗外伤 70。厚涂创口，愈合如新。', unlock: 'fang_jinchuangao' },
+    xumingdan:   { name: '续命丹', icon: '🔴', out: 'xumingdan',  outN: 1, need: { renshen: 1, huanglian: 1, gancao: 1 },
+      desc: '人参粉×1·黄连粉×1·甘草粉×1 → 续命 150。重伤濒危，含服续命。', unlock: 'fang_xumingdan' }
   };
   LF.GRIND_RX = GRIND_RX;
   LF.GRIND_RX_UNLOCK = { fang_jinchuangao: 'jinchuangao', fang_xumingdan: 'xumingdan' };
@@ -32,7 +34,8 @@
   });
 
   LF.createGrinding = function (ctx) {
-    var getState = ctx.getState, packAdd = ctx.packAdd, toast = ctx.toast,
+    var getState = ctx.getState, packAdd = ctx.packAdd, packConsume = ctx.packConsume,
+        packFind = ctx.packFind, toast = ctx.toast,
         log = ctx.log, save = ctx.save, renderStatus = ctx.renderStatus;
 
     var HIT = 56;          // 药材命中半径（v20261017a 扩大：手机手指易点空）
@@ -66,10 +69,27 @@
 
     function openGrind(recipeId, opts) {
       opts = opts || {};
+      var benchSrc = null;   // v20261017b：从配药台/家中进入时，结算显示"返回配药台"
       var rx = GRIND_RX[recipeId];
       if (!rx) { toast('无此药方。'); return; }
       var learned = (getState().learnedRx || []);
       if (learned.indexOf(recipeId) < 0) { toast('尚未习得「' + rx.name + '」药方。'); return; }
+      // v20261017b：开炉即扣背包药材（进炉即扣，中途退出/失败不返还）
+      if (opts.charge) {
+        var missing = null;
+        for (var k in rx.need) {
+          var _c = packFind ? packFind(k) : null;
+          var have = _c ? (_c.count || 0) : 0;
+          if (have < rx.need[k]) { missing = k; break; }
+        }
+        if (missing) {
+          var _c2 = packFind ? packFind(missing) : null;
+          toast('药材不足：缺 ' + HERB_NAME[missing] + ' ×' + (rx.need[missing] - (_c2 ? (_c2.count || 0) : 0)));
+          return;
+        }
+        for (var k2 in rx.need) if (packConsume) packConsume(k2, rx.need[k2]);
+      }
+      benchSrc = opts.bench || null;   // 'city' / 'home'：结算返回配药台
 
       // 投料：need 各味 ×2 份 → 株数组
       var kinds = [];
@@ -488,7 +508,8 @@
           '<div class="grind-res-sub">' + sub + '</div>' +
           '<div class="grind-res-acts">' +
             '<button class="btn grind-again" id="gr-again">再来一炉</button>' +
-            '<button class="btn-ghost" id="gr-close">收 工</button>' +
+            (benchSrc ? '<button class="btn-ghost" id="gr-back">返回配药台</button>'
+                      : '<button class="btn-ghost" id="gr-close">收 工</button>') +
           '</div>';
         $result.hidden = false;
         $result.classList.add('pop');
@@ -496,9 +517,13 @@
         $result.querySelector('#gr-again').onclick = function () {
           $result.hidden = true;
           close();
-          openGrind(recipeId, { skipClean: true });
+          openGrind(recipeId, { skipClean: true, charge: true, bench: benchSrc });
         };
-        $result.querySelector('#gr-close').onclick = function () { close(); };
+        if (benchSrc) {
+          $result.querySelector('#gr-back').onclick = function () { close(); openGrindBench(benchSrc); };
+        } else {
+          $result.querySelector('#gr-close').onclick = function () { close(); };
+        }
         // 首局引导完成标记
         try {
           var st = getState();
@@ -618,6 +643,142 @@
       }
     }
 
+    // ── 配药台工作台（v20261017b 正式化）：已学配方卡 + 库存 + 权限 + 简易配药 ──
+    // kind: 'city'（药铺，店主/城主免费，否则每炉 15 两租金）| 'home'（自家捣药台，免费）
+    function openGrindBench(kind, opts) {
+      opts = opts || {};
+      var ov = document.createElement('div');
+      ov.id = 'grind-bench-win';
+      ov.className = 'grind-bench-win';
+      var learned = (getState().learnedRx || []);
+      var free = kind !== 'city';
+      var isOwner = false, isMayor = false;
+      if (kind === 'city') {
+        isOwner = !!opts.shopOwner;
+        var cid = opts.cid;
+        var own = (LF.CITY_OWNER || {})[cid] || ((LF.CITIES || {})[cid] || {}).owner || '汉';
+        isMayor = own === 'player';
+        free = isOwner || isMayor;
+      }
+      var rent = 15;
+      // 库存（捣药三材 + 简易配药原料）
+      function herbStock() {
+        var s = {};
+        ['gancao', 'huanglian', 'renshen'].forEach(function (k) {
+          var _c = packFind ? packFind(k) : null;
+          s[k] = _c ? (_c.count || 0) : 0;
+        });
+        return s;
+      }
+      var st = herbStock();
+      var rows = '';
+      Object.keys(GRIND_RX).forEach(function (rid) {
+        var r = GRIND_RX[rid];
+        var has = learned.indexOf(rid) >= 0;
+        var needTxt = Object.keys(r.need).map(function (k) { return HERB_NAME[k] + '×' + r.need[k]; }).join(' · ');
+        var lack = Object.keys(r.need).some(function (k) { return st[k] < r.need[k]; });
+        rows +=
+          '<div class="gbench-rx' + (has ? '' : ' lock') + '" data-rid="' + rid + '">' +
+            '<div class="gbench-rx-top">' +
+              '<span class="gbench-ico">' + r.icon + '</span>' +
+              '<b>' + r.name + '</b>' +
+              (has ? (lack ? '<i class="gbench-lack">药材不足</i>' : '') : '<i class="gbench-lock">未习得</i>') +
+            '</div>' +
+            '<div class="gbench-rx-meta">需 ' + needTxt + ' → ' + r.icon + ' ' + r.name + '×' + r.outN +
+              '（' + effectText(r.out) + '）</div>' +
+            '<div class="gbench-rx-desc">' + r.desc + '</div>' +
+            '<div class="gbench-rx-add">净制药性 +5% · 良品（药性≥85%）效满 · 普通效打 7 折</div>' +
+            (has
+              ? '<button class="btn gbench-go" data-rid="' + rid + '"' + (lack ? ' disabled' : '') + '>' +
+                (kind === 'city' && !free ? '捣药（租' + rent + '两）' : '捣 药') + '</button>'
+              : '<div class="gbench-unlock-tip">药铺购买卷轴 · 背包研读习得</div>') +
+          '</div>';
+      });
+      // 简易配药（老 clinic 配方：名贵药材直接成药，无小游戏）
+      var clinicRows = '';
+      if (LF.RECIPES && LF.RECIPES.clinic) {
+        LF.RECIPES.clinic.forEach(function (r) {
+          var inTxt = r.in.map(function (m) {
+            var d = (LF.ITEMS || {})[m.id] || {};
+            return (d.name || m.id) + '×' + m.n;
+          }).join(' · ');
+          var lack = r.in.some(function (m) { var _c = packFind ? packFind(m.id) : null; return (_c ? (_c.count || 0) : 0) < m.n; });
+          clinicRows +=
+            '<div class="gbench-rx" data-clinic="' + r.id + '">' +
+              '<div class="gbench-rx-top"><span class="gbench-ico">' + r.icon + '</span><b>' + r.name + '</b>' +
+              (lack ? '<i class="gbench-lack">原料不足</i>' : '') + '</div>' +
+              '<div class="gbench-rx-meta">需 ' + inTxt + ' → ' + r.icon + ' ' + r.name + '×' + r.outN + '</div>' +
+              '<div class="gbench-rx-desc">' + r.note + '</div>' +
+              '<button class="btn gbench-go" data-clinic="' + r.id + '"' + (lack ? ' disabled' : '') + '>配 药</button>' +
+            '</div>';
+        });
+      }
+      ov.innerHTML =
+        '<div class="grind-card gbench">' +
+          '<div class="grind-title">配药台<span class="grind-seal">药</span></div>' +
+          (kind === 'city'
+            ? (free
+              ? '<div class="gbench-auth ok">' + (isOwner ? '本店配药台（店主）' : '城主行辕配药台（城主）') + ' · 免费使用</div>'
+              : '<div class="gbench-auth">借用药铺配药台 · 每炉租金 ' + rent + ' 两（店主/城主免费）</div>')
+            : '<div class="gbench-auth ok">自家捣药台 · 免费使用</div>') +
+          '<div class="gbench-stock">库存：甘草 ' + st.gancao + ' · 黄连 ' + st.huanglian + ' · 人参 ' + st.renshen + '</div>' +
+          '<div class="gbench-sec">捣药制药</div>' +
+          rows +
+          (clinicRows ? '<div class="gbench-sec">简易配药（名贵药材直接成药）</div>' + clinicRows : '') +
+          '<div class="gbench-tip">捣药：净选挑杂 → 点击砸粉（轻点=恰好）→ 成剂。良品药效圆满，普通药效打折。</div>' +
+        '</div>';
+      document.body.appendChild(ov);
+      // 捣药入口：扣材 + 权限租金 → 小游戏
+      var gos = ov.querySelectorAll('.gbench-go');
+      for (var i = 0; i < gos.length; i++) {
+        (function (b) {
+          b.onclick = function () {
+            var rid = b.getAttribute('data-rid');
+            var cid2 = b.getAttribute('data-clinic');
+            if (!rid && !cid2) return;
+            // 权限租金（非店主/城主借用药铺台，每炉 15 两）
+            if (kind === 'city' && !free) {
+              var g = (getState().gold || 0);
+              if (g < rent) { toast('囊中羞涩，连租台的钱也没有……'); return; }
+              var st2 = getState();
+              st2.gold = g - rent;
+              if (save) save(getState());
+              if (renderStatus) renderStatus();
+            }
+            close();
+            if (rid) openGrind(rid, { charge: true, bench: kind });
+            else {
+              // 简易配药：扣原料即得
+              var r2 = null;
+              (LF.RECIPES.clinic || []).forEach(function (r) { if (r.id === cid2) r2 = r; });
+              if (!r2) return;
+              var ok2 = true;
+              r2.in.forEach(function (m) {
+                var _c3 = packFind ? packFind(m.id) : null;
+                if ((_c3 ? (_c3.count || 0) : 0) < m.n) ok2 = false;
+              });
+              if (!ok2) { toast('原料不足。'); return; }
+              r2.in.forEach(function (m) { if (packConsume) packConsume(m.id, m.n); });
+              if (packAdd) packAdd(r2.out, r2.outN);
+              if (log) log('〔配药〕' + r2.name + ' ×' + r2.outN, 'good');
+              if (save) save(getState());
+              if (renderStatus) renderStatus();
+              toast('配得 ' + r2.name + ' ×' + r2.outN);
+              openGrindBench(kind, opts);
+            }
+          };
+        })(gos[i]);
+      }
+      ov.addEventListener('click', function (e) { if (e.target === ov) { if (ov.parentNode) ov.parentNode.removeChild(ov); } });
+    }
+    function effectText(defId) {
+      var d = (LF.ITEMS || {})[defId] || {};
+      if (!d.effect) return '—';
+      return Object.keys(d.effect).map(function (k) {
+        return (k === 'hp' ? '疗' : k === 'mp' ? '回内力' : k) + ' ' + d.effect[k];
+      }).join('·');
+    }
+
     // ── 药方簿：已学可切换 / 未学灰显（药铺有售）──
     function openRxBook(cur) {
       var old = document.getElementById('grind-rxbook-win');
@@ -657,7 +818,7 @@
       ov.addEventListener('click', function (e) { if (e.target === ov) { if (ov.parentNode) ov.parentNode.removeChild(ov); } });
     }
 
-    return { openGrind: openGrind, closeGrind: close, openRxBook: openRxBook };
+    return { openGrind: openGrind, closeGrind: close, openRxBook: openRxBook, openGrindBench: openGrindBench };
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = LF.createGrinding;
