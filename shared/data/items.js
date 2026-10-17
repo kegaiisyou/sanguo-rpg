@@ -42,6 +42,7 @@
   // 静态物品定义（期初行囊 / 任务 / 商店）。defId 唯一键。
   var DEFS = {
     jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', maxStack: 30, effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
+    jinchuang_p: { defId: 'jinchuang_p', name: '金疮药', icon: '🧪', cat: '药剂', maxStack: 30, effect: { hp: 35 },                 desc: '捣工略逊的金疮药，药性打折，可疗外伤三十五。' },
     zhou:        { defId: 'zhou',        name: '扁舟',   icon: '⛵', cat: '道具', desc: '一叶轻舟，江河可渡。行经水路郊野时持有此舟，渡口乘船不取分文。' },
     roubao:      { defId: 'roubao',      name: '肉包子', icon: '🥟', cat: '食饵', effect: { food: 20, drink: 5 },     desc: '热乎包子一只，啃下可充饥解渴。' },
     yaofen:      { defId: 'yaofen',      name: '草药粉', icon: '🌿', cat: '药剂', effect: { hp: 25 },                 desc: '捣碎的草药细粉，作敷料可缓伤痛。' },
@@ -410,8 +411,12 @@
     // ── 捣药配方成药（v20261015a · 捣药小游戏产出）──
     xingjunsan: { defId: 'xingjunsan', name: '行军散', icon: '💊', cat: '药剂', maxStack: 30, price: 24, effect: { hp: 40 },
       desc: '黄连为君、甘草为臣，捣罗成散。清热燥湿——行军风餐露宿，腹痛吐泻之备。' },
+    xingjunsan_p: { defId: 'xingjunsan_p', name: '行军散', icon: '💊', cat: '药剂', maxStack: 30, price: 16, effect: { hp: 28 },
+      desc: '捣工略逊的行军散，药性打折，可疗外伤二十八。' },
     xingshensan:{ defId: 'xingshensan', name: '醒神散', icon: '🌀', cat: '药剂', maxStack: 30, price: 30, effect: { mp: 40 },
       desc: '人参提气、黄连清心，捣罗为散。开窍醒神——久战力竭，服之内息复振。' },
+    xingshensan_p:{ defId: 'xingshensan_p', name: '醒神散', icon: '🌀', cat: '药剂', maxStack: 30, price: 20, effect: { mp: 28 },
+      desc: '捣工略逊的醒神散，药性打折，可回内力二十八。' },
     xumingdan:  { defId: 'xumingdan',  name: '续命丹', icon: '🔴', cat: '药剂', maxStack: 20, price: 90, effect: { hp: 150 },
       desc: '人参甘草为臣、黄连为佐，合捣成丹。重伤濒危时含服，可续一口气。' },
     fang_jinchuangao: { defId: 'fang_jinchuangao', name: '金创膏药方', icon: '📜', cat: '配方', price: 60,

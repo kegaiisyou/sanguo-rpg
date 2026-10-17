@@ -3693,7 +3693,7 @@
   .grind-stick.bounce{transition:transform .09s ease-out;}
   .grind-stick.back{transition:transform .22s ease-out;}
   /* v20261015c：硬度显示改水墨墨尺（竖向三段，蓄力越久墨越浓，3档染朱砂警示） */
-  /* v20261015e：硬度=臼底墨晕环（蓄力扩散水墨涟漪，3档染朱砂） */
+  /* v20261015e/v20261017a：硬度=臼底墨晕环；恰好=淡青 / 过重=朱砂脉动 */
   .grind-ring{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;
     border-radius:50%;pointer-events:none;opacity:0;z-index:1;
     transition:width .12s ease,height .12s ease,margin .12s ease,opacity .15s ease,
@@ -3703,12 +3703,19 @@
   .grind-ring.on2{opacity:.85;width:72px;height:72px;margin:-36px 0 0 -36px;
     border:3px solid rgba(50,42,32,.62);
     box-shadow:0 0 26px 11px rgba(50,42,32,.28), inset 0 0 18px rgba(50,42,32,.22);}
-  .grind-ring.on3{opacity:1;width:102px;height:102px;margin:-51px 0 0 -51px;
-    border:4px solid rgba(190,70,45,.78);
+  .grind-ring.on3{opacity:1;width:102px;height:102px;margin:-51px 0 0 -51px;border:4px solid rgba(50,42,32,.7);
+    box-shadow:0 0 30px 13px rgba(50,42,32,.3), inset 0 0 20px rgba(50,42,32,.24);}
+  .grind-ring.ok{border-color:rgba(96,160,140,.85);
+    box-shadow:0 0 20px 8px rgba(96,160,140,.4), inset 0 0 14px rgba(96,160,140,.3);}
+  .grind-ring.over{border-color:rgba(190,70,45,.8);
     animation:grindRingPulse .5s ease-in-out infinite alternate;}
   @keyframes grindRingPulse{
     from{box-shadow:0 0 30px 13px rgba(190,70,45,.32), inset 0 0 20px rgba(190,70,45,.24);}
     to{box-shadow:0 0 42px 19px rgba(190,70,45,.42), inset 0 0 28px rgba(190,70,45,.32);}}
+  /* v20261017a：点空臼沿轻闪 */
+  .grind-mortar.miss{animation:grindMiss .18s ease;}
+  @keyframes grindMiss{0%,100%{transform:translate(0,0);}25%{transform:translate(-2px,0);}
+    60%{transform:translate(2px,0);}}
   .grind-ink{position:absolute;border-radius:50%;pointer-events:none;z-index:6;
     animation:grindInk .4s ease-out forwards;box-shadow:0 1px 2px rgba(40,30,15,.25);}
   @keyframes grindInk{from{transform:translate(0,0);opacity:.95;}
@@ -3722,7 +3729,31 @@
   .grind-acts{display:flex;gap:var(--gp);margin-top:12px;}
   .grind-acts .btn,.grind-acts .btn-ghost{flex:1;min-height:44px;}
   .grind-tip{margin-top:8px;font-size:11px;color:var(--ink-faint);}
-  .grind-result{margin-top:12px;}
+  /* v20261017a：结算结果卡（产出+良/普说明+再来一炉+入包动效） */
+  .grind-result{margin-top:12px;padding:12px 14px;border-radius:10px;text-align:center;
+    background:linear-gradient(180deg,rgba(74,58,38,.18),rgba(74,58,38,.06));
+    border:1px solid rgba(96,76,48,.25);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+  .grind-result.pop{animation:grindPop .32s cubic-bezier(.2,1.4,.4,1);}
+  @keyframes grindPop{from{transform:translateY(8px) scale(.94);opacity:0;}
+    to{transform:translateY(0) scale(1);opacity:1;}}
+  .grind-res-head{font-size:20px;font-weight:700;letter-spacing:4px;margin-bottom:2px;}
+  .grind-res-head.g{color:#3f8f5f;text-shadow:0 0 10px rgba(63,143,95,.35);}
+  .grind-res-head.p{color:#a8823a;}
+  .grind-res-head.f{color:#b0452f;}
+  .grind-res-line{font-size:15px;color:var(--ink);margin:6px 0 2px;animation:grindYield .5s ease-out .1s both;}
+  @keyframes grindYield{from{transform:translateY(10px) scale(.8);opacity:0;}
+    to{transform:translateY(0) scale(1);opacity:1;}}
+  .grind-res-sub{font-size:11px;color:var(--ink-soft);margin-bottom:10px;}
+  .grind-res-acts{display:flex;gap:var(--gp);}
+  .grind-res-acts .btn,.grind-res-acts .btn-ghost{flex:1;min-height:44px;}
+  /* v20261017a：分步引导卡 */
+  .grind-tut{margin-top:10px;padding:9px 12px;border-radius:8px;font-size:12px;text-align:center;
+    color:#d8cfa8;background:rgba(40,32,20,.82);border:1px solid rgba(190,70,45,.35);
+    letter-spacing:1px;opacity:0;transform:translateY(-4px);transition:opacity .3s,transform .3s;pointer-events:none;}
+  .grind-tut.show{opacity:1;transform:translateY(0);}
+  /* v20261017a：成剂态按钮高亮 */
+  .grind-done.on{background:linear-gradient(180deg,#8f6b3c,#6d4f2a) !important;color:#f3ead6 !important;
+    box-shadow:0 2px 10px rgba(141,103,55,.5) !important;}
   .grind-q{font-size:17px;font-weight:700;letter-spacing:2px;margin-bottom:8px;}
   .grind-tab{width:100%;font-size:12px;color:var(--ink-soft);border-collapse:collapse;}
   .grind-tab td{padding:4px 6px;border-bottom:1px dashed var(--panel-line);}

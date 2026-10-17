@@ -35,7 +35,7 @@
     var getState = ctx.getState, packAdd = ctx.packAdd, toast = ctx.toast,
         log = ctx.log, save = ctx.save, renderStatus = ctx.renderStatus;
 
-    var HIT = 42;          // 药材命中半径（56px 药材）
+    var HIT = 56;          // 药材命中半径（v20261017a 扩大：手机手指易点空）
     var P1 = 160, P2 = 520; // 蓄力段位
     var LIMIT = 20000;     // 捣研限时 20 秒
     var CLN_T = 5000, CLN_IMP = 4, CLN_GOOD = 2; // 净选：5 秒 · 4 杂质 + 2 好药
@@ -93,7 +93,6 @@
               '<b id="gr-rxname">' + rx.icon + ' ' + rx.name + '</b>' +
               '<span id="gr-rxneed">' + needShown + '</span>' +
             '</div>' +
-            '<button class="grind-make" id="gr-make" disabled>成 剂</button>' +
           '</div>' +
           '<div class="grind-sub" id="gr-sub"></div>' +
           '<div class="grind-time" id="gr-timewrap"><div class="grind-timebar" id="gr-timebar"></div><span id="gr-time"></span></div>' +
@@ -108,8 +107,10 @@
             '<span>时间 <b id="gr-tl">20</b></span>' +
           '</div>' +
           '<div class="grind-acts">' +
-            '<button class="btn" id="gr-done">收 手</button>' +
+            '<button class="btn grind-done" id="gr-done">收 手</button>' +
           '</div>' +
+          '<div class="grind-result" id="gr-result" hidden></div>' +
+          '<div class="grind-tut" id="gr-tut" hidden></div>' +
           '<div class="grind-tip" id="gr-tip">点击杂质挑出 · 点到好药会误伤药性</div>' +
         '</div>';
       document.body.appendChild(ov);
@@ -126,8 +127,23 @@
       var $timebar = ov.querySelector('#gr-timebar');
       var $time = ov.querySelector('#gr-time');
       var $tip = ov.querySelector('#gr-tip');
-      var $make = ov.querySelector('#gr-make');
+      var $done = ov.querySelector('#gr-done');
+      var $result = ov.querySelector('#gr-result');
+      var $tut = ov.querySelector('#gr-tut');
       var $rxbook = ov.querySelector('#gr-rxbook');
+      // v20261017a：分步引导（首局显示，结束后存档标记不再打扰）
+      var tutTimer = null;
+      function tut(text, ms) {
+        if ((getState().flags || {}).grindTutDone) return;
+        $tut.textContent = text;
+        $tut.hidden = false;
+        $tut.classList.add('show');
+        if (tutTimer) clearTimeout(tutTimer);
+        tutTimer = setTimeout(function () {
+          $tut.classList.remove('show');
+          setTimeout(function () { $tut.hidden = true; }, 350);
+        }, ms || 4200);
+      }
 
       var R = mortar.clientWidth / 2 || 140;
       // v20261015d：俯视臼圆心=容器中心(R)，修正 CY 少乘半径导致药材整体偏上飘出臼口
@@ -244,8 +260,8 @@
           }
         }
       }
-      function startGrindPhase() {
-        if (phase !== 'clean') return;
+      function startGrindPhase(force) {
+        if (phase !== 'clean' && !force) return;
         phase = 'grind';
         if (cleanTimer) clearInterval(cleanTimer);
         for (var i = 0; i < cleanPieces.length; i++) {
@@ -257,11 +273,13 @@
         $sub.textContent = rx.icon + ' ' + rx.name + ' · ' + needShown + '（20 秒内捣成粉）';
         $tip.textContent = '点哪株砸哪株：轻点=恰好力道；按住蓄力可加重（过重会流失药性）';
         $time.textContent = '20';
+        tut('捣研：点哪株砸哪株；轻点＝恰好力道，按住蓄力可加重', 4600);
         startTimer();
       }
       function startClean() {
         makeClean();
         $sub.textContent = '净制挑杂 · 挑出杂质，勿误伤好药（5 秒）';
+        tut('净选：点掉 4 颗杂质，别点好药（会误伤药性）', 4600);
         $timebar.classList.add('cln');
         $time.textContent = '5.0';
         $timebar.style.width = '100%';
@@ -281,12 +299,18 @@
       var cnt = {};          // 各味已碎粉计数
       Object.keys(rx.need).forEach(function (k) { cnt[k] = 0; });
       var pileSum = 0;
-      var aiming = false, downT = 0, liftT = 0, liftTimer = null, target = null;
+      var aiming = false, downT = 0, liftT = 0, liftTimer = null, target = null, downPt = null;
       var timer = null, timeLeft = LIMIT;
 
-      function powerUi(p) {
-        // v20261015e：墨晕环硬度（臼底扩散水墨涟漪，3档染朱砂）
-        $ring.className = 'grind-ring' + (p > 0 ? ' on' + p : '');
+      function powerUi(p, hd) {
+        // v20261017a：环语义化——未到=淡墨渐扩；恰好=淡青；过重=朱砂脉动
+        var cls = 'grind-ring';
+        if (p > 0) {
+          cls += ' on' + p;
+          if (hd && p > hd) cls += ' over';
+          else if (hd && p === hd) cls += ' ok';
+        }
+        $ring.className = cls;
       }
       function hud() {
         $cov.textContent = broken + '/' + N;
@@ -303,7 +327,7 @@
         (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 900); })(d);
       }
       function powerOf(t) { return t < P1 ? 1 : (t < P2 ? 2 : 3); }
-      function stickLift(x, y) {
+      function stickLift(x, y, hd) {
         var cx = R, cy = CY, maxX = R * 0.78, maxY = R * 0.62;
         var dx = Math.max(-maxX, Math.min(maxX, x - cx));
         var dy = Math.max(-maxY, Math.min(maxY, y - cy));
@@ -311,7 +335,7 @@
         var lift = [26, 52, 78][p - 1];
         stick.classList.remove('fall', 'bounce', 'back');
         stick.style.transform = 'translate(' + dx + 'px,' + (dy - lift) + 'px) rotate(0deg)';
-        powerUi(p);
+        powerUi(p, hd);
       }
       function impact() {
         mortar.classList.add('sink');
@@ -362,10 +386,12 @@
       }
       function checkMake() {
         if (broken >= N) {
-          $make.disabled = false;
-          $make.classList.add('on');
-          $tip.textContent = '药粉齐备，点「成剂」收药！';
+          // v20261017a：合并按钮——底部按钮变"成 剂"高亮
+          $done.textContent = '成 剂';
+          $done.classList.add('on');
+          $tip.textContent = '药粉齐备，点「成 剂」收药！';
           sfx('confirm');
+          tut('药粉齐备，点下方「成 剂」收药！', 3200);
         }
       }
 
@@ -385,6 +411,11 @@
           cnt[h.kind]++;
           rxUi();
           floatText(h.x, h.y - 10, '+' + keep, keep >= 100 ? '#3f8f5f' : (keep >= 70 ? '#d9a13a' : '#b0452f'));
+          if (keep === 100) { sfx('heal'); buzz(10); }          // 恰好：清亮"叮"
+          else {
+            sfx('error'); buzz(30);                              // 过重：沉闷"咚"
+            inkBurst(h.x, h.y, HERB_PILE[h.kind]);               // 流失可视化：药粉溅出墨点
+          }
         } else {
           // 过轻：药材弹起
           h.el.classList.remove('jolt');
@@ -428,16 +459,57 @@
         var keepAdj = (cleanPct >= 0.75 ? 0.05 : (cleanPct < 0.5 ? -0.05 : 0)) - cleanBad * 0.025;
         var keepFinal = Math.max(0, Math.min(1, keepPct + keepAdj));
         var good = mode === 'done' && broken >= N && keepFinal >= 0.85;
-        var got = broken >= N ? rx.outN : 0;
-        if (got > 0) packAdd(rx.out, got);
-        var line = '〔捣药〕' + rx.name + (good ? '（良品）' : '') + ' ×' + got +
-          '（覆盖' + Math.round(broken / N * 100) + '%，药性' + Math.round(keepFinal * 100) + '%，净制' + cleanGood + '/' + CLN_IMP + '）';
+        var covPct = broken / N;
+        // v20261017a：部分成功——全碎=满产；碎≥80%=普通1份；否则一无所获
+        var got = 0, plain = false;
+        if (broken >= N) { got = rx.outN; plain = !good; }
+        else if (covPct >= 0.8) { got = 1; plain = true; }
+        var outDef = plain && LF.ITEMS[rx.out + '_p'] ? rx.out + '_p' : rx.out;
+        if (got > 0) packAdd(outDef, got);
+        var line = '〔捣药〕' + rx.name + (good ? '（良品）' : (plain ? '（普通）' : '')) + ' ×' + got +
+          '（覆盖' + Math.round(covPct * 100) + '%，药性' + Math.round(keepFinal * 100) + '%，净制' + cleanGood + '/' + CLN_IMP + '）';
         if (log) log(line, good ? 'good' : (got > 0 ? 'sys' : 'warn'));
         if (save) save(getState());
         if (renderStatus) renderStatus();
-        if (got > 0) toast('收得 ' + rx.name + (good ? '（良品）' : '') + ' ×' + got);
+        // v20261017a：结算结果卡（产出+良/普说明+再来一炉），收药浮起动效
+        var def = LF.ITEMS[outDef] || {};
+        var effTxt = '';
+        if (def.effect) {
+          effTxt = Object.keys(def.effect).map(function (k) {
+            return (k === 'hp' ? '疗' : k === 'mp' ? '回内力' : k) + ' ' + def.effect[k];
+          }).join(' · ');
+        }
+        var head = good ? '良品' : (plain ? '普通' : '未成');
+        var sub = good ? '药性圆满，功效尽显' :
+          (plain ? '药性略逊，功效打折' : '药粉未成，一无所获……');
+        $result.innerHTML =
+          '<div class="grind-res-head ' + (good ? 'g' : plain ? 'p' : 'f') + '">' + head + '</div>' +
+          '<div class="grind-res-line">' + (got > 0 ? rx.icon + ' ' + rx.name + ' ×' + got + '（' + effTxt + '）' : sub) + '</div>' +
+          '<div class="grind-res-sub">' + sub + '</div>' +
+          '<div class="grind-res-acts">' +
+            '<button class="btn grind-again" id="gr-again">再来一炉</button>' +
+            '<button class="btn-ghost" id="gr-close">收 工</button>' +
+          '</div>';
+        $result.hidden = false;
+        $result.classList.add('pop');
+        $done.hidden = true;
+        $result.querySelector('#gr-again').onclick = function () {
+          $result.hidden = true;
+          close();
+          openGrind(recipeId, { skipClean: true });
+        };
+        $result.querySelector('#gr-close').onclick = function () { close(); };
+        // 首局引导完成标记
+        try {
+          var st = getState();
+          if (!(st.flags || {}).grindTutDone) {
+            st.flags = st.flags || {};
+            st.flags.grindTutDone = true;
+            if (save) save(getState());
+          }
+        } catch (e) { }
+        if (got > 0) toast('收得 ' + rx.name + (good ? '（良品）' : '（普通）') + ' ×' + got);
         else toast('药粉未成，一无所获……');
-        close();
       }
 
       function startTimer() {
@@ -451,7 +523,7 @@
           $tl.textContent = Math.ceil(timeLeft / 1000);
           if (timeLeft <= 0) {
             if (broken >= N) {
-              $tip.textContent = '药粉齐备，点「成剂」收药！';
+              $tip.textContent = '药粉齐备，点「成 剂」收药！';
               checkMake();
             } else {
               toast('火候已过，药性散尽……');
@@ -475,18 +547,35 @@
           var d = Math.sqrt((p.x - px) * (p.x - px) + (p.y - py) * (p.y - py));
           if (d <= bd) { bd = d; best = p; }
         }
-        if (!best) return;
+        if (!best) {
+          // v20261017a：点空反馈——臼沿轻闪
+          mortar.classList.remove('miss');
+          void mortar.offsetWidth;
+          mortar.classList.add('miss');
+          sfx('click');
+          return;
+        }
         target = best;
         aiming = true;
         downT = Date.now();
         liftT = 0;
-        stickLift(best.x, best.y);
+        downPt = { x: px, y: py };
+        stickLift(best.x, best.y, best.hd);
         if (liftTimer) clearInterval(liftTimer);
         liftTimer = setInterval(function () {
           if (!aiming) return;
           liftT = Date.now() - downT;
-          stickLift(best.x, best.y);
+          stickLift(best.x, best.y, best.hd);
         }, 100);
+      }
+      function cancelAim() {
+        // v20261017a：滑出臼区取消砸击（防误砸）
+        aiming = false;
+        if (liftTimer) { clearInterval(liftTimer); liftTimer = null; }
+        target = null;
+        stick.classList.remove('fall', 'bounce', 'back');
+        stick.style.transform = 'translate(0,0) rotate(0deg)';
+        powerUi(0);
       }
       function onUp(e) {
         if (!aiming || done) return;
@@ -500,22 +589,33 @@
       }
 
       ov.querySelector('#gr-done').onclick = function () {
-        if (phase === 'clean') { startGrindPhase(); return; }
+        // v20261017a：单按钮——净选=跳过净选；碎完=成剂；否则收手放弃
+        if (phase === 'clean') { startGrindPhase(true); return; }
         if (broken >= N) { settle('done'); return; }
         settle('quit');
-      };
-      $make.onclick = function () {
-        if (broken >= N) settle('done');
       };
       $rxbook.onclick = function () { openRxBook(recipeId); };
       mortar.addEventListener('pointerdown', onDown);
       mortar.addEventListener('pointerup', onUp);
       mortar.addEventListener('pointercancel', onUp);
+      mortar.addEventListener('pointermove', function (e) {
+        // v20261017a：蓄力中滑出臼区 → 取消砸击
+        if (!aiming || !downPt) return;
+        var rect = mortar.getBoundingClientRect();
+        var dx = (e.clientX - rect.left) - downPt.x, dy = (e.clientY - rect.top) - downPt.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 70) cancelAim();
+      });
       ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
 
       hud();
       powerUi(0);
-      startClean();
+      if (opts && opts.skipClean) {
+        // v20261017a：再来一炉——跳过净选直接捣研
+        phase = 'grind';
+        startGrindPhase(true);
+      } else {
+        startClean();
+      }
     }
 
     // ── 药方簿：已学可切换 / 未学灰显（药铺有售）──
