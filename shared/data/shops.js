@@ -147,7 +147,7 @@
     doctor: {
       name: '药铺',
       items: [
-        { id: 'jinchuang', buy: 45, sell: 18 },
+        { id: 'jinchuang', buy: 96, sell: 48 },
         { id: 'roubao',    buy: 8,  sell: 3  },
         { id: 'caoyao',    buy: 5,  sell: 2  },
         // —— 新物品（v20260927t）：药种 / 名贵药材 ——
@@ -182,7 +182,7 @@
         { id: 'shentang',  buy: 99, sell: 20 },
         { id: 'zhuangqi',  buy: 77, sell: 16 },
         { id: 'huxin',     buy: 132,sell: 27 },
-        { id: 'jinchuangao',buy: 90,sell: 30 },
+        { id: 'jinchuangao',buy: 100,sell: 50 },
         { id: 'fenghan',   buy: 33, sell: 7  },
         { id: 'bishu',     buy: 40, sell: 8  },
         { id: 'bizhang',   buy: 62, sell: 13 },
@@ -191,6 +191,10 @@
         { id: 'baidu',     buy: 132,sell: 27 },
         { id: 'shangdeng', buy: 176,sell: 36 },
         // —— v20261015a · 捣药配方卷轴（研读习得药方，详见捣药）——
+        // —— v20261017c · 捣药成药药铺收购（buy:0=店不售、仅收购；摆摊/拍卖按正常价 price）——
+        { id: 'xingjunsan', buy: 0, sell: 32 },
+        { id: 'xingshensan', buy: 0, sell: 72 },
+        { id: 'xumingdan',   buy: 0, sell: 190 },
         { id: 'fang_jinchuangao', buy: 95, sell: 20 },
         { id: 'fang_xumingdan',   buy: 165,sell: 30 }
       ]

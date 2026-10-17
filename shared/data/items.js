@@ -41,8 +41,8 @@
 
   // 静态物品定义（期初行囊 / 任务 / 商店）。defId 唯一键。
   var DEFS = {
-    jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', maxStack: 30, price: 45, effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
-    jinchuang_p: { defId: 'jinchuang_p', name: '金疮药', icon: '🧪', cat: '药剂', maxStack: 30, price: 32, effect: { hp: 35 },                 desc: '捣工略逊的金疮药，药性打折，可疗外伤三十五。' },
+    jinchuang:   { defId: 'jinchuang',   name: '金疮药', icon: '🧪', cat: '药剂', maxStack: 30, price: 96, effect: { hp: 50 },                 desc: '外敷金创，止血生肌，可疗外伤五十。' },
+    jinchuang_p: { defId: 'jinchuang_p', name: '金疮药', icon: '🧪', cat: '药剂', maxStack: 30, price: 68, effect: { hp: 35 },                 desc: '捣工略逊的金疮药，药性打折，可疗外伤三十五。' },
     zhou:        { defId: 'zhou',        name: '扁舟',   icon: '⛵', cat: '道具', desc: '一叶轻舟，江河可渡。行经水路郊野时持有此舟，渡口乘船不取分文。' },
     roubao:      { defId: 'roubao',      name: '肉包子', icon: '🥟', cat: '食饵', effect: { food: 20, drink: 5 },     desc: '热乎包子一只，啃下可充饥解渴。' },
     yaofen:      { defId: 'yaofen',      name: '草药粉', icon: '🌿', cat: '药剂', effect: { hp: 25 },                 desc: '捣碎的草药细粉，作敷料可缓伤痛。' },
@@ -412,17 +412,17 @@
     gancao:     { defId: 'gancao',     name: '甘草',   icon: '🌿', cat: '素材', price: 5,
       desc: '〔平·甘〕调和诸药，解百毒——使药之首，有毒之方几乎离不得它。' },
     // ── 捣药配方成药（v20261015a · 捣药小游戏产出）──
-    xingjunsan: { defId: 'xingjunsan', name: '行军散', icon: '💊', cat: '药剂', maxStack: 30, price: 38, effect: { hp: 40 },
+    xingjunsan: { defId: 'xingjunsan', name: '行军散', icon: '💊', cat: '药剂', maxStack: 30, price: 64, effect: { hp: 40 },
       desc: '甘草捣罗为散。清热燥湿——行军风餐露宿，腹痛吐泻之备。' },
-    xingjunsan_p: { defId: 'xingjunsan_p', name: '行军散', icon: '💊', cat: '药剂', maxStack: 30, price: 26, effect: { hp: 28 },
+    xingjunsan_p: { defId: 'xingjunsan_p', name: '行军散', icon: '💊', cat: '药剂', maxStack: 30, price: 44, effect: { hp: 28 },
       desc: '捣工略逊的行军散，药性打折，可疗外伤二十八。' },
-    xingshensan:{ defId: 'xingshensan', name: '醒神散', icon: '🌀', cat: '药剂', maxStack: 30, price: 70, effect: { mp: 40 },
+    xingshensan:{ defId: 'xingshensan', name: '醒神散', icon: '🌀', cat: '药剂', maxStack: 30, price: 144, effect: { mp: 40 },
       desc: '黄连为君、甘草为臣，捣罗为散。开窍醒神——久战力竭，服之内息复振。' },
-    xingshensan_p:{ defId: 'xingshensan_p', name: '醒神散', icon: '🌀', cat: '药剂', maxStack: 30, price: 49, effect: { mp: 28 },
+    xingshensan_p:{ defId: 'xingshensan_p', name: '醒神散', icon: '🌀', cat: '药剂', maxStack: 30, price: 100, effect: { mp: 28 },
       desc: '捣工略逊的醒神散，药性打折，可回内力二十八。' },
     xingshensan_p:{ defId: 'xingshensan_p', name: '醒神散', icon: '🌀', cat: '药剂', maxStack: 30, price: 20, effect: { mp: 28 },
       desc: '捣工略逊的醒神散，药性打折，可回内力二十八。' },
-    xumingdan:  { defId: 'xumingdan',  name: '续命丹', icon: '🔴', cat: '药剂', maxStack: 20, price: 150, effect: { hp: 150 },
+    xumingdan:  { defId: 'xumingdan',  name: '续命丹', icon: '🔴', cat: '药剂', maxStack: 20, price: 380, effect: { hp: 150 },
       desc: '人参甘草为臣、黄连为佐，合捣成丹。重伤濒危时含服，可续一口气。' },
     fang_jinchuangao: { defId: 'fang_jinchuangao', name: '金创膏药方', icon: '📜', cat: '配方', price: 60,
       desc: '药铺售卖的秘方。研读后习得「金创膏」炼制之法。' },
@@ -464,7 +464,7 @@
       desc:'附子为君（大毒）、甘草为使解之，黍酒浸成。壮胆气、暖筋骨，出门行险前嗑一味。' },
     huxin:      { defId:'huxin', name:'护心丸', icon:'🔴', cat:'药剂', maxStack:8, price:60, effect:{ hp:40 },
       desc:'人参为君、茯苓为臣、灵芝为佐。固本培元，养心护脉。' },
-    jinchuangao:{ defId:'jinchuangao', name:'金创膏', icon:'🩹', cat:'药剂', maxStack:20, price:90, effect:{ hp:70 },
+    jinchuangao:{ defId:'jinchuangao', name:'金创膏', icon:'🩹', cat:'药剂', maxStack:20, price:100, effect:{ hp:70 },
       desc:'当归为君、草药为臣、灵芝为佐。止血生肌，刀伤渗血先敷此。' },
     // ── C 轴 · 时令防护（免疫之效待配药系统实装，现即时护体） ──
     fenghan:    { defId:'fenghan', name:'风寒汤', icon:'🫚', cat:'药剂', maxStack:20, price:15, effect:{ hp:20 },
