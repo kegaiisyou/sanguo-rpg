@@ -3535,14 +3535,100 @@
     h+='</div><p class="tip">穿卸装备请前往行囊（背包）面板操作。</p>';
     return h;
   }
+  // ═══ 武学录（v20261018a）：角色详情「技能」页签升级为完整武学面板 ───
+  // 列表按流派分组（13 线），点武学卡片进详情（字段/境界/突破）；详情可返回列表。
+  var MA_LINE_NAME = { fist: '拳脚', sword: '剑法', blade: '刀法', spear: '枪法', staff: '棍法',
+    halberd: '戟法', hammer: '锤法', whip: '鞭法', hidden: '暗器', bow: '弓弩',
+    light: '轻功', internal: '内功', ride: '骑术' };
+  var MA_TYPE_NAME = { skill: '武技', ultimate: '绝技', technique: '发力' };
+  function martialIds() {
+    var ids = [];
+    (state.learnedMartial || []).forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+    (state.equippedForce || []).forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+    return ids;
+  }
+  function martialRealm(id) { return (state.realm && state.realm[id]) || 0; }
+  function renderMartialListHTML() {
+    var MA = G.MARTIAL_ARTS;
+    var ids = martialIds();
+    if (!ids.length) {
+      return '<div class="row"><span>武学录</span></div><p class="tip">尚未习得武学。武学随行止与机缘习得；技击之术在战斗中自动施展。</p>';
+    }
+    var groups = {};
+    ids.forEach(function (id) {
+      var a = MA.get(id); if (!a) return;
+      var ln = MA_LINE_NAME[a.line] || a.line || '杂学';
+      (groups[ln] = groups[ln] || []).push({ id: id, a: a });
+    });
+    var lines = Object.keys(groups);
+    var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门</span></div>';
+    lines.forEach(function (ln) {
+      h += '<div class="ma-group">' + escapeHtml(ln) + '</div>';
+      groups[ln].forEach(function (o) {
+        var r = martialRealm(o.id);
+        var t = MA_TYPE_NAME[o.a.type] || o.a.type;
+        var wu = (o.a.attr && o.a.attr.wu) ? o.a.attr.wu : '';
+        var yin = (o.a.attr && o.a.attr.yin) ? o.a.attr.yin : '';
+        var force = (o.a.type === 'technique') ? '<i class="ma-force">发力</i>' : '';
+        h += '<button type="button" class="ma-card" data-mid="' + o.id + '">' +
+          '<span class="ma-n">' + escapeHtml(o.a.name) + force + '</span>' +
+          '<span class="ma-meta">' + escapeHtml(t) + (wu ? ' · ' + escapeHtml(wu) : '') + (yin ? ' · ' + escapeHtml(yin) : '') + '</span>' +
+          '<span class="ma-lv">境' + r + '</span>' +
+          '</button>';
+      });
+    });
+    h += '<p class="tip">点任一武学，可览详情与境界突破。</p>';
+    return h;
+  }
+  function renderMartialDetailHTML(id) {
+    var MA = G.MARTIAL_ARTS;
+    var a = MA.get(id);
+    if (!a) return '<p class="tip">查无此武学。</p>';
+    var r = martialRealm(id);
+    var costTxt = '无消耗';
+    if (a.cost) { if (a.cost.mp) costTxt = '内力 ' + a.cost.mp; else if (a.cost.rage) costTxt = '怒气 ' + a.cost.rage; }
+    var wu = (a.attr && a.attr.wu) ? a.attr.wu : '—', yin = (a.attr && a.attr.yin) ? a.attr.yin : '—';
+    var h = '<div class="ma-detail">' +
+      '<button type="button" class="ma-back" data-act="mlist-back">← 返回武学录</button>' +
+      '<div class="ma-dname">' + escapeHtml(a.name) + ' <i>' + escapeHtml(MA_TYPE_NAME[a.type] || a.type) + '</i></div>' +
+      '<div class="ma-dsub">' + escapeHtml(MA_LINE_NAME[a.line] || a.line || '杂学') + ' · 当前境界 <b>Lv.' + r + '</b></div>' +
+      '<div class="ma-drows">' +
+        '<div class="ma-row"><span>五行</span><span>' + escapeHtml(wu) + '</span></div>' +
+        '<div class="ma-row"><span>阴阳</span><span>' + escapeHtml(yin) + '</span></div>' +
+        '<div class="ma-row"><span>威力</span><span>' + a.dmgMul + '× 伤害</span></div>' +
+        '<div class="ma-row"><span>出手</span><span>' + a.beat + '</span></div>' +
+        '<div class="ma-row"><span>消耗</span><span>' + costTxt + '</span></div>' +
+      '</div>' +
+      '<div class="ma-desc">' + escapeHtml(a.desc || '') + '</div>';
+    if (a.breakthrough && a.breakthrough.length) {
+      h += '<div class="ma-bt-t">境界突破</div>';
+      a.breakthrough.forEach(function (b) {
+        var on = r >= b.realm;
+        h += '<div class="ma-bt' + (on ? ' on' : '') + '"><span class="ma-bt-lv">Lv.' + b.realm + '</span>' +
+          '<span>' + (on ? '✓ 已解锁 · ' : '🔒 待解锁 · ') + escapeHtml(b.eff || '') + '</span></div>';
+      });
+    }
+    h += '<p class="tip">境界随实战中武学造诣精进（当前 Lv.' + r + '）。</p></div>';
+    return h;
+  }
   function mainCharSkillHTML(){
-    return '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
-      '<p class="tip">武学随行止与机缘习得；技击之术在战斗中自动施展。</p>';
+    return '<div id="m-skill-view">' + renderMartialListHTML() + '</div>';
   }
   function bindMainCharDetail(){
     bindAttrAlloc();
     var _sectOpen=document.getElementById('sect-open');
     if(_sectOpen) _sectOpen.onclick=function(){ openModal('sect'); };
+    // 武学录：点卡片进详情 / 点返回回列表（事件委托）
+    var _sv=document.getElementById('m-skill-view');
+    if(_sv){
+      _sv.onclick=function(ev){
+        var t=ev.target || ev.srcElement;
+        var back=t.closest ? t.closest('[data-act="mlist-back"]') : null;
+        if(back){ _sv.innerHTML=renderMartialListHTML(); return; }
+        var card=t.closest ? t.closest('[data-mid]') : null;
+        if(card){ _sv.innerHTML=renderMartialDetailHTML(card.getAttribute('data-mid')); }
+      };
+    }
   }
 
   // dock 选中态（v20260924h）：打开对应面板时高亮底部页签（朱砂卡+指示条），关窗/开非页签窗则清除
