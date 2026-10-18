@@ -84,6 +84,19 @@ window.LF = window.LF || {};
       //   调试按钮点了毫无反应。这也是「凡入包的物先查登记表」的道理。
       else if (act === 'item_yao') { ctx.packAdd('jinchuang', 5); ctx.log('【调试】获得金疮药×5', 'good'); }
       else if (act === 'item_tiequan') { ctx.packAdd({ defId: 'tiequan_pu', count: 1 }); ctx.log('【调试】获得 铁拳拳谱×1 —— 行囊中研读可习得外功「铁拳」', 'good'); }
+      // v20261018c：逐门获得武学（招式入 learnedMartial，发力技巧入 equippedForce）
+      else if (act.indexOf('martial_') === 0) {
+        var _mid = act.slice(8);
+        var _ma = LF.MARTIAL_ARTS.get(_mid); if (!_ma) return;
+        if (_ma.type === 'technique') {
+          if (state.equippedForce.indexOf(_mid) < 0) { state.equippedForce.push(_mid); ctx.log('【调试】已装配发力技巧「' + _ma.name + '」', 'good'); }
+          else ctx.log('「' + _ma.name + '」早已装配', 'sys');
+        } else {
+          if (state.learnedMartial.indexOf(_mid) < 0) { state.learnedMartial.push(_mid); ctx.log('【调试】已习得武学「' + _ma.name + '」', 'good'); }
+          else ctx.log('「' + _ma.name + '」早已习得', 'sys');
+        }
+        ctx.save(state);
+      }
       else if (act === 'grind') {
         // 捣药（v20261017b 正式化）：调试台直接打开配药台工作台（等价店主视角）
         var _gr = LF.Grinding || (LF.Grinding = LF.createGrinding({
@@ -170,7 +183,26 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="item_yao">金疮药×5</button>' +
          '<button class="dev" data-act="item_tiequan">铁拳拳谱</button></div></div>';
 
-      // 7. 制药（捣药 v20261015a 配方驱动）：初始三味散剂 + 已学进阶
+      // 7. 武学（v20261018c：42 门逐门获得，方便随时测试效果）
+      h += '<div class="dev-sec"><div class="dev-h">🥋 武学（逐门习得，看效果）</div>';
+      var _maAll = LF.MARTIAL_ARTS, _mLines = ['fist', 'sword', 'blade', 'spear', 'staff', 'halberd', 'hammer', 'whip', 'bow', 'hidden', 'ride', 'light', 'internal'];
+      _mLines.forEach(function (lid) {
+        var _ln = (_maAll.LINES && _maAll.LINES[lid]) || null; if (!_ln) return;
+        var _lst = [];
+        for (var _mk in _maAll) { var _ma2 = _maAll[_mk]; if (_ma2 && _ma2.id && _ma2.line === lid) _lst.push(_ma2); }
+        if (!_lst.length) return;
+        h += '<div class="dev-h" style="font-size:11px;margin-top:5px;color:#b08950">' + _ln.name + '</div><div class="dev-btns">';
+        _lst.forEach(function (_a) {
+          var _owned = (_a.type === 'technique')
+            ? (state.equippedForce.indexOf(_a.id) >= 0)
+            : (state.learnedMartial.indexOf(_a.id) >= 0);
+          h += '<button type="button" class="dev' + (_owned ? ' dev-owned' : '') + '" data-act="martial_' + _a.id + '">' + _a.name + (_owned ? ' ✓' : '') + '</button>';
+        });
+        h += '</div>';
+      });
+      h += '<p class="tip">已获得标 ✓；装配上阵在 角色→技能 武学录中操作。</p></div>';
+
+      // 8. 制药（捣药 v20261015a 配方驱动）：初始三味散剂 + 已学进阶
       h += '<div class="dev-sec"><div class="dev-h">🧪 制药调试</div><div class="dev-btns">'
          + '<select id="dev-grind-herb" class="dev-input">'
          + '<option value="jinchuang">金疮药</option>'
@@ -241,7 +273,11 @@ window.LF = window.LF || {};
           if (a === 'setspawn') { ctx.openSpawnMap(); return; }
           if (a.indexOf('arena_') === 0 && a !== 'arena_back') { handleDev(a); return; }
           handleDev(a); ctx.save(getState()); ctx.renderStatus();
-          if (getCurrentModalKind() !== 'char') renderDev();
+          if (getCurrentModalKind() !== 'char') {
+            renderDev();
+            // v20261018c：调试操作后 renderStatus 的 rAF 帧可能触发升级/任务奖励弹层（openModal 会改 kind）覆盖面板 → 延迟重绘一次保面板稳定
+            setTimeout(function () { if (getCurrentModalKind() !== 'char') renderDev(); }, 90);
+          }
         };
       });
     }

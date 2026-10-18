@@ -62,6 +62,7 @@
       realm: {},                                // { martialId: 境界索引(0-6) }
       lineExp: {},                              // { lineId: 经验值 }（P2 战斗出手累积）
       learnedMartial: ['beng_quan'],            // 已学招式（新武学系统）
+      equippedMartial: ['beng_quan'],           // 已装配上阵招式（至多三式；战斗仅用此表，空则回退全部已学）
       learnedRx: ['jinchuang', 'xingjunsan', 'xingshensan'],   // 已学药方（捣药 v20261015a）：初始三味散剂直接会炼
       equippedForce: ['cun_jin'],               // 已装配发力技巧（初始带寸劲暴击）
       // ─── v0.7 格子制行囊：基础容量 6 格 + 背包槽（腰包/鞶囊可扩容） ───

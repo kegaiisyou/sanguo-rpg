@@ -205,7 +205,7 @@ function bindCreate(){
       atk:17, def:10, spd:16,
       element:'金',
       learnedMartial:['beng_quan'],
-      realm:{}, equippedForce:[],
+      realm:{}, equippedForce:[], equippedMartial:['beng_quan'],
       critRate:0.04, hitRate:0.92
     }];
     pendingSave=save;

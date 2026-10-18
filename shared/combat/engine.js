@@ -104,7 +104,8 @@
         var f = MARTIAL_ARTS.get(fid);
         if (f && f.eff) { for (var k in f.eff) { forceEff[k] = f.eff[k]; } }
       });
-      var artIds = (ps.learnedMartial || []).slice();
+      // v20261018c：装配优先——玩家装配的三式上阵；未装配（旧档/随从）回退全部已学
+      var artIds = ((ps.equippedMartial && ps.equippedMartial.length) ? ps.equippedMartial : (ps.learnedMartial || [])).slice();
       if (artIds.indexOf('beng_quan') === -1) artIds.push('beng_quan');   // 保证至少能用崩拳
       var artMap = {};
       // 军队：营级单位自带「军令」（伪武学），不查 MARTIAL_ARTS，避免被过滤为空

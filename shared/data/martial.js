@@ -74,12 +74,12 @@
 
     tie_quan: {
       id: 'tie_quan', name: '铁拳', line: 'fist', type: 'skill',
-      beat: 26, cost: {}, dmgMul: 1.15,
+      beat: 28, cost: {}, dmgMul: 1.2,
       attr: { wu: '金', yin: '刚' },
       desc: '铁拳谱所载外功，拳硬如铁，刚猛无俦。一拳既出，金石可裂',
       learn: { lineMin: 1, wuxing: 0, neigong: 0 },
       breakthrough: [
-        { realm: 1, eff: '伤害+12%' },
+        { realm: 1, eff: '伤害+15%' },
         { realm: 3, eff: '有概率附加破甲' },
         { realm: 6, eff: '伤害+35%，连击一次' }
       ]

@@ -3548,6 +3548,34 @@
     return ids;
   }
   function martialRealm(id) { return (state.realm && state.realm[id]) || 0; }
+  // v20261018c：武学装配——招式入 equippedMartial（至多三式上阵），发力技巧入 equippedForce（临阵被动）
+  function martialEquipToggle(id) {
+    var MA = G.MARTIAL_ARTS;
+    var a = MA.get(id); if (!a) return;
+    if (a.type === 'technique') {
+      var ef = state.equippedForce || (state.equippedForce = []);
+      var ei = ef.indexOf(id);
+      if (ei >= 0) { ef.splice(ei, 1); toast('已卸下发力「' + a.name + '」。'); }
+      else { ef.push(id); toast('已装配发力「' + a.name + '」，临阵生效。'); }
+    } else {
+      var em = state.equippedMartial || (state.equippedMartial = []);
+      var mi = em.indexOf(id);
+      if (mi >= 0) { em.splice(mi, 1); toast('已卸下「' + a.name + '」。'); }
+      else {
+        if (em.length >= 3) { toast('至多装配三式上阵，先卸下一式。'); return; }
+        em.push(id); toast('已装配「' + a.name + '」，战斗中可选。');
+      }
+    }
+    save(state);
+    var _sv = document.getElementById('m-skill-view');
+    if (_sv) _sv.innerHTML = renderMartialListHTML();
+  }
+  function isMartialEquipped(id) {
+    var a = G.MARTIAL_ARTS.get(id); if (!a) return false;
+    return (a.type === 'technique')
+      ? ((state.equippedForce || []).indexOf(id) >= 0)
+      : ((state.equippedMartial || []).indexOf(id) >= 0);
+  }
   function renderMartialListHTML() {
     var MA = G.MARTIAL_ARTS;
     var ids = martialIds();
@@ -3561,7 +3589,8 @@
       (groups[ln] = groups[ln] || []).push({ id: id, a: a });
     });
     var lines = Object.keys(groups);
-    var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门</span></div>';
+    var eqN = (state.equippedMartial || []).length;
+    var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门 · 上阵 ' + eqN + '/3</span></div>';
     lines.forEach(function (ln) {
       h += '<div class="ma-group">' + escapeHtml(ln) + '</div>';
       groups[ln].forEach(function (o) {
@@ -3570,14 +3599,18 @@
         var wu = (o.a.attr && o.a.attr.wu) ? o.a.attr.wu : '';
         var yin = (o.a.attr && o.a.attr.yin) ? o.a.attr.yin : '';
         var force = (o.a.type === 'technique') ? '<i class="ma-force">发力</i>' : '';
-        h += '<button type="button" class="ma-card" data-mid="' + o.id + '">' +
-          '<span class="ma-n">' + escapeHtml(o.a.name) + force + '</span>' +
-          '<span class="ma-meta">' + escapeHtml(t) + (wu ? ' · ' + escapeHtml(wu) : '') + (yin ? ' · ' + escapeHtml(yin) : '') + '</span>' +
-          '<span class="ma-lv">境' + r + '</span>' +
-          '</button>';
+        var eq = isMartialEquipped(o.id);
+        h += '<div class="ma-card' + (eq ? ' eq' : '') + '" data-mid="' + o.id + '">' +
+          '<span class="ma-main" data-mid="' + o.id + '">' +
+            '<span class="ma-n">' + escapeHtml(o.a.name) + force + '</span>' +
+            '<span class="ma-meta">' + escapeHtml(t) + (wu ? ' · ' + escapeHtml(wu) : '') + (yin ? ' · ' + escapeHtml(yin) : '') + '</span>' +
+            '<span class="ma-lv">境' + r + '</span>' +
+          '</span>' +
+          '<button type="button" class="ma-eq" data-eq="' + o.id + '">' + (eq ? '卸 下' : '装 配') + '</button>' +
+          '</div>';
       });
     });
-    h += '<p class="tip">点任一武学，可览详情与境界突破。</p>';
+    h += '<p class="tip">点卡片览详情 · 点「装配」上阵（至多三式），战斗中仅用上阵武学。</p>';
     return h;
   }
   function renderMartialDetailHTML(id) {
@@ -3618,13 +3651,15 @@
     bindAttrAlloc();
     var _sectOpen=document.getElementById('sect-open');
     if(_sectOpen) _sectOpen.onclick=function(){ openModal('sect'); };
-    // 武学录：点卡片进详情 / 点返回回列表（事件委托）
+    // 武学录：点卡片进详情 / 点「装配」切换上阵 / 点返回回列表（事件委托）
     var _sv=document.getElementById('m-skill-view');
     if(_sv){
       _sv.onclick=function(ev){
         var t=ev.target || ev.srcElement;
         var back=t.closest ? t.closest('[data-act="mlist-back"]') : null;
         if(back){ _sv.innerHTML=renderMartialListHTML(); return; }
+        var eqb=t.closest ? t.closest('[data-eq]') : null;
+        if(eqb){ martialEquipToggle(eqb.getAttribute('data-eq')); return; }
         var card=t.closest ? t.closest('[data-mid]') : null;
         if(card){ _sv.innerHTML=renderMartialDetailHTML(card.getAttribute('data-mid')); }
       };

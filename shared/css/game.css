@@ -3923,10 +3923,15 @@
 /* ═══ 武学录（v20261018a）═══ */
 #m-skill-view{display:flex;flex-direction:column;gap:4px;padding:2px 0 8px;}
 .ma-group{margin:8px 0 3px;font-size:12px;letter-spacing:.18em;color:#b08950;border-bottom:1px dashed rgba(184,137,58,.35);padding-bottom:2px;}
-.ma-card{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;margin:3px 0;border:1px solid rgba(184,137,58,.35);
+.ma-card{display:flex;align-items:center;gap:6px;width:100%;padding:6px 8px;margin:3px 0;border:1px solid rgba(184,137,58,.35);
   border-radius:var(--r-btn);background:linear-gradient(180deg,rgba(52,40,20,.92),rgba(34,25,12,.92));
   color:#d9c9a6;text-align:left;transition:.15s;}
-.ma-card:active{transform:scale(.98);border-color:rgba(202,162,74,.8);}
+.ma-card.eq{border-color:rgba(214,138,58,.85);box-shadow:0 0 0 1px rgba(214,138,58,.35) inset;}
+.ma-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0;padding:2px 2px 2px 4px;cursor:pointer;}
+.ma-main:active{transform:scale(.985);}
+.ma-eq{flex:0 0 auto;padding:4px 10px;border:1px solid rgba(202,162,74,.5);border-radius:var(--r-btn);
+  background:rgba(184,137,58,.18);color:#ffe9b8;font-size:12px;cursor:pointer;transition:.15s;}
+.ma-eq:active{background:rgba(202,162,74,.45);transform:scale(.95);}
 .ma-n{font-size:14px;color:#ffd268;font-weight:600;flex:0 0 auto;}
 .ma-n .ma-force{font-style:normal;font-size:10px;color:#6e4f17;background:rgba(176,131,47,.2);
   border:1px solid rgba(176,131,47,.45);border-radius:10px;padding:0 5px;margin-left:6px;vertical-align:1px;}
