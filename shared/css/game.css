@@ -3937,6 +3937,9 @@
 .ma-slot{flex:1;min-width:0;padding:7px 6px;border-radius:6px;text-align:center;cursor:pointer;transition:.15s;
   border:1px dashed rgba(184,137,58,.45);background:rgba(20,14,6,.45);color:#7a6a4e;font-size:11px;letter-spacing:.08em;}
 .ma-slot.empty{line-height:26px;}
+.ma-slot.locked{border-style:dashed;border-color:rgba(120,105,80,.35);background:rgba(16,12,6,.28);color:#5d5342;cursor:default;}
+.ma-slot.locked b{display:block;font-size:11px;color:#6b604c;font-weight:600;letter-spacing:.06em;}
+.ma-slot.locked i{display:block;font-style:normal;font-size:9.5px;color:#574d3c;letter-spacing:.12em;}
 .ma-slot.filled{border-style:solid;border-color:rgba(214,138,58,.85);background:linear-gradient(180deg,rgba(120,80,30,.35),rgba(70,45,18,.35));
   box-shadow:0 0 6px rgba(214,138,58,.25) inset;color:#f4dcae;}
 .ma-slot.filled.force{border-color:rgba(122,158,110,.8);background:linear-gradient(180deg,rgba(64,96,60,.4),rgba(40,60,38,.4));box-shadow:0 0 6px rgba(122,158,110,.22) inset;}

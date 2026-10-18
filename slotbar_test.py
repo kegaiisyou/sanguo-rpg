@@ -61,7 +61,7 @@ with sync_playwright() as p:
     sb2 = js(pg1, "(function(){var v=document.querySelector('#m-skill-view'); if(!v) return null; "
       "return {filled: v.querySelectorAll('.ma-slot.filled').length, empty: v.querySelectorAll('.ma-slot.empty').length, "
       "head: v.querySelector('.ma-slothead em') ? v.querySelector('.ma-slothead em').innerText : ''};})()")
-    print("2. 槽位卸下后:", sb2, "(期望 filled=2 empty=1 head=2/3)")
+    print("2. 槽位卸下后:", sb2, "(期望 filled=3(2招式+1发力) empty=1 head=2/3)")
     print("会话1 JS错误:", errs1 if errs1 else "无")
     b1.close()
 

@@ -3549,7 +3549,17 @@
     return ids;
   }
   function martialRealm(id) { return (state.realm && state.realm[id]) || 0; }
-  // v20261018c：武学装配——招式入 equippedMartial（至多三式上阵），发力技巧入 equippedForce（临阵被动）
+  // v20261018e：上阵槽位随武学境界开槽——初始三式，LV10 开第四槽、LV25 开第五槽（刀剑2「按槽位开槽」式成长）
+  function martialSlotCap() {
+    var lv = (state && state.level) || 1;
+    return 3 + (lv >= 10 ? 1 : 0) + (lv >= 25 ? 1 : 0);
+  }
+  // 第 i 槽（0 起）解锁所需等级：前 3 槽永远可用，第 4 槽 LV10、第 5 槽 LV25
+  function martialSlotUnlockLv(i) {
+    if (i < 3) return 0;
+    return i === 3 ? 10 : (i === 4 ? 25 : 99);
+  }
+  // v20261018c：武学装配——招式入 equippedMartial（至多 martialSlotCap() 式上阵），发力技巧入 equippedForce（临阵被动）
   function martialEquipToggle(id) {
     var MA = G.MARTIAL_ARTS;
     var a = MA.get(id); if (!a) return;
@@ -3563,7 +3573,7 @@
       var mi = em.indexOf(id);
       if (mi >= 0) { em.splice(mi, 1); toast('已卸下「' + a.name + '」。'); }
       else {
-        if (em.length >= 3) { toast('至多装配三式上阵，先卸下一式。'); return; }
+        if (em.length >= martialSlotCap()) { toast('上阵已满（' + martialSlotCap() + ' 式），先卸下一式，或待境界提升再开新槽。'); return; }
         em.push(id); toast('已装配「' + a.name + '」，战斗中可选。');
       }
     }
@@ -3589,12 +3599,20 @@
     }
     return s.join(' ');
   }
-  // v20261018d：上阵栏（类装备栏）——招式三槽 + 被动发力槽，点已装槽位即卸下
+  // v20261018d：上阵栏（类装备栏）——招式按境界开槽 + 被动发力槽，点已装槽位即卸下
+  // v20261018e：槽位数随等级成长（3 → LV10 4 槽 → LV25 5 槽），未解锁槽显示 🔒 与解锁等级
   function renderSlotbarHTML(){
     var em=state.equippedMartial||[], fo=state.equippedForce||[];
+    var cap=martialSlotCap();
     var h='<div class="ma-slotbar">'+
-      '<div class="ma-slothead">上阵招式 <em>'+(state.equippedMartial||[]).length+'/3</em></div><div class="ma-slots">';
-    for(var i=0;i<3;i++){
+      '<div class="ma-slothead">上阵招式 <em>'+(state.equippedMartial||[]).length+'/'+cap+'</em></div><div class="ma-slots">';
+    // 固定遍历到最大 5 槽：已解锁槽显示已装/空位，未解锁槽显示 🔒 与解锁等级（成长引导）
+    for(var i=0;i<5;i++){
+      if(i>=cap){
+        var unlv2=martialSlotUnlockLv(i);
+        h+='<div class="ma-slot locked"><b>🔒 LV'+unlv2+'</b><i>境界开槽</i></div>';
+        continue;
+      }
       var id=em[i];
       if(id){
         var a=G.MARTIAL_ARTS.get(id);
@@ -3627,7 +3645,7 @@
     });
     var lines = Object.keys(groups);
     var eqN = (state.equippedMartial || []).length;
-    var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门 · 上阵 ' + eqN + '/3</span></div>';
+    var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门 · 上阵 ' + eqN + '/' + martialSlotCap() + '</span></div>';
     h += renderSlotbarHTML();
     lines.forEach(function (ln) {
       h += '<div class="ma-group">' + escapeHtml(ln) + '</div>';
