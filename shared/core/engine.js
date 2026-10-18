@@ -3549,6 +3549,61 @@
     return ids;
   }
   function martialRealm(id) { return (state.realm && state.realm[id]) || 0; }
+  // v20261018f：P0 练习（闭关修炼）——消耗银两提升武学熟练度→境界；P0 参悟——消耗银两刷新武学词条
+  function martialExp(id){ return (state.martialExp && state.martialExp[id]) || 0; }
+  function martialExpNeed(r){ return 80 + 140 * r; }   // 0→1:80 · 1→2:220 · … · 5→6:780
+  function martialPracticeCost(r){ return 80 + 60 * r; } // 境界越高闭关开销越大
+  function martialPracticeGain(r){ return 50 + 15 * r; } // 境界越高单次收益越大
+  function martialMaxRealm(a){ var m=0; (a.breakthrough||[]).forEach(function(b){ if(b.realm>m) m=b.realm; }); return m; }
+  function martialAffixLabel(id){
+    var af=(state.martialAffix && state.martialAffix[id]); if(!af) return null;
+    var pool=(G.MARTIAL_ARTS.AFFIX_POOL||[]).filter(function(x){return x.key===af.key;})[0];
+    var txt=(pool?pool.txt:'')+(af.key==='multiHit' ? (af.val + '次') : (af.val>=1 ? af.val : Math.round(af.val*100)+'%'));
+    return { name: pool ? pool.name : (af.name || af.key), quality: G.MARTIAL_ARTS.AFFIX_QUALITY[af.quality] || '白', txt: txt, key: af.key, val: af.val };
+  }
+  function martialPractice(id){
+    var a=G.MARTIAL_ARTS.get(id); if(!a) return;
+    var r=martialRealm(id), maxR=martialMaxRealm(a);
+    if(r>=maxR){ toast('「'+a.name+'」已至'+(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+'圆满，无可再进。'); return; }
+    var cost=martialPracticeCost(r);
+    if((state.money||0)<cost){ toast('银两不足（需 '+cost+' 两），闭关难以为继。'); return; }
+    state.money-=cost;
+    var me=state.martialExp || (state.martialExp={});
+    me[id]=(me[id]||0)+martialPracticeGain(r);
+    var _sv=document.getElementById('m-skill-view');
+    if(me[id]>=martialExpNeed(r)){
+      me[id]-=martialExpNeed(r);
+      state.realm=(state.realm||{}); state.realm[id]=(state.realm[id]||0)+1;
+      var nr=state.realm[id];
+      var upTxt=(G.MARTIAL_ARTS.REALMS[nr]||('Lv.'+nr));
+      // 检查突破效果
+      var bt=(a.breakthrough||[]).filter(function(b){return b.realm===nr;})[0];
+      toast('『' + a.name + '』境界提升：' + upTxt + (bt?(' · 解锁「'+bt.eff+'」'):'') + '！','good');
+      log('【修炼】「' + a.name + '」境界提升至 ' + upTxt + (bt?(' · 解锁「'+bt.eff+'」'):'') + '！','good');
+      if(_sv) _sv.innerHTML=renderMartialDetailHTML(id);
+    } else {
+      if(_sv) _sv.innerHTML=renderMartialDetailHTML(id);
+      toast('闭关半日，'+(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+' 精进 ('+(me[id]||0)+'/'+martialExpNeed(r)+')。');
+    }
+    save(state);
+  }
+  function martialCanyan(id){
+    var a=G.MARTIAL_ARTS.get(id); if(!a) return;
+    var cost=120;
+    if((state.money||0)<cost){ toast('银两不足（需 '+cost+' 两），无从参悟。'); return; }
+    state.money-=cost;
+    var roll=Math.random();
+    var q= roll<0.55 ? 0 : (roll<0.87 ? 1 : 2);
+    var pool=G.MARTIAL_ARTS.AFFIX_POOL||[];
+    var item=pool[Math.floor(Math.random()*pool.length)];
+    var val=item.base + q*item.step;
+    state.martialAffix=(state.martialAffix||{}); state.martialAffix[id]={ key:item.key, val:val, quality:q };
+    var _sv=document.getElementById('m-skill-view');
+    if(_sv) _sv.innerHTML=renderMartialDetailHTML(id);
+    var lb=martialAffixLabel(id);
+    toast('参悟得「'+lb.name+'·'+lb.quality+'」：'+lb.txt+'！');
+    save(state);
+  }
   // v20261018e：上阵槽位随武学境界开槽——初始三式，LV10 开第四槽、LV25 开第五槽（刀剑2「按槽位开槽」式成长）
   function martialSlotCap() {
     var lv = (state && state.level) || 1;
@@ -3566,8 +3621,17 @@
     if (a.type === 'technique') {
       var ef = state.equippedForce || (state.equippedForce = []);
       var ei = ef.indexOf(id);
-      if (ei >= 0) { ef.splice(ei, 1); toast('已卸下发力「' + a.name + '」。'); }
-      else { ef.push(id); toast('已装配发力「' + a.name + '」，临阵生效。'); }
+      if (ei >= 0) {
+        ef.splice(ei, 1);
+        // v20261018f：卸下发力仍保留在武学录（初始发力如「寸劲」只记装配态，卸下后不应消失）
+        if ((state.learnedMartial || []).indexOf(id) < 0) state.learnedMartial.push(id);
+        toast('已卸下发力「' + a.name + '」。');
+      }
+      else {
+        ef.push(id);
+        if ((state.learnedMartial || []).indexOf(id) < 0) state.learnedMartial.push(id);
+        toast('已装配发力「' + a.name + '」，临阵生效。');
+      }
     } else {
       var em = state.equippedMartial || (state.equippedMartial = []);
       var mi = em.indexOf(id);
@@ -3697,7 +3761,27 @@
           '<span>' + (on ? '✓ 已解锁 · ' : '🔒 待解锁 · ') + escapeHtml(b.eff || '') + '</span></div>';
       });
     }
-    h += '<p class="tip">境界随实战中武学造诣精进（当前 Lv.' + r + '）。</p></div>';
+    // v20261018f：P0 练习（闭关修炼）+ 参悟（词条）
+    var maxR = martialMaxRealm(a);
+    if (r < maxR) {
+      var need = martialExpNeed(r), me = martialExp(id), cost = martialPracticeCost(r);
+      h += '<div class="ma-pract">' +
+        '<div class="ma-pract-t">闭关修炼 <span>'+escapeHtml((G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r)))+' → '+(G.MARTIAL_ARTS.REALMS[r+1]||('Lv.'+(r+1)))+'</span></div>' +
+        '<div class="ma-expbar"><i style="width:'+Math.min(100,Math.round(me/need*100))+'%"></i></div>' +
+        '<div class="ma-exprow"><span>精进 '+me+'/'+need+'</span><button type="button" class="ma-eq" data-act="practice" data-mid="'+id+'">闭关（'+cost+' 两）</button></div>' +
+        '</div>';
+    } else {
+      h += '<div class="ma-pract"><div class="ma-pract-t">闭关修炼 <span>已至'+escapeHtml(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+'圆满</span></div></div>';
+    }
+    var afLb = martialAffixLabel(id);
+    h += '<div class="ma-canyan">' +
+      '<div class="ma-pract-t">参悟词条</div>' +
+      '<div class="ma-affix' + (afLb ? ' q' + afLb.quality : '') + '">' +
+        (afLb ? (afLb.name + ' · ' + afLb.quality + ' · ' + afLb.txt) : '未参悟——武学奥义尚待点破') +
+      '</div>' +
+      '<button type="button" class="ma-eq" data-act="canyan" data-mid="'+id+'">参 悟（120 两）</button>' +
+      '</div>';
+    h += '</div>';
     return h;
   }
   function mainCharSkillHTML(){
@@ -3719,6 +3803,9 @@
         // v20261018d：上阵栏槽位——点已装槽位直接卸下
         var slotEl=t.closest ? t.closest('[data-slot]') : null;
         if(slotEl && slotEl.className.indexOf('filled')>=0){ martialEquipToggle(slotEl.getAttribute('data-slot')); return; }
+        // v20261018f：P0 练习/参悟
+        var actEl=t.closest ? t.closest('[data-act="practice"], [data-act="canyan"]') : null;
+        if(actEl){ var _m=actEl.getAttribute('data-mid'); if(actEl.getAttribute('data-act')==='practice') martialPractice(_m); else martialCanyan(_m); return; }
         var card=t.closest ? t.closest('[data-mid]') : null;
         if(card){ _sv.innerHTML=renderMartialDetailHTML(card.getAttribute('data-mid')); }
       };

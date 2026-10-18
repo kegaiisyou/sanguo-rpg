@@ -506,6 +506,19 @@
   MARTIAL_ARTS.LINES = LINES;
   MARTIAL_ARTS.REALMS = REALMS;
 
+  // v20261018f：参悟词条池（P0 参悟系统）——品质 0 白 / 1 蓝 / 2 紫，val = base + quality*step
+  // key 均为战斗已消费字段：critRate/armorPen/critDmgAdd/stunChance/ignoreDef/multiHit
+  var AFFIX_POOL = [
+    { key: 'critRate',   name: '刚猛', base: 0.06, step: 0.04, txt: '暴击+' },
+    { key: 'armorPen',   name: '破竹', base: 0.08, step: 0.05, txt: '破甲+' },
+    { key: 'critDmgAdd', name: '凝神', base: 0.10, step: 0.08, txt: '暴伤+' },
+    { key: 'stunChance', name: '重创', base: 0.05, step: 0.03, txt: '眩晕率+' },
+    { key: 'ignoreDef',  name: '破防', base: 0.08, step: 0.05, txt: '无视防御+' },
+    { key: 'multiHit',   name: '连绵', base: 1,    step: 0,    txt: '连击次数+' }
+  ];
+  MARTIAL_ARTS.AFFIX_POOL = AFFIX_POOL;
+  MARTIAL_ARTS.AFFIX_QUALITY = ['白', '蓝', '紫'];
+
   // 导出
   global.LF = global.LF || {};
   global.LF.MARTIAL_ARTS = MARTIAL_ARTS;

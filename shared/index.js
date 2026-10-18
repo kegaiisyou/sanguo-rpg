@@ -59,7 +59,9 @@
         fist:0, sword:0, blade:0, spear:0, staff:0, halberd:0,
         hammer:0, whip:0, bow:0, hidden:0, ride:0, light:0, internal:0
       },
-      realm: {},                                // { martialId: 境界索引(0-6) }
+      realm: {},                                // { martialId: 境界索引(0-6) }（P0 闭关修炼提升）
+      martialExp: {},                           // v20261018f：{ martialId: 熟练度 }（P0 练习）
+      martialAffix: {},                         // v20261018f：{ martialId: {key,val,quality} }（P0 参悟词条）
       lineExp: {},                              // { lineId: 经验值 }（P2 战斗出手累积）
       learnedMartial: ['beng_quan'],            // 已学招式（新武学系统）
       equippedMartial: ['beng_quan'],           // 已装配上阵招式（至多三式；战斗仅用此表，空则回退全部已学）

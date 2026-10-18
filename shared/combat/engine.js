@@ -104,16 +104,17 @@
         var f = MARTIAL_ARTS.get(fid);
         if (f && f.eff) { for (var k in f.eff) { forceEff[k] = f.eff[k]; } }
       });
-      // v20261018c：装配优先——玩家装配的三式上阵；未装配（旧档/随从）回退全部已学
-      var artIds = ((ps.equippedMartial && ps.equippedMartial.length) ? ps.equippedMartial : (ps.learnedMartial || [])).slice();
-      if (artIds.indexOf('beng_quan') === -1) artIds.push('beng_quan');   // 保证至少能用崩拳
+      // v20261018f：装配优先——装配了什么就只用什么；一式未装配（旧档/随从）才回退全部已学；全空保底崩拳
+      var artIds = ((ps.equippedMartial && ps.equippedMartial.length) ? ps.equippedMartial.slice() : (ps.learnedMartial || []).slice());
+      if (!artIds.length) artIds.push('beng_quan');   // 一式都未学时保底崩拳
       var artMap = {};
       // 军队：营级单位自带「军令」（伪武学），不查 MARTIAL_ARTS，避免被过滤为空
       if(ps._artMap && Object.keys(ps._artMap).length){
         for(var _ok in ps._artMap) artMap[_ok] = ps._artMap[_ok];
       }
       artIds.forEach(function(aid) {
-        var built = self._buildArt(aid, (ps.realm && ps.realm[aid]) || 0);
+        // v20261018f：参悟词条随武学生效（ps.martialAffix[id] = {key,val,quality}）
+        var built = self._buildArt(aid, (ps.realm && ps.realm[aid]) || 0, (ps.martialAffix && ps.martialAffix[aid]) || null);
         if (built) artMap[aid] = built;
       });
       var pElem = ps.element || '无';
@@ -166,7 +167,7 @@
     },
 
     // ── P2：构建含境界突破的招式实际效果 ──
-    _buildArt: function(id, realmLevel) {
+    _buildArt: function(id, realmLevel, affix) {
       var MA = global.LF.MARTIAL_ARTS;
       var base = MA.get(id);
       if (!base) return null;
@@ -178,6 +179,11 @@
         multiHit: base.multiHit || 1, attr: base.attr,
         desc: base.desc, eff: eff, forceCrit: false
       };
+      // v20261018f：参悟词条并入招式效果（multiHit 累加到连击次数）
+      if (affix && affix.key) {
+        if (affix.key === 'multiHit') { art.multiHit += (affix.val || 1); }
+        else { art.eff[affix.key] = (art.eff[affix.key] || 0) + (affix.val || 0); }
+      }
       if (base.breakthrough && realmLevel > 0) {
         var self = this;
         base.breakthrough.forEach(function(bt) {
