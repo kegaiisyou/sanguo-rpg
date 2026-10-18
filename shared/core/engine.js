@@ -3576,6 +3576,42 @@
       ? ((state.equippedForce || []).indexOf(id) >= 0)
       : ((state.equippedMartial || []).indexOf(id) >= 0);
   }
+  // v20261018d：发力效果简述（装配槽位用）：挑前两个非空关键加成
+  var MA_EFF_LABEL = { critRate:'暴击+', critDmg:'暴伤+', armorPen:'破甲', reflectDmg:'反弹', defStance:'防御架势', dodge:'闪避+', spdMul:'身法×', atkMul:'攻击×', defMul:'防御×', hpMul:'气血×', mpMul:'内力×', bonusExp:'修成+', ignoreDef:'破防', forceCrit:'必暴' };
+  function martialEffBrief(a){
+    var s=[], eff=a.eff||{};
+    for(var k in eff){
+      var v=eff[k]; if(!v) continue;
+      var lb=MA_EFF_LABEL[k]||k;
+      s.push(lb + (typeof v==='number' ? Math.round(v*100)+'%' : ''));
+      if(s.length>=2) break;
+    }
+    return s.join(' ');
+  }
+  // v20261018d：上阵栏（类装备栏）——招式三槽 + 被动发力槽，点已装槽位即卸下
+  function renderSlotbarHTML(){
+    var em=state.equippedMartial||[], fo=state.equippedForce||[];
+    var h='<div class="ma-slotbar">'+
+      '<div class="ma-slothead">上阵招式 <em>'+(state.equippedMartial||[]).length+'/3</em></div><div class="ma-slots">';
+    for(var i=0;i<3;i++){
+      var id=em[i];
+      if(id){
+        var a=G.MARTIAL_ARTS.get(id);
+        h+='<div class="ma-slot filled" data-slot="'+id+'"><b>'+escapeHtml(a?a.name:id)+'</b><i>'+
+          (a? escapeHtml((MA_LINE_NAME[a.line]||a.line||'')+(a.dmgMul?' · '+a.dmgMul+'×':' · 武技')):'')+'</i></div>';
+      } else { h+='<div class="ma-slot empty">＋ 空位</div>'; }
+    }
+    h+='</div>';
+    h+='<div class="ma-slothead">被动发力</div><div class="ma-slots ma-slots-force">';
+    if(fo.length){
+      fo.forEach(function(fid){
+        var fa=G.MARTIAL_ARTS.get(fid);
+        h+='<div class="ma-slot filled force" data-slot="'+fid+'"><b>'+escapeHtml(fa?fa.name:fid)+'</b><i>'+escapeHtml(fa?martialEffBrief(fa):'')+'</i></div>';
+      });
+    } else { h+='<div class="ma-slot empty">＋ 空位</div>'; }
+    h+='</div></div>';
+    return h;
+  }
   function renderMartialListHTML() {
     var MA = G.MARTIAL_ARTS;
     var ids = martialIds();
@@ -3591,6 +3627,7 @@
     var lines = Object.keys(groups);
     var eqN = (state.equippedMartial || []).length;
     var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门 · 上阵 ' + eqN + '/3</span></div>';
+    h += renderSlotbarHTML();
     lines.forEach(function (ln) {
       h += '<div class="ma-group">' + escapeHtml(ln) + '</div>';
       groups[ln].forEach(function (o) {
@@ -3660,6 +3697,9 @@
         if(back){ _sv.innerHTML=renderMartialListHTML(); return; }
         var eqb=t.closest ? t.closest('[data-eq]') : null;
         if(eqb){ martialEquipToggle(eqb.getAttribute('data-eq')); return; }
+        // v20261018d：上阵栏槽位——点已装槽位直接卸下
+        var slotEl=t.closest ? t.closest('[data-slot]') : null;
+        if(slotEl && slotEl.className.indexOf('filled')>=0){ martialEquipToggle(slotEl.getAttribute('data-slot')); return; }
         var card=t.closest ? t.closest('[data-mid]') : null;
         if(card){ _sv.innerHTML=renderMartialDetailHTML(card.getAttribute('data-mid')); }
       };

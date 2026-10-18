@@ -1391,6 +1391,11 @@
   .dq-enemy{border-color:rgba(192,39,26,.3);background:linear-gradient(180deg,rgba(252,240,238,.85),rgba(255,250,248,.9));}
   .dq-ally{border-color:rgba(63,95,122,.3);background:linear-gradient(180deg,rgba(250,248,240,.9),rgba(255,253,248,.9));}
   .dq-unit.dead{filter:grayscale(.8);opacity:.5;}
+  /* v20261018d：多段追击——攻击方前冲（我方向右冲、敌方向左冲） */
+  .dq-unit.lunge-r{animation:dqLungeR .2s ease;}
+  .dq-unit.lunge-l{animation:dqLungeL .2s ease;}
+  @keyframes dqLungeR{0%{transform:translateX(0);}40%{transform:translateX(14px);}100%{transform:translateX(0);}}
+  @keyframes dqLungeL{0%{transform:translateX(0);}40%{transform:translateX(-14px);}100%{transform:translateX(0);}}
   .dq-uname{font-family:"STKaiti","KaiTi",serif;font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:4px;color:var(--ink);}
   .dq-enemy .dq-uname{color:var(--seal);}
   .dq-ally .dq-uname{color:#3f5f7a;}
@@ -3922,6 +3927,24 @@
 
 /* ═══ 武学录（v20261018a）═══ */
 #m-skill-view{display:flex;flex-direction:column;gap:4px;padding:2px 0 8px;}
+/* v20261018d：上阵栏（类装备栏）——招式三槽 + 发力槽 */
+.ma-slotbar{margin:2px 0 6px;padding:8px;border:1px solid rgba(184,137,58,.45);border-radius:var(--r-btn);
+  background:linear-gradient(180deg,rgba(70,52,26,.94),rgba(38,28,13,.94));}
+.ma-slothead{display:flex;align-items:center;gap:6px;font-size:12px;letter-spacing:.12em;color:#d9b97c;margin-bottom:6px;}
+.ma-slothead em{font-style:normal;color:#f0c98a;font-size:11px;border:1px solid rgba(214,138,58,.55);border-radius:8px;padding:0 6px;}
+.ma-slots{display:flex;gap:6px;margin-bottom:8px;}
+.ma-slots:last-child{margin-bottom:0;}
+.ma-slot{flex:1;min-width:0;padding:7px 6px;border-radius:6px;text-align:center;cursor:pointer;transition:.15s;
+  border:1px dashed rgba(184,137,58,.45);background:rgba(20,14,6,.45);color:#7a6a4e;font-size:11px;letter-spacing:.08em;}
+.ma-slot.empty{line-height:26px;}
+.ma-slot.filled{border-style:solid;border-color:rgba(214,138,58,.85);background:linear-gradient(180deg,rgba(120,80,30,.35),rgba(70,45,18,.35));
+  box-shadow:0 0 6px rgba(214,138,58,.25) inset;color:#f4dcae;}
+.ma-slot.filled.force{border-color:rgba(122,158,110,.8);background:linear-gradient(180deg,rgba(64,96,60,.4),rgba(40,60,38,.4));box-shadow:0 0 6px rgba(122,158,110,.22) inset;}
+.ma-slot b{display:block;font-size:12px;color:#ffe9b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ma-slot i{display:block;font-style:normal;font-size:10px;color:#b99a64;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ma-slot.filled.force b{color:#d9ecd2;}
+.ma-slot.filled.force i{color:#a8c49c;}
+.ma-slot.filled:active{transform:scale(.94);}
 .ma-group{margin:8px 0 3px;font-size:12px;letter-spacing:.18em;color:#b08950;border-bottom:1px dashed rgba(184,137,58,.35);padding-bottom:2px;}
 .ma-card{display:flex;align-items:center;gap:6px;width:100%;padding:6px 8px;margin:3px 0;border:1px solid rgba(184,137,58,.35);
   border-radius:var(--r-btn);background:linear-gradient(180deg,rgba(52,40,20,.92),rgba(34,25,12,.92));

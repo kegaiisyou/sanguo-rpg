@@ -332,12 +332,14 @@
         target.defStance = false;
       }
 
-      // 多段攻击
+      // 多段攻击（v20261018d：逐段收集 hitSegments 供前端逐段追击演出）
+      var hitSegments = [];
       for (var h = 0; h < hitCount; h++) {
         var hitDmg = h === 0 ? dmg : Math.round(dmg * 0.7);
         target.hp -= hitDmg;
         totalDmg += hitDmg;
         if (hitCount > 1) hitsDesc.push((h === 0 ? '首击' : '追击') + hitDmg);
+        hitSegments.push({ dmg: hitDmg, crit: h === 0 ? hasCrit : (hasCrit && Math.random() < 0.35) });
       }
 
       target.hp = Math.max(0, target.hp);
@@ -377,7 +379,8 @@
 
       log.push({ type: isPlayer ? 'player_atk' : 'enemy_atk', text: desc, dmg: totalDmg,
         atkLine: atkLine, eHp: this.state.enemies[0] ? this.state.enemies[0].hp : 0, pHp: (this.state.player && this.state.player.hp) || 0,
-        tgtSide: isPlayer ? 'enemy' : 'player', tgtIdx: target.idx, crit: hasCrit, attrType: acInfo.type || null });
+        tgtSide: isPlayer ? 'enemy' : 'player', tgtIdx: target.idx, crit: hasCrit, attrType: acInfo.type || null,
+        hitSegments: hitCount > 1 ? hitSegments : null });
 
       // ─── 附加效果 ───
       // 中毒（可叠层）
