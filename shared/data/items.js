@@ -428,6 +428,10 @@
       desc: '药铺售卖的秘方。研读后习得「金创膏」炼制之法。' },
     fang_xumingdan:   { defId: 'fang_xumingdan',   name: '续命丹药方', icon: '📜', cat: '配方', price: 110,
       desc: '药铺售卖的秘方。研读后习得「续命丹」炼制之法。' },
+    // v20261018a：武学秘籍（研读习得武学）——铁拳拳谱（竹简）
+    tiequan_pu: { defId: 'tiequan_pu', name: '铁拳拳谱', icon: '🎋', cat: '秘籍', maxStack: 1, price: 120,
+      learn: { martial: 'tie_quan' },
+      desc: '竹简一卷，录铁拳要诀。研读可习得外功「铁拳」。' },
     chaye:      { defId: 'chaye',      name: '茶叶',   icon: '🍃', cat: '素材', price: 12,
       desc: '〔凉·苦甘〕提神醒脑，解腻消滞——提神散之君药，行旅赖以熬夜。' },
     // ── 加工材料（半成品层）：药材炮制所得，丸散膏丹的底子 ──

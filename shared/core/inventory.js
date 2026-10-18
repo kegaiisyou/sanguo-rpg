@@ -146,6 +146,21 @@
         afterPackChange();
         return;
       }
+      // v20261018a：武学秘籍——研读习得武学（外功/绝技等）
+      if (it.cat === '秘籍') {
+        var _d1 = (LF.ITEMS && LF.ITEMS[itemKey(it)]) || {};
+        var _mid = (it.learn && it.learn.martial) || (_d1.learn && _d1.learn.martial);
+        if (!_mid) { toast('此秘籍暂无法研读。'); return; }
+        var _ma = (LF.MARTIAL_ARTS && LF.MARTIAL_ARTS.get) ? LF.MARTIAL_ARTS.get(_mid) : null;
+        if (!_ma) { toast('此秘籍所载武学暂不可习得。'); return; }
+        var _lm = S().learnedMartial || (S().learnedMartial = []);
+        if (_lm.indexOf(_mid) >= 0) { toast('此招早已习得，再读无益。'); return; }
+        _lm.push(_mid);
+        it.count--; if (it.count <= 0) pk[idx] = null;
+        toast('研读拳谱，习得「' + _ma.name + '」！');
+        afterPackChange();
+        return;
+      }
       // v20261008c：生药有毒（半夏/附子）——不可生服，明确提示，不消耗
       if (it.toxic || ((LF.ITEMS[itemKey(it)] || {}).toxic)) {
         toast('「' + (it.name || '此物') + '」生品有毒，须依法炮制后方可入药，莫要生服。');

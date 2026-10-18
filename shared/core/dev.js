@@ -83,6 +83,7 @@ window.LF = window.LF || {};
       // v20260915g：原写作 jinchuangyao，items.js 里并无此 id（正确为 jinchuang）→ makeItem 返回 null，
       //   调试按钮点了毫无反应。这也是「凡入包的物先查登记表」的道理。
       else if (act === 'item_yao') { ctx.packAdd('jinchuang', 5); ctx.log('【调试】获得金疮药×5', 'good'); }
+      else if (act === 'item_tiequan') { ctx.packAdd({ defId: 'tiequan_pu', count: 1 }); ctx.log('【调试】获得 铁拳拳谱×1 —— 行囊中研读可习得外功「铁拳」', 'good'); }
       else if (act === 'grind') {
         // 捣药（v20261017b 正式化）：调试台直接打开配药台工作台（等价店主视角）
         var _gr = LF.Grinding || (LF.Grinding = LF.createGrinding({
@@ -166,7 +167,8 @@ window.LF = window.LF || {};
       h += '<div class="dev-sec"><div class="dev-h">🎒 获得物品</div><div class="dev-btns">' +
          '<button class="dev" data-act="item_stone">石料×10</button>' +
          '<button class="dev" data-act="item_wood">木材×10</button>' +
-         '<button class="dev" data-act="item_yao">金疮药×5</button></div></div>';
+         '<button class="dev" data-act="item_yao">金疮药×5</button>' +
+         '<button class="dev" data-act="item_tiequan">铁拳拳谱</button></div></div>';
 
       // 7. 制药（捣药 v20261015a 配方驱动）：初始三味散剂 + 已学进阶
       h += '<div class="dev-sec"><div class="dev-h">🧪 制药调试</div><div class="dev-btns">'
