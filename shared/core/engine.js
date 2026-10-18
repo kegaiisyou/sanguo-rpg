@@ -1532,6 +1532,7 @@
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     // 开场引导期间静默这些房间的常规旁白（改用剧本式叙事，避免与触发台词重复/信息过载）
     var suppressNarr = onboarding && (rid==='kuyilao' || /^camp_[td]z\d$/.test(rid));
+    if(combatMode!==null && (dqCardEl || document.body.classList.contains('in-combat'))){ return; }   // v20261018e：战斗中任何场景重绘（积压叙事/异步触发）不得覆盖战斗界面；战后 exitCombatToRoom 时 combatMode 已置 null，不受影响
     if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
