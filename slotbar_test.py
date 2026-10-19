@@ -88,27 +88,26 @@ with sync_playwright() as p:
     nl = js(pg2, "(function(){var n=document.getElementById('narr'); return n? n.innerText.slice(-120) : '';})()")
     print("   战斗状态:", "已进入" if incombat else "未进入", "· 战斗卡:", card, "· 日志:", nl.replace('\\n',' ')[-80:])
     # 玩家：武学 → 连珠箭 → 目标
-    js(pg2, "(function(){var bs=[...document.querySelectorAll('#actions .act, #actions button')]; var wu=bs.find(function(x){return x.innerText.indexOf('武学')>=0}); if(wu&&wu.onclick) wu.onclick();})()")
+    js(pg2, "(function(){var bs=[...document.querySelectorAll('#actions .act, #actions button')]; var wu=bs.find(function(x){return x.innerText.indexOf('出招')>=0}); if(wu&&wu.onclick) wu.onclick();})()")
     time.sleep(0.3)
     act1 = js(pg2, "(function(){var a=document.querySelector('#actions'); return a? a.innerText.slice(0,60) : 'no-actions';})()")
     print("   选招后:", act1.replace('\\n',' ')[:60])
     js(pg2, "(function(){var a=document.querySelector('#actions'); var x=[...a.querySelectorAll('.act.skill')].find(function(y){return y.innerText.indexOf('连珠箭')>=0}); if(x) x.click();})()")
+    time.sleep(0.3)  # 单敌免选目标：选完招直接打，指令入队
+    # 队友：出招 → 普攻（单敌直打）
+    js(pg2, "(function(){var bs=[...document.querySelectorAll('#actions .act, #actions button')]; var atk=bs.find(function(x){return x.innerText.indexOf('出招')>=0}); if(atk&&atk.onclick) atk.onclick();})()")
     time.sleep(0.3)
-    js(pg2, "(function(){var a=document.querySelector('#actions'); var tgt=[...a.querySelectorAll('.act.cb-menu')].find(function(y){return y.innerText.indexOf('返回')<0;}); if(tgt) tgt.click();})()")
-    time.sleep(0.5)
-    # 队友：攻击 → 目标
-    js(pg2, "(function(){var bs=[...document.querySelectorAll('#actions .act, #actions button')]; var atk=bs.find(function(x){return x.innerText.indexOf('攻击')>=0}); if(atk&&atk.onclick) atk.onclick();})()")
-    time.sleep(0.3)
-    js(pg2, "(function(){var a=document.querySelector('#actions'); var tgt=[...a.querySelectorAll('.act.cb-menu')].find(function(y){return y.innerText.indexOf('返回')<0;}); if(tgt) tgt.click();})()")
-    time.sleep(0.5)
-    # 高频采样段演出：飘字共存数（多段时 ≥2）
+    js(pg2, "(function(){var a=document.querySelector('#actions'); var x=[...a.querySelectorAll('.act.skill')].find(function(y){return y.innerText.indexOf('普通攻击')>=0}); if(x) x.click();})()")
+    time.sleep(0.2)
+    # 全队指令齐 → 统一结算演出中采样多段飘字
     peak = 0
     for k in range(60):
         n = js(pg2, "document.querySelectorAll('.dmg-float.side-enemy').length")
         if n > peak: peak = n
         time.sleep(0.06)
+    print("3. 连珠箭多段: 峰值共存飘字 =", peak, "(期望≥2)")
     logs = js(pg2, "(function(){var n=document.getElementById('narr'); return n? n.innerText.slice(-200) : '';})()")
-    print("3. 连珠箭多段: 峰值共存飘字 =", peak, "(期望≥2) · 日志片段:", logs.replace('\\n',' ')[-120:])
+    print("   连珠箭日志:", logs.replace('\\n',' ')[-90:])
     try:
         pg2.screenshot(path="slotbar_shot.png")
         print("截图: slotbar_shot.png")

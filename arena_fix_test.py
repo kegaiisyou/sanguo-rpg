@@ -36,10 +36,10 @@ with sync_playwright() as p:
     js(pg, "(function(){var s=window.LF&&window.LF.Core&&window.LF.CombatEngine; if(s&&s.state&&s.state.enemies){ s.state.enemies.forEach(function(e){ e.hp=5; }); }})()")
     js(pg, "(function(){var c=document.getElementById('dq-combat-card'); if(c){ var h=[...c.querySelectorAll('.dq-hpv')]; h.forEach(function(x){ x.textContent='5 / '+(x.textContent.split('/')[1]||'0').trim(); }); }})()")
     for _ in range(2):
-        js(pg, "(function(){var bs=[...document.querySelectorAll('#actions .act, #actions button')]; var atk=bs.find(function(x){return x.innerText.indexOf('攻击')>=0}); if(atk&&atk.onclick) atk.onclick();})()")
+        js(pg, "(function(){var bs=[...document.querySelectorAll('#actions .act, #actions button')]; var atk=bs.find(function(x){return x.innerText.indexOf('出招')>=0}); if(atk&&atk.onclick) atk.onclick();})()")
         time.sleep(0.3)
-        js(pg, "(function(){var a=document.querySelector('#actions'); var tgt=[...a.querySelectorAll('.act.cb-menu')].find(function(y){return y.innerText.indexOf('返回')<0;}); if(tgt) tgt.click();})()")
-        time.sleep(0.6)
+        js(pg, "(function(){var a=document.querySelector('#actions'); var x=[...a.querySelectorAll('.act.skill')].find(function(y){return y.innerText.indexOf('普通攻击')>=0}); if(x) x.click();})()")
+        time.sleep(0.6)  # 单敌免选目标：选招即打
     time.sleep(2.5)
     settle = js(pg, "!!document.getElementById('combat-settle')")
     ok2 = settle
