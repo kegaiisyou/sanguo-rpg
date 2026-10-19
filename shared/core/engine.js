@@ -3721,6 +3721,84 @@
     h+='</div></div>';
     return h;
   }
+  // v20261018n：系统武学技能树——研读秘籍后武学录以技能树呈现：已解锁=节点，未解锁=条件+按钮
+  function renderSystemTreeHTML(line){
+    var MA = G.MARTIAL_ARTS;
+    var book = (MA.SYSTEM_SCHOOLS && MA.SYSTEM_SCHOOLS[line]) || null;
+    if (!book) return '';
+    // 该线下全部招式
+    var all = [];
+    for (var k in MA) { var a = MA[k]; if (a && a.line === line && a.id && a.sys) all.push(a); }
+    // 计算层级深度（前置为根，逐层+1）
+    var dep = {};
+    var stack = [book.root]; var seen = {};
+    while (stack.length) {
+      var id = stack.pop(); if (seen[id]) continue; seen[id] = true;
+      var a = MA.get(id); if (!a) continue;
+      var d = 0;
+      (a.sys.pre || []).forEach(function (p) { var pd = dep[p] || 0; if (pd + 1 > d) d = pd + 1; });
+      dep[id] = d;
+      for (var kk in MA) { var a2 = MA[kk]; if (a2 && a2.line === line && a2.sys && a2.sys.pre && a2.sys.pre.indexOf(id) >= 0) stack.push(a2.id); }
+    }
+    all.sort(function (x, y) { return (dep[x.id] || 0) - (dep[y.id] || 0); });
+    var sRealm = schoolRealm(line);
+    var h = '<div class="row"><span>' + escapeHtml(book.name) + '</span><span>系统武学 · 境' + sRealm + '</span></div>';
+    h += '<div class="sys-desc">' + escapeHtml(book.desc) + '</div>';
+    h += '<div class="sys-tree">';
+    all.forEach(function (a) {
+      var own = (state.learnedMartial || []).indexOf(a.id) >= 0;
+      var r = own ? martialRealm(a.id) : 0;
+      var d = dep[a.id] || 0;
+      var t = MA_TYPE_NAME[a.type] || a.type;
+      var pl = (d * 18 + 6);
+      if (own) {
+        var force = (a.type === 'technique') ? '<i class="ma-force">发力</i>' : '';
+        var eq = isMartialEquipped(a.id);
+        h += '<div class="sys-node own" style="padding-left:' + pl + 'px" data-mid="' + a.id + '">' +
+          '<span class="ma-n">' + escapeHtml(a.name) + force + '</span>' +
+          '<span class="ma-meta">' + escapeHtml(t) + '</span>' +
+          '<span class="ma-lv">境' + r + '</span>' +
+          '<button type="button" class="ma-eq" data-eq="' + a.id + '">' + (eq ? '卸 下' : '装 配') + '</button>' +
+          '</div>';
+      } else {
+        var preTxt = '';
+        if (a.sys.pre && a.sys.pre.length) {
+          preTxt = a.sys.pre.map(function (p) { var pa = MA.get(p); return pa ? pa.name : p; }).join('、') + '已通';
+        }
+        var need = '';
+        if (preTxt) need += preTxt;
+        if (a.sys.realm) need += (need ? ' · ' : '') + '套路境' + a.sys.realm;
+        h += '<div class="sys-node locked" style="padding-left:' + pl + 'px">' +
+          '<span class="ma-n">' + escapeHtml(a.name) + '</span>' +
+          '<span class="ma-meta">' + escapeHtml(t) + (need ? ' · ' + escapeHtml(need) : '') + '</span>' +
+          '<button type="button" class="sys-unlock" data-sys="' + a.id + '">解锁 · ' + (a.sys.cost || 0) + ' 两</button>' +
+          '</div>';
+      }
+    });
+    h += '</div>';
+    return h;
+  }
+  // v20261018n：解锁系统武学招式——前置全通 + 套路境界达标 + 银两
+  function sysUnlock(id){
+    var MA = G.MARTIAL_ARTS;
+    var a = MA.get(id); if (!a || !a.sys) return;
+    if ((state.learnedMartial || []).indexOf(id) >= 0) { toast('此招早已习得。'); return; }
+    if (a.sys.pre && a.sys.pre.length) {
+      var miss = a.sys.pre.filter(function (p) { return (state.learnedMartial || []).indexOf(p) < 0; });
+      if (miss.length) { toast('前置未通：须先习得 ' + miss.map(function (p) { var pa = MA.get(p); return pa ? pa.name : p; }).join('、') + '。'); return; }
+    }
+    var sRealm = schoolRealm(a.line);
+    if (a.sys.realm && sRealm < a.sys.realm) { toast('套路境界不足：此招须套路境' + a.sys.realm + '（当前境' + sRealm + '）。'); return; }
+    var cost = a.sys.cost || 0;
+    if ((state.money || 0) < cost) { toast('银两不足（需 ' + cost + ' 两），无从解锁。'); return; }
+    state.money -= cost;
+    (state.learnedMartial = state.learnedMartial || []).push(id);
+    var _sv = document.getElementById('m-skill-view');
+    if (_sv && _sv.innerHTML.indexOf('sys-tree') >= 0) _sv.innerHTML = renderSystemTreeHTML(a.line);
+    toast('叩开武学之门，习得「' + a.name + '」！', 'good');
+    log('【武学】解锁「' + a.name + '」（' + cost + ' 两）。', 'good');
+    save(state);
+  }
   function renderMartialListHTML() {
     var MA = G.MARTIAL_ARTS;
     var ids = martialIds();
@@ -3741,6 +3819,11 @@
     var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门 · 上阵 ' + eqN + '/' + martialSlotCap() + '</span></div>';
     h += renderSlotbarHTML();
     lines.forEach(function (ln) {
+      // v20261018n：系统武学——已通读秘籍的线以技能树呈现，不套普通套路卡片
+      if (state.schoolBooks && state.schoolBooks[ln] && MA.SYSTEM_SCHOOLS && MA.SYSTEM_SCHOOLS[ln]) {
+        h += renderSystemTreeHTML(ln);
+        return;
+      }
       var meta = LINES[ln] || {};
       var kind = meta.kind || (ln === 'light' ? '轻功' : (ln === 'internal' ? '内功' : (ln === 'ride' ? '骑术' : '外功')));
       var total = (MA.TOTAL_BY_LINE && MA.TOTAL_BY_LINE[ln]) || groups[ln].length;
@@ -3855,6 +3938,9 @@
         // v20261018m：套路整套闭关
         var schEl=t.closest ? t.closest('[data-sch]') : null;
         if(schEl){ schoolPractice(schEl.getAttribute('data-sch')); return; }
+        // v20261018n：系统武学解锁
+        var sysEl=t.closest ? t.closest('[data-sys]') : null;
+        if(sysEl){ sysUnlock(sysEl.getAttribute('data-sys')); return; }
         var card=t.closest ? t.closest('[data-mid]') : null;
         if(card){ _sv.innerHTML=renderMartialDetailHTML(card.getAttribute('data-mid')); }
       };

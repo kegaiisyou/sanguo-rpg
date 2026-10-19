@@ -432,6 +432,10 @@
     tiequan_pu: { defId: 'tiequan_pu', name: '铁拳拳谱', icon: '🎋', cat: '秘籍', maxStack: 1, price: 120,
       learn: { martial: 'tie_quan' },
       desc: '竹简一卷，录铁拳要诀。研读可习得外功「铁拳」。' },
+    // v20261018n：系统武学秘籍——研读开启技能树（框架+首招），其余招式逐招解锁
+    xuanyin_jing: { defId: 'xuanyin_jing', name: '玄阴真经', icon: '📜', cat: '秘籍', maxStack: 1, price: 0,
+      learn: { school: 'xuanyin' },
+      desc: '绝世秘籍，录玄阴一脉攻防进退全套武学。研读只得总纲；其余招式，须以修为叩开。' },
     chaye:      { defId: 'chaye',      name: '茶叶',   icon: '🍃', cat: '素材', price: 12,
       desc: '〔凉·苦甘〕提神醒脑，解腻消滞——提神散之君药，行旅赖以熬夜。' },
     // ── 加工材料（半成品层）：药材炮制所得，丸散膏丹的底子 ──

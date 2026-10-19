@@ -16,7 +16,9 @@
     hidden:  { id:'hidden',  name:'暗器', order:10, kind:'外功', desc:'暗器无影，出其不意，防不胜防' },
     ride:    { id:'ride',    name:'骑术', order:11, kind:'骑术', desc:'马战冲阵，来去如风，威震敌胆' },
     light:   { id:'light',   name:'轻功', order:12, kind:'轻功', desc:'身法轻灵，进退迅捷，料敌机先' },
-    internal:{ id:'internal',name:'内功', order:13, kind:'内功', desc:'内息吐纳，强体增力，厚积薄发' }
+    internal:{ id:'internal',name:'内功', order:13, kind:'内功', desc:'内息吐纳，强体增力，厚积薄发' },
+    // v20261018n：系统武学（绝世秘籍）——研读秘籍得技能树，逐招解锁；自成一线，不混入兵器艺线
+    xuanyin: { id:'xuanyin', name:'玄阴', order:14, kind:'内功', desc:'玄阴真经所载：寒劲入骨、攻防进退俱备——绝世秘籍，非机缘不可得' }
   };
 
   // ========== 武学境界（7 阶） ==========
@@ -466,6 +468,71 @@
       desc: '混元护体，装配后受击反弹20%伤害',
       eff: { reflectDmg: 0.20 },
       learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+    },
+
+    // ─── 系统武学·玄阴真经（v20261018n）───
+    // 绝世秘籍：研读得技能树，逐招解锁（sys.pre 前置 / sys.cost 银两 / sys.realm 境界门槛）
+    // 攻防进退俱全，与低端残缺套路形成对照；招式效果全部走现有战斗机制
+    xuanyin_juqi: {
+      id: 'xuanyin_juqi', name: '玄阴聚气', line: 'xuanyin', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      maxMp: 15,
+      desc: '玄阴真经总纲心法。阴气归元，蓄劲如弓——装配后暴击伤害+20%',
+      eff: { critDmgAdd: 0.20 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { root: true },
+      breakthrough: [
+        { realm: 1, eff: '内力上限+15' },
+        { realm: 3, eff: '暴击伤害+35%' },
+        { realm: 6, eff: '暴击率+12%' }
+      ]
+    },
+    xuanyin_zhi: {
+      id: 'xuanyin_zhi', name: '玄阴指', line: 'xuanyin', type: 'skill',
+      beat: 30, cost: { type: 'mp', val: 8 }, dmgMul: 0.95,
+      attr: { wu: null, yin: '柔' },
+      desc: '以阴劲透指而入，中者如堕冰窟。有概率附阴毒内伤，绵绵不绝',
+      eff: { poisonChance: 0.35, poisonDmg: 8, poisonTurns: 2 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { pre: ['xuanyin_juqi'], cost: 200, realm: 1 },
+      breakthrough: [
+        { realm: 2, eff: '阴毒伤害+6' },
+        { realm: 5, eff: '阴毒概率+20%' }
+      ]
+    },
+    gui_mei_shenfa: {
+      id: 'gui_mei_shenfa', name: '鬼魅身法', line: 'xuanyin', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      desc: '玄阴轻功，身如鬼魅，飘忽难测——装配后暴击率+12%',
+      eff: { critRate: 0.12 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { pre: ['xuanyin_zhi'], cost: 300, realm: 2 }
+    },
+    xuanyin_huti: {
+      id: 'xuanyin_huti', name: '玄阴护体', line: 'xuanyin', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      maxMp: 10,
+      desc: '阴劲护体，劲随敌至——装配后受击反震30%伤害',
+      eff: { reflectDmg: 0.30 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { pre: ['xuanyin_zhi'], cost: 300, realm: 2 }
+    },
+    xuanyin_jiuzhuan: {
+      id: 'xuanyin_jiuzhuan', name: '玄阴九转', line: 'xuanyin', type: 'ultimate',
+      beat: 52, cost: { type: 'rage', val: 100 }, dmgMul: 2.0,
+      attr: { wu: null, yin: '柔' },
+      desc: '玄阴真经压轴绝技。阴劲九转，三连透体，防不胜防',
+      multiHit: 3,
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { pre: ['gui_mei_shenfa', 'xuanyin_huti'], cost: 800, realm: 3 },
+      breakthrough: [
+        { realm: 2, eff: '伤害+20%' },
+        { realm: 4, eff: '阴毒缠身' },
+        { realm: 6, eff: '四连阴劲' }
+      ]
     }
   };
 
@@ -506,6 +573,17 @@
 
   MARTIAL_ARTS.LINES = LINES;
   MARTIAL_ARTS.REALMS = REALMS;
+
+  // v20261018n：系统武学（绝世秘籍）——研读秘籍开启技能树，逐招解锁。
+  // 与普通套路对照：低端武学天生残缺，系统武学攻防进退俱全但被技能树层层锁住。
+  // root：研读即得的第一招；招式本身带 sys（pre/cost/realm）描述解锁条件。
+  MARTIAL_ARTS.SYSTEM_SCHOOLS = {
+    xuanyin: {
+      line: 'xuanyin', name: '玄阴真经', kind: '内功',
+      root: 'xuanyin_juqi',
+      desc: '寒劲入骨、攻防进退俱全的绝世武学。研读此经，只通总纲；其余招式，须以修为与银两逐招叩开。'
+    }
+  };
 
   // v20261018l：各艺线全量招数统计（武学录套路卡片显示「门下 N 招」）
   MARTIAL_ARTS.TOTAL_BY_LINE = (function(){

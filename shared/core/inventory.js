@@ -149,6 +149,24 @@
       // v20261018a：武学秘籍——研读习得武学（外功/绝技等）
       if (it.cat === '秘籍') {
         var _d1 = (LF.ITEMS && LF.ITEMS[itemKey(it)]) || {};
+        // v20261018n：系统武学（绝世秘籍）——研读开启技能树，只授首招
+        var _sch = (it.learn && it.learn.school) || (_d1.learn && _d1.learn.school);
+        if (_sch) {
+          var _SYS = (LF.MARTIAL_ARTS && LF.MARTIAL_ARTS.SYSTEM_SCHOOLS) || {};
+          var _book = _SYS[_sch];
+          if (!_book) { toast('此秘籍所载武学暂不可习得。'); return; }
+          var _sb = S().schoolBooks || (S().schoolBooks = {});
+          if (_sb[_sch]) { toast('此经早已通读，再读无益。'); return; }
+          _sb[_sch] = true;
+          var _lm = S().learnedMartial || (S().learnedMartial = []);
+          var _rt = _book.root;
+          var _ra = (LF.MARTIAL_ARTS.get) ? LF.MARTIAL_ARTS.get(_rt) : null;
+          if (_ra && _lm.indexOf(_rt) < 0) _lm.push(_rt);
+          it.count--; if (it.count <= 0) pk[idx] = null;
+          toast('研读绝世秘籍，得「' + _book.name + '」总纲，习得「' + (_ra ? _ra.name : _rt) + '」！', 'good');
+          afterPackChange();
+          return;
+        }
         var _mid = (it.learn && it.learn.martial) || (_d1.learn && _d1.learn.martial);
         if (!_mid) { toast('此秘籍暂无法研读。'); return; }
         var _ma = (LF.MARTIAL_ARTS && LF.MARTIAL_ARTS.get) ? LF.MARTIAL_ARTS.get(_mid) : null;

@@ -84,6 +84,8 @@ window.LF = window.LF || {};
       //   调试按钮点了毫无反应。这也是「凡入包的物先查登记表」的道理。
       else if (act === 'item_yao') { ctx.packAdd('jinchuang', 5); ctx.log('【调试】获得金疮药×5', 'good'); }
       else if (act === 'item_tiequan') { ctx.packAdd({ defId: 'tiequan_pu', count: 1 }); ctx.log('【调试】获得 铁拳拳谱×1 —— 行囊中研读可习得外功「铁拳」', 'good'); }
+      // v20261018n：系统武学秘籍（玄阴真经）——研读开启技能树
+      else if (act === 'item_xuanyin') { ctx.packAdd({ defId: 'xuanyin_jing', count: 1 }); ctx.log('【调试】获得 玄阴真经×1 —— 行囊中研读得总纲，武学录以技能树逐招解锁', 'good'); }
       // v20261018c：逐门获得武学（招式入 learnedMartial，发力技巧入 equippedForce）
       else if (act.indexOf('martial_') === 0) {
         var _mid = act.slice(8);
@@ -181,7 +183,8 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="item_stone">石料×10</button>' +
          '<button class="dev" data-act="item_wood">木材×10</button>' +
          '<button class="dev" data-act="item_yao">金疮药×5</button>' +
-         '<button class="dev" data-act="item_tiequan">铁拳拳谱</button></div></div>';
+         '<button class="dev" data-act="item_tiequan">铁拳拳谱</button>' +
+         '<button class="dev" data-act="item_xuanyin">玄阴真经</button></div></div>';
 
       // 7. 武学（v20261018c：42 门逐门获得，方便随时测试效果）
       h += '<div class="dev-sec"><div class="dev-h">🥋 武学（逐门习得，看效果）</div>';
