@@ -365,7 +365,7 @@
     dqOrders=[]; dqCursor=0;
     G.CombatEngine.peekEnemyIntents();
     dqRenderCard();
-    setTimeout(dqNextCommand, 200);
+    setTimeout(dqNextCommand, 260);   // v20261018i：回合衔接 200→260ms，节奏更从容
   }
 
   /** 轮到当前队员下令（必须用引擎真实单位对象：带 artIds/artMap，getStatus 副本不含） */
@@ -561,15 +561,16 @@
         segTimer=setInterval(function(){
           if(si>=segs.length){
             clearInterval(segTimer); segTimer=null;
-            timer=setTimeout(step, 280);
+            timer=setTimeout(step, 340);
             return;
           }
           var s=segs[si++];
           dqFxSeg(e, s.dmg, s.crit, si, segs.length);
-        }, 150);
+        }, 220);   // v20261018i：多段追击段间 150→220ms，每段看得清
         return;   // 多段播完再进下一条
       }
-      var d=(e.type==='player_atk'||e.type==='enemy_atk')?520:(e.type==='counter'||e.type==='dot')?420:300;
+      // v20261018i：整体放缓演出节奏——普攻 520→720ms、反击/持续伤 420→560ms，出手更清晰
+      var d=(e.type==='player_atk'||e.type==='enemy_atk')?720:(e.type==='counter'||e.type==='dot')?560:360;
       timer=setTimeout(step, d);
     }
     dqPlaySkip=function(){ clearT(); step(); };
