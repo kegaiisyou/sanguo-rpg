@@ -1,21 +1,22 @@
 (function(global) {
   'use strict';
 
-  // ========== 13 武器艺线 ==========
+  // ========== 13 武器艺线（套路：一门武学线=一套招式，攻/防/进退收于门下） ==========
+  // v20261018l：成套化——每线配定位描述（kind: 外功/内功/轻功/骑术），武学录按套路卡片分组
   var LINES = {
-    fist:    { id:'fist',    name:'拳脚', order:1  },
-    sword:   { id:'sword',   name:'剑',   order:2  },
-    blade:   { id:'blade',   name:'刀',   order:3  },
-    spear:   { id:'spear',   name:'枪',   order:4  },
-    staff:   { id:'staff',   name:'棍',   order:5  },
-    halberd: { id:'halberd', name:'戟',   order:6  },
-    hammer:  { id:'hammer',  name:'锤',   order:7  },
-    whip:    { id:'whip',    name:'鞭',   order:8  },
-    bow:     { id:'bow',     name:'弓',   order:9  },
-    hidden:  { id:'hidden',  name:'暗器', order:10 },
-    ride:    { id:'ride',    name:'骑术', order:11 },
-    light:   { id:'light',   name:'轻功', order:12 },
-    internal:{ id:'internal',name:'内功', order:13 }
+    fist:    { id:'fist',    name:'拳脚', order:1,  kind:'外功', desc:'刚猛近身，拳拳到肉，贴身短打' },
+    sword:   { id:'sword',   name:'剑',   order:2,  kind:'外功', desc:'剑走轻灵，攻守兼备，一沾即走' },
+    blade:   { id:'blade',   name:'刀',   order:3,  kind:'外功', desc:'大开大合，势如破竹，以力破巧' },
+    spear:   { id:'spear',   name:'枪',   order:4,  kind:'外功', desc:'长兵致远，一寸长一寸强，稳扎稳打' },
+    staff:   { id:'staff',   name:'棍',   order:5,  kind:'外功', desc:'棍扫六合，守中带攻，绵密难破' },
+    halberd: { id:'halberd', name:'戟',   order:6,  kind:'外功', desc:'步骑皆宜，攻防一体，势大力沉' },
+    hammer:  { id:'hammer',  name:'锤',   order:7,  kind:'外功', desc:'重锤撼岳，一力降十会，破甲摧坚' },
+    whip:    { id:'whip',    name:'鞭',   order:8,  kind:'外功', desc:'软鞭缠斗，借力打力，进退自如' },
+    bow:     { id:'bow',     name:'弓',   order:9,  kind:'外功', desc:'百步穿杨，先手制敌，以远制近' },
+    hidden:  { id:'hidden',  name:'暗器', order:10, kind:'外功', desc:'暗器无影，出其不意，防不胜防' },
+    ride:    { id:'ride',    name:'骑术', order:11, kind:'骑术', desc:'马战冲阵，来去如风，威震敌胆' },
+    light:   { id:'light',   name:'轻功', order:12, kind:'轻功', desc:'身法轻灵，进退迅捷，料敌机先' },
+    internal:{ id:'internal',name:'内功', order:13, kind:'内功', desc:'内息吐纳，强体增力，厚积薄发' }
   };
 
   // ========== 武学境界（7 阶） ==========
@@ -505,6 +506,18 @@
 
   MARTIAL_ARTS.LINES = LINES;
   MARTIAL_ARTS.REALMS = REALMS;
+
+  // v20261018l：各艺线全量招数统计（武学录套路卡片显示「门下 N 招」）
+  MARTIAL_ARTS.TOTAL_BY_LINE = (function(){
+    var t = {};
+    for (var k in MARTIAL_ARTS) {
+      if (MARTIAL_ARTS[k] && MARTIAL_ARTS[k].line) {
+        var ln = MARTIAL_ARTS[k].line;
+        t[ln] = (t[ln] || 0) + 1;
+      }
+    }
+    return t;
+  })();
 
   // v20261018f：参悟词条池（P0 参悟系统）——品质 0 白 / 1 蓝 / 2 紫，val = base + quality*step
   // key 均为战斗已消费字段：critRate/armorPen/critDmgAdd/stunChance/ignoreDef/multiHit

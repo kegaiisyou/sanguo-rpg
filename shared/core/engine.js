@@ -3701,18 +3701,31 @@
     if (!ids.length) {
       return '<div class="row"><span>武学录</span></div><p class="tip">尚未习得武学。武学随行止与机缘习得；技击之术在战斗中自动施展。</p>';
     }
+    // v20261018l：成套化——按艺线（套路）分组，套路卡片带定位/描述/门下招数统计
     var groups = {};
     ids.forEach(function (id) {
       var a = MA.get(id); if (!a) return;
-      var ln = MA_LINE_NAME[a.line] || a.line || '杂学';
-      (groups[ln] = groups[ln] || []).push({ id: id, a: a });
+      (groups[a.line] = groups[a.line] || []).push({ id: id, a: a });
     });
-    var lines = Object.keys(groups);
+    var LINES = MA.LINES || {};
+    var lines = Object.keys(groups).sort(function (x, y) {
+      return ((LINES[x] && LINES[x].order) || 99) - ((LINES[y] && LINES[y].order) || 99);
+    });
     var eqN = (state.equippedMartial || []).length;
     var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门 · 上阵 ' + eqN + '/' + martialSlotCap() + '</span></div>';
     h += renderSlotbarHTML();
     lines.forEach(function (ln) {
-      h += '<div class="ma-group">' + escapeHtml(ln) + '</div>';
+      var meta = LINES[ln] || {};
+      var kind = meta.kind || (ln === 'light' ? '轻功' : (ln === 'internal' ? '内功' : (ln === 'ride' ? '骑术' : '外功')));
+      var total = (MA.TOTAL_BY_LINE && MA.TOTAL_BY_LINE[ln]) || groups[ln].length;
+      var eqIn = groups[ln].filter(function (o) { return isMartialEquipped(o.id); }).length;
+      var name = MA_LINE_NAME[ln] || meta.name || ln;
+      h += '<div class="ma-group">' +
+        '<div class="ma-grow"><span class="ma-gname">' + escapeHtml(name) + '</span>' +
+        '<span class="ma-gkind">' + escapeHtml(kind) + '套路</span>' +
+        '<span class="ma-gstat">门下 ' + total + ' 招 · 习得 ' + groups[ln].length + ' · 上阵 ' + eqIn + '</span></div>' +
+        (meta.desc ? '<div class="ma-gdesc">' + escapeHtml(meta.desc) + '</div>' : '') +
+        '</div>';
       groups[ln].forEach(function (o) {
         var r = martialRealm(o.id);
         var t = MA_TYPE_NAME[o.a.type] || o.a.type;
