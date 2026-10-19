@@ -408,7 +408,7 @@
     btn('撤退·' + fleePct + '%', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','韩铁'); return; } dqTryFlee(unit); }, 'flee');
   }
 
-  /** 出招：列出「普通攻击」+ 装配武学（v20261018h 出招合一；withBasic 时首项为普攻），选后进入目标选择 */
+  /** 出招：列出「普通攻击」+ 装配武学（v20261018h 出招合一；v20261018m 装配招式按艺线套路分组），选后进入目标选择 */
   function dqShowArts(unit, withBasic){
     var ra=document.getElementById('actions'); if(!ra) return;
     ra.innerHTML='';
@@ -420,15 +420,33 @@
       b0.onclick=function(){ dqShowTargets(unit, defAid); };
       ra.appendChild(b0);
     }
+    var LINES = (G.MARTIAL_ARTS && G.MARTIAL_ARTS.LINES) || {};
+    var byLine = {};
     (unit.artIds||[]).forEach(function(aid){
       var a = unit.isTroop ? (unit.artMap && unit.artMap[aid]) : G.MARTIAL_ARTS.get(aid);
       if(!a) return;
-      var b=document.createElement('button'); b.className='act cb-menu skill';
-      b.textContent = unit.isTroop
-        ? (a.name + '〔军令〕')
-        : (a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':'')));
-      b.onclick=function(){ dqShowTargets(unit, aid); };
-      ra.appendChild(b);
+      var ln = a.line || (unit.isTroop ? 'troop' : 'misc');
+      (byLine[ln] = byLine[ln] || []).push(aid);
+    });
+    var lines = Object.keys(byLine).sort(function(x, y){
+      return ((LINES[x] && LINES[x].order) || 99) - ((LINES[y] && LINES[y].order) || 99);
+    });
+    lines.forEach(function(ln){
+      var meta = LINES[ln] || {};
+      var g = document.createElement('div');
+      g.className = 'dq-artgrp';
+      g.textContent = unit.isTroop ? '军令' : ((meta.name || ln) + ' · 套路');
+      ra.appendChild(g);
+      byLine[ln].forEach(function(aid){
+        var a = unit.isTroop ? (unit.artMap && unit.artMap[aid]) : G.MARTIAL_ARTS.get(aid);
+        if(!a) return;
+        var b=document.createElement('button'); b.className='act cb-menu skill';
+        b.textContent = unit.isTroop
+          ? (a.name + '〔军令〕')
+          : (a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':'')));
+        b.onclick=function(){ dqShowTargets(unit, aid); };
+        ra.appendChild(b);
+      });
     });
     var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
   }

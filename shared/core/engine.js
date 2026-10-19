@@ -3561,14 +3561,17 @@
     var txt=(pool?pool.txt:'')+(af.key==='multiHit' ? (af.val + '次') : (af.val>=1 ? af.val : Math.round(af.val*100)+'%'));
     return { name: pool ? pool.name : (af.name || af.key), quality: G.MARTIAL_ARTS.AFFIX_QUALITY[af.quality] || '白', txt: txt, key: af.key, val: af.val };
   }
-  function martialPractice(id){
+  // v20261018m：套路境界=该艺线门下已习得招式的最高境界（整套武学的境界门面）
+  function schoolRealm(line){
+    var m=0;
+    martialIds().forEach(function(id){ var a=G.MARTIAL_ARTS.get(id); if(a && a.line===line){ var r=martialRealm(id); if(r>m) m=r; } });
+    return m;
+  }
+  // v20261018m：单招精进公共逻辑（加经验+可能升级）；由单招闭关/整套闭关共用
+  function applyPractice(id){
     var a=G.MARTIAL_ARTS.get(id); if(!a) return;
-    var r=martialRealm(id), maxR=martialMaxRealm(a);
-    if(r>=maxR){ toast('「'+a.name+'」已至'+(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+'圆满，无可再进。'); return; }
-    var cost=martialPracticeCost(r);
-    if((state.money||0)<cost){ toast('银两不足（需 '+cost+' 两），闭关难以为继。'); return; }
-    state.money-=cost;
     var me=state.martialExp || (state.martialExp={});
+    var r=martialRealm(id);
     me[id]=(me[id]||0)+martialPracticeGain(r);
     var _sv=document.getElementById('m-skill-view');
     if(me[id]>=martialExpNeed(r)){
@@ -3576,15 +3579,38 @@
       state.realm=(state.realm||{}); state.realm[id]=(state.realm[id]||0)+1;
       var nr=state.realm[id];
       var upTxt=(G.MARTIAL_ARTS.REALMS[nr]||('Lv.'+nr));
-      // 检查突破效果
       var bt=(a.breakthrough||[]).filter(function(b){return b.realm===nr;})[0];
       toast('『' + a.name + '』境界提升：' + upTxt + (bt?(' · 解锁「'+bt.eff+'」'):'') + '！','good');
       log('【修炼】「' + a.name + '」境界提升至 ' + upTxt + (bt?(' · 解锁「'+bt.eff+'」'):'') + '！','good');
-      if(_sv) _sv.innerHTML=renderMartialDetailHTML(id);
+      if(_sv && _sv.innerHTML.indexOf('ma-dname')>=0) _sv.innerHTML=renderMartialDetailHTML(id);
     } else {
-      if(_sv) _sv.innerHTML=renderMartialDetailHTML(id);
+      if(_sv && _sv.innerHTML.indexOf('ma-dname')>=0) _sv.innerHTML=renderMartialDetailHTML(id);
       toast('闭关半日，'+(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+' 精进 ('+(me[id]||0)+'/'+martialExpNeed(r)+')。');
     }
+  }
+  function martialPractice(id){
+    var a=G.MARTIAL_ARTS.get(id); if(!a) return;
+    var r=martialRealm(id), maxR=martialMaxRealm(a);
+    if(r>=maxR){ toast('「'+a.name+'」已至'+(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+'圆满，无可再进。'); return; }
+    var cost=martialPracticeCost(r);
+    if((state.money||0)<cost){ toast('银两不足（需 '+cost+' 两），闭关难以为继。'); return; }
+    state.money-=cost;
+    applyPractice(id);
+    save(state);
+  }
+  // v20261018m：整套闭关——一次闭关精进该艺线门下全部已习得招式（练的是整套武学）
+  function schoolPractice(line){
+    var ids=martialIds().filter(function(id){ var a=G.MARTIAL_ARTS.get(id); return a && a.line===line; });
+    if(!ids.length){ toast('该套路门下尚无武学可练。'); return; }
+    var total=0;
+    ids.forEach(function(id){ var r=martialRealm(id), mx=martialMaxRealm(G.MARTIAL_ARTS.get(id)); if(r<mx) total+=martialPracticeCost(r); });
+    if(!total){ toast('「'+ (G.MARTIAL_ARTS.LINES[line]&&G.MARTIAL_ARTS.LINES[line].name||line) +'」已全套圆满，无可再进。'); return; }
+    if((state.money||0)<total){ toast('银两不足（需 '+total+' 两），整套闭关难以为继。'); return; }
+    state.money-=total;
+    ids.forEach(function(id){ var r=martialRealm(id), mx=martialMaxRealm(G.MARTIAL_ARTS.get(id)); if(r<mx) applyPractice(id); });
+    var _sv=document.getElementById('m-skill-view');
+    if(_sv && _sv.innerHTML.indexOf('ma-group')>=0) _sv.innerHTML=renderMartialListHTML();
+    toast('整套闭关：'+(G.MARTIAL_ARTS.LINES[line]&&G.MARTIAL_ARTS.LINES[line].name||line)+' 门下武学齐头并进！','good');
     save(state);
   }
   function martialCanyan(id){
@@ -3720,11 +3746,18 @@
       var total = (MA.TOTAL_BY_LINE && MA.TOTAL_BY_LINE[ln]) || groups[ln].length;
       var eqIn = groups[ln].filter(function (o) { return isMartialEquipped(o.id); }).length;
       var name = MA_LINE_NAME[ln] || meta.name || ln;
+      var sRealm = schoolRealm(ln);
+      var sCost = 0;
+      groups[ln].forEach(function (o) {
+        var rr = martialRealm(o.id), mx = martialMaxRealm(o.a);
+        if (rr < mx) sCost += martialPracticeCost(rr);
+      });
       h += '<div class="ma-group">' +
         '<div class="ma-grow"><span class="ma-gname">' + escapeHtml(name) + '</span>' +
         '<span class="ma-gkind">' + escapeHtml(kind) + '套路</span>' +
-        '<span class="ma-gstat">门下 ' + total + ' 招 · 习得 ' + groups[ln].length + ' · 上阵 ' + eqIn + '</span></div>' +
+        '<span class="ma-gstat">门下 ' + total + ' 招 · 习得 ' + groups[ln].length + ' · 上阵 ' + eqIn + ' · 境' + sRealm + '</span></div>' +
         (meta.desc ? '<div class="ma-gdesc">' + escapeHtml(meta.desc) + '</div>' : '') +
+        (sCost > 0 ? '<button type="button" class="ma-sch" data-sch="' + ln + '">整套闭关 · ' + sCost + ' 两</button>' : '') +
         '</div>';
       groups[ln].forEach(function (o) {
         var r = martialRealm(o.id);
@@ -3819,6 +3852,9 @@
         // v20261018f：P0 练习/参悟
         var actEl=t.closest ? t.closest('[data-act="practice"], [data-act="canyan"]') : null;
         if(actEl){ var _m=actEl.getAttribute('data-mid'); if(actEl.getAttribute('data-act')==='practice') martialPractice(_m); else martialCanyan(_m); return; }
+        // v20261018m：套路整套闭关
+        var schEl=t.closest ? t.closest('[data-sch]') : null;
+        if(schEl){ schoolPractice(schEl.getAttribute('data-sch')); return; }
         var card=t.closest ? t.closest('[data-mid]') : null;
         if(card){ _sv.innerHTML=renderMartialDetailHTML(card.getAttribute('data-mid')); }
       };
