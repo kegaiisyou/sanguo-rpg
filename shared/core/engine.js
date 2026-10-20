@@ -3593,8 +3593,8 @@
     var r=martialRealm(id), maxR=martialMaxRealm(a);
     if(r>=maxR){ toast('「'+a.name+'」已至'+(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+'圆满，无可再进。'); return; }
     var cost=martialPracticeCost(r);
-    if((state.money||0)<cost){ toast('银两不足（需 '+cost+' 两），闭关难以为继。'); return; }
-    state.money-=cost;
+    if((state.gold||0)<cost){ toast('银两不足（需 '+cost+' 两），闭关难以为继。'); return; }
+    state.gold-=cost;
     applyPractice(id);
     save(state);
   }
@@ -3605,8 +3605,8 @@
     var total=0;
     ids.forEach(function(id){ var r=martialRealm(id), mx=martialMaxRealm(G.MARTIAL_ARTS.get(id)); if(r<mx) total+=martialPracticeCost(r); });
     if(!total){ toast('「'+ (G.MARTIAL_ARTS.LINES[line]&&G.MARTIAL_ARTS.LINES[line].name||line) +'」已全套圆满，无可再进。'); return; }
-    if((state.money||0)<total){ toast('银两不足（需 '+total+' 两），整套闭关难以为继。'); return; }
-    state.money-=total;
+    if((state.gold||0)<total){ toast('银两不足（需 '+total+' 两），整套闭关难以为继。'); return; }
+    state.gold-=total;
     ids.forEach(function(id){ var r=martialRealm(id), mx=martialMaxRealm(G.MARTIAL_ARTS.get(id)); if(r<mx) applyPractice(id); });
     var _sv=document.getElementById('m-skill-view');
     if(_sv && _sv.innerHTML.indexOf('ma-group')>=0) _sv.innerHTML=renderMartialListHTML();
@@ -3616,8 +3616,8 @@
   function martialCanyan(id){
     var a=G.MARTIAL_ARTS.get(id); if(!a) return;
     var cost=120;
-    if((state.money||0)<cost){ toast('银两不足（需 '+cost+' 两），无从参悟。'); return; }
-    state.money-=cost;
+    if((state.gold||0)<cost){ toast('银两不足（需 '+cost+' 两），无从参悟。'); return; }
+    state.gold-=cost;
     var roll=Math.random();
     var q= roll<0.55 ? 0 : (roll<0.87 ? 1 : 2);
     var pool=G.MARTIAL_ARTS.AFFIX_POOL||[];
@@ -3790,8 +3790,8 @@
     var sRealm = schoolRealm(a.line);
     if (a.sys.realm && sRealm < a.sys.realm) { toast('套路境界不足：此招须套路境' + a.sys.realm + '（当前境' + sRealm + '）。'); return; }
     var cost = a.sys.cost || 0;
-    if ((state.money || 0) < cost) { toast('银两不足（需 ' + cost + ' 两），无从解锁。'); return; }
-    state.money -= cost;
+    if ((state.gold || 0) < cost) { toast('银两不足（需 ' + cost + ' 两），无从解锁。'); return; }
+    state.gold -= cost;
     (state.learnedMartial = state.learnedMartial || []).push(id);
     var _sv = document.getElementById('m-skill-view');
     if (_sv && _sv.innerHTML.indexOf('sys-tree') >= 0) _sv.innerHTML = renderSystemTreeHTML(a.line);
