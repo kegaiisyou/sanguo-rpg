@@ -1,5 +1,5 @@
-  .tt-ver{margin-top:18px;font-size:12px;letter-spacing:2px;color:rgba(40,32,24,.55);font-family:var(--serif,serif);}
-  .st-ver{font-size:11px;color:rgba(40,32,24,.5);letter-spacing:1px;margin-left:6px;}
+  .tt-ver{margin-top:18px;font-size:12px;letter-spacing:2px;color:rgba(40,32,24,.78);font-family:var(--serif,serif);}
+  .st-ver{font-size:11px;color:rgba(40,32,24,.72);letter-spacing:1px;margin-left:6px;}
   .st-faction{font-size:11px;color:#7d6a2e;margin-left:6px;cursor:pointer;border:1px solid rgba(125,106,46,.45);padding:1px 6px;border-radius:6px;letter-spacing:1px;}
   .st-faction:hover{background:rgba(125,106,46,.12);}
   .edict-box{max-width:460px;margin:0 auto;padding:8px 14px;}
@@ -8,12 +8,12 @@
   .edict-acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
   .edict-acts .btn{display:flex;flex-direction:column;align-items:center;min-width:96px;line-height:1.5;}
   .edict-acts .btn .sub{font-size:11px;color:var(--ink-faint);}
-  .edict-foot{margin-top:12px;text-align:center;font-size:12px;color:rgba(40,32,24,.5);}
+  .edict-foot{margin-top:12px;text-align:center;font-size:12px;color:rgba(40,32,24,.72);}
   .edict-cmds{margin:6px 0 10px;border-top:1px dashed rgba(120,80,40,.25);padding-top:8px;}
   .edict-cmd-h{font-size:12px;color:#6b3b2e;text-align:center;margin-bottom:6px;}
   .edict-cmd{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap;}
   .edict-cmd .edict-do{display:flex;flex-direction:column;align-items:center;min-width:104px;padding:8px 6px;line-height:1.4;}
-  .edict-cmd .edict-do .sub{font-size:10px;color:rgba(40,32,24,.55);}
+  .edict-cmd .edict-do .sub{font-size:10px;color:rgba(40,32,24,.74);}
   .edict-del{flex:1;min-width:120px;padding:5px;border:1px solid rgba(120,80,40,.3);border-radius:6px;background:#fdf6e8;color:#3a2c1c;font-size:12px;}
   .edict-pred{flex-basis:100%;font-size:11px;color:#5a7a4a;text-align:center;}
 
@@ -21,18 +21,18 @@
   .fm-h{font-family:var(--serif,serif);font-size:20px;text-align:center;margin-bottom:10px;color:#6b3b2e;}
   .fm-row{border-bottom:1px solid rgba(40,32,24,.12);padding:8px 4px;}
   .fm-lord{font-size:15px;margin-bottom:2px;}
-  .fm-lord small{color:rgba(40,32,24,.55);font-weight:normal;}
+  .fm-lord small{color:rgba(40,32,24,.74);font-weight:normal;}
   .fm-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
   .fm-cities{font-size:14px;color:#3a2e22;margin:2px 0;}
-  .fm-desc{font-size:12px;color:rgba(40,32,24,.6);}
+  .fm-desc{font-size:12px;color:rgba(40,32,24,.75);}
   .fm-foot{margin-top:12px;text-align:center;font-size:13px;color:#5a4a38;}
 
   :root{
     --paper:#f4eee2;        /* 宣纸底 */
     --paper2:#ece3d1;
     --ink:#2c2620;          /* 墨色正文 */
-    --ink-soft:#6f6456;     /* 浅墨 */
-    --ink-faint:#7a6c56;    /* 极浅 */
+    --ink-soft:#5f5444;     /* 浅墨（v20261018o 加深提对比） */
+    --ink-faint:#6b5940;    /* 极浅（v20261018o 加深提对比） */
     --seal:#9e3b2e;         /* 朱印红 */
     --jade:#3f7d5e;         /* 收获青 */
     --gold:#b0832f;         /* 修为/银两 */
@@ -1295,6 +1295,11 @@
   .dmg-float.label-block{color:#3f5f7a;font-size:18px;text-shadow:0 0 6px rgba(63,95,122,.5);}
   .dmg-float.label-counter{color:#b7791f;font-size:19px;text-shadow:0 0 8px rgba(183,121,31,.7);}
   .dmg-float.label-countered{color:#6b7280;font-size:17px;text-shadow:0 1px 2px rgba(255,255,255,.7);}
+  /* v20261018o：连击段计数浮标（承受方卡右上，不抢伤害飘字位） */
+  .dmg-float.label-segcnt{top:6px;right:6px;font-size:13px;color:#8a6420;font-weight:700;letter-spacing:.05em;text-shadow:0 1px 2px rgba(255,255,255,.92);animation:dmgRise .7s ease-out forwards;}
+  /* v20261018o：点敌直打——敌人卡可点（多敌点谁打谁） */
+  .dq-unit.dq-enemy{cursor:pointer;}
+  .dq-unit.dq-enemy:active{transform:scale(.98);}
   /* 玩家侧效果落在卡左下，避免与敌方(右上)重叠 */
   .dmg-float.side-player{top:auto;bottom:-2px;left:16px;right:auto;}
   .crit-burst.side-player{top:auto;bottom:6px;left:22px;right:auto;}
@@ -1606,6 +1611,12 @@
   #app.in-combat #actions .act.cb-menu.ghost{ background:rgba(74,62,48,.06); border-color:rgba(74,62,48,.22); color:var(--ink-soft); }
   #app.in-combat #actions .act.cb-menu.item{ background:rgba(63,125,94,.13); border-color:rgba(63,125,94,.42); color:#2f5d45; }
   #app.in-combat #actions .act.cb-menu.flee{ background:rgba(158,59,46,.15); border-color:rgba(158,59,46,.5); color:var(--seal); }
+  /* v20261018o：招式胶囊——快捷出招横向排，点一下即出招（单敌免选） */
+  #app.in-combat #actions .dq-chips{ flex:1 1 100%; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:2px 0 6px; }
+  #app.in-combat #actions .act.cb-menu.chip{ border-radius:999px; min-height:40px; padding:8px 15px; font-size:13px;
+    background:rgba(255,255,255,.55); border-color:rgba(74,62,48,.32); color:var(--ink); letter-spacing:1px; }
+  #app.in-combat #actions .act.cb-menu.chip.skill{ background:rgba(176,131,47,.14); border-color:rgba(176,131,47,.6); color:#6e4f17; }
+  #app.in-combat #actions .act.cb-menu.chip.ghost{ background:rgba(74,62,48,.06); border-color:rgba(74,62,48,.2); color:var(--ink-soft); }
   /* 谁在行动：醒目横幅，避免误以为「卡住」 */
   #app.in-combat #actions .dq-turn{ flex:1 1 100%; text-align:center; font-family:"STKaiti","KaiTi",serif;
     font-size:15px; font-weight:700; letter-spacing:3px; color:var(--seal); margin:0 0 2px; }
@@ -3951,11 +3962,11 @@
 .ma-slot.filled:active{transform:scale(.94);}
 .ma-group{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px;padding:6px 9px;border-left:3px solid rgba(214,138,58,.75);
   background:linear-gradient(180deg,rgba(66,50,22,.55),rgba(46,34,15,.55));border-radius:6px;color:#ffd268;}
-.ma-grow{display:flex;align-items:center;gap:6px;min-width:0;}
+.ma-grow{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap;}
 .ma-gname{font-size:14px;font-weight:700;letter-spacing:.14em;color:#ffe3a6;flex:0 0 auto;}
-.ma-gkind{font-size:10px;color:#6e4f17;background:rgba(176,131,47,.22);border:1px solid rgba(176,131,47,.5);border-radius:10px;padding:0 6px;flex:0 0 auto;}
-.ma-gstat{margin-left:auto;font-size:10.5px;color:#c8b78f;letter-spacing:.04em;white-space:nowrap;}
-.ma-gdesc{font-size:11px;color:#a89367;letter-spacing:.06em;}
+.ma-gkind{font-size:10px;color:#f0c98a;background:rgba(176,131,47,.24);border:1px solid rgba(214,138,58,.65);border-radius:10px;padding:0 6px;flex:0 0 auto;}
+.ma-gstat{margin-left:0;font-size:10.5px;color:#e2c996;letter-spacing:.04em;white-space:nowrap;flex:1 1 100%;margin-top:3px;}
+.ma-gdesc{font-size:11px;color:#c9b584;letter-spacing:.06em;}
 .ma-sch{display:inline-block;margin-top:3px;padding:3px 10px;border:1px solid rgba(202,162,74,.5);border-radius:var(--r-btn);
   background:rgba(184,137,58,.18);color:#ffe9b8;font-size:11.5px;letter-spacing:.04em;cursor:pointer;transition:.15s;}
 .ma-sch:active{background:rgba(202,162,74,.45);transform:scale(.97);}
@@ -3979,10 +3990,10 @@
   background:rgba(184,137,58,.18);color:#ffe9b8;font-size:12px;cursor:pointer;transition:.15s;}
 .ma-eq:active{background:rgba(202,162,74,.45);transform:scale(.95);}
 .ma-n{font-size:14px;color:#ffd268;font-weight:600;flex:0 0 auto;}
-.ma-n .ma-force{font-style:normal;font-size:10px;color:#6e4f17;background:rgba(176,131,47,.2);
-  border:1px solid rgba(176,131,47,.45);border-radius:10px;padding:0 5px;margin-left:6px;vertical-align:1px;}
-.ma-meta{font-size:11.5px;color:#a89367;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ma-lv{font-size:11px;color:#c8b78f;flex:0 0 auto;border:1px solid rgba(202,162,74,.45);border-radius:12px;padding:1px 7px;}
+.ma-n .ma-force{font-style:normal;font-size:10px;color:#f0c98a;background:rgba(176,131,47,.24);
+  border:1px solid rgba(214,138,58,.6);border-radius:10px;padding:0 5px;margin-left:6px;vertical-align:1px;}
+.ma-meta{font-size:11.5px;color:#c9b584;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ma-lv{font-size:11px;color:#e2c996;flex:0 0 auto;border:1px solid rgba(202,162,74,.55);border-radius:12px;padding:1px 7px;}
 .ma-detail{padding:2px 0 8px;}
 .ma-back{display:inline-block;margin-bottom:8px;padding:5px 12px;border:1px solid rgba(202,162,74,.5);border-radius:var(--r-btn);
   background:rgba(184,137,58,.16);color:#ffe9b8;font-size:12px;cursor:pointer;}

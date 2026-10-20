@@ -311,6 +311,29 @@
     html+='</div>';
     getDqCardEl().innerHTML=html;
     dqRenderOrderBar();
+    bindEnemyDirectTap();
+  }
+
+  // v20261018o：点敌直打——下令中直接点敌人卡片 = 该敌为普攻目标（多敌点谁打谁）；教学/演出忙时不响应
+  function bindEnemyDirectTap(){
+    var card=getDqCardEl(); if(!card) return;
+    card.querySelectorAll('.dq-enemy[data-i]').forEach(function(el){
+      el.onclick=function(){
+        if(dqBusy) return;
+        var st=G.CombatEngine.state;
+        if(!st || st.result) return;
+        var live=st.playerUnits.filter(function(u){ return u.hp>0; });
+        if(dqCursor==null || dqCursor>=live.length) return;
+        var unit=live[dqCursor];
+        var idx=parseInt(el.getAttribute('data-i'),10);
+        var e=st.enemies[idx];
+        if(!e || e.hp<=0) return;
+        if(tutCombatActive()){ tutCombatAct('attack'); return; }
+        var defAid = unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan');
+        dqOrders.push({unit:unit, actionId:defAid, targetIdx:idx});
+        dqAdvance();
+      };
+    });
   }
 
   /** P0-1 行动顺序条：渲染本回合行动序列（我方指令序→敌方意图序），beat 徽标 = 出手节奏 */
@@ -395,11 +418,17 @@
       else { if(!getState().flags.onb.tcMsgs.finish){ log('「好生养着。再点〔出招〕，送这木人桩散架！」','npc','韩铁'); getState().flags.onb.tcMsgs.finish=true; } }
     }
     function btn(label, fn, cls){ var b=document.createElement('button'); b.className='act cb-menu'+(cls?' '+cls:''); b.classList.remove('locked'); b.textContent=label; b.onclick=fn; ra.appendChild(b); }
-    // v20261018h：出招合一——「攻击/武学」合并为「出招」（菜单首项=普攻，后列装配武学）；教程战直接演出，无需弹菜单
-    btn(unit.isTroop?'军令':'出招', function(){
+    // v20261018o：指令栏新形态——「普攻」为主按钮（点一下直接出招，单敌免选已做），
+    //   「招式」弹出胶囊快捷出招；点敌人卡片=直打普攻该敌（见 dqRenderCard 绑定的 bindEnemyDirectTap）。
+    var defAid0 = unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan');
+    btn(unit.isTroop?'军令':'普攻', function(){
       if(tut){ tutCombatAct('attack'); return; }
-      dqShowArts(unit, true);
-    }, tut&&(step==='attack'||step==='finish')?'onb-glow':null);
+      if(unit.isTroop){ dqShowArts(unit, true); return; }
+      dqShowTargets(unit, defAid0);
+    }, (tut&&(step==='attack'||step==='finish')?'onb-glow ':'')+'primary');
+    if(!unit.isTroop){
+      btn('招式', function(){ if(tut){ tutCombatAct('attack'); return; } dqShowArts(unit, true); }, tut&&(step==='attack'||step==='finish')?'onb-glow':null);
+    }
     btn('防御', function(){ if(tut){ tutCombatAct('defend'); return; } dqOrders.push({unit:unit, actionId:'defend'}); dqAdvance(); }, tut&&step==='defend'?'onb-glow':null);
     // 教学：韩铁赠行囊前不显示「道具」，避免提前绕过关卡；正常战恒显示
     if(!(tut && !getState().flags.onb.packGiven)) btn('道具', function(){ dqOpenItems(unit); }, tut&&step==='item'?'onb-glow':'item');
@@ -408,17 +437,18 @@
     btn('撤退·' + fleePct + '%', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','韩铁'); return; } dqTryFlee(unit); }, 'flee');
   }
 
-  /** 出招：列出「普通攻击」+ 装配武学（v20261018h 出招合一；v20261018m 装配招式按艺线套路分组），选后进入目标选择 */
+  /** 出招：列出「普通攻击」+ 装配武学（v20261018h 出招合一；v20261018m 装配招式按艺线套路分组；v20261018o 胶囊化快捷出招） */
   function dqShowArts(unit, withBasic){
     var ra=document.getElementById('actions'); if(!ra) return;
     ra.innerHTML='';
     var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent=unit.isTroop?'选择军令':'选择出招'; ra.appendChild(tip);
+    var chips=document.createElement('div'); chips.className='dq-chips';
     var defAid = unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan');
     if(withBasic && !unit.isTroop){
-      var b0=document.createElement('button'); b0.className='act cb-menu skill';
-      b0.textContent='普通攻击（不耗内力）';
+      var b0=document.createElement('button'); b0.className='act cb-menu skill chip';
+      b0.textContent='普攻 · 不耗内力';
       b0.onclick=function(){ dqShowTargets(unit, defAid); };
-      ra.appendChild(b0);
+      chips.appendChild(b0);
     }
     var LINES = (G.MARTIAL_ARTS && G.MARTIAL_ARTS.LINES) || {};
     var byLine = {};
@@ -440,15 +470,16 @@
       byLine[ln].forEach(function(aid){
         var a = unit.isTroop ? (unit.artMap && unit.artMap[aid]) : G.MARTIAL_ARTS.get(aid);
         if(!a) return;
-        var b=document.createElement('button'); b.className='act cb-menu skill';
+        var b=document.createElement('button'); b.className='act cb-menu skill chip';
         b.textContent = unit.isTroop
           ? (a.name + '〔军令〕')
           : (a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':'')));
         b.onclick=function(){ dqShowTargets(unit, aid); };
-        ra.appendChild(b);
+        chips.appendChild(b);
       });
     });
-    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
+    ra.appendChild(chips);
+    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost chip'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
   }
 
   /** 出招目标：v20261018h 单敌免选目标——只剩一个敌人直接出招；多敌才列目标菜单（forcedAid 指定招式，缺省用 beng_quan） */
@@ -596,6 +627,7 @@
   }
 
   // v20261018d：多段追击的「后续段」紧凑演出——小飘字 + 轻受击 + 攻击方前冲；尾段补伤口印记与命中音
+  // v20261018o：段间轻震屏 + 连击段计数（「3/5」浮标挂承受方卡，不抢伤害飘字位）
   function dqFxSeg(entry, dmg, crit, segIdx, total){
     var side=entry.tgtSide, idx=entry.tgtIdx;
     if(!side){
@@ -603,6 +635,8 @@
       else if(entry.type==='enemy_atk') side='player';
     }
     if(!side || !dmg || dmg<=0) return;
+    shakeScene();                                // 每段一击轻震屏，连击节奏感
+    floatLabel(side, segIdx+'/'+total, 'segcnt', idx);
     floatDamage(dmg, side, crit, idx);
     flashHit(side, crit, idx);
     dqLunge(side==='player' ? 'enemy' : 'player');   // 攻击方前冲（承受方另一侧）
