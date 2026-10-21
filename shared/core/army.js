@@ -509,6 +509,7 @@
     }
     function esc(s) { return escapeHtml ? escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s); }
     // ── 军队面板四页签（v20260924x：概况/编成/募兵/辎重）──
+    var armyPanelTab = 'ov';   // v20261021b：记忆军队面板当前页签（编组/改列重开后仍回原页）
     function amTabBtn(k, n, on) {
       return '<button type="button" class="am-tab' + (on ? ' on' : '') + '" data-pg="' + k + '">' + n + '</button>';
     }
@@ -522,9 +523,9 @@
       h += armySwitchBar();
       h += '<div class="am-tabs">';
       var tabs = [{ k: 'ov', n: '概况' }, { k: 'fy', n: '编成' }, { k: 'mu', n: '募兵' }, { k: 'zz', n: '辎重' }];
-      tabs.forEach(function (t, i) { h += amTabBtn(t.k, t.n, i === 0); });
+      tabs.forEach(function (t) { h += amTabBtn(t.k, t.n, armyPanelTab === t.k); });
       h += '</div>';
-      h += amPg('ov', armyOvHTML(a), true) + amPg('fy', armyFyHTML(a)) + amPg('mu', armyMuHTML(a)) + amPg('zz', armyZzHTML(a));
+      h += amPg('ov', armyOvHTML(a), armyPanelTab === 'ov') + amPg('fy', armyFyHTML(a), armyPanelTab === 'fy') + amPg('mu', armyMuHTML(a), armyPanelTab === 'mu') + amPg('zz', armyZzHTML(a), armyPanelTab === 'zz');
       return h;
     }
     function armyOvHTML(a) {
@@ -551,28 +552,89 @@
       h += '<p class="hint">军令依阵位而别：前军可冲阵/坚守，中军压上/督战，后军齐射/掠阵，游骑包抄/断粮/追击。阵容既定，战阵之上每回合下的是军令，不是拳脚。</p>';
       return h;
     }
+    // ══ 部曲编成视图（v20261021b）：背包式单位网格 + 阵位编组槽（部落与弯刀式呈现）══
+    var TROOP_ICONS = { changqiang:'🗡', daodun:'🛡', gongnu:'🏹', qibing:'🐎', gongcheng:'🪜', qizhong:'🐴', minfu:'⛏' };
+    var armyPickSel = null;   // 点选待编组的兵种 type
+    function armyPickType(type) {
+      armyPickSel = (armyPickSel === type) ? null : type;
+      if (getCurrentModalKind && getCurrentModalKind() === 'army') openModal('army');
+      return true;
+    }
+    function armyFormation(rank) {
+      if (!armyPickSel) { toast('先点选一种兵种，再点上方阵位槽编组。'); return false; }
+      var type = armyPickSel;
+      var ok = armySetRank(type, rank);
+      if (ok) { armyPickSel = null; if (getCurrentModalKind && getCurrentModalKind() === 'army') openModal('army'); }
+      return ok;
+    }
+    function avatarHTML(name, role) {
+      try { return (global.UI_Icons && UI_Icons.avatar) ? UI_Icons.avatar(name, role || '') : '👤'; }
+      catch (e) { return '👤'; }
+    }
     function armyFyHTML(a) {
       var T = TROOPS();
-      var h = '<div class="am-grid">';
+      var st = S();
+      // 阵位编组槽（前/中/后/游骑）——点选兵种后点槽即改列
+      var h = '<div class="am-fmt">';
+      LF.ARMY_RANK_ORDER.forEach(function (rk) {
+        var d = LF.ARMY_RANKS[rk] || {};
+        var inIt = a.troops.filter(function (t) { return t && t.rank === rk && (t.count || 0) > 0; });
+        var cnt = 0; inIt.forEach(function (t) { cnt += (t.count || 0); });
+        var inner = inIt.length
+          ? inIt.map(function (t) { return '<span class="am-fmt-u">' + (TROOP_ICONS[t.type] || '·') + ' ' + ((T[t.type] || {}).name || t.type) + '×' + (t.count || 0) + '</span>'; }).join('')
+          : '<span class="am-fmt-empty">空 · 点选兵种后点此</span>';
+        h += '<button type="button" class="am-fmt-slot' + (armyPickSel ? ' pick' : '') + '" data-rank="' + rk + '" onclick="window.armyFormation(\'' + rk + '\')">'
+          + '<span class="am-fmt-ic">' + (d.icon || '') + '</span><span class="am-fmt-nm">' + esc(d.name || '') + '</span>'
+          + '<span class="am-fmt-cnt">' + cnt + ' 人</span><span class="am-fmt-grp">' + inner + '</span></button>';
+      });
+      h += '</div>';
+      // 单位网格：兵种卡（堆叠）+ 将佐卡（个体）
+      h += '<div class="am-units">';
+      h += '<div class="am-unit-sec"><div class="am-unit-title">兵 种</div><div class="am-unit-grid">';
       if (!a.troops.length) {
         h += '<div class="am-empty">尚无部曲——可往城中军营募兵，或于政令台「治军」。</div>';
       }
       a.troops.forEach(function (t) {
         var d = T[t.type]; if (!d) return;
         var r = LF.ARMY_RANKS[t.rank] || LF.ARMY_RANKS.front;
-        h += '<div class="am-cell">';
-        h += '<div class="am-ctop"><b>' + esc(d.name) + '</b><span class="am-rank">' + r.icon + esc(r.name) + '</span></div>';
-        h += '<div class="am-cnum">' + (t.count || 0) + ' 人</div>';
-        h += '<div class="am-cdesc">' + esc(d.desc) + '</div>';
-        h += '<div class="am-cops">';
-        rankAllow(t.type).forEach(function (rk) {
-          if (rk === t.rank) return;
-          h += '<button class="btn sm" onclick="window.armySetRank(\'' + t.type + '\',\'' + rk + '\')">改列' + esc((LF.ARMY_RANKS[rk] || {}).name) + '</button>';
-        });
-        h += '<button class="btn sm danger" onclick="window.armyDisband(\'' + t.type + '\',1)">遣散1</button>';
-        h += '<button class="btn sm danger" onclick="window.armyDisband(\'' + t.type + '\',10)">遣散10</button>';
-        h += '</div></div>';
+        var sel = (armyPickSel === t.type) ? ' on' : '';
+        h += '<div class="am-unit am-troop' + sel + '" data-type="' + t.type + '" onclick="window.armyPickType(\'' + t.type + '\')">'
+          + '<div class="am-u-ic">' + (TROOP_ICONS[t.type] || '·') + '</div>'
+          + '<div class="am-u-nm">' + esc(d.name) + '</div>'
+          + '<div class="am-u-cnt">×' + (t.count || 0) + '</div>'
+          + '<span class="am-u-tag">' + (r.icon || '') + esc(r.name || '') + '</span>'
+          + '<button type="button" class="am-u-x" onclick="event.stopPropagation();window.armyDisband(\'' + t.type + '\',10)">遣10</button>'
+          + '</div>';
       });
+      h += '</div></div>';
+      h += '<div class="am-unit-sec"><div class="am-unit-title">将 佐</div><div class="am-unit-grid">';
+      var any = false;
+      (st.party || []).forEach(function (c) {
+        any = true;
+        h += '<div class="am-unit am-officer" onclick="window.openPartyPanel()">'
+          + '<div class="am-u-ic am-u-ava">' + avatarHTML(c.name, c.role) + '</div>'
+          + '<div class="am-u-nm">' + esc(c.name) + '</div>'
+          + '<div class="am-u-cnt">随行</div>'
+          + '<span class="am-u-tag fol">随</span>'
+          + '</div>';
+      });
+      var rosterL = (LF.Officers && LF.Officers.roster) ? LF.Officers.roster() : [];
+      rosterL.forEach(function (o) {
+        any = true;
+        var tag = '随行', tagCls = 'fol', sub = '在麾下';
+        if (o.assignment && o.assignment.type === 'commander') { tag = '主将'; tagCls = 'cm'; sub = '三军主将'; }
+        else if (o.assignment && o.assignment.type === 'governor') { tag = '太守'; tagCls = 'gov'; sub = '一郡太守'; }
+        else if (o.assignment && o.assignment.type === 'steward') { tag = '监理'; tagCls = 'stw'; sub = '监理设施'; }
+        h += '<div class="am-unit am-officer" onclick="window.openOfficerDetail(\'' + o.id + '\')">'
+          + '<div class="am-u-ic am-u-ava">' + avatarHTML(o.name, o.role) + '</div>'
+          + '<div class="am-u-nm">' + esc(o.name) + '</div>'
+          + '<div class="am-u-cnt">' + sub + '</div>'
+          + '<span class="am-u-tag ' + tagCls + '">' + esc(tag) + '</span>'
+          + '</div>';
+      });
+      if (!any) h += '<div class="am-empty">麾下尚无将佐——可于城中「寻访」登庸在野豪杰，或克城俘获敌将。</div>';
+      h += '</div></div>';
+      h += '<p class="hint">点选兵种 → 点上方阵位槽即编组改列；点将佐卡可查看详情、任命主将/太守/监理设施。</p>';
       h += '</div>';
       return h;
     }
@@ -683,6 +745,7 @@
         _tb.forEach(function (t) {
           t.onclick = function () {
             var pg = t.getAttribute('data-pg');
+            armyPanelTab = pg;   // v20261021b：记住当前页签，重开面板（编组/改列）仍回本页
             box.querySelectorAll('.am-tab').forEach(function (x) { x.classList.toggle('on', x === t); });
             box.querySelectorAll('.am-pg').forEach(function (pn) { pn.style.display = (pn.getAttribute('data-pg') === pg) ? '' : 'none'; });
           };
@@ -705,6 +768,7 @@
       armyUpkeep: armyUpkeep, armyActive: armyActive, armyHereCid: armyHereCid, armyWithPlayer: armyWithPlayer,
       troopOf: troopOf, recruitLeft: recruitLeft, recruitCost: recruitCost,
       armyRecruit: armyRecruit, armyTrainAt: armyTrainAt, armyDisband: armyDisband, armySetRank: armySetRank, rankDefault: rankDefault, rankAllow: rankAllow,
+      armyPickType: armyPickType, armyFormation: armyFormation,
       armyDeposit: armyDeposit, armyWithdraw: armyWithdraw, armyBuyGrain: armyBuyGrain, grainDays: grainDays, logisticsCap: logisticsCap,
       armyMoraleAdd: armyMoraleAdd, tickArmyDay: tickArmyDay, moraleMul: moraleMul,
       armyDeploy: armyDeploy, armyCamp: armyCamp, armyScout: armyScout, armyAmbush: armyAmbush, scouting: scouting, cityKm: cityKm,
@@ -713,6 +777,7 @@
       armySwitch: armySwitch, armyCreate: armyCreate, armyCreatePrompt: armyCreatePrompt, armySwitchBar: armySwitchBar
     };
     if (typeof window !== 'undefined') {
+      window.armyPickType = armyPickType; window.armyFormation = armyFormation;
       window.armySwitch = armySwitch; window.armyCreate = armyCreate; window.armyCreatePrompt = armyCreatePrompt; window.armySwitchBar = armySwitchBar;
     }
   };

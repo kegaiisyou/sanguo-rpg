@@ -3081,6 +3081,11 @@
 .of-d-skills{margin:6px 0;}
 .of-d-bio{font-size:13px;line-height:1.6;color:#cdbf9c;background:rgba(0,0,0,.18);border-left:3px solid #6b5a3a;padding:8px 10px;border-radius:4px;margin-top:6px;}
 .of-d-acts{margin-top:10px;}
+.of-d-acts2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(139,115,75,.35);}
+.of-d-sub{font-size:12px;letter-spacing:2px;color:#bda26f;margin-bottom:4px;}
+.of-d-fac{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(139,115,75,.35);}
+.of-d-fac .fac-row.mini{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:#d8c9a8;background:rgba(0,0,0,.16);border:1px solid rgba(139,115,75,.3);border-radius:6px;padding:6px 8px;margin:5px 0;}
+.of-d-fac .fac-row.mini .of-tag{font-size:11px;}
 .fm-era{margin-left:8px;padding:1px 8px;border:1px solid #6b5a3a;border-radius:10px;font-size:13px;color:#f0d9a8;background:rgba(0,0,0,.25);}
 .fm-my{background:linear-gradient(180deg,rgba(60,44,22,.5),rgba(30,22,12,.5));border:1px solid #6b5a3a;border-radius:10px;padding:12px;margin:10px 0;}
 .fm-my-h{font-size:15px;color:#f0d9a8;margin-bottom:8px;font-weight:bold;}
@@ -3316,7 +3321,15 @@
 .pack-wrap .ep-name{
   font-size:10.5px;line-height:1.1;color:#3a2c1c;font-family:"STKaiti","KaiTi",serif;
   max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pack-wrap .ep-ph{font-size:9.5px;letter-spacing:1.5px;color:#8a7959;}
+/* v20261021a 空槽重做：虚线待装位 + 深色槽名 + 槽位图标，一眼看清"该装什么" */
+.pack-wrap .ep-ph{font-size:10.5px;letter-spacing:1.5px;color:#5d4a30;font-weight:600;}
+.pack-wrap .ep-ph-ic{font-size:16px;line-height:1;opacity:.85;filter:grayscale(.55) sepia(.35) saturate(.8);}
+.pack-wrap .equipslot.ep-empty{
+  background:rgba(250,245,232,.42);
+  border:1.5px dashed rgba(122,106,70,.55);
+  box-shadow:none;}
+.pack-wrap .equipslot.ep-empty:hover{background:rgba(176,131,47,.10);border-color:rgba(158,59,46,.55);}
+.pack-wrap .ep-bagflow.ep-empty{border-style:dashed;border-color:rgba(216,180,106,.8);}
 /* 背包槽：同卡片，虚线金边区分 */
 .pack-wrap .ep-bagflow{border-style:dashed;border-color:rgba(216,180,106,.75);}
 /* 3) 人才表格：名字永不断行；标题/几率/技能整块换行而非逐字断行 */
@@ -3869,3 +3882,51 @@
 .stall-foot{display:flex;gap:var(--gp);margin-top:14px;}
 .stall-foot .btn{flex:1;min-height:42px;}
 .gbench-close{display:block;width:100%;margin-top:14px;min-height:42px;}
+
+/* ── 赌坊体验优化 v20261003a ── */
+.gm-row-hint{ font-size:10px; color:#9a6a3a; align-self:center; margin-left:4px; opacity:.85; letter-spacing:1px; }
+.gm-duel-side{ transition:transform .15s; }
+.gm-duel-side.active{ transform:scale(1.05); }
+.gm-duel-side.active .gm-duel-label{ background:linear-gradient(180deg,#b8893a,#8a5a22); color:#fff3d5; border-radius:8px; padding:1px 8px; box-shadow:0 0 8px rgba(226,180,90,.55); }
+.gm-hist-sum{ margin-top:4px; font-size:11px; letter-spacing:1px; color:#7a4a2a; border-top:1px dotted rgba(120,80,40,.3); padding-top:3px; }
+.gm-hist-sum.win{ color:#b03a2c; font-weight:700; }
+.gm-hist-sum.lose{ color:#4a5a44; font-weight:700; }
+
+/* ═══ 部曲编成视图（v20261021b）：背包式单位网格 + 阵位编组槽 ═══ */
+.am-fmt{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:6px 0 10px;}
+.am-fmt-slot{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;min-height:86px;
+  background:linear-gradient(170deg,#fdf9ec,#f2e8cf);border:1px solid rgba(107,74,47,.32);border-radius:10px;
+  box-shadow:inset 0 1px 0 rgba(255,252,240,.8),0 1px 2px rgba(90,70,40,.08);cursor:pointer;transition:border-color .15s,transform .1s;font-family:inherit;}
+.am-fmt-slot:hover{border-color:rgba(158,59,46,.45);}
+.am-fmt-slot.pick{border-color:rgba(158,59,46,.7);box-shadow:inset 0 0 0 2px rgba(158,59,46,.18);}
+.am-fmt-ic{font-size:17px;line-height:1;}
+.am-fmt-nm{font-size:12px;font-weight:600;color:#3a2c1c;font-family:"STKaiti","KaiTi",serif;letter-spacing:1px;}
+.am-fmt-cnt{font-size:10px;color:#6f5a3a;}
+.am-fmt-grp{display:flex;flex-direction:column;gap:1px;max-width:100%;}
+.am-fmt-u{font-size:9.5px;color:#5d4a30;background:rgba(176,131,47,.14);border-radius:6px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.am-fmt-empty{font-size:9.5px;color:#8a7959;letter-spacing:.5px;}
+.am-units{margin-top:2px;}
+.am-unit-sec{margin-bottom:10px;}
+.am-unit-title{font-size:11.5px;color:#6f5a3a;letter-spacing:2px;border-bottom:1px dashed rgba(107,74,47,.28);padding-bottom:3px;margin-bottom:6px;font-family:"STKaiti","KaiTi",serif;}
+.am-unit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:7px;}
+.am-unit{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:74px;padding:6px 3px;
+  background:linear-gradient(170deg,#fdf9ec,#f2e8cf);border:1px solid rgba(107,74,47,.32);border-radius:10px;cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,252,240,.8),0 1px 2px rgba(90,70,40,.08);transition:border-color .15s,transform .1s;font-family:inherit;}
+.am-unit:hover{border-color:rgba(158,59,46,.45);transform:translateY(-1px);}
+.am-unit.on{border-color:rgba(158,59,46,.75);box-shadow:inset 0 0 0 2px rgba(158,59,46,.2);}
+.am-u-ic{font-size:20px;line-height:1;}
+.am-u-ava{width:30px;height:30px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.am-u-ava img{width:100%;height:100%;object-fit:cover;}
+.am-u-nm{font-size:11px;font-weight:600;color:#3a2c1c;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:"STKaiti","KaiTi",serif;}
+.am-u-cnt{font-size:9.5px;color:#6f5a3a;}
+.am-u-tag{position:absolute;top:3px;right:3px;font-size:8.5px;color:#fff;background:#6f5a3a;border-radius:7px;padding:0 5px;line-height:1.4;}
+.am-u-tag.fol{background:#3f7d5e;}
+.am-u-tag.cm{background:#b0832f;}
+.am-u-tag.gov{background:#3a6ea5;}
+.am-u-tag.stw{background:#7d4fa3;}
+.am-u-x{position:absolute;bottom:3px;right:3px;font-size:8.5px;color:#9e3b2e;background:rgba(158,59,46,.08);border:1px solid rgba(158,59,46,.35);border-radius:6px;padding:0 4px;line-height:1.5;cursor:pointer;}
+.am-u-x:hover{background:rgba(158,59,46,.2);}
+@media(max-width:560px){
+  .am-fmt{grid-template-columns:repeat(2,1fr);}
+  .am-unit-grid{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));}
+}

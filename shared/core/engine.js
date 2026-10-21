@@ -727,6 +727,7 @@
     Officers: Officers
   });
   var armyRecruit = Army.armyRecruit, armyTrainAt = Army.armyTrainAt, armyDisband = Army.armyDisband, armySetRank = Army.armySetRank,
+      armyPickType = Army.armyPickType, armyFormation = Army.armyFormation,
       armyDeposit = Army.armyDeposit, armyWithdraw = Army.armyWithdraw, armyBuyGrain = Army.armyBuyGrain,
       armyDeploy = Army.armyDeploy, armyCamp = Army.armyCamp, armyScout = Army.armyScout, armyAmbush = Army.armyAmbush,
       tickArmyDay = Army.tickArmyDay, armyActive = Army.armyActive, armyCount = Army.armyCount,
@@ -4615,9 +4616,11 @@
   window.chooseEvent=chooseEvent; window.duelPick=duelPick; window.duelStart=duelStart; window.duelRound=duelRound; window.duelGo=duelGo; window.duelSkip=duelSkip; window.openDebate=openDebate; window.debateRound=debateRound; window.debateGo=debateGo; window.levyTroops=levyTroops;
   // 军队系统入口（v20260921a）：面板内联 onclick 走 window 桥接（与 talk/openModal 同款）
   window.armyRecruit=armyRecruit; window.armyDisband=armyDisband; window.armySetRank=armySetRank;
+  window.armyPickType=armyPickType; window.armyFormation=armyFormation;
   window.armyDeposit=armyDeposit; window.armyWithdraw=armyWithdraw; window.armyBuyGrain=armyBuyGrain;
   window.armyDeploy=armyDeploy; window.armyCamp=armyCamp; window.armyScout=armyScout; window.armyAmbush=armyAmbush;
   window.openArmyDeposit=openArmyDeposit; window.openArmyDeploy=openArmyDeploy;
+  window.openPartyPanel=function(){ openModal('party'); };
   window.openSiegePrep=openSiegePrep; window.warToggleTroop=warToggleTroop; window.warLaunch=warLaunch;
   window.startDefendBattle=startDefendBattle; window.startFieldBattle=startFieldBattle;
   window.openOfficerPanel=openOfficerPanel; window.openSearchPanel=openSearchPanel; window.recruitOfficer=officerRecruit; window.appointOfficer=officerAppoint; window.dismissOfficer=officerDismiss; window.openOfficerTab=Officers.openOfficerTab;

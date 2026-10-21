@@ -547,7 +547,7 @@ RULES.push({
 RULES.push({
   name: '装备槽位',
   run(ctx) {
-    const SLOTS = ctx.data._SLOTS || { hat:1, cloth:1, shoe:1, weapon:1, trinket:1, belt:1, bag:1 };
+    const SLOTS = ctx.data._SLOTS || { hat:1, cloth:1, shoe:1, weapon:1, trinket:1, belt:1, tool:1, bag:1 };
     const items = ctx.data.ITEMS || {};
     for (const defId of Object.keys(items)) {
       const it = items[defId];

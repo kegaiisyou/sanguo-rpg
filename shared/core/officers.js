@@ -580,6 +580,41 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       h+='<div class="of-d-skills">'+skillTagsHTML(idsOf(t))+'</div>';
       if(t.bio) h+='<div class="of-d-bio">'+escapeHtml(t.bio)+'</div>';
       h+='</div></div>';
+      // v20261021c：任命与监理（任务3）——部队栏将佐卡 → 详情 → 直接任主将/太守/监理设施
+      var _rc=(S().ruledCities)||[];
+      h+='<div class="of-d-acts2"><div class="of-d-sub">任 命</div>';
+      h+='<button class="btn sm" onclick="window.appointOfficer(\''+o.id+'\',\'commander\')">'+(o.assignment&&o.assignment.type==='commander'?'解主将':'任主将')+'</button>';
+      var _here=S().room;
+      var _ownHere=cityOwnerOf&&playerFaction&&_here&&cityOwnerOf(_here)===playerFaction();
+      if(_ownHere){
+        var _hc=((LF.CITIES||{})[_here]||{}).name||_here;
+        h+='<button class="btn sm" onclick="window.appointOfficer(\''+o.id+'\',\'governor\',\''+_here+'\')">'+(o.assignment&&o.assignment.type==='governor'&&o.assignment.cid===_here?'解太守·'+_hc:'守'+_hc)+'</button>';
+      }
+      h+='</div>';
+      h+='<div class="of-d-fac"><div class="of-d-sub">监 理 设 施（按月自动产出）</div>';
+      if(!_rc.length){
+        h+='<p class="hint">尚无治下城邑——攻取一城后，即可委任武将监理农庄、矿场、工坊、商号，依才具与民夫/士卒按月批量产出。</p>';
+      } else {
+        var _facAny=false;
+        _rc.forEach(function(cid2){
+          var _slots=(LF.facilitySlotsOf?LF.facilitySlotsOf(cid2):[])||[];
+          _slots.forEach(function(s){
+            var _fk=cid2+'|'+s.ftype+'|'+s.slot;
+            var _fo=facilityOutput(_fk); if(!_fo) return;
+            var _stw=stewardOf(_fk);
+            var _isMe=_stw&&_stw.id===o.id;
+            var _isOther=_stw&&_stw.id!==o.id;
+            _facAny=true;
+            h+='<div class="fac-row mini"><span>'+_fo.icon+' '+escapeHtml(_fo.name)+'（'+escapeHtml(((LF.CITIES||{})[cid2]||{}).name||cid2)+'）· 月出 <b>'+_fo.amount+'</b> '+escapeHtml(_fo.resName)+'</span>';
+            if(_isMe) h+='<button class="btn xs danger" onclick="window.dispatchRemove(\''+_fk+'\')">召回</button>';
+            else if(_isOther) h+='<span class="of-tag stew">'+escapeHtml(_stw.name)+' 监理中</span>';
+            else h+='<button class="btn xs" onclick="window.dispatchAssign(\''+_fk+'\',\''+o.id+'\')">派此将监理</button>';
+            h+='</div>';
+          });
+        });
+        if(!_facAny) h+='<p class="hint">治下城邑暂无可用设施。</p>';
+      }
+      h+='</div>';
       h+='<div class="of-d-acts"><button class="btn sm" onclick="window.openOfficerPanel()">◀ 返回名册</button></div>';
       return h;
     }

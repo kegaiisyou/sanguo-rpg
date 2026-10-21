@@ -124,10 +124,11 @@
       if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
       var inner = eq
         ? '<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>'
-        : '<div class="ep-ph"><span class="ep-ic">'+(sl.icon||'')+'</span>'+sl.label+'</div>';
+        : '<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
       var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
       var qs = qcol ? (' style="--qcol:'+qcol+'"') : '';
-      eqHtml += '<div class="equipslot ep-'+slot+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
+      var empCls = eq ? '' : ' ep-empty';
+      eqHtml += '<div class="equipslot ep-'+slot+empCls+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
     });
     // 背包槽（bag）：第 7 格（虚线金边区分）
     (function(){
@@ -137,10 +138,11 @@
       if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
       var durBar='';
       if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
-      var inner=eq?'<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph">'+sl.label+'</div>';
+      var inner=eq?'<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
       var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
       var qs2=qcol ? (' style="--qcol:'+qcol+'"') : '';
-      bagSlot='<div class="equipslot ep-bagflow'+insCls+'" data-loc="equip:bag"'+qs2+'>'+inner+badge+durBar+'</div>';
+      var empCls2 = eq ? '' : ' ep-empty';
+      bagSlot='<div class="equipslot ep-bagflow'+empCls2+insCls+'" data-loc="equip:bag"'+qs2+'>'+inner+badge+durBar+'</div>';
     })();
     // 第 8 格「属性」：点击展开/收起下方属性面板（复用 toggleStats）
     var attrCell = '<div class="equipslot ep-attrs" onclick="LFUI.toggleStats()" role="button" tabindex="0"><span class="ep-ph">属 性</span></div>';
