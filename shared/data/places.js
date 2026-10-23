@@ -14,18 +14,15 @@
     PLACES[id] = {
       id: id, kind: 'city', name: c.name, state: c.state, pos: c.pos,
       owner: c.owner || 'neutral', tier: c.tier, ctype: c.ctype,
-      grid: c.grid || 0, open: true, _seed: 'city'
-    };
+      grid: c.grid || 0, open: true, _seed: 'city',
+      controls: c.controls, layoutGrid: c.layoutGrid };
+    // 补拷 controls/layoutGrid：关隘(ctype:'pass')在 PLACES 中仍保留路由与布局数据
   });
 
   // —— 作者维护区：著名地点 / 关卡 / 副本 ——
   // pos 取近似真实经纬度 [lng,lat]，用于自动算里数与路网；roadType 可覆盖路况。
   var EXTRA = {
     // 关卡（城市派生，扼守道路；isPass:true 时系统据 controls 把它塞成路由必经）
-    hulaoguan: { kind:'pass', name:'虎牢关', state:'司隶', pos:[113.20,34.90],
-      owner:'dongzhuo', isPass:true, garrison:60, wall:90, defenseBonus:0.30,
-      controls:[['luoyang','xuchang']],          // 洛阳↔许昌 必经此关(手工覆盖)
-      roadType:'pass', desc:'司隶咽喉，洛阳东门锁钥' },
 
     // 名胜：古战场 / 剧情钩子（五丈原·隆中·落凤坡·吕伯奢宅·常山·赤壁·官渡）
     // v20260912a 用词规范：地名可留（多为汉代既有地名），但 name/desc 不得叙述「尚未发生」的事——

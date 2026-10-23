@@ -84,7 +84,7 @@
   button:active:not(:disabled), .btn:active, .act:active, .li-act:active, .mv-exit:active, .obj-goto:active, .nl-item:active, .ml-p:active, .mk-pin:active, .ap-btn:active:not(:disabled), .sd-btn:active, .talk-btn:active, .shop-good:active, .sect-open:active, .sf-acts .btn:active, .op-btn:active, .t-btn:active, .cr-go:active, .loot-act:active, .pcell-x:active { transform: scale(.95); }
   html,body{margin:0;padding:0;height:100dvh;overflow:hidden;overscroll-behavior:none;}
   body{
-    font-family:"LXGW WenKai","LXGW WenKai Screen","STKaiti","KaiTi","Songti SC","PingFang SC",sans-serif;
+    font-family:"LXGW WenKai","LXGW WenKai Screen","STKaiti","KaiTi","Kaiti SC","Songti SC","PingFang SC",sans-serif;
     color:var(--ink);
     background:
       radial-gradient(120% 80% at 50% -10%, #fbf7ee 0%, var(--paper) 45%, var(--paper2) 100%);
@@ -144,6 +144,11 @@
     #status .res-ic{width:13px;height:13px;font-size:9px;}
     #status .st-wx img.ui-pic{width:13px;height:13px;}
   }
+  /* v20261020a：窄屏状态栏过密，隐藏年号(光和6年)这类非即时信息 */
+  @media (max-width:420px){ #status .st-era{display:none;} }
+  /* v20261020b：窄屏顶栏去掉整条「府库战备 · 粮/铁/械/银」资源显示（角色面板/行囊底部仍可查），
+     显著降低顶栏拥挤；仅留 姓名·时辰·天气·回顾 */
+  @media (max-width:520px){ #status .st-res{display:none;} }
   /* 回顾面板（v20260914a）：按「处所」分段、换一次时辰标一次时刻 —— 读来像一卷流水账 */
   .log-tip{text-align:left;margin:-2px 0 8px;line-height:1.55;}
   .log-pane{display:flex;flex-direction:column;}
@@ -716,8 +721,11 @@
 
   /* ===== 弹窗 ===== */
   #modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
-    background:rgba(40,32,24,.34);backdrop-filter:blur(3px);padding:24px;overflow-y:auto;
+    background:rgba(40,32,24,.5);padding:24px;overflow-y:auto;
     animation:fade .25s ease both;}
+  /* v20261020a：移除全屏 backdrop 模糊——背后无限动画(战略图 sg-pulse)会迫使整屏每帧重合成，
+     导致山河志在移动端掉到 ~38fps；改更实遮罩后弹窗帧率回 60 */
+  #modal-card{margin:auto;}
   #modal.hidden{display:none;}
   /* 弹窗右上角全局关闭按钮 */
   .modal-shell{position:relative;width:100%;max-width:440px;
@@ -996,6 +1004,8 @@
   /* v20260927b：城内布防图 ↔ 山河志 页签切换淡入（P2 过渡动画） */
   .map-tab-body:not(.hidden){animation:tabFade .2s ease both;}
   @keyframes tabFade{from{opacity:0;}to{opacity:1;}}
+  /* v20261020a：小屏布防图卡片高于视口，收矮网格容器让底部说明完整可见（网格本身可内滚） */
+  @media (max-width:520px){ .map-city{height:50vh;max-height:460px;} }
   .mc-cell.mf{background:rgba(94,118,84,.22);border-color:rgba(110,135,95,.34);}
   .mc-cell.mf-entry{border-color:#b0832f;box-shadow:0 0 0 2px rgba(176,131,47,.45);}
   .mc-cell.mf-cityout{border-color:#c9952f;box-shadow:0 0 0 2px rgba(201,149,47,.5);}
@@ -1466,7 +1476,7 @@
 
   /* ===== 战斗结算面板（战后先弹此，不立即退回场景，避免方向罗盘干扰优先离开） ===== */
   .cs-overlay{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
-    background:rgba(28,22,16,.55);backdrop-filter:blur(2px);padding:18px;animation:csFade .18s ease-out;}
+    background:rgba(28,22,16,.62);padding:18px;animation:csFade .18s ease-out;}
   @keyframes csFade{from{opacity:0;}to{opacity:1;}}
   .cs-card{width:100%;max-width:420px;background:var(--paper);border:1px solid rgba(60,40,30,.18);
     border-radius:16px;box-shadow:0 12px 40px rgba(40,28,16,.4);padding:20px 20px 18px;text-align:center;
@@ -1497,7 +1507,7 @@
 
   /* ===== 战利品「搜打撤」窗口：左战利品 / 右行囊，拖动取舍 ===== */
   .loot-win{position:fixed;inset:0;z-index:65;display:flex;align-items:center;justify-content:center;
-    background:rgba(28,22,16,.62);backdrop-filter:blur(2px);padding:14px;animation:csFade .18s ease-out;}
+    background:rgba(28,22,16,.68);padding:14px;animation:csFade .18s ease-out;}
   .loot-card{width:100%;max-width:580px;max-height:92vh;overflow:auto;background:var(--paper);border:1px solid rgba(60,40,30,.2);
     border-radius:16px;box-shadow:0 14px 46px rgba(40,28,16,.5);padding:16px 16px 14px;animation:csPop .22s cubic-bezier(.2,.9,.3,1.2);}
   .loot-card .cs-title{font-size:22px;font-weight:800;letter-spacing:8px;font-family:"STKaiti","KaiTi",serif;color:var(--jade);}
@@ -1865,6 +1875,9 @@
   .ap-btn:hover:not(:disabled){background:rgba(158,59,46,.14);border-color:rgba(158,59,46,.5);}
   .ap-btn:active:not(:disabled){transform:scale(.92);}
   .ap-btn:disabled{opacity:.3;cursor:default;}
+  /* v20261020a：iOS 建议点按区 >=44px；圆点视觉保持 32，用伪元素把可点区域外扩到 44 */
+  .ap-btn{position:relative;}
+  .ap-btn::after{content:'';position:absolute;inset:-6px;border-radius:50%;}
   .ap-val{font-family:"STKaiti","KaiTi",serif;font-size:20px;font-weight:700;color:var(--ink);min-width:28px;text-align:center;transition:color .15s;}
   .ap-val.ap-val-pop{animation:apValPop .35s cubic-bezier(.2,.9,.3,1.4) both;}
   @keyframes apValPop{0%{transform:scale(1);color:var(--ink);}40%{transform:scale(1.45);color:var(--seal);text-shadow:0 0 8px rgba(158,59,46,.5);}100%{transform:scale(1);color:var(--ink);text-shadow:none;}}
@@ -1872,7 +1885,8 @@
   .ap-foot b{color:var(--seal);}
   .ap-confirm{margin-top:10px;width:100%;padding:11px 0;font-size:15px;border:1px solid rgba(158,59,46,.55);border-radius:var(--r-card);background:rgba(158,59,46,.14);color:var(--seal);cursor:pointer;font-family:"STKaiti","KaiTi",serif;letter-spacing:2px;}
   .ap-confirm:hover{background:rgba(158,59,46,.24);}
-  .cr-actions{display:flex;justify-content:center;margin-top:16px;}
+  .cr-actions{display:flex;justify-content:center;margin-top:16px;position:sticky;bottom:0;
+    padding-top:10px;background:linear-gradient(180deg,rgba(244,238,226,0) 0%,var(--paper,#f4eee2) 26%);}
   .cr-go{padding:11px 42px;font-family:"STKaiti","KaiTi",serif;font-size:17px;letter-spacing:5px;color:#f4e6c2;border:1px solid rgba(158,59,46,.6);border-radius:var(--r-card);background:linear-gradient(180deg,rgba(158,59,46,.28),rgba(120,35,28,.38));cursor:pointer;transition:background .16s,transform .1s,box-shadow .16s;box-shadow:0 2px 10px rgba(158,59,46,.2);}
   .cr-go:hover{background:linear-gradient(180deg,rgba(158,59,46,.4),rgba(120,35,28,.5));box-shadow:0 4px 16px rgba(158,59,46,.35);}
   .cr-go:active{transform:scale(.97);}
@@ -1950,9 +1964,18 @@
   .pack-right-title{font-family:"STKaiti","KaiTi",serif;font-size:14px;letter-spacing:5px;color:#f5e0a8;text-shadow:0 1px 3px rgba(0,0,0,.6);margin-bottom:6px;text-align:center;}
   /* v20261008c：背包分类页签（全部/素材/药剂/菜肴/器具/其他） */
   .pack-tabs{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:-2px 0 7px;}
-  .pack-tab{font-size:11.5px;letter-spacing:1px;color:#d8c49a;background:rgba(0,0,0,.16);border:1px solid rgba(196,164,102,.28);border-radius:999px;padding:3px 10px;cursor:pointer;font-family:"STKaiti","KaiTi",serif;transition:.15s;}
+  .pack-tab{font-size:11.5px;letter-spacing:1px;color:#f4e8c6;background:rgba(0,0,0,.34);border:1px solid rgba(200,164,102,.5);border-radius:999px;padding:3px 10px;cursor:pointer;font-family:"STKaiti","KaiTi",serif;transition:.15s;}
   .pack-tab.on{color:#2b1f0c;background:linear-gradient(180deg,#e8c87e,#c8a05c);border-color:#a8842f;box-shadow:0 1px 4px rgba(0,0,0,.3);font-weight:700;}
   .pack-tab:active{transform:scale(.94);}
+  /* v20261022e：背包拖拽反馈 + 野外迷雾/地形着色 */
+  .pack-grid .packcell.dragging{opacity:.4;transform:scale(.94);}
+  .pack-grid .packcell.drop-ok{border-color:var(--jade);box-shadow:0 0 0 2px rgba(63,125,94,.5);}
+  .mc-cell.mf-fog{background:rgba(20,18,16,.55);border-color:rgba(120,120,120,.25);color:#7d756a;}
+  .mc-cell.mf-fog .mc-ic{filter:none;opacity:.7;}
+  .mc-cell.mf-ter-水{background:rgba(70,110,150,.22);border-color:rgba(110,150,190,.4);}
+  .mc-cell.mf-ter-岩{background:rgba(120,110,95,.24);border-color:rgba(150,135,110,.45);}
+  .mc-cell.mf-ter-林{background:rgba(70,110,70,.22);border-color:rgba(110,150,110,.4);}
+  .mc-cell.mf-ter-草{background:rgba(110,130,70,.20);border-color:rgba(150,170,100,.38);}
   .pack-scroll{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;min-height:0;padding-right:7px;
     scrollbar-width:thin;scrollbar-color:#b08d4f rgba(0,0,0,.22);}
   .pack-scroll::-webkit-scrollbar{width:11px;}
@@ -2139,7 +2162,7 @@
   .shop-foot .shop-badge{background:rgba(0,0,0,.42);border:1px solid rgba(255,215,138,.6);color:#ffd98a;border-radius:5px;padding:1px 7px;font-size:11px;letter-spacing:.5px;}
   .shop-hint{font-size:10px;color:#bfae8a;flex:1 1 auto;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* 结算明细浮层：确认交易前逐条列出购入/售出与收支（独立于 #modal，z 在 modal 之上、toast 之下） */
-  .sd-mask{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;background:rgba(28,20,10,.46);backdrop-filter:blur(2px);padding:20px;}
+  .sd-mask{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;background:rgba(28,20,10,.55);padding:20px;}
   .sd-panel{width:min(340px,92vw);max-height:min(74vh,520px);display:flex;flex-direction:column;background:var(--paper,#f4eee2);border:1px solid rgba(120,90,50,.6);border-radius:14px;box-shadow:0 14px 44px rgba(15,8,4,.5);padding:14px 16px;font-family:"STKaiti","KaiTi",serif;color:var(--ink,#2c2620);overflow:hidden;}
   .sd-title{flex:0 0 auto;text-align:center;font-size:16px;letter-spacing:4px;color:var(--seal,#9e3b2e);margin-bottom:10px;}
   .sd-list{flex:1 1 auto;overflow-y:auto;max-height:40vh;border-top:1px dashed rgba(120,90,50,.35);padding:8px 2px;}
@@ -3160,6 +3183,9 @@
   font-family:"STKaiti","KaiTi",serif;font-size:14px;letter-spacing:2px;color:#f6ead0;
   background:linear-gradient(180deg,#5a4a2e,#382a16);border:1px solid #8a6f3e;}
 .edict-cmd .edict-do .sub{font-size:10px;color:rgba(246,234,208,.7);}
+.edict-cmd .edict-do .cost{font-size:10px;color:var(--gold);letter-spacing:0;}
+.edict-cmd .edict-do .cd{font-size:10px;color:var(--btn-primary-fg);opacity:.55;letter-spacing:0;}
+.edict-cmd .edict-do.dis{opacity:.42;filter:grayscale(.55);cursor:not-allowed;}
 .edict-del{flex:1;min-width:120px;padding:7px;border:1px solid rgba(107,74,47,.34);border-radius:var(--r-btn);
   background:#fdf8ea;color:#3a2c1c;font-size:12.5px;}
 .edict-pred{flex-basis:100%;font-size:11.5px;color:#5a7a4a;text-align:center;letter-spacing:.5px;}
@@ -3641,7 +3667,7 @@
 
   /* ===== 捣药（v20261008v）：药材入臼 · 节奏点击捣击 ===== */
   .grind-win{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;
-    background:rgba(28,22,16,.55);backdrop-filter:blur(2px);padding:18px;animation:csFade .18s ease-out;}
+    background:rgba(28,22,16,.62);padding:18px;animation:csFade .18s ease-out;}
   .grind-card{width:min(92vw,400px);background:var(--paper);border:1px solid var(--panel-line);
     border-radius:var(--r-card);box-shadow:var(--shadow);padding:14px 16px;text-align:center;color:var(--ink);}
   .grind-title{font-size:16px;font-weight:700;letter-spacing:6px;color:var(--seal);}
@@ -3676,3 +3702,63 @@
   .grind-tab td:nth-child(2){text-align:center;color:var(--ink);}
   .grind-tab td:nth-child(3){text-align:right;}
 
+
+
+/* ══ 身亡「生平结算 · 墓志铭」（v20261020c）═══ */
+.eph-wrap{padding:2px 2px 0;}
+.eph-plaque{text-align:center;padding:16px 14px 14px;margin:0 0 12px;
+  background:linear-gradient(180deg,#efe6d2,#e0d2b4);border:1px solid rgba(120,90,40,.5);
+  border-radius:10px;box-shadow:inset 0 0 26px rgba(90,70,40,.2),0 2px 8px rgba(0,0,0,.15);}
+.eph-zhihao{font-size:12px;letter-spacing:6px;color:#8a6a3a;margin-bottom:8px;}
+.eph-name{font-family:"STKaiti","KaiTi","Kaiti SC",serif;font-size:24px;font-weight:700;color:#3a2c1a;letter-spacing:3px;}
+.eph-life{font-size:15px;color:#6b4a2a;margin-top:6px;letter-spacing:1px;}
+.eph-cause{font-size:13px;color:#9e3b2e;margin-top:4px;letter-spacing:1px;}
+.eph-where{font-size:12px;color:#7a6a52;margin-top:4px;}
+.eph-stats{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:12px;color:#5a4a38;
+  padding:9px 4px;margin:0 0 8px;border-top:1px dashed rgba(120,90,40,.3);border-bottom:1px dashed rgba(120,90,40,.3);}
+.eph-stats b{color:#9e3b2e;}
+.eph-events{max-height:32vh;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:left;font-size:12px;line-height:1.6;color:#4a3a28;}
+.eph-events-h{text-align:center;font-size:11px;letter-spacing:4px;color:#8a6a3a;margin-bottom:6px;}
+.eph-ev{padding:3px 0;border-bottom:1px dotted rgba(120,90,40,.18);}
+.eph-ev-t{display:inline-block;min-width:76px;color:#9a8a6a;font-size:10.5px;margin-right:6px;}
+.eph-ev-empty{color:#9a8a6a;text-align:center;border:none;}
+.eph-btns{position:sticky;bottom:0;display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:10px;
+  background:linear-gradient(180deg,rgba(244,238,226,0),var(--paper,#f4eee2) 30%);}
+.eph-again{background:linear-gradient(180deg,rgba(158,59,46,.28),rgba(120,35,28,.38));color:#f4e6c2;border:1px solid rgba(158,59,46,.6);font-weight:700;letter-spacing:3px;}
+.eph-load{background:linear-gradient(180deg,#fbf6ea,#ece0c6);color:#3a2d1a;border-color:#b8893a;font-weight:700;}
+
+.eph-verdict{text-align:center;font-size:13.5px;color:#7a3b2e;letter-spacing:1px;margin:2px 0 10px;font-family:"STKaiti","KaiTi","Kaiti SC",serif;}
+.eph-bonds{margin:0 0 8px;}
+.eph-bonds-h{display:block;text-align:center;font-size:11px;letter-spacing:4px;color:#8a6a3a;margin-bottom:6px;}
+.eph-bond{display:inline-block;margin:0 6px 4px 0;padding:2px 9px;border-radius:999px;background:rgba(176,131,47,.16);border:1px solid rgba(176,131,47,.4);font-size:12px;color:#5a4a38;}
+.eph-bond i{font-style:normal;color:#9e3b2e;margin-left:3px;font-size:10.5px;}
+.eph-bond-none{opacity:.6;}
+/* ══ 农田面板（v20261021b）：九宫格，看得见的田 ══ */
+.farm-panel{padding:2px 0 4px;}
+.farm-h{text-align:center;font-family:"STKaiti","KaiTi",serif;font-size:15px;color:var(--ink);letter-spacing:1px;margin-bottom:8px;}
+.farm-h .farm-season{color:var(--gold);margin:0 4px;}
+.farm-h .farm-cnt{font-size:12px;color:var(--ink-faint);letter-spacing:0;}
+.farm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:300px;margin:0 auto;}
+.fp{aspect-ratio:1/1;border:1px solid var(--panel-line);border-radius:var(--r-btn);
+  background:linear-gradient(180deg,#f3ead4,#e6d9b8);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:pointer;transition:.12s;}
+.fp:active{transform:scale(.95);}
+.fp .fp-ic{font-size:22px;line-height:1.1;}
+.fp .fp-sub{font-size:10px;color:var(--ink-faint);margin-top:2px;}
+.fp.st-wild{background:linear-gradient(180deg,#e8dfc9,#d8caa8);}
+.fp.st-tilled{background:linear-gradient(180deg,#dcc9a0,#c9b184);}
+.fp.st-growing{background:linear-gradient(180deg,#dfe9cf,#c8d9b2);}
+.fp.st-ripe{background:linear-gradient(180deg,#f2e4b4,#e2ca7a);border-color:var(--gold);}
+.fp.st-wither{background:linear-gradient(180deg,#ddd3c4,#c6bba7);}
+.fp.slow{opacity:.7;}
+.fp.sel{outline:2px solid var(--gold);outline-offset:-2px;}
+.farm-sel{text-align:center;font-size:12px;color:var(--ink-soft);margin:9px 0 5px;letter-spacing:1px;}
+.farm-acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.farm-acts .btn.xs{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:66px;padding:6px 4px;}
+.farm-acts .fs-season{font-size:9px;letter-spacing:0;}
+.farm-acts .fs-season.ok{color:var(--jade);}
+.farm-acts .fs-season.no{color:var(--danger);}
+.farm-tip{text-align:center;font-size:11.5px;color:var(--ink-faint);margin:9px 4px 2px;line-height:1.6;}
+.farm-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;}
+.farm-legend{font-size:10px;color:var(--ink-faint);}
+.farm-warn{font-size:11px;color:var(--danger);}

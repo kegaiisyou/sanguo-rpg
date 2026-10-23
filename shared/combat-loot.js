@@ -165,9 +165,10 @@
         var it=src.pane==='loot'?lootArr[src.idx]:getState().pack[src.idx]; if(!it) return;
         if(it.cat==='装备' && it.slot){
           var oldEq=getState().equipment[it.slot];
-          if(src.pane==='loot') lootArr[src.idx]=null; else getState().pack[src.idx]=oldEq||null;
+          // 修复：从战利品装备时换下旧装回到战利品堆（原直接丢弃），高亮落到对应面板
+          if(src.pane==='loot') lootArr[src.idx]=oldEq||null; else getState().pack[src.idx]=oldEq||null;
           getState().equipment[it.slot]=it;
-          if(oldEq){ var ri=getState().pack.indexOf(oldEq); if(ri>=0) lastReplaced={pane:'bag',idx:ri}; }
+          if(oldEq) lastReplaced={pane:src.pane, idx:src.idx};
           toast('装备「'+it.name+'」'+(oldEq?'，卸下「'+oldEq.name+'」':''));
         } else if(it.effect || it.cat==='丹药' || it.cat==='兵粮'){
           var useIdx;
@@ -176,7 +177,7 @@
           usePackItem(useIdx);
         }
         save(getState()); renderStatus(); rerender(); hideInfo();
-        if(lastReplaced){ var rc=host.querySelector('.packcell[data-pane="bag"][data-idx="'+lastReplaced.idx+'"]'); if(rc) rc.scrollIntoView({block:'nearest',behavior:'smooth'}); setTimeout(function(){ lastReplaced=null; rerender(); },1300); }
+        if(lastReplaced){ var rc=host.querySelector('.packcell[data-pane="'+lastReplaced.pane+'"][data-idx="'+lastReplaced.idx+'"]'); if(rc) rc.scrollIntoView({block:'nearest',behavior:'smooth'}); setTimeout(function(){ lastReplaced=null; rerender(); },1300); }
       }
       function showInfo(it){
         var box=document.getElementById('lp-info'); if(!box) return;
@@ -198,11 +199,17 @@
       function actOn(it, act){
         if(act==='equip'){
           var oldEq = it.slot ? getState().equipment[it.slot] : null;
-          var idx = (sel.pane==='loot') ? firstEmpty() : sel.idx;
-          if(idx<0){ toast('行囊已满，无法装备'); return; }
-          if(sel.pane==='loot'){ var occ=getState().pack[idx]; lootArr[sel.idx]=occ||null; getState().pack[idx]=it; }
-          equipFromPackTo(idx, it.slot);
-          if(oldEq){ var ri=getState().pack.indexOf(oldEq); if(ri>=0){ lastReplaced={pane:'bag', idx:ri}; } }   // 高亮被换下的装备
+          if(sel.pane==='loot'){
+            // 战利品直接装备：换下旧装回战利品堆，绝不占背包 → 背包满也能装（修复「行囊已满」误报）
+            lootArr[sel.idx] = oldEq || null;
+            getState().equipment[it.slot] = it;
+            if(oldEq) lastReplaced={pane:'loot', idx:sel.idx};
+          } else {
+            var occ=getState().pack[sel.idx];
+            getState().pack[sel.idx]=oldEq||null;
+            getState().equipment[it.slot]=it;
+            if(oldEq) lastReplaced={pane:'bag', idx:sel.idx};
+          }
         } else {
           var idx2 = (sel.pane==='loot') ? firstEmpty() : sel.idx;
           if(idx2<0){ toast('行囊已满，无法使用'); return; }
@@ -210,7 +217,7 @@
           usePackItem(idx2);
         }
         save(getState()); renderStatus(); rerender(); hideInfo();
-        if(lastReplaced){ var rc=host.querySelector('.packcell[data-pane="bag"][data-idx="'+lastReplaced.idx+'"]'); if(rc) rc.scrollIntoView({block:'nearest', behavior:'smooth'}); }   // 被换下装备若不在视野内自动滚到
+        if(lastReplaced){ var rc=host.querySelector('.packcell[data-pane="'+lastReplaced.pane+'"][data-idx="'+lastReplaced.idx+'"]'); if(rc) rc.scrollIntoView({block:'nearest', behavior:'smooth'}); }   // 被换下装备若不在视野内自动滚到
         if(lastReplaced) setTimeout(function(){ lastReplaced=null; rerender(); }, 1300);
       }
       // 悬浮弹层：跟随所点格子定位，空间不足自动翻到格子上方，避免破坏网格布局

@@ -37,7 +37,10 @@ LF.RECIPES = {
     { id:'tuzhi_well', cat:'简册类', name:'水井简', icon:'📜', out:'tuzhi_well', outN:1, in:[{id:'zhuzi',n:1},{id:'mo',n:1}], note:'削竹为简、墨书营造之法，依简可挖井砌壁' },
     { id:'tuzhi_pigpen', cat:'简册类', name:'猪圈简', icon:'📜', out:'tuzhi_pigpen', outN:1, in:[{id:'zhuzi',n:1},{id:'mo',n:1}], note:'削竹为简、墨书营造之法，依简可围栅置槽' },
     { id:'tuzhi_gate', cat:'简册类', name:'寨门简', icon:'📜', out:'tuzhi_gate', outN:1, in:[{id:'zhuzi',n:1},{id:'mo',n:1}], note:'削竹为简、墨书营造之法，依简可立门置闸' },
-    { id:'tuzhi_training', cat:'简册类', name:'训练场简', icon:'📜', out:'tuzhi_training', outN:1, in:[{id:'zhuzi',n:1},{id:'mo',n:1}], note:'削竹为简、墨书营造之法，依简可整地设器' }
+    { id:'tuzhi_training', cat:'简册类', name:'训练场简', icon:'📜', out:'tuzhi_training', outN:1, in:[{id:'zhuzi',n:1},{id:'mo',n:1}], note:'削竹为简、墨书营造之法，依简可整地设器' },
+    // —— 田里种出来的归处（v20261021b）：麻桑入织（织机未立，暂借木工台并作） ——
+    { id:'weave_bu',   cat:'织作类', name:'布',  icon:'🧶', out:'bumu', outN:2, in:[{id:'ma', n:3}],      note:'麻缕绩线、上机织之——三束麻得两匹粗布' },
+    { id:'weave_juan', cat:'织作类', name:'绢',  icon:'🧵', out:'juan', outN:1, in:[{id:'sangye', n:4}], note:'桑叶饲蚕得丝，丝织为绢——轻薄生光，价抵数石粮' }
   ],
   // 城镇经营切片（P0+P1）：药铺炼炉（alchemy 台）
   alchemy: [
@@ -76,7 +79,17 @@ LF.RECIPES = {
     // —— 肉类入馔（v20260928g）：酒楼/食肆/篝火皆可烹 ——
     { id:'cook_hongshao', cat:'菜肴类', name:'红烧肉', icon:'🍖', out:'hongshao', outN:1, in:[{id:'zhurou', n:1}], note:'猪肉切块，糖色酱油慢炖——食+18 饮+4' },
     { id:'cook_kaoji', cat:'菜肴类', name:'烤鸡', icon:'🍗', out:'kaoji', outN:1, in:[{id:'jirou', n:1}], note:'整鸡架火慢烤，皮脆肉嫩——食+15 饮+3' },
-    { id:'cook_kaoyang', cat:'菜肴类', name:'烤羊肉', icon:'🍢', out:'kaoyang', outN:1, in:[{id:'yangrou', n:1}], note:'带骨羊肉翻烤，膻香扑鼻——食+17 饮+5' }
+    { id:'cook_kaoyang', cat:'菜肴类', name:'烤羊肉', icon:'🍢', out:'kaoyang', outN:1, in:[{id:'yangrou', n:1}], note:'带骨羊肉翻烤，膻香扑鼻——食+17 饮+5' },
+    // —— 田里种出来的归处（v20261021b）：五谷菜果入厨，加工之后价翻数倍 ——
+    { id:'mill_mianfen', cat:'粮作类', name:'面粉', icon:'🥣', out:'mianfen', outN:2, in:[{id:'mai', n:2}], note:'麦子入磨，细粉如霜——两斗麦出一斗粉' },
+    { id:'husk_mi_sumi', cat:'粮作类', name:'米', icon:'🍚', out:'mi', outN:1, in:[{id:'sumi', n:2}], note:'粟入臼舂去壳，得白米（食+20）' },
+    { id:'husk_mi_dao',  cat:'粮作类', name:'米', icon:'🍚', out:'mi', outN:3, in:[{id:'dao', n:2}], note:'稻谷舂米，出米比粟厚——两捆稻得三升米' },
+    { id:'make_doufu',   cat:'粮作类', name:'豆腐', icon:'🥣', out:'doufu', outN:2, in:[{id:'dou', n:2}], note:'菽豆磨浆点卤，凝作一方白嫩——贫家小宰羊（食+22）' },
+    { id:'make_doujiang',cat:'粮作类', name:'豆酱', icon:'🫙', out:'doujiang', outN:2, in:[{id:'dou', n:3}], note:'菽豆发酵入瓮，咸香久存不坏（食+15）' },
+    { id:'bake_bing',    cat:'干粮类', name:'胡饼', icon:'🫓', out:'bing', outN:2, in:[{id:'mianfen', n:1}], note:'揉面撒胡麻，入炉烤得焦香——行路干粮（食+28）' },
+    { id:'brew_mijiu',   cat:'酿作类', name:'米酒', icon:'🍶', out:'mijiu', outN:2, in:[{id:'mi', n:3}], note:'米饭拌曲封瓮，数日成酒——暖身壮行，市上甚俏' },
+    { id:'make_guofu',   cat:'果作类', name:'果脯', icon:'🍯', out:'guofu', outN:2, in:[{id:'guo', n:3}], note:'鲜果蜜渍晒干，甜韧耐存（食+16 饮+5）' },
+    { id:'brew_chayin',  cat:'果作类', name:'茶饮', icon:'🍵', out:'chayin', outN:2, in:[{id:'chaye', n:1}], note:'茶叶烹就一盏，解渴醒神（饮+16）' }
   ],
   // 药庐（药铺配药台，v20260928g）：名贵药材入药，制上等伤药
   clinic: [

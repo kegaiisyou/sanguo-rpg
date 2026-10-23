@@ -162,6 +162,13 @@
         acts: acts
       };
     }
+    // 武学摊卡：由 city.js 挂在市集格（v20261020j）——游方武师摆摊，大路货买卖 + 每日讨教
+    function martialStallCard() {
+      return {
+        o: { key: 'martial_stall', name: '游方武师', icon: '🥋', desc: '挑担卖艺的江湖客，担上摊着几卷大路货拳谱——平平无奇，却足以防身入门。银两交割，立地可学。' },
+        acts: [ { label: '逛武学摊', icon: '📜', fn: function () { if (window.openModal) window.openModal('martial_stall'); } } ]
+      };
+    }
 
     // ── 在此城的可遇名将（含麾下/已随从过滤）──
     function eachFamous(cid, cellsByType, cb) {
@@ -397,7 +404,7 @@
       eachFamous: eachFamous, cardOf: cardOf, tickDay: tickDay,
       famousInField: famousInField, fieldLine: fieldLine,
       questOf: questOf, questState: questState, offerQuest: offerQuest, deliverQuest: deliverQuest,
-      estateCard: estateCard, buyEstate: buyEstate, ownsEstate: ownsEstate, estatePrice: estatePrice,
+      estateCard: estateCard, martialStallCard: martialStallCard, buyEstate: buyEstate, ownsEstate: ownsEstate, estatePrice: estatePrice,
       DKEYS: DKEYS, DNAME: DNAME, DPREF: DPREF, QD: QD,
       enabled: function () { return true; }
     };

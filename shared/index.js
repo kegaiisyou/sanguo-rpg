@@ -154,11 +154,18 @@
 
   function _grantSectSkills(save, sect) {
     if (!sect.startingSkills) return;
+    var MA = (global.LF && global.LF.MARTIAL_ARTS) || null;
     save.skills = save.skills || [];
     save.learnedMartial = save.learnedMartial || [];
+    save.equippedForce = save.equippedForce || [];
     sect.startingSkills.forEach(function (sk) {
       if (save.skills.indexOf(sk) < 0) save.skills.push(sk);
-      if (save.learnedMartial.indexOf(sk) < 0) save.learnedMartial.push(sk);
+      var art = (MA && MA.get) ? MA.get(sk) : null;
+      if (art && art.type === 'technique') {
+        if (save.equippedForce.indexOf(sk) < 0) save.equippedForce.push(sk);   // 心法→装配（被动生效）
+      } else {
+        if (save.learnedMartial.indexOf(sk) < 0) save.learnedMartial.push(sk); // 招式/绝技→已学
+      }
     });
   }
 

@@ -67,6 +67,13 @@ window.LF = window.LF || {};
       // 数组字段补默认
       if (!Array.isArray(s.learnedMartial)) s.learnedMartial = def.learnedMartial.slice();
       if (!Array.isArray(s.equippedForce)) s.equippedForce = [];
+      // v20261022e：去重 learnedMartial/equippedForce（重复 id 导致境界/解锁计数错乱，如双玄阴决）
+      if (Array.isArray(s.learnedMartial)) s.learnedMartial = s.learnedMartial.filter(function(v,i,a){ return a.indexOf(v)===i; });
+      if (Array.isArray(s.equippedForce)) s.equippedForce = s.equippedForce.filter(function(v,i,a){ return a.indexOf(v)===i; });
+      if (!s.exploredFields || typeof s.exploredFields !== 'object') s.exploredFields = {};
+      s.flags = s.flags || {};
+      if (s.flags.fog === undefined) s.flags.fog = true;
+      if (s.flags.mapGated === undefined) s.flags.mapGated = true;
       if (!Array.isArray(s.skills)) s.skills = def.skills.slice();
       if (!Array.isArray(s.items)) s.items = [];
       if (!Array.isArray(s.equips)) s.equips = [];

@@ -295,7 +295,10 @@
         var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)){ e.preventDefault(); return; }
         el.__from=loc; var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
         e.dataTransfer.setData('text/plain', el.getAttribute('data-loc'));
+        el.classList.add('dragging');
+        card.querySelectorAll('.pack-grid .packcell:not(.pcell-empty)').forEach(function(c){ if(c!==el) c.classList.add('drop-ok'); });
       };
+      el.ondragend=function(){ el.classList.remove('dragging'); card.querySelectorAll('.pack-grid .packcell.drop-ok').forEach(function(c){ c.classList.remove('drop-ok'); }); };
       el.ondragover=function(e){ e.preventDefault(); };
       el.ondrop=function(e){
         e.preventDefault();
@@ -316,7 +319,7 @@
     });
     card.onpointermove=function(e){
       if(!dragging) return;
-      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
+      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); srcEl && srcEl.classList.add('dragging'); card.querySelectorAll('.pack-grid .packcell:not(.pcell-empty)').forEach(function(c){ if(c!==srcEl) c.classList.add('drop-ok'); }); }
       if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; document.body.appendChild(ghost); }
       var _it=packGet(dragging)||{}; ghost.textContent=_it.icon||_it.name||''; if(_it.icon) ghost.style.fontSize='22px';
       ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
@@ -324,6 +327,8 @@
     function endDrag(e, cancelled){
       var from=dragging; dragging=null;
       if(ghost){ ghost.remove(); ghost=null; }
+      if(srcEl){ srcEl.classList.remove('dragging'); }
+      card.querySelectorAll('.pack-grid .packcell.drop-ok').forEach(function(c){ c.classList.remove('drop-ok'); });
       if(!from || !moved || cancelled){ return; }
       var tgt=document.elementFromPoint(e.clientX,e.clientY);
       while(tgt && tgt!==card && !tgt.getAttribute('data-loc')) tgt=tgt.parentNode;

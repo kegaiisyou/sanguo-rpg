@@ -33,6 +33,7 @@ window.LF = window.LF || {};
       if (ct === 'mountain') return Math.max(1, Math.min(2, 1 + Math.floor((c.wall || 0) / 55)));
       if (ct === 'port') return Math.max(2, Math.min(3, 2 + Math.floor((c.commerce || 0) / 50)));
       if (ct === 'shuizhai') return Math.max(1, Math.min(3, 1 + Math.floor((c.wall || 0) / 45)));  // 水寨：水上营垒，依水寨墙高开 1~3 门
+      if (ct === 'pass') return Math.max(1, Math.min(2, (c.controls || []).length || 2));  // 关隘：依 controls 邻城数定单/双门
       return 4;
     }
     // —— 城门方向·路网自适应（v20260905k）——
@@ -112,7 +113,7 @@ window.LF = window.LF || {};
     // v20260927r：图标改为水墨 PNG 名（scene48 同风格），渲染经 UI_Icons.cellIcon 出图
     var CELL_META = {
       palace: { i: 'bld-palace', nm: '皇宫' }, gov: { i: 'bld-gov', nm: '衙署' },
-      plaza: { i: 'bld-plaza', nm: '城中广场' }, gate: { i: 'bld-gate', nm: '城门' },
+      plaza: { i: 'bld-plaza', nm: '城中广场' }, gate: { i: 'bld-gate', nm: '城门' }, wengcheng: { i: 'bld-gate', nm: '瓮城' }, granary: { i: 'bld-gov', nm: '粮仓' }, passgate: { i: 'bld-plaza', nm: '关城' },
       market: { i: 'bld-market', nm: '市集' }, home: { i: 'bld-home', nm: '民宅' }, barracks: { i: 'bld-barracks', nm: '军营' },
       farm: { i: 'bld-farm', nm: '农庄' }, prison: { i: 'bld-prison', nm: '牢房' }, mine: { i: 'bld-mine', nm: '矿坑' }, kitchen: { i: 'bld-kitchen', nm: '伙房' }, command: { i: 'bld-command', nm: '中军帐' }, warehouse: { i: 'bld-warehouse', nm: '仓库' }, drill: { i: 'bld-drill', nm: '演武场' }, sentry: { i: 'bld-sentry', nm: '岗哨' }, empty: { i: 'bld-empty', nm: '空地' }, ruin: { i: 'bld-ruin', nm: '焦土' },
       site: { i: 'bld-site', nm: '工地' },
@@ -499,7 +500,7 @@ window.LF = window.LF || {};
         g.push(row);
       }
       // ── 坊制播种（v20260927）：在空地/民宅上落若干坊格，每坊含多间子房间（官署/里坊/军坊/市坊/文教/码头）──
-      seedWards(g, c, rnd, cx, cy, size, cid);
+      if (c.ctype !== 'pass') seedWards(g, c, rnd, cx, cy, size, cid);  // 关隘用预设布局，不播普通坊
       // ── 市集生成（v20260825d）：每城多个市场，各有名称（方位/交易物/地理/祝福，可混可单）与异质商铺招牌 ──
       var markets = {};
       var MK = (typeof LF !== 'undefined' && LF.MARKETS);
@@ -551,6 +552,10 @@ window.LF = window.LF || {};
       if (dev >= 55 || (c.culture || 0) >= 50) place('culture');
       if (c.ctype === 'port' || c.coastal) place('water');
     }
+    // 防 terser 误删：seedWards 通过修改入参 g（genCityGrid 返回并后续 buildWardCell 读取）产生观测副作用，
+    // 但 terser 的跨过程 DCE 会判定 g 的修改不可观测而整段删除，导致全城无 ward 单元（官署坊/军坊/里坊等全部失效）。
+    // 暴露到 window 后 terser 视其为主体不明副作用，保留函数与调用。
+    if (typeof window !== 'undefined') window.seedWards = seedWards;
     function cityCellDesc(cid, x, y) {
       var m = genCityGrid(cid); if (!m) return [];
       var t = cellDisplayType(cid, x, y), meta = CELL_META[t] || CELL_META.empty;
@@ -629,6 +634,14 @@ window.LF = window.LF || {};
         try {
           var _dt2 = cellDisplayType(cid, x, y);
           if (_dt2 === 'resid' || _dt2 === 'market') list.push(NAI2.estateCard(cid));
+        } catch (e) { }
+      }
+      // ── 武学摊：游方武师（v20261020j）——市集摆摊，大路货买卖 + 每日讨教，自然可达 ──
+      var NAI3 = (typeof LF !== 'undefined') ? LF.NpcAi : null;
+      if (NAI3 && typeof NAI3.martialStallCard === 'function') {
+        try {
+          var _dt3 = cellDisplayType(cid, x, y);
+          if (_dt3 === 'market') list.push(NAI3.martialStallCard());
         } catch (e) { }
       }
       // ── 历史名将入城（v20260927j）──
@@ -835,8 +848,15 @@ window.LF = window.LF || {};
       if (t === 'kitchen') { out.push({ id: 'kitchen_cook', label: '生火造饭', icon: '🍚', tip: '于伙房埋锅造饭，稍歇精神' }); }
       if (t === 'command') { out.push({ id: 'command_talk', label: '中军议事', icon: '🚩', tip: '入帐议事，览军情城务' }); }
       if (t === 'warehouse') { out.push({ id: 'warehouse_view', label: '进入仓库', icon: '📦', tip: '入库存取物资，存粮木料皆在此' }); }
+      // ── 下地务农（v20261021b）：农庄格此前没有任何动作，营造落成后是个死格 ──
+      if (t === 'farm') {
+        out.push({ id: 'farm_open', label: '下地务农', icon: '🌾', tip: '入田料理畦子：开垦、播种、浇水、采收——地里长什么，看你种什么、照料得勤不勤', data: { cid: cid, x: x, y: y } });
+      }
       if (t === 'drill') { out.push({ id: 'drill_train', label: '操练武艺', icon: '🥋', tip: '于演武场挥汗操练，拳脚渐稳' }); }
       if (t === 'sentry') { out.push({ id: 'sentry_look', label: '瞭望岗哨', icon: '🏮', tip: '登岗瞭望，查看来往行踪' }); }
+      if (t === 'wengcheng') { out.push({ id: 'pass_weng', label: '\u5de1\u89c6\u74ee\u57ce', icon: '\U0001F3F0', tip: '\u7f2f\u57ce\u4e24\u91cd\uff0c\u53ef\u56f0\u6765\u72af\u4e4b\u655e' }); }
+      if (t === 'granary') { out.push({ id: 'pass_granary', label: '\u67e5\u70b9\u50a8\u7cae', icon: '\U0001F33E', tip: '\u68c0\u89c6\u5173\u9645\u7cae\u50a8' }); }
+      if (t === 'passgate') { out.push({ id: 'pass_hold', label: '\u9a7b\u5b88\u5173\u9645', icon: '\u2694', tip: '\u4e8e\u6b64\u627f\u5b88\u8981\u9053' }); }
       if (t === 'barracks') { out.push({ id: 'recruit', label: '募兵操练', tip: '入营招募兵卒，点兵编成部曲（兵科／阵位／辎重／调兵）' }); out.push({ id: 'army_manage', label: '治军', icon: '🛡', tip: '点兵编成、料理辎重、调兵遣将（v20260921a）' }); out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '起兵夺城，胜则易帜、败则遭火' }); }
       if (t === 'market') {
         // 商街店铺：每间一个按钮（店招），点击弹出 NPC 式动作清单（进入 / 观察 / 盘下·经营），不堆多个按钮
@@ -903,7 +923,7 @@ window.LF = window.LF || {};
       var orderDesc = c.order >= 70 ? '路不拾遗' : c.order >= 55 ? '夜不闭户' : c.order >= 40 ? '盗匪出没' : '兵荒马乱';
       var comDesc = c.commerce >= 70 ? '商贾云集' : c.commerce >= 55 ? '市井兴旺' : c.commerce >= 40 ? '买卖尚可' : '市面萧条';
       var agriDesc = (c.agri >= 70 ? '沃野千里' : c.agri >= 55 ? '田畴丰美' : c.agri >= 40 ? '耕耨寻常' : '地瘠人稀');
-      var ctypeDesc = ({ plain: '平原城', mountain: '山城', port: '港口城', fort: '城寨' })[c.ctype || 'plain'];
+      var ctypeDesc = ({ plain: '平原城', mountain: '山城', port: '港口城', fort: '城寨', pass: '关隘' })[c.ctype || 'plain'];
       var gates = cityGates(c);
       return { c: c, tier: tier, tierDesc: tier, popDesc: popDesc, orderDesc: orderDesc, comDesc: comDesc, agriDesc: agriDesc, ctypeDesc: ctypeDesc, gates: gates };
     }

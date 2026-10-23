@@ -234,6 +234,10 @@
   function fbShow(txt, cls){
     if(!$modal || $modal.classList.contains('hidden')) return;
     if(cls==='npc' || cls==='talk') return;
+    // v20261020a：场景/环境旁白（进城题记、题名、出口）与长文本不镜像到面板顶部反馈条——
+    //   否则长旁白会盖住面板标题（实测「残碑断碣…」压背包标题）。反馈条只留操作结果。
+    if(cls==='env' || cls==='title' || cls==='exit') return;
+    if(String(txt==null?'':txt).length>72) return;
     if(!$card) return;
     var fb=document.getElementById('modal-fb');
     if(!fb){ injectModalFb(); fb=document.getElementById('modal-fb'); }

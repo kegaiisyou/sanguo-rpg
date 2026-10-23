@@ -28,6 +28,7 @@
   }
   function renderStatus(){
     getCheckQuestRewards()();
+    var _pk=S(); if(_pk){ if((_pk.gold||0)>(_pk.peakGold||0))_pk.peakGold=_pk.gold; if((_pk.reputation||0)>(_pk.peakRep||0))_pk.peakRep=_pk.reputation; if((_pk.level||1)>(_pk.peakLevel||0))_pk.peakLevel=_pk.level; }
     var sh=SHICHEN[S().time%12];
     var hh=String(Math.floor(S().clock/60)).padStart(2,'0');
     var mm=String(S().clock%60).padStart(2,'0');

@@ -40,7 +40,8 @@
     getRequestCurfewPatrol: function(){ return requestCurfewPatrol; }, getWeathers: function(){ return WEATHERS; },
     getOnbF: function(){ return onbF; }, getOnbBound: function(){ return onbBound; },
     getInCampNow: function(){ return inCampNow; }, getLog: function(){ return log; },
-    getCheckDeath: function(){ return checkDeath; }
+    getCheckDeath: function(){ return checkDeath; },
+    getTickAge: function(){ return tickAge; }
   });
   var advanceTime = Time.advanceTime, advanceMinutes = Time.advanceMinutes,
       curfewWarn = Time.curfewWarn, rollWarn = Time.rollWarn,
@@ -124,6 +125,8 @@
     getModal: function () { return $modal; },
     getCurrentModalKind: function () { return currentModalKind; },
     addReputation: function () { return addReputation.apply(null, arguments); },
+    getDie: function () { return die; },
+    lifespanOf: function () { return lifespanOf(); },
     repTitle: function () { return repTitle.apply(null, arguments); },
     log: function () { return log.apply(null, arguments); },
     addXp: function () { return addXp.apply(null, arguments); },
@@ -227,12 +230,17 @@
       onbWork: function () { return onbWork.apply(null, arguments); },
       renderStatus: renderStatus,
       toast: toast,
-      jobOpen: function () { return jobOpen; },
+      jobOpen: function (k) { return jobOpen(k); },        // 修正：原写法返回的是函数本身，苦役营农田门槛形同虚设
+      deriveCalendar: function () { return deriveCalendar.apply(null, arguments); },
+      openModal: function () { return openModal.apply(null, arguments); },
+      escapeHtml: escapeHtml
   });
   var CROPS = Farm.CROPS, FARM_LI = Farm.FARM_LI, FARM_MAX = Farm.FARM_MAX, FARM_UP = Farm.FARM_UP, farmClear = Farm.farmClear;
   var farmFx = Farm.farmFx, farmHarvest = Farm.farmHarvest, farmHas = Farm.farmHas, farmObjects = Farm.farmObjects, farmSow = Farm.farmSow;
   var farmTill = Farm.farmTill, farmTilled = Farm.farmTilled, farmUpgrade = Farm.farmUpgrade, farmWater = Farm.farmWater, farmWeed = Farm.farmWeed;
   var plantPast = Farm.plantPast, plotLeft = Farm.plotLeft, plotStage = Farm.plotStage;
+  var farmDraw = Farm.farmDraw, farmKeyOfCity = Farm.farmKeyOfCity, farmMaxOf = Farm.farmMaxOf;
+  var openFarmPanel = Farm.openFarmPanel, renderFarmPanel = Farm.renderFarmPanel, farmSeasonNow = Farm.seasonNow;
   // 模块 field（从 engine.js 拆分）
   var Field = LF.createField({
     getState: function () { return state; },
@@ -1335,23 +1343,76 @@
   //   生存消耗按「跨辰步进」扣（每跨一辰 -1 食 -1 水 -2 精力），速率与旧版完全一致。
   // 死亡：气血归零 → 回标题屏（读档/重开）
   function checkDeath(){ if(state && !state.dead && state.hp<=0){ die(); } }
-  function die(){
-    state.dead=true;   // 不落盘（save 对 hp<=0 跳过），回标题屏读档即回到死前存档
-    busyCancel();      // 万一死在耗时动作的半途：锁与计时器一并收起（v20260914a 摘锁；v20260914b 补掐计时器，免死后回调落定）
+  function _ephEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  // v20261020d：寿命/老去——结识的人记入 metNames（供结算「相识/羁绊」）
+  function meetNpc(name){ if(!state||!name) return; if(!state.metNames) state.metNames={}; state.metNames[name]=(state.metNames[name]||0)+1; }
+  // 享年：以存档 age 为准（旧档缺省按 18 + 天数/360 回填）
+  function curAge(){ if(!state) return 0; if(state.age==null){ state.age=18+Math.floor((state.day||0)/360); if(state._ageAd==null) state._ageAd=state.adYear; } return state.age; }
+  // 寿数：体质(气血) + 修炼(武学/发力) + 门派 加成
+  function lifespanOf(){ if(!state) return 60; var a=(state.attr&&state.attr.hp)||5; var m=((state.learnedMartial||[]).length+(state.equippedForce||[]).length); var base=60+Math.floor((a-5)*1.5)+Math.floor(m*0.5)+(state.sect?4:0); return Math.max(45,Math.min(96,base)); }
+  // 跨年增寿；age≥寿命 → 寿终（syncCalendar 跨年时调用）
+  function tickAge(adYear){ if(!state) return; curAge(); if(state._ageAd==null){ state._ageAd=adYear; } else if(adYear>state._ageAd){ state.age+=(adYear-state._ageAd); state._ageAd=adYear; } if(!state.dead && state.age>=lifespanOf()){ die('寿终正寝 · 年华已尽'); } }
+  // v20261020d：身亡「生平结算 · 墓志铭」——峰值/羁绊/评语；亡后「再开一世」直接重开（无继承）
+  function buildEpitaph(cause){
+    var age=curAge();
+    var city=''; try{ var r=curRoom(); city=(r&&r.name)||''; }catch(e){}
+    var era=(state.eraName||'')+(state.eraYear?(state.eraYear===1?'元年':state.eraYear+'年'):'');
+    var sect=(state.sect && G.SECTS && G.SECTS[state.sect])? G.SECTS[state.sect].name : '';
+    var explored=state.exploredRooms? Object.keys(state.exploredRooms).length:0;
+    var cities=0; if(state.exploredRooms && LF.CITIES){ for(var ck in state.exploredRooms){ if(LF.CITIES[ck]) cities++; } }
+    var martial=(state.learnedMartial||[]).length;
+    var peakGold=state.peakGold||state.gold||0, peakRep=state.peakRep||state.reputation||0, peakLv=state.peakLevel||state.level||1;
+    var met=state.metNames||{}, metNames=Object.keys(met), metCount=metNames.length;
+    var bonds=metNames.map(function(nm){return [nm,met[nm]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
+    var verdict=(function(){ var noto=state.notoriety||0, chi=state.chivalry||0, rep=state.reputation||0, g=peakGold;
+      if(noto>=30) return '凶名远播，闻者心寒';
+      if(chi>=30) return '任侠尚义，江湖称善';
+      if(rep>=60) return '名动一方，士林交誉';
+      if(g>=1000) return '富甲一隅，腰缠万贯';
+      if(martial>=8) return '技进乎道，自成一家';
+      if(explored>=20) return '足迹遍多地，识见广博';
+      return '寻常一介，来过、活过、去了'; })();
+    var ring=(state.logRing||[]).filter(function(e){ return e && (e.c==='good'||e.c==='warn'||e.c==='title'); });
+    var evs=ring.slice(-7).reverse();
+    var evHtml=evs.length? evs.map(function(e){ return '<div class="eph-ev"><span class="eph-ev-t">'+_ephEsc(e.s||'')+'</span>'+_ephEsc(e.t)+'</div>'; }).join('') : '<div class="eph-ev eph-ev-empty">平生碌碌，未留显迹。</div>';
+    var bondHtml=bonds.length? bonds.map(function(b){ return '<span class="eph-bond">'+_ephEsc(b[0])+'<i>×'+b[1]+'</i></span>'; }).join('') : '<span class="eph-bond eph-bond-none">未与人深交</span>';
+    return '<div class="eph-wrap">'+
+      '<div class="eph-plaque">'+
+        '<div class="eph-zhihao">墓 志 铭</div>'+
+        '<div class="eph-name">'+_ephEsc(state.name||'无名客')+'</div>'+
+        '<div class="eph-life">享年 '+age+' 岁</div>'+
+        '<div class="eph-cause">'+_ephEsc(cause||'伤重不治')+'</div>'+
+        ((era||city)?('<div class="eph-where">卒于 '+_ephEsc(era)+(city?(' · '+_ephEsc(city)):'')+'</div>'):'')+
+      '</div>'+
+      '<div class="eph-stats">'+
+        '<span>门派 <b>'+(sect?_ephEsc(sect):'散人')+'</b></span>'+
+        '<span>修为 <b>LV.'+peakLv+'</b></span>'+
+        '<span>在世 <b>'+(state.day||0)+' 日</b></span>'+
+        '<span>走过城池 <b>'+cities+' 座</b></span>'+
+        '<span>相识 <b>'+metCount+' 人</b></span>'+
+        '<span>银两峰值 <b>'+peakGold+'</b></span>'+
+        '<span>声望峰值 <b>'+peakRep+'</b></span>'+
+      '</div>'+
+      '<div class="eph-verdict">一世评语 · '+_ephEsc(verdict)+'</div>'+
+      '<div class="eph-bonds"><span class="eph-bonds-h">主 要 羁 绊</span>'+bondHtml+'</div>'+
+      '<div class="eph-events"><div class="eph-events-h">生 平 大 事</div>'+evHtml+'</div>'+
+    '</div>';
+  }
+  function die(cause){
+    if(!state) return;
+    state.dead=true;
+    busyCancel();
     $modal.classList.remove('hidden');
-    // v20260914a：把「死前状态已自动留存」这件事说明白，并让「读档续命」成为首选那一步。
-    //   死亡本来就不落盘（save 遇 hp<=0 直接跳过），所以读档必定回到死前那一刻、分毫不损；
-    //   旧版却要玩家先「回首頁」、再自己去档位里找回来，白白吓一跳。
-    $card.innerHTML='<h3 style="color:#8a3b2e">⚔ 殒 落</h3>'+
-      '<p class="tip">气血已枯，魂归尘土——乱世如炉，谁记你姓名？</p>'+
-      (curSlot
-        ? '<p class="tip" style="margin-top:-4px;">倒下前的光景已自动留在卷中，拾卷即回身死之前，分毫无损。</p>'+
-          '<button class="close" id="m-load" style="background:linear-gradient(180deg,#fbf6ea,#ece0c6);color:#3a2d1a;border-color:#b8893a;font-weight:700;">读 档 续 命 · 回 到 死 前</button>'+
-          '<button class="close" id="m-home" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">回 首 页</button>'
-        : '<p class="tip" style="margin-top:-4px;">此局尚未落于卷中，只能回首页重开。</p>'+
-          '<button class="close" id="m-home">回 首 页</button>');
-    var hm=document.getElementById('m-home'); if(hm)hm.onclick=function(){ closeModal(); showTitle(); };
-    var ld=document.getElementById('m-load'); if(ld)ld.onclick=function(){ closeModal(); enterGame(rawSlot(curSlot), curSlot); };
+    var _cause = cause || ((state.food<=0||state.drink<=0)?'饥馁而亡':'伤重不治，魂归尘土');
+    $card.innerHTML = buildEpitaph(_cause)+
+      '<div class="eph-btns">'+
+        (curSlot
+          ? '<button class="close eph-load" id="m-load">读 档 续 命 · 回 到 死 前</button>'
+          : '')+
+        '<button class="close eph-again" id="m-again">再 开 一 世</button>'+
+      '</div>';
+    var ag=document.getElementById('m-again'); if(ag) ag.onclick=function(){ closeModal(); showTitle(); };
+    var ld=document.getElementById('m-load'); if(ld) ld.onclick=function(){ closeModal(); enterGame(rawSlot(curSlot), curSlot); };
   }
   // ===== 标题屏与子面板 =====
   function showTitle(){
@@ -1500,6 +1561,8 @@
     invalidateScene();            // 新场景：使任何残留的旧叙事序列失效
     dlgClose();                  // 换场景即收对话窗（v20260912g）：上一位的话，说完就到此为止
     state.room=rid;
+    // v20261022e：进入野外格即标记「已探索」（迷雾/地图门槛用）；含周围8格模拟视野
+    (function(){ var _rm=(G.ROOMS&&G.ROOMS[rid])||null; if(_rm&&_rm.isField&&_rm.fieldId!=null&&typeof _rm.fr==='number'){ var _ef=(state.exploredFields=state.exploredFields||{}); var _e=(_ef[_rm.fieldId]=_ef[_rm.fieldId]||{}); for(var _dr=-1;_dr<=1;_dr++) for(var _dc=-1;_dc<=1;_dc++){ _e[(_rm.fr+_dr)+':'+(_rm.fc+_dc)]=1; } } })();
     if(isCityGrid(rid)){
       var __m=genCityGrid(rid);
       if(!state.flags.cityPos || state.flags.cityPos.cid!==rid){
@@ -1610,6 +1673,16 @@
   // 研习武学仅限特定房间（主营/郡学宫）
   var LEARN_ROOMS={};
   function roomCanLearn(rid){ return !!LEARN_ROOMS[rid]; }
+
+  // v20261020h：学艺入口（武学摊/日常讨教共用）——注册后按类型入库
+  function learnMartialArt(id){
+    var MA = G.MARTIAL_ARTS; var art = MA.get(id); if(!art) return false;
+    state.learnedMartial = state.learnedMartial || []; state.equippedForce = state.equippedForce || [];
+    if(state.learnedMartial.indexOf(id)>=0 || state.equippedForce.indexOf(id)>=0){ toast('已习得「'+art.name+'」'); return false; }
+    if(art.type==='technique'){ state.equippedForce.push(id); } else { state.learnedMartial.push(id); }
+    log('〔武学〕习得「'+art.name+'」','sys'); toast('习得「'+art.name+'」'); save(state); renderStatus(); return true;
+  }
+  window.learnMartialArt = learnMartialArt;
 
   // ===== 城市系统：数据驱动派生（数据 shared/data/cities.js） =====
   // 进入城市房间时按人口/治安/商业参数生成城郭概况、人物与可行动作，免去为每城手写房间
@@ -2248,9 +2321,10 @@
     //   v20260928g 交谈面板（话题按钮块）已整体移除 —— 交谈只说一句闲谈（log），
     //   「观察 / 给予 / 攻击 / 交易」等动作统一在 NPC 浮动菜单里（buildNpcActions）。
     var po=NPC_BY_KEY[k];
-    if(po) npcSpeak(po, null);
+    if(po){ meetNpc(po.name||po.nm||k); npcSpeak(po, null); }
     return;
   }
+    meetNpc(n.name||k);
     var at=npcAttitude(k);
     log('〔'+n.name+'·态度：'+at+'〕','npc');
     if(at==='敌视'){
@@ -2304,6 +2378,10 @@
       case 'shop_furnish':
         openModal('housefurn', { target:'shop', cid:(a&&a.data?a.data.cid:state.room), x:(a&&a.data?a.data.x:0), y:(a&&a.data?a.data.y:0), key:(a&&a.data?a.data.key:null) });
         break;
+      // v20261021b：下地务农（城内农庄格 / 郊野田）
+      case 'farm_open':
+        openFarmPanel({ key: farmKeyOfCity((a && a.data ? a.data.cid : state.room), (a && a.data ? a.data.x : 0), (a && a.data ? a.data.y : 0)) });
+        break;
       // v20260928h：房产/家园（牙行购房契 → 民居进宅 → 布置家具）
       case 'enter_house':
         if(a && a.data && a.data.cid) enterHouse(a.data.cid);
@@ -2331,6 +2409,9 @@
         if (_wi) log(_wi, 'npc');
         break;
       }
+      case 'pass_weng': { narr('\u7f2f\u57ce\u4e24\u91cd\uff0c\u5916\u95e8\u82e5\u7834\uff0c\u654c\u4fbf\u9677\u91cd\u56f4\uff0c\u63d2\u7fc5\u96be\u9003\u3002'); break; }
+      case 'pass_granary': { narr('\u5173\u9645\u7cae\u50a8\u5c1a\u53ef\uff0c\u591f\u5b88\u519b\u652f\u7528\u5300\u6708\uff1b\u82e5\u88ab\u56f4\u4e45\uff0c\u987b\u5916\u63a5\u6d4e\u3002'); break; }
+      case 'pass_hold': { narr('\u4e00\u592b\u5f53\u5173\uff0c\u4e07\u592b\u83ab\u5f00\u3002\u4f60\u7acb\u4e8e\u5173\u95e8\uff0c\u9065\u671b\u8981\u9053\uff0c\u98ce\u58f0\u730e\u730e\u3002'); break; }
       case 'recruit':
         if(!exert('入营募兵')) return;
         openModal('army');   // 军营：面板内「募兵」区块按兵科/兵源/府库募兵（v20260922b）
@@ -3474,7 +3555,7 @@
   function mainCharStatHTML(){
     var es=effectiveStats();
     // 标题已由 charhall.mainTabsHTML 的 head 渲染，这里不再重复（v20260927k 修复角色面板标题重复）
-    var h=(function(){
+    var h=row('年龄',curAge()+' 岁 · 寿约 '+lifespanOf()+' 岁')+(function(){
         var need=(state.level>=G.CONSTANTS.MAX_LEVEL)?0:G.BALANCE.expNeed(state.level);
         if(!need) return row('等级','LV.'+state.level+' · 圆满')
           + '<div class="exp-bar"><i style="width:100%"></i></div>';
@@ -3571,6 +3652,55 @@
   function bindShopManagePanel(opts){
     // P0：占位，暂无交互；关闭由模态 X 处理。后续在此绑定各分区按钮。
   }
+  // ═══ 武学摊（v20261020h）：大路货售卖 + 每日免费讨教 ═══
+  var stallArts = [];
+  var STALL_LINE = {sword:'剑',blade:'刀',spear:'枪',staff:'棍',halberd:'戟',hammer:'锤',whip:'鞭',bow:'弓',hidden:'暗器',ride:'骑',light:'轻功',internal:'内功'};
+  function artPrice(a){
+    var p = 55;                                  // 大路货底价
+    p += ((a.dmgMul||1) - 0.7) * 300;            // 伤害倍率越高越值钱
+    p += (a.beat||0) * 2;                         // 出招 beat 加权
+    if(a.eff){ for(var _k in a.eff){ p += 40; } } // 带特效（暴击/破甲/反震）加价
+    if(a.detach) p += 30;                         // 脱离型发力更稀有
+    p += ((a.id.charCodeAt(6)||0)%40) * 2;        // 浮动 0~78（压低上限，保新手可购）
+    return Math.max(50, Math.round(p/5)*5);
+  }
+  function renderMartialStall(){
+    var _stt = state||{};
+    var MA = G.MARTIAL_ARTS; stallArts = MA.rollCommonArts(3);
+    var h = '<h3 class="q-title">武 学 摊</h3>'
+      + '<p class="job-sub">游方武师摆的小摊，兜售江湖大路货——平平无奇，却足以防身入门。银两交割，立地可学。</p>';
+    h += '<div class="stall-list">';
+    stallArts.forEach(function(a){
+      var price = artPrice(a);
+      h += '<div class="stall-item"><div class="si-name">'+a.name+'</div>'
+        + '<div class="si-meta">'+(STALL_LINE[a.line]||a.line)+' · '+(a.attr?a.attr.wu:'-')+'行 · '+(a.type==='technique'?'心法':'招式')+'</div>'
+        + '<div class="si-desc">'+a.desc+'</div>'
+        + '<button class="btn buy" data-buy="'+a.id+'" data-price="'+price+'">购 · '+price+' 两</button></div>';
+    });
+    h += '</div>';
+    var dailyOk = (_stt.flags && _stt.flags.dailyArtDay) !== _stt.day;
+    h += '<div class="stall-foot"><button class="btn" id="stall-reroll">换一批</button>'
+      + '<button class="btn '+(dailyOk?'':'disabled')+'" id="stall-daily"'+(dailyOk?'':' disabled')+'>'+(dailyOk?'免费讨教（每日一次）':'今日已讨教')+'</button></div>';
+    h += '<p class="job-note">银两：'+(_stt.gold||0)+' 两</p>';
+    return h;
+  }
+  function bindMartialStall(){
+    document.querySelectorAll('#modal-card .buy[data-buy]').forEach(function(b){
+      b.onclick = function(){
+        var id = b.getAttribute('data-buy'), price = parseInt(b.getAttribute('data-price'),10)||0;
+        if((state.gold||0) < price){ toast('银两不足'); return; }
+        state.gold -= price; learnMartialArt(id); openModal('martial_stall');
+      };
+    });
+    var rr = document.getElementById('stall-reroll'); if(rr) rr.onclick = function(){ openModal('martial_stall'); };
+    var dl = document.getElementById('stall-daily');
+    if(dl && !dl.hasAttribute('disabled')) dl.onclick = function(){
+      if((state.flags||{}).dailyArtDay === state.day) return;
+      if(!state.flags) state.flags = {}; state.flags.dailyArtDay = state.day;
+      learnMartialArt(G.MARTIAL_ARTS.genCommonArt().id); openModal('martial_stall');
+    };
+  }
+
   function openModal(kind, opts){
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
@@ -3621,6 +3751,8 @@
       h=renderObjectives();
     } else if(kind==='job'){
       h=renderJobBoard();
+    } else if(kind==='farm'){
+      h=renderFarmPanel();
     } else if(kind==='mine'){
       h=renderMinePanel();
     } else if(kind==='minecave'){
@@ -3739,6 +3871,8 @@
       h=renderBrokerPanel(opts);
     } else if(kind==='gamble'){
       h=(window.LF && LF.Gamble) ? LF.Gamble.render() : '<h3>赌坊</h3><p class="tip">赌坊尚未开张。</p>';
+    } else if(kind==='martial_stall'){
+      h=renderMartialStall();
     }
     $card.innerHTML=h;
     injectModalFb();   // v20260915j：每扇窗都带顶部反馈条（操作结果不再被面板挡死）
@@ -3757,6 +3891,7 @@
     if(kind==='shop'){ Shop.bindShopPanel(); }
     if(kind==='shop_manage'){ bindShopManagePanel(opts); }
     if(kind==='gamble'){ if(window.LF && LF.Gamble){ setTimeout(function(){ LF.Gamble.bind(); },0); } }
+    if(kind==='martial_stall'){ bindMartialStall(); }
     if(kind==='wardStudy'){ bindWardStudy(); }
     if(kind==='wardFerry'){ bindWardFerry(); }
     if(kind==='build'){ bindBuildPanel(); }

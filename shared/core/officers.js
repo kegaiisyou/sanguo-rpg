@@ -625,7 +625,9 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       var skill = sumEff(ids, C.skill) || 0;
       var amount = Math.round((C.base || 0) * statMul * (1 + skill));
       if (actor.isPlayer && C.res) amount = Math.round(amount * playerEconMul());
-      return { key: cmdKey, C: C, kind: C.kind, trainType: C.trainType, amount: amount, res: C.res, statKey: C.statKey, statGain: C.statGain || 0, order: C.order || 0, skill: skill, statMul: statMul };
+      var order = C.order || 0;
+      if (order && skill) order = order + Math.round(skill / 5);   // 教化/名望/信义：巡街安民更得人心
+      return { key: cmdKey, C: C, kind: C.kind, trainType: C.trainType, amount: amount, res: C.res, statKey: C.statKey, statGain: C.statGain || 0, order: order, cost: C.cost || null, skill: skill, statMul: statMul };
     }
     function edictResultText(eff) {
       if (eff.C.kind === 'train') return '\u52df\u8bad ' + (eff.trainType || '\u6b65\u5175') + ' ' + eff.amount + ' \u540d';
@@ -665,22 +667,22 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       save(S());
     }
     function applyEdictToState(cid, eff, who) {
-      var st = S(); if (!st) return;
+      var st = S(); if (!st) return false;
       if (eff.C.kind === 'train') {
         var got = armyTrainAt(cid, eff.trainType || '\u6b65\u5175', eff.amount);
         if (got > 0) log('\u3014\u5185\u653f\u3015' + (who || '\u4f60') + '\u4e8e' + cityName(cid) + '\u7ec3\u5175\uff0c\u52df\u8bad ' + (eff.trainType || '\u6b65\u5175') + ' ' + got + ' \u540d\u3002', 'good');
         else log('\u3014\u5185\u653f\u3015' + (who || '\u4f60') + '\u6b32\u4e8e' + cityName(cid) + '\u7ec3\u5175\uff0c\u7136\u5175\u6e90\u5df2\u5c3d\u6216\u5175\u529b\u5df2\u8fbe\u4e0a\u9650\u3002', 'sys');
-        return;
+        return got > 0;
       }
       if (eff.C.kind === 'recruit') {
         var list = recruitableHere(cid);
-        if (!list.length) { log('\u3014\u767b\u96c7\u3015' + cityName(cid) + '\u5883\u5185\u4e00\u65f6\u65e0\u53ef\u767b\u96c7\u4e4b\u58eb\u3002', 'sys'); return; }
+        if (!list.length) { log('\u3014\u767b\u96c7\u3015' + cityName(cid) + '\u5883\u5185\u4e00\u65f6\u65e0\u53ef\u767b\u96c7\u4e4b\u58eb\u3002', 'sys'); return false; }
         var best = list[0], bp = -1;
         list.forEach(function (t) { var pc = recruitChance(t); if (pc > bp) { bp = pc; best = t; } });
         recruit(best.id);
-        return;
+        return true;
       }
-      if (eff.C.kind === 'explore') { doExplore(cid, who || '\u4f60'); return; }
+      if (eff.C.kind === 'explore') { doExplore(cid, who || '\u4f60'); return true; }
       if (eff.res && eff.amount) {
         if (eff.res === 'gold') st.gold = (st.gold || 0) + eff.amount;
         else { st.res = st.res || { grain: 0, iron: 0, kit: 0 }; st.res[eff.res] = (st.res[eff.res] || 0) + eff.amount; }
@@ -692,16 +694,65 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
         st.flags.cityOrder[cid] = Math.min(100, Math.max(0, cur + eff.order));
       }
       log('\u3014\u5185\u653f\u3015' + (who || '\u4f60') + '\u884c' + edictName(eff.key) + '\uff0c' + edictResultText(eff) + '\u3002', 'good');
+      return true;
     }
 
+    // ── 内政命令的成本与冷却（v20261021a·P0-1）：亲行须拨资源，且每城每令每日仅一次 ──
+    var RES_CN = { grain: '\u7cae', gold: '\u94f6', iron: '\u94c1', kit: '\u68b0' };
+    function resHave(k) {
+      var st = S(); if (!st) return 0;
+      if (k === 'gold') return st.gold || 0;
+      return ((st.res || {})[k] || 0);
+    }
+    function resTake(k, n) {
+      var st = S(); if (!st) return;
+      if (k === 'gold') { st.gold = (st.gold || 0) - n; return; }
+      st.res = st.res || { grain: 0, iron: 0, kit: 0 };
+      st.res[k] = (st.res[k] || 0) - n;
+    }
+    function costText(cost) {
+      if (!cost) return '';
+      var p = [];
+      Object.keys(cost).forEach(function (k) { if (cost[k]) p.push((RES_CN[k] || k) + cost[k]); });
+      return p.join('\u3001');
+    }
+    function costMiss(cost) {
+      if (!cost) return null;
+      var ks = Object.keys(cost);
+      for (var i = 0; i < ks.length; i++) {
+        var k = ks[i], need = cost[k] || 0;
+        if (need && resHave(k) < need) return RES_CN[k] || k;
+      }
+      return null;
+    }
+    function payCost(cost) {
+      if (!cost) return;
+      Object.keys(cost).forEach(function (k) { if (cost[k]) resTake(k, cost[k]); });
+    }
+    function edictDoneToday(cid, k) {
+      var st = S(); if (!st) return false;
+      var cd = st.flags.edictCd || {};
+      return cd[cid + '|' + k] === (st.day || 0);
+    }
+    function markEdictDone(cid, k) {
+      var st = S(); if (!st) return;
+      st.flags.edictCd = st.flags.edictCd || {};
+      st.flags.edictCd[cid + '|' + k] = st.day || 0;
+    }
     function civilCommand(cmdKey) {
       var cid = S() && S().room;
       if (!isCityGrid(cid)) { toast('\u9700\u7acb\u4e8e\u57ce\u4e2d\u65b9\u80fd\u53d1\u4ee4\u3002'); return; }
       if (cityOwnerOf(cid) !== playerFaction()) { toast('\u4f60\u5e76\u975e\u6b64\u57ce\u4e4b\u4e3b\uff0c\u4f55\u8c08\u653f\u4ee4\uff1f'); return; }
       var C = edictCmds()[cmdKey]; if (!C) return;
+      if (edictDoneToday(cid, cmdKey)) { toast('\u300c' + C.name + '\u300d\u4eca\u65e5\u5df2\u884c\u4e8e\u6b64\u57ce\uff0c\u4e14\u5f85\u660e\u65e5\u3002'); return; }
+      var miss = costMiss(C.cost);
+      if (miss) { toast('\u5e9c\u5e93' + miss + '\u4e0d\u8db3\uff0c\u300c' + C.name + '\u300d\u96be\u884c\u3002'); return; }
       var actor = playerActor(); var eff = commandEffect(cmdKey, actor);
       busyAct(C.icon + ' ' + C.name + '\u00b7\u534a\u4e2a\u65f6\u8fb0', 1000, function () {
-        applyEdictToState(cid, eff, '\u4f60');
+        var ok = applyEdictToState(cid, eff, '\u4f60');
+        if (ok === false) { toast(C.icon + ' ' + C.name + '\u672a\u6210\uff0c\u6240\u652f\u4e0d\u53d1\u3002'); if (getCurrentModalKind() === 'edict') openModal('edict'); return; }
+        payCost(C.cost);
+        markEdictDone(cid, cmdKey);
         advanceMinutes(120);
         save(S()); renderStatus();
         toast(C.icon + ' ' + C.name + '\uff1a' + edictResultText(eff));
@@ -735,16 +786,17 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       });
     }
     function renderEdictCommands(cid) {
-      if (!cid || cityOwnerOf(cid) !== playerFaction()) return '';
+      if (!cid || cityOwnerOf(cid) !== playerFaction()) return '<div class="edict-empty tip">此城非你治下，无政令之权。</div>';
       var h = '<div class="edict-cmds">';
-      h += '<div class="edict-cmd-h">\u5185\u653f\u547d\u4ee4\uff08\u4eb2\u884c\u8017\u65f6\u8fb0\uff1b\u6216\u59d4\u4efb\u9e4c\u4e0b\u6b66\u5c06\u6309\u6708\u7763\u529e\uff09</div>';
+      h += '<div class="edict-cmd-h">\u5185\u653f\u547d\u4ee4\uff08\u4eb2\u884c\u987b\u652f\u8d44\u7cae\u3001\u6bcf\u57ce\u6bcf\u4ee4\u6bcf\u65e5\u4ec5\u4e00\u6b21\uff1b\u6216\u59d4\u4efb\u9e4c\u4e0b\u6b66\u5c06\u6309\u6708\u7763\u529e\uff09</div>';
       var cmds = edictCmds();
       Object.keys(cmds).forEach(function (k) {
         var C = cmds[k];
         var eff = commandEffect(k, playerActor());
         var fslots = facSlotsForCmd(cid, k);
         h += '<div class="edict-cmd">';
-        h += '<button class="btn edict-do" onclick="civilCommand(\'' + k + '\')">' + C.icon + ' ' + C.name + '<br><span class="sub">' + C.cat + '\u00b7' + statName(C.stat) + (C.skill ? '\u00b7\u7279\u6280' : '') + '</span></button>';
+        var _done = edictDoneToday(cid, k), _miss = costMiss(C.cost), _lock = _done || !!_miss;
+        h += '<button class="btn edict-do' + (_lock ? ' dis' : '') + '"' + (_lock ? ' disabled' : '') + ' onclick="civilCommand(\'' + k + '\')">' + C.icon + ' ' + C.name + '<br><span class="sub">' + C.cat + '\u00b7' + statName(C.stat) + (C.skill ? '\u00b7\u7279\u6280' : '') + '</span>' + (C.cost ? '<br><span class="cost">\u8017 ' + costText(C.cost) + '</span>' : '') + (_done ? '<br><span class="cd">\u4eca\u65e5\u5df2\u884c</span>' : (_miss ? '<br><span class="cd">' + _miss + '\u4e0d\u8db3</span>' : '')) + '</button>';
         if (fslots.length) {
           h += '<div class="edict-fac">';
           fslots.forEach(function (s) {
@@ -771,7 +823,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
           if (dg) opts = '<option value="">\u2715 \u64a4\u59d4\u4efb\uff08\u73b0\u4efb\uff1a' + escapeHtml(dg.name) + '\uff09</option>';
           roster().forEach(function (o) { var a = o.assignment; if (a && a.type === 'edict' && a.cmd === k && a.cid === cid) return; opts += '<option value="' + o.id + '">' + escapeHtml(o.name) + '\uff08' + statName(C.stat) + (o.stats[C.stat] || 0) + '\uff09</option>'; });
           h += '<select class="edict-del" onchange="delegateCommand(\'' + k + '\', this.value)">' + opts + '</select>';
-          h += '<div class="edict-pred">' + (dg ? ('\u59d4\u4efb ' + escapeHtml(dg.name) + '\uff1a') : '\u4eb2\u884c\uff1a') + escapeHtml(edictResultText(eff)) + '</div>';
+          h += '<div class="edict-pred">' + (dg ? ('\u59d4\u4efb ' + escapeHtml(dg.name) + '\uff1a') : '\u4eb2\u884c\uff1a') + escapeHtml(edictResultText(eff)) + (eff.cost ? '\uff08\u8017 ' + costText(eff.cost) + '\uff09' : '') + (_done ? ' \u00b7 \u4eca\u65e5\u5df2\u884c' : '') + '</div>';
         }
         h += '</div>';
       });
@@ -788,7 +840,8 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       appoint: appoint, dismiss: dismiss, captureFrom: captureFrom, officeMul: officeMul,
       renderOfficerPanel: renderOfficerPanel, renderSearchPanel: renderSearchPanel, renderOfficerHub: renderOfficerHub, renderFactionsPanel: renderFactionsPanel, renderCityGarrison: renderCityGarrison,
       openOfficerPanel: openOfficerPanel, openSearchPanel: openSearchPanel, openOfficerTab: openOfficerTab, openOfficerDetail: openOfficerDetail, renderOfficerDetail: renderOfficerDetail, officerPortrait: officerPortrait,
-      dispatchAssign: dispatchAssign, dispatchRemove: dispatchRemove, dispatchLabor: dispatchLabor, dispatchTroops: dispatchTroops, facilitiesMonthlyYield: facilitiesMonthlyYield, facilityOutput: facilityOutput, civilCommand: civilCommand, delegateCommand: delegateCommand, undelegateCommand: undelegateCommand, monthlyAffairs: monthlyAffairs, renderEdictCommands: renderEdictCommands
+      dispatchAssign: dispatchAssign, dispatchRemove: dispatchRemove, dispatchLabor: dispatchLabor, dispatchTroops: dispatchTroops, facilitiesMonthlyYield: facilitiesMonthlyYield, facilityOutput: facilityOutput, civilCommand: civilCommand, delegateCommand: delegateCommand, undelegateCommand: undelegateCommand, monthlyAffairs: monthlyAffairs, renderEdictCommands: renderEdictCommands,
+      commandEffect: commandEffect, playerActor: playerActor, costText: costText, costMiss: costMiss, edictDoneToday: edictDoneToday
     };
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.createOfficers;

@@ -14,6 +14,21 @@
 (function(global){
   if(!global.LF) global.LF = {};
   var CITIES = {
+    // ═══ 关隘（城格城镇，扼守道路）═══
+    hulaoguan: { name:'虎牢关', comm:'司隶关隘', state:'司隶', tier:'xian', pop:10, order:60, commerce:30, wall:90, agri:20, grid:7, pos:[113.20,34.90],
+      desc:'司隶咽喉，洛阳东门锁钥', ctype:'pass', owner:'dongzhuo', garrison:60, controls:[['luoyang','xuchang']],
+      blurb:['虎牢关雄踞隘口，两山夹峙，一径中通。','入关门即进关城，瓮城深固，守军披甲。'],
+      blurbFind:'关门上「虎牢」二字斑驳，戍卒按戟而立，盘查往来行旅。',
+      rootActs:[{"id":"rest","label":"关下歇脚","group":"行动","tip":"依墙小憩，气血内力尽复"}],
+      layoutGrid:[
+        ['empty','empty','empty','empty','empty','empty','empty'],
+        ['empty','wengcheng','wengcheng','wengcheng','wengcheng','wengcheng','empty'],
+        ['empty','barracks','market','home','market','barracks','empty'],
+        ['empty','home','home','passgate','home','home','empty'],
+        ['empty','granary','market','home','market','granary','empty'],
+        ['empty','barracks','home','home','home','barracks','empty'],
+        ['empty','empty','empty','empty','empty','empty','empty']
+      ] },
     // ═══ 幽州 ═══
     jicheng: { name:'蓟城', comm:'广阳郡', state:'幽州', tier:'zhou', pop:80, order:82, commerce:78, wall:85, agri:60, grid:9, pos:[116.23,39.84],
       desc:'幽州州治，北疆雄城', ctype:'plain', owner:'wei', garrison:80,

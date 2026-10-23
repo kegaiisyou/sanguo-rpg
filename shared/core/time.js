@@ -12,7 +12,7 @@ window.LF = window.LF || {};
         getOnMonthTick = ctx.getOnMonthTick, getTickForge = ctx.getTickForge, getTickBuildOrders = ctx.getTickBuildOrders,
         getRequestCurfewPatrol = ctx.getRequestCurfewPatrol, getWeathers = ctx.getWeathers,
         getOnbF = ctx.getOnbF, getOnbBound = ctx.getOnbBound, getInCampNow = ctx.getInCampNow,
-        getLog = ctx.getLog, getCheckDeath = ctx.getCheckDeath;
+        getLog = ctx.getLog, getCheckDeath = ctx.getCheckDeath, getTickAge = ctx.getTickAge;
   function advanceTime(n){
     n=n||1;
     if(!getClockFlowing()()) return;
@@ -91,6 +91,7 @@ window.LF = window.LF || {};
   function syncCalendar(){
     var c=getDeriveCalendar()();
     getState().eraName=c.eraName; getState().eraYear=c.eraYear; getState().adYear=c.adYear;
+    if(getTickAge) getTickAge()(c.adYear);   // 跨年增寿；age≥寿命则寿终（v20261020d）
   }
   // 饥饿过高：食物/饮水耗尽则持续侵蚀气血（硬性限制）；归零即殒落
   function maybeStarve(){

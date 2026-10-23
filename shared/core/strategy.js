@@ -169,7 +169,11 @@
       +'<div class="er4 r-kit"><i>\u68b0</i><b>'+(res.kit||0)+'</b></div>'
       +'<div class="er4 r-gold"><i>\u94f6</i><b>'+(S().gold||0)+'</b></div>'
       +'</div>';
-    if(own && typeof renderEdictCommands==='function') h+=renderEdictCommands(cid);
+    if(own){
+      if(typeof renderEdictCommands==='function') h+=renderEdictCommands(cid);
+    } else {
+      h+='<div class="edict-tip tip">你并非此城之主，无从发号施令；占城即得官守，自可施政。</div>';
+    }
     h+='<div class="edict-acts">';
     h+='<button class="btn" onclick="civilEdict(\'tax\')">\u7a0e \u5f81\u7a0e<br><span class="sub">'+taxTip+'</span></button>';
     h+='<button class="btn" onclick="civilEdict(\'pacify\')">\u5b89 \u5b89\u6c11<br><span class="sub">\u8017\u94f620\uff0c\u6cbb\u5b89+6</span></button>';

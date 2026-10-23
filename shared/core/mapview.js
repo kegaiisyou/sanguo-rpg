@@ -68,6 +68,15 @@
         '打开时默认以你所在之处居中；切回「城内布防图」可继续在城中走动。</p></div>';
     }
     // 郊野局部地图（v20260905n）：4×4 网格展示当前郊野——玩家所在格、入口(回母城)、资源/野兽/路人、远边通邻城出口
+    // 迷雾：是否已探明某野地格（调试开关可强制全显）
+    function fieldCellKnown(fid, r, c) {
+      var fl = (S() && S().flags) || {};
+      if (fl.fog === false) return true;        // 迷雾关 → 全显（测试布局）
+      if (fl.mapGated === false) return true;   // 门槛解锁关 → 视作已持舆图，全显
+      var ef = (S() && S().exploredFields) || {};
+      var e = ef[fid];
+      return !!(e && e[r + ':' + c]);
+    }
     function buildFieldMapHTML(opts) {
       opts = opts || {};
       var rid = S().room, room = G.ROOMS[rid];
@@ -103,16 +112,27 @@
         var cid = LF_.Travel.roomId(fid, r, c), cr = G.ROOMS[cid] || {};
         var isCur = (r === fr && c === fc), isEntry = (r === geo.entryR && c === geo.entryC);
         var cityNm = cityOut[r + ',' + c];
+        var known = fieldCellKnown(fid, r, c);
         var ic = '·', nm = '荒野', cls = 'mc-cell mf' + (isCur ? ' mc-cur' : '');
-        if (isEntry) { ic = '🚪'; nm = '入' + parentName; cls += ' mf-entry'; }
+        if (!known) { ic = '❓'; nm = '未探明'; cls += ' mf-fog'; }
+        else if (isEntry) { ic = '🚪'; nm = '入' + parentName; cls += ' mf-entry'; }
         else if (cityNm) { ic = '🏰'; nm = '入' + cityNm + '·' + gd; cls += ' mf-cityout'; }
-        else if (cr.resources && cr.resources.length) { ic = cr.resources[0].item || '🌿'; nm = cr.resources[0].name; }
-        else if (cr.monsters && cr.monsters.length) { var m0 = cr.monsters[0]; ic = (m0.aggr === 'flee' ? '🐗' : (m0.aggr === 'neutral' ? '🐺' : '⚔')); nm = m0.name; }
-        else if (cr.water) { ic = cr.water.icon || '💧'; nm = cr.water.name; }
-        else if (cr.fieldNpcs && cr.fieldNpcs.length) { ic = '💬'; nm = cr.fieldNpcs[0].name; }
-        cells += '<div class="' + cls + '" data-x="' + c + '" data-y="' + r + '"' +
-          ' style="left:' + (c * CELL) + 'px;top:' + (r * CELL) + 'px;width:' + CELL + 'px;height:' + CELL + 'px">' +
-          '<span class="mc-ic">' + (window.UI_Icons ? UI_Icons.cellIcon(ic) : ic) + '</span><span class="mc-nm">' + nm + '</span></div>';
+        else {
+          // 地形着色：依内容推断地形，给格子着底色（水/岩/林/草/野）
+          var _ter = '野';
+          if (cr.water) _ter = '水';
+          else if (cr.resources && cr.resources.some(function(x){return x.type==='ore'||x.type==='copper'||x.type==='silver'||x.type==='jade'||x.type==='salt';})) _ter = '岩';
+          else if (cr.monsters && cr.monsters.length) _ter = '林';
+          else if (cr.resources && cr.resources.length) _ter = '草';
+          cls += ' mf-ter-' + _ter;
+          if (cr.resources && cr.resources.length) { ic = cr.resources[0].item || '🌿'; nm = cr.resources[0].name; }
+          else if (cr.monsters && cr.monsters.length) { var m0 = cr.monsters[0]; ic = (m0.aggr === 'flee' ? '🐗' : (m0.aggr === 'neutral' ? '🐺' : '⚔')); nm = m0.name; }
+          else if (cr.water) { ic = cr.water.icon || '💧'; nm = cr.water.name; }
+          else if (cr.fieldNpcs && cr.fieldNpcs.length) { ic = '💬'; nm = cr.fieldNpcs[0].name; }
+        }
+        cells += '<div class=\"' + cls + '\" data-x=\"' + c + '\" data-y=\"' + r + '\"' +
+          ' style=\"left:' + (c * CELL) + 'px;top:' + (r * CELL) + 'px;width:' + CELL + 'px;height:' + CELL + 'px\">' +
+          '<span class=\"mc-ic\">' + (window.UI_Icons ? UI_Icons.cellIcon(ic) : ic) + '</span><span class=\"mc-nm\">' + nm + '</span></div>';
       }
       var exits = '';
       (meta.neighbors || []).forEach(function (nb) {
@@ -133,6 +153,7 @@
       var res = {}, mon = {}, npc = {}, wat = {}, r, c, rm;
       for (r = 0; r < size; r++) for (c = 0; c < size; c++) {
         rm = G.ROOMS[LF_.Travel.roomId(fid, r, c)]; if (!rm) continue;
+        if (!fieldCellKnown(fid, r, c)) continue;
         (rm.resources || []).forEach(function (x) { if (!res[x.type]) res[x.type] = { name: x.name, item: x.item, amt: 0 }; res[x.type].amt += (x.amt || 1); });
         (rm.monsters || []).forEach(function (x) { if (!mon[x.id]) mon[x.id] = { name: x.name, aggr: x.aggr, lvl: 1, n: 0 }; mon[x.id].n++; if ((x.lvl || 1) > mon[x.id].lvl) mon[x.id].lvl = x.lvl; });
         (rm.fieldNpcs || []).forEach(function (x) { if (!npc[x.type]) npc[x.type] = { name: x.name, n: 0 }; npc[x.type].n++; });

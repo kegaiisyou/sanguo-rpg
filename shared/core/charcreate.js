@@ -182,6 +182,7 @@ function bindCreate(){
     save.freePoints=getCreateState().pool;   // 捏人未分配完的点转为入局后自由属性点，避免白丢
     save.role=getCreateState().role||'youxia';   // 立身之道（v20260918h 职种分化）
     save.origin=null;
+    save.age=16+Math.floor(Math.random()*5);   // 建角年龄 16–20（v20261020d 寿命/老去）
     // 跳过新手教程（测试用）：直接抵达洛阳（朱雀大街），并标记教学已完成、补发一包金疮药；
     // 同时打通主线门控（力斩华雄 + 洛阳凯旋）以避免被卡门。
     if(getCreateState().skip){

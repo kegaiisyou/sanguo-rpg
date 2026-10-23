@@ -451,7 +451,287 @@
       maxMp: 15,
       desc: '混元护体，装配后受击反弹20%伤害',
       eff: { reflectDmg: 0.20 },
-      learn: { lineMin: 3, wuxing: 0, neigong: 0 }
+      learn: { lineMin: 3, wuxing: 0, neigong: 0 }    },
+
+    // ─── 门派独门绝技（v20261020e · 把 sects.martials 假名落成真招式）───
+    xiang_yong_dao: {
+      id:'xiang_yong_dao', name:'乡勇刀', line:'blade', type:'ultimate',
+      beat:46, cost:{type:'rage',val:100}, dmgMul:1.7,
+      attr:{wu:'土', yin:'刚'},
+      desc:'颍川义军守土刀法，借结寨之势劈落，钝而破甲',
+      eff:{armorPen:0.25},
+      learn:{lineMin:2, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+20%'}, {realm:4,eff:'破甲'} ]
+    },
+    tai_ping_zhou: {
+      id:'tai_ping_zhou', name:'太平咒', line:'hidden', type:'ultimate',
+      beat:46, cost:{type:'rage',val:100}, dmgMul:1.5,
+      attr:{wu:'水', yin:'柔'},
+      desc:'太平道符箓奇术，咒屑如蝗，中者身痹受毒',
+      multiHit:3,
+      eff:{poisonChance:0.7, poisonDmg:9, poisonTurns:4},
+      learn:{lineMin:2, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+20%'}, {realm:5,eff:'无视防御20%'} ]
+    },
+    xi_liang_dao_fa: {
+      id:'xi_liang_dao_fa', name:'西凉刀法', line:'blade', type:'ultimate',
+      beat:50, cost:{type:'rage',val:100}, dmgMul:1.85,
+      attr:{wu:'金', yin:'刚'},
+      desc:'西凉军悍勇劈砍，弯刀饮血，破甲破防',
+      eff:{armorPen:0.3, breakDef:0.2},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'无视防御20%'} ]
+    },
+    jie_zhai_ce: {
+      id:'jie_zhai_ce', name:'结寨策', line:'staff', type:'technique',
+      beat:0, cost:{}, dmgMul:1.0, detach:true,
+      desc:'颍川义军防御心法，结寨自守，受击反震',
+      eff:{reflectDmg:0.14},
+      learn:{lineMin:0, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'反震+8%'}, {realm:5,eff:'反震加深'} ]
+    },
+    tu_na_shu: {
+      id:'tu_na_shu', name:'吐纳术', line:'internal', type:'technique',
+      beat:0, cost:{}, dmgMul:1.0, detach:true, maxMp:20,
+      desc:'太平道内功根基，吐故纳新，气息绵长',
+      eff:{critRate:0.06},
+      learn:{lineMin:0, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'暴击率+8%'}, {realm:5,eff:'暴击伤害+40%'} ]
+    },
+    liang_zhou_ying_gong: {
+      id:'liang_zhou_ying_gong', name:'凉州硬功', line:'fist', type:'technique',
+      beat:0, cost:{}, dmgMul:1.0, detach:true,
+      desc:'西凉军外门横练，劲力沉刚，拳脚兵刃更锐',
+      eff:{armorPen:0.15},
+      learn:{lineMin:0, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'破甲+10%'}, {realm:5,eff:'破甲加深'} ]
+    },
+
+    // ─── 武学体系扩充 · 流派招式（v20261020f · 补全线谱/五行，见 LINEAGES）───
+    duan_shui_jian: {
+      id:'duan_shui_jian', name:'断水剑', line:'sword', type:'skill',
+      beat:24, cost:{}, dmgMul:0.95,
+      attr:{wu:'金', yin:'柔'},
+      desc:'羽林剑宗入门一剑，去势流畅，断水划波',
+      learn:{lineMin:0, wuxing:0, neigong:0}
+    },
+    taiji_jian: {
+      id:'taiji_jian', name:'太极剑', line:'sword', type:'skill',
+      beat:34, cost:{type:'mp',val:8}, dmgMul:1.15,
+      attr:{wu:'水', yin:'柔'},
+      desc:'羽林剑宗柔变，圆转引进、以柔克刚，二段连削',
+      multiHit:2,
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    bai_hong_guan_ri: {
+      id:'bai_hong_guan_ri', name:'白虹贯日', line:'sword', type:'ultimate',
+      beat:50, cost:{type:'rage',val:100}, dmgMul:1.8,
+      attr:{wu:'金', yin:'柔'},
+      desc:'羽林剑宗杀招，一剑白虹横空，无视防御',
+      eff:{ignoreDef:0.3},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'无视防御20%'} ]
+    },
+    hui_feng_dao: {
+      id:'hui_feng_dao', name:'回风刀', line:'blade', type:'skill',
+      beat:22, cost:{}, dmgMul:0.9,
+      attr:{wu:'金', yin:'刚'},
+      desc:'西凉刀流入门，回风护背、反手一抹',
+      learn:{lineMin:0, wuxing:0, neigong:0}
+    },
+    liao_yuan_bai_zhan: {
+      id:'liao_yuan_bai_zhan', name:'燎原百斩', line:'blade', type:'skill',
+      beat:42, cost:{type:'mp',val:12}, dmgMul:1.4,
+      attr:{wu:'火', yin:'刚'},
+      desc:'西凉刀流火变，连斩如燎原烈火，暴烈凶猛',
+      multiHit:2,
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    lie_huo_zhen_shen: {
+      id:'lie_huo_zhen_shen', name:'烈火真身', line:'fist', type:'ultimate',
+      beat:48, cost:{type:'rage',val:100}, dmgMul:1.75,
+      attr:{wu:'火', yin:'刚'},
+      desc:'北地拳·黄巾力士杀招，拳出如火、裂敌筋骨',
+      eff:{stunChance:0.2},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'眩晕概率+15%'} ]
+    },
+    li_hua_qiang: {
+      id:'li_hua_qiang', name:'梨花枪', line:'spear', type:'skill',
+      beat:24, cost:{}, dmgMul:0.95,
+      attr:{wu:'水', yin:'柔'},
+      desc:'白马枪入门，一树梨花、虚实相生',
+      learn:{lineMin:0, wuxing:0, neigong:0}
+    },
+    bai_ma_ci: {
+      id:'bai_ma_ci', name:'白马刺', line:'spear', type:'skill',
+      beat:32, cost:{type:'mp',val:6}, dmgMul:1.15,
+      attr:{wu:'金', yin:'刚'},
+      desc:'白马义从突刺，借马势直贯，暴烈凌厉',
+      eff:{critRate:0.12},
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    qing_teng_man_wu: {
+      id:'qing_teng_man_wu', name:'青藤漫舞', line:'whip', type:'skill',
+      beat:32, cost:{type:'mp',val:6}, dmgMul:1.0,
+      attr:{wu:'木', yin:'柔'},
+      desc:'沧浪鞭木变，青藤缠足、缚敌于无形',
+      multiHit:2,
+      eff:{stunChance:0.15},
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    die_ying_zong: {
+      id:'die_ying_zong', name:'蝶影踪', line:'light', type:'skill',
+      beat:20, cost:{type:'mp',val:4}, dmgMul:0.9,
+      attr:{wu:'金', yin:'柔'},
+      desc:'轻身术入门，蝶影穿花、忽进忽退',
+      learn:{lineMin:0, wuxing:0, neigong:0}
+    },
+    huo_yun_xin_fa: {
+      id:'huo_yun_xin_fa', name:'火云心法', line:'internal', type:'technique',
+      beat:0, cost:{}, dmgMul:1.0, detach:true,
+      desc:'内功火变，以心火驱动，装配后暴击率+15%',
+      eff:{critRate:0.15},
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+
+    // ─── 火/木 流派补强（v20261020g · 填平五行偏科）───
+    lie_huo_quan: {
+      id:'lie_huo_quan', name:'烈火拳', line:'fist', type:'skill', tier:'refined', source:'lineage',
+      beat:30, cost:{type:'mp',val:6}, dmgMul:1.1,
+      attr:{wu:'火', yin:'刚'},
+      desc:'北地拳火变，拳如烈火，灼敌筋骨',
+      eff:{stunChance:0.1},
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    lie_yan_jian: {
+      id:'lie_yan_jian', name:'烈焰剑', line:'sword', type:'skill', tier:'refined', source:'lineage',
+      beat:30, cost:{type:'mp',val:6}, dmgMul:1.1,
+      attr:{wu:'火', yin:'刚'},
+      desc:'羽林剑宗火变，剑走烈焰，焚敌衣甲',
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    huo_ju_chui: {
+      id:'huo_ju_chui', name:'火炬锤', line:'hammer', type:'skill', tier:'refined', source:'lineage',
+      beat:32, cost:{type:'mp',val:7}, dmgMul:1.15,
+      attr:{wu:'火', yin:'刚'},
+      desc:'谯郡巨力火变，锤如火炬，砸敌闷火',
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    qing_mu_zhang: {
+      id:'qing_mu_zhang', name:'青木杖', line:'staff', type:'skill', tier:'refined', source:'lineage',
+      beat:30, cost:{type:'mp',val:6}, dmgMul:1.05,
+      attr:{wu:'木', yin:'柔'},
+      desc:'川中棍木变，青木生发，杖影连绵',
+      multiHit:2,
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    cu_zhi_bian: {
+      id:'cu_zhi_bian', name:'簇枝鞭', line:'whip', type:'skill', tier:'refined', source:'lineage',
+      beat:30, cost:{type:'mp',val:6}, dmgMul:1.0,
+      attr:{wu:'木', yin:'柔'},
+      desc:'沧浪鞭木变，簇枝抽打，缠缚敌足',
+      multiHit:2,
+      eff:{stunChance:0.1},
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+    mu_ling_jue: {
+      id:'mu_ling_jue', name:'木灵诀', line:'internal', type:'technique', tier:'refined', source:'lineage', attr:{wu:'木', yin:'柔'},
+      beat:0, cost:{}, dmgMul:1.0, detach:true,
+      desc:'内功木变，木灵生气，装配后受击反弹10%',
+      eff:{reflectDmg:0.10},
+      learn:{lineMin:2, wuxing:0, neigong:0}
+    },
+
+    // ─── T3 镇派绝学（v20261020h · 每流派 1 套招牌 supreme，机制各异、背景贴合）───
+    hui_ma_li_hua: {
+      id:'hui_ma_li_hua', name:'回马梨花枪', line:'spear', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:50, cost:{type:'rage',val:100}, dmgMul:1.8,
+      attr:{wu:'水', yin:'柔'},
+      desc:'白马枪·镇派绝学：佯败回马，梨花纷坠，于敌收势处夺命',
+      multiHit:3, eff:{ignoreDef:0.2},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'无视防御20%'} ]
+    },
+    jin_gang_fu_mo: {
+      id:'jin_gang_fu_mo', name:'金刚伏魔棍', line:'staff', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:50, cost:{type:'rage',val:100}, dmgMul:1.8,
+      attr:{wu:'土', yin:'刚'},
+      desc:'川中棍·镇派绝学：一棍扫千军，金身护体、伤愈复战',
+      eff:{armorPen:0.2, selfHeal:30},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'自愈加深'} ]
+    },
+    hua_ji_tun_long: {
+      id:'hua_ji_tun_long', name:'画戟吞龙', line:'halberd', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:50, cost:{type:'rage',val:100}, dmgMul:1.85,
+      attr:{wu:'金', yin:'刚'},
+      desc:'飞将戟·镇派绝学：方天一戟如龙出浅滩，挑敌坠马',
+      eff:{breakDef:0.3, stunChance:0.25},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'眩晕概率+15%'} ]
+    },
+    tian_lie_di_beng: {
+      id:'tian_lie_di_beng', name:'天裂地崩锤', line:'hammer', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:52, cost:{type:'rage',val:100}, dmgMul:1.9,
+      attr:{wu:'土', yin:'刚'},
+      desc:'谯郡巨力·镇派绝学：许褚裂石，天崩地裂、震敌五内',
+      eff:{stunChance:0.3, ignoreDef:0.2},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'眩晕概率+15%'} ]
+    },
+    ruo_shui_qian_qian: {
+      id:'ruo_shui_qian_qian', name:'弱水三千缚', line:'whip', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:48, cost:{type:'rage',val:100}, dmgMul:1.75,
+      attr:{wu:'水', yin:'柔'},
+      desc:'沧浪鞭·镇派绝学：弱水缠身，三魂尽缚、动弹不得',
+      multiHit:3, eff:{slowChance:0.6, slowTurns:2},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'减速加深'} ]
+    },
+    liu_xing_zhui_yue_ying: {
+      id:'liu_xing_zhui_yue_ying', name:'流星追月影', line:'light', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:46, cost:{type:'rage',val:100}, dmgMul:1.8,
+      attr:{wu:'金', yin:'柔'},
+      desc:'轻身术·镇派绝学：身化流星、追月夺命，快若惊鸿',
+      eff:{critRate:0.3},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'暴击伤害+40%'} ]
+    },
+    bai_bu_chuan_yang_she: {
+      id:'bai_bu_chuan_yang_she', name:'百步穿杨射', line:'bow', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:50, cost:{type:'rage',val:100}, dmgMul:1.85,
+      attr:{wu:'金', yin:'刚'},
+      desc:'黄忠弓·镇派绝学：老将神射，贯敌酋于万众之中',
+      eff:{ignoreDef:0.3, critDmgAdd:0.5},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'暴击伤害+40%'} ]
+    },
+    wan_jun_ta_ying: {
+      id:'wan_jun_ta_ying', name:'万钧踏营', line:'ride', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:50, cost:{type:'rage',val:100}, dmgMul:1.85,
+      attr:{wu:'土', yin:'刚'},
+      desc:'凉州铁骑·镇派绝学：铁蹄踏阵，万钧踏碎连营',
+      multiHit:2, eff:{armorPen:0.3},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'破甲加深'} ]
+    },
+    man_tian_hua_yu: {
+      id:'man_tian_hua_yu', name:'漫天花雨', line:'hidden', type:'ultimate', tier:'supreme', source:'sect-supreme',
+      beat:48, cost:{type:'rage',val:100}, dmgMul:1.75,
+      attr:{wu:'金', yin:'柔'},
+      desc:'游侠暗器·镇派绝学：漫天飞蝗，封喉夺命于无形',
+      multiHit:4, eff:{poisonChance:0.5, poisonDmg:10, poisonTurns:4},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'伤害+25%'}, {realm:5,eff:'毒伤加深'} ]
+    },
+    hun_yuan_yi_qi: {
+      id:'hun_yuan_yi_qi', name:'混元一气诀', line:'internal', type:'technique', tier:'supreme', source:'sect-supreme',
+      beat:0, cost:{}, dmgMul:1.0, detach:true, maxMp:30,
+      desc:'内功心法·镇派绝学：一气混元，受击反震天地、气息绵长',
+      eff:{reflectDmg:0.25},
+      learn:{lineMin:3, wuxing:0, neigong:0},
+      breakthrough:[ {realm:2,eff:'反震+10%'}, {realm:5,eff:'内力上限+20'} ]
     }
   };
 
@@ -490,12 +770,76 @@
     return result;
   };
 
+  // ========== 大路货武学 · 程序生成（T1 · 可买卖/日常获取，防“学不到技能”）==========
+  var COMMON_NAMES = {
+    sword:['短打','流云','散手'], blade:['劈砍','断流','操刀'], spear:['扎枪','突刺','梨花'],
+    staff:['齐眉','拨云','护院'], halberd:['画戟','小戟'], hammer:['锤法','裂石'],
+    whip:['软鞭','缠丝'], bow:['射艺','穿杨'], hidden:['暗器','飞蝗'], ride:['骑战','踏阵'],
+    light:['轻身','穿花'], fist:['拳脚','崩捶'], internal:['吐纳','养气']
+  };
+  var COMMON_SUFFIX = ['把式','操典','散手','初谱','入门'];
+  var COMMON_PREFIX = ['江湖','军中','野店','乡间','市井'];
+  MARTIAL_ARTS.tierOf = function(a){ return (a && a.tier) || (a && a.type==='ultimate' ? 'supreme' : 'refined'); };
+  MARTIAL_ARTS.sourceOf = function(a){ return (a && a.source) || 'start'; };
+  MARTIAL_ARTS.genCommonArt = function(opts){
+    opts = opts || {};
+    var lines = Object.keys(LINES);
+    var line = opts.line || lines[Math.floor(Math.random()*lines.length)];
+    var wuxing = opts.wu || ['金','木','水','火','土'][Math.floor(Math.random()*5)];
+    var yin = ['刚','柔'][Math.floor(Math.random()*2)];
+    var pool = COMMON_NAMES[line] || ['武技']; var base = pool[Math.floor(Math.random()*pool.length)];
+    var name = COMMON_PREFIX[Math.floor(Math.random()*COMMON_PREFIX.length)] + '·' + base + COMMON_SUFFIX[Math.floor(Math.random()*COMMON_SUFFIX.length)];
+    var isTech = line==='internal' && Math.random()<0.5;
+    var id = 'gen_' + line + '_' + Math.random().toString(36).slice(2,9);
+    var art;
+    if (isTech) {
+      var teff = [ {critRate:0.06}, {armorPen:0.08}, {reflectDmg:0.06} ][Math.floor(Math.random()*3)];
+      art = { id:id, name:name, line:line, type:'technique', beat:0, cost:{}, dmgMul:1.0, detach:true,
+        attr:{wu:wuxing, yin:yin}, desc:'江湖流传的大路货内功，平平无奇却足以入门', eff:teff,
+        learn:{lineMin:0, wuxing:0, neigong:0}, tier:'common', source:'procgen', tradeable:true };
+    } else {
+      var beat = 18 + Math.floor(Math.random()*10);
+      var mp = Math.random()<0.5 ? 0 : (3 + Math.floor(Math.random()*4));
+      var dmg = +(0.7 + Math.random()*0.2).toFixed(2);
+      art = { id:id, name:name, line:line, type:'skill', beat:beat,
+        cost: mp ? {type:'mp',val:mp} : {}, dmgMul:dmg,
+        attr:{wu:wuxing, yin:yin}, desc:'江湖流传的大路货武学（'+wuxing+'行），平平无奇却足以防身入门',
+        learn:{lineMin:0, wuxing:0, neigong:0}, tier:'common', source:'procgen', tradeable:true };
+    }
+    MARTIAL_ARTS[id] = art;   // 注册，使 combat/learn 可按 id 取到
+    return art;
+  };
+  MARTIAL_ARTS.rollCommonArts = function(n, opts){
+    var out=[], seen={}; n=n||3; var guard=0;
+    while (out.length<n && guard<300){ var a=MARTIAL_ARTS.genCommonArt(opts); if(!seen[a.id]){ seen[a.id]=1; out.push(a);} guard++; }
+    return out;
+  };
+
   MARTIAL_ARTS.LINES = LINES;
   MARTIAL_ARTS.REALMS = REALMS;
+
+  // ========== 流派目录（v20261020f · 13 艺线 ↔ 13 流派，附背景故事）==========
+  var LINEAGES = {
+    yulin_jian:     { id:'yulin_jian',     name:'羽林剑宗', line:'sword',   elem:'金',   origin:'洛阳禁军·虎贲羽林之剑，朝仪正大；断水划波、白虹贯日。', moves:['duan_shui_jian','taiji_jian','chuan_yun_ci','hui_feng_liu_liu','bai_hong_guan_ri','lie_yan_jian'] },
+    xiliang_dao:    { id:'xiliang_dao',    name:'西凉刀流', line:'blade',   elem:'金火', origin:'凉州边军弯刀，饮匈奴血；悍勇暴烈，回风一抹、燎原百斩。', moves:['hui_feng_dao','heng_sao_qian_jun','liao_yuan_bai_zhan','xi_liang_dao_fa'] },
+    baima_qiang:    { id:'baima_qiang',    name:'白马枪',   line:'spear',   elem:'水金', origin:'公孙瓒白马义从之枪，幽并游侠；一树梨花、回马一枪。', moves:['li_hua_qiang','bai_ma_ci','po_zhen_qiang','hui_ma_qiang','hui_ma_li_hua'] },
+    shu_gun:        { id:'shu_gun',        name:'川中棍',   line:'staff',   elem:'土',   origin:'巴蜀护法棍法，沉稳如山；护院破门，金刚伏地。', moves:['qi_mei_gun','gun_lin_qiu_yu','jin_gang_fu_di','qing_mu_zhang','jin_gang_fu_mo'] },
+    feijiang_ji:    { id:'feijiang_ji',    name:'飞将戟',   line:'halberd', elem:'金',   origin:'并州飞将方天画戟，戟展一击、龙出浅滩，万人之敌。', moves:['ji_zhan_yi_ji','fang_tian_hua_ji','long_chu_qian_tan','hua_ji_tun_long'] },
+    huchi_chui:     { id:'huchi_chui',     name:'谯郡巨力', line:'hammer',  elem:'土金', origin:'谯郡许褚之勇，双锤裂石、天裂地锤，裸袒万夫不当。', moves:['liu_xing_chui','kai_shan_chui','tian_lie_di_chui','huo_ju_chui','tian_lie_di_beng'] },
+    jiangdong_bian: { id:'jiangdong_bian', name:'沧浪鞭',   line:'whip',    elem:'水木', origin:'江东水士软鞭，弱水缠身、青藤漫舞，柔中藏缚。', moves:['ruo_shui_bian','she_xing_bian','qing_teng_man_wu','wan_gou_bian','cu_zhi_bian','ruo_shui_qian_qian'] },
+    beidi_quan:     { id:'beidi_quan',     name:'北地拳',   line:'fist',    elem:'土火', origin:'北地步战拳勇，黄巾力士烈火真身；崩拳铁山、毒砂暗手。', moves:['beng_quan','wu_ming_quan','lian_xing_tui','tie_shan_kao','du_sha_zhang','lie_huo_zhen_shen','lie_huo_quan'] },
+    qingshen_shu:   { id:'qingshen_shu',   name:'轻身术',   line:'light',   elem:'金',   origin:'江湖轻身法，踏雪无痕、流星追月，来去无形。', moves:['ti_ruo_qing_yan','ta_xue_wu_hen','die_ying_zong','yan_lue_fei_ti','liu_xing_zhui_yue','liu_xing_zhui_yue_ying'] },
+    huangzhong_gong:{ id:'huangzhong_gong',name:'黄忠弓',   line:'bow',     elem:'金',   origin:'老将黄忠之箭，百步穿杨、烈日冷箭，贯敌酋于万众。', moves:['bai_bu_chuan_yang','lian_zhu_jian','lie_ri_leng_jian','bai_bu_chuan_yang_she'] },
+    tieqi_qi:       { id:'tieqi_qi',       name:'凉州铁骑', line:'ride',    elem:'土',   origin:'西凉并州铁骑，奔蹄冲阵、万钧踏地，马踏连营。', moves:['ben_ti_chong_zhen','tie_qi_ta_ying','wan_jun_ta_di','wan_jun_ta_ying'] },
+    youxia_anqi:    { id:'youxia_anqi',    name:'游侠暗器', line:'hidden',  elem:'金',   origin:'江湖游侠暗器，飞镖梅花针、天女散花，防身刺奸。', moves:['fei_biao','mei_hua_zhen','tian_nv_san_hua','man_tian_hua_yu'] },
+    neigong_zong:   { id:'neigong_zong',   name:'内功心法', line:'internal',elem:'浑',   origin:'内外兼修之内功，养气、玄阴、混元、火云，吐纳之源。', moves:['yang_qi_jue','xuan_yin_jue','hun_yuan_gong','tu_na_shu','huo_yun_xin_fa','mu_ling_jue','hun_yuan_yi_qi'] }
+  };
+  MARTIAL_ARTS.LINEAGES = LINEAGES;
 
   // 导出
   global.LF = global.LF || {};
   global.LF.MARTIAL_ARTS = MARTIAL_ARTS;
+  global.LF.LINEAGES = MARTIAL_ARTS.LINEAGES;
   if (typeof module !== 'undefined' && module.exports) module.exports = MARTIAL_ARTS;
 
 })(typeof window !== 'undefined' ? window : globalThis);

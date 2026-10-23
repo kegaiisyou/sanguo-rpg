@@ -454,7 +454,66 @@
   // ── 城镇经营切片模板库（P0+P1 规范，见 brain/city-economy-p0p1.md）──
   LF.TEMPLATES = LF.TEMPLATES || {};
   // 内部交互仍由 BUILDINGS[shopId].interior 提供（单源迁移待全量铺开，R4：勿在 BUILDINGS 与 LF.BUILD 双写 interior）。
-  LF.TEMPLATES.yaofu = {
+  // ── 城镇商铺经营模板（v20261022a）：盘下店后才有客流/库存/营收，面板才有内容 ──
+  //   字段：trade.sells 在售物 / basePrice 均价（营收=sell数×均价）/ footBase 客流基数 /
+  //        seedStock 初始库存 / bench 作坊 key（有则出现「作坊」按钮）
+  LF.TEMPLATES.buzhuang = {
+    name: '锦绣布庄', icon: '🧵', kind: 'shop',
+    trade: { sells: ['bumu', 'juan'], buys: ['ma', 'sangye'], basePrice: 36 },
+    footBase: 14, unlocksAt: 1, seedStock: { bumu: 10, juan: 4 } };
+  LF.TEMPLATES.shishi = {
+    name: '悦来食肆', icon: '🍜', kind: 'shop',
+    trade: { sells: ['jiu', 'shengrou', 'mi'], buys: ['yecai', 'dou', 'guo'], basePrice: 12 },
+    bench: 'kitchen', footBase: 22, unlocksAt: 1, seedStock: { jiu: 10, shengrou: 8, mi: 8 } };
+  LF.TEMPLATES.zahuo = {
+    name: '万丰杂货', icon: '🏪', kind: 'shop',
+    trade: { sells: ['mutou', 'shitiao', 'zhuan', 'rope', 'shuidai', 'caizi'], buys: ['caoyao', 'xiang'], basePrice: 10 },
+    footBase: 20, unlocksAt: 1, seedStock: { mutou: 10, shitiao: 8, zhuan: 6, rope: 8, shuidai: 6, caizi: 6 } };
+  LF.TEMPLATES.gongzao = {
+    name: '营造所', icon: '🔨', kind: 'shop',
+    trade: { sells: ['mutou', 'shitiao', 'zhuan', 'mucai'], buys: ['tiekuangshi', 'tiekuai'], basePrice: 14 },
+    footBase: 10, unlocksAt: 1, seedStock: { mutou: 10, shitiao: 8, zhuan: 8, mucai: 8 } };
+  LF.TEMPLATES.jiulou = {
+    name: '醉仙楼', icon: '🍶', kind: 'shop',
+    trade: { sells: ['jiu', 'bing', 'mi'], buys: ['guo', 'dou'], basePrice: 14 },
+    bench: 'kitchen', footBase: 26, unlocksAt: 1, seedStock: { jiu: 10, bing: 8, mi: 6 } };
+  LF.TEMPLATES.ranfang = {
+    name: '彩云染坊', icon: '🎨', kind: 'shop',
+    trade: { sells: ['bumu', 'juan'], buys: ['ma', 'sangye'], basePrice: 30 },
+    footBase: 12, unlocksAt: 1, seedStock: { bumu: 10, juan: 4 } };
+  LF.TEMPLATES.gaodian = {
+    name: '稻香糕点铺', icon: '🍰', kind: 'shop',
+    trade: { sells: ['bing', 'doufu', 'guofu'], buys: ['sumi', 'mai', 'dao'], basePrice: 22 },
+    bench: 'kitchen', footBase: 18, unlocksAt: 1, seedStock: { bing: 8, doufu: 6, guofu: 6 } };
+  LF.TEMPLATES.qianzhuang = {
+    name: '汇通钱庄', icon: '🪙', kind: 'shop',
+    trade: { sells: [], buys: [], basePrice: 1 },
+    footBase: 12, unlocksAt: 1, seedStock: {} };
+  LF.TEMPLATES.tiejiang = {
+    name: '打铁营', icon: '⚒️', kind: 'shop',
+    trade: { sells: ['tiekuai', 'tiefu', 'tiejian'], buys: ['tiekuangshi'], basePrice: 40 },
+    bench: 'smith', footBase: 16, unlocksAt: 1, seedStock: { tiekuai: 8, tiefu: 6, tiejian: 4 } };
+  LF.TEMPLATES.wuguan = {
+    name: '振武馆', icon: '🥋', kind: 'shop',
+    trade: { sells: [], buys: [], basePrice: 1 },
+    footBase: 14, unlocksAt: 1, seedStock: {} };
+  LF.TEMPLATES.biaoju = {
+    name: '威远镖局', icon: '🛡️', kind: 'shop',
+    trade: { sells: [], buys: [], basePrice: 1 },
+    footBase: 10, unlocksAt: 1, seedStock: {} };
+  LF.TEMPLATES.chalou = {
+    name: '听雨茶楼', icon: '🍵', kind: 'shop',
+    trade: { sells: ['chayin'], buys: ['chaye'], basePrice: 25 },
+    footBase: 20, unlocksAt: 1, seedStock: { chayin: 8 } };
+  LF.TEMPLATES.duguang = {
+    name: '快活赌坊', icon: '🎲', kind: 'shop',
+    trade: { sells: [], buys: [], basePrice: 1 },
+    footBase: 24, unlocksAt: 1, seedStock: {} };
+  LF.TEMPLATES.maxing = {
+    name: '千里马行', icon: '🐴', kind: 'shop',
+    trade: { sells: ['shuidai', 'rope', 'shengrou'], buys: ['ma'], basePrice: 14 },
+    footBase: 14, unlocksAt: 1, seedStock: { shuidai: 6, rope: 8, shengrou: 8 } };
+    LF.TEMPLATES.yaofu = {
     name: '药铺', icon: '⚕', kind: 'shop',
     trade: { sells: ['yaofen'], buys: [], basePrice: 7 },
     bench: 'alchemy', footBase: 18, unlocksAt: 1,

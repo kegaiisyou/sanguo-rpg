@@ -198,7 +198,7 @@
   margin: -6px 0 0 -6px;
   border-radius: 50%;
   border: 2px solid rgba(194,39,15,.65);
-  animation: sg-pulse 1.8s ease-out infinite;
+  animation: sg-pulse 2.4s ease-out 1;
   pointer-events: none;
 }
 .g-you .sg-pill {
@@ -954,7 +954,7 @@
 }
 
 /* —— 河流：双层描边 + 高光，水感层次 —— */
-.sm-river-base{stroke-linecap:round;stroke-linejoin:round;filter:blur(0.7px);}
+.sm-river-base{stroke-linecap:round;stroke-linejoin:round;}
 .sm-river-main{stroke-linecap:round;stroke-linejoin:round;}
 .sm-river-glow{stroke-linecap:round;stroke-linejoin:round;}
 .strategic-river-label{

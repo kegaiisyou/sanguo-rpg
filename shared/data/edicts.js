@@ -6,14 +6,14 @@
 (function (global) {
   global.LF = global.LF || {};
   global.LF.EDICT_COMMANDS = {
-    kaiken:   { key:'kaiken', name:'开垦', icon:'垦', cat:'政', stat:'zheng', skill:'farmMul', res:'grain', base:14, statKey:'agri', statGain:2, kind:'res', desc:'督民垦荒，岁增军粮，久则地力渐肥。' },
-    shangye:  { key:'shangye', name:'商业', icon:'商', cat:'魅', stat:'mei', skill:'tradeMul', res:'gold', base:11, statKey:'com', statGain:2, kind:'res', desc:'通贾贩易，府库充盈，市声渐盛。' },
-    kaikuang: { key:'kaikuang', name:'开矿', icon:'矿', cat:'政', stat:'zheng', skill:'devMul', res:'iron', base:10, statKey:null, kind:'res', desc:'开山取铁，以供锻造武备。' },
-    zaohuo:   { key:'zaohuo', name:'造械', icon:'械', cat:'智', stat:'zhi', skill:'devMul', res:'kit', base:8, statKey:null, kind:'res', desc:'打造甲械，武备乃修。' },
-    zhishui:  { key:'zhishui', name:'治水', icon:'水', cat:'政', stat:'zheng', skill:'farmMul', res:null, base:0, statKey:'defense', statGain:3, kind:'res', desc:'修堤疏导，减水患之灾，城防渐固。' },
-    zhian:    { key:'zhian', name:'治安', icon:'治', cat:'魅', stat:'mei', skill:'loyalty', res:null, base:0, statKey:null, order:8, kind:'res', desc:'巡街弭盗，百姓安居，治安渐复。' },
-    lianbing: { key:'lianbing', name:'练兵', icon:'练', cat:'统', stat:'tong', skill:null, res:null, base:24, trainType:'步兵', kind:'train', desc:'于城中募训士卒，充实行伍。' },
-    dengyong: { key:'dengyong', name:'登庸', icon:'登', cat:'魅', stat:'mei', skill:'recruit', res:null, base:0, kind:'recruit', desc:'延揽在野贤才，纳于麾下。' },
-    tansuo:   { key:'tansuo', name:'探索', icon:'🔍', cat:'智', stat:'zhi', skill:null, res:null, base:0, kind:'explore', desc:'派人搜奇探幽，或有奇遇、宝物、异士。' }
+    kaiken:   { key:'kaiken', name:'开垦', icon:'垦', cat:'政', stat:'zheng', skill:'farmMul', res:'grain', base:14, statKey:'agri', statGain:2, kind:'res', cost:{ grain:8 }, desc:'督民垦荒，岁增军粮，久则地力渐肥。须拨籽粮八石。' },
+    shangye:  { key:'shangye', name:'商业', icon:'商', cat:'魅', stat:'mei', skill:'tradeMul', res:'gold', base:11, statKey:'com', statGain:2, kind:'res', cost:{ gold:8 }, desc:'通贾贩易，府库充盈，市声渐盛。须支本钱八两。' },
+    kaikuang: { key:'kaikuang', name:'开矿', icon:'矿', cat:'政', stat:'zheng', skill:'devMul', res:'iron', base:10, statKey:null, kind:'res', cost:{ gold:10 }, desc:'开山取铁，以供锻造武备。须付矿工工钱十两。' },
+    zaohuo:   { key:'zaohuo', name:'造械', icon:'械', cat:'智', stat:'zhi', skill:'devMul', res:'kit', base:8, statKey:null, kind:'res', cost:{ iron:5 }, desc:'打造甲械，武备乃修。须耗生铁五斤。' },
+    zhishui:  { key:'zhishui', name:'治水', icon:'水', cat:'政', stat:'zheng', skill:'farmMul', res:null, base:0, statKey:'defense', statGain:3, kind:'res', cost:{ gold:20 }, desc:'修堤疏导，减水患之灾，城防渐固。须支河工二十两。' },
+    zhian:    { key:'zhian', name:'治安', icon:'治', cat:'魅', stat:'mei', skill:'loyalty', res:null, base:0, statKey:null, order:8, kind:'res', cost:{ gold:15 }, desc:'巡街弭盗，百姓安居，治安渐复。须支安民一十五两。' },
+    lianbing: { key:'lianbing', name:'练兵', icon:'练', cat:'统', stat:'tong', skill:null, res:null, base:24, trainType:'步兵', kind:'train', cost:{ grain:15 }, desc:'于城中募训士卒，充实行伍。须支军粮一十五石。' },
+    dengyong: { key:'dengyong', name:'登庸', icon:'登', cat:'魅', stat:'mei', skill:'recruit', res:null, base:0, kind:'recruit', cost:{ gold:30 }, desc:'延揽在野贤才，纳于麾下。须备礼金三十两。' },
+    tansuo:   { key:'tansuo', name:'探索', icon:'🔍', cat:'智', stat:'zhi', skill:null, res:null, base:0, kind:'explore', cost:{ gold:10 }, desc:'派人搜奇探幽，或有奇遇、宝物、异士。须给盘缠十两。' }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

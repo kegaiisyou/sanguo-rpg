@@ -24,8 +24,8 @@
       faction: '汉室忠义 · 颍川士族',
       elem: '土',                         // 守土之象
       bonus: { atk: 2, def: 2, maxHp: 20 },
-      startingSkills: ['beng_quan'],
-      martials: ['颍川战法（群战阵势）', '乡勇刀（守土刀法）', '结寨策（防御心法）'],
+      startingSkills: ['beng_quan', 'xiang_yong_dao', 'jie_zhai_ce'],
+      martials: ['乡勇刀（守土刀法·绝技）', '结寨策（防御心法）', '颍川战法（群战阵势·门风）'],
       grievance: [
         { target: '太平道', type: '敌对', desc: '流寇劫掠乡里，与义军势同水火，见则必战。' },
         { target: '西凉军', type: '戒备', desc: '凉州边军跋扈，日后或与董卓同流，需早做防备。' }
@@ -40,8 +40,8 @@
       faction: '黄天 · 底层秘教',
       elem: '水',                         // 符水之象
       bonus: { maxMp: 30, atk: 1 },
-      startingSkills: ['beng_quan', 'yang_qi_jue'],
-      martials: ['太平咒（符箓奇术）', '吐纳术（内功根基）', '太平力士诀（蛮力外功）'],
+      startingSkills: ['beng_quan', 'yang_qi_jue', 'tai_ping_zhou', 'tu_na_shu'],
+      martials: ['太平咒（符箓奇术·绝技）', '吐纳术（内功心法）', '太平力士诀（蛮力外功·门风）'],
       grievance: [
         { target: '颍川义军', type: '敌对', desc: '义军保境剿流寇，两方相见分外眼红。' },
         { target: '十常侍 / 朝廷', type: '死仇', desc: '甲子年举事，与朝堂势不两立，遭四方围剿。' }
@@ -56,8 +56,8 @@
       faction: '凉州军阀 · 边军悍卒',
       elem: '金',                         // 锋金之象
       bonus: { atk: 4, maxHp: 40, def: 1 },
-      startingSkills: ['beng_quan'],
-      martials: ['西凉刀法（悍勇劈砍）', '铁骑冲阵（骑战之术）', '凉州硬功（外门横练）'],
+      startingSkills: ['beng_quan', 'xi_liang_dao_fa', 'liang_zhou_ying_gong'],
+      martials: ['西凉刀法（悍勇劈砍·绝技）', '凉州硬功（横练心法）', '铁骑冲阵（骑战之术·门风）'],
       grievance: [
         { target: '颍川义军', type: '戒备', desc: '义军守土，凉军拓边，立场相左，日后或兵戎相见。' },
         { target: '并州军', type: '竞争', desc: '吕布胚所在的并州狼骑，与西凉铁骑争锋边军第一。' }

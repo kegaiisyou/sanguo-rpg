@@ -14,14 +14,8 @@ window.LF = window.LF || {};
       var state = getState();
       if (act === 'rep100') { state.reputation = 100; ctx.log('【声望】已设为 100（' + ctx.repTitle(100) + '）', 'good'); }
       else if (act === 'rep0') { state.reputation = 0; ctx.log('【声望】已清零', 'sys'); }
-      else if (act === 'allmartial') {
-        var got = 0;
-        for (var k in MA) { var a = MA[k]; if (!a || !a.id) continue;
-          if (a.type === 'technique') { if (state.equippedForce.indexOf(a.id) < 0) { state.equippedForce.push(a.id); got++; } }
-          else { if (state.learnedMartial.indexOf(a.id) < 0) { state.learnedMartial.push(a.id); got++; } }
-        }
-        ctx.log('【满配】已习得全部招式并装配全部发力技巧（新增 ' + got + ' 项）', 'good');
-      }
+      else if (act === 'toggleFog') { state.flags=state.flags||{}; var nf=!(state.flags.fog!==false); state.flags.fog=nf; ctx.log('【调试】迷雾 '+(nf?'开（仅显示已探索）':'关（全显）'),'sys'); }
+      else if (act === 'toggleGated') { state.flags=state.flags||{}; var ng=!(state.flags.mapGated!==false); state.flags.mapGated=ng; ctx.log('【调试】地图门槛 '+(ng?'开（需探索/舆图）':'关（视作已持舆图）'),'sys'); }
       else if (act === 'maxlv') {
         state.level = G.CONSTANTS.MAX_LEVEL; state.hp = state.maxHp; state.mp = state.maxMp;
         ctx.log('【速填】等级设为 ' + state.level + '，状态回满', 'good');
@@ -79,6 +73,10 @@ window.LF = window.LF || {};
         var _sel = document.getElementById('dev-grind-herb');
         _gr.openGrind((_sel && _sel.value) || 'caoyao');
       }
+      else if (act === 'demoDeath') { if (ctx.getDie) ctx.getDie()('演示 · 气血枯尽'); }
+      else if (act === 'age+10') { var st=getState(); st.age=(st.age||18)+10; ctx.log('【调试】年龄 +10 → '+st.age+' 岁', 'sys'); }
+      else if (act === 'demoAge') { var st=getState(); st.age=ctx.lifespanOf(); if (ctx.getDie) ctx.getDie()('寿终正寝 · 年华已尽'); }
+      else if (act === 'martial_stall') { window.openModal('martial_stall'); }
       // v20260924z17：原「查看当前旗标」按钮已移除 —— walk() 对 state.flags 做无保护的递归遍历，
       //   旗标里一旦出现环引用（或嵌套极深）就会无限递归，点一下页面直接卡死。
     }
@@ -110,7 +108,6 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="fp+10">属性点+10</button>' +
          '<button class="dev" data-act="full">回满状态</button>' +
          '<button class="dev" data-act="maxlv">满级</button>' +
-         '<button class="dev" data-act="allmartial">满配武学</button>' +
          '<button class="dev" data-act="mkgear">掉件装备</button></div>' +
          // 经验值精确输入
          '<div class="dev-btns" style="margin-top:6px;">' +
@@ -123,7 +120,11 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="cha+10">侠义+10</button>' +
          '<button class="dev" data-act="not+10">凶名+10</button>' +
          '<button class="dev" data-act="moral0">善恶清零</button>' +
-         '<button class="dev" data-act="rep100">声望=100</button></div></div>';
+         '<button class="dev" data-act="rep100">声望=100</button>'+
+         '<button class="dev" data-act="demoDeath">⚰ 演示身亡结算</button>'+
+         '<button class="dev" data-act="age+10">年龄+10</button>'+
+         '<button class="dev" data-act="demoAge">演示·寿终</button>'
+         + '<button class="dev" data-act="martial_stall">📜 武学摊</button></div></div>';
 
       // 4. 任务
       h += '<div class="dev-sec"><div class="dev-h">📜 任务调试</div><div class="dev-btns">' +
@@ -139,6 +140,10 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="item_stone">石料×10</button>' +
          '<button class="dev" data-act="item_wood">木材×10</button>' +
          '<button class="dev" data-act="item_yao">金疮药×5</button></div></div>';
+      // 8. 地图调试（迷雾 / 门槛解锁 开关，方便测试野外网格）
+      h += '<div class="dev-sec"><div class="dev-h">🗺 地图调试（迷雾 '+((state.flags&&state.flags.fog!==false)?'开':'关')+' · 门槛 '+((state.flags&&state.flags.mapGated!==false)?'开':'关')+'）</div><div class="dev-btns">' +
+         '<button class="dev" data-act="toggleFog">切换迷雾</button>' +
+         '<button class="dev" data-act="toggleGated">切换门槛解锁</button></div></div>';
 
       // 7. 制药（捣药手感验证）
       h += '<div class="dev-sec"><div class="dev-h">🧪 制药调试</div><div class="dev-btns">'
@@ -159,6 +164,7 @@ window.LF = window.LF || {};
         btn.onclick = function () {
           var a = btn.getAttribute('data-act');
           if (a === 'setspawn') { ctx.openSpawnMap(); return; }
+          if (a === 'demoDeath' || a === 'demoAge') { handleDev(a); return; }
           handleDev(a); ctx.save(state); ctx.renderStatus();
           if (getCurrentModalKind() !== 'char') renderDev();
         };
