@@ -739,6 +739,11 @@ window.LF = window.LF || {};
     function shopWorkbench(cid, x, y, key){
       var sh=shopInst(cid,x,y,key); if(!sh||sh.owner!=='player'){ if(window.toast) window.toast('你尚未盘下此店。'); return; }
       var t=shopTpl(key); if(!t||!t.bench){ if(window.toast) window.toast('此店无作坊。'); return; }
+      // v20261017b：药铺配药台 → 制药工作台（捣药小游戏）；其余仍走旧制作面板
+      if (t.bench === 'alchemy' && window.LF && LF.Grinding && LF.Grinding.openGrindBench) {
+        LF.Grinding.openGrindBench('city', { shopOwner: true, cid: cid });
+        return;
+      }
       if(window.openModal) window.openModal('craft',{bench:t.bench});
     }
     function cityShopMonthly(){

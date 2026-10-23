@@ -131,6 +131,54 @@
     function usePackItem(idx) {
       var pk = S().pack, it = pk[idx]; if (!it) return;
       if (it.cat === '装备') { toast('装备需拖至装备栏，不可直接使用。'); return; }
+      // v20261015a：配方卷轴——研读习得药方（捣药）
+      if (it.cat === '配方') {
+        var _unlock = (LF.GRIND_RX_UNLOCK || {})[itemKey(it) || it.defId];
+        if (!_unlock) { toast('此配方暂无法研读。'); return; }
+        var _rxd = (LF.GRIND_RX || {})[_unlock];
+        if (!_rxd) { toast('此配方暂无法研读。'); return; }
+        var _lr = S().learnedRx || (S().learnedRx = []);
+        if (_lr.indexOf(_unlock) >= 0) { toast('此方早已学会，再读无益。'); return; }
+        _lr.push(_unlock);
+        it.count--; if (it.count <= 0) pk[idx] = null;
+        toast('研读药方，习得「' + _rxd.name + '」！');
+        try { if (LF && LF.onLearnRx) LF.onLearnRx(_unlock); } catch (e) {}
+        afterPackChange();
+        return;
+      }
+      // v20261018a：武学秘籍——研读习得武学（外功/绝技等）
+      if (it.cat === '秘籍') {
+        var _d1 = (LF.ITEMS && LF.ITEMS[itemKey(it)]) || {};
+        // v20261018n：系统武学（绝世秘籍）——研读开启技能树，只授首招
+        var _sch = (it.learn && it.learn.school) || (_d1.learn && _d1.learn.school);
+        if (_sch) {
+          var _SYS = (LF.MARTIAL_ARTS && LF.MARTIAL_ARTS.SYSTEM_SCHOOLS) || {};
+          var _book = _SYS[_sch];
+          if (!_book) { toast('此秘籍所载武学暂不可习得。'); return; }
+          var _sb = S().schoolBooks || (S().schoolBooks = {});
+          if (_sb[_sch]) { toast('此经早已通读，再读无益。'); return; }
+          _sb[_sch] = true;
+          var _lm = S().learnedMartial || (S().learnedMartial = []);
+          var _rt = _book.root;
+          var _ra = (LF.MARTIAL_ARTS.get) ? LF.MARTIAL_ARTS.get(_rt) : null;
+          if (_ra && _lm.indexOf(_rt) < 0) _lm.push(_rt);
+          it.count--; if (it.count <= 0) pk[idx] = null;
+          toast('研读绝世秘籍，得「' + _book.name + '」总纲，习得「' + (_ra ? _ra.name : _rt) + '」！', 'good');
+          afterPackChange();
+          return;
+        }
+        var _mid = (it.learn && it.learn.martial) || (_d1.learn && _d1.learn.martial);
+        if (!_mid) { toast('此秘籍暂无法研读。'); return; }
+        var _ma = (LF.MARTIAL_ARTS && LF.MARTIAL_ARTS.get) ? LF.MARTIAL_ARTS.get(_mid) : null;
+        if (!_ma) { toast('此秘籍所载武学暂不可习得。'); return; }
+        var _lm = S().learnedMartial || (S().learnedMartial = []);
+        if (_lm.indexOf(_mid) >= 0) { toast('此招早已习得，再读无益。'); return; }
+        _lm.push(_mid);
+        it.count--; if (it.count <= 0) pk[idx] = null;
+        toast('研读拳谱，习得「' + _ma.name + '」！');
+        afterPackChange();
+        return;
+      }
       // v20261008c：生药有毒（半夏/附子）——不可生服，明确提示，不消耗
       if (it.toxic || ((LF.ITEMS[itemKey(it)] || {}).toxic)) {
         toast('「' + (it.name || '此物') + '」生品有毒，须依法炮制后方可入药，莫要生服。');

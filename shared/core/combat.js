@@ -192,7 +192,7 @@
 
     // 点错按钮：韩铁温和纠正，不推进、不扣血、敌人不死 —— 永远只能靠"当前高亮的那一步"前进
     if(expect==='attack' && actionId!=='attack'){
-      log('「别急——先点〔攻击〕，试试你的拳脚！」','npc','韩铁'); return;
+      log('「别急——先点〔出招〕，试试你的拳脚！」','npc','韩铁'); return;
     }
     if(expect==='defend' && actionId!=='defend'){
       log('「攻击你会了，这回试试〔防御〕——看敌势，借力卸力！」','npc','韩铁'); return;
@@ -201,7 +201,7 @@
       log('「先用〔道具〕取金疮药，治你臂上擦伤——疗伤也是功夫！」','npc','韩铁'); return;
     }
     if(expect==='finish' && actionId!=='attack'){
-      log('「攻防皆会、伤也疗了——再点〔攻击〕，送这木人桩散架！」','npc','韩铁'); return;
+      log('「攻防皆会、伤也疗了——再点〔出招〕，送这木人桩散架！」','npc','韩铁'); return;
     }
 
     // ── 点对了：按步骤演出 ──
@@ -311,6 +311,29 @@
     html+='</div>';
     getDqCardEl().innerHTML=html;
     dqRenderOrderBar();
+    bindEnemyDirectTap();
+  }
+
+  // v20261018o：点敌直打——下令中直接点敌人卡片 = 该敌为普攻目标（多敌点谁打谁）；教学/演出忙时不响应
+  function bindEnemyDirectTap(){
+    var card=getDqCardEl(); if(!card) return;
+    card.querySelectorAll('.dq-enemy[data-i]').forEach(function(el){
+      el.onclick=function(){
+        if(dqBusy) return;
+        var st=G.CombatEngine.state;
+        if(!st || st.result) return;
+        var live=st.playerUnits.filter(function(u){ return u.hp>0; });
+        if(dqCursor==null || dqCursor>=live.length) return;
+        var unit=live[dqCursor];
+        var idx=parseInt(el.getAttribute('data-i'),10);
+        var e=st.enemies[idx];
+        if(!e || e.hp<=0) return;
+        if(tutCombatActive()){ tutCombatAct('attack'); return; }
+        var defAid = unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan');
+        dqOrders.push({unit:unit, actionId:defAid, targetIdx:idx});
+        dqAdvance();
+      };
+    });
   }
 
   /** P0-1 行动顺序条：渲染本回合行动序列（我方指令序→敌方意图序），beat 徽标 = 出手节奏 */
@@ -365,7 +388,7 @@
     dqOrders=[]; dqCursor=0;
     G.CombatEngine.peekEnemyIntents();
     dqRenderCard();
-    setTimeout(dqNextCommand, 200);
+    setTimeout(dqNextCommand, 260);   // v20261018i：回合衔接 200→260ms，节奏更从容
   }
 
   /** 轮到当前队员下令（必须用引擎真实单位对象：带 artIds/artMap，getStatus 副本不含） */
@@ -389,53 +412,91 @@
       if(!getState().flags.onb.packGiven && (stT.playerUnits[0].hp < stT.playerUnits[0].maxHp || (getState().flags.onb.tcTried.atk && getState().flags.onb.tcTried.def))){
         tutThrowPack();
       }
-      if(step==='attack'){ if(!getState().flags.onb.tcMsgs.attack){ log('「先点亮的〔攻击〕，挫它一阵！」','npc','韩铁'); getState().flags.onb.tcMsgs.attack=true; } }
+      if(step==='attack'){ if(!getState().flags.onb.tcMsgs.attack){ log('「先点亮的〔出招〕，挫它一阵！」','npc','韩铁'); getState().flags.onb.tcMsgs.attack=true; } }
       else if(step==='defend'){ if(!getState().flags.onb.tcMsgs.defend){ log('「再点〔防御〕——看敌势，借力卸力，莫硬接！」','npc','韩铁'); getState().flags.onb.tcMsgs.defend=true; } }
       else if(step==='item'){ if(!getState().flags.onb.tcMsgs.use){ log('「点〔道具〕，取金疮药治你臂上擦伤！」','npc','韩铁'); getState().flags.onb.tcMsgs.use=true; } }
-      else { if(!getState().flags.onb.tcMsgs.finish){ log('「好生养着。再点〔攻击〕，送这木人桩散架！」','npc','韩铁'); getState().flags.onb.tcMsgs.finish=true; } }
+      else { if(!getState().flags.onb.tcMsgs.finish){ log('「好生养着。再点〔出招〕，送这木人桩散架！」','npc','韩铁'); getState().flags.onb.tcMsgs.finish=true; } }
     }
     function btn(label, fn, cls){ var b=document.createElement('button'); b.className='act cb-menu'+(cls?' '+cls:''); b.classList.remove('locked'); b.textContent=label; b.onclick=fn; ra.appendChild(b); }
-    btn('攻击', function(){ if(tut){ tutCombatAct('attack'); return; } dqShowTargets(unit); }, tut&&(step==='attack'||step==='finish')?'onb-glow':null);
+    // v20261018o：指令栏新形态——「普攻」为主按钮（点一下直接出招，单敌免选已做），
+    //   「招式」弹出胶囊快捷出招；点敌人卡片=直打普攻该敌（见 dqRenderCard 绑定的 bindEnemyDirectTap）。
+    var defAid0 = unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan');
+    btn(unit.isTroop?'军令':'普攻', function(){
+      if(tut){ tutCombatAct('attack'); return; }
+      if(unit.isTroop){ dqShowArts(unit, true); return; }
+      dqShowTargets(unit, defAid0);
+    }, (tut&&(step==='attack'||step==='finish')?'onb-glow ':'')+'primary');
+    if(!unit.isTroop){
+      btn('招式', function(){ if(tut){ tutCombatAct('attack'); return; } dqShowArts(unit, true); }, tut&&(step==='attack'||step==='finish')?'onb-glow':null);
+    }
     btn('防御', function(){ if(tut){ tutCombatAct('defend'); return; } dqOrders.push({unit:unit, actionId:'defend'}); dqAdvance(); }, tut&&step==='defend'?'onb-glow':null);
     // 教学：韩铁赠行囊前不显示「道具」，避免提前绕过关卡；正常战恒显示
     if(!(tut && !getState().flags.onb.packGiven)) btn('道具', function(){ dqOpenItems(unit); }, tut&&step==='item'?'onb-glow':'item');
     var fleePct = 78;
     try { fleePct = Math.max(20, Math.min(95, Math.round(G.CombatEngine.fleeChance()*100))); } catch(_e) {}
     btn('撤退·' + fleePct + '%', function(){ if(tut){ log('「未到撤的时候，先应敌！」','npc','韩铁'); return; } dqTryFlee(unit); }, 'flee');
-    // 武学：选择已学招式（连线已有的 G.MARTIAL_ARTS，使之在战斗里真正可用）
-    if(!tut && unit.artIds.length){
-      btn(unit.isTroop?'军令':'武学', function(){ dqShowArts(unit); }, 'skill');
-    }
   }
 
-  /** 武学：列出该队员已学招式，选后进入目标选择 */
-  function dqShowArts(unit){
+  /** 出招：列出「普通攻击」+ 装配武学（v20261018h 出招合一；v20261018m 装配招式按艺线套路分组；v20261018o 胶囊化快捷出招） */
+  function dqShowArts(unit, withBasic){
     var ra=document.getElementById('actions'); if(!ra) return;
     ra.innerHTML='';
-    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='选择武学'; ra.appendChild(tip);
+    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent=unit.isTroop?'选择军令':'选择出招'; ra.appendChild(tip);
+    var chips=document.createElement('div'); chips.className='dq-chips';
+    var defAid = unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan');
+    if(withBasic && !unit.isTroop){
+      var b0=document.createElement('button'); b0.className='act cb-menu skill chip';
+      b0.textContent='普攻 · 不耗内力';
+      b0.onclick=function(){ dqShowTargets(unit, defAid); };
+      chips.appendChild(b0);
+    }
+    var LINES = (G.MARTIAL_ARTS && G.MARTIAL_ARTS.LINES) || {};
+    var byLine = {};
     (unit.artIds||[]).forEach(function(aid){
       var a = unit.isTroop ? (unit.artMap && unit.artMap[aid]) : G.MARTIAL_ARTS.get(aid);
       if(!a) return;
-      var b=document.createElement('button'); b.className='act cb-menu skill';
-      b.textContent = unit.isTroop
-        ? (a.name + '〔军令〕')
-        : (a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':'')));
-      b.onclick=function(){ dqShowTargets(unit, aid); };
-      ra.appendChild(b);
+      var ln = a.line || (unit.isTroop ? 'troop' : 'misc');
+      (byLine[ln] = byLine[ln] || []).push(aid);
     });
-    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
+    var lines = Object.keys(byLine).sort(function(x, y){
+      return ((LINES[x] && LINES[x].order) || 99) - ((LINES[y] && LINES[y].order) || 99);
+    });
+    lines.forEach(function(ln){
+      var meta = LINES[ln] || {};
+      var g = document.createElement('div');
+      g.className = 'dq-artgrp';
+      g.textContent = unit.isTroop ? '军令' : ((meta.name || ln) + ' · 套路');
+      ra.appendChild(g);
+      byLine[ln].forEach(function(aid){
+        var a = unit.isTroop ? (unit.artMap && unit.artMap[aid]) : G.MARTIAL_ARTS.get(aid);
+        if(!a) return;
+        var b=document.createElement('button'); b.className='act cb-menu skill chip';
+        b.textContent = unit.isTroop
+          ? (a.name + '〔军令〕')
+          : (a.name + (a.element?('〔'+a.element+'〕'):'') + (a.type==='ultimate'?' · 绝技':(a.type==='tech'?' · 发力':'')));
+        b.onclick=function(){ dqShowTargets(unit, aid); };
+        chips.appendChild(b);
+      });
+    });
+    ra.appendChild(chips);
+    var cancel=document.createElement('button'); cancel.className='act cb-menu ghost chip'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
   }
 
-  /** 攻击：选择目标敌人（forcedAid 指定招式，缺省用 beng_quan） */
+  /** 出招目标：v20261018h 单敌免选目标——只剩一个敌人直接出招；多敌才列目标菜单（forcedAid 指定招式，缺省用 beng_quan） */
   function dqShowTargets(unit, forcedAid){
     var ra=document.getElementById('actions'); if(!ra) return;
-    ra.innerHTML='';
-    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='选择攻击目标'; ra.appendChild(tip);
     var st=G.CombatEngine.getStatus();
     var aid = forcedAid || (unit.artIds.indexOf('beng_quan')>=0 ? 'beng_quan' : (unit.artIds[0]||'beng_quan'));
-    st.enemies.forEach(function(e){
-      if(e.hp<=0) return;
-      var b=document.createElement('button'); b.className='act cb-menu'; b.textContent=e.name+(st.enemies.filter(function(x){return x.name===e.name;}).length>1?(' '+(['甲','乙','丙','丁','戊'][e.idx]||(e.idx+1))):'');
+    var alive = st.enemies.filter(function(e){ return e.hp>0; });
+    if(alive.length===1){
+      dqOrders.push({unit:unit, actionId:aid, targetIdx:alive[0].idx});
+      dqAdvance();
+      return;
+    }
+    ra.innerHTML='';
+    var tip=document.createElement('div'); tip.className='dq-turn'; tip.textContent='选择攻击目标'; ra.appendChild(tip);
+    alive.forEach(function(e){
+      var b=document.createElement('button'); b.className='act cb-menu'; b.textContent=e.name+(alive.filter(function(x){return x.name===e.name;}).length>1?(' '+(['甲','乙','丙','丁','戊'][e.idx]||(e.idx+1))):'');
       b.onclick=function(){ dqOrders.push({unit:unit, actionId:aid, targetIdx:e.idx}); dqAdvance(); }; ra.appendChild(b);
     });
     var cancel=document.createElement('button'); cancel.className='act cb-menu ghost'; cancel.textContent='返回'; cancel.onclick=function(){ dqRenderCommands(unit); }; ra.appendChild(cancel);
@@ -447,7 +508,7 @@
     if(tutCombatActive()){
       var _stp=tutStep();
       if(_stp!=='item'){
-        log('「先按眼下点亮的练——' + (_stp==='attack'?'先点〔攻击〕，试试拳脚！':(_stp==='defend'?'先练〔防御〕，借力卸力！':'攻防皆会、伤也疗了——点〔攻击〕送它散架！')) + '」','npc','韩铁');
+        log('「先按眼下点亮的练——' + (_stp==='attack'?'先点〔出招〕，试试拳脚！':(_stp==='defend'?'先练〔防御〕，借力卸力！':'攻防皆会、伤也疗了——点〔出招〕送它散架！')) + '」','npc','韩铁');
         dqRenderCommands(unit); return;
       }
     }
@@ -531,21 +592,71 @@
   }
 
   /** 逐条回放战斗日志：直接写入叙事层并刷新列阵（不受打字锁影响）。
-   *  点击战斗卡可立即结束当前段等待（连点加速过场）；演出结束自动清除钩子。 */
+   *  点击战斗卡可立即结束当前段等待（连点加速过场）；演出结束自动清除钩子。
+   *  v20261018d：多段攻击（hitSegments）在本条内展开为逐段追击演出，段间 150ms。 */
   var dqPlaySkip=null;
   function dqPlayLog(log, done){
-    var i=0, timer=null;
+    var i=0, timer=null, segTimer=null;
+    function clearT(){ if(timer){ clearTimeout(timer); timer=null; } if(segTimer){ clearInterval(segTimer); segTimer=null; } }
     function step(){
       if(i>=log.length){ dqPlaySkip=null; if(done) done(); return; }
       var e=log[i++];
       dqPush(e.text);
       dqRenderCard();                // 先刷新列阵（含最新血量/意图），再挂飘字/受击特效，避免重建卡片清掉刚挂上的特效
-      dqFx(e);                       // DQ 战斗表现层：飘字/受击/暴击/克制/狂怒演出（v20260831r）
-      var d=(e.type==='player_atk'||e.type==='enemy_atk')?520:(e.type==='counter'||e.type==='dot')?420:300;
+      dqFx(e);                       // DQ 战斗表现层：飘字/受击/暴击/克制/狂怒演出（首段完整特效）
+      var segs = (e.hitSegments && e.hitSegments.length>1) ? e.hitSegments : null;
+      if(segs){
+        var si=1;
+        segTimer=setInterval(function(){
+          if(si>=segs.length){
+            clearInterval(segTimer); segTimer=null;
+            timer=setTimeout(step, 340);
+            return;
+          }
+          var s=segs[si++];
+          dqFxSeg(e, s.dmg, s.crit, si, segs.length);
+        }, 400);   // v20261018k：多段追击段间 320→400ms，连击感更清晰
+        return;   // 多段播完再进下一条
+      }
+      // v20261018i：整体放缓演出节奏——普攻 520→720ms、反击/持续伤 420→560ms，出手更清晰
+      var d=(e.type==='player_atk'||e.type==='enemy_atk')?720:(e.type==='counter'||e.type==='dot')?560:360;
       timer=setTimeout(step, d);
     }
-    dqPlaySkip=function(){ if(timer){ clearTimeout(timer); timer=null; } step(); };
+    dqPlaySkip=function(){ clearT(); step(); };
     step();
+  }
+
+  // v20261018d：多段追击的「后续段」紧凑演出——小飘字 + 轻受击 + 攻击方前冲；尾段补伤口印记与命中音
+  // v20261018o：段间轻震屏 + 连击段计数（「3/5」浮标挂承受方卡，不抢伤害飘字位）
+  function dqFxSeg(entry, dmg, crit, segIdx, total){
+    var side=entry.tgtSide, idx=entry.tgtIdx;
+    if(!side){
+      if(entry.type==='player_atk') side='enemy';
+      else if(entry.type==='enemy_atk') side='player';
+    }
+    if(!side || !dmg || dmg<=0) return;
+    shakeScene();                                // 每段一击轻震屏，连击节奏感
+    floatLabel(side, segIdx+'/'+total, 'segcnt', idx);
+    floatDamage(dmg, side, crit, idx);
+    flashHit(side, crit, idx);
+    dqLunge(side==='player' ? 'enemy' : 'player');   // 攻击方前冲（承受方另一侧）
+    if(segIdx===total){
+      floatImpact(side, entry.atkLine||'fist', 'wound', idx);
+      if(SFX && SFX.hit) { try{ SFX.hit(); }catch(e2){} }
+      if(crit) { critBurst(side, idx); }
+    }
+  }
+
+  // v20261018d：攻击方单位前冲（同侧首名存活单位向目标侧冲刺一下）
+  function dqLunge(attackerSide){
+    var q = attackerSide==='player' ? '.dq-side.dq-party .dq-unit:not(.dead)' : '.dq-side.dq-enemies .dq-unit:not(.dead)';
+    var el = document.querySelector(q);
+    if(!el) return;
+    var cls = attackerSide==='player' ? 'lunge-r' : 'lunge-l';
+    el.classList.remove('lunge-r','lunge-l');
+    void el.offsetWidth;
+    el.classList.add(cls);
+    setTimeout(function(){ el.classList.remove(cls); }, 240);
   }
   // ── DQ 战斗表现层（v20260831r）：每条引擎日志回放时驱动飘字/受击/暴击/克制/狂怒演出 ──
   // 引擎日志已带 tgtSide/tgtIdx（多敌定位），配合 .dq-unit[data-i] 把特效挂到正确单位卡片。

@@ -28,7 +28,7 @@ window.LF = window.LF || {};
   // ===== 通用可放置物品（模板驱动：物品定义 place 字段 → 场景对象） =====
   // 放置物动作表：place.actions 字符串 → 动作函数（物品数据外置，动作需在此注册）
   // 旧存档兼容：早期放置数据仅存 {key:'tent'}（无 defId），用此表回填物品
-  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai', campfire:'campfire', sleepmat:'sleepmat', zhangtai:'zhangtai', shop_shelf:'shelf_wood' };
+  var PLACE_KEY_DEF = { tent:'zhangpeng', p_bench:'gongzuotai', campfire:'campfire', sleepmat:'sleepmat', zhangtai:'zhangtai', shop_shelf:'shelf_wood', p_yao:'gongzuotai' };
   var PLACE_ACTIONS = {
     tent: function(){
       return [
@@ -48,6 +48,13 @@ window.LF = window.LF || {};
       return [
         {label:'制作…', icon:'🔨', fn:function(){ openModal('craft', {bench:'bench'}); }},
         {label:'收起', icon:'📦', fn:function(){ packUpPlaced('p_bench'); }}
+      ];
+    },
+    p_yao: function(){
+      // v20261017b：家中捣药台——制药工作台（免费），可收起移动
+      return [
+        {label:'捣药…', icon:'⚗️', fn:function(){ if(window.LF && LF.Grinding && LF.Grinding.openGrindBench) LF.Grinding.openGrindBench('home', {}); }},
+        {label:'收起', icon:'📦', fn:function(){ packUpPlaced('p_yao'); }}
       ];
     },
     campfire: function(){

@@ -1,21 +1,24 @@
 (function(global) {
   'use strict';
 
-  // ========== 13 武器艺线 ==========
+  // ========== 13 武器艺线（套路：一门武学线=一套招式，攻/防/进退收于门下） ==========
+  // v20261018l：成套化——每线配定位描述（kind: 外功/内功/轻功/骑术），武学录按套路卡片分组
   var LINES = {
-    fist:    { id:'fist',    name:'拳脚', order:1  },
-    sword:   { id:'sword',   name:'剑',   order:2  },
-    blade:   { id:'blade',   name:'刀',   order:3  },
-    spear:   { id:'spear',   name:'枪',   order:4  },
-    staff:   { id:'staff',   name:'棍',   order:5  },
-    halberd: { id:'halberd', name:'戟',   order:6  },
-    hammer:  { id:'hammer',  name:'锤',   order:7  },
-    whip:    { id:'whip',    name:'鞭',   order:8  },
-    bow:     { id:'bow',     name:'弓',   order:9  },
-    hidden:  { id:'hidden',  name:'暗器', order:10 },
-    ride:    { id:'ride',    name:'骑术', order:11 },
-    light:   { id:'light',   name:'轻功', order:12 },
-    internal:{ id:'internal',name:'内功', order:13 }
+    fist:    { id:'fist',    name:'拳脚', order:1,  kind:'外功', desc:'刚猛近身，拳拳到肉，贴身短打' },
+    sword:   { id:'sword',   name:'剑',   order:2,  kind:'外功', desc:'剑走轻灵，攻守兼备，一沾即走' },
+    blade:   { id:'blade',   name:'刀',   order:3,  kind:'外功', desc:'大开大合，势如破竹，以力破巧' },
+    spear:   { id:'spear',   name:'枪',   order:4,  kind:'外功', desc:'长兵致远，一寸长一寸强，稳扎稳打' },
+    staff:   { id:'staff',   name:'棍',   order:5,  kind:'外功', desc:'棍扫六合，守中带攻，绵密难破' },
+    halberd: { id:'halberd', name:'戟',   order:6,  kind:'外功', desc:'步骑皆宜，攻防一体，势大力沉' },
+    hammer:  { id:'hammer',  name:'锤',   order:7,  kind:'外功', desc:'重锤撼岳，一力降十会，破甲摧坚' },
+    whip:    { id:'whip',    name:'鞭',   order:8,  kind:'外功', desc:'软鞭缠斗，借力打力，进退自如' },
+    bow:     { id:'bow',     name:'弓',   order:9,  kind:'外功', desc:'百步穿杨，先手制敌，以远制近' },
+    hidden:  { id:'hidden',  name:'暗器', order:10, kind:'外功', desc:'暗器无影，出其不意，防不胜防' },
+    ride:    { id:'ride',    name:'骑术', order:11, kind:'骑术', desc:'马战冲阵，来去如风，威震敌胆' },
+    light:   { id:'light',   name:'轻功', order:12, kind:'轻功', desc:'身法轻灵，进退迅捷，料敌机先' },
+    internal:{ id:'internal',name:'内功', order:13, kind:'内功', desc:'内息吐纳，强体增力，厚积薄发' },
+    // v20261018n：系统武学（绝世秘籍）——研读秘籍得技能树，逐招解锁；自成一线，不混入兵器艺线
+    xuanyin: { id:'xuanyin', name:'玄阴', order:14, kind:'内功', desc:'玄阴真经所载：寒劲入骨、攻防进退俱备——绝世秘籍，非机缘不可得' }
   };
 
   // ========== 武学境界（7 阶） ==========
@@ -69,6 +72,19 @@
         { realm: 1, eff: '追加第三腿' },
         { realm: 3, eff: '伤害+15%' },
         { realm: 5, eff: '第三腿必暴击' }
+      ]
+    },
+
+    tie_quan: {
+      id: 'tie_quan', name: '铁拳', line: 'fist', type: 'skill',
+      beat: 28, cost: {}, dmgMul: 1.2,
+      attr: { wu: '金', yin: '刚' },
+      desc: '铁拳谱所载外功，拳硬如铁，刚猛无俦。一拳既出，金石可裂',
+      learn: { lineMin: 1, wuxing: 0, neigong: 0 },
+      breakthrough: [
+        { realm: 1, eff: '伤害+15%' },
+        { realm: 3, eff: '有概率附加破甲' },
+        { realm: 6, eff: '伤害+35%，连击一次' }
       ]
     },
 
@@ -732,7 +748,72 @@
       eff:{reflectDmg:0.25},
       learn:{lineMin:3, wuxing:0, neigong:0},
       breakthrough:[ {realm:2,eff:'反震+10%'}, {realm:5,eff:'内力上限+20'} ]
-    }
+    },
+
+    // ─── 系统武学·玄阴真经（v20261018n）───
+    // 绝世秘籍：研读得技能树，逐招解锁（sys.pre 前置 / sys.cost 银两 / sys.realm 境界门槛）
+    // 攻防进退俱全，与低端残缺套路形成对照；招式效果全部走现有战斗机制
+    xuanyin_juqi: {
+      id: 'xuanyin_juqi', name: '玄阴聚气', line: 'xuanyin', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      maxMp: 15,
+      desc: '玄阴真经总纲心法。阴气归元，蓄劲如弓——装配后暴击伤害+20%',
+      eff: { critDmgAdd: 0.20 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { root: true },
+      breakthrough: [
+        { realm: 1, eff: '内力上限+15' },
+        { realm: 3, eff: '暴击伤害+35%' },
+        { realm: 6, eff: '暴击率+12%' }
+      ]
+    },
+    xuanyin_zhi: {
+      id: 'xuanyin_zhi', name: '玄阴指', line: 'xuanyin', type: 'skill',
+      beat: 30, cost: { type: 'mp', val: 8 }, dmgMul: 0.95,
+      attr: { wu: null, yin: '柔' },
+      desc: '以阴劲透指而入，中者如堕冰窟。有概率附阴毒内伤，绵绵不绝',
+      eff: { poisonChance: 0.35, poisonDmg: 8, poisonTurns: 2 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { pre: ['xuanyin_juqi'], cost: 200, realm: 1 },
+      breakthrough: [
+        { realm: 2, eff: '阴毒伤害+6' },
+        { realm: 5, eff: '阴毒概率+20%' }
+      ]
+    },
+    gui_mei_shenfa: {
+      id: 'gui_mei_shenfa', name: '鬼魅身法', line: 'xuanyin', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      desc: '玄阴轻功，身如鬼魅，飘忽难测——装配后暴击率+12%',
+      eff: { critRate: 0.12 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { pre: ['xuanyin_zhi'], cost: 300, realm: 2 }
+    },
+    xuanyin_huti: {
+      id: 'xuanyin_huti', name: '玄阴护体', line: 'xuanyin', type: 'technique',
+      beat: 0, cost: {}, dmgMul: 1.0,
+      detach: true,
+      maxMp: 10,
+      desc: '阴劲护体，劲随敌至——装配后受击反震30%伤害',
+      eff: { reflectDmg: 0.30 },
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { pre: ['xuanyin_zhi'], cost: 300, realm: 2 }
+    },
+    xuanyin_jiuzhuan: {
+      id: 'xuanyin_jiuzhuan', name: '玄阴九转', line: 'xuanyin', type: 'ultimate',
+      beat: 52, cost: { type: 'rage', val: 100 }, dmgMul: 2.0,
+      attr: { wu: null, yin: '柔' },
+      desc: '玄阴真经压轴绝技。阴劲九转，三连透体，防不胜防',
+      multiHit: 3,
+      learn: { lineMin: 0, wuxing: 0, neigong: 0 },
+      sys: { pre: ['gui_mei_shenfa', 'xuanyin_huti'], cost: 800, realm: 3 },
+      breakthrough: [
+        { realm: 2, eff: '伤害+20%' },
+        { realm: 4, eff: '阴毒缠身' },
+        { realm: 6, eff: '四连阴劲' }
+      ]
+    },
   };
 
   // ========== 辅助函数 ==========
@@ -835,6 +916,41 @@
     neigong_zong:   { id:'neigong_zong',   name:'内功心法', line:'internal',elem:'浑',   origin:'内外兼修之内功，养气、玄阴、混元、火云，吐纳之源。', moves:['yang_qi_jue','xuan_yin_jue','hun_yuan_gong','tu_na_shu','huo_yun_xin_fa','mu_ling_jue','hun_yuan_yi_qi'] }
   };
   MARTIAL_ARTS.LINEAGES = LINEAGES;
+  // v20261018n：系统武学（绝世秘籍）——研读秘籍开启技能树，逐招解锁。
+  // 与普通套路对照：低端武学天生残缺，系统武学攻防进退俱全但被技能树层层锁住。
+  // root：研读即得的第一招；招式本身带 sys（pre/cost/realm）描述解锁条件。
+  MARTIAL_ARTS.SYSTEM_SCHOOLS = {
+    xuanyin: {
+      line: 'xuanyin', name: '玄阴真经', kind: '内功',
+      root: 'xuanyin_juqi',
+      desc: '寒劲入骨、攻防进退俱全的绝世武学。研读此经，只通总纲；其余招式，须以修为与银两逐招叩开。'
+    }
+  };
+
+  // v20261018l：各艺线全量招数统计（武学录套路卡片显示「门下 N 招」）
+  MARTIAL_ARTS.TOTAL_BY_LINE = (function(){
+    var t = {};
+    for (var k in MARTIAL_ARTS) {
+      if (MARTIAL_ARTS[k] && MARTIAL_ARTS[k].line) {
+        var ln = MARTIAL_ARTS[k].line;
+        t[ln] = (t[ln] || 0) + 1;
+      }
+    }
+    return t;
+  })();
+
+  // v20261018f：参悟词条池（P0 参悟系统）——品质 0 白 / 1 蓝 / 2 紫，val = base + quality*step
+  // key 均为战斗已消费字段：critRate/armorPen/critDmgAdd/stunChance/ignoreDef/multiHit
+  var AFFIX_POOL = [
+    { key: 'critRate',   name: '刚猛', base: 0.06, step: 0.04, txt: '暴击+' },
+    { key: 'armorPen',   name: '破竹', base: 0.08, step: 0.05, txt: '破甲+' },
+    { key: 'critDmgAdd', name: '凝神', base: 0.10, step: 0.08, txt: '暴伤+' },
+    { key: 'stunChance', name: '重创', base: 0.05, step: 0.03, txt: '眩晕率+' },
+    { key: 'ignoreDef',  name: '破防', base: 0.08, step: 0.05, txt: '无视防御+' },
+    { key: 'multiHit',   name: '连绵', base: 1,    step: 0,    txt: '连击次数+' }
+  ];
+  MARTIAL_ARTS.AFFIX_POOL = AFFIX_POOL;
+  MARTIAL_ARTS.AFFIX_QUALITY = ['白', '蓝', '紫'];
 
   // 导出
   global.LF = global.LF || {};

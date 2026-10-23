@@ -142,7 +142,9 @@
     moralTitle: function () { return moralTitle.apply(null, arguments); },
     factionName: function () { return factionName.apply(null, arguments); },
     renderStatus: renderStatus, toast: toast,
-    packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save
+    packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save,
+    // v20261017d · 演武场：Combat 在 L614 才创建 → 延迟引用（同上方 packAdd 范式）
+    startCombat: function () { return Combat.startCombat.apply(null, arguments); }
   });
   var handleDev = Dev.handleDev, renderDev = Dev.renderDev;
 
@@ -880,6 +882,14 @@
       openBuildCrate = Crafting.openBuildCrate, openForgePanel = Crafting.openForgePanel,
       renderForgePanel = Crafting.renderForgePanel, bindForgePanel = Crafting.bindForgePanel,
       forgeAct = Crafting.forgeAct, tickForge = Crafting.tickForge;
+  // 捣药（制药小游戏）：引擎级单例（v20261017b 正式化）——药铺配药台/家中捣药台共用
+  var Grinding = LF.createGrinding({
+    getState: function () { return state; },
+    LF: LF,
+    packAdd: packAdd, packConsume: packConsume, packFind: packFind,
+    toast: toast, log: log, save: save, renderStatus: renderStatus
+  });
+  LF.Grinding = Grinding;
   // ===== 捏人 / 开场序章 =====
   // 四维属性（直接对应战斗数值，无资质壳；每点换算见 G.ATTR_RATIO）
   var createState=null;   // 捏人状态（openModal 读取）；四维常量与 pendingSlot/pendingSave 已移入 shared/core/charcreate.js
@@ -1585,6 +1595,7 @@
     var onboarding = !!(state.flags && state.flags.onb && !state.flags.onb.done);
     // 开场引导期间静默这些房间的常规旁白（改用剧本式叙事，避免与触发台词重复/信息过载）
     var suppressNarr = onboarding && (rid==='kuyilao' || /^camp_[td]z\d$/.test(rid));
+    if(combatMode!==null && (dqCardEl || document.body.classList.contains('in-combat'))){ return; }   // v20261018e：战斗中任何场景重绘（积压叙事/异步触发）不得覆盖战斗界面；战后 exitCombatToRoom 时 combatMode 已置 null，不受影响
     if(dqCardEl){ if(dqCardEl.parentNode) dqCardEl.parentNode.removeChild(dqCardEl); dqCardEl=null; }
     explored = !!(state.exploredRooms && state.exploredRooms[rid]);
     var narr=[];
@@ -3606,14 +3617,415 @@
     h+='</div><p class="tip">穿卸装备请前往行囊（背包）面板操作。</p>';
     return h;
   }
+  // ═══ 武学录（v20261018a）：角色详情「技能」页签升级为完整武学面板 ───
+  // 列表按流派分组（13 线），点武学卡片进详情（字段/境界/突破）；详情可返回列表。
+  var MA_LINE_NAME = { fist: '拳脚', sword: '剑法', blade: '刀法', spear: '枪法', staff: '棍法',
+    halberd: '戟法', hammer: '锤法', whip: '鞭法', hidden: '暗器', bow: '弓弩',
+    light: '轻功', internal: '内功', ride: '骑术' };
+  var MA_TYPE_NAME = { skill: '武技', ultimate: '绝技', technique: '发力' };
+  function martialIds() {
+    var ids = [];
+    (state.learnedMartial || []).forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+    (state.equippedForce || []).forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+    return ids;
+  }
+  function martialRealm(id) { return (state.realm && state.realm[id]) || 0; }
+  // v20261018f：P0 练习（闭关修炼）——消耗银两提升武学熟练度→境界；P0 参悟——消耗银两刷新武学词条
+  function martialExp(id){ return (state.martialExp && state.martialExp[id]) || 0; }
+  function martialExpNeed(r){ return 80 + 140 * r; }   // 0→1:80 · 1→2:220 · … · 5→6:780
+  function martialPracticeCost(r){ return 80 + 60 * r; } // 境界越高闭关开销越大
+  function martialPracticeGain(r){ return 50 + 15 * r; } // 境界越高单次收益越大
+  function martialMaxRealm(a){ var m=0; (a.breakthrough||[]).forEach(function(b){ if(b.realm>m) m=b.realm; }); return m; }
+  function martialAffixLabel(id){
+    var af=(state.martialAffix && state.martialAffix[id]); if(!af) return null;
+    var pool=(G.MARTIAL_ARTS.AFFIX_POOL||[]).filter(function(x){return x.key===af.key;})[0];
+    var txt=(pool?pool.txt:'')+(af.key==='multiHit' ? (af.val + '次') : (af.val>=1 ? af.val : Math.round(af.val*100)+'%'));
+    return { name: pool ? pool.name : (af.name || af.key), quality: G.MARTIAL_ARTS.AFFIX_QUALITY[af.quality] || '白', txt: txt, key: af.key, val: af.val };
+  }
+  // v20261018m：套路境界=该艺线门下已习得招式的最高境界（整套武学的境界门面）
+  function schoolRealm(line){
+    var m=0;
+    martialIds().forEach(function(id){ var a=G.MARTIAL_ARTS.get(id); if(a && a.line===line){ var r=martialRealm(id); if(r>m) m=r; } });
+    return m;
+  }
+  // v20261018m：单招精进公共逻辑（加经验+可能升级）；由单招闭关/整套闭关共用
+  function applyPractice(id){
+    var a=G.MARTIAL_ARTS.get(id); if(!a) return;
+    var me=state.martialExp || (state.martialExp={});
+    var r=martialRealm(id);
+    me[id]=(me[id]||0)+martialPracticeGain(r);
+    var _sv=document.getElementById('m-skill-view');
+    if(me[id]>=martialExpNeed(r)){
+      me[id]-=martialExpNeed(r);
+      state.realm=(state.realm||{}); state.realm[id]=(state.realm[id]||0)+1;
+      var nr=state.realm[id];
+      var upTxt=(G.MARTIAL_ARTS.REALMS[nr]||('Lv.'+nr));
+      var bt=(a.breakthrough||[]).filter(function(b){return b.realm===nr;})[0];
+      toast('『' + a.name + '』境界提升：' + upTxt + (bt?(' · 解锁「'+bt.eff+'」'):'') + '！','good');
+      log('【修炼】「' + a.name + '」境界提升至 ' + upTxt + (bt?(' · 解锁「'+bt.eff+'」'):'') + '！','good');
+      if(_sv && _sv.innerHTML.indexOf('ma-dname')>=0) _sv.innerHTML=renderMartialDetailHTML(id);
+    } else {
+      if(_sv && _sv.innerHTML.indexOf('ma-dname')>=0) _sv.innerHTML=renderMartialDetailHTML(id);
+      toast('闭关半日，'+(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+' 精进 ('+(me[id]||0)+'/'+martialExpNeed(r)+')。');
+    }
+  }
+  function martialPractice(id){
+    var a=G.MARTIAL_ARTS.get(id); if(!a) return;
+    var r=martialRealm(id), maxR=martialMaxRealm(a);
+    if(r>=maxR){ toast('「'+a.name+'」已至'+(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+'圆满，无可再进。'); return; }
+    var cost=martialPracticeCost(r);
+    if((state.gold||0)<cost){ toast('银两不足（需 '+cost+' 两），闭关难以为继。'); return; }
+    state.gold-=cost;
+    applyPractice(id);
+    save(state);
+  }
+  // v20261018m：整套闭关——一次闭关精进该艺线门下全部已习得招式（练的是整套武学）
+  function schoolPractice(line){
+    var ids=martialIds().filter(function(id){ var a=G.MARTIAL_ARTS.get(id); return a && a.line===line; });
+    if(!ids.length){ toast('该套路门下尚无武学可练。'); return; }
+    var total=0;
+    ids.forEach(function(id){ var r=martialRealm(id), mx=martialMaxRealm(G.MARTIAL_ARTS.get(id)); if(r<mx) total+=martialPracticeCost(r); });
+    if(!total){ toast('「'+ (G.MARTIAL_ARTS.LINES[line]&&G.MARTIAL_ARTS.LINES[line].name||line) +'」已全套圆满，无可再进。'); return; }
+    if((state.gold||0)<total){ toast('银两不足（需 '+total+' 两），整套闭关难以为继。'); return; }
+    state.gold-=total;
+    ids.forEach(function(id){ var r=martialRealm(id), mx=martialMaxRealm(G.MARTIAL_ARTS.get(id)); if(r<mx) applyPractice(id); });
+    var _sv=document.getElementById('m-skill-view');
+    if(_sv && _sv.innerHTML.indexOf('ma-group')>=0) _sv.innerHTML=renderMartialListHTML();
+    toast('整套闭关：'+(G.MARTIAL_ARTS.LINES[line]&&G.MARTIAL_ARTS.LINES[line].name||line)+' 门下武学齐头并进！','good');
+    save(state);
+  }
+  function martialCanyan(id){
+    var a=G.MARTIAL_ARTS.get(id); if(!a) return;
+    var cost=120;
+    if((state.gold||0)<cost){ toast('银两不足（需 '+cost+' 两），无从参悟。'); return; }
+    state.gold-=cost;
+    var roll=Math.random();
+    var q= roll<0.55 ? 0 : (roll<0.87 ? 1 : 2);
+    var pool=G.MARTIAL_ARTS.AFFIX_POOL||[];
+    var item=pool[Math.floor(Math.random()*pool.length)];
+    var val=item.base + q*item.step;
+    state.martialAffix=(state.martialAffix||{}); state.martialAffix[id]={ key:item.key, val:val, quality:q };
+    var _sv=document.getElementById('m-skill-view');
+    if(_sv) _sv.innerHTML=renderMartialDetailHTML(id);
+    var lb=martialAffixLabel(id);
+    toast('参悟得「'+lb.name+'·'+lb.quality+'」：'+lb.txt+'！');
+    save(state);
+  }
+  // v20261018e：上阵槽位随武学境界开槽——初始三式，LV10 开第四槽、LV25 开第五槽（刀剑2「按槽位开槽」式成长）
+  function martialSlotCap() {
+    var lv = (state && state.level) || 1;
+    return 3 + (lv >= 10 ? 1 : 0) + (lv >= 25 ? 1 : 0);
+  }
+  // 第 i 槽（0 起）解锁所需等级：前 3 槽永远可用，第 4 槽 LV10、第 5 槽 LV25
+  function martialSlotUnlockLv(i) {
+    if (i < 3) return 0;
+    return i === 3 ? 10 : (i === 4 ? 25 : 99);
+  }
+  // v20261018c：武学装配——招式入 equippedMartial（至多 martialSlotCap() 式上阵），发力技巧入 equippedForce（临阵被动）
+  function martialEquipToggle(id) {
+    var MA = G.MARTIAL_ARTS;
+    var a = MA.get(id); if (!a) return;
+    if (a.type === 'technique') {
+      var ef = state.equippedForce || (state.equippedForce = []);
+      var ei = ef.indexOf(id);
+      if (ei >= 0) {
+        ef.splice(ei, 1);
+        // v20261018f：卸下发力仍保留在武学录（初始发力如「寸劲」只记装配态，卸下后不应消失）
+        if ((state.learnedMartial || []).indexOf(id) < 0) state.learnedMartial.push(id);
+        toast('已卸下发力「' + a.name + '」。');
+      }
+      else {
+        ef.push(id);
+        if ((state.learnedMartial || []).indexOf(id) < 0) state.learnedMartial.push(id);
+        toast('已装配发力「' + a.name + '」，临阵生效。');
+      }
+    } else {
+      var em = state.equippedMartial || (state.equippedMartial = []);
+      var mi = em.indexOf(id);
+      if (mi >= 0) { em.splice(mi, 1); toast('已卸下「' + a.name + '」。'); }
+      else {
+        if (em.length >= martialSlotCap()) { toast('上阵已满（' + martialSlotCap() + ' 式），先卸下一式，或待境界提升再开新槽。'); return; }
+        em.push(id); toast('已装配「' + a.name + '」，战斗中可选。');
+      }
+    }
+    save(state);
+    var _sv = document.getElementById('m-skill-view');
+    if (_sv) _sv.innerHTML = renderMartialListHTML();
+  }
+  function isMartialEquipped(id) {
+    var a = G.MARTIAL_ARTS.get(id); if (!a) return false;
+    return (a.type === 'technique')
+      ? ((state.equippedForce || []).indexOf(id) >= 0)
+      : ((state.equippedMartial || []).indexOf(id) >= 0);
+  }
+  // v20261018d：发力效果简述（装配槽位用）：挑前两个非空关键加成
+  var MA_EFF_LABEL = { critRate:'暴击+', critDmg:'暴伤+', armorPen:'破甲', reflectDmg:'反弹', defStance:'防御架势', dodge:'闪避+', spdMul:'身法×', atkMul:'攻击×', defMul:'防御×', hpMul:'气血×', mpMul:'内力×', bonusExp:'修成+', ignoreDef:'破防', forceCrit:'必暴' };
+  function martialEffBrief(a){
+    var s=[], eff=a.eff||{};
+    for(var k in eff){
+      var v=eff[k]; if(!v) continue;
+      var lb=MA_EFF_LABEL[k]||k;
+      s.push(lb + (typeof v==='number' ? Math.round(v*100)+'%' : ''));
+      if(s.length>=2) break;
+    }
+    return s.join(' ');
+  }
+  // v20261018d：上阵栏（类装备栏）——招式按境界开槽 + 被动发力槽，点已装槽位即卸下
+  // v20261018e：槽位数随等级成长（3 → LV10 4 槽 → LV25 5 槽），未解锁槽显示 🔒 与解锁等级
+  function renderSlotbarHTML(){
+    var em=state.equippedMartial||[], fo=state.equippedForce||[];
+    var cap=martialSlotCap();
+    var h='<div class="ma-slotbar">'+
+      '<div class="ma-slothead">上阵招式 <em>'+(state.equippedMartial||[]).length+'/'+cap+'</em></div><div class="ma-slots">';
+    // 固定遍历到最大 5 槽：已解锁槽显示已装/空位，未解锁槽显示 🔒 与解锁等级（成长引导）
+    for(var i=0;i<5;i++){
+      if(i>=cap){
+        var unlv2=martialSlotUnlockLv(i);
+        h+='<div class="ma-slot locked"><b>🔒 LV'+unlv2+'</b><i>境界开槽</i></div>';
+        continue;
+      }
+      var id=em[i];
+      if(id){
+        var a=G.MARTIAL_ARTS.get(id);
+        h+='<div class="ma-slot filled" data-slot="'+id+'"><b>'+escapeHtml(a?a.name:id)+'</b><i>'+
+          (a? escapeHtml((MA_LINE_NAME[a.line]||a.line||'')+(a.dmgMul?' · '+a.dmgMul+'×':' · 武技')):'')+'</i></div>';
+      } else { h+='<div class="ma-slot empty">＋ 空位</div>'; }
+    }
+    h+='</div>';
+    h+='<div class="ma-slothead">被动发力</div><div class="ma-slots ma-slots-force">';
+    if(fo.length){
+      fo.forEach(function(fid){
+        var fa=G.MARTIAL_ARTS.get(fid);
+        h+='<div class="ma-slot filled force" data-slot="'+fid+'"><b>'+escapeHtml(fa?fa.name:fid)+'</b><i>'+escapeHtml(fa?martialEffBrief(fa):'')+'</i></div>';
+      });
+    } else { h+='<div class="ma-slot empty">＋ 空位</div>'; }
+    h+='</div></div>';
+    return h;
+  }
+  // v20261018n：系统武学技能树——研读秘籍后武学录以技能树呈现：已解锁=节点，未解锁=条件+按钮
+  function renderSystemTreeHTML(line){
+    var MA = G.MARTIAL_ARTS;
+    var book = (MA.SYSTEM_SCHOOLS && MA.SYSTEM_SCHOOLS[line]) || null;
+    if (!book) return '';
+    // 该线下全部招式
+    var all = [];
+    for (var k in MA) { var a = MA[k]; if (a && a.line === line && a.id && a.sys) all.push(a); }
+    // 计算层级深度（前置为根，逐层+1）
+    var dep = {};
+    var stack = [book.root]; var seen = {};
+    while (stack.length) {
+      var id = stack.pop(); if (seen[id]) continue; seen[id] = true;
+      var a = MA.get(id); if (!a) continue;
+      var d = 0;
+      (a.sys.pre || []).forEach(function (p) { var pd = dep[p] || 0; if (pd + 1 > d) d = pd + 1; });
+      dep[id] = d;
+      for (var kk in MA) { var a2 = MA[kk]; if (a2 && a2.line === line && a2.sys && a2.sys.pre && a2.sys.pre.indexOf(id) >= 0) stack.push(a2.id); }
+    }
+    all.sort(function (x, y) { return (dep[x.id] || 0) - (dep[y.id] || 0); });
+    var sRealm = schoolRealm(line);
+    var h = '<div class="row"><span>' + escapeHtml(book.name) + '</span><span>系统武学 · 境' + sRealm + '</span></div>';
+    h += '<div class="sys-desc">' + escapeHtml(book.desc) + '</div>';
+    h += '<div class="sys-tree">';
+    all.forEach(function (a) {
+      var own = (state.learnedMartial || []).indexOf(a.id) >= 0;
+      var r = own ? martialRealm(a.id) : 0;
+      var d = dep[a.id] || 0;
+      var t = MA_TYPE_NAME[a.type] || a.type;
+      var pl = (d * 18 + 6);
+      if (own) {
+        var force = (a.type === 'technique') ? '<i class="ma-force">发力</i>' : '';
+        var eq = isMartialEquipped(a.id);
+        h += '<div class="sys-node own" style="padding-left:' + pl + 'px" data-mid="' + a.id + '">' +
+          '<span class="ma-n">' + escapeHtml(a.name) + force + '</span>' +
+          '<span class="ma-meta">' + escapeHtml(t) + '</span>' +
+          '<span class="ma-lv">境' + r + '</span>' +
+          '<button type="button" class="ma-eq" data-eq="' + a.id + '">' + (eq ? '卸 下' : '装 配') + '</button>' +
+          '</div>';
+      } else {
+        var preTxt = '';
+        if (a.sys.pre && a.sys.pre.length) {
+          preTxt = a.sys.pre.map(function (p) { var pa = MA.get(p); return pa ? pa.name : p; }).join('、') + '已通';
+        }
+        var need = '';
+        if (preTxt) need += preTxt;
+        if (a.sys.realm) need += (need ? ' · ' : '') + '套路境' + a.sys.realm;
+        h += '<div class="sys-node locked" style="padding-left:' + pl + 'px">' +
+          '<span class="ma-n">' + escapeHtml(a.name) + '</span>' +
+          '<span class="ma-meta">' + escapeHtml(t) + (need ? ' · ' + escapeHtml(need) : '') + '</span>' +
+          '<button type="button" class="sys-unlock" data-sys="' + a.id + '">解锁 · ' + (a.sys.cost || 0) + ' 两</button>' +
+          '</div>';
+      }
+    });
+    h += '</div>';
+    return h;
+  }
+  // v20261018n：解锁系统武学招式——前置全通 + 套路境界达标 + 银两
+  function sysUnlock(id){
+    var MA = G.MARTIAL_ARTS;
+    var a = MA.get(id); if (!a || !a.sys) return;
+    if ((state.learnedMartial || []).indexOf(id) >= 0) { toast('此招早已习得。'); return; }
+    if (a.sys.pre && a.sys.pre.length) {
+      var miss = a.sys.pre.filter(function (p) { return (state.learnedMartial || []).indexOf(p) < 0; });
+      if (miss.length) { toast('前置未通：须先习得 ' + miss.map(function (p) { var pa = MA.get(p); return pa ? pa.name : p; }).join('、') + '。'); return; }
+    }
+    var sRealm = schoolRealm(a.line);
+    if (a.sys.realm && sRealm < a.sys.realm) { toast('套路境界不足：此招须套路境' + a.sys.realm + '（当前境' + sRealm + '）。'); return; }
+    var cost = a.sys.cost || 0;
+    if ((state.gold || 0) < cost) { toast('银两不足（需 ' + cost + ' 两），无从解锁。'); return; }
+    state.gold -= cost;
+    (state.learnedMartial = state.learnedMartial || []).push(id);
+    var _sv = document.getElementById('m-skill-view');
+    if (_sv && _sv.innerHTML.indexOf('sys-tree') >= 0) _sv.innerHTML = renderSystemTreeHTML(a.line);
+    toast('叩开武学之门，习得「' + a.name + '」！', 'good');
+    log('【武学】解锁「' + a.name + '」（' + cost + ' 两）。', 'good');
+    save(state);
+  }
+  function renderMartialListHTML() {
+    var MA = G.MARTIAL_ARTS;
+    var ids = martialIds();
+    if (!ids.length) {
+      return '<div class="row"><span>武学录</span></div><p class="tip">尚未习得武学。武学随行止与机缘习得；技击之术在战斗中自动施展。</p>';
+    }
+    // v20261018l：成套化——按艺线（套路）分组，套路卡片带定位/描述/门下招数统计
+    var groups = {};
+    ids.forEach(function (id) {
+      var a = MA.get(id); if (!a) return;
+      (groups[a.line] = groups[a.line] || []).push({ id: id, a: a });
+    });
+    var LINES = MA.LINES || {};
+    var lines = Object.keys(groups).sort(function (x, y) {
+      return ((LINES[x] && LINES[x].order) || 99) - ((LINES[y] && LINES[y].order) || 99);
+    });
+    var eqN = (state.equippedMartial || []).length;
+    var h = '<div class="row"><span>武学录</span><span>' + ids.length + ' 门 · 上阵 ' + eqN + '/' + martialSlotCap() + '</span></div>';
+    h += renderSlotbarHTML();
+    lines.forEach(function (ln) {
+      // v20261018n：系统武学——已通读秘籍的线以技能树呈现，不套普通套路卡片
+      if (state.schoolBooks && state.schoolBooks[ln] && MA.SYSTEM_SCHOOLS && MA.SYSTEM_SCHOOLS[ln]) {
+        h += renderSystemTreeHTML(ln);
+        return;
+      }
+      var meta = LINES[ln] || {};
+      var kind = meta.kind || (ln === 'light' ? '轻功' : (ln === 'internal' ? '内功' : (ln === 'ride' ? '骑术' : '外功')));
+      var total = (MA.TOTAL_BY_LINE && MA.TOTAL_BY_LINE[ln]) || groups[ln].length;
+      var eqIn = groups[ln].filter(function (o) { return isMartialEquipped(o.id); }).length;
+      var name = MA_LINE_NAME[ln] || meta.name || ln;
+      var sRealm = schoolRealm(ln);
+      var sCost = 0;
+      groups[ln].forEach(function (o) {
+        var rr = martialRealm(o.id), mx = martialMaxRealm(o.a);
+        if (rr < mx) sCost += martialPracticeCost(rr);
+      });
+      h += '<div class="ma-group">' +
+        '<div class="ma-grow"><span class="ma-gname">' + escapeHtml(name) + '</span>' +
+        '<span class="ma-gkind">' + escapeHtml(kind) + '套路</span>' +
+        '<span class="ma-gstat">门下 ' + total + ' 招 · 习得 ' + groups[ln].length + ' · 上阵 ' + eqIn + ' · 境' + sRealm + '</span></div>' +
+        (meta.desc ? '<div class="ma-gdesc">' + escapeHtml(meta.desc) + '</div>' : '') +
+        (sCost > 0 ? '<button type="button" class="ma-sch" data-sch="' + ln + '">整套闭关 · ' + sCost + ' 两</button>' : '') +
+        '</div>';
+      groups[ln].forEach(function (o) {
+        var r = martialRealm(o.id);
+        var t = MA_TYPE_NAME[o.a.type] || o.a.type;
+        var wu = (o.a.attr && o.a.attr.wu) ? o.a.attr.wu : '';
+        var yin = (o.a.attr && o.a.attr.yin) ? o.a.attr.yin : '';
+        var force = (o.a.type === 'technique') ? '<i class="ma-force">发力</i>' : '';
+        var eq = isMartialEquipped(o.id);
+        h += '<div class="ma-card' + (eq ? ' eq' : '') + '" data-mid="' + o.id + '">' +
+          '<span class="ma-main" data-mid="' + o.id + '">' +
+            '<span class="ma-n">' + escapeHtml(o.a.name) + force + '</span>' +
+            '<span class="ma-meta">' + escapeHtml(t) + (wu ? ' · ' + escapeHtml(wu) : '') + (yin ? ' · ' + escapeHtml(yin) : '') + '</span>' +
+            '<span class="ma-lv">境' + r + '</span>' +
+          '</span>' +
+          '<button type="button" class="ma-eq" data-eq="' + o.id + '">' + (eq ? '卸 下' : '装 配') + '</button>' +
+          '</div>';
+      });
+    });
+    h += '<p class="tip">点卡片览详情 · 点「装配」上阵（至多三式），战斗中仅用上阵武学。</p>';
+    return h;
+  }
+  function renderMartialDetailHTML(id) {
+    var MA = G.MARTIAL_ARTS;
+    var a = MA.get(id);
+    if (!a) return '<p class="tip">查无此武学。</p>';
+    var r = martialRealm(id);
+    var costTxt = '无消耗';
+    if (a.cost) { if (a.cost.mp) costTxt = '内力 ' + a.cost.mp; else if (a.cost.rage) costTxt = '怒气 ' + a.cost.rage; }
+    var wu = (a.attr && a.attr.wu) ? a.attr.wu : '—', yin = (a.attr && a.attr.yin) ? a.attr.yin : '—';
+    var h = '<div class="ma-detail">' +
+      '<button type="button" class="ma-back" data-act="mlist-back">← 返回武学录</button>' +
+      '<div class="ma-dname">' + escapeHtml(a.name) + ' <i>' + escapeHtml(MA_TYPE_NAME[a.type] || a.type) + '</i></div>' +
+      '<div class="ma-dsub">' + escapeHtml(MA_LINE_NAME[a.line] || a.line || '杂学') + ' · 当前境界 <b>Lv.' + r + '</b></div>' +
+      '<div class="ma-drows">' +
+        '<div class="ma-row"><span>五行</span><span>' + escapeHtml(wu) + '</span></div>' +
+        '<div class="ma-row"><span>阴阳</span><span>' + escapeHtml(yin) + '</span></div>' +
+        '<div class="ma-row"><span>威力</span><span>' + a.dmgMul + '× 伤害</span></div>' +
+        '<div class="ma-row"><span>出手</span><span>' + a.beat + '</span></div>' +
+        '<div class="ma-row"><span>消耗</span><span>' + costTxt + '</span></div>' +
+      '</div>' +
+      '<div class="ma-desc">' + escapeHtml(a.desc || '') + '</div>';
+    if (a.breakthrough && a.breakthrough.length) {
+      h += '<div class="ma-bt-t">境界突破</div>';
+      a.breakthrough.forEach(function (b) {
+        var on = r >= b.realm;
+        h += '<div class="ma-bt' + (on ? ' on' : '') + '"><span class="ma-bt-lv">Lv.' + b.realm + '</span>' +
+          '<span>' + (on ? '✓ 已解锁 · ' : '🔒 待解锁 · ') + escapeHtml(b.eff || '') + '</span></div>';
+      });
+    }
+    // v20261018f：P0 练习（闭关修炼）+ 参悟（词条）
+    var maxR = martialMaxRealm(a);
+    if (r < maxR) {
+      var need = martialExpNeed(r), me = martialExp(id), cost = martialPracticeCost(r);
+      h += '<div class="ma-pract">' +
+        '<div class="ma-pract-t">闭关修炼 <span>'+escapeHtml((G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r)))+' → '+(G.MARTIAL_ARTS.REALMS[r+1]||('Lv.'+(r+1)))+'</span></div>' +
+        '<div class="ma-expbar"><i style="width:'+Math.min(100,Math.round(me/need*100))+'%"></i></div>' +
+        '<div class="ma-exprow"><span>精进 '+me+'/'+need+'</span><button type="button" class="ma-eq" data-act="practice" data-mid="'+id+'">闭关（'+cost+' 两）</button></div>' +
+        '</div>';
+    } else {
+      h += '<div class="ma-pract"><div class="ma-pract-t">闭关修炼 <span>已至'+escapeHtml(G.MARTIAL_ARTS.REALMS[r]||('Lv.'+r))+'圆满</span></div></div>';
+    }
+    var afLb = martialAffixLabel(id);
+    h += '<div class="ma-canyan">' +
+      '<div class="ma-pract-t">参悟词条</div>' +
+      '<div class="ma-affix' + (afLb ? ' q' + afLb.quality : '') + '">' +
+        (afLb ? (afLb.name + ' · ' + afLb.quality + ' · ' + afLb.txt) : '未参悟——武学奥义尚待点破') +
+      '</div>' +
+      '<button type="button" class="ma-eq" data-act="canyan" data-mid="'+id+'">参 悟（120 两）</button>' +
+      '</div>';
+    h += '</div>';
+    return h;
+  }
   function mainCharSkillHTML(){
-    return '<div class="row"><span>武学</span></div><div class="skills">'+skillTags()+'</div>'+
-      '<p class="tip">武学随行止与机缘习得；技击之术在战斗中自动施展。</p>';
+    return '<div id="m-skill-view">' + renderMartialListHTML() + '</div>';
   }
   function bindMainCharDetail(){
     bindAttrAlloc();
     var _sectOpen=document.getElementById('sect-open');
     if(_sectOpen) _sectOpen.onclick=function(){ openModal('sect'); };
+    // 武学录：点卡片进详情 / 点「装配」切换上阵 / 点返回回列表（事件委托）
+    var _sv=document.getElementById('m-skill-view');
+    if(_sv){
+      _sv.onclick=function(ev){
+        var t=ev.target || ev.srcElement;
+        var back=t.closest ? t.closest('[data-act="mlist-back"]') : null;
+        if(back){ _sv.innerHTML=renderMartialListHTML(); return; }
+        var eqb=t.closest ? t.closest('[data-eq]') : null;
+        if(eqb){ martialEquipToggle(eqb.getAttribute('data-eq')); return; }
+        // v20261018d：上阵栏槽位——点已装槽位直接卸下
+        var slotEl=t.closest ? t.closest('[data-slot]') : null;
+        if(slotEl && slotEl.className.indexOf('filled')>=0){ martialEquipToggle(slotEl.getAttribute('data-slot')); return; }
+        // v20261018f：P0 练习/参悟
+        var actEl=t.closest ? t.closest('[data-act="practice"], [data-act="canyan"]') : null;
+        if(actEl){ var _m=actEl.getAttribute('data-mid'); if(actEl.getAttribute('data-act')==='practice') martialPractice(_m); else martialCanyan(_m); return; }
+        // v20261018m：套路整套闭关
+        var schEl=t.closest ? t.closest('[data-sch]') : null;
+        if(schEl){ schoolPractice(schEl.getAttribute('data-sch')); return; }
+        // v20261018n：系统武学解锁
+        var sysEl=t.closest ? t.closest('[data-sys]') : null;
+        if(sysEl){ sysUnlock(sysEl.getAttribute('data-sys')); return; }
+        var card=t.closest ? t.closest('[data-mid]') : null;
+        if(card){ _sv.innerHTML=renderMartialDetailHTML(card.getAttribute('data-mid')); }
+      };
+    }
   }
 
   // dock 选中态（v20260924h）：打开对应面板时高亮底部页签（朱砂卡+指示条），关窗/开非页签窗则清除

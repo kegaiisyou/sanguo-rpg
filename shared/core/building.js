@@ -142,7 +142,7 @@
         ]},
         { kind:'obj', name:'炼药台', icon:'⚗️', desc:'青玉案几，用以合药配伍。', acts:[
           { label:'合炼汤药', icon:'🍵', fn:function(){ if(!packFind('jinchuang')||!packFind('yaofen')){ toast('需备金疮药与草药粉各一，方可合炼。'); return; } if(!exert('合药')) return; packConsume('jinchuang',1); packConsume('yaofen',1); packAdd('tangyao',1); log('金疮药合草药粉，于台上熬炼成一碗汤药。','sys'); openModal('building'); } },
-          { label:'依方配药', icon:'📜', fn:function(){ openModal('craft', {bench:'clinic'}); } }
+          { label:'依方配药', icon:'📜', fn:function(){ if(window.LF && LF.Grinding && LF.Grinding.openGrindBench) { LF.Grinding.openGrindBench('city', {}); } else { openModal('craft', {bench:'clinic'}); } } }
         ]},
         { kind:'obj', name:'熬药壶', icon:'🫖', desc:'小炭炉上坐着药壶，咕嘟作响。', acts:[
           { label:'熬制汤药', icon:'🍲', fn:function(){ if(!hasCount('caoyao',2)){ toast('熬汤药须草药两味，药柜可取。'); return; } if(!exert('熬药')) return; packConsume('caoyao',2); packAdd('tangyao',1); log('文火慢熬，草药化作一碗温补汤药。','sys'); openModal('building'); } }

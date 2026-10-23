@@ -172,7 +172,7 @@
     doctor: {
       name: '药铺',
       items: [
-        { id: 'jinchuang', buy: 30, sell: 12 },
+        { id: 'jinchuang', buy: 96, sell: 48 },
         { id: 'roubao',    buy: 8,  sell: 3  },
         { id: 'caoyao',    buy: 5,  sell: 2  },
         // —— 新物品（v20260927t）：药种 / 名贵药材 ——
@@ -191,6 +191,8 @@
         { id: 'fuzi',      buy: 108,sell: 20 },
         { id: 'gancao',    buy: 12, sell: 2  },
         { id: 'chaye',     buy: 29, sell: 5  },
+        // —— v20261017b · 捣药台（配药台家具，家中免费捣药）——
+        { id: 'yaochu',    buy: 45, sell: 15 },
         // —— 加工材料（半成品层）——
         { id: 'yaomo',     buy: 24, sell: 5  },
         { id: 'fengmi',    buy: 18, sell: 7  },
@@ -205,14 +207,21 @@
         { id: 'shentang',  buy: 99, sell: 20 },
         { id: 'zhuangqi',  buy: 77, sell: 16 },
         { id: 'huxin',     buy: 132,sell: 27 },
-        { id: 'jinchuangao',buy: 75,sell: 15 },
+        { id: 'jinchuangao',buy: 100,sell: 50 },
         { id: 'fenghan',   buy: 33, sell: 7  },
         { id: 'bishu',     buy: 40, sell: 8  },
         { id: 'bizhang',   buy: 62, sell: 13 },
         { id: 'anshui',    buy: 53, sell: 11 },
         { id: 'junyao',    buy: 44, sell: 9  },
         { id: 'baidu',     buy: 132,sell: 27 },
-        { id: 'shangdeng', buy: 176,sell: 36 }
+        { id: 'shangdeng', buy: 176,sell: 36 },
+        // —— v20261015a · 捣药配方卷轴（研读习得药方，详见捣药）——
+        // —— v20261017c · 捣药成药药铺收购（buy:0=店不售、仅收购；摆摊/拍卖按正常价 price）——
+        { id: 'xingjunsan', buy: 0, sell: 32 },
+        { id: 'xingshensan', buy: 0, sell: 72 },
+        { id: 'xumingdan',   buy: 0, sell: 190 },
+        { id: 'fang_jinchuangao', buy: 95, sell: 20 },
+        { id: 'fang_xumingdan',   buy: 165,sell: 30 }
       ]
     },
     // ── 坊·市坊四号（v20260927e）：城内坊格「交易」按铺名开对应商号 ──

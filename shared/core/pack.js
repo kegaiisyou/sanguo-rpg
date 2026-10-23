@@ -233,7 +233,9 @@
     if(getPackInspect().kind==='equip') acts+='<button class="li-act" onclick="LFUI.unequipInspect()">卸 下</button>';
     else {
       if(it.cat==='装备') acts+='<button class="li-act" onclick="LFUI.equipInspect()">装 备</button>';
-      if(it.effect) acts+='<button class="li-act" onclick="LFUI.useInspect()">使 用</button>';
+      // v20261018a：无 effect 的可研读物（配方/秘籍）同样给出「研读」入口（此前仅 it.effect 才有按钮，配方卷轴实际无法使用）
+      var _useLabel = it.effect ? '使 用' : ((it.cat === '配方' || it.cat === '秘籍') ? '研 读' : '');
+      if (_useLabel) acts += '<button class="li-act" onclick="LFUI.useInspect()">' + _useLabel + '</button>';
       var canPlace=it.placeable||(LF.ITEMS[it.defId]||{}).placeable||(LF.ITEMS[it.defId]||{}).place;
       var isBlueprint=!!(LF.ITEMS[it.defId]||{}).blueprint;
       if(canPlace||isBlueprint) acts+='<button class="li-act" onclick="LFUI.placeInspect()">'+(isBlueprint?'依 图':'放 置')+'</button>';
