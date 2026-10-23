@@ -80,19 +80,7 @@ window.LF = window.LF || {};
       else if (act === 'item_tiequan') { ctx.packAdd({ defId: 'tiequan_pu', count: 1 }); ctx.log('【调试】获得 铁拳拳谱×1 —— 行囊中研读可习得外功「铁拳」', 'good'); }
       // v20261018n：系统武学秘籍（玄阴真经）——研读开启技能树
       else if (act === 'item_xuanyin') { ctx.packAdd({ defId: 'xuanyin_jing', count: 1 }); ctx.log('【调试】获得 玄阴真经×1 —— 行囊中研读得总纲，武学录以技能树逐招解锁', 'good'); }
-      // v20261018c：逐门获得武学（招式入 learnedMartial，发力技巧入 equippedForce）
-      else if (act.indexOf('martial_') === 0) {
-        var _mid = act.slice(8);
-        var _ma = LF.MARTIAL_ARTS.get(_mid); if (!_ma) return;
-        if (_ma.type === 'technique') {
-          if (state.equippedForce.indexOf(_mid) < 0) { state.equippedForce.push(_mid); ctx.log('【调试】已装配发力技巧「' + _ma.name + '」', 'good'); }
-          else ctx.log('「' + _ma.name + '」早已装配', 'sys');
-        } else {
-          if (state.learnedMartial.indexOf(_mid) < 0) { state.learnedMartial.push(_mid); ctx.log('【调试】已习得武学「' + _ma.name + '」', 'good'); }
-          else ctx.log('「' + _ma.name + '」早已习得', 'sys');
-        }
-        ctx.save(state);
-      }
+
       else if (act === 'grind') {
         // 捣药（v20261017b 正式化）：调试台直接打开配药台工作台（等价店主视角）
         var _gr = LF.Grinding || (LF.Grinding = LF.createGrinding({
@@ -191,24 +179,7 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="toggleFog">切换迷雾</button>' +
          '<button class="dev" data-act="toggleGated">切换门槛解锁</button></div></div>';
 
-      // 7. 武学（v20261018c：42 门逐门获得，方便随时测试效果）
-      h += '<div class="dev-sec"><div class="dev-h">🥋 武学（逐门习得，看效果）</div>';
-      var _maAll = LF.MARTIAL_ARTS, _mLines = ['fist', 'sword', 'blade', 'spear', 'staff', 'halberd', 'hammer', 'whip', 'bow', 'hidden', 'ride', 'light', 'internal'];
-      _mLines.forEach(function (lid) {
-        var _ln = (_maAll.LINES && _maAll.LINES[lid]) || null; if (!_ln) return;
-        var _lst = [];
-        for (var _mk in _maAll) { var _ma2 = _maAll[_mk]; if (_ma2 && _ma2.id && _ma2.line === lid) _lst.push(_ma2); }
-        if (!_lst.length) return;
-        h += '<div class="dev-h" style="font-size:11px;margin-top:5px;color:#b08950">' + _ln.name + '</div><div class="dev-btns">';
-        _lst.forEach(function (_a) {
-          var _owned = (_a.type === 'technique')
-            ? (state.equippedForce.indexOf(_a.id) >= 0)
-            : (state.learnedMartial.indexOf(_a.id) >= 0);
-          h += '<button type="button" class="dev' + (_owned ? ' dev-owned' : '') + '" data-act="martial_' + _a.id + '">' + _a.name + (_owned ? ' ✓' : '') + '</button>';
-        });
-        h += '</div>';
-      });
-      h += '<p class="tip">已获得标 ✓；装配上阵在 角色→技能 武学录中操作。</p></div>';
+
 
       // 8. 制药（捣药 v20261015a 配方驱动）：初始三味散剂 + 已学进阶
       h += '<div class="dev-sec"><div class="dev-h">🧪 制药调试</div><div class="dev-btns">'

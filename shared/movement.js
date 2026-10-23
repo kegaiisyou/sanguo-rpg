@@ -110,15 +110,19 @@
       });
       // 城门外向出口：经罗盘「出城」进入对应郊野（不同城门 → 不同郊野 → 不同邻城）
       var ct2=cellDisplayType(getState().room, cp.x, cp.y);
-      if(ct2==='gate'||ct2==='sentry'){
-        var od=gateOutwardDir(getState().room, cp.x, cp.y);
+      function addGateExit(od){
+        if(!od) return;
         var gt=(LF.PLACE_GATES && LF.PLACE_GATES[getState().room] && LF.PLACE_GATES[getState().room][od])||null;
-        if(gt){
-          var gp=(LF.PLACES && LF.PLACES[gt])||{};
-          var gRoom=gp.entryRoom || gt;          // 指向真实房间（郊野入口格），而非郊野 id
-          // v20260905i：罗盘钮名只标「出城」，去向写入 title，避免长名在 3×3 窄钮内截断
-          ex.push({dir:od, name:od+'·出城', icon:'🚪', tid:gRoom, kind:'gateout', place:(gp.name||'郊野')});
-        }
+        if(!gt) return;
+        var gp=(LF.PLACES && LF.PLACES[gt])||{};
+        var gRoom=gp.entryRoom || gt;          // 指向真实房间（郊野入口格），而非郊野 id
+        ex.push({dir:od, name:od+'·出城', icon:'🚪', tid:gRoom, kind:'gateout', place:(gp.name||'郊野')});
+      }
+      if(ct2==='gate'||ct2==='sentry'){
+        addGateExit(gateOutwardDir(getState().room, cp.x, cp.y));
+      } else if(ct2==='passgate'){
+        // 关隘：关城居中（非网格边界），双向出关——依 controls 连接的各城外向门
+        (availableGateDirs(getState().room)||[]).forEach(addGateExit);
       }
       return ex;
     }

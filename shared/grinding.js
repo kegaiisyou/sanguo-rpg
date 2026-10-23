@@ -726,6 +726,7 @@
           rows +
           (clinicRows ? '<div class="gbench-sec">简易配药（名贵药材直接成药）</div>' + clinicRows : '') +
           '<div class="gbench-tip">捣药：净选挑杂 → 点击砸粉（轻点=恰好）→ 成剂。良品药效圆满，普通药效打折。</div>' +
+          '<button class="btn gbench-close" id="gbench-close">收 起</button>' +
         '</div>';
       document.body.appendChild(ov);
       // 捣药入口：扣材 + 权限租金 → 小游戏
@@ -769,6 +770,8 @@
           };
         })(gos[i]);
       }
+      var gclose = document.getElementById('gbench-close');
+      if (gclose) gclose.onclick = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); };
       ov.addEventListener('click', function (e) { if (e.target === ov) { if (ov.parentNode) ov.parentNode.removeChild(ov); } });
     }
     function effectText(defId) {
