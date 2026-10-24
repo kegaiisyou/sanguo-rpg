@@ -1919,8 +1919,8 @@
   .pi-use:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
   /* ===== 行囊 v0.7：左装备栏 · 右物品栏 · 底信息栏 ===== */
   .pack-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
-  .pack-head{flex:0 0 auto;display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:10px;}
-  .pack-title{font-family:"STKaiti","KaiTi",serif;font-size:22px;letter-spacing:6px;color:#ffd268;text-shadow:0 0 8px rgba(255,200,90,.55),0 2px 4px rgba(0,0,0,.65);}
+  .pack-head{flex:0 0 auto;display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:10px;min-width:0;}
+  .pack-title{font-family:"STKaiti","KaiTi",serif;font-size:22px;letter-spacing:6px;color:#ffd268;text-shadow:0 0 8px rgba(255,200,90,.55),0 2px 4px rgba(0,0,0,.65);white-space:nowrap;overflow:visible;flex:none;}   /* v20261024n：标题防截断（窄屏也不残缺） */
 
   /* 主体：左装备 / 右物品 */
   .pack-main{flex:1 1 auto;display:flex;gap:12px;min-height:0;}
@@ -1982,8 +1982,8 @@
     border:1px solid rgba(176,131,47,.45);border-radius:var(--r-card);padding:8px;box-sizing:border-box;min-height:0;}
   .pack-right-title{font-family:"STKaiti","KaiTi",serif;font-size:14px;letter-spacing:5px;color:#f5e0a8;text-shadow:0 1px 3px rgba(0,0,0,.6);margin-bottom:6px;text-align:center;}
   /* v20261008c：背包分类页签（全部/素材/药剂/菜肴/器具/其他） */
-  .pack-tabs{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:-2px 0 7px;}
-  .pack-tab{font-size:11.5px;letter-spacing:1px;color:#f4e8c6;background:rgba(0,0,0,.34);border:1px solid rgba(200,164,102,.5);border-radius:999px;padding:3px 10px;cursor:pointer;font-family:"STKaiti","KaiTi",serif;transition:.15s;}
+  .pack-tabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:0 0 8px;}   /* v20261024n：页签间距/行距统一 */
+  .pack-tab{font-size:11.5px;letter-spacing:1px;color:#f4e8c6;background:rgba(0,0,0,.34);border:1px solid rgba(200,164,102,.5);border-radius:999px;padding:3px 10px;cursor:pointer;font-family:"STKaiti","KaiTi",serif;transition:.15s;white-space:nowrap;}
   .pack-tab.on{color:#2b1f0c;background:linear-gradient(180deg,#e8c87e,#c8a05c);border-color:#a8842f;box-shadow:0 1px 4px rgba(0,0,0,.3);font-weight:700;}
   .pack-tab:active{transform:scale(.94);}
   /* v20261022e：背包拖拽反馈 + 野外迷雾/地形着色 */
@@ -2297,13 +2297,15 @@
   .btn-mini:hover{background:linear-gradient(180deg,#6e5a36,#4a3a22);}
   .btn-mini:active{transform:translateY(1px);}
   .btn-mini:disabled{opacity:.45;cursor:not-allowed;}
-  .pack-foot{flex:0 0 auto;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 14px;margin-top:10px;}
-  .pack-foot .btn{background:linear-gradient(180deg,#4a3c24,#2e2415);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:var(--r-btn);padding:5px 12px;min-height:28px;cursor:pointer;font-size:11px;line-height:1.2;}
+  .pack-foot{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:7px;margin-top:10px;}   /* v20261024n：底部按 操作/信息/提示 三行分区，手机端不再挤成一团 */
+  .pf-row{display:flex;align-items:center;justify-content:center;gap:14px;}
+  .pf-acts{gap:12px;}
+  .pack-foot .btn{background:linear-gradient(180deg,#4a3c24,#2e2415);color:#f0e2c0;border:1px solid #8a6f3e;border-radius:var(--r-btn);padding:5px 12px;min-width:96px;min-height:28px;cursor:pointer;font-size:11px;line-height:1.2;}
   @media (max-width:560px){ .pack-foot .btn{ padding:9px 16px; min-height:38px; font-size:13px; } }
   .pack-foot .btn:active{transform:translateY(1px);}
   .pack-cap{color:#6e5a3c;font-size:12px;}
   .pack-gold{color:#c89a3a;font-size:13px;font-weight:600;}
-  .pack-hint{color:#8c7c5a;font-size:11.5px;letter-spacing:.5px;}
+  .pf-hint{color:#8c7c5a;font-size:11px;letter-spacing:.5px;}
   .pack-ghost{position:fixed;transform:translate(-50%,-140%);width:56px;height:56px;padding:3px;font-size:12px;line-height:1;text-align:center;color:#f4e6c2;background:linear-gradient(180deg,rgba(46,34,52,.97),rgba(24,15,34,.95));border:1px solid #e0bd78;border-radius:9px;box-shadow:0 6px 18px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,160,.18);pointer-events:none;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:ghost-pop .14s ease-out;box-sizing:border-box;overflow:visible;}
   @keyframes ghost-pop{from{opacity:0;transform:translate(-50%,-140%) scale(.7);}to{opacity:1;transform:translate(-50%,-140%) scale(1);}}
   .pack-ghost .pcell-ic{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;}

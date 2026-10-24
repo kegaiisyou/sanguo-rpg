@@ -169,13 +169,17 @@
       +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
       +   '</div>'
       + '</div>'
-      + '<div class="pack-foot"><button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
+      + '<div class="pack-foot">'
+      + '<div class="pf-row pf-acts">'
+      + '<button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
       // v20260924z6：丢弃按钮不再用渲染时快照的 disabled —— 点选物品时面板不重渲染，按钮会永远停在
       //   初始的禁用态（按了没反应）。改为始终可点，由 discardInspect 在未选中时给 toast 提示。
       + '<button class="btn" onclick="LFUI.discardInspect()">丢弃</button>'
-      + '<span class="pack-hint">单击查看 · 双击快捷装备/使用 · 点空白关闭</span>'
-      + '<span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span>'
+      + '</div>'
+      + '<div class="pf-row pf-info"><span class="pack-cap">容量 '+packList().length+' / '+packMax()+'</span>'
       + '<span class="pack-gold">银两 '+getState().gold+'</span></div>'
+      + '<div class="pf-row pf-hint">单击查看 · 双击快捷装备/使用 · 点空白关闭</div>'
+      + '</div>'
       + '</div>';
   }
   function renderEquipStats(){
@@ -345,8 +349,8 @@
     });
     // 触屏/指针拖拽：长按拿起 → 跟手幽灵 → 命中高亮 → 边缘滚动 → 松开落位/取消回弹
     var dragging=null, ghost=null, sx=0, sy=0, moved=false, srcEl=null, pressT=null;
-    var scrollRAF=null;
-    function stopEdgeScroll(){ if(scrollRAF){ cancelAnimationFrame(scrollRAF); scrollRAF=null; } }
+    var scrollRAF=null, edgeSP=0;   // v20261024n：edgeSP 提为外层，RAF 每帧读最新值——手指换向时滚动立即跟手，不再锁死单方向
+    function stopEdgeScroll(){ edgeSP=0; if(scrollRAF){ cancelAnimationFrame(scrollRAF); scrollRAF=null; } }
     function elementLocAt(x,y){
       var tgt=document.elementFromPoint(x,y);
       while(tgt && tgt!==card && tgt.nodeType===1 && !tgt.getAttribute('data-loc')) tgt=tgt.parentNode;   // v20261024j：nodeType 守卫，防拖到空白区命中 <html>→document 时 getAttribute 崩溃
@@ -394,19 +398,22 @@
       // 命中高亮
       var tg=elementLocAt(e.clientX,e.clientY);
       paintDrop(tg?tg.el:null, dragging);
-      // 列表边缘自动滚动
+      // 列表边缘自动滚动（v20261024n：速度/方向由 edgeSP 动态驱动，RAF 每帧取最新值，可随时反向）
       var sc=card.querySelector('.pack-scroll');
       if(sc){
         var r=sc.getBoundingClientRect(), sp=0;
         if(e.clientY<r.top+56) sp=-(Math.min(14,(r.top+56-e.clientY)/8));
         else if(e.clientY>r.bottom-56) sp=Math.min(14,(e.clientY-(r.bottom-56))/8);
-        if(sp!==0 && !scrollRAF){
-          scrollRAF=requestAnimationFrame(function step(){
-            if(!dragging){ stopEdgeScroll(); return; }
-            if(sc) sc.scrollTop+=sp;
-            scrollRAF=requestAnimationFrame(step);
-          });
-        } else if(sp===0) stopEdgeScroll();
+        edgeSP=sp;
+        if(edgeSP!==0){
+          if(!scrollRAF){
+            scrollRAF=requestAnimationFrame(function step(){
+              if(!dragging){ stopEdgeScroll(); return; }
+              if(sc && edgeSP) sc.scrollTop+=edgeSP;   // 每帧读最新 edgeSP：从下边缘移回上边缘，立即反向滚
+              scrollRAF=requestAnimationFrame(step);
+            });
+          }
+        } else stopEdgeScroll();
       }
     };
     function endDrag(e, cancelled){
