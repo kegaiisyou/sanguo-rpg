@@ -324,7 +324,7 @@
       };
     });
     cells.forEach(function(el){
-      el.setAttribute('draggable','true');
+      el.setAttribute('draggable','false');   // v20261024k：默认关原生HTML5拖拽——触屏长按若开着，浏览器原生drag会抢占事件（面板跟动/丢物品/双ghost打架）；鼠标pointerdown时临时开启走原生拖拽
       el.ondragstart=function(e){
         var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)){ e.preventDefault(); return; }
         el.__from=loc; var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';
@@ -332,8 +332,7 @@
         el.classList.add('dragging');
         card.querySelectorAll('.pack-grid .packcell:not(.pcell-empty)').forEach(function(c){ if(c!==el) c.classList.add('drop-ok'); });
       };
-      el.ondragend=function(){ el.classList.remove('dragging'); card.querySelectorAll('.pack-grid .packcell.drop-ok').forEach(function(c){ c.classList.remove('drop-ok'); }); };
-      el.ondragover=function(e){ e.preventDefault(); };
+      el.ondragend=function(){ el.classList.remove('dragging'); clearDropHl(); card.querySelectorAll('.pack-grid .packcell.drop-ok').forEach(function(c){ c.classList.remove('drop-ok'); }); };
       el.ondragover=function(e){ e.preventDefault(); paintDrop(el, el.__from); };
       el.ondragleave=function(){ clearDropHl(); };
       el.ondrop=function(e){
@@ -343,7 +342,6 @@
         if(from){ doDrop(from,to); }
         clearDropHl(); el.__from=null;
       };
-      el.ondragend=function(){ clearDropHl(); };
     });
     // 触屏/指针拖拽：长按拿起 → 跟手幽灵 → 命中高亮 → 边缘滚动 → 松开落位/取消回弹
     var dragging=null, ghost=null, sx=0, sy=0, moved=false, srcEl=null, pressT=null;
@@ -365,13 +363,14 @@
     }
     cells.forEach(function(el){
       el.onpointerdown=function(e){
-        if(e.pointerType==='mouse') return;
+        if(e.pointerType==='mouse'){ el.setAttribute('draggable','true'); return; }   // 鼠标：开启原生HTML5拖拽（桌面）
+        el.setAttribute('draggable','false');   // 触屏：确保原生drag不抢占，长按走自定义拖拽
         var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)) return;
         dragging=loc; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
         var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';   // 触屏拖拽起点立即隐藏行囊浮框
         setPackInspect(null);
         clearTimeout(pressT);
-        pressT=setTimeout(function(){   // 长按拿起：180ms 未移动即入拖拽态，轻震动反馈
+        pressT=setTimeout(function(){   // 长按拿起：120ms 未移动即入拖拽态（v20261024k 由 180ms 缩短），轻震动反馈
           if(!dragging || !srcEl) return;
           if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8){
             moved=true; srcEl.__dragMoved=true;
@@ -379,7 +378,7 @@
             srcEl.classList.add('pcell-dragfrom');
             spawnGhost(e.clientX,e.clientY);
           }
-        },180);
+        },120);
       };
     });
     card.onpointermove=function(e){
