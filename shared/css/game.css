@@ -2304,7 +2304,14 @@
   .pack-cap{color:#6e5a3c;font-size:12px;}
   .pack-gold{color:#c89a3a;font-size:13px;font-weight:600;}
   .pack-hint{color:#8c7c5a;font-size:11.5px;letter-spacing:.5px;}
-  .pack-ghost{position:fixed;transform:translate(-50%,-50%);max-width:128px;padding:4px 9px;font-size:13px;line-height:1.2;text-align:center;color:#f4e6c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(20,12,30,.82);border:1px solid #d8b46a;border-radius:var(--r-btn);box-shadow:0 3px 10px rgba(0,0,0,.45);pointer-events:none;z-index:9999;}
+  .pack-ghost{position:fixed;transform:translate(-50%,-140%);max-width:150px;padding:6px 10px 5px;font-size:13px;line-height:1.2;text-align:center;color:#f4e6c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(20,12,30,.88);border:1px solid #d8b46a;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.5);pointer-events:none;z-index:9999;}
+  .pack-ghost .pg-ic{display:block;font-size:24px;line-height:1.1;}
+  .pack-ghost .pg-nm{display:block;font-size:11px;color:#e6d3a8;margin-top:2px;}
+  .pack-ghost .pg-cnt{position:absolute;right:-6px;top:-8px;min-width:18px;padding:1px 5px;font-size:11px;font-weight:600;color:#fff;background:#7c1d0f;border:1px solid #d8b46a;border-radius:10px;text-align:center;}
+  .pack-ghost-back{transition:opacity .18s ease, transform .18s ease;opacity:0;transform:translate(-50%,-140%) scale(.55);}
+  .pcell-dragfrom{opacity:.35;}
+  .packcell.drop-ok,.equipslot.drop-ok{outline:2px solid #3fae5a;outline-offset:-2px;background:rgba(63,174,90,.16);}
+  .packcell.drop-no,.equipslot.drop-no{outline:2px solid #c0392b;outline-offset:-2px;background:rgba(192,57,43,.1);}
   /* 行囊弹窗：放宽卡片并锁定自身滚动，内部分区各自滚动 */
   .pack-card{max-width:560px;display:flex;flex-direction:column;overflow:hidden;}
   /* v20260822ag：覆盖 .pack-card 的 overflow:hidden，让超高内容走卡片滚动条，杜绝被 max-height:82dvh 裁掉 */

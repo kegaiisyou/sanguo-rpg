@@ -34,6 +34,7 @@
   }
   function swapPackCells(a,b){
     if(locEq(a,b)) return;
+    if(a.kind!=='pack'||b.kind!=='pack') return;   // v20261024j：仅背包格间交换；装备/背包槽走 movePackItem，防污染背包数据
     var s=getState().pack[a.idx], d=getState().pack[b.idx];
     getState().pack[b.idx]=s; getState().pack[a.idx]=d;
     if(typeof save==='function') save(getState());
@@ -264,6 +265,35 @@
     positionFloat(f, a);
   }
   var packLastClick={t:0, loc:null};
+  // ── v20261024j 拖拽体系重构：命中高亮/触屏拖装备修复/边缘自动滚动/幽灵卡片/同类合并/长按拿起/取消回弹 ──
+  function canEquipDrop(fromLoc, toLoc){
+    if(!fromLoc || fromLoc.kind!=='pack' || !toLoc || toLoc.kind!=='equip') return false;
+    var it=getState().pack[fromLoc.idx];
+    return !!(it && (it.cat==='装备'||it.cat==='工具') && it.slot===toLoc.slot);
+  }
+  var hlEl=null;
+  function paintDrop(el, fromLoc){
+    if(!el){ clearDropHl(); return; }
+    if(hlEl===el) return;
+    clearDropHl();
+    var to=parseLoc(el.getAttribute('data-loc')); if(!to) return;
+    var ok = (to.kind==='equip') ? canEquipDrop(fromLoc,to) : true;
+    hlEl=el; el.classList.add(ok?'drop-ok':'drop-no');
+  }
+  function clearDropHl(){ if(hlEl){ hlEl.classList.remove('drop-ok','drop-no'); hlEl=null; } }
+  function doDrop(from,to){
+    if(locEq(from,to)) return;
+    if(from.kind==='pack' && to.kind==='equip'){ movePackItem(from,to); return; }   // 统一走装备逻辑（含合法性判定）
+    if(from.kind==='pack' && to.kind==='pack'){
+      var s=getState().pack[from.idx], d=getState().pack[to.idx];
+      if(s && d && s.defId===d.defId && s.cat!=='装备' && d.cat!=='装备' && s.cat!=='任务' && d.cat!=='任务'){
+        d.count=(d.count||1)+(s.count||1); getState().pack[from.idx]=null;   // 同类自动合并
+        afterPackChange(); return;
+      }
+      swapPackCells(from,to); return;
+    }
+    movePackItem(from,to);
+  }
   function bindPackInteractions(){
     var card=document.getElementById('modal-card'); if(!card) return;
     bindPackTabs(card);
@@ -304,14 +334,35 @@
       };
       el.ondragend=function(){ el.classList.remove('dragging'); card.querySelectorAll('.pack-grid .packcell.drop-ok').forEach(function(c){ c.classList.remove('drop-ok'); }); };
       el.ondragover=function(e){ e.preventDefault(); };
+      el.ondragover=function(e){ e.preventDefault(); paintDrop(el, el.__from); };
+      el.ondragleave=function(){ clearDropHl(); };
       el.ondrop=function(e){
         e.preventDefault();
         var to=parseLoc(el.getAttribute('data-loc')); if(!to) return;
         var from=el.__from || parseLoc(e.dataTransfer.getData('text/plain'));
-        if(from){ movePackItem(from,to); setPackInspect(null); var f=document.getElementById('pack-float'); if(f) f.style.display='none'; }
+        if(from){ doDrop(from,to); }
+        clearDropHl(); el.__from=null;
       };
+      el.ondragend=function(){ clearDropHl(); };
     });
-    var dragging=null, ghost=null, sx=0, sy=0, moved=false, srcEl=null;
+    // 触屏/指针拖拽：长按拿起 → 跟手幽灵 → 命中高亮 → 边缘滚动 → 松开落位/取消回弹
+    var dragging=null, ghost=null, sx=0, sy=0, moved=false, srcEl=null, pressT=null;
+    var scrollRAF=null;
+    function stopEdgeScroll(){ if(scrollRAF){ cancelAnimationFrame(scrollRAF); scrollRAF=null; } }
+    function elementLocAt(x,y){
+      var tgt=document.elementFromPoint(x,y);
+      while(tgt && tgt!==card && tgt.nodeType===1 && !tgt.getAttribute('data-loc')) tgt=tgt.parentNode;   // v20261024j：nodeType 守卫，防拖到空白区命中 <html>→document 时 getAttribute 崩溃
+      return (tgt && tgt!==card && tgt.nodeType===1) ? { el:tgt, loc:parseLoc(tgt.getAttribute('data-loc')) } : null;
+    }
+    function spawnGhost(x,y){
+      if(ghost) ghost.remove();
+      var _it=packGet(dragging)||{};
+      ghost=document.createElement('div');
+      ghost.className='pack-ghost';
+      ghost.innerHTML='<span class="pg-ic">'+(_it.icon||'')+'</span><span class="pg-nm">'+(_it.name||'')+'</span>'+( (_it.count>1)?('<span class="pg-cnt">×'+_it.count+'</span>'):'');
+      document.body.appendChild(ghost);
+      ghost.style.left=x+'px'; ghost.style.top=y+'px';
+    }
     cells.forEach(function(el){
       el.onpointerdown=function(e){
         if(e.pointerType==='mouse') return;
@@ -319,25 +370,67 @@
         dragging=loc; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
         var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';   // 触屏拖拽起点立即隐藏行囊浮框
         setPackInspect(null);
+        clearTimeout(pressT);
+        pressT=setTimeout(function(){   // 长按拿起：180ms 未移动即入拖拽态，轻震动反馈
+          if(!dragging || !srcEl) return;
+          if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8){
+            moved=true; srcEl.__dragMoved=true;
+            if(navigator.vibrate) navigator.vibrate(12);
+            srcEl.classList.add('pcell-dragfrom');
+            spawnGhost(e.clientX,e.clientY);
+          }
+        },180);
       };
     });
     card.onpointermove=function(e){
       if(!dragging) return;
-      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); srcEl && srcEl.classList.add('dragging'); card.querySelectorAll('.pack-grid .packcell:not(.pcell-empty)').forEach(function(c){ if(c!==srcEl) c.classList.add('drop-ok'); }); }
-      if(!ghost){ ghost=document.createElement('div'); ghost.className='pack-ghost'; document.body.appendChild(ghost); }
-      var _it=packGet(dragging)||{}; ghost.textContent=_it.icon||_it.name||''; if(_it.icon) ghost.style.fontSize='22px';
+      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
+      clearTimeout(pressT);
+      if(srcEl) srcEl.classList.add('pcell-dragfrom');
+      if(!ghost) spawnGhost(e.clientX,e.clientY);
       ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
+      // 命中高亮
+      var tg=elementLocAt(e.clientX,e.clientY);
+      paintDrop(tg?tg.el:null, dragging);
+      // 列表边缘自动滚动
+      var sc=card.querySelector('.pack-scroll');
+      if(sc){
+        var r=sc.getBoundingClientRect(), sp=0;
+        if(e.clientY<r.top+56) sp=-(Math.min(14,(r.top+56-e.clientY)/8));
+        else if(e.clientY>r.bottom-56) sp=Math.min(14,(e.clientY-(r.bottom-56))/8);
+        if(sp!==0 && !scrollRAF){
+          scrollRAF=requestAnimationFrame(function step(){
+            if(!dragging){ stopEdgeScroll(); return; }
+            if(sc) sc.scrollTop+=sp;
+            scrollRAF=requestAnimationFrame(step);
+          });
+        } else if(sp===0) stopEdgeScroll();
+      }
     };
     function endDrag(e, cancelled){
+      clearTimeout(pressT);
       var from=dragging; dragging=null;
-      if(ghost){ ghost.remove(); ghost=null; }
-      if(srcEl){ srcEl.classList.remove('dragging'); }
-      card.querySelectorAll('.pack-grid .packcell.drop-ok').forEach(function(c){ c.classList.remove('drop-ok'); });
-      if(!from || !moved || cancelled){ return; }
-      var tgt=document.elementFromPoint(e.clientX,e.clientY);
-      while(tgt && tgt!==card && !tgt.getAttribute('data-loc')) tgt=tgt.parentNode;
-      var to=parseLoc(tgt?tgt.getAttribute('data-loc'):null);
-      if(to) swapPackCells(from,to);
+      stopEdgeScroll();
+      var tg = (!cancelled) ? elementLocAt(e.clientX,e.clientY) : null;
+      var to = tg ? tg.loc : null;
+      // v20261024j：取消 = 松手在空白/非法装备槽/pointercancel——统一回弹淡出，绝不破坏数据
+      var isCancel = cancelled || !from || !moved || !to || (to.kind==='equip' && !canEquipDrop(from,to));
+      if(ghost){
+        if(isCancel){   // 回弹：淡出缩小（180ms 后移除）
+          ghost.classList.add('pack-ghost-back');
+          setTimeout(function(){ if(ghost){ ghost.remove(); ghost=null; } },180);
+        } else { ghost.remove(); ghost=null; }
+      }
+      if(srcEl){ srcEl.classList.remove('pcell-dragfrom'); srcEl=null; }
+      if(isCancel){
+        if(to && to.kind==='equip' && from && from.kind==='pack'){
+          var _it=getState().pack[from.idx];
+          if(_it) toast('该物不可装备于「'+LF.ITEMS.SLOTS[to.slot].label+'」。');
+        }
+        clearDropHl(); return;
+      }
+      doDrop(from,to);
+      clearDropHl();
     }
     card.onpointerup=function(e){ endDrag(e,false); };
     card.onpointercancel=function(e){ endDrag(e,true); };
