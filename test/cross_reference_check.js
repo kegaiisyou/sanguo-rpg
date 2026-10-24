@@ -95,11 +95,12 @@ function reportWarn(rule, where, msg) { report('WARN', rule, where, msg); }
 // ────────────────────────────────────────────────────────────
 const ITEM_IDS = new Set(Object.keys(LF.ITEMS || {}));            // 物品 defId
 const MARTIAL_IDS = new Set(Object.keys(LF.MARTIAL_ARTS || {}));  // 武学 key
-// 13 艺线的权威来源：defaultSave().lines 的键（shared/index.js 定义），
-// 而非 martial.js 内部局部变量 LINES（未挂到 LF 上，运行时不可达）。
-const LINE_IDS = new Set(Object.keys(
-  (LF.SharedGame && LF.SharedGame.defaultSave && LF.SharedGame.defaultSave().lines) || {}
-));
+// 艺线的权威来源：defaultSave().lines 的键（shared/index.js 定义）∪ martial.js 系统武学线
+// （LF.MARTIAL_ARTS.LINES，含 v20261018n 玄阴等绝世秘籍自成一线，不混入 13 兵器艺线）。
+const LINE_IDS = new Set([
+  ...Object.keys((LF.SharedGame && LF.SharedGame.defaultSave && LF.SharedGame.defaultSave().lines) || {}),
+  ...Object.keys((LF.MARTIAL_ARTS && LF.MARTIAL_ARTS.LINES) || {})
+]);
 const ENEMY_IDS = new Set(Object.keys(LF.ENEMIES || {}));          // 敌人 key
 const SECT_IDS = new Set(Object.keys(LF.SECTS || {}));             // 门派 key
 const BUILD_IDS = new Set(Object.keys(LF.BUILD || {}));            // 蓝图 key
