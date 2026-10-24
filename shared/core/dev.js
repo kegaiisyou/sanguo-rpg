@@ -38,6 +38,13 @@ window.LF = window.LF || {};
       else if (act === 'gold+500') { state.gold += 500; ctx.log('【速填】银两 +500（当前 ' + state.gold + '）', 'good'); }
       else if (act === 'full') { var esF = ctx.effectiveStats(); state.hp = esF.maxHp; state.mp = esF.maxMp; state.energy = state.maxEnergy; state.food = state.maxFood; state.drink = state.maxDrink; ctx.log('【速填】气血/内力/精力/饥渴 全满', 'good'); }
       else if (act === 'mkgear') { var eq = LF.ITEMS.rollEquip(3); ctx.packAdd(LF.ITEMS.equipToPackItem(eq)); ctx.save(state); renderDev(); ctx.toast('夺得 ' + eq.name); }
+      else if (act === 'mkbag') {   // v20261024l：掉一件背包扩容类装备（slot=bag，便于调试背包容量）
+        var bags = Object.keys(LF.ITEMS.DEFS||{}).map(function(k){return LF.ITEMS.DEFS[k];}).filter(function(d){ return d.cat==='装备' && d.slot==='bag'; });
+        if (!bags.length) { ctx.toast('暂无背囊类装备'); return; }
+        var db = bags[Math.floor(Math.random()*bags.length)];
+        ctx.packAdd(LF.ITEMS.makeItem(db.defId, 1)); ctx.save(state); renderDev();
+        ctx.toast('夺得 ' + db.name + '（装备后背包 +' + (db.packSpace||0) + ' 格）');
+      }
       else if (act === 'cha+10') { state.chivalry += 10; ctx.log('【调试】侠义 +10（当前 ' + state.chivalry + '）', 'good'); }
       else if (act === 'not+10') { state.notoriety += 10; ctx.log('【调试】凶名 +10（当前 ' + state.notoriety + '）', 'good'); }
       else if (act === 'moral0') { state.chivalry = 0; state.notoriety = 0; ctx.log('【调试】善恶双轴清零', 'sys'); }
@@ -140,7 +147,8 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="fp+10">属性点+10</button>' +
          '<button class="dev" data-act="full">回满状态</button>' +
          '<button class="dev" data-act="maxlv">满级</button>' +
-         '<button class="dev" data-act="mkgear">掉件装备</button></div>' +
+         '<button class="dev" data-act="mkgear">掉件装备</button>' +
+         '<button class="dev" data-act="mkbag">掉件背囊</button></div>' +
          // 经验值精确输入
          '<div class="dev-btns" style="margin-top:6px;">' +
          '<input type="number" id="dev-xp-input" class="dev-input" placeholder="输入经验值" value="50" min="1">' +
