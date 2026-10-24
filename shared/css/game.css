@@ -2304,13 +2304,17 @@
   .pack-cap{color:#6e5a3c;font-size:12px;}
   .pack-gold{color:#c89a3a;font-size:13px;font-weight:600;}
   .pack-hint{color:#8c7c5a;font-size:11.5px;letter-spacing:.5px;}
-  .pack-ghost{position:fixed;transform:translate(-50%,-140%);max-width:150px;padding:7px 12px 6px;font-size:13px;line-height:1.2;text-align:center;color:#f4e6c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(180deg,rgba(38,26,44,.96),rgba(20,12,30,.94));border:1px solid #e0bd78;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,160,.18);pointer-events:none;z-index:9999;animation:ghost-pop .14s ease-out;}
+  .pack-ghost{position:fixed;transform:translate(-50%,-140%);width:56px;height:56px;padding:3px;font-size:12px;line-height:1;text-align:center;color:#f4e6c2;background:linear-gradient(180deg,rgba(46,34,52,.97),rgba(24,15,34,.95));border:1px solid #e0bd78;border-radius:9px;box-shadow:0 6px 18px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,160,.18);pointer-events:none;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:ghost-pop .14s ease-out;box-sizing:border-box;overflow:visible;}
   @keyframes ghost-pop{from{opacity:0;transform:translate(-50%,-140%) scale(.7);}to{opacity:1;transform:translate(-50%,-140%) scale(1);}}
-  .pack-ghost .pg-ic{display:block;font-size:22px;line-height:1.15;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));}
-  .pack-ghost .pg-nm{display:block;font-size:11px;color:#e6d3a8;margin-top:2px;letter-spacing:.5px;}
+  .pack-ghost .pcell-ic{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;}
+  .pack-ghost .pcell-ic img{width:100% !important;height:100% !important;object-fit:contain;}
+  .pack-ghost .pcell-cnt{right:1px;bottom:1px;font-size:10px;}
+  .pack-ghost .pcell-qbadge{top:2px;right:2px;}
   .pack-ghost .pg-cnt{position:absolute;right:-6px;top:-8px;min-width:18px;padding:1px 5px;font-size:11px;font-weight:600;color:#fff;background:#7c1d0f;border:1px solid #e0bd78;border-radius:10px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.4);}
   .pack-ghost-back{transition:opacity .18s ease, transform .18s ease;opacity:0;transform:translate(-50%,-140%) scale(.55);}
   .pcell-dragfrom{opacity:.35;}
+  .drag-lock .pack-scroll,.drag-lock .pack-scroll *{touch-action:none !important;}   /* v20261024l：拖拽期间锁定整面板滚动，上下拖动不再触发浏览器滚动而丢物品 */
+  .drag-lock{overscroll-behavior:contain;}
   .packcell.drop-ok,.equipslot.drop-ok{outline:2px solid #3fae5a;outline-offset:-2px;background:rgba(63,174,90,.16);}
   .packcell.drop-no,.equipslot.drop-no{outline:2px solid #c0392b;outline-offset:-2px;background:rgba(192,57,43,.1);}
   /* 行囊弹窗：放宽卡片并锁定自身滚动，内部分区各自滚动 */

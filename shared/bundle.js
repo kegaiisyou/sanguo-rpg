@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 94   版本: 20261024k
+// 源文件数: 94   版本: 20261024l
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20261024k',
+    VERSION: '20261024l',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -20207,7 +20207,9 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       var _it=packGet(dragging)||{};
       ghost=document.createElement('div');
       ghost.className='pack-ghost';
-      ghost.innerHTML='<span class="pg-ic">'+(_it.icon||'')+'</span><span class="pg-nm">'+(_it.name||'')+'</span>'+( (_it.count>1)?('<span class="pg-cnt">×'+_it.count+'</span>'):'');
+      // v20261024l：原样复刻背包格内的图标呈现（icon+数量+品质角标同格子布局），拖拽时就是「物品本身被拿起」，不再放大成表情包+文字
+      var _ic=srcEl ? (srcEl.querySelector('.pcell-ic')||srcEl.querySelector('.ep-ic')) : null;
+      ghost.innerHTML=(_ic?_ic.innerHTML:(_it.icon||''))+( (_it.count>1)?('<span class="pg-cnt">'+_it.count+'</span>'):'' );
       document.body.appendChild(ghost);
       ghost.style.left=x+'px'; ghost.style.top=y+'px';
     }
@@ -20217,6 +20219,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
         el.setAttribute('draggable','false');   // 触屏：确保原生drag不抢占，长按走自定义拖拽
         var loc=parseLoc(el.getAttribute('data-loc')); if(!loc||!packGet(loc)) return;
         dragging=loc; srcEl=el; moved=false; el.__dragMoved=false; sx=e.clientX; sy=e.clientY;
+        card.classList.add('drag-lock');   // v20261024l：拖拽期间锁定面板滚动，上下拖动不再触发整面板滚动而丢物品
         var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';   // 触屏拖拽起点立即隐藏行囊浮框
         setPackInspect(null);
         clearTimeout(pressT);
@@ -20260,6 +20263,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       clearTimeout(pressT);
       var from=dragging; dragging=null;
       stopEdgeScroll();
+      var _mc=document.getElementById('modal-card'); if(_mc) _mc.classList.remove('drag-lock');   // v20261024l：结束拖拽解除滚动锁定
       var tg = (!cancelled) ? elementLocAt(e.clientX,e.clientY) : null;
       var to = tg ? tg.loc : null;
       // v20261024j：取消 = 松手在空白/非法装备槽/pointercancel——统一回弹淡出，绝不破坏数据
