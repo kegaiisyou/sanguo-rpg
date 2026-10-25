@@ -48,13 +48,11 @@
     var sc=card.querySelector('.pack-scroll'); var grid=sc&&sc.querySelector('.pack-grid');
     if(sc && grid){ grid.innerHTML=renderPackGrid(); if(typeof bindPackInteractions==='function') bindPackInteractions(card); }
   }
-  // 装备/卸下后仅重渲装备栏（人形+装备槽+背包槽）与战力属性，保留滚动位置，实时反馈装备变化
+  // 装备/卸下后仅重渲「快速穿戴」快捷条（v20261025a：行囊不再有完整装备区，改为顶部快捷条实时刷新），保留滚动位置
   function refreshPackEquipLight(){
     var card=document.getElementById('modal-card'); if(!card) return;
-    var fig=card.querySelector('.equip-figure');
-    if(fig){ var w=document.createElement('div'); w.innerHTML=renderEquipFigure(); var nf=w.firstElementChild; if(nf) fig.replaceWith(nf); }
-    var st=card.querySelector('#packLeftStats');
-    if(st){ var w2=document.createElement('div'); w2.innerHTML=renderEquipStats(); var ns=w2.firstElementChild; if(ns) st.replaceWith(ns); }
+    var qb=card.querySelector('.qeq-bar');
+    if(qb){ qb.innerHTML=renderQuickEquip(); }
     if(typeof bindPackInteractions==='function') bindPackInteractions(card);
   }
   function unequipToPack(slot,toIdx){
@@ -112,42 +110,25 @@
       };
     });
   }
-  // 装备栏（六装备槽 + 背包槽 + 属性）：v20260927p 重排为 2×4 对称网格——不再叠在人形剪影上（原 absolute 布局手机端竖排窄格变形、装备名被裁）
-  function renderEquipFigure(){
-    var eqHtml='', bagSlot='';
+  // 装备栏 → v20261025a：行囊不再内嵌装备区（装备并入角色大厅），改为顶部「快速穿戴」横排快捷条
+  // 8 槽含背包槽全部保留拖拽装备（data-loc="equip:slot"），手机上横滑一行
+  function renderQuickEquip(){
+    var h='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
-      if(slot==='bag') return;            // 背包槽独立渲染（第 7 格）
       var eq=getState().equipment[slot], sl=LF.ITEMS.SLOTS[slot];
       var insCls=(getPackInspect() && getPackInspect().kind==='equip' && getPackInspect().slot===slot)?' pcell-insp':'';
-      var badge = '';
-      if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
-      var durBar='';
-      if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
-      var inner = eq
-        ? '<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>'
-        : '<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
-      var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
-      var qs = qcol ? (' style="--qcol:'+qcol+'"') : '';
-      var empCls = eq ? '' : ' ep-empty';
-      eqHtml += '<div class="equipslot ep-'+slot+empCls+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
-    });
-    // 背包槽（bag）：第 7 格（虚线金边区分）
-    (function(){
-      var eq=getState().equipment.bag, sl=LF.ITEMS.SLOTS.bag;
-      var insCls=(getPackInspect() && getPackInspect().kind==='equip' && getPackInspect().slot==='bag')?' pcell-insp':'';
       var badge='';
       if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
       var durBar='';
       if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
-      var inner=eq?'<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
-      var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
-      var qs2=qcol ? (' style="--qcol:'+qcol+'"') : '';
-      var empCls2 = eq ? '' : ' ep-empty';
-      bagSlot='<div class="equipslot ep-bagflow'+empCls2+insCls+'" data-loc="equip:bag"'+qs2+'>'+inner+badge+durBar+'</div>';
-    })();
-    // 第 8 格「属性」：点击展开/收起下方属性面板（复用 toggleStats）
-    var attrCell = '<div class="equipslot ep-attrs" onclick="LFUI.toggleStats()" role="button" tabindex="0"><span class="ep-ph">属 性</span></div>';
-    return '<div class="equip-figure"><div class="equip-grid">'+eqHtml+bagSlot+attrCell+'</div></div>';
+      var inner = eq
+        ? '<div class="ep-ic">'+itemIconHTML(eq,22)+'</div><div class="ep-name">'+eq.name+'</div>'
+        : '<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
+      var qcol=(eq&&eq.quality&&LF.ITEMS.QMAP[eq.quality])?LF.ITEMS.QMAP[eq.quality].color:'';
+      var qs=qcol?(' style="--qcol:'+qcol+'"'):'';
+      h+='<div class="equipslot qeq ep-'+slot+(eq?'':' ep-empty')+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
+    });
+    return h;
   }
   function renderPack(){
     var grid='';
@@ -162,13 +143,9 @@
     }
     return '<div class="pack-wrap">'
       + '<div class="pack-head"><span class="pack-title">行 囊</span></div>'
-      + '<div class="pack-main">'
-      +   '<div class="pack-left"><div class="pack-left-title">装 备</div>'+renderEquipFigure()+renderEquipStats()+'</div>'
-      +   '<div class="pack-right"><div class="pack-right-title">物 品</div>'
-      +     renderPackTabs()
-      +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
-      +   '</div>'
-      + '</div>'
+      + renderPackTabs()
+      + '<div class="pack-quick"><div class="qeq-label">快 速 穿 戴</div><div class="qeq-bar">'+renderQuickEquip()+'</div></div>'
+      + '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
       + '<div class="pack-foot">'
       + '<div class="pf-row pf-acts">'
       + '<button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
@@ -496,7 +473,7 @@
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
 
     return {
-      movePackItem: movePackItem, swapPackCells: swapPackCells, refreshPackGridLight: refreshPackGridLight, refreshPackEquipLight: refreshPackEquipLight, unequipToPack: unequipToPack, quickUseFromPack: quickUseFromPack, inspCls: inspCls, renderPackGrid: renderPackGrid, renderEquipFigure: renderEquipFigure, renderPack: renderPack, renderEquipStats: renderEquipStats, renderPackInspect: renderPackInspect, parseLoc: parseLoc, showPackFloat: showPackFloat, bindPackInteractions: bindPackInteractions, useInspect: useInspect, discardInspect: discardInspect, canDiscard: canDiscard, packHighlightReplaced: packHighlightReplaced, equipInspect: equipInspect, unequipInspect: unequipInspect, closeInspect: closeInspect, repairInspect: repairInspect, toggleStats: toggleStats,
+      movePackItem: movePackItem, swapPackCells: swapPackCells, refreshPackGridLight: refreshPackGridLight, refreshPackEquipLight: refreshPackEquipLight, unequipToPack: unequipToPack, quickUseFromPack: quickUseFromPack, inspCls: inspCls, renderPackGrid: renderPackGrid, renderQuickEquip: renderQuickEquip, renderPack: renderPack, renderEquipStats: renderEquipStats, renderPackInspect: renderPackInspect, parseLoc: parseLoc, showPackFloat: showPackFloat, bindPackInteractions: bindPackInteractions, useInspect: useInspect, discardInspect: discardInspect, canDiscard: canDiscard, packHighlightReplaced: packHighlightReplaced, equipInspect: equipInspect, unequipInspect: unequipInspect, closeInspect: closeInspect, repairInspect: repairInspect, toggleStats: toggleStats,
       getPackLastClick: function () { return packLastClick; }
     };
   };

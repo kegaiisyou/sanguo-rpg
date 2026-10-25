@@ -47,6 +47,10 @@
       return null;
     }
     function ensureGear(o) {
+      if (o && o.kind === 'main') {   // v20261025a：主角装备并入角色大厅——直接读写 state.equipment（含背包扩容槽）
+        var st = S(); if (!st.equipment || typeof st.equipment !== 'object') st.equipment = {};
+        return st.equipment;
+      }
       if (!o.gear || typeof o.gear !== 'object') o.gear = { hat: null, cloth: null, shoe: null, weapon: null, trinket: null, belt: null };
       return o.gear;
     }
@@ -98,7 +102,14 @@
       return tabsFrame(head,
         [{ k: 'stat', n: '状态' }, { k: 'alloc', n: '加点' }, { k: 'equip', n: '装备' }, { k: 'skill', n: '技能' }],
         [mainCharStatHTML ? mainCharStatHTML() : '', mainCharAllocHTML ? mainCharAllocHTML() : '',
-         mainCharEquipHTML ? mainCharEquipHTML() : '', mainCharSkillHTML ? mainCharSkillHTML() : '']);
+         mainEquipHTML(), mainCharSkillHTML ? mainCharSkillHTML() : '']);
+    }
+    // v20261025a：主角装备并入角色大厅——8 槽（含背包扩容槽）可操作：点「装」从行囊取装，点「卸」归还行囊
+    function mainEquipHTML() {
+      var gear = ensureGear({ kind: 'main' });
+      return '<div class="row"><span>装备</span></div>' +
+        gearHTML({ kind: 'main' }, gear, true) +
+        '<p class="tip">点空槽从行囊取装，点已装位卸下归还行囊。背包槽装备可扩充行囊容量。</p>';
     }
     function partyTabsHTML(c) {
       var head = '<h3>随 从 · ' + escapeHtml(c.name) + '</h3><p class="ch-detail-sub">' + escapeHtml(c.title || c.role || '随行') + '</p>';
@@ -157,10 +168,10 @@
       return escapeHtml((F && F.name) || o.faction || '在野');
     }
     // ── 武将六槽装备 ──
-    function gearHTML(o, gear) {
+    function gearHTML(o, gear, includeBag) {
       var h = '<div class="ch-gear">';
-      Object.keys(SLOTS).forEach(function (slot) {
-        if (slot === 'bag') return;
+      var keys = Object.keys(SLOTS).filter(function (s) { return includeBag || s !== 'bag'; });
+      keys.forEach(function (slot) {
         var s = SLOTS[slot];
         var it = gear[slot];
         h += '<div class="ch-gslot' + (it ? ' has' : '') + '" data-slot="' + slot + '">' +
@@ -173,11 +184,12 @@
       });
       return h + '</div>';
     }
+    function instName(o) { return (o && o.kind === 'main') ? (S().name || '无名客') : (o ? o.name : '该角色'); }
     function pickEquip(o, slot) {
       var items = packList() || [];
       var cands = items.filter(function (it) { return it.cat === '装备' && it.slot === slot; });
       if (!cands.length) { toast('行囊中没有可装备的' + ((SLOTS[slot] || {}).label || slot) + '。'); return; }
-      var h = '<div class="ch-pick" data-slot="' + slot + '"><b>为 ' + escapeHtml(o.name) + ' 选' + escapeHtml((SLOTS[slot] || {}).label || slot) + '：</b>';
+      var h = '<div class="ch-pick" data-slot="' + slot + '"><b>为 ' + escapeHtml(instName(o)) + ' 选' + escapeHtml((SLOTS[slot] || {}).label || slot) + '：</b>';
       cands.forEach(function (it) {
         var def = it.defId || it.id;
         h += '<button type="button" class="ch-pickit" data-def="' + escapeHtml(def) + '">' + escapeHtml(it.icon || '') + ' ' + escapeHtml(it.name) + '</button>';
@@ -217,7 +229,7 @@
       save(S());
       if (typeof afterPackChange === 'function') afterPackChange();
       openModal('char'); renderStatus();
-      toast(o.name + ' 装备了「' + it.name + '」。');
+      toast(instName(o) + ' 装备了「' + it.name + '」。');
     }
     function doUnequip(o, slot) {
       var gear = ensureGear(o);
@@ -228,7 +240,7 @@
       save(S());
       if (typeof afterPackChange === 'function') afterPackChange();
       openModal('char'); renderStatus();
-      toast(o.name + ' 卸下了「' + it.name + '」。');
+      toast(instName(o) + ' 卸下了「' + it.name + '」。');
     }
     // ── 渲染与绑定 ──
     function renderCharHall() {
@@ -257,10 +269,10 @@
         };
       });
       card.querySelectorAll('.ch-gact[data-act="pick"]').forEach(function (b) {
-        b.onclick = function () { var o = getInst(sel); if (o) pickEquip(o, b.getAttribute('data-slot')); };
+        b.onclick = function () { var o = getInst(sel); if (!o && sel === 'main') o = { kind: 'main' }; if (o) pickEquip(o, b.getAttribute('data-slot')); };
       });
       card.querySelectorAll('.ch-gact[data-act="unequip"]').forEach(function (b) {
-        b.onclick = function () { var o = getInst(sel); if (o) doUnequip(o, b.getAttribute('data-slot')); };
+        b.onclick = function () { var o = getInst(sel); if (!o && sel === 'main') o = { kind: 'main' }; if (o) doUnequip(o, b.getAttribute('data-slot')); };
       });
       card.querySelectorAll('.ch-pickit[data-def]').forEach(function (b) {
         b.onclick = function () {

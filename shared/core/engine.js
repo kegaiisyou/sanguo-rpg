@@ -799,7 +799,7 @@
   var movePackItem = Pack.movePackItem, unequipToPack = Pack.unequipToPack,
       swapPackCells = Pack.swapPackCells, refreshPackGridLight = Pack.refreshPackGridLight,
       refreshPackEquipLight = Pack.refreshPackEquipLight, quickUseFromPack = Pack.quickUseFromPack,
-      inspCls = Pack.inspCls, renderPackGrid = Pack.renderPackGrid, renderEquipFigure = Pack.renderEquipFigure,
+      inspCls = Pack.inspCls, renderPackGrid = Pack.renderPackGrid, renderQuickEquip = Pack.renderQuickEquip,
       renderPack = Pack.renderPack, renderEquipStats = Pack.renderEquipStats,
       renderPackInspect = Pack.renderPackInspect, parseLoc = Pack.parseLoc, showPackFloat = Pack.showPackFloat,
       bindPackInteractions = Pack.bindPackInteractions, useInspect = Pack.useInspect,

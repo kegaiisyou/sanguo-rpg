@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 94   版本: 20261024n
+// 源文件数: 94   版本: 20261025a
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20261024n',
+    VERSION: '20261025a',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -19119,6 +19119,10 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       return null;
     }
     function ensureGear(o) {
+      if (o && o.kind === 'main') {   // v20261025a：主角装备并入角色大厅——直接读写 state.equipment（含背包扩容槽）
+        var st = S(); if (!st.equipment || typeof st.equipment !== 'object') st.equipment = {};
+        return st.equipment;
+      }
       if (!o.gear || typeof o.gear !== 'object') o.gear = { hat: null, cloth: null, shoe: null, weapon: null, trinket: null, belt: null };
       return o.gear;
     }
@@ -19170,7 +19174,14 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       return tabsFrame(head,
         [{ k: 'stat', n: '状态' }, { k: 'alloc', n: '加点' }, { k: 'equip', n: '装备' }, { k: 'skill', n: '技能' }],
         [mainCharStatHTML ? mainCharStatHTML() : '', mainCharAllocHTML ? mainCharAllocHTML() : '',
-         mainCharEquipHTML ? mainCharEquipHTML() : '', mainCharSkillHTML ? mainCharSkillHTML() : '']);
+         mainEquipHTML(), mainCharSkillHTML ? mainCharSkillHTML() : '']);
+    }
+    // v20261025a：主角装备并入角色大厅——8 槽（含背包扩容槽）可操作：点「装」从行囊取装，点「卸」归还行囊
+    function mainEquipHTML() {
+      var gear = ensureGear({ kind: 'main' });
+      return '<div class="row"><span>装备</span></div>' +
+        gearHTML({ kind: 'main' }, gear, true) +
+        '<p class="tip">点空槽从行囊取装，点已装位卸下归还行囊。背包槽装备可扩充行囊容量。</p>';
     }
     function partyTabsHTML(c) {
       var head = '<h3>随 从 · ' + escapeHtml(c.name) + '</h3><p class="ch-detail-sub">' + escapeHtml(c.title || c.role || '随行') + '</p>';
@@ -19229,10 +19240,10 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       return escapeHtml((F && F.name) || o.faction || '在野');
     }
     // ── 武将六槽装备 ──
-    function gearHTML(o, gear) {
+    function gearHTML(o, gear, includeBag) {
       var h = '<div class="ch-gear">';
-      Object.keys(SLOTS).forEach(function (slot) {
-        if (slot === 'bag') return;
+      var keys = Object.keys(SLOTS).filter(function (s) { return includeBag || s !== 'bag'; });
+      keys.forEach(function (slot) {
         var s = SLOTS[slot];
         var it = gear[slot];
         h += '<div class="ch-gslot' + (it ? ' has' : '') + '" data-slot="' + slot + '">' +
@@ -19245,11 +19256,12 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       });
       return h + '</div>';
     }
+    function instName(o) { return (o && o.kind === 'main') ? (S().name || '无名客') : (o ? o.name : '该角色'); }
     function pickEquip(o, slot) {
       var items = packList() || [];
       var cands = items.filter(function (it) { return it.cat === '装备' && it.slot === slot; });
       if (!cands.length) { toast('行囊中没有可装备的' + ((SLOTS[slot] || {}).label || slot) + '。'); return; }
-      var h = '<div class="ch-pick" data-slot="' + slot + '"><b>为 ' + escapeHtml(o.name) + ' 选' + escapeHtml((SLOTS[slot] || {}).label || slot) + '：</b>';
+      var h = '<div class="ch-pick" data-slot="' + slot + '"><b>为 ' + escapeHtml(instName(o)) + ' 选' + escapeHtml((SLOTS[slot] || {}).label || slot) + '：</b>';
       cands.forEach(function (it) {
         var def = it.defId || it.id;
         h += '<button type="button" class="ch-pickit" data-def="' + escapeHtml(def) + '">' + escapeHtml(it.icon || '') + ' ' + escapeHtml(it.name) + '</button>';
@@ -19289,7 +19301,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       save(S());
       if (typeof afterPackChange === 'function') afterPackChange();
       openModal('char'); renderStatus();
-      toast(o.name + ' 装备了「' + it.name + '」。');
+      toast(instName(o) + ' 装备了「' + it.name + '」。');
     }
     function doUnequip(o, slot) {
       var gear = ensureGear(o);
@@ -19300,7 +19312,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       save(S());
       if (typeof afterPackChange === 'function') afterPackChange();
       openModal('char'); renderStatus();
-      toast(o.name + ' 卸下了「' + it.name + '」。');
+      toast(instName(o) + ' 卸下了「' + it.name + '」。');
     }
     // ── 渲染与绑定 ──
     function renderCharHall() {
@@ -19329,10 +19341,10 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
         };
       });
       card.querySelectorAll('.ch-gact[data-act="pick"]').forEach(function (b) {
-        b.onclick = function () { var o = getInst(sel); if (o) pickEquip(o, b.getAttribute('data-slot')); };
+        b.onclick = function () { var o = getInst(sel); if (!o && sel === 'main') o = { kind: 'main' }; if (o) pickEquip(o, b.getAttribute('data-slot')); };
       });
       card.querySelectorAll('.ch-gact[data-act="unequip"]').forEach(function (b) {
-        b.onclick = function () { var o = getInst(sel); if (o) doUnequip(o, b.getAttribute('data-slot')); };
+        b.onclick = function () { var o = getInst(sel); if (!o && sel === 'main') o = { kind: 'main' }; if (o) doUnequip(o, b.getAttribute('data-slot')); };
       });
       card.querySelectorAll('.ch-pickit[data-def]').forEach(function (b) {
         b.onclick = function () {
@@ -19906,13 +19918,11 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     var sc=card.querySelector('.pack-scroll'); var grid=sc&&sc.querySelector('.pack-grid');
     if(sc && grid){ grid.innerHTML=renderPackGrid(); if(typeof bindPackInteractions==='function') bindPackInteractions(card); }
   }
-  // 装备/卸下后仅重渲装备栏（人形+装备槽+背包槽）与战力属性，保留滚动位置，实时反馈装备变化
+  // 装备/卸下后仅重渲「快速穿戴」快捷条（v20261025a：行囊不再有完整装备区，改为顶部快捷条实时刷新），保留滚动位置
   function refreshPackEquipLight(){
     var card=document.getElementById('modal-card'); if(!card) return;
-    var fig=card.querySelector('.equip-figure');
-    if(fig){ var w=document.createElement('div'); w.innerHTML=renderEquipFigure(); var nf=w.firstElementChild; if(nf) fig.replaceWith(nf); }
-    var st=card.querySelector('#packLeftStats');
-    if(st){ var w2=document.createElement('div'); w2.innerHTML=renderEquipStats(); var ns=w2.firstElementChild; if(ns) st.replaceWith(ns); }
+    var qb=card.querySelector('.qeq-bar');
+    if(qb){ qb.innerHTML=renderQuickEquip(); }
     if(typeof bindPackInteractions==='function') bindPackInteractions(card);
   }
   function unequipToPack(slot,toIdx){
@@ -19970,42 +19980,25 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       };
     });
   }
-  // 装备栏（六装备槽 + 背包槽 + 属性）：v20260927p 重排为 2×4 对称网格——不再叠在人形剪影上（原 absolute 布局手机端竖排窄格变形、装备名被裁）
-  function renderEquipFigure(){
-    var eqHtml='', bagSlot='';
+  // 装备栏 → v20261025a：行囊不再内嵌装备区（装备并入角色大厅），改为顶部「快速穿戴」横排快捷条
+  // 8 槽含背包槽全部保留拖拽装备（data-loc="equip:slot"），手机上横滑一行
+  function renderQuickEquip(){
+    var h='';
     LF.ITEMS.SLOT_KEYS.forEach(function(slot){
-      if(slot==='bag') return;            // 背包槽独立渲染（第 7 格）
       var eq=getState().equipment[slot], sl=LF.ITEMS.SLOTS[slot];
       var insCls=(getPackInspect() && getPackInspect().kind==='equip' && getPackInspect().slot===slot)?' pcell-insp':'';
-      var badge = '';
-      if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
-      var durBar='';
-      if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
-      var inner = eq
-        ? '<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>'
-        : '<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
-      var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
-      var qs = qcol ? (' style="--qcol:'+qcol+'"') : '';
-      var empCls = eq ? '' : ' ep-empty';
-      eqHtml += '<div class="equipslot ep-'+slot+empCls+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
-    });
-    // 背包槽（bag）：第 7 格（虚线金边区分）
-    (function(){
-      var eq=getState().equipment.bag, sl=LF.ITEMS.SLOTS.bag;
-      var insCls=(getPackInspect() && getPackInspect().kind==='equip' && getPackInspect().slot==='bag')?' pcell-insp':'';
       var badge='';
       if(eq && eq.quality){ var bc=(LF.ITEMS.QMAP[eq.quality]||{}).color||'#9a948a'; badge='<span class="ep-qbadge" style="background:'+bc+'"></span>'; }
       var durBar='';
       if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
-      var inner=eq?'<div class="ep-ic">'+itemIconHTML(eq,20)+'</div><div class="ep-name">'+eq.name+'</div>':'<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
-      var qcol = (eq && eq.quality && LF.ITEMS.QMAP[eq.quality]) ? LF.ITEMS.QMAP[eq.quality].color : '';
-      var qs2=qcol ? (' style="--qcol:'+qcol+'"') : '';
-      var empCls2 = eq ? '' : ' ep-empty';
-      bagSlot='<div class="equipslot ep-bagflow'+empCls2+insCls+'" data-loc="equip:bag"'+qs2+'>'+inner+badge+durBar+'</div>';
-    })();
-    // 第 8 格「属性」：点击展开/收起下方属性面板（复用 toggleStats）
-    var attrCell = '<div class="equipslot ep-attrs" onclick="LFUI.toggleStats()" role="button" tabindex="0"><span class="ep-ph">属 性</span></div>';
-    return '<div class="equip-figure"><div class="equip-grid">'+eqHtml+bagSlot+attrCell+'</div></div>';
+      var inner = eq
+        ? '<div class="ep-ic">'+itemIconHTML(eq,22)+'</div><div class="ep-name">'+eq.name+'</div>'
+        : '<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
+      var qcol=(eq&&eq.quality&&LF.ITEMS.QMAP[eq.quality])?LF.ITEMS.QMAP[eq.quality].color:'';
+      var qs=qcol?(' style="--qcol:'+qcol+'"'):'';
+      h+='<div class="equipslot qeq ep-'+slot+(eq?'':' ep-empty')+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
+    });
+    return h;
   }
   function renderPack(){
     var grid='';
@@ -20020,13 +20013,9 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     }
     return '<div class="pack-wrap">'
       + '<div class="pack-head"><span class="pack-title">行 囊</span></div>'
-      + '<div class="pack-main">'
-      +   '<div class="pack-left"><div class="pack-left-title">装 备</div>'+renderEquipFigure()+renderEquipStats()+'</div>'
-      +   '<div class="pack-right"><div class="pack-right-title">物 品</div>'
-      +     renderPackTabs()
-      +     '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
-      +   '</div>'
-      + '</div>'
+      + renderPackTabs()
+      + '<div class="pack-quick"><div class="qeq-label">快 速 穿 戴</div><div class="qeq-bar">'+renderQuickEquip()+'</div></div>'
+      + '<div class="pack-scroll"><div class="pack-grid">'+grid+'</div></div>'
       + '<div class="pack-foot">'
       + '<div class="pf-row pf-acts">'
       + '<button class="btn" onclick="LFUI.packAutoSort()">自动整理</button>'
@@ -20354,7 +20343,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
   function toggleStats(){ var el=document.getElementById('packLeftStats'); if(el) el.classList.toggle('collapsed'); }
 
     return {
-      movePackItem: movePackItem, swapPackCells: swapPackCells, refreshPackGridLight: refreshPackGridLight, refreshPackEquipLight: refreshPackEquipLight, unequipToPack: unequipToPack, quickUseFromPack: quickUseFromPack, inspCls: inspCls, renderPackGrid: renderPackGrid, renderEquipFigure: renderEquipFigure, renderPack: renderPack, renderEquipStats: renderEquipStats, renderPackInspect: renderPackInspect, parseLoc: parseLoc, showPackFloat: showPackFloat, bindPackInteractions: bindPackInteractions, useInspect: useInspect, discardInspect: discardInspect, canDiscard: canDiscard, packHighlightReplaced: packHighlightReplaced, equipInspect: equipInspect, unequipInspect: unequipInspect, closeInspect: closeInspect, repairInspect: repairInspect, toggleStats: toggleStats,
+      movePackItem: movePackItem, swapPackCells: swapPackCells, refreshPackGridLight: refreshPackGridLight, refreshPackEquipLight: refreshPackEquipLight, unequipToPack: unequipToPack, quickUseFromPack: quickUseFromPack, inspCls: inspCls, renderPackGrid: renderPackGrid, renderQuickEquip: renderQuickEquip, renderPack: renderPack, renderEquipStats: renderEquipStats, renderPackInspect: renderPackInspect, parseLoc: parseLoc, showPackFloat: showPackFloat, bindPackInteractions: bindPackInteractions, useInspect: useInspect, discardInspect: discardInspect, canDiscard: canDiscard, packHighlightReplaced: packHighlightReplaced, equipInspect: equipInspect, unequipInspect: unequipInspect, closeInspect: closeInspect, repairInspect: repairInspect, toggleStats: toggleStats,
       getPackLastClick: function () { return packLastClick; }
     };
   };
@@ -31081,7 +31070,7 @@ window.LF = window.LF || {};
   var movePackItem = Pack.movePackItem, unequipToPack = Pack.unequipToPack,
       swapPackCells = Pack.swapPackCells, refreshPackGridLight = Pack.refreshPackGridLight,
       refreshPackEquipLight = Pack.refreshPackEquipLight, quickUseFromPack = Pack.quickUseFromPack,
-      inspCls = Pack.inspCls, renderPackGrid = Pack.renderPackGrid, renderEquipFigure = Pack.renderEquipFigure,
+      inspCls = Pack.inspCls, renderPackGrid = Pack.renderPackGrid, renderQuickEquip = Pack.renderQuickEquip,
       renderPack = Pack.renderPack, renderEquipStats = Pack.renderEquipStats,
       renderPackInspect = Pack.renderPackInspect, parseLoc = Pack.parseLoc, showPackFloat = Pack.showPackFloat,
       bindPackInteractions = Pack.bindPackInteractions, useInspect = Pack.useInspect,

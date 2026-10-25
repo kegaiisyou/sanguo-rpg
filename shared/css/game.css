@@ -1982,10 +1982,20 @@
     border:1px solid rgba(176,131,47,.45);border-radius:var(--r-card);padding:8px;box-sizing:border-box;min-height:0;}
   .pack-right-title{font-family:"STKaiti","KaiTi",serif;font-size:14px;letter-spacing:5px;color:#f5e0a8;text-shadow:0 1px 3px rgba(0,0,0,.6);margin-bottom:6px;text-align:center;}
   /* v20261008c：背包分类页签（全部/素材/药剂/菜肴/器具/其他） */
-  .pack-tabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:0 0 8px;}   /* v20261024n：页签间距/行距统一 */
-  .pack-tab{font-size:11.5px;letter-spacing:1px;color:#f4e8c6;background:rgba(0,0,0,.34);border:1px solid rgba(200,164,102,.5);border-radius:999px;padding:3px 10px;cursor:pointer;font-family:"STKaiti","KaiTi",serif;transition:.15s;white-space:nowrap;}
+  .pack-tabs{display:flex;flex-wrap:nowrap;gap:6px;justify-content:flex-start;margin:0 0 8px;overflow-x:auto;padding:2px 1px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}   /* v20261025a：分类页签改为一行横向滑动，手机端不再换行挤两行 */
+  .pack-tabs::-webkit-scrollbar{display:none;}
+  .pack-tab{flex:0 0 auto;font-size:11.5px;letter-spacing:1px;color:#f4e8c6;background:rgba(0,0,0,.34);border:1px solid rgba(200,164,102,.5);border-radius:999px;padding:3px 10px;cursor:pointer;font-family:"STKaiti","KaiTi",serif;transition:.15s;white-space:nowrap;}
   .pack-tab.on{color:#2b1f0c;background:linear-gradient(180deg,#e8c87e,#c8a05c);border-color:#a8842f;box-shadow:0 1px 4px rgba(0,0,0,.3);font-weight:700;}
   .pack-tab:active{transform:scale(.94);}
+  /* v20261025a：行囊「快速穿戴」快捷条——8 槽横排一行（手机可横滑），拖拽物品上来即装备 */
+  .pack-quick{flex:0 0 auto;margin-bottom:8px;}
+  .qeq-label{font-family:"STKaiti","KaiTi",serif;font-size:11px;letter-spacing:3px;color:#9a8352;margin-bottom:5px;text-align:center;}
+  .qeq-bar{display:flex;gap:6px;overflow-x:auto;padding:2px 1px 5px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .qeq-bar::-webkit-scrollbar{display:none;}
+  .pack-wrap .equipslot.qeq{flex:0 0 auto;width:52px;min-height:56px;}
+  .pack-wrap .equipslot.qeq .ep-name{font-size:10.5px;max-width:100%;}
+  .pack-wrap .equipslot.qeq .ep-ic{width:100%;height:26px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .pack-wrap .equipslot.qeq .ep-ph-ic{font-size:18px;line-height:1;}
   /* v20261022e：背包拖拽反馈 + 野外迷雾/地形着色 */
   .pack-grid .packcell.dragging{opacity:.4;transform:scale(.94);}
   .pack-grid .packcell.drop-ok{border-color:var(--jade);box-shadow:0 0 0 2px rgba(63,125,94,.5);}
@@ -2229,9 +2239,8 @@
     /* 行囊：手机端由 v20260927p 断点统一为「装备上、物品下」上下堆叠；此处仅做密度微调 */
     .pack-main{flex-direction:row;gap:8px;}
     .pack-left-title{display:none;}
-    .pack-right{flex:1 1 auto;min-width:0;min-height:0;max-height:40vh;overflow-y:auto;padding:6px 5px;}
-    .pack-right .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;}
-    /* v20261008c：背包分类页签微调（窄屏下字号更小，避免两行挤爆） */
+    .pack-scroll .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}   /* v20261025a：行囊瘦身后全宽大格子，手机 4 列（格子比原 5-6 列更大） */
+    /* v20261008c：背包分类页签微调（窄屏下字号更小） */
     .pack-tab{font-size:10.5px;padding:2px 8px;}
     /* v20260822ak：手机端物品格子文字缩小（内联13px 用 !important 覆盖），防止窄格溢出 */
     .packcell .ic-txt{font-size:11px !important;letter-spacing:.01em;line-height:1.15;}
@@ -2248,7 +2257,7 @@
     /* 手机端恢复货品/行囊格纵向滚动：原 touch-action:none 让长列表整片滑不动（只能从 5px 间隙滑）；放开为 pan-y 后纵向顺滑滚动，横向拖拽与轻点选中仍由 JS 接管，寄售/购买走浮框按钮不依赖拖拽 */
     .shop-good,.shop-right .packcell{touch-action:pan-y;}
     /* v20261008g：背包物品区/容器左栏/战利品栏同样放开纵向滚动（此前漏改，导致这些列表只能从空格滑） */
-    .pack-right .packcell,.shop-left .packcell,.cs-grid .packcell{touch-action:pan-y;}
+    .pack-scroll .packcell,.shop-left .packcell,.cs-grid .packcell{touch-action:pan-y;}   /* v20261025a：行囊瘦身后直接锁 .pack-scroll 下格子 */
     .shop-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
     .shop-scroll::-webkit-scrollbar{width:14px;}
     .sf-acts .btn{min-width:88px;padding:12px 6px;font-size:14px;letter-spacing:2px;border-radius:10px;}
