@@ -1,12 +1,12 @@
 // 自动生成 bundle（tools/bundle.py）。请勿手改；改 shared/ 后重跑本脚本。
-// 源文件数: 94   版本: 20261025a
+// 源文件数: 94   版本: 20261025b
 // ============ shared/config/constants.js ============
 // 乱世烽火 · 全局常量（共享数据层）
 // UMD：浏览器挂到 window.LF，Node/微信端走 module.exports
 (function (global) {
   var CONSTANTS = {
     GAME_NAME: '乱世烽火',
-    VERSION: '20261025a',
+    VERSION: '20261025b',
     MAX_LEVEL: 60
   };
   global.LF = global.LF || {};
@@ -19146,7 +19146,8 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       });
       return h + '</div>';
     }
-    // ── 页签框架（v20260924x 角色大厅分页）──
+    // ── 页签框架（v20260924x 角色大厅分页；v20261025b 页签状态持久化，换装局部刷新不再弹开面板）──
+    var chTab = 'stat';   // 当前激活页签：换角色/选装/卸装后局部重渲并恢复该页
     function tabBtn(k, n, on) {
       return '<button type="button" class="ch-tab' + (on ? ' on' : '') + '" data-pg="' + k + '">' + n + '</button>';
     }
@@ -19155,9 +19156,9 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     }
     function tabsFrame(head, tabs, pages) {
       var h = '<div class="ch-tabs">';
-      tabs.forEach(function (t, i) { h += tabBtn(t.k, t.n, i === 0); });
+      tabs.forEach(function (t, i) { h += tabBtn(t.k, t.n, t.k === chTab); });
       h += '</div><div class="ch-head">' + head + '</div>';
-      tabs.forEach(function (t, i) { h += pgWrap(t.k, pages[i], i === 0); });
+      tabs.forEach(function (t, i) { h += pgWrap(t.k, pages[i], t.k === chTab); });
       return h;
     }
     // ── 详情 ──
@@ -19300,7 +19301,8 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       if (old && old.defId) packAdd({ defId: old.defId, count: 1 });
       save(S());
       if (typeof afterPackChange === 'function') afterPackChange();
-      openModal('char'); renderStatus();
+      refreshCharView();   // v20261025b：局部刷新详情（保持面板打开、页签不动），不再整面板重开
+      renderStatus();
       toast(instName(o) + ' 装备了「' + it.name + '」。');
     }
     function doUnequip(o, slot) {
@@ -19311,8 +19313,16 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       if (it.defId && packAdd({ defId: it.defId, count: 1 }) === false) { gear[slot] = it; toast('行囊已满，无法卸下。'); return; }
       save(S());
       if (typeof afterPackChange === 'function') afterPackChange();
-      openModal('char'); renderStatus();
+      refreshCharView();   // v20261025b：局部刷新详情（保持面板打开、页签不动）
+      renderStatus();
       toast(instName(o) + ' 卸下了「' + it.name + '」。');
+    }
+    // v20261025b：装备/卸装后局部重渲角色大厅详情（当前角色 + 当前页签保持不变，无弹开动画）
+    function refreshCharView() {
+      var card = document.getElementById('modal-card');
+      if (!card) return;
+      card.innerHTML = renderCharHall();
+      bindCharHall();
     }
     // ── 渲染与绑定 ──
     function renderCharHall() {
@@ -19324,17 +19334,17 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
         '<div class="ch-main"><div class="ch-stage">' + figHTML(cur) + '</div><div class="ch-detail">' + detailHTML() + '</div></div>' +
         '</div>';
     }
-    function selectChar(key) { sel = key; openModal('char'); }
+    function selectChar(key) { sel = key; chTab = 'stat'; openModal('char'); }
     function bindCharHall() {
       var card = document.querySelector('#modal-card');
       if (!card) return;
       card.querySelectorAll('.ch-item').forEach(function (b) {
         b.onclick = function () { sel = b.getAttribute('data-key'); openModal('char'); };
       });
-      // 页签切换（v20260924x）
+      // 页签切换（v20260924x；v20261025b 记录当前页，换装局部刷新后恢复）
       card.querySelectorAll('.ch-tab').forEach(function (b) {
         b.onclick = function () {
-          var pg = b.getAttribute('data-pg');
+          var pg = b.getAttribute('data-pg'); chTab = pg || 'stat';
           card.querySelectorAll('.ch-tab').forEach(function (x) { x.classList.toggle('on', x === b); });
           card.querySelectorAll('.ch-pg').forEach(function (p) { p.style.display = (p.getAttribute('data-pg') === pg) ? '' : 'none'; });
           if (typeof bindMainDetail === 'function') bindMainDetail();
@@ -20224,20 +20234,20 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
         var _pf=document.getElementById('pack-float'); if(_pf) _pf.style.display='none';   // 触屏拖拽起点立即隐藏行囊浮框
         setPackInspect(null);
         clearTimeout(pressT);
-        pressT=setTimeout(function(){   // 长按拿起：120ms 未移动即入拖拽态（v20261024k 由 180ms 缩短），轻震动反馈
+        pressT=setTimeout(function(){   // 长按拿起：90ms 未移动即入拖拽态（v20261025b 由 120ms 缩短，快速穿戴更跟手），轻震动反馈
           if(!dragging || !srcEl) return;
-          if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8){
+          if(Math.abs(e.clientX-sx)<6 && Math.abs(e.clientY-sy)<6){   // v20261025b：移动阈值 8→6px，更易触发
             moved=true; srcEl.__dragMoved=true;
             if(navigator.vibrate) navigator.vibrate(12);
             srcEl.classList.add('pcell-dragfrom');
             spawnGhost(e.clientX,e.clientY);
           }
-        },120);
+        },90);
       };
     });
     card.onpointermove=function(e){
       if(!dragging) return;
-      if(!moved){ if(Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return; moved=true; srcEl && (srcEl.__dragMoved=true); }
+      if(!moved){ if(Math.abs(e.clientX-sx)<6 && Math.abs(e.clientY-sy)<6) return; moved=true; srcEl && (srcEl.__dragMoved=true); }   // v20261025b：移动阈值 8→6px
       clearTimeout(pressT);
       if(srcEl) srcEl.classList.add('pcell-dragfrom');
       if(!ghost) spawnGhost(e.clientX,e.clientY);
@@ -34386,6 +34396,11 @@ window.LF = window.LF || {};
   }
 
   function openModal(kind, opts){
+    // v20261025b：标题页（state 未初始化）拦截游戏面板，避免渲染期读 state.pack 崩溃
+    if(!state && ['pack','char','army','quest','map','give','levelup','inspect','craft','shop','build','manage'].indexOf(kind)>=0){
+      if(typeof toast==='function') toast('尚未入世，此卷未展。');
+      return;
+    }
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
     if(Narr && Narr.setNarrPaused) Narr.setNarrPaused(true);  // v20260930d：弹窗遮住叙事区，叙事暂停排队，关窗再续

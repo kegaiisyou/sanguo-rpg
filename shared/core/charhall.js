@@ -74,7 +74,8 @@
       });
       return h + '</div>';
     }
-    // ── 页签框架（v20260924x 角色大厅分页）──
+    // ── 页签框架（v20260924x 角色大厅分页；v20261025b 页签状态持久化，换装局部刷新不再弹开面板）──
+    var chTab = 'stat';   // 当前激活页签：换角色/选装/卸装后局部重渲并恢复该页
     function tabBtn(k, n, on) {
       return '<button type="button" class="ch-tab' + (on ? ' on' : '') + '" data-pg="' + k + '">' + n + '</button>';
     }
@@ -83,9 +84,9 @@
     }
     function tabsFrame(head, tabs, pages) {
       var h = '<div class="ch-tabs">';
-      tabs.forEach(function (t, i) { h += tabBtn(t.k, t.n, i === 0); });
+      tabs.forEach(function (t, i) { h += tabBtn(t.k, t.n, t.k === chTab); });
       h += '</div><div class="ch-head">' + head + '</div>';
-      tabs.forEach(function (t, i) { h += pgWrap(t.k, pages[i], i === 0); });
+      tabs.forEach(function (t, i) { h += pgWrap(t.k, pages[i], t.k === chTab); });
       return h;
     }
     // ── 详情 ──
@@ -228,7 +229,8 @@
       if (old && old.defId) packAdd({ defId: old.defId, count: 1 });
       save(S());
       if (typeof afterPackChange === 'function') afterPackChange();
-      openModal('char'); renderStatus();
+      refreshCharView();   // v20261025b：局部刷新详情（保持面板打开、页签不动），不再整面板重开
+      renderStatus();
       toast(instName(o) + ' 装备了「' + it.name + '」。');
     }
     function doUnequip(o, slot) {
@@ -239,8 +241,16 @@
       if (it.defId && packAdd({ defId: it.defId, count: 1 }) === false) { gear[slot] = it; toast('行囊已满，无法卸下。'); return; }
       save(S());
       if (typeof afterPackChange === 'function') afterPackChange();
-      openModal('char'); renderStatus();
+      refreshCharView();   // v20261025b：局部刷新详情（保持面板打开、页签不动）
+      renderStatus();
       toast(instName(o) + ' 卸下了「' + it.name + '」。');
+    }
+    // v20261025b：装备/卸装后局部重渲角色大厅详情（当前角色 + 当前页签保持不变，无弹开动画）
+    function refreshCharView() {
+      var card = document.getElementById('modal-card');
+      if (!card) return;
+      card.innerHTML = renderCharHall();
+      bindCharHall();
     }
     // ── 渲染与绑定 ──
     function renderCharHall() {
@@ -252,17 +262,17 @@
         '<div class="ch-main"><div class="ch-stage">' + figHTML(cur) + '</div><div class="ch-detail">' + detailHTML() + '</div></div>' +
         '</div>';
     }
-    function selectChar(key) { sel = key; openModal('char'); }
+    function selectChar(key) { sel = key; chTab = 'stat'; openModal('char'); }
     function bindCharHall() {
       var card = document.querySelector('#modal-card');
       if (!card) return;
       card.querySelectorAll('.ch-item').forEach(function (b) {
         b.onclick = function () { sel = b.getAttribute('data-key'); openModal('char'); };
       });
-      // 页签切换（v20260924x）
+      // 页签切换（v20260924x；v20261025b 记录当前页，换装局部刷新后恢复）
       card.querySelectorAll('.ch-tab').forEach(function (b) {
         b.onclick = function () {
-          var pg = b.getAttribute('data-pg');
+          var pg = b.getAttribute('data-pg'); chTab = pg || 'stat';
           card.querySelectorAll('.ch-tab').forEach(function (x) { x.classList.toggle('on', x === b); });
           card.querySelectorAll('.ch-pg').forEach(function (p) { p.style.display = (p.getAttribute('data-pg') === pg) ? '' : 'none'; });
           if (typeof bindMainDetail === 'function') bindMainDetail();

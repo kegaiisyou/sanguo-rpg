@@ -4115,6 +4115,11 @@
   }
 
   function openModal(kind, opts){
+    // v20261025b：标题页（state 未初始化）拦截游戏面板，避免渲染期读 state.pack 崩溃
+    if(!state && ['pack','char','army','quest','map','give','levelup','inspect','craft','shop','build','manage'].indexOf(kind)>=0){
+      if(typeof toast==='function') toast('尚未入世，此卷未展。');
+      return;
+    }
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
     if(Narr && Narr.setNarrPaused) Narr.setNarrPaused(true);  // v20260930d：弹窗遮住叙事区，叙事暂停排队，关窗再续

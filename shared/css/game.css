@@ -1992,10 +1992,11 @@
   .qeq-label{font-family:"STKaiti","KaiTi",serif;font-size:11px;letter-spacing:3px;color:#9a8352;margin-bottom:5px;text-align:center;}
   .qeq-bar{display:flex;gap:6px;overflow-x:auto;padding:2px 1px 5px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
   .qeq-bar::-webkit-scrollbar{display:none;}
-  .pack-wrap .equipslot.qeq{flex:0 0 auto;width:52px;min-height:56px;}
-  .pack-wrap .equipslot.qeq .ep-name{font-size:10.5px;max-width:100%;}
-  .pack-wrap .equipslot.qeq .ep-ic{width:100%;height:26px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  .pack-wrap .equipslot.qeq .ep-ph-ic{font-size:18px;line-height:1;}
+  .pack-wrap .equipslot.qeq{flex:0 0 auto;width:62px;min-height:58px;padding:4px 2px 3px;}   /* v20261025b：快捷槽加宽 52→62px，装备名可完整显示 */
+  .pack-wrap .equipslot.qeq .ep-name{font-size:10.5px;max-width:100%;line-height:1.1;}
+  .pack-wrap .equipslot.qeq .ep-ic{width:100%;height:28px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .pack-wrap .equipslot.qeq .ep-ph-ic{font-size:20px;line-height:1;}
+  .pack-wrap .equipslot.qeq .ep-ph{font-size:10px;line-height:1.1;}
   /* v20261022e：背包拖拽反馈 + 野外迷雾/地形着色 */
   .pack-grid .packcell.dragging{opacity:.4;transform:scale(.94);}
   .pack-grid .packcell.drop-ok{border-color:var(--jade);box-shadow:0 0 0 2px rgba(63,125,94,.5);}
@@ -2240,8 +2241,8 @@
     .pack-main{flex-direction:row;gap:8px;}
     .pack-left-title{display:none;}
     .pack-scroll .pack-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}   /* v20261025a：行囊瘦身后全宽大格子，手机 4 列（格子比原 5-6 列更大） */
-    /* v20261008c：背包分类页签微调（窄屏下字号更小） */
-    .pack-tab{font-size:10.5px;padding:2px 8px;}
+    /* v20261025b：分类页签手机端加大字号，一行横滑完整可读 */
+    .pack-tab{font-size:12px;padding:3px 11px;}
     /* v20260822ak：手机端物品格子文字缩小（内联13px 用 !important 覆盖），防止窄格溢出 */
     .packcell .ic-txt{font-size:11px !important;letter-spacing:.01em;line-height:1.15;}
     .packcell .pcell-ic{padding:1px 3px 10px;}
