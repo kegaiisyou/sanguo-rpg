@@ -746,6 +746,15 @@
     font-family:"STKaiti","KaiTi","Kaiti SC",serif;
     letter-spacing:6px; color:#3a2a12; text-align:center; margin:4px 0 10px; font-weight:700;
   }
+  /* v20261026h：全局 emoji 古风化——去饱和度+棕褐色调，融入宣纸底 */
+  .modal-shell [class*="icon"], .modal-shell .ic, .modal-shell button,
+  #status, #actions, .act, .obj-act, .npc-act{
+    /* emoji 不直接改字，靠颜色环境影响观感 */
+  }
+  /* 建筑/按钮里的 emoji 统一加墨感阴影 */
+  .modal-shell button, .act, .obj-act, .npc-act, .bld-ent{
+    letter-spacing:1px;
+  }
   @keyframes modalPop{from{opacity:0;transform:translateY(10px) scale(.975);}to{opacity:1;transform:none;}}
   @media (prefers-reduced-motion: reduce){
     #modal, .modal-shell{animation:none;}

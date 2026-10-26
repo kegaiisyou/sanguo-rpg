@@ -1742,8 +1742,8 @@
   // ══ 战略层 · 玩家职种分化（v20260918h）══
   var ROLE_DEFS = (LF.ROLE_DEFS || {
     youxia:{key:'youxia',name:'游侠',icon:'🗡',atkMul:1.0,econMul:1.0,favorMul:1.2,note:'江湖散人，进退由心'},
-    jiang:{key:'jiang',name:'将才',icon:'⚔',atkMul:1.25,econMul:1.0,favorMul:1.0,note:'攻城野战如虎添翼'},
-    xiang:{key:'xiang',name:'相才',icon:'📜',atkMul:1.0,econMul:1.35,favorMul:1.1,note:'府库殷实、民力倍增'}
+    jiang:{key:'jiang',name:'将才',icon:'剑',atkMul:1.25,econMul:1.0,favorMul:1.0,note:'攻城野战如虎添翼'},
+    xiang:{key:'xiang',name:'相才',icon:'书',atkMul:1.0,econMul:1.35,favorMul:1.1,note:'府库殷实、民力倍增'}
   });
   function roleDef(){ return ROLE_DEFS[(state&&state.role)||'youxia'] || ROLE_DEFS.youxia; }
   function roleAtkMul(){ return roleDef().atkMul || 1; }
@@ -1906,11 +1906,11 @@
       if(rec[k]) return;               // 已入队的随从不再显示
       var en = G.ENEMIES ? G.ENEMIES.get(k) : null;
       if(en){
-        var o={name:en.name, icon:'⚔', key:k, desc:en.title||'来者不善'};
-        items.push({o:o, acts:[{label:'挑战', icon:'⚔', danger:true, fn:function(){ startCombat(k); }}]});
+        var o={name:en.name, icon:'剑', key:k, desc:en.title||'来者不善'};
+        items.push({o:o, acts:[{label:'挑战', icon:'剑', danger:true, fn:function(){ startCombat(k); }}]});
       } else {
         var n=G.DIALOGUES.npcs[k]; if(!n) return;
-        items.push({o:{name:n.name, icon:'👤', key:k, desc:n.name}, acts:buildNpcActions({name:n.name, key:k, desc:n.name})});
+        items.push({o:{name:n.name, icon:'人', key:k, desc:n.name}, acts:buildNpcActions({name:n.name, key:k, desc:n.name})});
       }
     });
     // 建筑内部房间：以 interior/子区域 npcs 直接呈现（复用浮动菜单交互）
@@ -1925,14 +1925,14 @@
         // 静态 acts 中的闲聊/打听 → 「交谈」；无则给一句通用小谈
         var _chat=(function(){ for(var k=0;k<_acts.length;k++){ if(/交谈|攀谈|打听|闲聊|问询|请教/.test(_acts[k].label||'')) return _acts[k]; } return null; })();
         var _bActs=[];
-        _bActs.push({label:'交谈', icon:'💬', fn:(function(c){ return function(){
+        _bActs.push({label:'交谈', icon:'话', fn:(function(c){ return function(){
           if(c && typeof c.fn==='function'){ c.fn(); return; }
           log('〔'+e.name+'〕'+(e.desc||'「……」'),'npc');
         }; })(_chat)});
         _bActs.push({label:'观察', icon:'👁', fn:function(){ observeNpc(_o); }});
         if(onbGiveUnlocked(_o)) _bActs.push({label:'给予', icon:'🎁', fn:function(){ openGivePanel(_o); }});
-        _bActs.push({label:'攻击', icon:'⚔', danger:true, fn:function(){ log('〔'+e.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys'); }});
-        if(e.shop) _bActs.push({label:'交易', icon:'💰', fn:(function(sk){ return function(){ openModal('shop', {shop:sk}); }; })(e.shop)});
+        _bActs.push({label:'攻击', icon:'剑', danger:true, fn:function(){ log('〔'+e.name+'〕你按捺住杀机——此人并无敌意，不便妄动刀兵。','sys'); }});
+        if(e.shop) _bActs.push({label:'交易', icon:'银', fn:(function(sk){ return function(){ openModal('shop', {shop:sk}); }; })(e.shop)});
         // 其余自定义功能动作（施治/捣药/听讲古等）去重标准项后追加
         for(var k=0;k<_acts.length;k++){
           var _a=_acts[k];
@@ -1975,7 +1975,7 @@
       var b=BUILDINGS[it.enter.building];
       var chip=document.createElement('button'); chip.className='nl-item nl-bld';
       // v20260924u：建筑入口换图（回退 emoji）
-      var _ic=(b?b.icon:'🏠');
+      var _ic=(b?b.icon:'宅');
       var _pic=(window.UI_Icons)? UI_Icons.icon(_ic, b?b.name:it.enter.building) : _ic;
       chip.innerHTML='<span class="nl-ic">'+_pic+'</span><span class="nl-nm">'+(b?b.name:it.enter.building)+'</span>';
       chip.onclick=function(){ enterBldRoom(it.enter.building, {kind:'city', cid:state.room, x:(state.flags.cityPos?state.flags.cityPos.x:0), y:(state.flags.cityPos?state.flags.cityPos.y:0)}); };
