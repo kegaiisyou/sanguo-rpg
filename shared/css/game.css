@@ -729,7 +729,23 @@
   #modal.hidden{display:none;}
   /* 弹窗右上角全局关闭按钮 */
   .modal-shell{position:relative;width:100%;max-width:440px;
-    animation:modalPop .22s cubic-bezier(.2,.9,.3,1.12) both;}   /* v20260927b：弹层上浮入场（P2 过渡动画） */
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(180,140,80,.08), transparent 60%),
+      radial-gradient(ellipse at 100% 100%, rgba(120,80,40,.10), transparent 55%),
+      linear-gradient(180deg, #f5ecd8 0%, #efdfc0 100%);
+    border:1px solid rgba(90,60,20,.28);
+    border-radius:14px;
+    padding:16px 16px 18px;
+    box-shadow:0 8px 30px rgba(50,35,15,.25), inset 0 0 0 1px rgba(255,250,235,.5);
+    animation:modalPop .22s cubic-bezier(.2,.9,.3,1.12) both;}
+  .modal-shell::before{
+    content:''; position:absolute; inset:6px; border:1px solid rgba(90,60,20,.18);
+    border-radius:9px; pointer-events:none;
+  }
+  .modal-shell h3, .modal-shell h2{
+    font-family:"STKaiti","KaiTi","Kaiti SC",serif;
+    letter-spacing:6px; color:#3a2a12; text-align:center; margin:4px 0 10px; font-weight:700;
+  }
   @keyframes modalPop{from{opacity:0;transform:translateY(10px) scale(.975);}to{opacity:1;transform:none;}}
   @media (prefers-reduced-motion: reduce){
     #modal, .modal-shell{animation:none;}
