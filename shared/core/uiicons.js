@@ -39,7 +39,18 @@
     '⛏️':'icn-xieliao','🧺':'icn-madai','📦':'icn-muxiang','🪜':'icn-huojia','⛲':'icn-shuijing',
     '🪨':'icn-luanshi','📋':'icn-mumu','⛺':'icn-zhangpeng','🚪':'icn-laomen','🏠':'icn-cangku',
     '☀':'wx-qing','🌤':'wx-duoyun','☁':'wx-yin','🌦':'wx-weiyu','🌧':'wx-dayu','❄':'wx-xue',
-    '🌫':'wx-wu','🌬':'wx-feng'
+    '🌫':'wx-wu','🌬':'wx-feng',
+    // v20261026i：汉字图标（水墨 PNG，shared/img/icons/*.png）
+    '宅':'icons/宅','仓':'icons/仓','厨':'icons/厨','军':'icons/军','宿':'icons/宿',
+    '农':'icons/农','武':'icons/武','哨':'icons/哨','帐':'icons/帐','矿':'icons/矿',
+    '洞':'icons/洞','筑':'icons/筑','工':'icons/工','店':'icons/店','坊':'icons/坊',
+    '衙':'icons/衙','药':'icons/药','丹':'icons/丹','书':'icons/书','钱':'icons/钱',
+    '剑':'icons/剑','盾':'icons/盾','弓':'icons/弓','马':'icons/马','酒':'icons/酒',
+    '食':'icons/食','衣':'icons/衣','铁':'icons/铁','木':'icons/木','石':'icons/石',
+    '晴':'icons/晴','月':'icons/月','雨':'icons/雨','阴':'icons/阴','雪':'icons/雪',
+    '心':'icons/心','话':'icons/话','息':'icons/息','采':'icons/采','袋':'icons/袋',
+    '火':'icons/火','旗':'icons/旗','人':'icons/人','箱':'icons/箱','臼':'icons/臼',
+    '卷':'icons/卷','印':'icons/印'
   };
   // NPC 头像（按人名）
   var NPC_BY_NAME={
@@ -64,7 +75,11 @@
   function icon(ic, name){
     var n = name && BY_NAME[name];
     if(n) return pic(n, 'ui-pic');
-    if(ic && BY_EMOJI[ic]) return pic(BY_EMOJI[ic], 'ui-pic');
+    if(ic && BY_EMOJI[ic]){
+      var v = BY_EMOJI[ic];
+      if(v.indexOf('icons/') === 0) return '<img class="ui-pic" src="shared/img/'+v+'.png?v='+VER+'" alt="" loading="lazy" draggable="false">';
+      return pic(v, 'ui-pic');
+    }
     return ic || '·';
   }
   // v20260924z20：史实武将专属头像（shared/img/npc-*.png，水墨胸像）
