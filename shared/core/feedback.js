@@ -48,8 +48,9 @@
     document.body.appendChild(host);
 
     // 事件隔离：不冒泡到游戏（避免打字触发对话数字键等全局监听）
+    // 注意：必须冒泡阶段拦截（不写 capture=true），否则事件到不了 tab/panel 子元素的 onclick
     ['keydown', 'keyup', 'keypress', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'click', 'wheel', 'contextmenu'].forEach(function (ev) {
-      host.addEventListener(ev, function (e) { e.stopPropagation(); }, true);
+      host.addEventListener(ev, function (e) { e.stopPropagation(); }, false);
     });
 
     var tab = host.querySelector('.ntf-tab');
@@ -147,6 +148,7 @@
       '.ntf-t{font:inherit;color:#a9a9b8;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px;cursor:pointer;}' +
       '.ntf-t.on{color:#fff;border-bottom-color:#8b7bff;font-weight:700;}' +
       '.ntf-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:12px 16px 16px;}' +
+      '.ntf-panel[hidden]{display:none !important;}' +
       '.ntf-pane[hidden]{display:none;}' +
       '.ntf-hint{font-size:12px;color:#8d8d9c;margin:0 0 10px;}' +
       '.ntf-day{margin:12px 0 6px;font-size:12px;color:#8d8d9c;}' +
