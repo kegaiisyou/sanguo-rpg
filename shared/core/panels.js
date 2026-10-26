@@ -60,22 +60,22 @@
     function cxTotal(k) {
       try {
         if (k === 'person') return (LF.PERSONA && LF.PERSONA.listRegistered) ? LF.PERSONA.listRegistered().length : 0;
-        if (k === 'city') return Object.keys(G.CITIES || {}).length;
-        if (k === 'item') return Object.keys(G.ITEMS || {}).length;
+        if (k === 'city') return Object.keys(LF.CITIES || {}).length;
+        if (k === 'item') return Object.keys(LF.ITEMS || {}).length;
         if (k === 'martial') {
-          var n = 0, MA = G.MARTIAL_ARTS || {};
+          var n = 0, MA = LF.MARTIAL_ARTS || {};
           Object.keys(MA).forEach(function (id) { var m = MA[id]; if (m && m.type && m.line) n++; });
           return n;
         }
         if (k === 'recipe') {
-          var n2 = 0, R = G.RECIPES || {};
+          var n2 = 0, R = LF.RECIPES || {};
           Object.keys(R).forEach(function (b) { n2 += (R[b] || []).length; });
           return n2;
         }
-        if (k === 'faction') return Object.keys(G.FACTIONS || {}).length;
-        if (k === 'build') return Object.keys(G.BUILDING_ARCH || {}).length;
-        if (k === 'event') return (G.EVENTS || []).length;
-        if (k === 'enemy') return Object.keys(G.ENEMIES || {}).length;
+        if (k === 'faction') return Object.keys(LF.FACTIONS || {}).length;
+        if (k === 'build') return Object.keys(LF.BUILDING_ARCH || {}).length;
+        if (k === 'event') return (LF.EVENTS || []).length;
+        if (k === 'enemy') return Object.keys(LF.ENEMIES || {}).length;
       } catch (e) {}
       return 0;
     }
@@ -107,8 +107,15 @@
       return '<div class="cx-stat"><span class="cx-stat-l">' + label + '</span><span class="cx-stat-bar"><i style="width:' + pct + '%"></i></span><span class="cx-stat-v">' + (val || 0) + '</span></div>';
     }
     function power(o) { var s = o.stats || {}; return (s.wu || 0) + (s.zhi || 0) + (s.tong || 0) + (s.zheng || 0) + (s.mei || 0); }
-    function facOf(key) { return (G.FACTIONS && G.FACTIONS[key]) ? G.FACTIONS[key] : null; }
-    function cityNameOf(cid) { return (G.CITIES && G.CITIES[cid]) ? G.CITIES[cid].name : (cid || '—'); }
+    function facOf(key) { return (LF.FACTIONS && LF.FACTIONS[key]) ? LF.FACTIONS[key] : null; }
+    function factionName(key) {
+      var f = facOf(key); if (f && f.name) return f.name;
+      if (!key) return '—';
+      var CN = { wei:'曹魏', shu:'蜀汉', wu:'东吴', contested:'群雄', neutral:'中立', player:'我方', han:'汉室', dongzhuo:'董卓', yuanshao:'袁绍', caocao:'曹操', sunce:'孙策', liubiao:'刘表', sunquan:'孙权' };
+      if (CN[key]) return CN[key];
+      return String(key).replace(/_/g, ' ');
+    }
+    function cityNameOf(cid) { return (LF.CITIES && LF.CITIES[cid]) ? LF.CITIES[cid].name : (cid || '—'); }
 
     // 收集制：state.codexSeen.{category}[id] = true 表示已见过
     function cxSeen(cat, id) {
@@ -125,6 +132,8 @@
         s.codexSeen[cat][id] = true;
       } catch (e) {}
     }
+    window.__cxMarkSeen = cxMarkSeen;
+    window.__cxSeen = cxSeen;
     // 调试开关：localStorage 'lf_cx_showall' = '1' 时显示全部（含未发现）
     function cxShowAll() { try { var v = localStorage.getItem('lf_cx_showall'); return v === null ? true : v === '1'; } catch (e) { return true; } }
     function cxAvatar(id) {
@@ -140,7 +149,7 @@
       list.forEach(function (o) {
         var seen = cxSeen('person', o.id);
         if (!showAll && !seen) return;   // 已发现模式：跳过未见过的
-        var fac = facOf(o.faction), facName = fac ? fac.name : (o.faction || '—'), facColor = fac ? fac.color : '#888';
+        var fac = facOf(o.faction), facName = factionName(o.faction), facColor = fac ? fac.color : '#888';
         var tags = (o.tags || []).join('·');
         var sealChar = (o.name || '·').slice(0, 1);
         var av = cxAvatar(o.id);
@@ -170,13 +179,13 @@
       return h + '</div>';
     }
     function codexCities() {
-      var C = G.CITIES || {}, keys = Object.keys(C);
+      var C = LF.CITIES || {}, keys = Object.keys(C);
       if (!keys.length) return '<p class="tip">尚无城镇数据。</p>';
       var TIER = { xian: '县', jun: '郡', zhou: '州' }, CTYPE = { plain: '平原城', mountain: '山城', fort: '军镇', port: '港口', shuizhai: '水寨', pass: '关隘' };
       var h = '<div class="cx-grid">';
       keys.forEach(function (id) {
         var c = C[id]; if (!c) return;
-        var fac = facOf(c.owner), facName = fac ? fac.name : (c.owner || '—'), facColor = fac ? fac.color : '#888';
+        var fac = facOf(c.owner), facName = factionName(c.owner), facColor = fac ? fac.color : '#888';
         var tier = (TIER[c.tier] || c.tier || '') + (CTYPE[c.ctype] ? '·' + CTYPE[c.ctype] : '');
         var goods = (c.goods || []).map(function (g) { return escapeHtml(g.name); }).join('、');
         var lm = (c.landmarks || []).map(function (g) { return escapeHtml(g.name); }).join('、');
@@ -191,7 +200,7 @@
       return h + '</div>';
     }
     function codexItems() {
-      var IT = G.ITEMS || {}, keys = Object.keys(IT);
+      var IT = LF.ITEMS || {}, keys = Object.keys(IT);
       if (!keys.length) return '<p class="tip">尚无物品数据。</p>';
       var QMAP = { white: ['凡品', '#9a948a'], green: ['良品', '#3f7d5e'], blue: ['精良', '#3a6ea5'], purple: ['珍稀', '#7d4fa3'], orange: ['神兵', '#b0832f'] };
       var MOUNT = /马|鞍|骑|蹬|辔/;
@@ -217,7 +226,7 @@
       return h + '</div>';
     }
     function codexMartial() {
-      var MA = G.MARTIAL_ARTS || {}, LINES = MA.LINES || {};
+      var MA = LF.MARTIAL_ARTS || {}, LINES = MA.LINES || {};
       var moves = {};
       Object.keys(MA).forEach(function (id) {
         var m = MA[id];
@@ -233,7 +242,7 @@
           '<div class="cx-bio">' + escapeHtml(ln.desc || '') + '</div><div class="cx-chips">' + ml + '</div></div>';
       });
       h += '</div>';
-      var LINEAGES = G.LINEAGES || {}, lk2 = Object.keys(LINEAGES);
+      var LINEAGES = LF.LINEAGES || {}, lk2 = Object.keys(LINEAGES);
       if (lk2.length) {
         h += '<div class="cx-sec-t">武 学 流 派</div><div class="cx-grid">';
         lk2.forEach(function (id) {
@@ -247,10 +256,10 @@
       return h;
     }
     function codexRecipes() {
-      var R = G.RECIPES || {}, benches = Object.keys(R);
+      var R = LF.RECIPES || {}, benches = Object.keys(R);
       if (!benches.length) return '<p class="tip">尚无配方数据。</p>';
       var BNAME = { bench: '木工台', alchemy: '炼炉', forge: '铁匠炉', kitchen: '庖厨', clinic: '医馆', tailor: '裁缝', weave: '织机' };
-      function iname(did) { var it = G.ITEMS && G.ITEMS[did]; return it ? it.name : did; }
+      function iname(did) { var it = LF.ITEMS && LF.ITEMS[did]; return it ? it.name : did; }
       var h = '';
       benches.forEach(function (b) {
         var list = R[b] || []; if (!list.length) return;
@@ -268,7 +277,7 @@
       return h;
     }
     function codexFactions() {
-      var F = G.FACTIONS || {}, keys = Object.keys(F);
+      var F = LF.FACTIONS || {}, keys = Object.keys(F);
       if (!keys.length) return '<p class="tip">尚无势力数据。</p>';
       var h = '<div class="cx-grid">';
       keys.forEach(function (id) {
@@ -279,7 +288,7 @@
       return h + '</div>';
     }
     function codexBuildings() {
-      var B = G.BUILDING_ARCH || {}, keys = Object.keys(B);
+      var B = LF.BUILDING_ARCH || {}, keys = Object.keys(B);
       var h = '<div class="cx-sec-t">营 建 建 筑</div><div class="cx-grid">';
       if (keys.length) {
         keys.forEach(function (id) {
@@ -289,7 +298,7 @@
         });
       } else { h += '<p class="tip">暂无建筑数据。</p>'; }
       h += '</div>';
-      var OFF = (G.OFFICE_SUBROOMS || []).concat(G.OFFICE_DYN ? Object.keys(G.OFFICE_DYN).map(function (k) { return G.OFFICE_DYN[k]; }) : []);
+      var OFF = (LF.OFFICE_SUBROOMS || []).concat(LF.OFFICE_DYN ? Object.keys(LF.OFFICE_DYN).map(function (k) { return LF.OFFICE_DYN[k]; }) : []);
       if (OFF.length) {
         h += '<div class="cx-sec-t">官 署 坊</div><div class="cx-grid">';
         OFF.forEach(function (o) {
@@ -301,7 +310,7 @@
       return h;
     }
     function codexEvents() {
-      var E = G.EVENTS || []; if (!E.length) return '<p class="tip">尚无奇遇数据。</p>';
+      var E = LF.EVENTS || []; if (!E.length) return '<p class="tip">尚无奇遇数据。</p>';
       var h = '<div class="cx-grid">';
       E.forEach(function (ev) {
         var ch = (ev.choices || []).map(function (c) { return escapeHtml(c.text); }).join(' / ');
@@ -312,7 +321,7 @@
       return h + '</div>';
     }
     function codexEnemies() {
-      var EN = G.ENEMIES || {}, keys = Object.keys(EN);
+      var EN = LF.ENEMIES || {}, keys = Object.keys(EN);
       if (!keys.length) return '<p class="tip">尚无兵种数据。</p>';
       var h = '<div class="cx-grid">';
       keys.forEach(function (id) {
@@ -344,8 +353,8 @@
             s.codexSeen.person = s.codexSeen.person || {};
             LF.PERSONA.listRegistered().forEach(function (o) { s.codexSeen.person[o.id] = true; });
           }
-          if (G.CITIES) { s.codexSeen.city = s.codexSeen.city || {}; Object.keys(G.CITIES).forEach(function (c) { s.codexSeen.city[c] = true; }); }
-          if (G.ITEMS) { s.codexSeen.item = s.codexSeen.item || {}; Object.keys(G.ITEMS).forEach(function (i) { s.codexSeen.item[i] = true; }); }
+          if (LF.CITIES) { s.codexSeen.city = s.codexSeen.city || {}; Object.keys(LF.CITIES).forEach(function (c) { s.codexSeen.city[c] = true; }); }
+          if (LF.ITEMS) { s.codexSeen.item = s.codexSeen.item || {}; Object.keys(LF.ITEMS).forEach(function (i) { s.codexSeen.item[i] = true; }); }
         }
       } catch (e) {}
       // 刷新

@@ -93,6 +93,8 @@
     if(typeof enemyId==='string') enemyId=[enemyId];
     var valid=(enemyId||[]).filter(function(id){ return G.ENEMIES && !!G.ENEMIES[id]; });
     if(!valid.length){ log('〔系统〕此处并无可战之敌，刀兵无从施展。','sys'); return; }
+    // 图鉴收集：遇敌即记录兵种
+    try { valid.forEach(function(id){ if(window.__cxMarkSeen) window.__cxMarkSeen('enemy', id); }); } catch(e){}
     var themeId = valid[0];
     enemyId = valid;
     // 注意：引导/教学状态统一存于 getState().flags.onb（历史代码曾误用未定义的 getState().onb，已统一修正）

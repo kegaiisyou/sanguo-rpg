@@ -3959,7 +3959,6 @@
 .cx-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;}
 .cx-tab{font:inherit;color:#6b5b3e;background:rgba(120,90,40,.08);border:1px solid rgba(120,90,40,.18);border-radius:8px;padding:6px 12px;cursor:pointer;}
 .cx-tab.on{color:#fff;background:#7a5a2e;border-color:#7a5a2e;font-weight:700;}
-.cx-body{max-height:62vh;overflow-y:auto;overscroll-behavior:contain;}
 .cx-sec-t{margin:14px 0 8px;font-size:13px;letter-spacing:2px;color:#6b5b3e;border-left:3px solid #7a5a2e;padding-left:8px;}
 .cx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
 .cx-card{background:rgba(255,255,255,.5);border:1px solid rgba(120,90,40,.16);border-radius:10px;padding:10px 12px;cursor:pointer;transition:transform .08s;}
@@ -4015,7 +4014,7 @@
   cursor:pointer;letter-spacing:2px;position:relative;transition:all .12s;}
 .cx-tab.on{color:#fff;background:linear-gradient(135deg,#6b3a18,#8b5a2a);
   border-color:#6b3a18;box-shadow:0 2px 6px rgba(100,50,10,.3);}
-.cx-body{max-height:60vh;overflow-y:auto;overscroll-behavior:contain;padding:2px 2px 6px;}
+.cx-body{padding:2px 2px 6px;}
 .cx-sec-t{margin:16px 0 8px;font-size:13px;letter-spacing:4px;color:#5a3a14;
   border-left:3px solid #8b3a18;padding-left:10px;font-family:"STKaiti","KaiTi",serif;}
 .cx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
