@@ -121,8 +121,9 @@
       if(ct2==='gate'||ct2==='sentry'){
         addGateExit(gateOutwardDir(getState().room, cp.x, cp.y));
       } else if(ct2==='passgate'){
-        // 关隘：关城居中（非网格边界），双向出关——依 controls 连接的各城外向门
-        (availableGateDirs(getState().room)||[]).forEach(addGateExit);
+        // 关隘：关城居中（非网格边界），双向出关——直接遍历本关实际已生成的郊野外向门
+        var _pg=(LF.PLACE_GATES && LF.PLACE_GATES[getState().room])||{};
+        Object.keys(_pg).forEach(addGateExit);
       }
       return ex;
     }
@@ -278,6 +279,11 @@
           var _od=gateOutwardDir(getState().room, _cp.x, _cp.y);
           if(_od===dir && LF.PLACE_GATES && LF.PLACE_GATES[getState().room] && LF.PLACE_GATES[getState().room][_od]){
             leaveViaGate(_od); return;
+          }
+        } else if(_ct==='passgate'){
+          // 关隘：关城居中，罗盘「出城」即朝外门离关（与城门/岗哨同口径）
+          if(LF.PLACE_GATES && LF.PLACE_GATES[getState().room] && LF.PLACE_GATES[getState().room][dir]){
+            leaveViaGate(dir); return;
           }
         }
       }

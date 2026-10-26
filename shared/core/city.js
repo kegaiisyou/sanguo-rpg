@@ -859,9 +859,6 @@ window.LF = window.LF || {};
       }
       if (t === 'drill') { out.push({ id: 'drill_train', label: '操练武艺', icon: '🥋', tip: '于演武场挥汗操练，拳脚渐稳' }); }
       if (t === 'sentry') { out.push({ id: 'sentry_look', label: '瞭望岗哨', icon: '🏮', tip: '登岗瞭望，查看来往行踪' }); }
-      if (t === 'wengcheng') { out.push({ id: 'pass_weng', label: '\u5de1\u89c6\u74ee\u57ce', icon: '\U0001F3F0', tip: '\u7f2f\u57ce\u4e24\u91cd\uff0c\u53ef\u56f0\u6765\u72af\u4e4b\u655e' }); }
-      if (t === 'granary') { out.push({ id: 'pass_granary', label: '\u67e5\u70b9\u50a8\u7cae', icon: '\U0001F33E', tip: '\u68c0\u89c6\u5173\u9645\u7cae\u50a8' }); }
-      if (t === 'passgate') { out.push({ id: 'pass_hold', label: '\u9a7b\u5b88\u5173\u9645', icon: '\u2694', tip: '\u4e8e\u6b64\u627f\u5b88\u8981\u9053' }); }
       if (t === 'barracks') { out.push({ id: 'recruit', label: '募兵操练', tip: '入营招募兵卒，点兵编成部曲（兵科／阵位／辎重／调兵）' }); out.push({ id: 'army_manage', label: '治军', icon: '🛡', tip: '点兵编成、料理辎重、调兵遣将（v20260921a）' }); out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '起兵夺城，胜则易帜、败则遭火' }); }
       if (t === 'market') {
         // 商街店铺：每间一个按钮（店招），点击弹出 NPC 式动作清单（进入 / 观察 / 盘下·经营），不堆多个按钮

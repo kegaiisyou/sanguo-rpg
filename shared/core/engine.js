@@ -2421,9 +2421,6 @@
         if (_wi) log(_wi, 'npc');
         break;
       }
-      case 'pass_weng': { narr('\u7f2f\u57ce\u4e24\u91cd\uff0c\u5916\u95e8\u82e5\u7834\uff0c\u654c\u4fbf\u9677\u91cd\u56f4\uff0c\u63d2\u7fc5\u96be\u9003\u3002'); break; }
-      case 'pass_granary': { narr('\u5173\u9645\u7cae\u50a8\u5c1a\u53ef\uff0c\u591f\u5b88\u519b\u652f\u7528\u5300\u6708\uff1b\u82e5\u88ab\u56f4\u4e45\uff0c\u987b\u5916\u63a5\u6d4e\u3002'); break; }
-      case 'pass_hold': { narr('\u4e00\u592b\u5f53\u5173\uff0c\u4e07\u592b\u83ab\u5f00\u3002\u4f60\u7acb\u4e8e\u5173\u95e8\uff0c\u9065\u671b\u8981\u9053\uff0c\u98ce\u58f0\u730e\u730e\u3002'); break; }
       case 'recruit':
         if(!exert('入营募兵')) return;
         openModal('army');   // 军营：面板内「募兵」区块按兵科/兵源/府库募兵（v20260922b）
