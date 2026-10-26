@@ -48,7 +48,7 @@
     return BUILDINGS[getBuildingState().building] || null;
   }
   function renderBuildingPanel(){
-    var _ci = function (e) { return (window.UI_Icons ? UI_Icons.cellIcon(e) : e); };
+    var _ci = function (e, name) { return (window.UI_Icons ? UI_Icons.icon(e, name) : e); };
     var b=bldDef();
     if(!b) return '<div class="empty">此处并无屋舍。</div>';
     var area=bldCurArea(b);

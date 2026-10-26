@@ -1526,8 +1526,9 @@
     if(state.dead){ die(); return; }
     o=o||{};
     var acts=o.actions||[];
+    var _headIcon = o.icon ? (window.UI_Icons ? UI_Icons.icon(o.icon, o.title||'') : o.icon) : '';
     var h='<h3 style="display:flex;align-items:center;justify-content:center;gap:8px;">'+
-          (o.icon?'<span style="font-size:22px;line-height:1;">'+o.icon+'</span>':'')+
+          (_headIcon?'<span style="font-size:22px;line-height:1;display:flex;align-items:center;">'+_headIcon+'</span>':'')+
           '<span>'+ (o.title||'') +'</span></h3>';
     if(o.desc) h+='<p class="tip" style="text-align:center;font-size:14px;margin:2px 0 0;">'+o.desc+'</p>';
     if(acts.length){
@@ -2158,7 +2159,8 @@
       if(a.sep){ var s=document.createElement('div'); s.className='op-sep'; panel.appendChild(s); return; }
       var b=document.createElement('button');
       b.className='op-btn'+(a.danger?' danger':'')+(a.icon?' has-ic':'');
-      b.innerHTML=(a.icon?'<span class="op-ic">'+a.icon+'</span>':'')+'<span class="op-lb">'+a.label+'</span>';
+      var _opIcon = a.icon ? (window.UI_Icons ? UI_Icons.icon(a.icon, a.label) : a.icon) : '';
+      b.innerHTML=(_opIcon?'<span class="op-ic">'+_opIcon+'</span>':'')+'<span class="op-lb">'+a.label+'</span>';
       b.onclick=function(ev){ ev.stopPropagation(); collapseObjPanel(); if(a && typeof a.fn==='function') a.fn(); };
       panel.appendChild(b);
     });
