@@ -61,6 +61,19 @@
     '🏋️':'icons/武','🏋':'icons/武','🧑':'icons/人','🧑‍🌾':'icons/农','🧑‍🍳':'icons/厨',
     '🧑‍🎓':'icons/人','🧑‍🎨':'icons/坊','🧑‍💼':'icons/事','🧑‍🔧':'icons/工',
     '👨‍🍳':'icons/厨','👩‍🍳':'icons/厨','👷':'icons/工','🟫':'icons/野外',
+    // v20261026u：补全剩余 emoji 映射
+    '⏳':'icons/查看','⚖️':'icons/交易','⚙️':'icons/打造','🌽':'icons/农',
+    '🍖':'icons/食','🍗':'icons/食','🍚':'icons/食','🍜':'icons/食','🍢':'icons/食',
+    '🍯':'icons/药','🍳':'icons/食','🎐':'icons/哨','🎣':'icons/采药篮',
+    '🎯':'icons/攻击','🏟️':'icons/武','🏯':'icons/关隘','🏹':'icons/弓',
+    '🐖':'icons/食','👊':'icons/武','💊':'icons/药瓶','📝':'icons/写字',
+    '📥':'icons/行囊','🔒':'icons/仓','🔓':'icons/钥匙','🔭':'icons/查看',
+    '🕯️':'icons/灯笼','🕴️':'icons/人','🖤':'icons/心','🗡️':'icons/剑','🗡':'icons/剑',
+    '🗣️':'icons/话','🗺️':'icons/关隘','🗼':'icons/关隘','😤':'icons/心',
+    '😴':'icons/睡觉','🙏':'icons/话','🚰':'icons/水桶','🛌':'icons/睡觉',
+    '🛏️':'icons/宿','🛠':'icons/打造','🛡️':'icons/盾','🥀':'icons/草药',
+    '🥁':'icons/骰子','🥉':'icons/钱袋','🥊':'icons/武','🥜':'icons/食',
+    '🌀':'icons/药臼2','❄️':'icons/雪','🌫️':'icons/阴','🐕':'icons/人',
     // v20261026i：汉字图标（水墨 PNG，shared/img/icons/*.png）
     '宅':'icons/宅','仓':'icons/仓','厨':'icons/厨','军':'icons/军','宿':'icons/宿',
     '农':'icons/农','武':'icons/武','哨':'icons/哨','帐':'icons/帐','矿':'icons/矿',
@@ -83,7 +96,13 @@
     '打造':'icons/打造','旗帜':'icons/旗帜2',
     // 补充
     '伤':'icons/金疮药','杵':'icons/药臼2','茶':'icons/汤药',
-    '翁':'icons/人','🍲':'icons/汤药'
+    '翁':'icons/人','🍲':'icons/汤药',
+    // v20261026u：补全剩余汉字
+    '关':'icons/关隘','匠':'icons/打造','商':'icons/交易','垒':'icons/军',
+    '垦':'icons/农','城':'icons/关隘','打':'icons/打造','械':'icons/剑',
+    '水':'icons/水桶','治':'icons/药','炼':'icons/丹','登':'icons/行走',
+    '砧':'icons/打造','穴':'icons/洞','练':'icons/武','营':'icons/军',
+    '野':'icons/野外','银':'icons/钱袋','镇':'icons/店','拳':'icons/武'
   };
   // NPC 头像（按人名）
   var NPC_BY_NAME={
