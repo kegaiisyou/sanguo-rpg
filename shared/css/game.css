@@ -2021,7 +2021,9 @@
   .pack-wrap .equipslot.qeq{flex:0 0 auto;width:62px;min-height:58px;padding:4px 2px 3px;}   /* v20261025b：快捷槽加宽 52→62px，装备名可完整显示 */
   .pack-wrap .equipslot.qeq .ep-name{font-size:10.5px;max-width:100%;line-height:1.1;}
   .pack-wrap .equipslot.qeq .ep-ic{width:100%;height:28px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  .pack-wrap .equipslot.qeq .ep-ph-ic{font-size:20px;line-height:1;}
+  .pack-wrap .equipslot.qeq .ep-ic img{width:28px;height:28px;object-fit:contain;display:block;}
+  .pack-wrap .equipslot.qeq .ep-ph-ic{font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .pack-wrap .equipslot.qeq .ep-ph-ic img{width:24px;height:24px;object-fit:contain;display:block;}
   .pack-wrap .equipslot.qeq .ep-ph{font-size:10px;line-height:1.1;}
   /* v20261022e：背包拖拽反馈 + 野外迷雾/地形着色 */
   .pack-grid .packcell.dragging{opacity:.4;transform:scale(.94);}
