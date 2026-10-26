@@ -4318,6 +4318,7 @@
     if(kind==='building'){ bindBuildingPanel(); }
     if(kind==='citybuild'){ bindCityBuildPanel(); }
     if(kind==='sect'){ bindSectPanel(); }
+
     if(kind==='quest'){ bindQuestPanel(); }
     if(kind==='shopstock'){ window.bindShopStockPanel(); }
     if(kind==='shopinteract'){ Shop.bindShopInteractPanel(); }

@@ -29,30 +29,254 @@
         cityLevelName = ctx.cityLevelName, cityGridSize = ctx.cityGridSize,
         cityDevOf = ctx.cityDevOf;      // 函数声明，提升可用
 
-    // 图鉴：览物志
-    function renderCodex(){
-      var known={}; if(S()&&S().learnedMartial) S().learnedMartial.forEach(function(id){known[id]=1;});
-      var byLine={};
-      Object.keys(G.MARTIAL_ARTS||{}).forEach(function(id){
-        var m=G.MARTIAL_ARTS[id]; if(!m||!m.line) return;
-        (byLine[m.line]=byLine[m.line]||[]).push({name:m.name,on:!!known[id]});
+    // 图鉴：览物志（重构 v20261026c）
+    // 多分类收藏：人物 / 城镇 / 装备 / 武学 / 配方 / 势力 / 建筑 / 奇遇 / 兵种
+    var CX_DEF = [
+      { k: 'person',  n: '人物' },
+      { k: 'city',    n: '城镇' },
+      { k: 'item',    n: '装备' },
+      { k: 'martial', n: '武学' },
+      { k: 'recipe',  n: '配方' },
+      { k: 'faction', n: '势力' },
+      { k: 'build',   n: '建筑' },
+      { k: 'event',   n: '奇遇' },
+      { k: 'enemy',   n: '兵种' }
+    ];
+    var _cxCache = {};
+    function cxFn(k) {
+      return ({
+        person: codexPersons, city: codexCities, item: codexItems, martial: codexMartial,
+        recipe: codexRecipes, faction: codexFactions, build: codexBuildings,
+        event: codexEvents, enemy: codexEnemies
+      })[k];
+    }
+    function cxRender(k) {
+      if (_cxCache[k]) return _cxCache[k];
+      var fn = cxFn(k), out;
+      try { out = fn ? fn() : '<p class="tip">暂无数据。</p>'; }
+      catch (e) { out = '<p class="tip">该分类暂不可读。</p>'; }
+      _cxCache[k] = out; return out;
+    }
+    function renderCodex() {
+      var h = '<h3>览 物 志</h3><p class="tip">天下风物，皆录于此；点条目可展开详情。</p>';
+      h += '<div class="cx-tabs">';
+      CX_DEF.forEach(function (t, i) {
+        h += '<button class="cx-tab' + (i === 0 ? ' on' : '') + '" data-cx="' + t.k + '" onclick="window.__cxTab(\'' + t.k + '\')">' + t.n + '</button>';
       });
-      var h='<h3>览 物 志</h3><p class="tip">江湖风物，已历者标朱。</p>';
-      h+='<div class="codex-sec"><h4>武 学（十三艺线）</h4><div class="codex-grid">';
-      Object.keys(byLine).forEach(function(line){
-        byLine[line].forEach(function(it){ h+='<span class="codex-chip'+(it.on?' on':'')+'">'+it.name+'</span>'; });
+      h += '</div><div class="cx-body">';
+      CX_DEF.forEach(function (t, i) {
+        h += '<div class="cx-pg' + (i === 0 ? '' : ' hidden') + '" data-pg="' + t.k + '">' + (i === 0 ? cxRender(t.k) : '') + '</div>';
       });
-      h+='</div></div>';
-      h+='<div class="codex-sec"><h4>门 派</h4><div class="codex-grid">';
-      Object.keys(G.SECTS||{}).forEach(function(k){ h+='<span class="codex-chip">'+G.SECTS[k].name+'</span>'; });
-      h+='</div></div>';
-      if(G.ENEMIES){
-        h+='<div class="codex-sec"><h4>贼 寇 名 录</h4><div class="codex-grid">';
-        Object.keys(G.ENEMIES).forEach(function(k){ var e=G.ENEMIES[k]; if(e&&e.name) h+='<span class="codex-chip">'+e.name+'</span>'; });
-        h+='</div></div>';
+      h += '</div>';
+      return h;
+    }
+    function cxStat(label, val, max) {
+      max = max || 100;
+      var pct = Math.max(0, Math.min(100, Math.round((val || 0) / max * 100)));
+      return '<div class="cx-stat"><span class="cx-stat-l">' + label + '</span><span class="cx-stat-bar"><i style="width:' + pct + '%"></i></span><span class="cx-stat-v">' + (val || 0) + '</span></div>';
+    }
+    function power(o) { var s = o.stats || {}; return (s.wu || 0) + (s.zhi || 0) + (s.tong || 0) + (s.zheng || 0) + (s.mei || 0); }
+    function facOf(key) { return (G.FACTIONS && G.FACTIONS[key]) ? G.FACTIONS[key] : null; }
+    function cityNameOf(cid) { return (G.CITIES && G.CITIES[cid]) ? G.CITIES[cid].name : (cid || '—'); }
+
+    function codexPersons() {
+      var list = (G.PERSONA && G.PERSONA.listRegistered) ? G.PERSONA.listRegistered() : [];
+      if (!list.length) return '<p class="tip">尚无武将数据。</p>';
+      list.sort(function (a, b) { return power(b) - power(a); });
+      var h = '<div class="cx-grid">';
+      list.forEach(function (o) {
+        var fac = facOf(o.faction), facName = fac ? fac.name : (o.faction || '—'), facColor = fac ? fac.color : '#888';
+        var tags = (o.tags || []).join('·');
+        h += '<div class="cx-card" onclick="window.__cxToggle(this)">' +
+          '<div class="cx-card-h"><span class="cx-dot" style="background:' + facColor + '"></span><b>' + escapeHtml(o.name) + '</b><span class="cx-sub">' + escapeHtml(o.title || '') + '</span></div>' +
+          '<div class="cx-meta"><span>' + escapeHtml(facName) + '</span><span>战力 ' + power(o) + '</span>' + (tags ? '<span>#' + escapeHtml(tags) + '</span>' : '') + '</div>' +
+          '<div class="cx-detail">' +
+            cxStat('武勇', o.stats.wu) + cxStat('智略', o.stats.zhi) + cxStat('统率', o.stats.tong) + cxStat('政务', o.stats.zheng) + cxStat('魅力', o.stats.mei) +
+            '<div class="cx-line">驻城：' + escapeHtml(cityNameOf(o.home)) + '　忠诚：' + (o.loyalty != null ? o.loyalty : '—') + '</div>' +
+            (o.skills && o.skills.length ? '<div class="cx-line">特技：' + escapeHtml(o.skills.join('、')) + '</div>' : '') +
+            '<div class="cx-bio">' + escapeHtml(o.bio || '') + '</div>' +
+          '</div></div>';
+      });
+      return h + '</div>';
+    }
+    function codexCities() {
+      var C = G.CITIES || {}, keys = Object.keys(C);
+      if (!keys.length) return '<p class="tip">尚无城镇数据。</p>';
+      var TIER = { xian: '县', jun: '郡', zhou: '州' }, CTYPE = { plain: '平原城', mountain: '山城', fort: '军镇', port: '港口', shuizhai: '水寨', pass: '关隘' };
+      var h = '<div class="cx-grid">';
+      keys.forEach(function (id) {
+        var c = C[id]; if (!c) return;
+        var fac = facOf(c.owner), facName = fac ? fac.name : (c.owner || '—'), facColor = fac ? fac.color : '#888';
+        var tier = (TIER[c.tier] || c.tier || '') + (CTYPE[c.ctype] ? '·' + CTYPE[c.ctype] : '');
+        var goods = (c.goods || []).map(function (g) { return escapeHtml(g.name); }).join('、');
+        var lm = (c.landmarks || []).map(function (g) { return escapeHtml(g.name); }).join('、');
+        h += '<div class="cx-card" onclick="window.__cxToggle(this)">' +
+          '<div class="cx-card-h"><b>' + escapeHtml(c.name) + '</b><span class="cx-sub">' + escapeHtml(c.comm || c.state || '') + '</span></div>' +
+          '<div class="cx-meta"><span><span class="cx-dot" style="background:' + facColor + '"></span>' + escapeHtml(facName) + '</span><span>' + escapeHtml(tier) + '</span></div>' +
+          '<div class="cx-detail"><div class="cx-bio">' + escapeHtml(c.desc || '') + '</div>' +
+          (goods ? '<div class="cx-line">特产：' + goods + '</div>' : '') +
+          (lm ? '<div class="cx-line">地标：' + lm + '</div>' : '') +
+          '<div class="cx-line">兵力：' + (c.garrison != null ? c.garrison : '—') + '　人口：' + (c.pop != null ? c.pop : '—') + '</div></div></div>';
+      });
+      return h + '</div>';
+    }
+    function codexItems() {
+      var IT = G.ITEMS || {}, keys = Object.keys(IT);
+      if (!keys.length) return '<p class="tip">尚无物品数据。</p>';
+      var QMAP = { white: ['凡品', '#9a948a'], green: ['良品', '#3f7d5e'], blue: ['精良', '#3a6ea5'], purple: ['珍稀', '#7d4fa3'], orange: ['神兵', '#b0832f'] };
+      var MOUNT = /马|鞍|骑|蹬|辔/;
+      var CATS = [['all', '全部'], ['装备', '装备'], ['药剂', '药剂'], ['道具', '道具'], ['素材', '素材'], ['凭证', '凭证'], ['mount', '坐骑']];
+      var h = '<div class="cx-filter">';
+      CATS.forEach(function (c, i) { h += '<button class="cx-f' + (i === 0 ? ' on' : '') + '" data-cat="' + c[0] + '" onclick="window.__cxFilter(this)">' + c[1] + '</button>'; });
+      h += '</div><div class="cx-grid" data-itemgrid>';
+      keys.forEach(function (id) {
+        var it = IT[id]; if (!it || !it.name) return;
+        var cat = it.cat || '其他', q = QMAP[it.quality] || ['', '#9a948a'];
+        var isM = MOUNT.test(it.name || '') || (it.slot === 'belt' && MOUNT.test(it.name || ''));
+        var stats = '';
+        if (it.stats) { var p = []; if (it.stats.atk) p.push('攻' + it.stats.atk); if (it.stats.def) p.push('防' + it.stats.def); if (it.stats.hp) p.push('血' + it.stats.hp); if (it.stats.spd) p.push('速' + it.stats.spd); stats = p.join(' '); }
+        var extra = it.packSpace ? ' 容量+' + it.packSpace : '';
+        h += '<div class="cx-card cx-item" data-cat="' + cat + '"' + (isM ? ' data-mount="1"' : '') + ' style="border-left:3px solid ' + q[1] + '" onclick="window.__cxToggle(this)">' +
+          '<div class="cx-card-h"><span class="cx-ic">' + (it.icon || '·') + '</span><b>' + escapeHtml(it.name) + '</b>' +
+          (it.quality ? '<span class="cx-q" style="color:' + q[1] + '">' + q[0] + '</span>' : '') + '</div>' +
+          '<div class="cx-meta"><span>' + escapeHtml(cat) + '</span>' + (stats ? '<span>' + stats + '</span>' : '') + (it.price ? '<span>' + it.price + '文</span>' : '') + '</div>' +
+          '<div class="cx-detail"><div class="cx-bio">' + escapeHtml(it.desc || '') + '</div>' + (extra ? '<div class="cx-line">' + extra + '</div>' : '') + '</div></div>';
+      });
+      return h + '</div>';
+    }
+    function codexMartial() {
+      var MA = G.MARTIAL_ARTS || {}, LINES = MA.LINES || {};
+      var moves = {};
+      Object.keys(MA).forEach(function (id) {
+        var m = MA[id];
+        if (m && typeof m === 'object' && typeof m.type === 'string' && m.line) { (moves[m.line] = moves[m.line] || []).push(m); }
+      });
+      var known = {}; try { (S() && S().learnedMartial || []).forEach(function (id) { known[id] = 1; }); } catch (e) {}
+      var lineOrder = Object.keys(LINES).sort(function (a, b) { return (LINES[a].order || 0) - (LINES[b].order || 0); });
+      var h = '<div class="cx-sec-t">武 学 艺 线</div><div class="cx-grid">';
+      lineOrder.forEach(function (lk) {
+        var ln = LINES[lk]; if (!ln) return;
+        var ml = (moves[lk] || []).map(function (m) { return '<span class="cx-chip' + (known[m.id] ? ' on' : '') + '">' + escapeHtml(m.name) + '</span>'; }).join('');
+        h += '<div class="cx-card"><div class="cx-card-h"><b>' + escapeHtml(ln.name) + '</b><span class="cx-sub">' + escapeHtml(ln.kind || '') + '</span></div>' +
+          '<div class="cx-bio">' + escapeHtml(ln.desc || '') + '</div><div class="cx-chips">' + ml + '</div></div>';
+      });
+      h += '</div>';
+      var LINEAGES = G.LINEAGES || {}, lk2 = Object.keys(LINEAGES);
+      if (lk2.length) {
+        h += '<div class="cx-sec-t">武 学 流 派</div><div class="cx-grid">';
+        lk2.forEach(function (id) {
+          var s = LINEAGES[id]; if (!s) return;
+          var lnName = LINES[s.line] ? LINES[s.line].name : s.line;
+          h += '<div class="cx-card"><div class="cx-card-h"><b>' + escapeHtml(s.name) + '</b><span class="cx-sub">' + escapeHtml(lnName) + '·' + escapeHtml(s.elem || '') + '</span></div>' +
+            '<div class="cx-bio">' + escapeHtml(s.origin || '') + '</div></div>';
+        });
+        h += '</div>';
       }
       return h;
     }
+    function codexRecipes() {
+      var R = G.RECIPES || {}, benches = Object.keys(R);
+      if (!benches.length) return '<p class="tip">尚无配方数据。</p>';
+      var BNAME = { bench: '木工台', alchemy: '炼炉', forge: '铁匠炉', kitchen: '庖厨', clinic: '医馆', tailor: '裁缝', weave: '织机' };
+      function iname(did) { var it = G.ITEMS && G.ITEMS[did]; return it ? it.name : did; }
+      var h = '';
+      benches.forEach(function (b) {
+        var list = R[b] || []; if (!list.length) return;
+        h += '<div class="cx-sec-t">' + escapeHtml(BNAME[b] || b) + '</div><div class="cx-grid">';
+        list.forEach(function (r) {
+          var ins = (r.in || []).map(function (x) { return escapeHtml(iname(x.id)) + '×' + (x.n || 1); }).join('、');
+          var out = escapeHtml(iname(r.out)) + (r.outN > 1 ? ('×' + r.outN) : '');
+          h += '<div class="cx-card"><div class="cx-card-h"><span class="cx-ic">' + (r.icon || '🔨') + '</span><b>' + escapeHtml(r.name) + '</b>' +
+            (r.cat ? '<span class="cx-sub">' + escapeHtml(r.cat) + '</span>' : '') + '</div>' +
+            '<div class="cx-line">产出：' + out + '</div>' + (ins ? '<div class="cx-line">材料：' + ins + '</div>' : '') +
+            (r.note ? '<div class="cx-bio">' + escapeHtml(r.note) + '</div>' : '') + '</div>';
+        });
+        h += '</div>';
+      });
+      return h;
+    }
+    function codexFactions() {
+      var F = G.FACTIONS || {}, keys = Object.keys(F);
+      if (!keys.length) return '<p class="tip">尚无势力数据。</p>';
+      var h = '<div class="cx-grid">';
+      keys.forEach(function (id) {
+        var f = F[id]; if (!f) return;
+        h += '<div class="cx-card"><div class="cx-card-h"><span class="cx-dot" style="background:' + (f.color || '#888') + '"></span><b>' + escapeHtml(f.name) + '</b>' +
+          (f.lord ? '<span class="cx-sub">' + escapeHtml(f.lord) + '</span>' : '') + '</div><div class="cx-bio">' + escapeHtml(f.desc || '') + '</div></div>';
+      });
+      return h + '</div>';
+    }
+    function codexBuildings() {
+      var B = G.BUILDING_ARCH || {}, keys = Object.keys(B);
+      var h = '<div class="cx-sec-t">营 建 建 筑</div><div class="cx-grid">';
+      if (keys.length) {
+        keys.forEach(function (id) {
+          var b = B[id]; if (!b) return;
+          h += '<div class="cx-card"><div class="cx-card-h"><b>' + escapeHtml(b.name) + '</b>' + (b.tier ? '<span class="cx-sub">T' + b.tier + '</span>' : '') + '</div>' +
+            (b.tags && b.tags.length ? '<div class="cx-meta"><span>' + b.tags.join('·') + '</span></div>' : '') + '</div>';
+        });
+      } else { h += '<p class="tip">暂无建筑数据。</p>'; }
+      h += '</div>';
+      var OFF = (G.OFFICE_SUBROOMS || []).concat(G.OFFICE_DYN ? Object.keys(G.OFFICE_DYN).map(function (k) { return G.OFFICE_DYN[k]; }) : []);
+      if (OFF.length) {
+        h += '<div class="cx-sec-t">官 署 坊</div><div class="cx-grid">';
+        OFF.forEach(function (o) {
+          if (!o) return;
+          h += '<div class="cx-card"><div class="cx-card-h"><b>' + escapeHtml(o.name || '') + '</b></div>' + (o.note ? '<div class="cx-bio">' + escapeHtml(o.note) + '</div>' : '') + '</div>';
+        });
+        h += '</div>';
+      }
+      return h;
+    }
+    function codexEvents() {
+      var E = G.EVENTS || []; if (!E.length) return '<p class="tip">尚无奇遇数据。</p>';
+      var h = '<div class="cx-grid">';
+      E.forEach(function (ev) {
+        var ch = (ev.choices || []).map(function (c) { return escapeHtml(c.text); }).join(' / ');
+        h += '<div class="cx-card" onclick="window.__cxToggle(this)"><div class="cx-card-h"><b>' + escapeHtml(ev.title || '') + '</b>' +
+          (ev.choices ? '<span class="cx-sub">' + ev.choices.length + ' 选</span>' : '') + '</div>' +
+          '<div class="cx-bio">' + escapeHtml(ev.text || '') + '</div><div class="cx-detail"><div class="cx-line">抉择：' + ch + '</div></div></div>';
+      });
+      return h + '</div>';
+    }
+    function codexEnemies() {
+      var EN = G.ENEMIES || {}, keys = Object.keys(EN);
+      if (!keys.length) return '<p class="tip">尚无兵种数据。</p>';
+      var h = '<div class="cx-grid">';
+      keys.forEach(function (id) {
+        var e = EN[id]; if (!e || !e.name) return;
+        var sk = (e.skills || []).map(function (s) { return escapeHtml(s.name); }).join('、');
+        h += '<div class="cx-card" onclick="window.__cxToggle(this)"><div class="cx-card-h"><b>' + escapeHtml(e.name) + '</b>' +
+          (e.title ? '<span class="cx-sub">' + escapeHtml(e.title) + '</span>' : '') + '</div>' +
+          '<div class="cx-meta"><span>' + escapeHtml(e.element || '') + '</span><span>HP ' + escapeHtml(e.hp) + '</span><span>攻' + escapeHtml(e.atk) + '</span><span>防' + escapeHtml(e.def) + '</span><span>速' + escapeHtml(e.spd) + '</span></div>' +
+          '<div class="cx-detail">' + (sk ? '<div class="cx-line">技能：' + sk + '</div>' : '') + (e.ai ? '<div class="cx-line">性情：' + escapeHtml(e.ai) + '</div>' : '') + '</div></div>';
+      });
+      return h + '</div>';
+    }
+    window.__cxTab = function (k) {
+      var card = document.getElementById('modal-card'); if (!card) return;
+      card.querySelectorAll('.cx-tab').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-cx') === k); });
+      card.querySelectorAll('.cx-pg').forEach(function (p) {
+        var pg = p.getAttribute('data-pg');
+        if (pg !== k) { p.classList.add('hidden'); return; }
+        p.classList.remove('hidden');
+        if (!p.getAttribute('data-done')) { p.innerHTML = cxRender(k); p.setAttribute('data-done', '1'); }
+      });
+    };
+    window.__cxToggle = function (el) {
+      var d = el.querySelector('.cx-detail'); if (d) d.classList.toggle('open');
+      el.classList.toggle('open');
+    };
+    window.__cxFilter = function (btn) {
+      var pg = btn.closest('.cx-pg'); if (!pg) return;
+      var grid = pg.querySelector('[data-itemgrid]'); if (!grid) return;
+      var cat = btn.getAttribute('data-cat');
+      btn.parentNode.querySelectorAll('.cx-f').forEach(function (b) { b.classList.toggle('on', b === btn); });
+      grid.querySelectorAll('.cx-item').forEach(function (c) {
+        var show = cat === 'all' || (cat === 'mount' ? c.getAttribute('data-mount') === '1' : c.getAttribute('data-cat') === cat);
+        c.style.display = show ? '' : 'none';
+      });
+    };
 
     // 设置：标签页（画面 / 声音 / 游戏）；fromTitle 时不含调试台
     function renderSettings(opts){
@@ -92,6 +316,7 @@
         game+='<button class="close" id="m-save" style="margin-top:14px;">立即存档</button>';
       }
       game+='<button class="close" id="m-clear" style="background:rgba(120,60,50,.12);color:#8a3b2e;margin-top:10px;">清除全部存档</button>';
+      game+='<button class="close" onclick="openModal(&quot;codex&quot;)" style="background:rgba(47,106,165,.16);color:#5a8fc8;margin-top:10px;">📖 览物志</button>';
       if(!fromTitle){
         game+='<button class="close" id="m-dev" style="background:rgba(176,131,47,.16);color:#8a6a2e;margin-top:10px;">🛠 调试台</button>';
       }
