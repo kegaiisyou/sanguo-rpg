@@ -337,7 +337,8 @@
     font-family:"PingFang SC","Microsoft YaHei",sans-serif;transition:.12s;display:flex;align-items:center;gap:8px;width:100%;}
   .obj-menu .op-btn:hover{background:rgba(176,131,47,.15);border-color:rgba(176,131,47,.3);}
   .obj-menu .op-btn:active{transform:scale(.98);}
-  .obj-menu .op-btn.has-ic .op-ic{font-size:15px;flex:none;}
+  .obj-menu .op-btn.has-ic .op-ic{font-size:15px;flex:none;display:flex;align-items:center;}
+  .obj-menu .op-btn .op-ic img.ui-pic{width:20px;height:20px;object-fit:contain;display:block;}
   .obj-menu .op-btn.danger{color:#c0392b;}
   .obj-menu .op-btn.danger:hover{background:rgba(192,57,43,.12);border-color:rgba(192,57,43,.35);}
   .obj-menu .op-sep{height:1px;margin:3px 4px;background:rgba(176,131,47,.2);}

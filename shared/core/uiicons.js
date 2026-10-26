@@ -50,7 +50,16 @@
     '晴':'icons/晴','月':'icons/月','雨':'icons/雨','阴':'icons/阴','雪':'icons/雪',
     '心':'icons/心','话':'icons/话','息':'icons/息','采':'icons/采','袋':'icons/袋',
     '火':'icons/火','旗':'icons/旗','人':'icons/人','箱':'icons/箱','臼':'icons/臼',
-    '卷':'icons/卷','印':'icons/印'
+    '卷':'icons/卷','印':'icons/印',
+    // v20261026m：第四批（动作/战斗指令/交互）
+    '掷':'icons/骰子','交易':'icons/交易','睡':'icons/睡觉','防御':'icons/防御',
+    '逃跑':'icons/逃跑','搜索':'icons/搜索','看':'icons/查看','走':'icons/行走',
+    '招':'icons/招手','攻':'icons/攻击','战':'icons/交锋','任务':'icons/任务',
+    '灯笼':'icons/灯笼','营火':'icons/营火','水桶':'icons/水桶',
+    '采药':'icons/采药篮','写':'icons/写字','骑马':'icons/骑马',
+    '行舟':'icons/行舟','关隘':'icons/关隘','野外':'icons/野外',
+    '桥':'icons/桥','饮酒':'icons/饮酒','阅读':'icons/阅读',
+    '打造':'icons/打造','旗帜':'icons/旗帜2'
   };
   // NPC 头像（按人名）
   var NPC_BY_NAME={
