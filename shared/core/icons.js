@@ -279,6 +279,11 @@ window.LF = window.LF || {};
     }
     var em = (it && it.icon) ? it.icon : '';
     var fs = Math.min(px, 16);
+    // v20261026q：emoji 物品图标走 UI_Icons 水墨 PNG 映射
+    if (em && window.UI_Icons) {
+      var _mapped = UI_Icons.icon(em, n);
+      if (_mapped && _mapped.indexOf('<img') === 0) return _mapped;
+    }
     return '<span class="ic-txt ic-cat" data-cat="'+cat+'" style="font-size:'+fs+'px;">'+(em?em+' ':'')+'<b>'+n+'</b></span>';
   }
     return { ICON_SPR: ICON_SPR, ICON_IMG: ICON_IMG, itemIconHTML: itemIconHTML };

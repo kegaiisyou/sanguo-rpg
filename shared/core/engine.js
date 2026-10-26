@@ -1704,8 +1704,7 @@
   function cityActs(cid){
     var p=cityProfile(cid); if(!p) return [];
     var out=[];
-    // 兴修城垣属「施工队 / 建造营房」类建筑之责，苦役营（营区中枢）不挂此钮（归城池自身营造系统）
-    if(cid!=='kuyilao') out.push({id:'city_upgrade', label:'兴修城垣', icon:'🧱', tip:'拓建城池，提升城市等级（耗砖石木）'});
+    // 兴修城垣按钮已下线（v20261026q）
     return out;
   }
   function tryUpgradeCity(cid){
