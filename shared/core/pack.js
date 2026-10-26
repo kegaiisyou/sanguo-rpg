@@ -76,10 +76,23 @@
   function inspCls(loc){ return (getPackInspect() && locEq(getPackInspect(),loc))?' pcell-insp':''; }
   function renderPackGrid(){
     var grid='';
-    var _cap=packMax(); if(getState().pack.length>_cap)_cap=getState().pack.length; for(var i=0;i<_cap;i++){
+    var _cap=packMax(); if(getState().pack.length>_cap)_cap=getState().pack.length;
+    // v20261026q：筛选时不留空格，只显示匹配物品（参考鬼谷八荒）
+    if(packFilter){
+      for(var i=0;i<_cap;i++){
+        var it=getState().pack[i];
+        if(!it || it.cat!==packFilter) continue;
+        var cnt=(it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
+        var qb=(it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
+        grid+='<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
+              +'<div class="pcell-ic">'+itemIconHTML(it,36)+'</div>'+cnt+qb+'</div>';
+      }
+      if(!grid) grid='<div style="grid-column:1/-1;text-align:center;color:var(--ink-faint);font-size:13px;padding:24px 0;">此分类暂无物品</div>';
+      return grid;
+    }
+    for(var i=0;i<_cap;i++){
       var it=getState().pack[i];
-      // v20261008c：分类页签筛选——不匹配类别的格渲染为空（保留格子索引与拖拽换位一致性）
-      if(!it || (packFilter && it.cat !== packFilter)){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
+      if(!it){ grid += '<div class="packcell pcell-empty" data-loc="pack:'+i+'"></div>'; continue; }
       var cnt = (it.count>1)?('<span class="pcell-cnt">'+it.count+'</span>'):'';
       var qb = (it.quality)?('<span class="pcell-qbadge" style="background:'+((LF.ITEMS.QMAP[it.quality]||{}).color||'#9a948a')+'"></span>'):'';
       grid += '<div class="packcell'+inspCls({kind:'pack',idx:i})+'" data-loc="pack:'+i+'">'
@@ -123,7 +136,7 @@
       if(eq && eq.maxDur){ var dp=Math.max(0,Math.round((eq.dur/eq.maxDur)*100)); var dc=dp>50?'#6fd08a':(dp>25?'#e0b14a':'#e0796f'); durBar='<span class="ep-dur"><i style="width:'+dp+'%;background:'+dc+'"></i></span>'; }
       var inner = eq
         ? '<div class="ep-ic">'+itemIconHTML(eq,22)+'</div><div class="ep-name">'+eq.name+'</div>'
-        : '<div class="ep-ph-ic">'+sl.icon+'</div><div class="ep-ph">'+sl.label+'</div>';
+        : '<div class="ep-ph-ic">'+(window.UI_Icons?UI_Icons.icon(sl.icon, sl.label):sl.icon)+'</div><div class="ep-ph">'+sl.label+'</div>';
       var qcol=(eq&&eq.quality&&LF.ITEMS.QMAP[eq.quality])?LF.ITEMS.QMAP[eq.quality].color:'';
       var qs=qcol?(' style="--qcol:'+qcol+'"'):'';
       h+='<div class="equipslot qeq ep-'+slot+(eq?'':' ep-empty')+insCls+'" data-loc="equip:'+slot+'"'+qs+'>'+inner+badge+durBar+'</div>';
