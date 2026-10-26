@@ -138,11 +138,15 @@
   var HERO_BY_NAME={
     '曹操':'npc-caocao','刘备':'npc-liubei','孙策':'npc-sunce','关羽':'npc-guanyu',
     '张飞':'npc-zhangfei','赵云':'npc-zhaoyun','诸葛亮':'npc-zhugeliang','吕布':'npc-lvbu',
-    '董卓':'npc-dongzhuo','周瑜':'npc-zhouyu',
+    '董卓':'npc-dongzhuo','周瑜':'npc-zhouyu','孙权':'npc-sunquan',
     // v20260924z21 第二批：袁绍/马超/典韦/许褚/张辽/黄忠/太史慈/荀彧/郭嘉/庞统
     '袁绍':'npc-yuanshao','马超':'npc-machao','典韦':'npc-dianwei','许褚':'npc-xuchu',
     '张辽':'npc-zhangliao','黄忠':'npc-huangzhong','太史慈':'npc-taishici','荀彧':'npc-xunyu',
-    '郭嘉':'npc-guojia','庞统':'npc-pangtong'
+    '郭嘉':'npc-guojia','庞统':'npc-pangtong',
+    // v20261026v 第三批：孙权/夏侯惇/徐晃/甘宁/陆逊/司马懿/姜维/魏延/黄盖
+    '孙权':'npc-sunquan','夏侯惇':'npc-xiahoudun','徐晃':'npc-xuhuang','甘宁':'npc-ganning',
+    '陆逊':'npc-luxun','司马懿':'npc-simayi','姜维':'npc-jiangwei','魏延':'npc-weiyan',
+    '黄盖':'npc-zhanggai'
   };
   function avatar(name, role){
     if(name && HERO_BY_NAME[name]) return pic(HERO_BY_NAME[name], 'ui-ava');
