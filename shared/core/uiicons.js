@@ -59,7 +59,10 @@
     '采药':'icons/采药篮','写':'icons/写字','骑马':'icons/骑马',
     '行舟':'icons/行舟','关隘':'icons/关隘','野外':'icons/野外',
     '桥':'icons/桥','饮酒':'icons/饮酒','阅读':'icons/阅读',
-    '打造':'icons/打造','旗帜':'icons/旗帜2'
+    '打造':'icons/打造','旗帜':'icons/旗帜2',
+    // 补充
+    '伤':'icons/金疮药','杵':'icons/药臼2','茶':'icons/汤药',
+    '翁':'icons/人','🍲':'icons/汤药'
   };
   // NPC 头像（按人名）
   var NPC_BY_NAME={
