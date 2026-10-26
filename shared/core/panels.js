@@ -59,7 +59,7 @@
     }
     function cxTotal(k) {
       try {
-        if (k === 'person') return (G.PERSONA && G.PERSONA.listRegistered) ? G.PERSONA.listRegistered().length : 0;
+        if (k === 'person') return (LF.PERSONA && LF.PERSONA.listRegistered) ? LF.PERSONA.listRegistered().length : 0;
         if (k === 'city') return Object.keys(G.CITIES || {}).length;
         if (k === 'item') return Object.keys(G.ITEMS || {}).length;
         if (k === 'martial') {
@@ -81,9 +81,15 @@
     }
     function renderCodex() {
       var initGot = cxTotal('person');
+      var sa = cxShowAll();
       var h = '<div class="codex-root">';
       h += '<div class="cx-head"><div class="cx-title">览物志<small>天下风物 · 皆录于此</small></div>';
       h += '<div class="cx-progress" id="cx-prog">收录 <span id="cx-got">' + initGot + '</span>/<span id="cx-tot">' + initGot + '</span><i><b id="cx-progbar" style="width:' + (initGot ? 100 : 0) + '%"></b></i></div></div>';
+      h += '<div class="cx-debugbar">';
+      h += '<button class="cx-dbg' + (sa ? ' on' : '') + '" id="cx-btn-all" onclick="window.__cxToggleShowAll(true)">🔍 全部图鉴</button>';
+      h += '<button class="cx-dbg' + (!sa ? ' on' : '') + '" id="cx-btn-seen" onclick="window.__cxToggleShowAll(false)">👁 仅已遇</button>';
+      h += '<button class="cx-dbg" onclick="window.__cxMarkAllSeen()">✓ 全部标记已遇</button>';
+      h += '</div>';
       h += '<div class="cx-tabs">';
       CX_DEF.forEach(function (t, i) {
         h += '<button class="cx-tab' + (i === 0 ? ' on' : '') + '" data-cx="' + t.k + '" onclick="window.__cxTab(\'' + t.k + '\')">' + t.n + '</button>';
@@ -104,24 +110,62 @@
     function facOf(key) { return (G.FACTIONS && G.FACTIONS[key]) ? G.FACTIONS[key] : null; }
     function cityNameOf(cid) { return (G.CITIES && G.CITIES[cid]) ? G.CITIES[cid].name : (cid || '—'); }
 
+    // 收集制：state.codexSeen.{category}[id] = true 表示已见过
+    function cxSeen(cat, id) {
+      try {
+        var s = S(); if (!s || !s.codexSeen) return true;   // 标题页/无存档：默认全部可见
+        return !!(s.codexSeen[cat] && s.codexSeen[cat][id]);
+      } catch (e) { return true; }
+    }
+    function cxMarkSeen(cat, id) {
+      try {
+        var s = S(); if (!s) return;
+        s.codexSeen = s.codexSeen || {};
+        s.codexSeen[cat] = s.codexSeen[cat] || {};
+        s.codexSeen[cat][id] = true;
+      } catch (e) {}
+    }
+    // 调试开关：localStorage 'lf_cx_showall' = '1' 时显示全部（含未发现）
+    function cxShowAll() { try { var v = localStorage.getItem('lf_cx_showall'); return v === null ? true : v === '1'; } catch (e) { return true; } }
+    function cxAvatar(id) {
+      return 'shared/img/npc-' + String(id || '').replace(/_/g, '') + '.png';
+    }
+
     function codexPersons() {
-      var list = (G.PERSONA && G.PERSONA.listRegistered) ? G.PERSONA.listRegistered() : [];
+      var list = (LF.PERSONA && LF.PERSONA.listRegistered) ? LF.PERSONA.listRegistered() : [];
       if (!list.length) return '<p class="tip">尚无武将数据。</p>';
       list.sort(function (a, b) { return power(b) - power(a); });
+      var showAll = cxShowAll();
       var h = '<div class="cx-grid">';
       list.forEach(function (o) {
+        var seen = cxSeen('person', o.id);
+        if (!showAll && !seen) return;   // 已发现模式：跳过未见过的
         var fac = facOf(o.faction), facName = fac ? fac.name : (o.faction || '—'), facColor = fac ? fac.color : '#888';
         var tags = (o.tags || []).join('·');
         var sealChar = (o.name || '·').slice(0, 1);
-        h += '<div class="cx-card" onclick="window.__cxToggle(this)">' +
-          '<div class="cx-card-h"><span class="cx-dot" style="background:' + facColor + '"></span><span class="cx-personame">' + escapeHtml(o.name) + '</span><span class="cx-seal">' + escapeHtml(sealChar) + '</span><span class="cx-sub">' + escapeHtml(o.title || '') + '</span></div>' +
-          '<div class="cx-meta"><span>' + escapeHtml(facName) + '</span><span>战力 ' + power(o) + '</span>' + (tags ? '<span>#' + escapeHtml(tags) + '</span>' : '') + '</div>' +
-          '<div class="cx-detail">' +
-            cxStat('武勇', o.stats.wu) + cxStat('智略', o.stats.zhi) + cxStat('统率', o.stats.tong) + cxStat('政务', o.stats.zheng) + cxStat('魅力', o.stats.mei) +
-            '<div class="cx-line">驻城：' + escapeHtml(cityNameOf(o.home)) + '　忠诚：' + (o.loyalty != null ? o.loyalty : '—') + '</div>' +
-            (o.skills && o.skills.length ? '<div class="cx-line">特技：' + escapeHtml(o.skills.join('、')) + '</div>' : '') +
-            '<div class="cx-bio">' + escapeHtml(o.bio || '') + '</div>' +
-          '</div></div>';
+        var av = cxAvatar(o.id);
+        if (seen) {
+          h += '<div class="cx-card cx-person" onclick="window.__cxToggle(this)">' +
+            '<div class="cx-avatar"><img src="' + av + '" alt="" onerror="this.parentNode.classList.add(\'noimg\');this.remove();"></div>' +
+            '<div class="cx-card-bod">' +
+              '<div class="cx-card-h"><span class="cx-dot" style="background:' + facColor + '"></span><span class="cx-personame">' + escapeHtml(o.name) + '</span><span class="cx-seal">' + escapeHtml(sealChar) + '</span><span class="cx-sub">' + escapeHtml(o.title || '') + '</span></div>' +
+              '<div class="cx-meta"><span>' + escapeHtml(facName) + '</span><span>战力 ' + power(o) + '</span>' + (tags ? '<span>#' + escapeHtml(tags) + '</span>' : '') + '</div>' +
+              '<div class="cx-detail">' +
+                cxStat('武勇', o.stats.wu) + cxStat('智略', o.stats.zhi) + cxStat('统率', o.stats.tong) + cxStat('政务', o.stats.zheng) + cxStat('魅力', o.stats.mei) +
+                '<div class="cx-line">驻城：' + escapeHtml(cityNameOf(o.home)) + '　忠诚：' + (o.loyalty != null ? o.loyalty : '—') + '</div>' +
+                (o.skills && o.skills.length ? '<div class="cx-line">特技：' + escapeHtml(o.skills.join('、')) + '</div>' : '') +
+                '<div class="cx-bio">' + escapeHtml(o.bio || '') + '</div>' +
+              '</div>' +
+            '</div></div>';
+        } else {
+          // 未发现：剪影
+          h += '<div class="cx-card cx-person cx-locked">' +
+            '<div class="cx-avatar cx-avatar-lock">？</div>' +
+            '<div class="cx-card-bod">' +
+              '<div class="cx-card-h"><span class="cx-personame cx-unknown">？？？</span><span class="cx-sub">未遇</span></div>' +
+              '<div class="cx-meta"><span>身份不明</span></div>' +
+            '</div></div>';
+        }
       });
       return h + '</div>';
     }
@@ -281,6 +325,37 @@
       });
       return h + '</div>';
     }
+    window.__cxToggleShowAll = function (v) {
+      try { localStorage.setItem('lf_cx_showall', v ? '1' : '0'); } catch (e) {}
+      // 重渲染当前 tab
+      var card = document.getElementById('modal-card'); if (!card) return;
+      var on = card.querySelector('.cx-tab.on');
+      var k = on ? on.getAttribute('data-cx') : 'person';
+      _cxCache = {};
+      card.querySelectorAll('.cx-pg').forEach(function (p) { p.removeAttribute('data-done'); p.innerHTML=''; });
+      window.__cxTab(k);
+    };
+    window.__cxMarkAllSeen = function () {
+      try {
+        var s = S();
+        if (s) {
+          s.codexSeen = s.codexSeen || {};
+          if (LF.PERSONA && LF.PERSONA.listRegistered) {
+            s.codexSeen.person = s.codexSeen.person || {};
+            LF.PERSONA.listRegistered().forEach(function (o) { s.codexSeen.person[o.id] = true; });
+          }
+          if (G.CITIES) { s.codexSeen.city = s.codexSeen.city || {}; Object.keys(G.CITIES).forEach(function (c) { s.codexSeen.city[c] = true; }); }
+          if (G.ITEMS) { s.codexSeen.item = s.codexSeen.item || {}; Object.keys(G.ITEMS).forEach(function (i) { s.codexSeen.item[i] = true; }); }
+        }
+      } catch (e) {}
+      // 刷新
+      _cxCache = {};
+      var card = document.getElementById('modal-card'); if (!card) return;
+      var on = card.querySelector('.cx-tab.on');
+      var k = on ? on.getAttribute('data-cx') : 'person';
+      card.querySelectorAll('.cx-pg').forEach(function (p) { p.removeAttribute('data-done'); p.innerHTML=''; });
+      window.__cxTab(k);
+    };
     window.__cxTab = function (k) {
       var card = document.getElementById('modal-card'); if (!card) return;
       card.querySelectorAll('.cx-tab').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-cx') === k); });

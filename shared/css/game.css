@@ -4065,3 +4065,22 @@
 .cx-item[data-q="blue"]::before{background:linear-gradient(180deg,#4a8ec8,#2a5a98);box-shadow:0 0 8px rgba(74,142,200,.5);}
 .cx-item[data-q="purple"]::before{background:linear-gradient(180deg,#9a5ec8,#5a2a8a);box-shadow:0 0 10px rgba(154,94,200,.6);}
 .cx-item[data-q="orange"]::before{background:linear-gradient(180deg,#e0a83a,#8a5a10);box-shadow:0 0 12px rgba(224,168,58,.7);}
+
+/* 览物志 · 人物卡横排（立绘+文字）+ 收集制 */
+.cx-debugbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 4px 10px;}
+.cx-dbg{font:inherit;font-size:11.5px;color:#6b4e20;background:rgba(255,250,235,.7);
+  border:1px solid rgba(120,80,30,.3);border-radius:12px;padding:4px 10px;cursor:pointer;}
+.cx-dbg.on{color:#fff;background:#6b3a18;border-color:#6b3a18;}
+.cx-person{display:flex;gap:10px;align-items:flex-start;padding:10px;}
+.cx-avatar{flex:none;width:58px;height:58px;border-radius:8px;overflow:hidden;
+  background:linear-gradient(135deg,#d4b88a,#b08a55);border:1px solid rgba(90,60,20,.3);
+  display:flex;align-items:center;justify-content:center;}
+.cx-avatar img{width:100%;height:100%;object-fit:cover;object-position:top;}
+.cx-avatar-lock{background:linear-gradient(135deg,#9a948a,#6b655c);color:#e8e0d0;
+  font-size:26px;font-family:"STKaiti","KaiTi",serif;}
+.cx-card-bod{flex:1;min-width:0;}
+.cx-person .cx-card-h{font-size:16px;}
+.cx-personame{font-size:18px;}
+.cx-unknown{color:#9a948a;}
+.cx-locked{background:linear-gradient(180deg,#e8e0d0,#d8cdb8);opacity:.85;}
+.cx-locked:hover{transform:none;box-shadow:0 1px 3px rgba(90,60,20,.1);}
