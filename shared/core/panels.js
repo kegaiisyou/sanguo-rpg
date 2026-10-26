@@ -57,8 +57,33 @@
       catch (e) { out = '<p class="tip">该分类暂不可读。</p>'; }
       _cxCache[k] = out; return out;
     }
+    function cxTotal(k) {
+      try {
+        if (k === 'person') return (G.PERSONA && G.PERSONA.listRegistered) ? G.PERSONA.listRegistered().length : 0;
+        if (k === 'city') return Object.keys(G.CITIES || {}).length;
+        if (k === 'item') return Object.keys(G.ITEMS || {}).length;
+        if (k === 'martial') {
+          var n = 0, MA = G.MARTIAL_ARTS || {};
+          Object.keys(MA).forEach(function (id) { var m = MA[id]; if (m && m.type && m.line) n++; });
+          return n;
+        }
+        if (k === 'recipe') {
+          var n2 = 0, R = G.RECIPES || {};
+          Object.keys(R).forEach(function (b) { n2 += (R[b] || []).length; });
+          return n2;
+        }
+        if (k === 'faction') return Object.keys(G.FACTIONS || {}).length;
+        if (k === 'build') return Object.keys(G.BUILDING_ARCH || {}).length;
+        if (k === 'event') return (G.EVENTS || []).length;
+        if (k === 'enemy') return Object.keys(G.ENEMIES || {}).length;
+      } catch (e) {}
+      return 0;
+    }
     function renderCodex() {
-      var h = '<h3>览 物 志</h3><p class="tip">天下风物，皆录于此；点条目可展开详情。</p>';
+      var initGot = cxTotal('person');
+      var h = '<div class="codex-root">';
+      h += '<div class="cx-head"><div class="cx-title">览物志<small>天下风物 · 皆录于此</small></div>';
+      h += '<div class="cx-progress" id="cx-prog">收录 <span id="cx-got">' + initGot + '</span>/<span id="cx-tot">' + initGot + '</span><i><b id="cx-progbar" style="width:' + (initGot ? 100 : 0) + '%"></b></i></div></div>';
       h += '<div class="cx-tabs">';
       CX_DEF.forEach(function (t, i) {
         h += '<button class="cx-tab' + (i === 0 ? ' on' : '') + '" data-cx="' + t.k + '" onclick="window.__cxTab(\'' + t.k + '\')">' + t.n + '</button>';
@@ -67,7 +92,7 @@
       CX_DEF.forEach(function (t, i) {
         h += '<div class="cx-pg' + (i === 0 ? '' : ' hidden') + '" data-pg="' + t.k + '">' + (i === 0 ? cxRender(t.k) : '') + '</div>';
       });
-      h += '</div>';
+      h += '</div></div>';
       return h;
     }
     function cxStat(label, val, max) {
@@ -87,8 +112,9 @@
       list.forEach(function (o) {
         var fac = facOf(o.faction), facName = fac ? fac.name : (o.faction || '—'), facColor = fac ? fac.color : '#888';
         var tags = (o.tags || []).join('·');
+        var sealChar = (o.name || '·').slice(0, 1);
         h += '<div class="cx-card" onclick="window.__cxToggle(this)">' +
-          '<div class="cx-card-h"><span class="cx-dot" style="background:' + facColor + '"></span><b>' + escapeHtml(o.name) + '</b><span class="cx-sub">' + escapeHtml(o.title || '') + '</span></div>' +
+          '<div class="cx-card-h"><span class="cx-dot" style="background:' + facColor + '"></span><span class="cx-personame">' + escapeHtml(o.name) + '</span><span class="cx-seal">' + escapeHtml(sealChar) + '</span><span class="cx-sub">' + escapeHtml(o.title || '') + '</span></div>' +
           '<div class="cx-meta"><span>' + escapeHtml(facName) + '</span><span>战力 ' + power(o) + '</span>' + (tags ? '<span>#' + escapeHtml(tags) + '</span>' : '') + '</div>' +
           '<div class="cx-detail">' +
             cxStat('武勇', o.stats.wu) + cxStat('智略', o.stats.zhi) + cxStat('统率', o.stats.tong) + cxStat('政务', o.stats.zheng) + cxStat('魅力', o.stats.mei) +
@@ -132,11 +158,13 @@
       keys.forEach(function (id) {
         var it = IT[id]; if (!it || !it.name) return;
         var cat = it.cat || '其他', q = QMAP[it.quality] || ['', '#9a948a'];
+        if (!/[一-龥]/.test(it.name)) return;
+        if (['装备','药剂','道具','素材','凭证'].indexOf(cat) < 0) return;
         var isM = MOUNT.test(it.name || '') || (it.slot === 'belt' && MOUNT.test(it.name || ''));
         var stats = '';
         if (it.stats) { var p = []; if (it.stats.atk) p.push('攻' + it.stats.atk); if (it.stats.def) p.push('防' + it.stats.def); if (it.stats.hp) p.push('血' + it.stats.hp); if (it.stats.spd) p.push('速' + it.stats.spd); stats = p.join(' '); }
         var extra = it.packSpace ? ' 容量+' + it.packSpace : '';
-        h += '<div class="cx-card cx-item" data-cat="' + cat + '"' + (isM ? ' data-mount="1"' : '') + ' style="border-left:3px solid ' + q[1] + '" onclick="window.__cxToggle(this)">' +
+        h += '<div class="cx-card cx-item" data-cat="' + cat + '"' + (it.quality ? ' data-q="' + it.quality + '"' : '') + (isM ? ' data-mount="1"' : '') + ' style="border-left:3px solid ' + q[1] + '" onclick="window.__cxToggle(this)">' +
           '<div class="cx-card-h"><span class="cx-ic">' + (it.icon || '·') + '</span><b>' + escapeHtml(it.name) + '</b>' +
           (it.quality ? '<span class="cx-q" style="color:' + q[1] + '">' + q[0] + '</span>' : '') + '</div>' +
           '<div class="cx-meta"><span>' + escapeHtml(cat) + '</span>' + (stats ? '<span>' + stats + '</span>' : '') + (it.price ? '<span>' + it.price + '文</span>' : '') + '</div>' +
@@ -262,6 +290,17 @@
         p.classList.remove('hidden');
         if (!p.getAttribute('data-done')) { p.innerHTML = cxRender(k); p.setAttribute('data-done', '1'); }
       });
+      // 更新顶部收集进度
+      var tot = cxTotal(k);
+      var got = 0;
+      try {
+        var pg = card.querySelector('.cx-pg:not(.hidden)');
+        if (pg) got = pg.querySelectorAll('.cx-card').length;
+      } catch (e) {}
+      var g = card.querySelector('#cx-got'), t = card.querySelector('#cx-tot'), bar = card.querySelector('#cx-progbar');
+      if (g) g.textContent = got;
+      if (t) t.textContent = tot;
+      if (bar) bar.style.width = (tot ? Math.min(100, Math.round(got / tot * 100)) : 0) + '%';
     };
     window.__cxToggle = function (el) {
       var d = el.querySelector('.cx-detail'); if (d) d.classList.toggle('open');

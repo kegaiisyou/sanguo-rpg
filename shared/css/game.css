@@ -3986,3 +3986,82 @@
 .cx-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
 .cx-f{font:inherit;font-size:12px;color:#8a7a5c;background:rgba(120,90,40,.08);border:1px solid rgba(120,90,40,.18);border-radius:14px;padding:4px 12px;cursor:pointer;}
 .cx-f.on{color:#fff;background:#7a5a2e;border-color:#7a5a2e;}
+
+/* ===== 览物志 · 古卷图鉴风 v20261026e ===== */
+.codex-root{
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(180,140,80,.08), transparent 60%),
+    radial-gradient(ellipse at 100% 100%, rgba(120,80,40,.10), transparent 55%),
+    linear-gradient(180deg, #f5ecd8 0%, #efdfc0 100%);
+  border-radius: 12px;
+  padding: 14px 14px 16px;
+  box-shadow: inset 0 0 0 1px rgba(90,60,20,.18), inset 0 2px 8px rgba(90,60,20,.06);
+  position: relative;
+}
+.codex-root::before{
+  content: ''; position: absolute; inset: 6px; border: 1px solid rgba(90,60,20,.18);
+  border-radius: 9px; pointer-events: none;
+}
+.cx-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:10px;padding:0 4px;}
+.cx-title{font-size:22px;letter-spacing:6px;color:#3a2a12;font-weight:700;
+  font-family:"STKaiti","KaiTi","Kaiti SC",serif;}
+.cx-title small{font-size:11px;letter-spacing:2px;color:#8a6a3e;font-weight:400;margin-left:6px;}
+.cx-progress{flex:none;text-align:right;font-size:11px;color:#6b4e24;}
+.cx-progress i{display:block;width:90px;height:5px;background:rgba(90,60,20,.15);border-radius:3px;overflow:hidden;margin-top:3px;margin-left:auto;}
+.cx-progress i b{display:block;height:100%;background:linear-gradient(90deg,#a0522d,#7a3a18);}
+.cx-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px;padding:0 4px;}
+.cx-tab{font:inherit;font-size:12.5px;color:#5a4420;background:rgba(255,250,235,.6);
+  border:1px solid rgba(120,80,30,.28);border-radius:3px 10px 3px 10px;padding:5px 12px;
+  cursor:pointer;letter-spacing:2px;position:relative;transition:all .12s;}
+.cx-tab.on{color:#fff;background:linear-gradient(135deg,#6b3a18,#8b5a2a);
+  border-color:#6b3a18;box-shadow:0 2px 6px rgba(100,50,10,.3);}
+.cx-body{max-height:60vh;overflow-y:auto;overscroll-behavior:contain;padding:2px 2px 6px;}
+.cx-sec-t{margin:16px 0 8px;font-size:13px;letter-spacing:4px;color:#5a3a14;
+  border-left:3px solid #8b3a18;padding-left:10px;font-family:"STKaiti","KaiTi",serif;}
+.cx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.cx-card{background:linear-gradient(180deg,#fdf6e3 0%,#f4e6c6 100%);
+  border:1px solid rgba(120,80,30,.25);border-radius:8px;padding:10px 12px;cursor:pointer;
+  transition:transform .1s, box-shadow .15s, border-color .15s;
+  box-shadow:0 1px 3px rgba(90,60,20,.12);position:relative;overflow:hidden;}
+.cx-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,#b0832f,#7a5a2e);opacity:.6;}
+.cx-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(90,60,20,.2);}
+.cx-card.open{background:linear-gradient(180deg,#fffaf0 0%,#f8ecd0 100%);
+  box-shadow:0 4px 14px rgba(90,60,20,.22);border-color:rgba(140,90,30,.4);}
+.cx-card-h{display:flex;align-items:center;gap:6px;font-size:15px;color:#2a1a08;}
+.cx-ic{font-size:18px;}
+.cx-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;
+  box-shadow:0 0 0 2px rgba(255,255,255,.6), 0 1px 2px rgba(0,0,0,.2);}
+.cx-sub{font-size:11px;color:#8a6a3e;margin-left:auto;}
+.cx-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:11.5px;color:#7a5a2e;margin-top:5px;}
+.cx-bio{font-size:12.5px;color:#4a3820;line-height:1.7;margin-top:6px;font-family:"STKaiti","KaiTi",serif;}
+.cx-line{font-size:12px;color:#5a4424;margin-top:3px;}
+.cx-detail{display:none;margin-top:8px;border-top:1px dashed rgba(120,80,30,.3);padding-top:8px;}
+.cx-detail.open{display:block;animation:cxFade .25s ease;}
+@keyframes cxFade{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.cx-stat{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px;}
+.cx-stat-l{width:34px;color:#8a6a3e;flex:none;}
+.cx-stat-bar{flex:1;height:7px;background:rgba(120,80,30,.15);border-radius:4px;overflow:hidden;}
+.cx-stat-bar i{display:block;height:100%;background:linear-gradient(90deg,#b0832f,#6b3a18);}
+.cx-stat-v{width:28px;text-align:right;color:#5a3a14;flex:none;}
+.cx-q{font-size:11px;margin-left:auto;font-weight:700;}
+.cx-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.cx-chip{font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(120,80,30,.12);color:#6b4e20;}
+.cx-chip.on{background:#6b3a18;color:#fff;}
+.cx-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.cx-f{font:inherit;font-size:12px;color:#6b4e24;background:rgba(255,250,235,.6);
+  border:1px solid rgba(120,80,30,.25);border-radius:12px;padding:4px 12px;cursor:pointer;}
+.cx-f.on{color:#fff;background:#6b3a18;border-color:#6b3a18;}
+/* 人物牌位：书法大字名 + 朱印 */
+.cx-personame{font-family:"STKaiti","KaiTi","Kaiti SC",serif;font-size:20px;font-weight:700;
+  color:#2a1608;letter-spacing:3px;}
+.cx-seal{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;
+  background:#a8281c;color:#fff;font-size:10px;border-radius:3px;margin-left:6px;
+  font-family:"STKaiti","KaiTi",serif;box-shadow:0 1px 2px rgba(120,30,20,.4);
+  transform:rotate(-3deg);}
+/* 物品稀有度左边框光晕 */
+.cx-item[data-q="white"]::before{background:linear-gradient(180deg,#9a948a,#6b655c);}
+.cx-item[data-q="green"]::before{background:linear-gradient(180deg,#4a9d78,#2d6b4e);box-shadow:0 0 6px rgba(74,157,120,.4);}
+.cx-item[data-q="blue"]::before{background:linear-gradient(180deg,#4a8ec8,#2a5a98);box-shadow:0 0 8px rgba(74,142,200,.5);}
+.cx-item[data-q="purple"]::before{background:linear-gradient(180deg,#9a5ec8,#5a2a8a);box-shadow:0 0 10px rgba(154,94,200,.6);}
+.cx-item[data-q="orange"]::before{background:linear-gradient(180deg,#e0a83a,#8a5a10);box-shadow:0 0 12px rgba(224,168,58,.7);}
