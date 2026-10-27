@@ -671,5 +671,85 @@
 
     });
 
+    // ══════════ 军营·结交军官（v20261027c）：屯长严石三拍 ══════════
+    //   军营格(0,2) 原先只有「修筑营防」的机制骨架，无一位可谈的军官——
+    //   故把「谁在册上记你一笔」落到具体的人身上：亮相 → 验收 → 引荐韩铁（接送信线）。
+
+    T.push({
+
+      id: 'yan_shi_meet', hook: 'onEnter', room: 'kuyilao', cell: [0,2], once: false,
+
+      cond: { notFlag: 'flags.onb.yanMet' },
+
+      steps: [
+
+        { t: 'setFlag', path: 'flags.onb.yanMet', value: true },
+
+        { t: 'log', cls: 'npc', npc: 'yan_shi', text: '〔军营〕夯土墙下堆着木料与石条。一个短髯军汉拿脚量着墙根，见你进来，只抬了抬下巴：「新来的？城旦之役——修营栅、扎鹿角、掘壕堑，三样，依次来。」' },
+
+        { t: 'log', cls: 'npc', npc: 'yan_shi', text: '「料不齐先去凑。场院能装担，仓里有散料。」他一顿，「记住：这活不是给你自家院子修的，是要挡人的。」' }
+
+      ]
+
+    });
+
+    T.push({
+
+      id: 'yan_shi_check', hook: 'onTalk', npc: 'yan_shi', room: 'kuyilao', cell: [0,2], once: false,
+
+      cond: { flags: { 'flags.onb.yanMet': true }, notFlag: 'flags.onb.yanChecked' },
+
+      steps: [
+
+        { t: 'setFlag', path: 'flags.onb.yanChecked', value: true },
+
+        { t: 'npcTalk', npc: 'yan_shi',
+
+          prompt: '严石把册子往腋下一夹，绕着墙根走了一圈：「修了几样，我看看。」',
+
+          asks: [
+
+            { label: '〔回话〕照实报上进度',
+
+              say: '他翻了翻册子：「记下了。三样修齐，我替你在韩教头跟前递句话——他那边缺个腿快的。料不齐，就先去场院装担、仓里翻找。」' }
+
+          ] }
+
+      ]
+
+    });
+
+    T.push({
+
+      id: 'yan_shi_intro', hook: 'onTalk', npc: 'yan_shi', room: 'kuyilao', cell: [0,2], once: false,
+
+      cond: { flags: { 'flags.onb.fortAll': true }, notFlag: 'flags.onb.yanIntro' },
+
+      steps: [
+
+        { t: 'setFlag', path: 'flags.onb.yanIntro', value: true },
+
+        { t: 'npcTalk', npc: 'yan_shi',
+
+          prompt: '严石绕营栅走了一圈，鹿角拒马横在门口，壕堑也掘开了。他在册上重重记了一笔，抬头看你：「三样齐了。这营防，有你一份力气。」',
+
+          asks: [
+
+            { label: '〔听他讲〕「严屯长，这活我还能再干点什么？」',
+
+              set: { 'flags.onb.yanIntroDone': true },
+
+              say: '他把册子合上：「我跟韩教头递过话了——他那边，缺个腿快的。你去找他。」〔军营·结交：严石引荐韩铁。〕' }
+
+          ] },
+
+        { t: 'favor', npc: 'han_tie', amount: 1 },
+
+        { t: 'log', cls: 'good', text: '〔军营·引荐〕严屯长在韩教头跟前替你递了话。（韩铁好感+1）' }
+
+      ]
+
+    });
+
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -2619,9 +2619,10 @@
           advanceMinutes(_nx.min);
           for(var _m=0;_m<_nx.need.length;_m++) packConsume(_nx.need[_m][0], _nx.need[_m][1]);
           _fort[_nx.k]=1;
+          if(_fort.zha && _fort.lujiao && _fort.haoqian) _onb.fortAll=true;
           state.npcFavor=state.npcFavor||{};
           state.npcFavor['han_tie']=(state.npcFavor['han_tie']||0)+1;
-          log('〔城旦之役〕'+_nx.txt+'军官在册上记了你一笔——这营防，有你的力气。（韩铁好感+1）','good');
+          log('〔城旦之役〕'+_nx.txt+'严屯长拿脚量过，在册上记了你一笔——这营防，有你的力气。（韩铁好感+1）','good');
           afterPackChange(); renderStatus(); save(state); buildActions(curRoom());
         });
         break;
