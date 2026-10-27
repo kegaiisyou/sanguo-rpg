@@ -280,7 +280,6 @@
     // 教学链特例（v20260915c）：周听涛收干粮 —— 原判据原样保留
     if(o.key==='zhoutingtao'){
       if(!t.zt_accepted) return false;               // 差事尚未应下，无货可交
-      if(f.route && f.route.crypt) return false;     // 密道已得，这桩差事已了
       return !!packFind('fan');                      // 手里得真有那份吃食
     }
     // 泛化（v20260915k；v20260920h 扩 flag 型）：教学期凡「未结差事的收件人」也放行给予

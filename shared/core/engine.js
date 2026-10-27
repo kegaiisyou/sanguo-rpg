@@ -1168,13 +1168,12 @@
       log('〔教学完成〕你逃出了苦役营！自此汇入北疆乱世——点下方罗盘「北」前往林径，外头自有接应。', 'sys');
       return;
     }
-    // 新分支收尾（密道先逃救阿禾 / 阿禾线 / 孤身）：胜或退皆算出营，统一毕业
+    // 新分支收尾（阿禾线 / 孤身）：胜或退皆算出营，统一毕业
     // v20260930：原守卫 `!state.flags.coup.done` 在 coup_resolver 置 done 后即恒假，
     //   导致这三支战斗胜利后永远走不到毕业、被 onEnter 反复重触发（对话→战斗→对话死循环）。
     //   改为按各分支 escaped 旗标判定，且胜/退/败皆毕业，杜绝软锁与循环。
     if (state.flags && state.flags.coup) {
       var _cb = state.flags.coup.branch;
-      if (_cb === 'tunnel_early' && enemy.id === 'camp_guard' && !state.flags.coup.tunnel_escaped) { coupGraduate('tunnel_escaped', 'tunnel_early'); return; }
       if (_cb === 'minor_ahe'    && enemy.id === 'camp_guard' && !state.flags.coup.ahe_escaped)    { coupGraduate('ahe_escaped', 'minor_ahe'); return; }
       if (_cb === 'minor'        && enemy.id === 'camp_guard' && !state.flags.coup.minor_escaped)  { coupGraduate('minor_escaped', 'minor'); return; }
     }
@@ -1622,7 +1621,7 @@
       // 副本 / 秘谷（v20260927h）：〔戒备〕〔首领〕〔已清〕——此前副本房间只有一句 desc，无任何敌情播报。
       if((room._kind||room.kind) === 'dungeon' || (room._kind||room.kind) === 'dungeon_entrance') narr = narr.concat(dungeonNarr(room));
       // 新房间自动探查：标记已探索，出口立即可用。
-      // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「环顾四周 / 探查」在玩家主动行动时揭示。
+      // 不再于进场时自动播 find，避免开场信息过载；场景细节交由「打量四周 / 探查」在玩家主动行动时揭示。
       if(!explored){
         explored=true;
         if(!state.exploredRooms) state.exploredRooms={};
@@ -2047,7 +2046,8 @@
   var rackTake = OBJ.rackTake;
   var kitchenPour = OBJ.kitchenPour;
   var watchLook = OBJ.watchLook;
-  var rummageFind = OBJ.rummageFind;
+  var rummageOpen = OBJ.rummageOpen;
+  var rummageTake = OBJ.rummageTake;
   var cookDouzhou = OBJ.cookDouzhou;
   var cookYeCai = OBJ.cookYeCai;
   var rummageTarget = OBJ.rummageTarget;
@@ -2482,6 +2482,10 @@
         break;
       }
       case 'warehouse_view': {
+        // 苦役身份的存取限制（v20261027）：教程期内官仓不对苦役开放 —— 石料只经「卸料台」入仓，
+        // 想自取自存须仓吏点头（替他办过差、攒下好感，或另有许可）。校验前置在 openModal 之前，
+        // 免得面板先渲染出来再被拦，白闪一下。
+        var sp=storagePerm(state.room); if(!sp.ok){ toast(sp.reason); break; }
         openModal('storage',{cid:state.room});
         break;
       }
@@ -2563,16 +2567,11 @@
         break;
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
-      // ─── 教程：劳作 / 塌墙根决断（v20260911h · P3：劳作吃时辰 —— 见 laborTick）───
+      // ─── 教程：劳作闭环（v20260911h · P3：劳作吃时辰 —— 见 laborTick）───
       // v20260920h：担石劳作改搬运闭环 —— 按钮已由「乱石堆·装担」「卸料台·卸料入仓」承接，
       //   此处只作兜底转发；「下地务农」无脑按钮已删除（农事工分改由真实操作记取）。
       case 'labor_yard': { stoneLoad(); break; }
       case 'haul_stones': { stoneUnload(); break; }
-      case 'survey_yard':
-        if(!exert('环顾四周')) return;
-        if(!checkTriggers({hook:'onCustom', room: state.room}))
-          log('你又环顾了一圈劳役场，乱石、藤蔓、往来狱卒——一切如旧。','sys');
-        break;
       case 'survey_south':
         log('你立在南岗哨，远远望见营中旗号——太平道的黄巾竟已悄悄插上了几处岗亭。你心头一凛：这营里，要变天了。且安心做活，静待时机。', 'sys');
         break;
@@ -2596,9 +2595,40 @@
         if(state.flags.route) state.flags.route.dummy_done=true; save(state);
         startCombat('camp_dummy', { tutorial: true });   // 木人桩即战斗教学场：首次为引导演练，练成后转为普通对练
         break;
+      // ─── 教程·军营营造（v20261027）：营栅 / 鹿角拒马 / 壕堑 ───
+      //   苦役营的「城旦之役」不只担石 —— 修营防也是徭役（城旦舂之属）。三样依次修筑，
+      //   各耗木石与工夫；料不齐先去凑，修齐即在营中立住脚，军官在册上记你一笔。
+      case 'camp_fortify': {
+        var _onb=state.flags.onb||(state.flags.onb={});
+        var _fort=_onb.fort||(_onb.fort={});
+        var _ord=[
+          {k:'zha',     nm:'营栅',     need:[['mucai',3]],               min:60, txt:'你扛来木料，照着营墙旧样一排排钉下营栅。'},
+          {k:'lujiao',  nm:'鹿角拒马', need:[['mucai',2],['shitiao',1]], min:60, txt:'你把削尖的木枝交叉绑成鹿角，又压上石条——拒马横在营门口，骑兵冲不进来了。'},
+          {k:'haoqian', nm:'壕堑',     need:[['shitiao',2]],             min:90, txt:'你一镐一镐掘开壕堑，碎石垒在两侧，营墙外多了一道牙口。'}
+        ];
+        var _nx=null; for(var _i=0;_i<_ord.length;_i++){ if(!_fort[_ord[_i].k]){ _nx=_ord[_i]; break; } }
+        if(!_nx){ toast('营栅、鹿角拒马、壕堑都修齐了——这营防，有你一份力气。'); break; }
+        var _lack=null;
+        for(var _j=0;_j<_nx.need.length;_j++){
+          var _it=packFind(_nx.need[_j][0]), _n=_nx.need[_j][1];
+          if(!_it || (_it.count||1)<_n){ _lack=(_nx.need[_j][0])+'×'+_n; break; }
+        }
+        if(_lack){ toast('修「'+_nx.nm+'」还缺料（'+_lack+'）——先去场院装担、仓里翻找凑齐。'); break; }
+        if(!exert('修筑'+_nx.nm)) break;
+        busyAct('修筑'+_nx.nm, 1000, function(){
+          advanceMinutes(_nx.min);
+          for(var _m=0;_m<_nx.need.length;_m++) packConsume(_nx.need[_m][0], _nx.need[_m][1]);
+          _fort[_nx.k]=1;
+          state.npcFavor=state.npcFavor||{};
+          state.npcFavor['han_tie']=(state.npcFavor['han_tie']||0)+1;
+          log('〔城旦之役〕'+_nx.txt+'军官在册上记了你一笔——这营防，有你的力气。（韩铁好感+1）','good');
+          afterPackChange(); renderStatus(); save(state); buildActions(curRoom());
+        });
+        break;
+      }
       case 'survey_kitchen':
         if(!exert('打量伙房')) return;
-        log('你打量伙房：灶台下几瓶药材，墙角杂粮成堆。鲁大勺掌勺，林娘的蒙汗草也在——下药业（路线3）的物资本就在此。','sys');
+        log('你打量伙房：灶台下几瓶药材，墙角杂粮成堆。鲁大勺掌勺，林娘的蒙汗草也在——营里能入口的东西，多半都在这口灶上。','sys');
         break;
       case 'survey_warehouse':
         if(!exert('翻找仓库')) return;
@@ -2607,7 +2637,7 @@
         break;
       case 'survey_mine':
         if(!exert('勘察矿道')) return;
-        log('你勘察矿道：向墙根延伸，石四说底下连着暗渠。若得吴算盘指水道走向，水渠夜遁线（路线8）便成了。','sys');
+        log('你勘察矿道：向墙根延伸，石四说底下连着营墙的水沟缺口——那是这营里少数几个通向外头的窟窿。','sys');
         break;
 
       // ═══ P3 时间闭环（v20260911h）：伙房限时换饭 / 回牢销名 / 客栈打尖 ═══
@@ -2643,7 +2673,15 @@
       // 应卯点名（v20260915d→v20260916e）：营规已自动应名（autoOnbRoutines），此处按钮保留为手动补应。
       case 'roll_call': {
         var _rr = onbF();
-        if(!_rr || !_rr.curfewSet || _rr.done){ log('〔点卯〕册上没有你的名字，应不得卯。','sys'); break; }
+        if(!_rr || _rr.done){ log('〔点卯〕册上没有你的名字，应不得卯。','sys'); break; }
+        // 教程首手点卯：把营规立住，不卡时辰（其后到点自动应卯，见 autoOnbRoutines）
+        if(!_rr.rollTaught){
+          _rr.rollTaught = true; _rr.rollDone = true;
+          log('〔点卯〕你头回到中军场院应名，牢头展册唱名，你应了一声——卯至午到、过午不候，这规矩算刻进你骨头里了。（修为+5 · 营中好感+1）','good');
+          addXp(5); save(state); renderStatus();
+          break;
+        }
+        if(!_rr.curfewSet){ log('〔点卯〕营中尚无点卯之规，无人管你几时回牢。','sys'); break; }
         if(!isRollHour()){
           log('〔点卯〕'+hourLabel()+'——此刻无人唱名。应卯在卯至午（天亮开工到晌午，过午不候）。','warn');
           break;
@@ -3082,6 +3120,19 @@
     var d=campDirTo(tx,ty);
     return {text:goText, targets:d?[{dir:d}]:null};
   }
+  // ═══ 仓库存取权限（苦役身份限制，v20261027）═══
+  //   教程期（onb 未完）官仓不对苦役开放：石料只能经场院「卸料台」入仓（见 stoneUnload），
+  //   想开库门自取自存，须仓吏点头 —— 替他办过差（好感>=1）或另有许可（flags.onb.storePerm）。
+  //   出营之后（onb.done）脱了苦役籍，仓库照常自开。
+  function storagePerm(cid){
+    var f=state.flags||{}, onb=f.onb;
+    if(!onb || onb.done) return {ok:true};
+    if(onb.storePerm) return {ok:true};
+    var fav=(state.npcFavor||{})['storeman_kuyilao']||0;
+    if(fav>=1) return {ok:true};
+    return {ok:false, reason:'仓门落着锁——仓吏没点头，苦役不得私开官仓。石料只经卸料台入仓；想自取自存，先替仓吏办趟差去。'};
+  }
+
   function onbGoalStep(){
     var f=state.flags||{}, onb=f.onb; if(!onb||onb.done) return null;
     //    开场「醒」那几拍还没演完时【不给目标】（v20260913c）：此刻行囊页签尚未解锁（见 camp_opening
@@ -3096,6 +3147,8 @@
     if(f.task && f.task.zt_accepted && !onb.questSeen) return {text:'点下方「📜 任务」，看看刚接下的差事记了些什么', targets:[{dock:'quest'}]};
     // ② 尚未出牢：叩牢门请牢头开锁（牢门是 camp_tz1 的场景物件，锚点 cell_door）
     if(!onb.cellOpen) return {text:'走到牢门口的「牢门」，点「叩门」与牢头说通，方能出牢', targets:[{act:'cell_door'}]};
+    // ②·卯 教程首手：亲手到中军场院应名点卯，把「卯至午应名、过午不候」的营规立住（其后到点自动应卯）
+    if(!onb.rollTaught) return campGoto({act:'roll_call'}, '点中军场院「验名点卯」——卯至午到中军场院应名，过午不候', '往中军场院（营中）去，点「验名点卯」应名', 1, 1);
     // ② 场院三件事：劳作（顺带点亮状态栏/位置页签）→ 照看自身 → 环顾（看清几处去路）
     // v20260920h：担石劳作改「装担→卸料」两步 —— 引导跟着分两拍：先装担，扛上肩再指去仓库卸。
     if(!onb.labored){
@@ -3104,31 +3157,25 @@
       return campGoto({act:'labor_yard'}, '点场院「乱石堆」·装担，再送去仓库卸下（满三工换一枚劳字木片）', '往中军场院去，点「乱石堆」装一担', 1, 1);
     }
     // ②·五 刚扛完一工（v20260914c）：此刻「看自己」最有痛感 —— 精力气血是真掉了一截，
-    //   不是凭空叫人多看一眼面板。放在「环顾四周」之前：先看清自己还剩几分底子，再看清几处去路。
+    //   不是凭空叫人多看一眼面板。放在劳作之后：先看清自己还剩几分底子，再继续推进。
     //   老档可能只解锁过 pack/quest、没有 char —— 先点亮再指，免得目标条指向一个被 CSS 藏着的按钮。
     if(!onb.charSeen){
       if(onb.unlocked && onb.unlocked.indexOf('char')<0) onbUnlockDock('char');
       return {text:'点下方「🧭 角色」，看看扛完这一工还剩几分底子', targets:[{dock:'char'}]};
     }
-    if(!onb.surveyed) return campGoto({act:'survey_yard'}, '点「环顾四周」，看清场院几处去路', '往中军场院去，点「环顾四周」看清去路', 1, 1);
     // ③ 周听涛一脉：探问 → 寻一份吃食 → 交付。
     //    旧版从「探问」直接跳到「与默叔对暗号」，中间「这份吃食打哪来」整段没有交代：
     //    玩家接下差事回头再找周听涛，只因囊中无干粮而被普通交谈放行，于是反复听他说天象、无路可走（v20260912e 补）。
-    if(!(f.route && f.route.crypt)){
-      var tk=f.task||{}, goZT='往北回牢区（营北），进天字一号牢房寻周听涛';
-      if(!tk.zt_accepted) return campGoto({npc:'zhoutingtao'},
-        tk.zt_intro ? '再寻周听涛，把「寻一份吃食」的差事应下' : '回牢房·天字一号，寻那位相面的周听涛探问出营门道',
-        tk.zt_intro ? '往北回牢区（营北），进天字一号牢房把差事应下' : goZT, 1, 0);
-      // v20260914g：交付已改走「给予」（triggers.js zt_food_give）——这里也得照实说，
-      //   否则指引把人领到周听涛跟前，玩家却只在「交谈」里空耗（旧版交谈即自动交付，现已不再）。
-      if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '点周听涛、选「给予」，把干粮交到他手上', '往北回牢区，把干粮交予周听涛', 1, 0);
-      // 手上有木片 → 去伙房换食；没有 → 回场院再挣一工（初次满三工还会顺带点亮行囊）
-      if(packFind('lao_pai')) return campGoto({act:'mess_hall'}, '持「劳字木片」在伙房换一份吃食', '往伙房去，用「劳字木片」换一份吃食', 0, 1);
-      return campGoto({act:'labor_yard'}, '周听涛要一份吃食——去场院「乱石堆」装担、送到仓库卸料，满三工换一枚「劳字木片」', '往中军场院去「乱石堆」装担，挣满三工换一枚「劳字木片」', 1, 1);
-    }
-    // ④ 默叔：天字二号牢房对暗号
-    if(!(f.task && f.task.signal)) return campGoto({npc:'moshu'}, '牢房·天字二号，与默叔对上暗号', '往北回牢区（营北），进天字二号牢房与默叔对暗号', 1, 0);
-    // ⑤ 已对暗号：营中九条路皆在「决断出营」里候着（能走哪条，看备下了什么）
+    // ③ 周听涛一脉：探问 → 寻一份吃食 → 交付（旧路线已废，此线恒走，出营与否改由结交与否定）
+    var tk=f.task||{}, goZT='往北回牢区（营北），进天字一号牢房寻周听涛';
+    if(!tk.zt_accepted) return campGoto({npc:'zhoutingtao'},
+      tk.zt_intro ? '再寻周听涛，把「寻一份吃食」的差事应下' : '回牢房·天字一号，寻那位相面的周听涛讨个生计',
+      tk.zt_intro ? '往北回牢区（营北），进天字一号牢房把差事应下' : goZT, 1, 0);
+    if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '点周听涛、选「给予」，把干粮交到他手上', '往北回牢区，把干粮交予周听涛', 1, 0);
+    if(packFind('lao_pai')) return campGoto({act:'mess_hall'}, '持「劳字木片」在伙房换一份吃食', '往伙房去，用「劳字木片」换一份吃食', 0, 1);
+    return campGoto({act:'labor_yard'}, '周听涛要一份吃食——去场院「乱石堆」装担、送到仓库卸料，满三工换一枚「劳字木片」', '往中军场院去「乱石堆」装担，挣满三工换一枚「劳字木片」', 1, 1);
+    // ④ 默叔线不再靠暗号触发（moshu_signal 已废）：结交由 moshu_harass「挡灾同担」自然发生
+    // ④ 已交付周听涛：营中暗流涌动，静观其变（南岗哨瞭望可选）
     if(Guide.exists({act:'survey_south'})) return {text:'南岗哨近来旗号有异——且安心做活、熬过这几日，静观其变。', targets:[{act:'survey_south'}]};
     return campGoto(null, '', '营中暗流涌动，太平道的旗号近来扎眼。且安心做活、等待时机。', 1, 2);
   }
@@ -3489,11 +3536,10 @@
   function bldActsFilter(acts){ if(typeof acts==='function') return acts; return (acts||[]).filter(bldActOk); }
 
   // ===== 夺营分支统一毕业（v20260926a）=====
-  // 决断出营枢纽移除后，第4日夺营成为唯一毕业出口。各分支（密道先逃 / 阿禾线 / 孤身）
+  // 第4日夺营成为唯一毕业出口。各分支（阿禾线 / 孤身）
   // 战斗或脱身收尾，统一在此毕业出营（与 moshu/officer_letter 分支的 inline 毕业等价）。
   var COUP_FLAVOR = {
-    tunnel_early: '〔密道先逃·逃脱〕你早通的暗道今夜派上用场——混乱中猫腰钻进坑道，比谁都先出了营。身后是吞没牢区的火光，你头也不回。',
-    minor_ahe: '〔阿禾线·逃脱〕阿禾拽着你钻出塌墙根的暗道，她回头望了眼营中火光，眼里有泪光也有决然。这一夜，你们一同逃出了苦役营。',
+    minor_ahe: '〔阿禾线·逃脱〕阿禾拽着你猫腰钻进水沟缺口，她回头望了眼营中火光，眼里有泪光也有决然。这一夜，你们一同逃出了苦役营。',
     minor: '〔孤身·逃脱〕乱局之中你寻得缝隙，趁守备空虚溜出营墙。身后营中火起，你不知那场夺营的结局，只知自己活了下来。'
   };
   function coupGraduate(escapedFlag, branch){

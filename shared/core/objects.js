@@ -39,7 +39,7 @@ window.LF = window.LF || {};
       ]
     },
     // 中军帐(1,1)：与牢房(1,0)对称，但只管「逃出去」那一摊。教学期只露记工册与刁斗两件，
-    //   舆图 / 军报 / 兵器架 / 正帐一律挂在 planningEscape() 门槛后 —— 这一格要摆「担石劳作 / 环顾四周」
+    //   舆图 / 军报 / 兵器架 / 正帐一律挂在 planningEscape() 门槛后 —— 这一格要摆「担石劳作 / 打量四周」
     //   的引导，一上来摆满按钮会把引导锚点顶掉（沿用 v20260912f 起「没介绍到的先藏着」的做法）。
     'kuyilao|1,1': {
       doors: [],
@@ -116,14 +116,18 @@ window.LF = window.LF || {};
         { icon:'⛏️', label:'卸料台', actId:'haul_stones', acts:[
           {label:'卸料入仓', icon:'🪨', fn:function(){ stoneUnload(); }}
         ]},
+        // v20261027：改为「打开 → 看内容 → 取物」两步（容器式），不再是点一下就入包
         { icon:'🧺', label:'麻袋堆', actId:'rummage_sack', acts:[
-          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('sack'); }}
+          {label:'打开', icon:'🔍', fn:function(){ rummageOpen('sack'); }},
+          {label:'取物', icon:'🤚', fn:function(){ rummageTake('sack'); }}
         ]},
         { icon:'📦', label:'木箱', actId:'rummage_box', acts:[
-          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('box'); }}
+          {label:'打开', icon:'🔍', fn:function(){ rummageOpen('box'); }},
+          {label:'取物', icon:'🤚', fn:function(){ rummageTake('box'); }}
         ]},
         { icon:'🪜', label:'货架', actId:'rummage_shelf', acts:[
-          {label:'翻找', icon:'🔍', fn:function(){ rummageFind('shelf'); }}
+          {label:'打开', icon:'🔍', fn:function(){ rummageOpen('shelf'); }},
+          {label:'取物', icon:'🤚', fn:function(){ rummageTake('shelf'); }}
         ]}
       ]
     }
@@ -259,9 +263,9 @@ window.LF = window.LF || {};
     var t=S().time%12;
     return !(t===10||t===11||t===0||t===1||t===2);
   }
-  // 是否已起了出营的心思：中军帐的进阶设施自此才现形（教学期这一格要摆「担石劳作/环顾四周」的引导，
+  // 是否已起了出营的心思：中军帐的进阶设施自此才现形（教学期这一格要摆「担石劳作/打量四周」的引导，
   //   一上来多塞五个按钮会把引导锚点顶掉，故一律收在门槛后）
-  function planningEscape(){ return !!(S().flags && S().flags.route && S().flags.route.crypt); }
+  function planningEscape(){ return !!(S().flags && S().flags.onb && S().flags.onb.cellOpen); }
   // 记工木牌：工分 / 木片 / 旷役 —— 营中规则的日常面，教学期也可点，且正答「干了半天攒了几分」
   function ledgerLook(){
     var o=onbF();
@@ -285,10 +289,10 @@ window.LF = window.LF || {};
     if(f.strikes>3) toast('刁斗连响数通，营中已四下张望——再敲必惹祸上身。');
     save(S());
   }
-  // 舆图沙盘：营盘九格 + 换岗时辰 + 水渠走向（水渠夜遁线的由头）
+  // 舆图沙盘：营盘九格 + 换岗时辰 + 北墙水沟（潜行出营的由头）
   function yutuLook(){
     log('〔舆图〕营盘方方正正九格：北列农田、囚室、矿坑；中为伙房、中军帐、仓库；南列军营、岗哨、演武场。','sys');
-    log('〔舆图〕一道水渠自伙房那侧穿墙而出，通到墙外的河沟——图上只注了「排水」二字。','sys');
+    log('〔舆图〕一道水沟自伙房那侧穿墙而出，通到墙外的河沟——图上只注了「排水」二字。','sys');
     log('〔舆图〕换岗在戌时前后，鼓响三通；子时最松，岗上只余两人。','sys');
     // v20260914f：看过舆图，顺手把「山河」放行 —— 顺着一张营盘图，头一回晓得外头还有州郡。
     //   解锁口径与别处一致（onbUnlockDock + Guide 高亮，见「角色」「行囊」的首次解锁）；
@@ -301,7 +305,7 @@ window.LF = window.LF || {};
       try{ if(LF.Guide && LF.Guide.ping) LF.Guide.ping({dock:'map'}); }catch(e){}
     }
   }
-  // 军报木牍：营中虚实（收买线的由头）
+  // 军报木牍：营中虚实
   function junbaoLook(){
     log('〔军报〕「渔阳戍卒二百，屯粮不足旬月。」「营中苦役三百余，逃者七，追回三。」','sys');
     log('〔军报〕最末一牍墨迹未干：粮官贪杯，犬卒好赌——银钱到手，睁一只眼闭一只眼。','sys');
@@ -320,7 +324,7 @@ window.LF = window.LF || {};
     if(!exert('取械')) return;
     if(!S().flags.route) S().flags.route={};
     S().flags.route.rack=true;
-    log('〔得械〕你抽了一杆钝头枪，塞进塌墙根的乱砖底下——真要硬闯岗哨，手里总得有件家伙。','good');
+    log('〔得械〕你抽了一杆钝头枪，塞进营墙根的乱砖底下——真要硬闯岗哨，手里总得有件家伙。','good');
     save(S());
   }
   // ═══ 苦役营·差役牌（v20260914e 立，v20260914f 改）═══
@@ -369,7 +373,7 @@ window.LF = window.LF || {};
     { key:'rummage', quest:'store_rummage', title:'仓中翻找',
       word:'仓吏要的：仓库翻出一件指定的旧物，交还仓里',
       take:'你把「仓中翻找」那片木牍摘了下来。',
-      tip:'去仓库那格，翻「麻袋堆 / 木箱 / 货架」三处（各管各的货，翻过即空、隔天再来）——翻到仓吏点名要的那件，点仓吏、选「给予」交到他手上。' },
+      tip:'去仓库那格，把「麻袋堆 / 木箱 / 货架」三处「打开」看清里头有什么（各管各的货），再点「取物」拿走（取空即空、隔天再来）——翻到仓吏点名要的那件，点仓吏、选「给予」交到他手上。' },
     // v20260915i：矿坑改版差役——铜矿出自矿洞三层以下（青铜镐的三条来路之一：制作 / 市集 / 差役）
     { key:'copper', quest:'mine_copper', title:'淘铜铸镐',
       word:'仓吏要的：矿洞三层以下古铜脉，凿铜矿四块，交仓库',
@@ -429,9 +433,10 @@ window.LF = window.LF || {};
     });
   }
   // ═══ 仓中翻找（v20260915f 立；v20260920h 改三点位）═══
-  //   从前的「点一下随机出货」改成：仓库里三处可翻的点位（麻袋堆/木箱/货架），各管各的掉落池；
-  //   翻过即翻空，当日不再出（隔天刷新）；接「仓中翻找」差事时仓吏随机指定目标物（flags.task.rummage_target），
-  //   翻到目标物交回才算完 —— 翻到别的可留可交（给仓吏则按物品价值换好感，不会吞东西）。
+  //   从前的「点一下随机出货、直接入包」改成两步容器式：先「打开」看清里头有什么，再「取物」才真拿走。
+  //   仓库里三处点位（麻袋堆/木箱/货架）各管各的掉落池；取空即翻空，当日不再出（隔天刷新）；
+  //   接「仓中翻找」差事时仓吏随机指定目标物（flags.task.rummage_target），翻到目标物交回才算完
+  //   —— 翻到别的可留可交（给仓吏则按物品价值换好感，不会吞东西）。
   // v20260915g：只翻【已登记】的通用物资——凡能进背包的，必先在 items.js 登记、再引用。
   var RUMMAGE_SPOTS = {
     sack:  { label:'麻袋堆', pool:[['bumu',0.5],['rope',0.3],['mucai',0.2]] },
@@ -439,31 +444,62 @@ window.LF = window.LF || {};
     shelf: { label:'货架',   pool:[['mucai',0.4],['bumu',0.4],['rope',0.2]] }
   };
   function rummageTarget(){ var t=S().flags.task||{}; return t.rummage_target||null; }
-  function rummageFind(spot){
+  // 本次已掀开、待取的内容（跨刷新保留：记在 flags.task 上，隔日自动失效）
+  function rummageOpened(spot){
+    var t=S().flags.task||{}; var op=t.rummageOpen||null;
+    if(!op || op.spot!==spot || op.day!==S().day) return null;
+    return (op.items && op.items.length) ? op : null;
+  }
+  // 第一步·打开：掀开看内容（耗工夫与体力），看清了里头有什么，但不入包
+  function rummageOpen(spot){
     var def=RUMMAGE_SPOTS[spot]; if(!def) return;
     if(!jobOpen('rummage')){ toast('仓里的东西不是你能乱翻的。'); return; }
     var t=S().flags.task||{};
     var em=t.rummageEmptied||(t.rummageEmptied={});
     if(em[spot]===S().day){ toast(def.label+'已经翻空了——过一夜再来，或去别的堆翻翻。'); return; }
-    if(!exert('翻找'+def.label)) return;
-    busyAct('翻找'+def.label, 1000, function(){
+    if(rummageOpened(spot)){ toast(def.label+'已经掀开了——里头的东西取走才算完。'); return; }
+    if(!exert('打开'+def.label)) return;
+    busyAct('打开'+def.label, 1000, function(){
       advanceMinutes(60);
       var r=Math.random(), id=null, acc=0;
       for(var i=0;i<def.pool.length;i++){ acc+=def.pool[i][1]; if(r<acc){ id=def.pool[i][0]; break; } }
       if(!id) id=def.pool[0][0];
-      if(!packAdd(id,1)){ toast('行囊塞不下——腾出一格再来翻。'); return; }
-      em[spot]=S().day;                 // 翻空：当日不再出，隔天刷新
-      var tgt=rummageTarget();
+      S().flags.task.rummageOpen={spot:spot, day:S().day, items:[{defId:id, count:1}]};
       var its=window.LF && LF.ITEMS && LF.ITEMS.DEFS ? LF.ITEMS.DEFS : {};
       var itd=its[id]||{};
-      var hit = tgt && tgt===id;
-      var msg='你在'+def.label+'里摸出'+(itd.icon||'🔧')+'「'+(itd.name||id)+'」';
-      if(hit) msg+='——正是仓吏要的那件！回去点仓吏、选「给予」交到他手上。';
-      else if(tgt) msg+='（仓吏要的是「'+((its[tgt]||{}).name||tgt)+'」，这件的他不收；留着或另递。）';
-      else msg+='。';
+      var tgt=rummageTarget();
+      var msg='你掀开'+def.label+'——里头是'+(itd.icon||'🔧')+'「'+(itd.name||id)+'」。';
+      if(tgt && tgt===id) msg+='（正是仓吏点名要的那件——点「取物」拿走，再交到仓吏手上。）';
+      else if(tgt) msg+='（不是仓吏要的那件，可取可留。）';
+      else msg+='（点「取物」把它拿走。）';
       log(msg,'good');
-      afterPackChange(); save(S()); renderStatus(); buildActions(curRoom());
+      save(S()); renderStatus(); buildActions(curRoom());
     });
+  }
+  // 第二步·取物：真把看清的东西拿进包；拿走当日即翻空，隔天刷新
+  function rummageTake(spot){
+    var def=RUMMAGE_SPOTS[spot]; if(!def) return;
+    var op=rummageOpened(spot);
+    if(!op){ toast('先打开'+def.label+'看看里头有什么。'); return; }
+    var t=S().flags.task||{};
+    var em=t.rummageEmptied||(t.rummageEmptied={});
+    var its=window.LF && LF.ITEMS && LF.ITEMS.DEFS ? LF.ITEMS.DEFS : {};
+    var tgt=rummageTarget(), got=[], blocked=0;
+    for(var i=0;i<op.items.length;i++){
+      var it=op.items[i]; if(!it||!it.defId) continue;
+      if(!packAdd(it.defId, it.count||1)){ blocked++; continue; }
+      got.push(it.defId);
+    }
+    if(!got.length){ toast('行囊塞不下——腾出一格再来取。'); return; }
+    em[spot]=S().day;                   // 取空：当日不再出，隔天刷新
+    t.rummageOpen=null;
+    var names=[], hit=false;
+    for(var k=0;k<got.length;k++){ names.push('「'+((its[got[k]]||{}).name||got[k])+'」'); if(tgt && tgt===got[k]) hit=true; }
+    var msg='你从'+def.label+'里取走'+names.join('、')+'。';
+    if(hit) msg+='——正是仓吏要的那件！回去点仓吏、选「给予」交到他手上。';
+    else if(tgt) msg+='（仓吏要的是「'+((its[tgt]||{}).name||tgt)+'」，这件的他不收；留着或另递。）';
+    log(msg,'good');
+    afterPackChange(); save(S()); renderStatus(); buildActions(curRoom());
   }
 
   // ═══ 伙房大灶：把田里的产出煮成热食（v20260915g）═══
@@ -504,7 +540,7 @@ window.LF = window.LF || {};
       laotouOnYard: laotouOnYard, planningEscape: planningEscape, ledgerLook: ledgerLook,
       diaodouStrike: diaodouStrike, yutuLook: yutuLook, junbaoLook: junbaoLook,
       rackTake: rackTake, kitchenPour: kitchenPour, watchLook: watchLook,
-      rummageFind: rummageFind, cookDouzhou: cookDouzhou, cookYeCai: cookYeCai,
+      rummageOpen: rummageOpen, rummageTake: rummageTake, cookDouzhou: cookDouzhou, cookYeCai: cookYeCai,
       rummageTarget: rummageTarget
     };
   };

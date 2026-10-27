@@ -14,7 +14,7 @@
 //   removeNpc / branch / graduate
 // 任何"被追击 / 护送 / 首次到访"剧情，只需增写一份数据即可复用同一引擎。
 //
-// 本稿切片：苦役营·夺营五分支（moshu/officer_letter/tunnel_early/minor_ahe/minor）均已补全完整演出与毕业收束（v20260926a）。
+// 本稿切片：苦役营·夺营四分支（moshu/officer_letter/minor_ahe/minor）均已补全完整演出与毕业收束（v20260926a）。
 // 出生点 = camp_tz1（见 shared/index.js defaultSave；苦役营现为 kuyilao 3×3 网格，camp_yard 旧房已删）。
 (function (global) {
   var LF = global.LF = global.LF || {};
