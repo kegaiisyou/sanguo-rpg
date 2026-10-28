@@ -862,7 +862,16 @@ window.LF = window.LF || {};
       }
       if (t === 'drill') { out.push({ id: 'drill_train', label: '操练武艺', icon: '🥋', tip: '于演武场挥汗操练，拳脚渐稳' }); }
       if (t === 'sentry') { out.push({ id: 'sentry_look', label: '瞭望岗哨', icon: '🏮', tip: '登岗瞭望，查看来往行踪' }); }
-      if (t === 'barracks') { out.push({ id: 'recruit', label: '募兵操练', tip: '入营招募兵卒，点兵编成部曲（兵科／阵位／辎重／调兵）' }); out.push({ id: 'army_manage', label: '治军', icon: '🛡', tip: '点兵编成、料理辎重、调兵遣将（v20260921a）' }); out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '起兵夺城，胜则易帜、败则遭火' }); }
+      if (t === 'barracks') {
+        // v20261028：教程未毕业的苦役营，军营只开放「修筑营防」（主线所需），
+        //   其余军事动作（募兵/治军/起兵略地）待夺营脱身、营规解除后再开放，避免误触夺城之乱（用户：按钮引导前不解锁）。
+        var _obd = (getState().flags && getState().flags.onb) || null;
+        if (!(cid === 'kuyilao' && _obd && !_obd.done)) {
+          out.push({ id: 'recruit', label: '募兵操练', tip: '入营招募兵卒，点兵编成部曲（兵科／阵位／辎重／调兵）' });
+          out.push({ id: 'army_manage', label: '治军', icon: '🛡', tip: '点兵编成、料理辎重、调兵遣将（v20260921a）' });
+          out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '起兵夺城，胜则易帜、败则遭火' });
+        }
+      }
       if (t === 'market') {
         // 商街店铺：每间一个按钮（店招），点击弹出 NPC 式动作清单（进入 / 观察 / 盘下·经营），不堆多个按钮
         var mkt = m.markets && m.markets[x + ',' + y];

@@ -1098,6 +1098,14 @@
   //   只服务「营规未脱」的玩家（脱籍后不再受约束）。
   //   触发点：① advanceTime 时辰推进后；② move/goCell 落格后（见 move 内调用）。
   function autoOnbRoutines(){
+    // v20261028：开场 moveGate only:['南']（出牢后只放行进中军场院）本应在踏入中军场院(1,1)时由 yard_clear_gate
+    //   解除——但该触发器只写在 prologue.js:484 注释里、从未落地，导致 moveGate 永不解除：玩家到中军场院后罗盘仍被
+    //   only:['南'] 锁死，只剩「南·岗哨」一格可去，牢房/仓库/军营/伙房全走不到（用户实测卡死，体验不到主线）。
+    //   此处补上：无论教程是否激活，落格到中军场院即解除开场引导锁，恢复自由探索。
+    var _cp=state.flags.cityPos;
+    if(_cp && _cp.cid==='kuyilao' && _cp.x===1 && _cp.y===1 && state.moveGate && state.moveGate.only){
+      state.moveGate=null; renderMoveBar(G.ROOMS[state.room]); renderNpcList();
+    }
     if(!onbBound()) return;
     var o=onbF(); if(!o) return;
     var cp=state.flags.cityPos;
@@ -4706,6 +4714,7 @@
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.enterGame=enterGame;  window.advanceMinutes = advanceMinutes; window.advanceTime = advanceTime;
   window.checkTriggers=checkTriggers;   // 调试/自动化游玩桥接（v20261028，供 playtest harness 触发 onEnter 夺营裁决）
+  window.autoOnbRoutines=autoOnbRoutines;   // v20261028：调试桥接（验证「踏入中军场院即解除开场 moveGate 锁定」）
    // 调试/自动化游玩桥接（供 playtest harness 开局，与 advanceTime 同款）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）
   // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，

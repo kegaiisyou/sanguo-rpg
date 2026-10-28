@@ -212,7 +212,14 @@
     var cp=getState().flags.cityPos; if(!cp||cp.cid!==getState().room){ toast('须先立于城门。'); return; }
     // 教学未毕业：苦役营（kuyilao）各出口被看死，须熬过夺营之变、随势脱身
     if (getState().room === 'kuyilao' && !(getState().flags && getState().flags.onb && getState().flags.onb.done)) {
-      toast('营门看死，官差盯得紧。且安心做活、熬过这几日——营中暗流，自有变故。'); return;
+      // v20261028：出营拦截时把「出营前置条件」摊开列给玩家，免得瞎摸（用户反馈「出城条件不明确」）
+      log('〔出营〕营门看死，官差盯得紧——此刻还出不得营。', 'warn');
+      log('〔出营〕要脱身，须先经历「夺营之变」：', 'sys');
+      log('　· 每日中军场院应名点卯，牢记卯至午之规', 'sys');
+      log('　· 往军营修筑营防（营栅／鹿角／壕堑），交好韩铁', 'sys');
+      log('　· 安心做活，熬到约第四日，营中自有变故爆发', 'sys');
+      log('〔出营〕变故既起、夺营脱身之后，营门方开。', 'sys');
+      toast('营门看死，出不得营——先点卯、修营防交好韩铁，熬到约第肆日夺营脱身'); return;
     }
     // 宵禁（v20260911h · P3 · 门禁）：夜里城门自内落锁，出不得城
     if(gateCurfew(getState().room)){
