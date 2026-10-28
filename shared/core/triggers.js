@@ -57,7 +57,7 @@ window.LF = window.LF || {};
       if (c.hasNpc) { var np = (G.ROOMS[state.room] && G.ROOMS[state.room].npcs) || []; if (np.indexOf(c.hasNpc) < 0) return false; }
       if (c.npcFavor) { var f = (state.npcFavor && state.npcFavor[c.npcFavor.key]) || 0; if (c.npcFavor.min != null && f < c.npcFavor.min) return false; if (c.npcFavor.max != null && f > c.npcFavor.max) return false; }
       if (c.player) { for (var k in c.player) { var nd = c.player[k], v = getPath(state, k) || 0; if (nd.min != null && v < nd.min) return false; if (nd.max != null && v > nd.max) return false; } }
-      if (c.flags) { for (var p in c.flags) { if (!!getPath(state, p) !== !!c.flags[p]) return false; } }
+      if (c.flags) { for (var p in c.flags) { var ev = c.flags[p]; var av = getPath(state, p); if (typeof ev === 'boolean') { if (!!av !== ev) return false; } else { if (av !== ev) return false; } } }
       if (c.time) { if (c.time.day === true && !isDay()) return false; if (c.time.day === false && isDay()) return false; if (c.time.phases && c.time.phases.indexOf(state.time % 12) < 0) return false; }
       if (c.hasItem) { var _pk = state.pack || []; var _hit = false; for (var _h = 0; _h < _pk.length; _h++) { if (_pk[_h] && (_pk[_h].defId || _pk[_h].id) === c.hasItem) { _hit = true; break; } } if (!_hit) return false; }
       return true;

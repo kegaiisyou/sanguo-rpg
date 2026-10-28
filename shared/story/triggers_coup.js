@@ -153,7 +153,7 @@
 
       id: 'coup_moshu_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
 
-      cond: { flags: { 'flags.coup.branch': 'moshu' }, notFlag: 'flags.coup.moshu_escaped' },
+      cond: { flags: { 'flags.coup.branch': 'moshu', 'flags.coup.done': true }, notFlag: 'flags.coup.moshu_escaped' },
 
       steps: [
 
@@ -253,7 +253,7 @@
 
       id: 'coup_officer_letter_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
 
-      cond: { flags: { 'flags.coup.branch': 'officer_letter' }, notFlag: 'flags.coup.officer_letter_escaped' },
+      cond: { flags: { 'flags.coup.branch': 'officer_letter', 'flags.coup.done': true }, notFlag: 'flags.coup.officer_letter_escaped' },
 
       steps: [
 

@@ -191,7 +191,7 @@
 
       id: 'coup_ahe_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
 
-      cond: { flags: { 'flags.coup.branch': 'minor_ahe' }, notFlag: 'flags.coup.ahe_escaped' },
+      cond: { flags: { 'flags.coup.branch': 'minor_ahe', 'flags.coup.done': true }, notFlag: 'flags.coup.ahe_escaped' },
 
       steps: [
 
@@ -251,7 +251,7 @@
 
       id: 'coup_minor_scene', hook: 'onEnter', room: 'kuyilao', cell: [1,1], once: false,
 
-      cond: { flags: { 'flags.coup.branch': 'minor' }, notFlag: 'flags.coup.minor_escaped' },
+      cond: { flags: { 'flags.coup.branch': 'minor', 'flags.coup.done': true }, notFlag: 'flags.coup.minor_escaped' },
 
       steps: [
 

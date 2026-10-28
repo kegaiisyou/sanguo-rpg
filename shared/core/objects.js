@@ -97,6 +97,11 @@ window.LF = window.LF || {};
         { icon:'🍲', label:'大灶', show: function(){ return farmHas('dou',1) || farmHas('yecai',3); }, acts:[
           {label:'煮豆粥（菽豆×1 · 水×2）', icon:'🥣', show: function(){ return farmHas('dou',1); }, fn:function(){ cookDouzhou(); }},
           {label:'野菜入锅（野菜×3）', icon:'🥬', show: function(){ return farmHas('yecai',3); }, fn:function(){ cookYeCai(); }}
+        ]},
+        // 饭桶（v20261028）：营西伙房那口大饭桶。伸手能扒一口的去处，容器式取物，不锁 jobOpen。
+        { icon:'🪣', label:'饭桶', actId:'fan_bucket', acts:[
+          {label:'打开', icon:'🔍', fn:function(){ fanBucketOpen(); }},
+          {label:'取物', icon:'🤚', fn:function(){ fanBucketTake(); }}
         ]}
       ]
     },
@@ -512,6 +517,38 @@ window.LF = window.LF || {};
     if(hit) msg+='——正是仓吏要的那件！回去点仓吏、选「给予」交到他手上。';
     else if(tgt) msg+='（仓吏要的是「'+((its[tgt]||{}).name||tgt)+'」，这件的他不收；留着或另递。）';
     log(msg,'good');
+    afterPackChange(); save(S()); renderStatus(); buildActions(curRoom());
+  }
+
+  // 饭桶（v20261028）：营西伙房那口大饭桶——井下有隔夜饭、浮着几片菜、偶尔还剩半碗豆粥。
+  //   苦役营里「吃食」是硬通货（周听涛差事、劳役换饭），饭桶是伸手就能扒一口的去处，故不锁 jobOpen。
+  //   容器式：先「打开」看清、再「取物」才入包；取空当日翻空，隔天续上。
+  var FAN_BUCKET_POOL = [['fan',0.5],['douzhou',0.35],['yecai',0.15]];
+  function fanBucketOpen(){
+    var t=S().flags.task||{};
+    if(t.fanBucketEmptied===S().day){ toast('饭桶见了底——过一夜再来，或去别处讨食。'); return; }
+    if(!exert('掀饭桶')) return;
+    busyAct('掀饭桶', 800, function(){
+      advanceMinutes(30);
+      var r=Math.random(), id=null, acc=0;
+      for(var i=0;i<FAN_BUCKET_POOL.length;i++){ acc+=FAN_BUCKET_POOL[i][1]; if(r<acc){ id=FAN_BUCKET_POOL[i][0]; break; } }
+      if(!id) id=FAN_BUCKET_POOL[0][0];
+      var ft=S().flags.task||(S().flags.task={});
+      ft.fanBucketOpen={ day:S().day, item:id };
+      var its=window.LF && LF.ITEMS && LF.ITEMS.DEFS ? LF.ITEMS.DEFS : {};
+      var itd=its[id]||{};
+      log('你掀开饭桶木盖——里头是'+(itd.icon||'🍚')+'「'+(itd.name||id)+'」。点「取物」把它拿走。','good');
+      save(S()); renderStatus(); buildActions(curRoom());
+    });
+  }
+  function fanBucketTake(){
+    var t=S().flags.task||{};
+    var op=t.fanBucketOpen;
+    if(!op || op.day!==S().day){ toast('先掀开饭桶看看里头有什么。'); return; }
+    if(!packAdd(op.item,1)){ toast('行囊塞不下——腾出一格再来取。'); return; }
+    t.fanBucketEmptied=S().day; t.fanBucketOpen=null;
+    var its=window.LF && LF.ITEMS && LF.ITEMS.DEFS ? LF.ITEMS.DEFS : {};
+    log('你从饭桶里取走「'+((its[op.item]||{}).name||op.item)+'」。','good');
     afterPackChange(); save(S()); renderStatus(); buildActions(curRoom());
   }
 

@@ -4682,6 +4682,7 @@
   window.civilEdict=civilEdict;
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.enterGame=enterGame;  window.advanceMinutes = advanceMinutes; window.advanceTime = advanceTime;
+  window.checkTriggers=checkTriggers;   // 调试/自动化游玩桥接（v20261028，供 playtest harness 触发 onEnter 夺营裁决）
    // 调试/自动化游玩桥接（供 playtest harness 开局，与 advanceTime 同款）
   window.warChronicle=chronicle;        // 追加一条天下大事记（自动带『第N日』）
   // ── 全局桥接（v20260827i→state.js 全局化）：state 已由 shared/core/state.js 暴露为全局 window.state，
