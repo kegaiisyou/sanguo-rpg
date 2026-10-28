@@ -1318,6 +1318,7 @@
     busyAct('装担·半个时辰', 1000, function(){
       state.energy=Math.max(0,state.energy-4);
       advanceMinutes(60);
+      state.flags=state.flags||{}; state.flags.task=state.flags.task||{};
       state.flags.task.stoneCarrying=true;
       log('你把乱石码进藤筐，扁担压上肩头——身上多了一担石。送去仓库那格「卸料台」卸下，才算记一工。','good');
       save(state); renderStatus(); buildActions(curRoom());
@@ -1329,6 +1330,7 @@
     busyAct('卸料·半个时辰', 1000, function(){
       state.energy=Math.max(0,state.energy-4);
       advanceMinutes(60);
+      state.flags=state.flags||{}; state.flags.task=state.flags.task||{};
       state.flags.task.stoneCarrying=false;
       packAdd('shitiao',2);
       var o=onbF();
@@ -2020,7 +2022,7 @@
     advanceMinutes: advanceMinutes, exert: exert, packFind: packFind, packAdd: packAdd,
     afterPackChange: afterPackChange, packConsume: packConsume, buildActions: buildActions, curRoom: curRoom, busyAct: busyAct,
     SHICHEN: SHICHEN, LABOR_PER_WOOD: LABOR_PER_WOOD,
-    jobOpen: jobOpen, jobFlag: jobFlag, jobTick: jobTick, jobSettle: jobSettle,
+    jobOpen: jobOpen, jobFlag: jobFlag, jobTick: jobTick, jobSettle: jobSettle, jobBoard: jobBoard,
     farmHas: farmHas, farmObjects: farmObjects, farmWater: farmWater,
     stoneLoad: stoneLoad, stoneUnload: stoneUnload, onbF: onbF, onbUnlockDock: onbUnlockDock
   });
@@ -3169,12 +3171,33 @@
     //    玩家接下差事回头再找周听涛，只因囊中无干粮而被普通交谈放行，于是反复听他说天象、无路可走（v20260912e 补）。
     // ③ 周听涛一脉：探问 → 寻一份吃食 → 交付（旧路线已废，此线恒走，出营与否改由结交与否定）
     var tk=f.task||{}, goZT='往北回牢区（营北），进天字一号牢房寻周听涛';
-    if(!tk.zt_accepted) return campGoto({npc:'zhoutingtao'},
-      tk.zt_intro ? '再寻周听涛，把「寻一份吃食」的差事应下' : '回牢房·天字一号，寻那位相面的周听涛讨个生计',
-      tk.zt_intro ? '往北回牢区（营北），进天字一号牢房把差事应下' : goZT, 1, 0);
-    if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '点周听涛、选「给予」，把干粮交到他手上', '往北回牢区，把干粮交予周听涛', 1, 0);
-    if(packFind('lao_pai')) return campGoto({act:'mess_hall'}, '持「劳字木片」在伙房换一份吃食', '往伙房去，用「劳字木片」换一份吃食', 0, 1);
-    return campGoto({act:'labor_yard'}, '周听涛要一份吃食——去场院「乱石堆」装担、送到仓库卸料，满三工换一枚「劳字木片」', '往中军场院去「乱石堆」装担，挣满三工换一枚「劳字木片」', 1, 1);
+    // ③ 周听涛一脉：探问 → 寻一份吃食 → 交付（干粮交到他手上即此线了结，此后让位给军营一脉）
+    if(!tk.zt_food_done){
+      if(!tk.zt_accepted) return campGoto({npc:'zhoutingtao'},
+        tk.zt_intro ? '再寻周听涛，把「寻一份吃食」的差事应下' : '回牢房·天字一号，寻那位相面的周听涛讨个生计',
+        tk.zt_intro ? '往北回牢区（营北），进天字一号牢房把差事应下' : goZT, 1, 0);
+      if(packFind('fan')) return campGoto({npc:'zhoutingtao'}, '点周听涛、选「给予」，把干粮交到他手上', '往北回牢区，把干粮交予周听涛', 1, 0);
+      if(packFind('lao_pai')) return campGoto({act:'mess_hall'}, '持「劳字木片」在伙房换一份吃食', '往伙房去，用「劳字木片」换一份吃食', 0, 1);
+      return campGoto({act:'labor_yard'}, '周听涛要一份吃食——去场院「乱石堆」装担、送到仓库卸料，满三工换一枚「劳字木片」', '往中军场院去「乱石堆」装担，挣满三工换一枚「劳字木片」', 1, 1);
+    }
+    // ④ 军营一脉（v20261028）：修营防三样共需 木材×5 + 石料×3 —— 石料由「场院装担→仓库卸料」得；
+    //    木材须先在差役牌摘下「仓中翻找」木牍（不摘则仓里「不是你能乱翻的」，木料永远拿不到）。
+    //    此前教程在周听涛线后无条件让玩家一直劳作，军营/严石/韩铁/送信整条主线遂无人知晓、也走不到。
+    if(!onb.fortAll){
+      var _ft=onb.fort||{}, _nw=0, _ns=0;
+      if(!_ft.zha){ _nw=3; }
+      else if(!_ft.lujiao){ _nw=2; _ns=1; }
+      else if(!_ft.haoqian){ _ns=2; }
+      var _w=packFind('mucai'), _s=packFind('shitiao');
+      var _hw=_w?(_w.count||1):0, _hs=_s?(_s.count||1):0;
+      if(!tk.rummage_started)
+        return campGoto(null, '修营防要用木石——先到中军场院「记工木牌」点「看差役」，摘下「仓中翻找」那片木牍，仓里的东西才翻得动', '往中军场院去，点「记工木牌·看差役」摘「仓中翻找」木牍', 1, 1);
+      if(_hw<_nw)
+        return campGoto({act:'rummage_box'}, '到仓库把「木箱 / 货架 / 麻袋堆」三处「打开」看清里头有什么，再点「取物」把木材收进囊中', '往仓库去翻找木材（还差木材' + (_nw-_hw) + '）', 2, 1);
+      if(_hs<_ns)
+        return campGoto({act:'labor_yard'}, '还缺石料——去场院「乱石堆」装担，再送到仓库「卸料台」卸下', '往中军场院去装担、往仓库卸料（还差石料' + (_ns-_hs) + '）', 1, 1);
+      return campGoto({act:'camp_fortify'}, '料齐了——往军营去修筑这一样营防（营栅 / 鹿角拒马 / 壕堑）', '往军营（营西）去，点「修筑营防」', 0, 2);
+    }
     // ④ 默叔线不再靠暗号触发（moshu_signal 已废）：结交由 moshu_harass「挡灾同担」自然发生
     // ④ 已交付周听涛：营中暗流涌动，静观其变（南岗哨瞭望可选）
     if(Guide.exists({act:'survey_south'})) return {text:'南岗哨近来旗号有异——且安心做活、熬过这几日，静观其变。', targets:[{act:'survey_south'}]};

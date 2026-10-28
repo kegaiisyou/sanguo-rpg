@@ -11,6 +11,10 @@ window.LF = window.LF || {};
     var SHICHEN = ctx.SHICHEN, LABOR_PER_WOOD = ctx.LABOR_PER_WOOD;
     var fxGet = ctx.fxGet;
     var jobOpen = ctx.jobOpen, jobFlag = ctx.jobFlag, jobTick = ctx.jobTick, jobSettle = ctx.jobSettle;
+    // v20261028：「记工木牌·看差役」调 jobBoard() 却从未从 ctx 取出 ——
+    //   点差役牌即抛 ReferenceError: jobBoard is not defined，全部差役（含「仓中翻找」）都接不到，
+    //   木材遂永远拿不到 → 营防修不齐 → 送信线死。现补上注入。
+    var jobBoard = ctx.jobBoard;
     var farmHas = ctx.farmHas, farmObjects = ctx.farmObjects, farmWater = ctx.farmWater;
     var stoneLoad = ctx.stoneLoad, stoneUnload = ctx.stoneUnload, onbF = ctx.onbF, onbUnlockDock = ctx.onbUnlockDock;
   // ═══ 城格内部：可进入子房间(doors) + 不可进入交互物(objects)（v20260910q 地图框架）═══
@@ -456,10 +460,13 @@ window.LF = window.LF || {};
   //   接「仓中翻找」差事时仓吏随机指定目标物（flags.task.rummage_target），翻到目标物交回才算完
   //   —— 翻到别的可留可交（给仓吏则按物品价值换好感，不会吞东西）。
   // v20260915g：只翻【已登记】的通用物资——凡能进背包的，必先在 items.js 登记、再引用。
+  // v20261028：修营防三样共要木材×5，而夺营第4日（day>=3）就起爆 ——
+  //   原概率下木材期望仅 1.1/天，三日攒不出五根，送信线遂永远赶不上。此处微调出材率，
+  //   让「仓中翻找」真能在时限内凑齐木料（各堆概率和仍为 1）。
   var RUMMAGE_SPOTS = {
-    sack:  { label:'麻袋堆', pool:[['bumu',0.5],['rope',0.3],['mucai',0.2]] },
-    box:   { label:'木箱',   pool:[['mucai',0.5],['rope',0.3],['shitiao',0.2]] },
-    shelf: { label:'货架',   pool:[['mucai',0.4],['bumu',0.4],['rope',0.2]] }
+    sack:  { label:'麻袋堆', pool:[['bumu',0.45],['rope',0.3],['mucai',0.25]] },
+    box:   { label:'木箱',   pool:[['mucai',0.55],['rope',0.25],['shitiao',0.2]] },
+    shelf: { label:'货架',   pool:[['mucai',0.5],['bumu',0.3],['rope',0.2]] }
   };
   function rummageTarget(){ var t=S().flags.task||{}; return t.rummage_target||null; }
   // 本次已掀开、待取的内容（跨刷新保留：记在 flags.task 上，隔日自动失效）
@@ -482,7 +489,8 @@ window.LF = window.LF || {};
       var r=Math.random(), id=null, acc=0;
       for(var i=0;i<def.pool.length;i++){ acc+=def.pool[i][1]; if(r<acc){ id=def.pool[i][0]; break; } }
       if(!id) id=def.pool[0][0];
-      S().flags.task.rummageOpen={spot:spot, day:S().day, items:[{defId:id, count:1}]};
+      // v20261028：一堆里往往压着不止一件（1~2）—— 单件攒得太慢，赶不上第4日修营防
+      S().flags.task.rummageOpen={spot:spot, day:S().day, items:[{defId:id, count:1+(Math.random()<0.45?1:0)}]};
       var its=window.LF && LF.ITEMS && LF.ITEMS.DEFS ? LF.ITEMS.DEFS : {};
       var itd=its[id]||{};
       var tgt=rummageTarget();
