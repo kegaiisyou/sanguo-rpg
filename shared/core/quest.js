@@ -25,7 +25,8 @@
   function renderObjectives(){
     var quests = (S().quests && S().quests.length) ? S().quests : [];
     var done = (S().questsDone && S().questsDone.length) ? S().questsDone : [];
-    var career = (LF.OBJECTIVES) ? LF.OBJECTIVES.map(function(o){ return {o:o,done:o.check(S())}; }) : [];
+    var graduated = !!(S().flags && S().flags.onb && S().flags.onb.done);
+    var career = (LF.OBJECTIVES) ? LF.OBJECTIVES.filter(function(o){ return !o.post || graduated; }).map(function(o){ return {o:o,done:o.check(S())}; }) : [];
     var h='<h3 class=\"q-title\">任 务 日 志</h3>'+
       '<div class="quest-tabs">'+
         '<button class="qtab active" data-t="active" onclick="switchQuestTab(\'active\')">进行中</button>'+
@@ -231,6 +232,7 @@
     if(got.length) log('【任务达成】'+got.join('，')+'。','good');
   }
   function gotoBtnHTML(at){
+    if(typeof at==='function') at=at(S());
     if(!at) return '';
     var o=(typeof at==='string')?{room:at}:at;
     var j; try{ j=JSON.stringify(o); }catch(e){ return ''; }
@@ -240,6 +242,7 @@
   }
   // 一次指路：先在本格找，再指罗盘方向，实在不在此处就报出路名并亮「山河」。
   function questGoto(at){
+    if(typeof at==='function') at=at(S());
     if(!at || !S()) return;
     if(typeof at==='string') at={room:at};
     closeModal();

@@ -204,6 +204,9 @@ window.LF = window.LF || {};
     }
     // city.js 的 cityCellNpcs 调此函数取「本格生成的城市 NPC」（签名沿用旧的 (cid,x,y)）
     function buildCityCellNpcs(cid, x, y) {
+      // v20261028：教程城 kuyilao 不生成「人设卡」填充 NPC（杂兵/路人民/货郎等），只保留具名主线角色，
+      // 避免新手被大量无交互的杂兵淹没、不知该找谁（用户反馈「NPC 太多干扰选择」）。
+      if (cid === 'kuyilao') return [];
       var m = genCityGrid(cid); if (!m) return [];
       var c = (LF.CITIES || {})[cid] || {};
       var cnm = c.name || '此城', here = x + ',' + y;

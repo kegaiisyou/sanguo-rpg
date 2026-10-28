@@ -32,9 +32,58 @@
   }
   function clamp1(x) { return Math.max(0, Math.min(1, x)); }
 
-  var OBJECTIVES = [
+    var OBJECTIVES = [
+    // ── v20261028：主线任务「逃出苦役营」——随教程进度动态指路，兼作「任务系统」里的唯一营期主线 ──
     {
-      id: 'slay_foe', title: '初试身手', type: 'main', reward: { xp: 50 },
+      id: 'escape_camp', title: '逃出苦役营', type: 'main', reward: { xp: 200 },
+      hint: '苦役营门禁森严：营门看死、官差盯得紧，此刻【出不得营】——须先经历「夺营之变」方能脱身。'+
+            '<br>脱身之路（按顺序）：'+
+            '<br>① 出牢后到【中军场院】验名点卯（卯至午，过午不候）；'+
+            '<br>② 场院「乱石堆」装担→仓库「卸料台」卸料，攒工换「劳字木片」；'+
+            '<br>③ 中军场院「记工木牌」摘「仓中翻找」木牍→仓库翻出木材；'+
+            '<br>④ 军营「修筑营防」三样（营栅/鹿角/壕堑），交好韩铁；'+
+            '<br>⑤ 安心做活、歇息过夜熬到【约第四日】，再回中军场院，营中变故既起，夺营脱身。',
+      at: function (s) {
+        var onb = (s.flags && s.flags.onb) || {};
+        function pc(id){ if(!s.pack) return 0; var n=0; for(var i=0;i<s.pack.length;i++){var it=s.pack[i]; if(it&&(it.defId||it.id)===id) n+=(it.count||1);} return n; }
+        if (!onb.cellOpen) return { act: 'cell_door' };
+        if (!onb.rollTaught) return { act: 'roll_call' };
+        if (!onb.labored) return { act: 'labor_yard' };
+        var tk = s.flags.task || {};
+        if (!tk.zt_food_done) {
+          if (!tk.zt_accepted) return { npc: 'zhoutingtao' };
+          if (pc('fan')) return { npc: 'zhoutingtao' };
+          if (pc('lao_pai')) return { act: 'mess_hall' };
+          return { act: 'labor_yard' };
+        }
+        if (!onb.fortAll) {
+          var ft = onb.fort || {}, nw=0, ns=0;
+          if (!ft.zha) nw=3; else if (!ft.lujiao) { nw=2; ns=1; } else if (!ft.haoqian) ns=2;
+          var w = pc('mucai'), h = pc('shitiao');
+          if (!tk.rummage_started) return { act: 'job_board' };
+          if (w < nw) return { act: 'rummage_box' };
+          if (h < ns) return { act: 'labor_yard' };
+          return { act: 'camp_fortify' };
+        }
+        if ((s.day||0) < 3) return { act: 'rest' };
+        return { why: '已到第四日——回中军场院（营中），静待营中暗流发作，夺营脱身。' };
+      },
+      check: function (s) { return !!(s.flags && s.flags.onb && s.flags.onb.done); },
+      prog: function (s) {
+        var onb = (s.flags && s.flags.onb) || {}, tk = s.flags.task || {}, f = (onb.fort||{});
+        if (onb.done) return '已脱身苦役营';
+        if (!onb.cellOpen) return '尚在牢中：叩牢门说通牢头';
+        if (!onb.rollTaught) return '待办：中军场院点卯';
+        if (!onb.labored) return '待办：装担→卸料攒工';
+        if (!tk.zt_food_done) return '待办：周听涛的差事（寻一份吃食）';
+        if (!onb.fortAll) return '待办：翻找木材、修营防（营栅'+(f.zha?1:0)+'/鹿角'+(f.lujiao?1:0)+'/壕堑'+(f.haoqian?1:0)+'）';
+        if ((s.day||0) < 3) return '营防已齐：歇息过夜，熬到第四日';
+        return '第四日已至：回中军场院，夺营脱身';
+      }
+    },
+
+    {
+      id: 'slay_foe', post:true, title: '初试身手', type: 'main', reward: { xp: 50 },
       hint: '于山林巡山、讨平盗匪游散，以验证所学武艺。',
       // 讨匪发生在郊野山林（每格的「清剿·某某」是运行时按野怪生成的动作，没有稳定 id），
       // 所以这条给的是「问路」而非「点亮」——点一下，它告诉你该往哪走。
@@ -44,14 +93,14 @@
       ratio: function (s) { return clamp1((s.quest.bandit + s.quest.turban) / 1); }
     },
     {
-      id: 'rise_repute', title: '扬名立万', type: 'main', reward: { xp: 80, gold: 50 },
+      id: 'rise_repute', post:true, title: '扬名立万', type: 'main', reward: { xp: 80, gold: 50 },
       hint: '胜战、行侠、奇遇皆可积攒江湖声望，名动一方。',
       check: function (s) { return s.reputation >= 20; },
       prog: function (s) { return '声望 ' + s.reputation + ' / 20'; },
       ratio: function (s) { return clamp1(s.reputation / 20); }
     },
     {
-      id: 'join_sect', title: '择木而栖', type: 'trial', reward: { xp: 120 },
+      id: 'join_sect', post:true, title: '择木而栖', type: 'trial', reward: { xp: 120 },
       // v20260914a：原文写「点状态栏『⚔ 门派』」，但全项目没有任何地方能打开门派面板
       //   （openModal('sect') 只在入门成功后自调用一次）——照着做只会白找一场。
       //   已在「角色」面板补上唯一入口，此处把话改对它。
@@ -62,7 +111,7 @@
       ratio: function (s) { return s.sect ? 1 : 0; }
     },
     {
-      id: 'martial_growth', title: '武艺精进', type: 'trial', reward: { xp: 100 },
+      id: 'martial_growth', post:true, title: '武艺精进', type: 'trial', reward: { xp: 100 },
       hint: '于「武学」研习招式（消耗潜能），技艺日深。',
       // 「研习武学」是真实存在的场景动作（data-act="learn_wu"），但只在主营 / 郡学宫一类房间出现；
       //   在本格时点亮它，不在本格就直说该去哪儿 —— 两种情形都不至于让玩家干瞪眼。
@@ -72,7 +121,7 @@
       ratio: function (s) { return clamp1(s.learnedMartial.length / 3); }
     },
     {
-      id: 'gear_up', title: '披坚执锐', type: 'side', reward: { xp: 80, gold: 80 },
+      id: 'gear_up', post:true, title: '披坚执锐', type: 'side', reward: { xp: 80, gold: 80 },
       hint: '铁匠坊锻造、市集采买，寻得良品以上兵甲。',
       check: function (s) { return bestEquipQuality(s).q >= 1; },
       prog: function (s) { var b = bestEquipQuality(s); return b.q >= 1 ? ('已着 ' + b.name) : '尚无良品兵甲'; },
