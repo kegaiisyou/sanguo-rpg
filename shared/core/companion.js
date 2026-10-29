@@ -338,6 +338,10 @@
       if(/交谈|观察|给予/.test(a.label||'')) return;  // 去重标准项
       acts.push(a);
     });
+    // v20261029a：仓吏补给站——持有劳字木片时可兑换物资（与 onTalk 任务流互不抢占）
+    if(o.key==='storeman_kuyilao'){
+      acts.push({label:'兑换', icon:'🔁', fn:function(){ if(window.storemanExchange) window.storemanExchange(); }});
+    }
     return acts;
   }
   function observeNpc(o){

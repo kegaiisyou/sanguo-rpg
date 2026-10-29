@@ -1893,6 +1893,55 @@
       }
     }
   }
+  // 任务交付指引（v20261029a）：NPC 列表里给「可交付」的 NPC 标 ？，引导玩家去找谁交差。
+  function questNeedMet(def){
+    if(!def || !def.need) return true;
+    for(var i=0;i<def.need.length;i++){
+      var nd=def.need[i];
+      if(nd.flag){ if(flagNum(nd.flag) < nd.count) return false; }
+      else if(nd.item){ if(packCount(nd.item) < nd.count) return false; }
+    }
+    return true;
+  }
+  function npcQuestTurnInMark(name){
+    if(!name) return null;
+    // 接取式任务（S().quests，submit.npc 指向交付 NPC，需求已满足）
+    var qs=S().quests||[];
+    for(var i=0;i<qs.length;i++){
+      var q=qs[i], d=LF.QUEST_DEFS && LF.QUEST_DEFS[q.id];
+      if(d && d.submit && d.submit.npc===name && questNeedMet(d)) return '?';
+    }
+    // 苦役营差役（木牌接取，flags.task.<key>_started 追踪；需求满足即 ready）
+    var RD=(window.LF && LF.QUEST_DEFS)||{}, JB=JOB_BOARD||[];
+    for(var j=0;j<JB.length;j++){
+      var def=RD[JB[j].quest]; if(!def || !def.submit || def.submit.npc!==name) continue;
+      var tk=JB[j].key, ft=(S().flags&&S().flags.task)||{};
+      if(!ft[tk+'_started'] || ft[tk+'_done']) continue;
+      if(questNeedMet(def)) return '?';
+    }
+    return null;
+  }
+  // 仓吏补给站（v20261029a）：以劳字木片兑换物资，让仓库从「纯交任务点」变成「营地补给站」
+  function storemanExchange(){
+    var have=packCount('lao_pai');
+    if(have<=0){ log('〔仓吏〕「你囊里没劳字木片，拿什么换？去场院干满三工，伙房不白给。」','sys'); return; }
+    tutAsk('仓吏压低声音：「这木片不止换饭——你若用不着，我这儿兑点实在物事。要换哪样？」', [
+      { label:'兑·精致石镐（2 木片）', fn:function(){
+        if(packCount('lao_pai')<2){ log('〔仓吏〕「木片不够两枚，换不得这镐。」','warn'); return; }
+        packConsume('lao_pai',2); packAdd('jing_shi_gao',1);
+        log('〔仓吏〕他收了木片，从架上取下一把好镐递来：「这镐开得动铜脉，矿洞三层以下用得着。」（劳字木片-2 · 得精致石镐）','good');
+        save(S()); renderStatus();
+      }},
+      { label:'兑·水袋（1 木片）', fn:function(){
+        if(packCount('lao_pai')<1){ log('〔仓吏〕「连一枚木片都没有，换什么水袋。」','warn'); return; }
+        packConsume('lao_pai',1); packAdd('shuidai',1);
+        log('〔仓吏〕他拿木片换了只水袋给你：「营里水金贵，装满了用场大。」（劳字木片-1 · 得水袋）','good');
+        save(S()); renderStatus();
+      }},
+      { label:'先不换', fn:function(){ log('〔仓吏〕「想换了随时来。」','sys'); } }
+    ], '仓吏');
+  }
+
   function renderNpcList(room){
     applyTimeRoutines();
     if(!room && state.room) room=G.ROOMS[state.room]||bldRoom(state.room);
@@ -1975,7 +2024,8 @@
       var chip=document.createElement('button'); chip.className='nl-item';
       // v20260924u：NPC 名称命中头像映射则显示圆形头像，否则回退图标
       var _ava = (window.UI_Icons && it.o.name) ? UI_Icons.avatar(it.o.name, it.o.role) : (it.o.icon||'👤');
-      chip.innerHTML='<span class="nl-ic">'+_ava+'</span><span class="nl-nm">'+it.o.name+'</span>';
+      var _mk=npcQuestTurnInMark(it.o.name);
+      chip.innerHTML='<span class="nl-ic">'+_ava+'</span><span class="nl-nm">'+it.o.name+'</span>'+( _mk ? '<span class="nl-mark">'+_mk+'</span>' : '' );
       if(it.o.key) chip.dataset.k=it.o.key;   // 供新手目标引导高亮定位
       chip.onclick=function(e){ toggleObjExpand(e, chip, it.o, it.acts); };
       box.appendChild(chip);
@@ -2354,12 +2404,15 @@
       log(n.name+'面色不豫：「久闻壮士凶名……恕不奉陪。」说罢拂袖而去。','npc');
       return;
     }
-    var lines=n.lines||[];
-    if(lines.length){
+    // v20261029a：好感到「相识」（>=15）后，闲谈切到 warm 池，显出交情
+    var _warm=(npcFavor(k)>=15 && n.warm && n.warm.length);
+    var pool=_warm ? n.warm : (n.lines||[]);
+    if(pool.length){
       state.npcSeq=state.npcSeq||{};
-      var idx=(state.npcSeq[k]||0)%lines.length;
-      state.npcSeq[k]=idx+1;
-      log(lines[idx],'npc', n.name);
+      var _sk=k+(_warm?'|w':'');
+      var idx=(state.npcSeq[_sk]||0)%pool.length;
+      state.npcSeq[_sk]=idx+1;
+      log(pool[idx],'npc', n.name);
     } else {
       log('〔'+n.name+'〕他默然不语，似有心事。','npc');
     }
@@ -4688,7 +4741,7 @@
   window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
   // ── 全局桥接（v20260827j）：shared/story/rooms.js 等外部脚本的工厂闭包在全局作用域解析引擎函数，
   //    缺一即报 ReferenceError（真实浏览器严格词法作用域）。全部补齐：移动/交互/战斗/招募/渲染。
-  window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction; window.cellLockedHere=cellLockedHere;
+  window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction; window.cellLockedHere=cellLockedHere; window.storemanExchange=storemanExchange;
   window.getState=function(){ return state; }; window.save=save;   // 供 shared/story/rooms.js 房间物件回调读写存档（getState 惰性取当前 state）
   window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
   window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;

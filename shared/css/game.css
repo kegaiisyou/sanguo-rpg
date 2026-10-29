@@ -4113,3 +4113,5 @@
 .cx-locked:hover{transform:none;box-shadow:0 1px 3px rgba(90,60,20,.1);}
 
 .job-reward{color:#e8c87a;font-size:12px;margin-top:3px;}
+.nl-mark{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 3px;border-radius:8px;background:#c8a23a;color:#1a1208;font-size:11px;font-weight:700;line-height:1;box-shadow:0 0 4px rgba(200,162,58,.6);}
+.nl-item .nl-mark{position:absolute;top:-4px;right:-4px;margin:0;}
