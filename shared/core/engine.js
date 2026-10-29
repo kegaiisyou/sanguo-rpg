@@ -955,6 +955,8 @@
   // 将一份存档数据载入为当前游戏状态并展卷
   function enterGame(data, slot, isNew){
     curSlot=slot||0;
+    // v20261030b：兜底触发「已开局」信号（正常由点「仗剑入世」触发；读档/跳流程时这里补上）
+    try { if (window.__lfStart) window.__lfStart(); } catch (e) { }
     Core.state = state = normalize(data || G.defaultSave());
     prefetchStrategicMap();   // P0-①：进入游戏后空闲预取山河志三件套，开图秒开
     G.applySect(state);
@@ -2706,6 +2708,11 @@
 
       // ═══ P3 时间闭环（v20260911h）：伙房限时换饭 / 回牢销名 / 客栈打尖 ═══
       // 这三件事把「已亮相的时辰」变成真正要照料的东西：吃、睡、点卯都得看更鼓。
+      // v20261030a：担水入灶 —— 伙房「灶边水缸」倾水（objects.js kitchenPour）
+      case 'kitchen_pour': {
+        kitchenPour();
+        break;
+      }
       case 'mess_hall': {
         var _o = onbF();
         if(!_o || !_o.started || _o.done){ toast('此处是营中伙房，非营中之人换不得饭。'); break; }
@@ -4571,7 +4578,7 @@
     if(window.contCloseCleanup) window.contCloseCleanup();
     $modal.classList.add('hidden');
     try{ SFX.close(); }catch(e){}   // 弹窗关闭音效（v20260909a）
-    try{ if(window.SFX && SFX.stopAmbient) SFX.stopAmbient(); }catch(e3){}   // 停赌坊氛围音（v20261001u）
+    try{ if(window.SFX && SFX.gambleAmbientStop) SFX.gambleAmbientStop(); }catch(e3){}   // 停赌坊氛围音（v20261030a 改名）
     if(currentModalKind==='shop') Shop.restoreTradePending();   // 关店归还寄售真物，避免退出后丢失
     var _closedKind=currentModalKind;   // v20260913c：收起前先记下关的是哪扇窗（行囊教学要接着往下讲）
     currentModalKind=null;   // 复位，使 afterPackChange 能区分「行囊是否仍打开」
@@ -4873,8 +4880,11 @@
   var _im0=new Image(); _im0.onload=function(){ _pbgDone++; }; _im0.onerror=function(){ _pbgDone++; }; _im0.src='assets/title_bg.jpg';
   // 序章候选底图：空闲预取，不阻塞标题页
   function _prefetchPbgs(){ _pbgs.forEach(function(_src){ var _im=new Image(); _im.src=_src; }); }
-  if(window.requestIdleCallback) { try{ window.requestIdleCallback(_prefetchPbgs,{timeout:8000}); }catch(e){ setTimeout(_prefetchPbgs,2500); } }
-  else setTimeout(_prefetchPbgs, 2500);
+  // v20261030b：六张序章候选图合计 1.71MB，旧版用 requestIdleCallback「空闲预取」——
+  //   但 idle 往往在首屏几秒内就到，实测仍在首屏被全部下载。改为登记到开局后的分批队列
+  //   （序章播放前才需要，玩家点「开始游戏」后再慢慢拉）。
+  if (window.__lfDefer) window.__lfDefer(_prefetchPbgs);
+  else { if(window.requestIdleCallback) { try{ window.requestIdleCallback(_prefetchPbgs,{timeout:8000}); }catch(e){ setTimeout(_prefetchPbgs,2500); } } else setTimeout(_prefetchPbgs, 2500); }
   (function _waitPbg(){
     if(_pbgDone>=1 || Date.now()-_pbgT0>1200){
       if(!state || !state.room) showTitle();   // 已进游戏则不再强回首頁（v20260918i 竞态修复）

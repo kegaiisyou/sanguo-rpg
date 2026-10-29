@@ -70,7 +70,10 @@
   // 宣纸纹理（预生成一次，面填充后叠加淡噪点）
   var PAPER = (function () {
     var c = document.createElement('canvas'); c.width = c.height = 24;
-    var g = c.getContext('2d'); g.fillStyle = '#f5ecd8'; g.fillRect(0, 0, 24, 24);
+    // v20261029e：无 2D 上下文的运行环境（jsdom 冒烟里 getContext 返回 null）直接退回空白纹理，
+    //   不在模块加载期抛 TypeError 中断引擎初始化；真实浏览器恒有 2d 上下文，行为与原先一致。
+    var g = c.getContext && c.getContext('2d'); if (!g) return c;
+    g.fillStyle = '#f5ecd8'; g.fillRect(0, 0, 24, 24);
     for (var i = 0; i < 70; i++) { g.fillStyle = 'rgba(120,90,50,' + (0.03 + Math.random() * 0.06) + ')'; g.fillRect(Math.random() * 24, Math.random() * 24, 1.2, 1.2); }
     return c;
   })();
@@ -255,8 +258,11 @@
   var bets = { size: '', bao: false, odd: false, even: false, point: 0 };
   // 对决：duelBet='self'/'banker'，duelFace=玩家/荷官骰面
   var duelBet = '', duelFaces = { p: [0, 0, 0], b: [0, 0, 0] };
-  // 游戏启动即预载赌坊素材（碗/手），避免进入赌坊时卡顿
-  (function () { ['bowl', 'hand_closed', 'hand_open'].forEach(function (n) { var im = new Image(); im.src = IMG + n + '.png'; }); })();
+  // 预载赌坊素材（碗/手），避免进入赌坊时卡顿
+  // v20261030b：旧版「游戏启动即预载」，bowl.png 等 ~0.2MB 在首屏就下载；改为开局后分批。
+  var _gamblePreload = function () { ['bowl', 'hand_closed', 'hand_open'].forEach(function (n) { var im = new Image(); im.src = IMG + n + '.png'; }); };
+  if (window.__lfDefer) window.__lfDefer(_gamblePreload);
+  else setTimeout(_gamblePreload, 3000);
 
   function resetUI() {
     var e = $();
@@ -694,7 +700,7 @@
     els = null; // 弹窗每次打开会重建 DOM，必须重新获取
     var e = $();
     if (!e.go) return;
-    if (window.SFX && SFX.startAmbient) { try { SFX.startAmbient(); } catch (e5) { } } // 赌坊氛围音
+    if (window.SFX && SFX.gambleAmbient) { try { SFX.gambleAmbient(); } catch (e5) { } } // 赌坊氛围音（v20261030a 改名，避免顶掉房间环境音）
     // 玩法选择（三卡：经典通吃 / 江湖无豹 / 骰子对决）
     document.querySelectorAll('.gm-rule').forEach(function (r) {
       r.onclick = function () {

@@ -11,7 +11,7 @@
   var bgmFadeGain = null;  // 淡入淡出用的gain节点
   var bgmSrc = null;
   var bgmSilenceTimer = null;
-  var BGM_SILENCE = 2;     // 不循环曲目之间静默5秒
+  var BGM_SILENCE = 2;     // 静默 2 秒（v20261030a：轮播改「播完直接接下一曲」，此值仅兜底用）
   var BGM_FADE = 1.5;      // 淡入淡出时长1.5秒
   var bgmPlaying = false;
   var currentBgmIdx = 0;
@@ -73,6 +73,15 @@
     Object.keys(SFX_FILES).forEach(function (k) { loadBuffer(k, SFX_FILES[k]); });
     BGM_TRACKS.forEach(function (t) { loadBuffer(t.id, t.file); });
   }
+  // v20261030a：首屏瘦身 —— 旧版在 window load 时全量预载 5 首 BGM + 6 层环境音 + 3 个音效，
+  //   实测首屏音频流量 5.04MB（占总传输 10.4MB 的一半），玩家还没点「开始」就已付完流量。
+  //   改为：首次交互后只取 3 个高频音效 + 当前一首 BGM，其余（含 6 层环境音）用到时按需取
+  //   —— loadBuffer 本就是「按 key 惰性拉取」，进房间/切曲时调它即可，不预载也不影响功能。
+  function preloadLite() {
+    Object.keys(SFX_FILES).forEach(function (k) { loadBuffer(k, SFX_FILES[k]); });
+    var t = BGM_TRACKS[currentBgmIdx];
+    if (t) loadBuffer(t.id, t.file);
+  }
 
   function playBuffer(key, gain) {
     if (!enabled) return false;
@@ -91,13 +100,12 @@
   function unlock() {
     var c = ensureCtx();
     if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
-    if (!buffers.main && !loading.main) preloadAll();
+    if (!buffers.main && !loading.main) preloadLite();
   }
   document.addEventListener('touchstart', unlock, { passive: true });
   document.addEventListener('click', unlock);
   document.addEventListener('keydown', unlock);
-  if (document.readyState === 'complete') preloadAll();
-  else window.addEventListener('load', preloadAll);
+  // v20261030a：不再于 load 事件全量预载（5.04MB）；改由 unlock（首次点击/触摸/按键）轻量预载。
 
   // ── 代码合成 fallback ──
   function tone(freq, dur, type, vol) {
@@ -152,7 +160,9 @@
   function sfxDefeat() { [440, 392, 349, 294, 262].forEach(function (f, i) { setTimeout(function () { tone(f, 0.25, 'sine', 0.12); }, i * 120); }); }
 
   // ── BGM（多首切换；循环曲目直接loop，非循环曲目淡入淡出+静默重播）──
-  var BGM_DURATION = 20;   // 非循环曲目时长20秒
+  var BGM_DURATION = 20;   // 非循环曲目时长20秒（仅作兜底：实际一律取 buffer.duration）
+  var bgmRotate = true;    // v20261030a：按曲目列表轮播（玩家在设置里手动选曲后置 false）
+  var bgmWanted = false;   // v20261030a：BGM 是否「应当在播」——区分用户主动停与意外停摆
   var bgmState = 'stopped'; // 'playing' | 'silence' | 'stopped'
   var bgmPlayTimer = null;  // 非循环曲目：播放时长定时器
   var bgmFadeTimer = null;  // 非循环曲目：淡出定时器
@@ -167,6 +177,7 @@
   }
 
   function startBgm() {
+    bgmWanted = true;   // v20261030a：标记为「应当在播」，供健康监控兜底
     if (bgmState === 'playing') return;
     var c = ensureCtx();
     if (!c) return;
@@ -214,33 +225,87 @@
           bgmFadeGain.gain.setValueAtTime(0, c.currentTime);
           bgmFadeGain.gain.linearRampToValueAtTime(1, c.currentTime + BGM_FADE);
         }
+        // v20261030a：开启轮播时，循环曲播满一轮（真实时长）也切下一曲 —— 五首各 60 秒，
+        //   轮播能避免「一首曲子听一晚上」，且每首都是完整播完再走，不会出现播一半被掐。
+        if (bgmRotate) {
+          var ldur = (buffers[track.id] && buffers[track.id].duration) ? buffers[track.id].duration : BGM_DURATION;
+          bgmPlayTimer = setTimeout(function() {
+            bgmPlayTimer = null;
+            nextTrack();
+          }, Math.max(5, ldur - 0.05) * 1000);
+        }
       } else {
-        // 非循环曲目（柔情）：淡入1.5秒 → 播放 → 结束前1.5秒淡出 → 静默5秒 → 重播
-        var dur = BGM_DURATION;
+        // v20261030a：非循环曲（柔情）——旧版用硬编码 BGM_DURATION=20 秒定时器控制淡出与重播，
+        //   而音频实际时长并非 20 秒 → 未播完就被掐断（或末尾空放一段），接着静默 2 秒又从头
+        //   重播同一首，听感就是「莫名一顿、又来一遍」。改为取 buffer.duration 的真实时长，
+        //   播完顺势淡出接下一曲（轮播），不再静默重播。
+        var buf = buffers[track.id];
+        var dur = (buf && buf.duration) ? buf.duration : BGM_DURATION;
+        var fade = Math.min(BGM_FADE, Math.max(0.5, dur * 0.12));
         // 淡入
         if (bgmFadeGain) {
           bgmFadeGain.gain.setValueAtTime(0, c.currentTime);
-          bgmFadeGain.gain.linearRampToValueAtTime(1, c.currentTime + BGM_FADE);
+          bgmFadeGain.gain.linearRampToValueAtTime(1, c.currentTime + fade);
         }
-        // 结束前1.5秒开始淡出
+        // 结束前 fade 秒开始淡出
         bgmFadeTimer = setTimeout(function() {
           bgmFadeTimer = null;
           var cc = ensureCtx();
           if (cc && bgmFadeGain && bgmState === 'playing') {
             bgmFadeGain.gain.cancelScheduledValues(cc.currentTime);
             bgmFadeGain.gain.setValueAtTime(bgmFadeGain.gain.value, cc.currentTime);
-            bgmFadeGain.gain.linearRampToValueAtTime(0, cc.currentTime + BGM_FADE);
+            bgmFadeGain.gain.linearRampToValueAtTime(0, cc.currentTime + fade);
           }
-        }, (dur - BGM_FADE) * 1000);
-        // 20秒后停止，进入静默
+        }, Math.max(0, dur - fade) * 1000);
+        // 真实时长播完 → 接下一曲（淡入由 doStartBgm 接管，形成交叉）
         bgmPlayTimer = setTimeout(function() {
           bgmPlayTimer = null;
-          enterSilence();
-        }, dur * 1000);
+          nextTrack();
+        }, Math.max(0, dur - 0.05) * 1000);
       }
     } catch (e) { bgmSrc = null; bgmState = 'stopped'; }
   }
 
+  // v20261030a：非循环曲播完 → 顺序接下一曲（旧版「静默 2 秒后重播同一首」，听感像卡带重来）。
+  //   旧源先淡出 0.6s 再起新曲，避免硬切爆音；新曲的淡入由 doStartBgm 负责。
+  function nextTrack() {
+    if (!enabled) { bgmState = 'stopped'; return; }
+    if (BGM_TRACKS.length < 2) { bgmState = 'stopped'; return; }
+    currentBgmIdx = (currentBgmIdx + 1) % BGM_TRACKS.length;
+    var c = ensureCtx();
+    if (c && bgmSrc && bgmFadeGain) {
+      try {
+        bgmFadeGain.gain.cancelScheduledValues(c.currentTime);
+        bgmFadeGain.gain.setValueAtTime(bgmFadeGain.gain.value, c.currentTime);
+        bgmFadeGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.6);
+      } catch (e) { }
+    }
+    setTimeout(function () {
+      if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
+      clearBgmTimers();
+      bgmState = 'stopped';
+      // v20261030a：必须是 startBgm 而非 doStartBgm —— 后者在 buffer 未加载时直接 return 且不加载，
+      //   按需加载后第二首从未预载，结果切曲即永久静音（实测切到 idx=1 后 40 秒不再出声）。
+      if (enabled) startBgm();
+    }, 620);
+  }
+  // v20261030a：带淡出的停止 —— 切曲/进出战斗时旧版是 stopBgm() 硬停（瞬间静音）再淡入新曲，
+  //   中间那一下「断」就是玩家说的停顿感。改为先淡出再停，与新曲淡入交叠。
+  function stopBgmFade(ms, cb) {
+    var c = ensureCtx();
+    var fade = ms || 0.8;
+    if (c && bgmSrc && bgmFadeGain) {
+      try {
+        bgmFadeGain.gain.cancelScheduledValues(c.currentTime);
+        bgmFadeGain.gain.setValueAtTime(bgmFadeGain.gain.value, c.currentTime);
+        bgmFadeGain.gain.linearRampToValueAtTime(0, c.currentTime + fade);
+      } catch (e) { }
+      setTimeout(function () { stopBgm(); if (cb) cb(); }, fade * 1000 + 50);
+      return;
+    }
+    stopBgm();
+    if (cb) cb();
+  }
   function enterSilence() {
     if (bgmState !== 'playing') return;
     if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
@@ -338,8 +403,7 @@
     currentBgmIdx=idx;
     var c=ensureCtx();
     if(c&&c.state==='suspended'){ c.resume().catch(function(){}); }
-    stopBgm();
-    startBgm();
+    stopBgmFade(0.8, startBgm);   // v20261030a：淡出旧曲再起新曲
   }
   function setCombatBgm(on){
     var battleIdx=-1;
@@ -355,6 +419,7 @@
   }
 
   function stopBgm() {
+    bgmWanted = false;   // v20261030a：主动停止 → 健康监控不再把它拉起来
     bgmState = 'stopped';
     clearBgmTimers();
     if (bgmSrc) { try { bgmSrc.onended = null; bgmSrc.stop(); bgmSrc.disconnect(); } catch (e) { } bgmSrc = null; }
@@ -368,17 +433,26 @@
   function setBgmTrack(idx) {
     if (idx < 0 || idx >= BGM_TRACKS.length) return;
     currentBgmIdx = idx;
+    bgmRotate = false;   // v20261030a：玩家手动选了曲，就不再自动轮播把它换走
     try { localStorage.setItem('sanguo_bgm_track', idx); } catch (e) { }
     var c = ensureCtx();
     if (c && c.state === 'suspended') { c.resume().catch(function(){}); }
-    stopBgm();
-    startBgm();
+    stopBgmFade(0.8, startBgm);   // v20261030a：淡出旧曲再起新曲
   }
 
   // BGM健康监控（v20260909t）：每2秒检查状态一致性
   var bgmWatchTimer = setInterval(function() {
     if (!enabled) return;
-    if (bgmState === 'stopped') return;
+    var c0 = ensureCtx();
+    // v20261030a：意外停摆自愈 —— 旧版 stopped 直接 return，一旦停了就再没人拉起来
+    if (bgmState === 'stopped') {
+      if (bgmWanted && c0) {
+        var tw = getCurrentBgm();
+        if (!buffers[tw.id] && !loading[tw.id]) loadBuffer(tw.id, tw.file);
+        startBgm();
+      }
+      return;
+    }
     var c = ensureCtx();
     if (!c) return;
     if (c.state === 'suspended') { c.resume().catch(function(){}); }
@@ -460,6 +534,10 @@
     levelup: sfxLevelup,
 
     startAmbient: startAmbient, stopAmbient: stopAmbient,
+    // v20261030a：赌坊氛围音另立名目 —— 此前它与「房间环境音」同名（同作用域后声明覆盖前声明），
+    //   于是 syncAmbient(roomId…) 传进去的 birds/market/night/rain/teahouse 全被忽略，
+    //   实际播的永远是赌坊低通噪音；且 duckBgm 依赖的 ambGainNode 不再被创建，战斗压低环境音失效。
+    gambleAmbient: gambleAmbientStart, gambleAmbientStop: gambleAmbientStop,
     play: function (name) {
       var fn = { click: sfxClick, coin: sfxCoin, confirm: sfxConfirm, cancel: sfxCancel, open: sfxOpen, close: sfxClose, error: sfxError, levelup: sfxLevelup, attack: sfxAttack, hit: sfxHit, crit: sfxCrit, miss: sfxMiss, defend: sfxDefend, heal: sfxHeal, skill: sfxSkill, victory: sfxVictory, defeat: sfxDefeat,
         diceShake: sfxDiceShake, diceLand: sfxDiceLand, diceTick: sfxDiceTick, win: sfxWin, lose: sfxLose, bao: sfxBao }[name];
@@ -467,6 +545,8 @@
     },
     startBgm: startBgm,
     stopBgm: stopBgm,
+    // v20261030a：挂出以防 terser 把只调用一次的函数内联后删掉声明（便于回归验证 + 调试入口）
+    preloadAll: preloadAll, preloadLite: preloadLite, nextTrack: nextTrack, stopBgmFade: stopBgmFade,
     syncAmbient: syncAmbient,
     duckBgm: duckBgm,
     setCombatBgm: setCombatBgm,
@@ -526,7 +606,7 @@
   }
     // 豹子通吃锣声（低鼓+铜锣，比普通胜利更响更戏剧）
   function sfxBao() {
-    if (!ctxReady()) return;
+    var c = ensureCtx(); if (!c || !enabled) return;   // v20261030a：原写 !ctxReady() 且用裸变量 c，触发豹子必抛 ReferenceError
     var t = c.currentTime;
     var g = c.createGain(); g.gain.value = 0.5; g.connect(sfxGain || c.destination);
     var osc = c.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(392, t); osc.frequency.exponentialRampToValueAtTime(196, t + 0.7); osc.connect(g); osc.start(t); osc.stop(t + 0.8);
@@ -537,8 +617,8 @@
   }
   // ── 赌坊氛围音（进赌坊播放：低通人声低语 + 稀疏骰声/铜钱叮，关窗停止） ──
   var ambGain = null, ambTimer = null;
-  function startAmbient() {
-    stopAmbient();
+  function gambleAmbientStart() {
+    gambleAmbientStop();
     var c = ensureCtx(); if (!c || !enabled) return;
     ambGain = c.createGain(); ambGain.gain.value = 0;
     ambGain.connect(sfxGain || c.destination);
@@ -573,7 +653,7 @@
       }
     }, 3000);
   }
-  function stopAmbient() {
+  function gambleAmbientStop() {
     if (ambTimer) { clearInterval(ambTimer); ambTimer = null; }
     var g = ambGain; ambGain = null;
     if (g && ctx) { try { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(g.gain.value, ctx.currentTime); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4); } catch (e) { } setTimeout(function () { try { g.disconnect(); } catch (e2) { } }, 550); }

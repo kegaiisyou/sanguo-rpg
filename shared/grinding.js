@@ -26,12 +26,18 @@
   LF.GRIND_RX = GRIND_RX;
   LF.GRIND_RX_UNLOCK = { fang_jinchuangao: 'jinchuangao', fang_xumingdan: 'xumingdan' };
 
-  // ── 预加载（v20261015b）：bundle 载入即预热捣药全部图片，进界面秒显、不再白屏等待 ──
-  ['assets/icons/grind/mortar.png', 'assets/icons/grind/pestle.png',
-   'assets/icons/grind/renshen.png', 'assets/icons/grind/gancao.png',
-   'assets/icons/grind/huanglian.png'].forEach(function (u) {
-    try { var _pi = new Image(); _pi.src = u; } catch (e) { }
-  });
+  // ── 预加载（v20261015b；v20261030b 改为开局后）——
+  //   旧版「bundle 载入即预热」，五张捣药图（mortar 一张就 272KB）在首屏就被下载，
+  //   而玩家可能整局都不进药坊。改为登记到「开始游戏后」的分批队列，进界面依然秒显。
+  var _grindPreload = function () {
+    ['assets/icons/grind/mortar.png', 'assets/icons/grind/pestle.png',
+     'assets/icons/grind/renshen.png', 'assets/icons/grind/gancao.png',
+     'assets/icons/grind/huanglian.png'].forEach(function (u) {
+      try { var _pi = new Image(); _pi.src = u; } catch (e) { }
+    });
+  };
+  if (window.__lfDefer) window.__lfDefer(_grindPreload);
+  else setTimeout(_grindPreload, 3000);
 
   LF.createGrinding = function (ctx) {
     var getState = ctx.getState, packAdd = ctx.packAdd, packConsume = ctx.packConsume,

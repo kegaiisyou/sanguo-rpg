@@ -1622,6 +1622,11 @@
   /* 战斗时隐藏底部移动罗盘与功能 dock，专注战斗 */
   #app.in-combat #lower,
   #app.in-combat #dock{ display:none; }
+  /* 战斗时一并收起对话帘（v20261029c）：#dlg 是 fixed bottom + z-index:67，
+     高于静态布局的 #actions；「剧情选项答毕即切入战斗」的路径（如第4日夺营）里 dlg 没被关闭，
+     空面板正好压住战斗指令按钮（普攻/招式/防御/道具/撤退全点不到），表现为战斗整体卡死。 */
+  #app.in-combat #dlg,
+  #app.in-combat #dlg-veil{ display:none; }
 
   /* 战斗行动菜单：紧凑一行，小图标+文字，自动换行兜底 */
   #app.in-combat #actions{ display:flex !important; flex-wrap:wrap; gap:7px; justify-content:center;
@@ -2380,7 +2385,8 @@
   body.onb #dock button{ display:none !important; }
   body.onb #dock button.onb-on{ display:flex !important; }
   /* 战斗优先：盖过开场各 reveal 的显示（body.onb.reveal-* 同为 !important 且 specificity 相同，靠后置胜出），专注作战 */
-  body.onb.in-combat #lower, body.onb.in-combat #npc-list, body.onb.in-combat #dock{ display:none !important; }
+  body.onb.in-combat #lower, body.onb.in-combat #npc-list, body.onb.in-combat #dock,
+  body.onb.in-combat #dlg, body.onb.in-combat #dlg-veil{ display:none !important; }
   body.onb.in-combat #actions{ display:flex !important; }
   .onb-glow{ animation:onbPulse 1.1s ease-in-out infinite; border-radius:10px; }
   @keyframes onbPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(232,200,120,0); } 50%{ box-shadow:0 0 0 3px rgba(232,200,120,.9), 0 0 22px rgba(232,200,120,.55); } }

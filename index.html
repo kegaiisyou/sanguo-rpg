@@ -7,12 +7,55 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>乱世烽火 · 水墨</title>
-<link rel="stylesheet" href="shared/css/game.css?v=20261029b" />
+<link rel="stylesheet" href="shared/css/game.css?v=20261030b" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="shared/css/strategic-map.css?v=20261020a" />
+<!-- v20261030b：两个在线字体（马善政/志莽行 + 霞鹜文楷）不再首屏加载。
+     它们合计约 2.07MB（Google 的中文书法字体按 unicode-range 分片，首页几个标题字就触发 20+ 个分片），
+     而首页真正需要的只是「几个标题字」。改为玩家点「开始游戏」后由下面的 __lfStart() 注入，
+     序章与游戏内文字才用得到。首屏标题页回落到 game.css 里已有的系统楷体（STKaiti/KaiTi/宋体）。 -->
+<script>
+(function(){
+  window.__lfStarted = false;
+  var _q = [];
+  function _runIdle(fn){
+    try { if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 6000 });
+          else setTimeout(fn, 1200); }
+    catch (e) { try { fn(); } catch (e2) { } }
+  }
+  // 各模块把「非首屏必需」的预载登记进来，等开局后分批执行
+  window.__lfDefer = function (fn) {
+    if (window.__lfStarted) { _runIdle(fn); return; }
+    _q.push(fn);
+  };
+  function _loadWebFonts(){
+    if (window.__lfFonts) return;
+    window.__lfFonts = true;
+    [ 'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap',
+      'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css' ].forEach(function (href) {
+      var l = document.createElement('link');
+      l.rel = 'stylesheet'; l.href = href;
+      l.media = 'print'; l.onload = function () { l.media = 'all'; };
+      document.head.appendChild(l);
+    });
+  }
+  // 开局信号：先上字体（序章文字要用），队列里的其余资源每 400ms 放一个，避免一次性抢带宽
+  window.__lfStart = function () {
+    if (window.__lfStarted) return;
+    window.__lfStarted = true;
+    _loadWebFonts();
+    var list = _q.slice(); _q.length = 0;
+    list.forEach(function (fn, i) { setTimeout(function () { _runIdle(fn); }, 300 + i * 400); });
+    try { document.dispatchEvent(new CustomEvent('lf:game-started')); } catch (e) { }
+  };
+  // 触发点：点标题页的「仗剑入世 / 拾卷续缘」或存档槽 = 玩家决定要玩了
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t && t.closest && t.closest('#t-start, #t-load, .slot')) window.__lfStart();
+  }, true);
+})();
+</script>
 </head>
 <body>
 <script>
@@ -50,7 +93,7 @@ window.onerror=function(msg,url,line,col,err){
     <filter id="inkBleed2"><feTurbulence type="fractalNoise" baseFrequency="0.011 0.022" numOctaves="4" seed="29" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="62" xChannelSelector="R" yChannelSelector="G"/></filter>
     <filter id="inkBleed3"><feTurbulence type="fractalNoise" baseFrequency="0.02 0.015" numOctaves="3" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="44" xChannelSelector="R" yChannelSelector="G"/></filter>
   </defs></svg>
-  <div class="tt-scroll"><div class="tt-scroll-body">大江东去 浪淘尽 千古风流人物 竹杖芒鞋轻胜马 谁怕 一蓑烟雨任平生 但使龙城飞将在 不教胡马度阴山 龙游浅水遭虾戏 虎落平阳被犬欺 时势造英雄 天下英雄谁敌手 曹刘 生子当如孙仲谋 折戟沉沙铁未销 自将磨洗认前朝 古今多少事 都付笑谈中 江山如画 一时多少豪杰 秦时明月汉时关 万里长征人未还 愿得此身长报国 何须生入玉门关 醉卧沙场君莫笑 古来征战几人回 宁为百夫长 胜作一书生 犯我强汉者 虽远必诛 大风起兮云飞扬 威加海内兮归故乡 安得猛士兮守四方 男儿何不带吴钩 收取关山五十州 一身转战三千里 一剑曾当百万师 王侯将相宁有种乎 力拔山兮气盖世 凭君莫话封侯事 一将功成万骨枯 可怜无定河边骨 犹是春闺梦里人 旧时王谢堂前燕 飞入寻常百姓家 滚滚长江东逝水 浪花淘尽英雄 是非成败转头空 青山依旧在 几度夕阳红 天下大势 分久必合 合久必分 受任于败军之际 奉命于危难之间 捐躯赴国难 视死忽如归 老骥伏枥 志在千里 烈士暮年 壮心不已 黄沙百战穿金甲 不破楼兰终不还 风萧萧兮易水寒 壮士一去兮不复还 十步杀一人 千里不留行 事了拂衣去 深藏身与名 铁马冰河征铎冷 狼烟万里戍楼寒 长戈夜啸霜天月 羸马晨嘶古战场 百战黄沙埋甲胄 一腔热血沃山河 旌旗裂雪过函谷 鼓角连营卷朔风 一剑霜寒十四州 匹夫怒发可吞牛 醉里挑灯看吴钩 男儿仗剑觅封侯 恩仇笑纳杯中酒 生死轻抛马后尘 江湖浪迹身如寄 肝胆轮囷气若虹 分鼎当年争虎踞 论交乱世重鸿毛 单骑斩将出重围 赤兔嘶风血染衣 卧龙一去空梁甫 落凤坡前草色秋 滚滚长江东逝水 浪花淘尽英雄 是非成败转头空 青山依旧在 几度夕阳红 天下大势 分久必合 合久必分 受任于败军之际 奉命于危难之间 捐躯赴国难 视死忽如归 老骥伏枥 志在千里 烈士暮年 壮心不已 黄沙百战穿金甲 不破楼兰终不还 风萧萧兮易水寒 壮士一去兮不复还 十步杀一人 千里不留行 事了拂衣去 深藏身与名 铁马冰河征铎冷 狼烟万里戍楼寒 长戈夜啸霜天月 羸马晨嘶古战场 百战黄沙埋甲胄 一腔热血沃山河 旌旗裂雪过函谷 鼓角连营卷朔风 一剑霜寒十四州 匹夫怒发可吞牛 醉里挑灯看吴钩 男儿仗剑觅封侯 恩仇笑纳杯中酒 生死轻抛马后尘 江湖浪迹身如寄 肝胆轮囇气若虹 分鼎当年争虎踞 论交乱世重鸿毛 单骑斩将出重围 赤兔嘶风血染衣 卧龙一去空梁甫 落凤坡前草色秋</div></div>
+  <div class="tt-scroll"><div class="tt-scroll-body">大江东去 浪淘尽 千古风流人物 竹杖芒鞋轻胜马 谁怕 一蓑烟雨任平生 但使龙城飞将在 不教胡马度阴山 龙游浅水遭虾戏 虎落平阳被犬欺 时势造英雄 天下英雄谁敌手 曹刘 生子当如孙仲谋 折戟沉沙铁未销 自将磨洗认前朝 古今多少事 都付笑谈中 江山如画 一时多少豪杰 秦时明月汉时关 万里长征人未还 愿得此身长报国 何须生入玉门关 醉卧沙场君莫笑 古来征战几人回 宁为百夫长 胜作一书生 犯我强汉者 ��远必诛 大风起兮云飞扬 威加海内兮归故乡 安得猛士兮守四方 男儿何不带吴钩 收取关山五十州 一身转战三千里 一剑曾当百万师 王侯将相宁有种乎 力拔山兮气盖世 凭君莫话封侯事 一将功成万骨枯 可怜无定河边骨 犹是春闺梦里人 旧时王谢堂前燕 飞入寻常百姓家 滚滚长江东逝水 浪花淘尽英雄 是非成败转头空 青山依旧在 几度夕阳红 天下大势 分久必合 合久必分 受任于败军之际 奉命于危难之间 捐躯赴国难 视死忽如归 老骥伏枥 志在千里 烈士暮年 壮心不已 黄沙百战穿金甲 不破楼兰终不还 风萧萧兮易水寒 壮士一去兮不复还 十步杀一人 千里不留行 事了拂衣去 深藏身与名 铁马冰河征铎冷 狼烟万里戍楼寒 长戈夜啸霜天月 羸马晨嘶古战场 百战黄沙埋甲胄 一腔热血沃山河 旌旗裂雪过函谷 鼓角连营卷朔风 一剑霜寒十四州 匹夫怒发可吞牛 醉里挑灯看吴钩 男儿仗剑觅封侯 恩仇笑纳杯中酒 生死轻抛马后尘 江湖浪迹身如寄 肝胆轮囷气若虹 分鼎当年争虎踞 论交乱世重鸿毛 单骑斩将出重围 赤兔嘶风血染衣 卧龙一去空梁甫 落凤坡前草色秋 滚滚长江东逝水 浪花淘尽英雄 是非成败转头空 青山依旧在 几度夕阳红 天下大势 分久必合 合久必分 受任于败军之际 奉命于危难之间 捐躯赴国难 视死忽如归 老骥伏枥 志在千里 烈士暮年 壮心不已 黄沙百战穿金甲 不破楼兰终不还 风萧萧兮易水寒 壮士一去兮不复还 十步杀一人 千里不留行 事了拂衣去 深藏身与名 铁马冰河征铎冷 狼烟万里戍楼寒 长戈夜啸霜天月 羸马晨嘶古战场 百战黄沙埋甲胄 一腔热血沃山河 旌旗裂雪过函谷 鼓角连营卷朔风 一剑霜寒十四州 匹夫怒发可吞牛 醉里挑灯看吴钩 男儿仗剑觅封侯 恩仇笑纳杯中酒 生死轻抛马后尘 江湖浪迹身如寄 肝胆轮囇气若虹 分鼎当年争虎踞 论交乱世重鸿毛 单骑斩将出重围 赤兔嘶风血染衣 卧龙一去空梁甫 落凤坡前草色秋</div></div>
   <div class="tt-inkblot"></div>
   <div class="tt-inkfx"><i></i><i></i><i></i><i></i></div>
   <div class="tt-dust"><i></i><i></i><i></i><i></i><i></i></div>
@@ -67,7 +110,7 @@ window.onerror=function(msg,url,line,col,err){
       <button class="t-btn" id="t-set">整 肃 行 装</button>
       <button class="t-btn" id="t-credit">群 英 同 撰</button>
     </div>
-    <div class="tt-ver" id="tt-ver">v20261025b</div>
+    <div class="tt-ver" id="tt-ver">v20261030b</div>
   </div>
 </div>
 
@@ -105,7 +148,7 @@ window.onerror=function(msg,url,line,col,err){
   <section id="actions"></section>
   <!-- v20260912k 对话帘：与 NPC 交谈时自底部升起的浮层（position:fixed，不参与 #app 布局，
        故开合不再把叙事区/罗盘顶来顶去）。头＝朱砂名章＋名姓＋状态；体＝本次交谈的往来
-       （含你的答话，可上滚回看）；足＝带序号的答话选项（样式键盘 1-9 亦可）。
+       （含你的答话，可上���回看）；足＝带序号的答话选项（样式键盘 1-9 亦可）。
        快慢三条出路（v20260914a）：单点＝出下一句｜连点两下＝整段一次讲完并放开选项｜
        文字演出设「瞬」＝一段一次落完。帘只压暗背景、不遮挡上方叙事区。
        注：v20260913b 起对话往来【不再】折进叙事区（避免同一段话出现两遍）；说过的话
@@ -194,7 +237,7 @@ window.onerror=function(msg,url,line,col,err){
     sm: 'shared/strategic-map.js?v=20260928g'
       };
     </script>
-<script src="shared/bundle.js?v=20261029b" defer></script>
+<script src="shared/bundle.js?v=20261030b" defer></script>
 
 
 
@@ -218,7 +261,6 @@ window.onerror=function(msg,url,line,col,err){
 
 
 
-    <div class="tt-ver" id="tt-ver">v20261025b</div>
 </body>
 </html>
 

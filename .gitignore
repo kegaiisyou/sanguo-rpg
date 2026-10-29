@@ -37,3 +37,19 @@ assets/_ref_orig.png
 _playtest/
 # 一次性冒烟调试脚本
 verify_smoke.js
+
+# ===== 2026-10-29 补强（防止临时/调试产物再进仓库）=====
+# 根目录调试截图（真实图片资源在 assets/，勿用 *.png 全局忽略）
+/*.png
+# 根目录调试输出（真实文档是 .md，集中在 docs/）
+/*.txt
+# 一次性/临时测试脚本（保留 serve_nocache.py 工具与 test/ 套件）
+*_test.py
+# 调试 / 走查目录
+/.pwtest/
+/shots/
+# 补丁与预览产物
+/*.patch
+/icons_preview.html
+# 浏览器自动化测试存档
+/state.json

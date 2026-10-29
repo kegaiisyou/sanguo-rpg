@@ -288,6 +288,13 @@
     f.innerHTML=renderStorageInspect(cid);
     f.querySelectorAll('[data-st-act]').forEach(function(b){ b.onclick=function(){ stAct(b.getAttribute('data-st-act')); }; });
     f.querySelectorAll('[data-cq]').forEach(function(b){ b.onclick=function(){ var n=parseInt(b.getAttribute('data-n'),10); if(b.getAttribute('data-input')) stQtyInput(b.getAttribute('data-cq')); else stQty(b.getAttribute('data-cq'), n); }; });
+    // v20261030a：仓库详情浮窗补显式 ✕ —— pack / shop / container 三处都有，唯独仓库没有，
+    //   玩家点开物品详情与数量选取后只能去点空白（而空白处正是格子，一点又切到别的东西）。
+    if(!f.querySelector('.lf-close')) {
+      var _x=document.createElement('button'); _x.className='lf-close'; _x.textContent='✕'; _x.setAttribute('aria-label','关闭');
+      _x.onclick=function(ev){ ev.stopPropagation(); f.style.display='none'; storageSel=null; var c=document.querySelectorAll('#st-grid .pcell-insp,#st-pack .pcell-insp'); c.forEach(function(x){ x.classList.remove('pcell-insp'); }); };
+      f.appendChild(_x);
+    }
     f.style.display='block';
     positionFloat(f, el);
   }

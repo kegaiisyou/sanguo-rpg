@@ -650,6 +650,10 @@
       }
       return h;
     }
+    // 货郎浮框：选中态清除（工厂级，供 shopFloatShow 关闭按钮与 bindShopPanel 共用；
+    // 原先只在 bindShopPanel 内定义，导致 shopFloatShow 的关闭按钮引用 clearSel 时
+    // 抛 ReferenceError: clearSel is not defined —— 即「点物品详情浮窗关闭按钮直接报错」根因。
+    function clearSel(sel) { var card = document.getElementById('modal-card'); if (!card) return; card.querySelectorAll(sel).forEach(function (c) { c.classList.remove('pcell-sel'); }); }
     // 货郎浮框（挂 body，跟随被点选格子定位，与战利品栏同款 .loot-info 浅色纸）
     function shopFloatShow(html, cell) {
       var f = document.getElementById('shop-float');
@@ -686,7 +690,6 @@
       card.querySelectorAll('[data-bk]').forEach(function (b) {
         b.onclick = function () { bankDo(b.getAttribute('data-bk'), b.getAttribute('data-cid')); };
       });
-      function clearSel(sel) { card.querySelectorAll(sel).forEach(function (c) { c.classList.remove('pcell-sel'); }); }
       // 仓库模式：左栏仓库格点选 / 拖拽
       card.querySelectorAll('[data-store]').forEach(function (el) {
         el.onclick = function (e) {
