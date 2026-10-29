@@ -186,11 +186,13 @@
         { label:'叩门', icon:'✊', fn:function(){
             var s = window.getState();
             if (s.flags && s.flags.onb && s.flags.onb.cellOpen) { log('牢门已开着，栅外天光透入——不必再叩。', 'sys'); return; }
+            if (window.cellLockedHere && window.cellLockedHere()) { log('夜深牢头已歇，牢门落锁，明早卯时再来叩门。', 'sys'); return; }
             talk('laotou');
           } },
         { label:'推门而出', icon:'🚶', fn:function(){
             var s = window.getState();
             if (!(s.flags && s.flags.onb && s.flags.onb.cellOpen)) { log('牢门紧锁，须先叩门请牢头开锁。', 'sys'); return; }
+            if (window.cellLockedHere && window.cellLockedHere()) { log('〔牢门落锁〕此刻牢门上着粗铁闩，从里头推不动——须到卯时方开。今夜你出不得这囚室。', 'sys'); return; }
             if (s.flags.onb) s.flags.onb.lateDone = false; // 离牢：重置本轮晚归惩罚
             window.move('南', '__cell__:kuyilao:1:0');
           } }

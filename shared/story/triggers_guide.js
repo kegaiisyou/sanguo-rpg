@@ -71,7 +71,7 @@
 
     T.push({
 
-      id: 'kyl_stone_accept', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', cell: [2,1], once: true,
+      id: 'kyl_stone_accept', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: true,
 
       cond: { notFlag: 'flags.task.stone_started' },
 
@@ -105,7 +105,7 @@
 
     T.push({
 
-      id: 'kyl_stone_progress', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', cell: [2,1], once: false,
+      id: 'kyl_stone_progress', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: false,
 
       cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
 
@@ -121,7 +121,7 @@
 
     T.push({
 
-      id: 'kyl_stone_give', hook: 'onGive', npc: 'storeman', room: 'kuyilao', cell: [2,1], item: 'shitiao', once: false,
+      id: 'kyl_stone_give', hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], item: 'shitiao', once: false,
 
       cond: { flags: { 'flags.task.stone_started': true }, notFlag: 'flags.task.stone_done' },
 
@@ -171,7 +171,7 @@
 
     T.push({
 
-      id: 'kyl_stone_done', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', cell: [2,1], once: false,
+      id: 'kyl_stone_done', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2,1], once: false,
 
       cond: { flags: { 'flags.task.stone_done': true } },
 

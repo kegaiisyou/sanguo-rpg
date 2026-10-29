@@ -4111,3 +4111,5 @@
 .cx-unknown{color:#9a948a;}
 .cx-locked{background:linear-gradient(180deg,#e8e0d0,#d8cdb8);opacity:.85;}
 .cx-locked:hover{transform:none;box-shadow:0 1px 3px rgba(90,60,20,.1);}
+
+.job-reward{color:#e8c87a;font-size:12px;margin-top:3px;}

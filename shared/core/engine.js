@@ -1118,7 +1118,7 @@
         o.checkInDone=true; o.favor=(o.favor||0)+1; // 牢房格 + 已应卯 + 牢头在牢门口：自动销名记勤
         log('〔点卯·自动〕你回到牢房，牢头翻册点头：「'+hourLabel()+'，算你今日勤勉。」（营中好感+1）','good');
         save(state); renderStatus();
-      } else if(!o.rollDone && !o.rollMissWarned){
+      } else if(!o.rollDone && !o.rollMissWarned && !cellLockedHere()){  // v20261028e：夜锁时段不报「未应卯」，免与夜巡抓捕混淆
         o.rollMissWarned=true;                       // 当日只提示一次，免得每次踏进牢房都刷
         save(state);
         log('〔点卯·未应〕你踏进牢房，牢头翻册皱眉：「今日不见你来应名，这销名的字，我不能给你落。」（先去中军场院应卯，再回来销名）','warn');
@@ -4688,7 +4688,7 @@
   window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
   // ── 全局桥接（v20260827j）：shared/story/rooms.js 等外部脚本的工厂闭包在全局作用域解析引擎函数，
   //    缺一即报 ReferenceError（真实浏览器严格词法作用域）。全部补齐：移动/交互/战斗/招募/渲染。
-  window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction;
+  window.move=move; window.renderRoom=renderRoom; window.talk=talk; window.handleAction=handleAction; window.cellLockedHere=cellLockedHere;
   window.getState=function(){ return state; }; window.save=save;   // 供 shared/story/rooms.js 房间物件回调读写存档（getState 惰性取当前 state）
   window.chopTree=chopTree; window.searchBench=searchBench; window.mineStone=mineStone;
   window.openBuildCrate=openBuildCrate; window.pickupAxe=pickupAxe; window.recruitCompanion=recruitCompanion;

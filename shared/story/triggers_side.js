@@ -17,7 +17,7 @@
 
     T.push({
 
-      id: 'kyl_copper_give', hook: 'onGive', npc: 'storeman', room: 'kuyilao', item: 'tongkuang', once: false,
+      id: 'kyl_copper_give', hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', item: 'tongkuang', once: false,
 
       cond: { flags: { 'flags.task.copper_started': true }, notFlag: 'flags.task.copper_done' },
 
@@ -55,7 +55,7 @@
 
     T.push({
 
-      id: 'kq_copper_prog', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', once: false,
+      id: 'kq_copper_prog', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', once: false,
 
       cond: { flags: { 'flags.task.copper_started': true }, notFlag: 'flags.task.copper_done' },
 
@@ -65,7 +65,7 @@
 
     T.push({
 
-      id: 'kq_copper_done', hook: 'onTalk', npc: 'storeman', room: 'kuyilao', once: false,
+      id: 'kq_copper_done', hook: 'onTalk', npc: 'storeman_kuyilao', room: 'kuyilao', once: false,
 
       cond: { flags: { 'flags.task.copper_done': true } },
 

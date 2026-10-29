@@ -385,7 +385,8 @@
     { id: 'old_miner',   cell: '2,0' },   // 老矿工（支线：百炼钢残碑，按格触发）
     { id: 'sun_lao',     cell: '0,0' },   // 孙老（跑腿传话 / 太平道伏笔，按格触发）
     { id: 'lu_da',       cell: '0,1', routine: { 9:'2,1', _home:'0,1' } },  // 鲁大：掌灶，申时去粮囤领米
-    { id: 'qin_jiuxiao', cell: '1,1' }    // 秦九霄（营中暗探，按格触发）
+    { id: 'qin_jiuxiao', cell: '1,1' },   // 秦九霄（营中暗探，按格触发）
+    { id: 'storeman_kuyilao', cell: '2,1' }   // 仓吏（采石充仓/仓中翻找/淘铜铸镐 交付对象；对话卡见 dialogues.js storeman_kuyilao）
   ]);
   // 按城取具名名册（core/city.js 与 story/rooms.js 派生名册 / 作息表时共用，避免各写一份）
   namedCity('luoyang', [

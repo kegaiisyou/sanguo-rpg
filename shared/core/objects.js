@@ -59,46 +59,7 @@ window.LF = window.LF || {};
         { icon:'🥁', label:'铜刁斗', acts:[
           {label:'击鼓', icon:'🥁', fn:function(){ diaodouStrike(); }}
         ]},
-        { icon:'🗺️', label:'舆图沙盘', show: planningEscape, acts:[
-          {label:'细看舆图', icon:'🗺️', fn:function(){ yutuLook(); }}
-        ]},
-        { icon:'📜', label:'军报木牍', show: planningEscape, acts:[
-          {label:'翻看军报', icon:'📜', fn:function(){ junbaoLook(); }}
-        ]},
-        { icon:'⚔️', label:'兵器架', show: planningEscape, acts:[
-          {label:'取一件', icon:'⚔️', fn:function(){ rackTake(); }}
-        ]}
-      ]
-    },
-    // 农田（0,0）：接了「开垦薄田」才见着待垦的荒地；此后一畦一畦开出来（见 farmObjects）。
-    //   未接活时一律不摆 —— 这一格本就有「下地务农」的自由劳作，再堆设施会把格上的引导顶掉。
-    //   v20260915g：畦的数目随开出进度变化，故不能在定义时就写死数组（此处常量尚未声明），
-    //   改由 cellInteriors 在【运行时】问 farmObjects() 要。
-    'kuyilao|0,0': {
-      farmObjects: true,
-      // v20260924z3：柴林（伐木场）从农田格直接进 —— 薄田东出口是旧营区房间的路，玩家种地都在这一格，
-      //   入口必须摆在看得见的地方。伐木与务农同为营内自由劳作，故此门常开、不设任务门槛。
-      doors: [
-        { label:'柴林（伐木场）', icon:'🌳', target:'camp_woodland', group:'农庄' }
-      ]
-    },
-    // 演武场（2,2）：犬舍单独一间子房（v20260915e）——木人桩留在格上（格型动作），
-    //   逗犬进屋，两者隔开：先教打（桩），再教跑（犬）。门槛 = 木人桩已练成（tcDone）。
-    'kuyilao|2,2': {
-      doors: [
-        { label:'犬舍', icon:'🐕', target:'camp_kennel', group:'演武场',
-          show: function(){ return !!(S().flags && S().flags.onb && S().flags.onb.tcDone); } }
-      ]
-    },
-    // 伙房（0,1）：灶边水缸 —— 「担水入灶」的落点（打水在囚室水槽，倾水在此处，两头一担挑起来）
-    //   v20260915g 另起一口「大灶」：田里种出的菜豆在此下锅 —— 不然种地就是「掐了菜、交了差」便完事，
-    //   产出没有第二个去处，农田这块内容也就悬空了。
-    'kuyilao|0,1': {
-      objects: [
-        { icon:'🪣', label:'灶边水缸', show: function(){ return jobOpen('water'); }, acts:[
-          {label:'倾水入缸', icon:'💧', fn:function(){ kitchenPour(); }}
-        ]},
-        { icon:'🍲', label:'大灶', show: function(){ return farmHas('dou',1) || farmHas('yecai',3); }, acts:[
+                { icon:'🍲', label:'大灶', show: function(){ return farmHas('dou',1) || farmHas('yecai',3); }, acts:[
           {label:'煮豆粥（菽豆×1 · 水×2）', icon:'🥣', show: function(){ return farmHas('dou',1); }, fn:function(){ cookDouzhou(); }},
           {label:'野菜入锅（野菜×3）', icon:'🥬', show: function(){ return farmHas('yecai',3); }, fn:function(){ cookYeCai(); }}
         ]},
@@ -139,7 +100,22 @@ window.LF = window.LF || {};
           {label:'取物', icon:'🤚', fn:function(){ rummageTake('shelf'); }}
         ]}
       ]
-    }
+    },
+    // 军营（0,2）：迁入中军帐三件「绘图脱逃」设施（舆图/军报/兵器架），与「修筑营防」同格，
+    //   凑成「运筹 + 动工」一处，也免得中军帐物件太挤（v20261028e）。
+    'kuyilao|0,2': {
+      objects: [
+        { icon:'🗺️', label:'舆图沙盘', show: planningEscape, acts:[
+          {label:'细看舆图', icon:'🗺️', fn:function(){ yutuLook(); }}
+        ]},
+        { icon:'📜', label:'军报木牍', show: planningEscape, acts:[
+          {label:'翻看军报', icon:'📜', fn:function(){ junbaoLook(); }}
+        ]},
+        { icon:'⚔️', label:'兵器架', show: planningEscape, acts:[
+          {label:'取一件', icon:'⚔️', fn:function(){ rackTake(); }}
+        ]}
+      ]
+    },
     // 矿坑（2,0）【不摆设施】：该格是 mine 型，格上本就有「开凿矿料」出石料（city.js 格型动作）。
     //   早前在此另摆一个「岩壁矿脉·凿石」，于是同一格里出现两个都出石料的按钮 —— 纯属重复，撤掉。
   };

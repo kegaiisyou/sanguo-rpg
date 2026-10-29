@@ -35,6 +35,7 @@
     var done=jobFlag(j.key,'_done'), started=jobFlag(j.key,'_started');
     var cls=done?' done':(started?' doing':' open');
     var expand=(j.key===lastJobTaken)?' expand':'';
+    var RD=(window.LF && LF.QUEST_DEFS)||{}; var rwd=(RD[j.quest]&&RD[j.quest].reward)?RD[j.quest].reward:'';
     var act;
     if(!done && !started){
       act='<button class="job-take" data-job="'+j.key+'" type="button">摘 下 木 牍 · 领 活</button>';
@@ -50,6 +51,7 @@
       '<div class="job-body">'+
         '<div class="job-word">'+j.word+'</div>'+
         '<div class="job-meta">'+j.tip+'</div>'+
+        (rwd? '<div class="job-reward">〖赏〗'+rwd+'</div>':'' )+
         act+
       '</div>'+
     '</div>';

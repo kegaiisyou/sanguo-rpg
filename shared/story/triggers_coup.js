@@ -393,7 +393,7 @@
 
       T.push({
 
-        id: 'rummage_give_' + f[0], hook: 'onGive', npc: 'storeman', room: 'kuyilao', cell: [2, 1], item: f[0], once: false,
+        id: 'rummage_give_' + f[0], hook: 'onGive', npc: 'storeman_kuyilao', room: 'kuyilao', cell: [2, 1], item: f[0], once: false,
 
         cond: { flags: { 'flags.task.rummage_started': true, 'flags.task.rummage_target': f[0] }, notFlag: 'flags.task.rummage_done' },
 
