@@ -769,7 +769,7 @@
     startCombat: function (a, b) { return Combat.startCombat(a, b); },
     genCityGrid: genCityGrid, cellDisplayType: cellDisplayType, seededRand: seededRand,
     getNPC_COMBAT_MAP: function () { return NPC_COMBAT_MAP; },
-    // v20260924z17：交谈面板的「告辞」要重绘当前房间（npc.js 里 renderRoom(S().room)）。
+    // v20260924z17：交谈面板的「告辞」要重绘当前房间（npc.js 里 renderRoom(state.room)）。
     //   此前 ctx 里没注入它 → 闭包里的 renderRoom 恒为 undefined → 点「告辞」抛
     //   "renderRoom is not a function"。renderRoom 是函数声明（L1478），提升后此处可直接传引用。
     renderRoom: renderRoom
@@ -1905,8 +1905,8 @@
   }
   function npcQuestTurnInMark(name){
     if(!name) return null;
-    // 接取式任务（S().quests，submit.npc 指向交付 NPC，需求已满足）
-    var qs=S().quests||[];
+    // 接取式任务（state.quests，submit.npc 指向交付 NPC，需求已满足）
+    var qs=state.quests||[];
     for(var i=0;i<qs.length;i++){
       var q=qs[i], d=LF.QUEST_DEFS && LF.QUEST_DEFS[q.id];
       if(d && d.submit && d.submit.npc===name && questNeedMet(d)) return '?';
@@ -1915,7 +1915,7 @@
     var RD=(window.LF && LF.QUEST_DEFS)||{}, JB=JOB_BOARD||[];
     for(var j=0;j<JB.length;j++){
       var def=RD[JB[j].quest]; if(!def || !def.submit || def.submit.npc!==name) continue;
-      var tk=JB[j].key, ft=(S().flags&&S().flags.task)||{};
+      var tk=JB[j].key, ft=(state.flags&&state.flags.task)||{};
       if(!ft[tk+'_started'] || ft[tk+'_done']) continue;
       if(questNeedMet(def)) return '?';
     }
@@ -1930,13 +1930,13 @@
         if(packCount('lao_pai')<2){ log('〔仓吏〕「木片不够两枚，换不得这镐。」','warn'); return; }
         packConsume('lao_pai',2); packAdd('jing_shi_gao',1);
         log('〔仓吏〕他收了木片，从架上取下一把好镐递来：「这镐开得动铜脉，矿洞三层以下用得着。」（劳字木片-2 · 得精致石镐）','good');
-        save(S()); renderStatus();
+        save(state); renderStatus();
       }},
       { label:'兑·水袋（1 木片）', fn:function(){
         if(packCount('lao_pai')<1){ log('〔仓吏〕「连一枚木片都没有，换什么水袋。」','warn'); return; }
         packConsume('lao_pai',1); packAdd('shuidai',1);
         log('〔仓吏〕他拿木片换了只水袋给你：「营里水金贵，装满了用场大。」（劳字木片-1 · 得水袋）','good');
-        save(S()); renderStatus();
+        save(state); renderStatus();
       }},
       { label:'先不换', fn:function(){ log('〔仓吏〕「想换了随时来。」','sys'); } }
     ], '仓吏');
@@ -4646,7 +4646,7 @@
   function renderDuel() {
     var d = window.__duel; if (!d) return '';
     var e = _tpl(d.enemyId) || { name: '敌将', stats: { wu: 60 } };
-    var st = S(); var du = (st.flags._duel) || { phase: 'pick', pickId: null, rounds: [], momentum: 0, win: false };
+    var st = state; var du = (st.flags._duel) || { phase: 'pick', pickId: null, rounds: [], momentum: 0, win: false };
     if (du.phase === 'done') {
       var h = '<div class="du-box"><div class="du-h">⚔ 单挑 · ' + escapeHtml((_tpl(du.pickId) || {}).name || '我将') + ' vs ' + escapeHtml(e.name) + '</div>';
       h += '<div class="du-res ' + (du.win ? 'win' : 'lose') + '">' + (du.win ? '单挑得胜！敌将败走，其军士气大挫。' : '单挑失利，我将受挫，然军心未乱。') + '</div>';
@@ -4671,16 +4671,16 @@
     h += '</div><div class="du-acts"><button class="btn primary" onclick="duelStart()">发起单挑</button><button class="btn" onclick="duelSkip()">免战</button></div></div>';
     return h;
   }
-  function duelPick(id) { var st = S(); st.flags._duel = st.flags._duel || {}; st.flags._duel.pickId = id; openModal('duel'); }
+  function duelPick(id) { var st = state; st.flags._duel = st.flags._duel || {}; st.flags._duel.pickId = id; openModal('duel'); }
   function duelStart() {
-    var d = window.__duel; if (!d) return; var st = S();
+    var d = window.__duel; if (!d) return; var st = state;
     var pickId = (st.flags._duel && st.flags._duel.pickId);
     if (!pickId && (st.officers || []).length) { var best = null; (st.officers || []).forEach(function (o) { var t = _tpl(o.id); if (t && (!best || (t.stats.wu || 0) > (best.stats.wu || 0))) best = t; }); pickId = best ? best.id : null; }
     st.flags._duel = { phase: 'fight', pickId: pickId, rounds: [], momentum: 0, win: false };
     openModal('duel');
   }
   function duelRound(choice) {
-    var d = window.__duel; if (!d) return; var st = S(); var du = st.flags._duel; if (!du || du.phase !== 'fight') return;
+    var d = window.__duel; if (!d) return; var st = state; var du = st.flags._duel; if (!du || du.phase !== 'fight') return;
     var me = _tpl(du.pickId) || { stats: { wu: 50 } }, en = _tpl(d.enemyId) || { stats: { wu: 60 } };
     var map = { '突进': 'a', '守势': 'b', '奇袭': 'c' }, beats = { a: 'b', b: 'c', c: 'a' };
     var ec = ['突进', '守势', '奇袭'][Math.floor(Math.random() * 3)];
@@ -4697,7 +4697,7 @@
   function duelSkip() { var d = window.__duel; state.flags._duel = null; window.__duel = null; if (d && d.proceed) d.proceed(false); else closeModal(); }
   function renderDebate() {
     var d = window.__debate; if (!d) return '';
-    var f = (LF.FACTIONS || {})[d.fid] || {}; var st = S(); var db = st.flags._debate || { phase: 'fight', rounds: [], momentum: 0, win: false };
+    var f = (LF.FACTIONS || {})[d.fid] || {}; var st = state; var db = st.flags._debate || { phase: 'fight', rounds: [], momentum: 0, win: false };
     if (db.phase === 'done') {
       return '<div class="du-box"><div class="du-h">🗣 舌战 · 与 ' + escapeHtml(f.name) + ' 之谋士</div><div class="du-res ' + (db.win ? 'win' : 'lose') + '">' + (db.win ? '辞锋压人，敌谋士语塞，说降之机大畅。' : '舌战不利，未能折服对方。') + '</div><div class="du-acts"><button class="btn primary" onclick="debateGo()">继续</button></div></div>';
     }
@@ -4708,7 +4708,7 @@
     return h;
   }
   function debateRound(choice) {
-    var d = window.__debate; if (!d) return; var st = S(); var db = st.flags._debate; if (!db || db.phase !== 'fight') return;
+    var d = window.__debate; if (!d) return; var st = state; var db = st.flags._debate; if (!db || db.phase !== 'fight') return;
     var me = _tpl((st.pc && st.pc.officerId) || (st.officers && st.officers[0] && st.officers[0].id)) || { stats: { zhi: 60 } };
     var en = _tpl(d.enemyId) || { stats: { zhi: 60 } };
     var map = { '立论': 'a', '驳斥': 'b', '诡辩': 'c' }, beats = { a: 'b', b: 'c', c: 'a' };
@@ -4734,8 +4734,8 @@
     n = Math.max(1, n | 0);
     var t = null; (a.troops || []).forEach(function (x) { if (x && x.type === 'bu') t = x; });
     if (t) t.count = (t.count || 0) + n; else { a.troops = a.troops || []; a.troops.push({ type: 'bu', count: n, rank: 'front', xp: 0 }); }
-    if (!a.active) { a.active = true; a.rallyPoint = (S().ruledCities || [])[0]; }
-    save(S()); renderStatus();
+    if (!a.active) { a.active = true; a.rallyPoint = (state.ruledCities || [])[0]; }
+    save(state); renderStatus();
   }
   window.openModal=openModal; window.closeModal=closeModal; window.log=log; window.toast=toast;
   window.exert=exert; window.packFind=packFind; window.packConsume=packConsume; window.packAdd=packAdd; window.packList=packList;
