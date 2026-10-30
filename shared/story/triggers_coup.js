@@ -85,7 +85,7 @@
 
         { t: 'setFlag', path: 'flags.coup.done', value: true },
 
-        { t: 'log', cls: 'warn', text: '〔夺营·起爆〕第4日，营中骤变——太平道的旗号已暗里插遍岗哨。你此前的经营，决定这一夜通向何处。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '〔夺营·起爆〕第4日，营中骤变——太平道的旗号已暗里插遍岗哨。你此前的经营，决定这一夜通向何处。', auto: true, asks: [] },
 
         { t: 'branch',
 
@@ -95,7 +95,7 @@
 
                   { t: 'setFlag', path: 'flags.coup.branch', value: 'officer_letter' },
 
-                  { t: 'log', cls: 'warn', text: '〔夺营·送信搬救兵〕韩铁信你，密令你趁乱出营送信搬救兵；他又塞来一道过所符信——各处关卡查验得紧，没有这道符，你出不去。你成了这营里最后一封活信——' }
+                  { t: 'npcTalk', npc: '旁白', prompt: '〔夺营·送信搬救兵〕韩铁信你，密令你趁乱出营送信搬救兵；他又塞来一道过所符信——各处关卡查验得紧，没有这道符，你出不去。你成了这营里最后一封活信——', auto: true, asks: [] }
 
                 ],
 
@@ -111,7 +111,7 @@
 
                       { t: 'setFlag', path: 'flags.coup.branch', value: 'moshu' },
 
-                      { t: 'log', cls: 'warn', text: '〔夺营·默叔线〕你与阿禾、默叔的牵绊，让这一夜通向墨家支路——' }
+                      { t: 'npcTalk', npc: '旁白', prompt: '〔夺营·默叔线〕你与阿禾、默叔的牵绊，让这一夜通向墨家支路——', auto: true, asks: [] }
 
                     ],
 
@@ -119,7 +119,7 @@
 
                       { t: 'setFlag', path: 'flags.coup.branch', value: 'minor_ahe' },
 
-                      { t: 'log', cls: 'warn', text: '〔夺营·轻版〕你与阿禾有些交情，默叔却未认你。阿禾拽着你猫腰钻进水沟缺口，大段从简。' }
+                      { t: 'npcTalk', npc: '旁白', prompt: '〔夺营·轻版〕你与阿禾有些交情，默叔却未认你。阿禾拽着你猫腰钻进水沟缺口，大段从简。', auto: true, asks: [] }
 
                     ]
 
@@ -129,7 +129,7 @@
 
                     { t: 'setFlag', path: 'flags.coup.branch', value: 'minor' },
 
-                    { t: 'log', cls: 'warn', text: '〔夺营·孤身〕你孤身一人，被乱局裹挟。（最简逃生 / 短暂被俘 待接入）' }
+                    { t: 'npcTalk', npc: '旁白', prompt: '〔夺营·孤身〕你孤身一人，被乱局裹挟。（最简逃生 / 短暂被俘 待接入）', auto: true, asks: [] }
 
                   ]
 
@@ -157,17 +157,17 @@
 
       steps: [
 
-        { t: 'log', cls: 'warn', text: '卯时三刻，号角骤起——太平道的旗已插上粮仓。火光里，牢头领着两名官差踹进牢区；他鼻翼翕动，循着新翻的土腥，从墙角刨出阿禾那口洞，又从草堆里抄出那把石镐。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '卯时三刻，号角骤起——太平道的旗已插上粮仓。火光里，牢头领着两名官差踹进牢区；他鼻翼翕动，循着新翻的土腥，从墙角刨出阿禾那口洞，又从草堆里抄出那把石镐。', auto: true, asks: [] },
 
-        { t: 'log', cls: 'combat', text: '「好啊——私通外贼、图谋不轨！」牢头一声唿哨，铁链已套上阿禾的脖颈。「这洞、这镐，是谁的主意？」' },
+        { t: 'npcTalk', npc: '旁白', prompt: '「好啊——私通外贼、图谋不轨！」牢头一声唿哨，铁链已套上阿禾的脖颈。「这洞、这镐，是谁的主意？」', auto: true, asks: [] },
 
-        { t: 'log', cls: 'npc', text: '你正要开口，崔九却已跨前半步，把你们三个挡在身后。这沉默的什长只盯着牢头：「洞是我挖的，镐是我藏的。要拿，拿我。」' },
+        { t: 'npcTalk', npc: '旁白', prompt: '你正要开口，崔九却已跨前半步，把你们三个挡在身后。这沉默的什长只盯着牢头：「洞是我挖的，镐是我藏的。要拿，拿我。」', auto: true, asks: [] },
 
-        { t: 'log', cls: 'env', text: '牢头狞笑，腰刀照准崔九劈下。崔九不避不让——他侧身将你往默叔那边一推，那一刀结结实实嵌进肩胛。血溅上土墙，他却没有倒，只回头看你一眼。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '牢头狞笑，腰刀照准崔九劈下。崔九不避不让——他侧身将你往默叔那边一推，那一刀结结实实嵌进肩胛。血溅上土墙，他却没有倒，只回头看你一眼。', auto: true, asks: [] },
 
-        { t: 'log', cls: 'good', text: '〔崔九〕「……老子带出去的兵，夜里得睡得着。」他笑着，却再没松开那攥紧的铁链。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '〔崔九〕「……老子带出去的兵，夜里得睡得着。」他笑着，却再没松开那攥紧的铁链。', auto: true, asks: [] },
 
-        { t: 'log', cls: 'combat', text: '默叔眼底第一次有了杀意。他袖中机括「咔」地弹开，一截墨家短弩的寒光抵在牢头咽喉——牢头与官差轰然倒地。他一把拽起你与阿禾，朝北墙水沟缺口夺路而走。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '默叔眼底第一次有了杀意。他袖中机括「咔」地弹开，一截墨家短弩的寒光抵在牢头咽喉——牢头与官差轰然倒地。他一把拽起你与阿禾，朝北墙水沟缺口夺路而走。', auto: true, asks: [] },
 
         { t: 'npcTalk', npc: 'moshu',
 
@@ -179,7 +179,7 @@
 
               { t: 'setFlag', path: 'flags.coup.moshu_carry_ahe', value: true },
 
-              { t: 'log', cls: 'good', text: '你一把将阿禾拽上背。她轻得像片枯叶，却死死攥着你衣领：「……你别丢下我。」你没答，只把步子迈得更稳。' }
+              { t: 'npcTalk', npc: '旁白', prompt: '你一把将阿禾拽上背。她轻得像片枯叶，却死死攥着你衣领：「……你别丢下我。」你没答，只把步子迈得更稳。', auto: true, asks: [] }
 
             ] },
 
@@ -187,7 +187,7 @@
 
               { t: 'setFlag', path: 'flags.coup.moshu_cover', value: true },
 
-              { t: 'log', cls: 'combat', text: '你将阿禾往默叔怀里一推，反手抄起地上半截断矛，殿在最后。缺口窄，追兵一次只容得一人钻进来——你正等着他。' }
+              { t: 'npcTalk', npc: '旁白', prompt: '你将阿禾往默叔怀里一推，反手抄起地上半截断矛，殿在最后。缺口窄，追兵一次只容得一人钻进来——你正等着他。', auto: true, asks: [] }
 
             ] }
 
@@ -195,7 +195,7 @@
 
         },
 
-        { t: 'log', cls: 'env', text: '你们钻出水沟缺口，迎面却是岗哨通明的火把。狄云舟横矛立在那里，甲胄映着火光，像是早料到有人从此处钻出。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '你们钻出水沟缺口，迎面却是岗哨通明的火把。狄云舟横矛立在那里，甲胄映着火光，像是早料到有人从此处钻出。', auto: true, asks: [] },
 
         { t: 'npcTalk', npc: 'diyunzhou',
 
@@ -205,7 +205,7 @@
 
             { label: '〔应战〕夺矛而走', then: [
 
-              { t: 'log', cls: 'combat', text: '你欺身抢进，一把攥住矛杆往前夺——狄云舟腕力惊人，却没防备你这不要命的抢法。' },
+              { t: 'npcTalk', npc: '旁白', prompt: '你欺身抢进，一把攥住矛杆往前夺——狄云舟腕力惊人，却没防备你这不要命的抢法。', auto: true, asks: [] },
 
               { t: 'combat', enemy: 'diyunzhou' }
 
@@ -217,7 +217,7 @@
 
               { t: 'favor', npc: 'moshu', amount: 1 },
 
-              { t: 'log', cls: 'combat', text: '默叔与你交换一个眼色，短弩与断矛同时递出——两面夹击，狄云舟的矛势登时被绞住。' },
+              { t: 'npcTalk', npc: '旁白', prompt: '默叔与你交换一个眼色，短弩与断矛同时递出——两面夹击，狄云舟的矛势登时被绞住。', auto: true, asks: [] },
 
               { t: 'combat', enemy: 'diyunzhou' }
 
@@ -227,7 +227,7 @@
 
               { t: 'setFlag', path: 'flags.coup.moshu_ruse', value: true },
 
-              { t: 'log', cls: 'combat', text: '你故意脚下一滑、踉跄后退，引得狄云舟挺矛直刺——就在矛尖及体的刹那，你偏身没入水沟缺口阴影，留他一矛扎进虚处。' },
+              { t: 'npcTalk', npc: '旁白', prompt: '你故意脚下一滑、踉跄后退，引得狄云舟挺矛直刺——就在矛尖及体的刹那，你偏身没入水沟缺口阴影，留他一矛扎进虚处。', auto: true, asks: [] },
 
               { t: 'combat', enemy: 'diyunzhou' }
 
@@ -257,7 +257,7 @@
 
       steps: [
 
-        { t: 'log', cls: 'warn', text: '火光里，韩铁一把揪住你，将一封蜡封密令塞进你掌心：「拿着——营要乱了，这是活路，也是韩某的脸面。」' },
+        { t: 'npcTalk', npc: '旁白', prompt: '火光里，韩铁一把揪住你，将一封蜡封密令塞进你掌心：「拿着——营要乱了，这是活路，也是韩某的脸面。」', auto: true, asks: [] },
 
         { t: 'npcTalk', npc: 'han_tie',
 
@@ -269,7 +269,7 @@
 
               { t: 'setFlag', path: 'flags.coup.letter_in_hand', value: true },
 
-              { t: 'log', cls: 'good', text: '你将蜡封密令贴肉藏进怀里。韩铁拍了拍你肩，转身没入火光——这一去，他再没回来。' }
+              { t: 'npcTalk', npc: '旁白', prompt: '你将蜡封密令贴肉藏进怀里。韩铁拍了拍你肩，转身没入火光——这一去，他再没回来。', auto: true, asks: [] }
 
             ] },
 
@@ -279,13 +279,13 @@
 
               { t: 'setFlag', path: 'flags.coup.asked_mu', value: true },
 
-              { t: 'log', cls: 'npc', text: '你攥住他手腕：「白檀屯穆老，我怎知不是空头人情？」韩铁咧嘴：「穆老是我同乡老卒，他认这密令的火漆——你只管去，说『韩教头最后那封活信』，他必信。」' }
+              { t: 'npcTalk', npc: '旁白', prompt: '你攥住他手腕：「白檀屯穆老，我怎知不是空头人情？」韩铁咧嘴：「穆老是我同乡老卒，他认这密令的火漆——你只管去，说『韩教头最后那封活信』，他必信。」', auto: true, asks: [] }
 
             ] }
 
           ] },
 
-        { t: 'log', cls: 'env', text: '你猫腰避开乱兵，沿墙根摸到北墙水沟缺口。土腥混着火药味，远处杀声渐密。〔暗号〕出了北墙，沿官道往北便是林径——穆老的人在岔道接应。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '你猫腰避开乱兵，沿墙根摸到北墙水沟缺口。土腥混着火药味，远处杀声渐密。〔暗号〕出了北墙，沿官道往北便是林径——穆老的人在岔道接应。', auto: true, asks: [] },
 
         { t: 'npcTalk', who: 'you',
 
@@ -297,7 +297,7 @@
 
               { t: 'setFlag', path: 'flags.coup.officer_letter_sneak', value: true },
 
-              { t: 'log', cls: 'combat', text: '你贴着水渠石壁挪步，枯枝却在脚下咔嚓一响——伏兵的火把猛地转过来：「有动静！」你已无路，只得挺身上前。' },
+              { t: 'npcTalk', npc: '旁白', prompt: '你贴着水渠石壁挪步，枯枝却在脚下咔嚓一响——伏兵的火把猛地转过来：「有动静！」你已无路，只得挺身上前。', auto: true, asks: [] },
 
               { t: 'combat', enemy: 'yth_intercept' }
 
@@ -305,7 +305,7 @@
 
             { label: '〔强突〕一鼓作气冲过去', then: [
 
-              { t: 'log', cls: 'combat', text: '你低喝一声，撞开缺口的荆棘直冲出去——伏兵早有防备，长钩挠钩兜头落下。' },
+              { t: 'npcTalk', npc: '旁白', prompt: '你低喝一声，撞开缺口的荆棘直冲出去——伏兵早有防备，长钩挠钩兜头落下。', auto: true, asks: [] },
 
               { t: 'combat', enemy: 'yth_intercept' }
 

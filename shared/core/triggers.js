@@ -103,6 +103,7 @@ window.LF = window.LF || {};
           //   帘头署「你」、名章换「你」，而不是一律挂在「抉择」上。
           var npcName = step.who != null ? step.who
             : ((G.DIALOGUES.npcs[step.npc] && G.DIALOGUES.npcs[step.npc].name) || step.npc);
+          var auto = !!step.auto;
           var asks = (step.asks || []).map(function (a) {
             return {
               label: resolveTpl(a.label), fn: function () {
@@ -123,8 +124,8 @@ window.LF = window.LF || {};
           //   选项面板上，于是「他说的话」和「你怎么答」分处上下两块，互相挤高度（小屏上话被选项顶掉）。
           //   现在一律连人带话交给对话窗：窗里从上到下就是「谁说的 → 说了什么 → 你怎么答」，
           //   一眼看得全，也不再有「话语在上一块、按钮在下头另一块」的错位。
-          tutAsk(resolveTpl(step.prompt || ''), asks, npcName);
-          break;   // 等待玩家选择，选择后才 next()
+          tutAsk(resolveTpl(step.prompt || ''), asks, npcName, auto, next);
+          break;   // 等待玩家选择（或 auto 旁白屏自动 next）后才 next()
         }
         case 'moveGate': {
           // fromChain 仅燕山链用过，链已弃用；此处保留通用门禁（fwd/back/lockBack），用于苦役营越狱等剧情

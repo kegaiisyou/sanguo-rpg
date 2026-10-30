@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>战棋沙盘 · 调试台</title>
+<link rel="stylesheet" href="shared/css/game.css" />
+<style>
+  body{ margin:0; font-family:"Songti SC","PingFang SC",serif; background:#1A1206; color:#F0E4C8; }
+  .dbg{ max-width:760px; margin:0 auto; padding:16px; }
+  .dbg h1{ color:#FFD268; font-size:20px; margin:8px 0 12px; }
+  .dbg .row{ display:flex; flex-wrap:wrap; gap:12px; margin:8px 0; align-items:center; }
+  .dbg label{ font-size:13px; color:#C8B78F; min-width:92px; }
+  .dbg input,.dbg select{ background:#2E2B14; color:#F0E4C8; border:1px solid #B8893A; border-radius:8px; padding:6px 8px; font-size:13px; }
+  .dbg button{ background:#9B3B2E; color:#FFFDF8; border:none; border-radius:8px; padding:10px 18px; font-size:14px; cursor:pointer; }
+  .dbg button.sec{ background:#3F5F7A; }
+  .dbg pre{ background:#2E2B14; border:1px solid #B8893A; border-radius:8px; padding:10px; font-size:12px; height:160px; overflow:auto; color:#C8B78F; white-space:pre-wrap; }
+  #modal{ display:none; position:fixed; inset:0; background:rgba(10,8,4,.6); align-items:center; justify-content:center; z-index:999; }
+  #modal-card{ width:96vw; height:94vh; max-width:1100px; background:#FFFDF8; border-radius:12px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<div class="dbg">
+  <h1>战棋沙盘 · 调试台</h1>
+  <div class="row"><label>棋盘宽 (列)</label><input id="gw" type="number" value="14" min="6" max="40" /><label>棋盘高 (行)</label><input id="gh" type="number" value="12" min="6" max="40" /></div>
+  <div class="row"><label>我军营数</label><input id="an" type="number" value="3" min="1" max="12" /><label>敌军营数</label><input id="fn" type="number" value="3" min="1" max="12" /></div>
+  <div class="row"><label>规模预设</label><select id="scale"><option value="">自定义</option><option value="skirmish">野外遭遇 (10×8)</option><option value="field">野战 (14×12)</option><option value="siege">城镇围攻 (16×12)</option></select></div>
+  <div class="row"><label>每营兵力</label><input id="cnt" type="number" value="120" min="20" max="600" /></div>
+  <div class="row"><button id="start">开始战棋</button><button id="startScale" class="sec">按规模预设开始</button></div>
+  <div class="row"><label>战报</label></div>
+  <pre id="log"></pre>
+</div>
+
+<div id="modal"><div id="modal-card"></div></div>
+
+<script src="shared/data/troops.js"></script>
+<script src="shared/data/battlefield.js"></script>
+<script src="shared/core/battlefield.js"></script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function logM(m, l){ var p = $('log'); p.textContent += '['+(l||'·')+'] '+m+'\n'; p.scrollTop = p.scrollHeight; console.log(l, m); }
+  // 简化聚合（与 war.js aggF 同幂律）
+  function aggF(c){ return { hpF: Math.pow(c,0.85), atkF: Math.pow(c,0.85), defF: Math.log(1+c)*1.15 }; }
+  function ordersFor(rank){ var ids=[]; var O=LF.ARMY_ORDERS||{}; for(var k in O){ if(O[k] && (!O[k].rank || O[k].rank===rank)) ids.push(k);} return ids; }
+  function makeUnit(type, rank, count){
+    var t = LF.TROOPS[type]; if(!t) return null;
+    var f = aggF(count);
+    return { name:t.name, troopType:type, rank:rank, count:count,
+      hp:Math.round(t.hp*f.hpF), maxHp:Math.round(t.hp*f.hpF),
+      atk:Math.round(t.atk*f.atkF), def:Math.round(t.def*f.defF), spd:t.spd,
+      morale:80, artIds:ordersFor(rank), _artMap:null, isTroop:true };
+  }
+  function buildSide(n, side){
+    var pool = side==='ally' ? ['changqiang','daodun','gongnu'] : ['changqiang','daodun','qibing'];
+    var ranks = ['front','mid','rear'];
+    var arr=[]; for(var i=0;i<n;i++){ var t=pool[i%pool.length]; var r=ranks[i%3]; var u=makeUnit(t,r,$('cnt').value|0); if(u) arr.push(u);} return arr;
+  }
+  var ctx = {
+    getState: function(){ return { hp:100, army:{ morale:80, logistics:{ grain:100 } } }; },
+    LF: LF, G: {}, log: logM, toast: function(m){ logM('[提示] '+m,'warn'); },
+    save: function(){}, renderStatus: function(){}, renderRoom: function(){},
+    openModal: function(kind, opts){
+      var m=$('modal'); m.style.display='flex';
+      var card=$('modal-card');
+      if(kind==='generic' && opts && opts.html){ card.innerHTML=opts.html; }
+    },
+    closeModal: function(){ $('modal').style.display='none'; },
+    escapeHtml: esc, exert: function(){}, advanceTime: function(){},
+    Army: { settleArmyLoss: function(u){ return { lost:0, routed:[] }; } },
+    Officers: null, getPendingArmyBattle: function(){ return null; }, setPendingArmyBattle: function(){}
+  };
+  var Bf = LF.createBattlefield(ctx);
+  function launch(grid){
+    var allies = buildSide($('an').value|0, 'ally');
+    var foes = buildSide($('fn').value|0, 'foe');
+    Bf.start({
+      kind:'field', scale: $('scale').value||'custom', grid: grid,
+      allies: allies, foes: foes, ambush:false, night:false,
+      title:'调试·野战', maxRounds:30,
+      onEnd: function(res, surv, php){
+        logM('战局结束：'+(res==='win'?'我方得胜':res==='lose'?'我方失利':'撤兵')+'，存活我军 '+surv.length+' 营。', res==='win'?'good':'danger');
+        setTimeout(function(){ $('modal').style.display='none'; }, 300);
+      }
+    });
+  }
+  $('start').onclick = function(){ launch({ w:$('gw').value|0, h:$('gh').value|0 }); };
+  $('startScale').onclick = function(){
+    var sc=$('scale').value; if(!sc){ alert('请先选规模预设'); return; }
+    launch(null); // 由 Battlefield 按 scale 选尺寸
+  };
+})();
+</script>
+</body>
+</html>

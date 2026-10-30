@@ -195,7 +195,7 @@
 
       steps: [
 
-        { t: 'log', cls: 'warn', text: '〔夺营·阿禾线〕阿禾一把扯住你：「跟我来——我知道一处水沟缺口，能钻出去！」她眼里既有慌乱，也有一股你没见过的决然。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '〔夺营·阿禾线〕阿禾一把扯住你：「跟我来——我知道一处水沟缺口，能钻出去！」她眼里既有慌乱，也有一股你没见过的决然。', auto: true, asks: [] },
 
         { t: 'npcTalk', npc: 'a_he',
 
@@ -207,7 +207,7 @@
 
               then: [
 
-                { t: 'log', cls: 'combat', text: '你们刚挤进水沟缺口，外头便追来两名太平道喽啰，刀光直劈阿禾后背！' },
+                { t: 'npcTalk', npc: '旁白', prompt: '你们刚挤进水沟缺口，外头便追来两名太平道喽啰，刀光直劈阿禾后背！', auto: true, asks: [] },
 
                 { t: 'combat', enemy: 'camp_guard' }
 
@@ -217,9 +217,9 @@
 
               then: [
 
-                { t: 'log', cls: 'sys', text: '你将阿禾推进缝里，自己返身挡住追兵。待缝隙那头传来她远去的脚步声，你才寻路另寻缺口。' },
+                { t: 'npcTalk', npc: '旁白', prompt: '你将阿禾推进缝里，自己返身挡住追兵。待缝隙那头传来她远去的脚步声，你才寻路另寻缺口。', auto: true, asks: [] },
 
-                { t: 'log', cls: 'combat', text: '一名官差从阴影里扑出，长矛直取你心口！' },
+                { t: 'npcTalk', npc: '旁白', prompt: '一名官差从阴影里扑出，长矛直取你心口！', auto: true, asks: [] },
 
                 { t: 'combat', enemy: 'camp_guard' }
 
@@ -231,7 +231,7 @@
 
                 { t: 'setFlag', path: 'flags.coup.ahe_carry', value: true },
 
-                { t: 'log', cls: 'combat', text: '你一把将阿禾负在背上，水沟缺口太窄，你侧身护住她，硬从追兵刀缝里挤出！' },
+                { t: 'npcTalk', npc: '旁白', prompt: '你一把将阿禾负在背上，水沟缺口太窄，你侧身护住她，硬从追兵刀缝里挤出！', auto: true, asks: [] },
 
                 { t: 'combat', enemy: 'camp_guard' }
 
@@ -255,7 +255,7 @@
 
       steps: [
 
-        { t: 'log', cls: 'warn', text: '〔夺营·孤身〕你孤身一人，被乱局裹挟。一名太平道卒认出你这囚籍，反手便将你按在粮囤后，喝令蹲下——你成了这营里又一名俘囚。' },
+        { t: 'npcTalk', npc: '旁白', prompt: '〔夺营·孤身〕你孤身一人，被乱局裹挟。一名太平道卒认出你这囚籍，反手便将你按在粮囤后，喝令蹲下——你成了这营里又一名俘囚。', auto: true, asks: [] },
 
         { t: 'npcTalk', npc: 'cui_jiu',
 
@@ -267,9 +267,9 @@
 
               then: [
 
-                { t: 'log', cls: 'env', text: '片刻后，营中火起、喊杀连天，看押的贼卒也去抢功。你趁机挣脱缚索，贴着墙根摸向空虚的营门。' },
+                { t: 'npcTalk', npc: '旁白', prompt: '片刻后，营中火起、喊杀连天，看押的贼卒也去抢功。你趁机挣脱缚索，贴着墙根摸向空虚的营门。', auto: true, asks: [] },
 
-                { t: 'log', cls: 'combat', text: '一名回身查哨的贼卒撞见你，抡刀便砍！' },
+                { t: 'npcTalk', npc: '旁白', prompt: '一名回身查哨的贼卒撞见你，抡刀便砍！', auto: true, asks: [] },
 
                 { t: 'combat', enemy: 'camp_guard' }
 
@@ -281,7 +281,7 @@
 
                 { t: 'setFlag', path: 'flags.coup.minor_feint', value: true },
 
-                { t: 'log', cls: 'combat', text: '你垂首应声，装作驯顺；待那贼卒转身抢功，你猛地挣断缚索，撞向空虚的营门！' },
+                { t: 'npcTalk', npc: '旁白', prompt: '你垂首应声，装作驯顺；待那贼卒转身抢功，你猛地挣断缚索，撞向空虚的营门！', auto: true, asks: [] },
 
                 { t: 'combat', enemy: 'camp_guard' }
 
@@ -293,7 +293,7 @@
 
                 { t: 'setFlag', path: 'flags.coup.minor_rush', value: true },
 
-                { t: 'log', cls: 'combat', text: '你不等崔九发话，就地一滚挣开束缚，直扑那处无人把守的营门——守卒回身，长矛已到！' },
+                { t: 'npcTalk', npc: '旁白', prompt: '你不等崔九发话，就地一滚挣开束缚，直扑那处无人把守的营门——守卒回身，长矛已到！', auto: true, asks: [] },
 
                 { t: 'combat', enemy: 'camp_guard' }
 

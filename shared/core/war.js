@@ -13,6 +13,7 @@
     var isCityGrid = ctx.isCityGrid, roleAtkMul = ctx.roleAtkMul;
     var Army = ctx.Army;               // 军队工厂实例
     var getPendingArmyBattle = ctx.getPendingArmyBattle, setPendingArmyBattle = ctx.setPendingArmyBattle;
+    var Battlefield = ctx.Battlefield;
     var Officers = ctx.Officers || null;
 
     var SEGS = [
@@ -249,6 +250,21 @@
       var units = ourUnits({ atkMul: opt.atkMul });
       if (LF.Officers && LF.Officers.battleSynergy) { var _syn = LF.Officers.battleSynergy(); if (_syn > 0) units.forEach(function (u) { u.morale = Math.max(0, Math.min(100, (u.morale || 75) + _syn * 100)); }); }
       if (!units.length) { toast('你身边并无可战之兵。'); if (setPendingArmyBattle) setPendingArmyBattle(null); return false; }
+      // ── 会战分支：攻城 / 野战进入战棋沙盘；守城与其他仍走 DQ 卡牌演出 ──
+      if (ab.kind === 'siege' || ab.kind === 'field') {
+        var foeUnits0 = opt.foeUnits || [];
+        var _scale = ab.kind === 'siege' ? 'siege' : (units.length + foeUnits0.length > 10 ? 'field' : 'skirmish');
+        log('〔列阵〕' + units.map(function (u) { return (LF.ARMY_RANKS[u.rank] || {}).name + '·' + u.name; }).join('，') + '。', 'sys');
+        if (ab.reinforce) log('〔警讯〕狼烟未起——若战事胶着，' + ab.reinforce.name + '将于第 ' + ab.reinforce.round + ' 回合驰至。', 'warn');
+        if (ab.ambush) log('〔设伏〕你已先机布子，士气先占一分。', 'sys');
+        Battlefield.start({
+          kind: ab.kind, cid: ab.cid, seg: ab.seg, scale: _scale, grid: opt.grid || null,
+          allies: units, foes: foeUnits0, reinforce: ab.reinforce, ambush: ab.ambush, night: ab.night,
+          title: ab.kind === 'siege' ? ((SEGS[ab.seg] || {}).mark || '攻城') : '野战',
+          onEnd: function (res, surv, php) { closeModal && closeModal(); endBoardBattle(res, surv, php); }
+        });
+        return true;
+      }
       startCombat(enemyIds, { armyBattle: true, armyUnits: units });
       // 战斗初始化是异步（setTimeout 400ms）的，事件效果在 init 之后兑现
       setTimeout(function () {
@@ -277,7 +293,8 @@
       return launchSiege(cid);
     }
     function launchSiege(cid) {
-      var ids = registerDefenders(cid, 0, defenderWave(cid, 0));
+      var foeUs0 = defenderWave(cid, 0);
+      var ids = registerDefenders(cid, 0, foeUs0);
       var rf = null;
       var owner = (((((LF.CITIES || {})[cid] || {}).owner) || ''));
       if (owner && owner !== 'player' && Math.random() < 0.35) {
@@ -287,7 +304,7 @@
       var doBattle = function (win) {
         return beginBattle(ids, {
           kind: 'siege', cid: cid, seg: 0, reinforce: rf,
-          atkMul: (roleAtkMul ? roleAtkMul() : 1), duelWin: !!win
+          atkMul: (roleAtkMul ? roleAtkMul() : 1), duelWin: !!win, foeUnits: foeUs0
         });
       };
       if (owner && owner !== 'player' && LF.Officers && LF.Officers.garrisonOf && typeof openModal === 'function') {
@@ -309,6 +326,33 @@
       (st.playerUnits || []).forEach(function (u, i) { if (i === 0) php = u.hp; });
       var troops = (st.playerUnits || []).filter(function (u) { return u && u.isTroop && u.hp > 0; }).map(function (u) { u._built = true; return u; });
       return { troops: troops, php: php };
+    }
+    function endBoardBattle(result, survivors, php) {
+      var ab = getPendingArmyBattle ? getPendingArmyBattle() : null;
+      if (!ab) return;
+      if (php != null) S().hp = Math.max(1, Math.round(php));   // 战棋主角不参战，hp 即原值
+      var loss = Army.settleArmyLoss(survivors || []);
+      var a2 = Army.ensureArmy() || {};
+      var lines = [
+        '折损兵卒 ' + loss.lost + ' 人' + (loss.routed && loss.routed.length ? '，溃散：' + loss.routed.join('、') : ''),
+        '军心：' + LF.moraleBand(a2.morale || 100).name,
+        '辎重余粮 ' + Math.round((a2.logistics || {}).grain || 0) + ' 石（可支 ' + (Army.grainDays ? Army.grainDays().toFixed(1) : '0') + ' 日）'
+      ];
+      if (ab.kind === 'siege') {
+        if (result === 'win' && ab.seg < SEGS.length - 1) {
+          var seg = SEGS[ab.seg];
+          showCombatSettlement && showCombatSettlement({ result: 'win', enemyName: seg.name, title: '克 ' + seg.name, sub: seg.mark, lines: lines }, function () {
+            var next = ab.seg + 1;
+            var fUs = defenderWave(ab.cid, next);
+            var ids = registerDefenders(ab.cid, next, fUs);
+            beginBattle(ids, { kind: 'siege', cid: ab.cid, seg: next, reinforce: ab.reinforce && !ab.reinforce.done && next < 2 ? ab.reinforce : null, atkMul: (roleAtkMul ? roleAtkMul() : 1), foeUnits: fUs });
+          });
+          return;
+        }
+        finishSiege(ab, result, loss, lines); return;
+      }
+      if (ab.kind === 'defend') { finishDefend(ab, result, loss, lines); return; }
+      finishField(ab, result, loss, lines);
     }
     function armyBattleEnd(result) {
       var ab = getPendingArmyBattle ? getPendingArmyBattle() : null;
@@ -421,7 +465,7 @@
       if (opt.byPlayer) {   // 我方设伏 → 敌中伏
         units.forEach(function (u) { u.morale = clampM((u.morale || 78) - 25); });
       }
-      return beginBattle(ids, { kind: 'field', def: def, ambush: ambush, night: !!opt.night });
+      return beginBattle(ids, { kind: 'field', def: def, ambush: ambush, night: !!opt.night, foeUnits: units });
     }
 
     // ══ 设伏：郊野候敌，敌至则先手 ══
@@ -491,7 +535,8 @@
       startSiegeBattle: startSiegeBattle, launchSiege: launchSiege,
       startDefendBattle: startDefendBattle, startFieldBattle: startFieldBattle, tryAmbush: tryAmbush,
       openSiegePrep: openSiegePrep, renderPrep: renderPrep, warToggleTroop: warToggleTroop, warLaunch: warLaunch,
-      beginBattle: beginBattle
+      beginBattle: beginBattle,
+      endBoardBattle: endBoardBattle
     };
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.LF.createWar;

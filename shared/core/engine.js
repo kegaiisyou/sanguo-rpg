@@ -3482,6 +3482,7 @@
     }, 1400);
   }
   function tutAsk(prompt, options, npcName){
+    var auto=arguments[3], onAutoDone=arguments[4];
     removeTutChoices();
     options=options||[];
     // ① 对话窗（#dlg 就位时一律走它）
@@ -3538,6 +3539,7 @@
           cur=null; dlgTypeTimer=null; dlgSkip=null;
           dlgSkipAll=null; dlgTapAt=0;      // 落定后连点不再有效（v20260914a）
           dlgScroll(); dlgRelease();
+          if(auto && onAutoDone){ setTimeout(function(){ try{ removeTutChoices(); }catch(e){} try{ dlgClose(); }catch(e){} try{ onAutoDone(); }catch(e){} }, 760); }  // v20261030c：auto 结束自动解锁收帘并进下一段
         };
         // 落一整句：单独一行、整句一起出现（不再把整段堆进同一个段落）；
         // 报名字只靠帘头那方名章 —— 每句前再缀一遍「牢头：」只是纯占地方；
@@ -3567,6 +3569,8 @@
             if(fin) return;
             if(si>=segs.length){ dlgEnd(); return; }
             dlgLine();
+          if(si>=segs.length){ dlgEnd(); return; }   // v20261030c 修复：最后一句落完即收尾（auto 自动 next）
+          if(auto){ dlgTypeTimer=setTimeout(dlgStep, 130); }  // v20261030c：auto 旁白屏自动逐句推进（置于 dlgStep 内）
             dlgSkip=function(){
               if(dlgTypeTimer){ clearTimeout(dlgTypeTimer); dlgTypeTimer=null; }
               dlgStep();                       // 再点一下 → 出下一句
@@ -4434,6 +4438,7 @@
     } else if(kind==='martial_stall'){
       h=renderMartialStall();
     }
+    else if(kind==='battlefield'){ h=''; } else if(kind==='generic'){ h=(modalOpts&&modalOpts.html)||''; }
     $card.innerHTML=h;
     injectModalFb();   // v20260915j：每扇窗都带顶部反馈条（操作结果不再被面板挡死）
     $card.classList.toggle('pack-card', kind==='pack' || kind==='shop' || kind==='storage' || kind==='give' || kind==='container');
@@ -4768,6 +4773,29 @@
   window.armyDeposit=armyDeposit; window.armyWithdraw=armyWithdraw; window.armyBuyGrain=armyBuyGrain;
   window.armyDeploy=armyDeploy; window.armyCamp=armyCamp; window.armyScout=armyScout; window.armyAmbush=armyAmbush;
   window.openArmyDeposit=openArmyDeposit; window.openArmyDeploy=openArmyDeploy;
+  function openBattlefieldDebug(kind) {
+    var st = state;
+    var allies = [], foes = [];
+    var troops = (st.army && st.army.troops) || [];
+    var types = ['changqiang','daodun','gongnu','qibing'];
+    function mku(type, rank, count){
+      var t = (LF.TROOPS||{})[type]; if(!t) return null;
+      return War.mkUnit(t.name, count, {hp:t.hp,atk:t.atk,def:t.def,spd:t.spd}, {troopType:type, rank:rank, morale:80});
+    }
+    if (troops.length) {
+      for (var i=0;i<troops.length;i++){ var tr=troops[i]; var u=mku(tr.type, tr.rank||'front', tr.count||100); if(u) allies.push(u); }
+    } else {
+      for (var i=0;i<3;i++){ var u=mku(types[i], ['front','mid','rear'][i], 150); if(u) allies.push(u); }
+    }
+    for (var j=0;j<3;j++){ var f=mku(types[(j+1)%4], ['front','mid','rear'][j], 140); if(f) foes.push(f); }
+    Battlefield.start({
+      kind: kind==='siege'?'siege':'field', scale:'field', seg: kind==='siege'?'gate':null,
+      allies: allies, foes: foes, ambush:false, night:false,
+      title: kind==='siege'?'调试·攻城〔破门〕':'调试·野战', maxRounds:30,
+      onEnd: function(res){ toast('战棋结束：'+(res==='win'?'我方得胜':res==='lose'?'我方失利':'撤兵')); }
+    });
+  }
+  window.openBattlefieldDebug = openBattlefieldDebug;
   window.openPartyPanel=function(){ openModal('party'); };
   window.openSiegePrep=openSiegePrep; window.warToggleTroop=warToggleTroop; window.warLaunch=warLaunch;
   window.startDefendBattle=startDefendBattle; window.startFieldBattle=startFieldBattle;

@@ -113,6 +113,8 @@ window.LF = window.LF || {};
       else if (act === 'age+10') { var st=getState(); st.age=(st.age||18)+10; ctx.log('【调试】年龄 +10 → '+st.age+' 岁', 'sys'); }
       else if (act === 'demoAge') { var st=getState(); st.age=ctx.lifespanOf(); if (ctx.getDie) ctx.getDie()('寿终正寝 · 年华已尽'); }
       else if (act === 'martial_stall') { window.openModal('martial_stall'); }
+      else if (act === 'bf_field') { window.openBattlefieldDebug('field'); }
+      else if (act === 'bf_siege') { window.openBattlefieldDebug('siege'); }
       // v20260924z17：原「查看当前旗标」按钮已移除 —— walk() 对 state.flags 做无保护的递归遍历，
       //   旗标里一旦出现环引用（或嵌套极深）就会无限递归，点一下页面直接卡死。
     }
@@ -204,6 +206,8 @@ window.LF = window.LF || {};
       // 8. 演武场（v20261017d）
       h += '<div class="dev-sec"><div class="dev-h">⚔ 战斗调试</div><div class="dev-btns">'
          + '<button class="dev wide" data-act="arena">🥋 进入演武场 · 选敌试战</button>'
+         + '<button class="dev" data-act="bf_field">🎲 战棋·野战</button>'
+         + '<button class="dev" data-act="bf_siege">🏯 战棋·攻城</button>'
          + '</div></div>';
 
       h += '<button class="close" id="m-close">收 起</button>';
@@ -214,6 +218,7 @@ window.LF = window.LF || {};
         btn.onclick = function () {
           var a = btn.getAttribute('data-act');
           if (a === 'setspawn') { ctx.openSpawnMap(); return; }
+          if (a === 'bf_field' || a === 'bf_siege') { handleDev(a); return; }
           if (a === 'demoDeath' || a === 'demoAge') { handleDev(a); return; }
           handleDev(a); ctx.save(state); ctx.renderStatus();
           if (getCurrentModalKind() !== 'char') renderDev();
