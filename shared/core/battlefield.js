@@ -65,10 +65,21 @@
         count: u.count, hp: u.hp, maxHp: u.maxHp, atk: u.atk, def: u.def, spd: u.spd,
         morale: u.morale == null ? 80 : u.morale, crit: u.crit || 0,
         move: LF.BF_MOVE(u.spd), range: LF.BF_RANGE(slot),
-        officer: u.officer || null, orders: u.artIds ? u.artIds.slice() : [],
+        officer: u.officer || null,
         x: 0, y: 0, moved: false, acted: false, routed: false, defending: false,
-        isTroop: true, troopType: u.troopType, _artMap: u._artMap || null
+        isTroop: true, troopType: u.troopType
       };
+      // 军令：优先用 war.js 已注入的 artIds/_artMap；缺失时用 Army.buildOrdersFor 现算（修复调试台入口只弹取消按钮）
+      if (u.artIds && u.artIds.length) {
+        nu.orders = u.artIds.slice();
+        nu._artMap = u._artMap || null;
+      } else {
+        try {
+          var od = Army && Army.buildOrdersFor ? Army.buildOrdersFor(nu, nu.rank || 'front', nu.count) : null;
+          if (od) { nu.orders = od.ids.slice(); nu._artMap = od.map; }
+          else { nu.orders = []; nu._artMap = null; }
+        } catch (e) { nu.orders = []; nu._artMap = null; }
+      }
       return nu;
     }
 
@@ -288,11 +299,34 @@
     }
 
     // ════════ 交互 ════════
+    // 移动位移动画（FLIP）：render 重建后把新位置单位先偏移到旧位置，再过渡回原位
+    function animateMove(u, oldX, oldY, newX, newY) {
+      var grid = document.getElementById('bf-grid');
+      if (!grid) return;
+      var cs = cellSize();
+      var cell = grid.querySelector('.bf-cell.bf-sel');
+      if (!cell) return;
+      var el = cell.querySelector('.bf-unit');
+      if (!el) return;
+      var dx = (oldX - newX) * cs, dy = (oldY - newY) * cs;
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      el.offsetWidth; // force reflow
+      el.style.transition = 'transform .18s ease';
+      el.style.transform = 'translate(0,0)';
+      setTimeout(function () { el.style.transition = ''; el.style.transform = ''; }, 200);
+    }
     function bfClick(x, y) {
       if (!board || board.over || board.phase !== 'ally') return;
       var u = unitAt(x, y);
       if (board.mode === 'move' && board.sel) {
-        if (inReach(x, y)) { board.sel.x = x; board.sel.y = y; board.sel.moved = true; board.mode = null; board.reach = []; render(); return; }
+        if (inReach(x, y)) {
+          var oldX = board.sel.x, oldY = board.sel.y;
+          board.sel.x = x; board.sel.y = y; board.sel.moved = true; board.mode = null; board.reach = [];
+          render();
+          animateMove(board.sel, oldX, oldY, x, y);
+          return;
+        }
       }
       if (board.mode === 'attack' && board.sel) {
         if (inAttack(x, y)) {
