@@ -4258,6 +4258,27 @@
 .bf-sp{ min-width:30px; padding:3px 5px; border:1px solid var(--btn-bd); background:var(--btn-bg); border-radius:var(--r-btn);
   cursor:pointer; font-family:inherit; color:var(--btn-fg); font-size:11px; }
 .bf-sp.on{ border-color:var(--bf-gold); color:var(--bf-gold); box-shadow:0 0 0 1px rgba(176,131,47,.4); }
+/* 战棋 · 全舞台模式（不用窗口小卡，棋盘视野最大化） */
+#modal.bf-full{ padding:0; align-items:stretch; }
+#modal.bf-full #modal-card{ margin:0; width:100%; max-width:none; height:100%; display:flex; flex-direction:column; }
+#modal.bf-full .modal-shell{ max-width:none; width:100%; height:100%; border-radius:0; border:0; }
+#modal.bf-full .bf-root{ height:100%; min-height:0; border-radius:0; position:relative; }
+#modal.bf-full .bf-viewport{ flex:1 1 auto; min-height:0; }
+/* 同上：支持 :has 的浏览器自动生效（内容被替换后自动还原，无需清理） */
+#modal:has(.bf-root){ padding:0; align-items:stretch; }
+#modal:has(.bf-root) #modal-card{ margin:0; width:100%; max-width:none; height:100%; display:flex; flex-direction:column; }
+#modal:has(.bf-root) .modal-shell{ max-width:none; width:100%; height:100%; border-radius:0; border:0; }
+#modal:has(.bf-root) .bf-root{ height:100%; min-height:0; border-radius:0; position:relative; }
+#modal:has(.bf-root) .bf-viewport{ flex:1 1 auto; min-height:0; }
+/* 战棋 · 内嵌抽屉（详情 / 列阵 不再另开窗口） */
+.bf-sheet{ position:absolute; inset:0; z-index:60; display:flex; align-items:flex-end; background:rgba(24,17,10,.55); }
+.bf-sheet[hidden]{ display:none; }
+.bf-sheet-in{ width:100%; max-height:74%; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:12px 14px 18px; box-sizing:border-box; background:#f4eee2;
+  border-top:2px solid #b0832f; border-radius:14px 14px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,.35); }
+.bf-sheet-in h3{ margin:2px 0 8px; font-size:16px; }
+/* 统一结束回合：主键强调 */
+.btn.bf-main{ background:linear-gradient(180deg,#c8a23a,#a2761f); color:#fff8e6; border-color:#8a6415; font-weight:700; }
 /* ════════ 战棋动画系统 ════════ */
 /* 行军 bob：移动中轻微上下浮动 */
 .bf-march{ animation:bfMarch .15s linear infinite; }

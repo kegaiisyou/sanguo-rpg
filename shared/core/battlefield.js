@@ -1,4 +1,4 @@
-// 战棋沙盘 · 核心（v20261030i）
+// 战棋沙盘 · 核心（v20261030j）
 // 独立棋盘状态机 + 渲染 + 交互；复用 war.js 的营级聚合语义（aggF 幂律、军令倍率、士气分档）。
 // 设计：对局状态为内存临时对象，不落存档；战果经 cfg.onEnd(result, units, php) 回交 war.js 结算链。
 // 交互：点己方营 → 浮出常用指令菜单（移动/攻击/待机/详情/列阵）；移动与攻击为即时非破坏操作；
@@ -20,6 +20,26 @@
 
     // 节奏：动画/延时按速度分档；跳帧(skip)时归零
     function D(ms) { if (!board) return ms; var s = board.speed || 1; return board.skip ? 0 : Math.max(0, Math.round(ms / s)); }
+
+    // 全舞台模式：不用弹窗小卡，视野最大化（emblem class + :has 双保险）
+    function setFullscreenMode(on) {
+      try {
+        var m = document.getElementById('modal');
+        if (m) { if (on) m.classList.add('bf-full'); else m.classList.remove('bf-full'); }
+      } catch (e) {}
+    }
+    // 内嵌抽屉：详情 / 列阵 不再另开窗口，直接在战场内弹出底部面板
+    function showSheet(html) {
+      var s = document.getElementById('bf-sheet');
+      if (!s) return;
+      s.innerHTML = '<div class="bf-sheet-in">' + html + '</div>';
+      s.hidden = false;
+    }
+    function closeSheet() {
+      var s = document.getElementById('bf-sheet');
+      if (!s) return;
+      s.hidden = true; s.innerHTML = '';
+    }
 
     // ════════ 对局状态 ════════
     var board = null;     // {w,h,grid,units,round,phase,sel,mode,reach,attack,over,result,cfg}
@@ -72,6 +92,7 @@
       };
       if (cfg.ambush) moraleAll(sideUnits('ally'), 5);
       openModal && openModal('battlefield');
+      setFullscreenMode(true);
       setTimeout(function () { mount(); render(); }, 30);
       return board;
     }
@@ -552,10 +573,21 @@
       else if (cmd === 'detail') { openDetailModal(u); }
       else if (cmd === 'formation') { openFormationModal(u); }
     }
-    function bfEndTurn() {
+    function bfEndTurn() { // 统一结束回合：一 tap 即可，无需逐个待机
       if (!board || board.over || board.phase !== 'ally') return;
-      board.sel = null; board.mode = null; board.reach = []; board.attack = [];
+      board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
+      closeSheet();
       foePhase();
+    }
+    function bfNextUnit() { // 跳到下一个未行动的我军营，并弹出指令菜单
+      if (!board || board.over || board.phase !== 'ally') return;
+      var list = sideUnits('ally').filter(function (u) { return !u.acted; });
+      if (!list.length) { toast && toast('全军已待命，可结束回合。'); return; }
+      var idx = 0;
+      if (board.sel) { for (var i = 0; i < list.length; i++) { if (list[i] === board.sel) { idx = (i + 1) % list.length; break; } } }
+      var u = list[idx];
+      board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null;
+      render();
     }
     function bfRetreat() {
       if (!board || board.over) return;
@@ -606,7 +638,9 @@
         '<div class="bf-log" id="bf-log"></div>' +
         '<div class="bf-bar" id="bf-bar"></div>' +
         '<div class="bf-pop-host" id="bf-pop-host"></div>' +
+        '<div class="bf-sheet" id="bf-sheet" hidden></div>' +
         '</div>';
+      setFullscreenMode(true);
       bindDrag();
     }
     function cellSize() {
@@ -703,16 +737,19 @@
       var bar = document.getElementById('bf-bar');
       if (bar) {
         var speed = board.speed || 1, skip = !!board.skip;
+        var rest = sideUnits('ally').filter(function (u) { return !u.acted; }).length;
         bar.innerHTML =
           '<span class="bf-speed">速度' +
           '<button type="button" class="bf-sp' + (speed === 1 ? ' on' : '') + '" onclick="window.bfSpeed(1)">1×</button>' +
           '<button type="button" class="bf-sp' + (speed === 2 ? ' on' : '') + '" onclick="window.bfSpeed(2)">2×</button>' +
           '<button type="button" class="bf-sp' + (speed === 3 ? ' on' : '') + '" onclick="window.bfSpeed(3)">3×</button>' +
           '<button type="button" class="bf-sp' + (skip ? ' on' : '') + '" onclick="window.bfSkip()">' + (skip ? '跳帧✓' : '跳帧') + '</button></span>' +
-          '<button type="button" class="btn" id="bf-et">结束回合</button>' +
+          '<button type="button" class="btn bf-main" id="bf-et">结束回合' + (board.phase === 'ally' && rest > 0 ? '（余' + rest + '）' : '') + '</button>' +
+          '<button type="button" class="btn" id="bf-nx">下一营</button>' +
           '<button type="button" class="btn btn-danger" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
-          '<span class="bf-bar-tip">' + (board.phase === 'ally' ? '我军调度中' : '敌军行动中…') + '</span>';
+          '<span class="bf-bar-tip">' + (board.phase === 'ally' ? (rest > 0 ? '我军调度中 · 余 ' + rest + ' 营' : '全军已待命') : '敌军行动中…') + '</span>';
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
+        var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { bfNextUnit(); };
         var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { bfRetreat(); };
       }
       // 浮出常用指令菜单（点选己方营后；进入移动/攻击模式或敌方阶段时不显示）
@@ -797,8 +834,8 @@
         '<div class="bf-md-row">军心 ' + u.morale + ' · 督阵 ' + (u.officer ? esc(u.officer.name) + '（+' + (u.officer.atk || 0) + '攻）' : '无') + '</div>' +
         '<div class="bf-md-row">列阵 ' + (u.formation && (F[u.formation]) ? esc(F[u.formation].name) : '本阵') + '</div>' +
         '<div class="bf-md-title">可用军令</div>' + (ord || '<div class="bf-md-row">—</div>') +
-        '<button type="button" class="btn" onclick="window.bfCloseModal()">关闭</button></div>';
-      openModal && openModal('generic', { html: h, title: '营情' });
+        '<button type="button" class="btn" onclick="window.bfCloseSheet()">关闭</button></div>';
+      showSheet(h);
     }
     function applyFormation(u, key) { if (u) { u.formation = (key && key !== 'benzhen') ? key : null; } render(); }
     function openFormationModal(u) {
@@ -812,8 +849,8 @@
         h += '<button type="button" class="bf-fmt-b' + (on ? ' on' : '') + '" onclick="window.bfSetFormation(\'' + u.id + '\',\'' + k + '\')">' +
           '<b>' + esc(f.name) + '</b> 防×' + (f.defMul || 1) + ' 攻×' + (f.atkMul || 1) + (f.move ? ' 移+' + f.move : '') + '<span>' + esc(f.desc || '') + '</span></button>';
       });
-      h += '<button type="button" class="btn" onclick="window.bfCloseModal()">关闭</button></div>';
-      openModal && openModal('generic', { html: h, title: '列阵' });
+      h += '<button type="button" class="btn" onclick="window.bfCloseSheet()">关闭</button></div>';
+      showSheet(h);
     }
     function bfCloseModal() { closeModal && closeModal(); }
 
@@ -821,6 +858,7 @@
     function endBattle(result) {
       if (!board || board.over) return;
       board.over = true; board.result = result;
+      closeSheet(); setFullscreenMode(false);
       var survivors = board.units.filter(function (u) { return u.side === 'ally' && u.hp > 0; });
       var php = (S() && S().hp != null) ? S().hp : null;  // 战棋主角不参战，HP 不变
       var onEnd = board.cfg.onEnd;
@@ -843,7 +881,9 @@
       window.bfClick = bfClick; window.bfOrder = bfOrder; window.bfEndTurn = bfEndTurn; window.bfRetreat = bfRetreat;
       window.bfStrike = function (oid) { var t = board && board._strikeTarget; closeMenu(); if (board && board.sel && t) resolveAttack(board.sel, t, oid); };
       window.bfCloseMenu = closeMenu; window.bfCloseModal = bfCloseModal;
-      window.bfSetFormation = function (uid, key) { var u = board && board.units.filter(function (x) { return x.id === uid; })[0]; if (u) { applyFormation(u, key); closeModal(); } };
+      window.bfSetFormation = function (uid, key) { var u = board && board.units.filter(function (x) { return x.id === uid; })[0]; if (u) { applyFormation(u, key); closeSheet(); } };
+      window.bfCloseSheet = closeSheet;
+      window.bfNextUnit = bfNextUnit;
       window.bfSpeed = function (s) { if (board) { board.speed = s; render(); } };
       window.bfSkip = function () { if (board) { board.skip = !board.skip; render(); } };
     }
