@@ -726,6 +726,17 @@
     setPendingArmyBattle: function (v) { pendingArmyBattle = v; },
     Officers: Officers
   });
+  // v20261030d：战棋沙盘实例（调试台入口 / war.js 会战分支消费）
+  var Battlefield = LF.createBattlefield({
+    getState: function () { return state; },
+    LF: LF, G: G,
+    log: log, toast: toast, save: save, renderStatus: renderStatus, renderRoom: renderRoom,
+    openModal: openModal, closeModal: closeModal, escapeHtml: escapeHtml,
+    exert: exert, advanceTime: advanceTime,
+    Army: Army, Officers: Officers,
+    getPendingArmyBattle: function () { return pendingArmyBattle; },
+    setPendingArmyBattle: function (v) { pendingArmyBattle = v; }
+  });
   var armyRecruit = Army.armyRecruit, armyTrainAt = Army.armyTrainAt, armyDisband = Army.armyDisband, armySetRank = Army.armySetRank,
       armyPickType = Army.armyPickType, armyFormation = Army.armyFormation,
       armyDeposit = Army.armyDeposit, armyWithdraw = Army.armyWithdraw, armyBuyGrain = Army.armyBuyGrain,

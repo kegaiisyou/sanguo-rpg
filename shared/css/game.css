@@ -1722,7 +1722,7 @@
   .tt-scroll{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
     -webkit-mask-image:radial-gradient(135% 122% at 50% 50%,#000 24%,rgba(0,0,0,.5) 54%,transparent 93%);
     mask-image:radial-gradient(135% 122% at 50% 50%,#000 24%,rgba(0,0,0,.5) 54%,transparent 93%);
-    animation:scrollFloat 46s ease-in-out infinite;}
+    animation:scrollFloat 46s ease-in-out infinite;will-change:transform;}
   @keyframes scrollFloat{0%{transform:translate(0,0)}50%{transform:translate(1.6vmax,-1vmax)}100%{transform:translate(0,0)}}
   /* 水墨晕染 + 烟尘动态层 */
   .tt-inkfx{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
@@ -1740,9 +1740,9 @@
       radial-gradient(1.5px 1.5px at 30% 64%,rgba(255,248,228,.4),transparent),
       radial-gradient(2px 2px at 64% 88%,rgba(255,248,228,.38),transparent);
     background-size:55% 55%;
-    animation:dustDrift 26s linear infinite;}
+    animation:dustDrift 26s linear infinite;will-change:transform;}
   @keyframes dustDrift{0%{transform:translate(0,0)}100%{transform:translate(-14%,-20%)}}
-  .tt-inkfx i{position:absolute;display:block;border-radius:50%;filter:blur(34px);}
+  .tt-inkfx i{position:absolute;display:block;border-radius:50%;filter:blur(24px);will-change:transform,opacity;backface-visibility:hidden;}
   /* 左上浓墨，大幅横扫 */
   .tt-inkfx i:nth-child(1){width:62vmax;height:62vmax;left:-20vmax;top:-10vmax;
     background:radial-gradient(circle,rgba(10,7,4,.9),rgba(10,7,4,0) 66%);
@@ -1772,7 +1772,7 @@
   .tt-dust{position:absolute;left:0;right:0;bottom:0;height:48vh;z-index:2;pointer-events:none;overflow:hidden;}
   .tt-dust::before{content:"";position:absolute;left:0;right:0;bottom:0;height:30vh;
     background:linear-gradient(0deg,rgba(238,231,214,.42),rgba(238,231,214,0));}
-  .tt-dust i{position:absolute;bottom:-14vmax;border-radius:50%;filter:blur(26px);
+  .tt-dust i{position:absolute;bottom:-14vmax;border-radius:50%;filter:blur(18px);will-change:transform,opacity;backface-visibility:hidden;
     background:radial-gradient(circle,rgba(240,234,218,.5),rgba(240,234,218,0) 68%);}
   .tt-dust i:nth-child(1){left:6%;width:30vmax;height:30vmax;animation:dustRise 9s linear infinite;}
   .tt-dust i:nth-child(2){left:26%;width:24vmax;height:24vmax;animation:dustRise 11s linear infinite 2s;}
@@ -1887,6 +1887,12 @@
   #title.no-fx .tt-inkfx,#title.no-fx .tt-dust,#title.no-fx .tt-inkblot{display:none;}
   /* 弹窗打开时冻结标题重绘：SVG 墨晕滤镜(feTurbulence)极耗 CPU，择档时尤显卡顿 */
   #title.frozen .tt-inkfx,#title.frozen .tt-dust,#title.frozen .tt-inkblot,#title.frozen .tt-scroll{display:none;}
+  /* v20261030d：尊重系统「减少动态效果」偏好，标题页降级为静态水墨 */
+  @media (prefers-reduced-motion: reduce){
+    #title .tt-scroll,#title .tt-inkfx,#title .tt-inkfx::after,#title .tt-inkfx i,#title .tt-inkblot,#title .tt-dust{animation:none !important;}
+    #title .tt-inkfx i{filter:blur(20px);}
+    #title .tt-dust i{filter:blur(16px);}
+  }
   /* 捏人 / 序章 —— 重排版 v20260908j */
   .cr-head{display:flex;align-items:center;gap:12px;margin-bottom:4px;}
   .cr-head-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(158,59,46,.45),transparent);}
