@@ -722,7 +722,7 @@
 
   /* ===== 弹窗 ===== */
   #modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
-    background:rgba(40,32,24,.5);padding:24px;overflow-y:auto;
+    background:rgba(40,32,24,.5);padding:16px;overflow-y:auto;
     animation:fade .25s ease both;}
   /* v20261020a：移除全屏 backdrop 模糊——背后无限动画(战略图 sg-pulse)会迫使整屏每帧重合成，
      导致山河志在移动端掉到 ~38fps；改更实遮罩后弹窗帧率回 60 */
@@ -738,6 +738,7 @@
     border-radius:14px;
     padding:16px 16px 18px;
     box-shadow:0 8px 30px rgba(50,35,15,.25), inset 0 0 0 1px rgba(255,250,235,.5);
+    max-height:calc(100vh - 32px); overflow-y:auto;
     animation:modalPop .22s cubic-bezier(.2,.9,.3,1.12) both;}
   .modal-shell::before{
     content:''; position:absolute; inset:6px; border:1px solid rgba(90,60,20,.18);
@@ -768,6 +769,9 @@
     background:#b5362e;color:#fff;font-size:17px;cursor:pointer;
     box-shadow:0 4px 12px rgba(0,0,0,.35);transition:background .15s,transform .15s;}
   .modal-x:hover{background:#7d241d;transform:rotate(90deg);}
+  /* 关闭按钮移入卡片内右上角（不再贴屏幕边角难点）；战棋全屏自带关闭，隐藏通用按钮 */
+  #modal:not(.bf-full) .modal-x{ top:8px; right:8px; width:40px; height:40px; }
+  #modal.bf-full .modal-x{ display:none; }
   /* 捏人专用不透明水墨背景：打开捏人时隐藏标题页，弹窗自带背景，不再透出标题 */
   #modal.modal-create-bg{ background:radial-gradient(120% 80% at 50% 18%,#2c2418 0%,#1b160f 60%,#100c08 100%); }
 

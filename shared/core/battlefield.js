@@ -784,7 +784,7 @@
       });
       h += '<button type="button" class="bf-pop-b ghost" onclick="window.bfCloseMenu()">取消</button></div>';
       board._strikeTarget = tgt;
-      showMenu(h);
+      showMenu(h); positionMenuNear(tgt);
     }
     function bfStrike(orderId) {
       if (!board || !board.sel) return;
@@ -951,7 +951,7 @@
         '<button type="button" class="bf-pop-b ghost" onclick="window.bfOrder(\'detail\')">详情</button>' +
         '<button type="button" class="bf-pop-b ghost" onclick="window.bfOrder(\'formation\')">列阵</button>' +
         '</div>';
-      showMenu(h);
+      showMenu(h); positionMenuNear(u);
     }
     function showMenu(html) {
       var host = document.getElementById('bf-pop-host');
@@ -959,6 +959,31 @@
       host.innerHTML = html;
     }
     function closeMenu() { var host = document.getElementById('bf-pop-host'); if (host) host.innerHTML = ''; }
+    // 把浮出菜单锚定到指定单位附近（而非固定贴底），缩短与目标的视觉距离
+    function positionMenuNear(u) {
+      var host = document.getElementById('bf-pop-host');
+      var pop = host && host.querySelector('.bf-pop');
+      if (!pop) return;
+      var root = document.getElementById('bf-root');
+      var grid = document.getElementById('bf-grid');
+      if (!root) return;
+      var rr = root.getBoundingClientRect();
+      var cx = rr.width / 2, cy = rr.height / 2, half = 0;
+      if (u && grid) {
+        var cell = grid.querySelector('[data-uid="' + u.id + '"]');
+        if (cell) { var cr = cell.getBoundingClientRect(); cx = cr.left + cr.width / 2 - rr.left; cy = cr.top + cr.height / 2 - rr.top; half = cr.height / 2; }
+      }
+      var mw = pop.offsetWidth || 220, mh = pop.offsetHeight || 70, margin = 8;
+      var above = (cy - half - 10 - mh) >= margin;
+      var top = above ? (cy - half - 10 - mh) : (cy + half + 10);
+      top = Math.max(margin, Math.min(rr.height - mh - margin, top));
+      var left = Math.max(margin + mw / 2, Math.min(rr.width - margin - mw / 2, cx));
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+      pop.style.right = 'auto';
+      pop.style.bottom = 'auto';
+      pop.style.transform = 'translateX(-50%)';
+    }
 
     // 拖动手势（仅 translate，不 scale，避免字体模糊）
     function bindDrag() {
