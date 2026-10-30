@@ -4217,3 +4217,44 @@
   .bf-action{ left:50%; bottom:8px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:94vw; }
   .bf-pop{ min-width:104px; }
 }
+
+/* ════════ 战棋动画系统 ════════ */
+/* 行军 bob：移动中轻微上下浮动 */
+.bf-march{ animation:bfMarch .15s linear infinite; }
+@keyframes bfMarch{ 0%,100%{ transform:translate(0,0); } 50%{ } }
+/* 受击闪光：被命中时白闪 + 抖动 */
+.bf-hit{ animation:bfHit .3s ease; }
+@keyframes bfHit{
+  0%{ filter:brightness(1); }
+  20%{ filter:brightness(2.2) saturate(.3); transform:translate(2px,-1px); }
+  50%{ filter:brightness(1.4); transform:translate(-2px,1px); }
+  100%{ filter:brightness(1); transform:translate(0,0); }
+}
+/* 轨迹点：移动路径上的脚印标记 */
+.bf-trail-dot{ position:absolute; width:8px; height:8px; border-radius:50%;
+  background:rgba(176,131,47,.35); border:1px solid rgba(176,131,47,.6);
+  transform:translate(-50%,-50%); animation:bfDotFade .4s ease-out forwards; }
+@keyframes bfDotFade{ 0%{ opacity:1; } 100%{ opacity:0; } }
+/* 瞄准连线：选中攻击模式时从单位指向目标 */
+.bf-aim-line{ position:absolute; height:0; border-top:2px dashed rgba(158,59,46,.5);
+  transform-origin:0 50%; pointer-events:none; z-index:4; }
+.bf-aim-layer{ position:absolute; inset:0; pointer-events:none; z-index:4; }
+/* 已行动：灰度 + 半透明 */
+.bf-acted{ filter:grayscale(.5); opacity:.55; }
+.bf-acted-tag{ position:absolute; top:1px; right:2px; font-style:normal; font-size:9px;
+  background:rgba(74,62,48,.55); color:#fff; border-radius:var(--r-pill); padding:0 3px; z-index:3; }
+/* 正在行动：当前行动单位高亮光环 */
+.bf-acting{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 16px rgba(176,131,47,.6); z-index:6;
+  animation:bfActPulse 1s ease-in-out infinite; }
+@keyframes bfActPulse{ 0%,100%{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 16px rgba(176,131,47,.6); } 50%{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 22px rgba(176,131,47,.85); } }
+/* 震屏：命中时整个视口抖动 */
+.bf-shake{ animation:bfShake .2s ease; }
+@keyframes bfShake{ 0%,100%{ transform:translate(0,0); } 20%{ transform:translate(-3px,1px); } 40%{ transform:translate(3px,-1px); } 60%{ transform:translate(-2px,2px); } 80%{ transform:translate(2px,-2px); } }
+/* 血条过渡：已有 .bf-u-hp span transition，补充 low-hp 变红 */
+.bf-u-hp span{ transition:width .35s ease, background .3s; }
+.bf-u-hp span.low{ background:linear-gradient(90deg,#8a2a1e,#c0392b)!important; }
+/* 竖屏适配 */
+@media (max-width:540px){
+  .bf-trail-dot{ width:10px; height:10px; }
+  .bf-acted-tag{ font-size:8px; }
+}

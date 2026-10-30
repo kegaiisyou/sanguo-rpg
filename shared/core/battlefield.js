@@ -149,29 +149,27 @@
       if (O.moraleFoe) moraleAll(foes, O.moraleFoe);
       if (O.moraleArmy) moraleAll(allies, O.moraleArmy);
     }
-    // 攻击：a 对 d 用 orderId 出手；近战相邻则 d 反击
+    // 攻击：a 对 d 用 orderId 出手；近战相邻则 d 反击（动画在 render 后播放，结束再推进回合）
     function resolveAttack(a, d, orderId) {
       if (!board || a.side !== 'ally' || board.phase !== 'ally' || a.acted) return;
       if (cheb(a.x, a.y, d.x, d.y) > a.range) return;
       var O = (LF.ARMY_ORDERS || {})[orderId] || {};
       if (O.noTarget) return;
       var r = dmgRoll(a, d, orderId, false);
-      if (r.miss) { floatText(d.x, d.y, '闪避', 'label-dodge'); log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat'); }
-      else {
-        d.hp = Math.max(0, d.hp - r.dmg);
-        floatText(d.x, d.y, '-' + r.dmg, r.crit ? 'label-crit' : 'dmg');
-        log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + '。', 'combat');
+      var counter = null;
+      if (!r.miss && d.hp > 0 && cheb(a.x, a.y, d.x, d.y) === 1 && !O.defend) {
+        counter = dmgRoll(d, a, pickCounterOrder(d), true);
+        if (counter.miss) counter = null; else a.hp = Math.max(0, a.hp - counter.dmg);
       }
+      if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
+      else { d.hp = Math.max(0, d.hp - r.dmg); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
-      // 反击：近战（距离 1）且 d 存活且 d 非坚守
-      if (!r.miss && d.hp > 0 && cheb(a.x, a.y, d.x, d.y) === 1 && !O.defend) {
-        var rr = dmgRoll(d, a, pickCounterOrder(d), true);
-        if (rr.miss) { /* 反击落空 */ }
-        else { a.hp = Math.max(0, a.hp - rr.dmg); floatText(a.x, a.y, '-' + rr.dmg, 'dmg'); log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + rr.dmg + '。', 'combat'); }
-      }
+      if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
       if (d.hp <= 0) log('〔破营〕' + d.name + '营溃散，折损于阵。', 'good');
-      afterAction();
+      board.sel = null; board.mode = null; board.reach = []; board.attack = [];
+      render();
+      animateAttack({ a: a, d: d, r: r, counter: counter }, afterAction);
     }
     function pickCounterOrder(d) {
       // 反击用默认攻击军令（该阵位最高 dmgMul 的非防御军令）
@@ -186,23 +184,23 @@
     function clampM(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 
     function foePhase() {
-      board.phase = 'foe'; render();
+      board.phase = 'foe'; board.sel = null; board.mode = null; board.reach = []; board.attack = [];
+      render();
       var foes = sideUnits('foe');
       var i = 0;
       function step() {
-        if (i >= foes.length) { setTimeout(turnEnd, 120); return; }
+        if (i >= foes.length) { setTimeout(turnEnd, 260); return; }
         var u = foes[i++];
         if (u.acted) { step(); return; }
-        aiAct(u);
-        render();
-        setTimeout(step, 220);
+        board._acting = u; render();
+        setTimeout(function () { aiAct(u, function () { board._acting = null; render(); setTimeout(step, 200); }); }, 300);
       }
-      setTimeout(step, 260);
+      setTimeout(step, 360);
     }
-    function aiAct(u) {
+    // 敌方行动：先算模型（移动/攻击），render 后播放移动与攻击动画，done 推进下一个
+    function aiAct(u, done) {
       var targets = sideUnits('ally');
-      if (!targets.length) return;
-      // 目标优先级：残血 > 远程(可先除) > 高威胁(atk高)
+      if (!targets.length) { done(); return; }
       targets.sort(function (a, b) {
         var ra = a.hp / a.maxHp, rb = b.hp / b.maxHp;
         if (ra !== rb) return ra - rb;
@@ -210,29 +208,38 @@
         if (ka !== kb) return kb - ka;
         return b.atk - a.atk;
       });
-      var tgt = null;
-      for (var k = 0; k < targets.length; k++) {
-        if (cheb(u.x, u.y, targets[k].x, targets[k].y) <= u.range) { tgt = targets[k]; break; }
-      }
+      var tgt = null, k;
+      for (k = 0; k < targets.length; k++) { if (cheb(u.x, u.y, targets[k].x, targets[k].y) <= u.range) { tgt = targets[k]; break; } }
+      var path = null, oldX = u.x, oldY = u.y;
       if (!tgt) {
-        // 向最近敌人移动：从可达格选离某敌最近的
         var reach = reachable(u);
         var near = null, bestD = 1e9;
-        reach.forEach(function (p) {
-          targets.forEach(function (t) { var dd = cheb(p.x, p.y, t.x, t.y); if (dd < bestD) { bestD = dd; near = p; } });
-        });
-        if (near) { u.x = near.x; u.y = near.y; u.moved = true; }
-        // 移动后再看能否攻击
+        reach.forEach(function (p) { targets.forEach(function (t) { var dd = cheb(p.x, p.y, t.x, t.y); if (dd < bestD) { bestD = dd; near = p; } }); });
+        if (near) { path = pathBetween(oldX, oldY, near.x, near.y, u); u.x = near.x; u.y = near.y; u.moved = true; }
         for (var j = 0; j < targets.length; j++) if (cheb(u.x, u.y, targets[j].x, targets[j].y) <= u.range) { tgt = targets[j]; break; }
       }
+      var info = null;
       if (tgt) {
         var orderId = pickAiOrder(u);
+        var Oo = (LF.ARMY_ORDERS || {})[orderId] || {};
         var r = dmgRoll(u, tgt, orderId, false);
-        if (r.miss) { /* 落空 */ }
-        else { tgt.hp = Math.max(0, tgt.hp - r.dmg); floatText(tgt.x, tgt.y, '-' + r.dmg, 'dmg'); log('〔敌袭〕' + u.name + '攻' + tgt.name + '，伤 ' + r.dmg + '。', 'danger'); }
+        var counter = null;
+        if (!r.miss && tgt.hp > 0 && cheb(u.x, u.y, tgt.x, tgt.y) === 1 && !Oo.defend) {
+          counter = dmgRoll(tgt, u, pickCounterOrder(tgt), true);
+          if (counter.miss) counter = null; else u.hp = Math.max(0, u.hp - counter.dmg);
+        }
+        if (r.miss) log('〔敌袭〕' + u.name + '攻' + tgt.name + '，被其闪过。', 'danger');
+        else { tgt.hp = Math.max(0, tgt.hp - r.dmg); log('〔敌袭〕' + u.name + '攻' + tgt.name + '，伤 ' + r.dmg + '。', 'danger'); }
         if (tgt.hp <= 0) log('〔破营〕我方' + tgt.name + '营折损！', 'danger');
         u.acted = true;
+        info = { a: u, d: tgt, r: r, counter: counter };
       }
+      function finish() {
+        if (info) { render(); animateAttack(info, done); }
+        else done();
+      }
+      if (path) { render(); animateMove(u, path, finish); }
+      else finish();
     }
     function pickAiOrder(u) {
       var best = null, O = LF.ARMY_ORDERS || {};
@@ -298,33 +305,128 @@
       else render();
     }
 
-    // ════════ 交互 ════════
-    // 移动位移动画（FLIP）：render 重建后把新位置单位先偏移到旧位置，再过渡回原位
-    function animateMove(u, oldX, oldY, newX, newY) {
-      var grid = document.getElementById('bf-grid');
-      if (!grid) return;
-      var cs = cellSize();
-      var cell = grid.querySelector('.bf-cell.bf-sel');
-      if (!cell) return;
-      var el = cell.querySelector('.bf-unit');
-      if (!el) return;
-      var dx = (oldX - newX) * cs, dy = (oldY - newY) * cs;
-      el.style.transition = 'none';
-      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-      el.offsetWidth; // force reflow
-      el.style.transition = 'transform .18s ease';
-      el.style.transform = 'translate(0,0)';
-      setTimeout(function () { el.style.transition = ''; el.style.transform = ''; }, 200);
+    // ════════ 交互 / 动画 ═════════
+    // 八方向 BFS 取最短路径（供移动轨迹）；避开任意单位占据格（终点除外）
+    function pathBetween(sx, sy, tx, ty, u) {
+      if (sx === tx && sy === ty) return [{ x: sx, y: sy }];
+      var w = board.w, h = board.h;
+      var dirs = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+      var seen = {}, prev = {}, q = [{ x: sx, y: sy }]; seen[sx + ',' + sy] = 1;
+      var found = false;
+      while (q.length) {
+        var cur = q.shift();
+        if (cur.x === tx && cur.y === ty) { found = true; break; }
+        for (var d = 0; d < dirs.length; d++) {
+          var nx = cur.x + dirs[d][0], ny = cur.y + dirs[d][1];
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          var key = nx + ',' + ny;
+          if (seen[key]) continue;
+          var occ = unitAt(nx, ny);
+          if (occ && !(nx === tx && ny === ty)) continue;
+          seen[key] = 1; prev[key] = { x: cur.x, y: cur.y };
+          q.push({ x: nx, y: ny });
+        }
+      }
+      if (!found) return null;
+      var path = [], c = { x: tx, y: ty };
+      while (c) { path.unshift(c); c = prev[c.x + ',' + c.y]; }
+      return path;
     }
+    // 移动动画：沿路径逐格行进（带轨迹点），放慢速度、可见轨迹
+    function animateMove(u, path, done) {
+      var grid = document.getElementById('bf-grid');
+      if (!grid || !path || path.length < 2) { done && done(); return; }
+      var cs = cellSize();
+      var cell = grid.querySelector('[data-uid="' + u.id + '"]');
+      if (!cell) { done && done(); return; }
+      drawTrail(path, cs);
+      var dest = path[path.length - 1];
+      var dx0 = (path[0].x - dest.x) * cs, dy0 = (path[0].y - dest.y) * cs;
+      cell.style.transition = 'none';
+      cell.style.transform = 'translate(' + dx0 + 'px,' + dy0 + 'px)';
+      cell.classList.add('bf-march');
+      cell.offsetWidth; // force reflow
+      var stepMs = 150;
+      cell.style.transition = 'transform ' + stepMs + 'ms linear';
+      var i = 1;
+      (function next() {
+        if (i >= path.length) {
+          cell.style.transition = 'none';
+          cell.style.transform = 'translate(0,0)';
+          cell.classList.remove('bf-march');
+          setTimeout(function () { clearTrail(); done && done(); }, 70);
+          return;
+        }
+        var p = path[i];
+        cell.style.transform = 'translate(' + ((p.x - dest.x) * cs) + 'px,' + ((p.y - dest.y) * cs) + 'px)';
+        i++;
+        setTimeout(next, stepMs);
+      })();
+    }
+    // 攻击动画：攻击者前冲 -> 命中闪光 + 震屏 -> 退回；反击作为第二拍
+    function animateAttack(info, done) {
+      var grid = document.getElementById('bf-grid');
+      if (!grid) { done && done(); return; }
+      var a = info.a, d = info.d, cs = cellSize();
+      var ca = grid.querySelector('[data-uid="' + a.id + '"]'), cd = grid.querySelector('[data-uid="' + d.id + '"]');
+      var ua = ca && ca.querySelector('.bf-unit'), ud = cd && cd.querySelector('.bf-unit');
+      if (!ua || !ud) {
+        if (info.r && !info.r.miss) floatText(d.x, d.y, '-' + info.r.dmg, info.r.crit ? 'label-crit' : 'dmg');
+        else if (info.r) floatText(d.x, d.y, '闪避', 'label-dodge');
+        afterCounter();
+        return;
+      }
+      var dx = d.x - a.x, dy = d.y - a.y, len = Math.hypot(dx, dy) || 1, lx = dx / len, ly = dy / len, lp = 0.42 * cs;
+      ua.style.transition = 'transform .14s ease-out';
+      ua.style.transform = 'translate(' + (lx * lp) + 'px,' + (ly * lp) + 'px)';
+      setTimeout(function () {
+        ud.classList.add('bf-hit');
+        if (info.r && !info.r.miss) floatText(d.x, d.y, '-' + info.r.dmg, info.r.crit ? 'label-crit' : 'dmg');
+        else if (info.r) floatText(d.x, d.y, '闪避', 'label-dodge');
+        shakeGrid();
+        setTimeout(function () {
+          ua.style.transition = 'transform .16s ease-in';
+          ua.style.transform = 'translate(0,0)';
+          setTimeout(function () { ud.classList.remove('bf-hit'); afterCounter(); }, 170);
+        }, 150);
+      }, 150);
+      function afterCounter() {
+        if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, 130); }
+        else done && done();
+      }
+    }
+    function drawTrail(path, cs) {
+      var t = document.getElementById('bf-trail'); if (!t || !path) return; t.innerHTML = '';
+      path.forEach(function (p) { var dot = document.createElement('div'); dot.className = 'bf-trail-dot'; dot.style.left = (p.x * cs + cs / 2) + 'px'; dot.style.top = (p.y * cs + cs / 2) + 'px'; t.appendChild(dot); });
+    }
+    function clearTrail() { var t = document.getElementById('bf-trail'); if (t) t.innerHTML = ''; }
+    function ensureLayers() {
+      var grid = document.getElementById('bf-grid'); if (!grid) return;
+      if (!grid.querySelector('#bf-aim')) { var a = document.createElement('div'); a.id = 'bf-aim'; a.className = 'bf-aim'; grid.appendChild(a); }
+      if (!grid.querySelector('#bf-trail')) { var t = document.createElement('div'); t.id = 'bf-trail'; t.className = 'bf-trail'; grid.appendChild(t); }
+    }
+    function drawAimLines() {
+      var aim = document.getElementById('bf-aim'); if (!aim) return; aim.innerHTML = '';
+      var cs = cellSize(), a = board.sel; if (!a) return;
+      (board.attack || []).forEach(function (t) {
+        var x1 = a.x * cs + cs / 2, y1 = a.y * cs + cs / 2, x2 = t.x * cs + cs / 2, y2 = t.y * cs + cs / 2;
+        var dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+        var line = document.createElement('div'); line.className = 'bf-aim-line';
+        line.style.left = x1 + 'px'; line.style.top = y1 + 'px'; line.style.width = len + 'px'; line.style.transform = 'rotate(' + ang + 'deg)';
+        aim.appendChild(line);
+      });
+    }
+    function shakeGrid() { var vp = document.getElementById('bf-viewport'); if (!vp) return; vp.classList.add('bf-shake'); setTimeout(function () { vp.classList.remove('bf-shake'); }, 200); }
     function bfClick(x, y) {
       if (!board || board.over || board.phase !== 'ally') return;
       var u = unitAt(x, y);
       if (board.mode === 'move' && board.sel) {
         if (inReach(x, y)) {
           var oldX = board.sel.x, oldY = board.sel.y;
+          var path = pathBetween(oldX, oldY, x, y, board.sel);
           board.sel.x = x; board.sel.y = y; board.sel.moved = true; board.mode = null; board.reach = [];
           render();
-          animateMove(board.sel, oldX, oldY, x, y);
+          animateMove(board.sel, path, function () {});
           return;
         }
       }
@@ -438,6 +540,8 @@
           var inner = '';
           if (u) {
             if (board.sel === u) cls += ' bf-sel';
+            if (u.acted) cls += ' bf-acted';
+            if (board.phase === 'foe' && board._acting === u) cls += ' bf-acting';
             var band = (LF.moraleBand ? LF.moraleBand(u.morale) : { color: '#C8B78F' }).color;
             var hpPct = Math.max(0, Math.min(100, Math.round(100 * u.hp / u.maxHp)));
             var sideCls = u.side === 'ally' ? 'bf-u-ally' : 'bf-u-foe';
@@ -445,14 +549,17 @@
               '<div class="bf-u-name">' + esc(u.name) + (u.officer ? '<i class="bf-u-off">督</i>' : '') + '</div>' +
               '<div class="bf-u-hp"><span style="width:' + hpPct + '%"></span></div>' +
               '<div class="bf-u-mor" style="border-color:' + band + '"></div>' +
+              (u.acted ? '<i class="bf-acted-tag">已</i>' : '') +
               '</div>';
           } else {
             inner = '<div class="bf-cell-hit" onclick="window.bfClick(' + x + ',' + y + ')"></div>';
           }
-          html.push('<div class="' + cls + '" style="left:' + (x * cs) + 'px;top:' + (y * cs) + 'px;width:' + cs + 'px;height:' + cs + 'px">' + inner + '</div>');
+          html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' style="left:' + (x * cs) + 'px;top:' + (y * cs) + 'px;width:' + cs + 'px;height:' + cs + 'px">' + inner + '</div>');
         }
       }
       grid.innerHTML = html.join('');
+      ensureLayers();
+      if (board.sel && board.mode === 'attack') drawAimLines();
       // 详情条
       var det = document.getElementById('bf-detail');
       if (det) {
