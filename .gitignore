@@ -35,6 +35,8 @@ assets/_ref_orig.png
 
 # 实机走查产物（截图 / 报告 json）
 _playtest/
+# 运行时生成目录（空目录，不入库）
+outputs/
 # 一次性冒烟调试脚本
 verify_smoke.js
 

@@ -1,4 +1,4 @@
-// 战棋沙盘 · 核心（v20261030d）
+// 战棋沙盘 · 核心（v20261030i）
 // 独立棋盘状态机 + 渲染 + 交互；复用 war.js 的营级聚合语义（aggF 幂律、军令倍率、士气分档）。
 // 设计：对局状态为内存临时对象，不落存档；战果经 cfg.onEnd(result, units, php) 回交 war.js 结算链。
 // 交互：点己方营 → 浮出常用指令菜单（移动/攻击/待机/详情/列阵）；移动与攻击为即时非破坏操作；
@@ -13,6 +13,13 @@
     var escapeHtml = ctx.escapeHtml, exert = ctx.exert, advanceTime = ctx.advanceTime;
     var Army = ctx.Army, Officers = ctx.Officers || null;
     var getPendingArmyBattle = ctx.getPendingArmyBattle, setPendingArmyBattle = ctx.setPendingArmyBattle;
+    // 战报：战斗中每步既写入本局 board.log（界面可读），也走引擎 log（主日志）
+    var _log = log;
+    function blog(m, c) { if (board) board.log.push({ m: m, c: c || '' }); _log(m, c); }
+    log = blog;
+
+    // 节奏：动画/延时按速度分档；跳帧(skip)时归零
+    function D(ms) { if (!board) return ms; var s = board.speed || 1; return board.skip ? 0 : Math.max(0, Math.round(ms / s)); }
 
     // ════════ 对局状态 ════════
     var board = null;     // {w,h,grid,units,round,phase,sel,mode,reach,attack,over,result,cfg}
@@ -34,6 +41,17 @@
       return null;
     }
     function cheb(ax, ay, bx, by) { return Math.max(Math.abs(ax - bx), Math.abs(ay - by)); }
+    // 兵种推断（war.js 生成的守/攻军未带 troopType，按名称补足以支持克制）
+    function inferType(name) {
+      name = name || '';
+      if (/弓|弩/.test(name)) return 'gongnu';
+      if (/骑|骁骑|游骑/.test(name)) return 'qibing';
+      if (/枪|矛/.test(name)) return 'changqiang';
+      if (/盾|刀|锐卒|亲兵|守卒|步/.test(name)) return 'daodun';
+      if (/攻城|梯|车/.test(name)) return 'gongcheng';
+      if (/辎|粮/.test(name)) return 'qizhong';
+      return 'changqiang';
+    }
 
     // ════════ 启动 ════════
     function start(cfg) {
@@ -46,8 +64,9 @@
       allies.forEach(function (u, i) { if (sp.ally[i]) { u.x = sp.ally[i].x; u.y = sp.ally[i].y; } });
       foes.forEach(function (u, i) { if (sp.foe[i]) { u.x = sp.foe[i].x; u.y = sp.foe[i].y; } });
       board = {
-        w: w, h: h, terrain: null, units: allies.concat(foes),
+        w: w, h: h, terrain: LF.BF_GEN_TERRAIN(w, h, cfg.kind === 'siege' ? 'siege' : 'field'), units: allies.concat(foes),
         round: 1, phase: 'ally', sel: null, mode: null, reach: [], attack: [], over: false, result: null,
+        speed: 1, skip: false, threat: null,
         cfg: cfg, title: cfg.title || '会战', reinforce: cfg.reinforce || null, reinforceDone: false,
         log: []
       };
@@ -61,7 +80,7 @@
       var slot = u.slot || (u.troopType && T()[u.troopType] && T()[u.troopType].slot) || ({ front: '步', mid: '械', rear: '远', flank: '骑' }[u.rank] || '步');
       var nu = {
         id: side + i, side: side,
-        name: u.name, type: u.troopType, rank: u.rank || 'front', slot: slot,
+        name: u.name, type: u.troopType || inferType(u.name), rank: u.rank || 'front', slot: slot,
         count: u.count, hp: u.hp, maxHp: u.maxHp, atk: u.atk, def: u.def, spd: u.spd,
         morale: u.morale == null ? 80 : u.morale, crit: u.crit || 0,
         move: LF.BF_MOVE(u.spd), range: LF.BF_RANGE(slot),
@@ -83,28 +102,35 @@
       return nu;
     }
 
-    // ════════ 移动可达（八方向 BFS）════════
+    // ════════ 移动可达（八方向 Dijkstra，按地形移动消耗累加）════════
     function reachable(u) {
       if (!board || u.moved) return [];
-      var w = board.w, h = board.h, steps = u.move, res = {}, q = [{ x: u.x, y: u.y, s: 0 }];
-      res[u.x + ',' + u.y] = 0;
+      var w = board.w, h = board.h, budget = u.move;
+      var cost = {}, prev = {};
+      cost[u.x + ',' + u.y] = 0;
+      var pq = [{ x: u.x, y: u.y, c: 0 }];
       var dirs = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
-      while (q.length) {
-        var cur = q.shift();
-        if (cur.s >= steps) continue;
+      while (pq.length) {
+        var mi = 0; for (var pi = 1; pi < pq.length; pi++) if (pq[pi].c < pq[mi].c) mi = pi;
+        var cur = pq.splice(mi, 1)[0];
+        if (cur.c > cost[cur.x + ',' + cur.y]) continue;
         for (var d = 0; d < dirs.length; d++) {
           var nx = cur.x + dirs[d][0], ny = cur.y + dirs[d][1];
           if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
           var key = nx + ',' + ny;
           var occ = unitAt(nx, ny);
-          if (occ) { if (occ.side !== u.side) continue; if (cur.s + 1 >= steps) continue; } // 可穿越友军，但不可停留/穿敌
-          if (res[key] != null && res[key] <= cur.s + 1) continue;
-          res[key] = cur.s + 1;
-          q.push({ x: nx, y: ny, s: cur.s + 1 });
+          if (occ && occ.side !== u.side) continue;                 // 敌格不可进入/穿越
+          var enter = occ ? 1 : ((terrainAt(nx, ny).moveCost) || 1); // 友军格不计地形消耗
+          var nc = cur.c + enter;
+          if (nc > budget) continue;
+          if (cost[key] == null || nc < cost[key]) {
+            cost[key] = nc; prev[key] = { x: cur.x, y: cur.y };
+            pq.push({ x: nx, y: ny, c: nc });
+          }
         }
       }
       var out = [];
-      for (var k in res) { if (res[k] > 0) { var p = k.split(','); out.push({ x: +p[0], y: +p[1] }); } }
+      for (var k in cost) { if (cost[k] > 0 && cost[k] <= budget) { var p = k.split(','); out.push({ x: +p[0], y: +p[1] }); } }
       return out.filter(function (p) { return !unitAt(p.x, p.y); });
     }
     function attackable(u) {
@@ -116,26 +142,69 @@
       });
       return out;
     }
+    // 敌方威胁覆盖：移动可达 + 从其可达格起的攻击范围（P1-1）
+    function computeThreat(u) {
+      if (!board || !u) return null;
+      var move = reachable(u);
+      var atkSet = {}, moveSet = {};
+      move.forEach(function (p) { moveSet[p.x + ',' + p.y] = 1; });
+      move.concat([{ x: u.x, y: u.y }]).forEach(function (p) {
+        var x0 = Math.max(0, p.x - u.range), x1 = Math.min(board.w - 1, p.x + u.range);
+        var y0 = Math.max(0, p.y - u.range), y1 = Math.min(board.h - 1, p.y + u.range);
+        for (var x = x0; x <= x1; x++) for (var y = y0; y <= y1; y++) if (cheb(p.x, p.y, x, y) <= u.range) atkSet[x + ',' + y] = 1;
+      });
+      return { u: u, move: move, moveSet: moveSet, atk: atkSet };
+    }
 
     // ════════ 伤害结算 ════════
+    // 兵种克制倍率（aType 克 dType → adv；反之 dis）
+    function counterMulOf(aType, dType) {
+      var C = LF.BF_COUNTER || {}, M = LF.BF_COUNTER_MUL || { adv: 1.25, dis: 0.8 };
+      if (C[aType] && C[aType].indexOf(dType) >= 0) return M.adv;
+      if (C[dType] && C[dType].indexOf(aType) >= 0) return M.dis;
+      return 1;
+    }
+    function formationAtkMul(u) { var F = LF.BF_FORMATION || {}; return (u && u.formation && F[u.formation]) ? (F[u.formation].atkMul || 1) : 1; }
+    function formationDefMul(u) { var F = LF.BF_FORMATION || {}; return (u && u.formation && F[u.formation]) ? (F[u.formation].defMul || 1) : 1; }
     function dmgRoll(a, d, orderId, isCounter) {
       var O = (LF.ARMY_ORDERS || {})[orderId] || {};
       if (O.defend) return { miss: true };
       var mul = O.dmgMul || 1;
       var moraleMul = (LF.moraleBand ? LF.moraleBand(a.morale) : { atkMul: 1 }).atkMul;
       var C = LF.BF_DMG_COEFF || {};
-      var atkMul = C.terrainAtkMul || 1, counterMul = C.counterMul || 1;
-      var terr = terrainAt(d.x, d.y), dodge = terr.dodge || 0;
+      // 地形：攻击方站格增攻（丘），防守方站格减伤（林/丘/营垒/城垣）+ 闪避
+      var terrA = terrainAt(a.x, a.y), terrD = terrainAt(d.x, d.y);
+      var atkMul = (terrA.atkMul || 1) * (C.terrainAtkMul || 1);
+      var counterMul = counterMulOf(a.type, d.type);
+      var dodge = terrD.dodge || 0;
       var hit = Math.max(0.05, 0.95 - dodge);
       if (Math.random() > hit) return { miss: true };
-      var defMul = (C.terrainDefMul || 1);
-      var raw = a.atk * mul * atkMul * counterMul * moraleMul;
+      var defMul = (terrD.defMul || 1) * formationDefMul(d) * (C.terrainDefMul || 1);
+      var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a);
       var defReduce = Math.min(0.8, (d.def * defMul) / 100);
       var val = raw * (1 - defReduce) * (0.9 + Math.random() * 0.2);
       if (isCounter) val *= (LF.BF_RIPOSTE ? LF.BF_RIPOSTE.dmg : 0.5);
       var crit = Math.random() < (a.crit || 0);
       if (crit) val *= 1.6;
-      return { dmg: Math.max(1, Math.round(val)), crit: crit };
+      return { dmg: Math.max(1, Math.round(val)), crit: crit, counter: counterMul, terrain: (terrD.defMul || 1) * (terrA.atkMul || 1) };
+    }
+    // 预计伤害/命中（预览用，不含随机暴击/闪避抖动，取期望中心）
+    function dmgEstimate(a, d, orderId) {
+      var O = (LF.ARMY_ORDERS || {})[orderId] || {};
+      if (O.defend) return null;
+      var mul = O.dmgMul || 1;
+      var moraleMul = (LF.moraleBand ? LF.moraleBand(a.morale) : { atkMul: 1 }).atkMul;
+      var C = LF.BF_DMG_COEFF || {};
+      var terrA = terrainAt(a.x, a.y), terrD = terrainAt(d.x, d.y);
+      var atkMul = (terrA.atkMul || 1) * (C.terrainAtkMul || 1);
+      var counterMul = counterMulOf(a.type, d.type);
+      var dodge = terrD.dodge || 0;
+      var hit = Math.max(0.05, 0.95 - dodge);
+      var defMul = (terrD.defMul || 1) * formationDefMul(d) * (C.terrainDefMul || 1);
+      var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a);
+      var defReduce = Math.min(0.8, (d.def * defMul) / 100);
+      var avg = raw * (1 - defReduce);
+      return { dmg: Math.max(1, Math.round(avg)), hit: Math.round(hit * 100), counter: counterMul, adj: cheb(a.x, a.y, d.x, d.y) === 1 };
     }
     function applyOrderSideEffects(a, orderId) {
       var O = (LF.ARMY_ORDERS || {})[orderId] || {};
@@ -162,7 +231,7 @@
         if (counter.miss) counter = null; else a.hp = Math.max(0, a.hp - counter.dmg);
       }
       if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
-      else { d.hp = Math.max(0, d.hp - r.dmg); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + '。', 'combat'); }
+      else { d.hp = Math.max(0, d.hp - r.dmg); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
       if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
@@ -184,62 +253,88 @@
     function clampM(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 
     function foePhase() {
-      board.phase = 'foe'; board.sel = null; board.mode = null; board.reach = []; board.attack = [];
+      board.phase = 'foe'; board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
       render();
       var foes = sideUnits('foe');
       var i = 0;
       function step() {
-        if (i >= foes.length) { setTimeout(turnEnd, 260); return; }
+        if (i >= foes.length) { setTimeout(turnEnd, D(260)); return; }
         var u = foes[i++];
         if (u.acted) { step(); return; }
         board._acting = u; render();
-        setTimeout(function () { aiAct(u, function () { board._acting = null; render(); setTimeout(step, 200); }); }, 300);
+        setTimeout(function () { aiAct(u, function () { board._acting = null; render(); setTimeout(step, D(200)); }); }, D(300));
       }
-      setTimeout(step, 360);
+      setTimeout(step, D(360));
     }
-    // 敌方行动：先算模型（移动/攻击），render 后播放移动与攻击动画，done 推进下一个
+    // 敌方行动（P1-4 升级）：残血优先击杀 / 点后排弓弩 / 规避被克 / 占地形 / 危则后撤
     function aiAct(u, done) {
-      var targets = sideUnits('ally');
-      if (!targets.length) { done(); return; }
-      targets.sort(function (a, b) {
-        var ra = a.hp / a.maxHp, rb = b.hp / b.maxHp;
-        if (ra !== rb) return ra - rb;
-        var ka = a.range >= 2 ? 1 : 0, kb = b.range >= 2 ? 1 : 0;
-        if (ka !== kb) return kb - ka;
-        return b.atk - a.atk;
-      });
-      var tgt = null, k;
-      for (k = 0; k < targets.length; k++) { if (cheb(u.x, u.y, targets[k].x, targets[k].y) <= u.range) { tgt = targets[k]; break; } }
-      var path = null, oldX = u.x, oldY = u.y;
-      if (!tgt) {
-        var reach = reachable(u);
-        var near = null, bestD = 1e9;
-        reach.forEach(function (p) { targets.forEach(function (t) { var dd = cheb(p.x, p.y, t.x, t.y); if (dd < bestD) { bestD = dd; near = p; } }); });
-        if (near) { path = pathBetween(oldX, oldY, near.x, near.y, u); u.x = near.x; u.y = near.y; u.moved = true; }
-        for (var j = 0; j < targets.length; j++) if (cheb(u.x, u.y, targets[j].x, targets[j].y) <= u.range) { tgt = targets[j]; break; }
+      var enemies = sideUnits('ally');
+      if (!enemies.length) { done(); return; }
+      function scoreTarget(t) {
+        var s = 0, hr = t.hp / t.maxHp;
+        s += (1 - hr) * 2.2;
+        var cm = counterMulOf(u.type, t.type);
+        if (cm > 1) s += 0.6; else if (cm < 1) s -= 0.5;
+        if (t.range >= 2) s += 0.35;
+        s += (u.atk / (t.def + 10)) * 0.02;
+        return s;
+      }
+      var scored = enemies.map(function (t) { return { t: t, s: scoreTarget(t) }; }).sort(function (a, b) { return b.s - a.s; });
+      var inRange = scored.filter(function (o) { return cheb(u.x, u.y, o.t.x, o.t.y) <= u.range; });
+      var path = null, oldX = u.x, oldY = u.y, bestTgt = null, bestScore = -1e9, moveCell = null;
+      if (inRange.length) {
+        bestTgt = inRange[0].t;
+      } else {
+        var reach = reachable(u), cand = reach.concat([{ x: u.x, y: u.y }]);
+        for (var ci = 0; ci < cand.length; ci++) {
+          var p = cand[ci];
+          for (var si = 0; si < scored.length; si++) {
+            var o = scored[si], t = o.t;
+            if (cheb(p.x, p.y, t.x, t.y) <= u.range) {
+              var terr = terrainAt(p.x, p.y);
+              var sc = o.s + (terr.atkMul ? (terr.atkMul - 1) * 2 : 0) + (terr.defMul ? (terr.defMul - 1) * 1.2 : 0);
+              if (u.range >= 2 && cheb(p.x, p.y, t.x, t.y) === 1) sc -= 0.6; // 远程拉开距离，规避贴脸反击
+              if (sc > bestScore) { bestScore = sc; bestTgt = t; moveCell = p; }
+            }
+          }
+        }
+        if (moveCell) { path = pathBetween(oldX, oldY, moveCell.x, moveCell.y, u); u.x = moveCell.x; u.y = moveCell.y; u.moved = true; }
+      }
+      var hr = u.hp / u.maxHp;
+      if (!path && !inRange.length && (hr < 0.22 || u.morale < 28)) {
+        var rf = retreatCell(u);
+        if (rf) { path = pathBetween(oldX, oldY, rf.x, rf.y, u); u.x = rf.x; u.y = rf.y; u.moved = true; bestTgt = null; }
       }
       var info = null;
-      if (tgt) {
+      if (bestTgt) {
         var orderId = pickAiOrder(u);
         var Oo = (LF.ARMY_ORDERS || {})[orderId] || {};
-        var r = dmgRoll(u, tgt, orderId, false);
+        var r = dmgRoll(u, bestTgt, orderId, false);
         var counter = null;
-        if (!r.miss && tgt.hp > 0 && cheb(u.x, u.y, tgt.x, tgt.y) === 1 && !Oo.defend) {
-          counter = dmgRoll(tgt, u, pickCounterOrder(tgt), true);
+        if (!r.miss && bestTgt.hp > 0 && cheb(u.x, u.y, bestTgt.x, bestTgt.y) === 1 && !Oo.defend) {
+          counter = dmgRoll(bestTgt, u, pickCounterOrder(bestTgt), true);
           if (counter.miss) counter = null; else u.hp = Math.max(0, u.hp - counter.dmg);
         }
-        if (r.miss) log('〔敌袭〕' + u.name + '攻' + tgt.name + '，被其闪过。', 'danger');
-        else { tgt.hp = Math.max(0, tgt.hp - r.dmg); log('〔敌袭〕' + u.name + '攻' + tgt.name + '，伤 ' + r.dmg + '。', 'danger'); }
-        if (tgt.hp <= 0) log('〔破营〕我方' + tgt.name + '营折损！', 'danger');
+        if (r.miss) log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
+        else { bestTgt.hp = Math.max(0, bestTgt.hp - r.dmg); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
+        if (bestTgt.hp <= 0) log('〔破营〕我方' + bestTgt.name + '营折损！', 'danger');
         u.acted = true;
-        info = { a: u, d: tgt, r: r, counter: counter };
+        info = { a: u, d: bestTgt, r: r, counter: counter };
       }
-      function finish() {
-        if (info) { render(); animateAttack(info, done); }
-        else done();
-      }
-      if (path) { render(); animateMove(u, path, finish); }
-      else finish();
+      function finish() { if (info) { render(); animateAttack(info, done); } else done(); }
+      if (path) { render(); animateMove(u, path, finish); } else finish();
+    }
+    // 后撤格：移动可达中不在任何敌方攻击覆盖内、且最靠近己方出生侧者
+    function retreatCell(u) {
+      var reach = reachable(u);
+      var safe = reach.filter(function (p) {
+        for (var i = 0; i < board.units.length; i++) { var e = board.units[i]; if (e.side === u.side || e.hp <= 0 || e.routed) continue; if (cheb(p.x, p.y, e.x, e.y) <= e.range) return false; }
+        return true;
+      });
+      if (!safe.length) return null;
+      var backX = u.side === 'foe' ? board.w - 1 : 0;
+      safe.sort(function (a, b) { return Math.abs(a.x - backX) - Math.abs(b.x - backX); }); // 离己方出生侧最近者
+      return safe[0];
     }
     function pickAiOrder(u) {
       var best = null, O = LF.ARMY_ORDERS || {};
@@ -332,8 +427,9 @@
       while (c) { path.unshift(c); c = prev[c.x + ',' + c.y]; }
       return path;
     }
-    // 移动动画：沿路径逐格行进（带轨迹点），放慢速度、可见轨迹
+    // 移动动画：沿路径逐格行进（带轨迹点）；跳帧时直接结算
     function animateMove(u, path, done) {
+      if (board && board.skip) { done && done(); return; }
       var grid = document.getElementById('bf-grid');
       if (!grid || !path || path.length < 2) { done && done(); return; }
       var cs = cellSize();
@@ -346,7 +442,7 @@
       cell.style.transform = 'translate(' + dx0 + 'px,' + dy0 + 'px)';
       cell.classList.add('bf-march');
       cell.offsetWidth; // force reflow
-      var stepMs = 150;
+      var stepMs = D(150);
       cell.style.transition = 'transform ' + stepMs + 'ms linear';
       var i = 1;
       (function next() {
@@ -354,7 +450,7 @@
           cell.style.transition = 'none';
           cell.style.transform = 'translate(0,0)';
           cell.classList.remove('bf-march');
-          setTimeout(function () { clearTrail(); done && done(); }, 70);
+          setTimeout(function () { clearTrail(); done && done(); }, D(70));
           return;
         }
         var p = path[i];
@@ -363,10 +459,11 @@
         setTimeout(next, stepMs);
       })();
     }
-    // 攻击动画：攻击者前冲 -> 命中闪光 + 震屏 -> 退回；反击作为第二拍
+    // 攻击动画：攻击者前冲 -> 命中闪光 + 震屏 -> 退回；反击作为第二拍；跳帧时直接结算
     function animateAttack(info, done) {
       var grid = document.getElementById('bf-grid');
       if (!grid) { done && done(); return; }
+      if (board && board.skip) { done && done(); return; }
       var a = info.a, d = info.d, cs = cellSize();
       var ca = grid.querySelector('[data-uid="' + a.id + '"]'), cd = grid.querySelector('[data-uid="' + d.id + '"]');
       var ua = ca && ca.querySelector('.bf-unit'), ud = cd && cd.querySelector('.bf-unit');
@@ -387,11 +484,11 @@
         setTimeout(function () {
           ua.style.transition = 'transform .16s ease-in';
           ua.style.transform = 'translate(0,0)';
-          setTimeout(function () { ud.classList.remove('bf-hit'); afterCounter(); }, 170);
-        }, 150);
-      }, 150);
+          setTimeout(function () { ud.classList.remove('bf-hit'); afterCounter(); }, D(170));
+        }, D(150));
+      }, D(150));
       function afterCounter() {
-        if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, 130); }
+        if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); }
         else done && done();
       }
     }
@@ -437,15 +534,17 @@
           return;
         }
       }
-      if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); render(); return; }
-      // 点空白 / 敌方：取消选择
-      board.sel = null; board.mode = null; board.reach = []; board.attack = []; closeMenu();
+      if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; render(); return; }
+      if (u && u.side === 'foe' && !board.mode) { board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = computeThreat(u); closeMenu(); render(); return; }
+      // 点空白：取消选择 / 清除威胁
+      board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; closeMenu();
       render();
     }
     function inReach(x, y) { return board.reach.some(function (p) { return p.x === x && p.y === y; }); }
     function inAttack(x, y) { return board.attack.some(function (p) { return p.x === x && p.y === y; }); }
     function bfOrder(cmd) { // 浮出菜单按钮：move / attack / wait / detail / formation
       if (!board || !board.sel || board.phase !== 'ally') return;
+      board.threat = null;
       var u = board.sel;
       if (cmd === 'move') { board.mode = 'move'; board.reach = reachable(u); board.attack = []; render(); }
       else if (cmd === 'attack') { board.mode = 'attack'; board.attack = attackable(u); board.reach = []; render(); }
@@ -478,7 +577,9 @@
       var h = '<div class="bf-pop"><div class="bf-pop-t">择军令攻 ' + esc(tgt.name) + '</div>';
       items.forEach(function (oid) {
         var o = O[oid];
-        h += '<button type="button" class="bf-pop-b" onclick="window.bfStrike(\'' + oid + '\')">' + esc(o.name) + '<span>' + (o.desc || '') + '</span></button>';
+        var e = dmgEstimate(a, tgt, oid);
+        var est = e ? ('<span>预计伤 ' + e.dmg + ' · 命中 ' + e.hit + '%' + (e.counter > 1 ? ' · 克制' : e.counter < 1 ? ' · 被克' : '') + (e.adj && !o.defend ? ' · 将遭反击' : '') + '</span>') : '<span>' + (o.desc || '') + '</span>';
+        h += '<button type="button" class="bf-pop-b" onclick="window.bfStrike(\'' + oid + '\')">' + esc(o.name) + est + '</button>';
       });
       h += '<button type="button" class="bf-pop-b ghost" onclick="window.bfCloseMenu()">取消</button></div>';
       board._strikeTarget = tgt;
@@ -502,6 +603,7 @@
         '<div class="bf-top" id="bf-top"></div>' +
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div></div>' +
         '<div class="bf-detail" id="bf-detail"></div>' +
+        '<div class="bf-log" id="bf-log"></div>' +
         '<div class="bf-bar" id="bf-bar"></div>' +
         '<div class="bf-pop-host" id="bf-pop-host"></div>' +
         '</div>';
@@ -532,27 +634,37 @@
       var html = [];
       for (var y = 0; y < board.h; y++) {
         for (var x = 0; x < board.w; x++) {
+          var tkey = terrainAt(x, y).key;
           var cls = 'bf-cell';
           if (y < board.h / 2) cls += ' bf-cell-ally'; else cls += ' bf-cell-foe';
+          if (tkey && tkey !== 'plain') cls += ' bf-t-' + tkey;
           if (board.sel && board.mode === 'move' && inReach(x, y)) cls += ' bf-reach';
           if (board.sel && board.mode === 'attack' && inAttack(x, y)) cls += ' bf-atk';
+          if (board.threat) {
+            if (board.threat.moveSet[x + ',' + y]) cls += ' bf-threat-move';
+            else if (board.threat.atk[x + ',' + y]) cls += ' bf-threat-atk';
+          }
+          var tico = (tkey && tkey !== 'plain') ? '<div class="bf-tico">' + esc(terrainAt(x, y).icon) + '</div>' : '';
           var u = unitAt(x, y);
-          var inner = '';
+          var inner = tico;
           if (u) {
             if (board.sel === u) cls += ' bf-sel';
             if (u.acted) cls += ' bf-acted';
             if (board.phase === 'foe' && board._acting === u) cls += ' bf-acting';
+            var danger = (u.hp / u.maxHp < (LF.BF_ROUT ? LF.BF_ROUT.hpRatio : 0.5)) || ((u.morale == null ? 80 : u.morale) < (LF.BF_ROUT ? LF.BF_ROUT.morale : 45));
+            if (danger) cls += ' bf-danger';
             var band = (LF.moraleBand ? LF.moraleBand(u.morale) : { color: '#C8B78F' }).color;
             var hpPct = Math.max(0, Math.min(100, Math.round(100 * u.hp / u.maxHp)));
             var sideCls = u.side === 'ally' ? 'bf-u-ally' : 'bf-u-foe';
-            inner = '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + '" onclick="window.bfClick(' + x + ',' + y + ')">' +
-              '<div class="bf-u-name">' + esc(u.name) + (u.officer ? '<i class="bf-u-off">督</i>' : '') + '</div>' +
+            var fmtTag = (u.formation && u.formation !== 'benzhen') ? '<i class="bf-u-fmt" title="' + esc(((LF.BF_FORMATION || {})[u.formation] || {}).name || '') + '">' + esc(((LF.BF_FORMATION || {})[u.formation] || {}).name || '').charAt(0) + '</i>' : '';
+            inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + '" onclick="window.bfClick(' + x + ',' + y + ')">' +
+              '<div class="bf-u-name">' + esc(u.name) + (u.officer ? '<i class="bf-u-off">督</i>' : '') + fmtTag + (danger ? '<i class="bf-u-danger" title="溃散风险高">危</i>' : '') + '</div>' +
               '<div class="bf-u-hp"><span style="width:' + hpPct + '%"></span></div>' +
               '<div class="bf-u-mor" style="border-color:' + band + '"></div>' +
               (u.acted ? '<i class="bf-acted-tag">已</i>' : '') +
               '</div>';
           } else {
-            inner = '<div class="bf-cell-hit" onclick="window.bfClick(' + x + ',' + y + ')"></div>';
+            inner += '<div class="bf-cell-hit" onclick="window.bfClick(' + x + ',' + y + ')"></div>';
           }
           html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' style="left:' + (x * cs) + 'px;top:' + (y * cs) + 'px;width:' + cs + 'px;height:' + cs + 'px">' + inner + '</div>');
         }
@@ -565,19 +677,39 @@
       if (det) {
         if (board.sel) {
           var u = board.sel, O = LF.ARMY_ORDERS || {};
+          var danger = (u.hp / u.maxHp < (LF.BF_ROUT ? LF.BF_ROUT.hpRatio : 0.5)) || ((u.morale == null ? 80 : u.morale) < (LF.BF_ROUT ? LF.BF_ROUT.morale : 45));
           var mband = LF.moraleBand ? LF.moraleBand(u.morale) : { name: '—' };
           var off = u.officer ? (esc(u.officer.name) + ' 督阵 +' + (u.officer.atk || 0) + '攻') : '无';
           var ordHtml = (u.orders || []).map(function (oid) { var o = O[oid]; return '<span class="bf-chip">' + (o ? esc(o.name) : oid) + '</span>'; }).join('');
           det.innerHTML = '<div class="bf-dt-card"><div class="bf-dt-h">' + esc(u.name) + ' · ' + (u.count || 0) + ' 人 · ' + esc((LF.ARMY_RANKS || {})[u.rank] ? (LF.ARMY_RANKS[u.rank].name) : u.rank) + '</div>' +
             '<div class="bf-dt-row">攻 ' + u.atk + ' · 防 ' + u.def + ' · 速 ' + u.spd + ' · 移 ' + u.move + ' · 射 ' + u.range + '</div>' +
-            '<div class="bf-dt-row">军心 ' + u.morale + '（' + esc(mband.name) + '）· ' + off + '</div>' +
+            '<div class="bf-dt-row">军心 ' + u.morale + '（' + esc(mband.name) + '）· ' + off + (danger ? ' · <span class="bf-dt-danger">溃散风险高</span>' : '') + '</div>' +
             '<div class="bf-dt-ord">可用军令：' + (ordHtml || '—') + '</div></div>';
-        } else det.innerHTML = '<div class="bf-dt-hint">点选己方营，调遣走位与军令。</div>';
+        } else if (board.threat) {
+          var tu = board.threat.u;
+          det.innerHTML = '<div class="bf-dt-card"><div class="bf-dt-h bf-dt-foe">' + esc(tu.name) + ' · 威胁预览</div>' +
+            '<div class="bf-dt-row">攻 ' + tu.atk + ' · 防 ' + tu.def + ' · 移 ' + tu.move + ' · 射 ' + tu.range + '</div>' +
+            '<div class="bf-dt-row">红框=可攻击范围，黄框=可移动格；点空白关闭。</div></div>';
+        } else det.innerHTML = '<div class="bf-dt-hint">点选己方营调遣；点敌方营查看其威胁范围。</div>';
+      }
+      // 战报
+      var lg = document.getElementById('bf-log');
+      if (lg) {
+        var arr = (board.log || []).slice(-7);
+        lg.innerHTML = arr.length ? arr.map(function (e) { return '<div class="bf-log-l bf-log-' + (e.c || 'sys') + '">' + esc(e.m) + '</div>'; }).join('') : '<div class="bf-log-l bf-log-sys">战报将在此处逐条呈现。</div>';
+        lg.scrollTop = lg.scrollHeight;
       }
       // 操作条
       var bar = document.getElementById('bf-bar');
       if (bar) {
-        bar.innerHTML = '<button type="button" class="btn" id="bf-et">结束回合</button>' +
+        var speed = board.speed || 1, skip = !!board.skip;
+        bar.innerHTML =
+          '<span class="bf-speed">速度' +
+          '<button type="button" class="bf-sp' + (speed === 1 ? ' on' : '') + '" onclick="window.bfSpeed(1)">1×</button>' +
+          '<button type="button" class="bf-sp' + (speed === 2 ? ' on' : '') + '" onclick="window.bfSpeed(2)">2×</button>' +
+          '<button type="button" class="bf-sp' + (speed === 3 ? ' on' : '') + '" onclick="window.bfSpeed(3)">3×</button>' +
+          '<button type="button" class="bf-sp' + (skip ? ' on' : '') + '" onclick="window.bfSkip()">' + (skip ? '跳帧✓' : '跳帧') + '</button></span>' +
+          '<button type="button" class="btn" id="bf-et">结束回合</button>' +
           '<button type="button" class="btn btn-danger" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
           '<span class="bf-bar-tip">' + (board.phase === 'ally' ? '我军调度中' : '敌军行动中…') + '</span>';
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
@@ -663,16 +795,23 @@
         '<div class="bf-md-row">兵力 ' + (u.count || 0) + ' · 兵科 ' + esc((T()[u.type] || {}).name || u.type) + ' · 阵位 ' + esc((LF.ARMY_RANKS || {})[u.rank] ? LF.ARMY_RANKS[u.rank].name : u.rank) + '</div>' +
         '<div class="bf-md-row">攻 ' + u.atk + ' · 防 ' + u.def + ' · 速 ' + u.spd + ' · 移动 ' + u.move + ' · 射程 ' + u.range + '</div>' +
         '<div class="bf-md-row">军心 ' + u.morale + ' · 督阵 ' + (u.officer ? esc(u.officer.name) + '（+' + (u.officer.atk || 0) + '攻）' : '无') + '</div>' +
+        '<div class="bf-md-row">列阵 ' + (u.formation && (F[u.formation]) ? esc(F[u.formation].name) : '本阵') + '</div>' +
         '<div class="bf-md-title">可用军令</div>' + (ord || '<div class="bf-md-row">—</div>') +
         '<button type="button" class="btn" onclick="window.bfCloseModal()">关闭</button></div>';
       openModal && openModal('generic', { html: h, title: '营情' });
     }
+    function applyFormation(u, key) { if (u) { u.formation = (key && key !== 'benzhen') ? key : null; } render(); }
     function openFormationModal(u) {
       var F = LF.BF_FORMATION || {};
       var keys = Object.keys(F);
       var h = '<div class="bf-modal"><h3>' + esc(u.name) + ' · 列阵</h3>';
-      if (!keys.length) h += '<div class="bf-md-row">列阵之术尚未习得（二期开启），今以本阵应敌。</div>';
-      else keys.forEach(function (k) { var f = F[k]; h += '<div class="bf-md-row"><b>' + esc(f.name) + '</b>：防×' + (f.defMul || 1) + ' 攻×' + (f.atkMul || 1) + '</div>'; });
+      if (!keys.length) h += '<div class="bf-md-row">列阵之术尚未习得，今以本阵应敌。</div>';
+      else keys.forEach(function (k) {
+        var f = F[k];
+        var on = (!u.formation && k === 'benzhen') || u.formation === k;
+        h += '<button type="button" class="bf-fmt-b' + (on ? ' on' : '') + '" onclick="window.bfSetFormation(\'' + u.id + '\',\'' + k + '\')">' +
+          '<b>' + esc(f.name) + '</b> 防×' + (f.defMul || 1) + ' 攻×' + (f.atkMul || 1) + (f.move ? ' 移+' + f.move : '') + '<span>' + esc(f.desc || '') + '</span></button>';
+      });
       h += '<button type="button" class="btn" onclick="window.bfCloseModal()">关闭</button></div>';
       openModal && openModal('generic', { html: h, title: '列阵' });
     }
@@ -704,6 +843,9 @@
       window.bfClick = bfClick; window.bfOrder = bfOrder; window.bfEndTurn = bfEndTurn; window.bfRetreat = bfRetreat;
       window.bfStrike = function (oid) { var t = board && board._strikeTarget; closeMenu(); if (board && board.sel && t) resolveAttack(board.sel, t, oid); };
       window.bfCloseMenu = closeMenu; window.bfCloseModal = bfCloseModal;
+      window.bfSetFormation = function (uid, key) { var u = board && board.units.filter(function (x) { return x.id === uid; })[0]; if (u) { applyFormation(u, key); closeModal(); } };
+      window.bfSpeed = function (s) { if (board) { board.speed = s; render(); } };
+      window.bfSkip = function () { if (board) { board.skip = !board.skip; render(); } };
     }
     return api;
   };
