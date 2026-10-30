@@ -817,9 +817,10 @@
       var vp = document.getElementById('bf-viewport');
       if (!vp || !board) return 48;
       var vw = vp.clientWidth || 360, vh = vp.clientHeight || 640;
-      var effW = vw - 16, effH = vh - 120; // 预留顶/底 HUD
-      var fit = Math.floor(Math.min(effW / board.w, effH / board.h));
-      return Math.max(30, Math.min(84, fit));
+      // 回合栏/操作栏已改为半透明浮层，地图直接按整个视口铺满（仅留极小安全边距）
+      var effW = vw - 4, effH = vh - 4;
+      var fit = Math.min(effW / board.w, effH / board.h);
+      return Math.max(30, Math.min(120, fit));
     }
     // 整张战场较小时居中（fit 后整体可见，无需平移）
     function recenterGrid() {
@@ -833,8 +834,13 @@
       var grid = document.getElementById('bf-grid');
       if (!grid) return;
       var cs = cellSize();
-      grid.style.width = (board.w * cs) + 'px';
-      grid.style.height = (board.h * cs) + 'px';
+      // 差分取整：每格 left/top/width/height 用整数像素，总尺寸恰好贴合视口 → 零留白且文字不虚化
+      var X = [], Y = [], iX, iY;
+      for (iX = 0; iX <= board.w; iX++) X.push(Math.round(iX * cs));
+      for (iY = 0; iY <= board.h; iY++) Y.push(Math.round(iY * cs));
+      grid.style.width = X[board.w] + 'px';
+      grid.style.height = Y[board.h] + 'px';
+      grid.style.setProperty('--bf-cs', cs + 'px');
       // 顶栏
       var top = document.getElementById('bf-top');
       if (top) {
@@ -893,7 +899,7 @@
           } else {
             inner += '<div class="bf-cell-hit" onclick="window.bfClick(' + x + ',' + y + ')"></div>';
           }
-          html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' style="left:' + (x * cs) + 'px;top:' + (y * cs) + 'px;width:' + cs + 'px;height:' + cs + 'px">' + inner + '</div>');
+          html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' style="left:' + X[x] + 'px;top:' + Y[y] + 'px;width:' + (X[x + 1] - X[x]) + 'px;height:' + (Y[y + 1] - Y[y]) + 'px">' + inner + '</div>');
         }
       }
       grid.innerHTML = html.join('');

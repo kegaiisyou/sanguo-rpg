@@ -722,7 +722,7 @@
 
   /* ===== 弹窗 ===== */
   #modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
-    background:rgba(40,32,24,.5);padding:16px;overflow-y:auto;
+    background:rgba(40,32,24,.5);padding:24px;overflow-y:auto;
     animation:fade .25s ease both;}
   /* v20261020a：移除全屏 backdrop 模糊——背后无限动画(战略图 sg-pulse)会迫使整屏每帧重合成，
      导致山河志在移动端掉到 ~38fps；改更实遮罩后弹窗帧率回 60 */
@@ -738,7 +738,7 @@
     border-radius:14px;
     padding:16px 16px 18px;
     box-shadow:0 8px 30px rgba(50,35,15,.25), inset 0 0 0 1px rgba(255,250,235,.5);
-    max-height:calc(100vh - 32px); overflow-y:auto;
+    max-height:calc(100vh - 48px); overflow-y:auto;
     animation:modalPop .22s cubic-bezier(.2,.9,.3,1.12) both;}
   .modal-shell::before{
     content:''; position:absolute; inset:6px; border:1px solid rgba(90,60,20,.18);
@@ -769,8 +769,8 @@
     background:#b5362e;color:#fff;font-size:17px;cursor:pointer;
     box-shadow:0 4px 12px rgba(0,0,0,.35);transition:background .15s,transform .15s;}
   .modal-x:hover{background:#7d241d;transform:rotate(90deg);}
-  /* 关闭按钮移入卡片内右上角（不再贴屏幕边角难点）；战棋全屏自带关闭，隐藏通用按钮 */
-  #modal:not(.bf-full) .modal-x{ top:8px; right:8px; width:40px; height:40px; }
+  /* 行囊/任务等通用弹窗：关闭钮回归卡片右上角原有的 36px 小圆钮（top/right:-12px 悬于卡片角外）；
+     战棋全屏时该钮逸出屏幕且自带「鸣金收兵」，故隐藏 */
   #modal.bf-full .modal-x{ display:none; }
   /* 捏人专用不透明水墨背景：打开捏人时隐藏标题页，弹窗自带背景，不再透出标题 */
   #modal.modal-create-bg{ background:radial-gradient(120% 80% at 50% 18%,#2c2418 0%,#1b160f 60%,#100c08 100%); }
@@ -4143,8 +4143,10 @@
   color:var(--bf-ink);
 }
 .bf-top{ position:absolute; top:0; left:0; right:0; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:8px;
-  padding:8px 12px; border-bottom:1px solid var(--bf-line);
-  background:rgba(244,238,226,.82); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  padding:6px 12px; border-bottom:1px solid var(--bf-line);
+  background:rgba(244,238,226,.78); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  /* 浮于棋盘之上：自身不吃点击，避免遮住顶行单位 */
+  pointer-events:none;
   font-size:13px; letter-spacing:1px; }
 .bf-top-l{ color:var(--bf-ally); font-weight:700; }
 .bf-top-m{ color:var(--bf-gold); font-weight:700; font-size:15px; text-shadow:0 1px 0 rgba(255,255,255,.5); }
@@ -4166,7 +4168,8 @@
 .bf-cell-hit{ position:absolute; inset:0; cursor:pointer; }
 .bf-unit{ position:absolute; inset:4px; border-radius:var(--r-card); padding:3px 4px;
   display:flex; flex-direction:column; justify-content:center; gap:2px;
-  font-size:11px; line-height:1.1; cursor:pointer; overflow:hidden;
+  /* 字号随格子尺寸缩放（--bf-cs 由 render 注入），小格保底10px、大格封顶 17px */
+  font-size:clamp(10px, calc(var(--bf-cs, 48px) * .23), 17px); line-height:1.1; cursor:pointer; overflow:hidden;
   box-shadow:var(--shadow); border:1px solid var(--bf-line);
   background:linear-gradient(180deg, rgba(255,253,248,.96), rgba(244,238,226,.96)); }
 .bf-u-ally{ border-color:rgba(63,95,122,.55); }
@@ -4175,7 +4178,7 @@
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bf-u-ally .bf-u-name{ color:var(--bf-ally); }
 .bf-u-foe .bf-u-name{ color:var(--bf-foe); }
-.bf-u-off{ font-style:normal; font-size:9px; background:var(--bf-gold); color:#fff; border-radius:var(--r-pill); padding:0 3px; }
+.bf-u-off{ font-style:normal; font-size:.82em; background:var(--bf-gold); color:#fff; border-radius:var(--r-pill); padding:0 3px; }
 .bf-u-hp{ height:5px; border-radius:var(--r-pill); background:rgba(74,62,48,.18); overflow:hidden; }
 .bf-u-hp span{ display:block; height:100%; background:linear-gradient(90deg,var(--jade),#5fae7e); transition:width .25s; }
 .bf-u-foe .bf-u-hp span{ background:linear-gradient(90deg,var(--seal),#c75a47); }
@@ -4190,7 +4193,10 @@
 .bf-dt-ord{ margin-top:3px; color:var(--ink-faint); }
 .bf-chip{ display:inline-block; margin:2px 4px 0 0; padding:1px 7px; border:1px solid var(--bf-line); border-radius:var(--r-pill); font-size:11px; color:var(--bf-ally); }
 .bf-dt-hint{ color:var(--ink-faint); font-size:12px; }
-.bf-bar{ position:absolute; left:0; right:0; bottom:0; z-index:35; display:flex; align-items:center; gap:10px; padding:8px 12px; border-top:1px solid var(--bf-line); background:rgba(236,227,209,.9); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+.bf-bar{ position:absolute; left:0; right:0; bottom:0; z-index:35; display:flex; align-items:center; gap:10px; padding:6px 10px; border-top:1px solid var(--bf-line); background:rgba(236,227,209,.8); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  /* 浮于棋盘之上：仅按钮吃点击，被遮的底行单位仍可点选 */
+  pointer-events:none; }
+.bf-bar > *{ pointer-events:auto; }
 .bf-bar-tip{ margin-left:auto; font-size:12px; color:var(--ink-faint); }
 .bf-bar .btn{ min-width:96px; }
 .bf-pop-host{ position:absolute; inset:0; pointer-events:none; z-index:40; }
@@ -4234,7 +4240,7 @@
   font-size:20px; opacity:.55; pointer-events:none; z-index:0; }
 .bf-unit{ z-index:1; }
 /* 战棋 · 阵型角标（P0-3） */
-.bf-u-fmt{ font-style:normal; font-size:9px; background:var(--bf-ally); color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
+.bf-u-fmt{ font-style:normal; font-size:.82em; background:var(--bf-ally); color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
 .bf-u-foe .bf-u-fmt{ background:var(--bf-foe); }
 /* 战棋 · 战报面板（P0-4） */
 .bf-log{ position:absolute; right:8px; top:50px; z-index:28; width:min(46%,280px); max-height:32%; overflow-y:auto;
@@ -4257,7 +4263,7 @@
 .bf-threat-atk{ box-shadow:inset 0 0 0 2px rgba(158,59,46,.32); background:rgba(158,59,46,.15) !important; }
 /* 战棋 · 溃散预警（P1-5） */
 .bf-danger .bf-unit{ border-color:#c0392b !important; }
-.bf-u-danger{ font-style:normal; font-size:9px; background:#c0392b; color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
+.bf-u-danger{ font-style:normal; font-size:.82em; background:#c0392b; color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
 .bf-dt-danger{ color:#c0392b; font-weight:700; }
 .bf-dt-foe{ color:var(--bf-foe); }
 /* 战棋 · 速度控制（P1-3） */
