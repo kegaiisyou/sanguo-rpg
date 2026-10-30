@@ -253,7 +253,7 @@
         cfg: cfg, title: cfg.title || '会战', reinforce: cfg.reinforce || null, reinforceDone: false,
         invincible: !!cfg.invincible, showAllThreat: !!cfg.showAllThreat, enemyIdle: !!cfg.enemyIdle,
         seed: cfg.seed || null, _rng: null, maxRounds: cfg.maxRounds || 99,
-        log: []
+        log: [], _centeredInit: false
       };
       if (cfg.seed) board._rng = mulberry32(cfg.seed);
       board.speed = cfg.speedDefault || 1; board.skip = !!cfg.skipDefault;
@@ -815,8 +815,18 @@
     }
     function cellSize() {
       var vp = document.getElementById('bf-viewport');
-      var compact = vp && vp.clientWidth < 540;
-      return compact ? 48 : 64;
+      if (!vp || !board) return 48;
+      var vw = vp.clientWidth || 360, vh = vp.clientHeight || 640;
+      var effW = vw - 16, effH = vh - 120; // 预留顶/底 HUD
+      var fit = Math.floor(Math.min(effW / board.w, effH / board.h));
+      return Math.max(30, Math.min(84, fit));
+    }
+    // 整张战场较小时居中（fit 后整体可见，无需平移）
+    function recenterGrid() {
+      var grid = document.getElementById('bf-grid'), vp = document.getElementById('bf-viewport');
+      if (!grid || !vp) return;
+      var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
+      if (gw <= vw && gh <= vh) grid.style.transform = 'translate(' + ((vw - gw) / 2) + 'px,' + ((vh - gh) / 2) + 'px)';
     }
     function render() {
       if (!board) return;
@@ -888,6 +898,7 @@
       }
       grid.innerHTML = html.join('');
       ensureLayers();
+      if (!board._centeredInit && grid.offsetWidth && document.getElementById('bf-viewport') && document.getElementById('bf-viewport').clientWidth) { board._centeredInit = true; recenterGrid(); }
       if (board.sel && board.mode === 'attack') drawAimLines();
       // 详情条
       var det = document.getElementById('bf-detail');
@@ -993,6 +1004,7 @@
       var offX = 0, offY = 0, minX = 0, minY = 0;
       function clamp() {
         var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
+        if (gw <= vw && gh <= vh) { offX = (vw - gw) / 2; offY = (vh - gh) / 2; grid.style.transform = 'translate(' + offX + 'px,' + offY + 'px)'; return; }
         minX = Math.min(0, vw - gw); minY = Math.min(0, vh - gh);
         offX = Math.max(minX, Math.min(0, offX)); offY = Math.max(minY, Math.min(0, offY));
         grid.style.transform = 'translate(' + offX + 'px,' + offY + 'px)';
