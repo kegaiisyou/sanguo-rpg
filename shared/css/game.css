@@ -4279,7 +4279,41 @@
 .bf-sheet-in h3{ margin:2px 0 8px; font-size:16px; }
 /* 统一结束回合：主键强调 */
 .btn.bf-main{ background:linear-gradient(180deg,#c8a23a,#a2761f); color:#fff8e6; border-color:#8a6415; font-weight:700; }
-/* ════════ 战棋动画系统 ════════ */
+
+/* 战棋 · 战前部署（setup）*/
+.bf-setup{ position:fixed; inset:0; z-index:95; background:#1A1206; color:#F0E4C8; overflow:auto; display:none; }
+.bf-setup-scroll{ max-width:760px; margin:0 auto; padding:14px 14px 80px; box-sizing:border-box; }
+.bf-setup-head{ font-size:18px; color:#FFD268; margin:6px 0 12px; }
+.bf-ssec{ background:rgba(255,255,255,.04); border:1px solid #B8893A; border-radius:10px; padding:10px 12px; margin:10px 0; }
+.bf-ssec-t{ font-size:14px; color:#C8B78F; margin-bottom:8px; }
+.bf-spresets{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.bf-gp{ background:#3F5F7A; color:#fff; border:none; border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer; }
+.bf-gp.on{ background:#C8A23A; }
+.bf-srow{ display:flex; align-items:center; gap:8px; margin:6px 0; }
+.bf-srow label{ font-size:13px; color:#C8B78F; }
+.bf-srow select, .bf-srow input{ background:#2E2B14; color:#F0E4C8; border:1px solid #B8893A; border-radius:8px; padding:7px 8px; font-size:13px; }
+.bf-srow .bf-s-count{ width:84px; }
+.bf-s-del{ background:#9B3B2E; color:#fff; border:none; border-radius:8px; width:30px; height:30px; font-size:16px; cursor:pointer; }
+.bf-sadd{ background:#3F5F7A; color:#fff; border:none; border-radius:8px; padding:7px 12px; font-size:13px; margin-top:4px; cursor:pointer; }
+.bf-dbg-row{ display:flex; align-items:center; gap:8px; margin:6px 0; font-size:13px; }
+.bf-dbg-row input[type=number]{ width:80px; background:#2E2B14; color:#F0E4C8; border:1px solid #B8893A; border-radius:6px; padding:5px; }
+.bf-setup-actions{ display:flex; gap:12px; margin-top:14px; }
+.bf-setup-actions .btn{ flex:1; padding:12px; font-size:15px; }
+/* 战棋 · 战斗结算画面 */
+.bf-result{ position:absolute; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; background:rgba(20,14,6,.82); overflow:auto; }
+.bf-result[hidden]{ display:none; }
+.bf-result-card{ width:92%; max-width:560px; background:#F4EEE2; border:2px solid #B0832F; border-radius:14px; padding:16px 18px; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+.bf-result-title{ text-align:center; margin:0 0 6px; font-size:20px; }
+.bf-result-title.good{ color:#3c7d3c; } .bf-result-title.bad{ color:#9B3B2E; } .bf-result-title.mid{ color:#6a6a3a; }
+.bf-result-sub{ text-align:center; color:#6b5a3a; font-size:13px; margin-bottom:10px; }
+.bf-result-tbl{ width:100%; border-collapse:collapse; font-size:13px; }
+.bf-result-tbl th, .bf-result-tbl td{ border-bottom:1px solid #d8cdb4; padding:6px 4px; text-align:center; }
+.bf-result-tbl th{ color:#8a6a2a; }
+.bf-result .btn{ width:100%; margin-top:14px; padding:12px; font-size:16px; }
+.bf-ra{ color:#2f6e2f; } .bf-rf{ color:#9B3B2E; }
+/* 战棋 · 全体威胁覆盖 */
+.bf-threat-all{ box-shadow: inset 0 0 0 2px rgba(155,59,46,.35); background:rgba(155,59,46,.10); }
+/* ════════ 战棋动画系统 ════════ 
 /* 行军 bob：移动中轻微上下浮动 */
 .bf-march{ animation:bfMarch .15s linear infinite; }
 @keyframes bfMarch{ 0%,100%{ transform:translate(0,0); } 50%{ } }

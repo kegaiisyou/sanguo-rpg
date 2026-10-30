@@ -26,7 +26,7 @@
   <div class="row"><label>我军营数</label><input id="an" type="number" value="3" min="1" max="12" /><label>敌军营数</label><input id="fn" type="number" value="3" min="1" max="12" /></div>
   <div class="row"><label>规模预设</label><select id="scale"><option value="">自定义</option><option value="skirmish">野外遭遇 (10×8)</option><option value="field">野战 (14×12)</option><option value="siege">城镇围攻 (16×12)</option></select></div>
   <div class="row"><label>每营兵力</label><input id="cnt" type="number" value="120" min="20" max="600" /></div>
-  <div class="row"><button id="start">开始战棋</button><button id="startScale" class="sec">按规模预设开始</button></div>
+  <div class="row"><button id="start">开始战棋</button><button id="startScale" class="sec">按规模预设开始</button><button id="setup" class="sec">战前部署</button></div>
   <div class="row"><label>战报</label></div>
   <pre id="log"></pre>
 </div>
@@ -90,6 +90,7 @@
     var sc=$('scale').value; if(!sc){ alert('请先选规模预设'); return; }
     launch(null); // 由 Battlefield 按 scale 选尺寸
   };
+  $('setup').onclick = function(){ Bf.start({ setup:true, kind:'field', title:'调试·野战', maxRounds:30, onEnd: function(res, surv, php){ logM('战局结束：'+(res==='win'?'我方得胜':res==='lose'?'我方失利':'撤兵')+'，存活我军 '+surv.length+' 营。', res==='win'?'good':'danger'); setTimeout(function(){ $('modal').style.display='none'; }, 300); } }); };
 })();
 </script>
 </body>

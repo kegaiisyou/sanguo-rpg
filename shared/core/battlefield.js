@@ -1,4 +1,4 @@
-// 战棋沙盘 · 核心（v20261030j）
+// 战棋沙盘 · 核心（v20261030k）
 // 独立棋盘状态机 + 渲染 + 交互；复用 war.js 的营级聚合语义（aggF 幂律、军令倍率、士气分档）。
 // 设计：对局状态为内存临时对象，不落存档；战果经 cfg.onEnd(result, units, php) 回交 war.js 结算链。
 // 交互：点己方营 → 浮出常用指令菜单（移动/攻击/待机/详情/列阵）；移动与攻击为即时非破坏操作；
@@ -73,8 +73,171 @@
       return 'changqiang';
     }
 
+    // ───────── 通用助手 ─────────
+    function bfClamp(v, lo, hi) { v = +v || lo; return Math.max(lo, Math.min(hi, v)); }
+    function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    function rng() { return (board && board._rng) ? board._rng() : Math.random(); }
+    function applyDamage(t, dmg, by) {
+      if (board && board.invincible && t.side === 'ally') return;
+      t.hp = Math.max(0, t.hp - dmg);
+      if (by) { by.dmgDealt = (by.dmgDealt || 0) + dmg; if (t.hp <= 0) by.kills = (by.kills || 0) + 1; }
+    }
+    function bfAggF(c) { return { hpF: Math.pow(c, 0.85), atkF: Math.pow(c, 0.85), defF: Math.log(1 + c) * 1.15 }; }
+    function bfOrdersFor(rank) { var ids = []; var O = LF.ARMY_ORDERS || {}; for (var k in O) { if (O[k] && (!O[k].rank || O[k].rank === rank)) ids.push(k); } return ids; }
+    function bfBuildUnit(type, rank, count) {
+      var t = T()[type]; if (!t) return null;
+      var f = bfAggF(count);
+      return { name: t.name, troopType: type, rank: rank, count: count,
+        hp: Math.round(t.hp * f.hpF), maxHp: Math.round(t.hp * f.hpF),
+        atk: Math.round(t.atk * f.atkF), def: Math.round(t.def * f.defF), spd: t.spd,
+        morale: 80, artIds: bfOrdersFor(rank), _artMap: null, isTroop: true };
+    }
+
+    // ───────── 战前部署（setup）─────────
+    function ensureSetupDiv() {
+      var el = document.getElementById('bf-setup');
+      if (!el) { el = document.createElement('div'); el.id = 'bf-setup'; el.className = 'bf-setup'; document.body.appendChild(el); }
+      return el;
+    }
+    function hideSetup() { var el = document.getElementById('bf-setup'); if (el) el.style.display = 'none'; }
+    function openSetup(preset) {
+      preset = preset || {};
+      var ranks = [{ k: 'front', n: '前军' }, { k: 'mid', n: '中军' }, { k: 'rear', n: '后军' }, { k: 'flank', n: '侧翼' }];
+      function toRow(u) { return { type: u.troopType || inferType(u.name), rank: u.rank || 'front', count: u.count || 100 }; }
+      function defSide(side, n) { var pool = side === 'ally' ? ['changqiang', 'daodun', 'gongnu'] : ['changqiang', 'daodun', 'qibing', 'gongnu']; var a = []; for (var i = 0; i < n; i++) a.push({ type: pool[i % pool.length], rank: ['front', 'mid', 'rear'][i % 3], count: 120 }); return a; }
+      var st = {
+        grid: (preset.grid && preset.grid.w) ? { w: preset.grid.w, h: preset.grid.h } : { w: 12, h: 9 },
+        allies: preset.allies ? preset.allies.map(toRow) : defSide('ally', 3),
+        foes: preset.foes ? preset.foes.map(toRow) : defSide('foe', 3),
+        title: preset.title || '野战', kind: preset.kind || 'field', maxRounds: preset.maxRounds || 30,
+        dbg: { invincible: !!preset.invincible, showAllThreat: !!preset.showAllThreat, enemyIdle: !!preset.enemyIdle, seed: preset.seed || '', speedDefault: preset.speedDefault || 1, skipDefault: !!preset.skipDefault }
+      };
+      function gridOn(w, h) { return (st.grid.w === w && st.grid.h === h) ? ' on' : ''; }
+      function unitRow(side, i, r, canDel) {
+        var opts = Object.keys(T()).map(function (t) { return '<option value="' + t + '"' + (t === r.type ? ' selected' : '') + '>' + esc(T()[t].name) + '</option>'; }).join('');
+        var rks = ranks.map(function (rk) { return '<option value="' + rk.k + '"' + (rk.k === r.rank ? ' selected' : '') + '>' + rk.n + '</option>'; }).join('');
+        return '<div class="bf-srow" data-side="' + side + '" data-i="' + i + '">' +
+          '<select class="bf-s-type">' + opts + '</select>' +
+          '<select class="bf-s-rank">' + rks + '</select>' +
+          '<input class="bf-s-count" type="number" min="20" max="800" value="' + r.count + '" />' +
+          (canDel ? '<button type="button" class="bf-s-del">×</button>' : '') + '</div>';
+      }
+      function renderSetup() {
+        var div = ensureSetupDiv(); div.style.display = 'block';
+        var types = Object.keys(T());
+        var allyRows = st.allies.map(function (r, i) { return unitRow('ally', i, r, st.allies.length > 1); }).join('');
+        var foeRows = st.foes.map(function (r, i) { return unitRow('foe', i, r, st.foes.length > 1); }).join('');
+        var sc = document.createElement('div'); sc.className = 'bf-setup-scroll';
+        sc.innerHTML =
+          '<div class="bf-setup-head">战前部署 · ' + esc(st.title) + '</div>' +
+          '<div class="bf-ssec"><div class="bf-ssec-t">战场大小</div>' +
+          '<div class="bf-spresets">' +
+          '<button type="button" class="bf-gp' + gridOn(8, 6) + '" data-w="8" data-h="6">小 (8×6)</button>' +
+          '<button type="button" class="bf-gp' + gridOn(12, 9) + '" data-w="12" data-h="9">中 (12×9)</button>' +
+          '<button type="button" class="bf-gp' + gridOn(14, 12) + '" data-w="14" data-h="12">大 (14×12)</button></div>' +
+          '<div class="bf-srow"><label>宽</label><input id="bf-gw" type="number" min="6" max="40" value="' + st.grid.w + '"/>' +
+          '<label>高</label><input id="bf-gh" type="number" min="6" max="40" value="' + st.grid.h + '"/></div></div>' +
+          '<div class="bf-ssec"><div class="bf-ssec-t">我方部署（兵种 / 阵位 / 兵力）</div>' + allyRows +
+          (st.allies.length < 6 ? '<button type="button" class="bf-sadd bf-add-ally">＋ 添加我军</button>' : '') + '</div>' +
+          '<div class="bf-ssec"><div class="bf-ssec-t">敌军部署</div>' + foeRows +
+          (st.foes.length < 6 ? '<button type="button" class="bf-sadd bf-add-foe">＋ 添加敌军</button>' : '') + '</div>' +
+          '<div class="bf-ssec"><div class="bf-ssec-t">调试功能</div>' +
+          '<label class="bf-dbg-row"><input type="checkbox" class="bf-dbg" data-k="invincible"' + (st.dbg.invincible ? ' checked' : '') + '/> 我军无敌（不损兵）</label>' +
+          '<label class="bf-dbg-row"><input type="checkbox" class="bf-dbg" data-k="showAllThreat"' + (st.dbg.showAllThreat ? ' checked' : '') + '/> 显示全体敌军威胁</label>' +
+          '<label class="bf-dbg-row"><input type="checkbox" class="bf-dbg" data-k="enemyIdle"' + (st.dbg.enemyIdle ? ' checked' : '') + '/> 敌军不行动</label>' +
+          '<label class="bf-dbg-row"><input type="checkbox" class="bf-dbg" data-k="skipDefault"' + (st.dbg.skipDefault ? ' checked' : '') + '/> 默认跳帧加速</label>' +
+          '<label class="bf-dbg-row">固定随机种子 <input type="number" class="bf-dbg" data-k="seed" value="' + (st.dbg.seed || '') + '" placeholder="留空=随机"/></label>' +
+          '<label class="bf-dbg-row">回合上限 <input type="number" class="bf-dbg" data-k="maxRounds" value="' + st.maxRounds + '"/></label></div>' +
+          '<div class="bf-setup-actions"><button type="button" class="btn bf-main" id="bf-go">开始战斗</button>' +
+          '<button type="button" class="btn" id="bf-cancel">取消</button></div>';
+        div.innerHTML = ''; div.appendChild(sc); attachSetup(sc);
+      }
+      function attachSetup(sc) {
+        sc.addEventListener('change', function (e) {
+          var t = e.target;
+          if (t.classList.contains('bf-s-type') || t.classList.contains('bf-s-rank')) {
+            var row = t.closest('.bf-srow'); var arr = st[row.getAttribute('data-side') === 'ally' ? 'allies' : 'foes']; var i = +row.getAttribute('data-i');
+            if (t.classList.contains('bf-s-type')) arr[i].type = t.value; else arr[i].rank = t.value;
+          } else if (t.classList.contains('bf-gp')) { st.grid.w = +t.getAttribute('data-w'); st.grid.h = +t.getAttribute('data-h'); var gw = document.getElementById('bf-gw'), gh = document.getElementById('bf-gh'); if (gw) gw.value = st.grid.w; if (gh) gh.value = st.grid.h; }
+          else if (t.id === 'bf-gw') st.grid.w = bfClamp(t.value, 6, 40);
+          else if (t.id === 'bf-gh') st.grid.h = bfClamp(t.value, 6, 40);
+          else if (t.classList.contains('bf-dbg')) { st.dbg[t.getAttribute('data-k')] = (t.type === 'checkbox') ? t.checked : (+t.value || 0); }
+        });
+        sc.addEventListener('input', function (e) {
+          var t = e.target;
+          if (t.classList.contains('bf-s-count')) { var row = t.closest('.bf-srow'); var arr = st[row.getAttribute('data-side') === 'ally' ? 'allies' : 'foes']; arr[+row.getAttribute('data-i')].count = bfClamp(t.value, 20, 800); }
+          else if (t.id === 'bf-gw') st.grid.w = bfClamp(t.value, 6, 40);
+          else if (t.id === 'bf-gh') st.grid.h = bfClamp(t.value, 6, 40);
+          else if (t.classList.contains('bf-dbg') && t.type === 'number') st.dbg[t.getAttribute('data-k')] = (+t.value || 0);
+        });
+        sc.addEventListener('click', function (e) {
+          var t = e.target;
+          if (t.classList.contains('bf-gp')) { st.grid.w = +t.getAttribute('data-w'); st.grid.h = +t.getAttribute('data-h'); var gw = document.getElementById('bf-gw'), gh = document.getElementById('bf-gh'); if (gw) gw.value = st.grid.w; if (gh) gh.value = st.grid.h; renderSetup(); }
+          else if (t.classList.contains('bf-s-del')) { var row = t.closest('.bf-srow'); var arr = st[row.getAttribute('data-side') === 'ally' ? 'allies' : 'foes']; arr.splice(+row.getAttribute('data-i'), 1); renderSetup(); }
+          else if (t.classList.contains('bf-add-ally')) { st.allies.push({ type: 'changqiang', rank: 'front', count: 120 }); renderSetup(); }
+          else if (t.classList.contains('bf-add-foe')) { st.foes.push({ type: 'qibing', rank: 'flank', count: 120 }); renderSetup(); }
+          else if (t.id === 'bf-go') doStart();
+          else if (t.id === 'bf-cancel') hideSetup();
+        });
+      }
+      function doStart() {
+        var allies = st.allies.map(function (r) { return bfBuildUnit(r.type, r.rank, r.count); }).filter(Boolean);
+        var foes = st.foes.map(function (r) { return bfBuildUnit(r.type, r.rank, r.count); }).filter(Boolean);
+        if (!allies.length || !foes.length) { toast && toast('双方至少各需一营。'); return; }
+        var cfg = {
+          kind: st.kind, grid: { w: bfClamp(st.grid.w, 6, 40), h: bfClamp(st.grid.h, 6, 40) },
+          allies: allies, foes: foes, title: st.title, maxRounds: bfClamp(st.maxRounds, 1, 200),
+          invincible: !!st.dbg.invincible, showAllThreat: !!st.dbg.showAllThreat, enemyIdle: !!st.dbg.enemyIdle,
+          seed: st.dbg.seed ? bfClamp(st.dbg.seed, 1, 1e9) : null,
+          speedDefault: st.dbg.skipDefault ? 3 : (st.dbg.speedDefault || 1), skipDefault: !!st.dbg.skipDefault,
+          _setupDone: true, onEnd: preset.onEnd || function () {}
+        };
+        hideSetup(); beginBattle(cfg);
+      }
+      renderSetup();
+    }
+
+    // ───────── 战斗结算画面 ─────────
+    function buildSummary(result, survivors, php) {
+      var units = board.units.slice();
+      units.sort(function (a, b) { return (b.dmgDealt || 0) - (a.dmgDealt || 0); });
+      return {
+        result: result, round: board.round, units: units, survivors: survivors.length, php: php,
+        allyTotal: board.units.filter(function (u) { return u.side === 'ally'; }).length,
+        foeTotal: board.units.filter(function (u) { return u.side === 'foe'; }).length,
+        foeAlive: board.units.filter(function (u) { return u.side === 'foe' && u.hp > 0; }).length
+      };
+    }
+    function renderResult(sum) {
+      var el = document.getElementById('bf-result'); if (!el) return;
+      var titleMap = { win: '我军得胜', lose: '我军失利', fled: '鸣金撤兵', draw: '势均力敌' };
+      var rows = sum.units.map(function (u) {
+        var lost = Math.max(0, Math.round((u.startCount || 0) * (1 - u.hp / u.maxHp)));
+        var tn = (T()[u.type] && T()[u.type].name) || u.type;
+        return '<tr><td class="' + (u.side === 'ally' ? 'bf-ra' : 'bf-rf') + '">' + esc(u.name) + '</td><td>' + esc(tn) + '</td><td>' +
+          Math.max(0, Math.round(u.hp)) + '/' + u.maxHp + '</td><td>' + lost + '</td><td>' + (u.dmgDealt || 0) + '</td><td>' + (u.kills || 0) + '</td></tr>';
+      }).join('');
+      el.innerHTML = '<div class="bf-result-card"><h2 class="bf-result-title ' + (sum.result === 'win' ? 'good' : (sum.result === 'lose' ? 'bad' : 'mid')) + '">战斗结算 · ' + (titleMap[sum.result] || sum.result) + '</h2>' +
+        '<div class="bf-result-sub">共 ' + sum.round + ' 回合 · 我军存活 ' + sum.survivors + '/' + sum.allyTotal + ' 营 · 敌军存活 ' + sum.foeAlive + '/' + sum.foeTotal + ' 营</div>' +
+        '<table class="bf-result-tbl"><thead><tr><th>部队</th><th>兵种</th><th>余兵/上限</th><th>折损</th><th>伤害</th><th>歼敌</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<button type="button" class="btn bf-main" onclick="window.bfCloseResult()">继续</button></div>';
+      el.hidden = false;
+    }
+    function bfCloseResult() {
+      if (!board) return;
+      var cb = board.cfg.onEnd;
+      var res = board.result, surv = board.units.filter(function (u) { return u.side === 'ally' && u.hp > 0; }), php = board._result ? board._result.php : null;
+      setFullscreenMode(false); closeModal && closeModal();
+      if (cb) cb(res, surv, php);
+      board = null;
+    }
+
     // ════════ 启动 ════════
     function start(cfg) {
+      if (cfg && cfg.setup && !cfg._setupDone) { openSetup(cfg); return; }
+      return beginBattle(cfg);
+    }
+    function beginBattle(cfg) {
       cfg = cfg || {};
       var grid = cfg.grid || (LF.BF_SCALE_TO_GRID && LF.BF_SCALE_TO_GRID[cfg.scale]) || LF.BF_DEFAULT_GRID;
       var w = grid.w, h = grid.h;
@@ -88,8 +251,12 @@
         round: 1, phase: 'ally', sel: null, mode: null, reach: [], attack: [], over: false, result: null,
         speed: 1, skip: false, threat: null,
         cfg: cfg, title: cfg.title || '会战', reinforce: cfg.reinforce || null, reinforceDone: false,
+        invincible: !!cfg.invincible, showAllThreat: !!cfg.showAllThreat, enemyIdle: !!cfg.enemyIdle,
+        seed: cfg.seed || null, _rng: null, maxRounds: cfg.maxRounds || 99,
         log: []
       };
+      if (cfg.seed) board._rng = mulberry32(cfg.seed);
+      board.speed = cfg.speedDefault || 1; board.skip = !!cfg.skipDefault;
       if (cfg.ambush) moraleAll(sideUnits('ally'), 5);
       openModal && openModal('battlefield');
       setFullscreenMode(true);
@@ -107,6 +274,7 @@
         move: LF.BF_MOVE(u.spd), range: LF.BF_RANGE(slot),
         officer: u.officer || null,
         x: 0, y: 0, moved: false, acted: false, routed: false, defending: false,
+        dmgDealt: 0, kills: 0, startCount: u.count,
         isTroop: true, troopType: u.troopType
       };
       // 军令：优先用 war.js 已注入的 artIds/_artMap；缺失时用 Army.buildOrdersFor 现算（修复调试台入口只弹取消按钮）
@@ -199,13 +367,13 @@
       var counterMul = counterMulOf(a.type, d.type);
       var dodge = terrD.dodge || 0;
       var hit = Math.max(0.05, 0.95 - dodge);
-      if (Math.random() > hit) return { miss: true };
+      if (rng() > hit) return { miss: true };
       var defMul = (terrD.defMul || 1) * formationDefMul(d) * (C.terrainDefMul || 1);
       var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a);
       var defReduce = Math.min(0.8, (d.def * defMul) / 100);
-      var val = raw * (1 - defReduce) * (0.9 + Math.random() * 0.2);
+      var val = raw * (1 - defReduce) * (0.9 + rng() * 0.2);
       if (isCounter) val *= (LF.BF_RIPOSTE ? LF.BF_RIPOSTE.dmg : 0.5);
-      var crit = Math.random() < (a.crit || 0);
+      var crit = rng() < (a.crit || 0);
       if (crit) val *= 1.6;
       return { dmg: Math.max(1, Math.round(val)), crit: crit, counter: counterMul, terrain: (terrD.defMul || 1) * (terrA.atkMul || 1) };
     }
@@ -249,10 +417,10 @@
       var counter = null;
       if (!r.miss && d.hp > 0 && cheb(a.x, a.y, d.x, d.y) === 1 && !O.defend) {
         counter = dmgRoll(d, a, pickCounterOrder(d), true);
-        if (counter.miss) counter = null; else a.hp = Math.max(0, a.hp - counter.dmg);
+        if (counter.miss) counter = null; else applyDamage(a, counter.dmg, d);
       }
       if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
-      else { d.hp = Math.max(0, d.hp - r.dmg); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
+      else { applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
       if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
@@ -276,6 +444,7 @@
     function foePhase() {
       board.phase = 'foe'; board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
       render();
+      if (board.enemyIdle) { setTimeout(function () { log('〔调试〕敌军按兵不动。', 'warn'); turnEnd(); }, D(260)); return; }
       var foes = sideUnits('foe');
       var i = 0;
       function step() {
@@ -334,10 +503,10 @@
         var counter = null;
         if (!r.miss && bestTgt.hp > 0 && cheb(u.x, u.y, bestTgt.x, bestTgt.y) === 1 && !Oo.defend) {
           counter = dmgRoll(bestTgt, u, pickCounterOrder(bestTgt), true);
-          if (counter.miss) counter = null; else u.hp = Math.max(0, u.hp - counter.dmg);
+          if (counter.miss) counter = null; else applyDamage(u, counter.dmg, bestTgt);
         }
         if (r.miss) log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
-        else { bestTgt.hp = Math.max(0, bestTgt.hp - r.dmg); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
+        else { applyDamage(bestTgt, r.dmg, u); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
         if (bestTgt.hp <= 0) log('〔破营〕我方' + bestTgt.name + '营折损！', 'danger');
         u.acted = true;
         info = { a: u, d: bestTgt, r: r, counter: counter };
@@ -371,7 +540,7 @@
           var r = u.maxHp > 0 ? u.hp / u.maxHp : 0, m = u.morale == null ? 80 : u.morale, risk = 0;
           if (r < LF.BF_ROUT.hpRatio) risk += 0.06 + (LF.BF_ROUT.hpRatio - r) * 0.5;
           if (m < LF.BF_ROUT.morale) risk += (LF.BF_ROUT.morale - m) * 0.006;
-          if (risk > 0 && Math.random() < risk) {
+          if (risk > 0 && rng() < risk) {
             u.routed = true; u.hp = Math.max(1, Math.round(u.hp * 0.5));
             log((isFoe ? '敌' : '我') + '「' + u.name + '」阵脚大乱，溃散离场！', isFoe ? 'good' : 'danger');
             moraleAll(list, isFoe ? 6 : -6);
@@ -639,6 +808,7 @@
         '<div class="bf-bar" id="bf-bar"></div>' +
         '<div class="bf-pop-host" id="bf-pop-host"></div>' +
         '<div class="bf-sheet" id="bf-sheet" hidden></div>' +
+        '<div class="bf-result" id="bf-result" hidden></div>' +
         '</div>';
       setFullscreenMode(true);
       bindDrag();
@@ -666,6 +836,19 @@
       }
       // 格子 + 单位
       var html = [];
+      var allThreat = null;
+      if (board.showAllThreat) {
+        allThreat = {};
+        board.units.forEach(function (u) {
+          if (u.side !== 'foe' || u.hp <= 0 || u.routed) return;
+          var reach = reachable(u);
+          reach.concat([{ x: u.x, y: u.y }]).forEach(function (p) {
+            for (var tx = 0; tx < board.w; tx++) for (var ty = 0; ty < board.h; ty++) {
+              if (cheb(p.x, p.y, tx, ty) <= u.range) allThreat[tx + ',' + ty] = 1;
+            }
+          });
+        });
+      }
       for (var y = 0; y < board.h; y++) {
         for (var x = 0; x < board.w; x++) {
           var tkey = terrainAt(x, y).key;
@@ -677,7 +860,7 @@
           if (board.threat) {
             if (board.threat.moveSet[x + ',' + y]) cls += ' bf-threat-move';
             else if (board.threat.atk[x + ',' + y]) cls += ' bf-threat-atk';
-          }
+          } else if (allThreat && allThreat[x + ',' + y]) cls += ' bf-threat-all';
           var tico = (tkey && tkey !== 'plain') ? '<div class="bf-tico">' + esc(terrainAt(x, y).icon) + '</div>' : '';
           var u = unitAt(x, y);
           var inner = tico;
@@ -858,12 +1041,12 @@
     function endBattle(result) {
       if (!board || board.over) return;
       board.over = true; board.result = result;
-      closeSheet(); setFullscreenMode(false);
+      closeSheet();
       var survivors = board.units.filter(function (u) { return u.side === 'ally' && u.hp > 0; });
       var php = (S() && S().hp != null) ? S().hp : null;  // 战棋主角不参战，HP 不变
-      var onEnd = board.cfg.onEnd;
+      board._result = buildSummary(result, survivors, php);
       log('〔战罢〕会战' + (result === 'win' ? '得胜' : result === 'lose' ? '失利' : '撤兵') + '。', result === 'win' ? 'good' : 'danger');
-      if (onEnd) onEnd(result, survivors, php);
+      renderResult(board._result);
     }
 
     function esc(s) { return escapeHtml ? escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s); }
@@ -873,6 +1056,7 @@
       start: start,
       render: render,
       endBattle: endBattle,
+      openSetup: openSetup,
       isActive: function () { return !!board && !board.over; },
       reachable: reachable, attackable: attackable, resolveAttack: resolveAttack
     };
@@ -884,6 +1068,8 @@
       window.bfSetFormation = function (uid, key) { var u = board && board.units.filter(function (x) { return x.id === uid; })[0]; if (u) { applyFormation(u, key); closeSheet(); } };
       window.bfCloseSheet = closeSheet;
       window.bfNextUnit = bfNextUnit;
+      window.bfOpenSetup = openSetup;
+      window.bfCloseResult = bfCloseResult;
       window.bfSpeed = function (s) { if (board) { board.speed = s; render(); } };
       window.bfSkip = function () { if (board) { board.skip = !board.skip; render(); } };
     }
