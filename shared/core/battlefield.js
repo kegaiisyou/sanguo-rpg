@@ -842,7 +842,7 @@
       var card = document.getElementById('modal-card');
       if (!card) return;
       card.innerHTML = '<div id="bf-root" class="bf-root">' +
-        '<div class="bf-outzone" id="bf-outzone" onclick="window.bfRetreat()"></div>' +
+        '<div class="bf-outzone" id="bf-outzone" onclick="window.bfDeselect()"></div>' +
         '<div class="bf-top" id="bf-top"></div>' +
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div></div>' +
         '<div class="bf-detail" id="bf-detail"></div>' +
@@ -851,12 +851,13 @@
         '<div class="bf-pop-host" id="bf-pop-host"></div>' +
         '<div class="bf-sheet" id="bf-sheet" hidden></div>' +
         '<div class="bf-legend" id="bf-legend" hidden></div>' +
+        '<div class="bf-confirm-float" id="bf-confirm" hidden onclick="window.bfConfirmMove()">确认移动 ▸</div>' +
         '<div class="bf-result" id="bf-result" hidden></div>' +
         '</div>';
       setFullscreenMode(true);
       bindDrag();
       var _vp = document.getElementById('bf-viewport');
-      if (_vp) _vp.addEventListener('click', function (e) { if (e.target === _vp && window.bfRetreat) window.bfRetreat(); });
+      if (_vp) _vp.addEventListener('click', function (e) { if (e.target === _vp && window.bfDeselect) window.bfDeselect(); });
       var legEl = document.getElementById('bf-legend');
       if (legEl && LF.BF_TERRAIN) {
         var rows = Object.keys(LF.BF_TERRAIN).map(function (k) {
@@ -981,7 +982,7 @@
               : (u.side === 'ally' ? '\u25BC' : '\u25B2');
             var bico = ((T()[u.troopType] || {}).icon) || ((T()[u.troopType] || {}).name || '\u00B7').charAt(0);
             inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
-              '<div class="bf-u-name">' + esc(u.name) + (u.officer ? '<i class="bf-u-off">督</i>' : '') + fmtTag + (danger ? '<i class="bf-u-danger" title="溃散风险高">危</i>' : '') + '<i class="bf-u-cnt">' + (u.count || 0) + '</i></div>' +
+              '<div class="bf-u-name">' + esc((T()[u.troopType] || {}).name || u.name) + (u.officer ? '<i class="bf-u-off">督</i>' : '') + fmtTag + (danger ? '<i class="bf-u-danger" title="溃散风险高">危</i>' : '') + '<i class="bf-u-cnt">' + (u.count || 0) + '</i></div>' +
               '<i class="bf-u-ico">' + esc(bico) + '</i>' +
               '<i class="bf-u-face">' + face + '</i>' +
               '<div class="bf-u-hp"><span style="width:' + hpPct + '%"></span></div>' +
@@ -1037,19 +1038,20 @@
           '<button type="button" class="bf-sp' + (speed === 2 ? ' on' : '') + '" onclick="window.bfSpeed(2)">2×</button>' +
           '<button type="button" class="bf-sp' + (speed === 3 ? ' on' : '') + '" onclick="window.bfSpeed(3)">3×</button>' +
           '<button type="button" class="bf-sp' + (skip ? ' on' : '') + '" onclick="window.bfSkip()">' + (skip ? '跳帧✓' : '跳帧') + '</button></span>' +
-          (board.pendingMove ? '<button type="button" class="btn bf-confirm-float" onclick="window.bfConfirmMove()">确认移动 ▸</button>' : '') +
+          (board.pendingMove ? '<span class="bf-bar-pending">已选落点 · 点「确认移动」执行</span>' : '') +
           '<button type="button" class="btn bf-threat-btn' + (board.showAllThreat ? ' bf-threat-on' : '') + '" id="bf-threat">威胁</button>' +
           '<button type="button" class="btn bf-undo-btn" id="bf-undo"' + (board.phase === 'ally' && board._history && board._history.length ? '' : ' disabled') + '>悔棋' + (board._history && board._history.length ? '(' + board._history.length + ')' : '') + '</button>' +
           '<button type="button" class="btn bf-main" id="bf-et">结束回合' + (board.phase === 'ally' && rest > 0 ? '（余' + rest + '）' : '') + '</button>' +
           '<button type="button" class="btn" id="bf-nx">下一营</button>' +
           '<button type="button" class="btn btn-danger" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
-          '<span class="bf-bar-tip">' + (board.pendingMove ? '已选落点，再次点击目标格确认移动' : (board.phase === 'ally' ? (rest > 0 ? '我军调度中 · 余 ' + rest + ' 营' : '全军已待命') : '敌军行动中…')) + '</span>';
+          '<span class="bf-bar-tip">' + (board.pendingMove ? '已选落点 · 点底部「确认移动」执行' : (board.phase === 'ally' ? (rest > 0 ? '我军调度中 · 余 ' + rest + ' 营' : '全军已待命') : '敌军行动中…')) + '</span>';
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
         var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { bfNextUnit(); };
         var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { bfRetreat(); };
         var th = document.getElementById('bf-threat'); if (th) th.onclick = function () { window.bfToggleThreat(); };
         var ud = document.getElementById('bf-undo'); if (ud) ud.onclick = function () { bfUndo(); };
       updateAttackPreview();
+      var cf = document.getElementById('bf-confirm'); if (cf) cf.hidden = !(board && board.pendingMove);
       }
       // 浮出常用指令菜单（点选己方营后；进入移动/攻击模式或敌方阶段时不显示）
       if (board.phase !== 'ally') closeMenu();
@@ -1221,6 +1223,7 @@
       window.bfUndo = bfUndo; window.bfToggleThreat = function () { if (!board) return; board.showAllThreat = !board.showAllThreat; render(); };
       window.bfStrike = function (oid) { var t = board && board._strikeTarget; closeMenu(); if (board && board.sel && t) resolveAttack(board.sel, t, oid); };
       window.bfCloseMenu = closeMenu; window.bfCloseModal = bfCloseModal;
+      window.bfDeselect = function () { if (!board) return; board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board.pendingMove = null; board._pathPreview = []; closeMenu(); render(); };
       window.bfToggleLegend = function () { var el = document.getElementById('bf-legend'); if (el) el.hidden = !el.hidden; };
       window.bfToggleHC = function () { var r = document.getElementById('bf-root'); if (!r) return; var on = r.classList.toggle('bf-hc'); try { localStorage.setItem('bf-hc', on ? '1' : '0'); } catch (e) {} };
       window.bfSetFormation = function (uid, key) { var u = board && board.units.filter(function (x) { return x.id === uid; })[0]; if (u) { applyFormation(u, key); closeSheet(); } };

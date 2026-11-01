@@ -4446,3 +4446,19 @@
 .bf-root.bf-hc .bf-u-foe .bf-u-hp span{ background:#d11f1f !important; }
 .bf-root.bf-hc .bf-confirm-float{ background:#1f5fd0 !important; color:#fff !important; }
 .bf-root.bf-hc .bf-outzone{ background:repeating-linear-gradient(45deg, rgba(0,0,0,.5) 0 9px, rgba(0,0,0,.34) 9px 18px), #000; }
+
+/* 战棋 · 独立确认移动按钮（脱离 transform 容器，fixed 才相对视口正确） */
+.bf-confirm-float[hidden]{ display:none; }
+.bf-confirm-float{ position:fixed; left:50%; transform:translateX(-50%); bottom:74px; z-index:62;
+  padding:11px 30px; font-size:16px; font-weight:700; border-radius:999px; letter-spacing:1px;
+  background:linear-gradient(180deg,#e0b85a,#a87f2e); color:#1c1206; border:1px solid rgba(255,255,255,.5);
+  box-shadow:0 6px 22px rgba(0,0,0,.45); cursor:pointer; }
+.bf-confirm-float:active{ transform:translateX(-50%) scale(.96); }
+/* 战棋 · 棋子牌内提示（已选落点） */
+.bf-bar-pending{ color:var(--bf-gold); font-weight:700; font-size:12px; }
+/* 战棋 · 棋子牌精简：短兵种名 + 兵力角标 + 朝向，长名截断风险消除 */
+.bf-u-name{ font-weight:700; color:var(--bf-ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.05; padding-right:14px; }
+.bf-u-cnt{ position:absolute; top:2px; right:3px; font-style:normal; font-weight:800; font-size:.92em;
+  background:rgba(24,17,10,.72); color:#fff; border-radius:999px; padding:0 5px; line-height:1.5; }
+.bf-u-ally .bf-u-cnt{ background:rgba(63,95,122,.92); }
+.bf-u-foe .bf-u-cnt{ background:rgba(158,59,46,.92); }
