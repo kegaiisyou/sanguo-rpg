@@ -4215,7 +4215,7 @@
 .bf-u-cnt, .bf-u-off, .bf-u-fmt, .bf-u-danger{ flex:none; }
 .bf-unit{ padding:4px 5px; }
 .bf-routed{ filter:grayscale(.7); opacity:.55; }
-.bf-detail{ position:absolute; top:50px; left:8px; z-index:28; max-width:min(46%,280px); max-height:38%; overflow-y:auto;
+.bf-detail{ position:absolute; top:50px; left:8px; z-index:28; max-width:min(46%,280px); max-height:38%; overflow-y:auto; pointer-events:none;
   padding:8px 12px; border:1px solid var(--panel-line); border-radius:var(--r-card);
   background:var(--panel); box-shadow:var(--shadow); min-height:56px; }
 .bf-dt-card{ font-size:12px; line-height:1.5; }
@@ -4264,6 +4264,8 @@
   .bf-top{ top:6px; left:6px; font-size:11px; padding:3px 8px; gap:4px; }
   .bf-top-m{ font-size:12px; }
   .bf-bar{ right:6px; bottom:6px; gap:6px; padding:5px 6px; }
+  .bf-detail{ top:40px; left:6px; max-width:min(50%,190px); max-height:24%; font-size:11px; padding:6px 8px; }
+  .bf-log{ top:40px; right:6px; width:min(44%,170px); max-height:22%; padding:5px 8px; }
   .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; }
   .bf-bar-tip{ font-size:10px; }
   .bf-action{ left:50%; bottom:8px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:94vw; }
@@ -4284,7 +4286,7 @@
 .bf-u-fmt{ font-style:normal; font-size:.82em; background:var(--bf-ally); color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
 .bf-u-foe .bf-u-fmt{ background:var(--bf-foe); }
 /* 战棋 · 战报面板（P0-4） */
-.bf-log{ position:absolute; right:8px; top:50px; z-index:28; width:min(46%,280px); max-height:32%; overflow-y:auto;
+.bf-log{ position:absolute; right:8px; top:50px; z-index:28; width:min(46%,280px); max-height:32%; overflow-y:auto; pointer-events:none;
   padding:6px 12px; border:1px solid var(--panel-line); border-radius:var(--r-card);
   background:var(--panel); box-shadow:var(--shadow); font-size:11px; line-height:1.55; display:flex; flex-direction:column; gap:1px; }
 .bf-log-l{ color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

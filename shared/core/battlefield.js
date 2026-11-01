@@ -1049,13 +1049,13 @@
           '<button type="button" class="bf-sp' + (speed === 2 ? ' on' : '') + '" onclick="window.bfSpeed(2)">2×</button>' +
           '<button type="button" class="bf-sp' + (speed === 3 ? ' on' : '') + '" onclick="window.bfSpeed(3)">3×</button>' +
           '<button type="button" class="bf-sp' + (skip ? ' on' : '') + '" onclick="window.bfSkip()">' + (skip ? '跳帧✓' : '跳帧') + '</button></span>' +
-          (board.pendingMove ? '<span class="bf-bar-pending">已选落点 · 点「确认移动」执行</span>' : '') +
+          (board.pendingMove ? '<span class="bf-bar-pending">已选落点 · 再点该格或点「确认移动」执行</span>' : '') +
           '<button type="button" class="btn bf-threat-btn' + (board.showAllThreat ? ' bf-threat-on' : '') + '" id="bf-threat">威胁</button>' +
           '<button type="button" class="btn bf-undo-btn" id="bf-undo"' + (board.phase === 'ally' && board._history && board._history.length ? '' : ' disabled') + '>悔棋' + (board._history && board._history.length ? '(' + board._history.length + ')' : '') + '</button>' +
           '<button type="button" class="btn bf-main" id="bf-et">结束回合' + (board.phase === 'ally' && rest > 0 ? '（余' + rest + '）' : '') + '</button>' +
           '<button type="button" class="btn" id="bf-nx">下一营</button>' +
           '<button type="button" class="btn btn-danger" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
-          '<span class="bf-bar-tip">' + (board.pendingMove ? '已选落点 · 点底部「确认移动」执行' : (board.phase === 'ally' ? (rest > 0 ? '我军调度中 · 余 ' + rest + ' 营' : '全军已待命') : '敌军行动中…')) + '</span>';
+          '<span class="bf-bar-tip">' + (board.pendingMove ? '已选落点 · 再点该格即移动（或点「确认移动」）' : (board.phase === 'ally' ? (rest > 0 ? '我军调度中 · 余 ' + rest + ' 营' : '全军已待命') : '敌军行动中…')) + '</span>';
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
         var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { bfNextUnit(); };
         var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { bfRetreat(); };
@@ -1115,26 +1115,31 @@
     }
 
     // 拖动手势（仅 translate，不 scale，避免字体模糊）；格子自带 onclick 负责点选
-    // 关键：拖动结束后只用一次性 suppressClick 标志吞掉紧随的 click，
-    //       绝不在 window 上挂捕获型 click 杀手（会把真实点按也吃掉）
+    // 手机轻点手指抖动可达 10~20px，必须放宽判定，否则真实点按被误判为拖动而吞掉 click。
+    // 规则：移动 <6px 视为点按（不平移）；6~24px 仅轻微平移但【不吞 click】并在抬起时回弹；
+    //       仅 >24px 的明确拖动才抑制紧随的 click（避免拖动结束误选）。
     function bindDrag() {
       var vp = document.getElementById('bf-viewport');
       var grid = document.getElementById('bf-grid');
       if (!vp || !grid) return;
       vp.addEventListener('pointerdown', function (e) {
-        drag = { x: e.clientX, y: e.clientY, ox: panX, oy: panY, moved: false };
+        drag = { x: e.clientX, y: e.clientY, ox: panX, oy: panY, panning: false, moved: 0 };
         suppressClick = false;
       });
       window.addEventListener('pointermove', function (e) {
         if (!drag) return;
         var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-        if (Math.abs(dx) + Math.abs(dy) > 10) drag.moved = true;
-        panX = drag.ox + dx; panY = drag.oy + dy; applyPan();
+        var dist = Math.abs(dx) + Math.abs(dy);
+        drag.moved = dist;
+        if (!drag.panning && dist > 6) drag.panning = true;
+        if (drag.panning) { panX = drag.ox + dx; panY = drag.oy + dy; applyPan(); }
       });
       window.addEventListener('pointerup', function () {
         if (!drag) return;
-        var wasMoved = drag.moved; drag = null;
-        if (wasMoved) suppressClick = true;
+        var wasDrag = drag.panning && drag.moved > 24;
+        if (drag.panning && !wasDrag) { panX = drag.ox; panY = drag.oy; applyPan(); } // 非拖动：平移回弹，消除累积漂移
+        drag = null;
+        if (wasDrag) suppressClick = true;
       });
     }
 
