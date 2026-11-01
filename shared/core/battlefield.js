@@ -22,6 +22,7 @@
     function D(ms) { if (!board) return ms; var s = board.speed || 1; return board.skip ? 0 : Math.max(0, Math.round(ms / s)); }
     var CSX = 48, CSY = 48;
   var panX = 0, panY = 0; // 全局平移偏移（拖拽 + 相机跟随共用）
+  var MARGIN = 0; // 边缘非可达留白圈数（渲染格坐标偏移共用）
 
     // 全舞台模式：不用弹窗小卡，视野最大化（emblem class + :has 双保险）
     function setFullscreenMode(on) {
@@ -254,7 +255,7 @@
         round: 1, phase: 'ally', sel: null, mode: null, reach: [], attack: [], over: false, result: null,
         speed: 1, skip: false, threat: null,
         cfg: cfg, title: cfg.title || '会战', reinforce: cfg.reinforce || null, reinforceDone: false,
-        invincible: !!cfg.invincible, showAllThreat: !!cfg.showAllThreat, enemyIdle: !!cfg.enemyIdle,
+        invincible: !!cfg.invincible, showAllThreat: cfg.showAllThreat !== false, enemyIdle: !!cfg.enemyIdle,
         seed: cfg.seed || null, _rng: null, maxRounds: cfg.maxRounds || 99,
         log: [], _centeredInit: false, history: []
       };
@@ -416,7 +417,6 @@
       if (cheb(a.x, a.y, d.x, d.y) > a.range) return;
       var O = (LF.ARMY_ORDERS || {})[orderId] || {};
       if (O.noTarget) return;
-      pushHistory();
       var r = dmgRoll(a, d, orderId, false);
       var counter = null;
       if (!r.miss && d.hp > 0 && cheb(a.x, a.y, d.x, d.y) === 1 && !O.defend) {
@@ -424,7 +424,7 @@
         if (counter.miss) counter = null; else applyDamage(a, counter.dmg, d);
       }
       if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
-      else { applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
+      else { playSfx('attack'); buzz(22); shakeGrid(); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
       if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
@@ -688,7 +688,7 @@
     }
     function drawTrail(path) {
       var t = document.getElementById('bf-trail'); if (!t || !path) return; t.innerHTML = '';
-      path.forEach(function (p) { var dot = document.createElement('div'); dot.className = 'bf-trail-dot'; dot.style.left = (p.x * CSX + CSX / 2) + 'px'; dot.style.top = (p.y * CSY + CSY / 2) + 'px'; t.appendChild(dot); });
+      path.forEach(function (p) { var dot = document.createElement('div'); dot.className = 'bf-trail-dot'; dot.style.left = ((p.x + MARGIN) * CSX + CSX / 2) + 'px'; dot.style.top = ((p.y + MARGIN) * CSY + CSY / 2) + 'px'; t.appendChild(dot); });
     }
     function clearTrail() { var t = document.getElementById('bf-trail'); if (t) t.innerHTML = ''; }
     function ensureLayers() {
@@ -700,7 +700,7 @@
       var aim = document.getElementById('bf-aim'); if (!aim) return; aim.innerHTML = '';
       var cs = cellSize(), csX = CSX, csY = CSY, a = board.sel; if (!a) return;
       (board.attack || []).forEach(function (t) {
-        var x1 = a.x * csX + csX / 2, y1 = a.y * csY + csY / 2, x2 = t.x * csX + csX / 2, y2 = t.y * csY + csY / 2;
+        var x1 = (a.x + MARGIN) * csX + csX / 2, y1 = (a.y + MARGIN) * csY + csY / 2, x2 = (t.x + MARGIN) * csX + CSX / 2, y2 = (t.y + MARGIN) * csY + CSY / 2;
         var dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
         var line = document.createElement('div'); line.className = 'bf-aim-line';
         line.style.left = x1 + 'px'; line.style.top = y1 + 'px'; line.style.width = len + 'px'; line.style.transform = 'rotate(' + ang + 'deg)';
@@ -708,6 +708,22 @@
       });
     }
     function shakeGrid() { var vp = document.getElementById('bf-viewport'); if (!vp) return; vp.classList.add('bf-shake'); setTimeout(function () { vp.classList.remove('bf-shake'); }, 200); }
+    var _actx = null;
+    function playSfx(type) {
+      try {
+        if (!_actx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) _actx = new AC(); }
+        if (!_actx) return;
+        if (_actx.state === 'suspended') _actx.resume();
+        var t = _actx.currentTime;
+        var P = { select:[440,0.05,'sine',0.05], move:[330,0.08,'triangle',0.045], confirm:[620,0.07,'square',0.05], attack:[180,0.13,'sawtooth',0.07], hit:[140,0.1,'square',0.06], cancel:[220,0.06,'sine',0.04], detail:[520,0.05,'sine',0.04], win:[660,0.22,'triangle',0.07], lose:[150,0.28,'sawtooth',0.07] };
+        var p = P[type] || P.select;
+        var o = _actx.createOscillator(), g = _actx.createGain();
+        o.type = p[2]; o.frequency.setValueAtTime(p[0], t); o.frequency.exponentialRampToValueAtTime(Math.max(60, p[0] * 0.6), t + p[1]);
+        g.gain.setValueAtTime(p[3], t); g.gain.exponentialRampToValueAtTime(0.0001, t + p[1]);
+        o.connect(g); g.connect(_actx.destination); o.start(t); o.stop(t + p[1] + 0.02);
+      } catch (e) {}
+    }
+    function buzz(pat) { try { if (navigator.vibrate) navigator.vibrate(pat); } catch (e) {} }
     function bfClick(x, y) {
       if (suppressClick) { suppressClick = false; return; }
       if (!board || board.over || board.phase !== 'ally') return;
@@ -733,7 +749,7 @@
           return;
         }
       }
-      if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; board.pendingMove = null; board._pathPreview = []; render(); focusCell(u.x, u.y); return; }
+      if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; board.pendingMove = null; board._pathPreview = []; playSfx('select'); buzz(8); render(); focusCell(u.x, u.y); return; }
       // 选中后点可达空格 = 进入移动预演（可直接点，也可先点「移动」mode='move' 再点）；再次点同格或点确认 = 执行
       if (board.sel && !u && inReach(x, y)) {
         if (board.pendingMove && board.pendingMove.x === x && board.pendingMove.y === y) { var pm = board.pendingMove; board.pendingMove = null; board._pathPreview = []; commitMove(pm.x, pm.y); return; }
@@ -751,26 +767,14 @@
     function inReach(x, y) { return board.reach.some(function (p) { return p.x === x && p.y === y; }); }
     function inAttack(x, y) { return board.attack.some(function (p) { return p.x === x && p.y === y; }); }
     function unitById(id) { return board.units.filter(function (u) { return u.id === id; })[0]; }
-    function snapshot() {
-      return {
-        round: board.round, phase: board.phase, log: board.log.slice(),
-        units: board.units.map(function (u) { return { id:u.id, x:u.x, y:u.y, hp:u.hp, maxHp:u.maxHp, morale:u.morale, acted:u.acted, moved:u.moved, routed:u.routed, count:u.count, facing:u.facing }; })
-      };
-    }
-    function restore(s) {
-      board.round = s.round; board.phase = s.phase; board.log = s.log.slice();
-      s.units.forEach(function (su) { var u = unitById(su.id); if (u) { u.x=su.x; u.y=su.y; u.hp=su.hp; u.maxHp=su.maxHp; u.morale=su.morale; u.acted=su.acted; u.moved=su.moved; u.routed=su.routed; u.count=su.count; u.facing=su.facing; } });
-      board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
-    }
-    function pushHistory() { if (!board._history) board._history = []; board._history.push(snapshot()); }
-    function bfUndo() { if (board && board.phase === 'ally' && board._history && board._history.length) { restore(board._history.pop()); render(); } }
+
     function commitMove(x, y) {
       var u = board.sel; if (!u) return;
       var oldX = u.x, oldY = u.y;
       var path = pathBetween(oldX, oldY, x, y, u);
       u.facing = { x: Math.sign(x - oldX), y: Math.sign(y - oldY) };
-      pushHistory();
       u.x = x; u.y = y; u.moved = true; board.mode = null; board.reach = []; board.threat = null;
+      playSfx('confirm'); buzz(14);
       render();
       animateMove(u, path, function () {});
     }
@@ -786,7 +790,7 @@
       var u = board.sel;
       if (cmd === 'move') { board.mode = 'move'; board.reach = reachable(u); board.attack = []; board.pendingMove = null; board._pathPreview = []; render(); }
       else if (cmd === 'attack') { board.mode = 'attack'; board.attack = attackable(u); board.reach = []; board.pendingMove = null; board._pathPreview = []; render(); }
-      else if (cmd === 'wait') { pushHistory(); u.acted = true; u.moved = true; board.sel = null; board.mode = null; afterAction(); }
+      else if (cmd === 'wait') { u.acted = true; u.moved = true; board.sel = null; board.mode = null; afterAction(); }
       else if (cmd === 'detail') { openDetailModal(u); }
       else if (cmd === 'formation') { openFormationModal(u); }
     }
@@ -859,6 +863,7 @@
         '<div class="bf-detail" id="bf-detail"></div>' +
         '<div class="bf-log" id="bf-log"></div>' +
         '<div class="bf-bar" id="bf-bar"></div>' +
+        '<div class="bf-actbar" id="bf-actbar" hidden></div>' +
         '<div class="bf-pop-host" id="bf-pop-host"></div>' +
         '<div class="bf-sheet" id="bf-sheet" hidden></div>' +
         '<div class="bf-legend" id="bf-legend" hidden></div>' +
@@ -895,6 +900,8 @@
       var cs = Math.floor(Math.min(vw / board.w, vh / board.h));
       cs = Math.max(18, Math.min(150, cs));
       CSX = cs; CSY = cs;
+      var _M = Math.ceil(Math.max(vw, vh) / (2 * cs)) + 1;
+      MARGIN = Math.max(2, Math.min(8, _M));
       return { csX: cs, csY: cs };
     }
     // 整张战场较小时居中（fit 后整体可见，无需平移）
@@ -920,7 +927,7 @@
       var csX = CSX, csY = CSY;
       var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
       if (gw <= vw && gh <= vh) { applyPan(); return; }
-      var cellCX = cx * csX + csX / 2, cellCY = cy * csY + csY / 2;
+      var cellCX = (cx + MARGIN) * csX + csX / 2, cellCY = (cy + MARGIN) * csY + csY / 2;
       panX = vw / 2 - cellCX; panY = vh / 2 - cellCY;
       applyPan();
     }
@@ -931,10 +938,11 @@
       var cs = cellSize(), csX = CSX, csY = CSY;
       // 差分取整：每格 left/top/width/height 用整数像素，总尺寸恰好贴合视口 → 零留白且文字不虚化
       var X = [], Y = [], iX, iY;
-      for (iX = 0; iX <= board.w; iX++) X.push(Math.round(iX * csX));
-      for (iY = 0; iY <= board.h; iY++) Y.push(Math.round(iY * csY));
-      grid.style.width = X[board.w] + 'px';
-      grid.style.height = Y[board.h] + 'px';
+      var GW = board.w + 2 * MARGIN, GH = board.h + 2 * MARGIN;
+      for (iX = 0; iX <= GW; iX++) X.push(Math.round(iX * csX));
+      for (iY = 0; iY <= GH; iY++) Y.push(Math.round(iY * csY));
+      grid.style.width = X[GW] + 'px';
+      grid.style.height = Y[GH] + 'px';
       grid.style.setProperty('--bf-cs', Math.min(csX, csY) + 'px');
       // 顶栏
       var top = document.getElementById('bf-top');
@@ -962,14 +970,32 @@
           });
         });
       }
-      for (var y = 0; y < board.h; y++) {
-        for (var x = 0; x < board.w; x++) {
+      // 攻击覆盖区（选中后即显示：从所有可达格起的射程并集，去掉移动可达格）
+      var atkRangeSet = null;
+      if (board.sel && (board.mode === 'attack' || !board.mode)) {
+        atkRangeSet = {};
+        var _bases = board.reach.concat([{ x: board.sel.x, y: board.sel.y }]);
+        var _R = board.sel.range;
+        _bases.forEach(function (p) {
+          var x0 = Math.max(0, p.x - _R), x1 = Math.min(board.w - 1, p.x + _R), y0 = Math.max(0, p.y - _R), y1 = Math.min(board.h - 1, p.y + _R);
+          for (var ax = x0; ax <= x1; ax++) for (var ay = y0; ay <= y1; ay++) if (cheb(p.x, p.y, ax, ay) <= _R) atkRangeSet[ax + ',' + ay] = 1;
+        });
+      }
+      for (var gy = 0; gy < GH; gy++) {
+        for (var gx = 0; gx < GW; gx++) {
+          var bx = gx - MARGIN, by = gy - MARGIN;
+          if (bx < 0 || bx >= board.w || by < 0 || by >= board.h) {
+            html.push('<div class="bf-cell bf-edge" style="left:' + X[gx] + 'px;top:' + Y[gy] + 'px;width:' + (X[gx + 1] - X[gx]) + 'px;height:' + (Y[gy + 1] - Y[gy]) + 'px;"></div>');
+            continue;
+          }
+          var x = bx, y = by;
           var tkey = terrainAt(x, y).key;
           var cls = 'bf-cell';
           if (y < board.h / 2) cls += ' bf-cell-ally'; else cls += ' bf-cell-foe';
           if (tkey && tkey !== 'plain') cls += ' bf-t-' + tkey;
           if (board.sel && (board.mode === 'move' || !board.mode) && inReach(x, y)) cls += (board.mode === 'move' ? ' bf-reach' : ' bf-reach bf-dim');
           if (board.sel && (board.mode === 'attack' || !board.mode) && inAttack(x, y)) cls += (board.mode === 'attack' ? ' bf-atk' : ' bf-atk bf-dim');
+          if (atkRangeSet && atkRangeSet[x + ',' + y] && !inReach(x, y)) cls += ' bf-atk-range';
           if (board.threat) {
             if (board.threat.moveSet[x + ',' + y]) cls += ' bf-threat-move';
             else if (board.threat.atk[x + ',' + y]) cls += ' bf-threat-atk';
@@ -993,23 +1019,43 @@
               : (u.side === 'ally' ? '\u25BC' : '\u25B2');
             var bico = ((T()[u.troopType] || {}).icon) || ((T()[u.troopType] || {}).name || '·').charAt(0);
             var tname = ((T()[u.troopType] || {}).name || u.name);
+            var morPct = Math.max(0, Math.min(100, Math.round(u.morale == null ? 80 : u.morale)));
             inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + (danger ? ' bf-danger' : '') + (board.sel === u ? ' bf-sel-u' : '') + (u.acted ? ' bf-acted' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
               '<i class="bf-u-ico">' + esc(bico) + '</i>' +
               '<i class="bf-u-cnt">' + (u.count || 0) + '</i>' +
               '<i class="bf-u-face">' + face + '</i>' +
               '<div class="bf-u-tag">' + esc(tname) + '</div>' +
+              '<i class="bf-u-hp"><i style="width:' + hpPct + '%"></i></i>' +
+              '<i class="bf-u-mor"><i style="width:' + morPct + '%"></i></i>' +
               (u.acted ? '<i class="bf-acted-tag">已</i>' : '') +
               '</div>';
           } else {
             inner += '<div class="bf-cell-hit" onclick="window.bfClick(' + x + ',' + y + ')"></div>';
           }
           var pathDot = ((board.mode === 'move' || board.pendingMove) && board._pathPreview && board._pathPreview.some(function (p) { return p.x === x && p.y === y; })) ? '<i class="bf-path-dot"></i>' : '';
-          html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' style="left:' + X[x] + 'px;top:' + Y[y] + 'px;width:' + (X[x + 1] - X[x]) + 'px;height:' + (Y[y + 1] - Y[y]) + 'px"' + (u ? hov : '') + ' onmouseover="window.bfPathHover(' + x + ',' + y + ')" onmouseout="window.bfPathClear()">' + inner + pathDot + '</div>');
+          html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' style="left:' + X[x + MARGIN] + 'px;top:' + Y[y + MARGIN] + 'px;width:' + (X[x + 1 + MARGIN] - X[x + MARGIN]) + 'px;height:' + (Y[y + 1 + MARGIN] - Y[y + MARGIN]) + 'px"' + (u ? hov : '') + ' onmouseover="window.bfPathHover(' + x + ',' + y + ')" onmouseout="window.bfPathClear()">' + inner + pathDot + '</div>');
         }
       }
       grid.innerHTML = html.join('');
       ensureLayers();
-      if (!board._centeredInit && grid.offsetWidth && document.getElementById('bf-viewport') && document.getElementById('bf-viewport').clientWidth) { board._centeredInit = true; applyPan(); }
+      if (board && board.pendingMove) {
+        var _pm = board.pendingMove, _cc = document.createElement('div');
+        _cc.className = 'bf-cell-confirm';
+        _cc.style.left = (X[_pm.x + MARGIN] + csX / 2) + 'px';
+        _cc.style.top = (Y[_pm.y + MARGIN] + csY / 2) + 'px';
+        _cc.innerHTML = '<button type="button" class="btn btn-sm bf-cc-ok" onclick="window.bfConfirmMove()">确认</button><button type="button" class="btn btn-sm btn-ghost bf-cc-no" onclick="window.bfCancelMove()">取消</button>';
+        grid.appendChild(_cc);
+      }
+      if (board && board.pendingMove && board.sel) {
+        var _g = document.createElement('div'); _g.className = 'bf-ghost';
+        _g.style.left = (X[board.pendingMove.x + MARGIN]) + 'px';
+        _g.style.top = (Y[board.pendingMove.y + MARGIN]) + 'px';
+        _g.style.width = (X[board.pendingMove.x + 1 + MARGIN] - X[board.pendingMove.x + MARGIN]) + 'px';
+        _g.style.height = (Y[board.pendingMove.y + 1 + MARGIN] - Y[board.pendingMove.y + MARGIN]) + 'px';
+        _g.innerHTML = '<i class="bf-u-ico">' + esc(((T()[board.sel.troopType] || {}).icon) || '·') + '</i>';
+        grid.appendChild(_g);
+      }
+      if (!board._centeredInit && grid.offsetWidth && document.getElementById('bf-viewport') && document.getElementById('bf-viewport').clientWidth) { board._centeredInit = true; focusCell(Math.floor(board.w / 2), Math.floor(board.h / 2)); }
       if (board.sel && board.mode === 'attack') drawAimLines();
       // 详情条
       var det = document.getElementById('bf-detail');
@@ -1049,25 +1095,25 @@
           '<button type="button" class="bf-sp' + (speed === 2 ? ' on' : '') + '" onclick="window.bfSpeed(2)">2×</button>' +
           '<button type="button" class="bf-sp' + (speed === 3 ? ' on' : '') + '" onclick="window.bfSpeed(3)">3×</button>' +
           '<button type="button" class="bf-sp' + (skip ? ' on' : '') + '" onclick="window.bfSkip()">' + (skip ? '跳帧✓' : '跳帧') + '</button></span>' +
-          (board.pendingMove ? '<span class="bf-bar-pending">已选落点 · 再点该格或点「确认移动」执行</span>' : '') +
+          (board.pendingMove ? '<span class="bf-bar-pending">已选落点 · 点该格上的「确认」执行</span>' : '') +
           '<button type="button" class="btn bf-threat-btn' + (board.showAllThreat ? ' bf-threat-on' : '') + '" id="bf-threat">威胁</button>' +
-          '<button type="button" class="btn bf-undo-btn" id="bf-undo"' + (board.phase === 'ally' && board._history && board._history.length ? '' : ' disabled') + '>悔棋' + (board._history && board._history.length ? '(' + board._history.length + ')' : '') + '</button>' +
+
           '<button type="button" class="btn bf-main" id="bf-et">结束回合' + (board.phase === 'ally' && rest > 0 ? '（余' + rest + '）' : '') + '</button>' +
           '<button type="button" class="btn" id="bf-nx">下一营</button>' +
           '<button type="button" class="btn btn-danger" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
-          '<span class="bf-bar-tip">' + (board.pendingMove ? '已选落点 · 再点该格即移动（或点「确认移动」）' : (board.phase === 'ally' ? (rest > 0 ? '我军调度中 · 余 ' + rest + ' 营' : '全军已待命') : '敌军行动中…')) + '</span>';
+          '<span class="bf-bar-tip">' + (board.pendingMove ? '已选落点 · 点该格上的「确认」执行移动' : (board.phase === 'ally' ? (rest > 0 ? '我军调度中 · 余 ' + rest + ' 营' : '全军已待命') : '敌军行动中…')) + '</span>';
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
         var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { bfNextUnit(); };
         var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { bfRetreat(); };
         var th = document.getElementById('bf-threat'); if (th) th.onclick = function () { window.bfToggleThreat(); };
-        var ud = document.getElementById('bf-undo'); if (ud) ud.onclick = function () { bfUndo(); };
+
       updateAttackPreview();
-      var cf = document.getElementById('bf-confirm'); if (cf) cf.hidden = !(board && board.pendingMove);
+      var cf = document.getElementById('bf-confirm'); if (cf) cf.hidden = true;  // 确认钮改在落点格内渲染
+      renderActBar();
       }
-      // 浮出常用指令菜单（点选己方营后；进入移动/攻击模式或敌方阶段时不显示）
+      // 指令菜单：仅攻击指令/详情由点击敌方触发；原底部 .bf-action 弹出已移除（改用顶部 contextual 条，不挡速度面板）
       if (board.phase !== 'ally') closeMenu();
       else if (board.mode) closeMenu();
-      else if (board.sel && !board.pendingMove) showActionMenu(board.sel);
       else closeMenu();
     }
     // 浮出常用指令菜单（移动/攻击/待机/详情/列阵）
@@ -1081,6 +1127,21 @@
         '<button type="button" class="bf-pop-b ghost" onclick="window.bfOrder(\'formation\')">列阵</button>' +
         '</div>';
       showMenu(h);
+    }
+    function renderActBar() {
+      var act = document.getElementById('bf-actbar');
+      if (!act) return;
+      if (board.phase === 'ally' && board.sel && !board.pendingMove && !board.sel.acted) {
+        var u = board.sel;
+        act.hidden = false;
+        act.innerHTML = '<span class="bf-act-name">' + esc(u.name) + '</span>'
+          + '<button type="button" class="btn btn-sm' + (board.mode === 'move' ? ' bf-on' : '') + '" onclick="window.bfOrder(\'move\')">移动</button>'
+          + '<button type="button" class="btn btn-sm' + (board.mode === 'attack' ? ' bf-on' : '') + '" onclick="window.bfOrder(\'attack\')">攻击</button>'
+          + '<button type="button" class="btn btn-sm" onclick="window.bfOrder(\'wait\')">待机</button>'
+          + '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfOrder(\'detail\')">详情</button>'
+          + '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfOrder(\'formation\')">列阵</button>'
+          + '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfDeselect()">取消</button>';
+      } else act.hidden = true;
     }
     function showMenu(html) {
       var host = document.getElementById('bf-pop-host');
@@ -1118,25 +1179,45 @@
     // 手机轻点手指抖动可达 10~20px，必须放宽判定，否则真实点按被误判为拖动而吞掉 click。
     // 规则：移动 <6px 视为点按（不平移）；6~24px 仅轻微平移但【不吞 click】并在抬起时回弹；
     //       仅 >24px 的明确拖动才抑制紧随的 click（避免拖动结束误选）。
+    function clientToCell(cx, cy) {
+      var grid = document.getElementById('bf-grid');
+      if (!grid || !board) return null;
+      var r = grid.getBoundingClientRect();
+      var gx = Math.floor((cx - r.left) / CSX), gy = Math.floor((cy - r.top) / CSY);
+      var bx = gx - MARGIN, by = gy - MARGIN;
+      if (bx < 0 || bx >= board.w || by < 0 || by >= board.h) return null;
+      return { x: bx, y: by };
+    }
     function bindDrag() {
       var vp = document.getElementById('bf-viewport');
       var grid = document.getElementById('bf-grid');
       if (!vp || !grid) return;
+      var lpTimer = null;
       vp.addEventListener('pointerdown', function (e) {
         drag = { x: e.clientX, y: e.clientY, ox: panX, oy: panY, panning: false, moved: 0 };
         suppressClick = false;
+        if (lpTimer) clearTimeout(lpTimer);
+        lpTimer = setTimeout(function () {
+          lpTimer = null;
+          if (!drag || drag.moved > 12) return;
+          var c = clientToCell(e.clientX, e.clientY);
+          var uu = c ? unitAt(c.x, c.y) : null;
+          if (uu) { suppressClick = true; playSfx('detail'); openDetailModal(uu); }
+        }, 420);
       });
       window.addEventListener('pointermove', function (e) {
         if (!drag) return;
         var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
         var dist = Math.abs(dx) + Math.abs(dy);
         drag.moved = dist;
+        if (dist > 12 && lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
         if (!drag.panning && dist > 6) drag.panning = true;
         if (drag.panning) { panX = drag.ox + dx; panY = drag.oy + dy; applyPan(); }
       });
       window.addEventListener('pointerup', function () {
         if (!drag) return;
         var wasDrag = drag.panning && drag.moved > 24;
+        if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
         if (drag.panning && !wasDrag) { panX = drag.ox; panY = drag.oy; applyPan(); } // 非拖动：平移回弹，消除累积漂移
         drag = null;
         if (wasDrag) suppressClick = true;
@@ -1151,8 +1232,8 @@
       var el = document.createElement('div');
       el.className = 'dmg-float ' + (cls || 'dmg') + ' bf-float';
       el.textContent = txt;
-      el.style.left = (x * csX + csX / 2) + 'px';
-      el.style.top = (y * csY + csY / 2) + 'px';
+      el.style.left = ((x + MARGIN) * csX + csX / 2) + 'px';
+      el.style.top = ((y + MARGIN) * csY + csY / 2) + 'px';
       grid.appendChild(el);
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 800);
     }
@@ -1195,6 +1276,7 @@
       var php = (S() && S().hp != null) ? S().hp : null;  // 战棋主角不参战，HP 不变
       board._result = buildSummary(result, survivors, php);
       log('〔战罢〕会战' + (result === 'win' ? '得胜' : result === 'lose' ? '失利' : '撤兵') + '。', result === 'win' ? 'good' : 'danger');
+      playSfx(result === 'win' ? 'win' : result === 'lose' ? 'lose' : 'cancel'); buzz(result === 'win' ? [30,40,30] : result === 'lose' ? [80,80,80] : 12);
       renderResult(board._result);
     }
 
@@ -1213,7 +1295,7 @@
     function updateAttackPreview() {
       var pv = document.getElementById('bf-preview');
       if (!pv) { pv = document.createElement('div'); pv.id = 'bf-preview'; pv.className = 'bf-preview'; var root = document.getElementById('bf-root'); if (root) root.appendChild(pv); }
-      if (!board || board.mode !== 'attack') { if (pv) pv.style.display = 'none'; return; }
+      if (!board || (!board.mode && !board._strikeTarget)) { if (pv) pv.style.display = 'none'; return; }
       var tgt = board._strikeTarget || board._hoverTarget;
       if (!tgt || tgt.side !== 'foe' || tgt.hp <= 0) { pv.style.display = 'none'; return; }
       var a = board.sel; if (!a) { pv.style.display = 'none'; return; }
@@ -1233,7 +1315,7 @@
     // 全局桥接（供 onclick 调用）
     if (typeof window !== 'undefined') {
       window.bfClick = bfClick; window.bfOrder = bfOrder; window.bfEndTurn = bfEndTurn; window.bfRetreat = bfRetreat;
-      window.bfUndo = bfUndo; window.bfToggleThreat = function () { if (!board) return; board.showAllThreat = !board.showAllThreat; render(); };
+      window.bfToggleThreat = function () { if (!board) return; board.showAllThreat = !board.showAllThreat; render(); };
       window.bfStrike = function (oid) { var t = board && board._strikeTarget; closeMenu(); if (board && board.sel && t) resolveAttack(board.sel, t, oid); };
       window.bfCloseMenu = closeMenu; window.bfCloseModal = bfCloseModal;
       window.bfDeselect = function () { if (!board) return; board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board.pendingMove = null; board._pathPreview = []; closeMenu(); render(); };
@@ -1244,6 +1326,7 @@
       window.bfHover = function (x, y) { if (!board || board.mode !== 'attack') return; board._hoverTarget = (x >= 0 && y >= 0) ? unitAt(x, y) : null; updateAttackPreview(); };
       window.bfPathHover = bfPathHover; window.bfPathClear = bfPathClear;
       window.bfConfirmMove = function () { var p = board && board.pendingMove; if (p) window.bfClick(p.x, p.y); };
+      window.bfCancelMove = function () { if (board && board.pendingMove) { board.pendingMove = null; board._pathPreview = []; render(); } };
       window.bfNextUnit = bfNextUnit;
       window.bfOpenSetup = openSetup;
       window.bfCloseResult = bfCloseResult;

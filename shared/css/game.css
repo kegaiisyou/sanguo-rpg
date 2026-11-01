@@ -4153,7 +4153,7 @@
 .bf-top-l{ color:var(--bf-ally); font-weight:700; }
 .bf-top-m{ color:var(--bf-gold); font-weight:700; font-size:15px; text-shadow:0 1px 0 rgba(255,255,255,.5); }
 .bf-top-r{ color:var(--ink-soft); font-variant-numeric:tabular-nums; }
-.bf-viewport{ position:absolute; top:36px; bottom:58px; left:0; right:0; overflow:hidden;
+.bf-viewport{ position:absolute; top:36px; bottom:96px; left:0; right:0; overflow:hidden;
   background:transparent; z-index:5;
   touch-action:none; cursor:grab; }
 .bf-viewport:active{ cursor:grabbing; }
@@ -4171,7 +4171,16 @@
 .bf-reach.bf-dim, .bf-atk.bf-dim{ animation:none; opacity:.5; }
 .bf-reach.bf-dim{ box-shadow:inset 0 0 0 2px var(--bf-reach); }
 .bf-atk.bf-dim{ box-shadow:inset 0 0 0 3px var(--bf-foe); }
-.bf-path-dot{ position:absolute; left:50%; top:50%; width:7px; height:7px; margin:-3.5px 0 0 -3.5px; border-radius:50%; background:var(--bf-gold); box-shadow:0 0 6px rgba(176,131,47,.85); z-index:6; pointer-events:none; }
+.bf-atk-range{ box-shadow:inset 0 0 0 2px rgba(158,59,46,.55); background:rgba(158,59,46,.16) !important; }
+.bf-edge{ pointer-events:none; background:rgba(74,62,48,.05); box-shadow:inset 0 0 0 1px rgba(74,62,48,.06); }
+.bf-path-dot{ position:absolute; left:50%; top:50%; width:9px; height:9px; margin:-4.5px 0 0 -4.5px; border-radius:50%; background:var(--bf-gold); box-shadow:0 0 8px rgba(176,131,47,.95); z-index:6; pointer-events:none; }
+.bf-ghost{ position:absolute; border:2px dashed rgba(176,131,47,.85); border-radius:var(--r-card); background:rgba(176,131,47,.14); display:flex; align-items:center; justify-content:center; z-index:1; pointer-events:none; animation:bfGhostPulse 1s ease-in-out infinite; }
+.bf-ghost .bf-u-ico{ position:relative; inset:auto; opacity:.7; }
+@keyframes bfGhostPulse{ 0%,100%{ opacity:.55 } 50%{ opacity:.95 } }
+.bf-unit{ transition:box-shadow .15s ease, transform .12s ease; }
+.bf-sel-u{ box-shadow:0 0 0 2px var(--bf-gold), 0 2px 12px rgba(0,0,0,.5); z-index:3; }
+.bf-cell-confirm{ animation:bfPulse .7s ease-in-out infinite; }
+@keyframes bfPulse{ 0%,100%{ filter:brightness(1) } 50%{ filter:brightness(1.18) } }
 .bf-cell-hit{ position:absolute; inset:0; cursor:pointer; }
 
 /* 战棋 · 边缘不可到达区域（方格布局四周余量） */
@@ -4188,6 +4197,16 @@
   background:linear-gradient(180deg,#d4ab4f,#a87f2e); color:#1c1206; border:1px solid rgba(255,255,255,.45);
   box-shadow:0 6px 20px rgba(0,0,0,.4); }
 .bf-confirm-float:active{ transform:translateX(-50%) scale(.96); }
+/* 战棋 · 落点确认钮（锚定在目标格中心，随棋盘平移） */
+.bf-cell-confirm{ position:absolute; z-index:20; transform:translate(-50%,-50%); display:flex; flex-direction:column; gap:4px; align-items:center; justify-content:center; pointer-events:auto; }
+.bf-cell-confirm .btn{ min-width:62px; padding:6px 12px; font-size:13px; }
+.bf-cc-ok{ background:var(--bf-gold); color:#1a1208; border-color:var(--bf-gold); font-weight:700; }
+/* 战棋 · 顶部 contextual 行动条（选中单位时显示，不挡底部速度面板） */
+.bf-actbar{ position:absolute; top:46px; left:50%; transform:translateX(-50%); z-index:42; display:flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid var(--bf-line); border-radius:var(--r-card); background:rgba(244,238,226,.94); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); box-shadow:var(--shadow); max-width:min(94vw,360px); flex-wrap:wrap; justify-content:center; pointer-events:auto; }
+.bf-act-name{ font-weight:700; color:var(--bf-gold); font-size:13px; margin-right:2px; white-space:nowrap; }
+.bf-actbar .btn{ min-width:auto; padding:5px 12px; font-size:13px; }
+.bf-actbar .btn.bf-on{ background:var(--bf-gold); color:#1a1208; border-color:var(--bf-gold); font-weight:700; }
+.bf-actbar .btn-ghost{ background:transparent; }
 
 .bf-unit{ position:absolute; inset:4px; border-radius:var(--r-card); padding:3px 4px;
   display:flex; flex-direction:column; justify-content:center; gap:2px;
@@ -4211,11 +4230,17 @@
 .bf-acted .bf-u-face, .bf-acted .bf-u-ico{ opacity:.4; }
 .bf-u-mor{ display:none; }
 .bf-sel .bf-u-mor{ display:block; }
+.bf-u-hp{ position:absolute; left:3px; right:3px; bottom:2px; height:3px; border-radius:2px; background:rgba(0,0,0,.36); overflow:hidden; z-index:3; }
+.bf-u-hp>i{ display:block; height:100%; width:100%; background:linear-gradient(90deg,#5aa55a,#86d36b); }
+.bf-u-foe .bf-u-hp>i{ background:linear-gradient(90deg,#c75a47,#e08a6f); }
+.bf-u-mor{ position:absolute; left:3px; right:3px; bottom:6px; height:2px; border-radius:2px; background:rgba(0,0,0,.3); overflow:hidden; z-index:3; display:none; }
+.bf-u-mor>i{ display:block; height:100%; width:100%; background:var(--bf-gold); }
+.bf-sel-u .bf-u-mor{ display:block; }
 .bf-u-name{ padding-right:13px; }
 .bf-u-cnt, .bf-u-off, .bf-u-fmt, .bf-u-danger{ flex:none; }
 .bf-unit{ padding:4px 5px; }
 .bf-routed{ filter:grayscale(.7); opacity:.55; }
-.bf-detail{ position:absolute; top:50px; left:8px; z-index:28; max-width:min(46%,280px); max-height:38%; overflow-y:auto; pointer-events:none;
+.bf-detail{ position:absolute; top:84px; left:8px; z-index:28; max-width:min(46%,280px); max-height:38%; overflow-y:auto; pointer-events:none;
   padding:8px 12px; border:1px solid var(--panel-line); border-radius:var(--r-card);
   background:var(--panel); box-shadow:var(--shadow); min-height:56px; }
 .bf-dt-card{ font-size:12px; line-height:1.5; }
@@ -4228,10 +4253,10 @@
   /* 浮于棋盘之上：仅按钮吃点击，被遮的底行单位仍可点选 */
   pointer-events:none; max-width:calc(100% - 16px); flex-wrap:wrap; justify-content:center; box-shadow:var(--shadow); }
 .bf-bar > *{ pointer-events:auto; }
-.bf-bar-tip{ flex-basis:100%; text-align:center; margin:0; font-size:11px; color:var(--ink-faint); }
+.bf-bar-tip{ text-align:center; margin:0 0 0 6px; font-size:11px; color:var(--ink-faint); white-space:nowrap; }
 .bf-bar .btn{ min-width:84px; }
 .bf-bar-tip{ margin-left:auto; font-size:12px; color:var(--ink-faint); }
-.bf-bar .btn{ min-width:96px; }
+.bf-bar .btn{ min-width:auto; padding:6px 12px; font-size:13px; }
 .bf-confirm{ background:var(--bf-gold); color:#1a1208; border-color:var(--bf-gold); font-weight:700; }
 .bf-pop-host{ position:absolute; inset:0; pointer-events:none; z-index:40; }
 .bf-pop{ position:absolute; left:50%; bottom:12px; transform:translateX(-50%);
@@ -4264,8 +4289,8 @@
   .bf-top{ top:6px; left:6px; font-size:11px; padding:3px 8px; gap:4px; }
   .bf-top-m{ font-size:12px; }
   .bf-bar{ right:6px; bottom:6px; gap:6px; padding:5px 6px; }
-  .bf-detail{ top:40px; left:6px; max-width:min(50%,190px); max-height:24%; font-size:11px; padding:6px 8px; }
-  .bf-log{ top:40px; right:6px; width:min(44%,170px); max-height:22%; padding:5px 8px; }
+  .bf-detail{ top:80px; left:6px; max-width:min(50%,190px); max-height:24%; font-size:11px; padding:6px 8px; }
+  .bf-log{ top:80px; right:6px; width:min(44%,170px); max-height:22%; padding:5px 8px; }
   .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; }
   .bf-bar-tip{ font-size:10px; }
   .bf-action{ bottom:64px; max-width:min(94vw,230px); gap:6px; }
@@ -4286,7 +4311,7 @@
 .bf-u-fmt{ font-style:normal; font-size:.82em; background:var(--bf-ally); color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
 .bf-u-foe .bf-u-fmt{ background:var(--bf-foe); }
 /* 战棋 · 战报面板（P0-4） */
-.bf-log{ position:absolute; right:8px; top:50px; z-index:28; width:min(46%,280px); max-height:32%; overflow-y:auto; pointer-events:none;
+.bf-log{ position:absolute; right:8px; top:84px; z-index:28; width:min(46%,280px); max-height:32%; overflow-y:auto; pointer-events:none;
   padding:6px 12px; border:1px solid var(--panel-line); border-radius:var(--r-card);
   background:var(--panel); box-shadow:var(--shadow); font-size:11px; line-height:1.55; display:flex; flex-direction:column; gap:1px; }
 .bf-log-l{ color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -4310,7 +4335,9 @@
 .bf-dt-danger{ color:#c0392b; font-weight:700; }
 .bf-dt-foe{ color:var(--bf-foe); }
 /* 战棋 · 速度控制（P1-3） */
-.bf-speed{ display:inline-flex; align-items:center; gap:3px; font-size:12px; color:var(--ink-faint); }
+.bf-speed{ display:inline-flex; align-items:center; gap:2px; font-size:12px; color:var(--ink-faint); padding:2px 6px; border:1px solid var(--bf-line); border-radius:var(--r-pill); background:rgba(244,238,226,.55); flex-wrap:nowrap; }
+.bf-speed .bf-sp{ flex:0 0 auto; }
+@media (min-width:600px){ #modal.bf-full .bf-viewport, .bf-viewport{ bottom:56px !important; } .bf-bar{ flex-wrap:nowrap; } .bf-bar-tip{ flex:0 1 auto; } }
 .bf-sp{ min-width:30px; padding:3px 5px; border:1px solid var(--btn-bd); background:var(--btn-bg); border-radius:var(--r-btn);
   cursor:pointer; font-family:inherit; color:var(--btn-fg); font-size:11px; }
 .bf-sp.on{ border-color:var(--bf-gold); color:var(--bf-gold); box-shadow:0 0 0 1px rgba(176,131,47,.4); }
@@ -4320,13 +4347,13 @@
 #modal.bf-full .modal-shell{ max-width:none !important; width:100% !important; height:100% !important; border-radius:0 !important; border:0 !important; padding:0 !important; max-height:none !important; overflow:hidden !important; box-shadow:none !important; }
 #modal.bf-full .modal-shell::before{ display:none !important; }
 #modal.bf-full .bf-root{ position:fixed !important; inset:0 !important; border-radius:0 !important; box-shadow:none !important; }
-#modal.bf-full .bf-viewport{ position:absolute !important; top:36px !important; bottom:58px !important; left:0 !important; right:0 !important; }
+#modal.bf-full .bf-viewport{ position:absolute !important; top:36px !important; bottom:96px !important; left:0 !important; right:0 !important; }
 #modal:has(.bf-root){ padding:0 !important; align-items:stretch !important; }
 #modal:has(.bf-root) #modal-card{ margin:0 !important; width:100% !important; max-width:none !important; height:100% !important; display:block !important; background:transparent !important; border:0 !important; box-shadow:none !important; }
 #modal:has(.bf-root) .modal-shell{ max-width:none !important; width:100% !important; height:100% !important; border-radius:0 !important; border:0 !important; padding:0 !important; max-height:none !important; overflow:hidden !important; box-shadow:none !important; }
 #modal:has(.bf-root) .modal-shell::before{ display:none !important; }
 #modal:has(.bf-root) .bf-root{ position:fixed !important; inset:0 !important; border-radius:0 !important; box-shadow:none !important; }
-#modal:has(.bf-root) .bf-viewport{ position:absolute !important; top:36px !important; bottom:58px !important; left:0 !important; right:0 !important; }
+#modal:has(.bf-root) .bf-viewport{ position:absolute !important; top:36px !important; bottom:96px !important; left:0 !important; right:0 !important; }
 /* 战棋 · 内嵌抽屉（详情 / 列阵 不再另开窗口） */
 .bf-sheet{ position:absolute; inset:0; z-index:60; display:flex; align-items:flex-end; background:rgba(24,17,10,.55); }
 .bf-sheet[hidden]{ display:none; }
@@ -4369,7 +4396,7 @@
 .bf-result .btn{ width:100%; margin-top:14px; padding:12px; font-size:16px; }
 .bf-ra{ color:#2f6e2f; } .bf-rf{ color:#9B3B2E; }
 /* 战棋 · 全体威胁覆盖 */
-.bf-threat-all{ box-shadow: inset 0 0 0 2px rgba(155,59,46,.35); background:rgba(155,59,46,.10); }
+.bf-threat-all{ box-shadow: inset 0 0 0 2px rgba(155,59,46,.5); background:rgba(155,59,46,.16); }
 .bf-threat-btn.bf-threat-on{ background:var(--bf-foe); color:#fff; border-color:var(--bf-foe); }
 .bf-undo-btn[disabled]{ opacity:.4; cursor:not-allowed; }
 /* ════════ 战棋动画系统 ════════ 
@@ -4438,6 +4465,9 @@
 .bf-root.bf-hc .bf-t-wall{ background:#5a3a1f !important; }
 .bf-root.bf-hc .bf-reach{ box-shadow:inset 0 0 0 3px #1f5fd0 !important; background:rgba(31,95,208,.20)!important; }
 .bf-root.bf-hc .bf-atk{ box-shadow:inset 0 0 0 3px #d11f1f !important; background:rgba(209,31,31,.20)!important; }
+.bf-root.bf-hc .bf-atk-range{ box-shadow:inset 0 0 0 3px #d11f1f !important; background:rgba(209,31,31,.22)!important; }
+.bf-root.bf-hc .bf-cell-confirm .bf-cc-ok{ background:#1f5fd0 !important; color:#fff !important; border-color:#1f5fd0 !important; }
+.bf-root.bf-hc .bf-actbar .btn.bf-on{ background:#1f5fd0 !important; color:#fff !important; border-color:#1f5fd0 !important; }
 .bf-root.bf-hc .bf-threat-move{ box-shadow:inset 0 0 0 2px #1f5fd0 !important; }
 .bf-root.bf-hc .bf-threat-atk{ box-shadow:inset 0 0 0 2px #d11f1f !important; }
 .bf-root.bf-hc .bf-unit{ border:2px solid #000 !important; }

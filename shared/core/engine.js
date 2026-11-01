@@ -4787,7 +4787,7 @@
   function openBattlefieldDebug(kind) {
     var st = state;
     var allies = [], foes = [];
-    var troops = (st.army && st.army.troops) || [];
+    var troops = (st && st.army && st.army.troops) || [];
     var types = ['changqiang','daodun','gongnu','qibing'];
     function mku(type, rank, count){
       var t = (LF.TROOPS||{})[type]; if(!t) return null;
