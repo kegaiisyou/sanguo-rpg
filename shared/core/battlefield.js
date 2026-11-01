@@ -46,6 +46,7 @@
     // ════════ 对局状态 ════════
     var board = null;     // {w,h,grid,units,round,phase,sel,mode,reach,attack,over,result,cfg}
     var drag = null;      // {x,y,ox,oy,moved}
+    var suppressClick = false; // 拖动后仅吞掉紧随的一次 click（避免真实点按被误吞）
 
     function T() { return (LF.TROOPS) || {}; }
     function slotOf(type) { var d = T()[type]; return d ? d.slot : '步'; }
@@ -708,6 +709,7 @@
     }
     function shakeGrid() { var vp = document.getElementById('bf-viewport'); if (!vp) return; vp.classList.add('bf-shake'); setTimeout(function () { vp.classList.remove('bf-shake'); }, 200); }
     function bfClick(x, y) {
+      if (suppressClick) { suppressClick = false; return; }
       if (!board || board.over || board.phase !== 'ally') return;
       var u = unitAt(x, y);
       if (board.mode === 'move' && board.sel) {
@@ -866,7 +868,7 @@
       setFullscreenMode(true);
       bindDrag();
       var _vp = document.getElementById('bf-viewport');
-      if (_vp) _vp.addEventListener('click', function (e) { if (e.target === _vp && window.bfDeselect) window.bfDeselect(); });
+      if (_vp) _vp.addEventListener('click', function (e) { if (suppressClick) { suppressClick = false; return; } if (e.target === _vp && window.bfDeselect) window.bfDeselect(); });
       var legEl = document.getElementById('bf-legend');
       if (legEl && LF.BF_TERRAIN) {
         var rows = Object.keys(LF.BF_TERRAIN).map(function (k) {
@@ -1113,27 +1115,26 @@
     }
 
     // 拖动手势（仅 translate，不 scale，避免字体模糊）；格子自带 onclick 负责点选
+    // 关键：拖动结束后只用一次性 suppressClick 标志吞掉紧随的 click，
+    //       绝不在 window 上挂捕获型 click 杀手（会把真实点按也吃掉）
     function bindDrag() {
       var vp = document.getElementById('bf-viewport');
       var grid = document.getElementById('bf-grid');
       if (!vp || !grid) return;
       vp.addEventListener('pointerdown', function (e) {
         drag = { x: e.clientX, y: e.clientY, ox: panX, oy: panY, moved: false };
+        suppressClick = false;
       });
       window.addEventListener('pointermove', function (e) {
         if (!drag) return;
         var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-        if (Math.abs(dx) + Math.abs(dy) > 8) drag.moved = true;
+        if (Math.abs(dx) + Math.abs(dy) > 10) drag.moved = true;
         panX = drag.ox + dx; panY = drag.oy + dy; applyPan();
       });
       window.addEventListener('pointerup', function () {
         if (!drag) return;
         var wasMoved = drag.moved; drag = null;
-        if (wasMoved) {
-          // 拖动结束后吞掉紧随的 click，避免误选/误取消
-          var kill = function (ev) { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', kill, true); };
-          window.addEventListener('click', kill, true);
-        }
+        if (wasMoved) suppressClick = true;
       });
     }
 
