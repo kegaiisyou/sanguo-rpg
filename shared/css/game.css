@@ -4142,12 +4142,14 @@
   font-family:"STKaiti","KaiTi","Songti SC","PingFang SC",serif;
   color:var(--bf-ink);
 }
-.bf-top{ position:absolute; top:0; left:0; right:0; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:8px;
-  padding:6px 12px; border-bottom:1px solid var(--bf-line);
-  background:rgba(244,238,226,.78); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+.bf-top{ position:absolute; top:8px; left:8px; right:auto; z-index:30; display:flex; align-items:center; gap:6px;
+  padding:4px 10px; border:1px solid var(--bf-line); border-radius:var(--r-pill);
+  background:rgba(244,238,226,.82); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
   /* 浮于棋盘之上：自身不吃点击，避免遮住顶行单位 */
   pointer-events:none;
-  font-size:13px; letter-spacing:1px; }
+  font-size:12px; letter-spacing:.5px; max-width:calc(100% - 16px); flex-wrap:wrap; }
+.bf-top span{ pointer-events:none; }
+.bf-top-m{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .bf-top-l{ color:var(--bf-ally); font-weight:700; }
 .bf-top-m{ color:var(--bf-gold); font-weight:700; font-size:15px; text-shadow:0 1px 0 rgba(255,255,255,.5); }
 .bf-top-r{ color:var(--ink-soft); font-variant-numeric:tabular-nums; }
@@ -4157,7 +4159,8 @@
 .bf-viewport:active{ cursor:grabbing; }
 .bf-grid{ position:absolute; left:0; top:0; will-change:transform; }
 .bf-cell{ position:absolute; box-sizing:border-box; border:1px solid var(--bf-line);
-  background:linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)); }
+  background:linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35));
+  box-shadow:inset 0 0 0 1px rgba(255,253,248,.22); }
 .bf-cell-ally{ background:var(--bf-ally-bg); }
 .bf-cell-foe{ background:var(--bf-foe-bg); }
 .bf-reach{ box-shadow:inset 0 0 0 2px var(--bf-reach); animation:bfBreath 1.4s ease-in-out infinite; }
@@ -4193,10 +4196,12 @@
 .bf-dt-ord{ margin-top:3px; color:var(--ink-faint); }
 .bf-chip{ display:inline-block; margin:2px 4px 0 0; padding:1px 7px; border:1px solid var(--bf-line); border-radius:var(--r-pill); font-size:11px; color:var(--bf-ally); }
 .bf-dt-hint{ color:var(--ink-faint); font-size:12px; }
-.bf-bar{ position:absolute; left:0; right:0; bottom:0; z-index:35; display:flex; align-items:center; gap:10px; padding:6px 10px; border-top:1px solid var(--bf-line); background:rgba(236,227,209,.8); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+.bf-bar{ position:absolute; right:8px; bottom:8px; left:auto; z-index:35; display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--bf-line); border-radius:var(--r-card); background:rgba(236,227,209,.82); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
   /* 浮于棋盘之上：仅按钮吃点击，被遮的底行单位仍可点选 */
-  pointer-events:none; }
+  pointer-events:none; max-width:calc(100% - 16px); flex-wrap:wrap; justify-content:flex-end; }
 .bf-bar > *{ pointer-events:auto; }
+.bf-bar-tip{ flex-basis:100%; text-align:center; margin:0; font-size:11px; color:var(--ink-faint); }
+.bf-bar .btn{ min-width:84px; }
 .bf-bar-tip{ margin-left:auto; font-size:12px; color:var(--ink-faint); }
 .bf-bar .btn{ min-width:96px; }
 .bf-pop-host{ position:absolute; inset:0; pointer-events:none; z-index:40; }
@@ -4209,6 +4214,12 @@
 .bf-pop-b:hover{ background:var(--btn-hover); }
 .bf-pop-b.ghost{ color:var(--ink-faint); }
 .bf-pop-b span{ display:block; font-size:10px; color:var(--ink-faint); margin-top:1px; }
+.bf-preview{ position:absolute; left:8px; bottom:8px; z-index:36; max-width:46vw; padding:6px 9px;
+  border:1px solid var(--bf-gold); border-radius:var(--r-card); background:rgba(28,22,14,.86);
+  color:#f3e9d6; font-size:11px; line-height:1.5; box-shadow:0 4px 14px rgba(0,0,0,.35); display:none; pointer-events:none; }
+.bf-preview .bf-pv-t{ color:var(--bf-gold); font-weight:700; margin-bottom:2px; }
+.bf-preview .bf-pv-r b{ color:#ffd98a; }
+.bf-preview .bf-pv-adv{ color:#7ec97e; } .bf-preview .bf-pv-dis{ color:#e08a8a; } .bf-preview .bf-pv-warn{ color:#f0c060; }
 .bf-action{ left:50%; bottom:12px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:92vw; }
 .bf-pop-t{ font-size:11px; color:var(--ink-soft); margin-bottom:2px; }
 .bf-float{ position:absolute; transform:translate(-50%,-50%); font-family:"STKaiti",serif; font-weight:700;
@@ -4221,23 +4232,24 @@
 .bf-md-row b{ color:var(--bf-gold); }
 .bf-md-title{ margin-top:8px; color:var(--bf-ally); font-weight:700; border-top:1px dashed var(--bf-line); padding-top:6px; }
 @media (max-width:540px){
-  .bf-top{ font-size:11px; padding:6px 8px; }
-  .bf-top-m{ font-size:13px; }
-  .bf-bar{ flex-wrap:wrap; }
-  .bf-bar .btn{ flex:1 1 40%; min-width:0; }
-  .bf-bar-tip{ width:100%; margin:0; text-align:center; }
+  .bf-top{ top:6px; left:6px; font-size:11px; padding:3px 8px; gap:4px; }
+  .bf-top-m{ font-size:12px; }
+  .bf-bar{ right:6px; bottom:6px; gap:6px; padding:5px 6px; }
+  .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; }
+  .bf-bar-tip{ font-size:10px; }
   .bf-action{ left:50%; bottom:8px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:94vw; }
   .bf-pop{ min-width:104px; }
+  .bf-preview{ max-width:60vw; font-size:10px; }
 }
 
 /* 战棋 · 地形底色与图标（P0-2） */
-.bf-t-forest{ background:linear-gradient(180deg, rgba(74,108,72,.30), rgba(54,84,56,.22)) !important; }
-.bf-t-hill{ background:linear-gradient(180deg, rgba(150,120,70,.26), rgba(120,92,52,.20)) !important; }
-.bf-t-ford{ background:linear-gradient(180deg, rgba(70,110,140,.30), rgba(50,90,120,.22)) !important; }
-.bf-t-rampart{ background:linear-gradient(180deg, rgba(120,100,70,.30), rgba(90,74,50,.22)) !important; }
-.bf-t-wall{ background:linear-gradient(180deg, rgba(120,90,70,.34), rgba(90,64,48,.26)) !important; }
+.bf-t-forest{ background:linear-gradient(180deg, rgba(74,108,72,.42), rgba(54,84,56,.34)) !important; }
+.bf-t-hill{ background:linear-gradient(180deg, rgba(150,120,70,.38), rgba(120,92,52,.30)) !important; }
+.bf-t-ford{ background:linear-gradient(180deg, rgba(70,110,140,.44), rgba(50,90,120,.34)) !important; }
+.bf-t-rampart{ background:linear-gradient(180deg, rgba(120,100,70,.44), rgba(90,74,50,.34)) !important; }
+.bf-t-wall{ background:linear-gradient(180deg, rgba(120,90,70,.50), rgba(90,64,48,.40)) !important; }
 .bf-tico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  font-size:20px; opacity:.55; pointer-events:none; z-index:0; }
+  font-size:calc(var(--bf-cs,30px) * 0.62); opacity:.85; pointer-events:none; z-index:0; filter:drop-shadow(0 1px 1px rgba(255,255,255,.55)); }
 .bf-unit{ z-index:1; }
 /* 战棋 · 阵型角标（P0-3） */
 .bf-u-fmt{ font-style:normal; font-size:.82em; background:var(--bf-ally); color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
@@ -4283,6 +4295,13 @@
 #modal:has(.bf-root) .modal-shell{ max-width:none; width:100%; height:100%; border-radius:0; border:0; }
 #modal:has(.bf-root) .bf-root{ height:100%; min-height:0; border-radius:0; position:relative; }
 #modal:has(.bf-root) .bf-viewport{ flex:1 1 auto; min-height:0; }
+/* 战棋全屏：抹掉卡片内边距/最大高度/装饰内框，让棋盘真正铺满（含移动端） */
+#modal.bf-full .modal-shell,
+#modal:has(.bf-root) .modal-shell{ padding:0; max-height:none; overflow:hidden; }
+#modal.bf-full .modal-shell::before,
+#modal:has(.bf-root) .modal-shell::before{ display:none; }
+#modal.bf-full .bf-root,
+#modal:has(.bf-root) .bf-root{ box-shadow:none; }
 /* 战棋 · 内嵌抽屉（详情 / 列阵 不再另开窗口） */
 .bf-sheet{ position:absolute; inset:0; z-index:60; display:flex; align-items:flex-end; background:rgba(24,17,10,.55); }
 .bf-sheet[hidden]{ display:none; }

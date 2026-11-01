@@ -775,7 +775,10 @@
     function openOrderMenu(a, tgt) {
       var O = LF.ARMY_ORDERS || {};
       var items = (a.orders || []).filter(function (oid) { var o = O[oid]; return o && !o.noTarget; });
-      var h = '<div class="bf-pop"><div class="bf-pop-t">择军令攻 ' + esc(tgt.name) + '</div>';
+      var oid0 = (a.orders || []).filter(function (o) { return O[o] && !O[o].defend; })[0];
+      var pe = oid0 ? dmgEstimate(a, tgt, oid0) : null;
+      var head = '攻 ' + esc(tgt.name) + (pe ? ' · 预计伤 ' + pe.dmg + ' 命中 ' + pe.hit + '%' + (pe.counter > 1 ? ' 克制' : pe.counter < 1 ? ' 被克' : '') + (pe.adj ? ' 将遭反击' : '') : '');
+      var h = '<div class="bf-pop"><div class="bf-pop-t">' + head + '</div>';
       items.forEach(function (oid) {
         var o = O[oid];
         var e = dmgEstimate(a, tgt, oid);
@@ -890,7 +893,8 @@
             var hpPct = Math.max(0, Math.min(100, Math.round(100 * u.hp / u.maxHp)));
             var sideCls = u.side === 'ally' ? 'bf-u-ally' : 'bf-u-foe';
             var fmtTag = (u.formation && u.formation !== 'benzhen') ? '<i class="bf-u-fmt" title="' + esc(((LF.BF_FORMATION || {})[u.formation] || {}).name || '') + '">' + esc(((LF.BF_FORMATION || {})[u.formation] || {}).name || '').charAt(0) + '</i>' : '';
-            inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + '" onclick="window.bfClick(' + x + ',' + y + ')">' +
+            var hov = (board.mode === 'attack' && u.side === 'foe') ? ' onmouseover="window.bfHover(' + x + ',' + y + ')" onmouseout="window.bfHover(-1,-1)"' : '';
+            inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
               '<div class="bf-u-name">' + esc(u.name) + (u.officer ? '<i class="bf-u-off">督</i>' : '') + fmtTag + (danger ? '<i class="bf-u-danger" title="溃散风险高">危</i>' : '') + '</div>' +
               '<div class="bf-u-hp"><span style="width:' + hpPct + '%"></span></div>' +
               '<div class="bf-u-mor" style="border-color:' + band + '"></div>' +
@@ -951,6 +955,7 @@
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
         var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { bfNextUnit(); };
         var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { bfRetreat(); };
+      updateAttackPreview();
       }
       // 浮出常用指令菜单（点选己方营后；进入移动/攻击模式或敌方阶段时不显示）
       if (board.phase !== 'ally') closeMenu();
@@ -1103,6 +1108,27 @@
       isActive: function () { return !!board && !board.over; },
       reachable: reachable, attackable: attackable, resolveAttack: resolveAttack
     };
+    // 攻击预演面板（桌面悬停 / 选定后常驻显示）
+    function updateAttackPreview() {
+      var pv = document.getElementById('bf-preview');
+      if (!pv) { pv = document.createElement('div'); pv.id = 'bf-preview'; pv.className = 'bf-preview'; var root = document.getElementById('bf-root'); if (root) root.appendChild(pv); }
+      if (!board || board.mode !== 'attack') { if (pv) pv.style.display = 'none'; return; }
+      var tgt = board._strikeTarget || board._hoverTarget;
+      if (!tgt || tgt.side !== 'foe' || tgt.hp <= 0) { pv.style.display = 'none'; return; }
+      var a = board.sel; if (!a) { pv.style.display = 'none'; return; }
+      var O = LF.ARMY_ORDERS || {};
+      var oid = (a.orders || []).filter(function (o) { return O[o] && !O[o].defend; })[0];
+      var e = oid ? dmgEstimate(a, tgt, oid) : null;
+      var lines = '<div class="bf-pv-t">' + esc(a.name) + ' → ' + esc(tgt.name) + '</div>';
+      lines += '<div class="bf-pv-r">攻 ' + a.atk + '·防 ' + a.def + ' → 敌 攻 ' + tgt.atk + '·防 ' + tgt.def + '</div>';
+      if (e) {
+        lines += '<div class="bf-pv-r">预计伤 <b>' + e.dmg + '</b> · 命中 ' + e.hit + '%' +
+          (e.counter > 1 ? ' · <span class="bf-pv-adv">克制</span>' : e.counter < 1 ? ' · <span class="bf-pv-dis">被克</span>' : '') +
+          (e.adj ? ' · <span class="bf-pv-warn">将遭反击</span>' : '') + '</div>';
+      }
+      pv.innerHTML = lines; pv.style.display = 'block';
+    }
+
     // 全局桥接（供 onclick 调用）
     if (typeof window !== 'undefined') {
       window.bfClick = bfClick; window.bfOrder = bfOrder; window.bfEndTurn = bfEndTurn; window.bfRetreat = bfRetreat;
@@ -1110,6 +1136,7 @@
       window.bfCloseMenu = closeMenu; window.bfCloseModal = bfCloseModal;
       window.bfSetFormation = function (uid, key) { var u = board && board.units.filter(function (x) { return x.id === uid; })[0]; if (u) { applyFormation(u, key); closeSheet(); } };
       window.bfCloseSheet = closeSheet;
+      window.bfHover = function (x, y) { if (!board || board.mode !== 'attack') return; board._hoverTarget = (x >= 0 && y >= 0) ? unitAt(x, y) : null; updateAttackPreview(); };
       window.bfNextUnit = bfNextUnit;
       window.bfOpenSetup = openSetup;
       window.bfCloseResult = bfCloseResult;
