@@ -732,6 +732,15 @@
         }
       }
       if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; board.pendingMove = null; board._pathPreview = []; render(); focusCell(u.x, u.y); return; }
+      // 选中后直接点可达空格 = 进入移动预演（无需先点「移动」）；再次点同格或点确认 = 执行
+      if (board.sel && !board.mode && !u && inReach(x, y)) {
+        if (board.pendingMove && board.pendingMove.x === x && board.pendingMove.y === y) { var pm = board.pendingMove; board.pendingMove = null; board._pathPreview = []; commitMove(pm.x, pm.y); return; }
+        board.pendingMove = { x: x, y: y };
+        board._pathPreview = pathBetween(board.sel.x, board.sel.y, x, y, board.sel);
+        render(); return;
+      }
+      // 选中后直接点可攻击敌 = 弹出攻击指令
+      if (board.sel && !board.mode && u && u.side === 'foe' && inAttack(x, y)) { openOrderMenu(board.sel, u); return; }
       if (u && u.side === 'foe' && !board.mode) { board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = computeThreat(u); board.pendingMove = null; board._pathPreview = []; closeMenu(); render(); return; }
       // 点空白：取消选择 / 清除威胁
       board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board.pendingMove = null; board._pathPreview = []; closeMenu();
@@ -866,7 +875,7 @@
           if (t.defMul && t.defMul !== 1) eff.push('守+' + Math.round((t.defMul - 1) * 100) + '%');
           if (t.atkMul && t.atkMul !== 1) eff.push('攻+' + Math.round((t.atkMul - 1) * 100) + '%');
           if (t.dodge) eff.push('闪避+' + Math.round(t.dodge * 100) + '%');
-          return '<div class="bf-leg-row"><span class="bf-leg-ico">' + (t.icon || '·') + '</span><span class="bf-leg-name">' + esc(t.name) + '</span><span class="bf-leg-eff">' + eff.join(' · ') + '</span></div>';
+          return '<div class="bf-leg-row"><span class="bf-leg-ico">' + ({forest:'林',hill:'丘',ford:'渡',rampart:'垒',wall:'城'}[k] || t.icon || '·') + '</span><span class="bf-leg-name">' + esc(t.name) + '</span><span class="bf-leg-eff">' + eff.join(' · ') + '</span></div>';
         }).join('');
         legEl.innerHTML = '<div class="bf-leg-card"><div class="bf-leg-h">地形 · 图例</div>' + rows +
           '<div class="bf-leg-row"><span class="bf-leg-ico">⬡</span><span class="bf-leg-name">蓝框</span><span class="bf-leg-eff">可移动</span></div>' +
@@ -963,7 +972,7 @@
             if (board.threat.moveSet[x + ',' + y]) cls += ' bf-threat-move';
             else if (board.threat.atk[x + ',' + y]) cls += ' bf-threat-atk';
           } else if (allThreat && allThreat[x + ',' + y]) cls += ' bf-threat-all';
-          var tico = (tkey && tkey !== 'plain') ? '<div class="bf-tico">' + esc(terrainAt(x, y).icon) + '</div>' : '';
+          var tico = (tkey && tkey !== 'plain') ? '<div class="bf-tico">' + esc({forest:'林',hill:'丘',ford:'渡',rampart:'垒',wall:'城'}[tkey] || terrainAt(x, y).icon) + '</div>' : '';
           var u = unitAt(x, y);
           var inner = tico;
           if (u) {
@@ -980,19 +989,19 @@
             var face = (u.facing && (u.facing.x || u.facing.y))
               ? (u.facing.x > 0 ? '\u25B6' : u.facing.x < 0 ? '\u25C0' : u.facing.y > 0 ? '\u25BC' : '\u25B2')
               : (u.side === 'ally' ? '\u25BC' : '\u25B2');
-            var bico = ((T()[u.troopType] || {}).icon) || ((T()[u.troopType] || {}).name || '\u00B7').charAt(0);
-            inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
-              '<div class="bf-u-name">' + esc((T()[u.troopType] || {}).name || u.name) + (u.officer ? '<i class="bf-u-off">督</i>' : '') + fmtTag + (danger ? '<i class="bf-u-danger" title="溃散风险高">危</i>' : '') + '<i class="bf-u-cnt">' + (u.count || 0) + '</i></div>' +
+            var bico = ((T()[u.troopType] || {}).icon) || ((T()[u.troopType] || {}).name || '·').charAt(0);
+            var tname = ((T()[u.troopType] || {}).name || u.name);
+            inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + (danger ? ' bf-danger' : '') + (board.sel === u ? ' bf-sel-u' : '') + (u.acted ? ' bf-acted' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
               '<i class="bf-u-ico">' + esc(bico) + '</i>' +
+              '<i class="bf-u-cnt">' + (u.count || 0) + '</i>' +
               '<i class="bf-u-face">' + face + '</i>' +
-              '<div class="bf-u-hp"><span style="width:' + hpPct + '%"></span></div>' +
-              '<div class="bf-u-mor" style="border-color:' + band + '"></div>' +
+              '<div class="bf-u-tag">' + esc(tname) + '</div>' +
               (u.acted ? '<i class="bf-acted-tag">已</i>' : '') +
               '</div>';
           } else {
             inner += '<div class="bf-cell-hit" onclick="window.bfClick(' + x + ',' + y + ')"></div>';
           }
-          var pathDot = (board.mode === 'move' && board._pathPreview && board._pathPreview.some(function (p) { return p.x === x && p.y === y; })) ? '<i class="bf-path-dot"></i>' : '';
+          var pathDot = ((board.mode === 'move' || board.pendingMove) && board._pathPreview && board._pathPreview.some(function (p) { return p.x === x && p.y === y; })) ? '<i class="bf-path-dot"></i>' : '';
           html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' style="left:' + X[x] + 'px;top:' + Y[y] + 'px;width:' + (X[x + 1] - X[x]) + 'px;height:' + (Y[y + 1] - Y[y]) + 'px"' + (u ? hov : '') + ' onmouseover="window.bfPathHover(' + x + ',' + y + ')" onmouseout="window.bfPathClear()">' + inner + pathDot + '</div>');
         }
       }
@@ -1056,7 +1065,7 @@
       // 浮出常用指令菜单（点选己方营后；进入移动/攻击模式或敌方阶段时不显示）
       if (board.phase !== 'ally') closeMenu();
       else if (board.mode) closeMenu();
-      else if (board.sel) showActionMenu(board.sel);
+      else if (board.sel && !board.pendingMove) showActionMenu(board.sel);
       else closeMenu();
     }
     // 浮出常用指令菜单（移动/攻击/待机/详情/列阵）
@@ -1103,30 +1112,28 @@
       pop.style.transform = 'translateX(-50%)';
     }
 
-    // 拖动手势（仅 translate，不 scale，避免字体模糊）
+    // 拖动手势（仅 translate，不 scale，避免字体模糊）；格子自带 onclick 负责点选
     function bindDrag() {
       var vp = document.getElementById('bf-viewport');
       var grid = document.getElementById('bf-grid');
       if (!vp || !grid) return;
       vp.addEventListener('pointerdown', function (e) {
         drag = { x: e.clientX, y: e.clientY, ox: panX, oy: panY, moved: false };
-        vp.setPointerCapture && vp.setPointerCapture(e.pointerId);
       });
-      vp.addEventListener('pointermove', function (e) {
+      window.addEventListener('pointermove', function (e) {
         if (!drag) return;
         var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
         if (Math.abs(dx) + Math.abs(dy) > 8) drag.moved = true;
         panX = drag.ox + dx; panY = drag.oy + dy; applyPan();
       });
-      vp.addEventListener('pointerup', function (e) {
-        if (drag && !drag.moved) {
-          // 视为点击：换算到格子坐标
-          var rect = grid.getBoundingClientRect();
-          var gx = Math.floor((e.clientX - rect.left) / cellSize());
-          var gy = Math.floor((e.clientY - rect.top) / cellSize());
-          if (gx >= 0 && gy >= 0 && gx < board.w && gy < board.h) bfClick(gx, gy);
+      window.addEventListener('pointerup', function () {
+        if (!drag) return;
+        var wasMoved = drag.moved; drag = null;
+        if (wasMoved) {
+          // 拖动结束后吞掉紧随的 click，避免误选/误取消
+          var kill = function (ev) { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click', kill, true); };
+          window.addEventListener('click', kill, true);
         }
-        drag = null;
       });
     }
 
