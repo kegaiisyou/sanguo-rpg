@@ -734,8 +734,8 @@
         }
       }
       if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; board.pendingMove = null; board._pathPreview = []; render(); focusCell(u.x, u.y); return; }
-      // 选中后直接点可达空格 = 进入移动预演（无需先点「移动」）；再次点同格或点确认 = 执行
-      if (board.sel && !board.mode && !u && inReach(x, y)) {
+      // 选中后点可达空格 = 进入移动预演（可直接点，也可先点「移动」mode='move' 再点）；再次点同格或点确认 = 执行
+      if (board.sel && !u && inReach(x, y)) {
         if (board.pendingMove && board.pendingMove.x === x && board.pendingMove.y === y) { var pm = board.pendingMove; board.pendingMove = null; board._pathPreview = []; commitMove(pm.x, pm.y); return; }
         board.pendingMove = { x: x, y: y };
         board._pathPreview = pathBetween(board.sel.x, board.sel.y, x, y, board.sel);
@@ -1080,7 +1080,7 @@
         '<button type="button" class="bf-pop-b ghost" onclick="window.bfOrder(\'detail\')">详情</button>' +
         '<button type="button" class="bf-pop-b ghost" onclick="window.bfOrder(\'formation\')">列阵</button>' +
         '</div>';
-      showMenu(h); positionMenuNear(u);
+      showMenu(h);
     }
     function showMenu(html) {
       var host = document.getElementById('bf-pop-host');
@@ -1102,7 +1102,7 @@
         var cell = grid.querySelector('[data-uid="' + u.id + '"]');
         if (cell) { var cr = cell.getBoundingClientRect(); cx = cr.left + cr.width / 2 - rr.left; cy = cr.top + cr.height / 2 - rr.top; half = cr.height / 2; }
       }
-      var mw = pop.offsetWidth || 220, mh = pop.offsetHeight || 70, margin = 8;
+      var _r = pop.getBoundingClientRect(); var mw = _r.width || pop.offsetWidth || 220, mh = _r.height || pop.offsetHeight || 70, margin = 8;
       var above = (cy - half - 10 - mh) >= margin;
       var top = above ? (cy - half - 10 - mh) : (cy + half + 10);
       top = Math.max(margin, Math.min(rr.height - mh - margin, top));

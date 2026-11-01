@@ -4249,7 +4249,7 @@
 .bf-preview .bf-pv-t{ color:var(--bf-gold); font-weight:700; margin-bottom:2px; }
 .bf-preview .bf-pv-r b{ color:#ffd98a; }
 .bf-preview .bf-pv-adv{ color:#7ec97e; } .bf-preview .bf-pv-dis{ color:#e08a8a; } .bf-preview .bf-pv-warn{ color:#f0c060; }
-.bf-action{ left:50%; bottom:12px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:92vw; }
+.bf-action{ left:50%; bottom:64px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; gap:6px; max-width:min(94vw,230px); }
 .bf-pop-t{ font-size:11px; color:var(--ink-soft); margin-bottom:2px; }
 .bf-float{ position:absolute; transform:translate(-50%,-50%); font-family:"STKaiti",serif; font-weight:700;
   pointer-events:none; z-index:30; text-shadow:0 1px 2px rgba(255,255,255,.9); animation:dmgRise .8s ease-out forwards; }
@@ -4268,7 +4268,7 @@
   .bf-log{ top:40px; right:6px; width:min(44%,170px); max-height:22%; padding:5px 8px; }
   .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; }
   .bf-bar-tip{ font-size:10px; }
-  .bf-action{ left:50%; bottom:8px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; max-width:94vw; }
+  .bf-action{ bottom:64px; max-width:min(94vw,230px); gap:6px; }
   .bf-pop{ min-width:104px; }
   .bf-preview{ max-width:60vw; font-size:10px; }
 }
