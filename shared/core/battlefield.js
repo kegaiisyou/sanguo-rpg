@@ -801,7 +801,7 @@
         board._retreatAsk = true;
         toast('再点一次「鸣金收兵」确认撤退（撤兵视为未竟全功）。');
         render();
-        setTimeout(function () { board._retreatAsk = false; render(); }, 3000);
+        setTimeout(function () { if (board && !board.over) { board._retreatAsk = false; render(); } }, 3000);
         return;
       }
       board._retreatAsk = false;
@@ -841,6 +841,7 @@
       var card = document.getElementById('modal-card');
       if (!card) return;
       card.innerHTML = '<div id="bf-root" class="bf-root">' +
+        '<div class="bf-outzone" id="bf-outzone" onclick="window.bfRetreat()"></div>' +
         '<div class="bf-top" id="bf-top"></div>' +
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div></div>' +
         '<div class="bf-detail" id="bf-detail"></div>' +
@@ -852,17 +853,18 @@
         '</div>';
       setFullscreenMode(true);
       bindDrag();
+      var _vp = document.getElementById('bf-viewport');
+      if (_vp) _vp.addEventListener('click', function (e) { if (e.target === _vp && window.bfRetreat) window.bfRetreat(); });
     }
     function cellSize() {
       var vp = document.getElementById('bf-viewport');
       if (!vp || !board) { return { csX: CSX, csY: CSY }; }
       var vw = vp.clientWidth || 360, vh = vp.clientHeight || 640;
-      // 矩形铺满：横向按列、纵向按行各自撑满视口（棋盘不再留上下空白）；仍按像素取整杜绝缝隙
-      var effW = Math.max(2, vw - 4), effH = Math.max(2, vh - 4);
-      var x = Math.max(24, Math.min(150, effW / board.w));
-      var y = Math.max(22, Math.min(150, effH / board.h));
-      CSX = x; CSY = y;
-      return { csX: x, csY: y };
+      // 方格布局：横纵同尺寸；四周余量作为「不可到达区域」；居中显示
+      var cs = Math.floor(Math.min(vw / board.w, vh / board.h));
+      cs = Math.max(18, Math.min(150, cs));
+      CSX = cs; CSY = cs;
+      return { csX: cs, csY: cs };
     }
     // 整张战场较小时居中（fit 后整体可见，无需平移）
     function recenterGrid() {
@@ -994,7 +996,7 @@
           '<button type="button" class="bf-sp' + (speed === 2 ? ' on' : '') + '" onclick="window.bfSpeed(2)">2×</button>' +
           '<button type="button" class="bf-sp' + (speed === 3 ? ' on' : '') + '" onclick="window.bfSpeed(3)">3×</button>' +
           '<button type="button" class="bf-sp' + (skip ? ' on' : '') + '" onclick="window.bfSkip()">' + (skip ? '跳帧✓' : '跳帧') + '</button></span>' +
-          (board.pendingMove ? '<button type="button" class="btn bf-confirm" onclick="window.bfConfirmMove()">确认移动 ▸</button>' : '') +
+          (board.pendingMove ? '<button type="button" class="btn bf-confirm-float" onclick="window.bfConfirmMove()">确认移动 ▸</button>' : '') +
           '<button type="button" class="btn bf-threat-btn' + (board.showAllThreat ? ' bf-threat-on' : '') + '" id="bf-threat">威胁</button>' +
           '<button type="button" class="btn bf-undo-btn" id="bf-undo"' + (board.phase === 'ally' && board._history && board._history.length ? '' : ' disabled') + '>悔棋' + (board._history && board._history.length ? '(' + board._history.length + ')' : '') + '</button>' +
           '<button type="button" class="btn bf-main" id="bf-et">结束回合' + (board.phase === 'ally' && rest > 0 ? '（余' + rest + '）' : '') + '</button>' +
