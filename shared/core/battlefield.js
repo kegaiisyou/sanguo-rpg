@@ -1017,11 +1017,11 @@
             var face = (u.facing && (u.facing.x || u.facing.y))
               ? (u.facing.x > 0 ? '\u25B6' : u.facing.x < 0 ? '\u25C0' : u.facing.y > 0 ? '\u25BC' : '\u25B2')
               : (u.side === 'ally' ? '\u25BC' : '\u25B2');
-            var bico = ((T()[u.troopType] || {}).icon) || ((T()[u.troopType] || {}).name || '·').charAt(0);
             var tname = ((T()[u.troopType] || {}).name || u.name);
             var morPct = Math.max(0, Math.min(100, Math.round(u.morale == null ? 80 : u.morale)));
+            var icoCls = u.troopType ? 'ico-' + u.troopType : '';
             inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + (danger ? ' bf-danger' : '') + (board.sel === u ? ' bf-sel-u' : '') + (u.acted ? ' bf-acted' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
-              '<i class="bf-u-ico">' + esc(bico) + '</i>' +
+              '<i class="bf-u-ico ' + icoCls + '"></i>' +
               '<i class="bf-u-cnt">' + (u.count || 0) + '</i>' +
               '<i class="bf-u-face">' + face + '</i>' +
               '<div class="bf-u-tag">' + esc(tname) + '</div>' +

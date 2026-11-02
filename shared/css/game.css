@@ -4298,15 +4298,50 @@
   .bf-preview{ max-width:60vw; font-size:10px; }
 }
 
-/* 战棋 · 地形底色与图标（P0-2） */
-.bf-t-forest{ background:linear-gradient(180deg, rgba(74,108,72,.42), rgba(54,84,56,.34)) !important; }
-.bf-t-hill{ background:linear-gradient(180deg, rgba(150,120,70,.38), rgba(120,92,52,.30)) !important; }
-.bf-t-ford{ background:linear-gradient(180deg, rgba(70,110,140,.44), rgba(50,90,120,.34)) !important; }
-.bf-t-rampart{ background:linear-gradient(180deg, rgba(120,100,70,.44), rgba(90,74,50,.34)) !important; }
-.bf-t-wall{ background:linear-gradient(180deg, rgba(120,90,70,.50), rgba(90,64,48,.40)) !important; }
+/* 战棋 · 地形底色与图标（P0-2）— 水墨纹理版 */
+.bf-cell{ background-size:cover !important; background-position:center !important; }
+.bf-t-forest{
+  background-image:url('../../assets/battlefield/terrain_forest.jpg') !important;
+  background-size:cover !important; background-position:center !important;
+}
+.bf-t-hill{
+  background-image:url('../../assets/battlefield/terrain_hill.jpg') !important;
+  background-size:cover !important; background-position:center !important;
+}
+.bf-t-ford{
+  background-image:url('../../assets/battlefield/terrain_river.jpg') !important;
+  background-size:cover !important; background-position:center !important;
+}
+.bf-t-rampart{
+  background-image:url('../../assets/battlefield/terrain_hill.jpg') !important;
+  background-size:cover !important; background-position:center !important;
+  filter:brightness(.85);
+}
+.bf-t-wall{
+  background-image:url('../../assets/battlefield/terrain_hill.jpg') !important;
+  background-size:cover !important; background-position:center !important;
+  filter:brightness(.7) sepia(.3);
+}
+/* 平原默认纹理 */
+.bf-cell:not([class*="bf-t-"]){
+  background-image:url('../../assets/battlefield/terrain_plain.jpg') !important;
+  background-size:cover !important; background-position:center !important;
+}
 .bf-tico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  font-size:calc(var(--bf-cs,30px) * 0.62); opacity:.85; pointer-events:none; z-index:0; filter:drop-shadow(0 1px 1px rgba(255,255,255,.55)); }
-.bf-unit{ z-index:1; }
+  font-size:calc(var(--bf-cs,30px) * 0.62); opacity:.7; pointer-events:none; z-index:0; filter:drop-shadow(0 1px 1px rgba(255,255,255,.55)); }
+.bf-unit{ z-index:5; }
+/* 部队立绘背景图 */
+.bf-u-ico{
+  width:100%; height:100%;
+  background-size:cover; background-position:center;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:transparent;
+}
+.bf-u-ico.ico-changqiang{ background-image:url('../../assets/battlefield/unit_changqiang.jpg'); }
+.bf-u-ico.ico-daodun{ background-image:url('../../assets/battlefield/unit_daodun.jpg'); }
+.bf-u-ico.ico-gongnu{ background-image:url('../../assets/battlefield/unit_gongnu.jpg'); }
+.bf-u-ico.ico-qibing{ background-image:url('../../assets/battlefield/unit_qibing.jpg'); }
 /* 战棋 · 阵型角标（P0-3） */
 .bf-u-fmt{ font-style:normal; font-size:.82em; background:var(--bf-ally); color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
 .bf-u-foe .bf-u-fmt{ background:var(--bf-foe); }
@@ -4516,3 +4551,39 @@
 .bf-u-danger{ display:none; }
 .bf-danger{ border-color:#c0392b !important; box-shadow:0 0 0 2px rgba(192,57,43,.55) !important; }
 .bf-confirm-float{ z-index:80; bottom:76px; }
+
+/* 战棋 v7 · 伤害飘字动画 */
+.bf-dmg-float{ position:absolute; font-style:normal; font-weight:800; font-size:14px;
+  pointer-events:none; z-index:100; text-shadow:0 1px 3px rgba(0,0,0,.8);
+  animation:bfDmgFloat 1s ease-out forwards; }
+.bf-dmg-float.crit{ font-size:18px; color:#ffd700; }
+.bf-dmg-float.ally-dmg{ color:#ff6b5a; }
+.bf-dmg-float.foe-dmg{ color:#6bff8a; }
+@keyframes bfDmgFloat{
+  0%{ opacity:1; transform:translateY(0) scale(1); }
+  50%{ opacity:1; transform:translateY(-25px) scale(1.2); }
+  100%{ opacity:0; transform:translateY(-50px) scale(.8); }
+}
+/* 战棋 v7 · 攻击突进动画 */
+.bf-attacking{ animation:bfAtkLunge .25s ease; }
+@keyframes bfAtkLunge{
+  0%{ transform:translate(0,0); }
+  50%{ transform:translate(8px,-4px); }
+  100%{ transform:translate(0,0); }
+}
+/* 战棋 v7 · 受击抖动动画 */
+.bf-hit-shake{ animation:bfHitShake .25s ease; }
+@keyframes bfHitShake{
+  0%,100%{ transform:translate(0,0); }
+  25%{ transform:translate(-2px,1px); }
+  75%{ transform:translate(2px,-1px); }
+}
+/* 战棋 v7 · 溃败抖动 */
+.bf-routed{ animation:bfRoutShake .3s infinite; }
+@keyframes bfRoutShake{
+  0%,100%{ transform:translateX(0) rotate(0); }
+  25%{ transform:translateX(-2px) rotate(-5deg); }
+  75%{ transform:translateX(2px) rotate(5deg); }
+}
+/* 战棋 v7 · 低士气灰度 */
+.bf-morale-low{ filter:grayscale(.5) brightness(.85); }
