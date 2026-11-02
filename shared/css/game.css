@@ -4133,31 +4133,51 @@
 .nl-item .nl-mark{position:absolute;top:-4px;right:-4px;margin:0;}
 
 /* ===== 战棋沙盘（v20261030d）· 水墨沙盘 × 暗褐鎏金 ===== */
+/* ===== 战棋沙盘 · 水墨纸本 × 金边点缀（重做版，去深色/去杂乱） ===== */
 .bf-root{
-  --bf-ally:#3f5f7a; --bf-foe:#9e3b2e; --bf-gold:var(--gold);
-  --bf-ink:var(--ink); --bf-paper:var(--paper); --bf-paper2:var(--paper2); --bf-line:rgba(74,62,48,.16);
+  --bf-ally:#3f5f7a; --bf-foe:#9e3b2e; --bf-gold:#b0832f;
+  --bf-ink:#2a2014; --bf-paper:#f4eee2; --bf-paper2:#efe8d8; --bf-line:rgba(74,62,48,.18);
   --bf-ally-bg:rgba(63,95,122,.10); --bf-foe-bg:rgba(158,59,46,.10);
   --bf-sel:rgba(176,131,47,.62); --bf-reach:rgba(176,131,47,.30);
-  position:fixed; inset:0; z-index:1000; overflow:hidden; background:transparent;
+  --bf-bg:#f4eee2;
+  position:fixed; inset:0; z-index:1000; overflow:hidden; background:#f4eee2;
   font-family:"STKaiti","KaiTi","Songti SC","PingFang SC",serif;
   color:var(--bf-ink);
 }
-.bf-top{ position:absolute; top:8px; left:8px; right:auto; z-index:30; display:flex; align-items:center; gap:6px;
-  padding:4px 10px; border:1px solid var(--bf-line); border-radius:var(--r-pill);
-  background:rgba(244,238,226,.82); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
-  /* 浮于棋盘之上：自身不吃点击，避免遮住顶行单位 */
-  pointer-events:none;
-  font-size:12px; letter-spacing:.5px; max-width:calc(100% - 16px); flex-wrap:wrap; }
+/* 战场之外：极淡纸色留白 + 细虚线边界，彻底去除黑乎乎观感 */
+.bf-outzone{ position:fixed; inset:0; z-index:1; cursor:pointer; pointer-events:auto;
+  background:
+    repeating-linear-gradient(45deg, rgba(180,160,130,.06) 0 9px, rgba(180,160,130,.03) 9px 18px),
+    linear-gradient(180deg,#faf7f0,#efe7d6);
+  box-shadow: inset 0 0 0 9999px rgba(255,253,248,.30); }
+.bf-outzone::after{ content:'战场之外 · 不可到达'; position:absolute; top:13%; left:50%; transform:translateX(-50%);
+  color:rgba(120,100,70,.28); font-size:12px; letter-spacing:3px; pointer-events:none; }
+/* 顶栏（极简 HUD） */
+.bf-top{ position:absolute; top:6px; left:6px; right:auto; z-index:30; display:flex; align-items:center; gap:6px;
+  padding:4px 10px; border:1px solid var(--bf-line); border-radius:999px;
+  background:rgba(244,238,226,.9); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  pointer-events:none; font-size:12px; letter-spacing:.5px; max-width:calc(100% - 16px); flex-wrap:wrap; }
 .bf-top span{ pointer-events:none; }
-.bf-top-m{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .bf-top-l{ color:var(--bf-ally); font-weight:700; }
-.bf-top-m{ color:var(--bf-gold); font-weight:700; font-size:15px; text-shadow:0 1px 0 rgba(255,255,255,.5); }
+.bf-top-m{ color:var(--bf-gold); font-weight:700; font-size:14px; text-shadow:0 1px 0 rgba(255,255,255,.5); }
 .bf-top-r{ color:var(--ink-soft); font-variant-numeric:tabular-nums; }
-.bf-viewport{ position:absolute; top:36px; bottom:96px; left:0; right:0; overflow:hidden;
-  background:transparent; z-index:5;
-  touch-action:none; cursor:grab; }
+.bf-top-btn{ margin-left:4px; padding:2px 11px; font-size:13px; border:1px solid var(--bf-line); border-radius:999px;
+  background:rgba(244,238,226,.92); color:var(--bf-ink); cursor:pointer; pointer-events:auto; }
+.bf-top-btn:active{ transform:scale(.94); }
+/* 顶栏 ⋮ 下拉菜单 */
+.bf-topmenu{ position:absolute; top:42px; right:6px; z-index:46; display:none; flex-direction:column; gap:2px;
+  padding:4px; border:1px solid var(--bf-line); border-radius:12px; background:rgba(244,238,226,.97);
+  box-shadow:var(--shadow); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); min-width:134px; }
+.bf-topmenu.open{ display:flex; }
+.bf-tm-i{ text-align:left; background:transparent; border:none; border-radius:8px; padding:7px 10px; cursor:pointer;
+  font-family:inherit; color:var(--bf-ink); font-size:13px; }
+.bf-tm-i:hover{ background:rgba(176,131,47,.16); }
+/* 棋盘 */
+.bf-viewport{ position:absolute; top:40px; bottom:62px; left:0; right:0; overflow:hidden;
+  background:transparent; z-index:5; touch-action:none; cursor:grab; }
 .bf-viewport:active{ cursor:grabbing; }
 .bf-grid{ position:absolute; left:0; top:0; will-change:transform; }
+/* 格子：必须保持 position:absolute（曾因被覆盖成 relative 致整屏黑屏） */
 .bf-cell{ position:absolute; box-sizing:border-box; border:1px solid var(--bf-line);
   background:linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35));
   box-shadow:inset 0 0 0 1px rgba(255,253,248,.22); }
@@ -4172,242 +4192,220 @@
 .bf-reach.bf-dim{ box-shadow:inset 0 0 0 2px var(--bf-reach); }
 .bf-atk.bf-dim{ box-shadow:inset 0 0 0 3px var(--bf-foe); }
 .bf-atk-range{ box-shadow:inset 0 0 0 2px rgba(158,59,46,.55); background:rgba(158,59,46,.16) !important; }
-.bf-edge{ pointer-events:none; background:rgba(74,62,48,.05); box-shadow:inset 0 0 0 1px rgba(74,62,48,.06); }
+.bf-edge{ pointer-events:none; background:rgba(180,160,130,.05); box-shadow:inset 0 0 0 1px rgba(180,160,130,.06); }
+.bf-cell-hit{ position:absolute; inset:0; cursor:pointer; }
 .bf-path-dot{ position:absolute; left:50%; top:50%; width:9px; height:9px; margin:-4.5px 0 0 -4.5px; border-radius:50%; background:var(--bf-gold); box-shadow:0 0 8px rgba(176,131,47,.95); z-index:6; pointer-events:none; }
-.bf-ghost{ position:absolute; border:2px dashed rgba(176,131,47,.85); border-radius:var(--r-card); background:rgba(176,131,47,.14); display:flex; align-items:center; justify-content:center; z-index:1; pointer-events:none; animation:bfGhostPulse 1s ease-in-out infinite; }
+.bf-ghost{ position:absolute; border:2px dashed rgba(176,131,47,.85); border-radius:8px; background:rgba(176,131,47,.14); display:flex; align-items:center; justify-content:center; z-index:1; pointer-events:none; animation:bfGhostPulse 1s ease-in-out infinite; }
 .bf-ghost .bf-u-ico{ position:relative; inset:auto; opacity:.7; }
 @keyframes bfGhostPulse{ 0%,100%{ opacity:.55 } 50%{ opacity:.95 } }
-.bf-unit{ transition:box-shadow .15s ease, transform .12s ease; }
-.bf-sel-u{ box-shadow:0 0 0 2px var(--bf-gold), 0 2px 12px rgba(0,0,0,.5); z-index:3; }
-.bf-cell-confirm{ animation:bfPulse .7s ease-in-out infinite; }
-@keyframes bfPulse{ 0%,100%{ filter:brightness(1) } 50%{ filter:brightness(1.18) } }
-.bf-cell-hit{ position:absolute; inset:0; cursor:pointer; }
-
-/* 战棋 · 边缘不可到达区域（方格布局四周余量） */
-.bf-outzone{ position:fixed; inset:0; z-index:1; cursor:pointer; pointer-events:auto;
-  background:
-    repeating-linear-gradient(45deg, rgba(30,22,14,.42) 0 9px, rgba(30,22,14,.30) 9px 18px),
-    var(--bf-bg, #241a10);
-  box-shadow: inset 0 0 0 9999px rgba(14,10,6,.34); }
-.bf-outzone::after{ content:'战场之外 · 不可到达'; position:absolute; top:13%; left:50%; transform:translateX(-50%);
-  color:rgba(245,238,224,.30); font-size:12px; letter-spacing:3px; pointer-events:none; }
-/* 战棋 · 移动确认悬浮按钮（底部居中，永远可见） */
-.bf-confirm-float{ position:fixed; left:50%; transform:translateX(-50%); bottom:70px; z-index:60;
-  padding:10px 24px; font-size:16px; font-weight:700; border-radius:999px;
-  background:linear-gradient(180deg,#d4ab4f,#a87f2e); color:#1c1206; border:1px solid rgba(255,255,255,.45);
-  box-shadow:0 6px 20px rgba(0,0,0,.4); }
-.bf-confirm-float:active{ transform:translateX(-50%) scale(.96); }
-/* 战棋 · 落点确认钮（锚定在目标格中心，随棋盘平移） */
-.bf-cell-confirm{ position:absolute; z-index:20; transform:translate(-50%,-50%); display:flex; flex-direction:column; gap:4px; align-items:center; justify-content:center; pointer-events:auto; }
-.bf-cell-confirm .btn{ min-width:62px; padding:6px 12px; font-size:13px; }
-.bf-cc-ok{ background:var(--bf-gold); color:#1a1208; border-color:var(--bf-gold); font-weight:700; }
-/* 战棋 · 顶部 contextual 行动条（选中单位时显示，不挡底部速度面板） */
-.bf-actbar{ position:absolute; top:46px; left:50%; transform:translateX(-50%); z-index:42; display:flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid var(--bf-line); border-radius:var(--r-card); background:rgba(244,238,226,.94); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); box-shadow:var(--shadow); max-width:min(94vw,360px); flex-wrap:wrap; justify-content:center; pointer-events:auto; }
-.bf-act-name{ font-weight:700; color:var(--bf-gold); font-size:13px; margin-right:2px; white-space:nowrap; }
-.bf-actbar .btn{ min-width:auto; padding:5px 12px; font-size:13px; }
-.bf-actbar .btn.bf-on{ background:var(--bf-gold); color:#1a1208; border-color:var(--bf-gold); font-weight:700; }
-.bf-actbar .btn-ghost{ background:transparent; }
-
-.bf-unit{ position:absolute; inset:4px; border-radius:var(--r-card); padding:3px 4px;
-  display:flex; flex-direction:column; justify-content:center; gap:2px;
-  /* 字号随格子尺寸缩放（--bf-cs 由 render 注入），小格保底10px、大格封顶 17px */
-  font-size:clamp(10px, calc(var(--bf-cs, 48px) * .23), 17px); line-height:1.1; cursor:pointer; overflow:hidden;
-  box-shadow:var(--shadow); border:1px solid var(--bf-line);
+/* 地形底色与图标 — 纯CSS水墨纹理，无大图 */
+.bf-cell::after{ content:''; position:absolute; inset:0; opacity:.2; pointer-events:none;
+  background-image:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.05) 6px, rgba(0,0,0,.05) 7px); }
+.bf-cell:not([class*="bf-t-"]){ background:linear-gradient(180deg, rgba(255,253,248,.55), rgba(236,227,209,.42)) !important; }
+.bf-t-forest{ background:
+    radial-gradient(circle at 30% 40%, rgba(40,70,35,.25) 0%, transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(35,60,30,.2) 0%, transparent 50%),
+    linear-gradient(135deg, rgba(60,90,50,.15), rgba(40,70,40,.1)),
+    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important; }
+.bf-t-hill{ background:
+    linear-gradient(135deg, rgba(140,110,65,.2) 0%, rgba(100,80,45,.1) 100%),
+    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(80,60,30,.05) 8px, rgba(80,60,30,.05) 9px),
+    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important; }
+.bf-t-ford{ background:
+    linear-gradient(180deg, rgba(60,100,130,.25) 0%, rgba(40,80,110,.2) 100%),
+    repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 12px),
+    linear-gradient(180deg, rgba(255,253,248,.4), rgba(236,227,209,.25)) !important; }
+.bf-t-rampart{ background:linear-gradient(135deg, rgba(120,100,60,.25), rgba(90,75,45,.15)),
+    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important; }
+.bf-t-wall{ background:linear-gradient(135deg, rgba(100,70,50,.3), rgba(70,50,35,.2)),
+    linear-gradient(180deg, rgba(255,253,248,.45), rgba(236,227,209,.3)) !important; }
+.bf-tico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:calc(var(--bf-cs,30px) * 0.62); opacity:.6; pointer-events:none; z-index:0; filter:drop-shadow(0 1px 1px rgba(255,255,255,.4)); }
+/* 棋子牌（v6 极简四角布局：图标+兵力+朝向+短兵种名） */
+.bf-unit{ display:block; padding:0; inset:2px; border:1.5px solid rgba(74,62,48,.35);
+  border-radius:var(--r-card); position:absolute; overflow:hidden; box-shadow:var(--shadow);
   background:linear-gradient(180deg, rgba(255,253,248,.96), rgba(244,238,226,.96)); }
-.bf-u-ally{ border-color:rgba(63,95,122,.55); }
-.bf-u-foe{ border-color:rgba(158,59,46,.55); background:linear-gradient(180deg, rgba(252,240,238,.96), rgba(248,228,224,.96)); }
-.bf-u-name{ font-weight:700; color:var(--bf-ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.05; }
-.bf-u-ally .bf-u-name{ color:var(--bf-ally); }
-.bf-u-foe .bf-u-name{ color:var(--bf-foe); }
-.bf-u-off{ font-style:normal; font-size:.82em; background:var(--bf-gold); color:#fff; border-radius:var(--r-pill); padding:0 3px; }
-.bf-u-hp{ height:5px; border-radius:var(--r-pill); background:rgba(74,62,48,.18); overflow:hidden; }
-.bf-u-hp span{ display:block; height:100%; background:linear-gradient(90deg,var(--jade),#5fae7e); transition:width .25s; }
-.bf-u-foe .bf-u-hp span{ background:linear-gradient(90deg,var(--seal),#c75a47); }
-.bf-u-mor{ height:3px; border-radius:var(--r-pill); background:rgba(74,62,48,.14); border:1px solid; }
-.bf-u-cnt{ font-size:.72em; margin-left:3px; padding:0 4px; border-radius:8px; background:rgba(40,28,14,.34); color:#fff; font-style:normal; white-space:nowrap; }
-.bf-u-ico{ position:absolute; top:1px; right:2px; font-size:.9em; opacity:.8; pointer-events:none; }
-.bf-u-face{ position:absolute; right:2px; bottom:1px; font-size:.85em; color:var(--bf-gold); text-shadow:0 0 2px #000; pointer-events:none; }
-.bf-acted .bf-u-face, .bf-acted .bf-u-ico{ opacity:.4; }
-.bf-u-mor{ display:none; }
-.bf-sel .bf-u-mor{ display:block; }
+.bf-u-ally{ border-color:rgba(63,95,122,.72); }
+.bf-u-foe{ border-color:rgba(158,59,46,.72); }
+.bf-u-ico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-style:normal;
+  font-size:calc(var(--bf-cs,30px) * .52); line-height:1; opacity:.92; pointer-events:none; z-index:1;
+  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.2), transparent 50%); border-radius:50%; }
+.bf-u-ico.ico-changqiang::before{ content:'长'; }
+.bf-u-ico.ico-daodun::before{ content:'刀'; }
+.bf-u-ico.ico-gongnu::before{ content:'弓'; }
+.bf-u-ico.ico-qibing::before{ content:'骑'; }
+.bf-u-cnt{ position:absolute; top:1px; right:2px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .30);
+  background:rgba(24,17,10,.74); color:#fff; border-radius:999px; padding:0 4px; line-height:1.5; pointer-events:none; z-index:2; }
+.bf-u-ally .bf-u-cnt{ background:rgba(63,95,122,.95); }
+.bf-u-foe .bf-u-cnt{ background:rgba(158,59,46,.95); }
+.bf-u-face{ position:absolute; bottom:0; left:2px; font-style:normal; font-size:calc(var(--bf-cs,30px) * .34);
+  line-height:1; color:rgba(24,17,10,.72); pointer-events:none; z-index:2; }
+.bf-u-tag{ position:absolute; bottom:0; right:2px; left:18px; font-style:normal; font-weight:700;
+  font-size:calc(var(--bf-cs,30px) * .26); color:var(--bf-ink); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; z-index:2; }
+.bf-u-ally .bf-u-tag{ color:var(--bf-ally); }
+.bf-u-foe .bf-u-tag{ color:var(--bf-foe); }
 .bf-u-hp{ position:absolute; left:3px; right:3px; bottom:2px; height:3px; border-radius:2px; background:rgba(0,0,0,.36); overflow:hidden; z-index:3; }
 .bf-u-hp>i{ display:block; height:100%; width:100%; background:linear-gradient(90deg,#5aa55a,#86d36b); }
 .bf-u-foe .bf-u-hp>i{ background:linear-gradient(90deg,#c75a47,#e08a6f); }
 .bf-u-mor{ position:absolute; left:3px; right:3px; bottom:6px; height:2px; border-radius:2px; background:rgba(0,0,0,.3); overflow:hidden; z-index:3; display:none; }
 .bf-u-mor>i{ display:block; height:100%; width:100%; background:var(--bf-gold); }
-.bf-sel-u .bf-u-mor{ display:block; }
-.bf-u-name{ padding-right:13px; }
-.bf-u-cnt, .bf-u-off, .bf-u-fmt, .bf-u-danger{ flex:none; }
-.bf-unit{ padding:4px 5px; }
+.bf-sel-u{ box-shadow:0 0 0 2px var(--bf-gold), 0 2px 10px rgba(0,0,0,.4); z-index:3; }
+.bf-u-mor{ display:none; } .bf-sel-u .bf-u-mor{ display:block; }
+.bf-u-name{ display:none; }
+.bf-u-fmt{ font-style:normal; font-size:.82em; background:var(--bf-ally); color:#fff; border-radius:999px; padding:0 3px; margin-left:2px; }
+.bf-u-foe .bf-u-fmt{ background:var(--bf-foe); }
+.bf-acted{ opacity:.5; }
+.bf-u-danger{ display:none; }
+.bf-danger{ border-color:#c0392b !important; box-shadow:0 0 0 2px rgba(192,57,43,.55) !important; }
 .bf-routed{ filter:grayscale(.7); opacity:.55; }
-.bf-detail{ position:absolute; top:84px; left:8px; z-index:28; max-width:min(46%,280px); max-height:38%; overflow-y:auto; pointer-events:none;
-  padding:8px 12px; border:1px solid var(--panel-line); border-radius:var(--r-card);
-  background:var(--panel); box-shadow:var(--shadow); min-height:56px; }
-.bf-dt-card{ font-size:12px; line-height:1.5; }
-.bf-dt-h{ font-weight:700; color:var(--bf-gold); font-size:14px; margin-bottom:3px; }
-.bf-dt-row{ color:var(--ink-soft); }
-.bf-dt-ord{ margin-top:3px; color:var(--ink-faint); }
-.bf-chip{ display:inline-block; margin:2px 4px 0 0; padding:1px 7px; border:1px solid var(--bf-line); border-radius:var(--r-pill); font-size:11px; color:var(--bf-ally); }
-.bf-dt-hint{ color:var(--ink-faint); font-size:12px; }
-.bf-bar{ position:absolute; left:50%; transform:translateX(-50%); right:auto; bottom:8px; z-index:35; display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--bf-line); border-radius:var(--r-card); background:rgba(236,227,209,.92); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
-  /* 浮于棋盘之上：仅按钮吃点击，被遮的底行单位仍可点选 */
-  pointer-events:none; max-width:calc(100% - 16px); flex-wrap:wrap; justify-content:center; box-shadow:var(--shadow); }
+/* 威胁覆盖 */
+.bf-threat-move{ box-shadow:inset 0 0 0 2px rgba(176,131,47,.18); background:rgba(176,131,47,.10) !important; }
+.bf-threat-atk{ box-shadow:inset 0 0 0 2px rgba(158,59,46,.32); background:rgba(158,59,46,.15) !important; }
+.bf-threat-all{ box-shadow: inset 0 0 0 2px rgba(155,59,46,.5); background:rgba(155,59,46,.16); }
+.bf-threat-btn.bf-threat-on{ background:var(--bf-foe); color:#fff; border-color:var(--bf-foe); }
+/* 速度控制 */
+.bf-speed{ display:inline-flex; align-items:center; gap:2px; font-size:12px; color:var(--ink-faint); padding:2px 6px; border:1px solid var(--bf-line); border-radius:999px; background:rgba(244,238,226,.55); flex-wrap:nowrap; }
+.bf-speed .bf-sp{ flex:0 0 auto; }
+.bf-sp{ min-width:30px; padding:3px 5px; border:1px solid var(--btn-bd); background:var(--btn-bg); border-radius:var(--r-btn);
+  cursor:pointer; font-family:inherit; color:var(--btn-fg); font-size:11px; }
+.bf-sp.on{ border-color:var(--bf-gold); color:var(--bf-gold); box-shadow:0 0 0 1px rgba(176,131,47,.4); }
+/* 底部操作条（常驻主控制） */
+.bf-bar{ position:absolute; left:0; right:0; bottom:0; z-index:35; height:56px; display:flex; align-items:center; gap:8px; padding:6px 10px; border-top:1px solid var(--bf-line); background:rgba(236,227,209,.96); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); pointer-events:none; box-shadow:0 -2px 10px rgba(0,0,0,.12); }
 .bf-bar > *{ pointer-events:auto; }
-.bf-bar-tip{ text-align:center; margin:0 0 0 6px; font-size:11px; color:var(--ink-faint); white-space:nowrap; }
-.bf-bar .btn{ min-width:84px; }
-.bf-bar-tip{ margin-left:auto; font-size:12px; color:var(--ink-faint); }
+.bf-bar-tip{ text-align:center; margin-left:auto; font-size:11px; color:var(--ink-faint); white-space:nowrap; }
+.bf-bar-pending{ color:var(--bf-gold); font-weight:700; font-size:12px; }
 .bf-bar .btn{ min-width:auto; padding:6px 12px; font-size:13px; }
-.bf-confirm{ background:var(--bf-gold); color:#1a1208; border-color:var(--bf-gold); font-weight:700; }
-.bf-pop-host{ position:absolute; inset:0; pointer-events:none; z-index:40; }
-.bf-pop{ position:absolute; left:50%; bottom:12px; transform:translateX(-50%);
-  pointer-events:auto; background:var(--panel); border:1px solid var(--btn-bd);
-  border-radius:var(--r-card); box-shadow:var(--shadow); padding:6px; display:flex; flex-direction:column;
-  gap:4px; min-width:120px; max-width:90vw; }
-.bf-pop-b{ text-align:left; background:var(--btn-bg); border:1px solid var(--btn-bd); border-radius:var(--r-btn);
-  padding:6px 10px; cursor:pointer; font-family:inherit; color:var(--btn-fg); transition:.12s; }
+/* 选中操作板（从底条上方滑出，与底条一体，不遮棋盘） */
+.bf-plate{ position:absolute; left:0; right:0; bottom:56px; z-index:40; transform:translateY(120%); transition:transform .22s ease; pointer-events:none; }
+.bf-plate:not([hidden]){ transform:translateY(0); }
+.bf-plate-info{ pointer-events:none; text-align:center; padding:6px 10px 2px; }
+.bf-plate-name{ display:block; font-weight:700; color:var(--bf-gold); font-size:14px; text-shadow:0 1px 0 rgba(255,255,255,.6); }
+.bf-plate-name.bf-plate-foe{ color:var(--bf-foe); }
+.bf-plate-stats{ display:block; font-size:11px; color:var(--ink-soft); }
+.bf-plate-danger{ display:inline-block; margin-top:2px; font-size:11px; color:#c0392b; font-weight:700; }
+.bf-plate-hint{ display:block; font-size:11px; color:var(--ink-faint); padding:4px 10px 6px; }
+.bf-plate-acts{ display:flex; gap:6px; justify-content:center; align-items:center; padding:4px 8px 8px; pointer-events:none; flex-wrap:wrap; }
+.bf-plate-acts button{ pointer-events:auto; }
+/* 右侧 FAB 堆叠（单位列表 / 战报 / 缩放） */
+.bf-fab{ position:absolute; right:10px; top:50%; transform:translateY(-50%); z-index:38; display:flex; flex-direction:column; gap:8px; align-items:stretch; }
+.bf-fab-b{ width:46px; height:46px; border-radius:14px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); font-size:18px; font-weight:700; cursor:pointer; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; transition:.12s; font-family:inherit; }
+.bf-fab-b:hover{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
+.bf-fab-b.on{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
+.bf-fab.compact{ gap:0; }
+.bf-fab.compact .bf-fab-b{ width:0; height:0; padding:0; border:0; opacity:0; pointer-events:none; }
+.bf-fab.compact::after{ content:'☰'; width:38px; height:38px; border-radius:12px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:var(--shadow); }
+/* FAB 侧滑面板（部队列表 / 战报 / 缩放 / 图例） */
+.bf-fab-panel{ position:absolute; top:40px; bottom:62px; right:10px; z-index:39; width:min(76vw,260px); display:flex; flex-direction:column; border:1px solid var(--bf-line); border-radius:14px; background:rgba(244,238,226,.97); box-shadow:var(--shadow); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); overflow:hidden; }
+.bf-fab-panel[hidden]{ display:none; }
+.bf-fp-h{ display:flex; align-items:center; justify-content:space-between; padding:8px 12px; font-weight:700; color:var(--bf-gold); font-size:14px; border-bottom:1px solid var(--bf-line); }
+.bf-fp-x{ border:none; background:transparent; color:var(--ink-soft); font-size:16px; cursor:pointer; line-height:1; padding:2px 6px; border-radius:8px; }
+.bf-fp-x:hover{ background:rgba(176,131,47,.16); }
+.bf-fp-body{ flex:1; overflow-y:auto; padding:8px; }
+.bf-fp-zoom{ display:flex; flex-direction:column; gap:8px; padding:12px; }
+.bf-fp-zoom .btn{ width:100%; padding:10px; font-size:14px; }
+/* 部队卡片（FAB 列表内） */
+.bf-unit-card{ background:rgba(90,74,42,.10); border:1px solid #4a3d25; border-radius:8px; padding:6px 8px; margin-bottom:6px; cursor:pointer; transition:all .15s; }
+.bf-unit-card:hover{ background:rgba(176,131,47,.16); border-color:var(--bf-gold); }
+.bf-unit-card.selected{ border-color:var(--bf-gold); background:rgba(176,131,47,.18); }
+.bf-unit-card.ally{ border-left:3px solid var(--bf-ally); }
+.bf-unit-card.foe{ border-left:3px solid var(--bf-foe); }
+.bf-uc-name{ font-size:12px; font-weight:700; margin-bottom:2px; }
+.bf-uc-count{ font-size:10px; color:#888; margin-bottom:4px; }
+.bf-uc-hp{ height:4px; background:#ddd; border-radius:2px; overflow:hidden; margin-bottom:3px; }
+.bf-uc-hp i{ display:block; height:100%; background:var(--bf-foe); border-radius:2px; }
+.bf-unit-card.ally .bf-uc-hp i{ background:var(--bf-ally); }
+.bf-uc-mor{ height:3px; background:#ddd; border-radius:2px; overflow:hidden; }
+.bf-uc-mor i{ display:block; height:100%; background:#27ae60; border-radius:2px; }
+.bf-log-item{ font-size:11px; padding:4px 6px; margin-bottom:2px; border-radius:3px; background:rgba(90,74,42,.08); border-left:2px solid var(--bf-line); }
+.bf-log-item.ally{ border-left-color:var(--bf-ally); }
+.bf-log-item.foe{ border-left-color:var(--bf-foe); }
+.bf-log-item.crit{ border-left-color:var(--bf-gold); background:rgba(176,131,47,.12); }
+/* 图例行（FAB 内） */
+.bf-leg-row{ display:flex; align-items:center; gap:6px; padding:3px 0; }
+.bf-leg-ico{ width:20px; text-align:center; font-size:15px; }
+.bf-leg-name{ flex:0 0 56px; font-weight:600; }
+.bf-leg-eff{ color:var(--ink-soft); font-size:11px; }
+.bf-leg-hint{ margin-top:8px; font-size:11px; color:var(--ink-faint); }
+/* 指令浮层（军令菜单 · 锚定目标旁） */
+.bf-pop-host{ position:absolute; inset:0; pointer-events:none; z-index:42; }
+.bf-pop{ position:absolute; left:50%; bottom:12px; transform:translateX(-50%); pointer-events:auto; background:var(--panel); border:1px solid var(--btn-bd); border-radius:var(--r-card); box-shadow:var(--shadow); padding:6px; display:flex; flex-direction:column; gap:4px; min-width:120px; max-width:92vw; }
+.bf-pop-b{ text-align:left; background:var(--btn-bg); border:1px solid var(--btn-bd); border-radius:var(--r-btn); padding:6px 10px; cursor:pointer; font-family:inherit; color:var(--btn-fg); transition:.12s; }
 .bf-pop-b:hover{ background:var(--btn-hover); }
 .bf-pop-b.ghost{ color:var(--ink-faint); }
 .bf-pop-b span{ display:block; font-size:10px; color:var(--ink-faint); margin-top:1px; }
-.bf-preview{ position:absolute; left:8px; bottom:8px; z-index:36; max-width:46vw; padding:6px 9px;
-  border:1px solid var(--bf-gold); border-radius:var(--r-card); background:rgba(28,22,14,.86);
-  color:#f3e9d6; font-size:11px; line-height:1.5; box-shadow:0 4px 14px rgba(0,0,0,.35); display:none; pointer-events:none; }
+.bf-pop-t{ font-size:11px; color:var(--ink-soft); margin-bottom:2px; }
+.bf-action{ left:50%; bottom:64px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; gap:6px; max-width:min(94vw,230px); }
+/* 攻击预演（浮于目标旁） */
+.bf-preview{ position:absolute; left:8px; bottom:8px; z-index:36; max-width:46vw; padding:6px 9px; border:1px solid var(--bf-gold); border-radius:var(--r-card); background:rgba(28,22,14,.86); color:#f3e9d6; font-size:11px; line-height:1.5; box-shadow:0 4px 14px rgba(0,0,0,.35); display:none; pointer-events:none; }
 .bf-preview .bf-pv-t{ color:var(--bf-gold); font-weight:700; margin-bottom:2px; }
 .bf-preview .bf-pv-r b{ color:#ffd98a; }
 .bf-preview .bf-pv-adv{ color:#7ec97e; } .bf-preview .bf-pv-dis{ color:#e08a8a; } .bf-preview .bf-pv-warn{ color:#f0c060; }
-.bf-action{ left:50%; bottom:64px; transform:translateX(-50%); flex-direction:row; flex-wrap:wrap; justify-content:center; gap:6px; max-width:min(94vw,230px); }
-.bf-pop-t{ font-size:11px; color:var(--ink-soft); margin-bottom:2px; }
-.bf-float{ position:absolute; transform:translate(-50%,-50%); font-family:"STKaiti",serif; font-weight:700;
-  pointer-events:none; z-index:30; text-shadow:0 1px 2px rgba(255,255,255,.9); animation:dmgRise .8s ease-out forwards; }
+.bf-dt-danger{ color:#c0392b; font-weight:700; } .bf-dt-foe{ color:var(--bf-foe); }
+/* 飘字 / 动画 */
+.bf-float{ position:absolute; transform:translate(-50%,-50%); font-family:"STKaiti",serif; font-weight:700; pointer-events:none; z-index:30; text-shadow:0 1px 2px rgba(255,255,255,.9); animation:dmgRise .8s ease-out forwards; }
 .bf-float.dmg{ color:var(--seal); font-size:16px; }
 .bf-float.label-crit{ color:#c0392b; font-size:18px; }
 .bf-float.label-dodge{ color:var(--ink-faint); font-size:13px; }
+.bf-dmg-float{ position:absolute; font-style:normal; font-weight:800; font-size:14px; pointer-events:none; z-index:100; text-shadow:0 1px 3px rgba(0,0,0,.8); animation:bfDmgFloat 1s ease-out forwards; }
+.bf-dmg-float.crit{ font-size:18px; color:#ffd700; }
+.bf-dmg-float.ally-dmg{ color:#ff6b5a; } .bf-dmg-float.foe-dmg{ color:#6bff8a; }
+@keyframes bfDmgFloat{ 0%{ opacity:1; transform:translateY(0) scale(1); } 50%{ opacity:1; transform:translateY(-25px) scale(1.2); } 100%{ opacity:0; transform:translateY(-50px) scale(.8); } }
+.bf-march{ animation:bfMarch .15s linear infinite; }
+@keyframes bfMarch{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(0,-1px); } }
+.bf-hit{ animation:bfHit .3s ease; }
+@keyframes bfHit{ 0%{ filter:brightness(1); } 20%{ filter:brightness(2.2) saturate(.3); transform:translate(2px,-1px); } 50%{ filter:brightness(1.4); transform:translate(-2px,1px); } 100%{ filter:brightness(1); transform:translate(0,0); } }
+.bf-trail-dot{ position:absolute; width:8px; height:8px; border-radius:50%; background:rgba(176,131,47,.35); border:1px solid rgba(176,131,47,.6); transform:translate(-50%,-50%); animation:bfDotFade .4s ease-out forwards; }
+@keyframes bfDotFade{ 0%{ opacity:1; } 100%{ opacity:0; } }
+.bf-aim-line{ position:absolute; height:0; border-top:2px dashed rgba(158,59,46,.5); transform-origin:0 50%; pointer-events:none; z-index:4; }
+.bf-aim-layer{ position:absolute; inset:0; pointer-events:none; z-index:4; }
+.bf-acted{ filter:grayscale(.5); opacity:.55; }
+.bf-acted-tag{ position:absolute; top:1px; right:2px; font-style:normal; font-size:9px; background:rgba(74,62,48,.55); color:#fff; border-radius:999px; padding:0 3px; z-index:3; }
+.bf-acting{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 16px rgba(176,131,47,.6); z-index:6; animation:bfActPulse 1s ease-in-out infinite; }
+@keyframes bfActPulse{ 0%,100%{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 16px rgba(176,131,47,.6); } 50%{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 22px rgba(176,131,47,.85); } }
+.bf-shake{ animation:bfShake .2s ease; }
+@keyframes bfShake{ 0%,100%{ transform:translate(0,0); } 20%{ transform:translate(-3px,1px); } 40%{ transform:translate(3px,-1px); } 60%{ transform:translate(-2px,2px); } 80%{ transform:translate(2px,-2px); } }
+.bf-u-hp span{ transition:width .35s ease, background .3s; }
+.bf-u-hp span.low{ background:linear-gradient(90deg,#8a2a1e,#c0392b)!important; }
+.bf-attacking{ animation:bfAtkLunge .25s ease; }
+@keyframes bfAtkLunge{ 0%{ transform:translate(0,0); } 50%{ transform:translate(8px,-4px); } 100%{ transform:translate(0,0); } }
+.bf-hit-shake{ animation:bfHitShake .25s ease; }
+@keyframes bfHitShake{ 0%,100%{ transform:translate(0,0); } 25%{ transform:translate(-2px,1px); } 75%{ transform:translate(2px,-1px); } }
+.bf-routed{ animation:bfRoutShake .3s infinite; }
+@keyframes bfRoutShake{ 0%,100%{ transform:translateX(0) rotate(0); } 25%{ transform:translateX(-2px) rotate(-5deg); } 75%{ transform:translateX(2px) rotate(5deg); } }
+.bf-morale-low{ filter:grayscale(.5) brightness(.85); }
+/* 内嵌抽屉（详情 / 列阵） */
+.bf-sheet{ position:absolute; inset:0; z-index:60; display:flex; align-items:flex-end; background:rgba(24,17,10,.55); }
+.bf-sheet[hidden]{ display:none; }
+.bf-sheet-in{ width:100%; max-height:74%; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 14px 18px; box-sizing:border-box; background:#f4eee2; border-top:2px solid #b0832f; border-radius:14px 14px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,.35); }
+.bf-sheet-in h3{ margin:2px 0 8px; font-size:16px; }
 .bf-modal{ font-size:13px; line-height:1.6; }
 .bf-md-row{ margin:4px 0; color:var(--ink-soft); }
 .bf-md-row b{ color:var(--bf-gold); }
 .bf-md-title{ margin-top:8px; color:var(--bf-ally); font-weight:700; border-top:1px dashed var(--bf-line); padding-top:6px; }
-@media (max-width:540px){
-  .bf-top{ top:6px; left:6px; font-size:11px; padding:3px 8px; gap:4px; }
-  .bf-top-m{ font-size:12px; }
-  .bf-bar{ right:6px; bottom:6px; gap:6px; padding:5px 6px; }
-  .bf-detail{ top:80px; left:6px; max-width:min(50%,190px); max-height:24%; font-size:11px; padding:6px 8px; }
-  .bf-log{ top:80px; right:6px; width:min(44%,170px); max-height:22%; padding:5px 8px; }
-  .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; }
-  .bf-bar-tip{ font-size:10px; }
-  .bf-action{ bottom:64px; max-width:min(94vw,230px); gap:6px; }
-  .bf-pop{ min-width:104px; }
-  .bf-preview{ max-width:60vw; font-size:10px; }
-}
-
-/* 战棋 · 地形底色与图标 — 纯CSS水墨纹理，无大图，流畅 */
-/* 禁止在此写 .bf-cell{position:relative}：会覆盖上方 position:absolute，使格子落入文档流垂直堆叠、整片跑出视口（黑乎乎根因） */
-.bf-cell::after{
-  content:''; position:absolute; inset:0; opacity:.2; pointer-events:none;
-  background-image:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.05) 6px, rgba(0,0,0,.05) 7px);
-}
-/* 平原：米白纸底 —— 缺这条时 90% 以上格子透明，会露出暗底整片黑乎乎 */
-.bf-cell:not([class*="bf-t-"]){
-  background:linear-gradient(180deg, rgba(255,253,248,.55), rgba(236,227,209,.42)) !important;
-}
-/* 地形纹理叠加（不覆盖原有底色，只加纹理） */
-.bf-t-forest{
-  background:
-    radial-gradient(circle at 30% 40%, rgba(40,70,35,.25) 0%, transparent 55%),
-    radial-gradient(circle at 70% 60%, rgba(35,60,30,.2) 0%, transparent 50%),
-    linear-gradient(135deg, rgba(60,90,50,.15), rgba(40,70,40,.1)),
-    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important;
-}
-.bf-t-hill{
-  background:
-    linear-gradient(135deg, rgba(140,110,65,.2) 0%, rgba(100,80,45,.1) 100%),
-    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(80,60,30,.05) 8px, rgba(80,60,30,.05) 9px),
-    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important;
-}
-.bf-t-ford{
-  background:
-    linear-gradient(180deg, rgba(60,100,130,.25) 0%, rgba(40,80,110,.2) 100%),
-    repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 12px),
-    linear-gradient(180deg, rgba(255,253,248,.4), rgba(236,227,209,.25)) !important;
-}
-.bf-t-rampart{
-  background:linear-gradient(135deg, rgba(120,100,60,.25), rgba(90,75,45,.15)),
-    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important;
-}
-.bf-t-wall{
-  background:linear-gradient(135deg, rgba(100,70,50,.3), rgba(70,50,35,.2)),
-    linear-gradient(180deg, rgba(255,253,248,.45), rgba(236,227,209,.3)) !important;
-}
-.bf-tico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  font-size:calc(var(--bf-cs,30px) * 0.62); opacity:.6; pointer-events:none; z-index:0; filter:drop-shadow(0 1px 1px rgba(255,255,255,.4)); }
-.bf-unit{ z-index:5; }
-/* 部队图标：水墨圆形徽章 */
-.bf-u-ico{
-  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.2), transparent 50%);
-  display:flex; align-items:center; justify-content:center;
-  font-size:calc(var(--bf-cs,30px) * .52); line-height:1;
-  opacity:.95; pointer-events:none; z-index:1; border-radius:50%;
-}
-.bf-u-ico.ico-changqiang::before{ content:'长'; }
-.bf-u-ico.ico-daodun::before{ content:'刀'; }
-.bf-u-ico.ico-gongnu::before{ content:'弓'; }
-.bf-u-ico.ico-qibing::before{ content:'骑'; }
-/* 战棋 · 阵型角标（P0-3） */
-.bf-u-fmt{ font-style:normal; font-size:.82em; background:var(--bf-ally); color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
-.bf-u-foe .bf-u-fmt{ background:var(--bf-foe); }
-/* 战棋 · 战报面板（P0-4） */
-.bf-log{ position:absolute; right:8px; top:84px; z-index:28; width:min(46%,280px); max-height:32%; overflow-y:auto; pointer-events:none;
-  padding:6px 12px; border:1px solid var(--panel-line); border-radius:var(--r-card);
-  background:var(--panel); box-shadow:var(--shadow); font-size:11px; line-height:1.55; display:flex; flex-direction:column; gap:1px; }
-.bf-log-l{ color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.bf-log-combat{ color:var(--bf-ally); }
-.bf-log-danger{ color:var(--seal); }
-.bf-log-good{ color:var(--jade); }
-.bf-log-warn{ color:var(--bf-gold); }
-.bf-log-sys{ color:var(--ink-faint); }
-/* 战棋 · 列阵选择按钮（P0-3） */
-.bf-fmt-b{ display:block; width:100%; text-align:left; background:var(--btn-bg); border:1px solid var(--btn-bd);
-  border-radius:var(--r-btn); padding:6px 10px; margin:4px 0; cursor:pointer; font-family:inherit; color:var(--btn-fg); }
+.bf-fmt-b{ display:block; width:100%; text-align:left; background:var(--btn-bg); border:1px solid var(--btn-bd); border-radius:var(--r-btn); padding:6px 10px; margin:4px 0; cursor:pointer; font-family:inherit; color:var(--btn-fg); }
 .bf-fmt-b.on{ border-color:var(--bf-gold); box-shadow:0 0 0 2px rgba(176,131,47,.3); }
 .bf-fmt-b b{ color:var(--bf-gold); }
 .bf-fmt-b span{ display:block; font-size:10px; color:var(--ink-faint); margin-top:1px; }
-/* 战棋 · 威胁覆盖（P1-1） */
-.bf-threat-move{ box-shadow:inset 0 0 0 2px rgba(176,131,47,.18); background:rgba(176,131,47,.10) !important; }
-.bf-threat-atk{ box-shadow:inset 0 0 0 2px rgba(158,59,46,.32); background:rgba(158,59,46,.15) !important; }
-/* 战棋 · 溃散预警（P1-5） */
-.bf-danger .bf-unit{ border-color:#c0392b !important; }
-.bf-u-danger{ font-style:normal; font-size:.82em; background:#c0392b; color:#fff; border-radius:var(--r-pill); padding:0 3px; margin-left:2px; }
-.bf-dt-danger{ color:#c0392b; font-weight:700; }
-.bf-dt-foe{ color:var(--bf-foe); }
-/* 战棋 · 速度控制（P1-3） */
-.bf-speed{ display:inline-flex; align-items:center; gap:2px; font-size:12px; color:var(--ink-faint); padding:2px 6px; border:1px solid var(--bf-line); border-radius:var(--r-pill); background:rgba(244,238,226,.55); flex-wrap:nowrap; }
-.bf-speed .bf-sp{ flex:0 0 auto; }
-@media (min-width:600px){ #modal.bf-full .bf-viewport, .bf-viewport{ bottom:56px !important; } .bf-bar{ flex-wrap:nowrap; } .bf-bar-tip{ flex:0 1 auto; } }
-.bf-sp{ min-width:30px; padding:3px 5px; border:1px solid var(--btn-bd); background:var(--btn-bg); border-radius:var(--r-btn);
-  cursor:pointer; font-family:inherit; color:var(--btn-fg); font-size:11px; }
-.bf-sp.on{ border-color:var(--bf-gold); color:var(--bf-gold); box-shadow:0 0 0 1px rgba(176,131,47,.4); }
-/* 战棋 · 全舞台模式：棋盘 fixed 铺满视口、脱离弹窗外壳，彻底去边框/留白 */
-#modal.bf-full{ padding:0 !important; align-items:stretch !important; }
-#modal.bf-full #modal-card{ margin:0 !important; width:100% !important; max-width:none !important; height:100% !important; display:block !important; background:transparent !important; border:0 !important; box-shadow:none !important; }
-#modal.bf-full .modal-shell{ max-width:none !important; width:100% !important; height:100% !important; border-radius:0 !important; border:0 !important; padding:0 !important; max-height:none !important; overflow:hidden !important; box-shadow:none !important; }
-#modal.bf-full .modal-shell::before{ display:none !important; }
-#modal.bf-full .bf-root{ position:fixed !important; inset:0 !important; border-radius:0 !important; box-shadow:none !important; }
-#modal.bf-full .bf-viewport{ position:absolute !important; top:36px !important; bottom:96px !important; left:0 !important; right:0 !important; }
-#modal:has(.bf-root){ padding:0 !important; align-items:stretch !important; }
-#modal:has(.bf-root) #modal-card{ margin:0 !important; width:100% !important; max-width:none !important; height:100% !important; display:block !important; background:transparent !important; border:0 !important; box-shadow:none !important; }
-#modal:has(.bf-root) .modal-shell{ max-width:none !important; width:100% !important; height:100% !important; border-radius:0 !important; border:0 !important; padding:0 !important; max-height:none !important; overflow:hidden !important; box-shadow:none !important; }
-#modal:has(.bf-root) .modal-shell::before{ display:none !important; }
-#modal:has(.bf-root) .bf-root{ position:fixed !important; inset:0 !important; border-radius:0 !important; box-shadow:none !important; }
-#modal:has(.bf-root) .bf-viewport{ position:absolute !important; top:36px !important; bottom:96px !important; left:0 !important; right:0 !important; }
-/* 战棋 · 内嵌抽屉（详情 / 列阵 不再另开窗口） */
-.bf-sheet{ position:absolute; inset:0; z-index:60; display:flex; align-items:flex-end; background:rgba(24,17,10,.55); }
-.bf-sheet[hidden]{ display:none; }
-.bf-sheet-in{ width:100%; max-height:74%; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  padding:12px 14px 18px; box-sizing:border-box; background:#f4eee2;
-  border-top:2px solid #b0832f; border-radius:14px 14px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,.35); }
-.bf-sheet-in h3{ margin:2px 0 8px; font-size:16px; }
-/* 统一结束回合：主键强调 */
+/* 战棋结算画面 */
+.bf-result{ position:absolute; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; background:rgba(244,238,226,.92); overflow:auto; }
+.bf-result[hidden]{ display:none; }
+.bf-result-card{ width:92%; max-width:560px; background:#F4EEE2; border:2px solid #B0832F; border-radius:14px; padding:16px 18px; box-shadow:0 10px 40px rgba(0,0,0,.3); }
+.bf-result-title{ text-align:center; margin:0 0 6px; font-size:20px; }
+.bf-result-title.good{ color:#3c7d3c; } .bf-result-title.bad{ color:#9B3B2E; } .bf-result-title.mid{ color:#6a6a3a; }
+.bf-result-sub{ text-align:center; color:#6b5a3a; font-size:13px; margin-bottom:10px; }
+.bf-result-tbl{ width:100%; border-collapse:collapse; font-size:13px; }
+.bf-result-tbl th, .bf-result-tbl td{ border-bottom:1px solid #d8cdb4; padding:6px 4px; text-align:center; }
+.bf-result-tbl th{ color:#8a6a2a; }
+.bf-result .btn{ width:100%; margin-top:14px; padding:12px; font-size:16px; }
+.bf-ra{ color:#2f6e2f; } .bf-rf{ color:#9B3B2E; }
+.bf-undo-btn[disabled]{ opacity:.4; cursor:not-allowed; }
+/* 主按钮（结束回合） */
 .btn.bf-main{ background:linear-gradient(180deg,#c8a23a,#a2761f); color:#fff8e6; border-color:#8a6415; font-weight:700; }
-
-/* 战棋 · 战前部署（setup）*/
+/* 落点确认钮（锚定目标格中心，随棋盘平移） */
+.bf-cell-confirm{ position:absolute; z-index:20; transform:translate(-50%,-50%); display:flex; flex-direction:column; gap:4px; align-items:center; justify-content:center; pointer-events:auto; }
+.bf-cell-confirm .btn{ min-width:62px; padding:6px 12px; font-size:13px; }
+.bf-cc-ok{ background:var(--bf-gold); color:#1a1208; border-color:var(--bf-gold); font-weight:700; }
+/* 战前部署 */
 .bf-setup{ position:fixed; inset:0; z-index:95; background:#1A1206; color:#F0E4C8; overflow:auto; display:none; }
 .bf-setup-scroll{ max-width:760px; margin:0 auto; padding:14px 14px 80px; box-sizing:border-box; }
 .bf-setup-head{ font-size:18px; color:#FFD268; margin:6px 0 12px; }
@@ -4426,80 +4424,21 @@
 .bf-dbg-row input[type=number]{ width:80px; background:#2E2B14; color:#F0E4C8; border:1px solid #B8893A; border-radius:6px; padding:5px; }
 .bf-setup-actions{ display:flex; gap:12px; margin-top:14px; }
 .bf-setup-actions .btn{ flex:1; padding:12px; font-size:15px; }
-/* 战棋 · 战斗结算画面 */
-.bf-result{ position:absolute; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; background:rgba(20,14,6,.82); overflow:auto; }
-.bf-result[hidden]{ display:none; }
-.bf-result-card{ width:92%; max-width:560px; background:#F4EEE2; border:2px solid #B0832F; border-radius:14px; padding:16px 18px; box-shadow:0 10px 40px rgba(0,0,0,.5); }
-.bf-result-title{ text-align:center; margin:0 0 6px; font-size:20px; }
-.bf-result-title.good{ color:#3c7d3c; } .bf-result-title.bad{ color:#9B3B2E; } .bf-result-title.mid{ color:#6a6a3a; }
-.bf-result-sub{ text-align:center; color:#6b5a3a; font-size:13px; margin-bottom:10px; }
-.bf-result-tbl{ width:100%; border-collapse:collapse; font-size:13px; }
-.bf-result-tbl th, .bf-result-tbl td{ border-bottom:1px solid #d8cdb4; padding:6px 4px; text-align:center; }
-.bf-result-tbl th{ color:#8a6a2a; }
-.bf-result .btn{ width:100%; margin-top:14px; padding:12px; font-size:16px; }
-.bf-ra{ color:#2f6e2f; } .bf-rf{ color:#9B3B2E; }
-/* 战棋 · 全体威胁覆盖 */
-.bf-threat-all{ box-shadow: inset 0 0 0 2px rgba(155,59,46,.5); background:rgba(155,59,46,.16); }
-.bf-threat-btn.bf-threat-on{ background:var(--bf-foe); color:#fff; border-color:var(--bf-foe); }
-.bf-undo-btn[disabled]{ opacity:.4; cursor:not-allowed; }
-/* ════════ 战棋动画系统 ════════ 
-/* 行军 bob：移动中轻微上下浮动 */
-.bf-march{ animation:bfMarch .15s linear infinite; }
-@keyframes bfMarch{ 0%,100%{ transform:translate(0,0); } 50%{ } }
-/* 受击闪光：被命中时白闪 + 抖动 */
-.bf-hit{ animation:bfHit .3s ease; }
-@keyframes bfHit{
-  0%{ filter:brightness(1); }
-  20%{ filter:brightness(2.2) saturate(.3); transform:translate(2px,-1px); }
-  50%{ filter:brightness(1.4); transform:translate(-2px,1px); }
-  100%{ filter:brightness(1); transform:translate(0,0); }
-}
-/* 轨迹点：移动路径上的脚印标记 */
-.bf-trail-dot{ position:absolute; width:8px; height:8px; border-radius:50%;
-  background:rgba(176,131,47,.35); border:1px solid rgba(176,131,47,.6);
-  transform:translate(-50%,-50%); animation:bfDotFade .4s ease-out forwards; }
-@keyframes bfDotFade{ 0%{ opacity:1; } 100%{ opacity:0; } }
-/* 瞄准连线：选中攻击模式时从单位指向目标 */
-.bf-aim-line{ position:absolute; height:0; border-top:2px dashed rgba(158,59,46,.5);
-  transform-origin:0 50%; pointer-events:none; z-index:4; }
-.bf-aim-layer{ position:absolute; inset:0; pointer-events:none; z-index:4; }
-/* 已行动：灰度 + 半透明 */
-.bf-acted{ filter:grayscale(.5); opacity:.55; }
-.bf-acted-tag{ position:absolute; top:1px; right:2px; font-style:normal; font-size:9px;
-  background:rgba(74,62,48,.55); color:#fff; border-radius:var(--r-pill); padding:0 3px; z-index:3; }
-/* 正在行动：当前行动单位高亮光环 */
-.bf-acting{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 16px rgba(176,131,47,.6); z-index:6;
-  animation:bfActPulse 1s ease-in-out infinite; }
-@keyframes bfActPulse{ 0%,100%{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 16px rgba(176,131,47,.6); } 50%{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 22px rgba(176,131,47,.85); } }
-/* 震屏：命中时整个视口抖动 */
-.bf-shake{ animation:bfShake .2s ease; }
-@keyframes bfShake{ 0%,100%{ transform:translate(0,0); } 20%{ transform:translate(-3px,1px); } 40%{ transform:translate(3px,-1px); } 60%{ transform:translate(-2px,2px); } 80%{ transform:translate(2px,-2px); } }
-/* 血条过渡：已有 .bf-u-hp span transition，补充 low-hp 变红 */
-.bf-u-hp span{ transition:width .35s ease, background .3s; }
-.bf-u-hp span.low{ background:linear-gradient(90deg,#8a2a1e,#c0392b)!important; }
-/* 竖屏适配 */
-@media (max-width:540px){
-  .bf-trail-dot{ width:10px; height:10px; }
-  .bf-acted-tag{ font-size:8px; }
-}
-
-/* 战棋 · 顶栏按钮（图例 / 高对比） */
-.bf-top-btn{ margin-left:4px; padding:2px 9px; font-size:12px; border:1px solid var(--bf-line); border-radius:var(--r-pill); background:rgba(244,238,226,.92); color:var(--bf-ink); cursor:pointer; }
-.bf-top-btn:active{ transform:scale(.94); }
-/* 战棋 · 地形图例面板 */
-.bf-legend{ position:absolute; top:46px; right:8px; z-index:45; width:min(56%,240px); max-height:62%; overflow:auto;
-  padding:8px 10px; border:1px solid var(--panel-line); border-radius:var(--r-card); background:rgba(244,238,226,.97);
-  box-shadow:var(--shadow); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
-.bf-legend[hidden]{ display:none; }
-.bf-leg-card{ font-size:12px; color:var(--bf-ink); }
-.bf-leg-h{ font-weight:700; color:var(--bf-ally); margin-bottom:4px; border-bottom:1px dashed var(--bf-line); padding-bottom:3px; }
-.bf-leg-row{ display:flex; align-items:center; gap:6px; padding:2px 0; }
-.bf-leg-ico{ width:18px; text-align:center; font-size:14px; }
-.bf-leg-name{ flex:0 0 56px; font-weight:600; }
-.bf-leg-eff{ color:var(--ink-soft); font-size:11px; }
-.bf-leg-hint{ margin-top:6px; font-size:11px; color:var(--ink-faint); }
-/* 战棋 · 高对比（色弱友好）模式 */
-.bf-root.bf-hc{ --bf-ally:#1f5fd0; --bf-foe:#d11f1f; --bf-gold:#111; }
+/* 全舞台模式：棋盘脱离弹窗外壳，铺满视口 */
+#modal.bf-full{ padding:0 !important; align-items:stretch !important; }
+#modal.bf-full #modal-card{ margin:0 !important; width:100% !important; max-width:none !important; height:100% !important; display:block !important; background:transparent !important; border:0 !important; box-shadow:none !important; }
+#modal.bf-full .modal-shell{ max-width:none !important; width:100% !important; height:100% !important; border-radius:0 !important; border:0 !important; padding:0 !important; max-height:none !important; overflow:hidden !important; box-shadow:none !important; }
+#modal.bf-full .modal-shell::before{ display:none !important; }
+#modal.bf-full .bf-root{ position:fixed !important; inset:0 !important; border-radius:0 !important; box-shadow:none !important; }
+#modal.bf-full .bf-viewport{ top:40px !important; bottom:62px !important; }
+#modal:has(.bf-root){ padding:0 !important; align-items:stretch !important; }
+#modal:has(.bf-root) #modal-card{ margin:0 !important; width:100% !important; max-width:none !important; height:100% !important; display:block !important; background:transparent !important; border:0 !important; box-shadow:none !important; }
+#modal:has(.bf-root) .modal-shell{ max-width:none !important; width:100% !important; height:100% !important; border-radius:0 !important; border:0 !important; padding:0 !important; max-height:none !important; overflow:hidden !important; box-shadow:none !important; }
+#modal:has(.bf-root) .modal-shell::before{ display:none !important; }
+#modal:has(.bf-root) .bf-root{ position:fixed !important; inset:0 !important; border-radius:0 !important; box-shadow:none !important; }
+#modal:has(.bf-root) .bf-viewport{ top:40px !important; bottom:62px !important; }
+/* 高对比（色弱友好）模式 */
+.bf-root.bf-hc{ --bf-ally:#1f5fd0; --bf-foe:#d11f1f; --bf-gold:#111; --bf-line:#000; }
 .bf-root.bf-hc .bf-cell{ border:1px solid #000 !important; }
 .bf-root.bf-hc .bf-t-forest{ background:#1f7a3a !important; }
 .bf-root.bf-hc .bf-t-hill{ background:#8a6a1f !important; }
@@ -4509,8 +4448,6 @@
 .bf-root.bf-hc .bf-reach{ box-shadow:inset 0 0 0 3px #1f5fd0 !important; background:rgba(31,95,208,.20)!important; }
 .bf-root.bf-hc .bf-atk{ box-shadow:inset 0 0 0 3px #d11f1f !important; background:rgba(209,31,31,.20)!important; }
 .bf-root.bf-hc .bf-atk-range{ box-shadow:inset 0 0 0 3px #d11f1f !important; background:rgba(209,31,31,.22)!important; }
-.bf-root.bf-hc .bf-cell-confirm .bf-cc-ok{ background:#1f5fd0 !important; color:#fff !important; border-color:#1f5fd0 !important; }
-.bf-root.bf-hc .bf-actbar .btn.bf-on{ background:#1f5fd0 !important; color:#fff !important; border-color:#1f5fd0 !important; }
 .bf-root.bf-hc .bf-threat-move{ box-shadow:inset 0 0 0 2px #1f5fd0 !important; }
 .bf-root.bf-hc .bf-threat-atk{ box-shadow:inset 0 0 0 2px #d11f1f !important; }
 .bf-root.bf-hc .bf-unit{ border:2px solid #000 !important; }
@@ -4519,157 +4456,19 @@
 .bf-root.bf-hc .bf-u-foe .bf-u-name{ color:#d11f1f !important; }
 .bf-root.bf-hc .bf-u-hp span{ background:#1f7a3a !important; }
 .bf-root.bf-hc .bf-u-foe .bf-u-hp span{ background:#d11f1f !important; }
-.bf-root.bf-hc .bf-confirm-float{ background:#1f5fd0 !important; color:#fff !important; }
-.bf-root.bf-hc .bf-outzone{ background:repeating-linear-gradient(45deg, rgba(0,0,0,.5) 0 9px, rgba(0,0,0,.34) 9px 18px), #000; }
-
-/* 战棋 · 独立确认移动按钮（脱离 transform 容器，fixed 才相对视口正确） */
-.bf-confirm-float[hidden]{ display:none; }
-.bf-confirm-float{ position:fixed; left:50%; transform:translateX(-50%); bottom:74px; z-index:62;
-  padding:11px 30px; font-size:16px; font-weight:700; border-radius:999px; letter-spacing:1px;
-  background:linear-gradient(180deg,#e0b85a,#a87f2e); color:#1c1206; border:1px solid rgba(255,255,255,.5);
-  box-shadow:0 6px 22px rgba(0,0,0,.45); cursor:pointer; }
-.bf-confirm-float:active{ transform:translateX(-50%) scale(.96); }
-/* 战棋 · 棋子牌内提示（已选落点） */
-.bf-bar-pending{ color:var(--bf-gold); font-weight:700; font-size:12px; }
-/* 战棋 · 棋子牌精简：短兵种名 + 兵力角标 + 朝向，长名截断风险消除 */
-.bf-u-name{ font-weight:700; color:var(--bf-ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.05; padding-right:14px; }
-.bf-u-cnt{ position:absolute; top:2px; right:3px; font-style:normal; font-weight:800; font-size:.92em;
-  background:rgba(24,17,10,.72); color:#fff; border-radius:999px; padding:0 5px; line-height:1.5; }
-.bf-u-ally .bf-u-cnt{ background:rgba(63,95,122,.92); }
-.bf-u-foe .bf-u-cnt{ background:rgba(158,59,46,.92); }
-
-/* 战棋 v6 · 棋子牌极简四角布局（图标+兵力+朝向+短兵种名），不再 flex 挤压截断 */
-.bf-unit{ display:block; padding:0; inset:2px; border:1.5px solid rgba(74,62,48,.35); }
-.bf-u-ally{ border-color:rgba(63,95,122,.72); }
-.bf-u-foe{ border-color:rgba(158,59,46,.72); }
-.bf-u-ico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-style:normal;
-  font-size:calc(var(--bf-cs,30px) * .52); line-height:1; opacity:.92; pointer-events:none; z-index:1; }
-.bf-u-cnt{ position:absolute; top:1px; right:2px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .30);
-  background:rgba(24,17,10,.74); color:#fff; border-radius:999px; padding:0 4px; line-height:1.5; pointer-events:none; z-index:2; }
-.bf-u-ally .bf-u-cnt{ background:rgba(63,95,122,.95); }
-.bf-u-foe .bf-u-cnt{ background:rgba(158,59,46,.95); }
-.bf-u-face{ position:absolute; bottom:0; left:2px; font-style:normal; font-size:calc(var(--bf-cs,30px) * .34);
-  line-height:1; color:rgba(24,17,10,.72); pointer-events:none; z-index:2; }
-.bf-u-tag{ position:absolute; bottom:0; right:2px; left:18px; font-style:normal; font-weight:700;
-  font-size:calc(var(--bf-cs,30px) * .26); color:var(--bf-ink); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; z-index:2; }
-.bf-u-ally .bf-u-tag{ color:var(--bf-ally); }
-.bf-u-foe .bf-u-tag{ color:var(--bf-foe); }
-.bf-sel-u{ box-shadow:0 0 0 2px var(--bf-gold), 0 2px 10px rgba(0,0,0,.4); z-index:3; }
-.bf-acted{ opacity:.5; }
-.bf-u-danger{ display:none; }
-.bf-danger{ border-color:#c0392b !important; box-shadow:0 0 0 2px rgba(192,57,43,.55) !important; }
-.bf-confirm-float{ z-index:80; bottom:76px; }
-
-/* 战棋 v7 · 伤害飘字动画 */
-.bf-dmg-float{ position:absolute; font-style:normal; font-weight:800; font-size:14px;
-  pointer-events:none; z-index:100; text-shadow:0 1px 3px rgba(0,0,0,.8);
-  animation:bfDmgFloat 1s ease-out forwards; }
-.bf-dmg-float.crit{ font-size:18px; color:#ffd700; }
-.bf-dmg-float.ally-dmg{ color:#ff6b5a; }
-.bf-dmg-float.foe-dmg{ color:#6bff8a; }
-@keyframes bfDmgFloat{
-  0%{ opacity:1; transform:translateY(0) scale(1); }
-  50%{ opacity:1; transform:translateY(-25px) scale(1.2); }
-  100%{ opacity:0; transform:translateY(-50px) scale(.8); }
-}
-/* 战棋 v7 · 攻击突进动画 */
-.bf-attacking{ animation:bfAtkLunge .25s ease; }
-@keyframes bfAtkLunge{
-  0%{ transform:translate(0,0); }
-  50%{ transform:translate(8px,-4px); }
-  100%{ transform:translate(0,0); }
-}
-/* 战棋 v7 · 受击抖动动画 */
-.bf-hit-shake{ animation:bfHitShake .25s ease; }
-@keyframes bfHitShake{
-  0%,100%{ transform:translate(0,0); }
-  25%{ transform:translate(-2px,1px); }
-  75%{ transform:translate(2px,-1px); }
-}
-/* 战棋 v7 · 溃败抖动 */
-.bf-routed{ animation:bfRoutShake .3s infinite; }
-@keyframes bfRoutShake{
-  0%,100%{ transform:translateX(0) rotate(0); }
-  25%{ transform:translateX(-2px) rotate(-5deg); }
-  75%{ transform:translateX(2px) rotate(5deg); }
-}
-/* 战棋 v7 · 低士气灰度 */
-.bf-morale-low{ filter:grayscale(.5) brightness(.85); }
-
-/* 战棋 v8 · 左右面板布局 */
-.bf-left-panel{
-  position:absolute; left:0; top:48px; bottom:60px; width:180px;
-  background:rgba(244,238,226,.95); border-right:1px solid var(--bf-line);
-  z-index:30; overflow-y:auto; padding:8px; transition:transform .3s ease;
-}
-.bf-left-panel.collapsed{ transform:translateX(-100%); }
-.bf-right-panel{
-  position:absolute; right:0; top:48px; bottom:60px; width:200px;
-  background:rgba(244,238,226,.95); border-left:1px solid var(--bf-line);
-  z-index:30; overflow-y:auto; padding:8px; transition:transform .3s ease;
-}
-.bf-right-panel.collapsed{ transform:translateX(100%); }
-.bf-panel-title{
-  font-size:14px; color:var(--bf-gold); text-align:center;
-  padding:6px 0; border-bottom:1px solid var(--bf-line); margin-bottom:8px;
-  font-weight:700;
-}
-/* 部队卡片 */
-.bf-unit-card{
-  background:rgba(90,74,42,.1); border:1px solid #4a3d25; border-radius:4px;
-  padding:6px 8px; margin-bottom:6px; cursor:pointer; transition:all .15s;
-}
-.bf-unit-card:hover{ background:rgba(90,74,42,.2); border-color:var(--bf-gold); }
-.bf-unit-card.selected{ border-color:var(--bf-gold); background:rgba(176,131,47,.15); }
-.bf-unit-card.ally{ border-left:3px solid var(--bf-ally); }
-.bf-unit-card.foe{ border-left:3px solid var(--bf-foe); }
-.bf-uc-name{ font-size:12px; font-weight:700; margin-bottom:2px; }
-.bf-uc-count{ font-size:10px; color:#888; margin-bottom:4px; }
-.bf-uc-hp{ height:4px; background:#ddd; border-radius:2px; overflow:hidden; margin-bottom:3px; }
-.bf-uc-hp i{ display:block; height:100%; background:var(--bf-foe); border-radius:2px; }
-.bf-unit-card.ally .bf-uc-hp i{ background:var(--bf-ally); }
-.bf-uc-mor{ height:3px; background:#ddd; border-radius:2px; overflow:hidden; }
-.bf-uc-mor i{ display:block; height:100%; background:#27ae60; border-radius:2px; }
-/* 战报条目 */
-.bf-log-item{
-  font-size:11px; padding:4px 6px; margin-bottom:2px; border-radius:3px;
-  background:rgba(90,74,42,.08); border-left:2px solid var(--bf-line);
-}
-.bf-log-item.ally{ border-left-color:var(--bf-ally); }
-.bf-log-item.foe{ border-left-color:var(--bf-foe); }
-.bf-log-item.crit{ border-left-color:var(--bf-gold); background:rgba(176,131,47,.12); }
-/* 折叠按钮 */
-.bf-fold-btn{
-  position:absolute; top:50%; transform:translateY(-50%);
-  width:18px; height:50px; background:rgba(244,238,226,.95);
-  border:1px solid var(--bf-line); z-index:35; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  font-size:10px; color:#888; writing-mode:vertical-rl;
-}
-.bf-fold-left{ left:180px; border-radius:0 4px 4px 0; transition:left .3s ease; }
-.bf-fold-right{ right:200px; border-radius:4px 0 0 4px; transition:right .3s ease; }
-.bf-left-panel.collapsed ~ .bf-fold-left, .bf-fold-left.shifted{ left:0; }
-.bf-right-panel.collapsed ~ .bf-fold-right, .bf-fold-right.shifted{ right:0; }
-/* 缩放按钮 */
-.bf-zoom-controls{
-  position:absolute; right:8px; bottom:70px; display:flex; flex-direction:column; gap:4px; z-index:35;
-}
-.bf-zoom-btn{
-  width:28px; height:28px; background:rgba(244,238,226,.95);
-  border:1px solid var(--bf-line); border-radius:4px;
-  color:#666; font-size:14px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-}
-.bf-zoom-btn:hover{ background:var(--bf-gold); color:#fff; }
-/* 手机端适配：面板窄一点；默认收起（靠 JS 初始加 collapsed），点竖条展开 */
-@media (max-width:600px){
-  .bf-left-panel{ width:120px; }
-  .bf-right-panel{ width:130px; }
-  .bf-fold-left{ left:0; }
-  .bf-fold-right{ right:0; }
-  .bf-left-panel:not(.collapsed) ~ .bf-fold-left{ left:120px; }
-  .bf-right-panel:not(.collapsed) ~ .bf-fold-right{ right:130px; }
-  .bf-unit-card{ padding:3px 4px; font-size:10px; margin-bottom:3px; }
-  .bf-uc-name{ font-size:10px; }
-  .bf-uc-count{ font-size:9px; }
+.bf-root.bf-hc .bf-outzone{ background:repeating-linear-gradient(45deg, rgba(0,0,0,.5) 0 9px, rgba(0,0,0,.34) 9px 18px), #888; }
+/* 手机端适配 */
+@media (max-width:540px){
+  .bf-top{ top:4px; left:4px; font-size:11px; padding:3px 8px; gap:4px; }
+  .bf-top-m{ font-size:12px; }
+  .bf-viewport{ top:34px; bottom:64px; }
+  .bf-bar{ height:60px; gap:6px; padding:5px 6px; }
+  .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; }
+  .bf-bar-tip{ font-size:10px; }
+  .bf-plate{ bottom:60px; }
+  .bf-fab{ right:6px; gap:6px; }
+  .bf-fab-b{ width:42px; height:42px; font-size:16px; border-radius:12px; }
+  .bf-fab-panel{ top:34px; bottom:64px; right:6px; width:min(82vw,230px); }
+  .bf-pop{ min-width:104px; }
+  .bf-preview{ max-width:60vw; font-size:10px; }
 }

@@ -860,74 +860,34 @@
       card.innerHTML = '<div id="bf-root" class="bf-root">' +
         '<div class="bf-outzone" id="bf-outzone" onclick="window.bfDeselect()"></div>' +
         '<div class="bf-top" id="bf-top"></div>' +
-        '<div class="bf-left-panel" id="bf-left-panel">' +
-          '<div class="bf-panel-title">军情报</div>' +
-          '<div class="bf-unit-list" id="bf-unit-list"></div>' +
-        '</div>' +
-        '<button class="bf-fold-btn bf-fold-left" id="bf-fold-left" title="收起军情报">◀</button>' +
+        '<div class="bf-topmenu" id="bf-topmenu"></div>' +
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div></div>' +
-        '<div class="bf-right-panel" id="bf-right-panel">' +
-          '<div class="bf-panel-title">战报</div>' +
-          '<div class="bf-log-list" id="bf-log-list"></div>' +
+        '<div class="bf-fab" id="bf-fab">' +
+          '<button type="button" class="bf-fab-b" data-panel="units" title="部队列表">阵</button>' +
+          '<button type="button" class="bf-fab-b" data-panel="log" title="战报">报</button>' +
+          '<button type="button" class="bf-fab-b" data-panel="zoom" title="视图缩放">⤢</button>' +
         '</div>' +
-        '<button class="bf-fold-btn bf-fold-right" id="bf-fold-right" title="收起战报">▶</button>' +
-        '<div class="bf-zoom-controls" id="bf-zoom-controls">' +
-          '<button class="bf-zoom-btn" id="bf-zoom-in" title="放大">+</button>' +
-          '<button class="bf-zoom-btn" id="bf-zoom-out" title="缩小">−</button>' +
-          '<button class="bf-zoom-btn" id="bf-zoom-reset" title="重置">⌂</button>' +
-        '</div>' +
-        '<div class="bf-detail" id="bf-detail"></div>' +
-        '<div class="bf-log" id="bf-log"></div>' +
+        '<div class="bf-fab-panel" id="bf-fab-panel" hidden></div>' +
+        '<div class="bf-plate" id="bf-plate" hidden></div>' +
         '<div class="bf-bar" id="bf-bar"></div>' +
-        '<div class="bf-actbar" id="bf-actbar" hidden></div>' +
         '<div class="bf-pop-host" id="bf-pop-host"></div>' +
         '<div class="bf-sheet" id="bf-sheet" hidden></div>' +
-        '<div class="bf-legend" id="bf-legend" hidden></div>' +
-        '<div class="bf-confirm-float" id="bf-confirm" hidden onclick="window.bfConfirmMove()">确认移动 ▸</div>' +
+        '<div class="bf-preview" id="bf-preview"></div>' +
         '<div class="bf-result" id="bf-result" hidden></div>' +
         '</div>';
       setFullscreenMode(true);
       bindDrag();
       var _vp = document.getElementById('bf-viewport');
       if (_vp) _vp.addEventListener('click', function (e) { if (suppressClick) { suppressClick = false; return; } if (e.target === _vp && window.bfDeselect) window.bfDeselect(); });
-      var legEl = document.getElementById('bf-legend');
-      if (legEl && LF.BF_TERRAIN) {
-        var rows = Object.keys(LF.BF_TERRAIN).map(function (k) {
-          var t = LF.BF_TERRAIN[k], eff = [];
-          if (t.moveCost && t.moveCost !== 1) eff.push('移' + t.moveCost);
-          if (t.defMul && t.defMul !== 1) eff.push('守+' + Math.round((t.defMul - 1) * 100) + '%');
-          if (t.atkMul && t.atkMul !== 1) eff.push('攻+' + Math.round((t.atkMul - 1) * 100) + '%');
-          if (t.dodge) eff.push('闪避+' + Math.round(t.dodge * 100) + '%');
-          return '<div class="bf-leg-row"><span class="bf-leg-ico">' + ({forest:'林',hill:'丘',ford:'渡',rampart:'垒',wall:'城'}[k] || t.icon || '·') + '</span><span class="bf-leg-name">' + esc(t.name) + '</span><span class="bf-leg-eff">' + eff.join(' · ') + '</span></div>';
-        }).join('');
-        legEl.innerHTML = '<div class="bf-leg-card"><div class="bf-leg-h">地形 · 图例</div>' + rows +
-          '<div class="bf-leg-row"><span class="bf-leg-ico">⬡</span><span class="bf-leg-name">蓝框</span><span class="bf-leg-eff">可移动</span></div>' +
-          '<div class="bf-leg-row"><span class="bf-leg-ico">⬡</span><span class="bf-leg-name">红框</span><span class="bf-leg-eff">可攻击</span></div>' +
-          '<div class="bf-leg-row"><span class="bf-leg-ico">⬡</span><span class="bf-leg-name">金点</span><span class="bf-leg-eff">移动路径</span></div>' +
-          '<div class="bf-leg-hint">点「高对比」切换色弱友好配色</div></div>';
-      }
+      // 顶栏 ⋮ 菜单（事件委托：顶栏 innerHTML 每次重绘仍生效）
+      var _top = document.getElementById('bf-top');
+      if (_top) _top.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('.bf-top-btn'); if (b && b.dataset.menu === 'more') window.bfToggleTopMenu(); });
+      // 右侧 FAB 堆叠（部队列表 / 战报 / 缩放）
+      bindFab();
+      applyFabCompact();
+      window.addEventListener('resize', applyFabCompact);
+      // 高对比配色记忆
       try { if (localStorage.getItem('bf-hc') === '1') { var _r = document.getElementById('bf-root'); if (_r) _r.classList.add('bf-hc'); } } catch (e) {}
-      // 折叠按钮事件
-      var foldL = document.getElementById('bf-fold-left');
-      var foldR = document.getElementById('bf-fold-right');
-      var leftP = document.getElementById('bf-left-panel');
-      var rightP = document.getElementById('bf-right-panel');
-      if (foldL && leftP) foldL.onclick = function() { leftP.classList.toggle('collapsed'); this.textContent = leftP.classList.contains('collapsed') ? '▶' : '◀'; };
-      if (foldR && rightP) foldR.onclick = function() { rightP.classList.toggle('collapsed'); this.textContent = rightP.classList.contains('collapsed') ? '◀' : '▶'; };
-      // 窄屏（手机）默认收起两侧面板：collapsed = 收起，点竖条即展开
-      if (window.innerWidth <= 600) {
-        if (leftP) leftP.classList.add('collapsed');
-        if (rightP) rightP.classList.add('collapsed');
-      }
-      if (foldL && leftP) foldL.textContent = leftP.classList.contains('collapsed') ? '▶' : '◀';
-      if (foldR && rightP) foldR.textContent = rightP.classList.contains('collapsed') ? '◀' : '▶';
-      // 缩放按钮事件
-      var zoomIn = document.getElementById('bf-zoom-in');
-      var zoomOut = document.getElementById('bf-zoom-out');
-      var zoomReset = document.getElementById('bf-zoom-reset');
-      if (zoomIn) zoomIn.onclick = function() { zoomLevel = Math.min(2, zoomLevel + 0.2); applyPan(); };
-      if (zoomOut) zoomOut.onclick = function() { zoomLevel = Math.max(0.6, zoomLevel - 0.2); applyPan(); };
-      if (zoomReset) zoomReset.onclick = function() { zoomLevel = 1; applyPan(); };
     }
     function cellSize() {
       var vp = document.getElementById('bf-viewport');
@@ -990,39 +950,11 @@
         var aHp = totalHp('ally'), fHp = totalHp('foe');
         top.innerHTML = '<span class="bf-top-l">第 ' + board.round + ' 回合 · ' + (board.phase === 'ally' ? '我军阶段' : '敌军阶段') + '</span>' +
           '<span class="bf-top-m">' + esc(board.title) + '</span>' +
-          '<span class="bf-top-r">我军 ' + aN + '/' + aHp + ' · 敌 ' + fN + '/' + fHp + '</span>' +
-          '<button type="button" class="bf-top-btn" onclick="window.bfToggleLegend()">图例</button>' +
-          '<button type="button" class="bf-top-btn" onclick="window.bfToggleHC()">高对比</button>';
+          '<span class="bf-top-r">我 ' + aN + '/' + aHp + ' · 敌 ' + fN + '/' + fHp + '</span>' +
+          '<button type="button" class="bf-top-btn" data-menu="more" title="更多">⋮</button>';
       }
-      // 左侧军情报面板
-      var unitList = document.getElementById('bf-unit-list');
-      if (unitList) {
-        var ulHtml = '';
-        board.units.forEach(function (u) {
-          if (u.hp <= 0 && u.routed) return;
-          var hpPct = Math.max(0, Math.min(100, Math.round(100 * u.hp / u.maxHp)));
-          var morPct = Math.max(0, Math.min(100, Math.round(u.morale == null ? 80 : u.morale)));
-          var sideCls = u.side === 'ally' ? 'ally' : 'foe';
-          var selCls = board.sel === u ? ' selected' : '';
-          ulHtml += '<div class="bf-unit-card ' + sideCls + selCls + '" onclick="window.bfClick(' + u.x + ',' + u.y + ')">' +
-            '<div class="bf-uc-name">' + esc(u.name) + '</div>' +
-            '<div class="bf-uc-count">' + u.count + ' / ' + u.maxHp + '</div>' +
-            '<div class="bf-uc-hp"><i style="width:' + hpPct + '%"></i></div>' +
-            '<div class="bf-uc-mor"><i style="width:' + morPct + '%"></i></div>' +
-            '</div>';
-        });
-        unitList.innerHTML = ulHtml;
-      }
-      // 右侧战报面板
-      var logList = document.getElementById('bf-log-list');
-      if (logList && board.log) {
-        var llHtml = '';
-        board.log.slice(-30).forEach(function (l) {
-          llHtml += '<div class="bf-log-item ' + (l.c || '') + '">' + esc(l.m) + '</div>';
-        });
-        logList.innerHTML = llHtml;
-        logList.scrollTop = logList.scrollHeight;
-      }
+      // 部队列表 -> FAB 抽屉按需渲染（见 refreshFabPanels / unitListHTML）
+      // 战报 -> FAB 抽屉按需渲染（见 refreshFabPanels / logHTML）
       // 格子 + 单位
       var html = [];
       var allThreat = null;
@@ -1125,33 +1057,8 @@
       }
       if (!board._centeredInit && grid.offsetWidth && document.getElementById('bf-viewport') && document.getElementById('bf-viewport').clientWidth) { board._centeredInit = true; focusCell(Math.floor(board.w / 2), Math.floor(board.h / 2)); }
       if (board.sel && board.mode === 'attack') drawAimLines();
-      // 详情条
-      var det = document.getElementById('bf-detail');
-      if (det) {
-        if (board.sel) {
-          var u = board.sel, O = LF.ARMY_ORDERS || {};
-          var danger = (u.hp / u.maxHp < (LF.BF_ROUT ? LF.BF_ROUT.hpRatio : 0.5)) || ((u.morale == null ? 80 : u.morale) < (LF.BF_ROUT ? LF.BF_ROUT.morale : 45));
-          var mband = LF.moraleBand ? LF.moraleBand(u.morale) : { name: '—' };
-          var off = u.officer ? (esc(u.officer.name) + ' 督阵 +' + (u.officer.atk || 0) + '攻') : '无';
-          var ordHtml = (u.orders || []).map(function (oid) { var o = O[oid]; return '<span class="bf-chip">' + (o ? esc(o.name) : oid) + '</span>'; }).join('');
-          det.innerHTML = '<div class="bf-dt-card"><div class="bf-dt-h">' + esc(u.name) + ' · ' + (u.count || 0) + ' 人 · ' + esc((LF.ARMY_RANKS || {})[u.rank] ? (LF.ARMY_RANKS[u.rank].name) : u.rank) + '</div>' +
-            '<div class="bf-dt-row">攻 ' + u.atk + ' · 防 ' + u.def + ' · 速 ' + u.spd + ' · 移 ' + u.move + ' · 射 ' + u.range + '</div>' +
-            '<div class="bf-dt-row">军心 ' + u.morale + '（' + esc(mband.name) + '）· ' + off + (danger ? ' · <span class="bf-dt-danger">溃散风险高</span>' : '') + '</div>' +
-            '<div class="bf-dt-ord">可用军令：' + (ordHtml || '—') + '</div></div>';
-        } else if (board.threat) {
-          var tu = board.threat.u;
-          det.innerHTML = '<div class="bf-dt-card"><div class="bf-dt-h bf-dt-foe">' + esc(tu.name) + ' · 威胁预览</div>' +
-            '<div class="bf-dt-row">攻 ' + tu.atk + ' · 防 ' + tu.def + ' · 移 ' + tu.move + ' · 射 ' + tu.range + '</div>' +
-            '<div class="bf-dt-row">红框=可攻击范围，黄框=可移动格；点空白关闭。</div></div>';
-        } else det.innerHTML = '<div class="bf-dt-hint">点选己方营调遣；点敌方营查看其威胁范围。</div>';
-      }
-      // 战报
-      var lg = document.getElementById('bf-log');
-      if (lg) {
-        var arr = (board.log || []).slice(-7);
-        lg.innerHTML = arr.length ? arr.map(function (e) { return '<div class="bf-log-l bf-log-' + (e.c || 'sys') + '">' + esc(e.m) + '</div>'; }).join('') : '<div class="bf-log-l bf-log-sys">战报将在此处逐条呈现。</div>';
-        lg.scrollTop = lg.scrollHeight;
-      }
+      // 选中详情 -> 改由底部操作板（renderPlate）渲染，此处不再单独浮层
+      // 战报浮层已移除，战报走 FAB 抽屉
       // 操作条
       var bar = document.getElementById('bf-bar');
       if (bar) {
@@ -1176,8 +1083,9 @@
         var th = document.getElementById('bf-threat'); if (th) th.onclick = function () { window.bfToggleThreat(); };
 
       updateAttackPreview();
-      var cf = document.getElementById('bf-confirm'); if (cf) cf.hidden = true;  // 确认钮改在落点格内渲染
-      renderActBar();
+      // 确认钮在落点格内渲染（见棋盘 pendingMove），无需单独处理
+      renderPlate();
+      refreshFabPanels();
       }
       // 指令菜单：仅攻击指令/详情由点击敌方触发；原底部 .bf-action 弹出已移除（改用顶部 contextual 条，不挡速度面板）
       if (board.phase !== 'ally') closeMenu();
@@ -1196,20 +1104,152 @@
         '</div>';
       showMenu(h);
     }
-    function renderActBar() {
-      var act = document.getElementById('bf-actbar');
-      if (!act) return;
-      if (board.phase === 'ally' && board.sel && !board.pendingMove && !board.sel.acted) {
+    function dangerOf(u) {
+      if (!u) return false;
+      return (u.hp / u.maxHp < (LF.BF_ROUT ? LF.BF_ROUT.hpRatio : 0.5)) || ((u.morale == null ? 80 : u.morale) < (LF.BF_ROUT ? LF.BF_ROUT.morale : 45));
+    }
+    function unitListHTML() {
+      if (!board) return '';
+      var html = '';
+      board.units.forEach(function (u) {
+        if (u.hp <= 0 && u.routed) return;
+        var hpPct = Math.max(0, Math.min(100, Math.round(100 * u.hp / u.maxHp)));
+        var morPct = Math.max(0, Math.min(100, Math.round(u.morale == null ? 80 : u.morale)));
+        var sideCls = u.side === 'ally' ? 'ally' : 'foe';
+        var selCls = board.sel === u ? ' selected' : '';
+        html += '<div class="bf-unit-card ' + sideCls + selCls + '" onclick="window.bfClick(' + u.x + ',' + u.y + ')">' +
+          '<div class="bf-uc-name">' + esc(u.name) + '</div>' +
+          '<div class="bf-uc-count">' + u.count + ' / ' + u.maxHp + '</div>' +
+          '<div class="bf-uc-hp"><i style="width:' + hpPct + '%"></i></div>' +
+          '<div class="bf-uc-mor"><i style="width:' + morPct + '%"></i></div>' +
+          '</div>';
+      });
+      return html;
+    }
+    function logHTML() {
+      if (!board) return '';
+      var html = '';
+      (board.log || []).slice(-30).forEach(function (l) {
+        html += '<div class="bf-log-item ' + (l.c || '') + '">' + esc(l.m) + '</div>';
+      });
+      return html;
+    }
+    function renderTopMenu() {
+      var m = document.getElementById('bf-topmenu');
+      if (!m || !board) return;
+      var hcOn = document.getElementById('bf-root') && document.getElementById('bf-root').classList.contains('bf-hc');
+      m.innerHTML =
+        '<button type="button" class="bf-tm-i" onclick="window.bfToggleThreat();window.bfRefreshTopMenu();">' + (board.showAllThreat ? '✓ ' : '') + '威胁总览</button>' +
+        '<button type="button" class="bf-tm-i" onclick="window.bfCloseTopMenu();window.bfOpenLegend();">' + (board._fabPanel === 'legend' ? '✓ ' : '') + '地形图例</button>' +
+        '<button type="button" class="bf-tm-i" onclick="window.bfToggleHC();window.bfRefreshTopMenu();">' + (hcOn ? '✓ ' : '') + '高对比</button>';
+    }
+    function toggleTopMenu() {
+      var m = document.getElementById('bf-topmenu');
+      if (!m) return;
+      if (m.classList.contains('open')) { m.classList.remove('open'); return; }
+      renderTopMenu(); m.classList.add('open');
+    }
+    function openFabPanel(kind) {
+      var fab = document.getElementById('bf-fab'), panel = document.getElementById('bf-fab-panel');
+      if (!fab || !panel) return;
+      fab.dataset.cur = kind; fab.classList.add('open');
+      panel.hidden = false; panel.innerHTML = fabPanelHTML(kind);
+      bindFabPanel(kind, panel);
+      if (board) board._fabPanel = kind;
+    }
+    function closeFab() {
+      var fab = document.getElementById('bf-fab'), panel = document.getElementById('bf-fab-panel');
+      if (fab) { fab.classList.remove('open'); fab.dataset.cur = ''; }
+      if (panel) { panel.hidden = true; panel.innerHTML = ''; }
+      if (board) board._fabPanel = '';
+    }
+    function applyFabCompact() {
+      var fab = document.getElementById('bf-fab');
+      if (!fab) return;
+      if (window.innerWidth <= 540) fab.classList.add('compact'); else fab.classList.remove('compact');
+    }
+    function bindFab() {
+      var fab = document.getElementById('bf-fab'), panel = document.getElementById('bf-fab-panel');
+      if (!fab || !panel) return;
+      fab.querySelectorAll('.bf-fab-b').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var kind = b.dataset.panel;
+          if (fab.classList.contains('open') && fab.dataset.cur === kind) { closeFab(); return; }
+          openFabPanel(kind);
+        });
+      });
+      var root = document.getElementById('bf-root');
+      if (root) root.addEventListener('pointerdown', function (e) {
+        if (panel.hidden) return;
+        if (!panel.contains(e.target) && !fab.contains(e.target)) closeFab();
+      }, true);
+    }
+    function fabPanelHTML(kind) {
+      if (kind === 'units') return '<div class="bf-fp-h">部队列表 <button type="button" class="bf-fp-x" onclick="window.bfCloseFab()">✕</button></div><div class="bf-fp-body" id="bf-fp-units"></div>';
+      if (kind === 'log') return '<div class="bf-fp-h">战报 <button type="button" class="bf-fp-x" onclick="window.bfCloseFab()">✕</button></div><div class="bf-fp-body" id="bf-fp-log"></div>';
+      if (kind === 'zoom') return '<div class="bf-fp-h">视图缩放 <button type="button" class="bf-fp-x" onclick="window.bfCloseFab()">✕</button></div><div class="bf-fp-body bf-fp-zoom">' +
+        '<button type="button" class="btn" onclick="window.bfZoom(1.2)">放大 ＋</button>' +
+        '<button type="button" class="btn" onclick="window.bfZoom(0.8)">缩小 －</button>' +
+        '<button type="button" class="btn" onclick="window.bfZoom(0)">重置 ⌂</button></div>';
+      if (kind === 'legend') {
+        var rows = '';
+        if (LF.BF_TERRAIN) rows = Object.keys(LF.BF_TERRAIN).map(function (k) {
+          var t = LF.BF_TERRAIN[k], eff = [];
+          if (t.moveCost && t.moveCost !== 1) eff.push('移' + t.moveCost);
+          if (t.defMul && t.defMul !== 1) eff.push('守+' + Math.round((t.defMul - 1) * 100) + '%');
+          if (t.atkMul && t.atkMul !== 1) eff.push('攻+' + Math.round((t.atkMul - 1) * 100) + '%');
+          if (t.dodge) eff.push('闪避+' + Math.round(t.dodge * 100) + '%');
+          return '<div class="bf-leg-row"><span class="bf-leg-ico">' + ({forest:'林',hill:'丘',ford:'渡',rampart:'垒',wall:'城'}[k] || t.icon || '·') + '</span><span class="bf-leg-name">' + esc(t.name) + '</span><span class="bf-leg-eff">' + eff.join(' · ') + '</span></div>';
+        }).join('');
+        return '<div class="bf-fp-h">地形图例 <button type="button" class="bf-fp-x" onclick="window.bfCloseFab()">✕</button></div><div class="bf-fp-body">' + rows +
+          '<div class="bf-leg-row"><span class="bf-leg-ico">⬡</span><span class="bf-leg-name">蓝框</span><span class="bf-leg-eff">可移动</span></div>' +
+          '<div class="bf-leg-row"><span class="bf-leg-ico">⬡</span><span class="bf-leg-name">红框</span><span class="bf-leg-eff">可攻击</span></div>' +
+          '<div class="bf-leg-row"><span class="bf-leg-ico">⬡</span><span class="bf-leg-name">金点</span><span class="bf-leg-eff">移动路径</span></div>' +
+          '<div class="bf-leg-hint">点「高对比」切换色弱友好配色</div></div>';
+      }
+      return '';
+    }
+    function bindFabPanel(kind, panel) {
+      if (kind === 'units') { var fu = document.getElementById('bf-fp-units'); if (fu) fu.innerHTML = unitListHTML(); }
+      else if (kind === 'log') { var fl = document.getElementById('bf-fp-log'); if (fl) { fl.innerHTML = logHTML(); fl.scrollTop = fl.scrollHeight; } }
+    }
+    function refreshFabPanels() {
+      var panel = document.getElementById('bf-fab-panel');
+      if (!panel || panel.hidden || !board) return;
+      if (board._fabPanel === 'units') { var fu = document.getElementById('bf-fp-units'); if (fu) fu.innerHTML = unitListHTML(); }
+      else if (board._fabPanel === 'log') { var fl = document.getElementById('bf-fp-log'); if (fl) { fl.innerHTML = logHTML(); fl.scrollTop = fl.scrollHeight; } }
+    }
+    function renderPlate() {
+      var plate = document.getElementById('bf-plate');
+      if (!plate || !board) return;
+      if (board.phase !== 'ally') { plate.hidden = true; plate.innerHTML = ''; return; }
+      if (board.sel) {
         var u = board.sel;
-        act.hidden = false;
-        act.innerHTML = '<span class="bf-act-name">' + esc(u.name) + '</span>'
-          + '<button type="button" class="btn btn-sm' + (board.mode === 'move' ? ' bf-on' : '') + '" onclick="window.bfOrder(\'move\')">移动</button>'
-          + '<button type="button" class="btn btn-sm' + (board.mode === 'attack' ? ' bf-on' : '') + '" onclick="window.bfOrder(\'attack\')">攻击</button>'
-          + '<button type="button" class="btn btn-sm" onclick="window.bfOrder(\'wait\')">待机</button>'
-          + '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfOrder(\'detail\')">详情</button>'
-          + '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfOrder(\'formation\')">列阵</button>'
-          + '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfDeselect()">取消</button>';
-      } else act.hidden = true;
+        if (!u.acted && !board.pendingMove) {
+          var danger = dangerOf(u);
+          plate.hidden = false;
+          plate.innerHTML = '<div class="bf-plate-info">' +
+            '<span class="bf-plate-name">' + esc(u.name) + '</span>' +
+            '<span class="bf-plate-stats">攻' + u.atk + '·防' + u.def + '·速' + u.spd + '·移' + u.move + '·射' + u.range + ' · ' + (u.count || 0) + '人 · 军心' + u.morale + '</span>' +
+            (danger ? '<span class="bf-plate-danger">溃散风险高</span>' : '') +
+            '</div><div class="bf-plate-acts">' +
+            '<button type="button" class="btn btn-sm' + (board.mode === 'move' ? ' bf-on' : '') + '" onclick="window.bfOrder(\'move\')">移动</button>' +
+            '<button type="button" class="btn btn-sm' + (board.mode === 'attack' ? ' bf-on' : '') + '" onclick="window.bfOrder(\'attack\')">攻击</button>' +
+            '<button type="button" class="btn btn-sm" onclick="window.bfOrder(\'wait\')">待机</button>' +
+            '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfOrder(\'detail\')">详情</button>' +
+            '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfOrder(\'formation\')">列阵</button>' +
+            '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfDeselect()">取消</button>' +
+            '</div>';
+          return;
+        }
+        if (board.threat) {
+          var tu = board.threat.u;
+          plate.hidden = false;
+          plate.innerHTML = '<div class="bf-plate-info"><span class="bf-plate-name bf-plate-foe">' + esc(tu.name) + ' 威胁预览</span><span class="bf-plate-stats">攻' + tu.atk + '·防' + tu.def + '·移' + tu.move + '·射' + tu.range + '</span></div><div class="bf-plate-hint">红框=可攻击 · 黄框=可移动 · 点空白关闭</div>';
+          return;
+        }
+      }
+      plate.hidden = true; plate.innerHTML = '';
     }
     function showMenu(html) {
       var host = document.getElementById('bf-pop-host');
@@ -1387,7 +1427,13 @@
       window.bfStrike = function (oid) { var t = board && board._strikeTarget; closeMenu(); if (board && board.sel && t) resolveAttack(board.sel, t, oid); };
       window.bfCloseMenu = closeMenu; window.bfCloseModal = bfCloseModal;
       window.bfDeselect = function () { if (!board) return; board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board.pendingMove = null; board._pathPreview = []; closeMenu(); render(); };
-      window.bfToggleLegend = function () { var el = document.getElementById('bf-legend'); if (el) el.hidden = !el.hidden; };
+      window.bfToggleLegend = function () { openFabPanel('legend'); };
+      window.bfToggleTopMenu = toggleTopMenu;
+      window.bfCloseTopMenu = function () { var m = document.getElementById('bf-topmenu'); if (m) m.classList.remove('open'); };
+      window.bfRefreshTopMenu = function () { renderTopMenu(); };
+      window.bfOpenLegend = function () { openFabPanel('legend'); };
+      window.bfCloseFab = closeFab;
+      window.bfZoom = function (f) { if (!board) return; if (f === 0) zoomLevel = 1; else zoomLevel = Math.max(0.6, Math.min(2, zoomLevel * f)); applyPan(); };
       window.bfToggleHC = function () { var r = document.getElementById('bf-root'); if (!r) return; var on = r.classList.toggle('bf-hc'); try { localStorage.setItem('bf-hc', on ? '1' : '0'); } catch (e) {} };
       window.bfSetFormation = function (uid, key) { var u = board && board.units.filter(function (x) { return x.id === uid; })[0]; if (u) { applyFormation(u, key); closeSheet(); } };
       window.bfCloseSheet = closeSheet;
