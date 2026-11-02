@@ -4301,37 +4301,36 @@
 /* 战棋 · 地形底色与图标 — 纯CSS水墨纹理，无大图，流畅 */
 .bf-cell{ position:relative; }
 .bf-cell::after{
-  content:''; position:absolute; inset:0; opacity:.15; pointer-events:none;
+  content:''; position:absolute; inset:0; opacity:.2; pointer-events:none;
   background-image:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.05) 6px, rgba(0,0,0,.05) 7px);
 }
-/* 平原：淡土黄叠加 */
-.bf-cell:not([class*="bf-t-"]){
-  background:linear-gradient(135deg, rgba(180,160,120,.15), rgba(140,120,90,.1));
-}
-/* 树林：墨绿晕染 */
+/* 地形纹理叠加（不覆盖原有底色，只加纹理） */
 .bf-t-forest{
   background:
-    radial-gradient(circle at 30% 40%, rgba(40,70,35,.4) 0%, transparent 55%),
-    radial-gradient(circle at 70% 60%, rgba(35,60,30,.35) 0%, transparent 50%),
-    linear-gradient(135deg, rgba(60,90,50,.2), rgba(40,70,40,.15));
+    radial-gradient(circle at 30% 40%, rgba(40,70,35,.25) 0%, transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(35,60,30,.2) 0%, transparent 50%),
+    linear-gradient(135deg, rgba(60,90,50,.15), rgba(40,70,40,.1)),
+    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important;
 }
-/* 丘陵：棕褐皴法 */
 .bf-t-hill{
   background:
-    linear-gradient(135deg, rgba(140,110,65,.25) 0%, rgba(100,80,45,.15) 100%),
-    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(80,60,30,.05) 8px, rgba(80,60,30,.05) 9px);
+    linear-gradient(135deg, rgba(140,110,65,.2) 0%, rgba(100,80,45,.1) 100%),
+    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(80,60,30,.05) 8px, rgba(80,60,30,.05) 9px),
+    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important;
 }
-/* 河流：水蓝留白 */
 .bf-t-ford{
   background:
-    linear-gradient(180deg, rgba(60,100,130,.3) 0%, rgba(40,80,110,.25) 100%),
-    repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,.08) 10px, rgba(255,255,255,.08) 12px);
+    linear-gradient(180deg, rgba(60,100,130,.25) 0%, rgba(40,80,110,.2) 100%),
+    repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 12px),
+    linear-gradient(180deg, rgba(255,253,248,.4), rgba(236,227,209,.25)) !important;
 }
 .bf-t-rampart{
-  background:linear-gradient(135deg, rgba(120,100,60,.3), rgba(90,75,45,.2));
+  background:linear-gradient(135deg, rgba(120,100,60,.25), rgba(90,75,45,.15)),
+    linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35)) !important;
 }
 .bf-t-wall{
-  background:linear-gradient(135deg, rgba(100,70,50,.35), rgba(70,50,35,.25));
+  background:linear-gradient(135deg, rgba(100,70,50,.3), rgba(70,50,35,.2)),
+    linear-gradient(180deg, rgba(255,253,248,.45), rgba(236,227,209,.3)) !important;
 }
 .bf-tico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   font-size:calc(var(--bf-cs,30px) * 0.62); opacity:.6; pointer-events:none; z-index:0; filter:drop-shadow(0 1px 1px rgba(255,255,255,.4)); }
