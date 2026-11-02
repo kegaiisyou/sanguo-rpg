@@ -23,6 +23,7 @@
     var CSX = 48, CSY = 48;
   var panX = 0, panY = 0; // 全局平移偏移（拖拽 + 相机跟随共用）
   var MARGIN = 0; // 边缘非可达留白圈数（渲染格坐标偏移共用）
+  var zoomLevel = 1; // 用户缩放倍率（与居中平移合并进同一 transform，避免互相覆盖）
 
     // 全舞台模式：不用弹窗小卡，视野最大化（emblem class + :has 双保险）
     function setFullscreenMode(on) {
@@ -913,32 +914,31 @@
       var rightP = document.getElementById('bf-right-panel');
       if (foldL && leftP) foldL.onclick = function() { leftP.classList.toggle('collapsed'); this.textContent = leftP.classList.contains('collapsed') ? '▶' : '◀'; };
       if (foldR && rightP) foldR.onclick = function() { rightP.classList.toggle('collapsed'); this.textContent = rightP.classList.contains('collapsed') ? '◀' : '▶'; };
+      // 窄屏（手机）默认收起两侧面板：collapsed = 收起，点竖条即展开
+      if (window.innerWidth <= 600) {
+        if (leftP) leftP.classList.add('collapsed');
+        if (rightP) rightP.classList.add('collapsed');
+      }
+      if (foldL && leftP) foldL.textContent = leftP.classList.contains('collapsed') ? '▶' : '◀';
+      if (foldR && rightP) foldR.textContent = rightP.classList.contains('collapsed') ? '◀' : '▶';
       // 缩放按钮事件
       var zoomIn = document.getElementById('bf-zoom-in');
       var zoomOut = document.getElementById('bf-zoom-out');
       var zoomReset = document.getElementById('bf-zoom-reset');
-      var zoomLevel = 1;
-      function applyZoom() {
-        var grid = document.getElementById('bf-grid');
-        if (!grid) return;
-        var base = grid.getAttribute('data-base-scale') || '1';
-        grid.style.transform = 'scale(' + zoomLevel + ')';
-        grid.style.transformOrigin = 'center center';
-      }
-      if (zoomIn) zoomIn.onclick = function() { zoomLevel = Math.min(2, zoomLevel + 0.2); applyZoom(); };
-      if (zoomOut) zoomOut.onclick = function() { zoomLevel = Math.max(0.5, zoomLevel - 0.2); applyZoom(); };
-      if (zoomReset) zoomReset.onclick = function() { zoomLevel = 1; applyZoom(); render(); };
+      if (zoomIn) zoomIn.onclick = function() { zoomLevel = Math.min(2, zoomLevel + 0.2); applyPan(); };
+      if (zoomOut) zoomOut.onclick = function() { zoomLevel = Math.max(0.6, zoomLevel - 0.2); applyPan(); };
+      if (zoomReset) zoomReset.onclick = function() { zoomLevel = 1; applyPan(); };
     }
     function cellSize() {
       var vp = document.getElementById('bf-viewport');
       if (!vp || !board) { return { csX: CSX, csY: CSY }; }
       var vw = vp.clientWidth || 360, vh = vp.clientHeight || 640;
-      // 方格布局：横纵同尺寸；四周余量作为「不可到达区域」；居中显示
-      var cs = Math.floor(Math.min(vw / board.w, vh / board.h));
-      cs = Math.max(18, Math.min(150, cs));
-      CSX = cs; CSY = cs;
-      var _M = Math.ceil(Math.max(vw, vh) / (2 * cs)) + 1;
-      MARGIN = Math.max(2, Math.min(8, _M));
+      // 方格布局：横纵同尺寸；四周留 2 格「不可到达区域」。
+      // 关键：cs 必须按 (棋盘+2*MARGIN) 计算，否则 grid 会撑出视口、敌军被推到屏幕外。
+      var M = 2;
+      var cs = Math.floor(Math.min(vw / (board.w + 2 * M), vh / (board.h + 2 * M)));
+      cs = Math.max(14, Math.min(150, cs));
+      CSX = cs; CSY = cs; MARGIN = M;
       return { csX: cs, csY: cs };
     }
     // 整张战场较小时居中（fit 后整体可见，无需平移）
@@ -946,7 +946,8 @@
       var grid = document.getElementById('bf-grid'), vp = document.getElementById('bf-viewport');
       if (!grid || !vp) return;
       var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
-      if (gw <= vw && gh <= vh) grid.style.transform = 'translate(' + ((vw - gw) / 2) + 'px,' + ((vh - gh) / 2) + 'px)';
+      grid.style.transformOrigin = '50% 50%';
+      if (gw <= vw && gh <= vh) grid.style.transform = 'translate(' + ((vw - gw) / 2) + 'px,' + ((vh - gh) / 2) + 'px) scale(' + zoomLevel + ')';
     }
     // 应用平移 + 边界收敛（全可见时居中）
     function applyPan() {
@@ -955,7 +956,8 @@
       var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
       if (gw <= vw && gh <= vh) { panX = (vw - gw) / 2; panY = (vh - gh) / 2; }
       else { var minX = Math.min(0, vw - gw), minY = Math.min(0, vh - gh); panX = Math.max(minX, Math.min(0, panX)); panY = Math.max(minY, Math.min(0, panY)); }
-      grid.style.transform = 'translate(' + panX + 'px,' + panY + 'px)';
+      grid.style.transformOrigin = '50% 50%';
+      grid.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + zoomLevel + ')';
     }
     // 相机跟随：把指定格居中到视口（大棋盘平移，小棋盘保持居中）
     function focusCell(cx, cy) {

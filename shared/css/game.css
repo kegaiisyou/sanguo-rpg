@@ -4299,10 +4299,14 @@
 }
 
 /* 战棋 · 地形底色与图标 — 纯CSS水墨纹理，无大图，流畅 */
-.bf-cell{ position:relative; }
+/* 禁止在此写 .bf-cell{position:relative}：会覆盖上方 position:absolute，使格子落入文档流垂直堆叠、整片跑出视口（黑乎乎根因） */
 .bf-cell::after{
   content:''; position:absolute; inset:0; opacity:.2; pointer-events:none;
   background-image:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.05) 6px, rgba(0,0,0,.05) 7px);
+}
+/* 平原：米白纸底 —— 缺这条时 90% 以上格子透明，会露出暗底整片黑乎乎 */
+.bf-cell:not([class*="bf-t-"]){
+  background:linear-gradient(180deg, rgba(255,253,248,.55), rgba(236,227,209,.42)) !important;
 }
 /* 地形纹理叠加（不覆盖原有底色，只加纹理） */
 .bf-t-forest{
@@ -4596,15 +4600,15 @@
 .bf-left-panel{
   position:absolute; left:0; top:48px; bottom:60px; width:180px;
   background:rgba(244,238,226,.95); border-right:1px solid var(--bf-line);
-  z-index:30; overflow-y:auto; padding:8px; transition:margin-left .3s ease;
+  z-index:30; overflow-y:auto; padding:8px; transition:transform .3s ease;
 }
-.bf-left-panel.collapsed{ margin-left:-180px; }
+.bf-left-panel.collapsed{ transform:translateX(-100%); }
 .bf-right-panel{
   position:absolute; right:0; top:48px; bottom:60px; width:200px;
   background:rgba(244,238,226,.95); border-left:1px solid var(--bf-line);
-  z-index:30; overflow-y:auto; padding:8px; transition:margin-right .3s ease;
+  z-index:30; overflow-y:auto; padding:8px; transition:transform .3s ease;
 }
-.bf-right-panel.collapsed{ margin-right:-200px; }
+.bf-right-panel.collapsed{ transform:translateX(100%); }
 .bf-panel-title{
   font-size:14px; color:var(--bf-gold); text-align:center;
   padding:6px 0; border-bottom:1px solid var(--bf-line); margin-bottom:8px;
@@ -4657,14 +4661,14 @@
   display:flex; align-items:center; justify-content:center;
 }
 .bf-zoom-btn:hover{ background:var(--bf-gold); color:#fff; }
-/* 手机端适配：面板窄一点，默认收起，点按钮展开 */
+/* 手机端适配：面板窄一点；默认收起（靠 JS 初始加 collapsed），点竖条展开 */
 @media (max-width:600px){
   .bf-left-panel{ width:120px; }
   .bf-right-panel{ width:130px; }
   .bf-fold-left{ left:0; }
   .bf-fold-right{ right:0; }
-  .bf-left-panel{ transform:translateX(-100%); }
-  .bf-right-panel{ transform:translateX(100%); }
+  .bf-left-panel:not(.collapsed) ~ .bf-fold-left{ left:120px; }
+  .bf-right-panel:not(.collapsed) ~ .bf-fold-right{ right:130px; }
   .bf-unit-card{ padding:3px 4px; font-size:10px; margin-bottom:3px; }
   .bf-uc-name{ font-size:10px; }
   .bf-uc-count{ font-size:9px; }
