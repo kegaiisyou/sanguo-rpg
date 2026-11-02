@@ -4592,3 +4592,80 @@
 }
 /* 战棋 v7 · 低士气灰度 */
 .bf-morale-low{ filter:grayscale(.5) brightness(.85); }
+
+/* 战棋 v8 · 左右面板布局 */
+.bf-left-panel{
+  position:absolute; left:0; top:48px; bottom:60px; width:180px;
+  background:rgba(244,238,226,.95); border-right:1px solid var(--bf-line);
+  z-index:30; overflow-y:auto; padding:8px; transition:margin-left .3s ease;
+}
+.bf-left-panel.collapsed{ margin-left:-180px; }
+.bf-right-panel{
+  position:absolute; right:0; top:48px; bottom:60px; width:200px;
+  background:rgba(244,238,226,.95); border-left:1px solid var(--bf-line);
+  z-index:30; overflow-y:auto; padding:8px; transition:margin-right .3s ease;
+}
+.bf-right-panel.collapsed{ margin-right:-200px; }
+.bf-panel-title{
+  font-size:14px; color:var(--bf-gold); text-align:center;
+  padding:6px 0; border-bottom:1px solid var(--bf-line); margin-bottom:8px;
+  font-weight:700;
+}
+/* 部队卡片 */
+.bf-unit-card{
+  background:rgba(90,74,42,.1); border:1px solid #4a3d25; border-radius:4px;
+  padding:6px 8px; margin-bottom:6px; cursor:pointer; transition:all .15s;
+}
+.bf-unit-card:hover{ background:rgba(90,74,42,.2); border-color:var(--bf-gold); }
+.bf-unit-card.selected{ border-color:var(--bf-gold); background:rgba(176,131,47,.15); }
+.bf-unit-card.ally{ border-left:3px solid var(--bf-ally); }
+.bf-unit-card.foe{ border-left:3px solid var(--bf-foe); }
+.bf-uc-name{ font-size:12px; font-weight:700; margin-bottom:2px; }
+.bf-uc-count{ font-size:10px; color:#888; margin-bottom:4px; }
+.bf-uc-hp{ height:4px; background:#ddd; border-radius:2px; overflow:hidden; margin-bottom:3px; }
+.bf-uc-hp i{ display:block; height:100%; background:var(--bf-foe); border-radius:2px; }
+.bf-unit-card.ally .bf-uc-hp i{ background:var(--bf-ally); }
+.bf-uc-mor{ height:3px; background:#ddd; border-radius:2px; overflow:hidden; }
+.bf-uc-mor i{ display:block; height:100%; background:#27ae60; border-radius:2px; }
+/* 战报条目 */
+.bf-log-item{
+  font-size:11px; padding:4px 6px; margin-bottom:2px; border-radius:3px;
+  background:rgba(90,74,42,.08); border-left:2px solid var(--bf-line);
+}
+.bf-log-item.ally{ border-left-color:var(--bf-ally); }
+.bf-log-item.foe{ border-left-color:var(--bf-foe); }
+.bf-log-item.crit{ border-left-color:var(--bf-gold); background:rgba(176,131,47,.12); }
+/* 折叠按钮 */
+.bf-fold-btn{
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:18px; height:50px; background:rgba(244,238,226,.95);
+  border:1px solid var(--bf-line); z-index:35; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; color:#888; writing-mode:vertical-rl;
+}
+.bf-fold-left{ left:180px; border-radius:0 4px 4px 0; transition:left .3s ease; }
+.bf-fold-right{ right:200px; border-radius:4px 0 0 4px; transition:right .3s ease; }
+.bf-left-panel.collapsed ~ .bf-fold-left, .bf-fold-left.shifted{ left:0; }
+.bf-right-panel.collapsed ~ .bf-fold-right, .bf-fold-right.shifted{ right:0; }
+/* 缩放按钮 */
+.bf-zoom-controls{
+  position:absolute; right:8px; bottom:70px; display:flex; flex-direction:column; gap:4px; z-index:35;
+}
+.bf-zoom-btn{
+  width:28px; height:28px; background:rgba(244,238,226,.95);
+  border:1px solid var(--bf-line); border-radius:4px;
+  color:#666; font-size:14px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.bf-zoom-btn:hover{ background:var(--bf-gold); color:#fff; }
+/* 手机端适配：面板默认收起 */
+@media (max-width:600px){
+  .bf-left-panel{ width:140px; }
+  .bf-right-panel{ width:160px; }
+  .bf-fold-left{ left:140px; }
+  .bf-fold-right{ right:160px; }
+  .bf-left-panel{ margin-left:-140px; }
+  .bf-right-panel{ margin-right:-160px; }
+  .bf-fold-left{ left:0; }
+  .bf-fold-right{ right:0; }
+}

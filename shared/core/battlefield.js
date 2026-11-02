@@ -859,7 +859,22 @@
       card.innerHTML = '<div id="bf-root" class="bf-root">' +
         '<div class="bf-outzone" id="bf-outzone" onclick="window.bfDeselect()"></div>' +
         '<div class="bf-top" id="bf-top"></div>' +
+        '<div class="bf-left-panel" id="bf-left-panel">' +
+          '<div class="bf-panel-title">军情报</div>' +
+          '<div class="bf-unit-list" id="bf-unit-list"></div>' +
+        '</div>' +
+        '<button class="bf-fold-btn bf-fold-left" id="bf-fold-left" title="收起军情报">◀</button>' +
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div></div>' +
+        '<div class="bf-right-panel" id="bf-right-panel">' +
+          '<div class="bf-panel-title">战报</div>' +
+          '<div class="bf-log-list" id="bf-log-list"></div>' +
+        '</div>' +
+        '<button class="bf-fold-btn bf-fold-right" id="bf-fold-right" title="收起战报">▶</button>' +
+        '<div class="bf-zoom-controls" id="bf-zoom-controls">' +
+          '<button class="bf-zoom-btn" id="bf-zoom-in" title="放大">+</button>' +
+          '<button class="bf-zoom-btn" id="bf-zoom-out" title="缩小">−</button>' +
+          '<button class="bf-zoom-btn" id="bf-zoom-reset" title="重置">⌂</button>' +
+        '</div>' +
         '<div class="bf-detail" id="bf-detail"></div>' +
         '<div class="bf-log" id="bf-log"></div>' +
         '<div class="bf-bar" id="bf-bar"></div>' +
@@ -891,6 +906,28 @@
           '<div class="bf-leg-hint">点「高对比」切换色弱友好配色</div></div>';
       }
       try { if (localStorage.getItem('bf-hc') === '1') { var _r = document.getElementById('bf-root'); if (_r) _r.classList.add('bf-hc'); } } catch (e) {}
+      // 折叠按钮事件
+      var foldL = document.getElementById('bf-fold-left');
+      var foldR = document.getElementById('bf-fold-right');
+      var leftP = document.getElementById('bf-left-panel');
+      var rightP = document.getElementById('bf-right-panel');
+      if (foldL && leftP) foldL.onclick = function() { leftP.classList.toggle('collapsed'); this.textContent = leftP.classList.contains('collapsed') ? '▶' : '◀'; };
+      if (foldR && rightP) foldR.onclick = function() { rightP.classList.toggle('collapsed'); this.textContent = rightP.classList.contains('collapsed') ? '◀' : '▶'; };
+      // 缩放按钮事件
+      var zoomIn = document.getElementById('bf-zoom-in');
+      var zoomOut = document.getElementById('bf-zoom-out');
+      var zoomReset = document.getElementById('bf-zoom-reset');
+      var zoomLevel = 1;
+      function applyZoom() {
+        var grid = document.getElementById('bf-grid');
+        if (!grid) return;
+        var base = grid.getAttribute('data-base-scale') || '1';
+        grid.style.transform = 'scale(' + zoomLevel + ')';
+        grid.style.transformOrigin = 'center center';
+      }
+      if (zoomIn) zoomIn.onclick = function() { zoomLevel = Math.min(2, zoomLevel + 0.2); applyZoom(); };
+      if (zoomOut) zoomOut.onclick = function() { zoomLevel = Math.max(0.5, zoomLevel - 0.2); applyZoom(); };
+      if (zoomReset) zoomReset.onclick = function() { zoomLevel = 1; applyZoom(); render(); };
     }
     function cellSize() {
       var vp = document.getElementById('bf-viewport');
@@ -954,6 +991,35 @@
           '<span class="bf-top-r">我军 ' + aN + '/' + aHp + ' · 敌 ' + fN + '/' + fHp + '</span>' +
           '<button type="button" class="bf-top-btn" onclick="window.bfToggleLegend()">图例</button>' +
           '<button type="button" class="bf-top-btn" onclick="window.bfToggleHC()">高对比</button>';
+      }
+      // 左侧军情报面板
+      var unitList = document.getElementById('bf-unit-list');
+      if (unitList) {
+        var ulHtml = '';
+        board.units.forEach(function (u) {
+          if (u.hp <= 0 && u.routed) return;
+          var hpPct = Math.max(0, Math.min(100, Math.round(100 * u.hp / u.maxHp)));
+          var morPct = Math.max(0, Math.min(100, Math.round(u.morale == null ? 80 : u.morale)));
+          var sideCls = u.side === 'ally' ? 'ally' : 'foe';
+          var selCls = board.sel === u ? ' selected' : '';
+          ulHtml += '<div class="bf-unit-card ' + sideCls + selCls + '" onclick="window.bfClick(' + u.x + ',' + u.y + ')">' +
+            '<div class="bf-uc-name">' + esc(u.name) + '</div>' +
+            '<div class="bf-uc-count">' + u.count + ' / ' + u.maxHp + '</div>' +
+            '<div class="bf-uc-hp"><i style="width:' + hpPct + '%"></i></div>' +
+            '<div class="bf-uc-mor"><i style="width:' + morPct + '%"></i></div>' +
+            '</div>';
+        });
+        unitList.innerHTML = ulHtml;
+      }
+      // 右侧战报面板
+      var logList = document.getElementById('bf-log-list');
+      if (logList && board.log) {
+        var llHtml = '';
+        board.log.slice(-30).forEach(function (l) {
+          llHtml += '<div class="bf-log-item ' + (l.c || '') + '">' + esc(l.m) + '</div>';
+        });
+        logList.innerHTML = llHtml;
+        logList.scrollTop = logList.scrollHeight;
       }
       // 格子 + 单位
       var html = [];
