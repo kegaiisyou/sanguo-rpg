@@ -4301,44 +4301,44 @@
 /* 战棋 · 地形底色与图标 — 纯CSS水墨纹理，无大图，流畅 */
 .bf-cell{ position:relative; }
 .bf-cell::after{
-  content:''; position:absolute; inset:0; opacity:.12; pointer-events:none;
-  background-image:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.04) 6px, rgba(0,0,0,.04) 7px);
+  content:''; position:absolute; inset:0; opacity:.15; pointer-events:none;
+  background-image:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.05) 6px, rgba(0,0,0,.05) 7px);
 }
-/* 平原：淡土黄 */
+/* 平原：淡土黄叠加 */
 .bf-cell:not([class*="bf-t-"]){
-  background:linear-gradient(135deg, rgba(180,160,120,.1), rgba(140,120,90,.06)) !important;
+  background:linear-gradient(135deg, rgba(180,160,120,.15), rgba(140,120,90,.1));
 }
 /* 树林：墨绿晕染 */
 .bf-t-forest{
   background:
-    radial-gradient(circle at 30% 40%, rgba(40,70,35,.3) 0%, transparent 55%),
-    radial-gradient(circle at 70% 60%, rgba(35,60,30,.25) 0%, transparent 50%),
-    linear-gradient(135deg, rgba(60,90,50,.15), rgba(40,70,40,.1)) !important;
+    radial-gradient(circle at 30% 40%, rgba(40,70,35,.4) 0%, transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(35,60,30,.35) 0%, transparent 50%),
+    linear-gradient(135deg, rgba(60,90,50,.2), rgba(40,70,40,.15));
 }
 /* 丘陵：棕褐皴法 */
 .bf-t-hill{
   background:
-    linear-gradient(135deg, rgba(140,110,65,.2) 0%, rgba(100,80,45,.12) 100%),
-    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(80,60,30,.04) 8px, rgba(80,60,30,.04) 9px) !important;
+    linear-gradient(135deg, rgba(140,110,65,.25) 0%, rgba(100,80,45,.15) 100%),
+    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(80,60,30,.05) 8px, rgba(80,60,30,.05) 9px);
 }
 /* 河流：水蓝留白 */
 .bf-t-ford{
   background:
-    linear-gradient(180deg, rgba(60,100,130,.25) 0%, rgba(40,80,110,.2) 100%),
-    repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,.06) 10px, rgba(255,255,255,.06) 12px) !important;
+    linear-gradient(180deg, rgba(60,100,130,.3) 0%, rgba(40,80,110,.25) 100%),
+    repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,.08) 10px, rgba(255,255,255,.08) 12px);
 }
 .bf-t-rampart{
-  background:linear-gradient(135deg, rgba(120,100,60,.25), rgba(90,75,45,.15)) !important;
+  background:linear-gradient(135deg, rgba(120,100,60,.3), rgba(90,75,45,.2));
 }
 .bf-t-wall{
-  background:linear-gradient(135deg, rgba(100,70,50,.3), rgba(70,50,35,.2)) !important;
+  background:linear-gradient(135deg, rgba(100,70,50,.35), rgba(70,50,35,.25));
 }
 .bf-tico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  font-size:calc(var(--bf-cs,30px) * 0.62); opacity:.5; pointer-events:none; z-index:0; filter:drop-shadow(0 1px 1px rgba(255,255,255,.4)); }
+  font-size:calc(var(--bf-cs,30px) * 0.62); opacity:.6; pointer-events:none; z-index:0; filter:drop-shadow(0 1px 1px rgba(255,255,255,.4)); }
 .bf-unit{ z-index:5; }
 /* 部队图标：水墨圆形徽章 */
 .bf-u-ico{
-  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.15), transparent 50%) !important;
+  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.2), transparent 50%);
   display:flex; align-items:center; justify-content:center;
   font-size:calc(var(--bf-cs,30px) * .52); line-height:1;
   opacity:.95; pointer-events:none; z-index:1; border-radius:50%;
@@ -4658,14 +4658,15 @@
   display:flex; align-items:center; justify-content:center;
 }
 .bf-zoom-btn:hover{ background:var(--bf-gold); color:#fff; }
-/* 手机端适配：面板默认收起 */
+/* 手机端适配：面板窄一点，默认收起，点按钮展开 */
 @media (max-width:600px){
-  .bf-left-panel{ width:140px; }
-  .bf-right-panel{ width:160px; }
-  .bf-fold-left{ left:140px; }
-  .bf-fold-right{ right:160px; }
-  .bf-left-panel{ margin-left:-140px; }
-  .bf-right-panel{ margin-right:-160px; }
+  .bf-left-panel{ width:120px; }
+  .bf-right-panel{ width:130px; }
   .bf-fold-left{ left:0; }
   .bf-fold-right{ right:0; }
+  .bf-left-panel{ transform:translateX(-100%); }
+  .bf-right-panel{ transform:translateX(100%); }
+  .bf-unit-card{ padding:3px 4px; font-size:10px; margin-bottom:3px; }
+  .bf-uc-name{ font-size:10px; }
+  .bf-uc-count{ font-size:9px; }
 }
