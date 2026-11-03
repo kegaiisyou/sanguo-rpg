@@ -729,39 +729,21 @@
       if (suppressClick) { suppressClick = false; return; }
       if (!board || board.over || board.phase !== 'ally') return;
       var u = unitAt(x, y);
+      // 移动模式：点可移动格子直接移动，无需二次确认
       if (board.mode === 'move' && board.sel) {
-        if (inReach(x, y)) {
-          if (board.pendingMove && board.pendingMove.x === x && board.pendingMove.y === y) {
-            var pm = board.pendingMove; board.pendingMove = null; board._pathPreview = [];
-            commitMove(pm.x, pm.y);
-          } else {
-            board.pendingMove = { x: x, y: y };
-            board._pathPreview = pathBetween(board.sel.x, board.sel.y, x, y, board.sel);
-            render();
-          }
-          return;
-        }
-        board.pendingMove = null; board._pathPreview = [];
+        if (inReach(x, y)) { commitMove(x, y); return; }
       }
+      // 攻击模式：点可攻击敌人，直接弹出攻击指令
       if (board.mode === 'attack' && board.sel) {
-        if (inAttack(x, y)) {
-          var tgt = u;
-          openOrderMenu(board.sel, tgt);
-          return;
-        }
+        if (inAttack(x, y)) { openOrderMenu(board.sel, u); return; }
       }
       if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; board.pendingMove = null; board._pathPreview = []; playSfx('select'); buzz(8); render(); focusCell(u.x, u.y); return; }
-      // 选中后点可达空格 = 进入移动预演（可直接点，也可先点「移动」mode='move' 再点）；再次点同格或点确认 = 执行
-      if (board.sel && !u && inReach(x, y)) {
-        if (board.pendingMove && board.pendingMove.x === x && board.pendingMove.y === y) { var pm = board.pendingMove; board.pendingMove = null; board._pathPreview = []; commitMove(pm.x, pm.y); return; }
-        board.pendingMove = { x: x, y: y };
-        board._pathPreview = pathBetween(board.sel.x, board.sel.y, x, y, board.sel);
-        render(); return;
-      }
+      // 选中后直接点可达空格 = 直接移动
+      if (board.sel && !u && inReach(x, y)) { commitMove(x, y); return; }
       // 选中后直接点可攻击敌 = 弹出攻击指令
       if (board.sel && !board.mode && u && u.side === 'foe' && inAttack(x, y)) { openOrderMenu(board.sel, u); return; }
       if (u && u.side === 'foe' && !board.mode) { board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = computeThreat(u); board.pendingMove = null; board._pathPreview = []; closeMenu(); render(); return; }
-      // 点空白：取消选择 / 清除威胁
+      // 点空白：取消选择
       board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board.pendingMove = null; board._pathPreview = []; closeMenu();
       render();
     }
@@ -1038,23 +1020,6 @@
       }
       grid.innerHTML = html.join('');
       ensureLayers();
-      if (board && board.pendingMove) {
-        var _pm = board.pendingMove, _cc = document.createElement('div');
-        _cc.className = 'bf-cell-confirm';
-        _cc.style.left = (X[_pm.x + MARGIN] + csX / 2) + 'px';
-        _cc.style.top = (Y[_pm.y + MARGIN] + csY / 2) + 'px';
-        _cc.innerHTML = '<button type="button" class="btn btn-sm bf-cc-ok" onclick="window.bfConfirmMove()">确认</button><button type="button" class="btn btn-sm btn-ghost bf-cc-no" onclick="window.bfCancelMove()">取消</button>';
-        grid.appendChild(_cc);
-      }
-      if (board && board.pendingMove && board.sel) {
-        var _g = document.createElement('div'); _g.className = 'bf-ghost';
-        _g.style.left = (X[board.pendingMove.x + MARGIN]) + 'px';
-        _g.style.top = (Y[board.pendingMove.y + MARGIN]) + 'px';
-        _g.style.width = (X[board.pendingMove.x + 1 + MARGIN] - X[board.pendingMove.x + MARGIN]) + 'px';
-        _g.style.height = (Y[board.pendingMove.y + 1 + MARGIN] - Y[board.pendingMove.y + MARGIN]) + 'px';
-        _g.innerHTML = '<i class="bf-u-ico">' + esc(((T()[board.sel.troopType] || {}).icon) || '·') + '</i>';
-        grid.appendChild(_g);
-      }
       if (!board._centeredInit && grid.offsetWidth && document.getElementById('bf-viewport') && document.getElementById('bf-viewport').clientWidth) { board._centeredInit = true; focusCell(Math.floor(board.w / 2), Math.floor(board.h / 2)); }
       if (board.sel && board.mode === 'attack') drawAimLines();
       // 选中详情 -> 改由底部操作板（renderPlate）渲染，此处不再单独浮层
@@ -1071,8 +1036,6 @@
           '<option value="3"' + (speed === 3 ? ' selected' : '') + '>3×</option>' +
           '<option value="0"' + (skip ? ' selected' : '') + '>跳帧</option>' +
           '</select>' +
-          (board.pendingMove ? '<span class="bf-bar-pending">已选落点</span>' : '') +
-          '<button type="button" class="btn bf-threat-btn' + (board.showAllThreat ? ' bf-threat-on' : '') + '" id="bf-threat">威胁</button>' +
           '<button type="button" class="btn bf-main" id="bf-et">结束回合' + (board.phase === 'ally' && rest > 0 ? '（余' + rest + '）' : '') + '</button>' +
           '<button type="button" class="btn bf-more-btn" id="bf-more">更多</button>' +
           '<div class="bf-more-menu" id="bf-more-menu" hidden>' +
@@ -1080,9 +1043,8 @@
             '<button type="button" class="bf-more-item" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
           '</div>';
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
-        var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { bfNextUnit(); document.getElementById('bf-more-menu').hidden = true; };
-        var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { bfRetreat(); document.getElementById('bf-more-menu').hidden = true; };
-        var th = document.getElementById('bf-threat'); if (th) th.onclick = function () { window.bfToggleThreat(); };
+        var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { document.getElementById('bf-more-menu').hidden = true; bfNextUnit(); };
+        var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { document.getElementById('bf-more-menu').hidden = true; bfRetreat(); };
         var moreBtn = document.getElementById('bf-more');
         var moreMenu = document.getElementById('bf-more-menu');
         if (moreBtn && moreMenu) moreBtn.onclick = function (e) { e.stopPropagation(); moreMenu.hidden = !moreMenu.hidden; };
@@ -1254,7 +1216,7 @@
       if (board.phase !== 'ally') { plate.hidden = true; plate.innerHTML = ''; return; }
       if (board.sel) {
         var u = board.sel;
-        if (!u.acted && !board.pendingMove) {
+        if (!u.acted) {
           var danger = dangerOf(u);
           plate.hidden = false;
           plate.innerHTML = '<div class="bf-plate-row">' + '<div class="bf-plate-ava">' + troopAvatarHTML(u.troopType, u.side, 58) + '</div>' + '<div class="bf-plate-info">' +

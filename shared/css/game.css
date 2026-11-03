@@ -4515,3 +4515,67 @@
   .bf-plate-stats{ font-size:10px; }
   .bf-unit-card{ gap:6px; }
 }
+
+/* 战棋 v12 · 战场氛围：烟尘/云气效果（纯CSS，不影响性能） */
+.bf-viewport::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:15;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(120,100,70,.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 70%, rgba(100,90,80,.06) 0%, transparent 35%),
+    radial-gradient(ellipse at 50% 50%, rgba(150,140,120,.04) 0%, transparent 50%);
+  animation:bfMistDrift 20s ease-in-out infinite alternate;
+}
+@keyframes bfMistDrift{
+  0%{ transform:translateX(-20px) translateY(0); opacity:.7; }
+  50%{ opacity:1; }
+  100%{ transform:translateX(20px) translateY(-10px); opacity:.8; }
+}
+/* 战斗时的烟尘效果（通过class触发） */
+.bf-root.bf-combat-smoke .bf-viewport::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:16;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(150,130,100,.15) 0%, transparent 60%);
+  animation:bfSmokePuff .8s ease-out forwards;
+}
+@keyframes bfSmokePuff{
+  0%{ opacity:0; transform:scale(.5); }
+  30%{ opacity:1; }
+  100%{ opacity:0; transform:scale(1.5); }
+}
+/* 攻击命中闪光 */
+.bf-hit-flash{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:20;
+  background:radial-gradient(circle, rgba(255,255,255,.8) 0%, transparent 70%);
+  animation:bfHitFlash .3s ease-out forwards;
+}
+@keyframes bfHitFlash{
+  0%{ opacity:0; transform:scale(.3); }
+  30%{ opacity:1; }
+  100%{ opacity:0; transform:scale(1.2); }
+}
+/* 溃败烟尘 */
+.bf-rout-smoke{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:18;
+  background:
+    radial-gradient(circle at 50% 60%, rgba(100,80,60,.3) 0%, transparent 70%);
+  animation:bfRoutSmoke 1.2s ease-out forwards;
+}
+@keyframes bfRoutSmoke{
+  0%{ opacity:0; transform:scale(.5); }
+  40%{ opacity:1; }
+  100%{ opacity:0; transform:scale(1.8) translateY(20px); }
+}
