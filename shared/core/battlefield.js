@@ -1065,22 +1065,29 @@
         var speed = board.speed || 1, skip = !!board.skip;
         var rest = sideUnits('ally').filter(function (u) { return !u.acted; }).length;
         bar.innerHTML =
-          '<span class="bf-speed">速度' +
-          '<button type="button" class="bf-sp' + (speed === 1 ? ' on' : '') + '" onclick="window.bfSpeed(1)">1×</button>' +
-          '<button type="button" class="bf-sp' + (speed === 2 ? ' on' : '') + '" onclick="window.bfSpeed(2)">2×</button>' +
-          '<button type="button" class="bf-sp' + (speed === 3 ? ' on' : '') + '" onclick="window.bfSpeed(3)">3×</button>' +
-          '<button type="button" class="bf-sp' + (skip ? ' on' : '') + '" onclick="window.bfSkip()">' + (skip ? '跳帧✓' : '跳帧') + '</button></span>' +
-          (board.pendingMove ? '<span class="bf-bar-pending">已选落点 · 点该格上的「确认」执行</span>' : '') +
+          '<select class="bf-speed-select" id="bf-speed-select" onchange="window.bfSpeed(parseInt(this.value))">' +
+          '<option value="1"' + (speed === 1 ? ' selected' : '') + '>1×</option>' +
+          '<option value="2"' + (speed === 2 ? ' selected' : '') + '>2×</option>' +
+          '<option value="3"' + (speed === 3 ? ' selected' : '') + '>3×</option>' +
+          '<option value="0"' + (skip ? ' selected' : '') + '>跳帧</option>' +
+          '</select>' +
+          (board.pendingMove ? '<span class="bf-bar-pending">已选落点</span>' : '') +
           '<button type="button" class="btn bf-threat-btn' + (board.showAllThreat ? ' bf-threat-on' : '') + '" id="bf-threat">威胁</button>' +
-
           '<button type="button" class="btn bf-main" id="bf-et">结束回合' + (board.phase === 'ally' && rest > 0 ? '（余' + rest + '）' : '') + '</button>' +
-          '<button type="button" class="btn" id="bf-nx">下一营</button>' +
-          '<button type="button" class="btn btn-danger" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
-          '<span class="bf-bar-tip">' + (board.pendingMove ? '已选落点 · 点该格上的「确认」执行移动' : (board.phase === 'ally' ? (rest > 0 ? '我军调度中 · 余 ' + rest + ' 营' : '全军已待命') : '敌军行动中…')) + '</span>';
+          '<button type="button" class="btn bf-more-btn" id="bf-more">更多</button>' +
+          '<div class="bf-more-menu" id="bf-more-menu" hidden>' +
+            '<button type="button" class="bf-more-item" id="bf-nx">下一营</button>' +
+            '<button type="button" class="bf-more-item" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
+          '</div>';
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
-        var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { bfNextUnit(); };
-        var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { bfRetreat(); };
+        var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { bfNextUnit(); document.getElementById('bf-more-menu').hidden = true; };
+        var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { bfRetreat(); document.getElementById('bf-more-menu').hidden = true; };
         var th = document.getElementById('bf-threat'); if (th) th.onclick = function () { window.bfToggleThreat(); };
+        var moreBtn = document.getElementById('bf-more');
+        var moreMenu = document.getElementById('bf-more-menu');
+        if (moreBtn && moreMenu) moreBtn.onclick = function (e) { e.stopPropagation(); moreMenu.hidden = !moreMenu.hidden; };
+        // 点其他地方关闭更多菜单
+        document.addEventListener('click', function (e) { if (!e.target.closest('#bf-more') && !e.target.closest('#bf-more-menu')) moreMenu.hidden = true; });
 
       updateAttackPreview();
       // 确认钮在落点格内渲染（见棋盘 pendingMove），无需单独处理
@@ -1444,7 +1451,12 @@
       window.bfNextUnit = bfNextUnit;
       window.bfOpenSetup = openSetup;
       window.bfCloseResult = bfCloseResult;
-      window.bfSpeed = function (s) { if (board) { board.speed = s; render(); } };
+      window.bfSpeed = function (s) {
+        if (!board) return;
+        if (s === 0) { board.skip = true; board.speed = 1; }
+        else { board.speed = s; board.skip = false; }
+        render();
+      };
       window.bfSkip = function () { if (board) { board.skip = !board.skip; render(); } };
     }
     return api;
