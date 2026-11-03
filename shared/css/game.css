@@ -4238,10 +4238,9 @@
   background:rgba(24,17,10,.74); color:#fff; border-radius:999px; padding:0 4px; line-height:1.5; pointer-events:none; z-index:2; }
 .bf-u-ally .bf-u-cnt{ background:rgba(63,95,122,.95); }
 .bf-u-foe .bf-u-cnt{ background:rgba(158,59,46,.95); }
-.bf-u-face{ position:absolute; bottom:0; left:2px; font-style:normal; font-size:calc(var(--bf-cs,30px) * .34);
+.bf-u-face{ position:absolute; top:1px; left:2px; font-style:normal; font-size:calc(var(--bf-cs,30px) * .34);
   line-height:1; color:rgba(24,17,10,.72); pointer-events:none; z-index:2; }
-.bf-u-tag{ position:absolute; bottom:0; right:2px; left:18px; font-style:normal; font-weight:700;
-  font-size:calc(var(--bf-cs,30px) * .26); color:var(--bf-ink); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; z-index:2; }
+.bf-u-tag{ display:none; }
 .bf-u-ally .bf-u-tag{ color:var(--bf-ally); }
 .bf-u-foe .bf-u-tag{ color:var(--bf-foe); }
 .bf-u-hp{ position:absolute; left:3px; right:3px; bottom:2px; height:3px; border-radius:2px; background:rgba(0,0,0,.36); overflow:hidden; z-index:3; }
@@ -4301,14 +4300,17 @@
 }
 .bf-more-item:hover{ background:rgba(176,131,47,.15); }
 /* 选中操作板（从底条上方滑出，与底条一体，不遮棋盘） */
-.bf-plate{ position:absolute; left:0; right:0; bottom:56px; z-index:40; transform:translateY(120%); transition:transform .22s ease; pointer-events:none; }
+.bf-plate{ position:absolute; left:0; right:0; bottom:56px; z-index:40; transform:translateY(120%); transition:transform .22s ease; pointer-events:none; background:linear-gradient(180deg, rgba(244,238,226,0), rgba(244,238,226,.95) 22%); border-radius:16px 16px 0 0; }
 .bf-plate:not([hidden]){ transform:translateY(0); }
-.bf-plate-info{ pointer-events:none; text-align:center; padding:6px 10px 2px; }
-.bf-plate-name{ display:block; font-weight:700; color:var(--bf-gold); font-size:14px; text-shadow:0 1px 0 rgba(255,255,255,.6); }
+.bf-plate-row{ display:flex; align-items:center; gap:10px; padding:6px 12px 2px; }
+.bf-plate-ava{ flex:0 0 auto; width:58px; height:58px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+.bf-ava-svg{ display:block; }
+.bf-plate-info{ flex:1 1 auto; min-width:0; pointer-events:none; text-align:left; padding:2px 0; }
+.bf-plate-name{ display:block; font-weight:700; color:var(--bf-gold); font-size:15px; text-shadow:0 1px 0 rgba(255,255,255,.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bf-plate-name.bf-plate-foe{ color:var(--bf-foe); }
-.bf-plate-stats{ display:block; font-size:11px; color:var(--ink-soft); }
+.bf-plate-stats{ display:block; font-size:11px; color:var(--ink-soft); line-height:1.45; }
 .bf-plate-danger{ display:inline-block; margin-top:2px; font-size:11px; color:#c0392b; font-weight:700; }
-.bf-plate-hint{ display:block; font-size:11px; color:var(--ink-faint); padding:4px 10px 6px; }
+.bf-plate-hint{ display:block; font-size:11px; color:var(--ink-faint); padding:4px 12px 6px; }
 .bf-plate-acts{ display:flex; gap:6px; justify-content:center; align-items:center; padding:4px 8px 8px; pointer-events:none; flex-wrap:wrap; }
 .bf-plate-acts button{ pointer-events:auto; }
 /* 右侧 FAB 堆叠（单位列表 / 战报 / 缩放） */
@@ -4329,7 +4331,9 @@
 .bf-fp-zoom{ display:flex; flex-direction:column; gap:8px; padding:12px; }
 .bf-fp-zoom .btn{ width:100%; padding:10px; font-size:14px; }
 /* 部队卡片（FAB 列表内） */
-.bf-unit-card{ background:rgba(90,74,42,.10); border:1px solid #4a3d25; border-radius:8px; padding:6px 8px; margin-bottom:6px; cursor:pointer; transition:all .15s; }
+.bf-unit-card{ display:flex; align-items:center; gap:8px; background:rgba(90,74,42,.10); border:1px solid #4a3d25; border-radius:8px; padding:6px 8px; margin-bottom:6px; cursor:pointer; transition:all .15s; }
+.bf-uc-ava{ flex:0 0 auto; width:38px; height:38px; }
+.bf-uc-main{ flex:1 1 auto; min-width:0; }
 .bf-unit-card:hover{ background:rgba(176,131,47,.16); border-color:var(--bf-gold); }
 .bf-unit-card.selected{ border-color:var(--bf-gold); background:rgba(176,131,47,.18); }
 .bf-unit-card.ally{ border-left:3px solid var(--bf-ally); }
@@ -4500,4 +4504,14 @@
   .bf-fab-panel{ top:34px; bottom:64px; right:6px; width:min(82vw,230px); }
   .bf-pop{ min-width:104px; }
   .bf-preview{ max-width:60vw; font-size:10px; }
+  .bf-top{ flex-wrap:nowrap; white-space:nowrap; max-width:calc(100% - 10px); }
+  .bf-top-m{ max-width:32vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bf-top-r{ font-size:10px; }
+  .bf-bar{ flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; }
+  .bf-bar::-webkit-scrollbar{ display:none; }
+  .bf-bar .btn{ flex:0 0 auto; }
+  .bf-plate-row{ gap:8px; padding:5px 10px 2px; }
+  .bf-plate-ava{ width:48px; height:48px; }
+  .bf-plate-stats{ font-size:10px; }
+  .bf-unit-card{ gap:6px; }
 }
