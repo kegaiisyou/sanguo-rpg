@@ -425,11 +425,11 @@
         if (counter.miss) counter = null; else applyDamage(a, counter.dmg, d);
       }
       if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
-      else { playSfx('attack'); buzz(22); shakeGrid(); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
+      else { playSfx('attack'); buzz(22); shakeGrid(); effectLayer('bf-hit-flash', 300); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
       if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
-      if (d.hp <= 0) log('〔破营〕' + d.name + '营溃散，折损于阵。', 'good');
+      if (d.hp <= 0) { effectLayer('bf-rout-smoke', 1200); log('〔破营〕' + d.name + '营溃散，折损于阵。', 'good'); }
       board.sel = null; board.mode = null; board.reach = []; board.attack = [];
       render();
       animateAttack({ a: a, d: d, r: r, counter: counter }, afterAction);
@@ -511,8 +511,8 @@
           if (counter.miss) counter = null; else applyDamage(u, counter.dmg, bestTgt);
         }
         if (r.miss) log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
-        else { applyDamage(bestTgt, r.dmg, u); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
-        if (bestTgt.hp <= 0) log('〔破营〕我方' + bestTgt.name + '营折损！', 'danger');
+        else { applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', 300); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
+        if (bestTgt.hp <= 0) { effectLayer('bf-rout-smoke', 1200); log('〔破营〕我方' + bestTgt.name + '营折损！', 'danger'); }
         u.acted = true;
         info = { a: u, d: bestTgt, r: r, counter: counter };
       }
@@ -709,6 +709,8 @@
       });
     }
     function shakeGrid() { var vp = document.getElementById('bf-viewport'); if (!vp) return; vp.classList.add('bf-shake'); setTimeout(function () { vp.classList.remove('bf-shake'); }, 200); }
+    // 战棋 v12 氛围特效层（命中闪光/溃败烟尘；CSS 动画结束自动移除，pointer-events:none 不挡点击）
+    function effectLayer(cls, ms) { var vp = document.getElementById('bf-viewport'); if (!vp) return; var el = document.createElement('div'); el.className = cls; vp.appendChild(el); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, ms + 80); }
     var _actx = null;
     function playSfx(type) {
       try {
@@ -804,6 +806,7 @@
         return;
       }
       board._retreatAsk = false;
+      effectLayer('bf-rout-smoke', 1200);
       endBattle('fled');
     }
 
@@ -839,7 +842,7 @@
     function mount() {
       var card = document.getElementById('modal-card');
       if (!card) return;
-      card.innerHTML = '<div id="bf-root" class="bf-root">' +
+      card.innerHTML = '<div id="bf-root" class="bf-root bf-combat-smoke">' +
         '<div class="bf-outzone" id="bf-outzone" onclick="window.bfDeselect()"></div>' +
         '<div class="bf-top" id="bf-top"></div>' +
         '<div class="bf-topmenu" id="bf-topmenu"></div>' +
