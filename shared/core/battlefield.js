@@ -1143,7 +1143,9 @@
     function applyFabCompact() {
       var fab = document.getElementById('bf-fab');
       if (!fab) return;
-      if (window.innerWidth <= 540) fab.classList.add('compact'); else { fab.classList.remove('compact'); fab.classList.remove('expanded'); }
+      // v13：手机端不再折叠成汉堡，直接显示小图标，一步可达
+      fab.classList.remove('compact');
+      fab.classList.remove('expanded');
     }
     function bindFab() {
       var fab = document.getElementById('bf-fab'), panel = document.getElementById('bf-fab-panel');
@@ -1213,16 +1215,22 @@
 
     function renderPlate() {
       var plate = document.getElementById('bf-plate');
+      var bar = document.getElementById('bf-bar');
       if (!plate || !board) return;
-      if (board.phase !== 'ally') { plate.hidden = true; plate.innerHTML = ''; return; }
+      if (board.phase !== 'ally') { plate.hidden = true; plate.innerHTML = ''; if (bar) bar.style.visibility = 'visible'; return; }
       if (board.sel) {
         var u = board.sel;
         if (!u.acted) {
           var danger = dangerOf(u);
           plate.hidden = false;
+          if (bar) bar.style.visibility = 'hidden';
           plate.innerHTML = '<div class="bf-plate-row">' + '<div class="bf-plate-ava">' + troopAvatarHTML(u.troopType, u.side, 46) + '</div>' + '<div class="bf-plate-info">' +
             '<span class="bf-plate-name">' + esc(u.name) + '</span>' +
-            '<span class="bf-plate-stats">攻' + u.atk + '·防' + u.def + '·速' + u.spd + '·移' + u.move + '·射' + u.range + ' · ' + (u.count || 0) + '人 · 军心' + u.morale + '</span>' +
+            '<div class="bf-plate-tags">' +
+              '<span class="bf-tag bf-tag-count">兵 ' + (u.count || 0) + '</span>' +
+              '<span class="bf-tag bf-tag-mor">军心 ' + u.morale + '</span>' +
+            '</div>' +
+            '<span class="bf-plate-stats">攻' + u.atk + ' · 防' + u.def + ' · 速' + u.spd + ' · 移' + u.move + ' · 射' + u.range + '</span>' +
             (danger ? '<span class="bf-plate-danger">溃散风险高</span>' : '') +
             '</div></div><div class="bf-plate-acts">' +
             '<button type="button" class="bf-act bf-act-pri' + (board.mode === 'move' ? ' bf-on' : '') + '" title="移动" onclick="window.bfOrder(\'move\')">移</button>' +
@@ -1237,11 +1245,13 @@
         if (board.threat) {
           var tu = board.threat.u;
           plate.hidden = false;
+          if (bar) bar.style.visibility = 'hidden';
           plate.innerHTML = '<div class="bf-plate-row"><div class="bf-plate-ava">' + troopAvatarHTML(tu.troopType, tu.side, 46) + '</div><div class="bf-plate-info"><span class="bf-plate-name bf-plate-foe">' + esc(tu.name) + ' 威胁预览</span><span class="bf-plate-stats">攻' + tu.atk + '·防' + tu.def + '·移' + tu.move + '·射' + tu.range + '</span></div></div><div class="bf-plate-hint">红框=可攻击 · 黄框=可移动 · 点空白关闭</div>';
           return;
         }
       }
       plate.hidden = true; plate.innerHTML = '';
+      if (bar) bar.style.visibility = 'visible';
     }
     function showMenu(html) {
       var host = document.getElementById('bf-pop-host');
