@@ -763,12 +763,27 @@
       render();
       animateMove(u, path, function () {});
     }
-    function bfPathHover(x, y) {
-      if (!board || board.mode !== 'move' || !board.sel) { if (board && board._pathPreview && board._pathPreview.length) { board._pathPreview = []; render(); } return; }
-      if (inReach(x, y)) { board._pathPreview = pathBetween(board.sel.x, board.sel.y, x, y, board.sel); render(); }
-      else if (board._pathPreview.length) { board._pathPreview = []; render(); }
+    function updatePathDots() {
+      var grid = document.getElementById('bf-grid');
+      if (!grid || !board) return;
+      var show = (board.mode === 'move' || board.pendingMove) && board._pathPreview && board._pathPreview.length;
+      var set = {};
+      if (show) board._pathPreview.forEach(function (p) { set[p.x + ',' + p.y] = true; });
+      var cells = grid.querySelectorAll('.bf-cell');
+      for (var i = 0; i < cells.length; i++) {
+        var cell = cells[i];
+        var key = cell.getAttribute('data-x') + ',' + cell.getAttribute('data-y');
+        var dot = cell.querySelector('.bf-path-dot');
+        if (set[key] && !dot) { var d = document.createElement('i'); d.className = 'bf-path-dot'; cell.appendChild(d); }
+        else if (!set[key] && dot) { cell.removeChild(dot); }
+      }
     }
-    function bfPathClear() { if (board && board._pathPreview && board._pathPreview.length) { board._pathPreview = []; render(); } }
+    function bfPathHover(x, y) {
+      if (!board || board.mode !== 'move' || !board.sel) { if (board && board._pathPreview && board._pathPreview.length) { board._pathPreview = []; updatePathDots(); } return; }
+      if (inReach(x, y)) { board._pathPreview = pathBetween(board.sel.x, board.sel.y, x, y, board.sel); updatePathDots(); }
+      else if (board._pathPreview.length) { board._pathPreview = []; updatePathDots(); }
+    }
+    function bfPathClear() { if (board && board._pathPreview && board._pathPreview.length) { board._pathPreview = []; updatePathDots(); } }
     function bfOrder(cmd) { // 浮出菜单按钮：move / attack / wait / detail / formation
       if (!board || !board.sel || board.phase !== 'ally') return;
       board.threat = null;
@@ -1018,7 +1033,7 @@
             inner += '<div class="bf-cell-hit" onclick="window.bfClick(' + x + ',' + y + ')"></div>';
           }
           var pathDot = ((board.mode === 'move' || board.pendingMove) && board._pathPreview && board._pathPreview.some(function (p) { return p.x === x && p.y === y; })) ? '<i class="bf-path-dot"></i>' : '';
-          html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' style="left:' + X[x + MARGIN] + 'px;top:' + Y[y + MARGIN] + 'px;width:' + (X[x + 1 + MARGIN] - X[x + MARGIN]) + 'px;height:' + (Y[y + 1 + MARGIN] - Y[y + MARGIN]) + 'px"' + (u ? hov : '') + ' onmouseover="window.bfPathHover(' + x + ',' + y + ')" onmouseout="window.bfPathClear()">' + inner + pathDot + '</div>');
+          html.push('<div class="' + cls + '"' + (u ? ' data-uid="' + u.id + '"' : '') + ' data-x="' + x + '" data-y="' + y + '"' + ' style="left:' + X[x + MARGIN] + 'px;top:' + Y[y + MARGIN] + 'px;width:' + (X[x + 1 + MARGIN] - X[x + MARGIN]) + 'px;height:' + (Y[y + 1 + MARGIN] - Y[y + MARGIN]) + 'px"' + (u ? hov : '') + ' onmouseover="window.bfPathHover(' + x + ',' + y + ')" onmouseout="window.bfPathClear()">' + inner + pathDot + '</div>');
         }
       }
       grid.innerHTML = html.join('');
