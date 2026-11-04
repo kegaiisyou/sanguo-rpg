@@ -1053,19 +1053,30 @@
           '<option value="0"' + (skip ? ' selected' : '') + '>跳帧</option>' +
           '</select>' +
           '<button type="button" class="btn bf-main" id="bf-et">结束回合' + (board.phase === 'ally' && rest > 0 ? '（余' + rest + '）' : '') + '</button>' +
-          '<button type="button" class="btn bf-more-btn" id="bf-more">更多</button>' +
-          '<div class="bf-more-menu" id="bf-more-menu" hidden>' +
-            '<button type="button" class="bf-more-item" id="bf-nx">下一营</button>' +
-            '<button type="button" class="bf-more-item" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>' +
-          '</div>';
+          '<button type="button" class="btn bf-more-btn" id="bf-more">更多</button>';
         var et = document.getElementById('bf-et'); if (et) et.onclick = function () { bfEndTurn(); };
-        var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { document.getElementById('bf-more-menu').hidden = true; bfNextUnit(); };
-        var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { document.getElementById('bf-more-menu').hidden = true; bfRetreat(); };
-        var moreBtn = document.getElementById('bf-more');
+        // 更多菜单挂 #bf-root 直下（不放 .bf-bar 内）：手机端操作条 overflow-x:auto 会裁掉向上展开的菜单，表现为「点了有动画但没内容」
         var moreMenu = document.getElementById('bf-more-menu');
+        if (!moreMenu) {
+          moreMenu = document.createElement('div');
+          moreMenu.id = 'bf-more-menu';
+          moreMenu.className = 'bf-more-menu';
+          moreMenu.hidden = true;
+          moreMenu.innerHTML =
+            '<button type="button" class="bf-more-item" id="bf-nx">下一营</button>' +
+            '<button type="button" class="bf-more-item" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>';
+          var rootEl = document.getElementById('bf-root');
+          if (rootEl) rootEl.appendChild(moreMenu);
+          var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { moreMenu.hidden = true; bfNextUnit(); };
+          var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { moreMenu.hidden = true; bfRetreat(); };
+          // 点其他地方关闭更多菜单（仅创建时绑一次，避免每次 render 泄漏监听器）
+          document.addEventListener('click', function (e) { if (!e.target.closest('#bf-more') && !e.target.closest('#bf-more-menu')) moreMenu.hidden = true; });
+        } else {
+          var rtB = document.getElementById('bf-rt');
+          if (rtB) rtB.textContent = board._retreatAsk ? '确认撤退？' : '鸣金收兵';
+        }
+        var moreBtn = document.getElementById('bf-more');
         if (moreBtn && moreMenu) moreBtn.onclick = function (e) { e.stopPropagation(); moreMenu.hidden = !moreMenu.hidden; };
-        // 点其他地方关闭更多菜单
-        document.addEventListener('click', function (e) { if (!e.target.closest('#bf-more') && !e.target.closest('#bf-more-menu')) moreMenu.hidden = true; });
 
       updateAttackPreview();
       // 确认钮在落点格内渲染（见棋盘 pendingMove），无需单独处理
@@ -1073,7 +1084,7 @@
       refreshFabPanels();
       }
       // 指令菜单：仅攻击指令/详情由点击敌方触发；原底部 .bf-action 弹出已移除（改用顶部 contextual 条，不挡速度面板）
-      if (board.phase !== 'ally') closeMenu();
+      if (board.phase !== 'ally') { closeMenu(); var _mm = document.getElementById('bf-more-menu'); if (_mm) _mm.hidden = true; }
       else if (board.mode) closeMenu();
       else closeMenu();
     }
