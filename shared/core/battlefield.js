@@ -864,6 +864,7 @@
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div></div>' +
         '<div class="bf-fab" id="bf-fab">' +
           '<button type="button" class="bf-fab-b" data-panel="units" title="部队列表">阵</button>' +
+          '<button type="button" class="bf-fab-b" data-panel="log" title="战报">报</button>' +
           '<button type="button" class="bf-fab-b" data-panel="zoom" title="视图缩放">⤢</button>' +
         '</div>' +
         '<div class="bf-fab-panel" id="bf-fab-panel" hidden></div>' +
@@ -951,6 +952,7 @@
           '<button type="button" class="bf-top-btn" data-menu="more" title="更多">⋮</button>';
       }
       // 部队列表 -> FAB 抽屉按需渲染（见 refreshFabPanels / unitListHTML）
+      // 战报 -> FAB 抽屉按需渲染（见 refreshFabPanels / logHTML）
       // 格子 + 单位
       var html = [];
       var allThreat = null;
@@ -1099,6 +1101,14 @@
       });
       return html;
     }
+    function logHTML() {
+      if (!board) return '';
+      var html = '';
+      (board.log || []).slice(-30).forEach(function (l) {
+        html += '<div class="bf-log-item ' + (l.c || '') + '">' + esc(l.m) + '</div>';
+      });
+      return html;
+    }
     function renderTopMenu() {
       var m = document.getElementById('bf-topmenu');
       if (!m || !board) return;
@@ -1146,6 +1156,7 @@
     }
     function fabPanelHTML(kind) {
       if (kind === 'units') return '<div class="bf-fp-h">部队列表 <button type="button" class="bf-fp-x" onclick="window.bfCloseFab()">✕</button></div><div class="bf-fp-body" id="bf-fp-units"></div>';
+      if (kind === 'log') return '<div class="bf-fp-h">战报 <button type="button" class="bf-fp-x" onclick="window.bfCloseFab()">✕</button></div><div class="bf-fp-body" id="bf-fp-log"></div>';
       if (kind === 'zoom') return '<div class="bf-fp-h">视图缩放 <button type="button" class="bf-fp-x" onclick="window.bfCloseFab()">✕</button></div><div class="bf-fp-body bf-fp-zoom">' +
         '<button type="button" class="btn" onclick="window.bfZoom(1.2)">放大 ＋</button>' +
         '<button type="button" class="btn" onclick="window.bfZoom(0.8)">缩小 －</button>' +
@@ -1170,11 +1181,13 @@
     }
     function bindFabPanel(kind, panel) {
       if (kind === 'units') { var fu = document.getElementById('bf-fp-units'); if (fu) fu.innerHTML = unitListHTML(); }
+      else if (kind === 'log') { var fl = document.getElementById('bf-fp-log'); if (fl) { fl.innerHTML = logHTML(); fl.scrollTop = fl.scrollHeight; } }
     }
     function refreshFabPanels() {
       var panel = document.getElementById('bf-fab-panel');
       if (!panel || panel.hidden || !board) return;
       if (board._fabPanel === 'units') { var fu = document.getElementById('bf-fp-units'); if (fu) fu.innerHTML = unitListHTML(); }
+      else if (board._fabPanel === 'log') { var fl = document.getElementById('bf-fp-log'); if (fl) { fl.innerHTML = logHTML(); fl.scrollTop = fl.scrollHeight; } }
     }
 
     /* 部队立绘：真实立绘背景图（v7 豆包美术资源，WebP）；容器尺寸由父级定（操作板/列表） */
