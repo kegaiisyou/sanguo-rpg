@@ -4201,6 +4201,15 @@
 /* 地形底色与图标 — 纯CSS水墨纹理，无大图 */
 .bf-cell::after{ content:''; position:absolute; inset:0; opacity:.2; pointer-events:none;
   background-image:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.05) 6px, rgba(0,0,0,.05) 7px); }
+/* 水墨纹理覆盖层（v7 豆包美术资源，v12 以 WebP 接回）：半透明叠在纸金底色上，单层总体积小、无卡顿 */
+.bf-cell::before{ content:''; position:absolute; inset:0; opacity:.30; pointer-events:none; z-index:0;
+  background-image:url('../../assets/battlefield/terrain_plain.webp'); background-size:cover; background-position:center; }
+.bf-cell.bf-t-forest::before{ background-image:url('../../assets/battlefield/terrain_forest.webp'); opacity:.48; }
+.bf-cell.bf-t-hill::before{ background-image:url('../../assets/battlefield/terrain_hill.webp'); opacity:.48; }
+.bf-cell.bf-t-ford::before{ background-image:url('../../assets/battlefield/terrain_river.webp'); opacity:.50; }
+.bf-cell.bf-t-rampart::before{ background-image:url('../../assets/battlefield/terrain_hill.webp'); opacity:.46; filter:brightness(.82) sepia(.18); }
+.bf-cell.bf-t-wall::before{ background-image:url('../../assets/battlefield/terrain_hill.webp'); opacity:.44; filter:brightness(.72) sepia(.35); }
+  background-image:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.05) 6px, rgba(0,0,0,.05) 7px); }
 .bf-cell:not([class*="bf-t-"]){ background:linear-gradient(180deg, rgba(255,253,248,.55), rgba(236,227,209,.42)) !important; }
 .bf-t-forest{ background:
     radial-gradient(circle at 30% 40%, rgba(40,70,35,.25) 0%, transparent 55%),
@@ -4228,12 +4237,19 @@
 .bf-u-ally{ border-color:rgba(63,95,122,.72); }
 .bf-u-foe{ border-color:rgba(158,59,46,.72); }
 .bf-u-ico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-style:normal;
-  font-size:calc(var(--bf-cs,30px) * .52); line-height:1; opacity:.92; pointer-events:none; z-index:1;
-  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.2), transparent 50%); border-radius:50%; }
-.bf-u-ico.ico-changqiang::before{ content:'长'; }
-.bf-u-ico.ico-daodun::before{ content:'刀'; }
-.bf-u-ico.ico-gongnu::before{ content:'弓'; }
-.bf-u-ico.ico-qibing::before{ content:'骑'; }
+  font-size:calc(var(--bf-cs,30px) * .52); line-height:1; opacity:.95; pointer-events:none; z-index:1;
+  border-radius:50%; background-size:cover; background-position:center; background-repeat:no-repeat; }
+/* 部队立绘（v7 豆包美术资源，v12 以 WebP 接回）：高光层叠在立绘之上 */
+.bf-u-ico.ico-changqiang{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_changqiang.webp'); }
+.bf-u-ico.ico-daodun{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_daodun.webp'); }
+.bf-u-ico.ico-gongnu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_gongnu.webp'); }
+.bf-u-ico.ico-qibing{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_qibing.webp'); }
+/* 单字兜底：正常模式已立绘，仅高对比模式回退显示兵种单字 */
+.bf-u-ico::before{ content:''; }
+.bf-root.bf-hc .bf-u-ico.ico-changqiang::before{ content:'长'; }
+.bf-root.bf-hc .bf-u-ico.ico-daodun::before{ content:'刀'; }
+.bf-root.bf-hc .bf-u-ico.ico-gongnu::before{ content:'弓'; }
+.bf-root.bf-hc .bf-u-ico.ico-qibing::before{ content:'骑'; }
 .bf-u-cnt{ position:absolute; top:1px; right:2px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .30);
   background:rgba(24,17,10,.74); color:#fff; border-radius:999px; padding:0 4px; line-height:1.5; pointer-events:none; z-index:2; }
 .bf-u-ally .bf-u-cnt{ background:rgba(63,95,122,.95); }
@@ -4303,8 +4319,13 @@
 .bf-plate{ position:absolute; left:0; right:0; bottom:56px; z-index:40; transform:translateY(120%); transition:transform .22s ease; pointer-events:none; background:linear-gradient(180deg, rgba(244,238,226,0), rgba(244,238,226,.95) 22%); border-radius:16px 16px 0 0; }
 .bf-plate:not([hidden]){ transform:translateY(0); }
 .bf-plate-row{ display:flex; align-items:center; gap:10px; padding:6px 12px 2px; }
-.bf-plate-ava{ flex:0 0 auto; width:58px; height:58px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
-.bf-ava-svg{ display:block; }
+.bf-plate-ava{ flex:0 0 auto; width:46px; height:46px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+/* 头像立绘（真实立绘背景图，容器尺寸由父级定：操作板58px/列表38px） */
+.bf-ava-art{ display:block; width:100%; height:100%; border-radius:var(--r-card); overflow:hidden;
+  background-repeat:no-repeat; background-size:cover; background-position:center top;
+  box-shadow:inset 0 0 0 1px rgba(74,62,48,.30); }
+.bf-ava-art.bf-ava-ally{ background-color:#3f5f7a; }
+.bf-ava-art.bf-ava-foe{ background-color:#9e3b2e; }
 .bf-plate-info{ flex:1 1 auto; min-width:0; pointer-events:none; text-align:left; padding:2px 0; }
 .bf-plate-name{ display:block; font-weight:700; color:var(--bf-gold); font-size:15px; text-shadow:0 1px 0 rgba(255,255,255,.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bf-plate-name.bf-plate-foe{ color:var(--bf-foe); }
@@ -4313,14 +4334,25 @@
 .bf-plate-hint{ display:block; font-size:11px; color:var(--ink-faint); padding:4px 12px 6px; }
 .bf-plate-acts{ display:flex; gap:6px; justify-content:center; align-items:center; padding:4px 8px 8px; pointer-events:none; flex-wrap:wrap; }
 .bf-plate-acts button{ pointer-events:auto; }
+.bf-act{ pointer-events:auto; width:40px; height:40px; border-radius:11px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); font-size:18px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); font-family:inherit; transition:.12s; user-select:none; -webkit-tap-highlight-color:transparent; }
+.bf-act:hover{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
+.bf-act.bf-on{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
+.bf-act-pri{ background:rgba(191,149,58,.16); }
+.bf-act-x{ color:#c0392b; }
+.bf-act-x:hover{ background:#c0392b; color:#fff; border-color:#c0392b; }
+.bf-act:active{ transform:scale(.94); }
 /* 右侧 FAB 堆叠（单位列表 / 战报 / 缩放） */
 .bf-fab{ position:absolute; right:10px; top:50%; transform:translateY(-50%); z-index:38; display:flex; flex-direction:column; gap:8px; align-items:stretch; }
-.bf-fab-b{ width:46px; height:46px; border-radius:14px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); font-size:18px; font-weight:700; cursor:pointer; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; transition:.12s; font-family:inherit; }
+.bf-fab-b{ width:40px; height:40px; border-radius:14px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); font-size:16px; font-weight:700; cursor:pointer; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; transition:.12s; font-family:inherit; }
 .bf-fab-b:hover{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
 .bf-fab-b.on{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
 .bf-fab.compact{ gap:0; }
 .bf-fab.compact .bf-fab-b{ width:0; height:0; padding:0; border:0; opacity:0; pointer-events:none; }
-.bf-fab.compact::after{ content:'☰'; width:38px; height:38px; border-radius:12px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:var(--shadow); }
+.bf-fab.compact::after{ content:'☰'; width:36px; height:36px; border-radius:12px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:var(--shadow); }
+/* 窄屏：☰ 展开后恢复按钮尺寸（面板打开即自动收起，留一个 ✕ 手柄） */
+.bf-fab.compact.expanded{ gap:8px; }
+.bf-fab.compact.expanded .bf-fab-b{ width:38px; height:38px; padding:0; border:1px solid var(--bf-line); opacity:1; pointer-events:auto; }
+.bf-fab.compact.expanded::after{ content:'✕'; }
 /* FAB 侧滑面板（部队列表 / 战报 / 缩放 / 图例） */
 .bf-fab-panel{ position:absolute; top:40px; bottom:62px; right:10px; z-index:39; width:min(76vw,260px); display:flex; flex-direction:column; border:1px solid var(--bf-line); border-radius:14px; background:rgba(244,238,226,.97); box-shadow:var(--shadow); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); overflow:hidden; }
 .bf-fab-panel[hidden]{ display:none; }
@@ -4474,6 +4506,7 @@
 .bf-root.bf-hc .bf-t-ford{ background:#1f6fb0 !important; }
 .bf-root.bf-hc .bf-t-rampart{ background:#7a5a1f !important; }
 .bf-root.bf-hc .bf-t-wall{ background:#5a3a1f !important; }
+.bf-root.bf-hc .bf-cell::before{ display:none; }
 .bf-root.bf-hc .bf-reach{ box-shadow:inset 0 0 0 3px #1f5fd0 !important; background:rgba(31,95,208,.20)!important; }
 .bf-root.bf-hc .bf-atk{ box-shadow:inset 0 0 0 3px #d11f1f !important; background:rgba(209,31,31,.20)!important; }
 .bf-root.bf-hc .bf-atk-range{ box-shadow:inset 0 0 0 3px #d11f1f !important; background:rgba(209,31,31,.22)!important; }
@@ -4492,15 +4525,15 @@
   .bf-top-m{ font-size:12px; }
   .bf-viewport{ top:34px; bottom:60px; }
   .bf-bar{ height:60px; gap:6px; padding:5px 6px; }
-  .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; }
-  .bf-speed-select{ padding:6px 6px; font-size:12px; min-width:52px; }
+  .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; min-height:40px; }
+  .bf-speed-select{ padding:6px 6px; font-size:12px; min-width:52px; min-height:40px; }
   .bf-more-menu{ right:6px; bottom:58px; min-width:90px; }
   .bf-more-item{ padding:7px 10px; font-size:12px; }
   .bf-plate{ bottom:60px; }
   .bf-plate-acts{ gap:4px; padding:4px 6px 6px; }
-  .bf-plate-acts button{ padding:8px 10px; font-size:12px; min-height:36px; }
+  .bf-act{ width:36px; height:36px; font-size:15px; }
   .bf-fab{ right:6px; gap:6px; }
-  .bf-fab-b{ width:42px; height:42px; font-size:16px; border-radius:12px; }
+  .bf-fab-b{ width:38px; height:38px; font-size:15px; border-radius:12px; }
   .bf-fab-panel{ top:34px; bottom:64px; right:6px; width:min(82vw,230px); }
   .bf-pop{ min-width:104px; }
   .bf-preview{ max-width:60vw; font-size:10px; }
@@ -4511,7 +4544,7 @@
   .bf-bar::-webkit-scrollbar{ display:none; }
   .bf-bar .btn{ flex:0 0 auto; }
   .bf-plate-row{ gap:8px; padding:5px 10px 2px; }
-  .bf-plate-ava{ width:48px; height:48px; }
+  .bf-plate-ava{ width:40px; height:40px; }
   .bf-plate-stats{ font-size:10px; }
   .bf-unit-card{ gap:6px; }
 }

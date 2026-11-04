@@ -1064,18 +1064,6 @@
       else if (board.mode) closeMenu();
       else closeMenu();
     }
-    // 浮出常用指令菜单（移动/攻击/待机/详情/列阵）
-    function showActionMenu(u) {
-      if (u.acted) { closeMenu(); return; }
-      var h = '<div class="bf-pop bf-action">' +
-        '<button type="button" class="bf-pop-b" onclick="window.bfOrder(\'move\')">移动</button>' +
-        '<button type="button" class="bf-pop-b" onclick="window.bfOrder(\'attack\')">攻击</button>' +
-        '<button type="button" class="bf-pop-b" onclick="window.bfOrder(\'wait\')">待机</button>' +
-        '<button type="button" class="bf-pop-b ghost" onclick="window.bfOrder(\'detail\')">详情</button>' +
-        '<button type="button" class="bf-pop-b ghost" onclick="window.bfOrder(\'formation\')">列阵</button>' +
-        '</div>';
-      showMenu(h);
-    }
     function dangerOf(u) {
       if (!u) return false;
       return (u.hp / u.maxHp < (LF.BF_ROUT ? LF.BF_ROUT.hpRatio : 0.5)) || ((u.morale == null ? 80 : u.morale) < (LF.BF_ROUT ? LF.BF_ROUT.morale : 45));
@@ -1133,14 +1121,14 @@
     }
     function closeFab() {
       var fab = document.getElementById('bf-fab'), panel = document.getElementById('bf-fab-panel');
-      if (fab) { fab.classList.remove('open'); fab.dataset.cur = ''; }
+      if (fab) { fab.classList.remove('open'); fab.classList.remove('expanded'); fab.dataset.cur = ''; }
       if (panel) { panel.hidden = true; panel.innerHTML = ''; }
       if (board) board._fabPanel = '';
     }
     function applyFabCompact() {
       var fab = document.getElementById('bf-fab');
       if (!fab) return;
-      if (window.innerWidth <= 540) fab.classList.add('compact'); else fab.classList.remove('compact');
+      if (window.innerWidth <= 540) fab.classList.add('compact'); else { fab.classList.remove('compact'); fab.classList.remove('expanded'); }
     }
     function bindFab() {
       var fab = document.getElementById('bf-fab'), panel = document.getElementById('bf-fab-panel');
@@ -1150,10 +1138,19 @@
           var kind = b.dataset.panel;
           if (fab.classList.contains('open') && fab.dataset.cur === kind) { closeFab(); return; }
           openFabPanel(kind);
+          if (fab.classList.contains('compact')) fab.classList.remove('expanded');
         });
+      });
+      fab.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('.bf-fab-b')) return;
+        if (fab.classList.contains('compact')) {
+          if (panel && !panel.hidden) return;
+          fab.classList.toggle('expanded');
+        }
       });
       var root = document.getElementById('bf-root');
       if (root) root.addEventListener('pointerdown', function (e) {
+        if (fab.classList.contains('expanded') && !fab.contains(e.target)) fab.classList.remove('expanded');
         if (panel.hidden) return;
         if (!panel.contains(e.target) && !fab.contains(e.target)) closeFab();
       }, true);
@@ -1194,25 +1191,11 @@
       else if (board._fabPanel === 'log') { var fl = document.getElementById('bf-fp-log'); if (fl) { fl.innerHTML = logHTML(); fl.scrollTop = fl.scrollHeight; } }
     }
 
+    /* 部队立绘：真实立绘背景图（v7 豆包美术资源，WebP）；容器尺寸由父级定（操作板/列表） */
     function troopAvatarHTML(troopType, side, size) {
-      var s = side === 'ally' ? 'ally' : 'foe';
-      var bg1 = s === 'ally' ? '#6f93ad' : '#c06a58';
-      var bg2 = s === 'ally' ? '#3f5f7a' : '#9e3b2e';
-      var ring = s === 'ally' ? '#2c4456' : '#6e2a20';
-      var inner = AVATAR_BODY[troopType] || AVATAR_BODY._default;
-      return '<svg class="bf-ava-svg" viewBox="0 0 100 100" width="' + size + '" height="' + size + '" aria-hidden="true">' +
-        '<circle cx="50" cy="50" r="48" fill="' + bg2 + '"/>' +
-        '<circle cx="40" cy="38" r="30" fill="' + bg1 + '" opacity="0.5"/>' +
-        '<circle cx="50" cy="50" r="48" fill="none" stroke="' + ring + '" stroke-width="3"/>' +
-        '<g>' + inner + '</g></svg>';
+      return '<span class="bf-ava-art bf-ava-' + (side === 'ally' ? 'ally' : 'foe') + ' ' + (troopType ? 'ico-' + troopType : '') + '"></span>';
     }
-    var AVATAR_BODY = {
-      _default: '<circle cx="50" cy="32" r="9" fill="#fff"/><path d="M40 44 q10 -6 20 0 l-3 26 h-14 z" fill="#fff"/><rect x="42" y="70" width="6" height="16" rx="2" fill="#fff"/><rect x="52" y="70" width="6" height="16" rx="2" fill="#fff"/>',
-      changqiang: '<circle cx="50" cy="32" r="9" fill="#fff"/><path d="M40 44 q10 -6 20 0 l-3 26 h-14 z" fill="#fff"/><rect x="42" y="70" width="6" height="16" rx="2" fill="#fff"/><rect x="52" y="70" width="6" height="16" rx="2" fill="#fff"/><line x1="74" y1="16" x2="74" y2="86" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M74 12 l-5 9 h10 z" fill="#fff"/>',
-      daodun: '<circle cx="50" cy="32" r="9" fill="#fff"/><path d="M40 44 q10 -6 20 0 l-3 26 h-14 z" fill="#fff"/><rect x="42" y="70" width="6" height="16" rx="2" fill="#fff"/><rect x="52" y="70" width="6" height="16" rx="2" fill="#fff"/><circle cx="23" cy="58" r="12" fill="none" stroke="#fff" stroke-width="4"/><circle cx="23" cy="58" r="4" fill="#fff"/>',
-      gongnu: '<circle cx="50" cy="32" r="9" fill="#fff"/><path d="M40 44 q10 -6 20 0 l-3 26 h-14 z" fill="#fff"/><rect x="42" y="70" width="6" height="16" rx="2" fill="#fff"/><rect x="52" y="70" width="6" height="16" rx="2" fill="#fff"/><path d="M26 26 q-16 24 0 48" fill="none" stroke="#fff" stroke-width="4"/><line x1="26" y1="26" x2="26" y2="74" stroke="#fff" stroke-width="1.5" opacity="0.7"/>',
-      qibing: '<ellipse cx="46" cy="62" rx="22" ry="11" fill="#fff"/><rect x="30" y="70" width="5" height="16" fill="#fff"/><rect x="44" y="70" width="5" height="16" fill="#fff"/><rect x="58" y="70" width="5" height="16" fill="#fff"/><path d="M64 52 q10 -6 10 4 l-2 12 -6 -2 -2 -10 z" fill="#fff"/><circle cx="50" cy="30" r="8" fill="#fff"/><path d="M42 40 q8 -5 16 0 l-2 20 h-12 z" fill="#fff"/>'
-    };
+
     function renderPlate() {
       var plate = document.getElementById('bf-plate');
       if (!plate || !board) return;
@@ -1222,24 +1205,24 @@
         if (!u.acted) {
           var danger = dangerOf(u);
           plate.hidden = false;
-          plate.innerHTML = '<div class="bf-plate-row">' + '<div class="bf-plate-ava">' + troopAvatarHTML(u.troopType, u.side, 58) + '</div>' + '<div class="bf-plate-info">' +
+          plate.innerHTML = '<div class="bf-plate-row">' + '<div class="bf-plate-ava">' + troopAvatarHTML(u.troopType, u.side, 46) + '</div>' + '<div class="bf-plate-info">' +
             '<span class="bf-plate-name">' + esc(u.name) + '</span>' +
             '<span class="bf-plate-stats">攻' + u.atk + '·防' + u.def + '·速' + u.spd + '·移' + u.move + '·射' + u.range + ' · ' + (u.count || 0) + '人 · 军心' + u.morale + '</span>' +
             (danger ? '<span class="bf-plate-danger">溃散风险高</span>' : '') +
             '</div></div><div class="bf-plate-acts">' +
-            '<button type="button" class="btn btn-sm' + (board.mode === 'move' ? ' bf-on' : '') + '" onclick="window.bfOrder(\'move\')">移动</button>' +
-            '<button type="button" class="btn btn-sm' + (board.mode === 'attack' ? ' bf-on' : '') + '" onclick="window.bfOrder(\'attack\')">攻击</button>' +
-            '<button type="button" class="btn btn-sm" onclick="window.bfOrder(\'wait\')">待机</button>' +
-            '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfOrder(\'detail\')">详情</button>' +
-            '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfOrder(\'formation\')">列阵</button>' +
-            '<button type="button" class="btn btn-sm btn-ghost" onclick="window.bfDeselect()">取消</button>' +
+            '<button type="button" class="bf-act bf-act-pri' + (board.mode === 'move' ? ' bf-on' : '') + '" title="移动" onclick="window.bfOrder(\'move\')">移</button>' +
+            '<button type="button" class="bf-act bf-act-pri' + (board.mode === 'attack' ? ' bf-on' : '') + '" title="攻击" onclick="window.bfOrder(\'attack\')">攻</button>' +
+            '<button type="button" class="bf-act bf-act-pri" title="待机" onclick="window.bfOrder(\'wait\')">待</button>' +
+            '<button type="button" class="bf-act" title="单位详情" onclick="window.bfOrder(\'detail\')">详</button>' +
+            '<button type="button" class="bf-act" title="列阵" onclick="window.bfOrder(\'formation\')">阵</button>' +
+            '<button type="button" class="bf-act bf-act-x" title="取消选择" onclick="window.bfDeselect()">✕</button>' +
             '</div>';
           return;
         }
         if (board.threat) {
           var tu = board.threat.u;
           plate.hidden = false;
-          plate.innerHTML = '<div class="bf-plate-row"><div class="bf-plate-ava">' + troopAvatarHTML(tu.troopType, tu.side, 58) + '</div><div class="bf-plate-info"><span class="bf-plate-name bf-plate-foe">' + esc(tu.name) + ' 威胁预览</span><span class="bf-plate-stats">攻' + tu.atk + '·防' + tu.def + '·移' + tu.move + '·射' + tu.range + '</span></div></div><div class="bf-plate-hint">红框=可攻击 · 黄框=可移动 · 点空白关闭</div>';
+          plate.innerHTML = '<div class="bf-plate-row"><div class="bf-plate-ava">' + troopAvatarHTML(tu.troopType, tu.side, 46) + '</div><div class="bf-plate-info"><span class="bf-plate-name bf-plate-foe">' + esc(tu.name) + ' 威胁预览</span><span class="bf-plate-stats">攻' + tu.atk + '·防' + tu.def + '·移' + tu.move + '·射' + tu.range + '</span></div></div><div class="bf-plate-hint">红框=可攻击 · 黄框=可移动 · 点空白关闭</div>';
           return;
         }
       }
