@@ -4373,10 +4373,6 @@
 .bf-unit-card.ally .bf-uc-hp i{ background:var(--bf-ally); }
 .bf-uc-mor{ height:3px; background:#ddd; border-radius:2px; overflow:hidden; }
 .bf-uc-mor i{ display:block; height:100%; background:#27ae60; border-radius:2px; }
-.bf-log-item{ font-size:11px; padding:4px 6px; margin-bottom:2px; border-radius:3px; background:rgba(90,74,42,.08); border-left:2px solid var(--bf-line); }
-.bf-log-item.ally{ border-left-color:var(--bf-ally); }
-.bf-log-item.foe{ border-left-color:var(--bf-foe); }
-.bf-log-item.crit{ border-left-color:var(--bf-gold); background:rgba(176,131,47,.12); }
 /* 图例行（FAB 内） */
 .bf-leg-row{ display:flex; align-items:center; gap:6px; padding:3px 0; }
 .bf-leg-ico{ width:20px; text-align:center; font-size:15px; }
