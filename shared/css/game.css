@@ -4349,13 +4349,6 @@
 .bf-fab-b{ width:40px; height:40px; border-radius:14px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); font-size:16px; font-weight:700; cursor:pointer; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; transition:.12s; font-family:inherit; }
 .bf-fab-b:hover{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
 .bf-fab-b.on{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
-.bf-fab.compact{ gap:0; }
-.bf-fab.compact .bf-fab-b{ width:0; height:0; padding:0; border:0; opacity:0; pointer-events:none; }
-.bf-fab.compact::after{ content:'☰'; width:36px; height:36px; border-radius:12px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:var(--shadow); }
-/* 窄屏：☰ 展开后恢复按钮尺寸（面板打开即自动收起，留一个 ✕ 手柄） */
-.bf-fab.compact.expanded{ gap:8px; }
-.bf-fab.compact.expanded .bf-fab-b{ width:38px; height:38px; padding:0; border:1px solid var(--bf-line); opacity:1; pointer-events:auto; }
-.bf-fab.compact.expanded::after{ content:'✕'; }
 /* FAB 侧滑面板（部队列表 / 战报 / 缩放 / 图例） */
 .bf-fab-panel{ position:absolute; top:40px; bottom:62px; right:10px; z-index:39; width:min(76vw,260px); display:flex; flex-direction:column; border:1px solid var(--bf-line); border-radius:14px; background:rgba(244,238,226,.97); box-shadow:var(--shadow); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); overflow:hidden; }
 .bf-fab-panel[hidden]{ display:none; }

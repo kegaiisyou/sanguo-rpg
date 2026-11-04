@@ -884,8 +884,6 @@
       if (_top) _top.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('.bf-top-btn'); if (b && b.dataset.menu === 'more') window.bfToggleTopMenu(); });
       // 右侧 FAB 堆叠（部队列表 / 战报 / 缩放）
       bindFab();
-      applyFabCompact();
-      window.addEventListener('resize', applyFabCompact);
       // 高对比配色记忆
       try { if (localStorage.getItem('bf-hc') === '1') { var _r = document.getElementById('bf-root'); if (_r) _r.classList.add('bf-hc'); } } catch (e) {}
     }
@@ -1136,16 +1134,9 @@
     }
     function closeFab() {
       var fab = document.getElementById('bf-fab'), panel = document.getElementById('bf-fab-panel');
-      if (fab) { fab.classList.remove('open'); fab.classList.remove('expanded'); fab.dataset.cur = ''; }
+      if (fab) { fab.classList.remove('open'); fab.dataset.cur = ''; }
       if (panel) { panel.hidden = true; panel.innerHTML = ''; }
       if (board) board._fabPanel = '';
-    }
-    function applyFabCompact() {
-      var fab = document.getElementById('bf-fab');
-      if (!fab) return;
-      // v13：手机端不再折叠成汉堡，直接显示小图标，一步可达
-      fab.classList.remove('compact');
-      fab.classList.remove('expanded');
     }
     function bindFab() {
       var fab = document.getElementById('bf-fab'), panel = document.getElementById('bf-fab-panel');
@@ -1155,19 +1146,10 @@
           var kind = b.dataset.panel;
           if (fab.classList.contains('open') && fab.dataset.cur === kind) { closeFab(); return; }
           openFabPanel(kind);
-          if (fab.classList.contains('compact')) fab.classList.remove('expanded');
         });
-      });
-      fab.addEventListener('click', function (e) {
-        if (e.target.closest && e.target.closest('.bf-fab-b')) return;
-        if (fab.classList.contains('compact')) {
-          if (panel && !panel.hidden) return;
-          fab.classList.toggle('expanded');
-        }
       });
       var root = document.getElementById('bf-root');
       if (root) root.addEventListener('pointerdown', function (e) {
-        if (fab.classList.contains('expanded') && !fab.contains(e.target)) fab.classList.remove('expanded');
         if (panel.hidden) return;
         if (!panel.contains(e.target) && !fab.contains(e.target)) closeFab();
       }, true);
