@@ -72,31 +72,33 @@
   // ── 溃散阈值（沿用 war.js routCheck 思路）：血量比 <0.5 或 士气 <45 累加风险 ──
   LF.BF_ROUT = { hpRatio: 0.5, morale: 45, baseRisk: 0.06 };
 
-  // ── 出生布阵：给定逻辑尺寸与双方单位数，自动两端列阵（中间留机动纵深）──
-  // 返回 { ally:[{x,y}...], foe:[{x,y}...] }；纵向均分，避免重叠。
+  // ── 出生布阵：给定逻辑尺寸与双方单位数，自动上下两端列阵（中间留机动纵深）──
+  // 返回 { ally:[{x,y}...], foe:[{x,y}...] }；每方沿 x 横向一字排开，避免重叠。
+  // 与棋盘按 y 上下分阵营的染色、默认朝向（我军 ▼ / 敌军 ▲）保持一致：我军居上、敌军居下。
   LF.BF_SPAWN = function (w, h, allyN, foeN, mode) {
     w = w || 14; h = h || 12; allyN = Math.max(1, allyN | 0); foeN = Math.max(1, foeN | 0);
-    var allyX = mode === 'siege' ? 1 : Math.max(1, Math.floor(w * 0.12));   // 攻城时攻方贴左、守方贴右
-    var foeX = mode === 'siege' ? w - 2 : Math.max(allyX + 4, w - 1 - Math.floor(w * 0.12));
-    function col(n, x) {
-      var out = [];
-      if (n <= 1) { out.push({ x: x, y: Math.floor(h / 2) }); return out; }
+    var allyY = mode === 'siege' ? 1 : Math.max(1, Math.floor(h * 0.12));   // 攻城时攻方贴上沿、守方贴下沿
+    var foeY = mode === 'siege' ? h - 2 : Math.max(allyY + 4, h - 1 - Math.floor(h * 0.12));
+    function row(n, y) {
+      var out = [], used = {}, step = w / (n + 1);
       for (var i = 0; i < n; i++) {
-        var y = Math.round((i + 1) * (h + 1) / (n + 1));
+        var x = Math.max(0, Math.min(w - 1, Math.round((i + 1) * step)));
+        while (used[x]) x = (x + 1) % w;   // 兵多格窄时顺延，保证不叠子
+        used[x] = 1;
         out.push({ x: x, y: y });
       }
       return out;
     }
-    return { ally: col(allyN, allyX), foe: col(foeN, foeX) };
+    return { ally: row(allyN, allyY), foe: row(foeN, foeY) };
   };
 
-  // ── 地形生成：在逻辑盘上散布林/丘/河，保留双方出生列净空 ──
+  // ── 地形生成：在逻辑盘上散布林/丘/河，保留双方出生行净空 ──
   LF.BF_GEN_TERRAIN = function (w, h, mode) {
     w = w || 14; h = h || 12;
     var t = [];
     for (var y = 0; y < h; y++) { t[y] = []; for (var x = 0; x < w; x++) t[y][x] = 'plain'; }
     var cells = [];
-    for (var yy = 1; yy < h - 1; yy++) for (var xx = 2; xx < w - 2; xx++) cells.push([xx, yy]);
+    for (var yy = 2; yy < h - 2; yy++) for (var xx = 1; xx < w - 1; xx++) cells.push([xx, yy]);
     for (var i = cells.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var tmp = cells[i]; cells[i] = cells[j]; cells[j] = tmp; }
     var n = cells.length;
     var nf = Math.round(n * 0.12), nh = Math.round(n * 0.08), nr = Math.round(n * 0.04);
@@ -105,8 +107,9 @@
     for (var b = 0; b < nh; b++) { t[cells[k][1]][cells[k][0]] = 'hill'; k++; }
     for (var c = 0; c < nr; c++) { t[cells[k][1]][cells[k][0]] = 'ford'; k++; }
     if (mode === 'siege') {
-      var fx = w - 3;
-      for (var ry = Math.floor(h * 0.3); ry < Math.floor(h * 0.7); ry++) { if (t[ry][fx] === 'plain') t[ry][fx] = 'wall'; }
+      // 守方（下沿）前方横亘一道城垣，与上下对峙的横向布阵一致
+      var fy = Math.max(2, h - 3);
+      for (var rx = Math.floor(w * 0.25); rx < Math.floor(w * 0.75); rx++) { if (t[fy] && t[fy][rx] === 'plain') t[fy][rx] = 'wall'; }
     }
     return t;
   };

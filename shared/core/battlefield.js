@@ -500,6 +500,15 @@
         var rf = retreatCell(u);
         if (rf) { path = pathBetween(oldX, oldY, rf.x, rf.y, u); u.x = rf.x; u.y = rf.y; u.moved = true; bestTgt = null; }
       }
+      // 射程够不到任何敌军时主动推进（残血后撤优先，已后撤/已能攻击者不推进）
+      if (!path && !bestTgt) {
+        var adv = advanceCell(u, scored);
+        if (adv) {
+          path = pathBetween(oldX, oldY, adv.x, adv.y, u);
+          u.x = adv.x; u.y = adv.y; u.moved = true; u.acted = true;
+          log('〔进军〕' + u.name + '向前进逼。');
+        }
+      }
       var info = null;
       if (bestTgt) {
         var orderId = pickAiOrder(u);
@@ -518,6 +527,23 @@
       }
       function finish() { if (info) { render(); animateAttack(info, done); } else done(); }
       if (path) { render(); animateMove(u, path, finish); } else finish();
+    }
+    // 推进格：目标超出射程时，朝评分最高的敌军逼近。
+    // 只在可达格中挑「切比雪夫距离真正变短」者；同距离时偏好移动代价低、防御高的地形。
+    function advanceCell(u, scored) {
+      var tgt = scored && scored.length ? scored[0].t : null;
+      if (!tgt) return null;
+      var reach = reachable(u), curD = cheb(u.x, u.y, tgt.x, tgt.y), best = null, bestSc = -1e9;
+      for (var i = 0; i < reach.length; i++) {
+        var p = reach[i];
+        if (p.x === u.x && p.y === u.y) continue;
+        var d = cheb(p.x, p.y, tgt.x, tgt.y);
+        if (d >= curD) continue;
+        var terr = terrainAt(p.x, p.y);
+        var sc = -d * 10 - (terr.moveCost || 1) * 0.5 + (terr.defMul ? (terr.defMul - 1) * 1.5 : 0);
+        if (sc > bestSc) { bestSc = sc; best = p; }
+      }
+      return best;
     }
     // 后撤格：移动可达中不在任何敌方攻击覆盖内、且最靠近己方出生侧者
     function retreatCell(u) {
@@ -558,10 +584,12 @@
         var ru = board.reinforce.unit;
         if (ru) {
           var ru2 = toCell(ru, 'foe', 900);
-          // 放在敌方出生列某空位
-          var fx = board.w - 2, placed = false;
-          for (var yy = 0; yy < board.h && !placed; yy++) if (!unitAt(fx, yy)) { ru2.x = fx; ru2.y = yy; placed = true; }
-          if (!placed) { ru2.x = fx; ru2.y = Math.floor(board.h / 2); }
+          // 放在敌方出生行某空位（与 BF_SPAWN 的横向布阵一致）
+          var fy = (board.cfg && board.cfg.kind === 'siege') ? Math.max(1, board.h - 2)
+            : Math.max(1, board.h - 1 - Math.floor(board.h * 0.12));
+          var placed = false;
+          for (var xx = 0; xx < board.w && !placed; xx++) if (!unitAt(xx, fy)) { ru2.x = xx; ru2.y = fy; placed = true; }
+          if (!placed) { ru2.x = Math.floor(board.w / 2); ru2.y = fy; }
           board.units.push(ru2);
           log('〔援军〕' + ru.name + '自旁路杀到，敌势复振！', 'warn');
         }

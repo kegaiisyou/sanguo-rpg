@@ -738,8 +738,11 @@
     border-radius:14px;
     padding:16px 16px 18px;
     box-shadow:0 8px 30px rgba(50,35,15,.25), inset 0 0 0 1px rgba(255,250,235,.5);
-    max-height:calc(100vh - 48px); overflow-y:auto;
+    /* 关闭钮悬在卡片右上角之外，外壳必须 overflow:visible，否则圆角+滚动容器会把圆钮切掉；
+       内容滚动改由内层 #modal-card 承担（见下方限高规则） */
+    max-height:none; overflow:visible;
     animation:modalPop .22s cubic-bezier(.2,.9,.3,1.12) both;}
+  #modal:not(.bf-full) #modal-card{ max-height:calc(100dvh - 112px); overflow-y:auto; }
   .modal-shell::before{
     content:''; position:absolute; inset:6px; border:1px solid rgba(90,60,20,.18);
     border-radius:9px; pointer-events:none;
@@ -4351,11 +4354,14 @@
   box-shadow:inset 0 0 0 1px rgba(74,62,48,.30); }
 .bf-ava-art.bf-ava-ally{ background-color:#3f5f7a; }
 .bf-ava-art.bf-ava-foe{ background-color:#9e3b2e; }
-/* 列表/操作板头像立绘：复用棋盘单位资源（WebP）；无专属立绘兵种以渐变底+单字兜底 */
-.bf-ava-art.ico-changqiang{ background-image:url('../../assets/battlefield/unit_changqiang.webp'); }
-.bf-ava-art.ico-daodun{ background-image:url('../../assets/battlefield/unit_daodun.webp'); }
-.bf-ava-art.ico-gongnu{ background-image:url('../../assets/battlefield/unit_gongnu.webp'); }
-.bf-ava-art.ico-qibing{ background-image:url('../../assets/battlefield/unit_qibing.webp'); }
+/* 列表/操作板头像立绘：用兵种特写（token_*.webp），与棋盘棋子一致。
+   旧的 unit_*.webp 军团群像在 38px 方形里被裁成一排长枪条纹，四兵种几乎无法分辨；
+   特写为竖幅半身像，上移焦点到 18% 让武将头肩落在头像内。 */
+.bf-ava-art.ico-changqiang{ background-image:url('../../assets/battlefield/token_changqiang.webp'); }
+.bf-ava-art.ico-daodun{ background-image:url('../../assets/battlefield/token_daodun.webp'); }
+.bf-ava-art.ico-gongnu{ background-image:url('../../assets/battlefield/token_gongnu.webp'); }
+.bf-ava-art.ico-qibing{ background-image:url('../../assets/battlefield/token_qibing.webp'); }
+.bf-ava-art.ico-changqiang,.bf-ava-art.ico-daodun,.bf-ava-art.ico-gongnu,.bf-ava-art.ico-qibing{ background-position:center 18%; }
 .bf-ava-art.ico-gongcheng{ background-image:url('../../assets/battlefield/unit_gongcheng.svg'); }
 .bf-ava-art.ico-qizhong,.bf-ava-art.ico-minfu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.20), transparent 55%), linear-gradient(160deg,#5c4a30,#33281a); }
 .bf-ava-art.ico-qizhong::after{ content:'辎'; }
@@ -4389,8 +4395,11 @@
 .bf-fab-panel{ position:absolute; top:40px; right:10px; z-index:39; width:min(40vw,230px); max-height:58vh; display:flex; flex-direction:column; border:1px solid var(--bf-line); border-radius:14px; background:rgba(244,238,226,.97); box-shadow:var(--shadow); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); overflow:hidden; }
 .bf-fab-panel[hidden]{ display:none; }
 .bf-fp-h{ display:flex; align-items:center; justify-content:space-between; padding:8px 12px; font-weight:700; color:var(--bf-gold); font-size:14px; border-bottom:1px solid var(--bf-line); }
-.bf-fp-x{ border:none; background:transparent; color:var(--ink-soft); font-size:16px; cursor:pointer; line-height:1; padding:2px 6px; border-radius:8px; }
-.bf-fp-x:hover{ background:rgba(176,131,47,.16); }
+/* 面板右上角关闭钮：≥30px 圆形热区 + 浅底，避免贴圆角显被截断、手机端点不中 */
+.bf-fp-x{ flex:0 0 auto; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--bf-line); background:rgba(255,252,244,.72); color:var(--ink-soft);
+  font-size:15px; cursor:pointer; line-height:1; padding:0; border-radius:50%; transition:.12s; }
+.bf-fp-x:hover{ background:rgba(176,131,47,.2); color:var(--bf-ink); border-color:var(--bf-gold); }
 .bf-fp-body{ flex:1; overflow-y:auto; padding:8px; }
 .bf-fp-zoom{ display:flex; flex-direction:column; gap:8px; padding:12px; }
 .bf-fp-zoom .btn{ width:100%; padding:10px; font-size:14px; }
