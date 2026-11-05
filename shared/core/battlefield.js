@@ -210,20 +210,21 @@
       var units = board.units.slice();
       units.sort(function (a, b) { return (b.dmgDealt || 0) - (a.dmgDealt || 0); });
       return {
-        result: result, round: board.round, units: units, survivors: survivors.length, php: php,
+        result: result, round: board.round, units: units, php: php,
         allyTotal: board.units.filter(function (u) { return u.side === 'ally'; }).length,
         foeTotal: board.units.filter(function (u) { return u.side === 'foe'; }).length,
-        foeAlive: board.units.filter(function (u) { return u.side === 'foe' && u.hp > 0; }).length
+        survivors: board.units.filter(function (u) { return u.side === 'ally' && u.hp > 0 && !u.routed; }).length,
+        foeAlive: board.units.filter(function (u) { return u.side === 'foe' && u.hp > 0 && !u.routed; }).length
       };
     }
     function renderResult(sum) {
       var el = document.getElementById('bf-result'); if (!el) return;
       var titleMap = { win: '我军得胜', lose: '我军失利', fled: '鸣金撤兵', draw: '势均力敌' };
       var rows = sum.units.map(function (u) {
-        var lost = Math.max(0, Math.round((u.startCount || 0) * (1 - u.hp / u.maxHp)));
+        var lost = Math.max(0, (u.startCount || 0) - Math.round(u.count || 0));
         var tn = (T()[u.type] && T()[u.type].name) || u.type;
         return '<tr><td class="' + (u.side === 'ally' ? 'bf-ra' : 'bf-rf') + '">' + esc(u.name) + '</td><td>' + esc(tn) + '</td><td>' +
-          Math.max(0, Math.round(u.hp)) + '/' + u.maxHp + '</td><td>' + lost + '</td><td>' + (u.dmgDealt || 0) + '</td><td>' + (u.kills || 0) + '</td></tr>';
+          Math.max(0, Math.round(u.count || 0)) + '/' + (u.startCount || 0) + '</td><td>' + lost + '</td><td>' + (u.dmgDealt || 0) + '</td><td>' + (u.kills || 0) + '</td></tr>';
       }).join('');
       el.innerHTML = '<div class="bf-result-card"><h2 class="bf-result-title ' + (sum.result === 'win' ? 'good' : (sum.result === 'lose' ? 'bad' : 'mid')) + '">战斗结算 · ' + (titleMap[sum.result] || sum.result) + '</h2>' +
         '<div class="bf-result-sub">共 ' + sum.round + ' 回合 · 我军存活 ' + sum.survivors + '/' + sum.allyTotal + ' 营 · 敌军存活 ' + sum.foeAlive + '/' + sum.foeTotal + ' 营</div>' +
@@ -439,7 +440,7 @@
       board.sel = null; board.mode = null; board.reach = []; board.attack = [];
       render();
       // 飘字/爆裂必须放在 render 之后：render 会重建 #bf-grid 的 innerHTML，否则刚挂的飘字被冲掉
-      floatHit(d, r, counter); if (d.hp <= 0) { routBurst(d.x, d.y); log('〔破营〕' + d.name + '营溃散，折损于阵。', 'good'); }
+      floatHit(d, r, counter); if (d.hp <= 0) { routBurst(d.x, d.y); log('〔破营〕' + d.name + '营溃散，折损于阵。', d.side === 'foe' ? 'good' : 'danger'); bfBanner('〔破营〕' + d.name + '营溃散，折损于阵！', d.side === 'foe' ? 'good' : 'danger'); }
       animateAttack({ a: a, d: d, r: r, counter: counter }, afterAction);
     }
     function pickCounterOrder(d) {
@@ -536,7 +537,7 @@
         u.acted = true;
         info = { a: u, d: bestTgt, r: r, counter: counter };
       }
-      function finish() { if (info) { render(); if (info.d) { floatHit(info.d, info.r, info.counter); if (info.d.hp <= 0) { routBurst(info.d.x, info.d.y); log('〔破营〕我方' + info.d.name + '营折损！', 'danger'); } } animateAttack(info, done); } else done(); }
+      function finish() { if (info) { render(); if (info.d) { floatHit(info.d, info.r, info.counter); if (info.d.hp <= 0) { routBurst(info.d.x, info.d.y); log('〔破营〕我方' + info.d.name + '营折损！', 'danger'); bfBanner('〔破营〕我方' + info.d.name + '营折损！', 'danger'); } } animateAttack(info, done); } else done(); }
       if (path) { render(); animateMove(u, path, finish); } else finish();
     }
     // 推进格：目标超出射程时，朝评分最高的敌军逼近。
@@ -584,7 +585,9 @@
           if (m < LF.BF_ROUT.morale) risk += (LF.BF_ROUT.morale - m) * 0.006;
           if (risk > 0 && rng() < risk) {
             u.routed = true; u.hp = Math.max(1, Math.round(u.hp * 0.5)); syncCount(u);
-            log((isFoe ? '敌' : '我') + '「' + u.name + '」阵脚大乱，溃散离场！', isFoe ? 'good' : 'danger');
+            log((isFoe ? '敌' : '我') + '「' + u.name + '」军心涣散，溃散离场！', isFoe ? 'good' : 'danger');
+            floatText(u.x, u.y, '溃散', 'label-rout', 0);
+            bfBanner((isFoe ? '敌' : '我') + '「' + u.name + '」军心涣散，溃散离场！', isFoe ? 'good' : 'danger');
             moraleAll(list, isFoe ? 6 : -6);
           }
         });
@@ -695,14 +698,50 @@
     }
     // 攻击动画：攻击者前冲 -> 命中闪光 + 震屏 -> 退回；反击作为第二拍；跳帧时直接结算
     function animateAttack(info, done) {
+      var fgrid = document.getElementById('bf-floats') || document.getElementById('bf-grid');
       var grid = document.getElementById('bf-grid');
-      if (!grid) { done && done(); return; }
+      if (!fgrid || !grid) { done && done(); return; }
       if (board && board.skip) { done && done(); return; }
       var a = info.a, d = info.d, cs = cellSize(), csX = CSX, csY = CSY;
       var ca = grid.querySelector('[data-uid="' + a.id + '"]'), cd = grid.querySelector('[data-uid="' + d.id + '"]');
       var ua = ca && ca.querySelector('.bf-unit'), ud = cd && cd.querySelector('.bf-unit');
-      if (!ua || !ud) { afterCounter(); return; }
-      var dx = d.x - a.x, dy = d.y - a.y, len = Math.hypot(dx, dy) || 1, lx = dx / len, ly = dy / len, lp = 0.42 * Math.min(csX, csY);
+      function hitAndCounter() {
+        if (ud) { ud.classList.add('bf-hit'); playSfx('hit'); shakeGrid(); }
+        setTimeout(function () {
+          if (ud) ud.classList.remove('bf-hit');
+          if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); }
+          else done && done();
+        }, D(150));
+      }
+      // 远程（射程≥2）：箭矢抛物线飞行 + 弹道淡线，命中后再结算
+      if (a.range >= 2 && ua && ud) {
+        var ax = (a.x + MARGIN) * csX + csX / 2, ay = (a.y + MARGIN) * csY + csY / 2;
+        var dx = (d.x + MARGIN) * csX + csX / 2, dy = (d.y + MARGIN) * csY + csY / 2;
+        var rot = Math.atan2(dy - ay, dx - ax) * 180 / Math.PI;
+        var dist = Math.hypot(dx - ax, dy - ay);
+        var path = document.createElement('div');
+        path.className = 'bf-arrow-path';
+        path.style.left = ax + 'px'; path.style.top = ay + 'px';
+        path.style.width = dist + 'px'; path.style.transform = 'rotate(' + rot + 'deg)';
+        fgrid.appendChild(path);
+        var arrow = document.createElement('div');
+        arrow.className = 'bf-arrow';
+        arrow.style.left = ax + 'px'; arrow.style.top = ay + 'px';
+        arrow.style.transform = 'rotate(' + rot + 'deg)';
+        fgrid.appendChild(arrow);
+        var midX = (ax + dx) / 2, midY = (ay + dy) / 2 - Math.min(24, dist * 0.2);
+        var anim = arrow.animate([
+          { transform: 'translate(0,0) rotate(' + rot + 'deg)', offset: 0 },
+          { transform: 'translate(' + (midX - ax) + 'px,' + (midY - ay) + 'px) rotate(' + rot + 'deg)', offset: 0.5 },
+          { transform: 'translate(' + (dx - ax) + 'px,' + (dy - ay) + 'px) rotate(' + rot + 'deg)', offset: 1 }
+        ], { duration: 260, easing: 'ease-out', fill: 'forwards' });
+        setTimeout(function () { if (path.parentNode) path.parentNode.removeChild(path); }, 420);
+        anim.onfinish = function () { if (arrow.parentNode) arrow.parentNode.removeChild(arrow); hitAndCounter(); };
+        return;
+      }
+      // 近战：突刺
+      if (!ua || !ud) { hitAndCounter(); return; }
+      var ddx = d.x - a.x, ddy = d.y - a.y, len = Math.hypot(ddx, ddy) || 1, lx = ddx / len, ly = ddy / len, lp = 0.42 * Math.min(csX, csY);
       ua.style.transition = 'transform .14s ease-out';
       ua.style.transform = 'translate(' + (lx * lp) + 'px,' + (ly * lp) + 'px)';
       setTimeout(function () {
@@ -710,13 +749,9 @@
         setTimeout(function () {
           ua.style.transition = 'transform .16s ease-in';
           ua.style.transform = 'translate(0,0)';
-          setTimeout(function () { ud.classList.remove('bf-hit'); afterCounter(); }, D(170));
+          setTimeout(function () { ud.classList.remove('bf-hit'); if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); } else done && done(); }, D(170));
         }, D(150));
       }, D(150));
-      function afterCounter() {
-        if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); }
-        else done && done();
-      }
     }
     function drawTrail(path) {
       var t = document.getElementById('bf-trail'); if (!t || !path) return; t.innerHTML = '';
@@ -921,6 +956,7 @@
         '<div class="bf-top" id="bf-top"></div>' +
         '<div class="bf-topmenu" id="bf-topmenu"></div>' +
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div><div class="bf-floats" id="bf-floats"></div></div>' +
+        '<div class="bf-banners" id="bf-banners"></div>' +
         '<div class="bf-dock" id="bf-dock"></div>' +
         '<div class="bf-fab" id="bf-fab">' +
           '<button type="button" class="bf-fab-b" data-panel="log" title="战报">报</button>' +
@@ -1082,9 +1118,7 @@
             var icoCls = u.troopType ? 'ico-' + u.troopType : '';
             inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + (danger ? ' bf-danger' : '') + (board.sel === u ? ' bf-sel-u' : '') + (u.acted ? ' bf-acted' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
               '<i class="bf-u-ico ' + icoCls + '"></i>' +
-              '<i class="bf-u-cnt">' + (u.count || 0) + '</i>' +
-              '<i class="bf-u-type">' + ({changqiang:'枪',daodun:'盾',gongnu:'弓',qibing:'骑',gongcheng:'械'}[u.troopType] || '') + '</i>' +
-              '<i class="bf-u-face">' + face + '</i>' +
+              '<b class="bf-u-cnt">' + (u.count || 0) + '</b>' +
               '<i class="bf-u-hp"><i style="width:' + hpPct + '%"></i></i>' +
               '<i class="bf-u-mor"><i style="width:' + morPct + '%"></i></i>' +
               (u.acted ? '<i class="bf-acted-tag">已</i>' : '') +
@@ -1451,12 +1485,28 @@
     function routBurst(x, y) {
       var grid = document.getElementById('bf-floats') || document.getElementById('bf-grid'); if (!grid) return;
       var cs = cellSize(), csX = CSX, csY = CSY;
+      var lx = ((x + MARGIN) * csX + csX / 2) + 'px', ly = ((y + MARGIN) * csY + csY / 2) + 'px';
       var el = document.createElement('div');
       el.className = 'bf-rout-pop';
-      el.style.left = ((x + MARGIN) * csX + csX / 2) + 'px';
-      el.style.top = ((y + MARGIN) * csY + csY / 2) + 'px';
+      el.style.left = lx; el.style.top = ly;
       grid.appendChild(el);
+      var puff = document.createElement('div');
+      puff.className = 'bf-rout-puff';
+      puff.style.left = lx; puff.style.top = ly;
+      grid.appendChild(puff);
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 700);
+      setTimeout(function () { if (puff.parentNode) puff.parentNode.removeChild(puff); }, 700);
+    }
+    // 战场对话提示条（溃散/破营等）：顶部堆叠，自动淡入淡出
+    function bfBanner(text, kind) {
+      var host = document.getElementById('bf-banners'); if (!host) return;
+      var el = document.createElement('div');
+      el.className = 'bf-banner' + (kind ? ' ' + kind : '');
+      el.textContent = text;
+      host.appendChild(el);
+      setTimeout(function () { el.classList.add('show'); }, 20);
+      setTimeout(function () { el.classList.remove('show'); }, 1700);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 2150);
     }
     // 兵种 → 音效：弓弩破空 / 攻城轰鸣 / 其余金铁交击
     function weaponSfx(type) { return type === 'gongnu' ? 'arrow' : type === 'gongcheng' ? 'siege' : 'attack'; }
