@@ -225,6 +225,7 @@
       el.innerHTML = '<div class="bf-result-card"><h2 class="bf-result-title ' + (sum.result === 'win' ? 'good' : (sum.result === 'lose' ? 'bad' : 'mid')) + '">战斗结算 · ' + (titleMap[sum.result] || sum.result) + '</h2>' +
         '<div class="bf-result-sub">共 ' + sum.round + ' 回合 · 我军存活 ' + sum.survivors + '/' + sum.allyTotal + ' 营 · 敌军存活 ' + sum.foeAlive + '/' + sum.foeTotal + ' 营</div>' +
         '<table class="bf-result-tbl"><thead><tr><th>部队</th><th>兵种</th><th>余兵/上限</th><th>折损</th><th>伤害</th><th>歼敌</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<div class="bf-result-foot">合计伤害 ' + (sum.units.reduce(function (a, u) { return a + (u.dmgDealt || 0); }, 0)) + ' · 歼敌 ' + (sum.units.reduce(function (a, u) { return a + (u.kills || 0); }, 0)) + ' 营</div>' +
         '<button type="button" class="btn bf-main" onclick="window.bfCloseResult()">继续</button></div>';
       el.hidden = false;
     }
@@ -253,7 +254,7 @@
       foes.forEach(function (u, i) { if (sp.foe[i]) { u.x = sp.foe[i].x; u.y = sp.foe[i].y; } });
       board = {
         w: w, h: h, terrain: LF.BF_GEN_TERRAIN(w, h, cfg.kind === 'siege' ? 'siege' : 'field'), units: allies.concat(foes),
-        round: 1, phase: 'ally', sel: null, mode: null, reach: [], attack: [], over: false, result: null,
+        round: 1, phase: 'ally', sel: null, mode: null, reach: [], attack: [], over: false, result: null, _history: [],
         speed: 1, skip: false, threat: null,
         cfg: cfg, title: cfg.title || '会战', reinforce: cfg.reinforce || null, reinforceDone: false,
         invincible: !!cfg.invincible, showAllThreat: cfg.showAllThreat !== false, enemyIdle: !!cfg.enemyIdle,
@@ -265,6 +266,7 @@
       if (cfg.ambush) moraleAll(sideUnits('ally'), 5);
       openModal && openModal('battlefield');
       setFullscreenMode(true);
+      try { playSfx('horn'); } catch (e) {}
       setTimeout(function () { mount(); render(); }, 30);
       return board;
     }
@@ -424,14 +426,17 @@
         counter = dmgRoll(d, a, pickCounterOrder(d), true);
         if (counter.miss) counter = null; else applyDamage(a, counter.dmg, d);
       }
+      pushHistory(a);
       if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
-      else { playSfx('attack'); buzz(22); shakeGrid(); effectLayer('bf-hit-flash', 300); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
+      else { playSfx(weaponSfx(a.troopType)); buzz(22); shakeGrid(r.crit); effectLayer('bf-hit-flash', 300); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
       if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
-      if (d.hp <= 0) { effectLayer('bf-rout-smoke', 1200); log('〔破营〕' + d.name + '营溃散，折损于阵。', 'good'); }
+      if (d.hp <= 0) effectLayer('bf-rout-smoke', 1200);
       board.sel = null; board.mode = null; board.reach = []; board.attack = [];
       render();
+      // 飘字/爆裂必须放在 render 之后：render 会重建 #bf-grid 的 innerHTML，否则刚挂的飘字被冲掉
+      floatHit(d, r, counter); if (d.hp <= 0) { routBurst(d.x, d.y); log('〔破营〕' + d.name + '营溃散，折损于阵。', 'good'); }
       animateAttack({ a: a, d: d, r: r, counter: counter }, afterAction);
     }
     function pickCounterOrder(d) {
@@ -469,8 +474,11 @@
         var s = 0, hr = t.hp / t.maxHp;
         s += (1 - hr) * 2.2;
         var cm = counterMulOf(u.type, t.type);
-        if (cm > 1) s += 0.6; else if (cm < 1) s -= 0.5;
+        if (cm > 1) s += 0.9; else if (cm < 1) s -= 0.7;
         if (t.range >= 2) s += 0.35;
+        // 集火可斩：预估能直接击溃者优先
+        var est = u.atk * (cm > 1 ? 1.25 : cm < 1 ? 0.8 : 1) * 0.92;
+        if (est >= t.hp) s += 1.6;
         s += (u.atk / (t.def + 10)) * 0.02;
         return s;
       }
@@ -487,7 +495,7 @@
             var o = scored[si], t = o.t;
             if (cheb(p.x, p.y, t.x, t.y) <= u.range) {
               var terr = terrainAt(p.x, p.y);
-              var sc = o.s + (terr.atkMul ? (terr.atkMul - 1) * 2 : 0) + (terr.defMul ? (terr.defMul - 1) * 1.2 : 0);
+              var sc = o.s + (terr.atkMul ? (terr.atkMul - 1) * 2 : 0) + (terr.defMul ? (terr.defMul - 1) * 2.2 : 0);
               if (u.range >= 2 && cheb(p.x, p.y, t.x, t.y) === 1) sc -= 0.6; // 远程拉开距离，规避贴脸反击
               if (sc > bestScore) { bestScore = sc; bestTgt = t; moveCell = p; }
             }
@@ -520,12 +528,12 @@
           if (counter.miss) counter = null; else applyDamage(u, counter.dmg, bestTgt);
         }
         if (r.miss) log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
-        else { applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', 300); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
-        if (bestTgt.hp <= 0) { effectLayer('bf-rout-smoke', 1200); log('〔破营〕我方' + bestTgt.name + '营折损！', 'danger'); }
+        else { playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', 300); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
+        if (bestTgt.hp <= 0) effectLayer('bf-rout-smoke', 1200);
         u.acted = true;
         info = { a: u, d: bestTgt, r: r, counter: counter };
       }
-      function finish() { if (info) { render(); animateAttack(info, done); } else done(); }
+      function finish() { if (info) { render(); if (info.d) { floatHit(info.d, info.r, info.counter); if (info.d.hp <= 0) { routBurst(info.d.x, info.d.y); log('〔破营〕我方' + info.d.name + '营折损！', 'danger'); } } animateAttack(info, done); } else done(); }
       if (path) { render(); animateMove(u, path, finish); } else finish();
     }
     // 推进格：目标超出射程时，朝评分最高的敌军逼近。
@@ -690,20 +698,12 @@
       var a = info.a, d = info.d, cs = cellSize(), csX = CSX, csY = CSY;
       var ca = grid.querySelector('[data-uid="' + a.id + '"]'), cd = grid.querySelector('[data-uid="' + d.id + '"]');
       var ua = ca && ca.querySelector('.bf-unit'), ud = cd && cd.querySelector('.bf-unit');
-      if (!ua || !ud) {
-        if (info.r && !info.r.miss) floatText(d.x, d.y, '-' + info.r.dmg, info.r.crit ? 'label-crit' : 'dmg');
-        else if (info.r) floatText(d.x, d.y, '闪避', 'label-dodge');
-        afterCounter();
-        return;
-      }
+      if (!ua || !ud) { afterCounter(); return; }
       var dx = d.x - a.x, dy = d.y - a.y, len = Math.hypot(dx, dy) || 1, lx = dx / len, ly = dy / len, lp = 0.42 * Math.min(csX, csY);
       ua.style.transition = 'transform .14s ease-out';
       ua.style.transform = 'translate(' + (lx * lp) + 'px,' + (ly * lp) + 'px)';
       setTimeout(function () {
-        ud.classList.add('bf-hit');
-        if (info.r && !info.r.miss) floatText(d.x, d.y, '-' + info.r.dmg, info.r.crit ? 'label-crit' : 'dmg');
-        else if (info.r) floatText(d.x, d.y, '闪避', 'label-dodge');
-        shakeGrid();
+        ud.classList.add('bf-hit'); playSfx('hit'); shakeGrid();
         setTimeout(function () {
           ua.style.transition = 'transform .16s ease-in';
           ua.style.transform = 'translate(0,0)';
@@ -736,7 +736,7 @@
         aim.appendChild(line);
       });
     }
-    function shakeGrid() { var vp = document.getElementById('bf-viewport'); if (!vp) return; vp.classList.add('bf-shake'); setTimeout(function () { vp.classList.remove('bf-shake'); }, 200); }
+    function shakeGrid(strong) { var vp = document.getElementById('bf-viewport'); if (!vp) return; vp.classList.remove('bf-shake', 'bf-shake-crit'); void vp.offsetWidth; vp.classList.add(strong ? 'bf-shake-crit' : 'bf-shake'); setTimeout(function () { vp.classList.remove('bf-shake', 'bf-shake-crit'); }, strong ? 360 : 200); }
     // 战棋 v12 氛围特效层（命中闪光/溃败烟尘；CSS 动画结束自动移除，pointer-events:none 不挡点击）
     function effectLayer(cls, ms) { var vp = document.getElementById('bf-viewport'); if (!vp) return; var el = document.createElement('div'); el.className = cls; vp.appendChild(el); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, ms + 80); }
     var _actx = null;
@@ -746,7 +746,7 @@
         if (!_actx) return;
         if (_actx.state === 'suspended') _actx.resume();
         var t = _actx.currentTime;
-        var P = { select:[440,0.05,'sine',0.05], move:[330,0.08,'triangle',0.045], confirm:[620,0.07,'square',0.05], attack:[180,0.13,'sawtooth',0.07], hit:[140,0.1,'square',0.06], cancel:[220,0.06,'sine',0.04], detail:[520,0.05,'sine',0.04], win:[660,0.22,'triangle',0.07], lose:[150,0.28,'sawtooth',0.07] };
+        var P = { select:[440,0.05,'sine',0.05], move:[330,0.08,'triangle',0.045], confirm:[620,0.07,'square',0.05], attack:[180,0.13,'sawtooth',0.07], hit:[140,0.1,'square',0.06], cancel:[220,0.06,'sine',0.04], detail:[520,0.05,'sine',0.04], win:[660,0.22,'triangle',0.07], lose:[150,0.28,'sawtooth',0.07], arrow:[760,0.1,'triangle',0.05], siege:[90,0.2,'sawtooth',0.09], horn:[330,0.42,'sawtooth',0.07] };
         var p = P[type] || P.select;
         var o = _actx.createOscillator(), g = _actx.createGain();
         o.type = p[2]; o.frequency.setValueAtTime(p[0], t); o.frequency.exponentialRampToValueAtTime(Math.max(60, p[0] * 0.6), t + p[1]);
@@ -783,6 +783,7 @@
 
     function commitMove(x, y) {
       var u = board.sel; if (!u) return;
+      pushHistory(u);
       var oldX = u.x, oldY = u.y;
       var path = pathBetween(oldX, oldY, x, y, u);
       u.facing = { x: Math.sign(x - oldX), y: Math.sign(y - oldY) };
@@ -827,6 +828,26 @@
       board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
       closeSheet();
       foePhase();
+    }
+    // 撤销：回合内可逐级回退上一步（移动/攻击），含受击方血量，避免误触劝退
+    function pushHistory(actor) {
+      if (!board) return;
+      var snap = { actor: actor ? actor.id : null,
+        units: board.units.map(function (u) { return { id: u.id, x: u.x, y: u.y, moved: u.moved, acted: u.acted, hp: u.hp, count: u.count, dmgDealt: u.dmgDealt, kills: u.kills, routed: u.routed }; }) };
+      board._history.push(snap);
+      if (board._history.length > 16) board._history.shift();
+    }
+    function bfUndo() {
+      if (!board || board.over || board.phase !== 'ally') return;
+      if (!board._history.length) return;
+      var snap = board._history.pop();
+      var byId = {}; board.units.forEach(function (u) { byId[u.id] = u; });
+      snap.units.forEach(function (s) { var u = byId[s.id]; if (!u) return; u.x = s.x; u.y = s.y; u.moved = s.moved; u.acted = s.acted; u.hp = s.hp; u.count = s.count; u.dmgDealt = s.dmgDealt; u.kills = s.kills; u.routed = s.routed; });
+      var a = snap.actor ? byId[snap.actor] : null;
+      board.sel = (a && a.hp > 0) ? a : null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
+      if (board.sel) { board.reach = reachable(board.sel); board.attack = attackable(board.sel); }
+      render(); renderTopMenu();
+      if (toast) toast('已撤销上一步。');
     }
     function bfNextUnit() { // 跳到下一个未行动的我军营，并弹出指令菜单
       if (!board || board.over || board.phase !== 'ally') return;
@@ -889,7 +910,7 @@
         '<div class="bf-outzone" id="bf-outzone" onclick="window.bfDeselect()"></div>' +
         '<div class="bf-top" id="bf-top"></div>' +
         '<div class="bf-topmenu" id="bf-topmenu"></div>' +
-        '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div></div>' +
+        '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div><div class="bf-floats" id="bf-floats"></div></div>' +
         '<div class="bf-dock" id="bf-dock"></div>' +
         '<div class="bf-fab" id="bf-fab">' +
           '<button type="button" class="bf-fab-b" data-panel="units" title="部队列表">阵</button>' +
@@ -934,7 +955,7 @@
       if (!grid || !vp) return;
       var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
       grid.style.transformOrigin = '50% 50%';
-      if (gw <= vw && gh <= vh) grid.style.transform = 'translate(' + ((vw - gw) / 2) + 'px,' + ((vh - gh) / 2) + 'px) scale(' + zoomLevel + ')';
+      if (gw <= vw && gh <= vh) { var _tf = 'translate(' + ((vw - gw) / 2) + 'px,' + ((vh - gh) / 2) + 'px) scale(' + zoomLevel + ')'; grid.style.transform = _tf; var _fl = document.getElementById('bf-floats'); if (_fl) _fl.style.transform = _tf; }
     }
     // 应用平移 + 边界收敛（全可见时居中）
     function applyPan() {
@@ -944,7 +965,9 @@
       if (gw <= vw && gh <= vh) { panX = (vw - gw) / 2; panY = (vh - gh) / 2; }
       else { var minX = Math.min(0, vw - gw), minY = Math.min(0, vh - gh); panX = Math.max(minX, Math.min(0, panX)); panY = Math.max(minY, Math.min(0, panY)); }
       grid.style.transformOrigin = '50% 50%';
-      grid.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + zoomLevel + ')';
+      var _tf2 = 'translate(' + panX + 'px,' + panY + 'px) scale(' + zoomLevel + ')';
+      grid.style.transform = _tf2;
+      var _fl2 = document.getElementById('bf-floats'); if (_fl2) _fl2.style.transform = _tf2;
     }
     // 相机跟随：把指定格居中到视口（大棋盘平移，小棋盘保持居中）
     function focusCell(cx, cy) {
@@ -978,6 +1001,7 @@
         top.innerHTML = '<span class="bf-top-l">第 ' + board.round + ' 回合 · ' + (board.phase === 'ally' ? '我军阶段' : '敌军阶段') + '</span>' +
           '<span class="bf-top-m">' + esc(board.title) + '</span>' +
           '<span class="bf-top-r">我 ' + aN + '/' + aHp + ' · 敌 ' + fN + '/' + fHp + '</span>' +
+          '<button type="button" class="bf-top-btn bf-undo-btn" title="撤销上一步" onclick="window.bfUndo()"' + (board._history && board._history.length ? '' : ' disabled') + '>↩</button>' +
           '<button type="button" class="bf-top-btn" data-menu="more" title="更多">⋮</button>';
       }
       // 部队列表 -> FAB 抽屉按需渲染（见 refreshFabPanels / unitListHTML）
@@ -1050,8 +1074,8 @@
             inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + (danger ? ' bf-danger' : '') + (board.sel === u ? ' bf-sel-u' : '') + (u.acted ? ' bf-acted' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
               '<i class="bf-u-ico ' + icoCls + '"></i>' +
               '<i class="bf-u-cnt">' + (u.count || 0) + '</i>' +
+              '<i class="bf-u-type">' + ({changqiang:'枪',daodun:'盾',gongnu:'弓',qibing:'骑',gongcheng:'械'}[u.troopType] || '') + '</i>' +
               '<i class="bf-u-face">' + face + '</i>' +
-              
               '<i class="bf-u-hp"><i style="width:' + hpPct + '%"></i></i>' +
               '<i class="bf-u-mor"><i style="width:' + morPct + '%"></i></i>' +
               (u.acted ? '<i class="bf-acted-tag">已</i>' : '') +
@@ -1386,19 +1410,42 @@
       });
     }
 
-    // 飘字（复用 .dmg-float 动效）
-    function floatText(x, y, txt, cls) {
-      var grid = document.getElementById('bf-grid');
+    // 飘字：cls 区分 dmg/label-crit/label-dodge/label-counter…，off 为向上偏移（多条不重叠）
+    function floatText(x, y, txt, cls, off) {
+      // 挂到独立的 bf-floats 图层：render() 只重建 #bf-grid，飘字不会被冲掉；且与网格同步 transform
+      var grid = document.getElementById('bf-floats') || document.getElementById('bf-grid');
       if (!grid) return;
       var cs = cellSize(), csX = CSX, csY = CSY;
       var el = document.createElement('div');
       el.className = 'dmg-float ' + (cls || 'dmg') + ' bf-float';
       el.textContent = txt;
       el.style.left = ((x + MARGIN) * csX + csX / 2) + 'px';
+      el.style.top = ((y + MARGIN) * csY + csY / 2 - (off || 0)) + 'px';
+      grid.appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 850);
+    }
+    // 一次攻击的飘字汇总（主伤 + 克制/被克 + 反击），与动画解耦，跳帧(skip)模式也必出
+    function floatHit(d, r, counter) {
+      if (!r) return;
+      if (r.miss) { floatText(d.x, d.y, '闪避', 'label-dodge', 0); return; }
+      floatText(d.x, d.y, '-' + r.dmg, r.crit ? 'label-crit' : 'dmg', 0);
+      if (r.counter > 1) floatText(d.x, d.y, '克制', 'label-counter', 22);
+      else if (r.counter < 1) floatText(d.x, d.y, '被克', 'label-countered', 22);
+      if (counter) floatText(d.x, d.y, '反击-' + counter.dmg, 'label-counter', 44);
+    }
+    // 击溃爆裂：在格子处放一圈扩散环（单位随即从棋盘移除，用此补"阵亡"打击感）
+    function routBurst(x, y) {
+      var grid = document.getElementById('bf-floats') || document.getElementById('bf-grid'); if (!grid) return;
+      var cs = cellSize(), csX = CSX, csY = CSY;
+      var el = document.createElement('div');
+      el.className = 'bf-rout-pop';
+      el.style.left = ((x + MARGIN) * csX + csX / 2) + 'px';
       el.style.top = ((y + MARGIN) * csY + csY / 2) + 'px';
       grid.appendChild(el);
-      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 800);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 700);
     }
+    // 兵种 → 音效：弓弩破空 / 攻城轰鸣 / 其余金铁交击
+    function weaponSfx(type) { return type === 'gongnu' ? 'arrow' : type === 'gongcheng' ? 'siege' : 'attack'; }
 
     function openDetailModal(u) {
       var O = LF.ARMY_ORDERS || {};
@@ -1412,7 +1459,7 @@
         '<button type="button" class="btn" onclick="window.bfCloseSheet()">关闭</button></div>';
       showSheet(h);
     }
-    function applyFormation(u, key) { if (u) { u.formation = (key && key !== 'benzhen') ? key : null; } render(); }
+    function applyFormation(u, key) { if (u) { u.formation = (key && key !== 'benzhen') ? key : null; try { if (u.troopType) localStorage.setItem('bfFmt_' + u.troopType, u.formation || 'benzhen'); } catch (e) {} } render(); }
     function openFormationModal(u) {
       var F = LF.BF_FORMATION || {};
       var keys = Object.keys(F);
@@ -1424,6 +1471,8 @@
         h += '<button type="button" class="bf-fmt-b' + (on ? ' on' : '') + '" onclick="window.bfSetFormation(\'' + u.id + '\',\'' + k + '\')">' +
           '<b>' + esc(f.name) + '</b> 防×' + (f.defMul || 1) + ' 攻×' + (f.atkMul || 1) + (f.move ? ' 移+' + f.move : '') + '<span>' + esc(f.desc || '') + '</span></button>';
       });
+      var _saved = null; try { _saved = localStorage.getItem('bfFmt_' + u.troopType); } catch (e) {}
+      if (_saved && _saved !== (u.formation || 'benzhen') && F[_saved]) h += '<button type="button" class="btn bf-fmt-recall" onclick="window.bfSetFormation(\'' + u.id + '\',\'' + _saved + '\')">沿用上次（' + esc(F[_saved].name) + '）</button>';
       h += '<button type="button" class="btn" onclick="window.bfCloseSheet()">关闭</button></div>';
       showSheet(h);
     }
@@ -1480,6 +1529,7 @@
       window.bfToggleThreat = function () { if (!board) return; board.showAllThreat = !board.showAllThreat; render(); };
       window.bfStrike = function (oid) { var t = board && board._strikeTarget; closeMenu(); if (board && board.sel && t) resolveAttack(board.sel, t, oid); };
       window.bfCloseMenu = closeMenu; window.bfCloseModal = bfCloseModal;
+      window.bfUndo = bfUndo;
       window.bfDeselect = function () { if (!board) return; board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board.pendingMove = null; board._pathPreview = []; closeMenu(); render(); };
       window.bfToggleLegend = function () { openFabPanel('legend'); };
       window.bfToggleTopMenu = toggleTopMenu;

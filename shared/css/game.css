@@ -4181,6 +4181,8 @@
   background:transparent; z-index:5; touch-action:none; cursor:grab; }
 .bf-viewport:active{ cursor:grabbing; }
 .bf-grid{ position:absolute; left:0; top:0; will-change:transform; }
+/* 飘字/爆裂独立图层：不被 render() 重建，且与 #bf-grid 同步 transform，平移缩放时不偏移 */
+.bf-floats{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:17; }
 /* 格子：必须保持 position:absolute（曾因被覆盖成 relative 致整屏黑屏） */
 .bf-cell{ position:absolute; box-sizing:border-box; border:1px solid var(--bf-line);
   background:linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35));
@@ -4264,6 +4266,8 @@
 .bf-u-ally .bf-u-cnt, .bf-u-foe .bf-u-cnt{ background:transparent; }
 /* 选中该部队时才显示精确兵力数字，平时棋子保持干净、立绘完整 */
 .bf-sel-u .bf-u-cnt{ opacity:1; }
+/* 兵种类型徽标：常驻小角标，混战时一眼区分枪/盾/弓/骑/械 */
+.bf-u-type{ position:absolute; bottom:2px; left:2px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .26); line-height:1; padding:1px 3px; border-radius:4px; background:rgba(24,17,10,.62); color:#fff; z-index:3; pointer-events:none; text-shadow:0 1px 2px rgba(0,0,0,.6); }
 .bf-u-face{ position:absolute; top:1px; left:2px; font-style:normal; font-size:calc(var(--bf-cs,30px) * .34);
   line-height:1; color:rgba(24,17,10,.72); pointer-events:none; z-index:2; }
 .bf-u-tag{ display:none; }
@@ -4469,6 +4473,8 @@
 @keyframes bfActPulse{ 0%,100%{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 16px rgba(176,131,47,.6); } 50%{ box-shadow:inset 0 0 0 3px var(--bf-gold), 0 0 22px rgba(176,131,47,.85); } }
 .bf-shake{ animation:bfShake .2s ease; }
 @keyframes bfShake{ 0%,100%{ transform:translate(0,0); } 20%{ transform:translate(-3px,1px); } 40%{ transform:translate(3px,-1px); } 60%{ transform:translate(-2px,2px); } 80%{ transform:translate(2px,-2px); } }
+.bf-shake-crit{ animation:bfShakeCrit .36s ease; }
+@keyframes bfShakeCrit{ 0%,100%{ transform:translate(0,0) rotate(0); } 15%{ transform:translate(-6px,3px) rotate(-1deg); } 35%{ transform:translate(6px,-3px) rotate(1deg); } 55%{ transform:translate(-5px,4px) rotate(-1deg); } 75%{ transform:translate(4px,-2px) rotate(.6deg); } }
 .bf-u-hp span{ transition:width .35s ease, background .3s; }
 .bf-u-hp span.low{ background:linear-gradient(90deg,#8a2a1e,#c0392b)!important; }
 .bf-attacking{ animation:bfAtkLunge .25s ease; }
@@ -4504,6 +4510,9 @@
 .bf-result .btn{ width:100%; margin-top:14px; padding:12px; font-size:16px; }
 .bf-ra{ color:#2f6e2f; } .bf-rf{ color:#9B3B2E; }
 .bf-undo-btn[disabled]{ opacity:.4; cursor:not-allowed; }
+.bf-undo-btn:not([disabled]){ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); font-weight:800; }
+.bf-fmt-recall{ background:rgba(176,131,47,.16); border-color:var(--bf-gold); color:var(--bf-ink); font-weight:700; }
+.bf-result-foot{ margin-top:10px; font-size:13px; font-weight:700; color:#8a6a2a; text-align:center; }
 /* 主按钮（结束回合） */
 .btn.bf-main{ background:linear-gradient(180deg,#c8a23a,#a2761f); color:#fff8e6; border-color:#8a6415; font-weight:700; }
 /* 落点确认钮（锚定目标格中心，随棋盘平移） */
@@ -4595,6 +4604,8 @@
   .bf-dk-card{ width:42px; height:50px; }
   .bf-dk-ava{ width:30px; height:30px; }
   .bf-dk-hp{ width:26px; }
+  .bf-u-type{ font-size:calc(var(--bf-cs,30px) * .3); padding:0 2px; }
+  .bf-undo-btn{ padding:2px 9px; font-size:12px; }
 }
 
 /* 战棋 v12 · 战场氛围：烟尘/云气效果（纯CSS，不影响性能） */
@@ -4660,3 +4671,6 @@
   40%{ opacity:1; }
   100%{ opacity:0; transform:scale(1.8) translateY(20px); }
 }
+/* 击溃爆裂环：单位阵亡时于格心扩散一圈，强化"破营"打击感 */
+.bf-rout-pop{ position:absolute; width:calc(var(--bf-cs,30px) * 1.4); height:calc(var(--bf-cs,30px) * 1.4); margin:calc(var(--bf-cs,30px) * -.7) 0 0 calc(var(--bf-cs,30px) * -.7); border:3px solid rgba(199,90,71,.9); border-radius:50%; pointer-events:none; z-index:19; animation:bfRoutPop .65s ease-out forwards; }
+@keyframes bfRoutPop{ 0%{ opacity:.95; transform:scale(.3); } 70%{ opacity:.7; } 100%{ opacity:0; transform:scale(1.8); } }
