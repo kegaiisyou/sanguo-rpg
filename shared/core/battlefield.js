@@ -13,9 +13,9 @@
     var escapeHtml = ctx.escapeHtml, exert = ctx.exert, advanceTime = ctx.advanceTime;
     var Army = ctx.Army, Officers = ctx.Officers || null;
     var getPendingArmyBattle = ctx.getPendingArmyBattle, setPendingArmyBattle = ctx.setPendingArmyBattle;
-    // 战报：战斗中每步既写入本局 board.log（界面可读），也走引擎 log（主日志）
+    // 战报只写战棋内 board.log，不再走引擎全局 log（避免大世界刷伤害字幕）
     var _log = log;
-    function blog(m, c) { if (board) board.log.push({ m: m, c: c || '' }); _log(m, c); }
+    function blog(m, c) { if (board) (board.log = board.log || []).push({ m: m, c: c || '' }); }
     log = blog;
 
     // 节奏：动画/延时按速度分档；跳帧(skip)时归零
@@ -82,9 +82,12 @@
     function bfClamp(v, lo, hi) { v = +v || lo; return Math.max(lo, Math.min(hi, v)); }
     function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
     function rng() { return (board && board._rng) ? board._rng() : Math.random(); }
+    // 兵力即真实人数：hp 随战斗下降时，count 按初始比例同步折算为存活兵力，保证网格/坞/详情三处一致
+    function syncCount(u) { if (u.startCount == null) u.startCount = u.count; u.count = Math.max(0, Math.round(u.startCount * (u.hp / u.maxHp))); }
     function applyDamage(t, dmg, by) {
       if (board && board.invincible && t.side === 'ally') return;
       t.hp = Math.max(0, t.hp - dmg);
+      syncCount(t);
       if (by) { by.dmgDealt = (by.dmgDealt || 0) + dmg; if (t.hp <= 0) by.kills = (by.kills || 0) + 1; }
     }
     function bfAggF(c) { return { hpF: Math.pow(c, 0.85), atkF: Math.pow(c, 0.85), defF: Math.log(1 + c) * 1.15 }; }
@@ -580,7 +583,7 @@
           if (r < LF.BF_ROUT.hpRatio) risk += 0.06 + (LF.BF_ROUT.hpRatio - r) * 0.5;
           if (m < LF.BF_ROUT.morale) risk += (LF.BF_ROUT.morale - m) * 0.006;
           if (risk > 0 && rng() < risk) {
-            u.routed = true; u.hp = Math.max(1, Math.round(u.hp * 0.5));
+            u.routed = true; u.hp = Math.max(1, Math.round(u.hp * 0.5)); syncCount(u);
             log((isFoe ? '敌' : '我') + '「' + u.name + '」阵脚大乱，溃散离场！', isFoe ? 'good' : 'danger');
             moraleAll(list, isFoe ? 6 : -6);
           }
@@ -767,15 +770,22 @@
       if (board.mode === 'attack' && board.sel) {
         if (inAttack(x, y)) { openOrderMenu(board.sel, u); return; }
       }
-      if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; board.pendingMove = null; board._pathPreview = []; playSfx('select'); buzz(8); render(); focusCell(u.x, u.y); return; }
+      if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; board._previewFoe = null; board.pendingMove = null; board._pathPreview = []; playSfx('select'); buzz(8); render(); focusCell(u.x, u.y); return; }
       // 选中后直接点可达空格 = 直接移动
       if (board.sel && !u && inReach(x, y)) { commitMove(x, y); return; }
       // 选中后直接点可攻击敌 = 弹出攻击指令
       if (board.sel && !board.mode && u && u.side === 'foe' && inAttack(x, y)) { openOrderMenu(board.sel, u); return; }
-      if (u && u.side === 'foe' && !board.mode) { board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = computeThreat(u); board.pendingMove = null; board._pathPreview = []; closeMenu(); render(); return; }
+      if (u && u.side === 'foe' && !board.mode) { board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = computeThreat(u); board._previewFoe = u; board.pendingMove = null; board._pathPreview = []; closeMenu(); render(); return; }
       // 点空白：取消选择
-      board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board.pendingMove = null; board._pathPreview = []; closeMenu();
+      board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board._previewFoe = null; board.pendingMove = null; board._pathPreview = []; closeMenu();
       render();
+    }
+    // 底部坞点敌军芯片：仅查看威胁预览/属性，不改变选择（与棋盘点敌同效）
+    function bfPreviewFoe(x, y) {
+      if (!board || board.over || board.phase !== 'ally') return;
+      var u = unitAt(x, y);
+      if (!u || u.side !== 'foe') return;
+      board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = computeThreat(u); board._previewFoe = u; board.pendingMove = null; board._pathPreview = []; closeMenu(); render();
     }
     function inReach(x, y) { return board.reach.some(function (p) { return p.x === x && p.y === y; }); }
     function inAttack(x, y) { return board.attack.some(function (p) { return p.x === x && p.y === y; }); }
@@ -913,12 +923,11 @@
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div><div class="bf-floats" id="bf-floats"></div></div>' +
         '<div class="bf-dock" id="bf-dock"></div>' +
         '<div class="bf-fab" id="bf-fab">' +
-          '<button type="button" class="bf-fab-b" data-panel="units" title="部队列表">阵</button>' +
           '<button type="button" class="bf-fab-b" data-panel="log" title="战报">报</button>' +
           '<button type="button" class="bf-fab-b" data-panel="zoom" title="视图缩放">⤢</button>' +
         '</div>' +
         '<div class="bf-fab-panel" id="bf-fab-panel" hidden></div>' +
-        '<div class="bf-plate" id="bf-plate" hidden></div>' +
+        '<div class="bf-plate" id="bf-plate"></div>' +
         '<div class="bf-bar" id="bf-bar"></div>' +
         '<div class="bf-pop-host" id="bf-pop-host"></div>' +
         '<div class="bf-sheet" id="bf-sheet" hidden></div>' +
@@ -1162,7 +1171,7 @@
           '<div class="bf-uc-ava">' + troopAvatarHTML(u.troopType, u.side, 38) + '</div>' +
           '<div class="bf-uc-main">' +
           '<div class="bf-uc-name">' + esc(u.name) + '</div>' +
-          '<div class="bf-uc-count">' + u.count + ' / ' + u.maxHp + '</div>' +
+          '<div class="bf-uc-count">' + u.count + '</div>' +
           '<div class="bf-uc-hp"><i style="width:' + hpPct + '%"></i></div>' +
           '<div class="bf-uc-mor"><i style="width:' + morPct + '%"></i></div>' +
           '</div><div class="bf-uc-dots">' + mvDot + atkDot + '</div></div>';
@@ -1273,19 +1282,26 @@
       var _vp = document.getElementById('bf-viewport');
       if (_vp) _vp.style.bottom = '120px';
       var html = '';
-      sideUnits('ally').forEach(function (u) {
+      // 单个单位小卡：立绘 + 兵力 + 血条 + 军心 + 行动状态点；我方点选、敌军点开威胁预览
+      function card(u, isFoe) {
         var hpPct = Math.max(0, Math.min(100, Math.round(100 * u.hp / u.maxHp)));
-        var selCls = board.sel === u ? ' selected' : '';
+        var morPct = Math.max(0, Math.min(100, Math.round(u.morale == null ? 80 : u.morale)));
+        var selCls = (isFoe ? board._previewFoe === u : board.sel === u) ? ' selected' : '';
         var actedCls = u.acted ? ' acted' : '';
         var mvDot = (!u.acted && !u.moved) ? '<i class="bf-dk-dot bf-dk-mv"></i>' : '';
         var atkDot = (!u.acted) ? '<i class="bf-dk-dot bf-dk-atk"></i>' : '';
-        html += '<button type="button" class="bf-dk-card' + selCls + actedCls + '" onclick="window.bfClick(' + u.x + ',' + u.y + ')" title="' + esc(u.name) + '">' +
+        var clk = isFoe ? ('window.bfPreviewFoe(' + u.x + ',' + u.y + ')') : ('window.bfClick(' + u.x + ',' + u.y + ')');
+        return '<button type="button" class="bf-dk-card ' + (isFoe ? 'foe' : '') + selCls + actedCls + '" onclick="' + clk + '" title="' + esc(u.name) + '">' +
           '<span class="bf-dk-ava">' + troopAvatarHTML(u.troopType, u.side, 34) + '</span>' +
           '<span class="bf-dk-cnt">' + (u.count || 0) + '</span>' +
           '<span class="bf-dk-hp"><i style="width:' + hpPct + '%"></i></span>' +
+          '<span class="bf-dk-mor"><i style="width:' + morPct + '%"></i></span>' +
           '<span class="bf-dk-dots">' + mvDot + atkDot + '</span>' +
           '</button>';
-      });
+      }
+      sideUnits('ally').forEach(function (u) { html += card(u, false); });
+      var foes = sideUnits('foe');
+      if (foes.length) { html += '<span class="bf-dk-sep"></span>'; foes.forEach(function (u) { html += card(u, true); }); }
       dock.innerHTML = html;
     }
 
@@ -1293,40 +1309,38 @@
       var plate = document.getElementById('bf-plate');
       var bar = document.getElementById('bf-bar');
       if (!plate || !board) return;
-      if (board.phase !== 'ally') { plate.hidden = true; plate.innerHTML = ''; if (bar) bar.style.visibility = 'visible'; return; }
-      if (board.sel) {
+      if (board.phase !== 'ally') { plate.classList.remove('open'); plate.innerHTML = ''; if (bar) bar.style.visibility = 'visible'; return; }
+      if (board.sel && !board.sel.acted) {
         var u = board.sel;
-        if (!u.acted) {
-          var danger = dangerOf(u);
-          plate.hidden = false;
-          if (bar) bar.style.visibility = 'hidden';
-          plate.innerHTML = '<div class="bf-plate-row">' + '<div class="bf-plate-ava">' + troopAvatarHTML(u.troopType, u.side, 46) + '</div>' + '<div class="bf-plate-info">' +
-            '<span class="bf-plate-name">' + esc(u.name) + '</span>' +
-            '<div class="bf-plate-tags">' +
-              '<span class="bf-tag bf-tag-count">兵 ' + (u.count || 0) + '</span>' +
-              '<span class="bf-tag bf-tag-mor">军心 ' + u.morale + '</span>' +
-            '</div>' +
-            '<span class="bf-plate-stats">攻' + u.atk + ' · 防' + u.def + ' · 速' + u.spd + ' · 移' + u.move + ' · 射' + u.range + '</span>' +
-            (danger ? '<span class="bf-plate-danger">溃散风险高</span>' : '') +
-            '</div></div><div class="bf-plate-acts">' +
-            '<button type="button" class="bf-act bf-act-pri' + (board.mode === 'move' ? ' bf-on' : '') + '" title="移动" onclick="window.bfOrder(\'move\')">移</button>' +
-            '<button type="button" class="bf-act bf-act-pri' + (board.mode === 'attack' ? ' bf-on' : '') + '" title="攻击" onclick="window.bfOrder(\'attack\')">攻</button>' +
-            '<button type="button" class="bf-act bf-act-pri" title="待机" onclick="window.bfOrder(\'wait\')">待</button>' +
-            '<button type="button" class="bf-act" title="单位详情" onclick="window.bfOrder(\'detail\')">详</button>' +
-            '<button type="button" class="bf-act" title="列阵" onclick="window.bfOrder(\'formation\')">阵</button>' +
-            '<button type="button" class="bf-act bf-act-x" title="取消选择" onclick="window.bfDeselect()">✕</button>' +
-            '</div>';
-          return;
-        }
-        if (board.threat) {
-          var tu = board.threat.u;
-          plate.hidden = false;
-          if (bar) bar.style.visibility = 'hidden';
-          plate.innerHTML = '<div class="bf-plate-row"><div class="bf-plate-ava">' + troopAvatarHTML(tu.troopType, tu.side, 46) + '</div><div class="bf-plate-info"><span class="bf-plate-name bf-plate-foe">' + esc(tu.name) + ' 威胁预览</span><span class="bf-plate-stats">攻' + tu.atk + '·防' + tu.def + '·移' + tu.move + '·射' + tu.range + '</span></div></div><div class="bf-plate-hint">红框=可攻击 · 黄框=可移动 · 点空白关闭</div>';
-          return;
-        }
+        var danger = dangerOf(u);
+        plate.classList.add('open');
+        if (bar) bar.style.visibility = 'hidden';
+        plate.innerHTML = '<div class="bf-plate-row">' + '<div class="bf-plate-ava">' + troopAvatarHTML(u.troopType, u.side, 46) + '</div>' + '<div class="bf-plate-info">' +
+          '<span class="bf-plate-name">' + esc(u.name) + '</span>' +
+          '<div class="bf-plate-tags">' +
+            '<span class="bf-tag bf-tag-count">兵 ' + (u.count || 0) + '</span>' +
+            '<span class="bf-tag bf-tag-mor">军心 ' + u.morale + '</span>' +
+          '</div>' +
+          '<span class="bf-plate-stats">攻' + u.atk + ' · 防' + u.def + ' · 速' + u.spd + ' · 移' + u.move + ' · 射' + u.range + '</span>' +
+          (danger ? '<span class="bf-plate-danger">溃散风险高</span>' : '') +
+          '</div></div><div class="bf-plate-acts">' +
+          '<button type="button" class="bf-act bf-act-pri' + (board.mode === 'move' ? ' bf-on' : '') + '" title="移动" onclick="window.bfOrder(\'move\')">移</button>' +
+          '<button type="button" class="bf-act bf-act-pri' + (board.mode === 'attack' ? ' bf-on' : '') + '" title="攻击" onclick="window.bfOrder(\'attack\')">攻</button>' +
+          '<button type="button" class="bf-act bf-act-pri" title="待机" onclick="window.bfOrder(\'wait\')">待</button>' +
+          '<button type="button" class="bf-act" title="单位详情" onclick="window.bfOrder(\'detail\')">详</button>' +
+          '<button type="button" class="bf-act" title="列阵" onclick="window.bfOrder(\'formation\')">阵</button>' +
+          '<button type="button" class="bf-act bf-act-x" title="取消选择" onclick="window.bfDeselect()">✕</button>' +
+          '</div>';
+        return;
       }
-      plate.hidden = true; plate.innerHTML = '';
+      if (board.threat) {
+        var tu = board.threat.u;
+        plate.classList.add('open');
+        if (bar) bar.style.visibility = 'hidden';
+        plate.innerHTML = '<div class="bf-plate-row"><div class="bf-plate-ava">' + troopAvatarHTML(tu.troopType, tu.side, 46) + '</div><div class="bf-plate-info"><span class="bf-plate-name bf-plate-foe">' + esc(tu.name) + ' 威胁预览</span><span class="bf-plate-stats">攻' + tu.atk + '·防' + tu.def + '·移' + tu.move + '·射' + tu.range + '</span></div></div><div class="bf-plate-hint">红框=可攻击 · 黄框=可移动 · 点空白关闭</div>';
+        return;
+      }
+      plate.classList.remove('open'); plate.innerHTML = '';
       if (bar) bar.style.visibility = 'visible';
     }
     function showMenu(html) {
@@ -1525,7 +1539,7 @@
 
     // 全局桥接（供 onclick 调用）
     if (typeof window !== 'undefined') {
-      window.bfClick = bfClick; window.bfOrder = bfOrder; window.bfEndTurn = bfEndTurn; window.bfRetreat = bfRetreat;
+      window.bfClick = bfClick; window.bfPreviewFoe = bfPreviewFoe; window.bfOrder = bfOrder; window.bfEndTurn = bfEndTurn; window.bfRetreat = bfRetreat;
       window.bfToggleThreat = function () { if (!board) return; board.showAllThreat = !board.showAllThreat; render(); };
       window.bfStrike = function (oid) { var t = board && board._strikeTarget; closeMenu(); if (board && board.sel && t) resolveAttack(board.sel, t, oid); };
       window.bfCloseMenu = closeMenu; window.bfCloseModal = bfCloseModal;

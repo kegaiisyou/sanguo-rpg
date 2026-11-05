@@ -4309,7 +4309,7 @@
 .bf-dock[hidden]{ display:none; }
 .bf-dock::-webkit-scrollbar{ display:none; }
 .bf-dock > *{ pointer-events:auto; }
-.bf-dk-card{ position:relative; flex:0 0 auto; width:46px; height:54px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px; padding:4px 2px 3px; border:1px solid var(--bf-line); border-radius:10px; background:rgba(244,238,226,.95); cursor:pointer; transition:.12s; box-shadow:var(--shadow); font-family:inherit; }
+.bf-dk-card{ position:relative; flex:0 0 auto; width:46px; height:60px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px; padding:4px 2px 3px; border:1px solid var(--bf-line); border-radius:10px; background:rgba(244,238,226,.95); cursor:pointer; transition:.12s; box-shadow:var(--shadow); font-family:inherit; }
 .bf-dk-card:hover{ border-color:var(--bf-gold); background:rgba(176,131,47,.14); }
 .bf-dk-card.selected{ border-color:var(--bf-gold); box-shadow:0 0 0 2px var(--bf-gold), var(--shadow); }
 .bf-dk-card.acted{ opacity:.45; }
@@ -4321,6 +4321,13 @@
 .bf-dk-dot{ width:6px; height:6px; border-radius:50%; display:block; }
 .bf-dk-mv{ background:var(--bf-gold); box-shadow:0 0 4px rgba(176,131,47,.8); }
 .bf-dk-atk{ background:#c75a47; box-shadow:0 0 4px rgba(199,90,71,.8); }
+/* 军心条（底部坞新增） */
+.bf-dk-mor{ width:30px; height:2px; background:rgba(0,0,0,.3); border-radius:2px; overflow:hidden; margin-top:1px; }
+.bf-dk-mor i{ display:block; height:100%; background:linear-gradient(90deg,#4a7fb5,#7fb0e0); border-radius:2px; }
+/* 敌军芯片（底部坞可点开威胁预览） */
+.bf-dk-card.foe{ background:rgba(244,226,222,.95); }
+.bf-dk-card.foe.selected{ border-color:#c75a47; box-shadow:0 0 0 2px #c75a47, var(--shadow); }
+.bf-dk-sep{ flex:0 0 auto; width:1px; height:38px; background:var(--bf-line); margin:0 2px; }
 /* 部队卡片状态点（FAB 列表内） */
 .bf-uc-dots{ flex:0 0 auto; display:flex; flex-direction:column; gap:3px; align-items:center; }
 .bf-uc-dots .bf-dk-dot{ width:7px; height:7px; }
@@ -4351,8 +4358,11 @@
 }
 .bf-more-item:hover{ background:rgba(176,131,47,.15); }
 /* 选中操作板（v13：覆盖整个底部，合并底条，节省垂直空间） */
-.bf-plate{ position:absolute; left:0; right:0; bottom:0; z-index:40; transform:translateY(120%); transition:transform .22s ease; pointer-events:none; background:linear-gradient(180deg, rgba(244,238,226,.92), rgba(236,227,209,.98)); border-radius:16px 16px 0 0; border-top:1px solid var(--bf-line); box-shadow:0 -4px 16px rgba(0,0,0,.15); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
-.bf-plate:not([hidden]){ transform:translateY(0); }
+/* 选中详情板：浮于单位坞之上，双向丝滑展开/收起；关闭时透明且不可点，不挡棋盘 */
+.bf-plate{ position:absolute; left:0; right:0; bottom:118px; z-index:37; opacity:0; transform:translateY(14px); transition:opacity .2s ease, transform .26s ease; pointer-events:none; background:linear-gradient(180deg, rgba(244,238,226,.94), rgba(236,227,209,.98)); border-radius:16px 16px 0 0; border-top:1px solid var(--bf-line); box-shadow:0 -4px 16px rgba(0,0,0,.15); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+.bf-plate.open{ opacity:1; transform:translateY(0); pointer-events:auto; }
+.bf-plate-row{ animation:bfPlateIn .2s ease; }
+@keyframes bfPlateIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
 .bf-plate-row{ display:flex; align-items:center; gap:10px; padding:6px 12px 2px; }
 .bf-plate-ava{ flex:0 0 auto; width:46px; height:46px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
 /* 头像立绘（真实立绘背景图，容器尺寸由父级定：操作板58px/列表38px） */
@@ -4582,7 +4592,7 @@
   .bf-speed-select{ padding:6px 6px; font-size:12px; min-width:52px; min-height:40px; }
   .bf-more-menu{ right:6px; bottom:58px; min-width:90px; }
   .bf-more-item{ padding:7px 10px; font-size:12px; }
-  .bf-plate{ bottom:0; }
+  .bf-plate{ bottom:118px; }
   .bf-plate-acts{ gap:6px; padding:6px 8px 10px; }
   .bf-act{ width:42px; height:42px; font-size:16px; }
   .bf-fab{ right:6px; gap:8px; }
@@ -4601,7 +4611,7 @@
   .bf-plate-stats{ font-size:10px; }
   .bf-unit-card{ gap:6px; }
   .bf-dock{ bottom:60px; gap:5px; padding:3px 6px; }
-  .bf-dk-card{ width:42px; height:50px; }
+  .bf-dk-card{ width:42px; height:54px; }
   .bf-dk-ava{ width:30px; height:30px; }
   .bf-dk-hp{ width:26px; }
   .bf-u-type{ font-size:calc(var(--bf-cs,30px) * .3); padding:0 2px; }
