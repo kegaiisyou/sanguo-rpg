@@ -4243,12 +4243,14 @@
 .bf-u-ico.ico-daodun{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_daodun.webp'); }
 .bf-u-ico.ico-gongnu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_gongnu.webp'); }
 .bf-u-ico.ico-qibing{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_qibing.webp'); }
+.bf-u-ico.ico-gongcheng{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_gongcheng.svg'); }
 /* 单字兜底：正常模式已立绘，仅高对比模式回退显示兵种单字 */
 .bf-u-ico::before{ content:''; }
 .bf-root.bf-hc .bf-u-ico.ico-changqiang::before{ content:'长'; }
 .bf-root.bf-hc .bf-u-ico.ico-daodun::before{ content:'刀'; }
 .bf-root.bf-hc .bf-u-ico.ico-gongnu::before{ content:'弓'; }
 .bf-root.bf-hc .bf-u-ico.ico-qibing::before{ content:'骑'; }
+.bf-root.bf-hc .bf-u-ico.ico-gongcheng::before{ content:'械'; }
 .bf-u-cnt{ position:absolute; top:1px; right:2px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .30);
   background:rgba(24,17,10,.74); color:#fff; border-radius:999px; padding:0 4px; line-height:1.5; pointer-events:none; z-index:2; }
 .bf-u-ally .bf-u-cnt{ background:rgba(63,95,122,.95); }
@@ -4289,6 +4291,27 @@
 .bf-bar-tip{ text-align:center; margin-left:auto; font-size:11px; color:var(--ink-faint); white-space:nowrap; }
 .bf-bar-pending{ color:var(--bf-gold); font-weight:700; font-size:12px; }
 .bf-bar .btn{ min-width:auto; padding:6px 12px; font-size:13px; }
+/* 底部常驻单位坞（横排小卡，位于操作条之上） */
+.bf-dock{ position:absolute; left:0; right:0; bottom:56px; z-index:36; display:flex; align-items:center; gap:6px; padding:4px 8px; overflow-x:auto; overflow-y:hidden; border-top:1px solid var(--bf-line); background:rgba(236,227,209,.92); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); box-shadow:0 -2px 8px rgba(0,0,0,.10); pointer-events:none; -webkit-overflow-scrolling:touch; }
+.bf-dock[hidden]{ display:none; }
+.bf-dock::-webkit-scrollbar{ display:none; }
+.bf-dock > *{ pointer-events:auto; }
+.bf-dk-card{ position:relative; flex:0 0 auto; width:46px; height:54px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px; padding:4px 2px 3px; border:1px solid var(--bf-line); border-radius:10px; background:rgba(244,238,226,.95); cursor:pointer; transition:.12s; box-shadow:var(--shadow); font-family:inherit; }
+.bf-dk-card:hover{ border-color:var(--bf-gold); background:rgba(176,131,47,.14); }
+.bf-dk-card.selected{ border-color:var(--bf-gold); box-shadow:0 0 0 2px var(--bf-gold), var(--shadow); }
+.bf-dk-card.acted{ opacity:.45; }
+.bf-dk-ava{ width:34px; height:34px; }
+.bf-dk-cnt{ position:absolute; top:1px; right:2px; font-size:10px; font-weight:800; line-height:1.4; background:rgba(24,17,10,.74); color:#fff; border-radius:999px; padding:0 4px; }
+.bf-dk-hp{ width:30px; height:3px; background:rgba(0,0,0,.3); border-radius:2px; overflow:hidden; }
+.bf-dk-hp i{ display:block; height:100%; background:linear-gradient(90deg,#5aa55a,#86d36b); border-radius:2px; }
+.bf-dk-dots{ display:flex; gap:3px; height:8px; align-items:center; }
+.bf-dk-dot{ width:6px; height:6px; border-radius:50%; display:block; }
+.bf-dk-mv{ background:var(--bf-gold); box-shadow:0 0 4px rgba(176,131,47,.8); }
+.bf-dk-atk{ background:#c75a47; box-shadow:0 0 4px rgba(199,90,71,.8); }
+/* 部队卡片状态点（FAB 列表内） */
+.bf-uc-dots{ flex:0 0 auto; display:flex; flex-direction:column; gap:3px; align-items:center; }
+.bf-uc-dots .bf-dk-dot{ width:7px; height:7px; }
+.bf-unit-card.acted{ opacity:.5; }
 /* 速度下拉菜单 */
 .bf-speed-select{
   pointer-events:auto; padding:6px 8px; font-size:13px;
@@ -4330,8 +4353,8 @@
 .bf-ava-art.ico-daodun{ background-image:url('../../assets/battlefield/unit_daodun.webp'); }
 .bf-ava-art.ico-gongnu{ background-image:url('../../assets/battlefield/unit_gongnu.webp'); }
 .bf-ava-art.ico-qibing{ background-image:url('../../assets/battlefield/unit_qibing.webp'); }
-.bf-ava-art.ico-gongcheng,.bf-ava-art.ico-qizhong,.bf-ava-art.ico-minfu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.20), transparent 55%), linear-gradient(160deg,#5c4a30,#33281a); }
-.bf-ava-art.ico-gongcheng::after{ content:'械'; }
+.bf-ava-art.ico-gongcheng{ background-image:url('../../assets/battlefield/unit_gongcheng.svg'); }
+.bf-ava-art.ico-qizhong,.bf-ava-art.ico-minfu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.20), transparent 55%), linear-gradient(160deg,#5c4a30,#33281a); }
 .bf-ava-art.ico-qizhong::after{ content:'辎'; }
 .bf-ava-art.ico-minfu::after{ content:'夫'; }
 .bf-ava-art.ico-gongcheng::after,.bf-ava-art.ico-qizhong::after,.bf-ava-art.ico-minfu::after{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#f5ead2; text-shadow:0 1px 2px rgba(0,0,0,.6); }
@@ -4553,6 +4576,10 @@
   .bf-plate-ava{ width:40px; height:40px; }
   .bf-plate-stats{ font-size:10px; }
   .bf-unit-card{ gap:6px; }
+  .bf-dock{ bottom:60px; gap:5px; padding:3px 6px; }
+  .bf-dk-card{ width:42px; height:50px; }
+  .bf-dk-ava{ width:30px; height:30px; }
+  .bf-dk-hp{ width:26px; }
 }
 
 /* 战棋 v12 · 战场氛围：烟尘/云气效果（纯CSS，不影响性能） */

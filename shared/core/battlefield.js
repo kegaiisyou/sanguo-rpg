@@ -862,6 +862,7 @@
         '<div class="bf-top" id="bf-top"></div>' +
         '<div class="bf-topmenu" id="bf-topmenu"></div>' +
         '<div class="bf-viewport" id="bf-viewport"><div class="bf-grid" id="bf-grid"></div></div>' +
+        '<div class="bf-dock" id="bf-dock"></div>' +
         '<div class="bf-fab" id="bf-fab">' +
           '<button type="button" class="bf-fab-b" data-panel="units" title="部队列表">阵</button>' +
           '<button type="button" class="bf-fab-b" data-panel="log" title="战报">报</button>' +
@@ -1081,6 +1082,7 @@
       updateAttackPreview();
       // 确认钮在落点格内渲染（见棋盘 pendingMove），无需单独处理
       renderPlate();
+      renderDock();
       refreshFabPanels();
       }
       // 指令菜单：仅攻击指令/详情由点击敌方触发；原底部 .bf-action 弹出已移除（改用顶部 contextual 条，不挡速度面板）
@@ -1101,14 +1103,17 @@
         var morPct = Math.max(0, Math.min(100, Math.round(u.morale == null ? 80 : u.morale)));
         var sideCls = u.side === 'ally' ? 'ally' : 'foe';
         var selCls = board.sel === u ? ' selected' : '';
-        html += '<div class="bf-unit-card ' + sideCls + selCls + '" onclick="window.bfClick(' + u.x + ',' + u.y + ')">' +
+        var actedCls = u.acted ? ' acted' : '';
+        var mvDot = (!u.acted && !u.moved) ? '<i class="bf-dk-dot bf-dk-mv" title="可移动"></i>' : '';
+        var atkDot = (!u.acted) ? '<i class="bf-dk-dot bf-dk-atk" title="可攻击"></i>' : '';
+        html += '<div class="bf-unit-card ' + sideCls + selCls + actedCls + '" onclick="window.bfClick(' + u.x + ',' + u.y + ');window.bfCloseFab()">' +
           '<div class="bf-uc-ava">' + troopAvatarHTML(u.troopType, u.side, 38) + '</div>' +
           '<div class="bf-uc-main">' +
           '<div class="bf-uc-name">' + esc(u.name) + '</div>' +
           '<div class="bf-uc-count">' + u.count + ' / ' + u.maxHp + '</div>' +
           '<div class="bf-uc-hp"><i style="width:' + hpPct + '%"></i></div>' +
           '<div class="bf-uc-mor"><i style="width:' + morPct + '%"></i></div>' +
-          '</div></div>';
+          '</div><div class="bf-uc-dots">' + mvDot + atkDot + '</div></div>';
       });
       return html;
     }
@@ -1204,6 +1209,32 @@
     /* 部队立绘：真实立绘背景图（v7 豆包美术资源，WebP）；容器尺寸由父级定（操作板/列表） */
     function troopAvatarHTML(troopType, side, size) {
       return '<span class="bf-ava-art bf-ava-' + (side === 'ally' ? 'ally' : 'foe') + ' ' + (troopType ? 'ico-' + troopType : '') + '"></span>';
+    }
+
+    /* 底部常驻单位坞：横排小卡（立绘+兵力+血条+状态点）；点选即选中并居中 */
+    function renderDock() {
+      var dock = document.getElementById('bf-dock');
+      if (!dock || !board) return;
+      if (board.phase !== 'ally') { dock.hidden = true; dock.innerHTML = ''; var _vp0 = document.getElementById('bf-viewport'); if (_vp0) _vp0.style.bottom = ''; return; }
+      dock.hidden = false;
+      // 坞占位：为操作条(56) + 坞(~62) 预留底部空间，避免遮挡棋盘
+      var _vp = document.getElementById('bf-viewport');
+      if (_vp) _vp.style.bottom = '120px';
+      var html = '';
+      sideUnits('ally').forEach(function (u) {
+        var hpPct = Math.max(0, Math.min(100, Math.round(100 * u.hp / u.maxHp)));
+        var selCls = board.sel === u ? ' selected' : '';
+        var actedCls = u.acted ? ' acted' : '';
+        var mvDot = (!u.acted && !u.moved) ? '<i class="bf-dk-dot bf-dk-mv"></i>' : '';
+        var atkDot = (!u.acted) ? '<i class="bf-dk-dot bf-dk-atk"></i>' : '';
+        html += '<button type="button" class="bf-dk-card' + selCls + actedCls + '" onclick="window.bfClick(' + u.x + ',' + u.y + ')" title="' + esc(u.name) + '">' +
+          '<span class="bf-dk-ava">' + troopAvatarHTML(u.troopType, u.side, 34) + '</span>' +
+          '<span class="bf-dk-cnt">' + (u.count || 0) + '</span>' +
+          '<span class="bf-dk-hp"><i style="width:' + hpPct + '%"></i></span>' +
+          '<span class="bf-dk-dots">' + mvDot + atkDot + '</span>' +
+          '</button>';
+      });
+      dock.innerHTML = html;
     }
 
     function renderPlate() {

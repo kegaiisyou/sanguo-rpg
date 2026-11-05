@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5c4a30"/>
+      <stop offset="1" stop-color="#2c2114"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a5a28"/>
+      <stop offset="1" stop-color="#5e3c18"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d8b25a"/>
+      <stop offset="1" stop-color="#8a6a20"/>
+    </linearGradient>
+    <radialGradient id="canopy" cx="0.5" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#6e4a22"/>
+      <stop offset="1" stop-color="#3e2a12"/>
+    </radialGradient>
+  </defs>
+  <rect width="120" height="120" fill="url(#bg)"/>
+  <!-- 防箭篷盖 canopy -->
+  <path d="M30 44 Q60 30 90 44 L84 56 Q60 48 36 56 Z" fill="url(#canopy)" stroke="#b0832f" stroke-width="1.2"/>
+  <path d="M40 48 L80 48" stroke="#b0832f" stroke-width="0.8" opacity="0.6"/>
+  <path d="M50 46 L70 46" stroke="#b0832f" stroke-width="0.6" opacity="0.4"/>
+  <!-- 撞锤 ram head -->
+  <circle cx="60" cy="74" r="7.5" fill="url(#metal)" stroke="#5e4a18" stroke-width="1"/>
+  <circle cx="60" cy="74" r="3" fill="#3a2c10"/>
+  <!-- 撞锤杆 ram shaft -->
+  <rect x="54" y="66" width="12" height="46" rx="3" fill="url(#wood)" stroke="#3e2a12" stroke-width="1"/>
+  <rect x="54" y="66" width="3" height="46" fill="#a06a30" opacity="0.5"/>
+  <!-- 车架 cart frame -->
+  <rect x="28" y="100" width="64" height="9" rx="3" fill="url(#wood)" stroke="#3e2a12" stroke-width="1"/>
+  <!-- 横梁 cross beam -->
+  <rect x="40" y="92" width="40" height="7" rx="2" fill="url(#wood)" stroke="#3e2a12" stroke-width="0.8"/>
+  <!-- 轮子 wheels -->
+  <circle cx="40" cy="108" r="9" fill="#3e2a12" stroke="url(#metal)" stroke-width="2"/>
+  <circle cx="40" cy="108" r="3" fill="#5e4a18"/>
+  <circle cx="80" cy="108" r="9" fill="#3e2a12" stroke="url(#metal)" stroke-width="2"/>
+  <circle cx="80" cy="108" r="3" fill="#5e4a18"/>
+  <!-- 铁箍 iron bands -->
+  <rect x="54" y="78" width="12" height="3" fill="url(#metal)"/>
+  <rect x="54" y="88" width="12" height="3" fill="url(#metal)"/>
+  <!-- 皮革包裹 leather wrap highlight -->
+  <path d="M55 82 L65 82" stroke="#c08a4a" stroke-width="1.4" opacity="0.7"/>
+  <!-- 旗缨 tassel -->
+  <path d="M60 40 L60 30" stroke="#b0832f" stroke-width="1.5"/>
+  <circle cx="60" cy="28" r="2.4" fill="#c0392b"/>
+</svg>
