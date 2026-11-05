@@ -861,7 +861,8 @@
   .map-viewport:active{cursor:grabbing;}
   /* v20260822ae：直接用用户简化版参考图 assets/_pv_ref.png 作地图背景（彩色州块+蓝水系+隶书州名，一目了然）。
      之前用 'ScreenShot_20260821_230620_978.png'（项目根目录根本不存在）始终未加载成功，故此前屏上一片空白+无州界。 */
-  .map-grid{position:relative;background:url('assets/_pv_ref.png?v=20260902a') center/100% 100% no-repeat;transform-origin:0 0;}
+  /* 旧版位图底图已废弃（_pv_ref.png 早已不在仓库，战略地图现为 D3 矢量绘制），去掉 404 死引用 */
+  .map-grid{position:relative;transform-origin:0 0;}
   /* 底图与地图元素同处 .map-grid 一层，跟随拖动一起平移/缩放，避免视差分层感。 */
   /* 参考图 PNG 自带完整视觉（州块+隶书州名+蓝水系+外族注记），所有叠加层都 display:none 让 PNG 直接呈现。 */
   .map-bg{display:none;}                                  /* 旧羊皮纸底纹层：被 PNG 完全覆盖，移除避免压暗 */
@@ -4249,6 +4250,8 @@
 .bf-u-ico.ico-gongcheng{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_gongcheng.svg'); }
 /* 单字兜底：正常模式已立绘，仅高对比模式回退显示兵种单字 */
 .bf-u-ico::before{ content:''; }
+/* 高对比模式必须连立绘背景一起撤掉，否则单字压在图上糊成一团，回退等于没生效 */
+.bf-root.bf-hc .bf-u-ico{ background-image:none !important; background-color:#f5ecd8; color:#111; font-weight:800; }
 .bf-root.bf-hc .bf-u-ico.ico-changqiang::before{ content:'长'; }
 .bf-root.bf-hc .bf-u-ico.ico-daodun::before{ content:'刀'; }
 .bf-root.bf-hc .bf-u-ico.ico-gongnu::before{ content:'弓'; }

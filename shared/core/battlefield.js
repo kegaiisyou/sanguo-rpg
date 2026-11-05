@@ -1427,7 +1427,7 @@
       h += '<button type="button" class="btn" onclick="window.bfCloseSheet()">关闭</button></div>';
       showSheet(h);
     }
-    function bfCloseModal() { closeModal && closeModal(); }
+    function bfCloseModal() { setFullscreenMode(false); closeModal && closeModal(); }
 
     // ════════ 战果 ════════
     function endBattle(result) {

@@ -4279,6 +4279,7 @@
     }
     if(currentModalKind==='shop' && kind!=='shop') Shop.restoreTradePending();   // 离开货郎：归还寄售真物并清空购入占位
     currentModalKind=kind;
+    if(kind!=='battlefield') $modal.classList.remove('bf-full');  // 从战棋直接切到普通窗口时也要清全屏态
     if(Narr && Narr.setNarrPaused) Narr.setNarrPaused(true);  // v20260930d：弹窗遮住叙事区，叙事暂停排队，关窗再续
     _tipBlocked=true;   // 只要开过面板，就不再显示「轻触文字快进」提示
     if($toast && $toast._toastTimer){ clearTimeout($toast._toastTimer); $toast._toastTimer=null; }
@@ -4593,6 +4594,8 @@
     var _cf2=document.getElementById('cont-float'); if(_cf2) _cf2.style.display='none';
     if(window.contCloseCleanup) window.contCloseCleanup();
     $modal.classList.add('hidden');
+    // 战棋全屏态不可残留：否则 #modal.bf-full .modal-x{display:none} 会让之后所有窗口都没有关闭钮
+    $modal.classList.remove('bf-full');
     try{ SFX.close(); }catch(e){}   // 弹窗关闭音效（v20260909a）
     try{ if(window.SFX && SFX.gambleAmbientStop) SFX.gambleAmbientStop(); }catch(e3){}   // 停赌坊氛围音（v20261030a 改名）
     if(currentModalKind==='shop') Shop.restoreTradePending();   // 关店归还寄售真物，避免退出后丢失
