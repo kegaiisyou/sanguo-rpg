@@ -761,10 +761,16 @@
     // 方向性击退抖动：受击方沿「攻击者→防守者」方向被撞退，回弹中带垂直高频抖动；暴击更重，闪避不击退
     function knockback(el, a, d, crit, miss) {
       if (!el || !el.animate || miss) return;
+      // 城垣/营垒上的守军、攻城器械：据坚不动，完全不出现击退
+      var terr = terrainAt(d.x, d.y);
+      if (terr.key === 'wall' || terr.key === 'rampart' || d.troopType === 'gongcheng') return;
+      // 重量分档：甲厚/人多者稳，轻装者一撞即退；防御地形再乘衰减
+      var wUnit = { daodun: 0.5, changqiang: 0.85, qibing: 1.05, gongnu: 1.4, qizhong: 1.2, minfu: 1.35 }[d.troopType] || 1;
+      var wTerr = 1 / Math.max(0.8, terr.defMul || 1);
       var cs = Math.min(CSX, CSY);
       var vx = d.x - a.x, vy = d.y - a.y, len = Math.hypot(vx, vy) || 1;
       var nx = vx / len, ny = vy / len, px = -ny, py = nx;
-      var amp = cs * (crit ? 0.34 : 0.20), sh = cs * (crit ? 0.075 : 0.045);
+      var amp = Math.min(cs * 0.55, cs * (crit ? 0.34 : 0.20) * wUnit * wTerr), sh = amp * 0.24;
       function T(k, s) { return 'translate(' + (nx * amp * k + px * sh * s).toFixed(1) + 'px,' + (ny * amp * k + py * sh * s).toFixed(1) + 'px)'; }
       try {
         el.animate([
@@ -1026,17 +1032,22 @@
       if (!grid || !vp) return;
       var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
       grid.style.transformOrigin = '50% 50%';
-      if (gw <= vw && gh <= vh) { var _tf = 'translate(' + ((vw - gw) / 2) + 'px,' + ((vh - gh) / 2) + 'px) scale(' + zoomLevel + ')'; grid.style.transform = _tf; var _fl = document.getElementById('bf-floats'); if (_fl) _fl.style.transform = _tf; }
+      if (gw <= vw && gh <= vh) { panX = (vw - gw) / 2; panY = (vh - gh) / 2; }
+      applyPan();
     }
-    // 应用平移 + 边界收敛（全可见时居中）
+    // 应用平移 + 边界收敛（按缩放后的有效尺寸判断，放大后仍可拖动视野）
     function applyPan() {
       var grid = document.getElementById('bf-grid'), vp = document.getElementById('bf-viewport');
       if (!grid || !vp) return;
       var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
-      if (gw <= vw && gh <= vh) { panX = (vw - gw) / 2; panY = (vh - gh) / 2; }
-      else { var minX = Math.min(0, vw - gw), minY = Math.min(0, vh - gh); panX = Math.max(minX, Math.min(0, panX)); panY = Math.max(minY, Math.min(0, panY)); }
+      var z = zoomLevel;
+      // transform-origin:50% 50% → 左边缘 = panX + gw*(1-z)/2，右边缘 = panX + gw*(1+z)/2
+      var minX = vw - gw * (1 + z) / 2, maxX = gw * (z - 1) / 2;
+      var minY = vh - gh * (1 + z) / 2, maxY = gh * (z - 1) / 2;
+      if (minX > maxX) panX = (vw - gw) / 2; else panX = Math.max(minX, Math.min(maxX, panX));
+      if (minY > maxY) panY = (vh - gh) / 2; else panY = Math.max(minY, Math.min(maxY, panY));
       grid.style.transformOrigin = '50% 50%';
-      var _tf2 = 'translate(' + panX + 'px,' + panY + 'px) scale(' + zoomLevel + ')';
+      var _tf2 = 'translate(' + panX + 'px,' + panY + 'px) scale(' + z + ')';
       grid.style.transform = _tf2;
       var _fl2 = document.getElementById('bf-floats'); if (_fl2) _fl2.style.transform = _tf2;
     }
@@ -1046,9 +1057,11 @@
       if (!grid || !vp || !board) return;
       var csX = CSX, csY = CSY;
       var gw = grid.offsetWidth, gh = grid.offsetHeight, vw = vp.clientWidth, vh = vp.clientHeight;
-      if (gw <= vw && gh <= vh) { applyPan(); return; }
+      if (gw * zoomLevel <= vw && gh * zoomLevel <= vh) { applyPan(); return; }
       var cellCX = (cx + MARGIN) * csX + csX / 2, cellCY = (cy + MARGIN) * csY + csY / 2;
-      panX = vw / 2 - cellCX; panY = vh / 2 - cellCY;
+      // 屏幕 x = panX + gw/2 + z*(cellCX - gw/2)，解出把该格居中所需的 panX
+      panX = vw / 2 - gw / 2 - zoomLevel * (cellCX - gw / 2);
+      panY = vh / 2 - gh / 2 - zoomLevel * (cellCY - gh / 2);
       applyPan();
     }
     function render() {
@@ -1451,7 +1464,9 @@
       var grid = document.getElementById('bf-grid');
       if (!grid || !board) return null;
       var r = grid.getBoundingClientRect();
-      var gx = Math.floor((cx - r.left) / CSX), gy = Math.floor((cy - r.top) / CSY);
+      // r 已含缩放，故每格屏幕尺寸也要乘 zoomLevel
+      var ux = CSX * zoomLevel, uy = CSY * zoomLevel;
+      var gx = Math.floor((cx - r.left) / ux), gy = Math.floor((cy - r.top) / uy);
       var bx = gx - MARGIN, by = gy - MARGIN;
       if (bx < 0 || bx >= board.w || by < 0 || by >= board.h) return null;
       return { x: bx, y: by };
@@ -1465,7 +1480,13 @@
       vp.addEventListener('pointerdown', function (e) {
         ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
         var cnt = Object.keys(ptrs).length;
-        if (cnt === 2) { pinch = { dist: ptrDist(), zoom: zoomLevel }; drag = null; return; }
+        if (cnt === 2) {
+          var ks = Object.keys(ptrs), p0 = ptrs[ks[0]], p1 = ptrs[ks[1]], vr = vp.getBoundingClientRect();
+          pinch = { dist: ptrDist(), zoom: zoomLevel, ox: panX, oy: panY,
+            mx: (p0.x + p1.x) / 2 - vr.left, my: (p0.y + p1.y) / 2 - vr.top,
+            hw: grid.offsetWidth / 2, hh: grid.offsetHeight / 2 };
+          drag = null; return;
+        }
         if (cnt > 2) return;
         drag = { x: e.clientX, y: e.clientY, ox: panX, oy: panY, panning: false, moved: 0 };
         suppressClick = false;
@@ -1481,7 +1502,14 @@
       window.addEventListener('pointermove', function (e) {
         if (ptrs[e.pointerId]) ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
         if (pinch && Object.keys(ptrs).length >= 2) {
-          var nd = ptrDist(); if (nd > 0) { zoomLevel = Math.max(0.6, Math.min(2.5, pinch.zoom * nd / pinch.dist)); applyPan(); }
+          var nd = ptrDist();
+          if (nd > 0) {
+            var z = Math.max(0.6, Math.min(2.5, pinch.zoom * nd / pinch.dist)), k = z / pinch.zoom;
+            // 以双指中点为锚点：该点在棋盘内的位置缩放前后保持不动，画面不漂移
+            panX = pinch.mx - pinch.hw - k * (pinch.mx - pinch.ox - pinch.hw);
+            panY = pinch.my - pinch.hh - k * (pinch.my - pinch.oy - pinch.hh);
+            zoomLevel = z; applyPan();
+          }
           return;
         }
         if (!drag) return;
