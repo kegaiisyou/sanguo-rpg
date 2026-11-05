@@ -4239,10 +4239,10 @@
   font-size:calc(var(--bf-cs,30px) * .52); line-height:1; opacity:.95; pointer-events:none; z-index:1;
   border-radius:50%; background-size:cover; background-position:center; background-repeat:no-repeat; }
 /* 部队立绘（v7 豆包美术资源，v12 以 WebP 接回）：高光层叠在立绘之上 */
-.bf-u-ico.ico-changqiang{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_changqiang.webp'); }
-.bf-u-ico.ico-daodun{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_daodun.webp'); }
-.bf-u-ico.ico-gongnu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_gongnu.webp'); }
-.bf-u-ico.ico-qibing{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_qibing.webp'); }
+.bf-u-ico.ico-changqiang{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_changqiang.webp'); }
+.bf-u-ico.ico-daodun{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_daodun.webp'); }
+.bf-u-ico.ico-gongnu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_gongnu.webp'); }
+.bf-u-ico.ico-qibing{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_qibing.webp'); }
 .bf-u-ico.ico-gongcheng{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_gongcheng.svg'); }
 /* 单字兜底：正常模式已立绘，仅高对比模式回退显示兵种单字 */
 .bf-u-ico::before{ content:''; }

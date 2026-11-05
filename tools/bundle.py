@@ -20,7 +20,7 @@ MANIFEST = os.path.join(WS, 'tools', 'bundle.manifest')
 INDEX = os.path.join(WS, 'index.html')
 BUNDLE = os.path.join(WS, 'shared', 'bundle.js')
 CONSTANTS = os.path.join(WS, 'shared', 'config', 'constants.js')
-VERSION = '20261104f'
+VERSION = '20261105a'
 
 def read(p): return io.open(p, 'r', encoding='utf-8', newline='').read().replace('\r\n', '\n')
 def write(p, s): io.open(p, 'w', encoding='utf-8', newline='').write(s)
@@ -155,6 +155,10 @@ t.minify(src,{compress:{passes:2, inline:false},mangle:true,format:{comments:fal
     s = read(INDEX)
     s = REMOVE_RE.sub('', s)                                # 去独立 src 标签(连尾随换行)
     s = re.sub(r'[ \t]*<script src="shared/bundle\.js\?v=[^"]*"[^>]*></script>[ \t]*\r?\n?', '', s)  # 去旧 bundle(兼容 defer)
+    # 同步 game.css 版本号，避免手机端缓存旧样式
+    s, n_css = re.subn(r'(shared/css/game\.css\?v=)[0-9a-z]+', r'\g<1>' + VERSION, s, count=1)
+    if n_css:
+        print('index.html: game.css 版本 -> ?v=%s' % VERSION)
     tag = '<script src="shared/bundle.js?v=%s" defer></script>' % VERSION
     m = re.search(r'(window\.__MAP_ASSETS\s*=\s*\{.*?</script>)', s, re.S)
     if m:
