@@ -711,7 +711,7 @@
       var ca = grid.querySelector('[data-uid="' + a.id + '"]'), cd = grid.querySelector('[data-uid="' + d.id + '"]');
       var ua = ca && ca.querySelector('.bf-unit'), ud = cd && cd.querySelector('.bf-unit');
       function hitAndCounter() {
-        if (ud) { ud.classList.add('bf-hit'); playSfx('hit'); shakeGrid(info.r && info.r.crit); hitSpark(d.x, d.y, info.r && info.r.crit); }
+        if (ud) { ud.classList.add('bf-hit'); playSfx('hit'); shakeGrid(info.r && info.r.crit); hitSpark(d.x, d.y, info.r && info.r.crit); knockback(ud, a, d, info.r && info.r.crit, info.r && info.r.miss); }
         setTimeout(function () {
           if (ud) ud.classList.remove('bf-hit');
           if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); }
@@ -750,13 +750,33 @@
       ua.style.transition = 'transform .14s ease-out';
       ua.style.transform = 'translate(' + (lx * lp) + 'px,' + (ly * lp) + 'px)';
       setTimeout(function () {
-        ud.classList.add('bf-hit'); playSfx('hit'); shakeGrid(info.r && info.r.crit); hitSpark(d.x, d.y, info.r && info.r.crit);
+        ud.classList.add('bf-hit'); playSfx('hit'); shakeGrid(info.r && info.r.crit); hitSpark(d.x, d.y, info.r && info.r.crit); knockback(ud, a, d, info.r && info.r.crit, info.r && info.r.miss);
         setTimeout(function () {
           ua.style.transition = 'transform .16s ease-in';
           ua.style.transform = 'translate(0,0)';
           setTimeout(function () { ud.classList.remove('bf-hit'); if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); } else done && done(); }, D(170));
         }, D(150));
       }, D(150));
+    }
+    // 方向性击退抖动：受击方沿「攻击者→防守者」方向被撞退，回弹中带垂直高频抖动；暴击更重，闪避不击退
+    function knockback(el, a, d, crit, miss) {
+      if (!el || !el.animate || miss) return;
+      var cs = Math.min(CSX, CSY);
+      var vx = d.x - a.x, vy = d.y - a.y, len = Math.hypot(vx, vy) || 1;
+      var nx = vx / len, ny = vy / len, px = -ny, py = nx;
+      var amp = cs * (crit ? 0.34 : 0.20), sh = cs * (crit ? 0.075 : 0.045);
+      function T(k, s) { return 'translate(' + (nx * amp * k + px * sh * s).toFixed(1) + 'px,' + (ny * amp * k + py * sh * s).toFixed(1) + 'px)'; }
+      try {
+        el.animate([
+          { transform: T(0, 0), offset: 0 },
+          { transform: T(1, 0), offset: 0.16 },
+          { transform: T(0.62, 1), offset: 0.30 },
+          { transform: T(0.34, -1), offset: 0.46 },
+          { transform: T(0.16, 0.6), offset: 0.64 },
+          { transform: T(0.05, -0.3), offset: 0.82 },
+          { transform: T(0, 0), offset: 1 }
+        ], { duration: crit ? 420 : 330, easing: 'ease-out' });
+      } catch (e) {}
     }
     function drawTrail(path) {
       var t = document.getElementById('bf-trail'); if (!t || !path) return; t.innerHTML = '';
