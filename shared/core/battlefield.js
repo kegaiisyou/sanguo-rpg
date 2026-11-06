@@ -437,7 +437,7 @@
       }
       pushHistory(a);
       if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
-      else { playSfx(weaponSfx(a.troopType)); buzz(22); shakeGrid(r.crit); effectLayer('bf-hit-flash', 300); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
+      else { playSfx(weaponSfx(a.troopType)); buzz(r.crit ? 45 : 22); shakeGrid(r.crit, d.x - a.x, d.y - a.y); effectLayer('bf-hit-flash', 300); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
       if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
@@ -537,7 +537,7 @@
           if (counter.miss) counter = null; else applyDamage(u, counter.dmg, bestTgt);
         }
         if (r.miss) log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
-        else { playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', 300); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
+        else { playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit, bestTgt.x - u.x, bestTgt.y - u.y); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', 300); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
         if (bestTgt.hp <= 0) effectLayer('bf-rout-smoke', 1200);
         u.acted = true;
         info = { a: u, d: bestTgt, r: r, counter: counter };
@@ -710,13 +710,25 @@
       var a = info.a, d = info.d, cs = cellSize(), csX = CSX, csY = CSY;
       var ca = grid.querySelector('[data-uid="' + a.id + '"]'), cd = grid.querySelector('[data-uid="' + d.id + '"]');
       var ua = ca && ca.querySelector('.bf-unit'), ud = cd && cd.querySelector('.bf-unit');
+      // 命中统一落点：闪光 + 方向震屏 + 火花 + 击退(内含 hit-stop 定格) + 分层音效
+      function landing() {
+        var crit = info.r && info.r.crit, hs = 0;
+        if (ud) {
+          ud.classList.add('bf-hit');
+          shakeGrid(crit ? 2 : 1, d.x - a.x, d.y - a.y);
+          hitSpark(d.x, d.y, crit);
+          hs = knockback(ud, a, d, crit, info.r && info.r.miss) || 0;
+        }
+        playSfx('hit', crit);
+        return hs;
+      }
       function hitAndCounter() {
-        if (ud) { ud.classList.add('bf-hit'); playSfx('hit'); shakeGrid(info.r && info.r.crit); hitSpark(d.x, d.y, info.r && info.r.crit); knockback(ud, a, d, info.r && info.r.crit, info.r && info.r.miss); }
+        var hs = landing();
         setTimeout(function () {
           if (ud) ud.classList.remove('bf-hit');
           if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); }
           else done && done();
-        }, D(150));
+        }, D(150) + hs);
       }
       // 远程（射程≥2）：箭矢抛物线飞行 + 弹道淡线，命中后再结算
       if (a.range >= 2 && ua && ud) {
@@ -750,12 +762,12 @@
       ua.style.transition = 'transform .14s ease-out';
       ua.style.transform = 'translate(' + (lx * lp) + 'px,' + (ly * lp) + 'px)';
       setTimeout(function () {
-        ud.classList.add('bf-hit'); playSfx('hit'); shakeGrid(info.r && info.r.crit); hitSpark(d.x, d.y, info.r && info.r.crit); knockback(ud, a, d, info.r && info.r.crit, info.r && info.r.miss);
+        var hs = landing();
         setTimeout(function () {
           ua.style.transition = 'transform .16s ease-in';
           ua.style.transform = 'translate(0,0)';
           setTimeout(function () { ud.classList.remove('bf-hit'); if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); } else done && done(); }, D(170));
-        }, D(150));
+        }, D(150) + hs);
       }, D(150));
     }
     // 方向性击退抖动：受击方沿「攻击者→防守者」方向被撞退，回弹中带垂直高频抖动；暴击更重，闪避不击退
@@ -772,17 +784,17 @@
       var nx = vx / len, ny = vy / len, px = -ny, py = nx;
       var amp = Math.min(cs * 0.55, cs * (crit ? 0.34 : 0.20) * wUnit * wTerr), sh = amp * 0.24;
       function T(k, s) { return 'translate(' + (nx * amp * k + px * sh * s).toFixed(1) + 'px,' + (ny * amp * k + py * sh * s).toFixed(1) + 'px)'; }
+      // hit-stop：撞到最远点后定格 hs 毫秒再回弹（无需全局冻结计时器）
+      var base = D(crit ? 420 : 330), hs = D(crit ? 105 : 55), total = base + hs;
+      var frames = [
+        [0, 0, 0], [0.16 * base, 1, 0], [0.16 * base + hs, 1, 0],
+        [0.30 * base + hs, 0.62, 1], [0.46 * base + hs, 0.34, -1],
+        [0.64 * base + hs, 0.16, 0.6], [0.82 * base + hs, 0.05, -0.3], [total, 0, 0]
+      ];
       try {
-        el.animate([
-          { transform: T(0, 0), offset: 0 },
-          { transform: T(1, 0), offset: 0.16 },
-          { transform: T(0.62, 1), offset: 0.30 },
-          { transform: T(0.34, -1), offset: 0.46 },
-          { transform: T(0.16, 0.6), offset: 0.64 },
-          { transform: T(0.05, -0.3), offset: 0.82 },
-          { transform: T(0, 0), offset: 1 }
-        ], { duration: crit ? 420 : 330, easing: 'ease-out' });
-      } catch (e) {}
+        el.animate(frames.map(function (f) { return { transform: T(f[1], f[2]), offset: f[0] / total }; }), { duration: total, easing: 'ease-out' });
+      } catch (e) { return 0; }
+      return hs;
     }
     function drawTrail(path) {
       var t = document.getElementById('bf-trail'); if (!t || !path) return; t.innerHTML = '';
@@ -805,22 +817,47 @@
         aim.appendChild(line);
       });
     }
-    function shakeGrid(strong) { var vp = document.getElementById('bf-viewport'); if (!vp) return; vp.classList.remove('bf-shake', 'bf-shake-crit'); void vp.offsetWidth; vp.classList.add(strong ? 'bf-shake-crit' : 'bf-shake'); setTimeout(function () { vp.classList.remove('bf-shake', 'bf-shake-crit'); }, strong ? 360 : 200); }
+    // 方向性分级震屏：lv 1 普通 / 2 暴击 / 3 破营；位移沿攻击方向，幅度与时长按级别递增
+    function shakeGrid(strong, dx, dy) {
+      var vp = document.getElementById('bf-viewport'); if (!vp) return;
+      var lv = strong === true ? 2 : (Number(strong) || 1);
+      var vx = dx || 0, vy = dy || 0, len = Math.hypot(vx, vy);
+      if (len < 0.001) { vx = 0; vy = 1; len = 1; }
+      var amp = lv >= 3 ? 9 : lv >= 2 ? 6 : 3;
+      vp.style.setProperty('--bf-sh-x', (vx / len * amp).toFixed(1) + 'px');
+      vp.style.setProperty('--bf-sh-y', (vy / len * amp).toFixed(1) + 'px');
+      vp.classList.remove('bf-shake', 'bf-shake-crit', 'bf-shake-break');
+      void vp.offsetWidth;
+      vp.classList.add(lv >= 3 ? 'bf-shake-break' : lv >= 2 ? 'bf-shake-crit' : 'bf-shake');
+      setTimeout(function () { vp.classList.remove('bf-shake', 'bf-shake-crit', 'bf-shake-break'); }, lv >= 3 ? 480 : lv >= 2 ? 360 : 200);
+    }
     // 战棋 v12 氛围特效层（命中闪光/溃败烟尘；CSS 动画结束自动移除，pointer-events:none 不挡点击）
     function effectLayer(cls, ms) { var vp = document.getElementById('bf-viewport'); if (!vp) return; var el = document.createElement('div'); el.className = cls; vp.appendChild(el); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, ms + 80); }
     var _actx = null;
-    function playSfx(type) {
+    function playSfx(type, strong) {
       try {
         if (!_actx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) _actx = new AC(); }
         if (!_actx) return;
         if (_actx.state === 'suspended') _actx.resume();
         var t = _actx.currentTime;
+        function tone(freq, dur, wave, gain, at) {
+          var st = at == null ? t : at;
+          var o = _actx.createOscillator(), g = _actx.createGain();
+          o.type = wave; o.frequency.setValueAtTime(freq, st); o.frequency.exponentialRampToValueAtTime(Math.max(60, freq * 0.6), st + dur);
+          g.gain.setValueAtTime(gain, st); g.gain.exponentialRampToValueAtTime(0.0001, st + dur);
+          o.connect(g); g.connect(_actx.destination); o.start(st); o.stop(st + dur + 0.02);
+        }
+        // 命中音分层：低频冲击 + 中频肉声 + 高频脆响，暴击再叠一层金属泛音
+        if (type === 'hit') {
+          tone(120, 0.12, 'sawtooth', 0.055, t);
+          tone(300, 0.075, 'square', 0.026, t + 0.006);
+          tone(strong ? 1180 : 820, 0.05, 'triangle', strong ? 0.034 : 0.020, t);
+          if (strong) tone(1560, 0.10, 'sine', 0.020, t + 0.02);
+          return;
+        }
         var P = { select:[440,0.05,'sine',0.05], move:[330,0.08,'triangle',0.045], confirm:[620,0.07,'square',0.05], attack:[180,0.13,'sawtooth',0.07], hit:[140,0.1,'square',0.06], cancel:[220,0.06,'sine',0.04], detail:[520,0.05,'sine',0.04], win:[660,0.22,'triangle',0.07], lose:[150,0.28,'sawtooth',0.07], arrow:[760,0.1,'triangle',0.05], siege:[90,0.2,'sawtooth',0.09], horn:[330,0.42,'sawtooth',0.07] };
         var p = P[type] || P.select;
-        var o = _actx.createOscillator(), g = _actx.createGain();
-        o.type = p[2]; o.frequency.setValueAtTime(p[0], t); o.frequency.exponentialRampToValueAtTime(Math.max(60, p[0] * 0.6), t + p[1]);
-        g.gain.setValueAtTime(p[3], t); g.gain.exponentialRampToValueAtTime(0.0001, t + p[1]);
-        o.connect(g); g.connect(_actx.destination); o.start(t); o.stop(t + p[1] + 0.02);
+        tone(p[0], p[1], p[2], p[3], t);
       } catch (e) {}
     }
     function buzz(pat) { try { if (navigator.vibrate) navigator.vibrate(pat); } catch (e) {} }
@@ -1163,10 +1200,13 @@
             var tname = ((T()[u.troopType] || {}).name || u.name);
             var morPct = Math.max(0, Math.min(100, Math.round(u.morale == null ? 80 : u.morale)));
             var icoCls = u.troopType ? 'ico-' + u.troopType : '';
+            // 延迟追赶血条：残影从上次显示值收缩到本次实时值
+            var ghostPct = Math.max(hpPct, u._hpShown == null ? hpPct : u._hpShown);
+            u._hpShown = hpPct;
             inner += '<div class="bf-unit ' + sideCls + (u.routed ? ' bf-routed' : '') + (danger ? ' bf-danger' : '') + (board.sel === u ? ' bf-sel-u' : '') + (u.acted ? ' bf-acted' : '') + '"' + hov + ' onclick="window.bfClick(' + x + ',' + y + ')">' +
               '<i class="bf-u-ico ' + icoCls + '"></i>' +
               '<b class="bf-u-cnt">' + (u.count || 0) + '</b>' +
-              '<i class="bf-u-hp"><i style="width:' + hpPct + '%"></i></i>' +
+              '<i class="bf-u-hp"><i class="bf-u-hp-fill" style="width:' + hpPct + '%"></i><i class="bf-u-hp-ghost" data-to="' + hpPct + '" style="width:' + ghostPct + '%"></i></i>' +
               '<i class="bf-u-mor"><i style="width:' + morPct + '%"></i></i>' +
               (u.acted ? '<i class="bf-acted-tag">已</i>' : '') +
               '</div>';
@@ -1178,6 +1218,10 @@
         }
       }
       grid.innerHTML = html.join('');
+      // 强制一次样式计算后把残影宽度改为新值，触发 transition 追赶（render 重建 DOM 需手动触发）
+      void grid.offsetWidth;
+      var ghosts = grid.querySelectorAll('.bf-u-hp-ghost');
+      for (var gi = 0; gi < ghosts.length; gi++) ghosts[gi].style.width = ghosts[gi].getAttribute('data-to') + '%';
       ensureLayers();
       if (!board._centeredInit && grid.offsetWidth && document.getElementById('bf-viewport') && document.getElementById('bf-viewport').clientWidth) { board._centeredInit = true; focusCell(Math.floor(board.w / 2), Math.floor(board.h / 2)); }
       if (board.sel && board.mode === 'attack') drawAimLines();
@@ -1576,6 +1620,7 @@
       puff.style.left = lx; puff.style.top = ly;
       grid.appendChild(puff);
       routScatter(x, y);
+      shakeGrid(3, 0, 1); buzz([30, 40, 60]);
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 700);
       setTimeout(function () { if (puff.parentNode) puff.parentNode.removeChild(puff); }, 700);
     }
