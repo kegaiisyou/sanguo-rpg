@@ -92,24 +92,44 @@
     return { ally: row(allyN, allyY), foe: row(foeN, foeY) };
   };
 
-  // ── 地形生成：在逻辑盘上散布林/丘/河，保留双方出生行净空 ──
-  LF.BF_GEN_TERRAIN = function (w, h, mode) {
+  // ── 战场地图模板（战前界面可选）：决定地形构成与特殊地标 ──
+  LF.BF_MAPS = {
+    plain:  { key:'plain',  name:'平原旷野', desc:'视野开阔 · 骑兵驰骋',   forest:.06, hill:.04, ford:.02 },
+    forest: { key:'forest', name:'山林伏兵', desc:'林地密布 · 宜伏宜避箭', forest:.34, hill:.10, ford:.02 },
+    river:  { key:'river',  name:'河网渡口', desc:'河道纵横 · 行军迟缓',   forest:.08, hill:.04, ford:.10, riverBand:true },
+    pass:   { key:'pass',   name:'险隘关道', desc:'中央狭道 · 营垒据守',   forest:.10, hill:.18, ford:.02, rampart:true },
+    siege:  { key:'siege',  name:'城塞攻防', desc:'城垣横亘 · 攻坚守易',   forest:.04, hill:.04, ford:.02, wall:true }
+  };
+
+  // ── 地形生成：按地图模板散布林/丘/河，保留双方出生行净空 ──
+  LF.BF_GEN_TERRAIN = function (w, h, mode, mapKey) {
     w = w || 14; h = h || 12;
+    var M = (LF.BF_MAPS && LF.BF_MAPS[mapKey]) || (mode === 'siege' ? LF.BF_MAPS.siege : LF.BF_MAPS.plain);
     var t = [];
     for (var y = 0; y < h; y++) { t[y] = []; for (var x = 0; x < w; x++) t[y][x] = 'plain'; }
     var cells = [];
     for (var yy = 2; yy < h - 2; yy++) for (var xx = 1; xx < w - 1; xx++) cells.push([xx, yy]);
     for (var i = cells.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var tmp = cells[i]; cells[i] = cells[j]; cells[j] = tmp; }
-    var n = cells.length;
-    var nf = Math.round(n * 0.12), nh = Math.round(n * 0.08), nr = Math.round(n * 0.04);
-    var k = 0;
-    for (var a = 0; a < nf; a++) { t[cells[k][1]][cells[k][0]] = 'forest'; k++; }
-    for (var b = 0; b < nh; b++) { t[cells[k][1]][cells[k][0]] = 'hill'; k++; }
-    for (var c = 0; c < nr; c++) { t[cells[k][1]][cells[k][0]] = 'ford'; k++; }
-    if (mode === 'siege') {
-      // 守方（下沿）前方横亘一道城垣，与上下对峙的横向布阵一致
+    var n = cells.length || 1;
+    var nf = Math.round(n * M.forest), nh = Math.round(n * M.hill), nr = Math.round(n * M.ford), k = 0;
+    for (var a = 0; a < nf && k < n; a++, k++) t[cells[k][1]][cells[k][0]] = 'forest';
+    for (var b = 0; b < nh && k < n; b++, k++) t[cells[k][1]][cells[k][0]] = 'hill';
+    for (var c = 0; c < nr && k < n; c++, k++) t[cells[k][1]][cells[k][0]] = 'ford';
+    // 河网：中部横贯一条浅滩，留两处渡口缺口供通行
+    if (M.riverBand) {
+      var by = Math.max(2, Math.min(h - 3, Math.floor(h / 2)));
+      var gap1 = Math.floor(w / 3), gap2 = Math.floor(w * 2 / 3);
+      for (var rx = 1; rx < w - 1; rx++) if (rx !== gap1 && rx !== gap2 && t[by]) t[by][rx] = 'ford';
+    }
+    // 险隘：中央两格营垒卡住狭道
+    if (M.rampart) {
+      var py = Math.floor(h / 2), px = Math.floor(w / 2);
+      if (t[py]) { t[py][px] = 'rampart'; if (t[py][px + 1]) t[py][px + 1] = 'rampart'; }
+    }
+    // 城塞：守方（下沿）前方横亘一道城垣
+    if (M.wall || mode === 'siege') {
       var fy = Math.max(2, h - 3);
-      for (var rx = Math.floor(w * 0.25); rx < Math.floor(w * 0.75); rx++) { if (t[fy] && t[fy][rx] === 'plain') t[fy][rx] = 'wall'; }
+      for (var wx = Math.floor(w * 0.25); wx < Math.floor(w * 0.75); wx++) { if (t[fy] && t[fy][wx] === 'plain') t[fy][wx] = 'wall'; }
     }
     return t;
   };

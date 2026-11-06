@@ -4565,6 +4565,13 @@
 .bf-dbg-row input[type=number]{ width:80px; background:#2E2B14; color:#F0E4C8; border:1px solid #B8893A; border-radius:6px; padding:5px; }
 .bf-setup-actions{ display:flex; gap:12px; margin-top:14px; }
 .bf-setup-actions .btn{ flex:1; padding:12px; font-size:15px; }
+/* 战前部署 · 战场地图选择 */
+.bf-maps{ display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:8px; }
+.bf-map{ background:rgba(255,255,255,.05); color:#F0E4C8; border:1px solid #B8893A; border-radius:8px; padding:8px 10px; font-size:13px; cursor:pointer; text-align:left; }
+.bf-map b{ display:block; font-size:14px; color:#E8D6AC; }
+.bf-map i{ display:block; font-style:normal; font-size:11px; color:#C8B78F; margin-top:3px; }
+.bf-map.on{ background:#5A4A2E; border-color:#FFD268; box-shadow:0 0 0 1px #FFD268 inset; }
+
 /* 全舞台模式：棋盘脱离弹窗外壳，铺满视口 */
 #modal.bf-full{ padding:0 !important; align-items:stretch !important; }
 #modal.bf-full #modal-card{ margin:0 !important; width:100% !important; max-width:none !important; height:100% !important; display:block !important; background:transparent !important; border:0 !important; box-shadow:none !important; }

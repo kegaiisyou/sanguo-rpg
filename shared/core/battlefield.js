@@ -118,13 +118,13 @@
     function openSetup(preset) {
       preset = preset || {};
       var ranks = [{ k: 'front', n: '前军' }, { k: 'mid', n: '中军' }, { k: 'rear', n: '后军' }, { k: 'flank', n: '侧翼' }];
-      function toRow(u) { return { type: u.troopType || inferType(u.name), rank: u.rank || 'front', count: u.count || 100 }; }
+      function toRow(u) { return { type: u.troopType || inferType(u.name), rank: u.rank || 'front', count: u.count || 100, _src: u }; }
       function defSide(side, n) { var pool = side === 'ally' ? ['changqiang', 'daodun', 'gongnu'] : ['changqiang', 'daodun', 'qibing', 'gongnu']; var a = []; for (var i = 0; i < n; i++) a.push({ type: pool[i % pool.length], rank: ['front', 'mid', 'rear'][i % 3], count: 120 }); return a; }
       var st = {
-        grid: (preset.grid && preset.grid.w) ? { w: preset.grid.w, h: preset.grid.h } : { w: 12, h: 9 },
+        grid: (preset.grid && preset.grid.w) ? { w: preset.grid.w, h: preset.grid.h } : (LF.BF_SCALE_TO_GRID && LF.BF_SCALE_TO_GRID[preset.scale]) ? { w: LF.BF_SCALE_TO_GRID[preset.scale].w, h: LF.BF_SCALE_TO_GRID[preset.scale].h } : { w: 12, h: 9 },
         allies: preset.allies ? preset.allies.map(toRow) : defSide('ally', 3),
         foes: preset.foes ? preset.foes.map(toRow) : defSide('foe', 3),
-        title: preset.title || '野战', kind: preset.kind || 'field', maxRounds: preset.maxRounds || 30,
+        title: preset.title || '野战', kind: preset.kind || 'field', map: preset.map || (preset.kind === 'siege' ? 'siege' : 'plain'), maxRounds: preset.maxRounds || 30,
         dbg: { invincible: !!preset.invincible, showAllThreat: !!preset.showAllThreat, enemyIdle: !!preset.enemyIdle, seed: preset.seed || '', speedDefault: preset.speedDefault || 1, skipDefault: !!preset.skipDefault }
       };
       function gridOn(w, h) { return (st.grid.w === w && st.grid.h === h) ? ' on' : ''; }
@@ -143,8 +143,12 @@
         var allyRows = st.allies.map(function (r, i) { return unitRow('ally', i, r, st.allies.length > 1); }).join('');
         var foeRows = st.foes.map(function (r, i) { return unitRow('foe', i, r, st.foes.length > 1); }).join('');
         var sc = document.createElement('div'); sc.className = 'bf-setup-scroll';
+        var autoOn = true; try { autoOn = (localStorage.getItem('bf-setup-always') || '1') === '1'; } catch (e) {}
+        var mapBtns = Object.keys(LF.BF_MAPS || {}).map(function (k) { var m = LF.BF_MAPS[k];
+          return '<button type="button" class="bf-map' + (st.map === k ? ' on' : '') + '" data-map="' + k + '"><b>' + esc(m.name) + '</b><i>' + esc(m.desc) + '</i></button>'; }).join('');
         sc.innerHTML =
           '<div class="bf-setup-head">战前部署 · ' + esc(st.title) + '</div>' +
+          '<div class="bf-ssec"><div class="bf-ssec-t">战场地图</div><div class="bf-maps">' + mapBtns + '</div></div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">战场大小</div>' +
           '<div class="bf-spresets">' +
           '<button type="button" class="bf-gp' + gridOn(8, 6) + '" data-w="8" data-h="6">小 (8×6)</button>' +
@@ -162,7 +166,8 @@
           '<label class="bf-dbg-row"><input type="checkbox" class="bf-dbg" data-k="enemyIdle"' + (st.dbg.enemyIdle ? ' checked' : '') + '/> 敌军不行动</label>' +
           '<label class="bf-dbg-row"><input type="checkbox" class="bf-dbg" data-k="skipDefault"' + (st.dbg.skipDefault ? ' checked' : '') + '/> 默认跳帧加速</label>' +
           '<label class="bf-dbg-row">固定随机种子 <input type="number" class="bf-dbg" data-k="seed" value="' + (st.dbg.seed || '') + '" placeholder="留空=随机"/></label>' +
-          '<label class="bf-dbg-row">回合上限 <input type="number" class="bf-dbg" data-k="maxRounds" value="' + st.maxRounds + '"/></label></div>' +
+          '<label class="bf-dbg-row">回合上限 <input type="number" class="bf-dbg" data-k="maxRounds" value="' + st.maxRounds + '"/></label>' +
+          '<label class="bf-dbg-row"><input type="checkbox" id="bf-always"' + (autoOn ? ' checked' : '') + '/> 每次开战前先显示此部署界面</label></div>' +
           '<div class="bf-setup-actions"><button type="button" class="btn bf-main" id="bf-go">开始战斗</button>' +
           '<button type="button" class="btn" id="bf-cancel">取消</button></div>';
         div.innerHTML = ''; div.appendChild(sc); attachSetup(sc);
@@ -176,6 +181,7 @@
           } else if (t.classList.contains('bf-gp')) { st.grid.w = +t.getAttribute('data-w'); st.grid.h = +t.getAttribute('data-h'); var gw = document.getElementById('bf-gw'), gh = document.getElementById('bf-gh'); if (gw) gw.value = st.grid.w; if (gh) gh.value = st.grid.h; }
           else if (t.id === 'bf-gw') st.grid.w = bfClamp(t.value, 6, 40);
           else if (t.id === 'bf-gh') st.grid.h = bfClamp(t.value, 6, 40);
+          else if (t.id === 'bf-always') { try { localStorage.setItem('bf-setup-always', t.checked ? '1' : '0'); } catch (e) {} }
           else if (t.classList.contains('bf-dbg')) { st.dbg[t.getAttribute('data-k')] = (t.type === 'checkbox') ? t.checked : (+t.value || 0); }
         });
         sc.addEventListener('input', function (e) {
@@ -188,25 +194,33 @@
         sc.addEventListener('click', function (e) {
           var t = e.target;
           if (t.classList.contains('bf-gp')) { st.grid.w = +t.getAttribute('data-w'); st.grid.h = +t.getAttribute('data-h'); var gw = document.getElementById('bf-gw'), gh = document.getElementById('bf-gh'); if (gw) gw.value = st.grid.w; if (gh) gh.value = st.grid.h; renderSetup(); }
+          else if (t.closest && t.closest('.bf-map')) { st.map = t.closest('.bf-map').getAttribute('data-map'); renderSetup(); }
           else if (t.classList.contains('bf-s-del')) { var row = t.closest('.bf-srow'); var arr = st[row.getAttribute('data-side') === 'ally' ? 'allies' : 'foes']; arr.splice(+row.getAttribute('data-i'), 1); renderSetup(); }
           else if (t.classList.contains('bf-add-ally')) { st.allies.push({ type: 'changqiang', rank: 'front', count: 120 }); renderSetup(); }
           else if (t.classList.contains('bf-add-foe')) { st.foes.push({ type: 'qibing', rank: 'flank', count: 120 }); renderSetup(); }
           else if (t.id === 'bf-go') doStart();
-          else if (t.id === 'bf-cancel') hideSetup();
+          else if (t.id === 'bf-cancel') { hideSetup(); if (preset.allies && preset.allies.length) beginBattle(preset); }
         });
       }
       function doStart() {
-        var allies = st.allies.map(function (r) { return bfBuildUnit(r.type, r.rank, r.count); }).filter(Boolean);
-        var foes = st.foes.map(function (r) { return bfBuildUnit(r.type, r.rank, r.count); }).filter(Boolean);
+        function build(r) {
+          var u = r._src;
+          if (u && (u.troopType || inferType(u.name)) === r.type && (u.rank || 'front') === r.rank && (u.count || 100) === r.count) return u;
+          return bfBuildUnit(r.type, r.rank, r.count);
+        }
+        var allies = st.allies.map(build).filter(Boolean);
+        var foes = st.foes.map(build).filter(Boolean);
         if (!allies.length || !foes.length) { toast && toast('双方至少各需一营。'); return; }
         var cfg = {
-          kind: st.kind, grid: { w: bfClamp(st.grid.w, 6, 40), h: bfClamp(st.grid.h, 6, 40) },
+          kind: st.map === 'siege' ? 'siege' : st.kind, map: st.map,
+          grid: { w: bfClamp(st.grid.w, 6, 40), h: bfClamp(st.grid.h, 6, 40) },
           allies: allies, foes: foes, title: st.title, maxRounds: bfClamp(st.maxRounds, 1, 200),
           invincible: !!st.dbg.invincible, showAllThreat: !!st.dbg.showAllThreat, enemyIdle: !!st.dbg.enemyIdle,
           seed: st.dbg.seed ? bfClamp(st.dbg.seed, 1, 1e9) : null,
           speedDefault: st.dbg.skipDefault ? 3 : (st.dbg.speedDefault || 1), skipDefault: !!st.dbg.skipDefault,
           _setupDone: true, onEnd: preset.onEnd || function () {}
         };
+        for (var pk in preset) { if (!(pk in cfg) && pk !== 'allies' && pk !== 'foes' && pk !== 'grid' && pk !== 'setup') cfg[pk] = preset[pk]; }
         hideSetup(); beginBattle(cfg);
       }
       renderSetup();
@@ -257,6 +271,10 @@
     // ════════ 启动 ════════
     function start(cfg) {
       if (cfg && cfg.setup && !cfg._setupDone) { openSetup(cfg); return; }
+      if (cfg && !cfg._setupDone && cfg.autoSetup !== false) {
+        var always = '1'; try { always = localStorage.getItem('bf-setup-always') || '1'; } catch (e) {}
+        if (always === '1') { openSetup(cfg); return; }
+      }
       return beginBattle(cfg);
     }
     function beginBattle(cfg) {
@@ -269,7 +287,7 @@
       allies.forEach(function (u, i) { if (sp.ally[i]) { u.x = sp.ally[i].x; u.y = sp.ally[i].y; } });
       foes.forEach(function (u, i) { if (sp.foe[i]) { u.x = sp.foe[i].x; u.y = sp.foe[i].y; } });
       board = {
-        w: w, h: h, terrain: LF.BF_GEN_TERRAIN(w, h, cfg.kind === 'siege' ? 'siege' : 'field'), units: allies.concat(foes),
+        w: w, h: h, terrain: LF.BF_GEN_TERRAIN(w, h, cfg.kind === 'siege' ? 'siege' : 'field', cfg.map), map: cfg.map || 'plain', units: allies.concat(foes),
         round: 1, phase: 'ally', sel: null, mode: null, reach: [], attack: [], over: false, result: null, _history: [],
         speed: 1, skip: false, threat: null,
         cfg: cfg, title: cfg.title || '会战', reinforce: cfg.reinforce || null, reinforceDone: false,
