@@ -20,6 +20,9 @@
 
     // 节奏：动画/延时按速度分档；跳帧(skip)时归零
     function D(ms) { if (!board) return ms; var s = board.speed || 1; return board.skip ? 0 : Math.max(0, Math.round(ms / s)); }
+    // 演出倍率：只放大「看得到」的动画时长，不影响点击/菜单/长按等交互计时；一处可调
+    var FX_SCALE = 1.7;
+    function F(ms) { return D(Math.round(ms * FX_SCALE)); }
     var CSX = 48, CSY = 48;
   var panX = 0, panY = 0; // 全局平移偏移（拖拽 + 相机跟随共用）
   var MARGIN = 0; // 边缘非可达留白圈数（渲染格坐标偏移共用）
@@ -437,11 +440,11 @@
       }
       pushHistory(a);
       if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
-      else { playSfx(weaponSfx(a.troopType)); buzz(r.crit ? 45 : 22); shakeGrid(r.crit, d.x - a.x, d.y - a.y); effectLayer('bf-hit-flash', 300); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
+      else { playSfx(weaponSfx(a.troopType)); buzz(r.crit ? 45 : 22); shakeGrid(r.crit, d.x - a.x, d.y - a.y); effectLayer('bf-hit-flash', F(300)); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
       if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
-      if (d.hp <= 0) effectLayer('bf-rout-smoke', 1200);
+      if (d.hp <= 0) effectLayer('bf-rout-smoke', F(1200));
       board.sel = null; board.mode = null; board.reach = []; board.attack = [];
       render();
       // 飘字/爆裂必须放在 render 之后：render 会重建 #bf-grid 的 innerHTML，否则刚挂的飘字被冲掉
@@ -537,8 +540,8 @@
           if (counter.miss) counter = null; else applyDamage(u, counter.dmg, bestTgt);
         }
         if (r.miss) log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
-        else { playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit, bestTgt.x - u.x, bestTgt.y - u.y); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', 300); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
-        if (bestTgt.hp <= 0) effectLayer('bf-rout-smoke', 1200);
+        else { playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit, bestTgt.x - u.x, bestTgt.y - u.y); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', F(300)); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
+        if (bestTgt.hp <= 0) effectLayer('bf-rout-smoke', F(1200));
         u.acted = true;
         info = { a: u, d: bestTgt, r: r, counter: counter };
       }
@@ -684,7 +687,7 @@
       cell.style.transform = 'translate(' + dx0 + 'px,' + dy0 + 'px)';
       cell.classList.add('bf-march');
       cell.offsetWidth; // force reflow
-      var stepMs = D(150);
+      var stepMs = F(150);
       cell.style.transition = 'transform ' + stepMs + 'ms linear';
       var i = 1;
       (function next() {
@@ -692,7 +695,7 @@
           cell.style.transition = 'none';
           cell.style.transform = 'translate(0,0)';
           cell.classList.remove('bf-march');
-          setTimeout(function () { clearTrail(); done && done(); }, D(70));
+          setTimeout(function () { clearTrail(); done && done(); }, F(70));
           return;
         }
         var p = path[i];
@@ -710,6 +713,9 @@
       var a = info.a, d = info.d, cs = cellSize(), csX = CSX, csY = CSY;
       var ca = grid.querySelector('[data-uid="' + a.id + '"]'), cd = grid.querySelector('[data-uid="' + d.id + '"]');
       var ua = ca && ca.querySelector('.bf-unit'), ud = cd && cd.querySelector('.bf-unit');
+      // 攻击全程给目标格加锁定脉冲，让视线先跟上「谁在挨打」
+      if (cd) cd.classList.add('bf-locked');
+      function finishAttack() { if (cd) cd.classList.remove('bf-locked'); done && done(); }
       // 命中统一落点：闪光 + 方向震屏 + 火花 + 击退(内含 hit-stop 定格) + 分层音效
       function landing() {
         var crit = info.r && info.r.crit, hs = 0;
@@ -726,9 +732,9 @@
         var hs = landing();
         setTimeout(function () {
           if (ud) ud.classList.remove('bf-hit');
-          if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); }
-          else done && done();
-        }, D(150) + hs);
+          if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, F(130)); }
+          else finishAttack();
+        }, F(150) + hs);
       }
       // 远程（射程≥2）：箭矢抛物线飞行 + 弹道淡线，命中后再结算
       if (a.range >= 2 && ua && ud) {
@@ -751,24 +757,24 @@
           { transform: 'translate(0,0) rotate(' + rot + 'deg)', offset: 0 },
           { transform: 'translate(' + (midX - ax) + 'px,' + (midY - ay) + 'px) rotate(' + rot + 'deg)', offset: 0.5 },
           { transform: 'translate(' + (dx - ax) + 'px,' + (dy - ay) + 'px) rotate(' + rot + 'deg)', offset: 1 }
-        ], { duration: 260, easing: 'ease-out', fill: 'forwards' });
-        setTimeout(function () { if (path.parentNode) path.parentNode.removeChild(path); }, 420);
+        ], { duration: F(260), easing: 'ease-out', fill: 'forwards' });
+        setTimeout(function () { if (path.parentNode) path.parentNode.removeChild(path); }, F(420));
         anim.onfinish = function () { if (arrow.parentNode) arrow.parentNode.removeChild(arrow); hitAndCounter(); };
         return;
       }
       // 近战：突刺
       if (!ua || !ud) { hitAndCounter(); return; }
       var ddx = d.x - a.x, ddy = d.y - a.y, len = Math.hypot(ddx, ddy) || 1, lx = ddx / len, ly = ddy / len, lp = 0.42 * Math.min(csX, csY);
-      ua.style.transition = 'transform .14s ease-out';
+      ua.style.transition = 'transform ' + (F(140) / 1000) + 's ease-out';
       ua.style.transform = 'translate(' + (lx * lp) + 'px,' + (ly * lp) + 'px)';
       setTimeout(function () {
         var hs = landing();
         setTimeout(function () {
-          ua.style.transition = 'transform .16s ease-in';
+          ua.style.transition = 'transform ' + (F(160) / 1000) + 's ease-in';
           ua.style.transform = 'translate(0,0)';
-          setTimeout(function () { ud.classList.remove('bf-hit'); if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, D(130)); } else done && done(); }, D(170));
-        }, D(150) + hs);
-      }, D(150));
+          setTimeout(function () { ud.classList.remove('bf-hit'); if (info.counter) { setTimeout(function () { animateAttack({ a: d, d: a, r: info.counter, counter: null }, done); }, F(130)); } else finishAttack(); }, F(170));
+        }, F(150) + hs);
+      }, F(150));
     }
     // 方向性击退抖动：受击方沿「攻击者→防守者」方向被撞退，回弹中带垂直高频抖动；暴击更重，闪避不击退
     function knockback(el, a, d, crit, miss) {
@@ -785,7 +791,7 @@
       var amp = Math.min(cs * 0.55, cs * (crit ? 0.34 : 0.20) * wUnit * wTerr), sh = amp * 0.24;
       function T(k, s) { return 'translate(' + (nx * amp * k + px * sh * s).toFixed(1) + 'px,' + (ny * amp * k + py * sh * s).toFixed(1) + 'px)'; }
       // hit-stop：撞到最远点后定格 hs 毫秒再回弹（无需全局冻结计时器）
-      var base = D(crit ? 420 : 330), hs = D(crit ? 105 : 55), total = base + hs;
+      var base = F(crit ? 420 : 330), hs = D(crit ? 105 : 55), total = base + hs;
       var frames = [
         [0, 0, 0], [0.16 * base, 1, 0], [0.16 * base + hs, 1, 0],
         [0.30 * base + hs, 0.62, 1], [0.46 * base + hs, 0.34, -1],
@@ -983,7 +989,7 @@
         return;
       }
       board._retreatAsk = false;
-      effectLayer('bf-rout-smoke', 1200);
+      effectLayer('bf-rout-smoke', F(1200));
       endBattle('fled');
     }
 
@@ -1103,6 +1109,9 @@
     }
     function render() {
       if (!board) return;
+      // CSS 侧演出时长同步倍率（粒子/飘字/弹道）；跳帧时压到极短
+      var fxRoot = document.getElementById('bf-root');
+      if (fxRoot) fxRoot.style.setProperty('--bf-fx', (board.skip ? 0.15 : FX_SCALE / (board.speed || 1)).toFixed(2));
       var grid = document.getElementById('bf-grid');
       if (!grid) return;
       var cs = cellSize(), csX = CSX, csY = CSY;
@@ -1233,7 +1242,8 @@
         var speed = board.speed || 1, skip = !!board.skip;
         var rest = sideUnits('ally').filter(function (u) { return !u.acted; }).length;
         bar.innerHTML =
-          '<select class="bf-speed-select" id="bf-speed-select" onchange="window.bfSpeed(parseInt(this.value))">' +
+          '<select class="bf-speed-select" id="bf-speed-select" onchange="window.bfSpeed(parseFloat(this.value))">' +
+          '<option value="0.5"' + (speed === 0.5 ? ' selected' : '') + '>0.5×</option>' +
           '<option value="1"' + (speed === 1 ? ' selected' : '') + '>1×</option>' +
           '<option value="2"' + (speed === 2 ? ' selected' : '') + '>2×</option>' +
           '<option value="3"' + (speed === 3 ? ' selected' : '') + '>3×</option>' +
@@ -1621,8 +1631,8 @@
       grid.appendChild(puff);
       routScatter(x, y);
       shakeGrid(3, 0, 1); buzz([30, 40, 60]);
-      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 700);
-      setTimeout(function () { if (puff.parentNode) puff.parentNode.removeChild(puff); }, 700);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, F(700));
+      setTimeout(function () { if (puff.parentNode) puff.parentNode.removeChild(puff); }, F(700));
     }
     // 命中火花/碎屑：受击瞬间在防守方格子四散飞溅的小粒子（暴击更多更亮）
     function hitSpark(x, y, crit) {
@@ -1639,7 +1649,7 @@
         p.style.setProperty('--dx', (Math.cos(ang) * d) + 'px');
         p.style.setProperty('--dy', (Math.sin(ang) * d) + 'px');
         grid.appendChild(p);
-        (function (pp) { setTimeout(function () { if (pp.parentNode) pp.parentNode.removeChild(pp); }, 480); })(p);
+        (function (pp) { setTimeout(function () { if (pp.parentNode) pp.parentNode.removeChild(pp); }, F(480)); })(p);
       }
     }
     // 溃散残兵四散：破营/溃散时几名残兵向四周逃散的小碎片
@@ -1656,7 +1666,7 @@
         p.style.setProperty('--dx', (Math.cos(ang) * d) + 'px');
         p.style.setProperty('--dy', (Math.sin(ang) * d) + 'px');
         grid.appendChild(p);
-        (function (pp) { setTimeout(function () { if (pp.parentNode) pp.parentNode.removeChild(pp); }, 620); })(p);
+        (function (pp) { setTimeout(function () { if (pp.parentNode) pp.parentNode.removeChild(pp); }, F(620)); })(p);
       }
     }
     // 战场对话提示条（溃散/破营等）：顶部堆叠，自动淡入淡出
@@ -1667,8 +1677,8 @@
       el.textContent = text;
       host.appendChild(el);
       setTimeout(function () { el.classList.add('show'); }, 20);
-      setTimeout(function () { el.classList.remove('show'); }, 1700);
-      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 2150);
+      setTimeout(function () { el.classList.remove('show'); }, F(1400));
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, F(1800));
     }
     // 兵种 → 音效：弓弩破空 / 攻城轰鸣 / 其余金铁交击
     function weaponSfx(type) { return type === 'gongnu' ? 'arrow' : type === 'gongcheng' ? 'siege' : 'attack'; }
