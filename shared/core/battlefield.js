@@ -725,6 +725,11 @@
         var crit = info.r && info.r.crit, hs = 0;
         if (ud) {
           ud.classList.add('bf-hit');
+          // 折兵时让格上兵力药丸脉冲一下，把「少了多少兵」也落到棋子本身
+          if (info.r && info.r.lost) {
+            var cnt = ud.querySelector('.bf-u-cnt');
+            if (cnt) { cnt.classList.remove('bf-cnt-drop'); void cnt.offsetWidth; cnt.classList.add('bf-cnt-drop'); }
+          }
           shakeGrid(crit ? 2 : 1, d.x - a.x, d.y - a.y);
           hitSpark(d.x, d.y, crit);
           hs = knockback(ud, a, d, crit, info.r && info.r.miss) || 0;
@@ -1625,17 +1630,21 @@
       el.style.left = ((x + MARGIN) * csX + csX / 2) + 'px';
       el.style.top = ((y + MARGIN) * csY + csY / 2 - (off || 0)) + 'px';
       grid.appendChild(el);
-      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 850);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, F(850));
     }
     // 一次攻击的飘字汇总（主伤 + 克制/被克 + 反击），与动画解耦，跳帧(skip)模式也必出
     function floatHit(d, r, counter) {
       if (!r) return;
       if (r.miss) { floatText(d.x, d.y, '闪避', 'label-dodge', 0); return; }
-      floatText(d.x, d.y, '-' + r.dmg, r.crit ? 'label-crit' : 'dmg', 0);
-      if (r.lost) floatText(d.x, d.y, '兵 -' + r.lost, 'label-casualty', 20);
-      if (r.counter > 1) floatText(d.x, d.y, '克制', 'label-counter', 42);
-      else if (r.counter < 1) floatText(d.x, d.y, '被克', 'label-countered', 42);
-      if (counter) floatText(d.x, d.y, '反击-' + counter.dmg, 'label-counter', 64);
+      // 主次反转：兵力损失是主视觉（大而醒目），战力伤害退为次要小标
+      var lost = r.lost || 0;
+      // 折兵为 0 时明确写「未折兵」，避免「兵 -0」被误读成没打中
+      if (lost > 0) floatText(d.x, d.y, '兵 -' + lost, 'label-casualty' + (r.crit ? ' crit' : ''), 16);
+      else floatText(d.x, d.y, '未折兵', 'label-casualty zero', 16);
+      floatText(d.x, d.y, '伤 ' + r.dmg, 'label-dmg-sub', -16);
+      if (r.counter > 1) floatText(d.x, d.y, '克制', 'label-counter', -40);
+      else if (r.counter < 1) floatText(d.x, d.y, '被克', 'label-countered', -40);
+      if (counter) floatText(d.x, d.y, '反击-' + counter.dmg, 'label-counter', -64);
     }
     // 击溃爆裂：在格子处放一圈扩散环（单位随即从棋盘移除，用此补"阵亡"打击感）
     function routBurst(x, y) {
