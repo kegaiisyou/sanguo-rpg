@@ -4706,6 +4706,35 @@
 .bf-arrow::after{ content:''; position:absolute; right:-2px; top:-3px; border-left:8px solid #7a5326; border-top:4px solid transparent; border-bottom:4px solid transparent; }
 .bf-arrow-path{ position:absolute; height:0; border-top:2px dashed rgba(120,83,38,.55); transform-origin:0 50%; z-index:17; pointer-events:none; animation:bfArrowPath calc(.42s * var(--bf-fx,1)) ease-out forwards; }
 @keyframes bfArrowPath{ 0%{ opacity:.9; } 100%{ opacity:0; } }
+/* 箭群 / 攻城重弹 */
+.bf-arrow-volley{ height:2px; }
+.bf-arrow-siege{ width:10px; height:10px; border-radius:50%; background:radial-gradient(circle,#7a5a2e,#2a1c0c); box-shadow:0 0 6px rgba(0,0,0,.75); transform-origin:50% 50%; }
+.bf-arrow-siege::after{ display:none; }
+/* 兵种专属打击特效：枪影 / 刀光 / 骑冲残影 / 器械砸击 */
+.bf-strike{ position:absolute; pointer-events:none; z-index:19; }
+.bf-strike.crit{ filter:drop-shadow(0 0 6px rgba(255,190,90,.9)); }
+.bf-strike-spear{ width:var(--bf-len,40px); height:3px; margin-top:-2px; transform-origin:0 50%;
+  transform:rotate(var(--bf-rot,0deg)); border-radius:2px;
+  background:linear-gradient(90deg, rgba(255,246,214,0), rgba(255,246,214,.55) 55%, #fffbe8 92%, #fff 100%);
+  box-shadow:0 0 6px rgba(255,230,160,.7); animation:bfStrike calc(.36s * var(--bf-fx,1)) ease-out forwards; }
+.bf-strike-blade{ width:var(--bf-len,40px); height:var(--bf-len,40px);
+  transform:translate(-50%,-50%) rotate(var(--bf-rot,0deg));
+  border:3px solid rgba(255,248,220,.9); border-color:rgba(255,248,220,.9) transparent transparent transparent;
+  border-radius:50%; box-shadow:0 0 8px rgba(255,220,150,.5);
+  animation:bfBlade calc(.42s * var(--bf-fx,1)) ease-out forwards; }
+.bf-strike-charge{ width:var(--bf-len,40px); height:calc(var(--bf-cs,30px) * .42);
+  transform-origin:0 50%; transform:translate(0,-50%) rotate(var(--bf-rot,0deg));
+  background:linear-gradient(90deg, rgba(120,90,50,0), rgba(200,170,110,.35) 60%, rgba(255,240,200,.7));
+  border-radius:999px; filter:blur(2px); animation:bfStrike calc(.4s * var(--bf-fx,1)) ease-out forwards; }
+.bf-strike-siege{ width:calc(var(--bf-cs,30px) * 1.5); height:calc(var(--bf-cs,30px) * 1.5);
+  margin:calc(var(--bf-cs,30px) * -.75) 0 0 calc(var(--bf-cs,30px) * -.75);
+  border:3px solid rgba(220,160,90,.9); border-radius:50%;
+  animation:bfSiege calc(.5s * var(--bf-fx,1)) ease-out forwards; }
+@keyframes bfStrike{ 0%{opacity:0;} 22%{opacity:1;} 100%{opacity:0;} }
+@keyframes bfBlade{ 0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--bf-rot,0deg)) scale(.55);}
+  30%{opacity:1;} 100%{opacity:0;transform:translate(-50%,-50%) rotate(calc(var(--bf-rot,0deg) + 60deg)) scale(1.15);} }
+@keyframes bfSiege{ 0%{opacity:.95;transform:scale(.3);} 100%{opacity:0;transform:scale(1.7);} }
+
 /* 战场对话提示条（溃散/破营等） */
 .bf-banners{ position:absolute; left:0; right:0; top:8%; display:flex; flex-direction:column; align-items:center; gap:6px; pointer-events:none; z-index:46; padding:0 10px; }
 .bf-banner{ max-width:90%; background:linear-gradient(180deg, rgba(40,28,16,.94), rgba(28,19,11,.96)); color:#f3e7d2; border:1px solid var(--bf-gold); border-radius:12px; padding:7px 14px; font-size:15px; font-weight:700; letter-spacing:.5px; box-shadow:0 4px 16px rgba(0,0,0,.4); opacity:0; transform:translateY(-10px) scale(.96); transition:opacity .25s ease, transform .25s ease; text-align:center; }

@@ -708,6 +708,66 @@
         setTimeout(next, stepMs);
       })();
     }
+    // 格心坐标统一入口：棋盘/特效层共用一套 (x+MARGIN)*cs + cs/2，杜绝各写一份产生偏差
+    function cellCenter(x, y) { return { x: (x + MARGIN) * CSX + CSX / 2, y: (y + MARGIN) * CSY + CSY / 2 }; }
+    // 箭群抛物线：从攻击者格心成束抛射到受击者格心，箭体朝向随抛物线切线变化（参考三国志系列齐射）
+    function volley(host, a, d, onDone) {
+      var from = cellCenter(a.x, a.y), to = cellCenter(d.x, d.y);
+      var dx = to.x - from.x, dy = to.y - from.y;
+      var dist = Math.hypot(dx, dy) || 1;
+      var siege = a.troopType === 'gongcheng' || a.slot === '械';
+      var n = siege ? 1 : (a.troopType === 'gongnu' ? 5 : 3);
+      var arc = Math.min(46, 16 + dist * 0.22);
+      var finished = false, left = n;
+      function oneDone() { left--; if (left <= 0 && !finished) { finished = true; onDone && onDone(); } }
+      function finishAll() { if (!finished) { finished = true; onDone && onDone(); } }
+      var gap = F(38), dur = F(300);
+      for (var i = 0; i < n; i++) (function (i) {
+        var spread = i - (n - 1) / 2;
+        var ex = dx + spread * (siege ? 0 : 3), ey = dy + spread * (siege ? 0 : 2);
+        var el = document.createElement('div');
+        el.className = 'bf-arrow' + (siege ? ' bf-arrow-siege' : ' bf-arrow-volley');
+        el.style.left = from.x + 'px'; el.style.top = from.y + 'px';
+        host.appendChild(el);
+        // 抛物线 y(t) = ey*t - 4*arc*t*(1-t)：导数在 0/0.5/1 处为 ey-4arc / ey / ey+4arc
+        var a0 = Math.atan2(ey - 4 * arc, ex) * 180 / Math.PI;
+        var am = Math.atan2(ey, ex) * 180 / Math.PI;
+        var a1 = Math.atan2(ey + 4 * arc, ex) * 180 / Math.PI;
+        var mx = ex / 2, my = ey / 2 - arc - Math.abs(spread) * 2;
+        var frames = [
+          { transform: 'translate(0px,0px) rotate(' + a0 + 'deg)', offset: 0 },
+          { transform: 'translate(' + mx + 'px,' + my + 'px) rotate(' + am + 'deg)', offset: 0.5 },
+          { transform: 'translate(' + ex + 'px,' + ey + 'px) rotate(' + a1 + 'deg)', offset: 1 }
+        ];
+        var delay = i * gap, once = false;
+        function cleanup() {
+          if (once) return; once = true;
+          if (el.parentNode) el.parentNode.removeChild(el);
+          oneDone();
+        }
+        if (el.animate) {
+          var anim = el.animate(frames, { duration: dur, delay: delay, easing: 'ease-out', fill: 'forwards' });
+          anim.onfinish = cleanup; anim.oncancel = cleanup;
+        }
+        // 兜底：WAAPI 不可用 / 元素被 render 冲掉 / 动画未触发 finish，照样清理并收尾
+        setTimeout(cleanup, delay + dur + F(60));
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, delay + dur + F(160));
+      })(i);
+      setTimeout(finishAll, (n - 1) * gap + dur + F(180));
+    }
+    // 近战兵种专属打击效果：枪影 / 刀光 / 骑冲残影 / 器械砸击
+    function strikeFx(host, a, d, crit) {
+      var from = cellCenter(a.x, a.y), to = cellCenter(d.x, d.y);
+      var kind = ({ changqiang: 'spear', daodun: 'blade', qibing: 'charge', gongcheng: 'siege' })[a.troopType] || 'blade';
+      var anchor = (kind === 'blade' || kind === 'siege') ? to : from;
+      var el = document.createElement('div');
+      el.className = 'bf-strike bf-strike-' + kind + (crit ? ' crit' : '');
+      el.style.left = anchor.x + 'px'; el.style.top = anchor.y + 'px';
+      el.style.setProperty('--bf-rot', (Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI) + 'deg');
+      el.style.setProperty('--bf-len', Math.max(CSX, Math.hypot(to.x - from.x, to.y - from.y)) + 'px');
+      host.appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, F(640));
+    }
     // 攻击动画：攻击者前冲 -> 命中闪光 + 震屏 -> 退回；反击作为第二拍；跳帧时直接结算
     function animateAttack(info, done) {
       var fgrid = document.getElementById('bf-floats') || document.getElementById('bf-grid');
@@ -745,38 +805,15 @@
           else finishAttack();
         }, F(150) + hs);
       }
-      // 远程（射程≥2）：箭矢抛物线飞行 + 弹道淡线，命中后再结算
-      if (a.range >= 2 && ua && ud) {
-        var ax = (a.x + MARGIN) * csX + csX / 2, ay = (a.y + MARGIN) * csY + csY / 2;
-        var dx = (d.x + MARGIN) * csX + csX / 2, dy = (d.y + MARGIN) * csY + csY / 2;
-        var rot = Math.atan2(dy - ay, dx - ax) * 180 / Math.PI;
-        var dist = Math.hypot(dx - ax, dy - ay);
-        var path = document.createElement('div');
-        path.className = 'bf-arrow-path';
-        path.style.left = ax + 'px'; path.style.top = ay + 'px';
-        path.style.width = dist + 'px'; path.style.transform = 'rotate(' + rot + 'deg)';
-        fgrid.appendChild(path);
-        var arrow = document.createElement('div');
-        arrow.className = 'bf-arrow';
-        arrow.style.left = ax + 'px'; arrow.style.top = ay + 'px';
-        arrow.style.transform = 'rotate(' + rot + 'deg)';
-        fgrid.appendChild(arrow);
-        var midX = (ax + dx) / 2, midY = (ay + dy) / 2 - Math.min(24, dist * 0.2);
-        var anim = arrow.animate([
-          { transform: 'translate(0,0) rotate(' + rot + 'deg)', offset: 0 },
-          { transform: 'translate(' + (midX - ax) + 'px,' + (midY - ay) + 'px) rotate(' + rot + 'deg)', offset: 0.5 },
-          { transform: 'translate(' + (dx - ax) + 'px,' + (dy - ay) + 'px) rotate(' + rot + 'deg)', offset: 1 }
-        ], { duration: F(260), easing: 'ease-out', fill: 'forwards' });
-        setTimeout(function () { if (path.parentNode) path.parentNode.removeChild(path); }, F(420));
-        anim.onfinish = function () { if (arrow.parentNode) arrow.parentNode.removeChild(arrow); hitAndCounter(); };
-        return;
-      }
+      // 远程（射程≥2）：从攻击者格心成束抛射到受击者格心，落点命中后再结算
+      if (a.range >= 2 && ua && ud) { volley(fgrid, a, d, hitAndCounter); return; }
       // 近战：突刺
       if (!ua || !ud) { hitAndCounter(); return; }
       var ddx = d.x - a.x, ddy = d.y - a.y, len = Math.hypot(ddx, ddy) || 1, lx = ddx / len, ly = ddy / len, lp = 0.42 * Math.min(csX, csY);
       ua.style.transition = 'transform ' + (F(140) / 1000) + 's ease-out';
       ua.style.transform = 'translate(' + (lx * lp) + 'px,' + (ly * lp) + 'px)';
       setTimeout(function () {
+        strikeFx(fgrid, a, d, info.r && info.r.crit);
         var hs = landing();
         setTimeout(function () {
           ua.style.transition = 'transform ' + (F(160) / 1000) + 's ease-in';
@@ -1114,7 +1151,7 @@
       grid.style.transformOrigin = '50% 50%';
       var _tf2 = 'translate(' + panX + 'px,' + panY + 'px) scale(' + z + ')';
       grid.style.transform = _tf2;
-      var _fl2 = document.getElementById('bf-floats'); if (_fl2) _fl2.style.transform = _tf2;
+      var _fl2 = document.getElementById('bf-floats'); if (_fl2) { _fl2.style.transformOrigin = '50% 50%'; _fl2.style.transform = _tf2; }
     }
     // 相机跟随：把指定格居中到视口（大棋盘平移，小棋盘保持居中）
     function focusCell(cx, cy) {
@@ -1145,6 +1182,13 @@
       grid.style.width = X[GW] + 'px';
       grid.style.height = Y[GH] + 'px';
       grid.style.setProperty('--bf-cs', Math.min(csX, csY) + 'px');
+      // 特效层必须与网格层同尺寸、同变换中心：否则缩放后箭/飘字按各自 50% 缩放，飞到棋盘外
+      var fl = document.getElementById('bf-floats');
+      if (fl) {
+        fl.style.width = X[GW] + 'px'; fl.style.height = Y[GH] + 'px';
+        fl.style.transformOrigin = '50% 50%';
+        fl.style.setProperty('--bf-cs', Math.min(csX, csY) + 'px');
+      }
       // 顶栏
       var top = document.getElementById('bf-top');
       if (top) {
