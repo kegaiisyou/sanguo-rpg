@@ -87,6 +87,10 @@
     function rng() { return (board && board._rng) ? board._rng() : Math.random(); }
     // 兵力即真实人数：hp 随战斗下降时，count 按初始比例同步折算为存活兵力，保证网格/坞/详情三处一致
     function syncCount(u) { if (u.startCount == null) u.startCount = u.count; u.count = Math.max(0, Math.round(u.startCount * (u.hp / u.maxHp))); }
+    // 「战力伤害 → 兵力损失」换算：伤害扣的是 hp(战力)，count 按 hp/maxHp 比例映射；
+    // 该比例随兵种与初始兵力变化，故所有展示伤害的地方都要同时给出折兵数。
+    function countForHp(u, hp) { return Math.max(0, Math.round((u.startCount || u.count || 0) * Math.max(0, hp) / (u.maxHp || 1))); }
+    function casualtyOf(u, dmg) { return u ? Math.max(0, (u.count || 0) - countForHp(u, (u.hp || 0) - dmg)) : 0; }
     function applyDamage(t, dmg, by) {
       if (board && board.invincible && t.side === 'ally') return;
       t.hp = Math.max(0, t.hp - dmg);
@@ -237,7 +241,7 @@
         '<div class="bf-result-sub">共 ' + sum.round + ' 回合 · 我军存活 ' + sum.survivors + '/' + sum.allyTotal + ' 营 · 敌军存活 ' + sum.foeAlive + '/' + sum.foeTotal + ' 营</div>' +
         '<table class="bf-result-tbl"><thead><tr><th>部队</th><th>兵种</th><th>余兵/上限</th><th>折损</th><th>伤害</th><th>歼敌</th></tr></thead><tbody>' + rows + '</tbody></table>' +
         '<div class="bf-result-mvp"><div class="bf-mvp-h">战功榜 · 伤害三甲</div>' + mvpRows + '</div>' +
-        '<div class="bf-result-foot">合计伤害 ' + (sum.units.reduce(function (a, u) { return a + (u.dmgDealt || 0); }, 0)) + ' · 歼敌 ' + (sum.units.reduce(function (a, u) { return a + (u.kills || 0); }, 0)) + ' 营</div>' +
+        '<div class="bf-result-foot">合计伤害 ' + (sum.units.reduce(function (a, u) { return a + (u.dmgDealt || 0); }, 0)) + ' · 歼敌 ' + (sum.units.reduce(function (a, u) { return a + (u.kills || 0); }, 0)) + ' 营 · 折兵 ' + (sum.units.reduce(function (a, u) { return a + Math.max(0, (u.startCount || 0) - Math.round(u.count || 0)); }, 0)) + '</div>' +
         '<button type="button" class="btn bf-main" onclick="window.bfCloseResult()">继续</button></div>';
       el.hidden = false;
     }
@@ -440,7 +444,7 @@
       }
       pushHistory(a);
       if (r.miss) log('〔交锋〕' + a.name + '攻' + d.name + '，被其闪过。', 'combat');
-      else { playSfx(weaponSfx(a.troopType)); buzz(r.crit ? 45 : 22); shakeGrid(r.crit, d.x - a.x, d.y - a.y); effectLayer('bf-hit-flash', F(300)); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
+      else { r.lost = casualtyOf(d, r.dmg); playSfx(weaponSfx(a.troopType)); buzz(r.crit ? 45 : 22); shakeGrid(r.crit, d.x - a.x, d.y - a.y); effectLayer('bf-hit-flash', F(300)); applyDamage(d, r.dmg, a); log('〔' + (O.name || '攻击') + '〕' + a.name + '攻' + d.name + '，伤 ' + r.dmg + '（折兵 ' + (r.lost || 0) + '）' + (r.crit ? '（暴击）' : '') + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'combat'); }
       applyOrderSideEffects(a, orderId);
       a.acted = true; a.moved = true;
       if (counter) log('〔反击〕' + d.name + '还击，伤 ' + a.name + ' ' + counter.dmg + '。', 'combat');
@@ -540,7 +544,7 @@
           if (counter.miss) counter = null; else applyDamage(u, counter.dmg, bestTgt);
         }
         if (r.miss) log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
-        else { playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit, bestTgt.x - u.x, bestTgt.y - u.y); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', F(300)); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
+        else { r.lost = casualtyOf(bestTgt, r.dmg); playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit, bestTgt.x - u.x, bestTgt.y - u.y); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', F(300)); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + '（折兵 ' + (r.lost || 0) + '）' + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
         if (bestTgt.hp <= 0) effectLayer('bf-rout-smoke', F(1200));
         u.acted = true;
         info = { a: u, d: bestTgt, r: r, counter: counter };
@@ -853,6 +857,19 @@
           g.gain.setValueAtTime(gain, st); g.gain.exponentialRampToValueAtTime(0.0001, st + dur);
           o.connect(g); g.connect(_actx.destination); o.start(st); o.stop(st + dur + 0.02);
         }
+        // 国风 UI 音：短噪声经带通滤波 = 木鱼/竹板的「嗒」，与合成器战斗音区分
+        function wood(freq, at, vol) {
+          var dur = 0.075, n = Math.ceil(_actx.sampleRate * dur);
+          var buf = _actx.createBuffer(1, n, _actx.sampleRate), data = buf.getChannelData(0);
+          for (var i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+          var src = _actx.createBufferSource(); src.buffer = buf;
+          var bp = _actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 3;
+          var g = _actx.createGain(); g.gain.setValueAtTime(vol || 0.09, at); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+          src.connect(bp); bp.connect(g); g.connect(_actx.destination); src.start(at); src.stop(at + dur);
+        }
+        if (type === 'select' || type === 'detail') { wood(1150, t, 0.075); tone(520, 0.05, 'sine', 0.018, t); return; }
+        if (type === 'confirm') { wood(780, t, 0.085); return; }
+        if (type === 'cancel') { wood(430, t, 0.07); return; }
         // 命中音分层：低频冲击 + 中频肉声 + 高频脆响，暴击再叠一层金属泛音
         if (type === 'hit') {
           tone(120, 0.12, 'sawtooth', 0.055, t);
@@ -1141,6 +1158,9 @@
           var cls = 'bf-order-chip ' + (u.side === 'ally' ? 'bf-ally' : 'bf-foe') + (board._acting === u ? ' on' : (u.acted ? ' done' : ''));
           return '<i class="' + cls + '"><i class="bf-order-ico ico-' + (u.troopType || '') + '"></i></i>';
         }).join('');
+        // 详情板/威胁预览展开时收起出手序条，避免四层 HUD 同时占屏
+        var plateOpen = !!(board.phase === 'ally' && ((board.sel && !board.sel.acted) || board.threat));
+        orderEl.classList.toggle('bf-order-hidden', plateOpen);
       }
       // 部队列表 -> FAB 抽屉按需渲染（见 refreshFabPanels / unitListHTML）
       // 战报 -> FAB 抽屉按需渲染（见 refreshFabPanels / logHTML）
@@ -1456,7 +1476,7 @@
             '<span class="bf-tag bf-tag-count">兵 ' + (u.count || 0) + '</span>' +
             '<span class="bf-tag bf-tag-mor">军心 ' + u.morale + '</span>' +
           '</div>' +
-          '<span class="bf-plate-stats">攻' + u.atk + ' · 防' + u.def + ' · 速' + u.spd + ' · 移' + u.move + ' · 射' + u.range + '</span>' +
+          '<span class="bf-plate-stats">攻' + u.atk + ' · 防' + u.def + ' · 速' + u.spd + ' · 移' + u.move + ' · 射' + u.range + ' · 1兵≈' + Math.round(u.maxHp / (u.startCount || u.count || 1)) + '战力</span>' +
           (danger ? '<span class="bf-plate-danger">溃散风险高</span>' : '') +
           '</div></div><div class="bf-plate-acts">' +
           '<button type="button" class="bf-act bf-act-pri' + (board.mode === 'move' ? ' bf-on' : '') + '" title="移动" onclick="window.bfOrder(\'move\')">移</button>' +
@@ -1612,9 +1632,10 @@
       if (!r) return;
       if (r.miss) { floatText(d.x, d.y, '闪避', 'label-dodge', 0); return; }
       floatText(d.x, d.y, '-' + r.dmg, r.crit ? 'label-crit' : 'dmg', 0);
-      if (r.counter > 1) floatText(d.x, d.y, '克制', 'label-counter', 22);
-      else if (r.counter < 1) floatText(d.x, d.y, '被克', 'label-countered', 22);
-      if (counter) floatText(d.x, d.y, '反击-' + counter.dmg, 'label-counter', 44);
+      if (r.lost) floatText(d.x, d.y, '兵 -' + r.lost, 'label-casualty', 20);
+      if (r.counter > 1) floatText(d.x, d.y, '克制', 'label-counter', 42);
+      else if (r.counter < 1) floatText(d.x, d.y, '被克', 'label-countered', 42);
+      if (counter) floatText(d.x, d.y, '反击-' + counter.dmg, 'label-counter', 64);
     }
     // 击溃爆裂：在格子处放一圈扩散环（单位随即从棋盘移除，用此补"阵亡"打击感）
     function routBurst(x, y) {
@@ -1752,7 +1773,7 @@
       var lines = '<div class="bf-pv-t">' + esc(a.name) + ' → ' + esc(tgt.name) + '</div>';
       lines += '<div class="bf-pv-r">攻 ' + a.atk + '·防 ' + a.def + ' → 敌 攻 ' + tgt.atk + '·防 ' + tgt.def + '</div>';
       if (e) {
-        lines += '<div class="bf-pv-r">预计伤 <b>' + e.dmg + '</b> · 命中 ' + e.hit + '%' +
+        lines += '<div class="bf-pv-r">预计伤 <b>' + e.dmg + '</b> · 折兵约 <b>' + casualtyOf(tgt, e.dmg) + '</b> · 命中 ' + e.hit + '%' +
           (e.counter > 1 ? ' · <span class="bf-pv-adv">克制</span>' : e.counter < 1 ? ' · <span class="bf-pv-dis">被克</span>' : '') +
           (e.adj ? ' · <span class="bf-pv-warn">将遭反击</span>' : '') + '</div>';
       }

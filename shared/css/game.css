@@ -4269,12 +4269,13 @@
 .bf-u-tag{ display:none; }
 .bf-u-ally .bf-u-tag{ color:var(--bf-ally); }
 .bf-u-foe .bf-u-tag{ color:var(--bf-foe); }
-.bf-u-hp{ position:absolute; left:3px; right:3px; bottom:2px; height:3px; border-radius:2px; background:rgba(0,0,0,.36); overflow:hidden; z-index:3; }
+.bf-u-hp{ position:absolute; left:3px; right:3px; bottom:2px; height:4px; border-radius:2px; background:rgba(0,0,0,.46); box-shadow:inset 0 0 0 1px rgba(0,0,0,.42); overflow:hidden; z-index:3; }
 .bf-u-hp>i{ display:block; height:100%; width:100%; background:linear-gradient(90deg,#5aa55a,#86d36b); }
 .bf-u-foe .bf-u-hp>i{ background:linear-gradient(90deg,#c75a47,#e08a6f); }
 /* 延迟追赶血条：底层实时值，浅色残影从旧值收缩到新值，伤害"看得见" */
-.bf-u-hp>i.bf-u-hp-ghost{ position:absolute; left:0; top:0; z-index:2; background:rgba(255,240,205,.92) !important; transition:width calc(.42s * var(--bf-fx,1)) cubic-bezier(.2,.7,.3,1) .1s; }
-.bf-u-mor{ position:absolute; left:3px; right:3px; bottom:6px; height:2px; border-radius:2px; background:rgba(0,0,0,.3); overflow:hidden; z-index:3; display:block; }
+.bf-u-hp>i.bf-u-hp-ghost{ position:absolute; left:0; top:0; z-index:2; background:rgba(255,248,225,.95) !important; box-shadow:inset 0 0 0 1px rgba(120,70,30,.55); transition:width calc(.42s * var(--bf-fx,1)) cubic-bezier(.2,.7,.3,1) .1s; }
+.bf-u-foe .bf-u-hp>i.bf-u-hp-ghost{ background:rgba(255,231,200,.96) !important; box-shadow:inset 0 0 0 1px rgba(110,40,30,.65); }
+.bf-u-mor{ position:absolute; left:3px; right:3px; bottom:7px; height:3px; border-radius:2px; background:rgba(0,0,0,.38); box-shadow:inset 0 0 0 1px rgba(0,0,0,.3); overflow:hidden; z-index:3; display:block; }
 .bf-u-mor>i{ display:block; height:100%; width:100%; background:var(--bf-gold); }
 .bf-sel-u{ box-shadow:0 0 0 2px var(--bf-gold), 0 2px 10px rgba(0,0,0,.4); z-index:3; }
 .bf-u-name{ display:none; }
@@ -4706,6 +4707,8 @@
 .bf-banner.good{ border-color:#6fae6f; color:#d6f0d6; }
 /* 溃散飘字标签 */
 .dmg-float.label-rout{ color:#c75a47; font-size:20px; border:1px solid rgba(199,90,71,.6); border-radius:6px; padding:0 4px; background:rgba(28,19,11,.5); }
+/* 折兵飘字：与战力伤害并列，金边药丸，明确「这一下折了多少兵」 */
+.dmg-float.label-casualty{ color:#ffe9b0; font-size:14px; background:rgba(28,19,11,.78); border:1px solid rgba(232,192,98,.6); border-radius:6px; padding:0 5px; text-shadow:0 1px 2px rgba(0,0,0,.85); }
 /* 破营崩坏烟尘 puff */
 .bf-rout-puff{ position:absolute; width:calc(var(--bf-cs,30px) * 1.3); height:calc(var(--bf-cs,30px) * 1.3); margin:calc(var(--bf-cs,30px) * -.65) 0 0 calc(var(--bf-cs,30px) * -.65); border-radius:50%; background:radial-gradient(circle, rgba(74,52,28,.55), rgba(74,52,28,.12) 60%, transparent 72%); pointer-events:none; z-index:18; animation:bfRoutPuff calc(.7s * var(--bf-fx,1)) ease-out forwards; }
 @keyframes bfRoutPuff{ 0%{ opacity:.9; transform:scale(.4); } 100%{ opacity:0; transform:scale(1.7); } }
@@ -4717,7 +4720,9 @@
 .bf-scatter{ position:absolute; width:5px; height:5px; margin:-3px 0 0 -3px; border-radius:1px; background:rgba(74,52,28,.85); pointer-events:none; z-index:18; animation:bfScatter calc(.62s * var(--bf-fx,1)) ease-out forwards; }
 @keyframes bfScatter{ 0%{ opacity:1; transform:translate(0,0) rotate(0); } 100%{ opacity:0; transform:translate(var(--dx),var(--dy)) rotate(160deg); } }
 /* 出手顺序条（按速度排序，当前行动者高亮） */
-.bf-order{ position:absolute; left:6px; right:6px; bottom:64px; z-index:30; display:flex; align-items:center; gap:4px; pointer-events:none; overflow:hidden; }
+.bf-order{ position:absolute; left:6px; right:6px; bottom:64px; z-index:30; display:flex; align-items:center; gap:4px; pointer-events:none; overflow:hidden; transition:opacity .2s ease, transform .2s ease; }
+/* 详情板/威胁预览展开时收起出手序条，避免四层 HUD 同时抢屏幕 */
+.bf-order-hidden{ opacity:0; transform:translateY(8px); }
 .bf-order-h{ font-size:11px; color:var(--bf-gold); font-weight:700; text-shadow:0 1px 0 rgba(255,255,255,.4); flex:0 0 auto; background:rgba(244,238,226,.85); border:1px solid var(--bf-line); border-radius:999px; padding:1px 8px; }
 .bf-order-chip{ width:18px; height:18px; border-radius:50%; border:2px solid rgba(74,62,48,.5); background:rgba(255,253,248,.9); position:relative; overflow:hidden; flex:0 0 auto; opacity:.92; }
 .bf-order-chip.bf-ally{ border-color:rgba(63,95,122,.9); }
