@@ -1638,9 +1638,9 @@
       if (r.miss) { floatText(d.x, d.y, '闪避', 'label-dodge', 0); return; }
       // 主次反转：兵力损失是主视觉（大而醒目），战力伤害退为次要小标
       var lost = r.lost || 0;
-      // 折兵为 0 时明确写「未折兵」，避免「兵 -0」被误读成没打中
-      if (lost > 0) floatText(d.x, d.y, '兵 -' + lost, 'label-casualty' + (r.crit ? ' crit' : ''), 16);
-      else floatText(d.x, d.y, '未折兵', 'label-casualty zero', 16);
+      // 统一写「兵 -N」；折兵为 0 时仅弱化样式，不抢真实折兵的视觉
+      var cls = 'label-casualty' + (lost > 0 && r.crit ? ' crit' : '') + (lost > 0 ? '' : ' zero');
+      floatText(d.x, d.y, '兵 -' + lost, cls, 16);
       floatText(d.x, d.y, '伤 ' + r.dmg, 'label-dmg-sub', -16);
       if (r.counter > 1) floatText(d.x, d.y, '克制', 'label-counter', -40);
       else if (r.counter < 1) floatText(d.x, d.y, '被克', 'label-countered', -40);

@@ -4722,7 +4722,7 @@
   box-shadow:0 3px 12px rgba(0,0,0,.5), 0 0 16px rgba(232,192,98,.28); }
 .dmg-float.label-casualty.crit{ font-size:31px; color:#fff3cf; border-color:#ffd77a;
   box-shadow:0 3px 14px rgba(0,0,0,.55), 0 0 22px rgba(255,200,90,.55); }
-/* 折兵为 0：弱化但仍占主位，明确告诉玩家「这下没折兵」 */
+/* 折兵为 0：仍显示「兵 -0」，仅弱化处理，不与真实折兵争视觉 */
 .dmg-float.label-casualty.zero{ font-size:17px; font-weight:700; color:#d9cfbb; border-color:rgba(232,192,98,.45); background:rgba(28,19,11,.78); box-shadow:0 2px 8px rgba(0,0,0,.45); text-shadow:0 1px 3px rgba(0,0,0,.9); }
 /* 战力伤害 = 次要小标：低调但仍在，供需要精细判断时参考 */
 .dmg-float.label-dmg-sub{ font-size:12px; font-weight:600; color:rgba(255,236,210,.86);
