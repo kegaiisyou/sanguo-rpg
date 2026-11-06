@@ -1640,11 +1640,11 @@
       var lost = r.lost || 0;
       // 统一写「兵 -N」；折兵为 0 时仅弱化样式，不抢真实折兵的视觉
       var cls = 'label-casualty' + (lost > 0 && r.crit ? ' crit' : '') + (lost > 0 ? '' : ' zero');
-      floatText(d.x, d.y, '兵 -' + lost, cls, 16);
-      floatText(d.x, d.y, '伤 ' + r.dmg, 'label-dmg-sub', -16);
-      if (r.counter > 1) floatText(d.x, d.y, '克制', 'label-counter', -40);
-      else if (r.counter < 1) floatText(d.x, d.y, '被克', 'label-countered', -40);
-      if (counter) floatText(d.x, d.y, '反击-' + counter.dmg, 'label-counter', -64);
+      floatText(d.x, d.y, '兵 -' + lost, cls, 12);
+      floatText(d.x, d.y, '伤 ' + r.dmg, 'label-dmg-sub', -12);
+      if (r.counter > 1) floatText(d.x, d.y, '克制', 'label-counter', -30);
+      else if (r.counter < 1) floatText(d.x, d.y, '被克', 'label-countered', -30);
+      if (counter) floatText(d.x, d.y, '反击-' + counter.dmg, 'label-counter', -48);
     }
     // 击溃爆裂：在格子处放一圈扩散环（单位随即从棋盘移除，用此补"阵亡"打击感）
     function routBurst(x, y) {
