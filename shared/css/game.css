@@ -4180,11 +4180,13 @@
 .bf-viewport{ position:absolute; top:40px; bottom:62px; left:0; right:0; overflow:hidden;
   background:transparent; z-index:5; touch-action:none; cursor:grab; }
 .bf-viewport:active{ cursor:grabbing; }
-.bf-grid{ position:absolute; left:0; top:0; will-change:transform; }
+/* 宣纸纸纹：只叠极细灰度噪点增加纸质感，刻意不调淡地形颜色、不加模糊，保住格子与单位可读性 */
+.bf-grid{ position:absolute; left:0; top:0; will-change:transform;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E"); background-size:128px 128px; }
 /* 飘字/爆裂独立图层：不被 render() 重建，且与 #bf-grid 同步 transform，平移缩放时不偏移 */
 .bf-floats{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:17; }
 /* 格子：必须保持 position:absolute（曾因被覆盖成 relative 致整屏黑屏） */
-.bf-cell{ position:absolute; box-sizing:border-box; border:1px solid var(--bf-line);
+.bf-cell{ position:absolute; box-sizing:border-box; border:1px solid rgba(120,92,52,.20);
   background:linear-gradient(180deg, rgba(255,253,248,.5), rgba(236,227,209,.35));
   box-shadow:inset 0 0 0 1px rgba(255,253,248,.22); }
 .bf-cell-ally{ background:var(--bf-ally-bg); }
@@ -4587,6 +4589,7 @@
 #modal:has(.bf-root) .bf-viewport{ top:40px !important; bottom:62px !important; }
 /* 高对比（色弱友好）模式 */
 .bf-root.bf-hc{ --bf-ally:#1f5fd0; --bf-foe:#d11f1f; --bf-gold:#111; --bf-line:#000; }
+.bf-root.bf-hc .bf-grid{ background-image:none !important; }
 .bf-root.bf-hc .bf-cell{ border:1px solid #000 !important; }
 .bf-root.bf-hc .bf-t-forest{ background:#1f7a3a !important; }
 .bf-root.bf-hc .bf-t-hill{ background:#8a6a1f !important; }
