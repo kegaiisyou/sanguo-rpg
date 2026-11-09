@@ -4791,7 +4791,8 @@
     var st = state;
     var allies = [], foes = [];
     var troops = (st && st.army && st.army.troops) || [];
-    var types = ['changqiang','daodun','gongnu','qibing'];
+    // 调试战棋默认阵容池：v20261109c 纳入新兵科，便于不开存档也能体验远射/火攻/突击
+    var types = ['changqiang','daodun','gongnu','qibing','daji','gongqi','chuangnu','huoshi','xianzhen'];
     function mku(type, rank, count){
       var t = (LF.TROOPS||{})[type]; if(!t) return null;
       return War.mkUnit(t.name, count, {hp:t.hp,atk:t.atk,def:t.def,spd:t.spd}, {troopType:type, rank:rank, morale:80});
@@ -4799,9 +4800,9 @@
     if (troops.length) {
       for (var i=0;i<troops.length;i++){ var tr=troops[i]; var u=mku(tr.type, tr.rank||'front', tr.count||100); if(u) allies.push(u); }
     } else {
-      for (var i=0;i<3;i++){ var u=mku(types[i], ['front','mid','rear'][i], 150); if(u) allies.push(u); }
+      for (var i=0;i<3;i++){ var u=mku(types[(i*3)%types.length], ['front','mid','rear'][i], 150); if(u) allies.push(u); }
     }
-    for (var j=0;j<3;j++){ var f=mku(types[(j+1)%4], ['front','mid','rear'][j], 140); if(f) foes.push(f); }
+    for (var j=0;j<3;j++){ var f=mku(types[(j*3+1)%types.length], ['front','mid','rear'][j], 140); if(f) foes.push(f); }
     Battlefield.start({
       kind: kind==='siege'?'siege':'field', scale:'field', seg: kind==='siege'?'gate':null,
       allies: allies, foes: foes, ambush:false, night:false,

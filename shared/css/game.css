@@ -4223,12 +4223,20 @@
 .bf-u-ico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-style:normal;
   font-size:calc(var(--bf-cs,30px) * .52); line-height:1; opacity:.95; pointer-events:none; z-index:1;
   border-radius:50%; background-size:cover; background-position:center; background-repeat:no-repeat; }
-/* 部队立绘（v7 豆包美术资源，v12 以 WebP 接回）：高光层叠在立绘之上 */
+/* 部队立绘：原四兵科为 AI 写实水墨 WebP；v20261109c 补齐的八兵科为同色系矢量水墨白描 SVG。
+   想换成 AI 写实图，只需生成同名 token_<key>.webp 并把下面对应一行的扩展名改掉。 */
 .bf-u-ico.ico-changqiang{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_changqiang.webp'); }
 .bf-u-ico.ico-daodun{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_daodun.webp'); }
 .bf-u-ico.ico-gongnu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_gongnu.webp'); }
 .bf-u-ico.ico-qibing{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_qibing.webp'); }
-.bf-u-ico.ico-gongcheng{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), transparent 50%), url('../../assets/battlefield/unit_gongcheng.svg'); }
+.bf-u-ico.ico-gongcheng{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_gongcheng.svg'); }
+.bf-u-ico.ico-qizhong{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_qizhong.svg'); }
+.bf-u-ico.ico-minfu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_minfu.svg'); }
+.bf-u-ico.ico-daji{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_daji.svg'); }
+.bf-u-ico.ico-gongqi{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_gongqi.svg'); }
+.bf-u-ico.ico-chuangnu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_chuangnu.svg'); }
+.bf-u-ico.ico-huoshi{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_huoshi.svg'); }
+.bf-u-ico.ico-xianzhen{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_xianzhen.svg'); }
 /* 单字兜底：正常模式已立绘，仅高对比模式回退显示兵种单字 */
 .bf-u-ico::before{ content:''; }
 /* 高对比模式必须连立绘背景一起撤掉，否则单字压在图上糊成一团，回退等于没生效 */
@@ -4238,6 +4246,13 @@
 .bf-root.bf-hc .bf-u-ico.ico-gongnu::before{ content:'弓'; }
 .bf-root.bf-hc .bf-u-ico.ico-qibing::before{ content:'骑'; }
 .bf-root.bf-hc .bf-u-ico.ico-gongcheng::before{ content:'械'; }
+.bf-root.bf-hc .bf-u-ico.ico-qizhong::before{ content:'辎'; }
+.bf-root.bf-hc .bf-u-ico.ico-minfu::before{ content:'夫'; }
+.bf-root.bf-hc .bf-u-ico.ico-daji::before{ content:'戟'; }
+.bf-root.bf-hc .bf-u-ico.ico-gongqi::before{ content:'驰'; }
+.bf-root.bf-hc .bf-u-ico.ico-chuangnu::before{ content:'弩'; }
+.bf-root.bf-hc .bf-u-ico.ico-huoshi::before{ content:'火'; }
+.bf-root.bf-hc .bf-u-ico.ico-xianzhen::before{ content:'陷'; }
 .bf-u-cnt{ position:absolute; top:1px; right:1px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .26);
   background:rgba(24,17,10,.72); color:#fff; border-radius:999px; padding:0 3px; line-height:1.25; pointer-events:none; z-index:4;
   box-shadow:0 1px 2px rgba(0,0,0,.45); }
@@ -4351,19 +4366,21 @@
   box-shadow:inset 0 0 0 1px rgba(74,62,48,.30); }
 .bf-ava-art.bf-ava-ally{ background-color:#3f5f7a; }
 .bf-ava-art.bf-ava-foe{ background-color:#9e3b2e; }
-/* 列表/操作板头像立绘：用兵种特写（token_*.webp），与棋盘棋子一致。
-   旧的 unit_*.webp 军团群像在 38px 方形里被裁成一排长枪条纹，四兵种几乎无法分辨；
-   特写为竖幅半身像，上移焦点到 18% 让武将头肩落在头像内。 */
+/* 列表/操作板头像立绘：十二兵科统一登记（旧 unit_*.webp 军团群像在 38px 里会糊成条纹，弃用）。
+   竖幅半身像上移到 18% 焦点，让头肩落在头像内。 */
 .bf-ava-art.ico-changqiang{ background-image:url('../../assets/battlefield/token_changqiang.webp'); }
 .bf-ava-art.ico-daodun{ background-image:url('../../assets/battlefield/token_daodun.webp'); }
 .bf-ava-art.ico-gongnu{ background-image:url('../../assets/battlefield/token_gongnu.webp'); }
 .bf-ava-art.ico-qibing{ background-image:url('../../assets/battlefield/token_qibing.webp'); }
-.bf-ava-art.ico-changqiang,.bf-ava-art.ico-daodun,.bf-ava-art.ico-gongnu,.bf-ava-art.ico-qibing{ background-position:center 18%; }
-.bf-ava-art.ico-gongcheng{ background-image:url('../../assets/battlefield/unit_gongcheng.svg'); }
-.bf-ava-art.ico-qizhong,.bf-ava-art.ico-minfu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.20), transparent 55%), linear-gradient(160deg,#5c4a30,#33281a); }
-.bf-ava-art.ico-qizhong::after{ content:'辎'; }
-.bf-ava-art.ico-minfu::after{ content:'夫'; }
-.bf-ava-art.ico-gongcheng::after,.bf-ava-art.ico-qizhong::after,.bf-ava-art.ico-minfu::after{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#f5ead2; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+.bf-ava-art.ico-gongcheng{ background-image:url('../../assets/battlefield/token_gongcheng.svg'); }
+.bf-ava-art.ico-qizhong{ background-image:url('../../assets/battlefield/token_qizhong.svg'); }
+.bf-ava-art.ico-minfu{ background-image:url('../../assets/battlefield/token_minfu.svg'); }
+.bf-ava-art.ico-daji{ background-image:url('../../assets/battlefield/token_daji.svg'); }
+.bf-ava-art.ico-gongqi{ background-image:url('../../assets/battlefield/token_gongqi.svg'); }
+.bf-ava-art.ico-chuangnu{ background-image:url('../../assets/battlefield/token_chuangnu.svg'); }
+.bf-ava-art.ico-huoshi{ background-image:url('../../assets/battlefield/token_huoshi.svg'); }
+.bf-ava-art.ico-xianzhen{ background-image:url('../../assets/battlefield/token_xianzhen.svg'); }
+.bf-ava-art[class*="ico-"]{ background-position:center 18%; }
 .bf-plate-info{ flex:1 1 auto; min-width:0; pointer-events:none; text-align:left; padding:2px 0; }
 .bf-plate-name{ display:block; font-weight:700; color:var(--bf-gold); font-size:15px; text-shadow:0 1px 0 rgba(255,255,255,.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bf-plate-name.bf-plate-foe{ color:var(--bf-foe); }
@@ -4697,6 +4714,9 @@
 .bf-arrow-volley{ height:2px; }
 .bf-arrow-siege{ width:10px; height:10px; border-radius:50%; background:radial-gradient(circle,#7a5a2e,#2a1c0c); box-shadow:0 0 6px rgba(0,0,0,.75); transform-origin:50% 50%; }
 .bf-arrow-siege::after{ display:none; }
+/* 火矢手：箭体带朱砂余烬，与「焚林破垒」特性呼应 */
+.bf-arrow-fire{ background:linear-gradient(90deg, rgba(168,60,36,0), #a83c24 55%, #e0953a); box-shadow:0 0 6px rgba(208,116,47,.85); }
+.bf-arrow-fire::after{ border-left-color:#e0953a; }
 /* 兵种专属打击特效：枪影 / 刀光 / 骑冲残影 / 器械砸击 */
 .bf-strike{ position:absolute; pointer-events:none; z-index:19; }
 .bf-strike.crit{ filter:drop-shadow(0 0 6px rgba(255,190,90,.9)); }
@@ -4770,7 +4790,14 @@
 .bf-order-ico.ico-daodun, .bf-mvp-ico.ico-daodun{ background-image:url('../../assets/battlefield/token_daodun.webp'); }
 .bf-order-ico.ico-gongnu, .bf-mvp-ico.ico-gongnu{ background-image:url('../../assets/battlefield/token_gongnu.webp'); }
 .bf-order-ico.ico-qibing, .bf-mvp-ico.ico-qibing{ background-image:url('../../assets/battlefield/token_qibing.webp'); }
-.bf-order-ico.ico-gongcheng, .bf-mvp-ico.ico-gongcheng{ background-image:url('../../assets/battlefield/token_gongcheng.webp'); }
+.bf-order-ico.ico-gongcheng, .bf-mvp-ico.ico-gongcheng{ background-image:url('../../assets/battlefield/token_gongcheng.svg'); }
+.bf-order-ico.ico-qizhong, .bf-mvp-ico.ico-qizhong{ background-image:url('../../assets/battlefield/token_qizhong.svg'); }
+.bf-order-ico.ico-minfu, .bf-mvp-ico.ico-minfu{ background-image:url('../../assets/battlefield/token_minfu.svg'); }
+.bf-order-ico.ico-daji, .bf-mvp-ico.ico-daji{ background-image:url('../../assets/battlefield/token_daji.svg'); }
+.bf-order-ico.ico-gongqi, .bf-mvp-ico.ico-gongqi{ background-image:url('../../assets/battlefield/token_gongqi.svg'); }
+.bf-order-ico.ico-chuangnu, .bf-mvp-ico.ico-chuangnu{ background-image:url('../../assets/battlefield/token_chuangnu.svg'); }
+.bf-order-ico.ico-huoshi, .bf-mvp-ico.ico-huoshi{ background-image:url('../../assets/battlefield/token_huoshi.svg'); }
+.bf-order-ico.ico-xianzhen, .bf-mvp-ico.ico-xianzhen{ background-image:url('../../assets/battlefield/token_xianzhen.svg'); }
 .bf-root.bf-hc .bf-order-ico, .bf-root.bf-hc .bf-mvp-ico{ background-image:none !important; }
 /* 战功榜卡片 */
 .bf-result-mvp{ margin:10px 0; padding:8px 10px; border:1px solid var(--bf-line); border-radius:12px; background:rgba(255,253,248,.55); }

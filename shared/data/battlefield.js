@@ -49,10 +49,17 @@
   LF.BF_DMG_COEFF = { terrainAtkMul: 1, terrainDefMul: 1, counterMul: 1 };
 
   // ── 兵种克制三角（长枪克骑 / 骑克弓 / 弓克枪；克制增伤、被克减伤）──
+  // 十二兵科克制网（v20261109c）：石头剪刀布扩为环形，攻方命中 C[攻] 得 adv，
+  // 否则守方 C[守] 含攻方则 dis。新兵种全部入网，避免出现「无克制」的白板。
   LF.BF_COUNTER = {
-    changqiang: ['qibing'],   // 长枪兵 → 克制 骑兵
-    qibing:     ['gongnu'],   // 骑兵   → 克制 弓弩兵
-    gongnu:     ['changqiang']// 弓弩兵 → 克制 长枪兵
+    changqiang: ['qibing', 'gongqi'],       // 枪阵拒马 → 骑 / 弓骑
+    daji:       ['qibing', 'xianzhen'],     // 大戟勾砍 → 骑 / 弃甲死士
+    xianzhen:   ['gongnu', 'chuangnu'],     // 死士突进 → 弓弩 / 床弩
+    gongnu:     ['changqiang', 'xianzhen'], // 攒射 → 密集枪阵 / 轻甲死士
+    huoshi:     ['daji', 'qizhong'],        // 火攻 → 重甲 / 辎重
+    qibing:     ['gongnu', 'huoshi', 'chuangnu'], // 冲锋 → 远程 / 慢速器械
+    gongqi:     ['chuangnu', 'minfu'],      // 骑射游走 → 床弩 / 民夫
+    chuangnu:   ['daji', 'daodun']          // 穿坚 → 重甲
   };
   // 克制倍率：adv=克制方伤害系数；dis=被克方（反被克）伤害系数
   LF.BF_COUNTER_MUL = { adv: 1.25, dis: 0.8 };

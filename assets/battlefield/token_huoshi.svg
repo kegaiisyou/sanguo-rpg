@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#8a8274"/><stop offset=".5" stop-color="#5d574d"/><stop offset="1" stop-color="#3b362f"/></linearGradient>
+  <linearGradient id="straw" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#cbbb98"/><stop offset="1" stop-color="#8d7d5e"/></linearGradient>
+  <radialGradient id="halo" cx="50%" cy="42%" r="62%">
+    <stop offset="0" stop-color="#8a3a26" stop-opacity=".20"/><stop offset="1" stop-color="#8a3a26" stop-opacity="0"/></radialGradient>
+  <radialGradient id="paper" cx="50%" cy="40%" r="75%">
+    <stop offset="0" stop-color="#f7f1e1"/><stop offset="1" stop-color="#e6dcc4"/></radialGradient>
+  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/>
+    <feColorMatrix type="saturate" values="0"/></filter>
+  <filter id="ink"><feGaussianBlur stdDeviation="7"/></filter>
+  <filter id="inkwash" x="-12%" y="-12%" width="124%" height="124%">
+    <feColorMatrix in="SourceGraphic" type="saturate" values=".16" result="c"/>
+    <feComponentTransfer in="c" result="t">
+      <feFuncR type="linear" slope="1.18" intercept="-.07"/>
+      <feFuncG type="linear" slope="1.18" intercept="-.07"/>
+      <feFuncB type="linear" slope="1.18" intercept="-.07"/>
+    </feComponentTransfer>
+    <feTurbulence type="fractalNoise" baseFrequency=".042" numOctaves="2" result="n"/>
+    <feDisplacementMap in="t" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</defs>
+<rect width="256" height="256" fill="url(#paper)"/>
+<rect width="256" height="256" filter="url(#grain)" opacity=".055"/>
+<rect width="256" height="256" fill="url(#halo)"/>
+<path d="M0 198 Q40 168 78 190 Q112 158 150 186 Q196 156 256 192 L256 256 L0 256 Z" fill="#2b2620" opacity=".055"/>
+<ellipse cx="128" cy="250" rx="112" ry="34" fill="#2b2620" opacity=".10" filter="url(#ink)"/>
+<!-- 半身人形：统一过「去饱和 + 提对比 + 飞白位移」，与已有写实水墨 token 同为墨色 -->
+<g filter="url(#inkwash)">
+<path d="M112 108 L144 108 L144 134 L112 134 Z" fill="#c3ab8c" stroke="#2b2620" stroke-width="2"/>
+<ellipse cx="128" cy="86" rx="27" ry="32" fill="#c9bda6" stroke="#2b2620" stroke-width="2.4"/>
+<path d="M107 80 L121 84 M135 84 L149 80" fill="none" stroke="#2b2620" stroke-width="2.6"/>
+<path d="M111 93 L122 91 M134 91 L145 93" fill="none" stroke="#2b2620" stroke-width="2"/>
+<path d="M126 95 L124 105 L130 105" fill="none" stroke="#6e5b45" stroke-width="1.5"/>
+<path d="M116 111 Q128 109 140 111 M120 116 Q128 121 136 116" fill="none" stroke="#2b2620" stroke-width="1.8"/>
+<path d="M62 256 L62 176 Q66 142 98 132 L128 124 L158 132 Q190 142 194 176 L194 256 Z" fill="#6b6151" stroke="#2b2620" stroke-width="2.6"/>
+      <path d="M104 128 L128 146 L152 128 L142 168 L114 168 Z" fill="#8b7d63" stroke="#2b2620" stroke-width="2"/>
+      <path d="M62 152 Q82 140 100 148 L100 256 L62 256 Z M194 152 Q174 140 156 148 L156 256 L194 256 Z" fill="#5b5142" stroke="#2b2620" stroke-width="2.2"/>
+      <path d="M86 178 L170 178 M86 196 L170 196 M86 214 L170 214" stroke="#3b342a" stroke-width="2" opacity=".7"/>
+<path d="M98 74 Q99 48 128 47 Q157 48 158 74 Q128 66 98 74 Z" fill="#4a4238" stroke="#2b2620" stroke-width="2.2"/>
+      <path d="M98 70 Q128 62 158 70" fill="none" stroke="#1f1b16" stroke-width="3"/>
+      <path d="M154 70 Q174 76 170 96 Q166 104 158 98" fill="#4a4238" stroke="#2b2620" stroke-width="1.8"/>
+</g>
+<!-- 兵器 -->
+<path d="M52 62 Q18 128 52 194" fill="none" stroke="#2b2620" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M52 62 L52 194" stroke="#3b342a" stroke-width="1.6"/>
+      <path d="M46 128 L216 128" stroke="#2b2620" stroke-width="3.4"/>
+      <path d="M216 128 Q236 116 224 104 Q214 98 206 108 Q200 118 216 128 Z" fill="#a83c24" stroke="#7a2418" stroke-width="1.6"/>
+      <path d="M216 128 Q230 132 226 142 Q216 144 210 136" fill="#d0742f"/>
+      <path d="M188 180 L214 180 L208 238 L194 238 Z" fill="#6b5c46" stroke="#2b2620" stroke-width="2.2"/>
+      <path d="M196 180 L196 156 M204 180 L204 156" stroke="#2b2620" stroke-width="2.4"/>
+</svg>

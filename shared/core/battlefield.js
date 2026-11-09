@@ -72,6 +72,12 @@
     // 兵种推断（war.js 生成的守/攻军未带 troopType，按名称补足以支持克制）
     function inferType(name) {
       name = name || '';
+      // 新兵科须排在泛化规则之前，否则「弓骑兵 / 床弩手」会被 /弓|弩/ 抢先判成弓弩兵
+      if (/床弩|连弩车|弩车/.test(name)) return 'chuangnu';
+      if (/弓骑|骑射|游骑/.test(name)) return 'gongqi';
+      if (/火矢|火箭/.test(name)) return 'huoshi';
+      if (/大戟|戟士|戟兵/.test(name)) return 'daji';
+      if (/陷阵|死士/.test(name)) return 'xianzhen';
       if (/弓|弩/.test(name)) return 'gongnu';
       if (/骑|骁骑|游骑/.test(name)) return 'qibing';
       if (/枪|矛/.test(name)) return 'changqiang';
@@ -312,7 +318,9 @@
         name: u.name, type: u.troopType || inferType(u.name), rank: u.rank || 'front', slot: slot,
         count: u.count, hp: u.hp, maxHp: u.maxHp, atk: u.atk, def: u.def, spd: u.spd,
         morale: u.morale == null ? 80 : u.morale, crit: u.crit || 0,
-        move: LF.BF_MOVE(u.spd), range: LF.BF_RANGE(slot),
+        move: LF.BF_MOVE(u.spd),
+        // 兵种自带 range 覆盖 slot 默认（弓骑兵 2 / 床弩手 3）；未声明者仍是旧射程
+        range: (u.troopType && T()[u.troopType] && T()[u.troopType].range) || LF.BF_RANGE(slot),
         officer: u.officer || null,
         x: 0, y: 0, moved: false, acted: false, routed: false, defending: false,
         dmgDealt: 0, kills: 0, startCount: u.count,
@@ -410,7 +418,11 @@
       var hit = Math.max(0.05, 0.95 - dodge);
       if (rng() > hit) return { miss: true };
       var defMul = (terrD.defMul || 1) * formationDefMul(d) * (C.terrainDefMul || 1);
-      var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a);
+      // 兵科特性：火矢焚林/垒/城，床弩破城垣/营垒（数据驱动，见 troops.js 可选字段）
+      var trait = T()[a.troopType] || {}, traitMul = 1;
+      if (trait.fire && (terrD.key === 'forest' || terrD.key === 'rampart' || terrD.key === 'wall')) traitMul *= 1.25;
+      if (trait.siegeBonus && (terrD.key === 'wall' || terrD.key === 'rampart')) traitMul *= (1 + trait.siegeBonus);
+      var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a) * traitMul;
       var defReduce = Math.min(0.8, (d.def * defMul) / 100);
       var val = raw * (1 - defReduce) * (0.9 + rng() * 0.2);
       if (isCounter) val *= (LF.BF_RIPOSTE ? LF.BF_RIPOSTE.dmg : 0.5);
@@ -431,7 +443,11 @@
       var dodge = terrD.dodge || 0;
       var hit = Math.max(0.05, 0.95 - dodge);
       var defMul = (terrD.defMul || 1) * formationDefMul(d) * (C.terrainDefMul || 1);
-      var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a);
+      // 兵科特性：火矢焚林/垒/城，床弩破城垣/营垒（数据驱动，见 troops.js 可选字段）
+      var trait = T()[a.troopType] || {}, traitMul = 1;
+      if (trait.fire && (terrD.key === 'forest' || terrD.key === 'rampart' || terrD.key === 'wall')) traitMul *= 1.25;
+      if (trait.siegeBonus && (terrD.key === 'wall' || terrD.key === 'rampart')) traitMul *= (1 + trait.siegeBonus);
+      var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a) * traitMul;
       var defReduce = Math.min(0.8, (d.def * defMul) / 100);
       var avg = raw * (1 - defReduce);
       return { dmg: Math.max(1, Math.round(avg)), hit: Math.round(hit * 100), counter: counterMul, adj: cheb(a.x, a.y, d.x, d.y) === 1 };
@@ -733,8 +749,8 @@
       var from = cellCenter(a.x, a.y), to = cellCenter(d.x, d.y);
       var dx = to.x - from.x, dy = to.y - from.y;
       var dist = Math.hypot(dx, dy) || 1;
-      var siege = a.troopType === 'gongcheng' || a.slot === '械';
-      var n = siege ? 1 : (a.troopType === 'gongnu' ? 5 : 3);
+      var siege = a.troopType === 'gongcheng' || a.troopType === 'chuangnu' || a.slot === '械';
+      var n = siege ? 1 : (a.troopType === 'gongnu' || a.troopType === 'huoshi' ? 5 : 3);
       var arc = Math.min(46, 16 + dist * 0.22);
       var finished = false, left = n;
       function oneDone() { left--; if (left <= 0 && !finished) { finished = true; onDone && onDone(); } }
@@ -744,7 +760,7 @@
         var spread = i - (n - 1) / 2;
         var ex = dx + spread * (siege ? 0 : 3), ey = dy + spread * (siege ? 0 : 2);
         var el = document.createElement('div');
-        el.className = 'bf-arrow' + (siege ? ' bf-arrow-siege' : ' bf-arrow-volley');
+        el.className = 'bf-arrow' + (siege ? ' bf-arrow-siege' : ' bf-arrow-volley') + (a.troopType === 'huoshi' ? ' bf-arrow-fire' : '');
         el.style.left = from.x + 'px'; el.style.top = from.y + 'px';
         host.appendChild(el);
         // 抛物线 y(t) = ey*t - 4*arc*t*(1-t)：导数在 0/0.5/1 处为 ey-4arc / ey / ey+4arc
@@ -776,7 +792,8 @@
     // 近战兵种专属打击效果：枪影 / 刀光 / 骑冲残影 / 器械砸击
     function strikeFx(host, a, d, crit) {
       var from = cellCenter(a.x, a.y), to = cellCenter(d.x, d.y);
-      var kind = ({ changqiang: 'spear', daodun: 'blade', qibing: 'charge', gongcheng: 'siege' })[a.troopType] || 'blade';
+      var kind = ({ changqiang: 'spear', daji: 'spear', daodun: 'blade', xianzhen: 'blade',
+        qibing: 'charge', gongqi: 'charge', gongcheng: 'siege' })[a.troopType] || 'blade';
       var anchor = (kind === 'blade' || kind === 'siege') ? to : from;
       var el = document.createElement('div');
       el.className = 'bf-strike bf-strike-' + kind + (crit ? ' crit' : '');
@@ -847,7 +864,9 @@
       var terr = terrainAt(d.x, d.y);
       if (terr.key === 'wall' || terr.key === 'rampart' || d.troopType === 'gongcheng') return;
       // 重量分档：甲厚/人多者稳，轻装者一撞即退；防御地形再乘衰减
-      var wUnit = { daodun: 0.5, changqiang: 0.85, qibing: 1.05, gongnu: 1.4, qizhong: 1.2, minfu: 1.35 }[d.troopType] || 1;
+      var wUnit = { daodun: 0.5, changqiang: 0.85, daji: 0.8, xianzhen: 1.15,
+        qibing: 1.05, gongqi: 1.25, gongnu: 1.4, huoshi: 1.45, chuangnu: 0.55,
+        gongcheng: 0.4, qizhong: 1.2, minfu: 1.35 }[d.troopType] || 1;
       var wTerr = 1 / Math.max(0.8, terr.defMul || 1);
       var cs = Math.min(CSX, CSY);
       var vx = d.x - a.x, vy = d.y - a.y, len = Math.hypot(vx, vy) || 1;
@@ -1792,7 +1811,11 @@
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, F(1800));
     }
     // 兵种 → 音效：弓弩破空 / 攻城轰鸣 / 其余金铁交击
-    function weaponSfx(type) { return type === 'gongnu' ? 'arrow' : type === 'gongcheng' ? 'siege' : 'attack'; }
+    function weaponSfx(type) {
+      if (type === 'gongcheng' || type === 'chuangnu') return 'siege';
+      if (type === 'gongnu' || type === 'gongqi' || type === 'huoshi') return 'arrow';
+      return 'attack';
+    }
 
     function openDetailModal(u) {
       var O = LF.ARMY_ORDERS || {};

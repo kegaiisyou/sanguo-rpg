@@ -6,8 +6,10 @@
   global.LF = global.LF || {};
   var LF = global.LF;
 
-  // ── 七兵科（每兵数值；营级战力 = 该值 × 兵力）──
+  // ── 十二兵科（每兵数值；营级战力 = 该值 × 兵力）──
   // slot 决定可列阵位：步=前/中军，远=后军，骑=游骑，械=中军，辅=后军
+  // 可选特性字段（v20261109c）：range 覆盖 slot 默认射程；fire 对林/垒/城目标增伤；
+  //   siegeBonus 对城垣/营垒增伤比例。未声明的兵种沿用旧行为，零回归。
   LF.TROOPS = {
     changqiang: { id: 'changqiang', name: '长枪兵', slot: '步', atk: 6, def: 8, hp: 24, spd: 14, cost: 1, upkeep: 1, desc: '结阵拒马，正面最坚，骑兵克星。' },
     daodun: { id: 'daodun', name: '刀盾兵', slot: '步', atk: 7, def: 10, hp: 28, spd: 12, cost: 1, upkeep: 1, desc: '盾厚甲坚，最耐箭矢，攻坚肉搏之选。' },
@@ -15,7 +17,13 @@
     qibing: { id: 'qibing', name: '骑兵', slot: '骑', atk: 11, def: 6, hp: 30, spd: 20, cost: 2, upkeep: 2, desc: '疾如风火，包抄断粮，野战之利刃。' },
     gongcheng: { id: 'gongcheng', name: '攻城兵', slot: '械', atk: 4, def: 5, hp: 22, spd: 8, cost: 1, upkeep: 1, siege: true, desc: '扛梯推车，专破城垣，野战无用。' },
     qizhong: { id: 'qizhong', name: '辎重兵', slot: '辅', atk: 1, def: 3, hp: 16, spd: 10, cost: 1, upkeep: 1, logisticsBonus: 8, desc: '押粮护械，辎重容量大增，不堪战。' },
-    minfu: { id: 'minfu', name: '民夫', slot: '辅', atk: 0, def: 1, hp: 12, spd: 9, cost: 1, upkeep: 1, logisticsBonus: 5, desc: '抬担运土，可充杂役，遇战即溃。' }
+    minfu: { id: 'minfu', name: '民夫', slot: '辅', atk: 0, def: 1, hp: 12, spd: 9, cost: 1, upkeep: 1, logisticsBonus: 5, desc: '抬担运土，可充杂役，遇战即溃。' },
+    // ── v20261109c 新增五兵科：补齐「突击 / 均衡重步 / 机动远程 / 超远压制 / 地形火攻」五个战术空位 ──
+    daji: { id: 'daji', name: '大戟士', slot: '步', atk: 9, def: 7, hp: 26, spd: 12, cost: 2, upkeep: 2, desc: '戟可刺可勾，攻守兼备的重装步卒，能拒骑兵。' },
+    xianzhen: { id: 'xianzhen', name: '陷阵死士', slot: '步', atk: 14, def: 2, hp: 20, spd: 15, cost: 2, upkeep: 2, desc: '弃甲突进，一击最烈；甲薄易折，最怕弓弩攒射。' },
+    gongqi: { id: 'gongqi', name: '弓骑兵', slot: '骑', atk: 8, def: 4, hp: 20, spd: 19, cost: 3, upkeep: 3, range: 2, desc: '胡服角弓，且走且射；骑中唯一能远袭者，近身即溃。' },
+    chuangnu: { id: 'chuangnu', name: '床弩手', slot: '械', atk: 12, def: 3, hp: 18, spd: 5, cost: 3, upkeep: 3, range: 3, siegeBonus: 0.30, desc: '绞盘上弦，三格穿坚；专破城垣营垒，转移极缓。' },
+    huoshi: { id: 'huoshi', name: '火矢手', slot: '远', atk: 8, def: 3, hp: 17, spd: 12, cost: 2, upkeep: 2, fire: true, desc: '缚膏纵火，射林焚垒；遇木石工事其焰更炽。' }
   };
 
   // ── 三阵位 + 游骑 ──
