@@ -1184,6 +1184,15 @@
       panY = vh / 2 - gh / 2 - zoomLevel * (cellCY - gh / 2);
       applyPan();
     }
+    // 战场整幅水墨背景：地图模板 → 画（现有 3 张原画复用；后续补齐 5 张只改这张表）
+    // 平原画含草地/树林/河流，故 river 复用；山地画含群山/小路，故 forest/pass 复用。
+    var BF_MAP_ART = {
+      plain:  'field_plain.webp',
+      river:  'field_plain.webp',
+      forest: 'field_mountain.webp',
+      pass:   'field_mountain.webp',
+      siege:  'field_siege.webp'
+    };
     function render() {
       if (!board) return;
       // CSS 侧演出时长同步倍率（粒子/飘字/弹道）；跳帧时压到极短
@@ -1200,6 +1209,16 @@
       grid.style.width = X[GW] + 'px';
       grid.style.height = Y[GH] + 'px';
       grid.style.setProperty('--bf-cs', Math.min(csX, csY) + 'px');
+      // 一张地图一张画：background 写在棋盘容器上（而非逐格），cover 自适应任意棋盘尺寸。
+      // dataset 去重：render 每步都跑，避免重复写同一 URL 触发无谓重绘。
+      var art = BF_MAP_ART[board.map] || BF_MAP_ART.plain;
+      if (grid.dataset.art !== art) {
+        grid.dataset.art = art;
+        grid.style.backgroundImage = "url('shared/img/battlefield/" + art + "')";
+        grid.style.backgroundSize = 'cover';
+        grid.style.backgroundPosition = 'center';
+        grid.style.backgroundRepeat = 'no-repeat';
+      }
       // 特效层必须与网格层同尺寸、同变换中心：否则缩放后箭/飘字按各自 50% 缩放，飞到棋盘外
       var fl = document.getElementById('bf-floats');
       if (fl) {
