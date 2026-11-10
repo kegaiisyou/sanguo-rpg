@@ -1741,6 +1741,13 @@
       var dock = document.getElementById('bf-dock');
       if (!dock || !board) return;
       if (board.phase !== 'ally') { dock.hidden = true; dock.innerHTML = ''; var _vp0 = document.getElementById('bf-viewport'); if (_vp0) _vp0.style.bottom = ''; return; }
+      // 选中己方部队 / 敌方威胁预览时，操作板已承载信息，单位坞自动收起，避免同一部队重复显示
+      if (board.sel || board.threat) {
+        dock.hidden = true; dock.innerHTML = '';
+        var _vps = document.getElementById('bf-viewport');
+        if (_vps) _vps.style.bottom = '128px';
+        return;
+      }
       dock.hidden = false;
       // 坞占位：为操作条(56) + 坞(~62) 预留底部空间，避免遮挡棋盘
       var _vp = document.getElementById('bf-viewport');
@@ -1773,11 +1780,12 @@
       var plate = document.getElementById('bf-plate');
       var bar = document.getElementById('bf-bar');
       if (!plate || !board) return;
-      if (board.phase !== 'ally') { plate.classList.remove('open'); plate.innerHTML = ''; if (bar) bar.style.visibility = 'visible'; return; }
+      if (board.phase !== 'ally') { plate.classList.remove('open'); plate.innerHTML = ''; plate.style.bottom = ''; if (bar) bar.style.visibility = 'visible'; return; }
       if (board.sel && !board.sel.acted) {
         var u = board.sel;
         var danger = dangerOf(u);
         plate.classList.add('open');
+        plate.style.bottom = '0px';
         if (bar) bar.style.visibility = 'hidden';
         plate.innerHTML = '<div class="bf-plate-row">' + '<div class="bf-plate-ava">' + troopAvatarHTML(u.troopType, u.side, 46) + '</div>' + '<div class="bf-plate-info">' +
           '<span class="bf-plate-name">' + esc(u.name) + '</span>' +
@@ -1800,11 +1808,12 @@
       if (board.threat) {
         var tu = board.threat.u;
         plate.classList.add('open');
+        plate.style.bottom = '0px';
         if (bar) bar.style.visibility = 'hidden';
         plate.innerHTML = '<div class="bf-plate-row"><div class="bf-plate-ava">' + troopAvatarHTML(tu.troopType, tu.side, 46) + '</div><div class="bf-plate-info"><span class="bf-plate-name bf-plate-foe">' + esc(tu.name) + ' 威胁预览</span><span class="bf-plate-stats">攻' + tu.atk + '·防' + tu.def + '·移' + tu.move + '·射' + tu.range + '</span></div></div><div class="bf-plate-hint">红框=可攻击 · 黄框=可移动 · 点空白关闭</div>';
         return;
       }
-      plate.classList.remove('open'); plate.innerHTML = '';
+      plate.classList.remove('open'); plate.innerHTML = ''; plate.style.bottom = '';
       if (bar) bar.style.visibility = 'visible';
     }
     function showMenu(html) {

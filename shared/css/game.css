@@ -4222,7 +4222,8 @@
 .bf-u-foe{ border-color:rgba(158,59,46,.72); }
 .bf-u-ico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-style:normal;
   font-size:calc(var(--bf-cs,30px) * .52); line-height:1; opacity:.95; pointer-events:none; z-index:1;
-  border-radius:50%; background-size:cover; background-position:center; background-repeat:no-repeat; }
+  border-radius:50%; background-size:cover; background-position:center; background-repeat:no-repeat;
+  box-shadow:inset 0 0 0 1px rgba(74,62,48,.35), inset 0 -6px 10px rgba(0,0,0,.18); }
 /* 部队立绘：原四兵科为 AI 写实水墨 WebP；v20261109c 补齐的八兵科为同色系矢量水墨白描 SVG。
    想换成 AI 写实图，只需生成同名 token_<key>.webp 并把下面对应一行的扩展名改掉。 */
 .bf-u-ico.ico-changqiang{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_changqiang.webp'); }
@@ -4270,7 +4271,10 @@
 .bf-top-l .bf-hub-out{ color:#c9a13c; }
 .bf-u-cnt{ position:absolute; top:1px; right:1px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .26);
   background:rgba(24,17,10,.72); color:#fff; border-radius:999px; padding:0 3px; line-height:1.25; pointer-events:none; z-index:4;
-  box-shadow:0 1px 2px rgba(0,0,0,.45); }
+  box-shadow:0 1px 2px rgba(0,0,0,.45); opacity:0; transition:opacity .18s ease; }
+/* 兵力数字默认让位给立绘徽章，仅选中 / 折兵脉冲时显示，避免遮挡主体 */
+.bf-unit.bf-sel-u .bf-u-cnt{ opacity:1; }
+.bf-u-cnt.bf-cnt-drop{ opacity:1; }
 /* 折兵时兵力药丸脉冲：把「少了多少兵」也落到棋子本身 */
 .bf-u-cnt.bf-cnt-drop{ animation:bfCntDrop .55s ease-out; }
 @keyframes bfCntDrop{ 0%{ background:#c0392b; transform:scale(1.35); box-shadow:0 0 10px rgba(192,57,43,.9); } 100%{ background:rgba(24,17,10,.72); transform:scale(1); box-shadow:0 1px 2px rgba(0,0,0,.45); } }
@@ -4409,7 +4413,7 @@
 .bf-plate-hint{ display:block; font-size:11px; color:var(--ink-faint); padding:4px 12px 6px; }
 .bf-plate-acts{ display:flex; gap:6px; justify-content:center; align-items:center; padding:4px 8px 8px; pointer-events:none; flex-wrap:wrap; }
 .bf-plate-acts button{ pointer-events:auto; }
-.bf-act{ pointer-events:auto; width:40px; height:40px; border-radius:11px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); font-size:18px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); font-family:inherit; transition:.12s; user-select:none; -webkit-tap-highlight-color:transparent; }
+.bf-act{ pointer-events:auto; width:44px; height:44px; border-radius:12px; border:1px solid var(--bf-line); background:rgba(244,238,226,.95); color:var(--bf-ink); font-size:18px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow); font-family:inherit; transition:.12s; user-select:none; -webkit-tap-highlight-color:transparent; }
 .bf-act:hover{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
 .bf-act.bf-on{ background:var(--bf-gold); color:#fff; border-color:var(--bf-gold); }
 .bf-act-pri{ background:rgba(191,149,58,.16); }
@@ -4651,15 +4655,16 @@
   .bf-top-m{ font-size:12px; }
   .bf-viewport{ top:34px; bottom:60px; }
   .bf-bar{ height:60px; gap:6px; padding:5px 6px; }
-  .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; min-height:40px; }
-  .bf-speed-select{ padding:6px 6px; font-size:12px; min-width:52px; min-height:40px; }
+  .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; min-height:44px; }
+  .bf-speed-select{ padding:6px 6px; font-size:12px; min-width:52px; min-height:44px; }
   .bf-more-menu{ right:6px; bottom:58px; min-width:90px; }
   .bf-more-item{ padding:7px 10px; font-size:12px; }
   .bf-plate{ bottom:118px; }
+  .bf-plate.open{ padding-bottom:env(safe-area-inset-bottom,0px); }
   .bf-plate-acts{ gap:6px; padding:6px 8px 10px; }
-  .bf-act{ width:42px; height:42px; font-size:16px; }
+  .bf-act{ width:44px; height:44px; font-size:16px; }
   .bf-fab{ right:6px; gap:8px; }
-  .bf-fab-b{ width:40px; height:40px; font-size:15px; border-radius:12px; background:rgba(244,238,226,.88); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  .bf-fab-b{ width:44px; height:44px; font-size:15px; border-radius:12px; background:rgba(244,238,226,.88); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
   .bf-fab-panel{ top:auto; bottom:64px; left:8px; right:8px; width:auto; max-height:50vh; border-radius:14px 14px 0 0; }
   .bf-pop{ min-width:104px; }
   .bf-preview{ max-width:60vw; font-size:10px; }
