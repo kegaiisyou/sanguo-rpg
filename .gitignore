@@ -55,3 +55,7 @@ verify_smoke.js
 /icons_preview.html
 # 浏览器自动化测试存档
 /state.json
+
+# AI portrait source PNGs (local only; keep for tools/process_unit_art.py rebuild)
+/shared/img/art/units/*.png
+/shared/img/art/heroes/*.png

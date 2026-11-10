@@ -1740,18 +1740,19 @@
     function renderDock() {
       var dock = document.getElementById('bf-dock');
       if (!dock || !board) return;
-      if (board.phase !== 'ally') { dock.hidden = true; dock.innerHTML = ''; var _vp0 = document.getElementById('bf-viewport'); if (_vp0) _vp0.style.bottom = ''; return; }
+      if (board.phase !== 'ally') { dock.hidden = true; dock.innerHTML = ''; var _vp0 = document.getElementById('bf-viewport'); if (_vp0) _vp0.style.removeProperty('--bf-vp-bottom'); return; }
       // 选中己方部队 / 敌方威胁预览时，操作板已承载信息，单位坞自动收起，避免同一部队重复显示
       if (board.sel || board.threat) {
         dock.hidden = true; dock.innerHTML = '';
         var _vps = document.getElementById('bf-viewport');
-        if (_vps) _vps.style.bottom = '128px';
+        if (_vps) _vps.style.setProperty('--bf-vp-bottom', '128px');
         return;
       }
       dock.hidden = false;
-      // 坞占位：为操作条(56) + 坞(~62) 预留底部空间，避免遮挡棋盘
+      // 坞占位：为操作条(56) + 坞(~62) 预留底部空间。写 CSS 变量而非内联 bottom，
+      // 让 #modal.bf-full 的 !important 与手机端 safe-area calc 一并生效。
       var _vp = document.getElementById('bf-viewport');
-      if (_vp) _vp.style.bottom = '120px';
+      if (_vp) _vp.style.setProperty('--bf-vp-bottom', '120px');
       var html = '';
       // 单个单位小卡：立绘 + 兵力 + 血条 + 军心 + 行动状态点；我方点选、敌军点开威胁预览
       function card(u, isFoe) {
