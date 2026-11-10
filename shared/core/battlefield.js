@@ -1445,7 +1445,7 @@
       if (top) {
         var aN = sideUnits('ally').length, fN = sideUnits('foe').length;
         var aHp = totalHp('ally'), fHp = totalHp('foe');
-        var hubFlag = board.hubId ? (board.hubDown ? ' · <b class="bf-hub-down">中军已破</b>' : (board.detached ? ' · <b class="bf-hub-out">亲军出阵</b>' : ' · 中军立旗')) : '';
+        var hubFlag = board.hubId ? (board.hubDown ? ' · <b class="bf-hub-down">中军已破</b>' : (board.detached ? ' · <b class="bf-hub-out">亲军出阵</b>' : ' · <span class="bf-hub-ok">中军立旗</span>')) : '';
         top.innerHTML = '<span class="bf-top-l">第 ' + board.round + ' 回合 · ' + (board.phase === 'ally' ? '我军阶段' : '敌军阶段') + hubFlag + '</span>' +
           '<span class="bf-top-m">' + esc(board.title) + '</span>' +
           '<span class="bf-top-r">我 ' + aN + '/' + aHp + ' · 敌 ' + fN + '/' + fHp + '</span>' +

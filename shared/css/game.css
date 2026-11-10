@@ -4218,8 +4218,8 @@
    ::before/::after 直接 content:none，不生成覆盖层，避免盖住水墨画或吃掉格子点击。 */
 .bf-cell::before,.bf-cell::after{ content:none; }
 .bf-tico{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  font-size:calc(var(--bf-cs,30px) * 0.58); opacity:.92; pointer-events:none; z-index:0;
-  color:#fff8e6; text-shadow:0 1px 3px rgba(0,0,0,.95), 0 0 2px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.7); }
+  font-size:calc(var(--bf-cs,30px) * 0.5); opacity:.78; pointer-events:none; z-index:0; font-weight:600;
+  color:rgba(46,36,24,.66); text-shadow:0 1px 2px rgba(250,246,236,.82), 0 0 7px rgba(250,246,236,.55); }
 /* 棋子牌（v6 极简四角布局：图标+兵力+朝向+短兵种名） */
 .bf-unit{ display:block; padding:0; inset:2px; border:1.5px solid rgba(74,62,48,.35);
   border-radius:var(--r-card); position:absolute; overflow:hidden; box-shadow:var(--shadow);
@@ -4661,13 +4661,13 @@
 .bf-root.bf-hc .bf-outzone{ background:repeating-linear-gradient(45deg, rgba(0,0,0,.5) 0 9px, rgba(0,0,0,.34) 9px 18px), #888; }
 /* 手机端适配 */
 @media (max-width:540px){
-  .bf-top{ top:4px; left:4px; font-size:11px; padding:3px 8px; gap:4px; }
+  .bf-top{ top:calc(env(safe-area-inset-top,0px) + 4px); left:4px; font-size:11px; padding:3px 8px; gap:4px; }
   .bf-top-m{ font-size:12px; }
-  .bf-viewport{ top:34px; bottom:60px; }
-  .bf-bar{ height:60px; gap:6px; padding:5px 6px; }
+  .bf-viewport{ top:calc(env(safe-area-inset-top,0px) + 34px); bottom:calc(60px + env(safe-area-inset-bottom,0px)); }
+  .bf-bar{ height:calc(60px + env(safe-area-inset-bottom,0px)); gap:6px; padding:5px 6px env(safe-area-inset-bottom,0px); }
   .bf-bar .btn{ flex:0 1 auto; min-width:0; padding:7px 10px; font-size:12px; min-height:44px; }
   .bf-speed-select{ padding:6px 6px; font-size:12px; min-width:52px; min-height:44px; }
-  .bf-more-menu{ right:6px; bottom:58px; min-width:90px; }
+  .bf-more-menu{ right:6px; bottom:calc(58px + env(safe-area-inset-bottom,0px)); min-width:90px; }
   .bf-more-item{ padding:7px 10px; font-size:12px; }
   .bf-plate{ bottom:118px; }
   .bf-plate.open{ padding-bottom:env(safe-area-inset-bottom,0px); }
@@ -4675,12 +4675,14 @@
   .bf-act{ font-size:16px; }
   .bf-fab{ right:6px; gap:8px; }
   .bf-fab-b{ width:44px; height:44px; font-size:15px; border-radius:12px; background:rgba(244,238,226,.88); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
-  .bf-fab-panel{ top:auto; bottom:64px; left:8px; right:8px; width:auto; max-height:50vh; border-radius:14px 14px 0 0; }
+  .bf-fab-panel{ top:auto; bottom:calc(64px + env(safe-area-inset-bottom,0px)); left:8px; right:8px; width:auto; max-height:50vh; border-radius:14px 14px 0 0; }
   .bf-pop{ min-width:104px; }
   .bf-preview{ max-width:60vw; font-size:10px; }
   .bf-top{ flex-wrap:nowrap; white-space:nowrap; max-width:calc(100% - 10px); }
-  .bf-top-m{ max-width:32vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .bf-top-r{ font-size:10px; }
+  .bf-top-m{ display:none; }
+  .bf-top-l{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .bf-hub-ok{ display:none; }
+  .bf-top-r{ font-size:10px; flex:0 0 auto; }
   .bf-bar{ flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; }
   .bf-bar::-webkit-scrollbar{ display:none; }
   .bf-bar .btn{ flex:0 0 auto; }
@@ -4688,7 +4690,7 @@
   .bf-plate-ava{ width:40px; height:40px; }
   .bf-plate-stats{ font-size:var(--bf-fs-sm); }
   .bf-unit-card{ gap:6px; }
-  .bf-dock{ bottom:60px; gap:5px; padding:3px 6px; }
+  .bf-dock{ bottom:calc(60px + env(safe-area-inset-bottom,0px)); gap:5px; padding:3px 6px; }
   .bf-dk-card{ width:42px; height:54px; }
   .bf-dk-ava{ width:30px; height:30px; }
   .bf-dk-hp{ width:26px; }
