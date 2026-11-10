@@ -28,28 +28,36 @@ SHEET = os.path.join(ROOT, '_unit_art_sheet.png')
 
 # 中文名 -> 兵种 key（与 shared/data/troops.js 的 LF.TROOPS 一致）
 MAP = {
-    '中军': 'zhongjun',
-    '大戟士': 'daji',
-    '陷阵死士': 'xianzhen',
+    '长枪兵': 'changqiang',
+    '刀盾兵': 'daodun',
+    '弓弩兵': 'gongnu',
+    '骑兵': 'qibing',
     '攻城兵': 'gongcheng',
     '辎重兵': 'qizhong',
     '民夫': 'minfu',
+    '大戟士': 'daji',
+    '陷阵死士': 'xianzhen',
     '弓骑兵': 'gongqi',
     '床弩手': 'chuangnu',
     '火矢手': 'huoshi',
+    '中军': 'zhongjun',
 }
 
 # 归一化裁框，按 2048x2048 原图目视标定
 CROP = {
-    '中军':     (0.46, 0.31, 0.54),
-    '大戟士':   (0.48, 0.29, 0.54),
-    '陷阵死士': (0.48, 0.30, 0.58),
-    '攻城兵':   (0.50, 0.33, 0.58),
-    '辎重兵':   (0.46, 0.31, 0.58),
-    '民夫':     (0.48, 0.30, 0.58),
-    '弓骑兵':   (0.47, 0.36, 0.66),
-    '床弩手':   (0.50, 0.31, 0.58),
-    '火矢手':   (0.48, 0.31, 0.58),
+    '长枪兵':   (0.50, 0.29, 0.58),
+    '刀盾兵':   (0.52, 0.28, 0.58),
+    '弓弩兵':   (0.52, 0.28, 0.58),
+    '骑兵':     (0.45, 0.30, 0.64),
+    '攻城兵':   (0.48, 0.30, 0.62),
+    '辎重兵':   (0.45, 0.28, 0.60),
+    '民夫':     (0.55, 0.28, 0.60),
+    '大戟士':   (0.52, 0.30, 0.60),
+    '陷阵死士': (0.40, 0.32, 0.62),
+    '弓骑兵':   (0.40, 0.32, 0.68),
+    '床弩手':   (0.50, 0.34, 0.62),
+    '火矢手':   (0.52, 0.30, 0.60),
+    '中军':     (0.33, 0.30, 0.66),
 }
 
 OUT_SIZE = 256
@@ -87,14 +95,16 @@ def main():
 
     if make_sheet and thumbs:
         cell = 272
-        sheet = Image.new('RGB', (cell * 3, (cell + 30) * 3), (238, 232, 218))
+        cols = 4
+        rows = (len(thumbs) + cols - 1) // cols
+        sheet = Image.new('RGB', (cell * cols, (cell + 30) * rows), (238, 232, 218))
         d = ImageDraw.Draw(sheet)
         try:
             font = ImageFont.truetype(r'C:\Windows\Fonts\msyh.ttc', 20)
         except Exception:
             font = ImageFont.load_default()
         for i, (name, im) in enumerate(thumbs):
-            x, y = (i % 3) * cell, (i // 3) * (cell + 30)
+            x, y = (i % cols) * cell, (i // cols) * (cell + 30)
             sheet.paste(im, (x + 8, y + 4))
             d.text((x + 10, y + cell + 2), name, fill=(40, 30, 20), font=font)
         sheet.save(SHEET)
