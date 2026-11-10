@@ -134,13 +134,98 @@
         allies: preset.allies ? preset.allies.map(toRow) : defSide('ally', 3),
         foes: preset.foes ? preset.foes.map(toRow) : defSide('foe', 3),
         title: preset.title || '野战', kind: preset.kind || 'field', map: preset.map || (preset.kind === 'siege' ? 'siege' : 'plain'), maxRounds: preset.maxRounds || 30,
-        dbg: { invincible: !!preset.invincible, showAllThreat: !!preset.showAllThreat, enemyIdle: !!preset.enemyIdle, seed: preset.seed || '', speedDefault: preset.speedDefault || 1, skipDefault: !!preset.skipDefault }
+        dbg: { invincible: !!preset.invincible, showAllThreat: !!preset.showAllThreat, enemyIdle: !!preset.enemyIdle, seed: preset.seed || '', speedDefault: preset.speedDefault || 1, skipDefault: !!preset.skipDefault },
+        // 布阵盘：pos 与 allies 同序，记录玩家摆下的坐标；terrain 部署期预生成并带入战斗
+        pos: [], foePos: [], terrain: null, sel: 0
       };
+      function setupMode() { return st.map === 'siege' ? 'siege' : 'field'; }
+      function allyHalfMaxY() { return Math.max(1, Math.floor((st.grid.h - 1) / 2)); }
+      function regenTerrain() { st.terrain = LF.BF_GEN_TERRAIN(st.grid.w, st.grid.h, setupMode(), st.map); }
+      function clampCell(p) {
+        return { x: Math.max(0, Math.min(st.grid.w - 1, p.x | 0)), y: Math.max(0, Math.min(allyHalfMaxY(), p.y | 0)) };
+      }
+      // keep=true 保留玩家已摆的坐标（增删营时用）；false 全部重排（改地图/尺寸时用）
+      function resetPos(keep) {
+        var sp = LF.BF_SPAWN(st.grid.w, st.grid.h, st.allies.length, st.foes.length, setupMode());
+        st.foePos = (sp.foe || []).map(function (p) { return { x: p.x, y: p.y }; });
+        var old = st.pos || [];
+        st.pos = st.allies.map(function (r, i) {
+          if (keep && old[i]) return clampCell(old[i]);
+          return clampCell(sp.ally[i] || { x: i % st.grid.w, y: 0 });
+        });
+        var used = {};
+        st.pos.forEach(function (p) {
+          var guard = 0;
+          while (used[p.x + ',' + p.y] && guard++ < 600) {
+            p.x = (p.x + 1) % st.grid.w;
+            if (p.x === 0) p.y = p.y >= allyHalfMaxY() ? 0 : p.y + 1;
+          }
+          used[p.x + ',' + p.y] = 1;
+        });
+        if (st.sel >= st.allies.length) st.sel = Math.max(0, st.allies.length - 1);
+      }
+      var CELL_TXT = { forest: '林', hill: '丘', ford: '渡', river: '河', wall: '垣', rampart: '垒' };
+      function boardHTML() {
+        if (!st.terrain) regenTerrain();
+        if (!st.pos.length) resetPos(false);
+        var w = st.grid.w, h = st.grid.h, maxY = allyHalfMaxY(), occ = {};
+        st.pos.forEach(function (p, i) { if (p && st.allies[i]) occ[p.x + ',' + p.y] = { side: 'ally', i: i, type: st.allies[i].type }; });
+        (st.foePos || []).forEach(function (p, i) {
+          var f = st.foes[i]; if (!f || !p || occ[p.x + ',' + p.y]) return;
+          occ[p.x + ',' + p.y] = { side: 'foe', i: i, type: f.type };
+        });
+        var cells = '';
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            var ter = (st.terrain[y] && st.terrain[y][x]) || 'plain';
+            var o = occ[x + ',' + y];
+            var cls = 'bf-dc';
+            if (CELL_TXT[ter]) cls += ' t-' + ter;
+            cls += (y <= maxY) ? ' is-mine' : ' is-foe';
+            if (o) cls += ' is-occ ' + (o.side === 'ally' ? 'is-u' : 'is-enemy');
+            if (o && o.side === 'ally' && o.i === st.sel) cls += ' is-sel';
+            var nm = o ? ((T()[o.type] || {}).name || '') : '';
+            cells += '<div class="' + cls + '" data-x="' + x + '" data-y="' + y + '"' + (nm ? ' title="' + esc(nm) + '"' : '') + '>' +
+              (o ? '<i class="bf-u-ico ico-' + o.type + '"></i>' : (CELL_TXT[ter] ? '<b class="bf-dc-t">' + CELL_TXT[ter] + '</b>' : '')) +
+              '</div>';
+          }
+        }
+        var row = st.allies[st.sel];
+        var tip = row
+          ? ('布阵中：<b>' + esc((T()[row.type] || {}).name || '') + '</b> · 点我方半场空格落子；点其它棋子可改选')
+          : '点下方「布阵」选一营，再点棋盘落子';
+        return '<div class="bf-dboard-wrap">' +
+          '<div class="bf-dboard" style="--gw:' + w + ';--gh:' + h + '">' + cells + '</div>' +
+          '<div class="bf-dboard-tip">' + tip + '</div>' +
+          '<div class="bf-dboard-bar"><button type="button" class="bf-sadd" id="bf-autopos">自动布阵</button>' +
+          '<span class="bf-dboard-legend"><i class="lg-mine"></i>我方半场<i class="lg-foe"></i>敌方</span></div>' +
+          '</div>';
+      }
+      function refreshBoard() {
+        var wrap = document.querySelector('.bf-dboard-wrap');
+        if (!wrap || !wrap.parentNode) return;
+        var tmp = document.createElement('div');
+        tmp.innerHTML = boardHTML();
+        if (tmp.firstChild) wrap.parentNode.replaceChild(tmp.firstChild, wrap);
+      }
+      // 点空格落子 / 点棋子改选（不改选中项时同格再点无副作用）
+      function boardTap(x, y) {
+        if (y > allyHalfMaxY()) { toast && toast('只能在本方半场布阵。'); return; }
+        var hit = -1;
+        st.pos.forEach(function (p, k) { if (p && p.x === x && p.y === y) hit = k; });
+        if (hit >= 0) { st.sel = hit; renderSetup(); return; }
+        if (st.sel < 0 || !st.pos[st.sel]) return;
+        st.pos[st.sel] = { x: x, y: y };
+        renderSetup();
+      }
       function gridOn(w, h) { return (st.grid.w === w && st.grid.h === h) ? ' on' : ''; }
       function unitRow(side, i, r, canDel) {
         var opts = Object.keys(T()).map(function (t) { return '<option value="' + t + '"' + (t === r.type ? ' selected' : '') + '>' + esc(T()[t].name) + '</option>'; }).join('');
         var rks = ranks.map(function (rk) { return '<option value="' + rk.k + '"' + (rk.k === r.rank ? ' selected' : '') + '>' + rk.n + '</option>'; }).join('');
-        return '<div class="bf-srow" data-side="' + side + '" data-i="' + i + '">' +
+        var on = side === 'ally' && st.sel === i;
+        return '<div class="bf-srow' + (on ? ' is-sel' : '') + '" data-side="' + side + '" data-i="' + i + '">' +
+          '<span class="bf-sport"><i class="bf-u-ico ico-' + r.type + '"></i></span>' +
+          (side === 'ally' ? '<button type="button" class="bf-slocate' + (on ? ' on' : '') + '">' + (on ? '布阵中' : '布阵') + '</button>' : '') +
           '<select class="bf-s-type">' + opts + '</select>' +
           '<select class="bf-s-rank">' + rks + '</select>' +
           '<input class="bf-s-count" type="number" min="20" max="800" value="' + r.count + '" />' +
@@ -165,6 +250,7 @@
           '<button type="button" class="bf-gp' + gridOn(14, 12) + '" data-w="14" data-h="12">大 (14×12)</button></div>' +
           '<div class="bf-srow"><label>宽</label><input id="bf-gw" type="number" min="6" max="40" value="' + st.grid.w + '"/>' +
           '<label>高</label><input id="bf-gh" type="number" min="6" max="40" value="' + st.grid.h + '"/></div></div>' +
+          '<div class="bf-ssec"><div class="bf-ssec-t">布阵盘（点「布阵」选一营，再点我方半场落子）</div>' + boardHTML() + '</div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">我方部署（兵种 / 阵位 / 兵力）</div>' + allyRows +
           (st.allies.length < 6 ? '<button type="button" class="bf-sadd bf-add-ally">＋ 添加我军</button>' : '') +
           (st.allies.some(function (r) { return r.type === 'zhongjun'; }) ? '' : '<button type="button" class="bf-sadd bf-add-hub">＋ 设中军（帅旗）</button>') + '</div>' +
@@ -187,7 +273,7 @@
           var t = e.target;
           if (t.classList.contains('bf-s-type') || t.classList.contains('bf-s-rank')) {
             var row = t.closest('.bf-srow'); var arr = st[row.getAttribute('data-side') === 'ally' ? 'allies' : 'foes']; var i = +row.getAttribute('data-i');
-            if (t.classList.contains('bf-s-type')) arr[i].type = t.value; else arr[i].rank = t.value;
+            if (t.classList.contains('bf-s-type')) { arr[i].type = t.value; renderSetup(); } else arr[i].rank = t.value;
           } else if (t.classList.contains('bf-gp')) { st.grid.w = +t.getAttribute('data-w'); st.grid.h = +t.getAttribute('data-h'); var gw = document.getElementById('bf-gw'), gh = document.getElementById('bf-gh'); if (gw) gw.value = st.grid.w; if (gh) gh.value = st.grid.h; }
           else if (t.id === 'bf-gw') st.grid.w = bfClamp(t.value, 6, 40);
           else if (t.id === 'bf-gh') st.grid.h = bfClamp(t.value, 6, 40);
@@ -197,18 +283,28 @@
         sc.addEventListener('input', function (e) {
           var t = e.target;
           if (t.classList.contains('bf-s-count')) { var row = t.closest('.bf-srow'); var arr = st[row.getAttribute('data-side') === 'ally' ? 'allies' : 'foes']; arr[+row.getAttribute('data-i')].count = bfClamp(t.value, 20, 800); }
-          else if (t.id === 'bf-gw') st.grid.w = bfClamp(t.value, 6, 40);
-          else if (t.id === 'bf-gh') st.grid.h = bfClamp(t.value, 6, 40);
+          else if (t.id === 'bf-gw') { st.grid.w = bfClamp(t.value, 6, 40); regenTerrain(); resetPos(false); refreshBoard(); }
+          else if (t.id === 'bf-gh') { st.grid.h = bfClamp(t.value, 6, 40); regenTerrain(); resetPos(false); refreshBoard(); }
           else if (t.classList.contains('bf-dbg') && t.type === 'number') st.dbg[t.getAttribute('data-k')] = (+t.value || 0);
         });
         sc.addEventListener('click', function (e) {
           var t = e.target;
-          if (t.classList.contains('bf-gp')) { st.grid.w = +t.getAttribute('data-w'); st.grid.h = +t.getAttribute('data-h'); var gw = document.getElementById('bf-gw'), gh = document.getElementById('bf-gh'); if (gw) gw.value = st.grid.w; if (gh) gh.value = st.grid.h; renderSetup(); }
-          else if (t.closest && t.closest('.bf-map')) { st.map = t.closest('.bf-map').getAttribute('data-map'); renderSetup(); }
-          else if (t.classList.contains('bf-s-del')) { var row = t.closest('.bf-srow'); var arr = st[row.getAttribute('data-side') === 'ally' ? 'allies' : 'foes']; arr.splice(+row.getAttribute('data-i'), 1); renderSetup(); }
-          else if (t.classList.contains('bf-add-ally')) { st.allies.push({ type: 'changqiang', rank: 'front', count: 120 }); renderSetup(); }
-          else if (t.classList.contains('bf-add-hub')) { st.allies.push({ type: 'zhongjun', rank: 'mid', count: 120 }); renderSetup(); }
-          else if (t.classList.contains('bf-add-foe')) { st.foes.push({ type: 'qibing', rank: 'flank', count: 120 }); renderSetup(); }
+          var cell = t.closest ? t.closest('.bf-dc') : null;
+          if (cell) { boardTap(+cell.getAttribute('data-x'), +cell.getAttribute('data-y')); return; }
+          if (t.classList.contains('bf-gp')) { st.grid.w = +t.getAttribute('data-w'); st.grid.h = +t.getAttribute('data-h'); var gw = document.getElementById('bf-gw'), gh = document.getElementById('bf-gh'); if (gw) gw.value = st.grid.w; if (gh) gh.value = st.grid.h; regenTerrain(); resetPos(false); renderSetup(); }
+          else if (t.closest && t.closest('.bf-map')) { st.map = t.closest('.bf-map').getAttribute('data-map'); regenTerrain(); resetPos(false); renderSetup(); }
+          else if (t.id === 'bf-autopos') { resetPos(false); renderSetup(); }
+          else if (t.classList.contains('bf-slocate')) { st.sel = +t.closest('.bf-srow').getAttribute('data-i'); renderSetup(); }
+          else if (t.classList.contains('bf-s-del')) {
+            var row = t.closest('.bf-srow'); var isAlly = row.getAttribute('data-side') === 'ally';
+            var arr = st[isAlly ? 'allies' : 'foes']; var idx = +row.getAttribute('data-i');
+            arr.splice(idx, 1);
+            if (isAlly) { st.pos.splice(idx, 1); if (st.sel >= st.allies.length) st.sel = Math.max(0, st.allies.length - 1); }
+            resetPos(true); renderSetup();
+          }
+          else if (t.classList.contains('bf-add-ally')) { st.allies.push({ type: 'changqiang', rank: 'front', count: 120 }); st.sel = st.allies.length - 1; resetPos(true); renderSetup(); }
+          else if (t.classList.contains('bf-add-hub')) { st.allies.push({ type: 'zhongjun', rank: 'mid', count: 120 }); st.sel = st.allies.length - 1; resetPos(true); renderSetup(); }
+          else if (t.classList.contains('bf-add-foe')) { st.foes.push({ type: 'qibing', rank: 'flank', count: 120 }); resetPos(true); renderSetup(); }
           else if (t.id === 'bf-go') doStart();
           else if (t.id === 'bf-cancel') { hideSetup(); if (preset.allies && preset.allies.length) beginBattle(preset); }
         });
@@ -226,6 +322,8 @@
           kind: st.map === 'siege' ? 'siege' : st.kind, map: st.map,
           grid: { w: bfClamp(st.grid.w, 6, 40), h: bfClamp(st.grid.h, 6, 40) },
           allies: allies, foes: foes, title: st.title, maxRounds: bfClamp(st.maxRounds, 1, 200),
+          terrain: st.terrain || null,
+          spawnAlly: st.pos.map(function (p) { return { x: p.x, y: p.y }; }),
           invincible: !!st.dbg.invincible, showAllThreat: !!st.dbg.showAllThreat, enemyIdle: !!st.dbg.enemyIdle,
           seed: st.dbg.seed ? bfClamp(st.dbg.seed, 1, 1e9) : null,
           speedDefault: st.dbg.skipDefault ? 3 : (st.dbg.speedDefault || 1), skipDefault: !!st.dbg.skipDefault,
@@ -234,6 +332,7 @@
         for (var pk in preset) { if (!(pk in cfg) && pk !== 'allies' && pk !== 'foes' && pk !== 'grid' && pk !== 'setup') cfg[pk] = preset[pk]; }
         hideSetup(); beginBattle(cfg);
       }
+      regenTerrain(); resetPos(false);
       renderSetup();
     }
 
@@ -292,15 +391,22 @@
       cfg = cfg || {};
       var grid = cfg.grid || (LF.BF_SCALE_TO_GRID && LF.BF_SCALE_TO_GRID[cfg.scale]) || LF.BF_DEFAULT_GRID;
       var w = grid.w, h = grid.h;
-      var allies = (cfg.allies || []).map(function (u, i) { return toCell(u, 'ally', i); });
+      // 布阵盘给定的坐标按 cfg.allies 原序取，先落到单位上再排序，避免索引错位
+      var allies = (cfg.allies || []).map(function (u, i) {
+        var c = toCell(u, 'ally', i);
+        var p = cfg.spawnAlly && cfg.spawnAlly[i];
+        if (c && p && isFinite(p.x) && isFinite(p.y)) { c.x = p.x | 0; c.y = p.y | 0; c._posFixed = true; }
+        return c;
+      });
       // 中军排到最后入阵：BF_SPAWN 按索引由近及远铺位，帅旗不能摆在最前一排
       allies.sort(function (a, b) { return (a && a.isHub ? 1 : 0) - (b && b.isHub ? 1 : 0); });
       var foes = (cfg.foes || []).map(function (u, i) { return toCell(u, 'foe', i); });
       var sp = LF.BF_SPAWN(w, h, allies.length, foes.length, cfg.kind === 'siege' ? 'siege' : 'field');
-      allies.forEach(function (u, i) { if (sp.ally[i]) { u.x = sp.ally[i].x; u.y = sp.ally[i].y; } });
+      allies.forEach(function (u, i) { if (u._posFixed) return; if (sp.ally[i]) { u.x = sp.ally[i].x; u.y = sp.ally[i].y; } });
+      allies.forEach(function (u) { delete u._posFixed; });
       foes.forEach(function (u, i) { if (sp.foe[i]) { u.x = sp.foe[i].x; u.y = sp.foe[i].y; } });
       board = {
-        w: w, h: h, terrain: LF.BF_GEN_TERRAIN(w, h, cfg.kind === 'siege' ? 'siege' : 'field', cfg.map), map: cfg.map || 'plain', units: allies.concat(foes),
+        w: w, h: h, terrain: cfg.terrain || LF.BF_GEN_TERRAIN(w, h, cfg.kind === 'siege' ? 'siege' : 'field', cfg.map), map: cfg.map || 'plain', units: allies.concat(foes),
         round: 1, phase: 'ally', sel: null, mode: null, reach: [], attack: [], over: false, result: null, _history: [],
         speed: 1, skip: false, threat: null,
         cfg: cfg, title: cfg.title || '会战', reinforce: cfg.reinforce || null, reinforceDone: false,

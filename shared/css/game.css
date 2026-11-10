@@ -4567,12 +4567,38 @@
 .bf-spresets{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
 .bf-gp{ background:#3F5F7A; color:#fff; border:none; border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer; }
 .bf-gp.on{ background:#C8A23A; }
-.bf-srow{ display:flex; align-items:center; gap:8px; margin:6px 0; }
+.bf-srow{ display:flex; align-items:center; gap:8px; margin:6px 0; flex-wrap:wrap; }
 .bf-srow label{ font-size:13px; color:#C8B78F; }
 .bf-srow select, .bf-srow input{ background:#2E2B14; color:#F0E4C8; border:1px solid #B8893A; border-radius:8px; padding:7px 8px; font-size:13px; }
 .bf-srow .bf-s-count{ width:84px; }
 .bf-s-del{ background:#9B3B2E; color:#fff; border:none; border-radius:8px; width:30px; height:30px; font-size:16px; cursor:pointer; }
 .bf-sadd{ background:#3F5F7A; color:#fff; border:none; border-radius:8px; padding:7px 12px; font-size:13px; margin-top:4px; cursor:pointer; }
+/* ── 布阵盘（v20261110a）：把「自动排」改成「玩家摆」 ── */
+.bf-dboard{ display:grid; grid-template-columns:repeat(var(--gw,12),1fr); gap:2px; width:100%; max-width:440px; margin:0 auto;
+  background:#120D04; border:1px solid #B8893A; border-radius:8px; padding:4px; box-sizing:border-box; }
+.bf-dc{ position:relative; aspect-ratio:1/1; border-radius:3px; background:#2A2416; display:flex;
+  align-items:center; justify-content:center; cursor:pointer; overflow:hidden; }
+.bf-dc.t-forest{ background:#23301C; }
+.bf-dc.t-hill{ background:#33291A; }
+.bf-dc.t-ford{ background:#1F2E33; }
+.bf-dc.t-river{ background:#1B2A38; }
+.bf-dc.t-wall{ background:#3A2A22; }
+.bf-dc.t-rampart{ background:#37281E; }
+.bf-dc.is-mine{ box-shadow:inset 0 0 0 1px rgba(200,162,58,.22); }
+.bf-dc.is-foe{ opacity:.5; cursor:not-allowed; }
+.bf-dc.is-sel{ box-shadow:inset 0 0 0 2px var(--bf-gold), 0 0 10px rgba(200,162,58,.55); z-index:1; }
+.bf-dc-t{ font-size:9px; font-weight:700; color:#968449; pointer-events:none; }
+.bf-dboard-tip{ font-size:12px; color:#C8B78F; margin:6px 0 5px; line-height:1.5; }
+.bf-dboard-tip b{ color:var(--bf-gold); }
+.bf-dboard-bar{ display:flex; align-items:center; gap:10px; }
+.bf-dboard-legend{ margin-left:auto; display:flex; align-items:center; gap:4px; font-size:11px; color:#9C8B65; }
+.bf-dboard-legend i{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+.bf-dboard-legend .lg-mine{ background:rgba(200,162,58,.55); }
+.bf-dboard-legend .lg-foe{ background:rgba(155,59,46,.6); margin-left:8px; }
+.bf-srow.is-sel{ background:rgba(200,162,58,.12); border-radius:8px; }
+.bf-sport{ position:relative; width:34px; height:34px; flex:0 0 auto; border-radius:8px; overflow:hidden; border:1px solid #B8893A; background:#241D10; }
+.bf-slocate{ background:#3F5F7A; color:#fff; border:none; border-radius:8px; padding:7px 8px; font-size:12px; cursor:pointer; flex:0 0 auto; }
+.bf-slocate.on{ background:var(--bf-gold); color:#1a1208; font-weight:700; }
 .bf-dbg-row{ display:flex; align-items:center; gap:8px; margin:6px 0; font-size:13px; }
 .bf-dbg-row input[type=number]{ width:80px; background:#2E2B14; color:#F0E4C8; border:1px solid #B8893A; border-radius:6px; padding:5px; }
 .bf-setup-actions{ display:flex; gap:12px; margin-top:14px; }
