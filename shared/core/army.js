@@ -554,7 +554,7 @@
     }
     // ══ 部曲编成视图（v20261021b）：背包式单位网格 + 阵位编组槽（部落与弯刀式呈现）══
     var TROOP_ICONS = { changqiang:'🗡', daodun:'🛡', gongnu:'🏹', qibing:'🐎', gongcheng:'🪜', qizhong:'🐴', minfu:'⛏',
-    daji:'⚔', xianzhen:'🪓', gongqi:'🏇', chuangnu:'🎯', huoshi:'🔥' };
+    daji:'⚔', xianzhen:'🪓', gongqi:'🏇', chuangnu:'🎯', huoshi:'🔥', zhongjun:'🚩' };
     var armyPickSel = null;   // 点选待编组的兵种 type
     function armyPickType(type) {
       armyPickSel = (armyPickSel === type) ? null : type;

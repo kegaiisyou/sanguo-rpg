@@ -4237,6 +4237,11 @@
 .bf-u-ico.ico-chuangnu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_chuangnu.svg'); }
 .bf-u-ico.ico-huoshi{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_huoshi.svg'); }
 .bf-u-ico.ico-xianzhen{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_xianzhen.svg'); }
+/* 中军（帅旗）：暂用金旗印记（不绘人像，只用「帅」字标识指挥中枢）。
+   生成 AI 写实立绘后，把下面这行换成：
+   background-image:url('../../assets/battlefield/token_zhongjun.webp'); */
+.bf-u-ico.ico-zhongjun{ background-image:linear-gradient(180deg,#efd484,#c39a37); }
+.bf-u-ico.ico-zhongjun::before{ content:'帅'; color:#2a1f0c; font-weight:800; font-size:calc(var(--bf-cs,30px) * .46); }
 /* 单字兜底：正常模式已立绘，仅高对比模式回退显示兵种单字 */
 .bf-u-ico::before{ content:''; }
 /* 高对比模式必须连立绘背景一起撤掉，否则单字压在图上糊成一团，回退等于没生效 */
@@ -4253,6 +4258,16 @@
 .bf-root.bf-hc .bf-u-ico.ico-chuangnu::before{ content:'弩'; }
 .bf-root.bf-hc .bf-u-ico.ico-huoshi::before{ content:'火'; }
 .bf-root.bf-hc .bf-u-ico.ico-xianzhen::before{ content:'陷'; }
+.bf-root.bf-hc .bf-u-ico.ico-zhongjun::before{ content:'中'; }
+/* 中军：金线环 + 「帅」角标，与普通营一眼可分；托管营虚线框 + 「托」角标 */
+.bf-unit.bf-hub{ border-color:rgba(170,132,50,.95); box-shadow:0 0 0 2px rgba(206,166,66,.32), 0 0 9px rgba(206,166,66,.42), var(--shadow); }
+.bf-hub-tag,.bf-auto-tag{ position:absolute; bottom:1px; left:1px; font-style:normal; font-weight:800; z-index:5;
+  font-size:calc(var(--bf-cs,30px) * .2); line-height:1.35; padding:0 3px; border-radius:3px; pointer-events:none; }
+.bf-hub-tag{ color:#241a06; background:linear-gradient(180deg,#eed07a,#c9a13c); box-shadow:0 1px 2px rgba(0,0,0,.4); }
+.bf-auto-tag{ color:#efe7d4; background:rgba(58,46,28,.85); }
+.bf-unit.bf-auto-u{ border-style:dashed; }
+.bf-top-l .bf-hub-down{ color:#d94f3d; }
+.bf-top-l .bf-hub-out{ color:#c9a13c; }
 .bf-u-cnt{ position:absolute; top:1px; right:1px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .26);
   background:rgba(24,17,10,.72); color:#fff; border-radius:999px; padding:0 3px; line-height:1.25; pointer-events:none; z-index:4;
   box-shadow:0 1px 2px rgba(0,0,0,.45); }
@@ -4380,6 +4395,7 @@
 .bf-ava-art.ico-chuangnu{ background-image:url('../../assets/battlefield/token_chuangnu.svg'); }
 .bf-ava-art.ico-huoshi{ background-image:url('../../assets/battlefield/token_huoshi.svg'); }
 .bf-ava-art.ico-xianzhen{ background-image:url('../../assets/battlefield/token_xianzhen.svg'); }
+.bf-ava-art.ico-zhongjun{ background-image:linear-gradient(180deg,#efd484,#c39a37); }
 .bf-ava-art[class*="ico-"]{ background-position:center 18%; }
 .bf-plate-info{ flex:1 1 auto; min-width:0; pointer-events:none; text-align:left; padding:2px 0; }
 .bf-plate-name{ display:block; font-weight:700; color:var(--bf-gold); font-size:15px; text-shadow:0 1px 0 rgba(255,255,255,.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -4798,6 +4814,7 @@
 .bf-order-ico.ico-chuangnu, .bf-mvp-ico.ico-chuangnu{ background-image:url('../../assets/battlefield/token_chuangnu.svg'); }
 .bf-order-ico.ico-huoshi, .bf-mvp-ico.ico-huoshi{ background-image:url('../../assets/battlefield/token_huoshi.svg'); }
 .bf-order-ico.ico-xianzhen, .bf-mvp-ico.ico-xianzhen{ background-image:url('../../assets/battlefield/token_xianzhen.svg'); }
+.bf-order-ico.ico-zhongjun, .bf-mvp-ico.ico-zhongjun{ background-image:linear-gradient(180deg,#efd484,#c39a37); }
 .bf-root.bf-hc .bf-order-ico, .bf-root.bf-hc .bf-mvp-ico{ background-image:none !important; }
 /* 战功榜卡片 */
 .bf-result-mvp{ margin:10px 0; padding:8px 10px; border:1px solid var(--bf-line); border-radius:12px; background:rgba(255,253,248,.55); }

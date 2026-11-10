@@ -23,7 +23,12 @@
     xianzhen: { id: 'xianzhen', name: '陷阵死士', slot: '步', atk: 14, def: 2, hp: 20, spd: 15, cost: 2, upkeep: 2, desc: '弃甲突进，一击最烈；甲薄易折，最怕弓弩攒射。' },
     gongqi: { id: 'gongqi', name: '弓骑兵', slot: '骑', atk: 8, def: 4, hp: 20, spd: 19, cost: 3, upkeep: 3, range: 2, desc: '胡服角弓，且走且射；骑中唯一能远袭者，近身即溃。' },
     chuangnu: { id: 'chuangnu', name: '床弩手', slot: '械', atk: 12, def: 3, hp: 18, spd: 5, cost: 3, upkeep: 3, range: 3, siegeBonus: 0.30, desc: '绞盘上弦，三格穿坚；专破城垣营垒，转移极缓。' },
-    huoshi: { id: 'huoshi', name: '火矢手', slot: '远', atk: 8, def: 3, hp: 17, spd: 12, cost: 2, upkeep: 2, fire: true, desc: '缚膏纵火，射林焚垒；遇木石工事其焰更炽。' }
+    huoshi: { id: 'huoshi', name: '火矢手', slot: '远', atk: 8, def: 3, hp: 17, spd: 12, cost: 2, upkeep: 2, fire: true, desc: '缚膏纵火，射林焚垒；遇木石工事其焰更炽。' },
+    // ── v20261109d 中军（帅旗）：不是战力，是「指挥权」的空间载体 ──
+    // noFight 让它在 attackable/dmgRoll/resolveAttack 里全程不参与交手；
+    // range:0 显式关掉反击圈；hp 与普通营同量级，可被围攻破营；spd 7 → 每回合 1 格。
+    zhongjun: { id: 'zhongjun', name: '中军', slot: '枢', atk: 0, def: 0, hp: 24, spd: 7, cost: 1, upkeep: 2, range: 0, noFight: true,
+      desc: '帅旗节钺所在，不攻不守；中军一破，全军号令不通。' }
   };
 
   // ── 三阵位 + 游骑 ──
@@ -45,7 +50,9 @@
     '远': { def: 'rear', allow: ['rear', 'mid'] },
     '骑': { def: 'flank', allow: ['flank', 'front'] },
     '械': { def: 'mid', allow: ['mid', 'rear'] },
-    '辅': { def: 'rear', allow: ['rear'] }
+    '辅': { def: 'rear', allow: ['rear'] },
+    // 枢：中军/帅旗专用，只列中军或后军（主帅坐镇后方，可随阵前移）
+    '枢': { def: 'mid', allow: ['mid', 'rear'] }
   };
 
   // ── 军令（战斗中每营每回合择一）──

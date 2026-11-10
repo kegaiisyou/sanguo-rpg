@@ -73,6 +73,7 @@
     function inferType(name) {
       name = name || '';
       // 新兵科须排在泛化规则之前，否则「弓骑兵 / 床弩手」会被 /弓|弩/ 抢先判成弓弩兵
+      if (/中军|帅旗|节钺|大纛/.test(name)) return 'zhongjun';
       if (/床弩|连弩车|弩车/.test(name)) return 'chuangnu';
       if (/弓骑|骑射|游骑/.test(name)) return 'gongqi';
       if (/火矢|火箭/.test(name)) return 'huoshi';
@@ -101,17 +102,19 @@
       if (board && board.invincible && t.side === 'ally') return;
       t.hp = Math.max(0, t.hp - dmg);
       syncCount(t);
+      if (t.hp <= 0 && t.isHub) hubFall(t);
       if (by) { by.dmgDealt = (by.dmgDealt || 0) + dmg; if (t.hp <= 0) by.kills = (by.kills || 0) + 1; }
     }
     function bfAggF(c) { return { hpF: Math.pow(c, 0.85), atkF: Math.pow(c, 0.85), defF: Math.log(1 + c) * 1.15 }; }
     function bfOrdersFor(rank) { var ids = []; var O = LF.ARMY_ORDERS || {}; for (var k in O) { if (O[k] && (!O[k].rank || O[k].rank === rank)) ids.push(k); } return ids; }
     function bfBuildUnit(type, rank, count) {
       var t = T()[type]; if (!t) return null;
-      var f = bfAggF(count);
+      var f = bfAggF(count), noFight = !!t.noFight;
       return { name: t.name, troopType: type, rank: rank, count: count,
         hp: Math.round(t.hp * f.hpF), maxHp: Math.round(t.hp * f.hpF),
-        atk: Math.round(t.atk * f.atkF), def: Math.round(t.def * f.defF), spd: t.spd,
-        morale: 80, artIds: bfOrdersFor(rank), _artMap: null, isTroop: true };
+        atk: noFight ? 0 : Math.round(t.atk * f.atkF), def: noFight ? 0 : Math.round(t.def * f.defF), spd: t.spd,
+        morale: 80, artIds: noFight ? [] : bfOrdersFor(rank), _artMap: null, isTroop: true,
+        noFight: noFight, isHub: type === 'zhongjun' };
     }
 
     // ───────── 战前部署（setup）─────────
@@ -163,7 +166,8 @@
           '<div class="bf-srow"><label>宽</label><input id="bf-gw" type="number" min="6" max="40" value="' + st.grid.w + '"/>' +
           '<label>高</label><input id="bf-gh" type="number" min="6" max="40" value="' + st.grid.h + '"/></div></div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">我方部署（兵种 / 阵位 / 兵力）</div>' + allyRows +
-          (st.allies.length < 6 ? '<button type="button" class="bf-sadd bf-add-ally">＋ 添加我军</button>' : '') + '</div>' +
+          (st.allies.length < 6 ? '<button type="button" class="bf-sadd bf-add-ally">＋ 添加我军</button>' : '') +
+          (st.allies.some(function (r) { return r.type === 'zhongjun'; }) ? '' : '<button type="button" class="bf-sadd bf-add-hub">＋ 设中军（帅旗）</button>') + '</div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">敌军部署</div>' + foeRows +
           (st.foes.length < 6 ? '<button type="button" class="bf-sadd bf-add-foe">＋ 添加敌军</button>' : '') + '</div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">调试功能</div>' +
@@ -203,6 +207,7 @@
           else if (t.closest && t.closest('.bf-map')) { st.map = t.closest('.bf-map').getAttribute('data-map'); renderSetup(); }
           else if (t.classList.contains('bf-s-del')) { var row = t.closest('.bf-srow'); var arr = st[row.getAttribute('data-side') === 'ally' ? 'allies' : 'foes']; arr.splice(+row.getAttribute('data-i'), 1); renderSetup(); }
           else if (t.classList.contains('bf-add-ally')) { st.allies.push({ type: 'changqiang', rank: 'front', count: 120 }); renderSetup(); }
+          else if (t.classList.contains('bf-add-hub')) { st.allies.push({ type: 'zhongjun', rank: 'mid', count: 120 }); renderSetup(); }
           else if (t.classList.contains('bf-add-foe')) { st.foes.push({ type: 'qibing', rank: 'flank', count: 120 }); renderSetup(); }
           else if (t.id === 'bf-go') doStart();
           else if (t.id === 'bf-cancel') { hideSetup(); if (preset.allies && preset.allies.length) beginBattle(preset); }
@@ -288,6 +293,8 @@
       var grid = cfg.grid || (LF.BF_SCALE_TO_GRID && LF.BF_SCALE_TO_GRID[cfg.scale]) || LF.BF_DEFAULT_GRID;
       var w = grid.w, h = grid.h;
       var allies = (cfg.allies || []).map(function (u, i) { return toCell(u, 'ally', i); });
+      // 中军排到最后入阵：BF_SPAWN 按索引由近及远铺位，帅旗不能摆在最前一排
+      allies.sort(function (a, b) { return (a && a.isHub ? 1 : 0) - (b && b.isHub ? 1 : 0); });
       var foes = (cfg.foes || []).map(function (u, i) { return toCell(u, 'foe', i); });
       var sp = LF.BF_SPAWN(w, h, allies.length, foes.length, cfg.kind === 'siege' ? 'siege' : 'field');
       allies.forEach(function (u, i) { if (sp.ally[i]) { u.x = sp.ally[i].x; u.y = sp.ally[i].y; } });
@@ -303,6 +310,16 @@
       };
       if (cfg.seed) board._rng = mulberry32(cfg.seed);
       board.speed = cfg.speedDefault || 1; board.skip = !!cfg.skipDefault;
+      // ── 指挥权（v20261109d）：中军=号令中枢，第一营=随主帅的亲军 ──
+      board.hubDown = false; board.detached = false; board._autoRunning = false;
+      board.hubId = null; board.eliteId = null;
+      var hubU = allies.filter(function (u) { return u.isHub; })[0] || null;
+      if (hubU) {
+        var eliteU = allies.filter(function (u) { return !u.isHub; })[0] || null;
+        if (eliteU) eliteU.isElite = true;
+        board.hubId = hubU.id; board.eliteId = eliteU ? eliteU.id : null;
+        board.log.push({ m: '〔布阵〕中军立旗，' + (eliteU ? '「' + eliteU.name + '」随主帅亲临阵前' : '诸营听中军号令') + '。', c: 'warn' });
+      }
       if (cfg.ambush) moraleAll(sideUnits('ally'), 5);
       openModal && openModal('battlefield');
       setFullscreenMode(true);
@@ -319,12 +336,14 @@
         count: u.count, hp: u.hp, maxHp: u.maxHp, atk: u.atk, def: u.def, spd: u.spd,
         morale: u.morale == null ? 80 : u.morale, crit: u.crit || 0,
         move: LF.BF_MOVE(u.spd),
-        // 兵种自带 range 覆盖 slot 默认（弓骑兵 2 / 床弩手 3）；未声明者仍是旧射程
-        range: (u.troopType && T()[u.troopType] && T()[u.troopType].range) || LF.BF_RANGE(slot),
+        // 兵种自带 range 覆盖 slot 默认（弓骑兵 2 / 床弩手 3 / 中军 0）；用 == null 判空，否则 0 会被 || 吞掉
+        range: (function () { var tt = u.troopType && T()[u.troopType]; var r = tt ? tt.range : null; return (r == null) ? LF.BF_RANGE(slot) : r; })(),
         officer: u.officer || null,
         x: 0, y: 0, moved: false, acted: false, routed: false, defending: false,
         dmgDealt: 0, kills: 0, startCount: u.count,
-        isTroop: true, troopType: u.troopType
+        isTroop: true, troopType: u.troopType,
+        noFight: !!(u.troopType && T()[u.troopType] && T()[u.troopType].noFight),
+        isHub: u.troopType === 'zhongjun'
       };
       // 军令：优先用 war.js 已注入的 artIds/_artMap；缺失时用 Army.buildOrdersFor 现算（修复调试台入口只弹取消按钮）
       if (u.artIds && u.artIds.length) {
@@ -337,6 +356,8 @@
           else { nu.orders = []; nu._artMap = null; }
         } catch (e) { nu.orders = []; nu._artMap = null; }
       }
+      // 中军不出手：清空军令，避免指令菜单给出「攻击」这类无效项
+      if (nu.noFight) { nu.orders = []; nu._artMap = null; }
       return nu;
     }
 
@@ -372,7 +393,7 @@
       return out.filter(function (p) { return !unitAt(p.x, p.y); });
     }
     function attackable(u) {
-      if (!board || u.acted) return [];
+      if (!board || u.acted || u.noFight) return [];
       var out = [];
       board.units.forEach(function (e) {
         if (e.side === u.side || e.hp <= 0 || e.routed) return;
@@ -405,6 +426,7 @@
     function formationAtkMul(u) { var F = LF.BF_FORMATION || {}; return (u && u.formation && F[u.formation]) ? (F[u.formation].atkMul || 1) : 1; }
     function formationDefMul(u) { var F = LF.BF_FORMATION || {}; return (u && u.formation && F[u.formation]) ? (F[u.formation].defMul || 1) : 1; }
     function dmgRoll(a, d, orderId, isCounter) {
+      if (a.noFight) return { miss: true };
       var O = (LF.ARMY_ORDERS || {})[orderId] || {};
       if (O.defend) return { miss: true };
       var mul = O.dmgMul || 1;
@@ -467,12 +489,13 @@
     // 攻击：a 对 d 用 orderId 出手；近战相邻则 d 反击（动画在 render 后播放，结束再推进回合）
     function resolveAttack(a, d, orderId) {
       if (!board || a.side !== 'ally' || board.phase !== 'ally' || a.acted) return;
+      if (a.noFight) return;
       if (cheb(a.x, a.y, d.x, d.y) > a.range) return;
       var O = (LF.ARMY_ORDERS || {})[orderId] || {};
       if (O.noTarget) return;
       var r = dmgRoll(a, d, orderId, false);
       var counter = null;
-      if (!r.miss && d.hp > 0 && cheb(a.x, a.y, d.x, d.y) === 1 && !O.defend) {
+      if (!r.miss && d.hp > 0 && !d.noFight && cheb(a.x, a.y, d.x, d.y) === 1 && !O.defend) {
         counter = dmgRoll(d, a, pickCounterOrder(d), true);
         if (counter.miss) counter = null; else applyDamage(a, counter.dmg, d);
       }
@@ -500,6 +523,47 @@
     function sideUnits(side) { return board.units.filter(function (u) { return u.side === side && u.hp > 0 && !u.routed; }); }
     function moraleAll(list, v) { list.forEach(function (u) { u.morale = clampM((u.morale == null ? 80 : u.morale) + v); }); }
     function clampM(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+    // 中军陷落：号令中枢被破 → 非亲军诸营交 AI 自主接战 + 全军士气重挫（一次性，不叠持续）
+    function hubFall(hub) {
+      if (!board || board.hubDown) return;
+      board.hubDown = true;
+      var rest = sideUnits('ally').filter(function (u) { return u !== hub && !u.isElite; });
+      moraleAll(rest, -25);
+      rest.forEach(function (u) { u.auto = true; });
+      log('〔中军陷落〕帅旗倾折，号令不通——诸营失律，各自为战！', 'danger');
+      bfBanner('〔中军陷落〕帅旗倾折，三军失律！', 'danger');
+      try { playSfx('lose'); } catch (e) {}
+      try { buzz([60, 40, 60]); } catch (e) {}
+    }
+    // 托管友军自动行动：中军陷落或主帅离帐后，由同一套 AI 代为主体接战
+    function runAutoAllies(next) {
+      if (!board) { next(); return; }
+      if (board._autoRunning) return;
+      // 不出手的单位（中军）直接视为待命，避免卡住回合推进
+      sideUnits('ally').forEach(function (u) { if (u.noFight) u.acted = true; });
+      var list = sideUnits('ally').filter(function (u) { return u.auto && !u.acted && !u.noFight; });
+      if (!list.length) { next(); return; }
+      board._autoRunning = true;
+      log('〔奉命〕中军代传号令，诸营自行接战。', 'warn');
+      var i = 0;
+      function step() {
+        if (!board || board.over) { if (board) board._autoRunning = false; return; }
+        if (i >= list.length) {
+          board._autoRunning = false; board._acting = null; render();
+          var ov = checkOver();
+          if (ov) { endBattle(ov); return; }
+          setTimeout(next, D(120));
+          return;
+        }
+        var u = list[i++];
+        if (u.acted || u.hp <= 0 || u.routed) { step(); return; }
+        board._acting = u; render(); focusCell(u.x, u.y);
+        setTimeout(function () {
+          aiAct(u, function () { if (board) board._acting = null; render(); setTimeout(step, D(120)); });
+        }, D(180));
+      }
+      setTimeout(step, D(200));
+    }
 
     function foePhase() {
       board.phase = 'foe'; board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null; board._history = [];
@@ -518,7 +582,10 @@
     }
     // 敌方行动（P1-4 升级）：残血优先击杀 / 点后排弓弩 / 规避被克 / 占地形 / 危则后撤
     function aiAct(u, done) {
-      var enemies = sideUnits('ally');
+      if (u.noFight) { done(); return; }
+      // 通用化：敌方 AI 打 ally，被托管的友军打 foe（v20261109d）
+      var isAllyAi = u.side === 'ally';
+      var enemies = sideUnits(isAllyAi ? 'foe' : 'ally');
       if (!enemies.length) { done(); return; }
       function scoreTarget(t) {
         var s = 0, hr = t.hp / t.maxHp;
@@ -526,6 +593,7 @@
         var cm = counterMulOf(u.type, t.type);
         if (cm > 1) s += 0.9; else if (cm < 1) s -= 0.7;
         if (t.range >= 2) s += 0.35;
+        if (t.isHub) s += 2.6;   // 斩首：中军是最高价值目标
         // 集火可斩：预估能直接击溃者优先
         var est = u.atk * (cm > 1 ? 1.25 : cm < 1 ? 0.8 : 1) * 0.92;
         if (est >= t.hp) s += 1.6;
@@ -573,17 +641,17 @@
         var Oo = (LF.ARMY_ORDERS || {})[orderId] || {};
         var r = dmgRoll(u, bestTgt, orderId, false);
         var counter = null;
-        if (!r.miss && bestTgt.hp > 0 && cheb(u.x, u.y, bestTgt.x, bestTgt.y) === 1 && !Oo.defend) {
+        if (!r.miss && bestTgt.hp > 0 && !bestTgt.noFight && cheb(u.x, u.y, bestTgt.x, bestTgt.y) === 1 && !Oo.defend) {
           counter = dmgRoll(bestTgt, u, pickCounterOrder(bestTgt), true);
           if (counter.miss) counter = null; else applyDamage(u, counter.dmg, bestTgt);
         }
-        if (r.miss) log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
-        else { r.lost = casualtyOf(bestTgt, r.dmg); playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit, bestTgt.x - u.x, bestTgt.y - u.y); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', F(300)); log('〔敌袭〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + '（折兵 ' + (r.lost || 0) + '）' + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
+        if (r.miss) log('〔' + (isAllyAi ? '奉命出击' : '敌袭') + '〕' + u.name + '攻' + bestTgt.name + '，被其闪过。', 'danger');
+        else { r.lost = casualtyOf(bestTgt, r.dmg); playSfx(weaponSfx(u.troopType)); shakeGrid(r.crit, bestTgt.x - u.x, bestTgt.y - u.y); applyDamage(bestTgt, r.dmg, u); effectLayer('bf-hit-flash', F(300)); log('〔' + (isAllyAi ? '奉命出击' : '敌袭') + '〕' + u.name + '攻' + bestTgt.name + '，伤 ' + r.dmg + '（折兵 ' + (r.lost || 0) + '）' + (r.counter > 1 ? '（克制）' : r.counter < 1 ? '（被克）' : '') + '。', 'danger'); }
         if (bestTgt.hp <= 0) effectLayer('bf-rout-smoke', F(1200));
         u.acted = true;
         info = { a: u, d: bestTgt, r: r, counter: counter };
       }
-      function finish() { if (info) { render(); if (info.d) { floatHit(info.d, info.r, info.counter); if (info.d.hp <= 0) { routBurst(info.d.x, info.d.y); log('〔破营〕我方' + info.d.name + '营折损！', 'danger'); bfBanner('〔破营〕我方' + info.d.name + '营折损！', 'danger'); } } animateAttack(info, done); } else done(); }
+      function finish() { if (info) { render(); if (info.d) { floatHit(info.d, info.r, info.counter); if (info.d.hp <= 0) { routBurst(info.d.x, info.d.y); var mine = info.d.side === 'ally'; log('〔破营〕' + (mine ? '我方' : '敌') + info.d.name + '营折损！', mine ? 'danger' : 'good'); bfBanner('〔破营〕' + (mine ? '我方' : '敌') + info.d.name + '营折损！', mine ? 'danger' : 'good'); } } animateAttack(info, done); } else done(); }
       if (path) { render(); animateMove(u, path, finish); } else finish();
     }
     // 推进格：目标超出射程时，朝评分最高的敌军逼近。
@@ -661,8 +729,10 @@
       if (over) { render(); endBattle(over); return; }
       render();
     }
+    // 中军不是战力：胜负只按「能交手的营」算，中军得失走 hubFall 的软惩罚
+    function combatUnits(side) { return sideUnits(side).filter(function (u) { return !u.noFight; }); }
     function checkOver() {
-      var a = sideUnits('ally').length, f = sideUnits('foe').length;
+      var a = combatUnits('ally').length, f = combatUnits('foe').length;
       if (f === 0) return 'win';
       if (a === 0) return 'lose';
       if (board.round > (board.cfg.maxRounds || 30)) {
@@ -676,10 +746,10 @@
     function afterAction() {
       var over = checkOver();
       if (over) { render(); endBattle(over); return; }
-      // 若所有 ally 已行动，自动进入敌阶段
-      var allActed = sideUnits('ally').every(function (u) { return u.acted; });
+      // 玩家可操作的营（不含托管营与中军）都行动完 → 先跑托管营，再进敌阶段
+      var rest = sideUnits('ally').filter(function (u) { return !u.acted && !u.auto && !u.noFight; });
       board.sel = null; board.mode = null; board.reach = []; board.attack = [];
-      if (allActed) { render(); foePhase(); }
+      if (!rest.length) { render(); runAutoAllies(function () { foePhase(); }); }
       else render();
     }
 
@@ -965,7 +1035,7 @@
     function buzz(pat) { try { if (navigator.vibrate) navigator.vibrate(pat); } catch (e) {} }
     function bfClick(x, y) {
       if (suppressClick) { suppressClick = false; return; }
-      if (!board || board.over || board.phase !== 'ally') return;
+      if (!board || board.over || board.phase !== 'ally' || board._autoRunning) return;
       var u = unitAt(x, y);
       // 移动模式：点可移动格子直接移动，无需二次确认
       if (board.mode === 'move' && board.sel) {
@@ -975,6 +1045,7 @@
       if (board.mode === 'attack' && board.sel) {
         if (inAttack(x, y)) { openOrderMenu(board.sel, u); return; }
       }
+      if (u && u.side === 'ally' && u.auto) { toast && toast('「' + u.name + '」已交中军节制，自主接战。'); return; }
       if (u && u.side === 'ally') { board.sel = u; board.mode = null; board.reach = reachable(u); board.attack = attackable(u); board.threat = null; board._previewFoe = null; board.pendingMove = null; board._pathPreview = []; playSfx('select'); buzz(8); render(); focusCell(u.x, u.y); return; }
       // 选中后直接点可达空格 = 直接移动
       if (board.sel && !u && inReach(x, y)) { commitMove(x, y); return; }
@@ -1029,7 +1100,7 @@
     }
     function bfPathClear() { if (board && board._pathPreview && board._pathPreview.length) { board._pathPreview = []; updatePathDots(); } }
     function bfOrder(cmd) { // 浮出菜单按钮：move / attack / wait / detail / formation
-      if (!board || !board.sel || board.phase !== 'ally') return;
+      if (!board || !board.sel || board.phase !== 'ally' || board._autoRunning) return;
       board.threat = null;
       var u = board.sel;
       if (cmd === 'move') { board.mode = 'move'; board.reach = reachable(u); board.attack = []; board.pendingMove = null; board._pathPreview = []; render(); }
@@ -1039,16 +1110,33 @@
       else if (cmd === 'formation') { openFormationModal(u); }
     }
     function bfEndTurn() { // 统一结束回合：一 tap 即可，无需逐个待机
-      if (!board || board.over || board.phase !== 'ally') return;
+      if (!board || board.over || board.phase !== 'ally' || board._autoRunning) return;
       board.sel = null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
       closeSheet();
-      foePhase();
+      runAutoAllies(function () { foePhase(); });
+    }
+    // 率亲军脱离：把大部队指挥权交回中军（AI 托管），玩家只带亲军冲杀
+    function bfDetach() {
+      if (!board || board.over) return;
+      if (board.phase !== 'ally' || board._autoRunning) return;
+      if (!board.hubId) { toast && toast('本战未设中军，无从脱离。'); return; }
+      if (board.detached) { toast && toast('亲军已脱离，诸营正自行接战。'); return; }
+      if (board.hubDown) { toast && toast('中军已破，号令早断。'); return; }
+      var elite = board.units.filter(function (u) { return u.isElite && u.hp > 0 && !u.routed; })[0];
+      if (!elite) { toast && toast('亲军已没，无从脱离。'); return; }
+      board.detached = true;
+      sideUnits('ally').forEach(function (u) { if (!u.isElite && !u.isHub) u.auto = true; });
+      log('〔离帐〕你率「' + elite.name + '」出阵，余部交中军节制——此后诸营自行接战。', 'warn');
+      bfBanner('〔离帐〕亲军随主帅出阵，余部自主接战！', 'warn');
+      board.sel = elite; board.mode = null; board.threat = null;
+      board.reach = reachable(elite); board.attack = attackable(elite);
+      render();
     }
     // 撤销：回合内可逐级回退上一步（移动/攻击），含受击方血量，避免误触劝退
     function pushHistory(actor) {
       if (!board) return;
-      var snap = { actor: actor ? actor.id : null,
-        units: board.units.map(function (u) { return { id: u.id, x: u.x, y: u.y, moved: u.moved, acted: u.acted, hp: u.hp, count: u.count, dmgDealt: u.dmgDealt, kills: u.kills, routed: u.routed }; }) };
+      var snap = { actor: actor ? actor.id : null, hubDown: !!board.hubDown, detached: !!board.detached,
+        units: board.units.map(function (u) { return { id: u.id, x: u.x, y: u.y, moved: u.moved, acted: u.acted, hp: u.hp, count: u.count, dmgDealt: u.dmgDealt, kills: u.kills, routed: u.routed, morale: u.morale, auto: !!u.auto }; }) };
       board._history.push(snap);
       if (board._history.length > 16) board._history.shift();
     }
@@ -1057,7 +1145,8 @@
       if (!board._history.length) return;
       var snap = board._history.pop();
       var byId = {}; board.units.forEach(function (u) { byId[u.id] = u; });
-      snap.units.forEach(function (s) { var u = byId[s.id]; if (!u) return; u.x = s.x; u.y = s.y; u.moved = s.moved; u.acted = s.acted; u.hp = s.hp; u.count = s.count; u.dmgDealt = s.dmgDealt; u.kills = s.kills; u.routed = s.routed; });
+      snap.units.forEach(function (s) { var u = byId[s.id]; if (!u) return; u.x = s.x; u.y = s.y; u.moved = s.moved; u.acted = s.acted; u.hp = s.hp; u.count = s.count; u.dmgDealt = s.dmgDealt; u.kills = s.kills; u.routed = s.routed; if (s.morale != null) u.morale = s.morale; u.auto = !!s.auto; });
+      board.hubDown = !!snap.hubDown; board.detached = !!snap.detached;
       var a = snap.actor ? byId[snap.actor] : null;
       board.sel = (a && a.hp > 0) ? a : null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
       if (board.sel) { board.reach = reachable(board.sel); board.attack = attackable(board.sel); }
@@ -1066,7 +1155,7 @@
     }
     function bfNextUnit() { // 跳到下一个未行动的我军营，并弹出指令菜单
       if (!board || board.over || board.phase !== 'ally') return;
-      var list = sideUnits('ally').filter(function (u) { return !u.acted; });
+      var list = sideUnits('ally').filter(function (u) { return !u.acted && !u.auto && !u.noFight; });
       if (!list.length) { toast && toast('全军已待命，可结束回合。'); return; }
       var idx = 0;
       if (board.sel) { for (var i = 0; i < list.length; i++) { if (list[i] === board.sel) { idx = (i + 1) % list.length; break; } } }
@@ -1250,7 +1339,8 @@
       if (top) {
         var aN = sideUnits('ally').length, fN = sideUnits('foe').length;
         var aHp = totalHp('ally'), fHp = totalHp('foe');
-        top.innerHTML = '<span class="bf-top-l">第 ' + board.round + ' 回合 · ' + (board.phase === 'ally' ? '我军阶段' : '敌军阶段') + '</span>' +
+        var hubFlag = board.hubId ? (board.hubDown ? ' · <b class="bf-hub-down">中军已破</b>' : (board.detached ? ' · <b class="bf-hub-out">亲军出阵</b>' : ' · 中军立旗')) : '';
+        top.innerHTML = '<span class="bf-top-l">第 ' + board.round + ' 回合 · ' + (board.phase === 'ally' ? '我军阶段' : '敌军阶段') + hubFlag + '</span>' +
           '<span class="bf-top-m">' + esc(board.title) + '</span>' +
           '<span class="bf-top-r">我 ' + aN + '/' + aHp + ' · 敌 ' + fN + '/' + fHp + '</span>' +
           '<button type="button" class="bf-top-btn bf-undo-btn" title="撤销上一步" onclick="window.bfUndo()"' + (board._history && board._history.length ? '' : ' disabled') + '>↩</button>' +
@@ -1320,7 +1410,9 @@
           if (u) {
             if (board.sel === u) cls += ' bf-sel';
             if (u.acted) cls += ' bf-acted';
-            if (board.phase === 'foe' && board._acting === u) cls += ' bf-acting';
+            if (u.isHub) cls += ' bf-hub';
+            if (u.auto) cls += ' bf-auto-u';
+            if (board._acting === u) cls += ' bf-acting';
             var danger = (u.hp / u.maxHp < (LF.BF_ROUT ? LF.BF_ROUT.hpRatio : 0.5)) || ((u.morale == null ? 80 : u.morale) < (LF.BF_ROUT ? LF.BF_ROUT.morale : 45));
             if (danger) cls += ' bf-danger';
             var band = (LF.moraleBand ? LF.moraleBand(u.morale) : { color: '#C8B78F' }).color;
@@ -1342,6 +1434,8 @@
               '<b class="bf-u-cnt">' + (u.count || 0) + '</b>' +
               '<i class="bf-u-hp"><i class="bf-u-hp-fill" style="width:' + hpPct + '%"></i><i class="bf-u-hp-ghost" data-to="' + hpPct + '" style="width:' + ghostPct + '%"></i></i>' +
               '<i class="bf-u-mor"><i style="width:' + morPct + '%"></i></i>' +
+              (u.isHub ? '<i class="bf-hub-tag">中</i>' : '') +
+              (u.auto ? '<i class="bf-auto-tag">托</i>' : '') +
               (u.acted ? '<i class="bf-acted-tag">已</i>' : '') +
               '</div>';
           } else {
@@ -1386,16 +1480,20 @@
           moreMenu.hidden = true;
           moreMenu.innerHTML =
             '<button type="button" class="bf-more-item" id="bf-nx">下一营</button>' +
+            '<button type="button" class="bf-more-item" id="bf-dt">' + (board.detached ? '亲军已脱离' : (board.hubDown ? '中军已破' : '率亲军脱离')) + '</button>' +
             '<button type="button" class="bf-more-item" id="bf-rt">' + (board._retreatAsk ? '确认撤退？' : '鸣金收兵') + '</button>';
           var rootEl = document.getElementById('bf-root');
           if (rootEl) rootEl.appendChild(moreMenu);
           var nx = document.getElementById('bf-nx'); if (nx) nx.onclick = function () { moreMenu.hidden = true; bfNextUnit(); };
+          var dt = document.getElementById('bf-dt'); if (dt) dt.onclick = function () { moreMenu.hidden = true; bfDetach(); };
           var rt = document.getElementById('bf-rt'); if (rt) rt.onclick = function () { moreMenu.hidden = true; bfRetreat(); };
           // 点其他地方关闭更多菜单（仅创建时绑一次，避免每次 render 泄漏监听器）
           document.addEventListener('click', function (e) { if (!e.target.closest('#bf-more') && !e.target.closest('#bf-more-menu')) moreMenu.hidden = true; });
         } else {
           var rtB = document.getElementById('bf-rt');
           if (rtB) rtB.textContent = board._retreatAsk ? '确认撤退？' : '鸣金收兵';
+          var dtB = document.getElementById('bf-dt');
+          if (dtB) { dtB.textContent = board.detached ? '亲军已脱离' : (board.hubDown ? '中军已破' : '率亲军脱离'); dtB.disabled = !!(board.detached || board.hubDown || !board.hubId || board._autoRunning); }
         }
         var moreBtn = document.getElementById('bf-more');
         if (moreBtn && moreMenu) moreBtn.onclick = function (e) { e.stopPropagation(); moreMenu.hidden = !moreMenu.hidden; };
@@ -1870,7 +1968,8 @@
       endBattle: endBattle,
       openSetup: openSetup,
       isActive: function () { return !!board && !board.over; },
-      reachable: reachable, attackable: attackable, resolveAttack: resolveAttack
+      reachable: reachable, attackable: attackable, resolveAttack: resolveAttack,
+      _board: function () { return board; }, _damage: applyDamage
     };
     // 攻击预演面板（桌面悬停 / 选定后常驻显示）
     function updateAttackPreview() {
@@ -1917,6 +2016,7 @@
       window.bfCancelMove = function () { if (board && board.pendingMove) { board.pendingMove = null; board._pathPreview = []; render(); } };
       window.bfNextUnit = bfNextUnit;
       window.bfOpenSetup = openSetup;
+      window.bfDetach = bfDetach;
       window.bfCloseResult = bfCloseResult;
       window.bfSpeed = function (s) {
         if (!board) return;

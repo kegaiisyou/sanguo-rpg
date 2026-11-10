@@ -4792,7 +4792,7 @@
     var allies = [], foes = [];
     var troops = (st && st.army && st.army.troops) || [];
     // 调试战棋默认阵容池：v20261109c 纳入新兵科，便于不开存档也能体验远射/火攻/突击
-    var types = ['changqiang','daodun','gongnu','qibing','daji','gongqi','chuangnu','huoshi','xianzhen'];
+    var types = ['zhongjun','changqiang','daodun','gongnu','qibing','daji','gongqi','chuangnu','huoshi','xianzhen'];
     function mku(type, rank, count){
       var t = (LF.TROOPS||{})[type]; if(!t) return null;
       return War.mkUnit(t.name, count, {hp:t.hp,atk:t.atk,def:t.def,spd:t.spd}, {troopType:type, rank:rank, morale:80});
