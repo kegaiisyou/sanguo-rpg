@@ -59,7 +59,7 @@
 - [ ] 主按钮用 `.btn` 或其变体，未新造按钮类。
 - [ ] 交互模型未被静默改变（尤其背包/商店）。
 - [ ] 破坏操作有二次确认。
-- [ ] 改了 `shared/*.js` → 跑 `python tools/bundle.py`（连跑两次），并手动 bump `index.html` 里 `game.css?v=`；`constants.js` 的 `VERSION` 与所有 `?v=` 对齐。
+- [ ] 改了 `shared/*.js` / `shared/css/*` → 跑 `python tools/bundle.py`（连跑两次），`tools/verify_versions.py` 自动核对 `constants.js` / `tools/bundle.py` / `index.html` 的 `?v=` 与 `game.css?v` 四源一致；`game.css?v` 无需手动 bump（已由 `tools/bundle.py:158` 同步）。
 - [ ] 单一职责提交，描述含版本号，便于审查回溯。
 
 ## 6. 物品格子与详情（统一规范，v20260929i 落地）

@@ -4274,6 +4274,8 @@
 .bf-auto-tag{ color:#efe7d4; background:rgba(58,46,28,.85); }
 .bf-unit.bf-auto-u{ border-style:dashed; }
 .bf-top-l .bf-hub-down{ color:#d94f3d; }
+.bf-hub-flag{ margin-left:6px; font-weight:700; white-space:nowrap; flex:0 0 auto; }
+
 .bf-top-l .bf-hub-out{ color:#c9a13c; }
 .bf-u-cnt{ position:absolute; top:1px; right:1px; font-style:normal; font-weight:800; font-size:calc(var(--bf-cs,30px) * .26);
   background:rgba(24,17,10,.72); color:#fff; border-radius:999px; padding:0 3px; line-height:1.25; pointer-events:none; z-index:4;
@@ -4326,6 +4328,9 @@
 .bf-bar .btn{ min-width:auto; padding:6px 12px; font-size:13px; }
 /* 底部常驻单位坞（横排小卡，位于操作条之上） */
 .bf-dock{ position:absolute; left:0; right:0; bottom:56px; z-index:36; display:flex; align-items:center; gap:6px; padding:4px 8px; overflow-x:auto; overflow-y:hidden; border-top:1px solid var(--bf-line); background:rgba(236,227,209,.92); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); box-shadow:0 -2px 8px rgba(0,0,0,.10); pointer-events:none; -webkit-overflow-scrolling:touch; }
+.bf-dk-next{ flex:0 0 auto; width:44px; height:54px; display:flex; align-items:center; justify-content:center; border:1px solid var(--bf-gold); border-radius:10px; background:rgba(176,131,47,.16); color:var(--bf-gold); font-size:22px; font-weight:800; cursor:pointer; }
+.bf-dk-next:active{ transform:scale(.94); }
+
 .bf-dock[hidden]{ display:none; }
 .bf-dock::-webkit-scrollbar{ display:none; }
 .bf-dock > *{ pointer-events:auto; }
@@ -4578,14 +4583,14 @@
 .bf-ssec{ background:rgba(255,255,255,.55); border:1px solid rgba(74,62,48,.18); border-radius:12px; padding:12px 14px; margin:12px 0; }
 .bf-ssec-t{ font-size:14px; color:#5a4a30; font-weight:700; margin-bottom:10px; }
 .bf-spresets{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
-.bf-gp{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:10px; padding:9px 14px; font-size:13px; cursor:pointer; min-height:40px; }
+.bf-gp{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:10px; padding:9px 14px; font-size:13px; cursor:pointer; min-height:var(--bf-touch); }
 .bf-gp.on{ background:#b0832f; border-color:#b0832f; box-shadow:0 0 0 1px rgba(176,131,47,.55); }
 .bf-srow{ display:flex; align-items:center; gap:8px; margin:6px 0; flex-wrap:wrap; }
 .bf-srow label{ font-size:13px; color:#5a4a30; }
-.bf-srow select, .bf-srow input{ background:#fffdf7; color:#2a2014; border:1px solid rgba(74,62,48,.25); border-radius:8px; padding:8px; font-size:13px; min-height:40px; }
+.bf-srow select, .bf-srow input{ background:#fffdf7; color:#2a2014; border:1px solid rgba(74,62,48,.25); border-radius:8px; padding:8px; font-size:13px; min-height:var(--bf-touch); }
 .bf-srow .bf-s-count{ width:84px; }
-.bf-s-del{ background:#9e3b2e; color:#fff; border:1px solid rgba(158,59,46,.5); border-radius:9px; width:40px; height:40px; font-size:16px; cursor:pointer; }
-.bf-sadd{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:10px; padding:9px 14px; font-size:13px; margin-top:6px; cursor:pointer; min-height:40px; }
+.bf-sdel{ background:#9e3b2e; color:#fff; border:1px solid rgba(158,59,46,.5); border-radius:9px; width:var(--bf-touch); height:var(--bf-touch); font-size:16px; cursor:pointer; }
+.bf-sadd{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:10px; padding:9px 14px; font-size:13px; margin-top:6px; cursor:pointer; min-height:var(--bf-touch); }
 /* ── 布阵盘（v20261110a）：把「自动排」改成「玩家摆」 ── */
 .bf-dboard{ display:grid; grid-template-columns:repeat(var(--gw,12),1fr); gap:2px; width:100%; max-width:440px; margin:0 auto;
   background:rgba(74,62,48,.10); border:1px solid rgba(74,62,48,.25); border-radius:10px; padding:5px; box-sizing:border-box; }
@@ -4609,8 +4614,8 @@
 .bf-dboard-legend .lg-mine{ background:rgba(176,131,47,.6); }
 .bf-dboard-legend .lg-foe{ background:rgba(158,59,46,.65); margin-left:8px; }
 .bf-srow.is-sel{ background:rgba(176,131,47,.14); border-radius:8px; }
-.bf-sport{ position:relative; width:36px; height:36px; flex:0 0 auto; border-radius:9px; overflow:hidden; border:1px solid rgba(74,62,48,.25); background:#fff; }
-.bf-slocate{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:9px; padding:8px 10px; font-size:12px; cursor:pointer; flex:0 0 auto; min-height:38px; }
+.bf-sport{ position:relative; width:var(--bf-touch); height:var(--bf-touch); flex:0 0 auto; border-radius:9px; overflow:hidden; border:1px solid rgba(74,62,48,.25); background:#fff; }
+.bf-slocate{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:9px; padding:8px 10px; font-size:12px; cursor:pointer; flex:0 0 auto; min-height:var(--bf-touch); }
 .bf-slocate.on{ background:#b0832f; color:#fff; font-weight:700; border-color:#b0832f; }
 .bf-dbg-row{ display:flex; align-items:center; gap:8px; margin:8px 0; font-size:13px; color:#4a3d2a; }
 .bf-dbg-row input[type=number]{ width:80px; background:#fffdf7; color:#2a2014; border:1px solid rgba(74,62,48,.25); border-radius:7px; padding:7px; min-height:38px; }
@@ -4691,7 +4696,7 @@
   .bf-plate-stats{ font-size:var(--bf-fs-sm); }
   .bf-unit-card{ gap:6px; }
   .bf-dock{ bottom:calc(60px + env(safe-area-inset-bottom,0px)); gap:5px; padding:3px 6px; }
-  .bf-dk-card{ width:42px; height:54px; }
+  .bf-root .bf-dk-card{ width:44px; height:54px; }
   .bf-dk-ava{ width:30px; height:30px; }
   .bf-dk-hp{ width:26px; }
   .bf-u-type{ font-size:calc(var(--bf-cs,30px) * .3); padding:0 2px; }
@@ -4859,6 +4864,12 @@
 .bf-order-ico.ico-xianzhen, .bf-mvp-ico.ico-xianzhen{ background-image:url('../../assets/battlefield/token_xianzhen.webp?v=20261110f'); }
 .bf-order-ico.ico-zhongjun, .bf-mvp-ico.ico-zhongjun{ background-image:url('../../assets/battlefield/token_zhongjun.webp?v=20261110f'); }
 .bf-root.bf-hc .bf-order-ico, .bf-root.bf-hc .bf-mvp-ico{ background-image:none !important; }
+.bf-root.bf-hc .bf-ava-art{ background-image:none !important; }
+.bf-root.bf-hc .bf-ava-art::before, .bf-root.bf-hc .bf-order-ico::before, .bf-root.bf-hc .bf-mvp-ico::before{ content:''; display:flex; align-items:center; justify-content:center; font-weight:800; color:#111; font-size:15px; line-height:1; }
+.bf-root.bf-hc .bf-ava-art::before{ content:'将'; }
+.bf-root.bf-hc .bf-order-ico::before{ content:'序'; }
+.bf-root.bf-hc .bf-mvp-ico::before{ content:'勇'; }
+
 /* 战功榜卡片 */
 .bf-result-mvp{ margin:10px 0; padding:8px 10px; border:1px solid var(--bf-line); border-radius:12px; background:rgba(255,253,248,.55); }
 .bf-mvp-h{ font-size:13px; font-weight:800; color:var(--bf-gold); letter-spacing:1px; margin-bottom:6px; }

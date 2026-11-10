@@ -1446,7 +1446,8 @@
         var aN = sideUnits('ally').length, fN = sideUnits('foe').length;
         var aHp = totalHp('ally'), fHp = totalHp('foe');
         var hubFlag = board.hubId ? (board.hubDown ? ' · <b class="bf-hub-down">中军已破</b>' : (board.detached ? ' · <b class="bf-hub-out">亲军出阵</b>' : ' · <span class="bf-hub-ok">中军立旗</span>')) : '';
-        top.innerHTML = '<span class="bf-top-l">第 ' + board.round + ' 回合 · ' + (board.phase === 'ally' ? '我军阶段' : '敌军阶段') + hubFlag + '</span>' +
+        top.innerHTML = '<span class="bf-top-l">第 ' + board.round + ' 回合 · ' + (board.phase === 'ally' ? '我军阶段' : '敌军阶段') + '</span>' +
+          (hubFlag ? '<span class="bf-hub-flag">' + hubFlag + '</span>' : '') +
           '<span class="bf-top-m">' + esc(board.title) + '</span>' +
           '<span class="bf-top-r">我 ' + aN + '/' + aHp + ' · 敌 ' + fN + '/' + fHp + '</span>' +
           '<button type="button" class="bf-top-btn bf-undo-btn" title="撤销上一步" onclick="window.bfUndo()"' + (board._history && board._history.length ? '' : ' disabled') + '>↩</button>' +
@@ -1774,6 +1775,7 @@
       sideUnits('ally').forEach(function (u) { html += card(u, false); });
       var foes = sideUnits('foe');
       if (foes.length) { html += '<span class="bf-dk-sep"></span>'; foes.forEach(function (u) { html += card(u, true); }); }
+        html += '<button type="button" class="bf-dk-next" onclick="bfNextUnit()" title="下一未动营">⇉</button>';
       dock.innerHTML = html;
     }
 
