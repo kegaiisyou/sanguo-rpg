@@ -4791,8 +4791,8 @@
     var st = state;
     var allies = [], foes = [];
     var troops = (st && st.army && st.army.troops) || [];
-    // 调试战棋默认阵容池：v20261109c 纳入新兵科，便于不开存档也能体验远射/火攻/突击
-    var types = ['zhongjun','changqiang','daodun','gongnu','qibing','daji','gongqi','chuangnu','huoshi','xianzhen'];
+    // 调试战棋默认阵容池：v20261111a 纳入 4 新兵种；敌方改由出征权重表加权随机，不开存档也能遇到各兵种
+    var types = ['zhongjun','changqiang','daodun','gongnu','qibing','daji','gongqi','chuangnu','huoshi','xianzhen','tengjia','xiangbing','huangjin_lishi','huangjinjun'];
     function mku(type, rank, count){
       var t = (LF.TROOPS||{})[type]; if(!t) return null;
       return War.mkUnit(t.name, count, {hp:t.hp,atk:t.atk,def:t.def,spd:t.spd}, {troopType:type, rank:rank, morale:80});
@@ -4802,7 +4802,14 @@
     } else {
       for (var i=0;i<3;i++){ var u=mku(types[(i*3)%types.length], ['front','mid','rear'][i], 150); if(u) allies.push(u); }
     }
-    for (var j=0;j<3;j++){ var f=mku(types[(j*3+1)%types.length], ['front','mid','rear'][j], 140); if(f) foes.push(f); }
+    // 敌方按场景权重池加权随机、尽量不重复（v20261111a）
+    var foePool = kind === 'siege' ? 'siege' : 'field', usedFoe = {};
+    for (var j=0;j<3;j++){
+      var ft = null, guard = 0;
+      do { ft = LF.BF_PICK_FOE(foePool); guard++; } while (usedFoe[ft] && guard < 12);
+      usedFoe[ft] = 1;
+      var f = mku(ft, ['front','mid','rear'][j], 140); if(f) foes.push(f);
+    }
     Battlefield.start({
       kind: kind==='siege'?'siege':'field', scale:'field', seg: kind==='siege'?'gate':null,
       allies: allies, foes: foes, ambush:false, night:false,

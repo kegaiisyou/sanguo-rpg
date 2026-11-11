@@ -4247,6 +4247,11 @@
 .bf-u-ico.ico-chuangnu{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_chuangnu.webp?v=20261110f'); }
 .bf-u-ico.ico-huoshi{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_huoshi.webp?v=20261110f'); }
 .bf-u-ico.ico-xianzhen{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_xianzhen.webp?v=20261110f'); }
+/* 兵种扩展（v20261111）：4 种特殊军 */
+.bf-u-ico.ico-tengjia{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_tengjia.webp?v=20261111a'); }
+.bf-u-ico.ico-xiangbing{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_xiangbing.webp?v=20261111a'); }
+.bf-u-ico.ico-huangjin_lishi{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_huangjin_lishi.webp?v=20261111a'); }
+.bf-u-ico.ico-huangjinjun{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_huangjinjun.webp?v=20261111a'); }
 /* 中军（帅旗）：v20261110e 起用 AI 写实立绘；高对比模式仍回退「中」字。 */
 .bf-u-ico.ico-zhongjun{ background-image:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 50%), url('../../assets/battlefield/token_zhongjun.webp?v=20261110f'); }
 /* 单字兜底：正常模式已立绘，仅高对比模式回退显示兵种单字 */
@@ -4410,6 +4415,10 @@
 .bf-ava-art.ico-chuangnu{ background-image:url('../../assets/battlefield/token_chuangnu.webp?v=20261110f'); }
 .bf-ava-art.ico-huoshi{ background-image:url('../../assets/battlefield/token_huoshi.webp?v=20261110f'); }
 .bf-ava-art.ico-xianzhen{ background-image:url('../../assets/battlefield/token_xianzhen.webp?v=20261110f'); }
+.bf-ava-art.ico-tengjia{ background-image:url('../../assets/battlefield/token_tengjia.webp?v=20261111a'); }
+.bf-ava-art.ico-xiangbing{ background-image:url('../../assets/battlefield/token_xiangbing.webp?v=20261111a'); }
+.bf-ava-art.ico-huangjin_lishi{ background-image:url('../../assets/battlefield/token_huangjin_lishi.webp?v=20261111a'); }
+.bf-ava-art.ico-huangjinjun{ background-image:url('../../assets/battlefield/token_huangjinjun.webp?v=20261111a'); }
 .bf-ava-art.ico-zhongjun{ background-image:url('../../assets/battlefield/token_zhongjun.webp?v=20261110f'); }
 .bf-ava-art[class*="ico-"]{ background-position:center 18%; }
 .bf-plate-info{ flex:1 1 auto; min-width:0; pointer-events:none; text-align:left; padding:2px 0; }
@@ -4862,6 +4871,10 @@
 .bf-order-ico.ico-chuangnu, .bf-mvp-ico.ico-chuangnu{ background-image:url('../../assets/battlefield/token_chuangnu.webp?v=20261110f'); }
 .bf-order-ico.ico-huoshi, .bf-mvp-ico.ico-huoshi{ background-image:url('../../assets/battlefield/token_huoshi.webp?v=20261110f'); }
 .bf-order-ico.ico-xianzhen, .bf-mvp-ico.ico-xianzhen{ background-image:url('../../assets/battlefield/token_xianzhen.webp?v=20261110f'); }
+.bf-order-ico.ico-tengjia, .bf-mvp-ico.ico-tengjia{ background-image:url('../../assets/battlefield/token_tengjia.webp?v=20261111a'); }
+.bf-order-ico.ico-xiangbing, .bf-mvp-ico.ico-xiangbing{ background-image:url('../../assets/battlefield/token_xiangbing.webp?v=20261111a'); }
+.bf-order-ico.ico-huangjin_lishi, .bf-mvp-ico.ico-huangjin_lishi{ background-image:url('../../assets/battlefield/token_huangjin_lishi.webp?v=20261111a'); }
+.bf-order-ico.ico-huangjinjun, .bf-mvp-ico.ico-huangjinjun{ background-image:url('../../assets/battlefield/token_huangjinjun.webp?v=20261111a'); }
 .bf-order-ico.ico-zhongjun, .bf-mvp-ico.ico-zhongjun{ background-image:url('../../assets/battlefield/token_zhongjun.webp?v=20261110f'); }
 .bf-root.bf-hc .bf-order-ico, .bf-root.bf-hc .bf-mvp-ico{ background-image:none !important; }
 .bf-root.bf-hc .bf-ava-art{ background-image:none !important; }

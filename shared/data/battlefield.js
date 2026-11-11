@@ -141,5 +141,44 @@
     return t;
   };
 
+  // ── AI 出征权重表（v20261111a）：按场景/势力给出带权重的兵种池，数据驱动、可随时增删 ──
+  // 每项 {type: troopType, w: 相对权重}；新兵种按定位入池，象兵/藤甲作稀有遭遇，黄巾入流寇与太平道池。
+  // 新增兵种只需在对应池追加一行，无需改 core 调用签名。
+  LF.BF_FOE_WEIGHTS = {
+    // 野战·流寇/过路兵马：泛化步卒为主，黄巾流寇次之，南中兵种为稀有遭遇
+    field: [
+      { type: 'changqiang', w: 22 }, { type: 'daodun', w: 22 }, { type: 'gongnu', w: 15 },
+      { type: 'huangjinjun', w: 12 }, { type: 'qibing', w: 10 }, { type: 'huangjin_lishi', w: 6 },
+      { type: 'daji', w: 4 }, { type: 'gongqi', w: 3 }, { type: 'huoshi', w: 3 },
+      { type: 'tengjia', w: 2 }, { type: 'xiangbing', w: 1 }
+    ],
+    // 攻城·守军：刀盾弓弩据城，床弩守城，藤甲少量
+    siege: [
+      { type: 'daodun', w: 28 }, { type: 'gongnu', w: 26 }, { type: 'changqiang', w: 20 },
+      { type: 'chuangnu', w: 8 }, { type: 'daji', w: 6 }, { type: 'qibing', w: 6 },
+      { type: 'tengjia', w: 4 }, { type: 'huangjinjun', w: 2 }
+    ],
+    // 南中势力（备用）：藤甲巨象为主
+    nanman: [
+      { type: 'tengjia', w: 32 }, { type: 'xiangbing', w: 18 }, { type: 'changqiang', w: 16 },
+      { type: 'daodun', w: 12 }, { type: 'huangjinjun', w: 12 }, { type: 'gongnu', w: 10 }
+    ],
+    // 黄巾/太平道：乌合黄巾军与力士为主
+    turban: [
+      { type: 'huangjinjun', w: 38 }, { type: 'huangjin_lishi', w: 24 }, { type: 'changqiang', w: 14 },
+      { type: 'daodun', w: 12 }, { type: 'gongnu', w: 12 }
+    ]
+  };
+
+  // ── 加权随机选兵种：rnd 可注入（用 board._rng 保持种子确定性），缺省 Math.random ──
+  LF.BF_PICK_FOE = function (poolKey, rnd) {
+    var list = LF.BF_FOE_WEIGHTS[poolKey] || LF.BF_FOE_WEIGHTS.field;
+    var total = 0;
+    for (var i = 0; i < list.length; i++) total += list[i].w;
+    var roll = (typeof rnd === 'function' ? rnd() : Math.random()) * total;
+    for (var j = 0; j < list.length; j++) { roll -= list[j].w; if (roll < 0) return list[j].type; }
+    return list[list.length - 1].type;
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = LF;
 })(typeof window !== 'undefined' ? window : globalThis);

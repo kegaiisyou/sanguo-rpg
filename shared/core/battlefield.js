@@ -547,9 +547,13 @@
       if (rng() > hit) return { miss: true };
       var defMul = (terrD.defMul || 1) * formationDefMul(d) * (C.terrainDefMul || 1);
       // 兵科特性：火矢焚林/垒/城，床弩破城垣/营垒（数据驱动，见 troops.js 可选字段）
-      var trait = T()[a.troopType] || {}, traitMul = 1;
+      var trait = T()[a.troopType] || {}, dTrait = T()[d.troopType] || {}, traitMul = 1;
       if (trait.fire && (terrD.key === 'forest' || terrD.key === 'rampart' || terrD.key === 'wall')) traitMul *= 1.25;
       if (trait.siegeBonus && (terrD.key === 'wall' || terrD.key === 'rampart')) traitMul *= (1 + trait.siegeBonus);
+      // 兵种扩展轻量机制：火矢火攻克惧火、象兵踩踏克步/辅、床弩/械克畏械
+      if (trait.fire && dTrait.weakFire) traitMul *= 1.6;
+      if (trait.trample && (dTrait.slot === '步' || dTrait.slot === '辅')) traitMul *= 1.5;
+      if (dTrait.weakSiege && (trait.siegeBonus || trait.slot === '械')) traitMul *= 1.5;
       var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a) * traitMul;
       var defReduce = Math.min(0.8, (d.def * defMul) / 100);
       var val = raw * (1 - defReduce) * (0.9 + rng() * 0.2);
@@ -572,9 +576,13 @@
       var hit = Math.max(0.05, 0.95 - dodge);
       var defMul = (terrD.defMul || 1) * formationDefMul(d) * (C.terrainDefMul || 1);
       // 兵科特性：火矢焚林/垒/城，床弩破城垣/营垒（数据驱动，见 troops.js 可选字段）
-      var trait = T()[a.troopType] || {}, traitMul = 1;
+      var trait = T()[a.troopType] || {}, dTrait = T()[d.troopType] || {}, traitMul = 1;
       if (trait.fire && (terrD.key === 'forest' || terrD.key === 'rampart' || terrD.key === 'wall')) traitMul *= 1.25;
       if (trait.siegeBonus && (terrD.key === 'wall' || terrD.key === 'rampart')) traitMul *= (1 + trait.siegeBonus);
+      // 兵种扩展轻量机制：火矢火攻克惧火、象兵踩踏克步/辅、床弩/械克畏械
+      if (trait.fire && dTrait.weakFire) traitMul *= 1.6;
+      if (trait.trample && (dTrait.slot === '步' || dTrait.slot === '辅')) traitMul *= 1.5;
+      if (dTrait.weakSiege && (trait.siegeBonus || trait.slot === '械')) traitMul *= 1.5;
       var raw = a.atk * mul * atkMul * counterMul * moraleMul * formationAtkMul(a) * traitMul;
       var defReduce = Math.min(0.8, (d.def * defMul) / 100);
       var avg = raw * (1 - defReduce);

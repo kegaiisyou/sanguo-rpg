@@ -24,6 +24,12 @@
     gongqi: { id: 'gongqi', name: '弓骑兵', slot: '骑', atk: 8, def: 4, hp: 20, spd: 19, cost: 3, upkeep: 3, range: 2, desc: '胡服角弓，且走且射；骑中唯一能远袭者，近身即溃。' },
     chuangnu: { id: 'chuangnu', name: '床弩手', slot: '械', atk: 12, def: 3, hp: 18, spd: 5, cost: 3, upkeep: 3, range: 3, siegeBonus: 0.30, desc: '绞盘上弦，三格穿坚；专破城垣营垒，转移极缓。' },
     huoshi: { id: 'huoshi', name: '火矢手', slot: '远', atk: 8, def: 3, hp: 17, spd: 12, cost: 2, upkeep: 2, fire: true, desc: '缚膏纵火，射林焚垒；遇木石工事其焰更炽。' },
+    // ── v20261111 兵种扩展（A 类形象差异化）：机制为轻量 flag，结算见 battlefield.js dmgRoll/dmgEstimate ──
+    // weakFire 受火伤×1.6；trample 对步/辅×1.5；weakSiege 受床弩/械×1.5。
+    tengjia: { id: 'tengjia', name: '藤甲兵', slot: '步', atk: 6, def: 14, hp: 28, spd: 12, cost: 2, upkeep: 2, weakFire: true, desc: '藤甲蔽身，刀枪难入；唯惧火攻。' },
+    xiangbing: { id: 'xiangbing', name: '象兵', slot: '骑', atk: 16, def: 10, hp: 60, spd: 9, cost: 4, upkeep: 4, trample: true, weakFire: true, weakSiege: true, desc: '南中巨象，踏阵如摧；迟缓畏弩火。' },
+    huangjin_lishi: { id: 'huangjin_lishi', name: '黄巾力士', slot: '步', atk: 11, def: 9, hp: 34, spd: 11, cost: 2, upkeep: 2, desc: '黄巾力士，裸袒奋蛮。' },
+    huangjinjun: { id: 'huangjinjun', name: '黄巾军', slot: '步', atk: 5, def: 4, hp: 18, spd: 13, cost: 1, upkeep: 1, desc: '黄巾乌合，揭竿而起。' },
     // ── v20261109d 中军（帅旗）：不是战力，是「指挥权」的空间载体 ──
     // noFight 让它在 attackable/dmgRoll/resolveAttack 里全程不参与交手；
     // range:0 显式关掉反击圈；hp 与普通营同量级，可被围攻破营；spd 7 → 每回合 1 格。

@@ -53,6 +53,24 @@
       u._artMap = od.map; u.artIds = od.ids;
       return u;
     }
+    // 按权重池选兵种：preferSlot 时尽量取该阵位（侧翼/后排用），重试若干次后回退（v20261111a）
+    function pickWeightedType(pool, preferSlot) {
+      var picked = null;
+      for (var k = 0; k < 8; k++) {
+        var t = LF.BF_PICK_FOE(pool);
+        if (!picked) picked = t;
+        var td = LF.TROOPS[t];
+        if (preferSlot && td && td.slot === preferSlot) return t;
+      }
+      return picked || 'changqiang';
+    }
+    // 用权重池生成一个带 troopType 的敌方营：数值取兵种定义，以触发立绘与火/踩踏机制
+    function mkWeightedFoe(pool, preferSlot, count, rank, morale, guard) {
+      var type = pickWeightedType(pool, preferSlot);
+      var d = LF.TROOPS[type] || LF.TROOPS.changqiang;
+      var per = { atk: d.atk, def: d.def, hp: d.hp, spd: d.spd };
+      return applyOrders(mkUnit(d.name, count, per, { troopType: type, rank: rank, morale: morale, guard: guard }), rank);
+    }
     function clampM(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 
     // ══ 守军派生 ══
@@ -65,21 +83,17 @@
       var n = cityBase(cid);
       var c = (LF.CITIES || {})[cid] || {};
       var tag = (c.name || cid);
-      var P = {
-        dun: { atk: 6, def: 10, hp: 26, spd: 10 },
-        nu: { atk: 9, def: 4, hp: 18, spd: 13 },
-        qiang: { atk: 6, def: 8, hp: 24, spd: 12 },
-        jiang: { atk: 13, def: 11, hp: 40, spd: 16 }
-      };
+      // 普通守军由 siege 权重池加权随机（v20261111a）、带 troopType；守将另用军官数值，见 seg2
+      var P = { jiang: { atk: 13, def: 11, hp: 40, spd: 16 } };
       var out = [];
       if (seg === 0) {
-        out.push(applyOrders(mkUnit('城门守卒', Math.round(n * 0.5), P.dun, { rank: 'front', morale: 85 }), 'front'));
-        out.push(applyOrders(mkUnit('城头弓弩', Math.round(n * 0.3), P.nu, { rank: 'rear', guard: false, morale: 80 }), 'rear'));
+        out.push(mkWeightedFoe('siege', null, Math.round(n * 0.5), 'front', 85, true));
+        out.push(mkWeightedFoe('siege', '远', Math.round(n * 0.3), 'rear', 80, false));
       } else if (seg === 1) {
-        out.push(applyOrders(mkUnit('巷战锐卒', Math.round(n * 0.45), P.qiang, { rank: 'front', morale: 75 }), 'front'));
-        out.push(applyOrders(mkUnit('屋脊弓手', Math.round(n * 0.25), P.nu, { rank: 'rear', guard: false, morale: 75 }), 'rear'));
+        out.push(mkWeightedFoe('siege', null, Math.round(n * 0.45), 'front', 75, true));
+        out.push(mkWeightedFoe('siege', '远', Math.round(n * 0.25), 'rear', 75, false));
       } else {
-        out.push(applyOrders(mkUnit('府衙亲兵', Math.round(n * 0.4), P.dun, { rank: 'front', morale: 80 }), 'front'));
+        out.push(mkWeightedFoe('siege', null, Math.round(n * 0.4), 'front', 80, true));
         var jiangPer = P.jiang, jiangName = tag + '守将', jiangMorale = 90, jiangAtkMul = 1.1;
         var gc = (Officers && Officers.garrisonCommander) ? Officers.garrisonCommander(cid) : null;
         if (gc) {
@@ -457,9 +471,11 @@
       if (!Army.armyWithPlayer()) { toast('部曲不在身边。'); return false; }
       if (!exert('交战')) return false;
       var def = opt.def || { name: '流寇', troops: 60 };
+      var tot = def.troops || 60;
+      // 敌方兵种由 AI 出征权重表加权随机（mkWeightedFoe）：数值取兵种定义、带 troopType，触发立绘与机制
       var units = [];
-      units.push(applyOrders(mkUnit(def.name + '步卒', Math.round((def.troops || 60) * 0.55), { atk: 6, def: 8, hp: 24, spd: 12 }, { rank: 'front', morale: 75 }), 'front'));
-      if ((def.troops || 60) > 40) units.push(applyOrders(mkUnit(def.name + '游骑', Math.round((def.troops || 60) * 0.22), { atk: 11, def: 6, hp: 30, spd: 20 }, { rank: 'flank', guard: false, morale: 78 }), 'flank'));
+      units.push(mkWeightedFoe('field', null, Math.round(tot * 0.55), 'front', 75, true));
+      if (tot > 40) units.push(mkWeightedFoe('field', '骑', Math.round(tot * 0.22), 'flank', 78, false));
       var ids = registerAttackers(units, 'f');
       var ambush = !!opt.ambush;
       if (opt.byPlayer) {   // 我方设伏 → 敌中伏
