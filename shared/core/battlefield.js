@@ -102,7 +102,7 @@
       if (board && board.invincible && t.side === 'ally') return;
       t.hp = Math.max(0, t.hp - dmg);
       syncCount(t);
-      if (t.hp <= 0 && t.isHub) hubFall(t);
+      if (t.hp <= 0 && t.isHub) hubFall(t, by);
       if (by) { by.dmgDealt = (by.dmgDealt || 0) + dmg; if (t.hp <= 0) by.kills = (by.kills || 0) + 1; }
     }
     function bfAggF(c) { return { hpF: Math.pow(c, 0.85), atkF: Math.pow(c, 0.85), defF: Math.log(1 + c) * 1.15 }; }
@@ -637,10 +637,10 @@
     function sideUnits(side) { return board.units.filter(function (u) { return u.side === side && u.hp > 0 && !u.routed; }); }
     function moraleAll(list, v) { list.forEach(function (u) { u.morale = clampM((u.morale == null ? 80 : u.morale) + v); }); }
     function clampM(v) { return Math.max(0, Math.min(100, Math.round(v))); }
-    // 中军陷落（v20261111b 修正：按势力隔离）：仅「该中军所属势力」指挥崩溃（非亲军诸营交 AI + 士气重挫）；
-    // 其余存活势力不受波及，反而因敌帅旗倾折获得短期士气提升（一次性，不叠持续）。
-    // 这正是多方混战所需的语义：a 击溃 b 的中军，只有 b 的指挥系统崩溃，a/c 反得士气 buff。
-    function hubFall(hub) {
+    // 中军陷落（v20261111c）：仅「该中军所属势力」指挥崩溃（非亲军诸营交 AI + 士气重挫）；
+    // 击破该中军的「击破方」单独获得短期士气提升（+8），其余存活势力一律不变。
+    // 语义：a 击溃 b 的中军 → 只有 b 指挥崩溃，且仅 a 得士气 buff，c 不受影响。
+    function hubFall(hub, by) {
       if (!board || !hub) return;
       board.cmdDown = board.cmdDown || {};
       var s = hub.side;
@@ -650,12 +650,9 @@
       var own = sideUnits(s).filter(function (u) { return u !== hub && !u.isElite; });
       moraleAll(own, -25);
       own.forEach(function (u) { u.auto = true; });
-      // 其余势力短期士气提升（当前双势力；扩展多势力时遍历 board.sides 即可）
-      ['ally', 'foe'].forEach(function (o) {
-        if (o === s) return;
-        var live = sideUnits(o);
-        if (live.length) moraleAll(live, 8);
-      });
+      // 仅击破方获得短期士气提升；其余存活方不变
+      var bs = by && by.side;
+      if (bs && bs !== s) { var bl = sideUnits(bs); if (bl.length) moraleAll(bl, 8); }
       if (s === 'ally') {
         log('〔中军陷落〕帅旗倾折，号令不通——诸营失律，各自为战！', 'danger');
         bfBanner('〔中军陷落〕帅旗倾折，三军失律！', 'danger');
