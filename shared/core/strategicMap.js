@@ -10,6 +10,7 @@ window.LF = window.LF || {};
     var _wf = function(getter){
       return function(){ var fn = getter(); return fn.apply(null, arguments); };
     };
+    var getFieldArmy = ctx.getFieldArmy;
     var curRoom = _wf(ctx.getCurRoom), isBldRoom = _wf(ctx.getIsBldRoom), cityOwnerOf = _wf(ctx.getCityOwnerOf),
         closeModal = _wf(ctx.getCloseModal), renderRoom = _wf(ctx.getRenderRoom), save = _wf(ctx.getSave),
         log = _wf(ctx.getLog), goRoomOnMap = _wf(ctx.getGoRoomOnMap), placeInfo = _wf(ctx.getPlaceInfo);
@@ -105,6 +106,8 @@ function buildStrategicMapHTML(opts){
     var out=[];
     var y=smYouMark(); if(y) out.push(y);
     smGoalMarks().forEach(function(x){ out.push(x); });
+    // v20261111g：行军部队上图（与 you/goal/hold 同构的 marks，由 strategic-map.js 渲染）
+    try{ var fa=getFieldArmy&&getFieldArmy(); if(fa && fa.marks) fa.marks().forEach(function(a){ out.push(a); }); }catch(e){}
     return out;
   }
   // 运行时归属读取器：让山河志城市点/详情随易主实时变色（v20260909o）

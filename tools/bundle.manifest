@@ -79,6 +79,7 @@ shared/core/uiicons.js
 shared/core/progression.js
 shared/core/statusbar.js
 shared/core/schedule.js
+shared/core/fieldarmy.js
 shared/core/field.js
 shared/core/sect.js
 shared/core/gamble.js

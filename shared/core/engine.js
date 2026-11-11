@@ -41,7 +41,8 @@
     getOnbF: function(){ return onbF; }, getOnbBound: function(){ return onbBound; },
     getInCampNow: function(){ return inCampNow; }, getLog: function(){ return log; },
     getCheckDeath: function(){ return checkDeath; },
-    getTickAge: function(){ return tickAge; }
+    getTickAge: function(){ return tickAge; },
+    getFieldArmy: function(){ return fieldArmy; }
   });
   var advanceTime = Time.advanceTime, advanceMinutes = Time.advanceMinutes,
       curfewWarn = Time.curfewWarn, rollWarn = Time.rollWarn,
@@ -86,7 +87,8 @@
     getCityOwnerOf: function(){ return cityOwnerOf; }, getCloseModal: function(){ return closeModal; },
     getRenderRoom: function(){ return renderRoom; }, getSave: function(){ return save; },
     getLog: function(){ return log; }, getGoRoomOnMap: function(){ return goRoomOnMap; },
-    getPlaceInfo: function(){ return placeInfo; }
+    getPlaceInfo: function(){ return placeInfo; },
+    getFieldArmy: function(){ return fieldArmy; }
   });
   var buildStrategicMapHTML = StrategicMap.buildStrategicMapHTML, smYouMark = StrategicMap.smYouMark,
       smGoalMarks = StrategicMap.smGoalMarks, strategicMapMarks = StrategicMap.strategicMapMarks,
@@ -560,6 +562,16 @@
       warCityPower = Strategy.warCityPower, warFactionTotal = Strategy.warFactionTotal, warFactionCityCount = Strategy.warFactionCityCount, warInRoom = Strategy.warInRoom,
       runWarlordBattle = Strategy.runWarlordBattle, warChronicleEntry = Strategy.warChronicleEntry, warlordBattle = Strategy.warlordBattle, warlordDayTick = Strategy.warlordDayTick,
       onMonthTick = Strategy.onMonthTick, monthlyYield = Strategy.monthlyYield, factionDomesticAI = Strategy.factionDomesticAI, scanFactionSurvival = Strategy.scanFactionSurvival, checkUnify = Strategy.checkUnify, factionTroops = Strategy.factionTroops;
+
+  // 大地图行军部队实体（v20261111g）：只管「看得见的兵」——生成/行军/展示；
+  //   城池归属仍由 Strategy 逐鹿独占，接战留待下期。挂到 LF 供懒加载的 strategic-map.js 取用。
+  var fieldArmy = LF.createFieldArmy({
+    getState: function () { return state; },
+    LF: LF,
+    log: log,
+    getOwner: function () { return cityOwnerOf; }
+  });
+  LF.FieldArmy = fieldArmy;
 
   // 建筑内部交互状态 / 围城待结算（引擎本地可变状态，供城内营造面板与围城逻辑使用；
   // 原属「城市网格系统」区块但仅被引擎侧的营造 UI / 围城流程消费，故留于引擎）

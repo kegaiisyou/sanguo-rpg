@@ -1067,17 +1067,28 @@
         if (!p || !isFinite(p[0]) || !isFinite(p[1])) return;
         const isGoal = m.type === 'goal';
         const isHold = m.type === 'hold';
+        const isArmy = m.type === 'army';
         const wrap = document.createElement('div');
-        wrap.className = 'strategic-guide ' + (isGoal ? 'g-goal' : (isHold ? 'g-hold' : 'g-you'));
+        wrap.className = 'strategic-guide ' + (isGoal ? 'g-goal' : (isHold ? 'g-hold' : (isArmy ? 'g-army' : 'g-you')));
         const fig = document.createElement('div');
         fig.className = 'sg-fig';
-        fig.textContent = isGoal ? '⚑' : (isHold ? '据' : '');   // 目标 ◆ / 治下之城「据」/ 当前位置仅脉冲点
+        fig.textContent = isGoal ? '⚑' : (isHold ? '据' : (isArmy ? '⚔' : ''));   // 目标 ◆ / 治下「据」/ 行军「⚔」/ 当前位置脉冲点
         const pill = document.createElement('div');
         pill.className = 'sg-pill';
         pill.textContent = m.label || m.name || (isGoal ? '目标' : (isHold ? '治下' : '当前所在'));
         wrap.appendChild(fig);
         wrap.appendChild(pill);
         overlay.appendChild(wrap);
+        // v20261111g：部队标记可点开详情（引导标记默认 pointer-events:none，CSS 给 .g-army 单独放开）
+        if (isArmy) {
+          wrap.setAttribute('data-faid', m.id || '');
+          if (m.color) { fig.style.borderColor = m.color; pill.style.borderColor = m.color; }
+          wrap.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            selectArmy(m);
+            if (opts.onArmyClick) opts.onArmyClick(m);   // 预留：下期主动接战挂这里
+          });
+        }
         guideMarks.push({ el: wrap, fig, pill, type: m.type || 'you', base: p });
       });
       // 武将标记（v20260926b）：驻城武将落点于地图，可点开详情（远程版移植）
@@ -1669,6 +1680,27 @@
         ${parts.meta ? '<div class="strategic-info-meta">' + parts.meta + '</div>' : ''}
         ${parts.btn ? '<button class="go-btn" id="sm-go-btn">' + parts.btn + '</button>' : ''}
       `;
+    }
+
+    // 大地图行军部队详情卡（v20261111g）：编成 / 去向 / 行程 / 状态，纯展示不含接战按钮
+    function selectArmy(a) {
+      const fac = FACTIONS[a.fid] || FACTIONS.none;
+      const troopLine = (a.troops || []).map(t => {
+        const td = (global.LF.TROOPS || {})[t.type];
+        return (td ? td.name : t.type) + ' ' + t.count;
+      }).join(' · ') || '不详';
+      const tags = [a.faction || fac.label, a.missionLabel || '行军', a.hostile ? '与我敌对' : '暂无战意'];
+      const desc = '自 ' + (a.fromName || '?') + ' 向 ' + (a.toName || '?') + ' 开拔，行程 ' + Math.round((a.prog || 0) * 100) + '%。';
+      info.innerHTML = infoCard({
+        sealBg: a.color || fac.fill || '#8a2f2f',
+        sealText: (a.faction || fac.label || '军').charAt(0),
+        title: a.name || '行军部队',
+        tags,
+        desc,
+        extra: '<div class="strategic-info-b">编成：' + troopLine + '</div>',
+        meta: '兵力 ' + (a.power || 0) + ' · 士气 ' + (a.morale || 0) + ' · 军粮 ' + (a.grain || 0) + ' 日 · ' + (a.status === 'returning' ? '回防途中' : '行进中')
+      });
+      info.classList.add('show');
     }
 
     function selectState(d) {

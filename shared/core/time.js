@@ -12,7 +12,8 @@ window.LF = window.LF || {};
         getOnMonthTick = ctx.getOnMonthTick, getTickForge = ctx.getTickForge, getTickBuildOrders = ctx.getTickBuildOrders,
         getRequestCurfewPatrol = ctx.getRequestCurfewPatrol, getWeathers = ctx.getWeathers,
         getOnbF = ctx.getOnbF, getOnbBound = ctx.getOnbBound, getInCampNow = ctx.getInCampNow,
-        getLog = ctx.getLog, getCheckDeath = ctx.getCheckDeath, getTickAge = ctx.getTickAge;
+        getLog = ctx.getLog, getCheckDeath = ctx.getCheckDeath, getTickAge = ctx.getTickAge,
+        getFieldArmy = ctx.getFieldArmy;
   function advanceTime(n){
     n=n||1;
     if(!getClockFlowing()()) return;
@@ -48,6 +49,7 @@ window.LF = window.LF || {};
       if(Math.random()<0.55) getState().weather=Math.floor(Math.random()*getWeathers().length); // 新日易天候
       getWarlordDayTick()(crossings);             // 群雄逐鹿：NPC 势力自动攻伐（v20260909o）
       getTickArmyDay()(crossings);                // 军务：行军推进 + 军粮消耗 + 断粮掉士气（v20260921a）
+      if(getFieldArmy && getFieldArmy()) getFieldArmy().tickDay(crossings);  // 大地图部队：行军位置/军粮/士气/生灭（v20261111g）
       if (getNpcAi() && getNpcAi().tickDay) getNpcAi().tickDay();   // 名将流动：按内驱力改易驻城（野心趋大城，好武趋边地）（v20260927j）
       getTryAmbush()();                           // 设伏：郊野候敌，敌至则先手（v20260921a）
     }
