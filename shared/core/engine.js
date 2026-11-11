@@ -3745,7 +3745,7 @@
       row('江湖声望',state.reputation+' · '+repTitle(state.reputation))+
       row('当前所处',curRoom().name)+
       row('门派',(state.sect && G.SECTS[state.sect]) ? G.SECTS[state.sect].name : '散人（未入门派）')+
-      (G.SECTS && state._sectUiReady ? '<button class="sect-open" id="sect-open" type="button">⚔ '+(state.sect?'查看本门':'择一门派')+'</button>' : '')+
+      (G.SECTS ? '<button class="sect-open" id="sect-open" type="button">⚔ '+(state.sect?'查看本门':'择一门派')+'</button>' : '')+
       '<p class="tip">气血归零将殒落（回标题页读档/重开）。行止间消耗食物饮水与精力，「休整」可尽复。</p>';
     return h;
   }

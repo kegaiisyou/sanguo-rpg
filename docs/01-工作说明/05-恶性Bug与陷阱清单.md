@@ -205,7 +205,7 @@ var g = c.getContext && c.getContext('2d'); if (!g) return c;
 
 - [ ] `python tools/bundle.py` 跑了**两次**
 - [ ] `shared/config/constants.js` 的 `VERSION` == `tools/bundle.py` 的 `VERSION` == `index.html` 所有 `?v=`
-- [ ] 若改了 css：`index.html` 的 `game.css?v` **手动** bump
+- [ ] 若改了 css：`index.html` 的 `game.css?v` 由 `tools/bundle.py` **自动**同步（改 `VERSION` 后连跑两次即可，勿手改 `index.html`）
 - [ ] 若新增模块：`tools/bundle.manifest` 已登记（顺序要在依赖它的模块之前）
 - [ ] `node --check shared/bundle.js` 通过
 - [ ] `node test/syntax_check_all.js` 与 `node test/cross_reference_check.js` 通过

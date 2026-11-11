@@ -3,7 +3,7 @@
 > 东汉光和年间的武侠开放世界单机 RPG。纯前端，浏览器直接运行。
 > **线上试玩**：https://kegaiisyou.github.io/sanguo-rpg/
 
-当前版本 **v20261030b** · 主分支 `main`
+当前版本 **v20261111f** · 主分支 `main`
 
 ---
 
