@@ -4271,6 +4271,10 @@
 .bf-root.bf-hc .bf-u-ico.ico-huoshi::before{ content:'火'; }
 .bf-root.bf-hc .bf-u-ico.ico-xianzhen::before{ content:'陷'; }
 .bf-root.bf-hc .bf-u-ico.ico-zhongjun::before{ content:'中'; }
+.bf-root.bf-hc .bf-u-ico.ico-tengjia::before{ content:'藤'; }
+.bf-root.bf-hc .bf-u-ico.ico-xiangbing::before{ content:'象'; }
+.bf-root.bf-hc .bf-u-ico.ico-huangjin_lishi::before{ content:'力'; }
+.bf-root.bf-hc .bf-u-ico.ico-huangjinjun::before{ content:'巾'; }
 /* 中军：金线环 + 「帅」角标，与普通营一眼可分；托管营虚线框 + 「托」角标 */
 .bf-unit.bf-hub{ border-color:rgba(170,132,50,.95); box-shadow:0 0 0 2px rgba(206,166,66,.32), 0 0 9px rgba(206,166,66,.42), var(--shadow); }
 .bf-hub-tag,.bf-auto-tag{ position:absolute; bottom:1px; left:1px; font-style:normal; font-weight:800; z-index:5;
