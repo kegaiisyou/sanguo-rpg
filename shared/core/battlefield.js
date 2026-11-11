@@ -417,7 +417,7 @@
       if (cfg.seed) board._rng = mulberry32(cfg.seed);
       board.speed = cfg.speedDefault || 1; board.skip = !!cfg.skipDefault;
       // ── 指挥权（v20261109d）：中军=号令中枢，第一营=随主帅的亲军 ──
-      board.hubDown = false; board.detached = false; board._autoRunning = false;
+      board.hubDown = false; board.detached = false; board._autoRunning = false; board.cmdDown = {};
       board.hubId = null; board.eliteId = null;
       var hubU = allies.filter(function (u) { return u.isHub; })[0] || null;
       if (hubU) {
@@ -637,17 +637,35 @@
     function sideUnits(side) { return board.units.filter(function (u) { return u.side === side && u.hp > 0 && !u.routed; }); }
     function moraleAll(list, v) { list.forEach(function (u) { u.morale = clampM((u.morale == null ? 80 : u.morale) + v); }); }
     function clampM(v) { return Math.max(0, Math.min(100, Math.round(v))); }
-    // 中军陷落：号令中枢被破 → 非亲军诸营交 AI 自主接战 + 全军士气重挫（一次性，不叠持续）
+    // 中军陷落（v20261111b 修正：按势力隔离）：仅「该中军所属势力」指挥崩溃（非亲军诸营交 AI + 士气重挫）；
+    // 其余存活势力不受波及，反而因敌帅旗倾折获得短期士气提升（一次性，不叠持续）。
+    // 这正是多方混战所需的语义：a 击溃 b 的中军，只有 b 的指挥系统崩溃，a/c 反得士气 buff。
     function hubFall(hub) {
-      if (!board || board.hubDown) return;
-      board.hubDown = true;
-      var rest = sideUnits('ally').filter(function (u) { return u !== hub && !u.isElite; });
-      moraleAll(rest, -25);
-      rest.forEach(function (u) { u.auto = true; });
-      log('〔中军陷落〕帅旗倾折，号令不通——诸营失律，各自为战！', 'danger');
-      bfBanner('〔中军陷落〕帅旗倾折，三军失律！', 'danger');
-      try { playSfx('lose'); } catch (e) {}
-      try { buzz([60, 40, 60]); } catch (e) {}
+      if (!board || !hub) return;
+      board.cmdDown = board.cmdDown || {};
+      var s = hub.side;
+      if (board.cmdDown[s]) return;
+      board.cmdDown[s] = true;
+      if (s === 'ally') board.hubDown = true;   // 保留 HUD/脱离按钮用的别名（仅己方）
+      var own = sideUnits(s).filter(function (u) { return u !== hub && !u.isElite; });
+      moraleAll(own, -25);
+      own.forEach(function (u) { u.auto = true; });
+      // 其余势力短期士气提升（当前双势力；扩展多势力时遍历 board.sides 即可）
+      ['ally', 'foe'].forEach(function (o) {
+        if (o === s) return;
+        var live = sideUnits(o);
+        if (live.length) moraleAll(live, 8);
+      });
+      if (s === 'ally') {
+        log('〔中军陷落〕帅旗倾折，号令不通——诸营失律，各自为战！', 'danger');
+        bfBanner('〔中军陷落〕帅旗倾折，三军失律！', 'danger');
+        try { playSfx('lose'); } catch (e) {}
+        try { buzz([60, 40, 60]); } catch (e) {}
+      } else {
+        log('〔敌中军溃灭〕' + (hub.name || '敌') + '帅旗倾折，敌众失其号令！', 'good');
+        bfBanner('〔敌中军溃灭〕敌帅旗倾折，我军士气大振！', 'good');
+        try { playSfx('win'); } catch (e) {}
+      }
     }
     // 托管友军自动行动：中军陷落或主帅离帐后，由同一套 AI 代为主体接战
     function runAutoAllies(next) {
@@ -1249,7 +1267,7 @@
     // 撤销：回合内可逐级回退上一步（移动/攻击），含受击方血量，避免误触劝退
     function pushHistory(actor) {
       if (!board) return;
-      var snap = { actor: actor ? actor.id : null, hubDown: !!board.hubDown, detached: !!board.detached,
+      var snap = { actor: actor ? actor.id : null, hubDown: !!board.hubDown, detached: !!board.detached, cmdDown: JSON.parse(JSON.stringify(board.cmdDown || {})),
         units: board.units.map(function (u) { return { id: u.id, x: u.x, y: u.y, moved: u.moved, acted: u.acted, hp: u.hp, count: u.count, dmgDealt: u.dmgDealt, kills: u.kills, routed: u.routed, morale: u.morale, auto: !!u.auto }; }) };
       board._history.push(snap);
       if (board._history.length > 16) board._history.shift();
@@ -1260,7 +1278,7 @@
       var snap = board._history.pop();
       var byId = {}; board.units.forEach(function (u) { byId[u.id] = u; });
       snap.units.forEach(function (s) { var u = byId[s.id]; if (!u) return; u.x = s.x; u.y = s.y; u.moved = s.moved; u.acted = s.acted; u.hp = s.hp; u.count = s.count; u.dmgDealt = s.dmgDealt; u.kills = s.kills; u.routed = s.routed; if (s.morale != null) u.morale = s.morale; u.auto = !!s.auto; });
-      board.hubDown = !!snap.hubDown; board.detached = !!snap.detached;
+      board.hubDown = !!snap.hubDown; board.detached = !!snap.detached; board.cmdDown = snap.cmdDown || {};
       var a = snap.actor ? byId[snap.actor] : null;
       board.sel = (a && a.hp > 0) ? a : null; board.mode = null; board.reach = []; board.attack = []; board.threat = null;
       if (board.sel) { board.reach = reachable(board.sel); board.attack = attackable(board.sel); }
