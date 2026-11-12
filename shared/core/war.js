@@ -421,6 +421,11 @@
       if (setPendingArmyBattle) setPendingArmyBattle(null);
       var cid = ab.cid;
       var cname = (((LF.CITIES || {})[cid] || {}).name || '此城');
+      // v20261112h：把天下布武记下的「亲征·发兵」原地升级为最终战果
+      if (typeof window !== 'undefined' && window.pushWarReport) window.pushWarReport({
+        kind: '亲征', city: cname, result: result === 'win' ? '城破' : (result === 'fled' ? '鸣金' : '失利'),
+        note: result === 'win' ? '三段攻城，城头易帜' : '攻城未克，收兵'
+      });
       if (result === 'win') {
         Army.armyMoraleAdd(10, '城破之功，');
         if (Officers && cityOwnerOf) { var dk = cityOwnerOf(cid); if (dk && dk !== 'player' && dk !== 'none') Officers.captureFrom(dk, cid); }

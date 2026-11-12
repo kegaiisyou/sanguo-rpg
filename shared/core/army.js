@@ -42,7 +42,11 @@
       return a;
     }
     function troopsCountOf(a) { var n = 0; (a.troops || []).forEach(function (t) { if (t) n += (t.count || 0); }); return n; }
-    function upkeepOf(a) { var n = 0, T = TROOPS(); (a.troops || []).forEach(function (t) { var d = T[t.type]; n += (t.count || 0) * ((d && d.upkeep) || 1); }); return n; }
+    // v20261112h 数值校准：原「1 兵 1 石/日」使 540 兵的 1200 石在第 3 日见底，
+    // 此后 army.js:341 每日 3% 逃兵复利，30 日腰斩到 236（见 03-城主玩法验证与缺口清单 §8 收支表）。
+    // 改按「50 兵 1 石/日」，军粮主要留给远征消耗，日常由城池就食兜底。
+    var UPKEEP_SCALE = 0.02;
+    function upkeepOf(a) { var n = 0, T = TROOPS(); (a.troops || []).forEach(function (t) { var d = T[t.type]; n += (t.count || 0) * ((d && d.upkeep) || 1); }); return n * UPKEEP_SCALE; }
     function moraleAddOf(a, v, why) {
       var before = a.morale || 100; a.morale = Math.max(0, Math.min(100, before + v));
       if (Math.abs(a.morale - before) >= 5) { var b = LF.moraleBand(a.morale); log('〔军心〕' + (why || '') + '士气' + (v > 0 ? '+' : '') + v + '，今为「' + b.name + '」。', v > 0 ? 'good' : 'sys'); }
@@ -320,12 +324,17 @@
             log('〔遭遇〕你的部曲行至半途撞上' + (Math.random() < 0.5 ? '一伙剪径的流寇' : '别部游骑') + '，一场混战折了 ' + nl + ' 人。', 'danger');
           }
         }
-      } else if (a.rallyPoint && own(a.rallyPoint)) {
-        // 驻守己方城：就食补给（补给线之「驻屯补给」）
-        var _up = upkeepOf(a);
-        if (a.logistics.grain < _up * 40) {
-          a.logistics.grain = Math.round(_up * 40);
-          log('〔补给〕驻' + (((LF.CITIES || {})[a.rallyPoint] || {}).name || '城') + '，部曲就食于民，军粮足 ' + Math.round(a.logistics.grain) + ' 石。', 'sys');
+      } else {
+        // v20261112h：有治下城即有根基——随军(rallyPoint=null)同样就食于民。
+        // 原条件要求 rallyPoint 非空，而 campaignCheck 要求它必须为 null 才可出兵，
+        // 形成「想出兵就不能补给、想补给就不能出兵」的互斥；此处一并解开。无城时仍不补给，保留断粮压力。
+        var _base = (a.rallyPoint && own(a.rallyPoint)) ? a.rallyPoint : (((S().ruledCities) || [])[0] || null);
+        if (_base && own(_base)) {
+          var _up = upkeepOf(a);
+          if (a.logistics.grain < _up * 40) {
+            a.logistics.grain = Math.round(_up * 40);
+            log('〔补给〕' + (((LF.CITIES || {})[_base] || {}).name || '治下城') + '就食于民，军粮足 ' + Math.round(a.logistics.grain) + ' 石。', 'sys');
+          }
         }
       }
       var up = upkeepOf(a);

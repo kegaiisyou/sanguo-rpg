@@ -14,6 +14,10 @@
     var chronicle = ctx.chronicle, chronicleList = ctx.chronicleList, escapeHtml = ctx.escapeHtml;
     var roleAtkMul = ctx.roleAtkMul, roleEconMul = ctx.roleEconMul, roleFavorMul = ctx.roleFavorMul, roleDef = ctx.roleDef;
     var Officers = ctx.Officers || null;
+    // v20261112h 断链修复：engine.js:579 传的是晚定义变量（L580-582 注释已记同款坑），
+    // 实际为 undefined，导致本模块所有 Officers.* 走 fallback 1 —— 太守/守将治绩加成从未生效。
+    // 运行时从 engine.js:753 挂载的 LF.Officers 惰性取回即可。
+    function Of() { return Officers || (LF.Officers || null); }
   // ══ 玩家外交系统（v20260918h）══
   function diploGet(fid){ return (S().flags.diplo && S().flags.diplo[fid]) || null; }
   function diploStatus(fid){ var d=diploGet(fid); return d? d.status : 'war'; }
@@ -218,7 +222,7 @@
       h += '</div>';
     }
     var _rc=(S().ruledCities||[]).length;
-    var _of=(Officers&&Officers.roster)?Officers.roster().length:0;
+    var _of=(Of()&&Of().roster)?Of().roster().length:0;
     var _pa=(S().flags.factionAssets&&S().flags.factionAssets.player)||{};
     h += '<div class="fm-my">';
     h += '<div class="fm-my-h">我方势力 · '+(factionName(playerFaction())||'义军')+'</div>';
@@ -494,7 +498,7 @@
       var grown = 0;
       cities.forEach(function (cid) {
         var c = C[cid] || {};
-        var g = F.factionWarHit[cid] ? 0 : (0.3 + (((c.agri || 40) + (c.commerce || 40)) / 200) * 0.9) * (Officers ? Officers.garrisonCivilBonus(cid) : 1);
+        var g = F.factionWarHit[cid] ? 0 : (0.3 + (((c.agri || 40) + (c.commerce || 40)) / 200) * 0.9) * (Of() ? Of().garrisonCivilBonus(cid) : 1);
         var before = cityDevOf(cid);
         var after = Math.min(100, before + g);
         if (after > before) { setCityDev(cid, after); grown += (after - before); }
@@ -518,7 +522,7 @@
     // 玩家治下城：随月发展（战乱城停滞），受相才加成（v20260918h）
     (S().ruledCities||[]).forEach(function(cid){
       if (F.factionWarHit[cid]) return;
-      var c=C[cid]||{}, g=(0.3+(((c.agri||40)+(c.commerce||40))/200)*0.9)*roleEconMul()*(Officers?Officers.civilBonus(cid):1);
+      var c=C[cid]||{}, g=(0.3+(((c.agri||40)+(c.commerce||40))/200)*0.9)*roleEconMul()*(Of()?Of().civilBonus(cid):1);
       var before=cityDevOf(cid), after=Math.min(100,before+g);
       if(after>before) setCityDev(cid,after);
     });
@@ -596,6 +600,44 @@
     if (gs.log.length > 12) gs.log.length = 12;
     return true;
   }
+  // ══ 天下布武 v2 ③④（v20261112h）：按城委任太守 + 战报归档 ══
+  function warReports() { var F = S().flags; return F.warReports || (F.warReports = []); }
+  global.pushWarReport = function (r) {
+    var st = S(); if (!st) return;
+    st.flags = st.flags || {};
+    r.day = st.day || 0;
+    var list = warReports();
+    // 亲征「发兵」→ 战棋结算回来后原地升级为最终结果，避免同役出现两条
+    if (r.kind === '亲征' && r.result !== '发兵') {
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].kind === '亲征' && list[i].result === '发兵' && list[i].city === r.city) {
+          list[i].result = r.result; list[i].note = r.note || list[i].note; return;
+        }
+      }
+    }
+    list.unshift(r);
+    if (list.length > 20) list.length = 20;
+  };
+  function governorSelect(cid) {
+    var list = (Of() && Of().roster) ? Of().roster() : [];
+    var cur = '';
+    list.forEach(function (o) { if (o.assignment && o.assignment.type === 'governor' && o.assignment.cid === cid) cur = o.id; });
+    var h = '<select onchange="window.strategyGovernor(\'' + cid + '\',this.value)"><option value="">（未委任）</option>';
+    list.forEach(function (o) { h += '<option value="' + escapeHtml(o.id) + '"' + (o.id === cur ? ' selected' : '') + '>' + escapeHtml(o.name || o.id) + '</option>'; });
+    return h + '</select>';
+  }
+  global.strategyGovernor = function (cid, id) {
+    if (!Of() || !Of().appoint) { toast('武将系统未就绪。'); return false; }
+    if (!id) {
+      var cur = null;
+      Of().roster().forEach(function (o) { if (o.assignment && o.assignment.type === 'governor' && o.assignment.cid === cid) cur = o; });
+      if (!cur) return false;
+      Of().appoint(cur.id, 'governor', cid);   // 同一人同城再任 = 解任（既有语义）
+    } else Of().appoint(id, 'governor', cid);
+    renderStatus(); openModal('grandStrategy');
+    setTimeout(function () { try { openModal('grandStrategy'); } catch (e) {} }, 140);
+    return true;
+  };
   function cmdQuota() {
     var n = ((S() && S().ruledCities) || []).length;
     return Math.max(2, Math.min(8, 2 + Math.floor(n / 2)));
@@ -685,6 +727,7 @@
         + '<button class="btn sm" onclick="window.strategyCmd(\'dev\',\'' + cid + '\')">开 发 · 200</button>　'
         + '<button class="btn sm" onclick="window.strategyCmd(\'recruit\',\'' + cid + '\')">募 兵 · 300</button>　'
         + '<button class="btn sm" onclick="window.strategyCmd(\'grain\',\'' + cid + '\')">籴 粮 · 150</button>'
+        + '<div class="tip">太守　' + governorSelect(cid) + '</div>'
         + '</div></div>';
     });
     if (mine.length > 24) h += '<p class="tip">另有 ' + (mine.length - 24) + ' 城未列。</p>';
@@ -708,6 +751,15 @@
     h += '<div class="fm-my"><div class="fm-my-h">本月军令录</div>';
     if (!gs.log.length) h += '<p class="tip">本月尚未下令。</p>';
     gs.log.forEach(function (x) { h += '<div class="fm-cities">' + escapeHtml(x) + '</div>'; });
+    h += '</div>';
+    var wr = warReports();
+    h += '<div class="fm-my"><div class="fm-my-h">战报（最近 8 役）</div>';
+    if (!wr.length) h += '<p class="tip">尚无战报。</p>';
+    wr.slice(0, 8).forEach(function (r) {
+      h += '<div class="fm-cities">第' + (r.day || 0) + '日 · ' + escapeHtml(r.kind || '') + '「' + escapeHtml(r.city || '') + '」'
+        + (r.from ? '自' + escapeHtml(r.from) : '') + ' · <b>' + escapeHtml(r.result || '') + '</b>'
+        + (r.note ? ' · ' + escapeHtml(r.note) : '') + '</div>';
+    });
     h += '</div>';
     h += '<p class="tip">每月朔日军令复原，额度随治下城数增长（2～8 道）。内政令耗银；用兵耗 1 道军令，'
       + '且只能动用距目标最近的治下城之驻军（募兵令可就地增驻），克城后分兵留驻。'
@@ -769,6 +821,8 @@
     if (!ck.ok) { toast(ck.reason); return false; }
     if (!ctx.openSiegePrep) { toast('战前编成未就绪。'); return false; }
     if (!spendWarCmd('亲征', ck.origin, cid)) return false;
+    pushWarReport({ kind: '亲征', from: cityName(ck.origin), city: (ck.city.name || cid),
+      result: '发兵', troops: ck.troops, note: '约 ' + ck.km + ' 公里，待战棋结算' });
     log('〔举兵〕自「' + cityName(ck.origin) + '」发兵 ' + ck.troops + ' 进图「' + (ck.city.name || cid)
       + '」，约 ' + ck.km + ' 公里，亲征督战（耗军令 1 道）。', 'sys');
     ctx.openSiegePrep(cid); return true;
@@ -790,12 +844,16 @@
       cityGarrisonSet(ck.origin, ck.garrison - stay);
       cityGarrisonSet(cid, Math.max(cityGarrisonOf(cid), stay));
       st.reputation = (st.reputation || 0) + 3;
+      pushWarReport({ kind: '命将', from: cityName(ck.origin), city: nm, result: '克城',
+        troops: ck.troops, note: '留驻 ' + stay + ' 人 · 胜算 ' + Math.round(p * 100) + '%' });
       log('〔命将〕诸将用命，克「' + nm + '」，城头易帜！留驻 ' + stay + ' 人。（胜算 ' + Math.round(p * 100) + '%）', 'good');
       toast('克城：' + nm);
     } else {
       ((a && a.troops) || []).forEach(function (t) { t.count = Math.max(0, Math.round((t.count || 0) * 0.82)); });
       cityGarrisonSet(ck.origin, ck.garrison * 0.82);
       a.morale = Math.max(20, (a.morale || 100) - 12);
+      pushWarReport({ kind: '命将', from: cityName(ck.origin), city: nm, result: '失利',
+        troops: ck.troops, note: '折兵两成 · 胜算 ' + Math.round(p * 100) + '%' });
       log('〔命将〕「' + nm + '」守军力战，我军失利，折兵两成、军心稍挫。（胜算 ' + Math.round(p * 100) + '%）', 'warn');
       toast('攻城失利，折兵两成');
     }
