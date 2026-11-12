@@ -563,10 +563,39 @@
     }
   }
   // ══ 天下布武 v1 · 三国志2 式月度军令台（v20261112e）══
-  // 刻意简化：不引入跨日行军 / 每城驻军 / 多军团 / 补给线。
-  //   一期只做「每月有限道内政令 + 我方城池列表 + 进兵方向」，用兵仍复用 d 版的亲征/命将。
+  // v1 只做「每月有限道内政令 + 我方城池列表 + 进兵方向」；v2(g) 补上逐城驻军与用兵军令预算。
   //   flags._monthKey 由 time.js:60 在 onMonthTick 之前写入，这里惰性比对即可复位，
   //   不强依赖月结一定被触发（调试台跳月、读旧档都安全）。
+  // ══ 天下布武 v2 · 逐城驻军 + 用兵纳入军令预算（v20261112g）══
+  // flags.cityGarrison[cid] 是战略层账面：募兵入城、远征按出发城驻军封顶、克城后分兵留驻。
+  // 刻意不逐城拆金/粮（另一批），也不改 state.army 模型：全局部曲仍是战棋编成的唯一来源。
+  var GAR_MIN = 20;
+  function cityName(id) { return ((LF.CITIES || {})[id] || {}).name || id; }
+  function ensureGarrison() {
+    var st = S(); if (!st) return {};
+    st.flags = st.flags || {};
+    var G = st.flags.cityGarrison || (st.flags.cityGarrison = {});
+    if (st.flags._garrisonSeeded) return G;
+    st.flags._garrisonSeeded = true;
+    var C = LF.CITIES || {};
+    var mine = (st.ruledCities || []).filter(function (c) { return C[c]; });
+    if (!mine.length) return G;
+    var cnt = 0; ((st.army && st.army.troops) || []).forEach(function (t) { cnt += (t.count || 0); });
+    var per = Math.floor(cnt / mine.length);   // 旧档一次性把现有部曲摊到治下城，免得开局无从发兵
+    mine.forEach(function (cid) { G[cid] = (G[cid] || 0) + per; });
+    return G;
+  }
+  function cityGarrisonOf(cid) { return ensureGarrison()[cid] || 0; }
+  function cityGarrisonSet(cid, n) { ensureGarrison()[cid] = Math.max(0, Math.round(n)); }
+  // 用兵与内政共用同一份命令书预算：扣 1 道、记军令录；不足则拦截，绝不先开战再扣。
+  function spendWarCmd(what, origin, target) {
+    var gs = strategyState();
+    if (gs.left <= 0) { toast('本月军令已尽，待朔日再议。'); return false; }
+    gs.left--;
+    gs.log.unshift('第' + (S().day || 0) + '日 · 用兵' + what + '「' + cityName(target) + '」自' + cityName(origin) + '（军令 -1）');
+    if (gs.log.length > 12) gs.log.length = 12;
+    return true;
+  }
   function cmdQuota() {
     var n = ((S() && S().ruledCities) || []).length;
     return Math.max(2, Math.min(8, 2 + Math.floor(n / 2)));
@@ -608,7 +637,8 @@
       a.troops.forEach(function (t) { if (t.type === 'changqiang') { t.count = (t.count || 0) + add; found = true; } });
       if (!found) a.troops.push({ type: 'changqiang', count: add, rank: 'front', xp: 0 });
       a.active = true;
-      msg = '募 兵 +' + add;
+      cityGarrisonSet(cid, cityGarrisonOf(cid) + add);
+      msg = '募 兵 +' + add + '（入' + (c.name || cid) + '驻军）';
     } else {
       a.logistics = a.logistics || { items: [], cap: 8, grain: 0 };
       a.logistics.grain = (a.logistics.grain || 0) + 300;
@@ -649,7 +679,8 @@
     mine.slice(0, 24).forEach(function (cid) {
       var c = C[cid];
       h += '<div class="fm-row"><div class="fm-lord"><b>' + escapeHtml(c.name || cid) + '</b>'
-        + '　<small>开发 ' + cityDevOf(cid) + ' · 城防 ' + (c.wall || 0) + ' · 人户 ' + (c.pop || 0) + '</small></div>'
+        + '　<small>开发 ' + cityDevOf(cid) + ' · 城防 ' + (c.wall || 0) + ' · 人户 ' + (c.pop || 0)
+        + ' · 驻军 ' + cityGarrisonOf(cid) + '</small></div>'
         + '<div class="fm-cities">'
         + '<button class="btn sm" onclick="window.strategyCmd(\'dev\',\'' + cid + '\')">开 发 · 200</button>　'
         + '<button class="btn sm" onclick="window.strategyCmd(\'recruit\',\'' + cid + '\')">募 兵 · 300</button>　'
@@ -664,7 +695,8 @@
     if (!tg.length) h += '<p class="tip">四境无敌，或尚未据城。</p>';
     tg.slice(0, 16).forEach(function (t) {
       h += '<div class="fm-row"><div class="fm-lord"><b>' + escapeHtml(t.name) + '</b>'
-        + '　<small>' + escapeHtml(t.ownerName) + ' · 城防 ' + t.wall + ' · 约 ' + t.km + ' 公里</small></div>'
+        + '　<small>' + escapeHtml(t.ownerName) + ' · 城防 ' + t.wall + ' · 约 ' + t.km + ' 公里'
+        + ' · 自' + escapeHtml(cityName(t.origin)) + '发兵（驻军 ' + cityGarrisonOf(t.origin) + '）</small></div>'
         + '<div class="fm-cities">'
         + '<button class="btn sm" onclick="window.attackCityFrom(\'' + t.cid + '\')">亲 征</button>　'
         + '<button class="btn sm" onclick="window.commandCampaign(\'' + t.cid + '\')">命 将</button>'
@@ -677,8 +709,9 @@
     if (!gs.log.length) h += '<p class="tip">本月尚未下令。</p>';
     gs.log.forEach(function (x) { h += '<div class="fm-cities">' + escapeHtml(x) + '</div>'; });
     h += '</div>';
-    h += '<p class="tip">每月朔日军令复原，额度随治下城数增长（2～8 道）。内政令耗银；用兵另受部曲、军粮与 '
-      + WAR_ADJ_KM + ' 公里邻接约束，暂不占军令。此为一期简化：尚无跨日行军、每城驻军、多军团受命与补给线。</p>';
+    h += '<p class="tip">每月朔日军令复原，额度随治下城数增长（2～8 道）。内政令耗银；用兵耗 1 道军令，'
+      + '且只能动用距目标最近的治下城之驻军（募兵令可就地增驻），克城后分兵留驻。'
+      + '用兵另受 ' + WAR_ADJ_KM + ' 公里邻接、军粮约束。尚无逐城金粮、跨日行军、多军团受命与补给线。</p>';
     return h;
   }
 
@@ -698,14 +731,14 @@
       var o = cityOwnerOf(cid);
       if (o === pf || o === 'player' || o === '义军') return;
       var t = C[cid]; if (!t || !t.pos) return;
-      var best = Infinity;
+      var best = Infinity, origin = null;
       mine.forEach(function (mc) {
         var a = C[mc]; if (!a || !a.pos) return;
         var d = warKm(a.pos[0], a.pos[1], t.pos[0], t.pos[1]);
-        if (d < best) best = d;
+        if (d < best) { best = d; origin = mc; }
       });
       if (best > WAR_ADJ_KM) return;
-      out.push({ cid: cid, name: t.name || cid, wall: t.wall || 0,
+      out.push({ cid: cid, name: t.name || cid, wall: t.wall || 0, origin: origin,
         km: Math.round(best), ownerName: warFactionName(warOwnerKey(cid)) });
     });
     out.sort(function (a, b) { return a.km - b.km; });
@@ -726,18 +759,24 @@
     if (!a || !a.active || !cnt) return { ok: false, reason: '尚无部曲可编，先募兵成军。' };
     if (a.rallyPoint) return { ok: false, reason: '部曲正驻守他处，请于治军面板改为「随军」。' };
     if (!(a.logistics && a.logistics.grain > 0)) return { ok: false, reason: '军中无粮，先籴粮再兴师。' };
-    return { ok: true, city: t, km: tg.km, troops: cnt };
+    // v2：远征只能动用「距目标最近的治下城」之驻军，不能凭空自全图兵池调兵。
+    var origin = tg.origin, gar = cityGarrisonOf(origin);
+    if (gar < GAR_MIN) return { ok: false, reason: '「' + cityName(origin) + '」驻军仅 ' + gar + ' 人，不足 ' + GAR_MIN + ' 人；先在此城下募兵令。' };
+    return { ok: true, city: t, km: tg.km, troops: Math.min(cnt, gar), origin: origin, garrison: gar };
   }
   global.attackCityFrom = function (cid) {
     var ck = campaignCheck(cid);
     if (!ck.ok) { toast(ck.reason); return false; }
-    log('〔举兵〕自版图进兵「' + (ck.city.name || cid) + '」，约 ' + ck.km + ' 公里，亲征督战。', 'sys');
-    if (ctx.openSiegePrep) { ctx.openSiegePrep(cid); return true; }
-    toast('战前编成未就绪。'); return false;
+    if (!ctx.openSiegePrep) { toast('战前编成未就绪。'); return false; }
+    if (!spendWarCmd('亲征', ck.origin, cid)) return false;
+    log('〔举兵〕自「' + cityName(ck.origin) + '」发兵 ' + ck.troops + ' 进图「' + (ck.city.name || cid)
+      + '」，约 ' + ck.km + ' 公里，亲征督战（耗军令 1 道）。', 'sys');
+    ctx.openSiegePrep(cid); return true;
   };
   global.commandCampaign = function (cid) {
     var ck = campaignCheck(cid);
     if (!ck.ok) { toast(ck.reason); return false; }
+    if (!spendWarCmd('命将', ck.origin, cid)) return false;
     var st = S(), a = st.army, c = ck.city, nm = c.name || cid;
     var atk = ck.troops * (0.9 + (st.reputation || 0) / 400) * (0.7 + (a.morale || 100) / 200);
     var def = warCityPower(cid) * 1.15;
@@ -746,16 +785,22 @@
     a.logistics.grain = Math.max(0, (a.logistics.grain || 0) - Math.ceil(ck.troops / 50));
     if (win) {
       conquerCity(cid, playerFaction(), 0);
+      // 驻军前移：从出发城抽一部留驻新得之城（总量不变，全局部曲不受影响）
+      var stay = Math.max(GAR_MIN, Math.round(ck.troops * 0.35));
+      cityGarrisonSet(ck.origin, ck.garrison - stay);
+      cityGarrisonSet(cid, Math.max(cityGarrisonOf(cid), stay));
       st.reputation = (st.reputation || 0) + 3;
-      log('〔命将〕诸将用命，克「' + nm + '」，城头易帜！（胜算 ' + Math.round(p * 100) + '%）', 'good');
+      log('〔命将〕诸将用命，克「' + nm + '」，城头易帜！留驻 ' + stay + ' 人。（胜算 ' + Math.round(p * 100) + '%）', 'good');
       toast('克城：' + nm);
     } else {
       ((a && a.troops) || []).forEach(function (t) { t.count = Math.max(0, Math.round((t.count || 0) * 0.82)); });
+      cityGarrisonSet(ck.origin, ck.garrison * 0.82);
       a.morale = Math.max(20, (a.morale || 100) - 12);
       log('〔命将〕「' + nm + '」守军力战，我军失利，折兵两成、军心稍挫。（胜算 ' + Math.round(p * 100) + '%）', 'warn');
       toast('攻城失利，折兵两成');
     }
     save(st); renderStatus();
+    setTimeout(function () { try { openModal('grandStrategy'); } catch (e) {} }, 140);
     return win;
   };
 
