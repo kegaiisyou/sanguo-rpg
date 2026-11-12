@@ -69,7 +69,7 @@
       equippedForce: ['cun_jin'],               // 已装配发力技巧（初始带寸劲暴击）
       // ─── v0.7 格子制行囊：基础容量 6 格 + 背包槽（腰包/鞶囊可扩容） ───
       party: [],                                    // 随从同伴（每场战斗满血入场，见 startCombat）
-      army: { active:false, troops:[], logistics:{ items:[], cap:8, grain:0 }, morale:100, rallyPoint:null, recruited:{}, marching:null },   // 军队（v20260921a）：兵科/辎重/军心/驻扎地/已募兵源/行军中
+      army: { active:true, troops:[{type:'changqiang', count:1, rank:'front'}], logistics:{ items:[], cap:8, grain:0 }, morale:100, rallyPoint:null, recruited:{}, marching:null },   // 军队（v20260921a）：兵科/辎重/军心/驻扎地/已募兵源/行军中
       officers: [],                                  // 武将名册（v20260921b）：登庸/任命太守与主将/克城俘获的武将实例
       pack: [],                                       // 开局行囊清空（v20260907f）：初始道具改由后续剧情/任务发放；基础容量仍为 6 格，可装备背包扩容
       equips: [],                                 // 兼容旧字段（已并入 pack，保留避免 undefined）

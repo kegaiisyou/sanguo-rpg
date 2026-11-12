@@ -875,7 +875,8 @@ window.LF = window.LF || {};
         if (!(cid === 'kuyilao' && _obd && !_obd.done)) {
           out.push({ id: 'recruit', label: '募兵操练', tip: '入营招募兵卒，点兵编成部曲（兵科／阵位／辎重／调兵）' });
           out.push({ id: 'army_manage', label: '治军', icon: '🛡', tip: '点兵编成、料理辎重、调兵遣将（v20260921a）' });
-          out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '起兵夺城，胜则易帜、败则遭火' });
+          out.push({ id: 'siege', label: '起兵略地', danger: true, tip: '兴师攻城 · 部曲列阵会战（战棋沙盘），胜则易帜、败则遭火' });
+          out.push({ id: 'infiltrate', label: '潜入府衙', danger: true, tip: '单骑夜闯 · 凭武艺直取守将（个人战 · DQ 回合制），胜亦可易帜' });
         }
       }
       if (t === 'market') {

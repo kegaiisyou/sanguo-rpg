@@ -13,6 +13,7 @@
     var log = ctx.log;
     var MAX_FORCES = 12;          // 全局同时存在的部队上限，避免刷屏
     var ADJ_KM = 420;             // 与 strategy.js WAR_ADJ_KM 一致：互为攻伐的邻接半径
+    var ENGAGE_KM = 160;          // 主动迎战半径：玩家所在点方圆 160 公里内方可截击（约一日程）
     var adjCache = null;
 
     function flags() {
@@ -227,8 +228,10 @@
     }
 
     // 战略图 marks：与既有 you/goal/hold 同构，交 strategicMap.js 的 strategicMapMarks() 合并
-    function marks() {
+    //   youPos 可选（玩家所在经纬度）：带上距离、是否可迎战、是否迫近，供详情卡判断按钮与提示。
+    function marks(youPos) {
       return list().filter(function (a) { return a.pos; }).map(function (a) {
+        var d = youPos ? km(a.pos, youPos) : null;
         return {
           type: 'army', id: a.id, pos: a.pos,
           fid: a.fid, faction: factionName(a.fid), color: factionColor(a.fid),
@@ -236,22 +239,50 @@
           name: a.name, power: a.power, troops: a.troops,
           fromName: a.fromName, toName: a.toName,
           prog: a.prog, morale: a.morale, grain: a.grain,
-          missionLabel: a.missionLabel, status: a.status, hostile: a.hostile
+          missionLabel: a.missionLabel, status: a.status, hostile: a.hostile,
+          distKm: d == null ? null : Math.round(d),
+          engagable: !!(d != null && d <= ENGAGE_KM && a.hostile),
+          threat: !!(d != null && d <= ENGAGE_KM * 1.6 && a.hostile)
         };
       });
     }
 
-    // 下期接战用：取距某点最近的部队（radiusKm 内），本轮只提供查询，不触发战斗
+    // 下期接战用：取距某点 radiusKm 内的部队
     function near(pos, radiusKm) {
       if (!pos) return [];
-      var r = radiusKm || 150;
+      var r = radiusKm || ENGAGE_KM;
       return list().filter(function (a) { return a.pos && km(a.pos, pos) <= r; });
+    }
+
+    // 主动迎战准入：部队仍在、敌对、且在遭遇半径内
+    function canEngage(id, youPos) {
+      var a = get(id);
+      if (!a || !a.hostile || !a.pos || !youPos) return false;
+      return km(a.pos, youPos) <= ENGAGE_KM;
+    }
+
+    // 战果回扣（v20261111h）：胜 → 部队溃散移除 + 缴获/声望；负/撤 → 敌军减员掉士气、继续行军。
+    //   只动本层实体，不改城池归属（仍由 strategy.js 逐鹿独占）。
+    function resolve(id, result) {
+      var a = get(id);
+      if (!a) return null;
+      if (result === 'win') {
+        var gold = Math.max(8, Math.round(a.power * 0.32));
+        var rep = a.power >= 800 ? 3 : (a.power >= 400 ? 2 : 1);
+        remove(id);
+        return { dispersed: true, gold: gold, rep: rep, name: a.name, power: a.power };
+      }
+      a.power = Math.max(60, Math.round(a.power * 0.88));
+      a.troops.forEach(function (t) { t.count = Math.max(1, Math.round(t.count * 0.88)); });
+      a.morale = Math.max(20, a.morale - 10);
+      a.ttl -= 2;
+      return { dispersed: false, gold: 0, rep: 0, name: a.name, power: a.power };
     }
 
     return {
       list: list, get: get, remove: remove, spawn: spawn, tickDay: tickDay,
-      marks: marks, near: near, compose: compose,
-      MAX_FORCES: MAX_FORCES
+      marks: marks, near: near, canEngage: canEngage, resolve: resolve, compose: compose,
+      MAX_FORCES: MAX_FORCES, ENGAGE_KM: ENGAGE_KM
     };
   };
 })();

@@ -154,6 +154,10 @@
     getNarr().innerHTML='';
     flushNarr();                 // 丢弃旧场景残留文字，避免串场
     var enemy=G.CombatEngine.getEnemy();
+    // v20261112b：战前宣告与分层判定同源（教学战不打扰引导界面）
+    if (!opt.tutorial && typeof window !== 'undefined' && window.LF && window.LF.ENCOUNTER) {
+      log(window.LF.ENCOUNTER.decide({ intent: 'personal', source: 'combat.startCombat' }).announce, 'sys');
+    }
     log('──── 狭路相逢 ────','combat');
     log((enemy.title?('「'+enemy.title+'」'):'')+enemy.name+' 拦住去路！','title');
     // 卡牌战斗系统已移除，统一走 DQ 风格队伍回合制（常规战斗 / 教学战均走此路）
@@ -289,15 +293,17 @@
     st.enemies.forEach(function(e){ orderSeen[e.name]=(orderSeen[e.name]||0)+1; var n=orderSeen[e.name];
       enemyLabels[e.idx]= nameCount[e.name]>1 ? (e.name + ['甲','乙','丙','丁','戊','己'][n-1]) : e.name; });
     function hpBar(u){ var pct=Math.max(0,Math.round(u.hp/u.maxHp*100)); var cls=pct>50?'dq-hp':pct>25?'dq-hp-warn':'dq-hp-danger'; return '<div class="dq-hpbar"><span class="dq-hpfill '+cls+'" style="width:'+pct+'%"></span></div><div class="dq-hpv">'+Math.max(0,u.hp)+' / '+u.maxHp+'</div>'; }
+    function portrait(side, id){ return '<div class="dq-portrait">'+buildPortrait(side, id)+'</div>'; }
     function debuffs(u){ var s=''; (u.dots||[]).forEach(function(d){ s+='<span class="dq-debuff">'+d.name+(d.stacks>1?('×'+d.stacks):'')+'</span>'; }); return s; }
 
     var html='<div class="dq-field">';
     html+='<div id="dq-orderbar" class="dq-orderbar" aria-label="行动顺序"></div>';
     html+='<div class="dq-side dq-enemies">';
     st.enemies.forEach(function(e){
-      if(e.hp<=0){ html+='<div class="dq-unit dq-enemy dead"><div class="dq-uname">'+enemyLabels[e.idx]+'</div><div class="dq-dead">已败</div></div>'; return; }
+      if(e.hp<=0){ html+='<div class="dq-unit dq-enemy dead">'+portrait('enemy', e.id)+'<div class="dq-uname">'+enemyLabels[e.idx]+'</div><div class="dq-dead">已败</div></div>'; return; }
       var intent = e.intent ? (e.intent==='defend'?'摆出防御架势':('欲施「'+(e.intent.name||'普攻')+'」')) : '';
       html+='<div class="dq-unit dq-enemy" data-i="'+e.idx+'">'+
+        portrait('enemy', e.id)+
         '<div class="dq-uname">'+enemyLabels[e.idx]+'</div>'+ hpBar(e)+
         (intent?'<div class="dq-intent'+(e.intent!=='defend'&&e.intent.dmgMul>=1.5?' heavy':'')+'">'+(e.intent!=='defend'&&e.intent.dmgMul>=1.5?'⚠ ':'')+intent+'</div>':'')+
         debuffs(e)+'</div>';
@@ -306,6 +312,7 @@
     html+='<div class="dq-side dq-party">';
     st.playerUnits.forEach(function(u){
       html+='<div class="dq-unit dq-ally'+(u.hp<=0?' dead':'')+'" data-i="'+u.idx+'">'+
+        portrait('player', u.name)+
         '<div class="dq-uname">'+u.name+(u.idx===0?'（你）':'')+'</div>'+ hpBar(u)+ debuffs(u)+'</div>';
     });
     html+='</div>';
@@ -752,7 +759,7 @@
     // ── 军队作战（攻城 / 守城 / 野战）：交由 War 编排结算（分段推进 · 兵力回扣 · 易帜）──
     if(getPendingArmyBattle && getPendingArmyBattle()){
       save(getState()); renderStatus();
-      if(getDqCardEl()) getDqCardEl().classList.add(result==='win'?'settle-win':(result==='lose'?'settle-lose':''));
+      var _cls = result==='win'?'settle-win':result==='lose'?'settle-lose':result==='fled'?'settle-flee':''; if(_cls && getDqCardEl()) getDqCardEl().classList.add(_cls);
       playCombatFx(result==='win'?'win':(result==='lose'?'lose':''));
       if(ctx.armyBattleEnd) ctx.armyBattleEnd(result);
       return;
@@ -768,7 +775,7 @@
         siegeLose(sc);
       }
       var _fx=(result==='win'?'win':(result==='lose'?'lose':''));
-      if(getDqCardEl()) getDqCardEl().classList.add(result==='win'?'settle-win':(result==='lose'?'settle-lose':''));
+      var _cls = result==='win'?'settle-win':result==='lose'?'settle-lose':result==='fled'?'settle-flee':''; if(_cls && getDqCardEl()) getDqCardEl().classList.add(_cls);
       playCombatFx(_fx);
       var cityName=(((LF.CITIES||{})[sc]||{}).name||'城');
       save(getState()); renderStatus();
@@ -949,7 +956,8 @@
     if(summary.pot) fixed+='<span class="cs-rew">✦ 潜能 +'+summary.pot+'</span>';
     if(summary.repText) fixed+='<span class="cs-rew">🏴 声望 +'+summary.repText+'</span>';
     var linesHTML='';
-    (summary.lines||[]).forEach(function(ln){ linesHTML+='<div class="cs-row ln">'+ln.text+'</div>'; });
+    // v20261111h：兼容纯字符串行（war.js 战棋结算传字符串数组，旧版取 ln.text 会渲染成 undefined）
+    (summary.lines||[]).forEach(function(ln){ linesHTML+='<div class="cs-row ln">'+(typeof ln==='string'?ln:(ln&&ln.text!=null?ln.text:''))+'</div>'; });
     var hasLoot = !!(summary.loot && summary.loot.length);
     ov.innerHTML=
       '<div class="cs-card">'+

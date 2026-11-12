@@ -4,6 +4,15 @@
 
   // ── 去全局泄漏：state.js / calendar.js 已只暴露到 LF.Core，此处一次性取别名 ──
   var Core = LF.Core;
+  // v20261112b：战斗分层判定薄封装（LF.ENCOUNTER 由 bundle 数据层先行加载）。
+  //   带 fallback，保证即使 bundle 未重建也不会让整个引擎初始化失败。
+  var encDecide = function (c) {
+    if (LF.ENCOUNTER && LF.ENCOUNTER.decide) return LF.ENCOUNTER.decide(c);
+    var _p = !c || c.intent !== 'military';
+    var _lb = _p ? '个人战（DQ 回合制）' : '军事行动（战棋沙盘）';
+    return { mode: _p ? 'rpg' : 'battlefield', intent: c && c.intent, reason: 'fallback',
+      label: _lb, announce: '〔本战性质〕' + _lb, source: c && c.source || '' };
+  };
   var G = Core.G || LF.SharedGame || LF;
   var state = Core.state;
   var settings = Core.settings;
@@ -146,7 +155,16 @@
     renderStatus: renderStatus, toast: toast,
     packAdd: function () { return Inventory.packAdd.apply(null, arguments); }, save: save,
     // v20261017d · 演武场：Combat 在 L614 才创建 → 延迟引用（同上方 packAdd 范式）
-    startCombat: function () { return Combat.startCombat.apply(null, arguments); }
+    startCombat: function () { return Combat.startCombat.apply(null, arguments); },
+    // v20261112c · 城主体验调试：以下别名/工厂均晚于本工厂创建（L213 / L574 / L715）→ 一律惰性包装，
+    //   与上方 isCityGrid / packAdd / startCombat 同范式，禁止固化晚定义引用。
+    conquerCity: function () { return conquerCity.apply(null, arguments); },
+    forceRoom: function () { return forceRoom.apply(null, arguments); },
+    cityGridSize: function () { return cityGridSize.apply(null, arguments); },
+    checkUnify: function () { return checkUnify.apply(null, arguments); },
+    ensureArmy: function () { return Army.ensureArmy.apply(Army, arguments); },
+    advanceMinutes: function () { return advanceMinutes.apply(null, arguments); },
+    openModal: function () { return openModal.apply(null, arguments); }
   });
   var handleDev = Dev.handleDev, renderDev = Dev.renderDev;
 
@@ -205,7 +223,14 @@
       CITY_LV_SIZE = City.CITY_LV_SIZE, CITY_LV_NAME = City.CITY_LV_NAME,
       cityDevOf = City.cityDevOf, cityOwnerOf = City.cityOwnerOf, cityDefaultOwner = City.cityDefaultOwner,
       isCaptured = City.isCaptured, cityBurnedMap = City.cityBurnedMap,
-      factionLabel = City.factionLabel, conquerCity = City.conquerCity,
+      factionLabel = City.factionLabel,
+      // v20261112d · P0：夺城后立即判天下一统，不必等朔日。
+      //   checkUnify 在 L583 才从 Strategy 解构 → 惰性引用 + typeof 守卫（引擎初始化期跳过）。
+      conquerCity = function () {
+        var _r = City.conquerCity.apply(null, arguments);
+        if (_r && _r.changed && typeof checkUnify === 'function') { try { checkUnify(); } catch (e) {} }
+        return _r;
+      },
       chronicle = City.chronicle, chronicleList = City.chronicleList,
       burnedGates = City.burnedGates, siegeGuardMul = City.siegeGuardMul, setCityDev = City.setCityDev,
       playerFaction = City.playerFaction, centerTypeOf = City.centerTypeOf, devRadius = City.devRadius, baseDisplayType = City.baseDisplayType,
@@ -282,7 +307,8 @@
       carriedCampGear = Field.carriedCampGear, placeFieldGear = Field.placeFieldGear, addFieldCamp = Field.addFieldCamp, campInField = Field.campInField,
       maybeFieldAmbush = Field.maybeFieldAmbush,
       dungeonActions = Field.dungeonActions, landmarkActions = Field.landmarkActions,
-      dungeonNarr = Field.dungeonNarr, dungeonMonstersLeft = Field.dungeonMonstersLeft;
+      dungeonNarr = Field.dungeonNarr, dungeonMonstersLeft = Field.dungeonMonstersLeft,
+      settlementActions = Field.settlementActions;
 
   // 模块 rest（从 engine.js 拆分）
   // 模块 sect（从 engine.js 拆分）
@@ -319,7 +345,8 @@
       topObjectiveText = Panels.topObjectiveText,
       renderLogPanel = Panels.renderLogPanel,
       renderLevelup = Panels.renderLevelup,
-      renderCityStat = Panels.renderCityStat;
+      renderCityStat = Panels.renderCityStat,
+      renderVictory = Panels.renderVictory;
 
   // 序章开场动画（v20260919j）：全屏幕布 #prologue 的一次性演出，演完回调 onDone
   var Prologue = LF.createPrologue({
@@ -553,7 +580,9 @@
     // v20260924z17：strategy.js renderEdict() 里 `typeof renderEdictCommands==='function'`
     //   恒为假 → 政令台少了整块「内政命令 + 武将委任」UI。Officers 工厂建于本工厂之后（L584），
     //   故用惰性包装而非直接传引用。
-    renderEdictCommands: function () { return Officers.renderEdictCommands.apply(null, arguments); }
+    renderEdictCommands: function () { return Officers.renderEdictCommands.apply(null, arguments); },
+    // openSiegePrep 由 War 工厂在 L795 才解构 → 惰性包装，禁止直接传引用
+    openSiegePrep: function () { return openSiegePrep.apply(null, arguments); }
   });
   var diploGet = Strategy.diploGet, diploStatus = Strategy.diploStatus, diploActive = Strategy.diploActive, diploTruceBetween = Strategy.diploTruceBetween,
       diploExpire = Strategy.diploExpire, diploPropose = Strategy.diploPropose, diploSue = Strategy.diploSue, renderDiplomacy = Strategy.renderDiplomacy, openDiplomacy = Strategy.openDiplomacy, fireMonthlyEvents = Strategy.fireMonthlyEvents, renderEvent = Strategy.renderEvent, chooseEvent = Strategy.chooseEvent,
@@ -561,7 +590,8 @@
       warKm = Strategy.warKm, warCityAdjPairs = Strategy.warCityAdjPairs, warOwnerKey = Strategy.warOwnerKey, warIsLordKey = Strategy.warIsLordKey, warFactionName = Strategy.warFactionName,
       warCityPower = Strategy.warCityPower, warFactionTotal = Strategy.warFactionTotal, warFactionCityCount = Strategy.warFactionCityCount, warInRoom = Strategy.warInRoom,
       runWarlordBattle = Strategy.runWarlordBattle, warChronicleEntry = Strategy.warChronicleEntry, warlordBattle = Strategy.warlordBattle, warlordDayTick = Strategy.warlordDayTick,
-      onMonthTick = Strategy.onMonthTick, monthlyYield = Strategy.monthlyYield, factionDomesticAI = Strategy.factionDomesticAI, scanFactionSurvival = Strategy.scanFactionSurvival, checkUnify = Strategy.checkUnify, factionTroops = Strategy.factionTroops;
+      onMonthTick = Strategy.onMonthTick, monthlyYield = Strategy.monthlyYield, factionDomesticAI = Strategy.factionDomesticAI, scanFactionSurvival = Strategy.scanFactionSurvival, checkUnify = Strategy.checkUnify, factionTroops = Strategy.factionTroops,
+      renderGrandStrategy = Strategy.renderGrandStrategy;
 
   // 大地图行军部队实体（v20261111g）：只管「看得见的兵」——生成/行军/展示；
   //   城池归属仍由 Strategy 逐鹿独占，接战留待下期。挂到 LF 供懒加载的 strategic-map.js 取用。
@@ -572,6 +602,18 @@
     getOwner: function () { return cityOwnerOf; }
   });
   LF.FieldArmy = fieldArmy;
+
+  // 聚落军事目标（v20261111i）：非城 Place 的守军 / 平定易帜 / 劫掠辎重。
+  //   归属独立存 flags.placeOwner，绝不写 cityOwner/ruledCities/cityWards（城市账目由 strategy.js 独占）。
+  //   addReputation / packAdd 都是引擎内后赋值的别名，必须惰性包装。
+  var settlement = LF.createSettlement({
+    getState: function () { return state; },
+    LF: LF,
+    log: log, toast: toast, save: save,
+    addReputation: function () { return addReputation.apply(null, arguments); },
+    packAdd: function () { return packAdd.apply(null, arguments); }
+  });
+  LF.Settlement = settlement;
 
   // 建筑内部交互状态 / 围城待结算（引擎本地可变状态，供城内营造面板与围城逻辑使用；
   // 原属「城市网格系统」区块但仅被引擎侧的营造 UI / 围城流程消费，故留于引擎）
@@ -736,7 +778,10 @@
     Army: Army,
     getPendingArmyBattle: function () { return pendingArmyBattle; },
     setPendingArmyBattle: function (v) { pendingArmyBattle = v; },
-    Officers: Officers
+    Officers: Officers,
+    // v20261111h：Battlefield 建于本工厂之后，必须惰性 getter（裸引用会是 undefined）
+    getBattlefield: function () { return Battlefield; },
+    addReputation: function () { return addReputation.apply(null, arguments); }
   });
   // v20261030d：战棋沙盘实例（调试台入口 / war.js 会战分支消费）
   var Battlefield = LF.createBattlefield({
@@ -1795,6 +1840,8 @@
       var b=mkAct('scene','🧱','席地打盹',function(){ openRestModal('ground'); });
       return;
     }
+    // v20261111i 聚落军事目标：先附加攻掠/劫掠，再让原房间分支照常追加按钮
+    if (room && room.placeId && LF.Settlement) settlementActions(room);
     // 建筑内部房间：场景物件（含子区域/返回出口）按按钮呈现，无方向罗盘
     if(isBldRoom(room.id)){
       var _bobjs=roomObjs(room.id);
@@ -2641,18 +2688,29 @@
         if(currentModalKind==='map') openModal('map');
         break;
       }
-      case 'siege':
+      // v20261112b：军事行动恒走战棋、个人行动恒走 DQ，不再由 armyActive() 隐式换舞台。
+      //   判定与战前宣告统一走 encDecide，见 docs/02-游戏设定/05-战斗分流判定方案.md §3.4。
+      case 'siege': {
         if(!exert('起兵略地')) return;
         if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
-        if(typeof armyActive==='function' && armyActive()){   // 已成军 → 战前编成 + 三段攻城（v20260921a）
-          openSiegePrep(state.room);
-          break;
+        var _sd = encDecide({ intent: 'military', targetKind: 'city', source: 'siege' });
+        if(!(typeof armyActive==='function' && armyActive()) || !Army.armyWithPlayer()){
+          toast('势单力薄，先募兵再兴师。'); break;
         }
+        log(_sd.announce, 'sys');
+        openSiegePrep(state.room);
+        break;
+      }
+      case 'infiltrate': {
+        if(!exert('潜入府衙')) return;
+        if(combatMode!==null){ toast('正与敌缠斗，先应敌！'); break; }
+        log(encDecide({ intent: 'personal', targetKind: 'npc', source: 'infiltrate' }).announce, 'sys');
         pendingSiegeCid=state.room;
         var _bg=burnedGates(state.room);
         if(_bg>0) log('城门焚毁未修，守军凭残垣据守，士气涣散！','sys');
         startCombat('city_guard', {guardMul: siegeGuardMul(state.room)});
         break;
+      }
       case 'patrol': if(!exert('深入山林')) return;
         log('你深入山林，只闻松涛与远鸟，一路无奇遇。','sys'); break;
       // ─── 教程：劳作闭环（v20260911h · P3：劳作吃时辰 —— 见 laborTick）───
@@ -4447,6 +4505,10 @@
       h=renderEdict();
     } else if(kind==='factionMap'){
       h=renderFactionMap();
+    } else if(kind==='victory'){
+      h=renderVictory();
+    } else if(kind==='grandStrategy'){
+      h=renderGrandStrategy();
     } else if(kind==='sect'){
       h=renderSectPanel();
     } else if(kind==='diplomacy'){ h=renderDiplomacy(state.flags._dipFid)||''; } else if(kind==='event'){ h=renderEvent(); } else if(kind==='duel'){ h=renderDuel(); } else if(kind==='debate'){ h=renderDebate(); } else if(kind==='log'){
@@ -4830,6 +4892,57 @@
     });
   }
   window.openBattlefieldDebug = openBattlefieldDebug;
+  // v20261111h：大地图主动迎战。由山河志详情卡「迎 战」按钮触发（window 桥接，懒加载 strategic-map.js 可直接调）。
+  window.engageFieldArmy = function (faId) {
+    var FA = LF.FieldArmy;
+    var fa = FA && FA.get(faId);
+    if (!fa) { toast('此军已不知所踪。'); return false; }
+    if (!fa.hostile) { toast('两军无战意，无从交锋。'); return false; }
+    var y = smYouMark();
+    if (!FA.canEngage(faId, y && y.pos)) { toast('相距过远，鞭长莫及。'); return false; }
+    if (!Army.armyCount() || !Army.armyWithPlayer()) { toast('部曲不在身边，无从交战。'); return false; }
+    var foes = [], ranks = ['front', 'mid', 'rear', 'flank'];
+    (fa.troops || []).forEach(function (t, i) {
+      var d = (LF.TROOPS || {})[t.type] || LF.TROOPS.changqiang;
+      if (!d) return;
+      var rk = ranks[i % ranks.length];
+      var u = War.mkUnit(d.name, Math.max(1, t.count), { hp: d.hp, atk: d.atk, def: d.def, spd: d.spd },
+        { troopType: t.type, rank: rk, morale: fa.morale, guard: i === 0 });
+      foes.push(War.applyOrders(u, rk));
+    });
+    if (!foes.length) { toast('敌阵已散。'); return false; }
+    log(encDecide({ intent: 'military', targetKind: 'army', source: 'engageFieldArmy' }).announce, 'sys');
+    return startFieldBattle({ def: { name: fa.name, troops: fa.power }, foeUnits: foes, faId: faId, closeMap: true });
+  };
+  // v20261111i：聚落攻掠。山河志详情卡「攻 掠」按钮 / 场景「攻掠·守军」共用此入口。
+  window.attackPlace = function (pid) {
+    var ST = LF.Settlement;
+    var y = smYouMark();
+    var v = ST && ST.get(pid, y && y.pos);
+    if (!v) { toast('此处并非可攻掠的聚落。'); return false; }
+    if (!v.hostile) { toast('此地已归你麾下。'); return false; }
+    if (v.cleared) { toast('守军已平，可搜刮辎重。'); return false; }
+    if (!ST.canAttack(pid, y && y.pos)) { toast('相距过远，鞭长莫及。'); return false; }
+    if (!Army.armyCount() || !Army.armyWithPlayer()) { toast('部曲不在身边，无从攻掠。'); return false; }
+    var foes = [], ranks = ['front', 'mid', 'flank'];
+    ST.compose(pid).forEach(function (t, i) {
+      var d = (LF.TROOPS || {})[t.type] || LF.TROOPS.changqiang;
+      if (!d) return;
+      var rk = ranks[i % ranks.length];
+      var u = War.mkUnit(d.name, Math.max(1, t.count), { hp: d.hp, atk: d.atk, def: d.def, spd: d.spd },
+        { troopType: t.type, rank: rk, morale: 70, guard: i === 0 });
+      foes.push(War.applyOrders(u, rk));
+    });
+    if (!foes.length) { toast('守军已散。'); return false; }
+    log(encDecide({ intent: 'military', targetKind: 'settlement', source: 'attackPlace' }).announce, 'sys');
+    return startFieldBattle({ def: { name: v.name + '守军', troops: v.garrison }, foeUnits: foes, placeId: pid, closeMap: true });
+  };
+  window.plunderPlace = function (pid) {
+    if (!LF.Settlement) return false;
+    var ok = LF.Settlement.plunder(pid);
+    if (ok) { buildActions(G.ROOMS[state.room]); renderStatus(); }
+    return ok;
+  };
   window.openPartyPanel=function(){ openModal('party'); };
   window.openSiegePrep=openSiegePrep; window.warToggleTroop=warToggleTroop; window.warLaunch=warLaunch;
   window.startDefendBattle=startDefendBattle; window.startFieldBattle=startFieldBattle;

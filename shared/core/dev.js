@@ -11,6 +11,30 @@ window.LF = window.LF || {};
 
     // v20261017d · 演武场：调试台视图切换（'main' 调试台 / 'arena' 敌人清单）
     var devView = 'main';
+
+    // v20261112c · 城主体验 / 统一验证（调试入口，见 docs/03-项目状态/03-城主玩法验证与缺口清单.md）
+    var devCitySel = '';
+    function defaultCity() {
+      var ks = Object.keys(LF.CITIES || {});
+      for (var i = 0; i < ks.length; i++) if (ks[i] !== 'kuyilao') return ks[i];
+      return ks[0] || '';
+    }
+    function selCity(state) {
+      var el = document.getElementById('dev-city-sel');
+      var cid = (el && el.value) || devCitySel || defaultCity();
+      if (!(LF.CITIES || {})[cid]) cid = defaultCity();
+      devCitySel = cid;
+      return cid;
+    }
+    function cityName(cid) { return ((LF.CITIES || {})[cid] || {}).name || cid; }
+    // 授城：走归属唯一写入口 conquerCity；官职需自行补（只有 siegeWin 会提 title）
+    function grantOne(cid, state) {
+      var r = ctx.conquerCity(cid, state.faction || '义军', 0);
+      var tier = ((LF.CITIES || {})[cid] || {}).tier || 'xian';
+      var gained = tier === 'capital' ? '君主' : (tier === 'zhou' ? '州牧' : '太守');
+      if ((LF.TITLES || []).indexOf(state.title) < (LF.TITLES || []).indexOf(gained)) state.title = gained;
+      return r;
+    }
     // 主要敌人分组清单（id 取自 shared/data/enemies.js）
     var ARENA_GROUPS = [
       { name: '🥋 教学 · 苦役营', ids: ['camp_dummy', 'camp_guard', 'diyunzhou'] },
@@ -113,8 +137,85 @@ window.LF = window.LF || {};
       else if (act === 'age+10') { var st=getState(); st.age=(st.age||18)+10; ctx.log('【调试】年龄 +10 → '+st.age+' 岁', 'sys'); }
       else if (act === 'demoAge') { var st=getState(); st.age=ctx.lifespanOf(); if (ctx.getDie) ctx.getDie()('寿终正寝 · 年华已尽'); }
       else if (act === 'martial_stall') { window.openModal('martial_stall'); }
+      else if (act === 'factionMap') { ctx.openModal('factionMap'); }
+      else if (act === 'grandStrategy') { ctx.openModal('grandStrategy'); }
       else if (act === 'bf_field') { window.openBattlefieldDebug('field'); }
       else if (act === 'bf_siege') { window.openBattlefieldDebug('siege'); }
+      // ── v20261112c · 城主体验 / 统一全图验证 ──
+      else if (act === 'grantCity') {
+        var _gc = selCity(state), _gr = grantOne(_gc, state);
+        ctx.log('【城主】「' + cityName(_gc) + '」已归 ' + ctx.factionName(state.faction || '义军')
+          + '，治下 ' + (state.ruledCities || []).length + ' 城', 'good');
+        ctx.toast(_gr && _gr.changed ? '已授城：' + cityName(_gc) : '此城本就归你');
+      }
+      else if (act === 'lordStart') {
+        var _lc = selCity(state);
+        grantOne(_lc, state);
+        // 脱籍：解锁全部功能，移除营规（教程未毕业时军营/政令动作被门控）
+        state.flags = state.flags || {};
+        state.flags.onb = state.flags.onb || {};
+        state.flags.onb.done = true;
+        document.body.classList.remove('onb');
+        // 启动资源与部曲。刻意不用 levyTroops：它会把 rallyPoint 设成驻守城，
+        // 导致 armyWithPlayer() 为 false，起兵/攻掠全被「部曲不在身边」拦下。
+        var _a = ctx.ensureArmy();
+        if (_a) {
+          _a.troops = [{ type: 'changqiang', count: 500, rank: 'front', xp: 0 }];
+          _a.active = true; _a.morale = 100; _a.rallyPoint = null; _a.marching = null;
+          _a.logistics = _a.logistics || { items: [], cap: 8, grain: 0 };
+          _a.logistics.grain = 1200;
+        }
+        state.gold = (state.gold || 0) + 3000;
+        state.reputation = Math.max(state.reputation || 0, 60);
+        state.title = '州牧';   // 兵力上限 800，留出「募兵→再攻」的成长空间
+        ctx.save(state); ctx.renderStatus();
+        // 传送到中枢格：政令台条件是「立于中枢 + 此城归己」（city.js:913）
+        var _sz = ctx.cityGridSize(_lc) || 5, _c0 = Math.floor(_sz / 2);
+        ctx.forceRoom(_lc, [_c0, _c0]);   // 内部 closeModal + save + renderRoom
+        ctx.log('【城主】脱籍，得银 3000 / 部曲 500 / 军粮 1200，入主「' + cityName(_lc)
+          + '」中枢。政令台、城况、治军、势力图现已可用；开「山河志」可对外用兵。', 'good');
+        // renderStatus 的 rAF 帧可能弹「破境」盖住刚落位的场景（bindActs 早有同款坑），
+        //   延迟再收一次面板；自由属性点仍在 state 里，玩家可从角色面板随时分配，不会丢。
+        setTimeout(function () { ctx.closeModal(); }, 220);
+      }
+      else if (act === 'unifyInfo') {
+        var _all = Object.keys(LF.CITIES || {}), _mine = 0;
+        _all.forEach(function (c) { if ((state.ruledCities || []).indexOf(c) >= 0) _mine++; });
+        ctx.log('【大势】治下 ' + _mine + ' / ' + _all.length + ' 城，尚需 ' + (_all.length - _mine)
+          + ' 城 · 统一' + ((state.flags && state.flags.unified) ? '已成' : '未成（判定在每月朔日）'), 'sys');
+        ctx.toast('治下 ' + _mine + ' / ' + _all.length + ' 城');
+      }
+      else if (act === 'grantAll') {
+        var _pf = state.faction || '义军', _n = 0;
+        Object.keys(LF.CITIES || {}).forEach(function (c) {
+          var _r = ctx.conquerCity(c, _pf, 0);
+          if (_r && _r.changed) _n++;
+        });
+        state.title = '君主';
+        ctx.checkUnify();   // 不必等朔日，立即验证终局判定
+        ctx.log('【大势】全图 ' + _n + ' 城易帜，统一判定：'
+          + ((state.flags && state.flags.unified) ? '天下一统 ✓（flag 已置，主线目标可勾）' : '未达成'), 'good');
+        ctx.toast((state.flags && state.flags.unified) ? '天下一统！' : ('已并 ' + _n + ' 城'));
+      }
+      else if (act === 'monthTick') {
+        if (document.body.classList.contains('in-combat')) { ctx.toast('战斗中不可跳月'); return; }
+        // 教学期 clockFlowing() 为 false，time.js:25 会让 advanceMinutes 直接 return；
+        //   调试台跳月前自动解冻，否则「推进 30 日」点了毫无反应。
+        state.flags = state.flags || {};
+        if (state.flags.onb && !state.flags.onb.done) {
+          state.flags.onb.done = true;
+          document.body.classList.remove('onb');
+          ctx.log('【月结】教学时钟冻结，已自动脱籍以解冻时间', 'sys');
+        }
+        var _g0 = state.gold;
+        try {
+          for (var _d = 0; _d < 30; _d++) ctx.advanceMinutes(1440);
+          ctx.log('【月结】推进 30 日：银两 ' + _g0 + ' → ' + state.gold
+            + '（含治下纳赋、群雄扩张、朔日统一判定）', 'sys');
+        } catch (e) { ctx.log('【月结】推进中断：' + e, 'warn'); }
+        ctx.save(state); ctx.renderStatus();
+        setTimeout(function () { if (getCurrentModalKind() !== 'char') renderDev(); }, 260);
+      }
       // v20260924z17：原「查看当前旗标」按钮已移除 —— walk() 对 state.flags 做无保护的递归遍历，
       //   旗标里一旦出现环引用（或嵌套极深）就会无限递归，点一下页面直接卡死。
     }
@@ -184,6 +285,25 @@ window.LF = window.LF || {};
          '<button class="dev" data-act="item_yao">金疮药×5</button>' +
          '<button class="dev" data-act="item_tiequan">铁拳拳谱</button>' +
          '<button class="dev" data-act="item_xuanyin">玄阴真经</button></div></div>';
+      // 9. 城主体验 / 统一验证（v20261112c）
+      var _cur = devCitySel || defaultCity();
+      var _opts = Object.keys(LF.CITIES || {}).map(function (c) {
+        return '<option value="' + c + '"' + (c === _cur ? ' selected' : '') + '>'
+          + (((LF.CITIES[c] || {}).name || c)) + '</option>';
+      }).join('');
+      h += '<div class="dev-sec"><div class="dev-h">城主 · 统一验证（治下 '
+        + (state.ruledCities || []).length + ' / ' + Object.keys(LF.CITIES || {}).length + ' 城'
+        + ((state.flags && state.flags.unified) ? ' · 已一统' : '') + '）</div>'
+        + '<div class="dev-btns"><select id="dev-city-sel" class="dev-input">' + _opts + '</select>'
+        + '<button class="dev" data-act="grantCity">授 城</button>'
+        + '<button class="dev wide" data-act="lordStart">一键城主开局（授城+脱籍+兵粮+入主中枢）</button>'
+        + '<button class="dev" data-act="unifyInfo">查看统一进度</button>'
+        + '<button class="dev" data-act="monthTick">推进 30 日（月结/纳赋）</button>'
+        + '<button class="dev" data-act="factionMap">打开势力图</button>'
+        + '<button class="dev" data-act="grandStrategy">打开天下布武</button>'
+        + '<button class="dev" data-act="grantAll">全图归我 · 验证终局</button>'
+        + '</div></div>';
+
       // 8. 地图调试（迷雾 / 门槛解锁 开关，方便测试野外网格）
       h += '<div class="dev-sec"><div class="dev-h">🗺 地图调试（迷雾 '+((state.flags&&state.flags.fog!==false)?'开':'关')+' · 门槛 '+((state.flags&&state.flags.mapGated!==false)?'开':'关')+'）</div><div class="dev-btns">' +
          '<button class="dev" data-act="toggleFog">切换迷雾</button>' +
@@ -218,10 +338,15 @@ window.LF = window.LF || {};
         btn.onclick = function () {
           var a = btn.getAttribute('data-act');
           if (a === 'setspawn') { ctx.openSpawnMap(); return; }
-          if (a === 'bf_field' || a === 'bf_siege') { handleDev(a); return; }
+          if (a === 'bf_field' || a === 'bf_siege' || a === 'lordStart' || a === 'monthTick' || a === 'factionMap' || a === 'grandStrategy') { handleDev(a); return; }
           if (a === 'demoDeath' || a === 'demoAge') { handleDev(a); return; }
           handleDev(a); ctx.save(state); ctx.renderStatus();
           if (getCurrentModalKind() !== 'char') renderDev();
+          // v20261112c：城主验证类命令连点时要能留在调试台；renderStatus 的 rAF 可能弹破境覆盖，
+          //   与下方 bindActs 的 90ms 兜底同理，这里补一次延迟重绘（不影响其它既有命令）。
+          if (a === 'grantCity' || a === 'unifyInfo' || a === 'grantAll') {
+            setTimeout(function () { if (getCurrentModalKind() !== 'char') renderDev(); }, 140);
+          }
         };
       });
 

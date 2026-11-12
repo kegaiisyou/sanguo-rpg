@@ -23,12 +23,18 @@
   };
 
   // 各类未显式给字段时的默认值（生成器/路网直接读这里）
+  // v20261111i：军事目标契约 —— 守军 / 城防 / 补给 / 辎重 / 可攻掠。
+  // 单个地点可在 places.js 逐项覆写；settlement.js 消费这些字段造守军与战利品。
   var DEFAULTS = {
-    fort:   { garrison:40, wall:70, defenseBonus:0.20, assault:'auto', supplies:30, tax:0, canGarrison:true  },
-    pass:   { garrison:40, wall:80, defenseBonus:0.25, assault:'auto', supplies:20, tax:0, canGarrison:false },
+    town:   { garrison:80,  wall:20, defenseBonus:0.05, supplies:40, loot:['gold:30','dou'],  raidable:true },
+    camp:   { garrison:140, wall:25, defenseBonus:0.10, supplies:50, loot:['gold:50','jiu'],  raidable:true },
+    fort:   { garrison:200, wall:70, defenseBonus:0.20, assault:'auto', supplies:30, tax:0, canGarrison:true,  loot:['gold:70','gumao'], raidable:true },
+    pass:   { garrison:180, wall:80, defenseBonus:0.25, assault:'auto', supplies:20, tax:0, canGarrison:false, loot:['gold:70','dou'],   raidable:true },
     dungeon:{ floors:1, roomsPerFloor:4, spawns:[], boss:null, loot:[], respawn:'onClear', instance:false, difficulty:1, entryReq:{}, clearReward:null },
-    landmark:{ plot:null, battle:null, isBattlefield:false },
-    field:   { size:4, richness:0.5, risk:0.3 }
+    landmark:{ plot:null, battle:null, isBattlefield:false, garrison:60, wall:10, defenseBonus:0, supplies:20, loot:['gold:20'], raidable:true },
+    wild:   { garrison:50,  wall:0,  defenseBonus:0,    supplies:15, loot:['gold:15','dou'], raidable:true },
+    story:  { raidable:false },
+    field:  { size:4, richness:0.5, risk:0.3 }
   };
 
   global.LF.PLACE_KINDS = KINDS;

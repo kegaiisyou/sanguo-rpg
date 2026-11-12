@@ -232,7 +232,25 @@
     h += '<span>府库 <b>'+(S().gold||0)+'</b></span>';
     h += '<span>声望 <b>'+(S().reputation||0)+'</b></span>';
     h += '</div>';
-    h += '<div class="fm-my-ops"><button class="btn sm" onclick="openOfficerPanel()">武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">刷新大势</button></div>';
+    h += '<div class="fm-my-ops"><button class="btn sm" onclick="openModal(\'grandStrategy\')">天下布武</button><button class="btn sm" onclick="openOfficerPanel()">武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">刷新大势</button></div>';
+    h += '</div>';
+    // v20261112d · P0：举兵远征。复用 .fm-my / .fm-row / .btn sm 既有原语，不新造 CSS 类。
+    var _tg = campaignTargets();
+    h += '<div class="fm-my"><div class="fm-my-h">举兵远征 · 版图边缘（' + _tg.length + ' 城可攻）</div>';
+    if (!_tg.length) {
+      h += '<p class="tip">尚无与治下版图邻接的敌城。先据一城，方可逐鹿。</p>';
+    } else {
+      _tg.slice(0, 24).forEach(function (t) {
+        h += '<div class="fm-row"><div class="fm-lord"><b>' + escapeHtml(t.name) + '</b>'
+          + '　<small>' + escapeHtml(t.ownerName) + ' · 城防 ' + t.wall + ' · 约 ' + t.km + ' 公里</small></div>'
+          + '<div class="fm-cities">'
+          + '<button class="btn sm" onclick="window.attackCityFrom(\'' + t.cid + '\')">亲 征</button>　'
+          + '<button class="btn sm" onclick="window.commandCampaign(\'' + t.cid + '\')">命 将</button>'
+          + '</div></div>';
+      });
+      if (_tg.length > 24) h += '<p class="tip">另有 ' + (_tg.length - 24) + ' 城，收复邻近城池后可续进。</p>';
+      h += '<p class="tip">只可自版图邻接处进兵（' + WAR_ADJ_KM + ' 公里内），需部曲在身边、军中有粮。亲征走战棋三段攻城；命将按兵力后台结算，胜亦易帜、负则折兵。</p>';
+    }
     h += '</div>';
     h+='</div>';
     return h;
@@ -537,8 +555,210 @@
       chronicle(nm + '扫平群雄，海内归心，天下一统！', 'unify');
       log('〔天下一统〕历经百战，你终扫平群雄、海内归心——乱世至此落幕。', 'good');
       toast('🏆 天下一统！');
+      // P0：结局画面。延迟半秒，避免盖住刚打完那一战的结算面板；victoryShown 防重复弹。
+      if (!S().flags.victoryShown) {
+        S().flags.victoryShown = true;
+        setTimeout(function () { try { openModal('victory'); } catch (e) {} }, 520);
+      }
     }
   }
+  // ══ 天下布武 v1 · 三国志2 式月度军令台（v20261112e）══
+  // 刻意简化：不引入跨日行军 / 每城驻军 / 多军团 / 补给线。
+  //   一期只做「每月有限道内政令 + 我方城池列表 + 进兵方向」，用兵仍复用 d 版的亲征/命将。
+  //   flags._monthKey 由 time.js:60 在 onMonthTick 之前写入，这里惰性比对即可复位，
+  //   不强依赖月结一定被触发（调试台跳月、读旧档都安全）。
+  function cmdQuota() {
+    var n = ((S() && S().ruledCities) || []).length;
+    return Math.max(2, Math.min(8, 2 + Math.floor(n / 2)));
+  }
+  function strategyState() {
+    var F = S().flags;
+    F.strategy = F.strategy || { monthKey: -1, left: 0, log: [] };
+    var mk = F._monthKey || 0;
+    if (F.strategy.monthKey !== mk) {
+      F.strategy.monthKey = mk;
+      F.strategy.left = cmdQuota();
+      F.strategy.log = [];
+    }
+    if (!F.strategy.log) F.strategy.log = [];
+    return F.strategy;
+  }
+  global.strategyCmd = function (kind, cid) {
+    var st = S();
+    if (!st || st.dead) { toast('尚未入世。'); return false; }
+    var gs = strategyState();
+    var c = (LF.CITIES || {})[cid];
+    if (!c || cityOwnerOf(cid) !== playerFaction()) { toast('此城不在你治下。'); return false; }
+    if (gs.left <= 0) { toast('本月军令已尽，待朔日再议。'); return false; }
+    var cost = kind === 'dev' ? 200 : (kind === 'recruit' ? 300 : (kind === 'grain' ? 150 : 0));
+    if (!cost) { toast('未知军令。'); return false; }
+    if ((st.gold || 0) < cost) { toast('府库不足，需银 ' + cost + '。'); return false; }
+    var a = st.army || (st.army = { troops: [], active: true, logistics: { grain: 0 } });
+    a.troops = a.troops || [];
+    var cnt = 0; a.troops.forEach(function (t) { cnt += (t.count || 0); });
+    var msg = '';
+    if (kind === 'dev') {
+      setCityDev(cid, cityDevOf(cid) + 6);
+      msg = '开 发 +6';
+    } else if (kind === 'recruit') {
+      var cap = LF.armyCapOf ? LF.armyCapOf(st.title || '游侠') : 800;
+      var add = Math.max(0, Math.min(40, cap - cnt));
+      if (!add) { toast('部曲已达此官职上限。'); return false; }
+      var found = false;
+      a.troops.forEach(function (t) { if (t.type === 'changqiang') { t.count = (t.count || 0) + add; found = true; } });
+      if (!found) a.troops.push({ type: 'changqiang', count: add, rank: 'front', xp: 0 });
+      a.active = true;
+      msg = '募 兵 +' + add;
+    } else {
+      a.logistics = a.logistics || { items: [], cap: 8, grain: 0 };
+      a.logistics.grain = (a.logistics.grain || 0) + 300;
+      msg = '籴 粮 +300';
+    }
+    st.gold -= cost;
+    gs.left--;
+    gs.log.unshift('第' + (st.day || 0) + '日 · ' + (c.name || cid) + ' · ' + msg);
+    if (gs.log.length > 12) gs.log.length = 12;
+    log('〔军令〕' + (c.name || cid) + '　' + msg + '（本月余 ' + gs.left + ' 道）', 'sys');
+    save(st); renderStatus(); openModal('grandStrategy');
+    // renderStatus 的 rAF 帧可能弹「破境」盖住面板（dev.js bindActs 早有同款坑）→ 延迟兜底重绘。
+    setTimeout(function () { openModal('grandStrategy'); }, 140);
+    return true;
+  };
+  function renderGrandStrategy() {
+    var st = S();
+    if (!st) return '<h3>天 下 布 武</h3><p class="tip">尚未入世。</p>';
+    var gs = strategyState(), C = LF.CITIES || {}, total = Object.keys(C).length;
+    var mine = (st.ruledCities || []).filter(function (c) { return C[c]; });
+    var a = st.army || {}, cnt = 0;
+    (a.troops || []).forEach(function (t) { cnt += (t.count || 0); });
+    var era = (st.eraName || '光和') + (st.eraYear === 1 ? '元年' : (st.eraYear || 1) + '年');
+    var h = '<h3>天 下 布 武</h3>';
+    h += '<div class="fm-my"><div class="fm-my-h">' + escapeHtml(era) + ' · 本月军令 ' + gs.left + ' / ' + cmdQuota() + '</div>';
+    h += '<div class="fm-my-grid">'
+      + '<span>治下 <b>' + mine.length + ' / ' + total + '</b> 城</span>'
+      + '<span>府库 <b>' + (st.gold || 0) + '</b></span>'
+      + '<span>部曲 <b>' + cnt + '</b></span>'
+      + '<span>军粮 <b>' + ((a.logistics && a.logistics.grain) || 0) + '</b></span>'
+      + '<span>统一 <b>' + (st.flags.unified ? '已成' : '未成') + '</b></span>'
+      + '</div>';
+    h += '<div class="fm-my-ops"><button class="btn sm" onclick="openModal(\'factionMap\')">观天下大势</button>'
+      + '<button class="btn sm" onclick="openModal(\'grandStrategy\')">刷新军令台</button></div></div>';
+    // 治下城池 · 内政
+    h += '<div class="fm-my"><div class="fm-my-h">治下城池 · 内政（每道军令耗 1）</div>';
+    if (!mine.length) h += '<p class="tip">尚无寸土。先取一城，方可发号。</p>';
+    mine.slice(0, 24).forEach(function (cid) {
+      var c = C[cid];
+      h += '<div class="fm-row"><div class="fm-lord"><b>' + escapeHtml(c.name || cid) + '</b>'
+        + '　<small>开发 ' + cityDevOf(cid) + ' · 城防 ' + (c.wall || 0) + ' · 人户 ' + (c.pop || 0) + '</small></div>'
+        + '<div class="fm-cities">'
+        + '<button class="btn sm" onclick="window.strategyCmd(\'dev\',\'' + cid + '\')">开 发 · 200</button>　'
+        + '<button class="btn sm" onclick="window.strategyCmd(\'recruit\',\'' + cid + '\')">募 兵 · 300</button>　'
+        + '<button class="btn sm" onclick="window.strategyCmd(\'grain\',\'' + cid + '\')">籴 粮 · 150</button>'
+        + '</div></div>';
+    });
+    if (mine.length > 24) h += '<p class="tip">另有 ' + (mine.length - 24) + ' 城未列。</p>';
+    h += '</div>';
+    // 进兵方向（复用 d 版 campaignTargets）
+    var tg = campaignTargets();
+    h += '<div class="fm-my"><div class="fm-my-h">进兵方向（' + tg.length + ' 城 · ' + WAR_ADJ_KM + ' 公里内）</div>';
+    if (!tg.length) h += '<p class="tip">四境无敌，或尚未据城。</p>';
+    tg.slice(0, 16).forEach(function (t) {
+      h += '<div class="fm-row"><div class="fm-lord"><b>' + escapeHtml(t.name) + '</b>'
+        + '　<small>' + escapeHtml(t.ownerName) + ' · 城防 ' + t.wall + ' · 约 ' + t.km + ' 公里</small></div>'
+        + '<div class="fm-cities">'
+        + '<button class="btn sm" onclick="window.attackCityFrom(\'' + t.cid + '\')">亲 征</button>　'
+        + '<button class="btn sm" onclick="window.commandCampaign(\'' + t.cid + '\')">命 将</button>'
+        + '</div></div>';
+    });
+    if (tg.length > 16) h += '<p class="tip">另有 ' + (tg.length - 16) + ' 城，可在「天下大势」查看。</p>';
+    h += '</div>';
+    // 本月军令录
+    h += '<div class="fm-my"><div class="fm-my-h">本月军令录</div>';
+    if (!gs.log.length) h += '<p class="tip">本月尚未下令。</p>';
+    gs.log.forEach(function (x) { h += '<div class="fm-cities">' + escapeHtml(x) + '</div>'; });
+    h += '</div>';
+    h += '<p class="tip">每月朔日军令复原，额度随治下城数增长（2～8 道）。内政令耗银；用兵另受部曲、军粮与 '
+      + WAR_ADJ_KM + ' 公里邻接约束，暂不占军令。此为一期简化：尚无跨日行军、每城驻军、多军团受命与补给线。</p>';
+    return h;
+  }
+
+  // ══ 举兵远征（v20261112d · P0）══
+  // 让「统一全图」从「只能打脚下城」变成「自版图边缘逐城蚕食」：
+  //   · 目标必须与【任一治下城】在 WAR_ADJ_KM 内，杜绝全图瞬移点城；
+  //   · 亲征 → 战棋三段攻城（复用 openSiegePrep，归属仍由 conquerCity 唯一写入）；
+  //   · 命将 → 后台兵力对比一次性结算，胜亦走 conquerCity，负则折兵挫气。
+  // 刻意不做「跨日行军 + 多军团调度」：那是独立系统，先保证闭环可玩。
+  function campaignTargets() {
+    var C = LF.CITIES || {}, st = S();
+    if (!st) return [];
+    var mine = (st.ruledCities || []).filter(function (c) { return C[c] && C[c].pos; });
+    var pf = playerFaction();
+    var out = [];
+    Object.keys(C).forEach(function (cid) {
+      var o = cityOwnerOf(cid);
+      if (o === pf || o === 'player' || o === '义军') return;
+      var t = C[cid]; if (!t || !t.pos) return;
+      var best = Infinity;
+      mine.forEach(function (mc) {
+        var a = C[mc]; if (!a || !a.pos) return;
+        var d = warKm(a.pos[0], a.pos[1], t.pos[0], t.pos[1]);
+        if (d < best) best = d;
+      });
+      if (best > WAR_ADJ_KM) return;
+      out.push({ cid: cid, name: t.name || cid, wall: t.wall || 0,
+        km: Math.round(best), ownerName: warFactionName(warOwnerKey(cid)) });
+    });
+    out.sort(function (a, b) { return a.km - b.km; });
+    return out;
+  }
+  function campaignCheck(cid) {
+    var st = S();
+    if (!st || st.dead) return { ok: false, reason: '尚未入世。' };
+    var t = (LF.CITIES || {})[cid];
+    if (!t) return { ok: false, reason: '此城不在版图之内。' };
+    var o = cityOwnerOf(cid), pf = playerFaction();
+    if (o === pf || o === 'player' || o === '义军') return { ok: false, reason: '此城已在你治下。' };
+    var tg = null;
+    campaignTargets().forEach(function (x) { if (x.cid === cid) tg = x; });
+    if (!tg) return { ok: false, reason: '鞭长莫及：须先取版图邻接之城，方能进兵至此。' };
+    var a = st.army, cnt = 0;
+    ((a && a.troops) || []).forEach(function (x) { cnt += (x.count || 0); });
+    if (!a || !a.active || !cnt) return { ok: false, reason: '尚无部曲可编，先募兵成军。' };
+    if (a.rallyPoint) return { ok: false, reason: '部曲正驻守他处，请于治军面板改为「随军」。' };
+    if (!(a.logistics && a.logistics.grain > 0)) return { ok: false, reason: '军中无粮，先籴粮再兴师。' };
+    return { ok: true, city: t, km: tg.km, troops: cnt };
+  }
+  global.attackCityFrom = function (cid) {
+    var ck = campaignCheck(cid);
+    if (!ck.ok) { toast(ck.reason); return false; }
+    log('〔举兵〕自版图进兵「' + (ck.city.name || cid) + '」，约 ' + ck.km + ' 公里，亲征督战。', 'sys');
+    if (ctx.openSiegePrep) { ctx.openSiegePrep(cid); return true; }
+    toast('战前编成未就绪。'); return false;
+  };
+  global.commandCampaign = function (cid) {
+    var ck = campaignCheck(cid);
+    if (!ck.ok) { toast(ck.reason); return false; }
+    var st = S(), a = st.army, c = ck.city, nm = c.name || cid;
+    var atk = ck.troops * (0.9 + (st.reputation || 0) / 400) * (0.7 + (a.morale || 100) / 200);
+    var def = warCityPower(cid) * 1.15;
+    var p = Math.max(0.12, Math.min(0.88, atk / (atk + def)));
+    var win = Math.random() < p;
+    a.logistics.grain = Math.max(0, (a.logistics.grain || 0) - Math.ceil(ck.troops / 50));
+    if (win) {
+      conquerCity(cid, playerFaction(), 0);
+      st.reputation = (st.reputation || 0) + 3;
+      log('〔命将〕诸将用命，克「' + nm + '」，城头易帜！（胜算 ' + Math.round(p * 100) + '%）', 'good');
+      toast('克城：' + nm);
+    } else {
+      ((a && a.troops) || []).forEach(function (t) { t.count = Math.max(0, Math.round((t.count || 0) * 0.82)); });
+      a.morale = Math.max(20, (a.morale || 100) - 12);
+      log('〔命将〕「' + nm + '」守军力战，我军失利，折兵两成、军心稍挫。（胜算 ' + Math.round(p * 100) + '%）', 'warn');
+      toast('攻城失利，折兵两成');
+    }
+    save(st); renderStatus();
+    return win;
+  };
+
   // ── 事件 / 剧本（v20260922f）──
   var EVENTS = [
     { id:'refugee', title:'流民归附', w:3, cond:function(){ return (S().ruledCities||[]).length>0; },
@@ -656,7 +876,8 @@
       warCityPower: warCityPower, warFactionTotal: warFactionTotal, warFactionCityCount: warFactionCityCount, warInRoom: warInRoom,
       runWarlordBattle: runWarlordBattle, warChronicleEntry: warChronicleEntry, warlordBattle: warlordBattle, warlordDayTick: warlordDayTick,
       onMonthTick: onMonthTick, monthlyYield: monthlyYield, factionDomesticAI: factionDomesticAI, scanFactionSurvival: scanFactionSurvival, checkUnify: checkUnify,
-      fireMonthlyEvents: fireMonthlyEvents, fireHistoricalEvents: fireHistoricalEvents, renderEvent: renderEvent, chooseEvent: chooseEvent
+      fireMonthlyEvents: fireMonthlyEvents, fireHistoricalEvents: fireHistoricalEvents, renderEvent: renderEvent, chooseEvent: chooseEvent,
+      renderGrandStrategy: renderGrandStrategy, strategyCmd: global.strategyCmd
     };
   };
 })(typeof window !== 'undefined' ? window : global);

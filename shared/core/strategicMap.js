@@ -35,6 +35,12 @@ function buildStrategicMapHTML(opts){
         var _bc=(LF.CITIES||{})[back.cid];
         if(_bc && _bc.pos) return {type:'you', pos:_bc.pos, cid:back.cid, label:'此身所在 · '+_bc.name};
       }
+      // 兜底：无 bldEnt.back 时，用名义所在城（cityPos）坐标
+      var _cp = getState().flags && getState().flags.cityPos && getState().flags.cityPos.cid;
+      if(_cp){
+        var _cc=(LF.CITIES||{})[_cp];
+        if(_cc && _cc.pos) return {type:'you', pos:_cc.pos, cid:_cp, label:'此身所在 · '+_cc.name};
+      }
       return null;
     }
     var c=(LF.CITIES||{})[rid];
@@ -82,6 +88,12 @@ function buildStrategicMapHTML(opts){
                 cid:_cr.fieldId, label:'此身所在 · '+((_fp.name)||'郊野')};
       }
     }
+    // 兜底：城内建筑/牢房等取不到坐标时，用名义所在城（cityPos）坐标
+    var _cp = getState().flags && getState().flags.cityPos && getState().flags.cityPos.cid;
+    if(_cp){
+      var _cc=(LF.CITIES||{})[_cp];
+      if(_cc && _cc.pos) return {type:'you', pos:_cc.pos, cid:_cp, label:'此身所在 · '+_cc.name};
+    }
     return null;
   }
   // 主线/任务目标打点（后续支线目标可在此追加）
@@ -107,7 +119,7 @@ function buildStrategicMapHTML(opts){
     var y=smYouMark(); if(y) out.push(y);
     smGoalMarks().forEach(function(x){ out.push(x); });
     // v20261111g：行军部队上图（与 you/goal/hold 同构的 marks，由 strategic-map.js 渲染）
-    try{ var fa=getFieldArmy&&getFieldArmy(); if(fa && fa.marks) fa.marks().forEach(function(a){ out.push(a); }); }catch(e){}
+    try{ var fa=getFieldArmy&&getFieldArmy(); if(fa && fa.marks) fa.marks(y && y.pos).forEach(function(a){ out.push(a); }); }catch(e){}
     return out;
   }
   // 运行时归属读取器：让山河志城市点/详情随易主实时变色（v20260909o）
@@ -158,11 +170,15 @@ function buildStrategicMapHTML(opts){
     if(!container) return;
     function render(){
       var marks=strategicMapMarks();
+      var y=smYouMark();   // v20261111i：聚落「攻 掠」按钮按「此身所在」判距离
       // 选出生点模式
       if(opts.pickSpawn){
         LF.initStrategicMap(container, {
           marks: marks,
+          youPos: y && y.pos,
           ownerOf: strategicOwnerOf,
+          onArmyClick: function(a){ if(a && a.id && window.engageFieldArmy) window.engageFieldArmy(a.id); },
+          onPlaceRaid: function(pid){ if(pid && window.attackPlace) window.attackPlace(pid); },
           onCityClick: function(city){
             if(!city || !city.id) return;
             getState().spawnRoom=city.id;
@@ -175,7 +191,10 @@ function buildStrategicMapHTML(opts){
         LF.initStrategicMap(container, {
           marks: marks,
           focusYou: !!opts.focusYou,
+          youPos: y && y.pos,
           ownerOf: strategicOwnerOf,
+          onArmyClick: function(a){ if(a && a.id && window.engageFieldArmy) window.engageFieldArmy(a.id); },
+          onPlaceRaid: function(pid){ if(pid && window.attackPlace) window.attackPlace(pid); },
           onCityClick: function(city){
             if(!city || !city.id) return;
             placeInfo(city.id, city.name, city.kind, city.state, city.desc, city.owner, city.isPlace);

@@ -213,7 +213,20 @@
   function genPlaceRooms(placeId){
     var P = global.LF.PLACES || {}; var p = P[placeId]; if (!p) return {};
     var g = GEN[p.kind] || GEN.city;
-    return g(p);
+    var out = g(p);
+    // v20261111i：军事目标房间挂回指 id 与守军/辎重，供 settlementActions 与战果回扣消费。
+    //   fort/pass 会生成 3 房，故逐房统一挂，内房也能攻掠/搜刮。
+    if (p.raidable && p.kind !== 'city' && p.kind !== 'dungeon') {
+      for (var rid in out) {
+        var r = out[rid];
+        if (!r) continue;
+        r.placeId = placeId;
+        if (r.garrison == null && p.garrison != null) r.garrison = p.garrison;
+        if (r.loot == null && p.loot) r.loot = p.loot;
+        if (r.owner == null && p.owner) r.owner = p.owner;
+      }
+    }
+    return out;
   }
 
   global.LF.genPlaceRooms = genPlaceRooms;

@@ -197,7 +197,7 @@
         return '<div class="bf-dboard-wrap">' +
           '<div class="bf-dboard" style="--gw:' + w + ';--gh:' + h + '">' + cells + '</div>' +
           '<div class="bf-dboard-tip">' + tip + '</div>' +
-          '<div class="bf-dboard-bar"><button type="button" class="bf-sadd" id="bf-autopos">自动布阵</button>' +
+          '<div class="bf-dboard-bar"><button type="button" class="btn bf-sadd" id="bf-autopos">自动布阵</button>' +
           '<span class="bf-dboard-legend"><i class="lg-mine"></i>我方半场<i class="lg-foe"></i>敌方</span></div>' +
           '</div>';
       }
@@ -225,7 +225,7 @@
         var on = side === 'ally' && st.sel === i;
         return '<div class="bf-srow' + (on ? ' is-sel' : '') + '" data-side="' + side + '" data-i="' + i + '">' +
           '<span class="bf-sport"><i class="bf-u-ico ico-' + r.type + '"></i></span>' +
-          (side === 'ally' ? '<button type="button" class="bf-slocate' + (on ? ' on' : '') + '">' + (on ? '布阵中' : '布阵') + '</button>' : '') +
+          (side === 'ally' ? '<button type="button" class="btn bf-slocate' + (on ? ' on' : '') + '">' + (on ? '布阵中' : '布阵') + '</button>' : '') +
           '<select class="bf-s-type">' + opts + '</select>' +
           '<select class="bf-s-rank">' + rks + '</select>' +
           '<input class="bf-s-count" type="number" min="20" max="800" value="' + r.count + '" />' +
@@ -245,17 +245,17 @@
           '<div class="bf-ssec"><div class="bf-ssec-t">战场地图</div><div class="bf-maps">' + mapBtns + '</div></div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">战场大小</div>' +
           '<div class="bf-spresets">' +
-          '<button type="button" class="bf-gp' + gridOn(8, 6) + '" data-w="8" data-h="6">小 (8×6)</button>' +
-          '<button type="button" class="bf-gp' + gridOn(12, 9) + '" data-w="12" data-h="9">中 (12×9)</button>' +
-          '<button type="button" class="bf-gp' + gridOn(14, 12) + '" data-w="14" data-h="12">大 (14×12)</button></div>' +
+          '<button type="button" class="btn bf-gp' + gridOn(8, 6) + '" data-w="8" data-h="6">小 (8×6)</button>' +
+          '<button type="button" class="btn bf-gp' + gridOn(12, 9) + '" data-w="12" data-h="9">中 (12×9)</button>' +
+          '<button type="button" class="btn bf-gp' + gridOn(14, 12) + '" data-w="14" data-h="12">大 (14×12)</button></div>' +
           '<div class="bf-srow"><label>宽</label><input id="bf-gw" type="number" min="6" max="40" value="' + st.grid.w + '"/>' +
           '<label>高</label><input id="bf-gh" type="number" min="6" max="40" value="' + st.grid.h + '"/></div></div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">布阵盘（点「布阵」选一营，再点我方半场落子）</div>' + boardHTML() + '</div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">我方部署（兵种 / 阵位 / 兵力）</div>' + allyRows +
-          (st.allies.length < 6 ? '<button type="button" class="bf-sadd bf-add-ally">＋ 添加我军</button>' : '') +
-          (st.allies.some(function (r) { return r.type === 'zhongjun'; }) ? '' : '<button type="button" class="bf-sadd bf-add-hub">＋ 设中军（帅旗）</button>') + '</div>' +
+          (st.allies.length < 6 ? '<button type="button" class="btn bf-sadd bf-add-ally">＋ 添加我军</button>' : '') +
+          (st.allies.some(function (r) { return r.type === 'zhongjun'; }) ? '' : '<button type="button" class="btn bf-sadd bf-add-hub">＋ 设中军（帅旗）</button>') + '</div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">敌军部署</div>' + foeRows +
-          (st.foes.length < 6 ? '<button type="button" class="bf-sadd bf-add-foe">＋ 添加敌军</button>' : '') + '</div>' +
+          (st.foes.length < 6 ? '<button type="button" class="btn bf-sadd bf-add-foe">＋ 添加敌军</button>' : '') + '</div>' +
           '<div class="bf-ssec"><div class="bf-ssec-t">调试功能</div>' +
           '<label class="bf-dbg-row"><input type="checkbox" class="bf-dbg" data-k="invincible"' + (st.dbg.invincible ? ' checked' : '') + '/> 我军无敌（不损兵）</label>' +
           '<label class="bf-dbg-row"><input type="checkbox" class="bf-dbg" data-k="showAllThreat"' + (st.dbg.showAllThreat ? ' checked' : '') + '/> 显示全体敌军威胁</label>' +

@@ -13,7 +13,10 @@
     var isCityGrid = ctx.isCityGrid, roleAtkMul = ctx.roleAtkMul;
     var Army = ctx.Army;               // 军队工厂实例
     var getPendingArmyBattle = ctx.getPendingArmyBattle, setPendingArmyBattle = ctx.setPendingArmyBattle;
-    var Battlefield = ctx.Battlefield;
+    // v20261111h：Battlefield 建于 War 之后，不能用裸引用（曾为 undefined → 野战/攻城进战棋必崩）。
+    //   改为惰性 getter，与 getPendingArmyBattle 同款范式。
+    var getBattlefield = ctx.getBattlefield;
+    var addReputation = ctx.addReputation;
     var Officers = ctx.Officers || null;
 
     var SEGS = [
@@ -258,20 +261,33 @@
       var ab = {
         kind: opt.kind || 'field', cid: opt.cid || null, seg: opt.seg || 0,
         reinforce: opt.reinforce || null, night: !!opt.night, ambush: !!opt.ambush,
-        fid: opt.fid || null, def: opt.def || null, duelWin: !!opt.duelWin
+        fid: opt.fid || null, def: opt.def || null, duelWin: !!opt.duelWin,
+        faId: opt.faId || null,           // v20261111h：大地图行军部队 id，供战后回扣
+        placeId: opt.placeId || null     // v20261111i：聚落军事目标 id，供平定/劫掠回扣
       };
       if (setPendingArmyBattle) setPendingArmyBattle(ab);
       var units = ourUnits({ atkMul: opt.atkMul });
       if (LF.Officers && LF.Officers.battleSynergy) { var _syn = LF.Officers.battleSynergy(); if (_syn > 0) units.forEach(function (u) { u.morale = Math.max(0, Math.min(100, (u.morale || 75) + _syn * 100)); }); }
       if (!units.length) { toast('你身边并无可战之兵。'); if (setPendingArmyBattle) setPendingArmyBattle(null); return false; }
-      // ── 会战分支：攻城 / 野战进入战棋沙盘；守城与其他仍走 DQ 卡牌演出 ──
-      if (ab.kind === 'siege' || ab.kind === 'field') {
+      // ── v20261112b：统一走 LF.ENCOUNTER 分层判定，ab.kind 只作意图来源，不再是模式开关 ──
+      //   守城(defend) 仍归 personal 走 DQ 卡牌演出，待二期统一（见 05-战斗分流判定方案.md §3.5）。
+      var _dec = (LF.ENCOUNTER && LF.ENCOUNTER.decide) ? LF.ENCOUNTER.decide({
+        forceMode: opt.forceMode || null,
+        intent: (ab.kind === 'siege' || ab.kind === 'field') ? 'military' : 'personal',
+        targetKind: ab.kind === 'siege' ? 'city' : (ab.kind === 'field' ? 'army' : 'npc'),
+        source: 'war.beginBattle'
+      }) : null;
+      var _useBf = _dec ? (_dec.mode === 'battlefield') : (ab.kind === 'siege' || ab.kind === 'field');
+      if (_useBf) {
+        if (_dec) log(_dec.announce, 'sys');
         var foeUnits0 = opt.foeUnits || [];
         var _scale = ab.kind === 'siege' ? 'siege' : (units.length + foeUnits0.length > 10 ? 'field' : 'skirmish');
         log('〔列阵〕' + units.map(function (u) { return (LF.ARMY_RANKS[u.rank] || {}).name + '·' + u.name; }).join('，') + '。', 'sys');
         if (ab.reinforce) log('〔警讯〕狼烟未起——若战事胶着，' + ab.reinforce.name + '将于第 ' + ab.reinforce.round + ' 回合驰至。', 'warn');
         if (ab.ambush) log('〔设伏〕你已先机布子，士气先占一分。', 'sys');
-        Battlefield.start({
+        var _BF = getBattlefield ? getBattlefield() : null;
+        if (!_BF) { toast('战棋沙盘未就绪。'); if (setPendingArmyBattle) setPendingArmyBattle(null); return false; }
+        _BF.start({
           kind: ab.kind, cid: ab.cid, seg: ab.seg, scale: _scale, grid: opt.grid || null,
           allies: units, foes: foeUnits0, reinforce: ab.reinforce, ambush: ab.ambush, night: ab.night,
           title: ab.kind === 'siege' ? ((SEGS[ab.seg] || {}).mark || '攻城') : '野战',
@@ -440,10 +456,48 @@
       if (setPendingArmyBattle) setPendingArmyBattle(null);
       if (result === 'win') Army.armyMoraleAdd(8, '野战得胜，');
       else Army.armyMoraleAdd(-10, '野战失利，');
+      // v20261111h：大地图主动接战 → 战果回扣到行军部队实体
+      var gold = 0, repText = '';
+      if (ab.faId && LF.FieldArmy && LF.FieldArmy.resolve) {
+        var fa = LF.FieldArmy.resolve(ab.faId, result);
+        if (fa) {
+          if (fa.dispersed) {
+            gold = fa.gold;
+            try { S().gold = (S().gold || 0) + gold; } catch (e) {}
+            if (fa.rep && addReputation) { addReputation(fa.rep); repText = fa.rep; }
+            lines.push('〔捷报〕' + fa.name + '溃散，缴获 ' + gold + ' 钱');
+            log('〔捷报〕' + fa.name + '已溃散，获 ' + gold + ' 钱。', 'good');
+          } else {
+            lines.push('〔战况〕' + fa.name + '受挫未散，减员后继续行军。');
+            log('〔战况〕' + fa.name + '受挫，减员掉士气后继续行军。', 'warn');
+          }
+        }
+      }
+      // v20261111i：聚落攻掠 → 平定易帜 / 守军减员，战果写进结算面板
+      if (ab.placeId && LF.Settlement && LF.Settlement.resolve) {
+        var pv = LF.Settlement.resolve(ab.placeId, result);
+        if (pv) {
+          if (pv.won) {
+            gold = pv.gold;
+            try { S().gold = (S().gold || 0) + gold; } catch (e) {}
+            if (pv.rep && addReputation) { addReputation(pv.rep); repText = pv.rep; }
+            lines.push('〔捷报〕' + pv.name + '已平定，缴获 ' + gold + ' 钱');
+            log('〔捷报〕' + pv.name + '守军溃散，聚落易帜。', 'good');
+          } else {
+            lines.push('〔战况〕' + pv.name + '守军退保，尚余 ' + pv.garrison + ' 人');
+            log('〔战况〕' + pv.name + '未克，守军受挫后仍据其地。', 'warn');
+          }
+        }
+      }
       showCombatSettlement && showCombatSettlement({
         result: result === 'win' ? 'win' : 'lose', enemyName: ab.def ? ab.def.name : '敌军',
-        title: result === 'win' ? '得 胜' : (result === 'fled' ? '收 兵' : '败 走'), sub: '〔野战〕', lines: lines
-      }, function () { renderRoom(); save(S()); });
+        title: result === 'win' ? '得 胜' : (result === 'fled' ? '收 兵' : '败 走'), sub: '〔野战〕',
+        lines: lines, gold: gold, repText: repText
+      }, function () {
+        renderRoom(); save(S());
+        // 回山河志并重建 marks（refresh() 不会重取 marks，必须重开面板）
+        if ((ab.faId || ab.placeId) && openModal) openModal('map', { forceWorld: true, _scope: 'world' });
+      });
       prep = null;
     }
 
@@ -470,18 +524,23 @@
       if (!a || !Army.armyCount()) { toast('你并无部曲，无从交战。'); return false; }
       if (!Army.armyWithPlayer()) { toast('部曲不在身边。'); return false; }
       if (!exert('交战')) return false;
+      if (opt.closeMap && closeModal) closeModal();   // 先收山河志，再由战棋自己 openModal('battlefield')
       var def = opt.def || { name: '流寇', troops: 60 };
       var tot = def.troops || 60;
-      // 敌方兵种由 AI 出征权重表加权随机（mkWeightedFoe）：数值取兵种定义、带 troopType，触发立绘与机制
-      var units = [];
-      units.push(mkWeightedFoe('field', null, Math.round(tot * 0.55), 'front', 75, true));
-      if (tot > 40) units.push(mkWeightedFoe('field', '骑', Math.round(tot * 0.22), 'flank', 78, false));
+      // v20261111h：opt.foeUnits 可透传外部编成（大地图接战用行军部队真实编成）
+      var units = opt.foeUnits || [];
+      if (!units.length) {
+        // 敌方兵种由 AI 出征权重表加权随机（mkWeightedFoe）：数值取兵种定义、带 troopType，触发立绘与机制
+        units.push(mkWeightedFoe('field', null, Math.round(tot * 0.55), 'front', 75, true));
+        if (tot > 40) units.push(mkWeightedFoe('field', '骑', Math.round(tot * 0.22), 'flank', 78, false));
+      }
       var ids = registerAttackers(units, 'f');
       var ambush = !!opt.ambush;
       if (opt.byPlayer) {   // 我方设伏 → 敌中伏
         units.forEach(function (u) { u.morale = clampM((u.morale || 78) - 25); });
       }
-      return beginBattle(ids, { kind: 'field', def: def, ambush: ambush, night: !!opt.night, foeUnits: units });
+      return beginBattle(ids, { kind: 'field', def: def, ambush: ambush, night: !!opt.night,
+                                foeUnits: units, faId: opt.faId || null, placeId: opt.placeId || null });
     }
 
     // ══ 设伏：郊野候敌，敌至则先手 ══
@@ -515,6 +574,9 @@
       h += '<h3>战前编成</h3>';
       h += '<div class="wp-target"><b>' + esc(c.name || cid) + '</b><span>' + esc(c.state || '') + ' · 城防 ' + (c.wall || 0) + ' · 人户 ' + (c.pop || 0) + ' · 守军约 ' + cityBase(cid) + '</span></div>';
       h += '<div class="wp-note">' + esc(SEGS[0].desc) + '攻城须破城门、清巷道、下府衙三段；每克一段，可鸣金收兵，亦可带伤再战。</div>';
+      // v20261112b：战前宣告与判定同源，复用既有 .wp-note 原语（不新造类、不写死颜色）
+      var _wpDec = (LF.ENCOUNTER && LF.ENCOUNTER.decide) ? LF.ENCOUNTER.decide({ intent: 'military', targetKind: 'city', source: 'warPrep' }) : null;
+      if (_wpDec) h += '<div class="wp-note">' + esc(_wpDec.label) + '</div>';
       h += '<div class="wp-grid">';
       (a.troops || []).forEach(function (t) {
         var d = T[t.type]; if (!d) return;

@@ -42,6 +42,8 @@
     --btn-line:rgba(74,62,48,.30);
     --shadow:0 2px 14px rgba(60,48,34,.10);
     --r-btn:9px; --r-card:12px; --r-pill:999px; --gp:10px;
+  /* v20261112f：部署面板 #bf-setup 不在 .bf-root 内，触控令牌需在 :root 生效 */
+  --bf-touch:clamp(44px,11.3vw,46px);
     --btn-fg:#3a2c1c; --btn-bg:#fdf6e8; --btn-hover:rgba(176,131,47,.14);
     --btn-primary:linear-gradient(180deg,#5a4a2e,#3a2e1c);
     --btn-primary-fg:#f0e2c0;
@@ -1446,6 +1448,11 @@
   @keyframes dqLungeR{0%{transform:translateX(0);}40%{transform:translateX(14px);}100%{transform:translateX(0);}}
   @keyframes dqLungeL{0%{transform:translateX(0);}40%{transform:translateX(-14px);}100%{transform:translateX(0);}}
   .dq-uname{font-family:"STKaiti","KaiTi",serif;font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:4px;color:var(--ink);}
+  /* v20261112f · C 档：DQ 战斗卡立绘渲染入口（buildPortrait） */
+  .dq-portrait{ width:54px; height:64px; margin:0 auto 5px; border-radius:var(--r-btn); overflow:hidden;
+    background:var(--btn-hover); border:1px solid var(--panel-line); }
+  .dq-portrait .pt-svg{ display:block; width:100%; height:100%; }
+  .dq-unit.dead .dq-portrait{ filter:grayscale(1); }
   .dq-enemy .dq-uname{color:var(--seal);}
   .dq-ally .dq-uname{color:#3f5f7a;}
   .dq-dead{font-size:12px;color:var(--ink-faint);font-style:italic;}
@@ -4596,14 +4603,16 @@
 .bf-ssec{ background:rgba(255,255,255,.55); border:1px solid rgba(74,62,48,.18); border-radius:12px; padding:12px 14px; margin:12px 0; }
 .bf-ssec-t{ font-size:14px; color:#5a4a30; font-weight:700; margin-bottom:10px; }
 .bf-spresets{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
-.bf-gp{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:10px; padding:9px 14px; font-size:13px; cursor:pointer; min-height:var(--bf-touch); }
-.bf-gp.on{ background:#b0832f; border-color:#b0832f; box-shadow:0 0 0 1px rgba(176,131,47,.55); }
+/* v20261112f · B 档：部署面板按钮统一走 .btn 令牌，色值/圆角不再硬编码 */
+.btn.bf-gp, .btn.bf-sadd, .btn.bf-slocate{ min-height:var(--bf-touch); }
+.btn.bf-gp{ padding:9px 14px; font-size:13px; }
+.bf-gp.on{ background:var(--btn-primary-hover); border-color:var(--btn-primary-bd); color:var(--btn-primary-fg); font-weight:700; box-shadow:var(--focus); }
 .bf-srow{ display:flex; align-items:center; gap:8px; margin:6px 0; flex-wrap:wrap; }
 .bf-srow label{ font-size:13px; color:#5a4a30; }
 .bf-srow select, .bf-srow input{ background:#fffdf7; color:#2a2014; border:1px solid rgba(74,62,48,.25); border-radius:8px; padding:8px; font-size:13px; min-height:var(--bf-touch); }
 .bf-srow .bf-s-count{ width:84px; }
-.bf-sdel{ background:#9e3b2e; color:#fff; border:1px solid rgba(158,59,46,.5); border-radius:9px; width:var(--bf-touch); height:var(--bf-touch); font-size:16px; cursor:pointer; }
-.bf-sadd{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:10px; padding:9px 14px; font-size:13px; margin-top:6px; cursor:pointer; min-height:var(--bf-touch); }
+.bf-sdel{ background:var(--danger); color:var(--btn-primary-fg); border:1px solid var(--danger); border-radius:var(--r-btn); width:var(--bf-touch); height:var(--bf-touch); font-size:16px; cursor:pointer; }
+.btn.bf-sadd{ padding:9px 14px; font-size:13px; margin-top:6px; }
 /* ── 布阵盘（v20261110a）：把「自动排」改成「玩家摆」 ── */
 .bf-dboard{ display:grid; grid-template-columns:repeat(var(--gw,12),1fr); gap:2px; width:100%; max-width:440px; margin:0 auto;
   background:rgba(74,62,48,.10); border:1px solid rgba(74,62,48,.25); border-radius:10px; padding:5px; box-sizing:border-box; }
@@ -4628,8 +4637,8 @@
 .bf-dboard-legend .lg-foe{ background:rgba(158,59,46,.65); margin-left:8px; }
 .bf-srow.is-sel{ background:rgba(176,131,47,.14); border-radius:8px; }
 .bf-sport{ position:relative; width:var(--bf-touch); height:var(--bf-touch); flex:0 0 auto; border-radius:9px; overflow:hidden; border:1px solid rgba(74,62,48,.25); background:#fff; }
-.bf-slocate{ background:#3f5f7a; color:#fff; border:1px solid rgba(63,95,122,.4); border-radius:9px; padding:8px 10px; font-size:12px; cursor:pointer; flex:0 0 auto; min-height:var(--bf-touch); }
-.bf-slocate.on{ background:#b0832f; color:#fff; font-weight:700; border-color:#b0832f; }
+.btn.bf-slocate{ padding:8px 10px; font-size:12px; flex:0 0 auto; }
+.bf-slocate.on{ background:var(--btn-primary-hover); border-color:var(--btn-primary-bd); color:var(--btn-primary-fg); font-weight:700; box-shadow:var(--focus); }
 .bf-dbg-row{ display:flex; align-items:center; gap:8px; margin:8px 0; font-size:13px; color:#4a3d2a; }
 .bf-dbg-row input[type=number]{ width:80px; background:#fffdf7; color:#2a2014; border:1px solid rgba(74,62,48,.25); border-radius:7px; padding:7px; min-height:38px; }
 .bf-setup-actions{ display:flex; gap:12px; margin-top:16px; }

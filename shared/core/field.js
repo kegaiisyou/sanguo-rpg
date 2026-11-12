@@ -453,12 +453,36 @@
         log('你驻足观览——' + ((room.desc && room.desc[0]) ? room.desc[0] : '风物依旧，引人凭吊。'), 'sys');
       });
     }
+    // 聚落攻掠（v20261111i）：由 engine.buildActions 在原房间分支【之前】调用，
+    //   不 return —— 攻掠/劫掠与凭吊·探查·清剿等既有按钮并列，不吞掉任何原交互。
+    function settlementActions(room) {
+      if (!room || !room.placeId) return;
+      var ST = LF.Settlement;
+      if (!ST || !ST.isMilitary || !ST.isMilitary(room.placeId)) return;
+      var v = ST.get(room.placeId);
+      if (!v) return;
+      var pid = room.placeId;
+      if (!v.cleared) {
+        mkAct('scene', '⚔', '攻掠·守军', function () {
+          if (window.attackPlace) window.attackPlace(pid);
+        }, null, 'place_attack');
+      } else if (v.plunderable) {
+        mkAct('scene', '🎁', '劫掠·辎重', function () {
+          if (window.plunderPlace) window.plunderPlace(pid);
+        }, null, 'place_plunder');
+      } else {
+        mkAct('scene', '·', v.looted ? '已搜刮' : '已平定', function () {
+          toast(v.looted ? '辎重已搜刮一空。' : '此地已归你麾下。');
+        }, null, 'place_done');
+      }
+    }
 
     return {
       fieldMonstersLeft, fieldNarr, fieldNarrFresh, fieldMetaOf, roomIsBoatRoute, isOnBoat, setOnBoat, boatBoardAct,
       fieldActions, gatherField, fieldHasWater, fishField, huntFieldBeast, talkFieldNpc, fieldPlacedCamps, carriedCampGear,
       placeFieldGear, addFieldCamp, campInField, maybeFieldAmbush,
-      dungeonActions, landmarkActions, dungeonNarr, dungeonMonstersLeft, dungeonLoot
+      dungeonActions, landmarkActions, dungeonNarr, dungeonMonstersLeft, dungeonLoot,
+      settlementActions
     };
   };
 })(typeof window !== 'undefined' ? window : global);

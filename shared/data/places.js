@@ -60,5 +60,27 @@
     PLACES[id] = e;
   });
 
+  // ── v20261111i 军事目标：非城 Place 按类型契约补守军 / 城防 / 辎重 / 归属 ──
+  // 只要写一行 EXTRA 档案即自动成为可攻掠目标；地点显式字段优先级高于 PLACE_DEFAULTS。
+  // 刻意不在此新增地点：新点会经 roads.js / travel.js 重算城门与郊野链，属另一风险面。
+  var PDEFAULTS = global.LF.PLACE_DEFAULTS || {};
+  var FID = ['dongzhuo','yuanshao','caocao','sunce','liubiao','liuzhang','gongsun','matang','han'];
+  function phash(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+  Object.keys(PLACES).forEach(function(id){
+    var p = PLACES[id];
+    if (p.kind === 'city' || p.kind === 'dungeon' || p.kind === 'field' || p.kind === 'story') return;
+    var d = PDEFAULTS[p.kind] || {};
+    if (p.raidable === undefined) p.raidable = (d.raidable !== false);
+    if (!p.raidable) return;
+    var h = phash(id);
+    p.military = true;
+    if (p.garrison == null) p.garrison = (d.garrison || 60) + (h % 5) * 10;
+    if (p.wall == null) p.wall = d.wall || 0;
+    if (p.defenseBonus == null) p.defenseBonus = d.defenseBonus || 0;
+    if (p.supplies == null) p.supplies = d.supplies || 0;
+    if (!p.loot) p.loot = (d.loot || []).slice();
+    if (!p.owner) p.owner = FID[(h >>> 8) % FID.length];
+  });
+
   global.LF.PLACES = PLACES;
 })(typeof window !== 'undefined' ? window : globalThis);

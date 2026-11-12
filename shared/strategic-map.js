@@ -1085,8 +1085,7 @@
           if (m.color) { fig.style.borderColor = m.color; pill.style.borderColor = m.color; }
           wrap.addEventListener('click', (ev) => {
             ev.stopPropagation();
-            selectArmy(m);
-            if (opts.onArmyClick) opts.onArmyClick(m);   // 预留：下期主动接战挂这里
+            selectArmy(m);   // 点标记只出详情卡，迎战由卡片内按钮触发
           });
         }
         guideMarks.push({ el: wrap, fig, pill, type: m.type || 'you', base: p });
@@ -1690,7 +1689,10 @@
         return (td ? td.name : t.type) + ' ' + t.count;
       }).join(' · ') || '不详';
       const tags = [a.faction || fac.label, a.missionLabel || '行军', a.hostile ? '与我敌对' : '暂无战意'];
+      if (a.threat) tags.push('迫近');
       const desc = '自 ' + (a.fromName || '?') + ' 向 ' + (a.toName || '?') + ' 开拔，行程 ' + Math.round((a.prog || 0) * 100) + '%。';
+      const dist = (a.distKm == null) ? '' : ' · 距你约 ' + a.distKm + ' 公里';
+      const hint = a.engagable ? '可截击' : (a.hostile ? '相距过远，鞭长莫及' : '两军无战意');
       info.innerHTML = infoCard({
         sealBg: a.color || fac.fill || '#8a2f2f',
         sealText: (a.faction || fac.label || '军').charAt(0),
@@ -1698,9 +1700,19 @@
         tags,
         desc,
         extra: '<div class="strategic-info-b">编成：' + troopLine + '</div>',
-        meta: '兵力 ' + (a.power || 0) + ' · 士气 ' + (a.morale || 0) + ' · 军粮 ' + (a.grain || 0) + ' 日 · ' + (a.status === 'returning' ? '回防途中' : '行进中')
+        meta: '兵力 ' + (a.power || 0) + ' · 士气 ' + (a.morale || 0) + ' · 军粮 ' + (a.grain || 0) + ' 日 · '
+              + (a.status === 'returning' ? '回防途中' : '行进中') + dist + ' · ' + hint,
+        btn: a.engagable ? '迎 战' : ''
       });
       info.classList.add('show');
+      // v20261111h：详情卡「迎 战」→ 游戏层接战（标记点击本身不开战）
+      const goBtn = info.querySelector('#sm-go-btn');
+      if (goBtn) {
+        goBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (opts.onArmyClick) opts.onArmyClick(a);
+        });
+      }
     }
 
     function selectState(d) {
@@ -1729,15 +1741,35 @@
       if (p.isPass) sub.push('关隘要道');
       else if (p.isBattlefield) sub.push('古战场');
       if (p.kind === 'dungeon') sub.push('入口在山洞内，需达等级 ' + ((p.entryReq && p.entryReq.level) || 1));
+      // v20261111i：军事目标 → 守军 / 归属 / 距你 / 攻掠按钮
+      const ST = global.LF && global.LF.Settlement;
+      const v = (ST && ST.isMilitary && ST.isMilitary(p.id)) ? ST.get(p.id, opts.youPos) : null;
+      if (v) {
+        sub.push(v.cleared ? '已平定' : ('守军 ' + v.garrison));
+        sub.push(v.cleared ? '归你麾下' : v.ownerName);
+        if (v.distKm != null) sub.push('距你约 ' + v.distKm + ' 公里');
+      }
+      const raidBtn = (v && v.attackable) ? '<button class="go-btn" id="sm-raid-btn">攻 掠</button>' : '';
       info.innerHTML = infoCard({
         sealBg: meta.color,
         sealText: meta.label.charAt(0),
         title: p.name,
         tags: [meta.label].concat(sub),
         desc: p.desc || p.name,
+        extra: raidBtn ? ('<div class="strategic-info-b">' + (v.cleared ? '此地已平定，可入内搜刮辎重。' : '守军盘踞，可挥兵攻掠。') + '</div>' + raidBtn) : '',
+        meta: v ? (v.cleared ? ('守军已溃 · ' + (v.looted ? '辎重已搜刮' : '辎重待取'))
+                             : ('守备 ' + v.garrison + ' · ' + (v.attackable ? '可攻掠' : '鞭长莫及'))) : '',
         btn: p.kind === 'dungeon' ? '前往副本入口' : '前往',
       });
       info.classList.add('show');
+
+      const raidBtnEl = info.querySelector('#sm-raid-btn');
+      if (raidBtnEl) {
+        raidBtnEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (opts.onPlaceRaid) opts.onPlaceRaid(p.id);
+        });
+      }
 
       const goBtn = info.querySelector('#sm-go-btn');
       if (goBtn) {

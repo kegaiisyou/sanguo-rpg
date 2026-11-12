@@ -578,9 +578,50 @@
           '<p class="tip">城型与城门数量已预留：山城/城寨/港口将随城防与商业改变城门布局（plain 为四门）。市集名取「方位·交易物·地理·吉语」可混可单，商铺招牌由字号生成。城内空地可点格「营造」筑新宅新市。</p>';
       }
 
+    // 天下一统 · 结局面板（v20261112d）
+    // 复用 .levelup-pop / .lu-* / .btn 既有原语，不新造类、不写死颜色与圆角（DESIGN_SYSTEM.md）。
+    function renderVictory(){
+      var s=S();
+      if(!s) return '<h3>海 内 一 统</h3>';
+      var total=Object.keys(LF.CITIES||{}).length;
+      var mine=(s.ruledCities||[]).length;
+      // 不依赖 scanFactionSurvival 的月结 flag（即时统一 / 调试捷径下它尚未刷新）：
+      //   直接从当前归属反推「已无寸土之诸侯」，任何时候都准确。
+      var dead=0, aliveKeys={};
+      try{
+        var _C=LF.CITIES||{};
+        Object.keys(_C).forEach(function(c){
+          aliveKeys[(s.flags&&s.flags.cityOwner&&s.flags.cityOwner[c])||_C[c].owner||'han']=1;
+        });
+        Object.keys(LF.FACTIONS||{}).forEach(function(k){
+          if(k==='han'||k==='player') return;
+          if(!aliveKeys[k]) dead++;
+        });
+      }catch(e){ dead=0; }
+      var era=(s.eraName||'光和')+(s.eraYear===1?'元年':(s.eraYear||1)+'年');
+      var forces=0;
+      try{ ((s.army&&s.army.troops)||[]).forEach(function(t){ forces+=(t.count||0); }); }catch(e){}
+      var nm=(LF.FACTIONS&&LF.FACTIONS.player)?LF.FACTIONS.player.name:'义军';
+      return '<h3>海 内 一 统</h3>'+
+        '<div class="levelup-pop">'+
+        '<div class="lu-banner">天 下 一 统</div>'+
+        '<div class="lu-lv">'+mine+' / '+total+'</div>'+
+        '<div class="lu-sub">'+escapeHtml(era)+'　'+escapeHtml(nm)+'扫平群雄，海内归心。</div>'+
+        row('官职', s.title||'游侠')+
+        row('治下', mine+' 城（全图 '+total+' 城）')+
+        row('削平', dead+' 镇诸侯')+
+        row('历时', (s.day||0)+' 日')+
+        row('麾下', forces+' 部曲')+
+        '<p class="tip">乱世至此落幕。志业已了，仍可继续游历、经营城池、寻访故人；此局不会强制结束。</p>'+
+        '<div class="lu-btns">'+
+          '<button class="btn lu-go" onclick="openModal(\'quest\')">观 志 业</button>'+
+          '<button class="btn lu-skip" onclick="closeModal()">继续游玩</button>'+
+        '</div></div>';
+    }
+
     return {
       renderCodex, renderSettings, renderCredit,
-      topObjectiveText, renderLogPanel, renderLevelup, renderCityStat
+      topObjectiveText, renderLogPanel, renderLevelup, renderCityStat, renderVictory
     };
   };
 })(typeof window !== 'undefined' ? window : global);
