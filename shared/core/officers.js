@@ -553,6 +553,9 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     }
     function facN(f){ var F=(LF.FACTIONS||{})[f]; return (F&&F.name)||f; }
     function officerPortrait(o){
+      var _UI = (typeof window !== 'undefined' ? window.UI_Icons : null) || (typeof globalThis !== 'undefined' ? globalThis.UI_Icons : null);
+      var _real = (_UI && _UI.heroPic && o && o.name) ? _UI.heroPic(o.name, 'of-portrait of-portrait-img') : '';
+      if(_real) return _real;
       var fid=(o&&o.faction)||'none'; var F=(LF.FACTIONS||{})[fid]||{color:'#888'};
       var col=F.color||'#888'; var initial=(o&&o.name)?o.name.charAt(0):'将';
       var tt=(o&&o.title)?escapeHtml(o.title):'';

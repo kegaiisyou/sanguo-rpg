@@ -54,11 +54,15 @@
       if (!o.gear || typeof o.gear !== 'object') o.gear = { hat: null, cloth: null, shoe: null, weapon: null, trinket: null, belt: null };
       return o.gear;
     }
-    // ── 立绘占位（后续替换为 AI 水墨立绘）──
+    // ── 立绘：有专属 image / 史实武将真头像则用图，否则首字印章兜底 ──
     function figHTML(it) {
       var seal = (it.name || '?').slice(0, 1);
       var cls = 'ch-fig ' + (it.kind === 'main' ? 'ch-fig-main' : (it.kind === 'officer' ? 'ch-fig-of' : 'ch-fig-p'));
-      return '<div class="' + cls + '"><div class="ch-seal">' + escapeHtml(seal) + '</div>' +
+      var _UI = (typeof window !== 'undefined' ? window.UI_Icons : null) || (typeof globalThis !== 'undefined' ? globalThis.UI_Icons : null);
+      var pic = it.image
+        ? ('<img class="ch-fig-img" src="' + escapeHtml(it.image) + '" alt="">')
+        : ((_UI && _UI.heroPic) ? _UI.heroPic(it.name, 'ch-fig-img') : '');
+      return '<div class="' + cls + '">' + (pic ? pic : '<div class="ch-seal">' + escapeHtml(seal) + '</div>') +
         '<div class="ch-figname">' + escapeHtml(it.name) + '</div>' +
         '<div class="ch-figtitle">' + escapeHtml(it.sub) + '</div></div>';
     }
@@ -67,8 +71,10 @@
       var h = '<div class="ch-list">';
       roster().forEach(function (it) {
         var on = it.key === sel ? ' on' : '';
+        var _UI2 = (typeof window !== 'undefined' ? window.UI_Icons : null) || (typeof globalThis !== 'undefined' ? globalThis.UI_Icons : null);
+        var av = (_UI2 && _UI2.heroPic) ? _UI2.heroPic(it.name, 'ch-ava-img') : '';
         h += '<button type="button" class="ch-item' + on + '" data-key="' + it.key + '">' +
-          '<span class="ch-ava">' + escapeHtml(it.tag) + '</span>' +
+          '<span class="ch-ava">' + (av || escapeHtml(it.tag)) + '</span>' +
           '<span class="ch-meta"><b>' + escapeHtml(it.name) + '</b><i>' + escapeHtml(it.tag + ' · ' + it.sub) + '</i></span>' +
           '</button>';
       });

@@ -18,7 +18,7 @@
 (function (global) {
   var SECTS = {
     yingchuan: {
-      id: 'yingchuan', name: '颍川义军',
+      id: 'yingchuan', name: '颍川义军', image: null, badge: '义',
       desc: '草莽起兵，攻守均衡，最宜新手；乡里结寨、保境安民。',
       style: '颍水之畔，义从结寨。旌旗朴素，刀枪却利——保乡里、诛暴虐，乱世里最接地气的一支。',
       faction: '汉室忠义 · 颍川士族',
@@ -34,7 +34,7 @@
       unlock: { reputation: 15 }          // 声望初立后方可率众入盟
     },
     taiping: {
-      id: 'taiping', name: '太平道',
+      id: 'taiping', name: '太平道', image: null, badge: '道',
       desc: '信奉黄天，内力深厚，擅奇术；底层民心所向，却也为朝廷所忌。',
       style: '苍天已死，黄天当立。符水疗伤、咒术摄魂，太平道的道袍下藏着改天换地的野心。',
       faction: '黄天 · 底层秘教',
@@ -50,7 +50,7 @@
       unlock: { reputation: 20, flag: 'met_zhangjiao' } // 需先遇张角方入道
     },
     xiliang: {
-      id: 'xiliang', name: '西凉军',
+      id: 'xiliang', name: '西凉军', image: null, badge: '凉',
       desc: '边军悍勇，攻击凌厉，血厚耐战；凉州铁骑，令中原闻风。',
       style: '大漠孤烟，铁骑如风。西凉儿的弯刀饮过匈奴血，也终将饮尽中原的纷争。',
       faction: '凉州军阀 · 边军悍卒',

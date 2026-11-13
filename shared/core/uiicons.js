@@ -144,10 +144,17 @@
     '张辽':'npc-zhangliao','黄忠':'npc-huangzhong','太史慈':'npc-taishici','荀彧':'npc-xunyu',
     '郭嘉':'npc-guojia','庞统':'npc-pangtong',
     // v20261026v 第三批：孙权/夏侯惇/徐晃/甘宁/陆逊/司马懿/姜维/魏延/黄盖
-    '孙权':'npc-sunquan','夏侯惇':'npc-xiahoudun','徐晃':'npc-xuhuang','甘宁':'npc-ganning',
+    '夏侯惇':'npc-xiahoudun','徐晃':'npc-xuhuang','甘宁':'npc-ganning',
     '陆逊':'npc-luxun','司马懿':'npc-simayi','姜维':'npc-jiangwei','魏延':'npc-weiyan',
-    '黄盖':'npc-zhanggai'
+    '黄盖':'npc-huanggai'
   };
+  // v20261113c：大立绘渲染入口。与 avatar 共用 HERO_BY_NAME，返回指定 class 的 <img>；
+  // 未命中返回 ''，由调用方回退印章 / 首字 SVG（主角与随从尚待专属立绘）。
+  function heroPic(name, cls){
+    var n = name && (HERO_BY_NAME[name] || NPC_BY_NAME[name]);
+    if(!n) return '';
+    return pic(n, cls || 'ui-ava');
+  }
   function avatar(name, role){
     if(name && HERO_BY_NAME[name]) return pic(HERO_BY_NAME[name], 'ui-ava');
     if(name && NPC_BY_NAME[name]) return pic(NPC_BY_NAME[name], 'ui-ava');
@@ -190,5 +197,5 @@
     return ic;
   }
   var _G = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' ? global : this);
-  _G.UI_Icons = { icon: icon, avatar: avatar, cellIcon: cellIcon };
+  _G.UI_Icons = { icon: icon, avatar: avatar, heroPic: heroPic, cellIcon: cellIcon };
 })();

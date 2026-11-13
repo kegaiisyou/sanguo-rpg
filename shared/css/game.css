@@ -4973,3 +4973,16 @@
   .edict-tabsub{ font-size:9px; }
   .court-quota{ gap:4px 10px; font-size:11px; }
 }
+
+/* ══ v20261113c：立绘 / 门派徽记渲染入口 ══
+   沿用 :root 令牌与既有 .btn/.tab/.surface 体系，未出图时一律优雅回退。 */
+.of-portrait.of-portrait-img{ object-fit:cover; object-position:top center; background:var(--panel); }
+.ch-fig-img{ display:block; width:96px; height:96px; margin:0 auto 6px; object-fit:cover;
+  object-position:top center; border-radius:var(--r-btn,10px); border:2px solid var(--panel-line);
+  box-shadow:var(--shadow,none); }
+.ch-ava .ch-ava-img{ display:block; width:100%; height:100%; border-radius:50%; object-fit:cover; }
+.sect-badge{ display:inline-flex; align-items:center; justify-content:center; vertical-align:middle;
+  width:34px; height:34px; margin-right:8px; border-radius:var(--r-btn,10px);
+  font-family:var(--serif,serif); font-size:18px; color:var(--ink);
+  background:var(--panel); border:1px solid var(--panel-line); }
+.sect-badge img{ width:100%; height:100%; object-fit:cover; border-radius:inherit; }

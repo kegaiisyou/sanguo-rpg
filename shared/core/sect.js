@@ -47,7 +47,7 @@
       Object.keys(G.SECTS).forEach(function(id){
         var d=G.SECTS[id], joined=S().sect===id, can=G.canJoinSect(S(),id);
         h+='<div class="sect'+(joined?' on':'')+'">'+
-          '<div class="sect-name">'+d.name+'<span class="sect-fac">'+d.faction+'</span></div>'+
+          '<div class="sect-name"><span class="sect-badge">'+(d.image?('<img src="'+d.image+'" alt="">'):(d.badge||'门'))+'</span>'+d.name+'<span class="sect-fac">'+d.faction+'</span></div>'+
           '<div class="sect-desc">'+d.style+'</div>'+
           '<div class="sect-bonus">门风加成 · '+sectBonusText(d.bonus)+'</div>'+
           '<div class="sect-skill">传功 · '+((d.martials||[]).join('、'))+'</div>'+
