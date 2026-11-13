@@ -146,8 +146,17 @@
     // v20261026v 第三批：孙权/夏侯惇/徐晃/甘宁/陆逊/司马懿/姜维/魏延/黄盖
     '夏侯惇':'npc-xiahoudun','徐晃':'npc-xuhuang','甘宁':'npc-ganning',
     '陆逊':'npc-luxun','司马懿':'npc-simayi','姜维':'npc-jiangwei','魏延':'npc-weiyan',
-    '黄盖':'npc-huanggai'
+    '黄盖':'npc-huanggai',
+    // v20261113d 第四批：豆包出图 26 位（原图 shared/img/art/heroes/，成品 npc-* / sm_npc-*）
+    '李儒':'npc-liru','华雄':'npc-huaxiong','郭汜':'npc-guosi','李傕':'npc-lijue',
+    '曹仁':'npc-caoren','刘表':'npc-liubiao','蒯越':'npc-kuaiyue','蔡瑁':'npc-caimao',
+    '刘璋':'npc-liuzhang','法正':'npc-fazheng','张松':'npc-zhangsong','严颜':'npc-yanyan',
+    '张任':'npc-zhangren','公孙度':'npc-gongsundu','公孙恭':'npc-gongsungong','马腾':'npc-mateng',
+    '马岱':'npc-madai','韩遂':'npc-hansui','田丰':'npc-tianfeng','沮授':'npc-jushou',
+    '颜良':'npc-yanliang','文丑':'npc-wenchou','皇甫嵩':'npc-huangfusong','朱儁':'npc-zhujun',
+    '卢植':'npc-luzhi','徐庶':'npc-xushu'
   };
+
   // v20261113c：大立绘渲染入口。与 avatar 共用 HERO_BY_NAME，返回指定 class 的 <img>；
   // 未命中返回 ''，由调用方回退印章 / 首字 SVG（主角与随从尚待专属立绘）。
   function heroPic(name, cls){

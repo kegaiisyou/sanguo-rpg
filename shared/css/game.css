@@ -4986,3 +4986,6 @@
   font-family:var(--serif,serif); font-size:18px; color:var(--ink);
   background:var(--panel); border:1px solid var(--panel-line); }
 .sect-badge img{ width:100%; height:100%; object-fit:cover; border-radius:inherit; }
+
+/* v20261113d：敌人真立绘复用武将头像（DQ 战斗卡 54x64） */
+.dq-portrait .pt-pic{ object-fit:cover; object-position:top center; }

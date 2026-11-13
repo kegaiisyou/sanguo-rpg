@@ -142,7 +142,7 @@
     bandit:{body:'#4a5568',trim:'#2d3748',cape:'#2b6cb0',weapon:'sword'},
     bandit_chief:{body:'#553c2b',trim:'#3b2a1d',cape:'#9b2c2c',weapon:'axe'},
     yellow_turban:{body:'#6b6b3a',trim:'#4a4a26',cape:'#b7791f',weapon:'shield'},
-    hua_xiong:{body:'#742a2a',trim:'#4a1a1a',cape:'#c53030',weapon:'blade'},
+    hua_xiong:{body:'#742a2a',trim:'#4a1a1a',cape:'#c53030',weapon:'blade',img:'npc-huaxiong'},
     dummy:{body:'#8a6d3b',trim:'#5c4a26',cape:'#6b4f2a',weapon:'none'},
     heishan_zei:{body:'#3a2e2e',trim:'#241c1c',cape:'#dd6b20',weapon:'axe'},
     heishan_zhu:{body:'#2d1b1b',trim:'#1a0f0f',cape:'#9b2c2c',weapon:'blade'},
@@ -163,6 +163,11 @@
   }
   function buildPortrait(side, id){
     var cfg=(side==='player')?PORTRAIT_CFG._player:(PORTRAIT_CFG[id]||PORTRAIT_CFG.bandit);
+    // v20261113d：有真立绘的敌人优先用图（华雄复用武将头像），其余仍走分层 SVG。
+    if(cfg.img){
+      var _V = (typeof LF !== 'undefined' && LF.CONSTANTS) ? LF.CONSTANTS.VERSION : '';
+      return '<img class="pt-svg pt-pic" src="shared/img/sm_'+cfg.img+'.png?v='+_V+'" alt="">';
+    }
     var facing=(side==='player')?1:-1;
     var w=weaponSvg(cfg.weapon, cfg.trim);
     var s=cfg.small?0.8:1;
