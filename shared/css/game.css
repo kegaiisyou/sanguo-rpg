@@ -4954,3 +4954,22 @@
   .edict-cmdrow{ align-items:flex-start; }
   .edict-cmdrow .edict-go{ flex:0 0 80px; }
 }
+
+/* ══ v20261113b 朝堂：三主页签 + 本城次级视图 ══
+   沿用 .tab / .btn / .surface 与 :root 令牌；旧 .edict-acts/.edict-cmd 规则保留给旧类名兼容。 */
+.court-quota{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; padding-top:8px;
+  border-top:1px solid var(--panel-line); font-size:12px; color:var(--ink-soft); }
+.court-quota b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+.edict-tabsub{ display:block; font-size:10px; font-weight:400; letter-spacing:0; opacity:.78; margin-top:2px; }
+.edict-subtabs{ display:flex; gap:var(--gp); justify-content:center; margin:10px 0 6px; }
+.edict-subtabs .tab{ flex:1; min-height:max(var(--bf-touch,44px),40px); font-size:12px; }
+.edict-subpg{ display:none; }
+.edict-subpg.active{ display:block; }
+.court-sec{ margin:8px 0; padding:8px 10px; }
+.court-sec .fm-row{ margin:6px 0; }
+.court-sec .btn.sm{ min-height:max(var(--bf-touch,44px),34px); }
+@media (max-width:540px){
+  .edict-tabs .tab{ font-size:12px; }
+  .edict-tabsub{ font-size:9px; }
+  .court-quota{ gap:4px 10px; font-size:11px; }
+}
