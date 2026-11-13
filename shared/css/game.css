@@ -4908,3 +4908,49 @@
 .bf-mvp-name.bf-rf{ color:var(--bf-foe); }
 .bf-mvp-dmg{ font-weight:800; color:var(--seal); font-variant-numeric:tabular-nums; }
 .bf-mvp-kill{ font-size:12px; color:var(--ink-soft); }
+
+
+/* ══ v20261113a 政令台 UI 整合：常驻头 + 三页签 ══
+   新结构一律用 .tab / .btn / .surface 原语与 :root 令牌；旧 .edict-acts/.edict-cmd 等
+   自带渐变的规则留作兼容，新结构不再使用这些类名。 */
+.edict-v2 .edict-h{ letter-spacing:6px; border-top-color:var(--seal); }
+.edict-v2 .edict-head,.edict-v2 .edict-grp{
+  background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--r-card);
+  box-shadow:var(--shadow); padding:8px 10px; }
+.edict-v2 .edict-head{ margin:8px 0; }
+.edict-head-ops{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px;
+  padding-top:8px; border-top:1px solid var(--panel-line); }
+.edict-head-ops .btn{ min-height:max(var(--bf-touch,44px),46px); }
+.edict-head-tip{ font-size:11px; color:var(--ink-soft); opacity:.85; }
+.edict-v2 .edict-idgrid,.edict-v2 .edict-res4{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+.edict-tabs{ display:flex; gap:var(--gp); justify-content:center; margin:10px 0; }
+.edict-tabs .tab{ flex:1; text-align:center; min-height:var(--bf-touch,44px); }
+.edict-pg{ display:none; }
+.edict-pg.active{ display:block; }
+.edict-sech{ font-size:12px; color:var(--accent); letter-spacing:2px; margin:10px 0 6px;
+  padding-bottom:4px; border-bottom:1px solid var(--panel-line); }
+.edict-nav{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin:8px 0; }
+.edict-nav .btn{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; min-height:56px; padding:8px 6px; }
+.edict-navsub{ font-size:11px; font-weight:400; letter-spacing:0; opacity:.78; }
+.edict-groups{ display:flex; flex-direction:column; gap:8px; }
+.edict-grph{ font-family:var(--serif,serif); font-size:14px; color:var(--ink); letter-spacing:2px; margin-bottom:4px; }
+.edict-cmdrow{ display:flex; align-items:center; gap:10px; padding:6px 0; border-top:1px solid var(--panel-line); }
+.edict-grp .edict-cmdrow:first-of-type,.edict-grp .edict-assignrow:first-of-type{ border-top:0; }
+.edict-cmdrow .edict-go{ flex:0 0 92px; min-height:var(--bf-touch,44px); }
+.edict-cmdrow .edict-go.dis{ opacity:.45; }
+.edict-goinfo{ flex:1; min-width:0; font-size:12px; color:var(--ink-soft); line-height:1.5; }
+.edict-goinfo>span{ display:block; }
+.edict-predline{ color:var(--accent); font-size:11px; }
+.edict-assignrow{ padding:6px 0; border-top:1px solid var(--panel-line); }
+.edict-assignh{ font-weight:700; color:var(--ink); margin-bottom:4px; }
+.edict-assignsel{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.edict-v2 .fac-row{ margin:6px 0; }
+.edict-v2 .fac-ctl .btn.sm{ min-width:28px; padding:2px 6px; }
+.edict-v2 .edict-foot{ margin-top:12px; }
+@media (max-width:540px){
+  .edict-v2 .edict-idgrid,.edict-v2 .edict-res4{ gap:4px; }
+  .edict-nav{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .edict-cmdrow{ align-items:flex-start; }
+  .edict-cmdrow .edict-go{ flex:0 0 80px; }
+}

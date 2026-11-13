@@ -820,47 +820,72 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
         applyEdictToState(a.cid, eff, o.name);
       });
     }
-    function renderEdictCommands(cid) {
+    // v20261113a 政令台 UI 整合：9 条命令按功能分 4 组；「亲行」与「委任」拆成两个视图，
+    // 由 renderEdict 的页签选择。所有 onclick / 委任与设施派遣语义保持原样，未改交互模型。
+    var EDICT_GROUPS = [
+      { name: '农商', keys: ['kaiken', 'shangye'] },
+      { name: '工造', keys: ['kaikuang', 'zaohuo'] },
+      { name: '城务', keys: ['zhishui', 'zhian'] },
+      { name: '军略', keys: ['lianbing', 'dengyong', 'tansuo'] }
+    ];
+    function renderEdictCommands(cid, view) {
       if (!cid || cityOwnerOf(cid) !== playerFaction()) return '<div class="edict-empty tip">此城非你治下，无政令之权。</div>';
-      var h = '<div class="edict-cmds">';
-      h += '<div class="edict-cmd-h">\u5185\u653f\u547d\u4ee4\uff08\u4eb2\u884c\u987b\u652f\u8d44\u7cae\u3001\u6bcf\u57ce\u6bcf\u4ee4\u6bcf\u65e5\u4ec5\u4e00\u6b21\uff1b\u6216\u59d4\u4efb\u9e4c\u4e0b\u6b66\u5c06\u6309\u6708\u7763\u529e\uff09</div>';
+      view = (view === 'assign') ? 'assign' : 'act';
       var cmds = edictCmds();
-      Object.keys(cmds).forEach(function (k) {
-        var C = cmds[k];
-        var eff = commandEffect(k, playerActor());
-        var fslots = facSlotsForCmd(cid, k);
-        h += '<div class="edict-cmd">';
-        var _done = edictDoneToday(cid, k), _miss = costMiss(C.cost), _lock = _done || !!_miss;
-        h += '<button class="btn edict-do' + (_lock ? ' dis' : '') + '"' + (_lock ? ' disabled' : '') + ' onclick="civilCommand(\'' + k + '\')">' + C.icon + ' ' + C.name + '<br><span class="sub">' + C.cat + '\u00b7' + statName(C.stat) + (C.skill ? '\u00b7\u7279\u6280' : '') + '</span>' + (C.cost ? '<br><span class="cost">\u8017 ' + costText(C.cost) + '</span>' : '') + (_done ? '<br><span class="cd">\u4eca\u65e5\u5df2\u884c</span>' : (_miss ? '<br><span class="cd">' + _miss + '\u4e0d\u8db3</span>' : '')) + '</button>';
-        if (fslots.length) {
-          h += '<div class="edict-fac">';
-          fslots.forEach(function (s) {
-            var fk = facKeyOf(s), safe = fk.replace(/\|/g, '_'), o = facilityOutput(fk);
-            h += '<div class="fac-row">';
-            h += '<div class="fac-top"><b>' + escapeHtml(o.icon) + ' ' + escapeHtml(o.name) + '</b>' + (o.officer ? '<span class="of-tag stew">' + escapeHtml(o.officer.name) + ' \u76d1\u7406</span>' : '<span class="of-tag free">\u672a\u9053</span>') + '</div>';
-            h += '<div class="fac-ctl">\u6c11\u592b ' + o.labor + '/' + o.laborCap + ' <button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',-5)">\u2212</button><button class="btn xs" onclick="window.dispatchLabor(\'' + fk + '\',5)">\uff0b</button> \u58eb\u5341 ' + o.troops + '/' + o.troopCap + ' <button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',-10)">\u2212</button><button class="btn xs" onclick="window.dispatchTroops(\'' + fk + '\',10)">\uff0b</button></div>';
-            h += '<div class="fac-out">\u6708\u51fa\uff1a<b>' + o.amount + ' ' + escapeHtml(o.resName) + '</b>' + (o.officer ? '（' + statName(o.stat) + '\u00d7' + (Math.round(o.statMul * 100) / 100) + (o.skill ? (' \uff0b\u6280' + Math.round(o.skill * 100) + '%') : '') + '\uff09' : '（\u672a\u9053\u5b98\uff0c\u4ec5\u8d56\u6c11\u529b\uff09') + '</div>';
-            var _prog = Math.round((o.progress||0)*100);
-            h += '<div class="fac-bar"><i style="width:'+_prog+'%"></i></div>';
-            var _flog = (S().flags.facilityLog && S().flags.facilityLog[fk]) || [];
-            if(_flog.length){ h += '<div class="fac-log">'; _flog.slice(-3).forEach(function(_e){ h += '<span>'+( _e.t||'')+' '+escapeHtml(_e.m||'')+'</span>'; }); h += '</div>'; }
-            var opts = '<option value="">\u2014 \u59d4\u4efb \u2014</option>';
-            if (o.officer) opts = '<option value="">\u2715 \u64a4\u59d4\u4efb\uff08\u73b0\u4efb\uff1a' + escapeHtml(o.officer.name) + '\uff09</option>';
-            roster().forEach(function (x) { if (x.assignment && x.assignment.type === 'steward' && x.assignment.fkey === fk) return; opts += '<option value="' + x.id + '">' + escapeHtml(x.name) + '\uff08' + statName(o.stat) + (x.stats[o.stat] || 0) + '\uff09</option>'; });
-            h += '<div class="fac-assign"><select id="facsel_' + safe + '" class="fac-sel">' + opts + '</select><button class="btn sm" onclick="window.dispatchAssign(\'' + fk + '\',document.getElementById(\'facsel_' + safe + '\').value)">\u6d3e\u9063</button>';
-            if (o.officer) h += '<button class="btn sm danger" onclick="window.dispatchRemove(\'' + fk + '\')">\u53ec\u56de</button>';
-            h += '</div></div>';
-          });
-          h += '</div>';
-        } else {
-          var dg = delegateeOf(k, cid);
-          var opts = '<option value="">\u2014 \u59d4\u4efb \u2014</option>';
-          if (dg) opts = '<option value="">\u2715 \u64a4\u59d4\u4efb\uff08\u73b0\u4efb\uff1a' + escapeHtml(dg.name) + '\uff09</option>';
-          roster().forEach(function (o) { var a = o.assignment; if (a && a.type === 'edict' && a.cmd === k && a.cid === cid) return; opts += '<option value="' + o.id + '">' + escapeHtml(o.name) + '\uff08' + statName(C.stat) + (o.stats[C.stat] || 0) + '\uff09</option>'; });
-          h += '<select class="edict-del" onchange="delegateCommand(\'' + k + '\', this.value)">' + opts + '</select>';
-          h += '<div class="edict-pred">' + (dg ? ('\u59d4\u4efb ' + escapeHtml(dg.name) + '\uff1a') : '\u4eb2\u884c\uff1a') + escapeHtml(edictResultText(eff)) + (eff.cost ? '\uff08\u8017 ' + costText(eff.cost) + '\uff09' : '') + (_done ? ' \u00b7 \u4eca\u65e5\u5df2\u884c' : '') + '</div>';
-        }
-        h += '</div>';
+      var h = '<div class="edict-groups">';
+      EDICT_GROUPS.forEach(function (G) {
+        var rows = '';
+        G.keys.forEach(function (k) {
+          var C = cmds[k]; if (!C) return;
+          var eff = commandEffect(k, playerActor());
+          var fslots = facSlotsForCmd(cid, k);
+          var _done = edictDoneToday(cid, k), _miss = costMiss(C.cost), _lock = _done || !!_miss;
+          if (view === 'act') {
+            // 按钮只留「做什么」，说明与状态移到右侧一列，不再往按钮里塞 4 行小字
+            rows += '<div class="edict-cmdrow">'
+              + '<button class="btn btn-sm edict-go' + (_lock ? ' dis' : '') + '"' + (_lock ? ' disabled' : '')
+              + ' onclick="civilCommand(\'' + k + '\')">' + C.icon + ' ' + C.name + '</button>'
+              + '<div class="edict-goinfo"><span>' + escapeHtml(C.desc) + '</span>'
+              + '<span class="edict-predline">' + (C.cost ? '耗 ' + costText(C.cost) : '无耗')
+              + (_done ? ' · 今日已行' : (_miss ? ' · ' + _miss + '不足' : '')) + '</span></div>'
+              + '</div>';
+          } else {
+            rows += '<div class="edict-assignrow"><div class="edict-assignh">' + C.icon + ' ' + C.name + '</div>';
+            if (fslots.length) {
+              fslots.forEach(function (s) {
+                var fk = facKeyOf(s), safe = fk.replace(/\|/g, '_'), o = facilityOutput(fk);
+                rows += '<div class="fac-row">';
+                rows += '<div class="fac-top"><b>' + escapeHtml(o.icon) + ' ' + escapeHtml(o.name) + '</b>'
+                  + (o.officer ? '<span class="of-tag stew">' + escapeHtml(o.officer.name) + ' 监理</span>' : '<span class="of-tag free">未遣</span>') + '</div>';
+                rows += '<div class="fac-ctl">民夫 ' + o.labor + '/' + o.laborCap
+                  + ' <button class="btn sm" onclick="window.dispatchLabor(\'' + fk + '\',-5)">−</button><button class="btn sm" onclick="window.dispatchLabor(\'' + fk + '\',5)">＋</button>'
+                  + ' 士卒 ' + o.troops + '/' + o.troopCap
+                  + ' <button class="btn sm" onclick="window.dispatchTroops(\'' + fk + '\',-10)">−</button><button class="btn sm" onclick="window.dispatchTroops(\'' + fk + '\',10)">＋</button></div>';
+                rows += '<div class="fac-out">月出：<b>' + o.amount + ' ' + escapeHtml(o.resName) + '</b>'
+                  + (o.officer ? '（' + statName(o.stat) + '×' + (Math.round(o.statMul * 100) / 100) + (o.skill ? (' ＋技' + Math.round(o.skill * 100) + '%') : '') + '）' : '（未遣官，仅赖民力）') + '</div>';
+                rows += '<div class="fac-bar"><i style="width:' + Math.round((o.progress || 0) * 100) + '%"></i></div>';
+                var _flog = (S().flags.facilityLog && S().flags.facilityLog[fk]) || [];
+                if (_flog.length) { rows += '<div class="fac-log">'; _flog.slice(-3).forEach(function (_e) { rows += '<span>' + (_e.t || '') + ' ' + escapeHtml(_e.m || '') + '</span>'; }); rows += '</div>'; }
+                var opts = '<option value="">— 委派 —</option>';
+                if (o.officer) opts = '<option value="">✕ 撤委派（现任：' + escapeHtml(o.officer.name) + '）</option>';
+                roster().forEach(function (x) { if (x.assignment && x.assignment.type === 'steward' && x.assignment.fkey === fk) return; opts += '<option value="' + x.id + '">' + escapeHtml(x.name) + '（' + statName(o.stat) + (x.stats[o.stat] || 0) + '）</option>'; });
+                rows += '<div class="fac-assign"><select id="facsel_' + safe + '" class="fac-sel">' + opts + '</select>'
+                  + '<button class="btn sm" onclick="window.dispatchAssign(\'' + fk + '\',document.getElementById(\'facsel_' + safe + '\').value)">派遣</button>';
+                if (o.officer) rows += '<button class="btn sm btn-danger" onclick="window.dispatchRemove(\'' + fk + '\')">召回</button>';
+                rows += '</div></div>';
+              });
+            } else {
+              var dg = delegateeOf(k, cid);
+              var dopts = '<option value="">— 委任 —</option>';
+              if (dg) dopts = '<option value="">✕ 撤委任（现任：' + escapeHtml(dg.name) + '）</option>';
+              roster().forEach(function (o) { var a = o.assignment; if (a && a.type === 'edict' && a.cmd === k && a.cid === cid) return; dopts += '<option value="' + o.id + '">' + escapeHtml(o.name) + '（' + statName(C.stat) + (o.stats[C.stat] || 0) + '）</option>'; });
+              rows += '<div class="edict-assignsel"><select class="edict-del" onchange="delegateCommand(\'' + k + '\', this.value)">' + dopts + '</select>'
+                + '<span class="edict-pred">' + (dg ? ('委任 ' + escapeHtml(dg.name) + '：') : '亲行：') + escapeHtml(edictResultText(eff)) + '</span></div>';
+            }
+            rows += '</div>';
+          }
+        });
+        if (rows) h += '<div class="surface edict-grp"><div class="edict-grph">' + G.name + '</div>' + rows + '</div>';
       });
       h += '</div>';
       return h;

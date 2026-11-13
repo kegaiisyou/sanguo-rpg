@@ -18,6 +18,12 @@
     // 实际为 undefined，导致本模块所有 Officers.* 走 fallback 1 —— 太守/守将治绩加成从未生效。
     // 运行时从 engine.js:753 挂载的 LF.Officers 惰性取回即可。
     function Of() { return Officers || (LF.Officers || null); }
+    // v20261113a：renderEdictCommands 定义在 Officers 工厂闭包内（officers.js:831），
+    // engine.js:583 已用惰性包装传入 ctx；不接住就会落回全局 undefined → 政务/委任两页空白。
+    var renderEdictCommands = ctx.renderEdictCommands || function (cid, view) {
+      return (LF.Officers && LF.Officers.renderEdictCommands)
+        ? LF.Officers.renderEdictCommands(cid, view) : '';
+    };
   // ══ 玩家外交系统（v20260918h）══
   function diploGet(fid){ return (S().flags.diplo && S().flags.diplo[fid]) || null; }
   function diploStatus(fid){ var d=diploGet(fid); return d? d.status : 'war'; }
@@ -148,44 +154,83 @@
       toast('安民：治安 +6');
     }
     renderStatus(); save(S()); openModal('edict');
+    // renderStatus 的 rAF 帧会弹「破境」升级面板顶掉政令台（strategyCmd:729 同款坑）；
+    // 延迟重绘兜底，否则玩家点完征税/安民后面板会莫名消失。
+    setTimeout(function () { try { openModal('edict'); } catch (e) {} }, 140);
   }
+  // v20261113a 政令台 UI 整合：常驻头（身份 / 库藏）+ 三页签（政务 / 委任 / 军政）。
+  // 只改信息归类与按钮呈现；civilEdict / civilCommand / delegateCommand 的交互语义一律不动。
+  // 页签状态存 flags.edictTab，使 civilEdict 执行后 openModal('edict') 重绘时仍停在原页。
+  function edictTabKey() {
+    var F = S().flags || {};
+    return (F.edictTab === 'assign' || F.edictTab === 'army') ? F.edictTab : 'civil';
+  }
+  global.edictTab = function (k) {
+    var st = S(); if (!st) return;
+    st.flags = st.flags || {};
+    st.flags.edictTab = (k === 'assign' || k === 'army') ? k : 'civil';
+    var box = document.getElementById('modal-card'); if (!box) return;
+    var tabs = box.querySelectorAll('.edict-tabs .tab');
+    for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('active', tabs[i].getAttribute('data-pg') === st.flags.edictTab);
+    var pgs = box.querySelectorAll('.edict-pg');
+    for (var j = 0; j < pgs.length; j++) pgs[j].classList.toggle('active', pgs[j].getAttribute('data-pg') === st.flags.edictTab);
+  };
   function renderEdict(){
     var cid=S().room; if(!isCityGrid(cid)) return '';
     var c=(LF.CITIES||{})[cid]||{};
     var ord=(S().flags.cityOrder&&S().flags.cityOrder[cid]!=null)?S().flags.cityOrder[cid]:c.order;
     var taxReady=(S().flags.cityTax||{})[cid]!==S().day;
-    var taxTip=taxReady?('\u53ef\u5f81 '+(Math.round((c.pop+c.commerce)/12)+5)+' \u4e24'):'\u4eca\u65e5\u5df2\u5f81';
+    var taxTip=taxReady?('可征 '+(Math.round((c.pop+c.commerce)/12)+5)+' 两'):'今日已征';
     var own=(cityOwnerOf(cid)===playerFaction());
     var res=S().res||{grain:0,iron:0,kit:0};
-    var h='';
-    h+='<div class="edict-box">';
-    h+='<div class="edict-h">'+c.name+' \u00b7 \u653f\u4ee4\u53f0</div>';
-    h+='<div class="edict-sub">'+('\u7acb\u57ce\u4e2d\u67a2\uff0c\u53d1\u53f7\u65bd\u4ee4\uff0c\u767e\u653f\u4e4b\u67a2\u3002')+'</div>';
+    var cur=edictTabKey();
+    function tab(k,label){ return '<button type="button" class="tab'+(cur===k?' active':'')+'" data-pg="'+k+'" onclick="edictTab(\''+k+'\')">'+label+'</button>'; }
+    function nav(act,label,sub){ return '<button class="btn" onclick="'+act+'">'+label+'<span class="edict-navsub">'+sub+'</span></button>'; }
+    var h='<div class="edict-box edict-v2">';
+    h+='<div class="edict-h">'+escapeHtml(c.name||cid)+' · 政令台</div>';
+    h+='<div class="surface edict-head">';
     h+='<div class="edict-idgrid">';
-    h+='<div class="eig"><span>\u5b98\u804c</span><b>'+(S().title||'\u6e38\u4fa0')+'</b></div>';
-    h+='<div class="eig"><span>\u52bf\u529b</span><b>'+factionName(playerFaction())+'</b></div>';
-    h+='<div class="eig"><span>\u804c\u79cd</span><b>'+roleDef().icon+' '+roleDef().name+'</b></div>';
-    h+='<div class="eig"><span>\u6cbb\u5b89</span><b>'+ord+'</b></div>';
+    h+='<div class="eig"><span>官职</span><b>'+escapeHtml(S().title||'游侠')+'</b></div>';
+    h+='<div class="eig"><span>势力</span><b>'+escapeHtml(factionName(playerFaction()))+'</b></div>';
+    h+='<div class="eig"><span>职种</span><b>'+roleDef().icon+' '+escapeHtml(roleDef().name)+'</b></div>';
+    h+='<div class="eig"><span>治安</span><b>'+ord+'</b></div>';
     h+='</div>';
     if(own) h+='<div class="edict-res4">'
-      +'<div class="er4 r-grain"><i>\u7cae</i><b>'+(res.grain||0)+'</b></div>'
-      +'<div class="er4 r-iron"><i>\u94c1</i><b>'+(res.iron||0)+'</b></div>'
-      +'<div class="er4 r-kit"><i>\u68b0</i><b>'+(res.kit||0)+'</b></div>'
-      +'<div class="er4 r-gold"><i>\u94f6</i><b>'+(S().gold||0)+'</b></div>'
+      +'<div class="er4 r-grain"><i>产粮</i><b>'+(res.grain||0)+'</b></div>'
+      +'<div class="er4 r-iron"><i>生铁</i><b>'+(res.iron||0)+'</b></div>'
+      +'<div class="er4 r-kit"><i>械具</i><b>'+(res.kit||0)+'</b></div>'
+      +'<div class="er4 r-gold"><i>府库</i><b>'+(S().gold||0)+'</b></div>'
       +'</div>';
-    if(own){
-      if(typeof renderEdictCommands==='function') h+=renderEdictCommands(cid);
-    } else {
-      h+='<div class="edict-tip tip">你并非此城之主，无从发号施令；占城即得官守，自可施政。</div>';
-    }
-    h+='<div class="edict-acts">';
-    h+='<button class="btn" onclick="civilEdict(\'tax\')">\u7a0e \u5f81\u7a0e<br><span class="sub">'+taxTip+'</span></button>';
-    h+='<button class="btn" onclick="civilEdict(\'pacify\')">\u5b89 \u5b89\u6c11<br><span class="sub">\u8017\u94f620\uff0c\u6cbb\u5b89+6</span></button>';
-    h+='<button class="btn" onclick="openModal(\'factionMap\')">\u52bf \u5927\u52bf<br><span class="sub">\u89c2\u5929\u4e0b\u52bf\u529b</span></button>';
-    h+='<button class="btn" onclick="openModal(\'army\')">\u519b \u6cbb\u519b<br><span class="sub">\u70b9\u5175\u7f16\u6210\u00b7\u8f38\u91cd\u8c03\u9063</span></button>';
+    h+='<div class="edict-head-ops"><button class="btn btn-sm" onclick="openModal(\'grandStrategy\')">天 下 布 武</button>'
+      +'<span class="edict-head-tip">本月军令 · 逐城调度 · 亲征命将</span></div>';
     h+='</div>';
-    h+='<button class="btn" onclick="openOfficerPanel()">\u5c06 \u6b66\u5c06<br><span class="sub">\u767b\u5eb8\u00b7\u90ed\u5b88\u00b7\u4e3b\u5c06</span></button>';
-    h+='<div class="edict-foot">\u7acb\u4e8e\u4e2d\u67a2\u3001\u57ce\u5f52\u4f60\u6240\u7edf\uff0c\u65b9\u80fd\u53d1\u53f7\u3002\u5360\u57ce\u5373\u5f97\u5b98\u804c\uff0c\u805a\u8d22\u517b\u58eb\u3002</div>';
+    h+='<div class="edict-tabs">'+tab('civil','政 务')+tab('assign','委 任')+tab('army','军 政')+'</div>';
+    if(!own){
+      h+='<div class="edict-tip tip">你并非此城之主，无从发号施令；占城即得官守，自可施政。</div>';
+      h+='<div class="edict-foot">立于中枢、城归你所统，方能发号。</div></div>';
+      return h;
+    }
+    // 政务：常设政令 + 9 条内政命令（亲行）
+    h+='<div class="edict-pg'+(cur==='civil'?' active':'')+'" data-pg="civil">';
+    h+='<div class="edict-sech">常设政令</div><div class="edict-nav">'
+      +nav('civilEdict(\'tax\')','征 税',taxTip)
+      +nav('civilEdict(\'pacify\')','安 民','耗银20 · 治安+6')+'</div>';
+    h+='<div class="edict-sech">内政命令 · 亲行（每城每令每日一次）</div>';
+    if(typeof renderEdictCommands==='function') h+=renderEdictCommands(cid,'act');
+    h+='</div>';
+    // 委任：设施监理与按月委任，与亲行分开，避免命令区膨胀
+    h+='<div class="edict-pg'+(cur==='assign'?' active':'')+'" data-pg="assign">';
+    h+='<div class="edict-sech">设施监理与按月委任</div>';
+    if(typeof renderEdictCommands==='function') h+=renderEdictCommands(cid,'assign');
+    h+='</div>';
+    // 军政：原本散在 2×2 栅格与单独 100% 宽按钮里的入口，统一归此
+    h+='<div class="edict-pg'+(cur==='army'?' active':'')+'" data-pg="army">';
+    h+='<div class="edict-sech">军政与人事</div><div class="edict-nav">'
+      +nav('openModal(\'factionMap\')','大 势','观天下势力')
+      +nav('openModal(\'army\')','治 军','点兵编成 · 辎重调遣')
+      +nav('openOfficerPanel()','武 将','登庸 · 郡守 · 主将')+'</div>';
+    h+='</div>';
+    h+='<div class="edict-foot">立于中枢、城归你所统，方能发号。占城即得官职，聚财养士。</div>';
     h+='</div>';
     return h;
   }
