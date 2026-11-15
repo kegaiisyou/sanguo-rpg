@@ -161,8 +161,24 @@
       if (getCurrentModalKind && getCurrentModalKind() === 'army') openModal('army');
       return true;
     }
+    // 兵科键归一（v20261114b）：内政令配置层用中文兵科名（'步兵'），
+    // 而 LF.TROOPS 以内部键存储（changqiang/daodun/gongnu/qibing）。
+    // 旧版 armyTrainAt 直接以 '步兵' 查表 → undefined → 首行 return 0，
+    // 导致「练兵」亲行、委任月结与简明朝堂「募兵」长期不增兵。归一后配置与文案仍保持中文。
+    var TROOP_ALIAS = { '步兵':'changqiang', '步卒':'changqiang', '长枪':'changqiang', '枪兵':'changqiang',
+      '刀盾':'daodun', '盾兵':'daodun', '弓兵':'gongnu', '弓弩':'gongnu', '弩兵':'gongnu',
+      '骑兵':'qibing', '步':'changqiang', '骑':'qibing', '远':'gongnu' };
+    function troopKey(type) {
+      var T = TROOPS();
+      if (T[type]) return type;
+      var a = TROOP_ALIAS[type]; if (a && T[a]) return a;
+      var ks = Object.keys(T);
+      for (var i = 0; i < ks.length; i++) if (T[ks[i]] && T[ks[i]].name === type) return ks[i];
+      return 'changqiang';
+    }
     // 按城募训士卒：忽略玩家站位，受城兵源/兵力上限/府库所限（供内政「练兵」命令调用）
     function armyTrainAt(cid, type, n) {
+      type = troopKey(type);
       n = Math.max(1, (n | 0) || 1);
       var d = TROOPS()[type]; if (!d) return 0;
       var a = ensureArmy(); if (!a) return 0;

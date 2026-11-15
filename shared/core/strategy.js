@@ -24,6 +24,10 @@
       return (LF.Officers && LF.Officers.renderEdictCommands)
         ? LF.Officers.renderEdictCommands(cid, view) : '';
     };
+    // v20261113f：monthlyAffairs 此前是裸标识符 → 全局 undefined，
+    // 委任 9 令 / 设施按月产出 / 市租忠诚月结「能点能存、永不兑现」。
+    // engine 以惰性包装注入（Officers 建于 Strategy 之后），此处必须接住。
+    var monthlyAffairs = ctx.monthlyAffairs;
   // ══ 玩家外交系统（v20260918h）══
   function diploGet(fid){ return (S().flags.diplo && S().flags.diplo[fid]) || null; }
   function diploStatus(fid){ var d=diploGet(fid); return d? d.status : 'war'; }
@@ -136,7 +140,8 @@
     if(kind==='tax'){
       var last=(S().flags.cityTax||{})[cid];
       if(last===S().day){ toast('今日已在此征过税赋。'); return; }
-      var gain=Math.round((c.pop+c.commerce)/12)+5;
+      var _csTax=(S().flags.cityStats||{})[cid]||{};
+      var gain=Math.round((c.pop+c.commerce)/12)+5+Math.min(40,Math.round(_csTax.com||0));   // v20261113g：市易积累参与岁入
       S().gold+=gain;
       S().flags.cityTax=S().flags.cityTax||{}; S().flags.cityTax[cid]=S().day;
       S().flags.cityOrder=S().flags.cityOrder||{};
@@ -170,6 +175,49 @@
     return (k === 'city' || k === 'realm' || k === 'war') ? k : (fallback || 'city');
   }
   function courtViewKey() { return (((S() && S().flags) || {}).edictView === 'assign') ? 'assign' : 'act'; }
+  // v20261114a：简明朝堂。用户定调「只管农业产粮、商业产钱、募兵，太复杂的先不要」。
+  // 默认只渲染三令；军务/势力/委任/战报等全部收进「完整朝堂」，由 courtMode 切换，
+  // 不删代码也不删数据 —— 出兵与统一链仍可达，将来想恢复也只是一行开关。
+  global.courtMode = function (v) {
+    var st = S(); if (!st) return;
+    st.flags = st.flags || {};
+    st.flags.courtFull = (v === 1 || v === true || v === '1') ? 1 : 0;
+    if (global.openModal) global.openModal('edict');
+  };
+  // v20261115a：势力页改为「择一城调度」，不再逐城铺满屏。
+  global.courtPick = function (cid) {
+    var st = S(); if (!st) return;
+    st.flags = st.flags || {};
+    st.flags.courtCity = cid;
+    st.flags.edictTab = 'realm';
+    if (global.openModal) global.openModal('grandStrategy');
+  };
+  function simpleCard(k, title, out, desc, dis) {
+    return '<button type="button" class="btn court-simple-card"' + (dis ? ' disabled' : '')
+      + ' onclick="civilCommand(\'' + k + '\')">'
+      + '<span class="cs-t">' + title + '</span>'
+      + '<span class="cs-o">' + out + '</span>'
+      + '<span class="cs-d">' + desc + '</span></button>';
+  }
+  function renderCourtSimple(cid, c, res, st, cnt, own) {
+    var h = '<div class="edict-box edict-v2 court-simple">';
+    h += '<div class="edict-h">朝 堂 · ' + escapeHtml(c.name || '行在') + '</div>';
+    h += '<div class="surface edict-head"><div class="edict-res4 court-simple-res">'
+      + '<div class="er4 r-grain"><i>仓 粮</i><b>' + (res.grain || 0) + '</b></div>'
+      + '<div class="er4 r-gold"><i>府 库</i><b>' + (st.gold || 0) + '</b></div>'
+      + '<div class="er4 r-kit"><i>部 曲</i><b>' + cnt + '</b></div>'
+      + '</div></div>';
+    if (!own) h += '<div class="edict-tip tip">你并非此城之主（或不在城池中枢）。占下一城后即可在此颁令；用兵与势力调度收在「完整朝堂」。</div>';
+    h += '<div class="edict-nav court-simple-acts">'
+      + simpleCard('kaiken', '农 业', '产 粮 食', '每日一次 · 耗籽粮 8 石 · 得仓粮约 14 · 兼补辎粮', !own)
+      + simpleCard('shangye', '商 业', '产 银 钱', '每日一次 · 耗本钱 8 两 · 得银约 11', !own)
+      + simpleCard('lianbing', '募 兵', '充 部 曲', '每日一次 · 耗仓粮 15 石 · 募卒约 24', !own)
+      + '</div>';
+    h += '<div class="edict-head-ops"><button type="button" class="btn btn-ghost btn-sm" onclick="window.courtMode(1)">▸ 展开完整朝堂（军务 · 势力 · 委任）</button></div>';
+    h += '<div class="edict-foot">三令每城每日各一次 · 产粮入仓、募兵耗仓粮；出兵另需辎粮，籴粮令在完整朝堂。</div>';
+    h += '</div>';
+    return h;
+  }
   global.edictTab = function (k) {
     var st = S(); if (!st) return;
     st.flags = st.flags || {};
@@ -190,7 +238,7 @@
     var pgs = box.querySelectorAll('.edict-subpg');
     for (var j = 0; j < pgs.length; j++) pgs[j].classList.toggle('active', pgs[j].getAttribute('data-view') === st.flags.edictView);
   };
-  function renderCourt(fallback) {
+  function renderCourt(fallback, forceFull) {
     var st = S();
     if (!st) return '<div class="edict-box edict-v2"><div class="edict-h">朝 堂</div><p class="tip">尚未入世。</p></div>';
     st.flags = st.flags || {};
@@ -206,6 +254,8 @@
     var mine = (st.ruledCities || []).filter(function (x) { return C[x]; });
     var a = st.army || {}, cnt = 0;
     (a.troops || []).forEach(function (t) { cnt += (t.count || 0); });
+    // v20261114a：默认走简明朝堂（三令），完整三层朝堂需显式展开
+    if (!st.flags.courtFull && !forceFull) return renderCourtSimple(cid, c, res, st, cnt, own);
     function tab(k, label, sub) {
       return '<button type="button" class="tab' + (cur === k ? ' active' : '') + '" data-pg="' + k
         + '" onclick="edictTab(\'' + k + '\')">' + label + '<span class="edict-tabsub">' + sub + '</span></button>';
@@ -220,21 +270,23 @@
     h += '<div class="edict-h">朝 堂 · ' + escapeHtml(c.name || '行在') + '</div>';
     // 常驻头：身份 / 库藏 / 军令额度，纯信息，不再塞操作按钮
     h += '<div class="surface edict-head">';
-    h += '<div class="edict-idgrid">'
-      + '<div class="eig"><span>官职</span><b>' + escapeHtml(st.title || '游侠') + '</b></div>'
-      + '<div class="eig"><span>势力</span><b>' + escapeHtml(factionName(playerFaction())) + '</b></div>'
-      + '<div class="eig"><span>职种</span><b>' + roleDef().icon + ' ' + escapeHtml(roleDef().name) + '</b></div>'
-      + '<div class="eig"><span>治安</span><b>' + (ord == null ? '—' : ord) + '</b></div></div>';
     h += '<div class="edict-res4">'
-      + '<div class="er4 r-grain"><i>产粮</i><b>' + (res.grain || 0) + '</b></div>'
+      + '<div class="er4 r-grain"><i>仓 粮</i><b>' + (res.grain || 0) + '</b></div>'
       + '<div class="er4 r-iron"><i>生铁</i><b>' + (res.iron || 0) + '</b></div>'
       + '<div class="er4 r-kit"><i>械具</i><b>' + (res.kit || 0) + '</b></div>'
       + '<div class="er4 r-gold"><i>府库</i><b>' + (st.gold || 0) + '</b></div></div>';
     h += '<div class="court-quota"><span>本月军令 <b>' + gs.left + ' / ' + cmdQuota() + '</b> 道</span>'
       + '<span>治下 <b>' + mine.length + ' / ' + total + '</b> 城</span>'
       + '<span>部曲 <b>' + cnt + '</b></span>'
-      + '<span>军粮 <b>' + ((a.logistics && a.logistics.grain) || 0) + '</b></span>'
-      + '<span>统一 <b>' + (st.flags.unified ? '已成' : '未成') + '</b></span></div>';
+      + '<span>辎 粮 <b>' + ((a.logistics && a.logistics.grain) || 0) + '</b> 石（出兵 / 日耗）</span></div>';
+    h += '<details class="court-more"><summary>身份与治绩 <span class="edict-tabsub">官职 · 势力 · 职种 · 治安 · 统一</span></summary>'
+      + '<div class="edict-idgrid">'
+      + '<div class="eig"><span>官职</span><b>' + escapeHtml(st.title || '游侠') + '</b></div>'
+      + '<div class="eig"><span>势力</span><b>' + escapeHtml(factionName(playerFaction())) + '</b></div>'
+      + '<div class="eig"><span>职种</span><b>' + roleDef().icon + ' ' + escapeHtml(roleDef().name) + '</b></div>'
+      + '<div class="eig"><span>治安</span><b>' + (ord == null ? '—' : ord) + '</b></div></div>'
+      + '<div class="court-quota"><span>统一 <b>' + (st.flags.unified ? '已成' : '未成') + '</b></span></div>'
+      + '</details>';
     h += '</div>';
     h += '<div class="edict-tabs">'
       + tab('city', '本 城', '每日 · 本城政令')
@@ -245,9 +297,9 @@
     if (!own) {
       h += '<div class="edict-tip tip">你并非此城之主（或不在城池中枢），无从发号施令；占城即得官守。</div>';
     } else {
-      h += sec('常设政令 · 每日一次') + '<div class="edict-nav">'
+      h += sec('常 设 政 令') + '<div class="edict-nav">'
         + nav('civilEdict(\'tax\')', '征 税', taxTip)
-        + nav('civilEdict(\'pacify\')', '安 民', '耗银20 · 治安+6') + '</div>';
+        + nav('civilEdict(\'pacify\')', '急 赈', '耗银20 · 治安+6 · 不限次') + '</div>';
       h += '<div class="edict-subtabs">' + stab('act', '亲 行') + stab('assign', '委 任') + '</div>';
       h += '<div class="edict-subpg' + (view === 'act' ? ' active' : '') + '" data-view="act">';
       h += sec('本城政令 · 亲行（每城每令每日一次）') + renderEdictCommands(cid, 'act') + '</div>';
@@ -257,24 +309,33 @@
     h += '</div>';
     // 势力
     h += '<div class="edict-pg' + (cur === 'realm' ? ' active' : '') + '" data-pg="realm">';
-    h += '<div class="surface court-sec">' + sec('月度军令 · 逐城调度（每令耗 1 道）');
+    h += '<div class="surface court-sec">' + sec('月度军令 · 择一城调度（每令耗 1 道）');
     if (!mine.length) h += '<p class="tip">尚无寸土。先取一城，方可发号。</p>';
-    mine.slice(0, 24).forEach(function (x) {
-      var cc = C[x];
-      h += '<div class="fm-row"><div class="fm-lord"><b>' + escapeHtml(cc.name || x) + '</b>'
-        + '　<small>开发 ' + cityDevOf(x) + ' · 城防 ' + (cc.wall || 0) + ' · 人户 ' + (cc.pop || 0)
-        + ' · 驻军 ' + cityGarrisonOf(x) + '</small></div><div class="fm-cities">'
-        + '<button class="btn sm" onclick="window.strategyCmd(\'dev\',\'' + x + '\')">开 发 · 200</button>　'
-        + '<button class="btn sm" onclick="window.strategyCmd(\'recruit\',\'' + x + '\')">募 兵 · 300</button>　'
-        + '<button class="btn sm" onclick="window.strategyCmd(\'grain\',\'' + x + '\')">籴 粮 · 150</button>'
-        + '<div class="tip">太守　' + governorSelect(x) + '</div></div></div>';
-    });
-    if (mine.length > 24) h += '<p class="tip">另有 ' + (mine.length - 24) + ' 城未列。</p>';
+    else {
+      var pickCid = st.flags.courtCity;
+      if (!pickCid || mine.indexOf(pickCid) < 0) pickCid = mine[0];
+      h += '<div class="court-pick"><span>治下 ' + mine.length + ' 城 · 择一调度</span>'
+        + '<select onchange="window.courtPick(this.value)">';
+      mine.forEach(function (x) {
+        h += '<option value="' + x + '"' + (x === pickCid ? ' selected' : '') + '>'
+          + escapeHtml((C[x] || {}).name || x) + '</option>';
+      });
+      h += '</select></div>';
+      var pc = C[pickCid] || {};
+      h += '<div class="fm-row"><div class="fm-lord"><b>' + escapeHtml(pc.name || pickCid) + '</b>'
+        + '　<small>开发 ' + cityDevOf(pickCid) + ' · 城防 ' + (pc.wall || 0) + ' · 人户 ' + (pc.pop || 0)
+        + ' · 驻军 ' + cityGarrisonOf(pickCid) + '</small></div><div class="fm-cities">'
+        + '<button class="btn sm" onclick="window.strategyCmd(\'dev\',\'' + pickCid + '\')">开 发 · 200</button>　'
+        + '<button class="btn sm" onclick="window.strategyCmd(\'recruit\',\'' + pickCid + '\')">征 兵 · 300</button>　'
+        + '<button class="btn sm" onclick="window.strategyCmd(\'grain\',\'' + pickCid + '\')">籴 粮 · 150</button>'
+        + '<div class="tip">太守　' + governorSelect(pickCid) + '</div></div></div>';
+    }
     h += '</div>';
-    h += '<div class="surface court-sec">' + sec('本月军令录');
+    h += '<details class="court-more"><summary>本月军令录 <span class="edict-tabsub">' + gs.log.length + ' 道</span></summary>'
+      + '<div class="surface court-sec">';
     if (!gs.log.length) h += '<p class="tip">本月尚未下令。</p>';
     gs.log.forEach(function (x) { h += '<div class="fm-cities">' + escapeHtml(x) + '</div>'; });
-    h += '</div>';
+    h += '</div></details>';
     var wr = warReports();
     h += '<div class="surface court-sec">' + sec('战报 · 最近 8 役');
     if (!wr.length) h += '<p class="tip">尚无战报。</p>';
@@ -306,6 +367,7 @@
       + nav('openOfficerPanel()', '武 将', '登庸 · 郡守 · 主将') + '</div></div>';
     h += '</div>';
     h += '<div class="edict-foot">每月朔日军令复原（2～8 道）；用兵与内政共用军令，另受 ' + WAR_ADJ_KM + ' 公里邻接与军粮约束。</div>';
+    h += '<div class="edict-head-ops"><button type="button" class="btn btn-ghost btn-sm" onclick="window.courtMode(0)">◂ 收起为简明朝堂</button></div>';
     h += '</div>';
     return h;
   }
@@ -330,7 +392,8 @@
       h+='<div class="fm-row">';
       h+='<div class="fm-lord"><span class="fm-dot" style="background:'+f.color+'"></span><b>'+f.name+'</b>'+(f.lord?'　<small>主君 '+f.lord+'</small>':'')+(fid!=='player'&&fid!=='han'?'　<button class="btn sm" onclick="openDiplomacy(\''+fid+'\')">外交</button>':'')+'</div>';
       h+='<div class="fm-cities">'+g.cities.join('、')+'</div>';
-      h+='<div class="fm-desc">'+f.desc+'</div>';
+      var _ga = (fid === 'player' || fid === 'han') ? null : ((S().flags.factionAssets || {})[fid] || null);
+      h+='<div class="fm-desc">'+f.desc + (_ga ? '　积粮 <b>'+Math.round(_ga.grain||0)+'</b> 石 · 兵 <b>'+Math.round(_ga.troops||0)+'</b>'+(_ga.grainShort?' · 缺粮':'') : '') +'</div>';
       h+='</div>';
     });
     var _cl = chronicleList().slice(0, 8);   // 群雄逐鹿 · 烽火递报（v20260909o）
@@ -355,9 +418,10 @@
     h += '<span>麾下 <b>'+_of+'</b> 员武将</span>';
     h += '<span>兵力 <b>'+(_pa.troops||0)+'</b></span>';
     h += '<span>府库 <b>'+(S().gold||0)+'</b></span>';
+    h += '<span>辎粮 <b>'+(_pa.grain||0)+'</b> 石</span>';
     h += '<span>声望 <b>'+(S().reputation||0)+'</b></span>';
     h += '</div>';
-    h += '<div class="fm-my-ops"><button class="btn sm" onclick="openModal(\'grandStrategy\')">朝 堂 · 军令</button><button class="btn sm" onclick="openOfficerPanel()">武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">刷新大势</button></div>';
+    h += '<div class="fm-my-ops"><button class="btn sm" onclick="edictTab(\'realm\');openModal(\'grandStrategy\')">朝 堂 · 军令</button><button class="btn sm" onclick="openOfficerPanel()">武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">刷新大势</button></div>';
     h += '</div>';
     // v20261113b：出兵口收敛到朝堂「兵事」页。此处只留指路，不再重复渲染亲征/命将按钮。
     var _tg = campaignTargets();
@@ -406,7 +470,8 @@
   function warCityPower(cid) {
     var c = (LF.CITIES || {})[cid] || {};
     var dev = 0; try { dev = cityDevOf(cid); } catch (e) {}
-    return (c.wall || 40) * 1.2 + (c.pop || 40) * 0.6 + (c.commerce || 40) * 0.3 + dev * 0.06;
+    var _csWar = ((S() && S().flags && S().flags.cityStats) || {})[cid] || {};
+    return (c.wall || 40) * 1.2 + (c.pop || 40) * 0.6 + (c.commerce || 40) * 0.3 + dev * 0.06 + Math.min(20, _csWar.defense || 0) * 0.5;
   }
   function warFactionTotal(fid) {
     var sum = 0, C = LF.CITIES || {}, ids = Object.keys(C);
@@ -435,9 +500,10 @@
     var defKey = warOwnerKey(targetCid);
     var atkT = factionTroops(attackerFid);                                     // 兵在册，势自盛（v20260921a）
     var defT = factionTroops(defKey);
-    var atk = (warFactionTotal(attackerFid) + atkT * 2.2) * (0.6 + Math.random() * 0.2);   // 举国之力的一支偏师
+    var atk = (warFactionTotal(attackerFid) + atkT * 2.2) * (0.6 + Math.random() * 0.2) * aiGrainRatio(attackerFid);   // 举国之力的一支偏师；粮尽则锋锐挫
+    aiSpendCampaignGrain(attackerFid);   // 出征即耗粮（事件接口同样扣，但不做准入拦截）
     if (attackerFid === 'player') atk *= roleAtkMul();   // 职种：将才攻势更盛（v20260918h）
-    var def = (warCityPower(targetCid) + defT * 1.1) * (1.1 + Math.random() * 0.2);          // 据城而守，一夫当关
+    var def = (warCityPower(targetCid) + defT * 1.1) * (1.1 + Math.random() * 0.2) * aiGrainRatio(defKey);   // 据城而守；守军缺粮则城防松弛
     var defReal = !!(LF.FACTIONS && LF.FACTIONS[defKey]);
     if (defReal) def += warFactionTotal(defKey) * 0.1;                        // 邻郡/本州驰援之师
     var atkRoll = atk * (0.85 + Math.random() * 0.3);
@@ -509,7 +575,7 @@
         var _pc = warInRoom(a) ? a : b;                          // 但若所指正是你治下之城 → 升格为「守城战」
         if (warOwnerKey(_pc) === 'player') {
           var _att = warInRoom(a) ? kb : ka;
-          if (warIsLordKey(_att)) defendCands.push({ target: _pc, atk: _att });
+          if (warIsLordKey(_att) && aiCanCampaign(_att)) defendCands.push({ target: _pc, atk: _att });
         }
         continue;
       }
@@ -522,6 +588,7 @@
         var tkey = warOwnerKey(tid);
         var treal = !!(LF.FACTIONS && LF.FACTIONS[tkey]);
         if (treal && tkey !== 'player' && (counts[tkey] || 0) <= 1) continue; // 不灭有主孤城
+        if (!aiCanCampaign(dirs[d].atk)) continue;   // 粮不足以兴师（v20261115c）
         cands.push({ target: tid, atk: dirs[d].atk });
       }
     }
@@ -581,18 +648,56 @@
     var rc = S().ruledCities;
     if (!rc || !rc.length) return;
     var dev = S().flags.cityDev || {};
+    var stats = S().flags.cityStats || {};
     var total = 0;
         var em = roleEconMul();
-    rc.forEach(function (cid) { total += Math.round((dev[cid] || 0) * 0.6 * em); });
+    rc.forEach(function (cid) {
+      var cs = stats[cid] || {};
+      total += Math.round(((dev[cid] || 0) * 0.6 + Math.min(40, cs.com || 0) * 0.8) * em);
+    });
     if (total > 0) {
       S().gold = (S().gold || 0) + total;
       log('〔府库〕治下 ' + rc.length + ' 城纳赋，得银 ' + total + ' 两。', 'sys');
     }
     if (typeof monthlyAffairs === 'function') monthlyAffairs();
   }
+  // ══ AI 粮草约束（v20261115c）══
+  // 玩家受 army.logistics.grain（日耗 / 出兵校验 / 断粮逃兵）约束；群雄此前只有
+  // gold/troops 两笔聚合账、兵力只进不减，后期必然无限膨胀。此处让 AI 也走
+  // 「按城产粮 → 按兵耗粮 → 缺粮逃兵 / 禁募 / 攻势衰 / 出征扣粮」，双方同规则。
+  var AI_GRAIN_UPKEEP = 0.6;    // 每兵每月耗粮（对齐玩家 UPKEEP_SCALE 0.02/兵/日 × 30 日）
+  var AI_GRAIN_YIELD = 1.0;     // 每点农业的月产粮
+  var AI_GRAIN_START = 240;     // 旧档惰性补字段时的开局存粮，避免接档即断粮
+  function aiAssets(fid) {
+    var F = S().flags;
+    F.factionAssets = F.factionAssets || {};
+    var a = F.factionAssets[fid];
+    if (!a) a = F.factionAssets[fid] = { gold: 300, troops: 0 };
+    if (typeof a.grain !== 'number') a.grain = AI_GRAIN_START;
+    return a;
+  }
+  function aiGrainNeed(troops) { return Math.round((troops || 0) * AI_GRAIN_UPKEEP); }
+  function aiCampaignGrain(troops) { return Math.max(20, Math.round((troops || 0) * 0.15)); }
+  function aiGrainRatio(fid) {
+    if (fid === 'player' || fid === 'han') return 1;
+    return aiAssets(fid).grainShort ? 0.7 : 1;
+  }
+  function aiSpendCampaignGrain(fid) {
+    if (fid === 'player' || fid === 'han') return;
+    var a = aiAssets(fid);
+    a.grain = Math.max(0, (a.grain || 0) - aiCampaignGrain(a.troops));
+  }
+  // 仅自动逐鹿做出征准入；剧情/调试的 warlordBattle 不拦，只扣粮，避免卡住事件链。
+  function aiCanCampaign(fid) {
+    if (fid === 'player' || fid === 'han') return true;
+    var a = aiAssets(fid);
+    return !a.grainShort && (a.grain || 0) >= aiCampaignGrain(a.troops);
+  }
+
   function factionDomesticAI() {
     if (!S() || S().dead) return;
     var F = S().flags; F.factionAssets = F.factionAssets || {}; F.factionWarHit = F.factionWarHit || {};
+    F.factionGrainLog = 0;
     var C = LF.CITIES || {}, byFaction = {};
     Object.keys(C).forEach(function (cid) {
       var k = warOwnerKey(cid);
@@ -602,8 +707,8 @@
     var rank = [];
     Object.keys(byFaction).forEach(function (fid) {
       if (!warIsLordKey(fid)) return;
-      var cities = byFaction[fid], asset = F.factionAssets[fid] = F.factionAssets[fid] || { gold: 300, troops: 0 };
-      var grown = 0;
+      var cities = byFaction[fid], asset = aiAssets(fid);
+      var grown = 0, grainYield = 0;
       cities.forEach(function (cid) {
         var c = C[cid] || {};
         var g = F.factionWarHit[cid] ? 0 : (0.3 + (((c.agri || 40) + (c.commerce || 40)) / 200) * 0.9) * (Of() ? Of().garrisonCivilBonus(cid) : 1);
@@ -611,11 +716,51 @@
         var after = Math.min(100, before + g);
         if (after > before) { setCityDev(cid, after); grown += (after - before); }
         asset.gold = (asset.gold || 0) + Math.round(before * 0.04 + ((c.agri || 40) + (c.commerce || 40)) * 0.12);
+        grainYield += (c.agri || 40) * (F.factionWarHit[cid] ? 0.4 : 1);
       });
-      asset.troops = (asset.troops || 0) + Math.round(grown * 4 + cities.length * 3);
+      // ── 粮草月结（v20261115c）：先收后支，按产粮定「可持续兵额」──
+      var grainIn = Math.round(grainYield * AI_GRAIN_YIELD);
+      var wasShort = !!asset.grainShort;
+      // 粮仓容量＝约三月产额：屯粮无上限会让富农后期凭旧粮长期无视兵耗。
+      var grainCap = Math.max(120, grainIn * 3);
+      asset.grain = Math.min((asset.grain || 0) + grainIn, grainCap);
+      // 稳态兵额只按八成月产定，另两成入仓作出征军资；否则兵吃光产粮，
+      // 势力永久 grainShort=1，禁募 + 禁出征，天下停滞（长局压测发现的死锁）。
+      var sustain = Math.max(1, Math.floor(grainIn * 0.8 / AI_GRAIN_UPKEEP));
+      var naturalCap = Math.max(1, Math.floor(sustain * 0.85));
+      var cur = asset.troops || 0;
+      var inc = Math.round(grown * 4 + cities.length * 3);
+      var cap = Math.max(naturalCap, Math.min(cur, sustain));
+      var grainNeed = aiGrainNeed(Math.min(cur + inc, cap));
+      if (cur > sustain * 1.05) {
+        // 失地 / 战乱 / 旧档导致兵额远超粮产：一次裁到可持续规模，本月记饥馑，
+        // 下月按新产粮复耕即解禁，不会永久断粮。
+        var flee = cur - sustain;
+        asset.troops = sustain;
+        asset.grain = 0;
+        asset.grainShort = true;
+        if (!wasShort && (F.factionGrainLog = (F.factionGrainLog || 0) + 1) <= 2)
+          log('〔饥馑〕' + warFactionName(fid) + '军粮不继，士卒散去 ' + flee + ' 人。', 'sys');
+      } else {
+        asset.troops = Math.min(cur + inc, cap);
+        if (asset.grain >= grainNeed) {
+          asset.grain -= grainNeed;
+          asset.grainShort = false;
+        } else {
+          // 存粮亦不足：按实有粮裁军，本月缺粮、下月即可复起
+          var feedable = Math.max(0, Math.floor((asset.grain || 0) / AI_GRAIN_UPKEEP));
+          var flee2 = Math.max(1, asset.troops - feedable);
+          asset.troops = Math.max(0, asset.troops - flee2);
+          asset.grain = 0;
+          asset.grainShort = true;
+          if (!wasShort && (F.factionGrainLog = (F.factionGrainLog || 0) + 1) <= 2)
+            log('〔饥馑〕' + warFactionName(fid) + '军粮不继，士卒散去 ' + flee2 + ' 人。', 'sys');
+        }
+      }
       // 群雄亦募兵：府库充盈则以银募卒，兵力自此成为攻伐的真实筹码（v20260921a）
-      if ((asset.gold || 0) > 400 && (asset.troops || 0) < cities.length * 240) {
-        var buy = Math.min(Math.floor(((asset.gold || 0) - 300) / 8), 80);
+      // 缺粮之师先填肚子，不许再拿银子买兵；募兵亦不得越过粮产能养的兵额（v20261115c）
+      if (!asset.grainShort && (asset.gold || 0) > 400 && (asset.troops || 0) < Math.min(sustain, cities.length * 240)) {
+        var buy = Math.min(Math.floor(((asset.gold || 0) - 300) / 8), 80, sustain - asset.troops);
         if (buy > 0) { asset.gold = (asset.gold || 0) - buy * 8; asset.troops = (asset.troops || 0) + buy; }
       }
       asset.cities = cities.length;
@@ -624,6 +769,7 @@
     // 玩家兵力并入势力资产，供攻伐结算与天下大势读取（v20260921a）
     var _pa = F.factionAssets['player'] = F.factionAssets['player'] || { gold: 0, troops: 0 };
     _pa.troops = factionTroops('player');
+    _pa.grain = Math.round(((((S().army || {}).logistics) || {}).grain) || 0);
     _pa.cities = (S().ruledCities || []).length;
     rank.sort(function (a, b) { return b.power - a.power; });
     F.factionPowerRank = rank;
@@ -631,6 +777,8 @@
     (S().ruledCities||[]).forEach(function(cid){
       if (F.factionWarHit[cid]) return;
       var c=C[cid]||{}, g=(0.3+(((c.agri||40)+(c.commerce||40))/200)*0.9)*roleEconMul()*(Of()?Of().civilBonus(cid):1);
+      var _cs=(F.cityStats||{})[cid]||{};
+      g += Math.min(30,(_cs.agri||0)+(_cs.com||0))*0.04;   // v20261113g：经营积累按月兑现为建设度
       var before=cityDevOf(cid), after=Math.min(100,before+g);
       if(after>before) setCityDev(cid,after);
     });
@@ -654,14 +802,16 @@
   }
   function checkUnify() {
     if (S().flags.unified) return;
-    var counts = {};
-    Object.keys(LF.CITIES || {}).forEach(function (c) { var k = warOwnerKey(c); counts[k] = (counts[k] || 0) + 1; });
+    var counts = {}, total = 0;
+    Object.keys(LF.CITIES || {}).forEach(function (c) { total++; var k = warOwnerKey(c); counts[k] = (counts[k] || 0) + 1; });
     var aliveReal = 0;
     Object.keys(LF.FACTIONS || {}).forEach(function (fid) {
       if (fid === 'han' || fid === 'player') return;
       if ((counts[fid] || 0) > 0) aliveReal++;
     });
-    if ((counts['player'] || 0) > 0 && aliveReal === 0) {
+    // v20261113f：统一必须是全图 72 城皆归己（与胜利面板「X / 全图」口径一致）。
+    // 旧判定只数当世诸侯键，旧版图键的 59 城不计入 → 假统一。
+    if (total > 0 && (counts['player'] || 0) >= total && aliveReal === 0) {
       S().flags.unified = true;
       var nm = (LF.FACTIONS.player || {}).name || '义军';
       chronicle(nm + '扫平群雄，海内归心，天下一统！', 'unify');
@@ -788,7 +938,7 @@
       if (!found) a.troops.push({ type: 'changqiang', count: add, rank: 'front', xp: 0 });
       a.active = true;
       cityGarrisonSet(cid, cityGarrisonOf(cid) + add);
-      msg = '募 兵 +' + add + '（入' + (c.name || cid) + '驻军）';
+      msg = '征 兵 +' + add + '（入' + (c.name || cid) + '驻军）';
     } else {
       a.logistics = a.logistics || { items: [], cap: 8, grain: 0 };
       a.logistics.grain = (a.logistics.grain || 0) + 300;
@@ -804,7 +954,9 @@
     setTimeout(function () { openModal('grandStrategy'); }, 140);
     return true;
   };
-  function renderGrandStrategy() { return renderCourt('realm'); }
+  // v20261115a：显式入口（大势 → 朝堂·军令 / 兵事）必须直达完整朝堂，
+  // 否则 courtFull=0 时 fallback 被简明朝堂吞掉，按钮点了只看到三张卡。
+  function renderGrandStrategy() { return renderCourt('realm', true); }
 
   // ══ 举兵远征（v20261112d · P0）══
   // 让「统一全图」从「只能打脚下城」变成「自版图边缘逐城蚕食」：

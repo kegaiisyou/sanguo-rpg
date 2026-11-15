@@ -258,6 +258,10 @@ window.LF = window.LF || {};
       zhuo:'0 0',
       zhuzi:'0 0',
       zihua:'0 0',
+      // v20261113f：豆包 B 系列 9 件物品独立图标（128x128 RGBA，直读 items48）
+      shelf_wood:'0 0', box_wood:'0 0', box_cabinet:'0 0',
+      doufu:'0 0', doujiang:'0 0', bing:'0 0', juan:'0 0',
+      xumingdan:'0 0', tiequan_pu:'0 0',
     } };
   var ICON_IMG = {}; // 兼容旧引用（已并入雪碧图）
   function itemIconHTML(it, px){

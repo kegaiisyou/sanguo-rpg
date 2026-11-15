@@ -95,6 +95,11 @@
     {type:'salt',   name:'盐矿',   item:'yan'}
   ];
   var MINERAL = ['copper','silver','jade','salt'];   // 仅“矿脉野地”才出现的矿产
+  // v20261113g：郊野资源点 → LF.RES_NODE_TYPES 据点类型（野果无据点，水域另有渔场）
+  var RES_NODE = {
+    herb:'herb', ore:'mine_iron', wood:'forest',
+    copper:'mine_copper', silver:'mine_silver', jade:'mine_jade', salt:'salt'
+  };
   // 水域（小湖泊/河流）：郊野格按概率生成，可垂钓（产出鱼获）
   var WATER = [
     { type:'lake',  name:'湖泊', icon:'💧' },
@@ -145,7 +150,7 @@
       } else {
         rt = pick(RES.filter(function(o){ return MINERAL.indexOf(o.type)<0; }), rng);
       }
-      res.push({ type:rt.type, name:rt.name, item:rt.item, amt: 1+Math.floor(rng()*3) });
+      res.push({ type:rt.type, name:rt.name, item:rt.item, amt: 1+Math.floor(rng()*3), node: RES_NODE[rt.type]||null });
     }
 
     // —— 野怪：动荡多伏寇，安靖多野兽 ——

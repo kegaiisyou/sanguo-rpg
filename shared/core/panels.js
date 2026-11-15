@@ -560,6 +560,13 @@
           }
         }
         var garrHtml = (LF.Officers ? LF.Officers.renderCityGarrison(cid) : '');
+        // v20261113g：cityStats 此前只写不读，此处把经营积累显示出来（数值已在岁入/建设度/城防生效）
+        var _cs = ((S().flags||{}).cityStats||{})[cid]||{};
+        var _csHtml = (_cs.agri||_cs.com||_cs.defense)
+          ? row('经营', '地力 '+Math.round(_cs.agri||0)+' · 市易 '+Math.round(_cs.com||0)+' · 城守 '+Math.round(_cs.defense||0)+'（已计入岁入、建设度与城防）') : '';
+        var _rn = (S().flags||{}).resNodes||{};
+        var _rnHtml = Object.keys(_rn).length
+          ? row('野地据点', Object.keys(_rn).length+' 处（朔日随营生一并结算）') : '';
         return '<h3>城 况 · '+p.c.name+'</h3>'+
 
           row('行政', p.tierDesc)+
@@ -571,6 +578,7 @@
           row('商业', p.comDesc)+
           row('农业', p.agriDesc)+
           row('城防', (p.c.wall>=60?'高垒深沟': p.c.wall>=45?'城墙完固': p.c.wall>=30?'城垣可守':'防守疏懈'))+
+          _csHtml+_rnHtml+
           (mkHtml? mkHtml : '')+
           (boHtml? boHtml : '')+
           (garrHtml? garrHtml : '')+
@@ -591,7 +599,8 @@
       try{
         var _C=LF.CITIES||{};
         Object.keys(_C).forEach(function(c){
-          aliveKeys[(s.flags&&s.flags.cityOwner&&s.flags.cityOwner[c])||_C[c].owner||'han']=1;
+          var _o=(s.flags&&s.flags.cityOwner&&s.flags.cityOwner[c])||_C[c].owner||'han';
+          aliveKeys[(LF.OWNER_ALIAS&&LF.OWNER_ALIAS[_o])||_o]=1;
         });
         Object.keys(LF.FACTIONS||{}).forEach(function(k){
           if(k==='han'||k==='player') return;

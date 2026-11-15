@@ -374,7 +374,7 @@
       if (typeof openModal === 'function' && getCurrentModalKind && getCurrentModalKind() === 'officers') openModal('officers');
     }
     function facilitiesMonthlyYield() {
-      var rc = (S().ruledCities) || []; if (!rc.length) return;
+      var rc = (S().ruledCities) || [];
       var res = S().res = S().res || { grain: 0, iron: 0, kit: 0 };
       var tot = { grain: 0, iron: 0, kit: 0, gold: 0 };
       rc.forEach(function (cid) {
@@ -384,8 +384,19 @@
           if (o && o.amount > 0) tot[o.res] += o.amount;
         });
       });
-      res.grain += tot.grain; res.iron += tot.iron; res.kit += tot.kit; S().gold = (S().gold || 0) + tot.gold;
-      var pts = []; if (tot.grain) pts.push('粮 ' + tot.grain); if (tot.iron) pts.push('铁 ' + tot.iron); if (tot.kit) pts.push('器械 ' + tot.kit); if (tot.gold) pts.push('银 ' + tot.gold);
+      // v20261113g：LF.RES_NODE_TYPES 此前全库零消费。野地据点按月产出，
+      // 按资源键折进已有的粮/铁/器械/银四路（营造与军粮系统直接可用）。
+      var NODE_GROUP = { grain:'grain', herb:'grain', fish:'grain', iron:'iron', kit:'kit', wood:'kit', copper:'kit', silver:'kit', jade:'kit', salt:'kit', gold:'gold' };
+      var RT = LF.RES_NODE_TYPES || {}, RN = (S().flags && S().flags.resNodes) || {}, nodeN = 0;
+      Object.keys(RN).forEach(function (rid) {
+        var rt = RT[(RN[rid] || {}).type]; if (!rt) return;
+        nodeN++;
+        var g = NODE_GROUP[rt.res] || 'kit';
+        tot[g] = (tot[g] || 0) + (rt.rate || 0);
+      });
+      res.grain += Math.round(tot.grain); res.iron += Math.round(tot.iron); res.kit += Math.round(tot.kit); S().gold = (S().gold || 0) + Math.round(tot.gold);
+      var pts = []; if (tot.grain) pts.push('粮 ' + Math.round(tot.grain)); if (tot.iron) pts.push('铁 ' + Math.round(tot.iron)); if (tot.kit) pts.push('器械 ' + Math.round(tot.kit)); if (tot.gold) pts.push('银 ' + Math.round(tot.gold));
+      if (nodeN) pts.push('野地据点 ' + nodeN + ' 处');
       if (pts.length) log('〔营生〕麾下设施岁入：' + pts.join('、') + '。', 'sys');
     }
 
@@ -724,6 +735,11 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
       if (eff.res && eff.amount) {
         if (eff.res === 'gold') st.gold = (st.gold || 0) + eff.amount;
         else { st.res = st.res || { grain: 0, iron: 0, kit: 0 }; st.res[eff.res] = (st.res[eff.res] || 0) + eff.amount; }
+        // v20261115a：农业产的是仓粮，出兵验的是辎粮；顺带补一半辎粮，
+        // 让「农业 → 粮 → 出兵」在体感与数据上都成立（委任月结同走此路径）。
+        if (eff.res === 'grain' && st.army && st.army.logistics) {
+          st.army.logistics.grain = (st.army.logistics.grain || 0) + Math.max(1, Math.round(eff.amount * 0.5));
+        }
       }
       if (eff.statKey && eff.statGain) addCityStat(cid, eff.statKey, eff.statGain);
       if (eff.order) {

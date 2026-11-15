@@ -290,10 +290,18 @@ window.LF = window.LF || {};
     function cityGridSize(cid) { return CITY_LV_SIZE[cityTierLv(cid)] || 3; }
     function cityLevelName(cid) { return CITY_LV_NAME[cityTierLv(cid)] || '城'; }
     function cityDevOf(cid) { ensureCityState(cid); return S().flags.cityDev[cid]; }
-    function cityOwnerOf(cid) { ensureCityState(cid); return S().flags.cityOwner[cid]; }
+    // v20261113f：归属键单点归一。cities.js 里 59 城的 owner 仍是旧版图键
+    // （wei/shu/wu/contested），势力图/逐鹿 AI/招降/统一判定全都认当世势力键，
+    // 不归一就会把它们当「无主」→ 实测只占 13 城即弹「天下一统 13 / 72」。
+    function cityOwnerOf(cid) {
+      ensureCityState(cid);
+      var o = S().flags.cityOwner[cid];
+      return (LF.OWNER_ALIAS && LF.OWNER_ALIAS[o]) || o;   // 旧档读时兼容
+    }
     function cityDefaultOwner(cid) {
-      var c = (LF.CITIES || {})[cid] || {};
-      return ((LF.CITY_OWNER || {})[cid]) || c.owner || '汉';
+      // 新档写时即归一，避免旧键再次落进 flags.cityOwner
+      return LF.ownerKeyOf ? LF.ownerKeyOf(cid)
+        : (((LF.CITY_OWNER || {})[cid]) || ((LF.CITIES || {})[cid] || {}).owner || '汉');
     }
     function isCaptured(cid) { return cityOwnerOf(cid) !== cityDefaultOwner(cid); }
     function cityBurnedMap(cid) { ensureCityState(cid); return S().flags.cityBurned[cid]; }

@@ -30,6 +30,12 @@
     var packFind = function () { return ctx.packFind().apply(null, arguments); };
     var packConsume = function () { return ctx.packConsume().apply(null, arguments); };
     var getCombatMode = ctx.getCombatMode;
+    // v20261113g：资源据点（LF.RES_NODE_TYPES 接线）
+    function resNodeOf(res){
+      var key = res && (res.node || res.type);
+      return (LF.RES_NODE_TYPES||{})[key] || null;
+    }
+    function resNodeHere(room){ return (S().flags.resNodes||{})[room && room.id] || null; }
     // ===== 郊野内容（资源 / 野兽 / 路人）=====
     // 此格仍存的野怪：玩家战后按格+野怪id 记录清剿（flags.fieldClearedMon），防反复刷同一批
     function fieldMonstersLeft(room){
@@ -100,7 +106,9 @@
       var _t=wxEff().tip;
       out.push({t:'〔天候〕'+_w.n+'·'+(isDaytime()?'昼':'夜')+(_t?('，'+_t):'，天色和朗，正宜赶路。'), c:'sys'});
       // 〔地利〕同理：初次说明「此处有何可采」，之后再进不必重念（场景动作栏里就列着「采集」，s:null 即二次进入后略过）
-      if(room.resources && room.resources.length){ room.resources.forEach(function(r){ out.push({t:'〔地利〕此处有'+r.name+'（'+r.amt+'）可采。', c:'item', k:'res:'+r.name, s:null}); }); }
+      if(room.resources && room.resources.length){ room.resources.forEach(function(r){ var _rt=resNodeOf(r); out.push({t:'〔地利〕此处有'+r.name+'（'+r.amt+'）可采'+(_rt?'，宜立「'+_rt.name+'」据点':'')+'。', c:'item', k:'res:'+r.name, s:null}); }); }
+      var _rnHere=resNodeHere(room);
+      if(_rnHere){ var _rtHere=(LF.RES_NODE_TYPES||{})[_rnHere.type]; if(_rtHere) out.push({t:'〔据点〕此处已立「'+_rtHere.name+'」，按月出 '+_rtHere.rate+' 份'+_rtHere.res+'（朔日随营生结算）。', c:'good'}); }
       var mons=fieldMonstersLeft(room);
       if(mons.length){ mons.forEach(function(m){
         var _lv=(({1:'一',2:'二',3:'三'})[m.lvl||1]||'')+'阶';
@@ -165,7 +173,11 @@
         else mkAct('scene','🚣','乘船渡江', boatBoardAct);
       }
       if(room.resources && room.resources.length){
-        room.resources.forEach(function(res){ mkAct('scene','🌿','采'+res.name, function(){ gatherField(room, res); }); });
+        room.resources.forEach(function(res){
+          mkAct('scene','🌿','采'+res.name, function(){ gatherField(room, res); });
+          var _rt=resNodeOf(res);
+          if(_rt && !resNodeHere(room)) mkAct('scene','⛏','立·'+_rt.name, function(){ buildResNode(room, res); });
+        });
       }
       fieldMonstersLeft(room).forEach(function(m){
         if(m.aggr==='hostile') mkAct('scene','⚔','清剿·'+m.name, function(){ startCombat([m.id], {fieldLvl:m.lvl}); });
@@ -183,6 +195,8 @@
         });
       }
       if(fieldHasWater(room)) mkAct('scene','🎣','垂钓', function(){ fishField(room); });
+      if(fieldHasWater(room) && !resNodeHere(room) && !(room.resources||[]).some(function(r){ return resNodeOf(r); }))
+        mkAct('scene','⚓','立·渔场', function(){ buildResNode(room, {node:'fishery'}); });
       addFieldCamp(room);
     }
     function gatherField(room, res){
@@ -195,6 +209,25 @@
       S().flags.fieldGathered[room.id].push(res.type);
       log('你俯身采得'+LF.ITEMS[did].name+'一份，收进行囊。','good');
       save(S()); buildActions(G.ROOMS[S().room]);
+    }
+    // v20261113g：把 LF.RES_NODE_TYPES 的 8 类据点接进真实玩法。
+    //   玩家在带资源的郊野格花 20 两立据点 → flags.resNodes[roomId]
+    //   → 朔日由 Officers.facilitiesMonthlyYield 按 rate 折进粮/铁/器械/银。
+    //   build 字段作为蓝图标识消费：蓝图存在则报其名，未实现的蓝图回退节点名（设计稿 Phase 1 的 5 张蓝图仍待补）。
+    function buildResNode(room, res){
+      var rt=resNodeOf(res); if(!rt){ toast('此处无可立之据。'); return; }
+      var F=S().flags; F.resNodes=F.resNodes||{};
+      if(F.resNodes[room.id]){ toast('此处已立有据点。'); return; }
+      var COST=20;
+      if((S().gold||0)<COST){ toast('立据需银 '+COST+' 两，府库不足。'); return; }
+      S().gold-=COST;
+      var key=res.node||res.type||'fishery';
+      F.resNodes[room.id]={type:key, bp:rt.build, day:S().day};
+      var bp=(LF.BUILD||{})[rt.build];
+      var nm=bp?(bp.doneName||bp.name||rt.name):rt.name;
+      log('〔据点〕支银 '+COST+' 两，于此立下'+nm+'，此后按月出 '+rt.rate+' 份'+rt.res+'。','good');
+      toast('已立「'+rt.name+'」据点');
+      save(S()); buildActions(G.ROOMS[S().room]); renderStatus();
     }
     // 水域垂钓（v20260907a）：郊野含水域格即可下钩，钓得鲜鱼/咸鱼入包；单格单局限 4 获，鱼惊则稍后再来
     function fieldHasWater(room){
@@ -480,6 +513,7 @@
     return {
       fieldMonstersLeft, fieldNarr, fieldNarrFresh, fieldMetaOf, roomIsBoatRoute, isOnBoat, setOnBoat, boatBoardAct,
       fieldActions, gatherField, fieldHasWater, fishField, huntFieldBeast, talkFieldNpc, fieldPlacedCamps, carriedCampGear,
+      resNodeOf, resNodeHere, buildResNode,
       placeFieldGear, addFieldCamp, campInField, maybeFieldAmbush,
       dungeonActions, landmarkActions, dungeonNarr, dungeonMonstersLeft, dungeonLoot,
       settlementActions

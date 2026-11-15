@@ -102,7 +102,9 @@
     '垦':'icons/农','城':'icons/关隘','打':'icons/打造','械':'icons/剑',
     '水':'icons/水桶','治':'icons/药','炼':'icons/丹','登':'icons/行走',
     '砧':'icons/打造','穴':'icons/洞','练':'icons/武','营':'icons/军',
-    '野':'icons/野外','银':'icons/钱袋','镇':'icons/店','拳':'icons/武'
+    '野':'icons/野外','银':'icons/钱袋','镇':'icons/店','拳':'icons/武',
+    // v20261113f：豆包 A 系列 3 张 96x96 已交付，映射回归本名
+    '营造':'icons/筑','政事':'icons/事','秘谷':'icons/洞'
   };
   // NPC 头像（按人名）
   var NPC_BY_NAME={

@@ -335,7 +335,10 @@
     row: row,
     escapeHtml: escapeHtml,
     cityProfile: cityProfile, genCityGrid: genCityGrid,
-    cellDisplayType: cellDisplayType, availableGateDirs: availableGateDirs,
+    cellDisplayType: cellDisplayType,
+    // v20261113g：availableGateDirs 在 L2400 才由 mapview 赋值，早于此处传值会捕获 undefined，
+    // 导致城况面板一直报「界面出错 … is not a function」。晚赋值绑定必须走惰性包装。
+    availableGateDirs: function(){ return availableGateDirs.apply(null, arguments); },
     cityLevelName: cityLevelName, cityGridSize: cityGridSize,
     cityDevOf: cityDevOf,
   });
@@ -581,6 +584,8 @@
     //   恒为假 → 政令台少了整块「内政命令 + 武将委任」UI。Officers 工厂建于本工厂之后（L584），
     //   故用惰性包装而非直接传引用。
     renderEdictCommands: function () { return Officers.renderEdictCommands.apply(null, arguments); },
+    // v20261113f：委任 / 设施月结此前是死调用，同 renderEdictCommands 用惰性包装
+    monthlyAffairs: function () { return Officers.monthlyAffairs.apply(null, arguments); },
     // openSiegePrep 由 War 工厂在 L795 才解构 → 惰性包装，禁止直接传引用
     openSiegePrep: function () { return openSiegePrep.apply(null, arguments); }
   });
@@ -2097,9 +2102,18 @@
       // v20260924u：NPC 名称命中头像映射则显示圆形头像，否则回退图标
       var _ava = (window.UI_Icons && it.o.name) ? UI_Icons.avatar(it.o.name, it.o.role) : (it.o.icon||'👤');
       var _mk=npcQuestTurnInMark(it.o.name);
-      chip.innerHTML='<span class="nl-ic">'+_ava+'</span><span class="nl-nm">'+it.o.name+'</span>'+( _mk ? '<span class="nl-mark">'+_mk+'</span>' : '' );
+      // v20261113g：主交互单击直达（DESIGN_SYSTEM「点击即进入」）。
+      // 行脚货郎此前点一下只弹菜单、还要再点一次「买卖」，玩家误以为点了没反应。
+      var _acts = it.acts || [], _direct = null;
+      _acts.forEach(function(a){ if(!_direct && a && typeof a.fn==='function' && /^(买卖|交易|进入)$/.test(a.label||'')) _direct=a; });
+      var _more = !!(_direct && _acts.length>1);
+      chip.innerHTML='<span class="nl-ic">'+_ava+'</span><span class="nl-nm">'+it.o.name+'</span>'+( _mk ? '<span class="nl-mark">'+_mk+'</span>' : '' )+(_more ? '<span class="nl-mark" data-more="1" title="更多动作">⋯</span>' : '' );
       if(it.o.key) chip.dataset.k=it.o.key;   // 供新手目标引导高亮定位
-      chip.onclick=function(e){ toggleObjExpand(e, chip, it.o, it.acts); };
+      chip.onclick=function(e){
+        if(e && e.target && e.target.getAttribute && e.target.getAttribute('data-more')==='1'){ toggleObjExpand(e, chip, it.o, it.acts); return; }
+        if(_direct){ _direct.fn(); return; }
+        toggleObjExpand(e, chip, it.o, it.acts);
+      };
       box.appendChild(chip);
     });
     enters.forEach(function(it){

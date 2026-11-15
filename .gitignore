@@ -62,3 +62,7 @@ verify_smoke.js
 # 豆包武将原图 / 打包素材（本地留档，不入库；成品在 shared/img/npc-* 与 sm_npc-*）
 /_hero_src/
 /heroes_batchA_*.zip
+
+# 豆包小 UI 图标母版 / 打包素材（本地留档，成品已入库）
+/_icon_src/
+/ui_icons_12.zip

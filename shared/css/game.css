@@ -4974,6 +4974,22 @@
   .court-quota{ gap:4px 10px; font-size:11px; }
 }
 
+/* ══ v20261115a 朝堂精简：折叠区 / 选城器 ══
+   只消费 :root 令牌与既有 .surface/.tab，未写死色值与圆角。 */
+.court-more{ margin:8px 0; }
+.court-more>summary{ cursor:pointer; list-style:none; font-size:12px; color:var(--ink-soft);
+  letter-spacing:1px; padding:6px 0; border-bottom:1px solid var(--panel-line); }
+.court-more>summary::-webkit-details-marker{ display:none; }
+.court-more>summary::before{ content:'▸ '; color:var(--accent); }
+.court-more[open]>summary::before{ content:'▾ '; }
+.court-more>summary .edict-tabsub{ display:inline; font-size:10px; }
+.court-pick{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0 10px;
+  font-size:12px; color:var(--ink-soft); }
+.court-pick select{ flex:1; min-width:140px; min-height:var(--bf-touch,44px); }
+@media (max-width:540px){
+  .court-pick select{ flex-basis:100%; }
+}
+
 /* ══ v20261113c：立绘 / 门派徽记渲染入口 ══
    沿用 :root 令牌与既有 .btn/.tab/.surface 体系，未出图时一律优雅回退。 */
 .of-portrait.of-portrait-img{ object-fit:cover; object-position:top center; background:var(--panel); }
@@ -4989,3 +5005,33 @@
 
 /* v20261113d：敌人真立绘复用武将头像（DQ 战斗卡 54x64） */
 .dq-portrait .pt-pic{ object-fit:cover; object-position:top center; }
+
+
+/* v20261114a · 简明朝堂：只留农业 / 商业 / 募兵三令，复杂调度默认收起 */
+.edict-v2 .court-simple-res{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+.court-simple .edict-head{ padding:8px 10px; }
+.court-simple-acts{ grid-template-columns:repeat(3,minmax(0,1fr)); margin:12px 0 6px; }
+.court-simple-card{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; min-height:84px; padding:10px 6px; line-height:1.5; }
+.court-simple-card .cs-t{ font-size:17px; letter-spacing:4px; }
+.court-simple-card .cs-o{ font-size:12px; letter-spacing:1px; }
+.court-simple-card .cs-d{ font-size:10px; letter-spacing:0; opacity:.75; }
+.court-simple-card:disabled{ opacity:.45; cursor:not-allowed; }
+@media (max-width:560px){
+  .court-simple-acts{ grid-template-columns:1fr; }
+  .court-simple-card{ min-height:var(--bf-touch,44px); padding:8px; }
+  .court-simple-card .cs-t{ font-size:15px; }
+}
+
+/* ══ v20261115b · 手机试玩修复 ══
+   ① 全局 .btn{white-space:nowrap} 让简明朝堂的长描述与「展开完整朝堂」按钮
+      在 ≤360px 撑出约 24px 横向溢出（卡片内容被裁）。仅在简明朝堂作用域恢复换行。
+   ② 关闭钮 36px 低于 44px 触控下限，仅小屏放大，桌面保持原圆钮。 */
+.court-simple .btn{ white-space:normal; }
+.court-simple-card{ min-width:0; max-width:100%; }
+.court-simple-card .cs-d{ max-width:100%; overflow-wrap:anywhere; text-align:center; }
+.court-simple .edict-head-ops .btn{ max-width:100%; }
+@media (max-width:560px){
+  .court-simple-acts{ grid-template-columns:minmax(0,1fr); }
+  .modal-x{ width:44px; height:44px; font-size:19px; }
+}
