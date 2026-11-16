@@ -1,7 +1,8 @@
-// 大地图行军部队实体（v20261111g · P1-③ 第 1 步）
-// 范围：只做「实体」——按势力生成行军中的部队、每日推进位置、在山河志上可见可点。
-//   刻意不做：接战触发、胜负结算、城池归属变更（后者已由 strategy.js 逐鹿系统负责，避免双重结算）。
-//   下期在 near() / engage() 上接「主动接战 → 战棋野战」即可，无需改本模块数据模型。
+// 大地图行军部队实体（v20261111g 建，v20261116a 补敌方主动扑击）
+// 范围：按势力生成行军部队、每日推进、山河志可见可点；接战走两条对称入口——
+//   玩家主动「迎 战」(engine.engageFieldArmy) 与敌军主动扑击 (engine.tryFieldArmyRaid)，
+//   二者共用 fieldArmyFoes 编成 / startFieldBattle 战棋 / finishField → resolve 战果回扣。
+// 刻意不做：城池归属变更（由 strategy.js 逐鹿系统独占，避免双重结算）。
 // 范式：IIFE 工厂 LF.createFieldArmy(ctx) + 引擎别名块；状态惰性存 state.flags.fieldArmies。
 (function () {
   window.LF = window.LF || {};
@@ -14,6 +15,7 @@
     var MAX_FORCES = 12;          // 全局同时存在的部队上限，避免刷屏
     var ADJ_KM = 420;             // 与 strategy.js WAR_ADJ_KM 一致：互为攻伐的邻接半径
     var ENGAGE_KM = 160;          // 主动迎战半径：玩家所在点方圆 160 公里内方可截击（约一日程）
+    var RAID_COOLDOWN_DAYS = 3;   // 敌军扑击全局冷却（日）：多支部队不连日轮番打断玩家
     var adjCache = null;
 
     function flags() {
@@ -247,11 +249,32 @@
       });
     }
 
-    // 下期接战用：取距某点 radiusKm 内的部队
+    // 取距某点 radiusKm 内的部队（主动迎战 / 敌军扑击候选共用）
     function near(pos, radiusKm) {
       if (!pos) return [];
       var r = radiusKm || ENGAGE_KM;
       return list().filter(function (a) { return a.pos && km(a.pos, pos) <= r; });
+    }
+
+    // 敌军主动扑击候选（v20261116a）：敌对、尚未扑击过、仍在行军、且已进遭遇半径。
+    //   全局冷却记 flags.faRaidDay；只做筛选，不写状态——写状态由 markRaided 在开战成功后做。
+    function raidCheck(youPos) {
+      if (!youPos) return null;
+      var f = flags(); if (!f) return null;
+      var st = S(); if (!st || st.dead) return null;
+      var day = st.day || 0;
+      if (f.faRaidDay != null && (day - f.faRaidDay) < RAID_COOLDOWN_DAYS) return null;
+      var cand = near(youPos, ENGAGE_KM).filter(function (a) {
+        return a.hostile && !a.raided && a.status === 'marching' && (a.power || 0) > 0;
+      });
+      return cand.length ? cand[0] : null;
+    }
+    // 开战成功后登记：该部队不再扑击 + 写全局冷却。开战失败（体力不济等）不消耗机会。
+    function markRaided(id) {
+      var f = flags(); if (!f) return;
+      var a = get(id); if (!a) return;
+      a.raided = true;
+      f.faRaidDay = (S() && S().day) || 0;
     }
 
     // 主动迎战准入：部队仍在、敌对、且在遭遇半径内
@@ -282,7 +305,8 @@
     return {
       list: list, get: get, remove: remove, spawn: spawn, tickDay: tickDay,
       marks: marks, near: near, canEngage: canEngage, resolve: resolve, compose: compose,
-      MAX_FORCES: MAX_FORCES, ENGAGE_KM: ENGAGE_KM
+      raidCheck: raidCheck, markRaided: markRaided,
+      MAX_FORCES: MAX_FORCES, ENGAGE_KM: ENGAGE_KM, RAID_COOLDOWN_DAYS: RAID_COOLDOWN_DAYS
     };
   };
 })();

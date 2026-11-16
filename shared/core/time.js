@@ -13,7 +13,7 @@ window.LF = window.LF || {};
         getRequestCurfewPatrol = ctx.getRequestCurfewPatrol, getWeathers = ctx.getWeathers,
         getOnbF = ctx.getOnbF, getOnbBound = ctx.getOnbBound, getInCampNow = ctx.getInCampNow,
         getLog = ctx.getLog, getCheckDeath = ctx.getCheckDeath, getTickAge = ctx.getTickAge,
-        getFieldArmy = ctx.getFieldArmy;
+        getFieldArmy = ctx.getFieldArmy, getTryFieldRaid = ctx.getTryFieldRaid;
   function advanceTime(n){
     n=n||1;
     if(!getClockFlowing()()) return;
@@ -51,7 +51,10 @@ window.LF = window.LF || {};
       getTickArmyDay()(crossings);                // 军务：行军推进 + 军粮消耗 + 断粮掉士气（v20260921a）
       if(getFieldArmy && getFieldArmy()) getFieldArmy().tickDay(crossings);  // 大地图部队：行军位置/军粮/士气/生灭（v20261111g）
       if (getNpcAi() && getNpcAi().tickDay) getNpcAi().tickDay();   // 名将流动：按内驱力改易驻城（野心趋大城，好武趋边地）（v20260927j）
-      getTryAmbush()();                           // 设伏：郊野候敌，敌至则先手（v20260921a）
+      // 设伏先手：若本日已因设伏开战，不再叠加敌军扑击，避免同一跨日弹两次战棋。
+      var _ambushed = false;
+      if (getTryAmbush) { try { _ambushed = !!getTryAmbush()(); } catch (e) { _ambushed = false; } }
+      if (!_ambushed && getTryFieldRaid && getTryFieldRaid()) getTryFieldRaid()();  // 敌军主动扑击（v20261116a）
     }
       // 朔日结算（v20260918g）：跨月 → 治下纳赋 + 群雄内政 + 势力存亡 + 统一终局（叠在耗时辰模型上）
       var _cal = getDeriveCalendar()();

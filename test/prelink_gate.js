@@ -22,8 +22,16 @@ const ROOT = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 const errors = [];
+const envSkipped = [];
+// jsdom 未实现 canvas / 不支持部分现代 CSS 语法时抛的是 jsdomError，而不是页面脚本错误。
+// 二者与被测代码无关，若计入 errors 会让门禁恒红（v20261116a 接入 npm test 时发现）。
+const ENV_NOISE = /Could not parse CSS stylesheet|HTMLCanvasElement\.prototype\.getContext/;
 const vc = new VirtualConsole();
-vc.on('jsdomError', e => errors.push('jsdomError: ' + (e.detail && e.detail.stack ? e.detail.stack : e.message)));
+vc.on('jsdomError', e => {
+  const msg = 'jsdomError: ' + (e.detail && e.detail.stack ? e.detail.stack : e.message);
+  if (ENV_NOISE.test(msg)) { envSkipped.push(msg); return; }
+  errors.push(msg);
+});
 vc.on('error', (...a) => errors.push('console.error: ' + a.map(String).join(' ')));
 
 const dom = new JSDOM(html, {
@@ -121,6 +129,8 @@ function boot() {
   } else console.log('  window.LF 不可用');
   console.log('=== 进游戏状态 ===');
   console.log('  bootedGame=' + bootedGame + ' | getState()=' + (typeof w.getState === 'function' ? (w.getState() ? 'ok' : 'null') : 'n/a'));
+  console.log('=== 环境噪声 (' + envSkipped.length + '，jsdom 能力限制，不计入失败) ===');
+  envSkipped.slice(0, 10).forEach(e => console.log('  - ' + e));
   console.log('=== 错误明细 (' + errors.length + ') ===');
   errors.slice(0, 40).forEach(e => console.log('  ' + e));
 

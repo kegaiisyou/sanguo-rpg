@@ -3,7 +3,7 @@
     "jsdom": "^22.1.0"
   },
   "scripts": {
-    "test": "node test/syntax_check_all.js && node test/cross_reference_check.js && node test/prelink_gate.js",
-    "gate": "node test/syntax_check_all.js && node test/cross_reference_check.js && node test/prelink_gate.js"
+    "test": "node test/syntax_check_all.js && node test/cross_reference_check.js && node test/prelink_gate.js && node test/strategy_regression_test.js && node test/settlement_smoke_test.js && node test/field_raid_test.js",
+    "gate": "node test/syntax_check_all.js && node test/cross_reference_check.js && node test/prelink_gate.js && node test/strategy_regression_test.js && node test/settlement_smoke_test.js && node test/field_raid_test.js"
   }
 }

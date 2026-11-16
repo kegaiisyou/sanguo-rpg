@@ -51,7 +51,8 @@
     getInCampNow: function(){ return inCampNow; }, getLog: function(){ return log; },
     getCheckDeath: function(){ return checkDeath; },
     getTickAge: function(){ return tickAge; },
-    getFieldArmy: function(){ return fieldArmy; }
+    getFieldArmy: function(){ return fieldArmy; },
+    getTryFieldRaid: function(){ return tryFieldArmyRaid; }
   });
   var advanceTime = Time.advanceTime, advanceMinutes = Time.advanceMinutes,
       curfewWarn = Time.curfewWarn, rollWarn = Time.rollWarn,
@@ -598,8 +599,8 @@
       onMonthTick = Strategy.onMonthTick, monthlyYield = Strategy.monthlyYield, factionDomesticAI = Strategy.factionDomesticAI, scanFactionSurvival = Strategy.scanFactionSurvival, checkUnify = Strategy.checkUnify, factionTroops = Strategy.factionTroops,
       renderGrandStrategy = Strategy.renderGrandStrategy;
 
-  // 大地图行军部队实体（v20261111g）：只管「看得见的兵」——生成/行军/展示；
-  //   城池归属仍由 Strategy 逐鹿独占，接战留待下期。挂到 LF 供懒加载的 strategic-map.js 取用。
+  // 大地图行军部队实体（v20261111g）：生成/行军/展示；接战已通（v20261111h 玩家迎战、
+  //   v20261116a 敌军主动扑击），城池归属仍由 Strategy 逐鹿独占。挂到 LF 供懒加载 strategic-map.js 取用。
   var fieldArmy = LF.createFieldArmy({
     getState: function () { return state; },
     LF: LF,
@@ -4915,6 +4916,13 @@
     var y = smYouMark();
     if (!FA.canEngage(faId, y && y.pos)) { toast('相距过远，鞭长莫及。'); return false; }
     if (!Army.armyCount() || !Army.armyWithPlayer()) { toast('部曲不在身边，无从交战。'); return false; }
+    var foes = fieldArmyFoes(fa);
+    if (!foes.length) { toast('敌阵已散。'); return false; }
+    log(encDecide({ intent: 'military', targetKind: 'army', source: 'engageFieldArmy' }).announce, 'sys');
+    return startFieldBattle({ def: { name: fa.name, troops: fa.power }, foeUnits: foes, faId: faId, closeMap: true });
+  };
+  // 行军部队 → 战棋敌军编成（玩家「迎 战」与敌军主动扑击共用）
+  function fieldArmyFoes(fa) {
     var foes = [], ranks = ['front', 'mid', 'rear', 'flank'];
     (fa.troops || []).forEach(function (t, i) {
       var d = (LF.TROOPS || {})[t.type] || LF.TROOPS.changqiang;
@@ -4924,10 +4932,28 @@
         { troopType: t.type, rank: rk, morale: fa.morale, guard: i === 0 });
       foes.push(War.applyOrders(u, rk));
     });
-    if (!foes.length) { toast('敌阵已散。'); return false; }
-    log(encDecide({ intent: 'military', targetKind: 'army', source: 'engageFieldArmy' }).announce, 'sys');
-    return startFieldBattle({ def: { name: fa.name, troops: fa.power }, foeUnits: foes, faId: faId, closeMap: true });
-  };
+    return foes;
+  }
+  // v20261116a：敌军主动扑击。由 time.js 在跨日「行军推进后」调用；与玩家迎战共用
+  //   编成 / 战棋入口 / finishField 战果回扣，只是发起方换成 AI。对话、叙事、进度条、
+  //   非山河志面板中一律不打断；全局冷却与「每支部队只扑一次」由 FieldArmy 把关。
+  function tryFieldArmyRaid() {
+    var st = state;
+    if (!st || st.dead || !st.flags) return false;
+    if (interactBusy()) return false;
+    if (currentModalKind && currentModalKind !== 'map') return false;
+    var FA = LF.FieldArmy;
+    if (!FA || !FA.raidCheck || !Army.armyCount() || !Army.armyWithPlayer()) return false;
+    var y = smYouMark(); if (!y || !y.pos) return false;
+    var fa = FA.raidCheck(y.pos); if (!fa) return false;
+    if (Math.random() >= 0.45) return false;      // 非必然，留出擦肩而过的余地
+    var foes = fieldArmyFoes(fa); if (!foes.length) return false;
+    log('〔警讯〕' + fa.name + '（约 ' + fa.power + ' 人）逼近，已至眼前！', 'warn');
+    var ok = startFieldBattle({ def: { name: fa.name, troops: fa.power }, foeUnits: foes, faId: fa.id, closeMap: true });
+    if (ok) FA.markRaided(fa.id);
+    return ok;
+  }
+  window.tryFieldArmyRaid = tryFieldArmyRaid;
   // v20261111i：聚落攻掠。山河志详情卡「攻 掠」按钮 / 场景「攻掠·守军」共用此入口。
   window.attackPlace = function (pid) {
     var ST = LF.Settlement;
