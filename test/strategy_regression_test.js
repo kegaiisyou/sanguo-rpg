@@ -98,6 +98,49 @@ function isolated(file, extra) {
   ok(state.flags.courtFull === 0, 'B5 forceFull 只影响本次渲染');
 }
 
+// ════════════════════ A2. 朔日月报历史翻页（v20261116b） ════════════════════
+{
+  const C = { p1:{ name:'我城', agri:60, commerce:60, pop:70, wall:50, tier:'city', pos:[115,32] } };
+  const OWN = { p1:'player' };
+  const F = { cityOwner:{p1:'player'}, cityDev:{}, cityStats:{}, ruledCities:['p1'], factionWarHit:{} };
+  const state = { dead:false, flags:F, gold:100, reputation:0, day:1, room:'p1',
+    res:{ grain:100, iron:0, kit:0 }, army:{ troops:[{type:'changqiang',count:1}], logistics:{grain:10} }, title:'游侠' };
+  const ctx = {
+    getState: () => state,
+    LF: { CITIES:C, FACTIONS:{ player:{name:'义军'}, han:{name:'汉室'} }, ownerKeyOf:k => k, armyCapOf:() => 50 },
+    log: noop, toast: noop, save: noop, renderStatus: noop, openModal: noop,
+    conquerCity: noop, playerFaction: () => 'player', cityOwnerOf: cid => OWN[cid],
+    cityDevOf: () => 0, setCityDev: noop, isCityGrid: () => false,
+    chronicle: noop, chronicleList: () => [], escapeHtml: s => String(s),
+    roleAtkMul: () => 1, roleEconMul: () => 1, roleFavorMul: () => 1, roleDef: () => ({icon:'侠',name:'游侠'}),
+    Officers: null, renderEdictCommands: () => '', monthlyAffairs: noop,
+    getArmyTroops: () => 1, warCityAdjPairs: () => [], warFactionTotal: () => 10
+  };
+  const sb = isolated('shared/core/strategy.js');
+  const St = sb.window.LF.createStrategy(ctx);
+  const WIN = sb.window;
+  // 连跑 15 期月报，历史最多留 12 期，monthReport 恒指最新
+  for (let i = 1; i <= 15; i++) St.onMonthTick({ eraName:'光和', eraYear:6, month:i, monthName:'月'+i, day:i*30 });
+  ok(F.monthReports && F.monthReports.length === 12, 'A2-1 月报历史上限 12 期');
+  ok(F.monthReport === F.monthReports[11], 'A2-2 monthReport 兼容字段指向最新一期');
+  ok(F.monthReports[0].ym !== F.monthReports[11].ym, 'A2-3 历史各期年号不同（真在翻页）');
+  // 翻页：初始最新（idx 0 → 实际数组末条由渲染倒序取，函数内钳制 0..len-1）
+  ok(typeof WIN.monthReportPage === 'function', 'A2-4 翻页函数已挂 window');
+  F.monthReportIdx = 0;
+  WIN.monthReportPage(-1);
+  ok(F.monthReportIdx === 0, 'A2-5 最新一期再翻下一期不越界');
+  WIN.monthReportPage(1);
+  ok(F.monthReportIdx === 1, 'A2-6 上一期 index 递增');
+  for (let i = 0; i < 30; i++) WIN.monthReportPage(1);
+  ok(F.monthReportIdx === F.monthReports.length - 1, 'A2-7 连续上一期钳制在末条');
+  WIN.monthReportPage(-1);
+  ok(F.monthReportIdx === F.monthReports.length - 2, 'A2-8 从最旧往回翻一期');
+  // 势力图渲染含翻页条与按钮
+  const html = St.renderFactionMap();
+  ok(/fm-mr-nav/.test(html) && /monthReportPage\(1\)/.test(html), 'A2-9 势力图渲染翻页按钮');
+  ok(/第 \d+ \/ 12 期/.test(html), 'A2-10 势力图渲染页码');
+}
+
 // ════════════════════ C. 简明朝堂三令真实落账 + 兵科归一 ════════════════════
 {
   global.window = global;

@@ -3,7 +3,7 @@
 //   renderCodex       图鉴·览物志（武学十三艺线 / 门派 / 贼寇名录）
 //   renderSettings    设置三标签页（画面 / 声音 / 游戏）；fromTitle 时不含调试台
 //   renderCredit      群英同撰
-//   topObjectiveText  顶部志向标题（注：当前无调用点，statusbar 抽出后的遗留）
+//   topObjectiveText  顶部志向标题（v20261116b 起由任务面板 renderObjectives 经引擎注入调用）
 //   renderLogPanel    回顾（logRing 近 HIST_MAX 句，旧句在上）
 //   renderLevelup     破境弹窗（读即清 levelupGained）
 //   renderCityStat    城况·城型城门市集工事一览

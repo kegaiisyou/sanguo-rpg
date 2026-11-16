@@ -592,6 +592,9 @@
     font-family:"STKaiti","KaiTi",serif;font-size:19px;letter-spacing:12px;color:var(--seal);font-weight:700;text-indent:12px;}
   .q-title::before,.q-title::after{content:"";flex:1;max-width:74px;height:1px;
     background:linear-gradient(90deg,transparent,rgba(176,131,47,.6),transparent);}
+  /* v20261116b：任务面板顶部「当前志向」——topObjectiveText 接入后的落点 */
+  .q-aim{margin:0 0 10px;text-align:center;font-size:12.5px;color:#6b5a40;letter-spacing:.5px;}
+  .q-aim b{font-family:"STKaiti","KaiTi",serif;font-size:14px;color:var(--seal);letter-spacing:1px;}
   .obj{position:relative;border:1px solid rgba(74,62,48,.16);border-left-width:3px;border-radius:var(--r-btn);
     padding:10px 12px 10px 14px;
     background:linear-gradient(180deg,rgba(255,255,255,.78),rgba(248,243,230,.68));
@@ -3332,6 +3335,14 @@
   padding:8px 10px;margin:10px 0;}
 .fm-war-h{font-family:"STKaiti","KaiTi",serif;font-size:13px;color:#6b3b2e;letter-spacing:2px;margin-bottom:5px;}
 .fm-war-i{font-size:12px;line-height:1.8;}
+  .fm-month{background:linear-gradient(180deg,rgba(176,131,47,.12),rgba(120,96,58,.04));
+    border-style:solid;border-color:rgba(158,59,46,.32);}
+  .fm-month .fm-war-h{color:#9e3b2e;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .fm-mr-pg{font-family:system-ui,sans-serif;font-size:11px;font-weight:400;letter-spacing:0;color:#8a7959;opacity:.85;}
+  .fm-mr-nav{display:flex;justify-content:center;gap:8px;margin-top:8px;}
+  .fm-mr-nav .btn.sm{min-height:26px;padding:3px 10px;font-size:11.5px;border-radius:var(--r-btn);
+    background:linear-gradient(180deg,#5a4a2e,#3a2e1c);color:#f0e2c0;border:1px solid #8a6f3e;}
+  .fm-mr-nav .btn.sm:disabled{opacity:.38;cursor:not-allowed;}
 .fm-my{background:linear-gradient(180deg,#f7efdb,#eee3c6);border:1px solid rgba(107,74,47,.32);
   border-radius:10px;padding:10px;margin-top:10px;}
 .fm-my-h{font-family:"STKaiti","KaiTi",serif;font-size:14px;color:#6b3b2e;letter-spacing:2px;margin-bottom:7px;}

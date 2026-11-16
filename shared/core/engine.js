@@ -472,7 +472,8 @@
       log: function () { return log.apply(null, arguments); },
       renderStatus: renderStatus,
       addXp: function () { return addXp.apply(null, arguments); },
-      addReputation: function () { return addReputation.apply(null, arguments); }
+      addReputation: function () { return addReputation.apply(null, arguments); },
+      getTopObjectiveText: function () { return topObjectiveText(); }
   });
   var QORDER = Quest.QORDER, objBestEquip = Quest.objBestEquip, renderObjectives = Quest.renderObjectives, objCardHTML = Quest.objCardHTML,
       questTitle = Quest.questTitle, packCount = Quest.packCount, flagNum = Quest.flagNum, addFlagNum = Quest.addFlagNum,
@@ -2510,6 +2511,16 @@
     switch(id){
       case 'learn': openLearn(); break;
       case 'rest':  actRest(); break;
+      // v20261116b：关隘瓮城/守营的「返回关门」——gen/rooms.js 生成 id:'back'，
+      // 但原 handleAction 无此分支，点击静默。走当前房的反向出口回关门（南/西）。
+      case 'back': {
+        var _br = curRoom();
+        var _bx = (_br && _br.exits) || {};
+        var _bd = _bx['南'] || _bx['西'] || _bx['东'] || _bx['北'];
+        if (!_bd) break;
+        move(_bd);
+        break;
+      }
       case 'market': if(!exert('行走市集')) return; runEvent(findEvent('ev_merchant')); break;
       case 'city_patrol': if(!exert('巡查城防')) return; runEvent(findEvent('ev_escapees')); break;
       case 'city_stat': openModal('citystat', {cid:(a&&a.data?a.data.cid:state.room)}); break;

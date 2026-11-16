@@ -18,6 +18,7 @@
     var renderStatus = ctx.renderStatus;
     var addXp = ctx.addXp;
     var addReputation = ctx.addReputation;
+  var getTopObjectiveText = ctx.getTopObjectiveText || function(){ return '志向'; };
   // ===== P0：志向（目标追踪）+ 门派加入 UX =====
   var QORDER={white:0,green:1,blue:2,purple:3,orange:4};
   function objBestEquip(s){ var b={q:0,name:''}; if(s.equipment){ Object.keys(s.equipment).forEach(function(k){ var it=s.equipment[k]; if(it&&it.quality!=null){ var q=QORDER[it.quality]; if(q!=null&&q>b.q){b.q=q;b.name=it.name;} } }); } return b; }
@@ -28,6 +29,7 @@
     var graduated = !!(S().flags && S().flags.onb && S().flags.onb.done);
     var career = (LF.OBJECTIVES) ? LF.OBJECTIVES.filter(function(o){ return !o.post || graduated; }).map(function(o){ return {o:o,done:o.check(S())}; }) : [];
     var h='<h3 class=\"q-title\">任 务 日 志</h3>'+
+      '<p class="q-aim" title="当前志向 · 完成一项即推进下一项">当前志向 · <b>'+getTopObjectiveText()+'</b></p>'+
       '<div class="quest-tabs">'+
         '<button class="qtab active" data-t="active" onclick="switchQuestTab(\'active\')">进行中</button>'+
         '<button class="qtab" data-t="done" onclick="switchQuestTab(\'done\')">已完成'+(done.length?('（'+done.length+'）'):'')+'</button>'+

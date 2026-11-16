@@ -14,6 +14,7 @@
     PLACES[id] = {
       id: id, kind: 'city', name: c.name, state: c.state, pos: c.pos,
       owner: c.owner || 'neutral', tier: c.tier, ctype: c.ctype,
+      roadType: c.roadType || (c.ctype === 'port' ? 'water' : (c.ctype === 'mountain' || c.ctype === 'pass' ? 'mountain' : 'road')),
       grid: c.grid || 0, open: true, _seed: 'city',
       controls: c.controls, layoutGrid: c.layoutGrid };
     // 补拷 controls/layoutGrid：关隘(ctype:'pass')在 PLACES 中仍保留路由与布局数据
@@ -78,6 +79,7 @@
     if (p.wall == null) p.wall = d.wall || 0;
     if (p.defenseBonus == null) p.defenseBonus = d.defenseBonus || 0;
     if (p.supplies == null) p.supplies = d.supplies || 0;
+    if (!p.roadType) p.roadType = (p.kind === 'fort' || p.kind === 'pass') ? 'mountain' : 'road';
     if (!p.loot) p.loot = (d.loot || []).slice();
     if (!p.owner) p.owner = FID[(h >>> 8) % FID.length];
   });

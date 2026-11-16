@@ -396,6 +396,21 @@
       h+='<div class="fm-desc">'+f.desc + (_ga ? '　积粮 <b>'+Math.round(_ga.grain||0)+'</b> 石 · 兵 <b>'+Math.round(_ga.troops||0)+'</b>'+(_ga.grainShort?' · 缺粮':'') : '') +'</div>';
       h+='</div>';
     });
+    var _mrs = (S().flags && S().flags.monthReports) || [];   // 朔日月报历史（v20261116b）
+    if (!_mrs.length && S().flags && S().flags.monthReport) _mrs = [S().flags.monthReport]; // 旧存档兼容
+    if (_mrs.length) {
+      var _mi = Math.max(0, Math.min(_mrs.length - 1, (S().flags.monthReportIdx || 0)));
+      // idx=0 显示最新一期；+1 往旧翻（上一期），-1 往新翻（下一期）
+      var _view = _mrs.slice().reverse();
+      var _mr = _view[_mi];
+      h += '<div class="fm-war fm-month"><div class="fm-war-h">朔日月报 · ' + escapeHtml(_mr.ym) +
+        '<span class="fm-mr-pg">第 ' + (_mi + 1) + ' / ' + _mrs.length + ' 期</span></div>';
+      _mr.lines.forEach(function (ln) { h += '<div class="fm-war-i">' + escapeHtml(ln) + '</div>'; });
+      h += '<div class="fm-mr-nav">' +
+        '<button class="btn sm" onclick="monthReportPage(1)"' + (_mi >= _mrs.length - 1 ? ' disabled' : '') + '>‹ 上一期</button>' +
+        '<button class="btn sm" onclick="monthReportPage(-1)"' + (_mi <= 0 ? ' disabled' : '') + '>下一期 ›</button>' +
+        '</div></div>';
+    }
     var _cl = chronicleList().slice(0, 8);   // 群雄逐鹿 · 烽火递报（v20260909o）
     if (_cl.length) {
       h += '<div class="fm-war"><div class="fm-war-h">烽火递报 · 天下易帜</div>';
@@ -622,6 +637,52 @@
 
   // ══ 战略层 · 朔日结算（v20260918g）══
   // 叠在现有「耗时辰」连续模型之上：不改用命令书，只在每月边界自动结算一次，
+  // 朔日月报（v20261116b）：把已算出的 AI 粮草/兵力/城池与本月大事记汇总成一页，
+  // 存 flags.monthReport（随存档走），势力图「天下大势」直接渲染。无新数据链。
+  function buildMonthlyReport(cal) {
+    if (!S()) return;
+    var ym = (cal.eraName || S().eraName || '光和') + (cal.eraYear || S().eraYear || 1) + '年·' + (cal.monthName || cal.month + '月');
+    var lines = [], byF = {};
+    Object.keys(LF.CITIES || {}).forEach(function (cid) {
+      var fid = cityOwnerOf(cid);
+      if (!fid || fid === 'neutral') return;
+      byF[fid] = (byF[fid] || 0) + 1;
+    });
+    var assets = (S().flags && S().flags.factionAssets) || {};
+    var order = ['dongzhuo','yuanshao','caocao','sunce','liubiao','liuzhang','gongsun','matang','player'];
+    order.forEach(function (fid) {
+      var g = byF[fid] || 0, a = assets[fid];
+      if (!g && !a) return;
+      var nm = factionName(fid) || fid;
+      var t = a && Math.round(a.troops || 0), gr = a && Math.round(a.grain || 0);
+      var s = nm + ' ' + g + '城';
+      if (a) s += ' · 兵' + t + ' · 粮' + gr + (a.grainShort ? '（缺粮裁军）' : '');
+      lines.push(s);
+    });
+    var rec = chronicleList().filter(function (e) { return (e && e.k === 'war') || (e && e.k === 'fall'); }).slice(0, 3);
+    rec.forEach(function (e) { lines.push('※ ' + (e.t || '')); });
+    var rep = { ym: ym, lines: lines.slice(0, 12), day: cal.day || S().day || 0 };
+    // v20261116b：留最近 12 期供翻页；monthReport 仍指最新一期，兼容旧存档/旧读法
+    S().flags.monthReports = S().flags.monthReports || [];
+    S().flags.monthReports.push(rep);
+    if (S().flags.monthReports.length > 12) S().flags.monthReports.splice(0, S().flags.monthReports.length - 12);
+    S().flags.monthReport = rep;
+  }
+
+  // 月报翻页（v20261116b）：delta=-1 看上一期（更旧），+1 看下一期（更新）；重开势力图刷新
+  // 挂 window 供内联 onclick 调用，与 openDiplomacy 同款桥接。
+  global.monthReportPage = function (delta) {
+    var st = S(); if (!st || st.dead) return false;
+    var list = st.flags && st.flags.monthReports;
+    if (!list || !list.length) return false;
+    var cur = Math.max(0, Math.min(list.length - 1, st.flags.monthReportIdx || 0));
+    var next = Math.max(0, Math.min(list.length - 1, cur + (delta | 0)));
+    st.flags.monthReportIdx = next;
+    if (typeof save === 'function') save(st);
+    if (typeof openModal === 'function') openModal('factionMap');
+    return true;
+  };
+
   // 让时间真正按月推进——治下纳赋、群雄内政、势力存亡、天下一统都挂在月结上。
   // 月度边界由日历派生（1 农历月 = 30 天）判定；首月只记锚点不结算，避免开局即算。
   function onMonthTick(cal) {
@@ -635,6 +696,7 @@
     checkUnify();
     fireMonthlyEvents(cal);
     fireHistoricalEvents(cal);
+    buildMonthlyReport(cal);   // v20261116b：朔日月报（AI 粮草/兵力/城池一览）
     if ((cal.month % 3) === 1) {
       var rk = (S().flags.factionPowerRank || []);
       if (rk.length) {

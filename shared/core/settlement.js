@@ -73,7 +73,7 @@
       return {
         pid: pid, id: pid, name: p.name || pid, kind: p.kind, state: p.state || '',
         pos: p.pos, desc: p.desc || '', owner: own, ownerName: factionName(own), hostile: isHostile,
-        garrison: g, power: g, wall: p.wall || 0, loot: loot.slice(),
+        garrison: g, power: g, wall: p.wall || 0, loot: loot.slice(), supplies: p.supplies || 0,
         cleared: cleared(pid), looted: looted(pid),
         distKm: d == null ? null : Math.round(d),
         attackable: !!(isHostile && !cleared(pid) && d != null && d <= RAID_KM),
@@ -110,11 +110,16 @@
       if (result === 'win') {
         var gold = Math.max(10, Math.round(g * 0.25));
         var rep = g >= 200 ? 3 : (g >= 100 ? 2 : 1);
+        // v20261116b：supplies 原只写不读——平定后按守军辎重折算入仓，
+        // 让「围城夺粮」与玩家兵粮闭环真正接上（数据来自 placeKinds 契约）。
+        var grain = Math.max(0, Math.round((p.supplies || 0) * 0.6));
+        if (grain && S().res) S().res.grain = (S().res.grain || 0) + grain;
         f.placeOwner = f.placeOwner || {}; f.placeOwner[pid] = 'player';
         f.placeCleared = f.placeCleared || {}; f.placeCleared[pid] = 1;
         f.placeGarrison = f.placeGarrison || {}; f.placeGarrison[pid] = 0;
         try { save(S()); } catch (e) {}
-        return { won: true, gold: gold, rep: rep, name: p.name || pid, plunderable: !!(p.loot || []).length };
+        if (grain) log('〔辎粮〕平定「' + (p.name || pid) + '」，缴获辎粮 ' + grain + ' 石入仓。', 'good');
+        return { won: true, gold: gold, rep: rep, grain: grain, name: p.name || pid, plunderable: !!(p.loot || []).length };
       }
       var left = Math.max(20, Math.round(g * 0.88));
       f.placeGarrison = f.placeGarrison || {}; f.placeGarrison[pid] = left;
