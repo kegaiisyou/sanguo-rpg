@@ -9,9 +9,12 @@
     var getLog = ctx.getLog;
     var getCombatMode = ctx.getCombatMode;
     var getOpenModal = ctx.getOpenModal;
+    var getModalBusy = ctx.getModalBusy;   // v20261116c：当前有面板打开时不让破境顶替
     var getClampHp = ctx.getClampHp;
     var getG = ctx.getG;
     var getPackAdd = ctx.getPackAdd;
+    var getToast = ctx.getToast || function(){};
+    var getLog = ctx.getLog || function(){};
   function moralLabel(){
     var c=S().chivalry, n=S().notoriety;
     if(c>0 && n>0) return '侠'+c+'·凶'+n;
@@ -89,7 +92,18 @@
       S().hp=S().maxHp;S().mp=S().maxMp;             // 破境气血内力尽复
       getLog()('【破境】修为精进！已至 LV.'+S().level+'，获得 1 点自由属性点（余 '+(S().freePoints||0)+'）。气血尽复。','good');
     }
-    if(_gained>0 && getCombatMode()===null){ S().levelupGained=_gained; try{ getOpenModal()('levelup'); }catch(e){} }
+    if(_gained>0 && getCombatMode()===null){
+      S().levelupGained=_gained;
+      // v20261116c：玩家正在操作面板（朝堂/调试台/势力图…）时，破境弹窗会顶掉当前面板，
+      // 导致后续按钮找不到、流程中断。改为只 toast 提示，自由点仍可在角色面板分配。
+      // 延迟一帧再弹：多处「先 forceRoom/closeModal 后 addXp」，同步判定会误判为空闲。
+      // 300ms 后若已有面板则不顶替，只 toast；自由点仍在角色面板可分配。
+      var _lv = S().level, _g = _gained;
+      // v20261116c：升级不再自动弹破境面板——它会顶替玩家正在操作的朝堂/调试台/势力图，
+      // 打断流程（角色面板本就有「加点」页签，自由点随时可分配）。改为日志 + toast 告知。
+      try{ getLog()('【破境】修为提升至 LV.'+S().level+'，获得 '+_gained+' 点自由属性点（角色面板 → 加点）。', 'good'); }catch(e){}
+      try{ getToast()('【破境】LV.'+S().level+' 自由属性点 +'+_g); }catch(e){}
+    }
   }
   function applyEffect(e){
     e=e||{}; var got=[];

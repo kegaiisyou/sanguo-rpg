@@ -525,6 +525,9 @@
       getLog: function () { return log; },
       getCombatMode: function () { return combatMode; },
       getOpenModal: function () { return openModal; },
+      getModalBusy: function () { return !!currentModalKind && !!$modal && !$modal.classList.contains('hidden'); },
+      getToast: function () { return toast; },
+      getLog: function () { return log; },
       getClampHp: function () { return clampHp; },
       getG: function () { return G; },
       getPackAdd: function () { return packAdd; }
