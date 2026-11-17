@@ -163,7 +163,6 @@ window.LF = window.LF || {};
           _a.troops = [{ type: 'changqiang', count: 500, rank: 'front', xp: 0 }];
           _a.active = true; _a.morale = 100; _a.rallyPoint = null; _a.marching = null;
           _a.logistics = _a.logistics || { items: [], cap: 8, grain: 0 };
-          _a.logistics.grain = 1200;
         }
         state.gold = (state.gold || 0) + 3000;
         state.reputation = Math.max(state.reputation || 0, 60);
@@ -172,6 +171,10 @@ window.LF = window.LF || {};
         // 传送到中枢格：政令台条件是「立于中枢 + 此城归己」（city.js:913）
         var _sz = ctx.cityGridSize(_lc) || 5, _c0 = Math.floor(_sz / 2);
         ctx.forceRoom(_lc, [_c0, _c0]);   // 内部 closeModal + save + renderRoom
+        // v20261117：forceRoom 内部军务就食会把军粮重置（army.js），故补给必须在传送之后补回，
+        // 否则「一键城主」送的 1200 石形同虚设，真实攻城两城即断粮。
+        var _a2 = ctx.ensureArmy();
+        if (_a2) { _a2.logistics = _a2.logistics || { items: [], cap: 8, grain: 0 }; _a2.logistics.grain = 1200; }
         ctx.log('【城主】脱籍，得银 3000 / 部曲 500 / 军粮 1200，入主「' + cityName(_lc)
           + '」中枢。政令台、城况、治军、势力图现已可用；开「山河志」可对外用兵。', 'good');
         // renderStatus 的 rAF 帧可能弹「破境」盖住刚落位的场景（bindActs 早有同款坑），

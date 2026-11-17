@@ -5046,3 +5046,12 @@
   .court-simple-acts{ grid-template-columns:minmax(0,1fr); }
   .modal-x{ width:44px; height:44px; font-size:19px; }
 }
+
+/* ── v20261117 iPhone 16 Pro 走查：主操作/页签触控热区 >=44px ──
+   只抬页签与主按钮；紧凑数据行 .fac-assign/.fm-lord/.fm-mr-nav 的 .btn.sm 保持原样 */
+.qtab,.pack-tab,.ch-tab,.am-tab,.sect-join,.sect-open{ min-height:44px; }
+.pack-tab{ display:inline-flex; align-items:center; padding-top:0; padding-bottom:0; }
+.ch-tab,.am-tab{ display:inline-flex; align-items:center; padding-top:0; padding-bottom:0; }
+.qtab{ display:inline-flex; align-items:center; }
+.sect-join{ padding-top:0; padding-bottom:0; }
+.sc-handle{ min-width:44px; min-height:44px; }

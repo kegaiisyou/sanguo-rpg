@@ -141,6 +141,15 @@ function isolated(file, extra) {
   ok(/第 \d+ \/ 12 期/.test(html), 'A2-10 势力图渲染页码');
 }
 
+// ════════════════════ A3. 城主开局军粮不被 forceRoom 重置（v20261117） ════════════════════
+{
+  const src = require('fs').readFileSync('shared/core/dev.js','utf8');
+  const fi = src.indexOf('ctx.forceRoom(_lc');
+  const gi = src.indexOf('_a2.logistics.grain = 1200');
+  ok(fi >= 0 && gi > fi, 'A3-1 军粮 1200 在 forceRoom 之后补回（不被就食重置）');
+  ok(!/_a\.logistics\.grain\s*=\s*1200/.test(src), 'A3-2 旧的提前赋值已移除');
+}
+
 // ════════════════════ C. 简明朝堂三令真实落账 + 兵科归一 ════════════════════
 {
   global.window = global;
