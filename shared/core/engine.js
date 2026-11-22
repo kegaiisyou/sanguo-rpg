@@ -165,9 +165,121 @@
     checkUnify: function () { return checkUnify.apply(null, arguments); },
     ensureArmy: function () { return Army.ensureArmy.apply(Army, arguments); },
     advanceMinutes: function () { return advanceMinutes.apply(null, arguments); },
-    openModal: function () { return openModal.apply(null, arguments); }
+    openModal: function () { return openModal.apply(null, arguments); },
+    // v20261121a · 沙盒样板城：进出/重置不污染正式存档（控制器定义见下方 Sandbox 区块）
+    save: function (d) { if (sandboxState) return; return save(d); },
+    enterSandbox: function () { return enterSandbox.apply(null, arguments); },
+    exitSandbox: function () { return exitSandbox.apply(null, arguments); },
+    resetSandbox: function () { return resetSandbox.apply(null, arguments); },
+    isSandbox: function () { return !!sandboxState; }
   });
   var handleDev = Dev.handleDev, renderDev = Dev.renderDev;
+
+  // ══ v20261121a · 开发者沙盒 1 级样板城（不影响正式存档）══
+  // 隔离原理：正式 state 整体暂存在 sandboxReal；沙盒期间 state 指向一份独立对象 sandboxState。
+  //   ctx 里各能力（conquerCity/forceRoom/ensureArmy/advanceMinutes…）内部读全局 state，
+  //   天然作用于沙盒对象；只有落盘的 save 被上面的包装拦为 no-op，绝不写正式槽。
+  //   退出时把 state 指回 sandboxReal，正式存档自始至终未被触碰。
+  var sandboxReal = null, sandboxState = null, SANDBOX_CID = null;
+  function sandboxPickCity() {
+    // 借一座现成的普通 xian 城作样板（不新增 LF.CITIES 条目，避免污染 checkUnify/山河志）。
+    // 优先取一个非关隘、非首都、非苦役营的城。
+    var ks = Object.keys(LF.CITIES || {});
+    for (var i = 0; i < ks.length; i++) {
+      var c = LF.CITIES[ks[i]];
+      if (!c || !c.grid) continue;
+      if (c.tier !== 'xian' || c.ctype === 'pass' || ks[i] === 'kuyilao') continue;
+      return ks[i];
+    }
+    for (var j = 0; j < ks.length; j++) if (LF.CITIES[ks[j]] && LF.CITIES[ks[j]].grid) return ks[j];
+    return ks[0] || '';
+  }
+  function makeSandboxState(cid) {
+    var sb = normalize(G.defaultSave());
+    sb.flags = sb.flags || {};
+    sb.flags.sandbox = { cid: cid, createdDay: sb.day || 0 };
+    // 跳过教程：沙盒要立刻能点政令台/升级/营造/跳月
+    sb.flags.onb = sb.flags.onb || {}; sb.flags.onb.done = true;
+    // 样板城压到 1 级（3×3）、清缓存强制重建网格、清覆盖层
+    sb.flags.cityLevel = sb.flags.cityLevel || {}; sb.flags.cityLevel[cid] = 1;
+    sb.flags.cityDev = sb.flags.cityDev || {}; sb.flags.cityDev[cid] = 20;
+    if (sb.flags.cityGrid) delete sb.flags.cityGrid[cid];
+    if (sb.flags.cityCells) delete sb.flags.cityCells[cid];
+    sb.flags.cityPos = { cid: cid, x: 1, y: 1 };
+    sb.room = cid;
+    return sb;
+  }
+  // 副作用（授城/军队/物资）必须在 state 已指向沙盒对象后执行——conquerCity/ensureArmy/packAdd 均读全局 state
+  function activateSandbox(cid) {
+    document.body.classList.remove('onb');
+    var r = conquerCity(cid, state.faction || '义军', 0);
+    // v20261122a：conquerCity 会把新授之城自动设为该势力都城（factionCapital），
+    //   使 isCapital()=true → cityTierLv 返回 7 → 地图渲染成 9×9，掩盖了样板城 cityLevel=1。
+    //   沙盒是普通 1 级样板城，必须撤销定都标记并清网格缓存，强制按 cityLevel=1 重建为 3×3。
+    var Fcap = state.flags.factionCapital;
+    if (Fcap) Object.keys(Fcap).forEach(function (f) { if (Fcap[f] === cid) delete Fcap[f]; });
+    if (state.flags.cityGrid) delete state.flags.cityGrid[cid];
+    state.gold = 3000; state.res = state.res || {}; state.res.grain = 600;
+    state.title = '州牧';
+    var a = Army.ensureArmy();
+    if (a) { a.troops = [{ type: 'changqiang', count: 200, rank: 'front', xp: 0 }]; a.active = true; a.morale = 100; a.rallyPoint = null; a.marching = null; if (a.logistics) a.logistics.grain = 600; }
+    ['zhuan', 'shitiao', 'mucai'].forEach(function (k) { Inventory.packAdd(k, 400); });
+    state.flags = state.flags || {};
+    state.flags.onb = state.flags.onb || {}; state.flags.onb.done = true;
+    // v20261122a：沙盒是干净样板——强制玩家回到 LV.1 / 0 经验 / 0 自由点，
+    //   避免授城/编军等调用链偷偷加经验导致「一进沙盒就 LV.5」，升级验证从 LV2 起跳。
+    state.level = 1; state.exp = 0; state.freePoints = 0; state.levelupGained = 0;
+    state.hp = state.maxHp; state.mp = state.maxMp;
+  }
+  function enterSandbox() {
+    if (sandboxState) { toast('已在沙盒中，请先退出。'); return; }
+    var cid = sandboxPickCity();
+    if (!cid) { toast('无可用样板城。'); return; }
+    if (state && typeof save === 'function') save(state);  // 先确保正式进度已落盘
+    sandboxReal = state;
+    sandboxState = makeSandboxState(cid);
+    SANDBOX_CID = cid;
+    Core.state = state = sandboxState;
+    try { if (City && typeof City.migrateGridCompact === 'function') City.migrateGridCompact(); } catch (e) {}
+    activateSandbox(cid);
+    closeModal();
+    renderRoom(cid, true);
+    // v20261122a：renderRoom 落城会触发 autoOnbRoutines 应卯/教程剧情，一次性给约 600 修为，
+    //   把干净的 LV.1 顶到 LV.5。必须在此（渲染之后）再重置一次，才是玩家真正看到的初始态。
+    state.level = 1; state.exp = 0; state.freePoints = 0; state.levelupGained = 0;
+    state.hp = state.maxHp; state.mp = state.maxMp;
+    try { if (typeof renderStatus === 'function') renderStatus(); } catch (e) {}
+    log('【沙盒】已进入 1 级样板城「' + ((LF.CITIES[cid] || {}).name || cid) + '」。此间一切操作均不写入正式存档；调试台可「重置沙盒」或「退出沙盒」。', 'good');
+    toast('沙盒已开启 · ' + ((LF.CITIES[cid] || {}).name || cid) + '（1 级）');
+  }
+  function resetSandbox() {
+    if (!sandboxState) { toast('当前不在沙盒中。'); return; }
+    var cid = SANDBOX_CID || sandboxPickCity();
+    sandboxState = makeSandboxState(cid);
+    Core.state = state = sandboxState;
+    try { if (City && typeof City.migrateGridCompact === 'function') City.migrateGridCompact(); } catch (e) {}
+    activateSandbox(cid);
+    closeModal();
+    renderRoom(cid, true);
+    // v20261122a：renderRoom 落城会触发 autoOnbRoutines 应卯/教程剧情，一次性给约 600 修为，
+    //   把干净的 LV.1 顶到 LV.5。必须在此（渲染之后）再重置一次，才是玩家真正看到的初始态。
+    state.level = 1; state.exp = 0; state.freePoints = 0; state.levelupGained = 0;
+    state.hp = state.maxHp; state.mp = state.maxMp;
+    try { if (typeof renderStatus === 'function') renderStatus(); } catch (e) {}
+    log('【沙盒】已重置为全新 1 级样板城。', 'sys');
+    toast('沙盒已重置');
+  }
+  function exitSandbox() {
+    if (!sandboxState) { toast('当前不在沙盒中。'); return; }
+    sandboxState = null;
+    state = sandboxReal; sandboxReal = null; SANDBOX_CID = null;
+    Core.state = state;
+    var back = (state && (state.room || state.spawnRoom)) || 'camp_tz1';
+    closeModal();
+    renderRoom(back, true);
+    log('【沙盒】已退出，回到正式存档（进度未被沙盒操作改变）。', 'good');
+    toast('已退出沙盒');
+  }
 
   // 触发引擎：从 triggers.js 工厂注入引擎依赖（checkTriggers/graduate 不再读 window 裸全局）
   var Triggers = LF.createTriggers({
@@ -471,8 +583,11 @@
       // log（L381）/ addXp（L396）/ addReputation（L395）晚于本工厂 → 惰性包装
       log: function () { return log.apply(null, arguments); },
       renderStatus: renderStatus,
-      addXp: function () { return addXp.apply(null, arguments); },
-      addReputation: function () { return addReputation.apply(null, arguments); },
+      // v20261122a：沙盒是经营样板，不该触发正式主线任务奖励。沙盒授城会让「据城而定」等任务
+      //   自动达成并发经验，把干净的 LV.1 顶到 LV.5、升级提示刷屏。此处屏蔽任务经验结算；
+      //   玩家在 dev 面板手动「获得经验」走另一注入点，不受影响，仍可正常测试升级。
+      addXp: function () { if (sandboxState) return; return addXp.apply(null, arguments); },
+      addReputation: function () { if (sandboxState) return; return addReputation.apply(null, arguments); },
       getTopObjectiveText: function () { return topObjectiveText(); }
   });
   var QORDER = Quest.QORDER, objBestEquip = Quest.objBestEquip, renderObjectives = Quest.renderObjectives, objCardHTML = Quest.objCardHTML,
@@ -1036,6 +1151,7 @@
     // v20261030b：兜底触发「已开局」信号（正常由点「仗剑入世」触发；读档/跳流程时这里补上）
     try { if (window.__lfStart) window.__lfStart(); } catch (e) { }
     Core.state = state = normalize(data || G.defaultSave());
+    try { if (City && typeof City.migrateGridCompact === 'function') City.migrateGridCompact(); } catch (e) {}
     prefetchStrategicMap();   // P0-①：进入游戏后空闲预取山河志三件套，开图秒开
     G.applySect(state);
     G.recalcBase(state);                      // 依据四维 attr + 门派加成 重算派生战力
@@ -1793,7 +1909,17 @@
   function cityActs(cid){
     var p=cityProfile(cid); if(!p) return [];
     var out=[];
-    // 兴修城垣按钮已下线（v20261026q）
+    // v20261121a：恢复「拓建城垣」——现存城起点压缩后，玩家可逐级升至都城(9×9)
+    try {
+      var isOwn = (cityOwnerOf(cid) === playerFaction());
+      var lv = (state.flags.cityLevel||{})[cid];
+      if (isOwn && lv != null && lv < CITY_LV_SIZE.length-1) {
+        var need={zhuan:Math.round(40*(lv+1)), shitiao:Math.round(25*(lv+1)), mucai:Math.round(15*(lv+1))};
+        out.push({ id:'city_upgrade', label:'拓建城垣', icon:'🏯',
+          tip:'耗 砖'+need.zhuan+' · 石料'+need.shitiao+' · 木材'+need.mucai+'，城等 '+((CITY_LV_NAME[lv])||lv)+'→'+((CITY_LV_NAME[lv+1])||(lv+1))+'，城池扩大一格',
+          data:{cid:cid} });
+      }
+    } catch (err) {}
     return out;
   }
   function tryUpgradeCity(cid){

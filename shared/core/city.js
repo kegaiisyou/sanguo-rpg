@@ -25,7 +25,7 @@ window.LF = window.LF || {};
 
     // ===== 城市网格系统（v20260824）：每城程序生成 N×N 房间网格，点击相邻格移动 =====
     // grid 字段见 shared/data/cities.js；genCityGrid 用基于城市 id 的种子稳定生成布局（存档持久化）
-    var GRID_VER = '20260930c';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建（v20260930：移除冗余市坊 ward）
+    var GRID_VER = '20261123a';   // 网格布局版本；改动布局/中心类型后自增，旧档自动重建（v20260930：移除冗余市坊 ward）
     // 城门数量随城型决定（plain 四门；山城/城寨/港口按城防/商业递减）。后续山城/港口/城寨将影响城门布局
     function cityGates(c) {
       var ct = c.ctype || 'plain';
@@ -207,7 +207,9 @@ window.LF = window.LF || {};
       if (!F.cityLevel) F.cityLevel = {};
       if (F.cityLevel[cid] == null) {
         var _t = (LF.CITIES || {})[cid] || {};
-        F.cityLevel[cid] = (_t.tier === 'capital') ? 7 : (_t.tier === 'zhou') ? 4 : (_t.tier === 'xian') ? 3 : (_t.grid >= 9 ? 7 : _t.grid >= 7 ? 4 : _t.grid >= 5 ? 3 : _t.grid >= 3 ? 1 : 0);
+        // v20261121a：现存城起点压缩——无 tier 映射的郡城(grid7) 由 lv4(6×6) 降为 lv3(5×5)；
+        //   zhou 维持 lv4(6×6)、capital lv7(9×9)、xian lv3(5×5)、grid<5（苦役营）维持 lv1。
+        F.cityLevel[cid] = _lvFromCity(_t);
       } else if (F.cityLevel[cid] === 0) { var _g2 = (LF.CITIES || {})[cid] || {}; if (_g2.grid >= 3 && _g2.grid < 5 && _g2.tier !== 'xian' && _g2.tier !== 'zhou' && _g2.tier !== 'capital') { F.cityLevel[cid] = 1; } }
       // 城市营造覆盖层（第3步）：cityCells[cid]["x,y"]=CellInst{type,level,shops,owner,built,buildOrderId}
       if (!F.cityCells) F.cityCells = {};
@@ -249,10 +251,9 @@ window.LF = window.LF || {};
     function declareCapital(faction, cid) {
       ensureCityState(cid);
       var F = S().flags; F.factionCapital[faction] = cid;
-      if (F.cityGrid && F.cityGrid[cid]) delete F.cityGrid[cid];   // 触发网格按 palace 重建
-      rebuildWard(cid);
+      // v20261123a：定都只记政治中心标记，不再改建皇宫、不再放大城池、不再重建官署坊
       var cnm = ((LF.CITIES || {})[cid] || {}).name || cid;
-      log('〔定都〕' + factionLabel(faction) + ' 定都于「' + cnm + '」，中枢改建皇宫。', 'event');
+      log('〔定都〕' + factionLabel(faction) + ' 定都于「' + cnm + '」，此地为其势力政治中心。', 'event');
       chronicle(factionLabel(faction) + ' 定都「' + cnm + '」。', 'event');
     }
     // 重铺某城官署坊（读取 flags.cityWards 动态办公建筑）
@@ -272,23 +273,63 @@ window.LF = window.LF || {};
       else if (typeof window.openModal === 'function') window.openModal('city', { cid: cid });
     };
     // ══ 城市等级动态系统（v20260826c）══
-    // 等级 0..7 平滑对应 grid 2..9（每次升级仅 +1 圈）：村/镇/乡/县城/郡城/府城/州城/都城
-    var CITY_LV_SIZE = [2, 3, 4, 5, 6, 7, 8, 9];
+    // v20261123a：整体封顶 6×6 —— 都城不再是「最大城池」，只是一城等级之名（势力政治中心概念另由 factionCapital 标记承载）。
+    //   等级 0..7：村2 / 镇3 / 乡4 / 县城5 / 郡城6 / 府城6 / 州城6 / 都城6（高等级只升名号、不再撑大城池）。
+    var CITY_LV_SIZE = [2, 3, 4, 5, 6, 6, 6, 6];
     var CITY_LV_NAME = ['村', '镇', '乡', '县城', '郡城', '府城', '州城', '都城'];
+    // v20261121a：现存城起点压缩的统一派生。有 layoutGrid 的预设城（虎牢关等关隘）保持原尺寸不压。
+    function _lvFromCity(_t) {
+      if (!_t) return 0;
+      var g = _t.grid || 5;
+      if (_t.layoutGrid) return (g >= 9 ? 4 : g >= 7 ? 4 : g >= 5 ? 3 : g >= 3 ? 1 : 0);
+      if (_t.tier === 'zhou') return 4;
+      if (_t.tier === 'xian') return 3;
+      // v20261123a：无 tier 映射的 grid9（旧都城数据）也只派生到 lv4（6×6），不再出现 9×9
+      return (g >= 7 ? 4 : g >= 5 ? 3 : g >= 3 ? 1 : 0);
+    }
     function cityTierLv(cid) {
-      if (isCapital(cid)) return 7;   // 都城恒为最高级（与 palace 一致）
       var F = S().flags;
       var cl = F.cityLevel && F.cityLevel[cid];
       if (cl != null) return cl;
       var c = (LF.CITIES || {})[cid] || {};
-      if (c.tier === 'capital') return 7;
       if (c.tier === 'zhou') return 4;
       if (c.tier === 'xian') return 3;
-      var g = c.grid || 5;
-      return (g >= 9 ? 7 : g >= 7 ? 4 : g >= 5 ? 3 : g >= 3 ? 1 : 0);
+      return _lvFromCity(c);
     }
     function cityGridSize(cid) { return CITY_LV_SIZE[cityTierLv(cid)] || 3; }
     function cityLevelName(cid) { return CITY_LV_NAME[cityTierLv(cid)] || '城'; }
+    // v20261121a：老档网格压缩迁移（一次性）。新派生只影响新档；老档 flags.cityLevel 已落值，
+    //   必须主动把「无 tier 映射且 grid7」的郡城从 lv4 降为 lv3，并 clamp 越界 cityPos / 清越界 cityCells，
+    //   否则旧 6×6 落点 (x=5..) 会在新 5×5 里越界导致移动卡死。
+    var GRID_COMPACT_VER = '20261123a';
+    function migrateGridCompact() {
+      var st = S(); if (!st) return;
+      var F = st.flags = st.flags || {};
+      if (F._gridCompactVer === GRID_COMPACT_VER) return;
+      var moved = 0;
+      Object.keys(LF.CITIES || {}).forEach(function (cid) {
+        var cc = LF.CITIES[cid]; if (!cc || !cc.grid) return;
+        // 只压 tier='jun' 且 grid7 的郡城（新派生同样规则）；capital/zhou/xian/关隘/苦役营一律不动
+        if (cc.tier !== 'jun' || cc.grid < 7 || cc.grid >= 9) return;
+        if (F.cityLevel && F.cityLevel[cid] === 4) { F.cityLevel[cid] = 3; moved++; }
+      });
+      // clamp 当前落点
+      if (st.room && (LF.CITIES || {})[st.room] && F.cityPos && F.cityPos.cid === st.room) {
+        var sz = cityGridSize(st.room), mx = Math.max(0, sz - 1);
+        if (F.cityPos.x > mx || F.cityPos.y > mx) F.cityPos = { cid: st.room, x: Math.floor(sz / 2), y: Math.floor(sz / 2) };
+      }
+      // 清越界 cityCells 覆盖项
+      if (F.cityCells) Object.keys(F.cityCells).forEach(function (cid) {
+        var sz = cityGridSize(cid), mx = Math.max(0, sz - 1), cells = F.cityCells[cid];
+        if (!cells) return;
+        Object.keys(cells).forEach(function (k) {
+          var p = k.split(','); if (+p[0] > mx || +p[1] > mx) delete cells[k];
+        });
+      });
+      if (F.cityGrid) Object.keys(F.cityGrid).forEach(function (cid) { delete F.cityGrid[cid]; }); // 强制重建全部网格
+      F._gridCompactVer = GRID_COMPACT_VER;
+      if (moved) { try { log('〔营建〕' + moved + ' 座郡城城垣收敛为 5×5，格局更精。', 'sys'); } catch (e) {} }
+    }
     function cityDevOf(cid) { ensureCityState(cid); return S().flags.cityDev[cid]; }
     // v20261113f：归属键单点归一。cities.js 里 59 城的 owner 仍是旧版图键
     // （wei/shu/wu/contested），势力图/逐鹿 AI/招降/统一判定全都认当世势力键，
@@ -480,9 +521,11 @@ window.LF = window.LF || {};
       var _myVer = GRID_VER + '@' + _lv + ((c.gateDirs || []).join(',')) + ((c.layoutGrid || []).map(function (r) { return r.join(''); }).join('|'));
       var F = S().flags;
       if (F.cityGrid && F.cityGrid[cid] && F.cityGrid[cid].ver === _myVer) return F.cityGrid[cid];
-      var size = cityGridSize(cid), rnd = seededRand(cid + '_grid_' + _lv);
+      // v20261123a：有 layoutGrid 预设的关隘按预设行数定尺寸，不受等级封顶压缩（否则 7×7 布局被截成 6×6）
+      var size = (c.layoutGrid && c.layoutGrid.length) ? c.layoutGrid.length : cityGridSize(cid);
+      var rnd = seededRand(cid + '_grid_' + _lv);
       var cx = Math.floor(size / 2), cy = Math.floor(size / 2);
-      var centerType = isCapital(cid) ? 'palace' : 'gov';   // 都城（势力定都）中央为皇宫，其余为衙门/城主府
+      var centerType = 'gov';   // v20261123a：都城不再改建皇宫，中央恒为衙署（政治中心仅由 factionCapital 标记承载）
       // 城门方向为路网自适应（v20260905k，见 cityGateDirs），门洞格与 availableGateDirs 同源
       var nG = cityGates(c);
       var gateSides = cityGateDirs(cid), gateSet = {};
@@ -968,7 +1011,7 @@ window.LF = window.LF || {};
       cityGates: cityGates, cityGateDirs: cityGateDirs,
       CELL_META: CELL_META, CELL_DESC: CELL_DESC,
       ensureCityState: ensureCityState,
-      cityTierLv: cityTierLv, cityGridSize: cityGridSize, cityLevelName: cityLevelName,
+      cityTierLv: cityTierLv, cityGridSize: cityGridSize, cityLevelName: cityLevelName, migrateGridCompact: migrateGridCompact,
       CITY_LV_SIZE: CITY_LV_SIZE, CITY_LV_NAME: CITY_LV_NAME,
       cityDevOf: cityDevOf, cityOwnerOf: cityOwnerOf, cityDefaultOwner: cityDefaultOwner,
       isCaptured: isCaptured, cityBurnedMap: cityBurnedMap,

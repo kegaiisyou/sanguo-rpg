@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>政令台 · 总览页 — 视觉原型</title>
+<style>
+/* ============ 复刻游戏 :root 令牌（来自 shared/css/game.css） ============ */
+:root{
+  --paper:#f4eee2; --paper2:#ece3d1;
+  --ink:#2c2620; --ink-soft:#5f5444; --ink-faint:#6b5940;
+  --seal:#9e3b2e; --jade:#3f7d5e; --gold:#b0832f;
+  --panel:rgba(255,253,248,.74); --panel-line:rgba(74,62,48,.22);
+  --shadow:0 2px 14px rgba(60,48,34,.10);
+  --r-btn:9px; --r-card:12px; --r-pill:999px; --gp:10px;
+  --btn-primary:linear-gradient(180deg,#5a4a2e,#3a2e1c);
+  --btn-primary-fg:#f0e2c0; --btn-primary-bd:#8a6f3e;
+  --btn-primary-hover:linear-gradient(180deg,#6e5a36,#4a3a22);
+  --btn-bd:rgba(74,62,48,.30); --btn-hover:rgba(176,131,47,.14);
+  --danger:#a8442f; --focus:0 0 0 2px rgba(176,131,47,.5);
+  --serif:"LXGW WenKai","STKaiti","KaiTi","Kaiti SC","Songti SC","PingFang SC",serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;min-height:100%;}
+body{
+  font-family:var(--serif);color:var(--ink);
+  background:
+    radial-gradient(120% 90% at 50% -10%,#3a3020 0%,#221c12 55%,#15100a 100%) fixed;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+}
+
+/* ============ 原型工具条（非游戏 UI） ============ */
+.demo-bar{
+  width:100%;max-width:1080px;margin:18px auto 12px;padding:10px 16px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:rgba(244,238,226,.08);border:1px solid rgba(214,180,106,.28);
+  border-radius:var(--r-card);color:#e6d6b4;
+}
+.demo-bar .ttl{font-size:15px;letter-spacing:2px;color:#f0dfb8;font-weight:700;}
+.demo-bar .tag{font-size:11px;color:#b9a37a;border:1px solid rgba(214,180,106,.35);border-radius:var(--r-pill);padding:2px 9px;}
+.demo-bar .spacer{flex:1;}
+.seg{display:inline-flex;background:rgba(0,0,0,.25);border:1px solid rgba(214,180,106,.3);border-radius:var(--r-btn);padding:3px;gap:3px;}
+.seg button{
+  font-family:var(--serif);font-size:12.5px;letter-spacing:1px;color:#c9b68e;
+  background:transparent;border:0;border-radius:6px;padding:6px 14px;cursor:pointer;transition:.15s;
+}
+.seg button.on{background:linear-gradient(180deg,#b08a3f,#8a6a2c);color:#fff5dc;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.demo-note{font-size:11px;color:#9c8b68;margin-left:auto;}
+
+/* ============ 舞台 ============ */
+.stage{width:100%;flex:1;display:flex;justify-content:center;align-items:flex-start;padding:8px 16px 60px;}
+.device{transition:width .35s cubic-bezier(.2,.8,.3,1);}
+.device.desktop{width:940px;max-width:100%;}
+.device.phone{width:402px;max-width:100%;}
+
+/* ===== 手机竖屏外壳（仅 phone 视图） ===== */
+.phone-shell{
+  position:relative;width:100%;height:844px;max-height:calc(100dvh - 150px);
+  background:#0c0a08;border-radius:52px;padding:11px;
+  box-shadow:0 26px 70px rgba(0,0,0,.62),0 0 0 2px #2a2620,inset 0 0 0 2px #000;
+}
+.phone-shell::before{ /* 侧键 */
+  content:'';position:absolute;left:-3px;top:150px;width:3px;height:64px;background:#332e26;border-radius:3px;
+  box-shadow:0 92px 0 #332e26;
+}
+.phone-screen{
+  position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;
+  background:linear-gradient(180deg,#efe7d6,#e9dfc9);
+}
+.phone-notch{
+  position:absolute;left:50%;top:9px;transform:translateX(-50%);
+  width:118px;height:26px;background:#0c0a08;border-radius:0 0 16px 16px;z-index:20;
+}
+.phone-notch::after{content:'';position:absolute;right:16px;top:9px;width:7px;height:7px;border-radius:50%;
+  background:#1b2733;box-shadow:inset 0 0 2px #4a6a86;}
+.phone-status{
+  position:absolute;left:0;right:0;top:0;height:42px;z-index:15;
+  display:flex;align-items:center;justify-content:space-between;padding:10px 26px 0;
+  font-family:system-ui,sans-serif;font-size:12px;font-weight:600;color:#3a2c1c;
+}
+.phone-status .sig{letter-spacing:1px;}
+.phone-status .bat{display:inline-flex;align-items:center;gap:4px;}
+.phone-status .bat i{display:inline-block;width:20px;height:10px;border:1.5px solid #3a2c1c;border-radius:3px;position:relative;}
+.phone-status .bat i::after{content:'';position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:72%;background:#3a2c1c;border-radius:1px;}
+.phone-home{position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:120px;height:5px;border-radius:3px;background:rgba(58,44,28,.55);z-index:20;}
+.device.phone .phone-scroll{position:absolute;inset:42px 0 14px;overflow-y:auto;overflow-x:hidden;padding:6px 10px 18px;}
+.device.phone .frame-w{border:0;border-radius:0;box-shadow:none;padding:0;background:transparent;}
+.device.phone .frame-w::before{display:none;}
+.device.phone .foot{line-height:1.6;}
+/* 桌面视图：中和手机外壳，恢复为普通面板 */
+.device.desktop .phone-shell{width:100%;height:auto;max-height:none;background:transparent;border-radius:0;padding:0;box-shadow:none;}
+.device.desktop .phone-shell::before{display:none;}
+.device.desktop .phone-notch,.device.desktop .phone-status,.device.desktop .phone-home{display:none;}
+.device.desktop .phone-screen{border-radius:0;background:transparent;}
+.device.desktop .phone-scroll{position:static;inset:auto;overflow:visible;padding:0;}
+.device.desktop .frame-w{border:2px solid #7c6234;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.5),inset 0 0 0 5px rgba(160,126,60,.10);padding:14px;}
+.device.desktop .frame-w::before{display:block;}
+
+.frame-w{
+  background:
+    linear-gradient(180deg,rgba(255,250,238,.96),rgba(244,236,218,.98)),
+    var(--paper);
+  border:2px solid #7c6234;border-radius:14px;
+  box-shadow:0 18px 60px rgba(0,0,0,.5),inset 0 0 0 5px rgba(160,126,60,.10);
+  padding:14px;position:relative;
+}
+.frame-w::before{content:'';position:absolute;inset:8px;border:1px solid rgba(120,90,40,.22);border-radius:9px;pointer-events:none;}
+
+/* ============ 政令台面板本体 ============ */
+.ct-hd{position:relative;text-align:center;padding:4px 0 10px;border-bottom:2px solid rgba(158,59,46,.35);margin-bottom:10px;}
+.ct-hd .seal{position:absolute;left:6px;top:2px;width:34px;height:34px;border:2px solid var(--seal);border-radius:7px;
+  color:var(--seal);font-size:11px;line-height:1.05;display:flex;align-items:center;justify-content:center;
+  transform:rotate(-9deg);opacity:.8;letter-spacing:0;padding:2px;}
+.ct-hd h1{font-size:22px;letter-spacing:8px;color:var(--seal);margin:0;font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.6);}
+.ct-hd .sub{font-size:11px;color:var(--ink-faint);letter-spacing:3px;margin-top:3px;}
+.ct-x{position:absolute;right:2px;top:0;width:30px;height:30px;border:2px solid #f3e9d6;border-radius:50%;background:#b5362e;color:#fff;font-size:16px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+
+/* 一级页签 */
+.ct-tabs{display:flex;gap:8px;justify-content:center;margin:2px 0 12px;flex-wrap:wrap;}
+.ct-tabs .tab{font-family:var(--serif);letter-spacing:2px;font-size:13px;color:var(--ink-soft);background:rgba(255,255,255,.5);
+  border:1px solid var(--btn-bd);border-radius:var(--r-btn);padding:7px 18px;cursor:pointer;transition:.15s;}
+.ct-tabs .tab.on{background:rgba(176,131,47,.24);color:#6e4f17;font-weight:700;box-shadow:0 -2px 9px -4px rgba(60,48,34,.5);border-color:rgba(176,131,47,.6);}
+
+/* 两栏布局 */
+.ct-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:12px;align-items:start;}
+.device.phone .ct-grid{grid-template-columns:1fr;}
+
+.surface{background:var(--panel);border:1px solid var(--panel-line);border-radius:var(--r-card);box-shadow:var(--shadow);}
+.sec{padding:11px 12px;margin-bottom:11px;}
+.sec-t{font-size:13px;letter-spacing:2px;color:#6b3b2e;font-weight:700;margin-bottom:9px;
+  display:flex;align-items:center;gap:6px;}
+.sec-t::before{content:'';width:4px;height:14px;background:var(--seal);border-radius:2px;}
+
+/* KPI 行（复刻 .edict-res4） */
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.kpi .er{background:#fdf8ea;border:1px solid rgba(107,74,47,.30);border-radius:var(--r-btn);padding:6px 2px;text-align:center;min-width:0;}
+.kpi .er i{display:block;font-style:normal;font-size:10px;color:#8a7959;letter-spacing:2px;margin-bottom:2px;}
+.kpi .er b{display:block;font-size:15px;color:#3a2c1c;font-variant-numeric:tabular-nums;}
+.kpi .er.gold b{color:#a06a1f;}
+.kpi .er .d{font-size:10px;font-variant-numeric:tabular-nums;margin-top:1px;display:block;}
+.up{color:var(--jade);} .down{color:var(--seal);} .flat{color:var(--ink-faint);}
+
+/* 报表区（复刻 .fm-month） */
+.report{background:linear-gradient(180deg,rgba(176,131,47,.12),rgba(120,96,58,.04));
+  border:1px solid rgba(158,59,46,.32);border-radius:10px;padding:10px 12px;}
+.report-h{font-family:"STKaiti","KaiTi",serif;font-size:13px;color:var(--seal);letter-spacing:2px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.report-h .pg{font-family:system-ui,sans-serif;font-size:11px;font-weight:400;letter-spacing:0;color:#8a7959;}
+.fore{display:flex;align-items:baseline;justify-content:center;gap:10px;padding:6px 0 9px;border-bottom:1px dashed rgba(120,80,40,.28);margin-bottom:8px;}
+.fore .num{font-size:30px;font-weight:700;color:#a06a1f;font-variant-numeric:tabular-nums;letter-spacing:1px;}
+.fore .unit{font-size:12px;color:var(--ink-faint);}
+.fore .delta{font-size:13px;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:var(--r-pill);}
+.fore .delta.up{background:rgba(63,125,94,.14);}
+.fore .delta.down{background:rgba(168,68,47,.13);}
+.fore-cap{text-align:center;font-size:10.5px;color:var(--ink-faint);letter-spacing:1px;margin-top:-4px;margin-bottom:9px;}
+.parts{display:flex;flex-direction:column;gap:8px;}
+.part{display:grid;grid-template-columns:64px 1fr 62px;align-items:center;gap:8px;font-size:12px;}
+.part .nm{color:var(--ink-soft);}
+.part .track{height:8px;background:rgba(74,62,48,.12);border-radius:var(--r-pill);overflow:hidden;}
+.part .fill{height:100%;border-radius:var(--r-pill);transition:width .5s ease;}
+.part .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);}
+.f-tribute .fill{background:linear-gradient(90deg,#a06a1f,#c69846);}
+.f-agri .fill{background:linear-gradient(90deg,#3f7d5e,#5fa37d);}
+.f-commerce .fill{background:linear-gradient(90deg,#9e3b2e,#c96a52);}
+.report-nav{display:flex;justify-content:center;gap:8px;margin-top:10px;}
+.report-nav .btn{font-family:var(--serif);font-size:11.5px;min-height:28px;padding:3px 12px;border-radius:var(--r-btn);
+  background:var(--btn-primary);color:var(--btn-primary-fg);border:1px solid var(--btn-primary-bd);cursor:pointer;}
+.report-nav .btn:disabled{opacity:.38;cursor:not-allowed;}
+.hist{margin-top:9px;border-top:1px dashed rgba(120,80,40,.25);padding-top:7px;display:flex;flex-direction:column;gap:3px;}
+.hist .hr{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);font-variant-numeric:tabular-nums;padding:1px 2px;}
+.hist .hr.cur{color:var(--seal);font-weight:700;}
+
+/* 状态块：城级建设 / 城防守军 */
+.statblock{display:flex;flex-direction:column;gap:7px;}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;}
+.srow .lbl{color:var(--ink-faint);letter-spacing:1px;}
+.srow .v{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600;}
+.srow .v.gold{color:#a06a1f;} .srow .v.jade{color:var(--jade);} .srow .v.seal{color:var(--seal);}
+.bar{height:7px;background:rgba(74,62,48,.12);border-radius:var(--r-pill);overflow:hidden;margin-top:3px;}
+.bar i{display:block;height:100%;border-radius:var(--r-pill);background:linear-gradient(90deg,#a06a1f,#c69846);}
+.need{margin-top:6px;background:rgba(176,131,47,.10);border:1px dashed rgba(120,80,40,.3);border-radius:8px;padding:6px 9px;font-size:11px;color:var(--ink-soft);line-height:1.7;}
+.need b{color:#6e4f17;}
+.gauge{display:flex;gap:6px;margin-top:2px;}
+.gauge .g{flex:1;text-align:center;background:#fdf8ea;border:1px solid rgba(107,74,47,.28);border-radius:7px;padding:4px 2px;}
+.gauge .g i{display:block;font-style:normal;font-size:9.5px;color:#8a7959;letter-spacing:1px;}
+.gauge .g b{display:block;font-size:13px;color:#3a2c1c;font-variant-numeric:tabular-nums;}
+
+/* 分区跳转 */
+.jump-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
+.device.phone .jump-grid{grid-template-columns:repeat(2,1fr);}
+.jc{background:rgba(255,253,248,.6);border:1px solid var(--panel-line);border-radius:10px;padding:9px;}
+.jc h4{margin:0 0 7px;font-size:12px;color:#6e4f17;letter-spacing:1px;display:flex;align-items:center;gap:5px;}
+.jc .btns{display:flex;flex-wrap:wrap;gap:6px;}
+.btn{font-family:var(--serif);letter-spacing:1px;color:var(--btn-primary-fg);background:var(--btn-primary);
+  border:1px solid var(--btn-primary-bd);border-radius:var(--r-btn);padding:8px 12px;cursor:pointer;font-size:12.5px;
+  box-shadow:var(--shadow);transition:transform .09s ease,filter .12s ease;min-height:44px;}
+.btn:hover{background:var(--btn-primary-hover);}
+.btn:active{transform:scale(.95);}
+.btn.ghost{background:transparent;border-color:var(--btn-bd);color:var(--ink);box-shadow:none;min-height:44px;}
+.btn.ghost:hover{background:var(--btn-hover);}
+
+/* 底部提示 */
+.foot{text-align:center;font-size:10.5px;color:var(--ink-faint);letter-spacing:1px;margin-top:4px;}
+
+/* 税源释义（原型新增） */
+.tax-legend{margin-top:8px;padding:7px 9px;background:rgba(244,238,226,.6);border:1px dashed rgba(120,80,40,.3);border-radius:8px;font-size:10.5px;line-height:1.75;color:var(--ink-soft);}
+.tax-legend b{color:#6e4f17;font-weight:700;}
+.tax-legend em{color:var(--jade);font-style:normal;}
+.part{cursor:pointer;}
+.part .q{display:inline-block;font-style:normal;font-size:9px;color:#a06a1f;border:1px solid rgba(160,106,31,.5);border-radius:50%;width:13px;height:13px;line-height:12px;text-align:center;vertical-align:1px;margin-left:2px;}
+.detail{display:none;margin:-2px 0 4px;padding:7px 9px;background:rgba(253,248,234,.75);border:1px solid rgba(120,90,40,.28);border-radius:8px;font-size:10.5px;}
+.detail.on{display:block;}
+.detail .dl{display:flex;justify-content:space-between;gap:8px;padding:2px 0;color:var(--ink-soft);}
+.detail .dl b{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;}
+.detail .dl b.up{color:var(--jade);} .detail .dl b.wait{color:#a06a1f;} .detail .dl b.pre{color:#9c8b68;font-weight:400;}
+.detail .dsum{border-top:1px dashed rgba(120,80,40,.28);margin-top:4px;padding-top:4px;color:#6e4f17;}
+.detail .note{color:#9c8b68;font-size:9.5px;margin-top:3px;line-height:1.5;}
+
+/* 原型标注 */
+.prototype-note{max-width:940px;width:100%;margin:0 auto 40px;color:#a08e6b;font-size:11.5px;line-height:1.7;text-align:center;padding:0 20px;}
+.prototype-note b{color:#d9c49a;}
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <span class="ttl">政令台 · 总览页</span>
+  <span class="tag">视觉原型 v0</span>
+  <span class="tag">未改游戏源码</span>
+  <span class="spacer"></span>
+  <div class="seg" role="group" aria-label="视图切换">
+    <button id="btnDesk" onclick="setView('desktop')">桌面视图</button>
+    <button id="btnPhone" class="on" onclick="setView('phone')">手机竖版</button>
+  </div>
+  <span class="demo-note">点击切换，查看两种视口下的信息架构</span>
+</div>
+
+<div class="stage">
+  <div class="device phone" id="device">
+    <div class="phone-shell">
+      <div class="phone-notch"></div>
+      <div class="phone-status">
+        <span>9:41</span>
+        <span class="sig">▮▮▮ ᯤ</span>
+        <span class="bat"><i></i>87%</span>
+      </div>
+      <div class="phone-screen">
+        <div class="phone-scroll">
+    <div class="frame-w">
+      <div class="ct-hd">
+        <div class="seal">政令<br>台印</div>
+        <button class="ct-x" title="关闭">×</button>
+        <h1>政 令 台</h1>
+        <div class="sub" id="cityName">河 内 · 郡 城</div>
+      </div>
+
+      <div class="ct-tabs">
+        <button class="tab on" onclick="pickTab(this)">总 览</button>
+        <button class="tab" onclick="pickTab(this)">政 令</button>
+        <button class="tab" onclick="pickTab(this)">军 务</button>
+      </div>
+
+      <div class="ct-grid">
+        <!-- 左栏：KPI + 报表 -->
+        <div>
+          <div class="surface sec">
+            <div class="sec-t">城 务 提 要</div>
+            <div class="kpi">
+              <div class="er gold"><i>府 库 · 两</i><b>12,480</b><span class="d up">▲ 本月 +936</span></div>
+              <div class="er"><i>粮 草 · 石</i><b>8,210</b><span class="d up">▲ +412</span></div>
+              <div class="er"><i>人 口 · 口</i><b>80</b><span class="d up">▲ +3 税源</span></div>
+              <div class="er"><i>治 安</i><b>78</b><span class="d flat">— 平稳</span></div>
+            </div>
+          </div>
+
+          <div class="surface sec">
+            <div class="report">
+              <div class="report-h">
+                <span>税 收 前 景</span>
+                <span class="pg" id="pgLabel">朔月报 · 第 8 / 12 期</span>
+              </div>
+
+              <div class="fore">
+                <span class="num" id="foreNum">1,286</span>
+                <span class="unit">两 / 下月预期</span>
+                <span class="delta up" id="foreDelta">环比 +6.2%</span>
+              </div>
+              <div class="fore-cap" id="foreCap">按当前人口/农田/商业建筑推算 · 朔日自动入账</div>
+
+              <div class="parts" id="parts">
+                <div class="part f-tribute" onclick="toggleDetail('dt')"><span class="nm">丁税<i class="q">?</i></span><div class="track"><div class="fill" style="width:39%"></div></div><span class="val">500 两</span></div>
+                <div class="detail" id="dt">
+                  <div class="dl"><span>人口基数（治域汇总）</span><b>≈1,480 口 × 0.3</b></div>
+                  <div class="dl"><span>职种 · 相才</span><b class="up">×1.35 已生效</b></div>
+                  <div class="dl"><span>太守 / 中枢官职加成</span><b class="wait">待接入</b></div>
+                  <div class="dl"><span>科技 / 临时增益</span><b class="pre">预留（游戏暂无此系统）</b></div>
+                  <div class="dsum">本城示例：80 口 × 0.3 = 24 两，相才 +8 两 → 32 两</div>
+                </div>
+                <div class="part f-agri" onclick="toggleDetail('da')"><span class="nm">农税<i class="q">?</i></span><div class="track"><div class="fill" style="width:30%"></div></div><span class="val">380 两</span></div>
+                <div class="detail" id="da">
+                  <div class="dl"><span>农业用地（治域汇总）</span><b>≈95 田 × 4</b></div>
+                  <div class="dl"><span>职种 · 相才</span><b class="up">×1.35 已生效</b></div>
+                  <div class="dl"><span>建筑加成（农庄 / 水利）</span><b class="wait">待接入</b></div>
+                  <div class="dl"><span>人物技能（屯田 / 农政）</span><b class="wait">待接入</b></div>
+                  <div class="dsum">本城示例：12 田 × 4 = 48 两，相才 +17 两 → 65 两</div>
+                </div>
+                <div class="part f-commerce" onclick="toggleDetail('dc')"><span class="nm">商税<i class="q">?</i></span><div class="track"><div class="fill" style="width:31%"></div></div><span class="val">406 两</span></div>
+                <div class="detail" id="dc">
+                  <div class="dl"><span>商业建筑（治域汇总）</span><b>≈68 铺 × 6</b></div>
+                  <div class="dl"><span>职种 · 相才</span><b class="up">×1.35 已生效</b></div>
+                  <div class="dl"><span>建筑加成（商会 / 码头）</span><b class="wait">待接入</b></div>
+                  <div class="dl"><span>人物技能（商才 / 大司农）</span><b class="wait">待接入</b></div>
+                  <div class="dsum">本城示例：9 铺 × 6 = 54 两，相才 +19 两 → 73 两</div>
+                </div>
+              </div>
+              <div class="tax-legend">
+                <div>点税种名旁 <b>?</b> 看构成。<b>绿</b>=已生效，<b>橙</b>=本次改造接入，<b>灰</b>=预留。</div>
+                <div><b>丁税</b> 按人口 → <em>安置流民 / 建民宅</em></div>
+                <div><b>农税</b> 按农业用地 → <em>营造农田 / 开荒</em></div>
+                <div><b>商税</b> 按商业建筑 → <em>扩建市集 / 盘铺</em></div>
+              </div>
+
+              <div class="hist" id="hist">
+                <div class="hr"><span>第 5 期 · 秋</span><span>1,102 两　+2.1%</span></div>
+                <div class="hr"><span>第 6 期 · 冬</span><span>1,148 两　+4.2%</span></div>
+                <div class="hr"><span>第 7 期 · 腊</span><span>1,211 两　+5.5%</span></div>
+                <div class="hr cur"><span>第 8 期 · 朔（本期）</span><span>1,286 两　+6.2%</span></div>
+              </div>
+
+              <div class="report-nav">
+                <button class="btn" onclick="page(-1)">‹ 上期</button>
+                <button class="btn" onclick="page(1)">下期 ›</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="surface sec">
+            <div class="sec-t">城 级 · 建 设 · 升 级</div>
+            <div class="statblock">
+              <div class="srow"><span class="lbl">城级</span><span class="v gold">郡城 · 5 级（6×6 格）</span></div>
+              <div class="srow"><span class="lbl">建设度</span><span class="v">62 / 100</span></div>
+              <div class="bar"><i style="width:62%"></i></div>
+              <div class="need">升级链 <b>村→镇→乡→县城→郡城→府城→州城→都城</b>（都城 9×9 封顶）。现存城池起点已压缩，仍可逐级升。当前升至 <b>府城 · 6 级</b> 尚需 <b>砖 200</b>　<b>石料 125</b>　<b>木材 75</b>。</div>
+            </div>
+          </div>
+
+          <div class="surface sec">
+            <div class="sec-t">城 防 · 守 军 · 军 心</div>
+            <div class="statblock">
+              <div class="gauge">
+                <div class="g"><i>城防</i><b>68</b></div>
+                <div class="g"><i>守军</i><b>60</b></div>
+                <div class="g"><i>军心</i><b>82</b></div>
+              </div>
+              <div class="srow"><span class="lbl">防务评定</span><span class="v jade">稳固 · 军心昂扬</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右栏：分区跳转 -->
+        <div>
+          <div class="surface sec">
+            <div class="sec-t">分 区 办 理</div>
+            <div class="jump-grid">
+              <div class="jc">
+                <h4>⚔ 军 务</h4>
+                <div class="btns">
+                  <button class="btn" onclick="tip('募兵操练')">募兵</button>
+                  <button class="btn ghost" onclick="tip('治军')">治军</button>
+                </div>
+              </div>
+              <div class="jc">
+                <h4>⚒ 营 造</h4>
+                <div class="btns">
+                  <button class="btn" onclick="tip('营造新筑')">营造</button>
+                </div>
+              </div>
+              <div class="jc">
+                <h4>⚖ 市 集</h4>
+                <div class="btns">
+                  <button class="btn" onclick="tip('商号买卖')">商号</button>
+                  <button class="btn ghost" onclick="tip('钱庄存取')">钱庄</button>
+                </div>
+              </div>
+              <div class="jc">
+                <h4>📜 城 况</h4>
+                <div class="btns">
+                  <button class="btn" onclick="tip('城况面板')">城况</button>
+                  <button class="btn ghost" onclick="tip('委任官员')">委任</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="surface sec">
+            <div class="sec-t">本 期 要 务</div>
+            <div style="font-size:12px;line-height:2;color:var(--ink-soft);">
+              <div>· 人口 <span class="up">增加 3</span>，丁税随之增长</div>
+              <div>· 新垦农田 +2，农税 <span class="up">增 8 两</span>；市集扩建，商税 <span class="up">增 42 两</span></div>
+              <div>· 建设度 62/80，距升府城尚缺 <span class="down">砖石·石条·木材</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="foot">银两朔日自动入账：丁税·农税·商税 · 无需逐城征税　｜　报表可翻最近 12 期</div>
+    </div>
+        </div>
+      </div>
+      <div class="phone-home"></div>
+    </div>
+  </div>
+</div>
+
+<div class="prototype-note">
+  这是<b>信息架构与视觉方向</b>的静态原型，非最终实现。数据为示例。确认后才会按计划改游戏源码：取消主动征税→月结自动入账、税收前景报表、把本页并入政令台面板、城市缩到 6×6/5×5。
+</div>
+
+<script>
+function setView(v){
+  var d=document.getElementById('device');
+  d.className='device '+v;
+  document.getElementById('btnDesk').classList.toggle('on',v==='desktop');
+  document.getElementById('btnPhone').classList.toggle('on',v==='phone');
+}
+function toggleDetail(id){
+  var d=document.getElementById(id);
+  d.classList.toggle('on');
+}
+function pickTab(el){
+  el.parentNode.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  if(el.textContent.trim()!=='总 览') tip('原型仅展示「总览」页，其余页签为占位');
+}
+var pg=8;
+var data={
+  5:{num:'1,102',delta:'+2.1%',up:true,pg:'第 5 / 12 期',cap:'按当前人口/农田/商铺推算 · 可支撑官俸约 3.7 期',parts:[40,30,30],vals:['440','330','332']},
+  6:{num:'1,148',delta:'+4.2%',up:true,pg:'第 6 / 12 期',cap:'按当前人口/农田/商铺推算 · 可支撑官俸约 3.9 期',parts:[40,30,30],vals:[459,344,345]},
+  7:{num:'1,211',delta:'+5.5%',up:true,pg:'第 7 / 12 期',cap:'按当前人口/农田/商铺推算 · 可支撑官俸约 4.0 期',parts:[39,30,31],vals:[472,363,376]},
+  8:{num:'1,286',delta:'+6.2%',up:true,pg:'第 8 / 12 期',cap:'按当前人口/农田/商铺推算 · 可支撑官俸约 4.2 期',parts:[39,30,31],vals:['500','380','406']}
+};
+function page(dir){
+  pg=Math.max(5,Math.min(8,pg+dir));
+  var d=data[pg];
+  document.getElementById('foreNum').textContent=d.num;
+  var de=document.getElementById('foreDelta');
+  de.textContent='环比 '+(d.up?'+':'')+d.delta;
+  de.className='delta '+(d.up?'up':'down');
+  document.getElementById('pgLabel').textContent='朔月报 · '+d.pg;
+  document.getElementById('foreCap').textContent=d.cap;
+  var fills=document.querySelectorAll('#parts .fill');
+  var vals=document.querySelectorAll('#parts .val');
+  d.parts.forEach(function(w,i){fills[i].style.width=w+'%';});
+  d.vals.forEach(function(v,i){vals[i].textContent=v+' 两';});
+  document.querySelectorAll('#hist .hr').forEach(function(r,i){r.classList.toggle('cur',(5+i)===pg);});
+}
+function tip(name){
+  var t=document.createElement('div');
+  t.textContent='原型占位：点击「'+name+'」→ 打开对应既有面板';
+  t.style.cssText='position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:rgba(28,20,10,.92);color:#f0dfb8;border:1px solid #b08a3f;border-radius:9px;padding:10px 18px;font-family:var(--serif);font-size:13px;z-index:99;box-shadow:0 6px 24px rgba(0,0,0,.4);';
+  document.body.appendChild(t);
+  setTimeout(function(){t.remove();},1900);
+}
+</script>
+</body>
+</html>

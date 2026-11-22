@@ -5055,3 +5055,54 @@
 .qtab{ display:inline-flex; align-items:center; }
 .sect-join{ padding-top:0; padding-bottom:0; }
 .sc-handle{ min-width:44px; min-height:44px; }
+
+
+/* ══ v20261121a · 政令台「总览」页（令牌化，复用 .surface/.tab/.btn）══ */
+.gov-court .gov-tabs{ display:flex; gap:var(--gp); justify-content:center; margin:8px 0 10px; }
+.gov-court .gov-tabs .tab{ flex:1; text-align:center; min-height:var(--bf-touch,44px); }
+.gov-pg{ display:none; }
+.gov-pg.active{ display:block; }
+.gov-overview{ display:flex; flex-direction:column; gap:10px; }
+.gov-kpi{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; padding:8px; }
+.gov-kpi .er4{ background:#fdf8ea; border:1px solid rgba(107,74,47,.30); border-radius:var(--r-btn); padding:6px 2px; text-align:center; min-width:0; }
+.gov-kpi .er4 i{ display:block; font-style:normal; font-size:10px; color:#8a7959; letter-spacing:1px; }
+.gov-kpi .er4 b{ display:block; font-size:15px; color:#3a2c1c; font-variant-numeric:tabular-nums; }
+.gov-kpi .er4.r-gold b{ color:#a06a1f; }
+.gov-t{ font-family:var(--serif,serif); font-size:13px; color:var(--seal); letter-spacing:2px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:baseline; }
+.gov-t .gov-pg{ display:inline; font-size:10.5px; letter-spacing:0; color:var(--ink-faint); }
+.gov-tax{ padding:10px 12px; background:linear-gradient(180deg,rgba(176,131,47,.12),rgba(120,96,58,.04)); border:1px solid rgba(158,59,46,.32); border-radius:var(--r-card); }
+.gov-fore{ display:flex; align-items:baseline; gap:8px; justify-content:center; padding:4px 0 8px; border-bottom:1px dashed rgba(120,80,40,.28); margin-bottom:8px; }
+.gov-fore b{ font-size:28px; color:#a06a1f; font-variant-numeric:tabular-nums; }
+.gov-fore span{ font-size:11px; color:var(--ink-faint); }
+.gov-fore i{ font-size:12px; font-style:normal; font-variant-numeric:tabular-nums; padding:2px 8px; border-radius:var(--r-pill); }
+.gov-fore i.up{ color:var(--jade); background:rgba(63,125,94,.14); }
+.gov-fore i.down{ color:var(--danger); background:rgba(168,68,47,.13); }
+.gov-parts{ display:flex; flex-direction:column; gap:7px; }
+.gov-parts .gp{ display:grid; grid-template-columns:40px 1fr 62px; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-soft); }
+.gov-parts .gp b{ text-align:right; font-variant-numeric:tabular-nums; color:var(--ink); font-weight:600; }
+.gov-parts .gp-track{ height:8px; background:rgba(74,62,48,.12); border-radius:var(--r-pill); overflow:hidden; }
+.gov-parts .gp-track i{ display:block; height:100%; border-radius:var(--r-pill); }
+.gov-parts .gp-ding .gp-track i{ background:linear-gradient(90deg,#a06a1f,#c69846); }
+.gov-parts .gp-nong .gp-track i{ background:linear-gradient(90deg,#3f7d5e,#5fa37d); }
+.gov-parts .gp-shang .gp-track i{ background:linear-gradient(90deg,#9e3b2e,#c96a52); }
+.gov-tax-note{ font-size:10px; color:var(--ink-faint); line-height:1.6; margin-top:8px; }
+.gov-stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.gov-stat{ padding:9px 10px; }
+.gov-stat .gs-row{ display:flex; justify-content:space-between; font-size:11.5px; padding:2px 0; color:var(--ink-soft); }
+.gov-stat .gs-row b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+.gov-bar{ height:6px; background:rgba(74,62,48,.12); border-radius:var(--r-pill); overflow:hidden; margin:4px 0; }
+.gov-bar i{ display:block; height:100%; border-radius:var(--r-pill); background:linear-gradient(90deg,#a06a1f,#c69846); }
+.gov-stat .gs-note{ font-size:9.5px; color:var(--ink-faint); line-height:1.5; margin-top:3px; }
+.gov-gauge{ display:flex; gap:5px; }
+.gov-gauge > div{ flex:1; text-align:center; background:#fdf8ea; border:1px solid rgba(107,74,47,.28); border-radius:7px; padding:5px 2px; }
+.gov-gauge i{ display:block; font-style:normal; font-size:9.5px; color:#8a7959; letter-spacing:1px; }
+.gov-gauge b{ display:block; font-size:14px; color:#3a2c1c; font-variant-numeric:tabular-nums; }
+.gov-jump{ padding:9px 10px; }
+.gov-jg{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+.gov-jg .btn{ min-height:44px; font-size:12px; }
+@media (max-width:560px){
+  .gov-stats{ grid-template-columns:1fr; }
+  .gov-kpi{ grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }
+  .gov-kpi .er4 b{ font-size:13px; }
+  .gov-jg{ grid-template-columns:repeat(2,1fr); }
+}

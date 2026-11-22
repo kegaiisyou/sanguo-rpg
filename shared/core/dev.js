@@ -49,6 +49,9 @@ window.LF = window.LF || {};
     function handleDev(act) {
       var MA = G.MARTIAL_ARTS;
       var state = getState();
+      if (act === 'sandboxEnter') { ctx.enterSandbox(); return; }
+      if (act === 'sandboxReset') { ctx.resetSandbox(); return; }
+      if (act === 'sandboxExit') { ctx.exitSandbox(); return; }
       if (act === 'rep100') { state.reputation = 100; ctx.log('【声望】已设为 100（' + ctx.repTitle(100) + '）', 'good'); }
       else if (act === 'rep0') { state.reputation = 0; ctx.log('【声望】已清零', 'sys'); }
       else if (act === 'toggleFog') { state.flags=state.flags||{}; var nf=!(state.flags.fog!==false); state.flags.fog=nf; ctx.log('【调试】迷雾 '+(nf?'开（仅显示已探索）':'关（全显）'),'sys'); }
@@ -307,6 +310,15 @@ window.LF = window.LF || {};
         + '<button class="dev" data-act="grantAll">全图归我 · 验证终局</button>'
         + '</div></div>';
 
+      // v20261121a · 开发者沙盒 1 级样板城（不影响正式存档）
+      var _sbOn = ctx.isSandbox();
+      h += '<div class="dev-sec"><div class="dev-h">🧪 沙盒样板城（1 级 · ' + (_sbOn ? '<b style="color:#3f7d5e">进行中</b>' : '独立存档，不污染正式进度') + '）</div><div class="dev-btns">'
+        + (_sbOn
+            ? '<button class="dev wide" data-act="sandboxReset">↺ 重置沙盒（回到全新 1 级城）</button>'
+              + '<button class="dev wide" data-act="sandboxExit">⏏ 退出沙盒（回正式存档）</button>'
+            : '<button class="dev wide" data-act="sandboxEnter">▶ 进入沙盒（1 级样板城，可反复试升级/建设/月结）</button>')
+        + '</div><div class="dev-tip" style="margin-top:4px;">沙盒内银两/材料充足，可反复验证「升级→营造→月结」完整节奏；一切操作不落正式存档。</div></div>';
+
       // 8. 地图调试（迷雾 / 门槛解锁 开关，方便测试野外网格）
       h += '<div class="dev-sec"><div class="dev-h">🗺 地图调试（迷雾 '+((state.flags&&state.flags.fog!==false)?'开':'关')+' · 门槛 '+((state.flags&&state.flags.mapGated!==false)?'开':'关')+'）</div><div class="dev-btns">' +
          '<button class="dev" data-act="toggleFog">切换迷雾</button>' +
@@ -343,6 +355,7 @@ window.LF = window.LF || {};
           if (a === 'setspawn') { ctx.openSpawnMap(); return; }
           if (a === 'bf_field' || a === 'bf_siege' || a === 'lordStart' || a === 'monthTick' || a === 'factionMap' || a === 'grandStrategy') { handleDev(a); return; }
           if (a === 'demoDeath' || a === 'demoAge') { handleDev(a); return; }
+          if (a === 'sandboxEnter' || a === 'sandboxReset' || a === 'sandboxExit') { handleDev(a); return; }
           handleDev(a); ctx.save(state); ctx.renderStatus();
           if (getCurrentModalKind() !== 'char') renderDev();
           // v20261112c：城主验证类命令连点时要能留在调试台；renderStatus 的 rAF 可能弹破境覆盖，

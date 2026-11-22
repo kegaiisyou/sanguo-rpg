@@ -138,17 +138,10 @@
     if(cityOwnerOf(cid)!==playerFaction()){ toast('你并非此城之主，何谈政令？'); return; }
     var c=(LF.CITIES||{})[cid]||{};
     if(kind==='tax'){
-      var last=(S().flags.cityTax||{})[cid];
-      if(last===S().day){ toast('今日已在此征过税赋。'); return; }
-      var _csTax=(S().flags.cityStats||{})[cid]||{};
-      var gain=Math.round((c.pop+c.commerce)/12)+5+Math.min(40,Math.round(_csTax.com||0));   // v20261113g：市易积累参与岁入
-      S().gold+=gain;
-      S().flags.cityTax=S().flags.cityTax||{}; S().flags.cityTax[cid]=S().day;
-      S().flags.cityOrder=S().flags.cityOrder||{};
-      var ord=(S().flags.cityOrder[cid]!=null?S().flags.cityOrder[cid]:c.order)-4;
-      S().flags.cityOrder[cid]=Math.max(0,ord);
-      log('你颁下政令，差役挨户征缴。'+c.name+'岁入 💰'+gain+' 两，然胥吏扰民，治安略降。','sys');
-      toast('征得 💰'+gain+' 两');
+      // v20261121a：每日主动征税已下线。银两改为朔日按三税（丁税/农税/商税）自动入账，
+      //   不再逐城点征、不再扣治安；政令台「总览」可查看税收前景与构成。
+      toast('税赋已于每月朔日自动入账（丁税·农税·商税），无需逐城征收。');
+      log('〔税赋〕自本年起，各城丁税、农税、商税于朔日一并入账，无需再差役挨户征缴。','sys');
     } else if(kind==='pacify'){
       if(S().gold<20){ toast('府库空虚，无银安民。'); return; }
       S().gold-=20;
@@ -199,22 +192,106 @@
       + '<span class="cs-o">' + out + '</span>'
       + '<span class="cs-d">' + desc + '</span></button>';
   }
-  function renderCourtSimple(cid, c, res, st, cnt, own) {
-    var h = '<div class="edict-box edict-v2 court-simple">';
-    h += '<div class="edict-h">朝 堂 · ' + escapeHtml(c.name || '行在') + '</div>';
-    h += '<div class="surface edict-head"><div class="edict-res4 court-simple-res">'
-      + '<div class="er4 r-grain"><i>仓 粮</i><b>' + (res.grain || 0) + '</b></div>'
-      + '<div class="er4 r-gold"><i>府 库</i><b>' + (st.gold || 0) + '</b></div>'
-      + '<div class="er4 r-kit"><i>部 曲</i><b>' + cnt + '</b></div>'
+  // ══ v20261121a · 政令台「总览」页（一张奏报看全城事务）══
+  var GOV_LV_SIZE = [2,3,4,5,6,6,6,6];
+  var GOV_LV_NAME = ['村','镇','乡','县城','郡城','府城','州城','都城'];
+  global.govTab = function (k) {
+    var st = S(); if (!st) return;
+    st.flags = st.flags || {};
+    st.flags.govTab = (k === 'orders' || k === 'war') ? k : 'overview';
+    var box = document.getElementById('modal-card'); if (!box) return;
+    var tabs = box.querySelectorAll('.gov-tabs .tab');
+    for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('active', tabs[i].getAttribute('data-gov') === st.flags.govTab);
+    var pgs = box.querySelectorAll('.gov-pg');
+    for (var j = 0; j < pgs.length; j++) pgs[j].classList.toggle('active', pgs[j].getAttribute('data-gov') === st.flags.govTab);
+  };
+  function renderEdictOverview(cid, c, res, st, cnt, own) {
+    var f = st.flags || {};
+    var ord = (f.cityOrder && f.cityOrder[cid] != null) ? f.cityOrder[cid] : c.order;
+    var lv = ((f.cityLevel || {})[cid] != null) ? f.cityLevel[cid] : ((c.tier === 'capital') ? 7 : (c.grid >= 9 ? 7 : c.grid >= 7 ? 3 : c.grid >= 5 ? 3 : 1));
+    var lvName = GOV_LV_NAME[lv] || '城', lvSize = GOV_LV_SIZE[lv] || 3;
+    var dev = (f.cityDev || {})[cid] || 0;
+    var mine = (st.ruledCities || []).filter(function (x) { return (LF.CITIES || {})[x]; });
+    // 报表：优先读最近一期月报，未到朔日则按当前治域实时推算
+    var mr = f.monthReport, tx = mr && mr.tax;
+    var fc = 0, px = { ding: 0, nong: 0, shang: 0 };
+    mine.forEach(function (x) { var t = cityTaxOf(x); fc += t.total; px.ding += t.ding; px.nong += t.nong; px.shang += t.shang; });
+    var local = cityTaxOf(cid);
+    var delta = tx ? (tx.deltaPct || 0) : 0;
+    var dCls = delta > 0 ? ' up' : (delta < 0 ? ' down' : '');
+    var dTxt = (delta > 0 ? '+' : '') + delta + '%';
+    var h = '<div class="gov-overview">';
+    // KPI
+    h += '<div class="surface gov-kpi">'
+      + '<div class="er4 r-gold"><i>府库·两</i><b>' + (st.gold || 0) + '</b></div>'
+      + '<div class="er4 r-grain"><i>粮草·石</i><b>' + (res.grain || 0) + '</b></div>'
+      + '<div class="er4"><i>人口·口</i><b>' + (c.pop || 0) + '</b></div>'
+      + '<div class="er4"><i>治安</i><b>' + (ord == null ? '—' : ord) + '</b></div></div>';
+    // 税收前景报表（数据层由月报写入；未朔日实时推算）
+    h += '<div class="surface gov-tax">'
+      + '<div class="gov-t">税 收 前 景 <span class="gov-pg">朔日自动入账</span></div>'
+      + '<div class="gov-fore"><b>' + fc + '</b><span>两 / 下月预期</span><i class="' + dCls.trim() + '">环比 ' + dTxt + '</i></div>'
+      + '<div class="gov-parts">'
+      + '<div class="gp gp-ding"><span>丁税</span><div class="gp-track"><i style="width:' + (fc ? Math.round(px.ding / fc * 100) : 0) + '%"></i></div><b>' + px.ding + ' 两</b></div>'
+      + '<div class="gp gp-nong"><span>农税</span><div class="gp-track"><i style="width:' + (fc ? Math.round(px.nong / fc * 100) : 0) + '%"></i></div><b>' + px.nong + ' 两</b></div>'
+      + '<div class="gp gp-shang"><span>商税</span><div class="gp-track"><i style="width:' + (fc ? Math.round(px.shang / fc * 100) : 0) + '%"></i></div><b>' + px.shang + ' 两</b></div>'
+      + '</div>'
+      + '<div class="gov-tax-note">丁税按人口 · 农税按农业（含开垦积累）· 商税按商业（含市易积累）；本城合计 ' + local.total + ' 两。器物营生（设施/店铺/市租）另计。</div>'
+      + '</div>';
+    // 城级建设 + 城防守军
+    h += '<div class="gov-stats">'
+      + '<div class="surface gov-stat"><div class="gov-t">城 级 · 建 设</div>'
+      + '<div class="gs-row"><span>城级</span><b>' + lvName + ' · ' + (lv + 1) + ' 级（' + lvSize + '×' + lvSize + ' 格）</b></div>'
+      + '<div class="gs-row"><span>建设度</span><b>' + dev + ' / 100</b></div>'
+      + '<div class="gov-bar"><i style="width:' + dev + '%"></i></div>'
+      + '<div class="gs-note">城池最高 6×6；升级只升名号（直至都城），不再放大城池。</div></div>'
+      + '<div class="surface gov-stat"><div class="gov-t">城 防 · 守 军</div>'
+      + '<div class="gov-gauge"><div><i>城防</i><b>' + (c.wall || 0) + '</b></div><div><i>守军</i><b>' + cityGarrisonOf(cid) + '</b></div><div><i>部曲</i><b>' + cnt + '</b></div></div>'
       + '</div></div>';
-    if (!own) h += '<div class="edict-tip tip">你并非此城之主（或不在城池中枢）。占下一城后即可在此颁令；用兵与势力调度收在「完整朝堂」。</div>';
+    // 分区办理
+    h += '<div class="surface gov-jump"><div class="gov-t">分 区 办 理</div><div class="gov-jg">'
+      + '<button class="btn" onclick="openModal(\'army\')">⚔ 征兵 · 治军</button>'
+      + '<button class="btn" onclick="openModal(\'citybuild\')">⚒ 营造 · 工事</button>'
+      + '<button class="btn" onclick="openModal(\'citystat\')">🏯 市集 · 城况</button>'
+      + '<button class="btn ghost" onclick="openOfficerPanel()">📜 武将 · 委任</button>'
+      + '</div></div>';
+    h += '</div>';
+    return h;
+  }
+  function renderCourtSimple(cid, c, res, st, cnt, own) {
+    var govTab = (st.flags.govTab === 'orders' || st.flags.govTab === 'war') ? st.flags.govTab : 'overview';
+    var h = '<div class="edict-box edict-v2 court-simple gov-court">';
+    h += '<div class="edict-h">政 令 台 · ' + escapeHtml(c.name || '行在') + '</div>';
+    h += '<div class="gov-tabs edict-tabs">'
+      + '<button type="button" class="tab' + (govTab === 'overview' ? ' active' : '') + '" data-gov="overview" onclick="govTab(\'overview\')">总 览</button>'
+      + '<button type="button" class="tab' + (govTab === 'orders' ? ' active' : '') + '" data-gov="orders" onclick="govTab(\'orders\')">政 令</button>'
+      + '<button type="button" class="tab' + (govTab === 'war' ? ' active' : '') + '" data-gov="war" onclick="govTab(\'war\')">军 务</button>'
+      + '</div>';
+    // 总览
+    h += '<div class="gov-pg' + (govTab === 'overview' ? ' active' : '') + '" data-gov="overview">';
+    h += renderEdictOverview(cid, c, res, st, cnt, own);
+    h += '</div>';
+    // 政令（原简明三令）
+    h += '<div class="gov-pg' + (govTab === 'orders' ? ' active' : '') + '" data-gov="orders">';
+    if (!own) h += '<div class="edict-tip tip">你并非此城之主（或不在城池中枢）。占下一城后即可在此颁令。</div>';
     h += '<div class="edict-nav court-simple-acts">'
       + simpleCard('kaiken', '农 业', '产 粮 食', '每日一次 · 耗籽粮 8 石 · 得仓粮约 14 · 兼补辎粮', !own)
       + simpleCard('shangye', '商 业', '产 银 钱', '每日一次 · 耗本钱 8 两 · 得银约 11', !own)
       + simpleCard('lianbing', '募 兵', '充 部 曲', '每日一次 · 耗仓粮 15 石 · 募卒约 24', !own)
+      + '</div>'
+      + '<div class="edict-nav">'
+      + '<button class="btn" onclick="civilEdict(\'pacify\')">急 赈<span class="edict-navsub">耗银20 · 治安+6 · 不限次</span></button>' + '</div>';
+    h += '</div>';
+    // 军务
+    h += '<div class="gov-pg' + (govTab === 'war' ? ' active' : '') + '" data-gov="war">';
+    h += '<div class="edict-nav">'
+      + '<button class="btn" onclick="openModal(\'army\')">治 军<span class="edict-navsub">募兵编成 · 辎重调遣</span></button>'
+      + '<button class="btn" onclick="window.openBattlefieldDebug && window.openBattlefieldDebug(\'field\')">演 武<span class="edict-navsub">战棋操演</span></button>'
+      + '<button class="btn" onclick="openModal(\'factionMap\')">山 河<span class="edict-navsub">天下大势</span></button>'
       + '</div>';
-    h += '<div class="edict-head-ops"><button type="button" class="btn btn-ghost btn-sm" onclick="window.courtMode(1)">▸ 展开完整朝堂（军务 · 势力 · 委任）</button></div>';
-    h += '<div class="edict-foot">三令每城每日各一次 · 产粮入仓、募兵耗仓粮；出兵另需辎粮，籴粮令在完整朝堂。</div>';
+    h += '</div>';
+    h += '<div class="edict-head-ops"><button type="button" class="btn btn-ghost btn-sm" onclick="window.courtMode(1)">▸ 完整朝堂（势力 · 军令 · 委任）</button></div>';
+    h += '<div class="edict-foot">银两每月朔日按三税自动入账 · 总览可查税收前景与构成。</div>';
     h += '</div>';
     return h;
   }
@@ -240,13 +317,11 @@
   };
   function renderCourt(fallback, forceFull) {
     var st = S();
-    if (!st) return '<div class="edict-box edict-v2"><div class="edict-h">朝 堂</div><p class="tip">尚未入世。</p></div>';
+    if (!st) return '<div class="edict-box edict-v2"><div class="edict-h">政 令 台</div><p class="tip">尚未入世。</p></div>';
     st.flags = st.flags || {};
     var cid = st.room;
     var c = (LF.CITIES || {})[cid] || {};
     var ord = (st.flags.cityOrder && st.flags.cityOrder[cid] != null) ? st.flags.cityOrder[cid] : c.order;
-    var taxReady = (st.flags.cityTax || {})[cid] !== st.day;
-    var taxTip = taxReady ? ('可征 ' + (Math.round((c.pop + c.commerce) / 12) + 5) + ' 两') : '今日已征';
     var own = isCityGrid(cid) && (cityOwnerOf(cid) === playerFaction());
     var res = st.res || { grain: 0, iron: 0, kit: 0 };
     var cur = courtTabKey(fallback), view = courtViewKey();
@@ -267,7 +342,7 @@
     function nav(act, label, sub) { return '<button class="btn" onclick="' + act + '">' + label + '<span class="edict-navsub">' + sub + '</span></button>'; }
     function sec(title) { return '<div class="edict-sech">' + title + '</div>'; }
     var h = '<div class="edict-box edict-v2 court-v2">';
-    h += '<div class="edict-h">朝 堂 · ' + escapeHtml(c.name || '行在') + '</div>';
+    h += '<div class="edict-h">政 令 台 · ' + escapeHtml(c.name || '行在') + '</div>';
     // 常驻头：身份 / 库藏 / 军令额度，纯信息，不再塞操作按钮
     h += '<div class="surface edict-head">';
     h += '<div class="edict-res4">'
@@ -298,8 +373,8 @@
       h += '<div class="edict-tip tip">你并非此城之主（或不在城池中枢），无从发号施令；占城即得官守。</div>';
     } else {
       h += sec('常 设 政 令') + '<div class="edict-nav">'
-        + nav('civilEdict(\'tax\')', '征 税', taxTip)
-        + nav('civilEdict(\'pacify\')', '急 赈', '耗银20 · 治安+6 · 不限次') + '</div>';
+        + nav('civilEdict(\'pacify\')', '急 赈', '耗银20 · 治安+6 · 不限次') + '</div>'
+        + '<div class="edict-tip tip">丁税·农税·商税已于朔日自动入账，无需逐城征收；于「总览」查看税收前景。</div>';
       h += '<div class="edict-subtabs">' + stab('act', '亲 行') + stab('assign', '委 任') + '</div>';
       h += '<div class="edict-subpg' + (view === 'act' ? ' active' : '') + '" data-view="act">';
       h += sec('本城政令 · 亲行（每城每令每日一次）') + renderEdictCommands(cid, 'act') + '</div>';
@@ -662,6 +737,17 @@
     var rec = chronicleList().filter(function (e) { return (e && e.k === 'war') || (e && e.k === 'fall'); }).slice(0, 3);
     rec.forEach(function (e) { lines.push('※ ' + (e.t || '')); });
     var rep = { ym: ym, lines: lines.slice(0, 12), day: cal.day || S().day || 0 };
+    // v20261121a：税收前景/构成。本期三税由 monthlyYield 记在 flags.lastTax；
+    //   前景 forecast 按当前治域三税求和（近似下月）；环比对比上一期报表 tax.total。
+    var _lt = S().flags.lastTax || { ding: 0, nong: 0, shang: 0, total: 0 };
+    var _forecast = 0; (S().ruledCities || []).forEach(function (cid) { _forecast += cityTaxOf(cid).total; });
+    var _hist = S().flags.monthReports || [];
+    var _prev = (S().flags.monthReport && S().flags.monthReport.tax) ? S().flags.monthReport.tax.total : 0;
+    var _delta = _prev > 0 ? Math.round(((_forecast - _prev) / _prev) * 1000) / 10 : 0;
+    rep.tax = {
+      total: _lt.total, forecast: _forecast, deltaPct: _delta,
+      parts: { ding: _lt.ding, nong: _lt.nong, shang: _lt.shang }
+    };
     // v20261116b：留最近 12 期供翻页；monthReport 仍指最新一期，兼容旧存档/旧读法
     S().flags.monthReports = S().flags.monthReports || [];
     S().flags.monthReports.push(rep);
@@ -706,20 +792,31 @@
     }
     if (typeof save === 'function') save(S());
   }
+  // v20261121a：三税自动入账（取代每日主动征税）。系数经全图 72 城测算保持收支平衡：
+  //   丁税 = 人口 × 0.3；农税 = 农业 × 0.6；商税 = 商业 × 0.6；均乘职种经济系数（相才 ×1.35）。
+  //   农业/商业取「城市静态属性 + cityStats 动态积累」，故开垦/商业政令与探索可抬高后续税基。
+  var TAX_RATE = { ding: 0.3, nong: 0.6, shang: 0.6 };
+  function cityTaxOf(cid) {
+    var c = (LF.CITIES || {})[cid] || {};
+    var cs = ((S().flags || {}).cityStats || {})[cid] || {};
+    var em = roleEconMul();
+    var ding = Math.round((c.pop || 0) * TAX_RATE.ding * em);
+    var nong = Math.round(((c.agri || 0) + (cs.agri || 0)) * TAX_RATE.nong * em);
+    var shang = Math.round(((c.commerce || 0) + (cs.com || 0)) * TAX_RATE.shang * em);
+    return { ding: ding, nong: nong, shang: shang, total: ding + nong + shang };
+  }
   function monthlyYield() {
     var rc = S().ruledCities;
     if (!rc || !rc.length) return;
-    var dev = S().flags.cityDev || {};
-    var stats = S().flags.cityStats || {};
-    var total = 0;
-        var em = roleEconMul();
+    var total = 0, td = 0, tn = 0, ts = 0;
     rc.forEach(function (cid) {
-      var cs = stats[cid] || {};
-      total += Math.round(((dev[cid] || 0) * 0.6 + Math.min(40, cs.com || 0) * 0.8) * em);
+      var t = cityTaxOf(cid);
+      td += t.ding; tn += t.nong; ts += t.shang; total += t.total;
     });
     if (total > 0) {
       S().gold = (S().gold || 0) + total;
-      log('〔府库〕治下 ' + rc.length + ' 城纳赋，得银 ' + total + ' 两。', 'sys');
+      S().flags.lastTax = { ding: td, nong: tn, shang: ts, total: total };
+      log('〔府库〕治下 ' + rc.length + ' 城三税入账：丁税 ' + td + ' · 农税 ' + tn + ' · 商税 ' + ts + '，共 💰' + total + ' 两。', 'sys');
     }
     if (typeof monthlyAffairs === 'function') monthlyAffairs();
   }
@@ -1231,7 +1328,7 @@
       warKm: warKm, warCityAdjPairs: warCityAdjPairs, warOwnerKey: warOwnerKey, warIsLordKey: warIsLordKey, warFactionName: warFactionName,
       warCityPower: warCityPower, warFactionTotal: warFactionTotal, warFactionCityCount: warFactionCityCount, warInRoom: warInRoom,
       runWarlordBattle: runWarlordBattle, warChronicleEntry: warChronicleEntry, warlordBattle: warlordBattle, warlordDayTick: warlordDayTick,
-      onMonthTick: onMonthTick, monthlyYield: monthlyYield, factionDomesticAI: factionDomesticAI, scanFactionSurvival: scanFactionSurvival, checkUnify: checkUnify,
+      onMonthTick: onMonthTick, monthlyYield: monthlyYield, cityTaxOf: cityTaxOf, TAX_RATE: TAX_RATE, factionDomesticAI: factionDomesticAI, scanFactionSurvival: scanFactionSurvival, checkUnify: checkUnify,
       fireMonthlyEvents: fireMonthlyEvents, fireHistoricalEvents: fireHistoricalEvents, renderEvent: renderEvent, chooseEvent: chooseEvent,
       renderGrandStrategy: renderGrandStrategy, strategyCmd: global.strategyCmd
     };
