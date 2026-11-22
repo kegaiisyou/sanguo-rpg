@@ -911,7 +911,7 @@ window.LF = window.LF || {};
         out.push({ id: 'mine_cave', label: '入矿洞', icon: '🕳', tip: '沿矿道下行——越深矿越好，也越耗精力；深处或有古碑藏兵' });
       }
       if (t === 'kitchen') { out.push({ id: 'kitchen_cook', label: '生火造饭', icon: '🍚', tip: '于伙房埋锅造饭，稍歇精神' }); }
-      if (t === 'command') { out.push({ id: 'command_talk', label: '中军议事', icon: '🚩', tip: '入帐议事，览军情城务' }); }
+      if (t === 'command') { out.push({ id: 'command_talk', label: '中军议事', icon: '🚩', tip: '入帐议事，览军情民政' }); }
       if (t === 'warehouse') { out.push({ id: 'warehouse_view', label: '进入仓库', icon: '📦', tip: '入库存取物资，存粮木料皆在此' }); }
       // ── 下地务农（v20261021b）：农庄格此前没有任何动作，营造落成后是个死格 ──
       if (t === 'farm') {
@@ -962,7 +962,7 @@ window.LF = window.LF || {};
       if (t !== 'gate') { /* 前往城门：归山河图/城门罗盘，城市视图不再常驻此钮 */ }
       // ── 政令台（v20260826g 身份系统）：立于中枢且此城归你所统，方能发号 ──
       if (x === cx && y === cy && cityOwnerOf(cid) === playerFaction()) {
-        out.push({ id: 'edict', label: '政令台', icon: '📜', tip: '于此发号政令：征税、安民、观天下大势' });
+        out.push({ id: 'edict', label: '政令台', icon: '📜', tip: '于此发号政令：急赈、观天下大势、查税收前景' });
       }
       // 教程/具名 动作名册（按格注入；v20260909p）
       var _tacts = (TUTORIAL_CITY_ACTS[cid] && TUTORIAL_CITY_ACTS[cid][x + ',' + y]) || [];

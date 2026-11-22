@@ -200,7 +200,7 @@
     sb.flags.sandbox = { cid: cid, createdDay: sb.day || 0 };
     // 跳过教程：沙盒要立刻能点政令台/升级/营造/跳月
     sb.flags.onb = sb.flags.onb || {}; sb.flags.onb.done = true;
-    // 样板城压到 1 级（3×3）、清缓存强制重建网格、清覆盖层
+    // 样板城城等压到 1（3×3）、清缓存强制重建网格、清覆盖层
     sb.flags.cityLevel = sb.flags.cityLevel || {}; sb.flags.cityLevel[cid] = 1;
     sb.flags.cityDev = sb.flags.cityDev || {}; sb.flags.cityDev[cid] = 20;
     if (sb.flags.cityGrid) delete sb.flags.cityGrid[cid];
@@ -692,6 +692,7 @@
   var Strategy = LF.createStrategy({
     getState: function () { return state; },
     LF: LF,
+    CITY_LV_SIZE: CITY_LV_SIZE, CITY_LV_NAME: CITY_LV_NAME,
     log: log, toast: toast, save: save, renderStatus: renderStatus, openModal: openModal,
     conquerCity: conquerCity, playerFaction: playerFaction,
     cityOwnerOf: cityOwnerOf, cityDevOf: cityDevOf, setCityDev: setCityDev, isCityGrid: isCityGrid,
@@ -1916,7 +1917,7 @@
       if (isOwn && lv != null && lv < CITY_LV_SIZE.length-1) {
         var need={zhuan:Math.round(40*(lv+1)), shitiao:Math.round(25*(lv+1)), mucai:Math.round(15*(lv+1))};
         out.push({ id:'city_upgrade', label:'拓建城垣', icon:'🏯',
-          tip:'耗 砖'+need.zhuan+' · 石料'+need.shitiao+' · 木材'+need.mucai+'，城等 '+((CITY_LV_NAME[lv])||lv)+'→'+((CITY_LV_NAME[lv+1])||(lv+1))+'，城池扩大一格',
+          tip:'耗 砖'+need.zhuan+' · 石料'+need.shitiao+' · 木材'+need.mucai+'，城等 '+((CITY_LV_NAME[lv])||lv)+'→'+((CITY_LV_NAME[lv+1])||(lv+1))+'，名号晋升（城池尺寸不再扩大）',
           data:{cid:cid} });
       }
     } catch (err) {}
@@ -5129,8 +5130,9 @@
   window.openOfficerPanel=openOfficerPanel; window.openSearchPanel=openSearchPanel; window.recruitOfficer=officerRecruit; window.appointOfficer=officerAppoint; window.dismissOfficer=officerDismiss; window.openOfficerTab=Officers.openOfficerTab;
   window.dispatchAssign=dispatchAssign; window.dispatchRemove=dispatchRemove; window.dispatchLabor=dispatchLabor; window.dispatchTroops=dispatchTroops;
   window.civilCommand=civilCommand; window.delegateCommand=delegateCommand; window.undelegateCommand=undelegateCommand;
-  // v20260924z17：strategy.js 的政令台按钮是内联 onclick="civilEdict('tax')"，在浏览器全局作用域解析；
-  //   函数只在引擎闭包里、没挂 window → 点「征税 / 安民」抛 "civilEdict is not defined"。
+  // v20260924z17：政令台按钮内联 onclick="civilEdict('pacify')" 在浏览器全局作用域解析；
+  //   函数只在引擎闭包里、没挂 window → 点「急赈」曾抛 "civilEdict is not defined"。
+  //   v20261121a 起每日征税已下线，'tax' 分支仅作旧入口兼容。
   window.civilEdict=civilEdict;
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.enterGame=enterGame;  window.advanceMinutes = advanceMinutes; window.advanceTime = advanceTime;

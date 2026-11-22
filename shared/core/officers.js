@@ -844,7 +844,7 @@ h += '<button class="btn sm danger" onclick="window.dismissOfficer(\'' + o.id + 
     var EDICT_GROUPS = [
       { name: '农商', keys: ['kaiken', 'shangye'] },
       { name: '工造', keys: ['kaikuang', 'zaohuo'] },
-      { name: '城务', keys: ['zhishui', 'zhian'] },
+      { name: '民政', keys: ['zhishui', 'zhian'] },
       { name: '军略', keys: ['lianbing', 'dengyong', 'tansuo'] }
     ];
     function renderEdictCommands(cid, view) {

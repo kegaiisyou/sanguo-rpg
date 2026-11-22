@@ -129,7 +129,7 @@
     },
     {
       id: 'wealth', title: '小有资财', type: 'side', reward: { xp: 100 },
-      hint: '征税、市租、贸易皆可聚财，以资军用。',
+      hint: '市租、贸易与朔日三税皆可聚财，以资军用。',
       check: function (s) { return s.gold >= 300; },
       prog: function (s) { return '库银 ' + s.gold + ' / 300'; },
       ratio: function (s) { return clamp1(s.gold / 300); }

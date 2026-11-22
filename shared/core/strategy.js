@@ -156,7 +156,7 @@
     // 延迟重绘兜底，否则玩家点完征税/安民后面板会莫名消失。
     setTimeout(function () { try { openModal('edict'); } catch (e) {} }, 140);
   }
-  // ══ v20261113b 朝堂：一个面板，按「对象」分三层 ══
+  // ══ v20261113b 政令台：一个面板，按「对象」分三层 ══
   // 本城 = 单城日常（每日 / 免费）；势力 = 全境月度军令（每月 / 耗 1 道）；兵事 = 用兵与人事。
   // renderEdict() 与 renderGrandStrategy() 都指向此处：openModal('edict'|'grandStrategy')
   // 与势力图 / 调试台的所有旧入口一律不失效，且各操作重绘时页签不跳。
@@ -193,8 +193,9 @@
       + '<span class="cs-d">' + desc + '</span></button>';
   }
   // ══ v20261121a · 政令台「总览」页（一张奏报看全城事务）══
-  var GOV_LV_SIZE = [2,3,4,5,6,6,6,6];
-  var GOV_LV_NAME = ['村','镇','乡','县城','郡城','府城','州城','都城'];
+  // v20261123b：尺寸表以 city.js 的 CITY_LV_SIZE/CITY_LV_NAME 为唯一真相源（engine 注入），此处仅兜底
+  var CITY_LV_SIZE = ctx.CITY_LV_SIZE || [2,3,4,5,6,6,6,6];
+  var CITY_LV_NAME = ctx.CITY_LV_NAME || ['村','镇','乡','县城','郡城','府城','州城','都城'];
   global.govTab = function (k) {
     var st = S(); if (!st) return;
     st.flags = st.flags || {};
@@ -209,18 +210,26 @@
     var f = st.flags || {};
     var ord = (f.cityOrder && f.cityOrder[cid] != null) ? f.cityOrder[cid] : c.order;
     var lv = ((f.cityLevel || {})[cid] != null) ? f.cityLevel[cid] : ((c.tier === 'capital') ? 7 : (c.grid >= 9 ? 7 : c.grid >= 7 ? 3 : c.grid >= 5 ? 3 : 1));
-    var lvName = GOV_LV_NAME[lv] || '城', lvSize = GOV_LV_SIZE[lv] || 3;
+    var lvName = CITY_LV_NAME[lv] || '城', lvSize = CITY_LV_SIZE[lv] || 3;
     var dev = (f.cityDev || {})[cid] || 0;
     var mine = (st.ruledCities || []).filter(function (x) { return (LF.CITIES || {})[x]; });
     // 报表：优先读最近一期月报，未到朔日则按当前治域实时推算
     var mr = f.monthReport, tx = mr && mr.tax;
     var fc = 0, px = { ding: 0, nong: 0, shang: 0 };
-    mine.forEach(function (x) { var t = cityTaxOf(x); fc += t.total; px.ding += t.ding; px.nong += t.nong; px.shang += t.shang; });
+    if (tx && tx.forecast) {
+      // 单一数据源：展示与环比同取一期报表快照，杜绝「实时预测 + 历史环比」混口径
+      fc = tx.forecast;
+      px = { ding: (tx.parts || {}).ding || 0, nong: (tx.parts || {}).nong || 0, shang: (tx.parts || {}).shang || 0 };
+    } else {
+      // 未到首个朔日：按当前治域实时推算，无环比基线
+      mine.forEach(function (x) { var t = cityTaxOf(x); fc += t.total; px.ding += t.ding; px.nong += t.nong; px.shang += t.shang; });
+    }
     var local = cityTaxOf(cid);
     var delta = tx ? (tx.deltaPct || 0) : 0;
     var dCls = delta > 0 ? ' up' : (delta < 0 ? ' down' : '');
     var dTxt = (delta > 0 ? '+' : '') + delta + '%';
     var h = '<div class="gov-overview">';
+    if (!own) h += '<div class="edict-tip tip">你并非此城之主（或不在城池中枢），以下仅全局奏报；本城事务请择己城查看。</div>';
     // KPI
     h += '<div class="surface gov-kpi">'
       + '<div class="er4 r-gold"><i>府库·两</i><b>' + (st.gold || 0) + '</b></div>'
@@ -238,23 +247,25 @@
       + '</div>'
       + '<div class="gov-tax-note">丁税按人口 · 农税按农业（含开垦积累）· 商税按商业（含市易积累）；本城合计 ' + local.total + ' 两。器物营生（设施/店铺/市租）另计。</div>'
       + '</div>';
-    // 城级建设 + 城防守军
-    h += '<div class="gov-stats">'
-      + '<div class="surface gov-stat"><div class="gov-t">城 级 · 建 设</div>'
-      + '<div class="gs-row"><span>城级</span><b>' + lvName + ' · ' + (lv + 1) + ' 级（' + lvSize + '×' + lvSize + ' 格）</b></div>'
-      + '<div class="gs-row"><span>建设度</span><b>' + dev + ' / 100</b></div>'
-      + '<div class="gov-bar"><i style="width:' + dev + '%"></i></div>'
-      + '<div class="gs-note">城池最高 6×6；升级只升名号（直至都城），不再放大城池。</div></div>'
-      + '<div class="surface gov-stat"><div class="gov-t">城 防 · 守 军</div>'
-      + '<div class="gov-gauge"><div><i>城防</i><b>' + (c.wall || 0) + '</b></div><div><i>守军</i><b>' + cityGarrisonOf(cid) + '</b></div><div><i>部曲</i><b>' + cnt + '</b></div></div>'
-      + '</div></div>';
-    // 分区办理
-    h += '<div class="surface gov-jump"><div class="gov-t">分 区 办 理</div><div class="gov-jg">'
-      + '<button class="btn" onclick="openModal(\'army\')">⚔ 征兵 · 治军</button>'
-      + '<button class="btn" onclick="openModal(\'citybuild\')">⚒ 营造 · 工事</button>'
-      + '<button class="btn" onclick="openModal(\'citystat\')">🏯 市集 · 城况</button>'
-      + '<button class="btn ghost" onclick="openOfficerPanel()">📜 武将 · 委任</button>'
-      + '</div></div>';
+    if (own) {
+      // 城级建设 + 城防守军（仅本城主可见）
+      h += '<div class="gov-stats">'
+        + '<div class="surface gov-stat"><div class="gov-t">城 级 · 建 设</div>'
+        + '<div class="gs-row"><span>城级</span><b>' + lvName + ' · ' + lvSize + '×' + lvSize + ' 格</b></div>'
+        + '<div class="gs-row"><span>建设度</span><b>' + dev + ' / 100</b></div>'
+        + '<div class="gov-bar"><i style="width:' + dev + '%"></i></div>'
+        + '<div class="gs-note">城池最高 6×6；升级只升名号（直至都城），不再放大城池。</div></div>'
+        + '<div class="surface gov-stat"><div class="gov-t">城 防 · 守 军</div>'
+        + '<div class="gov-gauge"><div><i>城防</i><b>' + (c.wall || 0) + '</b></div><div><i>守军</i><b>' + cityGarrisonOf(cid) + '</b></div><div><i>部曲</i><b>' + cnt + '</b></div></div>'
+        + '</div></div>';
+      // 分区办理
+      h += '<div class="surface gov-jump"><div class="gov-t">分 区 办 理</div><div class="gov-jg">'
+        + '<button class="btn" onclick="openModal(\'army\')">⚔ 征兵 · 治军</button>'
+        + '<button class="btn" onclick="openModal(\'citybuild\')">⚒ 营造 · 工事</button>'
+        + '<button class="btn" onclick="openModal(\'citystat\')">🏯 市集 · 城况</button>'
+        + '<button class="btn ghost" onclick="openOfficerPanel()">📜 武将 · 委任</button>'
+        + '</div></div>';
+    }
     h += '</div>';
     return h;
   }
@@ -290,7 +301,7 @@
       + '<button class="btn" onclick="openModal(\'factionMap\')">山 河<span class="edict-navsub">天下大势</span></button>'
       + '</div>';
     h += '</div>';
-    h += '<div class="edict-head-ops"><button type="button" class="btn btn-ghost btn-sm" onclick="window.courtMode(1)">▸ 完整朝堂（势力 · 军令 · 委任）</button></div>';
+    h += '<div class="edict-head-ops"><button type="button" class="btn btn-ghost btn-sm" onclick="window.courtMode(1)">▸ 完整政令台（势力 · 军令 · 委任）</button></div>';
     h += '<div class="edict-foot">银两每月朔日按三税自动入账 · 总览可查税收前景与构成。</div>';
     h += '</div>';
     return h;
@@ -329,7 +340,7 @@
     var mine = (st.ruledCities || []).filter(function (x) { return C[x]; });
     var a = st.army || {}, cnt = 0;
     (a.troops || []).forEach(function (t) { cnt += (t.count || 0); });
-    // v20261114a：默认走简明朝堂（三令），完整三层朝堂需显式展开
+    // v20261114a：默认走简明政令台（三令），完整三层政令台需显式展开
     if (!st.flags.courtFull && !forceFull) return renderCourtSimple(cid, c, res, st, cnt, own);
     function tab(k, label, sub) {
       return '<button type="button" class="tab' + (cur === k ? ' active' : '') + '" data-pg="' + k
@@ -442,7 +453,7 @@
       + nav('openOfficerPanel()', '武 将', '登庸 · 郡守 · 主将') + '</div></div>';
     h += '</div>';
     h += '<div class="edict-foot">每月朔日军令复原（2～8 道）；用兵与内政共用军令，另受 ' + WAR_ADJ_KM + ' 公里邻接与军粮约束。</div>';
-    h += '<div class="edict-head-ops"><button type="button" class="btn btn-ghost btn-sm" onclick="window.courtMode(0)">◂ 收起为简明朝堂</button></div>';
+    h += '<div class="edict-head-ops"><button type="button" class="btn btn-ghost btn-sm" onclick="window.courtMode(0)">◂ 收起为简明政令台</button></div>';
     h += '</div>';
     return h;
   }
@@ -511,13 +522,13 @@
     h += '<span>辎粮 <b>'+(_pa.grain||0)+'</b> 石</span>';
     h += '<span>声望 <b>'+(S().reputation||0)+'</b></span>';
     h += '</div>';
-    h += '<div class="fm-my-ops"><button class="btn sm" onclick="edictTab(\'realm\');openModal(\'grandStrategy\')">朝 堂 · 军令</button><button class="btn sm" onclick="openOfficerPanel()">武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">刷新大势</button></div>';
+    h += '<div class="fm-my-ops"><button class="btn sm" onclick="edictTab(\'realm\');openModal(\'grandStrategy\')">政 令 台 · 军令</button><button class="btn sm" onclick="openOfficerPanel()">武将名册</button><button class="btn sm" onclick="openModal(\'factionMap\')">刷新大势</button></div>';
     h += '</div>';
-    // v20261113b：出兵口收敛到朝堂「兵事」页。此处只留指路，不再重复渲染亲征/命将按钮。
+    // v20261113b：出兵口收敛到政令台「兵事」页。此处只留指路，不再重复渲染亲征/命将按钮。
     var _tg = campaignTargets();
-    h += '<div class="fm-my"><div class="fm-my-h">举兵远征 · 见朝堂「兵事」（' + _tg.length + ' 城可攻）</div>';
-    h += '<p class="tip">进兵方向已归入朝堂「兵事」页，亲征 / 命将皆在那里下令；山河志亦可就地迎战。</p>';
-    h += '<div class="fm-my-ops"><button class="btn sm" onclick="edictTab(\'war\');openModal(\'grandStrategy\')">朝 堂 · 兵 事</button></div></div>';
+    h += '<div class="fm-my"><div class="fm-my-h">举兵远征 · 见政令台「兵事」（' + _tg.length + ' 城可攻）</div>';
+    h += '<p class="tip">进兵方向已归入政令台「兵事」页，亲征 / 命将皆在那里下令；山河志亦可就地迎战。</p>';
+    h += '<div class="fm-my-ops"><button class="btn sm" onclick="edictTab(\'war\');openModal(\'grandStrategy\')">政 令 台 · 兵 事</button></div></div>';
     h+='</div>';
     return h;
   }
@@ -738,11 +749,10 @@
     rec.forEach(function (e) { lines.push('※ ' + (e.t || '')); });
     var rep = { ym: ym, lines: lines.slice(0, 12), day: cal.day || S().day || 0 };
     // v20261121a：税收前景/构成。本期三税由 monthlyYield 记在 flags.lastTax；
-    //   前景 forecast 按当前治域三税求和（近似下月）；环比对比上一期报表 tax.total。
+    //   前景 forecast 按当前治域三税求和（近似下月）；环比对比上一期 forecast（预测对预测，口径自洽）。
     var _lt = S().flags.lastTax || { ding: 0, nong: 0, shang: 0, total: 0 };
     var _forecast = 0; (S().ruledCities || []).forEach(function (cid) { _forecast += cityTaxOf(cid).total; });
-    var _hist = S().flags.monthReports || [];
-    var _prev = (S().flags.monthReport && S().flags.monthReport.tax) ? S().flags.monthReport.tax.total : 0;
+    var _prev = (S().flags.monthReport && S().flags.monthReport.tax) ? (S().flags.monthReport.tax.forecast || 0) : 0;
     var _delta = _prev > 0 ? Math.round(((_forecast - _prev) / _prev) * 1000) / 10 : 0;
     rep.tax = {
       total: _lt.total, forecast: _forecast, deltaPct: _delta,
@@ -753,9 +763,10 @@
     S().flags.monthReports.push(rep);
     if (S().flags.monthReports.length > 12) S().flags.monthReports.splice(0, S().flags.monthReports.length - 12);
     S().flags.monthReport = rep;
+    S().flags.monthReportIdx = 0;   // 新月报入列后回到最新一期，避免停在旧 idx 指向错期
   }
 
-  // 月报翻页（v20261116b）：delta=-1 看上一期（更旧），+1 看下一期（更新）；重开势力图刷新
+  // 月报翻页（v20261116b）：delta=+1 往旧翻（上一期），-1 往新翻（下一期）；重开势力图刷新
   // 挂 window 供内联 onclick 调用，与 openDiplomacy 同款桥接。
   global.monthReportPage = function (delta) {
     var st = S(); if (!st || st.dead) return false;
@@ -795,6 +806,8 @@
   // v20261121a：三税自动入账（取代每日主动征税）。系数经全图 72 城测算保持收支平衡：
   //   丁税 = 人口 × 0.3；农税 = 农业 × 0.6；商税 = 商业 × 0.6；均乘职种经济系数（相才 ×1.35）。
   //   农业/商业取「城市静态属性 + cityStats 动态积累」，故开垦/商业政令与探索可抬高后续税基。
+  //   注：商业令即时产银（officers.js playerEconMul）与商税税基积累是两条独立收益流，相才系数各作用
+  //       于当期收益，非同一笔银重复兑现；调整系数需同时复核两处，避免收支失衡。
   var TAX_RATE = { ding: 0.3, nong: 0.6, shang: 0.6 };
   function cityTaxOf(cid) {
     var c = (LF.CITIES || {})[cid] || {};
@@ -806,16 +819,16 @@
     return { ding: ding, nong: nong, shang: shang, total: ding + nong + shang };
   }
   function monthlyYield() {
-    var rc = S().ruledCities;
-    if (!rc || !rc.length) return;
+    var rc = S().ruledCities || [];
     var total = 0, td = 0, tn = 0, ts = 0;
     rc.forEach(function (cid) {
       var t = cityTaxOf(cid);
       td += t.ding; tn += t.nong; ts += t.shang; total += t.total;
     });
+    // v20261123b：零收入月份也要刷新账本，否则失城/税基归零后报表沿用上月旧值
+    S().flags.lastTax = { ding: td, nong: tn, shang: ts, total: total };
     if (total > 0) {
       S().gold = (S().gold || 0) + total;
-      S().flags.lastTax = { ding: td, nong: tn, shang: ts, total: total };
       log('〔府库〕治下 ' + rc.length + ' 城三税入账：丁税 ' + td + ' · 农税 ' + tn + ' · 商税 ' + ts + '，共 💰' + total + ' 两。', 'sys');
     }
     if (typeof monthlyAffairs === 'function') monthlyAffairs();
@@ -1113,8 +1126,8 @@
     setTimeout(function () { openModal('grandStrategy'); }, 140);
     return true;
   };
-  // v20261115a：显式入口（大势 → 朝堂·军令 / 兵事）必须直达完整朝堂，
-  // 否则 courtFull=0 时 fallback 被简明朝堂吞掉，按钮点了只看到三张卡。
+  // v20261115a：显式入口（大势 → 政令台·军令 / 兵事）必须直达完整政令台，
+  // 否则 courtFull=0 时 fallback 被简明政令台吞掉，按钮点了只看到三张卡。
   function renderGrandStrategy() { return renderCourt('realm', true); }
 
   // ══ 举兵远征（v20261112d · P0）══
