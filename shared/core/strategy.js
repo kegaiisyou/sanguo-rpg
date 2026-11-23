@@ -206,6 +206,17 @@
     var pgs = box.querySelectorAll('.gov-pg');
     for (var j = 0; j < pgs.length; j++) pgs[j].classList.toggle('active', pgs[j].getAttribute('data-gov') === st.flags.govTab);
   };
+  // v20261123c：官印治权——flags.seals[cid]={level,holder}，镜像 cityLevel（唯一等级真相源），
+  //   仅作政令台展示与权限判定；多座政令台指向同一 cid 时共享同一份治权，不各自为政。
+  function sealOf(cid){
+    var F = (S() && S().flags) || {};
+    F.seals = F.seals || {};
+    if(!F.seals[cid]) F.seals[cid] = { level:0, holder:'' };
+    F.seals[cid].level = ((F.cityLevel||{})[cid] || 0);
+    F.seals[cid].holder = cityOwnerOf(cid) || 'none';
+    return F.seals[cid];
+  }
+  global.sealOf = sealOf;
   function renderEdictOverview(cid, c, res, st, cnt, own) {
     var f = st.flags || {};
     var ord = (f.cityOrder && f.cityOrder[cid] != null) ? f.cityOrder[cid] : c.order;
@@ -251,10 +262,14 @@
       // 城级建设 + 城防守军（仅本城主可见）
       h += '<div class="gov-stats">'
         + '<div class="surface gov-stat"><div class="gov-t">城 级 · 建 设</div>'
-        + '<div class="gs-row"><span>城级</span><b>' + lvName + ' · ' + lvSize + '×' + lvSize + ' 格</b></div>'
+        + '<div class="gs-row"><span>官印</span><b>' + lvName + ' · ' + (sealOf(cid).level + 1) + ' 级</b></div>'
+        + '<div class="gs-row"><span>城池</span><b>' + lvSize + '×' + lvSize + ' 格</b></div>'
         + '<div class="gs-row"><span>建设度</span><b>' + dev + ' / 100</b></div>'
         + '<div class="gov-bar"><i style="width:' + dev + '%"></i></div>'
-        + '<div class="gs-note">城池最高 6×6；升级只升名号（直至都城），不再放大城池。</div></div>'
+        + ((own && sealOf(cid).level < CITY_LV_SIZE.length - 1)
+            ? '<button class="btn btn-sm" style="margin-top:8px;" onclick="window.upgradeSeal(\'' + cid + '\')">⬆ 升 衙 署<span class="edict-navsub">耗 砖石木料 · 升官印等级与名号</span></button>'
+            : '')
+        + '<div class="gs-note">城池最高 6×6；升衙署只升官印等级与名号（直至都城），不再放大城池。</div></div>'
         + '<div class="surface gov-stat"><div class="gov-t">城 防 · 守 军</div>'
         + '<div class="gov-gauge"><div><i>城防</i><b>' + (c.wall || 0) + '</b></div><div><i>守军</i><b>' + cityGarrisonOf(cid) + '</b></div><div><i>部曲</i><b>' + cnt + '</b></div></div>'
         + '</div></div>';
@@ -326,11 +341,11 @@
     var pgs = box.querySelectorAll('.edict-subpg');
     for (var j = 0; j < pgs.length; j++) pgs[j].classList.toggle('active', pgs[j].getAttribute('data-view') === st.flags.edictView);
   };
-  function renderCourt(fallback, forceFull) {
+  function renderCourt(fallback, forceFull, opts) {
     var st = S();
     if (!st) return '<div class="edict-box edict-v2"><div class="edict-h">政 令 台</div><p class="tip">尚未入世。</p></div>';
     st.flags = st.flags || {};
-    var cid = st.room;
+    var cid = (opts && opts.cid) || st.room;
     var c = (LF.CITIES || {})[cid] || {};
     var ord = (st.flags.cityOrder && st.flags.cityOrder[cid] != null) ? st.flags.cityOrder[cid] : c.order;
     var own = isCityGrid(cid) && (cityOwnerOf(cid) === playerFaction());
@@ -457,7 +472,7 @@
     h += '</div>';
     return h;
   }
-  function renderEdict() { return renderCourt('city'); }
+  function renderEdict(opts) { return renderCourt('city', false, opts); }
 
   function renderFactionMap(){
     var groups={};

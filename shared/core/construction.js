@@ -82,6 +82,18 @@ window.LF = window.LF || {};
         {label:'打开', icon:'📂', fn:function(){ closeModal(); openModal('container', {placed:p}); }},
         {label:'收起', icon:'📦', fn:function(){ getShop().contPickup(p); }}
       ];
+    },
+    // v20261123c：官印·政令台——单击直达政令台面板（该印绑定的城），收起需二次确认
+    gov_seal: function(p){
+      var _armed = false;
+      return [
+        {label:'政令台…', icon:'📜', fn:function(){ closeModal(); openModal('edict', {cid:p.sealCid}); }},
+        {label:'收起官印', icon:'📦', fn:function(){
+          if(!_armed){ _armed=true; toast('再点一次「收起官印」以确认（官印退回行囊，不丢失）。');
+            setTimeout(function(){ _armed=false; }, 3000); return; }
+          _armed=false; packUpPlaced('gov_seal');
+        }}
+      ];
     }
   };
   // 休息设施配置：不同设施恢复效率不同，休息时长可由玩家自选
@@ -210,7 +222,13 @@ window.LF = window.LF || {};
       return it.defId ? (od === it.defId) : (o.key === pl.key);
     })){ toast('此处已支有'+pl.name+'，欲换新样须先收起旧物。'); return; }
     if(it.count && it.count>1){ it.count--; } else { getState().pack[idx]=null; }
-    getState().placed[getState().room].push({key:pl.key, defId:it.defId, cell:_tag});
+    var _rec = {key:pl.key, defId:it.defId, cell:_tag};
+    if(it.defId === 'zhenglingtai'){
+      var _cp = getState().flags && getState().flags.cityPos;
+      var _rc = getState().ruledCities || [];
+      _rec.sealCid = (_cp && _cp.cid && (_rc.indexOf(_cp.cid)>=0 || isCityGrid(_cp.cid))) ? _cp.cid : (_rc[0] || _cp && _cp.cid || null);
+    }
+    getState().placed[getState().room].push(_rec);
     setPackInspect(null);
     afterPackChange();
     log('你支起'+pl.name+'，安置于'+curRoom().name+'。','sys');

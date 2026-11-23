@@ -71,7 +71,7 @@
       party: [],                                    // 随从同伴（每场战斗满血入场，见 startCombat）
       army: { active:true, troops:[{type:'changqiang', count:1, rank:'front'}], logistics:{ items:[], cap:8, grain:0 }, morale:100, rallyPoint:null, recruited:{}, marching:null },   // 军队（v20260921a）：兵科/辎重/军心/驻扎地/已募兵源/行军中
       officers: [],                                  // 武将名册（v20260921b）：登庸/任命太守与主将/克城俘获的武将实例
-      pack: [],                                       // 开局行囊清空（v20260907f）：初始道具改由后续剧情/任务发放；基础容量仍为 6 格，可装备背包扩容
+      pack: [LF.ITEMS.makeItem('zhenglingtai')],      // v20261123c：开局携「官印·政令台」一枚（可放置的治权载体，替代旧「拓建城垣」入口）
       equips: [],                                 // 兼容旧字段（已并入 pack，保留避免 undefined）
       // 六装备槽 + 背包槽。开局身上只有一身【囚服】与一副【镣铐】——
       //   序章「越狱」的处境就写在装备栏里；行囊教学第一步也正是先看这两件（v20260912f）。

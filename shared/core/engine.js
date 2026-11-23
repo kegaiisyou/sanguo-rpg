@@ -1910,17 +1910,7 @@
   function cityActs(cid){
     var p=cityProfile(cid); if(!p) return [];
     var out=[];
-    // v20261121a：恢复「拓建城垣」——现存城起点压缩后，玩家可逐级升至都城(9×9)
-    try {
-      var isOwn = (cityOwnerOf(cid) === playerFaction());
-      var lv = (state.flags.cityLevel||{})[cid];
-      if (isOwn && lv != null && lv < CITY_LV_SIZE.length-1) {
-        var need={zhuan:Math.round(40*(lv+1)), shitiao:Math.round(25*(lv+1)), mucai:Math.round(15*(lv+1))};
-        out.push({ id:'city_upgrade', label:'拓建城垣', icon:'🏯',
-          tip:'耗 砖'+need.zhuan+' · 石料'+need.shitiao+' · 木材'+need.mucai+'，城等 '+((CITY_LV_NAME[lv])||lv)+'→'+((CITY_LV_NAME[lv+1])||(lv+1))+'，名号晋升（城池尺寸不再扩大）',
-          data:{cid:cid} });
-      }
-    } catch (err) {}
+    // v20261123c：「拓建城垣」按钮已移除，升级改由政令台内「升衙署」入口（见 strategy.js 总览页）。
     return out;
   }
   function tryUpgradeCity(cid){
@@ -1937,7 +1927,8 @@
     afterPackChange();
     log('夯土累石，城垣拓建——'+(CITY_LV_NAME[lv+1]||'城')+'初成，新坊市渐辟（城等 '+(((state.flags.cityLevel||{})[cid])||lv)+'）。','sys');
     if(state.room===cid) renderRoom(cid,true);
-    openModal('citystat',{cid:cid});
+    if(currentModalKind==='edict' || (currentModalOpts && currentModalOpts.cid===cid)) openModal('edict',{cid:cid});
+    else openModal('citystat',{cid:cid});
   }
   // 降级（战争/政变/匪患）：城市等级 -1，触发流亡（越界建筑清理由 cityCells 覆盖层在第3步启用）
   function downgradeCity(cid){
@@ -4658,7 +4649,7 @@
       if(!buildingState || !buildingState.area){ buildingState={building:'yaofu', bp:null, area:'root', stack:[], sel:null}; }
       h=renderBuildingPanel();
     } else if(kind==='edict'){
-      h=renderEdict();
+      h=renderEdict(opts);
     } else if(kind==='factionMap'){
       h=renderFactionMap();
     } else if(kind==='victory'){
@@ -5134,6 +5125,7 @@
   //   函数只在引擎闭包里、没挂 window → 点「急赈」曾抛 "civilEdict is not defined"。
   //   v20261121a 起每日征税已下线，'tax' 分支仅作旧入口兼容。
   window.civilEdict=civilEdict;
+  window.upgradeSeal=function(cid){ try { return tryUpgradeCity(cid || (state&&state.room)); } catch(e){ toast('升衙署未能完成：'+(e&&e.message||e)); } };
   window.advanceMinutes=advanceMinutes; window.advanceTime=advanceTime;   // 调试/自动化游玩桥接（v20260918i，供 playtest harness 推进时间）
   window.enterGame=enterGame;  window.advanceMinutes = advanceMinutes; window.advanceTime = advanceTime;
   window.checkTriggers=checkTriggers;   // 调试/自动化游玩桥接（v20261028，供 playtest harness 触发 onEnter 夺营裁决）
